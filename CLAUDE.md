@@ -27,13 +27,16 @@
 - `phd_proposal/` - LaTeX格式的博士开题报告文档
   - `phd_proposal_report/` - 主开题报告
   - `phd_proposal_literature_review/` - 文献综述文档
-- `baseline_literature/` - 基线文献与论文分析（详见下方"基线文献管理规范"）
-  - 每个子目录对应一篇论文或相关工作
-  - 包含PDF原文、提取的文本内容和结构化总结
+- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模
+- `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
+- `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
+- `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
 - `tools/` - Python工具集（详见下方"工具使用说明"）
   - `pdf_extractor.py` - PDF文本提取工具
 - `TARGET.md` - 研究内容综合总结（中文）
 - `requirements.txt` - PDF处理所需的Python依赖
+
+**论文组织方式**：论文可以出现在任何路径下（如各个project目录、专门的文献目录等），但每篇论文都应遵循统一的三文件结构（详见下方"论文文件管理规范"）。
 
 ## 工具使用说明
 
@@ -86,23 +89,24 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-## 基线文献管理规范
+## 论文文件管理规范
 
-`baseline_literature/` 目录用于存放相关工作和基线方法的论文及其分析。每篇论文应按以下规范组织：
+论文可以出现在仓库的任何路径下（如各个project目录、专门的文献目录等）。每篇论文应按以下规范组织：
 
 ### 目录结构
 
 每篇论文创建一个独立的子目录，目录名应简洁明了（通常使用论文的关键词或工具名），例如：
 ```
-baseline_literature/
-├── ttool-ai/
-│   ├── Apvrille和Sultan - 2024 - System Architects Are not Alone Anymore....pdf
-│   ├── paper_content.txt
-│   └── desc.md
-├── another-paper/
-│   ├── Author - Year - Title.pdf
-│   ├── paper_content.txt
-│   └── desc.md
+project_1_llm_state_machine_modeling/
+├── related_work/
+│   ├── ttool-ai/
+│   │   ├── Apvrille和Sultan - 2024 - System Architects Are not Alone Anymore....pdf
+│   │   ├── paper_content.txt
+│   │   └── desc.md
+│   └── another-paper/
+│       ├── Author - Year - Title.pdf
+│       ├── paper_content.txt
+│       └── desc.md
 ```
 
 ### 文件说明
@@ -112,7 +116,7 @@ baseline_literature/
 2. **paper_content.txt**：使用 `tools/pdf_extractor.py` 自动提取的论文文本内容
    ```bash
    # 提取命令示例
-   python -m tools.pdf_extractor -i "baseline_literature/ttool-ai/论文.pdf" -o "baseline_literature/ttool-ai/paper_content.txt" -m text
+   python -m tools.pdf_extractor -i "path/to/paper/论文.pdf" -o "path/to/paper/paper_content.txt" -m text
    ```
 
 3. **desc.md**：论文的结构化总结文档（**核心文件**）
@@ -212,7 +216,7 @@ baseline_literature/
 
 处理新论文时，建议按以下步骤操作：
 
-1. 在 `baseline_literature/` 下创建新目录
+1. 在合适的位置（如相关project目录下）创建新的论文目录
 2. 将PDF文件放入目录
 3. 使用 `tools/pdf_extractor.py` 提取文本到 `paper_content.txt`
 4. 阅读论文和提取的文本

@@ -24,11 +24,10 @@
 │   ├── phd_proposal_report/          # 开题报告（LaTeX）
 │   └── phd_proposal_literature_review/  # 文献综述（LaTeX）
 │
-├── baseline_literature/       # 基线文献与相关工作分析
-│   └── [论文名]/                     # 每篇论文一个目录
-│       ├── *.pdf                     # 论文原文
-│       ├── paper_content.txt         # 自动提取的文本
-│       └── desc.md                   # 论文总结与分析
+├── project_1_llm_state_machine_modeling/      # 研究内容一
+├── project_2_verification_scenario_generation/ # 研究内容二
+├── project_3_profile_based_verification/      # 研究内容三
+├── project_4_iterative_model_repair/          # 研究内容四
 │
 ├── tools/                     # 研究辅助工具
 │   └── pdf_extractor.py              # PDF文本提取工具
@@ -37,6 +36,13 @@
 ├── CLAUDE.md                  # Claude Code 使用指南
 └── requirements.txt           # Python依赖
 ```
+
+**论文组织方式**：论文可以出现在任何路径下（如各个project目录、专门的文献目录等）。每篇论文都应遵循统一的三文件结构：
+- `*.pdf` - 论文原文
+- `paper_content.txt` - 自动提取的文本
+- `desc.md` - 论文总结与分析
+
+详细规范见 [CLAUDE.md](CLAUDE.md) 中的"论文文件管理规范"部分。
 
 ## 核心文档说明
 
@@ -79,13 +85,13 @@
 ### 添加新论文分析
 
 ```bash
-# 1. 创建论文目录
-mkdir -p baseline_literature/论文关键词
+# 1. 在合适的位置创建论文目录（如相关project目录下）
+mkdir -p project_1_llm_state_machine_modeling/related_work/论文关键词
 
 # 2. 放入PDF文件
 
 # 3. 提取文本
-python -m tools.pdf_extractor -i "baseline_literature/论文关键词/论文.pdf" -o "baseline_literature/论文关键词/paper_content.txt" -m text
+python -m tools.pdf_extractor -i "path/to/paper/论文.pdf" -o "path/to/paper/paper_content.txt" -m text
 
 # 4. 编写 desc.md（按照 CLAUDE.md 中的规范）
 ```
