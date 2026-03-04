@@ -1,0 +1,54 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName 微软雅黑
+
+rectangle "输入" as input {
+  database "当前状态机模型\n(M_current)" as model #FFD2B4
+  file "缺陷集合\nD = {d₁, d₂, ..., dₖ}" as defects #B4D8FF
+  file "性质集合\nP = {p₁, p₂, ..., pₘ}" as properties #D2B4FF
+}
+
+package "LLM驱动的修复系统" as llm_system {
+  component "缺陷分析\nA_defect(dᵢ, M_current, P) → RootCauseᵢ" as analysis #MintCream
+  component "修复生成\nG_repair(RootCauseᵢ, M_current, P) → ΔMᵢ" as generation #MintCream
+  
+  analysis --> generation : 根本原因
+  note right of analysis
+    RootCauseᵢ = (状态错误, 迁移错误, 时间违反)
+  end note
+  
+  note left of generation
+    **问题定义**:
+      输入: RootCauseᵢ
+      输出: ΔMᵢ
+      约束: min|ΔMᵢ|
+      满足: M_new ⊨ P
+  end note
+
+  note right of generation
+    **技术方案**:
+      1. 缺陷分类:
+        switch(RootCauseᵢ)
+          case δ-type: 迁移守卫错误 → 调整守卫条件
+          case τ-type: 时间约束违反 → 修正时间区间
+          case state-type: 状态问题 → 增删状态
+      2. 匹配DSL修复模板
+      3. 注入性质约束P生成ΔMᵢ
+  end note
+}
+
+database "修复后模型\nM_new = F_repair(M_current, D, P)" as new_model #B4FFDA
+
+rectangle "验证反馈" as verification {
+  component "验证阶段" as verify #LightGrey
+  verify --> defects : 新缺陷D'
+}
+
+model --> analysis
+defects --> analysis : dᵢ = (Cᵢ, Tᵢ, Eᵢ)
+properties --> analysis
+generation --> new_model
+new_model -right-> verify
+defects .right.> analysis : 反馈新缺陷
+@enduml

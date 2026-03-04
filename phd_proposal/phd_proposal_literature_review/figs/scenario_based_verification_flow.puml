@@ -1,0 +1,66 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName 微软雅黑
+
+' --- 定义输入层 ---
+rectangle "输入层" as input_group {
+  card "验证场景剖面 SP\n(来自研究内容二)" as ScenarioProfile #FFD2B4
+  card "状态机模型 M\n(来自研究内容一)" as StateMachineModel #B4D8FF
+  card "形式化性质 P\n(来自研究内容二)" as FormalProperty #D2B4FF
+}
+
+' --- 定义LLM智能辅助层 ---
+package "大语言模型 (LLM) 智能辅助" as llm_group {
+  usecase "1. 场景实例化\n与路径生成" as PathGen #MintCream
+  usecase "2. 缺陷诊断\n与根因分析" as Diagnosis #MintCream
+  usecase "3. 结果解释\n与报告生成" as Interpretation #MintCream
+}
+
+' --- 定义核心验证框架 ---
+rectangle "时间状态机验证框架" as engine_group {
+  card "符号执行\n与区域图分析" as SymbolicEngine #FFB4DA
+  card "性质检测器\n(模型检测器)" as Checker #FFB4DA
+  card "反例生成器" as CexGenerator #FFB4DA
+}
+
+' --- 定义数据流 ---
+card "执行轨迹/状态空间" as Trace #LightGrey
+
+' --- 定义输出层 ---
+  card "验证结果报告" as VerificationReport #B4FFDA
+  note right
+**验证结果报告**
+• 性质满足情况
+• 缺陷列表与严重等级
+• 反例执行轨迹
+• 根因定位建议
+  end note
+  card "缺陷定位信息" as DefectInfo #B4FFDA
+
+
+' --- 连接数据流 ---
+' 输入层 -> LLM辅助
+ScenarioProfile --> PathGen
+StateMachineModel --> PathGen
+FormalProperty --> Checker
+
+' LLM辅助 -> 验证引擎
+PathGen --> SymbolicEngine
+SymbolicEngine --> Trace
+Trace --> Checker
+
+' 验证引擎 -> LLM辅助
+Checker --> CexGenerator
+CexGenerator --> DefectInfo
+DefectInfo --> Diagnosis
+Diagnosis --> Interpretation
+
+' LLM辅助 -> 输出层
+Interpretation --> VerificationReport
+
+' 内部关联
+PathGen ..> Interpretation : 提供上下文
+Checker ..> Diagnosis : 触发分析
+Trace ..> Diagnosis : 提供分析依据
+@enduml
