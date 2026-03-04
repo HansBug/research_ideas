@@ -17,6 +17,7 @@
 
 | 论文 | 年份 | 作者 | 发表会议/期刊 | 生成的模型类型 | 使用的LLM | 主要方法 | 主要发现/结果 | 局限性 | 来源论文 |
 |------|------|------|--------------|--------------|----------|---------|-------------|--------|---------|
+| **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM到RTL代码 | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动化benchmark构建pipeline：FSM生成→YAML格式化→NL规范生成→RTL合成 | • 最强模型（GPT-4o）整体准确率42.3%<br>• 8个状态是性能拐点<br>• SFT提升OOD任务19.4%<br>• Best-of-N采样提升31.5% | • 仅关注FSM到RTL转换<br>• NL规范由LLM生成<br>• 验证主要依赖功能测试<br>• 状态数限制在16以内<br>• 仅评估Verilog生成 | 新增 |
 | **Automated Domain Modeling with Large Language Models: A Comparative Study** | 2023 | Chen, K., Yang, Y. et al. | MODELS 2023 | 领域模型（类、属性、关系） | LLM（未明确指定） | 单步方式生成完整领域模型 | 能够从文本描述自动生成领域模型 | • 大量建模元素缺失<br>• 无法识别高级模式（如player-role）<br>• 关系识别准确率低 | MIG（作为baseline） |
 | **On the use of GPT-4 for creating goal models: An exploratory study** | 2023 | Chen, B., Chen, K. et al. | IEEE REW 2023 | 目标导向模型（Goal Models） | GPT-4 | 探索性研究，评估GPT-4生成目标模型的能力 | • 提示中包含语法信息有价值<br>• 领域信息数量影响有限 | • 生成的元素可能不正确或过于通用<br>• 不利于突出利益相关者之间的冲突 | MIG（前身工作） |
 | **On the Assessment of Generative AI in Modeling Tasks: An Experience Report with ChatGPT and UML** | 2023 | Cámara et al. | Software and Systems Modeling 22(3) | UML类图 | ChatGPT | 交互模式，构建带OCL约束的UML类图 | • 能频繁生成语法正确的模型<br>• 语法错误率低 | • 语义准确性不稳定（特别是类之间的关系）<br>• 需要大量人工迭代查询来改进输出<br>• 用户工作量仍然很大 | MIG、TTool-AI |
@@ -93,7 +94,9 @@
 从相关工作分析可以看出，以下方向存在明显空白：
 
 1. **状态机自动生成**：相关工作主要集中在结构建模（类图、块图），行为建模（状态机）的工作较少
+   - **更新（2026）**：LLM-FSM填补了FSM推理评估的空白，但仅关注硬件RTL生成，控制系统软件状态机建模仍是空白
 2. **形式化验证集成**：所有工作都缺乏与形式化验证工具的集成
+   - **更新（2026）**：LLM-FSM使用SAT求解器进行等价性检查，但未涉及时序逻辑性质验证和模型检查
 3. **自动修复机制**：没有工作提出基于验证反馈的自动修复方法
 4. **时间属性处理**：缺乏对时间约束和时间自动机的支持
 5. **完整闭环**：缺乏"生成-验证-修复"的完整自动化闭环
@@ -172,4 +175,5 @@
 
 ## 更新日志
 
+- 2026-03-05: 添加LLM-FSM论文（2026），首个针对FSM推理的自动化benchmark
 - 2026-03-05: 重新整理，仅保留从MIG和TTool-AI相关工作中提取的基于LLM的建模工作
