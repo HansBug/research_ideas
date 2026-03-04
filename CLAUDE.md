@@ -102,11 +102,13 @@ project_1_llm_state_machine_modeling/
 │   ├── ttool-ai/
 │   │   ├── Apvrille和Sultan - 2024 - System Architects Are not Alone Anymore....pdf
 │   │   ├── paper_content.txt
-│   │   └── desc.md
+│   │   ├── desc.md
+│   │   └── bibtex.bib          # 可选
 │   └── another-paper/
 │       ├── Author - Year - Title.pdf
 │       ├── paper_content.txt
-│       └── desc.md
+│       ├── desc.md
+│       └── bibtex.bib          # 可选
 ```
 
 ### 文件说明
@@ -120,6 +122,11 @@ project_1_llm_state_machine_modeling/
    ```
 
 3. **desc.md**：论文的结构化总结文档（**核心文件**）
+
+4. **bibtex.bib**（可选）：论文的BibTeX引用信息
+   - 包含论文的完整引用格式
+   - 便于快速生成带参考文献的内容
+   - 可用于LaTeX文档、学术写作等场景
 
 ### desc.md 编写规范
 
