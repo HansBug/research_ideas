@@ -1,0 +1,888 @@
+--- Page 1 ---
+LLM-FSM: Scaling Large Language Models for Finite-State
+Reasoning in RTL Code Generation
+Yuheng Wu
+Stanford University
+Stanford, CA, USA
+yuhengwu@stanford.eduBerk Gokmen
+Stanford University
+Stanford, CA, USA
+bgokmen@stanford.eduZhouhua Xie
+Stanford University
+Stanford, CA, USA
+xzh015@stanford.eduPeijing Li
+Stanford University
+Stanford, CA, USA
+peli@stanford.edu
+Caroline Trippel
+Stanford University
+Stanford, CA, USA
+trippel@stanford.eduPriyanka Raina
+Stanford University
+Stanford, CA, USA
+praina@stanford.eduThierry Tambe
+Stanford University
+Stanford, CA, USA
+ttambe@stanford.edu
+Abstract
+Finite-state reasoning, the ability to understand and implement
+state-dependent behavior, is central to hardware design. In this
+paper, we present LLM-FSM, a benchmark that evaluates how
+well large language models (LLMs) can recover finite-state ma-
+chine (FSM) behavior from natural-language specifications and
+translate it into correct register transfer-level (RTL) implementa-
+tions. Unlike prior specification-to-RTL benchmarks that rely on
+manually constructed examples, LLM-FSM is built through a fully
+automated pipeline. LLM-FSM first constructs FSM with config-
+urable state counts and constrained transition structures. It then
+prompts LLMs to express each FSM in a structured YAML format
+with an application context, and to further convert that YAML into
+a natural-language (NL) specification. From the same YAML, our
+pipeline synthesizes the reference RTL and testbench in a correct-
+by-construction manner. All 1,000 problems are verified using LLM-
+based and SAT-solver-based checks, with human review on a subset.
+Our experiments show that even the strongest LLMs exhibit sharply
+declining accuracy as FSM complexity increases. We further demon-
+strate that training-time scaling via supervised fine-tuning (SFT)
+generalizes effectively to out-of-distribution (OOD) tasks, while
+increasing test-time compute improves reasoning reliability. Finally,
+LLM-FSM remains extensible by allowing its FSM complexity to
+scale with future model capabilities.
+1 Introduction
+Large language models (LLMs) have demonstrated strong reason-
+ing capabilities in tasks such as math problem solving and code
+generation [ 13]. Recently, there has been growing interest in ap-
+plying LLMs to assist electronic design automation (EDA) tasks
+[9,37]. A representative example is register transfer-level (RTL)
+code generation, where a model receives a natural-language (NL)
+design specification and generates the corresponding implementa-
+tion [ 16,19,20,26]. NL is the default interface in LLM-based design
+workflows, since users describe intended behavior in NL rather than
+formal specification formats. To improve the performance of LLMs
+on such NL specification-to-RTL tasks, researchers have explored
+techniques such as supervised fine-tuning (SFT) [ 17], reinforcement
+learning (RL) [ 43], and multi-agent collaboration [ 52]. All these ap-
+proaches can be viewed through the lens ofscaling, which broadly
+refers to allocating more computation, during training or inference,
+to enhance a model’s RTL reasoning performance.In evaluating LLMs’ ability to generate RTL, an important com-
+ponent is their finite-state reasoning capability, which refers to
+the ability to understand and implement state-dependent behav-
+ior. This capability underlies a wide range of hardware workflows,
+including controllers, protocols, and multi-cycle sequencing logic.
+However, there is no benchmark designed specifically to evalu-
+ate LLMs on finite-state reasoning. Existing specification-to-RTL
+datasets [ 16,19,20,26–28] contain only a small number of such
+tasks, and each example requires domain experts to manually write
+the specification, reference RTL, and testbench, making them dif-
+ficult to scale. Therefore, our research question is:How can we
+automatically create a large and scalable NL specification-to-RTL
+benchmark that evaluates LLMs on finite-state reasoning?
+In this paper, we present LLM-FSM, a large-scale NL specification-
+to-RTL benchmark designed to evaluate finite-state reasoning in
+LLMs. Unlike existing benchmarks that rely on manual construction,
+our approach fully automates the dataset curation process. The
+resulting benchmark is both scalable and controllable, enabling
+new problems to be generated at configurable levels of finite-state
+machine (FSM) complexity. All reference RTL implementations
+and testbenches are produced in a correct-by-construction manner.
+The dataset contains problems spanning diverse and realistic finite-
+state reasoning scenarios, providing a challenging and extensible
+benchmark for evaluating LLM-based RTL generation.
+As illustrated in Figure 1, the data curation process begins by
+sampling anabstract FSM graphbased solely on the specified
+number of states and a set of structural constraints. These con-
+straints ensure that all states are reachable from reset, transitions
+form a connected directed graph, and the out-degree and back-edge
+probabilities lie within prescribed bounds. This graph encodes only
+the topology of the machine and carries no application-level mean-
+ing. An LLM then interprets this abstract graph and generates an
+application context consistent with its transition structure, assign-
+ingsemanticroles to each state and defining the inputs, outputs,
+and conditions associated with each transition. This FSM descrip-
+tion is stored in astructured FSM YAML format. We check that
+the FSM YAML representation is isomorphic to the original abstract
+graph and discard any samples that fail this check. Using the fsm2sv
+[3] tool, we translate the full FSM YAML into a SystemVerilog im-
+plementation. We additionally design a generator that constructs
+a testbench by systematically traversing the transitions encodedarXiv:2602.07032v1  [cs.AI]  3 Feb 2026
+
+--- Page 2 ---
+Exit
+SV
+Testbench
+Sampling_FSM(phase=2, state=7)L L MRSTPhase 1
+EntryPhase 2
+0 1 2 3 4 5Sample Abstract FSM Graph
+6 CHECK (addr_ready) SET <busy=1'b1>
+State 1 (input) State 2 <output>Semantic FSM YAML
+A Quad-SPI (QSPI) burst-read controller...
+Define states and transitions1 2
+3 4
+1 3
+2 4Original
+abs graph
+Graph by
+FSM YAMLIsomorphism Check
+NL Specification
+Requir emen ts: once the addr ess becomes
+ready , the controller asserts busy = 1 and
+perf orms the r equir ed setup ...L L MReconstructed
+FSM YAML
+L L Mtransitions:
+ - CHE CK_ADDR:
+   - (addr _ready), SET
+   - <bus y = 1 'b1>
+fsm2svSV
+ReconstructedSV
+Reference RTL
+SAT Solver  Equivalence
+Check
+: Final
+Artifacts
+Figure 1: Overview of the LLM-FSM data curation pipeline. The process begins by constructing an abstract FSM graph, followed
+by LLM-based specification generation, automatic RTL and testbench synthesis, and isomorphism/equivalence check.
+SV
+Gen RTLTestbench
+SV
+Gen RTL
+Testbench
+Generate
+SystemC
+TestbenchSpecification → RTL Specification → YAML →  RTL Specification → SystemC
+LLM under
+Evalua tion  NL Spec
+Waveform
+MatchingGen
+R ef
+LLM under
+Evalua tion  NL Spec Waveform
+MatchingFSM YAML
+fsm2svR ef Gen
+LLM under
+Evalua tion  NL Spec
+Waveform
+MatchingQuesta
+Co-Sim
+Figure 2: Overview of the LLM-FSM evaluation pipeline. An NL specification is processed through three tool-chain settings:
+Specification→RTL, Specification →YAML→RTL, and Specification →SystemC. Each model prediction is executed under the
+same reference testbench, and correctness is determined by cycle-by-cycle output matching against the reference RTL.
+in the FSM YAML. Together, these steps yield thereference RTL
+implementationand its correspondingtestbench.
+In the next stage, we use an LLM to translate the FSM YAML into
+anNL specificationthat describes the behavior of the machine.
+Given the state mappings contained in the YAML, the LLM is then
+asked to reconstruct the FSM by converting the specification back
+into YAML format. Using the fsm2sv tool once again, we generate
+SystemVerilog code from both thereconstructed FSMand the
+original FSM. The two designs are then passed to Yosys [ 48] for
+SAT-solver-based equivalence checking to determine whether the
+specification preserves the behavior of the original FSM. Specifi-
+cations that fail the equivalence check are discarded, and a subset
+of the passing specifications undergoes human review to verify
+narrative clarity and hardware plausibility of the NL description.
+Our curated LLM-FSM dataset contains 1,000 problems, grouped
+into three difficulty tiers (easy, medium, and hard) based on state
+number and edge complexity. As shown in Figure 2, we evaluate
+models under three pipelines: (1)Specification →RTL, which tests
+end-to-end Verilog generation; (2)Specification →YAML→RTL,
+where the model constructs the FSM in a YAML format and RTL is
+generated using fsm2sv; and (3)Specification →SystemC, where
+the model produces SystemC for validation through SystemC-Verilog
+co-simulation (Co-Sim). Across these settings, we evaluate a wide
+range of frontier models and find that even the most advanced
+LLMs struggle on the hard tier of LLM-FSM.
+Our results show that LLM-FSM exposes clear limitations of
+current LLMs in finite-state reasoning and offers a challenging
+benchmark for evaluating future models. We further demonstratethat both training-time and test-time scaling yield consistent per-
+formance improvements; specifically, SFT on our data boosts model
+generalization across both in-distribution (ID) and out-of-distribution
+(OOD) tasks. In summary, our work makes the following contribu-
+tions:
+•An automatic pipeline that synthesizes scalable RTL bench-
+marks, verified through a SAT solver, and designed to evolve
+jointly with advances in LLM capabilities;
+•A rigorous evaluation across three tool-chain pipelines, demon-
+strating that existing models struggle on LLM-FSM and un-
+derscoring the benchmark’s challenging nature;
+•An analysis of scaling dynamics, demonstrating that training-
+time scaling via SFT generalizes effectively to OOD tasks,
+while parallel test-time sampling outperforms serial decod-
+ing for finite-state reasoning.
+2 Related Work
+In this section, we review related work in three areas: the appli-
+cation of LLMs to RTL code generation, existing benchmarks for
+evaluating RTL code generation tasks, and recent advances in scal-
+ing LLMs to enhance reasoning capabilities.
+2.1 LLMs for RTL Code Generation
+Researchers have explored using LLMs for hardware code genera-
+tion since the rise of LLMs [ 9,37]. However, due to the scarcity of
+hardware description language (HDL) data compared to high-level
+languages such as Python or C++ [ 36], pretrained models often
+perform poorly on hardware-related tasks [ 18]. To address this
+
+--- Page 3 ---
+Table 1: Comparison of RTL code generation benchmarks.
+The five dimensions are: (1)Dataset Size: the number of test
+instances included in the benchmark; (2)Automated Genera-
+tion: the dataset is automatically constructed and scalable; (3)
+Difficulty Control: problem difficulty can be adjusted; (4)Re-
+alistic Specification: tasks are described in NL specifications;
+and (5)Automated Verification: testbenches are automati-
+cally generated for validation.
+BenchmarkDataset
+SizeAutomated
+GenerationDifficulty
+ControlRealistic
+SpecificationAutomated
+Verification
+RTLLM v1 [20] 29✗ ✗ ✓ ✗
+RTLLM v2 [19] 50✗ ✗ ✓ ✗
+VerilogEval v1 [16] 156✗ ✗ ✓ ✗
+VerilogEval v2 [26] 156✗ ✗ ✓ ✗
+ArchXBench [28] 51✗ ✓ ✓ ✗
+CVDP [27] 783✗ ✓ ✓ ✗
+LLM-FSM (Ours)1000✓ ✓ ✓ ✓
+limitation, recent studies have focused on SFT of LLMs on domain-
+specific corpora to better adapt them for RTL design and synthesis
+[1,8,11,12,17,18,25,38,44]. Beyond SFT, some works further
+employ RL-based post-training [ 13,39,43] to enhance code correct-
+ness. At the inference stage, many approaches design workflows
+incorporate execution feedback [ 35] and leverage multi-agent col-
+laboration [ 24,51,52] to further enhance the quality and reliability
+of generated RTL code.
+Beyond direct RTL code generation, LLMs have also been ex-
+plored for higher-level hardware design workflows [ 31]. Some ap-
+proaches first generate high-level languages such as C or Python,
+which are then translated into domain-specific representations [ 4,
+15]. In addition, LLMs are increasingly applied to other stages of the
+hardware design flow, including testbench generation [ 5,21,29,30],
+formal specification synthesis [ 34,49], and temporal logic specifi-
+cation generation [10, 22].
+2.2 RTL Code Generation Benchmarks
+As shown in Table 1, several benchmarks have been developed
+to evaluate LLM performance on RTL code generation. Among
+them, the two most widely used are RTLLM [ 19,20] and Verilo-
+gEval [ 16,26]. RTLLM contains 50 problems, while VerilogEval
+includes 156 tasks covering both combinational logic modules and
+FSMs. ArchXBench [28], on the other hand, consists of 51 human-
+authored high-level RTL design tasks, such as generating FFT and
+CNN modules. In all these benchmarks, the specifications and corre-
+sponding testbenches are manually written, making them difficult
+to scale to larger datasets. In addition, RTL-Repo [ 2] provides a
+fill-in-the-blank style task focusing on completing partial RTL code,
+and CVDP [ 27] offers 783 human-written questions covering the
+broader RTL design pipeline. Although larger in scale, these datasets
+are still manually curated and span diverse tasks such as debugging,
+code comprehension, and design analysis, rather than focusing on
+specification-to-RTL generation.
+2.3 Scaling LLMs for Reasoning
+Scaling refers to allocating more computation to enhance the rea-
+soning capabilities of LLMs. Such scaling can occur both during
+training and at inference time. At the training stage, scaling can beachieved through RL [ 13] or by SFT on reasoning traces distilled
+from stronger teacher models [ 14]. These approaches encourage
+the model to generate longer and more coherent reasoning chains,
+resulting in improved performance on complex reasoning tasks.
+At the inference stage, scaling is commonly referred to as test-
+time scaling (TTS). It can be realized by encouraging deeper and
+more deliberate reasoning within a single inference path [ 23,45].
+Alternatively, multi-trace TTS [ 7,33,46,47] samples multiple can-
+didate completions in parallel and selects the best one using either
+verifier-based evaluation [ 40] or voting-based aggregation [ 41,42].
+Recent studies further integrate search algorithms [ 6,50] that inter-
+leave generation and selection in a step-by-step manner, refining
+the output through iterative exploration and verification.
+3 Methods
+In this section, we describe how LLM-FSM is constructed and how
+models are evaluated on it. We first synthesize abstract FSM topolo-
+gies (Section 3.1), enrich them with LLM-generated semantics (Sec-
+tion 3.2), and compile them into RTL and testbenches (Section 3.3),
+validating consistency through SAT-based equivalence (Section 3.4).
+We then present dataset statistics, an analysis of alignment with real-
+world applications, human validation, and the evaluation pipelines
+used to assess model performance (Sections 3.5–3.8).
+3.1 Abstract FSM Graph Construction
+Phase-based abstract graph structure.We represent each FSM
+using a two-level structure organized into phases. A phase corre-
+sponds to a coherent stage of operation, such as initialization, data
+transfer, or error handling. Each phase is a subgraph with a single
+entry and exit, and all internal states lie on paths between them.
+Phase transitions are modeled by directed edges from the exit of
+one phase to the entry of another, allowing the abstract graph to
+capture high-level control flow.
+Topology generation algorithm.For each phase, we generate a
+minimal chain from entry to exit to ensure reachability, then add
+forward branches, back edges, and self-loops under user-controlled
+probabilities while capping the out degree. We add a reset block and
+connect phases in a simple cycle to guarantee global reachability.
+This ensures that every sampled abstract FSM is structurally valid.
+Additional inter-phase edges are sampled to create jumps between
+phases. This procedure produces an abstract FSM graph whose
+structure is determined by a small set of topology parameters.
+Example.Figure 3 shows an example with two phases. Each
+phase contains an entry–exit chain with additional forward branches,
+back edges, and self-loops sampled under the specified probabili-
+ties, while graph-level edges form a cycle that guarantees global
+reachability. This two-level organization is intentional: real hard-
+ware controllers typically consist of several semantically coherent
+phases assembled into a larger control graph. Directly sampling
+an unconstrained flat FSM makes it difficult for an LLM to assign
+meaningful roles to states or to construct realistic hardware scenar-
+ios. By generating topology at both the phase level and the graph
+level, we obtain abstract FSMs that are structurally rich yet still
+amenable to consistent semantic interpretation.
+
+--- Page 4 ---
+RSTPhase 1
+Entry Exit
+Phase 2
+0 1 2 3 4 5Abstract FSM Graph
+6
+Semantic FSM Graph
+Phase 1: Command Setup
+POWERUP _SANITY ( 0) → MODE_ CHE CK ( 1) →
+SET_QUAD_MODE ( 2) → ISSUE_READ _CMD ( 3)
+Phase 2: Burst T ransf er
+CHE CK_WINDO W ( 4) → BURS T_FET CH ( 5) →
+DRAIN_AND _DE CIDE ( 6) → loopSemantic FSM YAML
+transitions:
+  - POWERUP_SANITY:
+    - (rd_req), MODE_CHECK
+    - POWERUP_SANITY
+  - MODE_CHECK:
+    - (addr_ready && need_qe),
+SET_QUAD_MODE
+    - (addr_ready && !need_qe),
+ISSUE_READ_CMD
+    - MODE_CHECK
+    - <session_busy = 1'b1>NL Specification
+The design implements a Quad-SPI (QSPI) burst-read controller
+for NOR flash devices. Its behavior must satisfy the following
+requirements:
+1. After reset, the controller stays idle until the host asserts a
+read request (rd_req = 1), at which point it enters the mode-
+validation phase.
+2. In mode validation, once the address becomes ready
+(addr_ready = 1), the controller asserts session_busy = 1 and
+either performs QE configuration if required (need_qe = 1) or
+proceeds directly to issuing the read command if not (need_qe =
+0)...Background
+RequirementsFigure 3: An example illustrating the generation process. The abstract graph is first sampled topologically, and an LLM then
+assigns semantics, here producing a Quad-SPI burst-read controller for a NOR-flash device.
+3.2 Semantic FSM Generation and YAML
+Construction
+LLM-based semantic FSM generation.As shown in Figure 3, given
+an abstract FSM graph from Section 3.1, we use an LLM to turn
+this purely structural object into a semantic FSM. The prompt ex-
+poses the phase structure, the exact edge list, and asks the model to
+choose a realistic hardware scenario, assign descriptive names to
+all states, and design input and output signals. The model then pro-
+duces an fsm2sv-compatible semantic FSM YAML file that specifies
+reset behavior, input and output declarations, and for each state,
+a list of guarded transitions and outputs that follow the provided
+connectivity. In addition to the YAML, the model also generates a
+short story of the workflow.
+Graph isomorphism verification.As shown in Figure 1, let 𝐺abs=
+(𝑉,𝐸) denote the abstract FSM graph and let 𝐺yaml=(ˆ𝑉,ˆ𝐸)be the
+graph obtained from the transitions in the generated YAML. The
+state mapping produced by the LLM defines a candidate bijection
+𝑓:𝑉→ ˆ𝑉, and we require
+(𝑢,𝑣)∈𝐸⇐⇒ (𝑓(𝑢),𝑓(𝑣))∈ ˆ𝐸
+for all𝑢,𝑣∈𝑉 . Any YAML instance that violates this isomorphism
+condition is discarded, so the retained semantic FSMs add meaning
+while preserving the original topology.
+3.3 Reference RTL and Testbench Generation
+Reference RTL.Given a checked semantic FSM YAML, the refer-
+ence implementation is generated automatically using the fsm2sv
+tool, as shown in Figure 1. Because the YAML format fully specifies
+each state, its outputs, and the ordered conditional transitions, the
+translation to synthesizable SystemVerilog is mechanical: every
+YAML transition becomes a guarded branch in the always_comb
+block, and state encodings are assigned in a consistent one-hot or
+counter style. Since the YAML itself has already passed the topology-
+preserving isomorphism check, the resulting RTL is correct-by-
+construction relative to the input FSM.
+Testbench generation.The fsm2sv package does not include a
+testbench generator, so we extend the tool with a testbench syn-
+thesis module. The key requirement is to produce a set of inputsequences that covers all states and all transitions of the FSM. Let
+the FSM be a directed graph 𝐺=(𝑉,𝐸) with initial state 𝑠0. For
+every edge𝑒=(𝑢,𝑣)∈𝐸, the generator performs:
+find a path𝑠 0{𝑢,emit inputs that satisfy the guard of𝑒.
+This guarantees that each transition is exercised at least once. The
+generator runs in polynomial time in the size of the FSM. It also
+emits additional random stimuli to improve robustness. The result-
+ing testbench is a self-contained module that instantiates the DUT,
+drives the generated input sequences cycle by cycle, and records
+waveforms for debugging.
+3.4 Specification Generation and Formal
+Verification
+NL specification synthesis.As shown in Figure 1, given a topology-
+verified YAML FSM Y, we first ask an LLM to produce an NL
+specification Σ=(Σ IO,Σreq). The prompt exposes only the input-
+s/outputs, reset configuration, and transition table, and requires:
+(1) an Inputs and Outputs section (ΣIO)that lists every signal us-
+ing the exact YAML names; and (2) a Requirements section (Σreq)
+that paraphrases each group of transitions into requirements. This
+defines a forward map 𝐹:Y→Σ that hides state names but keeps
+the transition semantics.
+To check that the specification is semantically complete, we per-
+form a second LLM pass that reconstructs a fsm2sv-compatible
+YAML eYfrom Σand the state mapping. Invalid or structurally in-
+consistent reconstructions are discarded, leaving only pairs (Y,eY)
+where both directionsY𝐹− →Σ𝐺− →eYsucceed.
+SAT-based equivalence checking.For each structurally correct
+pair(Y,eY), we compile both YAML files with fsm2sv to produce
+two RTL machines with identical I/O interfaces:
+M=(𝑆,𝑠 0,𝐼,𝑂,𝛿,𝜆), fM=(e𝑆,e𝑠0,𝐼,𝑂,e𝛿,e𝜆).
+To check whether the NL specification preserves the behav-
+ior of the original FSM, we use Yosys’s equivalence-checking flow
+(equiv_make ,equiv_simple ,equiv_struct ,equiv_status ). This
+constructs a sequential miter between the two RTL designs and
+searches for an input sequence under which their outputs diverge.
+
+--- Page 5 ---
+Table 2: LLM-FSM dataset statistics. Tasks are grouped into
+three difficulty tiers based on total state count. For each tier,
+we report dataset size, complexity measures, specification
+word count, and reference RTL code lines.
+Tier Count StatesAvg.
+EdgesAvg.
+PhasesAvg. Spec.
+Word CountAvg. Ref.
+Code Lines
+Low 334 4–14 11.95 2.71 409.3 154.8
+Medium 333 14–27 32.17 5.24 780.3 301.8
+High 333 27–59 65.39 8.83 1265.1 501.3
+Overall1000 4–59 36.48 5.59 817.8 319.1
+Formally, let the two machines process the same input sequence
+(𝑥0,...,𝑥𝑇). A mismatch at time𝑡is recorded as
+𝑑𝑡= 𝜆(𝑠𝑡,𝑥𝑡)≠e𝜆(e𝑠𝑡,𝑥𝑡), 𝐷=Ü
+𝑡≤𝑇𝑑𝑡.
+The solver asks whether some reachable execution can produce
+𝐷=1. If a counterexample trace is found, the sample is discarded. If
+Yosys completes the check without reporting a mismatch, we accept
+the pair as behaviorally equivalent for all executions explored by the
+checker. Only examples that pass this equivalence check are kept.
+This round-trip filter ensures that the NL specification is consistent
+with the transition semantics encoded in the original YAML FSM.
+3.5 Data Curation Dynamics
+Our curated LLM-FSM benchmark contains 1,000 problems, parti-
+tioned into three difficulty tiers based on the number of FSM states.
+Summary statistics are provided in Table 2.
+Generation runtime.All semantic FSMs and NL specifications
+are generated using gpt-5 through the OpenAI API. The entire
+generation stage completes quickly under batch parallelism. The
+dominant computational cost lies in verification: running Yosys’s
+equivalence check on a single FSM typically takes ∼30seconds,
+making formal checking the primary bottleneck of the pipeline.
+Filtering statistics.Our pipeline applies two filters: an isomor-
+phism check between the abstract graph and the LLM-generated
+YAML, and a equivalence check between the reference and recon-
+structed RTL. Out of 1,500 generated candidates, 1,411 (94.1%) pass
+the isomorphism test, and 1,085 (76.9%) also pass RTL equivalence.
+Equivalence-check pass rates decrease with FSM size (95.7%, 82.1%,
+62.4% across the three tiers), but remain sufficiently high to scale
+further by increasing generation budget or adopting hierarchical
+generation for larger FSMs. We randomly select 1,000 verified ex-
+amples to form the final LLM-FSM dataset.
+3.6 Alignment with Real-World Applications
+To validate that LLM-FSM reflects the characteristics of realistic
+hardware designs, we analyze the distribution of both our NL spec-
+ifications and the underlying FSM structures.
+NL Distribution.We demonstrate that the generated specifica-
+tions align with industrial examples in both descriptive style and
+length. Qualitatively, our specifications share the narrative struc-
+ture found in real-world datasheets. For instance, we compare theexample in Figure 3 with a standard I2C-Master/Slave Core specifi-
+cation [32]:
+•LLM-FSM Spec:“After reset, the controller stays idle until
+the host asserts a read request ( rd_req = 1 ), at which point
+it enters the mode-validation phase.”
+•Real-World I2C Spec:“In the idle state, the core leaves the
+buses free and will be waiting for command. If there is a
+transaction in MODE bit from ’0’ to ’1’, the core will go to
+start, and will act as Master.”
+Both descriptions utilize a similar narrative structure. Quantita-
+tively, the real-world I2C specification, which describes a 7-state
+machine, contains 346 words. In our dataset, the subset of 7-state
+FSMs (41 problems) has an average length of 373.1 words. This
+consistency is also observed in other protocols. These comparisons
+confirm that our generated specifications closely mirror real-world
+application standards in terms of verbosity and information density.
+FSM Distribution.Regarding the structural distribution of the
+FSMs, we emphasize that LLM-FSM is not merely a static dataset but
+a fully parameterizable generation framework. While the current
+benchmark utilizes sample-based generation to ensure broad cov-
+erage, the underlying framework offers flexible control to address
+specific distribution requirements:
+•Granular Control over Topology:The framework allows
+explicit configuration of state counts, transition densities,
+and structural constraints. This enables the generation of
+FSMs that mirror the specific complexity profiles found in
+target real-world applications.
+•Extensibility to Real-World Seeds:The pipeline is de-
+signed to be extensible; it can ingest FSM structures extracted
+from real-world legacy code or specifications and use them
+as seeds to generate diverse, correct-by-construction varia-
+tions.
+This flexibility ensures that the tool can adapt to any specific “real-
+life” distribution required, rather than being fixed to a single statis-
+tical pattern.
+3.7 Human Check
+To further ensure data quality, we perform a manual audit on a
+subset of examples. Each sampled instance is examined along four
+criteria: (1)State Coverage: the specification must describe every
+YAML state with no missing or spurious behaviors. (2)Transition
+Coverage: every YAML transition must be reflected in the specifica-
+tion, with no extra or altered edges. (3)Specification-FSM Alignment:
+the narrative must allow an unambiguous mapping from each de-
+scribed behavior back to the YAML-specified FSM. (4)Hardware
+Plausibility: state names, signal names, and contextual descrip-
+tions must form a coherent and realistic hardware scenario. All 20
+inspected samples satisfy these criteria, confirming the semantic
+consistency between the specification and the underlying FSM.
+3.8 Evaluation Pipeline
+We evaluate models in three settings. (1)Spec →RTL:the model
+generates SystemVerilog directly from the NL specification, and
+correctness is determined by cycle-accurate agreement with the ref-
+erence RTL under the same testbench. (2)Spec →YAML→RTL:
+
+--- Page 6 ---
+Table 3: Model accuracy (%) across three RTL generation benchmarks: VerilogEval v2 [ 26], RTLLM v2 [ 19], and our LLM-FSM
+dataset. For each evaluation pipeline, the best-performing model is shown in bold and the second-best is underlined .
+ModelVerilog RT Spec→RTL Spec→YAML→RTL Spec→SystemCAvg.Eval LLM Easy Med. Hard Avg. Easy Med. Hard Avg. Easy Med. Hard Avg.
+Llama4-Scout 48.7 36.0 24.0 5.1 0.0 9.7 38.0 4.8 0.3 14.4 0.0 0.0 0.0 0.0 8.0
+Qwen3-4B 39.1 30.0 20.7 3.6 0.6 8.3 27.5 3.6 0.6 10.6 39.5 11.7 2.1 17.8 12.2
+Qwen3-8B 53.2 38.0 14.1 5.4 2.7 7.4 44.9 12.9 2.1 20.0 61.4 29.7 5.1 32.1 19.8
+gpt-5-nano 72.4 54.0 55.4 19.2 4.5 26.4 29.9 5.4 0.6 12.0 58.7 20.4 3.3 27.5 22.0
+Llama4-Maverick 59.6 50.0 63.2 27.0 6.3 32.2 63.2 24.0 6.6 31.3 35.0 15.0 5.1 18.4 27.3
+Qwen3-14B 59.0 42.0 55.4 26.4 9.0 30.3 62.0 23.4 4.8 30.1 63.5 24.6 10.2 32.8 31.1
+gpt-oss-20B 46.8 42.0 61.1 34.8 13.5 36.5 45.8 15.6 3.3 21.6 73.4 37.2 9.3 40.0 32.7
+gpt-oss-120B 53.8 44.0 77.5 45.6 19.8 47.7 48.5 26.7 8.7 28.0 74.6 44.7 16.8 45.4 40.4
+Qwen3-32B 64.7 52.0 66.5 37.5 14.4 39.5 77.2 41.1 13.5 44.0 68.9 34.2 12.6 38.6 40.7
+DeepSeek-R1-0528 72.4 58.0 64.7 41.4 10.8 39.0 68.3 46.5 24.0 46.3 68.0 45.0 4.2 39.1 41.5
+Gemini-2.5-Flash 60.3 56.0 76.0 55.9 16.5 49.5 86.5 67.0 44.1 65.9 57.8 8.7 0.0 22.2 45.9
+DeepSeek-V3.1-Terminus 69.9 50.0 80.2 54.7 9.0 48.0 75.4 52.0 24.9 50.8 79.9 46.8 1.8 42.9 47.2
+Gemini-2.5-Pro 77.6 60.0 77.5 59.8 39.6 59.0 87.4 68.2 55.6 70.4 46.1 7.5 0.0 17.9 49.1
+grok-4-fast-reasoning 74.4 58.0 75.1 48.6 37.8 53.9 78.1 50.5 40.8 56.5 74.0 52.6 39.9 55.5 55.5
+gpt-5-mini 78.2 54.0 88.6 64.6 41.7 65.0 66.8 36.0 21.6 41.5 84.4 60.1 38.7 61.1 55.9
+Claude-4.5-Haiku 75.0 54.0 84.7 53.2 30.9 56.3 86.5 55.3 33.9 58.6 82.3 54.7 27.9 55.0 56.6
+gpt-5 86.2 64.0 93.1 79.659.8 77.5 93.7 76.6 65.8 78.7 82.0 73.3 55.070.1 75.4
+Claude-4.5-Sonnet 82.1 64.0 95.579.3 70.0 81.6 94.0 83.2 72.1 83.1 93.4 80.854.7 76.3 80.3
+Average 65.2 50.3 65.2 41.2 21.5 42.6 65.2 38.5 23.5 42.3 63.5 35.9 15.9 38.5 41.1
+the model first produces an fsm2sv-compatible YAML FSM, which
+is compiled to RTL and evaluated using the same criterion. (3)Spec
+→SystemC:the model outputs a SystemC design, which we test
+via SystemC-SystemVerilog co-simulation in Questa; correctness
+again requires cycle-by-cycle agreement with the reference RTL.
+4 Evaluation
+4.1 Experimental Setup
+In addition to our LLM-FSM benchmark, we also evaluate on two
+human-written RTL datasets: VerilogEval v2 [ 26] and RTLLM v2 [ 19].
+We evaluate a broad set of frontier model families, including gpt-5,
+Claude-4.5, Gemini-2.5, grok-4, Qwen-3, DeepSeek-V3.1/R1, and
+Llama-4. These models span both proprietary and open-source fam-
+ilies and represent current state-of-the-art LLM systems across a
+wide range of model sizes. For all models, we set the maximum
+output token budget to 16,384. Temperature and top-p follow each
+model’s default settings. We report Pass@1 as the primary metric,
+counting a sample as correct only if the generated RTL compiles
+and passes the reference testbench.
+4.2 Main Results
+LLM-FSM is a challenging benchmark.As shown in Figure 3,
+across 18 frontier models and three evaluation pipelines, the overall
+average Pass@1 is only 41.1%. Among all evaluated LLMs, Claude-
+4.5-Sonnet achieves the highest score of 80.3%, yet its performance
+drops to 65.6% on the hard tier. Because our dataset is generated
+through a fully automated pipeline, increasing the number of states
+or transitions can produce harder instances, allowing LLM-FSM to
+evolve alongside future model improvements.Table 4: Correlation between performance on our bench-
+mark and human-written datasets. Pipeline 1: Spec →RTL,
+Pipeline 2: Spec→YAML→RTL, Pipeline 3: Spec →SystemC.
+We report Pearson (P) and Spearman (S) correlations.
+DatasetPipeline 1 Pipeline 2 Pipeline 3 Overall Avg.
+P S P S P S P S
+VerilogEval 0.82 0.85 0.78 0.78 0.66 0.62 0.83 0.87
+RTLLM 0.85 0.82 0.85 0.85 0.59 0.52 0.84 0.83
+Different evaluation pipelines lead to sharply different outcomes
+across models.For example, Gemini-2.5-Pro attains 70.4% on the
+Spec→YAML→RTL task but only 17.9% on the Spec →SystemC
+task. Across all evaluated models, the SystemC setting shows the
+lowest average performance, suggesting that LLMs are less familiar
+with hardware-compatible high-level languages than with RTL. By
+contrast, the Spec→RTL and Spec→YAML→RTL pipelines yield
+similar average accuracies, indicating that modern LLMs are able
+to perform finite-state reasoning directly in RTL without explicitly
+reconstructing the FSM structure in YAML.
+4.3 Analysis
+Scaling trend and difficulty analysis.As shown in Figure 4, within
+the same family, models benefit from increasing parameter scale. On
+the difficulty axis, accuracy drops sharply as the number of states
+and edges increases, with the Spec →SystemC pipeline being the
+most sensitive. This confirms that our generation pipeline provides
+fine-grained control over task difficulty.
+Correlation with human-written benchmarks.To validate that per-
+formance on LLM-FSM reflects real-world RTL generation ability,
+we compare model accuracy on our dataset with two human-written
+
+--- Page 7 ---
+2223242526272829
+Model Size (B parameters)10203040Accuracy (%)
+Scaling Model Size on LLM-FSM
+Llama-4
+Qwen-3
+gpt-oss
+714212835424956
+Total States10203040506070Average Accuracy (%)Difficulty Analysis
+Spec  RTL
+Spec  YAML  RTL
+Spec  SystemC
+20406080100
+Average EdgesFigure 4: Scaling and difficulty analysis on LLM-FSM. Left:
+scaling behavior of different model families. Right: accuracy
+averaged across all models within each difficulty bin.
+Table 5: Performance comparison of Base vs. SFT models
+across difficulty tiers. SFT models were trained only on a
+subset of Easy/Medium problems, making the Hard tier an
+OOD test.
+Easy (ID) Medium (ID) Hard (OOD) Overall
+Model BaseSFT BaseSFT BaseSFT BaseSFT
+Qwen3-4B 14.931.3 4.510.4 0.04.5 6.515.4
+Qwen3-8B 13.414.9 6.016.4 4.57.5 8.012.9
+Qwen3-14B 55.285.1 23.967.2 4.534.3 27.962.2
+benchmarks: VerilogEval v2 [ 26] and RTLLM v2 [ 19]. As shown
+in Table 4, model performance exhibits strong positive correlation
+across datasets. Interestingly, both VerilogEval v2 and RTLLM v2
+primarily evaluate the direct Spec →RTL generation path, and we
+observe that correlations are indeed highest for our Pipeline 1
+results, further suggesting that LLM-FSM captures the same under-
+lying reasoning skills required for hand-written RTL benchmarks.
+Error analysis.We manually analyze a subset of incorrect gener-
+ations and identify four common failure modes. (1)Syntax errors:
+models occasionally include invalid syntax in generated RTL code
+that fails to compile. (2)Incorrect timing semantics: the implemen-
+tation violates cycle-level behavior described in the specification,
+such as transitioning out of a state earlier or later than required. (3)
+State or transition mistakes: the generated code introduces missing,
+extra, or reordered edges, resulting in an FSM whose structure dif-
+fers from the intended one. (4)Formatting errors: tasks involving
+YAML or SystemC templates often fail because the model does
+not precisely follow the required schema, leading to invalid FSM
+descriptions or modules that cannot be parsed.
+4.4 Training-Time Scaling Results
+Experimental Setup.To validate the utility of our generated data
+for unseen tasks, we conducted an SFT experiment. We utilized
+Qwen3-4B, 8B, and 14B as base models and applied QLoRA fine-
+tuning. For Training Data, we used correct thinking traces gener-
+ated by Claude-4.5-Sonnet. Crucially, we employed an 80/20 split
+across the entire benchmark. For training, we utilized only the
+80% partitions of theEasyandMediumtiers, while intentionally
+discarding the training partition of theHardtier to test general-
+ization capabilities on unseen complexity. We then evaluated the
+fine-tuned models on the consistent held-out 20% partitions: (1)ID:
+12345678910111213141516
+Number of Samples (k)020406080100Average pass@k (%)
+Multi-Trace Test-Time Scaling
+Qwen3-32B
+gpt-oss-20B
+Qwen3-14BQwen3-8B
+Qwen3-4B
+Qwen3-4B Qwen3-8B Qwen3-14B
+Models01020304050Accuracy (%)Single-Trace vs Multi-Trace TTS
+Baseline result
+Single-trace TTS (pass@1)
+Multi-trace TTS (pass@16)Figure 5: TTS for finite-state reasoning. Left: multi-trace TTS
+pass@k scaling on LLM-FSM. Right: comparison of single-
+trace TTS vs multi-trace TTS at𝑘=16.
+the held-out test sets of theEasyandMediumtiers; and (2)OOD:
+the held-out test set of theHardtier.
+Results and Analysis.The results in Table 5 show consistent
+improvement across all difficulty levels. Specifically, for the Qwen3-
+4B model, accuracy on the Easy (ID) tier improved from 14.9%
+(Base) to 31.3% (SFT), and on the Medium (ID) tier from 4.5% to
+10.4%. Most importantly, on the unseen Hard (OOD) tier, the model
+improved from 0.0% to 4.5%, raising the Overall accuracy from 6.5%
+to 15.4%. Larger models exhibited even stronger generalization,
+with Qwen3-14B improving from 4.5% to 34.3% on the Hard tier.
+Furthermore, after fine-tuning on our synthetic data, the Qwen3-4B
+model was able to correctly answer human-authored FSM-related
+questions in VerilogEval (e.g., Prob100_fsm3comb ) that the base
+model previously failed to solve. This confirms that LLM-FSM serves
+as an effective training ground for enhancing performance on real-
+world, FSM-related hardware tasks.
+4.5 Test-Time Scaling Results
+As shown in Figure 5 (left), increasing the number of samples per
+question in our multi-trace TTS setting steadily improves each
+model’s pass@k on LLM-FSM. However, simply letting models
+think before answering (single-trace TTS) is less effective: Figure 5
+(right) shows that Qwen3-14B’s pass@1 in thinking mode remains
+well below its own pass@16 under multi-trace TTS, with smaller
+models showing the same gap.
+5 Conclusion
+In this paper, we introduce LLM-FSM, a scalable benchmark for
+generating RTL from NL specifications. The dataset explicitly tar-
+gets finite-state reasoning, provides fine-grained difficulty control,
+and checks consistency between each specification and its RTL
+implementation through SAT-based verification. Evaluating a wide
+range of LLMs on 1,000 problems, we find that current models still
+struggle with temporally precise RTL synthesis. Performance on
+LLM-FSM also correlates with results on human-written RTL bench-
+marks, indicating that it captures real-world design challenges. We
+further demonstrate that training-time scaling via SFT generalizes
+effectively to OOD complexity, while multi-trace TTS boosts model
+performance at inference time. Overall, LLM-FSM provides a scal-
+able foundation for evaluating and advancing finite-state reasoning
+in LLM-based RTL generation.
+
+--- Page 8 ---
+References
+[1]Mohammad Akyash, Kimia Azar, and Hadi Kamali. 2025. RTL++: Graph-enhanced
+LLM for RTL Code Generation.ICLAD(2025).
+[2]Ahmed Allam and Mohamed Shalan. 2024. RTL-Repo: A Benchmark for Evaluat-
+ing LLMs on Large-Scale RTL Design Projects.LAD Workshop(2024).
+[3]Mohamed Bamakhrama. 2021. fsm2sv: SystemVerilog FSM Generator.GitHub
+(2021).
+[4]Christopher Batten, Nathaniel Pinckney, Mingjie Liu, Haoxing Ren, and Brucek
+Khailany. 2024. PyHDL-Eval: An LLM Evaluation Framework for Hardware
+Design Using Python-Embedded DSLs.MLCAD(2024).
+[5]Jitendra Bhandari, Johann Knechtel, Ramesh Narayanaswamy, Siddharth Garg,
+and Ramesh Karri. 2024. LLM-Aided Testbench Generation and Bug Detection
+for Finite-State Machines.Arxiv(2024).
+[6]Zhenni Bi, Kai Han, Chuanjian Liu, Yehui Tang, and Yunhe Wang. 2025. Forest-
+of-Thought: Scaling Test-Time Compute for Enhancing LLM Reasoning.ICML
+(2025).
+[7]Bradley Brown, Jordan Juravsky, Ryan Ehrlich, Ronald Clark, Quoc V Le, Christo-
+pher Ré, and Azalia Mirhoseini. 2024. Large Language Monkeys: Scaling Inference
+Compute with Repeated Sampling.Arxiv(2024).
+[8]Paul E. Calzada, Zahin Ibnat, Tanvir Rahman, Kamal Kandula, Danyu Lu, Su-
+jan Kumar Saha, Farimah Farahmandi, and Mark Tehranipoor. 2025. VerilogDB:
+The Largest, Highest-Quality Dataset with a Preprocessing Framework for LLM-
+based RTL Generation.Arxiv(2025).
+[9]Kaiyan Chang, Ying Wang, Haimeng Ren, Mengdi Wang, Shengwen Liang, Yinhe
+Han, Huawei Li, and Xiaowei Li. 2023. ChipGPT: How far are we from natural
+language hardware design.NeurIPS SysML Workshop(2023).
+[10] Matthias Cosler, Christopher Hahn, Daniel Mendoza, Frederik Schmitt, and
+Caroline Trippel. 2023. nl2spec: Interactively Translating Unstructured Natural
+Language to Temporal Logics with Large Language Models.CAV(2023).
+[11] Fan Cui, Chenyang Yin, Kexing Zhou, Youwei Xiao, Guangyu Sun, Qiang Xu,
+Qipeng Guo, Yun Liang, Xingcheng Zhang, Demin Song, and Dahua Lin. 2024.
+OriGen: Enhancing RTL Code Generation with Code-to-Code Augmentation and
+Self-Reflection.ICCAD(2024).
+[12] Chenhui Deng, Yun-Da Tsai, Guan-Ting Liu, Zhongzhi Yu, and Haoxing Ren.
+2025. ScaleRTL: Scaling LLMs with Reasoning Data and Test-Time Compute for
+Accurate RTL Code Generation.MLCAD(2025).
+[13] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu,
+Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu
+Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, ...,
+and Zhen Zhang. 2025. DeepSeek-R1 incentivizes reasoning in LLMs through
+reinforcement learning.Nature(2025).
+[14] Dacheng Li, Shiyi Cao, Tyler Griggs, Shu Liu, Xiangxi Mo, Eric Tang, Sumanth
+Hegde, Kourosh Hakhamaneshi, Shishir G Patil, Matei Zaharia, Joseph E Gonzalez,
+and Ion Stoica. 2025. LLMs Can Easily Learn to Reason from Demonstrations
+Structure, not content, is what matters!Arxiv(2025).
+[15] Yuchao Liao, Tosiron Adegbija, and Roman Lysecky. 2024. Are LLMs Any Good
+for High-Level Synthesis?ICCAD(2024).
+[16] Mingjie Liu, Nathaniel Pinckney, Brucek Khailany, and Haoxing Ren. 2023. Verilo-
+gEval: Evaluating Large Language Models for Verilog Code Generation.ICCAD
+(2023).
+[17] Mingjie Liu, Yun-Da Tsai, Wenfei Zhou, and Haoxing Ren. 2025. CraftRTL:
+High-quality Synthetic Data Generation for Verilog Code Models with Correct-
+by-Construction Non-Textual Representations and Targeted Code Repair.ICLR
+(2025).
+[18] Shang Liu, Wenji Fang, Yao Lu, Qijun Zhang, Hongce Zhang, and Zhiyao Xie.
+2024. RTLCoder: Outperforming GPT-3.5 in Design RTL Generation with Our
+Open-Source Dataset and Lightweight Solution.LAD Workshop(2024).
+[19] Shang Liu, Yao Lu, Wenji Fang, Mengming Li, and Zhiyao Xie. 2024. OpenLLM-
+RTL: Open Dataset and Benchmark for LLM-Aided Design RTL Generation.
+ICCAD(2024).
+[20] Yao Lu, Shang Liu, Qijun Zhang, and Zhiyao Xie. 2024. RTLLM: An Open-Source
+Benchmark for Design RTL Generation with Large Language Model.ASP-DAC
+(2024).
+[21] Ruiyang Ma, Yuxin Yang, Ziqian Liu, Jiaxi Zhang, Min Li, Junhua Huang, and
+Guojie Luo. 2024. VerilogReader: LLM-Aided Hardware Test Generation.LAD
+Workshop(2024).
+[22] Daniel Mendoza, Christopher Hahn, and Caroline Trippel. 2024. Translating
+Natural Language to Temporal Logics with Large Language Models and Model
+Checkers.FMCAD(2024).
+[23] Niklas Muennighoff, Zitong Yang, Weijia Shi, Xiang Lisa Li, Li Fei-Fei, Hannaneh
+Hajishirzi, Luke Zettlemoyer, Percy Liang, Emmanuel Candès, and Tatsunori
+Hashimoto. 2025. s1: Simple test-time scaling.EMNLP(2025).
+[24] Bardia Nadimi and Hao Zheng. 2024. A Multi-Expert Large Language Model
+Architecture for Verilog Code Generation.LAD Workshop(2024).
+[25] Zehua Pei, Hui-Ling Zhen, Mingxuan Yuan, Yu Huang, and Bei Yu. 2024. BetterV:
+Controlled Verilog Generation with Discriminative Guidance.ICML(2024).[26] Nathaniel Pinckney, Christopher Batten, Mingjie Liu, Haoxing Ren, and Brucek
+Khailany. 2025. Revisiting VerilogEval: A Year of Improvements in Large-
+Language Models for Hardware Code Generation.TODAES(2025).
+[27] Nathaniel Pinckney, Chenhui Deng, Chia-Tung Ho, Yun-Da Tsai, Mingjie Liu,
+Wenfei Zhou, Brucek Khailany, and Haoxing Ren. 2025. Comprehensive Verilog
+Design Problems: A Next-Generation Benchmark Dataset for Evaluating Large
+Language Models and Agents on RTL Design and Verification.Arxiv(2025).
+[28] Suresh Purini, Siddhant Garg, Mudit Gaur, Sankalp Bhat, Sohan Mupparapu, and
+Arun Ravindran. 2025. ArchXBench: A Complex Digital Systems Benchmark
+Suite for LLM Driven RTL Synthesis.MLCAD(2025).
+[29] Ruidi Qiu, Grace Zhang, Rolf Drechsler, Ulf Schlichtmann, and Bing Li. 2025.
+CorrectBench: Automatic Testbench Generation with Functional Self-Correction
+using LLMs for HDL Design.DATE(2025).
+[30] Ruidi Qiu, Grace Li Zhang, Rolf Drechsler, Ulf Schlichtmann, and Bing Li. 2024.
+AutoBench: Automatic Testbench Generation and Evaluation Using LLMs for
+HDL Design.MLCAD(2024).
+[31] Arun Ravindran, Aditya Patra, Vahid Babaey, and Suresh Purini. 2025. Survey and
+Benchmarking of Large Language Models for RTL Code Generation: Techniques
+and Open Challenges.Preprints(2025).
+[32] TooMuch Semiconductor. 2007. I2C-Master / Slave Core Specification.OpenCores
+(2007).
+[33] Charlie Victor Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar. 2025. Scaling LLM
+Test-Time Compute Optimally Can be More Effective than Scaling Parameters
+for Reasoning.ICLR(2025).
+[34] Chuyue Sun, Christopher Hahn, and Caroline Trippel. 2023. Towards Improving
+Verification Productivity with Circuit-Aware Translation of Natural Language to
+SystemVerilog Assertions.CAV Workshop(2023).
+[35] Kimia Tasnia, Alexander Garcia, Tasnuva Farheen, and Sazadur Rahman. 2025.
+VeriOpt: PPA-Aware High-Quality Verilog Generation via Multi-Role LLMs.Arxiv
+(2025).
+[36] Kimia Tasnia and Sazadur Rahman. 2025. OPL4GPT: An Application Space
+Exploration of Optimal Programming Language for Hardware Design by LLM.
+ASP-DAC(2025).
+[37] Shailja Thakur, Baleegh Ahmad, Zhenxing Fan, Hammond Pearce, Benjamin Tan,
+Ramesh Karri, Brendan Dolan-Gavitt, and Siddharth Garg. 2023. Benchmarking
+Large Language Models for Automated Verilog RTL Code Generation.DATE
+(2023).
+[38] Shailja Thakur, Baleegh Ahmad, Hammond Pearce, Benjamin Tan, Brendan Dolan-
+Gavitt, Ramesh Karri, and Siddharth Garg. 2024. VeriGen: A Large Language
+Model for Verilog Code Generation.TODAES(2024).
+[39] Ning Wang, Bingkun Yao, Jie Zhou, Xi Wang, Zhe Jiang, and Nan Guan. 2025.
+Large Language Model for Verilog Generation with Code-Structure-Guided Rein-
+forcement Learning.ICLAD(2025).
+[40] Peiyi Wang, Lei Li, Zhihong Shao, Runxin Xu, Damai Dai, Yifei Li, Deli Chen,
+Yu Wu, and Zhifang Sui. 2024. Math-Shepherd: Verify and Reinforce LLMs
+Step-by-step without Human Annotations.ACL(2024).
+[41] Weiqin Wang, Yile Wang, and Hui Huang. 2025. Ranked Voting based Self-
+Consistency of Large Language Models.ACL Findings(2025).
+[42] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V Le, Ed H Chi, Sharan Narang,
+Aakanksha Chowdhery, and Denny Zhou. 2023. Self-Consistency Improves Chain
+of Thought Reasoning in Language Models.ICLR(2023).
+[43] Yiting Wang, Guoheng Sun, Wanghao Ye, Gang Qu, and Ang Li. 2025. VeriRea-
+son: Reinforcement Learning with Testbench Feedback for Reasoning-Enhanced
+Verilog Generation.Arxiv(2025).
+[44] Anjiang Wei, Huanmi Tan, Tarun Suresh, Daniel Mendoza, Thiago S. F. X. Teixeira,
+Ke Wang, Caroline Trippel, and Alex Aiken. 2025. VeriCoder: Enhancing LLM-
+Based RTL Code Generation through Functional Correctness Validation.NeurIPS
+DL4C Workshop(2025).
+[45] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi,
+Quoc V Le, Denny Zhou, et al .2022. Chain-of-thought prompting elicits reasoning
+in large language models.NeurIPS(2022).
+[46] Yuheng Wu, Azalia Mirhoseini, and Thierry Tambe. 2025. On the Role of Tem-
+perature Sampling in Test-Time Scaling.Arxiv(2025).
+[47] Yuheng Wu, Jianwen Xie, Denghui Zhang, and Zhaozhuo Xu. 2025. DEL-ToM:
+Inference-Time Scaling for Theory-of-Mind Reasoning via Dynamic Epistemic
+Logic.EMNLP(2025).
+[48] Claire Xenia Wolf. 2020. Equivalence Checking with Yosys.GitHub(2020).
+[49] Zhiyuan Yan, Wenji Fang, Mengming Li, Min Li, Shang Liu, Zhiyao Xie, and
+Hongce Zhang. 2025. AssertLLM: Generating Hardware Verification Assertions
+from Design Specifications via Multi-LLMs.ASP-DAC(2025).
+[50] Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths, Yuan Cao, and
+Karthik Narasimhan. 2023. Tree of thoughts: Deliberate problem solving with
+large language models.NeurIPS(2023).
+[51] Zhongzhi Yu, Mingjie Liu, Michael Zimmer, Yingyan Celine Lin, Yong Liu, and
+Haoxing Ren. 2025. Spec2RTL-Agent: Automated Hardware Code Generation
+from Complex Specifications Using LLM Agent Systems.Arxiv(2025).
+[52] Yujie Zhao, Hejia Zhang, Hanxian Huang, Zhongming Yu, and Jishen Zhao. 2025.
+MAGE: A Multi-Agent Engine for Automated RTL Code Generation.DAC(2025).
