@@ -24,6 +24,7 @@
 | **Generating SysML Behavior Models via Large Language Models: an Empirical Study (llms_emp)** | 2025 | Wang, Y. et al. | Internetware 2025 (ACM) | SysML行为模型（重点含STM，也含ACT/SD） | GPT-4、GPT-4o、Kimi、Claude 3 Haiku、Llama3.1、DeepSeek-v3 | 两阶段框架：Phase-I提示生成（Role+Instruction+Req+Sample+RAG）→Phase-II基于模型检查反馈迭代修复 | **来源**：Google Scholar/CNKI/GitHub收集303个来源（论文/书籍/开源项目）<br>**制作**：按IC/EC筛选后，G_Model将案例统一重建为PlantUML + 需求描述，交叉验证一致性<br>**规模**：107个行为模型（36 ACT/36 STM/35 SD）<br>**可获取**：公开数据集（Google Drive） | • STM语法准确率>98%，STM语义F1≈69.29%<br>• 并发区域缺失是STM主要语义错误<br>• 反馈修复后STM需求一致性修复率≈42.14% | • 语义修复能力有限（尤其并发/层次语义）<br>• 生成时间显著增加（2.72–7.67x）<br>• PlantUML缺少原生SysML语义检查，需大量人工检查 | [baselines/llms_emp/](baselines/llms_emp/) |
 | **System Architects Are not Alone Anymore: Automatic System Modeling with AI (TTool-AI)** | 2024 | Apvrille & Sultan | MODELS 2024 | SysML块图和状态机 | GPT-4 | 交互式生成：需求分析→模型生成→迭代优化 | **来源**：3个欧洲项目真实规范（Platooning / Space-based / Automated Braking）<br>**制作**：论文未新建大规模公开数据集，基于真实规范做工具与人工对照实验；同一评分标准评估<br>**可获取**：测试系统、规范与生成模型在GitHub公开（ttool-ai仓库） | • 能生成SysML块图和状态机<br>• 交互式方法有效<br>• 支持TTool工具集成 | • 需要人工迭代<br>• 模型质量不稳定<br>• 缺乏自动验证 | [baselines/ttool-ai/](baselines/ttool-ai/) |
 | **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM到RTL代码（非UML/SysML图，但为FSM推理） | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动benchmark构建：FSM生成→YAML格式化→NL规范生成→RTL合成 | **来源**：自动化生成，不依赖手工收集语料<br>**制作**：约束随机FSM生成（连通/确定/完备约束）+ LLM生成语义化描述 + 参考RTL与testbench + 多层验证（LLM检查/SAT/人工抽查）<br>**规模**：1000个FSM-to-RTL问题（状态2-16）<br>**可获取**：论文为arXiv公开，desc中未给出独立数据仓库链接 | • 最强模型整体准确率42.3%<br>• 8个状态为性能拐点<br>• SFT提升OOD任务19.4% | • 聚焦FSM→RTL，不是控制系统UML/SysML建模<br>• NL规范由LLM生成，存在传播误差 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
+| **LLM-based Iterative Requirements Refinement in FSM with IEC 61499 Code Generation (fbAssistant)** | 2025 | Vyatkin, V. et al. | IEEE INDIN 2025 | 有限状态机 + IEC 61499功能块代码 | LLM（未明确指定具体模型） | 迭代精化框架：NL需求→LLM生成FSM→可视化验证→迭代修改→内置解释器仿真→生成IEC 61499功能块→部署测试 | **来源**：工业自动化案例（气动缸、拾取放置机械手）<br>**制作**：论文未新建公开数据集，基于真实工业系统规范进行工具验证<br>**规模**：2个案例系统（简单+复杂）<br>**可获取**：工具演示视频公开（YouTube），代码仓库未公开 | • 显著减少开发时间<br>• 支持多语言需求（含中文）<br>• 闭环仿真验证有效<br>• 成功部署到实际系统 | • 需少量手动调整<br>• 存在LLM幻觉（无前驱状态、误删动作）<br>• 缺乏形式化验证<br>• 无时间约束支持<br>• 可扩展性未充分验证 | [baselines/fsm-gen-iec-61499/](baselines/fsm-gen-iec-61499/) |
 
 ### 2) 其他泛UML/SysML生成工作
 
@@ -113,12 +114,17 @@
 从相关工作分析可以看出，以下方向存在明显空白：
 
 1. **状态机自动生成**：相关工作主要集中在结构建模（类图、块图），行为建模（状态机）的工作较少
+   - **更新（2025）**：fbAssistant填补了工业自动化FSM生成的空白，提供了迭代精化和IEC 61499代码生成能力
    - **更新（2026）**：LLM-FSM填补了FSM推理评估的空白，但仅关注硬件RTL生成，控制系统软件状态机建模仍是空白
 2. **形式化验证集成**：所有工作都缺乏与形式化验证工具的集成
+   - **更新（2025）**：fbAssistant仅使用闭环仿真验证，未集成形式化验证（计划未来集成）
    - **更新（2026）**：LLM-FSM使用SAT求解器进行等价性检查，但未涉及时序逻辑性质验证和模型检查
 3. **自动修复机制**：没有工作提出基于验证反馈的自动修复方法
+   - **更新（2025）**：fbAssistant支持迭代精化，但依赖人工反馈，无自动修复
 4. **时间属性处理**：缺乏对时间约束和时间自动机的支持
+   - **更新（2025）**：fbAssistant未涉及时间约束
 5. **完整闭环**：缺乏"生成-验证-修复"的完整自动化闭环
+   - **更新（2025）**：fbAssistant提供"生成-仿真-迭代"闭环，但验证和修复环节需人工参与
 
 这些空白正是本博士研究的切入点。
 
@@ -194,5 +200,6 @@
 
 ## 更新日志
 
+- 2026-03-05: 添加fsm-gen-iec-61499论文（2025），基于LLM的工业自动化FSM迭代精化与IEC 61499代码生成
 - 2026-03-05: 添加LLM-FSM论文（2026），首个针对FSM推理的自动化benchmark
 - 2026-03-05: 重新整理，仅保留从MIG和TTool-AI相关工作中提取的基于LLM的建模工作
