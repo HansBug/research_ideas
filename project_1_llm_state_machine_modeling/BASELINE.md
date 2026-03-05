@@ -54,26 +54,38 @@
 
 ## 非LLM方法（作为对比参考）
 
-以下是论文中提到的传统方法，虽然不是基于LLM，但作为对比参考有助于理解LLM方法的优势：
+以下是论文中提到的传统方法，虽然不是基于LLM，但作为对比参考有助于理解LLM方法的优势。按年份从新到旧排序：
 
-| 论文 | 年份 | 作者 | 方法类型 | 主要局限性 | 来源论文 |
-|------|------|------|---------|-----------|---------|
-| Automated Extraction of Conceptual Models from User Stories via NLP | 2016 | Robeer et al. | 基于规则（23个启发式规则） | 规则编写成本高，泛化能力弱 | MIG |
-| From user requirements to UML class diagram | 2012 | Herchi & Ben Abdessalem | 语言规则（名词→实体类型） | 规则过于简单，容易误报 | MIG |
-| An NLP-based architecture for the autocompletion of partial domain models | 2021 | Burgueño et al. | NLP词嵌入模型 | 需要部分模型输入，表达能力有限 | MIG |
-| Machine Learning-Based Incremental Learning in Interactive Domain Modelling | 2022 | Saini et al. | 机器学习增量学习 | 需要监督训练和用户交互 | MIG |
-| ARSENAL: automatic requirements specification extraction from natural language | 2016 | Ghosh et al. | 最小化输入语言限制 | 某些自然语言表达仍难以处理 | TTool-AI |
-| Thematic role based generation of UML models from real world requirements | 2007 | Gelhausen & Tichy | 基于主题角色 | 需要对输入语法施加约束或手动预处理 | TTool-AI |
-| A first step towards AI for MBSE: Generating a part of SysML models from text using AI | 2019 | Chami et al. | 基于NLP的框架 | 使用传统NLP而非LLM | TTool-AI |
+| 论文 | 年份 | 作者 | 发表会议/期刊 | 输入 | 输出 | 方法类型 | 主要功能 | 主要局限性 | 来源论文 |
+|------|------|------|--------------|------|------|---------|---------|-----------|---------|
+| Sketch2process: End-to-end BPMN sketch recognition | 2023 | Schäfer et al. | IEEE TSE, vol. 49, no. 4 | 手绘BPMN草图图像 | 形式化BPMN模型 | 基于神经网络的端到端识别 | 将手绘业务流程图转换为形式化模型 | 在业务流程图上训练，泛化能力有限，无法识别工业状态图 | I4.0 |
+| Machine Learning-Based Incremental Learning in Interactive Domain Modelling | 2022 | Saini et al. | MODELS 2022 | 用户交互+部分模型 | 领域模型 | 机器学习增量学习 | 交互式领域建模 | 需要监督训练和用户交互 | MIG |
+| An NLP-based architecture for the autocompletion of partial domain models | 2021 | Burgueño et al. | CAiSE 2021 | 部分领域模型 | 补全的领域模型 | NLP词嵌入模型 | 自动补全部分模型 | 需要部分模型输入，表达能力有限 | MIG |
+| Automated Grading of Class Diagrams | 2019 | Bian et al. | MODELS-C 2019 | 学生生成的类图 | 评分和反馈 | 自动评分方法 | 评估类图质量（精确率、召回率、F1-score） | 评估工具而非生成工具 | MIG |
+| A first step towards AI for MBSE: Generating a part of SysML models from text using AI | 2019 | Chami et al. | 未明确 | 文本需求 | SysML用例图和块图 | 基于传统NLP的框架 | 从文本需求生成SysML模型 | 使用传统NLP而非LLM，能力有限 | TTool-AI |
+| ARSENAL: automatic requirements specification extraction from natural language | 2016 | Ghosh et al. | NASA NFM 2016 | 自然语言需求 | 形式化需求规范 | 最小化输入语言限制 | 从自然语言提取需求规范 | 某些自然语言表达仍难以处理 | TTool-AI |
+| Automated Extraction of Conceptual Models from User Stories via NLP | 2016 | Robeer et al. | IEEE RE 2016 | 用户故事 | 概念模型 | 基于规则（23个启发式规则） | 从用户故事提取实体和关系 | 规则编写成本高，泛化能力弱 | MIG |
+| From requirements to UML models and back | 2014 | Landhäußer et al. | Software Quality Journal, 22:121–149 | 文本需求 | UML模型 | 综合文献综述 | 提供从需求到UML自动生成的历史脉络 | 综述论文，非具体方法 | TTool-AI |
+| Cyber-physical components for heterogeneous modelling | 2014 | Zhabelova et al. | IEEE INDIN 2014 | 系统需求和组件规范 | 功能块应用 | 面向对象MVC模式适配 | 为基于组件的自动化提供架构框架 | 架构框架而非自动生成工具 | fsm-gen-iec-61499 |
+| From user requirements to UML class diagram | 2012 | Herchi & Ben Abdessalem | arXiv:1211.0713 | 用户需求文本 | UML类图 | 语言规则（名词→实体类型） | 使用简单语言规则提取UML概念 | 规则过于简单，容易误报 | MIG |
+| Thematic role based generation of UML models | 2007 | Gelhausen & Tichy | IEEE ICSC 2007 | 真实世界需求 | UML模型 | 基于主题角色 | 从真实世界需求生成UML模型 | 需要对输入语法施加约束或手动预处理 | TTool-AI |
+| Methods of object-oriented reactive agents implementation | 2005 | Shalyto et al. | KIMAS 2005 | 系统需求 | 面向对象反应式智能体 | 基于有限自动机 | 将自动机方法与面向对象编程结合 | 方法论而非自动化工具 | fsm-gen-iec-61499 |
+| Automata-based programming of reactive multi-agent control systems | 2005 | Yartsev et al. | KIMAS 2005 | 系统需求 | 反应式多智能体控制系统 | 自动机编程 | 自动机方法在控制系统中的应用 | 方法论而非自动化工具 | fsm-gen-iec-61499 |
+| Automata theory for multi-agent systems implementation | 2003 | Naumov & Shalyto | IEMC 2003 | 系统需求 | 多智能体系统实现 | 自动机理论 | 为基于自动机的编程奠定理论基础 | 理论基础而非自动化工具 | fsm-gen-iec-61499 |
+| Chartware - structured visual programming for industrial logic control | 1996 | Vyatkin et al. | Controllers and Control Systems, vol. 3, no. 4 | 工业逻辑控制需求 | 结构化可视化程序 | Chartware方法 | 工业逻辑控制的结构化可视化编程 | 早期方法，自动化程度有限 | fsm-gen-iec-61499 |
 
 ## 建模助手工具（非完全自动化生成）
 
-以下工作主要提供建模辅助功能，而非完全自动化生成：
+以下工具主要提供建模辅助功能，而非完全自动化生成。按年份从新到旧排序：
 
-| 论文 | 年份 | 作者 | 工具/方法 | 功能 | 来源论文 |
-|------|------|------|---------|------|---------|
-| A methodological assistant for use case diagrams | 2020 | Aquino et al. | 方法论助手 | 支持SysML用例图设计 | TTool-AI |
-| Examples of AI-based assistance systems in context of model-based systems engineering | 2022 | Schräder et al. | AI-based MBSE助手 | • 草图转换助手<br>• 知识库设计建议<br>• 建模查询聊天机器人 | TTool-AI |
+| 工具/论文 | 年份 | 作者/厂商 | 会议/期刊 | 输入 | 输出 | 主要功能 | 局限性 | 来源论文 |
+|---------|------|---------|---------|------|------|---------|--------|---------|
+| AI-based MBSE助手系统 | 2022 | Schräder et al. | IEEE ISSE 2022 | 手绘草图、模型库、自然语言查询 | 形式化SysML模型、设计建议、自然语言响应 | • 草图转换助手<br>• 知识库设计建议<br>• 建模查询聊天机器人 | 辅助性质，非完全自动化生成 | TTool-AI |
+| Umple | 2021 | Lethbridge et al. | 开源项目 | Umple建模语言代码 | C++、Java等传统编程语言代码 | 开源建模技术，支持UML模型（含状态机）创建，生成传统编程语言代码 | 需要手工编写Umple代码，小众语言 | umple |
+| 用例图方法论助手 | 2020 | Aquino et al. | MODELSWARD 2020 | 用户交互和需求描述 | SysML用例图 | 支持SysML用例图设计 | 仅支持用例图，不支持状态机或块图 | TTool-AI |
+| Stateflow | - | MathWorks | 商业工具 | 手工绘制的状态机 | 可执行的状态机模型和代码 | 广泛使用的状态机建模和仿真工具 | 需要大量手工工作 | req |
+| Yakindu Statechart Tools | - | itemis AG | 商业工具 | 手工定义的状态机 | 状态机模型和代码 | 商业状态机建模工具 | 需要大量手工工作 | req |
+| Enterprise Architect | - | Sparx Systems | 商业工具 | 手工创建的模型 | UML/SysML模型 | 企业级建模工具，支持UML和状态机建模 | 需要大量手工工作 | req |
 
 ## 自然语言→状态机工作综合分析
 
@@ -429,6 +441,11 @@
 
 ## 更新日志
 
+- 2026-03-05: 重构"非LLM方法"和"建模助手工具"表格：
+  - 添加"输入"、"输出"、"主要功能"等列，与LLM方法表格保持一致
+  - 从所有desc.md中提取15个非LLM方法（1996-2023）
+  - 从所有desc.md中提取6个建模助手工具
+  - 按年份从新到旧排序
 - 2026-03-05: 将I4.0论文从状态机生成表格移至"其他泛UML/SysML生成工作"表格（输入是图像而非文本）
 - 2026-03-05: 添加4篇新论文到状态机生成表格（自然语言→状态机）：
   - enhance (Lin et al. 2024)：FSM HDL设计自动化，TOP Patch提示工程
