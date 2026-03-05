@@ -29,6 +29,116 @@
 | **Enhancing Finite State Machine Design Automation with LLMs and Prompt Engineering (enhance)** | 2024 | Lin, Q.-K. et al. | IEEE APCCAS 2024 | HDLBits FSM设计问题描述 | SystemVerilog格式的FSM代码 | Claude 3 Opus、GPT-4、GPT-4o | 系统化Markdown格式提示+TOP Patch（To-do-Oriented Prompting）任务导向补丁+CoT多轮对话 | **来源**：HDLBits平台的20个FSM设计问题<br>**制作**：使用公开的HDLBits问题集<br>**可获取**：HDLBits网站（https://hdlbits.01xz.net/） | • Claude 3 Opus单次生成成功率41%（20个问题中11个）<br>• TOP Patch后同步复位成功率从30%→70%<br>• one-hot FSM设计成功率达90% | • 所有模型在one-hot设计上表现较差<br>• 处理真值表和卡诺图时容易出错<br>• 状态数量少但逻辑复杂的FSM容易误解<br>• TOP Patch生成仍需人工设计 | [baselines/enhance/](baselines/enhance/) |
 | **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM配置参数 + 自然语言规范 | Verilog RTL代码 + 测试平台 | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动benchmark构建：FSM生成→YAML格式化→NL规范生成→RTL合成 | **来源**：自动化生成，不依赖手工收集语料<br>**制作**：约束随机FSM生成（连通/确定/完备约束）+ LLM生成语义化描述 + 参考RTL与testbench + 多层验证（LLM检查/SAT/人工抽查）<br>**规模**：1000个FSM-to-RTL问题（状态2-16）<br>**可获取**：论文为arXiv公开，desc中未给出独立数据仓库链接 | • 最强模型整体准确率42.3%<br>• 8个状态为性能拐点<br>• SFT提升OOD任务19.4% | • 聚焦FSM→RTL，不是控制系统UML/SysML建模<br>• NL规范由LLM生成，存在传播误差 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
 
+#### 数据集与代码可获取性分析
+
+| 论文 | 数据集可获取性 | 代码可获取性 | 数据集规模 | 数据集链接/获取方式 | 代码链接/获取方式 | 与控制系统的相关性 | 推荐优先级 |
+|------|--------------|------------|-----------|-------------------|-----------------|------------------|----------|
+| **llms_emp** | ✅ 可立即获取 | ❌ 未公开 | 107个案例（36 STM/36 ACT/35 SD） | [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | 需自行复现 | ⭐⭐⭐ 通用SysML行为模型，包含状态机 | **高** |
+| **TTool-AI** | ✅ 可立即获取 | ✅ 可立即获取 | 3个系统（Platooning/Space-based/Automated Braking） | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | ⭐⭐⭐⭐ 包含自动驾驶和航空系统，与控制系统高度相关 | **最高** |
+| **enhance** | ✅ 可访问 | ❌ 未公开 | 20个FSM设计问题 | [HDLBits平台](https://hdlbits.01xz.net/) | 需自行复现 | ⭐⭐ 硬件FSM设计，偏向数字电路 | 中 |
+| **umple** | ⚠️ 部分可获取 | ❌ 未公开 | 5个系统（Blackjack等） | 论文中有详细描述，需自行构建 | 需自行复现 | ⭐ 通用状态机，非控制系统领域 | 低 |
+| **fbAssistant** | ⚠️ 部分可获取 | ⚠️ 仅演示视频 | 2个案例（气动缸、拾取放置机械手） | 论文中详细描述，需根据描述复现 | [YouTube演示](https://www.youtube.com/live/aR20KBmZnA4?si=wxyMOcAX4tirRgQf) | ⭐⭐⭐⭐⭐ 工业自动化控制系统，IEC 61499标准 | 高 |
+| **req** | ❌ 未公开 | ❌ 未公开 | 20个需求 | Volvo Cars专有数据，需联系作者 | Volvo Cars内部环境 | ⭐⭐⭐⭐ 汽车控制系统 | 低（无法获取） |
+| **LLM-FSM** | ❌ 未公开 | ❌ 未公开 | 1000个FSM-to-RTL问题 | 需关注后续发布或联系作者 | 需关注后续发布或联系作者 | ⭐⭐ RTL代码生成，偏向硬件设计 | 中（待发布） |
+
+**数据集特点分析**：
+
+1. **规模对比**：
+   - 最大规模：LLM-FSM（1000个，但未公开）
+   - 中等规模：llms_emp（107个，可获取）
+   - 小规模：TTool-AI（3个）、fbAssistant（2个）、umple（5个）、enhance（20个）、req（20个）
+
+2. **领域分布**：
+   - **控制系统相关**：TTool-AI（自动驾驶/航空）、fbAssistant（工业自动化）、req（汽车）
+   - **通用建模**：llms_emp（SysML）、umple（通用状态机）
+   - **硬件设计**：enhance（HDL）、LLM-FSM（RTL）
+
+3. **可获取性统计**：
+   - 数据集可立即获取：3篇（llms_emp、TTool-AI、enhance）
+   - 代码可立即获取：1篇（TTool-AI）
+   - 完全未公开：2篇（req、LLM-FSM）
+   - 部分可获取：2篇（umple、fbAssistant）
+
+**针对Project 1的建议**：
+
+根据你的研究内容（基于控制系统软件需求的LLM状态机结构化建模，关注时间自动机、形式化验证、时间约束），推荐以下数据集入手顺序：
+
+**第一优先级：TTool-AI数据集** ⭐⭐⭐⭐⭐
+- **理由**：
+  - 代码和数据均可立即获取，可快速启动实验
+  - 包含真实控制系统案例（自动驾驶Platooning、航空Automated Braking）
+  - 生成SysML状态机图，与你的研究目标一致
+  - 有完整的工具链（TTool），支持形式化验证
+  - 案例包含安全关键系统，适合研究时间约束和安全性质
+- **建议用途**：
+  - 作为初始实验平台，验证你的方法框架
+  - 分析现有方法在控制系统上的不足（特别是时间约束缺失）
+  - 扩展TTool-AI的能力，添加时间自动机生成
+
+**第二优先级：llms_emp数据集** ⭐⭐⭐⭐
+- **理由**：
+  - 数据集规模最大（107个案例），可立即获取
+  - 包含状态机图（STM），与你的研究直接相关
+  - 已有模型检查反馈机制，可借鉴其验证方法
+  - 数据集质量高（经过交叉验证）
+- **建议用途**：
+  - 作为大规模实验的数据基础
+  - 研究语义修复和迭代优化方法
+  - 对比你的方法与现有方法在语义准确性上的提升
+- **局限性**：
+  - 使用PlantUML格式，需要转换为时间自动机格式
+  - 缺少时间约束，需要你自行添加或扩展
+
+**第三优先级：fbAssistant案例** ⭐⭐⭐⭐
+- **理由**：
+  - 工业自动化控制系统，与你的目标领域高度契合
+  - IEC 61499标准，工业界广泛使用
+  - 虽然数据集小，但案例质量高、真实性强
+- **建议用途**：
+  - 作为工业验证案例
+  - 研究IEC 61499标准下的状态机建模
+  - 与fbAssistant工具对比，展示你的方法优势
+- **局限性**：
+  - 数据集规模小（仅2个案例）
+  - 需要根据论文描述自行复现
+  - 工具未完全公开
+
+**第四优先级：enhance数据集（HDLBits）** ⭐⭐⭐
+- **理由**：
+  - 数据集可访问，20个FSM设计问题
+  - 有明确的评估标准（功能正确性）
+- **建议用途**：
+  - 作为补充实验，验证方法在硬件FSM上的泛化能力
+- **局限性**：
+  - 偏向硬件设计，与控制系统软件需求有差异
+  - 缺少时间约束和安全性质
+
+**不推荐立即使用**：
+- **req**：数据集未公开，无法获取
+- **LLM-FSM**：数据集未公开，需等待后续发布
+- **umple**：规模小，非控制系统领域，需自行构建
+
+**实施路线图**：
+
+1. **阶段1（1-2个月）**：使用TTool-AI数据集
+   - 快速搭建实验框架
+   - 验证基本方法可行性
+   - 识别时间约束建模的关键挑战
+
+2. **阶段2（2-3个月）**：扩展到llms_emp数据集
+   - 大规模实验验证
+   - 对比现有方法
+   - 发表初步成果
+
+3. **阶段3（3-4个月）**：添加fbAssistant案例
+   - 工业验证
+   - 展示实际应用价值
+   - 与工业标准对接
+
+4. **阶段4（可选）**：关注LLM-FSM数据集发布
+   - 如果公开，可作为大规模benchmark
+   - 验证方法的泛化能力
+
 ### 2) 状态机精化/优化相关工作（基于已有模型）
 
 | 论文 | 年份 | 作者 | 发表会议/期刊 | 输入 | 输出 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性） | 主要发现/结果 | 局限性 | 文档路径 |
