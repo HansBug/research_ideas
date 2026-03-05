@@ -17,7 +17,7 @@
 
 以下论文已完整收录到本项目的baselines目录，包含PDF原文、提取文本和desc.md分析。
 
-### 1) 状态机生成相关工作（优先）
+### 1) 自然语言→状态机生成相关工作（从零生成）
 
 | 论文 | 年份 | 作者 | 发表会议/期刊 | 输入 | 输出 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性） | 主要发现/结果 | 局限性 | 文档路径 |
 |------|------|------|--------------|------|------|----------|---------|---------------------------|-------------|--------|---------|
@@ -25,13 +25,18 @@
 | **LLM-based Iterative Requirements Refinement in FSM with IEC 61499 Code Generation (fbAssistant)** | 2025 | Vyatkin, V. et al. | IEEE INDIN 2025 | 自然语言控制需求 + 系统I/O接口规范 | 可视化FSM + IEC 61499功能块代码 | LLM（未明确指定具体模型） | 迭代精化框架：NL需求→LLM生成FSM→可视化验证→迭代修改→内置解释器仿真→生成IEC 61499功能块→部署测试 | **来源**：工业自动化案例（气动缸、拾取放置机械手）<br>**制作**：论文未新建公开数据集，基于真实工业系统规范进行工具验证<br>**规模**：2个案例系统（简单+复杂）<br>**可获取**：工具演示视频公开（YouTube），代码仓库未公开 | • 显著减少开发时间<br>• 支持多语言需求（含中文）<br>• 闭环仿真验证有效<br>• 成功部署到实际系统 | • 需少量手动调整<br>• 存在LLM幻觉（无前驱状态、误删动作）<br>• 缺乏形式化验证<br>• 无时间约束支持<br>• 可扩展性未充分验证 | [baselines/fsm-gen-iec-61499/](baselines/fsm-gen-iec-61499/) |
 | **Automated Statechart Generation from Natural Language Requirements in Automotive (req)** | 2025 | Kurukuri, L.S.R. | 硕士学位论文，Chalmers/Gothenburg | 自然语言产品功能需求 | Mermaid.js格式状态机 | GPT-3.5、GPT-4、GPT-4o（微调） | NLP特征提取（NER/POS）→合成数据生成→领域特定微调→状态机生成 | **来源**：Volvo Cars的Car Weaver工具，20个产品功能需求<br>**制作**：合成数据生成扩充训练集<br>**规模**：20个真实需求+合成数据，12个测试用例<br>**可获取**：工业专有数据，未公开 | • 微调后GPT-4功能正确性3.52（基础模型2.60）<br>• 可理解性3.75（基础模型2.96）<br>• 简单场景接近人工水平（4.5/5分） | • 复杂场景处理能力不足<br>• 迁移不完整、循环逻辑不清晰<br>• 术语不一致、需求对齐度不足<br>• 数据集规模有限（20个）<br>• 仍需专家验证 | [baselines/req/](baselines/req/) |
 | **Exploring How Well Llama3 can Generate State Machines Represented in Umple (umple)** | 2025 | Pathak, P. | 硕士学位论文，University of Ottawa | 自然语言需求描述 | Umple格式状态机 | Llama 3 (8B) | 三种提示工程策略：Zero-shot（完全失败）→One-shot（中等效果）→RAG（最佳效果，使用Nomic嵌入+余弦相似度检索） | **来源**：5个测试系统（Blackjack/Course Section/Credit Card Transaction/Driver License/Hotel Stay）<br>**制作**：论文自行设计的测试系统，包含需求描述和参考状态机<br>**规模**：5个系统，每个系统多次迭代生成<br>**可获取**：论文正文中有详细描述，但未提供独立数据集下载链接 | • RAG方法归一化Levenshtein距离0.07-0.32<br>• Credit Card Transaction表现最佳（0.07）<br>• 提出专用评估指标（ICP/EUCP/归一化Levenshtein距离） | • 仅测试5个简单系统<br>• 使用8B小模型（受本地机器限制）<br>• 未涉及时间约束和守卫条件<br>• 缺乏形式化验证<br>• Umple是小众语言 | [baselines/umple/](baselines/umple/) |
-| **LLM-based Iterative Refinement of FSM with STPA Controller Constraints (STPA)** | 2025 | King, A. & Vyatkin, V. | IEEE ETFA 2025 | 初始FSM + STPA控制器约束 | 优化后的FSM + IEC 61499代码 | OpenAI GPT（通过fbAssistant） | STPA控制器约束作为提示→递归迭代优化（每个约束20次）→IEC 61499代码生成 | **来源**：pick-and-place机器案例，STPA分析生成33个UCA和11个控制器约束<br>**制作**：手工进行STPA分析<br>**规模**：9个约束×20次迭代+1组组合约束×10次=190次迭代<br>**可获取**：未公开，建议联系作者 | • 9组测试中1组成功（约束C-7）<br>• 成功修复工件掉落问题<br>• 第11次迭代达到最佳状态后保持稳定 | • 成功率低（10%）<br>• 状态漂移严重<br>• 引入不必要变量<br>• 过度假设互补行为<br>• 约束描述不完整<br>• 语言不一致 | [baselines/STPA/](baselines/STPA/) |
 | **System Architects Are not Alone Anymore: Automatic System Modeling with AI (TTool-AI)** | 2024 | Apvrille & Sultan | MODELS 2024 | 自然语言系统规范 | SysML块图、内部块图和状态机图 | GPT-4 | 交互式生成：需求分析→模型生成→迭代优化（知识注入+自动反馈循环，最多20次迭代） | **来源**：3个欧洲项目真实规范（Platooning / Space-based / Automated Braking）<br>**制作**：论文未新建大规模公开数据集，基于真实规范做工具与人工对照实验；同一评分标准评估<br>**可获取**：测试系统、规范与生成模型在GitHub公开（ttool-ai仓库） | • 能生成SysML块图和状态机<br>• 交互式方法有效<br>• 支持TTool工具集成 | • 需要人工迭代<br>• 模型质量不稳定<br>• 缺乏自动验证 | [baselines/ttool-ai/](baselines/ttool-ai/) |
-| **State Diagram Extension and Test Case Generation Based on LLMs for Safety Testing (safety)** | 2024 | Su, Q. et al. | IEEE ISSREW 2024 | 基本状态图 + 航空安全准则 | 扩展的安全状态图 + 测试用例 | Qwen2-72B-Instruct（微调） | 安全准则提取（DO-178C+ARP 4754A）→LLM状态图扩展→边优先深度遍历生成测试路径→LLM优化遗传算法生成测试数据 | **来源**：航空高度控制系统案例+在线爬取的机载软件需求<br>**制作**：从航空标准提取4类25项安全准则<br>**可获取**：未提供公开数据集，建议联系作者 | • 与经典遗传算法相比平均执行轮数减少90%<br>• 与6种改进遗传算法相比平均迭代次数减少77.32%<br>• LLM优化策略可增强其他改进遗传算法 | • 安全准则覆盖有限（仅4类25项）<br>• 测试路径生成未考虑上下文关系<br>• 仅在单个航空案例上验证<br>• 依赖大规模LLM（Qwen2-72B）<br>• 未提供与人工扩展方法的对比 | [baselines/safety/](baselines/safety/) |
 | **Enhancing Finite State Machine Design Automation with LLMs and Prompt Engineering (enhance)** | 2024 | Lin, Q.-K. et al. | IEEE APCCAS 2024 | HDLBits FSM设计问题描述 | SystemVerilog格式的FSM代码 | Claude 3 Opus、GPT-4、GPT-4o | 系统化Markdown格式提示+TOP Patch（To-do-Oriented Prompting）任务导向补丁+CoT多轮对话 | **来源**：HDLBits平台的20个FSM设计问题<br>**制作**：使用公开的HDLBits问题集<br>**可获取**：HDLBits网站（https://hdlbits.01xz.net/） | • Claude 3 Opus单次生成成功率41%（20个问题中11个）<br>• TOP Patch后同步复位成功率从30%→70%<br>• one-hot FSM设计成功率达90% | • 所有模型在one-hot设计上表现较差<br>• 处理真值表和卡诺图时容易出错<br>• 状态数量少但逻辑复杂的FSM容易误解<br>• TOP Patch生成仍需人工设计 | [baselines/enhance/](baselines/enhance/) |
 | **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM配置参数 + 自然语言规范 | Verilog RTL代码 + 测试平台 | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动benchmark构建：FSM生成→YAML格式化→NL规范生成→RTL合成 | **来源**：自动化生成，不依赖手工收集语料<br>**制作**：约束随机FSM生成（连通/确定/完备约束）+ LLM生成语义化描述 + 参考RTL与testbench + 多层验证（LLM检查/SAT/人工抽查）<br>**规模**：1000个FSM-to-RTL问题（状态2-16）<br>**可获取**：论文为arXiv公开，desc中未给出独立数据仓库链接 | • 最强模型整体准确率42.3%<br>• 8个状态为性能拐点<br>• SFT提升OOD任务19.4% | • 聚焦FSM→RTL，不是控制系统UML/SysML建模<br>• NL规范由LLM生成，存在传播误差 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
 
-### 2) 其他泛UML/SysML生成工作
+### 2) 状态机精化/优化相关工作（基于已有模型）
+
+| 论文 | 年份 | 作者 | 发表会议/期刊 | 输入 | 输出 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性） | 主要发现/结果 | 局限性 | 文档路径 |
+|------|------|------|--------------|------|------|----------|---------|---------------------------|-------------|--------|---------|
+| **LLM-based Iterative Refinement of FSM with STPA Controller Constraints (STPA)** | 2025 | King, A. & Vyatkin, V. | IEEE ETFA 2025 | 初始FSM + STPA控制器约束 | 优化后的FSM + IEC 61499代码 | OpenAI GPT（通过fbAssistant） | STPA控制器约束作为提示→递归迭代优化（每个约束20次）→IEC 61499代码生成 | **来源**：pick-and-place机器案例，STPA分析生成33个UCA和11个控制器约束<br>**制作**：手工进行STPA分析<br>**规模**：9个约束×20次迭代+1组组合约束×10次=190次迭代<br>**可获取**：未公开，建议联系作者 | • 9组测试中1组成功（约束C-7）<br>• 成功修复工件掉落问题<br>• 第11次迭代达到最佳状态后保持稳定 | • 成功率低（10%）<br>• 状态漂移严重<br>• 引入不必要变量<br>• 过度假设互补行为<br>• 约束描述不完整<br>• 语言不一致 | [baselines/STPA/](baselines/STPA/) |
+| **State Diagram Extension and Test Case Generation Based on LLMs for Safety Testing (safety)** | 2024 | Su, Q. et al. | IEEE ISSREW 2024 | 基本状态图 + 航空安全准则 | 扩展的安全状态图 + 测试用例 | Qwen2-72B-Instruct（微调） | 安全准则提取（DO-178C+ARP 4754A）→LLM状态图扩展→边优先深度遍历生成测试路径→LLM优化遗传算法生成测试数据 | **来源**：航空高度控制系统案例+在线爬取的机载软件需求<br>**制作**：从航空标准提取4类25项安全准则<br>**可获取**：未提供公开数据集，建议联系作者 | • 与经典遗传算法相比平均执行轮数减少90%<br>• 与6种改进遗传算法相比平均迭代次数减少77.32%<br>• LLM优化策略可增强其他改进遗传算法 | • 安全准则覆盖有限（仅4类25项）<br>• 测试路径生成未考虑上下文关系<br>• 仅在单个航空案例上验证<br>• 依赖大规模LLM（Qwen2-72B）<br>• 未提供与人工扩展方法的对比 | [baselines/safety/](baselines/safety/) |
+
+### 3) 其他泛UML/SysML生成工作
 
 | 论文 | 年份 | 作者 | 发表会议/期刊 | 生成的模型类型 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性） | 主要发现/结果 | 局限性 | 文档路径 |
 |------|------|------|--------------|--------------|----------|---------|---------------------------|-------------|--------|---------|
@@ -91,19 +96,21 @@
 
 ### 1. 研究现状概览（2024-2025）
 
-截至2025年，基于LLM的自然语言到状态机生成已成为研究热点，共收录9篇核心论文（自然语言→状态机），涵盖多个应用领域和技术路线。
+截至2025年，基于LLM的状态机相关研究已成为热点，共收录9篇核心论文，按研究类型分为：
+- **从零生成**（7篇）：llms_emp、fbAssistant、req、umple、TTool-AI、enhance、LLM-FSM
+- **精化/优化**（2篇）：STPA、safety
 
 **应用领域分布**：
-- **工业自动化**：fbAssistant（IEC 61499）、STPA（IEC 61499）
+- **工业自动化**：fbAssistant（IEC 61499）、STPA（IEC 61499精化）
 - **汽车软件**：req（Volvo Cars）
-- **航空航天**：safety（航空高度控制）
+- **航空航天**：safety（航空高度控制，状态图扩展）
 - **硬件设计**：enhance（SystemVerilog HDL）、LLM-FSM（RTL代码）
 - **通用建模**：llms_emp（SysML）、TTool-AI（SysML）、umple（Umple）
 
 **技术路线分类**：
 1. **端到端生成**：llms_emp、TTool-AI、req、umple
 2. **多步流水线**：enhance（提示工程→HDL生成）
-3. **迭代优化**：fbAssistant、STPA、safety
+3. **迭代优化**：fbAssistant（从零生成+迭代）、STPA（精化）、safety（扩展）
 4. **基准测试**：LLM-FSM（自动化benchmark构建）
 
 ### 2. 主要方法与技术创新
@@ -122,10 +129,12 @@
 
 #### 2.2 迭代优化方法
 
-**迭代策略对比**：
-- **递归迭代**（STPA）：基于前一次迭代结果，成功率低（10%），易导致状态漂移
+**从零生成中的迭代策略**：
 - **反馈驱动迭代**（llms_emp）：基于模型检查反馈，STM需求一致性修复率42.14%
 - **人工引导迭代**（fbAssistant）：可视化验证+人工调整，成功部署到实际系统
+
+**精化/优化中的迭代策略**：
+- **递归迭代**（STPA）：基于前一次迭代结果，成功率低（10%），易导致状态漂移
 - **LLM优化遗传算法**（safety）：平均执行轮数减少90%
 
 **迭代失败模式**（STPA论文识别）：
@@ -174,21 +183,25 @@
 #### 3.2 形式化验证缺失
 
 **验证能力有限**：
-- 大多数工作缺乏形式化验证（TTool-AI、fbAssistant、STPA、req）
+- 大多数从零生成工作缺乏形式化验证（TTool-AI、fbAssistant、req）
 - llms_emp使用PlantUML，缺少原生SysML语义检查
-- safety仅使用闭环仿真验证，未集成形式化验证
+- fbAssistant仅使用闭环仿真验证，未集成形式化验证
 
 **时间约束支持不足**：
-- fbAssistant、req、STPA均未涉及时间约束
+- fbAssistant、req均未涉及时间约束
 - 缺乏时间自动机的生成和验证能力
+
+**精化/优化工作的验证**：
+- STPA：缺乏自动化验证，依赖人工评估变更
+- safety：使用UPPAAL验证扩展状态图的完整性和一致性（唯一使用形式化验证的工作）
 
 #### 3.3 数据集规模与质量
 
 **规模有限**：
-- req：仅20个真实需求
-- safety：仅1个航空案例
-- STPA：仅1个pick-and-place案例
-- umple：仅5个测试系统
+- req：仅20个真实需求（从零生成）
+- umple：仅5个测试系统（从零生成）
+- safety：仅1个航空案例（状态图扩展）
+- STPA：仅1个pick-and-place案例（FSM精化）
 
 **领域泛化能力未知**：
 - 大多数工作仅在单一领域验证
@@ -197,9 +210,9 @@
 #### 3.4 成功率与可靠性
 
 **成功率差异巨大**：
-- STPA：10%（1/10）
-- enhance：41%（Claude 3 Opus单次生成）
-- req：简单场景接近人工水平，复杂场景表现较差
+- STPA：10%（1/10）（FSM精化）
+- enhance：41%（Claude 3 Opus单次生成，从零生成）
+- req：简单场景接近人工水平，复杂场景表现较差（从零生成）
 
 **需要人工干预**：
 - 所有工作都强调仍需专家验证和调整
@@ -214,8 +227,8 @@
 - 需要大量人工迭代
 
 **当前（2024-2025）**：
-- 多步流水线（I4.0：识别→生成）
-- 迭代优化框架（llms_emp、fbAssistant、STPA）
+- 多步流水线（I4.0：识别→生成，在"其他泛UML/SysML生成工作"中）
+- 迭代优化框架（llms_emp、fbAssistant：从零生成+迭代；STPA：精化）
 - 分阶段生成（safety：扩展→测试生成）
 
 #### 4.2 从通用到领域特定
@@ -225,12 +238,12 @@
 - 性能不稳定，需要大量提示工程
 
 **领域微调**：
-- req：在汽车领域数据上微调GPT-4，功能正确性提升35%
-- safety：微调Qwen2-72B-Instruct，执行轮数减少90%
+- req：在汽车领域数据上微调GPT-4，功能正确性提升35%（从零生成）
+- safety：微调Qwen2-72B-Instruct，执行轮数减少90%（状态图扩展）
 
 **领域知识注入**：
-- safety：从航空标准提取安全准则
-- STPA：使用STPA控制器约束作为提示
+- safety：从航空标准提取安全准则（状态图扩展）
+- STPA：使用STPA控制器约束作为提示（FSM精化）
 
 #### 4.3 从生成到验证
 
@@ -255,8 +268,9 @@
 
 #### 5.1 研究空白确认
 
-**时间约束建模**：
-- 所有收录论文均未充分支持时间自动机
+**时间约束建模**（最大空白）：
+- 所有从零生成论文均未充分支持时间自动机
+- 精化/优化工作也未涉及时间约束
 - 缺乏时钟约束和不变式的生成能力
 - **本研究创新点**：显式建模时间约束，支持时间自动机
 
