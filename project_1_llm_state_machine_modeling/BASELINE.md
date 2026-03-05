@@ -1,6 +1,6 @@
 # Project 1 Baseline工作汇总
 
-本文档整理了从MIG和TTool-AI两篇论文的相关工作中提取的、所有基于LLM生成泛UML/SysML相关软件模型的baseline工作。
+本文档整理了Project 1中已收录的、基于LLM生成UML/SysML相关软件模型的baseline工作，并按“状态机生成”与“其他泛UML/SysML生成”分别展示。
 
 ## 纳入标准
 
@@ -15,13 +15,21 @@
 
 ## 已收录的核心Baseline论文
 
-以下三篇论文已完整收录到本项目的baselines目录，包含PDF原文、提取的文本内容和详细的desc.md分析文档：
+以下论文已完整收录到本项目的baselines目录，包含PDF原文、提取文本和desc.md分析。
+
+### 1) 状态机生成相关工作（优先）
+
+| 论文 | 年份 | 作者 | 发表会议/期刊 | 生成的模型类型 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性） | 主要发现/结果 | 局限性 | 文档路径 |
+|------|------|------|--------------|--------------|----------|---------|---------------------------|-------------|--------|---------|
+| **Generating SysML Behavior Models via Large Language Models: an Empirical Study (llms_emp)** | 2025 | Wang, Y. et al. | Internetware 2025 (ACM) | SysML行为模型（重点含STM，也含ACT/SD） | GPT-4、GPT-4o、Kimi、Claude 3 Haiku、Llama3.1、DeepSeek-v3 | 两阶段框架：Phase-I提示生成（Role+Instruction+Req+Sample+RAG）→Phase-II基于模型检查反馈迭代修复 | **来源**：Google Scholar/CNKI/GitHub收集303个来源（论文/书籍/开源项目）<br>**制作**：按IC/EC筛选后，G_Model将案例统一重建为PlantUML + 需求描述，交叉验证一致性<br>**规模**：107个行为模型（36 ACT/36 STM/35 SD）<br>**可获取**：公开数据集（Google Drive） | • STM语法准确率>98%，STM语义F1≈69.29%<br>• 并发区域缺失是STM主要语义错误<br>• 反馈修复后STM需求一致性修复率≈42.14% | • 语义修复能力有限（尤其并发/层次语义）<br>• 生成时间显著增加（2.72–7.67x）<br>• PlantUML缺少原生SysML语义检查，需大量人工检查 | [baselines/llms_emp/](baselines/llms_emp/) |
+| **System Architects Are not Alone Anymore: Automatic System Modeling with AI (TTool-AI)** | 2024 | Apvrille & Sultan | MODELS 2024 | SysML块图和状态机 | GPT-4 | 交互式生成：需求分析→模型生成→迭代优化 | **来源**：3个欧洲项目真实规范（Platooning / Space-based / Automated Braking）<br>**制作**：论文未新建大规模公开数据集，基于真实规范做工具与人工对照实验；同一评分标准评估<br>**可获取**：测试系统、规范与生成模型在GitHub公开（ttool-ai仓库） | • 能生成SysML块图和状态机<br>• 交互式方法有效<br>• 支持TTool工具集成 | • 需要人工迭代<br>• 模型质量不稳定<br>• 缺乏自动验证 | [baselines/ttool-ai/](baselines/ttool-ai/) |
+| **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM到RTL代码（非UML/SysML图，但为FSM推理） | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动benchmark构建：FSM生成→YAML格式化→NL规范生成→RTL合成 | **来源**：自动化生成，不依赖手工收集语料<br>**制作**：约束随机FSM生成（连通/确定/完备约束）+ LLM生成语义化描述 + 参考RTL与testbench + 多层验证（LLM检查/SAT/人工抽查）<br>**规模**：1000个FSM-to-RTL问题（状态2-16）<br>**可获取**：论文为arXiv公开，desc中未给出独立数据仓库链接 | • 最强模型整体准确率42.3%<br>• 8个状态为性能拐点<br>• SFT提升OOD任务19.4% | • 聚焦FSM→RTL，不是控制系统UML/SysML建模<br>• NL规范由LLM生成，存在传播误差 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
+
+### 2) 其他泛UML/SysML生成工作
 
 | 论文 | 年份 | 作者 | 发表会议/期刊 | 生成的模型类型 | 使用的LLM | 主要方法 | 主要发现/结果 | 局限性 | 文档路径 |
 |------|------|------|--------------|--------------|----------|---------|-------------|--------|---------|
-| **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM到RTL代码 | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动化benchmark构建pipeline：FSM生成→YAML格式化→NL规范生成→RTL合成 | • 最强模型（GPT-4o）整体准确率42.3%<br>• 8个状态是性能拐点<br>• SFT提升OOD任务19.4%<br>• Best-of-N采样提升31.5% | • 仅关注FSM到RTL转换<br>• NL规范由LLM生成<br>• 验证主要依赖功能测试<br>• 状态数限制在16以内<br>• 仅评估Verilog生成 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
 | **Multi-step Iterative Automated Domain Modeling with Large Language Models (MIG)** | 2024 | Yang, Y. et al. | MODELS 2024 | 领域模型（类图） | GPT-4 | 多步迭代生成：任务分解→Few-shot学习→迭代优化 | • 相比单步方法提升显著<br>• Few-shot学习有效<br>• 迭代优化能改进质量 | • 仍存在元素缺失<br>• 关系识别不完善<br>• 需要多轮迭代 | [baselines/MIG/](baselines/MIG/) |
-| **System Architects Are not Alone Anymore: Automatic System Modeling with AI (TTool-AI)** | 2024 | Apvrille & Sultan | MODELS 2024 | SysML块图和状态机 | GPT-4 | 交互式生成：需求分析→模型生成→迭代优化 | • 能生成SysML块图和状态机<br>• 交互式方法有效<br>• 支持TTool工具集成 | • 需要人工迭代<br>• 模型质量不稳定<br>• 缺乏自动验证 | [baselines/ttool-ai/](baselines/ttool-ai/) |
 
 ## 相关工作对比表
 
