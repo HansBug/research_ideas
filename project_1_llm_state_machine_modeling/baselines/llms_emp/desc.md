@@ -11,6 +11,10 @@
 - **DOI**：10.1145/3755881.3755926
 - **ISBN**：979-8-4007-1926-4
 - **链接**：https://dl.acm.org/doi/10.1145/3755881.3755926
+- **代码/仓库获取（原文）**：在论文正文与脚注中未检索到公开代码仓库链接（如GitHub/Artifact页面）
+  - 当前可行方式：根据论文方法与参数自行复现；如需作者实现，需联系作者或关注后续发布
+- **数据集获取（原文）**：脚注1给出公开数据集链接（Google Drive）
+  - https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link
 - **页码**：366-377
 
 ## 简报

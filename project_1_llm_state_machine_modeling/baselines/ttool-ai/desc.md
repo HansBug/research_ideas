@@ -5,6 +5,10 @@
 - **作者**: Ludovic Apvrille, Bastien Sultan
 - **会议**: MODELSWARD 2024
 - **机构**: Télécom Paris, IP Paris
+- **代码/仓库获取（原文）**：论文第5.2节明确给出公开仓库
+  - https://github.com/zebradile/ttool-ai
+  - 仓库包含3个测试系统目录（platooning、space-basedsystem、AutomatedBraking）、规范desc文件、TTool-AI生成的.xml模型、复现实验README与result.ods
+- **数据集获取（原文）**：论文未单独发布“独立数据集下载页”；数据获取方式为直接使用上述GitHub仓库中的公开实验工件（规范+模型+结果）
 
 ## 简报
 
