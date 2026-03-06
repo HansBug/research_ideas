@@ -19,27 +19,385 @@
 
 ### 1) 自然语言→状态机生成相关工作（从零生成）
 
-| 论文 | 年份 | 作者 | 发表会议/期刊 | 输入 | 输出 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性） | 主要发现/结果 | 局限性 | 文档路径 |
+| 论文 | 年份 | 作者 | 发表会议/期刊 | 输入 | 输出 | 使用的LLM | 主要方法 | 数据集（来源/制作/可获取性/简述来源） | 主要发现/结果 | 局限性 | 文档路径 |
 |------|------|------|--------------|------|------|----------|---------|---------------------------|-------------|--------|---------|
-| **Generating SysML Behavior Models via Large Language Models: an Empirical Study (llms_emp)** | 2025 | Wang, Y. et al. | Internetware 2025 (ACM) | 自然语言需求描述 | PlantUML格式的SysML行为模型（STM/ACT/SD） | GPT-4、GPT-4o、Kimi、Claude 3 Haiku、Llama3.1、DeepSeek-v3 | 两阶段框架：Phase-I提示生成（Role+Instruction+Req+Sample+RAG）→Phase-II基于模型检查反馈迭代修复 | **来源**：Google Scholar/CNKI/GitHub收集303个来源（论文/书籍/开源项目）<br>**制作**：按IC/EC筛选后，G_Model将案例统一重建为PlantUML + 需求描述，交叉验证一致性<br>**规模**：107个行为模型（36 ACT/36 STM/35 SD）<br>**可获取**：公开数据集（Google Drive） | • STM语法准确率>98%，STM语义F1≈69.29%<br>• 并发区域缺失是STM主要语义错误<br>• 反馈修复后STM需求一致性修复率≈42.14% | • 语义修复能力有限（尤其并发/层次语义）<br>• 生成时间显著增加（2.72–7.67x）<br>• PlantUML缺少原生SysML语义检查，需大量人工检查 | [baselines/llms_emp/](baselines/llms_emp/) |
-| **LLM-based Iterative Requirements Refinement in FSM with IEC 61499 Code Generation (fbAssistant)** | 2025 | Vyatkin, V. et al. | IEEE INDIN 2025 | 自然语言控制需求 + 系统I/O接口规范 | 可视化FSM + IEC 61499功能块代码 | LLM（未明确指定具体模型） | 迭代精化框架：NL需求→LLM生成FSM→可视化验证→迭代修改→内置解释器仿真→生成IEC 61499功能块→部署测试 | **来源**：工业自动化案例（气动缸、拾取放置机械手）<br>**制作**：论文未新建公开数据集，基于真实工业系统规范进行工具验证<br>**规模**：2个案例系统（简单+复杂）<br>**可获取**：工具演示视频公开（YouTube），代码仓库未公开 | • 显著减少开发时间<br>• 支持多语言需求（含中文）<br>• 闭环仿真验证有效<br>• 成功部署到实际系统 | • 需少量手动调整<br>• 存在LLM幻觉（无前驱状态、误删动作）<br>• 缺乏形式化验证<br>• 无时间约束支持<br>• 可扩展性未充分验证 | [baselines/fsm-gen-iec-61499/](baselines/fsm-gen-iec-61499/) |
-| **Automated Statechart Generation from Natural Language Requirements in Automotive (req)** | 2025 | Kurukuri, L.S.R. | 硕士学位论文，Chalmers/Gothenburg | 自然语言产品功能需求 | Mermaid.js格式状态机 | GPT-3.5、GPT-4、GPT-4o（微调） | NLP特征提取（NER/POS）→合成数据生成→领域特定微调→状态机生成 | **来源**：Volvo Cars的Car Weaver工具，20个产品功能需求<br>**制作**：合成数据生成扩充训练集<br>**规模**：20个真实需求+合成数据，12个测试用例<br>**可获取**：工业专有数据，未公开 | • 微调后GPT-4功能正确性3.52（基础模型2.60）<br>• 可理解性3.75（基础模型2.96）<br>• 简单场景接近人工水平（4.5/5分） | • 复杂场景处理能力不足<br>• 迁移不完整、循环逻辑不清晰<br>• 术语不一致、需求对齐度不足<br>• 数据集规模有限（20个）<br>• 仍需专家验证 | [baselines/req/](baselines/req/) |
-| **Exploring How Well Llama3 can Generate State Machines Represented in Umple (umple)** | 2025 | Pathak, P. | 硕士学位论文，University of Ottawa | 自然语言需求描述 | Umple格式状态机 | Llama 3 (8B) | 三种提示工程策略：Zero-shot（完全失败）→One-shot（中等效果）→RAG（最佳效果，使用Nomic嵌入+余弦相似度检索） | **来源**：5个测试系统（Blackjack/Course Section/Credit Card Transaction/Driver License/Hotel Stay）<br>**制作**：论文自行设计的测试系统，包含需求描述和参考状态机<br>**规模**：5个系统，每个系统多次迭代生成<br>**可获取**：论文正文中有详细描述，但未提供独立数据集下载链接 | • RAG方法归一化Levenshtein距离0.07-0.32<br>• Credit Card Transaction表现最佳（0.07）<br>• 提出专用评估指标（ICP/EUCP/归一化Levenshtein距离） | • 仅测试5个简单系统<br>• 使用8B小模型（受本地机器限制）<br>• 未涉及时间约束和守卫条件<br>• 缺乏形式化验证<br>• Umple是小众语言 | [baselines/umple/](baselines/umple/) |
-| **System Architects Are not Alone Anymore: Automatic System Modeling with AI (TTool-AI)** | 2024 | Apvrille & Sultan | MODELS 2024 | 自然语言系统规范 | SysML块图、内部块图和状态机图 | GPT-4 | 交互式生成：需求分析→模型生成→迭代优化（知识注入+自动反馈循环，最多20次迭代） | **来源**：3个欧洲项目真实规范（Platooning / Space-based / Automated Braking）<br>**制作**：论文未新建大规模公开数据集，基于真实规范做工具与人工对照实验；同一评分标准评估<br>**可获取**：测试系统、规范与生成模型在GitHub公开（ttool-ai仓库） | • 能生成SysML块图和状态机<br>• 交互式方法有效<br>• 支持TTool工具集成 | • 需要人工迭代<br>• 模型质量不稳定<br>• 缺乏自动验证 | [baselines/ttool-ai/](baselines/ttool-ai/) |
-| **Enhancing Finite State Machine Design Automation with LLMs and Prompt Engineering (enhance)** | 2024 | Lin, Q.-K. et al. | IEEE APCCAS 2024 | HDLBits FSM设计问题描述 | SystemVerilog格式的FSM代码 | Claude 3 Opus、GPT-4、GPT-4o | 系统化Markdown格式提示+TOP Patch（To-do-Oriented Prompting）任务导向补丁+CoT多轮对话 | **来源**：HDLBits平台的20个FSM设计问题<br>**制作**：使用公开的HDLBits问题集<br>**可获取**：HDLBits网站（https://hdlbits.01xz.net/） | • Claude 3 Opus单次生成成功率41%（20个问题中11个）<br>• TOP Patch后同步复位成功率从30%→70%<br>• one-hot FSM设计成功率达90% | • 所有模型在one-hot设计上表现较差<br>• 处理真值表和卡诺图时容易出错<br>• 状态数量少但逻辑复杂的FSM容易误解<br>• TOP Patch生成仍需人工设计 | [baselines/enhance/](baselines/enhance/) |
-| **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM配置参数 + 自然语言规范 | Verilog RTL代码 + 测试平台 | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动benchmark构建：FSM生成→YAML格式化→NL规范生成→RTL合成 | **来源**：自动化生成，不依赖手工收集语料<br>**制作**：约束随机FSM生成（连通/确定/完备约束）+ LLM生成语义化描述 + 参考RTL与testbench + 多层验证（LLM检查/SAT/人工抽查）<br>**规模**：1000个FSM-to-RTL问题（状态2-16）<br>**可获取**：论文为arXiv公开，desc中未给出独立数据仓库链接 | • 最强模型整体准确率42.3%<br>• 8个状态为性能拐点<br>• SFT提升OOD任务19.4% | • 聚焦FSM→RTL，不是控制系统UML/SysML建模<br>• NL规范由LLM生成，存在传播误差 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
+| **Generating SysML Behavior Models via Large Language Models: an Empirical Study (llms_emp)** | 2025 | Wang, Y. et al. | Internetware 2025 (ACM) | 自然语言需求描述 | PlantUML格式的SysML行为模型（STM/ACT/SD） | GPT-4、GPT-4o、Kimi、Claude 3 Haiku、Llama3.1、DeepSeek-v3 | 两阶段框架：Phase-I提示生成（Role+Instruction+Req+Sample+RAG）→Phase-II基于模型检查反馈迭代修复 | **来源**：自己搜集制作<br>**制作方法**：从Google Scholar/CNKI/GitHub搜集303个来源（148篇英文论文+2本书+151篇中文论文+2个开源项目），按IC/EC筛选后，G_Model将案例统一重建为PlantUML + 需求描述，交叉验证一致性<br>**规模**：107个行为模型（36 ACT/36 STM/35 SD）<br>**可获取**：公开数据集（Google Drive）<br>**简述来源**：从学术文献和开源项目中搜集SysML行为模型案例，通过系统化方法重建为统一格式 | • STM语法准确率>98%，STM语义F1≈69.29%<br>• 并发区域缺失是STM主要语义错误<br>• 反馈修复后STM需求一致性修复率≈42.14% | • 语义修复能力有限（尤其并发/层次语义）<br>• 生成时间显著增加（2.72–7.67x）<br>• PlantUML缺少原生SysML语义检查，需大量人工检查 | [baselines/llms_emp/](baselines/llms_emp/) |
+| **LLM-based Iterative Requirements Refinement in FSM with IEC 61499 Code Generation (fbAssistant)** | 2025 | Vyatkin, V. et al. | IEEE INDIN 2025 | 自然语言控制需求 + 系统I/O接口规范 | 可视化FSM + IEC 61499功能块代码 | LLM（未明确指定具体模型） | 迭代精化框架：NL需求→LLM生成FSM→可视化验证→迭代修改→内置解释器仿真→生成IEC 61499功能块→部署测试 | **来源**：自己制作<br>**制作方法**：基于工业自动化实践和IEC 61499标准设计的2个案例系统（气动缸、拾取放置机械手），继承作者团队近30年的自动机编程研究积累<br>**规模**：2个案例系统（简单+复杂）<br>**可获取**：工具演示视频公开（YouTube），代码仓库未公开<br>**简述来源**：基于作者团队长期工业自动化研究经验设计的典型控制系统案例 | • 显著减少开发时间<br>• 支持多语言需求（含中文）<br>• 闭环仿真验证有效<br>• 成功部署到实际系统 | • 需少量手动调整<br>• 存在LLM幻觉（无前驱状态、误删动作）<br>• 缺乏形式化验证<br>• 无时间约束支持<br>• 可扩展性未充分验证 | [baselines/fsm-gen-iec-61499/](baselines/fsm-gen-iec-61499/) |
+| **Automated Statechart Generation from Natural Language Requirements in Automotive (req)** | 2025 | Kurukuri, L.S.R. | 硕士学位论文，Chalmers/Gothenburg | 自然语言产品功能需求 | Mermaid.js格式状态机 | GPT-3.5、GPT-4、GPT-4o（微调） | NLP特征提取（NER/POS）→合成数据生成→领域特定微调→状态机生成 | **来源**：工业专有数据<br>**制作方法**：来自Volvo Cars内部Car Weaver工具的20个产品功能需求，使用合成数据生成技术（受控随机化）扩充训练集<br>**规模**：20个真实需求+合成数据，12个测试用例<br>**可获取**：工业专有数据，未公开<br>**简述来源**：Volvo Cars内部需求管理工具中的真实汽车产品功能需求 | • 微调后GPT-4功能正确性3.52（基础模型2.60）<br>• 可理解性3.75（基础模型2.96）<br>• 简单场景接近人工水平（4.5/5分） | • 复杂场景处理能力不足<br>• 迁移不完整、循环逻辑不清晰<br>• 术语不一致、需求对齐度不足<br>• 数据集规模有限（20个）<br>• 仍需专家验证 | [baselines/req/](baselines/req/) |
+| **Exploring How Well Llama3 can Generate State Machines Represented in Umple (umple)** | 2025 | Pathak, P. | 硕士学位论文，University of Ottawa | 自然语言需求描述 | Umple格式状态机 | Llama 3 (8B) | 三种提示工程策略：Zero-shot（完全失败）→One-shot（中等效果）→RAG（最佳效果，使用Nomic嵌入+余弦相似度检索） | **来源**：自己设计制作<br>**制作方法**：作者设计的5个测试系统（Blackjack基于标准游戏规则、Course Section来自Umple文档、其他3个为作者原创设计），包含需求描述和参考状态机<br>**规模**：5个系统，每个系统多次迭代生成<br>**可获取**：论文正文中有详细描述，但未提供独立数据集下载链接<br>**简述来源**：作者基于Umple建模语言特点设计的测试系统，涵盖不同复杂度和领域 | • RAG方法归一化Levenshtein距离0.07-0.32<br>• Credit Card Transaction表现最佳（0.07）<br>• 提出专用评估指标（ICP/EUCP/归一化Levenshtein距离） | • 仅测试5个简单系统<br>• 使用8B小模型（受本地机器限制）<br>• 未涉及时间约束和守卫条件<br>• 缺乏形式化验证<br>• Umple是小众语言 | [baselines/umple/](baselines/umple/) |
+| **System Architects Are not Alone Anymore: Automatic System Modeling with AI (TTool-AI)** | 2024 | Apvrille & Sultan | MODELS 2024 | 自然语言系统规范 | SysML块图、内部块图和状态机图 | GPT-4 | 交互式生成：需求分析→模型生成→迭代优化（知识注入+自动反馈循环，最多20次迭代） | **来源**：使用现成规范<br>**制作方法**：来自3个真实欧洲项目的系统规范（Platooning车辆编队、Space-based空间系统、Automated Braking自动刹车），论文未新建大规模公开数据集，基于真实规范做工具与人工对照实验<br>**规模**：3个系统<br>**可获取**：测试系统、规范与生成模型在GitHub公开（ttool-ai仓库）<br>**简述来源**：来自真实欧洲工业项目的安全关键系统规范 | • 能生成SysML块图和状态机<br>• 交互式方法有效<br>• 支持TTool工具集成 | • 需要人工迭代<br>• 模型质量不稳定<br>• 缺乏自动验证 | [baselines/ttool-ai/](baselines/ttool-ai/) |
+| **Enhancing Finite State Machine Design Automation with LLMs and Prompt Engineering (enhance)** | 2024 | Lin, Q.-K. et al. | IEEE APCCAS 2024 | HDLBits FSM设计问题描述 | SystemVerilog格式的FSM代码 | Claude 3 Opus、GPT-4、GPT-4o | 系统化Markdown格式提示+TOP Patch（To-do-Oriented Prompting）任务导向补丁+CoT多轮对话 | **来源**：使用现成数据集<br>**制作方法**：直接使用HDLBits在线教育平台的20个FSM设计问题（基础FSM、同步/异步复位、one-hot编码等）<br>**规模**：20个FSM设计问题<br>**可获取**：HDLBits网站（https://hdlbits.01xz.net/）<br>**简述来源**：来自公开的硬件设计教育平台HDLBits的FSM练习题 | • Claude 3 Opus单次生成成功率41%（20个问题中11个）<br>• TOP Patch后同步复位成功率从30%→70%<br>• one-hot FSM设计成功率达90% | • 所有模型在one-hot设计上表现较差<br>• 处理真值表和卡诺图时容易出错<br>• 状态数量少但逻辑复杂的FSM容易误解<br>• TOP Patch生成仍需人工设计 | [baselines/enhance/](baselines/enhance/) |
+| **LLM-FSM: Scaling Large Language Models for Finite-State Reasoning in RTL Code Generation** | 2026 | Wu, Y. et al. | arXiv预印本 | FSM配置参数 + 自然语言规范 | Verilog RTL代码 + 测试平台 | GPT-4o、Claude-3.5-Sonnet、Gemini-1.5-Pro等 | 全自动benchmark构建：FSM生成→YAML格式化→NL规范生成→RTL合成 | **来源**：自动化生成，不依赖手工收集语料<br>**制作**：约束随机FSM生成（连通/确定/完备约束）+ LLM生成语义化描述 + 参考RTL与testbench + 多层验证（LLM检查/SAT/人工抽查）<br>**规模**：1000个FSM-to-RTL问题（状态2-16）<br>**可获取**：论文为arXiv公开，desc中未给出独立数据仓库链接<br>**简述来源**：通过自动化pipeline生成的大规模FSM-to-RTL问题集 | • 最强模型整体准确率42.3%<br>• 8个状态为性能拐点<br>• SFT提升OOD任务19.4% | • 聚焦FSM→RTL，不是控制系统UML/SysML建模<br>• NL规范由LLM生成，存在传播误差 | [baselines/LLM-FSM/](baselines/LLM-FSM/) |
+
+#### 数据集来源详细分析与文献检索关键词
+
+本节详细分析上述7篇论文的数据集来源，列举来源参考文献（针对公开文献资料），并提供学术检索关键词。
+
+##### 1. llms_emp - Generating SysML Behavior Models via Large Language Models
+
+**数据集来源类型**：自己搜集制作
+
+**数据集构建方法**：
+- 从Google Scholar、CNKI（中国知网）、GitHub三个平台搜集303个来源
+- 来源构成：148篇英文论文 + 2本书 + 151篇中文论文 + 2个开源项目
+- 使用IC（Inclusion Criteria）和EC（Exclusion Criteria）进行筛选
+- 由G_Model团队将案例统一重建为PlantUML格式，并编写对应的需求描述
+- 通过交叉验证确保模型与需求描述的一致性
+- 最终形成107个行为模型（36个活动图ACT、36个状态机STM、35个序列图SD）
+
+**来源参考文献示例**（论文中提到的部分来源）：
+根据desc.md，论文未详细列举303个来源的具体文献列表，但提到了以下类型的来源：
+- 学术论文：涵盖软件工程、系统工程、嵌入式系统等领域的SysML建模案例
+- 教材书籍：SysML和UML建模教材中的示例
+- 开源项目：GitHub上包含SysML模型的开源项目
+- 中文文献：来自CNKI的中文学术论文和技术报告
+
+**学术检索关键词**：
+- **核心关键词**：
+  - "SysML behavior model" OR "SysML state machine" OR "SysML activity diagram" OR "SysML sequence diagram"
+  - "UML state machine" OR "UML statechart" OR "UML activity diagram"
+  - "behavioral modeling" AND ("embedded system" OR "control system" OR "cyber-physical system")
+
+- **扩展关键词**（用于获取类似数据集来源）：
+  - "SysML case study" OR "SysML example" OR "SysML tutorial"
+  - "state machine specification" OR "behavioral specification"
+  - "model-based systems engineering" AND "behavior"
+  - "PlantUML" OR "Papyrus" OR "Enterprise Architect" AND "SysML"
+  - "软件建模" OR "行为建模" OR "状态机" （中文检索）
+
+##### 2. fbAssistant - LLM-based Iterative Requirements Refinement in FSM with IEC 61499
+
+**数据集来源类型**：自己制作
+
+**数据集构建方法**：
+- 基于作者团队（Vyatkin团队）近30年的工业自动化和自动机编程研究经验
+- 设计了2个典型工业自动化案例：
+  1. 气动缸控制系统（Pneumatic Cylinder）
+  2. 拾取放置机械手系统（Pick-and-Place Manipulator）
+- 案例基于IEC 61499功能块标准设计
+- 包含完整的系统I/O接口规范、控制需求描述、FSM设计和IEC 61499代码
+
+**来源参考文献**（论文中引用的相关工作）：
+根据desc.md，论文引用了以下与数据集设计相关的文献：
+1. **IEC 61499标准系列**：
+   - IEC 61499-1: Function blocks - Part 1: Architecture
+   - IEC 61499-2: Software tool requirements
+
+2. **作者团队的前期工作**（自动机编程方法论）：
+   - Naumov & Shalyto (2003): "Automata theory for multi-agent systems implementation", IEMC 2003
+   - Yartsev et al. (2005): "Automata-based programming of reactive multi-agent control systems", KIMAS 2005
+   - Shalyto et al. (2005): "Methods of object-oriented reactive agents implementation", KIMAS 2005
+   - Zhabelova et al. (2014): "Cyber-physical components for heterogeneous modelling", IEEE INDIN 2014
+
+3. **工业自动化标准**：
+   - IEC 61158: PROFINET工业通信标准
+   - IEC 62541: OPC UA标准
+
+**学术检索关键词**：
+- **核心关键词**：
+  - "IEC 61499" AND ("function block" OR "industrial automation" OR "control system")
+  - "finite state machine" AND ("industrial control" OR "PLC" OR "automation")
+  - "automata-based programming" OR "state-based control"
+
+- **扩展关键词**：
+  - "distributed control system" OR "cyber-physical system" AND "state machine"
+  - "PROFINET" OR "OPC UA" OR "industrial Ethernet"
+  - "reactive system" AND "control logic"
+  - "pneumatic control" OR "robotic manipulator" AND "FSM"
+
+**来源文献不公开说明**：数据集基于作者团队长期研究经验设计，未依赖公开文献资料，而是基于工业实践和标准规范。
+
+##### 3. req - Automated Statechart Generation from Natural Language Requirements in Automotive
+
+**数据集来源类型**：工业专有数据
+
+**数据集构建方法**：
+- 来自Volvo Cars公司内部的Car Weaver需求管理工具
+- 包含20个真实汽车产品功能需求
+- 使用合成数据生成技术（Synthetic Data Generation）扩充训练集
+- 采用受控随机化（Controlled Randomization）方法生成变体
+
+**来源参考文献**：
+由于数据集来自Volvo Cars内部专有数据，论文未提供公开的来源文献。但论文提到了以下相关工作：
+1. **Car Weaver工具**：Volvo Cars内部需求管理系统（未公开发表）
+2. **汽车功能安全标准**：
+   - ISO 26262: Road vehicles - Functional safety
+   - AUTOSAR: Automotive Open System Architecture
+
+**学术检索关键词**：
+由于数据集为工业专有数据，无法通过公开文献获取。但可以通过以下关键词检索类似的汽车控制系统需求：
+- **核心关键词**：
+  - "automotive requirements" AND ("state machine" OR "statechart" OR "behavior model")
+  - "vehicle control system" AND "functional requirements"
+  - "ISO 26262" OR "AUTOSAR" AND "requirements specification"
+
+- **扩展关键词**：
+  - "automotive software" AND "requirements engineering"
+  - "vehicle feature" AND "state-based model"
+  - "car control logic" OR "automotive embedded system"
+
+**来源文献不公开说明**：数据集来自Volvo Cars内部专有数据，受商业保密协议保护，无法公开获取。建议联系论文作者或Volvo Cars公司获取访问权限。
+
+##### 4. umple - Exploring How Well Llama3 can Generate State Machines in Umple
+
+**数据集来源类型**：自己设计制作
+
+**数据集构建方法**：
+- 作者设计了5个测试系统，涵盖不同复杂度和应用领域：
+  1. **Blackjack**：基于标准21点游戏规则设计
+  2. **Course Section**：来自Umple官方文档的示例
+  3. **Credit Card Transaction**：作者原创设计的信用卡交易系统
+  4. **Driver License**：作者原创设计的驾照管理系统
+  5. **Hotel Stay**：作者原创设计的酒店入住系统
+- 每个系统包含需求描述和参考状态机（Umple格式）
+
+**来源参考文献**：
+根据desc.md，论文引用了以下与数据集设计相关的文献：
+1. **Umple建模语言**：
+   - Lethbridge et al.: Umple官方文档和教程（https://cruise.umple.org/umple/）
+   - Course Section示例来自Umple官方文档
+
+2. **21点游戏规则**：
+   - 标准21点（Blackjack）游戏规则（公开知识，无特定文献引用）
+
+3. **状态机建模方法**：
+   - UML规范中的状态机图（State Machine Diagrams）
+   - Harel, D. (1987): "Statecharts: A visual formalism for complex systems", Science of Computer Programming
+
+**学术检索关键词**：
+- **核心关键词**：
+  - "Umple" AND ("state machine" OR "modeling language")
+  - "textual modeling" OR "model-driven engineering" AND "state machine"
+  - "UML state machine" AND ("example" OR "case study")
+
+- **扩展关键词**：
+  - "domain-specific modeling language" AND "behavior"
+  - "state machine specification" AND ("game" OR "transaction" OR "workflow")
+  - "model-based software engineering" AND "state-based model"
+
+##### 5. TTool-AI - System Architects Are not Alone Anymore
+
+**数据集来源类型**：使用现成规范
+
+**数据集构建方法**：
+- 来自3个真实欧洲工业项目的系统规范：
+  1. **Platooning**：车辆编队系统（自动驾驶领域）
+  2. **Space-based system**：空间系统（航空航天领域）
+  3. **Automated Braking**：自动刹车系统（汽车安全领域）
+- 这些规范来自真实的安全关键系统项目
+- 包含完整的系统需求描述、SysML模型和验证要求
+
+**来源参考文献**：
+根据desc.md，论文引用了以下与数据集相关的文献：
+1. **TTool工具和方法**：
+   - Apvrille, L.: TTool工具文档和前期工作
+   - TTool GitHub仓库：https://github.com/zebradile/ttool-ai
+
+2. **SysML建模标准**：
+   - OMG SysML 1.6规范
+   - SysML建模方法论
+
+3. **安全关键系统标准**：
+   - ISO 26262（汽车功能安全）
+   - DO-178C（航空软件安全）
+   - ECSS标准（欧洲空间标准）
+
+**学术检索关键词**：
+- **核心关键词**：
+  - "SysML" AND ("safety-critical system" OR "automotive" OR "aerospace")
+  - "vehicle platooning" OR "automated braking" AND "system specification"
+  - "space system" AND ("SysML" OR "system model")
+
+- **扩展关键词**：
+  - "model-based systems engineering" AND ("automotive" OR "aerospace")
+  - "safety-critical software" AND "behavioral model"
+  - "autonomous vehicle" OR "ADAS" AND "system architecture"
+  - "TTool" OR "formal verification" AND "SysML"
+
+##### 6. enhance - Enhancing Finite State Machine Design Automation with LLMs
+
+**数据集来源类型**：使用现成数据集
+
+**数据集构建方法**：
+- 直接使用HDLBits在线教育平台的20个FSM设计问题
+- HDLBits是一个公开的硬件描述语言（HDL）学习平台
+- 问题涵盖：
+  - 基础FSM设计
+  - 同步复位和异步复位
+  - One-hot编码
+  - 复杂游戏逻辑（如序列检测器）
+
+**来源参考文献**：
+根据desc.md，论文使用的数据集来自：
+1. **HDLBits平台**：
+   - 网站：https://hdlbits.01xz.net/
+   - 平台提供的FSM练习题（公开可访问）
+
+2. **硬件描述语言标准**：
+   - IEEE 1364: Verilog HDL标准
+   - IEEE 1800: SystemVerilog标准
+
+3. **FSM设计方法**：
+   - 数字逻辑设计教材中的FSM设计方法
+   - Mealy机和Moore机的经典理论
+
+**学术检索关键词**：
+- **核心关键词**：
+  - "HDL" OR "Verilog" OR "SystemVerilog" AND "finite state machine"
+  - "FSM design" AND ("hardware" OR "digital circuit")
+  - "state encoding" AND ("one-hot" OR "binary" OR "Gray code")
+
+- **扩展关键词**：
+  - "digital logic design" AND "state machine"
+  - "RTL design" AND "FSM"
+  - "hardware description language" AND "behavioral model"
+  - "FPGA" OR "ASIC" AND "state machine design"
+
+##### 7. LLM-FSM - Scaling Large Language Models for Finite-State Reasoning
+
+**数据集来源类型**：完全自动生成
+
+**数据集构建方法**：
+- 使用自动化pipeline生成1000个FSM-to-RTL问题
+- 生成流程：
+  1. 约束随机FSM生成（确保连通性、确定性、完备性）
+  2. YAML格式化FSM配置
+  3. LLM生成语义化自然语言规范
+  4. 参考RTL代码合成
+  5. 自动生成testbench
+  6. 多层验证（LLM检查、SAT求解器验证、人工抽查）
+- FSM状态数范围：2-16个状态
+
+**来源参考文献**：
+根据desc.md，论文的数据集生成方法参考了以下工作：
+1. **FSM生成方法**：
+   - 约束随机生成技术（Constrained Random Generation）
+   - 图论中的连通性算法
+
+2. **RTL代码生成**：
+   - Verilog/SystemVerilog代码生成模板
+   - 硬件综合工具（如Synopsys Design Compiler）
+
+3. **验证方法**：
+   - SAT求解器（如Z3、MiniSat）
+   - 形式化验证方法
+
+**学术检索关键词**：
+- **核心关键词**：
+  - "FSM generation" OR "state machine synthesis"
+  - "RTL code generation" AND "finite state machine"
+  - "hardware verification" AND "FSM"
+
+- **扩展关键词**：
+  - "constrained random generation" AND "state machine"
+  - "automatic testbench generation" AND "FSM"
+  - "formal verification" AND ("Verilog" OR "SystemVerilog")
+  - "SAT solver" AND "hardware design"
+
+**来源文献不公开说明**：数据集通过自动化pipeline生成，不依赖公开文献资料。论文为arXiv预印本，数据集尚未公开发布，建议关注后续发布或联系作者获取。
+
+---
+
+#### 整合后的文献检索关键词
+
+以下是整合后的检索关键词，用于获取类似数据集来源文献。关键词范围适当放宽，便于后续二次筛选。
+
+**第一类：状态机建模与生成**
+```
+("state machine" OR "statechart" OR "finite state machine" OR "FSM")
+AND
+("specification" OR "modeling" OR "generation" OR "synthesis" OR "design")
+AND
+("SysML" OR "UML" OR "behavioral model" OR "behavior diagram")
+```
+
+**第二类：控制系统与嵌入式系统**
+```
+("control system" OR "embedded system" OR "cyber-physical system" OR "CPS")
+AND
+("state machine" OR "behavioral model" OR "control logic")
+AND
+("automotive" OR "industrial automation" OR "robotics" OR "aerospace")
+```
+
+**第三类：工业标准与规范**
+```
+("IEC 61499" OR "IEC 61158" OR "IEC 62541" OR "ISO 26262" OR "AUTOSAR" OR "DO-178C")
+AND
+("function block" OR "state machine" OR "control logic" OR "safety-critical")
+```
+
+**第四类：硬件描述语言与RTL设计**
+```
+("Verilog" OR "SystemVerilog" OR "VHDL" OR "HDL" OR "RTL")
+AND
+("finite state machine" OR "FSM design" OR "state encoding")
+AND
+("synthesis" OR "code generation" OR "hardware design")
+```
+
+**第五类：需求工程与模型驱动**
+```
+("requirements engineering" OR "requirements specification" OR "natural language requirements")
+AND
+("state machine" OR "behavioral model" OR "UML" OR "SysML")
+AND
+("model-based" OR "model-driven" OR "MBSE" OR "MDE")
+```
+
+**第六类：案例研究与数据集**
+```
+("case study" OR "benchmark" OR "dataset" OR "example" OR "tutorial")
+AND
+("state machine" OR "SysML" OR "UML" OR "behavioral model")
+AND
+("control system" OR "embedded system" OR "automotive" OR "industrial")
+```
+
+**第七类：形式化方法与验证**
+```
+("formal verification" OR "model checking" OR "formal specification")
+AND
+("state machine" OR "automata" OR "temporal logic")
+AND
+("safety property" OR "liveness property" OR "CTL" OR "LTL")
+```
+
+**第八类：中文文献检索关键词**
+```
+"状态机" OR "行为建模" OR "SysML" OR "UML状态图"
+AND
+"控制系统" OR "嵌入式系统" OR "工业自动化" OR "汽车电子"
+AND
+"需求规范" OR "模型生成" OR "形式化验证"
+```
+
+**检索平台建议**：
+1. **英文文献**：Google Scholar, IEEE Xplore, ACM Digital Library, Springer, ScienceDirect
+2. **中文文献**：CNKI（中国知网）, 万方数据, 维普网
+3. **技术资源**：GitHub（搜索"state machine" + "SysML" / "UML" / "IEC 61499"）
+4. **标准文档**：IEC官网, ISO官网, OMG官网（SysML规范）
+5. **教育平台**：HDLBits, Umple官网, TTool官网
+
+**检索策略建议**：
+1. 先使用核心关键词进行精确检索，获取高相关性文献
+2. 再使用扩展关键词进行广泛检索，获取更多潜在来源
+3. 结合布尔运算符（AND, OR, NOT）和通配符（*）优化检索结果
+4. 关注近5-10年的文献（2015-2025），获取最新研究进展
+5. 筛选时优先选择包含案例研究、数据集、开源代码的文献
+6. 对于工业标准（如IEC 61499、ISO 26262），直接访问标准文档获取官方案例
 
 #### 数据集与代码可获取性分析
 
-| 论文 | 数据集可获取性 | 代码可获取性 | 数据集规模 | 数据集链接/获取方式 | 代码链接/获取方式 | 与控制系统的相关性 | 推荐优先级 |
-|------|--------------|------------|-----------|-------------------|-----------------|------------------|----------|
-| **llms_emp** | ✅ 可立即获取 | ❌ 未公开 | 107个案例（36 STM/36 ACT/35 SD） | [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | 需自行复现 | ⭐⭐⭐ 通用SysML行为模型，包含状态机 | **高** |
-| **TTool-AI** | ✅ 可立即获取 | ✅ 可立即获取 | 3个系统（Platooning/Space-based/Automated Braking） | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | ⭐⭐⭐⭐ 包含自动驾驶和航空系统，与控制系统高度相关 | **最高** |
-| **enhance** | ✅ 可访问 | ❌ 未公开 | 20个FSM设计问题 | [HDLBits平台](https://hdlbits.01xz.net/) | 需自行复现 | ⭐⭐ 硬件FSM设计，偏向数字电路 | 中 |
-| **umple** | ⚠️ 部分可获取 | ❌ 未公开 | 5个系统（Blackjack等） | 论文中有详细描述，需自行构建 | 需自行复现 | ⭐ 通用状态机，非控制系统领域 | 低 |
-| **fbAssistant** | ⚠️ 部分可获取 | ⚠️ 仅演示视频 | 2个案例（气动缸、拾取放置机械手） | 论文中详细描述，需根据描述复现 | [YouTube演示](https://www.youtube.com/live/aR20KBmZnA4?si=wxyMOcAX4tirRgQf) | ⭐⭐⭐⭐⭐ 工业自动化控制系统，IEC 61499标准 | 高 |
-| **req** | ❌ 未公开 | ❌ 未公开 | 20个需求 | Volvo Cars专有数据，需联系作者 | Volvo Cars内部环境 | ⭐⭐⭐⭐ 汽车控制系统 | 低（无法获取） |
-| **LLM-FSM** | ❌ 未公开 | ❌ 未公开 | 1000个FSM-to-RTL问题 | 需关注后续发布或联系作者 | 需关注后续发布或联系作者 | ⭐⭐ RTL代码生成，偏向硬件设计 | 中（待发布） |
+| 论文 | 数据集可获取性 | 代码可获取性 | 数据集规模 | 数据集来源简述 | 数据集链接/获取方式 | 代码链接/获取方式 | 与控制系统的相关性 | 推荐优先级 |
+|------|--------------|------------|-----------|--------------|-------------------|-----------------|------------------|----------|
+| **llms_emp** | ✅ 可立即获取 | ❌ 未公开 | 107个案例（36 STM/36 ACT/35 SD） | **自己搜集制作**：从Google Scholar/CNKI/GitHub搜集303个来源（148篇英文论文+2本书+151篇中文论文+2个开源项目），使用PlantUML重建模型并编写需求描述 | [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | 需自行复现 | ⭐⭐⭐ 通用SysML行为模型，包含状态机 | **高** |
+| **TTool-AI** | ✅ 可立即获取 | ✅ 可立即获取 | 3个系统（Platooning/Space-based/Automated Braking） | **使用现成规范**：来自3个真实欧洲项目的系统规范（车辆编队、空间系统、自动刹车） | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | ⭐⭐⭐⭐ 包含自动驾驶和航空系统，与控制系统高度相关 | **最高** |
+| **enhance** | ✅ 可访问 | ❌ 未公开 | 20个FSM设计问题 | **使用现成数据集**：直接使用HDLBits在线教育平台的20个FSM设计问题（基础FSM、同步/异步复位、one-hot编码等） | [HDLBits平台](https://hdlbits.01xz.net/) | 需自行复现 | ⭐⭐ 硬件FSM设计，偏向数字电路 | 中 |
+| **umple** | ⚠️ 部分可获取 | ❌ 未公开 | 5个系统（Blackjack等） | **自己设计制作**：作者设计的5个测试系统（Blackjack基于标准游戏规则、Course Section来自Umple文档、其他3个为作者原创设计） | 论文中有详细描述，需自行构建 | 需自行复现 | ⭐ 通用状态机，非控制系统领域 | 低 |
+| **fbAssistant** | ⚠️ 部分可获取 | ⚠️ 仅演示视频 | 2个案例（气动缸、拾取放置机械手） | **自己制作**：基于工业自动化实践和IEC 61499标准设计的2个案例系统，继承作者团队近30年的自动机编程研究积累 | 论文中详细描述，需根据描述复现 | [YouTube演示](https://www.youtube.com/live/aR20KBmZnA4?si=wxyMOcAX4tirRgQf) | ⭐⭐⭐⭐⭐ 工业自动化控制系统，IEC 61499标准 | 高 |
+| **req** | ❌ 未公开 | ❌ 未公开 | 20个需求 | **工业专有数据**：来自Volvo Cars内部Car Weaver工具的20个产品功能需求，使用合成数据生成技术扩充训练集 | Volvo Cars专有数据，需联系作者 | Volvo Cars内部环境 | ⭐⭐⭐⭐ 汽车控制系统 | 低（无法获取） |
+| **LLM-FSM** | ❌ 未公开 | ❌ 未公开 | 1000个FSM-to-RTL问题 | **完全自动生成**：使用自动化pipeline生成（约束随机FSM生成→YAML格式化→LLM生成NL规范→参考RTL合成→多层验证） | 需关注后续发布或联系作者 | 需关注后续发布或联系作者 | ⭐⭐ RTL代码生成，偏向硬件设计 | 中（待发布） |
 
 **数据集特点分析**：
 
