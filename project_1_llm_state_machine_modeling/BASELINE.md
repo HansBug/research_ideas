@@ -298,94 +298,257 @@
 
 ---
 
-#### 整合后的文献检索关键词
+#### 整合后的文献检索关键词（面向控制系统行为描述）
 
-以下是整合后的检索关键词，用于获取类似数据集来源文献。关键词范围适当放宽，便于后续二次筛选。
+**重要说明**：以下检索关键词专门用于获取**包含控制系统行为描述的领域文献**，而非软件工程/建模方法论文献。这些文献来自控制工程、自动化、医疗设备、汽车电子、航空航天等领域，其中包含对系统功能、行为、状态转换的自然语言描述，可以提取出来作为状态机自动生成工作的输入数据源。
 
-**第一类：状态机建模与生成**
-```
-("state machine" OR "statechart" OR "finite state machine" OR "FSM")
-AND
-("specification" OR "modeling" OR "generation" OR "synthesis" OR "design")
-AND
-("SysML" OR "UML" OR "behavioral model" OR "behavior diagram")
-```
+**数据来源分析**：通过分析上述7篇论文的数据集构建方法，发现最有价值的数据来源包括：
+1. **学术论文中的案例研究章节**：包含完整的系统设计和行为描述
+2. **教材书籍**：如Hassan Gomaa的《Real-Time Software Design for Embedded Systems》、Friedenthal的《A Practical Guide To SysML》
+3. **技术报告和项目文档**：如欧洲项目的系统规范（Platooning、Space-based system、Automated Braking）
+4. **学位论文**：硕士/博士论文通常包含详细的系统设计案例
+5. **工业标准文档**：如IEC 61499、ISO 26262中的示例系统
+6. **开源项目文档**：GitHub上的系统设计文档
 
-**第二类：控制系统与嵌入式系统**
-```
-("control system" OR "embedded system" OR "cyber-physical system" OR "CPS")
-AND
-("state machine" OR "behavioral model" OR "control logic")
-AND
-("automotive" OR "industrial automation" OR "robotics" OR "aerospace")
-```
+**关键发现**：这些文献的共同特点是包含"系统案例"、"案例研究"、"系统设计"、"功能规范"等章节，其中详细描述了系统的行为逻辑、状态转换、事件触发条件等信息。
 
-**第三类：工业标准与规范**
-```
-("IEC 61499" OR "IEC 61158" OR "IEC 62541" OR "ISO 26262" OR "AUTOSAR" OR "DO-178C")
-AND
-("function block" OR "state machine" OR "control logic" OR "safety-critical")
-```
+---
 
-**第四类：硬件描述语言与RTL设计**
-```
-("Verilog" OR "SystemVerilog" OR "VHDL" OR "HDL" OR "RTL")
-AND
-("finite state machine" OR "FSM design" OR "state encoding")
-AND
-("synthesis" OR "code generation" OR "hardware design")
-```
+### ALL-IN-ONE 综合检索关键词
 
-**第五类：需求工程与模型驱动**
+以下是整合后的综合检索关键词表达式，适用于各大学术数据库（Google Scholar、IEEE Xplore、ScienceDirect、Springer、CNKI等）。该表达式经过精心设计，在保证广度的同时兼顾精度，可直接复制使用。
+
+#### 英文检索表达式
+
 ```
-("requirements engineering" OR "requirements specification" OR "natural language requirements")
+(
+  ("control system" OR "embedded system" OR "cyber-physical system" OR "real-time system" OR
+   "automation system" OR "safety-critical system" OR "reactive system")
+  AND
+  ("case study" OR "system design" OR "system specification" OR "functional requirement" OR
+   "design document" OR "system description" OR "application example" OR "implementation" OR
+   "system architecture" OR "technical specification")
+  AND
+  ("behavior" OR "behaviour" OR "state" OR "operation" OR "control logic" OR "functional" OR
+   "scenario" OR "mode" OR "transition" OR "event" OR "action" OR "sequence")
+)
 AND
-("state machine" OR "behavioral model" OR "UML" OR "SysML")
-AND
-("model-based" OR "model-driven" OR "MBSE" OR "MDE")
+(
+  "automotive" OR "vehicle" OR "elevator" OR "lift" OR "medical device" OR "health monitoring" OR
+  "industrial automation" OR "manufacturing" OR "robot" OR "avionics" OR "aircraft" OR "spacecraft" OR
+  "railway" OR "train" OR "power system" OR "energy" OR "sensor" OR "radar" OR "appliance" OR
+  "IoT" OR "smart" OR "PLC" OR "SCADA" OR "brake" OR "parking" OR "collision" OR "traction" OR
+  "monitoring" OR "diagnostics" OR "timer" OR "microwave" OR "oven"
+)
 ```
 
-**第六类：案例研究与数据集**
+**使用说明**：
+- 该表达式包含三个主要部分：
+  1. **系统类型**：控制系统、嵌入式系统、信息物理系统、实时系统、自动化系统、安全关键系统、反应式系统
+  2. **文献类型**：案例研究、系统设计、系统规范、功能需求、设计文档、系统描述、应用示例、实现、系统架构、技术规范
+  3. **行为描述关键词**：行为、状态、操作、控制逻辑、功能、场景、模式、转换、事件、动作、序列
+  4. **应用领域**：汽车、电梯、医疗设备、工业自动化、机器人、航空航天、轨道交通、电力系统、传感器、家用电器、物联网等
+- 可根据具体数据库的语法要求调整（如某些数据库不支持嵌套括号，可简化为多个独立检索）
+
+#### 中文检索表达式
+
 ```
-("case study" OR "benchmark" OR "dataset" OR "example" OR "tutorial")
+(
+  ("控制系统" OR "嵌入式系统" OR "信息物理系统" OR "实时系统" OR
+   "自动化系统" OR "安全关键系统" OR "反应式系统")
+  AND
+  ("案例研究" OR "系统设计" OR "系统规范" OR "功能需求" OR
+   "设计文档" OR "系统描述" OR "应用实例" OR "实现" OR
+   "系统架构" OR "技术规范")
+  AND
+  ("行为" OR "状态" OR "操作" OR "控制逻辑" OR "功能" OR
+   "场景" OR "模式" OR "转换" OR "事件" OR "动作" OR "序列")
+)
 AND
-("state machine" OR "SysML" OR "UML" OR "behavioral model")
-AND
-("control system" OR "embedded system" OR "automotive" OR "industrial")
+(
+  "汽车" OR "车辆" OR "电梯" OR "升降机" OR "医疗设备" OR "健康监测" OR
+  "工业自动化" OR "制造" OR "机器人" OR "航空" OR "飞行器" OR "航天器" OR
+  "铁路" OR "列车" OR "电力系统" OR "能源" OR "传感器" OR "雷达" OR "家电" OR
+  "物联网" OR "智能" OR "PLC" OR "SCADA" OR "制动" OR "停车" OR "防撞" OR "牵引" OR
+  "监测" OR "诊断" OR "定时" OR "微波炉"
+)
 ```
 
-**第七类：形式化方法与验证**
+#### 简化版检索表达式（适用于检索结果过多的情况）
+
+如果上述表达式检索结果过多，可使用以下简化版本，增加更严格的约束：
+
+**英文简化版**：
 ```
-("formal verification" OR "model checking" OR "formal specification")
+("control system" OR "embedded system" OR "real-time system")
 AND
-("state machine" OR "automata" OR "temporal logic")
+("case study" OR "system design" OR "functional requirement")
 AND
-("safety property" OR "liveness property" OR "CTL" OR "LTL")
+("state" OR "behavior" OR "control logic" OR "operation")
+AND
+("automotive" OR "elevator" OR "medical" OR "industrial" OR "avionics" OR "railway")
 ```
 
-**第八类：中文文献检索关键词**
+**中文简化版**：
 ```
-"状态机" OR "行为建模" OR "SysML" OR "UML状态图"
+("控制系统" OR "嵌入式系统" OR "实时系统")
 AND
-"控制系统" OR "嵌入式系统" OR "工业自动化" OR "汽车电子"
+("案例研究" OR "系统设计" OR "功能需求")
 AND
-"需求规范" OR "模型生成" OR "形式化验证"
+("状态" OR "行为" OR "控制逻辑" OR "操作")
+AND
+("汽车" OR "电梯" OR "医疗" OR "工业" OR "航空" OR "铁路")
 ```
 
-**检索平台建议**：
-1. **英文文献**：Google Scholar, IEEE Xplore, ACM Digital Library, Springer, ScienceDirect
-2. **中文文献**：CNKI（中国知网）, 万方数据, 维普网
-3. **技术资源**：GitHub（搜索"state machine" + "SysML" / "UML" / "IEC 61499"）
-4. **标准文档**：IEC官网, ISO官网, OMG官网（SysML规范）
-5. **教育平台**：HDLBits, Umple官网, TTool官网
+---
+
+### 检索平台建议
+
+**基于7篇baseline论文的数据来源分析**：
+- **llms_emp**使用关键词"SysML Dataset" OR "based on SysML"从Google Scholar、CNKI、GitHub检索，获得303个来源
+- 最有价值的数据来源包括：
+  - **教材书籍**：Hassan Gomaa的《Real-Time Software Design for Embedded Systems》、Friedenthal的《A Practical Guide To SysML》
+  - **学术论文**：包含案例研究章节的会议/期刊论文
+  - **学位论文**：硕士/博士论文中的系统设计案例
+  - **开源项目**：GitHub上的系统设计文档
+  - **项目规范**：如TTool-AI使用的欧洲项目规范（Platooning、Space-based system、Automated Braking）
+
+**推荐检索平台**：
+
+1. **学术文献数据库**：
+   - IEEE Xplore（侧重电气、电子、控制工程）
+   - ScienceDirect（侧重工程技术、自动化）
+   - Springer（侧重控制理论、机器人）
+   - Google Scholar（综合检索）
+
+2. **中文文献数据库**：
+   - CNKI（中国知网）：侧重中文期刊、学位论文
+   - 万方数据：侧重工程技术文献
+   - 维普网：侧重科技期刊
+
+3. **工业标准与技术报告**：
+   - IEC官网：IEC 61499、IEC 61131等工业自动化标准
+   - ISO官网：ISO 26262（汽车功能安全）、ISO 13849（机械安全）
+   - SAE官网：汽车工程标准（如J3016自动驾驶分级）
+   - DO-178C、ARP 4754A：航空软件安全标准
+
+4. **专利数据库**：
+   - Google Patents
+   - USPTO（美国专利商标局）
+   - EPO（欧洲专利局）
+   - CNIPA（中国国家知识产权局）
+   - **说明**：专利文档通常包含详细的系统行为描述和功能需求
+
+5. **技术手册与产品文档**：
+   - 制造商技术文档（如Siemens、ABB、Rockwell Automation的PLC手册）
+   - 开源项目文档（GitHub、GitLab）
+   - 行业白皮书和技术报告
+
+---
 
 **检索策略建议**：
-1. 先使用核心关键词进行精确检索，获取高相关性文献
-2. 再使用扩展关键词进行广泛检索，获取更多潜在来源
-3. 结合布尔运算符（AND, OR, NOT）和通配符（*）优化检索结果
-4. 关注近5-10年的文献（2015-2025），获取最新研究进展
-5. 筛选时优先选择包含案例研究、数据集、开源代码的文献
-6. 对于工业标准（如IEC 61499、ISO 26262），直接访问标准文档获取官方案例
+
+**基于7篇baseline论文的成功经验**：
+1. **优先检索教材书籍**：
+   - 教材通常包含多个标准化、高质量的系统案例
+   - 推荐书籍：Hassan Gomaa的实时嵌入式系统系列、Friedenthal的SysML实用指南、各领域的经典教材
+   - 检索方式：在Google Scholar或图书馆数据库中搜索"[领域名] textbook" OR "[领域名] handbook"
+
+2. **关注学位论文**：
+   - 硕士/博士论文通常包含完整的系统设计案例和详细的行为描述
+   - 检索方式：在CNKI、ProQuest Dissertations & Theses中使用ALL-IN-ONE关键词
+   - 筛选标准：查看目录，选择包含"案例研究"、"系统设计"、"实现"等章节的论文
+
+3. **挖掘项目文档和技术报告**：
+   - 欧洲项目（如Horizon 2020）、美国项目（如DARPA）的公开技术报告
+   - 检索方式：在项目官网、Cordis（欧盟项目数据库）、NTIS（美国技术信息服务）中搜索
+   - 关键词：项目名称 + "deliverable" OR "technical report" OR "specification"
+
+4. **利用开源项目**：
+   - GitHub、GitLab上的控制系统项目通常包含设计文档
+   - 检索方式：在GitHub中搜索"[系统类型] control" + "documentation" OR "design" OR "specification"
+   - 筛选标准：查看README、docs目录、wiki页面
+
+5. **分领域检索**：
+   - 根据你的9个控制系统（BSN、CARA、Elevator、Microwave、PBA、Radar、Stopwatch、TCS、VHL），优先使用对应领域的关键词
+   - 每个领域单独检索，避免关键词过于宽泛
+
+2. **关注文献类型**：
+   - **优先级1**：技术报告、系统设计文档、标准规范（包含详细的功能描述）
+   - **优先级2**：学位论文（硕士/博士论文通常包含完整的系统设计案例）
+   - **优先级3**：会议/期刊论文中的案例研究章节
+   - **优先级4**：专利文档（包含详细的技术实现描述）
+
+3. **筛选标准**：
+   - 文献中必须包含对系统行为的**自然语言描述**（而非仅有数学公式或代码）
+   - 描述应包含：系统状态、事件触发条件、状态转换逻辑、动作执行
+   - 优先选择包含"功能需求"、"系统规范"、"操作场景"等章节的文献
+
+4. **提取内容**：
+   - 从文献中提取的内容应包括：
+     - 系统功能描述（如"当温度超过阈值时，系统进入报警状态"）
+     - 操作场景描述（如"用户按下启动按钮后，电梯门关闭并开始上升"）
+     - 安全需求描述（如"在紧急情况下，系统必须在500ms内切换到安全模式"）
+     - 异常处理描述（如"当传感器故障时，系统进入降级运行模式"）
+
+5. **时间范围**：
+   - 优先检索近10年文献（2015-2025），获取最新系统设计
+   - 对于经典控制系统（如电梯、微波炉），可扩展到近20年（2005-2025）
+
+6. **语言策略**：
+   - 英文检索为主，中文检索为辅
+   - 中文文献在某些领域（如国内工业自动化、汽车电子）可能包含更多实际案例
+
+7. **二次筛选**：
+   - 初次检索范围可以适当放宽，获取更多候选文献
+   - 通过阅读摘要和目录，筛选出包含系统行为描述的文献
+   - 重点关注"系统设计"、"功能规范"、"案例研究"等章节
+
+---
+
+**检索示例**：
+
+**示例1：检索电梯控制系统行为描述**
+```
+("elevator control system" OR "lift control")
+AND
+("functional requirement" OR "system specification" OR "operational scenario")
+AND
+("state transition" OR "control logic" OR "behavior description")
+```
+
+**示例2：检索汽车防撞系统行为描述**
+```
+("collision avoidance" OR "automatic emergency braking" OR "AEB")
+AND
+("system behavior" OR "control strategy" OR "operational mode")
+AND
+("specification" OR "functional description" OR "safety requirement")
+```
+
+**示例3：检索医疗监测系统行为描述（中文）**
+```
+("生理监测" OR "健康监测" OR "体域网")
+AND
+("功能需求" OR "系统规范" OR "行为描述")
+AND
+("状态转换" OR "控制逻辑" OR "操作场景")
+```
+
+---
+
+**预期检索结果类型**：
+
+通过上述关键词检索，你应该能够获取以下类型的文献：
+
+1. **系统设计文档**：包含完整的功能需求和行为描述
+2. **技术标准**：如ISO 26262中的汽车安全需求示例
+3. **学位论文**：包含详细的系统设计案例和实现描述
+4. **会议/期刊论文**：案例研究章节中的系统行为描述
+5. **专利文档**：详细的技术实现和功能描述
+6. **技术手册**：制造商提供的系统操作和功能说明
+
+这些文献中的自然语言描述可以直接提取出来，作为你的状态机自动生成工作的输入数据源。
 
 #### 数据集与代码可获取性分析
 
