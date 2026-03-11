@@ -195,6 +195,8 @@
 3. 本轮观察到的“低命中标题/关键词特征”。
 4. 检索倾向调整结论。
 
+每次更新这四个小节时，必须整合现有内容而不是只追加；每个小节都压缩到不超过 10 行，只保留最关键、最能指导后续检索的信息。
+
 可重点观察的高命中特征包括：
 
 1. 标题直接出现具体控制对象，如 `infusion pump`、`pacemaker`、`elevator control`、`traffic light controller`、`landing gear system`、`railway interlocking`、`platoon`、`ABS`、`parking system`、`PLC`。

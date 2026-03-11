@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 本文件为 Claude Code (claude.ai/code) 在此代码仓库中工作时提供指导。
+`AGENTS.md` 是 `CLAUDE.md` 的软链接，本质上是同一个文件，不要重复修改两份。
 
 ## 仓库概述
 

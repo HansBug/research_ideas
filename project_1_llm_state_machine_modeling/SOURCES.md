@@ -8,120 +8,33 @@
 
 ### 当前推荐关键词簇
 
-- `具体控制对象` + `control system/controller` + `design/requirements/specification`
-  - 重点对象：`infusion pump`, `pacemaker`, `elevator control`, `traffic light controller`, `railway interlocking`, `landing gear system`, `vehicle platoon`, `ABS`, `parking system`, `PLC`
-- `具体控制对象` + `state machine/FSM/statechart/mode switching/operation mode`
-  - 适合寻找论文中显式给出运行模式、状态切换或控制阶段推进的文献
-- `具体控制对象` + `formal model/formal specification/verification/modeling`
-  - 适合寻找虽然标题不直接写 `state machine`，但正文可能给出可整理控制逻辑的论文
-- `railway/rail/interlocking` + `control table/route control/signalling principle/formal verification`
-  - 当前对 🚆 领域命中率较高，尤其容易找到进路建立、锁闭、释放等可提取逻辑
-- `railway interlocking` + `route establishment/route request/route compatibility/mode selection`
-  - 本轮新增结果表明，带有 `route establishment`、`route command`、`TP/DA/MO` 等词的题名或摘要更容易命中可直接整理的联锁控制逻辑
-- `medical device` / `infusion pump` / `pacemaker` + `mode/control software/verification/specification`
-  - 当前对 🩺 领域命中较高，容易找到模式切换、节律控制、报警/回退逻辑
-- `vehicle` / `automotive` + `ABS/BBW/CACC/platoon/AEB/power steering` + `controller/control system/model/verification`
-  - 当前对 🚗 领域命中较高，容易找到控制模式、状态约束、join/leave、制动切换等行为描述
-- `PLC` / `IEC 61499` / `IEC 61131` + `control logic/function block/ECC/operation mode`
-  - 当前对 🏭 领域有效，尤其适合寻找功能块级控制逻辑与设备运行模式
-- `traffic light` / `parking system` / `elevator` + `controller/control system/design`
-  - 当前对 🚦、🅿️、🏢 领域有实际收获，适合补充离散事件控制对象
-- `elevator control system` + `PLC` + `workflow/traversal/door opening/floor call`
-  - 本轮新增结果表明，带 `workflow`、`traversal`、`call button`、`door opening` 的电梯论文更容易直接抽到顺序控制逻辑
-- `elevator` / `lift` + `PLC` + `hall call/car call/door obstruction/overload/manual mode`
-  - 本轮新增结果表明，带 `hall call`、`car call`、`door obstruction`、`overload sensor`、`manual mode`、`direction state machine` 的电梯论文更容易命中高质量门控与调度逻辑
-- `automatic parking` / `parallel parking` + `trajectory/steering/reverse/fuzzy logic`
-  - 本轮新增结果表明，带 `parking trajectory`、`steering angle`、`reverse parking` 的自动泊车论文更容易抽到阶段化控制描述
-- `automatic parking` / `parallel parking` + `stage 1/stage 2/trigger/HMI`
-  - 新增结果表明，带 `Stage 1`、`Stage 2`、`trigger`、`driver aid`、`HMI` 的题名或正文更容易命中可直接复用的泊车阶段切换逻辑
-- `automatic parking` / `parallel parking` + `position/direction angle/steering angle/fuzzy controller`
-  - 本轮新增结果表明，带 `position`、`direction angle`、`steering angle`、`parking space detection`、`fuzzy inference` 的论文更容易抽到“检测-控制-再检测”的泊车闭环描述
-- `water level control` / `tank` + `PLC/float/low level/high level/solenoid valve`
-  - 新增结果表明，带 `LL/HL`、`float sensor`、`high level`、`low level`、`pump starts`、`valve opens` 的液位控制论文更容易抽到阈值驱动的顺序控制描述
-- `adaptive traffic light` + `phase sequence/queue length/green time`
-  - 本轮新增结果表明，带 `phase sequence`、`queue length`、`green time` 的交通灯论文更容易抽到可复用的相位控制逻辑
-- `traffic light` + `image processing` + `traffic density/ambulance detection/red green yellow`
-  - 本轮新增结果表明，带 `traffic density`、`ambulance detection`、`red green yellow timing`、`camera` 的交通灯论文更容易抽到动态配时控制逻辑
-- `traffic light` + `emergency vehicle` + `priority request/GPS/RFID/ETA/green corridor`
-  - 新增结果表明，带 `priority request`、`real-time location`、`estimated arrival time`、`override standard pattern`、`green corridor` 的交通灯论文更容易命中应急优先放行逻辑
-- `traffic light` + `emergency vehicle` + `RF/RFID/transmitter/receiver/sequence override`
-  - 新增结果表明，带 `RF transmission`、`transmitter`、`receiver`、`emergency mode sequence`、`change back to normal sequence` 的论文更容易命中可直接整理的抢占式灯序控制
-- `railway interlocking` + `route request/track free/lock/green signal`
-  - 本轮新增结果表明，带 `route request`、`track free`、`route locked`、`signals set to green` 的联锁论文更容易直接抽到“请求-检查-锁闭-开放”顺序
-- `head tank` / `water level` + `PLC/ultrasonic sensor/motorized valve/solenoid valve/elevation`
-  - 新增结果表明，带 `head tank`、`ultrasonic sensor`、`motorized valve`、`solenoid valve`、`41.xx mdpl` 这类阈值表述的论文更容易命中阈值驱动阀控逻辑
-- `parallel parking` + `three steps/ready to reverse/scanning/reverse/adjusting forward`
-  - 新增结果表明，带 `three steps`、`ready to reverse`、`scanning`、`reversing into the parking space`、`adjusting forward` 的论文更容易命中可直接复用的分阶段泊车控制流程
-- `automatic parking assistance` + `exploration phase/parking phase/path shifting points/trajectory`
-  - 新增结果表明，带 `exploration phase`、`parking phase`、`parking slot fitment decision`、`path shifting points`、`trajectory` 的 APAS 论文更容易命中阶段化泊车控制描述
+- 主线始终是 `具体控制对象 + control/controller/system + design/specification/verification/modeling`，对象优先选 `infusion pump`、`pacemaker`、`elevator`、`traffic light`、`railway interlocking`、`landing gear`、`platoon`、`ABS`、`parking`、`PLC`。
+- 状态机显式词继续优先：`state machine`、`FSM`、`statechart`、`mode switching`、`operation mode`、`control logic`。
+- 高产对象词簇优先深挖：`railway interlocking + route request/lock/green`，`elevator + hall call/car call/door obstruction/overload`，`traffic light + emergency vehicle/RFID/RF/priority request`。
+- 泊车与液位方向优先保留：`parallel parking + stage/trajectory/three steps/path shifting`，`water level/head tank + PLC/float/solenoid valve/ultrasonic sensor/threshold`。
+- 行业控制方向继续保留：`medical device + mode/control software`，`automotive + ABS/BBW/CACC/AEB/platoon`，`IEC 61499/61131 + ECC/operation mode/function block`。
 
 ### 已观察到的高命中标题/关键词特征
 
-- 标题直接点名具体控制系统客体，而不是泛泛说 framework、architecture、approach。
-  - 例如：`Infusion Pump Control System`、`Dual Chamber Pacemaker`、`Elevator Control System`、`Railway Interlocking`、`Traffic Light Controller`、`Landing Gear System`
-- 标题同时出现“控制对象 + 控制/控制器 + 设计/规格/验证”三类词。
-  - 例如：`... control system`, `... controller`, `design`, `specification`, `verification`, `modeling`
-- 标题或关键词中含有明显状态机信号词。
-  - 例如：`state machine`, `FSM`, `statechart`, `mode`, `operation mode`, `switching`, `interlocking table`, `control logic`
-- 虽然未直接写 `state machine`，但带有“可落到具体控制逻辑”的表达。
-  - 例如：`formal specification of ... control system`, `verification of ... controller`, `modeling of ... dynamic responses`
-- 标题或摘要中出现顺序控制与流程词，但客体仍是具体控制系统本身。
-  - 例如：`workflow`, `traversal`, `route establishment`, `phase sequence`, `door opening`, `parking trajectory`
-- 标题或正文里同时出现阈值词和执行器动作词，尤其适合 PLC/液位类系统。
-  - 例如：`low level`, `high level`, `float`, `pump starts`, `pump stops`, `solenoid valve`, `timer`
-- 标题或正文里出现泊车阶段词和指令词，往往能直接抽到阶段切换逻辑。
-  - 例如：`Stage 1`, `Stage 2`, `trigger`, `moving direction`, `steering guide`, `parking possible`
-- 标题或正文里出现电梯调度与门控词时，通常容易抽到完整离散控制链。
-  - 例如：`hall call`, `car call`, `door operation`, `door obstruction`, `overload sensor`, `collective call scheduling`, `manual mode`
-- 标题或正文里出现交通灯密度调度与救护车优先词时，往往能抽到动态配时逻辑。
-  - 例如：`traffic density`, `red green yellow`, `ambulance detection`, `camera`, `lane time`, `signal timing`
-- 标题或正文里出现应急优先请求和 ETA/GPS/RFID 词时，通常能直接抽到“检测-请求-改灯-恢复”的优先放行链路。
-  - 例如：`priority request`, `GPS`, `RFID`, `estimated arrival time`, `override standard pattern`, `green corridor`
-- 标题或正文里出现 RF 发射器/接收器和 normal/emergency sequence 切换词时，通常能直接抽到抢占式应急灯序逻辑。
-  - 例如：`RF transmission`, `transmitter`, `receiver`, `override sequence`, `emergency mode`, `change back to normal sequence`
-- 标题或正文里出现联锁顺序词时，通常能直接抽到进路生命周期控制描述。
-  - 例如：`route request`, `track elements free`, `route locked`, `switch positioning`, `signal set to green`
-- 标题或正文里出现 head tank 液位阈值和阀门执行词时，通常能直接抽到 PLC 阀控顺序。
-  - 例如：`head tank`, `elevation`, `ultrasonic sensor`, `motorized valve`, `solenoid valve`, `41.60 mdpl`, `42.00 mdpl`
-- 标题或正文里出现泊车三阶段词时，通常能直接抽到扫描-倒车-前调的阶段控制流程。
-  - 例如：`three steps`, `ready to reverse`, `parking space scanning`, `reversing`, `adjusting forward`
-- 标题或正文里出现 exploration/parking 两阶段和 path shifting points 词时，通常能直接抽到 APAS 阶段控制逻辑。
-  - 例如：`exploration phase`, `parking phase`, `parking slot fitment decision`, `path shifting points`, `trajectory`
+- 标题直接点名具体控制对象，并同时出现 `control system/controller`、`design/specification/verification`，命中率最高。
+- `state machine/FSM/statechart/mode/operation mode/control logic` 这类显式状态信号词仍然高产。
+- 电梯方向高命中词：`hall call`、`car call`、`door operation`、`door obstruction`、`overload`、`manual mode`、`direction state machine`。
+- 交通灯方向高命中词：`priority request`、`RFID`、`RF transmission`、`emergency mode`、`override sequence`、`ambulance detection`、`green signal`。
+- 联锁/液位/泊车方向高命中词：`route request/lock/green`、`float/high-low level/solenoid valve`、`three steps/exploration phase/path shifting points`。
 
 ### 已观察到的低命中标题/关键词特征
 
-- 过于偏向综述、方法、框架、流程或标准。
-  - 例如：`review`, `survey`, `state of the art`, `architecture`, `framework`, `middleware`, `standards landscape`
-- 标题中的“状态/模式”并非控制系统运行状态，而是开发流程、工具流程或工程流程。
-  - 例如：`development process`, `design process`, `workflow`, `analysis process`
-- 只强调安全分析、攻击路径、漏洞知识，而不描述控制对象行为。
-  - 例如：`security analysis`, `vulnerability`, `attack`, `knowledge-based system`
-- 只讨论通用建模能力或工具链，没有具体控制系统客体。
-  - 例如：泛化的 `toolset`, `virtual integration`, `meta-model`, `methodology`
-- 虽然出现 `parking`、`trajectory`、`control`，但全文主要停留在连续优化、轨迹平滑或路径规划性能，不给出阶段化停车决策链路。
-- 虽然出现 `water level`、`pressure`、`PLC`，但全文若只讨论连续调节性能或硬件组成，而不写阈值触发和执行顺序，也容易低产。
+- `review`、`survey`、`state of the art`、`architecture`、`framework`、`middleware`、`standards` 这类题名通常低产。
+- “状态/模式”如果指的是开发流程、分析流程、工具流程，而不是控制对象运行状态，应直接降权。
+- `security analysis`、`attack`、`vulnerability`、`knowledge-based system` 这类安全分析文献通常不是目标样本。
+- 只讲连续优化、路径规划性能、硬件组成、通用建模工具链，而不写阶段切换、阈值触发、门控/锁闭/恢复顺序的论文，通常低产。
 
 ### 检索倾向调整
 
-- 后续搜索应优先沿着“**具体控制对象 + control/controller/system + design/specification/verification/modeling**”这条主线展开，而不是先从宽泛的 `formal methods` 或 `system architecture` 出发。
-- 对已经证明高产的对象词应继续深挖同义词、上下位词和子任务词。
-  - 例如围绕 `railway interlocking` 继续扩展到 `route locking`, `route release`, `signalling principle`, `level crossing`
-  - 例如围绕 `pacemaker` 扩展到 `DDD mode`, `rate control`, `mode switching`
-  - 例如围绕 `elevator` 扩展到 `door control`, `group control`, `dispatching`, `operation mode`
-  - 例如围绕 `elevator` 进一步扩展到 `hall call`, `car call`, `door obstruction`, `overload sensor`, `manual mode`, `direction state machine`
-  - 例如围绕 `parking` 扩展到 `driver aid`, `parking possible`, `Stage 1`, `Stage 2`, `trigger`, `steering guide`
-  - 例如围绕 `parking` 进一步扩展到 `position`, `direction angle`, `steering angle`, `parking space detection`, `fuzzy controller`
-  - 例如围绕 `water level control` 扩展到 `float sensor`, `low level`, `high level`, `tank cycle`, `fill and drain`, `solenoid valve`
-  - 例如围绕 `traffic light` 扩展到 `image processing`, `traffic density`, `red green yellow`, `ambulance detection`, `camera based controller`
-  - 例如围绕 `traffic light` 进一步扩展到 `priority request`, `ETA`, `GPS`, `RFID`, `green corridor`, `override standard sequence`
-  - 例如围绕 `traffic light` 再扩展到 `RF transmission`, `transmitter`, `receiver`, `emergency mode`, `normal sequence`
-  - 例如围绕 `head tank` / `water level` 进一步扩展到 `ultrasonic sensor`, `motorized valve`, `solenoid valve`, `elevation`, `mdpl threshold`
-  - 例如围绕 `parallel parking` 进一步扩展到 `three steps`, `ready to reverse`, `parking space scanning`, `adjusting forward`
-  - 例如围绕 `automatic parking assistance` 进一步扩展到 `exploration phase`, `parking phase`, `parking slot fitment decision`, `path shifting points`
-- 搜索时应尽量遵循本节已有高命中经验，但不能被现有词簇束缚住。
-  - 允许并鼓励基于已有 `🟢 直接可用` 论文标题、控制对象名、控制任务名去脑补新的关键词组合
-  - 这些新词必须逻辑上能指向“具体控制系统的状态机描述”，而不是泛化方法论文
-- 后续每轮更新时，都应根据新增 `🟢 直接可用` 与 `⚪ 未收获` 文献，继续修正本节内容，使检索策略逐步偏向更容易产出有效 STM 的标题词和关键词。
+- 优先沿“具体控制对象 + control/controller/system + design/specification/verification”主线检索，不从宽泛 `formal methods` 出发。
+- 继续优先补样本偏少但仍高产的方向，当前是 `🚦` 应急交通灯、`🌡️` 液位/阀控、`🩺` 医疗控制、`✈️` 飞行/起落架控制。
+- 新词允许扩展，但必须能解释为什么会导向“具体控制系统的状态机描述”，并在每轮更新时回写到本节。
+- 每次更新只保留仍然有效的高命中经验，删除被新结果证明价值不高的冗余词簇。
 
 ## 当前收录统计
 
