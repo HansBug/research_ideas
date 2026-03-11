@@ -1,0 +1,139 @@
+--- Page 1 ---
+Automated Veriﬁcation of Quantitative Properties
+of Cardiac Pacemaker Software∗
+Marta Kwiatkowska and Alexandru Mereacre
+Department of Computer Science, University of Oxford, UK
+{marta.kwiatkowska,mereacre}@cs.ox.ac.uk
+Abstract
+This poster paper reports on a model-based framework for software quality assurance for cardiac
+pacemakers developed in Simulink and described in [3]. A novel hybrid heart model is proposed
+that is suitable for quantitative veriﬁcation of pacemakers. The heart model is formulated at the
+level of cardiac cells, can be adapted to patient data, and incorporates stochasticity. We validate
+the model by demonstrating that its composition with a pacemaker model can be used to check
+safety properties by means of approximate probabilistic veriﬁcation.
+1998 ACM Subject Classiﬁcation I.6.4 Model Validation and Analysis, J.3 Life and Medical
+Sciences
+Keywords and phrases Pacemakers, Veriﬁcation, Simulink
+Digital Object Identiﬁer 10.4230/OASIcs.MCPS.2014.137
+1 Introduction
+Today’s implantable medical devices are increasingly often controlled by embedded software
+and rigorous software design methodologies are needed to ensure their safe operation and
+to avoid costly device recalls. The natural models for medical devices, such as cardiac
+pacemakers [ 6], GPCA infusion pumps [ 8] and continuous glucose monitors [ 11], are stochastic
+hybrid systems: they involve discrete mode switching and nonlinear continuous ﬂows, e.g.,
+electrical signal or glucose level, while at the same time allowing for stochasticity that arises
+from randomness of the timing of events. Therefore, developing eﬀective methodologies to
+provide safety assurance in this setting by means of quantitative veriﬁcation is an important
+challenge.
+Regarding cardiac pacemakers, a number of model-based frameworks have been proposed,
+to mention the Virtual Heart Model (VHM) of Jiang et al.[5,7]. Though mainly intended
+for simulation and testing, its timed automata pacemaker model [ 6] has been veriﬁed using
+UPPAAL [ 10] against a random heart model . The random heart model can capture the
+timing delays between events, but is unable to model the stochasticity in the timing that is
+characteristic in a heart rhythm and varies from patient to patient. Following a suggestion
+in [6] that physiologically-relevant heart models are needed to establish the correctness of
+more complex properties for pacemakers, we earlier developed a realistic heart model that
+addresses this issue [ 1]. The model was adapted from a sophisticated model that generates
+multi-channel electrocardiogram (ECG) based on nonlinear ordinary diﬀerential equations
+(ODEs) due to Cliﬀord et al.[4]. To transfer to our setting, where we need to consider
+that the pacemaker is implanted in the heart tissue, we convert external ECG signals into
+∗This work is supported by the ERC Advanced Grant VERIWARE, VERIPACE project and Oxford
+Martin School Institute for the Future of Computing.
+©Marta Kwiatkowska and Alexandru Mereacre;
+licensed under Creative Commons License CC-BY
+Medical Cyber Physical Systems – Medical Device Interoperability, Safety, and Security Assurance (MCPS’14).
+Editors: Volker Turau, Marta Kwiatkowska, Rahul Mangharam, and Christoph Weyer; pp. 137–140
+OpenAccess Series in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+138 Automated Veriﬁcation of Quantitative Properties of Cardiac Pacemaker Software
+action potential signals read by implanted sensors. A unique feature of the model of [ 1]
+is that the heart can probabilistically switch between normal and abnormal beat types, in
+a manner that can be learnt from patient data. We performed quantitative, probabilistic
+veriﬁcation by analysing the composition of the pacemaker model of [ 6] and the heart model
+against typical correctness properties such as (i) whether the pacemaker corrects faulty heart
+beats, maintaining normal heart rhythm of 60-100 beats per minute (BPM), and (ii) that
+the pacemaker does not induce erroneous heart behaviours (that is, it does not overpace the
+heart unless necessary). These were implemented based on the probabilistic model checker
+PRISM [9] and MATLAB.
+One of the shortcomings of the heart model in [ 1] is that it does not capture the electrical
+conduction system of the heart, and speciﬁcally the delays in the action potential signal as it
+is propagated from cell to cell.
+This paper reports on a model-based framework for software quality assurance for cardiac
+pacemakers developed in Simulink and described in [ 3]. We instantiate the framework with a
+physiologically-relevant heart model built as a network of cardiac cells. The heart model
+is inspired by that of [ 7], except that we represent it as a network of input-output hybrid
+automata, instead of timed automata, and enhance it with stochasticity. The model enables
+the modelling of both diseased and normal rhythms, and can be adapted to exhibit random
+delays in the timing of events that are patient-speciﬁc. We implement the heart model in
+Simulink and validate it against the pacemaker models of [ 7], demonstrating basic safety
+properties of the pacemaker by means of probabilistic approximate model checking, with
+encouraging results. We also provide experimental results for advanced properties, including
+pacemaker mediated tachycardia correction and detailed analysis of energy consumption.
+This paper extends the results reported in [ 2]. The outcome of the research is a comprehensive
+model-based framework based on Simulink suitable for simulation, as well as quantitative
+veriﬁcation, of pacemakers. The interested reader is referred to [3] for more detail.
+2 Quantitative Veriﬁcation
+We implement both the heart model and the pacemaker model in Simulink.
+Fig. 1a shows the Simulink implementation of a cardiac cell. The cell is implemented
+by means of three Simulink blocks: Event generator ,Hybrid set andSubsystem . TheEvent
+generator block is responsible to generate the input events to the cell. The Hybrid set
+implements the cell hybrid automaton model. The Subsystem block performs the integration
+procedure to compute the voltage level of the cell. Fig. 1b shows a network of six cells. Each
+cell block is composed from the three sub-blocks shown in Fig. 1a and connected to other
+cells through delay and gain components.
+We run a set of experiments on a faulty heart to verify that the pacemaker restores the
+normal heart beat. In Fig. 2a we depict two signals. The ﬁrst one (in blue) denotes the action
+potential generated by the natural pacemaker cell of the heart situated in the atrium. More
+precisely, we have three beats in six seconds, which is approximately 30beats per minute.
+The number of heart beats is thus too slow and needs the intervention of the pacemaker.
+The second signal (in red) denotes the action potential from one of the cardiac cells situated
+in the ventricle. This is the signal which is captured and paced by the pacemaker.
+The second set of experiments depicts the relation between diﬀerent programmable
+parameters of the pacemaker and the battery charge. In Fig. 2b we depict the battery charge
+in a period of 1 min when the programmable parameters TAVI and TURI of the pacemaker
+are varied.
+
+--- Page 3 ---
+M. Kwiatkowska and A. Mereacre 139
+(a)Cell block
+ (b)Cell connection
+Figure 1 Cardiac cell model.
+t]
+0 2 4 6 8020406080100120140
+Time [sec]Voltage
+(a)Heart beat correction experiments
+100150200250300
+20406080200022002400260028003000
+TAVI [msec]
+TURI [msec]Energy (b)Battery charge
+Figure 2 Experiments.
+References
+1T. Chen, M. Diciolla, M. Kwiatkowska, and A. Mereacre. Quantitative Veriﬁcation of
+Implantable Cardiac Pacemakers. RTSS, pp. 263–272. IEEE, 2012.
+2T. Chen, M. Diciolla, M. Kwiatkowska, and A. Mereacre. A Simulink Hybrid Heart Model
+for Quantitative Veriﬁcation of Cardiac Pacemakers. HSCC, pp. 131–136. IEEE, 2013.
+3T. Chen, M. Diciolla, M. Kwiatkowska, and A. Mereacre. Quantitative Veriﬁcation of
+ImplantableCardiacPacemakersoverHybridHeartModels. Information and Computation ,
+Elsevier, 2013.
+4G.Cliﬀord, S.Nemati, andR.Sameni. AnArtiﬁcialVectorModelforGeneratingAbnormal
+Electrocardiographic Rhythms. Physiological Measurements , 31(5):595–609, May 2010.
+5Z. Jiang, M. Pajic, A. Connolly, S. Dixit, and R. Mangharam. Real-Time Heart model for
+implantable cardiac device validation and veriﬁcation. ECRTS, pp. 239–248. IEEE, 2010.
+6Z. Jiang, M. Pajic, S. Moarref, R. Alur, and R. Mangharam. Modeling and Veriﬁcation of
+a Dual Chamber Implantable Pacemaker. TACAS, pp. 188–203, 2012.
+7Z. Jiang, M. Pajic, and R. Mangharam. Cyber-Physical Modeling of Implantable Cardiac
+Medical Devices. Proceedings of the IEEE , 100(1):122–137, 2012.
+MCPS’14
+
+--- Page 4 ---
+140 Automated Veriﬁcation of Quantitative Properties of Cardiac Pacemaker Software
+8B. Kim, A. Ayoub, O. Sokolsky, I. Lee, P. L. Jones, Y. Zhang, and R. P. Jetley. Safety-
+assured development of the GPCA infusion pump software. EMSOFT’11 , pp. 155–164.
+ACM, 2011.
+9M. Kwiatkowska, G. Norman and D. Parker. PRISM 4.0: Veriﬁcation of Probabilistic
+Real-time Systems CAV’11, pp. 585–591, 2011.
+10K. G. Larsen, P. Pettersson, and W. Yi. UPPAAL in a Nutshell, 1997.
+11S. Sankaranarayanan and G. E. Fainekos. Simulating Insulin Infusion Pump Risks by
+In-Silico Modeling of the Insulin-Glucose Regulatory System. CMSB, pp. 322–341, 2012.

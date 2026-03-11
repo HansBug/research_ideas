@@ -1,0 +1,925 @@
+--- Page 1 ---
+actuators 
+Article
+Performance Assessment of an Electric Power Steering System
+for Driverless Formula Student Vehicles
+Raffaele Manca1, Salvatore Circosta1,*
+, Irfan Khan1, Stefano Feraco1
+, Sara Luciani1, Nicola Amati1,
+Angelo Bonﬁtto1
+and Renato Galluzzi2
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Citation: Manca, R.; Circosta, S.;
+Khan, I.; Feraco, S.; Luciani, S.; Amati,
+N.; Bonﬁtto, A.; Galluzzi, R.
+Performance Assessment of an
+Electric Power Steering System for
+Driverless Formula Student Vehicles.
+Actuators 2021 ,10, 165. https://
+doi.org/10.3390/act10070165
+Academic Editors: Peng Hang,
+Xin Xia and Xinbo Chen
+Received: 22 June 2021
+Accepted: 14 July 2021
+Published: 18 July 2021
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2021 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).1Department of Mechanical and Aerospace Engineering, Politecnico di Torino, 10129 Turin, Italy;
+raffaele.manca@polito.it (R.M.); irfan.khan@polito.it (I.K.); stefano.feraco@polito.it (S.F.);
+sara.luciani@polito.it (S.L.); nicola.amati@polito.it (N.A.); angelo.bonﬁtto@polito.it (A.B.)
+2School of Engineering and Sciences, Tecnologico de Monterrey, Calle del Puente 222,
+Mexico City 14380, Mexico; renato.galluzzi@tec.mx
+*Correspondence: salvatore.circosta@polito.it
+Abstract: In the context of automated driving, Electric Power Steering (EPS) systems represent an
+enabling technology. They introduce the ergonomic function of reducing the physical effort required
+by the driver during the steering maneuver. Furthermore, EPS gives the possibility of high precision
+control of the steering system, thus paving the way to autonomous driving capability. In this context,
+the present work presents a performance assessment of an EPS system designed for a full-electric all-
+wheel-drive electric prototype racing in Formula Student Driverless (FSD) competitions. Speciﬁcally,
+the system is based on the linear actuation of the steering rack by using a ball screw. The screw
+nut is rotated through a belt transmission driven by a brushless DC motor. Modeling and motion
+control techniques for this system are presented. Moreover, the numerical model is tuned through
+a grey-box identiﬁcation approach. Finally, the performance of the proposed EPS system is tested
+experimentally on the vehicle through both sine-sweep proﬁles and co-simulated driverless sessions.
+The system performance is assessed in terms of reference tracking capability, thus showing favorable
+results for the proposed actuation solution.
+Keywords: electric power steering; autonomous driving; steering actuator; driverless racing vehi-
+cles; control
+1. Introduction
+The automotive industry is currently facing a substantial shift towards new mobility
+trends: electriﬁcation, spreading of car sharing services and autonomous driving [ 1].
+Features like autonomous emergency braking and lane keeping assistance are referred to
+as Advanced Driver Assistance Systems (ADAS). These features expand from premium
+to mass-offering markets and represent a key-point in the progressive transition towards
+autonomous driving. In this context, Waymo-Google launched a self-driving car project
+in 2009. Later, Tesla Motor Company rolled out autopilot software on their Model S in
+October 2015. Ongoing efforts by most carmakers like Volvo head towards the design of
+autonomous vehicles [ 2]. A disruptive SAE Level 4 autonomy is expected to be available
+between 2020 and 2022 [ 3], while full autonomy with Level 5 technology is supposed to
+arrive by 2030 [2].
+In this challenging scenario, Electric Power Steering (EPS) is a key technology for
+highly automated driving. Currently, such systems are employed to help the driver in
+the steering maneuvers by reducing the physical effort required, especially at low speed.
+Furthermore, EPS systems are used to provide the forces acting on the steering wheel as
+feedback to the user to preserve the driving sensation. In fact, EPS systems act on the
+rack-pinion steering box through an electric motor that provides the required torque to
+the steering column or directly to the rack. Another steering assistance technology is
+Actuators 2021 ,10, 165. https://doi.org/10.3390/act10070165 https://www.mdpi.com/journal/actuators
+
+--- Page 2 ---
+Actuators 2021 ,10, 165 2 of 17
+represented by hydraulic power systems. They exploit the pressure generated through a
+motor- or engine-driven pump to assist the turning of the steering wheel. Nevertheless,
+such technology is less efﬁcient than the electric one, as witnessed in [ 4,5]. Therefore, EPS is
+regarded as a key technology for implementing autonomous driving features in the context
+of assisted and efﬁcient mobility [6].
+Intense research efforts have been dedicated to the control of EPS systems in the last
+decades. Research works presented by Mehrabi et al. in 2011 [ 4], Liao & Du [ 7] in 2003,
+Frankem & Müller in 2014 [ 8] and Chen & Chen in 2006 [ 9] focus on the control of such
+systems for ADAS applications. Speciﬁcally, torque control is addressed with the goal of
+comfort and safety optimization, as well as disturbance rejection. As stated by Groll et al.
+in 2006 [ 10], the most relevant frequencies of the driver input are below 4 Hz. Therefore, the
+control system must operate to reject the disturbances efﬁciently to avoid high-frequency
+oscillatory behavior [ 11]. For industrial applications, the tendency is to adopt PID control
+as a cost-effective and easy-to-tune solution. However, this control scheme may present
+important drawbacks when dealing with the multi-order nature of the steering system.
+Therein, induced resonant behavior can affect the stability or tracking performance of an
+EPS angle control, as demonstrated in [ 12]. The work presented by Govender et al. [ 11] with
+a PID for front steering angle control gives an insight into the above-mentioned robustness
+drawbacks. It suggests the adoption of ﬁlters, anti-windup and non-zero structures enhance
+the stability of the control system. Liao & Du [ 13] proposed a solution for the modeling
+and co-simulation of the EPS system and vehicle dynamics. Other efforts deal with active
+front steering control for automated driving applications through model predictive control
+(MPC) [ 14]. Further works enhance the MPC solution with path tracking and trajectory
+planning methods [ 15]. In [ 16], Daimler AG presents an EPS model and the design of a
+controller to ensure accurate, robust and smooth tracking of the desired trajectories of the
+front steering angle. The developed steering model shows signiﬁcant nonlinear behavior
+due to the elastic elements, friction and gear ratios. Thereby, different control techniques
+are proposed and compared in [16,17].
+Despite these comprehensive efforts, minor attention has been paid to the performance
+assessment of EPS systems applied to a driverless application from an actuation standpoint.
+The design and control target for such applications pose important challenges. During
+manual driving, the driver can constantly adjust the steering wheel input to compensate for
+disturbances from the road. Conversely, the EPS in autonomous vehicles is no longer used
+as an ampliﬁer for the driver’s torque since it must actuate the entire steering system [ 11].
+Therefore, the extension of EPS systems to driverless applications is not straightforward
+and has not been addressed properly by the available literature.
+In this context, the main contributions provided by the present work are: (i) the
+performance assessment of the proposed EPS actuator through a dedicated on-vehicle
+experimental campaign aimed at identifying the dynamic capabilities of the system for a
+driverless application; (ii) the validation of the discussed actuator in a driverless maneuver
+generated by the complete vehicle MPC controller.
+The integration of the steering control system in the complete autonomous vehicle
+model needs the characterization of the actuator to deﬁne its dynamic behavior and the
+system capability for the speciﬁc automated driving scenario. Furthermore, a precise
+mathematical model of the controlled plant is essential to properly design a control strategy
+of the complete vehicle. In the case of MPC, the compensator is aimed at minimizing the
+vehicle lateral deviation and relative yaw angle with respect to the reference trajectory, as
+described in [ 18]. For this purpose, correct system identiﬁcation of the controlled plant is
+fundamental. The work presented in [ 19] addresses the estimation of the parameters of
+an EPS by using different algorithms to improve the robustness of the designed controller.
+Nevertheless, the estimation was performed in a test bench scenario thus implying model
+mismatch when the system is mounted on a vehicle.
+The performance assessment of an EPS system for the autonomous driving application,
+through in-vehicle experimental tests, is discussed in [ 20]. However, this paper focuses
+
+--- Page 3 ---
+Actuators 2021 ,10, 165 3 of 17
+only on the tracking performance of the proposed controller, without identifying and
+discussing the dynamic capabilities of the actuator for the considered application.
+In this perspective, this paper presents a custom EPS system for a driverless racing
+vehicle participating at Formula Student Driverless (FSD) events. In detail, the presented
+work is focused on the implementation and performance assessment of the actuator and
+system identiﬁcation using a grey-box model. The work addresses the dynamic perfor-
+mance of the steering actuator integrated with the complete driverless vehicle. To this end,
+an in-vehicle experimental campaign is carried out to validate the identiﬁed model that
+will be integrated with the MPC controller of the complete driverless vehicle.
+The proposed actuator layout consists of a ball screw assembly acting in parallel to
+the steering rack. The screw nut is actuated by using a toothed belt transmission driven by
+a brushless DC electric motor. Hence, the screw translates thus actuating the steering rack.
+This work examines the characteristics of the chosen layout and deals with its integration in
+the reference racing vehicle. Speciﬁcally, the system has been optimized for the integration
+with the considered vehicle to be compliant with the guidelines of FSD competitions [ 21],
+while also accomplishing the autonomous driving function. Electric motor, mechanical
+system and vehicle dynamic models have been developed and implemented in a MAT-
+LAB/Simulink environment, by using a linear grey-box model for the estimation of the
+unknown parameters. The EPS system is controlled through a PID with a feedforward
+position control loop, whereas a classic PI is used for the electric motor current control.
+A pole placement technique is used for the controller tuning. To validate the system and
+assess performance, in-vehicle experimental tests were conducted. Then, the validity of the
+proposed layout is demonstrated by testing the racing vehicle equipped with the developed
+EPS system in a driverless scenario. In particular, the steering proﬁle computed by a vehicle
+dynamics MPC controller is used as a realistic reference for this veriﬁcation [18].
+This paper is organized as follows. Section 2 describes the considered system layout
+along with the selected design choices. Section 3 illustrates the system modeling and the
+implemented control techniques. Finally, Section 4 focuses on the system identiﬁcation and
+on the discussion of the experimental results obtained during different maneuvers.
+2. System Layout
+The EPS layout for the FSD application is chosen and designed to be compliant with
+the regulations and guidelines provided by Formula SAE [ 21] and to ﬁt into the already
+existing reference vehicle. The driverless class was introduced in FSD competitions in 2018.
+It consists of static and dynamic events aimed at evaluating the autonomous vehicle’s ability
+to adapt to the tested driving scenario. The academic activities for developing a driverless
+single-seated race car provide a platform to develop and validate new technologies under
+challenging conditions. Self-driving racecars represent a unique opportunity to design
+and test software required in autonomous transport, such as redundant perception, failure
+detection and control in challenging conditions [22].
+The steering system of the reference vehicle is a mechanical rack and pinion with a
+herringbone-like gear proﬁle. The steering rack is a custom solution starting from the zRack
+provided by Zedaro. It presents a rack length of 264 mm to ﬁt the limited available space
+in the front cross-sectional area of the monocoque, as shown in Figure 1. The C-Factor and
+the steering ratio are 85.5 mm and 4.3:1, respectively, with a steering wheel working angle
+ranging from 90 to +90 degrees. The steering column is equipped with a rotary encoder,
+which provides the feedback signal for the autonomous steering system control loop.
+
+--- Page 4 ---
+Actuators 2021 ,10, 165 4 of 17
+Actuators 2021 , 10, x FOR PEER REVIEW 4 of 17 
+ 
+ The proposed solution design is subject to specific constraints, which can be summa-
+rized as follows:  
+• Small rack assembly with a rack length equal to 264 mm.  
+• Required total rack travel equal to 45 mm, by considering a steering wheel working 
+angle from −90 to +90 degrees.  
+• Required actuation speed 𝑣஻ௌൌ45 mm/s , by taking as target the capability of the 
+driver to actuate the steering wheel from full left to full right in 1 s.  
+• Reversibility between driverless and with -driver modes must be guaranteed without 
+mechanically dismounting any physical part, according to the competition rules [21].  
+Specifically, the reversibility constraint im plies an integration of the EPS solution 
+with the existing steering rack, thus reduci ng the available space inside the cockpit.  
+ 
+(a) 
+ 
+(b) 
+Figure 1.  (a) Autonomous Steering System actuator vi ew: 1—Ball screw; 2—Ball screw nut and bear-
+ing assembly; 3—HTD belt; 4—BLDC motor; 5—Steeri ng rack; 6—Support structure; 7—Clevises. ( b) 
+Autonomous Steering System cross- section to highlight the ball scr ew nut and bearing assembly: 8—
+Ball screw nut; 9—HTD pulley; 10—Nut bearing su pport; 11—Ball bearings; 12—Lock nut washer. 
+Figure 1. (a) Autonomous Steering System actuator view: 1—Ball screw; 2—Ball screw nut and
+bearing assembly; 3—HTD belt; 4—BLDC motor; 5—Steering rack; 6—Support structure; 7—Clevises.
+(b) Autonomous Steering System cross-section to highlight the ball screw nut and bearing assembly:
+8—Ball screw nut; 9—HTD pulley; 10—Nut bearing support; 11—Ball bearings; 12—Lock nut washer.
+The proposed solution design is subject to speciﬁc constraints, which can be summa-
+rized as follows:
+ Small rack assembly with a rack length equal to 264 mm.
+ Required total rack travel equal to 45 mm, by considering a steering wheel working
+angle from 90 to +90 degrees.
+ Required actuation speed vBS=45mm/s , by taking as target the capability of the
+driver to actuate the steering wheel from full left to full right in 1 s.
+ Reversibility between driverless and with-driver modes must be guaranteed without
+mechanically dismounting any physical part, according to the competition rules [ 21].
+Speciﬁcally, the reversibility constraint implies an integration of the EPS solution with
+the existing steering rack, thus reducing the available space inside the cockpit.
+In this scenario, the chosen solution (Figure 1) consists of a rack that is linearly actuated
+by using a ball screw (1). The power unit is a brushless DC (BLDC) motor provided by
+
+--- Page 5 ---
+Actuators 2021 ,10, 165 5 of 17
+Maxon Motor AGTM(Sachseln, Switzerland) (4). The nut (8) is rotated through a belt-drive
+transmission (3), while its translation is constrained. By converse, the screw is free to
+translate, thus providing a linear actuation of the rack (5).
+The required rack force for the considered application is Frack=1000 N. It is due to the
+required torque needed to move the steering rack at standstill, as a worst-case scenario [ 22].
+Then, the required ball screw torque TBS=0.397 Nm and the motor speed n=1350 rpm
+and power Pmot=57Ware computed. A Bosch Rexroth ball screw with a diameter of
+12 mm and a lead of 2 mm is chosen for the present application. It features an efﬁciency
+hBS=0.8.
+According to the calculated power request and due to the constraints on the available
+space, the MaxonTMEC 60 Flat 150 W motor is selected for its compact size. It offers
+a nominal speed and torque of 3480 rpm and 0.401 Nm, respectively. The ball screw is
+parallel to the vehicle steering rack, as shown in Figure 1. The rack supports have been
+modiﬁed to mount the motor and accommodate the ball screw within a single assembly.
+The screw and the rack ends are rigidly connected by means of two clevises. The latter are
+coupled with the steering tie rods.
+The ball screw drive is a reversible mechanism that allows the vehicle to be driven
+in both driverless and with-driver modes, without mechanically disconnecting the au-
+tonomous actuator. The selected belt and pulley system have a standard HTD proﬁle with
+a pitch of 3 mm and a width of 9 mm. The belt drive system was sized to comply with the
+power transmission for this application. The bearing assembly uses two SKF four-point
+contact ball bearings in the “O” arrangement (11).
+The BLDC motor is controlled and driven by a MaxonTMEPOS 4 electronic control
+unit that communicates via CAN with a dSPACETM(Paterborn, Germany) MicroAutoBox.
+The latter is the onboard CPU of the vehicle. The reference steering angle for the control
+loop is computed by the trajectory planning and control algorithm implemented on the
+dSPACETMunit, as described in [ 18,23]. The algorithm receives the signals from the stereo
+camera, LiDAR and inertial measurement unit (IMU) sensors. The control also provides
+the steering command to follow the desired path. Then, the reference steering angle is
+compared with the feedback provided by the steering encoder. The EPOS ECU closes the
+position feedback loop and provides the voltage command to the electric motor to drive
+the autonomous steering actuator, as subsequently discussed in Section 3.3.
+Figure 2a shows the positioning of the steering actuator assembly in the vehicle CAD
+model. In Figure 2b, we show the installation of the real prototype, together with its components.
+Actuators 2021 , 10, x FOR PEER REVIEW 5 of 17 
+ 
+ In this scenario, the chosen solution (Figure 1) consists of a rack that is linearly actu-
+ated by using a ball screw (1). The power unit  is a brushless DC (BLDC) motor provided 
+by Maxon Motor AGTM (Sachseln, Switzerland) (4). The nut (8) is rotated through a belt-
+drive transmission (3), while its translation is  constrained. By converse, the screw is free 
+to translate, thus providing a linear actuation of the rack (5).  
+The required rack force for the considered application is 𝐹௥௔௖௞ൌ1000 N . It is due to 
+the required torque needed to move the steering ra ck at standstill, as a worst-case scenario 
+[22]. Then, the required ball screw torque 𝑇஻ௌൌ0.397 Nm  and the motor speed 𝑛ൌ
+1350 rpm and power 𝑃௠௢௧ൌ57 W  are computed. A Bosch Rexroth ball screw with a di-
+ameter of 12 mm and a lead of 2 mm is chosen for the present application. It features an 
+efficiency 𝜂஻ௌൌ0.8. 
+According to the calculated power request an d due to the constraints on the available 
+space, the MaxonTM EC 60 Flat 150 W motor is selected for its compact size. It offers a 
+nominal speed and torque of 3480 rpm and 0.401 Nm, respectively. The ball screw is par-
+allel to the vehicle steering rack, as shown in Figure 1. The rack su pports have been mod-
+ified to mount the motor and accommodate the ball screw within a single assembly. The screw and the rack ends are rigidly connect ed by means of two clevises. The latter are 
+coupled with the steering tie rods. 
+The ball screw drive is a reversible mechanism that allows the vehicle to be driven in 
+both driverless and with-driver modes, without mechanically disconnecting the autono-
+mous actuator. The selected belt and pulley system have a standard HTD profile with a pitch of 3 mm and a width of 9 mm. The belt drive system was sized to comply with the 
+power transmission for this application. Th e bearing assembly uses two SKF four-point 
+contact ball bearings in the “O” arrangement (11).  
+The BLDC motor is controlled and driven by a Maxon
+TM EPOS 4 electronic control 
+unit that communicates via CAN with a dSPACETM (Paterborn, Germany) MicroAutoBox. 
+The latter is the onboard CPU of the vehicle. The reference steering angle for the control 
+loop is computed by the trajectory planning  and control algorithm implemented on the 
+dSPACETM unit, as described in [18,23]. The algori thm receives the signals from the stereo 
+camera, LiDAR and inertial measurement unit (IMU) sensors. The control also provides 
+the steering command to follow the desired pa th. Then, the reference steering angle is 
+compared with the feedback provided by the steering encoder. The EPOS ECU closes the 
+position feedback loop and provides the volt age command to the electric motor to drive 
+the autonomous steering actuator, as su bsequently discussed in Section 3.3. 
+Figure 2a shows the positioning of the steering actuator assembly in the vehicle CAD 
+model. In Figure 2b, we show the installation of the real prototype, together with its com-
+ponents. 
+ 
+(a) 
+Figure 2. Cont .
+
+--- Page 6 ---
+Actuators 2021 ,10, 165 6 of 17
+Actuators 2021 , 10, x FOR PEER REVIEW 6 of 17 
+ 
+  
+(b) 
+Figure 2. (a) Autonomous EPS system positioning in the vehicle CAD model. ( b) EPS positioning in 
+the actual vehicle: 1—BLDC moto r; 2—HTD belt; 3—Support structure; 4—Ball screw; 5—Clevises; 
+6—Steering column. 
+3. System Modelling 
+For performance assessment and control tuning purposes, the system is modeled by 
+following a linear lumped-parameter approach . The developed model is schematized in 
+Figure 3. The model includes the motor and its controller along with the dynamic model 
+of the autonomous steering system. 
+ 
+Figure 3. Dynamic model of the studied system. 
+  
+Figure 2. (a) Autonomous EPS system positioning in the vehicle CAD model. ( b) EPS positioning in
+the actual vehicle: 1—BLDC motor; 2—HTD belt; 3—Support structure; 4—Ball screw; 5—Clevises;
+6—Steering column.
+3. System Modelling
+For performance assessment and control tuning purposes, the system is modeled by
+following a linear lumped-parameter approach. The developed model is schematized in
+Figure 3. The model includes the motor and its controller along with the dynamic model of
+the autonomous steering system.
+Actuators 2021 , 10, x FOR PEER REVIEW 6 of 17 
+ 
+  
+(b) 
+Figure 2. (a) Autonomous EPS system positioning in the vehicle CAD model. ( b) EPS positioning in 
+the actual vehicle: 1—BLDC moto r; 2—HTD belt; 3—Support structure; 4—Ball screw; 5—Clevises; 
+6—Steering column. 
+3. System Modelling 
+For performance assessment and control tuning purposes, the system is modeled by 
+following a linear lumped-parameter approach . The developed model is schematized in 
+Figure 3. The model includes the motor and its controller along with the dynamic model 
+of the autonomous steering system. 
+ 
+Figure 3. Dynamic model of the studied system. 
+  
+Figure 3. Dynamic model of the studied system.
+
+--- Page 7 ---
+Actuators 2021 ,10, 165 7 of 17
+3.1. Electric Motor
+For simplicity, the BLDC motor can be represented as a standard DC motor. Neglect-
+ing ﬁeld-weakening operation, the electrical dynamic model of the BLDC motor can be
+described as
+va(t)=Raia(t)+Ladia(t)
+dt+e(t) (1)
+where vais the motor terminal voltage, iais the motor armature current, Lais the phase-to-
+phase terminal inductance, Rais the phase-to-phase terminal resistance and eis the motor
+back-EMF, given by
+e(t)=ke.
+qrot (2)
+and the electromagnetic motor torque provided by the motor is
+Tm(t)=ktia(t) (3)
+being ke,ktthe machine characteristic constants and qrotthe angular position of the motor.
+The damping coefﬁcient rof the electric motor representing the mechanical losses is
+computed as the ratio between the no load torque and the no load speed.
+r=ktI0
+n0(4)
+Relevant parameters from the motor manufacturer are reported in Table 1.
+Table 1. Electric motor model parameters.
+Parameter Description Value Unit
+Ra Resistance 0.293 ( W)
+La Inductance 0.279 (mH)
+kt Torque constant 52.5 (mNm/A)
+ke Speed constant 52.5 (mV/ (rad/s ))
+r Torque/speed gradient 5.7810 5(Nm/ (rad/s ))
+I0 No load current 497 (mA)
+n0 No load speed 4300 (rpm)
+3.2. Mechanical System
+The mechanical dynamics of the steering actuator are described through a 3-DOF
+system, in which friction is modeled as viscous damping and constant gear ratios are used.
+For the ball screw, a viscous damper with coefﬁcient bBSis introduced. The ball screw
+transmission ratio is tBS. The same approach is used to model the belt drive connecting
+the motor shaft with the ball screw nut. Damping coefﬁcient bBand transmission ratio tB
+are used. Furthermore, the belt stiffness is accounted for through the coefﬁcient kB. The
+steering column is modeled by considering it as a torsion bar with torsional stiffness kTB
+and damping coefﬁcient bTB. The rack and pinion mechanism of the steering system of
+the vehicle is represented by the constant gear ratio tPthat is equal to the C-factor of the
+rack. The ratio tRconsiders the ratio between the wheel steering angle dWand the linear
+displacement of the rack xR. It was experimentally determined based on the acquisitions
+from the on-vehicle sensor data. The term bSWmodels the friction of the steering wheel.
+The equations of motion are obtained through the Lagrangian approach with the motor
+angle qrot, the ball-screw angle qBSand the steering angle dSWas generalized coordinates.
+The system differential equations are
+Jrot..
+qrot+
+r+bBt2
+B.
+qrot bBtB.
+qBS+kBt2
+Bqrot kBtBqBS=Tm (5)
+
+--- Page 8 ---
+Actuators 2021 ,10, 165 8 of 17
+J
+BS..
+qBS+ (bBS+bB+bTB 
+tP/tBS)2.
+qBS tBbB.
+qrot bTB(tBS/tP).
+dSW+ 
+kB+kTB 
+tP/tBS)2
+qBS kBtBqrot kTB(tBS/tP
+dSW=0(6)
+JSW..
+dSW+(bSW+bTB).
+dSW bTB(tBS/tP).
+qBS+KTBdSW KTB(tBS/tP)qBS=0 (7)
+The equivalent inertia at the ball screw is computed using an energetic approach as
+J
+BS=JBS+(mR+mBS)t2
+BS+JWt2
+BSt2
+R (8)
+The system is rearranged in the state-space form.x=Ax+Bu. The system state
+vector is x=h
+qrot.
+qrotqBS.
+qBSdsw.
+dswiT
+. The input to the system is the driving torque
+provided to the electric motor: u=Tm. The outputs of the system are the angle at the
+motor used to perform the PID position control and the angle at the steering column pinion
+end, compared with the measurement of the steering encoder sensor: y=[qrotdP]T. The
+angle at the pinion is computed considering the rigid transmission ratio of the ball screw
+and the rack C-factor as: dP=qBS(tBS/tP).
+A full description of the model transmission ratios and known masses and inertia are
+provided in Table 2. The missing parameters, i.e., the ball screw inertia JBS, the steering
+wheel inertia JSW, the wheel inertia JW, the belt damping bB, the belt stiffness kB, the
+damping of the ball screw bBS, the damping of the steering wheel bSW, the damping of the
+steering column bTBand the stiffness of the steering column kTB, are identiﬁed through
+the grey-box model parameters estimation optimization process described in Section 4.3.
+Table 2. Dynamic model parameters.
+Parameter Description Value Unit
+Jrot Rotor inertia 0.8110 4(kgm2)
+mBS Ball screw mass 0.171 (kg)
+mR Rack mass 6.510 2(kg)
+tB Belt to ball screw ratio 2 (-)
+tBS Ball screw lead 3.18310 4(m/rad)
+tP Pinion C-factor 1.3610 2(m/rad)
+tR Rack displacement to wheel toe angle ratio 19.4 (rad/m)
+b Longitudinal distance tie rod-kingpin axis 0.049 (m)
+3.3. Electric Motor Control
+The adopted control strategy for the BLDC motor has been designed and modeled
+based on the EPOS 4 controller architecture [ 24]. The most suitable operating mode for the
+autonomous steering actuator is the cyclic synchronous position mode provided by the
+EPOS 4 ECU. As presented in Figure 4, the reference steering angle ( dSW,re f) is computed by
+the trajectory planning algorithm implemented in dSPACETM. The reference is compared
+with the signal acquired by the steering wheel encoder sensor. Then, it is converted to a
+motor target position that is passed to the EPOS motor controller. Thus, the EPOS performs
+the position control loop and provides the current set to the inner (cascade) current control
+loop, which in turn will yield motion on the motor shaft.
+The position control of the electric motor is implemented through a Proportional-
+Integral-Derivative (PID) algorithm and a feedforward control to improve the motion
+system setpoint. The velocity feedforward (FFw)serves for compensation of speed-
+proportional friction and its coefﬁcient is computed as
+FFw=r
+kt(9)
+
+--- Page 9 ---
+Actuators 2021 ,10, 165 9 of 17
+Actuators 2021 , 10, x FOR PEER REVIEW 9 of 17 
+ 
+ 𝐹𝐹௔=𝐽௠௢௧∗
+𝑘௧ (10) 
+The anti-windup method is used to preven t saturation of the command signals. The 
+limit in current is set to 20 A according to the motor capabilities. The internal current control 
+loop computes the voltage set to the motor. It consists of a Proportional-Integral (PI) control 
+with an anti-windup algorithm to avoid saturation of the voltage command (24 V). 
+The block scheme of the controller architecture is depicted in Figure 4. 
+ 
+Figure 4. Electric motor cont rol block diagram. 
+The tuning of the PI current controller is performed using the pole placement tech-
+nique. Since the system can be analyzed as a linear canonical first-order system, an alge-
+braic method can be adopted to define precise relationships between poles and the shape 
+of the response. The tuning of the position PID controller has been performed by using 
+the Tuning App (based on transfer functions) in the Simulink block PID controller of the 
+Control Design MATLAB toolbox. 
+The parameters used for implementing the electric motor control are reported in Ta-
+ble 3. 
+Table 3. Electric motor cont roller parameters.  
+Parameter Description Value Unit 
+𝐾௉ ௖௨௥௥௘௡௧  Current controller P gain 2000  (mV/A ) 
+𝐾ூ ௖௨௥௥௘௡௧  Current controller I gain 2100  (mV/(A∙ms)) 
+𝐾௉ ௣௢௦௜௧௜௢௡  Position controller P gain 4390  (mA/rad ) 
+𝐾ூ ௣௢௦௜௧௜௢௡  Position controller I gain 7352  (mA/(rad ∙s)) 
+𝐾஽ ௣௢௦௜௧௜௢௡  Position controller D gain 159.87  ((mA∙s)/rad ) 
+𝐹𝐹ఠ Velocity feedforward 12.59  (mA∙s/rad ) 
+𝐹𝐹௔ Acceleration feedforward 1.783  (mA∙sଶ/rad ) 
+  
+Figure 4. Electric motor control block diagram.
+The acceleration feedforward (FFa)accounts for the inertia of the system and its
+coefﬁcient is determined by
+FFa=J
+mot
+kt(10)
+The anti-windup method is used to prevent saturation of the command signals. The
+limit in current is set to 20 A according to the motor capabilities. The internal current control
+loop computes the voltage set to the motor. It consists of a Proportional-Integral (PI) control
+with an anti-windup algorithm to avoid saturation of the voltage command (24 V).
+The block scheme of the controller architecture is depicted in Figure 4.
+The tuning of the PI current controller is performed using the pole placement tech-
+nique. Since the system can be analyzed as a linear canonical ﬁrst-order system, an algebraic
+method can be adopted to deﬁne precise relationships between poles and the shape of
+the response. The tuning of the position PID controller has been performed by using
+the Tuning App (based on transfer functions) in the Simulink block PID controller of the
+Control Design MATLAB toolbox.
+The parameters used for implementing the electric motor control are reported in Table 3.
+Table 3. Electric motor controller parameters.
+Parameter Description Value Unit
+KP current Current controller P gain 2000 (mV/A)
+KI current Current controller I gain 2100 (mV/(Ams))
+KP position Position controller P gain 4390 (mA/rad)
+KI position Position controller I gain 7352 (mA/ (rads))
+KD position Position controller D gain 159.87 ( (mAs)/rad)
+FFw Velocity feedforward 12.59 (mA s/rad)
+FFa Acceleration feedforward 1.783 (mAs2/rad)
+4. Results and Discussion
+4.1. Testbed Setup
+The presented system has been installed on the chassis of the considered vehicle and
+the experimental campaign is carried out. The electric motor of the steering actuator and
+its embedded Hall sensor are connected to the EPOS ECU presented in the previous section
+via a dedicated wiring system. The ECU is ﬁxed on the monocoque of the vehicle. An
+additional microcontroller (Texas InstrumentTMLaunch XL-F28379d, Dallas, TX, USA) is
+installed on the vehicle to acquire the steering angle sensor data from the digital encoder
+
+--- Page 10 ---
+Actuators 2021 ,10, 165 10 of 17
+sensor mounted on the steering rack and to provide the reference proﬁle to the actuator
+ECU in real-time at a sampling frequency of 100 Hz. All the systems are connected via
+CAN to the PC to both provide the enabling and conﬁgurations messages to the system
+and to acquire the data of encoder sensor steering angle and steering proﬁle from the TI
+microcontroller and the values of actual current and the actual position of the electric motor
+provided from the EPOS controller. Figure 5 schematizes the overall layout of the actuator
+testbed installed in the actual vehicle.
+Actuators 2021 , 10, x FOR PEER REVIEW 10 of 17 
+ 
+ 4. Results and Discussion 
+4.1. Testbed Setup 
+The presented system has been installed on the chassis of the considered vehicle and 
+the experimental campaign is carried out. Th e electric motor of the steering actuator and 
+its embedded Hall sensor are connected to the EPOS ECU presented in the previous sec-
+tion via a dedicated wiring system. The ECU is  fixed on the monocoque of the vehicle. An 
+additional microcontroller (Texas InstrumentTM Launch XL-F28379d, Dallas, TX, USA) is 
+installed on the vehicle to acquire the steerin g angle sensor data from the digital encoder 
+sensor mounted on the steering rack and to provide the reference profile to the actuator 
+ECU in real-time at a sampling frequency of 100 Hz. All the systems are connected via 
+CAN to the PC to both provide the enabling and configurations mess ages to the system 
+and to acquire the data of encoder sensor st eering angle and steering profile from the TI 
+microcontroller and the values of actual current and the actual position of the electric mo-
+tor provided from the EPOS controller. Figure  5 schematizes the overall layout of the ac-
+tuator testbed installed in the actual vehicle. 
+ 
+Figure 5. Autonomous steering actuator testbed setup block scheme.  
+All the systems are powered by the Low Voltage (LV) battery of the car i.e., a 24 V 
+lithium-ion battery.  
+The performed tests are sine-sweep steer ing maneuvers and steering maneuvers gen-
+erated by the MPC strategy that controls the driverless vehicle dynamics. The sine-sweep 
+maneuvers are performed with both suspended and on-ground vehicles aimed at the sys-
+tem identification and dynamic performance assessment. Furthermore, the system track-
+ing performance is evaluated when a reference profile generated by the MPC for the au-
+tonomous mission is provided. 
+4.2. Sine-Sweep Test 
+Different sine-sweep steering maneuvers are conducted first. The test is performed 
+for a frequency range from 0 Hz to 10 Hz, in a time interval of 10 s with an amplitude at the 
+steering wheel of 10 degrees. Data are acquired for two different conditions of the vehicle, 
+namely suspended and stationary vehicles on the ground. The response to the reference 
+Figure 5. Autonomous steering actuator testbed setup block scheme.
+All the systems are powered by the Low Voltage (LV) battery of the car i.e., a 24 V
+lithium-ion battery.
+The performed tests are sine-sweep steering maneuvers and steering maneuvers
+generated by the MPC strategy that controls the driverless vehicle dynamics. The sine-
+sweep maneuvers are performed with both suspended and on-ground vehicles aimed at
+the system identiﬁcation and dynamic performance assessment. Furthermore, the system
+tracking performance is evaluated when a reference proﬁle generated by the MPC for the
+autonomous mission is provided.
+4.2. Sine-Sweep Test
+Different sine-sweep steering maneuvers are conducted first. The test is performed for
+a frequency range from 0 Hz to 10 Hz, in a time interval of 10 s with an amplitude at the
+steering wheel of 10 degrees. Data are acquired for two different conditions of the vehicle,
+namely suspended and stationary vehicles on the ground. The response to the reference
+steering wheel position is measured by the encoder mounted on the steering column. Results
+obtained in the case of the suspended vehicle are reported in Figure 6a. Similarly , Figure 6b
+shows the motor current and position measured by the embedded sensors.
+The current measured by the motor approaches the limit of 20 A provided by the
+motor manufacturer. By analyzing the trend of the current, we can see sections without
+steering angle variations for a short period despite the high motor current and torque
+output. This behavior is caused by the dead band in the actuator due to the backlash and
+the compliance of the elastic elements present in the system, for this reason, a dead band
+compensator should be implemented in the controller, as described in [15].
+
+--- Page 11 ---
+Actuators 2021 ,10, 165 11 of 17
+Actuators 2021, 10, x FOR PEER REVIEW  11 of 17 
+ 
+ steering wheel position is measured by the encoder mounted on the steering column. Re-
+sults obtained in the  case of the suspended vehicle are reported in F igure 6a. Similarly, 
+Figure  6b shows the motor current and position measured by the embedded sensors.  
+The current measured by the motor approaches the limit of 20 A provided by the 
+motor manufacturer. By analyzing the trend of the current, we can see section s without 
+steering angle variations for a short period despite the high motor current and torque 
+output. This behavior is caused by the dead band in the actuator due to the backlash and 
+the compliance of the elastic elements present in the system, for this  reason , a dead band 
+compensator should be implemented in the controller, as described in [15]. 
+An equivalent sine -sweep test is repeated with the vehicle on the ground (dry as-
+phalt). In F igure  7 the data collected by the steering encoder sensor and by the  motor 
+sensors are reported.  
+ 
+(a) 
+ 
+(b) 
+Figure  6. Sine -sweep steering maneuver —suspended vehicle, 0 –10 Hz, amplitude 10 deg rees. (a) 
+Reference steering wheel position and measured response by the steering encoder. ( b) Measured 
+motor current and position.  
+The performed sine -sweep maneuvers in both the test conditions are processed to 
+extract the frequency response function of the system. F igure  8 shows the Bode plot where 
+the output and input to the system are the measured position s by the steerin g encoder 
+Figure 6. Sine-sweep steering maneuver—suspended vehicle, 0–10 Hz, amplitude 10 degrees.
+(a) Reference steering wheel position and measured response by the steering encoder. ( b) Measured
+motor current and position.
+An equivalent sine-sweep test is repeated with the vehicle on the ground (dry asphalt).
+In Figure 7 the data collected by the steering encoder sensor and by the motor sensors
+are reported.
+The performed sine-sweep maneuvers in both the test conditions are processed to
+extract the frequency response function of the system. Figure 8 shows the Bode plot where
+the output and input to the system are the measured positions by the steering encoder
+sensor and the reference steering sine-sweep proﬁle, respectively. The cut-off frequency for
+the suspended vehicle condition is at 5 Hz. The frequency response function of the test
+performed with the vehicle on the ground shows a cut-off frequency at 4.8 Hz.
+
+--- Page 12 ---
+Actuators 2021 ,10, 165 12 of 17
+Actuators 2021, 10, x FOR PEER REVIEW  12 of 17 
+ 
+ sensor and the reference steering sine -sweep profile, respectively. The cut -off frequency 
+for the suspended vehicle condition is at 5 Hz. The frequency response function of the test 
+performed with the vehicle on the ground shows a cut -off frequen cy at 4.8 Hz.  
+From the analysis of the Bode plot for the vehicle on the ground case, reported in 
+Figure  8, the stick slip effect is preponderant at low frequency in the case of the vehicle on 
+the ground. Due to friction among tires and ground, the bandwidt h of the system on the 
+ground is slightly lower than in the suspended vehicle case. For both the test conditions, 
+the dynamic performance of the system is consistent with the considered application. As 
+the typical steering frequencies of the driver input a re below 4 Hz [10], the designed ac-
+tuator shows good tracking performance below 4 Hz for both the considered tests.  
+ 
+(a) 
+ 
+(b) 
+Figure  7. Sine-sweep steering maneuver —stationary vehicle on the ground, dry asphalt, 0 –10 Hz, 
+amplitude 10 deg rees. (a) Reference steering wheel position and measured response by the steering 
+encoder . (b) Measured motor current and position.  
+Figure 7. Sine-sweep steering maneuver—stationary vehicle on the ground, dry asphalt, 0–10 Hz,
+amplitude 10 degrees. ( a) Reference steering wheel position and measured response by the steering
+encoder. ( b) Measured motor current and position.
+From the analysis of the Bode plot for the vehicle on the ground case, reported in
+Figure 8, the stick slip effect is preponderant at low frequency in the case of the vehicle on
+the ground. Due to friction among tires and ground, the bandwidth of the system on the
+ground is slightly lower than in the suspended vehicle case. For both the test conditions, the
+dynamic performance of the system is consistent with the considered application. As the
+typical steering frequencies of the driver input are below 4 Hz [10], the designed actuator
+shows good tracking performance below 4 Hz for both the considered tests.
+
+--- Page 13 ---
+Actuators 2021 ,10, 165 13 of 17
+Actuators 2021, 10, x FOR PEER REVIEW  13 of 17 
+ 
+  
+Figure  8. Experimental frequency response function of the closed loop system: suspended vehicle (blue) and vehicle on 
+the ground (orange).  
+4.3. System Identification  
+The g rey-box model estimation approach is used to identify damping and stiffness co-
+efficients along with inertia terms related to the ball screw, steering wheel, steering column, 
+and wheels. To this end, the experimental data reported in Section 4.2 are used. The friction 
+losses of the system as the moments of inertia of the ball screw , of the steering wheel and 
+column , and of the wheels were determined starting from the experimental acquisitions by 
+using a grey -box model estimation approach. The first analytical esteem of the parameters 
+is performed  to determine the starting nominal va lues of the parameters.  
+The estimated system has nine design variables: the ball screw inertia  𝐽𝐵𝑆, the steer-
+ing wheel inertia 𝐽𝑆𝑊, the wheel inertia 𝐽𝑊, the belt damping 𝛽𝐵, the belt stiffness 𝑘𝐵, the 
+damping of the ball screw 𝛽𝐵𝑆, the damp ing of the steering wheel 𝛽𝑆𝑊, the damping of 
+the steering column 𝛽𝑇𝐵 and the stiffness of the steering column kTB. 
+The software tunes the model parameters to obtain a simulated response ( 𝑦𝑠𝑖𝑚) that 
+tracks the measured response or reference signa l (𝑦𝑟𝑒𝑓). The 𝑦𝑟𝑒𝑓 provided to the param-
+eter estimation algorithm is the suspended vehicle sine sweep test response reported in 
+Figure  6. The optimization method for the estimation of the parameters  is the Nonlinear 
+Least Squares aimed at minimizin g the squares of the residuals in the system response. In 
+Table 4, the identified parameters are reported.  
+Table 4. Identified parameters.  
+Parameter  Description  Value  Unit  
+𝐽𝐵𝑆 Ball screw inertia  6.5∙10−6 (kg∙m2) 
+𝐽𝑆𝑊 Steering wheel inertia  3.3∙10−3 (kg∙m2) 
+𝐽𝑊 Wheel inertia  2.65 (kg∙m2) 
+𝑘𝐵 Belt stiffness  0.29  (Nm/rad) 
+𝛽𝐵 Belt damping  1.7∙10−3 (Nm/(rad/s)) 
+𝛽𝐵𝑆 Ball screw damping  1.34∙10−2 (Nm/(rad/s)) 
+𝑘𝑇𝐵 Torsion bar stiffness  164 .75 (Nm/rad) 
+𝛽𝑇𝐵 Torsion bar damping  0 (Nm/(rad/s)) 
+𝛽𝑆𝑊 Steering wheel damping  1.59 (Nm/(rad/s)) 
+Figure 8. Experimental frequency response function of the closed loop system: suspended vehicle (blue) and vehicle on the
+ground (orange).
+4.3. System Identiﬁcation
+The grey-box model estimation approach is used to identify damping and stiffness
+coefﬁcients along with inertia terms related to the ball screw, steering wheel, steering
+column, and wheels. To this end, the experimental data reported in Section 4.2 are used.
+The friction losses of the system as the moments of inertia of the ball screw, of the steering
+wheel and column, and of the wheels were determined starting from the experimental
+acquisitions by using a grey-box model estimation approach. The ﬁrst analytical esteem of
+the parameters is performed to determine the starting nominal values of the parameters.
+The estimated system has nine design variables: the ball screw inertia JBS, the steering
+wheel inertia JSW, the wheel inertia JW, the belt damping bB, the belt stiffness kB, the
+damping of the ball screw bBS, the damping of the steering wheel bSW, the damping of the
+steering column bTBand the stiffness of the steering column k TB.
+The software tunes the model parameters to obtain a simulated response ( ysim) that
+tracks the measured response or reference signal ( yre f). The yre fprovided to the parameter
+estimation algorithm is the suspended vehicle sine sweep test response reported in Figure 6 .
+The optimization method for the estimation of the parameters is the Nonlinear Least
+Squares aimed at minimizing the squares of the residuals in the system response. In
+Table 4, the identiﬁed parameters are reported.
+Table 4. Identiﬁed parameters.
+Parameter Description Value Unit
+JBS Ball screw inertia 6.510 6(kgm2)
+JSW Steering wheel inertia 3.310 3(kgm2)
+JW Wheel inertia 2.65 (kgm2)
+kB Belt stiffness 0.29 (Nm/rad)
+bB Belt damping 1.710 3(Nm/ (rad/s ))
+bBS Ball screw damping 1.3410 2(Nm/ (rad/s ))
+kTB Torsion bar stiffness 164.75 (Nm/rad)
+bTB Torsion bar damping 0 (Nm/ (rad/s ))
+bSW Steering wheel damping 1.59 (Nm/ (rad/s ))
+
+--- Page 14 ---
+Actuators 2021 ,10, 165 14 of 17
+The identiﬁed values are consistent with the considered application. The response of
+the identiﬁed numerical model (ysim)is reported in Figure 9, compared with the signal
+acquired by the encoder sensor during an on-vehicle experimental testing campaign ( yre f).
+Actuators 2021 , 10, x FOR PEER REVIEW 14 of 17 
+ 
+ The identified values are consistent with th e considered application. The response of 
+the identified numerical model (𝑦௦௜௠) is reported in Figure 9, compared with the signal 
+acquired by the encoder sensor during an on -vehicle experimental  testing campaign ( 𝑦௥௘௙). 
+The identified system features one pole at the origin and a real stable pole at 334 rad/s 
+(53.2 Hz) that are the rigid body modes. Then, two complex conjugate sets of poles appear 
+at 30.9 rad/s (4.9 Hz) and 131 rad/s (20.9 Hz ). The former low-frequency pole represents 
+the motor inertia mode vibrating due to the be lt drive compliance. The latter is the ball 
+screw inertia vibrating due to the torsional st iffness of the steering wheel and column. The 
+target frequency range for the present applicat ion (1 Hz) is below the frequencies of the 
+identified mechanical system. 
+ 
+Figure 9. Steering wheel position behavior during the performed si ne-sweep maneuver for validating the system identifica-
+tion: target position (black, dash-dotted) vs. measured position (blue, solid) vs. identified model response (orange, solid). 
+The goodness-of-fit between the identified model and the actual actuator has been 
+quantified as a function of the Normalized Root Mean Square Error (NRMSE) cost func-
+tion, as follows: 
+𝐺𝑜𝐹 =1−𝑁𝑅𝑀𝑆𝐸 =1−ฮ𝑦௥௘௙−𝑦௦௜௠ฮଶ
+ฮ𝑦௥௘௙−𝑦ത௥௘௙ฮଶ (11) 
+where || indicates the 2-norm of a vector, 𝑦௥௘௙ is the measured position and 𝑦௦௜௠ is the 
+identified position. The proposed identification has a 𝐺𝑜𝐹 equal to 75%. The identified 
+numerical response matches the experimental one. 
+4.4. Autonomous Driving Test 
+The performance of the proposed EPS system  has been evaluated with a steering pro-
+file coming from the co-simulation of an autonomous driving mission. The vehicle is 
+driven at a constant longitudinal speed equa l to 5 km/h while the steering angle reference 
+profile is properly given to the actuator for a time length of about 120 s. Figure 10a com-
+pares the steering wheel position from the en coder with the reference signal generated by 
+the MPC strategy devoted to autonomous drivin g [18]. Accordingly, Figure 10b shows the 
+followed track that yields the tracked position profile. From these results, an angular po-
+sition RMSE of 3 degrees is computed for the whole track. This value is consistent with 
+the required performance for the specific application. 
+Figure 9. Steering wheel position behavior during the performed sine-sweep maneuver for validating the system identiﬁca-
+tion: target position (black, dash-dotted) vs. measured position (blue, solid) vs. identiﬁed model response (orange, solid).
+The identiﬁed system features one pole at the origin and a real stable pole at 334 rad/s
+(53.2 Hz) that are the rigid body modes. Then, two complex conjugate sets of poles appear
+at 30.9 rad/s (4.9 Hz) and 131 rad/s (20.9 Hz). The former low-frequency pole represents
+the motor inertia mode vibrating due to the belt drive compliance. The latter is the ball
+screw inertia vibrating due to the torsional stiffness of the steering wheel and column. The
+target frequency range for the present application (1 Hz) is below the frequencies of the
+identiﬁed mechanical system.
+The goodness-of-ﬁt between the identiﬁed model and the actual actuator has been
+quantiﬁed as a function of the Normalized Root Mean Square Error (NRMSE) cost function,
+as follows:
+GoF=1 NRMSE =1 kyre f ysimk2
+kyre f yre fk2(11)
+wherejjindicates the 2-norm of a vector, yre fis the measured position and ysimis the
+identiﬁed position. The proposed identiﬁcation has a GoF equal to 75%. The identiﬁed
+numerical response matches the experimental one.
+4.4. Autonomous Driving Test
+The performance of the proposed EPS system has been evaluated with a steering
+proﬁle coming from the co-simulation of an autonomous driving mission. The vehicle is
+driven at a constant longitudinal speed equal to 5 km/h while the steering angle reference
+proﬁle is properly given to the actuator for a time length of about 120 s. Figure 10a compares
+the steering wheel position from the encoder with the reference signal generated by the
+MPC strategy devoted to autonomous driving [ 18]. Accordingly, Figure 10b shows the
+followed track that yields the tracked position proﬁle. From these results, an angular
+position RMSE of 3 degrees is computed for the whole track. This value is consistent with
+the required performance for the speciﬁc application.
+
+--- Page 15 ---
+Actuators 2021 ,10, 165 15 of 17
+Actuators 2021 , 10, x FOR PEER REVIEW 15 of 17 
+ 
+   
+(a) 
+ 
+(b) 
+Figure 10.  Autonomous driving test. ( a) Steering wheel position measured by the encoder sensor 
+(orange, solid) vs. target posi tion generated by the MPC strategy devoted to autonomous driving 
+(blue, solid). ( b) Spatial coordinates (X,Y) of the race track related to the performed autonomous 
+driving test.  
+Furthermore, the applied realistic reference highlights important features of the con-
+trol. The maximum overshoot is found at 89.4 s,  reaching up to 4.5 degrees of error for a 
+very narrow time interval. It is worth noting that the position activity around 111 s pre-
+sents high dynamic content and thus puts in ev idence the intrinsic limitations of the actu-
+ation system above 4 Hz (max. error up to 15.7 degrees). However, this behavior is beyond 
+the bandwidth of interest. 
+5. Conclusions 
+This paper presented the design, integratio n, and performance assessment of an EPS 
+system for a driverless vehicle. In detail, an FSD racing vehicle was considered and the 
+proposed EPS was studied for system identifi cation and performance assessment during 
+different maneuvers. To this end, the actuator  was designed to fulfill the competition rules 
+Figure 10. Autonomous driving test. ( a) Steering wheel position measured by the encoder sensor (orange, solid) vs. target
+position generated by the MPC strategy devoted to autonomous driving (blue, solid). ( b) Spatial coordinates (X,Y) of the
+race track related to the performed autonomous driving test.
+Furthermore, the applied realistic reference highlights important features of the control.
+The maximum overshoot is found at 89.4 s, reaching up to 4.5 degrees of error for a very
+narrow time interval. It is worth noting that the position activity around 111 s presents
+high dynamic content and thus puts in evidence the intrinsic limitations of the actuation
+system above 4 Hz (max. error up to 15.7 degrees). However, this behavior is beyond the
+bandwidth of interest.
+5. Conclusions
+This paper presented the design, integration, and performance assessment of an EPS
+system for a driverless vehicle. In detail, an FSD racing vehicle was considered and the
+proposed EPS was studied for system identiﬁcation and performance assessment during
+
+--- Page 16 ---
+Actuators 2021 ,10, 165 16 of 17
+different maneuvers. To this end, the actuator was designed to fulﬁll the competition rules
+and both design and packaging constraints. The system model was developed by consider-
+ing both the electric motor and the existing mechanical steering subsystem. Furthermore,
+the applied control strategy was discussed, along with the performed system identiﬁcation
+procedure that has been conducted exploiting a grey-box model. Experimental tests in a
+proper laboratory environment were carried out to assess the system performance while
+validating the described model and performing system identiﬁcation. The performance of
+the proposed EPS system was tested on the racetrack, during both sine-sweep maneuvers
+and co-simulated driverless sessions.
+Sine-sweep test results highlighted the actuator capabilities in terms of bandwidth. Also,
+favorable matching was found between the plant model and the prototype. Finally, the
+system performance was assessed in terms of position reference tracking. The investigated
+EPS system was able to satisfy the design requirement by showing favorable tracking metrics.
+As future work, an extensive validation stage on-track could be required to test the pro-
+posed system under several demanding handling maneuvers in different road conditions.
+Author Contributions: Conceptualization, R.M., S.C., I.K., S.F., S.L., N.A. and R.G.; Investigation,
+R.M., S.C. and I.K.; Methodology, R.M., S.C. and I.K.; Supervision, N.A., A.B. and R.G.; Validation,
+R.M., S.C., S.F. and I.K.; Writing—original draft, R.M.; Writing—review & editing, S.C., I.K., S.F., S.L.
+and R.G. All authors have read and agreed to the published version of the manuscript.
+Funding: This research received no external funding.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: Data available on request due to restrictions.
+Acknowledgments: This work was developed in the framework of the activities of the Interdepart-
+mental Center for Automotive Research and Sustainable Mobility (CARS) at Politecnico di Torino
+(www.cars.polito.it, accessed on 16 July 2021).
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. PwC. Available online: https://www.pwc.com/en/industries/automotive/Publications/eascy .html (accessed on 15 January 2021).
+2. Mc Kinsey Center for Future Mobility. Available online: https://www.mckinsey.com/features/mckinsey-center-for-future-
+mobility/overview/autonomous-driving (accessed on 15 January 2021).
+3. SAE J3016—Levels of Driving Automation. Available online: https://www.sae.org/news/2019/01/sae-updatesj301
+6automateddrivinggraphic#:~{}:text=The%20J3016%20standard%20defines%20six,graphic%20first%20deployed%20in%202016
+(accessed on 15 January 2021).
+4. Mehrabi, N.; Azad, N.L.; McPhee, J. Optimal disturbance rejection control design for electric power steering systems. In
+Proceedings of the 2011 50th IEEE Conference on Decision and Control and European Control Conference, Orlando, FL, USA,
+12–15 December 2011; pp. 6584–6589.
+5. Baharom, M.B.; Hussain, K.; Day, A.J. Design of full electric power steering with enhanced performance over that of hydraulic
+power-assisted steering. Proc. Inst. Mech. Eng. Part D J. Automob. Eng. 2013 ,227, 390–399. [CrossRef]
+6. Würges, M. New electrical power steering systems. Encycl. Automot. Eng. 2014 , 1–17. [CrossRef]
+7. Liao, Y.G.; Du, H.I. Modelling and analysis of electric power steering system and its effect on vehicle dynamic behaviour. Int. J.
+Veh. Auton. Syst. 2003 ,1, 153–166. [CrossRef]
+8. Fankem, S.; Müller, S. A new model to compute the desired steering torque for steer-by-wire vehicles and driving simulators. Veh.
+Syst. Dyn. 2014 ,52(Suppl. 1), 251–271. [CrossRef]
+9. Chen, X.; Chen, X. Control-Oriented Model for Electric Power Steering System (No. 2006-01-0938) ; SAE Technical Paper; SAE
+International: Warrendale, PA, USA, 2006.
+10. Groll, M.V .; Mueller, S.; Meister, T.; Tracht, R. Disturbance compensation with a torque controllable steering system. Veh. Syst.
+Dyn. 2006 ,44, 327–338. [CrossRef]
+11. Govender, V .; Khazardi, G.; Weiskircher, T.; Keppler, D.; Müller, S. A PID and state space approach for the position control of an
+electric power steering. In 16 Internationales Stuttgarter Symposium ; Springer: Wiesbaden, Germany, 2016; pp. 755–769.
+12. Carriere, S.; Caux, S.; Fadel, M. Optimal lqi synthesis for speed control of synchronous actuator under load inertia variations.
+IFAC Proc. Vol. 2008 ,41, 5831–5836. [CrossRef]
+
+--- Page 17 ---
+Actuators 2021 ,10, 165 17 of 17
+13. Liao, Y.G.; Du, H.I. Cosimulation of multi-body-based vehicle dynamics and an electric power steering control system. Proc. Inst.
+Mech. Eng. Part K J. Multi-Body Dyn. 2001 ,215, 141–151. [CrossRef]
+14. Falcone, P .; Borrelli, F.; Asgari, J.; Tseng, H.E.; Hrovat, D. Predictive active steering control for autonomous vehicle systems. IEEE
+Trans. Control. Syst. Technol. 2007 ,15, 566–580. [CrossRef]
+15. Park, M.; Lee, S.; Han, W. Development of Steering Control System for Autonomous Vehicle Using Geometry-Based Path Tracking
+Algorithm. Etri J. 2015 ,37, 617–625. [CrossRef]
+16. Govender, V .; Müller, S. Modelling and position control of an electric power steering system. IFAC PapersOnLine 2016 ,49, 312–318.
+[CrossRef]
+17. Zakaria, M.I.; Husain, A.R.; Mohamed, Z.; Shah, M.B.N. Steering control of a steer-by-wire system vehicle with time delay and
+actuator saturation via anti-windup controller. Eng. Appl. Sci. Res. 2019 ,46, 72–78.
+18. Khan, I.; Feraco, S.; Bonﬁtto, A.; Amati, N. A model predictive control strategy for lateral and longitudinal dynamics in
+autonomous driving. In Volume 4: 22nd International Conference on Advanced Vehicle Technologies (AVT), Proceedings of the ASME
+2020 International Design Engineering Technical Conferences and Computers and Information in Engineering Conference, Virtual, Online,
+17–19 August 2020 ; ASME: New York, NY, USA, 2020; p. V004T04A004.
+19. Nguyen, V .G.; Guo, X.; Zhang, C.; Tran, X.K. Parameter Estimation, Robust Controller Design and Performance Analysis for an
+Electric Power Steering System. Algorithms 2019 ,12, 57. [CrossRef]
+20. Naranjo, J.E.; Gonz ález, C.; Garc ía, R.; de Pedro, T. Electric power steering automation for autonomous driving. In Proceedings
+of the International Conference on Computer Aided Systems Theory, Las Palmas de Gran Canaria, Spain, 7–11 February 2005;
+Springer: Berlin/Heidelberg, Germany, 2005; pp. 519–524.
+21. Formula Student 2020 Rulebook. Available online: https://www.formulastudent.de/all/2020/rules/FSRules-2020-V1 (accessed
+on 7 December 2020).
+22. Kabzan, J.; de la Iglesia Valls, M.; Reijgwart, V .; Hendrikx, H.F.C.; Ehmke, C.; Prajapat, M.; Bühler, A.; Gosala, N.; Gupta, M.;
+Sivanesan, R.; et al. Amz driverless: The full autonomous racing system. J. Field Robot. 2020 ,37, 1267–1294. [CrossRef]
+23. Feraco, S.; Luciani, S.; Bonﬁtto, A.; Amati, N.; Tonoli, A. A local trajectory planning and control method for autonomous vehicles
+based on the RRT algorithm. In Proceedings of the 2020 AEIT International Conference of Electrical and Electronic Technologies
+for Automotive (AEIT AUTOMOTIVE), Torino, Italy, 18–20 November 2020; pp. 1–6. [CrossRef]
+24. Maxon Group. Epos 4 Positioning Controller Application Notes ; Edition 2019-11; Maxon Group: Sachseln, Switzerland, 2019.

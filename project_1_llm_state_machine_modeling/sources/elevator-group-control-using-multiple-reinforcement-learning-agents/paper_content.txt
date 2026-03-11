@@ -1,0 +1,690 @@
+--- Page 1 ---
+Machine Learning, 33, 235–262 (1998)
+c°1998 Kluwer Academic Publishers, Boston. Manufactured in The Netherlands.
+Elevator Group Control Using Multiple
+Reinforcement Learning Agents
+ROBERT H. CRITES rcrites@unica-usa.com
+Unica Technologies, Inc., 55 Old Bedford Road, Lincoln, MA 01773
+ANDREW G. BARTO barto@cs.umass.edu
+University of Massachusetts, Department of Computer Science, Amherst, MA 01003
+Editors: Michael Huhns and Gerhard Weiss
+Abstract. Recentalgorithmicandtheoreticaladvancesinreinforcementlearning(RL)haveattractedwidespread
+interest. RL algorithms have appeared that approximate dynamic programming on an incremental basis. Theycan be trained on the basis of real or simulated experiences, focusing their computation on areas of state spacethat are actually visited during control, making them computationally tractable on very large problems. If eachmember of a team of agents employs one of these algorithms, a new collective learning algorithm emerges for
+the team as a whole. In this paper we demonstrate that such collective RL algorithms can be powerful heuristicmethods for addressing large-scale control problems.
+Elevator group control serves as our testbed. It is a difﬁcult domain posing a combination of challenges not
+seen in most multi-agent learning research to date. We use a team of RL agents, each of which is responsiblefor controlling one elevator car. The team receives a global reward signal which appears noisy to each agent dueto the effects of the actions of the other agents, the random nature of the arrivals and the incomplete observationof the state. In spite of these complications, we show results that in simulation surpass the best of the heuristicelevator control algorithms of which we are aware. These results demonstrate the power of multi-agent RL on avery large scale stochastic dynamic optimization problem of practical utility.
+Keywords: Reinforcement learning, multiple agents, teams, elevator group control, discrete event dynamic
+systems
+1. Introduction
+Interest in developing capable learning systems is increasing within the multi-agent and
+AI research communities (e.g., Weiss & Sen, 1996). Learning enables systems to be moreﬂexible and robust, and it makes them better able to handle uncertainty and changingcircumstances. This is especially important in multi-agent systems, where the designers
+of such systems have often faced the extremely difﬁcult task of trying to anticipate allpossible contingencies and interactions among the agents ahead of time. Much the samecould be said concerning the ﬁeld of decentralized control, where policies for the controlstationsaredevelopedfromaglobalvantagepoint,andlearningdoesnotplayarole. Eventhoughexecuting the policies depends only on the information available at each control
+station,thepoliciesare designed inacentralizedway,withaccesstoacompletedescription
+of the problem. Research has focused on what constitutes an optimal policy under agiven information pattern but not on how such policies might be learnedunder the same
+constraints.
+Reinforcementlearning(RL)(Sutton&Barto,1998;Bertsekas&Tsitsiklis,1996)applies
+naturally to the case of autonomous agents, which receive sensations as inputs and take
+
+--- Page 2 ---
+236 R.H. CRITES AND A.G. BARTO
+actions that affect their environments in order to achieve their own goals. RL is based
+on the idea that the tendency to produce an action should be strengthened ( reinforced )i fi t
+producesfavorableresults,andweakenedifitproducesunfavorableresults. Thisframeworkis appealing from a biological point of view, since an animal has built-in preferences butdoesnotalwayshaveateachertotellitexactlywhatactionitshouldtakeineverysituation.
+IfthemembersofagroupofagentseachemployanRLalgorithm,theresultingcollective
+algorithm allows control policies to be learned in a decentralized way. Even in situationswherecentralizedinformationisavailable,itmaybeadvantageoustodevelopcontrolpoli-cies in a decentralized way in order to simplify the search through policy space. Althoughit may be possible to synthesize a system whose goals can be achieved by agents withconﬂicting objectives, this paper focuses on teamsof agents that share identical objectives
+corresponding directly to the goals of the system as a whole.
+Todemonstratethepowerofmulti-agentRL,wefocusonthedifﬁcultproblemofelevator
+group supervisory control. Elevator systems operate in high-dimensional continuous statespacesandincontinuoustimeasdiscreteeventdynamicsystems. Theirstatesarenotfullyobservable, and they are non-stationary due to changing passenger arrival rates. We usea team of RL agents, each of which is responsible for controlling one elevator car. Eachagent uses artiﬁcial neural networks to store its action-value estimates. We compare aparallelarchitecture, in which the agents share the same networks, with a decentralized
+architecture, in which the agents have their own independent networks. In either case, theteamreceivesaglobalrewardsignalthatisnoisyfromtheperspectiveofeachagentdueinpart to the effects of the actions of the other agents. Despite these difﬁculties, our systemoutperforms all of the heuristic elevator control algorithms known to us. We also analyzethe policies learned by the agents, and show that learning is relatively robust even in thefaceofincreasinglyincompletestateinformation. Theseresultssuggestthatapproachestodecentralized control using multi-agent RL have considerable promise.
+Inthefollowingsections,wegivesomeadditionalbackgroundonRL,introducetheeleva-
+tordomain,describeinmoredetailthemulti-agentRLalgorithmandnetworkarchitecturewe used, present and discuss our results, and ﬁnally draw some conclusions. For furtherdetails on all these topics, see Crites (1996).
+2. Reinforcement Learning
+Machine learning researchers have focused primarily on supervised learning, where a
+“teacher” provides the learning system with a set of training examples in the form ofinput-output pairs. Supervised learning algorithms are useful in a wide variety of prob-lemsinvolvingpatternclassiﬁcationandfunctionapproximation. However,therearemanyproblems in which training examples are costly or even impossible to obtain. RL can beuseful in these more difﬁcult problems, where training information comes from a “critic”providingascalarevaluationoftheoutputthatwasselectedratherthanspecifyingthebestoutputoradirectiontochangetheoutput. InRL,onefacesallthedifﬁcultiesofsupervisedlearning combined with the additional difﬁculty of exploration, that is, of determining thebest output for any given input.
+ItisusefultodistinguishbetweentwotypesofRLtasks. Innon-sequentialtasks,agents
+must learn mappings from situations to actions that maximize the expected immediate
+
+--- Page 3 ---
+ELEVATOR GROUP CONTROL 237
+reward. In sequential tasks, agents must learn mappings from situations to actions that
+maximize the expected long-term rewards. Sequential tasks are generally more difﬁcultbecauseanagent’sactionscaninﬂuencethesituationsitmustfaceinthefutureandthustherewardsthatareavailableinthefuture. Inthesetasks,agentsinteractwiththeirenvironmentsoverextendedperiodsoftime,andtheyneedtoevaluatetheirdecisionsonthebasisoftheirlong-term consequences.
+From the perspective of control theory, RL algorithms are ways of ﬁnding approximate
+solutionstostochasticoptimalcontrolproblems. Theagentisacontroller,andtheenviron-mentisasystemtobecontrolled. Theobjectiveistomaximizesomeperformancemeasureovertime. Givenknowledgeofthestatetransitionprobabilitiesandrewardstructureoftheenvironment,theseproblemscanbesolvedinprincipleusingdynamicprogramming(DP)algorithms. However, although DP requires time polynomial in the number of states, inmanyproblemsofinteresttherearesomanystatesthattheamountoftimerequiredmakesit infeasible to obtain an exact solution.
+SomerecentRLalgorithmshavebeendesignedtoperformDPinanincrementalmanner.
+Unlike traditional DP, these algorithms do not require a prioriknowledge of the state
+transitionprobabilitiesandrewardstructureoftheenvironmentandcanbeusedtoimproveperformanceon-linewhiletheagentandenvironmentinteract. Thison-linelearningfocusescomputation onto the areas of state space that are actually visited during control. Thus,whencombinedwithsuitablefunctionapproximationmethods,RLalgorithmscanprovidecomputationally tractable ways to approximate the solutions of very large-scale stochasticoptimalcontrolproblems(Bartoetal.,1995;Sutton&Barto,1998;Bertsekas&Tsitsiklis,1996).
+The same focusing phenomenon can also be achieved with simulated on-line learning.
+Onecanoftenconstructasimulationmodelwithoutexplicitlyobtainingthestatetransitionprobabilitiesandrewardstructureoftheenvironment(Sutton&Barto,1998;Crites&Barto,1996). (For an example of such a simulation model, see Section 3.3.) There are severaladvantages to this use of a simulation model if it is sufﬁciently accurate. It is possibleto generate huge amounts of simulated experience very quickly, potentially acceleratingthe learning process by many orders of magnitude over what would be possible usingactual experience. In addition, one need not be concerned about the performance levelof a simulated system during learning. A successful example of simulated on-line RL isfound in Tesauro’s TD-Gammon system (1992, 1994, 1995), which learned to play strongmaster-level backgammon.
+Researchonmulti-agentRLdatesbackatleasttotheworkoftheRussianmathematician
+Tsetlin(1973)andothersworkingintheﬁeldoflearningautomata(reviewedbyNarendra&Thathachar,1989). Anumberoftheoreticalresultshavebeenobtainedfornon-sequentialRLtasks. Certaintypesoflearningautomataconvergetoanequilibriumpointinzero-sumandnon-zero-sumrepeatedgames. Forteams,anequilibriumpointisalocalmaximum(anelementofthegamematrixthatisthemaximumofbothitsrowanditscolumn). However,in more general non-zero-sum games, equilibrium points often provide poor rewards forallplayers. AgoodexampleofthisisthePrisoners’Dilemma,wheretheonlyequilibriumpoint produces the lowest total reward (Axelrod, 1984).
+Starting in approximately 1993, a number of researchers began to investigate sequential
+RL algorithms in multi-agent contexts. Although much of the work has been illustrated
+
+--- Page 4 ---
+238 R.H. CRITES AND A.G. BARTO
+only in very simple abstract problems, several interesting applications have appeared that
+have pointed to the promise of sequential multi-agent RL. Bradtke (1993) described someinitial experiments using RL for the decentralized control of a ﬂexible beam. The taskis to efﬁciently damp out disturbances of a beam by applying forces at discrete locationsand times. He used 10 independent adaptive controllers distributed along the beam. Eachcontrollerattemptedtominimizeitsownlocalcostsandobservedonlyitsownlocalportionof the state information. Dayan & Hinton (1993) proposed a managerial hierarchy theycalledFeudalRL .Inthisscheme,higher-levelmanagerssettasksforlowerlevelmanagers,
+andrewardthemastheyseeﬁt. Sincetherewardsmaybedifferentatdifferentlevelsofthehierarchy, this is not a team. Furthermore, only a single action selected at the lowest levelactually affects the environment, so in some sense, this is a hierarchical architecture fora single agent. Tan (1993) reported on some simple hunter-prey experiments with multi-agent RL. His focus was on the sharing of sensory information, policies, and experienceamongtheagents. Shoham&Tennenholtz(1993)investigatedthesocialbehaviorthatcanemergefromagentswithsimplelearningrules. Theyfocusedontwosimple n-k-giterative
+games, where nagents meet kat a time (randomly) to play game g. Littman & Boyan
+(1993)describedadistributedRLalgorithmforpacketroutingbasedontheasynchronousBellman-Ford algorithm. Their scheme uses a single Q-function, where each state entryin the Q-function is assigned to a node in the network which is responsible for storingand updating the value of that entry. This differs from most other work on distributed RL,where an entire Q-function, not just a single entry, must be stored at each node. Markey(1994)appliedparallelQ-learningtotheproblemofcontrollingavocaltractmodelwith10degreesoffreedom. Hediscussedtwoarchitecturesequivalenttothedistributedandparallelarchitectures we describe in Section 4.4. Each agent controlled one degree of freedom inthe action space and distinguished Q-values based only on its own action selections.
+In addition to the multi-agent RL research concerned with team problems, a signiﬁcant
+amountofworkhasfocusedonzero-sumgames,whereasingleagentlearnstoplayagainstan opponent. One of the earliest examples of this is Samuel’s (1963) checkers-playingprogram. A more recent example is Tesauro’s TD-Gammon program (1992, 1994, 1995).These types of programs often learn using self-play, and they can generally be viewedas single agents. Littman (1994, 1996) provided a detailed discussion of RL applied tozero-sum games, both in the case where the agents alternate their actions and where theytake them simultaneously. Little work has been done on multi-agent RL in more generalnon-zero-sumgames. Sandholm&Crites(1996)studiedthebehaviorofmulti-agentRLinthecontextoftheiteratedprisoners’dilemma. TheyshowedthatQ-learningagentsareableto learn the optimal strategy against the ﬁxed opponent Tit-for-Tat. They also investigatedthe behavior that results when two Q-learning agents face each other.
+3. Elevator Group Control
+This section introduces the problem of elevator group control, which serves as our testbed
+for multi-agent RL. It is a familiar problem to anyone who has ever used an elevatorsystem,butinspiteofitsconceptualsimplicity,itposessigniﬁcantdifﬁculties. Anoptimalpolicy for elevator group control is not known, so we use existing control algorithms asstandardsforcomparison. Theelevatordomainprovidesanopportunitytocompareparallel
+
+--- Page 5 ---
+ELEVATOR GROUP CONTROL 239
+and distributed control architectures in which each agent controls one elevator car, and to
+monitortheamountofdegradationthatoccursastheagentsfacedecreasinglevelsofstateinformation.
+Shaft 1 Shaft 2 Shaft 3 Shaft 4 Buttons
+++
+++
+updn
+6?
+Figure 1. Elevator system schematic diagram.
+Figure 1 is a schematic diagram of an elevator system (Lewis, 1991). The elevator cars
+arerepresentedasﬁlledboxesinthediagram;‘+’representsa hallcall,orsomeonewanting
+toentera car; ‘¡’ represents a car call, or someone wanting to leavea car. The left side
+of a shaft represents upward moving cars and calls. The right side of a shaft representsdownwardmovingcarsandcalls. Carsthereforemoveinaclockwisedirectionaroundtheshafts.
+Section 3.1 considers the nature of different passenger arrival patterns and their impli-
+cations. Section 3.2 reviews a variety of elevator control strategies from the literature.Section 3.3 describes the particular simulated elevator system that will be the focus in theremainder of this paper.
+3.1. Passenger Arrival Patterns
+Elevator systems are driven by passenger arrivals. Arrival patterns vary during the course
+of the day. In a typical ofﬁce building, the morning rush hour brings a peak level of uptrafﬁc, while a peak in down trafﬁc occurs during the afternoon. Other parts of the day
+
+--- Page 6 ---
+240 R.H. CRITES AND A.G. BARTO
+havetheirowncharacteristicpatterns. Differentarrivalpatternshaveverydifferenteffects,
+and each pattern requires its own analysis. Up-peak and down-peak elevator trafﬁc arenot simply equivalent patterns in opposite directions, as one might initially guess. Down-peak trafﬁc has many arrival ﬂoors and a single destination, while up-peak trafﬁc has asingle arrival ﬂoor and many destinations. This distinction has signiﬁcant implications.For example, in light up trafﬁc, the average passenger waiting times can be kept very lowby keeping idle cars at the lobby where they will be immediately available for arrivingpassengers. In light down trafﬁc, waiting times will be longer since it is not possible tokeep an idle car at every upper ﬂoor in the building, and therefore additional waiting timewill be incurred while cars move to service hall calls. The situation is reversed in heavytrafﬁc. In heavy up trafﬁc, each car may ﬁll up at the lobby with passengers desiring tostop at many different upper ﬂoors. The large number of stops will cause signiﬁcantlylonger round-trip times than in heavy down trafﬁc, where each car may ﬁll up after onlya few stops at upper ﬂoors. For this reason, down-peak handling capacity is much greaterthan up-peak capacity. Siikonen (1993) illustrates these differences in an excellent graphobtained through extensive simulations.
+Since up-peak handling capacity is a limiting factor, elevator systems are designed by
+predictingtheheaviestlikelyup-peakdemandinabuilding,andthendeterminingaconﬁg-urationthatcanaccomodatethatdemand. Ifup-peakcapacityissufﬁcient,thendown-peakcapacity generally will be as well. Up-peak trafﬁc is the easiest type to analyze, since allpassengers enter cars at the lobby, their destination ﬂoors are serviced in ascending order,and empty cars then return to the lobby. The standard capacity calculations (Strakosch,1983; Siikonen, 1993) assume that each car leaves the lobby with Mpassengers (80 to
+100 percent of its capacity) and that the average passenger’s likelihood of selecting eachdestinationﬂoorisknown. Thenprobabilitytheoryisusedtodeterminetheaveragenumberofstopsneededoneachroundtrip. Fromthisonecanestimatetheaverageroundtriptime¿. TheintervalI=
+¿
+Lrepresents the average amount of time between car arrivals to the
+lobby,where Listhenumberofcars. Assumingthatthecarsareevenlyspaced,theaverage
+waiting time is one half the interval. In reality, the average wait is somewhat longer.
+The only control decisions in pure up trafﬁc are to determine when to open and close
+the elevator doors at the lobby. These decisions affect how many passengers will boardan elevator at the lobby. Once the doors have closed, there is really no choice about thenextactions: thecarcallsregisteredbythepassengersmustbeservicedinascendingorderand the empty car must then return to the lobby. Pepyne & Cassandras (1996) show thatthe optimal policy for handling pure up trafﬁc is a threshold-based policy that closes thedoors after an optimal number of passengers have entered the car. The optimal thresholddependsonthetrafﬁcintensity,anditmayalsobeaffectedbythenumberofcarcallsalreadyregisteredandbythestateoftheothercars. Ofcourse,uptrafﬁcisseldomcompletelypure.Some method must be used for assigning any down hall calls.
+More general two-way trafﬁc comes in two varieties. In two-way lobbytrafﬁc, up-
+movingpassengersarriveatthelobbyanddown-movingpassengersdepartfromthelobby.Compared with pure up trafﬁc, the round trip times will be longer, but more passengerswill be served. In two-way interﬂoor trafﬁc, most passengers travel between ﬂoors other
+thanthelobby. Interﬂoortrafﬁcismorecomplexthanlobbytrafﬁcinthatitrequiresalmosttwice as many stops per passenger, further lengthening the round trip times.
+
+--- Page 7 ---
+ELEVATOR GROUP CONTROL 241
+Two-way and down-peak trafﬁc patterns require many more decisions than does pure
+up trafﬁc. After leaving the lobby, a car must decide how high to travel in the buildingbeforeturning,andatwhatﬂoorstomakeadditionalpickups. Becausemoredecisionsarerequiredinawidervarietyofcontexts,morecontrolstrategiesarealsopossibleintwo-wayand down-peak trafﬁc situations. For this reason, a down-peak trafﬁc pattern was chosenas a testbed for our research. Before describing the testbed in detail, we review variouselevator control strategies from the literature.
+3.2. Elevator Control Strategies
+Theoldestrelay-basedautomaticcontrollersusedtheprincipleof collectivecontrol (Strakosch,
+1983;Siikonen,1993),wherecarsalwaysstopatthenearestcallintheirrunningdirection.One drawback of this scheme is that there is no means to avoid the phenomenon calledbunching, where several cars arrive at a ﬂoor at about the same time, making the interval,
+and thus the average waiting time, much longer. Advances in electronics, including theadvent of microprocessors, made possible more sophisticated control policies.
+The approaches to elevator control discussed in the literature generally fall into the fol-
+lowingcategories,oftenfallingintomorethanonecategory. Unfortunatelythedescriptionsof the proprietary algorithms are often rather vague, since they are written for marketingpurposes and are speciﬁcally not intended to be of beneﬁt to competitors. For this reason,it is difﬁcult to ascertain the relative performance levels of many of these algorithms, andthere is no accepted deﬁnition of the current state of the art (Ovaska, 1992).
+3.2.1. Zoning Approaches In a zoning approach (Strakosch, 1983), each car is as-
+signed a zone of the building. It answers hall calls within its zone and parks there when itis idle. The goal of the zoning approach is to keep the cars reasonably well separated andthus keep the interval down. While this approach is quite robust in heavy trafﬁc, it givesupasigniﬁcantamountofﬂexibility. Sakai&Kurosawa(1984)describedaconceptcalledarea control that is related to zoning. If possible, it assigns a hall call to a car that already
+must stop at that ﬂoor due to a car call. Otherwise, a car within an area ﬁof the hall call
+isassignedifpossible. Thearea ﬁisacontrolparameterthataffectsboththeaveragewait
+time and the power consumption.
+3.2.2. Search-Based Approaches Another control strategy is to search through the
+space of possible car assignments, selecting the one that optimizes some criterion such asthe average waiting time. Greedysearch strategies perform immediate call assignment,
+that is, they assign hall calls to cars when they are ﬁrst registered and never reconsiderthose assignments. Non-greedy algorithms postpone their assignments or reconsider themin light of updated information they may receive about additional hall calls or passengerdestinations. Greedy algorithms give up some measure of performance due to their lackof ﬂexibility but also require less computation time. In western countries, an arriving cargenerallysignalswaitingpassengerswhenitbeginstodecelerate(Siikonen,1993),allowingthe use of a non-greedy algorithm. The custom in Japan is to signal the car assignment
+
+--- Page 8 ---
+242 R.H. CRITES AND A.G. BARTO
+immediately upon call registration. This type of signaling requires the use of a greedy
+algorithm.
+Tobitaetal.(1991)describedasysteminwhichcarassignmentoccurswhenahallbutton
+is pressed. The car assigned is the one that minimizes a weighted sum of predicted waittime, travel time, and number of riders. A fuzzy rule-based system picks the coefﬁcientsand estimating functions. Simulations are used to verify their effectiveness.
+Recedinghorizoncontrollersareexamplesofnon-greedysearch-basedapproaches. After
+everyevent,theyperformanexpensivesearchforthebestassignmentofhallcallsassumingno new passenger arrivals. Closed-loop control is achieved by re-calculating a new open-loopplanaftereveryevent. Theweaknessesofthisapproachareitscomputationaldemandsand its lack of consideration of future arrivals. Examples of receding horizon controllersare Finite Intervisit Minimization (FIM) and Empty the System Algorithm (ESA) (Bao etal.,1994). FIMattemptstominimizesquaredwaitingtimes,andESAattemptstominimizethe length of the current busy period.
+3.2.3. Rule-BasedApproaches Insomesense,allcontrolpoliciescouldbeconsidered
+rule-based: IF situation, THEN action. However, here we are more narrowly consideringthe type of production systems commonly used in Artiﬁcial Intelligence. Ujihara & Tsuji(1988)describedasystemthatusesexpert-systemandfuzzy-logictechnologies. Claimingthat experts in group-supervisory control have the experience and knowledge necessary toshortenwaitingtimesundervarioustrafﬁcconditions,theyadmittedthatexpertknowledgeis fragmentary, hard to organize, and difﬁcult to incorporate. They created a rule base bycomparing the decisions made by a conventional algorithm with decisions determined bysimulated annealing. The discrepancies were then analyzed by the experts, whose knowl-edge about solving such problems was used to create fuzzy control rules. The fuzzinesslies in the IF part of the rules. Ujihara & Amano (1994) described the latest changes tothis system. A previous version used a ﬁxed evaluation formula based on the current carpositionsandcalllocations. Amorerecentversionconsidersfuturecarpositionsandprob-ablefuturehallcalls. Forexample,oneruleisIF(thereisahallcallregisteredonanupperﬂoor) AND (there are a large number of cars ascending towards the upper ﬂoors) THEN(assign one of the ascending cars on the basis of estimated time of arrival). Note that thisis an immediate call allocation algorithm, and the consequent of this particular rule aboutassigning cars on the basis of estimated time of arrival bears some similarity to the greedysearch-based algorithms described above.
+3.2.4. OtherHeuristicApproaches TheLongestQueueFirst(LQF)algorithmassigns
+upward-movingcarstothelongestwaitingqueue,andtheHighestUnansweredFloorFirst(HUFF) algorithm assigns upward-moving cars to the highest queue with people waiting(Baoetal.,1994). Bothofthesealgorithmsaredesignedspeciﬁcallyfordown-peaktrafﬁc.They assign downward-moving cars to any unassigned hall calls they encounter. TheDynamic Load Balancing (DLB) algorithm attempts to keep the cars evenly spaced byassigningcontiguousnon-overlappingsectorstoeachcarinawaythatbalancestheirloads(Lewis, 1991). DLB is a non-greedy algorithm because it reassigns sectors after everyevent.
+
+--- Page 9 ---
+ELEVATOR GROUP CONTROL 243
+3.2.5. Adaptive and Learning Approaches Imasaki et al. (1991) described a system
+thatusesafuzzyneuralnetworktopredictpassengerwaitingtimedistributionsforvarioussets of control parameters. Their system adjusts the parameters by evaluating alternativecandidateparameterswiththeneuralnetwork. Theydidnotexplainwhatcontrolalgorithmis actually used, what its parameters are, or how the network is trained.
+AsystemdescribedbyTobitaetal.(1991)andFujinoetal.(1992)usesagreedycontrol
+algorithm that combines multiple objectives such as wait time, travel time, crowding, andpower consumption. The weighting of these objectives is accomplished using parametersthat are tuned on-line. A module called the learning function unit collects trafﬁc statisticsand attempts to classify the current trafﬁc pattern. The tuning function unit generatesparameter sets for the current trafﬁc pattern and tests them using a built-in simulator. Thebest parameters are then used to control the system. Searching the entire parameter spacewouldbeprohibitivelyexpensive,soheuristicsareusedaboutwhichparametersetstotest.
+Levy et al. (1977) described a system that uses dynamic programming (DP) off-line to
+minimizetheexpectedtimeneededforcompletionofthecurrentbusyperiod. Nodiscountfactor is used, since it is assumed that the values are ﬁnite. The trouble with using DPin this way is that the state space is very large, requiring drastic simpliﬁcation. Levy etal. used several methods to keep the size of the state space manageable: they considereda building with only 2 cars and 8 ﬂoors, where the number of buttons that could be onsimultaneouslywasrestricted,thestatesofthebuttonswererestrictedtobinaryvalues(i.e.,elapsed times were discarded), and the cars had unlimited capacity. Construction of thetransition probability matrix is the principle part of the procedure, and it assumes that theintensity of Poisson arrivals at each ﬂoor is known. Value iteration or policy iteration isthen performed to obtain the solution.
+Markonetal.(1994)devisedasystemthattrainsaneuralnetworktoperformimmediate
+call allocation. There are three phases of training. In phase one, while the system is beingcontrolled by an existing controller (the FLEX-8820 Fuzzy/AI Group Control System ofFujitec), supervised learning is used to train the network to predict the hall call servicetimes. This ﬁrst phase of training is used to learn an appropriate internal representation,i.e., weights from the input layer to the hidden layer of the network. At the end of the ﬁrstphase of training, those weights are ﬁxed. In phase two, the output layer of the networkis retrained to emulate the existing controller. In phase three, single weights in the outputlayer of the network are perturbed, and the resulting performance is measured on a trafﬁcsample. The weights are then modiﬁed in the direction of improved performance. Thiscan be viewed as a form of non-sequential RL. The single-stage reward is determined bymeasuring the system’s performance on a trafﬁc sample. The input representation uses 25units for each car, and the output representation uses one unit for each car. Hall calls areallocated to the car corresponding to the output unit with the highest activation. Markonet al. also described a very clever way of incorporating the permutational symmetry of theproblem into the architecture of their network. As they say, “If the states of two cars areinterchanged, the outputs should also be interchanged.” This is done by having as manysets of hidden units as there are cars, and then explicitly linking together the appropriateweights.
+Thissystemwastestedinasimulationwith6carsand15ﬂoors. Ina“typicalbuilding,”
+trainedon900passengersperhour,therewasaverysmallimprovementofapproximately
+
+--- Page 10 ---
+244 R.H. CRITES AND A.G. BARTO
+one second in the average wait time over the existing controller. In a more “atypical”
+building with uniformly distributed origin and destination ﬂoors and 1500 passengers perhour, the improvement in average wait time was almost 4 seconds. One advantage of thissystem is that it can maintain an adequate service level from the beginning since it startswith a pre-existing controller. On the other hand, it is not clear whether this also may trapthe controller in a suboptimal region of policy space. It would be very interesting to usethis centralized, immediate call allocation network architecture as part of a sequential RL
+algorithm.
+3.3. The Elevator Testbed
+Theparticularelevatorsystemwestudyinthispaperisasimulated10-storybuildingwith
+4 elevator cars. The simulator was written by Lewis (1991). Passenger arrivals at eachﬂoor are assumed to be Poisson, with arrival rates that vary during the course of a day.Our simulations use a trafﬁc proﬁle (Bao et al., 1994) that speciﬁes arrival rates for every5-minuteintervalduringatypicalafternoondown-peakrushhour. Table1showsthemeannumberofpassengersarrivingat eachofﬂoors2through10duringeach5-minuteinterval
+who are headed for the lobby. In addition, there is inter-ﬂoor trafﬁc which varies from 0%to 10% of the trafﬁc to the lobby.
+Table 1.The down-peak trafﬁc proﬁle.
+Time 00 05 10 15 20 25 30 35 40 45 50 55
+Rate 1244 1 8 1 2 87 1 8 532
+3.3.1. System Dynamics The system dynamics are approximated by the following
+parameters:
+†Floor time (the time to move one ﬂoor at maximum speed): 1.45 secs.
+†Stop time (the time needed to decelerate, open and close the doors, and accelerate
+again): 7.19 secs.
+†Turn time (the time needed for a stopped car to change direction): 1 sec.
+†Load time (the time for one passenger to enter or exit a car): random variable from a
+20thorder truncated Erlang distribution with a range from 0.6 to 6.0 secs and a mean
+of 1 sec.
+†Car capacity: 20 passengers.
+Thesimulatorisquitedetailedandiscertainlyrealisticenoughforourpurposes. However,
+a few minor deviations from reality should be noted. In the simulator, a car can acceleratetofullspeedordeceleratefromfullspeedinadistanceofonlyonehalfofaﬂoor,whilethedistances would be somewhat longer in a real system. Further, the simulated acceleration
+
+--- Page 11 ---
+ELEVATOR GROUP CONTROL 245
+and deceleration times are always the same, whereas in a real system they vary depending
+onthespeedoftheelevator. Forexample,anexpresscardescendingfromthetenthﬂoorattop speed will take longer to decelerate at the ﬁrst ﬂoor than a car that is descending fromthe second ﬂoor. The simulator also allows the cars to commit to stopping at a ﬂoor whenthey are only one half of a ﬂoor away. Although this is not realistic for cars moving at topspeed, the concept of making stopping decisions at suitable positions is valid.
+Although the elevator cars in this system are homogeneous, the learning techniques
+described in this paper can also be used in more general situations, e.g., where there areseveral express cars or cars that only service some subset of the ﬂoors.
+3.3.2. StateSpace Thestatespaceiscontinuousbecauseitincludestheelapsedtimes
+since any hall calls were registered, which are real-valued. Even if these real values areapproximatedasbinaryvalues,thesizeofthestatespaceisstillimmense. Itscomponentsinclude 2
+18possiblecombinationsofthe18hallcallbuttons(upanddownbuttonsateach
+landing except the top and bottom), 240possible combinations of the 40 car buttons, and
+184possible combinations of the positions and directions of the cars (rounding off to the
+nearest ﬂoor). Other parts of the state are not fully observable, for example, the exactnumber of passengers waiting at each ﬂoor, their exact arrival times, and their desireddestinations. Ignoring everything except the conﬁguration of the hall and car call buttonsandtheapproximatepositionanddirectionofthecars,weobtainanextremelyconservativeestimate of the size of a discrete approximation to the continuous state space:
+2
+18¢240¢184…1022states.
+3.3.3. Control Actions Each car has a small set of primitive actions. If it is stopped
+at a ﬂoor, it must either “move up” or “move down”. If it is in motion between ﬂoors,it must either “stop at the next ﬂoor” or “continue past the next ﬂoor”. Due to passengerexpectations, there are two constraints on these actions: a car cannot pass a ﬂoor if apassengerwantstogetoffthereandcannotturnuntilithasservicedallthecarbuttonsinitspresent direction. We added three additional heuristic constraints in an attempt to build insomeprimitivepriorknowledge: acarcannotstopataﬂoorunlesssomeonewantstogetonoroffthere,itcannotstoptopickuppassengersataﬂoorifanothercarisalreadystoppedthere,andgivenachoicebetweenmovingupanddown,itshouldprefertomoveup(sincethedown-peaktrafﬁctendstopushthecarstowardthebottomofthebuilding). Becauseofthis last constraint, the only real choices left to each car are the stop and continue actions.Theactionsoftheelevatorcarsareexecutedasynchronouslysincetheymaytakedifferentamounts of time to complete.
+3.3.4. PerformanceCriteria Theperformanceobjectivesofanelevatorsystemcanbe
+deﬁnedinmanyways. Onepossibleobjectiveistominimizetheaverage waittime,which
+is the time between a passenger’s arrival and entry into a car. Another possible objectiveis to minimize the average systemtime, which is the sum of the wait time and the travel
+time. Athirdpossibleobjectiveistominimizethepercentageofpassengersthatwaitlongerthan some dissatisfaction threshold (usually 60 seconds). Another common objective is to
+
+--- Page 12 ---
+246 R.H. CRITES AND A.G. BARTO
+minimize the average squaredwait time. We chose this latter objective since it tends to
+keep the wait times low while also encouraging fair service. For example, wait times of 2and8secondshavethesameaverage(5seconds)aswaittimesof4and6seconds. Buttheaveragesquaredwait times are different (34 for 2 and 8 versus 26 for 4 and 6).
+4. The Algorithm and Network Architecture
+This section describes the multi-agent RL algorithm that we applied to elevator group
+control. In our scheme, each agent is responsible for controlling one elevator car. Therewardstructureofeachagent’senvironmentisdeﬁnedintermsofthewaitingtimesofthepassengers, and it is more natural to refer to costs rather than rewards because we wish tominimize the average wait time. Each agent uses a modiﬁcation of Q-learning (Watkins,1989)fordiscrete-eventsystems(Bradtke&Duff,1995). Together,theyemployacollectiveform of RL. We begin by describing the modiﬁcations needed to extend Q-learning to adiscrete-event framework, and then derive a method for determining appropriate rewardsignalsinthefaceofuncertaintyaboutexactpassengerarrivaltimes. Thenwedescribethealgorithm,thefeedforwardnetworksusedtostoretheQ-values,andthedistinctionbetweenparallel and distributed versions of the algorithm.
+4.1. Discrete-Event Reinforcement Learning
+Elevator systems can be modeled as discrete event systems (Cassandras, 1993), where
+signiﬁcant events (such as passenger arrivals) occur at discrete times, but the amount oftimebetweeneventsisareal-valuedvariable. Insuchsystems,theconstantdiscountfactor°usedinmostdiscrete-timeRLalgorithmsisinadequate. Thisproblemcanbeapproached
+usingavariablediscountfactorthatdependsontheamountoftimebetweenevents. Inthiscase, the cost-to-go is deﬁned as an integral rather than as an inﬁnite sum, as follows:
+1X
+t=0°tctbecomesZ1
+0e¡ﬂ¿c¿d¿;
+wherectistheimmediatecostatdiscretetime t,c¿istheinstantaneouscostatcontinuous
+time¿(thesumofthesquaredwaittimesofallcurrentlywaitingpassengers),and ﬂcontrols
+the rate of exponential decay. In the experiments described in this paper ﬂ=0:01. Since
+the wait times are measured in seconds, we scale down the instantaneous costs c¿by a
+factor of 106to keep the cost-to-go values from becoming exceedingly large.
+Becauseelevatorsystemeventsoccurrandomlyincontinuoustime,thebranchingfactoris
+effectivelyinﬁnite,whichcomplicatestheuseofalgorithmsthatrequireexplicitlookahead.Therefore,weemployadiscreteeventversionoftheQ-learningalgorithmsinceitconsidersonlyeventsencounteredinactualsystemtrajectoriesanddoesnotrequireexplicitknowledgeofthestatetransitionprobabilities. Bradtke&Duff(1995)extendedtheQ-learningupdaterule of Watkins (1989) to the following discrete event form:
+¢^Q(x;a)=ﬁ¢[Z
+ty
+txe¡ﬂ(¿¡tx)c¿d¿+e¡ﬂ(ty¡tx)min
+b^Q(y;b)¡^Q(x;a)];
+
+--- Page 13 ---
+ELEVATOR GROUP CONTROL 247
+where action ais taken from state xat timetx, the next decision is required from state y
+at timety,ﬁis the step-size parameter, and c¿andﬂare deﬁned as above. The quantity
+e¡ﬂ(ty¡tx)acts as a variable discount factor that depends on the amount of time between
+events.
+Bradtke & Duff (1995) considered the case in which c¿is constant between events. We
+extend their formulation to the case in which c¿is quadratic, since the goal is to minimize
+squared wait times. The integral in the Q-learning update rule then takes the form:
+Zty
+txX
+pe¡ﬂ(¿¡tx)(¿¡tx+wp)2d¿;
+wherewpis the amount of time each passenger pwaiting at time tyhas already waited at
+timetx. (Specialcareisneededtohandleanypassengersthatbeginorendwaitingbetween
+txandty. See Section 4.2.1.)
+This integral can be solved by parts to yield:
+X
+pe¡ﬂwp[2
+ﬂ3+2wp
+ﬂ2+w2
+p
+ﬂ]¡e¡ﬂ(wp+ty¡tx)[2
+ﬂ3+2(wp+ty¡tx)
+ﬂ2+(wp+ty¡tx)2
+ﬂ]:
+A difﬁculty arises in using this formula since it requires knowledge of the waiting times
+of all waiting passengers. However, only the waiting times of passengers who press hallcall buttons are known in a real elevator system. The number of subsequent passengers toarrive and their exact waiting times are not available. We examine two ways of dealingwith this problem, which we call omniscient andon-linereinforcement schemes.
+Since the simulator has access to the waiting times of all passengers, it could use this
+information to produce the necessary reinforcement signals. We call this the omniscient
+reinforcement scheme, since it requires information that is not available in a real system.Notethatitisnotthecontrollerthatreceivesthisextrainformation,however,butratherthecriticthatisevaluatingthecontroller. Forthisreason,eveniftheomniscientreinforcement
+scheme is used during the design phase of an elevator controller on a simulated system,theresultingtrainedcontrollercanbeinstalledinarealsystemwithoutrequiringanyextraknowledge.
+The other possibility is to let the system learn using only information that would be
+availabletoarealsystemon-line. Suchan on-linereinforcementschemeassumesonlythat
+thewaitingtimeoftheﬁrstpassengerineachqueueisknown(whichistheelapsedbuttontime). IfthePoissonarrivalrate ‚foreachqueueisknownorcanbeestimated,theGamma
+distribution can be used to estimate the arrival times of subsequent passengers. The timeuntil then
+thsubsequent arrival follows the Gamma distribution ¡(n;1
+‚). For each queue,
+subsequent arrivals will generate the following expected costs during the ﬁrst bseconds
+after the hall button has been pressed:
+1X
+n=1Zb
+0(probntharrival occurs at time ¿)¢(cost given arrival at time ¿)d¿
+=1X
+n=1Zb
+0‚n¿n¡1e¡‚¿
+(n¡1)!Zb¡¿
+0w2e¡ﬂ(w+¿)dwd¿ =Zb
+0Zb¡¿
+0‚w2e¡ﬂ(w+¿)dwd¿:
+
+--- Page 14 ---
+248 R.H. CRITES AND A.G. BARTO
+This integral can also be solved by parts to yield expected costs. A general solution is
+provided in Section 4.2.2. As described in Section 5.4, using the on-line reinforcementscheme produces results that are almost as good as those obtained with the omniscientreinforcement scheme.
+4.2. Collective Discrete-Event Q-Learning
+There are two main types of elevator system events. Events of the ﬁrst type are important
+in calculating waiting times, and therefore are important in calculating the reinforcementsignalusedbytheRLalgorithm. Theseincludepassengerarrivalsandtransfersinandoutofcarsintheomniscientcase,orhallbuttoneventsintheon-linecase. Thesecondtypearecar arrival events, which are potential decision points for the RL agents controlling eachcar. A car in motion between ﬂoors generates a car arrival event when it reaches the pointat which it must decide whether to stop at, or continue past, the next ﬂoor. In some cases,cars are constrained to take a particular action, for example, stopping at the next ﬂoor ifa passenger wants to get off there. An agent faces a decision point only when it has anunconstrained choice of actions.
+4.2.1. CalculatingOmniscientReinforcements Intheomniscientreinforcementscheme,
+accumulatedcostisupdatedincrementallyaftereverypassengerarrivalevent(whenapas-senger arrives at a queue), passenger transfer event (when a passenger gets on or off of acar),andcararrivalevent(whenacontroldecisionismade). Theseincrementalupdatesareanaturalwayofdealingwiththediscontinuitiesincostthatarisewhenpassengersbeginorendwaitingbetweenacar’sdecisions,e.g.,whenanothercarpicksupwaitingpassengers.The amount of cost accumulated between events is the same for all the cars since theysharethesameobjectivefunction,buttheamountofcosteachcaraccumulatesbetweenitsdecisions is different since the cars make their decisions asynchronously. Therefore, each
+carihasanassociatedstoragelocation, R[i],wherethetotaldiscountedcostithasincurred
+since its last decision (at time d[i]) is accumulated.
+At the time of each event, the following computations are performed: Let t
+0be the time
+ofthelasteventand t1bethetimeofthecurrentevent. Foreachpassenger pthathasbeen
+waitingbetween t0andt1,letw0(p)andw1(p)bethetotaltimethatpassenger phaswaited
+att0andt1respectively. Then for each car i,
+¢R[i]=X
+pe¡ﬂ(t0¡d[i])(2
+ﬂ3+2w0(p)
+ﬂ2+w2
+0(p)
+ﬂ)¡e¡ﬂ(t1¡d[i])(2
+ﬂ3+2w1(p)
+ﬂ2+w2
+1(p)
+ﬂ):
+4.2.2. Calculating On-line Reinforcements In the on-line reinforcement scheme, ac-
+cumulatedcostisupdatedincrementallyaftereveryhallbuttonevent(signalingthearrivalof the ﬁrst waiting passenger at a queue or the arrival of a car to pick up any waiting pas-sengers at a queue) and car arrival event (when a control decision is made). We assumethatapassengerceasestowaitwhenacararrivestoservicethepassenger’squeue,sinceitisnotpossibletoknowexactlywheneachpassengerboardsacar. ThePoissonarrivalrate
+
+--- Page 15 ---
+ELEVATOR GROUP CONTROL 249
+‚for each queue is estimated as the reciprocal of the last inter-button time for that queue,
+i.e.,theamountoftimefromthelastserviceuntilthebuttonwaspushedagain. However,aceilingof ^‚•0:04passengerspersecondisplacedontheestimatedarrivalratestoprevent
+any very small inter-button times from creating huge penalties that might destabilize thecost-to-go estimates.
+At the time of each event, the following computations are performed: Let t
+0be the time
+ofthelasteventand t1bethetimeofthecurrentevent. Foreachhallcallbutton bthatwas
+active between t0andt1, letw0(b)andw1(b)be the elapsed time of button batt0andt1
+respectively. Then for each car i,
+¢R[i]=e¡ﬂ(t0¡d[i])X
+bf2^‚b(1¡e¡ﬂ(t1¡t0))
+ﬂ4+
+(2
+ﬂ3+2w0(b)
+ﬂ2+w2
+0(b)
+ﬂ)¡e¡ﬂ(t1¡t0)(2
+ﬂ3+2w1(b)
+ﬂ2+w2
+1(b)
+ﬂ)+
+^‚b[(2w0(b)
+ﬂ3+w2
+0(b)
+ﬂ2+w3
+0(b)
+3ﬂ)¡e¡ﬂ(t1¡t0)(2w1(b)
+ﬂ3+w2
+1(b)
+ﬂ2+w3
+1(b)
+3ﬂ)]g:
+4.2.3. Making Decisions and Updating Q-Values A car moving between ﬂoors gen-
+eratesacararrivaleventwhenitreachesthepointatwhichitmustdecidewhethertostopatthenextﬂoorortocontinuepastthenextﬂoor. Insomecases,carsareconstrainedtotakea particular action, for example, stopping at the next ﬂoor if a passenger wants to get offthere. Anagentfacesadecisionpointonlywhenithasanunconstrainedchoiceofactions.ThealgorithmusedbyeachagentformakingdecisionsandupdatingitsQ-valueestimatesis as follows:
+1. At time t
+x, observing state x, cariarrives at a decision point. It selects an action a
+using the Boltzmann distribution over its Q-value estimates:
+Pr(stop)=eQ(x;cont )=T
+eQ(x;stop )=T+eQ(x;cont )=T;
+whereTis a positive “temperature” parameter that is “annealed” (decreased) during
+learning. Thevalueof Tcontrolstheamountofrandomnessintheselectionofactions.
+At the beginning of learning, when the Q-value estimates are very inaccurate, highvalues ofTare used, which give nearly equal probabilities to each action. Later in
+learning, when the Q-value estimates are more accurate, lower values of Tare used,
+which give higher probabilities to actions that are thought to be superior, while stillallowing some exploration to gather more information about the other actions. Asdiscussed in Section 5.3, choosing a slow enough annealing schedule is particularlyimportant in multi-agent settings.
+2. Let the next decision point for car ibe at timet
+yin statey. Afterallcars (including
+cari) have updated their R[¢]values as described above, car iadjusts its estimate of
+Q(x;a)toward the following target value:
+
+--- Page 16 ---
+250 R.H. CRITES AND A.G. BARTO
+R[i]+e¡ﬂ(ty¡tx)min
+fstop;contg^Q(y;¢):
+Carithen resets its cost accumulator R[i]to zero.
+3. Letxˆyandtxˆty. Go to step 1.
+4.3. The Networks Used to Store the Q-Values
+Using lookup tables to store the Q-values is ruled out for such a large system. Instead,
+weusedfeedforwardneuralnetworksandtheerrorbackpropagationalgorithm(Rumelhartet al., 1986). The networks receive some of the state information as input, and produceQ-value estimates as output. The Q-value estimates can be written as ^Q(x;a;µ ), whereµ
+is a vector of the parameters or weights of the networks. The weight update equation is:
+¢µ=ﬁ[R[i]+e
+¡ﬂ(ty¡tx)min
+fstop;contg^Q(y;¢;µ)¡^Q(x;a;µ )]5µ^Q(x;a;µ );
+whereﬁis a positive step-size parameter, and the gradient 5µ^Q(x;a;µ )is the vector of
+partial derivatives of ^Q(x;a;µ )with respect to each component of µ.
+Atthestartoflearning,theweightsofeachnetworkareinitializedtobeuniformrandom
+numbers between¡1and+1. Some experiments in this paper use separate single-output
+networksforeachaction-valueestimate,whileothersuseonenetworkwithmultipleoutputunits, one for each action. Our basic network architecture for pure down trafﬁc uses 47input units, 20 hidden sigmoid units, and 1 or 2 linear output units. The input units are asfollows:
+†18 units: Two units encode information about each of the nine down hall buttons. A
+real-valued unit encodes the elapsed time if the button has been pushed, and a binaryunit is on ( =1) if the button has not been pushed.
+†16 units: Each of these units represents a possible location and direction for the car
+whose decision is required. Exactly one of these units is on at any given time. Notethat each car has a different egocentric view of the state of the system.
+†10 units: These units each represent one of the 10 ﬂoors where the other cars may
+be located. Each car has a “footprint” that depends on its direction and speed. Forexample, a stopped car causes activation only of the unit corresponding to its currentﬂoor,butamovingcarcausesactivationofseveralunitscorrespondingtotheﬂoorsitisapproaching,withtheunitrepresentingtheclosestﬂoorshowingthehighestactivation.Activations caused by the various cars are additive. No information is provided aboutwhich one of the other cars is at a particular location.
+†1unit: Thisunitisonifthecarwhosedecisionisrequiredisatthehighestﬂoorwitha
+waiting passenger.
+
+--- Page 17 ---
+ELEVATOR GROUP CONTROL 251
+†1 unit: This unit is on if the car whose decision is required is at the ﬂoor with the
+passenger that has been waiting for the longest amount of time.
+†1 unit: The bias unit is always on.
+In Section 5, we introduce other representations, including some with more restricted
+state information.
+4.4. Parallel and Decentralized Implementations
+EachelevatorcariscontrolledbyaseparateQ-learningagent. Weexperimentedwithboth
+parallel and decentralized implementations. In parallel implementations, the agents use acentral set of shared networks, allowing them to learn from each other’s experiences, butforcingthemtolearnidenticalpolicies. Intotallydecentralizedimplementations,theagentshave their own networks, allowing them to specialize their control policies. In either case,none of the agents is given explicit access to the actions of the other agents. Cooperationhas to be learned indirectly via the global reinforcement signal. Each agent faces addedstochasticity and non-stationarity because its environment contains other learning agents.
+5. Results and Analysis
+5.1. Basic Results Versus Other AlgorithmsSince an optimal policy for the elevator group control problem is unknown, we compared
+our algorithm with other heuristic algorithms, including the best of which we were aware.The algorithms were: SECTOR, a sector-based algorithm similar to what is used in manyactualelevatorsystems;DLB,DynamicLoadBalancing,attemptstoequalizetheloadofallcars;HUFF,HighestUnansweredFloorFirst,givesprioritytothehighestﬂoorwithpeoplewaiting; LQF, Longest Queue First, gives priority to the queue with the person who hasbeenwaitingforthelongestamountoftime;FIM,FiniteIntervisitMinimization,arecedinghorizoncontrollerthatsearchesthespaceofadmissiblecarassignmentstominimizealoadfunction; ESA, Empty the System Algorithm, a receding horizon controller that searchesforthefastestwayto“emptythesystem”assumingnonewpassengerarrivals. FIMisverycomputationally intensive, and would be difﬁcult to implement in real time in its presentform. ESA uses queue length information that would not be available in a real elevatorsystem. ESA/nqisaversionofESAthatusesarrivalrateinformationtoestimatethequeuelengths. For more details, see Bao et al. (1994). RLp and RLd denote the RL controllers,parallelanddecentralized. TheRLcontrollerseachlearnedover60,000hoursofsimulatedelevator time, which took four days on a 100 MIPS workstation.
+Theresultsforallthealgorithmswereaveragedover30hoursofsimulatedelevatortime
+toensuretheirstatisticalsigniﬁcance. TheaveragewaitingtimeslistedbelowforthetrainedRL algorithms are correct to within §0:13at a 95% conﬁdence level, the average squared
+waitingtimesarecorrecttowithin §5:3,andtheaveragesystemtimesarecorrecttowithin
+§0:27. Table2showstheresultsforthetrafﬁcproﬁlewithdowntrafﬁconly. Table3shows
+the results for the down-peak trafﬁc proﬁle with up and down trafﬁc, including an average
+
+--- Page 18 ---
+252 R.H. CRITES AND A.G. BARTO
+of2uppassengersperminuteatthelobby. Thealgorithmlearnedduringdown-onlytrafﬁc,
+yet it generalized well when up trafﬁc was added and upward moving cars were forced tostop for any upward hall calls. Table 4 shows the results for the down-peak trafﬁc proﬁlewith up and down trafﬁc, including an average of 4 up passengers per minute at the lobby.Thistimetherewastwiceasmuchuptrafﬁc,andtheRLagentsgeneralizedextremelywellto this new situation.
+One can see that both the RL systems achieved very good performance, most notably
+as measured by system time (the sum of the wait and travel time), a measure that was notdirectly being minimized. Surprisingly, the decentralized RL system was able to achieveas good a level of performance as the parallel RL system.
+Table 2.Results for down-peak proﬁle with down trafﬁc only.
+Algorithm AvgWait SquaredWait SystemTime Percent >60 secs
+SECTOR 21.4 674 47.7 1.12
+DLB 19.4 658 53.2 2.74
+BASIC HUFF 19.9 580 47.2 0.76
+LQF 19.1 534 46.6 0.89
+HUFF 16.8 396 48.6 0.16
+FIM 16.0 359 47.9 0.11
+ESA/nq 15.8 358 47.7 0.12
+ESA 15.1 338 47.1 0.25
+RLp 14.8 320 41.8 0.09RLd 14.7 313 41.7 0.07
+Table 3.Results for down-peak proﬁle with up and down trafﬁc.
+Algorithm AvgWait SquaredWait SystemTime Percent >60 secs
+SECTOR 27.3 1252 54.8 9.24
+DLB 21.7 826 54.4 4.74
+BASIC HUFF 22.0 756 51.1 3.46
+LQF 21.9 732 50.7 2.87
+HUFF 19.6 608 50.5 1.99
+ESA 18.0 524 50.0 1.56
+FIM 17.9 476 48.9 0.50
+RLp 16.9 476 42.7 1.53RLd 16.9 468 42.7 1.40
+5.2. Analysis of Decentralized Results
+ThesuccessofthedecentralizedRLalgorithmsuggestsseveralquestions: Howsimilarare
+the learned policies of the agents to one another and to the policy learned by the parallelalgorithm? Can the results be improved by using a voting scheme? What happens if oneagent’s policy is used to control all of the cars? This section addresses these questions.
+
+--- Page 19 ---
+ELEVATOR GROUP CONTROL 253
+Table 4.Results for down-peak proﬁle with twice as much up trafﬁc.
+Algorithm AvgWait SquaredWait SystemTime Percent >60 secs
+SECTOR 30.3 1643 59.5 13.50
+HUFF 22.8 884 55.3 5.10
+DLB 22.6 880 55.8 5.18
+LQF 23.5 877 53.5 4.92
+BASIC HUFF 23.2 875 54.7 4.94
+FIM 20.8 685 53.4 3.10
+ESA 20.1 667 52.3 3.12
+RLd 18.8 593 45.4 2.40RLp 18.6 585 45.7 2.49
+ThesimulatorwasmodiﬁedtocomparetheactionselectionsofthefourdecentralizedQ-
+networkagentsaswellastheparallelQ-networkoneverydecisionbyeverycar. Duringonehourofsimulatedelevatortime,therewereatotalof573decisionsrequired. Thefouragentswereunanimouson505decisions(88percent),theysplit3to1on47decisions(8percent),andtheysplitevenlyon21decisions(4percent). Theparallelnetworkagreedwith493ofthe505unanimousdecisions(98percent). Forsomereason,theparallelnetworktendedtofavor the STOP action more than the decentralized networks, although this apparently hadlittle impact on overall performance. The complete results are listed in Table 5.
+Table 5.Amount of agreement between decentralized agents.
+Agents Saying Agents Saying Number of Parallel Parallel
+STOP CONTINUE Instances Says STOP Says CONT
+4 0 389 386 33 1 29 27 22 2 21 17 41 3 18 11 70 4 116 9 107
+While these results show considerable agreement, there were some situations in which
+the agents disagreed. In the next experiment the agents voted on which actions should beselected for all of the cars. We examined three ways of resolving voting ties: in favor ofSTOP(RLs),infavorofCONTINUE(RLc),orrandomly(RLr). Table6showstheresultsofthisvotingschemecomparedtotheoriginaldecentralizedalgorithm(RLd). Theresultswere averaged over 30 hours of simulated elevator time on pure down trafﬁc.
+These results show no signiﬁcant improvement from voting. In the situations where the
+agents were evenly split, breaking the ties randomly produced results that were almostidentical to those of the original decentralized algorithm. This suggests that the agentsgenerally agree on the most important decisions, and disagree only on decisions of littleconsequence, i.e., where the Q-values are very similar for the different action choices.
+Inthenextexperimenttheagentforasinglecarselectedactionsforallthecars. RL1used
+the agent for car 1 to control all the cars, RL2 used the agent for car 2, and so on. Table 7
+
+--- Page 20 ---
+254 R.H. CRITES AND A.G. BARTO
+Table 6.Comparison with several voting schemes.
+Algorithm AvgWait SquaredWait SystemTime Percent >60 secs
+RLc 15.0 325 41.7 0.09
+RLs 14.9 322 41.7 0.10
+RLr 14.8 314 41.7 0.12
+RLd 14.7 313 41.7 0.07
+comparesthesecontrollerstotheoriginaldecentralizedalgorithm(RLd). Theresultswere
+averaged over 30 hours of simulated elevator time on pure down trafﬁc.
+Table 7.Letting a single agent control all four cars.
+Algorithm AvgWait SquaredWait SystemTime Percent >60 secs
+RL1 14.7 315 41.6 0.15
+RL2 15.0 324 41.9 0.10RL3 15.0 333 41.9 0.26RL4 15.0 324 41.8 0.15
+RLd 14.7 313 41.7 0.07
+Whileagent1outperformedtheotheragents,alloftheagentsperformedwellrelativeto
+thenon-RLcontrollersdiscussedabove. Insummary,itappearsthatallthedecentralizedandparallelagentslearnedverysimilarpolicies. Thesimilarityofthelearnedpoliciesmayhavebeencausedinpartbythesymmetryoftheelevatorsystemandtheinputrepresentationweselected,whichdidnotdistinguishamongthecars. Forfuturework,itwouldbeinterestingtoseewhetheragentswithinputrepresentationsthat diddistinguishamongthecarswould
+still arrive at similar policies.
+5.3. Annealing Schedules
+One of the most important factors in the performance of the algorithms is the annealing
+schedule used to control the amount of exploration performed by each agent. The slowerthe annealing process, the better the ﬁnal result. This is illustrated in Table 8 and Figure2, which show the results of one learning run with each of a number of annealing rates.Thetemperature Twasannealedaccordingtotheschedule T=2:0⁄(Factor )
+h,whereh
+denotesthenumberofsimulatedhoursoflearningcompleted. Onceagain,theresultsweremeasuredover30hoursofsimulatedelevatortime. Althoughtheyaresomewhatnoisydueto not being averaged over multiple learning runs, the trend is still quite clear.
+Each of the schedules that we tested shared the same starting and ending temperatures.
+Although annealing can be ended at any time, if the amount of time available for learningis known in advance, one should select an annealing schedule that covers a full range oftemperatures.
+While gradual annealing is important in single-agent RL, it is even more important in
+multi-agent RL. The need for an agent to explore now must be balanced with the need
+
+--- Page 21 ---
+ELEVATOR GROUP CONTROL 255
+Table 8.The effect of varying the annealing rate.
+Factor Hours AvgWait SquaredWait SystemTime Pct >60 secs
+0.992 950 19.3 581 44.7 1.69
+0.996 1875 17.6 487 43.2 1.170.998 3750 15.8 376 42.0 0.280.999 7500 15.3 353 41.8 0.300.9995 15000 15.7 361 42.4 0.170.99975 30000 15.1 335 41.9 0.120.999875 60000 14.7 313 41.7 0.07
+300350400450500550600
+0 10000 20000 30000 40000 50000 60000 Final average squared wait
+Hours of training until freezing
+Figure 2. The effect of varying the annealing rate.
+for the other agents to learn in a stationary environment. At the beginning of the learning
+process,theagentsareallextremelyinept. Withgradualannealingtheyareallabletoraisetheir performance levels in parallel. Tesauro (1992, 1994, 1995) notes a slightly differentbut related phenomenon in the context of zero-sum games, where learning with self-playallowsanagenttolearnwithawell-matchedopponentduringeachstageofitsdevelopment.
+5.4. Omniscient Versus On-line Reinforcement Schemes
+Thissectionexaminestherelativeperformanceoftheomniscientandon-linereinforcement
+schemes described in Section 4.1, given the same network structure, step-size parameter,and annealing schedule. As shown in Table 9, the omniscient reinforcement scheme ledto slightly better performance than did the on-line reinforcement scheme. This should be
+
+--- Page 22 ---
+256 R.H. CRITES AND A.G. BARTO
+of little concern regarding the application of RL to a real elevator system since one would
+want to let the initial learning take place during simulation in any case, not only becauseof the huge amount of experience needed, but also because performance would be poorduringtheearlystagesoflearning. Forapplicationtoarealelevatorsystem,initiallearningcould occur from simulated experience, and the networks could be ﬁne-tuned using actualexperience.
+Table 9.Omniscient versus on-line reinforcements.
+AvgWait SquaredWait SystemTime Pct >60 secs
+Omniscient 15.2 332 42.1 0.07
+On-line 15.3 342 41.6 0.16
+5.5. Levels of Incomplete State Information
+If parallel or decentralized RL were to be implemented in a real elevator system, there
+would be no problem providing whatever state information was available to all of theagents. However,inatrulydecentralizedcontrolsituation,thismightnotbepossible. Hereweexaminehowperformancedegradesastheamountofstateinformationreceivedbytheagents decreases. We varied the amount of information available to the agents along twodimensions: information about the hall call buttons; and information about the location,direction, and status of the other cars.
+We experimented with four input representations for the hall call buttons: 1) REAL,
+consisting of 18 input units, where two units encode information about each of the ninedown hall buttons (the representation described in Section 4.3 used to obtain the resultsreported above); 2) BINARY, consisting of 9 binary input units corresponding to the ninedown hall buttons; 3) QUANTITY, consisting of two input units measuring the number ofhall calls above and below the current decision-making car, and 4) NONE, with no inputunits conveying information about the hall buttons.
+Weexperimentedwiththreeinputrepresentationsfortheconﬁgurationoftheothercars:
+1) FOOTPRINTS, consisting of 10 input units, where each unit represents one of the 10ﬂoors where the other cars may be located (the representation described in Section 4.3used to obtain the results reported above); 2) QUANTITY, consisting of 4 input units thatrepresentthenumberofupwardanddownwardmovingcarsaboveandbelowthedecision-making car; and 3) NONE, consisting of no input units conveying information about theconﬁguration of the other cars.
+Allofthenetworksalsopossessedabiasunitthatwasalwaysactivated,20hiddenunits,
+and2outputunits(fortheSTOPandCONTINUEactions). AllusedthedecentralizedRLalgorithm,learnedover12000hoursofsimulatedelevatortimeusingthedown-peakproﬁleand omniscient reinforcement scheme. The temperature Twas annealed according to the
+scheduleT=2:0⁄(:9995)
+h, wherehdenotesthe numberof simulatedhoursof learning.
+The step-size parameter was decreased according to the schedule ﬁ=0:01⁄(:99975)h.
+The results shown in Table 10 are measured in terms of the average squared passenger
+waiting times over 30 hours of simulated elevator time. They should be considered to be
+
+--- Page 23 ---
+ELEVATOR GROUP CONTROL 257
+fairlynoisybecausetheywerenotaveragedovermultiplelearningruns. Nevertheless,they
+show some interesting trends.
+Table 10. Average squared wait times with various levels of incomplete state information.
+Hall Location of Other Cars
+Buttons
+Footprints Quantity None
+Real 370 428 474
+Binary 471 409 553
+Quantity 449 390 530
+None 1161 778 827
+Clearly, information about the hall calls was more important than information about the
+conﬁgurationoftheothercars. Infact,performancewasstillremarkablygoodevenwithoutanyinformationabouttheothercars. (Technicallyspeaking,someinformationwasalwaysavailable about the other cars because of the constraint that prevents a car from stoppingto pick up passengers at a ﬂoor where another car has already stopped. This constraintprobably helped performance considerably.)
+When the hall call information was completely missing, the network weights had an
+increasedtendencytobecomeunstableorgrowwithoutboundandsothestep-sizeparameterhad to be lowered in some cases. For a further discussion of network instability, seeSection 5.7.
+The way that information was presented was important. For example, being supplied
+with the number of hall calls above and below the decision-making car was more usefulto the networks than the potentially more informative binary button information. It alsoappears that information along one dimension is helpful in utilizing information along theotherdimension. Forexample,theFOOTPRINTSrepresentationmadeperformancemuchworse than no car information in the absence of any hall call information. The only timeFOOTPRINTS outperformed the other representations was with the maximum amount ofhall call information.
+Overall, the performance was quite good except in the complete absence of hall call
+information (which is a signiﬁcant handicap indeed), and it could be improved further byslower annealing. It seems reasonable to say that the algorithm degrades gracefully in thepresence of incomplete state information in this problem.
+Inaﬁnalexperiment,twobinaryfeatureswereaddedtotheREAL/FOOTPRINTSinput
+representation. Theywereactivatedwhenthedecision-makingcarwasatthehighestﬂoorwith a waiting passenger, and the ﬂoor with the longest waiting passenger, respectively.With the addition of these features, the average squared wait time decreased from 370 to359, so they appear to have some value.
+5.6. Practical Issues
+One of the greatest difﬁculties in applying RL to the elevator control problem was ﬁnding
+thecorrecttemperatureandstep-sizeparameters. Itwasveryhelpfultostartwithascaled-
+
+--- Page 24 ---
+258 R.H. CRITES AND A.G. BARTO
+downversionconsistingofjust1carand4ﬂoorsandalookuptablefortheQ-values. This
+made it easier to determine rough values for the temperature and step-size schedules.
+Theimportanceoffocusingtheexperienceofthelearnerontothemostappropriateareas
+of the state space cannot be overstressed (Barto et al., 1995). Learning along simulatedtrajectoriesisanimportantstart,butaddingreasonableconstraintssuchasthosedescribedinSection3.3.3alsohelps. Furtherevidencesupportingtheimportanceoffocusingisthatgivenachoicebetweenlearningonheavierorlightertrafﬁcthanoneexpectstofaceduringtesting, it is better to learn on the heavier trafﬁc. This gives the system more experiencewith long queue lengths, where making the correct decisions is crucial.
+5.7. Instability
+Theweightsoftheneuralnetworkscanbecomeunstable,theirmagnitudeincreasingwithout
+bound. Two particular situations seem to lead to instability. The ﬁrst occurs when thelearning algorithm makes updates that are too large. This can happen when the step-sizeparameter is too large, or when the network inputs are too large (which can happen invery heavy trafﬁc situations), or both. The second occurs when the network weights havejust been initialized to random values, producing excessively inconsistent Q-values. Forexample, while a step-size parameter of 10
+¡2is suitable for learning by a random initial
+networkonmoderatetrafﬁc(700passengers/hour),itveryconsistentlybringsoninstabilityin heavy trafﬁc (1900 passengers/hour). However, a step-size of 10
+¡3keeps the network
+stableeveninheavytrafﬁc. Ifthenetworklearnsusingthissmallerstep-sizeparameterforseveral hundred simulated hours of elevator time, leading to weights that represent a moreconsistentsetofQ-values,thentheparametercanbesafelyraisedbackupto 10
+¡2without
+causing instability.
+5.8. Linear Networks
+One may ask whether nonlinear function approximators such as feedforward sigmoidal
+networks are necessary for good performance in this elevator control problem. A test wasrunusingalinearnetworkthatlearnedusingtheLeastMeanSquarealgorithm(Widrow&Stearns,1985). Thelinearnetworkhadamuchgreatertendencytobeunstable. Inordertokeep the weights from growing without bound, the step-size parameter had to be loweredby several orders of magnitude, from 10
+¡3to10¡6. After some initial improvement, the
+linearnetworkwasunabletofurtherreducetheaverageerrorintheupdatesoftheQ-values,resulting in extremely poor performance. This failure of linear networks lends support tothe contention that elevator control is a difﬁcult problem.
+6. Discussion
+The policies learned by both the parallel and decentralized multi-agent RL architectures
+were able to outperform all of the elevator algorithms with which we compared them.Gradual annealing appeared to be a crucial factor enabling the RL architectures to obtainthese successful policies, which were very similar for the two architectures. Learning was
+
+--- Page 25 ---
+ELEVATOR GROUP CONTROL 259
+effective using both omniscient and on-line reinforcement schemes. The algorithms were
+robust,easilygeneralizingtonewsituationssuchasaddeduptrafﬁc. Finally,theydegradedgracefully in the face of decreasing levels of state information. Although the networksbecame unstable under certain circumstances, techniques were discussed that preventedthe instabilities in practice. Taken together, these results demonstrate that multi-agentRL algorithms can be very powerful techniques for addressing very large-scale stochasticdynamic optimization problems.
+Acrucialingredientinthesuccessofmulti-agentRListhecarefulcontroloftheamount
+ofexplorationperformedbyeachagent. Explorationinthiscontextmeanstryinganactionbelievedtobesuboptimalinordertogatheradditionalinformationaboutitspotentialvalue.Atthebeginningofthelearningprocess,eachRLagentchoosesactionsrandomly,withoutanyknowledgeoftheirrelativevalues,andthusalltheagentsareextremelyinept. However,in spite of the noise in the reinforcement signal caused by the actions of the other agents,some actions will begin to appear to be better than others. By gradually annealing (orlowering) the amount of exploration performed by the agents, these better actions willbe taken with greater frequency. This gradually changes the environment for each of theagents, and as they continue to explore, they all raise their performance levels in parallel.Although RL agents in a team face added stochasticity and non-stationarity due to thechanging stochastic policies of the other agents on the team, they display an exceptionalability to cooperate with one another in learning to maximize their rewards.
+There are many areas of research in both elevator group control and general multi-agent
+RL that deserve further investigation. Implementing an RL controller in a real elevatorsystemwouldrequirelearningonseveralothertrafﬁcproﬁles,includingup-peakandinter-ﬂoor trafﬁc patterns. Additional actions would be needed in order to handle these trafﬁcpatterns. For example, in up-peak trafﬁc it would be useful to have actions to speciﬁcallyopen and close the doors or to control the dwell time at the lobby. In inter-ﬂoor trafﬁc,unconstrained “up” and “down” actions would be needed for the sake of ﬂexibility. Thecars should also have the ability to “park” at various ﬂoors during periods of light trafﬁc.
+It would be interesting to try something other than a uniform annealing schedule for the
+agents. For example, a coordinated exploration strategy or round-robin type of annealingmight be a way of reducing the noise generated by the other agents. However, such acoordinated exploration strategy may have a greater tendency to become stuck in sub-optimal policies.
+Theoreticalresultsforsequentialmulti-agentRLareneededtosupplementtheresultsfor
+non-sequentialmulti-agentRLdescribedinSection2. Anotherareathatneedsfurtherstudyis RL architectures where reinforcement is tailored to individual agents, possibly by usinga hierarchy or some other advanced organizational structure. Such local reinforcementarchitectures have the potential to greatly increase the speed of learning, but they willrequire much more knowledge on the part of whatever is producing the reinforcementsignals (Barto, 1989). Finally, it is important to ﬁnd effective methods for allowing thepossibility of explicit communication among the agents.
+
+--- Page 26 ---
+260 R.H. CRITES AND A.G. BARTO
+7. Conclusions
+Multi-agentcontrolsystemsareoftenrequiredbecauseofspatialorgeographicdistribution,
+or in situations where centralized information is not available or is not practical. But evenwhen a distributed approach is not required, multiple agents may still provide an excellentway of scaling up to approximate solutions for very large problems by streamlining thesearch through the space of possible policies.
+Multi-agent RL combines some advantages of bottom-up and top-down approaches to
+the design of multi-agent systems. It achieves the simplicity of a bottom-up approach byallowing the use of relatively unsophisticated agents that learn on the basis of their ownexperiences. Atthesametime,RLagentsadapttoatop-downglobalreinforcementsignal,whichguidestheirbehaviortowardtheachievementofcomplexspeciﬁcgoals. Asaresult,systems for complex problems can be created with a minimum of human effort.
+RL algorithms can learn from actual or simulated experience, allowing them to focus
+computational effort onto regions of state space that are likely to be visited during actualcontrol. This makes it feasible to apply them to very large-scale problems. If each of themembersofateamofagentsemploysanRLalgorithm,anew collective algorithmemerges
+for the group as a whole. This type of collective algorithm allows control policies to belearned in a decentralized way. Even though RL agents in a team face added stochasticityandnon-stationarityduetothechangingstochasticpoliciesoftheotheragentsontheteam,they can learn to cooperate with one another in attempting to maximize their commonrewards.
+Inordertodemonstratethepowerofmulti-agentRL,wefocusedonthedifﬁcultproblem
+of elevator group supervisory control. We used a team of RL agents, each of which wasresponsible for controlling one elevator car. Results obtained in simulation surpassed thebest of the heuristic elevator control algorithms of which we are aware. Performance wasalso robust in the face of decreased levels of state information.
+Acknowledgments
+We thank John McNulty, Christos Cassandras, Asif Gandhi, Dave Pepyne, Kevin Markey,
+Victor Lesser, Rod Grupen, Rich Sutton, Steve Bradtke, and members of the AdaptiveNetworks Laboratory for assistance with the simulator and for many helpful discussions.This research was supported by the Air Force Ofﬁce of Scientiﬁc Research under grantF49620–93–1–0269 to A. Barto and the National Science Foundation under grant ECS–9214866 to A. Barto.
+References
+Axelrod, R.M. (1984). The Evolution of Cooperation . New York, NY: Basic Books.
+Bao, G., Cassandras, C.G., Djaferis, T.E., Gandhi, A.D., & Looze, D.P. (1994). Elevator dispatchers for down
+peak trafﬁc. ECE Department Technical Report, University of Massachusetts.
+Barto, A.G. (1989). From chemotaxis to cooperativity: Abstract exercises in neuronal learning strategies. In
+R.Durbin,C.Miall,andG.Mitchison,(Eds.), TheComputingNeuron . Wokingham,England: Addison-Wesley.
+
+--- Page 27 ---
+ELEVATOR GROUP CONTROL 261
+Barto,A.G.,Bradtke,S.J.,&Singh,S.P.(1995). Learningtoactusingreal-timedynamicprogramming. Artiﬁcial
+Intelligence , 72, 81–138.
+Bertsekas,D.P.&Tsitsiklis,J.N.(1996). Neuro-DynamicProgramming . Belmont,MA:AthenaScientiﬁcPress.
+Bradtke, S.J. (1993). Distributed adaptive optimal control of ﬂexible structures. Unpublished manuscript.Bradtke, S.J. & Duff, M. O. (1995). Reinforcement learning methods for continuous-time Markov decision
+problems. In G. Tesauro, D. Touretzky, and T. Leen, (Eds.), Advances in Neural Information Processing
+Systems 7 . Cambridge, MA: MIT Press.
+Cassandras, C.G. (1993). Discrete Event Systems: Modeling and Performance Analysis . Homewood, IL: Aksen
+Associates.
+Crites, R.H. (1996). Large-Scale Dynamic Optimization Using Teams of Reinforcement Learning Agents . PhD
+thesis, University of Massachusetts.
+Crites,R.H.&Barto,A.G.(1996). Formingcontrolpoliciesfromsimulationmodelsusingreinforcementlearning.
+Proceedings of the Ninth Yale Workshop on Adaptive and Learning Systems .
+Crites, R. H. & Barto, A.G. (1996). Improving elevator performance using reinforcement learning. In D. S.
+Touretzky, M. C. Mozer, and M. E. Hasselmo, (Eds.), Advances in Neural Information Processing Systems 8 .
+Cambridge, MA: MIT Press.
+Dayan, P. & Hinton, G.E. (1993). Feudal reinforcement learning. In S. J. Hanson, J. D. Cowan, and C. L. Giles,
+(Eds.),Advances in Neural Information Processing Systems 5 . San Mateo, CA: Morgan Kaufmann.
+Fujino, A., Tobita, T., & Yoneda, K. (1992). An on-line tuning method for multi-objective control of elevator
+group.Proceedings of the International Conference on Industrial Electronics, Control, Instrumentation, and
+Automation , (pp. 795–800).
+Imasaki,N.,Kiji,J.,&Endo,T.(1992). Afuzzyneuralnetworkanditsapplicationtoelevatorgroupcontrol. In
+T. Terano, M. Sugeno, M. Mukaidono, and K. Shigemasu, (Eds.), Fuzzy Engineering Toward Human Friendly
+Systems. Amsterdam: IOS Press.
+Levy,D.,Yadin,M.,&Alexandrovitz,A.(1977). Optimalcontrolofelevators. InternationalJournalofSystems
+Science, 8, 301–320.
+Lewis, J. (1991). A Dynamic Load Balancing Approach to the Control of Multiserver Polling Systems with
+Applications to Elevator System Dispatching . PhD thesis, ECE department, University of Massachusetts.
+Littman, M. & Boyan, J. (1993). A distributed reinforcement learning scheme for network routing. Technical
+Report CMU-CS-93-165, Carnegie Mellon University.
+Littman, M.L. (1994). Markov games as a framework for multi-agent reinforcement learning. Proceedings of
+the Eleventh International Conference on Machine Learning . San Mateo, CA: Morgan Kaufmann.
+Littman, M.L. (1996). Algorithms for Sequential Decision Making . PhD thesis, Brown University.
+Markey, K.L. (1994). Efﬁcient learning of multiple degree-of-freedom control problems with quasi-independent
+Q-agents. InM.C.Mozer,P.Smolensky,D.S.Touretzky,J.L.Elman,andA.S.Weigend,(Eds.), Proceedings
+of the 1993 Connectionist Models Summer School . Hillsdale, NJ: Erlbaum Associates.
+Markon,S.,Kita,H.,&Nishikawa,Y.(1994). Adaptiveoptimalelevatorgroupcontrolbyuseofneuralnetworks.
+Transactions of the Institute of Systems, Control, and Information Engineers , 7, 487–497.
+Narendra, K.S. & Thathachar, M.A.L. (1989). Learning Automata: An Introduction . Englewood Cliffs, NJ:
+Prentice-Hall.
+Ovaska, S.J. (1992). Electronics and information technology in high-range elevator systems. Mechatronics ,2 ,
+89–99.
+Pepyne,D.L.&Cassandras,C.G.(1997). Optimaldispatchingcontrolforelevatorsystemsduringuppeaktrafﬁc.
+IEEE Transactions on Control Systems Technology , 5, 629–643.
+Rumelhart, D.E., McClelland, J.L., & the PDP Research Group. (1986). Parallel Distributed Processing:
+Explorations in the Microstructure of Cognition . Cambridge, MA: MIT Press.
+Sakai, Y. & Kurosawa, K. (1984). Development of elevator supervisory group control system with artiﬁcial
+intelligence. Hitachi Review , 33, 25–30.
+Samuel, A.L. (1963). Some studies in machine learning using the game of checkers. In E. Feigenbaum and
+J. Feldman, (Eds.), Computers and Thought . New York, NY: McGraw-Hill.
+Sandholm, T.W. & Crites, R.H. (1996). Multiagent reinforcement learning in the iterated prisoner’s dilemma.
+Biosystems , 37, 147–166.
+Shoham, Y. & Tennenholtz, M. (1993). Co-learning and the evolution of coordinated multi-agent activity.Siikonen, M.L. (1993). Elevator trafﬁc simulation. Simulation , 61, 257–267.
+Strakosch, G.R. (1983). Vertical Transportation: Elevators and Escalators . New York, NY: Wiley and Sons.
+Sutton, R.S. & Barto, A.G. (1998). Reinforcement Learning: An Introduction . Cambridge, MA: MIT Press.
+
+--- Page 28 ---
+262 R.H. CRITES AND A.G. BARTO
+Tan, M. (1993). Multi-agent reinforcement learning: Independent vs. cooperative agents. Proceedings of the
+Tenth International Conference on Machine Learning .
+Tesauro, G. (1992). Practical issues in temporal difference learning. Machine Learning , 8, 257–277.
+Tesauro, G. (1994). TD-Gammon, a self-teaching backgammon program, achieves master-level play. Neural
+Computation , 6, 215–219.
+Tesauro, G. (1995). Temporal difference learning and TD-Gammon. Communications of the ACM , 38, 58–68.
+Tobita,T.,Fujino,A.,Inaba,H.,Yoneda,K.,&Ueshima,T.(1991). Anelevatorcharacterizedgroupsupervisory
+control system. Proceedings of IECON , (pp. 1972–1976).
+Tsetlin, M.L. (1973). Automaton Theory and Modeling of Biological Systems . New York, NY: Academic Press.
+Ujihara, H. & Amano, M. (1994). The latest elevator group-control system. Mitsubishi Electric Advance , 67,
+10–12.
+Ujihara,H.&Tsuji,S.(1988). TherevolutionaryAI-2100elevator-groupcontrolsystemandthenewintelligent
+option series. Mitsubishi Electric Advance , 45, 5–8.
+Watkins, C. J. C. H. (1989). Learning from Delayed Rewards . PhD thesis, Cambridge University.
+Weiss, G. & Sen, S. (1996). Adaptation and Learning in Multi-Agent Systems . Lecture Notes in Artiﬁcial
+Intelligence, Volume 1042. Berlin: Springer Verlag.
+Widrow, B. & Stearns, S.D. (1985). Adaptive Signal Processing . Englewood Cliffs, NJ: Prentice-Hall.
+Received January 31, 1997
+Accepted September 18, 1997Final Manuscript January 31, 1997

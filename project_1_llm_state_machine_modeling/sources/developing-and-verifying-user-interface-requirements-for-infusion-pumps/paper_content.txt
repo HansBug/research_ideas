@@ -1,0 +1,529 @@
+--- Page 1 ---
+Electronic Communications of the EASST
+Volume 69 (2013)
+Proceedings of the
+5th International Workshop on
+Formal Methods for Interactive Systems
+(FMIS 2013)
+Developing and Verifying User Interface Requirements for Infusion
+Pumps: A Reﬁnement Approach
+Rimvydas Ruk ˇs˙enas, Paolo Masci, Michael D. Harrison, and Paul Curzon
+12 pages
+Guest Editors: Judy Bowen, Steve Reeves
+Managing Editors: Tiziana Margaria, Julia Padberg, Gabriele Taentzer
+ECEASST Home Page: http://www.easst.org/eceasst/ ISSN 1863-2122
+
+--- Page 2 ---
+ECEASST
+Developing and Verifying User Interface Requirements for Infusion
+Pumps: A Reﬁnement Approach
+Rimvydas Ruk ˇs˙enas1, Paolo Masci1, Michael D. Harrison1,2and Paul Curzon1
+1School of Electronic Engineering and Computer Science
+Queen Mary University of London, London, UK
+2School of Computing Science
+Newcastle University, Newcastle upon Tyne, UK
+Abstract: It is common practice in the description of criteria for the acceptable
+safety of systems for the regulator to describe safety requirements that should be
+satisﬁed by the system. These requirements are typically described precisely but in
+natural language and it is often unclear how the regulator can be assured that the
+given requirements are satisﬁed. This paper is concerned with a rigorous reﬁnement
+process that demonstrates that a precise requirement is satisﬁed by the speciﬁcation
+of a given device. It focuses on a particular class of requirements that relate to the
+user interface of the device. For user interface requirements, reﬁnement is made
+more complex by the fact that systems can use di erent interaction devices that
+have very di erent characteristics. The described reﬁnement process recognises an
+input/output hierarchy.
+Keywords: safety, human reliability, medical devices, reﬁnement, user require-
+ments, Event-B
+1 Introduction
+Demonstrating that interactive devices are acceptably safe is a signiﬁcant and important element
+in their development. For example, design errors in medical devices have an impact on patient
+safety and contribute to health-care costs. Because of this, medical device regulators require
+manufacturers to provide su cient evidence that the risks associated with the device are as low
+as reasonably practicable as well as being ﬁt for purpose before entering the market. This process
+is known as the premarket review process.
+The level of scrutiny in the pre-market review generally depends on the risks inherent in the
+use of the device. For new medical devices it involves submitting su cient engineering and
+clinical evaluation evidence that the device can be safely deployed in the ﬁeld. To expedite
+the premarket review process, faster routes exist for devices providing functionalities that are
+similar to those of already legally marketed products. For such devices, manufacturers need to
+demonstrate “substantial equivalence to a predicate device”, that is they need to demonstrate that
+the new device has the same intended use of and is as safe and e ective as an already legally
+marketed device (the predicate device). In the US, for instance, this process is deﬁned in the
+Premarket Notiﬁcation document known as 510(k) [LF09].
+1 / 12 Volume 69 (2013)
+
+--- Page 3 ---
+User Interface Requirements for Infusion Pumps
+Regulators and manufacturers depend on these faster routes for cost reasons. Recent ﬁgures
+suggest that the majority of devices are approved this way. In the US alone, over ﬁve thousand
+new devices require 510(k) review each year. In its current form, the pre-market approval pro-
+cess involves the analysis of tens of thousands of printed pages [MAC+13] rather than a direct
+evaluation of the product. The structure and content of the provided documents are not standard-
+ised, which makes the review process hard for regulators since they must substantively review
+the documents within a relatively short time frame (e.g., 90 calendar days of the ﬁling date for
+510(k) applications).
+The US Food and Drug Administration (FDA), the regulator for medical devices in the US,
+is promoting approaches based on the use of formal methods as a means to reduce the amount
+of paperwork and enable the submission of more succinct and rigorous evidence. For instance,
+at the FDA’s O ce of Science and Engineering Labs (OSEL), engineers are experimenting with
+usage models [JPJ06] for the veriﬁcation of software. A usage model is a formal representation
+that describes the common characteristics and behaviour of software for broad classes of devices.
+The approach is based on the idea of developing usage models that satisfy core sets of safety
+requirements that can mitigate against typical hazards. This way, usage models can be used as
+a reference by manufacturers – it they are able to show that their product is compliant with the
+behaviours of the usage models, then regulators have evidence that the manufacturer’s device
+meets minimum safety conditions.
+The FDA currently speciﬁes usage models as state machines. These models are developed
+manually starting from safety requirements, verifying the models against these requirements
+through model checking techniques. This paper shows how stepwise reﬁnement and the Event-
+B/Rodin platform can be conveniently used to develop usage models that are correct by con-
+struction. The ﬁrst problem with the FDA’s approach is to express requirements so that they are
+suciently precise to be e ectively operationalised. The second is to provide, by operational-
+ising requirements, the means for encompassing the range of input /output technologies that are
+likely to be encountered in interacting with the systems. Event-B is used here to express the
+high level requirements such as those proposed by the FDA. Reﬁnement is used to demonstrate
+that the requirement can be cascaded into a hierarchy that encompasses potential input /output
+technologies.
+To illustrate the approach, we focus speciﬁcally on infusion pumps. We take as a starting point
+a particular sample set of requirements speciﬁed by the FDA. These are speciﬁed by the FDA in
+natural language. We give abstract formal speciﬁcations of these requirements. We then show
+how they can be reﬁned to a more concrete version. This version can then be veriﬁed against
+the formal speciﬁcation of speciﬁc pump designs. Here we concentrate on a particular infusion
+pump design based on a commercially available pump.
+2 Outline of the Approach
+The proposed approach is based on three layers: requirements hierarchy, interface hierarchy and
+concrete interfaces, each described below.
+The requirements hierarchy layer, which is directly relevant to regulators, concerns the de-
+velopment of user interface requirements. The regulator will be interested in the satisfaction of
+Proc. FMIS 2013 2 / 12
+
+--- Page 4 ---
+ECEASST
+these requirements to assure them of the device’s safety. A minimal set of such requirements,
+relevant to some usability aspect of device interfaces, is developed. The aim is that these require-
+ments should be su ciently abstract to encapsulate the behaviour of the largest class of possible
+devices. Reﬁnements are then used to detail these requirements in a sequence of steps. It is also
+possible that reﬁnement can lead to alternative interface requirements that also provide assur-
+ance of the safety of the device. These modiﬁed requirements would be developed as a contract
+between regulator and manufacturer. The requirements hierarchy layer is discussed in Section 5.
+The concrete interface layer focuses on the user interfaces of speciﬁc devices. This layer is
+most relevant to manufacturers as they demonstrate that the user interfaces of their devices satisfy
+the requirements developed in the requirements hierarchy layer. This is discussed in Section 6.
+The middle layer, the interface hierarchy, aims to facilitate the dialogue between regulators and
+manufacturers in order to demonstrate that a speciﬁc user interface adheres to the relevant set of
+user requirements. It develops a reﬁnement based hierarchy (classiﬁcation) of user interfaces.
+The aim is that user requirements are veriﬁed once for most abstract classes of interfaces.
+More concrete classes of interfaces at the lower levels of this hierarchy are then guaranteed
+to satisfy the requirements by construction. This simpliﬁes the process of demonstrating that
+a speciﬁc interface satisﬁes the relevant user requirements. Instead of directly verifying the
+interface against the requirements it su ces simply to demonstrate that it is an instance of some
+concrete class of user interfaces. This approach, discussed in Section 7, correlates with the FDA
+pre-market approval process.
+3 Sample User Interface Requirements from FDA
+The regulator’s aim is to be assured that risks associated with the use of a device are as low
+as reasonably practicable. As previously discussed part of this assurance is achieved through a
+credible demonstration that safety requirements are true of the device. Before showing how this
+demonstration can be achieved in the proposed framework a set of safety requirements developed
+by the FDA is described. These requirements relate to the usability of the data entry systems
+for infusion pumps. They will form the basis for the illustration contained in this paper. The
+safety requirements are taken from a larger set produced by the FDA (see Safety Requirements
+for the Generic PCA pump, obtained from rtg.cis.upenn.edu /gip.php3 on 4th April 2013). This
+set is intended speciﬁcally for PCA (Patient Controlled Analgesic) pumps. As a result there
+is more emphasis on patient tampering than clinician errors, and therefore the focus is slightly
+dierent than is relevant to the volumetric infusion pump used by clinicians that forms the basis
+of the example contained in this paper. The aim is to show how these independently determined
+properties can be framed in our framework.
+The requirements in the FDA document related to data entry interfaces are listed below:
+R1The ﬂow rate for the pump shall be programmable. This safety requirement aims to mitigate
+hazards due to incorrectly speciﬁed infusion parameters (e.g., ﬂow rate is too high or low).
+R2The VTBI (Volume to be infused) settings shall cover the range from v minto v maxml.
+R3The user shall be able to set the VTBI in j ml increments for volumes below x ml.
+R4The user shall be able to set the VTBI in k ml increments for volumes above x ml.
+3 / 12 Volume 69 (2013)
+
+--- Page 5 ---
+User Interface Requirements for Infusion Pumps
+4 Background
+4.1 Interface reﬁnement approaches
+Several previous projects on formal reﬁnement for interface design had di erent foci to our work.
+For example, the main focus of Bowen and Reeves [BR09] is on a description of the actions
+that the user can engage with and how these actions can be reﬁned. The reﬁnement process
+involves actions being replaced by more concrete actions in terms of more concrete structures.
+The reﬁnement described by them is more akin to trace reﬁnement. Although they argue that
+their interest is in ensuring that requirements are true of the more reﬁned system, there is less
+concern with how the requirements are transformed through the levels of reﬁnement. Duke and
+Harrison [DH95] are concerned with data reﬁnement. They note that abstract representations of
+objects can be reﬁned in two directions, into what is perceivable and into the architecture of the
+device. Darimont and van Lamsweerde [DL96] are concerned with requirements described in
+terms of the reﬁnement of goals using the KAOS language. The interesting innovation in their
+proposal is that the formal reﬁnement process may be achieved through a set of patterns. The
+approach we take here has most in common with the work of Yeganefard and Butler [YB11] who
+demonstrate a similar reﬁnement process, in this case for control systems, using Event-B.
+4.2 Event-B /Rodin framework
+Event-B speciﬁcations are discrete models that consist of a state space and state transitions. A
+state includes constants and variables that describe the system. State transitions are speciﬁed
+asevents . A speciﬁcation of an event consists of two parts. The ﬁrst one is a list of guards .
+Each guard is a predicate over the state variables and constants. The guards deﬁne the necessary
+conditions for the event to occur. The second part is a list of actions which describe how the state
+variables are modiﬁed as a result of event execution.
+Speciﬁcations are structured in terms of machines andcontexts . Machines specify the dynamic
+aspects of systems, whereas contexts specify its static aspects. A machine includes state variables
+and events. Invariant properties are expressed as machine invariants, i.e., predicates that must
+hold in all machine states. A context includes constants deﬁned by a set of axioms. A machine
+may reference constants from the contexts it ‘sees’.
+Intuitively, machine execution means that one of the events, with all guards being true, is
+chosen. The machine variables are modiﬁed as speciﬁed by the actions of that event. The basic
+syntactic form of an event is given below, other features of Event-B are introduced when needed.
+Event Eb=when G(v) then T(v) end
+Here vis a list of variables. G(v) denotes the guards of EandT(v) denotes the actions associated
+with E. A detailed description of Event-B can be found in [Abr10].
+5 The requirement hierarchy
+The informal requirements R1andR2from Section 3 provide a basis for the abstract speciﬁca-
+tion of user requirements relevant to data entry. R3andR4are introduced in a later reﬁnement.
+Proc. FMIS 2013 4 / 12
+
+--- Page 6 ---
+ECEASST
+5.1 Requirements R1 and R2
+The requirement R1(The ﬂow rate for the pump shall be programmable ) is expressed as the
+following machine in Event-B. This abstract description simply requires that a variable called
+data has the attribute that it is programmable. The requirement asserts that data commences with
+a value named source and describes the event programmable as changing the value to target . The
+possible values of data are given as the set Numbers . All three constants, Numbers ,source and
+target , are deﬁned in the context ReqParams1 below. Nothing is contained in the requirement to
+indicate that it relates to ﬂow rate. The requirement as speciﬁed could be applied to, e.g., VTBI.
+MACHINE Reqs1 SEES ReqParams1
+V ARIABLES data INV ARIANTS data2Numbers
+EVENTS
+Initialisation begin data :=source end
+Event programmable b=begin data :=target end
+END
+The invariant of Reqs1 simply gives typing of data. The initialisation event assigns the source
+value to it. Since the programmable event expresses an abstract requirement, its guard is assumed
+to be always true, and the when clause is omitted in the above speciﬁcation.
+The requirement R2(The VTBI settings shall cover the range from v minto v maxml) is speciﬁed
+in the context ReqParams1 which deﬁnes the corresponding constants Min,Max. It is assumed
+thatMax exceeds Minand that Minis non-negative. The set constant (type) Numbers is assumed
+to be the interval 0 ::Max. The context deﬁnes a number of other constants: RefValues ,source
+andtarget . It is assumed that the source value belongs to the interval Numbers and it is assumed
+thattarget is a member of the set of reference values ( RefValues ) that covers the required range
+of settings. At this stage, no other assumptions are made as to what these values are.
+CONTEXT ReqParams1
+CONSTANTS Min Max Numbers Re f Values source target
+AXIOMS
+Min0 Max >Min Numbers =0::Max
+Re f ValuesNumbers\fxjxMing source2Numbers target 2Re f Values
+END
+Because the R1requirement is speciﬁed in a non-operational form it is necessary to reﬁne the
+machine. Informally, machine reﬁnement means verifying three constraints. The ﬁrst concerns
+event reﬁnement: a concrete event must reﬁne the corresponding abstract one (new events must
+reﬁne an implicit event that does nothing). The second constrains new events: they must ‘con-
+verge’ (i.e., not run forever on their own). The third states that the concrete machine must not
+deadlock before the machine it reﬁnes.
+The following reﬁnement of Reqs1 provides guidance about how R1can be implemented. The
+operational version of R1has a number of new characteristics. Two new variables are introduced:
+entry anddisp. Whether a number is being entered is indicated by entry , whereas disp gives the
+displayed value of the number entered. The initial state requires that data anddisp are both
+5 / 12 Volume 69 (2013)
+
+--- Page 7 ---
+User Interface Requirements for Infusion Pumps
+initialised to the source value and entry is false, indicating that entry of the target number has
+not commenced. The new requirement decomposes the event representing R1into three events.
+The ﬁrst one ( choose ) is used to elect to enter the target value, while the second one models
+the modiﬁcation of the display value (this is not necessarily the data value). The ﬁnal event is
+triggered when the display and target values are equal. At this step the data value is set to be
+equal to the display value and entry becomes false. This operational requirement indicates more
+about the programming process but says little about how the value is entered.
+MACHINE Reqs11 REFINES Reqs1 SEES ReqParams1
+V ARIABLES data disp entry INV ARIANTS disp2Numbers entry2BOOL
+EVENTS
+Initialisation begin data :=source disp :=source entry :=FALS E end
+Event choose b=Status anticipated
+when entry =FALS E then disp :=data entry :=TRUE end
+Event modify b=Status anticipated when entry =TRUE then disp :2Numbers end
+Event setb=reﬁnes programmable
+when disp=target entry =TRUE then data :=disp entry :=FALS E end
+END
+The machine Reqs11 speciﬁes that setreﬁnes the abstract event programmable (intuitively,
+both events assign target todata). The other two events, choose andmodify , are new. Rather than
+requiring their convergence, the speciﬁcation assumes, as indicated by the keyword ‘anticipated’,
+thatchoose andmodify will not run forever. If necessary, this assumption can be proven later.
+5.2 Requirements R3 and R4
+In the case of R3(The user shall be able to set the VTBI in j ml increments for volumes be-
+low x ml ) and, similarly, R4, the requirements are expressed in a su ciently concrete form to
+proceed directly to their operationalised versions. They are captured in the following context
+ReqParams11 which extends ReqParams1 by adding three relevant constants— Threshold (xin
+R3andR4),jandk—with three associated axioms:
+CONTEXT ReqParams11 EXTENDS ReqParams1 CONSTANTS Threshold j k
+AXIOMS
+Threshold2Min+1::Max 1 j<Threshold kThreshold
+Re f Valuesfxx>0^jxThresholdjjxg[fxx>0jThreshold +kxg
+END
+The fourth axiom restricts the reference set ( RefValues ) to the values obtained using the incre-
+ments jandk. This context is used by Reqs111 which is the same machine as Reqs11 otherwise:
+MACHINE Reqs111 REFINES Reqs11 SEES ReqParams11 ....
+The last step in the reﬁnement of requirements has a more technical nature. It decomposes
+Reqs111 so that the assumptions about to the user behaviour are removed from the requirements
+Proc. FMIS 2013 6 / 12
+
+--- Page 8 ---
+ECEASST
+for the pump interfaces. In particular, one guard ( disp=target )) in the event setencompasses the
+notion of a target. Though the latter is relevant to the user behaviour, it would be meaningless
+to apply it to the pump interface. The decomposition introduces the machine Reqs111 Pump11
+which replaces the constant target by a variable that represents the display value ‘passed’ to the
+user. The details are omitted here, since this does not a ect the actual data entry.
+6 The interface hierarchy
+Having produced an operational but abstract deﬁnition of the requirements, the next stage is to
+make sense of the requirement in terms of the particular device that the developer wishes to cer-
+tify. This section develops a reﬁnement-based classiﬁcation of user interfaces that is relevant for
+various modes of data entry in infusion pumps. Each reﬁnement step introduces speciﬁc features,
+thereby creating a hierarchy of user interface classes. The aim is to verify safety requirements
+for the classes at the top of the hierarchy. If those requirements are satisﬁed at that level, then
+the interface classes at the lower levels are guaranteed to preserve them by construction.
+There are a number of di erent data entry systems that are already used in infusion pumps
+[OTC11] and there is future scope for many more. To illustrate the approach, two types are
+considered in this paper: chevron based interfaces and ﬁve-key interfaces.
+6.1 Chevron interfaces
+In chevron based interfaces, the current data value is updated by pressing the ‘up’ (increase)
+and ‘down’ (decrease) chevron keys. These interfaces always include at least one ‘up’ and one
+‘down’ chevron, however more chevrons could be used to speed up data entry. For example, a
+fast ‘up’ chevron may increase the current value by a larger amount compared to a slow ‘up’ one.
+Interface speciﬁcation. An abstract speciﬁcation of the chevron based interface, machine
+Chevron Entry1 deﬁnes two events for updating data values: increase anddecrease . The ﬁrst in-
+creases the current value ( disp) by an unspeciﬁed (non-deterministically chosen) amount, while
+the second similarly decreases it. Both events are only enabled when the pump is in data entry
+mode ( entry=TRUE ). The increase event is speciﬁed as follows:
+Event increase b=...when entry =TRUE then disp :jdisp02Numbers^disp0disp end
+Verifying requirements. The abstract speciﬁcation of the chevron based entry, Chevron Entry1,
+is easily veriﬁed against the set of interface requirements. The veriﬁcation is formally encoded as
+an assertion that the machine Chevron Entry1 reﬁnes Reqs111 Pump11. In particular, the events
+increase anddecrease both reﬁne the modify event speciﬁed in the abstract machine relating to
+the operationalised requirement R1:
+MACHINE Chevron Entry1 REFINES Reqs111 Pump11 SEES ReqParams11 ...
+Event increase b=Status anticipated reﬁnes modify ...
+Event decrease b=Status anticipated reﬁnes modify ...
+END
+7 / 12 Volume 69 (2013)
+
+--- Page 9 ---
+User Interface Requirements for Infusion Pumps
+Interface reﬁnement. As an example of how more concrete layers can be added to the inter-
+face hierarchy, we consider a chevron entry interface with two ‘up’ and ‘down’ keys. The slow
+‘up’ and fast ‘up’ chevrons are modelled by the upandUPevents, respectively. The upevent
+(speciﬁed below) increases the current value by delta at least, whereas UPincreases it by Delta .
+Event upb=...
+when entry =TRUE then disp :jdisp02Numbers^disp0min(fdisp+delta ;Maxg)end
+ThednandDNevents are speciﬁed similarly. In each case, delta/Delta is the minimum al-
+lowed update amount. This permits implementations of this interface where the actual update
+depends on the current data value. It is assumed that Delta is greater than delta to guarantee that
+the fast ‘up’ and ‘down’ chevrons are indeed faster than the slow ones:
+CONTEXT ChevronDeﬁnitions11 EXTENDS ReqParams11 ...
+AXIOMS delta2Numbers Delta 2Numbers delta >0 Delta >delta
+END
+This speciﬁcation of a chevron based interface is a reﬁnement of the interface with single ‘up’
+and ‘down’ chevrons. In particular, the upandUPevents reﬁne the more abstract increase event,
+whereas dnandDN(omitted here) reﬁne decrease :
+MACHINE Chevron Entry11 REFINES Chevron Entry1 SEES ChevronDeﬁnitions11 ...
+Event upb=Status anticipated reﬁnes increase ...
+Event UPb=Status anticipated reﬁnes increase ...
+END
+6.2 Five-key interfaces
+In the case of ﬁve-key interfaces, numbers are modiﬁed by combining up and down keys with
+movement of the cursor keys. The size of the increment or decrement is measured by the position
+of the cursor that can be manipulated using the left and right keys. The up and down keys nor-
+mally operate on the single digit indicated by the cursor (e.g., up key modiﬁes 5 to 6). However,
+there is a lot of variation [CGT+12] in the behaviour of ﬁve-key interfaces at the ‘edges’ (e.g.,
+when pressing up on the digit 9). Two main variations are to simply wrap the digit (e.g., 9 is
+modiﬁed to 0) and to modify the whole number according to the rules of arithmetic (e.g, 9 is
+modiﬁed to 0 and the digit to the left is increased by 1).
+Interface speciﬁcation. The context speciﬁed here describes the properties relevant to an
+abstract cursor and up /down keys. The constant wrapCursor indicates whether the cursor is
+wrapped at the edges (positions 0 and maxPos ) when the corresponding cursor key is pressed.
+The axioms capture that the maximal position ( maxPos ) is greater than 0 and the limits in the cur-
+sor movement ( mincursor andmax cursor ) which generally may depend on the current value.
+They also deﬁne the starting position of the cursor ( startPos ), the size of the increment or decre-
+ment ( delta ), and the signatures and behaviour of the leftandright cursor keys. Further axioms
+concerning variations in the behaviour of the up and down keys are discussed below.
+Proc. FMIS 2013 8 / 12
+
+--- Page 10 ---
+ECEASST
+CONTEXT FiveKeyDeﬁnitions EXTENDS ReqParams11
+CONSTANTS
+maxPos min cursor max cursor startPos wrapCursor
+delta le f t right round up round dn mem up mem dn
+AXIOMS
+maxPos >0
+mincursor2Numbers!0::maxPos max cursor2Numbers!0::maxPos
+8xx2Numbers)mincursor (x)max cursor (x)
+startPos2mincursor (source )::max cursor (source ) wrapCursor2BOOL
+delta20::maxPos!1::10maxPos8ii20::maxPos)(delta (i)=10i)
+le f t20::maxPos!0::maxPos right 20::maxPos!0::maxPos
+8i;xi20::maxPos^x2Numbers)
+(i<max cursor (x))le f t(i)=i+1)^
+(i=max cursor (x)^wrapCursor =TRUE)le f t(i)=0)^
+(i=max cursor (x)^wrapCursor =FALS E)le f t(i)=i)
+round up2Numbers!BOOL round dn2Numbers!BOOL
+8xx2Numbers)(round up(x)=(x=Max_x=Min))
+8xx2Numbers)(round dn(x)=(x=Min))
+mem up2Numbers!BOOL mem dn2Numbers!BOOL
+8xx2Numbers)(mem up(x)=(x<delta (maxPos )))
+8xx2Numbers)(mem dn(x)=(x>Max delta (maxPos ))) ...
+END
+The behaviour of the up /down and left /right keys is speciﬁed as the machine FiveKey Entry1.
+It deﬁnes the relevant events left,right ,upanddown , all possible when the pump is in data entry
+mode ( entry is true). The speciﬁcations of the left(given below) and right events are based on the
+functions deﬁned above. They both modify cursor which represents the position of the cursor:
+Event leftb=...when entry =TRUE then cursor :=le f t(cursor )end
+The speciﬁcations of the up(given below) and down events can potentially be reﬁned into
+both types of ﬁve-key interfaces described earlier: arithmetic and wrapping. They also take
+into account rounding behaviour at the minimal and maximal values allowed by the interface
+as speciﬁed by the predicates round upandround dn. For example, round upstates that such
+rounding can yield either the maximal value Max or the minimal value Min. Furthermore, both
+events permit the implementations of ﬁve-key interfaces with memory. For that the predicates
+mem upandmem dndeﬁne ranges of values that can be recalled from memory by pressing the
+up and down keys.
+Event upb=...when entry =TRUE then
+disp :jdisp02Numbers^
+(disp0=disp+delta (cursor )_disp0=disp 9delta (cursor )_round up(disp0)_mem up(disp0))
+end
+Verifying requirements. The FiveKey Entry1 machine reﬁnes the set of requirements devel-
+oped. In particular all four events, left,right ,upanddown , reﬁne the same abstract event modify
+in the requirements:
+9 / 12 Volume 69 (2013)
+
+--- Page 11 ---
+User Interface Requirements for Infusion Pumps
+MACHINE FiveKey Entry1 REFINES Reqs111 Pump11 SEES FiveKeyDeﬁnitions1 ...
+Event leftb=Status anticipated reﬁnes modify ...
+END
+The ﬁnal stage of the process is to show how these interface classes, still abstract in the sense
+that they have potential to be implemented as a number of di erent chevron or ﬁve key interfaces,
+can be reﬁned into a particular design.
+7 Veriﬁcation of concrete interfaces
+The aim of this section is to show how an interface speciﬁcation of a speciﬁc device is shown to
+satisfy user requirements. Ideally, such a speciﬁcation would be provided by the manufacturer.
+Alternatively, it can be reverse engineered by interactively exploring the actual device [Thi07].
+Having an interface hierarchy already shown to satisfy the user requirements, there is no need
+to verify a speciﬁc interface against those requirements. It su ces to show that the interface is
+an instance of some class in the hierarchy. This section demonstrates the principle for a concrete
+device with four chevrons as its number entry mechanism (Alaris GP V olumetric Pump [Car06]).
+A speciﬁcation of the Alaris number entry mechanism has been reverse engineered in PVS and
+SAL [MRO+11]. The speciﬁcation given below is its direct translation to Event-B. The purpose
+of using this translation is to demonstrate that our interface hierarchy can be used to verify the
+relevant user requirements for the independently developed speciﬁcations of concrete interfaces.
+In the PVS and SAL versions, the behaviour of the Alaris chevrons (slow and fast up /down
+keys) is captured using functions that specify how the current value is modiﬁed by pressing
+each chevron. In Event-B, the corresponding functions, alaris up,alaris dn,alaris UPand
+alaris DN, are deﬁned in the following context. It extends RealDeﬁnitions which provides an
+Event-B model for the real numbers supported by the Alaris pump. The deﬁnitions of alaris dn,
+alaris UPandalaris DN(omitted here) are similar to that of alaris up:
+CONTEXT AlarisDeﬁnitions EXTENDS RealDeﬁnitions
+CONSTANTS trim alaris up alaris dn alaris UP alaris DN init
+AXIOMS
+trim2Z!realq alaris up2real!realq init2real
+8x(x<minAlaris)trim(x)=minAlaris )^
+(x>maxAlaris)trim(x)=maxAlaris )^
+(xminAlaris^xmaxAlaris)trim(x)=x)
+8xx2real)(x<r100)alaris up(x)=trim((f loor (x10)+r1)=10))^
+(xr100^x<r1000)alaris up(x)=trim(x+r1))^
+(xr1000)alaris up(x)=trim((f loor (x=10)+r1)10)) ...
+END
+The machine Alaris Rate1 speciﬁes the behaviour of the four chevrons when entering infusion
+rates. This behaviour is described by the events up,dn,UPandDN. E.g., upis speciﬁed below:
+Event upb=Status anticipated when rmode =TRUE then display :=alaris up(display )end
+Proc. FMIS 2013 10 / 12
+
+--- Page 12 ---
+ECEASST
+Here the display variable represents the displayed rate and rmode indicates whether the pump is
+in the rate entry mode.
+Now, the demonstration that the Alaris rate entry interface is an instance of the class of chevron
+interfaces speciﬁed in Section 6.1 boils down to proving reﬁnement between Chevron Entry11
+and Alaris Rate1. For such a proof, the generic parameters (such as delta orThreshold ) speciﬁed
+in ChevronDeﬁnitions11 must be instantiated with the concrete values from the Alaris speciﬁca-
+tion (context AlarisDeﬁnitions). This instantiation is speciﬁed as the folowing context:
+CONTEXT ChevronAlarisParams EXTENDS ChevronDeﬁnitions11 AlarisDeﬁnitions
+AXIOMS
+Min=minAlaris Max =maxAlaris Threshold =r100
+j=r01 delta =j k =r1 delta =j source =init
+END
+Furthermore, the four chevron events in Alaris Rate1 must reﬁne the corresponding events
+in Chevron Entry11, and the invariants of Alaris Rate1 must include a ‘glueing’ invariant that
+speciﬁes the connection between the state spaces of both machines:
+MACHINE Alaris Entry1 REFINES Chevron Entry11 SEES ChevronAlarisParams ...
+INV ARIANTS (data=rate)^(disp=display )^(entry =rmode ) ...
+EVENTS
+Event upb=Status anticipated reﬁnes up
+when rmode =TRUE with disp0:disp0=display0then display :=alaris up(display )end...
+END
+8 Conclusions
+The paper has demonstrated how Event-B can be used to support manufacturers as they aim
+to demonstrate that regulator requirements are satisﬁed by their products. All the reﬁnements
+described have been proven using the Rodin platform. The reﬁnement hierarchies thus devel-
+oped for requirements and user interfaces enable developers to trace the regulator requirements
+down to the specialised classes that match the physical characterisation of their device. Such an
+approach ﬁts well with the FDA pre-market review process which involves providing evidence
+that a new device is ‘substantially equivalent’ to already approved and legally marketed medical
+devices.
+This work is in its early stages but it would be envisaged that demonstration that the device sat-
+isﬁes these requirements would involve the development of speciﬁcation fragments that provably
+demonstrate that the requirements are satisﬁed. It then remains as an open question as to how it
+could be demonstrated that these components are consistent with each other and how they might
+ﬁt into a larger speciﬁcation. This is future work. It would aim to explore work on composition
+[SB09] and product lines [GPS09] in Event-B being carried out at Southampton. The advantage
+of using Event-B is that the approach is tool supported. It is feasible to consider the possibility
+that standard reﬁnement processes such as these can be made easier for developers to use.
+11 / 12 Volume 69 (2013)
+
+--- Page 13 ---
+User Interface Requirements for Infusion Pumps
+Acknowledgements: This work was partly funded by the CHI +MED research project on the
+design and safe use of interactive medical devices (UK EPSRC Grant EP /G059063 /1).
+Bibliography
+[Abr10] J.-R. Abrial. Modeling in Event-B: System and Software Engineering . Cambridge University
+Press, 2010.
+[BR09] J. Bowen, S. Reeves. Reﬁnement for user interface designs. Formal Aspects of Computing
+21:589–612, 2009.
+[Car06] Cardinal Health Inc. Alaris GP V olumetric Pump: directions for use. Technical report, Cardi-
+nal Health, 1180 Rolle, Switzerland, 2006.
+[CGT+12] A. Cauchi, A. Gimblett, H. Thimbleby, P. Curzon, P. Masci. Safer ”5-key” number entry
+user interfaces using di erential formal analysis. In Proceedings of the 26th Annual BCS
+Interaction Specialist Group Conference on People and Computers . BCS-HCI ’12, pp. 29–
+38. British Computer Society, Swindon, UK, 2012.
+[DH95] D. J. Duke, M. D. Harrison. Mapping user requirements to implementations. Software Engi-
+neering Journal 10(1):13–20, 1995.
+[DL96] R. Darimont, A. van Lamsweerde. Formal reﬁnement patterns for goal-driven requirements
+elaboration. In Proceedings 4th ACM Symposium on the Foundations of Software Engineering
+(FSE’03) . Pp. 179–190. ACM Press, 1996.
+[GPS09] A. Gondal, M. Poppleton, C. Snook. Feature composition - towards product lines of Event-B
+models. In 1st International Workshop on Model-Driven Product Line Engineering (MD-
+PLE’09) . CTIT Workshop Proceedings, 2009. http: //eprints.soton.ac.uk /267547 /
+[JPJ06] R. Jetley, S. Purushothaman Iyer, P. Jones. A formal methods approach to medical device
+review. Computer 39(4):61–67, 2006. doi:10.1109 /MC.2006.113
+[LF09] W. Lin, X. Fan. Software Development Practice for FDA-Compliant Medical Devices. In In-
+ternational Joint Conference on Computational Sciences and Optimization, 2009. CSO 2009 .
+V olume 2, pp. 388–390. 2009. doi:10.1109 /CSO.2009.191
+[MAC+13] P. Masci, A. Ayoub, P. Curzon, M. Harrison, I. Lee, O. Sokolsky, H. Thimbleby. Veriﬁcation
+of interactive software for medical devices: PCA infusion pumps and FDA regulation as
+an example. In Proceedings ACM Symposium Engineering Interactive Systems (EICS 2013) .
+ACM Press, 2013.
+[MRO+11] P. Masci, R. Ruk ˇs˙enas, P. Oladimeji, A. Cauchi, A. Gimblett, Y . Li, P. Curzon, H. Thimbleby.
+On formalising interactive number entry on infusion pumps. Electronic Communications of
+the EASST 45, 2011.
+[OTC11] P. Oladimeji, H. Thimbleby, A. Cox. Number entry and their e ects on error detection. In
+Campos et al. (eds.), Interact 2011 . Lecture Notes in Computer Science 6949, pp. 178–185.
+Springer Verlag, 2011.
+[SB09] R. Silva, M. Butler. Supporting reuse mechanisms for developments in Event-B: Composi-
+tion. Technical report, University of Southampton, 2009.
+[Thi07] H. Thimbleby. Interaction walkthrough: evaluation of safety critical interactive systems. In
+Doherty and Blandford (eds.), Interactive Systems: Design, Speciﬁcation and Veriﬁcation .
+Lecture Notes in Computer Science 4323, pp. 52–66. Springer Verlag, 2007.
+[YB11] S. Yeganefard, M. Butler. Structuring Functional Requirements of Control Systems to Facil-
+itate Reﬁnement-based Formalisation. In Proceedings of the 11th International Workshop on
+Automated Veriﬁcation of Critical Systems (AVoCS 2011) . V olume 46. Electronic Communi-
+cations of the EASST, 2011.
+Proc. FMIS 2013 12 / 12

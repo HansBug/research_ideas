@@ -1,0 +1,924 @@
+--- Page 1 ---
+Article
+UA V Control on the Basis of 3D Landmark
+Bearing-Only Observations
+Simon Karpenko, Ivan Konovalenko, Alexander Miller, Boris Miller * and Dmitry Nikolaev
+Received: 15 August 2015; Accepted: 10 November 2015; Published: 27 November 2015
+Academic Editors: Felipe Gonzalez Toro and Antonios Tsourdos
+Institute for Information Transmission Problems RAS, Bolshoy Karetny per. 19, Build. 1, GSP-4,
+Moscow 127051, Russia; simon.karpenko@gmail.com (S.K.); konovalenko@iitp.ru (I.K.);
+amiller@iitp.ru (A.M.); dimonstr@iitp.ru (D.N.)
+*Correspondence: bmiller@iitp.ru; Tel.: +7-495-650-4781; Fax: +7-495-650-0579
+Abstract: The article presents an approach to the control of a UAV on the basis of 3D landmark
+observations. The novelty of the work is the usage of the 3D RANSAC algorithm developed
+on the basis of the landmarks’ position prediction with the aid of a modiﬁed Kalman-type ﬁlter.
+Modiﬁcation of the ﬁlter based on the pseudo-measurements approach permits obtaining unbiased
+UAV position estimation with quadratic error characteristics. Modeling of UAV ﬂight on the basis
+of the suggested algorithm shows good performance, even under signiﬁcant external perturbations.
+Keywords: UAV; visual odometry; projective geometry; video stream; feature points; modiﬁed
+Kalman ﬁlter; control
+1. Introduction
+Modern UAV’s navigation systems use the standard elements of INS (inertial navigation
+systems) along with GPS, which permits correcting the bias and improving the UAV localization,
+which are necessary for resolving mapping issues, targeting and reconnaissance tasks [1]. The use of
+computer vision as a secondary or a primary method for autonomous navigation of UAVs has been
+discussed frequently in recent years, since the classical combination of GPS and INS systems cannot
+sustain autonomous ﬂight in many situations [2]. UAV autonomous missions usually need so-called
+data fusion, which is a difﬁcult task, especially for standard INS and vision equipment. It is clear
+that cameras provide visual information in a different form, inapplicable to UAV direct control, and
+therefore, one needs an additional on-board memory and special recognition algorithms.
+1.1. Visual-Based Navigation Approaches
+Several studies have demonstrated the effectiveness of approaches based on motion ﬁeld
+estimation and feature tracking for visual odometry [3]. Vision-based methods have been proposed
+even in the context of autonomous landing management [2]. In [4], visual odometry based on
+geometric homography was proposed. However, the homography analysis uses only 2D reference
+points coordinates, though for the evaluation of the current UAV altitude, the 3D coordinates are
+necessary. All such approaches presume the presence of some recognition system in order to detect
+the objects nominated in advance. Examples of such objects can be special buildings, crossroads,
+tops of mountains, and so on. The principal difﬁculties are the different scale and aspect angles of
+observed and stored images, which leads to the necessity of huge template libraries in the memory of
+the UAV control system. Here, one can avoid this difﬁculty, because of the usage of another approach
+based on the observation of so-called feature points [5] that are scale and aspect angle invariant.
+For this purpose, the technology of feature points [6] is used. In [7], the approach based on the
+Sensors 2015 ,15, 29802–29820; doi:10.3390/s151229768 www.mdpi.com/journal/sensors
+
+--- Page 2 ---
+Sensors 2015 ,15, 29802–29820
+coordinate correspondence of the reference points observed by the on-board camera and the reference
+points on the map loaded into the UAV’s memory before the mission start had been suggested.
+During the ﬂight, these maps are compared to the frame of the land, directly observed with the
+help of an on-board video camera. As a result, one can detect the current location and orientation
+without time-error accumulation. These methods are invariant to some transformations, and they are
+noise-stable, so that predetermined maps can be different in scale, aspect angle, season, luminosity,
+weather conditions, etc. This technology appeared in [8]. The contribution of this work is the usage
+of a modiﬁed unbiased pseudo-measurements ﬁlter for bearing-only observations of some reference
+points with known terrain coordinates.
+1.2. Kalman Filter
+In order to obtain metric data from visual observations, one needs ﬁrst to make observations
+from different positions i.e.,triangulation and then use nonlinear ﬁltering. However, all nonlinear
+ﬁlters either have unknown bias [9] or are very difﬁcult for on-board implementation, like the
+Bayesian-type estimation [10,11]. Approaches for position estimation based on bearing-only
+observations had been analyzed long ago, especially for submarine applications [12] and nowadays
+for UAV applications [1].
+A comparison of different nonlinear ﬁlters for bearing-only observations in the issue of
+ground-based object localization [13] shows that the EKF (extended Kalman ﬁlter), the unscented
+Kalman ﬁlter, the particle ﬁlter and the pseudo-measurement ﬁlter give almost the same level
+of accuracy, while the pseudo-measurement ﬁlter is usually more stable and simple for on-board
+implementation. This observation is in accordance with older results [12], where all of these
+ﬁlters were compared in the issue of moving object localization. It has been mentioned that all
+of these ﬁlters have bias, which makes their use in data fusion issues rather problematic [14].
+The principle requirement for such ﬁlters in data fusion is the non-biased estimate with the
+known mean square characterization of the error. Among the variety of possible ﬁlters, the
+pseudo-measurement ﬁlter can be easily modiﬁed to satisfy the data fusion demands. The idea of
+such nonlinear ﬁltering was developed by V .S. Pugachev and I. Sinitsyn in the form of so-called
+conditionally-optimal ﬁltering [15], which provides the non-biased estimation within the class of
+linear ﬁlters with the minimum mean squared error. In this paper, we develop such a ﬁlter (the
+so-called pseudo-measurement Kalman ﬁlter (PKF)) for the UAV position estimation and give the
+algorithm for path planning along with the reference trajectory under external perturbations and
+noisy measurements.
+1.3. Optical Absolute Positioning
+Some known aerospace maps of a terrain in a ﬂight zone are loaded into the aircraft memory
+before the start of a ﬂight. During the ﬂight, these maps are compared to the frame of the land, directly
+observed with the help of an on-board video camera. For this purpose, the technology of feature
+points [6] is used. As a result, one can detect the current location and orientation without time-error
+accumulation. These methods are invariant to some transformations and are also noise-stable, so that
+predetermined maps can vary in height, season, luminosity, weather conditions, etc. Furthermore,
+from the moment of the previous plane surveying, the picture of this landscape can be changed due
+to human and natural activity. All approaches based on the capturing of the objects assigned in
+advance presume the presence of some on-board recognition system in order to detect and recognize
+such objects. Here, we avoid this difﬁculty by using the observation of feature points [5] that are scale
+and aspect angle invariant. In addition, the modiﬁed pseudo-measurements Kalman ﬁltering (PKF)
+is used for the estimation of UAV positions and the control algorithm.
+29803
+
+--- Page 3 ---
+Sensors 2015 ,15, 29802–29820
+1.4. Outline of the Approach and the Article Structure
+One of the principal parts of this research is an approach to the estimation of the UAV
+position on the basis of the bearing-only observations. The original ﬁlter that uses the idea of
+pseudo-measurements had been suggested in reference [16] for the case of the azimuth bearing of
+the terrain objects nominated in advance. In reference [17], this approach had been extended to
+the case of two angle measurements, namely azimuth and elevation. However, the usage of this
+approach as a real navigation tool needs huge on-board memory and a sophisticated recognition
+algorithm, since the template and in-ﬂight observed images, even of the same object, are rather
+different due to the changes of illuminance, the altitude of ﬂight and the aspect angles. That is why the
+method based on the observation of feature points looks more attractive for in-ﬂight implementation.
+In reference [7], an algorithm joining together the feature points approach and modiﬁed PKF had been
+suggested, though for 2D feature point localization, while the more advanced 3D localization had
+been suggested in references [18,19], which are the shortened versions of the methodology presented
+in this article.
+In this work, we use a computer simulation of a UAV ﬂight and on-board video camera imaging.
+The simulation program is written in MATLAB. The type of feature points is ASIFT, realized in
+OpenCV (Python) [20]. Feature points in this model work as in a real ﬂight, because the images for
+the camera model and for the template images were transformed by projective mapping and created
+by observations from different satellites.
+The next section presents the original RANSAC algorithm for 3D feature point localization.
+Sections 3 and 4 give the description of PKF, providing the unbiased estimation of the UAV position
+with the estimate of quadratic errors. Section 5 describes the locally optimal control algorithm for
+tracking the reference trajectory on the basis of PKF estimation of the UAV position. In Section 6, we
+give a new approach to the RANSAC robustness with the use of the UAV motion model. Section 7
+presents the modeling results, and Section 8 is the conclusions.
+2. Random Sample Consensus for Isometry
+At every step, the algorithm deals with two images of a 3D landscape. An example of the
+landscape used for modeling is shown in Figure 1.
+Figure 1. (a) Image Icof the on-board camera of the UAV; ( b) template image loaded in the UAV
+memory in advance.
+The ﬁrst image Icis obtained from the on-board UAV camera, the position of which is unknown
+and should be estimated. The second image Imwas taken previously from a known position and
+29804
+
+--- Page 4 ---
+Sensors 2015 ,15, 29802–29820
+uploaded into the UAV memory. The ASIFT method is used for both images to detect feature points,
+which are speciﬁed in pixels:
+ci=cxi
+cyi
+and:
+mi=mxi
+myi
+and calculates their descriptors. The correspondence between images is constructed by using these
+descriptors, and thereby, the feature points are combined in pairs. However, many of these pairs
+are wrong, and therefore, these pairs are considered as outliers or they are not. The result of ASIFT
+correspondence is shown in Figure 2.
+The Earth coordinate system is the Cartesian coordinate system, which is rigidly connected with
+the Earth. Therefore, the algorithm uses a 3D terrain map of the area from which the image Imwas
+taken and over which the UAV ﬂies. Therefore, one can determine the coordinates of the points:
+ri=xi
+yi
+zi
+which generated mipoints in the Earth coordinate system. However, if icorresponds to the pair of
+points that is not an outlier, then the point rialso generates a point ciin the UAV camera.
+Figure 2. (a) Image Icof the on-board camera of the UAV; ( b) template image loaded in the UAV
+memory in advance.
+Another Cartesian coordinate system is rigidly connected with the UAV camera. The axis of the
+camera is parallel to the axis z. The transformation from the Earth coordinate system to the UAV
+coordinate system has the form:
+r0=A(r b)
+where brepresents the coordinates of the camera in the Earth coordinate system and Ais the
+orthogonal ( AAT=I) rotation matrix deﬁning the orientation of the UAV camera. Then, the points
+riin the camera coordinate system are:
+r0
+i=A(ri b)
+29805
+
+--- Page 5 ---
+Sensors 2015 ,15, 29802–29820
+To deﬁne the relation between riand the feature points ci, one can use the model of the camera
+obscura. This model gives a central projection on the plane:
+ci=rxi
+rziryi
+rzi
+where: rxi
+ryi
+rzi=ri=Kr0
+i=KA(ri b)
+where Kis a known calibration matrix of the camera.
+Thus, the task is to estimate Aand bon the basis of known ci,ri,K. The minimum number of
+feature point pairs needed to solve this task is three.
+One can give the solution of the problem under the assumption that there are just three pairs:
+i=f1, 2, 3g
+Points r0
+iform a triangle in the space with the following sides:
+r1=jjr0
+2 r0
+3jj2,r2=jjr0
+3 r0
+1jj2,r3=jjr0
+1 r0
+2jj2
+Meanwhile, due to the rectilinear propagation of light, each point r0
+ilies on the beam r0=ait,
+where tis a scalar parameter, and:
+ai=K 1cxi
+cyi
+1
+In order to ﬁnd r0
+i, we have to determine parameters ti,i=f1, 2, 3gthat satisfy the system of
+quadratic equations:8
+>><
+>>:(a2t2 a3t3)T(a2t2 a3t3) =r2
+1
+(a3t3 a1t1)T(a3t3 a1t1) =r2
+2
+(a1t1 a2t2)T(a1t1 a2t2) =r2
+3
+For the given t1, this system may be either solved analytically or has no solution.
+A determination of t1can be done numerically, for example by the bisection method.
+Finally, one can obtain the coordinates of three points on the Earth’s surface in the camera
+coordinate system r0
+iand, at the same time, in the Earth coordinate system ri. The connection between
+them is: r0
+i=A(ri b). Since Ais the orthogonal matrix, then y=Aximpliesjjyjj2=jjxjj2; thereby:
+r0T
+ir0
+i= (ri b)T(ri b)
+Therefore, we have eliminated Aand obtained the problem of ﬁnding the intersection of three
+spheres, which can be solved analytically. This problem may have two solutions; one of them will be
+rejected later. When bhas been found, solutions for Aare as follows:
+A=r0
+1r0
+2r0
+3r1 b r 2 b r 3 b 1
+Therefore, there are two options, and only one of them is correct:
+a11
+a21
+a31=a12
+a22
+a32a13
+a23
+a33ora11
+a21
+a31= a12
+a22
+a32a13
+a23
+a33
+29806
+
+--- Page 6 ---
+Sensors 2015 ,15, 29802–29820
+If the ﬁrst one is correct, then the second one corresponds exactly to the turnover.
+As a result, Aand bhave been found by using three pairs of feature points and the height map.
+However, this approach alone is not suitable as the ﬁnal solution, due to the following problems:
+1. The method gives either knowingly false solution or no solution at all if among the three
+points there are outliers.
+2. There is a strong dependence on the noise in the feature points’ location.
+Both problems may be solved with random sample consensus (RANSAC) [21,22]. From the
+general selection of points, one needs to select Ntimes a subsample of size three. For each subsample
+j=f1, 2,,Ng, one can calculate Ajand bj, which allows one to simulate the generation of all
+feature points on the UAV camera:
+cji=rjxi
+rjzirjyi
+rjzi,rj=Kr0
+ji=KA j(rji bj)
+Then, one can evaluate which points are the outliers by the threshold sji=1(jjci cjijj2<d),
+where dis the threshold. Here, sji=0 means that projection of the i-th point on the j-th point is
+counted as an outlier, otherwise sji=1. The answer will be the following:
+A=AJ,b=bJ,J=arg max
+jå
+isji
+Therefore, we really solve the problem of outliers. Next, we ﬁnd the required number of N
+subsamples of a size of three, such that among them, there will be at least one subsample without
+outliers with probability p. Let the proportion of outliers be 1  w. It is easy to see that [21]:
+N(p) =log(1 p)
+log(1 w3)
+In the case when w=1
+2:N(0.9999 )69, which shows the high efﬁciency of algorithm.
+After that, the points marked as outliers are removed from consideration. The clariﬁcation of the
+response is made by the numerical solution of the following optimization problem on the set of
+remaining points:
+fA,bg=arg min
+A,bå
+ijjci ci(A,b)jj2
+2
+Thereby, the second problem of noise reduction may be solved. However, one can use a more
+advanced procedure, which takes into account the motion model. A more stable solution may be
+obtained with the aid of so-called robust RANSAC [23]; the idea is to use predicted values of (A,b)
+for the preliminary rejection of outliers from the pairs of observed feature points. Therefore, if on the
+k-th step of the ﬁltering procedure, the values (Ak,bk)have been obtained, one can use the following
+values on the (k+1)-th step:
+(Ak+1,bk+1) = ( Ak,ˆbk+1) (1)
+where ˆbk+1is the predicted estimate of the UAV attitude obtained on the basis of the PKF estimate.
+The ﬁltering approach is described in Section 5.
+3. Filtering Problem Statement
+The problem of bearing-only ﬁltering is considered to determine the coordinates of the UAV ,
+which can observe some objects with known coordinates. These objects can be either the well
+recognizable objects or a network of radio-beacon stations with a well-speciﬁed frequency and known
+coordinates. In this work, the function of beacons is performed by the feature points determined with
+the aid of the RANSAC algorithm. The UAV has the standard set of INS devices, which enables
+29807
+
+--- Page 7 ---
+Sensors 2015 ,15, 29802–29820
+it to perform the ﬂight with some degree of accuracy, which, however, is not sufﬁcient for mission
+completion.
+3.1. Model of the UAV’s Motion
+We assume that a UAV motion is described by three coordinates (X(tk),Y(tk),Z(tk))and
+velocities (Vx(tk),Vy(tk),Vz(tk)). At times tk=kDt,k=1, 2, ..., these coordinates satisfy the
+following equations:
+X(tk+1) =FX(tk) +Ba(tk) +W(tk) (2)
+where:
+X(tk) = ( X(tk),Y(tk),Z(tk),Vx(tk),Vy(tk),Vz(tk))T
+is the vector of state-velocities,
+a(tk) = ( ax(tk),ay(tk),az(tk))T
+is the vector of accelerations, which we consider as controls,
+W(tk) = ( 0, 0, 0, Wx(tk),Wy(tk),Wz(tk))T
+is the vector of current perturbations, modeling the turbulence components of the wind and the
+autopilot errors, as well. The matrices Aand Bare equal:
+F=0
+BBBBBBB@1 0 0 Dt0 0
+0 1 0 0 Dt0
+0 0 1 0 0 Dt
+0 0 0 1 0 0
+0 0 0 0 1 0
+0 0 0 0 0 11
+CCCCCCCA
+B=0
+BBBBBBBB@Dt2
+20 0
+0Dt2
+20
+0 0Dt2
+2
+Dt 0 0
+0Dt 0
+0 0 Dt1
+CCCCCCCCA
+and stochastic Equation (2) describes a controlled and perturbed UAV motion.
+3.2. Measurements
+Assume that (Xi,Yi,Zi)are the coordinates of the i-th reference point and fi(tk),li(tk)are the
+bearing angles on that point. The measuring scheme is shown in Figure 3.
+Figure 3. Scheme of the measurements of bearing angles. Xi,Yi,Ziare the coordinates of the i-th
+feature point; l(tk),f(tk)are the elevation and azimuth bearing angles, measured at the moment tk.
+29808
+
+--- Page 8 ---
+Sensors 2015 ,15, 29802–29820
+At moment tk, these angles satisfy the relations:
+Yi+#y
+k Y(tk)
+Xi+#x
+k X(tk)Ii(tk) =tanfi(tk) +#f
+k
+Zi+#z
+k Z(tk)q
+(Xi+#x
+k X(tk))2+ (Yi+#y
+k Y(tk))2Ii(tk) =tanli(tk) +#l
+k(3)
+where #x
+kWN (0,s2
+x),#y
+kWN (0,s2
+y),#z
+kWN (0,s2
+z),#f
+kWN (0,s2
+f),#l
+kWN (0,s2
+l)are
+uncorrelated random variables with zero means and variances s2
+x,s2
+y,s2
+z,s2
+f,s2
+l, deﬁned as errors
+in the measurement of the coordinates of the i-th reference point and of the tangents of angles
+fi(tk),li(tk)and forming the white noise sequences.
+Remark 1. In the majority of works based on the method of pseudo-measurements, another model is used.
+It assumes the measurements of the angles with Gaussian errors (see [12,14] and most of the successive works).
+However, in the real deﬁnition of the object position in the image or in the matrix of sensors, the system measures
+the distance between the object image and the center of the sensor, that is the tangent of the bearing angle. This
+simple observation allows one to ﬁnd the unbiased estimate of the UAV coordinates.
+One can rewrite Equation (3) for angle li(tk)as follows:
+Zi+#z
+k Z(tk)
+Yi+#y
+k Y(tk)sinfi(tk)Ii(tk) =sinli(tk)
+cosli(tk)+#l
+k(4)
+Remark 2. The indicator function I i(tk) = 1if at t kthe bearing of the i-th reference point occurs, and
+Ii(tk) =0otherwise. For convenience, we assume that I i(tk) =1.
+Therefore, at the moment tk, the UAV control system determines the angles fi(tk)andli(tk),
+related to the coordinates of the UAV (X(tk),Y(tk),Z(tk))as follows:
+(Yi+#y
+k Y(tk))cosfi(tk) (Xi+#x
+k X(tk))sinfi(tk)
+=#f
+k(Xi+#x
+k X(tk))cosfi(tk)
+(Zi+#z
+k Z(tk))sinfi(tk)cosli(tk) (Yi+#y
+k Y(tk))sinli(tk)
+=#l
+k(Yi+#y
+k Y(tk))cosli(tk)(5)
+4. Modiﬁed Kalman Filtering on the Basis of Pseudo-Measurements
+4.1. Linear Measurements Model
+The idea of the pseudo-measurement method is to separate in Equation (5) the observable and
+non-observable values, which gives the following observation equations:
+mf
+k=Yicosfi(tk) Xisinfi(tk) =Y(tk)cosfi(tk) X(tk)sinfi(tk)
+ #y
+kcosfi(tk) +#x
+ksinfi(tk) +#f
+k(Xi+#x
+k X(tk))cosfi(tk)
+ml
+k=Zisinfi(tk)cosli(tk) Yisinli(tk) =Z(tk)sinfi(tk)cosli(tk) Y(tk)sinli(tk)
+ #z
+ksinfi(tk)cosli(tk) +#y
+ksinli(tk) +#l
+k(Yi+#y
+k Y(tk))cosli(tk)(6)
+where Xi,Yi,Zirepresent the coordinates of the i-th feature point determined with the aid of the
+RANSAC algorithm and fi,liare the corresponding observable bearing angles measured by the
+system. Thus, the left-hand side of Equation (6), that is (mf
+k,ml
+k), corresponds to the observable
+values, whereas the right-hand side containing the coordinates of the UAV corresponds to the
+non-observable ones. The aim is to estimate the coordinates and velocities of the UAV on the basis
+29809
+
+--- Page 9 ---
+Sensors 2015 ,15, 29802–29820
+of linear observation Equation (6) and the motion model Equation (2). Therefore, the measurement
+vector has the following form:
+mk= 
+mf
+k
+ml
+k!
+=0
+BBBBB@Y(tk)cosfi(tk) X(tk)sinfi(tk) #y
+kcosfi(tk) +#x
+ksinfi(tk)
++#f
+k(Xi+#x
+k X(tk))cosfi(tk)
+Z(tk)sinfi(tk)cosli(tk) Y(tk)sinli(tk) #z
+ksinfi(tk)cosli(tk)
++#y
+ksinli(tk) +#l
+k(Yi+#y
+k Y(tk))cosli(tk)1
+CCCCCA(7)
+Thereby, we obtain the system Equation (7) of linear measurement equations, though the noise
+variance depends on non-observable coordinates. By using V .S. Pugachev’s method [15], one can
+obtain the unbiased estimate and the variance with the aid of a prediction-correction ﬁlter [24].
+Moreover, we do not need to assume the Gaussian distribution of errors that is not valid in bearing
+observations with optical-electronic cameras with discrete image sensors.
+4.2. Prediction-Correction Estimation
+Assume that at the moment tk, we have unbiased estimates ˆX(tk), such that:
+E(ˆX(tk)) = X(tk) (8)
+with the following matrix of the mean-square errors:
+ˆP(tk) =E(ˆX(tk) X(tk))(ˆX(tk) X(tk))T	
+=0
+BBBBBBB@ˆPxx(tk) ˆPxy(tk)... ... ... ˆPxVz(tk)
+ˆPxy(tk) ˆPyy(tk)... ... ... ˆPyVz(tk)
+ˆPxz(tk) ˆPyz(tk)... ... ... ˆPzVz(tk)
+ˆPxVx(tk)ˆPyVx(tk)... ... ... ˆPVxVz(tk)
+ˆPxVy(tk)ˆPyVy(tk)... ... ... ˆPVyVz(tk)
+ˆPxVz(tk)ˆPyVz(tk)... ... ... ˆPVzVz(tk)1
+CCCCCCCA(9)
+Problem 1. Find the unbiased estimates ˆX(tk+1)and matrix ˆP(tk+1)on the basis of estimates at the
+moment t k,mk, the known position of the i-th observable object (Xi,Yi,Zi)and the UAV’s motion parameter
+Equation (2). These estimates must satisfy Equation (8) and give the matrix Equation (9) for the moment t k+1.
+4.2.1. Prediction
+The prediction is obtained by assuming that at the moment tk+1, the values of f(tk+1),l(tk+1)
+will be known:
+˜X(tk+1) =FˆX(tk) +Ba(tk)
+˜mk+1= 
+˜mf
+k+1
+˜ml
+k+1!
+= 
+I(tk+1)(˜Y(tk+1)cosf(tk+1) ˜X(tk+1)sinf(tk+1))
+I(tk+1)(˜Z(tk+1)sinf(tk+1)cosl(tk+1) ˜Y(tk+1)sinl(tk+1))!(10)
+Assuming that the motion perturbations and the UAV position are uncorrelated, we obtain:
+29810
+
+--- Page 10 ---
+Sensors 2015 ,15, 29802–29820
+˜P(tk+1) =0
+BBBBBBB@˜Pxx(tk+1) ˜Pxy(tk+1)... ... ... ˜PxVz(tk+1)
+˜Pxy(tk+1) ˜Pyy(tk+1)... ... ... ˜PyVz(tk+1)
+˜Pxz(tk+1) ˜Pyz(tk+1)... ... ... ˜PzVz(tk+1)
+˜PxVx(tk+1)˜PyVx(tk+1)... ... ... ˜PVxVz(tk+1)
+˜PxVy(tk+1)˜PyVy(tk+1)... ... ... ˜PVyVz(tk+1)
+˜PxVz(tk+1)˜PyVz(tk+1)... ... ... ˜PVzVz(tk+1)1
+CCCCCCCA(11)
+where the elements of this matrix are:
+˜Pxx(tk+1) = ˆPxx(tk) +2ˆPxVx(tk)Dt+ˆPVxVx(tk)Dt2
+˜Pyy(tk+1) = ˆPyy(tk) +2ˆPyVy(tk)Dt+ˆPVyVy(tk)Dt2
+˜Pzz(tk+1) = ˆPzz(tk) +2ˆPzVz(tk)Dt+ˆPVzVz(tk)Dt2
+˜Pxy(tk+1) = ˆPxy(tk) + ˆPxVy(tk)Dt+ˆPyVx(tk)Dt+ˆPVxVy(tk)Dt2
+˜Pxz(tk+1) = ˆPxz(tk) + ˆPxVz(tk)Dt+ˆPzVx(tk)Dt+ˆPVxVz(tk)Dt2
+˜Pyz(tk+1) = ˆPyz(tk) + ˆPyVz(tk)Dt+ˆPzVy(tk)Dt+ˆPVyVz(tk)Dt2
+˜PxVx(tk+1) = ˆPxVx(tk) + ˆPVxVx(tk)Dt
+˜PxVy(tk+1) = ˆPxVy(tk) + ˆPVxVy(tk)Dt
+˜PxVz(tk+1) = ˆPxVz(tk) + ˆPVxVz(tk)Dt
+˜PyVx(tk+1) = ˆPyVx(tk) + ˆPVxVy(tk)Dt
+˜PyVy(tk+1) = ˆPyVy(tk) + ˆPVyVy(tk)Dt
+˜PyVz(tk+1) = ˆPyVz(tk) + ˆPVyVz(tk)Dt
+˜PzVx(tk+1) = ˆPzVx(tk) + ˆPVxVz(tk)Dt
+˜PzVy(tk+1) = ˆPzVy(tk) + ˆPVyVz(tk)Dt
+˜PzVz(tk+1) = ˆPzVz(tk) + ˆPVzVz(tk)Dt
+˜PVxVx(tk+1) = ˆPVxVx(tk) +s2
+X˜PVyVy(tk+1) = ˆPVyVy(tk) +s2
+Y˜PVzVz(tk+1) = ˆPVzVz(tk) +s2
+Z
+˜PVxVy(tk+1) = ˆPVxVy(tk)
+˜PVxVz(tk+1) = ˆPVxVz(tk)
+˜PVyVz(tk+1) = ˆPVyVz(tk)(12)
+Note that s2
+Xis not the same as s2
+xand similarly for the other indices.
+Then, the following values ˜Pxm(tk+1),˜Pym(tk+1),˜Pzm(tk+1),˜PVxm(tk+1),˜PVym(tk+1),˜PVzm(tk+1),
+˜Pmm(tk+1)should be calculated using the following relations:
+ 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!
+=0
+BBB@(Y(tk+1) ˜Y(tk+1))cosfi(tk+1) (X(tk+1) ˜X(tk+1))sinfi(tk+1)
+ #y
+k+1cosfi(tk+1) +#x
+k+1sinfi(tk+1) +#f
+k+1(Xi+#x
+k+1 X(tk+1))cosfi(tk+1)
+(Z(tk+1) ˜Z(tk+1))sinfi(tk+1)cosli(tk+1) (Y(tk+1) ˜Y(tk+1))sinli(tk+1)
+ #z
+k+1sinfi(tk+1)cosli(tk+1) +#y
+k+1sinli(tk+1) +#l
+k+1(Yi+#y
+k+1 Y(tk+1))cosli(tk+1)1
+CCCA
+and the identities:
+Xi X(tk+1) =Xi ˜X(tk+1) (X(tk+1) ˜X(tk+1))
+Yi Y(tk+1) =Yi ˜Y(tk+1) (Y(tk+1) ˜Y(tk+1))
+Zi Z(tk+1) =Zi ˜Z(tk+1) (Z(tk+1) ˜Z(tk+1))
+where we consider that the position of the i-th object is known and use the non-correlatedness
+of#x
+k+1,#y
+k+1,#z
+k+1,#f
+k+1,#l
+k+1and differences (X(tk+1) ˜X(tk+1)),(Y(tk+1) ˜Y(tk+1))
+and(Z(tk+1) ˜Z(tk+1)).
+29811
+
+--- Page 11 ---
+Sensors 2015 ,15, 29802–29820
+Finally, we get:
+˜Pxm(tk+1)T=E"
+(X(tk+1) ˜X(tk+1)) 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!#
+= 
+˜Pxy(tk+1)cosfi(tk+1) ˜Pxx(tk+1)sinfi(tk+1)
+˜Pxz(tk+1)sinfi(tk+1)cosli(tk+1) ˜Pxy(tk+1)sinli(tk+1)!
+,(13)
+˜Pym(tk+1)T=E"
+(Y(tk+1) ˜Y(tk+1)) 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!#
+= 
+˜Pyy(tk+1)cosfi(tk+1) ˜Pxy(tk+1)sinfi(tk+1)
+˜Pyz(tk+1)sinfi(tk+1)cosli(tk+1) ˜Pyy(tk+1)sinli(tk+1)!
+,(14)
+˜Pzm(tk+1)T=E"
+(Z(tk+1) ˜Z(tk+1)) 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!#
+= 
+˜Pyz(tk+1)cosfi(tk+1) ˜Pxz(tk+1)sinfi(tk+1)
+˜Pzz(tk+1)sinfi(tk+1)cosli(tk+1) ˜Pyz(tk+1)sinli(tk+1)!
+,(15)
+˜PVxm(tk+1)T=E"
+(Vx(tk+1) ˜Vx(tk+1)) 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!#
+= 
+˜PyVx(tk+1)cosfi(tk+1) ˜PxVx(tk+1)sinfi(tk+1)
+˜PzVx(tk+1)sinfi(tk+1)cosli(tk+1) ˜PyVx(tk+1)sinli(tk+1)!
+,(16)
+˜PVym(tk+1)T=E"
+(Vy(tk+1) ˜Vy(tk+1)) 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!#
+= 
+˜PyVy(tk+1)cosfi(tk+1) ˜PxVy(tk+1)sinfi(tk+1)
+˜PzVy(tk+1)sinfi(tk+1)cosli(tk+1) ˜PyVy(tk+1)sinli(tk+1)!
+,(17)
+˜PVzm(tk+1)T=E"
+(Vz(tk+1) ˜Vz(tk+1)) 
+mf
+k+1 ˜mf
+k+1
+ml
+k+1 ˜ml
+k+1!#
+= 
+˜PyVz(tk+1)cosfi(tk+1) ˜PxVz(tk+1)sinfi(tk+1)
+˜PzVz(tk+1)sinfi(tk+1)cosli(tk+1) ˜PyVz(tk+1)sinli(tk+1)!
+.(18)
+In a similar way, we calculate:
+(˜Pmm(tk+1)) 1
+="
+E 
+(mf
+k+1 ˜mf
+k+1)2(mf
+k+1 ˜mf
+k+1)(ml
+k+1 ˜ml
+k+1)
+(mf
+k+1 ˜mf
+k+1)(ml
+k+1 ˜ml
+k+1) ( ml
+k+1 ˜ml
+k+1)2!# 1(19)
+29812
+
+--- Page 12 ---
+Sensors 2015 ,15, 29802–29820
+Therefore:
+Eh
+(mf
+k+1 ˜mf
+k+1)2i
+=˜Pyy(tk+1)cos2fi(tk+1) ˜Pxy(tk+1)sin 2fi(tk+1)
++˜Pxx(tk+1)sin2fi(tk+1) +s2
+ycos2fi(tk+1) +s2
+xsin2fi(tk+1) +s2
+f((Xi ˆX(tk))2
++˜Pxx(tk+1) +s2
+x)cos2fi(tk+1)
+Eh
+(mf
+k+1 ˜mf
+k+1)(ml
+k+1 ˜ml
+k+1)i
+=˜Pyz(tk+1)sinfi(tk+1)cosfi(tk+1)cosli(tk+1)
+ ˜Pyy(tk+1)cosfi(tk+1)sinli(tk+1) ˜Pxz(tk+1)sin2fi(tk+1)cosli(tk+1)
++˜Pxy(tk+1)sinfi(tk+1)sinli(tk+1)
+Eh
+(ml
+k+1 ˜ml
+k+1)2i
+=˜Pzz(tk+1)sin2fi(tk+1)cos2li(tk+1) ˜Pyz(tk+1)sinfi(tk+1)sin 2li(tk+1)
++˜Pyy(tk+1)sin2li(tk+1) +s2
+zsin2fi(tk+1)cos2li(tk+1) +s2
+ysin2li(tk+1) +s2
+l((Yi ˆY(tk))2
++˜Pyy(tk+1) +s2
+y)cos2li(tk+1)
+4.2.2. Correction
+After getting the measurements at the moment tk+1, one can obtain the estimate of the UAV
+position at this moment. Therefore, the solution of Problem 1 has the form:
+ˆX(tk+1) = ˜X(tk+1) +˜P(tk+1)(˜Pmm(tk+1)) 1(mk+1 ˜mk+1) (20)
+and the matrix of the mean square errors is equal to:
+ˆP(tk+1) = ˜P(tk+1) ˜P(tk+1)(˜Pmm(tk+1)) 1˜P(tk+1)T(21)
+where:
+˜P(tk+1) = ( ˜Pxm(tk+1),˜Pym(tk+1), ...,˜PVzm(tk+1))T
+5. Robust Filtering on the Basis of the UA V Motion Model
+The RANSAC method calculates the rotation matrix and the coordinates of the camera fA,bg
+in the Earth coordinate system with some minor error. However, the RANSAC method can give quite
+the wrong answer, called an outlier. It could happen, for example, if the frames Icand Imdo not
+depict common objects. We provide further a method that makes a decision about whether fA,bg
+is an outlier or not. This problem has been considered in relation to the exclusion of outliers in the
+RANSAC-type procedures [25,26]. Here, we use the modiﬁcation of the robust RANSAC [23] based
+on PKF for bearing-only observations [17].
+After the prediction step of the Kalman ﬁlter, one can estimate the UAV (camera) position and
+the matrix of the mean square errors:
+˜X=˜X(tk+1),˜P=˜P(tk+1).
+Like in [26], one can suppose that the corresponding probability density is Gaussian. The
+reason is that the PKF gives the best linear estimates obtained until the current time t. This
+estimate is the sum of uncorrelated random variables with almost the same variations, at least
+on the short intervals preceding the current time. It gives the opportunity to approximate the
+probability density distribution by the Gaussian one. Further extension of the robust RANSAC
+technique is based on the prior distribution of the UAV attitude. The approach has been
+developed in [23,27] on the basis of the extended Kalman ﬁlter (EKF). However, the estimate
+29813
+
+--- Page 13 ---
+Sensors 2015 ,15, 29802–29820
+given by the EKF has an unknown bias and, of course, does not give the posterior Gaussian
+distribution. Therefore, the PKF, which gives an unbiased estimate, looks more preferable under
+the hypothesis of the posterior Gaussian distribution. Therefore, at the (k+1)-th step, the
+posterior distribution of r0
+icorresponding to an inlier is assumed to be Gaussian, that is according
+to Equation (1):
+N(Ak(ri ˜X(tk+1)),Ak(˜P(tk+1) +Prr)AT
+k)
+where Prris the covariance matrix of the landmarks localization. Further, in the estimation algorithm,
+the pairfAk,˜X(tk+1)gis considered as an outlier at the conﬁdence level 95% if:
+kr0
+i Ak(ri ˜X(tk+1))k 2Sp[Ak(˜P(tk+1) +Prr)AT
+k]
+Otherwise, the correction step is based on fAk,˜X(tk+1)g. Of course, all such nonlinear
+conjectures need conﬁrmation on the basis of statistical modeling, which is one of the results of this
+article. One can observe the performance of robust ﬁltering in the following ﬁgures. Figure 4 shows
+the correspondence between feature points obtained without a UAV motion model. Next, Figure 5
+shows the correspondence established on the basis of the UAV motion model. The number of outliers
+reduces substantially.
+Figure 4. Correspondence between ( a) (image Icof the on-board camera of the UAV) and ( b) (template
+image loaded in the UAV memory in advance) feature points found without the UAV motion model.
+One can observe chaotic correspondence, which gives a huge number of outliers.
+Figure 5. Correspondence between ( a) (image Icof the on-board camera of the UAV) and ( b) (template
+image loaded in the UAV memory in advance) feature points found with the aid of RANSAC based
+on the UAV motion model. The number of outliers reduces substantially.
+29814
+
+--- Page 14 ---
+Sensors 2015 ,15, 29802–29820
+6. Control of the UA V
+Control of a UAV that ensures its motion along the reference trajectory may be determined on the
+basis of the standard deterministic linear-quadratic approach [28]. However, the problem of control
+on the basis of bearing-only observation is different from the standard one. It should be underlined
+that this problem is a non-linear one and cannot be solved by the standard way. The problem of the
+optimal control for the system Equation (2) is the stochastic one with incomplete information and
+does not have an explicit solution. However, for practical reasons, one can simplify it by considering
+the locally optimal control. Here, we discuss the following problem:
+Problem 2. Find the locally optimal controls a x(tk),ay(tk)and a z(tk)aimed to keep the motion of the UAV
+along the reference trajectory.
+Assume that we have some reference trajectory Xnom(tk).
+Therefore, at the moment tk+1, we have to minimize the following expressions:
+E1=Ef(X(tk+1) Xnom(tk+1))2+ (Vx(tk+1) Vxnom(tk+1))Dt)2g! min
+ax(tk)
+E2=Ef(Y(tk+1) Ynom(tk+1))2+ (Vz(tk+1) Vznom(tk+1))Dt)2g! min
+ay(tk)
+E3=Ef(Z(tk+1) Znom(tk+1))2+ (Vz(tk+1) Vznom(tk+1))Dt)2g! min
+az(tk)
+Let us consider the components of the E1expression:
+X(tk+1) Xnom(tk+1) =X(tk) ˆX(tk) (Xnom(tk) ˆX(tk))
++ (Vx(tk) ˆVx(tk))Dt (Vxnom(tk) ˆVx(tk))Dt+ (ax(tk) axnom(tk))Dt2
+2
+Vx(tk+1) Vxnom(tk+1) =Vx(tk) ˆVx(tk) (Vxnom(tk) ˆVx(tk)) + ( ax(tk) axnom(tk))Dt
++Wx(tk)
+Then, we square these components and take the derivative of the sum with respect to ax(tk)
+given that some components are uncorrelated:
+Ef(X(tk) ˆX(tk))(Xnom(tk) ˆX(tk))g=0
+Ef(Vx(tk) ˆVx(tk))(Vxnom(tk) ˆVx(tk))g=0
+Finally, we get:
+ax(tk) =axnom(tk) +2(Xnom(tk) ˆX(tk))
+5Dt2 +6(Vxnom(tk) ˆVx(tk))
+5Dt(22)
+We take into account that the acceleration of the UAV has limitations [axmin,axmax], so the control
+acceleration has the form:
+ac
+x(tk) =8
+><
+>:axmini f a x(tk)<axmin,
+ax(tk)i f a xminax(tk)axmax,
+axmax i f a x(tk)>axmax.
+Similarly, we obtain the expressions for ac
+y(tk)and ac
+z(tk). Thus, we get the following solution of
+Problem 2 [19]:
+ˆ a(tk) = ˆ anom(tk) +2
+5Dt2(ˆXnom(tk) ˆX(tk)) +6
+5Dt(ˆVnom(tk) ˆV(tk)) (23)
+29815
+
+--- Page 15 ---
+Sensors 2015 ,15, 29802–29820
+where:
+ˆ a(tk) = ( ax(tk),ay(tk),az(tk))T
+ˆX(tk) = ( X(tk),Y(tk),Z(tk))T
+ˆV(tk) = ( Vx(tk),Vy(tk),Vz(tk))T
+and similarly for the nominal trajectory components.
+7. Experimental Results
+In this section, we give the results of the algorithm’s modeling. The UAV is virtually ﬂying
+over the landscape shown in Figure 1. This image has been obtained from Google Maps, and for
+veriﬁcation of the algorithm, the image of the same region obtained from another Bing satellite was
+used. Therefore, these two images modeled the preliminary downloaded template and the image
+obtained by the on-board camera. The result of virtual ﬂight experiment is shown in Figure 6.
+Figure 6. Blue dots corresponds to the reference trajectory and black dots to the real path. Blue squares
+show the localization of the terrain areas corresponding to the template images, and red squares show
+the moments where the estimates of the UAV positions have been obtained and assumed to be reliable
+according to the robust RANSAC algorithm described in Section 5.
+8. Results and Discussion
+In the modeling of the control algorithm, we use the UAV moving approximately with a velocity
+of 50 m/s, though the change of the altitude is assumed to be rather substantial. The control
+algorithm takes into account the constraints imposed on linear acceleration and angular velocities.
+The software developed for modeling may be used in a real on-board navigation system, as well.
+Moreover, the ﬁltering algorithm based on unbiased estimation may be easily incorporated with the
+INS, since it gives also the unbiased square error estimates, which opens the way to correct data
+fusion. The quality of tracking for x,y,zcomponents is shown below in Figures 7–9, respectively.
+In all of these ﬁgures, blue dots correspond to the reference trajectory, black dots to the real path
+and red squares to the moments, where the estimates of the UAV positions have been obtained and
+29816
+
+--- Page 16 ---
+Sensors 2015 ,15, 29802–29820
+assumed to be reliable according to the robust RANSAC algorithm. One can observe that in the
+“measurement” areas, the algorithm estimates the coordinates with high accuracy, and the control
+provides the tracking with high accuracy, as well.
+Figure 7. Tracking of the x-coordinate.
+Figure 8. Tracking of the y-coordinate.
+29817
+
+--- Page 17 ---
+Sensors 2015 ,15, 29802–29820
+Figure 9. Tracking of the z-coordinate.
+Figure 10. Averaged standard deviation of the position estimation error. The limit value in the
+observation areas is close to 24.5 m. One can see that in the areas of no observations, the SD
+monotonically increases.
+The high accuracy is in accordance with the standard deviation (SD) theoretically calculated
+from the PKF. The value of the averaged standard deviation, which is the square root of
+Pxx(t) +Pyy(t) +Pzz(t), is shown in Figure 10 below.
+29818
+
+--- Page 18 ---
+Sensors 2015 ,15, 29802–29820
+9. Conclusions
+The main result of the work is the new algorithm of the UAV control based on the observation
+of the landmarks in a 3D environment. The new RANSAC based on the UAV motion model permits
+one to exclude the huge number of outliers and, by that, to provide the reliable set of data for the
+estimation of the UAV position on the basis of the novel non-biased PKF algorithm. This work is just
+the beginning of the implementation of this approach in the navigation of UAVs during long-term
+autonomous missions.
+Acknowledgments: This research was supported by Russian Science Foundation Grant 14-50-00150.
+Author Contributions: The work presented here was carried out in collaboration among all authors. All authors
+have contributed to, seen and approved the manuscript.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. Osborn, R.W.; Bar-Shalom, Y. Statistical Efﬁciency of Composite Position Measurements from Passive
+Sensors. IEEE Trans. Aerosp. Electron. Syst. 2013 ,49, 2799–2806.
+2. Cesetti, A.; Frontoni, E.; Mancini, A.; Zingaretti, P .; Longhi, S. A Vision-Based Guidance System for UAV
+Navigation and Safe Landing Using Natural Landmarks. J. Intell. Robot. Syst. 2010 ,57, 233–257.
+3. Caballero, F.; Merino, L.; Ferruz, J.; Ollero, A. Vision-Based Odometry and SLAM for Medium and High
+Altitude Flying UAVs. J. Intell. Robot. Syst. 2009 ,54, 137–161.
+4. Wang, C.L.; Wang, T.M.; Liang, J.H.; Zhang, Y.C.; Zhou, Y. Bearing-only Visual SLAM for Small Unmanned
+Aerial Vehicles in GPS-denied Environments. Int. J. Autom. Comput. 2013 ,10, 387–396.
+5. Konovalenko, I.; Kuznetsova, E. Experimental comparison of methods for estimation the observed velocity
+of the vehicle in video stream. In Proceedings of the SPIE 9445, Seventh International Conference on
+Machine Vision (ICMV 2014), Milan, Italy, 19–21 November 2014; Volume 9445.
+6. Lowe, D.G. Object recognition from local scale-invariant features. In Proceedings of the International
+Conference on Computer Vision, Kerkyra, Greece, 20–27 September 1999; Volume 2, pp. 1150–1157.
+7. Konovalenko, I.; Miller, A.; Miller, B.; Nikolaev, D. UAV navigation on the basis of the feature points
+detection on underlying surface. In Proceedings of the 29th European Conference on Modeling and
+Simulation (ECMS 2015), Albena (Varna), Bulgaria, 26–29 May 2015; pp. 499–505.
+8. Guan, X.; Bai, H. A GPU accelerated real-time self-contained visual navigation system for UAVs.
+In Proceedings of the IEEE International Conference on Information and Automation, Shenyang, China,
+6–8 June 2012; pp. 578–581.
+9. Belfadel, D.; Osborne, R.W.; Bar-Shalom, Y. Bias Estimation for Optical Sensor Measurements with Targets
+of Opportunity. In Proceedings of the 16th International Conference on Information Fusion, Istanbul,
+Turkey, 9–12 July, 2013; pp. 1805–1812.
+10. Bishop, A.N.; Fidan, B.; Anderson, B.D.O.; Dogancay, K.; Pathirana, P .N. Optimality analysis of
+sensor-target localization geometries. Automatica 2010 ,46, 479–492.
+11. Jauffet, C.; Pillon, D.; Pignoll, A.C. Leg-by-Leg Bearings-only Target Motion Analysis without Observer
+Maneuver. J. Adv. Inf. Fusion 2011 ,6, 24–38.
+12. Lin, X.; Kirubarajan, T.; Bar-Shalom, Y.; Maskell, S. Comparison of EKF, Pseudomeasurement and Particle
+Filters for a Bearing-only Target Tracking Problem. Proc. SPIE Int. Soc. Opt. Eng. 2002 ,4728 , 240–250.
+13. Miller, B.M.; Stepanyan, K.V .; Miller, A.B.; Andreev, K.V .; Khoroshenkikh, S.N. Optimal ﬁlter selection for
+UAV trajectory control problems. In Proceeedings of the 37th Conference on Information Technology and
+Systems, Kaliningrad, Russia, 1–6 September 2013; pp. 327–333.
+14. Aidala, V .J.; Nardone, S.C. Biased Estimation Properties of the Pseudolinear Tracking Filter. IEEE Trans.
+Aerosp. Electron. Syst. 1982 ,18, 432–441.
+15. Pugachev, V .S.; Sinitsyn, I.N. Stochastic Differential Systems—Analysis and Filtering ; Wiley: Chichester, UK, 1987.
+16. Amelin, K.S.; Miller, A.B. An Algorithm for Reﬁnement of the Position of a Light UAV on the Basis of
+Kalman Filtering of Bearing Measurements. J. Commun. Technol. Electron. 2014 ,59, 622–631.
+29819
+
+--- Page 19 ---
+Sensors 2015 ,15, 29802–29820
+17. Miller, A.B. Development of the motion control on the basis of Kalman ﬁltering of bearing-only
+measurements. Autom. Remote Control 2015 ,76, 1018–1035.
+18. Karpenko, S.; Konovalenko, I.; Miller, A.; Miller, B.; Nikolaev, D. Stochastic control of UAV on the basis
+of 3D natural landmarks. In Proceedings of the 17th International Conference on Machine Vision (ICMV),
+Barselona, Spain, 19–20 November 2015.
+19. Miller, A.B.; Miller, B.M. Stochastic control of light UAV at landing with the aid of bearing-only
+observations. In Proceedings of the 17th International Conference on Machine Vision (ICMV), Barselona,
+Spain, 19–20 November 2015.
+20. GitHub. Available online: https://github.com/Itseez/opencv/blob/master/samples/python2/ asift.py
+(accessed on 23 September 2014).
+21. Fischler, M.A.; Bolles, R.C. Random Sample Consensus: A Paradigm for Model Fitting with Applications
+to Image Analysis and Automated Cartography. Commun. ACM 1981 ,24, 381–395.
+22. Zuliani, M.; Kenney, C.S.; Manjunath, B.S. The MultiRANSAC Algorithm and Its Application to Detect
+Planar Homographies. In Proceedings of the 12th IEEE International Conference on Image Processing
+(ICIP 2005), Genova, Italy, 11–14 September 2005; Volume 3, pp. III-153–156.
+23. Civera, J.; Grasa, O.G.; Davison, A.J.; Montiel, J.M.M. 1-Point RANSAC for Extended Kalman Filtering:
+Application to Real-Time Structure from Motion and Visual Odometry. J. Field Robot. 2010 ,27, 609–631.
+24. Miller, B.M.; Pankov, A.R. Theory of Random Processes (in Russian) ; Phizmatlit: Moscow, Russia, 2007.
+25. Torr, P .H.S. Geometric motion segmentation and model selection. Phil. Trans. R. Soc. A 1998 ,356, 1321–1340.
+26. Torr, P .H.S.; Zisserman, A. MLESAC: A New Robust Estimator with Application to Estimating Image
+Geometry. Comput. Vis. Image Underst. 2000 ,78, 138–156.
+27. Civera, J.; Grasa, O.G.; Davison, A.J.; Montiel, J.M.M. 1-Point RANSAC for EKF-Based Structure from
+Motion. In Proceedings of the 2009 IEEE/RSJ International Conference on Intelligent Robots and Systems,
+St. Louis, MO, USA, 11–15 October 2009; pp. 3498–3504.
+28. Sujit, P .B.; Saripalli, S.; Borges Sousa, J. Unmanned aerial vehicle path following: A survey and analysis of
+algorithms for Fixed-Wing unmanned aerial vehicless. IEEE Contol Syst. 2014 ,34, 42–59.
+c2015 by the authors; licensee MDPI, Basel, Switzerland. This article is an open
+access article distributed under the terms and conditions of the Creative Commons by
+Attribution (CC-BY) license (http://creativecommons.org/licenses/by/4.0/).
+29820

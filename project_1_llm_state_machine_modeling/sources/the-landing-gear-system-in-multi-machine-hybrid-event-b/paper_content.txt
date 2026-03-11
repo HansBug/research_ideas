@@ -1,0 +1,1748 @@
+--- Page 1 ---
+Int J Softw Tools Technol Transfer (2017) 19:205–228
+DOI 10.1007/s10009-015-0409-7
+ABZ 2014
+The landing gear system in multi-machine Hybrid Event-B
+Richard Banach1
+Published online: 18 December 2015
+© The Author(s) 2015. This article is published with open access at Springerlink.com
+Abstract A system development case study problem based
+on a set of aircraft landing gear is examined in Hybrid
+Event-B (an extension of Event-B that includes provision for
+continuously varying behaviour as well as the usual discrete
+changes of state). Although tool support for Hybrid Event-B
+is currently lacking, the complexity of the case study pro-
+vides a valuable challenge for the expressivity and modelling
+capabilities of the Hybrid Event-B formalism. The size of the
+case study, and in particular, the number of overtly indepen-
+dent subcomponents that the problem domain contains, both
+signiﬁcantly exercise the multi-machine and coordination
+capabilities of the modelling formalism. These aspects of the
+case study, vital in the development of realistic cyberphysical
+systems in general, have contributed signiﬁcant improve-
+ments in the theoretical formulation of multi-machine Hybrid
+Event-B itself.
+Keywords Hybrid Event-B ·Landing gear case study ·
+Reﬁnement ·Multicomponent systems
+1 Introduction
+This paper reports on a treatment of a landing gear system
+case study (see [ 17]) using Hybrid Event-B. Hybrid Event-B
+[9,10] is an extension of the well-known Event-B frame-
+work, in which continuously varying state evolution, along
+with the usual discrete changes of state, is admitted. Since air-
+craft systems are replete with interactions between physical
+law and the engineering artefacts that are intended to ensure
+BRichard Banach
+banach@cs.man.ac.uk
+1School of Computer Science, University of Manchester,
+Oxford Road, Manchester M13 9PL, UKappropriate aircraft behaviour, they are prime examples of
+cyberphysical systems [ 15,19,26,31], especially when one
+takes into account the increasing use of remote monitoring of
+such systems via global communication networks. As such,
+there is a prima facie case for attempting the landing gear
+problem using Hybrid Event-B. In the case of landing gear
+systems speciﬁcally, a good idea of the real complexity of
+such systems can be gained from Chapter 13 of [ 33].
+Given that landing gear is predominantly controlled by
+hydraulic systems (see Chapter 12 of [ 33]), it might be imag-
+ined that the requirements for the present case study [ 17],
+would feature relevant physical properties quite extensively.
+Of course Hybrid Event-B would be ideally suited to model
+and quantify the interactions between these physical proper-
+ties and the control system—for example, on the basis of
+the theoretical models and practical heuristics detailed in
+references such as [ 1,22,25]. However, it is clear that the
+requirements in [ 17] have been heavily slanted to remove
+such aspects almost completely, presumably because the
+overwhelming majority of tools in the veriﬁcation ﬁeld would
+not be capable of addressing the requisite continuous aspects.
+Instead, the relevant properties are reduced to constants (per-
+haps accompanied by margins of variability) that delimit the
+duration of various physical processes. This perspective is
+appropriate to a treatment centred on system control via iso-
+lated discrete events, such events being used to mark the
+start and end of a physical process while quietly ignoring
+what might happen in the interior. While this approach cer-
+tainly reduces the modelling workload, the penalty paid for
+it is the loss of the ability to justify the values of these con-
+stants during the veriﬁcation activity, whether this be on the
+basis of deeper theory or of values obtained from lower level
+phenomenological models.
+Despite this reservation, a small number of simple con-
+tinuous behaviours are left within the requirements in [ 17].
+123
+
+--- Page 2 ---
+206 R. Banach
+These are conﬁned to simple linear behaviours of some parts
+of the physical apparatus. Although they are very simple,these linear behaviours are nevertheless enough to demon-
+strate many of the essential capabilities of the Hybrid Event-B
+formalism in dealing with continuous phenomena and theirinteraction with discrete events.
+Besides the continuous behaviours that need to be
+addressed by any comprehensive formalism for cyberphysi-
+cal systems, there are the issues of structure and architecture.Genuine cyberphysical systems are invariably composed of
+a(n often large) number of components, each with some
+degree of autonomy—while they nevertheless remain cou-pled to, and interact with, each other. The multi-machine
+version of Hybrid Event-B is intended to confront the chal-
+lenges that this raises. Fortunately, the landing gear case study[17] is rich enough in structure to adequately exercise these
+aspects of the formalism.
+The rest of this paper is as follows. Section 2overviews
+the landing gear system, emphasising those elements thatare of most interest to our development. Section 3then gives
+a summary of single machine Hybrid Event-B. Section 4
+extends this to cover multiple machines. The issues exploredhere lead to the hypergraph structured system architectures
+discussed in Sect. 5.
+Section 6then gives an architectural overview of the
+subsequent development, relating the general discussion ofSect. 5to the speciﬁc architecture of the case study. Sec-
+tion 7introduces the case study itself, indicating the most
+signiﬁcant elements (from our point of view). Section 8deals
+extensively with the nominal development via a series of
+reﬁnements from a simple initial model.
+We then move to the faulty regime. Regarding the intro-
+duction of faults, the present case study proves to be a
+fertile vehicle for exploring how the retrenchment frame-
+work [ 11,12,14] can handle the incompatibilities involved in
+extending from a nominal to a faulty regime, and the essentialideas are given in Sect. 9. Section 10then applies these ideas
+to the faulty regime of the case study, again proceeding via a
+series of steps that breaks down the complexity of the task.
+Section 11shows how the retrenchment Tower Pattern
+can lead to further checking of the development. Section 12
+discusses the development of a time-triggered implementa-tion level model, as would arise in a genuine implementation.
+Section 13looks back at the main lessons that emerged from
+the case study and summarises the most useful patterns thatwere developed. Issues that merit further attention are alsodiscussed in some detail there. Section 14concludes.
+Comparison with the conference version. In the conference
+version of the case study [ 6], hereafter referred to as Conf ,
+only the nominal regime of the case study was covered. Still,this proved sufﬁcient to bring out the main beneﬁts of theapproach, and, through the complexity of the case study,highlighted several issues that needed to be handled better
+in the multi-machine context. Here, a more comprehensivedevelopment is covered. Various detailed differences from
+the earlier treatment are mentioned below, as they arise.
+2 Landing gear overview
+The deﬁnition of the landing gear case study together with
+its requirements is presented in [ 17]. Here, we give the gist
+of it, focusing on features of most interest to the Hybrid
+Event-B treatment. Figure 1, reproduced from [ 17], shows
+the architecture of the system.
+The sole human input to the system is the pilot handle:
+when pulled up it instructs the gear to retract, and when pulled
+down it instructs the gear to extend. The signal from the han-dle is fed both to the (replicated) computer system and to
+the analogical switch, the latter being an analogue device
+that gatekeeps powerup to the hydraulic system, to preventinappropriate gear movement even in the case of computer
+malfunction. In a full treatment including faulty behaviour,
+there are further inputs to the computer systems from thesensors. These can behave in a relatively autonomous man-ner, to reveal faults to the computer(s) to which the system is
+required to be, to some extent, resilient. A further point con-
+cerns the shock absorber sensors. These are modelled usinga guard rather than as inputs. The relevant issue is discussed
+at the beginning of Sect. 7.
+The analogical switch passes a powerup command from
+the computers to the general electrovalve.
+1This pressurises
+the rest of the landing gear hydraulic system, ready for spe-
+ciﬁc further commands to manipulate its various parts, thesebeing the doors of the cabinets that contain the gear whenretracted, and the gear extension and retraction mechanisms
+themselves. Beyond this, both the analogical switch and the
+output of the general electrovalve are monitored by (tripli-cated) sensors that feed back to the computer systems, as is
+discernible from Fig. 1.
+2
+What is particularly interesting about the system so far
+is that the arrangement of these various interconnections
+between system components is evidently quite far from the
+kind of tree shape that facilitates clean system decomposi-tion. Thus, the handle is connected to the computers, and thehandle is connected to the analogical switch. But the analog-
+ical switch is also connected to the computers, so ‘dividing’
+the computers from the analogical switch in the hope of ‘con-quering’ structural complexity will not work, and obstructs
+the clean separation of proofs into independent subproofs
+1As a rule, commands from the two computers are ORed by the com-
+ponents that obey them.
+2A large number of other sensors also feed back to the computers, but
+this not relevant to the point we are making just now.
+123
+
+--- Page 3 ---
+The landing gear system in multi-machine Hybrid Event-B 207
+Front door 
+cylinder Right door 
+cylinder Left door 
+cylinder Aircraft hydraulic 
+circuit General electro-valve 
+Electro-valve (close doors) 
+Electro-valve  
+          (open doors) 
+Electro-valve (retract gears) 
+Electro-valve 
+(extend gears) Front gear 
+cylinder Right gear 
+cylinder Left gear 
+cylinder Orders to electro-valves From discrete sensors (gear extended / 
+not extended, gear retracted / not 
+retracted, door closed / not closed, door 
+open / not open, …) 
+Discrete sensor (pressure OK / not OK) 
+(retraction 
+circuit) (retraction 
+circuit) 
+(extension 
+circuit) 
+(extension 
+circuit) Analogical switch Towards the 
+cockpit 
+Fig. 1 Architectural overview of the landing gear system, reproduced from [ 17]
+concerning analogical switch and computers separately. This
+poses a signiﬁcant challenge for our modelling methodology,
+and gave rise to the need for new interconnection mechanisms
+( a tl e a s ti td i ds oi n Conf ), as discussed in Sects. 4and6.
+Beneath the level of the general electrovalve, it is a lot
+easier to see the system as comprised of the computers on
+the one hand, and the remaining hydraulic components onthe other, connected together in ways that are rather more
+tractable by readily understood interconnection mechanisms.
+Since there is presently no speciﬁc tool support for Hybrid
+Event-B, our case study is primarily an exploration of mod-elling capabilities. As explained below, a major element of
+this is the challenge of modelling physically separate compo-
+nents in separate machines, and of interconnecting all thesemachines in ways appropriate to the domain, all supported
+by relevant invariants. Depending on the complexity of the
+interconnection network, this can require novel machineinterconnection mechanisms, introduced for pure Event-B
+in [5]. The suitability of proposals for such mechanisms canonly be tested convincingly in the context of independently
+conceived substantial case studies like this one, so it is grati-
+fying that the mechanisms exercised here fare well in the face
+of the complexities of the requirements of the case study.
+3 Hybrid Event-B, single machines
+In this section we look at Hybrid Event-B for a singlemachine. In Fig. 2, we see a bare bones Hybrid Event-B
+machine, HyEvBMch . It starts with declarations of time and
+of a clock. In Hybrid Event-B, time is a ﬁrst class citizen inthat all variables are functions of time, whether explicitly or
+implicitly. However, time is special, being read-only. Clocks
+allow more ﬂexibility, since they are assumed to increaselike time, but may be set during mode events (see below).
+Variables are of two kinds. There are mode variables (like u)
+which take their values in discrete sets and change their valuesvia discontinuous assignment in mode events. There are also
+123
+
+--- Page 4 ---
+208 R. Banach
+Fig. 2 A schematic Hybrid Event-B machine
+pliant variables (such as x,y), declared in the PLIANT clause,
+which typically take their values in topologically dense sets
+(normally R) and which are allowed to change continuously,
+such change being speciﬁed via pliant events (see below).
+Next are the invariants. These resemble invariants in dis-
+crete Event-B, in that the types of the variables are asserted
+to be the sets from which the variables’ values at any given
+moment of time are drawn. More complex invariants are sim-
+ilarly predicates that are required to hold at all moments of
+time during a run.
+Then, we have the events. The INITIALISATION has a
+guard that synchronises time with the start of any run, while
+all other variables are assigned their initial values as usual.
+Mode events are direct analogues of events in discrete
+Event-B. They can assign all machine variables (except timeitself). In the schematic MoEv of Fig. 2, we see three para-
+meters i?,l,o! , (an input, a local parameter, and an output,
+respectively), and a guard grdwhich can depend on all the
+machine variables. We also see the generic after-value assign-
+ment speciﬁed by the before-after predicate BApred , which
+can specify how the after-values of all variables (except time,inputs and locals) are to be determined.
+Pliant events are new. They specify the continuous evo-
+lution of the pliant variables over an interval of time. Theschematic pliant event PliEv of Fig. 2shows the structure.
+There are two guards: there is iv, for specifying enabling
+conditions on the pliant variables, clocks, and time; and
+there is grd, for specifying enabling conditions on the mode
+variables. The separation between the two is motivated
+by considerations connected with reﬁnement. (For a more
+detailed discussion of issues such as this, see [ 9].)
+The body of a pliant event contains three parameters
+i?,l,o! , (again an input, a local parameter, and an output)
+which are functions of time, deﬁned over the duration of thepliant event. The behaviour of the event is deﬁned by theCOMPLY and SOLVE clauses. The SOLVE clause speci-
+ﬁes behaviour fairly directly. For example, the behaviour of
+pliant variable yand output o!is given by a direct assign-
+ment to the (time dependent) value of the expression E(…).Alternatively, the behaviour of pliant variable xis given by
+the solution of the ﬁrst-order ordinary differential equation
+(ODE) Dx=φ(...) , where Dindicates differentiation with
+respect to time (In fact, aside from some small technicaldetails, the semantics of the y,o! = E case is given in terms of
+the ODE Dy,Do!= DE, so that x,yando!
+satisfy the same
+regularity properties). The COMPLY clause can be used to
+express any additional constraints that are required to holdduring the pliant event via its before-during-and-after predi-
+cateBDApred . Typically, constraints on the permitted range
+of values for the pliant variables, and similar restrictions, canbe placed here.
+The COMPLY clause has another purpose. When spec-
+ifying at an abstract level, we do not necessarily want tobe concerned with all the details of the dynamics—it isoften sufﬁcient to require some global constraints to hold
+which express the needed safety properties of the system. The
+COMPLY clauses of the machine’s pliant events can housesuch constraints directly, leaving it to lower level reﬁnements
+to add the necessary details of the dynamics. (In fact, a major
+use to which we put the COMPLY capability in our case studyis to demand that pliant variables, which would otherwise be
+unconstrained during a (n essentially default) pliant event,
+remain constant during it. This is mentioned in Sect. 10.)
+Brieﬂy, the semantics of a Hybrid Event-B machine is as
+follows. It consists of a set of system traces , each of which
+is a collection of functions of time, expressing the value of
+each machine variable over the duration of a system run. (Inthe case of HyEvBMch , in a given system trace, there would
+be functions for clk,x,y,u, each deﬁned over the duration of
+the run.)
+Time is modelled as an interval Tof the reals. A run
+starts at some initial moment of time, t
+0say, and lasts either
+for a ﬁnite time, or indeﬁnitely. The duration of the run T
+breaks up into a succession of left-closed right-open subinter-vals: T=[t
+0...t1),[t1...t2),[t2...t3),... . The idea is that
+mode events (with their discontinuous updates) take place at
+the isolated times corresponding to the common endpoints ofthese subintervals t
+i, and in between, the mode variables are
+123
+
+--- Page 5 ---
+The landing gear system in multi-machine Hybrid Event-B 209
+constant and the pliant events stipulate continuous change in
+the pliant variables.
+Although pliant variables change continuously (except
+perhaps at the ti), continuity alone still admits a wide range
+of mathematically pathological behaviours. (For example,speaking measure-theoretically, ‘most’ continuous functionsare non-differentiable almost everywhere.) To eliminate such
+pathologies, we insist that on every subinterval [t
+i...ti+1)
+the behaviour is governed by a well-posed initial value prob-lem Dxs=φ(xs...)(where xsis a relevant tuple of pliant
+variables and Dis the time derivative). ‘Well posed’ means
+thatφ(xs...)has Lipschitz constants which are uniformly
+bounded over [t
+i...ti+1)bounding its variation with respect
+toxs, and that φ(xs...) is measurable in t. Moreover, the
+permitted discontinuities at the boundary points tienable an
+easy interpretation of mode events that happen at ti.
+The differentiability condition guarantees that from a spe-
+ciﬁc starting point, tisay, there is a maximal right-open
+interval, speciﬁed by tMAX say, such that a solution to the
+ODE system exists in [ti...tMAX). Within this interval, we
+seek the earliest time ti+1at which a mode event becomes
+enabled, and this time becomes the preemption point beyondwhich the solution to the ODE system is abandoned, and
+the next solution is sought after the completion of the mode
+event.
+In this manner, assuming that the INITIALISATION event
+has achieved a suitable initial assignment to variables, a sys-
+tem run is well formed , and thus belongs to the semantics of
+the machine, provided that at runtime:
+•Every enabled mode event is feasible, i.e. has an
+after-state, and on its completion enables a pliant
+event (but does not enable any mode event) .
+3(1)
+•Every enabled pliant event is feasible, i.e. has a time-
+indexed family of after-states, and EITHER: (2)
+(i) During the run of the pliant event, a mode event
+becomes enabled. It preempts the pliant event,deﬁning its end. ORELSE
+(ii) During the run of the pliant event, it becomes infea-
+sible: ﬁnite termination. ORELSE
+(iii) The pliant event continues indeﬁnitely: nontermi-
+nation.
+Thus, in a well-formed run mode events alternate with pli-
+ant events. The last event (if there is one) is a pliant event(whose duration may be ﬁnite or inﬁnite). In reality, there are
+a number of semantic issues that we have glossed over in the
+framework just sketched. We refer to [ 9] for a more detailed
+presentation.
+3If a mode event has an input, the semantics assumes that its value only
+arrives at a time strictly later than the previous mode event, ensuringpart of ( 1) automatically.We point out that the presented framework is quite close to
+the modern formulation of hybrid systems. See, e.g. [ 27,32]
+for representative modern formulations, or [ 19] for a per-
+spective stretching further back.
+4 T op-down modelling of complex systems, and
+multiple cooperating Hybrid Event-B machines
+The principal objective in modelling complex systems in the
+B-Method is to start with small simple descriptions and to
+reﬁne to richer, more detailed ones. This means that, at thehighest levels of abstraction, the modelling must abstract
+away from concurrency . By contrast, at lower levels of
+abstraction, the events describing detailed individual behav-
+iours of components become visible. In a purely discreteevent framework, like conventional Event-B, there can be
+some leeway in deciding whether to hold all these low-level
+events in a single machine or in multiple machines—becauseall events execute instantaneously, isolated from one another
+in time (in the usual interpretation), and in between, nothing
+changes.
+4.1 Multi-machine systems via INTERFACEs
+In Hybrid Event-B, the issue just mentioned is more press-
+ing. Because of the continuous behaviour that is represented,
+allcomponents are always executing some event. Thus,
+an integrated representation risks hitting the combinatorialexplosion of needing to represent each possible combination
+of concurrent activities within a separate event, and there is a
+much stronger incentive to put each (relatively) independentcomponent into its own machine, synchronised appropri-ately. To put it another way, there is a very strong incentive
+tonot abstract away from concurrency , an impulse that
+matches with the actual system architecture. In Hybrid Event-B, there is thus an even greater motivation than usual for the
+reﬁnement methodology to make the step from monolithic
+abstract and simple descriptions to more detailed and con-crete concurrent descriptions, convincingly.
+In our approach, this is accomplished using normal Hybrid
+Event-B reﬁnement up to the point where a machine is largeenough and detailed enough to merit being split up. After that,the key concept in the decomposition strategy is the INTER-
+FACE construct. This is adapted from the similarly named
+idea in [ 21], to include not only declarations of variables
+(as in [ 21]), but of the invariants that involve them, and also
+their initialisations. (Thus, an interface becomes a kind of
+shell of a machine, except one without any speciﬁc events tochange the variables’ values, and thus permitting anychange
+of value imposed by the events of a machine accessing the
+interface, provided it preserves the invariants.) A communityof machines may have access to the variables declared in an
+123
+
+--- Page 6 ---
+210 R. Banach
+interface provided each such machine CONNECTS to the
+interface. All events in such machines must preserve all ofthe invariants in the interface, of course. An important point
+is that allinvariants involving the interface’s variables must
+be recorded in the interface, which assists a (putative) toolto mechanically monitor whether all the needed proof oblig-ations in the veriﬁcation of a machine have been adequately
+discharged.
+The way that this strategy is deﬁned in [ 5] and in
+[10] means that provided the relevant combinatorial rules
+are followed regarding what is visible where, the ideas
+just described can serve equally well as a discipline forcomposing separate (and in principle, independently con-
+ceived) components in a component-based system construc-
+tion discipline. This gives an alternative to the reﬁnementand decomposition-based methodology just discussed. Ofcourse, with suitable attention to the formal details, both
+approaches can coexist. A combination of reﬁnement ideas
+and composition ideas can be used in the same development,since the addition of new components to a system can be
+viewed as a reﬁnement of the system at the component level,
+analogously to the way that addition of new variables andtheir behaviours to an individual component is a reﬁnement
+of the system at the level of variables. The paper [ 5]g i v e sa
+brief description aimed at the (familiar, discrete-only) Event-B context, whereas [ 10] gives a more detailed discussion,
+taking all the additional considerations of Hybrid Event-B
+into account, and explaining how (de)composition and reﬁne-
+ment all can be viewed as different sides of the same coin.
+4.2 Type II invariants in multi-machine systems
+Although we said above that an interface contains allof
+the invariants mentioning any of its variables, in practice
+this can be too restrictive. If a system architecture con-tains many components that are tightly coupled in complex
+ways, aggregating all the needed invariants together with the
+variables that they mention, when this involves many inter-connected components, may result in a single interface that
+is too large and unwieldy for convenient and independent
+development. To cater for such an eventuality, the approachdescribed in [ 5,10] permits also type II invariants (tIIi’s),
+which are deﬁned to be of the form: U(u)⇒V(v), where
+variables uandvbelong to different interfaces. This pattern
+for invariants is sufﬁcient to express many kinds of depen-dency between components, without forcing variables uand
+vto belong to the same interface, aiding decomposition. In
+a tIIi, the uandvvariables are called the local and remote
+variables, respectively. By convention, a tIIi resides in the
+interface containing its local variables, and the remote vari-
+ables must also reside in an interface. Syntactically, each ofthese interfaces will contain a reference to the other.By restricting to tIIi’s as the only means of writing invari-
+ants that cross-cut across two interfaces (and, implicitly,across the machines that access them), we can systematise,
+and then conveniently mechanise, the veriﬁcation of such
+invariants. Thus, for a tIIi like U(u)⇒V(v),i ti ss u f ﬁ -
+cient for events that update the uvariables to preserve ¬U
+(if it is true in the before-state) and for events that update
+thevvariables to preserve V(if it is true in the before-state).
+These observations are helpful in ‘dividing and conquering’the veriﬁcation task to promote separate working, while yet
+being sufﬁcient to express a large fraction of the properties
+that may be required to hold between two different machines.
+4.3 Synchronisation in multi-machine systems
+As well as sharing variables via interfaces, multi-machine
+Hybrid Event-B systems need a mechanism to achieve syn-
+chronisation between machines—preferably, a mechanismthat is more convenient than creating such a thing ab initio
+from the raw semantics. For this the shared event paradigm
+[18,30] turns out to be the most convenient. In this scheme,
+mode event groups , i.e. speciﬁed mode events in two (or
+more) machines of the system, are deemed to be required
+to execute simultaneously. In practice, it means that for each
+such event, its guard has to be re-interpreted as the conjunc-tion of the guards of all the events in the group. The restriction
+that only mode events are eligible for such synchronisation
+simpliﬁes the theory of the synchronisaiton mechanism con-siderably. Moreover, it proves to be no real restriction at all.
+According to the semantics sketched in Sect. 3, to launch the
+synchronised execution of a family of pliant events spreadacross several machines, it would be sufﬁcient to arrange (viathe mode event synchronisation mechanism) the synchro-
+nised execution of a corresponding family of mode events
+whose primary purpose was to enable all the pliant events.But this is easy to program in general.
+5 Hypergraph-based system architectures
+The sections above described an armoury of techniques thatcan be applied to the problem of system speciﬁcation and
+development. However, by itself, this gives no advice about
+how these techniques ought to be used in any particular case.
+Here, we give some guidance on that point.
+Our principal recommendation is that wherever possible,
+systems should have a hypergraph architecture .I nt h e
+light of the commentary above, this means that there shouldbe a hypergraph in which the machines of the systems consti-
+tute the nodes, and the interfaces should form the hyperedges
+connecting families of nodes (i.e. machines).
+4
+4An equivalent way of saying the same thing is the familiar recasting
+of hypergraphs as bipartite conventional graphs, with machine nodes
+123
+
+--- Page 7 ---
+The landing gear system in multi-machine Hybrid Event-B 211
+What this implies is that the variables that a machine
+needs to manipulate at various times typically split into anumber of constituencies, each focused on a different con-
+cern. In turn, each such concern may involve a number of
+machines to achieve its goals. Provided the concerns do notoverlap, the variables for each concern will be distinct fromthe variables for other concerns, and can thus be placed in an
+interface focused on that concern, to be manipulated by the
+machines that are involved with that concern as necessary. Inthis manner, we arrive at the machine =node andinterface
+=hyperedge hypergraph structure.
+This system architecture proposal is well validated in the
+landing gear case study. In the Conf version, this pattern
+was notfollowed (for reasons explained below). Instead,
+interfaces were associated with machines, each containingthe variables typically written by that machine. Each Conf
+machine also needed access to interfaces containing the
+variables it read but did not update. Although this was a
+reasonable proposal architecturally, expressing dependenciesbetween machines was made more cumbersome. A good deal
+of use was made of the tIIi mechanism discussed earlier
+to express needed dependencies, with the attendant cross-referencing between interfaces.
+In the present development, a different tack was taken
+regarding a speciﬁc design decision (we give the speciﬁcdetails in Sect. 8). This made the hypergraph structure much
+more convenient. As a result of the different structure, all
+uses of the tIIi mechanism were eliminated in the present
+work . This was a byproduct of the hypergraph architecture
+that was quite unexpected (until the detailed work revealed
+it). This simpliﬁcation of the architectural challenge via a
+hypergraph structure leads to our promoting it as a generic
+good thing . Of course, the tIIi mechanism remains avail-
+able for situations in which even the hypergraph architecture
+implies a need for sufﬁciently complex cross-cutting inter-dependencies between machines and interfaces.
+Of course, the issues we have discussed above need to be
+managed at the syntactic level. In [ 10], we describe in detail
+how this is done via the PROJECT ﬁle. At a given level of adevelopment, the project ﬁle takes care of four issues. First, it
+lists the components (interfaces and machines) that constitute
+the system at that level. Second, it deﬁnes the synchronisa-tions that need to hold between individual machine events.
+Third (though not relevant for the present development), it
+is the place where instantiation issues can be dealt with (ina component-based methodology using a component repos-itory, or similar). Fourth, it can contain a reference to a ﬁle
+of global invariants; these would be overreaching invariants,
+Footnote 4 continued
+and interface nodes, and edges that connect a single machine to a sin-gle interface (Then, each interface node, with all its incident edges,constitutes a hyperedge of the previous description).derivable from the contents of all the interfaces of the project,
+to be used as required in the development process.
+6 Case study architectural overview
+In this section, we describe how the preceding ideas play out
+in the landing gear case study. Figure 3shows the system
+architecture. Rectangles represent components of the sys-tem; rounded corners for machines and unrounded corners
+for interfaces. Figure 3splits into three phases. The ﬁrst, at
+the top, shows the very ﬁrst model: Level_00_PilotAndLights
+Nominal . This is then reﬁned and decomposed at level 01 into
+three machines: Level_01_PilotNominal, Level _01_Comp
+1
+Nominal ,Level _01_Comp2Nominal . The decomposition is
+represented by the diagonal dashed lines in the ﬁgure.
+Below the higher horizontal dashed line is the remainder
+of the nominal development. Machine sufﬁxes are ‘ Nominal ’,
+interface sufﬁxes are ‘ _IF’. The nominal development itself
+consists of levels 00, 01, 02, 03, 04, 05, 06, 07. The series of
+numbers in each rectangle indicate the development levels at
+which components are introduced or changed. Thus, at level04, the development consists of Pilot, Central_IF, Comp
+1,
+Comp 2,AnalogicalSwitch, General_EV .
+The solid lines represent the CONNECTS relationships
+between machines and interfaces. Since each such line indeedjoins a machine to an interface, the bipartite graph represen-
+tation of the hypergraph structure is clear from the structure
+of the middle layer of Fig. 3, so that all levels of the nominal
+development ﬁt it. Thus, Central_IF contains the variables
+that embody the interaction between the computers, and the
+analogical switch and general electrovalve, while Hydraulic-
+Cylinders_EV_IF contains the variables that embody the
+interaction between the computers and the hydraulic cylin-
+ders. The important point is that these sets of variables are
+disjoint , leading to a clean structure.
+Below the second dashed line is the faulty develop-
+ment. Whereas the nominal development is accomplished
+entirely using reﬁnement and reﬁnement-compatible tech-niques, the faulty development entails departures from pre-
+viously established behaviours. We deal with this using
+retrenchment, in two development levels: 10 and 11. Thefaulty level identiﬁers are separated from the nominalones by writing two slashes in the level number series of
+each component. The shadows behind the interface compo-
+nents Central_IF_Faulty andHydraulicCylinders_EV_IF_
+Faulty denote the Nominal versions that the faulty versions
+have been retrenched from, and which still play a role behind
+the scenes in the faulty development. All this is explainedbelow. Clearly, the earlier hypergraph structure persists.
+Regarding the nature of the reﬁnements used in this case
+study, it is worthwhile pointing out that, overwhelmingly, thesuccessive levels of the modelling reﬁne their predecessor
+123
+
+--- Page 8 ---
+212 R. Banach
+PilotA ndLightsNominal
+00
+PilotNo minal
+01Central_IF
+03/04/05Comp1Nominal
+01/03/04/05/06/07
+Comp2Nominal
+01/03/04/05/06/07HydraulicCylinders_EV_IF
+06DoorsOpe n_EV_No minal
+06
+DoorsClose_EV_No minal
+06
+GearExte nd_EV_No minal
+06
+GearRetr act_EV_No minal
+06
+PilotF aulty
+01//11Comp1Faulty
+01/03/04/05/06/07//11
+Comp2Faulty
+01/03/04/05/06/07//11HydraulicCylinders_EV_IF_F aulty
+06//10DoorsOpe n_EV_F aulty
+06//10
+DoorsClose_EV_F aulty
+06//10
+GearExte nd_EV_F aulty
+06//10
+GearRetr act_EV_F aulty
+06//10AnalogicalSwitchNominal
+02/03/04General_EV_No minal
+04/05
+AnalogicalSwitchFaulty
+02/03/04//10General_EV_F aulty
+04/05//10Cockpit_IF_F aulty
+11
+Central_IF_F aulty
+03/04/05//11
+Fig. 3 Overview of the multi-machine Hybrid Event-B landing gear
+system development architecture. Rectangles depict interfaces (sufﬁx
+‘_IF’ for nominal regime interfaces, ‘ _IF_Faulty ’ for faulty regime
+interfaces). Rounded rectangles depict machines (sufﬁx ‘ Nominal ’f o rnominal regime machines and ‘ Faulty ’ for faulty regime machines).
+Numbers associated with components indicate the development levels
+(from 00,01,02,03,04,05,06,07 nominal, 10,11 faulty) at which compo-
+nents are introduced or undergo change
+levels by the aggregation of fresh design detail. This makes
+the details of the reﬁnement (and in particular the details ofthe veriﬁcation of the reﬁnement via the requisite proof oblig-
+ations) relatively trivial. The reﬁnement relation between
+two successive levels is just a projection from the concretelevel to the abstract level that forgets the newly introduced
+detail. Although on the face of it this fails to exercise the data
+reﬁnement capabilities of Hybrid Event-B to any signiﬁcantdegree, by contrast, the fact that real time is treated a just a
+parameter in Hybrid Event-B implies that any nontrivial data
+reﬁnement will work by simply applying a discrete eventstyle data reﬁnement to the abstract and concrete variablesin a parameterised way.
+The exception to these remarks for this case study arises in
+the use of retrenchment, in which greater variance betweenabstract variables and their concrete counterparts is required
+than can be accommodated via reﬁnement. However, it turns
+out that capturing these relationships between abstract andconcrete can only be done using the additional machineryfound in retrenchment, whereas the reﬁning parts of the rela-
+tionships remain as simple as before. This rather reinforcesthe preceding point.
+7 Model development preliminaries
+Having covered the architectural issues, we now look at thedevelopment in more detail. We start by clarifying our inter-pretation of some minor inconsistencies in the spec [ 17].
+First, we assume that the pilot controls the gear via a han-
+dlefor which handle UPmeans gear up, and handle DOWN
+means gear down. We also assume that in the initial statethe gear is down and locked, since the aircraft does not levi-
+tate when stationary on the ground, presumably. Connected
+with this requirements aspect is the absence of provision in[17] of what is to happen if the pilot tries to pull the handle
+up when the aircraft is not in ﬂight. Presumably the aircraft
+should not belly-ﬂop to the ground, so we just incorporatea suitable guard on the handle movement events, based on
+123
+
+--- Page 9 ---
+The landing gear system in multi-machine Hybrid Event-B 213
+the value of the shock absorber sensors. This leaves open the
+question of what would actually happen if the pilot pulled the
+handle up when the plane is on the ground. Does the handle
+resist the movement, or does gear movement remain pend-
+ing until released by the state of the shock absorber sensors,or...?
+This issue, in turn, raises a further interesting question.
+Although the fact just pointed out causes no special problem
+for an event-by-event veriﬁcation strategy like the B-Method,the absence of any explicit requirement that allows the shock
+absorber to change value would be equivalent to the aircraft
+never leaving the ground, leading to the absence of any non-trivial gear manipulation traces for a trace-based veriﬁcation
+strategy to work on. Thus, for a model checking approach of
+any kind to work, suitable additional events would have to beintroduced into the model, for just the purpose of allowingthe aircraft to leave the ground.
+Pursuing the technical strategy advocated earlier, among
+other things implies that in the ﬁnal development, each com-ponent that is identiﬁable as a separate component in the
+architectural model should correspond to a machine in its
+own right. Thus, at least, we should have separate machinesfor: the pilot subsystem (handle and lights), the two com-
+puters, the analogical switch, the general electrovalve, and
+the individual movement electrovalves (and their associatedhydraulic cylinders). In concert with this was the desire touse variables that correspond directly to quantities discussed
+in the requirements document. The aim was to strive for the
+closest possible correspondence between requirements andformal model, in the belief that this improves the engineering
+process. It is possible that this perspective led to a granularity
+in the modelling which was not optimally efﬁcient. However,the main priority in this study was to challenge the expres-
+sivity of the framework, rather than to test the efﬁciency of
+any putative tool implementation.
+In addition to the above, the requirements concerned with
+the faulty regime in [ 17] mention the variables normal_mode
+andanomaly
+k, without going into any explanation about
+their further purpose. This made it less clear how best tomodel these requirements. In the end, it was decided to
+create a fresh interface Level_11_Cockpit_IF_Faulty to con-
+tain those variables (and other quantities were convenientlyincluded there too). This would in fact be needed if those vari-
+ables were to be used by machines that modelled a cockpit
+display, for example (in contrast to the pilot’s lights, whichfall within the scope of the given requirements).
+As mentioned earlier, both the Conf development and the
+present one above all constituted modelling challenges for
+the Hybrid Event-B formalism. The lessons that had alreadybeen learned from Conf were applied in the present develop-
+ment (see Sect. 8), which in turn generated further questions
+to be considered in future (see Sect. 13for those). One notable
+element of this process was the change to the hypergrapharchitecture, which so dramatically eliminated the need for
+any type II invariants between interfaces.
+8 The nominal regime
+We now comment on the various levels of the nominal devel-opment, level by level. Along the way, we describe furthernotational conventions used in the development, as we did
+for the architectural overview already given. Adhering to
+the vision of the B-Method, the development starts verysimply, and proceeds to add detail via layers of reﬁnementand composition, with most of the steps of the development
+being quite small. Table 1summarises the nominal devel-
+opment levels. The full details of the models in each levelcan be found at [ 3], with each level deﬁned via the rele-
+vant PROJECT construct. The site [ 3] contains not only the
+present development (with all the levels aggregated into asingle ﬁle) but also the previous Conf development.
+Level 00. Level 00 starts the development. Because it is so
+small, we can quote a lot of the details, which will be helpful
+for other descriptions below. The PROJECT ﬁle for level 00needs only to indicate the PilotAndLightsNominal machine,
+the sole construct at this level.
+ThePilotAndLightsNominal machine starts with its name,
+and the variables introduced for the handle and the green and
+orange lights. The invariants just state the values these aredrawn from (i.e. their types). The initialisation is obvious
+123
+
+--- Page 10 ---
+214 R. Banach
+Ta b l e 1 Summary of the levels of the nominal development
+Level Feature
+00 Pilot’s view
+01 Adds two computer machines and decomposes02 Adds the analogical switch machine03 Adds the triplicated analogical switch sensors04 Adds the general electrovalve machine05 Adds the triplicated general electrovalve sensors06 Adds the movement electrovalves and hydraulic cylinders07 Adds the timing automaton
+(green isONinitially to indicate that the gear is down when
+the aircraft is in its initial state on the ground), after which
+there are the less trivial events.
+PliTrue is the default pliant event—every Hybrid Event-B
+machine needs at least one pliant event because the machine
+must describe what is happening at all times , which can-
+not be done via mode events alone. Pliant event PliTrue
+just demands that the invariants are maintained, since the
+principal concern of the PilotAndLightsNominal machine is
+with the nontrivial mode events. These are PilotGearUP (and
+the analogous PilotGearDOWN ) and GearStartMoving (and
+other mode events to switch the orange and green lights on
+and off).
+PilotGearUP has a WHERE guard: handle = DOWN ,
+which says the handle can only be pulled up if it is down to
+start with. The other part of the guard, in? = pilotGearUP_X ,
+is the Hybrid Event-B metaphor for indicating that the eventis stimulated from the environment and not from some other
+part of the system model. Thus in?denotes an input variable,
+andpilotGearUP_X is its required value when the input is
+supplied.
+5The body of the event, handle := UP , does not
+use the input, so the only role the input plays is to indicate
+5In discrete Event-B, events are assumed to execute lazily ,i . e . notat
+the very instant they become enabled (according to the normal interpre-tation of how event occurrences map to real time). In Hybrid Event-B,mode events must execute eagerly , i.e. as soon as they are enabled (in
+real time), to model physical phenomena.This is because physical law is similarly eager: if a classical physi-
+cal system reaches a state in which some transition is enabled, it is
+overwhelmingly the case that energetics and thermodynamics force thetransition to take place straight away. Hybrid Event-B, in being designedto model physical systems, must therefore conform to this. As a conse-quence, typical Event-B models, in which a new after-state immediatelyenables the next transition, would cause an avalanche of mode eventoccurrences if interpreted according to Hybrid Event-B semantics.To avoid this, and yet to allow the modelling convenience of permittinglazily executed mode events in Hybrid Event-B, the convention is thatif a mode event has an input, at runtime the input value arrives at sometime strictly later than the time of execution of the previous mode event,thus introducing a delay—if there is no input, execution is eager. Thedelay is nonzero, but undetermined unless more precisely constrainedby restrictions in the event’s guard. So having an input is the HybridEvent-B metaphor for ensuring lazy execution, even if the input valueis not used.the asynchronous timing of the event. The sufﬁx ‘ _X’o nt h e
+input value is a naming convention used in this developmentto indicate the use of this metaphor.
+The GearStartMoving event is very similar to the event
+PilotGearUP we just discussed, except that there is no term
+orange = OFF in the guard; we explain this shortly. This
+completes level 00.
+Level 01. Level 01 REFINESandDECOMPOSES the level
+00 machine PilotAndLightsNominal . In detail, it ﬁrst intro-
+duces the ﬁrst collection of variables needed for the two
+computing machines, Comp
+1and Comp 2, and then sec-
+ond, decomposes the result into the three separate level 01machines: PilotNominal ,Comp
+1Nominal ,Comp 2Nominal ,
+furthermore doing all this in one step to save verbosity.
+The relationship between these machines deserves com-
+ment. Each of the level 00 mode events has become, at level01, an event that is synchronised between an event in Pilot
+and another in Comp
+1orComp 2. As another notational con-
+vention, events which are synchronised are named with a_Ssufﬁx for visibility, although the actual deﬁnitions of the
+synchronisations are in the level 01 project ﬁle. The handle
+movement events are initiated by the pilot, so are modelledas previously, with, e.g. an in? = pilotGearUP_X guard to
+indicate the source of the external initiative for the event. The
+corresponding Comp
+1orComp 2events merely synchronise
+passively and update a corresponding variable. On the otherhand, the lights switching on and off events are initiated by
+the computers, in response to (as yet undeﬁned) behaviour in
+the rest of the system, so the in? = gearStartMoving_X guard
+moves from the pilot machine to the computer machines for
+these events, and this time, it is the pilot machine that syn-
+chronises passively.
+6
+At this point, we hit the most signiﬁcant difference
+between the Conf development and this one. Although it is
+not visible in Fig. 1, the communication from pilot to com-
+puters is a wired AND, and from computers to pilot is a wiredOR. In Conf , some effort was made to model this faithfully,
+creating a machine to serve as the ﬁctional single comput-
+ing system presented to the pilot, interacting with the tworeal computers. This modelling style entailed the ﬁctional
+computer synchronising with each of the two real comput-
+ers, and proved to be extremely verbose—the authenticitywas far outweighed by the obfuscating verbosity. Sufﬁce itto say that the corresponding part of the present development
+occupies about a third of the text of the Conf development. It
+was this aspect, mainly, that made a hypergraph architectureexcessively cumbersome in Conf , without the realisation (at
+the time), of how much modelling convenience was being
+given up by doing so.
+6Ultimately, the spontaneous occurrences of the GearStartMoving (and
+similar) events in the Comp machines will be reﬁned to the more deter-
+ministic behaviour of more complete computing machines.
+123
+
+--- Page 11 ---
+The landing gear system in multi-machine Hybrid Event-B 215
+CLO SED_INIT CLO SED_FIN OPEN 0    
+clk_AnSw
+Fig. 4 The analogical switch machine’s transitions when interrupted
+by a fresh handle event
+In the present development, there is no ﬁctional com-
+puter, and the OR is done in the pilot machine rather thanoutside—so the modelling is slightly less authentic. It turns
+out that this has consequences. If a single pilot event (such
+as the pilot’s GearStartMoving_S ) has to synchronise with
+each of the two computers’ corresponding events (called also
+GearStartMoving_S inComp
+1andComp 2) then, assuming
+some asynchrony between Comp 1andComp 2, the pilot’s
+GearStartMoving_S would be executed twice. This means
+that the pilot’s event must be idempotent —executing it a sec-
+ond time needs to have no effect.7
+Now, we see why there was no orange = OFF guard in
+GearStartMoving_S earlier. If there had been, the second
+occurrence of GearStartMoving_S would have been disabled
+in the pilot machine, causing problems.8
+We have discussed this point with some care because the
+same issue arises every time the computers issue commands
+to any of the remaining equipment, e.g. to the analogicalswitch, or to the hydraulic apparatus. In all such cases, the
+synchronised event in the receiving machine must be idem-
+potent.
+Level 02. Level 02 introduces the analogical switch. The
+analogical switch is open by default. When a handle event
+occurs, the switch slowly closes (which takes from time 0
+till time CLOSED_INIT ), remains closed for a period (from
+time CLOSED_INIT till time CLOSED_FIN , allowing the
+onward transmission of commands from the computers to
+the general electrovalve), and then slowly opens again (fromtime CLOSED_FIN till time OPEN ). If a handle event occurs
+part way through this process, Fig. 4shows how the behaviour
+is affected: during closing, no effect; while closed, the closed
+period is restarted; during reopening, closing is restarted froma point proportional to the remainder of the reopening period.
+A clock, clk_AnSw (clk_xxx being another naming con-
+vention, used for clocks), controls this activity. For this towork, the pilot’s handle events are further synchronised with
+analogical switch events that reset clk_AnSw to the appro-
+7Dealing with this properly in the Conf development caused the major-
+ity of the excessive verbosity.
+8It may be argued that the phenomenon being discussed is absent at
+level 00, so the guard could have been included there, and removed atlevel 01, but in Event-B reﬁnement, guards are strengthened ,s ot h i s
+would have prevented the 00 to 01 development step from being anEvent-B reﬁnement.priate value, depending on its value at the occurrence of the
+handle event (N. B. The pilot’s handle events reach the ana-logical switch directly, and not via the computing modules,
+this being part of the complex interaction between pilot, ana-
+logical switch, and general electrovalve).
+Two further events ( AnSw_CLOSED_INIT_reached and
+AnSw_CLOSED_FIN_reached ) mark the transitions
+between episodes: from closing to closed, and from closed
+to reopening. Since these are ‘new’ events in an Event-Breﬁnement, their STATUS is convergent, and a ( N-valued)
+V ARIANT is included in the analogical switch machine, that
+is decreased on each occurrence of either of them. As usual,since Nis well founded, the decrease of the variant implies
+that the new events cannot continue to occur indeﬁnitely
+without the occurrence of ‘old’ events.
+We dwelt on this last point a little since it introduces a
+useful pattern in the development that is reused a number of
+times below. Suppose an activity, engaged in by a number of
+actors, needs to progress through a series of tasks t1,t2,t3, cir-
+cumscribed by a series of deadlines: DL1<DL2<DL3,
+all the deadlines being measured from a common starting
+point. Then, a useful variant that is decreased by events thatmark the completion of the stages within the deadlines is:
+No. of actors yet to complete t1 within DL1 +
+No. of actors yet to complete t2 within DL2 +
+No. of actors yet to complete t3 within DL3 +
+0×No. of actors past DL3
+If the actors need to be in a speciﬁc state at each stage, etc. this
+can be built into the expressions occurring above. The idea
+is that as each actor completes the tasks and the deadlines
+expire in turn, the expressions above stop contributing to thevariant, ensuring its decrease.
+Level 03. Level 03 introduces the (triplicated) analogical
+switch sensors. The main reason for not doing this in the pre-
+vious level is to exercise the composition and architecturalfeatures of the multi-machine formalism, to conﬁrm that it
+is ﬂexible enough to cope with this kind of gradual elabo-
+ration of components that are already present. In contrast totheConf development, in this development, sensors respond
+asynchronously: each sensor is permitted to respond in its
+own right within a small time window following the closureor opening of the switch. This requires more ‘new’ events,and the variant that ensures their convergence is based once
+more on the pattern just described.
+9
+9In fact, the most compact way of writing the variant requires count-
+ing the identities of sensors satisfying the requisite properties. Strictly
+speaking this is outside the usual kind of B-Method type system, butit could be simulated by some more cumbersome programming. In ourpaper exercise, we sidestep this problem for the sake of clarity.
+123
+
+--- Page 12 ---
+216 R. Banach
+Here is the event that sets the ith analogical switch
+sensor to CLOSED . Note how temporal nondeterminism
+is dealt with by inputting a time which is loosely con-
+strained within the event guard (In fact, the WHERE guard is
+equivalent to ( AnSw _CLOSED _INIT<clk_AnSw <AnSw _
+CLOSED _INIT+AnSw _DL)∧AnSwClosed , but having an
+external input means that the event does not have execute
+eagerly, and thus does not have to disable itself).
+N. B. More naming conventions: sens_xxxinames a sensor
+andialways indexes over a triple of sensors (In the same vein,
+kalways indexes over the two computers in the development).
+Sufﬁx ‘ _DL’ denotes a deadline or delay.
+The way that the sensors are handled embodies another
+pattern introduced in this development. This one concerns a
+framework for ‘timed stimulus and response’. One machine
+(in this case, the pilot machine) executes a stimulus event(in this case, moving the handle) to which a timely response
+(in this case, the activation of the analogical switch’s sen-
+sors) is anticipated. The stimulus event is synchronised inthe responding machine with a clock value on a clock within
+the responding machine (in this case, the analogical switch’s
+clock clk_AnSw ). The synchronisation (in this case, the
+earlier handle event) opens a time window in the respond-ing machine (in this case between AnSw_CLOSED_INIT
+andAnSw_CLOSED_INIT + AnSw_DL ) within which the
+responding event takes place (the timing restriction beingenforced via the responding event’s guard). We see all this in
+the event AnSw _CLOSED _INIT _close _sens_AnSw
+iabove.
+Of course, the purpose of the sensors is to enable some-
+thing else to happen elsewhere in the system. In this case, it is
+in the computers, which need to be aware of the sensors; their
+gear movement events (such as GearStartMoving_S earlier)
+need to be reﬁned to acquire stronger guards, now with allthree sens_AnSw
+iset to CLOSED conjoined, to enable them.
+We observe at this point that our general purpose timed
+stimulus and response pattern could equally well have beenused to model the handle sensors and their role in the control
+of the system. In fact, though, we did not model the handle
+sensors in this development, using event synchronisation tomodel the cooperation between handle and computers. This
+is equivalent to assuming that the handle never fails, since the
+synchronisation forces the computer event whenever there isa handle event.The presence of the sensors permits quite a number of
+invariants connecting the behaviour of the analogical switchclock, the analogical switch state and the behaviour of the
+analogical switch sensors to be written. This and the addi-
+tional involvement of the computers with the analogicalswitch sensors prompts the creation of an interface, the level03Central_IF . The analogical switch’s clock, its variables
+and invariants are all moved there. The analogical switch
+machine and the two computing machines all CONNECT tothis interface.
+Level 04. Level 04 commences the introduction of the gen-
+eral electrovalve. The approach is similar to the introductionof the analogical switch, in that there is a new machine forthe general electrovalve to model its behaviour. The general
+electrovalve machine is connected to the Central_IF inter-
+face because of the way the general electrovalve is connectedto the remaining components.
+It is clear from Fig. 1and from the accompanying discus-
+sion, that the pilot, computers, analogical switch and generalelectrovalve are all interconnected in a quite complicated way
+(giving especial interest to this case study). Now, that all of
+these components are present in the development, the ‘chainof command’ between them can be better represented. Thus,level 04 introduces variables comp 2answ
+kandansw2genev
+to represent the commands from the computers via the switch
+to the general electrovalve, and variable genEVoutput to rep-
+resent the output of the general electrovalve to the rest of the
+hydraulics. All these variables reside in Central_IF .
+Unlike for the other components of the landing gear sys-
+tem though, the description of the general electrovalve in
+[17] does specify some continuous behaviour, albeit that
+this is simple linear behaviour. We take the opportunity tomodel this using nontrivial Hybrid Event-B pliant events inthe general electrovalve machine. For instance, the growth
+of pressure in the door and gear movement circuits is given
+by the following pliant event:
+In this event, The INIT clause only permits the behaviour
+described if answ2genev is true. In that case, D, the time
+derivative symbol in Hybrid Event-B signals an ordinary dif-
+ferential equation (ODE) system in the SOLVE clause that
+has to be solved to deﬁne the behaviour. The right hand side(RHS) of this ODE contains a case analysis. If the pres-
+sure genEVoutput is less than HIGH , the its value increases
+linearly. As soon as it reaches HIGH though, the bool2real
+function makes the RHS zero, which maintains genEVoutput
+123
+
+--- Page 13 ---
+The landing gear system in multi-machine Hybrid Event-B 217
+at the high level. In the Conf development, a mode event
+separated these two phases because of the different synchro-nisation of sensors there. In this development, there is no
+intervening mode event, and the RHS represents a genuine
+case analysis.
+There is a corresponding pliant event that governs the
+decrease of genEVoutput when answ2genev is false. It con-
+tains a similar case analysis that stops the linear decrease
+once the level drops to LOW . The increasing and decreasing
+episodes are separated by mode events that are synchro-
+nised with the analogical switch’s mode events that move
+answ2genev between true and false. This is as required by
+(1) and ( 2) above.
+We can take this argument further. In reality, a piece
+of equipment like the general electrovalve obeys a singlephysical law which would state that the rate of change ofgenEVoutput was governed by a particular physical property
+(most probably depending on the properties of a hydraulic
+accumulator elsewhere in the hydraulic circuit). As such, itwould be fair to deﬁne it in Hybrid Event-B using a single
+ODE such as DgenEVoutput =some _expression , leading to
+a machine with a single plaint event and nothing else. Takingour linear modelling seriously, an explicit such event would
+resemble:
+InPressureLaw ,t h ev a l u eo f answ2genev in the RHS
+switches between increasing and decreasing episodes, so the
+RHS of the ODE now contains a four-way case analysis.In terms of modelling, it does not change much aside from
+the elimination of mode events. In terms of automated ver-
+iﬁcation though, it increases the burden on any automatedanalysis system, since such a system would have to discover
+the four-way case analysis automatically. The range of pos-
+sibilities considered, from the four pliant events of the Conf
+development, through the two pliant events of the presentdevelopment, to the single pliant event PressureLaw above,
+are all connected to the issue of instantiation of a standard
+component into a speciﬁc development. The description in[10] gives a simple proposal, based on simple renaming of
+the elements of a standard component, but there is clearly
+scope for more elaborate schemes.
+Level 05. Level 05 completes the development of the general
+electrovalve by incorporating its sensors. This is done in the
+same way that it was done for the analogical switch. Newevents are introduced in the general electrovalve machineto assign the sensors, governed by the same asynchronous
+setting pattern. Their convergence is conﬁrmed by a variantbuilt according to the same variant pattern we discussed ear-
+lier. Other events, primarily in the computer machines, are
+reﬁned to take note of the sensors.
+Of course, most of the preceding could have been accom-
+plished in many fewer development steps than we expended.
+The main purpose in the more numerous small steps we took
+was to conﬁrm that such increments of functionality could behandled by the multi-machine formalism without problems.
+Furthermore, small steps are much easier to handle for auto-
+mated veriﬁcation (looking forward to mechanical supportfor Hybrid Event-B).
+Level 06. We proceed to level 06. Now, that the general
+electrovalve can be powered up and down, this level intro-
+duces the individual movement electrovalves, and implicitly,the hydraulic cylinders that they manipulate. Little further
+purpose is served by slicing the development into small
+increments, given that the patterns for doing this are wellestablished by now, so we introduced all in one step, the four
+movement electrovalves, their sensors, and a new interface
+HydraulicCylinders_EV_IF .
+Each of the four movement electrovalves and cylin-
+ders gives rise to a new machine: DoorsOpen _EV,Doors
+Close _EV,GearExtend _EV,GearRetract _EV.These four
+machines are identical in structure, so only Doors
+Open_EV is written out in full. The HydraulicCylinders_
+EV_IF contains all the variables needed for this step, and
+they are coordinated using the same collection of by nowfamiliar patterns.
+The Comp
+kmachines grow steadily larger due to the
+accumulating set of variables that they have to be sensitiveto. They also display an interesting phenomenon. There are‘new’ events to initiate the manipulation of the movement
+hydraulic cylinders, and to detect the completion of their
+movement tasks. Normally, new events need to decrease avariant. However, during the movement tasks, the handle may
+be manipulated an arbitrary number of times, which can even
+prolong the task indeﬁnitely if it is a gear movement task. It istrue that ‘old’ events (the handle manipulation events) inter-
+leave the new event occurrences, and thus it would be possible
+to invent state variables that could be used to create a suitablevariant. But such variables would not address any systemrequirements, so they were not introduced. Consequently,
+the new events were deﬁned with STATUS ‘ordinary’, not
+‘convergent’. This absolves them from the obligation ofdecreasing any variant (In a more realistic development, such
+variables would typically prove more useful in the faulty
+regime, but we did not introduce them here; further relatedcomments appear below).
+The situation just discussed illustrates a general point.
+The more an event relies on input or stimulus from the
+123
+
+--- Page 14 ---
+218 R. Banach
+Fig. 5 The approximate timing
+diagram for the level 07
+computing machine
+0  
+clk_Handle
+Gear Exte ndGear Retr act
+Door Close Door Ope n 
+gnivoMpotSraeG gnivoMtratSraeG
+environment, the weaker are the properties that we can
+expect to be able to prove regarding aspects that depend
+on this external inﬂuence—the potentially arbitrary inter-vention of handle movement events during landing gear
+operation being a case in point. Only when events depend
+on variables or stimuli that are fully internalised in themodel, can we expect to prove relatively strong prop-
+erties regarding them, since we can then identify and
+thence quantify allthe inﬂuences that they might depend
+on.
+This portion of the development also shows eloquently
+the beneﬁts of the hypergraph system architecture. Although
+the computers have to converse with the handle, the analogi-cal switch and the general electrovalve on the one hand, and
+with the movement cylinders on the other hand, these con-
+versations involve separate sets of variables, so the variablescan be conveniently partitioned into the Central_IF and the
+HydraulicCylinders_EV_IF interfaces, respectively, the sep-
+aration beneﬁting separate development.
+Level 07. We proceed to level 07. Up to now, the impetus for
+executing any particular event that is potentially available in
+a machine has come from the environment, via the technique
+of using an external input that is created for that sole purpose.Where there are synchronised families of events, one of them
+is allocated the external input and the rest are synchronised
+with it. Having reached a fairly complete level of detail inthe nominal regime, the ﬁnal step in modelling is to removethis artiﬁce, and replace it with explicit timing constraints.
+This is the job of level 07. We observe that explicit tim-
+ing information is already included in subsystems for whichthe description is relatively complete, such as the analogi-
+cal switch, and the general and movement electrovalves, so
+the level 07 development step only concerns the computingmodules.
+In attempting to incorporate the timing information into
+the computing modules, it was tempting to try to intro-duce the timing constraints in a step-by-step fashion. Forexample, one could imagine having only non-overlapping
+raising and lowering episodes ﬁrst, and then adding the extra
+complexities brought about by allowing raising and lower-ing episodes to overlap. However, it was soon realised that
+the complexity and interconnectedness of the timing con-straints was such that a stepwise approach would need to
+allow guard weakening as well as guard strengthening in
+various events.
+10Since the Event-B notion of reﬁnement is
+not designed for guard weakening (the goal of guard weak-
+ening being delegated to relative deadlock freedom POs), the
+idea was abandoned in favour of a monolithic approach thatintroduced all of the computing modules’ timing machinery
+in one go.
+Figure 5outlines the behaviour of the computing mod-
+ules’ clock clk_Handle
+k, when the handle is manipulated
+during the course of gear extending or retracting. Unlike
+Fig. 4though, where the behaviour illustrated is close to
+what the model describes (since the analogical switch justresponds to handle events in a self-contained way), Fig. 5
+neglects important detail. For example, consider a Pilot-
+GearUP_S event while the gear is extending. Then, the
+retracting sequence has to be executed, but only from the
+position that the extending sequence has reached. So ﬁrst,
+clk_Handle
+kis changed to stop the gear extending command.
+Then, the clk_Handle kclock is changed to a time sufﬁciently
+before the gear retracting command time, that there is cer-
+tainty that hydraulic hammer11has subsided. Once it is safe
+to activate the gear retracting command, the gear retract-ing command is activated, and then clk_Handle
+kis changed
+again to advance the clock in proportion to the undone part
+of the gear extending activity. In effect, we use clk_Handle k
+intervals as part of the state machine controlling the behav-
+iour of the computing modules (along with some additional
+internal variables). This proves especially convenient whenthe state transitions involved concern delays between com-mands that need to be enforced to assure mechanical safety
+(e.g. as in the hydraulic hammer case, just discussed). Such
+10For example, introducing conﬂicting handle events gives rise to the
+need to extend the time interval within which certain other events are
+required to occur, thus weakening the event guards that express suchtemporal constraints.
+11Hydraulic hammer is the term for the collection of transient shock
+waves that propagate round the hydraulic system when relatively abruptchanges are inﬂicted on its control surfaces (i.e. the pistons in the vari-ous cylinders), and which are typically damped using a relatively elastichydraulic accumulator somewhere in the hydraulic circuit to avoid dam-age to the hydraulic circuit components.
+123
+
+--- Page 15 ---
+The landing gear system in multi-machine Hybrid Event-B 219
+ﬁne detail is not visible in Fig. 5, but it makes the design
+of the level 07 events quite complicated. As a result, thesize of the Comp
+kmachines grows considerably at level
+07; the movement events grow because of the extra detail,
+but, most particularly, the original handle events are reﬁnedinto a large number of subevents, to cater for all the differ-ent things that need to happen depending on where in the
+sequence of activities an interruption by a fresh handle event
+occurs.
+We can give an example of the preceding in the event Pilot-
+GearDOWN_DoorsClose_Start_DoorsClose_End_S . It def-
+ines what happens when the pilot pulls the handle downwhile the doors are closing at the end of a previous manoeu-
+vre (which must have been a gear retraction manoeuvre, so
+thatclk_Handle
+kis between DoorsClose_Start_TIME and
+DoorsClose_End_TIME ). Then, Comp k’s clock is moved
+to just before DoorsClose_End_TIME so that door closure
+control can be tidied up, doors _open _progress _time kis set
+to the appropriate portion of the door opening period, andthedoors _open _mode
+kvariable is set to INTERRUPTED ,
+so that when reopening is started, the opening event can
+react to doors _open _progress _time kinstead of opening the
+doors from the beginning. By manipulating the clock value,
+it is easy to allow for the subsidence of hydraulic hammer
+before switching between extension and retraction of thegear.
+9 Retrenchment and the introduction of faults
+Our technique for incorporating faults into the developmentis based on retrenchment. This is an approach that dates backto [13], especially in the context of the B-Method. Moreup to date treatments include [ 11,12,14,29]. Applications
+to mechanised fault tree construction include [ 7,8].
+Retrenchment is a technique that allows an event to be
+modiﬁed during a development step more drastically than
+permitted by reﬁnement. This implies that the kinds of guar-antee that reﬁnement can typically offer are missing fromdevelopment steps that are described via retrenchment. In that
+sense, retrenchment can be seen as a formally documented
+requirements engineering and requirements modiﬁcationframework. Of course, the modiﬁcation of a nominal model
+to incorporate and tolerate faults falls neatly within this
+remit.
+Formally, and using Event-B terminology,
+12retrenchment
+relates pairs of events (rather as reﬁnement does): an event in
+an ‘abstract’ level model and a corresponding event in a ‘con-crete’ level model. Because the aim is to have a notion thatcan coexist smoothly with reﬁnement (c.f. [ 11]), retrench-
+ment is characterised by a PO similar in structure to a typical
+reﬁnement PO, but populated with additional data that yieldsthe more liberal notion. Besides the events that are related,
+there can be other events at both levels that are unrelated to
+one other by the retrenchment PO—no restrictions are placedon these.
+We adapt a little the formal syntactic structure of retrench-
+ment for Event-B given in [ 2] to ﬁt the framework of
+Sect. 3a bit better. If a concrete model retrenches an abstract
+model, the state variables of the two models are related via
+a RETRIEVES clause. This is essentially like a collection
+of joint invariants during reﬁnement in conventional Event-B, except that we distinguish them syntactically for easier
+manipulation.
+13Such RETRIEVES clauses can occur in
+interfaces (to relate abstract and concrete interface variables)and in machines (to relate abstract and concrete machine
+variables). With this in place, the schematic structure of a
+retrenched event now appears as follows.
+12Retrenchment has been explored for Event-B speciﬁcally in [ 2].
+13Thus far, we have not needed this kind of data reﬁnement facility,
+since all reﬁnement was expressed by the aggregation of new detail, andof further constraints on existing behaviour. But now, we need to alter
+some of the previously deﬁned behaviour, so we need to distinguish thebehaviours of earlier and new versions of variables.
+123
+
+--- Page 16 ---
+220 R. Banach
+The above shows the details for a mode event; for pli-
+ant events, the idea is essentially the same, as we describe.After the event name and status, the abstract event that is
+being retrenched is identiﬁed. Then, come the guards, which
+have just the same structure as for conventional mode or pli-ant events, as applicable. The WITH alternative is to expressnontrivial relationships between abstract and concrete locals,
+when needed—this works just as for reﬁnement in conven-
+tional Event-B. After that come the only visible differencesfrom conventional events, the OUT and CONC clauses. The
+idea is that if the simulation of the concrete by the abstract
+event is able to reestablish the RETRIEVES relation and allthe invariants, then any additional facts for that case can be
+accommodated in the OUT(put) clause. Alternatively, if the
+simulation of the concrete by the abstract event is notable to
+reestablish the RETRIEVES relation and the invariants, thenany relevant facts for that case can be accommodated in the
+CONC(edes) clause. Both clauses offer maximum expres-
+sivity, in that abstract and concrete before- and after-valuescan be mentioned in them for mode events. For pliant events,
+the whole of these variables’ behaviours during the pliant
+event are available—thus, they both act as (and thereforereplace) the COMPLY clause, one for the retrieving case
+and the other for the conceding case. Given how expres-
+sive the OUT and CONC clauses are, it is often useful tohave a trivial RETRIEVES relation, delegating all aspects ofthe relationship between abstract and concrete variables to
+the WHEN/WITH and OUT and CONC clauses. Below we
+describe how these facilities are used in building the faultyregime of the landing gear case study.
+In the literature, various notions that do not conform to
+reﬁnement have been proposed for incorporating faults intoformal models. These permit the concrete model to depart
+from the abstract model in speciﬁc ways. In many cases,
+these ways are, in fact, very similar to what the retrench-ment PO permits. In the cases of interest to us, once faultshave occurred error recovery is modelled, and after it has
+completed, system behaviour is allowed to rejoin reﬁning
+behaviour. In this category, we can cite, e.g. [ 23] and [ 24].
+Their authors typically call their notions by names that are
+‘ﬂavours of reﬁnement’, but given the explicit departure from
+reﬁning behaviour that is permitted, we prefer the formula-tion used here.
+10 The faulty regime
+To model the landing gear faulty regime, we use the well-known fault injection technique. Each potentially failingelement xxxhas an associated boolean fault variable ff_xxx
+(another naming convention). To each potentially failing
+component, we add an fault injection event (parameterisedby failing element, as required) Inject _A_Fault
+xxx. This setsTa b l e 2 Summary of the levels of the faulty development
+Level Feature
+10 Electromechanical component failures
+11 Computer failures
+the relevant fault variable to TRUE , and sets the failing ele-
+ment to an arbitrary value. Additionally, we assume elements
+fail hard, so once set at the point of failure, neither the fail-ing element nor its fault variable ever changes again. The
+elements that are allowed to fail this way are the sensors
+(since it is only the sensors that the Comp
+kmachines can
+react to); also, the Comp kmachines themselves can fail
+(using ff_comp k), which disables all further computation by
+Comp k. Regarding the sensors, the Comp kmachines also
+maintain variables OK_sens_xxxkto record which sensors
+have (not) failed, to ensure that no more than one out of
+each triple of sensors has failed during normal operation.
+As noted earlier, in this study, for simplicity, we did notmodel the handle sensors or their failure; nor did we model
+failure of the shock absorber sensors. But we could have
+done it, by the same techniques described below. The con-struction of the faulty regime was approached in stages, aswas the case for the nominal regime. Table 2gives a sum-
+mary.
+Level 10. Level 10, the successor of level 07, is the ﬁrst
+faulty regime level. This level models the easiest part of
+the faulty regime, the failures of the basic electromechan-
+ical components, namely: the analogical switch, the generalelectrovalve, and the four gear movement hydraulic cylin-
+der sets. We capture the transition from level 07 to level 10
+using a retrenchment from the level 07 project to the level 10project.
+In common with many development situations in which
+there is a considerable difference between behaviours at the
+two levels, the RETRIEVES relation for this retrenchmentis taken to be TRUE . This does not constrain the concrete
+model in any way, and we can describe the deviation from
+the abstract to concrete behaviour quite adequately in theother data of the retrenchment, namely the WHEN/WITH
+guard relations (for the before-states) and the OUT and
+CONC relations (for the after-states, and their relation-ships with the before-states). This RETRIEVES relationappears in the two interfaces of the development, since all
+the electromechanical components’ variables reside in these
+interfaces.
+The change in an event of the electromechanical com-
+ponents in the presence of fault injection is illustrated in
+the following example, taken from the faulty analogicalswitch.
+123
+
+--- Page 17 ---
+The landing gear system in multi-machine Hybrid Event-B 221
+If the fault is not active, then the behaviour is as
+before: sens_AnSw i:|sens_AnSw/prime
+i=OPEN ; while in the
+presence of a hard fail, we have: sens_AnSw i:|sens_AnSw/prime
+i=
+sens_AnSw iwhich says that the after-value of sens_AnSw iis
+the same as its before-value.
+In the former case, the OUT clause is established, i.e. we
+have sens_AnSw/prime
+i=sens_AnSw/prime05
+i, or that the level 10 after-
+value of sens_AnSw iis equal to its abstract counterpart,
+indicated via the 05 superscript. In the latter case, we establishmerely that sens_AnSw
+/prime
+i∈{OPEN ,CLOSED }, since there is
+no control over the faulty value that sens_AnSw iis stuck at.
+In this development step, all of the events of the electro-
+mechanical components are affected the exact same way. The
+Comp kmachines are unaffected. Consequently, as soon as
+there is a failure in an electromechanical component, the
+Comp kmachines become insensitive to it, since they demand
+unanimity from the sensors.
+Note how the separation of concerns made explicit by
+having many different machines in this development isvery beneﬁcial in dividing and conquering the complex-ities of the faulty regime. Thus, we could focus on the
+failures of the electromechanical subsystem ﬁrst, without
+needing to involve the computers. The fact that we are usingretrenchment is helpful in not needing to deﬁne allthe behav-
+iours relevant to a speciﬁc failure scenario in one go (as
+would need to be the case if we attempted this via reﬁne-ment).
+Level 11. The failure behaviour of the Comp
+kmachines is
+tackled at level 11. Referring to level 07 (which contains the
+ﬁnal nominal Comp kmachine), a typical Comp kevent either
+reacts to a handle movement, or stimulates (or reacts to) some
+activity in the electromechanical system, or manipulates the
+lights. There are no other cases.
+It is easy to integrate faulty behaviour into the handle
+movement events. We assume the handle does not fail, so the
+Comp kmachines receive these events reliably. Whether any-
+thing happens depends on the state of the Comp kmachinesthemselves. Hard fails of the Comp kmachines are mod-
+elled using the ff_comp kvariables, whereas failures detected
+in the electromechanical components which are not to be
+compensated are recorded using the variables anomaly k.
+All events thus include the term ¬(ff_comp k∨anomaly k)
+in their guards (Also, at the start of any sequence of activ-ity, the landing gear shock absorber sensors are checked to
+indicate that the aircraft is in the AIR). Therefore, for the han-
+dle movement events, the inclusion of the additional guardsis sufﬁcient. Also, for the events that signal the pilot by
+manipulating the lights, inclusion of these additional guards
+is enough, since we assume that cockpit functionality neverfails.
+The movement events are trickier. Under nominal oper-
+ation, initiation of a movement is done when clk_Handle
+k
+reaches a suitable value (conditional on other variables, and
+on the relevant sensors being unanimous about a cylinder’s
+condition)—termination is triggered by the last relevant sen-
+sor indicating success. In the faulty regime, two out of threetrustworthy sensors indicating success is sufﬁcient. But the
+ﬁrst two trustworthy sensors will always indicate success
+regardless the behaviour of the last one, so the events forthe ‘ 2of3_OK ’ cases must be ﬁred on a timeout, to give
+the last sensor time to respond. Additionally, the movement
+events are already split into NORMAL andINTERRUPTED
+cases since their behaviour needs to differ depending onwhether a previous sequence has been interrupted by a fresh
+handle event before completion. Addition of faulty behav-
+iour thus generates a four-way split. But this only coversthe cases compatible with eventually acceptable behaviour.
+There remain cases for each movement event which are
+not to be compensated, when at least two sensors out ofthree are misbehaving. So there must be Anomaly_xxx events
+at level 11 that catch these cases and set the anomaly
+k
+variable and unset normal_mode , and this last case cov-
+ers the transmutation of the nominal regime into the faultyregime.
+Here is an Anomaly_xxx example (for gear retracting). The
+test is that at least two sensors are not registering correctlyandthe timeout has expired. The latter means that at least two
+sensors on the same device failed somewhere. Otherwise, a
+‘2of3_OK ’ case would have succeeded.
+123
+
+--- Page 18 ---
+222 R. Banach
+Level 00
+Level 07 Level 11
+Level 10
+Fig. 6 The Tower Pattern, schematically illustrating the landing gear
+development. The nominal development, performed via series ofdescending vertical reﬁnement steps appears on the left. Retrenchment
+steps, shown horizontally , construct the faulty regime in two stages,
+arriving at the Level 11 system at the bottom right
+11 Fault handling and the T ower Pattern
+The series of reﬁnements and retrenchments we have
+described is a good example of the Tower Pattern [11].
+This envisages a world of system models spread over a two-dimensional surface. Different models that lie on the same
+vertical line are assumed to be related by (a suitable notion
+of) reﬁnement, and different models that lie on the samehorizontal line are assumed to be related by retrenchment.
+In this scheme, the trajectory we have taken in our devel-
+opment is shown in the solid line of Fig. 6. The earliest
+model, level 00, is at the top left, and it is reﬁned through
+seven reﬁnement layers to level 07 to complete the nominal
+development.
+14Then, we embark on retrenchments towards
+the right to get the faulty regime at level 11 in the bot-tom right corner. The theorems of [ 11] guarantee that there
+are system models (consistent with the development) at all
+the grid points of the rectangle generated by the downwardand rightward trajectories. With this picture, we can addi-
+tionally do the following: from the bottom right corner, we
+can undo the various levels of reﬁnement (in an essentiallyautomatic way according to the theorems of [ 11]) to get an
+ultimate abstraction of the faulty regime model at a level
+corresponding to level 00. Since the reﬁnements were allbased on the aggregation of design detail, the correspondingabstractions will all be based on the forgetting of that detail
+in the faulty context. The end result will therefore be a level
+00 analogue of the level 11 machine Level_11_PilotFaulty .
+The only serious difference from the level 00 machine is the
+inclusion of the red light, as beﬁts a faulty retrenchment of
+it.
+15
+We are not done yet though. The case study description
+in [17] lists a collection of requirements in its ﬁnal section.
+The opportunity was taken to take these on board verba-
+14Figure 6shows four layers instead of seven.
+15Because of the simplicity of these two models, this retrenchment is
+a degenerate one, which defaults to a reﬁnement.tim, within the multi-machine Hybrid Event-B methodology.
+The methodology permits the PROJECT ﬁle to contain aGLOBINVS declaration indicating a ﬁle of global invari-
+ants. These are supposed to be provable from the contents of
+all the interfaces in the project.
+In [17], the requirements we have in mind were a mixture
+of kinds. Some of them were obviously expressible as state
+invariants, while others were much more like liveness con-
+straints. While the latter might present problems for a purelydiscrete methodology without explicit liveness facilities, the
+presence of real time in Hybrid Event-B and of deadlines
+in the requirements permitted the translation of these intotime- sensitive invariants,
+16thus falling within the remit of
+the basic Hybrid Event-B methodology. These translated
+requirements all appear in the global invariants constructLevel_11_LandingGearSystem_GI . The conventions that are
+demanded for global invariants insist that they be derivable
+from the interfaces in the project, so in order that all of
+the variables needed by the global invariants were correctlydeclared, a number of the variables needed by the Comp
+k
+machines were moved into a new interface created at level
+11 specially for the purpose: Level_11_Cockpit_IF_Faulty .
+This interface could also serve a wider objective, if modelling
+of the cockpit display were to be included in the development.
+One further job was done at level 11. Whereas in previ-
+ous development steps, the text highlighted only the changedparts (e.g. newly reﬁned events), abbreviating unchanged
+parts using ellipses, for example, and copying unchanged
+components verbatim in their most recently updated form,at level 11, all these missing details have been ﬁlled in.
+This includes ﬁlling in all the details of the default pliant
+events that interleave the mode events in the majority of themachines. Where the modelling metaphor involved the use
+of pliant variables for signals that needed to change instanta-
+neously in synchronised mode events, their constancy outsideof these mode events is demanded using the CONST modal-
+ity [4] in the relevant COMPLY clause of the default pliant
+event.
+We are still not done yet though. The integration of the
+nominal and faulty regimes into one uniﬁed development
+encourages further cross-checking, beyond the global invari-
+ants just discussed, as follows. During the nominal develop-ment, as successive components are introduced, it is tempting
+to write additional, and quite strong invariants, knowing that
+these hold in the nominal regime. In fact, this was doneduring the development of the analogical switch and gen-eral electrovalve and similar components, and the additional
+invariants can be seen in the relevant interfaces (especially
+16Above, we said that invariants had to be true at all times .T h e r ei s
+no contradiction. Time- sensitive invariants that are always true canbe written in the form condition on time or on clocks ⇒property of
+variables .
+123
+
+--- Page 19 ---
+The landing gear system in multi-machine Hybrid Event-B 223
+inCentral_IF ). In the faulty regime, these invariants no
+longer hold, and this fact necessitates the retrenchment oftheCentral_IF andHydraulicCylinders_EV_IF interfaces to
+their level 10/11 versions, Central_IF_Faulty andHydraulic-
+Cylinders_EV_IF_Faulty . But as long as no fault has been
+activated, these stronger invariants will hold in a run of thesystem. This suggests using the Tower Pattern development
+architecture to close the veriﬁcation loop in the following
+way.
+It would be quite feasible to mechanise a process, to be
+applied to the faulty system as follows: (a) delete/disable
+all fault injection events from the development; (b) unifyeach interface’s nominal and faulty versions and include the
+resulting interface in the development;
+17(c) then reverify
+everything. Particularly with a variable naming conventionlike the one we have used in this development, in which thesame names are used at successive levels, by doing the pre-
+ceding, the stronger invariants are made to apply within the
+faulty regime, and they will be expected to hold, since thefaulty behaviour has been rendered unreachable.
+18I nar e a l i s -
+tic version of this process, the above steps would most likely
+need to be strengthened by additional invariants expressingthe absence of faults, since their unreachability would be
+implicit from the point of view of an individual event, whose
+guard might still be sensitive to the possibility of faults.
+12 The time-triggered loop
+A practical implementation of a system like the present onewill ultimately culminate in a time-triggered loop implemen-tation. That is to say, the computing systems will have a timer
+interrupt, which will regularly wake them at a predetermined
+frequency, and upon being woken, the timer value, the inter-nal state, and the sensors will all be examined to determine
+what, if anything, needs to happen.
+In principle, the events of the level 11 system are ﬁne-
+grained enough that we would want to see them directly
+implemented in the time-triggered loop system. Two issues
+immediately emerge. The ﬁrst is relatively trivial, and con-cerns the observation that the time-triggered implementationis typically a sequential program, so that some reconﬁguring
+of the event descriptions may be required to ﬁt this para-
+digm better, in particular when the events of our ‘ideal’ eventsystem occur sufﬁciently close in time that they have to be
+accommodated in the same polling routine. We regard this as
+a relatively minor refactoring issue. The second concerns the
+17While the nominal version contains the stronger invariants, the faulty
+version contains the references to the abstract variable names, so bothare needed. Furthermore, they are compatible, since the retrenchmentstep just removes the former and adds the latter.
+18With different naming conventions, more/different refactoring might
+be needed to achieve this overall effect.fact that, in a time-triggered loop, events are not executed
+at exactly the time that the level 11 system would executethem.
+19It is the job of this section to explore this.
+One rather simple approach is to assume that all events
+happen at some exact multiple of the sampling period. Pro-vided the sampling period is short enough, this is often goodenough from an engineering viewpoint. Then, the behaviour
+of the implementation is just a subset the behaviours per-
+mitted by the abstract model, and the latter can simply beviewed as an over-generous safety property. Consequently,
+the relationship between abstract and implementation models
+becomes a straightforward reﬁnement, based on an identityretrieve relation (and on the predictability of linearly evolv-
+ing behaviours for those parts of the system expressed in
+continuous terms).
+However, in reality, events will notall happen at a multiple
+of the sampling period, and those assumptions will not hold.
+The consequence of this is that the abstract model becomes,
+not a safety property, but a requirement, and the implemen-tation must address all of the behaviours it permits.
+Several observations now follow. The ﬁrst is that only the
+computing systems are modiﬁed by the time-triggered imple-mentation. The electromechanical components continue to
+behave as before. The second is that because we model han-
+dle stimuli via events synchronised with the computers (andnot via sensors), we are forced to restrict handle events tooccur at exact multiples of the sampling period.
+20The third
+is that regarding the electromechanical components, when
+they are stimulated they behave just as they did before, so nomodelling change is needed there. The fourth is that when
+the electromechanical components attempt to stimulate the
+computer(s), the computer(s) can only react at predeterminedtimes, so that the synchrony of the relevant events in our
+detailed modelling would need to be broken, a delay between
+a stimulus and its processing would need to be introduced,and the consequences of that delay would need to be capturedin the formal relationship between abstract and concrete sys-
+tems. In summary, a system run would now be broken up
+19This is based on the assumption that the speciﬁcations of these events
+remain as in the level 11 system, but that the times at which they occurchanges—this also being connected with the issue of whether the pollingfrequency is high enough.
+20As a digression, suppose we modelled handle events via sensors.
+Then, putting aside practicability considerations, in theory, there couldbe an arbitrary number of handle events within a single sampling period.But only the parity of this number would count. If there were an evennumber of events, the situation seen by the computer(s) at the end ofthe sampling period would be the same as before, and the precedingactivity would continue undisturbed. If there were an odd number ofevents, it would be the same as a single handle event, and a new gearmovement activity would be started, or the orientation of the previouslyongoing one would be reversed. Interesting effects might occur if, dueto asynchrony, one computer detected an even number of events and theother computer detected an odd number of events.
+123
+
+--- Page 20 ---
+224 R. Banach
+into some events in which the computer(s) stimulated the
+electromechanical components, where the timing would beas before, and other events in which the electromechanical
+components stimulated the computer(s), but where the reac-
+tion would be delayed by up to a sampling period.
+One popular way of accommodating this kind of disparity
+in behaviours between abstract and concrete models is the
+retiming technique [ 16,20,28]. In this, the concrete model is
+given a more elastic notion of time, so that despite the asyn-chronies caused by time-triggering, corresponding events in
+the two models nevertheless occur ‘at the same time’—time
+is ‘wiggled a bit’ in the jargon of [ 20]. Of course, a lot of
+detailed inequalities have to be proved, so that one can be
+sure that unrelated events do not collide with one another, or
+get put out of temporal or causal order.
+In general, the present author is disinclined towards the
+retiming approach. A time like 3o ’ c l o c k should refer to the
+same moment in all models in an engineering development.
+Otherwise, there is a risk of confusion between developers atthe requirements level. In fact, the Hybrid Event-B formalism
+explicitly forbids retiming, by insisting that time progresses
+in exactly the same way in all models of a development chain.Of course, this viewpoint does not make the need for the com-
+plicated, detailed facts necessitated by the retiming approach,
+go away. Rather, a better place for them would be a morecomplex reﬁnement retrieve relation, supplemented whereneeded by suitable retrenchment data.
+If we apply this perspective to our development, we
+identify two different regimes. In the ﬁrst, the relation-ship between the level 11 and time-triggered systems is a
+retrieve relation identity. This applies any time the com-
+puting systems can be said to ‘have the initiative’. Thiscovers the handle events (because, as we said above, han-
+dle events are synchronised with the computing systems),
+and those events in which the computing systems issue com-mands to the electromechanical components. In the other,the electromechanical components’ sensors feed back to
+the computing systems, with the attendant delays before
+response. In the ﬁrst regime, a retrieve relation that consistsof clauses such as:
+condition on time and state variables
+⇒var
+11=vart-t(3)
+captures what we have been saying above. In this, the 11
+andt-tsuperscripts refer to the level 11 and time-triggered
+versions of the model variable var, and we need a conjunctionof such terms to make the relationship between level 11 and
+the time-triggered system precise.
+In the second regime, a retrieve relation that contains many
+clauses such as:condition on time and state variables
+⇒(((−−−−−−−− →
+var11(⌊t/Δ⌋))))
+=vart-t(t) (4)
+is needed. This says that at any time t, if the relevant condi-
+tions on the time and on various state variables are satisﬁed,
+then the value of the time-triggered variable vart-twill equal
+the value of the level 11 variable var11, at a time that corre-
+sponds to the last sample time ⌊t/Δ⌋, where Δis the sampling
+interval. The optional overrightarrow selects, on a case bycase basis, whether it is the actual value at ⌊t/Δ⌋itself that
+is required, or its left limit.
+Clauses like ( 4) cover variables for which the behaviour
+is piecewise constant, only. In our case study, we also havelinearly increasing behaviours (for the general electrovalve).
+For that, the right hand side of ( 4) must be replaced by a rela-
+tion between the actual and time-delayed values, accordingto the relevant rate of change. And that is not all. The lin-
+ear behaviour of the general electrovalve gets cut off at the
+lowest and highest values, where it remains constant, till theopposite behaviour is required by the analogical switch. Thisrequires clauses that instead of ( 4), describe the end effects
+of these periods of linear behaviour.
+If enough effort were invested in identifying all the rele-
+vant cases, then a reﬁnement could be proved between level
+11 and the time-triggered system. This would depend on a
+collection of axioms that enforced relationships between thevarious durations occurring in our development that ensured
+that the different cases just discussed did not ‘crash into each
+other’, ruining the reﬁnement. A less exacting collection ofaxioms might only enable a retrenchment to be proved, ratherthan a reﬁnement, and a collection of even weaker axioms
+might not even permit that. Note that in all cases, there may
+be many complexities arising from the need to ensure thatfor each variable, there was always at least one clause in
+the retrieve relation that enforced the needed relationship
+between the two models.
+What we have discussed is already complicated, and
+this was for a situation where piecewise constant behav-
+iours predominated. Life gets even more complex when wecontemplate situations in which sensors and actuators sendvalues that can vary in more complex and unpredictable ways.
+The effects of these low-level issues can have a major impact
+on the stability and predictability of the behaviour of cyber-phyisical systems.
+13 Review, modelling patterns, lessons, issues
+In the last few sections, we have overviewed the landing
+gear case study, redone since the Conf treatment in the by
+now more fully developed multi-machine Hybrid Event-Bformalism of [ 10]. The ﬁnal system in the series of devel-
+123
+
+--- Page 21 ---
+The landing gear system in multi-machine Hybrid Event-B 225
+opment steps was the level 11 system, taking into account
+that we did not write out the time-triggered system in full. Inthe level 11 system documentation, we took the additional
+trouble to write out allthe details, in contrast to previous
+levels, where we concentrated on writing out the changedparts of components while abbreviating unchanged parts, andsimply copied unchanged components from the preceding
+level.
+As the development progressed, and it became clear that
+certain techniques worked well to address certain modelling
+challenges, the amount of work per step increased. While
+this can be convenient for human comprehension of thedevelopment process, it can be the enemy of automatic ver-
+iﬁcation, where small steps tend to be much more digestible
+for machines.
+To exercise the architectural capabilities of multi-machine
+Hybrid Event-B, we placed each identiﬁable component
+in its own machine. This represents one kind of expres-
+sivity extreme—each machine was a simple as it couldbe, but it increased the challenge of keeping all these
+machines properly related, while striving to maximise inde-
+pendent working. At the opposite end of the expressivityspectrum lies the possibility of putting each computer into
+a machine, and putting all the physical components into
+another. Conceptually, this would be feasible for the follow-ing reason. Each physical component is designed to haveself-contained physical behaviour. Thus, if its pliant behav-
+iour were to be captured by a single, universally enabled
+pliant event (covering all the different behaviours that itmight be required to exhibit in a given application), then
+all of these pliant events would be independent, and would
+thus be capable of being conjoined into a single pliantevent.
+To illustrate this, suppose the state of apparatus Awas
+described by pliant variable x
+A, and its behaviour was spec-
+iﬁed via the ODE DxA=φA(xA...). Likewise suppose
+apparatus Bhad state xB, and behaviour given via the ODE
+DxB=φB(xB...). We assume that apparatus Aand appa-
+ratus Bare independent, so, since engineering in general is
+described using local realistic theories, φAwill not depend
+onxBandφBwill not depend on xA. In such a case,
+we can put ODE DxA=...in a machine for appara-
+tusAand ODE DxB=...in a machine for apparatus
+B.
+But equally easily, we could construct one big machine
+for both apparatus Aand apparatus B, and describe the joint
+pliant behaviour via the vector ODE:
+/bracketleftbiggDxA
+DxB/bracketrightbigg
+=/bracketleftbiggφB(xA...)
+φB(xB...)/bracketrightbigg
+In fact, semantically, there is no difference. The semantics for
+the multiple machine formulation is (behind the scenes) for-mulated in a global manner, even if the syntactic appearance
+is partitioned into multiple machines for the convenience ofdesigners. So a conjoined description is perfectly feasible.
+Beyond this, we furthermore note that the mode events
+belonging to all the different physical components could alsocoexist in the same machine, easily enough. We saw someof the consequences of this in our discussion of the analog-
+ical switch above, where we stressed the consequences for
+automated veriﬁcation.
+13.1 Modelling patterns
+In our step-by-step development, we identiﬁed a set of use-
+ful modelling patterns that appeared widely applicable. We
+summarise these now.
+P1The organisation of a development according to the
+hypergraph architecture proved to be a major advantagein terms of structural clarity. It permitted many complex
+invariants to be easily expressed. This gives the concept
+very wide applicability. The notions of type II invariants,and of global invariants in a project, supplements this bymaking different types of cross-cutting invariant avail-
+able.
+P2The pattern ( /Sigma1
+jno. of actors in (DLj/stage j)) for variants
+that track progress through, and ensure termination of,
+some sub-procedure is very general and ought to be more
+widely known.
+P3Using a component’s clock as an adjunct to its state
+machine proved to be extremely convenient in over-
+coming the complexities inherent in achieving a safeand transparent design, when safety-sensitive activitieswith extended duration needed to overlap due to too
+close proximity of external stimuli. Modelling mechan-
+ical safety delays using pure state machine techniqueswould have made the state machines much more cum-
+bersome, and, importantly, made the design much more
+opaque. Simply adjusting the clock to allow a safetymargin of time to elapse before the next required action
+proved to be an elegant solution.
+P4In Hybrid Event-B, stimulus and response normally need
+to be separated temporally. A useful general purposepattern for modelling this has the stimulus event syn-
+chronised with starting a clock in the response event’s
+machine. This allows the response event itself to be trig-gered by a timeout or the entry into a time period. This
+kind of modelling permits many different kinds of coop-
+eration to be expressed.
+P5The introduction of faults in a principled way, starting
+bottom-up from faults in the lowest level components,
+and using retrenchment to step back from nominalbehaviour in a stepwise manner, proved to be a useful
+123
+
+--- Page 22 ---
+226 R. Banach
+organisational technique for mastering the the complex-
+ity of faulty system behaviour.
+P6Once faults had been incorporated as in P5, the check
+back to nominal behaviour when faults were disabled via
+the retrenchment architecture, offered the possibility ofuseful additional conﬁrmation of correct design.
+13.2 Issues and questions
+As well as these positive outcomes of the exercise, detailed
+examination of the issues thrown up by the case study
+revealed a number of areas for further development of theHybrid Event-B framework itself. Among these we can give
+the following.
+Q1In contexts in which there is signiﬁcant use of replicated
+components, such as the present one, the availability of
+expressive and ﬂexible indexing techniques for deﬁningcollections of such components is important for expres-
+sivity and succinctness. In the present development, this
+was addressed by meta level indexing, but it would beneeded in the formal framework in a mature formalism.
+Q2In contexts in which there is signiﬁcant possibility of
+component failure, the rather hardwired synchronisa-
+tion mechanisms in the present framework can proveinadequate. An example of this occurs when we expect
+a synchronisation under nominal conditions and yet
+accept a partial version if one of the machines has failed.It is fairly clear that the present development has not
+fully taken on board all the requirements that arise in
+this context, for example, when synchronisation is onlyneeded when the lastof a set of components that behave
+asynchronously has responded.
+Q3A possible contribution to Q2is to allow events to have
+more than one name, e.g. EvName1 ALSO EvName2
+ALSO EvName3 STATUS ..., etc. Then, the different
+names of the same event body could appear in different
+synchronisation schemes. This, by itself, is not enoughthough.
+Q4The present development used state variables exclu-
+sively. It neglected the possibilities made available usingthe I/O semantics of synchronised events. This may leadto certain advantages, and is a possibility that should be
+explored.
+Q5The use of clocks as part of the state machine ( P3)i sv e r y
+convenient but embodies assumptions that only certain
+things happen within particular time ranges. Different
+tradeoffs between this approach and using more detailedstate machines should be explored, and their pros and
+cons should be understood.
+21
+21As an explicit example, consider that in the level 11 model, the
+anomaly kcases were called on (in principle) quite short timeouts, inQ6Although type II invariants were available if needed, the
+hypergraph architecture rendered them unnecessary inthis development. Is this a general truth or just a fortu-
+nate property of the present case study? In the opposite
+direction, is there a requirement for even more gen-eral, or more complex, cross-cutting invariant patternsin other problem domains?
+Q7Are there ways of further integrating the modelling of
+nominal and faulty behaviours, beyond what has beensuggested by the disabling-of-faults technique?
+Q8The most appropriate handling of the implementation of
+complex event-based systems in terms of time-triggeredsystems raises many questions. Although the essential
+mathematical challenges are not novel, the most appro-
+priate way of packaging the important elements so thatthey can be deployed with the least risk, and maximumengineering beneﬁt, remains as a nontrivial challenge
+for the future. The simple predominantly piecewise con-
+stant behaviours of the present development alreadygenerate a number of complex detailed cases, and these
+do not even touch on the additional frequency domain
+questions that arise when sensors and actuators have todeal with rapidly varying signals. Reconciling the estab-
+lished frequency domain techniques with state-based
+reﬁnement frameworks remains as a signiﬁcant openquestion for future research.
+Q9Of course, doing an exercise like the present one by
+hand is really tricky—playing the role of a human IDE
+is extremely error prone. Almost every re-reading ofsome fragment of the development revealed another bug
+(although typically (and reassuringly), the overwhelm-
+ing majority of such bugs were of a kind that wouldeasily be picked up mechanically by surface syntactic
+checking). Proper machine support is obviously vital
+when doing such a development in a serious way.
+We regard the above questions as outcomes of this study that
+are just as valuable as the positive results of the modellingexercise itself.
+14 Conclusions
+This paper has described the development of the landing gearcase study in the multi-machine Hybrid Event-B framework,as it is deﬁned in [ 10]. We deliberately approached the devel-
+opment in a way that would put the formalism under the
+Footnote 21 continued
+order not to allow clk_Handle kto overrun into the next nominal event.
+More ﬁnegrained state modelling (as noted earlier) could obviouslyavoid this problem if knowledge of equipment behaviour justiﬁed wait-ing longer, in case some physical component responded rather late.
+123
+
+--- Page 23 ---
+The landing gear system in multi-machine Hybrid Event-B 227
+maximum stress, so as to identify what worked well, and
+what issues connected with the formalism might warrant fur-ther investigation. We surveyed the resulting good and bad
+points in the previous section.
+In the earlier part of the work, in the nominal develop-
+ment where it was legitimate to rely on the perfect workingof all the components, it was easy to specify the required
+behaviour in a very tightly controlled way. In the B-Method
+generally, this shows itself as the opportunity to write manyprecise invariants concerning the behaviour. However, when
+the faulty regime is contemplated, the vast majority of these
+stronger properties no longer hold, so the intriguing questionarises as to how one can combine the two worlds in a way that
+might be most beneﬁcial for the ﬁnal delivered system. One
+of the opportunities offered by this case study was the chanceto examine this question in a context that was relatively con-vincing regarding the complexities of a real application.
+On this point, the author utilised his established work on
+retrenchment to try to reconcile the two worlds. Especiallyin the light of the convenient naming convention used in this
+development, it proved possible to reintroduce the stronger
+nominal invariants into a version of the faulty regime whichhad the fault injection mechanism switched off. A practi-
+cal version of this might well necessitate the inclusion of
+additional axioms/invariants expressing the non-occurrenceof faults, to facilitate the veriﬁcation process.
+To summarise, the landing gear case study has proved to
+be an excellent vehicle for signiﬁcantly exercising the Hybrid
+Event-B framework. Since it was conceived independently ofthe framework, it does not fall into the trap of only including
+modelling issues anticipated to be convenient for the formal-
+ism, as a case study conceived by the framework’s designersmight have done, even despite their best efforts. All this bodes
+well for the development of tool support for the framework.
+Open Access This article is distributed under the terms of the Creative
+Commons Attribution 4.0 International License ( http://creativecomm
+ons.org/licenses/by/4.0/ ), which permits unrestricted use, distribution,
+and reproduction in any medium, provided you give appropriate creditto the original author(s) and the source, provide a link to the CreativeCommons license, and indicate if changes were made.
+References
+1. Akers, A., Gassman, M., Smith, R.: Hydraulic Power System
+Analysis. CRC Press, Boca Raton (2010)
+2. Banach, R.: Retrenchment for Event-B: UseCase-wise develop-
+ment and Rodin integration. Formal Aspects Comput. 23, 113–131
+(2011)
+3. Banach, R.: Landing Gear System Case Study in Hybrid Event-
+B Web Site (2013). http://www.cs.man.ac.uk/~banach/some.pubs/
+ABZ2014LandingGearCaseStudy/LandingGearCaseStudy.html
+4. Banach, R.: Pliant Modalities in Hybrid Event-B. In: Liu, Z., Wood-
+cock, J., Zhu, H. (eds.) Theories of Programming and FormalMethods, vol. 8051, pp. 37–53. Springer, Heidelberg (2013)5. Banach, R.: Invariant guided system decomposition. In: Ait Ameur,
+Y ., Schewe K.-D. (eds.) Abstract State Machines, Alloy, B, TLA,VDM, and Z. LNCS, vol. 8477, pp. 271–276. Springer, Heidelberg(2014)
+6. Banach, R.: The landing gear system case study in hybrid Event-B.
+In: Boniol, F., Weils, V ., Ait Ameur, Y ., Schewe K.-D. (eds.) ABZ2014: The Landing Gear Case Study. CCIS, vol. 433, pp. 126–141.Springer (2014)
+7. Banach, R., Bozzano, M.: The mechanical generation of fault trees
+for reactive systems via retrenchment I: combinational circuits.Formal Aspects Comput. 25, 573–607 (2013)
+8. Banach, R., Bozzano, M.: The mechanical generation of fault trees
+for reactive systems via retrenchment II: clocked and feedbackcircuits. Formal Aspects Comput. 25, 609–657 (2013)
+9. Banach, R., Butler, M., Qin, S., Verma, N., Zhu, H.: Core Hybrid
+Event-B I: single Hybrid Event-B machines. Sci. Comput. Pro-gram. 105, 92–123 (2015)
+10. Banach, R., Butler, M., Qin, S., Zhu, H.: Core Hybrid Event-B
+II: Multiple Cooperating Hybrid Event-B Machines (Submitted)(2014)
+11. Banach, R., Jeske, C.: Retrenchment and reﬁnement interwork-
+ing: the Tower theorems. Math. Struct. Comput. Sci. 25, 135–202
+(2014)
+12. Banach, R., Jeske, C., Poppleton, M.: Composition mechanisms
+for retrenchment. J. Log. Algebraic Program. 75, 209–229 (2008)
+13. Banach, R., Poppleton, M.: Retrenchment: an engineering variation
+on reﬁnement. In: Bert, D. (ed.) B’98: Recent Advances in theDevelopment and Use of the B Method. LNCS, vol. 1393, pp.129–147. Springer, Heidelberg (1998)
+14. Banach, R., Poppleton, M., Jeske, C., Stepney, S.: Engineering and
+theoretical underpinnings of retrenchment. Sci. Comput. Program.67, 301–329 (2007)
+15. Barolli, L., Takizawa, M., Hussain, F.: Special issue on emerging
+trends in cyber-physical systems. J. Ambient Intell. Hum. Comput.2, 249–250 (2011)
+16. Beauquier, D., Slissenko, A.: On Semantics of Algorithms with
+Continuous Time. Tech. Rep. TR-LACL-1997-15, LACL, Univer-sity of Paris-12 (1997)
+17. Boniol, F., Wiels, V .: The Landing Gear System Case Study. In:
+ABZ Case Study, Communications in Computer Information Sci-ence, vol. 433. Springer (2014)
+18. Butler, M.: Decomposition structures for Event-B. In: Leuschel,
+M., Wehrheim, H. (eds.) Integrated Formal Methods. LNCS, vol.5423, pp. 20–38. Springer, Heidelberg (2009)
+19. Carloni, L., Passerone, R., Pinto, A., Sangiovanni-Vincentelli, A.:
+Languages and tools for hybrid systems design. Found. TrendsElectron. Des. Autom. 1, 1–193 (2006)
+20. Davoren, J.M.: Epsilon-tubes and generalized skorokhod metrics
+for hybrid paths spaces. In: Majumdar, R., Tabuada, P. (eds.) HybridSystems: Computation and Control. LNCS, vol. 5469, pp. 135–149.Springer, Heidelberg (2009)
+21. Hallerstede, S., Hoang, T.: Reﬁnement by interface instantiation.
+In: Derrick, J., Fitzgerald, J., Gnesi, S., Khurshid, S., Leuschel, M.,Reeves, S., Riccobene, E. (eds.) Abstract State Machines, Alloy, B,VDM, and Z. LNCS, vol. 7316, pp. 223–237. Springer, Heidelberg(2012)
+22. Ionel, I.: Pumps and Pumping. Elsevier, Amsterdam (1986)23. Jeffords, R., Heitmeyer, C., Archer, M., Leonard, E.: A formal
+method for developing provably correct fault-tolerant systemsusing partial reﬁnement and composition. In: Cavalcanti, A., Dams,D.R. (eds.) FM 2009: Formal Methods. LNCS, vol. 5850, pp. 173–189. Springer, Heidelberg (2009)
+24. Le Guilly, T., Olsen, P., Ravn, A., Skou, A.: Component reliability
+analysis. In: Sekerinski (ed.) Proc. FASDS-14, dedicated to KaisaSere. Springer (2014, to appear)
+25. Manring, N.: Hydraulic Control Systems. Wiley, New York (2005)
+123
+
+--- Page 24 ---
+228 R. Banach
+26. National Science and Technology Council: Trustworthy
+Cyberspace: Strategic plan for the Federal Cybersecurity Researchand Development Program (2011). http://www.whitehouse.
+gov/sites/default/ﬁles/microsites/ostp/fed\_cybersecurity\_rd\_strategic\_plan\_2011.pdf
+27. Platzer, A.: Logical Analysis of Hybrid Systems: Proving Theo-
+rems for Complex Dynamics. Springer, Berlin (2010)
+28. Quesel, J.D., Fränzle, M., Damm, W.: Crossing the bridge between
+similar games. In: Fahrenberg, U., Tripakis, S. (eds.) Formal Mod-eling and Analysis of Timed Systems. LNCS, vol. 6919, pp.160–176. Springer, Heidelberg (2011)
+29. Retrenchment Homepage: http://www.cs.man.ac.uk/~banach/
+retrenchment
+30. Silva, R., Pascal, C., Hoang, T., Butler, M.: Decomposition tool for
+Event-B. Softw. Pract. Experience 41, 199–208 (2011)31. Sztipanovits, J.: Model Integration and Cyber Physical Systems:
+A Semantics Perspective. In: Butler, Schulte (eds.) Proc. FM-11.Springer, LNCS 6664, p. 1 (2011). Invited talk, FM 2011. http://
+sites.lero.ie/download.aspx?f=Sztipanovits-Keynote.pdf
+32. Tabuada, P.: Veriﬁcation and Control of Hybrid Systems: A Sym-
+bolic Approach. Springer, Berlin (2009)
+33. U.S. Department of Transportation, Federal Aviation Administra-
+tion, Flight Standards Service: Aviation Maintenance TechnicianHandbook—Airframe (2012). http://www.faa.gov/regulations_
+policies/handbooks_manuals/aircraft/amt_airframe_handbook/
+123

@@ -1,0 +1,440 @@
+--- Page 1 ---
+Ŕ periodica polytechnica
+Transportation Engineering
+41/1 (2013) 39–43
+doi: 10.3311 /PPtr.7095
+http://periodicapolytechnica.org /tr
+Creative Commons Attribution
+RESEARCH ARTICLEExperimental veriﬁcation of vehicle
+platoon control algorithms
+Szilárd Aradi /Gábor Rödönyi /Péter Gáspár /Zoltán Hankovszki /Roland Kovács
+Received 2012-10-27
+Abstract
+Organizing a group of vehicles into a vehicle platoon in a way
+that, except for the leading vehicle, each platoon member can
+be autonomously driven has been a research goal for decades.
+Among other beneﬁts this results in a decrease of fuel consump-
+tion and also in the driver’s workload and an increase in a better
+use of road capacity. The recent developments in the area of ac-
+tive control systems for vehicles make it possible to realize more
+and more autonomous functions and the above deﬁned cooper-
+ation between vehicles seems to be increasingly feasible. This
+article aims to point out that today it is possible to reach this
+goal without vehicle speciﬁc software and hardware.
+Keywords
+vehicle platoonstring stability
+Acknowledgement
+This work is supported by the Hungarian National O ce for
+Research and Technology through grants TECH_08_2 /2-2008-
+0088, OM-0239 /2008, which is gratefully acknowledged.
+Szilárd Aradi
+Department of Control for Transportation and Vehicle Systems, Budapest
+University of Technology and Economics, Stoczek u. 2, H-1111 Budapest,
+Hungary
+e-mail: aradi.szilard@mail.bme.hu
+Gábor Rödönyi
+Péter Gáspár
+Systems and Control Laboratory, Computer and Automation Research Institute,
+Hungarian Academy of Sciences, Kende u. 13-17, H-1111 Budapest, Hungary
+Zoltán Hankovszki
+Roland Kovács
+Knorr-Bremse R&D Center, Major u. 69, H-1119 Budapest, Hungary1 Introduction
+It is widely proposed to group vehicles in platoons in such a
+manner that each vehicle except the lead can be autonomously
+controlled. The control aim could be a decrease in fuel con-
+sumption, the driver’s workload or an increase in road capac-
+ity. The main projects of this active research ﬁeld originating
+from the ’80s are the Californian PATH program,the MOC-ITS
+in Japan where intelligent highway systems and road infrastruc-
+ture were developed to improve tra c safety and enhance trans-
+portation e ciency. The European project SARTRE was based
+on the existing road network and was oriented towards the de-
+velopment of the vehicles.
+In the Hungarian TruckDAS project an automated vehicle
+platoon of heavy vehicles was developed. The goal of the
+project was to analyze the control algorithms and synthesize
+the experimental results, see [2]. Within the framework of the
+present project we are developing a system speciﬁcally designed
+for commercial vehicle platforms, where traditional position-
+ing methods (e.g. GPS) are managed together with other data
+(e.g. speed, lateral acceleration, radar) supplied by sensors on
+the vehicle. An important purpose of the project is to achieve
+the desired decrease in the number of accidents even with strict
+economy requirements and demanding circumstances through
+the new driver assistance functions. In our experience in a pla-
+toon of three vehicles a safety gap of 8 mproved to be safe under
+the following conditions: The deceleration of the leader vehicle
+is not greater than 2 m=s2and there is a dwell time between in-
+tensive acceleration and abrupt braking so that transients can
+cease.
+It should be mentioned at this point that more accurate solu-
+tions of platoon controller exist (see [4–6]), but in all cited cases
+a suciently precise and detailed knowledge about the model
+of the drive-line and the brake system is required, and beyond
+that, the direct control of the brake cylinder pressures and throt-
+tle valve of the engine. These models are hard to gain, they
+depend on changing technical conditions of the aging vehicle.
+Furthermore, the direct control of actuators, if possible at all,
+would interfere with the existing commercial control units. In
+contrast to the former solutions, the explicit goal of the research
+Experimental veriﬁcation of vehicle platoon control algorithms 39 2013 41 1
+
+--- Page 2 ---
+was to use only standardized and general functions available on
+every modern commercial heavy truck. Such services are the ex-
+ecution of external deceleration demands provided by EBS, and
+external engine torque demands provided by ECU. Utilizing ex-
+isting, standardized services allows the widespread applicability
+of the platooning concept.
+The remainder of the paper is organized as follows. In Sec-
+tion 2 the experimental environment and the platoon architecture
+are presented. In Section 3 the components of the control sys-
+tem are shown. In Sections 4 the principle of the control design
+is detailed. In Section 5 the steps of control design are brieﬂy
+sketched. In Section 6 the failure modes and their handling are
+analyzed. In Section 7 some conclusions are provided.
+2 Experimental Environment
+The designed controllers are implemented on a platoon of
+three heavy trucks and tested on a 3-km-long runway. The leader
+vehicle, driven by a driver, is a MAN TGA two-axle tractor of
+18 ton with a load cage. The second vehicle is a V olvo FH 24 ton
+three-axle truck. The third one is a Renault Magnum two-axle
+tractor of 18 ton with a semitrailer, see Fig. 1. It is important to
+note that all vehicles are equipped with automatic gear change,
+thus acceleration can be attained purely by software.
+Fig. 1. Experimental environment: MAN TGA, V olvo FH, Renault Mag-
+num
+2.1 Communication network
+The communication network speciﬁed in this section is ap-
+plied only for experimental purposes because of its ideal prop-
+erties and ease of handling. It consists of radio transceivers op-
+erating on the open 868 MHz ISM narrow-band. On the physical
+layer of the network model GFSK modulation and Manchester
+coding are used, while the data link layer is based on 4 byte de-
+vice addressing and CRC-based data protection. In the network
+and data layers broadcast messaging is applied which means that
+there is no peer-to-peer socket communication and classic net-
+work topology. With proper timing strategy, all peers receive
+all messages of the other network nodes. The channel access is
+achieved by time division multiple access (TDMA): The lead-
+ing vehicle initiates the broadcast, and the two followers accept
+it. As soon as the channel turns disengaged after the end of thisbroadcast, the second vehicle sends its message and so the cycle
+is restarted. In the top network layer, compact data description
+is utilized where the data is stored in the form similar to the rep-
+resentation of the CAN network protocol. Thus, the data packet
+is only 30 bytes long, which is extended with a packet identiﬁer
+for further data-protection purposes.
+2.2 Platoon architecture
+Fig. 2. Control structure of the vehicle platoon
+The control scheme of the platoon is plotted in Fig. 2. The
+lead vehicle is driven by a driver. In the other, follower vehicles
+acceleration and braking tasks are carried out by on-board con-
+trollers based on information coming from a radar and a commu-
+nication network. The radar provides relative speed and distance
+with respect to the preceding vehicle. Through the communi-
+cation network,each vehicle transmits longitudinal acceleration
+and speed to its follower vehicle and the leader provides pedal
+signals, speed and ﬁltered GPS position for all. Communication
+allows to quicken the reaction to maneuver changes. The con-
+trollers, denoted by Ki, calculate acceleration reference uiwhich
+is transmitted after checking its domain and rate to the EBS as
+deceleration demand, on the one hand, and to the engine control
+system in the form of engine torque demand, on the other hand.
+3 Model of the Longitudinal Dynamics
+The acceleration of a vehicle can be described by equation
+a=1
+mh
+Fa+Fg+1
+h(Mrr+b+e)i
+, where mdenotes vehicle
+mass, Mrris the rolling resistance, FaandFgare the air drag
+and gravitational force due to road inclination, eandbstand
+for driving and, braking torques and hfor eective wheel radius.
+3.1 Powertrain
+The longitudinal behaviour of the drive-line is highly non-
+linear and hybrid dynamics due to the engine speed dependent
+torque characteristics, gear dependent torque transmission and
+the gear change process. Additionally, the control systems of
+both the automatic gear change and the engine function as ﬁnite
+state machine. Intervention possibility for the platoon control
+software is provided by a torque demand addressed to the engine
+control unit through CAN interface.
+Per. Pol. Transp. Eng. 40 Aradi, Szilárd et al.
+
+--- Page 3 ---
+3.2 Brake system
+The dynamics between the prescribed brake pressure as input
+and the brake force as output can be described by an input de-
+lay necessary for building up the brake cylinder pressures, and
+a linear time-invariant system. For a given deceleration refer-
+ence, the computation of the necessary brake pressure for each
+individual wheel requires knowledge of the vehicle mass, load
+distribution, resistances, wheel radius, incline angle of the road
+and tire-road adhesion characteristics. We can assume that all
+the necessary estimation problems are performed by the EBS,
+which can receive a deceleration demand that is carried out by a
+ﬁnite state machine.
+3.3 Model of the longitudinal dynamics
+As shown above, both the drive-line and the brake system are
+complex non-linear and hybrid systems with mostly unknown
+details, but they can be approximated with the following LTI
+system
+Pi(s)=eTds kis+1
+s2+2i!i0s+!2
+iocd=b
+i(1)
+where the Tdis the delay, ki;i;!i0andcd=b
+iare identiﬁable pa-
+rameters ( cd=b
+i=cd
+iby driving and cd=b
+i=cd
+iby braking).
+4 Control of Vehicle Platoon
+At the upper level (platoon) a global algorithm must ensure
+the string stability of the platoon. At the bottom level (vehicle)
+the required control tasks must be guaranteed. String stability
+means that spacing errors due to non-zero initial conditions are
+not ampliﬁed along the platoon and in time.
+4.1 String stability
+Assume that the longitudinal dynamics of the vehicle platoon
+is characterized by an LTI system. The spacing error of the
+ithvehicle is denoted by ei(where i =0 is the leader vehicle),
+Hi(s)=ei(s)
+ei 1(s)is the transfer function of the spacing error prop-
+agation and the hi(t) is its impulse response. In the case of three
+vehicles (i =2) the vehicle string is stable, if kHi(s)k11. In
+this casekhi(t)k11, i.e., the amplitude of the spacing error can
+not increase (keik1kei 1k1).
+4.2 Control algorithm
+Assume that vehicle dynamics is ideal
+˙xi=vi;˙vi=ai;ai=ui (2)
+where xi;vi;aianduidenote the position, velocity, acceleration
+and acceleration demand of the controller of the ithfollower ve-
+hicle. Let Lidenote the desired inter-vehicular spacing of jth
+vehicle and deﬁne the following sliding surface
+Si:=˙ei+qiei+q3(vi v0)+q4(xi x0+iX
+j=1Lj) (3)
+with parameters q1;q3;q4. IfSi!0;then ei!0. The con-
+troller is chosen to converge Sito zero. Choose a parameter >0 and from the condition ˙Si+Si=0 the required control
+input uican be computed.
+The system is formed adaptively on the changes of the air and
+rolling resistances if the control input is modiﬁed according to
+the following form
+ui:=ˆMrr;i+hˆca;iˆv2
+i+ˆmiui (4)
+where ˆMrr;i;ˆca;i(drag coe cient) and ˆ mi(vehicle mass) param-
+eters are detailed in [1].
+5 Control Design for Vehicle Platoon based on Mea-
+surements
+In order to enable that any vehicle to join the platoon, the
+controller must be independent of the speciﬁc parameters and
+the actual loads of the vehicles. The parameters of the controller
+are determined on the basis of the nominal vehicle model. On
+one hand the di erences must be handled individually on every
+vehicle (parameter estimation and engine characteristic), on the
+other hand the controller must be robust against the di erences
+between the vehicles.
+5.1 Design at the vehicle level
+The dynamics of braking, and even more the characteristics
+of the powertrain are signiﬁcantly di erent from the identiﬁed
+model. In the former case the model error is caused by the non-
+linear and hybrid behaviour of the EBS software. In the case of
+the powertrain the non-linear characteristics of the engine and
+the software of the powertrain show di erences. The controller
+must be robust against the software errors. The non-linearity of
+the engine can be compensated by having the ui!aitransfer in
+steady-state as
+ui:=cui (5)
+where c is a possibly gear dependent constant. In that way the
+acceleration demand could be adapted according to the charac-
+teristics of the engine.
+A much more complicated problem is caused by the gear
+shifting process. For example assume that the leader vehicle
+is accelerating. During the gear shift its measured acceleration
+(a0) is terminated moreover its sign will be negative because of
+the resistances. As a result the follower vehicles cease accel-
+erating. After the gear shift the leader will accelerate onward.
+The follower vehicle, which have to shift then, will accelerate
+stronger to decrease the spacing error. This behaviour can be
+eliminated if we use ui 1instead of ai 1and instead of a0we use
+the acceleration demand from the pedal signal of the leader vehi-
+cle. These signals cannot be eliminated during the gear shifting
+process, therefore each vehicle can shift in its own way.
+5.2 Tuning of control parameters
+After the identiﬁcation of the simpliﬁed model the parameters
+q1;q3;q4andcan be calculated on the basis of the simulations
+and numerical analysis. A possible method could be choos-
+ing an objective function by running simulations with speciﬁc
+Experimental veriﬁcation of vehicle platoon control algorithms 41 2013 41 1
+
+--- Page 4 ---
+maneuvers, in which the spacing errors and the control signals
+are taken into account whilst the string stability and the maxi-
+mum of the control signals could be speciﬁed as constraints. In
+the parameters the non-linear objective functions are minimized
+with constraints. The drawback of the method is the necessity
+of the tuning of the parameters during the real tests to which this
+method can not provide a solution.
+For this reason we divide the problem into two tuning tasks
+each having only two parameters. When the platoon is string
+stable, the spacing error of the ﬁrst follower has the largest peak.
+The controller depends on two constants
+k1:=(q1+q4++q3)=(1+q3);k2:=(q1+q4):(6)
+In the ﬁrst task the dynamics of the a0!e1, the damping, the
+maximum spacing error and the maximum control signal can be
+determined. In the second task we examine the e ect of the q1
+andq4on the string stability, i.e., the impulse response of the
+Hi(s).
+6 Failure modes and their handling
+As mentioned above the goal of the project was to analyse the
+control algorithms and synthesize the experimental results. So
+far we have assumed the faultless operation of the system com-
+ponents and normal environment conditions. We have analysed
+and experimentally tested the control strategy operating in nor-
+mal mode, and two other strategies in faulty network modes, see
+Fig. 3. Upper bounds on the worst case spacing errors have also
+been computed for platoons of heterogeneous dynamics, which
+can support the selection of the safety gaps, see [8, 9].
+The e ects of failures and special conditions have not been
+analysed or tested, furthermore the communication network
+speciﬁed and implemented in the project was intended for
+demonstration purposes only.
+First we must analyse the abnormal operations and their ef-
+fects. In former research [10–12] the abnormal operating condi-
+tions were divided into two main groups:
+1 Hard Faults: these include failures or faults in one of the con-
+trol system components, such as mechanical failures in the
+vehicles, failures in sensing, communication, control and ac-
+tuation.
+2 Soft Faults: these include non-ideal environmental condi-
+tions, such as rain, fog, snow, etc. and the loss of performance
+due to the wear of the system components.
+According to these faults the control system must switch be-
+tween two main operating mode classes: normal mode, which
+guarantees optimal performance under nominal conditions, and
+abnormal mode, which contains several degraded modes. The
+latter modes must be capable of ensuring safety and minimizing
+performance degradation.
+In modern commercial vehicles the on-board sensors can de-
+tect and diagnose their own failures. Furthermore the result of
+0 50 100 150 200−15−10−5051015spacing error [m]
+  
+e1
+e2
+0 20 40 60 80 100 120 140−15−10−5051015spacing error [m]
+  
+e1
+e2
+0 20 40 60 80 100 120 140−15−10−5051015spacing error [m]
+  
+e1
+e2Fig. 3. Spacing errors
+this self-diagnostic is also available on the CAN bus similarly
+to the normal sensor signals. These sensor failures could be the
+following:
+Radar sensor fault: When the radar sensor has developed a
+fault, it is possible to use the velocity and the GPS position
+received via the communication channel to estimate the rela-
+tive velocity and distance to the vehicle ahead.
+Wheel speed sensor fault: In the case of an Electronic Brake
+System (EBS) it results in a special scenario because of the
+changed operating mode of the brake system. The EBS
+switches to a degraded mode, while the ABS and the ESP
+functionalities are not available. From the point of view of
+platooning the e ect of the brake performance loss must be
+examined accurately.
+GPS fault: If the GPS receiver is faulty, the position can be
+calculated from the combination of the radar sensor measure-
+ments and the communication information.
+The other failure class contains the network faults. As we
+have mentioned above we used an ISM narrow-band radio in
+Per. Pol. Transp. Eng. 42 Aradi, Szilárd et al.
+
+--- Page 5 ---
+PHY/MAC, and broadcast messaging in the network and data
+layers without peer-to-peer socket communication and classic
+network topology. The channel access is achieved by a token-
+like protocol. These network could be formulated in a simple
+way. We only note that it has a sampling time of T=NT s,
+N=10, and the packet transmission takes about d=hTs. In
+certain conditions, no packet loss occurs and as the transmission
+delay dhas small variation, it can be considered as constant. If
+y(k) denotes the variable to be transmitted at the network input,
+then
+ˆy(k)=8>>><>>>:y(k h) ifk h
+Nis an integer
+ˆy(k 1) otherwise
+denotes the network output at the receiver.
+Nevertheless for commercial purposes special communica-
+tion devices must be used according to the ITS standards, for
+example Wireless Access in Vehicular Environments /Dedicated
+Shortrange Communication (WA VE /DSRC) standards. They
+are composed of IEEE802.11p for PHY and MAC layers and
+IEEE 1609-family standards to cover additional layers in the
+protocol suite. In that case and in a noisy environment the net-
+work model is more complex with several uncertainties such as
+variable transmission time, packet losses and other network er-
+rors.
+The network and sensor faults must be detected and handled
+by switching between di erent control strategies. The faults
+must be deﬁned accurately, according to their timeliness, i.e.,
+if it is a temporary or a permanent fault (eg. radar signal loss
+in curves). The formulation and implementation of a reﬁned
+network model and emergency switching protocols are needed.
+The failure e ect must be examined by simulation with special
+regard to the transients and worst case scenarios.
+7 Conclusions
+It has been demonstrated that the currently available on-board
+services of commercial heavy trucks can be applied to cre-
+ate new platooning services. Without detailed vehicle mod-
+els, output-feedback controllers that provide satisfactory track-
+ing performance for heterogeneous platoons can be designed.
+The feed-through of control inputs, speeds and ﬁltered GPS po-
+sitions have the beneﬁt of reducing the safety gaps between the
+vehicles. Degraded controller modes corresponding to network
+channel faults have been also analysed and veriﬁed in experi-
+ments. Nevertheless in a commercial system tra c safety is the
+most important consideration. In order to handle the network
+faults a more realistic network model must be developed and
+the extended system must analysed.References
+1Swaroop D, Hedrick JK ,String stability of interconnected systems ,
+IEEE Transactions on Automatic Control, 41(3), (1996), 349–357, DOI
+10.1109 /9.486636.
+2Project TruckDAS/Platooning ,Innovation of distributed driver assistance
+systems for commercial vehicle platform , November, 2011, http://www.
+truckdas.hu/ .
+3Swaroop D V A H G ,String Stability of Interconnected Systems: An Appli-
+cation to Platooning in Automated Highway Systems , PhD thesis, University
+of California at Berkeley, (1994).
+4Nouveliere L, Mammar S ,Experimental vehicle longitudinal control using
+a second order sliding mode technique , Control Engineering Practice, 15(8),
+(2007), 943–954, DOI 10.1016 /j.conengprac.2006.11.011.
+5Gerdes JC, Hedrick JK ,Vehicle speed and spacing control via coordinated
+throttle and brake actuation , Control Engineering Practice, 5(11), (1997),
+1607–1614, DOI 10.1016 /S0967-0661(97)10016-8.
+6Rajamani R ,Vehicle dynamics and control , Springer, Mechanical Engineer-
+ing Series, 2006.
+7Németh B, Gáspár P ,Lpv-based control design of vehicle platoon consid-
+ering road inclinations , Proc. of the 18th IFAC World Congress, Milan, Italy,
+(2011).
+8Rödönyi G, Gáspár P, Bokor J, Aradi S, Hankovszki Z, Kovacs
+R, Palkovics L ,Analysis and experimental veriﬁcation of faulty network
+modes in an autonomous vehicle string , 20th Mediterranean Conference on
+Control and Automation (MED), Barcelona, Spain, (2012), 884–889, DOI
+10.1109 /MED.2012.6265750.
+9Rödönyi G, Gáspár P, Aradi S, Hankovszki Z, Kovacs R, Palkovics L ,
+Guaranteed peaks of spacing errors in an experimental vehicle string , Proc.
+of the 7th IFAC Symposium on Robust Control Design, Aalborg, Denmark,
+(2012), 759–764.
+10Godbole D, Lygeros J, Singh E, Deshpande A, Lindsey A ,Com-
+munication protocols for a fault-tolerant automated highway system , IEEE
+Transactions on Control Systems Technology, 8(5), (2000), 787–800, DOI
+10.1109 /87.865852.
+11Lygeros J, Godbole D, Broucke M ,A fault tolerant control architec-
+ture for automated highway systems , IEEE Transactions on Control Systems
+Technology, 8(2), (2000), 205–219, DOI 10.1109 /87.826792.
+12Yi J, Howell A, Horowitz R, Hedrick K, Alvares L ,A Fault Tolerant Con-
+trol Architecture for Automated Highway Systems , California PATH Research
+Report, (2001).
+Experimental veriﬁcation of vehicle platoon control algorithms 43 2013 41 1

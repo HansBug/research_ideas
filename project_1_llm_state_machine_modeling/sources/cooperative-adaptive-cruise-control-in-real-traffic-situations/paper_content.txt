@@ -1,0 +1,1007 @@
+--- Page 1 ---
+HAL Id: hal-01091154
+https://hal.science/hal-01091154v1
+Submitted on 4 Dec 2014
+HAL is a multi-disciplinary open access
+archive for the deposit and dissemination of sci-
+entific research documents, whether they are pub-
+lished or not. The documents may come from
+teaching and research institutions in F rance or
+abroad, or from public or private research centers.L’archive ouverte pluridisciplinaire HAL , est
+destinée au dépôt et à la diffusion de documents
+scientifiques de niveau recherche, publiés ou non,
+émanant des établissements d’enseignement et de
+recherche français ou étrangers, des laboratoires
+publics ou privés.
+HAL Authorization
+Cooperative Adaptive Cruise Control in Real T raﬀic
+Situations
+Vicente Milanés, Steven E. Shladover, John Spring, Christopher Nowakowski,
+Hiroshi Kawazoe, Masahide Nakamura
+T o cite this version:
+Vicente Milanés, Steven E. Shladover, John Spring, Christopher Nowakowski, Hiroshi Kawazoe, et
+al.. Cooperative Adaptive Cruise Control in Real T raﬀic Situations. IEEE T ransactions on Intelligent
+T ransportation Systems, 2014, 15, pp.296 - 305. ￿10.1109/TITS.2013.2278494￿. ￿hal-01091154￿
+
+--- Page 2 ---
+1
+Cooperative Adaptive Cruise Control in Real Trafﬁc
+Situations
+Vicente Milanés, Steven E. Shladover, John Spring, Christopher Nowakowski, Hiroshi Kawazoe and
+Masahide Nakamura
+Abstract—Intelligent vehicle cooperation based on reliable
+communication systems contributes not only to reducing trafﬁc
+accidents,butalsotoimprovingtrafﬁcﬂow.AdaptiveCruiseCon-
+trol (ACC) systems can gain enhanced performance by adding
+vehicle-vehicle wireless communication to provide additional
+informationtoaugmentrangesensordata,leadingtoCooperativ e
+ACC (CACC). This paper presents the design, development,
+implementation and testing of a CACC system. It consists of
+two controllers, one to manage the approaching maneuver to
+the leading vehicle and the other to regulate car-following once
+the vehicle joins the platoon. The system has been implemented
+on four production Inﬁniti M56s vehicles, and this paper details
+the results of experiments to validate the performance of the
+controller and its improvements with respect to the commercially
+available ACC system.
+Index Terms —Cooperative Adaptive Cruise Control (CACC),
+adaptive cruise control (ACC), intelligent driving, cooperative
+vehicles, connected vehicles, intelligent transportation systems
+(ITS)
+I. INTRODUCTION
+Signiﬁcant developments in Advanced Driver Assistance
+Systems (ADAS) have been achieved during the last decade.
+Intelligent systems based on on-board perception/detecti on
+devices have contributed to improve road safety [1]. The nex t
+step in the development of ADAS points toward vehicle-
+to-vehicle (V2V) communications to obtain more extensive
+and reliable information about vehicles in the surrounding
+area, representing a cooperative ITS system. Using wireles s
+communication,potentialrisksituationscanbedetectede arlier
+to help avoid crashes and more extensive information about
+other vehicles’ motions can help improve vehicle control
+performance. Research projects have been conducted throug h-
+out the world to deﬁne the requirements for an appropriate
+vehicular communication system and its possible applicati ons
+[2].
+Although most of the V2V cooperative ITS applications
+havebeenfocusedonimprovingcollisionavoidanceandsafe ty
+[3], the extension of the commercially available Adaptive
+Cruise Control (ACC) system toward the Cooperative ACC
+(CACC) system has a high potential to improve trafﬁc ﬂow
+V. Mílanés wants to especially thanks to the ME/Fulbright pr ogram and the
+Center for Automation and Robotics (CAR,UPM-CSIC) for its su pport in the
+development of this work.
+V. Milanés, S. Shladover, J. Spring and C. Nowakowski are wit h
+the California PATH Program of the Institute of Transportat ion
+Studies, University of California, Richmond, CA 94804. (e-
+mail: vicente.milanes@berkeley.edu, steve@path.berkeley .edu,
+jspring@path.berkeley.edu, chrisn@path.berkeley.edu)
+H. Kawazoe and M. Nakamura are with the ITS Advanced and Produc t
+Engineering Group, Nissan Motor Co., Ltd. Kanagawa 243-012 3 Japan. (e-
+mail: kawazoe@mail.nissan.co.jp, n-masa@mail.nissan.co.jp )capacity and smoothness, reducing congestion on highways.
+By introducing V2V communications, the vehicle gets infor-
+mationnotonlyfromitsprecedingvehicle–asoccursinACC–
+butalsofromthevehiclesinfrontoftheprecedingone.Than ks
+to this preview information, oscillations due to speed chan ges
+byprecedingvehiclescanbedrasticallyreduced.Beneﬁtsf rom
+including communications in ACC systems have been widely
+studied in recent years [4], [5], [6].
+Prior experimental results using vehicle-vehicle coopera tion
+to improve vehicle following performance were achieved by
+the California Partners for Advanced Transit and Highways
+(PATH) in 1997 [7], [8] when a platooning maneuver involv-
+ing eight fully-automated cars was carried out using wire-
+less communication among vehicles –mainly for longitudina l
+control– and magnetic markers in the infrastructure –mainl y
+for lateral control. Based on the idea of a leading vehicle
+guiding several followers, the Safe Road Trains for the En-
+vironment (SARTRE) European Union project has developed
+virtual trains of vehicles in which a leading vehicle with a
+professional driver takes responsibility for each platoon [9].
+That concept of the professional driver in the ﬁrst vehicle w as
+originally developed in the European project called CHAUF-
+FEUR [10].
+Speciﬁcally related to CACC implementations in production
+cars, two important projects were recently conducted in the
+Netherlands. The Connect & Drive project, funded by the
+Dutch Ministry of Economic Affairs, carried out a CACC
+demo using six passenger vehicles [11] adopting a constant
+time gap spacing policy. For the Grand Cooperative Driving
+Challenge (GCDC) competition in 2011, nine heterogeneous
+vehicles from different European research institutions tr ied
+to perform a two-lane CACC platoon [12]. This competition
+revealed some of the most important problems to be solved
+before bringing this technology into production, includin g the
+communication systems reliability. From the control point of
+view, most of the implementations were based on proportiona l,
+proportional-derivative feedback/feedforward controll ers [13],
+[14], [15] or Model Predictive Control (MPC) techniques [16 ],
+[17].
+When it comes to designing a CACC system, string stability
+plays a key role [18]. The goal is designing a system able
+to reduce disturbances propagated from the leading vehicle
+to the rest of the vehicles in the platoon. There are two
+differentapproachestocarfollowinggapregulation:oneb ased
+on constant spacing or one based on constant time gap. A
+comparative study between them, where CACC stability was
+discussed, was presented in [19]. Several papers have dealt
+with string stability analysis and simulations [20], [21], [22],
+
+--- Page 3 ---
+2
+based on simpliﬁed theoretical models of ACC vehicle follow -
+ing behavior, and have shown encouraging results. However
+real production ACC systems have signiﬁcant response delay s
+that have not been represented in the prior theoretical anal -
+yses, but which destabilize the vehicle following response s.
+Consequently those theoretical analyses have produced unr e-
+alistically optimistic estimates of the trafﬁc stability i mpacts
+of ACC.
+In previous PATH research, a CACC involving two vehicles
+was tested with very favorable results [23], [24], [6]. Buil ding
+on that previous work, this paper describes a new control
+system design and implementation that is integrated in four
+production vehicles. A constant time-gap car following str at-
+egywasimplementedsimilartothecommercialACC,butwith
+the availability of signiﬁcantly shorter time-gap setting s. This
+is achievable because V2V communications permit tighter
+control of vehicle spacing and guarantee string stability, so
+that inter-vehicle time-gap settings signiﬁcantly shorte r than
+the production ACC time-gap settings are comfortable and
+acceptabletodrivers[24].Thewholesystemwasthentested in
+real trafﬁc scenarios in order to compare its performance to the
+production ACC system installed in the vehicles. Cut-in and
+cut-out maneuvers were also tested to evaluate the controll er
+under regular trafﬁc circumstances, emulating everyday tr afﬁc
+situations.
+The rest of the paper is organized as follows. Section
+II presents a brief explanation about the production vehi-
+cles used in the experimental phase, the control architectu re
+implemented on each vehicle and the vehicle model. The
+control system that has been implemented based on a gap
+closing controller and a gap regulation controller is expla ined
+in Section III. Several experiments to validate the propose d
+systems are included in Section IV. Finally, some concludin g
+remarks are given in Section V.
+II. EXPERIMENTAL VEHICLES
+Four production Inﬁniti M56s (see Fig. 1) were used as
+the experimental vehicles. These vehicles are rear-wheel d rive
+with a 420-hp 5.6 liter V8 gasoline engine. They were fac-
+tory equipped with lidar-based ACC, lane departure warning
+(LDW) and blind spot detection systems. Additionally, a
+5.9 GHz Dedicated Short Range Communication (DSRC)
+system with a differential Global Positioning System (GPS)
+incorporated in a Wireless Safety Unit (WSU) was supplied
+by DENSO. Control was implemented through a dSpace
+MicroAutoBox which received data from both the WSU and
+the production vehicle’s Controller Area Network (CAN). In
+particular, lidar data from the ﬁrst and immediately preced ing
+vehicles and data from on-board vehicle sensors –speed,
+acceleration,andyawrate–wereusedbythecontrolcompute r.
+A. Control architecture
+As previously stated, a factory installed ACC controller
+was available in the vehicles. This controller sends target
+speed commands to the vehicle’s actuators. The same control
+variable is available for the CACC system, but it needs to
+act through the commercial system that controls the throttl e
+Fig. 1. Experimental M56s vehicles
+and brake pedals, i.e. the low-level controller. This const raint
+somewhat limits the options when it comes to designing the
+controller since the low-level controller could not be modi ﬁed,
+but it still provides adequate dynamic range for controllin g
+the vehicle under non-emergency transient conditions. Fig ure
+2 shows the block diagram for the vehicle control architectu re.
+It consists of a classical robotics control architecture di vided
+into three stages:
+•Perception phase where all information from the sensors
+installed in the vehicle is received. Two sources can be
+distinguished. On one hand, information coming from
+the WSU system, where all data communicated by other
+vehicles in the platoon –speed, acceleration, distance to
+preceding vehicle, current time gap, control activation
+and so on– is received and included on the CAN bus
+data structure. This data also includes detection and as-
+signment of the vehicle position sequence in the platoon,
+which is carried out by the WSU using its GPS with
+Wider Area Augmentation System (WAAS) differential
+corrections. On the other hand, information is obtained
+from the on-board sensors, such as factory available
+lidar measurements (relative distance to the preceding
+vehicle), odometer (current speed) and acceleration, and
+ﬂag signals (to get information about the interaction of
+the driver with the driver interface such as activation or
+deactivation of the system or gap setting selection). The
+driver interface buttons, located on the right side of the
+steering wheel, are also used for the CACC controller.
+•Planning stage includes the high-level controller. Both
+controllers, the commercial ACC system and the newly
+developed CACC system, are available during the tests
+so the driver can switch between them in real time.
+For switching, the control code reads the CAN bus
+informationcomingfromthetransmissionmodeselection
+button–i.e., eco-driving mode, sport mode, standard mode
+or snow mode. When the sport mode is chosen, the high-
+level controller will take the CACC controller output.
+When any of the other modes is chosen ,the production
+ACC controller output will be sent to the low-level
+controller. The CACC controller code has been developed
+in Matlab/Simulink and is loaded in the vehicle using a
+dSpace MicroAutoBox which is connected to the vehicle
+via the CAN bus, where the target speed commands are
+sent. The CACC controller can be deactivated in the
+
+--- Page 4 ---
+3
+Fig. 2. Control architecture block diagram
+same way as the commercial ACC, either using the driver
+interface buttons or pressing the brake pedal.
+•Actuation phase is in charge of executing target ref-
+erence commands coming from the planning stage. As
+previously stated, this low-level controller is in charge o f
+converting the target speed commands into throttle and
+brake actions, using the factory ACC controller.
+B. Vehicle model
+The vehicle dynamic model, to be used for evaluating
+vehicle performance from the string stability point of view ,
+is identiﬁed based on its step responses to different speed
+changes. For these tests, a simple open-loop controller is i n
+charge of generating speed target commands to the vehicle.
+Once the vehicle is stably driving at its current target spee d, a
+new speed command for an accelerating or braking maneuver
+is sent to the vehicle. The Inﬁniti M56s vehicles are equippe d
+with a powerful engine that produces fast and strong respons es
+to changes in the target speed command. Considering this,
+a second order response model can be extracted from the
+experimental test data, where two different dynamic respon ses
+are clearly evident in the behavior of the vehicle during the
+accelerating and braking phases. Overshoot occurs on the
+brakingresponsesinceahighenginebrakingforce–especia lly
+in the sport driving mode, where the CACC controller was
+designed– is added to the friction braking action. Two secon d-
+order models with time delay were identiﬁed from the test
+data, with the following structure
+F(s) =k
+s2+2θωns+ω2ne−Tds(1)
+withk,θ,ωnandTdbeing the static gain, damping factor,
+natural frequency and time delay respectively. Parameters
+for both models –i.e. braking and acceleration responses–
+are deﬁned in Table I. They are obtained using the Matlab
+System Identiﬁcation Tool, which permits selection among
+different candidate transfer functions. This transfer fun ction
+for representing vehicle behavior was chosen as a trade-off
+between simplicity (second order model) and goodness of ﬁt
+(over 95%). Responses for both models to a speed change are
+depicted in Fig. 3. One can appreciate how well the model
+ﬁts the response of the real vehicle. This model incorporate sTABLE I
+ACCELERATING AND BRAKING MODEL PARAMETERS
+k θ ω nTd
+Accelerating 0.156 0.661 0.396 0.146
+Braking 1.136 0.5 1.067 0.287
+0 5 10 15 20 2523242526272829Speed (m/s)Acceleration response
+  
+Reference
+Experimental results
+Simulation results
+0 5 10 15 20 2523242526272829
+Time (s)Speed (m/s)Braking response
+  
+Reference
+Experimental results
+Simulation results
+Fig. 3. Vehicle’s longitudinal dynamics response for accele ration and braking
+maneuvers
+both the dynamics of the vehicle and the low-level controlle r
+in charge of managing throttle and brake actions.
+III. CONTROL DESIGN
+The goal of the CACC controller is maintaining the driver-
+desired time gap to the preceding vehicle in any trafﬁc circu m-
+stance, with both smoothness and accuracy. The ACC driver
+interface is used to manage the CACC controller. It includes
+buttons for activating and deactivating the ACC controller ,
+three gap settings and the option of setting, increasing or d e-
+creasing the cruise control speed, in case no vehicle is dete cted
+in front of the ego-vehicle. For the ACC factory system, the
+available gap settings are 1.1, 1.6 and 2.2 seconds. For the
+CACCsystem,theshortestgapissetat0.6seconds.Thisvalu e
+hasbeenchosenbasedonestimatesoftheseparationneededt o
+enable crash avoidance under emergency conditions, as well
+as previous tests of acceptance by drivers from the general
+public[24].TheothertwoavailableCACCgapsettingsare0. 9
+and 1.1 seconds. There were two limitations when designing
+the CACC controller: it is not possible to access or modify
+the low-level controller; and acceleration and decelerati on are
+limited to maximum values ( 0.1gand0.28grespectively) by
+the low-level controller.
+The controller has been divided in two stages. The ﬁrst
+stage occurs when the CACC system is activated and there is
+no vehicle in front of it or the ego-vehicle is far away from th e
+preceding one. In these cases, the vehicle is usually follow ing
+its set speed so an approaching maneuver has to be carried
+out before switching to a car-following policy. This contro ller
+-the gap closing controller– has to be as smooth as possible
+to permit a good transition to the gap regulation controller . It
+is also used in case of cut-out maneuvers when a vehicle in
+
+--- Page 5 ---
+4
+KP(s)
++ D(s)
+KL(s)G(s)PP(s)
+PL(s)XiXi-1
+XoUi Ui-1-
+-++
+Vehicle modelPreceding car-following policy
+Leading car-following policyPreceding gap error controller
+Leading gap error controllerComm delay
+Fig. 4. CACC control structure block diagram
+the middle of the platoon decides to leave and the following
+one has to cover the cut-out vehicle gap.
+Oncethevehiclehasjoineditspredecessor,thesecondstag e
+controller –the CACC gap regulation controller– is in charg e
+of implementing the car-following policy depending on the
+time gap selected by the driver. Three different time gaps
+are available, following the production ACC structure. Thi s
+controller is also in charge of managing cut-in maneuvers
+when a non-equipped vehicle merges into the platoon. Both
+controllers have been designed to be consistent with how a
+human driver handles each driving situation.
+A. Gap regulation controller
+Once the vehicle is close enough and the gap closing ma-
+neuver has ﬁnished, the system switches to the gap regulatio n
+controller, which is the core of the CACC control system.
+Commercially available ACC systems try to reduce the gap
+error(xe)between the ego-vehicle and the preceding one.
+Information from the lidar/radar is used to reduce gap error
+(xe)between desired time gap (tg)and relative distance
+(xr=xp−xf)–wherexpis the current position of the
+preceding vehicle and xfis the position of the ego-vehicle,
+following the next expression
+xe=xr−vftg (2)
+wherevfis the speed of the ego-vehicle. For this purpose,
+a controller, KP(s)based on a standard PD-control structure
+[25], [26], can be easily adjusted to get stability with resp ect to
+the immediately preceding vehicle but, as previously demon -
+strated [27], this is not enough to guarantee string stabili ty.
+Exchanging information among vehicles using wireless
+communications permits improving the vehicle’s response a s
+well as signiﬁcantly reducing time gaps, keeping safety. Whe n
+it comes to designing a CACC system, string stability is one
+of the main goals. It can be deﬁned as the system’s ability
+to reduce perturbations downstream, avoiding that leading
+vehicle speed changes cause ampliﬁcation in the rest of the
+vehicles [28]. According to [29], it can be deﬁned as
+|SS(s)|=/vextendsingle/vextendsingle/vextendsingle/vextendsingleXi(s)
+Xi−1(s)/vextendsingle/vextendsingle/vextendsingle/vextendsingle≤1,i≥2 (3)
+whereiindicates the position of the vehicle in the platoon.
+Figure 4 shows the CACC controller block diagram where
+G(s)represents the vehicle model; terms PP(s)andPL(s)correspond to the car-following policy with respect to the p re-
+ceding and the leading vehicle respectively; terms KP(s)and
+KL(s)represent time-gap error regulation controller for the
+preceding and the leading vehicle respectively; UiandUi−1
+correspond to the control action for the ego-vehicle and the
+preceding vehicle (coming from the wireless communication
+system) respectively; the term D(s) =e−δsrepresents the
+time delay in the wireless communication; and Xi,Xi−1and
+X0represent the positions of the ego-vehicle, the preceding
+and the leading vehicle position in the platoon. The control ler
+is formed by three main terms: one of them is in charge of
+keeping the current speed but, instead of using the ego-vehi cle
+or preceding vehicle speed [23], the preceding vehicle targ et
+speed (Ui−1) is used as a feedforward term. This permits
+improving the vehicle response time to speed changes and
+reducing delays in the transition between throttle and brak e
+actuations. The other two terms try to keep the errors with
+respect to the preceding vehicle KP(s)and the leading vehicle
+KL(s)as small as possible. Both terms correspond to a classic
+PD structure deﬁned as
+KP(s) =k1s+k2 (4)
+KL(s) =k3s+k4 (5)
+where car-following policies can be deﬁned as
+PP(s) =hPs+1 (6)
+PL(s) =hLs+1 (7)
+withhPandhLbeing the time-gap target values with respect
+to the preceding and leading vehicles respectively.
+As previously stated, the vehicle clearly exhibits differe nt
+dynamics in the acceleration and braking phases that can be
+modeled by second-order functions sG(s) =F(s)so the
+positionXi(s)for a vehicle in the platoon can be determined
+as
+Xi(s) =G(s)Ui(s) (8)
+whereUi(s)is the target speed command for that vehicle.
+Assuming the vehicles start from rest and using equation (8) ,
+the relation between the ego-vehicle and the preceding one i s
+given by
+Xi(s) =D(s)+G(s)KP(s)
+1+G(s)[KP(s)PP(s)+KL(s)PL(s)]Xi−1(s)
+(9)
+Following the criteria deﬁned for string stability, the goa l
+is to keep the Bode magnitude below the unity gain of both
+vehicle dynamics, i.e. acceleration and braking responses .
+Control gains were ﬁrstly modiﬁed using tuning tools from
+Matlab/Simulink to fulﬁll the requirements. Final tuning w as
+carried out in the experimental vehicle in order to not only
+get an accurate response from the car-following policy poin t
+of view but also a smooth riding quality from the driver
+perspective. Table II shows the ﬁnal parameters selected fo r
+the preceding and leader car-following policy controllers . The
+
+--- Page 6 ---
+5
+TABLE II
+KPANDKLCONTROLLER PARAMETERS
+k1k2k3k4
+0.45 0.25 0.15 0.1
+10−310−210−1100101102−7−6−5−4−3−2−101Magnitude (dB)
+  Bode Diagram
+Frequency  (rad/sec)Acceleration response
+Braking response
+Fig. 5. String stability frequency analysis
+same parameters were used for accelerating and braking ma-
+neuvers since good responses were obtained forbothdynamic s
+and they fulﬁlled string stability criteria. Control gains of the
+controller in charge of minimizing the error with respect to the
+leading vehicle are smaller than the ones in the controller t hat
+tries to reduce the error with respect to the preceding one. T his
+is consistent with the need to ensure safety (avoiding poten tial
+impact with preceding vehicle) and to reduce the perceived
+variability of the gap relative to the preceding vehicle to
+promote driver conﬁdence in the system.
+Figure 5 shows responses for both dynamics –i.e. accel-
+eration and braking– in the frequency domain, showing that
+the string stability criterion is fulﬁlled. The difference in both
+dynamics is also reﬂected in the frequency analysis. For the
+controller design, it was assumed that there is no delay in th e
+wireless communication system, i.e. D(S) = 1. This assump-
+tionwassubsequentlyconﬁrmedduringtheexperiments,whe n
+the packet loss percentage was insigniﬁcant. Effects of pac ket
+loss on string stability are out of the scope of this paper.
+B. Gap closing controller
+For approaching the preceding vehicle, a simple linear
+function depending on the relative speed and distance betwe en
+vehicles and the desired deceleration has been used. It can b e
+conﬁgured according to the driver’s preference. Fig. 6 show s
+the gap closing controller operation where drstartrepresents
+the initial inter-vehicle distance when a preceding vehicl e is
+detected; vrstartindicates relative speed between vehicles;
+drendrepresents the distance when the controller switches
+to the gap regulation mode; and vrendindicate the ﬁnal
+relativespeedequaltozero.Theego-vehiclebrakingmaneu ver
+depends on the desired deceleration–i.e. asmooth,amediumor
+ahardin the graphic. This parameter can be conﬁgured to
+match the driver’s preferences. The smoother the decelerat ion,
+the earlier the vehicle starts to brake. The controller has b een
+tested both following a set speed before joining a platoon an d
+in a cut-out maneuver when the vehicle initially switched fr om
+the gap regulation controller to the gap closing controller , and
+then switched again to the gap regulation controller. Since this
+second option involves more complex situations, results of anstart
+end 
+start end smooth medium 
+hard 
+Fig. 6. Gap closing controller operation
+40 45 50 55 60 65 70 7524252627282930Speed (m/s)
+  
+Gap regulation controller
+Gap closing controllerGap regulation controller
+Preceding
+Follower
+Lidar Target Preceding
+Lidar Target Follower
+40 45 50 55 60 65 70 75−0.2−0.05
+−0.15−0.100.1
+0.05Acceleration (g)
+  
+Preceding
+Follower
+Lidar Target Preceding
+Lidar Target Follower
+40 45 50 55 60 65 70 750.60.811.21.41.61.822.2Time gap (s)
+Time (s)  
+Preceding
+Follower
+Actual Time Gap
+Fig. 7. Preceding car approaching maneuver in cut-out scenar io
+experiment for this situation are included to show the behav ior
+of the gap closing controller.
+Figure 7 depicts the performance of the gap closing con-
+troller during a three-vehicle CACC test. The top graph plot s
+the evolution of the speeds of the vehicles and their forward
+vehicle speeds estimated from the lidar range measurements .
+The middle graph plots the vehicles’ accelerations during
+the experiment. The bottom graph represents the time gaps
+between vehicles during the test. For notation, the leading
+vehicle is the ﬁrst vehicle during the whole test; the preced ing
+vehicle–solid blue line–is the one that starts the platoon i n the
+second position and then cuts out; and, the follower vehicle –
+solid black line–is the one that begins in the third position
+and then performs the approaching maneuver. The preceding
+and follower vehicles are driving under CACC control with a
+time gap of 0.9 seconds and a set speed of 31.1 m/s. Forward
+vehicle speeds estimated from the lidar range measurements
+of the preceding vehicle–dotted green line–and the followe r–
+dotted red line–are also shown.
+During the ﬁrst 54seconds, preceding and follower vehicles
+
+--- Page 7 ---
+6
+are driving in CACC following the leading vehicle in the
+platoon. One can appreciate how the speed estimated from
+the lidar range measurements of the follower–dotted red lin e–
+is tracking the preceding vehicle’s speed–solid blue line. Close
+to second 54, the preceding vehicle changes lane (cuts out) s o
+both its speed and lidar measurement have been removed for
+thesakeofclarity.Onecanappreciatehowthefollowerdete cts
+that its preceding vehicle has cut out and a sharp change in th e
+time gap occurs. At that point, the system switches between
+the gap regulation controller and the gap closing controlle r.
+The follower starts to smoothly accelerate in order to close
+the gap with the leading vehicle. Considering the decelerat ion
+parameter constraint for this test – 0.1g, the vehicle starts to
+brake smoothly to create a new two-vehicle platoon with the
+leading vehicle. The new target vehicle is driven by a human
+driver so some speed changes–as occurs in real trafﬁc drivin g–
+during the gap closing maneuver are seen. It can be observed
+how the vehicle switches again to the gap regulation control ler
+close to second 65, where a change in the deceleration is
+observed. Then, the vehicle ﬁnishes the gap closing maneuve r,
+perfectly ﬁtting the desired time gap.
+IV. EXPERIMENTAL RESULTS
+The CACC system was implemented in four Inﬁniti M56s
+vehicles equipped with 5.9 GHz DSRC for wireless commu-
+nication. Several trials were carried out with the vehicles to
+validate the proposed approach and the designed controller .
+In particular, three different test results are shown here. The
+ﬁrst experiment consists of evaluating behavior of the car-
+following policy while the driver is changing the gap settin gs.
+The second experiment shows a realistic situation on highwa ys
+whentheego-vehicle isfollowingaleader,andanothervehi cle
+wants to take the next exit, executing both a cut-in and a
+cut-out maneuver in a relatively short period of time. The
+third experiment compares the CACC performance of the four
+vehicles following a moderate, but realistic, speed change
+proﬁle with the performance of the production ACC system
+under the same conditions.
+A. Gap setting changes test
+For testing controller behavior when the driver chooses to
+change the gap setting, only two vehicles were used, one of
+them acting as the leading vehicle and the other one running
+theCACCcontroller.Figure8showsthistestresult.Theupp er
+plot shows the speed of both vehicles during the test; the
+middleplotdepictstheacceleration;andthegapsettingch osen
+by the driver is shown in the bottom graph, compared with the
+actual gap.
+During the test, the leader accelerates and brakes slightly ,
+emulating real trafﬁc behavior. The experiment starts with a
+gap of 1.1 seconds, the longest CACC gap available on the
+driver interface. Around second 58, the driver changes to th e
+middle gap setting –i.e. 0.9 seconds. The follower accelera tes
+smoothly to reduce the gap. One can appreciate this transiti on
+in the time gap plot where no overshoot or sharp change
+occurs. The vehicle exhibits a similar behavior when it goes
+from the middle to the shortest gap –0.6 seconds. Then, the50 60 70 80 90 100 110 120 130 140 150242526272829Speed (m/s)
+  
+Follower
+Leader
+50 60 70 80 90 100 110 120 130 140 150−0.2−0.15−0.1−0.0500.050.1Acceleration (g)
+  
+Follower
+Leader
+50 60 70 80 90 100 110 120 130 140 1500.50.60.70.80.911.1Time gap (s)
+Time (s)  
+Current time gap
+Target time gap
+Fig. 8. Gap setting changes response
+vehiclecomesbacktothelongestgap.Inthiscase,itisdriv ing
+at 0.6 seconds behind the leading vehicle when the reference
+gap is 1.1 seconds so a signiﬁcant deceleration is observed o n
+the part of the follower in order to achieve the desired gap.
+One can appreciate how time gap transitions among different
+gap settings are smooth, and once the desired gap has been
+reached, the car-following policy is well-maintained. Fin ally,
+around second 100, it can be noticed that there appears to
+be some lag in the speed response of the follower as the
+leader accelerates. Although this might intuitively appea r as
+a delay in the response, the lag is actually an artifact of usi ng
+a constant time-gap car-following policy, instead of a cons tant-
+spacing car-following policy. As speed increases, so does t he
+desired inter-vehicle distance. Examining the associated time-
+gap plot, one can see that the time gap remained constant
+during the lead vehicle acceleration.
+B. Cut-in and cut-out test
+A regular situation, if the CACC platoon is driving in the
+right-most lane on a highway, is that sudden and unexpected
+cut-ins occur when other vehicles want to enter or leave the
+highway. In these situations, a vehicle carries out both a cu t-
+in and a cut-out maneuver in a short period of time. In this
+experiment, the system response to those situations is show n.
+For the sake of clarity, a two-vehicle CACC platoon re-
+sponse is shown in this test, but the test has been performed
+successfully for a four-vehicle CACC platoon. For safety
+reasons, the chosen gap setting is 1.1 seconds. Figure 9 show s
+vehicle behavior during this experiment. As in the previous
+one, the upper graph shows vehicle speeds; the middle graph
+shows vehicle accelerations; and the bottom graph depicts t he
+current and reference (desired) time gaps.
+At the beginning, the leader is driving at a constant speed
+and the follower is perfectly tracking the leader’s speed at
+the desired gap. Around second 205, a cut-in vehicle merges
+between them. This vehicle is detected by the lidar, as revea led
+
+--- Page 8 ---
+7
+190 195 200 205 210 215 220 225 230 2352223242526272829Speed (m/s)
+  
+Follower
+Leader
+190 195 200 205 210 215 220 225 230 235−0.25−0.2−0.15−0.1−0.0500.050.10.15Acceleration (g)
+  
+Follower
+Leader
+190 195 200 205 210 215 220 225 230 2350.40.60.811.21.41.61.822.2Time gap (s)
+Time (s)  
+Actual time gap
+Reference time gap
+Cut−in vehicleCut−out vehicle
+Fig. 9. Cut-in and cut-out vehicle response with CACC contro l
+by the sudden change in the time gap, whose value decreases
+to 0.42 seconds. The follower brakes in order to increase the
+gap to the new vehicle and, after a few seconds, it reaches
+the desired gap. Then, around second 224, the cut-in vehicle
+cuts out by doing another lane change. Again, that movement
+is detected by the lidar and a sudden increase in the time
+gap occurs. The follower accelerates smoothly to achieve
+the desired gap with the original leader. One can notice the
+smooth transition toward the desired time gap in both the cut -
+in and cut-out maneuvers without any abrupt behaviors. The
+hardest deceleration occurs when the vehicle cuts in, but th is is
+becausethetimegapisdrasticallyreduced,creatingapote ntial
+safety hazard that needs to be reduced as quickly as possible .
+It is also important to note that deceleration is always with in
+the comfort range, set at ±0.2g[30].
+C. Four vehicle test
+The last experiment shows the comparison between the
+production ACC system and the newly developed CACC
+controller.Tothisend,anautomaticspeedproﬁlewasdesig ned
+and implemented on the leader car. It consisted of the follow -
+ingseriesofspeedchanges.Intheﬁrstcycle,thevehicledr ives
+at 25.5m/s for 10 seconds; then, it accelerates at a constant
+acceleration of (1/80)gto reach 29.5m/s speed. The speed
+remains constant for 10 seconds, before the vehicle starts t o
+decelerate at a constant rate of (1/80)gto come back to a
+constant speed of 25.5m/s for 10 seconds. The second cycle
+repeats the same acceleration and deceleration curve with a
+constant acceleration of (1/40)gand 15 seconds of driving at
+a constant speed at the top and bottom of each acceleration or
+deceleration event. The third and fourth cycles repeat the s amepattern at (1/20)gand(1/10)gwith 20 seconds of driving at a
+constant speed between acceleration and deceleration even ts.
+This proﬁle emulates a real driving situation in moderately
+congested trafﬁc, where repeated accelerations and decele r-
+ations happen. The speed variations have been constrained
+for this test so that it could be conducted safely on a public
+highway, mixed with other trafﬁc.
+Figure 10 shows the ACC system response to this proﬁle,
+with the gap between vehicles set to 1.1 seconds, the shortes t
+available on the production ACC. Before starting the proﬁle ,
+all vehicles drove with the ACC system activated and in a
+stable state. The leading vehicle drove as close as possible to
+the initial speed, 25.5m/s, and then activated the proﬁle.
+Upon acceleration, note the oscillations, mainly on the thi rd
+and fourth cars in the platoon, in both the vehicle speed and
+time gap, before stabilizing around second 30 at a constant
+time gap. In the subsequent acceleration cycles, note that
+the third and fourth car response delays are considerably
+larger and the overshoots in the speed during the last two
+accelerations caused an ampliﬁcation downstream along the
+platoon. A considerable delay, close to 15 seconds, can also
+be noted in the response of the last car of the platoon. Finall y,
+from the fourth vehicle driver’s perception, his vehicle do es
+not appear to be following any gap control policy because of
+the unstable behavior during the last speed change.
+It is worth noting that this ACC system is not a degradation
+of our CACC controller from removing the feedforward but
+is the commercially available ACC that has been working in
+production cars with really good acceptability on the part o f
+thedrivers.Itwasdesignedwithseriousconsiderationofs tring
+stability, unlike many other ACC systems, and is actually
+more stable than some other commercially available systems .
+However, even its stability enhancing design features are n ot
+able to overcome the challenges associated with the lack of
+information available about the motions of the vehicles ahe ad
+of the immediately preceding vehicle
+The same proﬁle was tested for the CACC controller, and
+Figure11showstheresultsusingthesametimescaleasforth e
+ACCtestresults.Forthistest,theshortestgap–0.6second sfor
+CACC–wasused.Onecanappreciatehowtheovershootofthe
+thirdandfourthvehiclesduringthelasttwospeedchangesw as
+eliminated. Additionally, there is no appreciable delay in the
+vehicles’ responses, and the car-following policy is perfe ctly
+tracked by all vehicles in the platoon. These results clearl y
+show how CACC control improves on ACC results for vehicle
+following and there has the potential to signiﬁcantly impro ve
+trafﬁc efﬁciency and safety.
+Figures 12 and 13 detail the ﬁnal braking transient when
+the leading car braking rate equals 0.1g. On the ACC graphic,
+the response delay is clearly seen since the last vehicle in t he
+platoon –solid blue line– is still accelerating during the p eriod
+in which the leading vehicle is braking. Both the signiﬁcant
+delay and the ampliﬁcation are observed in the acceleration
+graph. Most striking is the fact that the leading vehicle
+braking, 0.1g, is ampliﬁed by the last car to 0.3g, causing
+an uncomfortable behavior from the driver and passenger
+point of view. In contrast, the CACC graphic shows how the
+leading vehicle braking is attenuated by the last car, and th e
+
+--- Page 9 ---
+8
+0 50 100 150 200 25020253035Speed (m/s)
+  
+0 50 100 150 200 250−0.2−0.100.1Acceleration (g)
+  
+0 50 100 150 200 2500.511.5Time gap (s)
+Time (s)First
+Second
+Third
+Fourth
+Fig. 10. Four vehicle ACC test results with speed proﬁle in th e leading vehicle
+0 50 100 150 200 25020253035Speed (m/s)
+  
+0 50 100 150 200 250−0.2−0.100.1Acceleration (g)
+  
+0 50 100 150 200 2500.511.5Time gap (s)
+Time (s)First
+Second
+Third
+Fourth
+Fig. 11. Four vehicle CACC test results with speed proﬁle in t he leading vehicle
+deceleration is actually lower than the initial 0.1gdisturbance
+during the event. The accurate tracking of the time gap polic y
+for the hardest braking during the speed proﬁle is also worth
+noting.
+V. CONCLUSION
+This paper presents the design, development, implementa-
+tion and testing of an enhancement to commercially avail-
+able ACC systems, based on introducing vehicle-to-vehicle
+communications, to produce CACC. The system has been im-
+plemented in four production Inﬁniti M56s vehicles equippe d
+with DSRC devices for information exchange among vehicles.The CACC controller design takes advantage of wireless
+communication information, introducing feedforward term s in
+the control logic, to enable signiﬁcant reductions in inter -
+vehicular gaps. The system has been tested on public roads
+showing good performance. First, reduced gap variability
+was demonstrated. Then, the ability to gracefully handle
+unequipped vehicles cutting in and out was also validated.
+Finally, a comparative study between the production ACC
+system performance and the new CACC controller was carried
+out.TheCACCclearlyshowedimprovementsinresponsetime
+and string stability, indicating the potential for a CACC sy stem
+to attenuate disturbances and improve highway capacity and
+
+--- Page 10 ---
+9
+225 230 235 240 245 25020253035Speed (m/s)
+  
+225 230 235 240 245 250−0.2−0.100.1Acceleration (g)
+  
+225 230 235 240 245 2500.511.5Time gap (s)
+Time (s)First
+Second
+Third
+Fourth
+Fig. 12. Detail of the last deceleration for the ACC test usin g the speed
+proﬁle
+225 230 235 240 245 25020253035Speed (m/s)
+  
+225 230 235 240 245 250−0.2−0.100.1Acceleration (g)
+  
+225 230 235 240 245 2500.511.5Time gap (s)
+Time (s)First
+Second
+Third
+Fourth
+Fig. 13. Detail of the last deceleration for the CACC test usi ng the speed
+proﬁle
+trafﬁc ﬂow stability. On-going and future research on this
+topic is mainly focused on assessing the potential magnitud e
+of improvements that a CACC system might have on trafﬁc
+response, both with respect to ACC and as a function of the
+market penetration.
+ACKNOWLEDGMENT
+The authors would like to thank Hiroshi Tsuda from Nissan
+TechnicalCenterNorthAmericaandJunichiroFunabashifro m
+DENSO Corporation for the valuable discussions and for thei r
+supportonvehicletesting.Theauthorswouldalsoliketoth ank
+Dave Nelson, Thang Lian, Somak Datta Gupta and Jing-Quan
+Li of California PATH for their support on vehicle testing. T he
+PATH work on this project was sponsored by Nissan Motor
+Co. Ltd.
+REFERENCES
+[1] L. Li, D. Wen, N.-N. Zheng, and L.-C. Shen, “Cognitive Car s: A
+New Frontier for ADAS Research,” IEEE Transactions on Intelligent
+Transportation Systems , vol. 13, no. 1, pp. 395–407, 2012.
+[2] G.Karagiannis,O.Altintas,E.Ekici,G.Heijenk,B.Jar upan,K.Lin,and
+T. Weil, “Vehicular networking: A survey and tutorial on req uirements,
+architectures, challenges, standards and solutions,” IEEE Communica-
+tions Surveys & Tutorials , vol. 13, no. 4, pp. 584–616, 2011.
+[3] R. Sengupta, S. Rezaei, S. Shladover, D. Cody, S. Dickey, and H. Kr-
+ishnan, “Cooperative collision warning systems: Concept de ﬁnition
+and experimental implementation,” Journal of Intelligent Transportation
+Systems, vol. 11, no. 3, pp. 143–155, 2007.
+[4] B. van Arem, C. J. G. van Driel, and R. Visser, “The impact of
+cooperative adaptive cruise control on trafﬁc-ﬂow charact eristics,” IEEE
+Transactions on Intelligent Transportation Systems , vol. 7, no. 4, pp.
+429–436, 2006.[5] S. Shladover, C. Nowakowski, J. O’Connell, and D. Cody, “ Cooperative
+adaptive cruise control: Driver selection of car-followin g gaps,” in 17th
+ITS World Congress , 2010.
+[6] S. Shladover, D. Su, and X. Lu, “Impacts of cooperative ada ptive cruise
+control on freeway trafﬁc ﬂow,” in 91st Transportation Research Board
+Annual Meeting , 2012.
+[7] R. Rajamani, H. Tan, B. Law, and W. Zhang, “Demonstration of
+integrated longitudinal and lateral control for the operat ion of automated
+vehicles in platoons,” IEEE Transactions on Control Systems Technol-
+ogy, vol. 8, no. 4, pp. 695–708, 2000.
+[8] R. Rajamani and S. Shladover, “An experimental comparative study of
+autonomous and co-operative vehicle-follower control syst ems,”Trans-
+portation Research Part C: Emerging Technologies , vol. 9, no. 1, pp.
+15–31, 2001.
+[9] T. Robinson, E. Chan, and E. Coelingh, “Operating platoo ns on public
+motorways: An introduction to the sartre platooning programme ,” in
+17th World Congress on Intelligent Transport Systems , October 2010.
+[10] H. Fritz, A. Gern, H. Schiemenz, and C. Bonnet, “Chauffeu r assistant :
+a driver assistance system for commercial vehicles based on fu sion of
+advancedaccandlanekeeping,”in IEEEIntelligentVehiclesSymposium ,
+June 2004, pp. 495–500.
+[11] J. Ploeg, B. T. M. Scheepers, E. van Nunen, N. van de Wouw,
+and H. Nijmeijer, “Design and experimental evaluation of coop erative
+adaptive cruise control,” in Proc. 14th Int Intelligent Transportation
+Systems (ITSC) IEEE Conf , 2011, pp. 260–265.
+[12] http://www.gcdc.net/.
+[13] K. Lidström, K. Sjöberg, U. Holmberg, J. Andersson, F. Ber gh,
+M. Bjäde, and M. Spencer, “A modular cacc system integration a nd de-
+sign,”IEEE Transactions on Intelligent Transportation Systems , vol. 13,
+no. 3, pp. 1050–1061, 2012.
+[14] M. Nieuwenhuijze, T. van Keulen, S. Öncü, B. Bonsen, and H. Ni-
+jmeijer, “Cooperative driving with a heavy-duty truck in mixe d trafﬁc:
+Experimental results,” IEEE Transactions on Intelligent Transportation
+Systems, vol. 13, no. 3, pp. 1026–1032, 2012.
+[15] L. Guvenç, I. Uygan, K. Kahraman, R. Karaahmetoglu, I. Alt ay,
+M. Sentürk, M. Emirler, A. Karci, A. Guvenc, E. Altug, M. Turan ,
+E. Bozkurt, U. Özgüner, K. Redmill, A. Kurt, and B. Efendioglu ,
+“Cooperative adaptive cruise control implementation of team mekar
+at the grand cooperative driving challenge,” IEEE Transactions on
+Intelligent Transportation Systems , vol. 13, no. 3, pp. 1062–1074, 2012.
+[16] A. Geiger, M. Lauer, F. Moosmann, B. Ranft, H. Rapp, C. Sti ller, and
+J. Ziegler, “Team annieway’s entry to the 2011 grand coopera tive driving
+challenge,” IEEE Transactions on Intelligent Transportation Systems ,
+vol. 13, no. 3, pp. 1008–1017, 2012.
+[17] R. Kianfar, B. Augusto, A. Ebadighajari, U. Hakeem, J. Ni lsson,
+A. Raza, R. Tabar, V. N., C. Englund, P. Falcone, S. Papanasta siou,
+L.Svensson,andH.Wymeersch,“Designandexperimentalvalid ationof
+a cooperative driving system in the grand cooperative drivi ng challenge,”
+IEEE Transactions on Intelligent Transportation Systems , vol. 13, no. 3,
+pp. 994–1007, 2012.
+[18] D. Swaroop and J. Hedrick, “String stability of interco nnected systems,”
+IEEE Transactions on Automatic Control , vol. 41, no. 3, pp. 349–357,
+1996.
+[19] D. Swaroop, J. Hedrick, C. Chien, and P. Ioannou, “A compa rision of
+spacingandheadwaycontrollawsforautomaticallycontroll edvehicles,”
+Vehicle System Dynamics: International Journal of Vehicle Mechanics
+and Mobility , vol. 23, no. 1, pp. 597–625, 1994.
+[20] M. Schönhof and D. Helbing, “Empirical features of conge sted trafﬁc
+states and their implications for trafﬁc modeling,” Transportation Sci-
+ence, vol. 41, no. 2, pp. 135–166, 2007.
+[21] L. Xiao and F. Gao, “Practical string stability of plato on of adaptive
+cruisecontrolvehicles,” IEEETransactionsonIntelligentTransportation
+Systems, vol. 12, no. 4, pp. 1184–1194, 2011.
+[22] W. B. Dunbar and D. S. Caveney, “Distributed receding ho rizon control
+of vehicle platoons: Stability and string stability,” IEEE Transactions on
+Automatic Control , vol. 57, no. 3, pp. 620–633, 2012.
+[23] F.Bu,H.-S.Tan,andJ.Huang,“Designandﬁeldtestingo facooperative
+adaptive cruise control system,” in Proc. American Control Conf. (ACC) ,
+2010, pp. 4616–4621.
+[24] J. Nowakowski, C.and OConnell, S. Shladover, and D. Cod y, “Co-
+operative adaptive cruise control: Driver acceptance of fo llowing gap
+settings less than one second,” in Proceedings of the Human Factors
+and Ergonomics Society 54th Annual Meeting . The Human Factors
+and Ergonomics Society, 2010.
+[25] G. Naus, R. Vugts, J. Ploeg, M. van de Molengraft, and M. S teinbuch,
+“String-stable cacc design and experimental validation: A f requency-
+
+--- Page 11 ---
+10
+domain approach,” IEEE Transactions on Vehicular Technology , vol. 59,
+no. 9, pp. 4268–4279, 2010.
+[26] G. Naus, R. Vugts, J. Ploeg, R. van de Molengraft, and M. S teinbuch,
+“Cooperative adaptive cruise control, design and experimen ts,” inProc.
+American Control Conf. (ACC) , 2010, pp. 6145–6150.
+[27] E. Shaw and J. K. Hedrick, “String stability analysis fo r heterogeneous
+vehicle strings,” in Proc. American Control Conference , 2007, pp. 3118–
+3125.
+[28] D. Swaroop, “String stability of interconnected syste ms: An application
+to platooning in automated highway systems,” Ph.D. dissertat ion, UC
+Berkeley, 1994.
+[29] G. Naus, R. Vugts, J. Ploeg, M. Van de Molengraft, and M. S teinbuch,
+“Towards on-the-road implementation of cooperative adaptiv e cruise
+control,” in 16th World Congr. Exhib. ITS World , 2009.
+[30] V. Milanes, J. Villagra, J. Perez, and C. Gonzalez, “Low -speed longi-
+tudinal controllers for mass-produced cars: A comparative st udy,”IEEE
+Transactions on Industrial Electronics , vol. 59, no. 1, pp. 620–628, jan.
+2012.
+Vicente Milanés received the Ph.D. degree in
+electronic engineering from University of Alcala,
+Madrid, Spain, in 2010. He was with the AUTOPIA
+program at the Center for Automation and Robotics
+(UPM-CSIC, Spain) from 2006 to 2011. From 2012,
+he is a Fulbright fellow at California PATH, UC
+Berkeley.
+Dr. Milanés has been awarded with the Best Paper
+AwardinthreeconferencesandhisPhDhasreceived
+two national and one international awards. His re-
+search interests include autonomous vehicles, fuzzy-
+logic control, intelligent trafﬁc and transport infrastru ctures, and vehicle-
+infrastructure cooperation.
+StevenShladover istheProgramManager,Mobility
+at the California PATH Program of the Institute of
+Transportation Studies of the University of Califor-
+nia at Berkeley. He joined the PATH Program in
+1989, after eleven years at Systems Control, Inc.
+and Systems Control Technology, Inc., where he
+led the company’s efforts in transportation systems
+engineering and computer-aided control engineering
+software products. Dr. Shladover received all of his
+degrees in mechanical engineering, with a special-
+ization in dynamic systems and control, from M.I.T.,
+where he began conducting research on vehicle automation in 1 973. He
+has been active in ASME (former Chairman of the Dynamic Systems an d
+Control Division), SAE (ITS Division) and the Transportati on Research Board
+(ChairmanoftheCommitteeonIntelligentTransportationSyst emsfrom2004-
+2010,andmemberoftheCommitteeonVehicle-HighwayAutomationf romits
+founding until 2010), and was the chairman of the Advanced Veh icle Control
+and Safety Systems Committee of the Intelligent Transportatio n Society of
+America from its founding in 1991 until 1997. Dr. Shladover le ads the U.S.
+delegation to ISO/TC204/WG14, which is developing internat ional standards
+for "vehicle-roadway warning and control systems".
+John Spring received an MS degree in Physics from
+San Francisco State University in 2000. He worked
+asaComputerSystemsEngineeratLawrenceBerke-
+ley National Laboratory from 1997 to 2006, and
+then as a Research and Development Engineer at
+PATH/UC Berkeley from 2006 to present. His spe-
+cialties include controls systems and data acquisition
+systems engineering.
+Christopher Nowakowski joined California PATH
+in 2002, and he is now the Senior Human Factors
+Engineer in the program. He has a B.S. in Civil
+Engineering from Bradley University and a M.S.
+in Industrial Engineering from the University of
+Michigan, where he specialized in automotive hu-
+man factors engineering. He has been conducting
+driving behavior studies, both simulator and on-
+the-road experiments, since 1996 when he was a
+graduate student research assistant at the University
+of Michigan Transportation Research Institute. His
+research interests include the observation of driving beha vior, Driver-Vehicle
+Interface (DVI) and Advanced Driver Assistance Systems (ADA S) design,
+and the ﬁeld testing of Intelligent Transportation Systems ( ITS) devices.
+He is a member of the Human Factors and Ergonomics Society’s Surfa ce
+Transportation Group, and he is a member of the Society of Automo tive
+Engineers’ (SAE) Safety and Human Factors Steering Committee. He also
+currently co-chairs the SAE Safety and Human Factors Committee on Adap-
+tive Cruise Control and Forward Collision Warning Standard s.
+Hiroshi Kawazoe obtained the bachelor degree in
+electronic engineer from the Tokai University, Japan
+in 1987.He works for Nissan Motor Co., Ltd. His
+work is on the development of the advanced driver
+support system using communication technologies
+for safety and efﬁciency improvements. His research
+interests include self-controlled vehicle and infras-
+tructure cooperation.
+Masahide Nakamura received a M.ME. in Ad-
+vanced Mechanical Science and Engineering from
+the Niigata University, Niigata, Japan, in 2002. He
+works for Nissan Motor Co., Ltd. His work is on
+the development of the advanced driver support
+system using communication technologies for safety
+and efﬁciency improvements. His research interests
+include self-controlled vehicle and infrastructure co-
+operation.

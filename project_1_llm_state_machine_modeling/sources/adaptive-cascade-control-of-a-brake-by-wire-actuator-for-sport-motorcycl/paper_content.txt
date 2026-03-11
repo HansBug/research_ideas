@@ -1,0 +1,738 @@
+--- Page 1 ---
+Adaptive Cascade Control of a Brake-By-Wire
+Actuator for Sport Motorcycles
+Fabio Todeschini, Matteo Corno, Giulio Panzani, Simone Fiorenti,
+and Sergio M. Savaresi
+I. INTRODUCTION AND MOTIV ATION
+IN the last years, the automotive industry has looked for in-
+novative brake-by-wire (BBW) solutions: This to increase
+the vehicle performance and safety. The possibility of smoothly 
+and precisely applying a desired braking torque is at the ba-
+sis of many vehicle dynamics control [1]–[7] and autonomous 
+vehicles.
+Different technological solutions have been proposed: the
+electrohydraulic one (EHB) is based on a hydraulic system, 
+which is activated by an electric motor or pump controlled by
+an electronic unit [8]–[11]. The electromechanical brake (EMB)
+solution does not have the hydraulic part but there is an electric 
+motor as actuator that provides the braking torque [12]–[14]. A
+particular EMB technology is known as wedge brake, where an 
+electric motor controls the force on a wedge that pushes back-
+ward and forward the braking pads [15], [16]. In this paper, we
+consider a modiﬁed EHB solution ﬁrst presented in [17]–[19]:
+an electromechanical actuator that pushes backward and for-
+ward the piston of a master cylinder connected to a traditional
+hydraulic brake. Compared to well-known EMB and EHB solu-
+tions, this one has the advantage to keep the usual hydraulic lay-
+out adding just the actuator. This saves weight, space, and cost.
+With this architecture, the actuator control problem consists in
+Manuscript received October 18, 2013; revised June 25, 2014; accepted July 
+7, 2014. Recommended by Technical Editor M. Iwasaki.
+F. Todeschini, M. Corno, S. Fiorenti, and S. M. Savaresi are with the Dipar-
+timento di Elettronica, Informazione e Bioingegneria, Politecnico di Milano, 
+20133 Milan, Italy (e-mail: fabio.todeschini@polimi.it; corno@elet.polimi.it; 
+ﬁorenti@elet.polimi.it; savaresi@elet.polimi.it).
+G. Panzani is with the Institute for Dynamic Systems and Control, ETH 
+Zurich, 8092 Zurich, Switzerland (e-mail: gpanzani@ethz.ch).
+Color versions of one or more of the ﬁgures in this paper are available 
+online.tracking a desired pressure reference. As shown later on, the
+control problem is made nontrivial by the nonlinearities of the
+system (friction, presence of the brake ﬂuid reservoir, tempera-
+ture variation, and oil compressibility) and by the very demand-ing performance speciﬁcations. The BBW system is designed
+for racing application, where it is indispensable to have band-
+width greater than 10Hz, no overshoot and good robustness.
+For technological constraints, at the end of the braking eventthe master cylinder piston must retract before the brake reser-voir inlet so that a proper ﬂuid compensation can be achieved.
+As discussed in the sequel, this introduces a nonlinearity in the
+system to be controlled. Furthermore, the control law must berobust to the so-called knock-off. In racing applications, at times,
+the brake disk pushes back the pads at the end of the brakingevent. This leads to a variation in the position-pressure charac-teristic: during the following braking action, the master cylinder
+must move further than in the previous one. Then, after this
+anomalous braking event, the system returns to the normal be-havior. This happens in traditional brake too. Professional pilots
+feel the knock-off from the return force on the lever, and once
+detected, they compensate it by pressing the brake lever more.
+To the best of the authors’ knowledge, there are no other ex-
+ample of control of EHB for motorcycles, except for authors’
+previous works. The authors in [19] showed the need of a morecomplex controller than a simple linear pressure controller: the
+closed-loop response with a direct pressure controller shows a
+big overshoot that prevents its usage in this application. In [17],
+the issue is addressed by simply avoiding to completely retract
+the piston. In this way, a good pressure tracking performance isachieved at the cost of the risk of not compensating ﬂuid vol-
+ume changes. Moreover, a small pressure is always applied to the
+brake pads: This causes a loss of energy and a continuous brakepad wear. In [18] and [19], a hybrid position—pressure switch-
+ing control strategy has been proposed, in this way, through the
+position control, it is possible to compensate the ﬂuid volumevariation at the end of each braking event. The main problem
+of such an architecture is that in the ﬁrst phase of the braking
+action—when the position controller is enabled—the pressureis not directly controlled. So, if there is a small error in the
+identiﬁed position–pressure map, the control performances are
+affected. Moreover, the architecture proposed in [18] and [19]suffers from robustness issues.
+In this paper, the aforementioned shortcomings are addressed
+by an adaptive cascade control architecture, which guarantees
+the required performance and improves robustness with respect
+to external disturbances. Also, experimental results that provethe effectiveness of the control law are presented.
+
+--- Page 2 ---
+TABLE I
+ELECTROMECHANICAL BBW A CTUATOR (DC M OTOR ,TRANSMISSION
+AND MECHANICAL FRAME )GENERAL SPECIFICATIONS
+Weight 950 g
+Height 42 mm
+Length 105 mm
+Width 75 mm
+Motor Power 200 W
+Fig. 1. Schematic representation of the BBW system.
+This paper is structured as follow: in Section II, there is a
+brief description of the system, in Section III, a control-oriented
+model is derived; analyzing it, a cascade position–pressure con-
+trol architecture is proposed. In Section IV, a gray-box iden-tiﬁcation method is adopted to derive the system model that
+is then used to tune the pressure and position loops. Since the
+pressure control law is nonlinear and time varying, a stability
+analysis is performed (see Section V). Finally, Section VI shows
+experimental results and Section VII the conclusions.
+II. S
+YSTEM DESCRIPTION
+The BBW system here considered is composed of an elec-
+tromechanical actuator mechanically connected to a traditionalhydraulic brake; in Table I, the BBW actuator general speciﬁca-tions are listed. Fig. 1 shows a schematic representation of the
+system.
+The main components are as follows.
+1)Brake lever: The pilot generates the reference pressure
+through it.
+2)BBW actuator: An electronic control unit controls a dc
+motor that moves the master cylinder forward and back-
+ward through a mechanical transmission. In particular, the
+electronic board has a power bridge able to apply a volt-
+agevon the motor clamps. The motor control is done
+through a current loop with a 100−Hz bandwidth. The
+motor spinning is transformed into a linear movement bymeans of a mechanical transmission. The actuator has a
+return spring that pushes the master cylinder backwardswhen no force is applied.3)Hydraulic brake: The master cylinder piston movement
+varies the pressure in the hydraulic pump, that, through
+the pipe, is transmitted to the brake caliper. An important
+part of this subsystem is the brake reservoir: at the end ofeach braking event, the master cylinder piston must retract
+before the brake reservoir holes. In this way, the system
+compensates ﬂuid volume variation due to temperature
+and brake pad wear.
+4)Mechanical brake: Depending on the pressure in the brake
+caliper, the brake pads push against the brake disk, gener-ating the braking torque.
+The aim of this study is to ﬁnd a control law that tracks the
+desired pressure. Available measures are the linear position ofthe master cylinder piston ( x), the pressure in the hydraulic part
+(p), and the motor current ( I). By convention, x=0 mm is
+when the master cylinder is completed retracted and as it movesforward, xincreases.
+The pressure control law is implemented on a real-time mi-
+croprocessor with a 200-Hz sample frequency.
+III. S
+YSTEM MODELING
+Starting from the physical elements composing the BBW ac-
+tuator, the complete model can be derived [17], [18]. Instead, inthis study, a control-oriented model is presented, its lineariza-
+tion in different working points gives considerations that lead tothe control architecture here presented.
+Consider the following assumptions:1) thanks to the presence of the motor current loop, which is
+an order of magnitude faster than the pressure dynamics,the electrical dynamics can be discarded. Therefore, thecurrent is considered as the control variable;
+2) the pressure in the master cylinder and the pressure in the
+brake caliper are the same. In other words, we neglect thepressure wave propagation dynamics (the ﬁrst resonance
+mode is usually around hundreds of hertz);
+3) the amount of ﬂuid volume in the system is not inﬂuenced
+by master cylinder position changes;
+4) the static Coulomb friction is disregarded. This can be
+done if a dithering signal is applied to the control variable
+([18]–[20]) or if a suitable friction compensation tech-
+nique is applied ([21]–[23]). Under this assumption, we
+consider just the viscous friction contribution.
+It is then possible to derive a second-order control-oriented
+model.
+M
+eq¨x+Kdamp˙x+Kspringx+p(x)Amc=iQeq (1)
+where
+1)Meq¨xrepresents the mechanical inertial force and it can
+be computed as Meq=Mpist+Jmot/K2, where Mpistis
+the master cylinder piston mass, Jmotis the motor moment
+of inertia, and Kis the transmission ratio;
+2)Kdamp˙xrepresents the damping force (due to viscous
+friction) and in general, it is unknown;
+3)Kspringxrepresents the return spring force;
+4)p(x)Amcrepresents the return force due to the pressure in
+the master cylinder;
+
+--- Page 3 ---
+TABLE II
+BBW C OMPONENTS PHYSICAL PARAMETERS
+Mpist 10−3kg
+Jmot 1.37 10−5kg/m2
+Amc 1.13 10−4m2
+KT 0.0168 Nm /A
+K 0.3036 103m/rad
+Kspring 3000 N /m
+Fig. 2. Master cylinder position and pressure relationship with new and wore
+braking pads.
+5)iQeqrepresents the equivalent force applied by the motor
+to the master cylinder piston and can be computed as
+KT/K, where KTis the motor torque constant.
+The model parameters are listed Table II. Note that they can
+be found from the BBW physical components, the only un-known parameter is K
+damp . In order to model the relationship
+between position and pressure, we exploit the quasi-static ex-perimental response of the system when an increasing currentramp followed by a decreasing one is applied, depicted in Fig. 2
+(0A→10Ain 30 s, then 10A→0A in 30 s). This is a
+nonlinear static map.
+The position–pressure map can be divided in two different
+zones (see Fig. 2): in the dead zone, where the master cylinder
+is before the brake reservoir, the piston moves with no pressurevariation. The dead zone is not affected by temperature and
+brake pad wear. The second part of the position–pressure curve
+is the operative zone; the master cylinder is after the brakereservoir and a position increment corresponds to a pressure
+increment. This part of the position–pressure curve is strongly
+affected by temperature and brake pads wear. Note that theposition–pressure map depicted in Fig. 2 presents an hysteresis:
+The average curve is considered for modeling purpose. The
+position–pressure curve introduces a time varying nonlinearity
+in the model (1), as it changes with temperature and pads wear.
+The linearized model allows for a quantiﬁcation of the effect
+of the nonlinearity. Two different dynamics are analyzed: thecurrent-to-position dynamics and the current-to-pressure one.
+Consider the linearized model
+M
+eqδ¨x+Kdampδ˙x+Kspringδx+Amcp/prime(¯x)δx=δiQeq
+(2)
+where
+p/prime(¯x)=∂p(x)
+∂x/vextendsingle/vextendsingle/vextendsingle/vextendsingle
+x=¯x(3)is the slope of the pressure–position map in the working point
+(¯x). The transfer function between current and position is
+Gx(s)=Qeq
+Meqs2+Kdamps+Amcp/prime(¯x)(4)
+where Kspring has been considered negligible compared to
+Amcp/prime(¯x). From (4), it can be seen that:
+1) the low-frequency gain is
+lim
+s→0Gx(s)=Qeq
+Amcp/prime(¯x)(5)
+thus, it decreases as the working position increases.
+2) the high-frequency gain is
+lim
+s→∞Gx(s)=Qeq
+Meqs2(6)
+which is independent from the working point.
+Also, by recalling the linearized link δp=p/prime(¯x)δx, the trans-
+fer function between current and pressure can be derived.
+Gp(s)=Qeqp/prime(¯x)
+Meqs2+Kdamps+Amcp/prime(¯x). (7)
+Then, analyzing the obtained transfer function:
+1) the low-frequency gain is
+lim
+s→0Gp(s)=Qeq
+Amc(8)
+therefore, it is independent from the working point.
+2) the high-frequency gain is
+lim
+s→0Gp(s)=Qeqp/prime(¯x)
+Meqs2(9)
+which is working point dependent (its gain increases withit).
+IV . C
+ONTROL SYSTEM DESIGN
+The transfer function analysis is the base to design the control
+architecture. The control architecture must deal with the pres-ence of the dead zone (where a position controller is strictlyneeded), with different working points and with variations in
+the position–pressure map. Exploiting the fact that the position
+transfer functions are working point independent above a certainfrequency, a speciﬁcally tuned linear position controller could
+make the closed loop robust with respect to the working point.
+Furthermore, an outer pressure loop is needed: in fact, the
+position–pressure map is time varying due to temperature andpads wear; so adopting just a position control would not be
+precise in terms of pressure tracking. These considerations lead
+to a position–pressure cascade control architecture (see Fig. 3).
+In the identiﬁcation phase, we followed a gray-box identi-
+ﬁcation approach. The control-oriented model derived in theprevious section, beside being adopted to decide the control ar-
+chitecture, is exploited to determine the transfer functions order.
+A. Position Loop
+The aim of this section is to design a position loop able to
+track the reference with a closed-loop bandwidth around 50
+
+--- Page 4 ---
+Fig. 3. Position–pressure cascade control.
+Fig. 4. Identiﬁed current →position transfer function in different working
+points.
+Hz. The current-to-position model identiﬁcation is performed
+around different working points ( ¯x). The system is maintained
+around ¯xby means of a 1-Hz bandwidth position controller. The
+excitation signal is a multifrequency sinusoidal current addedinto the loop as a load disturbance. The excitation signal fre-
+quency ranges from 10to200Hz; this is consistent with the
+goal that we want to achieve.
+Note that, in the identiﬁcation process since the closed-loop
+bandwidth is low compared to the excitation signal frequency,
+the control action and the excitation signal are decoupled infrequency. The same process is done maintaining the system
+around different working points, for each of them, the input
+(current) and the output (the position) are collected. The fre-quency response around each working point can be derived (see
+Fig. 4) as the quotient of the cross power spectral density out-
+put (T
+yx(jω)) and input ( Txx(jω)), i.e., the generic frequency
+response G(jω)is computed as follows:
+G(jω)=Tyx(jω)
+Txx(jω). (10)
+Fig. 4 shows the identiﬁed frequency responses from 10to
+100 Hz in different working points, where their convergence
+after10Hz can be appreciated, this conﬁrms the analysis of
+Section III. Note that from that analysis, the phase of the fre-quency response should be −180
+◦. The loss of phase in the
+experimental frequency response around 10Hz is determined
+by the low-frequency poles that the current-to-position transferfunction have. The position of the two poles is inﬂuenced by
+the working point [see (4)]. Instead, the phase difference around
+100Hz is caused by the low energy that the output signal has at
+those frequencies.Fig. 5. Position loop validation.
+The current-to-position identiﬁcation conﬁrms the analysis
+carried out in Section III, thus, designing a position controller
+with a bandwidth greater than 10Hz and a wide phase mar-
+gin, robustness with respect to the working point is guaranteed
+with a ﬁxed structure linear controller. A PID controller is de-
+signed on the worst case scenario using classical loop shaping
+techniques to obtain a 50-Hz bandwidth with a phase margin
+φm=8 5◦, Fig. 5 plots series of closed-loop position reference
+step adopting the designed controller. The experiment validatesthe robustness and performance of the control loop.
+B. Pressure Loop
+The ﬁnal control objective is pressure tracking and since the
+position–pressure relationship has a hysteresis and it is time
+varying, a standalone position loop is not enough, a pressure
+loop is required. The pressure loop must deal with the position–
+pressure nonlinearity depicted in Fig. 2 and it has to providethe same tracking performance under every condition. Since
+in the dead zone the pressure growth is negligible, the pressure
+controller will be designed to work in the operative zone. To copewith the presence of the dead zone, however, a supervising ﬁnite-
+state machine is presented, that guarantees the proper controller
+working throughout the entire position–pressure map.
+When designing the pressure controller in the cascade archi-
+tecture, the control variable of interest is the reference position.The reference position →pressure transfer function is, there-
+fore, identiﬁed. The identiﬁcation scheme adopted exploits the
+position controller designed in the previous subsection: a multi-
+frequency reference position is injected; note that its averagevalue establishes the working point where the identiﬁcation is
+performed. Collecting the system input (reference position), to-
+gether with the output (the pressure), a transfer function in each
+working point can be computed from the input/output cross
+power spectral density (solid lines in Fig. 6).
+Note that the static gain of the transfer function corresponds
+to the slope of the position–pressure map presented in Fig. 2.Moreover, the dynamic behavior is the same in every workingpoint. The frequency response identiﬁed around 3.5mm (solid
+
+--- Page 5 ---
+Fig. 6. Identiﬁed reference position →pressure transfer functions in different
+working points.
+Fig. 7. Schematic representation of the pressure control problem.
+line in Fig. 6) can be considered reliable up to 20Hz; after that
+frequency, the system does not have enough excitation to collect
+consistent data.
+For this, the position–pressure relationship is modeled as a
+Hammerstein system, i.e., with a cascade connection of a staticnonlinearity block followed by a linear dynamic system [24].
+The static nonlinearity is modeled by a second-order polyno-
+mial
+p
+st=a(x−xdz)2+b(x−xdz) (11)
+xdzrepresents the position where the master cylinder pis-
+ton completely overcomes the brake reservoir, so where the
+operative-zone starts (see Fig. 6). In (11), agives the concavity
+of the curve, which is always positive.
+The system dynamics (represented in Fig. 7 with G(s))a r e
+modeled as a ﬁrst-order system with unitary gain
+G(s)=1
+Tis+1. (12)
+Note that in the modeling section (see Section III) the position–pressure relationship was assumed to be static: the consid-erations done that brought to the choice of the proposed
+cascade architecture hold also if we consider the dynamics
+between them.
+Assuming that the position loop is much faster than the pres-
+sure dynamics and that aandbare constant, the position–
+pressure relationship can be exploited and inverted in the con-
+troller. Referring to Fig. 7, applying the following static map
+between uandx
+ref
+xref=−b∗+/radicalbig
+b2∗+4a∗u
+2a∗(13)Fig. 8. Finite-state machine that supervises the cascade control architecture.
+and assuming that the controller parameters are the same of the
+plant ones (a ∗=aandb∗=b), the series of the two nonlinear-
+ity becomes a unitary block, i.e., u=pst. So, the closed loop
+becomes linear and the design of R(s)onG(s)is trivial. In
+particular, adopting a simple PI controller with a zero at the
+same frequency of the system pole, the loop transfer function
+becomes
+L(s)=R (s)G(s)=kp
+s(14)
+where kpdetermines the closed-loop bandwidth. In this ideal
+case, the loop transfer function is an integrator and the closed-
+loop performances are pressure invariant. The design of R(s)
+is done in order to achieve a 15-Hz bandwidth (phase mar-
+ginφm=9 0◦and gain margin μg=∞). In Section V, the
+stability of the pressure loop is discussed when a/negationslash=a∗and
+b/negationslash=b∗.
+With the aim of extending the control architecture (see Fig. 3)
+to the dead zone, the ﬁnite-state machine shown in Fig. 8is introduced. Its main goal is to enable the pressure control
+only when the system is in the operative zone, otherwise no
+pressure tracking is necessary, therefore, the position loop suf-ﬁces. When there is no pressure request (p
+ref=0), theDEAD
+ZONE state is enabled, so the pressure controller is switched
+OFF and the position reference is null. In this state, the posi-
+tionfeed-forward (xﬀ) is null too. Then, when there is pressure
+request (p ref>0), the system goes in the OPERATIVE ZONE
+state, where the pressure controller is enabled and the positionreference feed-forward is set in order to overcome the dead zone
+with the position loop response time ( x
+ﬀ=xdz).
+C. Adaptation Mechanism
+Until now, we considered the static nonlinear gain between
+position and pressure as constant; in fact it varies with temper-
+ature and brake pad wear. This static map can be recursively
+estimated. Recalling (11)
+ˆpst(t)=φ E(t)T·ˆθ=/bracketleftbigx(t)−xdz(x(t)−xdz)2/bracketrightbig
+·/bracketleftbiggb∗
+a∗/bracketrightbigg
+(15)
+the estimation error can be computed as
+/epsilon1(t)=p st(t)−ˆpst(t). (16)
+A recursive least-square algorithm with a ﬁxed forgetting
+factor ( μ) has been implemented as
+⎧
+⎪⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎪⎩ˆθ
+t=ˆθt−1+K(t)/epsilon1(t)
+K(t)=V(t)φE(t)
+V(t)=1
+μ/parenleftbig
+V(t−1)−β−1
+t−1V(t−1)φE(t)
+·φE(t)TV(t−1)/parenrightbig
+βt−1=μ+φE(t)TV(t−1)φE(t).(17)
+
+--- Page 6 ---
+Fig. 9. Pressure loop seen as a Lur’e system: A nonlinear block with a linear 
+one.
+The estimation process is enabled by the ﬁnite-state machine 
+in Fig. 8. The forgetting factor μ needs to be chosen so that 
+the estimation algorithm tracks the variation due to tempera-
+ture and pad wear; if too high, a forgetting factor is employed, 
+the controller will not adapt to variation; if too low, a forget-
+ting factor affects the reliability and could compromise the 
+stability of the closed loop. Ideal ly, the estimation algorithm 
+weights data from two or three braking events. This is obtained 
+with μ =0.995.
+V. STABILITY ANALYSIS
+The pressure controller has been tuned under the assumption 
+of perfect compensation of the nonlinearity. In this section, the 
+controlled system stability in the case of nonperfect compensa-
+tion is analyzed. The nonlinearity estimation error is modeled 
+as a multiplicative uncertainty
+/braceleftBigg
+a∗=k1a
+b∗=k2b(18)
+where k1andk2represent the discrepancy between the real
+parameters and the ones used in the controller. The estimator
+dynamics is decoupled from the closed loop one, thus, we cantreatk
+1andk2as unknown but constant. The pressure con-
+troller has a dynamic part that cancels the system pole; also thissimpliﬁcation may not be perfect
+T
+i∗=k3Ti (19)
+sok3represents the pole estimation error. We can reasonably
+assume that the sign of the parameters is correctly identiﬁed;in other words, k
+i>0. As previously done in the pressure con-
+troller design phase, assuming that the position loop is fastenough compared to the pressure one, it is considered as ideal.
+Proposition 1: The closed-loop system depicted in Fig. 7,
+composed of the position-controlled BBW system (see Sec-tion A) and the nonlinear characteristic (13) compensatingthe PI control action, is globally asymptotically stable for
+allk
+i∈[0.25,4].
+Proof: The block diagram depicted in Fig. 7 is manipulated,
+obtaining a Lur’e system as shown in Fig. 9.
+Therefore, the closed-loop system can be seen as a series
+connection between a dynamic part (the controller and the plant)
+L(s)=R(s)G(s)=kp(1 +Ti∗s)
+s(1 + Tis)(20)
+and a static part
+ψ(u,k1,k2)=u1
+k1+k2b2(k1−k2)
+2ak2
+1/parenleftBig/radicalBig
+1+4k1au
+k2
+2b2−1/parenrightBig
+(21)which describes the relationship between uandpst. Equation
+(21) is composed of a linear term and a nonlinear one.
+The closed-loop stability depends on ψ(u,k1,k2)and on k3.
+In particular:
+1) if the position–pressure map is perfectly known ( k1=
+k2=1), then ψ(u,k1,k2)=u. This is the ideal case dis-
+cussed in Section IV-B;
+2) ifk1=k2/negationslash=1, thenpst=u
+k1. The loop transfer function
+is linear and it is equal toL(s)
+k1. The stability of such a
+system depends on the pole identiﬁcation precision ( k3)
+and can be studied adopting the Bode’s method (i.e., phase
+and gain margin);
+3) ifk1/negationslash=k2/negationslash=1, the relationship between uandpstis de-
+scribed by (21). In this case, the stability proof is based onthe circle criterion [25], [26]. First of all, the nonlinearity
+is studied in order to prove that it is a sectorial nonlin-
+earity, i.e., that ψ
+u<ψ (u,k1,k2)<ψu. Rewriting (21)
+as
+ψ(u,k1,k2)=u1
+k1+A/parenleftBig√
+1+Bu −1/parenrightBig
+(22)
+where A=k2b2(k1−k2)
+2ak2
+1,B=4k1a
+k2
+2b2and differentiating it
+with respect to u
+∂ψ
+∂u=1
+k1+AB
+2√
+1+Bu(23)
+we can note that:
+a) since ais always positive, then B>0;
+b)ψ|u=0=0;
+c) ifk1>k2(A>0), then∂ψ
+∂uis decreasing, other-
+wise is increasing as uincreases;
+d)∂ψ
+∂u|u=0=1
+k1+AB
+2;
+e)limu→∞∂ψ
+∂u=1
+k1>0.
+ψ(u,k1,k2)is monotonically increasing, and since
+ψ(0,k 1,k2)=0 for every k1,k2
+ψ(u,k1,k2)∈[0,+∞). (24)
+Furthermore, an upper ( ψu) and a lower limiting functions
+(ψu) can be found. If k1>k2, considering the following
+limiting functions:
+ψu=u
+k1+ABu
+2
+ψu=u
+k1(25)
+then
+/braceleftBiggu1
+k1+A/parenleftbig√
+1+Bu −1/parenrightbig
+<u
+k1+ABu
+2
+u1
+k1+A/parenleftbig√
+1+Bu −1/parenrightbig
+>u
+k1(26)
+which yields to
+/braceleftBigg(Bu)2
+4>0∀u
+A/parenleftbig√
+1+Bu−1/parenrightbig
+>0∀u.(27)
+
+--- Page 7 ---
+Fig. 10. Graphical proof of the validity of the circle theorem: L(s) Nyquist
+plot varying k3(dotted lines) and circles passing through −1/ψand−1/ψ
+varying k1andk2(solid lines).
+Otherwise, if k1<k2and considering the following lim-
+iting functions
+ψu=u
+k1
+ψu=u
+k1+ABu
+2(28)
+then
+/braceleftBiggu1
+k1+A/parenleftbig√
+1+Bu −1/parenrightbig
+>u
+k1+ABu
+2
+u1
+k1+A/parenleftbig√
+1+Bu −1/parenrightbig
+<u
+k1(29)
+which yields to
+/braceleftBigg(Bu)2
+4>0∀u
+A/parenleftbig√
+1+Bu −1/parenrightbig
+<0∀u.(30)
+Therefore. the nonlinearity is sectorial.
+Exploiting the circle criterion, if the Nyquist diagram of
+L(s)does not enter in the circle that passes through −1
+ψ
+and through −1
+ψ, the closed-loop system is exponential
+globally stable. The method can be used to numericallycheck the robust stability of the control system. Fig. 10
+is a graphical veriﬁcation of the hypothesis of the circletheorem: the dotted lines are the L(s)Nyquist plot varying
+k
+3so the loop transfer function varying the position of the
+dynamic part of the Hammerstein system (T iin (12)).
+The solid lines are the circles passing through −1/ψand
+−1/ψ varying k1andk2. The results shown in Fig. 10
+are obtained considering parameters variations as stated
+in proposition 1 (k i∈[0.25,4]).
+The system is thus able in the face of a rather large uncertainty
+in the estimation.
+VI. E XPERIMENTAL RESULTS
+In this section, the experimental results are presented: ﬁrst
+the tracking performances are shown, then the effectiveness ofthe adaptation algorithm is validated.
+A professional rider tested the BBW system on a racing cir-
+cuit. He rode two identical high-performance motorbikes, oneFig. 11. Experimental results obtained during tests on a real circuit—zoom
+of the ﬁrst part of a sharp braking event.
+Fig. 12. Experimental results obtained during tests on a real circuit—zoomof the ﬁrst part of a ﬁne braking modulation.
+equipped with the BBW on the front wheel, the other one with
+standard brakes. From the experimental tests, it turned out thatthe most critical part of the braking action is the ﬁrst part, where
+the controller must be fast enough in order to cross the dead
+zone, and then, track the pressure reference without exhibit-ing a delay. Furthermore, if the pressure loop is tuned with a
+bandwidth lower than 10 Hz, the driver can feel a delay in the
+front braking system. Also, if an overshoot greater than 25%i s
+present the rider perceives it as a nonlinear braking response.
+Fig. 11 shows the ﬁrst part of a sharp braking action at the
+end of a straight when the main goal of the pilot is to deceleratethe vehicle in the shortest time; while Fig. 12 shows a ﬁne brak-
+ing pressure modulation that typically happens during a curve.
+At the beginning of both braking events, the pressure loop isdisabled and when the pressure reference becomes greater than
+zero, the position feed-forward term becomes x
+dzso that the
+master cylinder overcomes the dead zone with a speed relatedto the position loop bandwidth. Then, once the dead zone is
+overcome, the pressure loop is enabled and the BBW systemtracks the pressure reference. Note that, when the master cylin-
+der piston quickly overcomes the dead zone a small pressure
+overshoot happens. This is due to the fast master cylinder move-ment in the dead zone. Experimental tests showed that the rider
+
+--- Page 8 ---
+Fig. 13. Pressure reference step response.
+Fig. 14. Pressure MSE and coefﬁcient estimation errors during braking events
+starting from a wrong initial conditions.
+does not perceive the small overshoot at the beginning of the
+braking event.
+In order to precisely evaluate the pressure closed-loop band-
+width, a step reference variation test is performed (see Fig. 13).On the top, subplot is superimposed the ideal pressure response,i.e., the pressure reference ﬁltered with a 15-Hz low-pass ﬁlter.
+Note that the pressure closed loop has the expected bandwidthand that the current in this test does not saturate. For wider steps,the current saturation could slow down the pressure response.
+The required closed-loop speciﬁcations are met: the pressure
+tracks the reference with a 15-Hz bandwidth, without overshoot
+and with delays shorter than the ones perceivable by a profes-
+sional rider.
+The ﬁnal analysis validates the effectiveness of the adaptation
+algorithm. Starting from wrong initial parameters value estima-
+tion, the pressure mean square error (MSE) is analyzed as
+MSE=
+tend/summationdisplay
+t=1(pref(t)−p(t))2
+N(31)
+where pref(t)andp(t)represent the reference pressure and the
+measured pressure at the time tin the braking event considered.
+Nis the number of samples collected between tandtend.F i g .1 4
+shows that the adaptation algorithm updates the parameter val-ues until k
+1andk2reach the right values. It can be appreciated
+how the MSE decreases as the estimated parameters convergeto the real ones. This proves the effectiveness of adopting anadaptive control system.Fig. 15. Experimental pressure tracking when the knock-off causes a position–
+pressure curve variation (top plot) and in a nominal condition (bottom plot).
+Fig. 16. Experimental position–pressure curve changing in the presence of
+theknock-off .
+Furthermore, note that, since k1andk2were initialized with a
+considerable error to test the closed-loop robustness, they reach
+negative values. This means that the stability analysis is con-
+ducted under conservative hypotheses: in fact the closed-loopsystem remains stable even if k
+1andk2are out of the speciﬁed
+bounds. Initializing the estimation algorithm with more realisticvalues, k
+1andk2remains positive. Also, note that the estimator
+dynamic is decoupled from the pressure one.
+The control architecture has been tested also in the presence
+of the knock-off, i.e., when a position–pressure curve modiﬁca-
+tion happens from one braking event to another: the pressure
+tracking in the presence of the knock-off is shown in Fig. 15,
+while Fig. 16 shows the variation of the position–pressure inthe same two braking events. The control architecture shows
+a good robustness with respect to position pressure changing.This is not surprising, when knock-off happens, it causes a sud-
+den variation of aandb; in Section V, we proved that the system
+remains globally asymptotically stable even in the presence ofparameter estimation errors.
+
+--- Page 9 ---
+VII. C ONCLUSION
+In this paper, the control of a novel BBW actuator is pre-
+sented; such actuator presents nonlinear and time variant char-
+acteristics. The control architecture chosen derives from the
+analysis of the control-oriented model. In particular, the trans-fer function between current and position exhibits an important
+propriety: above a certain frequency, the system is insensitive to
+the working point. Exploiting this peculiarity, a cascade controlis adopted: the inner loop is a position one, the outer loop a
+pressure one. Model identiﬁcation procedure and controller de-
+sign are presented for both loops. The pressure controller aimsto invert the intrinsic nonlinear position–pressure relationship.
+Since this nonlinear relationship is inﬂuenced by temperature
+and brake pad wear, an estimation algorithm has been intro-duced. The complete control architecture is thus a cascade con-
+trol with a nonlinear and adaptive pressure controller. Moreover,
+since the pressure controller bases the control law on the estima-
+tion of the plant parameters, an analytical stability analysis has
+been done. This study highlighted that the closed loop remainstable, even if the estimated parameters have relevant differences
+from the real ones. This study can be interpreted as a robust-
+ness proof: assuming that the position–pressure relationship isestimated correctly from (17), when a knock-off phenomenon
+happens, it is equivalent to a position–pressure curve instan-taneous dilatation on the position axis. As the stability proofstates, the closed-loop algorithm is able to handle parameters
+variation in this range: k
+i∈[0.25,4].
+In conclusion, the main improvements of the adaptive non-
+linear cascade architecture are:
+1) good robustness with respect to knock-off, i.e., with re-
+spect to sudden position–pressure changing. The stability
+analysis proves it analytically;
+2) pressure tracking in every part of the braking event, even
+in the ﬁrst part;
+3) closed-loop bandwidth of 15 Hz.
+REFERENCES
+[1] S. Anwar, “Generalized predictive control of yaw dynamics of a hy-
+brid brake-by-wire equipped vehicle,” Mechatronics , vol. 15, no. 9,
+pp. 1089–1108, 2005.
+[2] M. Tanelli, A. Astolﬁ, and S. Savaresi, “Robust nonlinear output feedback
+control for brake by wire control systems,” Automatica, vol. 44, no. 4,
+pp. 1078–1087, 2008.
+[3] M. Tanelli, R. Sartori, and S. Savaresi, “Combining slip and deceleration
+control for brake-by-wire control systems: A sliding-mode approach.”
+Eur. J. Control , vol. 13, no. 6, pp. 593–611, 2007.
+[4] M. Corno, S. Savaresi, and G. Balas, “On linear-parameter-varying (LPV)
+slip-controller design for two-wheeled vehicles,” Int. J. Robust Nonlinear
+Control , vol. 19, no. 12, pp. 1313–1336, 2009.
+[5] M. Tanelli, M. Corno, I. Boniolo, and S. Savaresi, “Active braking control
+of two-wheeled vehicles on curves,” Int. J. Vehicle Auton. Syst. ,v o l .7 ,
+no. 3, pp. 243–269, 2009.
+[6] T. Johansen, I. Petersen, J. Kalkkuhl, and J. Ludemann, “Gain-scheduled
+wheel slip control in automotive brake systems,” IEEE Trans. Control
+Syst. Technol. , vol. 11, no. 6 pp. 799–811, Nov. 811.
+[7] S. Savaresi, M. Tanelli, and C. Cantoni, “Mixed slip-deceleration control
+in automotive braking systems,” J. Dyn. Syst., Meas. Control, vol. 129,
+pp. 20–31, 2007.
+[8] D. Reuter, E. Lloyd, J. Zehnder, and J. Elliott, “Hydraulic design consid-
+erations for EHB systems,” presented at the SAE World Congr. , MI, USA,
+2003.[9] N. D’alﬁo, A. Morgando, and A. Sorniotti, “Electro-hydraulic brake sys-
+tems: Design and test through hardware-in-the-loop simulation,” Vehicle
+Syst. Dyn, Int. J. Vehicle Mech. Mobility , vol. 44, no. 1, pp. 378–392, 2006.
+[10] A. Sorniotti, and G. Repici, “Hardware in the loop with electro-hydraulic
+brake systems,” presented at the 9th WSEAS Int. Conf. on Systems , Athens,
+Greece, 2005.
+[11] V . Milan `es, C. Gonz `alez, E. Naranjo, E. Onieva, and T. De Pedro, “Electro-
+hydraulic braking system for autonomous vehicles,” Int. J. Automotive
+Technol. , vol. 11, no. 1, pp. 89–95, 2010.
+[12] J. Kwak, B. Yao, and A. Bajaj, “Analytical model development and model
+reduction for electromechanical brake system,” presented at the Int. Me-
+chanical Engineering Congr. and Exp. , Anaheim, CA, USA, 2004.
+[13] C. Line, “ Modelling and control of an automotive electromechanical
+brake ,” Ph.D. Thesis, Univ. of Melbourne, Melbourne, Australia, 2007.
+[14] C. Rossa, A. Jaegy, J. Lozada, and A. Micaelli, “Design considera-
+tions for magnetorheological brakes,” IEEE/ASME Trans. Mechatronics,
+vol. 19, no. 5 pp. 1669–1680, Oct. 1680.
+[15] H. Hartmann, M. Schautt, A. Pascucci, and B. Gombert, “ebrakeR/circlecopyrt-the
+mechatronic wedge brake,” in Proc. SAE Conf. Proc. P. SAE, 2002,
+pp. 15–20.
+[16] R. Roberts, M. Schautt, H. Hartmann, and B. Gombert, “Modelling
+and validation of the mechatronic wedge brake,” SAE paper , vol. 112,
+pp. 2376–2386, 2003.
+[17] A. Dardanelli, G. Alli, and S. Savaresi, “Modeling and control of an
+electro-mechanical brake-by-wire actuator for a sport motorbike,” the 5th
+IFAC Symp. Mechatronic Sys. , Cambridge, MA, 2010, pp. 524–531.
+[18] G. Panzani, M. Corno, F. Todeschini, S. Fiorenti, and S. Savaresi, “Analysis
+and control of a brake by wire actuator for sport motorcycles,” presented
+at the 13th Mechatronics Forum Int. Conf. , Linz, Austria, Sep. 17–19,
+2012.
+[19] F. Todeschini, M. Corno, G. Panzani, and S. M. Savaresi, “Adaptive
+position-pressure control of a brake by wire actuator for sport motor-
+cycles,” Eur. J. Control , vol. 20, no. 2, pp. 79–86, 2014.
+[20] H. Olsson, K. ˚Astr¨om, C. Canudas de Wit, M. G ¨afvert, and P. Lischin-
+sky, “Friction models and friction compensation,” Eur. J. Control ,v o l .4 ,
+pp. 176–195, 1998.
+[21] G. Panzani, M. Corno, and S. M. Savaresi, “On adaptive electronic throttle
+control for sport motorcycles,” Control Eng. Practice, vol. 21, pp. 42–53,
+2013.
+[22] M. Michaux, A. Ferri, and K. Cunefare, “Effect of tangential dither signal
+on friction induced oscillations in an sdof model,” J. Comput. Nonlinear
+Dyn. , vol. 2, pp. 201–210, 2007.
+[23] J. L. Barreto, S. A. S. Conceicao, C. Dorea, L. Martinez, and E. de Pieri,
+“Design and implementation of model-predictive control with frictioncompensation on an omnidirectional mobile robot,” IEEE/ASME Trans.
+Mechatronics , vol. 19, no. 2 pp. 467–476, Apr. 476.
+[24] S. A. Billings, and S. Y . Fakhouri, “Identiﬁcation of systems containing
+linear dynamic and static nonlinear elements,” Automatica, vol. 18, no. 1
+pp. 15–26, Jan. 26.
+[25] G. Zames, “On the input-output stability of time-varying nonlinear feed-
+back systems–Part ii, Conditions involving circles in the frequency planeand sector nonlinearities,” IEEE Trans. Automat. Control, vol. 11, no. 3
+pp. 465–476, Jul. 476.
+[26] H. K. Khalil, Nonlinear Systems . Upper Saddle River, NJ, USA: Prentice
+Hall, 2002, vol. 3.

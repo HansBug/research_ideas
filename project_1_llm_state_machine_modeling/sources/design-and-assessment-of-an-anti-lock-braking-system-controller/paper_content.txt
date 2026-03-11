@@ -1,0 +1,394 @@
+--- Page 1 ---
+ROMANIAN JOURNAL OF INFORMATION
+SCIENCE AND TECHNOLOGY
+V olume 26, Number 1, 2023, 21–32
+Design and Assessment of an Anti-lock Braking
+System Controller
+Maria-Geanina UNGURITU1, 2, *and Teodor-Constantin NICHIT ¸ ELEA1, 2
+1Department of Automatic Control and Electronics, University of Craiova, Craiova, Romania
+2HELLA Romania SRL, HELLA GmbH & Co. KGaA, FORVIA Group, Lippstadt, Germany
+E-mails:geanina.unguritu@edu.ucv.ro, teodor.nichitelea@edu.ucv.ro
+Corresponding author
+Abstract. The anti-lock braking system is a safety equipment that prevents the ve-
+hicle wheels from locking up under emergency, panic, or harsh braking conditions, ensuring
+steering control during braking and reducing braking distance. This system is studied by auto-
+motive engineers for performance comparisons and for determining optimal control methods.
+For this reason, this paper presents a method to mathematically model the anti-lock braking
+system. The obtained model is afterwards used inside a Simulink simulation to investigate
+the results with and without the anti-lock braking system and to propose a three-position reg-
+ulator instead of the generally used bang-bang controller. The simulation results show the
+improvement of the vehicle braking time and braking distance.
+Key-words: Anti-lock braking system; automation and control theory; modelling; sim-
+ulation.
+1. Introduction
+Autonomous driving represents a research topic of global interest which inﬂuences the future
+of the vehicle manufacturing industry, and which is seen as a combination of complex hardware
+technology with artiﬁcial intelligence with the purpose to fulﬁl the actual society needs: quality
+of transportation [1, 2] reduction of trafﬁc risks, safety and security of vehicle data, comfort for
+drivers and passengers.
+The automotive ﬁeld has experienced intensive automation in recent years using embedded
+systems with dedicated functions [3, 4]. As a result of this, advanced levels of control over vehi-
+cle autonomy have been reached, and the human intervention factor has been greatly diminished.
+Several countries around the world have already tested in real-life many types of self-driving
+vehicles: cars, trucks, buses, and subway trains. The most well-known contemporary examples,
+in this regard, are the car models from Google and Tesla.
+
+--- Page 2 ---
+22 M.-G. Unguritu, T.-C. Nichit ¸elea
+In 2014, the Society for Automotive Engineering (SAE) deﬁned six levels of automation in
+the standard from document J3016, levels which range from level 0 (no automation) to level 5
+(full automation) in which the system is responsible for driving the vehicle in all conditions. It
+is estimated that approximately in 2025, cars with level 4 automation in which the system drives
+the vehicle independently in speciﬁc cases and ensures safe operation will be on the market.
+Autonomous driving has many advantages but at the same time it brings into question several
+aspects such as processing large volumes of data, improving hardware technology, high connec-
+tivity, and legal requirements. However, the biggest challenge is avoiding collisions and therefore
+passenger safety. For this reason, vehicles must provide stability and must be able to brake safely
+in real-time after an obstacle has been detected. For critical situations, the driver assistant sys-
+tems incorporate vehicle control systems which have been proven to signiﬁcantly improve the
+safety perspective, the best-known systems being the Electronic Stability Program and the Auto-
+matic Emergency Braking. Both are based on the Anti-lock Braking System (ABS) which allows
+steering control during braking and reduces braking distance.
+ABS technology has been developed by Bosch company since 1930 but production of the
+ﬁrst electronically controlled four-wheel anti-lock system for cars began in 1978. Since then,
+such systems have become progressively more complex and efﬁcient, and ABS has turned into
+a standard that equips all modern cars. Its purpose is to prevent the wheels from locking during
+braking maneuvers because when they get in this state the adherence between the wheel tire and
+the road surface is reduced and it makes the direction of the vehicle uncontrollable, especially on
+wet or slippery surfaces.
+ABS systems usually include an electronic control unit (ECU), one speed sensor for each
+wheel, and a hydraulic unit comprising of a return pump and at least two valves that control the
+braking pressure on each wheel. The sensors measure and transmit the speed of each wheel to
+the ECU. If the electronic control unit detects that one of the wheels is spinning slower than the
+others, condition which can cause a locking state, it will generate a command to the valves to
+lower the pressure in the braking circuit and to reduce the braking force on that respective wheel.
+The system must also be able to supply pressure by means of the electric pump from within its
+composition. After the wheel spins again, the brake pressure on the wheel increases once more.
+This increase and release of the pressure is performed up to 40 times per second and continues
+until the driver reduces the force applied to the braking pedal or until the locking tendency is
+surpassed.
+When the ABS is activated, the brake pedal can pulsate, and some drivers may reduce the
+pedal pressure. This causes the increase of the braking distance and raises the risk of accidents.
+For this reason, modern braking assistant systems maintain the braking force in such situations.
+Depending on the number of individually controllable valves and the number of speed sen-
+sors, several types of brakes used in ABS systems are differentiated. The maximum braking
+force is obtained in the conﬁguration that uses a speed sensor on each wheel and individually
+controlled valves for the four wheels. Older cars equipped with ABS use individual valves for
+the front wheels and a single valve for the rear.
+The ABS was studied both for comparing the performances of vehicles in different conditions
+with and without ABS, and for determining an optimal control method. Several studies in this
+regard are, for example, an extensive review to highlight that ABS performance can be improved
+and to quantify the beneﬁts of a new generation of wheel slip control systems [5], an optimal
+scheduler which incorporates the hybrid nature of the ABS and provides a feedback solution
+with a negligible computational burden in control calculation [6], an ABS coordinated control
+
+--- Page 3 ---
+Design and Assessment of an Anti-lock Braking System Controller 23
+scheme to shorten the braking distance while ensuring the vehicle stability during emergency
+braking under complex driving conditions [7], a coordinated control strategy of the ABS for in-
+wheel motors driven electric vehicles to recover more braking energy while satisfying the target
+of slip ratio control [8], a two-phase algorithm where the wheel acceleration is controlled in
+closed-loop and the longitudinal force measurement is used to ﬁre phase switching [9], a real-
+time estimation of the wheel slip value corresponding to the peak of the tire-road friction curve
+to provide the ABS with reliable information [10], a slip control of electric vehicle based on tire-
+road friction coefﬁcient estimation [11], a method to predict different road surfaces and to control
+the wheel slip to achieve maximum friction coefﬁcient [12], a wheel slip controller developed
+and tested in a car equipped with electromechanical brake actuators and a brake-by-wire system
+[13], a simulation of integrated controller of vehicle ABS which consists of the continuous PID
+and ﬁnite state machine theory [14], an estimation of the uncertainty and disturbances for ABS
+model [15], ABS modeling and model based control algorithms to improve braking performance
+[16–18].
+Most studies present numerous control strategies and many of them are based on simple on-
+off controllers which switch on when the error is positive and switch off when the error is zero
+or negative, without any intermediate states. These controllers, commonly used in commercial
+vehicles [19, 20], are often called bang-bang controllers. As an alternative control solution,
+this paper proposes a three-position regulator that is as simple as the bang-bang controller, but
+which provides better performance results while the ABS is active. This ABS controller type
+is proposed because it has many advantages: it is a simpler control method compared to other
+ABS controllers that can be implemented in the actual ECUs and that require a high level of
+mathematical understanding ( e.g. MPC, LQR methods), demonstrates better performance and
+robustness than the PID controller [5], it is not a hardware dependent control method, and it can
+be easily implemented on a real-time embedded system.
+The anti-lock braking system has many advantages and has improved trafﬁc safety as well
+as vehicle control in almost all conditions. Beneﬁts of using ABS include maintaining steer-
+ing control during emergency braking, reducing braking distance, improving steering control on
+surfaces with variable adherence, and preventing damage to the tire during braking.
+The structure of the paper is as follows. Section 2 presents the ABS model used for simula-
+tions. Section 3 provides in MATLAB the assessment for the ABS. Section 4 presents the paper’s
+conclusions.
+2. Anti-lock Braking System Model
+The ABS is applied during hard braking maneuvers to prevent the wheels from locking. This
+is achieved by controlling the slip of the wheels to keep the coefﬁcient of friction at a value close
+to the optimum value. Wheel slip is deﬁned as the relative movement between the wheel and the
+road surface while the vehicle is moving. Slippage occurs when the angular velocity of the wheel
+is higher or lower than its free running speed.
+Fig. 1 presents the forces acting on a vehicle moving in a straight direction during braking.
+The equations of equilibrium can be written for the horizontal and vertical directions:
+(
+Fi=Ff=N
+N=G=mvg(1)
+
+--- Page 4 ---
+24 M.-G. Unguritu, T.-C. Nichit ¸elea
+in which:
+Ff[N] is the friction force between the wheel and the road surface.
+Fi[N] is the inertial force of the vehicle.
+N[N] is the normal force.
+G[N] is the weight force of the vehicle.
+[–] is the coefﬁcient of friction between the wheel and the road.
+mv[kg] is the mass of the vehicle.
+g[m/s2] is the gravitational acceleration.
+Fig. 1. Forces acting on a vehicle during braking.
+The inertial force can be expressed according to Newton’s second law:
+Fi=mvav=mvdvv
+dt(2)
+in which:
+av[m/s2] is the acceleration of the vehicle.
+vv[m/s] is the linear speed of the vehicle.
+The following expression of the vehicle acceleration is obtained from the above relations and
+the linear speed of the vehicle can further be obtained through integration:
+dvv
+dt=1
+mv(mvg) (3)
+Fig. 2 presents the forces acting on a vehicle’s wheel during braking. The driver applies a
+braking torque to the wheels via the braking system. The friction force between the wheel and
+the road surface together with the wheel radius creates a resistive torque. For simplicity, it is
+considered that the wheel does not add additional torque.
+The equation of equilibrium for the wheel is:
+Cb Ffrr Jrd!r
+dt= 0 (4)
+in which:
+Cb[Nm] is the braking torque applied on the wheel.
+Ff[N] is the friction force between the wheel and the road surface.
+rr[m] is the wheel radius.
+Jr[kgm2] is the moment of inertia of the wheel.
+!r[rad/s] is the angular speed of the wheel.
+
+--- Page 5 ---
+Design and Assessment of an Anti-lock Braking System Controller 25
+The following expression of the wheel acceleration is obtained from the above relation and
+the angular speed of the wheel can further be obtained through integration:
+d!r
+dt=1
+Jr(Cb Ffrr) (5)
+The wheel slip s[–] can be expressed as:
+s= 1 !r
+!v(6)
+in which!v=vv=rr[rad/s] is the equivalent angular velocity of the vehicle.
+Fig. 2. Forces acting on a vehicle’s wheel during braking.
+The coefﬁcient of friction between the wheel and the road depends on several factors such
+as type of road, humidity and temperature conditions, wheel slip, and vehicle speed. It can be
+expressed as an empirical function dependent on the slip of the wheel s:
+(s) =C1 
+1 e C2s
+ C3s (7)
+in whichC1;C2;C3[–] are coefﬁcients determined empirically.
+Table 1 contains the coefﬁcient values for different road surfaces as described in [12]. Fig. 3
+shows the dependence of the coefﬁcient of friction to the slip of the wheel simulated with these
+values. There are two areas which can be observed: the stable area in which increases as s
+increases, and the unstable area in which decreases as sincreases. The ABS keeps the wheel
+slipsclose to the optimum value.
+Table 1. Coefﬁcient values for different road surfaces
+Road Surface C1 C2 C3
+Dry 1.2801 23.99 0.52
+Wet 0.857 33.82 0.347
+Snowy 0.1946 94.12 0.0646
+Icy 0.05 306.3 0
+
+--- Page 6 ---
+26 M.-G. Unguritu, T.-C. Nichit ¸elea
+Fig. 3. Simulated dependence of the coefﬁcient of friction to the slip of the wheel.
+3. Assessment of the Anti-lock Braking System
+In order to evaluate the obtained ABS model, a Simulink block diagram which can be seen in
+Fig. 4 was used for the ABS simulation. The diagram contains the vehicle and the wheel models
+which were analyzed at a quarter-car level. Therefore, a quarter of the mass of the vehicle
+with a single wheel is considered. The simulation takes into consideration only the longitudinal
+dynamics of the vehicle without the impact of the suspension. The following parameter values
+taken from [12]:
+Jr= 5kgm2; mv= 800 kg; g= 9:81m=s2; v0= 28 m=s; rr= 0:28m;Cbmax= 1500 Nm (8)
+describe the vehicle on a dry road surface in which Cbmax[Nm] is the maximum braking torque
+applied on the wheel and v0[m/s] is the initial speed of the vehicle.
+The integrator block used in the wheel model for the angular velocity of the wheel is initial-
+ized with the value v0=rr[rad/s] and it is saturated between 0 and 1000 [rad/s]. The linear speed
+of the wheel is obtained by multiplying the angular wheel velocity with the radius of the wheel.
+The integrator block used in the quarter-car model for the velocity of the vehicle is initialized
+with the value v0and it is saturated between 0 and 1000 [m/s]. The braking distance is obtained
+through the integration of the vehicle speed.
+The execution element (actuator) represented by the hydraulic system is modelled with a
+ﬁrst-order transfer function which has the ampliﬁcation factor K= 500 and the time constant
+T= 0.01 s. Its output measure is the braking torque Cbaccumulated by the integrator and limited
+between 0 and Cbmax.
+The wheel slip sis calculated according to relation (6), but the epsconstant is used as a
+
+--- Page 7 ---
+Design and Assessment of an Anti-lock Braking System Controller 27
+denominator to avoid division by 0 when the vehicle speed is 0. The coefﬁcient of friction is
+calculated according to relation (7) and the coefﬁcients C1;C2;C3have the values for the dry
+road surface as described in Table 1.
+The system reference is set to 0.2, which represents the approximation of the optimum slip
+value for which the maximum coefﬁcient of friction is obtained. The bang-bang regulator was
+utilized as the controller of the system because it is the most used and simplest control solution
+for ABS, and it can be used as a benchmark for comparison with other controllers. This regulator
+reacts to the sliding error ", emulating an ABS controller. It is implemented using a sign block
+which provides the output value as –1 when "<0, 0 when"= 0, and 1 when ">0.
+Fig. 4. Block diagram for the simulation of the ABS.
+Fig. 5. Comparison of the wheel slip with ABS and without ABS.
+Using the Simulink model in Fig. 4, simulations with and without ABS were performed
+to study the evolution of the vehicle and wheel speed, braking distance, and wheel slip. The
+simulation considers the initial speed v0= 28 m/s, which means that !v= 100 rad/s, and it is
+executed until the vehicle stops.
+Fig. 5 presents the wheel slip with and without ABS.
+When the ABS is inactive, the results show that as the braking torque increases the wheel slip
+also increases rapidly to the value of 1 (slip rate: 100%) which leads to the locking of the wheel.
+
+--- Page 8 ---
+28 M.-G. Unguritu, T.-C. Nichit ¸elea
+When the ABS is active, the wheel slip is maintained around 0.2 (slip rate: 20%). The wheel
+slip reaches value 1 when the vehicle stops.
+Fig. 6 presents the vehicle and wheel speed with and without ABS.
+When the ABS is inactive, the results show that the wheel will lock before the vehicle stops
+and the deceleration slope changes after the wheel locks because the friction force becomes
+smaller and therefore the braking distance increases (the vehicle stops after 3.92 s).
+When the ABS is active, the reduction of the braking distance is observed (vehicle speed
+reaches 0 after about 3.67 s) because the wheel slip is maintained around the desired value gen-
+erating a greater frictional force between the wheel and the road.
+Fig. 7 presents the braking distance with and without ABS.
+When the ABS is inactive, the braking distance is approximately 61.55 m.
+When the ABS is active, the braking distance is approximately 59.54 m.
+Fig. 6. Comparison of the vehicle and wheel speed with ABS and without ABS.
+Fig. 7. Comparison of the braking distance of the vehicle with ABS and without ABS.
+It can be observed from the simulation results that the ABS reduces the braking distance of
+the vehicles, preventing the wheels from locking.
+The ABS has been intensively studied with different control strategies leading to optimal
+performance in real time. Assuming a robust estimation of the longitudinal wheel slip, the wheel
+control is simpler and has the advantage that the applied braking torque converges to a ﬁxed
+value. Given the requirements regarding real-time applicability and robustness to road changes
+and uncertainties, it is difﬁcult to select a single control method as the most appropriate. Current
+
+--- Page 9 ---
+Design and Assessment of an Anti-lock Braking System Controller 29
+trends in ABS control include control strategies such as controllers based on logical thresholds,
+controllers based on fuzzy logic, neural network controllers, PID controllers, LQR controllers,
+MPC controllers, sliding mode control.
+In the above simulation, a control based on a switching action depending on the wheel slip
+(the bang-bang controller) was used, which is part of the sliding mode control category.
+Fig. 8. Proposed three-position controller implemented with two relay blocks.
+Fig. 9. Comparison of the wheel slip with the bang-bang controller and the three-
+position controller.
+Fig. 10. Comparison of the vehicle and wheel speed with the bang-bang controller and the three-
+position controller.
+
+--- Page 10 ---
+30 M.-G. Unguritu, T.-C. Nichit ¸elea
+Fig. 11. Comparison of the braking distance with the bang-bang controller and the three-position
+controller.
+This paper proposes a performance improvement obtained by using a controller from the
+same category, namely a three-position controller, which provides the output as –1 when "<0,
+0 when"2[0;0:1], and 1 when ">0:1. The proposed controller is implemented in a subsystem
+block using two relay blocks as seen in Fig. 8, and it replaces the bang-bang controller in the
+simulation block diagram from Fig. 4. This three-position controller considers a dead zone in the
+interval [0, 0.1] providing in this range the value 0 at the output, unlike the bang-bang controller
+where the switching was performed according to the sign in the immediate vicinity of the value
+0. The results from Fig. 9, Fig. 10 and Fig. 11 show a braking time reduced to 3.36 s and a
+braking distance reduced by 1.5 m.
+In order to compare the results obtained with the two controllers, additional use-cases for
+different road types were analyzed in the simulation. The road types were simulated using the
+Burckhardt model coefﬁcients values from Table 1.
+Table 2 contains some performance criteria represented by the wheel slip average, braking
+time and braking distance for each road type considering the following simulation scenarios:
+without the ABS active, with the ABS active using the bang-bang controller (BB) and with the
+ABS active using the three-position controller (TP). From the performance criteria it can be
+observed that better simulation results are obtained using the three-position controller for the
+wheel slip average considering that the 100% slip rate value corresponds to the wheel locking.
+Table 2. Performance criteria of wheel slip average, braking time and braking distance
+Wheel slip average [%] Braking time [s] Braking distance [m]
+Road
+typeNo
+ABSBB TPNo
+ABSBB TPNo
+ABSBB TP
+Dry 44.06 15.79 13.41 3.92 3.67 3.36 61.55 59.54 58.04
+Wet 64.86 19.57 16.13 5.52 4.90 4.43 79.46 72.37 69.02
+Snowy 93.16 18.76 14.64 21.71 16.53 16.38 301.03 228.63 226.46
+Icy 97.62 20.24 15.34 57.18 57.29 57.36 801.96 801.98 802.03
+For the braking time and braking distance, the proposed three-position controller provides
+better simulation results for a dry, wet, or snowy road. In case of an icy road, the ABS prevents
+the wheels from locking, but the braking results are similar to the ones without ABS.
+The proposed control algorithm can be easily implemented on an ECU. The inputs are the
+
+--- Page 11 ---
+Design and Assessment of an Anti-lock Braking System Controller 31
+values provided by the wheel speed sensors. The output is represented by the three-values com-
+mand applied to the hydraulic unit to control the three pressure states: building up pressure,
+maintaining pressure, and reducing pressure in the brake chamber. The ABS controller is usually
+implemented on ECUs with real-time operating systems. The main implementation issues can
+be related to the software conﬁguration for real-time performance since an optimal cycle time for
+the acquisition of inputs, execution of the control algorithm, and transmission of the command
+to the actuator is needed to obtain the desired braking results and to have a reasonable actuator
+switch frequency.
+4. Conclusions
+The anti-lock braking system is a safety technology that equips all modern cars, and which
+aims to control the dynamics of the wheels to maintain steering control regardless of the road
+conditions by modulating the applied braking pressure. This paper models the braking behavior
+of a vehicle for the purpose to study the ABS. The simulation results show the braking perfor-
+mance with and without ABS where the braking distance of the vehicle is signiﬁcantly improved
+when the ABS is active, preventing the wheels from locking and ensuring the ability to maintain
+steering. This paper also proposes a control strategy based on a three-position regulator which
+is as simple as the bang-bang controller, and less complex than other control algorithms. The
+simulation results with this controller show better braking performance than the generally used
+bang-bang regulator.
+References
+[1] M.-G. UNGURITU, T.-C. NICHIT ¸ ELEA and D. SELIS ¸TEANU, Design and performance assessment
+of adaptive harmonic control for a half–car active suspension system , Complexity 2022 , paper 3190520,
+2022.
+[2] T.-C. NICHIT ¸ ELEA and M.-G. UNGURITU, Trafﬁc congestion reduction at trafﬁc light intersections
+for time–synchronized autonomous vehicles , Proceedings of the Romanian Academy, Series A 22(4),
+pp. 381–388, 2021.
+[3] I.-A. ILIE, C.-S ¸. ZEGHERU, A.-G. B ˘AJENARU and G. BREZEANU, Battery connected linear voltage
+regulator for very low current consumption automotive applications , Romanian Journal of Information
+Science and Technology 25(2), pp. 235–245, 2022.
+[4] G. PETRASUC, P. MIRESAN, M. NEAG and C. CHIRA, A novel full-wave current sensor for auto-
+motive synchronous buck converters , Romanian Journal of Information Science and Technology 24(2),
+pp. 161–181, 2021.
+[5] F. PRETAGOSTINI, L. FERRANTI, G. BERARDO, V . IV ANOV and B. SHYROKAU, Survey on
+wheel slip control design strategies, evaluation and application to anti–lock braking systems , IEEE
+Access 8, pp. 10951-10970, 2020.
+[6] T. SARDARMEHNI and A. HEYDARI, Sub-optimal switching in anti–lock brake systems using ap-
+proximate dynamic programming , IET Control Theory and Applications 13(9), pp. 1413–1424, 2019.
+[7] Z. WANG, J. ZHU, L. ZHANG and Y . WANG, Automotive ABS/DYC coordinated control under com-
+plex driving conditions , IEEE Access 6, pp. 32769–32779, 2018.
+[8] J. WANG and R. HE, Varying charge voltage in the steps control method of ABS for in-wheel motors
+driven electric vehicles based on an improved LQG scheme , IEEE Access 6, pp. 15039–15050, 2018.
+
+--- Page 12 ---
+32 M.-G. Unguritu, T.-C. Nichit ¸elea
+[9] M. CORNO, M. GERARD, M. VERHAEGEN and E. HOLWEG, Hybrid ABS control using force
+measurement , IEEE Transactions on Control Systems Technology 20(5), pp. 1223–1235, 2012.
+[10] M. TANELLI, L. PIRODDI and S. SA V ARESI, Real-time identiﬁcation of tire-road friction condi-
+tions , IET Control Theory and Applications 3(7), pp. 891–906, 2009.
+[11] G. CUI, J. DOU, S. LI, X. ZHAO, X. LU and Z. YU, Slip control of electric vehicle based on tire-road
+friction coefﬁcient estimation , Mathematical Problems in Engineering 2017 , paper 3035124, 2017.
+[12] R. BHANDARI, S. PATIL and R. SINGH, Surface prediction and control algorithms for anti–lock
+brake system , Transportation Research Part C: Emerging Technologies 21(1), pp. 181–195, 2012.
+[13] T. JOHANSEN, I. PETERSEN, J. KALKKUHL and J. LUDEMANN, Gain–scheduled wheel slip
+control in automotive brake systems , IEEE Transactions on Control Systems Technology 11(6), pp.
+799–811, 2003.
+[14] C. XU, K. CHENG, L. SHA, W. TING and K. DING, Simulation of the integrated controller of
+the anti–lock braking system , Proceedings of 2009 3rdInternational Conference on Power Electronics
+Systems and Applications, Hong Kong, China, pp. 1–3, 2009.
+[15] A. DIGRASE and A. WAYSE, Model following control for anti–lock braking system with inertial
+delay observer , Proceedings of 2017 International Conference on Intelligent Computing and Control
+Systems, Madurai, India, pp. 467–471, 2017.
+[16] V .–R. APAROW, F. AHMAD, K. HUDHA and H. JAMALUDDIN, Modelling and PID control of
+antilock braking system with wheel slip reduction to improve braking performance , International Journal
+of Vehicle Safety 6(3), pp. 265–296, 2013.
+[17] F.-D. DRAGNE, M. ALIRAND, I.-M. OPREAN and N. V ASILIU, ABS valve model reduction by
+Amesim , Proceedings of the Romanian Academy, Series A 10(2), pp. 189–196, 2009.
+[18] K. KOGUT, Anti–lock braking system modelling and parameters identiﬁcation , Proceedings of 19th
+International Conference on Methods and Models in Automation and Robotics, Miedzyzdroje, Poland,
+pp. 342–346, 2014.
+[19] M. MONTANI, D. VITALITI, R. CAPITANI and C. ANNICCHIARICO, Performance review of three
+car integrated ABS types: Development of a tire independent wheel speed control , Energies 13(23),
+paper 6183, 2020.
+[20] S. JOHN and P. JIMOH, A comparative study of two control schemes for anti–lock braking systems ,
+Proceedings of 9thAsian Control Conference, Istanbul, Turkey, pp. 1–6, 2013.

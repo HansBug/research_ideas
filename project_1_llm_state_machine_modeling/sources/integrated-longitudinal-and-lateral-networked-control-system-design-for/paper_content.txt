@@ -1,0 +1,1188 @@
+--- Page 1 ---
+sensors
+Article
+Integrated Longitudinal and Lateral Networked
+Control System Design for Vehicle Platooning
+Chedia Latrech1,*
+, Ahmed Chaibet2, Moussa Boukhnifer2
+and Sébastien Glaser3
+1Institut VEDECOM, 77 Rue des Chantiers, 78000 Versailles, France
+2ESTACA, 12 Rue Paul Delouvrier, 78180 Montigny-le-Bretonneux, France; ahmed.chaibet@gmail.com (A.C.);
+moussa.boukhnifer@gmail.com (M.B.)
+3Centre for Accident Research and Road Safety (CARRS-Q), Queensland University of Technology (QUT),
+Brisbane city, QLD 4000, Australia; sebastien.glaser@qut.edu.au
+*Correspondence: chedia.latrach@yahoo.fr
+Received: 24 July 2018; Accepted: 11 September 2018; Published: 13 September 2018
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Abstract: This paper investigates platoon control of vehicles via the wireless communication network.
+An integrated longitudinal and lateral control approaches for vehicle platooning within a designated
+lane is proposed. Firstly, the longitudinal control aims to regulate the speed of the follower vehicle
+on the leading vehicle while maintaining the inter-distance to the desired value which may be chosen
+proportional to the vehicle speed. Thus, based on Lyapunov candidate function, sufﬁcient stability
+conditions formulated in BMIs terms are proposed. For the general objective of string stability
+and robust platoon control to be achieved simultaneously, the obtained controller is complemented
+by additional conditions established for guaranteeing string stability. Furthermore, constraints
+such as actuator saturation, and controller constrained information are also considered in control
+design. Secondly, a multi-model fuzzy controller is developed to handle the vehicle lateral control.
+Its objective is to maintain the vehicle within the road through steering. The design conditions are
+strictly expressed in terms of LMIs which can be efﬁciently solved with available numerical solvers.
+The effectiveness of the proposed control method is validated under the CarSim software package.
+Keywords: platoon control; vehicle longitudinal control; vehicle lateral control; fuzzy control; linear
+matrix inequality; time-varying delay
+1. Introduction
+The platooning of autonomous vehicles within a designated lane offers many favors, such
+as conduct safety and welfare, reducing fuel consumption and air pollution, and improving the
+throughput within a designated lane [ 1,2]. These proﬁts are provided by ensuring that all the cars
+automatically adjust their own speeds as to steady a desired inter-vehicle distance [ 3–5]. Due to this,
+a lot of research works on platoon control, which introduced many well-known topics in terms of
+stability, platoon performances, have been elaborated in [6,7].
+To ensure platooning control, several communication topologies are developed in the literature [8]
+and can be classiﬁed into three broad categories :
+ local control strategy (LCS): based on a local context, the convoy is controlled from near-approach.
+ global control strategy (GCS): based on the global context, the convoy is ordered by reference to
+the leader.
+ mixed control strategy (MCS): taking into account the complementarities of the two LCS and GCS
+methods, a mixed approach can be developed.
+Sensors 2018 ,18, 3085; doi:10.3390/s18093085 www.mdpi.com/journal/sensors
+
+--- Page 2 ---
+Sensors 2018 ,18, 3085 2 of 25
+The easely control architecture to enable platooning is the local strategy, where platooning
+is enabled by inter-vehicle communication in addition to on-board sensors. In [ 9], an adaptive
+heterogeneous platoon control method was derived using local topology with inter-vehicle time gaps
+smaller than one second.
+Optimizing the interdistances between vehicles is principal to alleviate trafﬁc jam within a
+designated lane. Constant Distance (CD) policy and the constant time headway (CTH) policy are
+the two policies for the longitudinal control of platoons. In [ 2], a new spacing policy called SSP was
+proposed. However, CTH is the simplest and most common variable spacing policy [ 3,10]. Compared
+with the CD policy [ 11], variable time headway can vary linearly with speed, therefore it can be large
+to avoid collision [ 12]. Thus, the best choice is variable spacing because the autonomous vehicle must
+be able to adjust its speed and to maintain a safe distance behind the front vehicles, in such a way that
+the autonomous vehicle can stop safely in case of emergency. Nevertheless, the need to grow trafﬁc
+density urged for novel control methods that insure chain stability for short time gaps.
+In many studies [ 11,13], the vehicle platoons are modelled as one-dimensional systems controlled
+in the longitudinal direction relies on some assumptions. However, in our contribution, we consider
+also the lateral dynamic in order to include the lane change maneuver representing the real conditions
+of road trafﬁc. Therefore, to allow the road convoy within a designated lane, control of both the
+longitudinal and lateral motion of the vehicle is required. The primary goal of the lateral control is
+to ensure convenient tracking performance in spite of the coupling effects due to longitudinal speed
+variation. In [ 14], the following cars equipped with low-level longitudinal (controlling speed) and
+lateral (controlling steering) control systems, travel in a platoon with predeﬁned gaps between them.
+In order to linearize the lateral dynamic, TS fuzzy modeling is adopted [ 15–17], and the proposed
+automatic lane keeping method can handle a large change area of vehicle speed. Furthermore, Taylor’s
+approximation process is used to signiﬁcantly minimize the computational perplexity of the vehicle TS
+fuzzy model [18].
+Nowadays, data networking technologies are being extensively applied in automobile
+applications, which contribute to the advancement of research and development of NCS.
+The communication components of the control system, such as sensors, controllers and actuators
+through a network, can strongly reduce system complexity, with thrifty funding. In addition, this
+network enables efﬁcient sharing of data between vehicles. However, NCS constitute a new class
+of systems, introducing speciﬁc problems related to the presence of delays, the loss of information,
+or the management of the data ﬂow. These constraints acquire a great importance because they
+can cause platoon instability. To raise deﬁance, many results have been developed in consideration
+of network-induced delay [ 19–21], with emphasis on stability analysis and controller design with
+constant or variable delays. In [13], vehicles in platoon share data, via VANETs, affected by actuator
+delay. In [ 22], they endorsed a low order of Padé approximation for the delays to develop the controller
+design. Unlike present paper, variable delay is chosen. In this context, only some of the platoon
+information can be measured directly by local sensors while the rest of the information needs to be
+transmitted through the network. To solve this problem, a novel control theory has been applied to the
+networked systems based on ’miscellaneous information feedback’. The contribution of this paper
+is to consider this aspect of ’miscellaneous information feedback’ which is not dealt with much in
+literature [ 21]. It is noteworthy that, in most of the available works, the saturation effects of actuator are
+not taken into account in control design. This can lead to serious degradation of control performance
+and, in many cases, the stability may be lost [ 23,24]. In [ 25], bidirectional platoon control considering
+actuator saturation and time-varying delay is proposed.
+The aim of this paper is to set up an autonomous platoon control framework that takes full
+consideration of time-varying communication delay and actuator saturation. In the ﬁrst, we model the
+platoon system pursuant to longitudinal behavior. In the second part, based on the fuzzy Lyapunov
+function idea, the design problem is formulated as a set of LMI constraints that guarantees the global
+stability of the platoon. Then, we propose a robust H¥control law, for lateral dynamics, based on TS
+
+--- Page 3 ---
+Sensors 2018 ,18, 3085 3 of 25
+fuzzy approach. The main contributions of the current work, compared to existing ones [ 11,21,26], can
+be summarized as follows:
+ We investigate the impact of the car group on the circulation flow by using a local architecture
+for platoon. Compared to the mixed structure adopted in [ 11], this one just employs data from
+neighboring vehicles and the car is entirely autonomous—hence it doesn’t need sophisticated sensors.
+ We also propose a variable spacing unlike the constant policy utilized in [ 11,21]. Then, we develop
+the corresponding dynamic control law, study the individual and the string stability of the platoon
+and demonstrate the effectiveness and safety of the new approach.
+ The robustness of the proposed control law is considered regarding the communication delays.
+In addition, the comfort of the passenger by saturating actuators (e.g.,the maximum deceleration
+and the maximum jerk (The acceleration’s time derivative is the best way to exhibit a human
+comfort criteria.)) is taken into account. This strategy is compared to [ 26] in order to show its
+advantages with respect to communication delay in design.
+ The integrated longitudinal and lateral autonomous is considered in order to cover lane change
+maneuver. Using TS fuzzy modeling to represent the lateral vehicle dynamic as in [ 18],
+the proposed H¥lateral controller can handle a large variation range of vehicle speed. This
+approach reduces the design conservatism.
+The paper is organized as follows. Section 2 is dedicated to the longitudinal control design of
+autonomous vehicle while the lateral control one is proposed in Section 3. Section 4 is devoted to
+simulation results and shows the impact of wireless communication in individual and string stability
+using the CarSim software package. Finally, some conclusions have been made and future works will
+be highlighted.
+Notations : The notation used throughout is as follows. ATdenote the transpose of a matrix A.
+Symbol ()indicates symmetric entries. Indenotes an nndimensional identity matrix and He(A)
+denotes A+AT.l2is the space of square integrable functions over [0,¥), andjj.jj2denotes the l2-norm.
+2. Longitudinal Controller Design
+2.1. Longitudinal Vehicle Dynamics Modelling and Feedback Linearisation
+We consider a platoon composed by Nvehicles rolling along a single lane. Figure 1 shows the
+platoon where vehicles are ﬁxed as a sequence, where each vehicle can communicate with its preceding
+vehicle via wireless communication.
+The reference trajectory is imposed by the leading vehicle (the ﬁrst vehicle of platoon labeled as
+vehicle 0). Our target is to synchronize the dynamics of all vehicles of the platoon to the reference
+behavior imposed by leader.
+In this paper, we focus in the local strategy (LCS) with variable spacing which requires data
+communication between the vehicles. Let zi,viand aidenote the ith (i= 1,..., n 1) following vehicle’s
+position, velocity and acceleration ( i= 0 stands for the lead vehicle). Deﬁne the spacing error of the ith
+following vehicle as:
+Di=zi 1 zi Dd L. (1)
+A constant time headway (CTH) spacing policy will be adopted to regulate the spacing between
+the vehicles. The CTH is implemented by deﬁning the desired safe distance as:
+Dd=hdvi+dstop, (2)
+
+--- Page 4 ---
+Sensors 2018 ,18, 3085 4 of 25
+where Ddis the desired vehicle spacing, Lis the length of vehicle, and dstopis the standstill distance
+(m). The dynamics of the ith following vehicle can be modelled by the following linear differential
+equations (see e.g., [11] for details):
+8
+>>><
+>>>:˙Di=vi 1 vi hdai,
+˙vi=ai,
+˙ai= 1
+Viai+1
+Viui,(3)
+where Vistands for the “lumped“ time delay of the actuators such as engine time constant.
+Figure 1. Topological structure of vehicle platooning.
+Deﬁne x(t) =Col[xi(t)]n 1
+i=1,u(t) =Col[ui(t)]n 1
+i=1,y(t) =Col[yi(t)]n 1
+i=1,z2(t) =Col[z2i(t)(t)]n 1
+i=1
+are, respectively, the state, the control input, the measured, and the constrained output vectors where
+xi(t) =h
+DiviaiiT
+and yi(t) =h
+Divi 1 viai 1 aiiT
+. Using system (3), the state space
+equation of the platoon can be written as
+˙x(t) =Ax(t) +Bu(t), (4)
+where
+A=2
+66664Ah 0 0
+AsAh 0
+......
+0 AsAh3
+77775,B=2
+66664Bh 0 0
+0 Bh 0
+......
+0 0 Bh3
+77775,
+Ah=2
+640 1 hd
+0 0 1
+0 0 1/Vi3
+75, As=2
+640 1 0
+0 0 0
+0 0 03
+75, Bh=2
+640
+0
+1/Vi3
+75.(5)
+Likewise, the output equations are written as
+(
+y(t) =Cyx(t),
+z2(t) =Dzu(t),(6)
+
+--- Page 5 ---
+Sensors 2018 ,18, 3085 5 of 25
+where
+Cy=2
+66664C1 0 0
+C2C1 0
+......
+0 C2C13
+77775,Dz=2
+66664D1 0 0
+0 D1 0
+......
+0 0 D13
+77775,C1=2
+641 0 0
+0 1 0
+0 0 13
+75,
+C2=2
+640 0 0
+0 1 0
+0 0 13
+75, D1=1/uimax.(7)
+For each following vehicle, the controller to be designed can be described as follows:
+ui(t) =Kiyi(t), (8)
+where Ki=h
+KpKvKai
+is the controller gain to be determined.
+2.2. Problem Formulation
+2.2.1. Miscellaneous Information Feedback
+The following Figure 2 represents the structure of networked control platoon. The local control
+law (8) is achieved by dividing the output vector yi(t) =h
+Divi 1 viai 1 aiiT
+into two parts
+yci=h
+0vi 1 viai 1 aiiT
+, and yoi=h
+Di0 0iT
+. Clearly, the spacing error can be directly
+measured by on-board sensors, whereas the rest of signals are affected by the communication network.
+Figure 2. Wireless networked control platoon.
+Denote a velocity error vi 1 viand an acceleration error ai 1 ai, the feedback controller gain
+K=diagfKign 1
+1, with Ki=h
+KpKvKai
+, is split into two parts Koand Kc, with Ko=diagfKoign 1
+1,
+Kc=diagfKcign 1
+1,Koi=h
+Kp0 0i
+and Kci=h
+0KvKai
+. Then, the overall longitudinal output
+feedback controller becomes
+u(t) =Koyo(t) +Kcyc(t). (9)
+
+--- Page 6 ---
+Sensors 2018 ,18, 3085 6 of 25
+2.2.2. Impact of Communication Limitations
+Note that the output fragment yc(t)requires being designed by involving the information of the
+preceding vehicle successfully broadcasted by the wireless network. Then, there exists a time delay
+h(t), bounded by h1<h(t)<h2. Thus, for the platoon, the controller given by Equation (9) can be
+expressed by
+u(t) =Koyo(t) +Kcyc(t h(t)). (10)
+Remark 1.
+ Both Viandh(t)are ﬁxed uniform for both acceleration and brake situations because all of the vehicles are
+taken to be homogeneous in this work.
+ Note that more details about the transition from the Equation (9) to the Equation (10) are postponed in [ 27].
+Substituting (10) into (4), we ﬁnally obtain the following platoon system:
+(
+˙x(t) =Ax(t) +BKoyo(t) +BKcyc(t h(t)),
+y(t) =Cox(t) +Ccx(t),(11)
+where
+Co=2
+66664C3 0 0
+0 C3 0
+......
+0 0 C33
+77775, Cc=2
+66664C4 0 0
+C2C4 0
+......
+0 C2C43
+77775, (12)
+C3=2
+641 0 0
+0 0 0
+0 0 03
+75, C4=2
+640 0 0
+0 1 0
+0 0 13
+75. (13)
+2.2.3. Saturation Effect of Actuator
+In real applications, the exact system model is difﬁcult to get and the actuator saturation constantly
+happens. It should be noted that actuator saturation can deteriorate the platoon’s performance and
+even cause instability. Thus, in order to guarantee the platoon’s safety and comfort, the following
+inequality holds:
+juijuimax. (14)
+Then, after having deﬁned the longitudinal dynamics, we will present the corresponding controller
+design approach.
+2.2.4. The Aim
+The control objective of this paper is to achieve the vehicle platoon, with time-varying delay,
+such that the follower’s velocity can converge to the velocity of the leader asymptotically and each
+vehicle can maintain a safe inter-vehicle distance to avoid collision with each other. Therefore, we
+must design a controller (see Equation (9)) for each following vehicle so that the following conditions
+are satisﬁed [21]:
+1. Individual vehicle stability: the global closed-loop platoon system is asymptotically stable with
+respect to the communication delay and saturation effects.
+
+--- Page 7 ---
+Sensors 2018 ,18, 3085 7 of 25
+2. The vehicle platoon mets the following performance index:
+jz2ij1f or i =1,,N. (15)
+3. String stability: the swings are not magnifying with a vehicle index due to any handling of the
+head vehicle [ 10], namely,kG(jw)k<1for any w>0, where G(s) =Di(s)/Di 1(s); or in the
+same way, the impulse response g(t)corresponding to G(s)is larger than zero for all t.
+2.3. Single Vehicle Stabilisation
+Guaranteed Cost Controller Design
+Deﬁne the time-weighted quadratic cost function as follows:
+J=Z¥
+0[xT(t)Qx(t) +uT(t)Ru(t)]dt, (16)
+where Qand Rare positive deﬁnite matrices. The purpose of this subsection is to design a controller
+which ensure asymptotically stability of system (11) satisfying the performance index JJ, where J
+is an upper bound of quadratic cost.
+We provide the following result for the robust closed-loop system (11).
+Theorem 1. Let scalar m1>0, and closed-loop networked platoon system (11) is asymptotically stable, if there
+exist positive matrices P,T1,T2,Z1,Z2and matrices G,KoandKcwith appropriate dimensions, such that the
+following condition holds:
+X=2
+666664X11X12 Z1Z2X15
+X22 0 0 X25
+  X33 0 0
+   X44 0
+    X553
+777775<0, (17)
+W=2
+64Ipa1DzKoCopa2DzKcCc
+ P 0
+  P3
+75>0, (18)
+where
+X11=He(PA+PBK oCo) +T1+T2 Z1 Z2+Q+ (KCy)TR(KCy),
+X12= (PBK cCc) + ( A+BKoCo)TG,
+X22=He(GTBKcCc),
+X15=m1(A+BKoCo)TG,
+X25= GT+m1(BKcCc)TG,
+X33= T1 Z1,
+X44= T2 Z2,
+X55=h2
+1Z1+h2
+2Z2 m1He(G).
+
+--- Page 8 ---
+Sensors 2018 ,18, 3085 8 of 25
+Proof. Deﬁne a Lyapunov–Krasovskii function candidate as:
+V(t) =xT(t)Px(t) +Zt
+t h1xT(s)T1x(s)ds+Zt
+t h2xT(s)T2x(s)ds
++h1Z0
+ h1Zt
+t+s˙xT(u)Z1˙x(u)duds+h2Z0
+ h2Zt
+t+s˙xT(u)Z2˙x(u)duds.(19)
+Employing the Lyapunov function given in (19) and according to zero-value expression obtained
+from (11), we have:
+˙V(t) =2xT(t)P(A+BKoCo)x(t) +2xT(t)PBK cCcx(t h(t)) + xT(t)T1x(t)
+ xT(t h1)T1x(t h1) +xT(t)T2x(t) xT(t h2)T2x(t h2)
+ xT(t)Z1x(t) +2xT(t)(t h1)Z1x(t) xT(t h1)Z1x(t h1) xT(t)Z2x(t)
++2xT(t h2)Z2x(t) xT(t h2)Z2x(t h2) +h2
+1˙xTZ1˙x(t) +h2
+2˙xTZ2˙x(t) +2[xT(t h(t))GT
++m1˙xT(t)GT][ ˙x(t) +Ax(t) +BKoyo(t) +BKcyc(t h(t))].(20)
+We can write (20) in the following form:
+˙V(t) =cT(t)2
+666664¯X11X12 Z1Z2X15
+X22 0 0 X25
+  X33 0 0
+   X44 0
+    X553
+777775c(t), (21)
+where ¯X11=X11 Q (KCy)TR(KCy)and
+c(t) =h
+xT(t)xT(t h(t)) xT(t h1(t)) xT(t h2(t)) ˙xT(t)iT
+.
+It is visible from (21) that
+˙V(t)  xT(t)(Q+ (KCy)TR(KCy))x(t)<0. (22)
+Under the zero-initial condition, integrating (25) over the range [0,¥)yieldsR¥
+0(Q+
+(KCy)TR(KCy))dt<0.
+From the expression of the Lyapunov functional in (19), we obtain that xT(t)Px(t)<a1and
+xT(t h(t))Px(t h(t))<a2. As [28], the following inequality holds:
+max
+t>0jZ2j2max
+t>0kxT(t)CT
+oKT
+oDT
+zDzKoCox(t) +xT(t h(t))CT
+cKT
+cDT
+zDzKcCcx(t h(t))k2
+=max
+t>0kxT(t)P 1/2P1/2CT
+oKT
+oDT
+zDzKoCoP 1/2P1/2x(t)
++xT(t h(t))P 1/2P1/2CT
+cKT
+cDT
+zDzKcCcP 1/2P1/2x(t h(t))k2
+<a1s1max(P 1/2CT
+oKT
+oDT
+zDzKoCoP 1/2) +a2s2max(P 1/2CT
+cKT
+cDT
+zDzKcCcP 1/2),(23)
+where s1maxands2maxrepresent the maximal eigenvalues. The aforementioned inequality leads to the
+fact that the constraints in (15) are guaranteed, if
+a1(P 1/2CT
+oKT
+oDT
+zDzKoCoP 1/2) +a2(P 1/2CT
+cKT
+cDT
+zDzKcCcP 1/2) I<0, (24)
+which is guaranteed by the feasibility of (18). This completes the proof.
+
+--- Page 9 ---
+Sensors 2018 ,18, 3085 9 of 25
+Remark 2. It should be mentioned that the slack variables Gadded reduce the conservatism of the controller
+design approach and provide more freedom degrees in the solution space. Furthermore, the objective function (16)
+offers a trade-off between performance and control effort, according to weighting matrices Q and R.
+Remark 3. In the following, sufﬁcient conditions (17) are given to ensure asymptotic stability of (11), but they
+are BMIs and cannot be determined by a convex linear optimization algorithm. Then, we will use a nonlinear
+optimization based on ’bmibnb’ solver in order to compute gain matrices. Our method is implemented in the
+Yalmip Toolbox.
+2.4. String Stability
+A main task of platoon control is to enhance the trafﬁc stream ability while providing safety.
+Thus, string stability becomes the major performance mainstay, which intends for the spacing errors to
+reduce as they spread along the vehicle circulation. In an instability case, the conscript ’slinky effect’
+will occur and thus cause a potential trafﬁc jam and also a rear-end clash [ 1,21,25]. It is known that
+string stability is guaranteed when the transfer function from the spacing error of a vehicle to that
+of its following vehicle has a magnitude smaller than one second [ 29]. In this context, an important
+issue comes from the wide use of wireless communication. The wireless communication channel
+is an unsettled and very restrictive support, which generally introduces non-negligible time delays.
+The time delay in wireless communication will largely increase the difﬁculty to stabilise the platoon,
+in the presence of the slinky effect. Here, we assume that the communication delay h(t)is uniform and
+bounded. In [ 30], optimal adaptive cruise control, with guaranteed string stability considering variable
+spacing, is addressed. In the actual paper, we have developed techniques to investigate the named
+string stability property of the vehicle platoon considering both effects of time headway and delay
+induced by the wireless network. In the above section, considerations have been focused primarily on
+the stability of each individual vehicles in the platoon system. Here, we tackle the problem of string
+stability, including the three objectives presented in Section 2.2. In addition, we give results on string
+stability. The third derivative of Equation (1) gives us
+...
+Di(t) = ˙ai 1(t) ˙ai(t) hd¨ai(t). (25)
+Substituting (8) into (3), we obtain
+˙ai(t) = 1
+Viai(t) +1
+ViKiyi.
+Combining with (25), the equation of spacing error can be written under the form
+Vi...
+Di(t) = ¨Di(t) KpDi(t h(t)) hdKp˙Di(t h(t)) Kv˙Di(t h(t)) Ka¨Di(t h(t))
++KpDi 1(t h(t)) + Kv˙Di 1(t h(t)) + Ka¨Di 1(t h(t)).(26)
+Applying the Laplace transform to Equation (26), we can get
+G(s) =Di(s)
+Di 1(s)=(Kp+Kvs+Kas2)e hs
+Vis3+s2+ [Kp+ (Kv+hdKp)s+Kas2]e hs. (27)
+Based on this transfer function, we have the following result on string stability.
+Theorem 2. For the platoon-spacing error system (26), jDi(jw)
+Di 1(jw)j1holds for any w>0, if the following
+conditions are satisﬁed:
+
+--- Page 10 ---
+Sensors 2018 ,18, 3085 10 of 25
+8
+>>>><
+>>>>:(a)ViKp Kv hdKp0,
+(b)Ka=Vi(kv+hdKp),
+(c)(hdKp)2+2(2KvhdKp) 2Kp0,
+(d)1 K2
+a+2h(ViKp Kv hdKp)0.(28)
+Proof. First, we writejDi(jw)
+Di 1(jw)jas
+G(jw) =Di(jw)
+Di 1(jw)=ra
+a+b,
+where
+a= (Kp Kaw2)2+k2
+vw2,
+b= [(hdKp)2+2(KvhdKp) 2Kpcos(hw)]w2+2(ViKp Kv hdKp)sin(hw)w3
++ [1+2[Ka Vi(Kv+hdKp)]cos(hw)]w4 2ViKasin(hw)w5+V2
+iw5.(29)
+Since a>0,jDi(jw)
+Di 1(jw)j1hold true, i.e., the platoon is string stable, if b0. From (28) and the
+fact that sin(hw)hw, we have for w>0 that
+2(ViKp Kv hdKp)sin(hw)w32h(ViKp Kv hdKp)w4. (30)
+Using the condition (28b), we have
+b[(hdKp)2+2(KvhdKp) 2Kpcos(hw)]w2+ [1+2h(ViKp Kv hdKp)]w4. (31)
+Since Vi,Kp,Kaand Kalare all positive, and the fact that cos(hw),sin(hw)1, one can obtain
+b[(hdKp)2+2(KvhdKp) 2Kp]w2+ [1 K2
+a+2h(ViKp Kv hdKp)]w4. (32)
+Thus, if the conditions (28c,d) hold, then b0. This completes the proof.
+Remark 4. It should be noted that the conditions for achieving platoon control require combining Theorems 1
+and 2. This yields an upper bound for the time delay, that is, h1 K2a
+2(Kv+hdKp) ViKp
+3. Lateral Controller Design
+3.1. Bicycle Model
+The simple kinematic vehicle model is used for simpler control of the vehicle dynamics during
+avoidance screenplay. Then, the single track vehicle model characterizing planar vehicle motion is
+depicted in Figure 3.
+For lateral dynamics, we use the following set of differential equations to describe the vehicle
+motion within the lane subject to the lateral and yaw dynamics [1]:
+8
+>>>>>>>><
+>>>>>>>>:˙b=2Ff+2Fr
+mv ˙y,
+¨y=2afFf 2arFr
+Iz,
+˙ey=˙y ˙yd,
+˙ey= (b+ey)v,(33)
+
+--- Page 11 ---
+Sensors 2018 ,18, 3085 11 of 25
+where bdenotes the sideslip angle, Ffis the cornering force of the two front tires, and Fris the cornering
+force of the two rear tires. vis the longitudinal velocity, Izis the yaw moment of inertia, mis the vehicle
+mass and ˙yis the yaw rate, where ydenotes the vehicle orientation. eyand eydenote the vehicle
+orientation and position errors, respectively, w.r.t. the road centerline and ydis the orientation of the
+road centerline. The linear model is the simplest model of the lateral tire forces. It is deﬁned as
+Fi=Ci0ai,i2f(f ront),r(rear), (34)
+where Ci0are the cornering stiffness, and afandarare the front and rear tire slip angle, respectively,
+can be approximated as,
+8
+>><
+>>:af=b+af˙y
+v d,
+ar=b+ar˙y
+v,(35)
+where ddenotes the steering angle.
+Figure 3. Single track kinematic model of the vehicle.
+The parameters of the vehicle are given in the following Table 1 [31]:
+Table 1. Vehicle parameters.
+Symbols Value Units Meaning
+Iz 2000 Kg m2Yaw moment of inertia
+m 1500 Kg Vehicle mass
+af 1.3 m Distance from COG to front wheel center
+ar 1.7 m Distance from COG to rear wheel center
+Cf0 100,000 N/rad Nominal cornering stiffness of front tire
+Cr0 120,000 N/rad Nominal cornering stiffness of rear tire
+Ff - N Front tyre cornering force
+Fr - N Rear tyre cornering force
+af - rad Front tyre slip angle
+ar - rad Rear tyre slip angle
+We compactly rewrite Equations (33)–(35) to form the nonlinear model,
+
+--- Page 12 ---
+Sensors 2018 ,18, 3085 12 of 25
+8
+>><
+>>:˙xi(t) =Ax(v)xi(t) +Bu(v)di(t) +EwWi(t),
+y1i(t) =Dyxi(t),
+Z3i(t) =Dzxi(t),(36)
+where xi(t) =h
+b˙yeyeyi
+,u=d,Wi(t) = ˙ydare the state, input and disturbance vectors,
+respectively:
+Ax(v) =2
+66664 Cf i+Cri
+mv 1 Cf iaf Criar
+mv2 0 0
+ Cf iaf Criar
+Iz Cf ia2
+f+Cria2r
+Izv0 0
+0 1 0 0
+v 0 v03
+77775,Bu(v) =2
+66664Cf i
+mvafCf i
+Iz
+0
+03
+77775, Ew=2
+66640
+0
+ 1
+03
+7775,
+Dy=h
+0 1 1 0i
+, Dz=h
+0 1 1 1i
+.
+These nonlinear matrices Ax(v),Bu(v)are in function of the vehicle speed v,
+v, 1/ v, 1/ v2,vminvvmax, (37)
+where vmin= 2 (m/s) and vmax= 30 (m/s). The conventional sector nonlinearity approach will lead to
+an exact TS fuzzy model with 23=8linear subsystems. However, this accurate approximation would
+be too expensive in terms of numerical computation for control design. To overcome this problem,
+Taylor’s approximation method as in [ 18] is applied to reduce not only the numerical complexity but
+also the conservatism of the results. Obviously, according to the Taylor’s approximation (ﬁrst order),
+we obtain
+1
+v=1
+v0+1
+v1fx, v=v0(1 v0
+v1fx),1
+v2=1
+v2
+0(1+2v0
+v1fx),
+fminfxfmax,fmin= 1, fmax=1,(38)
+where the measured parameter fx, called premise variable, is employed to represent the variation of v
+between its lower and upper bounds. Deﬁne the two constants v0and v1in (38) as
+v0=2vminvmax
+vmin+vmax,v1=2vminvmax
+vmin vmax.
+Using the sector nonlinearity approach after replacing (38) into (36), in order to obtain a TS fuzzy
+lateral model (33) composed by only two linear subsystems whose matrices are deﬁned as:
+Sv1:Ax(fmin),Bu(fmin),
+Sv2:Ax(fmax),Bu(fmax).(39)
+The two corresponding membership functions of this TS fuzzy model are given as follows:
+h1(fx) =1 fx
+2,h2(fx) =1 h1(fx) (40)
+and satisfying the conditions (41):
+hl(fx)0,r
+å
+l=1hl(fx) =1,l=1, ...2. (41)
+
+--- Page 13 ---
+Sensors 2018 ,18, 3085 13 of 25
+Then, the closed-loop system (36) can be written
+8
+>>>><
+>>>>:˙xi(t) =r
+å
+l=1hl(fx)[Al
+xxi(t) +Bl
+udi(t)] + EwWi(t),
+y1i(t) =Dyxi(t),
+Z3i(t) =Dzxi(t),(42)
+where the overall lateral output feedback controller is governed by
+di(t) =r
+å
+l=1hl(fx)Ksy1i(t), (43)
+where A1
+xand B1
+ucorrespond to subsystem Sv1and A2
+xand B2
+ucorrespond to subsystem Sv2.
+3.2. TS H ¥Design Conditions
+In this section, we focus our attention on designing robust H¥fuzzy SOF controllers gains Kiof
+system (42). To obtain Theorem 3, we were inspired from the results of Theorem 1 in [ 32], ignoring the
+effects of interconnection between subsystems and those in [27].
+Theorem 3. For given scalars h3>0,h4>0,m1,m2, and m3,the closed-loop system (42) is
+asymptotically stable, if there exist positive matrices ¯P,¯Q1,¯Q2,¯Q3,¯Z1, and matrices ˆG11>0,ˆG21>0
+and ˆG22>0, and Ys, with appropriate dimensions, such that the following conditions hold:
+¯Fll<0, (44)
+¯Fls+¯Fsl<0, s>l, (45)
+where
+¯Fls=2
+666664¯F11l¯F12ls¯Z1 0 ¯F15l
+ ¯F22ls 0 0 ¯F25ls
+    ¯Q2 ¯Z1 0 0
+     ¯Q3 0
+    ¯F553
+777775, (46)
+¯F11l=¯Q1+¯Q2+¯Q3+m1sym(Al¯G) ¯Z1, ¯F12ls=m2¯GT(Al)T+m1BlYsDy,
+¯F22ls=m2sym(BlYsDy) (1 hd)¯Q1, ¯F15l=¯P m1¯G+m3¯GT(Al)T,
+¯F25ls= m2¯G+m3DT
+y(Ys)T(Bl)T, ¯F55=h4
+1¯Z1 m3sym(¯G),
+¯G=V"
+ˆG11 0
+ˆG21ˆG22#
+VT.
+Then, the desired controller gains are given by Ks=YsWS ˆG 1
+11S 1WT, where W,Sand Vare
+derived from SVD decomposition of Dy.
+3.3. Coupling Dynamics
+In this paper, we combine both the longitudinal and lateral dynamics which are linked by vehicle
+velocity as shown in Figure 4. Our results clearly differ from existing ones [ 11,25], which didn’t
+consider the lateral control system where the platoon will roll just in a straight line. Then, the goal of
+the lateral control is to maintain the vehicle within the lane through steering.
+
+--- Page 14 ---
+Sensors 2018 ,18, 3085 14 of 25
+Figure 4. Integrated control system.
+4. Simulation Results
+In the following subsections, we evaluate the performances of the proposed control approach.
+The results are ﬁrstly presented for a platoon of six vehicles, which runs in a virtual environment
+established using the System Build software package in Matlab. After that, simulation results have
+been carried out using a professional simulator (CarSim) with two vehicles.
+4.1. Longitudinal Tracking Performance and String Stability
+In this subsection, we show how to apply the proposed control method to a vehicle platoon,
+using Matlab simulation. The desired inter-vehicle distance is variable and depends on velocity.
+The maximum studied speed is 30 m/s. Three simulation cases will be presented thereafter:
+ The following parameters are used in the simulation process: the delay lower bound h1= 60 ms,
+upper bound h2= 680 ms, hd= 0.8, m1= 0.1, R= 1 and Q=I3. According to Theorems 1 and 2,
+we get these controller gains:
+Kp=0.8471, Kv=0.9440, Ka=0.3853. (47)
+ If we choose hd=1.5,h1= 60 ms and upper bound h2=800ms, we obtain the following
+controller gains:
+Kp=0.7627, Kv=0.2437, Ka=0.3652. (48)
+ However, if we neglect transmission delay in design, by Lemma 2 in [ 26], we can ﬁnd the following
+controller gains:
+Kp=4.9399, Kv=7.9317, Ka=3.5481. (49)
+The components of the initial condition are chosen for the ﬁve vehicles as xi(0) =h
+0 1 0iT
+,
+where i=1,, 5.
+
+--- Page 15 ---
+Sensors 2018 ,18, 3085 15 of 25
+In order to evaluate the performance of the proposed control approaches, simulations are carried
+out for a car following scenario by simulating a platoon consisting of six vehicles. The speed proﬁle of
+leader vehicle is shown in Figure 5 and summarized as follows:
+1. Changing the speed of the platoon (from 2 m/s to 20 m/s) at 0 s to verify string stability.
+2. Performing an emergency braking at 30 s to satisfy the driver longitudinal ride comfort.
+3. Thereafter, the lead vehicle is accelerated and decelerated (hard braking-and-go) to check safety.
+All of the following vehicles are controlled to follow the lead vehicle by the proposed controller
+and controller of Lemma 2 in [ 26], respectively. At the beginning of the driving scenario, all the vehicles
+evolve with an initial speed of 2 m/s.
+Firstly, we denote without considering network communication and using the controllers (49)
+that the platoon has a stable behavior. The results are clearly illustrated in Figure 6. We can see from
+Figure 6a that the spacing errors decrease when they propagate through the platoon and the speed of
+the vehicles converges towards the speed of the leader.
+The safety of the platoon in case of an emergency braking is shown in Figure 6c. The inter-vehicle
+distances are always greater than zero, so no collision occurs. We remark that accelerations for
+all following vehicles are equal to 3.1 m/s2, which corresponds to the comfort acceleration limit.
+In addition, Figure 6e highlights that the jerk (which is the acceleration’s time derivative is the best way
+to exhibit a human comfort criteria.) magnitude is reasonably lower than 2 m/s3as deﬁned in [33].
+On the contrary, when using the same controller (49) with network communication integration in
+simulation, the behavior of the platoon becomes unstable as observed in Figure 7. We remark that the
+inter-vehicle distances are negative and the velocity has bad tracking performance.
+Time (s)0 20 40 60 80 100 120 140 160 180 200v0 (m/s)
+051015202530
+vLeader
+Figure 5. Leader vehicle speed proﬁle.
+
+--- Page 16 ---
+Sensors 2018 ,18, 3085 16 of 25
+Time (s)0 20 40 60 80 100 120 140 160 180 200Spacing errors (m)
+-3-2-10123
+∆1
+∆2
+∆3
+∆4
+∆5
+(a)Spacing errors
+Time (s)0 20 40 60 80 100 120 140 160 180 200Inter-vehicle distances (m)
+0510152025303540
+d1
+d2
+d3
+d4
+d5 (b)Inter-vehicle distances
+Time (s)0 20 40 60 80 100 120 140 160 180 200Velocities (m/s)
+0510152025
+v0
+v1
+v2
+v3
+v4
+v5
+(c)Velocities
+Time (s)0 20 40 60 80 100 120 140 160 180 200Accelerations (m/s2)
+-4-3-2-10123
+a0
+a1
+a2
+a3
+a4
+a5 (d)Accelerations
+Time (s)0 20 40 60 80 100 120 140 160 180 200Jerks (m/s3)
+-0.6-0.4-0.200.20.40.60.8
+J1
+J2
+J3
+J4
+J5
+(e)Jerks
+Figure 6. Six-vehicle platoon system under controller (49) without communication network with hd=0.8.
+
+--- Page 17 ---
+Sensors 2018 ,18, 3085 17 of 25
+Time (s)0 1 2 3 4 5 6 7 8 9 10Longitudinal network-induced delay (s)
+00.10.20.30.40.50.60.7
+(a)Longitudinal network-induced delay
+Time (s)0 1 2 3 4 5 6 7 8 9 10Spacing errors (m)
+-500-400-300-200-1000100200300
+∆1
+∆2
+∆3
+∆4
+∆5 (b)Spacing errors
+Time (s)0 1 2 3 4 5 6 7 8 9 10Velocities (m/s)
+-300-200-1000100200300400500600
+v0
+v1
+v2
+v3
+v4
+v5
+(c)Velocities
+Time (s)0 1 2 3 4 5 6 7 8 9 10Accelerations (m/s2)
+-3000-2000-10000100020003000
+a0
+a1
+a2
+a3
+a4
+a5 (d)Accelerations
+Time (s)0 1 2 3 4 5 6 7 8 9 10Jerks (m/s3)
+-1500-1000-500050010001500
+J1
+J2
+J3
+J4
+J5
+(e)Jerks
+Time (s)0 1 2 3 4 5 6 7 8 9 10Longitudinal control input (m/s2)×104
+-2-1.5-1-0.500.511.5
+u1
+u2
+u3
+u4
+u5 (f)Longitudinal control input
+Figure 7. Six-vehicle platoon system under controller (49) through the communication network
+with hd=0.8.
+Thus, in order to handle the stability and performance of the platoon, despite the effects of
+the network communication, we have tested the proposed method of Theorem 1 in this paper with
+considering delay in the control design with (47). The following remarks can be deduced:
+ The spacing errors decrease which guarantee string stability as shown in Figure 8a,
+ The inter-distances magnitude in the presence of networked communication is positive and
+smaller than those without delay, which prove the good performance of our controller (48) as in
+Figure 8b.
+ The speed tracking performances are good as well in dynamics as in statics as depicted in Figure 8c.
+
+--- Page 18 ---
+Sensors 2018 ,18, 3085 18 of 25
+ The platoon maintains its stability, safety and good performance with controller (47) despite
+constraints of communication networks.
+ Comparing Figures 8 and 9, we can point out that the best performances of platooning, through
+network communication, can be achieved with a time headway less than 1 s. We remark that with
+hd= 0.8s, spacing errors and inter-vehicle distances decrease.
+The results indicate that the proposed longitudinal controllers can further improve the platoon
+system stability and performance, under the effect of communication delays and actuator saturation,
+with small time headway.
+Time (s)0 20 40 60 80 100 120 140 160 180 200Spacing errors (m)
+-1-0.8-0.6-0.4-0.200.20.40.60.81
+∆1
+∆2
+∆3
+∆4
+∆5
+(a)Spacing errors
+Time (s)0 20 40 60 80 100 120 140 160 180 200Inter-vehicle distances (m)
+2468101214161820
+d1
+d2
+d3
+d4
+d5 (b)Inter-vehicle distances
+Time (s)0 20 40 60 80 100 120 140 160 180 200Velocities (m/s)
+0510152025
+v0
+v1
+v2
+v3
+v4
+v5
+(c)Velocities
+Time (s)0 50 100 150 200 250Accelerations (m/s2)
+-3-2-10123a0
+a1
+a2
+a3
+a4
+a5 (d)Accelerations
+Time (s)0 50 100 150 200 250Jerks (m/s3)
+-0.6-0.4-0.200.20.40.6
+J1
+J2
+J3
+J4
+J5
+(e)Jerks
+Figure 8. Six-vehicle platoon system under controller (47) through communication network with hd=0.8.
+
+--- Page 19 ---
+Sensors 2018 ,18, 3085 19 of 25
+Time (s)0 20 40 60 80 100 120 140 160 180 200Spacing errors (m)
+-2-1.5-1-0.500.511.52
+∆1
+∆2
+∆3
+∆4
+∆5
+(a)Spacing errors
+Time (s)0 50 100 150 200 250Inter-vehicle distances (m)
+0510152025303540
+d1
+d2
+d3
+d4
+d5 (b)Inter-vehicle distances
+Time (s)0 20 40 60 80 100 120 140 160 180 200Velocities (m/s)
+0510152025
+v0
+v1
+v2
+v3
+v4
+v5
+(c)Velocities
+Time (s)0 50 100 150 200 250Accelerations (m/s2)
+-3-2-10123a0
+a1
+a2
+a3
+a4
+a5 (d)Accelerations
+Time (s)0 20 40 60 80 100 120 140 160 180 200Jerks (m/s3)
+-0.6-0.4-0.200.20.40.6
+J1
+J2
+J3
+J4
+J5
+(e)Jerks
+Figure 9. Six-vehicle platoon system under controller (48) through communication network
+with hd=1.5.
+
+--- Page 20 ---
+Sensors 2018 ,18, 3085 20 of 25
+4.2. Lateral Control Performance
+In this subsection, we assess the performance of the proposed lateral control approach. In the
+lateral control simulation, we consider the curvature of the road traversed by the vehicle platoon
+shown in Figure 10 and also the trajectories depicted in Figure 11. Then, using the parameters mi=1
+fori=1,. . ., 3, the delay lower bound h3=6 ms, upper bound h2=30 ms, Theorem 3 produces a
+feasible solution with the following gains matrices:
+K1= 0.1589,K2= 0.1651. (50)
+For simulation, initial conditions are xi(t)(0) =h
+0 0 0 0iT
+, where i=1,, 5.
+Vehicle simulation results have been performed over the lane change maneuver for the fuzzy
+lateral controller in Figure 11b. Thus, the states and control inputs of the lateral dynamics for followers
+are illustrated in Figure 11. Obviously, the suggested fuzzy TS controller improves stability and
+vehicles can track each other with minimal deviation in spite of the communication delays and the
+rather big variation in longitudinal velocity. As can be seen, the vehicle speed for this scenario
+strongly varies within its range v2[2, 35]. This clearly justiﬁes the interest of the proposed TS fuzzy
+model-based control method.
+We see from Figures 8 and 11 that the behavior of the platoon becomes stable despite these
+factors, namely:
+1. constraints of communication networks, namely the network-induced delays shown in Figure 7a
+for longitudinal case and Figure 11a for lateral control which are generated randomly,
+2. big variation of the leader longitudinal vehicle speed illustrated in Figure 5.
+Time (s)0 20 40 60 80 100 120 140 160 180 200Curvature (1/m)×10-3
+-6-4-20246
+Figure 10. Road curvature.
+
+--- Page 21 ---
+Sensors 2018 ,18, 3085 21 of 25
+Time (s)0 1 2 3 4 5 6 7 8 9 10Lateral networkinduced delays (s)
+0.0050.010.0150.020.0250.03
+(a)Lateral network-induced delay
+X position (m)0 500 1000 1500 2000 2500 3000Y position (m)
+00.511.522.533.54
+Vehicle 1
+Vehicle 2
+Vehicle 3
+Vehicle 4
+Vehicle 5 (b)Trajectory of position y according to position x (lane
+change maneuver)
+Time (s)0 20 40 60 80 100 120 140 160 180 200Sideslip angles βi (rad)×10-4
+-2.5-2-1.5-1-0.500.511.52
+β1
+β2
+β3
+β4
+β5
+(c)Sideslip angles
+Time (s)0 20 40 60 80 100 120 140 160 180 200Yaw rate (rad/s)×10-3
+-6-4-20246
+r1
+r2
+r3
+r4
+r5 (d)Yaw rates
+Time (s)0 20 40 60 80 100 120 140 160 180 200Yaw errors (rad)
+-0.01-0.008-0.006-0.004-0.00200.0020.0040.0060.0080.01
+eψ1
+eψ2
+eψ3
+eψ4
+eψ5
+(e)Yaw errors
+Time (s)0 20 40 60 80 100 120 140 160 180 200Lateral position errors (m)
+-0.9-0.8-0.7-0.6-0.5-0.4-0.3-0.2-0.10
+ey1
+ey2
+ey3
+ey4
+ey5 (f)Lateral positions errors
+Time (s)0 20 40 60 80 100 120 140 160 180 200Steering angles δi (rad)×10-3
+-1-0.8-0.6-0.4-0.200.20.40.60.81 δ1
+δ2
+δ3
+δ4
+δ5
+(g)Lateral control input
+Figure 11. Six-vehicle platoon system under controller (50) through the communication network.
+
+--- Page 22 ---
+Sensors 2018 ,18, 3085 22 of 25
+4.3. CarSim Software Validation
+CarSim is a professional software dedicated to the simulation of the vehicle dynamics, and it is
+developed by the ’Mechanical Simulation Corporation’ company. With this simulator, any vehicle’s
+driving test on a test track or on the road can be simulated before the actual real test. Thus, we can
+virtually reproduce different driving situations and test the behavior of the vehicle and its reaction to
+different maneuvers (lane change, slalom, acceleration, slope, etc.). CarSim has ﬁve main parts that
+allow you to choose the simulation parameters, the test conditions and the animation as well as the
+illustration of the results:
+ Vehicle Parameters: This block is used to deﬁne several physical parameters of the vehicle
+(dimensions, engine, tires, bodywork and mathematical models that represent the tire/ground
+contact forces and suspension forces exerted on the vehicle, etc.).
+ Test conditions: In this block, we can create our own test circuit, choose the maneuver, the state of
+the road and the aerodynamic forces.
+ Code Generator: This block is used to generate a block diagram that can be used in various
+mathematical calculation tools Matlab/Simulink,labVIEW, dSPACE.
+ Animation: once the program has been compiled, this block allows for visualizing the maneuver
+on a 3D video.
+ Visualization: For each test, this block allows you to record and plot variables and measures
+chosen by the user.
+CarSim has a standard interface to Matlab/Simulink allowing the co-simulation between them.
+Thus, the platooning approach is veriﬁed by CarSim in an obstacle avoidance scenario
+(Figure 12g). A double lane change test (Figure 12h) is conducted with steering wheel angles depicted
+in Figure 12c. In this simulation, the vehicles are driven at a variable speed (Figure 12b). We can
+see from the results shown in Figure 12a–g the good performance and efﬁciency of the proposed
+approach despite communication delays. In fact, the controlled vehicle managed to follow its preceding
+vehicle (leader).
+Time (s)0 50 100 150Spacing error (m)
+-505101520253035
+∆1
+(a)Spacing error
+Time (s)0 50 100 150Velocities (m/s)
+45678910111213
+v0
+v1 (b)Velocities
+Figure 12. Count.
+
+--- Page 23 ---
+Sensors 2018 ,18, 3085 23 of 25
+Time (s)0 50 100 150Steering angle δf (rad)×10-3
+-2-1.5-1-0.500.511.52
+δ1
+(c)Lateral control input
+Time (s)0 50 100 150Sideslip angles βi (rad)×10-4
+-8-6-4-202468
+β1
+β2 (d)Sideslip angles
+Time (s)0 50 100 150Yaw rate (rad/s)×10-3
+-4-3-2-101234
+r1
+r2
+(e)Yaw rates
+Time (s)0 50 100 150Lateral position eroors (m)
+-2-1.5-1-0.500.511.52
+ey1
+ey2 (f)Lateral positions errors
+Xposition (m)0 500 1000 1500 2000 2500 3000 3500 4000 4500Yposition (m)
+-8-6-4-202468
+(g)Trajectory of position y according to position x
+(lane change maneuver)
+(h)lane change simulation in
+CarSim (The blue vehicle is the
+leader and the one in red color
+is the controlled vehicle)
+Figure 12. Two-vehicle platoon system under controllers (47) and (50) through the communication network.
+5. Conclusions
+In this paper, the design of integrated controllers for autonomous vehicles has been addressed.
+Both longitudinal control and lateral control approaches were developed and analyzed. On the one
+side, vehicle longitudinal control was designed and robustness of the control laws regarding the
+communication delays and actuator saturation was also dealt. A new platoon model considering a
+variable inter-vehicle distance proportional to vehicle velocity has been deﬁned. The objective of the
+proposed controller is to regulate the speed of the follower vehicle while keeping the inter-distance
+to the desired value. On the other hand, the lateral control was studied aiming to maintain the
+vehicle within the road through steering. Then, an integrated control structure was proposed,
+and the longitudinal and the lateral controllers were combined for the fully automated vehicle control.
+
+--- Page 24 ---
+Sensors 2018 ,18, 3085 24 of 25
+The simulation results showed that the proposed controllers were able to perform accurate longitudinal
+control and lateral control as well as provide good ride quality.
+Our future research topic includes the experimental validation of the proposed approach by
+urban vehicles.
+Author Contributions: C.L. designed the approach, carried out the experimentation, and generated the results;
+C.L. and A.C. analyzed the results and were responsible for writing the paper, A.C., M.B. and S.G. supervised the
+research, reviewed the approach and the results to further improve the quality of the paper.
+Acknowledgments: The authors would like to thank the VEDECOM institute, which supports this research.
+Conﬂicts of Interest: The authors declare that there is no conﬂict of interest in this paper.
+Abbreviations
+The following abbreviations are used in this manuscript:
+NCS Networked Control System
+TS Takagi Sugeno
+LMI Linear Matrix Inequality
+BMI Bilinear Matrix Inequality
+SOF Static Output Feedback
+SSP Safety Spacing Policy
+VANET Vehicular Ad-hoc NETworks
+COG Center Of Gravity
+References
+1. Kianfar, R.; Ali, M.; Falcone, P .; Fredriksson, J. Combined longitudinal and lateral control design for string
+stable vehicle platooning within a designated lane. In Proceedings of the IEEE 17th International Conference
+on Intelligent Transportation Systems (ITSC), Qingdao, China, 8–11 October 2014; pp. 1003–108.
+2. Zhao, J.; Elkamel, A. Integrated Longitudinal and Lateral Control System Design for Autonomous Vehicles.
+IFAC Proc. Vol. 2009 ,42, 496–501. [CrossRef]
+3. Kianfar, R.; Falcone, P .; Fredriksson, J. A control matching model predictive control approach to string stable
+vehicle platooning. Control Eng. Pract. 2015 ,45, 163–173. [CrossRef]
+4. Rahmana, M.; Abdel-Atyb, M. Longitudinal safety evaluation of connected vehicles platooning on
+expressways. Accid. Anal. Prev. 2017 ,117, 381–391. [CrossRef] [PubMed]
+5. Tuchner, A.; Haddad, J. Vehicle platoon formation using interpolating control: A laboratory experimental
+analysis. Trans. Res. Part C 2017 ,84, 21–47. [CrossRef]
+6. Ghasemi, A.; Rouhi, S. Stability Analysis of a Predecessor-Following Platoon of Vehicles With Two Time
+Delays. Sci. J. Traff. Trans. Res. 2015 ,27, 35–46. [CrossRef]
+7. Xiao, L.; Gang, F. Effects of information delay on string stability of platoon of automated vehicles under
+typical information frameworks. J. Cent. South Univ. Technol. 2010 ,17, 1271–1278. [CrossRef]
+8. Bom, J.; Thuilot, B.; F.Marmoiton.; Martinet, P . A Global Control Strategy for Urban Vehicles Platooning
+relying on Nonlinear Decoupling Laws. IEEE/RSJ Int. Conf. Intell. Robots Syst. 2005 , 1999–2000. [CrossRef]
+9. Abou Harfouch, Y.; Yuan, S.; Baldi, S. An Adaptive Switched Control Approach to Heterogeneous Platooning
+with Inter-Vehicle Communication Losses. IEEE Trans. Control Netw. Syst. 2017 , 1–10. [CrossRef]
+10. Oncu, S.; Ploeg, J.; Van de Wouw, N.; Nijmeijer, H. Cooperative Adaptative Cruise Control: Network-Aware
+Analysis of String Stability. IEEE Trans. Intell. Trans. Syst. 2014 ,15, 1527–1537. [CrossRef]
+11. Wei, Y.; Wang, L.; Ge, G. Event-triggered platoon control of vehicles with time-varying delay and probabilistic
+faults. Mech. Syst. Signal Process. 2017 ,87, 96–117. [CrossRef]
+12. Ioannou, P .; Chien, C. Autonomous intelligent cruise control. IEEE Trans. Veh. Technol. 1993 ,42, 657–672.
+[CrossRef]
+13. Wen, S.; Guo, G.; Chen, B.; Gao, X. Event-triggered cooperative control of vehicle platoons in vehicular ad
+hoc networks. Inf. Sci. 2018 ,459, 341–353. [CrossRef]
+14. Kamali, M.; Dennis, L.; McAree, O.; Fisher, M.; Veres, S. Formal veriﬁcation of autonomous vehicle
+platooning. Sci. Comput. Program. 2017 ,148, 88–106. [CrossRef]
+
+--- Page 25 ---
+Sensors 2018 ,18, 3085 25 of 25
+15. Baek, J.; Park, M. Fuzzy bilinear state feedback control design based on TS fuzzy bilinear model for DC-DC
+converters. Electr. Power Energy Syst. 2012 ,42, 710–720. [CrossRef]
+16. Lendek, Z.; Nagy, Z.; Lauber, J. Local stabilization of discrete-time TS descriptor systems. Eng. Appl.
+Artif. Intell. 2018 ,67, 409–418. [CrossRef]
+17. Ma, Y.; Chen, M. Finite time non-fragile dissipative control for uncertain TS fuzzy system with time-varying
+delay. Neurocomputing 2016 ,177, 509–514. [CrossRef]
+18. Nguyen, A.; Sentouh, C.; Popieul, J. Fuzzy Steering Control for Autonomous Vehicles under Actuator
+Saturation: Design and Experiments. J. Frankl. Inst. 2017 , 1–27. [CrossRef]
+19. Gong, J.; Zhao, Y.; Lu, Z. Sampled-data vehicular platoon control with communication delay. J. Syst.
+Control Eng. 2018 ,232, 1–11. [CrossRef]
+20. Peters, A.; Middleton, R.; Mason, O. Leader tracking in homogeneous vehicle platoons with broadcast
+delays. Automatica 2014 ,50, 64–74. [CrossRef]
+21. Guo, G.; Yue, W. Hierarchical platoon control with heterogeneous information feedback. IET Control
+Theory Appl. 2011 ,5, 1766–1781. [CrossRef]
+22. Xing, H.; Ploeg, J.; Nijmeijer, H. Padé Approximation of Delays in Cooperative ACC Based on String Stability
+Requirements. IEEE Trans. Intell. Veh. 2016 ,1, 277–286. [CrossRef]
+23. Behera, A.; Chalanga, A.; Bandyopadhyay, B. A new geometric proof of super-twisting control with actuator
+saturation. Automatica 2018 ,87, 437–441. [CrossRef]
+24. Wu, F.; Lian, J. A parametric multiple Lyapunov equations approach to switched systems with actuator
+saturation. Nonlinear Anal. Hybrid Syst. 2018 ,29, 121–132. [CrossRef]
+25. Wei, Y.; Liyuan, W. Robust Exponential H¥Control for Autonomous Platoon against Actuator Saturation
+ans Time-varying Delay. Int. J. Control Autom. Syst. 2017 ,15, 1–11.
+26. Wang, G.; Chen, C.; Yu, S. Optimization and static output-feedback control for half-car active suspensions
+with constrained information. J. Sound Vib. 2016 ,378, 1–13. [CrossRef]
+27. Latrech, C.; Kchaou, M.; Guéguen, H. Networked Non-fragile H¥Static Output Feedback Control Design
+for Vehicle Dynamics Stability: A descriptor approach. Eur. J. Control 2018 ,40, 13–26. [CrossRef]
+28. Li, H.; Liu, H.; Gao, H.; Shi, P . Reliable Fuzzy Control for Active Suspension Systems with Actuator Delay
+and Fault. IEEE Trans. Fuzzy Syst. 2012 ,20, 242–257. [CrossRef]
+29. Swaroop, D.; Hedrick, J. String Stability of Interconnected Systems. IEEE Trans. Autom. Control 1996 ,
+41, 348–357. [CrossRef]
+30. Liang, C.; Peng, H. Optimal Adaptive Cruise Control with Guaranteed String Stability. Int. J. Veh. Mech. Mob.
+2010 ,32, 313–330. [CrossRef]
+31. Mondek, M.; Hromcik, M. Linear analysis of lateral vehicle dynamics. In Proceedings of the 21st International
+Conference on Process Control (PC), Strbske Pleso, Slovakia, 6–9 June 2017; pp. 240–246.
+32. Latrach, C.; Kchaou, M.; Rabhi, A.; Elhajjaji, A. Decentralized networked control system design using (TS)
+fuzzy approach. Int. J. Autom. Comput. (IJAC) 2015 ,12, 125–133. [CrossRef]
+33. Martinez, J.; Canudas-de-Wit, C. A Safe Longitudinal Control for Adaptative Cruise Control and Stop-and-Go
+Scenarios. IEEE Trans. Control Syst. Technol. 2007 ,15, 246–258. [CrossRef]
+c2018 by the authors. Licensee MDPI, Basel, Switzerland. This article is an open access
+article distributed under the terms and conditions of the Creative Commons Attribution
+(CC BY) license (http://creativecommons.org/licenses/by/4.0/).

@@ -1,0 +1,748 @@
+--- Page 1 ---
+3Dpose estimation based onplanar object tracking forUAVscontr ol.
+Iv´anF.Mondrag ´onandPascual Campo yandCarol Mart ´ınez andMiguel A.Olivares-M ´endez
+Computer Vision Group
+Universidad Polit ´ecnica deMadrid
+C.Jos´eGuti´errez Abascal 2,28006 Madrid, Spain
+imondragon@etsii.upm.es
+Abstract —This article presents areal time Unmanned Aerial
+Vehicles UAVs3Dpose estimati onmethod using planar object
+tracking, inorder tobeused onthecontr olsystem ofaUA V.The
+method explodes therich information obtained byaprojecti ve
+transf ormation ofplanar objects onacalibrated camera. The
+algorithm obtains themetric and projecti vecomponents ofa
+reference object (landmark orhelipad) with respect tothe
+UA V camera coordinate system, using arobustreal time object
+tracking based onhomographies. The algorithm isvalidated
+onrealﬂights that compar etheestimated data against that
+obtained bytheinertial measur ement unit IMU,showing that
+the proposed method robustly estimates the helicopter’ s3D
+position with respect toareference landmark, with ahigh
+quality ontheposition and orientation estimation when the
+aircraft isﬂying atlowaltitude s,asituation inwhich the
+GPS information isoften inaccurate. The obtained results
+indicate that theproposed algorith missuitable forcomplex
+contr oltasks,such asautonomous landing, accurate lowaltitude
+positioning and dropping ofpayloads.
+I.INTRODU CTION
+Autonomous aerial vehicles havebeen an activearea of
+research forseveralyears. Theyhavebeen used astestbeds
+to in vestig ateproblems ranging from control, navigation
+andpath planning toobject detection andtracking, aswell
+asvisual navigation. Several teams from MIT,Stanford,
+Berk eley,ARCAA and USC among others, havehad an
+ongoing UA V project forthepast decade. The reader is
+referred to[1] for agood ov ervie wofthevarious types of
+vehicles andalgorithms used fortheircontrol. Some ofthe
+recent workinthisﬁeld, includes autonomous landing [2]
+[3],visual servoing [4],obstacle avoidance [5][6].
+Our research interest focuses ondeveloping computer
+vision techniques toprovide UAVswith anadditional source
+ofinformation toperform visually guided task -thisincludes
+tracking andvisual servoing, inspection, autonomous landing
+andpositioning, orground-air cooperation. These situations
+needs reliable state information, that allo wsaonboard con-
+troller togenerate accurate positioning. Ingeneral thepose
+information isestimated based onthe the GPS and IMU
+sensor measurements. However,forlowaltitude tasks orin
+urban scenarios, theestimation often isinaccurate because
+itisaffected byGPS dropouts, thus making ﬂying inthese
+constrained environments more vulnerabl eandmore prone to
+problems. Computer vision aspassi vesensor notonly offers
+arichsource ofinformation fornavigational purposes, but
+itcanbealso used asamain navigational sensor inplace of
+GPS. Withtheincreasing interest inUAVs,avisual systemthat candetermine therobot 3Dlocation initsoperational
+environment isbecoming akeysensor forcivilapplications.
+Different works havebeen done where avision system was
+used forlowaltitude position estimation and autonomous
+landing. In[7],theauthors have evaluated theuseofvisual
+information atdifferent stages ofaUA V control system,
+including avisual controller and apose estimation for
+autonomous landing using acheckboard pattern. Saripall iet.
+al.haveproposed andexperimental method forautonomous
+landing onamoving target, [2], [8], bytracking aknown
+helipad andusing ittocomplement thecontroller GPS-IMU
+state estimation. Hrabar et.al.[9]haveused omnidirectional
+vision inorder togenerate control commands foravisual
+servoing using thecentroid ofknownvisual targets. In
+addition, 3Dpose relati vetoalanding pad, estimated using
+avisual system, havealso been used foranautonomous
+landing ofaMultirotor ,asisproposed in[10].
+This paper presents arobustrealtime 3Dpose andorienta-
+tion estimation method based onthetracking ofapiece wise
+planar object using robusthomographies estimation forvi-
+sual control, using ourprevious visual control architecture
+developed forUAVs[4].Section IIexplains howthepose
+ofaplanar object relati vetoamoving camera coordinate
+center isobtained, using frame-to-frame homographies and
+theprojecti vetransformation ofthereference object onthe
+image plane. Section IIIexplain thevisual algorithm used
+inorder torobustly track thereference landmark orhelipad.
+The integration ofthedeveloped system forcontrol aUA V
+electric helicopter ispresented insection IV.Finally ,section
+Vshowthetestresults oftheproposed algorithm running
+onboard aUA V,bycomparing theestimated 3Dpose data
+with theonegivenbytheinertial Meas urement Unit IMU.
+This validates our approach foranautonomous landing
+control based invisual information.
+II.3DESTIMATION BASED ON HOMOGRAPHIES
+Inthissection, a3D pose estimation method based
+onprojection matrix and homographies isexplained. The
+method estimat estheposition ofaworld plane relati veto
+thecamera projection center foreveryimage sequence using
+previous frame-to-frame homographies and theprojecti ve
+transformation atﬁrst, obtaining foreach newimage, the
+camera rotation matrix Randatranslational vector t.This
+method isbased onthepropose bySimon et.al.[11], [12].2010 IEEE International Conference on Robotics and Automation
+Anchorage Convention District
+May 3-8, 2010, Anchorage, Alaska, USA
+978-1-4244-5040-4/10/$26.00 ©2010 IEEE 35
+
+--- Page 2 ---
+A.World plane projection onto theImageplane
+Inorder toalign theplanar object ontheworld space
+andthecamera axis system, weconsider thegeneral pinhole
+camera model andthehomogeneous camera projecti onma-
+trix, that maps aworld point xwinP3toapoint xionith
+image inP2,deﬁned byequation 1:
+sxi=Pixw=K[Ri|ti]xw=K/bracketleftbig
+ri
+1ri
+2ri
+3ti/bracketrightbig
+xw (1)
+where thematrix Kisthecamera calibration matrix,
+Riand tiaretherotation and translation that relates the
+world coordinate system andcamera coordinate system, and
+sisanarbitrary scale factor .Figure 1showstherelation
+between aworld reference plane andtwo images takenby
+amoving camera, showing thehomograph yinduced bya
+plane between these twoframes.
+Fig. 1. Projection model onamoving camera and frame-to-frame
+homograph yinduced byaplane.
+Ifpoint xwisrestricted tolieonaplane Π,with a
+coordinate system selected insuch awaythat theplane
+equation ofΠisZ=0,thecamera projection matrix can
+bewritten asequation 2:
+sxi=PixΠ=Pi
+X
+Y
+0
+1
+=/angbracketleftPi/angbracketright
+X
+Y
+1
+ (2)
+where /angbracketleftPi/angbracketrightdenotes thatthismatrixisdepri vedonitsthird
+column or/angbracketleftPi/angbracketright=K/bracketleftbig
+ri
+1ri
+2ti/bracketrightbig
+.The depri vedcamera pro-
+jection matrix isa3×3projection matrix, which transforms
+points ontheworld plane (nowinP2)totheithimage plane
+(likewise inP2),thatisnone other thataplanar homograph y
+Hi
+wdeﬁned uptoscale factor asequation 3shows.
+Hi
+w=K/bracketleftbig
+ri
+1ri
+2ti/bracketrightbig
+=/angbracketleftPi/angbracketright (3)
+Equation 3deﬁnes thehomograph ywhich transforms
+points ontheworldplate totheithimage plane. Anypoint on
+theworld plane xΠ=[xΠ,yΠ,1]Tisprojected ontheimage
+plane asx=[x,y,1]T.Because theworld plane coordinates
+system isnotknowfortheithimage, Hi
+wcannotbedirectly
+evaluated. However,iftheposition ofthewordplane fora
+reference image isknown,ahomograph yH0
+w,canbedeﬁned.
+Then, theithimage canberelated with thereference image to
+obtain thehomograph yHi
+0.This mapping isobtained using
+sequential frame-to-frame homographies Hi
+i−1,calculated foranypair offrames (i-1,i)andused torelate theithframe to
+theﬁrst imagen Hi
+0using equation 4:
+Hi
+0=Hi
+i−1Hi−1
+i−2···H1
+0 (4)
+This mapping and thealigning betwe eninitial frame
+toworld plane reference isused toobtain theprojection
+between theworld plane andtheithimage Hi
+w=Hi
+0H0
+w.In
+order torelate theworld plane andtheithimage, wemust
+knowthehomograph yH0
+w.Asimple method toobtain it,
+requires that auser selects four points ontheimage that
+correspond tocorners ofrectangle inthescene, forming
+thematched points (0,0)↔(x1,y1),(0,ΠWidth)↔(x2,y2),
+(ΠLengh t,0)↔(x3,y3)and(ΠLengh t,ΠWidth)↔(x4,y4).This
+manual selection generates aworld plane deﬁned inacoor-
+dinate frame inwhich theplane equation ofΠisZ=0.With
+these four correspondences between theworld plane andthe
+image plane, theminimal solution forhomograph yH0
+w=/bracketleftbig
+h10
+wh20
+wh30
+w/bracketrightbig
+isobtained using themethod described on
+section III-B. The rotation matrix andthetranslation vector
+arecomputed from theplane toimage homograph yusing the
+method described in[13].
+From equation 3anddeﬁning thescale factor λ=1/s,we
+havethat/bracketleftbig
+r1r2t/bracketrightbig
+=λK−1Hi
+w=λK−1/bracketleftbig
+h1h2h3/bracketrightbig
+where
+r1=λK−1h1,r2=λK−1h2,t=λK−1h3(5)
+The scale factor λcanbecalculated using equation 6:
+λ=1
+/bardblK−1h1/bardbl=1
+/bardblK−1h2/bardbl(6)
+Because thecolumns oftherotation matrix mustbe
+orthonormal, thethird vector oftherotation matrix r3could
+bedetermined bythecross product ofr1×r2.However,the
+noise onthehomograph yestimation causes thattheresulting
+matrix R=/bracketleftbig
+r1r2r3/bracketrightbig
+does notsatisfy theorthonormality
+condition andwemust ﬁndanewrotation matrix R′thatbest
+approximates tothegivenmatrix Raccording tosmal lest
+Frobenius norm formatrices (theroot ofthesum ofsquared
+matrix coefﬁcients) [14] [13]. Asdemonstrated by[13], this
+problem canbesolvedbyforming theRotation Matrix R=/bracketleftbig
+r1r2r2/bracketrightbig
+andusing singular valuedecomposition (SVD)
+toform thenewoptimal rotation matrix R′asequation 7
+shows:
+R=/bracketleftbig
+r1r2(r1×r2)/bracketrightbig
+=USVT
+S=diag(σ1,σ2,σ3)
+R′=UVT(7)
+The solution forthecamera pose problem isdeﬁned by
+equation 8:
+xi=PiX=K[R′|t]X (8)
+The translational vector obtained isalready scaled based
+onthedimensions deﬁned forthereference plane during36
+
+--- Page 3 ---
+thealignment between thehelipad andimage I0,soifthe
+dimensions oftheworld rectangle aredeﬁned inmm,the
+resulting vector ti
+wisalso inmm.The Rotation Matrix can
+bedecomposed inorder toobtain theTait-Bryan orCardan
+Angles, which isoneofthepreferred rotation sequences in
+ﬂight and vehicle dynamics. Speciﬁcally ,these angles are
+formed bythesequence: (1)ψabout zaxis (yawRz,ψ),
+(2)θabout ya(pitch Ry,θ),and (3)φabout theﬁnal xb
+axis (roll Rx,φ),where aandbdenote thesecond andthird
+stage inathree-stage sequence oraxes.Theﬁnal coordinate
+transformation matrix forTait-Bryan angles isdeﬁned by
+thecomposition oftherotations RTait−Bryan=Rx,φRy,θRz,ψ.
+Deﬁning sθ=sinθ,cθ=cosθ,sψ=sinψ,cψ=cosψ,
+sφ=sinφandcφ=cosφ,theTait-Bryan Rotation matrixis
+expressed asequation 9:
+RTait−Bryan=
+cθcψ cθsψ −sθ
+sφsθcψ−cφsψsφsθsψ+cφcψsφcθ
+cφsθcψ+sφsψcφsθsψ−sφcψcφcθ
+
+RTait−Bryan=Ri
+w=
+r11r12r13
+r21r22r23
+r31r32r33
+
+(9)
+The angles ψ,θandφcanbeobtained from theRotation
+Matrix Ri
+w(remember therotation sequence order) using the
+equation 10.
+θ=−arcsin(r13),ψ=arcsin(r12
+cosθ),φ=arcsin(r23
+cosθ)
+(10)
+III.VISUALPROCESSING
+This section explains howtheframe-to-frame homograph y
+isestimated using matched points androbustmodel ﬁtting
+algorithms. Forit,thepyramidal Lucas-Kanade optical ﬂow
+[15] oncorners detected using themethod ofShiandTomasi
+[16] isused togenerate asetofcorresponding points, then,
+aRANSA C[17] algorithm isused torobustly estimate
+projecti vetransformation between thereference object and
+theimage.
+A.Pyramidal Lucas Kanade Optical Flow .
+Onimages with high motion, good matched features can
+beobtained using thePyramidal Lucas-Kanade algorithm
+modiﬁcation [15]. Itisused tosolvetheproblem thatarise
+when largeand non-coherent motion arepresent between
+consecuti veframes, byﬁrst trackingfeatures overlarge
+spatial scales onthepyramid image, obtaining aninitial
+motion estimation, andthen reﬁning itby do wnsampling the
+levelsoftheimages pyramid until itarrivesattheoriginal
+scale.
+The overall pyramidal tracking algorithm proceeds as
+follows: ﬁrst, apyramidal representation ofaimage Iof
+sizewidthpixels×heigh tpixelsisgenerated. Thezerothlevel
+iscomposed bytheoriginal image anddeﬁned asI0,then
+pyramids levelsarerecursi velycomputed by do wnsamplingthelastavailable level(compute I1form I0,then I2from I1
+andsoonuntil ILmform IL−1)).Typical maximum pyramids
+LevelsLmare2,3and4.Then, theoptical ﬂowiscomputed at
+thedeepe stpyramid levelLm.Theresult ofthatcomputation
+ispropag ated totheupper levelLm−1inaform ofaninitial
+guess forthepixeldisplacement (atlevelLm−1).Giventhat
+initial guess,thereﬁned optical ﬂowiscomputed at level
+Lm−1,andtheresult ispropag ated tolevelLm−2andso
+on up tothelevel0(the original image).
+B.Homo graphy calculation
+Here wewill focus onestimating the2Dprojecti ve
+transformation that givenasetofpoints ¯xiinP2and a
+corresponding setofpoints ¯x′
+iinP2,compute the3x3matrix
+Hthattakeseach ¯xito¯x′
+ior¯x′
+i=H¯xi.Taking into account
+that thenumber ofdegrees offreedom oftheprojecti ve
+transformation iseight (deﬁned uptoscale) and because
+each point topoint correspondence (xi,yi)↔(x′
+i,y′
+i)gives
+risetotwoindependent equations intheentries ofH.Four
+correspondences areenough tohave a e xact solution or
+minimal solution. Ifmatrix Hiswritten intheform of
+athevector h=[h11,h12,h13,h21,h22,h23,h31,h32,h33]tthe
+homogeneous equations ¯x′=H¯xfornpoints could beformed
+asAh=0,with Aa2n×9which incanbesolvedusing
+theInhomogeneous method [18]. Inthismethod, oneofthe
+nine matrix elements isgivenaﬁxedunity value, forming
+anequation oftheform A′h′=basisshownonequation
+11
+
+x1y11 0 0 0 −x1x′
+1−y1x′
+1
+0 0 0 x1y11−x1y′
+1−y1y′
+1........................
+xnyn1 0 0 0 −xnx′
+n−ynx′
+n
+0 0 0 xnyn1−xny′
+n−yny′
+n
+
+h11
+h12
+h13
+h21
+h22
+h23
+h31
+h32
+=
+x′
+1
+y′
+1...
+x′
+n
+y′
+n
+
+(11)
+The resulting simultaneous equations forthe8unkno wn
+elements arethen solvedusing aGaussian elimination inthe
+case ofaminimal solution orusing apseudo-in verse method
+incase ofanover-determined system [19].
+C.Homo graphy robustestimation using RANSA C
+Homograph yiscalculated usingasetofcorresponding
+ormatched points between twoimages ((xi,yi)↔(x′
+i,y′
+i)for
+i=1...n,),which often hastwoerror sources. The ﬁrst one
+isthemeasurement ofthepoint position, which followsa
+Gaussian distrib ution. The second oneistheoutlier stothe
+Gaussian error distrib ution, which arethemismatched points
+givenbytheselect edalgorithm. These outliers canseverely
+disturb theestimated homograph y,and consequently alter
+anymeasure ment based onhomographies. Inorder toselect
+asetofinlier sfrom thetotal setofcorrespondences sothat
+thehomograph ycanbeestimated emplo ying only thesetof
+pairs considered asinliers, robustestimation using Random
+Sample Consensus (RANSA C)algorithm [17] isused. It37
+
+--- Page 4 ---
+achie vesitsgoal byiterati velyselecting arandom subset of
+theoriginal data points bytesting ittoobtain themodel and
+evaluating themodel consensus, which isthetotal number of
+original data points thatbest ﬁtthemodel. This procedure is
+then repeated aﬁxednumber oftimes, each time producing
+either amodel which isrejected because toofewpoints are
+classiﬁed asinliers, orareﬁned model. When total trials
+arereached, thealgorithm return theHomograph ywith the
+largest number ofinliers. TheAlgorithm 1showsthegeneral
+steps toobtain arobusthomograph y.Further description can
+befound in[19], [17].
+Algorithm 1Homograph yestimation using RANSA C
+Requir e:Setofmatched points xi=(xi,yi)↔x′i=(x′
+i,y′
+i)
+fori=1...n
+Deﬁne s=Minimun setofpoints toestimate theminimal
+solution (s=4fortheHomograph y)
+Deﬁne p=Probability that alleast one oftherandom
+samples isfree form outliers
+Deﬁne t=distance threshold toconsider apoint asan
+inlier forsome model.
+Deﬁne ε=Initial probability thatanyselected point isan
+outlier .
+Deﬁne Concesus =Desired number ofminimum Inliers
+based onthetotal number ofmatched points
+Calculate themaximum number ossamples N=log(1−
+p)/log(1−(1−ε)s)
+while N>Trialsdo
+Randomly select spairs ofmatched points
+Calculate theminimal solution forthemodel under test
+(Homograph y)using selected spoints
+inliers=0
+fori=0tondo
+Calculate the distance d2
+transfer=d(x′i,Hxi)2+
+d(xi,H−1x′i)2
+ifdtransfer<tthen
+inliers=inliers+1
+end if
+end for
+ifinliers>Concensus then
+Calculate theHomograph yusing allinliers points
+Concensus =inliers
+end if
+recalculate ε=1−(inliers/n)
+recalculate N=log(1−p)/log(1−(1−ε)s)
+Trials=Trials+1
+end while
+IV.UAV SYSTEMAND V ISUALCONTROLSYSTEM
+DESCRIPTION.
+The Colibri project hasthree operational UA V platforms:
+oneelectric helicopter andtwo g asoline-po wered helicopters
+[20] (ﬁgure (2)). The COLIBRI testbeds [4]areequipped
+with anXscale-based ﬂight computer augment edwith sen-
+sors (GPS, IMU, Magnetometer ,fused with aKalman ﬁlter
+forstate estimation). Additionally theyinclude apan andtiltservo-controlle dplatform formanydifferent cameras and
+sensors. Inorder toenable ittoperform vision processing,
+italso hasaVIA mini-ITX 1.5GHz onboard computer
+with 2GbRAM, awireless interf ace, andsupport formany
+Firewire cameras including Mono (BW), RAWBayer ,color ,
+andstereo heads.
+Fig. 2. COLIBRI IIIElectric helicopter UA V used forpose estimation
+tests.
+The system runs inaclient-serv erarchitecture using
+TCP/UDP messages. The computers runLinux OSworking
+inamulti-client wireless 802.11g ad-hoc netw ork, allowing
+theintegration ofvision systems andvisual tasks with ﬂight
+control. This architecture allowsembedded applications to
+runonboard theautonom oushelicopter while itinteracts with
+external processes through ahigh levelswitching layer .The
+visual control system andadditional external processes are
+alsointegrated with theﬂight control through thislayer using
+TCP/UDP messages, forming adynamic look-and-mo ve[21]
+servoing architecture asﬁgure 3shows.Thehelicopter’ slow-
+levelcontroller isbased onPID control loops toensure
+itsstability .Because features areextracted intheimage
+Fig. 3.UA V onboard visual control system following adynamic look-and-
+movearchitecture
+andthen used toestimate thepose ofthehelipad ortarget
+with respect tothecamer acoordinate system (ﬁxedonthe
+UA V camera platform), ourcontrol scheme isconsidered
+tobePosition Base Visual Servoing (PBVS) system [21],
+[22], [23]. Inthis kind ofcontrol, anerror between the
+current andthedesired pose ofthecamera-U A Viscalculated
+and used bythelowlevelonboard controller togenerate
+thecontrol references forpositioning theUA V according
+with themeasured error .Depending onthecontrol task, a
+reference point incoordinates relati vetothehelipad will
+bedeﬁned (Forlanding thereference point will be(0,0,0)).
+Because, theestimated position ofthehelipad (relati veto
+thecamera coordinate system ontheUAV)isknowbythe38
+
+--- Page 5 ---
+visual system, thereference point can betransformed to
+coordinates relati vetothehelicopter coordinate system and
+willbeused togenerate thereferences (X,Y,Z)and(Heading )
+commands, relati vetotheUA V coordinate system, thatwill
+beused bythelow-levelcontroller toposition thehelicopter
+(inthelanding case thecommand will bethetranslation
+vector obtained bythevisual system).
+V.UAV 3DESTIMATION TESTSAND RESULTS
+This section showsthepose estimation tests using the
+Colibri 3Electric UA V and visual control architecture ex-
+plained insection IV.Forthese test aMonocromo CCD
+Firewire camera with aresolution of640x480 pixelsisused.
+The camera iscalibrated before each test, sotheintrinsic
+parameters areknow.The camera isinstalled insuch away
+thatitislooking downw ardwith relation totheUA V.Aknow
+rectangular helipad isused asthereference object towhich
+estimate theUA V 3Dposition. Itisaligned insuch awaythat
+itsaxesareparallel tothelocal plane North East axes.This
+helipad wasdesigned insuch awaythat itproduces many
+distincti vecorners forthevisual tracking. Figure 4,showsthe
+helipad used asreference andﬁgure 5,showsthecoordinate
+systems involvedinthepose estimation. Forthese tests a
+Fig. 4. Helipad used asaplane reference forUA V 3Dpose estimation
+based onhomographies.
+series ofﬂights inautonomous mode atdifferent heights were
+done. The testbegins when theUA V ishovering overthe
+helipad. Then auser manually selects four point ontheimage
+that corresponds tofour corners onthehelipad, forming
+thematched points (0,0)↔(x1,y1),(910mm,0)↔(x2,y2),
+(0,1190 mm)↔(x3,y3)and(910mm,1190 mm)↔(x4,y4).
+This manual selection generates aworld plane deﬁned in
+acoordinates frame inwhich theplane equation ofΠis
+Z=0andalso deﬁning thescale forthe3Dresults. With
+these four correspondences between theworld plane andthe
+image plane, theminimal solution forhomograph yH0
+wis
+obtained. Then, theUA V ismoved,making changes inX,Y
+andZaxes,while thehelipad istracking byestimating the
+frame-to-frame homographies Hi
+i−1,which isused toobtaing
+thehomographies Hi
+0,and Hi
+wfrom which Ri
+wand ti
+wis
+estimated. The process issuccessi velyrepeated until either ,
+thehelipad islostortheuserﬁnishes theprocess. The 3D
+poses estimation process isdone with anaverage of12frame
+Fig. 5.Helipad, camera andU.A.V coordinate systems
+persecond FPS, which isaenough forahight levelvisual
+controller using theconﬁguration explained onsection IV.
+Figure 6showstwodifferent 3Dpose estimation tests,
+based onareference helipad, inwhose thehelicopter is
+positioned attwo different ﬂight levels, theﬁrst one is
+ahovering beginning at4.2m ,thesecond one, thetest
+begins with aheight of10m.This ﬁgure also showsthe
+original reference image, thecurrent frame, theoptical ﬂow
+between lastandcurrent frame, thehelipad coordinates inthe
+current frame camera coordinate system andtheTait-Bryan
+angles obtained from therotati onmatrix. Figure 7showsthe
+reconstruction oftheﬂight test1,using theIMU data.
+Fig. 6. Twodifferent testfor3Dpose estimation based onahelipad
+tracking using RobustHomograph yestimation. Up:Flighttestbeginning at
+analtitude of4.2m .Down: Flight testbeginning atanaltitude of10m.In
+both images, thereference image I0isonthesmall rectangle ontheupper
+leftcorner .Left itthecurrent frame andRight theOptical Flowbetween
+theactual andlastframe. Superimposed aretheprojection oftheoriginal
+rectangle, thetranslation vector andtheTait-Bryan angles.
+The 3Dpose estimated using thevisual system iscom-
+pared with helicopter position estimated bytheKalman Filter
+ofthecontroller ,with reference tothe tak eoffpoint (Center39
+
+--- Page 6 ---
+Fig. 7.3Dﬂight andheading reconstruction. Superimposed images show
+thehelipad atdifferent times ofthetest, from which the3Dposition is
+estimated.
+oftheHelipad). Because thelocal tangent plane tothe
+helicopter isdeﬁned insuch awaythat theXaxis isthe
+North position, theYaxis istheEast position andZaxis is
+theDown Position (negative),themeasured XandYvalues
+must berotated according with thehelicopter heading orYaw
+angle, inorder tobecomparable with theestimated values
+obtaining from thehomographies. Figures 8,9and10shows
+thelandmark position with respect totheUA V andﬁgure 11,
+showstheestimated yaw angle.
+0 20 40 60 80 100 120 140 160 180 200−1000−50005001000X displacement Flight 1X mm
+RMSE = 171
+0 50 100 150 200 250 300 350 400−4000−2000020004000X displacement Flight 2
+frameX mm
+RMSE = 492.5 Homography estimation
+I.M.U data
+Fig. 8. Comparison between theXaxis displacement forhomograph y
+estimation andIMU data.
+Results showagood performance ofthevisual estimated
+values compared with theIMU data. Ingeneral, estimated
+and IMU data havethesame behavior forboth test se-
+quences. ForXandYthere isansmal lerror between the
+IMU and theestimated position, giving amaximum root
+mean squared error RMSE of0.42m inXaxisand0.16m inY
+axis. Theestimated altitude position Zhave asmall error for
+ﬂight 1with aRMSE of0.16m and0.85m intest2.Although
+theresults aregood forheight estimation, isimportant to
+remember thattheIMU altitude estimation haveanaccurac y
+of±0.5m,causing thatthereference altitude estimation used
+tovalidate ourapproach have abiguncertainty .Finally ,the
+yawangle iscorrectly estimated, presenting fortheﬁrstﬂight
+anderror of2obetween theIMU andtheestimated data, and0 20 40 60 80 100 120 140 160 180 200−500050010001500Y displacement Flight 1Y mm
+RMSE = 82.7
+0 50 100 150 200 250 300 350 40001000200030004000Y displacement Flight 2
+frameY mmRMSE = 163.5
+Homography estimation
+I.M.U data
+Fig. 9. Comparison between theYaxis displacement forhomograph y
+estimation andIMU data.
+0 20 40 60 80 100 120 140 160 180 200400042004400460048005000Z displacement Flight 1Z mm
+RMSE = 161
+0 50 100 150 200 250 300 350 400600080001000012000Z displacement Flight 2
+frameZ mm
+RMSE = 857.3 Homography estimation
+I.M.U data
+Fig. 10. Comparison between theZaxis displacement forhomograph y
+estimation andIMU data.
+0 20 40 60 80 100 120 140 160 180 2003638404244YAW angle Flight 1YAW º
+RMSE = 2.548
+0 50 100 150 200 250 300 350 4000102030YAW angle Flight 2
+frameYAW º
+RMSE = 4.935Homography estimation
+I.M.U data
+Fig. 11. Comparison between theYawangle measured using homograph y
+estimation andIMU data.
+4oforthesecond tests.
+Results also haveshownthatthesystem correctly estimate
+the3Dpositi onwhen amaximum ofthe70%ofthe
+landmark ispartially occluded oroutofthecamera ﬁeld
+ofview.The accompan ying video forthispaper ,showsthe
+video sequences ofthetestexplained inthis section. The40
+
+--- Page 7 ---
+accompan ying video (high quality) and additional testare
+also available attheColibri project web page [20].
+The proposed algorithm canbeeasily adapted forsitua-
+tions inwhich theground isnottotally ﬂatortheonboard
+camera isnot totally aligned with UA V frame. Inthis
+cases, anadditional rotation matrix that aligns thecamera
+coordinate system orinclude theground rotation isnecessary
+inorder togenerate thecontrol signal based ontheestimated
+data.
+VI.CONCLUSIONSAND FUTUREWORK
+This paper has presented arobustreal time 3Dpose
+estimation system forUAVsbased onpiece wise planar object
+tracking using homographies. Themethod wastested onreal
+UA V ﬂights, andresults haveshownthattheestimated data
+iscomparable inprecision andquality with theoneobtained
+bytheIMU oftheonboard controller .This indicates that
+thevisual system can beimplemented aspart ofaUA V
+ﬂight controller fortasks such asautonomous landing orlow
+altitude positioning, where theGPS signal isoften inaccurate
+orunavailable, aswell asforuseinurban scenarios where
+piece wise reference marks areeasily obtained.
+Result haveshownthatthe3Dpose estimated ataframe
+rate of12FPS bythevisual system isconsistent with the
+position calculated bytheonboard controller .Testhavebeen
+done atdifferent altitudes, and theestimated values have
+been compared with theIMU values asground truth data,
+producing asmall RMSE error forallaxesandfortheyaw
+angle. This demonstrates thequality ofourpose estimation
+anditsviability asahigh levelcontroller inadynamic look-
+and-mo veservoing architecture, asisproposed inthispaper .
+Wealso havetested thequality ofthe object tracking
+system byusing arobustframe-to-frame homograph yesti-
+mator .Theobject canbecorrectly track edandits3Dposition
+obtained with high precision, when atleast 30%ofthe
+reference object isnotoccluded oroutofthecamera ﬁeld
+ofviewasvideo sequences intheresults shows.
+Future workincludes closing thehigh levelcontr olloop
+foranautonomous landing onthereference helipad. To
+achie vethispurpose, the3Dpose will beused togenerate
+thereferences forthelowlevelcontroller .Inaddition, we
+arecurrently testing impro vedversions oftheLucas Kanade
+optical ﬂow,liketheInverse compositional algorithm (ICA)
+aswell asevaluating theuseofaKalman Filter forimpro ved
+the3Dpose estimation.
+VII.ACKNO WLEDGMENTS
+The workreported inthispaper istheconsecution of
+several research stages attheComputer Vision Group -
+Universidad Polit ´ecnica deMadrid. The authors would like
+tothank JorgeLeon forsupporting theﬂight trials, theI.A.
+Institute -CSIC forcollaborating intheﬂights consecution,
+theUniversidad Polit ´ecnica deMadrid, theConsejer ´ıade
+Educaci ´ondelaComunidad deMadrid andtheFondo Social
+Europeo (FSE) forsome oftheAuthors’ sPhD Scholarships.
+This work has been sponsored bytheSpanishScience and
+Technology Ministry under thegrant CICYT DPI 2007-
+66156REFERENCES
+[1]L.Mejias, S.Saripall i,P.Campo y,andG.Sukhatme, “Visual servoing
+approach fortracking features inurban areas using anautonomous
+helicopter ,”inProceedings ofIEEE International Confer ence on
+Robotics and Automation ,Orlando, Florida, May 2006, pp.2503–
+2508.
+[2]S.Saripalli andG.S.Sukhatme, “Landing ahelicopter onamoving
+target,”inProceedings ofIEEE International Confer ence onRobotics
+andAutomation ,Rome, Italy,April 2007, pp.2030–2035.
+[3]T.Merz, S.Duranti, and G.Conte, “Autonomous landing ofan
+unmanned helicopter based onvision andinbertial sensing. ”inInter -
+national Symposium onExperimental Robotics ,Singapore, June 2004.
+[4]P.Campo y,J.F.Correa, I.Mondrag ´on,C.Mart ´ınez, M.Olivares,
+L.Mej´ıas,andJ.Artieda, “Computer vision onboard UAVsforcivilian
+tasks, ”Journal ofIntellig entand Robotic Systems. ,vol.54, no. 1-3,
+pp.105–135, 2009.
+[5]Z.He, L.R.V,and C.P.R,“Vision-based UA V ﬂight control
+and obstacle avoidance, ”inProceedings oftheAmerican Contr ol
+Confer ence,June 2006, p.5pp.
+[6]R.Carnie, R.Walker,andP.Cork e,“Image processing algorithms for
+UA V ”sense and avoid”, ”inRobotics and Automation, 2006. ICRA
+2006. Proceedings 2006 IEEE International Confer ence on,May 2006,
+pp.2848–2853.
+[7]C.DeWagter and J.Mulder ,“Towards vision-based uavsituation
+awareness, ”AIAA Guidance ,Navigation, andContr olConfer ence and
+Exhibit ,August 2005.
+[8]S.Saripalli, J.F.Montgomery ,and G.S.Sukhatme, “Visually-
+guided landing ofanunmanned aerial vehicle,”IEEE Transactions
+onRobotics andAutomation ,vol.19, no. 3,pp.371–381, June 2003.
+[9]S.Hrabar and G.Sukhatme, “Omnidirectional vision foranau-
+tonomous helicopter ,”inInIEEE Internation Confer ence onRobotics
+andAutomation ,2003, pp.558–563.
+[10] S.Lange, N.S¨underhauf, andP.Protzel, “Autonomous landing fora
+multirotor UA V using vision, ”inInWorkshop Proceedings ofSIMP AR
+Intl. Conf .onSIMULA TION, MODELING andPROGRAMMING for
+AUTONOMOUS ROBO TS,Venice, Italy,Nov2008, pp.482–491.
+[11] G.Simon, A.Fitzgibbon, and A.Zisserman, “Mark erless tracking
+using planar structures inthescene, ”inAugmented Reality ,2000.
+(ISAR 2000). Proceedings. IEEE and ACM International Symposium
+on,2000, pp.120–128.
+[12] G.SimonandM.-O. Berger,“Pose estimation forplanar structures, ”
+Computer Graphics andApplications, IEEE ,vol.22, no. 6,pp.46–53,
+Nov/Dec 2002.
+[13] Z.Zhang, “Aﬂexible newtechnique forcamera calibration, ”IEEE
+Transactions onpattern analysis and machine intellig ence,vol.22,
+no. 11, pp. 1330–1334, 2000.
+[14] P.Sturm, “Algorithms for plane-based pose estima-
+tion,”pp. 1010–1017, June 2000. [Online]. Available:
+http://perception.inrialpes.fr/Publications/2000/Stu00b
+[15] Bouguet JeanYves,“Pyramidal implementation ofthelucas-kanade
+feature track er,”Intel Corporation. Microprocessor Research Labs,
+Santa Clara, CA95052, Tech. Rep., 1999.
+[16] J.Shi and C.Tomasi, “Good features totrack, ”in1994 IEEE
+Confer ence onComputer Vision andPattern Reco gnition (CVPR’94) ,
+1994, pp.593–600.
+[17] M.A.Fischer and R. C. Bolles, “Random sample concensus: a
+paradigm formodel ﬁtting with applications toimage analysis and
+automated cartograph y,”Communications oftheACM,vol.24, no. 6,
+pp.381–395, 1981.
+[18] A.Criminisi, I.D.Reid, and A.Zisserman, “Aplane measuring
+device,”ImageVision Comput. ,vol.17, no. 8,pp.625–634, 1999.
+[19] R.I.Hartle yandA.Zisserman, Multiple ViewGeometry inComputer
+Vision ,2nd ed. Cambridge University Press, ISBN: 0521540518,
+2004.
+[20] COLIBRI, “Uni versidad Polit ´ecnica deMadrid. Computer Vision
+Group. COLIBRI Project, ”http://www .disam.upm.es/colibri, 2009.
+[21] S.Hutchinson, G. D. Hager ,andP.Cork e,“Atutorial onvisual servo
+control, ”inIEEE Transaction onRobotics andAutomation ,vol.12(5),
+October 1996, pp.651–670.
+[22] F.Chaumette and S.Hutchinson, “Visual servocontrol. i.
+basic approaches, ”Robotics &Automation Magazine ,IEEE ,
+vol. 13, no. 4, pp. 82–90, 2006. [Online]. Available:
+http://dx.doi.or g/10.1109/MRA.2006.250573
+[23] B.Siciliano and O.Khatib, Eds., Spring erHandbook ofRobotics .
+Berlin, Heidelber g:Springer ,2008.41

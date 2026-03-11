@@ -1,0 +1,1430 @@
+--- Page 1 ---
+HAL Id: hal-00583553
+https://hal.science/hal-00583553v1
+Submitted on 6 Apr 2011
+HAL is a multi-disciplinary open access
+archive for the deposit and dissemination of sci-
+entific research documents, whether they are pub-
+lished or not. The documents may come from
+teaching and research institutions in F rance or
+abroad, or from public or private research centers.L’archive ouverte pluridisciplinaire HAL , est
+destinée au dépôt et à la diffusion de documents
+scientifiques de niveau recherche, publiés ou non,
+émanant des établissements d’enseignement et de
+recherche français ou étrangers, des laboratoires
+publics ou privés.
+HAL Authorization
+A formal approach for the construction and verification
+of railway control systems
+Anne E. Haxthausen, Jan Peleska, Sebastian Kinder
+T o cite this version:
+Anne E. Haxthausen, Jan Peleska, Sebastian Kinder. A formal approach for the construction and
+verification of railway control systems. F ormal Aspects of Computing, 2009, 23 (2), pp.191-219.
+￿10.1007/s00165-009-0143-6￿. ￿hal-00583553￿
+
+--- Page 2 ---
+Under consideration for publication in Formal Aspects of Co mputing
+A Formal Approach for the
+Construction and Veriﬁcation of
+Railway Control Systems
+Anne E. Haxthausen1, Jan Peleska2and Sebastian Kinder3
+1Informatics and Mathematical Modelling, Technical Univer sity of Denmark, Lyngby, Denmark
+ah@imm.dtu.dk
+2Department of Mathematics and Computer Science, Universit ¨ at Bremen, Germany
+jp@informatik.uni-bremen.de
+3Department of Mathematics and Computer Science, Universit ¨ at Bremen, Germany
+kinder@informatik.uni-bremen.de
+Abstract. This paper describes a complete model-based development and veriﬁcation approach for rai lway
+control systems. For each control system to be generated, the user makes a descri ption of the application-
+speciﬁc parameters in a domain-speciﬁc language. This description is automatically transformed into an
+executable control system model expressed in SystemC. This model is then compiled into object code.
+Veriﬁcation is performed using three main methods applied to diﬀerent levels. (0) T he domain-speciﬁc
+description is validated wrt. internal consistency by static analysis. (1) The crucial safety properties are
+veriﬁed for the SystemC model by means of bounded model checking. (2) The object code is ver iﬁed to be
+I/O behaviourally equivalent to the SystemC model from which it was compiled.
+Keywords: domain engineering, domain-speciﬁc languages, code generation, formal methods, veriﬁcat ion,
+railway control systems
+1. Introduction
+1.1. Motivation
+The development of modern railway and tramway control systems represents a cons iderable challenge to both
+systems and software engineers: the goal to increase the traﬃc throughput while a t the same time increasing
+the availability and reliability of railway operations leads to a demand f or more elaborate safety mechanisms
+in order to keep the risk at the same low level that has been established for Europea n railways until today.
+Correspondence and oﬀprint requests to : Anne E. Haxthausen, Informatics and Mathematical Modelli ng, Technical University
+of Denmark, bldg. 321, DK-2800 Lyngby, Denmark, e-mail: ah@ imm.dtu.dk, fax: +45 45 930074, phone: +45 45 257510
+
+--- Page 3 ---
+2 Anne E. Haxthausen et al.
+The challenge is further increased by the demand for shorter time-to-market periods and higher competition
+among suppliers of the railway domain; both factors resulting in a demand for a higher degree of automation
+for the development, veriﬁcation, validation and test phases of projects, without i mpairing the thoroughness
+of safety-related quality measures and certiﬁcation activities. Motivated b y these considerations, this paper
+describes an approach for the construction, veriﬁcation and validation of rail way control systems which has
+been elaborated by the authors and their collaborators during the last decade.
+1.2. Two Problem Categories
+A closer analysis shows that the problems to be solved can be structured according t o two main categories.
+(1) The design of novel generic control algorithms is stimulated by the availability of innovative technolo-
+gies oﬀering new possibilities for safe and reliable train control mechanis ms. In this category the objective is
+to elaborate generic theories , that is, collections of theorems whose assumptions and implications are univer-
+sally quantiﬁed over, say, railway networks of a certain type. As an exam ple, we mention the investigation
+of distributed train control algorithms stimulated by the advent of mobil e communication technologies, now
+making it possible to develop alternatives to the centralised interlocking paradigm. For the veriﬁcation of
+these algorithms, mechanised (ﬁrst-order or higher-order logic) proof support is des irable.
+(2) The development and veriﬁcation of concrete system conﬁgurations addresses a problem frequently
+arising in conventional developments: typically, railway control system s are nowadays constructed following
+the principles of object orientation and generics. The system is designed as a generic co llection of classes,
+structured according to certain design patterns, collaborations and frameworks enforcing proven design prin-
+ciples and facilitating the utilisation of speciﬁc hardware technology. Concret e systems are instantiated from
+the generic collection using conﬁguration data specifying the network to be control led, available track ele-
+ments (signals, sensors, points) etc. In spite of the elegance of this approac h, it suﬀers from the ﬂaw that –
+when conventionally tested for a limited number of diﬀerent conﬁgurations – some software bugs are only
+revealed when new conﬁguration variants are used. Additionally, the veriﬁcation of conﬁguration data re-
+quires a considerable eﬀort, often necessitating customised veriﬁcation tool sets which in turn have to be
+qualiﬁed. As a consequence, even minor conﬁguration changes, induced, for example, by construction work
+on certain track sections, require complex veriﬁcation processes. The solution t o these problems would be
+an automated veriﬁcation suite making it possible to verify each concrete system instance together with its
+conﬁguration . Here, automation is a crucial requirement, since the conventional veriﬁcation pr ocess currently
+only exercised once on generic system level would be far too time-consuming and expensiv e to be repeated on
+every concrete system instance. In this problem category veriﬁcation does not involve universal quantiﬁca-
+tion, since all conﬁguration aspects are completely determined. As a consequence, model-based dev elopment
+combined with model or property checking, validated compilers or object code veriﬁers are the technical
+means of choice for the development and veriﬁcation process.
+In this article, we focus on the second problem category. For a detailed description o f the ﬁrst, the reader
+is referred to [HP00a] and further references listed there.
+1.3. Domain-speciﬁc Approach
+In recent years, domain-speciﬁc methods for software development have gained wide in terest. One of the
+main objectives addressed by these techniques is the possibility for a given doma in to reuse various assets
+when developing software, e.g. to develop a generic system from which one can instan tiate concrete systems.
+Additionally, the use of domain-speciﬁc languages (DSLs) as front-ends for developmen t tools is advocated.
+In contrast to general-purpose speciﬁcation and programming languages, DSLs fa cilitate their utilisation
+by domain experts who are not specialists in the ﬁeld of information technolo gy, because they use the
+terminology of the application domain.
+Inspired by these considerations, we have suggested an approach for eﬃcient construction of a family of
+similar tramway or railway control systems in [HP02, HP03a] and exempliﬁed it for a class of route-based
+tramway control systems. The idea is to provide a framework consisting of (1) a generic control system that
+can be instantiated with conﬁguration data, (2) a DSL front-end for specifyi ng application-speciﬁc parameters
+and (3) a generator from domain-speciﬁc descriptions into conﬁguration data and inst antiation rules for the
+concrete system. Hence, for each control system to be developed, application-speciﬁc par ameters are described
+
+--- Page 4 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 3
+in the domain-speciﬁc language and from this speciﬁcation a control system can aut omatically be generated.
+An advantage of the front-end consists in the fact that it is much simpler to s pecify the parameters of a
+system in the domain-speciﬁc language and then apply the generator, than it is to prog ram the conﬁguration
+data directly. This speeds up the production time and reduces the risk of errors; furtherm ore, it can be done
+by domain experts without requiring the assistance of programming specialis ts.
+While this approach clearly oﬀers advantages, it requires careful work to develop such a language, gener-
+ator and generic control system and to automatically verify that generated control systems are safe. For this
+purpose we use formal methods.
+1.4. Automated Veriﬁcation Approach
+As “programming” language for the control systems we have chosen SystemC [ GLMS02] which allows for
+formal reasoning based on an operational transition system semantics. Sy stemC serves both as a compila-
+tion target from semi-formal DSL descriptions to semantically well-founded fo rmal speciﬁcations and as a
+high-level programming language which can be compiled into executable code. Our development approach
+prescribes that each time a SystemC control system model is generated and compiled i nto object code, veriﬁ-
+cation shall be performed at two levels. (1) The SystemC control system mo del is veriﬁed to be safe by means
+of bounded model checking combined with an inductive proof strategy, and (2) the object code is veriﬁed to
+be a correct implementation of the SystemC control system model. For this purpo se, the framework should
+provide support tools: a proof obligation generator and an object code veriﬁer.
+1.5. Development of Languages and Tools
+For the development of a domain-speciﬁc language and support tools our suggestion i s to follow the TripTych
+dogma by Dines Bjørner (see for instance [Bjø06c]) making a domain model descri bing the concepts of the
+application domain prior to the actual development of applications. Apart from s eparating the concern of
+describing what there is from the concern of describing what there should be (the applications), this ensures
+that diﬀerent applications are based on the same conceptual understanding. Then from the dom ain-model one
+can establish a model of domain-speciﬁc descriptions and their static semantics, a m odel of the application
+generator and a model of the code veriﬁer. For a case study we have formulated such mo dels in the formal
+RAISE Speciﬁcation Language, RSL, [RAI92].
+1.6. Related Work
+The work presented in this paper is based on results published in [HP00a, LVH00, P BH00, HP00b, HP02,
+HP03b, HP03a, GH03, HCD04, PGHD04, Ber06, PH07]. Our work has been i nspired by Dines Bjørner’s
+TripTych dogma and formal techniques for software development described in [Bj ø06a, Bjø06b, Bjø06c,
+Bjø03a, Bjø06d, Bjø07].
+The domain model used in our case study only includes concepts needed for our development framework .
+For domain models capturing a much broader collection of concepts for railways we co nsider Dines Bjørner’s
+formal railway domain models (see e.g. [Bjø03c, BGH+97]) as very promising candidates.
+Object code veriﬁcation has been investigated by several authors, see [PSS98] for a n approach that has
+inﬂuenced our work in a considerable way. While our results have a similar formal ba sis – for example, our
+notion of I/O-equivalence is a specialisation of the “correct implementation r elation” deﬁned in [PSS98]
+– we exploit the speciﬁc restrictions of our model-based development framework in or der to simplify the
+equivalence proofs in a considerable way.
+For other complementary and competing approaches for the development and veriﬁcation o f railway
+control systems the reader is referred to the contributions in [TS03, ST04, ST07 , EDD+04], and for a survey
+of results and trends the reader is referred to the paper [Bjø03b].
+
+--- Page 5 ---
+4 Anne E. Haxthausen et al.
+3
+Checking
+Result
+Checking
+ResultModel checker
+´Verifier4
+5 6DocumentDSL
+CheckerSemanticsStatic
+ResultCheckingData CollectorInput
+21
+Assembler code Behavioural domain model
+Object CodeController modelExecutableGenerators
+Safety conditions
+Compiler
+Fig. 1. Toolchain overview.
+1.7. Paper Overview
+First, in Sect.2–3, we give an overview of our approach and informally describe a case study used to illustrate
+our approach. Then, in Sect.4, we outline how a domain-speciﬁc description language for our case study
+can be formally developed from a static domain model. Next, in Sect. 5, we outline the development of
+application generators. In Sect.6, we explain how the safety requirements can be veriﬁed. After that, in
+Sect.7, we outline our approach for object code veriﬁcation and we sketch how an asso ciated code veriﬁer
+can be formally developed. Finally, in Sect.8, we discuss the work presented in this paper.
+2. Method and Toolchain – Overview
+Our approach requires a domain-speciﬁc language (DSL) and tools supporting the langua ge. The main tool
+components required are:
+1. Adata collector for producing syntactically correct DSL text documents.
+2. Astatic semantics checker for DSL documents.
+3.Generators parsing DSL documents in order to create (1) executable controller models with trans ition
+system semantics (expressed in SystemC), (2) behavioural physical domain mo dels with transition system
+semantics (SystemC), and (3) safety conditions (expressed in a subset of the tempo ral logic PSL [Acc04]
+that is a widely known industrial standard) for the concurrent composition of thes e two models.
+
+--- Page 6 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 5
+4. Abounded model checker capable of verifying properties of composed controller and physical domain
+models written in SystemC.
+5. Acompiler for translating SystemC models into assembler code (since SystemC is embedded into C++,
+conventional compilers can be used for this task).
+6. An object code veriﬁer which, given a SystemC controller model and associated assembler code, veriﬁes
+that the latter is a correct implementation of the former.
+To create and verify a new control system users should apply these tools to go thro ugh the following
+steps illustrated in Fig. 1:
+1. The railway specialists use the data collector to produce a syntactically w ell-formed DSL description D
+of domain-speciﬁc details of the system to be developed.
+2. The static semantics checker checks that Dis statically well-formed.
+3. The generators automatically transform the domain-speciﬁc description Dinto a behavioural controller
+modelM, a behavioural physical domain model P(describing how uncontrolled physical devices are
+behaving) and a set of veriﬁcation obligations Φ (safety properties as, for ex ample, the requirement that
+trams should never meet within a track segment or on a point).
+4. It is proved that the controller model Min concurrent combination with the physical model Psatisﬁes
+the obligations Φ. This is done by means of an inductive proof strategy perform ed using bounded model
+checking techniques.
+5. The controller model Mis compiled into object code and data with conventional C/C++ compilers.
+This results in an assembler “model” A.
+6. The assembler “model” Ais veriﬁed to be behaviourally equivalent to the controller model Musing the
+object code veriﬁer.
+7. Finally the correctness of the hardware/software integration is automa tically tested, following the con-
+cepts described in [BFPT06].
+3. A Case Study
+In a case study we have applied our approach to provide a framework for constructi ng and verifying a
+family of route-based tramway control systems. In particular we have desig ned a domain-speciﬁc language
+(DSL) and associated tools. Below, in Sect. 3.1, we informally explain the contents of descriptions ( D) in this
+domain-speciﬁc language and give a concrete example of such a description, and then, in Sect. 3.2, we outline
+the SystemC models ( MandP) and safety conditions (Φ) that the generators should produce from such
+descriptions. In Sect. 4 we explain how the language and associated static semant ics checker were developed,
+and in Sect. 5 we explain the design of the primary generator: the application generat or producing SystemC
+controller models. In Sect. 6 we describe our strategy for proving safety conditi ons Φ. We have successfully
+applied this strategy for the concrete sample DSL description from Sect. 3.1.
+3.1. Domain-Speciﬁc Description
+The basic requirements for avoiding tram collisions are that trams must onl y drive on predeﬁned routes
+previously reserved and that two conﬂicting (overlapping) routes must not be reserved a t the same time. As
+a consequence, controllers built to enforce these requirements depend on the railway networ k to be controlled
+and on a selection of predeﬁned routes through that network. This implies that the associ ated domain-speciﬁc
+description should include network speciﬁcations and interlocking tables describing the r outes.
+Fig. 2 shows a DSL representation of a sample network, consisting of the foll owing track components:
+•Sensors detecting passing trams: G20.0, . . . , G25.1
+•Controllable points : W100, W102, W118.
+•Non controllable points : shown by grey colour.
+•Signals : S20, S21, S22.
+•Track segments : (G20.0,G20.1), . . . , (G25.0,G25.1), shown as solid lines between two sensors.
+
+--- Page 7 ---
+6 Anne E. Haxthausen et al.
+S22
+G24.2
+W118W100TRAMWAY MAIN ROUTES:
+   1: S20−G21 (NORTH−SOUTH)
+   3: S21−G23 (SOUTH−NORTH)
+ROUTE 4: S21−G25ROUTE 5: S22−G23
+ROUTE 2:
+S20−G25
+ROUTE 6:
+S22−G21ROUTE 3
+S21−G23
+G22.1
+G22.0G22.3G25.0 G25.1G23.1
+G23.0
+G21.1G21.0S20
+S21G24.0 G24.1G24.3
+G22.2S20−G21ROUTE 1:G20.0
+G20.1
+G20.2G20.3W102
+TRAM MAINTENANCE SITE
+Fig. 2. The sample network.
+Theinterlocking tables , which are also part of the DSL, comprise four items: (1) a route deﬁnition table
+specifying admissible routes through the network, (2) a route conﬂict table describing the routes not to be
+simultaneously allocated because they have a common route entry point (marked by “o” in the route conﬂict
+table) or overlap each other in another way (marked by “ x”). (3) a point position table describing for each
+route how points should be set for its traversal, and (4) a signal setting table specifying for each route the
+name of its entry signal and the aspect it should be set to, in order to indicate t hat a tram is allowed to
+enter the route. In Fig. 3 the graphical representation of some sample interlo cking tables for the network
+given in Fig. 2 are shown.
+3.2. Generated SystemC Models and Safety Conditions
+From DSL descriptions as that depicted in Fig. 2 and 3, the generators create SystemC m odelsMandP
+together with the associated interface speciﬁcations and safety-related proof o bligations Φ. For this purpose,
+the generators utilises a library of design patterns, so that architectural asp ects, physical model, controller
+model and proof obligations are elaborated according to pre-deﬁned schemes.
+3.2.1. Interfaces
+Interfaces are modelled according to the shared variable paradigm, to be realis ed using DMA or dual-ported
+RAM technology on all hardware interfaces (Fig. 4). Signal and point inter faces, for example, consist of three
+data ﬁelds: the requested state (controller →signal/point), the actual state (controller ←signal/point), and
+the time tick of the request so that a switching deadline can be checked in order to det ect failed track
+elements. In SystemC the interfaces are modelled by the following variables:
+•A clocktstoring the current time, i.e. number of cycles performed by the controller.
+
+--- Page 8 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 7
+Fig. 3. Interlocking tables.
+•For each signal S:reqsig[S] storing the requested state ,actsig[S] storing the actual state , andreqsig-
+tm[S] storing the time of request .
+•For each point W:reqpt[W] storing the requested state ,actpt[W] storing the actual state , andreqpttm[W]
+storing the time of request .
+•For each sensor G:sen[G] storing the actual state andsentm[G] storing the time for the last LOW-to-
+HIGH transition .
+•deltasstoring a common switching deadline for signals.
+•deltapstoring a common switching deadline for points.
+•deltalstoring a common stabilisation deadline for sensors.
+3.2.2. SystemC Model for Controller
+The basic behavioural patterns of a control system generated for a network and col lection of routes are as
+follows. When a tram approaches the network, a route is requested to be reserved. T he control system makes
+a reservation for that route if no conﬂicting route has already been reserved. Then it a llocates the route by
+requesting points to be switched into positions that allow traversal o f the chosen route (as described by the
+point position table), and when the points have been switched it requests the en try signal to show a GO
+aspect (as described by the signal setting table) indicating that the tram may enter the route. As soon as
+the tram has passed the entry signal, the signal is requested to show STOP, and when t he tram has left the
+route, the route is deallocated by removing its reservation.
+
+--- Page 9 ---
+8 Anne E. Haxthausen et al.
+SAFETY CONTROL LAYER
+DRIVERS / HW−CONTROLLERSACTUAL
+STATE STATEREQUESTED REQUEST
+TIMEDRIVER INTERFACES FOR SIGNALS AND POINTS
+TRANSITIONSTATESENSOR LAST
+TIMEDRIVER INTERFACES FOR SENSORS
+TIMETICKCLOCK INTERFACE
+HARDWARE INTERFACEDRIVER INTERFACE LAYER − DMA / DUAL PORTED RAM
+Fig. 4. Layered architecture and interfaces.
+Each control system is implemented using a main loop, so that each execution cycl e has four phases. In
+theinput phase all current values of input interfaces (actual states) are copied to (global) shado w variables,
+in the processing phase interfaces are neither read nor updated, but global or local variables are processed.
+In the wait phase the system “spins” in an active wait loop without side eﬀects (this is to ensure constant
+loop frequency), and in the output phase the states of global variables shadowing outputs are copied to the
+corresponding output interfaces (requested states). This usage of shadow variables is applied to establish a
+SystemC controller model which is close to its corresponding assembler implement ation: in the assembler
+implementation, the input and output variables should not be changed before the end of an execution cycle,
+because changes in memory become immediately visible, while in SystemC these changes are ﬁrst visible at
+the next execution cycle. In the remainder of this paper we will ignore the wait phase.
+3.2.3. SystemC Model for Physical Domain
+The physical model generated for a network consists of transition rules describing t he behaviour of all sensors,
+signals and points of the network.
+For each sensor Gthere is a virtual (i.e. not physically existing) counter c[G]storing the number of trams
+that have passed the sensor. Intuitively speaking, counters measure the “discrete ﬂow” of trams through the
+network, while abstracting from concrete speed. In an empty network all counters ar e zero. A tram entering
+the network, say, at sensor G20.0, is modelled by the sensor state changing fr omLOWtoHIGHand a counter
+state change from c[G20.0] == 0 toc[G20.0] == 1 . Flow propagation through the network is governed
+by a collection of sensor state transition rules: sensors G inside the network can change their state from
+LOWtoHIGH and increment their counter values if the sum of all neighbouring sensors on routes direct ed
+to G is greater than G’s current counter value. If, for example, G21.0 has counter v aluec[G21.0] == 0 ,
+is in state LOWandc[G20.2] + c[G24.2] == 1 holds, this corresponds to the situation where a tram on
+route 1 or route 6 approaches, but has not yet reached, G21.0. The consecutive state cha nge of G21.0 to
+HIGHis accompanied by a counter increment and reﬂects the situation where the tram has reached G 21.0.
+Safety violations can be expressed by counters as well; c[G21.0] == 0 && c[G20.2] == 1 && c[G24.2]
+== 1, for example, would model the hazard where two trams simultaneously approach G2 1.0 from diﬀerent
+routes. More details are presented in the safety requirements SF1 to SF5 below. M ore formally, sensor state
+changes from LOWtoHIGHare modelled by rules following the pattern
+if ( (sen[G] == LOW) && c[G] < <sum-incoming-counters> &&
+<signal-condition> && <nondeterministic-guard> ) {
+sen[G] = HIGH;
+sentm[G] = t;
+c[G] = c[G] + 1;
+<signal-action>;
+}
+In this pattern <sum-incoming-counters> stands for the counter sum of neighbouring sensors on routes
+
+--- Page 10 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 9
+approaching G. The <signal-condition> applies for sensors guarded by signals: the sensor state may only
+change, that is, the tram may only pass, if the signal aspect is GO. This models the hypothesis that trams
+really stop at signals showing a HALTaspect, which is crucial for proving the desired safety properties. The
+<nondeterministic-guard> is an auxiliary input used to model all possible interleavings of tram movem ents:
+as long as this guard is false, the transition is not performed, modelling the situation where the tram has
+not yet reached the sensor. The time of the state change is stored in sentm[G] so that the latency of the
+sensor can be modelled: a state change from HIGHback toLOWmay only occur after this latency interval has
+passed. Passing a sensor may be accompanied by a request for a signal state change; this is modelled in the
+<signal-action> .
+To avoid overﬂow of the counters, there are additional rules for decrementing them af ter an occupying
+tram has completely passed through a route. For instance, for route 1 there is a rule stating that when
+c[G21.1] == c[G20.2] > 0 , all the counters ( c[G20.0] ,c[G20.1] ,c[G20.2] ,c[G21.0] ,c[G21.1] ) of the
+route should be decremented by the value of the counter c[G21.1] (by which c[G20.2] andc[G21.1]
+become reset to 0). The condition c[G20.2] > 0 expresses that there has been a tram on the route, and the
+condition c[G21.1] == c[G20.2] is intended to express that the route is now empty (i.e. the tram has left
+the route). This is true, as long as the safety invariant
+(c[G20.2] == 0) || (c[G24.2] == 0)
+holds. Similar “route-is-empty” conditions can be formulated for the other routes, and all of them require
+safety-related side conditions as the one above.
+For each signal S, there is a transition rule having the following pattern:
+if ( ((t >= reqsigtm[S] + delta_s) || <nondeterministic-gua rd>)
+&& (reqsig[S] != actsig[S]) ) { actsig[S] = reqsig[S]; }
+It states that within the speciﬁed switching deadline deltasthe actual state actsig[S] of the signal has
+to switch to the state reqsig[S] requested by the controller, if these states diﬀer. To determine whether
+deltastime units have elapsed, the time of the request reqsigtm[S] for this signal is compared to the
+timetof the tram control system. Again, <nondeterministic-guard> is a nondeterministic auxiliary input.
+Here it is set with an arbitrary value in each execution cycle and enables a state transition at arbitrary time
+ticks between the time of the request and the time limit for the transition. H ere it is used to model situations
+where the signal switches to the requested state before the time bound for a corr ectly operating signal has
+been reached.
+For points the transition rules are similar to the rules for signals.
+3.2.4. Safety Conditions Φ
+The major safety requirements Φ preventing collisions within the network boundar ies marked by the entry
+signals are:
+SF1Each segment not containing a point is occupied by at most one tram. For the network shown in Fig. 2
+there are 3 such segments: the 3 exit segments [G21.0, G21.1], [G23.0, G 23.1], and [G25.0, G25.1].
+SF2Each controllable point is occupied by at most one tram. For the network shown in Fig. 2 there are 3
+controllable points: W102, W100, W118.
+SF3No two trams may approach the same sensor simultaneously fro m two directions. For the network shown
+in Fig. 2 there are only three sensors that can be approached by trams from diﬀer ent directions: G21.0,
+G23.0, G25.0. (That it can’t happen for the other sensors follows from the net work conﬁguration and the
+assumption that trams only enter the network at the signals and do not change direct ion.) Sensor G21.0,
+for example, can be approached by trams from G20.2 or G24.2, but not from G2 1.1.
+SF4For two segments crossing each other at least one of them is em pty.For the network shown in Fig. 2
+there are 3 crossings. E.g. there is a crossing between the segments [G20.3, G 25.0] and [G22.2, G23.0].
+SF5Each controllable point is empty when it is in a switching sta te.
+For a concrete network, these requirements can be formalised as conditions on the v irtual counters c[G]
+introduced in the physical model Pof the network. Then formula Φ can be speciﬁed as the conjunction of
+these conditions. We will now illustrate how some of these requirements have been formalised for the network
+
+--- Page 11 ---
+10 Anne E. Haxthausen et al.
+shown in Fig. 2. For instance, the SF1requirement that there is at most one tram on segment [G21.0, G21.1]
+can be expressed by the condition
+c[G21.0] - c[G21.1] <= 1
+asc[G21.0] indicates the number of trams that have entered the segment, and c[G21.1] indicates the
+number of trams that have left the segment. The SF2requirement that there is at most one tram on point
+W102 can be expressed by the condition
+c[G20.1] - (c[G20.2] + c[G20.3]) <= 1
+asc[G20.1] indicates the number of trams that have entered the point, and c[G20.2] + c[G20.3] indicates
+the number of trams that have left the point. The SF3requirement that at most one tram is approaching
+G21.0 from G20.2 or G24.2 can be expressed by the condition1
+(c[G20.2] == 0) || (c[G24.2] == 0)
+asc[Gx.y] == 0 means that no tram has passed Gx.y after it was reset last time. The SF4requirement
+that one of the two crossing segments [G20.3, G25.0] and [G22.2, G23.0 ] is empty, can be expressed by the
+condition2
+(c[G20.3] == 0) || (c[G22.2] == 0)
+This follows from the fact that trams only enter the segments [G20.3, G25 .0] and [G22.2, G23.0] at G20.3
+and G22.2, respectively, and therefore these segments are empty when the associat ed counters are zero. The
+SF5requirement that point W102 is empty when it is in a switching state can be expr essed by the condition
+(actpt[W102] != reqpt[W102]) -> (c[G20.1] - (c[G20.2] + c[G 20.3])) == 0
+For the network shown in Fig. 2 there are 15 such conditions in total, and Φ is the conjunction of these.
+Observe that, in contrast to tramways, railways usually impose additi onal safety requirements concerning
+ﬂank protection and shunting.
+4. From Static Domain Model to Domain-speciﬁc Language
+In this section we explain how a domain-speciﬁc description language for our case st udy can be formally
+developed from a static domain model using RSL. At the end of this development process, the RSL model
+obtained represents the abstract syntax andstatic semantics of the DSL under construction. It then only
+remains to associate the abstract syntactic elements with concrete syntax, in order to complete the DSL deﬁ-
+nition. The behavioural semantics is deﬁned in a transformational way by means of the generator translating
+DSL speciﬁcations into SystemC models.
+4.1. RSL Static Domain Model
+We start by describing how a domain model can be established. The domain model covers t he concepts of
+railway networks and routes. More general models would typically cover further co ncepts like time tables, but
+here we only present those concepts that are relevant for the development of the applicati on considered in
+this paper. The model of each concept is generic (algebraic) in the sense that it deﬁnes which properties any
+concrete instance of the concept should have. The generic model can be instantiated to produce a concrete
+one deﬁning whatthe speciﬁc properties are for that speciﬁc instance.
+1This requirement could alternatively have been formalised by the condition (c[G20.2] + c[G24.2]) - c[G21.0] <= 1 .
+2Note that it would not have been correct to express the emptin ess of e.g. [G20.3, G25.0] (on route 2) by the condition c[G20.3]
+- c[G25.0] == 0 as G25.0 is also part of route 4, and therefore c[G25.0] can be incremented not only by trams going along
+route 2, but also by trams going along on route 4.
+
+--- Page 12 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 11
+4.1.1. Generic Network Model
+Any concrete network model should describe the topology of a railway network cons isting of the physical
+components: segments, sensors, signals, and points.
+In the generic model, for each kind of component, an abstract type of identiﬁers f or its components is
+declared:
+type Sensor, Point, Signal, Segment
+Furthermore, signatures for functions that describe the relationship between the comp onents are given. For
+instance, the following function gives the sensor at which a given signal is placed:
+value sensor of : Signal→Sensor
+Finally, a number of axioms express requirements on these functions, i.e. impos e restrictions on which network
+topologies are allowed. For instance, the following axiom requires that an y two distinct signals are placed at
+distinct sensors:
+∀s1, s2 : Signal•s1/\e}atio\slash= s2⇒sensor of(s1)/\e}atio\slash= sensor of(s2)
+To describe a concrete network , the elements of the types should be speciﬁed and the functions should be
+explicitly deﬁned in such a way that the axioms are satisﬁed. In Sect. 4.2.2 we expla in how the checking of
+axioms has been implemented in a tool.
+4.1.2. Generic Route Model
+An abstract type of identiﬁers for routes is declared:
+type Route
+We state the signature for a function that for a given route returns a list of those sensors which have to be
+passed in the stated order when travelling along the route:
+value sensors of : Route→Sensor∗
+A number of axioms express requirements to this function, i.e. impose restricti ons on what is an allowed
+route. For instance, there must be a signal at the ﬁrst sensor of any route:
+∀r : Route•∃s : Signal•sensor of(s) = hdsensors of(r)
+4.2. Domain-speciﬁc Language
+4.2.1. RSL Speciﬁcation
+The domain model is now extended with value declarations for each element to be part o f a domain descrip-
+tion. For each kind of physical component there is an element (all together provi ding a network description):
+value
+sensors : Id -set,
+points : Id→m(Sensor×Sensor×Sensor),
+signals : Id→mSensor,
+segments : Id→m(Sensor×Sensor),
+crossings : (Segment ×Segment) -set
+The declarations give each element a name and a model-oriented type and hence provide an abstract syntax
+for the elements. As an example, the abstract syntax for the sensors element is Id−set. The sensors element
+contains the set of sensor identiﬁers, points maps each point identiﬁer to the three sensors covering the point,
+signals maps each signal identiﬁer to the sensor at which it is placed, segments maps each segment identiﬁer
+
+--- Page 13 ---
+12 Anne E. Haxthausen et al.
+to the two sensors at the borders of the segment, and crossings contains the pairs of segments that cross
+each other. Similarly, for each kind of interlocking table there is an elemen t3:
+value
+rdt : Id→mSensor∗,
+rct : Route→Route-set×Route-set,
+ppt : Route→Point→mPointPosition,
+sst : Route→Signal×SignalSetting
+In the route conﬂict table rct, for example, the pair rct(r) = (c1,c2) identiﬁes the routes with conﬂict types
+◦andx, respectively (see Fig. 3): Route r◦r′if and only if r′∈c1andrxr′′iﬀr′′∈c2.
+We chose identiﬁers to be texts:
+type Id =Text
+Now, the Signal type can be explicitly deﬁned as containing the identiﬁers of the domain of the signals
+element:
+type Signal ={|id : Id•id∈dom signals|}
+TheSensor ,Point ,Segment andRoute types can be deﬁned in a similar way.
+All functions from the domain model can now be explicitly deﬁned in terms of the element v alues. In this
+way the axioms (that refer to these functions) from the domain model now impose well-formedness conditions
+on the elements of a language description. Additional axioms that impose well-f ormedness conditions on the
+rct,pptandsstvalues are added, so that these axioms provide a static semantics for the DSL.
+4.2.2. Concrete Syntax and Static Semantics Implementatio n
+Two alternative solutions to the implementation of the concrete DSL have been ma de using the Extensible
+Markup Language XML [W3Cb] and the Uniﬁed Modelling Language UML [RJB04], respectively. Below we
+outline the XML solution that is documented in [DC04]. In [Ber06] it is descri bed how the DSL is deﬁned
+by a UML 2.0 proﬁle in the second solution. The concrete syntax of the language has been deﬁned by an
+XML document type deﬁnition (DTD). For the elements of the RSL abstract syntax, corresponding XML
+elements are deﬁned. The static semantics has been implemented using the extensible style sheet language
+XSL [W3Cc]. In a systematic way each RSL axiom expressing a well-formedness r equirement has been
+transformed into a template that tests whether the requirement is fulﬁlled. A GUI ba seddata collector for
+creating DSL descriptions in the required XML syntax has been developed using XForms [ W3Ca]. For the
+convenience of users, a graphical representation of DSL descriptions (XML documents) has been developed.
+This was done using XSLT and HTML. In Fig. 3 the graphical representation of som e sample interlocking
+tables for the network given in Fig. 2 are shown.
+5. Generating Applications from Domain-speciﬁc Descripti ons
+According to our method three generators taking a statically well-formed DSL descri ptionDas argument
+are required (Fig. 1). The primary one is the generator producing a control syst em modelM. The second
+generator produces the behavioural model Pof the physical environment and the third one generates the
+safety properties Φ, to be checked to hold for the concurrent composition of the control system model M
+and the physical model P. In this section we outline the basic concepts of the generator for M. The other
+generators are designed in a similar way.
+5.1. Components of the Controller Model Generator
+The implemented generator for controller models consists of two parts:
+3rdtfor route deﬁnition table, rctfor route conﬂict table, pptfor point position table, and sstfor signal setting table.
+
+--- Page 14 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 13
+1. A conﬁgurable library of generic code that is re-usable for all control systems to be generated: the
+code comprises generic versions of the control algorithms, the data structures car rying dynamic state
+information needed for performing control decisions, and the static conﬁguratio n data structures.
+2. A parser that takes a domain-speciﬁc description as input and returns concrete conﬁguratio n data and
+instantiation parameters for the generic algorithms.
+We have selected SystemC [GLMS02] as the target language for the generator, since it is associated with a
+formal transition system semantics and can be directly compiled into executabl e code [PGHD04, Ber06]. As a
+consequence, the original DSL descriptions “inherit” formal behavioural semantics fr om the transformations
+performed by the generator.
+5.2. Generic Conﬁgurable Library
+Since the SystemC code is automatically generated, the emphasis of the coding structure – w hose layout
+is already ﬁxed in the conﬁgurable library – lies on easy veriﬁability and eﬃcient execut ability: the control
+structures of the generic algorithms utilise generic data structures (global arr ays) and generic parameters. For
+example, if reservation of route irequires ito be requested, not already reserved, and excludes simultaneous
+reservation of conﬂicting routes j, then the reservation is performed by the following generic code structure:
+bool mayReserve = requested[i] && ! reserved[i];
+for (int j = 0; j < NUM_ROUTES; j++)
+mayReserve = mayReserve && ! (conflict[i][j] && reserved[j ]) ;
+if ( mayReserve )
+reserved[i] = 1;
+whererequested andreserved are arrays that keep parts of the dynamic control states, conflict is an
+array encoding the route conﬂict table and NUMROUTES is a constant specifying the number of routes. The
+actual value of NUMROUTES and contents of conflict diﬀer from application to application and is deﬁned
+by the concrete parameters and conﬁguration data. This structure also ensures a close r elationship between
+SystemC and assembler code which facilitates the object code veriﬁcation in a consider able way.
+The generic parameters referenced in the control algorithms of the library are of a very simple nature.
+They comprise number parameters, specifying the concrete quantities of sensors, si gnals, points and routes
+to be ﬁxed for each system and oﬀset parameters used for looking up speciﬁc routes a nd track elements in
+the static conﬁguration data or in the dynamic control states.
+The most important aspect of the static conﬁguration data is the description of available track elements
+and route speciﬁcations. Routes are represented as sequences of index references to track elemen ts, together
+with information about the required signal and point states to be enforced w hen allocating a route to a tram.
+This encodes the network description, route deﬁnition table, signal setting table and poi nt position table of
+the domain-speciﬁc description. An additional array ( conflict ) is used for specifying the conﬂict relations
+between routes. This encodes the route conﬂict table of the domain-speciﬁc description.
+5.3. DSL→SystemC Parser
+The parser for producing concrete SystemC code from DSL descriptions proceeds in two passes. F irst, the
+number parameters are determined from the DSL and represented as C constant declaratio ns. As a result
+the dimensions of all arrays used for storing static conﬁguration data and dyna mic state information are
+ﬁxed. In the second pass the parser generates constant C array assignments carrying t he conﬁguration data
+and auxiliary oﬀset information for looking up routes and track elements.
+6. Veriﬁcation of Safety Requirements
+In this section we describe the veriﬁcation step of our method. First we state t he general veriﬁcation objectives
+and assumptions, and then we describe the veriﬁcation strategy. Finally we apply this for a concrete example.
+
+--- Page 15 ---
+14 Anne E. Haxthausen et al.
+6.1. Veriﬁcation Objectives
+When a controller model M, a physical model P, and safety conditions Φ have been generated from a
+DSL descriptionD, the next step according to our method is to verify that all possible Pexecutions, when
+controlled by the model Mexecuted in parallel, respect the safety conditions Φ at any time. This is written
+(P/bardblM )satG(Φ).MandPare SystemC models as described in Sect. 3.2 and Φ is a PSL proposition over
+the state variables of Pas described in Sect. 3.2.4. Gis the PSL/LTL temporal “Globally” operator, so that
+G(Φ) means “Φ holds in all states reachable after an initialisation”.
+6.2. Veriﬁcation Assumptions
+Our veriﬁcation strategy is driven by the following assumptions:
+•It is assumed that the railway network description in Dis complete and correct.
+•No assumptions about the correctness of interlocking tables in Dare made.
+•The DSL description Dinherits its formal behavioural semantics from the SystemC models which are
+automatically generated from it. As a consequence, no reﬁnement proofs are required to ens ure consistency
+between internal SystemC models and high-level DSL description.
+•No assumptions about the correctness of the generators are made.
+•The rules how trains can move in the uncontrolled network (physical model P) are complete and correct.
+In particular, it is assumed that trains only enter the network at the entry sig nals, they stop at signals
+in HALT state and do not change direction.
+•The generated safety conditions Φ are complete and correct.
+Completeness of safety conditions Φ can be justiﬁed by means of a reﬁnement proof start ing with a high
+abstraction of safety conditions which explicitly relates trams to track s egments, and is therefore easy to
+validate. The high abstraction is then reﬁned to the expression of Φ in terms of sens or counter conditions.
+6.3. Veriﬁcation Strategy
+Since we are not assuming that generators and interlocking tables are correct, an universal “once-and-for-all”
+veriﬁcation is impossible: each system instance has to be veriﬁed with its concr ete conﬁguration data. As a
+consequence, it is desirable to elaborate a veriﬁcation strategy which can be executed in an automated way.
+With respect to full automation the model checking approach for (P/bardblM )satG(Φ) seems attractive.
+It is well known, however, that conventional model checking would lead to state ex plosions for train control
+tasks of realistic size. As a consequence, we have adopted a bounded model checking strategy combined with
+inductive reasoning. To prove that Φ always holds we use the following inductive pr inciple called k-induction :
+1. First it is proved that Φ ∧Ψ holds for the k >0 ﬁrst execution cycles after initialisation, i.e. Φ ∧Ψ holds
+fork >0 successive4states σ0,... ,σ k−1of which σ0is the initial state of ( P/bardblM ).
+2. Next the following is proved for an arbitrary execution sequence of k+ 1 successive states σt,... ,σ t+kof
+which the ﬁrst σtis an arbitrary state (reachable or not from the initial state σ0): if Φ∧Ψ holds in the
+kﬁrst states σt,... ,σ t+k−1, then Φ∧Ψ will also hold for the k+ 1ststateσt+k.
+Here Ψ is an auxiliary property that holds for reachable states. (Note that Ψ is simultaneously proved by the
+given induction principle.) The proofs of the base case and the induction step are perfo rmed by a bounded
+model checker tool described in [DG05]. This tool treats the two proof obliga tions by exploring corresponding
+propositional satisﬁable problems and solving these by a SAT solver. Note t hat the induction steps argue
+over an execution sequence of k+1 states of which the ﬁrst state, σt, may be unreachable, although it would
+have been suﬃcient for the truth of G(Φ) only to consider sequences for which σtis reachable. For sequences
+starting at an unreachable state, the induction step may fail and the property chec ker give a false negative.
+To avoid this the desired property Φ is strengthened with an auxiliary property Ψ that is false for those
+unreachable states, σt, for which the induction step would otherwise fail.
+4Two states σiandσi+1are successive, if there is a transition from σitoσi+1according to ( P /bardbl M ).
+
+--- Page 16 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 15
+6.3.1. Auxiliary Condition Ψ
+The auxiliary condition Ψ is a conjunction of state relations. Below we give examples of some of these
+relations. As mentioned earlier, these are needed as assumptions in the induction step of the proof of G(Φ),
+in order to rule out unreachable states that would have given rise to false negat ives otherwise.
+Example 1. Since the model is implemented as a timed state transition system, time consis tency has to
+be established as a part of Ψ. Time consistency means that the current time tkept by the system is always
+larger than or equal to the time stamps in the interfaces reqsigtm[S] ,reqpttm[W] , andsentm[G] of each
+signalS, pointW, and sensor G, respectively. For example, for signal S20of the network in Fig. 2 this means:
+reqsigtm[S20] <= t
+Example 2. For each sensor G, the controller model has a counter cc[G] that plays the same role for the
+controller as the virtual counter c[G]does for the physical model. Both counters are initially 0. At the same
+time as the sensor becomes high (i.e. sen[G] = HIGH ), the virtual counter c[G]is incremented by 1. The
+controller will ﬁrst detect that the sensor is high one execution cycle later and incremen t its counter cc[G]
+by 1 in that cycle. Hence, either the two counters, c[G]andcc[G] , have the same value, or c[G] == (cc[G]
++ 1)in which case we are just one time unit after the sensor became high (i.e. t == sentm[G] + 1 ). The
+following relation expresses this and is included in Ψ:
+((c[G] == cc[G]) || ((t == sentm[G] + 1) && (c[G] == cc[G] + 1)))
+6.3.2. Additional Assumptions
+To avoid overﬂow of the clock tin the proof of the induction step, we additionally assume t < tmaxin the
+ﬁrst state, σt, wheretmaxis chosen such that tmax + k is less than the maximal integer in the integer
+type oft. At the same time tmaxis chosen such that it is larger than the maximal number of cycles that a
+controller can perform during a day from when it is started until it is stopped.
+Note that the time consistency relations deﬁned in Example 1 together with the assum ptiont < tmax
+also ensure that no overﬂow will occur in the reqsigtm[S] ,reqpttm[W] , andsentm[G] interfaces.
+6.4. Application Example
+For the controller that can be generated from the sample network and interlock ing tables in Sect. 3, we
+have used the strategy presented above to prove that it is safe. A value of k= 3 suﬃced to carry out the
+induction. With tmax = 4 billion , it took the model checker 391 .53 seconds to do the proof.
+7. Object Code Veriﬁcation
+In this section we outline our approach for object code veriﬁcation that is describ ed in detail in [PH07], and
+we sketch how an associated code veriﬁer can be formally developed.
+7.1. Motivation
+Automated object code veriﬁcation for safety-critical control systems is mo tivated by the fact that applicable
+standards for these safety-critical applications, e.g. for railways [ECfE S01], require a substantial justiﬁcation
+with respect to the consistency between high-level software code and the object code generat ed by the applied
+compilers.
+7.2. Approach
+The conventional approach for this is compiler validation : “once-and-for-all” it is validated that the compiler
+for any input produces object code that is a correct implementation of that input. However , such an approach
+
+--- Page 17 ---
+16 Anne E. Haxthausen et al.
+is very time-consuming, especially if it should be done formally (see e.g. [GZ9 9] for techniques for that), and
+furthermore it has to be performed again whenever modiﬁcations of the compiler have been performed.
+An alternative to compiler validation is object code veriﬁcation : each time object code is generated (by an
+arbitrary compiler), the generated object code is veriﬁed to be a correct implementat ion of the high-level
+software code. Object code veriﬁcation has the advantage that it is independent of chang es in the compiler
+and it can be fully automated and reasonably fast, if the compiled code originat es from high-level programs
+strictly adhering to certain programming patterns as is the case for our generated SystemC models.
+Our speciﬁc approach to object code veriﬁcation is as follows: to prove that an a ssembler program (object
+code)Ais a correct implementation of the SystemC controller model Mfrom which it is generated, one
+should map (see Sect. 7.5) AandMto their behavioural models T(A) andT(M) given in terms of some
+common semantic foundations (I/O-Safe Transition Systems to be explained in Sect . 7.3) and then prove
+thatT(A) andT(M) are I/O equivalent (modulo a variable renaming deﬁned in Sect. 7.6) by applying
+transformations that have been proved “once-and-for-all” to preserve I/O behaviour (see Sect. 7.4).
+7.3. Common Semantic Foundations: I/O-safe Transitions Systems
+In this section we introduce our notion of I/O-safe transitions systems (IOTS) and our notion of I/O
+equivalence between IOTS.
+7.3.1. Abstract Syntax and Static Semantics of IOTS
+I/O-safe transitions systems (IOTS) are closely related to transition dia grams (as deﬁned e.g. in [MP92])
+consisting of (1) a set of variables for which initial values are given by a n initial state, (2) a set of locations
+one of which is designated as the initial location l0, and, (3) a set of transition rules. Variables are classiﬁed
+into input, output and processing variables. A transition rule from one locatio nl1to another location l2
+is speciﬁed by a guard that is a quantiﬁer-free predicate over the variables and by a m ultiple assignment
+(v1,... ,v n) := ( e1,... ,e n), where v1,... ,v nare variables and e1,... ,e nare expressions over the given set
+of variables. A new characteristic of IOTS consists in the fact that locations can be partitioned into pairwise
+disjoint sets of input, output and processing locations, and we put further constraint s on the allowed use of
+variables in guards and expressions in an IOTS: guards must only use processing vari ables, for transitions
+into input locations the assignments must only read input variables and make ass ignment to processing
+variables, for transitions into processing locations the assignments must only read processing variables and
+make assignment to processing variables, and, for transitions into output lo cations the assignments must
+only read processing variables and make assignment to output variables.
+One can obviously specify an abstract syntax of IOTS in RSL :
+type
+IOTS ::
+vars : Var -set
+initstate : State
+locs : Loc -set
+initloc : Loc
+trans : TransitionRel -set,
+TransitionRel = Loc ×Guard×Assign×Loc,
+Assign :: al : (Var ×Expr)∗,
+Expr == mk Const(i : Int)|mkVar(v : Var)|mkSum(e1 : Expr, e2 : Expr) |...,
+Guard == TRUE |...,
+where Guard andExpr are the abstract syntax of guards and expressions, respectively, for space reas ons not
+completely speciﬁed here. For variables and locations two abstract types are used, eac h having an observer
+function mode that returns the mode (input, output or processing) of variables and locations, respect ively:
+type Var, Loc
+value mode : Var→Mode, mode : Loc →Mode
+type Mode == IN|OUT|PROC
+
+--- Page 18 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 17
+We also introduce a well-formedness predicate for IOTS formalising all the condit ions on the use of
+variables and locations stated informally above:
+value
+iswﬀ : IOTS→Bool
+iswﬀ(iots)≡dom initstate(iots) = vars(iots) ∧initloc(iots)∈locs(iots)∧...
+For instance, the predicate checks that the initial state of an IOTS gives initia l values to the variables in its
+variable set and that the initial location is in its location set.
+7.3.2. Dynamic Semantics of IOTS
+Now we deﬁne a dynamic semantics of IOTS. It involves states. A state σfor an IOTS is a valuation of its
+variables:
+type State = Var→mInt
+Each transition relation speciﬁcation of an IOTS induces a state transform er:
+value
+eval : TransitionRel →(State→State)
+eval(l, g, a, l′)(σ)≡ifeval(g)( σ)then eval(a)( σ)elseσend
+Hereeval(g)(σ) and eval(a)(σ) are the standard extensions of the valuation σto guards gand assignments
+a, respectively. It should be noted that we have deﬁned the evaluation, eval(mkV ar(v))(σ), of variables
+v /∈domσto give the default value 0 to avoid partial evaluation functions. For well-f ormed IOTS this does
+no harm as only variables in v∈dom σare evaluated by the semantics deﬁned below.
+Thesemantics of an IOTS is the set of its possible runs. A possible runof an IOTS is a non-empty
+sequence of pairs of locations and states such that the ﬁrst location is its init ial location, the ﬁrst state is
+its initial state, and that for each consecutive pairs in the list there is a tr ansition relation in the IOTS from
+the location of the ﬁrst pair to the location of the second pair so that the asso ciated state transformer maps
+the non input part of the state of the ﬁrst pair to the non input part of state of the s econd pair:
+type Run = (Loc×State)∗
+value
+eval : IOTS→Run-infset
+eval(iots)≡
+{r|r : Run•
+lenr>0∧
+let(l0,σ0) =hdrin
+l0 = initloc(iots) ∧σ0 = initstate(iots)
+end∧
+(∀i :Int•i>0∧i<lenr⇒
+let
+(li,σi) = r(i), (l i′,σi′) = r(i+1)
+in
+dom σi′= vars(iots)∧
+(∃(l, g, a, l′) : TransitionRel•
+(l, g, a, l′)∈trans(iots)∧
+l = l i∧l′= li′∧
+eval(l, g, a, l′)(σi)\ivars(σi) =σi′\ivars(σi))
+end
+)
+},
+ivars : State→Var-set
+ivars(σ)≡{v|v : Var•v∈dom σ∧mode(v) = IN}
+
+--- Page 19 ---
+18 Anne E. Haxthausen et al.
+7.3.3. IOTS Equivalence
+We are now going to deﬁne a notion of I/O equivalence of IOTS. In order to do that, we ﬁr st need to deﬁne
+some auxiliary notions. An I/O restriction of a run is the restriction of the run to pairs where the location is
+an input or output location, and for these pairs the states are restricted to input and output variables only:
+IOrestrict : Run→Run
+IOrestrict(r)≡/a\}bracketle{t(l,σ/{v|v : Var•mode(v)∈{IN,OUT}})|(l,σ)inr•mode(l)∈{IN,OUT}/a\}bracketri}ht
+AnI/O restriction of a set of runs rsis the set of I/O restrictions of the runs in the set rs:
+IOrestrict : Run -infset→Run-infset
+IOrestrict(rs)≡{IOrestrict(r)|r : Run•r∈rs}
+AnI/O map ρis a bijective, mode preserving variable mapping between I/O variables:
+type IOMap ={|ρ: Var→mVar•bijective( ρ)∧IOmodepreserving( ρ)|}
+value
+bijective : (Var→mVar)→Bool
+bijective( ρ)≡(∀v2 : Var•v2∈rngρ⇒(∃! v1 : Var•v1∈dom ρ∧ρ(v1) = v2)),
+IOmodepreserving : (Var →mVar)→Bool
+IOmodepreserving( ρ)≡
+(∀v : Var•v∈dom ρ⇒
+mode( ρ(v)) = mode(v)∧mode(v)∈{IN,OUT})
+Two I/O restricted runs are I/O equivalent wrt. an I/O map if they have (1) the same length, (2) the
+same order of input locations and output locations, and (3) their states agree on i nput variables and output
+variables modulo the I/O map:
+equiv : Run×Run×IOMap→Bool
+equiv(r1 io, r2 io,ρ)≡
+lenr1io =lenr2io∧
+(∀j :Int•j>0∧j≤lenr1io⇒
+let(l1,σ1) = r1 io(j), (l2, σ2) = r2 io(j)in
+mode(l1) = mode(l2) ∧
+σ1 =σ2◦ρ
+end
+)
+Finally, we can deﬁne two IOTS to be I/O equivalent wrt. an I/O map ρ, if there is a bijection γbetween
+I/O equivalent I/O restrictions of runs of the two IOTS:
+equiv : IOTS×IOTS×IOMap∼→Bool
+equiv(iots1, iots2, ρ)≡
+(∃γ: Run→mRun•
+dom γ= IOrestrict(eval(iots1)) ∧rngγ= IOrestrict(eval(iots2)) ∧
+(∀r1, r2 : Run•{r1, r2}⊆dom γ∧r1/\e}atio\slash= r2⇒γ(r1)/\e}atio\slash=γ(r2))∧
+(∀r : Run•r∈dom γ⇒equiv(r, γ(r),ρ))
+)
+pre dom ρ= iovars(iots1)∧rngρ= iovars(iots2),
+iovars : IOTS→Var-set
+iovars(iots)≡{v|v : Var•v∈vars(iots)∧mode(v)∈{IN,OUT}}
+For the identity variable mappings idwe just write equiv(iots1,iots2) rather than equiv(iots1,iots2,id).
+
+--- Page 20 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 19
+l3l0 l0
+l1
+l2
+l3x := yg / y := x
+y := y+1g / x := x+1<=>
+Fig. 5. A transformation rule.
+7.4. IOTS Transformation Rules
+We have developed a collection (see [PH07]) of transformation rules between I OTS patterns and proved by
+hand that any instance of the rules gives rise to a transformation that preserv es I/O behaviour. The RSL
+formulation of the IOTS concepts in the previous section now enables us to formalise these proofs. As an
+example, there is a rule stating that an IOTS iots1 can be transformed into an equivalent IOTS iots2 by
+replacing the transition shown on the left hand side of Fig. 5 with the three tra nsitions shown on the right
+hand side of Fig. 5, or vice versa, provided that (1) l1 and l2 are not locations of iots1,xandyare local
+variables, and (2) in any path emanating from location l3, the variable yis assigned before read. The rule
+is generic in locations l0,l1,l2,l3, variables xandy, and guard g. Proving this rule correct amounts to
+proving:
+∀iots1, iots2 : IOTS, l0, l1, l2, l3 : Loc, g : Guard, x, y : Var•
+{x, y}⊆vars(iots1)∧mode(x) = PROC ∧mode(y) = PROC ∧
+{l0, l3}⊆locs(iots1)∧l1/\e}atio\slash∈locs(iots1)∧l2/\e}atio\slash∈locs(iots1)∧
+(l0, g, mk Assign(/a\}bracketle{t(x, mk Sum(mk Var(x), mk Const(1)))/a\}bracketri}ht), l3)
+∈trans(iots1)∧
+vars(iots2) = vars(iots1) ∧
+initstate(iots2) = initstate(iots1) ∧
+locs(iots2) = locs(iots1) ∪{l1, l2}∧
+initloc(iots2) = initloc(iots1) ∧
+trans(iots2) =
+trans(iots1)\
+{(l0, g, mk Assign(/a\}bracketle{t(x, mk Sum(mk Var(x), mk Const(1)))/a\}bracketri}ht), l3)}
+∪
+{(l0, g, mk Assign(/a\}bracketle{t(y, mk Var(x))/a\}bracketri}ht), l1),
+(l1, TRUE, mk Assign(/a\}bracketle{t(y, mk Sum(mk Var(y), mk Const(1)))/a\}bracketri}ht), l2),
+(l2, TRUE, mk Assign(/a\}bracketle{t(x, mk Var(y))/a\}bracketri}ht), l3)
+}∧
+assigned before read(iots1, l3, y)
+⇒
+equiv(iots1, iots2)
+Another example of a transformation rule is one stating that an IOTS iots1 can be transformed into an
+equivalent IOTS iots2 by replacing the transition shown on the left hand side of Fig. 6 with the four
+transitions shown on the right hand side of Fig. 6, or vice versa, provided t hat (1) l1,l2 and l3 are not
+locations of iots1,aux1 and aux2 are local variables, and (2) in any path emanating from location l4, the
+
+--- Page 21 ---
+20 Anne E. Haxthausen et al.
+l0 l0
+l1
+l2
+l3
+l4l4 x[i] := y[i]
+aux2 := i aux1 := i
+aux2 := y[aux2]
+    x[aux1] := aux2<=>
+Fig. 6. Another transformation rule.
+variables aux1 and aux2 are assigned before read. The rule is generic in locations l0,l1,l2,l3 and l4, and
+variables aux1,aux2,xandy.
+7.5. IOTS Semantics of the Source and Target Languages
+Any SystemC model Mgenerated from a domain-speciﬁc description adheres, as explained in Sect. 3.2.2,
+to a set of simple programming patterns: it has a main loop consisting of phas es each adhering to speciﬁc,
+restricted rules for allowed variable access, and furthermore each phase only cons ists of assignments, con-
+ditionals, and for statements. SystemC models Madhering to these programming patterns can therefore
+quite easily be given a behavioural semantics in terms of an IOTS. This seman tics is far more simple than
+the complex semantic [MRR03] of general SystemC models.
+Likewise, any assembler program Agenerated by applying a conventional C/C++ compiler to a SystemC
+modelM(that has been generated from a domain-speciﬁc description D) adheres to a set of simple “low-level
+patterns”5that makes it possible to give it an IOTS semantics. This follows from the fact that the controller
+modelMadheres to the coding patterns explained above and the fact that compiler optimisations are not
+used in safety-critical applications.
+In [PH07] IOTS semantics for generated SystemC models and IOTS assembler code was informally de-
+scribed. These semantics can be formalised in RSL by deﬁning abstract syntax Ccode andAssemblerCode
+for generated SystemC models and assembler programs, respectively:
+type Ccode = ...
+type AssemblerCode = ...
+and then deﬁning semantic evaluation functions having the following signatures:
+valueT: Ccode→IOTS
+valueT: AssemblerCode →IOTS
+We will not present a full RSL formalisation, but below we will describe the IOT S (RSL values) that each of
+the two evaluation functions return when applied to a given SystemC model and a given a ssembler program,
+respectively.
+5For instance, the Aprogram consists of a control loop that corresponds to the ma in loop of the SystemC program M.
+
+--- Page 22 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 21
+7.5.1. Semantics of SystemC Models
+The behavioural semantics of a generated SystemC model Mis an IOTS:T(M) = (VM,σM
+0,LM,TM)
+where the values VM,σM
+0,LM, and TMare as described below.
+The set of variables VM=VM
+I∪VM
+O∪VM
+Pwhere
+•VM
+Iis the set of input variables. It consists of the interfaces (introduced in Sect. 3.2 .1) that the controller
+modelMuses to read the state of hardware devices, e.g. actpt[n] (actual state of point number n).
+•VM
+Ois the set of output variables. It consists of the interfaces (introduced in Sect. 3. 2.1) that the controller
+modelMuses to send requests to hardware devices, e.g. reqpt[n] (for sending requested state to point
+numbern).
+•VM
+P=VM
+G∪VM
+Lis the set of processing variables.
+•VM
+Gis the set of global variables and constants declared in M. It consists of a shadow variable (see
+Sect. 3.2.2) for each input and output variable, e.g. actptNext[n] andreqptNext[n] , internal state
+variables such as the array entry reserved[n] (that keeps track of the reservation status of route number
+n), and constants like conﬂict table entries conflict[i][j] used internally in the processing phase.
+•VM
+Lis the set of local variables i, j, r, ... inMused as loop counters and temporary variables.
+The initial state σM
+0is derived in the obvious way from the initialisation part of the SystemC m odelM.
+For local variables x∈VM
+Lthe initial valuation is undeﬁned, but it is made sure by means of static analysis
+that no local variable is read before having been written to.
+The set of locations LMconsists of all labels that are associated with the statements in Mwhen using
+the following labelling procedure. Each statement sinMis given two labels: a pre-label lsand a post-
+labell′
+s. Furthermore, each for statement is given a third label l′′
+s. In general the labels associated with the
+statements must be distinct, however there are some exceptions. For instance, for a ny compound statement
+{s1... s isi+1... s n}its pre-label lmust be equal to the pre-label of its ﬁrst statement (i.e. l=ls1), its
+post-label l′must be equal to the post-label of its last statement (i.e. l′=lsn), and for any two consecutive
+statements siandsi+1the post-label of simust be identical to the pre-label of si+1(i.e.l′
+si=lsi+1). Another
+exception is the requirement that the post-label l′of any conditional if(b) s must be equal to the post-label
+ofs(i.e.l′=l′
+s).
+For each location l∈LMits mode can be derived by investigating the mode of variables appearing in
+those transitions (in the set TMdescribed below) that go into l(i.e. are of the form ( ...,...,...,l )). The set
+of transitions TMis constructed by deriving one or more transitions from each statement in M:6
+•A compound statement leads to the union of the transitions that its constituent st atements lead to.
+•An assignment x = e; with pre-label land post-label l′leads to a transition ( l,true,x:=e,l′).
+•A guarded statement if(b) s with pre-label land post-label l′=l′
+sleads to the transitions associ-
+ated with sas well as the following transitions: ( l,b,ε,l s) and ( l,¬b,ε,l′), where εdenotes the empty
+assignment which does not change any variable valuation.
+•A for statement for (i=0; i < c ;i++) s with pre-label l, post-label l′, and third label l′′leads to the
+transitions associated with sas well as the following transitions: ( l,true,i:= 0,l′′), (l′′,i >=c,ε,l′),
+(l′′,i < c,ε,l s), and ( l′
+s,true,i:=i+ 1,l′′).
+In this way the input phase of Mleads to transitions into input and processing locations, the processing
+phase leads to transitions into processing locations, and the output phase leads to t ransitions into output
+and processing locations.
+7.5.2. Semantics of Assembler Code
+The behavioural semantics of an assembler program A=g(M), whereMis a generated SystemC model, is
+an IOTS:T(A) = (VA,σA
+0,LA,TA), where the values VA,σA
+0,LA, and TAare as described below.
+The set of variables VA=VA
+I∪VA
+O∪VA
+Pwhere
+6To make the description of this derivation easier to read, we use concrete syntax for SystemC statements, IOTS guards, an d
+IOTS assignments.
+
+--- Page 23 ---
+22 Anne E. Haxthausen et al.
+•VA
+I={x(,n,4)|x[n]∈VM
+I}is the set of input variables.
+•VA
+O={x(,n,4 )|x[n]∈VM
+O}is the set of output variables.
+•VA
+P=VA
+G∪VA
+Lis the set of processing variables.
+•VA
+G={x(,n,4)|x[n]∈VM
+G}.
+•VA
+L=VM
+L∪REGS∪FLAGS∪SADDR .
+•REGS contains all symbols %eax, %edx, ... denoting registers.
+•FLAGS contains the symbols ZF, SF, PF, ... for zero ﬂag, sign ﬂag, parity ﬂag and others.
+•SADDR contains stack address symbols used for auxiliary variables.
+It is easy to see that there is a 1-1 relationship between the variable symbols inVAandVM, except that VA
+L
+contains additional assembler-speciﬁc variable symbols. All variables in VAexcept the local variables are
+represented as arrays. Expression actpt(,n,4) (wherenis a constant), for example, denotes the contents
+of the 4-bytes memory cell at memory byte address actpt + 4·n.
+The set of locations LAconsists of all labels that are associated with the instructions in Awhen using
+the following labelling procedure. Each instruction in Ais given two labels: a pre-label and a post-label. The
+labels must be distinct, except that for any two consecutive instructions the post-l abel of the ﬁrst and the
+pre-label of the second must be identical, and for any labelled instruction, the pre-la bel and the label in the
+instruction must be identical.
+For each location l∈LAits mode can be derived from the transitions in TA. The set of transitions TA
+is constructed by deriving one or more transitions from each instruction in A:7
+•An instruction movl a, b (move contents of atob8) with pre-label land post-label l′leads to a transition
+(l,true,b:=a,l′).
+•An instruction jmp Lx (unconditional jump to label Lx) with pre-label lleads to a transition ( l,true,ε,Lx ).
+•An instruction cmpl a,b (compare a,band set zero ﬂag if a=band sign ﬂag if a>b) with pre-label l
+and post-label l′leads to a transition ( l,true,(ZF,SF) := (a=b,a > b ),l′).
+•An instruction jle Lx (conditional jump to Lx, jump if previous compare evaluated to “less or equal”)
+with pre-label land post-label l′leads to transitions ( l,¬(ZF∨SF),ε,l′) and ( l,ZF∨SF,ε,Lx ).
+•An instruction l:incl i (increment i by 1) with pre-label land post-label l′leads to a transition
+(l,true,(i,ZF,SF ) := (i+ 1,i=−1,i <−1),l′). (We will ignore the assignments to ZF,SF in the fol-
+lowing paragraphs and ﬁgures, since their values after increment instructions have no im pact on the
+execution ofA.)
+Further assembler instructions yield IOTS transitions in an analogous way. In the semantics we have ignored
+the overﬂow ﬂag OF, as it can be proved that overﬂow will never happen. (The generated instructions that
+potentially could give overﬂow are of the form l:incl i coming from loop increments in M, but the upper
+bound of these are some constants that are far smaller than the range values f ori+1.)
+7.6. Abstraction Mappings
+When a SystemC model Mis compiled into an assembler program A, there is (as noted above) a 1-1
+correspondence between SystemC symbols in VMand assembler symbols in VA(e.g. for each SystemC
+array element x[n] there is a corresponding assembler array element x(,n,4)), except that VAcontains
+additional local variables: ﬂags, registers and stack addresses. We now deﬁne an I OTST(M+) that extends
+the variable set of T(M) with local variable symbols corresponding to the additional ﬂags, regist ers and
+stack addresses in VA:T(M+) = (VM+,σM+
+0,LM+,TM+) where
+•VM+=VM+
+I∪VM+
+O∪VM+
+P.
+7To make the description of this derivation easier to read, we use concrete syntax for assembler instructions, IOTS guard s,
+and IOTS assignments.
+8We use notational conventions of the GNU assembler; source o perands are denoted on the left-hand side, target operands o n
+the right-hand side.
+
+--- Page 24 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 23
+•VM+
+I=VM
+Iis the set of input variables.
+•VM+
+O=VM
+Ois the set of output variables.
+•VM+
+P=VM+
+G∪VM+
+Lis the set of processing variables.
+•VM+
+G=VM
+G.
+•VM+
+L=VM
+L∪CREGS∪FLAGS∪SADDR = (VA
+L\REGS )∪CREGS .
+•CREGS ={eax,...}.
+We then deﬁne a map αMfromVAtoVM+:
+•αM(x(,n,4) ) =x[n]for the array elements x(,n,4)∈VA\VA
+L
+•αM(x) =xforx∈VA
+L\REGS
+•αM(%n) =nfor%n∈REGS
+Clearly αMis a bijection that preserves the mode of variables (input/output/processing), and it s restriction
+αM
+IO=αM/(VA
+I∪VA
+O) to I/O variables is an I/O map .
+7.7. Implementation Relation
+Using the deﬁnitions given in the sections above, we are now able to deﬁne the implementa tion relation
+between assembler programs and SystemC models.
+Deﬁnition 7.1. An assembler program A=g(M) is a correct implementation of a generated SystemC
+modelM, ifT(A) is I/O equivalent to T(M) wrt. αM
+IO, i.e. equiv(T(A),T(M),αM
+IO).
+In next section we explain our strategy for performing mechanised proofs of I/ O equivalences. That strategy
+is based on the following theorem.
+Theorem 7.1. An assembler program A=g(M) is a correct implementation of a generated SystemC
+modelM, if equiv( αM(T(A)),T(M+)), where αM(T(A)) is the result of renaming the variables in T(A)
+according to the map αM.
+Proof. This follows from the fact that equiv( T(A),T(M),αM
+IO) is true if and only if equiv( T(A),T(M+),αM
+IO)
+(as adding processing variables to the state space of one IOTS, does not change the I/O behaviour of that
+IOTS) and the fact that equiv( T(A),T(M+),αM
+IO) is true if and only if equiv( αM(T(A)),T(M+)).
+7.8. Automated Object Code Veriﬁcation
+Currently an object code veriﬁer is being implemented. The implementation consists o f the following major
+components:
+•An implementation of the two Tfunctions yielding IOTS generators for SystemC and assembler code,
+respectively.
+•A library of equivalence-preserving transformation rules similar to the ones exem pliﬁed in Fig. 5, 6.
+•An IOTS transformer that given an IOTS and a transformation rule is able t o apply the transformation
+rule.
+A mechanised proof of the equivalence between an assembler program Aand the SystemC controller model
+Mfrom which it is generated is planned to be automatically performed according to the following procedure
+using the above components. First the SystemC controller model Mis mapped to its behavioural IOTS
+modelT(M), andAis mapped to its model T(A) as well, using the semantic evaluation functions for
+SystemC and assembler, respectively. Next, the symbols of T(A) are changed to C-style notation according
+to mapping αMdeﬁned in Sect. 7.6 – this results in T1. Also, the variable symbol space of T(M) is extended
+toT(M+), so thatT1andT(M+) can be directly compared with respect to their variable symbols. Then
+the veriﬁer searches for a sequence T1/mapsto→T2/mapsto→.../mapsto→T(M+) of transformations from T1toT(M+),
+whereupon it terminates.
+
+--- Page 25 ---
+24 Anne E. Haxthausen et al.
+7.9. Example
+We illustrate the mechanised proof procedure explained above using a fragment of t he SystemC controller
+code from our case study. Here global shadow variables reqsigNext[i] (the new state required for signal
+i) andreqptNext[j] (the new state required for point j) are copied to output signals reqsig[i] (set-state
+request to signal i) andreqpt[j] (set-state request to point j) during the output phase of a main loop cycle.
+Consider the following fragment from the output phase of a SystemC controller M:
+for ( int i=0; i<NUM_SIGNALS; i++)
+reqsig[i] = reqsigNext[i];
+for ( int j=0; j<NUM_POINTS; j++)
+reqpt[j] = reqptNext[j];
+The concrete conﬁguration data for this controller instance deﬁnes NUMPOINTS=3 andNUMSIGNALS=3 . From
+that the compiler9generates the following assembler fragment of A:
+movl $0, i
+jmp .L103
+.L104:
+movl i, %edx
+movl i, %eax
+movl reqsigNext(,%eax,4), %eax
+movl %eax, reqsig(,%edx,4)
+movl i, %eax
+incl %eax
+movl %eax, i
+.L103:
+movl i, %eax
+cmpl $2, %eax
+jle .L104
+movl $0, j
+jmp .L106
+.L107:
+movl j, %edx
+movl j, %eax
+movl reqptNext(,%eax,4), %eax
+movl %eax, reqpt(,%edx,4)
+movl j, %eax
+incl %eax
+movl %eax, j
+.L106:
+movl j, %eax
+cmpl $2, %eax
+jle .L107
+Now the mechanised equivalence proof is constructed as follows. (1) The behavioura l IOTS modelT(A) ofA
+is constructed by using the semantic evaluation function for assembler programs . After changing the names
+of assembler variables to C-style notation according to mapping αMexplained above, this results in an
+IOTST1which is depicted in Fig. 7. (2) The behavioural IOTS model T(M) ofMis constructed by using
+the semantic evaluation function for SystemC models whereupon the variable space is extended to achieve
+T(M+) which is depicted on the left-hand side of Fig. 9. (3) Applying the transformati on rule shown in
+Fig. 6 to the regions S11andS12ofT1results in an I/O-equivalent IOTS T2depicted in Fig. 8. (4) Twofold
+application of other transformation rules on T2results in I/O-equivalent IOTS T3shown on the left-hand side
+of Fig. 9. (5) Finally, a valuation-preserving change of guard conditions ([ i≤2]/mapsto→[i <3],[i >2]/mapsto→[i≥3]
+9We have used gcc 4.0.2 for this example.
+
+--- Page 26 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 25
+ww
+w
+www
+w
+ww
+w
+w
+www
+w
+wwww
+w
+w
+w
+w
+ww
+w
+w
+w
+w?
+??
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . .
+..........................................................................................................................................................................................
+..........................................................................................................................................................................................?
+?
+?
+66-
+?
+?
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . .
+..........................................................................................................................................................................................
+..........................................................................................................................................................................................?
+?
+?66-?
+?
+?
+?
+?
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . .
+............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................?
+?
+?
+?
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .. . . . . . . . . . . . . . . . . . .
+............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+eax:=i.L103i:= 0
+S11(ZF, SF ) :=
+eax:=ii:=eax
+j:= 0
+eax:=j
+S12.L107(ZF, SF ) :=
+eax:=jj:=eax(2 =eax,
+2> eax ).L106[¬(ZF∨SF)].L104
+eax:=eax+ 1[ZF∨SF]
+[ZF∨SF](2 =eax,2> eax )
+eax:=eax+ 1edx:=j.L107
+eax:=j
+eax:=reqptNext [eax]
+reqpt[edx] :=eaxS12T1
+edx:=i.L104
+eax:=i
+eax:=reqsigNext [eax]
+reqsig [edx] :=eaxS11
+[¬(ZF∨SF)]
+Fig. 7. IOTST1associated with Aafter renaming of variables.
+etc.) yieldsT(M+) which completes the proof, as far as the code fragments shown here for illustr ation
+purposes are concerned.
+8. Conclusion
+In this paper we have given an overview of a complete model-driven development and veri ﬁcation approach
+for railway and tram control systems. The approach provides a framework consisting of:
+1. A domain-speciﬁc language.
+2. A collection of tools, including (a) syntax and static semantics checkers for the language, (b) genera-
+tors producing executable models of the control system and its physical environment as well as proof
+obligations, (c) a bounded model checker, and (d) an object code veriﬁer.
+
+--- Page 27 ---
+26 Anne E. Haxthausen et al.
+ww
+w
+www
+w
+ww
+w
+w
+www
+w
+wwww?
+??
+?
+?
+?
+66-
+?
+?
+?
+?
+?66-?
+??eax:=i.L103i:= 0
+(ZF, SF ) :=
+eax:=ii:=eax
+j:= 0
+eax:=j
+.L107(ZF, SF ) :=
+eax:=jj:=eax.L106[¬(ZF∨SF)].L104
+eax:=eax+ 1[ZF∨SF]
+[ZF∨SF]
+eax:=eax+ 1 λ12λ11
+λ11=defreqsig [i] :=reqsigNext [i]
+λ12=defreqpt[j] :=reqptNext [j](2 =eax,2> eax )
+(2 =eax,2> eax )
+[¬(ZF∨SF)]T2
+Fig. 8. T1/mapsto→ T2: I/O-equivalent transformation
+3. A method for using these tools to construct and verify a family of similar control systems.
+For each control system to be generated, the user makes a description of the applicat ion-speciﬁc parameters
+in the domain-speciﬁc language and checks the description by means of the syntax and s tatic semantics
+checker. Next, the generators produce models of the control system and its physical environment from this
+description, together with the safety requirements which are automatically ver iﬁed using the bounded model
+checker in combination with an inductive proof strategy. Finally – since the fo rmal controller model can be
+directly compiled – object code is generated by a conventional compiler, and it is check ed by the object code
+veriﬁer that the object code is behaviourally equivalent to the control system mo del. In this way it is ensured
+that the safety properties established for the control system model also hold f or the object code.
+
+--- Page 28 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 27
+w
+w
+w
+w
+w w
+w
+w
+w
+w?
+?-
+?
+?
+?-
+??
+?i:= 0
+[i >2][i≤2]
+i:=i+ 1j:= 0
+[j >2][j≤2]
+j:=j+ 1λ11
+λ12w
+w
+w
+w
+w w
+w
+w
+w
+w?
+?-
+?
+?
+?-
+??
+?i:= 0
+[i≥3][i <3]
+i:=i+ 1j:= 0
+[j≥3][j <3]
+j:=j+ 1λ11
+λ12
+λ11=defreqsig [i] :=reqsigNext [i]
+λ12=defreqpt[j] :=reqptNext [j]T3T(M+)
+Fig. 9. T3/mapsto→ T(M+): I/O-equivalent guard transformation.
+The development of the framework was formalised by using the RAISE formal met hod, thereby providing
+complete and precise speciﬁcations of the tools as well as the domain-speciﬁc language. This provides a sound
+basis for tool implementation and allows for formal mechanised veriﬁcati on of algorithms.
+References
+[Acc04] Accellera. Property Speciﬁcation Language Version 1.1 , 2004.
+[Ber06] K. Berkenk¨ otter. OCL-based validation of a railway d omain proﬁle. In OCLApps 2006 - OCL for (Meta-)Models
+in Multiple Application Domains , October 2006.
+[BFPT06] B. Badban, M. Fr¨ anzle, J. Peleska, and T. Teige. Test a utomation for hybrid systems. In Proceedings of the
+Third International Workshop on SOFTWARE QUALITY ASSURANC E (SOQUA 2006) , Portland Oregon,
+USA, November 2006.
+[BGH+97] D. Bjørner, C.W. George, B. Stig Hansen, H. Laustrup, and S. Prehn. A railway system, coordination’97, case
+study workshop example. Technical Report 93, UNU/IIST, P.O .Box 3058, Macau, 1997.
+[Bjø03a] D. Bjørner. Domain Engineering: A ”Radical Innovati on” for Software and Systems Engineering? A Biased Account.
+In Nachum Dershowitz, editor, The Zohar Manna Intl.Symp. on ”Veriﬁcation: Theory & Practic e”, Heidelberg,
+Germany, July 2003. Springer-Verlag.
+[Bjø03b] D. Bjørner. New Results and Current Trends in Formal T echniques for the Development of Software for Transporta-
+tion Systems. In Proceedings of the Symposium on Formal Methods for Railway O peration and Control Systems
+(FORMS’2003), Budapest/Hungary . L’Harmattan Hongrie, May 15-16 2003.
+[Bjø03c] D. Bjørner. Railways systems: Towards a domain theor y. Technical report, Informatics and Mathematical Mod-
+elling, Technical University of Denmark, Building 322, Rich ard Petersens Plads, DK-2800 Kgs.Lyngby, Denmark,
+2003.
+
+--- Page 29 ---
+28 Anne E. Haxthausen et al.
+[Bjø06a] D. Bjørner. Software Engineering, vol. 1: Abstraction and Modelling . Texts in Theoretical Computer Science.
+Springer, 2006.
+[Bjø06b] D. Bjørner. Software Engineering, vol 2: Speciﬁcation of Systems and La nguages . Texts in Theoretical Computer
+Science. Springer, 2006.
+[Bjø06c] D. Bjørner. Software Engineering, vol. 3: Domains, Requirements and So ftware Design . Texts in Theoretical
+Computer Science. Springer, 2006.
+[Bjø06d] D. Bjørner. The Rˆ ole of Domain Engineering in Softwa re Development, October 2006. Invited keynote paper and
+talk: IPSJ/SIGSE Software Engineering Symposium 2006, Tok yo.
+[Bjø07] D. Bjørner. Domain Engineering, August 2006, reprint ed March 2007. To appear as a chapter in a book based on
+the BCS FACS Evening Seminars to be published by Springer (UK) .
+[DC04] R. Dyhrberg and N. Christensen. A Domain-Speciﬁc Lan guage for Tramway Control Systems. Master’s thesis,
+Informatics and Mathematical Modelling, Technical Univer sity of Denmark, DTU, May 2004.
+[DG05] R. Drechsler and D. Große. System level validation us ing formal techniques. IEE Proc.-Comput. Digit. Tech. ,
+152(3):393–406, May 2005.
+[ECfES01] European Committee for Electrotechnical Standa rdization. EN 50128 – Railway applications – Communications,
+signalling and processing systems – Software for railway co ntrol and protection systems . CENELEC, Brussels,
+2001.
+[EDD+04] H. Ehrig, W. Damm, J. Desel, M. Große-Rhode, W. Reif, E. Sc hnieder, and E. Westk¨ amper, editors. Integration
+of Software Speciﬁcation Techniques for Applications in En gineering , volume 3147 of Lecture Notes in Computer
+Science . Springer Verlag, 2004. ISBN 3-540-23135-8.
+[GH03] T. Gjaldbæk and A. E. Haxthausen. Modelling and Veriﬁ cation of Interlocking Systems for Railway Lines. In
+Proceedings of the 10th IFAC Symposium on Control in Transpo rtation Systems . Elsevier Science Ltd, Oxford,
+2003. ISBN 0-08-044059-2.
+[GLMS02] T. Gr¨ otker, S. Liao, G. Martin, and S. Swan. System Design with SystemC . Kluwer Academic Publishers, 2002.
+[GZ99] G. Goos and W. Zimmermann. Veriﬁcation of compilers. In Correct System Design , pages 201–230. Springer, 1999.
+[HCD04] A. E. Haxthausen, N. Christensen, and R. Dyhrberg. F rom Domain Model to Domain-speciﬁc Language for Railway
+Control Systems. In Proceedings of Formal Methods for Automation and Safety in R ailway and Automotive Systems
+(FORMS/FORMAT 2004)), Braunschweig, Germany , 2004.
+[HP00a] A. E. Haxthausen and J. Peleska. Formal Development and Veriﬁcation of a Distributed Railway Control System.
+IEEE Transaction on Software Engineering , 26(8):687–701, 2000.
+[HP00b] A. E. Haxthausen and J. Peleska. Formal Methods for t he Speciﬁcation and Veriﬁcation of Distributed Railway
+Control Systems: From Algebraic Speciﬁcations to Distribu ted Hybrid Real-Time Systems. In Forms ’99 - Formale
+Techniken f¨ ur die Eisenbahnsicherung Fortschritt-Beric hte VDI, Reihe 12, Nr. 436 , pages 263–271. VDI-Verlag,
+D¨ usseldorf, 2000.
+[HP02] A. E. Haxthausen and J. Peleska. A Domain Speciﬁc Lang uage for Railway Control Systems. In Proceedings
+of the Sixth Biennial World Conference on Integrated Design and Process Technology, (IDPT2002), Pasadena,
+California , June 23-28 2002.
+[HP03a] A. E. Haxthausen and J. Peleska. Automatic Veriﬁcat ion, Validation and Test for Railway Control Systems based
+on Domain-Speciﬁc Descriptions. In Proceedings of the 10th IFAC Symposium on Control in Transpo rtation
+Systems. Elsevier Science Ltd, Oxford, 2003.
+[HP03b] A. E. Haxthausen and J. Peleska. Generation of Execu table Railway Control Components from Domain-Speciﬁc
+Descriptions. In Proceedings of the Symposium on Formal Methods for Railway O peration and Control Systems
+(FORMS’2003), Budapest/Hungary , pages 83–90. L’Harmattan Hongrie, May 15-16 2003.
+[LVH00] M. P. Lindegaard, P. Viuf, and A. E. Haxthausen. Mode lling Railway Interlocking Systems. In Proceedings of the
+9th IFAC Symposium on Control in Transportation Systems 200 0, June 13-15, 2000, Braunschweig, Germany ,
+pages 211–217, 2000.
+[MP92] Z. Manna and A. Pnueli. The Temporal Logic of Reactive and Concurrent Systems . Springer-Verlag, 1992.
+[MRR03] W. M¨ uller, J. Ruf, and W. Rosenstiel. SystemC – Methodologies and Applications , chapter 4, pages 97–126. Kluwer
+Academic Publishers, 2003.
+[PBH00] J. Peleska, A. Baer, and A. E. Haxthausen. Towards Doma in-Speciﬁc Formal Speciﬁcation Languages for Railway
+Control Systems. In Proceedings of the 9th IFAC Symposium on Control in Transpor tation Systems 2000, June
+13-15, 2000, Braunschweig, Germany , pages 147–152, 2000.
+[PGHD04] J. Peleska, D. Große, A. E. Haxthausen, and R. Drech sler. Automated veriﬁcation for train control systems. In
+E. Schnieder and G. Tarnai, editors, Proceedings of the FORMS/FORMAT 2004 - Formal Methods for Au tomation
+and Safety in Railway and Automotive Systems , pages 252–265. Technical University of Braunschweig, Dece mber
+2004. ISBN 3-9803363-8-7.
+[PH07] J. Peleska and A. E. Haxthausen. Object Code Veriﬁcat ion for Safety-Critical Railway Control Systems. In Pro-
+ceedings of Formal Methods for Automation and Safety in Rail way and Automotive Systems (FORMS/FORMAT
+2007), Braunschweig, Germany . GZVB e.V., 2007. ISBN 13:978-3-937655-09-3.
+[PSS98] A. Pnueli, O. Shtrichman, and M. Siegel. The code val idation tool CVT: Automatic veriﬁcation of a compilation
+process. International Journal on Software Tools for Technology Tra nsfer, 2(2):192–201, 1998.
+[RAI92] The RAISE Language Group. The RAISE Speciﬁcation Language . The BCS Practitioners Series. Prentice Hall
+Int., 1992.
+[RJB04] J. Rumbaugh, I. Jacobson, and G. Booch. The Uniﬁed Modeling Language – Reference Manual, 2nd editio n.
+Addison-Wesley, July 2004.
+[ST04] E. Schnieder and G. Tarnai, editors. Proceedings of Formal Methods for Automation and Safety in R ailway and
+
+--- Page 30 ---
+A Formal Approach for the Construction and Veriﬁcation of RC Ss 29
+Automotive Systems (FORMS/FORMAT 2004)), Braunschweig, Ge rmany . Technical University of Braunschweig,
+December 2004.
+[ST07] E. Schnieder and G. Tarnai, editors. Proceedings of Formal Methods for Automation and Safety in R ailway and
+Automotive Systems (FORMS/FORMAT 2007)), Braunschweig, Ge rmany . GZVB e.V., 2007. ISBN 13:978-3-
+937655-09-3.
+[TS03] G. Tarnai and E. Schnieder, editors. Proceedings of the Symposium on Formal Methods for Railway O peration
+and Control Systems (FORMS’2003) , Budapest, 2003. L’Harmattan Hongrie.
+[W3Ca] XForms 1.0. Available under http://www.w3.org/TR/ xforms.
+[W3Cb] Extensible Markup Language (XML). Available under h ttp://www.w3.org/XML/.
+[W3Cc] The Extensible Stylesheet Language Family (XSL). Av ailable under http://www.w3.org/Style/XSL.

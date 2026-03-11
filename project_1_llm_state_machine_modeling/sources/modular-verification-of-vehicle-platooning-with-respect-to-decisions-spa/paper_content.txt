@@ -1,0 +1,705 @@
+--- Page 1 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect
+to Decisions, Space and Time?
+Maryam Kamali, Sven Linker, and Michael Fisher
+University of Liverpool, UK
+{maryam.kamali,s.linker,mfisher}@liverpool.ac.uk
+Abstract. The spread of autonomous systems into safety-critical areas has in-
+creased the demand for their formal veriﬁcation, not only due to stronger certi-
+ﬁcation requirements but also to public uncertainty over these new technologies.
+However, the complex nature of such systems, for example, the intricate combina-
+tion of discrete and continuous aspects, ensures that whole system veriﬁcation is
+often infeasible. This motivates the need for novel analysis approaches that mod-
+ularise the problem, allowing us to restrict our analysis to one particular aspect
+of the system while abstracting away from others. For instance, while verifying
+the real-time properties of an autonomous system we might hide the details of
+the internal decision-making components. In this paper we describe veriﬁcation
+of a range of properties across distinct dimesnions on a practical hybrid agent
+architecture. This allows us to verify the autonomous decision-making, real-time
+aspects, and spatial aspects of an autonomous vehicle platooning system. This
+modular approach also illustrates how both algorithmic and deductive veriﬁcation
+techniques can be applied for the analysis of different system subcomponents.
+Keywords: Modular Veriﬁcation Hybrid Agent Architecture AutomataSpatial
+ReasoningBDI Agent Programming
+1 Introduction
+Autonomous systems are increasingly being introduced into safety-critical areas, for
+example nuclear waste management [2], domestic robotics [5], or transportation, in the
+form of unmanned aircraft, advanced driver assistance systems, and even “driverless”
+cars. Although autonomous cars are generally aimed at increasing the overall safety of
+trafﬁc, vehicle platooning [17,26], shown in Fig. 1 in particular provides even more ad-
+vantages over single vehicles: it potentially decreases both congestion on motorways,
+and fuel consumption, since the relative braking distance between vehicles should be
+smaller, and hence the vehicles can make use of slipstreams with reduced wind resis-
+tance. Here, vehicles are held in sequence on a highway, with distances and speeds con-
+trolled by the platoon rather than the individual vehicle. Platooning has been recognised
+as a valuable means to achieve these goals, and is encouraged politically, for instance,
+by the Department of Transport of the United Kingdom1.
+?Work supported EPSRC grants EP/N007565 (Science of Sensor Systems Software),
+EP/R026092 (FAIR-SPACE RAI Hub) and EP/L024845/1 (Veriﬁable Autonomy).
+1https://trl.co.uk/news/news/government-gives-green-light-first-
+operational-vehicle-platooning-trialarXiv:1804.06647v1  [cs.AI]  18 Apr 2018
+
+--- Page 2 ---
+2 Maryam Kamali, Sven Linker, and Michael Fisher
+Autonomous vehicles within a platoon need to be veriﬁed to ensure the overall
+safety of the platoon. Speciﬁcally both autonomous decision-making concerning leav-
+ing/joining the platoon, and low-level interaction with its environment have to be anal-
+ysed, in the best case by providing guarantees for reliable behaviour. To certify the high-
+level decisions of an individual autonomous system, the rational agent concept [27] is
+widely used, since it allows for an analysis of the reasons why an autonomous system
+chooses a certain action.
+The physical interaction of a vehicle with the rest of the platoon of vehicles in its
+environment consists of several different dimensions. Two of the most important are
+time andspace . Timing constraints are of major importance to the overall behaviour of
+a system. For example, if an unsafe situation is encountered, the vehicles have to react
+within a certain time frame to ensure safety during emergencies. But even for normal
+vehicle behaviour, such as joining or leaving a platoon, time constraints are eminently
+important [8]. Spatial aspects are vital for similar reasons. Ensuring that vehicles do not
+get too close, or can ﬁt in the space they are trying to move in to, is clearly important.
+So now we reach the key problem. A complex, autonomous system such as an au-
+tomotive vehicle platoon, will incorporate a diverse range of properties and behaviours.
+If we wish to formally verify allof these dimensions together then we will certainly
+hit complexity issues — multi-dimensional formalisation easily become very com-
+plex [7,14]. Two approaches are either to use modular veriﬁcation techniques [19] or to
+use abstraction techniques [10] to separate out dimensions of concern.
+A
+F4 F3 F2 F1 L
+Fig. 1: Vehicle Platooning — vehicle Ajoining interior of platoon
+Our Approach. We have identiﬁed three key dimensions within autonomous vehicle
+platoons that we wish to assess: autonomous decision-making, real-time properties,
+and spatial properties. We also aim to minimise the change to existing components
+of the system when new components are introduced. Consequently, we use abstraction
+techniques for the three dimensions, but ensure that veriﬁcation results for parts of the
+system that are unchanged remain valid, and so the veriﬁcation task is reduced to check-
+ing any new system components. We show the applicability of this approach by taking
+an existing autonomous vehicle platoon system whose decision-making and real-time
+properties have already been veriﬁed, in [18], and incorporating spatial aspects. A spa-
+tial controller is introduced to model the lane-changing behaviour of the vehicles in
+the platoon. This was something that the original platoon veriﬁcation from [18] did not
+consider and we now show that not only does the high-level decision making (agent)
+
+--- Page 3 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 3
+code remain unchanged, but since the spatial aspects were shown to be correct in [15],
+the new veriﬁcation task is reduced to the analysis of the real-time requirements.
+Consequently, we show how this modular veriﬁcation approach supports the ﬂexi-
+bility of the underlying hybrid agent architecture, with any new components of the ex-
+tended architecture still being veriﬁable. The veriﬁcation of such architectures remains
+feasible as long as we can apply appropriate abstraction to the system components.
+2 Hybrid Agent Architecture
+Cyber-physical systems, such as autonomous vehicles, require a sophisticated archi-
+tecture together with corresponding formalism. Practical systems combine continuous
+environmental interactions, through feedback control, together with discrete changes
+between these control regimes. In traditional hybrid systems, separating the high-level
+decision making from continuous control concerns is difﬁcult. The other drawback of
+standard hybrid modelling approaches is that the representation of decision-making
+can become very complex and hard to distinguish. We utilise a hybrid agent archi-
+tecture [20] where the decision-making aspect is separated into a distinguished ‘agent’
+while the system still provides for traditional feedback control systems. This approach
+to the modelling and development of autonomous systems provides a clear separation
+between these two concerns, and also the behaviour of each component is described in
+much more detail that can contribute to reason about their behaviours separately. Thus,
+the separation of high-level decision making and low-level controllers within a hybrid
+agent architecture provides an infrastructure for modular veriﬁcation.
+In this paper, we use a hybrid agent architecture, proposed for autonomous vehicle
+platooning in [18], as shown in Fig. 2. A Decision-Making Agent instructs a Physical
+and Continuous Engine by passing instructions through an Abstraction Agent . The Ab-
+straction Agent receives streams of continuous data from the Physical and Continuous
+Engines, extracts discrete information from this, and sends it to the decision-making
+agent. The Physical and Continuous engine manages the real-time continuous control
+of the vehicle through feedback controllers, implemented in MATLAB. We assumed
+that the dynamics of the vehicles are continuous, i.e., they may not arbitrarily change
+positions and velocities. An automotive simulator, TORCS2, is used to implement the
+automotive environment and this environment is observed through the sensory input by
+the Physical and Continuous engine.
+The Decision-Making Agent is a rational agent [27] that not only makes decisions,
+but will have explicit reasons for making these decisions. This allows us to describe
+what the autonomous system chooses to do, and to reason about why it makes its
+choices. Our Decision-Making Agent is based on the BDI ( Belief-Desire-Intention )
+paradigm. Here, beliefs represent the agent’s views about the world, desires provide
+the long-term objectives to be accomplished, and intentions capture the set of goals
+currently being undertaken by the agent in order to achieve its desires.
+The separation between the Decision-Making Agent and the Physical and Continu-
+ous Engine provides a way to verify the agent behaviour in isolation from the detail of
+feedback control. In this work we utilise program model-checking over the Decision-
+Making Agent. This allows us to formally verify the realagent code rather than a model
+2The Open Racing Car Simulator https://sourceforge.net/projects/torcs
+
+--- Page 4 ---
+4 Maryam Kamali, Sven Linker, and Michael Fisher
+Environment	Physical	and	Continuous	Engine	Abstraction	Agent	Programmed	in		GWENDOLEN	
+Abstract	Action	Continuous	Action	Sense	Abstract	Decision	Making	Agent	Programmed	in	GWENDOLEN	Sense/Reason/Act	
+MATLAB/Simulink		
+Fig. 2: Hybrid Agent Architecture [18]
+of the agent behaviour. This formal veriﬁcation of agent behaviour is carried out using
+the AJPF model checker and the agent itself is implemented in the veriﬁable language
+GWENDOLEN [11]. The model-checking approach using AJPF is used to demonstrate
+that the BDI agent always behaves according to the platoon requirements and never
+intentionally chooses unsafe options. Unfortunately, model checking of BDI agents
+through AJPF is not only resource-heavy, but also lacks support for the formal ver-
+iﬁcation of timed behaviours. As indicated above, timing will be a key principle of
+relevance to safety-critical behaviour and so, to tackle this problem, Kamali et al. [18]
+proposed a modular approach to the veriﬁcation of automotive platoons constructed in
+this way. They used a combination of AJPF, for internal agent decisions, and the Uppaal
+model checker, for global timing behaviours.
+We here consider two of the main platooning procedures involved in joining and
+leaving a platoon. Both the joining and leaving procedures are comprised of a series
+of communications between an individual vehicle and the platoon leader aimed to ob-
+tain permission to join/leave or update the leader when the joining/leaving procedure is
+accomplished. Apart from the required communications, the vehicle switches between
+different controllers, such as moving from ‘manual’ to ‘automatic’ for speed and steer-
+ing. One of the challenging manoeuvres is changing lanes and the high-level behaviour
+of the platoon is veriﬁed under the assumption that the lane changing manoeuvre is
+carried out safely. In order to accomplish the fully autonomous platooning while pre-
+serving safety, we extend the previous work of [18] by adding spatial reasoning to the
+platooning architecture. Representing space allows us to model the spatial controller of
+the system and consequently to verify the safety of the spatial controller behaviours.
+Both the idea, and the concrete deﬁnition of the spatial controller, is taken from
+previous work [15]. The level of this spatial abstraction is still very high: we do not
+refer to speciﬁc/metric distances, but instead associate regions of space with different,
+abstract, properties. That is, we distinguish two different aspects of space needed by
+a vehicle: its reservation and its claim . The intuition here is that the reservation of a
+
+--- Page 5 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 5
+vehicle denotes the part of space that is necessary for the vehicle to operate safely. It
+comprises both the physical extent of the vehicle and the distance it needs to come
+to a standstill in case of an emergency. The claim, however, is not as restrictive. It
+is an additional way for the vehicles to communicate, similar to the turning signals
+common to road vehicles. That is, a vehicle sets a claim somewhere on the motorway
+to indicate its desire to occupy this part of the motorway in the (near) future. If the
+vehicle decides that changing to the new lane is safe, it mutates its existing claim into
+a reservation. Consequently, within our abstraction the vehicle is considered to be on
+both lanes at once, thus modelling the act of changing lanes. For example, in Fig. 1, the
+carAcurrently set a claim on the right lane, to join the platoon.
+3 Methodology
+In this section, we show how the hybrid agent architecture of Sect. 2 can be instanti-
+ated to verify vehicle platooning with respect to the agent’s decisions, the continuous
+behaviour, and the topological spatial changes necessary to change lanes, e.g., while
+joining a platoon. To that end, we reﬁne the instantiation of previous work [18] with
+a new controller responsible for the spatial aspects of trafﬁc, which in turn is inspired
+by previous work of one of the authors [15]. Generally, our system consists of several
+controllers, which constrain the possible behaviour of the vehicles on the road. This
+implies, in particular, that the behaviour of the parallel product of two components is
+a subset of the behaviour of each single component. To show the correctness of our
+reﬁnement step, we prove a set of proof obligations including deadlock freedom and in-
+variant preservation. We also show that all the veriﬁed properties of autonomous vehicle
+platooning presented in [18], hold after the reﬁnement step.
+Agent
+Program
+Vehicle Control
+and EnvironmentComm. Comm.
+(a)Agent
+Program
+EnvironmentContinuous
+ControllerSpatial
+ControllerComm. Comm.
+(b)
+Fig. 3: Original and Reﬁned Architecture
+Fig. 3 shows both the original and reﬁned architecture modelling an individual vehicle
+within a platoon. The centre of the architecture consists of the agent program , which
+makes autonomous decisions for the vehicle and may both communicate with other
+agents via some communication channel , and with both a continuous controller and an
+
+--- Page 6 ---
+6 Maryam Kamali, Sven Linker, and Michael Fisher
+environment (cf. Fig. 3a). A main feature of our approach is a translation of the differ-
+ent components into simpler abstractions for veriﬁcation purposes. That is, to verify the
+agent program, we can abstract from the timing aspects of the continuous controller.
+Thus we gain a simple (ﬁnite-state) timed automaton as the abstraction of the continu-
+ous behaviour. Similarly, we can reduce the agent program to the few parts necessary
+for the communication with the continuous controller for the veriﬁcation of the latter.
+In both cases, the state space is reduced signiﬁcantly, making veriﬁcation feasible, in
+the case of the agent program by using AJPF [12] and in the case of the continuous
+controller by using UPPAAL [6].
+3.1 Agent
+The BDI agent program in our architecture is written in G WENDOLEN [11], a prolog-
+style programming language that incorporates explicit representation of goals, beliefs,
+and plans. AJPF is a model checker that accepts G WENDOLEN code as an input model.
+It allows for the speciﬁcation and veriﬁcation of agent properties with respect to beliefs
+and intentions. Since the general interface between the underlying vehicle implemen-
+tation and the agent is similar to [18], we could re-use that agent program with only
+minor changes. We distinguish between two agent programs: the leader , which man-
+ages all joining and leaving requests of vehicles within, or outside, the platoon, and the
+follower , which deﬁnes the functionality of vehicles within the platoon.
+We did not need to change the structure of the leader protocol, which is why we
+subsequently concentrate on the follower. The follower currently implements the inter-
+actions for four main features:
+1. joining a platoon;
+2. leaving a platoon;
+3. switching the steering control between manual and automatic; and
+4. setting a new distance to the front vehicle.
+A vehicle intending to join to a platoon initially sends a joining request to the leader
+and waits for conﬁrmation from the leader. When it receives the conﬁrmation, it in-
+structs the vehicle to change lane and waits for the vehicle to send back a successful
+conﬁrmation of changing lane. After receiving the successful conﬁrmation the follower
+switches its speed controller to automatic. When the joining vehicle is close enough
+to the proceeding follower within the platoon the agent instructs the vehicle to switch
+the steering controller to automatic. Finally, the joining vehicle conﬁrms the successful
+joining procedure to the leader. When the joining vehicle receives a reply back from
+the leader, it deduces that the the joining goal has been achieved. The following code
+shows a simpliﬁed plan of the agent code for when the joining vehicle switches its speed
+controller from manual to automatic:
++! j o i n i n g (X, Y ) : {B name (X) , B j o i n _ a g r e e m e n t (X, Y) , B changed_lane ,
+~B s p e e d _ c o n t r , ~ B s t e e r i n g _ c o n t r , ~B j o i n i n g _ d i s t a n c e }
+< +! s p e e d _ c o n t r ( 1 ) , j o i n i n g _ d i s t a n c e ;
+Here: +! joining (X, Y) indicates the addition of the goal to join to the platoon;
+clauses withinf:::gstates the conditions about the agent’s beliefs which must be true
+
+--- Page 7 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 7
+such as a join agreement belief for joining behind the follower Y(B join_agreement(X,
+Y)); and +! speed_contr (1), joining_distance , called the ’body’ of a plan, is a set
+of deeds the agent performs for execution of the plan. +! speed_contr (1) adds a new
+goal for switching the speed controller to automatic and joining_distance indicates
+that the execution of the plan is suspended until the joining vehicle reduces the gap with
+its immediate follower.
+Given agent code, one can specify the agent properties with respect to beliefs, goals,
+and actions and then verify them using the AJPF model checker. As mentioned earlier,
+due to our modular veriﬁcation approach we could skip the re-veriﬁcation of previous
+platooning properties. An example of a safety property is as follows:
+(GXjoining (X;Y)&:BXjoin_agreement (X;Y) )
+!:DXperf(speed controller (1))(1)
+where X refers to a joining vehicle that has a goal to join to a platoon, in front of a
+platoon follower Y. GXjoining (X;Y)indicates a joining goal that agent X tries to
+achieve. BXjoin_agreement (X;Y)indicates the join agreement belief of agent X, and
+DXperf(speed_controller (1))indicates the action of perf (speed_controller (1))that
+agent X performs. This property denotes that if a vehicle never believes it has received
+a conﬁrmation from the leader, then it never switches to the automatic speed controller.
+3.2 Continuous Controller
+In the original architecture, we combined the continuous controller and the environment
+into one entity. For example, we did not distinguish between interactions of the agent
+with the actuators of the autonomous system and interactions with the human driver.
+In both cases, the main feature of the interaction we were concerned with was the time
+taken for the controller or environment to react.
+As shown in Fig. 3b, we now reﬁne the continuous controller and the environment
+into three sub-components. We introduce two controllers, one referring to the timing
+aspects and the continuous behaviour of the vehicle, and the other speciﬁcally to control
+actuations with respect to space.
+The reﬁnement extends the previous environment with a model of potential col-
+lision, which will be deﬁned in the subsequent section. It removes the nondetermin-
+istic failure of changing lane from the continuous controller that implicitly modelled
+the existence of such a potential collision. A part of the continuous controller automa-
+ton that has changed in our reﬁnement step is shown in Fig. 4. Note that synchronisa-
+tion channels are changed from changing _lane tophy_changing _lane since the reﬁned
+continuous controller is synchronised with the spatial controller, while in the previous
+controller it was synchronised with the agent automaton. We elaborate on the spatial
+controller in the following section.
+3.3 Introducing Space
+In this section, we present the concrete instantiation of the spatial controller, as well as
+the translation into timed and untimed automata for veriﬁcation purposes. To that end,
+
+--- Page 8 ---
+8 Maryam Kamali, Sven Linker, and Michael Fisher
+Fig. 4: Abstract and Reﬁned Continuous Controller Automata
+we formalise the ideas presented in Sect. 2 on the spatial model. However, we will not
+go into all of the details of the model of space, but refer to previous work [15,21].
+We ﬁx a set of lanes L=f1;:::; ngand for simplicity assume the motorway to be
+inﬁnitely long. The dimension in the direction of the motorway, called the extension ,
+is thus modelled by the real numbers R. At any point in time, each vehicle cis then
+spatially characterised by its position pos(c)2R, its physical size ps(c)2R, its braking
+distance, i.e., the distance it needs to come to a standstill bd(c)2R, as well as the
+lanes it reserves res(c)Land claims clm(c)L. These sets of lanes are subject to
+certain conditions (e.g., the set of claims has to be a singleton and has to be adjacent to
+the current reservation, etc.), which we will not expand upon Each vehicle ccan also
+perform certain actions , in particular
+c(c;n):create a claim on lane n
+r(c):change an existing claim into a reservation
+wdc(c):remove/withdraw an existing claim
+wdr(c;n):shrink its reservation to only be on lane n
+While the original deﬁntion of the spatial model allowed for arbitrarily many, even inﬁ-
+nite, of these instantaneous transitions at any point in time, we now restrict the possible
+transitions such that after each transition an amount of time greater than zero has to
+pass. We add this constraint to enforce the permanency of spatial changes on the road.
+Subsequently, we will refer to this model of space as R.
+Using these abstract deﬁnitions as the semantics, we deﬁned a speciﬁcation logic
+with an emphasis on multi-lane trafﬁc [15]. However, in this work we will not require
+the full logic, and hence we only explain the necessary details. One main feature of the
+logic is that it employs local reasoning , that is, a formula is evaluated with respect to a
+ﬁnite part of the motorway, as perceived by a distinguished vehicle, which is sometimes
+referred to as the egovehicle. This ﬁnite perception is called the view of a vehicle, and
+consists of a subset of the lanes, as well as a ﬁnite interval of the real numbers, the
+extension of the view. We employ two spatial atoms re(c)andcl(c), which denote that
+the current view consists of a single lane and a non-empty extension, and is fully occu-
+pied by the reservation (claim, respectively) of c. Furthermore, we use a single modality
+somewherehji, which denotes that the formula jholds somewhere on the space under
+consideration. With these speciﬁc deﬁnitions, and standard ﬁrst-order operators, we can
+
+--- Page 9 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 9
+xtdl
+Cxtlc
+change _lane_join?=c(ego;n1)
+l:=n1;x:=0
+change _lane_leave ?=c(ego;n1)
+l:=n1;x:=0x>0
+abort !=wdc(ego)0<x<tdl;:9c:pc(c;ego)
+phys _changing _lane!=r(ego)
+phys _changed _lane?
+x>0
+changed _lane!
+=wdr(ego;l)
+n:=l
+Fig. 5: Spatial Controller for Joining and Leaving a Platoon ( tdl<tlc)
+express the following two formulas.
+cc:9 c:c6=ego^hre(ego)^re(c)i
+pc(c;ego)c6=ego^hcl(ego)^(re(c)_cl(c))i
+Formula ccdenotes the existence of a vehicle cwhose reservation overlaps with the
+reservation of ego. According to our explanations above, this would amount to an unsafe
+situation. For simplicity, we term such situations as collisions , even though cmay only
+have encroached upon the braking distance of ego or vice versa. Formula pc(c;ego)
+denotes that the claim of ego overlaps with either the claim of cor its reservation. This
+may result in an unsafe situation, if ego changed its claim into a reservation. Hence,
+pc(c;ego)allows us to identify potentially unsafe situations, and so take measures to
+mitigate this.
+To model the spatial behaviour of a vehicle joining or leaving the platoon, we
+will use a type-amended timed automata called automotive-controlling timed automata
+(ACTA) [16]. These augment timed automata with the possibility to use spatial formu-
+las as guards and invariants, as well as to use the spatial actions described above at the
+transitions. Figure 5 shows the controller in terms of an ACTA, where ego refers to the
+vehicle the controller is implemented in. The upper part of the controller is concerned
+with the vehicle trying to join a platoon, while the lower part handles the leaving of a
+platoon. The actions change _lane_join,change _lane_leave ,changed _lane, and abort
+are used to communicate with the decision making agent. The ﬁrst two actions are used
+by the agent to initiate the corresponding manoeuvre, while the spatial controller uses
+changed _lane andabort to indicate a successful and unsuccessful lane-change manoeu-
+vre, respectively. The channel phys _changed _lane is a direct communication link with
+the continuous controller, which indicates that steering onto the new lane was success-
+ful. Observe that we chose to encode the necessary delays after the transitions into this
+controller as well via the clock x.
+For the veriﬁcation of the other components, we need to provide abstractions from
+the ACTA given above into both an untimed automaton, and a standard timed automa-
+ton. To abstract from both the timing and spatial deﬁnitions, we remove all references
+to clocks, spatial formulas and spatial actions, i.e., we only keep the discrete actions,
+
+--- Page 10 ---
+10 Maryam Kamali, Sven Linker, and Michael Fisher
+and therefore maintain the order of actions. In this way, we create a simple ﬁnite au-
+tomaton which serves as the abstraction of the spatial controller that can only be used
+during the veriﬁcation of the agent programs. The translation into timed automata is
+slightly more involved. We employ a global set of identiﬁers for each vehicle. In fact,
+this set was already used to identify the different vehicles by parameterising the con-
+tinuous controllers [18]. Hence, we replace each occurrence of ego with the parameter
+id. Furthermore, we introduce a global array cof Boolean values, where the identiﬁers
+serve as the indices, and each entry denotes whether the corresponding vehicle currently
+possesses a claim. Whether a vehicle is currently engaged in a lane-change manoeuvre,
+i.e., whether it uses two lanes at once for its reservation, is indicated by a variable r,
+which is local to each controller.
+However, since claims and reservations are strongly tied together, we also need to
+deﬁne an abstraction of the road’s behaviour. To that end, we chose to use a very simple
+abstraction: a potential collision can only happen, if at least one vehicle currently holds
+a claim. Furthermore, a potential collision has to last an arbitrary amount of time greater
+than zero before it can be resolved. This is a result of the assumption on the vehicles
+dynamics to be continuous and the necessary delays after the spatial transitions. Note
+that a potential collision can happen due to two reasons: either a spatial transition or
+the different velocities of two cars. In both cases, our model and its assumptions ensure
+that the situation persists for a non-zero amount of time. We can formalise these two
+properties with the following abstraction of the road’s behaviour, as shown in Fig. 6. In
+this ﬁgure, yis a clock used to enforce the timing behaviour.
+c[2]__ c[max]
+pc=1;y=0
+y>0
+pc=0
+Fig. 6: Abstraction of Spatial Behaviour on the Road
+With these changes, the timed abstraction of the spatial controller is as shown in
+Fig. 7. The timing behaviour is exactly as in the original automaton. Hence, if we can
+verify the other controllers in the presence of this controller, we can guarantee the safety
+of the overall system.
+Finally, we need to deﬁne how the agent program and the continuous controller
+can be abstracted for the veriﬁcation of the spatial properties. To that end, observe that
+the speciﬁcation logic for the spatial properties does not contain modalities to refer to
+timings or decisions of the agent. That is, for the spatial properties, we do not refer to
+either time constraints or the speciﬁc goals or intentions of the agent. Hence, for spatial
+veriﬁcation, we use the untimed automaton of the continuous controller which was also
+used during the veriﬁcation of the agent. Similarly, the untimed abstraction automaton
+of the agent program used in the veriﬁcation of timing aspects can be re-used during
+the veriﬁcation of spatial properties.
+
+--- Page 11 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 11
+xtdlwait
+Cxtlcchange
+change _lane_join?=c[id] =1
+x:=0
+change _lane_leave ?=c[id] =1
+x:=0x>0
+abort !=c[id] =00<x<tdl;:pc
+phys _changing _lane!
+c[id] =0;r=1
+phys _changed _lane?
+x>0
+changed _lane!
+=r=0
+Fig. 7: Timed Abstraction of Spatial Controller of Fig. 5 ( tdl<tlc)
+Lemma 1. Let A i, Viand S ibe the agent program, continuous controller and spatial
+controller, respectively, of vehicle i, with i 2f1;2g. Furthermore let Comm 12be the
+component modelling the communication of vehicle 1and 2. Let S0
+ibe the abstrac-
+tions of the spatial controllers (Fig. 7), A0
+ithe abstractions of the agent programs, R0
+the abstraction of the road (Fig. 6), and jta formula describing a time property. If
+A0
+1kV1kS0
+1kComms 12kA0
+2kV2kS0
+2kR0j=jtthen A 1kV1kS1kComms 12kA2kV2kS2kRj=jt.
+Proof (Sketch). The timing behaviour of AiandA0
+iis the same (cf. [18]). Furthermore,
+the timing constraints on SiandS0
+iare also the same. Now, after each spatial transition,
+in the original Si, some time has to pass. In both Siand its abstraction S0
+i, every time
+a clock is reset the guards on the outgoing transitions of the target state srequire the
+automaton to stay in sfor some time. Finally, if the abstraction Rﬂags a potential
+collision, then the original system possesses a trace containing at least one claim for a
+vehicle. Let us assume this claim is of vehicle 2. Then, all possible traces starting from
+this conﬁguration are also possible in the abstraction R. Hence, whenever we can prove
+that the abstraction satisﬁes a timed formula jt, the original system also satisﬁes jt.u t
+Lemma 2. Let A i, Viand S ibe the agent program, continuous controller and spatial
+controller, respectively, of vehicle i, with i 2f1;2g. Furthermore let Comm 12be the
+component modelling the communication of vehicle 1and 2. Now let A0
+iand V0
+ibe
+the abstractions without references to spatial properties as described above. Then, if
+A0
+1kV0
+1kS1kComms 12kA0
+2kV0
+2kS2kR0j=jsthen A 1kV1kS1kComms 12kA2kV2kS2kRj=js.
+Proof (Sketch). Again, this holds since the abstractions A0
+iandV0
+iallow for more be-
+haviour than the original automata. Furthermore, the spatial properties may neither refer
+to the internals of the agent program, nor to time aspects of the system. u t
+4 Veriﬁcation of Vehicle Platooning
+In this section, we explain the veriﬁcation approach built on the methodology presented
+in Sect. 3.3On one hand, we did not have to re-run most of our veriﬁcation methods
+3The model and the veriﬁed properties can be found at https://github.com/
+VerifiableAutonomy/AgentPlatooning
+
+--- Page 12 ---
+12 Maryam Kamali, Sven Linker, and Michael Fisher
+from our previous work, particularly running AJPF, since we only reﬁned non-agent
+parts of the system. On the other hand, we needed to show that the reﬁnement step
+was valid by proving proof obligations. In the following, we ﬁrst identify a set of proof
+obligations that we proved to verify our reﬁnement step. We then denote the spatial
+properties that we checked for our concrete vehicle platooning. We also point out those
+parts of the system that remained unchanged and consequently not re-veriﬁed. Finally,
+we prove that the spatial controller which is added to our concrete vehicle platooning is
+a safe fragment of the space model in [15].
+4.1 Proof Obligations
+The reﬁnement step allows us to introduce more details about the spatial properties of
+vehicle platooning. However, we need to ensure that the new details do not violate the
+system invariants, and do not introduce deadlocks. The checking needs to be considered
+for both veriﬁcation of agent and timing behaviours. The untimed abstraction of the spa-
+tial controller only allows the same set of sequences of interactions with the agent. This
+means that we did not change the structure of the agent programs themselves; neither
+the leader nor the follower, i.e., the reﬁnement step is correct wrt. agent behaviour. To
+discuss the correctness of our reﬁnement step wrt. temporal behaviour, we check four
+main proof obligations, shown in Fig. 8. The ﬁrst three obligations are veriﬁed using the
+Uppaal model checker, followed by a discussion of the correctness of the fourth obliga-
+tion. We instantiated the agent timed automata, spatial, and continuous controllers for
+a platoon of four vehicles and one leader. We choose an arbitrary vehicle, for example
+vehicle 2, to denote our proof obligations and properties of interest, and described these
+with respect to this vehicle. Note that a2 is the follower agent program as implemented
+in vehicle 2 and s2 is the lane-change (spatial) controller of the same vehicle.
+Deadlock Freedom Anot deadlock
+Possible to join and leave Ea2:join_completed
+Ea2:leave _completed
+Time bound for joining and leaving Aa2:join_completed imply
+(a2:process _time >=50^a2:process _time <90)
+Aa2:leave _completed imply
+(a2:process _time >=30^a2:process _time <50)
+No new communication transaction changes were restricted to continuous and spatial
+controllers
+Fig. 8: Proof Obligations, with formalisation in timed temporal logic4
+The ﬁrst proof obligation that we veriﬁed was deadlock freedom. We showed that
+our reﬁnement step was not too restrictive. The second proof obligation ensures that
+adding the spatial controller does not decrease the functionality of the platooning, and
+4A=“all paths”; E= “exist a path”; =“Always”; =“Eventually”
+
+--- Page 13 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 13
+we checked whether joining and leaving procedures can occur. In the previous Uppaal
+model of platooning, we assumed that change lane could happen in 20 CH_L_Bwhere
+CH_L_Bwas reﬂecting the uncertainty of the changing lane. In our reﬁnement, the
+lower bound remains the same, however, the upper bound splits to two waiting times
+for free space tdl(cf. Fig. 5) and the uncertainty of the changing lane ( CH_L_B tdl).
+Therefore, we could show that the time bound of joining and leaving remain the same
+as the previous model (The third proof obligation in Fig. 8).
+In the reﬁnement step, we deﬁned two new channels representing the communica-
+tion between the spatial controller and continuous controller, phy_changing _lane and
+phy_changed _lane. As these channels are not used in any other parts of the system, we
+can guarantee that no new communication transition is added to any other part of our
+model.
+4.2 Spatial Properties of Vehicle Platooning
+We can verify that if a vehicle requested a lane-change, i.e., the spatial controller reaches
+thewait state (cf. Fig. 7), and still perceives a potential collision after the waiting time
+tdl, then the corresponding manoeuvre in the agent program will fail.
+(s2:wait^pc^s2:x==tld) !(a2:f ailed _to_join_a2:f ailed _to_leave) (2)
+In this formula !denotes the “leads-to” operator of Uppaal. Observe that we cannot
+identify whether the join manoeuvre or the leave manoeuvre failed, since the spatial
+controller acts similarly for both manoeuvres. Note that identiﬁcation of the manoeuvre
+can be easily implemented by adding a ﬂag to the spatial controller automaton. We can
+also show that, whenever the spatial controller chooses that a lane-change can be safely
+initiated, it does not perceive a potential collision on the road. Furthermore, as long as
+it stays in this state, no potential collision can arise.
+A:(s2:change^pc) (3)
+This property shows that the space on the road as formalised in Fig. 6 is “well-behaved”
+within this abstraction, since a potential collision can only happen, if a vehicle possesses
+a claim. However, if the controller of vehicle 2 is in state change , it already changed
+its claim to a new reservation. The time needed to verify these properties was similar
+to the time needed for the proof obligations, which, compared to our previous attempt,
+changed negligibly.
+4.3 Spatial Safety Property
+The main property that the spatial controller must ensure is that the space used by two
+different vehicles is disjoint. That is, it has to ensure that the formula ccas shown
+in Sect. 3.3 is an invariant of the system. To that end, we re-use a veriﬁcation result
+[21] of a much more general controller speciﬁcation encoded in the theorem prover
+Isabelle/HOL [24]. Safety in this work means that 8e:safe(e)is a global invariant,
+where safe(e)is deﬁned as follows.
+safe(e):9c:c6=e^hre(e)^re(c)i
+
+--- Page 14 ---
+14 Maryam Kamali, Sven Linker, and Michael Fisher
+Observe that the modality is similar in intent to the box-modality used in the previous
+sections, in that it quantiﬁes over arbitrary transition sequences, but it does not allow
+us to specify timing constraints. To prove this property to be an invariant, we need two
+main assumptions:
+1. All vehicles keep their distance to the vehicles in their front and back
+2. All vehicles adhere to a certain protocol for changing lanes with respect to the
+platoon under consideration
+We do not elaborate on the ﬁrst assumption. However, the second assumption is that,
+the vehicle must not mutate its claim into a reservation, in case of a potential collision
+during the phase where a claim is held. Formally, we have the following constraint,
+where r(d)quantiﬁes over the transition where the vehicle dchanges its claim into a
+reservation and cranges only over the vehicles within the platoon.
+LC8d:9c:pc(c;d)!r(d)?
+For simplicity, assume that the platoon under consideration consists of two vehicles as
+in Sect. 3. That is, the platoon Pconsists of the following components.
+PA1kV1kS1kComms 12kA2kV2kS2kR
+Now, let JS1Kand JS2Kbe the possible behaviours allowed by the controllers S1andS2
+as presented in Sect. 3.3. Since the only transition to change a claim into a reservation
+is guarded by the potential collision check, we have for i2f1;2g,
+JSiK\ftrjtrj=9c:pc(c;i)^r(i)>g=/ 0
+That is, since the behaviour of the parallel product of S1andS2is a subset of both JS1K
+and JS2K, we also get
+JS1kS2K\ftrjtrj=9c:pc(c;i)^r(i)>g=/ 0:
+Since the other controllers may only further restrict the possible behaviour of the pla-
+toon, we also have
+JPK\ftrjtrj=9c:pc(c;i)^r(i)>g=/ 0:
+Due to our assumption on the behaviour of all other vehicles, we can infer that JPK
+does not contain any traces where other vehicles create a reservation during a potential
+collision. Hence, we can strengthen this property even further.
+JPK\ftrjtrj=9c;d:pc(c;d)^r(d)>g=/ 0;
+which in particular implies JPKS. This yields JPKj=LC, which has been shown to
+ensure that Pj=8e:safe(e). Hence, our controller is a reﬁnement of the general case,
+which was shown to be safe.
+
+--- Page 15 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 15
+5 Concluding Remarks
+Contribution. We presented a veriﬁcation technique for autonomous systems based
+on the use of a hybrid agent architecture. The decomposition of concerns inherent in
+this architecture allows us to deﬁne different aspects of the system within different for-
+malisms, which are tied together by the communication structure of the system and its
+timing constraints. For each of the formalisms we deﬁned a translation into an abstrac-
+tion compatible with the other formalisms. In this way, we can concentrate on each
+aspect in turn during veriﬁcation, which both reduces the state space, and allows us to
+use different techniques for each aspect.
+Decomposition techniques often isolate the single components and replace the inter-
+action with the other components by assumptions, which are then shown to be guaran-
+teed by the respective components [22]. In contrast, during each step of the veriﬁcation,
+we keep the general structure of the overall system. That is, we do not really decom-
+pose the system, but abstract from different parts during each step. This eliminates the
+need to infer the behaviour of the single components, e.g., in the form of guarantees. Of
+course, this also means that large parts of the state space are retained during veriﬁcation,
+in comparison to techniques which replace the other components with the guarantees
+they keep. However, we have shown that our approach is both feasible for autonomous
+systems, as well as that it scales well if new aspects are to be veriﬁed.
+Related Work Müller et al. presented a technique to verify safety of hybrid systems
+[23] based on the identiﬁcation of components. In their approach, they need to deﬁne
+and verify contracts for the behaviour of each component, which may simply assumed
+to be true during the veriﬁcation of other components. In this manner, they can reduce
+the veriﬁcation task for each component. Their systems need to be deﬁned within a sin-
+gle formalism, differential dynamic logic [25], and are veriﬁed with the distinguished
+tool KeymaeraX [13]. In contrast, we can rather easily incorporate new formalisms
+into our approach, as evidenced by the introduction of the lane-change controller and
+the necessary spatial formalism. This is due to the minimised interaction between our
+controllers, in the form of time and communication. In this way, we may use the ver-
+iﬁcation techniques suitable for the corresponding subsystems, as long as we have a
+sensible abstraction and reﬁnement results for each system.
+Abstraction and reﬁnement techniques are often employed for veriﬁcation purposes.
+For example, in counter-example guided abstraction (CEGAR) [9], the veriﬁcation
+starts with a very broad abstraction. If a counter-example is found to be spurious, i.e.,
+it is not viable in the original system, the corresponding part of the state-space has to
+be reﬁned to eliminate this example. That is, the system is analysed in a top-down fash-
+ion, from the broadest possible abstraction to an explicit description of the system. Our
+method proceeds in a somewhat orthogonal way. Instead of building an abstraction of
+the system as a whole, we build several abstractions according to the type of property
+we intend to verify.
+The concept of abstraction and reﬁnement relations is used prominently in Event-B
+[1]. Banach and Butler have used a hybrid extension of Event-B to model and verify
+controllers used in autonomous driving [3,4]. However, these controllers have been ver-
+iﬁed on their own, and the interactions between them have not been veriﬁed.
+
+--- Page 16 ---
+16 Maryam Kamali, Sven Linker, and Michael Fisher
+References
+1. Abrial, J.R.: Modeling in Event-B: System and Software Engineering. CUP (2010)
+2. Aitken, J., Shaukat, A., Cucco, E., Dennis, L., Veres, S., Gao, Y ., Fisher, M., Kuo, J., Robin-
+son, T., Mort, P.: Autonomous Nuclear Waste Management. IEEE Int. Sys. (2018)
+3. Banach, R., Butler, M.: Cruise Control in Hybrid Event-B. In: Proc. International Colloquium
+on Theoretical Aspects of Computing. LNCS, vol. 8049, pp. 76–93. Springer (2013)
+4. Banach, R., Butler, M.: A Hybrid Event-B Study of Lane Centering. In: Proc. International
+Conference on Complex Systems Design & Management. pp. 97–111. Springer (2014)
+5. Beer, J.M., et al: The Domesticated Robot: Design Guidelines for Assisting Older Adults to
+Age in Place. In: Proc. IEEE HRI. pp. 335–342 (2012)
+6. Behrmann, G., et al: Uppaal 4.0. In: Proc. Int. Conf. Quantitative Evaluation of Systems. pp.
+125–126 (2006)
+7. Blackburn, P., van Benthem, J., Wolter, F. (eds.): Handbook of Modal Logic. Elsevier (2006)
+8. Burns, A.: How to Verify a Safe Real-Time System: Application of Model Checking and
+Timed Automata to a Production Cell Case Study. Real-Time Systems 24(2), 135–151 (2003)
+9. Clarke, E., Grumberg, O., Jha, S., Lu, Y ., Veith, H.: Counterexample-Guided Abstraction
+Reﬁnement. In: Proc. CA V . pp. 154–169. Springer (2000)
+10. Clarke, E.M., Grumberg, O., Long, D.E.: Model Checking and Abstraction. ACM Trans.
+Program. Lang. Syst. 16(5), 1512–1542 (1994),
+11. Dennis, L.A., Farwer, B.: Gwendolen: a BDI Language for Veriﬁable Agents. In: Proc. AISB
+2008 Symp. Logic and the Simulation of Interaction and Reasoning. pp. 16–23 (2008)
+12. Dennis, L.A., Fisher, M., Webster, M.P., Bordini, R.H.: Model Checking Agent Programming
+Languages. Automated Software Engineering 19(1), 5–63 (2012),
+13. Fulton, N., Mitsch, S., Quesel, J.D., Völp, M., Platzer, A.: KeYmaera X: An Axiomatic
+Tactical Theorem Prover for Hybrid Systems. In: Proc. CADE. pp. 527–538. Springer (2015)
+14. Gabbay, D., Kurucz, A., Wolter, F., Zakharyaschev, M.: Many-Dimensional Modal Logics:
+Theory and Applications. Elsevier Science (2003)
+15. Hilscher, M., Linker, S., Olderog, E.R., Ravn, A.P.: An Abstract Model for Proving Safety
+of Multi-lane Trafﬁc Manoeuvres. In: Proc. Formal Methods and Software Engineering. pp.
+404–419. Springer (2011)
+16. Hilscher, M., Schwammberger, M.: An Abstract Model for Proving Safety of Autonomous
+Urban Trafﬁc. In: Proc. ICTAC. pp. 274–292. Springer (2016)
+17. Hsu, A., Eskaﬁ, F., Sachs, S., Varaija, P.: Protocol Design for an Automated Highway Sys-
+tem. Discrete Event Dynamic Systems 2(1), 183–206 (1994)
+18. Kamali, M., Dennis, L.A., McAree, O., Fisher, M., Veres, S.M.: Formal Veriﬁcation of Au-
+tonomous Vehicle Platooning. Science of Computer Programming 148, 88–106 (2017),
+19. Konur, S., Fisher, M., Schewe, S.: Combined Model Checking for Temporal, Probabilistic,
+and Real-time Logics. Theoretical Computer Science 503, 61–88 (2013)
+20. Lincoln, N., et al: An Agent Based Framework for Adaptive Control and Decision Making
+of Autonomous Vehicles. In: Proc. IFAC Workshop on Adaptation and Learning in Control
+and Signal Processing (ALCOSP) (2010)
+21. Linker, S.: Spatial Reasoning About Motorway Trafﬁc Safety with Isabelle/HOL. In: Inte-
+grated Formal Methods. pp. 34–49. LNCS, Springer (2017)
+22. Misra, J., Chandy, K.M.: Proofs of Networks of Processes. IEEE Trans. Software Engineer-
+ing SE-7(4), 417–426 (1981)
+23. Müller, A., Mitsch, S., Retschitzegger, W., Schwinger, W., Platzer, A.: A Component-Based
+Approach to Hybrid Systems Safety Veriﬁcation. In: Proc. Integrated Formal Methods. pp.
+441–456. Springer (2016)
+
+--- Page 17 ---
+Modular Veriﬁcation of Vehicle Platooning with Respect to Decisions, Space and Time 17
+24. Nipkow, T., Paulson, L.C., Wenzel, M.: Isabelle/HOL — A Proof Assistant for Higher-Order
+Logic, LNCS, vol. 2283. Springer (2002)
+25. Platzer, A.: Logical Analysis of Hybrid Systems: Proving Theorems for Complex Dynamics.
+Springer (2010)
+26. Solyom, S., Coelingh, E.: Performance Limitations in Vehicle Platoon Control. IEEE Intell.
+Transport. Syst. Mag. 5(4), 112–120 (2013),
+27. Wooldridge, M.J.: Reasoning about Rational Agents. MIT press (2000)

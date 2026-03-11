@@ -1,0 +1,1091 @@
+--- Page 1 ---
+algorithms 
+Article
+Sliding Mode Control Algorithms for Anti-Lock Braking
+Systems with Performance Comparisons
+Emanuel Chereji, Mircea-Bogdan Radac *
+ and Alexandra-Iulia Szedlak-Stinean
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Citation: Chereji, E.; Radac, M.-B.;
+Szedlak-Stinean, A.-I. Sliding Mode
+Control Algorithms for Anti-Lock
+Braking Systems with Performance
+Comparisons. Algorithms 2021 ,14, 2.
+https://doi.org/10.3390/a14010002
+Received: 26 October 2020
+Accepted: 21 December 2020
+Published: 23 December 2020
+Publisher’s Note: MDPI stays neu-
+tral with regard to jurisdictional claims
+in published maps and institutional
+afﬁliations.
+Copyright: © 2020 by the authors. Li-
+censee MDPI, Basel, Switzerland. This
+article is an open access article distributed
+under the terms and conditions of the
+Creative Commons Attribution (CC BY)
+license (https://creativecommons.org/
+licenses/by/4.0/).Department of Automation and Applied Informatics, Politehnica University of Timisoara, Bd. V . Parvan 2,
+300223 Timisoara, Romania; emanuel.chereji@student.upt.ro or cherejiemanuel10@yahoo.com (E.C.);
+alexandra-iulia.stinean@aut.upt.ro (A.-I.S.-S.)
+*Correspondence: mircea.radac@aut.upt.ro; Tel.: +40-256-403-240
+Abstract: This paper presents the performance of two sliding mode control algorithms, based on the
+Lyapunov-based sliding mode controller (LSMC) and reaching-law-based sliding mode controller
+(RSMC), with their novel variants designed and applied to the anti-lock braking system (ABS),
+which is known to be a strongly nonlinear system. The goal is to prove their superior performance
+over existing control approaches, in the sense that the LSMC and RSMC do not bring additional
+computational complexity, as they rely on a reduced number of tuning parameters. The performance
+of LSMC and RSMC solves the uncertainty in the process model which comes from unmodeled
+dynamics and a simpliﬁcation of the actuator dynamics, leading to a reduced second order process.
+The contribution adds complete design details and stability analysis is provided. Additionally,
+performance comparisons with several adaptive, neural networks-based and model-free sliding
+mode control algorithms reveal the robustness of the proposed LSMC and RSMC controllers, in spite
+of the reduced number of tuning parameters. The robustness and reduced computational burden of
+the controllers validated on the real-world complex ABS make it an attractive solution for practical
+industrial implementations.
+Keywords: antilock braking system; sliding mode control; nonlinear control
+1. Introduction
+The anti-lock braking system (ABS) is a mandatory safety feature in modern ve-
+hicles [ 1] and constitutes an attractive benchmark for control applications. One of the
+common approaches that has been studied for ABS control is the so-called slip-control.
+It is well-known that when braking or accelerating, a traction force owed to the friction
+appears at the contact surface between the tire and the road [ 2,3]. This force amplitude
+proportionally depends on the normal force at the contact point. A friction coefﬁcient called
+mis representative for the traction behavior, it is surface dependent and well-acknowledged
+research showed that this friction coefﬁcient is a function of the wheel slip coefﬁcient
+denoted l[4].
+In principle, the associated control problem is to impose a desired value for the
+wheel slip l, that is, to set at a desired value for the relative difference between the
+wheel velocity and the road (or car) velocity [ 2,5]. This problem is known as slip control.
+Among all implemented braking approaches, the slip coefﬁcient control is arguably the
+most intensively studied in many theoretical and practical implementations [6].
+Historically, the wheel lock prevention concept under braking was conceived almost a
+century ago in the mid-1930s by Robert Bosch’s patents [ 7–9] and was technically imple-
+mented at the end of the 60s when inductive contactless sensors replaced the mechanical
+ones [ 9]. The strong electronics development led to powerful integration and robust opera-
+tion; therefore, hydraulic pressure regulation became possible based on data gathered from
+the sensors mounted in the proximity of the wheel ensemble. ABSs for serial production
+became available starting in 1978 [ 9,10]. The focus has shifted since then towards assuring
+Algorithms 2021 ,14, 2. https://doi.org/10.3390/a14010002 https://www.mdpi.com/journal/algorithms
+
+--- Page 2 ---
+Algorithms 2021 ,14, 2 2 of 17
+more intelligent control algorithms for the ABS, reviews of such approaches can be checked
+with earlier works of [11,12] and more recently with [13–16].
+Slip control is a difﬁcult task for a number of reasons:
+- The ABS dynamics in braking mode are extremely nonlinear and many parameters of
+the underlying model change with time.
+- Several factors affect the braking behavior, such as: road slope variation and mod-
+iﬁcations of the friction-slip characteristic, due to road surface type, tires’ material,
+wheels’ sideslip angle, etc. [4,17,18].
+Among the existing control techniques, sliding mode control (SMC) is an already
+vastly studied and mature methodology that, among many other control approaches,
+has proved its success in many industrial applications due to its simplicity and robust-
+ness [ 19–23]. It has also been applied before to ABS slip control systems in combination
+with different controllers or just as standalone as presented next, however, without the
+detailed performance assessment through comparisons with different control methods.
+An SMC design can be traced back to the work of Drakunov et al. [ 11], where a detailed
+hydraulic actuator model is provided and a friction force observer adds computational
+complexity to the design. However, an extremum searching algorithm was devised for the
+optimal slip reference input that maximizes the braking friction force (by maximizing the
+friction coefﬁcient m). An underlying PID-based slip control was employed in [ 12] where a
+sliding-mode optimizer is used for computing the optimal slip reference input but does
+not beneﬁt from the SMC in the closed-loop. Unsal and Kachroo [ 3] proposed a nonlinear
+observer SMC-based slip controller combined with computationally demanding sliding
+observers for vehicle velocity estimation. A self-learning fuzzy sliding-mode control design
+was proposed by Lin and Hsu [ 18], where the tuning algorithm of the controller is derived
+in the Lyapunov sense, but the braking model is a very simpliﬁed one. A linearization-
+based SMC law was proposed in [ 23] on a simpliﬁed quarter-car ABS model without
+accounting for actuator dynamics. While a similar simpliﬁed braking model was employed
+with a recurrent neural network (RNN)-based uncertainty observer, in a hybrid SMC de-
+sign provided by [ 24]. Noticing that the adaptive laws of the RNN bring supplementary
+computational burden rather than account for uncertainties by typical upper bounds. A
+comprehensive experimental validation on a braking system of a real-life scale laboratory
+car was proposed by [ 25]. Although a very detailed model is provided, uncertainty is
+not accounted for in the SMC design, and with the experimental validation as the main
+focus, the theoretical stability analysis is missing. Another quasi-SMC ABS controller with
+endocrine neural network-based estimator was presented in [ 26]. In order to increase the
+steady-state accuracy, the estimated modeling error is included in the controller at the cost
+of computational complexity. A simpler SMC design with included model uncertainties
+and integral switching surface for chattering reduction was suggested in the work of [ 17] on
+a four-wheel car model with simpliﬁed dynamics. However, theoretical stability certiﬁcates
+were not provided in the mentioned work. Other control approaches for ABS include non-
+linear adaptive solutions [ 5,10], data-based approach [ 1], fractional SMC [ 4], fuzzy [ 16] and
+neuro-fuzzy sliding mode incremental learning [ 27] and grey system modeling approach
+for SMC [ 28]. More recent application-oriented validation of intelligent ABS control is
+presented in the works [29–32].
+The contribution of this work is threefold. Firstly, the original SMC laws (LSMC
+and RSMC) are proposed and they have not been applied before to ABS control systems.
+Secondly, their complete design and stability analysis show that the SMC control is robust
+enough to account for large uncertainty in the design, without additional uncertainty
+estimator and without striving for complex models, even though the actuator dynamics
+is simpliﬁed to a simple gain. This operation is required in order to bring the ABS model
+to a second-order system dynamics favorable to the SMC design, herein proposed in two
+variants. Thirdly, the comparisons with other four competitive controllers also prove the
+performance capability attainable with such SMC-based controllers. These controllers are of
+various types: an adaptive one, a model-free reinforcement learning one, a model-free SMC
+
+--- Page 3 ---
+Algorithms 2021 ,14, 2 3 of 17
+one and a model-based periodic switching sliding-mode controller. Without a signiﬁcant
+computational burden and with proven control performance, such sliding-mode controllers
+are attractive for industrial implementations, owing to their robustness, simplicity and few
+tuning parameters.
+In the following, Section 2 brieﬂy describes the ABS system and the slip regulation
+control problem, while Section 3 proposes two variants of sliding mode control design.
+Section 4 validates the two approaches and compares the results with a state-of-the-art
+adaptive approach. Conclusions are highlighted in Section 5.
+2. The Anti-Lock Braking System Model
+The ABS braking system equipment from [ 15] (Figure 1) consists of two vertically
+superimposed wheels that simulate the relative motion between the road (lower wheel)
+and the quarter-car model (upper wheel). Throughout the braking process, the two wheels
+remain in contact and interaction occurs at the contact surface between them.
+Algorithms 2021 , 14, x FOR PEER REVIEW 3 of 18  
+performance capability attainable with such SMC-based controllers. These controllers are 
+of various types: an adaptive one, a model-f ree reinforcement learning one, a model-free 
+SMC one and a model-based periodic switching sliding-mode controller. Without a sig-
+nificant computational burden and with proven control performance, such sliding-mode 
+controllers are attractive for industrial impl ementations, owing to their robustness, sim-
+plicity and few tuning parameters. 
+In the following, Section 2 briefly describes  the ABS system and the slip regulation 
+control problem, while Section 3 proposes two variants of sliding mode control design. Section 4 validates the two approaches and compares the results with a state-of-the-art 
+adaptive approach. Conclusions are highlighted in Section 5. 
+2. The Anti-Lock Braking System Model 
+The ABS braking system equipment from [15] (Figure 1) consists of two vertically 
+superimposed wheels that simulate the rela tive motion between the road (lower wheel) 
+and the quarter-car model (upper wheel). Thro ughout the braking process, the two wheels 
+remain in contact and interaction occurs  at the contact surface between them. 
+ 
+Figure 1. The anti-lock braking system (ABS) model diagram. 
+The upper wheel is equipped with a disk br aking system actuated by a braking lever, 
+which is itself actuated by an inextensible string tensioned with the help of a pulley at-
+tached to a small flat DC motor [15]. The lower wheel is spin by the bigger flat DC motor, which is power-supplied to accelerate the wheel. After the two wheels in contact reach a 
+threshold angular speed, the braking phase st arts with the bigger DC motor left in free 
+running mode (no power) while the smaller DC motor actuates the braking mechanism. 
+Both DC motors are electronically controll ed by pulse-width modu lation (PWM) signals 
+of 3.5 kHz. The varying pulse-width of the u pper wheel is the control input variable de-
+noted as u, in the following equations of motion [15,33]: 
+11 16 15 14 113 12 111 1 ) )(( ) )(( Msc Sc cxc cxcSx +λ ++ + + λ= , 
+11 25 24 223 22 121 2 )( ) )(( MsSccxc cxc Sx λ ++ + + λ= , 
+) )((1 31 1 Mubc M − = , 
+
+<≥ +=, ,0, ,)(
+00 2 1
+uuuububub (1)
+where the angular speed for the upper wheel is denoted as )(1tx  (measured in rad/s), 
+and for the lower wheel is denoted )(2tx . The time argument is omitted next for simpli-
+fied notation. Additionally, 11= =ss  in braking mode, and ijc are given constant pa-
+rameters. M1(t) is the braking torque evolving according to the third differential equation, 
+where constants b1 and b2 model the actuator dead-zone dynamics whose threshold is u0, 
+Figure 1. The anti-lock braking system (ABS) model diagram.
+The upper wheel is equipped with a disk braking system actuated by a braking lever,
+which is itself actuated by an inextensible string tensioned with the help of a pulley attached
+to a small ﬂat DC motor [ 15]. The lower wheel is spin by the bigger ﬂat DC motor, which is
+power-supplied to accelerate the wheel. After the two wheels in contact reach a threshold
+angular speed, the braking phase starts with the bigger DC motor left in free running
+mode (no power) while the smaller DC motor actuates the braking mechanism. Both DC
+motors are electronically controlled by pulse-width modulation (PWM) signals of 3.5 kHz.
+The varying pulse-width of the upper wheel is the control input variable denoted as u,
+in the following equations of motion [15,33]:
+.x1=S(l)(c11x1+c12) +c13x1+c14+ (c15S(l) +c16)s1M1,
+.x2=S(l)(c21x1+c22) +c23x2+c24+c25S(l)s1M1,
+.
+M1=c31(b(u) M1),
+b(u) =b1u+b2,uu0,
+0,u<u0,(1)
+where the angular speed for the upper wheel is denoted as x1(t)(measured in
+rad/s), and for the lower wheel is denoted x2(t). The time argument is omitted next
+for simpliﬁed notation. Additionally, s=s1=1in braking mode, and cijare given
+constant parameters. M1(t) is the braking torque evolving according to the third dif-
+ferential equation, where constants b1and b2model the actuator dead-zone dynamics
+whose threshold is u0, while S(l) =sm(l)
+L(sinf sm(l)cosf)depends on the constant angle fand
+m(l) =w4lp/(a+lp) +w3l3+w2l2+w1lis the friction coefﬁcient ( m)-slip coefﬁcient
+(l) static characteristic with wi,i=1, 4,a,pbeing known constants. Notice at this point
+that the model (1) is not obtained directly, but its coefﬁcients depend on many physical
+
+--- Page 4 ---
+Algorithms 2021 ,14, 2 4 of 17
+parameters of the ABS system and can be recovered in the original documentation [ 15].
+Some of them are properly presented throughout the paper when needed.
+In slip control strategy, the aim is to regulate lto the value of mcorresponding to the
+peak of the m–lcurve [ 15]. This implies for maximum friction coefﬁcient, and favorable
+minimum braking distance and time. In real world commercial braking systems, the weight
+load on the car, the tire inﬂation state and wear, the road-tire contact surface and the road
+surface proﬁle combined with the car speed, all interplay with the braking process and may
+affect the m–lcurve proﬁle signiﬁcantly. The static characteristics m(l),S(l)are shown in
+Figure 2.
+Algorithms 2021 , 14, x FOR PEER REVIEW 4 of 18  
+while 
+) cos)( (sin)()(ϕ λμ−ϕλμ=λs LsS  depends on the constant angle ϕ and 
+λ+λ+λ+λ+ λ=λμ12
+23
+3 4 ) /( )( w w w a wp p is the friction coefficient ( μ)-slip coefficient 
+(λ) static characteristic with pa iwi ,,4,1,=  being known constants. Notice at this point 
+that the model (1) is not obtained directly, bu t its coefficients depend on many physical 
+parameters of the ABS system and can be re covered in the original documentation [15]. 
+Some of them are properly presented throughout the paper when needed. 
+In slip control strategy, the aim is to regulate λ to the value of μ corresponding 
+to the peak of the μ–λ curve [15]. This implies for maximum friction coefficient, and 
+favorable minimum braking distance and time. In real world commercial braking systems, 
+the weight load on the car, the tire inflation state and wear, the road-tire contact surface 
+and the road surface profile combined with the car speed, all interplay with the braking 
+process and may affect the μ–λ curve profile significantly. The static characteristics 
+)(),( λ λμ S  are shown in Figure 2. 
+ 
+Figure 2. The characteristics  )(),( λ λμ S . 
+In the braking mode, the slip is defined as: 
+) /() (22 11 22 xrxrxr− =λ , (2)
+where r1, r2 are the radii of the two wheels in contac t. For the given laboratory model, since 
+the two radii are approximately equa l, it will be considered that r1 = r2 = 0.99 [m],  leading 
+to a simpler slip in (2), i.e., 2 1 2 /) ( xxx− =λ . 
+From a functional perspective, there are th ree torques acting on the upper wheel: the 
+braking torque M1, the friction torque in the upper be aring and the friction torque among 
+the wheels. There are two torques acting on th e lower wheel: the friction torque in the 
+lower bearing and the friction torque among the wheels. Besides these, two gravity force 
+of the upper wheel and the pressing force of a shock absorber of the upper wheel force 
+the contact between the two wheels [15]. 
+The values of the ABS model parameters in (1) are [15]: 3
+11 10 586.1−⋅ =c , 
+334.25912=c , 3
+13 1094.15−⋅ −=c , 3
+14 10 507.398−⋅ −=c , 217.1315=c , 
+835.13216−=c , 6
+21 10008.464−⋅ −=c , 869.7522−=c , 3
+23 10 788.8−⋅ −=c , 
+632.324−=c , 866.325−=c  and depend on the physical parameters of the ABS system. 
+Additionally, the parameters that define )(),( λ λμ S  are 10231 5 0.406626914=w , 
+905067 0.03508217 w3= , 029375 0.00000000 w2= , 450454 0.04240011 w1 −= , 
+985785 0.00025724a= , 09.2 p= , ][37.0 L m = , ] [145.1 rad =ϕ . 
+Figure 2. The characteristics m(l),S(l).
+In the braking mode, the slip is deﬁned as:
+l= (r2x2 r1x1)/(r2x2), (2)
+where r1,r2are the radii of the two wheels in contact. For the given laboratory model,
+since the two radii are approximately equal, it will be considered that r1=r2= 0.99 [m],
+leading to a simpler slip in (2), i.e., l= (x2 x1)/x2.
+From a functional perspective, there are three torques acting on the upper wheel:
+the braking torque M1, the friction torque in the upper bearing and the friction torque
+among the wheels. There are two torques acting on the lower wheel: the friction torque in
+the lower bearing and the friction torque among the wheels. Besides these, two gravity
+force of the upper wheel and the pressing force of a shock absorber of the upper wheel
+force the contact between the two wheels [15].
+The values of the ABS model parameters in (1) are [ 15]:c11=1.58610 3,c12=259.334 ,c13=
+ 15.9410 3,c14= 398.50710 3,c15=13.217 ,c16= 132.835 ,c21= 464.00810 6,
+c22= 75.869 ,c23= 8.78810 3,c24= 3.632 ,c25= 3.866 anddepend on the physical
+parameters of the ABS system. Additionally, the parameters that deﬁne m(l),S(l)arew4=
+0.40662691102315 ,w3=0.03508217905067 ,w2=0.00000000029375 ,w1= 0.042400114504
+54,a=0.00025724985785, p=2.09, L=0.37[m],f=1.145 [rad].
+For the subsequent sliding-mode control design, given that the dead-zone in the
+braking torque dynamics has known parameters and therefore it can be compensated by
+proper additive component at the control input level, an order reduction of the model
+(1) is performed. Therefore, it is justiﬁed to bring b(u) to a linear dependence of the
+formeb(u(t))onu(t). Then it is apparent that the linearized actuator dynamics holds as the
+transfer function M1(s)/eb(s) =1/(Ts+1), with time constant T=1/c31. Neglecting these
+dynamics leads to M1(t) =cu(t)with constant c=9, as the simpliﬁed actuator dynamics
+that turns (1) into a second-order state-space model of the form
+8
+><
+>:.x1(t) =f1(x1(t),x2(t)) + g1(x1(t),x2(t))u(t).x2(t) =f2(x1(t),x2(t)) + g2(x1(t),x2(t))u(t)
+y(t) =l=r2x2(t) r1x1(t)
+r2x2(t),(3)
+
+--- Page 5 ---
+Algorithms 2021 ,14, 2 5 of 17
+where 8
+>><
+>>:g1(x1(t),x2(t)) = ( c15S(l) +c16)s1c,
+g2(x1(t),x2(t)) = c25S(l)s1c,
+f1(x1(t),x2(t)) = S(l)(c11x1(t) +c12) +c13x1(t) +c14,
+f2(x1(t),x2(t)) = S(l)(c21x1(t) +c22) +c23x2(t) +c24.(4)
+In the following, the sliding mod control design is aimed and presented in two
+proposed variants.
+3. Sliding Mode Control Design
+Adoption of sliding mode control algorithms relies on the well-acknowledged ro-
+bustness of these algorithms to parameter variation and uncertainty. The control problem
+essentially requires regulation to a given slip value. Should the desired slip be set around
+the peak of the m–lcurve in Figure 2 (this peak is surface-dependent), some desirable brak-
+ing behavior takes place, characterized by maximum deceleration, on maximum friction
+and minimal braking time and distance.
+In the following, two variants of sliding mode control strategies for the ABS system are
+presented and designed in detail. The ﬁrst sub-section presents the Lyapunov-based sliding
+mode controller (LSMC) design, followed by the presentation of the reaching law-based
+sliding mode controller (RSMC) design.
+3.1. Lyapunov-Based Sliding Mode Control Design with Included Uncertainties in the
+Process Model
+A convenient artiﬁcial construction of a Lyapunov type function is used indirectly in
+determining a control law that ensures at the same time the stability of the entire control
+system. The resulting controller is called the LSMC controller in the following.
+Let the state-space model of the ABS system be rewritten from (3) as
+.x1=f1(x(t)) + g1(x(t))u(t) +v1(t),x= [x1x2]T,.x2=f2(x(t)) + g2(x(t))u(t) +v2(t),(5)
+where v1andv2are additive terms accounting for unmodeled dynamics, external distur-
+bances and parametric uncertainties. A switching variable is deﬁned as g(t) =l(t) ld(t),
+with ld(t)the desired slip. We notice that since the simpliﬁed slip in (2) is l=1 x1/x2,
+then g(t) =l ld=1 x1/x2 ld=0is equivalent to the sliding surface line equation
+x1 (1 ld)x2=0which is consistent with the more familiar deﬁnition of the sliding
+surface in the form g(x,t) =0.
+LetV
+g(x= [x1x2]T)
+=0.5g2(x)0be a Lyapunov function depending on g(x).
+Then.
+V(g(x))=g(x).g(x), and furthermore, to ensure the reaching condition of the sliding
+surface g(x) =0, it is sufﬁcient to have.
+V<0, or, for reaching g(x) =0in ﬁnite time it is
+needed to ensure.
+V< #,#>0.
+Since the calculation of.g=.
+l .
+ldis needed, the derivative of the slip is found,
+based on (5) as
+.
+l=F(t) +ev(t) +G(t)u(t), where
+F(t) =f2(t)x1(t) f1(t)x2(t)
+x2
+2(t),ev(t) =x1(t)v2(t) x2(t)v1(t)
+x2
+2(t),G(t) =x1(t)g2(t) x2(t)g1(t)
+x2
+2(t),(6)
+where the terms containing the perturbations have been included in a single perturbing
+termev(t)considered bounded by jev(t)jvmax.
+Finally, the derivative of the switching variable is
+.g=.
+l .
+ld=F(t) +ev(t) +G(t)u(t) .
+ld=
+ev(t) +G(t)u(t) +F(t) .
+ld=ev(t) +G(t)u(t) t(t).(7)
+
+--- Page 6 ---
+Algorithms 2021 ,14, 2 6 of 17
+Then, to ensure the reaching condition.
+V<0, the following two cases, each with two
+subcases are developed as:
+g(t)>0,.g<0,G(t)u(t)<t(t) ev(t)where :
+(a)G(t)>0!u(t)<t(t) ev(t)
+G(t);(b)G(t)<0!u(t)>t(t) ev(t)
+G(t).
+g(t)<0,.g>0,G(t)u(t)>t(t) ev(t)where :
+(a)G(t)>0!u(t)>t(t) ev(t)
+G(t);(b)G(t)<0!u(t)<t(t) ev(t)
+G(t).
+Finally, the control law that ensures the fulﬁllment of the reaching condition.
+V<0in
+all four subcases is captured by the LSMC control law:
+u(t) = jt(t)j+vmax
+jG(t)j+d
+sgnD(g(t)G(t)),
+sgnD()de f=
+jj+D,(8)
+withD>0ensuring a smooth implementation of the mathematical sign function denoted
+sgnD()and prevents the division by zero in calculations. d>0ensures conservative
+fulﬁlment of the inequalities in the four subcases above [6].
+The steps of the LSMC algorithm (Algorithm 1) at the current numerical integration
+step are given next.
+Algorithm 1. The LSMC Algorithm
+Selected initial parameters D,d,vmax
+1. Read the desired slip value ld(t)and the angular speed values x1,x2.
+2. Calculate l(t)from (2), then calculate g(t) =l(t) ld(t). Find F(t),G(t)from (6),
+calculate t(t)from (7).
+3. Calculate u(t)from (8) and send it to the process.
+4. After the current integration step is ﬁnished, go to step 1.
+For an insight into the derivation of the LSMC control law (8), please consult the
+Appendix A. The stability of the control system under the LSMC control law is next asserted.
+Theorem 1. The ABS system (3), (4) with the LSMC control law (8) is asymptotically stable.
+Proof of Theorem 1. The control law (8) is selected to ensure the reaching condition.
+V(x) = g(x).g(x)<0. By an increased value of d>0, the value of.
+V(x)is bounded
+away from 0 (see also Appendix A). Which in turn ensures that the Lyapunov function
+V(g(x))=0.5g2(x)!0over time implying reaching for the sliding surface in ﬁnite time.
+Besides, on the sliding manifold g(x) = 0, the closed-loop dynamics have reduced
+order, since g(x) =0leads to the control u(t)from (8) replaced in (5) and to the simpliﬁed
+dynamics.x1=f1(x1,x2),.x2=f2(x1,x2)constrained by x1= (1 ld)x2. The resulted
+system is a linear ﬁrst order differential equation in x2with initial condition x2(0)>0,
+of the form.x2=k1(ld)x2+k2(ld)where k1<0,k2<0. The dependence k1(ld)is shown
+in Figure 3 below for ldin {0, 0.05, 0.1, . . . , 1}.
+
+--- Page 7 ---
+Algorithms 2021 ,14, 2 7 of 17
+Algorithms 2021 , 14, x FOR PEER REVIEW 7 of 18  
+4. After the current integration step  is finished, go to step 1.  
+For an insight into the derivation of the LSMC control law (8), please consult the Ap-
+pendix A. The stability of the control system under the LSMC control law is next asserted. 
+Theorem 1.  The ABS system (3), (4) with the LSMC control law (8) is asymptotically stable. 
+Proof of Theorem 1.  The control law (8) is selected to ensure the reaching condition 
+0)()()( < = xx x gg V  . By an increased value of 0>δ , the value of )(xV  is bounded 
+away from 0 (see also Appendix A). Which in turn ensures that the Lyapunov function 
+() 0)(5.0)(2→ = x x g gV  over time implying reaching for the sliding surface in finite time. 
+Besides, on the sliding manifold 0)(=xg , the closed-loop dynamics have reduced 
+order, since 0)(=xg  leads to the control )(tu from (8) replaced in (5) and to the simpli-
+fied dynamics ),( ),,(2 1 2 2 2 1 1 1 xxf x xxf x = =    constrained by 2 1 ) 1( x xdλ−= . The re-
+sulted system is a linear first order differential equation in 2x with initial condition 
+0)0(2 > x , of the form )( )(2 2 1 2 d d kx kx λ+ λ=  where 0 ,02 1 < <k k . The dependence 
+)(1 dkλ is shown in Figure 3 below for dλ in {0, 0.05, 0.1, …, 1}.  
+ 
+Figure 3. The dependence )(1 dkλ for the reaching-law-based sliding mode controller  (RSMC ) stabil-
+ity analysis case. 
+The above differential equation is asymptotically stable for all 5.1) ( < λd S  (Figure 
+2) where 1 0 ≤λ≤d . Then Theorem 4.2 from [34] claimed by Theorem 2.1 from [35] im-
+plies asymptotic stability of the closed-loop system, whenever the reduced order system 
+on the sliding surface if asymptotically stab le and when the evolution of the closed-loop 
+on the sliding surface is preserved. Consequently, )( )( lim t td t λ= λ∞→ which completes 
+the proof. □ 
+Figure 3. The dependence k1(ld)for the reaching-law-based sliding mode controller (RSMC) stability
+analysis case.
+The above differential equation is asymptotically stable for all S(ld)<1.5(Figure 2) where
+0ld1. Then Theorem 4.2 from [ 34] claimed by Theorem 2.1 from [ 35] implies asymptotic
+stability of the closed-loop system, whenever the reduced order system on the sliding surface
+if asymptotically stable and when the evolution of the closed-loop on the sliding surface is
+preserved. Consequently , lim t!¥l(t) =ld(t)which completes the proof. 
+3.2. Reaching Law Sliding Mode Control Design with Partial Process Model Uncertainty
+For the non-linear second-order process model (3), the feedback error between the
+desired slip and the actual one is captured by the following variable:
+g(t) =l(t) ld(t), (9)
+that also acts as a switching variable for the RSMC design, as seen next. The derivative of
+the slip variable is:
+.
+l(t) =x1(t)(f2(t) +g2(t)u(t)) (f1(t) +g1(t)u(t))x2(t)
+x2
+2(t), (10)
+and by separating the terms of the expression for obtaining an expression afﬁne with
+respect to the control input, we have:
+.
+l(t) =f2(t)x1(t) f1(t)x2(t)
+x2
+2(t)+x1(t)g2(t) g1(t)x2(t)
+x2
+2(t)u(t), (11)
+which simply can be compactly written as:
+.
+l(t) =f(t) +b(t)u(t). (12)
+Let the control law be chosen as:
+u=b 1(t)[ f(t) +.
+ld ksgn(g)]. (13)
+By replacing the command law from (13) into (12), the dynamic of the switching
+variable is obtained as in:
+.g= ksgn(g), where.g=.
+l .
+ld. (14)
+Depending on the slip derivative.
+l, the two analyzed cases are:
+1. g>0 involves.g= k1).g<0, meaning that gis decreasing to zero.
+2. g<0 involves.g=k).g>0, meaning that gis increasing to zero.
+
+--- Page 8 ---
+Algorithms 2021 ,14, 2 8 of 17
+The most relevant advantage of the RSMC design is that a ﬁnite time of reaching the
+switching surface g=0 is guaranteed, calculated as ta=jg(0)j/k.
+It is unlikely that in practice, the model.
+l(t) =f(t) +b(t)u(t)is a true representation
+of the reality. Hence, for the subsequent control design, this model is considered as partially
+uncertain, the true model being of the form.
+l(t) = ˆf(t) +b(t)u(t)in which the assumed
+bounded uncertaintyˆf fUFincludes unmodeled dynamics, parametric uncertain-
+ties and external disturbances, with UFan user-selectable upper bound to account for the
+worst case disturbance scenario. In this case, for the control law having the expression (13),
+the switching variable dynamic of the true model becomes.g=ˆf f ksgn(g).
+In order to guarantee a ﬁnite reaching time in the presence of modeling uncertainties,
+two cases are again identiﬁed:
+1. The case g>0. For a ﬁnite reaching time, it is necessary that.g< h, with h>0as
+a positive constant. In this case, it is necessary that ˆf f k h,kˆf f+h.
+Sinceˆf f+hˆf f+hUF+h, a value kUF+hensures a ﬁnite reaching
+time at most equal to jg(0)j/h.
+2. The case g<0. In similar reasoning, a value as kUF+hensures.g>hwhich
+involves that the attainment of the ﬁnite reaching time is jg(0)j/hat most.
+The steps of the RSMC algorithm (Algorithm 2) at the current numerical integration
+step are summarized next.
+Algorithm 2. The RSMC Algorithm
+Selected initial parameter k
+1. Read the desired slip value ld(t)and the angular speed values x1,x2.
+2. Calculate l(t)from (2), then calculate g(t) =l(t) ld(t). Find f(t),b(t)from (12). Compute
+the derivative.
+ld(t).
+3. Calculate u(t)as in (13) then send it to the process.
+4. After the current integration step is ﬁnished, go to step 1.
+The stability of the control system under the RSMC control law is next asserted.
+Theorem 2. The ABS system (3), (4) with the RSMC control law (13) is asymptotically stable.
+Proof of Theorem 2. Let a Lyapunov function candidate be V(g(x))=0.5g2(x). We ob-
+serve that the control law (13) leads to the dynamic of the switching variable being
+.g= ksgn(g). These dynamics ensures that.
+V(x) =g(x).g(x)is negative and bounded
+away from 0 by a suitable selection of a larger k. Which in turn ensures that V(g(x))!0
+over time.
+On the sliding manifold g(x) = 0, the closed-loop dynamics have reduced order,
+since g(x) =0leads to the control u(t)from (13) substituted in (5) and to the simpliﬁed dy-
+namics.x2= (f1(x1,x2)g2(x1,x2) f2(x1,x2)g1(x1,x2))/[(1 ld)g2(x1,x2) g1(x1,x2)]
+constrained by x1= (1 ld)x2. The simpliﬁed dynamics lead -after some calculations- to
+a (family of) linear differential equations in x2, of the form.x2=k1(ld)x2+k2(ld)with
+x2(0)>0,k1<0,k2<0. This family of ld-dependent equations is shown in Figure 4
+below for ldin {0, 0.05, 0.1, . . . , 1}.
+
+--- Page 9 ---
+Algorithms 2021 ,14, 2 9 of 17
+Algorithms 2021 , 14, x FOR PEER REVIEW 9 of 18  
+The steps of the RSMC algorithm (Algorithm 2) at the current numerical integration 
+step are summarized next. 
+Algorithm 2. The RSMC Algorithm 
+Selected initial parameter k 
+1. Read the desired slip value )(tdλ  and the angular speed values 2 1,xx . 
+2. Calculate )(tλ  from (2), then calculate )( )( )( t t tgdλ−λ= . Find )(),( tbtf  
+from (12). Compute the derivative )(tdλ . 
+3. Calculate )(tu as in (13) then send it to the process. 
+4. After the current integration step  is finished, go to step 1. 
+The stability of the control system under the RSMC control law is next asserted. 
+Theorem 2.  The ABS system (3), (4) with the RSMC co ntrol law (13) is asymptotically stable. 
+Proof of Theorem 2.  Let a Lyapunov function candidate be () )(5.0)(2x x g gV = . We ob-
+serve that the control law (13) leads to the dynamic of the switching variable being 
+) sgn( g k g −= . These dynamics ensures that )()()( xx x gg V  =  is negative and bounded 
+away from 0 by a suitable selection of a larger k. Which in turn ensures that () 0)(→xgV  
+over time. 
+On the sliding manifold 0)(=xg , the closed-loop dynamics have reduced order, 
+since 0)(=xg  leads to the control )(tu from (13) substituted in (5) and to the simplified 
+dynamics )],( ),() 1/[()),(),( ),(),((2 11 2 12 2 11 2 12 2 12 2 11 2 xxg xxg xxgxxf xxgxxf xd − λ− − =  
+constrained by 2 1 ) 1( x xdλ−= . The simplified dynamics lead -after some calculations- to 
+a (family of) linear diff erential equations in 2x, of the form )( )(2 2 1 2 d d kx kx λ+ λ=  with 
+0 ,0,0)0(2 1 2 < < > k k x . This family of dλ-dependent equations is shown in Figure 4 be-
+low for dλ in {0, 0.05, 0.1, …, 1}. 
+ 
+Figure 4. The family of first order differential equa tions for the RSMC stability analysis case. 
+This reduced order system is again asymptotically stable for all 5.1)(<λdS  where 
+1 0 ≤λ≤d , with 02→x  since 2x is being bounded below by zero: because of braking, 
+the car must come to a full stop. Then again, Then Theorem 4.2 from [34] claimed by The-
+orem 2.1  from [35] implies asymptotic stability of the closed-loop system, whenever the 
+reduced order system on the sliding surface if  asymptotically stable and when the evolu-
+tion of the closed-loop on the slidin g surface is preserved. Consequently, 
+)( )( lim t td t λ=λ∞→  which completes the proof. □ 
+Figure 4. The family of ﬁrst order differential equations for the RSMC stability analysis case.
+This reduced order system is again asymptotically stable for all S(ld)<1.5where
+0ld1, with x2!0since x2is being bounded below by zero: because of braking,
+the car must come to a full stop. Then again, Then Theorem 4.2 from [ 34] claimed by
+Theorem 2.1 from [ 35] implies asymptotic stability of the closed-loop system, whenever the
+reduced order system on the sliding surface if asymptotically stable and when the evolution
+of the closed-loop on the sliding surface is preserved. Consequently, limt!¥l(t) =ld(t)
+which completes the proof. 
+Comment 1 . Both situations related to the implementation of the command in the
+form (13) suggest choosing a larger value of the parameter k. On the other hand, a larger
+kvalue introduces high amplitude switching at the control input level, due to the switch
+element sgn(g). A compromise is needed: the more accurate the model (2) is, the smaller k
+parameter value is admitted.
+Comment 2 . Towards the braking process’ end, the lower wheel speed x2(t)tends to
+zero. To ensure good numerical conditioning, the denominator x2
+2(t)occurring in both
+f(t),b(t)in (12) and in both F(t),G(t)in (6), is replaced with x2
+2(t) +x, where xis a small
+positive number. In practice this is less problematic since, at low car speeds, it is common
+to deactivate the ABS control.
+Comment 3 . The sign function of the control law (13) is practically implemented using
+the modiﬁed sign function sgnD()deﬁned in (8).
+Comment 4 . For the computed control laws (8) and (13) to avoid deep control input
+saturation that could lead to signiﬁcant windup followed by high-amplitude oscillations,
+the control inputs calculated as in (8) and as in (13) are manually saturated inside [–1;1]
+(also observing that the control input domain ( ¥; 0)[(1,¥)is not actually usable from
+the viewpoint of the DC motor actuator, but it is preserved to further show that the SMC
+compute the actual control inputs in this domains also). On the other hand, this saturation
+could restrict the domain of the sliding manifold and lead to a longer reaching phase.
+4. Validation Case Study
+The sliding-mode control algorithms LSMC and RSMC (from Algorithms 1 and 2,
+respectively) are next validated on the slip control for the ABS process that was introduced
+in the second Section. First, the controllers’ parameters are experimentally tuned to their
+best values who attain the smallest performance index on a given test scenario. Towards the
+section’s end, a systematic optimization-based tuning is employed, to challenge the best
+achievable control performance from the LSMC and the RSMC. The feedback slip control
+system is presented in Figure 5.
+
+--- Page 10 ---
+Algorithms 2021 ,14, 2 10 of 17
+Algorithms 2021 , 14, x FOR PEER REVIEW 10 of 18  
+Comment 1 . Both situations related to the implementation of the command in the form 
+(13) suggest choosing a larger value of the parameter  k. On the other hand, a larger k value 
+introduces high amplitude switching at the co ntrol input level, due to the switch element 
+sgn(g). A compromise is needed: the more accurate the model (2) is, the smaller k param-
+eter value is admitted. 
+Comment 2 . Towards the braking process’ end, the lower wheel speed )(2tx  tends to 
+zero. To ensure good numerica l conditioning, the denominator )(2
+2tx  occurring in both 
+)(),( tbtf  in (12) and in both )(),( tGtF  in (6), is replaced with ξ+)(2
+2tx , where ξ is a 
+small positive number. In practice this is less problematic since, at low car speeds, it is 
+common to deactivate the ABS control. 
+Comment 3 . The sign function of the control law (13) is practically implemented using 
+the modified sign function )( sgn •Δ  defined in (8). 
+Comment 4 . For the computed control laws (8) and (13) to avoid deep control input 
+saturation that could lead to significant windup followed by high-amplitude oscillations, 
+the control inputs calculated as in (8) and as in (13) are manually saturated inside [–1;1] 
+(also observing that the control input domain ),1()0;( ∞ ∪ −∞  is not actually usable from 
+the viewpoint of the DC motor actuator, but it is preserved to further show that the SMC 
+compute the actual control inputs in this doma ins also). On the other hand, this saturation 
+could restrict the domain of the sliding manifold and lead to a longer reaching phase.  
+4. Validation Case Study 
+The sliding-mode control algorithms LSMC  and RSMC (from Algorithms 1 and 2, 
+respectively) are next validated on the slip co ntrol for the ABS process that was introduced 
+in the second Section. First, the controllers’ parameters are experime ntally tuned to their 
+best values who attain the smallest performa nce index on a given test scenario. Towards 
+the section’s end, a systematic  optimization-based tuning is employed, to challenge the 
+best achievable control performance from the LSMC and the RSMC. The feedback slip 
+control system is presented in Figure 5. 
+ 
+Figure 5. The slip feedback control syst em where the slip controller is replaceable with any of the 
+following designed controllers. 
+For subsequent comparisons, the following test scenario for all the controllers uses a 
+desired slip dλ calculated as a step input with amplitude 0.15 that is filtered through the 
+first order lag transfer function )1 01.0/(1 +s . This way, the controlled slip should track 
+the output of a linear output reference model. The angular speed of the wheels at the start 
+of the braking cycle is 180 rad/s. This angula r speed is usually obtained after accelerating 
+the two wheels in contact through the lower wheel. The continuous-time controller equa-
+tions are numerically integrated using a fifth order solver with the fixed step size of 10–3 
+seconds (s), which is consistent with the real-world execution times. The sampling time corresponding to the fixed step solver allows for data acquisition in order to collect the 
+discrete-time values of 
+)(),( t tdλλ  as )(),( k kdλ λ , respectively. Which in turn allows the 
+computation of the following performance index 
+()−+
+=λ− λ =1
+2)( )(1Nk
+kkd testi
+ik kNI , (15)
+Figure 5. The slip feedback control system where the slip controller is replaceable with any of the
+following designed controllers.
+For subsequent comparisons, the following test scenario for all the controllers uses a
+desired slip ldcalculated as a step input with amplitude 0.15 that is ﬁltered through the
+ﬁrst order lag transfer function 1/(0.01s+1). This way, the controlled slip should track the
+output of a linear output reference model. The angular speed of the wheels at the start of the
+braking cycle is 180 rad/s. This angular speed is usually obtained after accelerating the two
+wheels in contact through the lower wheel. The continuous-time controller equations are
+numerically integrated using a ﬁfth order solver with the ﬁxed step size of 10–3seconds (s),
+which is consistent with the real-world execution times. The sampling time corresponding
+to the ﬁxed step solver allows for data acquisition in order to collect the discrete-time
+values of l(t),ld(t)asl(k),ld(k), respectively. Which in turn allows the computation of
+the following performance index
+Itest=1
+Nki+N 1
+å
+k=ki(l(k) ld(k))2, (15)
+where kiis the sampling instant index corresponding to the start of the braking process, and
+Nsamples of the controlled slip and desired slip are measured, until the angular speed x2
+of the lower wheel (the “car”) drops below 10 rad/s towards the end of the braking cycle.
+The experimental parameter values for the LSMC control law (8) are selected as
+D=10 3,x=10 3,d=0.1,vmax=1. And the parameters of the RSMC law (13) are
+selected as D=10 3,x=10 3,k=3. Notice that UFfor the RSMC needs not to be
+estimated since it can be accounted for, by the selection of a large enough k.
+Several additional controllers are next used to benchmark the performance of the
+LSMC and RSMC structures. We choose the ﬁrst adaptive active dynamic controller (ADC)
+since it is a recent one implemented on the same ABS system, obeying the same working
+principles as our system. In fact, the ABS system is from the same manufacturer. The second
+reinforcement learning (RL) model-free controller stems from a different paradigm that
+does not use the system dynamics, therefore it is designed to cope with signiﬁcant amount
+of uncertainty, as it is the case with RSMC and LSMC. This controller was originally
+proposed, developed and validated on the same ABS system. The third model-free sliding-
+mode controller combines the feature of the second reinforcement learning controller (in the
+sense that it is model-free and it does not use the system dynamics knowledge) and also the
+working principle of sliding-mode control (SMC). Therefore, it ﬁts the comparisons goal.
+The fourth periodic switching sliding mode controller (PSSMC) is added for comparisons
+since it is designed to deal with uncertainties under output feedback only with no full state
+measurement and has been applied to a simpliﬁed ABS model before.
+(1)An adaptive active dynamic controller (ADC) is also implemented according to the
+laws presented in [36], that is
+M1=J1
+r1[ k0Iev k1ev+k(ld)qj(l) r1
+J1(d1x1+M10) + ( 1 ld)r2
+J2(d2x2+M20)],
+.
+Iev=ev,ev=r2x2(l ld),
+k(ld) =r2
+1/J1+r2
+2/J2(1 ld),(16)
+where the control design parameters are k0=18,k1=26selected as in [ 36], the con-
+stant parameters speciﬁc to the ABS system are J1=7.52810 3,J2=25.60310 3cor-
+responding to the inertial moments of the upper and lower wheels, respectively, and mea-
+sured in [kg m2], the viscous frictions d1=12010 6,J2=22510 6are measured in
+
+--- Page 11 ---
+Algorithms 2021 ,14, 2 11 of 17
+[kg m2/s], the static frictions in the upper and lower wheel are M10=310 3,M20=
+9310 3in [Nm]. The terms j(l) = sin(Cxarctan (Bxl)),q=mDxare used to approxi-
+mate the original term mFn(l) =qj(l)related to the normal force Fnfrom the original
+ABS equations [ 1], with the so-called Pacejka’s magic formula, for the parameter’s values
+Cx=1.68, Bx=28,Dx=22.9,m=0.95.
+A notable observation is that the control law (16) is directly expressed in the braking
+torque M1, thus neglecting the actuator dynamics. To make the controller (16) compatible
+with controllers (8) and (13), M1is transformed back into control input uby using the
+simpliﬁed actuator model, that is u(t) =M1(t)/c. To be consistent with the control inputs
+calculated by the LSMC and RSMC laws (8) and (13), respectively, the braking torque M1(t)
+is further saturated to [–9;9] after being calculated from (16).
+(2)A reinforcement learning model-free controller . Another controller used for compar-
+isons is a neural network (NN)-based one that was learned under model-free (unknown
+dynamics) principle using reinforcement Q-learning. As presented in the third case study
+of the work [ 33], the reinforcement learning controller (further referred to as simply RL)
+is a feed-forward NN with 6 inputs, two hidden layers, each having ten neurons with
+hyperbolic tangent activation function and one output layer having one neuron with linear
+activation.
+This NN controller’s input is a virtual state x(k) = [ x1(k),x2(k),x1(k 1),x2(k 1),
+u(k 1),ld(k)]built from: the current sample values of the two wheels’ speeds and their
+previous sample values, the previous control input and the current sample desired slip.
+The previous sample values account for the un-measurable state M1(k)of the actuator
+to ensure that the reinforcement Q-learning deals with a fully observable Markov deci-
+sion process.
+Although the controller was learned from transition samples collected in discrete-time
+by interacting with the process under the conditions presented in [ 33], this discrete-time
+is made compatible with the ﬁxed time step-size of the continuous-time SMC controllers.
+The RL controller learned to brake for various initial speeds x1(0),x2(0)and for various
+slip set points. An additional NN was used (called the Q-function NN) to store the state-
+action cost function. From a functional perspective, the RL controller is a state-feedback
+one—it uses x1,x2separately and not compacted in the slip equation—as opposed to the
+output-feedback SMC-based ones and to the output-feedback ADC one who use ldirectly.
+The learning was performed in an episodic style: each braking scenario starting from a
+non-zero speed x1(0) =x2(0)under the current episode controller generates input-output
+transition samples that were used to build a virtual state of past input-output samples.
+The batch of transition samples were added to enrich a database that grows with each
+braking episode. After each episode, the Q-function estimate is improved (in fact, a Q-
+NN was trained towards the optimal Q-function) and the current episode controller is
+improved towards the optimal controller. The objective was to minimize an inﬁnite-horizon
+but discounted version of the performance index Itest, which makes the tuning objective
+approximately minimize Itest. For additional details please consult [33].
+(3)A model-free sliding-mode controller (MFSMC). In the work of [ 37], two model-
+free sliding mode control system structures were proposed, the second one proposes the
+control law:
+u(t) =1
+a"
+ ˆF(t) +.
+ld(t) KPe(t) KItR
+0e(t)dt 
+1
+T 
+daT+y+T eestmax+jKITtR
+0e(t)dt+ (KPT 1)e(t)j)sgn(s(t))#
+,(17)
+where e(t) =l(t) ld(t)is the tracking error with respect to the target slip and ˆF(t) =
+ˆ.
+l(t) au(t)is the uncertainty estimate stemming from a ﬁrst order phenomenological
+model simpliﬁcation of the ABS system that reads.
+l(t) = F(t) +au(t). Here, ais a
+
+--- Page 12 ---
+Algorithms 2021 ,14, 2 12 of 17
+user-selectable constant parameter seen as a minimal process knowledge, KP,KIare the
+user-selectable parameters of the intelligent PI (iPI) controller part, s(t) =S1(t) +TS2(t)
+is a switching variable deﬁned in terms of S1(t) =Rt
+0e(t)dt,S2(t) = e(t), the user-
+selectable T>0imposes the desired behavior on the sliding surface s(t) =0. Additionally,
+eestmaxacts as another design parameter as the upper bound of the uncertain tracking error
+dynamics and y>0is again user-selectable to ensure a conservative stability condition.
+Subjected to a tuning aimed at minimizing the performance index Iteston the test scenario
+using genetic algorithm (GA), the parameters values for the MFSMC controller were found
+asa=2.02,KP=15.01 ,KI=0.05,Y=0.05,T=100.09 , in their respective search domain
+[0; 10][0; 100 ][0; 100 ][0; 10][0; 200 ], with eestmax=10 3andd=10 3being ﬁxed.
+The GA solver parameters were set to ensure convergence to approximately the same
+solution on ﬁve runs.
+(4)A periodic switching sliding-mode controller (PSSMC) from [ 38]. The nonlinear ABS
+model is rewritten as a linear model in the state with disturbance term complemented with
+a nonlinear output equation depending on a linear state combination, to comply with the
+model (1) and (2) from [38], as:
+ .x1.x2
+= 1 0
+0 1
+g
+Ax1
+x2
++1
+0.5
+g
+Bu+f1+g1u+x1 u+v1
+f2+g2u+x2 0.5u+v2
+g
+d(t),
+y(t) =l=C[x1x2]
+r2x2=h(Cx,t),(18)
+where C= [ 0.01 0.01 ]was selected, as well as the matrices Aand B, ensuring that
+CB6=0. Possible exogeneous disturbances, unmodeled dynamic as well as parametric
+uncertainties are modeled under terms v1(t),v2(t)who enter the larger disturbance term
+d(t)for which a simplifying upper bound dis found. In the following, the control law
+(17) from [ 38] is implemented based on Equations (5), (14), (16), (18) and (23) from the
+same work. This control scheme is designed for output model reference tracking control,
+it includes dynamical ﬁlters for the underlying uncertain controlled system missing full
+state measurement. The proposed PSSMC structure was tested in [ 38] on a linear, simpliﬁed,
+ﬁrst order ABS model. Although the control system structure is simple, there are many
+equations and parameters involved in calculating the redesigned modulating function r(t)
+from Equation (23) in [ 38]. The tuning parameters were selected as kp=0.2,c1=0.5,
+the parameters of the reference model transfer function 1/(0.01s+1)were set as am=100,
+km=100, then b=100,q=5,d=0.1,L= 100,g=0.1,f1=f2=0,d=2,
+cd=100,ld=100. The three most inﬂuential parameters of this PSSMC scheme were
+found l1=21.57, l2=9.13 and#=0.012 using a GA to minimize the performance
+index Iteston the test scenario under control input saturation in [–1;1]. While the others
+parameters have been determined starting from the values in [ 38]. The tuned parameters
+were searched within the domain [0; 100 ][0; 100 ][0; 10]. Except for am,km, there is a
+number of 15 tuning parameters to search for, a large number with respect to the other
+controllers used for comparisons. The GA solver parameters were set to ensure convergence
+to approximately the same solution on ﬁve runs.
+The performance index is next measured for all compared controllers, to assess their
+performance. The set-point tracking results obtained with the controllers LSMC, RSMC, ADC,
+RL, and MFSMC are shown below in Figure 6 and with the PSSMC in Figure 7. The perfor-
+mance measured with LSMC is Itest=6.085910 4, the one with the RSMC controllers is
+Itest=6.090410 4, that obtained with ADC is Itest=7.122410 4, that obtained with
+the RL controller is Itest=747.7510 4, for the MFSMC Itest=7.802910 4and for the
+PSSMC Itest=498.4210 4. Throughout the braking process, the index of the first sam-
+ple at which the lower wheel speed drops below 10 rad/s are, respectively, NLSMC = 1272 ,
+NRSMC = 1272 ,NADC= 1262, NRL= 1330, NMFSMC = 1275, NPSSMC = 1298. Revealing that the
+LSMC and RSMC controllers lead to very similar braking scenarios in terms of the car speed
+and measured performance.
+
+--- Page 13 ---
+Algorithms 2021 ,14, 2 13 of 17
+Algorithms 2021 , 14, x FOR PEER REVIEW 14 of 18  
+the LSMC and RSMC controllers lead to very similar braking scenarios in terms of the car 
+speed and measured performance. 
+These scenarios are also not very far from the braking scenario with the ADC con-
+troller, in the sense that the car speed decrea ses to 10 rad/s in about the same time (1.262 
+s vs. 1.272 s with the LSMC and RSMC contro llers). In any case, both the LSMC and the 
+RSMC controllers offer superior performance compared to the rest of the ADC, RL, 
+MFSMC and PSSMC controllers in terms of the measured performance index. Although 
+the RL controller displays a poorer performanc e (of about two orders of magnitude), it is 
+noticeable that the braking learning was performed without know ing the ABS dynamics. 
+The MFSMC controller lies within a similar model-free paradigm, since the simplified 
+model attached to the ABS dynamics makes littl e use of process knowledge in the control 
+design pipeline. The PSSMC structure reveals a complex design with many tuning param-
+eters and it is better than the RL controller. 
+ 
+Figure 6. The slip control results obtained with th e Lyapunov-based sliding mode controller 
+(LSMC), RSMC, active dynamic controller (ADC),  reinforcement learning (RL) and model-free 
+sliding-mode controller (MFSMC) structures. 
+ 
+Figure 7. The slip control result obtained with the periodic switching sliding mode controller 
+(PSSMC) structure. 
+From a controller complexity viewpoint, the ADC controller requires only two tuning 
+parameters (1 0,kk ) which is mostly advantageous with respect to the RSMC controller 
+with three tunable parameters and the LSMC with five tunable para meters. However, the 
+performance of the LSMC and the RSMC is not sensitive but rather robust to various 
+Figure 6. The slip control results obtained with the Lyapunov-based sliding mode controller (LSMC),
+RSMC, active dynamic controller (ADC), reinforcement learning (RL) and model-free sliding-mode
+controller (MFSMC) structures.
+Algorithms 2021 , 14, x FOR PEER REVIEW 14 of 18  
+the LSMC and RSMC controllers lead to very similar braking scenarios in terms of the car 
+speed and measured performance. 
+These scenarios are also not very far from the braking scenario with the ADC con-
+troller, in the sense that the car speed decrea ses to 10 rad/s in about the same time (1.262 
+s vs. 1.272 s with the LSMC and RSMC contro llers). In any case, both the LSMC and the 
+RSMC controllers offer superior performance compared to the rest of the ADC, RL, 
+MFSMC and PSSMC controllers in terms of the measured performance index. Although 
+the RL controller displays a poorer performanc e (of about two orders of magnitude), it is 
+noticeable that the braking learning was performed without know ing the ABS dynamics. 
+The MFSMC controller lies within a similar model-free paradigm, since the simplified 
+model attached to the ABS dynamics makes littl e use of process knowledge in the control 
+design pipeline. The PSSMC structure reveals a complex design with many tuning param-
+eters and it is better than the RL controller. 
+ 
+Figure 6. The slip control results obtained with th e Lyapunov-based sliding mode controller 
+(LSMC), RSMC, active dynamic controller (ADC),  reinforcement learning (RL) and model-free 
+sliding-mode controller (MFSMC) structures. 
+ 
+Figure 7. The slip control result obtained with the periodic switching sliding mode controller 
+(PSSMC) structure. 
+From a controller complexity viewpoint, the ADC controller requires only two tuning 
+parameters (1 0,kk ) which is mostly advantageous with respect to the RSMC controller 
+with three tunable parameters and the LSMC with five tunable para meters. However, the 
+performance of the LSMC and the RSMC is not sensitive but rather robust to various 
+Figure 7. The slip control result obtained with the periodic switching sliding mode controller
+(PSSMC) structure.
+These scenarios are also not very far from the braking scenario with the ADC controller,
+in the sense that the car speed decreases to 10 rad/s in about the same time (1.262 s vs.
+1.272 s with the LSMC and RSMC controllers). In any case, both the LSMC and the RSMC
+controllers offer superior performance compared to the rest of the ADC, RL, MFSMC and
+PSSMC controllers in terms of the measured performance index. Although the RL controller
+displays a poorer performance (of about two orders of magnitude), it is noticeable that
+the braking learning was performed without knowing the ABS dynamics. The MFSMC
+controller lies within a similar model-free paradigm, since the simpliﬁed model attached
+to the ABS dynamics makes little use of process knowledge in the control design pipeline.
+The PSSMC structure reveals a complex design with many tuning parameters and it is
+better than the RL controller.
+From a controller complexity viewpoint, the ADC controller requires only two tuning
+parameters ( k0,k1) which is mostly advantageous with respect to the RSMC controller
+with three tunable parameters and the LSMC with ﬁve tunable parameters. However,
+the performance of the LSMC and the RSMC is not sensitive but rather robust to various
+choices of D,xthat were introduced for numerical convenience. The remaining number
+of parameters, one for RSMC and two for LSMC, turn the two controllers into attractive
+real-time implementations.
+
+--- Page 14 ---
+Algorithms 2021 ,14, 2 14 of 17
+Concerning the computational burden of the compared control algorithms, the execu-
+tion times were measured on a PC having base frequency of 2 GHz and clock precision of
+510 8s. The allotted controller computing time for the entire braking scenario experi-
+ment lasting for 1.5 s is TLSMC =0.068 s,TRSMC =0.021 s,TADC=0.23 s,TRL=0.461 s,
+TMFSMC =0.345 s,TPSSMC =0.99 s. These measured times correspond to 1500 calls of the
+controller calculation function with sampling period of 1 millisecond. Meaning that even
+in the case of the RL controller, the time required to run one call falls below 1 millisecond.
+The measured allotted computing times include all necessary double-precision operations
+for calculating the control input, including numerical evaluation of the integrals and deriva-
+tives, multiplications, and additions. With proper optimizations, these controllers can be
+implemented on modern hardware. From computational perspective, the RSMC and
+LSMC are more efﬁcient by almost an order of magnitude in terms of measured allotted
+computing times. While the NN-based RL controller is not the most demanding due to the
+many operations involved in NN evaluation, the PSSMC appears the most time consuming
+due to its complexity and many operations.
+In a following step, the best achievable performance of the LSMC and RSMC con-
+trollers is veriﬁed. To this end, the parameters d,vmaxof the LSMC and the parameter
+kof the RSMC are searched by optimizing for the test scenario under aforementioned
+conditions (180 rad/s initial braking speed and 0.15 slip set point obtained by ﬁrst order
+lag ﬁltering). The optimization is performed using a genetic algorithm (GA). The values
+of the parameters are searched for in the domains d2[0.01; 1 ],vmax2[0.1; 10 ]for the
+LSMC and in the domain k2[0.01; 20 ]for the RSMC. These domains also act as lower
+and upper bounds for the optimization variables throughout the numerical search process.
+Other settings were: a number of 50 search agents, 5% out of the total number of agents
+is the number of individuals to survive the next generation, crossover fraction is 80%,
+maximum 5000 generations. The GA solver parameters were set to ensure convergence to
+approximately the same solution on ﬁve runs.
+The best values of the performance index are Itest=5.985810 4for the LSMC (for
+d=0.5032, vmax=0.012 ) and Itest=6.075810 4for the RSMC (obtained for k=15.46 ).
+On one hand, the best performance values are not very far from those obtained with the
+initial settings of the LSMC and RSMC parameters. Yet, the result shows that the LSMC
+structure has slightly better control capability over the RSMC structure. Nevertheless,
+the control performance reveals itself as a robust one and undoubtedly superior over the
+other control strategies proposed for comparisons.
+5. Conclusions
+The ABS control system intends to streamline the braking process, while maintaining
+the car’s road maneuverability. The LSMC and RSMC controllers designed with included
+uncertainties had a positive impact on the performance of the control system behavior.
+This attests that, even by model order reduction and despite the strongly nonlinear process
+behavior, the performance is not significantly degraded, leading to a robust control behavior.
+The obtained performance may vary under different road conditions and controllers’
+retuning may be required. Usually, the low-level ABS braking control system operates
+under a higher-level supervisory logic where the surface detection task and the switching
+between appropriate controllers is implemented.
+Especially in the braking system control design, controller robustness is a critical
+necessity because the braking system is affected by a large parameter variations; the weight
+load on the car, the tire inﬂation state and wear, the road-tire contact surface and the road
+surface proﬁle combined with the car speed all inﬂuence the braking process. Therefore,
+in the model-based control design paradigm, the goal is to achieve control performance
+under large parameter uncertainty.
+For the proposed controllers, the performance comparisons with other similar or
+different control strategies reveal that the advantage of the LSMC and RSMC lies with
+the reduced number of tuning parameters and robust control performance under process
+
+--- Page 15 ---
+Algorithms 2021 ,14, 2 15 of 17
+variation and controller parameters selection. Finding robust, high-performance controllers
+with few tunable parameters is not trivial in practice, however, the LSMC and RSMC
+may be preferable over more complex implementations. This observation offers a signif-
+icant incentive to validate the proposed approach on commercial braking systems, as a
+future goal.
+Author Contributions: All authors have contributed equally to this work. All authors have read and
+agreed to the published version of the manuscript.
+Funding: This work was supported by a grant from the Romanian Ministry of Education and
+Research, CNCS-UEFISCDI, project number PN-III-P1-1.1-TE-2019-1089, within PNCDI III.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Appendix A
+For deriving the LSMC control law (8), consider the ﬁrst case 1.(a) corresponding
+tog(t)>0,.g<0 ,G(t)>0for which u(t)<t(t) ev(t)
+G(t). Note in the ﬁrst place that
+ kt(t) ev(t)kt(t) ev(t)kt(t) ev(t)k. By the triangle inequality, it is checked
+thatkt(t) ev(t)kk t(t)k+kev(t)kk t(t)k+vmaxholds. Since kt(t)k vmax
+ kt(t) ev(t)kt(t) ev(t), then in order to ensure that u(t)<t(t) ev(t)
+G(t)forG(t)>0,
+it sufﬁces to select a control that fulﬁls u(t)< kt(t)k vmax
+G(t). A ﬁrm selection is u(t) =
+ kt(t)k vmax
+G(t) dwith d>0, which is equivalent to
+u(t) = kt(t)k+vmax
+G(t)+d
+sgn(g(t)G(t)). (A1)
+The case 1.(b) corresponds to g(t)>0,.g(t)<0 ,G(t)<0for which u(t)>t(t) ev(t)
+G(t).
+Sincekt(t)k+vmaxkt(t) +ev(t)kt(t) +ev(t), the control which ensures that u(t)>
+t(t) ev(t)
+G(t)forG(t)<0and also fulﬁls u(t)>kt(t)k+vmax
+G(t)isu(t) =kt(t)k+vmax
+G(t)+d, which is
+equivalent to
+u(t) =kt(t)k+vmax
+G(t)+d
+sgn(g(t)G(t)). (A2)
+The case 2.(a) refers to g(t)<0,.g(t)>0 ,G(t)>0for which u(t)>t(t) ev(t)
+G(t). It is
+similar with the case 1.(b) therefore, one control input which fulﬁls u(t)>kt(t)k+vmax
+G(t)>
+t(t) ev(t)
+G(t)is found as in (A2).
+Finally, the case 2.(b) is valid whenever g(t)<0,.g(t)>0 ,G(t)<0for which
+u(t)<t(t) ev(t)
+G(t). Being similar to the case 1.(a), one control input fulﬁlling the condition
+u(t)< kt(t)k vmax
+G(t)<t(t) ev(t)
+G(t)is expressible as in (A1).
+The control input in all the four subcases will be correctly captured and compactly
+written by the general form (A1), depending on the sign of the product g(t)G(t).
+References
+1. Formentin, S.; Novara, C.; Savaresi, S.M.; Milanese, M. Active braking control system design: The D2-IBC Approach.
+IEEE Trans. Mech. 2015 ,20, 1573–1584. [CrossRef]
+2. Liu, Y.; Sun, J. Target slip tracking using gain-scheduling for antilock braking system. In Proceedings of the IEEE American
+Control Conference, Seattle, WA, USA, 21–23 June 1995; pp. 1178–1182.
+3. Unsal, C.; Kachroo, P . Sliding mode measurement feedback control for antilock braking systems. IEEE Trans. Control Syst. Technol.
+1999 ,7, 271–281. [CrossRef]
+4. Tang, Y.; Zhan, X.; Zhang, D.; Zhao, G.; Guan, X. Fractional order sliding mode controller design for antilock braking systems.
+Neurocomputing 2013 ,111, 122–130. [CrossRef]
+5. Mirzaeinejad, H.; Mirzaei, M. A novel method for non-linear control of wheel slip in anti-lock braking systems. Control Eng. Pract.
+2010 ,18, 918–926. [CrossRef]
+
+--- Page 16 ---
+Algorithms 2021 ,14, 2 16 of 17
+6. Chereji, E. Solu t,ii de Reglare în Mod Alunec ător Pentru un Echipament de Laborator cu Fr ânare cu ABS. Bachelor’s Thesis,
+Politehnica University of Timisoara, Timisoara, Romania, June 2019.
+7. Safe Braking. 50 Years Start of Developing Bosch’s Anti-Lock Braking System ABS. Available online: https://www.bosch.com/
+stories/beginnings-of-abs/ (accessed on 19 August 2020).
+8. Mercedes-Benz and the Invention of the Anti-Lock Braking System: ABS, Ready for Production in 1978. Available on-
+line: https://media.daimler.com/marsMediaSite/en/instance/ko/Mercedes-Benz-and-the-invention-of-the-anti-lock-braking-
+system-ABS-ready-for-production-in-1978.xhtml?oid=9913502 (accessed on 19 August 2020).
+9. Robert Bosch GmbH. Bosch Automotive Handbook , 8th ed.; Bentley Publishers: Cambridge, MA, USA, 2011.
+10. Lua, C.A.; Toledo, B.C.; di Gennaro, S.; Martinez-Gardea, M. Dynamic control applied to a laboratory antilock braking system.
+Math. Probl. Eng. 2015 . [CrossRef]
+11. Drakunov, S.; Ozguner, U.; Dix, P .; Ashraﬁ, B. ABS control using optimum search via sliding modes. IEEE Trans. Control
+Syst. Technol. 1995 ,3, 79–85. [CrossRef]
+12. Will, A.B.; Hui, S.; Zak, S.H. Sliding mode wheel slip controller for an antilock braking system. Int. J. Veh. Des. 1998 ,19, 523–539.
+13. Ivanov, V .; Savitski, D.; Shyrokau, B. A survey of traction control and antilock braking systems of full electric vehicles with
+individually controlled electric motors. IEEE Trans. Veh. Technol. 2015 ,64, 3878–3896. [CrossRef]
+14. Pretagostini, F.; Ferranti, L.; Berardo, G.; Ivanov, V .; Shyrokau, B. Survey on wheel slip control design strategies, evaluation and
+application to antilock braking systems. IEEE Access 2020 ,8, 10951–10970. [CrossRef]
+15. The Laboratory Anti-Lock Braking System Controlled from PC—User Manual ; Inteco Sp.: Krakow, Poland, 2007.
+16. Radac, M.B.; Precup, R.E.; Preitl, S.; Tar, J.K.; Burnham, K.J. Tire slip fuzzy control of a laboratory anti-lock braking system.
+In Proceedings of the European Control Conference, Budapest, Hungary, 23–26 August 2009; pp. 940–945.
+17. Hariﬁ, A.; Aghagolzadeh, A.; Alizadeh, G.; Sadeghi, M. Designing a sliding mode controller for slip control of antilock brake
+systems. Transp. Res. Part C Emerg. Technol. 2008 ,16, 731–741. [CrossRef]
+18. Lin, C.M.; Hsu, C.F. Self-learning fuzzy sliding-mode control for antilock braking systems. IEEE Trans. Control Technol. 2003 ,
+11, 273–278. [CrossRef]
+19. Bartoszewicz, A.; Adamiak, K. Discrete-time sliding-mode control with a desired switching variable generator. IEEE Trans.
+Autom. Control 2019 ,65, 1807–1814. [CrossRef]
+20. Bartoszewicz, A.; Adamiak, K. Model reference discrete-time variable structure control. Int. J. Adapt. Control Signal Process. 2019 ,
+32, 1440–1452. [CrossRef]
+21. Shah, D.; Mehta, A.; Patel, K.; Bartoszewicz, A. Event-triggered discrete higher-order SMC for networked control system having
+network irregularities. IEEE Trans. Ind. Inf. 2020 ,16, 6837–6847. [CrossRef]
+22. Latosinski, P .; Bartoszewicz, A. Model reference DSMC with a relative degree two switching variable. IEEE Trans. Autom.
+Control 2020 . [CrossRef]
+23. Schinkel, M.; Junt, K. Anti-lock braking control using a sliding mode like approach. In Proceedings of the American Control
+Conference, Anchorage, AK, USA, 8–10 May 2002; pp. 2386–2391.
+24. Lin, C.M.; Hsu, C.F. Neural-network hybrid control for antilock braking systems. IEEE Trans. Neural Netw. 2003 ,14, 351–359.
+[CrossRef]
+25. Wu, M.C.; Shih, M.C. Simulated and experimental study of hydraulic anti-lock braking system using sliding-mode PWM control.
+Mechatronics 2003 ,13, 331–351. [CrossRef]
+26. Peric, S.L.; Antic, D.S.; Milovanovic, M.B.; Mitic, D.B.; Milojkovic, M.T.; Nikolic, S.S. Quasi-sliding mode control with orthogonal
+endocrine neural network-based estimator applied in anti-lock braking system. IEEE Trans. Mech. 2016 ,21, 754–764. [CrossRef]
+27. Topalov, A.V .; Oniz, Y.; Kayacan, E.; Kaynak, O. Neuro-fuzzy control of antilock braking system using sliding mode incremental
+learning algorithm. Neurocomputing 2011 ,74, 1883–1893. [CrossRef]
+28. Kayacan, E.; Oniz, Y.; Kaynak, O. A grey system modeling approach for sliding-mode control of antilock braking system.
+IEEE Trans. Ind. Electron. 2009 ,56, 3244–3252. [CrossRef]
+29. Gong, X.; Qian, L.; Ge, W.; Wang, L. Research on the anti-disturbance control method of brake-by-wire unit for electric vehicles.
+World Electr. Veh. J. 2019 ,10, 44. [CrossRef]
+30. Sardarmehni, T.; Heydari, A. Sub-optimal switching in anti-lock brake systems using approximate dynamic programming.
+IET Control Theory Appl. 2019 ,13, 1413–1424. [CrossRef]
+31. He, Y.; Lu, C.; Shen, J.; Yuan, C. Design and analysis of output feedback constraint control for antilock braking system with
+time-varying slip ratio. Math. Probl. Eng. 2019 . [CrossRef]
+32. Lin, C.L.; Hung, H.C.; Li, J.C. Active control of regenerative brake for electric vehicles. Actuators 2018 ,7, 84. [CrossRef]
+33. Radac, M.B.; Precup, R.E. Data-driven model-free slip control of anti-lock braking systems using reinforcement Q-learning.
+Neurocomputing 2018 ,275, 317–329. [CrossRef]
+34. Bhat, S.P .; Bernstein, D.S. Finite-time stability of continuous autonomous systems. SIAM J. Control. Optim. 2000 ,38, 751–766.
+[CrossRef]
+35. Nersesov, S.G.; Ashraﬁuon, H.; Ghorbanian, P . On the stability of sliding mode control for a class of underactuated nonlinear
+systems. In Proceedings of the 2010 American Control Conference, Baltimore, MD, USA, 30 June–2 July 2010; pp. 3446–3451.
+36. Lua, C.A.; di Gennaro, S.; Morales, M.E.S. Nonlinear adaptive controller applied to an antilock braking system with parameters
+variations. Int. J. Control Autom. Syst. 2017 ,15, 2043–2052.
+
+--- Page 17 ---
+Algorithms 2021 ,14, 2 17 of 17
+37. Precup, R.E.; Radac, M.B.; Roman, R.C.; Petriu, E.M. Model-free sliding mode control of nonlinear systems: Algorithms and
+experiments. Inf. Sci. 2017 ,381, 176–192. [CrossRef]
+38. Oliveira, T.R.; Hsu, L.; Peixoto, A.J. Output-feedback global tracking for unknown control direction plants with application to
+extremum-seeking control. Automatica 2011 ,47, 2029–2038. [CrossRef]

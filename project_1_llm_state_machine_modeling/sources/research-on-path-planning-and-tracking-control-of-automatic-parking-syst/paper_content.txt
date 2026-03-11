@@ -1,0 +1,846 @@
+--- Page 1 ---
+Article
+Research on Path Planning and Tracking Control of Automatic
+Parking System
+Bingzhan Zhang1,2,*, Zhiyuan Li1, Yaoyao Ni1and Yujie Li1
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Citation: Zhang, B.; Li, Z.; Ni, Y.;
+Li, Y. Research on Path Planning and
+Tracking Control of Automatic
+Parking System. World Electr. Veh. J.
+2022 ,13, 14. https://doi.org/
+10.3390/wevj13010014
+Academic Editors: Grzegorz Sierpi´ nski
+and Joeri Van Mierlo
+Received: 17 August 2021
+Accepted: 16 November 2021
+Published: 1 January 2022
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).1School of Automobile and Transportation Engineering, Hefei University of Technology, Hefei 230009, China;
+zhiyuanli0118@163.com (Z.L.); 18915129623@163.com (Y.N.); 2019170801@mail.hfut.edu.cn (Y.L.)
+2Anhui Key Laboratory of Digit Design and Manufacture, Hefei 230009, China
+*Correspondence: zhangbingzhan@hfut.edu.cn; Tel.: +86-138-6671-5375
+Abstract: In this paper, we focus on the parking path planning and path tracking control under
+parallel parking conditions with automatic parking system as the research object. In order to solve
+the problem of discontinuity of curvature in the path planning of traditional arc-straight combined
+curve, a quintic polynomial is used to smooth the path. we design a path tracking controller based
+on the incremental model predictive control (MPC). The preview control based on pure tracking
+algorithm is used as the comparison algorithm for path tracking. The feasibility of the controller is
+veriﬁed by building a Simulink/CarSim co-simulation platform. In addition, the practicality of the
+parking controller is further veriﬁed by using the ROS intelligent car in the laboratory environment.
+Keywords: model predictive control; automatic parking; path planning; path tracking; joint simulation
+1. Introduction
+With the improvement of living standards, the role of cars has gradually changed
+from a luxury to a necessity of people’s daily lives. Parking spaces are getting smaller and
+smaller, the parking environment is complex and changeable, the driver level is uneven,
+and other factors all affect the success rate of parking; a little carelessness may lead to the
+occurrence of parking accidents.
+At present, the domestic and foreign researchers mainly adopt the following methods
+for automatic parking system research: (1) parking method based on intelligent control.
+Hanafy et al. used artiﬁcial ﬁsh swarm algorithm and bee swarm algorithm to optimize the
+parameters of the fuzzy controller, obtain the time required for parking, and optimize the
+performance of the parking controller [ 1]. Chengrui Zhang designed the control strategy of
+the automatic parking system based on the fuzzy control theory and veriﬁed the feasibility
+of the designed strategy through the Simulink/CarSim co-simulation and the vehicle
+controller built on dSPACE [ 2]. Demirli designed an Adaptive Neuro-Fuzzy Inference
+System. The vehicle does not need to know the desired polynomial path to track, but it
+will approximate such a way by knowing only the start conﬁguration [ 3]. Huang proposed
+a model-free intelligent, self-organizing fuzzy controller for parking path tracking. This
+intelligent controller has a system-learning mechanism without expert knowledge or a trial-
+and-error process [ 4]. (2) parking method based on path planning and path tracking. Kim
+et al. proposed a Reeds-Shepp curve path planning that takes the minimum turning radius
+of the vehicle and the straight line from the starting point to the target point as the shortest
+path. Aiming at the problem that the path formula of the Reeds-Shepp curve is limited in
+the actual parking lot, the curve algorithm is modiﬁed, so as to realize the effective forward
+and backward automatic parking system [ 5]. Hao Ye designed a linear time-varying path
+tracking prediction through a series of transformations such as discretization and Taylor’s
+formula expansion [6].
+World Electr. Veh. J. 2022 ,13, 14. https://doi.org/10.3390/wevj13010014 https://www.mdpi.com/journal/wevj
+
+--- Page 2 ---
+World Electr. Veh. J. 2022 ,13, 14 2 of 13
+MPC was proposed in the 1970s. It is an advanced control method that is usually
+used to control a process with constraints. It is a heuristic control algorithm applied in the
+industrial process and has rich theoretical and practical contents [ 7–9]. Model predictive
+controllers depend on models of the process, which are often linear models. There should
+be desirable properties of approximation accuracy, physical interpretation, suitability for
+control, and ease of development for a good model [ 10]. MPC is a typical approach
+in industrial advanced control. It has been widely used in various domains, such as
+supply chain management in semiconductor manufacturing [ 11], application to autoclave
+composite processing [ 12], energy efﬁciency control in buildings [ 13], integrated wastewater
+treatment systems [14], ﬂight control [15], and magnetic spacecraft attitude control [16].
+Compared with the parking system designed by intelligent algorithm, the parking
+system designed by path planning and path tracking has clear and simple design logic
+and can easily achieve global optimization. It is easy to integrate the pre-designed control
+strategy into the parking controller and facilitate the use of real cars. Therefore, it is the
+most studied automatic parking scheme at present. Hence, in this article, the parking path
+is planned based on the vehicle kinematics model and an automatic parking path tracking
+based on the incremental model predictive control (MPC). In order to improve the safety
+and reliability of the parking process, the article will analyze and study the path decision
+planning and path tracking control algorithms of the automatic parallel parking system.
+2. Parking Path Planning
+Parking path planning is essentially based on on-board sensors to obtain environmen-
+tal information, combined with the kinematic constraints, vehicle parking environmental
+constraints, initial position of motor vehicles, and parking regulations. It is generated by a
+parking starting point into the parking space target preset position as the end point of the
+path curve, which is to meet the conditions of curvature, obstacle avoidance, and ease of
+tracking. Figure 1 is the basic structure of path planning in this paper.
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 2 of 13  
+MPC was proposed in the 1970s. It is an advanced co ntrol method that is usually 
+used to control a process with constraints. It is a  heuristic control algorithm applied in the 
+industrial process and has rich theoretical and pra ctical contents [7–9]. Model predictive 
+controllers depend on models of the process, which are often linear models. There should 
+be desirable properties of approximation accuracy, physical interpretation, suitability for 
+control, and ease of development for a good model [1 0]. MPC is a typical approach in 
+industrial advanced control. It has been widely used  in various domains, such as supply 
+chain management in semiconductor manufacturing [11 ], application to autoclave com- 
+posite processing [12], energy efficiency control i n buildings [13], integrated wastewater 
+treatment systems [14], flight control [15], and ma gnetic spacecraft attitude control [16]. 
+Compared with the parking system designed by intell igent algorithm, the parking 
+system designed by path planning and path tracking has clear and simple design logic 
+and can easily achieve global optimization. It is ea sy to integrate the pre-designed control 
+strategy into the parking controller and facilitate  the use of real cars. Therefore, it is the 
+most studied automatic parking scheme at present. H ence, in this article, the parking path 
+is planned based on the vehicle kinematics model and  an automatic parking path tracking 
+based on the incremental model predictive control ( MPC). In order to improve the safety 
+and reliability of the parking process, the article  will analyze and study the path decision 
+planning and path tracking control algorithms of th e automatic parallel parking system. 
+2. Parking Path Planning 
+Parking path planning is essentially based on on-bo ard sensors to obtain environ- 
+mental information, combined with the kinematic con straints, vehicle parking environ- 
+mental constraints, initial position of motor vehicl es, and parking regulations. It is gener- 
+ated by a parking starting point into the parking s pace target preset position as the end 
+point of the path curve, which is to meet the condit ions of curvature, obstacle avoidance, 
+and ease of tracking. Figure 1 is the basic structu re of path planning in this paper. 
+Vehicle structure 
+parameters Obstacle avoidance 
+constraints 
+Minimum parking space 
+size  width of the road 
+Parking starting area Constraint 
+condition Path curve Starting position of 
+vehicle 
+Arrive at the start of the 
+parking area 
+Plan parking paths Drive to the 
+starting area 
+true false 
+Path planning 
+completed 
+ 
+Figure 1. Parking path planning structural schematic diagram.  
+  
+Figure 1. Parking path planning structural schematic diagram.
+
+--- Page 3 ---
+World Electr. Veh. J. 2022 ,13, 14 3 of 13
+2.1. Kinematic Model of Vehicle
+The structural parameters of the vehicle, such as vehicle length, vehicle width, wheel-
+base, and front and rear suspension, have an important inﬂuence on the design of parking
+path planning and trajectory tracking controllers. In addition, the maximum steering
+wheel angle (the maximum steering wheel angle) and the maximum rotating speed of
+steering wheel Angle (the maximum rotating speed of steering wheel angle) also have a
+great relationship with the design of automatic parking system. The smaller the minimum
+turning radius of a vehicle, the smaller the required parking space size. This paper takes a
+certain model as the research object and simpliﬁes the vehicle shape. Table 1 shows the
+vehicle structure parameters.
+Table 1. Vehicle structure parameters.
+Parameter Symbol Numerical Value Unit
+Vehicle length L 4.7 m
+Vehicle width W 1.86 m
+Wheelbase l 2.71 m
+Front overhang lf 0.89 m
+Rear overhang lr 1.1 m
+Maximum front wheel angle dfmax0.482 rad
+Front wheel angle maximum speed wfmax0.482 rad/m
+Because the parking speed is very low, there is no need to consider the vehicle’s
+handling, stability, and other dynamics issues. The tire side sliding is ignored, and the
+wheels only do rolling and steering [ 17]. As shown in Figure 2, the motion trajectory of
+the midpoint of the rear axle is used to represent the motion state of the vehicle. [X,Y,j]T
+is used to represent the pose state of the vehicle at each moment.h
+v,dfiT
+is used to
+represent the control quantity of the target vehicle to establish the kinematics model, and
+its kinematics equation is as follows [18]:
+2
+664.
+X.
+Y.j3
+775=2
+4cosj
+sinj
+tandf/l3
+5v (1)
+where, XandYare the horizontal and vertical coordinates of the midpoint of the rear axle
+of the target vehicle (m); jis the heading Angle of vehicle (/s);dfis equivalent front wheel
+Angle (/s);lis wheelbase (m); vis rear axle midpoint velocity (km/h).
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 3 of 13  
+2.1. Kinematic Model of Vehicle 
+The structural parameters of the vehicle, such as ve hicle length, vehicle width, wheel- 
+base, and front and rear suspension, have an importa nt influence on the design of parking 
+path planning and trajectory tracking controllers. In addition, the maximum steering 
+wheel angle (the maximum steering wheel angle) and the maximum rotating speed of 
+steering wheel Angle (the maximum rotating speed of  steering wheel angle) also have a 
+great relationship with the design of automatic par king system. The smaller the minimum 
+turning radius of a vehicle, the smaller the require d parking space size. This paper takes 
+a certain model as the research object and simplifi es the vehicle shape. Table 1 shows the 
+vehicle structure parameters. 
+Table 1. Vehicle structure parameters. 
+Parameter Symbol Numerical Value  Unit 
+Vehicle length L 4.7 m 
+Vehicle width W 1.86 m 
+Wheelbase  l 2.71  m 
+Front overhang lf 0.89 m 
+Rear overhang lr 1.1 m 
+Maximum front wheel angle   0.482 rad 
+Front wheel angle maximum speed    0.482  rad/m  
+Because the parking speed is very low, there is no n eed to consider the vehicle’s han- 
+dling, stability, and other dynamics issues. The ti re side sliding is ignored, and the wheels 
+only do rolling and steering  [17]. As shown in Figure 2, the motion trajectory o f the mid- 
+point of the rear axle is used to represent the mot ion state of the vehicle. , 
+,   is used 
+to represent the pose state of the vehicle at each m oment. ,   is used to represent the 
+control quantity of the target vehicle to establish  the kinematics model, and its kinematics 
+equation is as follows [18]:  
+
+
+
+
+=cos 
+sin 
+tan ⁄ (1) 
+where, X and Y are the horizontal and vertical coordinates of the  midpoint of the rear axle 
+of the target vehicle (m); φ is the heading Angle of vehicle ( °/s); δf is equivalent front wheel 
+Angle  (°/$) ; l is wheelbase (m); v is rear axle midpoint velocity (km/h). 
+XY
+0x
+vy δf
+φ(X f,Y f)
+(X,Y) l
+ABC
+D
+XA XC XB XDYAYBYC
+YD
+ 
+Figure 2. Vehicle kinematics model. 
+Figure 2. Vehicle kinematics model.
+
+--- Page 4 ---
+World Electr. Veh. J. 2022 ,13, 14 4 of 13
+2.2. Parking System Analysis
+The speed of the vehicle is very low when parking. According to the above hypothesis,
+there is no wheel slip, so the speed at the center point of the rear axle in the direction of the
+rear axle is zero. Through analysis and calculation, the trajectory equation of the center
+point of the rear axle can be obtained:
+8
+><
+>:X(t)=lcotdfsin
+vfsindf
+lt
+Y(t)= lcotdfcos
+vfsindf
+lt
++lcotdf(2)
+Further observation of Equation (2) shows that:
+X2(t)+
+Y(t) lcotdf2
+=
+lcotdf2
+(3)
+According to Equation (3), when the equivalent front wheel rotation angle dfis ﬁxed,
+the trajectory of the center point of the rear axle is only related to the wheelbase of the
+vehicle and has nothing to do with the reversing speed vf. The size of the reversing speed
+will not change the shape of the reversing trajectory. Given the front wheel rotation angle
+and speed, the reversing trajectory is strictly a circle [ 19]. According to the geometrical
+relation shown in Figure 2, the mathematical expression of the four vertex coordinates and
+the midpoint coordinates of the rear axle of the car body can be calculated.
+Point A coordinates:
+(XA=X+W
+2sinj lrcosj
+YA=Y W
+2cosj lrsinj(4)
+Point B coordinates:
+(XB=X+(L lr)cosj+W
+2sinj
+YB=Y+(L lr)sinj W
+2cosj(5)
+Point C coordinates:
+(XC=X+(L lr)cosj W
+2sinj
+YC=Y+(L lr)sinj+W
+2cosj(6)
+Point D coordinates:
+(XD=X W
+2sinj lrcosj
+YD=Y+W
+2cosj lrsinj(7)
+As shown in Figure 3, we take the traditional arc-straight-arc path curve as an example
+to calculate the initial parking area that satisﬁes a series of constraints [ 20]. In order to
+reduce the length of parking space as much as possible and facilitate calculation, this paper
+sets the radius of two arcs equal to the minimum turning radius of the center of the rear
+axle of the vehicle, namely R1=R2=Rmin. Then, the driving track of P3P4 segment of the
+circular arc is the reverse process of P1P2 segment of the circular arc. After the positions
+of P3 and P4 are determined according to the constraint conditions, the coordinate of P1
+position can be obtained only by adjusting the length of the straight line P2P3, and then
+the range of the starting point of parking can be calculated.
+
+--- Page 5 ---
+World Electr. Veh. J. 2022 ,13, 14 5 of 13
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 5 of 13  
+bad
+OXY
+hRoad boundary 
+O2
+θ
+θ cR2
+P4
+A BCD
+O1P1
+P2
+R1P3t1
+ 
+Figure 3. Parallel parking start area analysis. 
+Through analysis and calculation, the lower limit va lue of P1 coordinate is  
+P1min (DEFGH  , IEFGH  ) = (8.076, 3.335) . The upper limit value is P 1max (DEF ,IEF ) = 
+(10.981,4.588). The upper limit value of P2 coordina te is P 2max (DEJ ,IEJ ) = (9.246, 4.23 ), 
+and parking starting point area is as follows: 
+      NI=*O. P4D−DEF 5+IEF 
+I=IEFGH                                           ,DEFGH ≤D≤DEF 
+I=IEF  (8)
+RI=IEFGH 
+I=IEJ   ,DEF ≤D≤12 .5 (9)
+The starting point area of parking enclosed by Equa tions (8) and (9) is shown in the 
+shaded part in Figure 4. 
+bc
+ad
+XY
+P4P3P1 min hRoad boundary 
+·P1 max 
+P2 min P2 max 
+ 
+Figure 4. Parking starting point area. 
+Figure 3. Parallel parking start area analysis.
+Through analysis and calculation, the lower limit value of P1 coordinate is P1min(xP1min,yP1min)
+= (8.076, 3.335) . The upper limit value is P 1max(xP1max,yP1max) = (10.981,4.588). The upper limit
+value of P2 coordinate is P 2max(xP2max,yP2max) = (9.246, 4.23), and parking starting point area
+is as follows:
+8
+<
+:y=tanq 
+x xP1max+yP1max
+y=yP1min,xP1minxxP1max
+y=yP1max(8)
+y=yP1min
+y=yP2max,xP1maxx12.5 (9)
+The starting point area of parking enclosed by Equations (8) and (9) is shown in the
+shaded part in Figure 4.
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 5 of 13  
+bad
+OXY
+hRoad boundary 
+O2
+θ
+θ cR2
+P4
+A BCD
+O1P1
+P2
+R1P3t1
+ 
+Figure 3. Parallel parking start area analysis. 
+Through analysis and calculation, the lower limit va lue of P1 coordinate is  
+P1min (DEFGH  , IEFGH  ) = (8.076, 3.335) . The upper limit value is P 1max (DEF ,IEF ) = 
+(10.981,4.588). The upper limit value of P2 coordina te is P 2max (DEJ ,IEJ ) = (9.246, 4.23 ), 
+and parking starting point area is as follows: 
+      NI=*O. P4D−DEF 5+IEF 
+I=IEFGH                                           ,DEFGH ≤D≤DEF 
+I=IEF  (8)
+RI=IEFGH 
+I=IEJ   ,DEF ≤D≤12 .5 (9)
+The starting point area of parking enclosed by Equa tions (8) and (9) is shown in the 
+shaded part in Figure 4. 
+bc
+ad
+XY
+P4P3P1 min hRoad boundary 
+·P1 max 
+P2 min P2 max 
+ 
+Figure 4. Parking starting point area. 
+Figure 4. Parking starting point area.
+
+--- Page 6 ---
+World Electr. Veh. J. 2022 ,13, 14 6 of 13
+2.3. Parallel Parking Path Planning Based on Quintic Polynomial
+For parallel parking path planning, the category of the ﬁtting path curve needs to
+be determined ﬁrst. In this paper, we hope that the curvature of the planned path is
+continuous, which requires the path to be second-order continuous. The output of the
+parking system is the steering angle of the front wheels, and the steering angle is controlled
+by the power-assisted motor. Due to the motor steering performance constraints and the
+inertial characteristics of the steering system, the steering angle of the wheels cannot change
+suddenly, which requires the planned path to be three-order continuous. Therefore, if a
+polynomial is used to ﬁt the parking path, the curve is at least a fourth-degree polynomial.
+The following requirements must be met when parking: the curvature of the path
+curve is continuous to prevent the vehicle from turning in place; the curvature of the
+starting and ending points of the path curve is zero to ensure that the vehicle body attitude
+is parallel to the parking space at these two points; the steering wheel at the end of parking
+is in the state of returning to normal. It can be seen from Table 2 that the curve that can
+meet these requirements and has a simple structure of the path curve and a small amount
+of calculation is a ﬁfth-order polynomial curve.
+Table 2. Comparison of advantages and disadvantages of different path curves.
+Path Curve Type Advantage Disadvantages
+Double arc combination
+Arc-straight arc combinationThe path structure is simple, easy to implement, and
+the size of the required parking space is appropriateThe curvature is discontinuous and it is difficult to track;
+there are higher requirements for the parking starting point
+B-spline curve
+Cloth curveContinuous curvature, easy to trackThe path structure and expression are complex, and the
+amount of calculation is large;
+Arctangent function curveThe curve expression is easy to calculate, the
+curvature is continuous and the curvature change
+rate is continuousThe curvature of the starting point and ending point of
+the path is not zero, which does not meet the
+pose requirements
+Quintic polynomial curveThe curve expression is simple, the curvature is
+continuous and the curvature change rate is
+continuous, and the calculation amount is smallProperly increase the length of the parking space to
+ensure that the end point of the path has zero curvature
+In this paper, combining the path planning constraints analyzed in the previous
+section and comparing the advantages and disadvantages of various path curves, a quintic
+polynomial is selected for path smoothing processing, and its expression is shown in
+Equation (10) [21].
+y(x)=a5x5+a4x4+a3x3+a2x2+a1x+a0 (10)
+where a0a5are the coefﬁcients of a quintic polynomial, and changing the coefﬁcients can
+change the shape of the polynomial.
+Substituting vehicle position constraints at the starting and ending points, heading
+angle constraints, steering stability constraints, and obstacle avoidance constraints into
+Equation (10), the unique path equation can be determined, which is the desired parallel
+parking path curve. The simulation program was written in MATLAB, and the simulation
+results are shown in Figure 5.
+As can be seen from Figure 5, the planned path curve is a continuous curve connecting
+the starting and ending points of parking. The four vertices of the target vehicle body
+contour, A, B, C, and D, all meet the requirements of obstacle avoidance and reach the
+termination point without collision from their respective starting points. In other words, the
+parallel parking path curve using quintic polynomial programming can meet the constraint
+requirements. The curvature of the path curve meets the requirement that the curvature
+is less than the maximum curvature determined by the vehicle structure parameters, and
+the curvature is continuous without abrupt change during the whole parking process.
+Derivatives at the starting point and the ending point are approximately equal to zero,
+which meets the requirement that the vehicle body attitude is parallel to the horizontal
+direction of the parking space. In the whole parking process, the equivalent front wheel
+keeps rotating. The angle and speed are constantly changing to meet the constraints.
+Therefore, the parking path curve programmed by quintic polynomial has good tracking
+
+--- Page 7 ---
+World Electr. Veh. J. 2022 ,13, 14 7 of 13
+performance, and can satisfy the vehicle environment constraints, pose constraints, and
+vehicle kinematics constraints.
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 7 of 13  
+  
+(a) (b) 
+  
+(c) (d) 
+ 
+(e) 
+Figure 5. Parallel parking path planning simulation results. (a) Vehicle rear axle midpoint trajectory. ( b) The curvature of the 
+path curve. ( c) The derivative of the path curve. ( d) Equivalent front wheel angle. ( e) Equivalent front wheel rotation speed. 
+As can be seen from Figure 5, the planned path curve  is a continuous curve connect- 
+ing the starting and ending points of parking. The four vertices of the target vehicle body 
+contour, A, B, C, and D, all meet the requirements of obstacle avoidance and reach the 
+termination point without collision from their resp ective starting points. In other words, 
+the parallel parking path curve using quintic polyno mial programming can meet the con- 
+straint requirements. The curvature of the path curve  meets the requirement that the cur- 
+vature is less than the maximum curvature determined  by the vehicle structure parame- 
+ters, and the curvature is continuous without abrupt  change during the whole parking 
+process. Derivatives at the starting point and the en ding point are approximately equal to 0 2 4 6 8 10 12 
+Parallel to the direction of the lane （m）-1 012345678Perpendicular to the lane （m）Road boundary 
+Parking space boundary 
+Rear axle midpoint 
+Left front point C 
+Right front point B 
+Left rear point D 
+Right rear point A 
+Curvature （1/m）
+Derivative
+Equivalent front wheel angle （rad）
+Equivalent front wheel rotation speed （rad/s ）
+Figure 5. Parallel parking path planning simulation results. ( a) Vehicle rear axle midpoint trajectory.
+(b) The curvature of the path curve. ( c) The derivative of the path curve. ( d) Equivalent front wheel
+angle. ( e) Equivalent front wheel rotation speed.
+3. Motion Control of Path Tracking Based on MPC
+In this section, the model predictive control algorithm is selected to track the parking
+path designed in the previous section [22].
+3.1. Design of Parking Path Following Controller
+In order to realize path tracking motion control effectively, a path tracking controller
+based on incremental model predictive control (MPC) is designed in this paper, and the
+preview control based on pure tracking algorithm is used as the comparison algorithm
+
+--- Page 8 ---
+World Electr. Veh. J. 2022 ,13, 14 8 of 13
+for path tracking. The kinematics model of Equation (1) is discretized, and c=[x,y,j]T
+and u=h
+v,dfiT
+, then the system can be regarded as a control system with an input of
+u
+v,df
+and state quantity of c(x,y,j). For a given reference trajectory, Taylor’s formula
+is used to expand, and higher-order terms are ignored, and the following can be obtained:
+.c=f(cr,ur)+¶f(c,u)
+¶cjc=cr
+u=ur(c cr)+¶f(c,u)
+¶ujc=cr
+u=ur(u ur) (11)
+By making a difference between Equation (11) and the general form, a linearized
+parking vehicle error model can be obtained, which is further discretized and used as the
+input of MPC. The formula after discretization is as follows:
+ec(k+1)=Ak,tec(k)+Bk,teu(k) (12)
+where, Ak,t=2
+41 0 vrsinjrT
+0 1 vrcosjrT
+0 0 13
+5;Bk,t;=2
+64cosjrT 0
+sinjrT 0
+tandf rT
+lvrT
+lcos2df r3
+75;Tis the sampling time.
+Considering the rapidity and stability of path tracking when parking, the deviation of
+system state quantity and control quantity need to be reﬂected in the objective function, so
+the objective function is designed as follows:
+J(k)=Np
+å
+i=1kh(k+ijt) hre f(k+ijt)k2
+Q+Nc 1
+å
+i=1kDU(k+ijt)k2
+R+r#2(13)
+where rrepresents the weight coefﬁcient; #denotes relaxation factor; Nprepresents the
+prediction time domain; Ncrepresents the control time domain; Qand Rare weight
+matrices. The ﬁrst item on the right side of the equal sign reﬂects the tracking ability of
+the controlled system to the reference path, and the last item reﬂects the change of the
+constraint control quantity of the controlled system.
+In the control process of path tracking of parking system, some constraints need to be
+considered, which are mainly the limit control quantity constraint and control increment
+constraint, such as the constraint of front wheel rotation angle. The constraint expression
+of parking system control quantity is:
+umin(t+k)u(t+k)umax(t+k),k=0, 1,,Nc 1 (14)
+The corresponding system control increment constraint expression is as follows:
+Dumin(t+k)Du(t+k)Dumax(t+k),k=0, 1,,Nc 1 (15)
+3.2. Mulation and Result Analysis of Parallel Parking
+The quintic polynomial path curve planned in the path planning part was taken as
+the reference target curve, and the model predictive control algorithm was used to track
+the curve, and the comparison with the preview control algorithm was made. Figure 6
+shows the parking scene in the CarSim software in the joint simulation test of parallel
+parking conditions.
+As can be seen from the above ﬁgure, the blue vehicle successfully ﬁnished parking
+in the co-simulation experiment. In MPC controller, parameters such as prediction time
+domain, control time domain, and relaxation factor are important parameters in controller
+design. We comprehensively consider the calculation time and calculation ability of the
+controller. Through literature review and actual testing, the basic parameters of the MPC
+controller designed in this paper are shown in Table 3:
+
+--- Page 9 ---
+World Electr. Veh. J. 2022 ,13, 14 9 of 13
+Table 3. MPC controller basic parameters.
+Prediction
+Horizon ( NP)Control
+Horizon ( NC)Sampling
+PeriodSimulation TimeRelaxation
+Factor (Row)Weight
+Matrix (Q)Weight
+Matrix (R)
+60 s 30 s 0.1 s 40 s 10 100 5
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 9 of 13  
+3.2. Mulation and Result Analysis of Parallel Parki ng 
+The quintic polynomial path curve planned in the pat h planning part was taken as 
+the reference target curve, and the model predictive  control algorithm was used to track 
+the curve, and the comparison with the preview contro l algorithm was made. Figure 6 
+shows the parking scene in the CarSim software in t he joint simulation test of parallel 
+parking conditions. 
+   
+(a) Start parking  ( b) During parking  ( c) Parking complete 
+Figure 6. CarSim parallel parking scene. 
+As can be seen from the above figure, the blue vehic le successfully finished parking 
+in the co-simulation experiment. In MPC controller,  parameters such as prediction time 
+domain, control time domain, and relaxation factor are important parameters in controller 
+design. We comprehensively consider the calculation time and calculation ability of the 
+controller. Through literature review and actual te sting, the basic parameters of the MPC 
+controller designed in this paper are shown in Tabl e 3: 
+Table 3. MPC controller basic parameters. 
+Prediction  
+Horizon ( ) Control  
+Horizon ( ) Sampling  
+Period Simulation 
+Time Relaxation  
+Factor (row) Weight  
+Matrix(Q) Weight  
+Matrix(R) 
+60 s 30 s 0.1 s 40 s 10 100 5 
+The simulation results of parallel parking are show n in Figure 7: 
+  
+(a) (b) 
+  
+(c) (d) 
+Figure 6. CarSim parallel parking scene.
+The simulation results of parallel parking are shown in Figure 7:
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 9 of 13  
+3.2. Mulation and Result Analysis of Parallel Parki ng 
+The quintic polynomial path curve planned in the pat h planning part was taken as 
+the reference target curve, and the model predictive  control algorithm was used to track 
+the curve, and the comparison with the preview contro l algorithm was made. Figure 6 
+shows the parking scene in the CarSim software in t he joint simulation test of parallel 
+parking conditions. 
+   
+(a) Start parking  ( b) During parking  ( c) Parking complete 
+Figure 6. CarSim parallel parking scene. 
+As can be seen from the above figure, the blue vehic le successfully finished parking 
+in the co-simulation experiment. In MPC controller,  parameters such as prediction time 
+domain, control time domain, and relaxation factor are important parameters in controller 
+design. We comprehensively consider the calculation time and calculation ability of the 
+controller. Through literature review and actual te sting, the basic parameters of the MPC 
+controller designed in this paper are shown in Tabl e 3: 
+Table 3. MPC controller basic parameters. 
+Prediction  
+Horizon ( ) Control  
+Horizon ( ) Sampling  
+Period Simulation 
+Time Relaxation  
+Factor (row) Weight  
+Matrix(Q) Weight  
+Matrix(R) 
+60 s 30 s 0.1 s 40 s 10 100 5 
+The simulation results of parallel parking are show n in Figure 7: 
+  
+(a) (b) 
+  
+(c) (d) 
+Figure 7. Parallel parking path tracking simulation results. ( a) Path tracking. ( b) Ordinate tracking
+error curve. ( c) Variation of yaw angle of vehicle. ( d) Tracking error of vehicle yaw angle.
+As can be seen from Figure 7a, the target vehicle can track the target path well under
+the control of both the MPC algorithm and the preview control algorithm, and the MPC
+algorithm has a better tracking effect than the preview control algorithm. In the process
+of vehicle tracking the desired path controlled by the two algorithms, there is no collision
+between the vehicle and the vehicle with obstacles before and after the target parking
+space and the obstacle avoidance requirements are met simultaneously. As can be seen
+from Figure 7b, the maximum ordinate error of path tracking based on MPC algorithm
+is 0.09638 m, while that based on preview control algorithm is 0.08602 m. Although the
+maximum ordinate error based on MPC is greater than that based on preview control, the
+overall error curve shows that the change of ordinate error based on MPC is smoother than
+that based on preview control. As can be seen from Figure 7c, at the end point of parking,
+the yaw angle of the vehicle tracked by the two control algorithms approaches 0, which
+meets the vehicle attitude requirements at the end point of parking. From the whole curve,
+
+--- Page 10 ---
+World Electr. Veh. J. 2022 ,13, 14 10 of 13
+the degree of ﬁt between vehicle yaw angle and yaw angle of the desired path based on
+MPC tracking is higher than that based on preview control. As can be seen from Figure 7d,
+the maximum yaw error based on MPC is 0.02527 rad, and the yaw error at the parking
+termination point is  0.0013 rad, so the yaw tracking accuracy is high. The maximum
+yaw error based on the preview control is 0.026 rad, and the yaw error at the end point of
+parking is 0.0113 rad. The yaw tracking accuracy is less than that of the model predictive
+control. As can be seen from Table 4, the absolute value of ordinate error based on MPC is
+0.018 m, while that based on preview controller is 0.039 m. And the average of yaw error
+based on MPC is less than that based on preview controller. To sum up, the path tracking
+algorithm designed by model predictive control is better than the path tracking algorithm
+designed by pure tracking algorithm.
+Table 4. Parking position error.
+Control Algorithm Dye(m) Dyaw e(rad) ymaxyaw max
+MPC controller  0.018 0.0053 0.09638 0.02527
+Preview controller 0.039 0.0072 0.08602 0.026
+Dye: the average of ordinate error; Dyaw e: the average of yaw error; ymax: the maximum ordinate error; yaw max: the
+maximum yaw error.
+4. Parking Experiment of Intelligent Car
+In order to verify the actual control effect of the control model and directly observe
+the test results, this paper carried out parallel parking experiments based on the industrial
+computer (Mini Intel i3) and the ROS intelligent car. Since the MPC algorithm is based on
+Simulink and cannot be used directly for the car, the MPC algorithm was rewritten in C++
+and implemented on an industrial computer to support the following experiments. Table 5
+shows the basic parameters of the smart car [23].
+Table 5. Basic parameters of intelligent car.
+Parameters Numerical Value (mm)
+Vehicle length 495
+Vehicle width 290
+Front overhang 115
+Rear overhang 40
+Wheelbase 340
+Firstly, the path tracking control algorithm based on MPC built by Simulink is dupli-
+cated in IPC by C++ language. Then, the serial port function of the ROS system is used to
+transfer the calculated expected angle and speed from the IPC to the control module with
+STM32F103RCT6 as the central chip. Finally, the control module transmits the control sig-
+nal to the driving motor and steering gear, so as to control the transverse and longitudinal
+motion of the car. The basic structure of the intelligent car parking test platform built in
+this paper is shown in Figure 8.
+Combined with the structural parameters of the intelligent car and according to the
+method of calculating the minimum parking size in the previous section, the minimum
+parallel parking size is determined to be 84 cm 35 cm and the lane width to be 45 cm.
+After several experiments, the successful experimental results were recorded, as shown in
+Figure 9. It can be seen from the ﬁgure that the designed path tracking controller based on
+MPC can successfully control the car model parking and warehousing, and the car does
+not collide with the lane line and parking space line in the parking process, which meets
+the requirements of obstacle avoidance.
+
+--- Page 11 ---
+World Electr. Veh. J. 2022 ,13, 14 11 of 13
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 11 of 13  
+transfer the calculated expected angle and speed fr om the IPC to the control module with 
+STM32F103RCT6 as the central chip. Finally, the con trol module transmits the control sig- 
+nal to the driving motor and steering gear, so as to  control the transverse and longitudinal 
+motion of the car. The basic structure of the intel ligent car parking test platform built in 
+this paper is shown in Figure 8. 
+ 
+Figure 8. Basic structure of intelligent car parking experime nt. 
+Combined with the structural parameters of the inte lligent car and according to the 
+method of calculating the minimum parking size in t he previous section, the minimum 
+parallel parking size is determined to be 84 cm × 3 5 cm and the lane width to be 45 cm. 
+After several experiments, the successful experiment al results were recorded, as shown in 
+Figure 9. It can be seen from the figure that the d esigned path tracking controller based 
+on MPC can successfully control the car model parki ng and warehousing, and the car does 
+not collide with the lane line and parking space li ne in the parking process, which meets 
+the requirements of obstacle avoidance. 
+  
+Figure 8. Basic structure of intelligent car parking experiment.
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 11 of 13  
+transfer the calculated expected angle and speed fr om the IPC to the control module with 
+STM32F103RCT6 as the central chip. Finally, the con trol module transmits the control sig- 
+nal to the driving motor and steering gear, so as to  control the transverse and longitudinal 
+motion of the car. The basic structure of the intel ligent car parking test platform built in 
+this paper is shown in Figure 8. 
+ 
+Figure 8. Basic structure of intelligent car parking experime nt. 
+Combined with the structural parameters of the inte lligent car and according to the 
+method of calculating the minimum parking size in t he previous section, the minimum 
+parallel parking size is determined to be 84 cm × 3 5 cm and the lane width to be 45 cm. 
+After several experiments, the successful experiment al results were recorded, as shown in 
+Figure 9. It can be seen from the figure that the d esigned path tracking controller based 
+on MPC can successfully control the car model parki ng and warehousing, and the car does 
+not collide with the lane line and parking space li ne in the parking process, which meets 
+the requirements of obstacle avoidance. 
+  
+World Electr. Veh. J. 2021 , 12 , x FOR PEER REVIEW 12 of 13  
+  
+Figure 9. Parallel parking car experiment. 
+5. Conclusions 
+This paper focuses on parallel parking path plannin g and tracking control. Firstly, a 
+vehicle kinematic model is built to solve for the par king start point region, and path plan- 
+ning is performed by using the quintic polynomial. Then, we designed a path tracking 
+controller based on incremental model predictive co ntrol (MPC). And the preview control 
+based on pure tracking algorithm is used as the com parison algorithm for path tracking. 
+The simulation results show that the designed path tracking controller can better control 
+the vehicle tracking the desired path. Finally, we u se the ROS smart car in a laboratory 
+environment to verify the actual control effect of t he control model and directly observe 
+the test results. 
+6. Future Research Directions 
+The above experimental results verify the feasibility  of the parking system, and the 
+future research directions are as follows. 
+1.  Regarding parking conditions, this article only stu dies parallel parking conditions. 
+For vertical parking conditions and parking with irr egular parking spaces, further 
+research is needed. 
+2.  Regarding the experiment, due to the lack of condit ions, this article only uses the 
+smart car to carry out the parking experiment. In t he future, the designed controller 
+needs to be verified on the actual vehicle. 
+3.  Regarding the development of automatic parking techn ology, automatic valet park- 
+ing technology is an inevitable trend in the developm ent of automatic parking tech- 
+nology in the future. 
+Author Contributions: Conceptualization, B.Z.; methodology, Z.L.; softwar e, Y.N.; validation, Y.L. 
+and Y.N.; formal analysis, Z.L.; investigation, Y.N .; resources, B.Z.; data curation, B.Z.; writing—
+original draft preparation, Z.L.; writing—review an d editing, Z.L.; visualization, Y.N.; supervision, 
+B.Z.; project administration, B.Z.; funding acquisi tion, B.Z. All authors have read and agreed to the 
+published version of the manuscript. 
+Funding:  This work was supported by Anhui provincial centra l committee guides local science and 
+technology development project (Grant No. 202007d06 020018) and the Fundamental Research 
+Funds for the Central Universities of China (Grant No. PA2021GDSK0075 ). 
+Conflicts of Interest: The authors declare no conflicts of interest.  
+References 
+1.  Hanafy, M.; Gomaa, M.M.; Taher, M.; Wahba, A.M. Dev elopment of a technology for car’s auto-parking usi ng swarm search-
+based fuzzy control system. Int. J. Model. Identif. Control  2012 , 17 , 85, doi:10.1504/ijmic.2012.048643. 
+2.  Zhang, C.R. Research on Automatic Parking Route Decision Planni ng and Vehicle Control Algorithm ; North University of China: 
+Shanxi, China, 2019. 
+3.  Demirli, K.; Khoshnejad, M. Autonomous parallel par king of a car-like mobile robot by a neuro-fuzzy se nsor-based con-troller. 
+Fuzzy Sets Syst. 2009 , 160 , 2876–2891. 
+Figure 9. Parallel parking car experiment.
+5. Conclusions
+This paper focuses on parallel parking path planning and tracking control. Firstly,
+a vehicle kinematic model is built to solve for the parking start point region, and path
+planning is performed by using the quintic polynomial. Then, we designed a path tracking
+controller based on incremental model predictive control (MPC). And the preview control
+based on pure tracking algorithm is used as the comparison algorithm for path tracking.
+The simulation results show that the designed path tracking controller can better control
+the vehicle tracking the desired path. Finally, we use the ROS smart car in a laboratory
+environment to verify the actual control effect of the control model and directly observe
+the test results.
+
+--- Page 12 ---
+World Electr. Veh. J. 2022 ,13, 14 12 of 13
+6. Future Research Directions
+The above experimental results verify the feasibility of the parking system, and the
+future research directions are as follows.
+1. Regarding parking conditions, this article only studies parallel parking conditions.
+For vertical parking conditions and parking with irregular parking spaces, further
+research is needed.
+2. Regarding the experiment, due to the lack of conditions, this article only uses the
+smart car to carry out the parking experiment. In the future, the designed controller
+needs to be veriﬁed on the actual vehicle.
+3. Regarding the development of automatic parking technology, automatic valet parking
+technology is an inevitable trend in the development of automatic parking technology
+in the future.
+Author Contributions: Conceptualization, B.Z.; methodology, Z.L.; software, Y.N.; validation, Y.L.
+and Y.N.; formal analysis, Z.L.; investigation, Y.N.; resources, B.Z.; data curation, B.Z.; writing—
+original draft preparation, Z.L.; writing—review and editing, Z.L.; visualization, Y.N.; supervision,
+B.Z.; project administration, B.Z.; funding acquisition, B.Z. All authors have read and agreed to the
+published version of the manuscript.
+Funding: This work was supported by Anhui provincial central committee guides local science and
+technology development project (Grant No. 202007d06020018) and the Fundamental Research Funds
+for the Central Universities of China (Grant No. PA2021GDSK0075).
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. Hanafy, M.; Gomaa, M.M.; Taher, M.; Wahba, A.M. Development of a technology for car’s auto-parking using swarm search-based
+fuzzy control system. Int. J. Model. Identif. Control 2012 ,17, 85. [CrossRef]
+2. Zhang, C.R. Research on Automatic Parking Route Decision Planning and Vehicle Control Algorithm ; North University of China:
+Taiyuan, China, 2019.
+3. Demirli, K.; Khoshnejad, M. Autonomous parallel parking of a car-like mobile robot by a neuro-fuzzy sensor-based controller.
+Fuzzy Sets Syst. 2009 ,160, 2876–2891. [CrossRef]
+4. Huang, S.-J.; Lin, G.-Y. Parallel auto-parking of a model vehicle using a self-organizing fuzzy controller. Proc. Inst. Mech. Eng.
+Part D J. Automob. Eng. 2010 ,224, 997–1012. [CrossRef]
+5. Kim, J.M.; Lim, K.I.; Kim, J.H. Auto parking path planning system using modiﬁed reeds-shepp curve algorithm. In Proceedings
+of the 2014 11th International Conference on Ubiquitous Robots and Ambient Intelligence (URAI), Kuala Lumpur, Malaysia,
+12–15 November 2014; pp. 311–315.
+6. Ye, H.; Jiang, H.; Ma, S.; Tang, B.; Wahab, L. Linear model predictive control of automatic parking path tracking with soft
+constraints. Int. J. Adv. Robot. Syst. 2019 ,16, 1729881419852201. [CrossRef]
+7. Qin, S.; Badgwell, T.A. A survey of industrial model predictive control technology . Control Eng. Pract. 2003,11, 733–764. [CrossRef]
+8. Mayne, D.Q.; Rawlings, J.B.; Rao, C.V . Constrained model predictive control: Stability and optimality. Automatica
+2000 ,36, 789–814. [CrossRef]
+9. Morari, M.; Bari´ c, M. Recent developments in the control of constrained hybrid systems. Comput. Chem. Eng. 2006 ,30, 1619–1631. [CrossRef]
+10. Pearson, R. Selecting nonlinear model structures for computer control. J. Process. Control 2003 ,13, 1–26. [CrossRef]
+11. Wang, W.; Rivera, D.E.; Kempf, K.G. Model predictive control strategies for supply chain management in semiconductor
+manufacturing. Int. J. Prod. Econ. 2007 ,107, 56–77. [CrossRef]
+12. Dufour, P .; Michaud, D.J.; Tour é, Y. A partial differential equation model predictive control strategy: Application to autoclave
+composite processing. Comput. Chem. Eng. 2004 ,28, 545–556. [CrossRef]
+13. Salsbury, T.; Mhaskar, P .; Qin, S.J. Predictive control methods to improve energy efﬁciency and reduce demand in buildings.
+Comput. Chem. Eng. 2013 ,51, 77–85. [CrossRef]
+14. Brdys, M.; Grochowski, M.; Gminski, T.; Konarczak, K.; Drewa, M. Hierarchical predictive control of integrated wastewater
+treatment systems. Control Eng. Pract. 2008 ,16, 751–767. [CrossRef]
+15. Keviczky , T.; Balas, G.J. Receding horizon control of an F-16 aircraft: A comparative study . Control Eng. Pract. 2006 ,14, 1023–1033. [CrossRef]
+16. Silani, E.; Lovera, M. Magnetic spacecraft attitude control: A survey and some new results. Control Eng. Pract. 2005 ,13, 357–371. [CrossRef]
+17. Jiang, M.G.; Lu, B. Ackerman principle and rectangular steering trapezoid design. Automob. Technol. 1994 ,5, 16–19.
+
+--- Page 13 ---
+World Electr. Veh. J. 2022 ,13, 14 13 of 13
+18. Gong, J.W .; Liu, K.; Qi, J.Y . Model Predictive Control for Self-Driving Vehicles ; Beijing Institute of T echnology: Beijing, China, 2020; pp. 82–84.
+19. He, P . Research on Path Planning and T racking Control of Parallel Parking ; Chongqing University of T echnology: Chongqing, China, 2020.
+20. Wu, Z.W. Path Planning and Simulation Analysis of Automatic Parking System for Passenger Car ; South China University of Technology:
+Guangzhou, China, 2018.
+21. Li, T. Path Planning and Tracking of Automatic Parking System ; Harbin Institute of Technology: Harbin, China, 2017.
+22. Yang, S.B.; Liu, H.; Jiang, Z.L. Automatic parking control method based on MPC. J. Instrum. Autom. Syst. 2019 ,34, 20–23.
+23. Guo, Y .T. Research on Path Planning and Control System for Automatic Parallel Parking ; Lanzhou Jiaotong University: Lanzhou, China, 2020.

@@ -1,0 +1,719 @@
+--- Page 1 ---
+Electronic Communications ofthe EASST
+Volume 53 (2012)
+Proceedings ofthe
+12th International Workshop on
+Automated Veriﬁcation ofCritical Systems
+(AVoCS 2012)
+FormalSpeciﬁcation andVeriﬁcationofa CoordinationProtocol foran
+Automated AirTrafﬁcControl System
+YangZhao KristinYvonneRozier
+15pages
+GuestEditors: Gerald L ¨uttgen,StephanMerz
+ManagingEditors: TizianaMargaria,Julia Padberg,Gabrie le Taentzer
+ECEASSTHomePage: http://www.easst.org/eceasst/ ISSN1863-2122
+
+--- Page 2 ---
+ECEASST
+FormalSpeciﬁcation and Veriﬁcationofa Coordination Protocolfor
+an AutomatedAirTrafﬁcControl System
+YangZhao1∗Kristin YvonneRozier2
+1Universityof California,Riverside,USA. zhaoy@cs.ucr.edu
+2NASAAmes ResearchCenter, MoffettFieldCA, 94035,USA. Kristin.Y.Rozier@nasa.gov
+Abstract: Safeseparationbetweenaircraftistheprimaryconsiderationinairtrafﬁc
+control. Toachievetherequiredlevelofassuranceforthissafety-cr iticalapplication,
+the Automated Airspace Concept (AAC) proposes three levels of conﬂict detection
+and resolution. Recently, a high-level operational concept was propo sed to deﬁne
+thecooperationbetweencomponentsintheAAC.However,theproposedc oordina-
+tion protocol has not been formally studied. We use formal veriﬁcation tech niques
+to ensure there are no potentially catastrophic design ﬂaws remaining in the AA C
+designbeforethenextstageof production.
+We formalize the high-level operational concept, which was previously de scribed
+only in natural language, in NuSMV and perform model validation by checking
+against LTL/CTL speciﬁcations we derive from the system description. W e write
+LTL speciﬁcations describing safe system operations and use model chec king for
+system veriﬁcation . We employ speciﬁcation debugging to ensure correctness of
+both sets of formal speciﬁcations and model abstraction to reduce model check-
+ing time and enable fast, design-time checking. We analyze two counterexample s
+revealing unexpected emergent behaviors in the operational concept th at triggered
+designchangesbysystemengineerstomeetsafetystandards. Ourexp eriencereport
+illuminatestheapplicationofformalmethodsinrealsafety-criticalsystemdeve lop-
+ment by detailing a complete end-to-end design-time veriﬁcation process includ ing
+all modelsand speciﬁcations.
+Keywords: model validation, speciﬁcation debugging, model checking, safety-
+criticalsystem
+1 Introduction
+Safe distance between commercial aircraft must always be guaranteed to prevent potential air-
+craft collisions. The Automated Airspace Concept (AAC) [ 13] is designated to ensure the safe
+separationoftheseaircraftwithinagivenairspacesector. TheAACisa high-levelgenericframe-
+work proposed as a candidate for the Next Generation Air Trafﬁc Contr ol System (NextGen),
+which is currently under development at NASA. To mitigate the complexity of calc ulating air-
+craft trajectory resolutions and enable separation assurance in real time , the AAC divides the
+task of separation assurance between three independent resolution sy stems that handle long-
+term, near-term, and urgent predicted loss of separation between aircra ft, in addition to juggling
+∗Work contributing to this paper was supported in part by NASA’s Airspace Systems Program and by the National
+Science Foundation under Grant CCF-1018057.
+1 /15 Volume53 (2012)
+
+--- Page 3 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+othertasks,suchasﬁeldingtrajectoryrequestsfromcontrollersandpilo ts. Itisessentialthatwe
+verifytheinteractionsbetweenthesetofindependentcomponentsoftheA ACresultinemergent
+total-system behaviors that are safe, and that pilots reliably receive the c orrect routes from the
+correctcomponents.
+Formal veriﬁcation has been gradually accepted as an important step in the d esign ﬂow of
+safety-criticalsystems. Modelcheckingisoneofthemostwidelyusedfor malveriﬁcationmeth-
+ods. We use the model checker NuSMV [ 8,9] since it is well-documented [ 27], open-source1,
+andfrequentlyusedinindustry[ 7,16,20,22,28,32]. Weneedtobuilda systemmodel oftheoper-
+ationalconcept[ 12–14,24]informalsemanticsandalsodescribethebehaviorsrequiredforsafe
+system operation, the model veriﬁcation speciﬁcation , using temporal logic. NuSMV is then
+able to prove that the system model conforms to the model veriﬁcation speciﬁc ation or return
+counterexamples corresponding to possible executions in the operational concept that violate
+that speciﬁcation. Previously, signiﬁcant effort has been devoted to in creasing the automation
+and efﬁciency of the model checking step. However, formalizing safety- critical systems that are
+not inherently built on formal semantics becomes a bottleneck. We argue that system model
+validationandspeciﬁcationdebuggingarenecessarytoolstobuildconﬁde ncewhenformalizing
+a high-level conceptual design, because inconsistencies between the mo del and the real system
+anderroneous speciﬁcations canleadtospuriousveriﬁcationresults.
+We illuminate a complete end-to-end design-time veriﬁcation process on the full-s cale AAC
+coordinationprotocol,presentingourworkonformallyspecifying,valida ting,andmodelcheck-
+ing from three aspects. The ﬁrst aspect is the formalization methodology . We detail a process
+for deriving a formal model of the AAC operational procedure building u pon existing literature
+and input from human experts via about 100 person-hours of interview s with system architects.
+We extract model validation speciﬁcations from the operational concept and construct model
+veriﬁcation speciﬁcations by codifying the expectations of system designers, extracted via con-
+versation,intemporallogic;allmodels andspeciﬁcations areavailableonline .2
+The second aspect is model and speciﬁcation debugging , which addresses a practical chal-
+lengeintheabovemodelcheckingprocedure: howtoensurethatthefor malizationofthesystem
+model correctly reﬂects the designer’s intentions. Counterexamples retur ned from the model
+checker may not reveal problems in the operational concept itself, but in stead correspond to im-
+precisions in the system model. Our solution to this problem is to create both the sy stem model
+and a set of temporal logic properties (our model validation speciﬁcation) fr om the description
+ofoperationalconceptastwowaysofformalizingthedesigner’sintention s. Wevalidateoursys-
+temmodelbymodelcheckingthissetofspeciﬁcations,whichdirectlycorre spondtostatements
+in the designer’s description of how the system is constructed. Note that this is distinct from
+veriﬁcation, which involves model checking the system model against spec iﬁcations encoding
+the system safety requirements that describe how the system should behav e. The reported coun-
+terexamples pinpoint any inconsistencies between these two and we manually id entify whether
+the problem lies in the model or the speciﬁcation. We exemplify our process of speciﬁcation
+debugging, including LTL satisﬁability checking [ 29] and counterexample-guided speciﬁcation
+1Thesource code anddocumentation areavailable for download from: http://nusmv.irst.itc.it/ .
+2Both NuSMV models, all speciﬁcations, and the commands we ran to check them are available at
+http://ti.arc.nasa.gov/m/proﬁle/kyrozier/AAC/AAC.html .
+Proc. AVoCS2012 2 /15
+
+--- Page 4 ---
+ECEASST
+debugging, to increase conﬁdence in the correctness of our speciﬁca tions. This iterative pro-
+cess greatly increases our conﬁdence in the consistency between the sy stem model, the formal
+speciﬁcations forbothmodel validationandmodelveriﬁcation,and thedesig ner’sintention.
+The third aspect, model checking , completes our system veriﬁcation process by checking the
+system model against the model veriﬁcation speciﬁcations. We detail two emer gent unexpected
+behaviors of the AAC that were pinpointed by counterexamples and discus s possible modiﬁca-
+tions to mitigate them. System designers identiﬁed these two cases as particularly illu minating
+and changed the system design in response to our counterexamples. We a lso discuss the lessons
+resulting from our experience and provide insights that are instructive f or the formal speciﬁca-
+tion,validation,and veriﬁcationviamodelchecking of other industrialsyste ms.
+The remainder of this paper is organized as follows. We highlight related wo rk in Section 2.
+We introduce the full AAC operational concept and the merits of formalizing it in Section 3. In
+Section4,wedetailoursystemmodelingtechniquesandtheireffectsontheveriﬁcatio nprocess.
+Section5discusses our speciﬁcation debugging techniques. Section 6presents important coun-
+terexamples describing unexpected emergent behaviors along with modiﬁca tions to the system
+designtocombatthem. Section 7concludes andpoints outfuturework.
+2 RelatedWork
+The three AAC components that calculate resolution maneuvers have under gone veriﬁcation
+through simulation as well as ongoing component-level veriﬁcation utilizing for mal methods
+[5,15,25]. However, there is an important veriﬁcation aspect that has never bee n addressed:
+the cooperation between components. Veriﬁcation efforts to date have con centrated on single
+components in the AAC; each component has been rigorously evaluated ind ividually under the
+assumptionthatifeachcomponentofthesystembehavescorrectlythatthe systemasawholewill
+also function as desired. Employing simulation or testing on the AAC as a whole is f ormidable,
+and too time-consuming to provide real-time results. Evaluating different poten tial system con-
+ﬁgurations,aswe dohere,was notpreviouslypossible.
+Although[ 23]pointedoutweaknessesofmodelcheckersinhandlingcomplexdatastru ctures
+and arithmetic operations, model checking is still a powerful tool for verify ing safety-critical
+protocolsandseveralcasestudiesonmodelcheckingvariousaerosp acesystemshavebeenpub-
+lished [6,21,31]. Our study is carried out early in the design phase before any system imp le-
+mentation is available. Our system model and speciﬁcations for model validation and model
+veriﬁcationaregenerateddirectlyfromnaturallanguage,while[ 31]generatesthesystemmodel
+from the source code, and [ 6,21] generate NuSMV models automatically from another formal
+language.
+Speciﬁcation debugging has drawn much attention [ 2,17,26]. These methods analyze the
+consistency ,completeness andsafetyof formal speciﬁcations. For example, [ 2,26] presented a
+platform for formal analysis of hardware requirements called “RAT,” wh ich has been applied in
+theanalysisofaerospacesystems[ 4]. Usingthisframework,insteadofcreatingasystemmodel,
+we only need to generate the model validation speciﬁcation in Section 4.2as the formal spec-
+iﬁcation of the operational concept; RAT is able to check this speciﬁcation ag ainst our model
+veriﬁcation speciﬁcation. However, the consistency between the formal s peciﬁcation under ver-
+iﬁcation and the designer’s intention is not guaranteed within this framework. Moreover, our
+3 /15 Volume53 (2012)
+
+--- Page 5 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+work is able to create a validated system model that can be used as a prototyp e for the future
+systemimplementation.
+We demonstrate the simultaneous creation of the system model and model validatio n speci-
+ﬁcations; our approach is to validate these two parts against each other us ing model checking.
+Previous work [ 5,6,23,31] often requires one or both of these two parts as the input to do
+analysis and veriﬁcation. The chicken-and-egg relationship between the system model and the
+formalspeciﬁcationsdescribingsystemrequirementsprovidesachalleng ewhenemployingfor-
+mal methods at design-time. We present the process of formalizing both the mod el validation
+and model veriﬁcation speciﬁcations, like [ 21], and, as a highlight, we also present our speci-
+ﬁcation debugging scheme, including LTL satisﬁability checking. Little informatio n about the
+effectiveness of LTL satisﬁability checking in practical model checking is available in previous
+publications. We are the ﬁrst to publish the complete details of such an end-to- end veriﬁca-
+tion process, including the code for NuSMV models and speciﬁcations. Our models are open
+to the public for future research to help shed some light on the problem of initia l, design-time
+formalization.
+3 The AutomatedAirspaceConcept
+ThecentraltaskoftheAACistomaintainsafeseparationandprovidecollision avoidanceinthe
+airspace. TheAACisabletodetectapotentiallossofseparation(LOS)inth efuture,referredto
+as aconﬂict, and resolve conﬂicts by generating resolution maneuvers for the aircra ft involved
+and sending these resolutions securely to pilot(s). Pilots are expected to ca rry out resolutions
+in a timely manner. To simplify communication and coordination, it is desirable to implemen t
+a single system capable of detecting and resolving all possible conﬂicts and collisions. How-
+ever, the complexity of this system would be formidable and satisfactory resp onse times are not
+achievable with currently available hardware. Thus, the AAC incorporate s a compositional de-
+sign,inwhichdifferentcomponentsareresponsibleforhandlingshort- ,andnear-termconﬂicts,
+andcollisionavoidance. Figure 1illustratestheinfrastructureof theAAC.
+The strategic separation layer, referred to as the AutoResolver , addresses conﬂicts from three
+to 20 minutes in the future. The AutoResolver is implemented in software running o n a central
+computer on the ground, taking in the trajectory of each aircraft in the airsp ace, detecting any
+conﬂicts, and outputting resolution maneuvers for any aircraft involved in such conﬂicts. There
+is no direct data link between the AutoResolver and the aircraft; the controlle r is in charge of
+TCASPilot
+receiver
+Airborne
+Data linksGround-based 
+system
+TSAFEAuto
+Resolver
+ControllerCockpit
+TCASPilot
+receiverCockpit
+TCASPilot
+receiverCockpitAircraft 1 Aircraft 2 Aircraft 3
+Figure1: Automated AirspaceConcept
+Proc. AVoCS2012 4 /15
+
+--- Page 6 ---
+ECEASST
+sendingtheresolutionsgenerated fromtheAutoResolver.
+The tactical separation layer, known as the Tactical Separation Assured Flight Environment
+(TSAFE),addressesconﬂictsprojectedtooccurlessthan3minutesinthefuture. T SAFEisalso
+implemented in software running on a ground computer, but using a differen t algorithm from
+the AutoResolver. TSAFE can automate conﬂict resolution on the tactical laye r, allowing the
+controller tofocusmoreonstrategicoperation.
+Finally, the Trafﬁc Alert and Collision Avoidance System (TCAS) , is required by the Federal
+AviationAdministrationmandatetoaddresspossiblecollisionslessthan30secon dsinthefuture.
+TCASsoftwarerunsoneachaircraft’son-boardcomputeranddetects possiblecollisionsusinga
+transponderinstalledintheaircraft. Thus,TCASistotallyindependentfro mon-groundsystems.
+Theoperational concept of the AAC proposed in [ 13] speciﬁes the authority and responsibil-
+ities of the above three systems, controllers and pilots. Figure 2shows the responsibilities of
+the controller and TSAFE for each aircraft that is involved in a conﬂict. Sin ce conﬂict detection
+is limited by the precision of route prediction, conﬂicts projected more than 20 minu tes out are
+not considered. The AutoResolver detects long-term conﬂicts, up to 20 min utes in the future,
+corresponding to time slot (1), and also provides resolutions accordingly to the controller. If
+approved by the controller, the resolutions from the AutoResolver will be tr ansmitted to the af-
+fected aircraft. TSAFE detects conﬂicts up to 3 minutes in the future. If the time to LOS is
+between 1 and 3 minutes, corresponding to time slot (2)in Figure 2, TSAFE will ﬁrst alert the
+controller and wait for approval. In this circumstance, the controller has th ree choices: approve
+the resolution from TSAFE and give control responsibility for the involved aircraft to TSAFE,
+resolve the conﬂict manually, or wait without resolving the conﬂict. In the latte r two cases, the
+controllermaintainsresponsibilityforcontrollingtheaircraftinvolvedintheco nﬂict. Ifthecon-
+troller transfers control to TSAFE, he should not give resolutions to the in volved aircraft until
+the conﬂict has been resolved. However, if the time to LOS falls below the TSA FEthreshold
+of 1 minute, as deﬁned in [ 13], TSAFE will take control of the aircraft involved in the conﬂict
+from the controller, without having to wait for controller approval, and se nd resolutions to these
+aircraft automatically. This case corresponds to time slot (3)in Figure 2. After the conﬂict is
+resolved, TSAFE will return control of the aircraft involved to the contro ller, as shown in time
+slot(4)in Figure 2. Without the help of ground-based systems, TCAS is able to detect possible
+collisions that are projected in under 30 seconds and give resolutions, c onstituting the last layer
+ofprotectionagainstcollisions. TCASdoesnotwaitforanyapprovalsf romthegroundornotify
+other systems,butdirectlyadvisesthepilot.
+Time of the 
+predicted LOS~20 min
+AutoResolver
+boundary~3 min
+TSAFE
+boundary~1 min
+TSAFE
+threshold~30 sec
+TCAS
+boundary(1)
+Controller and
+AutoResolver
+control(3)
+TSAFE 
+takes control(4)
+TSAFE 
+hand off 
+the control
+If TSAFE 
+resolves the 
+conflict(2)
+Controller 
+or TSAFE 
+controlsFree of
+ ConflictFree of
+ Conflict
+Figure2: Operationalconcept foreach aircraft
+5 /15 Volume53 (2012)
+
+--- Page 7 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+The operational concept deﬁnes a total order on resolution priority for pilots: TCAS reso-
+lution>TSAFE resolution >controller (with the AutoResolver) resolution. Pilots are required
+to execute the resolution maneuvers following this priority list if more than one re solution is
+received.
+4 Formalization methodology
+The system model and formal speciﬁcation (for both validation and veriﬁca tion) are two sides
+of our formalization. To achieve efﬁcient, design-time feedback using model checking, we also
+consider an abstract model, which conserves all possible execution path s in the original model.
+We providespeciﬁcations andreportmodelchecking resultsforbothmode ls.
+4.1 Modelofthe AAC
+Ourmodelassumesthefollowing: (1)AllconﬂictswilleventuallytriggerAutoResolver,TSAFE,
+and/or TCAS alerts, i.e. while we do not assume completeness for any one co mponent, we as-
+sumethereisnoconﬂictthatwillgoundetectedbyallthreecomponents. (2)TCAS,TSAFE,and
+theAutoResolverhavebeenindependentlyveriﬁedandthereforealwa ysgivecorrectresolutions
+(“correctresolutionassumption”). Aslongastheresolutionadvisoryise xecutedbythepilot,the
+detected conﬂict will be correctly resolved. (3)We assume humans are competent operators . A
+controllerwillnevergiveanincorrectresolutionorfailtogivearesolu tionwhenoneisexpected.
+PilotsareawareoftheAACcomponentsystemsandthepriorityofdifferent resolutionsreceived
+and are always able to respond correctly, in the required time frame. (4)There are no hardware
+failures or lost messages. We do not consider hardware failure proba bilities and human error
+modelsinthesystemmodel. SincetheAACcomponentshavebeenindividuallyve riﬁedandthe
+humans-in-the-loop rigorously trained, we do not consider cases wher e automated algorithms
+and humans simultaneously behave incorrectly, but instead focus on verif ying the protocol for
+transmissionandexecutiondeﬁned intheoperationalconcept.
+As shown in Figure 3, the AAC is modularized into four components: Aircraft,TSAFE,Con-
+troller, and theEnvironment . Arrows show the important input/output variables interconnecting
+themodules. Notethattherecouldbeseveralinstancesoftheaircraftmodu le,A1,A2,···,inour
+model;wepictureasingleinstancetosimplifytheﬁgure. Theresolutiontransmiss ionsbetween
+TSAFE, the controller, and aircraft are abstracted as the Boolean varia bles “TSAFE command”
+and“CTR command”withsufﬁxes 1/2/3toindicatethedestinationaircraftfortheseresolu-
+tions. Weomitthesufﬁxeswhentheyarenotnecessary. Forexample,va riable“TSAFE command 1”
+is an output of the TSAFEmodule and an input to aircraft A1. If TSAFE transmits a resolution
+toaircraft A1,TSAFE command 1issetto 1,andAircraft1modulewill reactaccordingly.
+AircraftTSAFE
+Controller 
+(Autoresolver)TSAFE_command
+CTR_commandEnvironmentTSAFE_Alert
+AR_Conflict
+TCAS_commandTCAS/TSAFE/CTR_cmd_done
+Figure3: Interconnection betweenmodulesNon AT
+BTTSAFE_cmd_done
+TSAFE_cmd_done
+Figure4: FSM forvariableTSAFE Alert
+Proc. AVoCS2012 6 /15
+
+--- Page 8 ---
+ECEASST
+In the real system, the inputs to TSAFE and the AutoResolver are the aircraf t trajectories and
+ﬂight plans. We can abstract these inputs using the variables AR Conﬂict and TSAFE Alert
+to indicate “whether there is an AutoResolver/TSAFE alert.” While AR Conﬂict is a Boolean
+variable, there are three possible values for the variable TSAFE Alert: Non, AT and BT, corre-
+sponding to no LOS detected, LOS detected with time to LOS above and below the th reshold.
+Since TSAFE and the AutoResolver construct pairwise conﬂict lists, there is such a variable for
+each pair of aircraft with different sufﬁxes. For example, “TSAFE Alert12=BT” means there
+is a LOS within the threshold time between aircraft A1 andA2. These variables are maintained
+in theEnvironment module, which is not a part of the AAC, and mimics all possible conditions
+of conﬂicts in the real system. After the Aircraftmodule sets “TCAS/TSAFE/CTR cmddone”
+ﬂag, meaning a corresponding resolution has been executed by the pilot, th e variables regarding
+theresolvedconﬂictarereset.
+Figure4is the ﬁnite state machine (FSM) for variable TSAFE Alert, illustrating transitions
+between the three possible values. When TSAFE cmddone =1, meaning aircraft involved in
+theTSAFEalerthaveexecutedtheresolution,TSAFE Alertisresetto“Non.” Alltheothernon-
+self-loop transitions reﬂect possible effect of time elapsing, either a LOS o ccurs or time to LOS
+falls below the threshold. Similar FSMs are built for variables AR Alert and TCAS command
+to mimic the conﬂict detected by the AutoResolver and TCAS, and the only differ ence is that
+these variables only have true or false values. The cross-product of these FSMs constitutes the
+possible conﬂict conditions and transitions between them. In our model, we dis cretize the real-
+timeexecutionofthesystemintosequencesoftransitionsbetweenpossibleco nﬁgurationsofthe
+AACsystemandconditions of theenvironment.
+TheAircraftmodule models the TCAS system and the behaviors of the pilot. All aircraft
+in compliance with the AAC can be modeled as homogeneous aircraft modules. E ach module
+maintains a priority list of received but not executed resolutions based on the priority TCAS
+resolution >TSAFE resolution >controller’s resolution, and each pilot can execute only one
+resolution in each time frame. At one time, there can only be one TCAS/TSAFE/co ntroller
+resolution active, so this list is always ﬁnite with a maximum length of three. Due to their
+resolution algorithms, the AutoResolver resolves the one most imminent pairwise conﬂict at a
+time,whileTSAFEresolvesalldetectedpairwiseconﬂictssimultaneously. Tosimp lifythelogic,
+weassumethesamepairofaircraftcannotappearonboththeAutoResolv erandTSAFEconﬂict
+lists at the same time. If this happens, we can safely remove the conﬂict from th e AutoResolver
+conﬂict list. Based on our correct resolution assumption, a resolution can not cause a conﬂict
+more imminent than the one it is resolving, when a resolution is executed, the sets of aircraft in
+conﬂict leave the conﬂict list. If the conﬂict detected by the AutoResolver a nd that detected by
+TSAFEinvolvetwodisjointsetsofaircraft,thisisequivalenttoresolvingon lytheAutoResolver
+conﬂictandonlytheTSAFEconﬂictseparatelyandindependently. Wemust alsoaccountforthe
+cases where the same aircraft is involved in both TSAFE and AutoResolver conﬂicts. To avoid
+the state space explosion problem, we need to build the AAC model containing the minimum
+sufﬁcient number of aircraft instances. We agree with system designer s that it is possible to
+reasonaboutallmeaningfulcorner cases ofthe realsystemutilizing threeaircraft.
+TheTSAFEmodulemodelsthebehaviorsofTSAFEwithitsdedicateddatalink. ForaTSAFE
+conﬂict between aircraft A1 andA2 (TSAFE Alert12 = AT or BT), the TSAFE algorithm may
+generate a resolution for only A1 (TSAFE command 1=1), onlyA2 (TSAFE command 2=1),
+7 /15 Volume53 (2012)
+
+--- Page 9 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+or both (TSAFE command 1=1∧TSAFEcommand 2=1); in our model one of these three
+cases is chosen nondeterministically. The AutoResolver does not genera te cooperative resolu-
+tions, so we nondeterministically generate a resolution for one of the two aircr aft involved in a
+conﬂict. SinceAutoResolverresolutionsmustbesentbyacontroller,wein tegrateitsfunctional-
+ityintothe Controller module. WhenTSAFEortheAutoResolveralertsariseinthe Environment
+module,thesetwomodulesreactasdeﬁnedintheoperationalconceptand outputresolutionsfor
+theinvolvedaircraft. Ourfull-scalemodelcontains97Booleanvariables, includingthevariables
+indicatingconditionsofconﬂicts,TCAS/TSAFE/AutoResolver(controller’s )resolutions,resolu-
+tions receivedbyaircraftandhand-shakingsignals betweenmodules in the communication.
+4.2 Speciﬁcations
+We write two sets of speciﬁcations: model validation speciﬁcations to ensure th e model follows
+thesystemdesigndescription,andveriﬁcationspeciﬁcationscapturethee mergentbehaviorsthat
+should be avoided in the AAC system. Our speciﬁcation sets are expressed using invariant dec-
+larations and LTL and CTL formulas. For the most part, we use LTL formulas , which more
+aptly describe the temporal behaviors for all paths; LTL most intuitively cap tures all of our sys-
+tem requirements and most of our checks of the system model design. We us e CTL formulas
+to check that distinct behaviors occur on distinct paths at the same time, which is valuable for
+checking that we have modeled multiple disparate paths when validating our sys tem model de-
+sign. Table 1lists the speciﬁcations we veriﬁed. Formulas are identiﬁed with IDs in the ﬁrst
+column, where “LTL,” “CTL,” and “INV” distinguish LTL, CTL, and pur e invariant formulas
+respectively. The speciﬁcations coalesce properties from two source s: the properties for model
+validation are from [ 13], and the properties for veriﬁcation are generated from discussions w ith
+AACdesigners. Formodelvalidationproperties,whichshouldcorrectlyr eﬂecttheintentionsof
+the designers, we quote the original sentences from [ 13] in the second column to demonstrate
+how we converted the natural language system design into formal temporal lo gic. Veriﬁcation
+properties are primarily generated from the discussion with the designers, and we provide brief
+descriptions in the second column. Note that the actual formulas used in both mo del validation
+and veriﬁcation (available online) are more complex than those listed in Table 1; for readability,
+weomit somedetails andonly showtheidea behindeach formula.
+4.3 Modelabstraction
+Ourfull-scalemodeltakesmorethan9hoursonanIntelXeon2.53GHzwor kstationwith36GB
+RAM to verify all properties in Table 1. Considering that we will need to modify the model
+and rerun the veriﬁcation as the structure of the AAC or its operational con cept evolve, this run
+time is not satisfactory. Faster response times are required to be useful in d esign time as system
+designers check proposed AAC modiﬁcations. Therefore, we employ a s imple model abstrac-
+tion [10] to speed up the veriﬁcation process. Constructing both models required a pproximately
+threemanmonths.
+We abstract out the transition relation for variables related to the three aircr aft and instead
+assign them randomly in each cycle. In NuSMV, this abstraction simply removes all statements
+under the keywords “TRANS” and “ASSIGN” in the Aircraftmodule. The set of possible exe-
+cutionsintheabstractmodelisastrictsuper-setofthepossibleexecution sintheoriginalmodel.
+Since the abstract model has the same set of variables in the concrete model, th e map between
+Proc. AVoCS2012 8 /15
+
+--- Page 10 ---
+ECEASSTIDModelValidation Speciﬁcations from[ 13] Formula Abs.Cpl.
+LTL-1 “With TSAFE alert, if the time to LOS in TSAFE alert exceeds a th reshold,
+controllers retain responsibility for formulating resolut ions and taking action to
+resolveconﬂicts. ”G((CTRcontrol& XTSAFEAlert/negationslash=Non)→XCTRcontrol)) TT
+INV-1 “The next step is to send the TSAFE Alert information into a sys tem for gener-
+atingresolution manoeuvresand... ”TSAFEAlert→TSAFEres TT
+CTL-1 “As long as the time to loss of separation remains (above thresh old), the con-
+troller can choose from the following three options: 1. inhi bit TSAFE Reso-
+lution from issuing a resolution advisory for the current co nﬂict;” “(The con-
+troller) takes responsibility for resolving the conﬂict man ually without the help
+ofTSAFE resolution.”AG(TSAFEAlert=AT →E(!TSAFE sntcmdUcontroller cmd) NA T
+“2. commandTSAFE Resolution toissue a resolution advisoryto the aircraft;” AG(TSAFEAlert = AT →EXTSAFEsntcmd)
+“3. take noaction at thecurrent time.” AG(TSAFEAlert = AT →EG!TSAFEsntcmd)
+LTL-2 “If the controller chooses the second option, TSAFE immediate ly sends a reso-
+lutionadvisorytothe aircraft. ”G(TSAFEsntcmd→XTSAFEcmd) TT
+LTL-3“... in the events that the time to LOS in TSAFE alert falls belo w threshold,
+withoutthecontrollerhavingchosentheﬁrstorsecondopti on,responsibilityfor
+resolvingthe conﬂict defaults automatically to TSAFE Resol ution.”G(TSAFEres &TSAFE Alert = BT →XTSAFEcmd)
+G(TSAFEAlert = BT&CTR control)→X!CTRcontrol TT
+LTL-4 “Amessageonthecontrollersmonitorindicateswhentheaircr afthasclearedthe
+conﬂict andcontrolofthe aircraft is handedoffto thecontr oller. ”G(ac.TSAFE cmddone→XCTRcontrol) TT
+LTL-5 “As in TCAS, pilot compliance within a speciﬁed time period wil l be required.”
+“Pilots need to be trained to respond to TSAFE andto understa nd the difference
+intheconditions that triggereither aTSAFE orTCAS alert.”G(ac.TCAS cmd & !ac.TSAFE cmddone→(!ac.TSAFE
+cmddoneUac.TCAS cmddone))FT
+IDModelVeriﬁcation Speciﬁcations Formula Abs.Cpl.
+LTL-6 All TSAFE alert will beresolvedﬁnally. G(TSAFEalert/negationslash=Non→F(TSAFEalert=Non)) FT
+LTL-7 IfTSAFEtakescontrolofaircraft,itwillﬁnallyhandcontr olofftothecontroller. G(TSAFEcontrol→F!TSAFEcontrol) FT
+LTL-8 If the controller hands the control of an aircraft to TSAFE, t his aircraft will not
+executesthe commandfromthecontroller.G((!controller.CTR control1 & !ac1.CTR command done)
+→((!ac1.CTR command doneUcontroller.CTR control1)||F
+ac1.TSAFE command done))FF
+INV-2 AutoResolverorTSAFE controlsan aircraft exclusively. (TSAFEcontrol →!CTRcontrol) & (CTR control →
+!TSAFEcontrol)TT
+LTL-9 Theelder TSAFE resolutions will always beexecutedahead of later ones. G((ac1.TSAFE command & !ac2.TSAFE command) →
+(!ac2.TSAFE command doneUac1.TSAFE command done))FF
+Table1: Speciﬁcations formodelvalidationfromtheAACoperational conc eptand formodelveriﬁcationvia modelchecking
+9 /15 Volume53 (2012)
+
+--- Page 11 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+the states in the abstract model and the concrete model is clear. As a special case of Corollary
+5.7in[10],thefollowingtheoremholds inour abstractandconcretemodels.
+Theorem[ 10]: IfaninvariantorLTLpropertyistruefortheabstractmodel,itmustalsob etrue
+forthe concretemodel.
+In other words, this abstraction is sound but not complete and only true res ults on the ab-
+stract model are conserved in the original model. Note that this theorem doe s not hold for CTL
+properties with path predicate E. The abstract model takes only about half an hour to verify all
+properties. The veriﬁcation results for the abstract and concrete models are listed in Columns
+“Abs.” and“Cpl.” ofTable 1respectively;“T”and“F”designatetrueandfalse. Weonlyneedto
+use the concrete model to verify properties that are false for the abstrac t model, saving run time
+andprovidingavaluable toolformodeland propertydebugging.
+5 Speciﬁcation debugging
+Whenmodelcheckersidentifycounterexampleswherethemodeldoesnot satisfythemodelvali-
+dationspeciﬁcation,itmeansthesystemmodelandthespeciﬁcationareincon sistent,andatleast
+oneofthemviolatesdesigner’sintention. However,itisunclearwhetherth einconsistencyisdue
+to an error either in the system model (if it is different from the real system) , or in the formal
+speciﬁcation. Debugging must be conducted on both the model and the spec iﬁcation of the op-
+erationalconcept. Writingcorrectformalspeciﬁcationsisdifﬁcult. andth ereisnotaautomated,
+systematic approach to speciﬁcation debugging. We adapt two speciﬁcation debugging tech-
+niques to increase our conﬁdence in our formal speciﬁcation. LTL satisﬁ ability checking [ 30]
+ﬁnds erroneous speciﬁcations that will always be trivially satisﬁed or will never be satisﬁed, re-
+gardless of the details of the model. Counterexample-guided speciﬁcation de bugging [ 31] aids
+us inﬁxingimprecisespeciﬁcationsthatgenerate falsenegativeresults.
+5.1 LTLsatisﬁability checking
+Someerrorsmaynotbedetectedwhenthemodel-checkingresultispositive : aguaranteethatthe
+model satisﬁes the speciﬁcation does not necessarily answer the real qu estion, namely, whether
+thesystemhastheintendedbehavior. Ifaspeciﬁcationis valid,ortruein allmodels,thenmodel
+checkingthisspeciﬁcationalwaysresultsinapositiveanswerandthisisce rtainlyduetoanerror
+in the speciﬁcation itself. Similarly, if a speciﬁcation is unsatisﬁable , or true in nomodel, then
+thisisalsocertainlyduetoanerror. Evenifeachindividualspeciﬁcationin oursetissatisﬁable,
+their conjunction may be unsatisﬁable. Recall that a logical formula ϕis valid iff its negation
+¬ϕisnot satisﬁable[ 29].
+We utilize the observation that LTL satisﬁability checking can be reduced to mod el check-
+ing [29]. Consider a formula ϕover a set Propof atomic propositions and a model Mthat is
+universal,meaning that Mcontains all possibletraces over Prop. Thenϕis satisﬁableprecisely
+when the model Mdoesnotsatisfy¬ϕ. For all LTL and invariant properties, we employ the
+PANDAtool[ 30]asafront-endtoNuSMVtocheckthesatisﬁabilityofeachproperty,thene ga-
+tion of each property, and the conjunction of all properties. Note that we c annot perform the
+sametestforCTLpropertiessinceCTLsatisﬁabilitycheckingissigniﬁcantlyh arderthanmodel
+checking: withrespecttoformulasize,modelcheckingisNLOGSPACE-co mpleteforCTL[ 18]
+whilesatisﬁabilityisEXPTIME-completefor CTL[ 11].
+Whenemployingsatisﬁabilitychecking,weenhancethemethodin[ 30]byfurtherconsidering
+Proc. AVoCS2012 10/15
+
+--- Page 12 ---
+ECEASST
+thefairnessconstraintsinthesystemmodel,deﬁnedby“FAIRNESS”or“J USTICE”keywords3
+in NuSMV. Fairness, constraining the veriﬁcation only to executions where some events happen
+inﬁnitely often, is often used to guarantee the valid progress of the system. U nder the (weak)
+fairness constraint ψ, each LTL formula ϕwould be treated as GFψ→ϕ. Even when PANDA
+identiﬁesthat ϕisnotvalid,anoverstrictfairnessconstraint ψwillcause GFψ→ϕtobevalid,
+concealing the potential meaningful counterexamples to ϕ. In a model checker like NuSMV,
+fairness statements are deﬁned implicitly outside the speciﬁcations; this constru ction has not
+drawn much attention in previous work on satisﬁability checking. PANDA efﬁc iently encodes
+thenegationofeachLTLspeciﬁcationasaNuSMVsymbolicautomaton. Wecan tacklefairness
+in LTL satisﬁability checking by incorporating all of the fairness constraints in the AAC model
+intothePANDAoutput. Weconductsatisﬁabilitycheckingviamodelcheckinga gainstauniver-
+sal NuSMV model. If a formula proves to be satisﬁable, we conclude that it is satisﬁable under
+thefairnessconstraints.
+In our experience, this enhancement helped us ﬁnd an error while all LT L formulas proved
+satisﬁable without the added fairness constraints. Since TSAFE alerts occ ur rarely in practice
+(once or twice in an average day), we intended to distinguish consecutive TSAFE alerts using
+thefollowingfairnessconstraint:
+FAIRNESS (TSAFEAlert=Non);
+By LTL satisﬁability checking with added fairness, we discovered that LTL -6 becomes valid
+under this constraint. We found that this fairness constraint is too strict. It obscures meaningful
+counterexamples toLTL-6. We rewroteitas:
+FAIRNESS (TSAFEAlert!=AT);
+which alsosufﬁcestoguarantee theprogressof themodel.
+We debugged our speciﬁcation set until all speciﬁcations (both individually and as a set), and
+theirnegationsweresatisﬁable. TheperformanceofourLTLsatisﬁabilityc heckswasconsistent
+withthe datain[ 30];allof thechecks requiredlessthan aminutetocomplete.
+5.2 Counterexample-guidedspeciﬁcationdebugging
+When a model checker returns a negative result, the reason may be that th e speciﬁcation is
+imprecise and thus fails to express the system execution we want to check. W e can manually
+trace spurious counterexamples back to imprecision in the speciﬁcations. Wh ile this practice
+aidsineliminatingspuriouscounterexamples,italsoreliesheavilyonveriﬁer’ sintelligence. We
+detail the evolution of the formula LTL-8 to show how we performed countere xample-guided
+speciﬁcationdebugging.
+Formula LTL-8 states that “If the controller hands off the control of an air craft to TSAFE,
+this aircraft will not execute commands from the controller,” which we ﬁrst wrote an invariant
+!(!CTRcontrol&ac.CTRcmddone). NuSMV returns a counterexample, pictured in Figure 5.
+In this case, a resolution is sent to Aircraft 1, after which the controller gi ves the control of Air-
+craft1toTSAFE.However,thiscounterexampleisspurious;[ 13]statesthata“TSAFEadvisory
+3We do not address strong fairness (deﬁned by “COMPASSION” in NuS MV) since it does not appear in our model,
+butour methodalsoapplies tostrongfairness.
+11/ 15 Volume53 (2012)
+
+--- Page 13 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+Controller
+Aircraft 1TSAFETSAFE detects a conflict 
+between Aircraft 1 and 2 
+Controller sends 
+resolutionController approves
+TSAFE to resolve
+the conflictController hands the
+control of Aircraft 1
+to TSAFE.
+Aircraft 1 executes 
+the resolution from 
+controller.
+Figure 5: Counterexample to the original for-
+mulaof LTL-8Controller
+Aircraft 1TSAFETSAFE detects a conflict between Aircraft 1 
+and 3, time to conflict is below threshold 
+TSAFE sends 
+resolutionTSAFE notifies 
+controller and 
+controls the Aircraft 1. 
+Aircraft 1 executes 
+the resolution from 
+controller.
+Aircraft 3Controller gives TSAFE the 
+control of Aircraft 1
+Controller sends 
+resolution.
+Figure6: CounterexampletoLTL-8
+would supersede the most recently issued controller clearance.” After T SAFE obtains the con-
+trol of Aircraft 1, its resolution will supersede the controller’s resolution . Thus, Figure 5shows
+a valid execution in the AAC. We need to reﬁne the speciﬁcation to ﬁnd any sce narios where
+after the controller gives control to TSAFE, the controller’s resolution will still be executed, not
+supersededbytheTSAFEresolution. Thus,werewritetheoriginalformu laasLTL-8inTable 1
+andNuSMVreturnsa meaningfulcounterexample,describedinthenext s ection.
+6 Counterexamples
+We elaborate on the counterexamples returned for formulas LTL-8 and LT L-9 and discuss the
+correspondingﬁxestheyinspiredintheAACsystemdesign.
+Formula LTL-8 speciﬁes that after a controller has transferred control of an aircraft, that air-
+craftshouldnotexecutearesolutionfromitspreviouscontroller. Howe ver,counterexamplesare
+generatedforsomecaseswhenacontroller’sresolutionissentout justbefore transferofcontrol.
+One suchcounterexample depicts thefollowingsequenceof events:
+1.TSAFE detects a conﬂict between Aircraft 1 and Aircraft 3 with a time to LOS b elow the
+TSAFE threshold, indicating TSAFE should take control of both Aircraft 1 and 3 automatically
+inthenext timestep. TSAFEgenerates amaneuver forAircraft3as theres olution.
+2.TSAFE notiﬁes the controller that it will take control of Aircraft 1 and 3 and also send a
+resolutiontoAircraft3,butjustbeforeTSAFEtakescontrolofAircra ft1,thecontrollersendsa
+command toAircraft1.
+3.Aircraft1receivestheresolutionfromthecontroller;thepilotexecutes thisresolutionsince
+nohigher-priorityresolutionwas received.
+Aircraft 1 executes the controller’s resolution despite the transfer of co ntrol to TSAFE. Since
+this resolution does not take the urgent TSAFE alert into consideration, it ma y potentially cause
+a conﬂict between Aircraft 1 and 3. This counterexample reﬂects two pro blems in the AAC
+protocol. First, aircraft control transfers are only deﬁned between T SAFE and the controller.
+Thereisnoaircraftnotiﬁcationofcontroltransfers;theresolutionrec eivedbyAircraft1appears
+validdespitethetransferofcontroltoTSAFE.Second,pertheTSAFEpr otocol,aircraftinvolved
+in a conﬂict do not receive notice of the conﬂict resolution if they are not required to change
+course to resolve the conﬂict. Since Aircraft 1’s pilot is not aware of the transfer of control to
+Proc. AVoCS2012 12/15
+
+--- Page 14 ---
+ECEASST
+TSAFEanddoesnotreceiveahigher-priorityresolutionfromTSAFE, thecontroller’scommand
+effectively overrides TSAFE’s control without violating the pilot’s command priority ranking
+protocol. In response to this counterexample, AAC system designers add ed a requirement that a
+“hold current route” command be sent as a part of such a TSAFE resolu tion. Now, in the above
+scenario, Aircraft 1 would receive the controller’s command followed by a “hold current route”
+resolution from TSAFE, superseding the controller’s command and ensur ing safe separation as
+Aircraft3 executes theTSAFEmaneuver.
+Acounterexample toLTL-9depicts thefollowingscenario:
+1.TSAFE detects a conﬂict between Aircraft 1 and 3 with a time to LOS below the TS AFE
+threshold. TSAFE sendsamaneuver for Aircraft1as aresolution.
+2.Next, TCAS raises an alert in Aircraft 1. Aircraft 1 must immediately execute the TCAS
+resolution.
+3.TSAFE detects a new conﬂict between Aircraft 1 and 2 and, seeing that A ircraft 1 has not
+executedthepreviousTSAFEresolution,attemptstoresolveboththeconﬂict betweenAircraft1
+and2andthatbetweenAircraft1and3withanewresolutioninvolvingallthr eeaircraft. TSAFE
+thengenerates a cooperativemaneuver forAircraft2 and3,butnot Aircraft1.
+Inthiscircumstance,theﬁrstresolutionsenttoAircraft1isexpiredands houldnowbeignored
+but,sincethereplacementresolutiondidnotincludeamaneuverforAircra ft1,itdoesnotknow
+to ignore the expired resolution. After completing the TCAS resolution, it execu tes the next
+highest-priority command, which happens to be the expired TSAFE resolution . This problem
+pinpoints a gap in the protocol deﬁnition for the synchronization of multiple res olutions. The
+current AAC protocol does not deﬁne when and how a new TSAFE res olution can override a
+previous resolution that was sent but did not resolve the targeted conﬂic t, for example, due to a
+delay caused by a TCAS resolution. Since the new TSAFE resolution may be s ent to a different
+aircraft from the previous one, system designers added a requiremen t for a notiﬁcation from
+TSAFE to invalidate the expired TSAFE resolution. Through experimenting with modiﬁcations
+to our AAC model, we also found that we can eliminate this counterexample to LTL- 9 by only
+allowingTSAFEtosendanewresolutionaftera sufﬁcientlylong intervalfollowingtheprevious
+resolution,wheresufﬁcientlylongisdeﬁnedtoequaltheprojectedtimerequ iredfortheaffected
+aircraftto executethepreviousTSAFE resolution.
+7 Conclusions and futurework
+We detail all of the facets of adapting classical model checking to a real ae rospace system, in-
+cludingderivingtheformalmodelandasetofspeciﬁcationsfromnatura llanguagedescriptions.
+Toensurethemodelcheckingresultsaremeaningful,wehavetoensureth atboththemodeland
+speciﬁcations correctly reﬂect the intentions of the designers, thus we emp loy model validation
+and property debugging techniques. We demonstrate the utility of enhancing LTL satisﬁability
+checkingbytakingthefairnessconstraintsofthesystemmodelintoconside ration. Wearguethat
+speciﬁcation debugging in real applications deserves more attention in futur e research efforts,
+and the utility of a system formalization, model and speciﬁcation debugging , andveriﬁcation
+trilogyformodelchecking realsystemsunder development.
+In this paper we assume there are no hardware failures or lost messages . As the AAC design
+develops and hardware details are decided by AAC designers, we plan to take the failure rates
+13/ 15 Volume53 (2012)
+
+--- Page 15 ---
+FormalSpeciﬁcationandVeriﬁcation ofa CoordinationProt ocol
+of the chosen components into consideration, i.e. by extending our work to p robabilistic model
+checking using PRISM [ 19]. Previous work has reported on analyzing the safety of air trafﬁc
+control systems using simulation [ 3] or fault trees [ 1]. By extending the model we designed in
+this paper, we can carry out safety analysis using PRISM to capture the d ynamic interactions in
+theAAC.
+Bibliography
+[1] J.Andrews,WelchJ.,andErzbergerH. Safetyanalysisfo radvancedseparationconcepts. AirTrafﬁc
+Control Quarterly , 14(1), 2006.
+[2] R Bloem, R Cavada, I Pill, M Roveri, and A Tchaltsev. RAT: A Tool for the Formal Analysis of
+Requirements. In CAV, volume 4590, pages 263–267. Springer, 2007.
+[3] D. Blum, D. Thipphavong, T. Rentas, Y. He, X. Wang, and M.E . Pat˜e-Cornell. Safety analysis of
+theadvancedairspaceconceptusingMonteCarlosimulation .AIAAMeetingPapersonDisc ,15(9),
+2010.
+[4] M. Bozzano, A. Cimatti, J. Katoen, V. Nguyen, T. Noll, and M. Roveri. The COMPASS approach:
+correctness,modellingandperformabilityofaerospacesy stems. In SAFECOMP,5775,LNCS ,pages
+173–186. Springer, 2009.
+[5] D.Bushnell,D.Giannakopoulou,P.Mehlitz,R.Paielli, andC.Pasareanu.Veriﬁcationandvalidation
+of air trafﬁcsystems: Tactical separation assurance. In IEEE Aerospace Conf. , pages 1–10, 2009.
+[6] Y.Choi. FromNuSMVtoSPIN:Experienceswithmodelcheck ingﬂightguidancesystems. FMSD,
+30(3):199–216, 2007.
+[7] Y. Choi and M. Heimdahl. Model checking software require ment speciﬁcations using domain re-
+duction abstraction. In IEEE ASE , pages 314–317, 2003.
+[8] A. Cimatti, E.M. Clarke, E. Giunchiglia, F. Giunchiglia , M. Pistore, M. Roveri, R. Sebastiani, and
+A.Tacchella. NuSMV2: AnOpenSourceToolforSymbolicModel Checking. In CAV,LNCS2404,
+pages 359–364. Springer, 2002.
+[9] A. Cimatti, E.M. Clarke, F. Giunchiglia, and M. Roveri. N uSMV: A new symbolic model checker.
+STTT Int’lJ. , 2(4):410–425, 2000.
+[10] Edmund M. Clarke, Orna Grumberg, and David E. Long. Mode l checking and abstraction. ACM
+Trans. Program. Lang. Syst. , 16(5):1512–1542, 1994.
+[11] E.A. Emerson and J.Y. Halpern. Decision procedures and expressiveness in the temporal logic of
+branching time. J. of Computer and System Sci , 30:1–24, 1985.
+[12] H. Erzberger. Automated conﬂict resolution for air tra fﬁc control. In International Congress of the
+Aeronautical Sciences , 2004.
+[13] H Erzberger and K Heere. Algorithm and operational conc ept for resolving short-range conﬂicts.
+Proc. IMechE G J. Aerosp. Eng. , 224(2):225–243, 2010.
+[14] H. Erzberger, T. Lauderdale, and Y. Chu. Automated conﬂ ict resolution, arrival management and
+weather avoidance forATM. In International Congress of theAeronautical Sciences , 2010.
+[15] D. Giannakopoulou, D. Bushnell, J. Schumann, H. Erzber ger, and K. Heere. Formal testing for
+separation assurance. AMAI, 63:5–30, 2011.
+Proc. AVoCS2012 14/15
+
+--- Page 16 ---
+ECEASST
+[16] M. Gribaudo, A. Horvath, A. Bobbio, E. Tronci, E. Cianca merla, and M. Minichino. Model-
+checking based on ﬂuid Petri nets for the temperature contro l system of the ICARO co-generative
+plant. Technical report, SAFECOMP, 2434, LNCS, 2002.
+[17] C Heitmeyer, R. Jeffords, and B. Labaw. Automated consi stency checking of requirements speciﬁ-
+cations.ACM Trans. Softw. Eng. Methodol. , 5(3):231–261, July1996.
+[18] O.Kupferman,M.Y.Vardi,andP.Wolper. Anautomata-th eoreticapproachtobranching-timemodel
+checking. J. ACM, 47(2):312–360, Mar 2000.
+[19] M. Z. Kwiatkowska, G. Norman, and D. Parker. Probabilis tic symbolic model checking with
+PRISM: ahybrid approach. STTT, 6(2):128–142, 2004.
+[20] S. Miller. Willthisbe formal? In TPHOLs 5170 , pages 6–11. Springer, 2008.
+[21] S. Miller, A. Tribble, and M. Heimdahl. Proving the shal ls. InFME, volume 2805 of LNCS, pages
+75–93. Springer, 2003.
+[22] S. P. Miller, A. C. Tribble, M. W. Whalen, M. Per, and E. Hei mdahl. Proving the shalls. STTT,
+8(4-5):303–319, 2006.
+[23] C. Mu ˜noz, G. Dowek, and V. Carre ˜no. Modeling and veriﬁcation of an air trafﬁc concept of oper a-
+tions. InISSTA, ISSTA ’04, pages 175–182. ACM, 2004.
+[24] R.Paielli,H.Erzberger,D.Chiu,andK.Heere.Tactica lconﬂictalertingaidforairtrafﬁccontrollers.
+AIAA J. Guid. Control Dyn. , 32(1):184–193, 2009.
+[25] R.Paielli,H.Erzberger,D.Chiu,andK.Heere.Tactica lconﬂictalertingaidforairtrafﬁccontrollers.
+J GuidContr Dynam , 32(1):184–193, 2009.
+[26] I. Pill, S. Semprini, R. Cavada, M. Roveri, R. Bloem, and A. Cimatti. Formal analysis of hardware
+requirements. In DAC ’06, pages 821–826, New York, NY, USA, 2006. ACM.
+[27] A.CimattiR.Cavada,C.Jochim,G.Keighren,E.Olivett i,M.Pistore,M.Roveri,andA.Tchaltsev.
+NuSMV2.4 user manual. Technical report, CMU/ITC-irst,200 5.
+[28] F. Raimondi, A. Lomuscio, and M. J. Sergot. Towards mode l checking interpreted systems. In
+FAABS02, LNAI 2699 , pages 115–125. Springer, 2002.
+[29] K.Y. Rozier and M.Y. Vardi. LTL satisﬁabilitychecking .STTT, 12(2):123–137, 2010.
+[30] K.Y. Rozier and M.Y. Vardi. A multi-encoding approach f or LTL symbolic satisﬁability checking.
+InFM, volume 6664 of LNCS, pages 417–431. Springer, 2011.
+[31] R. Siminiceanu and G. Ciardo. Formal veriﬁcation of the NASA Runway Safety Monitor. STTT,
+9(1):63–76, 2007.
+[32] A.TribbleandS.Miller. Softwaresafetyanalysisofaﬂ ightmanagementsystemverticalnavigation
+function-a statusreport. In DASC, pages 1.B.1–1.1–9 v1, 2003.
+15/ 15 Volume53 (2012)

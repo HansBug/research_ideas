@@ -1,0 +1,784 @@
+--- Page 1 ---
+energies
+Article
+Fuzzy Sliding Mode Wheel Slip Ratio Control for
+Smart Vehicle Anti-Lock Braking System
+Jinhong Sun
+ , Xiangdang Xue
+ and Ka Wai Eric Cheng *
+Power Electronics Research Center, Department of Electrical Engineering, The Hong Kong Polytechnic
+University, Hung Hom, Kowloon, Hong Kong, China
+*Correspondence: eeecheng@polyu.edu.hk
+Received: 7 June 2019; Accepted: 25 June 2019; Published: 28 June 2019
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Abstract: With the development of in-wheel technology (IWT), the design of the electric vehicles
+(EV) is getting much improved. The anti-lock braking system (ABS), which is a safety benchmark for
+automotive braking, is particularly important. Installing the braking motor at each ﬁxed position
+of the wheel improves the intelligent control of each wheel. The nonlinear ABS with robustness
+performance is highly needed during the vehicle’s braking. The anti-lock braking controller (CAB)
+designed in this paper considered the well-known adhesion force, the resistance force from air
+and the wheel rolling friction force, which bring the vehicle model closer to the real situation.
+A sliding mode wheel slip ratio controller (SMWSC) is proposed to yield anti-lock control of wheels
+with an adaptive sliding surface. The vehicle dynamics model is established and simulated with
+consideration of different initial braking velocities, different vehicle masses and different road
+conditions. By comparing the braking effects with various CAB parameters, including stop distance,
+braking torque and wheel slip ratio, the SMWSC proposed in this paper has superior fast convergence
+and stability characteristics. Moreover, this SMWSC also has an added road-detection module,
+which makes the proposed braking controller more intelligent. In addition, the important brain
+of this proposed ABS controller is the control algorithm, which can be used in all vehicles’ ABS
+controller design.
+Keywords: anti-lock braking system (ABS); anti-lock braking controller (CAB); fuzzy control;
+PID control; sliding mode wheel slip ratio controller (SMWSC)
+1. Introduction
+The ABS is a very important safety component for vehicles because it is inevitable that an
+emergency situation will occur during the operation of a vehicle. When the braking force of wheel is
+greater than its road adhesion, the wheel of a vehicle without ABS will be locked and will start to skid.
+In addition, vehicles without ABS are prone to becoming locked under certain conditions of friction
+and speed, and then dangerous phenomena occur such as drift and even over-turn or turning around.
+Therefore, the design of ABS has always been the top priority of safe driving. The development of
+hydraulic ABS for fuel vehicles is relatively mature, but such hydraulic ABSs cannot be applied to
+electric vehicles (EV). With the world’s awareness of energy conservation, EVs are considered as
+one of the most promising options for sustainable transportation systems [ 1], thus their performance
+improvement has become a hot research topic. With the new legislation on EV and the relative maturity
+in EV technology and lower cost in research and development of EV parts, the growth of EVs in the
+automotive market is increasing rapidly; therefore, the safe driving of EVs is worthy of research
+and development. Recently, some electro-hydraulic hybrid braking controllers for EVs have been
+studied, such as the novel electro-hydraulic braking system mentioned in [ 2,3]. However, the EV with
+a pure electronic based CAB contributed extensively to the world and is relatively new compared
+Energies 2019 ,12, 2501; doi:10.3390/en12132501 www.mdpi.com/journal/energies
+
+--- Page 2 ---
+Energies 2019 ,12, 2501 2 of 22
+to the traditional hydraulic and electro-hydraulic braking systems. The electric braking system
+includes hybrid-electric and pure-electric and requires internal wheel control to support its ﬂexible
+implementation [ 4–6]. High-performance motor drives [ 7] are extensively developed, which facilitates
+the development of EVs’ ABS.
+The braking system based on wheel control is widely used in nonlinear ABS controller design [ 8].
+The principle of wheel control is that the four wheels of a vehicle are individually controlled by
+its independent controller via internal wheel motors [ 5]. Since the CAB directly controls a single
+wheel, it can respond quickly to disturbances and adjust the braking force to compensate for the
+effects from the disturbances. Several strategies have been proposed to design the CAB, such as
+logic threshold control, PID control, fuzzy PID control, etc. Due to the higher requirements of the
+nonlinear performance of CAB design, the controller with robustness and fault-tolerance stands out
+and becomes the main direction of ABS research. For instance, a fuzzy observer-based steering control
+method is proposed by Zhang [ 9], which uses the T–S fuzzy control [ 10] to build the fuzzy vehicle
+dynamics model. Wang et al. [ 11] described the adaptive robustness online constructive fuzzy control,
+which combines the adaptive decoupling function to improve the robustness performance.
+A summary of several drawbacks of the recent popular anti-lock brake controllers (CABs) [ 5,9,12]
+and shown in the following:
+ These papers just consider a few well-known forces during vehicle dynamics analyses. Usually,
+one or two of the drag forces from air and the wheel rolling friction force are ignored, which leads
+to unrealistic model building.
+ During the simulation, the initial control point is given as zero (for, e.g., wheel slip ratio and
+braking torque) and the simulation does not consider disturbances that exist during vehicle
+braking, which makes the control situation too simple and does not meet the actual situation.
+ In these CAB designs, road conditions during braking simulations are all given as the known
+parameters, which do not match the actual braking situation.
+The fuzzy control algorithm is a reasoning mechanism that is essentially a method based on
+the designer’s experience. Its advantage is that no accurate system mathematical model is needed,
+and the designer can yield better control performance according to the experience of various working
+states. However, the control effect depends entirely on the designer’s experience, which means that
+the parameter adjustment process will be very complicated as the vehicle’s braking state increases.
+The key point is that the CAB based on the simple fuzzy control algorithm ﬁnds it difﬁcult to meet the
+robustness requirements of the vehicle braking process when there are many uncertainties. Therefore,
+a sliding mode control algorithm is added, the main working principle of which is to ensure that
+the control state enters the pre-set sliding surface by continuously switching the control amount.
+This pre-set sliding surface can keep the control performance stable when encountering parameter
+disturbances and external disturbances, which ensures that the sliding mode-based CAB will meet the
+control requirements of the vehicle braking process.
+To yield a more realistic and reliable vehicle model, and further lay out the foundation for verifying
+the control characteristics of the proposed CAB algorithm, more practical factors have been considered:
+ As we all know, when the wheel is in the anti-lock state, there must exist the wheel rolling friction
+force. Besides, when the vehicle is running, it must withstand air resistance. Under normal
+circumstances, this air drag force is positively related to the vehicle’s velocity. Therefore,
+the vehicle model establishment here contains both the drag force from air and the wheel rolling
+friction force.
+ In the case of real vehicle braking, it should be that when the wheel slip rate is too high and
+there is a risk of locking, the ABS starts to control the wheel to maintain the anti-lock state.
+Therefore, it is impossible to start vehicle braking from the point where the wheel slip ratio is zero.
+To make the whole vehicle braking period more reasonable and further service the veriﬁcation
+of this CAB’s control performance, select the wheel slip ratio 0.8as the initial braking point of
+all simulations.
+
+--- Page 3 ---
+Energies 2019 ,12, 2501 3 of 22
+ As a rule of thumb, when the ABS starts to operate, the initial control point is also affected by the
+vehicle model parameters themselves, that is, the speed displayed on the vehicle’s meter is not
+the initial speed of the brake. For this reason, during this simulation model, the vehicle initial
+drive state reﬂected by vehicle parameters are also considered.
+Based on the analyses mentioned above, this new realistic vehicle model is built, which further
+helps to make subsequent proposed controllers’ control performance veriﬁcation more reliable. Besides,
+an optimal SMWSC is proposed in this paper, based on the wheel slip ratio control, to realize the
+optimal slip ratio control of wheels during the vehicle’s braking. In addition, the proposed ABS design
+does not include a road condition automatic detection module, which is critical for automotive braking
+processes. Even though some automotive ECUs include a road condition monitoring mechanism,
+there will be a delay once it is detected and transmitted to the ABS, which will further lead to very
+serious consequences. The ABS with a road condition automatic detection module will largely reduce
+the delay time and increase the control accuracy. Therefore, in this ABS module design, the road
+automatic detection part is added, which largely improves the intelligence of the proposed ABS
+controller and makes it more novel. Moreover, the variables and parameters of this proposed SMWSC
+and vehicle model are based on BYD’s electric vehicle: BYD F0. Besides, this paper is conducted under
+the EV project, so the title, content and further experiments are mainly based on EV . In other words,
+this kind of ABS controller can be used in the latest and most difﬁcult electric vehicles, not to mention
+other cars.
+The main contributions can be summaries as below:
+ More realistic forces which can affect the braking effect to varying degrees are added.
+ The whole control is made to start with difﬁcult initial braking situations, which restores the
+actual car brakes as much as possible; for instance, the initial braking wheel slip ratio is set as 0.8
+at dry roads; the initial vehicle braking state is related to this time’s vehicle velocity.
+ The road condition automatic detection module is added, which can give the road condition and
+improve the control accuracy and intelligence.
+After the introduction, this paper introduces the analyses of vehicle dynamics, which should
+be considered as the theoretical basis of the CAB design, in detail in Section 2. In this section,
+some necessary conditions for designing the controller are also given, such as road conditions and
+control object of the proposed controller. Then the design ﬂow of the controller is described in detail
+around this control object in Section 3. To better describe the control process, this section ﬁrst analyses
+the state of the vehicle during braking and then selects one case to give a detailed description. Then
+simulation results are given in Section 4. In this section, the vehicle real test module is ﬁrstly established,
+based on the vehicle dynamics mentioned in Section 2, which operates during the whole braking
+period, that is, the road condition automatic detection period and ABS control period. Then, separately,
+the design of the road condition detection module and the SMWSC module are given. Besides, different
+control comparisons on different types of CABs, different road conditions and different uncertain
+disturbances are all given in the results part. Finally, Section 5 gives the conclusion.
+2. Vehicle Dynamics
+In order to design a more realistic and reliable ABS controller, the vehicle dynamic model
+considered as the cornerstone must be established. As the car braking process is ever-changing,
+the straight-line vehicle braking case is ﬁrstly chosen as a more common phenomenon for analysis.
+The force applied to the vehicle by tires, gravity and aerodynamics are considered in this vehicle
+dynamics; besides this, the drag force from air (0.5rCairAairvvx2)and the resistance force
+derived from the wheel rolling friction are also considered in this vehicle model to make the constructed
+vehicle more realistic.
+In addition, it is assumed that the road condition keeps unchanged during the whole vehicle
+braking period and the wear on tires is ignored, which means all four wheels are in the same
+
+--- Page 4 ---
+Energies 2019 ,12, 2501 4 of 22
+situation. Therefore, the dynamic equation of a single wheel and a whole vehicle can be obtained in
+Equation (1) [12,13]; besides this, parameters are deﬁned in Table A1.
+According to the magic formula (Tire–Road Interaction), which was ﬁrstly proposed by
+Pacejka [ 10], the relationship between the longitudinal wheel slip ratio land the friction coefﬁcient of
+the road mis shown in Figure 1 [ 14,15]. Several key points of these typical road conditions are based
+on Figure 1, and are summarized and shown in Table 1.
+(
+J˙ww=Ff f wRw+ (1 l)Fr f wRw Tbw
+M˙vvx= 4Ff f w 4(1 l)Fr f w Fair(1)
+Figure 1. The relationship between landm.
+Table 1. Several key points of m(l)curve.
+Road Condition Slip Ratio (Optimal) Coefﬁcient (Maxmium) Coefﬁcient (Slip Ratio = 1)
+Dry 0.18 0.8800 0.7945
+Wet 0.09 0.6099 0.4272
+Snow 0.3 0.2200 0.2055
+Ice 0.37 0.1100 0.1062
+For the vehicle braking model, lis deﬁned as the real-time wheel slip ratio, which is calculated
+based on the vehicle velocity, and ˙lis the dynamics of the wheel slip ratio.
+l=vvx wwRw
+vvx=1 wwRw
+vvx
+˙l= 1
+vvx[˙wwRw ˙vvx(1 l)] (2)
+Combining Equations (1) and (2), the ˙lcan be described with vehicle parameters and shown in
+Equation (3).
+˙l= 1
+vvx[mMg
+4mw+ (mr fMg
+4mw+mg+mr fg(1 l) +0.34v2
+vx
+M)
+(1 l)] +Tbw
+vvxmwRw(3)
+
+--- Page 5 ---
+Energies 2019 ,12, 2501 5 of 22
+3. Design of Sliding Mode Wheel Slip Ratio Controller
+3.1. Four Wheels Joint Control for Straight Line Case
+Based on the assumptions mentioned in the previous section, the vehicle is driving on a horizontal
+road with a straight-line situation, which driving state is shown in Figure 2. In this ﬁgure, vvxand
+vvyare the vehicle’s longitudinal and lateral velocities; (m/s),FyfL,FyfR,FyrLandFyrRare the wheel’s
+longitudinal force (N);FxfL,FxfR,FxrLandFxrRare the wheel’s lateral force (N);gis the yaw rate of the
+vehicle and Mzis the center of mass [ 16,17]. Besides, wis the spacing between left and right wheels
+andlfandlrare the distance from Mzto the front and rear axles.
+Figure 2. Real vehicle model.
+The vehicle’s motion equation can be described in Equation (4) [18,19].
+8
+>><
+>>:Max=Fxfl+Fxfr+Fxrl+Fxrr
+May=Fyfl+Fyfr+Fyfl+Fyrr
+Mz= (Fxrr Fxrl)w
+2+ (Fxfr Fxfl)w
+2(4)
+Based on the principle of axle load proportional distribution shown in Equation (5),
+the longitudinal force of every wheel is obtained in Equation (6) [ 17,20]. For this case, controlling all
+four wheels with unlock situations separately can ensure the steering wheel is under a controllable state.
+8
+<
+:FLf=M(glr axh)
+lr+lf
+FLf=M(glf+axh)
+lr+lf(5)
+8
+>>>>>>><
+>>>>>>>:Fw1=FLf(Max 2Mz
+d)
+2Mg
+Fw2=FLf(Max+2Mz
+d)
+2Mg
+Fw3=FLr(Max 2Mz
+d)
+2Mg
+Fw4=FLr(Max+2Mz
+d)
+2Mg(6)
+3.2. The Wheel Braking Torque Module
+In this section, the SMWSC is proposed to yield safe and fast braking standards, especially the
+safety one. As it is known, all four wheels operate under a braking state when the vehicle starts to
+brake. Therefore, controlling the operation of every single wheel in the anti-lock state during the
+vehicle brake ensures that the steering wheel can be ﬂexibly controlled. The control mechanism of the
+SMWSC is built based on the control object mentioned above and shown in Equation (7).
+Tbw=˙lvvxmwRw+mwRw[mMg
+4mw+ (mr fMg
+4mw+mg+mr fg(1 l) +0.34v2
+M)(1 l)] (7)
+
+--- Page 6 ---
+Energies 2019 ,12, 2501 6 of 22
+In the straight-line case mentioned in Figure 2, every single wheel operates under the same
+situation. We select the front left wheel as an example to show the control details, for which the control
+ﬂow is shown in Figure 3. The main operating principle is to control the vehicle to approximate the
+optimal wheel slip ratio of different road conditions within the controllable range of the slip ratio.
+The wheel braking torque Tbw, which is the output variable of SMWSC, mainly works on adjusting the
+wheel angular velocity to control the wheel slip ratio in an optimal changing trend during the SMWSC
+control period for vehicle braking [21,22].
+Figure 3. Control ﬂow for single wheel.
+3.3. The Fuzzy Part of the SMWSC
+Shown as Figure 3, after the SMWSC starts working, the wheel slip ratio ﬁrst enters the fuzzy
+control phase. Deﬁne the error and error change rate of wheel slip ratio as e=lo land ˙e=˙lo ˙l,
+where lois the optimal vehicle slip ratio of different road conditions at the maximum road friction
+coefﬁcient mentioned in Table 1. The Takagi–Sugeuo–Kang (TSK) fuzzy system [ 23] is added to yield
+the robustness performance, the input and output variables of which are deﬁned in Equation (8) [ 24,25].
+8
+>><
+>>:e=NB,NM,NS,ZO,PS,PM,PB
+˙e=NB,NM,NS,ZO,PS,PM,PB
+kp,i,d(e,˙e)=NB,NM,NS,ZO,PS,PM,PB(8)
+where, Nmeans negative, Pmeans positive, Bmeans big, Mmeans middle, Smeans small and ZO
+means zero. Therefore, NB,NM,NS,ZO,PS,PM andPBstand for the level.
+Rules of this fuzzy inference system (FIS) are deﬁned based on Equation (9) [ 26], where, kp,kiand
+kdare weighted values of Kp(e,˙e),Ki(e,˙e)andKd(e,˙e)in different states.
+8
+>>>><
+>>>>:Kp(e,˙e)=å7
+i=1mi(jej,j˙ej)kp
+å7
+i=1mi(jej,j˙ej)
+Ki(e,˙e)=å7
+i=1mi(jej,j˙ej)ki
+å7
+i=1mi(jej,j˙ej)
+Kd(e,˙e)=å7
+i=1mi(jej,j˙ej)kd
+å7
+i=1mi(jej,j˙ej)(9)
+
+--- Page 7 ---
+Energies 2019 ,12, 2501 7 of 22
+Actually, the fuzzy control module and PID control module are considered as the compound
+fuzzy PID controller. The output variables of the fuzzy controller, kp(e,˙e),ki(e,˙e)andkd(e,˙e), are then
+put through the PID control module and become the ﬁnal output variables of the fuzzy PID controller,
+shown in Equation (10).8
+>><
+>>:Kp=kp0kp(e,˙e)kp1
+Ki=ki0ki(e,˙e)ki1
+Kd=kd0kd(e,˙e)kd1(10)
+The deﬁnitions can be described as follows:
+ kp0,ki0andkd0are initial PID variables of the fuzzy PID controller.
+ kp1,ki1andkd1are correction PID variables of the fuzzy PID controller.
+ Kp,KiandKdare ﬁnal output variables of the fuzzy PID controller.
+3.4. The Sliding Mode Part of the SMWSC
+While the above control parts have certain adaptive and robustness abilities, their stability is still
+not good enough, especially under uncertain disturbances. To solve this problem, this proposed CAB
+is deﬁned with the sliding mode control, which lets the control operate in a deﬁned sliding surface and
+keeps the control easier. To design the sliding mode control, assume the control system has uncertain
+interference I(t); thus, the control function can be described as:
+˙l=f(l) +b(m(t) +I(t)) =)I(t) =˙l f(l)
+b u(t) (11)
+Obviously,mr fMg
+4mw>>mr f(1 l)g[27]; thus, Equation (3) can be simpliﬁed as shown in
+Equation (12).
+˙l= 1
+vvx[mMg
+4mw+ (mr fMg
+4mw+mg+0.34v2
+vx
+M)(1 l)] +Tbw
+vvxmwRw(12)
+Based on these two equations, two deﬁnitions can be obtained:
+8
+<
+:f(l) = 1
+vvx[mMg
+4mw+ (mr fMg
+4mw+mg+0.34v2vx
+M)(1 l)]
+b=1
+vvxmwRw(13)
+The sliding mode modules are deﬁned in Equation (14), where sis the sliding surface.
+(
+s=e+KpR
+e+KiR R
+e+Kde
+˙s=˙e+Kpe+KiR
+e+Kd˙e(14)
+According to the exponential approach law in Equation (15), the control object of this proposed
+SMWSC can be described as in Equation (16).
+˙s= #(t)sgn(s) I(t) (15)
+u(t) =1
+b(˙lo f(l) + ( b 1)˙e) +Kpe+KiZ
+e+Kd˙e+#(t)sgn(s) (16)
+Based on the stability function Lyapunov v=1
+2s2, we can get:
+˙v=s˙s=s( #(t)sgn(s) I(t)) = #(t)jsj I(t)s<0 (17)
+#(t)>jI(t)j (18)
+
+--- Page 8 ---
+Energies 2019 ,12, 2501 8 of 22
+where #(t)is the compensation of an uncertain part, which is used to judge whether the sliding
+mode existence condition is satisﬁed. Using the integral method to estimate the upper bound of #(t),
+then Equation (16) can be described as in Equation (20).
+ˆ#(t) =hZt
+0D#dt (19)
+u(t) =1
+b(˙lo f(l) + ( b 1)˙e) +Kpe+KiZ
+e+Kd˙e+ˆ#(t)sgn(s) (20)
+The fuzzy rule of sliding mode is proposed: When s˙s>0,ˆ#(t)needs to be increased and when
+s˙s<0,ˆ#(t)needs to be decreased.
+4. Simulation
+4.1. Establishment of the Vehicle model and the Control Module
+This section shows the simulation part contains the vehicle model establishment based on the
+vehicle dynamics mentioned in Section 2 and the ABS control modules based on Section 3.
+The braking situation is consideration a straight-line case. The initial condition is set as wheel
+slip ratio linitial =0.8on dry road, and simulation results are chosen at initial vehicle velocity
+v0=100km/h. In addition, the force initial states inﬂuenced by the vehicle initial braking velocity,
+such as wheel rolling friction force and air resistant force, are considered.
+Besides, this simulation is built based on the logic of the formula of the road condition curve,
+this curve is further improved and the curve shift disturbances are simulated to verify the robustness
+performance of this proposed ABS controller when resisting these curve changes. The drawback may
+be that only four typical road conditions are considered.
+Firstly, select the front left wheel as an example to build the real test module. Before SMWSC
+starts, the vehicle is driven with the road condition automatic detection module under a ﬁxed braking
+force during a short calculation period Dt=0.029 s, shown in the left of Figure 4. This short calculation
+period is the vehicle’s earliest braking stable time obtained through a short training [ 28] on different
+road conditions with different initial braking velocities. After the calculation part of this module,
+shown in Figure 3, the road condition is determined then given to the ABS control module. The outputs
+of the road condition automatic detection module are lo,vvandww, which are also considered as the
+input variables of the ABS controller’s input variables.
+Figure 4 shows the entire brake control process, which is based on the control ﬂow shown in
+Figure 3 and contains two stages: The road automatic detection period and the ABS control period.
+Figure 4. The whole braking process: The road automatic detection period and the ABS control period.
+
+--- Page 9 ---
+Energies 2019 ,12, 2501 9 of 22
+4.2. Simulation Results and Discussions
+There have many indicators that measure the control performance of the ABS controller during
+the whole vehicle braking period; select the three most important options: The stop distance Dis
+considered as the parameter that is ﬁnally displayed, the braking torque Tbwis the guarantee of the
+automobile motor’s lifetime and the wheel real-time slip ratio lis the steering wheel controllable sign.
+The initial vehicle braking velocities v0=30km/h, 40km/h, 50km/h, 60km/h, 70km/h, 80km/h,
+90km/h and 100km/h are all tested in this simulation. Besides, all simulations are simulated with
+different classic road conditions: Dry, wet, snow and ice roads.
+This subsection ﬁrst gives a comparison of the braking control performance of the vehicle with
+different types of ABS controllers: Normal PID-based CAB, improved PID-based CAB, fuzzy PID-based
+CAB and fuzzy sliding mode PID-based CAB. PID parameters used in these four CABs are set as the
+same values and shown in Table 2. Considering that using the real-time data will largely increase the
+complexity of the analysis and using average data can largely show the trend of data, the comparison
+data used in the following three ﬁgures are all average values.
+Table 2. PID parameters for different CABs.
+CAB Type Kp Ki Kd
+Normal PID 544 1 750
+Improved PID 544 1 750
+Kp0 Kp1 Ki0 Ki1 Kd0 Kd1
+Fuzzy PID 68 8 10 0.1 25 30
+Fuzzy sliding Mode 68 8 10 0.1 25 30
+Figures 5–7 show D,Tbwandlcontrol performance comparison of different types of CABs on
+different road conditions with different initial vehicle velocities, separately.
+Figure 5 show clearly the stop distance comparison:
+ The improved PID-based CAB has a little shorter Don dry road compared with a normal
+PID-based CAB. However, the Dof the improved PID-based CAB is slightly longer than the
+normal PID-based CAB on snow roads and ice roads with all the initial vehicle velocities.
+ The stop distance of the two robustness type CABs are much shorter than the pure PID-based
+CABs on dry, wet, snow and ice roads with all the initial vehicle velocities.
+ The fuzzy PID-based CABs have longer stop distance compared with fuzzy sliding mode
+based-CABs on all four road conditions with all the initial vehicle velocities, especially on
+dry roads.
+Figure 6 shows clearly the braking torque comparison:
+ The braking torque of a normal PID-based CAB is the largest one on all the four road conditions
+with all the initial vehicle velocities compared with the other three types of CABs. Besides, Tbwof
+this normal PID-based CAB on dry and wet roads is very similar and is also very similar on snow
+roads and ice roads.
+ The braking torque of the improved PID-based CAB is different on different road conditions with
+different initial vehicle velocities. Moreover, the improved PID-based CAB needs larger braking
+torque compared to the two robustness CABs, on almost all four kinds roads with different initial
+vehicle velocities.
+ The two robustness CABs, fuzzy PID-based CAB and fuzzy sliding mode-based CAB,
+need smaller braking torque compared with pure PID-based CABs on all road conditions with all
+initial vehicle velocities.
+
+--- Page 10 ---
+Energies 2019 ,12, 2501 10 of 22
+Figure 5. TheDcomparison under different CABs on various road conditions.
+Figure 6. TheTbwcomparison under different CABs on various road conditions.
+Figure 7 show real-time wheel slip ratio comparison clearly:
+ The wheel slip ratio of normal PID-based CABs is almost 1on all road conditions with all initial
+vehicle velocities.
+ The wheel slip ratio of improved PID-based CABs is close to 1on dry and wet roads with all
+initial vehicle velocities. Besides, the wheel slip ratio of improved PID-based CABs is almost
+equal to 1on snow roads with 70 km/h, 80 km/h, 90 km/h and 100 km/h and on ice roads with
+90 km/h and 100 km/h.
+ The wheel slip ratios of the two robustness CABs are small enough on all the four road conditions
+with all initial vehicle velocities compared with the other two pure PID-based CABs. In addition,
+
+--- Page 11 ---
+Energies 2019 ,12, 2501 11 of 22
+the wheel slip ratios of these two robustness CABs are around 0.1on dry and wet roads and
+around 0.3on snow roads and ice roads; these slip ratios are all closer to the optimal slip ratio of
+different roads.
+Figure 7. Thelcomparison under different CABs on various road conditions.
+The conclusion obtained from the analysis in Figure 5 is that the two robustness CABs have
+good braking control performance, as they can make the vehicle brake quickly. In Figure 6, the pure
+PID-based CABs need higher braking torque and are almost unadjustable, which largely increases the
+energy loss and shortens the vehicle’s lifetime. In contrast, the robustness CABs require very little
+braking torque and can be ﬂexibly adjusted for different road conditions. Figure 7 shows the control
+performance analysis of wheel stability during vehicle braking. The wheel under control of pure PID
+CABs will quickly lock on all four road conditions with all velocities. However, the wheel under
+robustness CABs will maintain an anti-lock state during whole braking period.
+From the analyses mentioned above, the only conclusion that can be drawn is that the robustness
+CABs have more prominent control performances. In order to better show the proposed SMWSC’s
+control advantages, the wheel real-time slip ratio and braking torque regulation on dry, wet, snow and
+ice roads are given in Figure 8. The large image represents the entire braking process and the small
+image highlights the stage of the initial adjustment. Through the comparison of landTbw, especially
+with the small images, the proposed SMWSC is veriﬁed to have better convergence and stability.
+As is well known, once the ABS controller starts working, a set of operating parameters is ﬁxed in
+SMWSC as the initial braking parameter. When the actual situation changes, the ABS controller will
+adjust the braking torque according to the feedback signal from the vehicle real test module. To have a
+deep study of SMWSC’s dependence on the road conditions and vehicle parameters during its control
+period, the following ﬁgures and tables are shown.
+
+--- Page 12 ---
+Energies 2019 ,12, 2501 12 of 22
+Figure 8. The whole sliding mode wheel slip ratio controller (SMWSC)-based braking process on
+different road conditions with v0=100 km/h.
+For the road condition disturbances, the m(l)curve shifting left and right represents the road
+type change and moving up and down stands for the rough level change of road. Figure 9 shows the
+curve m(l)shifts left and right signiﬁcantly on different road conditions, separately. In this ﬁgure,
+the original unchanged curve is the black line s, other curves shift around this curve: s1=0.8and
+s2=0.9shift to the right and s3=1.1and s4=1.2shift to the left. Table 3 gives the results data,
+where DSis the original stop distance and DSi,i=1, 2, 3, 4 is the stop distance when the vehicle drives
+on the changed curve; thus, jDS DSijis the control difference of the stop distance. Besides, TSis
+the original average braking torque and TSi,i=1, 2, 3, 4 is the braking torque required by the ABS
+controller when the vehicle is driven on the corresponding road condition curve; thus, jTS TSijis the
+control difference of the stop distance. In addition, select 30km/h, 60km/h, 80km/h and 100km/h
+to show comparison details.
+From the comparison data shown in Table 3, we can obtain that:
+ On dry roads, the jDS DSijkeeps within 0.4m even if the curve shifts left and right; the largest
+one is 0.375 m at 100km/h. Correspondingly, the braking torque required by the ABS controller
+under these road conditions is similar and its difference remains within 5 N m.
+
+--- Page 13 ---
+Energies 2019 ,12, 2501 13 of 22
+ On wet roads, the jDS DSijkeeps within 0.8m and the largest one is 0.784 m at 100km/h.
+To yield the small jDS DSij, the ABS controller will greatly adjust the braking torque,
+for example,jTS TSij=27.627 Nm under s4 road conditions.
+ On snow roads, the jDS DSijkeeps within 1.8m; most difference remains below 1m.
+Correspondingly, the braking torque required by the ABS controller under these road conditions
+is similar and its difference remains within 1.9 N m.
+ On ice roads, the jDS DSijkeeps within 2.1m; this data is below 0.6m under s2,s3and s4.
+The braking torque required by the ABS controller under these road conditions is similar and its
+difference remains within 1 N m.
+Figure 9. The horizontal change of the curve m(l).
+Therefore, we can get the conclusion that this road condition change has little impact on braking
+control performance under SMWSC, which further veriﬁes that this proposed SMWSC has enough
+abilities to adjust braking torque to resist these kinds of disturbances.
+Table 3 gives the results data, where DSis the original stop distance, DSiandi=1, 2, 3, 4 is the
+stop distance when vehicle drives on the changed curve; thus, jDS DSijis the control difference of
+the stop distance. Besides, TSis the original average braking torque and TSi,i=1, 2, 3, 4 is the braking
+torque required by the ABS controller when the vehicle is driven on the corresponding road condition
+curve; thus,jTS TSijis the control difference of the stop distance. In addition, select 30km/h,
+60 km/h, 80 km/h and 100 km/h to show comparison details.
+Figure 10 shows the curve m(l)moves up and down signiﬁcantly on different road conditions,
+separately. In this ﬁgure, the original unchanged curve is the black line m, other curves are moved
+around this curve: u1=0.8andu2=0.9move down and u3=1.1andu4=1.2move up. Table 4 gives
+the result details of DandTbwregulations, where deﬁnitions of jDu DuijandjTu Tuijare similar
+to Table 3. In addition, select 30km/h, 60km/h, 80km/h and 100km/h to show comparison details.
+
+--- Page 14 ---
+Energies 2019 ,12, 2501 14 of 22
+Table 3. Edistance andETbwwith dsi,(i=1, 2, 3, 4 ).
+Road Velocity (km/h) s1 s2 s3 s4 s1 s2 s3 s4
+jDs Dsij(m) jTs Tsij(Nm)
+Dry30 0.051 0.026 0.019 0.036 4.148 2.008 1.311 2.164
+60 0.232 0.101 0.064 0.111 4.968 2.092 1.017 1.520
+80 0.352 0.137 0.094 0.067 4.554 1.724 0.847 0.278
+100 0.375 0.157 0.126 0.189 3.524 1.371 0.731 0.870
+Wet30 0.084 0.035 0.0173 0.031 7.057 3.263 0.302 0.297
+60 0.324 0.129 0.003 0.234 8.193 3.727 2.435 17.215
+80 0.525 0.191 0.084 0.700 8.332 3.612 6.568 23.827
+100 0.784 0.278 0.237 1.384 8.451 3.604 9.277 27.627
+Snow30 0.211 0.126 0.074 0.126 1.440 0.745 0.377 0.560
+60 1.096 0.520 0.157 0.202 1.830 0.778 0.173 0.052
+80 1.444 0.527 0.211 0.186 1.556 0.529 0.115 0.118
+100 1.791 0.567 0.083 0.008 1.387 0.418 0.026 0.485
+Ice30 0.452 0.174 0.107 0.174 0.806 0.295 0.143 0.182
+60 1.312 0.515 0.163 0.221 0.670 0.234 0.039 0.024
+80 1.772 0.582 0.173 0.092 0.592 0.181 0.014 0.082
+100 2.035 0.572 0.007 0.374 0.514 0.136 0.034 0.189
+Figure 10. The vertical change of the curve m(l).
+From the comparison data shown in Table 4, we can obtain that:
+ On dry roads, the jDu Duijwith 100km/h is 11.7115 m, others remain below 8m. In addition,
+the braking torque adjustment is relatively strong; the largest one is 132.868 N m on u1road with
+100 km/h.
+ On wet roads,jDu Duijincreases andjTu Tuijalso increases. The largest one is (28.489 m,
+149.386 Nm) on u1 road with 100 km/h.
+ On snow roads,jDu DuijandjTu Tuijall have large values; the largest one is (18.399 m,
+17.9476 Nm) on u2 road with 100 km/h.
+ On ice roads,jDu DuijandjTu Tuijstill have large values, the largest jDu Duijis62.336 m
+onu1 road with 100 km/h, the largest jTu Tuijis 17.146 Nm on u1 road with 80 km/h.
+
+--- Page 15 ---
+Energies 2019 ,12, 2501 15 of 22
+Table 4. Edistance andETbwwith dui,(i=1, 2, 3, 4 ).
+Road Velocity (km/h) u1 u2 u3 u4 u1 u2 u3 u4
+jDu Duij(m) jTu Tuij(Nm)
+Dry30 0.969 0.423 0.174 241 108.17 54.94 4.93 4.523
+60 4.276 1.885 0.801 1.151 125.64 65.566 3.246 3.584
+80 7.577 3.338 1.435 1.991 130.14 68.273 2.882 2.445
+100 11.7115 5.203 2.263 3.288 132.868 70.107 2.764 3.346
+Wet30 2.461 1.198 0.135 0.174 134.356 87.944 0.753 0.478
+60 10.490 5.185 0.612 0.813 145.51 97.557 0.756 0.759
+80 18.441 9.164 1.096 1.469 148.07 99.965 0.780 0.916
+100 28.489 14.218 1.713 2.308 149.386 101.259 0.821 0.994
+Snow30 3.925 1.741 1.021 1.601 30.378 15.534 4.828 6.457
+60 16.261 7.293 4.088 6.404 33.750 17.582 2.932 4.086
+80 1.444 12.199 7.034 11.080 1.444 17.676 2.604 3.731
+100 1.791 18.399 10.957 17.179 1.791 17.947 2.631 3.749
+Ice30 7.814 3.463 2.364 3.822 16.318 8.303 3.475 3.91
+60 29.870 13.339 8.899 14.688 17.044 8.778 2.361 3.021
+80 49.098 21.925 14.790 24.439 17.146 8.841 2.202 2.917
+100 62.336 31.022 21.643 35.926 16.312 8.749 2.175 2.999
+Obviously, the change of mhas a little bit of an inﬂuence on control performance, especially on
+snow and ice roads. It can also be seen from Figure 1, that even a slight change of mcan have a large
+difference on l. In other words, the ABS controller needs to increase the modulation intensity to a
+large extent to meet the trend of mchange. Therefore, this proposed ABS controller’s robustness ability
+to handle this disturbance is not strong enough.
+For the vehicle parameters disturbances, this paper only considers the most common factor vehicle
+mass M here. Table 5 shows the comparison results, Mis the original vehicle mass is unchanged and
+0.9M means the vehicle mass decreases to 90%M, while 1.1M, 1.2M and 1.3M denote that the vehicle
+mass increase; besides, jDM DMchangejis the stop distance difference. jTM TMchangejis the braking
+torque difference.
+Table 5. Edistance andETbwwith dM.
+Road Velocity (km/h) 0.9M 1.1M 1.2M 1.3M 0.9M 1.1M 1.2M 1.3M
+jDM DMchangej(m) jTM TMchangej(Nm)
+Dry30 0.0281 0.0281 0.0558 0.0852 35.547 35.291 70.141 104.265
+60 0.0287 0.0321 0.0734 0.1015 38.981 38.814 77.266 115.682
+80 0.0623 0.0462 0.1845 0.2312 39.513 39.595 77.951 116.678
+100 0.0828 0.071 0.1483 0.2151 40.131 40.111 78.55 118.545
+Wet30 0.0239 0.0235 0.0487 0.0759 26.801 26.385 52.177 77.218
+60 0.0336 0.037 0.0762 0.1119 28.073 27.918 55.436 82.724
+80 0.0702 0.0738 0.1637 0.2556 28.351 27.342 53.129 78.953
+100 0.1148 0.185 0.397 0.5904 28.63 24.779 48.528 72.852
+Snow30 0.0604 0.0711 0.1235 0.2117 9.919 9.813 19.621 29.168
+60 0.0101 0.1437 0.2571 0.1295 10.616 10.417 20.822 31.348
+80 0.3614 0.3282 0.6731 0.9365 10.481 10.445 20.04 30.623
+100 0.7817 0.3994 1.0853 1.6434 10.539 10.57 19.545 30.375
+Ice30 0.0453 0.0467 0.0967 0.136 5.371 5.37 10.724 16.092
+60 0.3358 0.388 0.6646 0.9685 5.443 5.408 10.835 16.242
+80 1.2232 1.0938 2.0462 2.9035 5.391 5.379 10.751 16.114
+100 2.6274 2.3443 4.4511 8.2676 5.394 5.343 10.665 15.989
+From the comparison data shown in Table 5, we can obtain that:
+
+--- Page 16 ---
+Energies 2019 ,12, 2501 16 of 22
+ On dry roads,jDM DMchangejandjTM TMchangejare all very small; the largest jDM DMchangej
+is0.2312 m with 1.3M and 80km/h; the largest jTM TMchangejis 118.545 Nm with 1.3M and
+100 km/h
+ On wet roads,jDM DMchangejare all below 0.6m; the largestjDM DMchangejis0.5904 m with
+1.3M and 100 km/h; the largest jTM TMchangejis 82.724 Nm with 1.3M and 60 km/h
+ On snow roads,jDM DMchangejare all below 1.7m; the largestjDM DMchangejis1.6434 m with
+1.3M and 100 km/h; the largest jTM TMchangejis 118.545 Nm with 1.3M and 60 km/h
+ On ice roads,jDM DMchangejare all below 8.5m; the largestjDM DMchangejis8.2676 m with
+1.3M and 100 km/h; the largest jTM TMchangejis 118.545 Nm with 1.3M and 60 km/h.
+It is clear that, even though the jDM DMchangejis near 8.5m on ice roads with 1.3M and 100km/h,
+it still can be considered as relatively small compared to the real stop distance shown in Figure 5.
+Therefore, the conclusion can be obtained that the SMWSC has enough robustness to overcome the
+change effect of vehicle mass on dry, wet and snow roads.
+All the above results are given based on known road conditions; however, the road condition is
+unknown when the vehicle is driven during the braking period. Therefore, the road detection module
+is added to improve road condition automatic detection performance of SMWSC.
+Figure 11 shows the changes in integral action parameters inside the fuzzy PID control module.
+As all know, the parameters of the conventional PID controller are ﬁxed after the controller’s design;
+however, PID parameters are designed with the adaptive capability after being combined with the
+fuzzy control part. Figure 12 shows the adaptive changes of the wheel slip ratio error e=lo ltand
+de; besides, Figure 13 shows the output parameters of the fuzzy control module.
+Figure 11. Fuzzy-PID control output parameters: KP,KIandKDwith adaptive capability.
+
+--- Page 17 ---
+Energies 2019 ,12, 2501 17 of 22
+Figure 12. The wheel slip ratio error: e=lo ltanddewith adaptive capability.
+Figure 13. Fuzzy control output parameters: Kp(e,˙e),Ki(e,˙e)andKd(e,˙e)with adaptive capability.
+
+--- Page 18 ---
+Energies 2019 ,12, 2501 18 of 22
+Select v0=100 km/h and dry road as an example to describe the whole braking process,
+which control details are shown in Figure 14. The road condition automatic detection module ﬁrstly
+works and gives the road condition after the calculation period Dt. Then the SMWSC starts to adjust
+theTbwand lets the vehicle drive under the stable anti-lock braking situation until it stops.
+Figure 14. SMWSC control on dry roads with v0=100 km/h.
+Figure 15 shows the adaptive changes of sliding mode surfaces during the whole ABS control
+period. In addition, Figure 16 shows the parameter change details of the sliding model control module.
+Figure 15. The adaptive sliding surface.
+
+--- Page 19 ---
+Energies 2019 ,12, 2501 19 of 22
+Figure 16. The output parameters of fuzzy sliding control module.
+5. Conclusions
+An SMWSC is proposed in this paper to yield optimal braking performance of a vehicle, which has
+the capability to ensure the vehicle not to skid during braking and shorten the stop distance on certain
+road conditions. Compared to the delay of traditional hydraulic ABSs, this pure electric braking system
+can quickly process the brake signal, which largely improves the EV’s braking performance. Moreover,
+this proposed ABS controller contains the road detection module, which improves the intelligent
+feature of the braking process. This SMWSC can avoid the out-of-control direction and wheel side
+slip ratio during an emergency brake, so that the wheel will not be locked when braking. The tire
+is not allowed to rub against the ground at one point of the wheel, thereby increasing friction and
+braking efﬁciency.
+In addition, after analysis of the m(l)curve’s horizontal and vertical changes, this SMWSC
+is veriﬁed and has the capability to overcome disturbances on road conditions and vehicle mass.
+While this proposed ABS controller has advantages for improved braking performance, its limitations
+exist, such as when the vehicle with SMWSC brakes on an ice road, and its ability on the adjustment
+range of the braking force is not ideal.
+Moreover, the assumptions, limitations, and relative merits of the proposed method in comparison
+with other conventional methods currently used in real applications are shown in the below description.
+ The assumptions: This proposed ABS controller is designed based on a straight-line case. Besides,
+real existing forces and real initial braking situations are all considered in the initial state of wheel
+slip ratio and vehicle braking torque state.
+ The limitations: This sliding mode wheel slip controller is ﬁrstly established based on vehicle
+parameters, such as m(l)curve and vehicle mass, but then there are simulations to verify the effect
+of these parameters on the control effect. Through simulation results comparison, this control
+algorithm is veriﬁed to have enough robustness capability to resist these parameters’ disturbances.
+ The relative merits: This proposed ABS controller has the road condition automatic
+detection module, which is new to the existing ABS controllers and can largely improve the
+intelligence performance.
+
+--- Page 20 ---
+Energies 2019 ,12, 2501 20 of 22
+The wear on tires, which may inﬂuence the change of adhesion and friction, and the mechanical
+structure, which may impact the adjustment of braking torque, will be considered in further studies
+and real experiments [29,30].
+Author Contributions: J.S. developed the SMWSC algorithm, simulated the approach and wrote the manuscript.
+X.X. and K.W.E.C. directed the overall project. K.W.E.C. reviewed and edited the manuscript. All authors
+discussed the results and commented on the manuscript.
+Funding: This study is sponsored by ITF-APAS of Hong Kong Government under the project: The Development
+and Application of All Electric Intelligent Anti-lock Braking System for Electric Vehicles, GHP/033/17AP .
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Appendix A
+Table A1. Variables and parameters of SMWSC for BYD F0.
+Sign Parameter Value
+D(m) stop distance of vehicle -
+l longitudinal wheel slip ratio -
+vvx(m/s) vehicle longitudinal velocity -
+ww(rad/s) wheel angular speed -
+m friction coefﬁcient of road -
+mr f wheel rolling friction coefﬁcient 0.015
+md friction coefﬁcient of braking disc 2 0.38 (two discs)
+M(kg) full mass of vehicle 938 (with two persons)
+Rw(m) wheel radius 0.2768
+Rd(m) radius of braking disc 0.1025
+mw(kg) mass of wheel 12
+J(kg/m2) wheel inertia mwR2w
+Fair(N) drag force from air -
+r(kg/m3) air density 1.25
+Cair air resistance coefﬁcient 0.23
+Aair(m2) air resistance area 1.618 1.465
+Ff f w(N) friction force of single wheel mMg/4
+Fr f w(N) rolling friction force of single wheel mr fMg/4
+Fp(N) friction force from two pads 2 mdFa
+Fa(N) required actuator force Tbw/(2Rdmd)
+Tbw(Nm) braking torque of single wheel RdFp
+References
+1. Satzger, C.; Castro, R.D. Predictive brake control for electric vehicles. IEEE Trans. Veh. Technol. 2018 ,
+67, 977–990. [CrossRef]
+2. Castillo, J.J.; Cabrera, J.A.; Guerra, A.J.; Simón, A. A Novel Electrohydraulic Brake System With Tire–Road
+Friction Estimation and Continuous Brake Pressure Control. IEEE Trans. Ind. Electron. 2016 ,63, 1863–1875.
+[CrossRef]
+3. Yuan, Y.; Zhang, J.Z.; Li, Y.T.; Li, C. A Novel Regenerative Electrohydraulic Brake System: Development and
+Hardware-in-Loop Tests. IEEE Trans. Veh. Technol. 2018 ,67, 11440–11452. [CrossRef]
+4. Zhai, L.; Sun, T.M.; Wang, J. Electronic Stability Control Based on Motor Driving and Braking Torque
+Distribution for a Four In-Wheel Motor Drive Electric Vehicle. IEEE Trans. Veh. Technol. 2016 ,65, 4726–4739.
+[CrossRef]
+5. Zhou, Y.; Cheng, K.W.E.; Ho, J.F.; Huang, S.D.; Pan, J.F. A New Decoupled RotLin Motor With Fuzzy Sliding
+Mode Control. IEEE Trans. Magnet. 2018 ,54, 1–5.
+6. Wang, Y.F.; Fujimoto, H.; Hara, S.J. Driving Force Distribution and Control for EV With Four In-Wheel
+Motors: A Case Study of Acceleration on Split-Friction Surfaces. IEEE Trans. Ind. Electron. 2017 ,64, 380–388.
+[CrossRef]
+7. Xue, X.D.; Cheng, K.W.E.; Ng, T.W.; Cheng, N.C. Multi-Objective Optimization Design of In-Wheel Switched
+Reluctance Motors in Electric Vehicles. IEEE Trans. Ind. Electron. 2010 ,57, 2980–2987. [CrossRef]
+
+--- Page 21 ---
+Energies 2019 ,12, 2501 21 of 22
+8. Zhang, L.; Yu, L.Y.; Wang, Z.Z.; Zuo, L.; Song, J. All-Wheel Braking Force Allocation During a Braking-in-Turn
+Maneuver for Vehicles With the Brake-by-Wire System Considering Braking Efﬁciency and Stability.
+IEEE Trans. Veh. Technol. 2016 ,65, 4752–4767. [CrossRef]
+9. Zhang, C.Z.; Hu, J.F.; Qiu, J.B.; Yang, W.L.; Sun, H.; Chen, Q.J. A Novel Fuzzy Observer-Based Steering
+Control Approach for Path Tracking in Autonomous Vehicles. IEEE Trans. Ind. Electron. 2019 ,27, 278–290.
+[CrossRef]
+10. Pacejka, H.B. Tire and Vehicle Dynamics , 3rd ed.; Elsiever/Butterworth-Heinemann: Amsterdam,
+The Netherlands, 2012.
+11. Wang, N.; Er, M.J.; Sun, J.C.; Liu, Y.C. Adaptive Robust Online Constructive Fuzzy Control of a Complex
+Surface Vehicle System. IEEE Trans. Cybern. 2016 ,46, 1511–1523. [CrossRef]
+12. Zhang, Z.S.; Ma, R.H ; Wang, L.F.; Zhang, J.Z. Novel PMSM Control for Anti-Lock Braking Considering
+Transmission Properties of the Electric Vehicle. IEEE Trans. Veh. Technol. 2018 ,67, 10378–10386. [CrossRef]
+13. Dadashnialehi, A.; Hadiashar, A.B.; Cao, Z.W.; Kapoor, A. Intelligent Sensorless ABS for In-Wheel Electric
+Vehicles. IEEE Trans. Ind. Electron. 2014 ,61, 1957–1969. [CrossRef]
+14. Ivanov, V .; Savitski, D.; Shyrokau, B. A Survey of Traction Control and Antilock Braking Systems of Full
+Electric Vehicles With Individually Controlled Electric Motors. IEEE Trans. Veh. Technol. 2015 ,64, 3878–3896.
+[CrossRef]
+15. Wei, Z.; Guo, X.X. An ABS Control Strategy for Commercial Vehicle. IEEE/ASME Trans. Mechatron. 2015 ,
+20, 384–392. [CrossRef]
+16. Feng, J.W.; Bao, C.J.; Wu, J.; Cheng, S.; Xu, G.F.; Liu, S.F. Research on Methods of Active Steering Control
+Based on Receding Horizon Control. Energies 2018 ,11, 2243. [CrossRef]
+17. Chen, Y.F.; Chen, I.M.; Chang, J.S.; Liu, T. Design and Analysis of a New Torque Vectoring System with a
+Ravigneaux Gearset for Vehicle Applications. Energies 2017 ,10, 2157. [CrossRef]
+18. Romijn, C.; Donkers, T.; Kessels, J.; Weiland, S. Real-Time Distributed Economic Model Predictive Control
+for Complete Vehicle Energy Management. Energies 2017 ,10, 1096. [CrossRef]
+19. Peng, J.K.; He, H.W.; Feng, N.L. Simulation Research on an Electric Vehicle Chassis System Based on a
+Collaborative Control System. Energies 2013 ,6, 312–328. [CrossRef]
+20. Cao, W.H.; Liu, H.L.; Lin, C.; Chang, Y.H.; Liu, Z.Y.; Antoni, S. Co-Design Based Lateral Motion Control of
+All-Wheel-Independent-Drive Electric Vehicles with Network Congestion. Energies 2017 ,10, 1641. [CrossRef]
+21. Xue, X.D.; Cheng, K.W.E.; Ho, S.L. Optimization and Evaluation of Torque-Sharing Functions for Torque
+Ripple Minimization in Switched Reluctance Motor Drives. IEEE Trans. Veh. Technol. 2009 ,24, 2076–2090.
+[CrossRef]
+22. Sun, H.Z.; Wang, H.; Zhao, X.C. Line Braking Torque Allocation Scheme for Minimal Braking Loss of
+Four-Wheel-Drive Electric Vehicles. IEEE Trans. Veh. Technol. 2019 ,68, 180–192. [CrossRef]
+23. Takagi, T.; Sugeno, M. Fuzzy identiﬁcation of systems and its applications to modeling and control.
+IEEE Trans. Syst. 1985 ,15, 116–132. [CrossRef]
+24. Peng, X.Y.; Jia, M.F.; He, L; Yu, X.; Lv, Y.B. Fuzzy sliding mode control based on longitudinal force estimation
+for electro-mechanical braking systems using BLDC motor. CES Trans. Electr. Mach. Syst. 2018 ,2, 142–151.
+25. Mirzaei, M; Mirzaeinejad, H. Fuzzy Scheduled Optimal Control of Integrated Vehicle Braking and Steering
+Systems. IEEE/ASME Trans. Mechatron. 2017 ,22, 2369–2379. [CrossRef]
+26. Guillaume, S. Designing fuzzy inference systems from data: An interpretability-oriented review. IEEE Trans.
+Fuzzy Syst. 2001 ,9, 426–443. [CrossRef]
+27. Savitski, D.; Schleinin, D.; Ivanov, V .; Augsburg, K. Robust Continuous Wheel Slip Control With Reference
+Adaptation: Application to the Brake System With Decoupled Architecture. IEEE Trans. Ind. Inform. 2018 ,14,
+4212–4223. [CrossRef]
+28. Xue, X.D.; Cheng, K.W.E.; Ho, S.L. A Self-Training Numerical Method to Calculate the Magnetic
+Characteristics for Switched Reluctance Motor Drives. IEEE Trans. Magn. 2004 ,40, 734–737. [CrossRef]
+
+--- Page 22 ---
+Energies 2019 ,12, 2501 22 of 22
+29. Vakis, A.I.; Yastrebov, V .A.; Scheibert, J.; Nicola, L.; Dini, D.; Minfray, C.; Molinari, J.F. Modeling and
+simulation in tribology across scales: An overview. Tribol. Int. 2018 ,125, 169–199. [CrossRef]
+30. Papangelo, A.; Ciavarella, M.; Hoffmann, N. Subcritical bifurcation in a self-excited single-degreeof-freedom
+system with velocity weakening strengthening friction law: Analytical results and comparison with
+experiments. Nonlinear Dyn. 2017 ,90, 2037–2046. [CrossRef]
+c2019 by the authors. Licensee MDPI, Basel, Switzerland. This article is an open access
+article distributed under the terms and conditions of the Creative Commons Attribution
+(CC BY) license (http://creativecommons.org/licenses/by/4.0/).
