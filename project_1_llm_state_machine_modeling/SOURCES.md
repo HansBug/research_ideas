@@ -4,12 +4,60 @@
 
 ## 检索关键词簇
 
-- `automotive requirements` + `state machine/statechart/behavior model`
-- `SysML` + `safety-critical system` + `behavior/safety analysis`
-- `IEC 61499` / `IEC 61131` + `industrial automation` + `control system`
-- `PLC` + `state machine` + `industrial automation`
-- `OPC UA` / `IIoT` + `control architecture`
-- `formal specification` / `behavioral modeling` + `control system` / `cyber-physical system`
+以下关键词簇用于指导后续增量检索，目标不是泛泛地搜“形式化方法”或“建模”，而是优先命中**具有具体控制系统客体**、并且更可能包含可提取状态机自然语言描述的论文。
+
+### 当前推荐关键词簇
+
+- `具体控制对象` + `control system/controller` + `design/requirements/specification`
+  - 重点对象：`infusion pump`, `pacemaker`, `elevator control`, `traffic light controller`, `railway interlocking`, `landing gear system`, `vehicle platoon`, `ABS`, `parking system`, `PLC`
+- `具体控制对象` + `state machine/FSM/statechart/mode switching/operation mode`
+  - 适合寻找论文中显式给出运行模式、状态切换或控制阶段推进的文献
+- `具体控制对象` + `formal model/formal specification/verification/modeling`
+  - 适合寻找虽然标题不直接写 `state machine`，但正文可能给出可整理控制逻辑的论文
+- `railway/rail/interlocking` + `control table/route control/signalling principle/formal verification`
+  - 当前对 🚆 领域命中率较高，尤其容易找到进路建立、锁闭、释放等可提取逻辑
+- `medical device` / `infusion pump` / `pacemaker` + `mode/control software/verification/specification`
+  - 当前对 🩺 领域命中较高，容易找到模式切换、节律控制、报警/回退逻辑
+- `vehicle` / `automotive` + `ABS/BBW/CACC/platoon/AEB/power steering` + `controller/control system/model/verification`
+  - 当前对 🚗 领域命中较高，容易找到控制模式、状态约束、join/leave、制动切换等行为描述
+- `PLC` / `IEC 61499` / `IEC 61131` + `control logic/function block/ECC/operation mode`
+  - 当前对 🏭 领域有效，尤其适合寻找功能块级控制逻辑与设备运行模式
+- `traffic light` / `parking system` / `elevator` + `controller/control system/design`
+  - 当前对 🚦、🅿️、🏢 领域有实际收获，适合补充离散事件控制对象
+
+### 已观察到的高命中标题/关键词特征
+
+- 标题直接点名具体控制系统客体，而不是泛泛说 framework、architecture、approach。
+  - 例如：`Infusion Pump Control System`、`Dual Chamber Pacemaker`、`Elevator Control System`、`Railway Interlocking`、`Traffic Light Controller`、`Landing Gear System`
+- 标题同时出现“控制对象 + 控制/控制器 + 设计/规格/验证”三类词。
+  - 例如：`... control system`, `... controller`, `design`, `specification`, `verification`, `modeling`
+- 标题或关键词中含有明显状态机信号词。
+  - 例如：`state machine`, `FSM`, `statechart`, `mode`, `operation mode`, `switching`, `interlocking table`, `control logic`
+- 虽然未直接写 `state machine`，但带有“可落到具体控制逻辑”的表达。
+  - 例如：`formal specification of ... control system`, `verification of ... controller`, `modeling of ... dynamic responses`
+
+### 已观察到的低命中标题/关键词特征
+
+- 过于偏向综述、方法、框架、流程或标准。
+  - 例如：`review`, `survey`, `state of the art`, `architecture`, `framework`, `middleware`, `standards landscape`
+- 标题中的“状态/模式”并非控制系统运行状态，而是开发流程、工具流程或工程流程。
+  - 例如：`development process`, `design process`, `workflow`, `analysis process`
+- 只强调安全分析、攻击路径、漏洞知识，而不描述控制对象行为。
+  - 例如：`security analysis`, `vulnerability`, `attack`, `knowledge-based system`
+- 只讨论通用建模能力或工具链，没有具体控制系统客体。
+  - 例如：泛化的 `toolset`, `virtual integration`, `meta-model`, `methodology`
+
+### 检索倾向调整
+
+- 后续搜索应优先沿着“**具体控制对象 + control/controller/system + design/specification/verification/modeling**”这条主线展开，而不是先从宽泛的 `formal methods` 或 `system architecture` 出发。
+- 对已经证明高产的对象词应继续深挖同义词、上下位词和子任务词。
+  - 例如围绕 `railway interlocking` 继续扩展到 `route locking`, `route release`, `signalling principle`, `level crossing`
+  - 例如围绕 `pacemaker` 扩展到 `DDD mode`, `rate control`, `mode switching`
+  - 例如围绕 `elevator` 扩展到 `door control`, `group control`, `dispatching`, `operation mode`
+- 搜索时应尽量遵循本节已有高命中经验，但不能被现有词簇束缚住。
+  - 允许并鼓励基于已有 `🟢 直接可用` 论文标题、控制对象名、控制任务名去脑补新的关键词组合
+  - 这些新词必须逻辑上能指向“具体控制系统的状态机描述”，而不是泛化方法论文
+- 后续每轮更新时，都应根据新增 `🟢 直接可用` 与 `⚪ 未收获` 文献，继续修正本节内容，使检索策略逐步偏向更容易产出有效 STM 的标题词和关键词。
 
 ## 当前收录统计
 
