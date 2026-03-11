@@ -1,0 +1,890 @@
+--- Page 1 ---
+Journal of Computing and Information Technology - CIT 18, 2010, 1, 31–44
+doi:10.2498/cit.100141431
+Development of a Hierarchical
+Driver Aid for Parallel ParkingUsing Fuzzy Biomimetic Approach
+Tarik Ozkul1, Mohammed Moqbel1and Suhail B. AlDhafri2
+1Department of Computer Science and Engineering, American University of Sharjah, Sharjah, UAE
+2Emirates Institution for Advanced Science and Technology, Dubai, UAE
+The objective of this article is to present the design
+method of a hierarchical driver aid which is designed toguide the driver of a vehicle to perform parallel parkingmaneuver. The development philosophy of the system
+is based on biomimetic model where the designer of
+the model does not need to be aware of either vehicledynamics or kinematics. The developed system is basedon fuzzy logic and makes its decision based on visualinformation coming through two low-resolution camerasplaced at strategic locations of the vehicle. System eval-uates critical parameters and gives real-time, on-the-flyadvice to driver, based on position of the vehicle and theintended parking space. The approach is very similarto an expert observing the driver and giving interactiveadvice about what to do to achieve acceptable parking.The article explains design philosophy, developmentmethod used for extracting fuzzy rules, implementationand test results of the developed system.
+Keywords: driver information system, fuzzy logic, image
+processing, intelligent control, interactive systems, realtime system, road vehicle control, biomimetic systems
+1. Introduction
+Ever increasing traffic is becoming more and
+more demanding on the driver. Fortunately, em-
+bedded computer technology and mechatron-
+ics has been providing drivers with affordablemodern driver aids. Sophisticated intelligent
+driver aids like GPS, vehicle stability control
+have become economically feasible and found
+their ways into today’s modern vehicles.
+Fuzzy logic has proven itself as a very useful
+tool for automotive industry and many luxuryand safety features are based on fuzzy logic.
+Fuzzy anti lock brakes and fuzzy logic basedtransmission shifting have proven to be useful
+features. They are developed with reasonable
+effort using the tools and concepts provided byfuzzy logic [1, 2].
+As the computer and vision technology is im-
+proving, we have started developing new cate-gory of driver aids that we have not seen before.
+The new driver aids which are called copilots,
+will be providing aid to driver actively or pas-sively [3]. These tools are expected to appear
+in the coming years and have many differentapplications [4,5]. Vehicle path planning, curve
+warning systems, adaptive speed regulations are
+such aids which are likely to appear in next gen-
+eration modern vehicles.
+The type of interactions between driver, copilot,
+and the vehicle bring important issues whichrequire serious considerations while designingmodern driver aids. Currently there are twomodels of approaches to this three way interac-
+tion between vehicle, driver and copilot [3].
+1. Hierarchical (vertical )structure approach,
+2. Heterarchial (horizontal )structure approach.
+In hierarchical structure approach, the driver is
+superior in hierarchy, and copilot provides ad-vice to the driver only. In this approach, thedriver is the sole decision maker and has theoption to take or leave the advice provided by
+the copilot. This approach is known as “open
+loop mode” or “Driver Warning Mode”.
+In heterarchial approach, copilot and driver have
+the same level in hierarchy and can make the de-cision together [6, 7]. This approach is known
+
+--- Page 2 ---
+32 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+as “closed loop mode” where the copilot may
+actively participate in correction of the vehi-cle guidance (Vehicle Control Mode ).S o m e
+of the systems adapt a hybrid approach where
+the driver is initially warned only with no cor-
+rective action from the copilot (Driver Warning
+Mode ). But if the driver continues to drive in
+an unacceptable way, copilot goes into heterar-chial mode and makes the necessary correctionsto bring the vehicle into appropriate driving con-
+ditions (Vehicle Control Mode ).
+In this study, we have designed a hierarchical
+tool to help the driver to perform parallel park-ing maneuver. The tool is based on visual pro-cessing of information coming from two cam-eras and works with fuzzy rules of operation.One of the contributions of the paper is the way
+fuzzy rules are extracted from the behavior of
+an expert driver.
+2. Parallel Parking Problem
+Parallel parking of a vehicle is considered a
+difficult maneuver to master by many drivers.Looking at it from an engineer’s point of view,it is considered a multi objective optimizationproblem, where several distance parameters needto be satisfied simultaneously for a successful
+parking.
+2.1. Models Used for Vehicle
+Kinematic model of a front wheel steered vehi-
+cle is given by de Lope and Maravall and shown
+in Figure 1 [8].
+˙x(t)=v(t)cos
+θ(t)
+˙y(t)=v(t)sinθ(t)
+˙θ(t)=v(t)/Ltanφ(t)
+Where (x,y)is the center point of rear axle of
+vehicle;θis the direction of heading of vehicle;
+vis the speed of vehicle; Lis distance between
+front and rear axle centers, and φis the angle of
+steering wheel with respect to the orientation ofthe vehicle is heading.
+Figure 1. Kinematic model of vehicle.
+In this model, (v,φ)are the parameters that are
+under control of the driver and (x,y,θ)are pa-
+rameters that indicate the state of the vehicle.
+The discrete versions of the formulas above are
+given as follows, where TSis the sample time
+[8]:
+xk+1=xk+vkTScosθk
+yk+1=yk+vkTSsinθk
+θk+1=θk+(vk/L)TStanφk
+with the limitation that steering angle has to
+be lower than maximum physically allowable
+value for the vehicle;
+0≤φk≤φmax
+One of the objectives of the parking process is
+to position the car in the desired spot (xd,yd)
+and the other objective is to orient the car in line
+with the parking position θd. Mathematically,
+this can be expressed as minimization of two
+indexes;
+J1=1
+2[(x−xd)2+(y−yd)2]
+J2=1
+2[(θ−θd)2]
+Where x,yandθindicate the final position of
+the vehicle and the orientation in the parking
+bay. J1reflects how well the vehicle is centered
+in the parking bay and J2indicates how well
+the vehicle is oriented in the parking bay. Mini-
+mization is supposed to be achieved by using
+control variables availa ble for the driver,namely
+speed and steering orientation (vk,φk).O f t h e
+two variables, vkis not likely to be changed ag-
+gressively by the driver and it can be assumed
+constant during the parking process. The pa-
+rameter that affects the quality of parking most
+
+--- Page 3 ---
+Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach 33
+is the steering orientation φk. Minimization of
+the two indexes with respect to φcan be ex-
+pressed as follows:
+φ(t)=−μ1∂J1
+∂φ−μ2∂J2
+∂φ
+whereμ1andμ2are the weights attached to the
+goals J1andJ2indicating how important the
+goals are. Discrete version of this formula is
+given as:
+φk+1=φk−μ1∂J1
+∂φ/vextendsingle/vextendsingle/vextendsingle/vextendsingle
+φk−μ∂J2
+∂φ/vextendsingle/vextendsingle/vextendsingle/vextendsingle
+φk
+Even though minimization of the total duration
+of the process is another goal that needs to be
+minimized, the weight attached to this goal is
+usually small enough to be ignored in the cal-culations. According to the above formula, op-
+timization is achieved by adjusting steering in-
+crementally, to satisfy both J
+1andJ2simulta-
+neously.
+In this paper we have not used the above de-
+rived mathematical model. Rather, the modelis developed using fuzzy approach by mere ob-
+servation of the expert driver behavior. The
+fuzzy model developed for the vehicle does notcontain such formulas, but the rules describingbehavior of vehicle under different conditions.
+However, for determination of quality of park-
+ing, we have adapted the J
+1andJ2parameters
+developed by the above mathematical model.
+2.2. Approaches to Parallel Parking
+Like many real world-engineering problems,
+parallel parking problem is considered a diffi-
+cult problem to automate using classical math-ematical optimization techniques. Currently
+there are two different approaches adapted by
+researchers [9].
+1. Path planning approach,
+2. Skill based approach.
+In the path planning approach, parking area,
+driving path, vehicle dynamics are taken into
+consideration and a path is planned before thevehicle starts moving. Then necessary control
+commands are generated to move the vehicle in
+the planned path. Several researchers [10-13 ]
+have studied the path planning approach. Inthese approaches, parking space is scanned, an-
+alyzed and a sinusoidal path that leads to thedestination is generated. Once the vehicle iswithin the bay, what other maneuvers should bedone is also planned in advance. The path plan-
+ning approach is considered “open loop” since
+movement instructions are generated before themove starts. This approach cannot cope withthe errors introduced during the execution orproblems due to vehicle dynamics.
+In the second approach, skill based approach,
+soft computing tools are used to generate in-structions to guide the vehicle to the intendeddestination. In this approach, there is no ref-erence path and the instructions are providedbased on relative orientation and position ofthe vehicle with respect to the parking posi-tion. Skill based approach has been very pop-
+ular and studied by many researchers. Most
+of these researches are based on ultrasonic sen-sors and directions gene rated using neural net-
+works, fuzzy logic and genetic algorithms [14-
+20]. Researchers like Jiang have combined path
+planning and skill based approaches in their ap-proach where the parking space is first scanned,then the vehicle is positioned and maneuveredinto the parking space [21, 22 ].
+Few researchers used visual guidance to guide
+the vehicle into the parking space. Daxwangeret al. [23], used the image from camera to
+study the location of the parking space and usedneural networks for calculating the necessary
+steering angles. De luca et al. and Bercemeier
+[24, 25 ]have experimented with visual guidance
+and parking although not particularly focusingon parallel parking issue. Recent studies byGomez-Bravo et al. combined artificial intelli-gence and
+β-spline curves to generate smooth
+path for parking [26, 27 ]. In their interesting ap-
+proach, de Lope and Maravall have used geneticalgorithms to generate pa th for parallel parking
+[8].
+Most of the approaches listed above use ultra-
+sonic distance sensors, for collecting distanceinformation from perimeters of the parking spot.
+Some researchers like Chen and Feng have used
+a camera and soft computing tools to guide amodel vehicle autonomously into parking spot[28].
+The automotive industry has recently been man-
+ufacturing vehicles with automatic parallel park-ing feature. One of the manufacturers integrates
+
+--- Page 4 ---
+34 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+information coming from sonar sensors with the
+image coming from rear view camera to guidethe vehicle into parallel parking position auto-
+matically. In this case, image is used as a way
+of asking the driver to determine the locationand boundaries of the parking spot [29].A f t e r
+the initial settings are done on the image of theparking location, the vehicle rears itself into theparking spot automatically.
+Even though fuzzy logic and vision are used in
+many prototypes, visual information is used assupplemental to other sensor information sinceuse of a single camera typically limits the scopeof vision in full size vehicles. A single cam-era placed over a small prototype vehicle may
+see the limits of the parking space, but it is quite
+unlikely to get an unobstructed view of the park-ing bay when it is used on a full size vehicle.In our approach we decided to use two camerasto mimic the expert driver giving guidance todriver for successful parking execution.
+Biomimetic is described as the art of designing
+by mimicking biological systems. In biomimeticapproach there is a direct coupling between per-ceptions and actions without knowing the com-plexity of the underlying mechanism [8].I t i s
+observed that an expert driver guides the novice
+by observing the distance from the curb and theparked vehicles. There is no need to know thevehicle dynamics, exact length of either the ve-hicle or the steering angle. Expert can guidesimply by relying on his perception of distancefrom surrounding vehicles and curb. Our ap-
+proach in this study has been to mimic and ex-
+pert for the guidance operation.
+Since the view from both front and back is re-
+quired at different times, we typically see expertchanging his /her position to get better view of
+back or front. In our approach two cameras areplaced, one at the front and one at the back to getboth views simultaneously and feed the distanceinformation to a fuzzy logic system to mimicdecisions of an expert driver. Low resolutioncameras are selected deliberately to reduce thecomputational complexity of image process-ing. Unlike parking bay recognition done inother camera based approaches, only few cru-cial parameters are extracted from camera im-ages through very efficient image processingalgorithms. Since the system is intended as adriver aid, a suitable human-machine interface(HMI )system is designed to relay generated
+advice to the driver. The following sectionsexplain the approach in detail.
+3. Overview of the System
+Parallel parking driver aid system, which will
+be referred to as “parking aid” in short, is a sys-tem which utilizes visual image coming fromtwo strategically located low resolution camerasto generate instant advice for the driver towardsuccessful parallel parking maneuver. Humanmachine interface (HMI )is provided through an
+LCD screen located over the dashboard whichprovides instructions in graphical form aboutwhat the driver should do for an acceptable park-ing. The system is based on fuzzy logic andinformation about the lateral and longitudinalpositions of the vehicle acquired through pro-cessing the visual image provided by the cam-eras. Figure 2 shows the block diagram of thesystem.
+Figure 2. Block diagram of the biomimetic vision-based parallel parking system.
+
+--- Page 5 ---
+Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach 35
+The system is designed to operate by relying
+on visual information received from two cam-eras located on the vehicle. The cameras needto have wide angle of vision, and should beoriented in a specific manner in order to ex-tract critical information necessary for gener-ating appropriate advice for the driver. Overthe course of the project, different camera loca-tions and different angles of visions are testedand we found a combination which producedthe most acceptable view with reasonably easyinstallation location on vehicles. Single camerasolution has been tested, but found to be in-adequate for providing necessary information.Figure 3 indicates the position and orientationof the cameras on the vehicle.
+Figure 3. Parallel parking driver aid system uses two
+wide angle cameras placed at the corners of the vehicle
+to visualize necessary parameters.
+The cameras are fixed on front and rear bumpers
+of the vehicle, with special orientation shown inFigure 3. The exact position of the camera indifferent vehicles may vary slightly due to ex-isting physical obstructions over the body ofthe vehicle. Figure 4 shows the way camerasare attached to one of the test vehicles (Toyota
+Landcruiser, 2002 ). The positions of the cam-
+eras are selected to provide optimum views ofcurb and vehicles located at the front and at therear of test vehicle.
+Operation of the system requires parking area to
+be sufficiently illuminated. So for nighttime op-eration the parking area needs to be sufficientlyilluminated for acquiring visual image of theparking space. Tests are done in parking areaswith clearly marked demarcation lines as well
+as parking areas where demarcation lines are ei-ther not visible because of parked vehicles or do
+not exist at all. When there were no demarcation
+lines in the parking lot, visual information wasextracted from the distance of curb stones and
+from the image of vehicles parked in front and
+behind. These cases were clearly more chal-lenging, especially in low light situations forthe vision processing system. However, it is
+understood that these conditions are considered
+challenging even for seasoned human drivers.Glare from the sun is found to be very detri-mental for acquiring images, as a result, hoods
+were installed to cameras to prevent glare from
+the sun.
+Figure 4. Locations of the front and back cameras on the
+test vehicle.
+3.1. Operation of the System
+Parallel parking is considered one of the hard-
+est driving skills for novice drivers to master.
+Parallel parking maneuvers are made rearward
+since this allows placement of the non-steerablerear end of the vehicle in the parking place
+first. When performing parallel parking, there
+are three important parameters that need to bemonitored carefully. These parameters are:
+
+--- Page 6 ---
+36 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+•Df: Distance between the vehicle and the
+car in front,
+•Dr: Distance between the vehicle and the
+car at the back,
+•Dlf: Lateral distance between the vehicle
+and the curb at the front side.
+•Dlr: Lateral distance between the vehicle
+and the curb at the rear side.
+These parameters are indicated in Figure 5 and
+they all together determine the quality of park-
+ing factors J1andJ2which were derived in
+Section 2. The relationship between those pa-rameters can be expressed as follows:
+x
+d=1
+2(Df+Dr)
+yd=1
+2(Dlf+Dlr)
+θd=sin−1(Dlf−Dlr)
+L
+Getting all these parameters simultaneously us-
+ing a single camera is not feasible, even with
+wide angle lenses. Therefore, two separate
+cameras are used for getting these parameters.Both cameras are oriented to visualize both the
+distance from the curb and distance from the ve-
+hicle at front or rear simultaneously. Both cam-eras are oriented downward showing the other
+cars, the street, the edge of the curb and other
+obstacles on the way.
+Figure 5. The distance parameters.In Section 2.1 the quality of parking formula
+was derived as;
+φ(t)=−μ1∂J1
+∂φ−μ2∂J2
+∂φ
+During the implementation of the system, the
+orientation of the vehicle is considered less im-
+portant than the distance from curb and vehiclesand importance coefficients are determined as:
+μ1=1,μ2=0
+As a result of this assumption, only D f,Dr,a n d
+Dlrparameters are acquired from the images.
+Dlfparameter is ignored and not used in the
+operation.
+3.2. Image Processing
+The fuzzy parking aid system automatically
+starts capturing images once it is activated bythe user. Figure 6 shows the simple block di-agram of the system design. The video streamof images coming from the cameras is fed toan image processing unit, which processes the
+image to calculate the distance parameters and
+passes them on to the fuzzy logic unit whichmakes appropriate decisions and presents theoutput as guidance advice to the driver for par-allel parking. In the prototype, two commercial
+low cost USB cameras with 30 fpm frame rate
+with resolution of 320 ×288 pixels are used
+for providing video images. The lenses are re-placed with wide angle lenses to provide 120degree wide angle visual coverage. A notebook
+computer loaded with MATLABc/circlecopyrt, Image Pro-
+cessing Toolbox and Fuzzy Logic Toolbox ex-
+tensions are used for analyzing image and con-structing fuzzy inference system. The cameras
+Figure 6. Block diagram of image processing part.
+
+--- Page 7 ---
+Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach 37
+are interfaced to MATLABc/circlecopyrtby an image cap-
+ture tool which can support up to 6 USB cameras
+simultaneously [30, 31 ].
+The captured image is processed to acquire dis-
+tances from front and back vehicles as well
+as lateral distances from the curb. Figure 7
+shows the real image and the processed image
+of rear camera with the involved distances from
+curb (C)and the rear vehicle (R). Front cam-
+era image and the distance parameter measured
+is indicated as (F)in the figure. Images re-
+ceived from the two USB cameras are treated
+as two independent streams of images for real
+time processing. The images in both streamsfirst go through two dimensional median filter-
+ing where the images are smoothed to get rid
+of noise in the scene. This is done by taking
+the median value of 5 ×5 neighborhood pixels
+for each pixel in the original scene. As a result
+of this process, the smoothed image contains
+only large objects of interest. The second step
+in processing is applying edge detection proce-
+dure to detect edges of the objects in the scene.
+Edge detection step of the process is done by
+using Sobel filter. A dynamic threshold limit
+of contrast change is determined by averaging
+the background color and applied to the image.
+The level above this threshold is accepted as le-
+gitimate object edges. The process of applying
+threshold further reduces the noise in the image.
+Noise cancellation and edge detection is done by
+using standard tools provided by MATLABc/circlecopyrt
+Image Processing Toolbox.
+Figure 7. Front and rear camera images and the
+parameters measured along vectors F, C and R.The edge detection process converts the image
+to a binary image with 0’s and 1’s. (0 corre-
+sponds to black and 1 corresponds to white in
+the matrix. )Next step in the image processing
+is measuring the pixel distance of the objects
+in the scene by counting pixels in the specific
+predetermined directions. Rear camera images
+are used for getting two distance parameters
+as shown in Figure 7. The straight up vector(R), measures the distance of the object or the
+available space behind the vehicle, D
+r,a n dt h e
+45 degree angled vector (C)measures the dis-
+tance from the curb, Dlf. Both measurements
+are done by using simple trigonometric calcu-lations or by counting pixels until we reach the
+edges indicated by white pixels. The magnitude
+of the distance vectors is used as the distance
+parameters in the latter portions of the system.
+A special MATLABc/circlecopyrtroutine is developed for
+counting number of pixels in the required di-
+rection until change in background color is de-
+tected. These counts are labeled accordingly as
+D
+f,Dr,a n d Dlr.
+3.3. Fuzzy Inference Systems
+Fuzzy logic block of the system makes deci-
+sions based on the rear, front and curb param-
+eters generated by the image processing block.Using approach adapted by most expert drivers,
+the parking maneuver is done in two distinct
+steps. Expert drivers usually drive the car back-
+wards into the parking bay and then drive the
+vehicle forward to correct the orientation of thevehicle. We have designed the fuzzy logic in-
+ference system to mimic this behavior. Since
+expert driver approach is to do the parking in
+two distinct steps, we have used two different
+fuzzy logic systems to capture actions done inthese two steps. First, fuzzy logic system guides
+the driver from the initial position to a halfway
+position where the rear end of the vehicle is
+placed in the parking space, while the front end
+of the vehicle is still partially outside the park-ing bay.
+This part of the process is called Stage 1 oper-
+ation where the beginning and ending positions
+are shown in Figure 8 as positions A and B.
+The ending position in Stage 1 is not an accept-
+able orientation for parking, so Stage 2 makes
+the final corrections to put the vehicle com-
+pletely in the parking position. Position B is
+
+--- Page 8 ---
+38 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+Figure 8. Beginning (Stage 1 A )and ending (Stage 1 B )
+positions of Stage 1 control. Stage 2 starts where Stage
+1 ends (Stage 1 B ). Ending position of Stage 2 is labeled
+as Stage 2 C.
+the beginning position for Stage 2 and position
+C is the ending position. The distance fromthe curb in position C indicates the quality ofparking. (The closer the better. )Stage 1 Fuzzy Inference System
+Both Stage 1 and Stage 2 fuzzy logic systems
+use the same linguistic input variables frontCar ,
+rearCar andcurb to operate. These input vari-
+ables are shown in Figure 9.
+Fuzzy logic inference systems work with fuzzy
+variables, membership functions and fuzzy logicrules. More information about fuzzy logic canbe found in many references available [2].
+Stage1 fuzzy inference system is responsible for
+bringing vehicle from initial position indicatedas Stage 1 A to intermediate position shownas Stage 1 B in Figure 8. The membership
+functions for fuzzy input variables “ frontCar ”,
+“rearCar ”a n d“ curb” are indicated as A, B,
+C in Figure 9. Fuzzy input variables “front”and “rear” have single membership functionslabeled as “ close ” as shown in Figure 9 A and
+B panels. The fuzzy variable “ curb”h a sf i v e
+membership f unctions named “ close ”, “trigger
+close ”, “middleIN ”, “middleOUT ”, and “ far”
+which are indicated in panel C of Figure 9.
+Figure 9. Membership functions for fuzzy input and output variables for Stage 1 inference system.
+
+--- Page 9 ---
+Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach 39
+There are three output variables designed for
+the Stage 1 fuzzy inference system, labeled as“movingDirection ”, “steeringGuide ”a n d“ trig-
+ger”. “movingDirection ”a n d“ steeringGuide ”
+are the two parameters displayed by the HumanMachine Interface LCD screen of the system tothe vehicle driver and can be considered as the
+outputs of the Stage 1 system. The other output
+parameter of Stage 1, which is called “ trigger ”
+is not displayed to the driver, but it is used forinitiating the start of the Stage 2 fuzzy inference
+system. “ trigger ” fuzzy variable is indicated in
+panel E in Figure 9. The se two output param-
+eters “ movingDirection ”, “steeringGuide ”a n d
+their associated membership functions are indi-
+cated in panels D and E in Figure 9.
+Stage 2 fuzzy inference system is initiated by
+the trigger output of the Stage 1 and it is acompletely independent inference system. The
+variables of this inference system are similar
+to Stage 1 inference system but fuzzy rules arecompletely different from the rules of Stage 1.Once the Stage 2 inference system is triggered,
+the driver instructions are generated and HMI
+screen is controlled by this stage.
+The fuzzy rules for the Stage 1 are as follows:
+•If(Curb isfar)then (MovingDirection is
+Reverse )(1)
+•If(Curb isfar)and(RearCar is not close )
+then (SteeringGuide isTurnRight )(Mov-
+ingDirection isReverse )(0.9)
+•If(Curb isMiddleOUT )and (RearCar is
+notclose )then (SteeringGuide isTurnRight )
+(
+MovingDirection isReverse )(0.9)
+•If(Curb isMiddleIN )and(RearCar is not
+close )then (SteeringGuide isTurnleft )(Mov-
+ingDirection isReverse )(0.9)
+•If(FrontCar isclose )then (MovingDirec-
+tionisReverse )(1)
+•If(RearCar is not close )then (MovingDi-
+rection isReverse )(1)
+Stage 2 Fuzzy Inference System
+Stage 2 uses the same fuzzy variables “ curb”,
+“rearCar ”, and “ frontCar ”. The membership
+functions of this stage have similar variables,
+but the shapes of the membership functions are
+quite different. Fuzzy rules for Stage 2 are asfollows:•If(FrontCar is not close )and(Curb isclose )
+then (SteeringGuide isTurnRight )(Mov-
+ingDirection isForward )(1
+)
+•If(FrontCar is not close )and (RearCar
+isclose )then (SteeringGuide isTurnRight )
+(MovingDirection isForward )(1)
+•If(FrontCar isclose )and(RearCar is not
+close )then (SteeringGuide isTurnleft )(Mov-
+ingDirection isReverse )(1)
+The output variables of Stage 2 fuzzy inference
+system are exactly the same as variables of Stage
+1 fuzzy system.
+3.4. Biomimicing an Expert Driver’s
+Approach to Parking
+Designing equipment by emulating interactions
+that occur in nature is called biomimetic ap-
+proach of design. The basic idea of biomimetic
+is to observe natural inter actions, understand the
+mechanism and then design new equipment on
+these bases. Velcro is one of the well known
+products designed by bio mimetic approach by
+copying hooks on a natural burr. Study of bones
+resulted in design of lighter yet stronger ma-
+terials. Using this approach, the behavior of
+an expert driver is studied to come up with amethod of parking that does not need to know
+the kinematics of the vehicle or the exact size
+of the parking bay. In a sense, all fuzzy sys-
+tems are designed to mimic an expert by using
+appropriate rules. But in this case, the behav-
+ior of the expert is observed carefully and fuzzy
+rules of the inference systems are extracted from
+the observations alone. Since rule generation is
+done by observation, authors’ believe this canbe considered as biomimetic approach of rule
+generation.
+Fuzzy systems operate by capturing experience
+of a skilled human expert using fuzzy decision
+rules and membership f unctions and reproduce
+these decisions when the system operates. In
+this study, in order to capture the experience
+of an expert driver, the cameras were set up
+in the designated locations of the test car and
+the images were recorded while the test vehicle
+was being parked manually by the expert driver.
+Later recorded images from front and rear cam-
+eras are processed by image processing routines
+developed for measuring D
+f,Dr,a n d Dlrpa-
+rameters. The measured parameters are plotted
+with respect to time, to see the relevance of these
+
+--- Page 10 ---
+40 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+parameters with respect to each other. The typ-
+ical parking operation took around 70 seconds
+and the parameters recorded during this session
+are shown as a time series Figure 10. Hor-izontal axis of the graph shown in Figure 10
+indicates real time in seconds. Real time image
+frames coming from front and rear cameras arerecorded and displayed for 70 seconds in the
+figure. Even though cameras provide images
+at a rate of 30 fps, due to space considerations
+only one image per second is displayed in the
+figure. Sample frames received from camerasare labeled and shown in Figure 11.
+Images labeled from one to eight are for Stage
+1 of the operation where the vehicle is reared
+into the parking bay, and the images labeled 9
+and 10 are frames of Stage 2 of the operationwhere the posture of the vehicle is corrected.
+The actual video frame images corresponding
+to these numbers are shown in Figure 11.
+As the images are received from cameras, im-
+age processing routines extracted the distance
+parameters from the images. The vertical axis
+of Figure 10 displays those distances calculatedfrom the images. When the images and the
+recorded parameters are analyzed carefully, it
+is apparent that initial values given by the im-age processing routine for variable D
+f,“front”,
+(parameters 1 to 6 )are noisy and have no mean-
+ingful value. Close inspection of the corre-
+sponding front camera images reveal that thisindeed should be expected since those images
+do not really have a target to measure distance.
+(See front camera frames 1 to 6 in Figure 10. )“Rear” distance measurement parameter, D
+r,i s
+also very noisy at the beginning of stage 1 ac-tion for the same reason. (see frames 1 and 2. )
+But the “ curb” distance parameter, D
+lr,i sv e r y
+stable since the target is clearly in sight. (See
+“curb” parameter for frames 1 to 10 in Figure
+10 and back camera views in Figure 11. )
+The fuzzy rules of Stage 1 are designed in such
+a way that designed inference system initiallydepends on the reliable “ curb” parameter, D
+lr,
+and when the curb distance decreases to a cer-
+tain value, the “ front”,Df,a n d“ rear”,Dr,p a -
+rameters are used. By that instant, both “ front”
+and “ rear” parameters have clear targets in sight
+and start giving reliable results.
+Parameter 6 in Figure 10 marks a very impor-
+tant decision instant, where the expert driver
+steers the wheels from full right to full left. Af-
+ter this instant, the distance from the front car,“front“, D
+f, seems to increase and the distance
+from rear car, “ rear”, D r, seems to decrease. To
+capture this instant of decision in our fuzzy sys-
+tem, fuzzy membership values “ middleIN ”a n d
+“middleOUT ” are used. The “ curb”m e m b e r -
+ship functions “ middleIN ”a n d“ middleOUT ”
+are sculpted to capture this instant of decisionand are indicated in panel C of Figure 9.
+As it can be seen from the discussion above,
+almost all rules and parameter values are ex-
+tracted from the analyses of recorded actions of
+the expert driver. By carefully analyzing the be-havior, we were able to put together fuzzy rulesand crucial parameters of the inference system.
+Figure 10. Recorded parameters as the expert driver executes a perfect parallel parking operation. The top number
+shows which image frame provided the parameters.
+
+--- Page 11 ---
+Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach 41
+Figure 11. Actual recorded images which provided the parameters shown in Figure 10. Frames 1–8 are for Stage 1
+and Frames 9, 10 are for Stage 2 operation.
+3.5. HMI of the System
+The system helps the driver to park his /her car
+using an HMI display screen placed on the dash-board of the vehicle. The screen layout has four
+quadrants for forward, backward movement and
+left and right steering. The suggested steer-ing position and the movement, including thespeed of movement, are shown on the screen asshown in Figure 12. Therefore, the driver canpark the vehicle only by observing the screenwithout using mirrors. Parking aid system is
+implemented using a notebook computer, so in
+experiments we have placed the computer onthe dashboard where notebook computer screenhas also served HMI screen for driver guidance.
+Figure 12. HMI interface of the parking aid guidance
+system instructing slow reverse movement with steering
+wheel turned almost fully in right direction.
+
+--- Page 12 ---
+42 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+4. Testing Robustness of the System
+IEEE defines “Robustness” as the degree to
+which a system operates correctly in the pres-ence of exceptional inputs or stressful environ-mental conditions. In order to test robustness wedecided to test the system with different driversunder different conditions with different vehi-
+cles to see the quality of the parking.
+Main functional feature re quirements tested dur-
+ing the tests were as follows:
+•F1: The system shall provide a direct real-
+time guidance to the driver about his /her car
+moving direction and the steering wheel.
+•F2: The system should be able to operate in
+dry, cloudless and well lit environment.
+•F3: The system should be operated with nec-
+essary hoods and filters to avoid glare.
+•F4: The system should be able to operate in
+parking areas that have no painted lines in
+the street. The parking area shall be as black
+as the normal street color to avoid the cor-ruptions and the noise detected in the imagesproduced.
+•F5: The lateral distance between the front
+car and the vehicle should be at least
+1/2me-
+ter.
+•F6: The system shall guide the user from the
+beginning of the parking position to the end,
+without bumping or crashing to the other two
+cars or the curb.
+•F7: The system shall operate on “one go”
+to park the vehicle. So the driver shall stop
+next to the front car and switch on the system
+to prove 90% accurate guidance.
+•F8: The system shall be smart enough to
+deal with novice user.
+•F9: The system should guide the driver to
+adjust the speed of movement.
+•F10: The output screen will indicate the user
+of how far the steering wheels should beturned.
+Non-functional features to be tested:
+•NF1: The system shall operate 90% failure
+free for 1 hour of continuous use.
+•NF2: The System should be easy to upgrade
+in case it needs to be upgraded.•NF3: The system should be easy to learn
+by the first time user and should have 97%
+accuracy of guidance.
+•NF4: The system should be able to operate
+on any vehicle.
+•NF5: The system shall be tested on left hand
+steering wheel system,
+•NF6: The parking place shall be on the right
+side of the road.
+The functional and non-func tional requirements
+listed above are tested and the summary of some
+of the test cases are given in Table 1. Developedprogram, cameras and necessary software toolsare loaded into a 1.4 GHz. Pentium 4 based
+notebook computer equipped with two USB
+cameras operating at 30 fps rate with 352 ×288
+pixel resolutions. Tests are conducted with sev-eral different drivers, using two different ve-hicles and under different lighting conditions
+using different parking bays. The results of ro-
+bustness tests are summarized in Table 1 below.
+Testcaseno
+Req’ment
+Tested
+Comments
+ Result
+1
+ F1
+Operated with 0.4
+second delay
+PASS
+2
+ F2
+Automatic threshold
+adjustment to edge
+detection added
+PASS
+3
+ F3
+ PASS
+4
+ F5
+ Passed with good result
+ PASS
+5
+ F6
+ PASS
+6
+ F7
+ PASS
+7
+ F7
+ Different locations tested
+ PASS
+8
+ NF3
+First time user gets
+80% quality parking
+FAIL
+9
+ NF4
+Parameter needs to be
+adjusted for different
+vehicles
+FAIL
+Table 1. Summary of robustness testing results.
+Some of the comments regarding tests are as
+follows:
+Test case 1: The real time operation speed of
+the system is found to be quite satisfactory with0.4-second update speed. The system evaluatedcurrent condition of vehicle and distances be-tween obstacles continuously and provided new
+instructions to the driver every 0.4 seconds.
+Test case 2: Although the initial functional re-
+quirements were for day light operation the sys-
+tem is found to be operational at night time if
+
+--- Page 13 ---
+Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach 43
+parking bay is sufficiently illuminated. During
+the course of the testing, automatic threshold ad-
+justment to edge detection block is added whichimproved the parameter measurement process
+drastically.
+Test case 5 and 7: The system is found oper-
+ational in different parking locations and pro-vided adequate distance between the parked ve-
+hicles.
+Test case 8: First time user requirement has
+performed unsatisfactorily achieving only 80%quality of parking. Goal of quality parking was
+determined as having a lateral distance of 20 cm
+from the curb. First time users, although parked
+successfully, the latera l distance was found to
+be 25-30 cm.
+Test case 9: When switching from one vehicle
+to another without any adjustment, the system
+failed. The fuzzy membership curves needed
+to be adjusted for the target vehicle, then thesystem performed satisfactorily.
+5. Conclusion
+A parallel parking guidance system based on
+biomimetic approach has been designed and
+tested. The goal of the project was to design a
+system mimicking behavior of an expert driver
+who operates without knowing details such as
+kinematics, dynamics of vehicle. The only in-
+formation expert driver relies upon while per-forming parking maneuver are the visual cues
+he/she receives from around the vehicle. The
+behavior of the expert is recorded, analyzed and
+a fuzzy system mimicking his behavior is de-
+signed. The fuzzy rules are derived directlyfrom the behavior of the driver.
+Testing robustness of the system has revealed
+that system is successful in design goals with
+the exception of switching from a large vehicleto a small vehicle. The system is found opera-
+tional with similar size vehicles, but switching
+to a much different size requires adjustment of
+membership curves.
+The implemented system works by mimicking
+an expert driver, relying only on visual cues to
+park the vehicle. Although design and imple-
+mentation of such a project were challenging,
+fuzzy logic and biomimicing approach workedsurprisingly well. By recoding and studying ac-
+tions of an expert, it was possible to decipherfuzzy rules of the action and use these rules for
+successful implementation of the system.
+References
+[1]D. E LTING ,M . F ENNICH ,R . K OWALCZYK ,
+B. H ELLENTHAL ,(2007,06,21 )Fuzzy Anti-
+lock Brake System Solution. Available at:http://www.intel.com/design/mcs96/desi-gnex/2351.htm
+[2]T. J. R
+OSS, Fuzzy logic with engineering applica-
+tions. Wiley, 2004.
+[3]J. P. L AUFFENBURGER ,M .B ASSET ,F .C OFFIN ,G .L .
+GISSINGER , Driver-aid system using path-planning
+for lateral vehicle control. Control Engineering
+Practice , 11, pp. 217–231, 2003.
+[4]C. U NSAL ,(2007,08 )Automated highway systems.
+Available at:http://scholar.lib.vt.edu/theses/avai-lable/etd-5414132139711101/unrestricted/ch2.pdf
+[5]S. B
+ECHTOLSHEIM ,A .H ECHT ,J .F EIGEN ,M .R OSER ,
+L. D UNN,M .S CHMITT , Method and system for pro-
+viding an electronic horizon in an advanced driverassistance system architecture, US Patent 6735515 ,
+Issued on May 11, 2004.
+[6]P. M
+ILLOT ,M .P .L EMOINE , An attempt for generic
+concepts toward human-machine cooperation. IEEE
+International Conference on Systems, Man, and Cy-bernetics , pp. 1044–1049, 1998.
+[7]N. Y
+UHARA ,J .T AJIMA , Advanced Steering System
+Adaptable to Lateral Control Task and Driver’s In-tention. Journal Vehicle System Dynamics , 36, pp.
+119–158, 2001.
+[8]J.
+DELOPE,D .M A RAVA L L , Multi-objective dynamic
+optimization for automatic parallel parking. Pro-
+ceedings of EUROCAST , pp. 513–518, 2005.
+[9]Y. Z HAO,J .C OLLINS ,G .E MMANUEL , Robust au-
+tomatic parallel parking in tight spaces via fuzzy
+logic. Robotics and Autonomous Systems , 51, pp.
+111–127, 2005.
+[10]C. L AUGIER ,T .H .F RAICHARD ,P .H .G ARNIER ,I .
+E. P AROMTCHIK ,A .S CHEUER , Sensor-based con-
+trol architecture for a car-like vehicle. Autonomous
+Robots , 6, pp. 165–185, 1999.
+[11]Autonomous parallel parking of nonholonomic ve-
+hicle. Proceedings of the IEEE Intelligent Vehicles
+Symposium , pp. 3117–3122, 1996.
+[12]I. E. P AROMTCHIK ,C .L AUGIER , Motion generation
+and control for parking an autonomous vehicle. Pro-
+ceedings of the IEEE International Conference onRobotics and Automation , Japan, pp. 13–18, 1996.
+[13]M. W
+ADA,K .S .Y OON,H .H ASHIMOTO , Develop-
+ment of advanced parking system. IEEE Transac-
+tions on Industrial Electronics , pp. 1–17, 2003.
+
+--- Page 14 ---
+44 Development of a Hierarchical Driver Aid for Parallel Parking Using Fuzzy Biomimetic Approach
+[14]M. C. L EU,T .Q .K IM, Cell mapping based fuzzy
+control of car parking, Proc. IEEE Int. Conf.
+Robotics Automation , pp. 2494–2499, 1998.
+[15]J. S. C HO,H .W .K IM,I .S .K WEON , Image-based
+visual servoing using position and angle of image
+features. Electron. Lett. , 37, pp. 208–214, 2001.
+[16]D. L EITCH ,P .J .P ROBERT , New techniques for ge-
+netic development of a class of fuzzy controllers.
+IEEE Trans. Syst., Man, Cybern. , 28, pp. 112–123,
+1998.
+[17]L. D ORST , Analyzing the behaviors of a car: a study
+in abstraction of goal-directed motions. IEEE Trans.
+Syst., Man, Cybern. , 28, pp. 811–822, 1998.
+[18]K. Y. L IAN,C .S .C HIN,, T. S. C HIANG , Parallel park-
+ing a car-like robot using fuzzy gain scheduling.
+Proc. IEEE Int. Conf. Control Applications , 2, pp.
+1686–1691, 1999.
+[19]R. H OLVE ,P .P ROTZEL , Reverse parking of a mobile
+car with fuzzy control. Pr oceedings of the 4th Eu-
+ropean Congress on Intelligent Techniques and Soft
+Computing, pp. 2171–2175, 1996.
+[20]H. M IYATA ,M .O HKI,Y .Y OKOUCHI ,M .O HKITA ,
+Control of the autonomous mobile robot DREAM-1
+for a parallel parking. Math. Comput. Simul. , 41,
+pp. 129–138, 1996.
+[21]K. J IANG ,L .D .S ENEVIRATNE , A sensor guided au-
+tonomous parking system for nonholonomic mobile
+robots. Proc. IEEE Int. Conf. Robotics Automation ,
+1 pp. 311–316, 1996.
+[22]K. J IANG , A sensor guided parallel parking sys-
+tem for nonholonomic vehicles. Proc. IEEE Conf.
+Intelligent Transportation Systems , pp. 270–275,
+2000.
+[23]W. A. D AXWANGER ,G .K .S CHMIDT , Skill-based
+visual parking control using neural and fuzzy net-
+works. Proceedings of IEEE International Con-
+ference on Systems, Man and Cybernetics , pp.
+1659–1664, 1995.
+[24]A. D ELUCA,G .O RIOLO ,L .P AONE ,, P. R OBUFFO
+GIORDANO , Experiments in visual feedback control
+of a wheeled mobile robot. Proceedings of IEEE Int.
+Conf. on Robotics and Automation , pp. 2073–2078,
+2002.
+[25]M. D. B ERKEMEIER ,M .D AV I D S O N ,V .B AHL,Y .
+CHEN,L .M A, Visual Servoing of an Omni-
+directional Mobile Robot for Alignment with Park-
+ing Lot Lines. Proceedings of IEEE Int. Conf. on
+Robotics and Automation , pp. 4204–4210, 2002.
+[26]F. G OMEZ -BRAVO ,F .C UESTA ,A .O LLERO , Parallel
+and diagonal parking in nonholonomic autonomous
+vehicles. Engineering Applications of Arti ﬁcial In-
+telligence , 14, pp. 419–434, 2001.
+[27]F. G OMEZ -BRAVO ,F .C UESTA ,A .O LLERO ,A .V IG-
+URIA, Continuous curvature path generation based
+on B-spline curves for parking maneuvers. Robotics
+and Autonomous Systems , 56, pp. 360–372, 2008.[28]C. C HEN,H .F ENG,Hybrid intelligent vision-based
+car-like vehicle backing systems design . Expert Sys-
+tems with Applications, In Press, Available online26 September 2008.
+[29]Advanced parking guidance systems, (2007,06,21 )
+Available online:http://en.wikipedia.org/wiki/Advanced
+Parking
+ Guidance
+ System
+[30]K. K OBAYASHI , VCAPG2 for MATLAB.
+(2007,06,21 )
+http://www.ikko.k.hosei.ac.jp/ ∼matlab/
+matkatuyo/vcapg2.htm
+[31]K. K OBAYASHI , MATLAB Utilization Book. Shuwa
+System Co, Ltd., 2001, ISBN 4-7980-0141-4
+Received : December, 2008
+Revised : September, 2009
+Accepted : January, 2010
+Contact addresses:
+Tarik Ozkul
+Department of Computer Science
+and Engineering,
+American University of Sharjah
+Sharjah, UAE
+e-mail: tozkul@aus.edu
+Mohammed Moqbel
+Department of Computer Science
+and Engineering,
+American University of Sharjah
+Sharjah, UAE
+Suhail B. AlDhafri
+Emirates Institution for
+Advanced Science and Technology
+Dubai, UAE
+TARIK OZKUL is an Associate Professor at Computer Science and Engi-
+neering Department of American University of Sharjah, Sharjah, UAE.He has served in industry in different capacities ranging from Design
+Engineer to Director of Research and Development, developing prod-
+ucts ranging from medical to space applications. His research field isengineering applications of soft co mputing, computer architecture and
+image processing.
+MOHAMMED MOQBEL received his BSC in Computer Engineering from
+American University of Sharjah, Sharjah, UAE.
+SUHAIL B. A LDHAFRI is a Research Engineer at the Dubai Govern-
+ment Emirates Institution for Advanced Science and Technology. He
+served as Payload Electronics engineer for both Dubaisat 1 and 2. Heis involved in system improvement feasibility study, system design, im-plementation, and testing of Dubais at-2 payload electronics and SSR
+(solid state recorder ). He is also responsible for system design of Solid
+State Recorder, MTF and SNR studies for image data with selectedsensors and focal length, data download protocol from space craft to
+Ground station as well as FPGA Code design of the satellite.
+
