@@ -1,0 +1,1107 @@
+--- Page 1 ---
+Some experiences on Formal speciﬁcation of Railway Interlocking Systems using
+Statecharts
+Michele Banci
+ISTI - CNR,
+Formal Methods and Tools Group
+Pisa, Italy
+michele.banci@isti.cnr.itAlessandro Fantechi
+Universit`a degli Studi di Firenze,
+Dipartimento di Sistemi e Informatica
+Firenze, Italy
+fantechi@dsi.uniﬁ.it
+Stefania Gnesi
+ISTI - CNR,
+Formal Methods and Tools Group
+Pisa, Italy
+stefania.gnesi@isti.cnr.it
+Abstract
+TheintroductiononthemarketofcomputerizedRailway
+Interlocking Systems has pushed an increasing interest in
+the use of Formal Methods, due to their ability to precisely
+specify the logical rules that guarantee the safe establish-
+ment of routes and equipments for trains through a railway
+yard. Recently, a trend has emerged about the use of the
+graphical language statecharts as a standard formalism to
+produce precise speciﬁcations of these systems.
+This paper resumes our experiences in modeling railway
+interlocking systems using this formal language. Our stud-
+ieshaveaddressedthedesignproblemfromdifferentpoints
+of view: we have modeled the speciﬁcations using two dif-
+ferent approaches that we call functional description and
+geographical description. The names indicate that the ﬁrst
+approachisfocusedonthemodelingofthelogicalfunction
+of the Interlocking Systems, while the latter focuses on the
+geographical distributions of the element of the controlled
+station or yard.
+Thegeographicalapproachhasalsoinspiredaproposalfor
+a distributed interlocking system, where the logical rules
+are embedded into distributed equipments communicating
+by means of safe buses.
+1 Introduction
+ThecaseforFormalMethodsinthedevelopmentofRISs
+(Railway Interlocking Systems) has stimulated a consider-
+able literature about formalization of interlocking systems(see, for example, [4, 6, 19]). And indeed European guide-
+linesandstandardizationgroupsrecommendtheuseoffor-
+malmethodsinthedevelopmentofsafetycriticalcomputer-
+controlled systems for railways applications [9, 10, 11].
+Some European railway companies have constituted a con-
+sortium to deﬁne a standard interlocking system at a Euro-
+pean level: the Eurointerlocking project. Inside this project
+a trend has developed towards the use of statecharts for
+modeling interlocking rules [16]. Statecharts have been
+considered suitable to express the sequences of checks and
+actions typical of an interlocking system.
+In this paper we resume our experiences in modeling RISs
+using statecharts, following two different approaches to
+the formalization of Interlocking we have investigated: the
+functional approach and the geographical one.
+The functional approach, discussed in section 3 faces the
+design of a RIS using logical objects not related to physi-
+cal objects to the layout. Examples of logical objects are
+the reservation and the setting of a safe route through the
+controlled yard. On the other side a switch (or point) is a
+physical yard object, so deﬁning a logical object associated
+toaswitchcanbeconsideredasageographicalassociation.
+Inside the functional approach, we have in particular ad-
+dressed the aspect of developing the statechart description
+of an Interlocking System for a given station or yard by
+instantiating generic statecharts, referring to general sig-
+nalling principles, on the parameters coming from the ac-
+tual layout of the controlledyard (see section 4).
+The same problem has then been addressed in section 5
+by proposing a geographical style of formal description, in
+which the model is obtained by the composition of objects
+
+--- Page 2 ---
+modeling the physical entities, following the geography of
+thecontrolledyard. Wehavethenstudiedtheimpactofthis
+style on the possibility of incremental validation.
+Furthermore, the same approach has then inspired a pro-
+posal for developing a distributed RIS (see section 6),
+whose safety validation is strongly based on formal veri-
+ﬁcation and simulation of the formal description.
+2 Introducing formal speciﬁcation in
+computer-based interlocking
+A Railway Interlocking System (RIS) is a complex in-
+stallation for the safe establishment of routes for trains
+through a railway yard. Electronic signalling systems have
+replaced(andactuallyarestillreplacing)oldmechanicalin-
+terlocking systems due to their advantages in terms of:
+•less dependency on operators failures;
+•self-diagnostic system checks to improve reliability;
+•possibility of integrated and centralized systems.
+Typically, a RIS receives a route request; the answer to this
+request has to go through a series of checks and actions of
+the kind:
+•a route can not be locked if a track section element is
+occupied;
+•a route is available if no part of the route is already
+locked;
+•if the route is available it will be locked;
+•locking a route implies that all its track elements be-
+come locked;
+•when a route is locked signals for the route can be
+switched to green, and then the original route request
+is positively acknowledged.
+The aim of these checks and actions is to guarantee that
+no train can be driven into a route occupied by another
+train. In the case of RIS, the principle schemata, a sort
+of ladder-like, relay based language, widely known by rail-
+way engineers, constituted the common reference language
+by which to describe interlocking systems, since the times
+interlockings were relay based [12]. In the introduction
+of computer-based RIS some industries had deﬁned their
+own approach to produce computer based interlockings,
+more or less formalized, often based on some logic formal-
+ism or language, but they were anyway constrained to re-
+late their own development/speciﬁcation method/language
+to principle schemata, understood by the national company
+signalling engineers.The main activity of the RIS, which is an embedded
+system, is to ensure the safe operation of the devices in
+a railway station. Such a system controls an arrangement
+of equipments (signals, switches, track circuits, automatic
+blocks) so interconnected that their functions shall be per-
+formedinpropersequenceandforwhichinterlockingrules
+are deﬁned in order to guarantee safe operations.
+A simple (the simplest) example of RIS, that we have used
+inourexperiencesasacasestudy,referstothelayoutshown
+in the ﬁgure 1, and is based on a real Italian Interlocking
+System [7]. Line segments represent track segments in the
+station; some of them have track circuits, that is, sensors of
+the presence of a train, which are numbered inside circles,
+joints between segments represent switches. Lollypop-like
+drawings represent signals of various type. Numbered la-
+bels are attached to each important part of a route. This
+example (a single track line station) is constituted by eight
+allowed routes, two switches, eight signals, six track cir-
+cuits and two automatic blocks.
+Interlocking rules are obviously the core of the system, so
+their correctness is the main objective to be addressed by a
+formalspeciﬁcation. Therulesaimatallowingonlythesafe
+combinations of switches positions, signals and trains in a
+station in order to avoid collisions. The signal indications,
+handled by the interlocking system, govern the correct use
+oftheroutes,authorizingthemovementoftrains. Therules
+usually enforce a predeﬁned sequence of actions: issuing a
+routerequestcommandusuallyﬁrsttriggersacheckthatall
+thetrackelementsinvolvedintheroutearefree;inthecase,
+commandsareissuedforthepositioningofswitchesforthat
+route and for locking the track elements. This phase may
+be followed by a global centralized control over the correct
+state of the commanded elements, after which the route is
+locked and signal indications for the route are set. A route
+II
+4
+34
+3
+I2a
+2As3s4s
+111d1Ad
+22s2022
+2b
+213d4d
+101
+11 10
+Figure 1. The simplest railway yardlayout.
+can be set free only if all switches on the route are being
+in the correct position, and no train is present. The signals
+can be set to green only if the route in front is set to free.
+Thesesentencesexpresstwoexamplesofgenericprinciples
+that hold for every interlocking systems. Actually, the pre-
+cise and complete set of such rules depends on the kind of
+station or railway yard, and also on national policies tra-
+ditionally established by railway companies or regulatory
+boards.
+2
+
+--- Page 3 ---
+Obviously,aRISbeingasafety-criticalsystem,theformal-
+ization of such rules is a top requirement, and this is the
+reason of the wide interest generated by RISs in the formal
+methodcommunity. Notehoweverthatthegenericrulesex-
+pressed above need to be conjugated on every speciﬁc lay-
+out; for instance, the rules should be set for the route 1-3 in
+ﬁgure1takingintoaccountswitch1,trackcircuit10,11,I,
+and so on.
+In the traditional process adopted by many railway compa-
+nies to develop relay based interlocking system since sev-
+eraldecades,thegenericprincipleswereencodedintorelay
+circuit templates.
+Whenanewinterlockingplanthadtobeinstalledthesegen-
+eral principles had only to be adapted to the particular lay-
+out of the station in use. The adaptation process was also
+guided by some more or less formalized rules. At the end
+oftheprocesstherewasadiagramcontainingthecommand
+andcontrolcircuitsforeachlogicalorphysicalobjectofthe
+station.
+Anexampleofthiskindofdiagramisshowninﬁgure2;
+thisdiagram,takenfromanItalianinterlocking,representsa
+circuit,fortheroute1-3,whichisgeneratedbasingontem-
+plates supplied to help the engineers in the design of new
+stations. Inthisexample,thepermissiontosettheroute1-3
+as free is given by the relay CD1 3, which is energized fol-
+lowing the shown combination of various (normally-open
+and normally-closed) contacts activated by other relays,
+where command rules are given in other schemata. The
+template will be associated to layout objects and replicated
+foreachobject. Inthiscircuittemplatethereareallthecon-
+tacts needed to manage that kind of object; the only action
+toperform onitis thesubstitutionofthese genericcontacts
+withtheonesdictatedbythelayout. Thestructureofalldi-
+agrams related to routes is always the same but the number
+and the name of some contacts (serial or parallel) is differ-
+ent from a route to another.
+Intheexample(ﬁgure2)thesufﬁxofthevariablesaregen-
+erated using the layout data, but furthermore the contacts
+(in this route there is only one) M1N, which are related to
+the switches used by the route, could be more then one (in
+series): this series of contacts means that in order to enable
+thisroutealltheswitchesusedbyithavetobeinthecorrect
+position.
+The safety of old times, relay based, interlocking systems
+wasbasedonsinglefail-safeconceptsexploitingtheintrin-
+sic characteristics of relay technology. The introduction of
+computer in the control and command chain has subverted
+this approach to safety, since failure modes of computer
+controlled equipment may be much more diverse and dif-
+ﬁcult to predict.
+The ﬁrst approach followed by some railway companies
+was to maintain the traditional and well-established relay-
+based principle diagram as the trusted source of informa-
+Figure 2. An instantiated relay schema re-
+ferred to route 1-3
+tion for computer-based interlocking developers, looking
+forconformance ofthe installedsystemsto suchsource, by
+means of costly and tedious, but possibly not exhaustive,
+testing.
+Thisapproachhasputonmanufacturers’shouldersthebur-
+den of conceiving a family of interlocking products, to-
+getherwithmeanstoinstantiatethegenericproductbytak-
+ing into account some proprietary, formalized version of
+principle diagrams suitable to be (more or less automati-
+cally) interpreted or compiled into running code, that has
+to be shown conformant to the trusted source. Actual ap-
+proaches have varied from manufacturer to manufacturer
+(see [5, 12]).
+Butcomputertechnologypermitsmoreﬂexibility: newfea-
+turesareveryinterestingbutrequireaninnovativeapproach
+and a complete formalization of the whole system [9]. Do-
+mainspeciﬁclanguageshavebeenproposedfortheformal-
+ization of RISs [14], the most prominent one being EURIS
+[4, 8].
+More recently, the possibility of using commercial support
+tools has pushed the use of “general-purpose” languages
+[11],andarecenttrendhasindicatedStatechartsasameans
+for deﬁning a standard formalization [16]. In our experi-
+encesdescribedinthefollowing,wehaveadoptedtheState-
+mate statecharts style [20].
+3 Functional approach to RIS speciﬁcation
+Most of computer based interlocking systems use (in
+their implementation and/or formal speciﬁcation) some
+form of centralized data base where the rules of the in-
+terlocking logic are stored. The main feature of this ap-
+3
+
+--- Page 4 ---
+proach consists in generating the rules by adopting a de-
+sign methodology focused on functions, such as the switch
+points checking function, the routes setting function or the
+routes veriﬁcation [12]. This is why we call this approach
+functional. These functions are designed basing on a con-
+trol table , which indicates all of the conditions that have
+to be satisﬁed before a signal can be switched from red to
+green to admit a train into the track section beyond [15].
+Theplacementoftheyardequipmentsisignoredinthisde-
+sign methodology, it does not exist a direct correlation be-
+tweenthegeographicalpositionontheyardofadeviceand
+the function that controls it implemented in the RIS. For
+this reason it is a hard task to identify the parts of the sys-
+tem stimulated by externalevents.
+A speciﬁcation or implementation following this approach
+is a melting pot of functionalities not easy to separate. The
+geographicinformationoftheyardisnotavailableanymore
+after the RIS functional description. An example of func-
+tionalapproach,implementedbyrelaytechnology,isshown
+in ﬁgure 2. We can deﬁne by statecharts the behavior of
+these relay circuits. This kind of description is very apre-
+tiated by railway company in fact relay technology is well
+consolidated and then safety engineers are more conﬁdent
+on this kind of technology instead a different one where re-
+lay schema are not direct referred.
+This approach is similar to a translation of relay circuits to
+statecharts. It may be a starting point to introduce new for-
+malisms into speciﬁcation activity and then pass to more
+powerful kind of models.
+Theyardshowninﬁgure1hasbeenmodeledusingfunc-
+tional approach (both related to relay schemata and not),
+speciﬁcmoduleshavebeendedicatedtorecordcommanded
+routes; these modules have been given the responsibility of
+checking the occupancy of the interested track circuits, fol-
+lowing what prescribed by the control table given as input.
+4 Automatic instantiation of statecharts
+Aproblemthatarisesinthepracticalapplicationofsuch
+formalization is that each produced interlocking system is
+dependent on the physical layout of the controlled yard.
+Thishasstrongeffectsondevelopmentcostsandespecially
+on validation, which has to berepeated for each product.
+Tofacetheproblemofredesignofthewholesystemfora
+newstation,wehaveadoptedanapproach,inwhichgeneric
+principlesofthelogicofsingleentitiesareﬁrstmodeledand
+validated.
+Basing on data of the modeled station or yard, the generic
+statecharts are then instantiated, that is, replicated for all
+layout entities and expanded to cover the proper logic con-
+ditions.
+Theinstantiationruleshavebeenthencodedintoatool,ca-
+pable of taking as input a generic statechart and a descrip-tionofastationlayout,andtoproduceastatechartmodelof
+the interlocking system targeted to the considered layout.
+4.1 Generic charts
+The idea of using generic speciﬁcations permits to cre-
+ate the whole speciﬁcation in a compositional way, simply
+parameterizing control rules with respect to the layout and
+then instantiating them in relation to the station layout.
+Weactuallyusestatechartsina“genericway”toreacha
+ﬁnal speciﬁcation supplied by instantiated statecharts. This
+“generic way” includes two deﬁnitions:
+•Deﬁnition of generic single statechart templates de-
+scribing the generic interlocking principles
+•Deﬁnition of the instantiation process
+Thegenericstatechartsthatwehaveusedareconstituted
+by a subset of the Statecharts language, in particular they
+are constituted by the following entities: states, transitions,
+variables, events and parameters. Figure 3 shows an exam-
+ple of a generic statechart for a switch. We have deﬁned
+[ADEV==0]
+/M D E V = 1[COMANDATO ROVESCIO] and/MDEV = 0
+NORMALE
+ROVESCIO[ADEV==0]
+/M D E V = 0[COMANDATO NORMALE] and
+“NORMALE” = Normal position;
+“ROVESCIO” = Reverse position;
+“COMANDATO NORMALE” = The switch is required
+(by a route setting) to move tonormal position;
+“COMANDATO ROVESCIO”=Theswitchisrequired(by
+a route setting) to move to reverse position;
+“ADEV” = Global variable saying whether the switch mo-
+tor is on;
+“MDEV” = Commanding theswitch to a position (0,1).
+Figure 3. A generic statechart
+similar (more or less complex) generic statecharts for all
+physicalentitiesconstitutingarailwayyardlayout,suchas:
+switches, signals, track circuits and for all logical entities,
+such as a route, a starting point and so on. An example of
+parametrization is shown in ﬁgure 3: looking at the labels
+4
+
+--- Page 5 ---
+Rout e 
+setting
+1-3Route 
+setting
+1-4Route 
+setting
+2-3Rout e 
+setting
+3-1Route 
+setting
+2-4Route 
+setting
+4-1Route 
+setting
+3-2Route 
+setting
+4-28 logica l object
+Point 1 Point 2Track 
+circuit ITrack 
+circuit IITrack 
+circuit 10
+Track 
+circuit 20
+Track 
+circuit 21Track 
+circuit 11
+COMB_MANOVRA_STC_1
+Default_1
+NORMA LE_1/MDEV_1=0
+ROVESCIO_1[(ME M_IT_1_ 4_D_ ARR==1)
+or(MEM_ IT_4_1_S _PAR ==1)]
+and[ADE V_1==0]
+/MDEV _1=1[(ME M_IT_1_3_D_ ARR==1)
+or(MEM_IT_ 3_1_S _PAR==1)]
+and[ADE V_1==0]
+/MDEV _1=0ITINERARIO_1_3_D_ARR
+AP_IT_1_3_D_ARR
+COM_AP_IT_1_3_D_ARR[(KDN_1==1) ==fals e]
+LIB_IT_ EDCO_1_3_D_ARRA_P_1_ 3_D_ARR
+/MEM_IT_1_3_D _ARR=0
+[(CDB_10==false)==true]
+/MEM_IT_1_3_D _ARR=0
+;SEGNALE_ IT_1_3_D _ARR=4SEGNALE_VE RDE_1_ 3_D_ARR[(CDB_10==true)
+and(CDB_11= =true)
+and(C DB_I==true)==tr ue]
+and[true==tr ue]
+/SEGNALE _IT_1_3_D_ARR =1[(CDB_10= =true)
+and(CD B_11==true)
+and(CDB_I==true )==true]
+/SEGNALE_IT_1_3_D_ARR=2[(CDB_10==tr ue)
+and(CDB_11==tr ue)
+and(C DB_I== true)==true ]
+/SEGNALE_IT _1_3_D _ARR=3 [(KDN_1==1)==tr ue]
+A_P_1 _3_D _ARR
+/MEM_IT_1 _3_D _ARR=0
+N_COM_IT _1_3_D _ARR[(CDB_10==true)
+and(CD B_11==true)= =true]
+/BLOCCATO_IT_1_3_D_ARR =0
+;AP_ IT_1_3_D _ARR=0[(CDB_10= =true)
+and(CDB_11==tr ue)
+and(CDB_I==tr ue)==false]
+or[true==false]
+/SEGNALE _IT_1_3_D_ARR =4
+[(KDN _1== 1)==false]
+/SEGNALE _IT_1_3_D_ARR =4
+A_P_1_ 3_D_ARR
+/MEM_IT_1_3_D_ARR =0
+;SEGNALE _IT_1_3_D_ARR =4
+COM_IT_1_3_D_ARR[(KDN _1==1)==tru e]
+/AP_IT_1_3_D_ARR =1
+A_P_1_ 3_D_ARR
+/MEM_IT_1_3_D_ARR =0
+;BLOC CATO_IT_1_3_D _ARR=0[P_1_3 _D_ARR==1]
+and[(ME M_IT_3_1_S_P AR==0)== true]
+and[(B LOCCATO_IT_3_2_D_PA R==1)
+or(BLOCC ATO_IT_3_1_S_P AR==1)
+or(BLOCCATO_IT_2_3_S _ARR ==1)
+or(BLOCC ATO_IT_2_4_S_A RR==1)
+or(BL OCCATO_IT_4_2_D_PA R==1)==false]
+/MEM_IT_ 1_3_D _ARR=1Default_1_3 _D_ARR
+/MEM_IT_1_3_ D_ARR=0
+;BLOCC ATO_IT_1_3_D_ARR =0
+;AP_IT_1_3_D_ARR=0
+;SEGNALE _IT_1_3_D_ARR =ROSS O
+[P_1_3_D_ARR==0]
+/MEM_IT_1_3_D_ARR=0
+TRANSITOR IO_CO M_IT _1_3_D _ARR[P_1_3_D _ARR==1]
+[(MD EV_1== 0)==true]
+and[true==tr ue]
+/BLOCCATO_IT_1_3_D_ARR=1[P_1_3_D _ARR==0]
+/MEM_IT_1_3_D_ARR =0
+MANOVR A_DEV_1_3 _D_ARR
+COMB_MANOVRA_STC_2
+Default_2
+NORMALE _2/MDEV_2=0
+ROVESCIO_2[(MEM_IT_2_4 _S_A RR==1)
+or(MEM_IT_4 _2_D_ PAR==1)]
+and[ADEV_2==0]
+/MDEV_2=1[(MEM_ IT_2_3_S _ARR ==1)
+or(MEM_IT _3_2_D _PAR==1)
+or(MEM_IT _1_4_D _ARR==1)]
+and[AD EV_2 ==0]
+/MDE V_2=0Figure 4. The instantiated model as a collection of statecharts
+onthetransitionsandinthestates,itisevidentthatnorefer-
+encestoparticularswitchesofthelayoutisdone. Theasso-
+ciation between this generic chart and the ﬁnal instantiated
+chart needs to be done basingon the layout information.
+Theinstantiationisguidedbysomeruleofinstantiationand
+parameters association.
+4.2 Instantiation methodology
+The instantiation methodology consists in ﬁrst replicat-
+ing each generic chart for each physical or logical entity of
+the layout, and then in adding, in each replicated chart, a
+sufﬁx to the name of charts, states and variables, sufﬁx re-
+latedtotheparticularphysicalobjectwhichisreferred. The
+instantiation process is guided by the control table (condi-tions table ), which is given as input. This table collects all
+the instantiated conditions (not abstracted) that have to be
+satisﬁed by the speciﬁc interlocking installation. The con-
+trol table is a tool to provide abstract signalling rules (e.g.
+beforeaspeciﬁcsignalcanbeswitchedfromredtogreento
+admit a train into the track section beyond) but associated
+(instantiated) to speciﬁc yard layout (see Table 1 for layout
+inﬁgure1). Ingeneralitisthecontroltablethatembedsthe
+knowledge about the speciﬁc control rules for the railway
+yard.
+Figure 4 shows some objects that are instantiated for the
+layout of Figure 1, according to the control table of the ex-
+ample. Twostatechartsrelated,thereforeinstantiated,tothe
+twoswitches are shownindetail. Toperform thecommand
+andcontrolofaparticularlogicalorphysicalstationobject,
+5
+
+--- Page 6 ---
+ROUTE ROUTE CONV NORMAL REVERSE TRACK C. PT CDB
+1-3 2-4, 4-2 1 11, I 10
+1-4 2-3 101 1 11, II 10
+3-1 2-4 1 11 10
+4-1 2-3 101 1 11 10
+3-2 2 21 20
+4-2 1-3 101 2 21,22 20
+2-3 1-4, 4-1 2 21, I 20
+2-4 1-3, 3-1 101 2 21, 22, II 20
+Table 1. An example of ControlTable
+such as a switch, we may use generic charts as templates
+without modifying states and transitions but simply substi-
+tuting some parameters and names of variables and states.
+Therefore the generic chart will be used as a template in
+which the steps performed by the controller are coded, but
+not yet usable on a real station because lack of informa-
+tionderivingfromlayout. Informationaboutthelayoutwill
+be inserted using the parameters. Parameters constitute an-
+otherdimensionofgenericityofgenericstatecharts,thatal-
+lowtheexpressionsonthetransitionstobemodiﬁedinrela-
+tion to the speciﬁc layout. More detailed information about
+the instantiation process can be found in [2].
+INSTANTIATOR
+Instantiated 
+statechartsGeneric 
+statecharts
+Control Table
+Expansion 
+RulesLAYOUT
+Railway Interlocking Control Mode lGeneric Co ntrol Model
+RIS Code
+Statemate FamilyMODEL 
+CHECKERSIMULATORCOD E 
+GENERATORPANE L 
+INSTANTIATOR
+Figure 5. The lifecycleInﬁgure5theﬂowofinformationthatismanagedbyour
+approach is shown: at ﬁrst place there are obviously data
+related to the speciﬁc yard. This information is supplied,
+using the so called control table, in which there are speci-
+ﬁed relations between both logical and physical objects be-
+longing to the speciﬁc interlocking system. The other input
+information is given by the generic model, that is a set of
+generic statecharts.
+Theoutputisacompletemodelcomposedbyallneeded
+statecharts. This model can be directly simulated by reim-
+porting it into the Statemate tool. After this reimport of the
+complete model all the features of Statemate may be used.
+Atﬁrstweareabletosimulatethemodelinordertoseethe
+behaviour,interactivelystimulatingthemodel,butthemost
+interestingoptionistheuseofthemodelcheckertoperform
+a complete veriﬁcation and validation of it. The ﬁnal stage
+of the lifecycle is the automatic generation of code which
+can be directly used for running in a control unit.
+In this case we have a so called closed lifecycle which, us-
+ing an initial effort in designing and validating the generic
+modelandanothereffortattheendtoverifytheinstantiated
+model, permits to reduce human error.
+5 Theapproachofgeographicalspeciﬁcation
+5.1 A geographical approach
+A different approach can consider distributing the
+knowledgeoftheinterlockingrulestoobjectsmodelingthe
+geographical placement of physical elements, in order to
+develop the speciﬁcation of a particular interlocking prod-
+uct by simply composing objects, following the geography
+of the controlled yard. An example of geographical spec-
+iﬁcation is the EURIS language (EUropean Railway Inter-
+lockingSpeciﬁcation),whichisavisualandgraphicalspec-
+iﬁcation language for railway control systems [4, 8]. Us-
+ing this language it is possible to build in a component-
+based way the control system from the layout of the sta-
+tiontomodel. TheEURISspeciﬁcationlanguage,proposed
+in 1992 and used at Siemens, is used to specify different
+railway yards using the same generical speciﬁcation com-
+6
+
+--- Page 7 ---
+ponents. Actually it consists of a set of standardized rail-
+waycontrolcomponents[8],whichshouldbecomposedto-
+gether easily, increasing the speed of development and per-
+mitting the reuse of components. Each element includes a
+set of rules inside it, which are able to adjust to different
+layout conﬁgurations. Because EURIS is a graphical lan-
+guage another advantage is that speciﬁcations are easy to
+read,sincetheyimmediatelyrepresentthephysicalposition
+of elements in the yard.
+The EURIS language inspired our study on this direc-
+tionbutdifferentlytoitwehave notusedadomainspeciﬁc
+language but a general purpose.
+5.2 Statecharts geographical model
+We have suggested a way to design an interlocking sys-
+tem starting from its layout and ending in its operational
+speciﬁcation. In the work we focused on a methodology
+that does not use any sort of global summarizing variables,
+which is usual instead for afunctional approach.
+With the term summarizing variable we mean a variable
+whose values depend from the values of a set of other sin-
+glevariables,eachrelatedtoaphysicalentityofthelayout.
+As an example we can consider a variable associated to a
+route, that is true if and only if at least one of the variables
+recording the occupancy of the track circuits belonging to
+therouteissettotrue,ashasbeenshowninsection3about
+thefunctionalapproach. Theuseofsummarizingvariables,
+though useful for abstracting certain global aspects of the
+system, makes the model more distant from the physical
+topology.
+The geographical experience, differently that the pre-
+vious analysis of functional approach, shows how each
+module is dedicated to the management of each track
+circuit that has the responsibility to check its compatibility
+with commanded routes. In the same way, all the activities
+performed by functional objects have been distributed to
+these geographical objects. Hence, the control for example
+of the correct position of a particular switch point is
+performed from all the interested elements and not by a
+single object dedicated to the management of all the switch
+points. Each object of the model implements the rules that
+interest only that object. If, for example, we consider the
+three signals of Figure 6, the model will include an object
+for each semaphore. The object related to the semaphore
+4, which permits the movement of a train in the right
+direction, should control that the red lights of semaphores
+3 rightand2 leftare ﬁred and also that the green lights are
+switched off. This control is done not looking at a global
+summarizing variable which in the example would show
+that the route is free, but communicating with the objects
+that control the other semaphores and devices.
+Figure 6. An example of routing.
+In this way, we obtain a model whose structure reﬂects
+the layout of the railway yard. This has positive effects on
+thereadabilityofthemodel,andonthepossibilityofisolat-
+ing in the model only those objects that are interested by a
+change in the physical layout.
+On the other hand, we loose on generality: in the func-
+tional approach the module handling all switch points can
+begeneric,anditisthecontroltablethatembedstheknowl-
+edge about the speciﬁc rules for the railway yard (see sec-
+tion 4). Our objects have not a generic behavior usable in
+any different geographical layout (like EURIS): we have to
+redesign them for any different station, though following
+expected patterns with predetermined rules.
+The consequences of this approach are:
+•Thestructureofthemodelshouldreﬂectthegeograph-
+ical topology of the yard.
+•The elements of the model should replicate the behav-
+ior of the physical componentsof the yard.
+•The elements of the model should embed all the log-
+ical rules interesting the corresponding physical com-
+ponents (in order to avoid the usage of summarizing
+variables).
+This kind of model is able to minimize the inter-
+dependency between objects.
+Objectscannotbecompletelyindependent;infactanin-
+terlockingsystemisbydeﬁnitionasystemthathavetocon-
+trol the interrelations between the objects. However, a ge-
+ographical model maximizes independency: where there is
+independency in the yard, we want that it is reﬂected in the
+model.
+5.2.1 Structure of the layered model
+The model is built following a layered architecture for the
+RIS, which consists of three layers: Command (human)
+layer,Logicallayer andPhysicallayer (Figure7). Theﬁrst
+7
+
+--- Page 8 ---
+Figure 7. Illustration of the layered interlock-
+ing architecture.
+layer (Command) is dedicated to the interaction with oper-
+ators or other systems, which send commands to the RIS.
+At the lowest level (Physical), there are the yard devices
+and equipments, which have to be commanded and con-
+trolled by the RIS. This level is constituted of the actual
+device interfaces, with actual variables used to control the
+yard.
+The middle level is the core of the RIS, where the inter-
+lockingrulesarespeciﬁed. Itisformedbyaseparateobject
+for each physical device.
+Figure 8 shows how the objects are interconnected with
+thecommandandthephysicallayer. Thestateofanyobject
+isonetoonerelatedwiththeactualstateofphysicaldevice.
+Every object related to a particular route is able to re-
+ceive the command requesting that route, in which case it
+performstheproperchecksaboutthephysicallayerandthe
+other objects of the logical layer. When a route reservation
+command is sent by an external system (also human), this
+message is sent to all the objects related to that route. Then
+all the objects evaluate their rules interacting each other to
+conﬁrm the received command.
+Insideeachobjectitisthereforedistributedthelogicthatis
+usually centralized in a classical functional approach: there
+exists no coordinator object.
+5.2.2 The statecharts model
+The system is speciﬁed combining the geographical ele-
+ments as it is illustrated in ﬁgure 7 and 8. Each geograph-
+ical element is deﬁned by an activity chart speciﬁed using
+the Statemate statechart formalism.
+AsshowninFigure9,thetoplevelofthemodelconsists
+of an activity chart, composed by several activities, which
+are strictly related to physical objects placed on the yard.
+At a lower level each block is formed with a set of nested
+Figure8.Illustrationofinter-objectcommuni-
+cation.
+subactivitiesandstatechartsthatimplementtheinterlocking
+rules. We can note that the topology of this level is exactly
+corresponding to the geographical layout of the yard (refer
+to Figure 1).
+Figure 9. The ﬁrst level of the statechart
+model and the distribution of the internal ac-
+tivity charts.
+The interaction between activities can occur by sig-
+nalling an event (including variables value changes), either
+bydirectaddressing,i.e. thetargetisspeciﬁed,orbybroad-
+casting. In our model, every element (variables, events and
+so on) has a scope in which it is visible. The scope of an
+element can be explicitly deﬁned by the user: every change
+in the value of an element is broadcast to all activities and
+statechartsintheelement’sscope,andisthusseenbyallthe
+charts within the scope.
+Shared variables are therefore used to implement the
+communicationbetweenobjects: everyblockcheckswhich
+8
+
+--- Page 9 ---
+is the state of other nearby objects snifﬁng some of their
+state variables.
+An example of the statechart describing the behavior of
+an activity (control activity chart) is shown in Figure 10
+where a green light manager is illustrated: the ﬁgure shows
+theuseofalogicalstatesuchasthatusedtoreservetheob-
+ject. These local states are needed because we do not have
+anyglobalobjectthatrecordswhichelementsareinuse,so
+the control logic has been decentralized. We can note that
+thechartcommunicateswithplentyofotherobjects,suchas
+track circuits and other distinct track circuits, by looking at
+shared variables. Indeed, it is evident how the interlocking
+rules are distributed over the conditions for the transitions
+in each activity chart.
+Figure 10 represents the statechart controlling a green
+light: when an operator (either human or system) gives a
+command, this statechart and all the other statecharts con-
+trols that the track circuits related to it are reserved and the
+track circuits incompatible with it are free. Also this ex-
+Figure 10. The statechart controlling the
+green light of a semaphore.
+ample makes evident the large usage of shared variables.
+Though each chart works in parallel with the others, they
+arestrictlyinterrelatedbythismassiveusageofsharedvari-
+ables.
+5.3 Revalidation
+At ﬁrst sight it could seem that the layout of a railway
+yard is ﬁxed and cannot be changed. Actually, the layout
+can be changed during construction works to enable partial
+operationoftheyard,orafterformaintenanceworks,orfor
+extensions. This may happen several times in the lifetime
+of an interlocking system, which anyway spans several
+decades. Computer based RIS have the obvious advantage
+over relay-based ones that any change can be addressed bya change in the software. However, the strict guidelines
+followed in the development of this piece of safety critical
+software require a costly validation activity: any change to
+the software requires a revalidation activity as well.
+The adoption of methods and techniques that can reduce
+such efforts and costs is therefore an important industrial
+objective.
+The main question is: “Do we have to revalidate the
+whole system? Or there is the possibility to understand
+whatisactuallychanged,sotolimittherevalidationeffort?”
+Thegeographicalapproachappearsinterestinginthere-
+ductionofrevalidationeffortaswell. Infactwecanassume
+that software modiﬁcation related to a geographical object
+affects only a closed set of other objects, so reducing the
+needed revalidation effort ofthe whole system.
+Using the geographical approach, in case of a change to
+some parts of the interlocking system there may be some
+modules that do not need to be changed because they are
+not affected by the modiﬁcation done. Since each object
+performs its controls independently and the system does
+not use global summarizing variables, we can think that
+those objects do not have to be revalidated. The objects
+affected by the modiﬁcation need instead to be revalidated,
+e.g. using new test scenarios or modifying the already ex-
+isting ones. More detailed information about the reduction
+of revalidation effort using a geographical approach can be
+found in [1].
+6 A proposal for a Distributed Interlocking
+System (DRIS)
+6.1 The Distributed System Architecture
+We have observed that the geographic approach used to
+model the RIS keeps the original topology of the system,
+and this fact has inspired our proposal to physically dis-
+tribute the control by deploying each activity in a separate
+controller embedded to the controlled entity [3]. The
+distribution consists in generating slices of the geographic
+model, described in section 5, as is illustrated by the
+Figure 11. An obstacle to physical code distribution is
+however represented by the shared variables used in the
+model for communication between the separate activities.
+The semantics of Statecharts requires that every activity
+is able to read and write shared variables at any step. In
+a distributed implementation, variables need either to be
+associated to an activity, which should provide for safe
+reading and writing by other activities, or to be replicated
+among the interested activities, and in this case consistency
+of the replicas should be guaranteed.
+9
+
+--- Page 10 ---
+CENTRALIZ ED GE OGRAP HICAL MODE L
+PHYSICAL  DEVIC E
+PHYSICAL  DEVIC E
+PHYSICAL  DEVIC E
+SIMULATORCondition
+Table
+MODEL 
+CHE CKERSingle module code generation
+Single module code generation
+Single module code generation
+Validation of the m odelFigure 11. Development cycle.
+The synchronous nature of the operation of Statecharts
+considers variables values to be read at the beginning of a
+step. Onlywhentheevaluationofvariableshasdictatedthe
+livetransitionsthatcanbeﬁred,oneofthemisﬁredandthe
+associated actions, including writing on variables, are per-
+formed. It is possible to perform automatically checks that
+guarantee that no conﬂict is raised about simultaneously
+writingofavariablebytwoactivities,inordertoavoidrace
+conditions.
+This operational semantics allows to consider a distributed
+implementation based on the adoption of a ﬁeld bus, by
+which variable values are broadcasted at the beginning of a
+newoperationstep,andbywhichwritingcommandsissued
+by(oneandonlyone)activityareconveyedtotheownerof
+the variable at the end of thestep.
+Indeed, our idea is based on the rapid development of safe
+ﬁeldbusarea: wethinkthatthemarketisnowmaturetoac-
+ceptthiskindofapproachintherailwayareaaswell,given
+the large number of applications of ﬁeld buses in different
+safety-concerned industrial areas: from factory automation
+to ﬂy-by-wire and drive-by-wire, in avionics and automo-
+tive areas respectively.
+Figure 12. The control panel.Due to the synchronous operation typical of Statecharts,
+a good candidate to act as the basic platform on which our
+approach is based is the architecture named TTA (Time
+Triggered Architecture) [17].
+This architecture has been created for the implemen-
+tation of dependable distributed embedded systems, and
+permits to decompose a large real-time application into
+nodes: obviously the main critical feature consists of the
+communication mechanism and the synchronization one.
+In the TTA, the system maintains a fault tolerant global
+time at every node. This global time permits to reduce
+the communication complexity allowing the use of shared
+variables for communication purposes; events that happens
+in the distributed system at different nodes at the same
+global clock-tick have to be considered simultaneous. The
+TTP(TimeTriggeredProtocol)isinchargeofguaranteeing
+the consistency of different views of the same variable at
+any given clock tick.
+Another issue that should be taken into account is given
+by the safety requirements in case of a fault. In our propos-
+als, faults can occur in any distributed controller. The basic
+safety requirements, to be achieved both by exploiting the
+fault tolerant features of the bus protocol, and by properly
+designing the distributed components, are that:
+•anyfailure ofa componentis reducedto acrashof the
+componentitself,sothatafailsilentpolicyisenforced;
+•thepresenceofasilentcomponentdoesnotundermine
+the safe operation of the interlocking; that is, no route
+for which the failed component is needed can be set
+and acknowledged.
+For increased availability, wecan add the requirement:
+•any failed (fail-silent) component does not affect the
+correct setting of a route which is totally (geographi-
+cally) independent from the component interested by
+the failure.
+Note that the distributed system is formed from redun-
+dant controls, which are located at every devices (Figure
+13). The redundancy of the controls exhibited by the ge-
+ographic approach can be considered as a positive safety
+measure: a decision about the establishing of a route is
+taken only if all the controls have been successful; the con-
+trolsareredundant,butdiverseandindependent,hencethey
+constituteasafeguardagainstsoftwarefaults. Notethatthis
+safety measure is not due to the exploitation of the TTA ar-
+chitecture(orofanyothersuitablyfaulttolerantbus),butis
+intrinsic in the model.
+Thesystemarchitectureiscompletedbyamonitoringcom-
+puter (or more than one computer) attached to the bus, able
+10
+
+--- Page 11 ---
+SAFE -BUS
+Figure 13. The network devices deployment.
+to read the variables values that are exchanged on the ﬁeld
+bus, which uses such data for diagnostics, for displaying to
+thehumansthestateoftheyardandoftheinterlockingsys-
+tem,andforloggingdataaboutthesystem. Themonitoring
+computer can also be used as an added safety measures by
+taking in charge the forcing of the system in a safe state in
+case it detects anomalous variable values.
+6.2 Development cycle
+What is needed to implement a distributed RIS can be
+summarized in the following development cycle, which in-
+cludes validation activities as well, and is fully supported
+by the functionalities of theIlogix Statemate tool:
+1.Control table:
+This table is taken as the contractual input for the pro-
+cess, andfullydescribes theinterlocking rulesaccord-
+ing to the given yard topology.
+2.Statechart design using geographic approach:
+As described in section 5, a geographic model using
+activity and statecharts is developed. Furthermore,
+in order to verify the correctness of the geographi-
+cal model a functional model, using a parallel design,
+should be developed as well.
+3.Validation of distributed design:
+The geographic model is validated by means of two
+differentalternativemethods(whichactuallyshouldbe
+both applied for increased safety):
+(a)tests played by simulation:
+Weareabletosimulatethewholemodelwiththe
+Statemate simulator tool, that permits to interact
+directlybyusingapanelappropriatelycreatedas
+well (Figure 12). Extensive tests should be car-
+riedondeﬁningsuitabletestscenarios,ontheba-
+sis of the information given by the control table.
+An interesting way to achieve even more conﬁ-
+dence is parallel co-simulation of the same sce-
+narios applied both to the geographical modeland to the functional model; this also because
+functionalmodelingismoreconsolidatedinrail-
+way companies’ practice.
+(b)Control table based safety properties proved by
+model checking:
+Safety properties described by the control table
+should be deﬁned so that they cover the overall
+safety requirements. Typically, properties of the
+kind: ”two conﬂicting routes can never be set si-
+multaneously” should be expressed and veriﬁed
+by the Statemate model checker. Model check-
+ing is able to guarantee that such properties are
+always satisﬁed by the model, while simulation
+may leave some dangerous execution paths un-
+exploited.
+4.Fault injection:
+Extensive veriﬁcation, again by simulation and/or
+model checking, should be done in order to validate
+the fail-safe behaviour of the model. Typically, faults
+should be injected in the model (e.g. by forcing a fail
+silent behaviour of some objects) in order to test the
+overall safety of the system inpresence of faults.
+5.Automatic code generation
+(a)Statemate code generation:
+Fromthestatechartgeographiccentralizedmodel
+it is also possible to generate C or ADA code by
+using the automatic code generator tool, which
+is part of the Statemate tool, for every single de-
+vice. Becauseofthedetailednatureofthemodel,
+the code generated is immediately usable with-
+out need of any other translation into lower level
+languages, except for the communication inter-
+face which is not part of the requirements speci-
+ﬁcation. The resulting code shares with the geo-
+graphic model the correspondence between soft-
+ware modules and yard devices. For this reason
+there is the possibility to generate code for each
+module, to be targeted and deployed on a local
+controller.
+11
+
+--- Page 12 ---
+(b)Shared variables implemented through ﬁeld bus
+protocol: The variables which are shared be-
+tween the obtained software components should
+insteadbeimplementedbasingonthesafeproto-
+col established to this purpose over the adopted
+ﬁeld bus.
+6.Physical deployment and integration:
+Deployment of the various modules over the dis-
+tributed controllers connected to the ﬁeld bus is now
+possible.
+7.System in ﬁeld testing:
+Though the extensive validation effort carried on
+the model and the automatic generation of code are
+enough to guarantee the safety of the system, in ﬁeld
+testing is necessary to guarantee that any possible in-
+terferencefromthephysicalworlddoesnotundermine
+the safety and functionality ofthe system.
+Theparallelco-simulationofthegeographicalandfunc-
+tionalmodelsisaimedtoachieveasufﬁcientconﬁdenceon
+theabsenceoferrorsintheﬁnalDRIS.Evenmoreconvinc-
+ingwouldbeaproofofequivalenceofthetwomodels. This
+is a challenging task, due to the current unavailability of
+tools, and also to the inherent complexity of this approach,
+which is left as a subject for our future work.
+7 Conclusions
+Thispaperresumesourexperiencesinmodelingrailway
+interlocking systems using this formal language. Our stud-
+ieshaveaddressedthedesignproblemfromdifferentpoints
+of view: we have modeled the speciﬁcations using two dif-
+ferentapproachesthatwecallfunctionaldescriptionandge-
+ographical description.
+All the experiences have been applied to some simple
+Italianinterlockingexamples. Instead,theinstantiationpro-
+cesswasinspiredbyaFrenchexperience[18]carriedoutby
+SNCF-RFF inside the EuroInterlocking project. To support
+thisprocessaspeciﬁctoolhasbeendevelopedtoinstantiate
+generic charts into speciﬁc models, taking into account in-
+formation about the stationlayout.
+In this direction we need to verify the scalability to larger
+designs. In particular, we need to assess the suitability of
+the generated statecharts (which may become quite com-
+plex for a large station) to formal veriﬁcation on one side
+(by means of model checkers such as the one integrated in
+Statemate, or such as other commercial or academic tools),
+and, on the other side, to automatic code generation.
+Evenmorechallengingistheexperiencemadeondevel-
+oping a geographical approach aimed at developing a dis-
+tributedRIS.Inthisexperiencewehavepushedtothepoint
+that the interlocking logic can be entirely distributed on ”inthe ﬁeld” local controllers, following a trend consolidated
+in automotive and avionics applications, based on the use
+of robust ﬁeld-buses. We have argued that in this approach
+formal veriﬁcation gets the role of the primary method to
+assesthesafetyofthesystem. Allthestepsoftheproposed
+developed cycle need to be carefully experimented and as-
+sessed on real designs.
+References
+[1]M. Banci, A. Fantechi, Geographical vs. Functional
+Modeling by Statecharts of Interlocking Systems.
+FMICSNinthInternationalWorkshoponFormalMeth-
+odsforIndustrialCriticalSystems,Linz,September20-
+21, 2004. Electronic Notes in Computer Science (Else-
+vier).
+[2]M. Banci, A. Fantechi, Instantiating Generic Charts
+for Railway Interlocking Systems. FMICS 05, Interna-
+tionalWorkshoponFormalMethodsforIndustrialCrit-
+ical Systems, Lisbon, September 5-6, 2005.
+[3]M. Banci, A. Fantechi, S. Gnesi, The role of Formal
+methods in developing a distributed railway interlock-
+ing system. FORMS/FORMAT 2004, Braunschweig,
+December 2-3, 2004.
+[4]J. Berger, P. Middelraad, and A. J. Smith. EU-
+RIS, The European railway interlocking speciﬁcation.
+UIC, Commission 7A/16, 1992. In IRSE Proceedings
+1992/93, pages 7082, 1993
+[5]C. Bernardeschi, A. Fantechi, S. Gnesi, S. Larosa, G.
+MongardiandD.Romano.AFormalVeriﬁcationEnvi-
+ronment for Railway Signaling System Design, Formal
+Methods in System Design, Vol. 12, 2, pp. 139-161,
+1998.
+[6]A.Cimatti,F.Giunchiglia,G.Mongardi,D.Romano,F.
+Torielli and P. Traverso, Formal Veriﬁcation of a Rail-
+way Interlocking System using Model Checking, For-
+mal Aspects of Computing, Vol 10, 361-380, 1998.
+[7]P. E. Debarbieri, F. Valdambrini and E. Antonelli.
+A.C.E.I. Telecomandati per linee a semplice binario,
+schemi I0/19. CIFI Collana di testi per la preparazione
+agli esami di abilitazione, Quaderno 12, 1987.
+[8]F. J. van Dijk, W. J. Fokkink, G. P. Kolk, P. H. J. van
+de Ven and S. F. M. van Vlijmen, EURIS, a speciﬁca-
+tionmethodfordistributedinterlockings,in(W.Ehren-
+berger, ed) Proc. 17th Conference on Computer Safety,
+ReliabilityandSecurity-SAFECOMP’98,Heidelberg,
+LectureNotesinComputerScience1516,pp.296-305,
+Springer, October 1998.
+12
+
+--- Page 13 ---
+[9]L.H.Eriksson,G.Finnie,I.HerrtuaandN.K ¨onig;For-
+mal Methods Strategy Study Report, Report of a study
+carriedoutonbehalfoftheInternationalUnionofRail-
+ways (UIC), project EURO-INTERLOCKING, Z ¨urich
+2000.
+[10]European Committee for Electrotechnical Standard-
+ization, 2001, EN 50128, Railway applications Com-
+munications, signaling and processing systems Soft-
+ware for railway control and protection systems.
+[11]U. Foschi, M. Giuliani, A. Morzenti, M. Pradella
+and P. San Pietro. The role of formal methods in soft-
+ware procurement for the railway transportation indus-
+try, Symposium on Formal Methods for Railway Oper-
+ation and Control Systems (FORMS 2003), Budapest,
+Hungary, 15-16 May 2003.
+[12]B. Fringuelli, E. Lamma, P. Mello and G. Santocchia.
+Knowledge-BasedTechnologyforControllingRailway
+Stations. IEEE Intelligent Systems, Vol. 7, 6, 45-52,
+Dec. 1992.
+[13]A. E. Haxthausen, J. Peleska, Formal Development
+and Veriﬁcation of a Distributed Railway Control Sys-
+tem, IEEE Transactions on Software Engineering, Vol.
+26, No. 8, pp. 687-701, 2000.
+[14]A. E. Haxthausen, J. Peleska, Generation of Exe-
+cutable Railway Control Components from Domain-
+Speciﬁc Descriptions. In G. Tarnai, E. Schnieder (eds):
+FORMS 2003, Budapest/Hungary, May 15-16, 2003,
+pp.83-90.
+[15]G. Kolk, Formal methods: Possibilities and difﬁcul-
+ties in a railway environment from a user perspective.
+In Proceedings of the Third International Workshop on
+Formal Methods for Industrial Critical Systems, May
+25-26, 1998.[16]N.K¨onig,S.Einer,TheEuro-InterlockingFormalized
+Functional Requirements Approach (EIFFRA), Sym-
+posium on Formal Methods for Railway Operation and
+Control Systems (FORMS 2003), Budapest, Hungary,
+15-16 May 2003.
+[17]H. Kopetz, G. Bauer, The Time-Triggered Architec-
+ture, Proceeding of the IEEE Special Issue on Model-
+ing and Design of Embedded Software. Vol. 91, Issue:
+1 Jan 2003, 112- 126.
+[18]P. Le Bouar, Interlocking SNCF Functional Require-
+ments description, Eurointerlocking Project, Paris, 28
+May 2003.
+[19]M. J. Morley, Safety in Railway Signalling Data: A
+Behavioural Analysis. In proceedings of the 6th an-
+nual Workshop on Higher Order Logic Theorem Prov-
+inganditsApplications,Vancouver,4–6August,1993,
+LNCS Vol. 740, Springer-Verlag
+[20]Statemate Magnum Simulation Reference Manual. I-
+Logix Inc. Burlington, MA USA, 2003.
+13
