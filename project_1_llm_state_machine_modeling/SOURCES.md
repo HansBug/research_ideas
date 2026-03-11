@@ -42,8 +42,14 @@
   - 本轮新增结果表明，带 `phase sequence`、`queue length`、`green time` 的交通灯论文更容易抽到可复用的相位控制逻辑
 - `traffic light` + `image processing` + `traffic density/ambulance detection/red green yellow`
   - 本轮新增结果表明，带 `traffic density`、`ambulance detection`、`red green yellow timing`、`camera` 的交通灯论文更容易抽到动态配时控制逻辑
+- `traffic light` + `emergency vehicle` + `priority request/GPS/RFID/ETA/green corridor`
+  - 新增结果表明，带 `priority request`、`real-time location`、`estimated arrival time`、`override standard pattern`、`green corridor` 的交通灯论文更容易命中应急优先放行逻辑
 - `railway interlocking` + `route request/track free/lock/green signal`
   - 本轮新增结果表明，带 `route request`、`track free`、`route locked`、`signals set to green` 的联锁论文更容易直接抽到“请求-检查-锁闭-开放”顺序
+- `head tank` / `water level` + `PLC/ultrasonic sensor/motorized valve/solenoid valve/elevation`
+  - 新增结果表明，带 `head tank`、`ultrasonic sensor`、`motorized valve`、`solenoid valve`、`41.xx mdpl` 这类阈值表述的论文更容易命中阈值驱动阀控逻辑
+- `parallel parking` + `three steps/ready to reverse/scanning/reverse/adjusting forward`
+  - 新增结果表明，带 `three steps`、`ready to reverse`、`scanning`、`reversing into the parking space`、`adjusting forward` 的论文更容易命中可直接复用的分阶段泊车控制流程
 
 ### 已观察到的高命中标题/关键词特征
 
@@ -65,8 +71,14 @@
   - 例如：`hall call`, `car call`, `door operation`, `door obstruction`, `overload sensor`, `collective call scheduling`, `manual mode`
 - 标题或正文里出现交通灯密度调度与救护车优先词时，往往能抽到动态配时逻辑。
   - 例如：`traffic density`, `red green yellow`, `ambulance detection`, `camera`, `lane time`, `signal timing`
+- 标题或正文里出现应急优先请求和 ETA/GPS/RFID 词时，通常能直接抽到“检测-请求-改灯-恢复”的优先放行链路。
+  - 例如：`priority request`, `GPS`, `RFID`, `estimated arrival time`, `override standard pattern`, `green corridor`
 - 标题或正文里出现联锁顺序词时，通常能直接抽到进路生命周期控制描述。
   - 例如：`route request`, `track elements free`, `route locked`, `switch positioning`, `signal set to green`
+- 标题或正文里出现 head tank 液位阈值和阀门执行词时，通常能直接抽到 PLC 阀控顺序。
+  - 例如：`head tank`, `elevation`, `ultrasonic sensor`, `motorized valve`, `solenoid valve`, `41.60 mdpl`, `42.00 mdpl`
+- 标题或正文里出现泊车三阶段词时，通常能直接抽到扫描-倒车-前调的阶段控制流程。
+  - 例如：`three steps`, `ready to reverse`, `parking space scanning`, `reversing`, `adjusting forward`
 
 ### 已观察到的低命中标题/关键词特征
 
@@ -93,6 +105,9 @@
   - 例如围绕 `parking` 进一步扩展到 `position`, `direction angle`, `steering angle`, `parking space detection`, `fuzzy controller`
   - 例如围绕 `water level control` 扩展到 `float sensor`, `low level`, `high level`, `tank cycle`, `fill and drain`, `solenoid valve`
   - 例如围绕 `traffic light` 扩展到 `image processing`, `traffic density`, `red green yellow`, `ambulance detection`, `camera based controller`
+  - 例如围绕 `traffic light` 进一步扩展到 `priority request`, `ETA`, `GPS`, `RFID`, `green corridor`, `override standard sequence`
+  - 例如围绕 `head tank` / `water level` 进一步扩展到 `ultrasonic sensor`, `motorized valve`, `solenoid valve`, `elevation`, `mdpl threshold`
+  - 例如围绕 `parallel parking` 进一步扩展到 `three steps`, `ready to reverse`, `parking space scanning`, `adjusting forward`
 - 搜索时应尽量遵循本节已有高命中经验，但不能被现有词簇束缚住。
   - 允许并鼓励基于已有 `🟢 直接可用` 论文标题、控制对象名、控制任务名去脑补新的关键词组合
   - 这些新词必须逻辑上能指向“具体控制系统的状态机描述”，而不是泛化方法论文
@@ -100,10 +115,10 @@
 
 ## 当前收录统计
 
-- 已收录论文：**109** 篇
-- 本轮新增论文：**12** 篇
+- 已收录论文：**114** 篇
+- 本轮新增论文：**5** 篇
 - 本轮下载失败记录：**49** 条
-- 已完成 STM 梳理：**109** 篇
+- 已完成 STM 梳理：**114** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 `STM_GUIDE.md` 补齐 `STM.md`。
 
@@ -130,28 +145,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **109** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **114** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 23 | 21.1% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 16 | 14.7% | 联锁表、进路控制、平交口、车门等轨道交通控制与验证 |
-| ✈️ 航空航天与飞行/空管控制 | 10 | 9.2% | 无人机、起落架、飞机制动、空管协调协议等 |
-| 🩺 医疗设备与生命支持控制 | 5 | 4.6% | 起搏器、输液泵、医疗 CPS 与闭环治疗控制相关文献 |
-| 🏭 工业自动化与离散制造 | 11 | 10.1% | IEC 61499/61131、PLC、制造、分拣、机器人等工业自动化控制 |
-| 🏢 楼宇机电与电梯控制 | 13 | 11.9% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 4 | 3.7% | 液位、水处理、锅炉与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 7 | 6.4% | 交通灯相位控制、绿灯分配、紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 9 | 8.3% | 自动停车、车位分配、车位监测与停车控制 |
-| 🧩 建模方法与系统工程 | 4 | 3.7% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
-| 🔐 安全/安保分析 | 4 | 3.7% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 3 | 2.8% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
-| **合计** | **109** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 23 | 20.2% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 17 | 14.9% | 联锁表、进路控制、平交口、车门等轨道交通控制与验证 |
+| ✈️ 航空航天与飞行/空管控制 | 10 | 8.8% | 无人机、起落架、飞机制动、空管协调协议等 |
+| 🩺 医疗设备与生命支持控制 | 5 | 4.4% | 起搏器、输液泵、医疗 CPS 与闭环治疗控制相关文献 |
+| 🏭 工业自动化与离散制造 | 11 | 9.6% | IEC 61499/61131、PLC、制造、分拣、机器人等工业自动化控制 |
+| 🏢 楼宇机电与电梯控制 | 13 | 11.4% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 5 | 4.4% | 液位、水处理、锅炉与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 9 | 7.9% | 交通灯相位控制、绿灯分配、紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 10 | 8.8% | 自动停车、车位分配、车位监测与停车控制 |
+| 🧩 建模方法与系统工程 | 4 | 3.5% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 3.5% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| ⚙️ 通用控制与形式化工具 | 3 | 2.6% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
+| **合计** | **114** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-03-11 23:09:54 | 新增 **5** 篇，当前累计 **114** 篇 | 在既有高命中主线上继续深挖 `traffic light + emergency vehicle + priority request + ETA/GPS/RFID`、`head tank + ultrasonic sensor + motorized valve + solenoid valve`、`parallel parking + three steps + ready to reverse`、`ERTMS + train spacing + RBS` 等组合。 | 应急车辆优先放行、头水箱液位阈值阀控、三阶段并联泊车、ERTMS 列车间隔控制。 |
 | 2026-03-11 22:43:00 | 新增 **12** 篇，当前累计 **109** 篇 | 在既有 `具体控制对象 + control/controller/system + design/specification/verification/modeling` 主线上，重点追加 `elevator + hall call/car call/door obstruction/overload`、`traffic light + image processing + traffic density + ambulance detection`、`railway interlocking + route request + lock + green`、`parking + position/direction angle + steering angle`、`water level + float switch + threshold` 等高命中词簇。 | 电梯 PLC 调度与门控、图像驱动交通灯配时、联锁进路顺序、模糊泊车闭环、水位阈值控制。 |
 | 2026-03-11 22:07:39 | 新增 **3** 篇，当前累计 **97** 篇 | 沿用 `具体控制对象 + control/controller/system + design/specification/verification/modeling` 主线，并进一步加强 `water level + PLC + float + low/high level`、`parallel parking + stage/trigger/HMI`、`auto parking + parking possible + steering law` 等高命中词簇。 | 水箱液位控制、分阶段并联泊车辅助、自动泊车轨迹生成。 |
 | 2026-03-11 21:45:03 | 新增 **6** 篇，当前累计 **94** 篇 | 继续沿用 `具体控制对象 + control/controller/system + design/specification/verification/modeling` 主线，并进一步强化 `railway interlocking + route establishment`、`elevator + PLC + workflow/traversal`、`parallel parking + trajectory/steering`、`adaptive traffic light + phase sequence/green time` 等扩展词簇。 | 法国铁路联锁、PLC 电梯控制、自适应交通灯控制、并联泊车控制。 |
@@ -268,6 +284,11 @@
 | 107 | 🌡️ | PLC Based Water Level Control System | 2020 | 多浮球液位阈值启停控制 | `water level control, PLC, float switch, threshold, pump motor` | [plc-based-water-level-control-system](sources/plc-based-water-level-control-system/) |
 | 108 | 🅿️ | Fuzzy Controller-Based Design and Simulation of an Automatic Parking System | 2023 | 位置/方向角驱动的模糊泊车闭环 | `automatic parking, fuzzy controller, position, direction angle, steering angle` | [fuzzy-controller-based-design-and-simulation-of-an-automatic-parking-system](sources/fuzzy-controller-based-design-and-simulation-of-an-automatic-parking-system/) |
 | 109 | 🅿️ | Design and Simulation of Small Space Parallel Parking Fuzzy Controller | 2015 | 小空间并联泊车检测与倒车控制 | `parallel parking, fuzzy control, parking space detection, Ackerman angle` | [design-and-simulation-of-small-space-parallel-parking-fuzzy-controller](sources/design-and-simulation-of-small-space-parallel-parking-fuzzy-controller/) |
+| 110 | 🚆 | Formal Verification and Validation of ERTMS Industrial Railway Train Spacing System | 2009 | ERTMS 列车间隔与 RBS 调度控制 | `ERTMS, train spacing, LDS, RBS, scheduler, route control` | [formal-verification-and-validation-of-ertms-industrial-railway-train-spacing-system](sources/formal-verification-and-validation-of-ertms-industrial-railway-train-spacing-system/) |
+| 111 | 🌡️ | Perencanaan Control Valve Pada Head Tank PLTA Tulungagung Menggunakan PLC | 2014 | 头水箱液位阈值阀门控制 | `head tank, PLC, ultrasonic sensor, motorized valve, solenoid valve, elevation` | [perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc](sources/perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc/) |
+| 112 | 🚦 | Traffic Light Priority Control For Emergency Vehicle | 2024 | 基于优先请求的应急车辆绿波放行 | `traffic light, emergency vehicle, priority request, GPS, RFID, ETA` | [traffic-light-priority-control-for-emergency-vehicle](sources/traffic-light-priority-control-for-emergency-vehicle/) |
+| 113 | 🚦 | Traffic Light Priority for Emergency Vehicle | 2023 | 基于检测覆盖常规灯序的应急优先控制 | `traffic light, emergency vehicle, override pattern, ambulance detection, deep learning` | [traffic-light-priority-for-emergency-vehicle](sources/traffic-light-priority-for-emergency-vehicle/) |
+| 114 | 🅿️ | Fuzzy Logic Control of Autonomous Vehicles for Parallel Parking Maneuver | 2005 | 三阶段自主并联泊车控制 | `parallel parking, three steps, ready to reverse, fuzzy controller, scanning` | [fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver](sources/fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -329,34 +350,35 @@
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-03-11 23:09:54 | 新增 5 篇文献的 STM 提取 | 🟢 4 篇 / 🟡 1 篇 / ⚪ 0 篇 | 新增 5 个 `STM.md`，补入 5 条控制逻辑，当前已完成 114/114 篇文献的 STM 盘点 |
 | 2026-03-11 22:43:00 | 新增 12 篇文献的 STM 提取 | 🟢 8 篇 / 🟡 3 篇 / ⚪ 1 篇 | 新增 12 个 `STM.md`，补入 11 条控制逻辑，当前已完成 109/109 篇文献的 STM 盘点 |
 | 2026-03-11 22:07:39 | 新增 3 篇文献的 STM 提取 | 🟢 3 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 3 个 `STM.md`，补入 6 条控制逻辑，当前已完成 97/97 篇文献的 STM 盘点 |
 | 2026-03-11 21:45:03 | 新增 6 篇文献的 STM 提取 | 🟢 6 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 6 个 `STM.md`，补入 9 条控制逻辑，当前已完成 94/94 篇文献的 STM 盘点 |
 | 2026-03-11 20:18:12 | 完成此前 58 篇“尚未提取”文献的 STM 梳理与回填 | 🟢 13 篇 / 🟡 9 篇 / ⚪ 36 篇 | 新增 58 个 `STM.md`，当前已完成 88/88 篇文献的 STM 盘点 |
 
-- ✅ 直接可用论文：**40** 篇
-- 🟡 可整理论文：**15** 篇
+- ✅ 直接可用论文：**44** 篇
+- 🟡 可整理论文：**16** 篇
 - ⚪ 暂未收获论文：**54** 篇
 - ⏳ 尚未提取论文：**0** 篇
-- 🧾 已提取到的状态机/控制逻辑条目：**67** 条
-- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 46 类**（新增同向优先电梯调度、门阻挡/超载重开门、图像驱动交通灯配时、联锁请求-锁闭-开绿灯、水位阈值启停、模糊泊车闭环等对象）
+- 🧾 已提取到的状态机/控制逻辑条目：**72** 条
+- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 50 类**（新增 RBS 列车间隔调度、头水箱液位阈值阀控、优先请求绿波放行、ambulance detection 覆盖常规灯序、三阶段并联泊车等对象）
 
 ### 领域分布（按已提取条目统计）
 
-- 统计口径：按 `STM.md` 中已经入账的 **67** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `STM.md` 中已经入账的 **72** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 条目数 | 占比 | 代表控制对象 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 10 | 14.9% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
-| 🚆 轨道交通与铁路控制 | 11 | 16.4% | 进路建立与释放、道岔锁闭、联锁模式选择、检测点输入处理 |
-| 🏭 工业自动化与离散制造 | 6 | 9.0% | PLC operation modes、故障恢复、IEC 61499 BFB/ECC、分拣/灌装顺序控制 |
-| 🩺 医疗设备与生命支持控制 | 5 | 7.5% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
-| 🚦 道路交通信号控制 | 8 | 11.9% | 紧急车辆优先放行、动态相位选择、空车道跳过、图像驱动绿灯分配 |
-| ✈️ 航空航天与飞行/空管控制 | 3 | 4.5% | 空管协调协议、飞机轮刹供压切换、起落架伸收与锁定控制 |
-| 🏢 楼宇机电与电梯控制 | 10 | 14.9% | 电梯运行与门控逻辑、上/下行遍历、自动/手动工作流 |
-| 🌡️ 过程与环境控制 | 5 | 7.5% | 恒温器开关控制、双水箱液位阈值控制、液位排水循环控制 |
-| 🅿️ 智慧停车与车位管理 | 9 | 13.4% | 车位分配、倒车入位分段轨迹、模糊转向修正、分阶段泊车与可停判定 |
-| **合计** | **67** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 10 | 13.9% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
+| 🚆 轨道交通与铁路控制 | 12 | 16.7% | 进路建立与释放、道岔锁闭、联锁模式选择、RBS 调度、检测点输入处理 |
+| 🏭 工业自动化与离散制造 | 6 | 8.3% | PLC operation modes、故障恢复、IEC 61499 BFB/ECC、分拣/灌装顺序控制 |
+| 🩺 医疗设备与生命支持控制 | 5 | 6.9% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
+| 🚦 道路交通信号控制 | 10 | 13.9% | 紧急车辆优先放行、动态相位选择、空车道跳过、图像驱动绿灯分配 |
+| ✈️ 航空航天与飞行/空管控制 | 3 | 4.2% | 空管协调协议、飞机轮刹供压切换、起落架伸收与锁定控制 |
+| 🏢 楼宇机电与电梯控制 | 10 | 13.9% | 电梯运行与门控逻辑、上/下行遍历、自动/手动工作流 |
+| 🌡️ 过程与环境控制 | 6 | 8.3% | 恒温器开关控制、双水箱液位阈值控制、头水箱阀控、液位排水循环控制 |
+| 🅿️ 智慧停车与车位管理 | 10 | 13.9% | 车位分配、倒车入位分段轨迹、模糊转向修正、分阶段泊车与可停判定 |
+| **合计** | **72** | **100.0%** | - |
 
 | 目录 | 领域 | 结果 | 条目数 | 备注 | STM |
 |---|---|---|---:|---|---|
@@ -469,6 +491,11 @@
 | `plc-based-water-level-control-system` | 🌡️ | 🟢 直接可用 | 1 | 四浮球阈值触发泵启停逻辑非常适合简单顺序控制样本。 | [STM](sources/plc-based-water-level-control-system/STM.md) |
 | `fuzzy-controller-based-design-and-simulation-of-an-automatic-parking-system` | 🅿️ | 🟡 可整理 | 1 | 位置/方向角到转向角的迭代闭环清楚，但更偏控制闭环叙述。 | [STM](sources/fuzzy-controller-based-design-and-simulation-of-an-automatic-parking-system/STM.md) |
 | `design-and-simulation-of-small-space-parallel-parking-fuzzy-controller` | 🅿️ | 🟡 可整理 | 1 | 先检测可停车位，再基于 Ackerman 倒车模型执行泊车。 | [STM](sources/design-and-simulation-of-small-space-parallel-parking-fuzzy-controller/STM.md) |
+| `formal-verification-and-validation-of-ertms-industrial-railway-train-spacing-system` | 🚆 | 🟡 可整理 | 1 | LDS/RBS 列车间隔控制与调度职责清楚，但正文更偏验证抽象。 | [STM](sources/formal-verification-and-validation-of-ertms-industrial-railway-train-spacing-system/STM.md) |
+| `perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc` | 🌡️ | 🟢 直接可用 | 1 | 头水箱液位阈值到阀门开启动作的 PLC 逻辑非常明确。 | [STM](sources/perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc/STM.md) |
+| `traffic-light-priority-control-for-emergency-vehicle` | 🚦 | 🟢 直接可用 | 1 | priority request 到绿灯放行再恢复常规灯序的链路完整。 | [STM](sources/traffic-light-priority-control-for-emergency-vehicle/STM.md) |
+| `traffic-light-priority-for-emergency-vehicle` | 🚦 | 🟢 直接可用 | 1 | ambulance detection 触发 override 标准灯序并切为绿灯。 | [STM](sources/traffic-light-priority-for-emergency-vehicle/STM.md) |
+| `fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver` | 🅿️ | 🟢 直接可用 | 1 | 直接给出 scanning-reverse-adjusting forward 三阶段泊车流程。 | [STM](sources/fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/STM.md) |
 
 ### 说明
 
