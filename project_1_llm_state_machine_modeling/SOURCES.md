@@ -16,6 +16,8 @@
   - 适合寻找虽然标题不直接写 `state machine`，但正文可能给出可整理控制逻辑的论文
 - `railway/rail/interlocking` + `control table/route control/signalling principle/formal verification`
   - 当前对 🚆 领域命中率较高，尤其容易找到进路建立、锁闭、释放等可提取逻辑
+- `railway interlocking` + `route establishment/route request/route compatibility/mode selection`
+  - 本轮新增结果表明，带有 `route establishment`、`route command`、`TP/DA/MO` 等词的题名或摘要更容易命中可直接整理的联锁控制逻辑
 - `medical device` / `infusion pump` / `pacemaker` + `mode/control software/verification/specification`
   - 当前对 🩺 领域命中较高，容易找到模式切换、节律控制、报警/回退逻辑
 - `vehicle` / `automotive` + `ABS/BBW/CACC/platoon/AEB/power steering` + `controller/control system/model/verification`
@@ -24,6 +26,12 @@
   - 当前对 🏭 领域有效，尤其适合寻找功能块级控制逻辑与设备运行模式
 - `traffic light` / `parking system` / `elevator` + `controller/control system/design`
   - 当前对 🚦、🅿️、🏢 领域有实际收获，适合补充离散事件控制对象
+- `elevator control system` + `PLC` + `workflow/traversal/door opening/floor call`
+  - 本轮新增结果表明，带 `workflow`、`traversal`、`call button`、`door opening` 的电梯论文更容易直接抽到顺序控制逻辑
+- `automatic parking` / `parallel parking` + `trajectory/steering/reverse/fuzzy logic`
+  - 本轮新增结果表明，带 `parking trajectory`、`steering angle`、`reverse parking` 的自动泊车论文更容易抽到阶段化控制描述
+- `adaptive traffic light` + `phase sequence/queue length/green time`
+  - 本轮新增结果表明，带 `phase sequence`、`queue length`、`green time` 的交通灯论文更容易抽到可复用的相位控制逻辑
 
 ### 已观察到的高命中标题/关键词特征
 
@@ -35,6 +43,8 @@
   - 例如：`state machine`, `FSM`, `statechart`, `mode`, `operation mode`, `switching`, `interlocking table`, `control logic`
 - 虽然未直接写 `state machine`，但带有“可落到具体控制逻辑”的表达。
   - 例如：`formal specification of ... control system`, `verification of ... controller`, `modeling of ... dynamic responses`
+- 标题或摘要中出现顺序控制与流程词，但客体仍是具体控制系统本身。
+  - 例如：`workflow`, `traversal`, `route establishment`, `phase sequence`, `door opening`, `parking trajectory`
 
 ### 已观察到的低命中标题/关键词特征
 
@@ -61,10 +71,10 @@
 
 ## 当前收录统计
 
-- 已收录论文：**88** 篇
-- 本轮新增论文：**58** 篇
-- 本轮下载失败记录：**39** 条
-- 已完成 STM 梳理：**88** 篇
+- 已收录论文：**94** 篇
+- 本轮新增论文：**6** 篇
+- 本轮下载失败记录：**43** 条
+- 已完成 STM 梳理：**94** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 `STM_GUIDE.md` 补齐 `STM.md`。
 
@@ -91,28 +101,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **88** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **94** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 23 | 26.1% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 13 | 14.8% | 联锁表、进路控制、平交口、车门等轨道交通控制与验证 |
-| ✈️ 航空航天与飞行/空管控制 | 10 | 11.4% | 无人机、起落架、飞机制动、空管协调协议等 |
-| 🩺 医疗设备与生命支持控制 | 5 | 5.7% | 起搏器、输液泵、医疗 CPS 与闭环治疗控制相关文献 |
-| 🏭 工业自动化与离散制造 | 11 | 12.5% | IEC 61499/61131、PLC、制造、分拣、机器人等工业自动化控制 |
-| 🏢 楼宇机电与电梯控制 | 5 | 5.7% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 2 | 2.3% | 液位、水处理、锅炉与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 4 | 4.5% | 交通灯相位控制、绿灯分配、紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 4 | 4.5% | 自动停车、车位分配、车位监测与停车控制 |
-| 🧩 建模方法与系统工程 | 4 | 4.5% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
-| 🔐 安全/安保分析 | 4 | 4.5% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 3 | 3.4% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
-| **合计** | **88** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 23 | 24.5% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 14 | 14.9% | 联锁表、进路控制、平交口、车门等轨道交通控制与验证 |
+| ✈️ 航空航天与飞行/空管控制 | 10 | 10.6% | 无人机、起落架、飞机制动、空管协调协议等 |
+| 🩺 医疗设备与生命支持控制 | 5 | 5.3% | 起搏器、输液泵、医疗 CPS 与闭环治疗控制相关文献 |
+| 🏭 工业自动化与离散制造 | 11 | 11.7% | IEC 61499/61131、PLC、制造、分拣、机器人等工业自动化控制 |
+| 🏢 楼宇机电与电梯控制 | 8 | 8.5% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 2 | 2.1% | 液位、水处理、锅炉与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 5 | 5.3% | 交通灯相位控制、绿灯分配、紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 5 | 5.3% | 自动停车、车位分配、车位监测与停车控制 |
+| 🧩 建模方法与系统工程 | 4 | 4.3% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 4.3% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| ⚙️ 通用控制与形式化工具 | 3 | 3.2% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
+| **合计** | **94** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-03-11 21:45:03 | 新增 **6** 篇，当前累计 **94** 篇 | 继续沿用 `具体控制对象 + control/controller/system + design/specification/verification/modeling` 主线，并进一步强化 `railway interlocking + route establishment`、`elevator + PLC + workflow/traversal`、`parallel parking + trajectory/steering`、`adaptive traffic light + phase sequence/green time` 等扩展词簇。 | 法国铁路联锁、PLC 电梯控制、自适应交通灯控制、并联泊车控制。 |
 | 2026-03-11 19:52:53 | 新增 **58** 篇，当前累计 **88** 篇 | 基于 `BASELINE.md` 中 `ALL-IN-ONE 综合检索关键词`，按“控制对象/系统类型 + design/requirements/specification/modeling/verification + state machine/FSM/statechart/formal method”等组合继续扩展检索，并优先保留可直接获取 PDF 与较完整 BibTeX 的开放文献。 | 铁路联锁与轨交控制、医疗设备闭环控制、车载控制（ACC/ABS/BBW/车队协同）、PLC/电梯/交通灯/停车控制，以及无人机/飞控/起落架等航空航天控制。 |
 
 | # | 分类 | 标题 | 年份 | 主题 | 关键词 | 目录 |
@@ -205,6 +216,12 @@
 | 86 | 🅿️ | A Smart Real-Time Parking Control and Monitoring System | 2023 | 工业自动化与离散事件控制 | `parking control system, monitoring, real-time` | [a-smart-real-time-parking-control-and-monitoring-system](sources/a-smart-real-time-parking-control-and-monitoring-system/) |
 | 87 | 🚗 | Design and Assessment of an Anti-lock Braking System Controller | 2023 | 车载控制与驾驶辅助 | `anti-lock braking system, controller design, assessment` | [design-and-assessment-of-an-anti-lock-braking-system-controller](sources/design-and-assessment-of-an-anti-lock-braking-system-controller/) |
 | 88 | ✈️ | Model-Based Design of Aircraft Landing Gear System | 2023 | 航空航天与空管控制 | `aircraft landing gear, model-based design, control` | [model-based-design-of-aircraft-landing-gear-system](sources/model-based-design-of-aircraft-landing-gear-system/) |
+| 89 | 🚆 | A formal modeling methodology of the French railway interlocking system via HCPN | 2014 | 铁路联锁与进路建立控制 | `railway interlocking, HCPN, route establishment, signaling control` | [french-railway-interlocking-hcpn](sources/french-railway-interlocking-hcpn/) |
+| 90 | 🏢 | PLC based Multi-Floor Elevator Control System | 2015 | 多层电梯 PLC 遍历控制 | `elevator control, PLC, multi-floor, traversal` | [plc-based-multi-floor-elevator-control-system](sources/plc-based-multi-floor-elevator-control-system/) |
+| 91 | 🚦 | Development and Simulation of Adaptive Traffic Light Controller Using Artificial Bee Colony Algorithm | 2018 | 自适应交通灯相位调度 | `traffic light controller, adaptive scheduling, phase sequence, green time` | [adaptive-traffic-light-controller-using-artificial-bee-colony](sources/adaptive-traffic-light-controller-using-artificial-bee-colony/) |
+| 92 | 🏢 | Design of PLC based Elevator Control System | 2019 | 四层电梯呼梯与门控流程 | `elevator control, PLC, call button, door control` | [design-of-plc-based-elevator-control-system](sources/design-of-plc-based-elevator-control-system/) |
+| 93 | 🅿️ | Parallel Parking System Design with Fuzzy Logic Control | 2021 | 自动泊车轨迹与转向控制 | `parallel parking, fuzzy logic, steering control, parking trajectory` | [parallel-parking-system-design-with-fuzzy-logic-control](sources/parallel-parking-system-design-with-fuzzy-logic-control/) |
+| 94 | 🏢 | Design of Elevator Control System Based on PLC | 2023 | 电梯工作流与自动/手动模式 | `elevator control system, PLC, workflow, manual operation` | [design-of-elevator-control-system-based-on-plc](sources/design-of-elevator-control-system-based-on-plc/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -250,37 +267,42 @@
 | 37 | ✈️ | Eliminating synchronization faults in air traffic control software via design for verification with concurrency controllers | 2026-03-11 19:40 | https://hdl.handle.net/11511/30420 -> curl: (28) Operation timed out after 44028 milliseconds with 0 bytes received \| https://link.springer.com/content/pdf/10.1007/s10515-007-0008-2.pdf -> 非PDF \| https://doi.org/10.1007/s10515-007-0008-2#icon-eds-i-download-medium -> 非PDF \| https://doi.org/10.1007/s10515-007-0008-2 -> HTML中未发现可下载PDF \| http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.138.431  |
 | 38 | ✈️ | Bifurcation Analysis of a Nose Landing Gear System | 2026-03-11 19:42 | https://research-information.bris.ac.uk/files/66353645/Cooper_AIAA2016_FULL_PAPER_12072015FINALv1_1_.pdf -> 非PDF \| https://research-information.bris.ac.uk/en/publications/53c3434d-4520-43b3-b8ca-eaf13192c7df -> HTML中未发现可下载PDF \| https://research-information.bris.ac.uk/files/66353645/Cooper_AIAA2016_FULL_PAPER_12072015FINALv1_1_.pdf -> 非PDF \| https://hdl.handle.net/files/66353645/Cooper_AIAA2016_FUL  |
 | 39 | ✈️ | Indoor UAV Control Using Multi-Camera Visual Feedback | 2026-03-11 19:45 | https://dspace.lboro.ac.uk/2134/17856 -> HTML中未发现可下载PDF \| https://doi.org/10.1007/s10846-010-9506-8 -> HTML中未发现可下载PDF \| https://scholarworks.unist.ac.kr/handle/201301/20220 -> HTML中未发现可下载PDF  |
+| 40 | 🚦 | Traffic Light Controller Module Based on Particle Swarm Optimization (PSO) | 2026-03-11 21:48 | http://article.sciencepublishinggroup.com/pdf/10.11648.j.ajai.20180201.12.pdf -> 下载内容损坏，`pdf_extractor` 报错 `EOF marker not found`  |
+| 41 | ✈️ | A Formal Verification Framework for Model Checking Safety Requirements of a Simulink Landing Gear Case Study | 2026-03-11 21:48 | https://www.rpsonline.com.sg/proceedings/esrel2023/pdf/P599.pdf -> curl: (22) The requested URL returned error: 406  |
+| 42 | 🚦 | Novel Intelligent Traffic Light Controller Design | 2026-03-11 21:48 | https://www.mdpi.com/2075-1702/12/7/469/pdf?version=1720709156 -> curl: (22) The requested URL returned error: 403  |
+| 43 | 🚆 | Fault tolerant train door control | 2026-03-11 21:48 | http://etheses.bham.ac.uk/1756/1/Zubrzycki11MRes.pdf -> 长时间无响应未完成下载 \| https://etheses.bham.ac.uk/id/eprint/1756/1/Zubrzycki11MRes.pdf -> HTTP 404  |
 ## 状态机描述收获盘点
 
 ### 更新日志
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-03-11 21:45:03 | 新增 6 篇文献的 STM 提取 | 🟢 6 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 6 个 `STM.md`，补入 9 条控制逻辑，当前已完成 94/94 篇文献的 STM 盘点 |
 | 2026-03-11 20:18:12 | 完成此前 58 篇“尚未提取”文献的 STM 梳理与回填 | 🟢 13 篇 / 🟡 9 篇 / ⚪ 36 篇 | 新增 58 个 `STM.md`，当前已完成 88/88 篇文献的 STM 盘点 |
 
-- ✅ 直接可用论文：**23** 篇
+- ✅ 直接可用论文：**29** 篇
 - 🟡 可整理论文：**12** 篇
 - ⚪ 暂未收获论文：**53** 篇
 - ⏳ 尚未提取论文：**0** 篇
-- 🧾 已提取到的状态机/控制逻辑条目：**41** 条
-- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 28 类**（铁路联锁、车队控制、交通灯、停车、液位控制、电梯、起落架等新对象显著增加）
+- 🧾 已提取到的状态机/控制逻辑条目：**50** 条
+- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 34 类**（法国联锁进路建立、PLC 电梯遍历、电梯工作流、自适应交通灯相位调度、并联泊车轨迹与模糊转向等对象继续扩充）
 
 ### 领域分布（按已提取条目统计）
 
-- 统计口径：按 `STM.md` 中已经入账的 **41** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `STM.md` 中已经入账的 **50** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 条目数 | 占比 | 代表控制对象 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 10 | 24.4% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
-| 🚆 轨道交通与铁路控制 | 8 | 19.5% | 进路建立与释放、道岔锁闭、平交口保护、检测点输入处理 |
-| 🏭 工业自动化与离散制造 | 6 | 14.6% | PLC operation modes、故障恢复、IEC 61499 BFB/ECC、分拣/灌装顺序控制 |
-| 🩺 医疗设备与生命支持控制 | 5 | 12.2% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
-| 🚦 道路交通信号控制 | 4 | 9.8% | 紧急车辆优先放行、动态相位选择、模糊交通灯控制、图像驱动绿灯分配 |
-| ✈️ 航空航天与飞行/空管控制 | 3 | 7.3% | 空管协调协议、飞机轮刹供压切换、起落架伸收与锁定控制 |
-| 🏢 楼宇机电与电梯控制 | 2 | 4.9% | 电梯运行与门控逻辑、语音选层与交互控制 |
-| 🌡️ 过程与环境控制 | 2 | 4.9% | 恒温器开关控制、双水箱液位阈值控制 |
-| 🅿️ 智慧停车与车位管理 | 1 | 2.4% | 车位分配、预约与到位核验 |
-| **合计** | **41** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 10 | 20.0% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
+| 🚆 轨道交通与铁路控制 | 10 | 20.0% | 进路建立与释放、道岔锁闭、联锁模式选择、检测点输入处理 |
+| 🏭 工业自动化与离散制造 | 6 | 12.0% | PLC operation modes、故障恢复、IEC 61499 BFB/ECC、分拣/灌装顺序控制 |
+| 🩺 医疗设备与生命支持控制 | 5 | 10.0% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
+| 🚦 道路交通信号控制 | 6 | 12.0% | 紧急车辆优先放行、动态相位选择、空车道跳过、图像驱动绿灯分配 |
+| ✈️ 航空航天与飞行/空管控制 | 3 | 6.0% | 空管协调协议、飞机轮刹供压切换、起落架伸收与锁定控制 |
+| 🏢 楼宇机电与电梯控制 | 5 | 10.0% | 电梯运行与门控逻辑、上/下行遍历、自动/手动工作流 |
+| 🌡️ 过程与环境控制 | 2 | 4.0% | 恒温器开关控制、双水箱液位阈值控制 |
+| 🅿️ 智慧停车与车位管理 | 3 | 6.0% | 车位分配、倒车入位分段轨迹、模糊转向修正 |
+| **合计** | **50** | **100.0%** | - |
 
 | 目录 | 领域 | 结果 | 条目数 | 备注 | STM |
 |---|---|---|---:|---|---|
@@ -372,6 +394,12 @@
 | `a-smart-real-time-parking-control-and-monitoring-system` | 🅿️ | 🟡 可整理 | 1 | 停车位分配、预约和到位核验逻辑较清楚，但更偏管理控制层而非底层执行控制。 | [STM](sources/a-smart-real-time-parking-control-and-monitoring-system/STM.md) |
 | `design-and-assessment-of-an-anti-lock-braking-system-controller` | 🚗 | 🟡 可整理 | 1 | ABS 的检测-减压-再增压闭环很清楚，但表达更偏控制机理而非显式状态机。 | [STM](sources/design-and-assessment-of-an-anti-lock-braking-system-controller/STM.md) |
 | `model-based-design-of-aircraft-landing-gear-system` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/model-based-design-of-aircraft-landing-gear-system/STM.md) |
+| `french-railway-interlocking-hcpn` | 🚆 | 🟢 直接可用 | 2 | 同时给出进路建立检查链路和 TP/DA/MO 模式约束。 | [STM](sources/french-railway-interlocking-hcpn/STM.md) |
+| `plc-based-multi-floor-elevator-control-system` | 🏢 | 🟢 直接可用 | 1 | 程序明确拆成上行/下行与一至三层遍历 cases。 | [STM](sources/plc-based-multi-floor-elevator-control-system/STM.md) |
+| `adaptive-traffic-light-controller-using-artificial-bee-colony` | 🚦 | 🟢 直接可用 | 2 | 既有队列优先相位排序，也有空车道零绿灯跳过逻辑。 | [STM](sources/adaptive-traffic-light-controller-using-artificial-bee-colony/STM.md) |
+| `design-of-plc-based-elevator-control-system` | 🏢 | 🟢 直接可用 | 1 | 呼梯、3 秒开门等待、关门、转向目标层的顺序清晰。 | [STM](sources/design-of-plc-based-elevator-control-system/STM.md) |
+| `parallel-parking-system-design-with-fuzzy-logic-control` | 🅿️ | 🟢 直接可用 | 2 | 同时给出倒车入位分段轨迹和模糊转向修正闭环。 | [STM](sources/parallel-parking-system-design-with-fuzzy-logic-control/STM.md) |
+| `design-of-elevator-control-system-based-on-plc` | 🏢 | 🟢 直接可用 | 1 | 工作流描述覆盖初始层、呼梯、门控、手动/自动和紧急呼叫。 | [STM](sources/design-of-elevator-control-system-based-on-plc/STM.md) |
 
 ### 说明
 

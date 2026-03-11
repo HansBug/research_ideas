@@ -1,0 +1,745 @@
+--- Page 1 ---
+A formal modeling methodology of the French
+railway interlocking system via HCPN
+P. Sun, S. Collart-Dutilleul & P. Bon
+Universit ´e Nord de France and IFSTTAR/COSYS-ESTAS, France
+Abstract
+A railway interlocking system (RIS) plays a vital role in the safe transportation of
+a railway system. It is responsible for the safe routes of trains making sure that
+each train movement follows the other in a proper and safe sequence. Detailed
+veriﬁcations and evaluations are mandatory before deploying an RIS, since it is
+a safety critical system (SCS). But the increasing complexity of the RIS tends to
+limit the capability of the classic approval methods. As a result, the formalization
+of RIS becomes important to both the development of computer interlocking
+software and the third-party testing of the RIS facilities. Petri nets are a powerful
+formal tool that have been applied to many railway applications. Considering the
+large scale and the space complexity of interlocking systems, this paper introduces
+a feasible method for modeling the RIS by hierarchical colored Petri net (HCPN),
+which aim at providing a formal veriﬁcation and logic evaluation of the French
+RIS. The paper describes how the signaling control logical and the railway road
+layout are speciﬁed and constructed into the HCPN. First, the architecture of
+RIS and the hierarchical structure of the model framework are introduced. Then,
+several basic RIS components are established as Petri nets to illustrate how to
+map RIS components into HCPN. As a case study, a section of a typical French
+station is modeled. It includes interlocking routes and signaling control principles.
+This paper takes place in the framework of the ANR project ‘PERFECT’. As this
+method has already received recognition from French railway experts, the future
+research contains consistency checking with some other parts of the speciﬁcation,
+such as operation rules, which allows us to ﬁnd out the crux of some existing
+problems and to discover some potential safety hazards.
+Keywords: railway interlocking system, modeling methodology, hierarchical
+colored Petri net.Computers in Railways XIV   849
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+doi:10.2495/CR140711
+
+--- Page 2 ---
+1 Introduction
+To achieve interoperability throughout Europe’s railways, the European Union
+provides a solution ‘European rail trafﬁc management system (ERTMS)’ to
+create a seamless railway system. It ensures trains of different countries running
+through any other European countries without facing technical problems related to
+signaling.
+Although the ERTMS has the advantage in cross-border competition, it is
+impossible to update all of the existing signaling systems into a new one.
+Moreover, a large number of non-border-crossing trains are not in urgent need
+of being equipped with ERTMS. Therefore, a ‘mixed’ solution is provided, as
+a type of ERTMS implementation, where ERTMS and local standards coexist.
+There are some critical aspects and many detailed application decisions that will
+have an impact on the railway network once the system is in service [1]. One of
+the main factors is the interlocking system which is pertaining to each country and
+not included in the ERTMS speciﬁcations.
+An RIS is a set of associated devices, in accordance with particular interlocking
+principles, for the establishment of safe routes through a railway yard. RIS is
+one of the crucial parts of the railway system. It provides trains with safe routes,
+which guarantee that no train can be driven into a route occupied by another. At
+present, a large proportion of the practical applications in the railway system are
+still in the interlocking systems based on computer-controlled relays. They have
+the advantages of reduced dependence on human operators and rapid capacity
+for self-checking, but the complex sequences of checks and consequent actions
+makes RIS a large concurrent system, a system that has a potentially complex
+global behavior. Thus, detailed veriﬁcations and validations are essential before
+any changes are put into service.
+The current signaling system and its RIS work well and have withstood the test
+of time. Before applying the new ERTMS system to an exiting railway line, a
+safety assessment must be done in order to prove safety equivalence between the
+former system and the new one. As a primary step, the formal modelisation of RIS
+is needed as a fundamental part of this task.
+In this paper, we mainly investigate our experience of modeling of RIS
+by colored Petri net (CPN). This research coming from the French national
+project, named ‘Performing Enhanced Railway Formal Engineering Constraints
+Traceability (PERFECT)’, was launched by IFSTTAR. It aims at providing
+methodological tools for a comprehensive assessment for the consistency of the
+speciﬁcations and operating rules regarding safety requirements.
+This paper is organized as follows: Section 2 gives a preliminary introduction
+of RIS; Section 3 ﬁrst presents the architecture of RIS hierarchical structure of
+the model framework, then illustrates how to map the RIS components into CPN
+models, including interlocking routes and signaling control principles; as a case
+study, a section of a typical French station is modeled in Section 4.850  Computers in Railways XIV
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 3 ---
+2 Preliminary requirement
+2.1 Interlocking system
+In railway signaling, an interlocking system is an arrangement of signal apparatus
+that prevent conﬂicting movements through an arrangement of tracks such
+as junctions or crossings. Interlocking is generally considered as having two
+meanings [2]: ﬁrst, ‘an interlocking’ is the interlocking plant where points and
+signals are interconnected in a way that each movement follows the other in a
+proper and safe sequence; second, the principles to achieve a safe interconnection
+between points and signals are also generally called ‘interlocking’.
+To fulﬁll the safety principles, the simplest but most important rule is that each
+train runs in own route. The route for a train to pass through is called “Signal
+Route”, usually guarded by mechanical, electrical and computer systems. There
+are interactions between paths, but no overlaps; the absolute separation of each
+route is a basic condition for the safety of railway trafﬁc. A signal route must meet
+the following conditions:
+all points must be set properly and locked;
+conﬂicting routes must be locked;
+the track must be clear.
+A complete RIS consists of three essential elements: geographical route,
+signaling control and train.
+Thegeographical route includes track sections, turnouts, signal lights, and other
+signal devices, such as the track circuit, KVB (French automatic block light control
+system), and BAL (balise speed control system). These signal devices could work
+automatically without help from a train controlling center, so they are classiﬁed in
+the category of geographical route.
+Signaling control is a set of operating rules and control procedures of an
+interlocking system. It comprises computer automatic control and manual control.
+Normally, the computer processes are responsible for most of the device-oriented
+operations, such as route establishment, route auto-destruction, etc. while human
+despatchers deal with decision-making, such as route selection, mode selection,
+manual destruction, etc., and some non-regular operations, such as shunting
+operations.
+Thetrain runs on interlocking routes and are supervised by both route conditions
+and operating instructions.
+These three elements proposed will be the top level in the hierarchical model
+structure (ﬁg. 1). In the present architecture, trains communicate with signal
+control layers and interact with geographical route layers. The signal control layer
+directly controls the turnouts and signal lights according to its operating principles.
+2.2 Colored Petri net
+The Petri net is a powerful method to approach various kinds of discrete event
+systems. It has the advantage that it can be used both for modeling of a staticComputers in Railways XIV   851
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 4 ---
+BALSignal
+LightTurnoutTrack
+CircuitKVB
+Geographical route layerTrainsRoute
+ControlRoute
+FormationCommand
+Option
+Route EstablishementDestruct
+AutoDestruct
+Manual
+Route DestuctionManual
+Operation
+Signal control layer
+Figure 1: Top-level of interlocking system.
+structure and the dynamic behavior. In the paper, the hierarchical colored Petri net
+is used [3], which is a backward compatible extension of Petri net. Its ‘colored’
+property allows the token differentiation due to the association of a color (value)
+with it, and the value of a token can be manipulated and tested with ‘meta
+language’ in arcs, transitions and guards. Another ‘hierarchical’ property allows
+multiple levels in one model, where a low-level CPN module can be abstracted
+as a substituted transition in the high level. These two properties allow it to be
+feasible and convenient when applied to a large-scale system.
+In addition, CPN have been widely accepted by railway researchers and
+engineers. There are already plenty of studies done in ERTMS based on CPN.
+Those works give sufﬁcient background knowledge of applying Petri nets to
+the complex signaling system and ERTMS requirements to collaborate with in
+the future work. Meanwhile, the French National Railway Company (SNCF)
+is interested in the CPN as a formal tool in scientiﬁc research [4, 5]. French
+computerized RIS is also formally validated by CPN-based tools [6, 7].
+The CPN model shown in Figure 2 is an example of a HCPN model. The model
+on the left is one of the initial steps of the interlocking route establishment. The
+model in the right is a substituted transition of ‘mode TP’. In this paper, three types
+of train movements are considered: trance permanent (TP), destruction automatic
+(DA) and maintenance operation (MO). TP mode is only available in certain
+routes, so each route command based on TP mode should be checked before its
+formation process.852  Computers in Railways XIV
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 5 ---
+Route
+Commanded
+InRtCmdInRoute to 
+format
+RtCmd
+Route Err
+ERRMode DA or MO[#2 rtcmd=DA
+orelse#2 rtcmd=MO]
+Mode TP
+TP mode verification[#2 rtcmd=TP]rtcmd rtcmd
+rtcmd rtcmd
+TP mode verification
+Route
+OutRtCmdRoute
+Commanded
+InRtCmdRoute Err
+OutERR
+Permited 
+Routes
+ListRT1`[("3/11",TP),("2/1",TP)]
+TP mode permit[mem Lstrt rtcmd]TP mode interdit[not (mem Lstrt rtcmd)]
+rtcmdLstrtLstrtrtcmd
+rtcmd1`TPinterdit
+Out
+OutInDeclarations of colour:
+colset NAME = string;
+colset MODE = with TP jDA jNL;
+colset RtCmd = product NAME * MODE;
+colset ERR = with NULL jTpinterdit;
+colset ListRT = list RtCmd;
+var rtcmd : RtCmd;
+var err : ERR;
+var Lstrt : ListRT;
+Figure 2: HCPN example (TP mode veriﬁcation).
+3 Modeling approach
+3.1 Model framework
+The hierarchy of our HCPN model framework is described in Figure 3.
+The Top level of RIS is already mentioned in Section 2.1, which involves all
+of the function modules and the connections between them. It is possible (not
+obligatory) to substitute the transitions with other CPN nets that are models
+of each function component. The second level is the Function level, where
+the internal working procedure and principle of functions are mainly described.
+The Decomposition level is the function divisions and decompositions of the
+upper level, and consists of several Detail level Petri nets. The Detail level is
+an implementation of each particular action, and could be further decomposed,
+which depends on the complexity of the functions. The Elementary andPrePost-
+procedure levels are supplementary levels. The elementary net is used to change
+initial global conditions of the system. Pre/post-procedure net is the I/Os of the
+model structure, while pre-procedure is for inputting data or instructions from
+Top Function
+ElementaryDecomposition
+Pre/Post
+ProcedureDetail
+Figure 3: Generic structure of interlocking system.Computers in Railways XIV   853
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 6 ---
+third-part models or certain input sources, and post-procedure is for outputting
+data and results.
+As the RIS is a complex system, a lot of features are closely combined. Some
+resources or statuses will be shared or accessed by several function nets or
+component nets. We have two methods to deal with such a situation:
+(i) sharing a whole module by declaring all local places as fusion places in the
+shared net, which will effectively synchronize all its instances;
+(ii) sharing a single place by storing sufﬁcient information a fusion place, and
+implementing with calling and returning of functional block.
+3.2 Mapping interlocking component to HCPN
+The modeling principles are illustrated by two types of function components: the
+signaling control and the track layout.
+3.2.1 Mapping signaling control
+A signaling component is a sequence of commands and actions, similar to a
+working ﬂow chart with determining, selecting, loops and execution of speciﬁc
+instructions. Figure 4 illustrates a part of the RIS route establishment, including
+command and formation processes.
+Forbidden
+Route
+Incompatible
+RouteY
+N
+Y NRoute is forbidden ?  
+Route is incompatible with
+existing routes  
+Y N
+Turnouts
+switching
+YT
+urnout is in right position ? 
+Turnout is free ? 
+All turnouts of the route are
+ in right position ? Y N
+N
+…
+Command Formation!"##$%&'&
+(")*'
+(a)
+Route
+Request
+CmdRT
+IT
+Approuve
+CmdRTRoute
+Forbidden
+ERR
+Route
+Compatible
+CmdRT
+ALL Turnouts
+Positioned
+CmdRTRoute
+Incompatible
+ERRVerify Route Compatibility
+Verification CompatibleVerification Compatible
+Position Turnouts
+Aiguillage FormationAiguillage FormationVerify Route forbidden
+Verification InterditVerification Interdit
+cRT
+cRT
+cRT
+cRTerrcRT
+cRTerr (b)
+Figure 4: Example of mapping signaling control: (a) control ﬂow chart;
+(b) corresponding HCPN model.854  Computers in Railways XIV
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 7 ---
+Figure 4(a) is the control ﬂow chart. It receives the route commands, and checks
+whether those commands are feasible and compatible with existing ones. Then it
+will format the route according to the formation information stored in the model,
+such as the positions of turnouts. Figure 4(b) shows the corresponding model of
+route establishment. In this model, the determination nodes are considered as the
+decomposition nets containing further functions. It can ensure a clear structure
+corresponding with the ﬂow chart.
+3.2.2 Mapping track layout
+A track layout is made up of track segments, turnouts and trackside signal lights.
+A track segment is a section of rail, which contains a complete track circuit. It is
+a simple straight or Y-shape with a turnout (3a, 3b in Figure 5(a)). A turnout is
+equipped with a moveable point. It allows trains to run on either side of the track,
+when facing the point. In general, an interlocking system is within a station yard,
+where the train runs at low speed, so train movement are partly directed by ﬁxed
+signal lights installed along the rail. Signal lights mainly use 3 aspects: red (stop),
+yellow (approach, prepared to stop at next signal), green (clear).
+z.1 z.3
+z.5z.7z.2 z.4 z.6
+A BC D
+3a3b
+5Positive direction
+(a)
+Z1
+ZONEZ3
+ZONEZ 1
+to
+Z 3train train[#dir train=pos]
+Z 3
+to
+Z 1[#dir train=neg]
+train train
+(b)
+Z3
+ZONEZ5
+ZONESgl 5
+SGL
+Z 3
+to
+Z 5[#dir train=pos
+andalso
+Ind <> red]
+Z 5
+to
+Z 3[#dir train=neg]train train
+train trainInd
+NewInd
+(c)
+Z2
+ZONE
+Z4
+ZONEZ 1
+to
+Z 3[#dir train=pos]
+Z 3
+to
+Z 1[#dir train=neg]train train
+train train
+Z5T 3b TT_DIR
+T 3aTT_DIRZ 5
+to
+Z 4[#dir train=pos]
+Z 4
+to
+Z 5
+[#dir train=neg]R
+R
+L
+L
+LLtrain
+train
+train train (d)
+Figure 5: Example of mapping track section: (a) track example; (b) movement
+between zone 1 and zone 3; (c) movement between zone 3 and zone 5;
+(d) movement at turnout 3a and 3b.Computers in Railways XIV   855
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 8 ---
+z.02
+z.01
+z.1
+z.2z.3
+z.4z.5
+z.6z.7
+z.8z.9z.11
+12
+3a3b
+417
+4
+VL
+A
+RR
+S
+C5VL
+A
+RR
+RR
+S S
+C3M
+CV
+1CV7
+VL
+A
+S
+C
+2VL
+A
+S
+C
+6
+AC13C11C15
+3.5 7.6
+2
+Figure 6: Case study of a typical station.
+The model in ﬁg. 5(b) shows a pair of train movements between zone 1 and
+zone 3, depending on the direction of the train. Here, the direction from left to
+right is deﬁned as the positive direction. The movement from zone 3 to zone 5 is
+controlled by signal light 5 in ﬁg. 5(c). As a necessary condition, unless the signal
+indicator is not ‘red’, trains cannot run through. Figure 5(d) is a turnout section,
+where the turnout direction is a constraint for all of the related train movements.
+Only one direction is available at one time.
+4 Case study
+In this section, a case of a typical station is brought in, from the book ‘French
+railway signalization’ [8] in ﬁg. 6. This case is only a half-station, including 5
+turnouts, 6 effective signal lights, 12 track segments, and 13 complete interlocking
+routes. The case has been chosen as an academic benchmark by experts involved
+with the PERFECT project [9].
+The whole HCPN model is made up of 21 Petri nets. It can perform basic
+functions of an RIS by automatically arranging the routes according to different
+train commands, blocking the inverse path and signal light when a route is
+established, and enabling the route destruction function after a train passes
+through. The whole model is signiﬁcantly large for a detailed demonstration, so
+only two examples are illustrated here. All of the other nets are modeled by the
+previous methodology.
+The model in ﬁg. 7 is a ‘decomposition component’ of the route establishment
+function. It opens the corresponding signal lights, by changing their indicators into
+green or yellow. The arc inscription ‘SepPack’ is used to extract the signal light
+commands from the static list and to assemble them into single signal tokens.
+The route layout in ﬁg. 8 presents all of the track connections and the functions
+of the station. There are four substitution transitions with the name of ‘. . . on DA’
+are the ‘detail components’ for Destruction Automatic, which can destroy the route
+formations automatically after a train passes through a certain track segment. It is
+a basic function of the ‘ﬂexible transit’ in the French railway system.856  Computers in Railways XIV
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 9 ---
+IT
+Established
+IT EstablishITCmdIT Formated
+InITCmd
+Signal 1
+S 1SGN1`(CV,"")
+S 1
+Ouverture
+de Signaux
+CndSGN
+1`("1/15",[(1,M),(7,Et)])++
+1`("1/13",[(1,M),(7,Et)])++
+1`("1/11",[(1,M)])++
+1`("3/17",[(3,RR)])++
+1`("3/15",[(3,RRc),(7,Et)])++
+1`("3/13",[(3,A),(7,Et)])++
+1`("5/17",[(5,RR)])++
+1`("5/15",[(5,A),(7,Et)])++
+1`("5/13",[(5,A),(7,Et)])++
+1`("6/1",[(6,VL)])++
+1`("6/5",[(6,VL)])++
+1`("2/1",[(2,VL)])++
+1`("6/3",[(6,A)])Signaux
+en IT SGNdIT
+IT copier
+ITCmd
+Pas Err
+OutERRSignal 3
+S 3SGN1`(C,"")
+S 3Signal 5
+S 5SGN1`(C,"")
+Signal 7
+S 7SGN1`(CV,"")
+Signal 6
+S 6SGN1`(C,"")
+Signal 2
+S 2SGN1`(C,"")chargementOuvert 1
+FiniOuvert 3Ouvert 5
+Ouvert 7
+Ouvert 6
+Ouvert 2(nmIT,LstSgn) SepPack LstSgn nmIT(1,indctn,nmIT)
+sgn(indctn,nmIT)
+ITcmdITcmd(nmIT,typeIT)
+(nmIT,typeIT)
+1`NULL(3,indctn,nmIT)(5,indctn,nmIT)
+(7,indctn,nmIT)
+(6,indctn,nmIT)
+(2,indctn,nmIT)sgn(indctn,nmIT)
+sgn
+sgn
+sgnsgn(indctn,nmIT)
+(indctn,nmIT)
+(indctn,nmIT)
+(indctn,nmIT)S 5
+S 7
+S 6
+S 2
+IT EstablishIn
+OutFigure 7: Case study example 1: open signal.
+5 Conclusion
+The goal of our research is to present a formal speciﬁcation methodology for
+RIS. This work is achieved by the hierarchical colored Petri net. Its hierarchical
+and color features make it possible to propose a generic and compact structure
+which contains all high-level functions of RIS. The rigorous semantics of Petri
+nets could be applied for formal proofs in further research. This paper ﬁrst
+introduces the architecture of RIS and the hierarchical structure of the model
+framework. Afterwards, two illustrations of mapping RIS components into HCPN
+speciﬁcations have been presented. As a case study, a particular station is modeled
+including track layout, basic signal control principles, and procedures.
+Z_02
+Z_02 ZONE Z_02
+Z_01
+Z_01ZONEZ_01
+Z_2
+Z_2ZONEZ_2Z_1
+ZONEZ_3
+ZONEZ_5
+ZONEZ_9
+Z_9ZONEZ_9Z_11
+Z_11 ZONE Z_11Z_7
+Z_7ZONEZ_7
+Z_4ZONEZ_6
+ZONEZ_8
+Z_8ZONEZ_8AG 1
+AG 1DIR1`D
+AG 1Signal 5
+S 5SGN1`(C,"")
+S 5
+Signal 3
+S 3SGN1`(C,"")
+S 3Signal 7
+S 7SGN1`(CV,"")
+S 7AG 2 AG 2DIR1`D
+AG 2 Z_1_DA
+ZONE
+AG 3a
+AG 3aDIR1`D
+AG 3a
+AG 3b
+AG 3bDIR1`D
+AG 3bAG 4
+AG 4DIR1`D
+AG 4
+Signal 1
+S 1SGN1`(CV,"")
+S 1Signal 6
+S 6SGN1`(C,"")
+S 6
+Signal 2
+S 2SGN1`(C,"")
+S 2Z_5_DA
+ZONEZ_02
+to
+Z_1[Permet indctn
+andalso
+#5 train=pos]
+Z_1 
+to
+Z_02[#5 train=neg]
+Z_01 
+to
+Z_1[Permet indctn
+andalso
+#5 train=pos]Z_1 
+to
+Z_01[#5 train=neg]Z_1 
+on DA mode
+DA 3_5 pos[#4 train=DA
+andalso
+#5 train=pos]Z_1 
+to
+Z_7
+Z_1 
+to
+ Z_3
+Z_1 to Z_3
+on TP mode[#4 train=TP
+andalso
+#5 train=pos]
+Z_3
+to
+Z_1[#5 train=neg]Z_3
+to
+Z_5[Permet indctn
+andalso
+#5 train=pos]
+Z_3
+to
+Z_4[#5 train=neg]
+Z_4
+to
+Z_3[#5 train=pos]
+Z_2
+to
+Z_4[Permet indctn
+andalso
+#5 train=pos]
+Z 4
+vers
+Z  2
+[#5 train=pos]Z_4
+to
+Z_6[#5 train=pos]
+Z_6 to Z_4
+on DA
+DA 2 neg[#4 train=DA
+andalso
+#5 train=pair]Z_5
+to
+Z_3
+DA 7_6 neg[#4 train=DA
+andalso
+#5 train=neg]
+DA 7_6 neg
+Z_6
+to
+Z_8[#5 train=pos]
+Z_8
+to
+Z_6
+[Permet indctn
+andalso
+#5 train=neg]Z_5 on
+DA mode
+DA 7_6 pos[#4 train=DA
+andalso
+#5 train=pos]
+Z_5
+to
+Z_9Z_5
+to
+Z_11Z_11
+to
+Z_5[Permet indctn
+andalso
+#5 train=neg]
+Z_5 to Z_9
+on TP
+[#4 train<>DA
+andalso
+#5 train=pos]
+Z_6 to Z_4
+on TP[#4 train=TP
+andalso
+#5 train=neg]Z_5 to Z_11
+on TP
+[#4 train<>DA
+andalso
+#5 train=pos]
+Dtrain(indctn,nmIT)
+traintrain
+traincase nmIT of
+"5/17" => (C,"5/17")
+|"5/15" => (S,"5/15")
+|"5/13" => (S,"5/13")
+D
+G
+trainG
+train train
+train
+(indctn,nmIT)
+case nmIT of
+"3/17" => (C,"3/17")
+|"3/15" => (Sc,"3/15")
+|"3/13" => (S,"3/13")train
+traintrain train
+G
+D
+train
+train traintrainD
+train
+trainDtrain train(Et,nmIT)(CV,nmIT)
+G
+Gtrain
+train
+traintrain
+G
+G
+train train(M,nmIT)
+(CV,nmIT)
+train trainD
+train train
+traintraintrain train
+train train
+train train
+(indctn,nmIT)
+(S,nmIT)train trainD
+train trainG
+traintraintrain(indctn,nmIT)case nmIT of
+"6/5" => (C,"6/5")
+|"6/1" => (S,"6/1")
+|"6/3" => (C,"6/3")
+Gtrain
+D
+train train
+train traintraintrain
+G
+DDA 3_5 pos
+DA 2 negDA 7_6 pos
+Figure 8: Case study example 2: route layout.Computers in Railways XIV   857
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
+
+--- Page 10 ---
+This research work is proceeding. While we still have to consider different
+scheduling modes, more complex or particular scenarios, the next step will
+consider with following works: integrating input interfaces of human inﬂuences,
+considering Time factors, and doing research into a more universal structure/form
+of models.
+Acknowledgement
+This research is funded by the PERFECT project (ANR-12-VPTT-0010).
+References
+[1] Murphy, E., The application of ertms/etcs systems. Proc., Institution of
+Railway Signal Engineers (IRSE) Australasia Technical Meeting, 2007.
+[2] Pachl, J., Railway operation and control. VTD Rail Publishing, 2002.
+[3] Jensen, K., Kristensen, L.M. & Wells, L., Coloured petri nets and cpn tools
+for modelling and validation of concurrent systems. International Journal on
+Software Tools for Technology Transfer, 9(3-4), pp. 213–254, 2007.
+[4] Lalouette, J., Caron, R., Scherb, F., Brinzei, N., Aubry, J.F., Malass ´e, O. et al.,
+Evaluation des performances du syst `eme de signalisation ferroviaire europ ´een
+superpose au syst `eme franc ¸ais, en pr ´esence de d ´efaillances performance
+assessment of European railway signalling system superposed of the French
+system in the presence of failures. 17e Congr `es de Ma ˆıtrise des Risques et de
+Sˆuret´e de Fonctionnement, Lambda-Mu’2010, 2010.
+[5] Buchheit, G., Malass ´e, O., Brinzei, N., Lalouette, J., Walter, M.
+et al., ´Evaluation des performances d’un axe ferroviaire en fonction
+des caract ´eristiques ﬁabilistes de ses syst `emes de signalisations. 9`eme
+Congr `es International Pluridisciplinaire Qualit ´e et S ˆuret´e de Fonctionnement,
+Qualita’2011, 2011.
+[6] Antoni, M. & Ammad, N., Formal validation method and tools for French
+computerized railway interlocking systems. Railway Condition Monitoring,
+2008 4th IET International Conference on, pp. 1–10, 2008.
+[7] Antoni, M., Formal validation method for computerized railway interlocking
+systems. Computers Industrial Engineering, 2009. CIE 2009. International
+Conference on, pp. 1532–1541, 2009.
+[8] R ´etiveau, R., La signalisation ferroviaire. Presse de l’ ´Ecole Nationale des
+Ponts et Chauss ´ees, 1987.
+[9] Collart-Dutilleul, S., Bon, P., El Koursi, E. & Lemaire, ´E., Study of the
+implementation of ertms with respect to French national ‘non on board rules’
+using a collaborative methodology based on formal methods and simulation.
+Proc. Transport Research Arena 2014, Paris, France, TRA’2014, 2014. To be
+published.858  Computers in Railways XIV
+ 
+ www.witpress.com, ISSN 1743-3509 (on-line) WIT Transactions on The Built Environment, Vol 135, ©2014 WIT Press
