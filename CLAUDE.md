@@ -114,12 +114,13 @@ project_1_llm_state_machine_modeling/
 
 ### 文件说明
 
-1. **PDF原文**：论文的PDF文件，文件名格式建议为 `作者 - 年份 - 标题.pdf`
+1. **PDF原文**：论文的PDF文件。一般情况下，文件名格式建议为 `作者 - 年份 - 标题.pdf`
+   - **特别说明**：对于 `project_1_llm_state_machine_modeling/sources/` 下各论文子目录中的 PDF 原文，文件名必须统一为 `paper.pdf`
 
 2. **paper_content.txt**：使用 `tools/pdf_extractor.py` 自动提取的论文文本内容
    ```bash
    # 提取命令示例
-   python -m tools.pdf_extractor -i "path/to/paper/论文.pdf" -o "path/to/paper/paper_content.txt" -m text
+   python -m tools.pdf_extractor -i "path/to/paper/paper.pdf" -o "path/to/paper/paper_content.txt" -m text
    ```
 
 3. **desc.md**：论文的结构化总结文档（**核心文件**）
