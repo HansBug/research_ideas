@@ -22,10 +22,28 @@
 
 ## 论文清单
 
-- 更新于：`2026-03-11 19:52:53`
-- 本次更新：新增 **58** 篇，当前累计 **88** 篇
-- 检索策略：基于 `BASELINE.md` 中 `ALL-IN-ONE 综合检索关键词`，按“控制对象/系统类型 + design/requirements/specification/modeling/verification + state machine/FSM/statechart/formal method”等组合继续扩展检索，并优先保留可直接获取 PDF 与较完整 BibTeX 的开放文献
-- 本轮侧重：铁路联锁与轨交控制、医疗设备闭环控制、车载控制（ACC/ABS/BBW/车队协同）、PLC/电梯/交通灯/停车控制，以及无人机/飞控/起落架等航空航天控制
+### 领域分布（按论文篇数统计）
+
+- 统计口径：按 `## 论文清单` 中已收录的 **88** 篇论文统计，基于表格中的 `分类` emoji，不按 STM 条目数统计。
+
+| 领域 | 篇数 | 占比 | 说明 |
+|---|---:|---:|---|
+| 🚗 车载控制与驾驶辅助 | 24 | 27.3% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🏭 工业自动化与离散事件控制 | 22 | 25.0% | IEC 61499/61131、交通灯、电梯、液位、停车、制造与分拣控制 |
+| 🚆 铁路联锁与轨交控制 | 13 | 14.8% | 联锁表、进路控制、平交口、车门等轨道交通控制与验证 |
+| ✈️ 航空航天与飞行/空管控制 | 8 | 9.1% | 无人机、起落架、飞机制动、空管协调协议等 |
+| ⚙️ 通用形式化/控制系统基础 | 7 | 8.0% | 混成系统、实时系统、医疗/船舶等通用控制建模与验证基础文献 |
+| 🧩 建模方法与系统工程过程 | 5 | 5.7% | SysML、MDE、MBT、架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 4.5% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| 🤖 PLC 与自动化软件工程 | 3 | 3.4% | PLC 课程、PLC 软件模块化、产线故障处理与恢复工程实践 |
+| 🩺 医疗设备与闭环治疗控制 | 2 | 2.3% | 起搏器、输液泵等医疗控制专项文献 |
+| **合计** | **88** | **100.0%** | - |
+
+### 更新日志
+
+| 时间 | 更新内容 | 检索策略 | 本轮侧重 |
+|---|---|---|---|
+| 2026-03-11 19:52:53 | 新增 **58** 篇，当前累计 **88** 篇 | 基于 `BASELINE.md` 中 `ALL-IN-ONE 综合检索关键词`，按“控制对象/系统类型 + design/requirements/specification/modeling/verification + state machine/FSM/statechart/formal method”等组合继续扩展检索，并优先保留可直接获取 PDF 与较完整 BibTeX 的开放文献。 | 铁路联锁与轨交控制、医疗设备闭环控制、车载控制（ACC/ABS/BBW/车队协同）、PLC/电梯/交通灯/停车控制，以及无人机/飞控/起落架等航空航天控制。 |
 
 | # | 分类 | 标题 | 年份 | 主题 | 关键词 | 目录 |
 |---|---|---|---:|---|---|---|
@@ -179,96 +197,114 @@
 - 🧾 已提取到的状态机/控制逻辑条目：**41** 条
 - 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 28 类**（铁路联锁、车队控制、交通灯、停车、液位控制、电梯、起落架等新对象显著增加）
 
-| 目录 | 结果 | 条目数 | 备注 | STM |
-|---|---|---:|---|---|
-| `automotive-analysis-thesis` | 🟢 直接可用 | 1 | BBW ABS 功能块给出了显式 TA 状态与转移。 | [STM](sources/automotive-analysis-thesis/STM.md) |
-| `automotive-mbt-thesis` | 🟢 直接可用 | 1 | BBW ABS 行为图直接给出了 Entry/CalcSlipRate/Exit 三态。 | [STM](sources/automotive-mbt-thesis/STM.md) |
-| `automotive-temporal-logic-benchmarks` | 🟢 直接可用 | 1 | 自动变速器基准模型明确给出了 gear FSM 和 shift guard。 | [STM](sources/automotive-temporal-logic-benchmarks/STM.md) |
-| `avens-uas` | ⚪ 未收获 | 0 | 聚焦飞行/网络联合仿真，不提供可复用的控制系统状态机描述。 | [STM](sources/avens-uas/STM.md) |
-| `cara-infusion-pump-formal-spec` | 🟢 直接可用 | 2 | OCR 后可稳定提取泵模式与 cuff handler 的状态/回退逻辑。 | [STM](sources/cara-infusion-pump-formal-spec/STM.md) |
-| `cps-security-analysis-sysml` | ⚪ 未收获 | 0 | 重点是 CPS 安全威胁/攻击路径，不是控制对象行为状态机。 | [STM](sources/cps-security-analysis-sysml/STM.md) |
-| `design-pillars-medical-cps` | ⚪ 未收获 | 0 | 是中间件设计原则，不是具体控制系统状态机。 | [STM](sources/design-pillars-medical-cps/STM.md) |
-| `dual-chamber-pacemaker` | 🟢 直接可用 | 2 | 既有基础 DDD 节律控制，也有 DDD/VDI 模式切换。 | [STM](sources/dual-chamber-pacemaker/STM.md) |
-| `east-adl-formal-analysis` | 🟡 可整理 | 1 | BBW ABS 逻辑清晰，但正文把状态机更多留给 TA 模型/工具层。 | [STM](sources/east-adl-formal-analysis/STM.md) |
-| `fault-handling-plc-industry4` | 🟢 直接可用 | 2 | 既有通用 operation modes，又有 abort/reset/start 的实际切换链路。 | [STM](sources/fault-handling-plc-industry4/STM.md) |
-| `holonic-control-validation` | ⚪ 未收获 | 0 | Petri 网验证很强，但抽取文本里缺少可直接落数据集的具体控制对象状态描述。 | [STM](sources/holonic-control-validation/STM.md) |
-| `hytech-hybrid-systems` | 🟢 直接可用 | 1 | 恒温器自动机是标准的控制对象状态机示例。 | [STM](sources/hytech-hybrid-systems/STM.md) |
-| `ics-vulnerability-knowledge-base` | ⚪ 未收获 | 0 | ICS 组件与攻击路径描述为主，不是控制行为状态机。 | [STM](sources/ics-vulnerability-knowledge-base/STM.md) |
-| `iec61499-realtime-semantics` | 🟡 可整理 | 1 | BFB/ECC 本身就是有限状态控制器，但示例状态名主要在图里。 | [STM](sources/iec61499-realtime-semantics/STM.md) |
-| `iec61499-soa-review` | ⚪ 未收获 | 0 | 综述型论文，没有可追溯的控制状态设计。 | [STM](sources/iec61499-soa-review/STM.md) |
-| `iec61499-vs-61131` | ⚪ 未收获 | 0 | 有 ECC 示例，但对象是泛化 counter FB，不作为控制系统需求样本。 | [STM](sources/iec61499-vs-61131/STM.md) |
-| `industrial-strength-mbt` | ⚪ 未收获 | 0 | 模型测试方法综述，不是控制系统设计原文。 | [STM](sources/industrial-strength-mbt/STM.md) |
-| `model-driven-iec61131-development` | ⚪ 未收获 | 0 | 有 Feeder FB/SFC 背景，但正文没有把状态和转移文本化到可追溯程度。 | [STM](sources/model-driven-iec61131-development/STM.md) |
-| `plc-course-fsm` | 🟢 直接可用 | 2 | 给出了非常干净的 box-fill 三态 FSM 和 auto/standby 二态 FSM。 | [STM](sources/plc-course-fsm/STM.md) |
-| `plc-software-modularity` | ⚪ 未收获 | 0 | 列出了 operation modes，但没有具体控制对象的转移逻辑。 | [STM](sources/plc-software-modularity/STM.md) |
-| `safeslice` | ⚪ 未收获 | 0 | 出现的模式是工具模式，不是控制系统模式。 | [STM](sources/safeslice/STM.md) |
-| `secure-safe-embedded-mde` | ⚪ 未收获 | 0 | 文中状态机主要对应密钥分发协议，不是控制系统对象。 | [STM](sources/secure-safe-embedded-mde/STM.md) |
-| `smart-manufacturing-standards-nist` | ⚪ 未收获 | 0 | 标准/参考架构综述，不提供状态机行为细节。 | [STM](sources/smart-manufacturing-standards-nist/STM.md) |
-| `sysml-safety-analysis-integration` | 🟢 直接可用 | 1 | 飞机轮刹系统四模态自动机非常适合状态机需求样本。 | [STM](sources/sysml-safety-analysis-integration/STM.md) |
-| `sysml-safety-critical-design-process` | ⚪ 未收获 | 0 | 更偏设计流程方法，缺少具体控制对象状态机正文。 | [STM](sources/sysml-safety-critical-design-process/STM.md) |
-| `sysmlv2-avionics` | ⚪ 未收获 | 0 | 探索 SysML v2 建模能力，没有可追溯控制状态样本。 | [STM](sources/sysmlv2-avionics/STM.md) |
-| `system-architecture-virtual-integration` | ⚪ 未收获 | 0 | 以体系结构/虚拟集成为主，状态逻辑多停留在工具链层。 | [STM](sources/system-architecture-virtual-integration/STM.md) |
-| `tasm-toolset` | ⚪ 未收获 | 0 | 只说明工具曾用于 Electronic Throttle Controller，没有给出状态细节。 | [STM](sources/tasm-toolset/STM.md) |
-| `time-complemented-automation-architecture` | 🟢 直接可用 | 1 | Sorter1 的控制流非常适合作为分布式自动化状态/转移样本。 | [STM](sources/time-complemented-automation-architecture/STM.md) |
-| `vital-east-adl-uppaal` | 🟡 可整理 | 1 | 有 BBW 功能约束和 fp 执行周期，但显式状态较少。 | [STM](sources/vital-east-adl-uppaal/STM.md) |
-| `adaptive-control-of-robot-manipulators-with-flexible-joints` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/adaptive-control-of-robot-manipulators-with-flexible-joints/STM.md) |
-| `autonomous-intelligent-cruise-control` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/autonomous-intelligent-cruise-control/STM.md) |
-| `elevator-group-control-using-multiple-reinforcement-learning-agents` | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/elevator-group-control-using-multiple-reinforcement-learning-agents/STM.md) |
-| `formal-modelling-and-simulation-of-train-control-systems-using-petri-net` | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/formal-modelling-and-simulation-of-train-control-systems-using-petri-net/STM.md) |
-| `modeling-and-validation-of-a-navy-a6-intruder-actively-controlled-landin` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/modeling-and-validation-of-a-navy-a6-intruder-actively-controlled-landin/STM.md) |
-| `using-z-specification-for-railway-interlocking-safety` | 🟡 可整理 | 1 | 联锁系统状态由组件状态组合构成，route/sub-route 的 set/lock 逻辑可整理。 | [STM](sources/using-z-specification-for-railway-interlocking-safety/STM.md) |
-| `multi-car-elevator-control-by-using-learning-automaton` | ⚪ 未收获 | 0 | 文本分布过于分散或语言/提取质量限制较强，当前未定位到足够可靠的控制状态描述。 | [STM](sources/multi-car-elevator-control-by-using-learning-automaton/STM.md) |
-| `a-formal-approach-for-the-construction-and-verification-of-railway-contr` | 🟢 直接可用 | 1 | 路由保留、道岔定位、进路开放与释放链路描述清楚，可直接整理为控制逻辑样本。 | [STM](sources/a-formal-approach-for-the-construction-and-verification-of-railway-contr/STM.md) |
-| `automated-verification-of-signalling-principles-in-railway-interlocking` | 🟡 可整理 | 1 | 联锁控制循环和对象互斥条件明确，但更多体现为 ladder logic 的周期执行与状态约束。 | [STM](sources/automated-verification-of-signalling-principles-in-railway-interlocking/STM.md) |
-| `automatic-generation-and-verification-of-railway-interlocking-control-ta` | 🟢 直接可用 | 1 | 轨道区段、道岔、信号和进路的离散状态与进路设定条件写得很明确。 | [STM](sources/automatic-generation-and-verification-of-railway-interlocking-control-ta/STM.md) |
-| `3d-pose-estimation-based-on-planar-object-tracking-for-uavs-control` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/3d-pose-estimation-based-on-planar-object-tracking-for-uavs-control/STM.md) |
-| `modelling-railway-interlocking-tables-using-coloured-petri-nets` | 🟢 直接可用 | 1 | route set/release、冲突进路和入口信号开放条件的文字依据很充分。 | [STM](sources/modelling-railway-interlocking-tables-using-coloured-petri-nets/STM.md) |
-| `nonlinear-controller-design-of-a-ship-autopilot` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/nonlinear-controller-design-of-a-ship-autopilot/STM.md) |
-| `on-board-and-ground-visual-pose-estimation-techniques-for-uav-control` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/on-board-and-ground-visual-pose-estimation-techniques-for-uav-control/STM.md) |
-| `formal-specification-and-verification-of-a-coordination-protocol-for-an` | 🟢 直接可用 | 1 | AAC 中 AutoResolver/TSAFE/TCAS 的控制接管与返还条件非常明确。 | [STM](sources/formal-specification-and-verification-of-a-coordination-protocol-for-an/STM.md) |
-| `marginalizing-out-future-passengers-in-group-elevator-control` | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/marginalizing-out-future-passengers-in-group-elevator-control/STM.md) |
-| `cooperative-adaptive-cruise-control-in-real-traffic-situations` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/cooperative-adaptive-cruise-control-in-real-traffic-situations/STM.md) |
-| `experimental-verification-of-vehicle-platoon-control-algorithms` | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/experimental-verification-of-vehicle-platoon-control-algorithms/STM.md) |
-| `online-predictive-diagnosis-of-electrical-train-door-systems` | ⚪ 未收获 | 0 | 重点是故障诊断或监测，原文中的阶段/工况主要服务于诊断而不是控制设计。 | [STM](sources/online-predictive-diagnosis-of-electrical-train-door-systems/STM.md) |
-| `reactive-approach-for-autonomous-vehicle-platoon-systems-modelling-and-v` | ⚪ 未收获 | 0 | 文本分布过于分散或语言/提取质量限制较强，当前未定位到足够可靠的控制状态描述。 | [STM](sources/reactive-approach-for-autonomous-vehicle-platoon-systems-modelling-and-v/STM.md) |
-| `adaptive-cascade-control-of-a-brake-by-wire-actuator-for-sport-motorcycl` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/adaptive-cascade-control-of-a-brake-by-wire-actuator-for-sport-motorcycl/STM.md) |
-| `architecture-description-language-for-cyber-physical-systems-analysis-a` | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/architecture-description-language-for-cyber-physical-systems-analysis-a/STM.md) |
-| `automated-verification-of-quantitative-properties-of-cardiac-pacemaker-s` | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/automated-verification-of-quantitative-properties-of-cardiac-pacemaker-s/STM.md) |
-| `developing-and-verifying-user-interface-requirements-for-infusion-pumps` | 🟡 可整理 | 1 | 围绕输液泵数据录入的进入、修改、提交和 entry mode 条件有清楚的离散描述。 | [STM](sources/developing-and-verifying-user-interface-requirements-for-infusion-pumps/STM.md) |
-| `modeling-cooperative-and-autonomous-adaptive-cruise-control-dynamic-resp` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/modeling-cooperative-and-autonomous-adaptive-cruise-control-dynamic-resp/STM.md) |
-| `performance-evaluation-of-an-anti-lock-braking-system-for-electric-vehic` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/performance-evaluation-of-an-anti-lock-braking-system-for-electric-vehic/STM.md) |
-| `high-accuracy-traffic-light-controller-for-increasing-the-given-green-ti` | 🟡 可整理 | 1 | 下一相位选择和绿灯持续时间计算流程明确，但更偏算法化相位决策。 | [STM](sources/high-accuracy-traffic-light-controller-for-increasing-the-given-green-ti/STM.md) |
-| `the-landing-gear-system-in-multi-machine-hybrid-event-b` | 🟢 直接可用 | 1 | 起落架手柄、模拟开关和 door/gear movement machines 的切换关系很明确。 | [STM](sources/the-landing-gear-system-in-multi-machine-hybrid-event-b/STM.md) |
-| `uav-control-on-the-basis-of-3d-landmark-bearing-only-observations` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/uav-control-on-the-basis-of-3d-landmark-bearing-only-observations/STM.md) |
-| `verification-of-railway-interlocking-systems` | 🟢 直接可用 | 1 | request-check-lock-green-release 的 route lifecycle 写得非常完整。 | [STM](sources/verification-of-railway-interlocking-systems/STM.md) |
-| `bond-graph-modeling-for-fault-detection-and-isolation-of-a-train-door-me` | ⚪ 未收获 | 0 | 重点是故障诊断或监测，原文中的阶段/工况主要服务于诊断而不是控制设计。 | [STM](sources/bond-graph-modeling-for-fault-detection-and-isolation-of-a-train-door-me/STM.md) |
-| `validation-process-for-railway-interlocking-systems` | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/validation-process-for-railway-interlocking-systems/STM.md) |
-| `design-amp-control-of-an-elevator-control-system-using-plc` | 🟢 直接可用 | 1 | 电梯门、超载、停层和失电应急动作都给出了明确的控制描述。 | [STM](sources/design-amp-control-of-an-elevator-control-system-using-plc/STM.md) |
-| `formal-verification-of-autonomous-vehicle-platooning` | 🟢 直接可用 | 2 | 加入和离队流程都给出了逐步的控制约束与安全条件。 | [STM](sources/formal-verification-of-autonomous-vehicle-platooning/STM.md) |
-| `integrated-longitudinal-and-lateral-networked-control-system-design-for` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/integrated-longitudinal-and-lateral-networked-control-system-design-for/STM.md) |
-| `intelligent-elevator-control-and-safety-monitoring-system` | 🟡 可整理 | 1 | 门感应、语音选层和超时关闭前的语音控制逻辑较明确。 | [STM](sources/intelligent-elevator-control-and-safety-monitoring-system/STM.md) |
-| `networked-cooperative-platoon-of-vehicles-for-testing-methods-and-verifi` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/networked-cooperative-platoon-of-vehicles-for-testing-methods-and-verifi/STM.md) |
-| `automatic-traffic-light-controller-for-emergency-vehicle-using-periphera` | 🟢 直接可用 | 1 | 紧急车辆触发、绿灯延长和恢复正常模式的控制链路非常清楚。 | [STM](sources/automatic-traffic-light-controller-for-emergency-vehicle-using-periphera/STM.md) |
-| `features-of-automatic-control-of-technological-parameters-of-water-level` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/features-of-automatic-control-of-technological-parameters-of-water-level/STM.md) |
-| `fuzzy-sliding-mode-wheel-slip-ratio-control-for-smart-vehicle-anti-lock` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/fuzzy-sliding-mode-wheel-slip-ratio-control-for-smart-vehicle-anti-lock/STM.md) |
-| `modular-verification-of-vehicle-platooning-with-respect-to-decisions-spa` | 🟢 直接可用 | 1 | join procedure 的通信、变道、速度/转向接管顺序明确。 | [STM](sources/modular-verification-of-vehicle-platooning-with-respect-to-decisions-spa/STM.md) |
-| `research-on-longitudinal-active-collision-avoidance-of-autonomous-emerge` | 🟡 可整理 | 1 | AEB-P 的预警、自动制动接管和分层控制模块较清楚。 | [STM](sources/research-on-longitudinal-active-collision-avoidance-of-autonomous-emerge/STM.md) |
-| `water-tank-level-controller-by-using-plc` | 🟢 直接可用 | 1 | 上下阈值触发泵/阀动作的控制序列明确，适合直接当成简单控制需求样本。 | [STM](sources/water-tank-level-controller-by-using-plc/STM.md) |
-| `data-efficient-reinforcement-learning-for-integrated-lateral-planning-an` | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/data-efficient-reinforcement-learning-for-integrated-lateral-planning-an/STM.md) |
-| `information-value-based-fault-diagnosis-of-train-door-system-under-multi` | ⚪ 未收获 | 0 | 重点是故障诊断或监测，原文中的阶段/工况主要服务于诊断而不是控制设计。 | [STM](sources/information-value-based-fault-diagnosis-of-train-door-system-under-multi/STM.md) |
-| `review-on-the-development-control-method-and-application-prospect-of-bra` | ⚪ 未收获 | 0 | 综述/综述型技术总结为主，缺少单一控制对象的可追溯运行逻辑。 | [STM](sources/review-on-the-development-control-method-and-application-prospect-of-bra/STM.md) |
-| `sliding-mode-control-algorithms-for-anti-lock-braking-systems-with-perfo` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/sliding-mode-control-algorithms-for-anti-lock-braking-systems-with-perfo/STM.md) |
-| `video-based-parking-occupancy-detection-for-smart-control-system` | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/video-based-parking-occupancy-detection-for-smart-control-system/STM.md) |
-| `an-industrial-quadrotor-uav-control-method-based-on-fuzzy-adaptive-linea` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/an-industrial-quadrotor-uav-control-method-based-on-fuzzy-adaptive-linea/STM.md) |
-| `intelligent-traffic-light-controller-using-fuzzy-logic-and-image-process` | 🟡 可整理 | 1 | 用车流量与红黄绿时间共同决定六个信号输出，具备明确的相位控制含义。 | [STM](sources/intelligent-traffic-light-controller-using-fuzzy-logic-and-image-process/STM.md) |
-| `performance-assessment-of-an-electric-power-steering-system-for-driverle` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/performance-assessment-of-an-electric-power-steering-system-for-driverle/STM.md) |
-| `traffic-light-controller-using-image-processing` | 🟢 直接可用 | 1 | 图像匹配结果到红绿灯时长的映射规则明确可追溯。 | [STM](sources/traffic-light-controller-using-image-processing/STM.md) |
-| `formal-modeling-and-verification-of-the-functionality-of-electronic-urba` | 🟢 直接可用 | 2 | 电车平交口保护序列和检测点状态机都给出了可追溯的离散行为。 | [STM](sources/formal-modeling-and-verification-of-the-functionality-of-electronic-urba/STM.md) |
-| `research-on-path-planning-and-tracking-control-of-automatic-parking-syst` | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/research-on-path-planning-and-tracking-control-of-automatic-parking-syst/STM.md) |
-| `review-of-brake-by-wire-system-and-control-technology` | ⚪ 未收获 | 0 | 综述/综述型技术总结为主，缺少单一控制对象的可追溯运行逻辑。 | [STM](sources/review-of-brake-by-wire-system-and-control-technology/STM.md) |
-| `a-smart-real-time-parking-control-and-monitoring-system` | 🟡 可整理 | 1 | 停车位分配、预约和到位核验逻辑较清楚，但更偏管理控制层而非底层执行控制。 | [STM](sources/a-smart-real-time-parking-control-and-monitoring-system/STM.md) |
-| `design-and-assessment-of-an-anti-lock-braking-system-controller` | 🟡 可整理 | 1 | ABS 的检测-减压-再增压闭环很清楚，但表达更偏控制机理而非显式状态机。 | [STM](sources/design-and-assessment-of-an-anti-lock-braking-system-controller/STM.md) |
-| `model-based-design-of-aircraft-landing-gear-system` | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/model-based-design-of-aircraft-landing-gear-system/STM.md) |
+### 领域分布（按已提取条目统计）
+
+- 统计口径：按 `STM.md` 中已经入账的 41 个状态机/控制逻辑条目统计，不按论文篇数统计；同一论文可贡献多个条目。
+
+| 领域 | 条目数 | 占比 | 代表控制对象 |
+|---|---:|---:|---|
+| 🚄 轨道交通联锁/平交口 | 8 | 19.5% | 进路建立与释放、道岔锁闭、平交口保护、检测点输入处理 |
+| 🚗 汽车底盘/动力/主动安全 | 7 | 17.1% | ABS 轮端控制、自动变速器、Brake-by-Wire、防碰撞自动制动 |
+| 🏭 工业自动化/离散制造 | 6 | 14.6% | PLC operation modes、故障复位重启、IEC 61499 BFB/ECC、分拣/灌装顺序控制 |
+| 🏥 医疗设备与生命支持 | 5 | 12.2% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
+| 🚦 道路交通信号控制 | 4 | 9.8% | 紧急车辆优先放行、动态相位选择、模糊交通灯控制、图像驱动绿灯分配 |
+| 🚙 自动驾驶车队控制 | 3 | 7.3% | 车队加入流程、离队流程、leader 授权后的自动控制接管 |
+| ✈️ 航空航天与机载控制 | 3 | 7.3% | 空管协调协议、飞机轮刹供压切换、起落架伸收与锁定控制 |
+| 🏢 楼宇机电/电梯控制 | 2 | 4.9% | 电梯运行与门控逻辑、语音选层与交互控制 |
+| 🌡️ 过程与环境控制 | 2 | 4.9% | 恒温器开关控制、双水箱液位阈值控制 |
+| 🅿️ 智慧停车与车位管理 | 1 | 2.4% | 车位分配、预约与到位核验 |
+| **合计** | **41** | **100.0%** | - |
+
+| 目录 | 领域 | 结果 | 条目数 | 备注 | STM |
+|---|---|---|---:|---|---|
+| `automotive-analysis-thesis` | 🚗 | 🟢 直接可用 | 1 | BBW ABS 功能块给出了显式 TA 状态与转移。 | [STM](sources/automotive-analysis-thesis/STM.md) |
+| `automotive-mbt-thesis` | 🚗 | 🟢 直接可用 | 1 | BBW ABS 行为图直接给出了 Entry/CalcSlipRate/Exit 三态。 | [STM](sources/automotive-mbt-thesis/STM.md) |
+| `automotive-temporal-logic-benchmarks` | 🚗 | 🟢 直接可用 | 1 | 自动变速器基准模型明确给出了 gear FSM 和 shift guard。 | [STM](sources/automotive-temporal-logic-benchmarks/STM.md) |
+| `avens-uas` | 🚗 | ⚪ 未收获 | 0 | 聚焦飞行/网络联合仿真，不提供可复用的控制系统状态机描述。 | [STM](sources/avens-uas/STM.md) |
+| `cara-infusion-pump-formal-spec` | ⚙️ | 🟢 直接可用 | 2 | OCR 后可稳定提取泵模式与 cuff handler 的状态/回退逻辑。 | [STM](sources/cara-infusion-pump-formal-spec/STM.md) |
+| `cps-security-analysis-sysml` | 🔐 | ⚪ 未收获 | 0 | 重点是 CPS 安全威胁/攻击路径，不是控制对象行为状态机。 | [STM](sources/cps-security-analysis-sysml/STM.md) |
+| `design-pillars-medical-cps` | ⚙️ | ⚪ 未收获 | 0 | 是中间件设计原则，不是具体控制系统状态机。 | [STM](sources/design-pillars-medical-cps/STM.md) |
+| `dual-chamber-pacemaker` | ⚙️ | 🟢 直接可用 | 2 | 既有基础 DDD 节律控制，也有 DDD/VDI 模式切换。 | [STM](sources/dual-chamber-pacemaker/STM.md) |
+| `east-adl-formal-analysis` | 🚗 | 🟡 可整理 | 1 | BBW ABS 逻辑清晰，但正文把状态机更多留给 TA 模型/工具层。 | [STM](sources/east-adl-formal-analysis/STM.md) |
+| `fault-handling-plc-industry4` | 🤖 | 🟢 直接可用 | 2 | 既有通用 operation modes，又有 abort/reset/start 的实际切换链路。 | [STM](sources/fault-handling-plc-industry4/STM.md) |
+| `holonic-control-validation` | ⚙️ | ⚪ 未收获 | 0 | Petri 网验证很强，但抽取文本里缺少可直接落数据集的具体控制对象状态描述。 | [STM](sources/holonic-control-validation/STM.md) |
+| `hytech-hybrid-systems` | ⚙️ | 🟢 直接可用 | 1 | 恒温器自动机是标准的控制对象状态机示例。 | [STM](sources/hytech-hybrid-systems/STM.md) |
+| `ics-vulnerability-knowledge-base` | 🔐 | ⚪ 未收获 | 0 | ICS 组件与攻击路径描述为主，不是控制行为状态机。 | [STM](sources/ics-vulnerability-knowledge-base/STM.md) |
+| `iec61499-realtime-semantics` | 🏭 | 🟡 可整理 | 1 | BFB/ECC 本身就是有限状态控制器，但示例状态名主要在图里。 | [STM](sources/iec61499-realtime-semantics/STM.md) |
+| `iec61499-soa-review` | 🏭 | ⚪ 未收获 | 0 | 综述型论文，没有可追溯的控制状态设计。 | [STM](sources/iec61499-soa-review/STM.md) |
+| `iec61499-vs-61131` | 🏭 | ⚪ 未收获 | 0 | 有 ECC 示例，但对象是泛化 counter FB，不作为控制系统需求样本。 | [STM](sources/iec61499-vs-61131/STM.md) |
+| `industrial-strength-mbt` | 🧩 | ⚪ 未收获 | 0 | 模型测试方法综述，不是控制系统设计原文。 | [STM](sources/industrial-strength-mbt/STM.md) |
+| `model-driven-iec61131-development` | 🏭 | ⚪ 未收获 | 0 | 有 Feeder FB/SFC 背景，但正文没有把状态和转移文本化到可追溯程度。 | [STM](sources/model-driven-iec61131-development/STM.md) |
+| `plc-course-fsm` | 🤖 | 🟢 直接可用 | 2 | 给出了非常干净的 box-fill 三态 FSM 和 auto/standby 二态 FSM。 | [STM](sources/plc-course-fsm/STM.md) |
+| `plc-software-modularity` | 🤖 | ⚪ 未收获 | 0 | 列出了 operation modes，但没有具体控制对象的转移逻辑。 | [STM](sources/plc-software-modularity/STM.md) |
+| `safeslice` | 🔐 | ⚪ 未收获 | 0 | 出现的模式是工具模式，不是控制系统模式。 | [STM](sources/safeslice/STM.md) |
+| `secure-safe-embedded-mde` | 🔐 | ⚪ 未收获 | 0 | 文中状态机主要对应密钥分发协议，不是控制系统对象。 | [STM](sources/secure-safe-embedded-mde/STM.md) |
+| `smart-manufacturing-standards-nist` | 🏭 | ⚪ 未收获 | 0 | 标准/参考架构综述，不提供状态机行为细节。 | [STM](sources/smart-manufacturing-standards-nist/STM.md) |
+| `sysml-safety-analysis-integration` | 🧩 | 🟢 直接可用 | 1 | 飞机轮刹系统四模态自动机非常适合状态机需求样本。 | [STM](sources/sysml-safety-analysis-integration/STM.md) |
+| `sysml-safety-critical-design-process` | 🧩 | ⚪ 未收获 | 0 | 更偏设计流程方法，缺少具体控制对象状态机正文。 | [STM](sources/sysml-safety-critical-design-process/STM.md) |
+| `sysmlv2-avionics` | 🧩 | ⚪ 未收获 | 0 | 探索 SysML v2 建模能力，没有可追溯控制状态样本。 | [STM](sources/sysmlv2-avionics/STM.md) |
+| `system-architecture-virtual-integration` | 🧩 | ⚪ 未收获 | 0 | 以体系结构/虚拟集成为主，状态逻辑多停留在工具链层。 | [STM](sources/system-architecture-virtual-integration/STM.md) |
+| `tasm-toolset` | ⚙️ | ⚪ 未收获 | 0 | 只说明工具曾用于 Electronic Throttle Controller，没有给出状态细节。 | [STM](sources/tasm-toolset/STM.md) |
+| `time-complemented-automation-architecture` | 🏭 | 🟢 直接可用 | 1 | Sorter1 的控制流非常适合作为分布式自动化状态/转移样本。 | [STM](sources/time-complemented-automation-architecture/STM.md) |
+| `vital-east-adl-uppaal` | 🚗 | 🟡 可整理 | 1 | 有 BBW 功能约束和 fp 执行周期，但显式状态较少。 | [STM](sources/vital-east-adl-uppaal/STM.md) |
+| `adaptive-control-of-robot-manipulators-with-flexible-joints` | 🏭 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/adaptive-control-of-robot-manipulators-with-flexible-joints/STM.md) |
+| `autonomous-intelligent-cruise-control` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/autonomous-intelligent-cruise-control/STM.md) |
+| `elevator-group-control-using-multiple-reinforcement-learning-agents` | 🏭 | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/elevator-group-control-using-multiple-reinforcement-learning-agents/STM.md) |
+| `formal-modelling-and-simulation-of-train-control-systems-using-petri-net` | 🚆 | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/formal-modelling-and-simulation-of-train-control-systems-using-petri-net/STM.md) |
+| `modeling-and-validation-of-a-navy-a6-intruder-actively-controlled-landin` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/modeling-and-validation-of-a-navy-a6-intruder-actively-controlled-landin/STM.md) |
+| `using-z-specification-for-railway-interlocking-safety` | 🚆 | 🟡 可整理 | 1 | 联锁系统状态由组件状态组合构成，route/sub-route 的 set/lock 逻辑可整理。 | [STM](sources/using-z-specification-for-railway-interlocking-safety/STM.md) |
+| `multi-car-elevator-control-by-using-learning-automaton` | 🏭 | ⚪ 未收获 | 0 | 文本分布过于分散或语言/提取质量限制较强，当前未定位到足够可靠的控制状态描述。 | [STM](sources/multi-car-elevator-control-by-using-learning-automaton/STM.md) |
+| `a-formal-approach-for-the-construction-and-verification-of-railway-contr` | 🚆 | 🟢 直接可用 | 1 | 路由保留、道岔定位、进路开放与释放链路描述清楚，可直接整理为控制逻辑样本。 | [STM](sources/a-formal-approach-for-the-construction-and-verification-of-railway-contr/STM.md) |
+| `automated-verification-of-signalling-principles-in-railway-interlocking` | 🚆 | 🟡 可整理 | 1 | 联锁控制循环和对象互斥条件明确，但更多体现为 ladder logic 的周期执行与状态约束。 | [STM](sources/automated-verification-of-signalling-principles-in-railway-interlocking/STM.md) |
+| `automatic-generation-and-verification-of-railway-interlocking-control-ta` | 🚆 | 🟢 直接可用 | 1 | 轨道区段、道岔、信号和进路的离散状态与进路设定条件写得很明确。 | [STM](sources/automatic-generation-and-verification-of-railway-interlocking-control-ta/STM.md) |
+| `3d-pose-estimation-based-on-planar-object-tracking-for-uavs-control` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/3d-pose-estimation-based-on-planar-object-tracking-for-uavs-control/STM.md) |
+| `modelling-railway-interlocking-tables-using-coloured-petri-nets` | 🚆 | 🟢 直接可用 | 1 | route set/release、冲突进路和入口信号开放条件的文字依据很充分。 | [STM](sources/modelling-railway-interlocking-tables-using-coloured-petri-nets/STM.md) |
+| `nonlinear-controller-design-of-a-ship-autopilot` | ⚙️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/nonlinear-controller-design-of-a-ship-autopilot/STM.md) |
+| `on-board-and-ground-visual-pose-estimation-techniques-for-uav-control` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/on-board-and-ground-visual-pose-estimation-techniques-for-uav-control/STM.md) |
+| `formal-specification-and-verification-of-a-coordination-protocol-for-an` | ✈️ | 🟢 直接可用 | 1 | AAC 中 AutoResolver/TSAFE/TCAS 的控制接管与返还条件非常明确。 | [STM](sources/formal-specification-and-verification-of-a-coordination-protocol-for-an/STM.md) |
+| `marginalizing-out-future-passengers-in-group-elevator-control` | 🏭 | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/marginalizing-out-future-passengers-in-group-elevator-control/STM.md) |
+| `cooperative-adaptive-cruise-control-in-real-traffic-situations` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/cooperative-adaptive-cruise-control-in-real-traffic-situations/STM.md) |
+| `experimental-verification-of-vehicle-platoon-control-algorithms` | 🚗 | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/experimental-verification-of-vehicle-platoon-control-algorithms/STM.md) |
+| `online-predictive-diagnosis-of-electrical-train-door-systems` | 🚆 | ⚪ 未收获 | 0 | 重点是故障诊断或监测，原文中的阶段/工况主要服务于诊断而不是控制设计。 | [STM](sources/online-predictive-diagnosis-of-electrical-train-door-systems/STM.md) |
+| `reactive-approach-for-autonomous-vehicle-platoon-systems-modelling-and-v` | 🚗 | ⚪ 未收获 | 0 | 文本分布过于分散或语言/提取质量限制较强，当前未定位到足够可靠的控制状态描述。 | [STM](sources/reactive-approach-for-autonomous-vehicle-platoon-systems-modelling-and-v/STM.md) |
+| `adaptive-cascade-control-of-a-brake-by-wire-actuator-for-sport-motorcycl` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/adaptive-cascade-control-of-a-brake-by-wire-actuator-for-sport-motorcycl/STM.md) |
+| `architecture-description-language-for-cyber-physical-systems-analysis-a` | 🚆 | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/architecture-description-language-for-cyber-physical-systems-analysis-a/STM.md) |
+| `automated-verification-of-quantitative-properties-of-cardiac-pacemaker-s` | 🩺 | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/automated-verification-of-quantitative-properties-of-cardiac-pacemaker-s/STM.md) |
+| `developing-and-verifying-user-interface-requirements-for-infusion-pumps` | 🩺 | 🟡 可整理 | 1 | 围绕输液泵数据录入的进入、修改、提交和 entry mode 条件有清楚的离散描述。 | [STM](sources/developing-and-verifying-user-interface-requirements-for-infusion-pumps/STM.md) |
+| `modeling-cooperative-and-autonomous-adaptive-cruise-control-dynamic-resp` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/modeling-cooperative-and-autonomous-adaptive-cruise-control-dynamic-resp/STM.md) |
+| `performance-evaluation-of-an-anti-lock-braking-system-for-electric-vehic` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/performance-evaluation-of-an-anti-lock-braking-system-for-electric-vehic/STM.md) |
+| `high-accuracy-traffic-light-controller-for-increasing-the-given-green-ti` | 🏭 | 🟡 可整理 | 1 | 下一相位选择和绿灯持续时间计算流程明确，但更偏算法化相位决策。 | [STM](sources/high-accuracy-traffic-light-controller-for-increasing-the-given-green-ti/STM.md) |
+| `the-landing-gear-system-in-multi-machine-hybrid-event-b` | ✈️ | 🟢 直接可用 | 1 | 起落架手柄、模拟开关和 door/gear movement machines 的切换关系很明确。 | [STM](sources/the-landing-gear-system-in-multi-machine-hybrid-event-b/STM.md) |
+| `uav-control-on-the-basis-of-3d-landmark-bearing-only-observations` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/uav-control-on-the-basis-of-3d-landmark-bearing-only-observations/STM.md) |
+| `verification-of-railway-interlocking-systems` | 🚆 | 🟢 直接可用 | 1 | request-check-lock-green-release 的 route lifecycle 写得非常完整。 | [STM](sources/verification-of-railway-interlocking-systems/STM.md) |
+| `bond-graph-modeling-for-fault-detection-and-isolation-of-a-train-door-me` | 🚆 | ⚪ 未收获 | 0 | 重点是故障诊断或监测，原文中的阶段/工况主要服务于诊断而不是控制设计。 | [STM](sources/bond-graph-modeling-for-fault-detection-and-isolation-of-a-train-door-me/STM.md) |
+| `validation-process-for-railway-interlocking-systems` | 🚆 | ⚪ 未收获 | 0 | 重点是建模语言、验证框架、开发过程或体系结构，不是控制对象本身的运行逻辑。 | [STM](sources/validation-process-for-railway-interlocking-systems/STM.md) |
+| `design-amp-control-of-an-elevator-control-system-using-plc` | 🏭 | 🟢 直接可用 | 1 | 电梯门、超载、停层和失电应急动作都给出了明确的控制描述。 | [STM](sources/design-amp-control-of-an-elevator-control-system-using-plc/STM.md) |
+| `formal-verification-of-autonomous-vehicle-platooning` | 🚗 | 🟢 直接可用 | 2 | 加入和离队流程都给出了逐步的控制约束与安全条件。 | [STM](sources/formal-verification-of-autonomous-vehicle-platooning/STM.md) |
+| `integrated-longitudinal-and-lateral-networked-control-system-design-for` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/integrated-longitudinal-and-lateral-networked-control-system-design-for/STM.md) |
+| `intelligent-elevator-control-and-safety-monitoring-system` | 🏭 | 🟡 可整理 | 1 | 门感应、语音选层和超时关闭前的语音控制逻辑较明确。 | [STM](sources/intelligent-elevator-control-and-safety-monitoring-system/STM.md) |
+| `networked-cooperative-platoon-of-vehicles-for-testing-methods-and-verifi` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/networked-cooperative-platoon-of-vehicles-for-testing-methods-and-verifi/STM.md) |
+| `automatic-traffic-light-controller-for-emergency-vehicle-using-periphera` | 🏭 | 🟢 直接可用 | 1 | 紧急车辆触发、绿灯延长和恢复正常模式的控制链路非常清楚。 | [STM](sources/automatic-traffic-light-controller-for-emergency-vehicle-using-periphera/STM.md) |
+| `features-of-automatic-control-of-technological-parameters-of-water-level` | 🏭 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/features-of-automatic-control-of-technological-parameters-of-water-level/STM.md) |
+| `fuzzy-sliding-mode-wheel-slip-ratio-control-for-smart-vehicle-anti-lock` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/fuzzy-sliding-mode-wheel-slip-ratio-control-for-smart-vehicle-anti-lock/STM.md) |
+| `modular-verification-of-vehicle-platooning-with-respect-to-decisions-spa` | 🚗 | 🟢 直接可用 | 1 | join procedure 的通信、变道、速度/转向接管顺序明确。 | [STM](sources/modular-verification-of-vehicle-platooning-with-respect-to-decisions-spa/STM.md) |
+| `research-on-longitudinal-active-collision-avoidance-of-autonomous-emerge` | 🚗 | 🟡 可整理 | 1 | AEB-P 的预警、自动制动接管和分层控制模块较清楚。 | [STM](sources/research-on-longitudinal-active-collision-avoidance-of-autonomous-emerge/STM.md) |
+| `water-tank-level-controller-by-using-plc` | 🏭 | 🟢 直接可用 | 1 | 上下阈值触发泵/阀动作的控制序列明确，适合直接当成简单控制需求样本。 | [STM](sources/water-tank-level-controller-by-using-plc/STM.md) |
+| `data-efficient-reinforcement-learning-for-integrated-lateral-planning-an` | 🏭 | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/data-efficient-reinforcement-learning-for-integrated-lateral-planning-an/STM.md) |
+| `information-value-based-fault-diagnosis-of-train-door-system-under-multi` | 🚆 | ⚪ 未收获 | 0 | 重点是故障诊断或监测，原文中的阶段/工况主要服务于诊断而不是控制设计。 | [STM](sources/information-value-based-fault-diagnosis-of-train-door-system-under-multi/STM.md) |
+| `review-on-the-development-control-method-and-application-prospect-of-bra` | 🚗 | ⚪ 未收获 | 0 | 综述/综述型技术总结为主，缺少单一控制对象的可追溯运行逻辑。 | [STM](sources/review-on-the-development-control-method-and-application-prospect-of-bra/STM.md) |
+| `sliding-mode-control-algorithms-for-anti-lock-braking-systems-with-perfo` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/sliding-mode-control-algorithms-for-anti-lock-braking-systems-with-perfo/STM.md) |
+| `video-based-parking-occupancy-detection-for-smart-control-system` | 🏭 | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/video-based-parking-occupancy-detection-for-smart-control-system/STM.md) |
+| `an-industrial-quadrotor-uav-control-method-based-on-fuzzy-adaptive-linea` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/an-industrial-quadrotor-uav-control-method-based-on-fuzzy-adaptive-linea/STM.md) |
+| `intelligent-traffic-light-controller-using-fuzzy-logic-and-image-process` | 🏭 | 🟡 可整理 | 1 | 用车流量与红黄绿时间共同决定六个信号输出，具备明确的相位控制含义。 | [STM](sources/intelligent-traffic-light-controller-using-fuzzy-logic-and-image-process/STM.md) |
+| `performance-assessment-of-an-electric-power-steering-system-for-driverle` | 🚗 | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/performance-assessment-of-an-electric-power-steering-system-for-driverle/STM.md) |
+| `traffic-light-controller-using-image-processing` | 🏭 | 🟢 直接可用 | 1 | 图像匹配结果到红绿灯时长的映射规则明确可追溯。 | [STM](sources/traffic-light-controller-using-image-processing/STM.md) |
+| `formal-modeling-and-verification-of-the-functionality-of-electronic-urba` | 🚆 | 🟢 直接可用 | 2 | 电车平交口保护序列和检测点状态机都给出了可追溯的离散行为。 | [STM](sources/formal-modeling-and-verification-of-the-functionality-of-electronic-urba/STM.md) |
+| `research-on-path-planning-and-tracking-control-of-automatic-parking-syst` | 🏭 | ⚪ 未收获 | 0 | 重点是调度、分配或路径规划策略，缺少明确的运行模式切换和执行控制逻辑。 | [STM](sources/research-on-path-planning-and-tracking-control-of-automatic-parking-syst/STM.md) |
+| `review-of-brake-by-wire-system-and-control-technology` | 🚗 | ⚪ 未收获 | 0 | 综述/综述型技术总结为主，缺少单一控制对象的可追溯运行逻辑。 | [STM](sources/review-of-brake-by-wire-system-and-control-technology/STM.md) |
+| `a-smart-real-time-parking-control-and-monitoring-system` | 🏭 | 🟡 可整理 | 1 | 停车位分配、预约和到位核验逻辑较清楚，但更偏管理控制层而非底层执行控制。 | [STM](sources/a-smart-real-time-parking-control-and-monitoring-system/STM.md) |
+| `design-and-assessment-of-an-anti-lock-braking-system-controller` | 🚗 | 🟡 可整理 | 1 | ABS 的检测-减压-再增压闭环很清楚，但表达更偏控制机理而非显式状态机。 | [STM](sources/design-and-assessment-of-an-anti-lock-braking-system-controller/STM.md) |
+| `model-based-design-of-aircraft-landing-gear-system` | ✈️ | ⚪ 未收获 | 0 | 重点是连续控制、估计或性能优化，不提供可直接整理成状态机自然语言样本的离散控制模式描述。 | [STM](sources/model-based-design-of-aircraft-landing-gear-system/STM.md) |
 
 ### 说明
 
