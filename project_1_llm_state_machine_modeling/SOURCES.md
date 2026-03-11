@@ -8,19 +8,20 @@
 
 ### 当前推荐关键词簇
 
-- 主线始终是 `具体控制对象 + control/controller/system + design/specification/verification/modeling`，对象优先选 `infusion pump`、`pacemaker`、`elevator`、`traffic light`、`railway interlocking`、`landing gear`、`platoon`、`ABS`、`parking`、`PLC`。
+- 主线始终是 `具体控制对象 + control/controller/system + design/specification/verification/modeling`，对象优先选 `railway level crossing`、`bottle filling`、`conveyor`、`washing machine`、`automatic irrigation`、`parking`、`elevator`、`traffic light`、`railway interlocking`、`PLC`。
 - 状态机显式词继续优先：`state machine`、`FSM`、`statechart`、`mode switching`、`operation mode`、`control logic`。
-- 高产对象词簇优先深挖：`railway interlocking + route request/lock/green`，`elevator + hall call/car call/door obstruction/overload`，`traffic light + emergency vehicle/RFID/RF/priority request`。
-- 泊车与液位方向优先保留：`parallel parking + stage/trajectory/three steps/path shifting`，`water level/head tank + PLC/float/solenoid valve/ultrasonic sensor/threshold`。
-- 行业控制方向继续保留：`medical device + mode/control software`，`automotive + ABS/BBW/CACC/AEB/platoon`，`IEC 61499/61131 + ECC/operation mode/function block`。
+- 高产对象词簇优先深挖：`railway level crossing + gate + PLC + sensor`，`bottle filling + conveyor + valve + level sensor`，`conveyor + PLC + proximity sensor + delay`。
+- 泊车与液位方向优先保留：`parallel parking + stage/trajectory/three steps/path shifting`，`tower parking + token + vacant slot + elevator`，`water level/head tank/irrigation + PLC + solenoid valve + threshold/moisture`。
+- 行业控制方向继续保留：`washing machine + rinse + dehydration + water level sensor`，`packaging + case erector + count=6 + taping + weighing`，`medical device + mode/control software`。
 
 ### 已观察到的高命中标题/关键词特征
 
 - 标题直接点名具体控制对象，并同时出现 `control system/controller`、`design/specification/verification`，命中率最高。
 - `state machine/FSM/statechart/mode/operation mode/control logic` 这类显式状态信号词仍然高产。
+- `railway level crossing`、`gate control`、`bottle filling`、`conveyor`、`washing machine`、`automatic packaging` 这类 PLC/SCADA 工程标题最近一轮命中率很高。
 - 电梯方向高命中词：`hall call`、`car call`、`door operation`、`door obstruction`、`overload`、`manual mode`、`direction state machine`。
 - 交通灯方向高命中词：`priority request`、`RFID`、`RF transmission`、`emergency mode`、`override sequence`、`ambulance detection`、`green signal`。
-- 联锁/液位/泊车方向高命中词：`route request/lock/green`、`float/high-low level/solenoid valve`、`three steps/exploration phase/path shifting points`。
+- 联锁/液位/泊车方向高命中词：`route request/lock/green`、`float/high-low level/solenoid valve/moisture`、`three steps/exploration phase/path shifting points/token number/vacant position`。
 
 ### 已观察到的低命中标题/关键词特征
 
@@ -32,16 +33,16 @@
 ### 检索倾向调整
 
 - 优先沿“具体控制对象 + control/controller/system + design/specification/verification”主线检索，不从宽泛 `formal methods` 出发。
-- 继续优先补样本偏少但仍高产的方向，当前是 `🚦` 应急交通灯、`🌡️` 液位/阀控、`🩺` 医疗控制、`✈️` 飞行/起落架控制。
+- 继续优先补样本偏少但仍高产的方向，当前是 `🌡️` 液位/灌溉、`🚆` 道口门控、`🏭` 灌装/输送/包装、`🩺` 医疗控制、`✈️` 飞行/起落架控制。
 - 新词允许扩展，但必须能解释为什么会导向“具体控制系统的状态机描述”，并在每轮更新时回写到本节。
 - 每次更新只保留仍然有效的高命中经验，删除被新结果证明价值不高的冗余词簇。
 
 ## 当前收录统计
 
-- 已收录论文：**117** 篇
-- 本轮新增论文：**3** 篇
-- 本轮下载失败记录：**49** 条
-- 已完成 STM 梳理：**117** 篇
+- 已收录论文：**128** 篇
+- 本轮新增论文：**11** 篇
+- 本轮下载失败记录：**50** 条
+- 已完成 STM 梳理：**128** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 `STM_GUIDE.md` 补齐 `STM.md`。
 
@@ -68,28 +69,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **117** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **128** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 23 | 19.7% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 17 | 14.5% | 联锁表、进路控制、平交口、车门等轨道交通控制与验证 |
-| ✈️ 航空航天与飞行/空管控制 | 10 | 8.5% | 无人机、起落架、飞机制动、空管协调协议等 |
-| 🩺 医疗设备与生命支持控制 | 5 | 4.3% | 起搏器、输液泵、医疗 CPS 与闭环治疗控制相关文献 |
-| 🏭 工业自动化与离散制造 | 11 | 9.4% | IEC 61499/61131、PLC、制造、分拣、机器人等工业自动化控制 |
-| 🏢 楼宇机电与电梯控制 | 13 | 11.1% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 5 | 4.3% | 液位、水处理、锅炉与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 11 | 9.4% | 交通灯相位控制、绿灯分配、紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 11 | 9.4% | 自动停车、车位分配、车位监测与停车控制 |
-| 🧩 建模方法与系统工程 | 4 | 3.4% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
-| 🔐 安全/安保分析 | 4 | 3.4% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 3 | 2.6% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
-| **合计** | **117** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 23 | 18.0% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 19 | 14.8% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
+| ✈️ 航空航天与飞行/空管控制 | 10 | 7.8% | 无人机、起落架、飞机制动、空管协调协议等 |
+| 🩺 医疗设备与生命支持控制 | 5 | 3.9% | 起搏器、输液泵、医疗 CPS 与闭环治疗控制相关文献 |
+| 🏭 工业自动化与离散制造 | 17 | 13.3% | IEC 61499/61131、PLC、输送、灌装、包装与制造控制 |
+| 🏢 楼宇机电与电梯控制 | 13 | 10.2% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 6 | 4.7% | 液位、水处理、灌溉、锅炉与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 11 | 8.6% | 交通灯相位控制、绿灯分配、紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 13 | 10.2% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
+| 🧩 建模方法与系统工程 | 4 | 3.1% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 3.1% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| ⚙️ 通用控制与形式化工具 | 3 | 2.3% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
+| **合计** | **128** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-03-12 02:40:17 | 新增 **11** 篇，当前累计 **128** 篇 | 继续沿 `railway level crossing + gate + PLC + sensor`、`bottle filling + conveyor + valve + level sensor`、`washing machine + rinse + dehydration + PLC`、`automatic packaging + count=6 + taping + weighing` 等高命中对象词簇扩展，并优先保留可直链下载 PDF 的工程型开放文献。 | 铁路道口门控、瓶装灌装、输送带延时控制、洗衣机顺序控制、塔式停车与自动包装线。 |
 | 2026-03-11 23:21:28 | 新增 **3** 篇，当前累计 **117** 篇 | 继续沿高命中主线深挖 `traffic light + emergency vehicle + RF/RFID + override sequence` 与 `automatic parking assistance + exploration phase + parking phase + path shifting points` 等组合，并优先保留可直链下载 PDF 的开放文献。 | RFID/RF 抢占式交通灯控制、低成本 APAS 两阶段泊车辅助。 |
 | 2026-03-11 23:09:54 | 新增 **5** 篇，当前累计 **114** 篇 | 在既有高命中主线上继续深挖 `traffic light + emergency vehicle + priority request + ETA/GPS/RFID`、`head tank + ultrasonic sensor + motorized valve + solenoid valve`、`parallel parking + three steps + ready to reverse`、`ERTMS + train spacing + RBS` 等组合。 | 应急车辆优先放行、头水箱液位阈值阀控、三阶段并联泊车、ERTMS 列车间隔控制。 |
 | 2026-03-11 22:43:00 | 新增 **12** 篇，当前累计 **109** 篇 | 在既有 `具体控制对象 + control/controller/system + design/specification/verification/modeling` 主线上，重点追加 `elevator + hall call/car call/door obstruction/overload`、`traffic light + image processing + traffic density + ambulance detection`、`railway interlocking + route request + lock + green`、`parking + position/direction angle + steering angle`、`water level + float switch + threshold` 等高命中词簇。 | 电梯 PLC 调度与门控、图像驱动交通灯配时、联锁进路顺序、模糊泊车闭环、水位阈值控制。 |
@@ -216,6 +218,17 @@
 | 115 | 🚦 | Intelligent 3-Way Priority-Driven Traffic Light Control System for Emergency Vehicles | 2023 | RFID 三路口应急车辆优先放行 | `traffic light, emergency vehicle, RFID, priority-driven, green signal` | [intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles](sources/intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/) |
 | 116 | 🚦 | Traffic Light Control System for Emergency Vehicles Using Radio Frequency | 2013 | RF 抢占式应急交通灯时序控制 | `traffic light, emergency vehicle, radio frequency, override sequence, emergency mode` | [traffic-light-control-system-for-emergency-vehicles-using-radio-frequency](sources/traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/) |
 | 117 | 🅿️ | Design and Development of Low Cost Automatic Parking Assistance System | 2014 | 低成本 APAS 探索-泊车两阶段控制 | `automatic parking assistance, exploration phase, parking phase, path shifting points, trajectory` | [design-and-development-of-low-cost-automatic-parking-assistance-system](sources/design-and-development-of-low-cost-automatic-parking-assistance-system/) |
+| 118 | 🚆 | Development of an Automated Railway Level Crossing Gate Control System using PLC | 2019 | 道口门控与障碍检测 | `railway level crossing, gate control, PLC, photoelectric sensor, obstacle detection` | [development-of-an-automated-railway-level-crossing-gate-control-system-using-plc](sources/development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/) |
+| 119 | 🚆 | PLC BASED RAILWAY LEVEL CROSSING GATE CONTROL | 2014 | 振动传感驱动的道口门控 | `railway gate control, PLC, vibration sensor, stepper motor` | [plc-based-railway-level-crossing-gate-control](sources/plc-based-railway-level-crossing-gate-control/) |
+| 120 | 🏭 | Monitoring and Controlling of Components in a Conveyor using PLC and SCADA | 2019 | 三段输送带检测与延时控制 | `conveyor, PLC, SCADA, proximity sensor, delay control` | [monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada](sources/monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/) |
+| 121 | 🏭 | Automatic Washing Machine Control System Based on PLC | 2025 | 洗衣机进水-洗涤-漂洗-脱水顺序控制 | `washing machine, PLC, water level sensor, rinsing, dehydration` | [automatic-washing-machine-control-system-based-on-plc](sources/automatic-washing-machine-control-system-based-on-plc/) |
+| 122 | 🌡️ | Automatic irrigation system using PLC | 2018 | 土壤湿度与阀门反馈灌溉 | `irrigation, PLC, humidity, solenoid valve, soil moisture` | [automatic-irrigation-system-using-plc](sources/automatic-irrigation-system-using-plc/) |
+| 123 | 🏭 | Design and Implementation of Automatic Bottle Filling System Using PLC and SCADA | 2016 | 光电检测瓶到位与电磁阀灌装 | `bottle filling, PLC, SCADA, photoelectric sensor, electrovalve` | [design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada](sources/design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/) |
+| 124 | 🏭 | Automatic Bottle Filling System Using PLC and SCADA | 2016 | 接近开关触发的定时灌装 | `bottle filling, PLC, SCADA, proximity switch, timed filling` | [automatic-bottle-filling-system-using-plc-and-scada-ijerd](sources/automatic-bottle-filling-system-using-plc-and-scada-ijerd/) |
+| 125 | 🏭 | Automatic Bottle Filling System Using PLC/SCADA | 2025 | IR/超声液位联动灌装 | `bottle filling, PLC, SCADA, IR sensor, ultrasonic sensor, pump` | [automatic-bottle-filling-system-using-plc-scada](sources/automatic-bottle-filling-system-using-plc-scada/) |
+| 126 | 🅿️ | PLC Based Automatic Car Parking System | 2021 | 入口门禁与车位状态引导 | `car parking, PLC, HMI, proximity sensor, gate control` | [plc-based-automatic-car-parking-system](sources/plc-based-automatic-car-parking-system/) |
+| 127 | 🅿️ | PLC Based Tower Type Elevator Model for Automatic Car Parking System | 2019 | 塔式停车车位搜索与 token 分配 | `tower parking, PLC, elevator, vacant slot, token` | [plc-based-tower-type-elevator-model-for-automatic-car-parking-system](sources/plc-based-tower-type-elevator-model-for-automatic-car-parking-system/) |
+| 128 | 🏭 | Development of Automatic Packaging System using PLC and SCADA for Industries | 2018 | 自动包装线装箱/贴带/称重分流 | `packaging system, PLC, SCADA, case erector, taping, weighing` | [development-of-automatic-packaging-system-using-plc-and-scada-for-industries](sources/development-of-automatic-packaging-system-using-plc-and-scada-for-industries/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -271,12 +284,14 @@
 | 47 | 🚆 | Identifying Alterability States of a Single Track Railway Line Control System | 2026-03-11 22:07 | https://univagora.ro/jour/index.php/ijccc/article/download/4444/1829 -> 长时间无响应未完成下载  |
 | 48 | 🏢 | Design and Implementation of a Prototype of Elevator Control System: Experimental Work | 2026-03-11 22:07 | https://svusrc.journals.ekb.eg/article_250615_e27357a82ac073b46eca5ea9ce1ece02.pdf -> 长时间无响应未完成下载  |
 | 49 | 🏢 | Developing a Software Architecture for Graceful Degradation in an Elevator Control System | 2026-03-11 22:07 | https://figshare.com/ndownloader/files/11891195 -> 下载结果为空文件，`pdf_extractor` 报错 `Cannot read an empty file`  |
+| 50 | 🚆 | Design and Simulation of a PLC and IoT-based Railway Level Crossing Gate Control and Track Monitoring System Using LOGO! Soft Comfort Software | 2026-03-12 02:40 | https://www.iosrjournals.org/iosr-jeee/Papers/Vol17-Issue2/Ser-2/C1702021323.pdf -> HTTP 404 \| 本轮未定位到稳定可下载的论文页或备选 PDF  |
 ## 状态机描述收获盘点
 
 ### 更新日志
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-03-12 02:40:17 | 新增 11 篇文献的 STM 提取 | 🟢 9 篇 / 🟡 2 篇 / ⚪ 0 篇 | 新增 11 个 `STM.md`，补入 13 条控制逻辑，当前已完成 128/128 篇文献的 STM 盘点 |
 | 2026-03-11 23:21:28 | 新增 3 篇文献的 STM 提取 | 🟢 3 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 3 个 `STM.md`，补入 3 条控制逻辑，当前已完成 117/117 篇文献的 STM 盘点 |
 | 2026-03-11 23:09:54 | 新增 5 篇文献的 STM 提取 | 🟢 4 篇 / 🟡 1 篇 / ⚪ 0 篇 | 新增 5 个 `STM.md`，补入 5 条控制逻辑，当前已完成 114/114 篇文献的 STM 盘点 |
 | 2026-03-11 22:43:00 | 新增 12 篇文献的 STM 提取 | 🟢 8 篇 / 🟡 3 篇 / ⚪ 1 篇 | 新增 12 个 `STM.md`，补入 11 条控制逻辑，当前已完成 109/109 篇文献的 STM 盘点 |
@@ -284,29 +299,32 @@
 | 2026-03-11 21:45:03 | 新增 6 篇文献的 STM 提取 | 🟢 6 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 6 个 `STM.md`，补入 9 条控制逻辑，当前已完成 94/94 篇文献的 STM 盘点 |
 | 2026-03-11 20:18:12 | 完成此前 58 篇“尚未提取”文献的 STM 梳理与回填 | 🟢 13 篇 / 🟡 9 篇 / ⚪ 36 篇 | 新增 58 个 `STM.md`，当前已完成 88/88 篇文献的 STM 盘点 |
 
-- ✅ 直接可用论文：**47** 篇
-- 🟡 可整理论文：**16** 篇
+- ✅ 直接可用论文：**56** 篇
+- 🟡 可整理论文：**18** 篇
 - ⚪ 暂未收获论文：**54** 篇
 - ⏳ 尚未提取论文：**0** 篇
-- 🧾 已提取到的状态机/控制逻辑条目：**75** 条
-- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 53 类**（新增 RFID 应急优先放行、RF 抢占式灯序切换、APAS 探索-泊车两阶段控制等对象）
+- 🧾 已提取到的状态机/控制逻辑条目：**88** 条
+- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 61 类**（新增铁路道口门控、瓶装灌装、输送带延时启停、洗衣机顺序控制、塔式停车与自动包装线等对象）
 
 ### 领域分布（按已提取条目统计）
 
-- 统计口径：按 `STM.md` 中已经入账的 **75** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `STM.md` 中已经入账的 **88** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 条目数 | 占比 | 代表控制对象 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 10 | 13.3% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
-| 🚆 轨道交通与铁路控制 | 12 | 16.0% | 进路建立与释放、道岔锁闭、联锁模式选择、RBS 调度、检测点输入处理 |
-| 🏭 工业自动化与离散制造 | 6 | 8.0% | PLC operation modes、故障恢复、IEC 61499 BFB/ECC、分拣/灌装顺序控制 |
-| 🩺 医疗设备与生命支持控制 | 5 | 6.7% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
-| 🚦 道路交通信号控制 | 12 | 16.0% | 紧急车辆优先放行、动态相位选择、空车道跳过、图像驱动绿灯分配 |
-| ✈️ 航空航天与飞行/空管控制 | 3 | 4.0% | 空管协调协议、飞机轮刹供压切换、起落架伸收与锁定控制 |
-| 🏢 楼宇机电与电梯控制 | 10 | 13.3% | 电梯运行与门控逻辑、上/下行遍历、自动/手动工作流 |
-| 🌡️ 过程与环境控制 | 6 | 8.0% | 恒温器开关控制、双水箱液位阈值控制、头水箱阀控、液位排水循环控制 |
-| 🅿️ 智慧停车与车位管理 | 11 | 14.7% | 车位分配、倒车入位分段轨迹、模糊转向修正、分阶段泊车与可停判定 |
-| **合计** | **75** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 10 | 11.4% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
+| 🚆 轨道交通与铁路控制 | 14 | 15.9% | 进路建立与释放、道岔锁闭、联锁模式选择、RBS 调度、道口门控 |
+| 🏭 工业自动化与离散制造 | 14 | 15.9% | 输送带延时控制、瓶装灌装、洗衣机顺序控制、自动包装线、IEC 61499 BFB/ECC |
+| 🩺 医疗设备与生命支持控制 | 5 | 5.7% | 输液泵模式切换、袖带血压闭环子系统、双腔起搏器节律控制 |
+| 🚦 道路交通信号控制 | 12 | 13.6% | 紧急车辆优先放行、动态相位选择、空车道跳过、图像驱动绿灯分配 |
+| ✈️ 航空航天与飞行/空管控制 | 2 | 2.3% | 空管协调协议、起落架伸收与锁定控制 |
+| 🏢 楼宇机电与电梯控制 | 10 | 11.4% | 电梯运行与门控逻辑、上/下行遍历、自动/手动工作流 |
+| 🌡️ 过程与环境控制 | 6 | 6.8% | 恒温器开关控制、液位阈值控制、头水箱阀控、湿度反馈灌溉 |
+| 🅿️ 智慧停车与车位管理 | 13 | 14.8% | 车位分配、入口门禁、塔式停车、电梯式空位搜索、分阶段泊车 |
+| 🔐 安全/安保分析 | 0 | 0.0% | 当前无已入账条目 |
+| 🧩 建模方法与系统工程 | 1 | 1.1% | 飞机轮刹四模态自动机 |
+| ⚙️ 通用控制与形式化工具 | 1 | 1.1% | 恒温器开关控制 |
+| **合计** | **88** | **100.0%** | - |
 
 | 目录 | 领域 | 结果 | 条目数 | 备注 | STM |
 |---|---|---|---:|---|---|
@@ -427,6 +445,17 @@
 | `intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles` | 🚦 | 🟢 直接可用 | 1 | RFID 检测、优先分配、绿灯放行和恢复常规灯序链路完整。 | [STM](sources/intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) |
 | `traffic-light-control-system-for-emergency-vehicles-using-radio-frequency` | 🚦 | 🟢 直接可用 | 1 | normal sequence 与 emergency mode sequence 的切换和恢复都写得很明确。 | [STM](sources/traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/STM.md) |
 | `design-and-development-of-low-cost-automatic-parking-assistance-system` | 🅿️ | 🟢 直接可用 | 1 | exploration phase 与 parking phase 的职责划分很清楚。 | [STM](sources/design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) |
+| `development-of-an-automated-railway-level-crossing-gate-control-system-using-plc` | 🚆 | 🟡 可整理 | 1 | 到达/离开侧传感布置和障碍检测职责清楚，但门控状态切换更多停留在系统级说明。 | [STM](sources/development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) |
+| `plc-based-railway-level-crossing-gate-control` | 🚆 | 🟢 直接可用 | 1 | sensor-1/sensor-2 触发步进电机顺逆时针动作的门控顺序非常清楚。 | [STM](sources/plc-based-railway-level-crossing-gate-control/STM.md) |
+| `monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada` | 🏭 | 🟢 直接可用 | 1 | 三段输送带的检测启动、延时停机与五件触发后段运行逻辑明确。 | [STM](sources/monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/STM.md) |
+| `automatic-washing-machine-control-system-based-on-plc` | 🏭 | 🟢 直接可用 | 2 | 同时给出水位阀控进水和洗涤-排水-漂洗-脱水整套顺序逻辑。 | [STM](sources/automatic-washing-machine-control-system-based-on-plc/STM.md) |
+| `automatic-irrigation-system-using-plc` | 🌡️ | 🟡 可整理 | 1 | 湿度阈值、分区阀门与 PLC 反馈控制关系清楚，适合简洁灌溉样本。 | [STM](sources/automatic-irrigation-system-using-plc/STM.md) |
+| `design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada` | 🏭 | 🟢 直接可用 | 1 | 光电传感、停带、开阀灌装、关阀延时复位的循环链路完整。 | [STM](sources/design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/STM.md) |
+| `automatic-bottle-filling-system-using-plc-and-scada-ijerd` | 🏭 | 🟢 直接可用 | 1 | 接近开关触发 10 秒定时灌装再恢复输送的流程很干净。 | [STM](sources/automatic-bottle-filling-system-using-plc-and-scada-ijerd/STM.md) |
+| `automatic-bottle-filling-system-using-plc-scada` | 🏭 | 🟢 直接可用 | 1 | IR 检测、超声液位、泵灌装和输送带恢复之间的顺序明确。 | [STM](sources/automatic-bottle-filling-system-using-plc-scada/STM.md) |
+| `plc-based-automatic-car-parking-system` | 🅿️ | 🟢 直接可用 | 1 | 车位状态统计、入口检测、灯控与门禁复位链路完整。 | [STM](sources/plc-based-automatic-car-parking-system/STM.md) |
+| `plc-based-tower-type-elevator-model-for-automatic-car-parking-system` | 🅿️ | 🟢 直接可用 | 1 | parkingin 模式下的空位搜索、slot 检查和 token 分配过程清楚。 | [STM](sources/plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) |
+| `development-of-automatic-packaging-system-using-plc-and-scada-for-industries` | 🏭 | 🟢 直接可用 | 2 | 同时覆盖瓶清洗-灌装-封盖和 6 瓶装箱-贴带-称重剔除两段包装控制。 | [STM](sources/development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) |
 
 ### 说明
 
