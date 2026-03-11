@@ -1,0 +1,766 @@
+--- Page 1 ---
+ViTAL : A Veriﬁcation Tool for EAST-ADL Models using UPPAAL PORT
+Eduard Paul Enoiu, Raluca Marinescu, Cristina Seceleanu, and Paul Pettersson
+M¨alardalen Real-Time Research Centre (MRTC)
+M¨alardalen University
+V¨aster ˚as, Sweden
+Email: feduard.paul.enoiu, raluca.marinescu, cristina.seceleanu, paul.pettersson g@mdh.se
+Abstract —The inﬂuence of the systems architecture on the
+functions and other properties of embedded systems makes
+its high level analysis and veriﬁcation very desirable. EAST-
+ADL is an architecture description language dedicated to
+automotive embedded system design with focus on structural
+and functional modeling. The behavioral description is not
+integrated within the execution semantics, which makes it
+harder to transform, analyze, and verify EAST-ADL mod-
+els. Model-based techniques help to address this issue by
+enabling automated transformation between different design
+models, and providing means for simulation and veriﬁcation.
+We present a way of integrating architectural models and
+veriﬁcation techniques, which has been implemented in a tool
+called ViTAL. Consequently, ViTAL provides the possibility to
+express the functional EAST-ADL behavior as timed automata
+models, which have precise semantics and can be formally
+veriﬁed. The ViTAL tool enables the transformation of EAST-
+ADL functional models to the UPPAAL PORT tool for model
+checking. This method improves the veriﬁcation of functional
+and timing requirements in EAST-ADL, and makes it possible to
+identify dependencies and potential conﬂicts between different
+vehicle functions before the actual AUTOSAR implementation.
+Keywords -model-based techniques; veriﬁcation; analysis;
+UPPAAL PORT; EAST-ADL; Model transformation;
+I. I NTRODUCTION
+The current trend is to use Model-driven Development
+(MDD) for automotive embedded systems and provide a ba-
+sis for a systematic design at multiple abstraction levels [8].
+EAST-ADL [9], [13] is an architecture description language
+for modeling and development of automotive embedded
+systems, covering the speciﬁcation of requirements, system
+environment, vehicle functions, software and hardware re-
+sources, behavior, timing constraints, and other related infor-
+mation [23]. The E AST-ADL language provides an integrated
+modeling framework that uses concepts from MDD and
+component-based development [12].
+EAST-ADL focuses on functional speciﬁcations [10] with
+support for structural deﬁnition. The behavior is deﬁned only
+on the E AST-ADL component abstraction level, in terms of
+functional blocks. The functional behavior of a component
+is described using external notations such as Simulink or
+UML [24], and therefore the possibility to construct, verify,
+and transform E AST-ADL models using formal methods is
+Figure 1. The workﬂow of the integrated simulation and veriﬁcation tool
+restricted [11]. Also, many automotive functions are real-
+time, so formal veriﬁcation of both functional and timely
+behavior is necessary, to ensure the real-time requirements
+at the architectural level. For instance, in automotive control
+applications one could verify that input data from sensors,
+the actual control computations, and output data to actuators
+are behaving accordingly to constraints of the controlled
+environment. Therefore, the veriﬁcation of E AST-ADL mod-
+els becomes truly challenging, especially when multiple
+software components are involved.
+This paper proposes a method for integrating architectural
+description languages and veriﬁcation techniques, tailored
+for E AST-ADL models and implemented in the tool ViTAL
+1(AVeriﬁcation Tool for EAST- ADLModels using U P-
+PAAL PORT). ViTAL provides model-checking of E AST-ADL
+descriptions with respect to timing and functional behavioral
+requirements. As depicted in Fig. 1, the system designer
+creates the E AST-ADL models and the execution behavior
+using timed automata framework [3], and check whether a
+given requirement is satisﬁed. To achieve this, we implement
+1ViTAL is available at http://www.idt.mdh.se/personal/eep/vital
+
+--- Page 2 ---
+Figure 2. Integrated E AST-ADL platform editor, timed automata editor (upper view) and U PPAAL PORT simulator (lower view)
+an automatic model transformation to U PPAAL PORT model-
+checker [17], which enables U PPAAL PORT to handle E AST-
+ADL models as input, and provides functional and timing
+behavior of functional blocks using timed automata seman-
+tics [3]. To increase user friendliness and alignment with
+the implementation of the E AST-ADL proﬁle, we propose
+an integrated environment based on Eclipse plug-ins, as
+can be observed in Fig. 2. Our modeling and veriﬁcation
+tool contains the following: an editor for timed automata
+visual description of the functional and timing behavior of
+EAST-ADL functional blocks, automated transformation of
+EAST-ADL models to U PPAAL PORT input model, support
+for mapping external timed automata variables to external
+ports, a simulator that can be used to validate the behavior
+of an E AST-ADL modeled system, and support for verifying
+reachability and liveness properties formalized in a subset
+of Timed Computation Tree Logic (TCTL).
+In our approach, we combine powerful model checking
+techniques with the formal semantics of E AST-ADL models
+and a user-friendly graphical interface. The main features
+provided by ViTAL are:
+Support for formal veriﬁcation of the execution behav-
+ior and timing using E AST-ADL language.The hierarchical structure of E AST-ADL (“read-execute-
+write” component semantics) is exploited in our ap-
+proach by using U PPAAL PORT for efﬁcient model-
+checking.
+The paper is organized as follows. Section II brieﬂy
+overviews E AST-ADL and U PPAAL PORT. Section III in-
+troduces the modeling approach for functional speciﬁcation
+in E AST-ADL. Section IV describes our method and tool
+environment used for capturing the behavior inside each
+functional block and the transformation scheme to U PPAAL
+PORT. Next, we apply ViTAL on the Brake-By-Wire case
+study in Section V. In Section VI we compare to related
+work, before concluding the paper and presenting future
+works in Section VII.
+II. B ACKGROUND
+A.EAST-ADL
+EAST-ADL is an architecture description language spec-
+iﬁed through a meta-model and implemented as a UML2
+proﬁle [10]. It is structured into different abstraction layers
+representing different stages of an engineering process: ve-
+hicle level, analysis level, design level, and implementation
+
+--- Page 3 ---
+level. These levels are supported by complete traceability
+between them, reﬂecting the amount of details in an elec-
+tronic system from a higher to a lower abstraction layer, as
+can be observed in Fig. 3.
+The vehicle features (e.g. breaks) of an electronic system
+are modeled at the vehicle level, the highest level of abstrac-
+tion. These features are reﬁned at the analysis and design
+level by abstract elements representing software or device
+functions such as sensors and actuators. The implementation
+level is the lowest level of abstraction and is deﬁned by using
+the AUTOSAR standard [22].
+Vehicle Level is intended for elaboration of elec-
+tronic features. A complete representation of the ab-
+stract functional deﬁnition of features in system context
+is modeled in the Analysis Level . This representation
+captures the main interfaces and behavior of the vehi-
+cle subsystems and allows validation and veriﬁcation of
+the integrated system or its subsystems on a high level
+of abstraction.The Analyisis Level forms a natural
+constraint for developers when dealing with reﬁned fea-
+tures and requirements, so the application software de-
+velopment needs to be iterated and performed together
+with the other levels of abstraction. The details for func-
+tional deﬁnition of software, including elementary de-
+composition, are introduced at the Design Level . The
+Implementation Level describes reusable code and
+AUTOSAR compliant software and system conﬁguration
+for hardware deployment [10]. However, traceability is
+supported from Implementation Level elements to
+Vehicle Level elements [22].
+In addition, this structural organization of E AST-ADL
+has modeling constructs for behavior, requirements, timing,
+variability, and safety aspects. E AST-ADL captures structural
+components that refer to external or internal behavior, as
+Simulink models.
+B.UPPAAL PORT
+UPPAAL PORT is an extension of the U PPAAL tool, which
+supports simulation and model-checking of component-
+based systems, without the usual conversion or ﬂattening
+to the model of network of timed automata. This is comple-
+mented by the Partial Order Reduction Technique (PORT)
+[5], [17] that U PPAAL PORT uses, to improve the efﬁciency
+of the model-checking analysis. This technique has been
+suggested [15] to reduce the state-space explosion caused
+by interleavings, with the main idea of exploring only a rel-
+evant subset of the state-space when model-checking. More
+precisely, U PPAAL PORT only explores properties which
+preserve a subset of the full model based on independence
+of transitions, instead of examining all possible sequences,
+which would add to the model-checking complexity, unnec-
+essary. Since, the synchronization of global time is restrict-
+ing the independence of transitions in the timed automata
+Abstractions Levels
+Environment
+Vehicle Level
+Analysis Level
+Design Level
+Implementation LevelEAST-ADL
+AUTOSARMethodology
+Vehicle
+Definition Phase
+System
+Definition Phase
+Implementation
+Design PhaseFigure 3. Overview of the E AST-ADL architecture
+framework, U PPAAL PORT uses local time semantics to
+increase independence, therefore allowing the analysis of
+components in isolation followed by synchronization to a
+shared state whenever one writes to another.
+UPPAAL PORT uses a guided PORT, which is based on
+the structure of the component-based system under analy-
+sis. This means that the employed component model has
+transitions independent of actions in other components. The
+performed experiments [17] suggest the use of U PPAAL
+PORT when dealing with a “read-execute-write” component
+model semantics.
+III. M ODELING APPROACH AND INTEGRATION BRIDGE
+The main purpose of this section is to introduce the ViTAL
+modeling approach for E AST-ADL system models.
+Nowadays, a vehicle may be composed of more than
+2,000 software and hardware based functions. Usually, the
+requirements engineer decides which functions are needed
+and how they should be structured in terms of interactions.
+EAST-ADL describes the whole vehicle system from several
+abstraction layers. As this paper only discusses the abstract
+functional models of a system, we employ the E AST-ADL
+functional abstraction, as the modeling language to specify
+the structure of a system. Speciﬁcally, on the analysis
+level, the system is described by a Functional Analysis
+Architecture (FAA). The FAA is composed of a number
+of interconnected Function Prototypes ( fp), where each
+prototype is an instantiation of Function Type ( ft) [9].
+The challenge of the FAA is to target different functions
+for concepts like allocation of requirements, specifying,
+analyzing, and verifying functional requirements before im-
+plementation. In order to support unambiguous modeling
+and analysis, we have used the fact that there are no
+dependencies between the FAA and the other E AST-ADL
+levels [10]. This means that FAA can be deﬁned separately
+from the other levels. For simplicity, we assume that, from
+an FAA-level point of view, the description is complete with
+respect to the dependencies between different functionalities.
+
+--- Page 4 ---
+Figure 4. An E AST-ADL diagram modeling the functionality of a simpliﬁed
+system
+A. The EAST-ADL Functional Model
+The goal of using E AST-ADL functional model with
+respect to behavior is to handle how model components are
+related to each other on capturing behavior and algorithms
+of the system as well as the environment.
+In E AST-ADL functional modeling, systems in FAA are
+built from interconnected function blocks with well-deﬁned
+interfaces consisting of a set of input- and output function
+ports (elements of ﬂow ports to represent data transfer). The
+fpcan be hierarchical, but the composing sub-functions have
+synchronous execution semantics. These functional blocks
+are time-triggered, or triggered based on data arrival on
+their ﬂow ports. An fpfollows the “read-execute-write”
+semantics, which ensures that once a function is triggered,
+it reads all input ﬂow ports, executes the computation,
+and then writes to its output ﬂow ports, all without in-
+terruption. For the presented work, the architectural spec-
+iﬁcations are used from structure, behavioral, and timing
+EAST-ADL packages [10], [11]. This simpliﬁes the deﬁnition
+of semantics, and makes it easily extensible. As depicted
+in Fig. 4, the core intermediate model consists of three
+modeling elements: composite Analysis Function
+Type , basic Analysis Function Prototype , con-
+nectors Function Connector , and behavioral descrip-
+tion named Model . The ﬁrst three elements are translated
+from the E AST-ADL structure package. The behavioral de-
+scription complemented with timing formalisms is comply-
+ing with the component-based approach that enables early
+formal analysis of relevant concerns.
+B. Timed Behavior
+We deﬁne the timed behavior of a functional block as a
+Timed Automaton ( TA), extended with data variables and
+a ﬁnal location. An fpin our setting is deﬁned by its
+interface in terms of ports and a speciﬁed timed behavior
+[17]. The TAmodel is another abstraction of the fpbe-
+havior, where the assumed and desired properties of the
+system components are captured. To support analysis and
+veriﬁcation of E AST-ADL FAA models in U PPAAL PORT, it
+Figure 5. Model Export from E AST-ADL to U PPAAL PORT
+is required that each functional block is associated with a
+behavioral model consisting of a TA, and a mapping between
+ports and automata variables. To provide system developers
+with concrete support in modeling the timed behavior of a
+functional block, an integration bridge is necessary. Hence,
+our next step has been to provide a direct mapping between
+ﬂow ports and TAvariables as additional model parameters.
+Consequently, this model association constitutes the bridge
+between E AST-ADL and TAmodels.
+IV. M ODEL TRANSFORMATION TO UPPAAL PORT
+Before proceeding further, we have to mention a few
+assumptions that we have made, for simplicity. For this
+work, no ftcan have instances of other ftwith the exception
+of FAA. The FAA ftis available and required for the
+transformation. With these assumptions, we have developed
+the model transformation shown in Fig. 5. We specify
+the input models for U PPAAL PORT as described in the
+metamodel that uses a subset of the E AST-ADL language
+constructs. In our approach, we focus on a certain subset
+of the tool data that we consider relevant in the context
+of integration. Irrelevant constructs, such as requirements
+models, variability models, are left out because they are
+outside the scope of this veriﬁcation tool towards operational
+and timing requirements at E AST-ADL analysis level.
+A. ViTAL and Model Integration
+We deﬁne a minimal structural integration inside ViTAL,
+an intermediate model, from which we can derive the con-
+structs of E AST-ADL language. This simpliﬁes the deﬁnition
+of semantics, and makes it easily extensible. The core
+intermediate model consists of three modeling elements:
+composite ft, basic fp, and connections. Using these, we can
+
+--- Page 5 ---
+describe all constructs in our assumed E AST-ADL model on
+FAA. A simple one-to-one mapping rule between structural
+entities is not sufﬁcient though. Several parameters need to
+be handled in the integration process.
+Each modeling element, except for the FAA ft, has a
+set of ﬂow ports, through which it can interact. Each ﬂow
+port is represented as an input or an output port that has an
+associated type. A ﬂow port is associated with the same type
+of data as the associated variable. Similar to the E AST-ADL
+language itself, connections deﬁne how data can be trans-
+ferred between two fps. We assume no knowledge about the
+time that it takes for the data to be transmitted over a con-
+nection or if data can be lost. This assumption is acceptable
+when modeling the abstract functional system in E AST-ADL
+at analysis level, and therefore most implementation details
+are hidden. Nevertheless, the transmission over a connection,
+the execution, and communication resources are modeled
+in E AST-ADL at design level. Other structural E AST-ADL
+constructs are not represented directly by any modeling
+element, hence they are not inﬂuencing the transformation.
+For the presented integration in ViTAL, the architectural
+information related to structure and timing are partially
+derived from the E AST-ADL model. Every fpis annotated in
+the intermediate model with an event function that submits to
+aperiodic constraint . An event function is a trigger generator
+annotated with a parameter T for period. A new period starts
+every T time units, and the event function generates a trigger
+after each period elapses.
+The E AST-ADL language imposes some restrictions on
+thefpbehavior that should be addressed in the intermediate
+model as well. For example, the run-to-completion semantics
+mentions that input ﬂow ports may only be accessed at
+the beginning of each triggering, and output ﬂow ports
+are only written at the end of the computation. Therefore,
+TA(fp)denotes its behavior augmented with an interface.
+The interface of an fpconsists of ﬂow ports and the
+annotated trigger information. An input ﬂow port has an
+associated variable holding the current data ﬂow. A basic fp
+corresponds to a basic intermediate functional block with an
+automaton that can capture the behavior of the associated ft
+and maybe some other information like execution time. The
+internal computation of an fpstarts with reading all input
+ﬂow ports. These internal input data is used together with
+other functional information during the fpexecution, before
+writing the variables to the output ﬂow ports.
+With the mentioned assumptions, an intermediate meta-
+model has been developed, which is described in this
+section. The modeling elements of the intermediate model,
+used in the integration, are described in Fig. 6 where
+the core elements represents structure at analysis level of
+abstraction, model behavior, and timing information. The
+intermediate model provides function modeling concepts
+which are mapped to concepts of component based de-
+sign. Element can be mapped with a FunctionTypeandEventFunction elements. There are connectors like
+FunctionConnection and ports such FlowPort . Ports
+are typed so a FlowPort is typed by an Analysis Data
+Type . Furthermore an Element can have a behavioral
+description as a Model element.
+The intermediate model obtained after the transformation
+represents the execution behavior, and can include triggering
+and timing information, but also some assumed functionality.
+Therefore, ViTAL provides means to extend the internal
+behavior of fpnot only in terms of timing, but also content.
+B. Implemented Integration
+The E AST-ADL language is implemented in a UML2
+proﬁle with the purpose of providing the ability to describe
+EAST-ADL-compliant models using this proﬁle. The Papyrus
+UML tool implements all the properties and stereotypes
+as deﬁned in E AST-ADL speciﬁcation and may be ap-
+plied on any kind of tool-supported UML models. The
+model transformation and modeling environment is based
+on Eclipse2, which ensures a seamless integration with the
+UML Editor in Papyrus, needed for developing E AST-ADL
+models. It provides an intuitive and user friendly graphical
+environment.
+The proposed ViTAL tool is a collection of Eclipse IDE
+plug-ins. Eclipse IDE has become a popular development
+platform, in particular within the open source community.
+Our analysis and veriﬁcation tool is build upon an MDD
+set of Eclipse plug-ins: Eclipse Modeling Framework3,
+Graphical Modeling Framework, Graphical Editing Frame-
+work, ATL, and Acceleo. Fig. 7 shows the E AST-ADL model
+transformation architecture. The E AST-ADL editor plugin
+uses Papyrus UML to create the analysis functions and
+interconnections among them. Papyrus saves its models in
+two ﬁles, one using a “.uml” extension and the other using
+a “.di” extension. The former ﬁle contains the actual model
+information, whereas the latter ﬁle contains all the graphical
+information.
+The Papyrus UML Editor produces compatible EMF
+models that serve as a basis for our combined structural
+and behavioral mapping to U PPAAL PORT. As shown in
+Fig. 5, we introduce an intermediate model that serves as
+the interface between the E AST-ADL model and U PPAAL
+PORT input model4. The intermediate model conforms to
+the E AST-ADL metamodel that is aligned with the E AST-
+ADL proﬁle and UML metamodel. The structural mapping
+transforms an E AST-ADL model that was created in the
+2Eclipse is a multi language software development environment, bene-
+ﬁting from an extensible plug-in system.
+3Eclipse Modeling Framework (EMF) is a modeling framework that has
+code generation capabilities for enabling viewing and editing of models.
+4The input language employed is used to determine the structure of the
+modeled system.
+
+--- Page 6 ---
+Figure 6. Simpliﬁed diagram representing the meta-model elements for the intermediate model
+Papyrus UML modeling environment, into an intermediate
+model. The transformation is called M2M transformation in
+Fig. 5. The structure of the intermediate model resembles the
+UPPAAL PORT input model5, so it is close to the structure of
+the desired output. This step of the transformation achieves
+an integration between the domain of E AST-ADL and that
+of U PPAAL PORT. We use the ATL M2M Component to
+convert models from one side to the other, due to its
+simplicity and integration within the Eclipse platform. We
+have implemented the mapping rules presented in Section
+IV-A as an ATL description of the transformation logic. For
+the transformation, a few modiﬁcations of both metamodels
+have been made. In principle, these changes are in fact ways
+to preserve the semantics of the original model. For instance,
+EAST-ADL uses the type - prototype constructions in which
+the declaration is in ft, and the actual usage is in fp. In this
+case, the structural transformation has a pointer between ft
+and the contained TA(fp).
+In addition to the mentioned automated structural transfor-
+mation, a manual TAintegration needs to be carried out. In
+order to model the timing and behavior of an fp, we integrate
+aTAeditor. The behavior can be represented in a graphical
+notation by the system designer. These models differ from
+UPPAAL TA models as follows: (i) the timed behavior is
+extended with a ﬁnal location out of which no edges are
+5We refer the reader to the SaveCCM language reference manual for
+more details [2].leaving, and (ii) synchronization channels are not allowed,
+because of the semantics employed by E AST-ADL models.
+For more details on the speciﬁcs of the TAemployed by
+UPPAAL PORT, we refer the reader to the work of H ˚akansson
+and Pettersson [17].
+With this information at hand, we need to bind TA
+variables to the ﬂow ports of the E AST-ADL functions, next.
+This is needed in order to use the structural information
+contained in the intermediate model. We provide a variable
+to the port mapping plug-in. In the current version of ViTAL,
+the mapping is using the name of the timed automaton ﬁle
+to automatically generate the parameters to be used.
+Once the previous steps have been completed, the TAand
+the intermediate model can be merged into the output of
+this process, which is compiled to an XML-format accepted
+by U PPAAL PORT tool6. This transformation is carried
+out using the Acceleo code generator for transforming the
+intermediate model into code. The ViTAL tool architecture
+is shown in Fig 7. The user interface integrates an editor for
+EAST-ADL models in the Eclipse framework, as well as a
+TAeditor to model the timing and behavior of E AST-ADL
+functional blocks. U PPAAL PORT introduces support for
+simulation and veriﬁcation, using a client-server architecture
+[16]. The U PPAAL PORT model-checker consists of two
+6The XML syntax describing the element deﬁnitions from the Document
+Type Deﬁnition is available in the SaveCCM language reference manual
+[2].
+
+--- Page 7 ---
+EclipseIDE
+EAST-ADLeditorplugin
+(architecturemodelling)
+TimedAutomataeditorplug-in
+(timing/behaviourmodelling)
+MappingEditorplug-in
+UPPAALPORTplug-inUPPAALPORT
+servercommand
+responseFigure 7. Overview of the ViTAL tool architecture
+modules: the Eclipse plug-in used as the graphical simulator,
+and the server executing the veriﬁcation.
+Using the integrated simulator it is possible to validate
+the behavior and timing of an E AST-ADL functional model,
+prior to design and implementation. The simulator allows
+stepping forward and backwards in the state space, while
+selecting possible transitions. In a simulation trace, a data
+transfer is deﬁned by the exchange of data between E AST-
+ADL fps(annotated with the timed automata locations) via
+their respective ports. Also, by using the veriﬁer interface,
+it is possible to establish, by model checking the described
+behavior, whether the system model satisﬁes the functional
+and timing requirements speciﬁed in a subset of TCTL.
+V. E XAMPLE : A B RAKE -BY-WIRECONTROL SYSTEM
+In order to check the applicability of ViTAL, we have
+performed a case study in which a Brake-By-Wire (BBW)
+system is modeled in E AST-ADL. The case study is based on
+a use case provided by V olvo Technology within the MBAT
+project [21]. In Fig. 8 one can see a simpliﬁed schematic
+illustration of the BBW system with Anti-lock Braking
+System (ABS) function, where no mechanical connection
+exists between the brake pedal and the brake actuators
+applied to the four wheels. The system is composed of ﬁve
+Electronic Control Units (ECU) connected by a network bus.
+The central ECU has three components:
+Brake Pedal Sensor (BPS) - reads the pedals position
+percentage.
+Brake Torque Calculator (BTC) - computes the desired
+global torque.
+Global Brake Controller (GBC) - calculates the torque
+required for each wheel.
+The intended functionality of the BBW system is the
+following: when the driver brakes, it uses the pedal, and
+the brake actuators are applying a force that relates with
+the angle of the pressed pedal. The system in composedof aBrake Pedal Sensor that reads the pedal position
+percentage used by the Brake Torque Calculator to
+compute the desired Global Torque used by the Global
+Brake Controller to calculate the torque required for
+each wheel. The Wheel Sensor measures wheel speed
+for the Global Brake Controller , theABS controls
+the braking to prevent locking the wheel, based on the slip
+rate.
+The other four ECUs are connected to the four wheels,
+respectively. At each wheel, the Wheel Sensor measures the
+wheel speed and sends a signal to the GBC component.
+The ABS controls the wheel braking in order to prevent
+locking the wheel, based on the slip value. The slip value is
+calculated by the equation:
+s= (v wr)=v,
+where vis the vehicle speed, wthe wheel speed, and r
+the wheel radius. The friction coefﬁcient of the wheel has a
+nonlinear relationship with s: when sincreases from zero,
+the friction coefﬁcient also increases and the value reaches
+the peak when sis around 0.2. After that, further increase
+insreduces the friction coefﬁcient. For this reason, if sis
+greater than 0.2 the brake actuator is released and no brake
+is applied, else the requested brake torque is used.
+We have modeled, simulated, and veriﬁed the BBW
+system in our tool ViTAL. The system has been modeled
+in Papyrus UML Editor, where a UML proﬁle is used for
+architectural description. As illustrated in Fig 8, we use only
+the structural and timing speciﬁcations. The architecture of
+the system is encapsulated in one FAA ftthat contains six
+interconnected fps modeled using the TAeditor. Each TA(fp)
+deﬁnes the actual functional and timing behavior of the fp.
+The slip rate calculation is controlled by
+variable slipRate . For instance, from location
+calculateSlipRate , based on the current vehicle
+speed vSpeed , the wheel speed wSpeed , and the wheel
+radius wRadius , the TorqueCmd controls the wheel
+braking in order to prevent locking the wheel. Consequently,
+theABS enters location BrakeTorque , and jumps back to
+location Start , provided that slipRate is greater than
+20, the brake actuator is released and no brake is applied,
+else the requested brake torque is used.
+A set of properties concerning the safety and liveness
+of the BBW system have been veriﬁed. We discuss a few
+representative properties. The property of deadlock freedom
+is satisﬁed for all execution paths of the state-space.
+As our approach and also the underlying tool supports
+simulation and veriﬁcation of architectural properties
+including functional and timing properties, the following
+CTL speciﬁcation is an example of such property, which
+ensures the brake reaction delay speciﬁed in the BBW
+model:
+
+--- Page 8 ---
+Figure 8. Brake by Wire control system
+A[ ](BBW:reaction imply (BBW:clock < 200))
+One of the functional requirements of the system is
+related to the slip rate s. With ViTAL, we can verify
+the following functionality: in case the slip rate variable
+exceeds 0:2, the brake actuator is released and no brake is
+applied:
+A[ ](BTC:s > 0:2imply (ABS:brake = 0))
+We note that ViTAL is indirectly using the delay con-
+straints information from E AST-ADL models during veriﬁ-
+cation. To handle automated integration during veriﬁcation
+ofTCTL properties of this type, this delay constraint infor-
+mation should be considered as a transformation parameter
+and then checked automatically in U PPAAL PORT.
+VI. R ELATED WORK
+A lot of work has been done to allow the formal analy-
+sis and veriﬁcation of Architecture Description Languages
+(ADLs ) for real-time embedded systems, and speciﬁcally onthe Architecture Analysis and Design Language ( AADL ) in
+which an external behavior speciﬁcation is used [1], [18]; all
+this work deals with formal analysis of behavior speciﬁed
+outside AADL by using communicating timed automata [1]
+or C/Ada source code [18]. Others are focusing on AADL
+enriched with its behavioral annex [6], [7]. Speciﬁcally,
+Berthomieu et al. [6] maps AADL and its behavior annex
+into the Fiacre language towards behavioral veriﬁcation
+with TINA tool. The main difference between this work
+and ours is that we give a graphical behavior speciﬁcation
+with support for model checking, system simulation, timing
+analysis, and an integrated tool based on Eclipse.
+Several methods have been developed for the formal
+analysis and veriﬁcation of E AST-ADL models. A lot of
+effort has been carried out to allow the use of UML Proﬁle
+for Modeling and Analysis of Real-Time and Embedded
+systems (MARTE) [4] together with E AST-ADL for timing
+analysis [20]. Feng et al. use the SPIN model checker for
+formal veriﬁcation of E AST-ADL functional models [14].
+The work is based on UML2 activity diagrams, and in
+contrast to our work, it does not allow the integration of
+timing constraints in the behavioral model. Qureshi et al.
+describe an integration effort towards formal veriﬁcation of
+
+--- Page 9 ---
+EAST-ADL models based on timing constraints [22]. This
+allows a manual transformation from E AST-ADL models to
+UPPAAL models in order to achieve veriﬁcation of con-
+straints with respect to triggering and timing. Even though it
+offers prototype support for model-checking reachability and
+safety properties corresponding to the timing constraints, it
+does not support model-checking of functional constraints,
+or improves veriﬁcation of complex system models, with
+respect to space and time, via the PORT model-checking
+technique, as the ViTAL tool does. For more information on
+advantages of using a PORT technique we refer the reader
+to the following experimental benchmark of H ˚akansson and
+Pettersson [17]. Kang et al. [19] performed a pre-study
+towards veriﬁcation of E AST-ADL models using U PPAAL
+PORT with the aim of identifying integration needs. The
+results were considered in support towards our approach.
+VII. C ONCLUSION
+The analysis and veriﬁcation of E AST-ADL models re-
+quires a consistent and integrated environment that brings
+together model-driven development and formal analysis. In
+our case, the employed formalism is the timed automata
+framework that facilities capturing the execution ﬂow inside
+each functional block and the complex interactions between
+components. In this paper, we have described a method
+and transformation environment towards the integration of
+EAST-ADL and U PPAAL PORT. The main goal of our inte-
+gration work has been twofold: (i) to provide an unambigu-
+ous behavioral description of E AST-ADL function blocks,
+and (ii) to bring formal veriﬁcation capabilities to the E AST-
+ADL models. Both desiderata have been fulﬁlled within the
+same modeling and veriﬁcation tool , which we call ViTAL.
+ViTAL is enhancing the behavioral deﬁnition of the E AST-
+ADL language and allows formal modeling, simulation,
+and veriﬁcation of functional and timing requirements. The
+prerequisite artifacts for the system’s formal analysis are the
+EAST-ADL architectural model, and the TAbehavioral model
+that the system designer creates. Within ViTAL, we have
+integrated such models, in order to be able to simulate and
+check whether a given requirement is satisﬁed, by model-
+checking the TAdescription with U PPAAL PORT. In particu-
+lar, the independence introduced by the “run-to-completion”
+semantics, employed by the E AST-ADL functional modeling,
+is exploited by U PPAAL PORT, in order to reduce time and
+space requirements for model checking.
+Out of the possible future continuations of this work,
+we select the following, as our nearest research targets: (i)
+richer transformation constructs in order to automatically
+check delay and synchronization constraints, and (ii) the
+integration of UML2 activity diagrams in the employed
+transformation formalism, to capture the execution ﬂow
+inside each functional block directly from E AST-ADL.ACKNOWLEDGMENT
+The research leading to these results has received fund-
+ing from the ARTEMIS Joint Undertaking under grant
+agreement no269335 and from VINNOV A, the Swedish
+Governmental Agency for Innovation Systems. Henrik L ¨onn,
+Thomas S ¨oderqvist, Daniel Karlsson from V olvo Technol-
+ogy, Lei Feng from KTH Royal Institute of Technology, as
+well as the paper reviewers, are gratefully acknowledged for
+valuable suggestions and insights on the topic of this paper.
+REFERENCES
+[1] T. Abdoul, J. Champeau, P.T. Dhaussy, P.-Y . Pillain, and J.-C.
+Roger. Aadl execution semantics transformation for formal
+veriﬁcation. In Engineering of Complex Computer Systems,
+2008. ICECCS 2008. 13th IEEE International Conference on ,
+pages 263 –268, 31 2008-april 3 2008.
+[2] Mikael ˚Akerholm, Jan Carlson, John H ˚akansson, Hans Hans-
+son, Mikael Nolin, Thomas Nolte, and Paul Pettersson. The
+saveccm language reference manual. Technical Report ISSN
+1404-3041 ISRN MDH-MRTC-207/2007-1-SE, M ˚alardalen
+University, January 2007.
+[3] Rajeev Alur and David L. Dill. A theory of timed automata.
+Theoretical Computer Science , 126(2):183 – 235, 1994.
+[4] Charles Andr ´e, Fr ´ed´eric Mallet, and Robert De Simone.
+Modeling of Immediate vs. Delayed Data Communications:
+from AADL to UML MARTE. In ECSI Forum on speciﬁca-
+tion & Design Languages (FDL) , pages 249–254, Barcelona,
+Espagne, 2007. ECSI, ECSI.
+[5] Johan Bengtsson, Bengt Jonsson, Johan Lilius, and Wang
+Yi. Partial order reductions for timed systems. In Davide
+Sangiorgi and Robert de Simone, editors, CONCUR’98 Con-
+currency Theory , volume 1466 of Lecture Notes in Computer
+Science , pages 485–500. Springer Berlin / Heidelberg, 1998.
+[6] Bernard Berthomieu, Jean-Paul Bodeveix, Silvano Dal Zilio,
+Pierre Dissaux, Mamoun Filali, Sbastien Heim, Pierre Gau-
+ﬁllet, and Franois Vernadat. Formal Veriﬁcation of AADL
+models with Fiacre and Tina. In ERTSS 2010 – 5th Inter-
+national Congress and Exhibition on Embedded Real-Time
+Software and Systems , May 2010.
+[7] Stefan Bj ¨ornander, Cristina Seceleanu, Kristina Lundqvist,
+and Paul Pettersson. Abv a veriﬁer for the architecture anal-
+ysis and design language (aadl). In Sixth IEEE International
+Workshop UML and AADL at ICECCS 2011 , April 2011.
+[8] Manfred Broy. Challenges in automotive software engineer-
+ing. In Proceedings of the 28th international conference on
+Software engineering , pages 33–42, 2006.
+[9] MAENAD Consortium. East-adl domain model speciﬁcation:
+http://www.maenad.eu/. http://www.maenad.eu/, 2011.
+
+--- Page 10 ---
+[10] The ATESST2 Consortium. East-adl proﬁle speciﬁcation:
+www.atesst.org/home/. www.atesst.org, 2010.
+[11] The ATESST2 Consortium. Evaluation report east-adl2 be-
+havior support: http://www.atesst.org/home/. www.atesst.org,
+2010.
+[12] P. Cuenot, De Jiu Chen, S. Gerard, H. L ¨onn, M.-O. Reiser,
+D. Servat, C.-J. Sjostedt, R.T. Kolagari, M. Torngren, and
+M. Weber. Managing complexity of automotive electron-
+ics using the east-adl. In Engineering Complex Computer
+Systems, 2007. 12th IEEE International Conference on , july
+2007.
+[13] Philippe Cuenot, Patrick Frey, Rolf Johansson, Henrik L ¨onn,
+Yiannis Papadopoulos, Mark-Oliver Reiser, Anders Sandberg,
+David Servat, Ramin Tavakoli Kolagari, Martin T ¨orngren,
+and Matthias Weber. 11 the east-adl architecture description
+language for automotive embedded software. In Model-Based
+Engineering of Embedded Real-Time Systems , Lecture Notes
+in Computer Science, pages 297–307. Springer, 2011.
+[14] Lei Feng, DeJiu Chen, H. L ¨onn, and M. Torngren. Verifying
+system behaviors in east-adl2 with the spin model checker.
+InMechatronics and Automation (ICMA), 2010 International
+Conference on , pages 144 –149, aug. 2010.
+[15] Patrice Godefroid and Pierre Wolper. Using partial orders
+for the efﬁcient veriﬁcation of deadlock freedom and safety
+properties. In Kim Larsen and Arne Skou, editors, Computer
+Aided Veriﬁcation , Lecture Notes in Computer Science, pages
+332–342. Springer Berlin / Heidelberg, 1992.
+[16] John Hakansson, Jan Carlson, Aurelien Monot, and Paul Pet-
+tersson. Component-based design and analysis of embedded
+systems with uppaal port. In 6th International Symposium on
+Automated Technology for Veriﬁcation and Analysis , pages
+252–257. Springer-Verlag, October 2008.
+[17] John Hakansson and Paul Pettersson. Partial order reduction
+for veriﬁcation of real-time components. In Proceedings of
+the 5th international conference on Formal modeling and
+analysis of timed systems , pages 211–226. Springer-Verlag,
+2007.
+[18] Jerome Hugues, Bechir Zalila, Laurent Pautet, and Fabrice
+Kordon. From the prototype to the ﬁnal embedded system
+using the ocarina aadl tool suite. ACM Trans. Embed. Comput.
+Syst., 7(4):42:1–42:25, August 2008.
+[19] Eun-Young Kang, Pierre Yves Schnobbens, and Paul Petters-
+son. Verifying functional behaviors of automotive products
+in east-adl2 using uppaal-port. In Proceedings of the 30th
+International Conference on Computer Safety, Reliability and
+Security (SAFECOMP’11) . Springer-Verlag, September 2011.
+[20] F. Mallet, M.-A. Peraldi-Frati, and C. Andre. Marte
+ccsl to execute east-adl timing requirements. In
+Object/Component/Service-Oriented Real-Time Distributed
+Computing, 2009. ISORC ’09. IEEE International Symposium
+on, pages 249 –253, march 2009.
+[21] ARTEMIS MBAT. Consortium website: http://www.mbat-
+artemis.eu/, November 2011.[22] Tahir Naseer Qureshi, DeJiu Chen, Henrik L ¨onn, and Martin
+T¨orngren. From east-adl to autosar software architecture:
+a mapping scheme. In Proceedings of the 5th European
+conference on Software architecture , ECSA’11, pages 328–
+335, Berlin, Heidelberg, 2011. Springer-Verlag.
+[23] Anders Sandberg, DeJiu Chen, Henrik L ¨onn, Rolf Johans-
+son, Lei Feng, Martin T ¨orngren, Sandra Torchiaro, Ramin
+Tavakoli-Kolagari, and Andreas Abele. Model-based safety
+engineering of interdependent functions in automotive vehi-
+cles using east-adl2. In Proceedings of the 29th international
+conference on Computer safety, reliability, and security , pages
+332–346. Springer-Verlag, 2010.
+[24] Carl-Johan Sj ¨ostedt, Jianlin Shi, Martin T ¨orngren, David
+Servat, Dejiu Chen, Viktor Ahlsten, and Henrik L ¨onn. Map-
+ping simulink to uml in the design of embedded systems:
+Investigating scenarios and transformations. CiteSeerX -
+Scientiﬁc Literature Digital Library , 2009.

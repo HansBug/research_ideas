@@ -1,0 +1,2994 @@
+--- Page 1 ---
+Modularity  and Architecture of PLC-based Software for 
+Automated Production Systems : An analysis in industrial 
+companies   
+Birgit Vogel -Heuser, Juliane Fischer, Stefan Feldmann, Sebastian Ulewicz , Susanne Rösch  
+Institute of Automation and Information System s 
+Technische Universität München  
+85748 Garching b. München, Germany  
+{vogel -heuser; juliane.fischer ; stefan. feldmann ; sebastian. ulewicz ; susanne.roesch}@tum.de  
+ 
+ 
+Abstract—Adaptive and flexible production systems require 
+modular and reusable software especi ally considering their  
+long-term life cycle of up to 50 years .  SWMAT4aPS,  an ap-
+proach  to measure  Software Maturity for automated Produc-
+tion Systems  is introduced . The approach  identif ies weaknesses  
+and strengths  of various  compan ies’ solutions  for modular ity of 
+software in the design of automated Production Systems (aPS) . 
+At first , a self -assessed questionnaire is used to evaluate a large 
+number of companies  concerning their software maturity . Sec-
+ondly , we analyze  PLC code, architectural levels , workflow s 
+and abilities to configure code automatically out of engineering 
+information  in four selected companies .  In this paper, the  
+questionnaire results from 16 German  world -leading compa-
+nies in machine and plant manufacturing and four case studies  
+validating th e results from the detailed analyses  are introduced 
+to pro ve the applicability of the approach  and give a survey of 
+the state of the art in industry . 
+Keywords —factory automation, automated production 
+systems, maturity , modularity, control software , 
+Program mable Logic Controller . 
+ 
+1 Introduction   
+Modern trends in manufacturing are defined by mass cus-
+tomization, small lot sizes, high variability of product types, 
+and a changing product portfolio during the life  cycle of an 
+automated production system (aPS)  in factory automa-
+tion (Lüder et al ., 2005; Rzev ski, 2003) . Automated produc-
+tion systems are  not only  production lines for automobiles, 
+but are also used e.g. for producing and bottling beverages . 
+These trends require more advanced aPS (Durdik et al., 
+2012) , which support changes in the ir physical layout , in-
+cluding extensive technical updates , as the life -span of  an 
+aPS often exceeds  10 years (McFarlane and Bussmann, 
+2000) . The complexity of the aPS, including automation 
+hardware and automation software (called software hence-
+forth), is steadily increasing . Since the proportion of system 
+functionality realized by software is growing  (Thramboulidis, 
+2010) , concepts for supporting automation engine ers in han-
+dling this complexity  and maintaining the developed soft-
+ware are required. Software as well as software engineering 
+in this domain need to fulfill specific requirements  including 
+those related to  real-time and reliability  (Vogel -Heuser et al., 
+2014; 2015a). Software engineering for aPS seems to be lag-
+ging behind c lassical software engineering  not only in  Model 
+Driven Engineering ( MDE ), architectur al aspects, variant and 
+version management , but also in the areas of clone detection 
+and code smells  (Vogel -Heuser et al. , 2015a) .  Fundamental methods such as variability  modeling  and 
+tracing, which enable software evolution, are still  limited to 
+the software domain. However, aPS impose special require-
+ments on the development and maintenance process . For ex-
+ample, s ensors and actuators as mechatronic sub -systems of 
+aPS are designed to function for several years  and it  is fore-
+seeable,  that their development and maintenance require-
+ments will change over their utility lifetime. In order to allow 
+for later adaptions to the functionality of these mechatronic 
+systems , suitable mea ns should  already be  considered during  
+the development. As software can be changed more easily 
+(especially remotely) than mechanical or electrical parts, 
+changing the application software of these systems  may solve 
+adaption requirements  quickly . However,  these changes can 
+result in code smells , as they are  usually  conducted under 
+time pressure . 
+Consequently, aPS s oftware needs to be maintainable 
+over decades for thousands of machine and plant variants de-
+livered by one supplier to a worldwide market with pot ential-
+ly different electrical and mechanical hardware. Software 
+maintainability is “the ease with which a software system can 
+be modified to correct faults, improve performance or other 
+attributes , or adapt to changing environments”  (IEEE Std 
+610.12 -1990 , 1990) . Software maintenance for aPS covers 
+two aspects: (1)  software maintenance as optimization and 
+evolution process during start -up and operation of one specif-
+ic machine or plant , and (2) software maintenance of a soft-
+ware component reused in different machines and plants, for 
+example  machine/plant families  delivered b y one supplier 
+(Vogel -Heuser et al. , 2015b) . In this paper, we focus on 
+software maintainability aspects as part of software engineer-
+ing while  being aware that this is only one  view from on e 
+discipline.  
+Compared to software engineering in general, software in 
+aPS is strongly influenced by hardware, i.e., mechanical and 
+electrical/electronic  hardware  changes . Because of the high 
+complexity of automation software and the plant itself, it is 
+usually not obvious how the evolution in one part of the sys-
+tem affects other parts or the whole process (Jaeger et al., 
+2011). Until now, aPS software has been programmed in 
+classical functional IEC 61131 -3 (IEC 61131 -3, 1990) , on 
+Programmable Logic Contro llers (PLCs), without using re-
+cently standardized , but not generally available , object -
+oriented enlargements. According to a study of the ARC Ad-
+visory Group, the use of IEC 61131 -3-conform PLCs cur-
+rently is and will be state of industrial practice in the n ext 5 
+
+--- Page 2 ---
+to 10 years  (ARC Advisory Group, 2011) . What is more, it 
+will even remain relevant for decades  to come , due to  the 
+plants’  lifetime of up to 50 years . 
+In the machine and plant manufacturing industry, cus-
+tomers often maintain the equipment themselves,  including 
+changes made to sensors and actuators, as well as process op-
+timization s comprising changes to  software. Management in 
+the plant manufacturing industry is keen to use their own 
+staff to maintain  most software functions , though . This is due 
+to the  urgency caused by downtime  or slower, less optimal 
+operation . At the same time,  security for data has to be en-
+sured , which might be undermined by remote access through 
+the supplier.  
+Plants and special purpose machines are designed specifi-
+cally for one customer and, in the case of a manufacturing 
+plant, are of vast proportions. Hence, in plant manufacturing , 
+the first operation  of equipment  often  does not take place un-
+til after commissioning  on site . This  eventually result s in on -
+site adjustments  of softwar e, automation hardware , and elec-
+trical/electronic parts. Furthermore, due to customer -specific 
+designs, “in the plant manufacturing industry , software engi-
+neering has been mostly project driven for decades  and the 
+challenge is to restructure legacy code fr om different projects 
+with similar or even equal functionality. To make things 
+worse, the different  [PLC] platforms require software vari-
+ants for the same functionality due to different IEC 61131 -3 
+dialects” (Vogel -Heuser et al. , 2015a).  Customers often re-
+quest a specific PLC type , e.g.  from the country related mar-
+ket leading PLC supplier, which is Siemens in Europe and 
+Rockwell in the US . 
+To assure machine safety and maintainability of the 
+equipment in case of a fault in one machine or plant, different 
+modes of operation need to be implemented in the control 
+software according to the European Standard DIN EN 
+60204 -1 (2009) . These modes of operation include  automatic 
+mode, manual mode, setting mode, inching mode, and emer-
+gency stop. Following the GEMMA stand ard (Guide d ’Étude 
+des Modes de Marches et d ’Arrêts), the modes of operation 
+are even more specifically differentiated into operation pro-
+cedures for normal operation and failure procedures for pr o-
+cess failures and emergency sto ps (Alvarez et al. , 2013).  
+Modularity, reuse , and variant and version management , 
+especially in software for aPS , were rated by international in-
+dustrial experts as key challenges to be solved in engineering 
+by 2020 (Vogel -Heuser , 2009). Industrial companies from 
+the aPS domain are sti ll struggling to find an optimal solution 
+to cope with customer specific variants. For intelligent, self -
+organizing Industry 4.0 -compliant aPS, with the ability to 
+adapt flexibly  to changing requirements by replacing or ex-
+panding individual modules,  cross disciplinary modularity, 
+tracing of changes  and management of consistent software 
+variants and versions are a prerequisite (Vogel -Heuser and 
+Hess, 2016). In Germany , most companies providing aPS are 
+forced by their customers to supply Industry 4.0 -complian t 
+systems. Establishment of a benchmark which identifies the  
+strength s and weaknesses in software modularity as one view 
+on modularity would help software engineering departments 
+and managers to identify competitive advantages and/or 
+weaknesses .  
+The resea rch goal addressed in this paper is to provide an 
+overview of the state of the art in software engineering of 
+aPS focusing on modularity and architecture and to identify the weaknesses as a basis for further research. As the main 
+contribution of this paper , we introduce SWMAT4aPS 
+(Software Maturity for aPS) as a benchmark process to eval-
+uate the modularity of aPS application software, its develop-
+ment workflow and its quality. SWMAT4aPS consist s of two 
+elements , a self -assessment questionnaire (upper part of  
+Fig. 2, Q) and a detailed expert analysis for selected compa-
+nies (lower part of Fig.  2, E). The self -assessment question-
+naire contains  45 criteria  grouped into three  maturity catego-
+ries addressing the engineering as well as the operation phase 
+of the aPS.  It allows companies to identify deviations be-
+tween their own scores, the best available rating and the 
+mean values of all participating companies from machine 
+manufacturing.  
+In order to do so, we formula te four general research 
+questions  (RQ)  connected to  13 hypotheses  (H) (cp. Table I):  
+RQ1: Does the questionnaire deliver valid results to iden-
+tify weaknesses in gaining software modularity of aPS?  
+RQ2: Do the three different sub -maturity levels deliver 
+further insights compared to one general maturity leve l? 
+RQ3: What are the most significant weaknesses in soft-
+ware maturity in aPS and in which phase do they occur and 
+what are possible  causes/reasons/prerequisites ?  
+RQ4: Does the detailed expert analysis deliver additional 
+insights into the weaknesses of sof tware maturity?  
+On the one hand , we ensure  design validity of the ap-
+proach  by comparing  the questionnaire results of three com-
+panies with individual case study analysis results (cp. Fig.  2), 
+thus confirming the scores of the questionnaire. On the other 
+hand, we aim to gain more detailed insights during the expert 
+analysis  (RQ4).  
+The approach’s realization is divided into three phases, 
+namely preparation, experimentation and reporting (cp. 
+Fig. 2). Within the preparation, the approach was developed. 
+Based on  expert interviews, modularity criteria and visions 
+were identified. These were combined with the insights 
+gained from an expert workshop, to create the questionnaire 
+that enables the detection of the companies’ strengths and 
+weaknesses. Also, the measures  for the code analysis were 
+defined as a basis for the expert analysis.  
+The core of the SWMAT4aPS approach is made up of 
+four steps, whereas the first two are related to the question-
+naire and the other two are part of the expert analysis. The 
+first step is  to conduct the survey by use of the developed 
+questionnaire. All questionnaires are pre -processed and 
+checked for consistency. The subsequent processing includes 
+a normalization as well as the calculation of average values, 
+for comparison purposes. In the  second step, which is part of 
+the reporting, the questionnaires’ results are evaluated, by use 
+of various charts, and the different workflows are presented. 
+The expert use case analysis is the third step. After a first 
+workshop, the code analysis is condu cted. Its results are dis-
+cussed in a second workshop, that leads to a modularity as-
+sessment. Concluding, the different software architectures 
+are presented visually and the results of the code analysis are 
+depicted in the form of call graphs.  
+By including 16 international ly leading companies from 
+Germany into SWMAT4aPS , we ensure that the proposed 
+procedure is representative to measure  an application’s soft-
+ware maturity, its quality and the underlying workflow.  The 
+paper starts with an overview on the state  of the art on de-
+signing  and measuring software quality for aPS with their 
+
+--- Page 3 ---
+specific characteristics deriving the most important hypothe-
+sis for the study. The research method and the four research 
+questions addressed are introduced in section 3, the prepara-
+tion, experimentation and reporting of both the questionnaire 
+and the expert analysis are highlighted as well as possible  
+threa ts to validity.  In Section 4 , an overview of the maturity 
+levels of the 16 industrial companies is given addressing RQ 
+1 to 3 an d the respective hypothes es. Section  5 delivers re-
+sults from the expert analysis of the four case studies related 
+to RQ1 and RQ4. These individual case studies  provide  fur-
+ther insights into the different methods of code configuration. 
+Section 6 compares th e maturity levels of the four companies 
+derived from the questionnaire with the maturity levels 
+gained from the expert analysis. Section  7 elaborates the va-
+lidity, strength and weaknesses of SWMAT4aPS summariz-
+ing the results of the research questions and t he 13 hypothe-
+ses. The paper concludes with section 8, which provides  the 
+conclusion and an outlook to future work.  
+ 
+2 State of the Art – designing and measuring 
+software quality for aPS  
+After a short introduction to the specific characteristics of 
+platforms and programming languages in the aPS domain , 
+the state of the art in Model Driven Engineering and architec-
+tures for aPS software are introduced. On this basis , existing 
+metrics for software quality already available and applied to 
+aPS are discussed. Furthe rmore, the topic of c ode configura-
+tion in the aPS domain  is addressed. Finally , the specific ex-
+tra-functionalities providing the basis for a safe operation of 
+aPS are introduced . On the basis of this knowledge, different 
+hypotheses are developed.   
+2.1 Characte ristics of  aPS and derived hypothes es 
+aPS are especially common  in the different types of busi-
+ness of machine and plant suppliers , i.e. series  machines,  
+special purpose machines  and plant manufacturers.  
+Platform supplying companies deliver hardware and 
+software platforms for machine and plant manufacturers , as 
+well as in some cases  solution -specific functions for  the most 
+critical part of the application , e.g. motion control of syn-
+chronized ax es. Complexity , variations resulting from  the 
+customers’ specifi c requirements as well as the degree of on -
+site changes are increasing from platform suppliers, to ma-
+chine suppliers to plant suppliers (Vogel -Heuser et al.  
+2015a). Hence , we expect that platform suppliers reach high-
+er maturity values than machine supplier s, which, in turn, 
+reach higher ones than plant manufacturers (H1.2) .  
+Additionally , we expect that high software complexity 
+leads to lower maturities  in modularity and in  start-
+up/operation/maintenance  (H3.6). 
+The life cycle of aPS may be divided into two main  phas-
+es, which are of importance to platform suppliers, machine 
+suppliers and plant manufacturers. These are engineering , 
+which  includ es testing , and operation  including start -up and 
+maintenance . Within aPS, the operation phase poses especial-
+ly challen ging requirements to the engineers, as it may last 
+up to 50  years  (Vogel -Heuser et. al, 2015c) . At the same 
+time, the start -up phase shall be shortened  to reduce  the time 
+to market of a new product as well as  its start-up costs.  For 
+measuring a company’s p erformance in these two phases, 
+three maturity categories are introduced . Maturity in modu-
+larity M MOD and maturity in test/quality assurance M TEST are especially relevant for the engineering , while maturity in 
+start-up/operation/maintenance  is represented by MOP. As 
+different companies from different business types face differ-
+ent challenges , they develop different  processes and solu-
+tions . It is to be expected, that they  also show differences  in 
+their maturity levels in the three maturity classes (H 2). How-
+ever, since all companies face somewhat similar challenges 
+concerning M MOD, M TEST and M OP, which stem from the na-
+ture of aPS,  we expect to find universally low maturity levels 
+in the different phases and want to identify them  (H3.1) . 
+Since a proper engineeri ng process eases and shortens start -
+up, operation and maintenance, we predict a causality be-
+tween M MOD, MTEST and M OP (H3.2 ). Due to the nature of 
+plants, changes often have to be made on -site ( Vogel -Heuser 
+et al., 2015 a and b ). We expect that in companies  from dif-
+ferent business types  this leads  to different strategies for 
+maintaining software , and that the  companies  thereby need to 
+follow different release procedures  for software libraries  
+(H3.3). 
+2.2 Platform, and programming languages in the aPS 
+domain  
+Programmable Logic Controllers (PLC s) are character-
+ized by their cyclic data processing behavior,  which can be 
+divided in to four steps. At the beginning of a cycle, the PLC 
+reads the input values of the technical process, which are 
+provided by sensors, and sto res them in a process image. 
+Subsequently, the PLC program is executed with the stored 
+values . Then, the output values, which control the actuators 
+that influence the technical process , are written . Lastly , the 
+PLC waits until the cyclic time has elapsed. In a worst case 
+scenario, if a fault occurs right after the input values have 
+been read, the reaction time of the PLC is two times the cycle 
+time, because the input may occur when the PLC is already 
+executing the program in the first cycle and will therefo re 
+read the changed input at the earliest in the second cycle . 
+The IEC 61131 -3 programming standard for PLCs con-
+sists of two textual languages – Structured Text (ST) and In-
+struction List (IL) – and three graphical languages – Ladder 
+Diagram (LD), Function Block Diagram (FBD), and Sequen-
+tial Function Chart (SFC). Furthermore, the standard defines 
+three types of program organization units (POU s) to structure 
+PLC code and to enable reuse: programs (PRGs), function 
+blocks (FBs) and functions (FCs). The main dif ferences be-
+tween these POUs are , that in contrast to FCs, PRGs and FBs 
+possess internal memory and FBs can be instantiated. Tasks 
+are used to define entry point s, by means of PRGs  or FB in-
+stances , into a plant’s code, which are invoked  depending on 
+the def ined cycle time  or priority  of the task . The entry point s 
+(e.g. PRG s) then call other POUs , which can execute code 
+and sub -calls of further POUs. PLC cycles adhere to real -
+time requirements, meaning , the defined cycle times of the 
+tasks may never be exceed ed. 
+Tool support for the object -oriented (OO) extension of 
+the IEC 61131 -3 is now available in selected runtime envi-
+ronments (Werner, 2009).  Three companies included in this 
+study  already use  it and evaluated it  regarding its benefit and 
+applicability .  
+The software architecture, which contains software com-
+ponents and their connections, highly influences  quality cri-
+teria such as changeability, maintainability or performance. 
+An a ppropriate software architecture is crucial to ensure high 
+
+--- Page 4 ---
+software quality and  to enable reusability. Hence, an over-
+view of selected approaches to gain mature software in aPS 
+is given in the following.  
+2.3 MDE and software  architectures in aPS  and derived 
+hypothes es 
+Katzke et al . (2004)  identified three granularity levels  in aPS 
+softwar e: basic modules, application modules and facility 
+modules. Facility modules are usually designed top -down un-
+til the related system can be described with application mod-
+ules. Application modules are composed of basic modules, 
+but may also contain other app lication modules. Likewise, 
+basic modules can be composed of other basic modules. 
+While basic modules, such as  modules for motor control or 
+an individual sensor, are flexible and have a high potential 
+for reuse, they cause a high organizational effort due to the ir 
+large number. Facility modules are, in contrast, less flexible 
+and highly linked to their application context and are thus 
+difficult to reuse  in another context. However, facility mod-
+ules are more  transparen t, thus enabling  the perception of a 
+system as a whole. Maga et al.  (2011)  stated , that software 
+modules should be managed in a way appropriate to  their 
+level of granularity. Vogel -Heuser et al. (2015)  derived the 
+five architectural levels depicted in Fig. 1 by analyzing the 
+software architectur e of seven  companies  from the machine 
+and plant manufacturing industry . They found that  a plant 
+module  resembles an entire  production plant and, conse-
+quently, exists primarily in the plant manufacturing industry 
+but not in the machine manufacturing industr y. A plant mod-
+ule usually contains several facility modules , which represent 
+machines or plant parts such as a press or a storage system. 
+Each facility module in turn consists of one or more applica-
+tion modules , which are machine parts that can be reused i n 
+other machines , such as the material feed or the filling unit of 
+a machine. Application modules are composed of basic mod-
+ules, which represent , for example , individual drives or sen-
+sors. Atomic basic modules  represent the most fine -grained 
+architectural level and refer to basic modules that cannot be 
+decomposed into further module s. The architectural levels 
+can be used recursively, i.e., each level may consist of all 
+module types of the more fine -grained levels.  
+plant module
+basic module application module facility module plant modulefacility module
+basic module application module facility moduleapplication module
+basic module application modulebasic module
+basic module
+atomic basic module
+Fig. 1.  Archit ectural layers (Vogel -Heuser et al., 2015 b) 
+Vyatkin proposes a software architecture for distributed 
+automation systems based on the IEC 61499 standard (Vya t-
+kin, 2011; IEC 61499 -1, 2005) . The resulting software shows 
+a composite structure and consists of e vent-driven FBs, 
+which are used to describe processes. Although first industri-
+al applications confirm the benefits of this standard , such as  reduced time and effort to develop automation software, a 
+high degree of code modularity and a high potential for r e-
+use, this standard is not commonly used in industry at present  
+and “[ ...] has [still] a long way in order to be seriously con-
+sidered by the industry” (Thramboulidis, 2013) . 
+Current research in the field of Model Driven engineering 
+(MDE) is mainly focused on developing new methods to 
+support the development process of new software using 
+modeling languages such as UML or SysML. Unfortunately , 
+a large gap exists  between existing legacy code on field level 
+(i.e., PLC code ), and the vision and attempt to introd uce a  
+SysML or UML based MDE approach in industrial compa-
+nies. To bridge this gap, at first code refactoring and building 
+of appropriate software components is required. Bonfè et 
+al. (2013)  introduce the concept of mechatronic objects to 
+enhance modularity  of the software, which can be represent-
+ed in control programs by FBs. While t he structure of the 
+aPS is modeled using UML class diagrams, the behavior can 
+be defined with UML state diagrams.  
+For the variability of modular aPS  “fundamental methods 
+like var iability modeling  and tracing, which enable software 
+evolution, are until now limited to the software domain. For 
+[...] automated production systems, [...], those fundamental 
+methods need to be adapted to other disciplines and linked to 
+well-known and well -established domain -specific methods” 
+(Vogel -Heuser et al. , 2015a).  The same authors highlight the 
+lack in tool support for aPS compared to software engineer-
+ing in general. Therefore, we anticipate weaknesses in the 
+tool chain support for selected aspects like continuous inte-
+gration, code generation and version management (H3.4 ). 
+“Unfortunately, neither clone detection nor code man-
+agement systems, except  simple versioning, are available for 
+aPS development platforms and IEC languages, yet. [ ...] 
+[T]he chall enge in aPS is , that “clones” are embedded in dif-
+ferent projects and eventually on different platforms, i.e. PLC 
+suppliers, which is certainly a necessary advancement in 
+clone detection mechanism s. Additionally, clones are not on-
+ly software clones but also mechanic al and electri-
+cal/electronic clones embedded in different engineering 
+tools” (Vogel -Heuser et al., 2015a). To cope with variability , 
+product lines and feature models are important issue s (Vogel -
+Heuser et al., 2015a) , but cross -disciplinary approac hes are 
+still missing.  
+Dhungana et al. (2014) and Rabiser et al. (2014) focus on 
+instantiation of feature  model s, thereby placing emphasis on 
+hierarchy and multiplicity of product line architectures. Their 
+decision -oriented approach introduces the possibil ity to mod-
+el hierarchy and multiplicity of components by means of an 
+embedded domain -specific language. By means of  appropri-
+ate tool support, the ir approach has been applied to industrial 
+use cases. Lettner et al. (2015) apply feature modeling to a 
+platfor m provided for aPS ; more specific ally, to control ro-
+bots and injection molding machines. Three requirements are 
+given : feature models for different purposes  and different 
+levels , and model ling dependencies between different fea-
+tures. The latter is also important for aPS. Lettner et al. 
+(2015) formulate as research question: “How useful are mul-
+ti-purpose, multi -level feature models for large -scale indus-
+trial systems? ” Focusing on dependencies between feature 
+models to develop a system wide perspective they c onclude 
+“[...] revealing and understanding the dependencies between 
+features from different models turned out to be extremely 
+
+--- Page 5 ---
+challenging as can be seen by the rather low number of de-
+pendencies”. These authors also  assume code -level views on 
+the features a s important and ascertain that feature models 
+help to limit variability.  
+Within industry, many integrated platforms still exist, that 
+are based on a cloning approach for creating new product 
+variants. Antkiewicz et al. (2014) address the challenge of 
+migra ting such an  integrated platform into a central platform  
+with the virtual platform strategy . It covers six governance 
+levels, ranging from ad -hoc clone and own  (level L0) to 
+product line engineering (PLE)  with a fully -integrated plat-
+form (level L6). By cho osing the appropriate level , depend-
+ing on frequency of reuse and required degree of consistency , 
+it is possible to realize the respective benefits for “seamless 
+and gradual adoption of PLE, thus eliminating costly, disrup-
+tive, and high -risk transition proc esses [from current engi-
+neering to the respective governance levels]” (Antkiewicz et 
+al., 2014). By that , acceptance of PLE is increased, and a 
+change of technology is enabled even for companies that rely 
+on generically developed ways of variant management . We 
+use these different governance levels presented by Antkie-
+wicz et al. (2014) in order to classify the distinct classes of 
+control code reuse and architecture we encountered in the 
+different case studies (cp. section 5). 
+2.4 Code configuration  in the aPS do main  and derived 
+hypothes es 
+Mendonca and Cowan  (2010)  describe a way to configure 
+complex products collaboratively to reduce misunderstand-
+ings among the different disciplines involved.  This is 
+achieved by splitting the feature model  of a software product 
+line into configuration spaces, which are better manageable.  
+Additionally, they evaluate the performance of various rea-
+soning algorithms, that support  automated product configura-
+tion. These algorithms check the consistency of a feature 
+model and given const raints.  The most efficient one, accord-
+ing to Mendonca and Cowan,  is a hybrid reasoning system 
+for feature models , based on the domain -specific constraint 
+solver FTCS ( feature tree constraint system).  A model -based 
+approach  is presented in (Elsner et al., 2 010), that combines 
+the definition of constraints  with their checking . Thereby, 
+Elsner et al. integrate  various configuration file types  by con-
+verting them  to models . Depending on the type of the config-
+uration files, t he resulting metamodels are either pro duct-
+line-specific or more generic.  On this basis, developers can 
+ensure consistency within the configuration by means of 
+model -based constraint languages.  In terms of frontloading, 
+this approach reduces time and effort necessary for the deri-
+vation of conf igurations as well as error -proneness  of the re-
+sulting systems . 
+Based on an analysis of existing configuration tools, 
+Rabiser et al. (2012) realized DOPLER CW. It is designed to 
+meet the specific needs of business -oriented users, who usu-
+ally do not have an  engineer’s extensive know -how.  To do 
+so, Rabiser et al. deduced a set of eight basic capabilities that  
+should be fulfilled by configuration tools. These capabilities 
+range from the possibility to hide and show configuration op-
+tions  to on-the-fly validity checks  to enabling annotations.  
+The work is completed by an evaluation of u sability and 
+utility of the different capabilities, as well as possible trade -
+offs (Rabiser et al., 2012).  Lettner et al.  (2013)  focus on vari-
+ability of automation software, as soft ware ecosystems be-come increasingly common in this domain. These software 
+ecosystems involve multiple layers of organizations with dif-
+ferent backgrounds. However, many companies still use cus-
+tom-developed configuration tools. This absence of  a stand-
+ard for  variability modelling  in industrial practice poses  a 
+new challenge to the automation of configuration processes.  
+The solution proposed in (Lettner et al., 2013) is a model -
+based product line engineering approach , using  decision -
+oriented variability models . This way, the configurator’s 
+choices result in valid software and a functioning product.  
+Model maintenance and testing were not taken into account, 
+though.  
+Based on these different approaches presented in academ-
+ia, we expect that there exist different st rategies for code con-
+figuration in industry, too, that can be assigned to different 
+governance levels  (H4.2). 
+From prior work (Vogel -Heuser et al. 2015b  and Simon 
+et al. 2016 ) with industrial companies we identified that r e-
+use can take different forms, ran ging from code configuration 
+to code generation from information provided by  an engi-
+neering tool to automatic code configuration based on tem-
+plates.  However, from our understanding, there exist four 
+prerequisites for all these forms. These are appropriate mod-
+ule libraries, a proper release process  of these library compo-
+nents, a version management tool and change tracking of 
+versions (H3. 5). 
+2.5 Benchmarking and measures for software quality in 
+software engineering and aPS  and derived 
+hypothes es 
+Benchmarking in operational research is, according to 
+Trentesaux et al. ( 2013 ), “comparing the output of different 
+systems for a given set of input data in order to improve the 
+system’s  performance”. Benchmarks have been established  
+in numerous areas including  operational  research and  in con-
+trol and production control. Trentesaux et al. (2013) conclude  
+that “[...] it is interesting to define a benchmark proposed by 
+other communities, usable by both communities, and based 
+upon a physical, real -world system to stimulate benc hmark-
+ing activities to be grounded in reality.” This work aims at a 
+first contribution to wards  a benchmark  for software quality 
+in software engineering and aPS.  
+Yin (2013) and Runeson et al. (2012 ) introduce different 
+principles for an appropriate case stu dy design  and its meth-
+odology. Both highlight  the principles to c onstruct validity 
+and discuss  the internal  and external validity as well as  the 
+reliability of a case study . Runeson  et al. (2014)  focus on 
+case studies in software engineering.  
+Although var ious models for software architecture have 
+been developed, generally accepted more detailed rules for 
+software architectures are still missing in aPS . This includ es 
+how to use global variables  and how to realize fault handling 
+from a base module to an eventually necessary shutdown of 
+an entire plant . The Capability Maturity Model (CMM) 
+(Paulk et al., 1993) provides a set of maturity measures from 
+the business process point of view, e.g.  a workflow to man-
+age product changes and evolution like variants and ve rsions  
+(cp. Fig. 5). Meyer (1988) proposed rules for software struc-
+tures, regarding  especially modularity. He found, that the cri-
+teria decomposability, composability, understandability and 
+protection relate strongly with modularity. A highly modular 
+system  possesses modules that can be easily isolated (de-
+
+--- Page 6 ---
+composability) and reused in other contexts (composability). 
+Its understandability is high through reduced clutter (few 
+modules and interfaces) and its communication is protected 
+from interference (not publ ic). A high governance level re-
+lates more loosely to modularity. While higher levels of gov-
+ernance require and protect a modular structure, high modu-
+larity could theoretically also be achieved with regular clone 
+and own.  Therefore, we expect the criteria a bove to enable  a 
+higher governance level  and to result in a more mature soft-
+ware architecture, which eventually leads to a higher M MOD 
+(H4.4).  
+Following these rules and workflow aspects , we selected 
+the criteria described in Section 3 and described all rel ated 
+questions  in greater detail in Appendix A.  
+In order to measure sub -optimal solutions , metrics and 
+measures of code quality have been introduced  mainly  in the 
+domain of computer science . One example for a modularity 
+measure is introduced by Li et al. (2014 ). In this work,  
+modularity is calculated based on source code as a substitute 
+of the average number of modified components per commit. 
+Another way of measuring code quality is presented by 
+Marinescu et al. (2012) with a definition of rules for detect-
+ing code flaws including low coupling, high cohesion, mod-
+erate complexity, and proper encapsulation. Subsequently , 
+the negative impact of each flaw is taken and weighted to 
+calculate the design quality of a system. Similar metrics are 
+used by Nugroho et al . (2011) in order to calculate the effects 
+on maintainability according to ISO/IEC 9126 -1 (2001) . Ei-
+senberg (2012) also proposes a metrics -based approach, but 
+in combination with defining appropriate thresholds for spe-
+cific companies or projects. Eisenberg  proposes the usage of 
+both static and dynamic code analysis such as analyzing du-
+plicate code, compliance, comments, package interdependen-
+cies, method/ class complexity, automated test coverage and 
+manual test coverage , thereby  taking testing results into a c-
+count. An overview and further works focusing on technical 
+debt and ways of measuring it can be found in the survey 
+conducted by Li et al. (2015 ). 
+According to Vogel -Heuser et al. (2015a) , “an analysis of 
+existing PLC code variants and variability managem ent 
+mechanisms in different leading international companies in 
+the manufacturing industry , including organizational and 
+qualification aspects , would be beneficial to achieve a deeper 
+understanding of the underlying requirements and mecha-
+nisms hindering mod ularity in the plant manufacturing indus-
+try.” This emphasizes the importance of MMOD. 
+Furthermore, for the aPS domain, some metrics have 
+been introduced such as the rule -based approach by Prähofer 
+et al. (2012) , which  analyz es naming conventions, complexi-
+ty, or bad code smells. Feldmann  et al. (2016) present  an 
+analysis framework for evaluating PLC software  with the 
+opportunity to configure coding rules and i ntroduced call 
+graphs and the importance of call hierarchy . Therefore , we 
+propose as H4 .3: By means of call graphs, an intuition of the 
+control software’s structure can be obtained closely related to 
+the development environment.  Also, we expect, that a higher 
+governance level leads to a more mature code graph, which 
+in turn leads to a higher M MOD (H4.4). 
+Additionally , a more general hypothesis covering some of 
+the topics discussed beforehand is formulated as H4.1: Ex-pert analysis delivers additional insights into appropriateness 
+of the chosen software architecture, maturity of code and 
+code configuration  mechanism.  Further guidelines on IEC 
+61499 implementation  can be found (Zhabelova and Vyatkin, 
+2015; Zoitl and Prähofer, 2013). However, as mentioned by 
+Zhabelova and Vyatkin (2015), interpreting the results of the 
+application of metrics -related quality i s an open research 
+question for the next years.  
+Beyond code clones, a broader notion of code smells has 
+been introduced ( Feldmann et al., 2016 ) and extended by the 
+notion of anti -patterns (Brown et al., 1998). Both terms de-
+scribe the fact that design and i mplementation of a software 
+system may exhibit certain anomalies due to non -controlled 
+evolution. For instance, a diverging architecture, missing ab-
+straction, and non -modular implementation are typical indi-
+cators of an ongoing decay of the software system.  Particu-
+larly, Abbes et al. (2011) have shown that the presence of 
+two anti -patterns impedes the performance of developers. 
+Similarly, Sjoberg et al. (2013) conducted a large -scale study 
+and concluded that code smells are good indicators for as-
+sessing main tainability on file level. While other studies 
+show that perception of code smells may differ between de-
+velopers (Yamashita et al., 2012), it is generally admitted that 
+code smells hinder evolution because they impede extending 
+and maintaining the underlyi ng system . 
+2.6 Extra functionalities : modes of operation, safety -
+related functions and fault handling  and HMI 
+In addition to implementing the control functions carried 
+out by an aPS, aspects such as different operation modes, 
+fault handling or visualization mu st be designed and imple-
+mented. If an operator is controlling the aPS via a control 
+panel in man ual mode , in case of a fault or maintenance situ-
+ation, the executed functions may differ from the functions 
+executed in  automatic mode . Exemplarily,  a jammed work-
+piece on a transportation belt need s to be transported back-
+wards and therefore  the belt needs to run in reverse . 
+Especially in the event of a fault, interfaces for alarm 
+handling and alarm transmission need to be provided in order 
+to change the operation  mode of all directly or indirectly af-
+fected parts of the aPS to a safe state. However, diagnosis 
+and self -configuration to achieve robust and flexible produc-
+tion systems in the occurrence of a fault may conflict with 
+the concept of a modular software stru cture – alarms cannot 
+be contained within one module  (cp. Vogel -Heuser et al. , 
+2015b) . Instead , alarms need to be collected and handled 
+globally , similar to safety measures , such as  emergency shut -
+down s, which affect the part of a machine or plant observab le 
+from the specific viewpoint of an operator.  
+Manual mode is used to control individual parts of a ma-
+chine by an operator, e.g. during start -up and testing or re-
+start after a fault. Initialization mode can be used to semi -
+automatically calibrate the machi ne by executing short auto-
+mated sequences started by an operator, which traverse the 
+hardware components to defined states. The different opera-
+tion modes need to be implemented  in industries, such as the  
+packaging machine industry , using an OMAC state mach ine 
+(OMAC Packaging Workgroup, 2015) , which may be real-
+ized by automata . 
+ 
+
+--- Page 7 ---
+3 Research Method  and Research Questions  
+The research goal addressed in this paper is to provide  an 
+overview of the state of the art in software engi neering of 
+aPS focusing on modular ity and architecture  and to identify 
+the weaknesses as a basis for further research. To reach our 
+research goal we examine four research questions based on 
+13 hypothes es. 
+To maintain a chain of evidence we added  hypotheses  to 
+all four research questions (cp. Table I) and mapped these to 
+questions and the report of the questionnaire as well as the 
+analy zed artefacts of the expert analysis and its report (cp. 
+Table VII). By comparing the results gained from the ques-
+tionnaire with the detailed expert analyses,  we ensure the va-
+lidity of the questionnaire’s results (H1.1) . We also expect  to 
+gain additional insights into software architecture, maturity 
+of code and code configuration mechanisms through the ex-
+pert analysis (H4.1) . 
+We introduce  SWMAT4aPS (Software Ma turity for aPS) 
+as a benchmark process to evaluate the modularity of aPS 
+application software, its development workflow and its quali-
+ty. SWMAT4aPS consist s of a self -assessment questionnaire 
+and a detailed expert analysis for selected companies. The 
+self-assessment questionnaire allows companies to identify 
+deviations between their own scores  and the best available 
+rating ( cp. Fig. 2) for 4 5 criteria grouped into the three ma-
+turity categories  MMOD, M TEST and MOP. 
+On the one hand , to construct  design  validit y of the ap-
+proach, the questionnaire result s of these three companies  are 
+compared with individual case study analysis results (cp. Fig. 2), confirming the scores of the questionnaire. On the 
+other hand , we aim to gain more detailed insights during the 
+expert interviews (RQ4) . 
+For future  work,  we propose to identify  the companies’ 
+most important weaknesses by use of  the questionnaire  first 
+(cp. Fig. 2, ① and ②) and to subsequently  focus on these 
+weaknesses  in the expert evaluation  (cp. Fig. 2, ③ and ④). 
+Key informants reviewed the draft case study reports to 
+construct validity  in both parts of the method . 
+By including 16 international ly leading companies  from 
+Germany , we show  the external validity of the SWMAT4aPS 
+approach  for machine and plant manufacturing  companies . 
+This section introduces the questionnaire and the method 
+to derive the maturity indices.  
+3.1 Preparation of questionnaire and expert analysis  
+The questionnaire is developed based on expert inter-
+views (semistructured) with several  industrial compan ies 
+from aPS (Katzke et al. , 2004)  together with  the visions of 
+expert s from aPS automation (Vogel -Heuser , 2009) . Modu-
+larity criteria and visions were derived from these interviews . 
+Finally , an expert workshop with seven companies (five from 
+machine manufa cturing and two from plant manufacturing) 
+confirmed the criteria qualitatively.   
+The number of questions is limited due to the restricted 
+time of software engineering department heads to spend on 
+extra work  (max. 15 minutes,  45 questions). The question-
+naire is divided into four sections: general descriptive ques-
+tions regarding the company type, questions assessing the de-
+ 
+Fig. 2.  The benchmark process for aPS software maturity SWMAT4aPS  
+
+--- Page 8 ---
+sign process and the modularity of the design from a soft-
+ware point of view, questions focusing on testing and quality 
+issues as an upcomin g issue in aPS, and questions regarding 
+start-up, operation and maintenance phases.   
+In the first section of the questionnaire, respo ndents were 
+asked to reply to 15  questions describing the company’s size , 
+market and  some  technical data . The information related to 
+technical data includes the  average number of CPUs (PLCs)  
+per machine , the number of programmers employed, and, to 
+grasp complexity, the number of POUs and lines of code  per 
+machine.  Furthermore, the  most challenging type of technical 
+applicatio n was identified , e.g. synchroniz ing axes or posi-
+tioning. For th e design of reusable modules, 18  questions col-
+lected  data on cross -disciplinary workflow -oriented issues 
+(cp. Appendix A1, #15 and # 16) and the underlying tool 
+chains ( #21). As highlighted by Vogel -Heuser et al. (2015a), 
+the challenge of software engineering in aPS as an interdisci-
+plinary work is the lack of appropriate variant and version 
+management approaches as well as MDE . In light of this rec-
+ognized deficiency, we also focus on variant and  version 
+management issues. Because testing  in aPS is a topic ad-
+dressed in numerous other papers, we included only 5  respec-
+tive questions. The concluding  7 questions address the soft-
+ware ’s start-up/operation/maintenance  procedures . This way, 
+we explore the  amount of design work to be done on -site and 
+                                                           
+1 Note that “#” refers to the according question number in Appendix A . In 
+the following, references to questions of the questionnaire are of the type 
+“#x” and refer to the question number x listed in Appendix A.  its correlation to the maturity of the design and test process, 
+as well as  the ability to evolve existing plants by updating the 
+existing correct version of the software. Based on our previ-
+ous experience in an interdisciplinary expert workshop with 
+7 companies  (cp. first level, preparation) , we decided to 
+avoid extremely technical questions on software interfaces 
+and module structure in the questionnaire , assuming that the 
+questions might be answered ambiguously  or incorrectly (cp. 
+Section 4).  
+The basis for the expert analysis was also developed in 
+the preparation phase. To do so, preliminary case studies on 
+modularity in electrical and software engineering (Feldmann 
+et al. , 2012)  and preliminary code analys es (Feldmann et al., 
+2016 ) were conducted to gather experience and prepare the 
+required tooling and process.  Additionally , the software  ar-
+chitecture levels, the reuse of modules (including the work-
+flow to release library elements), variant and version man-
+agemen t and the code’s structure  of different companies w ere 
+studied . 
+3.2 Experimentation  and reporting of the questionnaire  
+The individually answered questionnaire s are aggregated 
+in one table , organizing the companies into those providing 
+components, libraries and  platforms, machine s uppliers and 
+plant suppliers (Table III).  
+Persons included in the questionnaire : We addressed in 
+all cases the head of the software engineering department , 
+who in some cases is also head of the automation department. 
+These persons dec ided whom to include to answer the ques-
+tions. Because we included also huge companies with differ-TABLE I: RESEARCH QUESTIONS AND RELATE D HYPOTHESES  
+Research Question  Related Hypotheses  Proof  
+RQ1: Does the questionnaire deliver 
+valid results to identify weaknesses in 
+gaining software modularity of aPS?  H1.1: The questionnaire delivers valid results in accordance with the detailed expert analysis of four 
+selected companies.  Q&E 
+H1.2: Platform suppliers reach higher maturity values than machine suppliers than plant 
+manufacturers.  Q 
+RQ2: Do the three different sub -maturity 
+levels deliver further insights compared 
+to one general maturity l evel?  H2: Different companies show higher/lower maturity levels in the three different maturity categories 
+(phases). (the levels of the different phases are different in many companies)  Q 
+RQ3: What are the most significant 
+weaknesses in software maturity in aPS 
+and in which phase do they occur and 
+what are possible causes / reasons / 
+prerequisites?  H3.1: Universally low maturity levels (mean value machine manufacturing companies) arise in the 
+different phases, indicating possible causes or prerequisites fo r weaknesses in software maturity.  Q 
+H3.2: High values in modularity maturity  (M MOD) and quality and testing maturity  (M TEST) lead to high 
+values in start -up, operation and maintenance maturity  (M OP). A proper engineering process eases and 
+shortens start -up, operation and maintenance.  Q 
+H3.3: Due to necessity of on -site changes in plant manufacturing, machine and plant manufacturers 
+follow different release procedures for software libraries.  Q 
+H3.4: Weaknesses in the tool chain support (mean value mac hine manufacturing companies) can be 
+identified for selected aspects, i.a. continuous integration, code generation or version management.  Q 
+H3.5: Appropriate module libraries, the release procedure of these library components, the version 
+management tool  and change tracking of versions are a prerequisite for all ways of reuse (application 
+of code configuration/generation from information of an engineering tool and automatic code 
+configuration based on templates).  Q 
+H3.6: Software complexity leads to low er values in modularity maturity  (M MOD) and start -up, operation 
+and maintenance maturity  (M OP). Q 
+RQ4: Does the detailed expert analysis 
+deliver additional insights into the 
+weaknesses of software maturity?  H4.1: Expert analysis delivers additional insigh ts into appropriateness of software architecture, 
+maturity of code (call hierarchy) and code configuration mechanism.  E 
+H4.2: Different approaches for code configuration exist in industry, that can be assigned to different 
+governance levels.  E 
+H4.3: B y means of call graphs, an insight into the control software’s structure can be obtained, that is 
+closely related to the development environment.  E 
+H4.4:  The better the criteria decomposability, composability, understandability and protection are 
+fulfil led, the higher the governance level, the more mature the software architecture level as well as 
+the code graph, and the higher the modularity maturity  (M MOD). Q&E 
+Q: insights gained from the questionnaire; E: insights gained from the expert analysis  
+
+--- Page 9 ---
+ent design departments for different types of machines/plants 
+at different locations being a responsible cost center, we han-
+dled such department s similar to individual  compan ies (cp. 
+C1 and C2 section 6.3 belonging to the same enterprise rep-
+resented as two companies 5 and 6 in Table III). All inter-
+viewed person s do have significant long -term experience in 
+designing software for aPS . 
+Pre-processing and consistenc y checks : The answers 
+were manually checked  for consistency  in the pre-processing 
+step regarding validity based on  our knowledge of the indi-
+vidual company’s characteristics . Where applicable , answers 
+given in more detail in additional fields  for text  input  (e.g. 
+#18) were compared with answers give n to a general ques-
+tion (such as # 17) with selectable answers  of the particular 
+company . 
+Scoring: In the next step, the questionnaire answers were  
+classified into 3 to 6 levels by awarding  points to the answers 
+(best level with a maximum  of 5 points ). For the maturity 
+level MOP the four related questions (##36-39) and the max-
+imum awarded scores are given in detail (cp. Table II). The 
+importance of the question for the maturity may be adjusted 
+by a weight, i.e. by changing the maximum scores, in this 
+case all questions are equally important gaining maximum 5 
+points.  
+MOP is calculated by dividing the sum of the scores 
+gained by the individual company by the sum of the reacha-
+ble scores.  The scores have been develop ed during discussion 
+with experts from academia and industry. For example in 
+plant manufacturing customers force the supplier to deliver 
+the whole software (cp. #37), but more mature companies 
+decided to hide technology and knowhow relevant parts, that 
+are not  necessary to prolong operation in case of a fault (#37 
+parts of the software). In case the customer does not get the 
+source code the code needs to be very robust and of high 
+quality so that customers never need to maintain it.  
+TABLE  II.  DETAILED  SCORES F OR CALCULATION OF MATURITY LEVEL 
+FOR START -UP/OPERATION /MAINTENANCE  MOP. 
+Question  Possible answers  Score  
+36. Is the start -up of the 
+machine/plant done on -
+site by the design-
+er/programmer?  Never 5 
+Rarely 3.25 
+Sometimes  2.5 
+Very often  0 
+37. How is th e delivery to 
+the customer conduct-
+ed? Customer does not receive the source 
+code  5 
+Customer only receives parts of the 
+source code  2.5 
+Customer receives the whole source 
+code  0 
+38. How are updates in-
+stalled?  Remote maintenance and on demand  5 
+Remote maintenance  4 
+On site  2 
+39. Does the service de-
+partment know the cur-
+rent customer’s software 
+status on -site? Very often   5 
+Often  3.75 
+Rarely  1.25 
+Never  0 
+ 
+Normalization : In this step, the scoring  for each question  
+was normalized  to the range from 0 to 5  and the companies ’ 
+results  were depicted as radar diagrams  (for example cp. part 
+of Figure 14c representing M OP).  
+Compar ison to average : As the different company types 
+face different challenges, the maturity levels are related to the 
+type of busin ess, i.e. platform supplier, machine or plant manufactur er. This is a general classification as in machine 
+manufacturing there are different sub -classifications (from 
+series to special purpose machine supplier s), different pro-
+cesses (continuous, discrete, hybrid) and different domain s 
+(food, pharmacy, wood processing ), which all  face different 
+challenges.  
+Mechanisms for reporting  quantitative and qualitative re-
+sults in a graphical form have been developed . The quantita-
+tive results are discussed at first. An overview showing the 
+three different maturity levels  as well as the overall maturity 
+level  for all companies  is presented in Fig. 3.  The compan ies’ 
+specific quantitative results in comparison to the average val-
+ues are also illustrated (cp. Fig. 14a/b/c ). We also evaluated 
+interdependencies  between the maturity measure s (cp. Fig. 4) 
+and among  selected questionnaire items (Table IV). The ra-
+dar diagram was proposed during the feedback with industri-
+al companies discussing the results. To represent the r elease 
+procedure (workflow) of library ele ment s in machine vs. 
+plant manufacturing industry , as one of the qualitative re-
+sults, a flow chart was derived  (cp. Fig. 5) .  
+3.3 Experimentation  and reporting of the expert 
+analysis for four selected industrial case studies  
+Four individual case studies from machine manufacturing 
+are selected to prove the maturity results gained from the 
+questionnaire and to analyze the maturity of modularity in 
+engineering in greater detail. The cases were selected accord-
+ing to the following selection criteria  of extreme and maxi-
+mum variation (according to Runeson  et al. (2012) , p. 33): 
+‒ Extreme positive: Highest maturity values ( case studies 
+A and B) to demonstrate the best implemented strategies 
+in machine manufacturing allowing a detailed an alysis of 
+scores in sub -categories to identify weaknesses (research 
+question s 1 and 3) 
+‒ Extreme weak : Comparison to challenges and strategies 
+combining machines to a plant (C1 and C2) and thereby 
+using different PLC platforms supporting software mod-
+ularity in different ways  
+‒ Maximum variation (comparing A/B versus C1/C2 ) 
+‒ Long term insights into the companies ’ strategies, code 
+and workflow  
+‒ Companies strong interest in increasing software maturi-
+ty as a prerequisite for Industr y 4.0. 
+The case studies represent s pecific projects within each 
+company. They were selected in agreement with the compa-
+nies, in order to choose  representative ones.  
+Two companies work on PLC - based platforms (one with 
+two departments situated at different sites with each working 
+on parts of  a plant), and two work on PC -based soft PLC 
+platforms. The type of hardware PLCs is specified by cus-
+tomers. C1 and C2  can be considered borderline plant manu-
+facturing companies. One additional company from plant 
+manufacturing (case study D, Section 6.4) is included in this 
+analysis . This company did not participate in the question-
+naire , but is included because it provides an additional way to 
+manage variants and automatically configure code from en-
+gineering information.  
+Process of the expert analysis : The challenges in software 
+modularity  were derived in a first workshop  (cp. ③ in Fig. 
+2). In a second step , a deeper understanding of the existing 
+software  structure was gained by  a structural analysis of ex-
+isting code . In a second  workshop , the results were presented 
+
+--- Page 10 ---
+and feedback  on the results and criteria  was given . On this 
+basis , the maturity  of software modularity  was assessed by 
+the authors (cp. Tables V and VI) . 
+Persons included in the analysis : We addressed in all 
+cases at first the head of the softwar e engineering department  
+in the companies , who  decided whom to include, mostly the 
+most senior software architect was involved . The detailed 
+analysis  in the companies  A-D was realized with joined 
+workshops (software architecture, governance levels, work-
+flow), detailed code analysis was conducted by PhD students 
+or Master students supporting the industrial staff . 
+3.4 Repetition and applicability to other domains  
+To address reliability , we repeated parts of the question-
+naire with more than 40 companies  one year later. The ques-
+tions asked regarding M OP are exactly the same  and thus this 
+maturity level is used to compare the values as proof of relia-
+bility  (cp. Fig. 14c black cross).  We assume that the ap-
+proach will be also applicable for embedded software in con-
+struction machines, agricultural machines and other embed-
+ded systems using PLC -based nodes or IEC 61131 -3 pro-
+gramming environments requiring real time behavior and re-
+liability , because the requirements and constraints are similar 
+aside from the number of pro duced products and their indi-
+vidual adaptation.  
+ 
+4 Questionnaire based m aturity level  results for 
+16 industrial companies from the aPS domain  
+An overview of the maturity measures , as taken from  the 
+questionnaire responses from the 16 German companies , is 
+presented in the following . Next, the different areas of the 
+questionnaire are discussed in more detail . I.e., the descrip-
+tive data not included in the maturity measure, but necessary 
+to understand company background information and re-
+sponses to other questio ns. The companies  that participated 
+in the study  include platform suppliers, machine manufactur-
+ers, special purpose machine manufacturers and plant manu-
+factur ers (Table III). All companies are situated in Germany , 
+but deliver products to a worldwide market  with different 
+global production and/or support facilities. An overview of 
+application branch, the PLC suppliers, software languages 
+used as well as  programming and start -up effort is provided 
+in Table III. Additionally, the number of CPUs is given as an 
+indicator for program size and complexity of the applica-
+tions. All these numbers represent the average value for each 
+company.  
+The calculated maturity levels assessed by the question-
+naire are composed of the modularity maturity  MMOD, the 
+quality and test m aturity  MTEST as well as  start-
+up/operation/maintenance  maturity  MOP (hypothesis H2 ).  
+According to hypothesis H1.2  the c omparisons of maturi-
+ty levels  show, as expected, the decrease in maturity from 
+Original Equipment Manufacturers (OEM s) over machine 
+manufacturers to plant manufacturers (cp. Fig. 3 left to right) . 
+This holds true on average, even despite the high spikes from 
+companies 8 and 14 (analyzed in more detail in Section 6 as 
+case studies A and B) and very low values from companies 5 
+and 6. There is a huge variation in the three partial maturity 
+levels calculated, therefore H2 is true: the different maturity 
+levels provide additional detailed insights (the detailed crite-
+ria are analy zed with hypothesis H3.1 ). While the modularity 
+maturity model and  the overall maturity decrease, test and operation maturity deviate substantially (hypothesis H1.2 is 
+only partially true). This variation is due to different practices 
+in industrial companies, as was confirmed by additional ex-
+pert interviews conducted in the companies before and after 
+the questionnaire.  
+ 
+Fig. 3.  Overview of maturity levels of companies 1 to 16 (questionnaire 
+criteria cp. appendix); 0  – lowest level, 1  – best level. Categorization of 
+companies: library and platf orm providers (1 and 2), machine suppliers (3 -
+14), plant suppliers (15 -16) 
+The interdependencies among  the three calculated maturi-
+ty levels are depicted in Fig. 4. Because  a proper engineering 
+process eases and shortens  the start-up, operation and 
+maintena nce phase , we expect ed high maturity values in 
+modularity and test/quality assurance  to lead to high maturity 
+values in sta rt-up/operation /maintenance  (H3.2) . 
+ 
+Fig. 4.  Interdependencies of three maturity levels for all companies included 
+in the questionn aire grouped into platform suppliers, machine and plant 
+manufacturing companies (all from 0 lowest to 1 best value). Respective 
+asterisks indicate the  different domains’  mean maturity level s 
+Platform suppliers show the highest median for modulari-
+ty in desi gn, test/quality assurance and show  an intermediate 
+level in start -up/operation/maintenance maturity. Machine 
+manufacturers show a wide range of values in all three di-
+mensions, illustrating the different types of machines from 
+serial machines to special pu rpose machinery to plants. 
+Therefore, h ypothesis H3.2 is false , as no significant correla-
+tion could be proven.  
+C1 C2 A B 
+
+--- Page 11 ---
+ 
+ 
+ 
+ 
+TABLE  III. CLASSIFIED COMPANIES INCLUDED IN ANALYSIS  
+ Category I  
+platform supplier  Category II  
+machine manufacturing (from machine series to special purpose machinery)  Categ ory III 
+plant manufacturing  
+Description  1 2 3 4 5 (C1) 6 (C2) 7 8 (A) 9 10 11 12  13 14 (B) 15 16 
+Application 
+domain  Industry 
+automa -
+tion Industry 
+automa -
+tion Food  Food  Food  Food  Special 
+Engineer -
+ing Food, 
+Pharma  Food, 
+Pharma, 
+Logistics  Food, 
+Logistics  Food & 
+Beverage  Medi -
+cine; 
+Automo -
+tive Automo -
+tive 
+supplier  Food, 
+Medi -
+cine; con -
+sumer 
+products  Polymer 
+engineer -
+ing Mechani -
+cal 
+Engineer -
+ing 
+PLC 
+supplier * BR S, B S, R,  
+B&R SE S, R S, R S, B, BR  R, SE  S, R, 
+B&R, F , Z S, R, 
+B&R, F , Z S, R S, B S, B R, B S, B&R  S, R 
+Program -
+ming Lan-
+guages **  HPL, ST, 
+SFC, FBD, 
+IL, LD  HPL 
+(visuali -
+zation) , 
+ST, SFC, 
+FBD, IL, 
+LD 
+(for PLC 
+mainly 
+IEC 
+61131 -3) M/S, ST, 
+IL (lower 
+generic 
+func -
+tions) , LD 
+(higher 
+levels)  HPL, M/S 
+(limited) , 
+ST (own 
+code  only  
+ST) HPL, ST, 
+SFC, FBD, 
+IL, LD HPL, M/S , 
+ST, FBD, 
+LD HPL, ST, 
+SFC, FBD, 
+LD, other HPL (for 
+HMI), ST, 
+SFC, 
+FBD, LD  HPL, M/S , 
+ST, SFC, 
+FBD, IL, 
+LD, other  HPL (for 
+tools ), 
+ST, SFC, 
+FBD, IL, 
+LD (IEC 
+61131 -3 
+for PLC) , 
+other  HPL (for 
+HMI C#, 
+.net) , 
+M/S, 
+ST, FBD, 
+IL, LD  
+(IEC 
+61131 -3 
+for PLC)  HPL, 
+ST (for 
+complex 
+func -
+tions) , 
+SFC 
+(proces -
+ses), LD 
+(logic)  ST, FBD,  
+IL, LD HPL (Java 
+for visua -
+lization, 
+C# for 
+code gen -
+eration) , 
+ST (on all 
+levels) , 
+SFC, FBD, 
+IL, LD  HPL, 
+M/S, ST , 
+IL HPL (user 
+support) , 
+M/S, I L, 
+LD 
+FBD for 
+security  
+Program -
+mers on-
+site / per 
+application 
+or machine  1/- 1/1 1/1 1-3/1-3 
+or 6-10 5/10  -/- 4-5/4-5 1/2-3 4-5/2-3 2-3/2-3 >10/>10  1/1 -/- 1/1 
+usually  2-3/2-3 2-3/2-3 
+Start -up 
+staff on -site 
+/ per 
+application
+/ machine  2-3/- 1/1 1/1 1/1 >10/5 10/3  4-5/4-5 1/1 4-5/2-3 4-5/2-3 >10/>10  3/3 -/- 1/1 2-3/2-3 2-3/2-3 
+CPUs per 
+machine  2-4 1 5 1 3 - 1-15 1-8 2-6 2-6 30-40 1-5 5 1 1-5 32 
+ 
+*PLC supplier : S = Siemens; R = Rockwell;  B = Beckhoff ; SE = Schneider Electric;  BR = Bosch Rexroth ; B&R  = Bern ecker + Rainer ; F = Fanuc ; Z = ZenOn  
+**Programming languages : HPL – High level programming languages like C++, Java;  M/S – Matlab/Simulink ; ST, SFC, FBD, IL and LD  (IEC 61131 -3) 
+Sequences  as in the questionnaire,  no emphasis.  Notes concerning the applicati on level of programming languages  are presented italic . 
+- :  not specified , A-C refers to the case studies in section 5.
+
+--- Page 12 ---
+The mean modularity level of machine manufacturers is 
+slightly higher than the mean level of plant manufacturers. 
+Hypothesis H1.2 is o nly true for platform suppliers compared 
+to machine manufacturers and if  the level start -
+up/operation/maintenance is excluded. Even though platform 
+suppliers may have some advantages managing their mod-
+ules, two companies from machine manufacturing reach 
+comparably good scores (companies 8 and 14).  Hence, the 
+necessity to refine this classification of machine manufactur-
+ers is evident.  
+Managing modularity and obtaining a high test/quality 
+maturity  is especially challenging for plant manufacturers . 
+However, o ne of the se companies (number 16) performs bet-
+ter in modularity and test/quality assurance than the mean of 
+machine manufactur ers, which is remarkable. Two compa-
+nies (4, 14) show very high maturity levels for start-
+up/operation/maintenance  focusing on soft ware, while all 
+others scored below 0.6.  
+4.1 General descriptive information  
+As background for the comparative evaluation, the quan-
+titative structure of the software and the constraints, e.g. size 
+of system, number of people and domain were analyzed. 
+Nine com panies deliver to food industry , but not exclusively, 
+three to pharma or medical applications, four cover logistics 
+applications and two  operate in  plastics machinery. Two 
+companies (1 and 2) are more or less automation OEMs real-
+izing customer specific app lications. The size of the compa-
+nies varies from SME with 100 employees to companies with 
+13,000 employees, the number of engineers and technicians 
+in the design department ranges from less than 20 to more 
+than 100.  
+Two figures indicate  the size of the ap plication and the 
+uniqueness of each application combined with the necessary 
+adaptation on -site. The number of programmers ranges from 
+1 to 10 and the number of CPUs per machine or plant from 1 
+to 40 (a plant manufacturer). Of course, the number of pro-
+gram mers depends on the CPU type and its calculation power 
+as well as the number of inputs and outputs (I/Os) to be ad-
+dressed. Thereby, s ensors are connected to inputs of a PLC 
+and actuators are connected to outputs of a PLC.  
+As measures for software size we asked for Lines of 
+Code (LOC) and number of modules (POUs). LOC ranges 
+from 2000 for small machines to more than 100,000 for large 
+machines. However, some companies answered with num-
+bers of pages of code as well as storage size , making a com-
+parison difficu lt. For POUs, the situation is similar: from 250 
+to more than 3600. Some companies answered the LOC and 
+some the POU question properly, but the results for these 
+questions are in general  insufficient , thus  requiring revision 
+for clearer assessment measures . Furthermore, LOC  does not 
+measure the complexity of the function in the code statement, 
+for example,  it could be a simple Boolean statement or a 
+complex closed -control equation for a CNC or NC axis.  
+According to Meyer (1988) and Vogel -Heuser (2014) we 
+assume that the complexity of the application will influence 
+the effort to reach a high maturity level. Hypothesis H3.6 ex-
+amines the influence of software complexity on the different 
+maturity levels. H3. 6 assumes that higher values in software 
+complexity le ad to lower values in all three maturity levels.  Therefore, we conducted several analyses between modu-
+larity and the complexity measures , companies were willing 
+to share with us , but found only weak relationships (cp. Fig. 
+6). Hypothesis H3.6 is only parti ally true.  
+As potential indicators for complexity, we asked re-
+spondents to identify in the questionnaire the most critical 
+technical task (# 45). Answers from all companies refer to re-
+al challenges on a similar level. The most critical functions to 
+be reali zed in software were time critical functions, motion 
+tasks, e.g. position with n -axes, calculation of electronic cam2 
+(Lenze, 2016) and synchronized drives for material transport 
+as well as  problems with third -party software.  
+In our future work we will tr y to identify another higher 
+level indicator for complexit y. 
+It also became clear, that a ll companies use standard 
+functions . Some use functions to analyze or diagnose com-
+ponents or intelligent fieldbus systems as drives, some pro-
+vided external functions s uch as NC or CNC libraries to con-
+trol ax es, and almost  all companies developed their own 
+functions to support software development.  
+4.2 Modularity in software engineering  
+RQ3 is looking for causes and reasons for weaknesses or 
+strength s in software maturity. T herefore , we examine signif-
+icant correlations among modularity maturity questions 
+(##15 -30). In the following , we examine the results for H3. 3 
+and H3. 5. In this context , appropriate module libraries  as 
+well as proper release procedures and variant and vers ion 
+management  are hypothesized to be a prerequisite for reuse 
+(H3.5). Hence,  we performed a correlation analy sis to con-
+firm this hypothesis and measure the strength of the relation  
+(cp. Table IV). The factor of m odule libraries  is assumed to 
+be an additiv e interaction variable including  the use of library 
+components (#23), the release procedure of these library 
+components (#24), the version management tool (#26) and 
+change tracking of versions (#27). This means, these four 
+variables operate as complementin g factors, which individu-
+ally increase the  competencies of  module libraries. As an in-
+dicator for reuse, the application of code configura-
+tion/generation from information of an engineering tool (#28) 
+and automatic code configuration based on templates (#30)  is 
+used.  
+TABLE  IV.  CORRELATIONS WITH INTERACTION VARIABLE FOR QUESTION -
+NAIRE ITEMS #23, #24, #26, #27 INFLUENCING ITEMS #28 AND  #30  
+ interaction 
+variable  (#28) (#30) 
+interaction variable  1.000 .739**  .520*  
+(#28) code generation 
+from tools  .739**  1.000 .846**  
+(#30) code configuration 
+(templates)  .520*  .846**  1.000 
+**. Correlation is significant at the 0.01 level (2 -tailed).  
+*. Correlation is significant at the 0.05 level (2 -tailed).  
+A significant 2 -tailed correlation coefficient  is identified  
+between the interaction variable (#23, #24, #26 and #27) and 
+                                                           
+2 According to  Lenze  (2016)  an electronic cam “converts linear 
+position information into cam -shaped motion profiles via a path -
+controlled profile generator. This allows […] to implement smooth, 
+low-impact motions which are gentle both on workpieces and the 
+equipment used to process them.”  
+
+--- Page 13 ---
+code generation /configuration from an engineering tool ( #28) 
+as well as automatic code configuration based on templates 
+(#30) (cp. Table IV). Thereby, the correlation between the in-
+teraction variable and  automatic configuration from engi-
+neering tools (#30) is the stronger  one. These results confirm 
+our assumption that code generation/configuration from an 
+engineering tool and automatic code configuration based on 
+templates require high scores  in different  competences. 
+These competences are  the use of library elements, the re-
+lease procedure of these library elements , such as a version 
+management tool , and the tracking  of changes in versions.  
+Hypothesis H3.5 is true.   
+The release process es for library elemen ts in machine and 
+plant manufactur ing are compared (cp. Fig. 5 release of li-
+brary element procedures in machine vs. plant manufacturing 
+industry , see #42). In plant manufacturing , faults are often 
+not detected until testing and start -up on-site. Hence , the y 
+need to be corrected immediately on -site, depending on the 
+ease of correction and criticality of the fault for the subse-
+quent start-up process. Many faults will only occur on -site 
+and are therefore hard to test in an office  setting , as fully in-
+tegrated p lant setups are often not available off -site. In addi-
+tion, testing and correction procedures on -site and in -office 
+differ regarding time constraints, possibilities to implement 
+and merge changes: On -site changes cannot be performed on 
+library content and a re often implemented under severe time 
+pressure and therefore often lack in quality. Changes made 
+are often subsequently not transferred back into the in -office 
+version of the control program and the companies´ libraries, 
+which results  in inconsistent soft ware revisions in -office and 
+on-site. At the same time , it may be difficult to correct  faults 
+without changing large  parts of the code  and violating both 
+given rules and the software architecture  concept . Another 
+unique characteristic  of aPS software engin eering  is the ne-
+cessity to inform other parallel building sites about the fault 
+and the corrected software (cp.  Vogel -Heuser and Rösch, 
+2015 ). Due to  the necessity of on -site changes in plant manu-
+facturing , machine and plant manufacturers follow different 
+release procedures for software libraries (H3.3). The process 
+in Fig. 5 (right side (b)) shows the best case implemented by 
+one of the interviewed plant manufacturing companies. The 
+decision whether to integrate the changed software into the 
+standard is no t as easy in plant as it is in machine manufac-
+turing industr ies. This is caused by the  large number of  vari-
+ants and the restriction, that  software  change s may not be ap-
+propriate  for all variants .  
+The library module release process of platform suppliers 
+and the  machine manufacturing industry is more sophisticat-
+ed and closer to software release management (cp. Fig. 5 left 
+side (a)). Four of the interviewed companies implemented 
+this process  (2, 3, 8, 14) . The dashed lines (Fig. 5) show less 
+mature processes in which the programmer tests the program 
+and the critical decision , as to whether the changed code will 
+be integrated into the standard for future  series , is not includ-
+ed explicitly . 
+Looking more specifically into one company’s process 
+(best process in ma chine manufacturing), the following tools 
+are used: IRQA for requirements management; ClearQuest  or 
+JIRA for fault management; Git Stash  or Jenkins for agile 
+development and a self -developed tool for test management. 
+Less sophisticated approaches use an ER P-tool combined 
+with SVN as version management tool.  
+ 
+Fig. 5.  Release procedure  (workflow)  of library element in machine (left 
+side (a)) vs. plant manufacturing industry (right side  (b))  
+Another  difference between  machine and plant manufac-
+turing compani es lies in the responsibility for  designing and 
+testing of  new software modules . While 45% of machine 
+manufacturing  companies have a separate department and a 
+module designer , none  of the plant manufacturing companies  
+has either  (see #41). Concluding the d ifferent aspects hy-
+pothesis H3. 3 is true.  
+4.3 Quality and testing maturity  
+Up to now , testing of machine s and plant s is often a labo-
+rious task with both test specification and test execution be-
+ing done manually . The lack of  tool support for automated 
+testing is also an obstacle (Dubey, 2011) . Furthermore, “the 
+process of deriving tests tends to be unstructured, not repro-
+ducible, not documented, lacking detailed rationale for the 
+test design, and dependent on the ingenuity of single engi-
+neers” ( cf. Utting et al.  (2012) , p. 297). The topic of quality 
+assurance and testing was addressed by the questions ( ##31-
+35). First of all , the usage of quality gates was addressed 
+(yes/no). Then , participants were asked whether they imple-
+ment testing  at the desk and/or at the m achine and  whether 
+they use  code-reviews. Some companies do not have quality 
+procedures in the early phases of the software development 
+process , resulting in faults being found very late  (lower level 
+of maturity) . Both machine and plant manufacture rs test the 
+normal operation during commissioning and start -up. How-
+ever, regarding test  coverage , testing of all alarms , according 
+to the FDA3, and other faults also need to be taken into con-
+sideration ( #33). This is realized best  by machine and plant 
+manufacture rs operating within the food and pharmaceutical 
+and medical sectors.  Several more advanced machine and 
+plant manufacturers also apply automated testing ( #34). 
+However, many  of them  do have manual testing procedures 
+only (lower rating). Another very importan t topic to address  
+                                                           
+3 Evaluation by US Food and Drug Administration for machine s 
+and plants delivered  to food industry.  
+
+--- Page 14 ---
+in quality assurance is simulation. There is a very wide range 
+within the companies concerning this topic . Some companies 
+never us e simulations while others perform them on a regular 
+basis . Mostly , simulation is applied for specific chal lenges 
+such as simulating logistics and material flow or specific 
+control algorithms.  
+4.4 Start-up/operation/maintenance  maturity 
+calculation  
+As the duration of the commissioning and start-up phase  
+is cost -critical due to the large  number of personnel on -site, 
+the maturity of the entire system to be installed efficiently is 
+a critical  economic challenge  for the company . As software 
+is often  the only opportunity to adapt the system to changed 
+requirements or to fulfill the  desired  functionality , the soft-
+ware may  be less mature in such  adjustment  cases  (cp. Vo-
+gel-Heuser and Rösch , 2015).  We assume that there is a rela-
+tionship between module maturity and start -up time , the less 
+mature the design of the software , the longer the start -up will 
+take. Higher c omplexity of the functionality is assumed as a 
+variable with negative influence on the ease to reach a high 
+maturity level  of modularity . 
+To calculate the interdependency  between start-up/oper -
+ation/maintenance  maturity  and complexity , a quantitative 
+complexity meas ure is necessary, as discussed in Section 4.1 . 
+Some of the companies were not able or willing to provide 
+the number of POU s and LOC . As an alternative  measure for 
+complexity , we used the number of CPUs and the number of 
+programmers involved , knowing this  would indicate the 
+quantity, but neglects other part s of complexity.  
+The spikes  in software complexity for  plant manufactur-
+ing (company 16)  as well as machine manufacturing (com-
+pany 11) in Fig. 6 result from  more than 30 CPUs included  
+per machine/plant , whi ch is nearly 10 times higher than the 
+number of CPUs used by the other companies.  Unfortunate-
+ly, with these very limited measure s for complexity the rela-
+tion to the other variables is not significant , but the different 
+modularity median  values from the thr ee different classes of 
+companies are clearly visible : platform supplier s ranked 
+highest  (0.72), followed by machine manufacturers  (0.47) 
+and plant manufacturers  (0.38). We assume that additional 
+measures for complexity need to be identified in future work , 
+which companies are willing and able to share and provide 
+with limited time effort.  
+ 
+Fig. 6.  Software complexity  related to modular ity maturity in design and 
+start-up/operation/maintenance maturity . Asterisks indicate the median of 
+platform suppliers,  machine  and plant manufacturing companies  Regarding maturity of start-up/operation/maintenance , 
+we focus on an evolution scenario of long -lasting aPS, i.e. 
+updates in running aPS. As a prerequisite, the software status 
+of the aPS needs to be known to the supplier (cp. #39), which 
+is a challenge as we know from interviews, especially in 
+plant manufacturing companies. Of course , the modularity 
+maturity mentioned above is also a prerequisite (cp. Fig. 6) 
+as well as the ability to install updates via remote ac cess (cp. 
+#38). It is also relevant,  which parts of the software are de-
+livered to the  customer (cp. #37) and, therefore, may be 
+adapted by customers on -site. 
+ 
+5 Selected i ndustrial case studies – results from 
+expert analysis  
+In the following, four case stud ies are exemplarily de-
+scribed to validate the correctness of the maturity metric 
+qualitatively for selected companies. To answer the first re-
+search question RQ1: Does the questionnaire (with a limited 
+number of questions, due to little time to answer them)  deliv-
+er valid results to identify weaknesses in gaining software 
+modularity of aPS? Hypothesis H1.1 is formulated accord-
+ingly: the questionnaire delivers valid results in accordance 
+to the detailed expert analysis of four selected companies.  
+Additionally , we discuss research question 4: Does the de-
+tailed expert analysis deliver additional insights into the 
+weaknesses of software maturity? We focus in hypothesis 
+H4.1 on software architecture, maturity of code and code 
+configuration mechanism s. According to hypothesis H4.4, 
+we expect that the better the criteria decomposability, com-
+posability, understandability and protection are fulfilled, the 
+higher the possible governance level and the more mature the 
+software architecture level and the code graph, the bet ter the 
+maturity in software modularity.  
+Because software quality and efficiency will rise with 
+code configuration, the existing code configuration strategies 
+in aPS shall be identified, too . This is  reflected by hypothesis 
+H4.2 , which states , that differe nt approaches for code config-
+uration exist in industry.  We expect that these approaches  
+can be assigned to different governance levels . Within the 
+scope of the expert analysis, we want to identify the number 
+of different approaches as well as the exact way , in which 
+they are assigned to the different governance levels.  
+Due to confidentiality agreements, we cannot show de-
+tailed code fragments of the four case studies. In Appendix B 
+we provide  an application software excerpt  for a lab demon-
+strator MyJoghurt  (see Vogel -Heuser et al., 2014a) showing 
+the hierarchy and an example of the calling of POUs  similar 
+to real case studies . So-called call graphs (Feldmann et al., 
+2016 ) are used to give an overview on the structure of the 
+control software of the industrial case studies . Within these 
+call graphs, structural units within the control software (i.e., 
+POUs) are represented as nodes . 
+These nodes are labeled with a respective complexity 
+value, which is expressed within the graphical representation 
+of the call graph s by means of the node s’ diameter . There-
+fore, complex POUs are represented by  larger nodes than less 
+complex ones . Besides, calls between POUs are represented 
+by labeled edges  within the call graph. Hence, by means of 
+these call graphs, a first intuition o f the control software ’s 
+structure  can be obtained using a simple  visualization  of the 
+directed, labelled call graph . We formulate hypothesis H4.3: 
+
+--- Page 15 ---
+By means of call graphs, an intuition of the control soft-
+ware’s structure can be obtained closely related t o the devel-
+opment environment.  Regarding this, two ways of structuring 
+programs became apparent in the case studies: a structure 
+with frequent cross connecting calls and data exchange per-
+formed mostly via the call structure (cp. F ig. 7 A and B) and 
+a flat or strict tree structure (except for atomic basic modules) 
+with data exchange almost exclusively via global variables 
+(cp. F ig. 7 C and D). While the former possesses a seemingly 
+more complex call structure, this supports the modularity 
+properties (Meyer , 1988) decomposability, composability, 
+understandability and protection . The system can be com-
+posed and decomposed more easily due to minimization of 
+interfaces between entities and protection of this communica-
+tion from interference . In addition, the system s entities are 
+clustered into modules that can be easily related to specific 
+module levels increasing understandability. In contrast to 
+this, the latter suffers from a quick rise in complexity regard-
+ing unprotected global data exchange in closely coupled s ys-
+tems. It therefore seems only suitable for a limited number of 
+connections and complexity of data, e.g. as in logistic sys-
+tems.  Complete c all graphs are available for all four case 
+studies , but unfortunately the permission to publish  them  is 
+only availab le for A -C. These directed graphs depict all pos-
+sible  calls (edges/lines) between POUs (nodes/circles) and 
+can give a better understanding about the structure of the 
+PLC program regarding hierarchy levels, code structure und 
+module size (number of nodes).  
+All of the four case studies address the following aspects: 
+software architecture (cp. Fig. 7), maturity of modularity de-
+sign, e.g. code analysis ( not case study D), and mechanism s 
+to configure code from engineering information . The results 
+of research que stion 4 are summarized in Table VII (bottom).  
+5.1  Case Study A – Machinery for the P ackaging 
+Industry  with OMAC state machine  
+In case study A  (company 8) , a leading company for 
+medical and pharmaceutical packaging machines, which are constructed and set up at the company before delivery to the 
+customer , the software architecture mainly corresponds to the 
+physical layout of the machines. The overall modularity con-
+cept is considerably  progressed as the company takes inter-
+disciplinary dependencies into account , creating mechatronic 
+modules (see #19, Fig. 14b). This coincides  with a strong co-
+operation between employees of different departments , al-
+though in document exchange there is still room for im-
+provement. The software projects are divided into facility 
+modul es, which cluster several stations, i.e. application mod-
+ules. This is reflected by PRG_1 in the call graph of case 
+study A calling the stations shown at the bottom (Fig. 8). 
+Each station includes similar actions such a s parameteriza-
+tion, but with a differe nt implementation. The basic modules 
+consist of several libraries from component suppliers such as 
+the PLCopen compliant PLC provider and servo drive pro-
+vider , as well as their self -programmed libraries  (see general 
+libraries and rotation axis in Fig. 8). The company uses dif-
+ferent IEC 61131 -3 languages for different hierarchy levels  
+to structure its software . On facility module level, mostly ST 
+is applied (as mostly  application modules are called). On ap-
+plication module level , FBD is used making the interf ace and 
+the data flow of the basic modules , which are called , visible. 
+The basic modules are mostly implemented using ST, but al-
+so SFC  for organizing the program structure  depending on 
+the functions that are realized . If other PLC suppliers are 
+used, LD is  sometimes also applied (see #44). Furthermore, 
+the software is most  often  implemented according to the 
+OMAC state machine standard ( OMAC (Organization for 
+Machine Automation and Control ) Packaging Workgroup, 
+2015;  ISA-TR88 .00.02, 2008 ; DIN EN 60204 -1, 200 9). Sev-
+eral additional facility wide modules are used for error man-
+agement , for example . The well -defined modules on specific 
+hierarchy levels increase decomposability and understanda-
+bility by reducing clutter and interfaces in complex pro-
+grams. Yet, the l arger modules also slightly reduce flexibility 
+in composability of the program in comparison to smaller 
+Case Study D Case Studies A (company 8) 
+and B (company 14)
+basic 
+moduleapplication 
+modulefacility 
+moduleplant module
+atomic basic 
+moduleCase Study C 
+(companies 5 and 6)
+Basic Module ... Basic Module ...Module ... Module ...
+Submodule ...dSubmodule nModule nModule 
+Control
+Module 1
+Submodule 1
+Basic Module 1 Basic Module nModule ...
+Submodule ...
+Basic Module ...Superior 
+Module
+Mod. 1
+SM
+BM...
+ABMBM
+ABM ABMBMSM SMMod. 5
+SM
+BM
+ABMBM
+ABM ABMBMSM SM
+BM BM
+ABM ABMMain Module
+Mod. ... Mod. 1 Mod. n
+BM 1 BM 2 BM m BM ...Facility-
+wide 
+DiagnosticsTop 
+Module
+Facility-
+wide Fault 
+StorageFig. 7.  Contrasting juxtaposition of four case studies: architecture levels  according to Vogel -Heuser et al., 2015  
+
+--- Page 16 ---
+modules (see Case Study B in Fig. 9), as larger modules are 
+more specialized and , thus, less likely to be reusable without 
+modification.  
+Fault and alarm  handling may be considered as being 
+handled in a hierarchical manner . The main part of error de-
+tection of hardware and faults stemming from the technical 
+process occurs on the basic module level . This is logical  as, 
+for example , a pneumatic cylinder not r eaching its end posi-
+tion should be identified by the basic module pneumatic cyl-
+inder , which  allows for easier maintenance , as the mechani-
+cal element has a direct software implementation that can be 
+reused.  
+However, the error ID is assigned to the next high er level 
+along with the decision on how the identified error should be 
+handled ( in terms of the reaction to the severity of the error , 
+in mild cases,  only a warning is issued ; if more severe , the 
+machine is slowly shut down ; if extremely severe , the ma-
+chine is immediately shut down). The advantage in this kind 
+of setup is that errors are assigned to the correct application 
+module (e.g. which pneumatic cylinder in which module is 
+erroneous), making error identification easier. Furthermore, 
+if more than one e rror occurs within one application module 
+but from different basic or sub -application modules, an anal-
+ysis can be done and group errors, hinting more specifically 
+at the cause, may be defined. Depending on the severity of 
+group errors , the entire machine g roup may be shut down as 
+group errors often hint at specific problems in the specified 
+group (area of a machine). In the next step , the errors are ana-
+lyzed by separate functions, apart from the application mod-
+ules when considering the mechanical layout . 
+The different error handling functions illustrate in par-
+ticular , why modularization attempts organized according to 
+the mechanical layout cannot be consistently applied . These 
+functions must access and analyze information from several 
+modules and do not fit in the hierarchy . In the call graph , this 
+can be seen as the POUs for alarm and error handling are 
+networked with many other POUs including the stations (see 
+Fig. 8, alarm and error handling). The same applies for the 
+functions for bus monitoring, although  bus monitoring is  not 
+as closely interwoven to the stations as the error handling 
+function .  
+However, the example also shows that for reuse several 
+functions can be standardized and used as company specific 
+libraries making maintenance more efficient. Fur thermore, 
+software maintenance is continuously improved due to stand-
+ardization of application s and basic modules.  The company 
+takes advantage of standardization by establishing automated 
+testing techniques especially for the library components (see  
+#34, Fi g. 14b). In this way , a high level of quality assurance 
+can be achieved for large parts of the software. Furthermore , 
+variant and version management can be integrated into the 
+software development process if the software current ly used 
+by the customer is k nown.  As automated testing, version 
+management , and similar programs,  form  a rather new trend  
+in machine and plant automation , some aspects , such as qual-
+ity gates , have  not yet been established.   
+Within case study  A, a template -based configuration for 
+building the software using EPLAN Engineering Configura-
+tion is used. For machines that are highly standardized , the 
+machine specific code can be reduced to 30% using this ap-
+proach. The us e of EPLAN highlights the application of in-
+terdisciplinary modularization  concepts , as EPLAN original-ly stems from the electrical domain , but is being established 
+for configuring  software. However, it is not always possible 
+to configure highly specialized machines , which then  must be 
+individually programmed . Along with the tren d of automat-
+ing quality assurance and modularization , continuous integra-
+tion is being established in this company. This shows the 
+overall trend of the company to continuously improv e their 
+development process and willingness to test new trends. This 
+seems to pay out by having fewer  personnel per machine (see 
+#7, #8, Fig. 14a). Reducing personnel may , however,  result 
+in longer start-up times (see #40, Fig. 14c). 
+ 
+Fig. 8.  Call graph of one software project of case study A  
+5.2 Case Study B – template based code configuration 
+for packaging machines in food industry  
+Case study B,  a worldwide leading company for packag-
+ing machines in food industry  (company 14), uses a well -
+defined software architecture , which mainly corresponds to 
+the physical layout, i.e. the proce ssing steps of the machine. 
+The architecture is divided into several modules on an appli-
+cation level, which are mostly library components and are 
+partially reused even within a single project. Furthermore, the 
+modules are initialized and controlled by a fa cility -wide 
+module control (cp. F ig. 7). Each module calls one or more 
+submodules and each submodule calls one or more basic el-
+ements , which are also all primarily library components. Fur-
+thermore, several other library and driver functions, for ex-
+ample the  diagnostics function, are called from each architec-
+tural level leading to a dense web of calls (cp. Fig. 9). As 
+programming languages, Structured Text is applied on all 
+levels and J ava is used  for visualization , i.e. programming of 
+the human machine inter face (see #44). Comparable to Case 
+Study A, the structure hierarchy as well as the modules are 
+well defined , resulting in a good decomposability and under-
+standability of the code, yet not excellent due to the smaller, 
+numerous modules  and interfaces . Yet, the composability of 
+the code is excellent due to this structure (in comparison to 
+Case Study A, see Fig. 8). 
+Within case study B, a commercial template -based con-
+figuration of control software ( developed in C#) is used  in 
+which templates are combined based  on predefined configu-
+ration files. Code configuration is also an efficient option be-
+cause about 20% of the software is specific for a single ma-
+chine.  
+
+--- Page 17 ---
+ 
+Fig. 9.  Call graph of one software project of case study B  
+Every module has its own and independently running 
+state machine according to the OMAC standard. The current 
+state is passed on by each module to its associated submod-
+ules, which – just like the modules – execute routines accord-
+ing to their current (given) state. In contrast, the basic ele-
+ments do not have an own state machine but rather execute 
+commands given to them by the submodules correspondently 
+to the (current/active) state. Additionally, the supervisory 
+module control possesses its own state machines as well and 
+can command state switches of  the modules via respective in-
+terfaces to coordinate all modules.  
+To develop the PLCopen compliant software of a new 
+machine, the majority of the software is configured via a user 
+interface (UI) and generated from library components togeth-
+er with automati cally configured templates, i.e. template 
+function blocks.  If a certain processing step is necessary, the 
+respective module is configured in the UI and added to the 
+software project. The control code itself is not modified in 
+the templates but rather in t he declaration. Hence, the engi-
+neer only manipulates the configuration part and t emplates 
+are selected by means of the respective transformation code 
+(see Fig.  10). 
+Transfor -
+mation and 
+configuration 
+toolGenerated 
+PLC 
+software
+EngineerCode 
+templates
+Configuration 
+files
+ 
+Fig. 10.  Template -based configuration procedure in case stud y B 
+This kind of coupling between the architectural layers , 
+i.e. independently running OMAC state machines and well -
+defined interfaces between the architectural layers , is the ba-
+sis for the configuration approach . It enables  to simply “plug 
+& play” an addit ional module into the software architecture 
+after adjusting the declaration part of the supervisory module. 
+Thus, the highly sophisticated approach of software configu-
+ration and generation strongly corresponds to the software 
+architecture . The implementati on of independent state ma-
+chines is based on the classical IEC 61131 -3 standard with-
+out the use of the object -oriented mechanism. Due to the fact 
+that case study B refers to series machinery, the PLC type 
+may be chosen by the supplier, the code is not deli vered to the end -customer, the software version is known to the  sup-
+plier and updates are installed by USB or remote access.  
+Although software configuration and generation  sounds 
+easy, there are also challenges in this approach. Due to me-
+chanical constraint s, the machines have a single flow of ma-
+terial , i.e., that an interlocking logic is inevitable to control 
+the machine’s progress. Every processing station has to finish 
+its task before the flow of material is allowed to proceed. For 
+a new combination of pr ocessing stations, the respective 
+modules themselves can be configured and automatically 
+generated as they work independently from one another. But 
+their interlocking logic differs for every combination and its 
+automatic generation presents difficulties. T he same applies 
+to the tracing of products and collecting their production data 
+as the production course may differ from machine to machine 
+due to different mechanical configurations . Thus, different 
+storage of data in a possibly different order  may be req uired . 
+For these reasons, a complete configuration of the software, 
+i.e. a product line approach, is limited due to functionalities 
+of the machine. These functionalities depend on the order 
+and configuration of the processing stations and , therefore,  
+need to be adapted to each new combination. Results from  
+the case studies A, B and C are presented  in collective dia-
+grams, which facilitate a comparison  (Fig. 14a-c). Addition-
+ally, the case studies ’ maturity levels are compared in Table s 
+V and  VI. 
+5.3 Case Study C – clone & own  approach in packaging 
+industry  
+This case study was conducted in  two different design 
+units of  a leading company for packaging lines in the food & 
+beverage  domain  (compan ies 5, 6). In these cases, d ifferent 
+machines are combined to form an en tire production line 
+comparable to an entire plant. C1 focusses on  logistics 
+whereas  C2 focusses o n other part s of the  production  line. 
+Case study C , in both cases , is larger  and has more variants 
+due to customer requirements than case studies A and B, but  
+it is less complex than case study D. The single parts  of the 
+case study  (C1 and C2)  are individually  classified as ma-
+chine s but form a production line when combined and could , 
+therefore , be assigned to  the plant manufacturing  category . 
+The control softwa re, running on Siemens or Rockwell PLCs  
+on customer request , is mainly written in IL  (> 90%) and  a 
+new project is established by the copy & modify  approach . 
+The company employs most languages of the IEC 61131 -3 
+depending on customer requirements ( Fig. 14b, #22).  Tools 
+for code generation /configuration  are not used  (Fig. 14b, 
+#29).  The software is characterized by a very flat hierarchy 
+of calls and only has two architectural levels below the main 
+module  (Fig. 7). About 60% of the POUs are directly called 
+from the main module including both POUs on application 
+and basic module level s. The other 40% of the POUs are on 
+the second architectural level and are to be categorized as 
+basic modules.  Library functions are used on the basic mod-
+ule level (see Fig. 11, “Driver” and small, red dots) in almost 
+every project ( Fig. 14b, #23 ), mostly in the form of drivers 
+for certain components.   
+For transporting palettes, the machine is separated into 
+several transport segments which can also process the pal-
+ettes or the good s located on the palettes. Although it is 
+planned to implement state machines in the future , this is not 
+the case at the moment. Every transport segment has its own 
+
+--- Page 18 ---
+application module and is running independently from the 
+other transport segments. As shown  in the call graph in 
+Fig. 11, the POUs relat ed to transport modules are individual  
+copies of  slightly modified POUs, even though the transport 
+segments are very similar. Other application modules, for 
+handling  goods on the pallets  for example , are on the same 
+call depth, yet these modules are not similar to each other (at 
+least within this particular software project).  In this project, 
+most communication between the modules is performed via 
+global variables . E.g. the transport  modules  communicate 
+with thei r adjacent modules  using this method . This unpro-
+tected (every other entity can interfere) and intricate commu-
+nication (see Fig. 12) results in low decomposability of the 
+system, as modules cannot be easily isolated. In combination 
+with the lack of a clear hierarchy, this structure also impairs 
+understandability quickly with growing program size.  
+ 
+Fig. 11.  Call graph generated for the analysis of case study C  
+ 
+Fig. 12.  Graph generated  for the analysis of case study C  depicting 
+communication via global variables  
+Since  reuse is performed on a relatively small scale  using 
+library functions for drivers, the modularity is below average 
+(see #19, Fig. 14b). Although this results in higher ef fort 
+when developing the program, quick modifications and de-
+bugging are facilitated.  
+This company requires  easily comprehensible code struc-
+tures and quickly adjustable code (due to multiple persons 
+with different backgrounds working on code on site) , as typi-cal for the plant manufacturing industry  (#5 and # 6, 
+Fig. 14a). The software engineer responsible for the software 
+design is mostly unavailable at this point (# 36, Fig. 14c). Part 
+of the code is delivered to customers to allow changing  code 
+and forcing of inputs and outpu ts in case of a fault. New up-
+dates are installed primarily  at the customer ’s site or via re-
+mote access, but the software version is often not know n by 
+the customer to prevent alteration of any  part of the code .  
+5.4 Case Study  D – parameter -based code configuration 
+for intralogistics of a plant  
+The company represented in this case study  is an interna-
+tional market -leading plant manufacturing company of the 
+wood working domain. The company manufactures complete 
+production plants including hybri d processes (continuous and 
+discrete parts) and logistic processes such as warehouse 
+management. They did not participate in the questionnaire 
+but we included the results of the case study , because it is a 
+typical plant manufacturing company. Within this c ase study, 
+a parameter -based configuration of the machine control soft-
+ware was chosen by means of Excel, in which a universal 
+project is configured with respect to predefined parameters 
+chosen according to specific requirements.  
+By analyzing the control so ftware, written in IEC 61131 -
+3 conform languages (mainly LD) and running on Siemens 
+PLCs (S7 -400 series), challenges and weaknesses relating to 
+the maintainability of the software were identified. For the 
+entire plant , up to 16 PLCs are used. PLC s of two d ifferent  
+suppliers need to be delivered to different markets worldwide 
+according to customer specification s. This company uses on-
+ly library elements delivered by the PLC supplier s and the 
+memory needed is comparably small.  
+The interdisciplinary development  process is carried out 
+sequentially. Starting with the mechanic department, re-
+quirements and specifications are generated, which are sub-
+sequently used by the electrical engineering department and, 
+later on, by software developers  with iterative interactio ns 
+along the entire  project. Depending on the complexity of the 
+plant stations, the corresponding software is written by one 
+or two software developers. Although the method copy , paste 
+& modify leads to various disadvantages , such as an unman-
+ageable amount  of variants and versions, it s use  is currently 
+widespread in industrial practice and it was  applied in devel-
+oping  the software examined in this case study. While a few 
+standardized functions are used in the software engineering 
+process, no module library exists in the company.  
+In this case study, we analyzed the control software of the 
+discrete logistics process of the facility module storage sys-
+tem (cp. for details (Fischer et al., 2015)). Due to local cir-
+cumstances , such as the customer’s property area o r the 
+building’s dimensions, customer requirements and plant 
+properties, the plants and in this case , the storage layout , vary 
+considerably , which in turn influences the corresponding 
+PLC program.  
+The control program is written by a single software engi-
+neer utilizing the method copy , paste & modify. The pro-
+gramming language  most often used  is LD , although IL is 
+used for some elaborate calculations. The use of LD was re-
+quested  by the customer s because of their need  to make 
+changes on the logical part (interl ocking) .  
+By analyzing the software program  of the storage , two 
+main parts of the program were identified: a set of invariable 
+
+--- Page 19 ---
+software components and a set of variable software compo-
+nents , which need to be adapted according to the present var-
+iant of the p rogram. These variable components can be con-
+figured with an Excel -based configuration tool. All parame-
+ters necessary to unambiguously describe the variable soft-
+ware components are requested by the configuration tool. 
+Once parameters  are entered, Excel  macr os programmed in 
+Visual Basic for Applications (VBA) are used to generate the 
+source code of the variable compon ents based on a template. 
+The generated code is then transferred to the PLC, translated , 
+and, thus, the according components are added to the in vari-
+able basic program (refer to  (Fischer et al., 2015)) for details 
+on the configuration tool – an overview is given in Fig.  13). 
+The decision to use Excel instead of other tools for software 
+product lines was made according to the following aspects.  
+ParametersMacro -based 
+configuration 
+(Excel )Configured 
+variable 
+componentsManual 
+import
+EngineerInvariable 
+software 
+components
+Generated 
+PLC 
+software
+EngineerVariable 
+software 
+components
+Fig. 13.  Parameter -based configuration procedure in case study  D 
+First of all, Excel is used very frequently in the company . 
+For instance, for each development project the mechanics 
+department prepares an Excel  list containing all drives, 
+valves and limit switches , needed for the project , plus their 
+component  IDs. The list is then passed on to the electri-
+cal/electronic department and the software department of the 
+company. Thus, the company's  design personnel is familiar 
+with the us e of Excel for development purposes. In contrast, 
+using software product lines would require new tools , which 
+are yet unknown to the designers/programmers and, there-
+fore, additional time and effort would be necessary to use the 
+configuration.  
+Another aspec t is that a lot of information needs to be 
+provided for each storage place in order to generate the 
+source code of the software components. This information 
+includes the actual expansions of the place, the expansions 
+for depositing the manufactured product s at the place and 
+identification  of the storage car s with  access  to the place.  
+When using tools such as feature models to model the varia-
+bility of the software product line, the model grows quite 
+fast. If the variation points of the software product line  have 
+many sub items, it is difficult to display all of them on a 
+computer screen. If, however, Excel tables are used, a clearer 
+structure is provided from the design engineer ’s point of 
+view. Furthermore, the Excel -based configuration tool is 
+structured i n such a manner that the input requests to its user s 
+(designers) are completed  successively. Instead of displaying 
+all options at once, the parameters are entered one after an-
+other, each affecting the following input request.  
+Furthermore, when restrictions  and rules are added to the 
+configuration tool and it is extended with a graphical user in-
+terface plus a well -written instruction manual, the designer does not need to have knowledge of the Excel  tool, the VBA -
+macros, or the storage system – he or she can generate the 
+software with  little expertise in the field. Thus, no expert is 
+needed to do the work.  
+However, a plant’s software is never completely configu-
+rable as some variation points of the plant and its software 
+depend on the local circumstances at the  customer’s site . 
+This includ es different arrangement s of machines due to dif-
+ferent building sizes and , therefore , slightly changed machine 
+width or transports resulting in adaptations in electrical engi-
+neering and software  (different arrangement of transp ortation 
+belts or roles ). Additionally, aspects such as safety mecha-
+nisms in the circuit diagram and in the software are unpre-
+dictable for all variations of machines  and buildings and, 
+thus, cannot be cost -wise efficiently fully included in a con-
+figuration  tool. Furthermore , some variation points in the 
+software are highly dependent on decisions made in the me-
+chanical or electrical engineering  departments . In order to 
+configure the entire software automatically, these depart-
+ments  would have to be included in all design decisions. 
+However, the effort to do so outweighs the benefits of auto-
+matic code configuration.  
+In the following , the configuration of code related to the 
+chosen architectural levels (cp. F ig. 7) will be discussed. The 
+program partly configure d with the Excel -based approach 
+controls the fa cility module storage system, which is part of a 
+manufacturing plant in the woodworking domain.  The facili-
+ty module  is called by a top module on plant module level  
+and is divided in to four architectural level s (see F ig. 7). The 
+facility module consist s of five application modules, which 
+are, for instance, used to control the storage car and the inter-
+faces to adjacent plant stations or to forward  crucial alarms to 
+the higher plant module level. Each application  module con-
+tains a main function and several other functions , which can 
+be called by the main function. These other functions then 
+again call basic modules and atomic basic modules. All func-
+tions are assigned to exactly one  application module. For ex-
+ample,  the application module “interface” does not call the 
+same functions as the application module “car control” and 
+vice versa. Thus , each application module has its own set of 
+functions on application, basic and atomic basic module lev-
+el. Additionally, a set  of variables (organized in data blocks) 
+is assigned to every application module. Although no library 
+components exist, many of the functions at basic and atomic 
+basic module level are reused without adjustments using the 
+method copy  & paste. Consequently,  application modules 
+fulfil the requirements for reuse since they contain  both their 
+own reusable subfunctions and an individual set of variables . 
+Software ecosystems , as in this case,  are typical for the 
+plant manufacturing industry , i.e. the customer req uests the 
+code and sometimes modifies it after the receipt  (Lettner et 
+al., 2013) . This  often  result s in different versions at site com-
+pared to the know n code version in the design or service de-
+partment.  
+5.5 Different methods of code configuration  
+In the foll owing, we discuss the different approaches for 
+code configuration we encountered within the presented case 
+studies  addressing hypothes es H4.2, H4.3 as well as H3. 3.  
+Addressing H4.2 we d iscovered  in principle  three differ-
+ent approaches for the purpose of ( semi-)automatically con-
+figuring PLC control code: (1) a modular, multi -disciplinary 
+
+--- Page 20 ---
+engineering approach, which makes use of a mechatronic ob-
+ject library (cf. case study A), (2) a template -based approach 
+(cf. case study B , Fig. 10) and (3) a parameter -based configu-
+ration approach (cf. case study D , Fig. 13) besides a pure 
+clone & own approach (cf. case study C, L0) . Therefore, h y-
+pothesis H4.2 holds true.  
+1) Modular, interdisciplinary engineering approach  
+In order to overcome the deficiencies implied by a clas si-
+cal engineering approach, companies have increasingly  start-
+ed to analyze their systems in order to provide a modular en-
+gineering approach formed by combining existing and tested 
+modules to the machine as required by the customer. Using 
+this approach, con straints are used to define the possible 
+combination of modules. However, this approach has some 
+disadvantages . For one, maintaining the different possible 
+variants can be complex and time -consuming, especially 
+when multiple departments are involved  as the re is no graph-
+ical visualization of the different possible variants within an 
+explicitly available variability model. Moreover, there is a 
+lack in  support for  managing module version s, as tested ones 
+are currently managed using hard copies of modules. Cons e-
+quen tly, different engineering phases – from the require-
+ments definition until the operation and maintenance phases 
+– are currently not supported.  With regard to the governance 
+levels introduced by Antkiewicz et al. (2014 ), such a modu-
+lar, interdisciplina ry engineering approach can be classified 
+in between the levels L0 (Ad -hoc Clone -and-Own) and L1 
+(Clone -and-Own with Provenance), as manual effort is nec-
+essary for the purpose of adapting modules for their specific 
+applications in engineering projects.  
+2) Template -based configuration approach  
+Within a template -based configuration of the control 
+software, there are three core parts:  
+‒ Predefined code templates  form the basis of the code to 
+be configured.  
+‒ Templates are parametrized by means of configuration 
+files. These configuration files hold the information on 
+which templates need to be combined and the information 
+on how these templates are  to be  parametrized. By means 
+of this information , the structure and the behavior of the 
+PLC software is defined.  
+‒ A transfo rmation and configuration tool forms the basis 
+for the code configuration and generation. This code is 
+written in a high -level programming language (e.g. im-
+plemented in C#) and, thus, defines the variability model 
+for the control software . The respective t emplates and 
+their corresponding configuration files are loaded and, 
+with the transformation code, transformed into the final 
+PLC software.  
+For the configuration files, input forms are predefined to 
+simplify the definition of the parameter s’ values. Using the 
+transformation and configuration tool , the software can be 
+generated automatically and , due to the capabilities of the 
+commercial transformation tool , on-site changes can be 
+traced and (if necessary) be included into the code templates 
+(i.e. version ma nagement is possible). However, the tem-
+plate -based configuration of the control software requires 
+strong knowledge in high -level programming languages, 
+which is often not available to application engineers. Moreo-
+ver, as no explicit model of the code variab ility is available, 
+but rather implicitly encoded in the transformation code, 
+comprehensibility is hampered.  Hence, relating such tem-plate -based configuration approaches with the governance 
+levels introduced in ( Antkiewicz  et al., 2014) , they can be 
+classi fied into level L3 (Clone -and-Own with Configuration) 
+as features are explicitly captured as reusable fragments (i.e., 
+templates), and, hence, multiple variants can be derived from 
+these features.  
+3) Parameter -based configuration approach  
+The parameter -based configuration of control software 
+comprises three essential parts:  
+‒ Predefined variable software components  are combined 
+to a customer -specific application.  
+‒ Basic modules are parametrized by means of module pa-
+rameters . These parameters are later used to gen erate the 
+respective global variables in the PLC software, which, in 
+turn, manipulate the behavior of the basic modules.  
+‒ Invariable software components  describe the basis for the 
+PLC software and, hence, serve as the platform for the 
+PLC software. This uni versal project remains identical 
+for customer -specific projects.  
+Although this approach implies a huge benefit for the 
+company ’s applications, there are still disadvantages to be 
+addressed . For one, managing the multitude of parameters 
+used within the conf iguration requires excellent  knowledge 
+of the software. Moreover, comprehensibility of the approach 
+is hampered due to the many manual steps to be implemented 
+(e.g. exporting and importing the basic modules being used). 
+Finally, version support is not yet addressed by this ap-
+proach.  Hence, such parameter -based approaches can be 
+classified in between level L2 (Clone -and-Own with Fea-
+tures) and level L3 (Clone -and-Own with Configuration) of 
+the governance levels defined by Antkiewicz  et al. (2014) , as 
+paramete r sets are used to define the possible variants of an 
+engineering solution together with parameter constraints to 
+define valid feature combinations but, however, explicit fea-
+ture models are not available to this approach.  
+TABLE  V.  MATURITY LEVELS OF CASE STUDIES A, B, C AND D 
+ Maturity  
+Level  Case 
+Study A 
+(8) Case 
+Study B 
+(14) Case 
+Study C1 
+(5) Case 
+Study C2 
+(6) Case 
+Study D  
+Q MMOD 0.86 0.75 0.32 0.36 - 
+E Governance level  + (L1 *)  + (L3)  - (L0) - (L0) + (L2)  
+Decomposability  ++ + - - + 
+Composability  + ++ + + ++ 
+Understandability  ++ + + + + 
+Protection  ++ ++ - - + 
+Overall Scores from 
+expert analysis 
+(sum)  8 7 2 2 6 
+Q: results gained from the questionnaire  
+E: results gained from the expert analysis, * L1 is chosen for L0 -L1 in this 
+case study  
+ 
+4) Summ arized evaluation  
+As can be seen from these approaches, classical software 
+engineering, often supported by clone & own (cf. case study 
+C), can be overcome by appropriate configuration support. 
+However, the applicability of these  approaches strongly de-
+pend s on the application domain and on  a multitude of envi-
+ronmental conditions (e.g., software engineers’ experience in 
+high-level programming languages). Moreover, essential as-
+pects that are not yet broadly covered by commercial tools 
+such as Excel or Codesmi th are, for instance, explicit varia-
+
+--- Page 21 ---
+bility models and management approaches , respectively . The 
+evaluation of the four companies is summarized according to 
+these criteria in Table V.   
+As can be seen in Table V, the expert analysis  reflects the 
+scores gained  from the questionnaire.  Case Study A and B 
+both possess high scores in all criteria, mostly stemming 
+from the clear hierarchy and well -defined modules  with di-
+rect communication . Case Study A has a slight lead due to its 
+larger, less numerous mechatronic m odules resulting in a bet-
+ter decomposability and understandability than Case Study 
+B. Yet, during start up (see Table VI) the higher composabil-
+ity and governance level gives Case Study B a lead. Case 
+Study D is a close third, also possessing a high level o f com-
+posability, only lacking in protection of communication. 
+Case Study C 1 and C2 both possess potential for improve-
+ment in all modularity criteria, which also prevent s the im-
+plementation of  a higher governance level.  
+ 
+6 Combination of results from question naire and 
+expert analysis of case studies  
+In the prior sections , the four companies are discussed in 
+detail. This section compares the results  with those  from the 
+questionnaire  and gives explanations for specific values.  The 
+four case studies highlight  the different constraints  from the 
+application domains and the business characteristics, i.e. var-
+iations required by customers. D ifferent customer s in plant 
+manufacturing ( C1 combined with C2 and D) request  differ-
+ent, regionally more accepted  hardware platforms to  be de-
+livered . This poses  a challenge to assure code equivalence 
+between different platforms due to slight differences in case 
+of non -PLCopen platforms (case studies  C and D). PLCopen 
+platforms ( case studies  A and B) are commonly  accepted in 
+the machine manufacturing industry because customers may 
+not have access to code or do  not need to change and evolve 
+code. Different coding languages were chosen at customer 
+request (LD) and based on the main characteristics of the 
+technical process, e.g., drives , sequential steps (SFC) , and the 
+skills of the application engineers (ST as a more sophisticat-
+ed programming language, and more than one PLC task, cp. 
+case studies B and C). From the four different case studies  
+ranging  from special purpose machinery to pl ant manufactur-
+ing, we can derive the need for an architectural level ap-
+proach (cp. F ig. 7 ) containing  two to five levels as well as 
+concept s similar to  hierarch ical levels . 
+Comparing the radar  diagrams  of case studies A, B and 
+C, representing a wide range of industry from machine  series  
+suppliers to custom -specific machines to plant manufactur-
+ing, show s significant differences between each of these 
+companies as well as differences between these companies 
+and the mean of all participating machine manufacture rs (cp. 
+dashed line  in Fig. 14a-c and Table VI). 
+Referring to the general  descriptive  data (cp. Fig. 14a), 
+the number of start-up personnel on -site is much higher in 
+case studies C1 and C2, because individual adaptions are 
+needed on -site (#5, #6 and # 7). The number of CPUs equals 
+the scale of the application as shown by the questionnaire re-
+sults.   
+Case study  A is much more advanced regarding in -house 
+cooperation ( #15), extent of modularity ( #19), continuous in-
+tegration  (#20) and associated criteria ( ##23-30) referring to 
+module maturity  (cp. Fig.  14b).  Almost all  test and quality assurance criteria  (with the ex-
+ception of #34)  show the highest  maturity for case study A 
+(cp. Fig. 14c). Astonishingly, we found significant differ-
+ences among  the different groups  of C ( #22, #32 and # 39). 
+Comparing case studies A and B as companies with the 
+highest ratings from machine and plant manufacturing (Table 
+VI), we see slight differences in  the maturity levels of  modu-
+larity MMOD, test/quality assurance  MTEST and start-
+up/operation/maintenance  MOP. 
+TABLE  VI.  MATURITY LEVELS OF CASE STUDIES A, B AND C COMPARED 
+TO THE MACHINE MANUFACTURING COMPANIES MEAN 
+Maturity  
+Level  Case 
+Study A 
+(8) Case 
+Study B 
+(14) Case 
+Study C1 
+(5) Case 
+Study C2 
+(6) Machine 
+manufactur-
+ing compa-
+nies, mea n 
+Modularity  0.86 0.75 0.32 0.36 0.50 
+Test/Quality 
+Assurance  0.63 0.85 0.36 0.28 0.51 
+Start-up/ Op-
+eration/ 
+Maintenance  0.58 0.95 0.55 0.54 0.58 
+Overall  0.77 0.80 0.36 0.37 0.52 
+ 
+The detail ed analysis show s that case studies A and B are 
+both on a high level of  matur ity regarding their workflow, 
+tools and engineering platform. The higher score of case 
+study A in modularity maturity results mainly from applica-
+tion of different programming languages for different appli-
+cations, higher degree of code configu ration from engineer-
+ing data, and a well-defined  documentation of changes, i.e. 
+version management.  The high score  of case study B in 
+test/quality assurance results from the implementation of 
+quality gates, module and integration tests and the frequent 
+application of simulation s for tests. The higher score of case 
+study B in start -up/operation/ maintenance maturity results 
+from the star t-up personnel on the customer’s site. Whereas  
+in case study A , the software designer is needed on site for 
+commissioning, t he start -up personnel on -site in case study B 
+does not include the software designer.   
+Research question 3 aims at identify ing weaknesses (or 
+strength s) in software maturity in aPS  in order to  identify 
+possible causes/reasons. H3.1 elaborates low values in  the 
+different phases and H3. 4 focusses on the tool chain (cp. Fig. 
+14b). Concerning b oth hypothes es, the mean value of ma-
+chine manufacturing companies  is examined  in the follow-
+ing. In all phases (cp. Fig. 14b and 14c) two bound value  lev-
+els could be ident ified, i.e.  below 35 and 60% , respectively:  
+below 35% for questions #20, ##28 -30, #31, #34  (underlined 
+with a red solid line  in Fig. 14b and 14c)  and below 60% for 
+questions  #17, #18, #20, #21, # #23-25, #27, #28, #35, #37  
+(underlined with a dotted yellow  line in Fig. 14b and 14c) . 
+In regard to H3.1 six values below 35% and nine values 
+below 60%  have been identified . Lower values occur in en-
+gineering as well as start-up/operation/maintenance , but pro-
+portionally most low values occur in questions related to 
+software maturity (M MOD). Thus, H3.1 is true.  
+Addressing the tool chain weaknesses in hypothesis H3.4 , 
+we identified lowest values in continuous integration (#21, 
+below 60%) and code generation ( #28, below 35%). Version 
+management reaches the highest scores  (#26, 67%) (cp. Fig. 
+14b). Therefore, H3.4 is true.  
+
+--- Page 22 ---
+ 
+ 
+Fig. 14a. General descriptive information  
+ 
+Fig. 14b. Sub items included in modularity maturity ca lculation M MOD 
+ 
+Fig. 14c. Sub items included in quality/testing M TEST and in start -up/operation/maintenance maturity calculation M OP 
+ 
+Fig. 14a-c Company radar  diagram s of case studies A , B and C compared to average profile lines of machine manufacturing c ompanies   
+Grading scheme: the outer circle represents the highest possible value of 5: yes/excellent /often/many ; the inner circle represents the lowest possible value 
+of 0: never/does not exist/none/poor/rare/few ; not specified answers are indicated by an interruption in the profile line  
+
+--- Page 23 ---
+7 Validity, strength s and weaknesses of 
+SWMAT4aPS   
+We introduced SWMAT4aPS as a benchmark process to 
+evaluate the modularity of aPS application software, its de-
+velopment workflow and its quality. In this  section , we dis-
+cuss the approach’s validity by  compar ing the results of the  
+self-assessment questionnaire and  the detailed exper t analy sis 
+for the four selected  companies  and discuss strength s and 
+weaknesses of the approach .  
+The detailed insights of the expert analysis confirm the 
+rating in between companies with very high scores (A and B) 
+and those with lower scores (C1 and C2) as well  as the com-
+parison of greatly differing groups  (A/B versus C1/C2). 
+Therefore , we conclude H1.1 is true. The questionnaire  de-
+livers valid results in accordance to the detailed expert analy-
+sis of the four selected companies. Research question 1 is  
+thereby  affirmed (cp. Table VII) . 
+Addressing Research question 2 and hypothesis H2, the 
+detailed analysis has validated the maturit y variations in the 
+different phases and , therefore , we also confirm H2 being 
+true f rom the detailed analysis point of view.  
+RQ4 elaborates the questions whether the detailed expert 
+analysis deliver s additional insights into the weaknesses of 
+software matu rity. Hypothesis H4.1 is true because the expert 
+analysis delivered additional insights into the governance 
+level, the software architecture used and the code structure.  
+H4.4, which states, that t he higher the governance level 
+and the more mature the softw are architecture level as well 
+as the code graph, the higher the maturity level in software 
+modularity,  is partially true according to Table V. The differ-
+ence from A to B is vi ce versa, due to the higher values from 
+the governance level compared to similar  values in the other 
+categories . 
+Each of the presented case studies shows suitable con-
+cepts for the given properties and constraints of the respec-
+tive company  and its market.  
+Within the final phase of SWMAT4aPS, the reporting, 
+we present the results  as radar diagram s (cp. Fig. 14), levels 
+of architecture (cp. F ig. 7), release procedure s for library el-
+ements and call graphs (cp. Fig. 8, 9, 11). 
+As appropriate module libraries with an appropriate re-
+lease process, in which the tracking of changes supported by 
+a version management tool is a prerequisite for efficient en-
+gineering, we were able to prove a correlation between mod-
+ule libraries and release process with the code generation 
+from engineering tools (#28) and automatic code configura-
+tion based on template s (#30)  (H3.5). 
+As mentioned , the questionnaire lacks a measure for 
+functional complexity. Because of the wide variety of ma-
+chine manufacturing companies  included in our study – rang-
+ing from series machinery to special purpose machinery  – it 
+is evident tha t our sample size  needs to be larger  (H1.2) . 
+Such a larger sample size will  allow either domain specific 
+sub-categories with hopefully less variation and/or sub -
+categories in machine manufacturing  such as  standardized 
+machinery  and special purpose machiner y.  
+In all case studies, changes were required during the start -
+up phase . These adaptations were  often  conducted by less 
+qualified staff on -site in plant manufacturing industry . Never-
+theless, the different case studies showed similarities regard-
+ing archite ctural levels and hierarchical handling of faults.  We expected according to H1.2  that the overall maturity 
+level of machine manufacturers would be better than  the one  
+of plant manufacturers, which was not the case. Of course,  
+we lack more pure  plant manufa cturing companies (only 2). 
+Moreover,  we identified that we do have to distinguish be-
+tween machine manufacturers, the serial machine, the special 
+purpose machine manufacturers and the one s assembling 
+plant s by combining machines. This is b ecause the challe ng-
+es of building standard modules as well as implementing 
+simulation for testing are very different.  
+Subsequently , we expect ed more obvious correlations be-
+tween modularity maturity as a prerequisite for testing  and 
+quality assurance maturity and less start -up effort and , there-
+by, a higher start -up/operation /maintenance maturity  (H3.2). 
+Further,  the questionnaire needs to be shortened and adapted 
+for a web-based interface with partially automatic  analysis  
+and evaluation and ideally generating radar  diagrams  auto-
+matically as immediate  feedback for the individual compa-
+nies. We found t he answers provided in the free text blocks 
+of interest in terms of gaining  deeper insights into  imple-
+mented tool chains and workflow s, which will be enlarged by 
+a broader base of companies included in our next version of 
+the questionnaire.  Additionally , international companies 
+should be included  in our future work  to identify potential 
+global or even country -specific differences in the three dif-
+ferent maturity levels or their inter dependencies. In addition 
+to providing participating companies with the results of our 
+study and asking them to provide comments, we also started 
+to ask them to review the questionnaire and provide feedback 
+on possible areas for improvement. Companies from  case 
+studies A to C reviewed the results already and confirmed 
+them as correct. The feedback workshop with company A re-
+sulted in a changed representation of the results (Fig. 14). We 
+proposed a graph, but managers preferred radar diagrams for 
+sub-groups a s presented now, because they consider them 
+better readable and they feel that they can easier identify their 
+own weaknesses.  
+Table VII shows the summary of the hypotheses evalua-
+tion according to the three research questions. From the 13 
+hypotheses 9 are t rue, 3 are partially true and 1 is false. Con-
+sidering the evaluation , the questionnaire delivers valid re-
+sults. These results are complemented by additional insights 
+gained through the expert analysis.  
+To address reliability , we repeated parts of the ques tion-
+naire with more than 40 companies from machine and plant 
+manufacturing one year later. The questions used regarding 
+MOP are exactly the same and the results are similar , thus  
+proving reliability (cp. Fig. 14c black cross es).   
+Therefore , the research m ethod was proven valid , includ-
+ing external validity with repetition , for the embedded sys-
+tems domain for mechatronic s using PLC structures and lan-
+guages.  
+In the future , the questionnaire will be provided via a web 
+link for all interested companies . This wa y, we anticipate 
+capturing  a broader data base from which we can  identify 
+new relationships or confirm assumed correlations  between 
+the maturity indicators, i.e. questions #23, #24, #26 and #27  
+influencing questions #28 and #30 (cp. Table IV) . To identify  
+country -related issues,  international companies will be in-
+cluded in the questionnaire.   
+ 
+
+--- Page 24 ---
+8 Conclusion  and Outlook  
+Software is an important prerequisite for flexible long liv-
+ing aPS and is  closely connected to automation hardware and 
+the mechanics of the pro duction system. Based on 16 com-
+panies, w e provide first results from our analysis of their 
+strategies to deliver custom er-specific aPS , by adapt ing the 
+customer s’ software  systems  and manag ing software variants 
+and versions. The SWMAT4aPS approach focuses on soft-
+ware and deliver s criteria to detect weaknesses in software 
+engineering or noticeable  workflow characteristics and other 
+factors using  a four-step approach for aPS  (cp. Figure 2) . 
+During the experimentation  ①, a comparative rating  is real-
+ized based on a questionnaire with 45 questions for platform 
+supplier s, machine or plant manufacturing com panies . This is  
+followed by qualitative and quanti tative reporting  ②. Com-
+plementary , an individual analysis  is conducted  in selected 
+companies  ③, including  an an alysis of  software architecture 
+levels,  a code analysis and an analysis of the workflow and 
+mechanisms used for code configuration . Concludingly,  re-
+ports  are generated ④. These are all  means for increas ing ef-
+ficiency and code quality , areas  of obvious inte rest for the 
+individual compan ies. SWMAT4aPS delivers sound results 
+by use of  a coarse first self -assessment , which form s the ba-sis for a subsequent  in-depth  analys is with appropriate re-
+porting.  
+Radar  diagrams  are used to represent the individual com-
+panies’ results compared to the mean of the class , and three 
+sub categories  (M MOD, M TEST, M OP) help to identify weak-
+nesses and strength s of each individual company regarding 
+software maturity .  
+For the future, we plan to capture a broader data base by 
+providing the questionnaire via a web link. This will help to 
+confirm suspected , or identify unknown correlations.  It will 
+also enable us to distinguish between machine manufactur-
+ers, serial machine manufacturers, special machine manufac-
+turers and those, who assembl e plants by combining ma-
+chines.  To identify  country -related issues,  international com-
+panies will be included in the questionnaire.  
+ 
+Acknowledgment  
+We thank all companies who answered the questionnaire 
+and who provided us insights into their software and pr ocess-
+es. This study was partially funded by  DFG (Deutsche For-
+schungsgemeinschaft) through the fund  SFB 768 A6, T3 and 
+SPP 1593 project DOMAIN . 
+ TABLE VII:  RESEARCH QUESTIONS , RELATED HYPOTHESES AND EVALUATION  
+Research 
+Question  Related Hypotheses  Result  Source  Proof  
+RQ1 - 
+true H1.1 (questionnaire delivers valid results)  True Q&E   
+H1.2 (platform suppliers > machin e 
+suppliers > plant manufacturers)  Partially 
+true Q calculated maturity indices cp. appendix A questions – indices  
+Fig. 3 and Fig. 4; More companies necessary for plant manufacturing  
+RQ2 - 
+true H2 (maturity levels differ among 
+categories)  True Q calculated  maturity indices cp. appendix A questions – indices  
+Table VI and Fig. 3  
+RQ3 - 
+identified  H3.1 (universally low maturity levels exist)  True Q ##15 -40 Fig. 14b and c for details.  
+<1.75 (35%): #20, #28, #29, #30, #31, #34  
+<3 (60%, mean value machine manufac turing companies): #17, #18,  #21, #23, 
+#24, #25, #27, #35, #37  
+Lower values occur in engineering as well as start -up, operation and 
+maintenance, but proportionally most low values occur in questions related to 
+software maturity (M MOD) 
+H3.2 (engineering process - MMOD & M TEST 
+- influence M OP) False  Q MMOD, M TEST, M OP, cp. Fig. 4  
+Disturbing variable complexity? #14  
+H3.3 (different release procedures for SW 
+libraries)  True Q ##24, 42 (manual evaluation)  
+Fig. 5 left and right hand side  
+H3.4 (identifica tion of weaknesses in tool 
+chain support)  True Q #21, #26, #28, cp. Fig. 14b for details, mean value machine manufacturing 
+companies  
+continuous integration #21 (avg. 2.75=55%), version management #26 (avg. 
+3.33=67%), code generation #28 (avg. 1.04=21%)  
+H3.5 (module libraries, release procedure, 
+version management and change tracking 
+are prerequisites for all ways of reuse)  True Q Table IV, #23 (use of library components), #24 (release procedure of library 
+components), #26 (version management tool), #27 ( change tracking of 
+versions), #28 (application of code configuration/generation from information 
+of an engineering tool), #30 (automatic code configuration based on templates)  
+H3.6 (SW complexity negatively influences 
+MMOD and M OP) Partially 
+true Q #14, modularity maturity and start -up, operation and maintenance maturity  
+Fig. 6  
+RQ4 - 
+True 
+besides 
+H.4.4  H4.1 (additional insights through expert 
+analysis)  True E for all case studies, the software architecture and the code configuration 
+procedure were identif ied. For three cases, the software structure has been 
+analyzed with call graphs.  
+H4.2 (different approaches for code 
+configuration – can assigned to 
+governance levels)  True E governance Level L  
+Fig. 10, 13  
+H4.3 (call graphs enable insight into 
+control SW’s structure)  True E control flow graph of selected projects source code  
+Fig. 8, 9, 11  
+H4.4 (decomposability, composability, 
+understandability and protection enable 
+high governance level – mature SW 
+architecture & code graph – higher M MOD) Partially 
+true Q&E  governance level Lx, appropriate number of level of software architecture, 
+code graph, modularity maturity  
+Table V, Table V I. 
+true for companies with high score variations. Not true / not sensitive enough 
+for companies with similar values (~0.1 diff erence)  
+Q: insights gained from the questionnaire; E: insights gained from the expert analysis  
+
+--- Page 25 ---
+References  
+Abbes, M., Khomh, F., Guéhéneuc, Y. G., Antoniol, G., 2011. An empirical 
+study of the impact of two a ntipatterns, blob and spaghetti code, on 
+program comprehension. 15th IEEE European Conference on Software 
+Maintenance and Reengineering (CSMR), pp. 181 -190. 
+ARC Advisory Group, 2011. PLC & PLC -based PAC Worldwide Outlook: 
+Five year market analysis and tech nology forecast through 2016 . 
+Alvarez, M. L., Estévez, E., Sarachaga, I., Burgos, A., Marcos, M. , 2013. A 
+novel approach for supporting the development cycle of automation 
+systems. The International Journal of Advanced Manufacturing 
+Technology, vol. 68, pp . 711 -725. 
+Antkiewicz, M., Ji, W., Berger, T., Czarnecki, K., Schmorleiz, T., Lämme l, 
+R., Stănciulescu,  Ș., Wąsowski, A., Schaefer I., 2014. Flexible product 
+line engineering with a virtual platform. Companion Proc. of the 36th 
+Int. Conf. Softw. Eng., pp. 532 -535. 
+Avizienis, A., Laprie, J. -C., Randell, B., Landwehr, C., 2004. Basic 
+concepts and taxonomy of dependable and secure computing. IEEE 
+Trans. Dep. Sec. Comput., vol. 1, no. 1, pp. 11 –33. 
+Bonfè, M., Fantuzzi, C., Secchi, C., 2013. Design patterns for model -based 
+automation software design and implementation. Contr. Eng. Practice, 
+vol. 21, no.  11, pp. 1608 -1619 . 
+Brown, R. Malveau, S. McCormick, Mowbray, T., 1998. AntiPatterns: 
+refactoring software, architectures, and projects in crisis. John 
+Wiley & Sons, Inc.  
+Buckley, J., Mens, T., Zenger, M., Rashid, A., Kniesel, G., 2005. Towards a 
+taxonomy of software change. J. Softw. Maint. Evol.: Res. Pract., vol. 
+17, no. 5, pp. 309 -332. 
+Cunningham, W., 1992. The WyCash portfolio management system. ACM 
+Proc. Object -oriented Programming systems, languages, and 
+applications (Addendum), pp. 18 -22.  
+DFG Priority Programme, 2015. DFG SPP  1593: Design For Future – 
+Managed Software Evolution. http://www.dfg -spp1593.de/, last 
+retrieved 2015 -06-23. 
+Dhungana, D., Schreiner, H., Lehofer, M.,  Vierhauser, M., Rabiser, R., 
+Grünbacher, P., 2014. Modeling mult iplicity and hierarchy in product 
+line architectures: Extendin g a decision -oriented approach. ACM 
+Proceedings of the WICSA 2014 Companion Volume, pp. 11:1-11:6. 
+DIN EN 60204 -1, 2009. Safety of machinery – Electrical equipment of 
+machines, Part 1: General r equirements. DIN EN 60204 -1 Standard . 
+Dubey, A., 2011. Evaluating Software Engineering Methods in the Context 
+of Automation Applications. IEEE Int. Conf. on Industrial Informatics 
+(INDIN), pp. 585 – 590. 
+Durdik, Z., et al., 2012. Sustainability guidelines for long -living software 
+systems. 28th IEEE Int. Conf. on Software Maintenance (ICSM), pp. 
+517-526. 
+Eisenberg, Robert J. , 2012.  A threshold based  approach to technical debt. 
+SIGSOFT Softw. Eng. Notes , vol.  37, no. 2, p. 1-6. 
+Elsner, C., Ulbrich, P., Lohman n, P., Schröder -Preikschat, W., 2010. 
+Consistent product line configuration across file type and product line 
+boundaries. 14th International Software Product Line Conference, pp. 
+181-195. 
+Feldmann, S., Fuchs, J., Vogel -Heuser, B., 2012. Modularity, variant  and 
+version management in plant automation – future challenges and state 
+of the art.  12th Internatio nal Design Conference (DE SIGN), pp. 1689 -
+1698.  
+Feldmann , S., Hauer , F., Ulewicz , S., Vogel -Heuser , B., 2016. Analysis 
+Framework for Evaluating PLC Software : An Application of Semantic 
+Web Technologies . IEEE International Symposium on Industrial 
+Electronics  (ISIE) , pp. 1048 -1054.  
+Fischer, J., Friedrich, D., Vogel -Heuser, B., 2015. Configuration of PLC 
+software for automated warehouses based on reusable compon ents – an 
+industrial case study. 20th IEEE Int. Conf. Emerging Techn. Factory 
+Automation  (ETFA) , pp. 1 -7. 
+Hehenberger, P., Vogel -Heuser, B., Eynard, B., Horvath, I., Bradley, D., 
+Tomiyama, T., Achiche, S., 2016. Trends on Design,  Modelling, 
+Simulation and Integration of Cyber Physical Sy stems: Methods and 
+Applications . Computers in Industry , to appear .  
+IEC 61131 -3, 1990. Programmable Logic Controllers – Part 3: 
+Programming Languages. IEC Standard 61131 -3. 
+IEC 61499 -1, 2005. Function Blocks Part 1: Architec tures. IEC Standard 
+61499 -1. 
+IEEE Std 610.12 -1990 , 1990 . IEEE Standard Glossary of Software 
+Engineering Terminology. IEEE Std 610.12 -1990, pp.1 -84. 
+ISA-TR88.00.02 -2008, 2008. Machine and Unit States: An Implementation 
+Example of ISA -88. 
+ISO/IEC 9126 -1, 200 1. Software engineering – product quality  – part 1: 
+Quality model . ISO/IEC standard.  Jaeger, T., Fay, A., Wagner, T., Loewen, U., 2011. Mining technical 
+dependencies throughout engineering process knowledge.  16th IEEE 
+Int. Conf. Emerging Techn. Factory Au tomation (ETFA), p. 1 -7. 
+Katzke, U., Vogel -Heuser, B., Fischer, K., 2004. Analysis and state of the 
+art of modules in industrial automation. atp international, vol. 46, no. 1, 
+pp. 23 -31. 
+Lettner, D., Petruzelka, M., Rabiser, R., Angerer, F. Prähofer, H., 
+Grünbacher, P., 2013. Custom -developed vs. model -based 
+configuration tools: experiences from an industrial automation 
+ecosystem. Proceedings of the 17th International Software Product 
+Line Conference co -located workshops, pp. 52 -58. 
+Lettner, D., Eder, K., G rünbacher, P., Prähofer, H.,  2015. Feature modeling 
+of two large -scale industrial software systems: Ex periences and lessons 
+learned. 18th ACM/IEEE International Conference on Model Driven 
+Engineering Languages and Systems  (MODELS) , pp. 386 -395.  
+Lenze, 201 6. Electronics Cam. http://www.lenze.com/en/drivesolutions/  
+electronic -cam/ , last retrieved 2016 -04-05. 
+Li, Z., Liang, P., Avgeriou, P. , Guelfi, N., Ampatzoglou, A., 2014. An 
+empirical investigation of modularity metrics for indicating 
+architectural techni cal debt.   10th Int.  ACM Sigsoft Conf., 
+Seinturier,L., Bures,T., McGregor, J. (Eds.),  Marcq -en-Bareul, France, 
+pp. 119–128. 
+Li, Z., Avgeriou, P., Liang, P., 2015. A systematic mapping study on 
+technical debt and its management. Journal of Systems and Softw are, 
+vol. 101, pp.  193–220. 
+Lüder, A., Klostermeyer, A., Peschke, J., Bratoukhine, A., Sauter, T., 2005. 
+Distributed automation: PABADIS versus HMS. IEEE Trans. Ind. 
+Inform., vol. 1, no. 1, pp. 31 -38. 
+Maga, C., Jazdi, N., Göhner, P., 2011. Requirements on engineering tools 
+for increasing reuse in industrial automation. 16th IEEE Int. Conf. 
+Emerging Techn. Factory Automation.  
+Marinescu, R. 2012. Assessing technical debt by identifying design flaws in 
+software systems. IBM J. Res. & Dev., vol. 56,  no. 5, pp. 9:1-9:13.  
+McFarlane, D. C., Bussmann, S., 2000. Developments in holonic 
+production planning and control. Production Planning and Control, vol. 
+11, no. 6, pp. 522 -536.  
+Mendonca, M., Cowan, D., 2010. Decision -making coordination and 
+efficient reasoning tech niques for feature -based configuration. Sci. 
+Comput. Program., vol. 75, no. 5, pp. 311 -332. 
+Meyer, B., 1988. Object -oriented software construction, vol. 2. Prentice 
+Hall New York.  
+Nugroho, A., Visser, J., Kuipers, T., 2011. An empirical model of technical 
+debt and interest. ACM Proceedings of the 2nd Workshop on 
+Managing Technical Debt, pp. 1 -8. 
+OMAC Packaging Workgroup, 2015. Guidelines for Packaging Machinery 
+Automation Version 3.1. http://www.infoplc.net/  
+files/documentacion/estandar_programacion/infoplc _net_opw_guidelin
+es_v3_0.pdf , last retrieved 2015 -06-24. 
+Paulk, M. C., Curtis, B., Chrissis, M. B., Weber, C. V., 1993.  Capability 
+maturity model, version 1.1. IEEE Software , vol. 10, no. 4, pp. 18 -27. 
+doi: 10.1109/52.219617.  
+Prähofer, H., Angerer, F., Ra mler, R., Lacheiner, H., Grillenberger, F., 
+2012. Opportunities and challenges of static code analysis of IEC 
+61131 -3 programs. 17th IEEE Int. Conf. Emerging Techn. Factory 
+Automation (ETFA), pp. 1 -8. 
+Rabiser, R., Grünbacher, P., Lehofer, M., 2012. A quali tative study on user 
+guidance capabilities in product configuration tools. 27th IEEE/ACM 
+Int. Conf. Autom. Softw. Eng., pp. 110 -119. 
+Rabiser, R., Vierhauser, R., M., Grünbacher, P., Dhungana, D., Schreiner, 
+H., Lehofer, M., 2014. Supporting Multiplicity an d Hierarchy in 
+Model -Based Configuration: Experiences and Lessons Learned. in 
+Model -Driven Engineeri ng Languages and Systems , Dingel, J. et al. 
+(Eds.), Berlin: Springer International Publishing, pp. 320 -336. 
+Rothenburger, S., 2015. Standardisierung und Mod ularität als 
+Voraussetzung für erfolgreiches Testen am Beispiel OpCon Control 
+Plus. in Testen in der Automatisierungstechn ik vom Gerät bis zur 
+Anlage, Vogel -Heuser,  B. (Ed.), pp. 82 -93. 
+Runeson, P., Höst, M., Rainer, A., Regnell, B. , 2012. Case Study Resea rch 
+in Software Engineering: Guidelines and Examples.  Wiley.  
+Rzevski, G., 2003. On conceptual design of intelligent mechatronic 
+systems. Mechatronics, vol. 13, no. 10, pp. 1029 -1044.  
+Simon, T., Vogel -Heuser, B., Fischer, J. , 2016.  Variability Management fo r 
+Automated Production Systems Using Product Lines and Feature 
+Mode ls. IEEE International Confe rence on Industrial Informatics.  
+Sjoberg, D. I., Yamashita, A., Anda, B. C. D., Mo ckus, A., Dyba, T., 2013. 
+Quantifying the effect of code smells on maint enance effort. IEEE 
+Trans. on Softw. Eng. , vol. 39, no. 8, pp. 1144 -1156.  
+
+--- Page 26 ---
+Thramboulidis, K., 2010. The 3+1 SysML View -Model in Model Integrated 
+Mechatronics. J. Softw. Eng. Applic., vol. 3, no. 2, pp. 109 -118. 
+Thramboulidis, K., 2013. IEC 61499 as an Enabler of D istributed and 
+Intelligent Automation: A State -of-the-Art Review —A Different View . 
+J. Eng., vol. 2013 , Article ID 638521 . 
+Trentesaux, D., Pach, C., Bekrar, A., Sallez, Y., Berger, T., Bonte, T., 
+Leitão, P., Barbosa, J., 2013. Benchmarking flexible job -shop  
+scheduling and control systems. Control Engineering Practice, vol. 21, 
+no. 9, pp. 1204 -1225.  
+Utting, M., Pretschner, A., Legeard, B., 2012. A taxonomy of model -based 
+testing approaches. Softw. Testing, Verif. Reliab., vol. 22, pp. 297 –
+312. 
+Vogel -Heuser, B ., 2009. Visionen für das Engineering der 
+Automatisierungstechnik 2020  [Visions of Automation Engineering in 
+2020 ]. Automatisierungstechnische Praxis (atp), vo l. 51, no. 5, pp. 2 -9. 
+Vogel -Heuser, B., Diedrich, C., Fay, A., Jeschke, S., Kowalewski, S., 
+Woll schlaeger, M., Göhner, P., 2014. Challenges for software 
+engineering in automation. J. Softw. Eng. Applic., vol. 7, no. 5, pp. 
+440-451. 
+Vogel -Heuser, B., Diedrich, C., Pantförder, D., Göhner, P., 2014a. 
+Coupling heterogeneous production systems by a multi -agent based 
+cyber -physical production system. 12th IEEE Int. Conf. on Industrial 
+Informatics (INDIN) , pp. 713 -719. 
+Vogel -Heuser, B., Rösch, S., 2015. Applicability of Technical Debt as a 
+Concept to Understand Obstacles for  Evolution of Automated 
+Produc tion Systems. IEEE Int. Conf.  Systems, Man, and Cybernetics 
+(SMC), pp. 127 -132. 
+Vogel -Heuser, B., Fay, A., Schäfer, I., Tichy, M., 2015 a. Evolution of 
+software in automated production systems - Challenges and Research 
+Directions. Journal of Systems and Softwar e, vol. 110, p. 54 -84.  
+Vogel -Heuser, B., Fischer, J., Rösch, S., Feldmann, S., Ulewicz, S., 2015 b. 
+Challenges for Maintenance of PLC -Software and Its Related 
+Hardware for Automated Production Systems: Selected Industrial Case 
+Studies. 31st IEEE Int. Conf.  on Software Maintenance and Evolution 
+(ICSME) , pp. 362 -371. 
+Vogel -Heuser, B., Feldmann, S., Folmer, J., Ladiges, J., Fay, A., Lity, S., 
+Tichy, M., Kowal, M., Schaefer, I., Haubeck, C., Lamersdorf, W., 
+Kehrer, T., Getir, S., Ulbrich, M. , Klebanov, V., Beck ert, B., 2015c.  
+Selected challenges of software evolution for automated production 
+systems , International Conference on Industrial Informatics (INDIN).  
+Vogel -Heuser, B., Hess, D., 2016. Guest Editorial Industry 4.0 – 
+Prerequisites and Visions. IEEE Trans. Automation Sci. and Eng. (T -
+ASE), vol. 13, no.2, pp. 411 - 413. 
+Vyatkin, V., 2011. IEC 61499 as Enabler of Distributed and Intelligent 
+Automation: State -of-the-Art Review. IEEE Trans. Ind. Inform., vol.  7, 
+no. 4, pp. 768 -781. 
+Werner, B., 2009. Object -orient ed Extensions for IEC 61131 -3. IEEE 
+Industrial Electronics Magazine, vol. 3, no. 4, pp. 36 -39.  
+Yamashita, A., Moonen, L., 2012. Do code smells reflect important 
+maintainability aspects?. 28th IEEE International Conference on 
+Software Maintenance (ICSM), p p. 306-315. 
+Yin, R. K., 2013. Case study research: Design and methods . Sage 
+publications.  
+Zhabelova, G., Vyatkin, V., 2015. Towards software metrics for evaluating 
+quality of IEC 61499 automation software. 20th IEEE Int. Conf. 
+Emerging Techn. Factory Auto mation (ETFA).  
+Zoitl, A., Prähofer, H., 2013. Guidelines and Patterns for Building 
+Hierarchical Automation Solutions in the IEC 61499 Modeling 
+Language. IEEE Trans. Ind. Inform. , vol. 9, no. 4, pp.  2387 -2396.  
+ 
+Appendix  A 
+In the following , the questions fro m the modularity ques-
+tionnaire  are provided , which were evaluated for the compa-
+nies’ profile lines ( cp. radar  diagrams  in Fig. 14a-c). After-
+wards additional questions, which were evaluated  manually , 
+are listed : 
+General descriptive information (not included  in maturity 
+calculation)  besides #14 for complexity  
+1. How many  engineers and technicians are involved in the 
+development projects ? 
+2. How many  engineers  and technicians work on -site? 
+3. How many  programmers are employed in the IT 
+department ? 4. What number of start -up personnel is employed in the 
+department?  
+5. How many  programmers are on-site (at customer ’s 
+premises) ? 
+6. How many employees are involved in on-site start-up (at 
+customer’s premises) ? 
+7. How many p rogrammers are there per 
+application /machine ? 
+8. How many s tart-up employees are there per 
+application/machine ? 
+9. Number of CPUs per machine/plant?  
+10. Are thes e CPUs PC -based?  
+11. What is the scale of the main applications created in your 
+company?   
+12. What is the s cope of an application: lines of code?  
+13. What is the s cope of an applica tion: number of 
+components ? 
+14. Measure for  complexity calculated as  0.5 (CPUs + 
+programmer ) 
+Sub items included in modularity maturity calculation  
+(MMOD) 
+15. How is the in -house cooperation  arranged?  
+16. Which documents are exchange d during  a development  
+project?  
+17. How is the development project documented ? 
+18. Who started  the initiative to use modularization?  
+19. What is modular ized?  
+20. Is continuous integration used?  
+21. If yes, what is the tool chain you use?  
+22. What programming languages are used in your 
+company?  
+23. How often  are library  components  used?  
+24. Please briefly describe the release procedure of library 
+components.  
+25. How is the decision to form new variants  made?  
+26. Is your company using a tool for version management?  
+27. How are changes  for versions  in your company  tracked ?  
+28. How often is code generation from EPLAN or other 
+engineering tools  applied?  
+29. Which tools/models are used for code generation in your 
+company?  
+30. Are projects configured automatically from libraries 
+based on templates?  
+Sub items included in quality and testing maturity 
+calcu lation  (MTEST) 
+31.  Are there any quality gates before adding a new library 
+component ? 
+32. What quality assurance meas ures are used in your 
+company?  
+33. What scenarios are tested or what requirements have to 
+be met by the created tests?  
+34. How is the software tested?  
+35. Are simulations used for testing?  
+Sub items included in start -up, operation and 
+maintenance maturity calculation  (MOP) 
+36. Is the start-up of the machine/plant done on -site by the 
+designer /programmer ? 
+37. How is the delivery to the customer conducted?  
+38. How are updates  installed?  
+39. Does the service department know the current 
+customer’s software status on -site? 
+
+--- Page 27 ---
+Manually evaluated questions  from the questionnaire 
+(not included in company profile lines  because of 
+insufficient answers ) 
+40. How long does a typical start -up proces s take?  (MOP) 
+41. How  are new elements added to libraries?  – related 
+additional text to #24  
+42. Please describe the release procedure of a library 
+element (from implementation/programming of the 
+element to its library integration)  – related additional text 
+to #24  
+43. By whom is the start -up of the machine/plant done on -
+site otherwise?  (MOP) 
+44. On which level of the software do you use which 
+programming language?  (general)  
+45. Which are the most critical technical tasks  to be 
+automatically controlled in your applications?  (general) 
+ 
+Appendix B  
+This section provides excerpts of a typical PLC software 
+for controlling an industrial machine or plant  (as regarded in 
+the evaluation presented within this paper) . As an exemplary 
+facility module, the laboratory production system MyJoghu rt 
+(Vogel -Heuser et al., 2014a) with two of its application mod-
+ules, i.e. filling station and preparation/tank control is used 
+(cp. Fig. B -1 and B -2). 
+The excerpts include aspects such as instantiation of basic 
+and application modules  and the module hierar chy (see Fig. 1 
+for a hierarchy of architectural levels ). Furthermore, action s 
+of an application module and  of a basic module are presented 
+and exemplary implementations of an application module 
+and a PLC program are given. Finally, the call hierarchy of a  
+POU is depicted for the case that an emergency stop is de-
+tected and the operation mode changes to “emer gency_stop ”. 
+ 
+ 
+Fig. B -1. Filling station with storage modules and separators  
+ 
+ 
+Fig. B-2. Tank with upper and lower filling level sensors, valve and pu mp 
+(Hehenberger et al., 2016)  
+ 
+ 
+ 
+ 
+ 
+Fig. B -4. Excerpt of the demonstrator’s call hierarchy  
+ 
+Fig. B-5. Call hierarchy of application module preparation and tank control  
+in operation mode emergency stop  
+ 
+
+--- Page 28 ---
+ 
+Fig. B -6. Initialization of a pplication modules , which are called by the main 
+program  
+ 
+ 
+Fig. B-7. Excerpt of the implementation of the main progra m calling the 
+realized operation modes for the main program, setup, automatic, reinit, 
+emergency_stop and au tomatic  
+ 
+ Fig. B-8. Declaration part of the application module preparation and tank 
+control  including the instantiation of its base modules. The valve function 
+block is used several times.  
+ 
+ 
+Fig. B - 9. Implementation part of the application module preparation and 
+tank control  calling the realized operation modes  
+ 
+Fig. B-10. In contrast to the application module  filling station  the base 
+module valve does not implement modes  of operat ion
+ 
+ 
+Fig. B-3. State model  of application module prepara tion and tank c ontrol  depicting the operation mode emergency_stop in relation to the other operation 
+modes  

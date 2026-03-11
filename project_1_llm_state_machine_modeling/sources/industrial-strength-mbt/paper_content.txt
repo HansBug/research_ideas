@@ -1,0 +1,1000 @@
+--- Page 1 ---
+A. Petrenko, H. Schlinglo (Eds.): Eighth Workshop on
+Model-Based Testing (MBT 2013)
+EPTCS 111, 2013, pp. 3{28, doi:10.4204/EPTCS.111.1cJan Peleska
+This work is licensed under the
+Creative Commons Attribution License.Industrial-Strength Model-Based Testing - State of
+the Art and Current Challenges
+Jan Peleska
+University of Bremen, Department of Mathematics and Computer Science, Bremen, Germany
+Veried Systems International GmbH, Bremen, Germany
+jp@informatik.uni-bremen.de
+As of today, model-based testing (MBT) is considered as leading-edge technology in industry.
+We sketch the dierent MBT variants that { according to our experience { are currently
+applied in practice, with special emphasis on the avionic, railway and automotive domains.
+The key factors for successful industrial-scale application of MBT are described, both from
+a scientic and a managerial point of view. With respect to the former view, we describe the
+techniques for automated test case, test data and test procedure generation for concurrent
+reactive real-time systems which are considered as the most important enablers for MBT in
+practice. With respect to the latter view, our experience with introducing MBT approaches
+in testing teams are sketched. Finally, the most challenging open scientic problems whose
+solutions are bound to improve the acceptance and eectiveness of MBT in industry are
+discussed.
+1 Introduction
+1.1 Model-Based Testing
+Following the denition currently given in Wikipedia1
+\Model-based testing is application of Model based design for designing and optionally
+also executing artifacts to perform software testing. Models can be used to represent
+the desired behavior of an System Under Test (SUT), or to represent testing strategies
+and a test environment."
+In this denition only software testing is referenced, but it applies to hardware/software
+integration and system testing just as well. Observe that this denition does not require that
+certain aspects of testing { such as test case identication or test procedure creation { should be
+performed in an automated way: the MBT approach can also be applied manually, just as design
+support for testing environments, test cases and so on. This rather unrestricted view on MBT is
+consistent with the one expressed in [2], and it is reected by today's MBT tools ranging from
+graphical test case description aides to highly automated test case, test data and test procedure
+generators. Our concept of models also comprises computer programs, typically represented by
+per-function/method control ow graphs annotated by statements and conditional expressions.
+Automated MBT has received much attention in recent years, both in academia and in in-
+dustry. This interest has been stimulated by the success of model-driven development in general,
+by the improved understanding of testing and formal verication as complementary activities,
+The author's research is funded by the EU FP7 COMPASS project under grant agreement no.287829
+1http://en.wikipedia.org/wiki/Model-based_testing , (date: 2013-0211).
+
+--- Page 2 ---
+4 Industrial-Strength Model-Based Testing
+and by the availability of ecient tool support. Indeed, when compared to conventional test-
+ing approaches, MBT has proven to increase both quality and eciency of test campaigns; we
+name [21] as one example where quantitative evaluation results have been given.
+In this paper the term model-based testing is used in the following, most comprehensive,
+sense: the behaviour of the system under test (SUT) is specied by a model elaborated in the
+same style as a model serving for development purposes. Optionally, the SUT model can be
+paired with an environment model restricting the possible interactions of the environment with
+the SUT. A symbolic test case generator analyses the model and species symbolic test cases as
+logical formulas identifying model computations suitable for a certain test purpose. Constrained
+by the transition relations of SUT and environment model, a solver computes concrete model
+computations which are witnesses of the symbolic test cases. The inputs to the SUT obtained
+from these computations are used in the test execution to stimulate the SUT. The SUT behaviour
+observed during the test execution is compared against the expected SUT behaviour specied in
+the original model. Both stimulation sequences and test oracles , i. e., checkers of SUT behaviour,
+are automatically transformed into test procedures executing the concrete test cases in a model-
+in-the-loop, software-in-the-loop, or hardware-in-the-loop conguration.
+According to the MBT paradigm described here, the focus of test engineers is shifted from
+test data elaboration and test procedure programming to modelling. The eort invested into
+specifying the SUT model results in a return of investment, because test procedures are generated
+automatically, and debugging deviations of observed against expected behaviour is considerably
+facilitated because the observed test executions can be \replayed" against the model. Moreover,
+V&V processes and certication are facilitated because test cases can be automatically traced
+against the model which in turn reects the complete set of system requirements.
+1.2 Objectives of this Paper
+The objective of this paper is to describe the capabilities of MBT tools which { according
+to our experience { are t for application in today's industrial scale projects and which are
+essential for successful MBT application in practice. The MBT application eld considered here
+is distributed embedded real-time systems in the avionic, automotive and railway domains. The
+description refers to our tool RT-Tester2for illustrating several aspects of MBT in practice,
+and the underlying methods that helped to meet the test-related requirements from real-world
+V&V campaigns. The presentation is structured according to the MBT researchers' and tool
+builders' perspective: we describe the ingredients that, according to our experience, should be
+present in industrial-strength test automation tools, in order to cope with test models of the sizes
+typically encountered when testing embedded real-time systems in the automotive, avionic or
+railway domains. We hope that these references to an existing tool may serve as \benchmarking
+information" which may motivate other researchers to describe alternative methods and their
+virtues with respect to practical testing campaigns.
+2The tool has been developed by Veried Systems International in cooperation with the author's team at the
+University of Bremen. It is available free of charge for academic research, but commercial licenses have to be
+obtained for industrial application. Some components (e.g., the SMT solver) will also become available as open
+source.
+
+--- Page 3 ---
+Jan Peleska 5
+1.3 Outline
+In Section 2 a tool introduction is given. In Section 3, MBT methods and challenges related
+to modelling are discussed. Section 4 introduces a formal view on requirements, test cases and
+their traceability in relation to the test model. It also discusses various test strategies and their
+justication. A case study illustrating various points of our discussion of MBT is described in
+Appendix A. Section 5 presents the conclusion. We give references to alternative or competing
+methods and tools along the way, as suitable for the presentation.
+2 A Reference MBT Tool
+RT-Tester supports all test levels from unit testing to system integration testing and provides
+dierent functions for manual test procedure development, automated test case, test data and
+test procedure generation, as well as management functions for large test campaigns. The typ-
+ical application scope covers (potentially safety-critical) embedded real-time systems involving
+concurrency, time constraints, discrete control decisions as well as integer and oating point
+data and calculations. While the tool has been used in industry for about 15 years and has
+been qualied for avionic, automotive and railway control systems under test according to the
+standards [33, 20, 38], the results presented here refer to more recent functionality that has been
+validated during the last years in various projects from the transportation domains and are now
+made available to the public.
+The starting point for MBT is a concrete test model describing the expected behaviour of
+the system under test (SUT) and, optionally, the behaviour of the operational environment to be
+simulated in test executions by the testing environment (TE) (see Fig. 1). Models developed in a
+specic formalism are transformed into some textual representation supported by the modelling
+tool (usually XMI format). A model parser front-end reads the model text and creates an
+internal model representation (IMR) of the abstract syntax.
+A transition relation generator creates the initial state and the transition relation of the model
+as an expression in propositional logic, referring to pre-and post-states. Model transformers
+create additional reduced, abstracted or equivalent model representations which are useful to
+speed up the test case and test data generation process.
+A test case generator creates propositional formulas representing test cases built according
+to a given strategy. A satisability modulo theory (SMT) solver calculates solutions of the test
+case constraints in compliance with the transition relation. This results in concrete compu-
+tation fragments yielding the time stamps and input vectors to be used in the test procedure
+implementing the test case (and possibly other test cases as well). An interpreter simulating the
+model in compliance with the transition relation is used to investigate concrete model executions
+continuing the computation fragments calculated by the SMT solver or, alternatively, creating
+new computations based on environment simulation and random data selection. An abstract
+interpreter supports the SMT solver in nding solutions faster by calculating the minimum num-
+ber of transition steps required to reach the goal, and by restricting the ranges of inputs and
+other model variables for each state possibly leading to a solution. Finally, the test procedure
+generator creates executable test procedures as required by the test execution environment by
+mapping the computations derived before into time-controlled commands sending input data to
+the SUT and by creating test oracles from the SUT model portion checking SUT reactions on
+the y, in dependency of the stimuli received before from the TE.
+
+--- Page 4 ---
+6 Industrial-Strength Model-Based Testing
+Figure 1: Components of the RT-Tester test case/test data generator.
+3 Modelling Aspects
+3.1 Modelling Formalisms
+It is our expectation that the ongoing discussions about suitable modelling formalisms for re-
+active systems { from UML via process algebras and synchronous languages to domain-specic
+languages { will not converge to a single preferred formalism in the near future. As a con-
+sequence it is important to separate the test case and test data generation algorithms from
+concrete modelling formalisms.
+RT-Tester supports subsets of UML [24] and SysML [23] for creating test models: SUT struc-
+ture is expressed by composite structure or block diagrams, and behaviour is specied by means
+of state machines and operations (a small SysML-based case study is presented Appendix A).
+The parser front end reads model exports from dierent tools in XMI format. Another parser
+reads Matlab/Simulink models. For software testing, a further front end parses transition graphs
+of C functions.
+
+--- Page 5 ---
+Jan Peleska 7
+The rst versions of RT-Tester supported CSP [35] as modelling language, but the process-
+algebraic presentation style was not accepted well by practitioners. Support for an alternative
+textual formalism is currently elaborated by creating a front-end for CML [43], the COMPASS
+modelling language specialised on systems of systems (SoS) design, verication and validation.
+In CML, the problems preventing a wider acceptance of CSP for test modelling have been
+removed.
+Some formalisms are domain-specic and supported on customers' request: in [21] automated
+MBT against a timed variant of Moore Automata is described, which is used for modelling control
+logic of level crossing systems.
+3.2 A Sample Model
+In Appendix A a case study is presented which will be used in this paper to illustrate modelling
+techniques, test case generation and requirements tracing. The case study models the turn
+indication and emergency ashing functions as present in modern vehicles. While this study
+is just a small simplied example, a full test model of the turn indication function as realised
+in Daimler Mercedes cars has been published in [26] and is available under http://www.mbt-
+benchmarks.org .
+3.3 Semantic Models
+In addition to the internal model representation which is capable of representing abstract syntax
+trees for a wide variety of formalisms, a semantic model is needed which is rich enough to encode
+the dierent behaviours of these formalisms. As will be described in Section 4, operational
+model semantics is the basis for automated test data generation, and it is also needed to specify
+the conformance relation between test model and SUT, which is checked by the tests oracles
+generated from the model (see below).
+A wide variety of semantic models is available and suitable for test generation. Dierent
+variants of labelled transition systems (LTS) are used for testing against process algebraic models,
+like Hennessy's acceptance tree semantics [14], the failures-divergence semantics of CSP (they
+come in several variants [30]) and Timed CSP [35], the LTS used in I/O conformance test
+theory [39, 40], or the Timed LTS used for the testing theory of Timed I/O Automata [37].
+As an alternative to the LTS-based approach, Cavalcanti and Gaudel advocate for the Unifying
+Theories of Programming [15], that are used, for example, as a semantic basis for the Circus
+formalism and its testing theory [8], and for the COMPASS Modelling Language CML mentioned
+above.
+For our research and MBT tool building foundations we have adopted Kripke Structures,
+mainly because our test generation techniques are close to techniques used in (bounded) model
+checking, and many fundamental results from that area are formulated in the semantic framework
+of Kripke Structures [10]. Recall that a Kripke Structure is a state transition system K=
+(S;S0;R;L) with state space S, initial states S0S, transition relation RSSand labelling
+function L:S!P(AP) associating each state swith the set L(s) of atomic propositions p2AP
+which hold in this state. The behaviour of Kis expressed by the set of computations p=
+s0:s1:s2:::2Sw, that is, the innite sequences pof states fullling s02S0and R(si;si+1);i=
+0;1;2;:::. In contrast to LTS, Kripke Structures do not support a concept of events, these have
+to be modelled by propositions becoming true when changing from one state to a successor
+
+--- Page 6 ---
+8 Industrial-Strength Model-Based Testing
+state. For testing purposes, states s2Sare typically modelled by variable valuation functions
+s:V!Dwhere Vis a set of variable symbols xmapped by sto their current value s(x) in their
+appropriate domain (bool, int, oat, . . . ) which is a subset of D. The variable symbols are
+partitioned into V=I[O[M, where Icontains the input variables of the SUT, Oits output
+variables, and Mits internal model variables which cannot be observed during tests. Concurrency
+can be modelled both for the synchronous (\true parallelism") [7] and the interleaving variants
+of semantics [10, Chapter 10]. Discrete or dense time can be encoded by means of a variable ˆt
+denoting model execution time. For dense-time models this leads to state spaces of uncountable
+size, but the abstractions of the state space according to clock regions or clock zones, as known
+from Timed Automata [10] can be encoded by means of atomic propositions and lead to nite-
+state abstractions.
+Observe that there should be no real controversy about whether LTS or Kripke Structures
+are more suitable for describing behavioural semantics of models: De Nicola and Vaandrager [22]
+have shown how to construct property-preserving transformations of LTS into Kripke Structures
+and vice versa.
+3.4 Conformance Relations
+Conformance relations specify the correctness properties of a SUT by comparing its actual be-
+haviour observed during test executions to the possible behaviours specied by the model. A
+wide variety of conformance relations are known. For Mealy automata models, Chow used
+an input/output-based equivalence relation which amounted to isomorphism between minimal
+automata representing specication and implementation models [9]. in the domain of process
+algebras Hennessy and De Nicola introduced the relation of testing equivalence which related
+specication process behaviour to SUT process behaviour [11]. For Lotus, this concept was
+explored in depth by Brinksma [6], Peleska and Siegel showed that it could be equally well ap-
+plied for CSP and its renement relations [25], and Schneider extended these results to Timed
+CSP [34]. Tretmans introduced the concept of I/O conformance [39]. Vaandrager et. al. used
+bi-similarity as a testing relation between timed automata representing specication and im-
+plementation [37]. All these conformance relations have in common, that they are dened on
+the model semantics, that is, as relations between computations admissible for specication and
+implementation, respectively.
+Conformance in the synchronous deterministic case. For our Kripke structures, a simple
+variant of I/O conformance suces for a surprisingly wide range of applications: for every trace3
+s0:s1:::snidentied for test purposes in the model, the associated test execution trace s0
+0:s0
+1:::s0
+n
+should have the same length and satisfy
+8i2f0;:::;ng:sijI[O[fˆtg=s0
+ijI[O[fˆtg
+that is, the observable input and output values, as well as the time stamps should be identical.
+This very simple notion of conformance is justied for the following scenarios of reactive
+systems testing: (1) The SUT is non-blocking on its input interfaces, (2) the most recent value
+passed along output interfaces can always be queried in the testing environment, (3) each con-
+current component is deterministic, and (4) the synchronous concurrency semantics applies. At
+3Traces are nite prexes of computations.
+
+--- Page 7 ---
+Jan Peleska 9
+rst glance, these conditions may seem rather restrictive, but there is a wide variety of practical
+test applications where they apply: many SUT never refuse inputs, since they communicate via
+shared variables, dual-ported ram, or non-blocking state-based protocols4. Typical hardware-in-
+the-loop testing environments always keep the current output values of the SUT in memory for
+evaluation purposes, so that even message-based interfaces can be accessed as shared variables
+in memory (additionally, test events may be generated when an output message of the SUT
+actually arrives in the test environment (TE). For safety-critical applications the control deci-
+sions of each sequential sub-component of the SUT must be deterministic, so that the concept
+ofmay tests [14], where a test trace may or may not be refused by the SUT does not apply. As a
+consequence, the complexity and elegance of testing theories handling non-deterministic internal
+choice and associated refusal sets and unpredictable outputs of the SUT are not applicable for
+these types of systems. Finally, synchronous systems are widely used for local control appli-
+cations, such as, for example, PLC controllers or computers adhering to the cyclic processing
+paradigm.
+In RT-Tester this conformance relation is practically applied, for example, when testing
+software generated from SCADE models [12]: the SCADE tool and its modelling language
+adhere to the synchronous paradigm. The software operates in processing cycles. Each cycle
+starts with reading input data from global variables shared with the environment; this is followed
+by internal processing steps, and the output variables are updated at the end of the cycle. Time
+ˆtis a discrete abstraction corresponding to a counter of processing cycles.
+Conformance in presence of non-determinism. For distributed control systems the syn-
+chronous paradigm obviously no longer applies, and though single sequential SUT components
+will usually still act in a deterministic way, their outputs will interleave non-deterministically
+with those of others executing in a concurrent way. Moreover, certain SUT outputs may change
+non-deterministically over a period of time, because the exact behavioural specication is un-
+available. These aspects are supported in RT-Tester in the following ways.
+All SUT output interfaces yare associated with (1) an acceptable deviation eyfrom the
+accepted value (so any observed value s0(y) deviating from the expected value s(y) by
+js0(y) s(y)jeis acceptable), (2) an admissible latency d0
+y(so any observed value s0(y)
+for the expected value s(y) is not timed out as long as s0(ˆt) s(ˆt)d0
+y, and (3) an acceptable
+time d1
+yfor early changes of y(sos(ˆt) s0(ˆt)d1
+yis still acceptable).
+A time-bounded non-deterministic assignment statement y = UNDEF(t,c) stating that y's
+valuation is arbitrary for a duration of ttime units, after which it should assume value c
+(with an admissible deviation and an admissible delay).
+A model transformation turning the SUT model into a test oracle: it
+{extends the variable space by one additional output variable y0per SUT output y2O,
+{adds one concurrent checker component Oyper SUT output signal, operating on y
+andy0,
+{adds one concurrent component Pprocessing the timed input output trace as ob-
+served during the test execution, with observed SUT outputs written to y0(instead
+ofy),
+4In the avionic domain, for example, the sampling mode of the AFDX protocol [1] allows to transmit messages
+in non-blocking mode, so that the receiver always reads the most recent data value.
+
+--- Page 8 ---
+10 Industrial-Strength Model-Based Testing
+c0
+c1. . . c0c01c1[x>0]/y=y+x;a=2⇤y;[x>0]/y=y+x;. . . [z== 1]/a= 0;[z0== 1]/a= 0;x:i n p u ty, z: SUT model outputsy0,z0: observed SUT outputsa: internal model variableCiCi
+[|y0 y|"y]/a=2⇤y;
+Figure 2: Example of original SUT component Ciand transformed component Ci.
+{transforms each concurrent SUT component CiintoCi.
+This is described in more detail in the next paragraphs.
+The transformed SUT components Cioperate as sketched in the example shown in Fig. 2.
+Every write of Cito some output yis performed in Cias well, Cihowever, waits for the corre-
+sponding output value y0observed during test execution to change until it ts to the expected
+value of y(guard condition jy0 yje). This helps to adjust to small admissible delays of in
+the expected change of y0observed in the test: the causal relation \ ais written after yhas been
+changed is preserved in this way. If Ciuses another output z(written, for example, by a concur-
+rent component Cj) in a guard condition, it is replaced by variable z0containing the observed
+output during test execution. This helps to check for correctness of relative time distances like
+\output wis written 10ms after zhas been changed", if the actual output on z0is delayed by an
+admissible amount of time.
+The concurrent test oracles Oyoperate as shown in Fig. 3: If some component Ciwrites to
+an expected output y, the oracle traverses into control state s2. If the corresponding observed
+output y0is also adjusted in P, such thatjy0 yjeyholds before d0
+ytime units have elapsed,
+the change to y0is accepted and the oracle transits to s0. Otherwise the oracle transits into the
+error state. If the observed value changes unexpectedly above threshold ey, the oracle changes
+into location s3. If the expected value yalso changes shortly afterwards, this means that the
+SUT was just some admissible time earlier than expected according to the model, and the change
+is monitored via state s2as before. If y, however, does not change for at least d1
+ytime units, we
+have uncovered an illegal output change of the SUT and transit into the error state.
+A test execution (that is, an input/output trace) performed with the SUT conforms to the
+model if and only if the transformed model accepts the test execution processed by Pin the
+sense that none of the oracles transits into an error state. RT-Tester uses this conformance
+
+--- Page 9 ---
+Jan Peleska 11
+s0s1errors2s3after(t)[y6=y0]/y0=y;[|y y0|>"y^y=y0]
+[y6=y0]/y0=y;after( 1y)after( 0y)y: expected valuey0: last expected valuey0: observed value"y: admissible deviation fory 0y: admissible latency fory 1y: admissible time for early changes ofy0 1y< 0yUNDEF(t, c)/y=c;[|y y0|"y]
+Figure 3: Test oracle component observing one SUT output interface y.
+relation for hardware-in-the-loop system testing, as, for example, in the tests of the automotive
+controller network supporting the turn indication function in Daimler Mercedes vehicles [26].
+3.5 Test-Modelling Related Challenges
+With suitable test models available, test eciency and test quality are improved in a considerable
+way. The elaboration of a model, however, can prove to be a major hurdle for the success of
+MBT in practice.
+1. If complex models have to be completed before testing can start, this induces an unac-
+ceptable delay for the proper test executions.
+2. For complex SUT, like systems of systems, test models need to abstract from a large amount
+of detail, because otherwise the resulting test model would become unmanageable.
+3. The required skills for test engineers writing test models are signicantly higher than for
+test engineers writing sequential test procedures.
+We expect that problem 1 will be solved in the future by incremental model development,
+where test suites with increasing coverage and error detection capabilities can be run between
+model increments. The current methods based on sequential state machines as described by
+[41] may be extended to partially automated approaches where test model designers provide {
+apart from interface descriptions { initial architectural frames and suggestions for internal state
+variables, and automated machine learning takes these information into account. Furthermore,
+the explicit state machine construction may be complemented by incremental elaboration of
+transition relations: as pointed out by [27] for the purpose of test data generation, concurrent
+
+--- Page 10 ---
+12 Industrial-Strength Model-Based Testing
+real-time models with complex state space are often better expressed by means of their transition
+relation than by explicit concurrent state machines. Promising attempts to construct test models
+in an incremental way from actual observations obtained during SUT simulations or experiments
+with the actual SUT indicate that test model development can prot from \re-engineering" SUT
+properties or model fragments from observations [29].
+The problem of model complexity can be overcome by introducing contracts for the con-
+stituent systems of a large system of systems. This type of abstractions is investigated, for
+example, in the COMPASS project5.
+With respect to the third problem it is necessary to point out in management circles that
+competent testing requires the same skills as competent software development. So if modelling
+skills are required for model-driven software and system development, these skills are required
+for test engineers as well.
+4 Requirements, Test Cases and Trustworthy Test Strategies
+4.1 Requirements
+If a test model has been elaborated in an adequate way, it will reect the requirements to be
+tested. At rst glance, however, it may not be obvious to identify the model portions contributing
+to a given requirement. Formally speaking, a requirement is reected by certain computations
+p=s0:s1:s2:::of the model. Computations can be identied, for example, by some variant of
+temporal logic, and we use Linear Temporal Logic (LTL) [10, Chapter 3] for this purpose6.
+Consider, for example, requirement REQ-001 (Flashing requires sucient voltage) from the
+sample application specied in Appendix A, Table 1. It can be readily expressed in LTL as
+G(Voltage80)X(:(FlashLeft_FlashRight) UVoltage >80)) (1)
+This is a black-box specication: it only refers to input and output interfaces of the SUT
+and is valid without any model. With a model at hand, however, the specication can be
+slightly simplied, because the relevant SUT reactions have been captured by state machine
+OUTPUT CTRL (see Fig. 8)7.
+G(Voltage80)X(IdleUVoltage >80))
+In control state Idle the indication lights are never activated. Now the computations contributing
+toREQ-001 are exactly the ones nally fullling the premise Voltage 80, where the eect of
+the requirement may become visible, that is,
+F(Voltage80)
+It is unnecessary to specify the eects of the requirement in this formula, because we are only
+considering valid model computations, and the eect is encoded in the model.
+5http://www.compass-research.eu
+6Recall that LTL uses 4 path operators: Gf(globally f) states that fholds in every state of the computation.
+Ff(nally f) states that fholds in some computation state. Xfstates that fholds in the next state following
+the computation state under consideration. fUystates that nally ywill hold in a computation state and f
+ll hold in all previous states (if any).
+7Control states are encoded as Boolean variables in the model state space, Idle =true means that state machine
+OUTPUT CTRL is in control state Idle.
+
+--- Page 11 ---
+Jan Peleska 13
+Observe that the application of LTL to characterise model computations associated with
+a requirement diers from its utilisation for black-box specication as in formula (1), where
+the behaviour required along those computations has to be specied in the formula, and only
+interface variables of the system may be referenced. It also diers from the application of
+temporal logics in property checking, where either all (a required property) or no computations
+(a requirements violation) of the model should full the formula.
+Referring to internal model elements frequently simplies the formulas for characterising
+computations. Requirement REQ-002 (Flashing with 340ms/320ms on-o periods), for example,
+is witnessed by all computations satisfying (see Fig.9)
+F(OFF^XON) (2)
+4.2 Requirements Tracing to the Model
+The SysML modelling formalism [23] provides syntactic means to identify requirements in the
+model. In Fig.9, for example, the transitions ON !OFF and OFF!ON realise the ashing
+period specied by REQ-002 . This is documented by means of the «satisfy »relation drawn
+from the transitions to the requirement. The interpretation of this relation is that every model
+computation nally covering one of the two transitions or both contributes to the requirement.
+Since computations cover OFF !ON if and only if they full F(OFF^XON), the «satisfy »
+relation from ON !OFF to REQ-002 is redundant. Other examples for such simple relationships
+between model elements an requirements are shown in the state machine depicted in Fig 7.
+Formally speaking, these simple relationships are of the type
+FhState Formulai (3)
+where the state formula expresses the condition that a model element related to the requirement
+is covered: for REQ-002 , the formula (2) can be expressed in the form (3) as
+F(OFF^(ˆt tOFF)320
+Here tOFFdenotes the timer variable that stores the current time whenever control state OFF is
+entered and ˆtis the current model execution time, so ( ˆt tOFF) expresses the fact that the relative
+time event after( 320ms) has occurred. In this case the transition OFF !ON must be taken,
+since UML/SysML state machine priority assigns higher priority to lower-level transitions: even
+if transitions FLASHING !FLASHING or FLASHING !Idle of the state machine in Fig. 8
+are enabled, transition OFF !ON has higher priority because it resides in the sub-maschine of
+FLASHING.
+Evaluations of system requirements in the automotive domain (in cooperation with Daim-
+ler) have shown that approximately 80% of requirements are reected by model computations
+satisfying
+F h_
+i=0fi!
+where the fiare state formulas, each one expressing coverage of a single model element.
+About 20% of system requirements require more complex witnesses, whose LTL specication
+involve nested path operators and state formulas referring to model elements, variable valuations
+and time. For these situations, we use constraints containing the more complex LTL formulas,
+
+--- Page 12 ---
+14 Industrial-Strength Model-Based Testing
+and the constraints are linked to their associated requirements by means of the «satisfy »relation.
+Table 2 lists the requirements of the case study captured in Table 1, and associates the constraints
+characterising the witness traces for each requirement.
+4.3 Test Cases
+Since tests must terminate after a nite number of steps, they consist of traces i=s0:::sk
+probing prexes of relevant model computations p=s0:::sk:sk+1:::. Ifpis a witness for some
+requirement Rcharacterised by LTL formula f, a suitable test case ihas to be constructed in
+a way that at least does not violate fwhile transiting through states s0:::sk, even though f
+will be violated by many possible extensions of i. This problem is well-understood from the
+eld of bounded model checking (BMC), and Biere et. al. [3, 4] introduced a step semantics
+for evaluating LTL formulas on nite model traces. To this end, expression hjik i
+istates that
+formula jholds in state siof a trace of length k+1. For the operators of LTL, their semantics
+can then be specied inductively by8
+ hGjik
+0=Vk
+i=0hjik i
+i (Gfis not violated on i=s0:::sk)
+ hXjik i
+i=hjik i 1
+i+1
+ hjUyik i
+i=hyik i
+i_(hjik i
+i^hjUyik i 1
+i+1),hFyik i
+i=htrueUyik i
+i
+Using this bounded step semantics, each LTL formula can be transformed into formulas of
+the type
+tcJ(s0)^n^
+i=0F(si;si+1)^G(s0;:::;sn+1) (4)
+which we call symbolic test cases9and which can be handled by the SMT solver. Conjunct
+J(s0) characterises the current model state s0from where the next test objective represented
+by some LTL formula fshould be covered. This formula has to be translated into a predicate
+G(s0;:::;sn+1), using the semantic rules listed above. Predicate Fis the transition relation of
+the model, and conjunctVn
+i=0F(si;si+1) ensures that the solution of G(s0;:::;sn+1) results in a
+valid trace of the model, starting from s0.
+Example 1. Consider LTL formula
+f(x=0)U(y>0^X(Gz=1))
+and suppose we are looking for a witness trace i=s0:::sn:::with a length of at least n+1or
+longer. Then the SMT solver is activated with the following BMC instances to solve.
+In step 0, try solving
+bmc 0 n^
+i=0F(si;si+1)!
+^s0(y)>0^ n+1^
+i=1si(z) =1!
+8The semantics presented in [4] has been simplied for our purposes. In [4], the authors consider possible cycles
+in the transition graph which are reachable within a bounded number of steps from s0. This is used to prove the
+existence of witnesses for formulas whose validity can only be proven on innite paths. For testing purposes, we
+are only dealing with nite traces anyway; this leads to the slightly simplied bounded step semantics presented
+here.
+9In the context of BMC, these formulas are called bounded model checking instances .
+
+--- Page 13 ---
+Jan Peleska 15
+If this succeeds we are done: the solution of bmc 0is a legal trace iof the model, since F(si;si+1)
+holds for each pair of consecutive states in i. Formula fholds on ibecause y>0is true in s0
+andz=1holds for states s1:::sn+1, so the right-hand side operand of Uis fullled in the initial
+state of this trace.
+Otherwise we try to get a witness for the following formula in step 1.
+bmc 1 n^
+i=0F(si;si+1)!
+^s0(x) =0^s1(y)>0^ n+1^
+i=2si(z) =1!
+If no solution exists we continue with step 2.
+bmc 2 n^
+i=0F(si;si+1)!
+^s0(x) =0^s1(x) =0^s2(y)>0^ n+1^
+i=3si(z) =1!
+and so on, until a solution is found or no solution of length n+1is feasible. 
+While LTL formulas are well-suited to specify computations fullling a wide variety of con-
+straints, it has to be noted that it is also capable of dening properties of computations that
+will never be tested in practice, because they can only be veried on innite computations and
+not on nite trace prexes thereof (e.g., fairness properties). It is therefore desirable to identify
+a subset of LTL formulas that are tailored to the testers' needs for specifying nite traces with
+certain properties. This subset is called SafetyLTL and has been introduced in [36]. It is suitable
+for dening safety properties of computations, that is, properties that can always be falsied on
+a nite computation prex. The SafetyLTL subset of LTL can be syntactically characterised as
+follows.
+Negation is only allowed before atomic propositions (so-called negation normal form ).
+Disjunction_and conjunction^are always allowed.
+Next operators X, globally operators Gand weakly-until operators Ware allowed10.
+Semantically equivalent formulas also belong to SafetyLTL.
+Concrete test data is created by solving constraints of the type displayed in Equation (4)
+using the integrated SMT solver SONOLAR [27]. Finally the test procedure generator takes
+the solutions calculated by the SMT solver and turns them into stimulation sequences, that is,
+timed input traces to the SUT. Moreover, the test procedure generator creates test oracles from
+the model components describing the SUT behaviour.
+In requirements-driven testing, G(s0;:::;sn+1) species traces that are witnesses of a certain
+requirement R. Indeed, Formula (4) species an equivalence class of traces that are suitable for
+testing R. In model-driven testing, G(s0;:::;sn+1) species traces that are suitable for covering
+certain portions (control states, transitions, interfaces, . . . ) of the model. In the paragraphs
+below it will be explained how requirements-driven and model-driven testing are related to each
+other.
+10Recall that the weakly-until operator is dened as fWydef(fUy)_Gf, and that the until operator can
+be expressed by fUy(fWy)^Fy.
+
+--- Page 14 ---
+16 Industrial-Strength Model-Based Testing
+4.4 Model Coverage Test Cases
+Since adequate test models express all SUT requirements to be tested, it is reasonable to specify
+and perform test cases achieving model coverage. As we have seen above, a behavioural model
+element (state machine control state, transition, operation, . . . ) is covered by a trace i=s0:::sk,
+if the element's behaviour is exercised during some transition si!si+1. For a control state c
+this means that si+1(c) =true , and, consequently, the state's entry action (if any) is executed.
+For a transition this means that its ring condition becomes true in some si. Operations fare
+covered when they are associated with actions of covered states or transitions executing f.
+There exists a wide variety of model coverage strategies, many of them are discussed in [42].
+The standards for safety-critical systems development and V&V have only recently started to
+consider the model-driven development and V&V paradigm. It seems that the avionic stan-
+dard RTCA DO-178C [32] is currently the most advanced with respect to model-based systems
+engineering. It requires to achieve operation coverage, transition coverage, decision coverage,
+and equivalence class and boundary value coverage, when verifying design models [31, Table
+MB.6-1]. Neither the standard, nor [42], however, elaborate on coverage of timing conditions
+(e.g., clock zones in Time Automata) or the coverage of execution state vectors of concurrent
+model components.
+In RT-Tester, the following model coverage criteria are currently implemented: (1) basic
+control state coverage, (2) transition coverage, MC/DC coverage, (3) hierarchic transition cov-
+erage11with or without MC/DC coverage, (4) equivalence class and boundary value coverage,
+(5) basic control state pairs coverage, (6) interface coverage and (7) block coverage.
+Basic control state pairs coverage exercises all feasible control state combinations of concur-
+rent state machines in writer-reader relationship. The equivalence class coverage technique in
+combination with basic control state pairs coverage also produces a (not necessarily complete)
+coverage of clock zones.
+Each of these coverage criteria can be specied by means of LTL formulas or, equivalently,
+BMC instances.
+Example 2. For state machine FLASH CTRL (Fig. 6), the hierarchic transition coverage is
+achieved by test cases
+tc1F(EMER OFF^EmerFlash)
+tc2F(EMER ACTIVE^TurnIndLvr6=0^
+((TurnIndLvr = 1)6= Left1_(TurnIndLvr = 2)6= Right1))
+tc3F(EMER ACTIVE^(Left1_Right1)^TurnIndLvr = 0)
+tc4F(TURN IND OVERRIDE^TurnIndLvr = 0)
+tc5F(:EmerFlash^EMER ACTIVE^
+((TurnIndLvr6=0^TurnIndLvr = Left1 _TurnIndLvr = Right1) _
+(TurnIndLvr = 0^:(Left1_Right1)))
+tc6F(:EmerFlash^TURN IND OVERRIDE^TurnIndLvr6=0)
+
+11This applies to higher-level transitions of hierarchic state machines: they are exercised several times with as
+many subordinate control states as possible.
+
+--- Page 15 ---
+Jan Peleska 17
+4.5 Automated Compilation of Traceability Data
+Having identied the test cases suitable for model coverage, these can be related to requirements
+in an automated way.
+If requirement Ris linked to model elements by «satisfy »relationships, then the test cases
+covering these elements are automatically related to R.
+If requirement Ris characterised by a LTL formula fnot directly related to model elements,
+we proceed as follows.
+{Transform finto disjunctive normal form fWm
+i=0fiand associate test cases for each
+fiseparately.
+{Each test case tcyderived from the model is related to R, ify)fiholds.
+{If test case tcyis neither stronger nor weaker than the requirement in the sense
+that y^fihas a solution, add a new test case tc0y^fiand relate tc0toR.
+{If at least one of two test cases tc1Fy1andtc2Fy2implies the requirement and
+tc0F(y1^y2) has a solution, add tc0to the test case database and trace it to R.
+Example 3. Consider requirement REQ-002 (Flashing with 340ms/320ms on-o periods) of
+the example from Table 1. It is characterised by covering transitions ON !OFF and OFF!ON
+(see Table 2). By tracing these transitions back to model coverage test cases, the following cases
+can be identied, and these trace back to REQ-002 .
+tc7F(OFF^(ˆt tOFF)320)
+tc8F(OFF^(ˆt tOFF)320^TurnIndLvr = 1)
+tc9F(OFF^(ˆt tOFF)320^TurnIndLvr = 2)
+tc10F(OFF^(ˆt tOFF)320^EMER ACTIVE)
+tc11F(OFF^(ˆt tOFF)320^TURN IND OVERRIDE)
+
+The test cases listed here are only a subset of the complete list that traces back to REQ-
+002. Test cases tc8;tc9result from combining interface coverage on SUT input TurnIndLvr
+with coverage of the OFF !ON. Cases tc10;tc11result from combining basic control state pairs
+coverage with the transition coverage. Test case tc7is redundant if any of the others is performed.
+It is quite obvious that the test case generation technique dened above runs into combinatorial
+explosion problems. Even for the small sample system discussed here, the list of test cases from
+Example 3 could be extended by
+tc12F(OFF^(ˆt tOFF)320^EMER ACTIVE^TurnIndLvr = 0)
+tc13F(OFF^(ˆt tOFF)320^EMER ACTIVE^TurnIndLvr = 1)
+tc14F(OFF^(ˆt tOFF)320^EMER ACTIVE^TurnIndLvr = 2)
+:::
+4.6 Test Case Selection According to Criticality
+It is quite obvious that the number of test cases related to a requirement can become quite vast,
+and that some of the test cases investigate more specic situations than others. This problem
+
+--- Page 16 ---
+18 Industrial-Strength Model-Based Testing
+is closely related to the problem of exhaustive testing which will be discussed below. Since an
+exhaustive execution of all test case combinations related to a requirement will be impossible
+for fair-sized systems, a justied reduction of the potentially applicable test cases to a smaller
+collection is required. In the case of safety-critical systems development, such a justication
+should conform to the standards applicable for V&V of these systems.
+In the case of avionic systems, the RTCA DO-178C standard [32] requires structural tests
+with respect to data and control coupling and full requirements coverage through testing, but
+does not specify when a requirement has been veried with a sucient number of test cases.
+Instead, the standard gives test end criteria by setting code coverage goals, the coverage to be
+achieved depending on the SUT's criticality [31, MB.C-7]: for assurance level 1 systems (highest
+criticality), MC/DC coverage has to be achieved, for level 2 decision coverage, and for level 3
+statement coverage. For levels 4 and 5, only high-level requirements have to be covered without
+setting any code coverage goals, and for assurance level 5 the requirement to test data and
+control coupling is dropped.
+As a consequence, the model-based test case coverage can be tuned according to the code
+coverage achieved, whenever the source code is available and the assurance level is in 1 | 3:
+start with basic control state coverage cases related to the requirement, increase coverage by
+adding hierarchic and MC/DC coverage test cases until the required code coverage is achieved.
+Add interface and basic control state pairs coverage cases until the data and control coupling
+coverage has been achieved as well. For levels 4 or 5, no discussion is necessary, since here any
+\reasonable" test case assignment to each high-level requirement is acceptable, due to the low
+criticality of the SUT.
+When MBT is applied on system level, however, it will generally be infeasible to measure
+code coverage achieved during system tests. For systems of systems, in particular, system-level
+tests will never cover any signicant amount of code coverage, and the coverage values achieved
+will not be obtainable in most cases, both for technical and for security reasons. Here we suggest
+to proceed as follows.
+For assurance level 3, exercise
+{interface tests { this ensures verication of data and control coupling,
+{basic control state coverage test cases,
+{rene these test cases tcyonly if requirements have stricter characterisations fi;
+in this case add tc0y^fi.
+For assurance level 2, follow the same pattern, but use transition coverage test cases.
+For assurance level 1, exercise
+{interface tests,
+{basic control state pairs coverage test cases to rene the data and control coupling
+tests (recall that these test cases stem from writer-reader analyses),
+{MC/DC coverage test cases in combination with hierarchic transition coverage,
+{rst-level renements of test cases related to requirements as illustrated in Example 3,
+{second level renements (as in test cases tc12;tc13;tc14above), if the additional con-
+juncts have direct impact on the requirement.
+Following these rules, and supposing that our sample system were of assurance level 1, the test
+cases displayed in Example 3 would be necessary. Test cases tc12;tc13;tc14, however, would not
+
+--- Page 17 ---
+Jan Peleska 19
+be required, since the TurnIndLvr has no impact on REQ-002 according to the model: the risk of
+a hidden impact of this interface on the requirement has already been taken into account when
+testing tc8;tc9.
+4.6.1 Test Strategies Proving Conformance
+An alternative for justifying test strategies consists in proving that they will nally converge
+to an exhaustive test suite establishing some conformance relation between model and SUT.
+This approach has a long tradition: one of the rst contributions in this eld was Chow's W-
+Method [9] applicable for minimal state machines, which was generalised and extended into
+many directions, so that even in the core of the exhaustive test strategy for timed automata [37]
+some argument from the W-Method is used.
+Though execution of exhaustive test suites will generally be infeasible in practice, convergence
+to exhaustive test suites ensures that new test cases added to the suite will really increase the
+assurance level by a positive amount: intuitively designed test strategies often do not possess
+this property, because additional test cases may just re-test SUT aspects already covered by
+existing ones.
+The known exhaustive strategies typically operate on nite data types (discrete events, or
+variables with data ranges that can easily be enumerated). It is an interesting research challenge
+whether similar results can be obtained in presence of large data types, if application of equiv-
+alence class partitioning is justied. In [13] the authors formalise the concept of equivalence
+class partitioning and prove that exhaustive suites can be constructed for white-box test situa-
+tions. In [18] this approach is currently generalised within the COMPASS project with respect
+to black-box testing and semantic models that are more general than the one underlying the
+results presented in [13].
+4.7 Challenges to Test Case Generation and Test Strategy Design
+The size of SoS state spaces implies that exhaustive investigation of the complete concrete state
+space will certainly be infeasible. We suggest to tackle this problem by two orthogonal strategies,
+as is currently investigated in the COMPASS project [17].
+On constituent system level, dierent behaviours associated with the same local mission
+threads12will be comprised in equivalence classes. This reduces the complexity problem
+for SoS system testing to covering combinations of classes of constituent system behaviours
+instead of sequences of concrete state vector combinations.
+On SoS system level, \relevant" class combinations are identied by means of dierent
+variants of impact analysis, such as data ow analyses or investigation of contractual
+dependencies. Behaviours of constituent systems which do not aect the relevant class
+combinations under consideration will be selected according to the principle of orthogo-
+nal arrays [28], because this promises an eective combinatorial distribution of unrelated
+behaviours exercised concurrently with the critical ones.
+Apart from size and complexity, SoS present another challenge, because they typically change
+their conguration dynamically during run-time. The dynamic adaptation of test objectives is
+12Mission threads are end-to-end tests; in the context described here, mission threads are executed on constituent
+system level.
+
+--- Page 18 ---
+20 Industrial-Strength Model-Based Testing
+particularly relevant for run-time acceptance testing of changing SoS congurations. In contrast
+to development models for SoS, however, we only have to consider bounded changes of SoS
+congurations, because every test suite can only consider a bounded number of congurations
+anyway. It remains to investigate how to determine congurations possessing sucient error
+detection strength. Results from the eld of mutation testing will help to determine this strength
+in a systematic and measurable way.
+A further problem for systems of SoS complexity is presented by the fact that not every
+behaviour can be full captured in the model, which results in under-specication and non-
+determinism. Test strategy elaboration in presence of this problem be achieved in the following
+way.
+The SoS system behaviour is structured into several top-level operational modes. It is
+expected that switching between these modes can be performed in a deterministic way for
+normal behaviour tests: it is unlikely that SoS performing operational mode changes only
+on a random basis are acceptable and \testworthy".
+Entry into failure modes is non-deterministic, but can be initiated in a deterministic way
+for test purposes by means of pre-planned failure injections.
+The behaviour in each operational mode is not completely deterministic, but can be cap-
+tured by sets of constraints governing the acceptable computations in each mode. Test
+oracles will therefore no longer check for explicit output traces of the SUT but for compli-
+ance of the traces observed with the constraints applicable in each mode.
+For test stimulation purposes the SMT solver computes sequences of feasible mode switches
+and the test data provoking these switches.
+Incremental test model elaboration can be performed by adding constraints identied dur-
+ing test observations to the modes where they are applicable. To this end, techniques from
+machine learning seem to be promising.
+Justication of test strategies will be performed by proving that they will \converge" to
+exhaustive tests proving some compliance relation between SUT and reference model.
+5 Conclusion
+In this article several aspects of industrial-strength model-based testing and its underlying meth-
+ods have been presented. A reference tool has been described, so that the presentation may serve
+as a benchmark for alternative tools capable of handling test campaigns of equal or even higher
+complexity. Readers are invited to join the discussion on suitable benchmarks for MBT tools {
+initial suggestions on benchmarking can be found in [26] { and to contribute case studies and
+models to the MBT benchmark website http://www.mbt-benchmarks.org .
+A further topic beyond the scope of this paper is of considerable importance for tool builders:
+MBT tools automating test campaigns for safety-relevant systems have to be qualied , and stan-
+dards like RTCA DO-178C [32] for the avionic domain, CENELEC EN650128 [38] for the railway
+domain, and ISO 26262 [19] for the automotive domain have rather precise policies about how
+tool qualication can be obtained. A detailed comparison between tool qualication require-
+ments of these standards is presented in [16], and it is described in [5] how tool qualication has
+been obtained for RT-Tester. We believe that the complexity of the algorithms required in MBT
+
+--- Page 19 ---
+Jan Peleska 21
+tools justies that eort is spent on their qualication, so that their automated application will
+not mask errors of the SUT due to undetected failures in the tool.
+Acknowledgements. The author would like to thank the organisers of the MBT 2013 for
+giving him the opportunity to present the ideas summarised in this paper. Special thanks go
+to Jorg Brauer, Elena Gorbachuk, Wen-ling Huang, Florian Lapschies and Uwe Schulze for
+contributing to the results presented here.
+References
+[1] AERONAUTICAL RADIO, INC. (2009): Aircraft Data Network, Part 7, Avionics Full-Duplex
+Switched Ethernet Network . AERONAUTICAL RADIO, INC., 2551 Riva Road, Annapolis, Mary-
+land 21401-7435.
+[2] Paul Baker, Oystein Haugen, Zhen Ru Dai, Clay Williams & Jens Grabowski (2008): Model-Driven
+Testing { Using the UML Testing Prole . Springer, Berlin Heidelberg.
+[3] Armin Biere, Alessandro Cimatti, Edmund M. Clarke & Yunshan Zhu (1999): Symbolic Model Check-
+ing without BDDs . In: Proceedings of the 5th International Conference on Tools and Algorithms for
+Construction and Analysis of Systems , TACAS '99, Springer-Verlag, London, UK, UK, pp. 193{207,
+doi:10.1007/3-540-49059-0 14.
+[4] Armin Biere, Keijo Heljanko, Tommi Junttila, Timo Latvala & Viktor Schuppan (2006): Linear
+Encodings of Bounded LTL Model Checking .Logical Methods in Computer Science 2(5), pp. 1{64,
+doi:10.2168/LMCS-2(5:5)2006.
+[5] J org Brauer, Jan Peleska & Uwe Schulze (2012): Ecient and Trustworthy Tool Qualication for
+Model-Based Testing Tools . In Brian Nielsen & Carsten Weise, editors: Testing Software and Systems.
+Proceedings of the 24th IFIP WG 6.1 International Conference, ICTSS 2012, Aalborg, Denmark,
+November 2012 ,Lecture Notes in Computer Science 7641, Springer, Heidelberg Dordrecht London
+New York, pp. 8{23, doi:10.1007/978-3-642-34691-0 3.
+[6] E. Brinksma (1988): A Theory for the Derivation of Tests . In S. Aggarwal & K. Sabnani, editors:
+Protocol Specication Testing and Verication VIII (PSTV `88) , pp. 63{74.
+[7] R. E. Bryant, P. Chauhan, E. M. Clarke & A. Goel (2000): A Theory of Consistency for Modular
+Synchronous Systems . In W. A. Hunt & S. D. Johnson, editors: Formal Methods in Computer-Aided
+Design (FMCAD) ,Lecture Notes in Computer Science 1954, Springer, pp. 486{504, doi:10.1007/3-
+540-40922-X 30.
+[8] A. L. C. Calvalcanti & M.-C. Gaudel (2011): Testing for Renement in Circus .Acta Informatica
+48(2), pp. 97{147, doi:10.1007/s00236-011-0133-z.
+[9] Tsun S. Chow (1978): Testing Software Design Modeled by Finite-State Machines .IEEE Transactions
+on Software Engineering SE-4(3), pp. 178{186, doi:10.1109/TSE.1978.231496.
+[10] Edmund M. Clarke, Orna Grumberg & Doron A. Peled (1999): Model Checking . The MIT Press,
+Cambridge, Massachusetts.
+[11] R. De Nicola & M. Hennessy (1984): Testing Equivalences for Processes .Theoretical Computer
+Science 34, pp. 83{133, doi:10.1016/0304-3975(84)90113-0.
+[12] Esterel Technologies: SCADE Suite Product Description .http://www.estereltechnologies.com .
+[13] Wolfgang Grieskamp, Yuri Gurevich, Wolfram Schulte & Margus Veanes (2002): Generating Finite
+State Machines from Abstract State Machines .ACM SIGSOFT Software Engineering Notes 27(4),
+pp. 112{122, doi:10.1145/566171.566190.
+[14] M. Hennessy (1988): Algebraic Theory of Processes . MIT Press, Cambridge, Massachusetts, London.
+
+--- Page 20 ---
+22 Industrial-Strength Model-Based Testing
+[15] C. A. R. Hoare & H. Jifeng (1998): Unifying Theories of Programming . Prentice-Hall.
+[16] Wen ling Huang, Jan Peleska & Uwe Schulze (2013): Test Automation Support . Technical Report
+D34.1, COMPASS Comprehensive Modelling for Advanced Systems of Systems.
+[17] Wen ling Huang, Jan Peleska & Uwe Schulze (to appear 2014): Specialised Test Strategies . Technical
+Report D34.2, COMPASS Comprehensive Modelling for Advanced Systems of Systems.
+[18] Wen-ling Huang & Jan Peleska (2012): Specialised Test Strategies . Public Document, COMPASS
+Comprehensive Modelling for Advanced Systems of Systems.
+[19] (2009): Road Vehicles - Functional Safety - Part 8: Supporting Processes . Technical Report, Inter-
+national Organization for Standardization. ICS 43.040.10.
+[20] ISO/DIS 26262-4 (2009): Road vehicles { functional safety { Part 4: Product development: system
+level. Technical Report, International Organization for Standardization.
+[21] Helge Loding & Jan Peleska (2010): Timed Moore Automata: Test Data Generation and Model
+Checking .Software Testing, Verication, and Validation, 2008 International Conference on 0, pp.
+449{458, doi:10.1109/ICST.2010.60.
+[22] Rocco De Nicola & Frits Vaandrager (1990): Action versus State based Logics for Transition Systems .
+In Ir ene Guessarian, editor: Semantics of Systems of Concurrent Processe ,LNCS 469, Springer-
+Verlag, Berlin, Heidelberg, pp. 407{419, doi:10.1007/3-540-53479-2 17.
+[23] Object Management Group (2010): OMG Systems Modeling Language (OMG SysMLTM). Technical
+Report, Object Management Group. OMG Document Number: formal/2010-06-02.
+[24] OMG (2011): OMG Unied Modeling Language (OMG UML) Superstructure ver. 2.4.1 .
+www.uml.org/spec/UML/2.4.1/Superstructure/PDF/ .
+[25] J. Peleska & M. Siegel (1997): Test Automation of Safety-Critical Reactive Systems .South African
+Computer Jounal 19, pp. 53{77.
+[26] Jan Peleska, Artur Honisch, Florian Lapschies, Helge L oding, Hermann Schmid, Peer Smuda, Elena
+Vorobev & Cornelia Zahlten (2011): A Real-World Benchmark Model for Testing Concurrent Real-
+Time Systems in the Automotive Domain . In Burkhart Wol & Fatiha Zaidi, editors: Testing
+Software and Systems. Proceedings of the 23rd IFIP WG 6.1 International Conference, ICTSS
+2011,LNCS 7019, IFIP WG 6.1, Springer, Heidelberg Dordrecht London New York, pp. 146{161,
+doi:10.1007/978-3-642-24580-0 1.
+[27] Jan Peleska, Elena Vorobev & Florian Lapschies (2011): Automated Test Case Generation with
+SMT-Solving and Abstract Interpretation . In Mihaela Bobaru, Klaus Havelund, Gerard J. Holzmann
+& Rajeev Joshi, editors: Nasa Formal Methods, Third International Symposium, NFM 2011 ,LNCS
+6617, Springer, Pasadena, CA, USA, pp. 298{312, doi:10.1007/978-3-642-20398-5 22.
+[28] M. S. Phadke (1989): Quality Engineering Using Robust Design . Prentice Hall, Englewood Cli, NJ.
+[29] F. Rogin, T. Klotz, G. Fey, R. Drechsler & S. Rulke (2009): Advanced Verication by Automatic
+Property Generation .IET Computers & Digital Techniques 3(4), pp. 338{353, doi:10.1049/iet-
+cdt.2008.0110. Available at http://link.aip.org/link/?CDT/3/338/1 .
+[30] A. W. Roscoe (2010): Understanding Concurrent Systems . Springer.
+[31] RTCA SC-205/EUROCAE WG-71 (2011): Model-Based Development and Verication Supplement
+to DO-178C and DO-278A . RTCA/DO-331, RTCA, Inc., 1140 Connecticut Avenue, N.W., Suite
+1020, Washington, D.C. 20036.
+[32] RTCA SC-205/EUROCAE WG-71 (2011): Software Considerations in Airborne Systems and Equip-
+ment Certication . RTCA/DO-178C, RTCA, Inc., 1140 Connecticut Avenue, N.W., Suite 1020,
+Washington, D.C. 20036.
+[33] RTCA,SC-167 (1992): Software Considerations in Airborne Systems and Equipment Certication,
+RTCA/DO-178B . RTCA.
+
+--- Page 21 ---
+Jan Peleska 23
+[34] S. Schneider (1995): An Operational Semantics for Timed CSP .Information and Computation 116,
+pp. 193{213, doi:10.1006/inco.1995.1014.
+[35] S. Schneider (2000): Concurrent and Real-time Systems { The CSP Approach . Wiley and Sons Ltd.
+[36] A. P. Sistla (1994): Liveness and Fairness in Temporal Logic .Formal Aspects of Computing 6(5),
+pp. 495{512, doi:10.1007/BF01211865.
+[37] J.G. Springintveld, F.W. Vaandrager & P.R. D'Argenio (2001): Testing timed automata .Theoretical
+Computer Science 254(1-2), pp. 225{257, doi:10.1016/S0304-3975(99)00134-6.
+[38] European Committee for Electrotechnical Standardization (2001): EN 50128 { Railway applications
+{ Communications, signalling and processing systems { Software for railway control and protection
+systems . CENELEC, Brussels.
+[39] Jan Tretmans (1996): Test generation with inputs, outputs and repetitive quiescence .Software {
+Concepts and Tools 17(3), pp. 103{120.
+[40] Jan Tretmans (1999): Testing Concurrent Systems: A Formal Approach . In J.C.M. Naeten &
+S. Mauw, editors: CONCUR'99 { 10thInt. Conference on Concurrency Theory ,Lecture Notes in
+Computer Science 1664, Springer, pp. 46{65, doi:10.1007/3-540-48320-9 6.
+[41] Frits Vaandrager (2012): Active Learning of Extended Finite State Machines . In Brian Nielsen &
+Carsten Weise, editors: Testing Software and Systems. Proceedings of the 24th IFIP WG 6.1 Inter-
+national Conference, ICTSS 2012, Aalborg, Denmark, November 2012 ,Lecture Notes in Computer
+Science 7641, Springer, Heidelberg Dordrecht London New York, pp. 5{7, doi:10.1007/978-3-642-
+34691-0 2.
+[42] Stephan Weileder (2010): Test Models and Coverage Criteria for Automatic Model-Based Test
+Generation with UML State Machines . Doctoral thesis, Humboldt-University Berlin, Germany.
+[43] J. Woodcock, A. Cavalcanti, J. Fitzgerald, P. Larsen, A. Miyazawa & S. Perry (2012): Fea-
+tures of CML: a Formal Modelling Language for Systems of Systems .IEEE Systems Journal 6,
+doi:10.1109/SYSoSE.2012.6384144.
+A Case Study: Turn Indication Control Function
+As a case study we consider the turn indication function of a vehicle providing left/right in-
+dication and emergency ashing by means of exterior lights ashing with a given frequency.
+Left/right indication is switched on by means of the turn indicator lever with its positions 0
+(neutral), 1 (left), and 2(right). Emergency ashing is controlled by means of a switch with
+positions 0 (o) and 1 (on). Activating the indication lights is subject to the condition that the
+available voltage is suciently high. The requirements for the turn indication function are as
+shown in Table 1.
+The SysML test model for this system structured into TE and SUT blocks, as shown in
+Fig. 4. The interfaces shown in this diagram are the observable SUT outputs and writable
+inputs that may be accessed by the TE. RT-Tester allows for SysML properties and signal
+events to be exchanged between SUT and TE model components. The tool provides interface
+modules mapping their valuations onto concrete software or hardware interfaces and vice versa.
+In a software integration test the turn indication lever values and the status of the emergency
+switch may be passed to the SUT, for example, by means of shared variables. The SUT outputs
+(left-hand side lamps on/o, right-hand side lamps on/o) can also be represented by Boolean
+output variables of the SUT. In a HW/SW integration test interface modules would map the
+turn indication lever status and the emergency ash button to discrete inputs to the SUT. In a
+system integration test the actual voltage and the current placed by the SUT on the indication
+
+--- Page 22 ---
+24 Industrial-Strength Model-Based Testing
+Table 1: Requirements of the turn indication control system
+Requirement Description
+REQ-001 Flashing requires sucient
+voltageIndication lights are only active, if the electrical voltage (input Voltage)
+is>80% of the nominal voltage.
+REQ-002 Flashing with
+340ms/320ms on-o periodsIf any lights are ashing, this is done synchronously with a 340ms ON {
+320ms OFF period.
+REQ-003 Switch on turn indication
+leftAn input change from turn indication lever state TurnIndLvr = 0 or 2
+to TurnIndLvr = 1 switches indication lights left (output FlashLeft) into
+ashing mode and switches indication lights right (output FlashRight)
+o.
+REQ-004 Switch on turn indication
+rightAn input change from turn indication lever state TurnIndLvr = 0 or 1
+to TurnIndLvr = 2 switches indication lights right (output FlashRight)
+into ashing mode and switches indication lights left (output FlashLeft)
+o.
+REQ-005 Emergency ashing on
+overrides left/right ashingAn input change from EmerFlash = 0 to EmerFlash = 1 switches indi-
+cation lights left (output FlashLeft) and right (output FlashRight) into
+ashing mode, regardless of any previously activated turn indication.
+REQ-006 Left-/right ashing over-
+rides emergency ashingActivation of the turn indication left or right overrides emergency ash-
+ing, if the latter has been activated before.
+REQ-007 Resume emergency ash-
+ingIf turn indication left or right is switched o and emergency ashing is
+still active, emergency ashing is continued or resumed, respectively.
+REQ-008 Resume turn indication
+ashingIf emergency ashing is turned o and turn indication left or right is still
+active, the turn indication is continued or resumed, respectively.
+REQ-009 Tip ashing If turn indication left or right is switched o before three ashing periods
+have elapsed, the turn indication will continue until three on-o periods
+have been performed.
+
+--- Page 23 ---
+Jan Peleska 25
+Figure 4: Interface between TE and SUT.
+lamps would be measured. The interface abstraction required for the test level is specied by a
+signal map that associates abstract SysML model interfaces with concrete interfaces of the test
+equipment.
+The structural view on the SUT has to be decomposed further, until each block is associated
+with a sequential behaviour. For the case study discussed here, the SUT is further decomposed
+into two concurrent functions as depicted in Fig. 5. Functional component FLASH CTRL per-
+forms the decisions about left/right indication or emergency ashing. The decision is communi-
+cated to component OUTPUT CTRL by means of internal interface Left (ashing on left-hand
+side indication lights if Left = 1) and Right (ashing on right-hand side indication lights if Right
+= 1). Block OUTPUT CTRL controls the ashing cycles and switches o indication lamps if
+the voltage gets too low. The FLASH CONTROL component operates as follows.
+As long as the emergency ash switch has not been activated, Left/Right are set according
+Figure 5: Functional decomposition of the SUT.
+
+--- Page 24 ---
+26 Industrial-Strength Model-Based Testing
+Figure 6: State machine controlling left/right and emergency ashing.
+to the turn indication lever status. This is specied in do activity doEmerO.
+As soon as the emergency ash switch EmerFlash is switched on, Left/Right are set as
+specied in sub-state machine EMER ON (Fig 7).
+When entering EMER ON, Left/Right are both set to true and the state machine remains
+in control state EMER ACTIVE.
+When the turn indication lever is changed to left or right position, emergency ashing is
+overridden, and left/right indication is performed.
+Emergency ashing is resumed if the turn indication lever is switched into neutral position.
+Function OUTPUT CTRL sets the SUT output interfaces FlashLeft and FlashRight (Fig. 8
+and 9). The indication lamps are switched according to the internal interface state Left/Right, if
+the voltage is greater than 80% of the nominal voltage. After the lamps have been on for 340ms,
+they are switched o and stay so until 320ms have passed. A counter FlashCtr is maintained:
+if the turn indication lever is switched from left or right back to the neutral position before 3
+ashing periods have been performed, left/right indication will remain active until the end of
+these 3 periods.
+
+--- Page 25 ---
+Jan Peleska 27
+Figure 7: Decomposition of control state EMER ON.
+Table 2: Requirements and associated constraints identifying witness computations.
+Requirement Constraint
+REQ-001 Flashing requires sucient voltage «Constraint »F(Voltage80)
+REQ-002 Flashing with 340ms/320ms on-o
+periods«Transition »ON!OFF «Transition »OFF!ON
+REQ-003 Switch on turn indication left «Constraint »F(FlashLeft =1^FlashRight =0)
+REQ-004 Switch on turn indication right «Constraint »F(FlashLeft =0^FlashRight =1)
+REQ-005 Emergency ashing on overrides
+left/right ashing«Constraint »F(EMER OFF^TurnIndLvr >0^EmerFlash )
+REQ-006 Left-/right ashing overrides emer-
+gency ashing«Atomic State »TURN IND OVERRIDE
+REQ-007 Resume emergency ashing «Transition »TURN IND OVERRIDE!EMER ACTIVE
+REQ-008 Resume turn indication ashing «Constraint »
+F(EMER ACTIVE^:EmerFlash^TurnIndLvr >0)
+REQ-009 Tip ashing «Constraint »
+F(Voltage >80^ :(Left_Right )^Left1 +Right1 =
+1^FlashCtr <3)
+
+--- Page 26 ---
+28 Industrial-Strength Model-Based Testing
+Figure 8: State machine switching indication lights.
+Figure 9: Decomposition of control state FLASHING.

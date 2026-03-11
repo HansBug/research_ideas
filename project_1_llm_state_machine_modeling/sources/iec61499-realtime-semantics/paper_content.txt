@@ -1,0 +1,636 @@
+--- Page 1 ---
+A Real-Time Semantics for the IEC 61499 standard
+Per Lindgren, Marcus Lindner, Andreas Lindnerand Valeriy Vyatkiny
+Luleå University of Technology
+Email:{per.lindgren, marcus.lindner, andreas.lindner, valeriy.vyarkin}@ltu.se
+yAalto University, Helsinki, FinlandDavid Pereirazand Luís Miguel Pinhoz
+zCISTER / INESC TEC, ISEP
+Email: {dmrpe, lmp}@isep.ipp.pt
+Abstract —The IEC 61499 standard provides an executable
+model for distributed control systems in terms of interacting
+function blocks. However, the current IEC 61499 standard lacks
+appropriate timing semantics for the speciﬁcation of timing
+requirements, reasoning on timing properties at the model level,
+and for the timing veriﬁcation of a speciﬁc deployment.
+In this paper we address this fundamental shortcoming
+by proposing Real-Time-4-FUN, a real-time semantics for IEC
+61499. The key property is the preservation of non-determinism,
+allowing us to reason on (and verify) timing properties at the
+model level without assuming any speciﬁc scheduling policy or
+stipulating speciﬁc order of execution for the deployment. This
+provides for a clear separation of concerns, where the designer
+can focus on properties of the application prior to, and separately
+from, deployment veriﬁcation. The proposed timing semantics is
+backwards compatible to the current standard, thus allow for re-
+use of existing designs. The transitional property allows timing
+requirements to propagate to downstream sub-systems, and can
+be utilized for scheduling both at device and network level.
+Based on a translation to RTFM-tasks and resources, IEC
+61499 the models can be analyzed, compiled and executed. As a
+proof of concept the timing semantics has been experimentally
+implemented in the RTFM-core language and the accompanying
+(thread based) RTFM-RT run-time system.
+I. I NTRODUCTION
+The IEC 61499 standard provides an executable model for
+distributed control systems in terms of interacting function
+blocks (FBs). The execution model is event-driven (asyn-
+chronous), where triggering events may be associated with
+data. This allows for non-deterministic execution (which is
+plausible as actual scheduling can be tailored to best ﬁt the
+underlying platform(s), network media etc., while correctness
+(as deﬁned from the underlying semantics) is a model property.
+Non-determinism, by itself, allows for many correct traces
+of a given input (and state), and can be observed (and reasoned
+on) using methods such as model-checking [1], [2]. This allows
+separation of concerns, where validating correctness of the
+model per-se (reasoning on the properties of the speciﬁcation)
+can be done prior to , and separately from , validating that a
+speciﬁc deployment (implementation) meets the speciﬁcation.
+In this way, the concern of the application designer is the
+speciﬁcation and composition of models, where as s/he can
+rely on automatic methods (as a concern of the tool vendor) to
+validate that the deployment, (i.e., underlying platforms, run-
+time systems, networks, etc.), collectively meet the speciﬁca-
+tion. Separation of concerns is a key property to dealing with
+systems of complexity, such as those emerging in industrial
+automation (where we actually face systems-of-systems).However, the current IEC 61499 standard lacks appropriate
+semantics to natively specify intended timing behavior require-
+ments. Instead, timing properties emerge from the implemen-
+tation.
+Related to real-time execution IEC 61499 model we ﬁnd
+the work on TORERO [3]. Computations (actions) are im-
+plemented following the Java Real-Time Speciﬁcation, while
+per-event timing speciﬁcation is given using the IAONA Real-
+Time Classes. In the work of Zoitl [4], timing speciﬁcation is
+expressed in terms of traditional notions of deadlines, inter-
+arrival and execution times. In comparison to [3], timing
+speciﬁcations in [4] are limited to source events. Another
+recent approach to real-time execution of IEC 61499 takes
+the outset from a Time-Complemented Event-Driven (TCED)
+control model [5]. Pang et. al. demonstrates that a TCED
+systems can be implemented following IEC 61499.
+The related industrial standards IEC-61131/60848 and their
+underlying Sequential Function Charts (SFCs) and Grafcets
+have been extensively studied. In [6] an un-timed formalization
+of Grafcets in terms of Stable Location Automaton is proposed.
+The text nicely lays out the syntactic and semantic differences
+between the event driven Grafcet and the scan based (PLC)
+SFC execution model. A uniﬁed timed semantics is presented
+in [7]. Timing properties are expressed using 5 primitives
+(L; D; SL; SD; DS ), each one with a unique semantics. It
+is found in [7] that the SFC semantics is ambiguous in the
+standard, and that a clear deﬁnition of well-formedness is
+lacking and open for interpretation.
+In this paper we address this fundamental shortcoming by
+proposing Real-Time-4-FUN, a real-time semantics for the IEC
+61499. We associate each event with a Permissible Execution
+Window (PEW), deﬁned by its baseline (indicating the absolute
+arrival time), and a relative deadline (deﬁning the timing
+requirement). Timing information is transitional (inherited),
+allowing a chain of events to operate under a common PEW
+(i.e., end-to-end timing requirement). Moreover, an emitted
+event can be associated a relative baseline offset, postponing its
+(downstream) arrival. This allows for expressing complex, yet
+statically analyzable, timing patterns free of accumulated drift
+(allowing e.g., delays and periodic behavior as trivial cases).
+Similarly to [3] we allow for timing speciﬁcation of arbitrary
+events. While our timing semantics share similarities to [4] we
+propose a transitional and compositional semantics by means
+of baseline inheritance and offsets.
+The timing semantics are inﬂuenced by previous work on
+the Timber language [8] and the lightweight TinyTimber [9] C-
+code programming model. The experimental implementation is
+based on the original work on the RTFM-core language [10].
+
+--- Page 2 ---
+II. B ACKGROUND
+A. IEC 61499
+The IEC 61499 standard [11] provides a non-deterministic
+executable model for distributed control systems in terms
+of interacting function blocks. The executions semantics is
+informally deﬁned, and thus subject to interpretation (as no
+ofﬁcial reference implementation is present). For the purpose
+of the presented work, we brieﬂy summarize key features of
+the standard. For a comprehensive overview see [12].
+1) Design Elements: Function Block (FB) types:
+ Basic Function Blocks (BFBs), used to specify general
+behaviour,
+ Service Interface Function Blocks (SIFBs), used to
+interface the environment of a FB network, and
+ Composite Function Blocks, emerging from a compo-
+sition of BFBs/SIFBs and (inner) composite FBs.
+In common all FB types provide an interface deﬁning input
+events with associated input data variables, and output events
+with associated output variables.
+The operation of a BFB is deﬁned (in a ﬁnite state machine
+like manner) by its Execution Control Chart (ECC), input/out-
+put events, and input/output/local variables. A transition condi-
+tion (edge in the ECC) is either a single input event, a Boolean
+expression (guard) on input/output and local variables, or a
+combination thereof. Each state in the ECC, implies an ordered
+set of zero or more algorithms to execute and output events to
+emit. On the arrival of an input event (provided by the resource
+scheduler), the associated input data connections are ﬁrst
+sampled to the input variables, then transition conditions from
+the current state are checked (in order given by occurrence
+in the underlying XML). On a transition the algorithms of the
+target state are sequentially executed (implying potential output
+events and local and output variable updates), the input event
+is (conceptually) consumed, and further transition conditions
+(from the target state) inspected transitively until no more
+transitions are possible.
+The operation and implementation of SIFBs are left un-
+deﬁned in the standard. CFBs provides a mere hierarchical
+abstraction and carry no functionality in their own right.
+2) Deployment: For the deployment, the application is par-
+titioned onto a set of resources , which in turn are mapped onto
+a set of devices . Communication crossing resource boundaries
+(e.g., inter device communication) must pass through SIFBs.
+The standard also associates other properties to the notions
+of resources and devices, allowing shielded execution and
+dynamic re-conﬁguration .
+3) Execution model: The execution model is event driven
+(asynchronous), where each event may be associated with a
+set data connections. A device may provide one (or more)
+resource(s) responsible for the scheduling of events. The order
+of events delivery and execution is undeﬁned, hence the
+execution model is non-deterministic.B. Real-Time For the Masses
+Real-Time For the Masses (RTFM) is a set of experi-
+mental languages and tools, designed to bring state-of-the-
+art embedded software technologies to the mainstream. The
+Model of Computation (MoC) has the outset of the Stack Re-
+source Policy (SRP) [13], which brings numerous advantages
+to preemptive scheduling of systems with shared resources,
+e.g., deadlock free execution, bound priory inversion, as well
+as memory and CPU efﬁcient implementation. Given Worst
+Case Execution Times (WCETs) for the tasks and their inner
+claims, schedulability test and response time analysis is readily
+available for single-core systems [13], as well as and multi-
+cores [14].
+1) RTFM, Model of Computation: The notation from [13]
+has been adapted to our use in the context of RTFM. For this
+presentation we use task instance and task interchangeably: ti,
+is a task (job) with run-to-completion semantics; rj, deﬁnes
+a resource, a task may claim (request and release) resources
+in a LIFO nested manner; and ei, is an event (job request)
+triggering the execution of the corresponding task ti.
+To the end of SRP based analysis and deadline monotonic
+(DM) scheduling we deﬁne: dl(ei), is the deadline for the
+execution of task ti;p(ti), is the static priority for ti;ia(ei),
+is the minimum inter-arrival time (or period) of ei;c(ti), is the
+worst case execution time for ti; and rp(ei), is the response
+time to the event ei(i.e., task ti).
+In the context of RTFM, claiming a resource can be seen
+as entering a critical section. It extends the SRP task model
+with the ability for tasks to emit events (hence allowing
+asynchronous task chains to be expressed). In comparison to
+SRP, resources in RTFM are single unit.
+2) RTFM Run-Time Systems: Models in RTFM be ef-
+ﬁciently executed by the RTFM-kernel on single-core bare
+metal platforms [15] and by the RTFM-RT [16] onto hosted
+environments that provide threading primitives.
+3) RTFM-core: The RTFM-core programming language
+[17], [10] builds on the RTFM MoC. From the input -core
+program the RTFM-core compiler generates C code output
+referring to the RTFM-kernel/RTFM-RT primitives for the
+scheduling. During compilation the task set is analyzed for
+inconsistency (cyclic resource claims are rejected). For valid
+models resource ceilings for SRP based scheduling are derived
+and provided as input for run-time scheduling (as implemented
+in the RTFM-kernel/RTFM-RT).
+C. IEC 61499 mapping to the RTFM Model of Computation
+In previous work, a mapping from device/resource level
+IEC 61499 models to the RTFM MoC (as provided by the
+RTFM-kernel API) has been proposed [18]. For this presen-
+tation, we adopt a similar approach, while mapping to the
+RTFM-core language instead of the RTFM-kernel scheduling
+primitives. This has the advantage that model level analysis and
+optimizations (performed by the RTFM-core compiler) can be
+put to use. (For detailed descriptions of the original work, we
+refer the reader to [18].)
+
+--- Page 3 ---
+III. RTFM T IMING SEMANTICS
+A. Permissible Execution Window
+Each event (e) is associated with an baseline bl(e)(absolute
+point in time for the arrival of the event), a relative deadline
+dl(e)(indicating the timing requirement), and a minimum
+inter-arrival time ia(e). An event ei, is associated (triggers) a
+corresponding task (instance) ti(can be seen as a job request
+related to SRP).
+The Permissible Execution Window (PEW) for (an instance
+of)tiis the range in time from its baseline bl(ti) =bl(ei)to
+its absolute deadline dl(ti) =bl(ei) +dl(ei), Figure 2.
+A task ti, may emit further synchronous and asynchronous
+events ej, which by default inherits the sender’s timing prop-
+erties ( bl(ej) =bl(ei); dl(ej) =dl(ei)), and hence the corre-
+sponding task tjexecutes under the sender’s PEW. On emitting
+a synchronous event, the corresponding task is (directly) exe-
+cuted and the sender is suspended until tjcompletes), while on
+emitting an asynchronous event the sender continues execution.
+An asynchronous event ejcan be associated explicit timing
+properties in terms of a relative baseline offset af(ej)(such
+thatbl(ej) =bl(ei) +af(ej)) and/or an explicit dl(ej). We
+consider models valid only if the corresponding dl(tj)> bl (tj)
+(the size of the PEW is > 0), and that dl(ej)ia(ej),
+which are common assumptions to real-time scheduling. In
+the following, we assume systems to be schedulable if not
+else stated.
+B. The RTFM-core language
+1) Syntax: For this paper we extend on the original RTFM-
+core language [10] by introducing the aforementioned time
+semantics. The async deﬁnes for the task instance (job
+request) a permissible execution window (absolute base- and
+dead-lines), inherited or computed from relative after and
+before timing information given in the -core program. The
+pend deﬁnes a new baseline from the current time and an
+optional deadline.
+A simpliﬁed grammar is depicted in Figure 1. The CCode
+terminal denotes the presence of embedded C-code, occurring
+either at the top level, or inside a statement. ( Func ’s are used
+merely to facilitate modularization.)
+We discriminate between Task /ISR deﬁnitions given in
+the input program, and Task /ISR instances derived by an-
+alyzing the input program. During compilation, (for current
+run-time targets) static priorities are derived for each ISR (by
+deadline) and Task instance from the timing constraints of
+the originating asynchronous event.
+C. Dynamic Semantics
+In the following, we give an informal dynamic (run-time)
+semantics for the -core language, following the notions of tasks
+andresources .
+Each ISR,Task andReset /Idle deﬁnition is bound
+to a ﬁnite sequence of statements and is referred to as a
+task deﬁnition. Execution of a ISR/Task (atask instance )
+is triggered by the occurrence of a corresponding event and
+should run-to-completion (i.e terminate). An event can eitherTop ::= #>CCode <#
+j ISR Id Before? { Stmt }
+j Task Id { Stmt }
+j Func Id (CCode ) { Stmt }
+j Reset { Stmt }
+j Idle { Stmt }
+j Top Top
+Stmt ::= #>CCode <#
+j claim Id { Stmt }
+j async After? Before? Id ()
+j pend Before? Id ()
+j sync Id (CCode )
+j Stmt Stmt
+After ::= after Int
+Before ::= before Int
+Figure 1. Simpliﬁed grammar for RTFM-core
+occur from the environment (typically an interrupt) or be
+emitted internally. Idle is a (potentially non-terminating)
+process with the lowest priority in the system, invoked once
+by the underlying run-time system at startup (after run-to-end
+execution of the Reset task).
+TheTask s are concurrent in our model (and may execute
+in parallel, besides Reset that run before any other task is
+released). Their associated priorities may be used by the un-
+derlying scheduler (and corresponding resource and scheduling
+analysis). During execution a task may request ( claim ) a
+(single-unit) resource for the duration of a critical section .
+Following the grammar, resources will be claimed in a LIFO
+manner. Functions execute synchronously ( sync ) on behalf of
+the sender.
+The event eReset has a baseline set to the current device
+time at the point when Reset has run-to-end. In a distributed
+setting, device time may be synchronized and thus common
+to all devices. In our model, the Reset task executed as
+part of device/scheduler initialization, (not part of the run-time
+scheduling for the system), and thus has no notion of speciﬁc
+deadline.
+D. Cyclic task chains
+Letd(t)denote the task deﬁnition oft. Assume a task chain
+tiasync!tk. In case d(ti) =d(tk), i.e., tiandtkrefers to the
+same task deﬁnition, we have a cyclic task chain. The period p
+of the task chain (and all its corresponding sub-task) is given
+as:
+p=kX
+n=iXn (1)
+where Xnis the baseline offset ( async after Xn).
+1) Well-formedness: To ensure schedulability, each sub-
+task of a periodic task chain should have a deadline shorter or
+equal to its inter-arrival time ( dl(tn)p). Moreover, to ensure
+bound number of task instances, task chains must originate
+form the Reset task and each d(t)may be referred to by at
+most one cyclic chain.
+
+--- Page 4 ---
+E. Examples
+For brevity, we exclude the execution of Reset in the
+timing diagram. Device time is assumed 0 at the point when
+Reset has run-to-end, i.e., bl(eReset ) = 0 .
+1) Example 1: In our ﬁrst example we demonstrate a sim-
+ple delay. The task t1is triggered with bl(t1) = 0 sinherited
+from the Reset and the absolute deadline dl(t1) = 500 ms
+derived from the relative timing constraint (line 11, Listing 1).
+Task t2()is triggered with arrival bl(t2) = 1 sand absolute
+deadline dl(t2) = 2 sby the async event emitted from task
+t1(line 3, Listing 1).
+1Task t1() {
+2 #>printf("t1\n");<#
+3 async after 1s before 1s t2();
+4}
+5
+6Task t2() {
+7 #>printf("t2\n");<#
+8}
+9
+10 Reset {
+11 async before 500 ms t1();
+12 }
+Listing 1. Ex1.core simple task chain and message passing.
+bl(t1)dl(t1) Timebl(t2)dl(t2)
+t1t2
+after 1sbefore1s
+before 500ms
+0s 1s 2s 500mse2
+e1
+Figure 2. Timing for Example 1.
+2) Example 2: Our second example deﬁnes a system,
+that on reset triggers the periodic task t1(with bl(t1) =
+n; dl (t1) =n+ 1s), where nincrements by 1 for each task
+instance/invocation (i.e., a period of 1s).
+1Task t1() {
+2 #>printf("t1 \n");<#
+3 async after 1s before 1s t1();
+4}
+5
+6Reset {
+7 async t1() before 1s;
+8}
+Listing 2. Ex2.core periodic task.
+bl(ti)dl(ti) Timebl(tj),d(tj)=d(ti)dl(tj)period 1s
+Figure 3. Timing for Example 2.
+IV. T IMING SEMANTICS FOR IEC 61499
+In this section we propose how the aforementioned real-
+time semantics (Section III) can be adopted in the IEC 61499
+standard. Our approach builds on, and extends, the mapping
+of the IEC 61499 models to the RTFM MoC [18] (brieﬂy
+reviewed in Section II-C).A. Mapping of design elements
+Event properties: The deﬁnition of events follows that of
+the RTFM MoC, and the syntax (Figure 4).
+Event ::= async After? Before? Min?
+j pend Before? Min?
+j sync
+After ::= after Int
+Before ::= before Int
+Min ::= min Int
+Figure 4. RTFM event grammar for IEC 61499.
+Event source: Anevent source , injects events from the
+environment into the FB design. In IEC 61499, event sources
+are deﬁned using SIFBs. We propose RTFM-core as a (pos-
+sible) speciﬁcation language for SIFBs. For bare metal im-
+plementation at device level, event sources are implemented
+as ISRs (interrupt service routines), and the generated code
+automatically infers the baseline for the event/task. If choosing
+to implement SIFBs outside the RTFM MoC, the source event
+should be associated a baseline using the pend option (which
+assigns the baseline to the current time). For the analyses the
+min option should be used to deﬁne the minimum inter-arrival
+time for the event source. A SIFB output event that occurs on
+behalf of conveying an IEC 61499 event eshould propagate
+the timing properties of e(i.e., PEW and inter-arrival).
+Event chains: For (asynchronous) events we have the
+option inherit or explicitly state timing constraints, (Figure 4).
+Theafter option allows us to deﬁne complex timing patterns
+(for which delays and periodic behavior are trivial cases),
+without the need to infer special design elements. Notice,
+the baseline offsets are statically assigned, which allows for
+compile time analysis on the well-formedness of the design as
+well as ofﬂine schedulability analysis.
+Point of association: The IEC 61499 standard implies FBs
+as being loosely coupled components/elements for application
+design. From the component point of view, one could argue
+that event properties should therefore be stated as part of the
+FBs. This was also the outset for the Real-Time Execution of
+IEC 61499 [4], as well as our previous work [18]. However,
+this approach is somewhat limiting, as output events may be
+split. Associating properties to each connection (at network
+level) increases the ﬂexibility, allowing downstream event
+handling under different timing constraints (similar to [3]).
+In order to satisfy both the component view and allow for
+maximum ﬂexibility we propose that default event properties
+should be stated as part of the FB event outputs, while allowing
+to be over-ridden by properties given for the connections at
+network level.
+RTFM Tasks: Each chain of synchronous events is a task
+titriggered by an asynchronous event ei. If events are merged
+(i.e., several output events trigger the same input event), we
+see this as distinct task chains (executing concurrently under
+the timing constraints of the speciﬁc triggering event).
+RTFM Resources: For the handling of resources, we adopt
+the mapping developed in [18].
+
+--- Page 5 ---
+B. System model example
+IEC 61499 System model: Figure 5, depicts an IEC 61499
+model developed in the 4DIAC IDE [19]. The SIFB instances
+Ea1 andEc1 capture the external events from the underlying
+platform (or platforms if deployed onto different devices) and
+trigger the execution of actions associated to a1.i1 and
+c1.i1 respectively. Figure 6 depicts the ECC of b1, showing
+the associated actions (algorithms) taskb1 for input event
+i1andtaskb3 for input event i3respectively. The mis
+an FB (from the standard library) that merges (and serialize)
+incoming events (and associated data).
+Figure 5. Example IEC 61499 system model.
+Figure 6. ECC of FB b1.
+Example: Event source: Assuming we deploy the system
+(application) onto a single device. The output events from
+SIFBs Ea1 andEc1 are obvious event sources (to the IEC
+61499 network). In order to deﬁne the baseline, and should
+thus either be implemented natively in RTFM-core (and there
+originating from some ISR of the underlying hardware), or
+emitted with the pend option. In either case for the analysis
+the minimum inter-arrival should be stated using the min
+option. Figure 7, depicts the timing property of the event
+Ea1.o1 -> a1.i1 at the network level.
+Figure 7. Timing property of Ea1.o1 -> a1.i1 at network level.
+Example: Event chains: If not explicitly stated, events are
+considered to be synchronous, i.e. the event chains originating
+from event sources will be treated as synchronous task chains
+in the model and for execution. For the example, this amounts
+to the set of tasks and resources depicted in Figure 8.Example: Resources: The assumption that dl(t)ia(t)
+(and that the system is schedulable), only the RTFM resources
+that are shared between tasks chains triggered by different
+event sources needs to be protected. For the example, this
+gives us the (reduced) set of protected resources r(m)(for the
+ECC of m), its data output r(o)(for the connection m.OUT_1
+-> b1.di1 ) and the r(b)(for the ECC of b1). Notice here,
+that the ECC of b1triggers an output event o1only on a
+incoming i3event, which in turn occurs on behalf of the
+single source event Ec1.o1 , thus neither the state of b2nor
+the data connection b1.d -> b2.d1 needs protection.
+a1 b1
+b2b3 a2
+c1c2ea1
+ec1m1
+m2r(b) r(m)r(o)c(a1)=50c(m1)=1c(b1)=1
+c(b2)=2 c(a2)=5
+c(m2)=1c(b3)=5
+c(c1)=5c(c2)=3
+Figure 8. Example RTFM system model. We have the (external) events
+ea1andec1, triggering the task chains headed by a1andc1respectively.
+Asynchronous events are marked as dashed, tasks are denoted by circles, boxes
+r(m),r(b)are resources for the corresponding FBs, while r(o)is a resource
+for a shared connection.
+Example: Scheduling: At device level, RTFM models
+can be scheduled efﬁciently by the RTFM-kernel, exploiting
+the underlying interrupt hardware[15]. Each synchronous task
+chain, amounts to a RTFM task. For the example, the task chain
+triggered by ea1(with the sub-tasks a1:m1:b1) and task
+chain triggered by ec1(with the sub-tasks (c1) :a2:m2:b1,
+(c1) :b3:b2and (c1) :c2). Notice, this gives an upper bound
+to the set of sub-tasks executed on behalf of occurred source
+events ea1=ec1. For a given conﬁguration (ECC speciﬁcations
+of the FBs and FB states), actual execution involves a proper
+subset of the sub-tasks of the executing task.
+Example: Analysis: Given Worst Case Execution Time
+(WCET) bounds for all sub-tasks, SRP based response time
+analysis can be readily applied. For a detailed description,
+see e.g., the original work of Baker [13]. In the following
+c(ti) =Ctidenotes the WCET Cof a sub-task ti.
+Example: CPU utilisation: Assuming the WCETs given in
+Figure 8. The total WCETs of the task (chains) triggered by
+ea1= 50 a1+ 1m1+ 1b1= 52ms, and ec1= 5 c1+ 5a2+
+1m2+ 1b1+ 5b3+ 2b2+ 3c2= 22msrespectively. Assume
+ia(a1) = 1 s; ia (c1) = 60 ms, CPU utilization is 52=100 +
+22=60 = 88 :7=100, hence the system may be schedulable, (as
+total CPU utilization is less than 1).
+Example: Response time: Assume that dl(ea1) = 100 ms,
+anddl(ec1= 30 ) respectively. During compilation, static
+priorities are assigned (monotonically) based on decreasing
+deadlines, hence an assignment p(ea1) = 1; p(ec1) = 2 meets
+this requirement (a higher value indicates a higher priority).
+The response time of a task tis under SRP computed
+as the sum of the WCET, interference by higher priority
+tasks, and blocking by lower priority tasks (known as priory
+
+--- Page 6 ---
+inversion). Under SRP blocking of a task tiis limited to a
+single section where a lower priority task holds a resource,
+with a priority ceiling ( dre) larger or equal to p(ti). The
+priority ceiling of a resource ris computed as the maximum
+priority for any task that may access r. For our example
+dr(m)e=dr(o)e=dr(b)e= 2, since resources may be
+accessed by tasks at priority 2 for these (shared) resources.
+Preemption time can be safely estimated by the interference
+of all tasks occurrences until its deadline. In our example
+dl(ea1) = 100 ms, and ia(ec1) = 60 ms, which implies
+that (in worst case) the execution of ea1will be preempted
+(at most) twice. This gives us a response time rp(ec1) =
+c(ea1) + 2c(ea2) = 52 + 222 = 96 ms(no blocking since
+no lower priority task exists). Hence, we satisfy the deadline
+requirement for ea1= 100 ms.
+Let us now assess the response time for ec1. Since it is the
+highest priority task in the system, interference (preemption)
+will not occur. However, it may be blocked by a lower priory
+task. In the example the worst case is when resource m, is
+held by ea1for the section (sub-tasks) m1 :b1(notice, the
+sequential execution of b1on behalf of m1). This gives us
+a blocking time of c(m1) +c(b1) = 1 + 1 = 2 , and a total
+response time rp(ec1) =c(ec1) = 22+2 ms. Hence, we satisfy
+the deadline requirement for ec1= 30ms.
+Example: Conclusion: The given example demonstrate the
+device level mapping from IEC 61499 models to tasks and
+resources of the RTFM MoC, and showcase the use of the pro-
+posed timing semantics, both to specify timing requirements, to
+generate an outset for device level SRP based scheduling, and
+the relation to established methods for response time analysis.
+V. C ONCLUSIONS
+In this paper we have proposed a real-time semantics,
+Real-Time-4-FUN, for the IEC 61499 standard. Events are
+associated with base- and deadlines, providing an outset for
+reasoning on timely properties at the model level. As allowing
+for non-deterministic execution, correctness is deﬁned by the
+execution semantics, not as currently on basis of timing
+properties emerging from a speciﬁc deployment. This provides
+for a clear separation of concerns, where the designer can focus
+on properties of the application prior to, and separately from,
+deployment veriﬁcation.
+The proposed semantics is compositional, where baseline
+offsets provide a means to express complex (yet statically
+analyzable) timing patterns directly at model level (thus su-
+perseding the need for the implementation dependent timing
+components currently required using IEC 61499). Timing
+requirements are transitional and propagate to downstream sub-
+systems, (allowing the re-use of legacy IEC 61499 compo-
+nents), and can be utilized for scheduling both at device and
+network level. In this paper we have shown that, based on a
+translation to RTFM-tasks and resources, IEC 61499 models
+can be analyzed, deployed and veriﬁed. As a proof of concept
+the timing semantics has been experimentally implemented in
+the RTFM-core language and the accompanying (thread based)
+RTFM-RT run-time system.
+ACKNOWLEDGEMENTS
+The authors like to thank Dr. Alois Zoitl (Fortiss) for
+fruitful discussions and feedback.This work was partially supported by National Funds
+through FCT (Portuguese Foundation for Science and Tech-
+nology), and the EU ARTEMIS JU funding, within project
+ARTEMIS/0001/2013, JU grant nr. 621429 (EMC2) and VIN-
+NOV A (Swedish Governmental Agency for Innovation Sys-
+tems) and Svenska Kraftnät (Swedish national grid).
+REFERENCES
+[1] V . D’Silva, D. Kroening, and G. Weissenbacher, “A survey of automated
+techniques for formal software veriﬁcation,” IEEE Transactions on
+Computer-Aided Design of Integrated Circuits and Systems (TCAD) ,
+vol. 27, no. 7, pp. 1165–1178, July 2008.
+[2] A. David, K. G. Larsen, A. Legay, U. Nyman, L.-M. Traonouez,
+and A. W ˛ asowski, “Real-time speciﬁcations,” International Journal on
+Software Tools for Technology Transfer , pp. 1–29, 2013.
+[3] C. Schwab, M. Tangermann, A. Luder, A. Kalogeras, and L. Ferrarini,
+“Mapping of IEC 61499 function blocks to automation protocols within
+the TORERO approach,” in Industrial Informatics, 2004. INDIN ’04.
+2004 2nd IEEE International Conference on , June 2004, pp. 149–154.
+[4] A. Zoitl, Real-Time Execution for IEC 61499 . Durham, North Carolina:
+International Society of Automation, 2008.
+[5] C. Pang, J. YAN, and V . Vyatkin, “Time-complemented event-driven
+architecture for distributed automation systems,” Systems, Man, and
+Cybernetics: Systems, IEEE Transactions on , vol. PP, no. 99, pp. 1–
+1, 2014.
+[6] J. Provost, J.-M. Roussel, and J.-M. Faure, “A formal semantics for
+Grafcet speciﬁcations,” in 7th IEEE Conference on Automation Science
+and Engineering (IEEE CASE 2011) , Trieste, Italy, Aug. 2011, pp. 488–
+494.
+[7] N. Bauer, R. Huuck, B. Lukoschus, and S. Engell, “A unifying semantics
+for sequential function charts.” in SoftSpez Final Report , ser. Lecture
+Notes in Computer Science, H. Ehrig, W. Damm, J. Desel, M. GroÃ§e-
+Rhode, W. Reif, E. Schnieder, and E. WestkÃd’mper, Eds., vol. 3147.
+Springer, 2004, pp. 400–418.
+[8] The Timber Language. (webpage) Last accessed 2011-04-15. [Online].
+Available: http://www.timber-lang.org
+[9] J. Eriksson, S. Aittamaa, J. Wiklander, P. Pietrzak, and P. Lind-
+gren, “SRP-DM Scheduling of Component-Based Embedded Real-Time
+Software,” First International Workshop on Dependable and Secure
+Industrial and Embedded Systems , 2011.
+[10] P. Lindgren, M. Lindner, A. Lindner, D. Pereira, and L. M. Pinho,
+“RTFM-core: Language and Implementation,” in Accepted to: 10th
+IEEE Conference on Industrial Electronics and Applications (ICIEA
+2015) , 2015.
+[11] IEC standards. (2014, Mar.) International Electrotechnical Commission.
+[Online]. Available: http://www.iec.ch/
+[12] J. Christensen, T. Strasser, A. Valentini, V . Vyatkin, A. Zoitl,
+J. Chouinard, H. Mayer, and A. Kopitar, “The IEC 61499 Function
+Block Standard: Software Tools and Runtime Platforms,” in ISA Au-
+tomation Week , 2012.
+[13] T. Baker, “A stack-based resource allocation policy for realtime pro-
+cesses,” in Real-Time Systems Symposium, 1990. Proceedings., 11th ,
+Dec. 1990, pp. 191 –200.
+[14] A. Burns and A. Wellings, “A schedulability compatible multiprocessor
+resource sharing protocol – mrsp,” in Real-Time Systems (ECRTS), 2013
+25th Euromicro Conference on , July 2013, pp. 282–291.
+[15] J. Eriksson, F. Haggstrom, S. Aittamaa, A. Kruglyak, and P. Lindgren,
+“Real-time for the masses, step 1: Programming API and static priority
+SRP kernel primitives.” in SIES . IEEE, 2013, pp. 110–113.
+[16] M. Lindner, A. Lindner, and P. Lindgren, “,” in RTFM-RT: a threaded
+runtime for RTFM-core to execute IEC 61499 models , Sept 2015.
+[17] RTFM: Real-Time For the Masses. (webpage) Last accessed 2015-02-
+17. [Online]. Available: http://www.rtfm-lang.org
+[18] P. Lindgren, M. Lindner, V . Vyatkin, and et. al., “Real-Time Execution
+of Function Blocks for Internet of Things using the RTFM-kernel,” in
+Proceedings of 2014 IEEE 19th International Conference on Emerging
+Technologies & Factory Automation (ETFA 2014) , 2014.
+[19] 4DIAC - Organization. (webpage) Last accessed 2015-02-17. [Online].
+Available: http://www.fordiac.org

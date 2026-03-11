@@ -1,0 +1,898 @@
+--- Page 1 ---
+AVENS – A Novel Flying Ad Hoc Network Simulator with Automatic Code
+Generation for Unmanned Aircraft System
+Emerson A. Marconato, Mariana Rodrigues, Rayner M. Pires, Daniel F. Pigatto,
+Luiz C.Q. Filho, Alex S.R. Pintoyand Kalinka R.L.J.C. Branco
+Institute of Mathematics and Computer Science, University of São Paulo, São Carlos-SP, Brazil
+Emails: emerson@icmc.usp.br, rodrigues.mariana@usp.br, rayner@icmc.usp.br, pigatto@icmc.usp.br,
+querino@usp.br, kalinka@icmc.usp.br
+yDepartment of Control Engineering and Automation, Federal University of Santa Catarina, Blumenau-SC, Brazil
+a.r.pinto@ufsc.br
+Abstract
+The wireless communication has played a signiﬁ-
+cant impact on our daily lives introducing simplicity
+and making life more comfortable. As a result of faster
+technological advances in electronics and communica-
+tions, the development of diﬀerent types of unmanned
+aerial vehicles (UAVs) has become possible. Recently,
+many eﬀorts have been made to develop more eﬃ-
+cient inter- and intra-vehicle communication protocols
+introducing new challenges, e. g. multiple-UAV com-
+munication and Flying Ad Hoc Networks (FANETs).
+However, most of the experiments using real prototypes
+or systems are not feasible due to the costs and risks
+involved. Thus, simulating network protocol behavior
+in FANET scenarios is increasingly required to eval-
+uate the applicability of developed network protocols.
+Thereby, we have been developing AVENS, a hybrid
+aerial network simulation framework, which merges
+LARISSA Architectural Model, X-Plane Flight Simu-
+lator and OMNeT++ Discrete Event Simulator. In a
+proof-of-concept study, we highlighted its advantages.
+Using AVENS, we can advance in the state-of-the-art
+concerningperformanceevaluationofintelligentaerial
+vehicles and provide means to evaluate the develop-
+ment of protocols, codes and systems more accurately.
+1. Introduction
+Embedded systems are a highly-integrated hard-
+ware and software set that are part of a larger sys-
+tem, usually performing real-time monitoring and con-
+trol tasks. Technological advances have supplied thesesystems with greater processing power, memory, and
+adaptation to diﬀerent needs, including the capability
+of communicating with any other device, embedded or
+not. Embedded systems are considered safety-critical if
+eventualfailuremayresultinlossoflivesorhigh-value
+assets [1], [2], [3].
+UAV is a typical application of a critical em-
+bedded system. Several papers have demonstrated the
+feasibility of using such vehicles as important tools
+for performing precision agriculture, reconnaissance,
+ground, sea and air surveillance, tracking, location and
+target analysis, traﬃc monitoring, transport logistics,
+environment monitoring, etc [4], [5], [6], [7], [8], [9],
+[10], [11], [12].
+When it comes to reducing the cost and time of
+carrying out a mission, a frequently considered tech-
+nique is the multiple UAV approach [13], [14], [15].
+This approach, however, brings many communication-
+related issues. In order to address them and given that
+UAVs have a high mobility level, ad hoc networks are
+usually applied. For ground vehicles, ad hoc networks
+are known as VANETs (Vehicular Ad Hoc Networks),
+while for aerial vehicles the corresponding term is
+FANETs (Flying Ad Hoc Networks) [15].
+Most protocols and wireless technologies are de-
+veloped assuming 2D communications, low mobil-
+ity (people) or high mobility (ground vehicles). In
+terms of connectivity, data delivery, latency, service,
+mobility, 3D nature, etc., FANETs are signiﬁcantly
+diﬀerent from traditional ad hoc networks (MANETs
+and VANETs). Communication in FANETs is fo-
+cused in Airplane-to-Airplane communication (A2A)
+and Airplane-to-Infrastructure communication (A2I).
+Thus, the degree of nodes mobility is greater than
+in MANETs and in VANETs; the topology changes
+6275Proceedings of the 50th Hawaii International Conference on System Sciences | 2017
+URI: http://hdl.handle.net/10125/41924
+ISBN: 978-0-9981331-0-2
+CC-BY-NC-ND
+
+
+--- Page 2 ---
+frequently; it needs peer-to-peer communication; the
+communication range must be greater than other net-
+works; and diﬀerent strategies of data distribution are
+necessary.
+Both VANETs and FANETs present challenges for
+performing practical experiments. Chung et. al tested
+autonomous launch, ﬂight, and landing of 50 UAVs
+and showcased results in [16]. It is not feasible or
+easy, in scenarios like this, to vary so many parameters
+regarding hardware, network and environment, and the
+results are valid only for that speciﬁc set of variables.
+Therefore, the use of simulations can both speed up
+and improve the development process, once it makes
+possible to test a variety of parameters in a easy
+manner.
+There are plenty of published research papers about
+the advantages of VANETs, e.g. the availability of
+precise and well-tested models of communication pro-
+tocols, and the use of a network simulator such as
+NS-2 [17] or OMNeT++ [18], [19]. Based on recent
+advances, researchers and developers have been using a
+simulator that provides not only the network protocol
+simulation, but also the realistic pattern of mobility
+models from real vehicles called VEINS [20]. Despite
+the availability of other simulators for VANETs [21],
+VEINS is the most used and accepted in recent re-
+searches.
+On the other hand, researches on FANETs still
+present results based only on general network simu-
+lations. However, these tools do not address the height
+and orientation imposed by an aerial network, nor
+their mobility models represent a real FANET [22],
+[23], [24]. To the best of our knowledge, there is no
+simulatorcapabletorepresentrealisticmobilitymodels
+for FANETs, once current protocols and mobility mod-
+els assume directed antenna radiation characteristics
+such as isotropic or omnidirectional radiation. Thus,
+characteristics concerning the speciﬁc aerial scenario
+are not fully taken into account [25].
+Considering the lack of simulators for FANETs
+and the need to explore UAV characteristics more
+assiduously, we introduce AVENS, the AerialVEhicle
+NetworkSimulator.Itisexpectedthatourimplemented
+tool will provide great contribution to the state-of-
+the-art improving FANET simulations integrated to
+a ﬂight simulator certiﬁed by the Federal Aviation
+Administration (FAA). Plus, AVENS is also capable
+of automatically generate code to OMNeT++ based on
+LARISSA architecture [26].
+OMNeT++ is an extensible, modular, component-
+basedC++simulationlibraryandframework,primarily
+for building network simulators [27]. It was chosen
+due to its ﬂexibility on making changes to its mod-
+ules and specialized frameworks. In our simulator, weimplemented changes to INET framework in order
+to achieve more realistic mobility models. It will be
+further discussed on Section 3.
+The main contributions of this research are:
+A FANET simulator, including not only network
+aspects, but also aircraft information;
+An automatic OMNeT++ code generation using a
+model architecture (LARISSA) which guarantees
+the real modeling and standards information about
+the aircraft, once safe unmanned avionic opera-
+tions require a detailed analysis of the communi-
+cation aspects;
+Integration of a network simulation framework
+(OMNeT++) with a well-known and certiﬁed
+ﬂight simulator (X-Plane [28]); and
+A platform to simulate diﬀerent parameters for
+aircraft and for network aspects as well as to
+analyze network behavior without spending as
+much time in ﬁeld experiments and not requiring
+physical assets as in [16].
+The remainder of this paper is organized as follows:
+Section 2 presents the LARISSA architecture model
+describing all the steps for OMNeT++ automatic code
+generation; Section 3 presents AVENS and the inte-
+gration between OMNeT++ and X-Plane; Section 4
+showstheexperimentalresultsandanalysis;andﬁnally,
+conclusions are drawn and suggestions are made for
+future work in Section 5.
+2. LARISSA – Layered Architecture
+Model for Interconnection of Systems
+as an Automatic Code Generator
+One of the problems in UAS (Unmanned Aircraft
+System) R&D is the need to make exhaustive tests to
+guarantee its reliability and accuracy. Flying a UAV
+or a group of UAVs to test and verify new parame-
+ters every time they change is an impracticable and
+unfeasible situation. The use of simulations before
+performing ﬁeld tests allows a cheaper and feasible
+development of these systems. Aiming to automatize
+the simulation processes, we are using LARISSA to
+provide an automatic code generation for OMNeT++.
+LARISSA(Figure1)isalayeredarchitecturemodel
+that interconnects unmanned systems [26]. It divides
+the components of a UAS into aerial and ground
+segments.
+The aerial segment is hierarchically composed by
+six layers: (i) physical, (ii) distributed RTOS (Real
+Time Operating System), (iii) system abstraction, (iv)
+monitoring and control, (v) navigation & services, and
+(vi) mission layer. The ground segment is divided into
+6276
+
+--- Page 3 ---
+UAS
+Mission
+Navigation & Services
+Monitoring &
+Control
+System Abstraction
+Distributed RTOS
+PhysicalPhysicalGround StationGround Segment
+In flight AwarenessAerial Segment
+UAS Reference Model V0.8 (en).mmap - 11/08/2015 - MindjetFigure 1. Overview of the LARISSA reference model
+[26].
+the (i) physical layer and (ii) ground control station
+layer.
+These layers can be represented by models that
+guide the UAS development, specifying how to in-
+terconnect the various components such as sensors,
+controlcircuits,GPS,payload,communicationwiththe
+ground control station, and others.
+In Information Technology, a layered architecture
+is used to deﬁne the speciﬁc responsibilities of each
+layer and the interconnection among them. Based on
+an architectural model, hardware manufacturers and/or
+software designers can develop their products being
+aware of which exact layer they will interact with in
+a UAS, what the input and output parameters are, and
+what type of connection should be used.
+LARISSA was speciﬁed in UML (Uniﬁed Model-
+ing Language), which is a general-purpose language
+based on object-oriented techniques and is intended
+for visualization, speciﬁcation, construction and doc-
+umentation of software system artifacts [29]. UML
+can model any system to be implemented with object-
+oriented languages (Java, C++, Smalltalk, etc.) and,
+with the help of specialized tools, it is possible to
+generate source codes in a selected language. The
+inverse process can also be done [29].
+TheUMLmeta-modelhasbuildingblocks(abstrac-
+tions, relationships and diagrams) that can be extended
+to create a proﬁle. A proﬁle is an extension of UML
+modeling that provides speciﬁc details of a domain.
+UML modeling language has some extension mech-
+anisms to deﬁne speciﬁc sets of notational elementsof a given ﬁeld, tool or project: the stereotypes, the
+valuedlabels(taggedvalues)andtheconstraints.These
+extensions can be deﬁned and grouped in a certain pro-
+ﬁle. Proﬁles are intended to provide speciﬁc notation
+elements in certain application areas in order to better
+represent their particularities and thereby improve the
+understanding of the speciﬁcation.
+2.1. LARISSA Proﬁle
+LARISSA proﬁle was designed using the concepts
+of UML2 by OMG [30]. The chosen tool for creating
+this UML proﬁle was the Papyrus component [31]
+from MDT (Model Development Tools) by Eclipse
+Foundation. Papyrus provides support for SysML (Sys-
+tem Modeling Language), a general-purpose modeling
+language applied to engineering systems, supporting
+systems speciﬁcation, analysis, design, veriﬁcation and
+validation, including embedded systems and real-time
+systems.
+LARISSA layers are deﬁned as packets and arti-
+facts at the lowest level, represented by blocks ex-
+tended from SysML. The properties of the blocks were
+shown as required and some of the possible values
+to be assigned were modeled using the Enumeration
+artifacts representation. An example of this model is
+shown in Figure 2, in which the AirToGround sub-
+layer was modeled. It belongs to the Communications
+sub-layer, that belongs to the AvionicsElectronics sub-
+layer, which in turn belongs to the Physicallayer under
+the Aerial segment.
+TheTelecommandTelemetry sub-layer implements
+theRadioModem stereotype, which is a generalization
+of theWirelessDevice stereotype.
+In the following section, we describe a case study,
+in which two basic components of a UAV are modeled
+using the LARISSA proﬁle.
+2.2. Case Study – Automatic Code Generation
+to OMNeT++
+In this case study, the autopilot and a wireless
+network interface were modeled in order to perform
+network communication simulations in OMNeT++.
+Simulation parameters are generated from the model
+using the LARISSA Model2Simulation code generator.
+2.2.1. Modeling using LARISSA Proﬁle
+The UML UAV modeling was done on Eclipse
+using the Papyrus component. A simple autopilot
+board was modeled, composed by a processor, a main
+memory, an auxiliary memory, a General Purpose In-
+put/Output (GPIO) interface, and a wireless network
+6277
+
+--- Page 4 ---
+Figure 2. Sub-layer AirToGround , from sub-layer
+Communications .
+device. It is important to point out that the network
+communication is the focus of this case study, thus
+other components of the autopilot are not being taken
+into account. All parameters were modeled based in a
+real autopilot named Paparazzi, an open source system
+of hardware and software [32].
+In addition to the main package, two
+ControllerBoard packages were also created.
+These packages contain the class that
+forms the autopilot in which the proﬁle
+larissa::UAS::Aerial::Physical::AvionicsElectro
+nics::Controller is applied. For the AutoPilot ,
+Processor ,MainMemory andAuxiliaryMemory
+packages, the following stereotypes were applied
+respectively: board,microcontroller ,memory and
+memoryagain. The SysML Block Deﬁnition Diagram
+regarding the model is shown in Figure 3.
+The same method was applied to model
+theCommunicationDevice package, using
+larissa::UAS::Aerial::Physical::AvionicsElectro
+nics::Communications::AirToGround::Telecommand
+Telemetry proﬁle. In RadioModem block, the
+radioModem stereotype was applied. Figure 4 shows
+this block and some tagged values such as frequency ,
+rfPower and sensitivity , which were used as
+parameters representing the transmission frequency
+(433 MHz, 900 MHz, etc.), the transmission power (1
+mW, 10 mW, 50 mW, etc.) and the signal attenuation
+threshold in dBm (-95 dBm). All of them were used
+to conﬁgure the network physical layer in OMNeT++.
+Figure 3. Package ControllerBoard with proﬁle Con-
+troller.
+The model is ﬁnished by using a SysML Internal
+Block Diagram, shown in Figure 5, in which we added
+oneAutoPilot and oneRadioModem blocks and linked
+them by their GPIO ports. GPIO was modeled instead
+of a serial port because: (i) the Paparazzi autopilot has
+a dedicated port to link the autopilot and the radio
+modem and (ii) LARISSA models not only the devices
+but also the link between them, aiming to standardize
+UAVs development.
+There are several ways to build this type of model,
+from a simple graphical representation of the UAS’
+components to a complete model validation. This al-
+lows, for instance, to prevent a particular type of au-
+topilot to obtain its model validated in case it does not
+own a GPS receiver. Another considered possibility is
+to use Tagged Values to generate parameters to be used
+in simulators.
+Data communication among UAVs and the Ground
+Control Station can be simulated in OMNeT++. It
+is possible to change Tagged Values and rerun the
+Figure 4. RadioModem device.
+6278
+
+--- Page 5 ---
+Figure 5. UAV– Internal blocks diagram.
+simulation until ideal values are reached.
+For this purpose, we created LARISSA
+Model2Simulation , a template built with model-
+to-text code generator Acceleo [33]. This concept
+allows starting simulation executions from a UML
+model that uses the LARISSA proﬁle, creating parts
+of the OMNeT++ settings ﬁle, such as power and
+frequency of a wireless device, the sensitivity of the
+receptor used and constant or dynamic speed at which
+objects move in a speciﬁc area. Now we are able to
+transform abstract representation of a UAV into source
+code for OMNeT++ simulator in few steps.
+3. AVENS – Aerial Vehicle Network Sim-
+ulator
+AVENS is part of a major research project concern-
+ing the provision of a test bed to simulate UAV ﬂight
+and control, using diﬀerent, controlled and changeable
+conﬁgurations. The main intention of AVENS is to
+provide a simulation test bed for virtual experiments of
+network coverage and connectivity among UAVs ﬂying
+in cooperation or sharing the same airspace.
+The purpose of AVENS is to oﬀer a platform for
+mobile ad hoc networks analysis where UAVs are mo-
+bile nodes sharing the wireless medium for exchanging
+messages. The goal is to use a ﬂight simulator for
+controlling the aerial vehicles and a network simulator
+for obtaining network measurements such as transmis-
+sion rate, goodput, RSSI (Received Signal Strength
+Indication), throughput, package loss, number of re-
+transmission etc.
+The two base simulation platforms selected for
+integration are the X-Plane Flight Simulator and the
+OMNeT++ Network Simulator, which is integrated
+with LARISSA in AVENS. As above mentioned,
+LARISSA provides a reliable and easy way to generate
+automatic code for OMNeT++ from an abstract UAVmodeling. Figure 6 illustrates the AVENS structure.
+AVENS provides more accuracy and reliability for
+the simulation by retrieving mobility model informa-
+tion from X-Plane’s navigation pattern and updating
+UAVs positions on OMNeT++. OMNeT++ is used to
+simulate the network conditions when the nodes are
+moving based on positions generated by X-Plane. At
+thecurrentstage,thismobilitymodeldoesnotconsider
+node connectivity when determining node’s position.
+In future releases, a mobility model that governs the
+UAVs ﬂight based on the network connectivity will
+be available for simulation. Such approaches allow the
+modelling and development of more realistic protocols
+and mobility models for FANETs.
+The integration between simulators is implemented
+by a plug-in on X-Plane side and a module on
+OMNeT++ side, both of them responsible for exchang-
+ing information through an XML ﬁle.
+Once conﬁguration ﬁles are ready (provided by
+LARISSA), new OMNeT++ module ﬁleHandler must
+be inserted in user simulation, with its parame-
+ters properly conﬁgured. Parameter filename (string)
+determines the ﬁle in which information will be
+exchanged; hostVariableName (string) determines
+which variable is used to represent the UAVs; and
+numHostVariableName determines how many UAVs
+are present in the simulation.
+The INET Framework is an open-source
+OMNeT++ model suite for networks. We have
+extended this framework with a new mobility model
+calledArbitrary Mobility . This new module extends
+theMovingMobilityBase INET module and has three
+position parameters in its NED ﬁle ( dXPosition ,
+dYPosition anddZPosition ) that are used to update
+the node’s position, invoking the overloaded method
+move(). Figure 7 shows the inheritance diagram for
+Arbitrary Mobility module.
+NewﬁleHandler module creates the XML ﬁle con-
+taining the number of UAVs present in the simulation
+and all position data, which is initialized with zero.
+Afterwards, it implements a simple state machine that
+(i) waits for X-Plane to acknowledge it; (ii) reads the
+coordinate references for the simulation and (iii) re-
+peatedly updates UAVs position by setting the mobility
+position parameters according to XML ﬁle data until
+the simulation is ﬁnished.
+In X-Plane side, a plug-in was developed to gather
+all planes position information and write them to the
+XML ﬁle. Figure 8 shows the aircraft modelling im-
+plemented by the plug-in. All planes are modelled by
+Aircraftclass, which stores all position information
+data.Aircraftclass is specialized in two classes: User
+Aircraft, which models the user-controlled aircraft in
+X-Plane,and MultiAircraft ,whichmodelsotheraircraft
+6279
+
+--- Page 6 ---
+2. Network parameters 
+for automatic UAVs 
+generation are informed 
+to OMNeT ++1. Network 
+parameters 
+for UAVs are 
+defined using 
+LARISSA
+4. Simulates the flight with 
+eventual natural interferences 
+(e.g. wind gusts and aircraft 
+faults )
+OMNeT ++
+Network Simulator
+Other Inputs
+(navigation patterns , 
+flight formation 
+control , aircraft 
+dynamics etc .)X-Plane
+Flight Simulator
+LARISSA
+5. Updates the UAVs   
+positions and speeds
+6. Simulates network 
+events , generating 
+statistics7. Loop until the 
+end of  simulation3. Fully networked UAVs   
+positions are sent to X -PlaneSAVEN
+Figure 6. AVENS Structure – Simulators integration.
+of the simulation. Since there is only one aircraft
+directly controlled by user, UserAircraft was modeled
+using Singleton design pattern, with its constructor
+kept in private and a public static method to retrieve
+its single instance.
+When enabled, X-Plane plug-in initializes a call-
+back that keeps pooling for the XML ﬁle existence.
+Once the ﬁle is found, it veriﬁes the number of planes
+present in the simulation and instantiates the classes
+accordingly. A second callback is then registered to be
+executed at a given interval – in which the positioning
+data for all planes are read (by invoking overloaded
+method UpdatePosition() )andthenwritteninXML
+ﬁle, making them available to OMNeT++.
+The communication ﬂow between the OMNeT++
+module and the X-Plane plug-in can be seen in
+Figure 9. First, the initialize() method from
+Figure 7. Arbitrary Mobility inheritance diagram.OMNeT++ module ﬁleHandler creates the data shar-
+ing XML ﬁle with the number of planes present
+in the simulation. After the initialization, the self-
+message WAIT_XPLANE is sent repeatedly by module
+until X-Plane initializes the values and acknowledge
+the ﬁle by setting a ﬂag within it. As soon as it
+happens, a self-message READ_REFERENCES is sent
+once in order to read initial positions and ﬁnally self-
+message UPDATE_POSITIONS is sent repeatedly until
+the simulations ends, refreshing aircraft position in
+OMNeT++.
+When X-Plane plug-in is loaded, it creates a call-
+Figure 8. Aircraft modelling in X-Plane plug-in.
+6280
+
+--- Page 7 ---
+back function called every second that checks the
+ﬁle existence and structure. If the ﬁle is found and
+loaded correctly, a second callback is registered and
+consequently called every time the screen is redrawn,
+that updates the plane positions in the XML ﬁle.
+Steps 3 and 4 in Figure 9 represent a loop that lasts
+as long as the simulation is running.
+OMNeT ++
+Network Simulator
+X-Plane
+Flight Simulator
+1. OMNeT ++ 
+simulation creates 
+the XML file with 
+aircraft count and 
+waits for X -Plane 
+updates
+2. X-Plane waits for file 
+creation before reading 
+the number of aircrafts 
+for flight simulation3. Once the 
+file exists , 
+X-Plane will 
+continuasly 
+update it 
+according to 
+aircrafts 
+position in the 
+air4. OMNeT ++ 
+repeatedly 
+reads the 
+aircrafts 
+position to 
+refresh the 
+nodes’ 
+position in 
+network 
+simulation
+Figure 9. Communication diagram between the
+OMNeT++ simulation and X-Plane plug-in.
+At the current stage, X-Plane is responsible for
+the mobility pattern, respecting aircraft constraints.
+OMNeT++ simulates the network states based on the
+nodes’ relative position, which is calculated using the
+positions informed by X-Plane. The maximum num-
+ber of UAVs is currently limited by X-Plane, which
+allows 1 main controlled aircraft plus 19 others. On
+OMNeT++ side there is no such limitation.
+A single instance of X-Plane is run in each simula-
+tion,ensuringsmallermemoryandCPUconsumptions.
+Each aircraft can be conﬁgured with diﬀerent charac-
+teristics, allowing the deﬁnition of diﬀerent types ofaircraft. It is important to point out that the class model
+used in X-Plane plug-in and OMNeT++ module can be
+easily extended to include any new data the user needs
+exchanged.
+4. RESULTS AND DISCUSSIONS
+The availability of LARISSA proﬁles for automatic
+code generation to OMNeT++, and the forward of
+position data by X-Plane plug-in made it possible to
+integrateallneededfeaturesintoAVENS,ourproposed
+FANET simulator.
+Eight simulation scenarios, which parameters are
+detailed in TABLE 1, were set in AVENS in order
+to validate it. We have varied the following parame-
+ters in AVENS simulations: average sending interval,
+transmission power, receiver sensitivity, transfer rate,
+playground dimensions, number of aircraft and aircraft
+speed. Here, playground refers to the simulation area
+inside the simulators.
+LARISSA Model2Simulation uses the MiXiM
+framework[34],whichprovidessupporttowirelessde-
+vices such as those that implement the IEEE 802.15.4
+standard, used in these case studies. On the generation
+of simulation environment, one of the steps is to cre-
+ate theomnetpp.ini ﬁle, which contains a number of
+parameters and instructions that guide the simulation.
+The procedure is to insert a line in this ﬁle
+with the expression "include uavconf.ini" , that
+refers to the conﬁguration ﬁle generated by LARISSA
+Model2Simulation . Therefore, when the simulation is
+executed, the parameters that were speciﬁed in the
+modeling and were submitted to the transformation by
+LARISSA Model2Simulation are read and used from
+uavconf.ini .
+TheModel2Simulation obtains speciﬁc character-
+istics of the aircraft from the UML model that uses
+the LARISSA proﬁle. It integrates such information for
+code generation, and then allows the model to become
+reliable for a set of features based on the data obtained
+directlyfromthesimulator.Themodelcanbeimproved
+by repeating the cycle, therefore obtaining an ideal
+model.
+The plug-in inside X-Plane is responsible for con-
+verting OMNeT++ ﬁles into a set of speciﬁcation de-
+tails which will be further used by the ﬂight simulator.
+The plug-in also guarantees parameters updates in both
+OMNeT++ and X-Plane during the whole simulation.
+The UAVs trajectory can be simulated with
+AVENS. The latitude, longitude and altitude were re-
+trieved from X-Plane and converted to the navigation
+frame represented as North-East-Up using MATLAB®.
+For instance, the resulting trajectory of a single UAV
+6281
+
+--- Page 8 ---
+Table 1. Parameter values of simulation scenarios implemented in AVENS.
+Fixed Parameters Values
+Frequency 2.4 GHz
+Mobility type Linear Mobility
+Routing algorithm Wise Route
+Standard protocol 802.15.4
+Playground size (x) 1.6 km
+Playground size (y) 1.6 km
+Playground size (y) 1.6 km
+Simulation time 3 minutes
+Number of GCS 1
+Transfer rate 250 Kbps
+Sent packets (per node) 170Variable
+parametersSimulation
+scenariosNumber of
+UAVsTransmission
+powerReceiver
+sensitivityValues1 -104 dBm
+2100 mW
+-150 dBm
+3 -104 dBm
+43
+200 mW
+-150 dBm
+5 -104 dBm
+6100 mW
+-150 dBm
+7 -104 dBm
+85
+200 mW
+-150 dBm
+can be seen in Figure 10. Due to AVENS ﬂexibility
+and robustness, it is possible to visualize the trajectory
+of a single UAV in a non-formation ﬂight (the case in
+Figure 10) or even multiple UAVs sharing the same
+airspace.
+Position East (m)Position Up (m)
+Position North (m)
+Figure 10. Trajectory represented in the navigation
+frame North-East-Up.
+The charts in Figures 11 and 12 present eight sim-
+ulation scenarios. The parameters of each simulation
+are listed in TABLE 1.
+GCS UAV1 UAV2 UAV375
+075
+0245464
+339 339
+75
+075
+0375
+337 340 340Received packetsThree UA Vs flying in cooperation
+Simulation 1 (100 mW / -104 dBm) Simulation 2 (100 mW / -150 dBm)
+Simulation 3 (200 mW / -104 dBm) Simulation 4 (200 mW / -150 dBm)
+Figure 11. Results of simulation scenarios with 3
+UAVs ﬂying in cooperation.These simulations present UAVs ﬂying in cooper-
+ation, thus only the yaxis is changing throughout the
+simulation. However, AVENS is not limited by such
+conﬁguration and might be dealing with diﬀerent paths
+in every direction, including xand zaxes, if needed.
+Every simulation was performed for 3 minutes, which
+is the time needed for a UAV to cover 1.6 kmat 8 m=s.
+Dimensions of the simulation playground are the same
+for every simulation (1.6 kmx 1.6 kmx 1.6 km) as
+well as the transmitted packets per node (170 packets).
+The Transmission Power varied between 100 and 200
+mW, and the Receiver Sensitivity varied between -104
+and -150 dBm. Such values were chosen following
+the speciﬁc conﬁguration of an IEEE 802.15.4 board,
+allowing to obtain an ideal environment.
+Figure 11 shows the simulations 1 – 4, with 3
+UAVs and 1 GCS (Ground Control Station). Due to
+the distance among UAVs cooperating to cover the
+entire playground, power transmission and sensitivity
+GCS UAV1 UAV2 UAV3 UAV4 UAV5
+302
+755
+681
+ 681
+ 681
+ 681
+613
+675
+678
+ 678
+672
+ 651
+302
+755
+680
+680
+680
+ 680
+613
+674
+678
+679
+672
+655Received packetsFive UA Vs flying in cooperation
+Simulation 5 (100 mW / -104 dBm) Simulation 6 (100 mW / -150 dBm)
+Simulation 7 (200 mW / -104 dBm) Simulation 8 (200 mW / -150 dBm)
+Figure 12. Results of simulation scenarios with 5
+UAVs ﬂying in cooperation.
+6282
+
+--- Page 9 ---
+parameters play an important role in results. Neverthe-
+less, we may point out a less signiﬁcant diﬀerence in
+results from simulations 5 – 8 operating with 5 UAVs
+in cooperation to cover the same playground size, as
+seen in Figure 12. Such behavior is expected since the
+distance among UAVs is smaller whether compared to
+simulations 1 – 4.
+Figures 11 and 12 present results that reinforce
+the contributions of AVENS to researchers and de-
+velopers of robotic UAV systems, since it helps pre-
+analysing the behavior of unmanned aircraft systems
+networks, and speciﬁcally measures how transmission
+would aﬀect the choice for more appropriate hardware
+appliances. It is important to point out that the main
+goal of the experimental results shown above is to
+evaluate AVENS as a simulator for robotic purposes,
+not network performance or behavior. However, it is
+intrinsic that one feature cannot be evaluated isolated
+from another. That is the reason why network param-
+eters were slightly explored in this paper, despite the
+fact that such attributes are not the main focus. The
+network behavior can be further explored in new sim-
+ulations that would eventually be focused on network
+improvements. Thereby, AVENS is fully capable of
+measuring advanced network-speciﬁc parameters, e. g.
+transmitted/received packets and packet losses.
+AVENS ﬁlls the gap shown in [15], providing a
+multiple UAV simulation tool that can simulate various
+UAV platforms and network protocols (for FANET
+design). AVENS can model multiple UAV mobility
+structures, as well as diﬀerent network protocols, sen-
+sors and others. Updates on AVENS are periodically
+released in http://www.lsec.icmc.usp.br/avens.
+5. Conclusions
+This paper introduced AVENS, a new FANET sim-
+ulator. Using the described methodology, we provide
+means to evaluate not only developed protocols more
+accurately, but also the control system, the boards and
+all sensors implemented in UAVs. The simulator relies
+on state-of-the-art simulators from both domains, since
+it incorporates well-known models of aircraft using the
+X-Plane and a comprehensive selection of models of
+network protocols from OMNeT++.
+The presented proof-of-concept study demonstrated
+not only the applicability but also the need for multiple
+UAV and network simulation. Furthermore, the inte-
+grated model is able not only to investigate the eﬀects
+of the network and aircraft, but also to generate code,
+providing an accurate, ﬂexible and reusable simulator.
+In the future, security and safety requirements will
+be integrated to the current AVENS version with thepurpose of making simulations even more realistic.
+Security and safety are requirements of utmost impor-
+tance in UAS and must be taken into account by an
+aerial network simulator framework.
+Other algorithms are being integrated into X-Plane
+allowing autonomous ﬂights, trajectories and diﬀerent
+control systems to be tested in an integrated ﬂying ad
+hoc network simulator.
+6. References
+[1] L. Lazić and D. Velašević, “Applying simulation and
+design of experiments to the embedded software testing
+process: Research articles,” Softw. Test. Verif. Reliab. ,
+vol. 14, no. 4, pp. 257–282, Dec. 2004.
+[2] W. Dunn, “Designing safety-critical computer systems,”
+Computer , vol. 36, no. 11, pp. 40–46, Nov 2003.
+[3] S. P. Kumar, P. S. Ramaiah, and V. Khanaa, “Archi-
+tectural patterns to design software safety based safety-
+critical systems,” in Proceedings of the 2011 Interna-
+tional Conference on Communication, Computing &
+Security, ser. ICCCS ’11. New York, NY, USA: ACM,
+2011, pp. 620–623.
+[4] D. Jacques, “Modeling considerations for wide area
+search munition eﬀectiveness analysis,” in Simulation
+Conference, 2002. Proceedings of the Winter , vol. 1,
+dec. 2002, pp. 878 – 886 vol.1.
+[5] K. D. Mullens, E. B. Pacis, S. B. Stancliﬀ, A. B.
+Burmeister, T. A. D. Saic, M. H. Bruch, and H. R.
+Everett, “An automated UAV mission system,” AUVSI
+Unmanned Systems in International Security 2003 USIS
+03, 2003.
+[6] L. Merino, F. Caballero, J. Martínez-de Dios, J. Ferruz,
+and A. Ollero, “A cooperative perception system for
+multiple uavs: Application to automatic detection of
+forest ﬁres,” Journal of Field Robotics , vol. 23, no. 3-4,
+pp. 165–184, 2006.
+[7] J.L.Drury,L.Riek,andN.Rackliﬀe,“Adecomposition
+of UAV-related situation awareness,” in Proceedings of
+the 1st ACM SIGCHI/SIGART conference on Human-
+robot interaction , ser. HRI ’06. New York, NY, USA:
+ACM, 2006, pp. 88–94.
+[8] J. Cooper and M. A. Goodrich, “Towards combining
+UAV and sensor operator roles in UAV-enabled visual
+search,” in Proceedings of the 3rd ACM/IEEE interna-
+tional conference on Human robot interaction , ser. HRI
+’08. New York, NY, USA: ACM, 2008, pp. 351–358.
+[9] R. Pitre, X. Li, and D. DelBalzo, “A new performance
+metric for search and track missions 2: Design and
+application to uav search,” in FUSION ’09. 12th Inter-
+national Conference on Information Fusion, 2009. , July
+2009, pp. 1108–1114.
+[10] I.Maza,K.Kondak,M.Bernard,andA.Ollero,“Multi-
+UAV cooperation and control for load transportation
+and deployment,” Journal of Intelligent and Robotic
+Systems, vol. 57, no. 1-4, pp. 417–449, 2010.
+6283
+
+--- Page 10 ---
+[11] O. Trindade Júnior, K. R. L. J. C. Branco, L. d. O.
+Neris, and L. F. C. Chavier, “Robôs aéreos,” in Robótica
+Móvel, R. A. F. Romero, F. S. Osório, D. F. Wolf, and
+E. P. e. Silva Jr, Eds. LTC, 2012, ch. 16, pp. 461–478.
+[12] A. B. Colturato, A. B. Gomes, D. F. Pigatto, D. B.
+Colturato, A. S. R. Pinto, L. H. C. Branco, E. L.
+Furtado, and K. R. L. J. C. Branco, “Pattern recognition
+in thermal images of plants pine using artiﬁcial neural
+networks,” in Engineering Applications of Neural Net-
+works, ser. Communications in Computer and Informa-
+tion Science, L. Iliadis, H. Papadopoulos, and C. Jayne,
+Eds. Springer Berlin Heidelberg, 2013, vol. 383, pp.
+406–413.
+[13] W. Ren, R. Beard, and E. Atkins, “Information consen-
+sus in multivehicle cooperative control,” Control Sys-
+tems, IEEE , vol. 27, no. 2, pp. 71–82, April 2007.
+[14] J. Wang and M. X. 0001, “Integrated optimal formation
+control of multiple unmanned aerial vehicles.” IEEE
+Trans. Contr. Sys. Techn. , vol. 21, no. 5, pp. 1731–1744,
+2013.
+[15] İlker Bekmezci, O. K. Sahingoz, and Şamil Temel,
+“Flying ad-hoc networks (FANETs): A survey,” Ad Hoc
+Networks, vol. 11, no. 3, pp. 1254 – 1270, 2013.
+[16] T. H. Chung, M. R. Clement, M. A. Day, K. D. Jones,
+D. Davis, and M. Jones, “Live-ﬂy, large-scale ﬁeld
+experimentationforlargenumbersofﬁxed-wingUAVs,”
+in2016 IEEE International Conference on Robotics and
+Automation (ICRA) , May 2016, pp. 1255–1262.
+[17] “NS-2 network simulator – Wiki,” Available: http:
+//nsnam.isi.edu/nsnam/index.php/Main_Page, 2014, last
+access: 20th May 2015.
+[18] C. Sommer, R. German, and F. Dressler, “Bidirec-
+tionally coupled network and road traﬃc simulation
+for improved ivc analysis,” Mobile Computing, IEEE
+Transactions on , vol. 10, no. 1, pp. 3–15, Jan. 2011.
+[19] C. Sommer, O. K. Tonguz, and F. Dressler, “Traﬃc in-
+formation systems: eﬃcient message dissemination via
+adaptive beaconing,” Communications Magazine, IEEE ,
+vol. 49, no. 5, pp. 173–179, May 2011.
+[20] “VEINS documentation,” Available: http://veins.car2x.
+org/documentation/, 2014, last access: 20th May 2015.
+[21] S. A. Khandelwal and V. S. Gulhane, “Survey the simu-
+lation tool of vehicular ad hoc networks,” International
+Journal of Advanced Research in Computer Science and
+Software Engineering , vol. 2, Jan. 2012.[22] E. Yanmaz, R. Kuschnig, and C. Bettstetter, “Achieving
+air-ground communications in 802.11 networks with
+three-dimensional aerial mobility,” in INFOCOM, 2013
+Proceedings IEEE , April 2013, pp. 120–124.
+[23] E. Yanmaz, S. Hayat, J. Scherer, and C. Bettstetter,
+“Experimental performance analysis of two-hop aerial
+802.11networks,”in WirelessCommunicationsandNet-
+working Conference (WCNC), 2014 IEEE , April 2014,
+pp. 3118–3123.
+[24] O. Bouachir, A. Abrassart, F. Garcia, and N. Larrieu,
+“A mobility model for UAV ad hoc network,” in Un-
+manned Aircraft Systems (ICUAS), 2014 International
+Conference on , May 2014, pp. 383–388.
+[25] A. Boukerche, H. A. B. F. Oliveira, E. F. Nakamura,
+and A. A. F. Loureiro, “Vehicular ad hoc networks:
+A new challenge for localization-based systems,” Com-
+puterCommunications ,vol.31,no.12,pp.2838–2849,
+2008, mobility Protocols for ITS/VANET.
+[26] E. A. Marconato, D. F. Pigatto, K. R. L. J. C. Branco,
+and L. H. C. Branco, “LARISSA: Layered architecture
+model for interconnection of systems in UAS,” in Un-
+manned Aircraft Systems (ICUAS), 2014 International
+Conference on , May 2014, pp. 20–31.
+[27] “OMNeT++ user manual,” Available: http:
+//www.omnetpp.org/doc/omnetpp/manual/usman.html,
+2014, last access: 20th May 2015.
+[28] “X-Plane Home Page,” Available: http://www.x-plane.
+com, 2014, last access: 28th nov 2014.
+[29] G. Booch, J. Rumbaugh, and I. Jacobson, The Uniﬁed
+Modeling Language User Guide , 2nd ed. Addison-
+Wesley Professional, 2005.
+[30] Object Management Group ®, “Speciﬁcation of uniﬁed
+modeling language ™(UML ®),” Available: http://www.
+omg.org/spec/UML/, 2011, last access: 20th May 2015.
+[31] Eclipse Foundation, “Papyrus,” Available: https://
+eclipse.org/papyrus/, 2015, last access: 20th May 2015.
+[32] “Paparazzi: The free autopilot,” Available: http://wiki.
+paparazziuav.org/wiki/Main_Page, 2016, last access:
+14th Jun 2016.
+[33] Eclipse Foundation, “Acceleo support,” Available:
+https://eclipse.org/acceleo/support/, 2015, last access:
+20th May 2015.
+[34] M. Project, “MiXiM website,” Available: http://mixim.
+sourceforge.net/, 2011, last access: 20th May 2015.
+6284

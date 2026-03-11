@@ -1,0 +1,1049 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS 1
+Time-Complemented Event-Driven Architecture
+for Distributed Automation Systems
+Cheng Pang, Member, IEEE , Jeffrey Yan, Student Member, IEEE , and Valeriy Vyatkin, Senior Member, IEEE
+Abstract —Time-driven and event-driven control models are
+two fundamental design paradigms applied in distributed con-trol systems for synchronizing decentralized activities. This paper
+proposes a uniﬁed architecture for combining both approaches.
+The combination offers the best of both worlds’ properties, suchas the expressiveness of event-driven programming and the deter-minism of time-driven logic. The foundations of this symbiosis arethe IEC 61499 Function Block standard providing event-drivendistributed control architecture and the IEEE 1588 PrecisionTime Protocol establishing the basis for highly-accurate timesynchronization. The proposed time-complemented event-drivendistributed control model aims at improving the modularityand ﬂexibility of automation software with satisfactory controlperformance. The new control model has been compared withconventional centralized and distributed control approaches ana-lytically and by simulation. The comparison results reveal thatthe proposed control model is efﬁcient and ﬂexible. Finally, areference example has been used to demonstrate merits of thenew approach.
+Index Terms —Distributed automation systems, distributed con-
+trol, distributed time synchronization, IEC 61499, IEEE 1588.
+I. I NTRODUCTION
+TRADITIONALLY, control software has been executed in
+a cyclic way, recalculating control output after updating
+input. This stems from the computational implementation ofcontinuous and discrete control systems. This can be clearly
+observed, for example, in programmable logic controllers
+(PLCs), which follow the classic cyclic scan paradigm of theIEC 61131-3 standard [ 1]. To improve a controller’s reactive
+characteristics, the cycle duration, in general, should be as
+short as possible. Increasing the performance of computer-based control devices provides an opportunity to implement
+many independent control loops within the same control
+device. Based on dynamic characteristics of processes in aplant, it is possible to develop a time schedule of control loop
+invocations. Such a time-driven execution of control loops is a
+common solution in process control systems using time-driven
+tasks of PLCs.
+Manuscript received October 25, 2013; accepted March 9, 2014. This paper
+was recommended by Associate Editor Z. Li.
+C. Pang is with Luleå University of Technology, 971 87 Luleå, Sweden
+(e-mail: cheng.pang.phd@ieee.org ).
+J. Yan is with the University of Auckland, Auckland 1142, New Zealand
+(e-mail: jyan110@aucklanduni.ac.nz ).
+V . Vyatkin is with Luleå University of Technology, 971 87 Luleå,
+Sweden, and also with Aalto University, FI-00076 Aalto, Finland (e-mail:
+vyatkin@ieee.org ).
+Color versions of one or more of the ﬁgures in this paper are available
+online at http://ieeexplore .ieee.org.
+Digital Object Identiﬁer 10.1109/TSMC.2014.2326837The development of networked control systems motivated
+the need for distributed process synchronization. Along withsignal-based synchronization, time can also be used for syn-
+chronizing distributed processes. The implementation of this
+requires tight synchronization of clocks in distributed devices.This has been implemented in time-triggered networking pro-
+tocols, such as TTP [ 2] for scheduling of communication
+sessions. However, these protocols are not commonly usedat the application level. This is because not all the needs of a
+distributed control system can be fulﬁlled with prescheduling.
+Some processes may need to be synchronized dynamically bypassing messages between distributed controllers. This mes-
+sage exchange is often modeled using event abstraction, which
+has given rise to the event-driven model of computation.
+The IEC 61499 distributed automation architecture [ 3]i sa
+well-known effort to introduce modern component-based soft-ware design into automation practice. Over the past decade, the
+effectiveness of the IEC 61499 standard in distributed control
+systems has been extensively studied in various applications,such as airport baggage handling systems [ 4], [5], manu-
+facturing control [ 6] with closed-loop veriﬁcation [ 7], [8],
+mechatronics [ 9], [10], building automation systems [ 11],
+machining [ 12], [13], process control [ 14], [15], and smart
+grids [ 16], [17]. These case studies have conﬁrmed many
+advantages of IEC 61499 in terms of design and redesignefﬁciency and better interoperability and reusability [ 18]. The
+IEC 61499 architecture relies on the concept of an event-driven
+function block (FB), where control applications are repre-sented as networks of FBs connected by event and data ﬂows.
+The event-related nature of IEC 61499 explains why until
+recently time-based synchronization had not been properly
+addressed in that context. This limits developers of distributed
+systems who have chosen IEC 61499 as their developmentarchitecture.
+This paper aims at providing designers of distributed sys-
+tems a ﬂexible design architecture that can compose time-driven and event-driven logics in reusable components. It takes
+advantage of the IEC 61499 distributed control architecture
+and the IEEE 1588 precision time protocol (PTP) [ 19]. The
+proposed approach is strongly motivated by the industrial trend
+of developing the intelligent mechatronic component (IMC)
+concept [ 20]–[22], which can include other IMCs in com-
+plex hierarchical assemblies. Some control actions in IMCs
+are purely reactive (i.e., event-driven) while others constitute
+sequences of actions that are best described by time-schedules.Lower-level actions can be triggered by commands from
+higher levels of the control hierarchy.
+2168-2216 c/circlecopyrt2014 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+Seehttp://www.ieee.org/publications_standards/publications/rights/index.html for more information.
+
+--- Page 2 ---
+2 IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS
+This paper is organized as follows. Section II reviews
+related works and deﬁnes the scope of this research. Then inSection III, a simpliﬁed sorting machine is used to illustrate the
+time-complemented event-driven (TCED) control model pro-
+posed in Section IV . In particular, a Petri net model is usedto deﬁne and elaborate the dynamic semantics of the TCED
+control model. Performance metrics of the TCED control
+model are introduced in Section V . The qualitative compar-ison of different control models is presented in Section VI.
+The implementations of the TCED control model following the
+IEC 61499 standard are elaborated in Section VII. To conﬁrmthe beneﬁts of the TCED control architecture, simulation trials
+have been conducted. The simulation framework and results
+are summarized in Section VIII. The paper is ﬁnally concluded
+in Section IX with future research perspectives.
+II. C
+ONTROL PARADIGMS :TIME-DRIVEN
+AND EVENT -DRIVEN
+The time-driven and event-driven models are two funda-
+mental design paradigms of control systems. In general, with
+a time-driven model, autonomous progression of time triggers
+the execution of prescheduled control computations or periodicactions. In contrast, in an event-driven model, control compu-
+tations or actions are triggered by occurrences of events. The
+temporal and synchronous nature of a time-driven model helpsto guarantee deterministic behavior and required performance
+of control applications. On the other hand, the sporadic and
+adaptive nature of an event-driven model can more efﬁciently
+handle asynchronous external stimuli. Event-driven control is
+considered having better overall system performance than tra-ditional cyclic scan-based control [ 23]–[25] due to its ability to
+react immediately to events that change the state of the con-
+trolled system. In other words, an event-driven model savestime and resources spent on communication and computation
+when no signiﬁcant change in the system has occurred.
+In the industrial automation domain, the time-triggered
+model has been partially reﬂected in PLC programming as
+the periodic task construct. The IEC 61499 standard, on the
+other hand, is based on an event-driven control model. Whileseveral studies reintroduced scan-based PLC semantics back
+to the IEC 61499 event-driven architecture for the purpose of
+backward compatibility [ 26], [27] and the migration of exist-
+ing PLC code to IEC 61499 [ 28]–[30], no work is known to
+the authors on the implementation of time-driven controls in
+the IEC 61499 context. This paper attempts to ﬁll this gap by
+combining event-driven and time-driven control models into a
+uniﬁed architecture.
+The combination of generic time-driven and event-driven
+control models has been previously studied by Paoli and
+Tisato [ 31], where they proposed a uniﬁed control model. The
+core concepts of the uniﬁed control model are as follows.
+1) Decoupling control model from controlled actions by
+introducing the concepts called reactive agent and con-trol machine.
+2) The integration of event-driven and time-driven control
+models using a planning machine and control machine.
+A reactive agent (or agent for short) is an encapsulation of
+atomic control actions that it can execute. The actions to be
+Fig. 1. Centralized control conﬁguration of a generic sorting machine.
+executed depend on an agent’s status and the commands it
+has received. The commands are generated and dispatched to
+agents by a time-driven control machine (TDCM) based on
+a command timeline. This timeline is scheduled by an event-driven planning machine (EDPM) according to the external
+events received, for example, from the environment or other
+agents. This uniﬁed control model illustrated the complemen-tary nature of event-driven and time-driven control semantics
+in a centralized conﬁguration.
+This paper proposed a TCED control architecture that
+extended Paoli’s model to the case of component-based dis-
+tributed control. Implementation of the TCED control archi-tecture was based on the IEC 61499 framework with the
+clock synchronization realized by the IEEE 1588 PTP. The
+applications of the IEEE 1588 PTP to industrial automationsystems were ﬁrst introduced by Harris [ 32], where general
+comparisons between scan-based control and time-based con-
+trol were theoretically discussed through a schematic example.The comparison results conformed to the claim of this paper
+that time-driven control has much better performance than
+scan-based control and can be used to reduce the necessity ofevent transmissions in event-driven control. However, Harris
+did not provide a concrete implementation of the control exam-
+ple and realization of the proposed time-driven control wasunclear. In this paper, effects of control models on control
+performance were compared analytically. Moreover, concrete
+implementations of the IEEE 1588 PTP were provided with
+an illustrative control example.
+III. R
+EFERENCE EXAMPLE
+The control architecture of an automation system can
+signiﬁcantly affect its performance. An efﬁcient control con-ﬁguration can improve system performance, reduce costs, and
+simplify logic design. Impacts of control conﬁguration on sys-
+tem performance will be illustrated using the generic sortingmachine shown in Fig. 1. This machine can be used to sort
+items such as parcels, fruit, or baggage. In this machine, items
+are ﬁrst scanned by a scanner and then transferred to corre-
+sponding sorters. Within each sorter, the items are labeled and
+diverted. Depending on the sorting criteria such as weight,size, and color, different label patterns and labeling processes
+can be applied and the number of sorters along the conveyor
+can also vary. The mechanical design of this sorting machineis highly modularized. For example, sorters can use different
+types of labelers such as cold-glue and self-adhesive labelers,
+
+--- Page 3 ---
+PANG et al. : TIME-COMPLEMENTED EVENT-DRIVEN ARCHITECTURE FOR DISTRIBUTED AUTOMATION SYSTEMS 3
+Fig. 2. Distributed control conﬁguration.
+for different labeling processes. Labelers can again use vari-
+ous types of printers. Moreover, each sorter may include an
+encoder for adjusting action times based on actual conveyorspeed. Thus, this sorting machine can be easily reconﬁgured
+to meet various sorting criteria.
+The centralized control with PLC and remote I/O devices
+shown in Fig. 1is common in material handling sys-
+tems. In this conﬁguration, a single controller and scanner
+are installed at the beginning of the conveyor with remote I/O
+devices attached to the sorters alongside. Based on the sensors’
+detection signals, the main controller can actuate the corre-sponding sorters to divert items. In other words, the main
+controller must monitor and manage operations of all sorters.
+For comparison purposes, an idealized distributed control
+conﬁguration was envisaged that would have performance
+close to perfect. In this conﬁguration, it was assumed that each
+sorter could have its own scanner and controller as illustratedin Fig. 2. Each sorter’s controller could make its sorting deci-
+sion based on readings from its own scanner. Therefore, no
+communication between sorter controllers would be required.
+IV . T
+IME-COMPLEMENTED EVENT -DRIVEN
+CONTROL MODEL
+A. Overall Concept
+The centralized control architecture shown above constrains
+the sorting machine’s scalability. The distributed control con-ﬁguration on the opposite extreme, eliminates the commu-
+nication delays between the central controller and remote
+I/O devices. It thereby removes scalability constraints butat the cost of having a dedicated scanner and controller
+at each sorting point. The extra hardware increases costs
+that potentially go beyond practical limits. The TCED con-trol conﬁguration shown in Fig. 3is a synergy of the two
+conﬁgurations above. It aims to achieve comparable control
+performance as the distributed control conﬁguration while pre-serving similar costs as the centralized conﬁguration. In the
+TCED control conﬁguration, instead of having a dedicated
+sensor, each sorter now has a lightweight controller. The
+operations of sorter controllers are coordinated by the main
+controller based on a common notion of time.
+The ﬁrst target characteristic of the proposed hybrid control
+architecture is the modularity of control software that reﬂects
+its mechanical structure. Fig. 4exempliﬁes such a modular
+and hierarchical control structure for the TCED conﬁguration.
+In general, the control logic of each mechanical component is
+Fig. 3. TCED control conﬁguration.
+Fig. 4. Hierarchical control architecture of the sorting machine.
+encapsulated into a control module. Simpler control modules
+can be composed to form more complex ones. For instance,
+the composition of the labeler and diverter control modules
+forms the sorter control module that again forms part of theﬁnal control system. With this hierarchical control pattern, to
+design the control for a sorter with a new labeling process,
+only the existing labeler control module must be substituted.This hierarchical composition of control modules can improve
+reconﬁgurability and reusability of control logic. However, in
+order to support time-driven logics located at differing levelsof control hierarchy, a source of a real-time clock and a mech-
+anism for conveying the clock readings across the hierarchies
+are required.
+In the case of the sorting machine, the scanner and sorters
+operate asynchronously as conceptually depicted in Fig. 5.T h e
+main controller is responsible for analyzing scan results andmaking sorting decisions. Once a decision has been made, a
+time-stamped message will be dispatched to the corresponding
+sorter’s controller. This message will inform the sorter con-
+troller of the scanned item’s estimated time of arrival (ETA).
+There are two threads running on the sorter side and are asfollows.
+1) Thread A, with unit execution time D1, receives mes-
+sages from the main controller and adds ETA to its localtimetable.
+2) Thread B, with unit execution time D2, repeatedly com-
+pares the sorter’s current local time with the earliest timeentry in its timetable. Once the time is reached, the sorter
+controller will actuate its labeler and diverter.
+As a result, in this conﬁguration the network trafﬁc between
+the main controller and the sorter controllers is minimized to
+
+--- Page 4 ---
+4 IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS
+Fig. 5. Algorithms of main controller and sorter.
+timestamp transmission and clock synchronization. One lim-
+itation of the proposed method is the assumption that ETA
+can be calculated based on plant dimensions, weight of thework piece, and motion speed. In reality, these factors may
+vary and impact the calculated ETA. To compensate for the
+possible physical impacts, the ETA can be repeatedly adjustedbased on extensive measurements taken across the system such
+as encoder readings and other tracing information available in
+the system. The business practicality of this may vary from
+case-to-case. However, in principle it is a possible solution.
+By knowing the update rate of the ETA, limits of physicaltolerance can be identiﬁed. At the current level of technology,
+the application of this TCED control approach may not be
+justiﬁed in many industrial applications. However, there arecompelling examples, such as power plant control [ 33] and
+high-speed printing [ 34], where this time-stamped event-driven
+control approach is preferred and demonstrated [ 33], [35].
+To give a better understanding of the TCED control model,
+its formal deﬁnition and dynamic behavior will be elabo-
+rated next. Performance metrics of centralized, distributed,and TCED control conﬁgurations will then be compared
+analytically in the following sections.
+B. Formal Model of TCED Control Architecture
+The formal model of the TCED control architecture is
+deﬁned following a top–down approach. The basic construc-
+tion unit in the TCED architecture is called a module.
+Deﬁnition 1 (TCED Module):
+m=/angbracketleftp,c,A,T,l,v/angbracketright
+where
+p is an EDPM;
+c is an optional TDCM;
+A is a set of reactive agents;
+T is a set of constituent TCED modules, and m/∈T;
+l is a synchronized local clock;
+v is an optional action schedule.An EDPM is a software component that reacts to asyn-
+chronous events. These events are represented as either modulecommands or action commands, which will be deﬁned later
+in this section.
+Deﬁnition 2 (EDPM): Given a TCED module, m,a n
+EDPM, p, is a ﬁve-tuple deﬁned as
+p=/angbracketleftIMC,OMC,IAC,θ,τ/angbracketright
+where
+IMC is a set of module commands this EDPM can
+receive;
+OMC is a set of module commands this EDPM can issue;
+IAC is a set of action commands this EDPM can
+receive;
+θ is a function that updates the action sched-
+ulevofmbased on the received commands,
+θ:/angbracketleftIMC∪
+IAC,v/angbracketright/mapsto→v;
+τ is a function that schedules the executions
+of constituent TCED modules based on the
+received module commands and current local time,
+τ:/angbracketleftIMC,l/angbracketright→OMC.
+An action command, ac, is used to specify the action to be
+executed by an agent or to indicate execution results.
+Deﬁnition 3 (Action Command):
+ac=/angbracketlefte,R/angbracketright
+where
+e is the action to be executed;
+R is a set of action parameters or execution results.
+A module command, mc, is used to enable intermod-
+ule interactions and hierarchal propagation of commands,
+where upper-level action commands are further scheduled inlower-level modules.
+Deﬁnition 4 (Module Command):
+mc=/angbracketleftac,ts/angbracketright
+where
+ac is an action command;
+ts is a timestamp indicating the action’s scheduled exe-
+cution time.
+A TDCM is used to dispatch action commands to trigger
+the actuations of corresponding agents based on the action
+schedule.
+Deﬁnition 5 (TDCM): Given a TCED module, m, a TDCM,
+c, is a pair deﬁned as
+c=/angbracketleftOAC,μ/angbracketright
+where
+OAC is a set of action commands this TDCM can issue;
+μ is a function that dispatches action commands
+scheduled in vofm, based on the local time lof
+m,μ:/angbracketleftv,l/angbracketright/mapsto→2
+OAC.
+A reactive agent (or agent for short), a, is an encapsulation
+of atomic control actions that it can execute. The actions to beexecuted depend on the agent’s status and the commands it has
+received. During the execution, an action cannot be interrupted
+
+--- Page 5 ---
+PANG et al. : TIME-COMPLEMENTED EVENT-DRIVEN ARCHITECTURE FOR DISTRIBUTED AUTOMATION SYSTEMS 5
+Fig. 6. TCED control module of sorter.
+or preempted. Upon completion, the action’s execution results
+can be observed.
+Deﬁnition 6 (Reactive Agent):
+a=/angbracketleftIAC,OAC,F,S,δ/angbracketright
+where
+IAC is a set of action commands this agent can receive;
+OAC is a set of action commands this agent can issue;
+F is a set of atomic actions this agent can perform;
+S is a set of possible states of this agent, which
+deﬁnes the agent’s status;
+δ is a function that decides the action to be executed
+by this agent and the action command to be issuedafter the execution δ:S×IAC→F×OAC.
+Finally, an action schedule, v, is a set of chronologically
+ordered module commands.
+Deﬁnition 7 (Action Schedule):
+v={mc
+0,mc1,mc2,..., mcn}
+where:
+1)mc0,mc1,mc2,..., mcnare module commands;
+2)tsmc0≤tsmc1≤tsmc2≤ ··· ≤ tsmcn: the timestamp of
+mc0is the earliest and timestamp of mcnis the latest.
+Fig. 6presents the schematic composition of the TCED
+module for the sorting machine’s ﬁrst sorter, Sorter1. Theformal model of this Sorter1 module, m
+s1, can be speciﬁed as
+ms1=/angbracketleftBig
+ps1,/braceleftBig
+mdi,mla/bracerightBig
+,ls1/angbracketrightBig
+where
+mdi=/angbracketleftbig
+pdi,cdi,/braceleftbig
+aextend,aretract/bracerightbig
+,ldi,vdi/angbracketrightbig
+is the TCED
+module for the diverter;
+mla=/angbracketleftbig
+pla,cla,/braceleftbig
+aglue,acutter/bracerightbig
+,{mpr},lla,vla/angbracketrightbig
+is the
+TCED module for the labeler.
+The TCED module for the printer, mpr, can be again
+speciﬁed as
+mpr=/angbracketleftBig
+ppr,cpr,/braceleftBig
+asm1,asm2/bracerightBig
+,lpr,vpr/angbracketrightBig
+.
+The overall dynamic behavior of a sorter is further illus-
+trated using the place/transition Petri net model shown inFig. 7. In particular, this Petri net model demonstrates the
+control ﬂow of Sorter1. The meanings of places and transi-tions are listed in Table I. The control ﬂow is initiated after an
+item is scanned ( T1). Firstly, the EDPM of the main controller
+as a central scheduler analyzes the received scan result ( P2).
+Then, module commands are dispatched to the corresponding
+sorter modules to schedule their actuations. In this particular
+case, the item is assigned to Sorter1 ( T3), whose EDPM con-
+sequently analyzes the received module command ( P4) and
+dispatches actuation schedules to its diverter and labeler mod-
+ules ( P5). Once the diverter EDPM has analyzed the received
+command ( P6), it updates its action schedule ( P7). Depending
+on the commands stored in the action schedule ( P8), the
+diverter TDCM decides when to actuate the extend and retract
+agents ( P9). As actions are scheduled based on synchronous
+clocks, actuations of the extend ( P10) and retract ( P12) agents
+are synchronized to the item’s movement. P11 andP13 denote
+availability of the extend and retract agents, respectively.
+While the diverter module is processing its module com-mand, the labeler module concurrently handles the module
+command it received. After the labeler EDPM analyzes the
+command ( P14), it updates its action schedule ( P15) and dis-
+patches the action schedule to its printer module ( P22). Similar
+to the diverter module, the labeler TDCM ( P17) decides what
+its cutter ( P18) and glue dispenser ( P20) agents will do based
+on scheduled actions ( P16). At last, the printer module’s con-
+trol ﬂow exhibits the same pattern as that of the diverter
+module.
+C. Implementation Considerations
+The event-driven distributed automation architecture of IEC
+61499 is considered in this paper as the main implementationenvironment for TCED. It is expected to be more efﬁcient than
+traditional PLCs for the following reasons.
+1) Message passing between PLCs is associated with sub-
+stantial time overhead. As a result, events are delivered
+only in the next scan cycle. IEC 61499 applications are
+free from this overhead.
+2) As the number of time-driven tasks in PLCs is lim-
+ited and vendor-dependent, it is impossible to develop
+reusable software components that are clock-driven and
+can be placed in different levels of hierarchy as needed.
+3) Reusability and reconﬁgurability of PLC programs are
+constrained due to the cyclic execution semantics as
+discussed in [ 36].
+In contrast, the IEC 61499 architecture establishes a mod-
+ular encapsulation of control logic in the form of a FBnetwork, where control ﬂows and data ﬂows are identiﬁed
+by event and data connections respectively. The hierarchical
+structure and event-driven execution semantics of FB provide
+the fundamentals to develop the aforementioned TCED control
+model.
+Moreover, the overall performance of event-driven con-
+trol systems depends on event transmission time and event
+scheduling mechanisms. Thus, network congestion, packetloss, and runtime performance are the main factors causing
+response delays, which are proportional to the rate of event
+
+--- Page 6 ---
+6 IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS
+Fig. 7. Petri net model of the sorting machine’s control system behavior.
+TABLE I
+INTERPRETATIONS OF PLACES AND TRANSITIONS
+signal generation in the system. As control logic becomes
+complicated and more event signals must be transmitted and
+processed per time unit, the impact of these delays will be
+signiﬁcant for applications demanding highly efﬁcient real-
+time performance and accuracy. Time-driven logic can be
+used to reduce the necessity of event generation by simul-taneously coordinating operations of distributed controllers in
+a synchronous way without frequently exchanging event-based
+messages. The IEC 61499 implementation of time-drivenlogic based on hierarchical timestamp passage will be further
+discussed in Section VII.V. P
+ERFORMANCE METRICS
+In order to analytically compare the performance met-
+rics of different control conﬁgurations, a set of notions are
+deﬁned. For each control conﬁguration, a simpliﬁed math-
+ematical performance model of the sorting machine is thenbuilt.
+The sorting machine is considered in steady-state operation,
+which is deﬁned as when the change in output throughput hasreached equilibrium. In addition, an assumption is made that
+when an item enters the system, the travel time from scanner
+to target sorter is greater than the time that the scanner needsto scan an item. The following parameters will be utilized in
+the performance model.
+1)T
+scanis the scan time per item.
+2)Wis the sortation delay: the minimum time between two
+successful sorting actions including the time for detec-
+tion, computation, labeling, and diverting, which will befurther elaborated for each conﬁguration described later
+in this section.
+3)Ris the steady-state throughput rate in items per second.
+It can be assumed that the system functions correctly
+when W≤1
+RandR=v
+dobj+dspa(1)
+where
+v is the velocity of conveyor belt;
+dobj is the length of one item;
+dspa is the spacing between two items.
+From ( 1), the upper bound on speed of the conveyor belt
+can be derived as follows:
+v≤dobj+dspa
+W+Tscan. (2)
+Wcan be represented as a sum of the following components
+reﬂecting hardware properties.
+1)Tactis the physical actuation time a sorter takes to push
+an object to an output tray.
+
+--- Page 7 ---
+PANG et al. : TIME-COMPLEMENTED EVENT-DRIVEN ARCHITECTURE FOR DISTRIBUTED AUTOMATION SYSTEMS 7
+2)Tc
+alg,Td
+alg,Tt
+algare the respective execution times of
+sortation algorithms for the centralized, distributed, andTCED conﬁgurations.
+3)T
+iois the update time of I/O conﬁguration (i.e., I/O scan
+cycle).
+4)Tnetis the worst-case delay time for a message to
+travel between the controller and the furthest remote I/O
+device.
+Assuming that scanning is sufﬁciently fast, i.e., Tscan/lessmuchW,
+then ( 2)t r a n s f o r m st o v≤dobj+dspa
+W.
+A. Centralized Control With Remote I/O Devices
+In the centralized scan-based architecture as shown in Fig. 1,
+the sortation delay is calculated as
+Wc_sb=Tio+Tc
+alg+Tio+Tact+2Tnet
+=2(Tio+Tnet)+Tc
+alg+Tact. (3)
+It is notable that Wc_sbincludes elements dependent on the
+computational performance of PLC and ﬁeldbus. In general,
+the communication time Tnetin a ﬁeldbus increases with the
+length of cable and more remote I/O devices added. Therefore,
+for a sorting system it is reasonable to assume Tnet=O(n),
+where nis the number of sorters as adding more sorters would
+also mean extending the ﬁeldbus cable.
+In an event-driven system, the corresponding sortation time
+will be
+Wc_ed=Tnet+Tc
+alg+Tnet+Tact
+=2Tnet+Tc
+alg+Tact. (4)
+The two systems above have the same algorithm execution
+time, Tc
+alg, as they execute the same sortation algorithm. The
+best-case steady-state throughput rates that the centralized con-
+trol conﬁguration can achieve are: Rc_sb=1/Wc_sbfor a scan-
+based system and Rc_ed=1/Wc_edfor an event-driven system.
+B. Distributed Control
+The sortation delay of the distributed control conﬁguration
+in Fig. 2is mainly determined by the same factors as that of
+the centralized control conﬁguration. For a scan-based system,
+the sortation delay is
+Wd_sb=Tio+Td
+alg+Tio+Tact
+=2Tio+Td
+alg+Tact. (5)
+And for an event-driven system, the delay is reduced to
+Wd_ed=Td
+alg+Tact. (6)
+It can be noted that now the item scan time explicitly inﬂu-
+ences the system’s throughput as being a part of the sortation
+delay. Similarly, the algorithm execution time, Td
+alg, for both
+systems is identical.
+C. Time-Complemented Event-Driven Control
+The sortation delay for the TCED control conﬁguration is
+Wtced≥Tt
+alg+Tact (7)
+where Tt
+alg, in the worst case, is the sum of both threads’ unit
+execution time indicated in Fig. 5, i.e., Tt
+alg=D1+D2.VI. P ERFORMANCE ANALYSIS
+The throughputs of the above conﬁgurations are compared
+in this section to determine the potential performance gains ofusing a particular conﬁguration over another. There are ﬁve
+conﬁgurations to be compared.
+1) Centralized scan-based ( c_sb), where
+R
+c_sb=1
+Wc_sb=1
+2(Tio+Tnet)+Tc
+alg+Tact.(8)
+2) Centralized event-driven ( c_ed ), where
+Rc_ed=1
+Wc_ed=1
+2Tnet+Tc
+alg+Tact. (9)
+3) Distributed scan-based ( d_sb ), where
+Rd_sb=1
+Wd_sb=1
+2Tio+Td
+alg+Tact. (10)
+4) Distributed event-driven ( d_ed ), where
+Rd_ed=1
+Wd_ed=1
+Td
+alg+Tact. (11)
+5) TCED, where
+Rtced=1
+Wtced=1
+Tt
+alg+Tact. (12)
+A. Performance Comparisons
+Firstly, centralized scenarios are compared. As indicated
+in (8) and ( 9), given the same ﬁeldbus length and the trans-
+mission time, Tnet, the event-driven scenario offers a higher
+throughput rate due to the elimination of the I/O scan. Thisalso applies when comparing the distributed scenarios as indi-
+cated in ( 10) and ( 11). It can be concluded that event-driven
+systems have greater throughput rates than that of scan-basedsystems.
+As indicated in ( 9) and ( 11), the main factors differentiat-
+ing the centralized and distributed scenarios are T
+netandTalg.
+AsTnetis eliminated in the distributed scenario, to evaluate the
+throughput rates, Tc
+algandTd
+algmust be analyzed by comparing
+their control algorithms. The execution of control algorithms
+depends on the sequence of events that occurs during a sor-
+tation delay. This event sequence will be referred to as thecritical path. By examining the critical path, the reactions to
+changes in system size and complexity for each conﬁguration
+scenario can be determined.
+A sample control algorithm for the centralized event-driven
+conﬁguration is described as follows.
+1) The scanner processes the passing item upon its entry
+to the conveyor and captures the destination data. The
+item’s data are placed into a ﬁrst-in-ﬁrst-out (FIFO)
+queue along with subsequent items.
+2) When the ﬁrst sorter’s sensor detects an item, the ﬁrst
+entry of this FIFO queue is compared to determine ifthe item must be sorted at the current location. If it
+does, then its data entry is removed from the queue.
+Otherwise, its data entry will be passed to another FIFOqueue representing the space between the ﬁrst and the
+second sorters.
+
+--- Page 8 ---
+8 IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS
+TABLE II
+CRITICAL PATH FOR CENTRALIZED EVENT -DRIVEN CONFIGURATION
+TABLE III
+CRITICAL PATH FOR DISTRIBUTED EVENT -DRIVEN CONFIGURATION
+The critical path for this conﬁguration occurs when an
+item has reached a sensor and requires sortation. If there are
+assumed to be ksorters in the system, then there are also
+kFIFO queues with item data. The decomposition of events
+within the centralized conﬁguration is detailed in Table II.
+For the distributed event-driven conﬁguration, an item
+arrives at the scanner and is processed. If it is to be sortedat this sorter, then it is immediately sorted; otherwise it is
+passed along to the next sorter’s scanner. The critical path for
+this conﬁguration occurs just after an item is scanned and isrequired to be sorted at the current sorter. The decomposi-
+tion of events within the distributed conﬁguration is detailed
+in Table III.
+It is important to highlight that the centralized controller
+contains an algorithmic component, which is dependent on
+the number of sorters in the system when it iterates through alookup table. Contrarily, the distributed controller has no such
+dependency. Thus, T
+c
+alghas an algorithmic efﬁciency of O(k),
+whereas Td
+algremains constant as the system scales. Thus, for
+larger systems, Td
+alg<Tc
+algand similarly Rc_ed<Rd_ed.
+For the TCED conﬁguration, the scanner initially processes
+an item and calculates a timestamp for when it will arrive atits destination sorter. This timestamp is sent to the destination
+sorter controller and is stored within a FIFO queue. Within
+the sorter controller, two processes run simultaneously.
+1) The ﬁrst entry in the timestamp queue is repeatedly
+compared with the current time provided by the synchro-
+nized time source. When these times match, the sorter
+is actuated.
+2) Another process listens for the incoming messages to
+add new entries into the timestamp queue.
+Only the ﬁrst process affects the critical path when an item
+arrives at the sorter. Thus, the decomposition of events within
+the TCED critical path is detailed in Table IV .TABLE IV
+CRITICAL PATH FOR TCED C ONFIGURATION
+Comparing the distributed event-driven and TCED conﬁgu-
+rations, neither of them has algorithmic efﬁciency that scales
+with system size. Therefore, Tt
+algapproximates Td
+alg.
+B. Inﬂuence of Clock Skew
+Clock skew in this paper is deﬁned as the phase-shift
+between clocks generated in separate distributed controllers
+throughout a control system. As PLC and I/O scan times
+reduce to sub-millisecond ranges, the clock skew from applica-
+tions that are not time-synchronized will have a greater effect
+on overall system performance. For the TCED control model,the steady-state throughput is directly affected by the sortation
+delay as follows R
+tced=1
+Wtced. The clock skew ( Tskew) can
+be introduced into this formula and affects the sortation delay.
+Also, depending on the number of time-scheduled actions ( n)
+in the current reaction, the clock skew would affect each of
+these independently
+Rtced=1
+Wtced+nTskew. (13)
+The effects of clock skew on throughput can be analyzed
+using as listed below.
+1)Rtced: The steady-state throughput with synchronized
+clocks.
+2)Rtced(skew): The steady-state throughput with addition of
+some clock skew.
+The performance difference can therefore be found as
+/triangleR=/vextendsingle/vextendsingle/vextendsingle/vextendsingle1−R
+tced
+Rtced(skew)/vextendsingle/vextendsingle/vextendsingle/vextendsingle=/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle1−
+1
+Wtced
+1
+Wtced+nTskew/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle=nT
+skew
+Wtced.
+(14)
+This results in a simple linear relationship between clock
+skew and sortation delay. By using IEEE 1588 PTP, distributed
+clocks can be synchronized with an accuracy of less than 1 μs.
+Since current PLC scan times and I/O scans range in the order
+of milliseconds, these times are already an order of magni-
+tude greater and should result in mostly insigniﬁcant effectsof clock skew in a system.
+VII. TCED C
+ONTROL IMPLEMENTATION
+FOLLOWING IEC 61499
+This section presents the TCED control implementation for
+a labeler in the reference sorting machine following the IEC
+61499 standard. First of all, the IEC 61499 realization of IEEEPTP is presented, which provides synchronized time for time-
+driven logics. Then, mappings of TCED components, such
+
+--- Page 9 ---
+PANG et al. : TIME-COMPLEMENTED EVENT-DRIVEN ARCHITECTURE FOR DISTRIBUTED AUTOMATION SYSTEMS 9
+Fig. 8. 1588_PTP SIFB. (a) Interface. (b) State diagram.
+as commands, planning machines, and control machines, to
+IEC 61499 constructs are elaborated. Finally, the deployment
+conﬁguration of the full control system is detailed.
+A. Time Synchronization in IEC 61499
+The IEC 61499 FB implementations of IEEE 1588 PTP have
+been investigated and discussed in previous works, where several
+service interface function blocks (SIFBs) were used to accessthe synchronous time. Both software-only [ 37] and hardware-
+supported [ 38] approaches were developed. The main reason
+of implementing the PTP as SIFBs is to have standalone and
+standard-compliant FBs providing synchronous time to trigger
+other FBs at the application level. In such a way, PTP SIFBscan be easily adapted into existing designs without affecting the
+event-driven execution model. Fig. 8presents the 1588_PTP
+SIFB used to access hardware-supported PTP time.
+This SIFBs main function is to periodically retrieve current
+PTP time and provide it to downstream FBs, where:
+1) INIT initializes the PTP time synchronization process;
+2) RESET restarts the synchronization process;3) TickInterval speciﬁes frequency of the UPDATE event;
+4) PTP_State indicates whether local clock is synchronized
+or not;
+5) PTP_Time_S and PTP_Time_NS hold the local time in
+seconds and nanoseconds since 1970, respectively.
+Upon the INIT event, the 1588_PTP SIFB starts the PTP
+synchronization process. Once synchronized, the 1588_PTPSIFB will periodically emit UPDATE events based on its inter-
+nal timer signal, TimeUp, and the frequency speciﬁed by the
+TickInterval input. This 1588_PTP SIFB is used as a puretime source for other FBs. On the other hand, the 1588_REG
+SIFB in Fig. 9is used to provide the PTP time in a native
+event-driven way to the control logic.
+The 1588_REG SIFB manages the PTP time synchroniza-
+tion process in the same way as the 1588_PTP SIFB. However,
+instead of periodically producing time signals, it registers the
+ScheduleTime on REQ events. Whenever a registered time
+matches current PTP time, the IND event will be emitted alongwith the updated PTP_Time_S and PTP_Time_NS to trigger
+the time-driven control logic in downstream FBs. The two
+SIFBs discussed in this section establish the basis for design-ing time-driven logic in FBs, which will be exempliﬁed in the
+following sections.
+Fig. 9. 1588_REG SIFB. (a) Interface. (b) State diagram.
+B. TCED Commands
+In the TCED control model, agents, EDPM, and TDCM
+interact with each other using one of two command types:
+module commands or action commands. In the FB imple-
+mentation, each command type is represented as a speciﬁccombination of event and data signals.
+The action commands realize TDCM-to-Agent and Agent-
+to-EDPM interactions. The IEC 61499 implementation of anaction command consists of two parts.
+1) An event signal identiﬁes the action to be executed.
+2) A set of optional data signals speciﬁes the action
+parameters or execution results.
+For example, in Fig. 10, for the Labeler_TDCM FB, the
+CUT and DISPENSE events implement the action commands
+for the cutter and dispenser agents.
+The module command is used for EDPM-to-EDPM and
+EDPM-to-TCED interactions. Each module command is
+implemented as a signal combination as follows.
+1) An event signal, which triggers the recipient EDPM and
+speciﬁes the action to be executed.
+2) A set of optional data signals specify the parameters.3) A ScheduledTime data signal sets the scheduled time.
+For instance, the Labeler_EDPM FB in Fig. 10receives the
+module command for the labeling action through the signal
+interface LABEL+ScheduledTime, while the Pritner_TCED
+FB receives the module command for the printing actionthrough the signal interface PRINT+ScheduledTime.
+C. TCED Agent
+An agent can be natively implemented as a basic FB, where:
+1) the action commands that an agent can receive and issue
+are mapped to the basic FBs interface;
+2) atomic actions are mapped to EC Actions;
+3) possible states of an agent and action execution function
+are mapped to basic FBs ECC.
+For example, in Fig. 10, the CutterAgent FB implements the
+cutter agent of the labeler, which receives an action command,
+CUT. Upon the action completion, it issues the DONE action
+command back to the Labeler_EDPM FB. This CutterAgentFB interacts with the sensors and actuators through its data
+signals, such as extended, extend, and so on.
+
+--- Page 10 ---
+10 IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS
+Fig. 10. Labeler TCED function block.
+Fig. 11. Action schedule array.
+D. Action Schedule, TDCM, and EDPM
+The action schedule is realized as duplicated data in both
+of the TDCM FB and the EDPM FB due to the lack of global
+variables in IEC 61499. There are many data structures thatcan be used to store the action schedule, such as arrays, maps,
+and lists depending on the IEC 61499 runtime. Fig. 11exem-
+pliﬁes a simple array data structure used to store the actionschedule.
+Each TDCM is implemented as a composite FB, whose
+event and data outputs specify the action commands that canbe issued. The TDCM FB is composed as follows.
+1) A command register (CR) SIFB that registers action
+schedule entries from the EDPM FB.
+2) A command implementer (CI) basic FB that issues
+action commands to the corresponding agents accordingto the action schedule.
+As exempliﬁed by the Labeler_TDCM FB in Fig. 10,t h e
+signal interface REQ+PlanEntry+Mode forms the channel toreceive action schedule entries from the EDPM FB. The Mode
+data signal can have four values: add, delete, replace, and reset
+indicating how to update the action schedule. The PlanEntrydata signal uses a predeﬁned syntax to specify actions and their
+scheduled times. For example, the plant entry below speciﬁes
+that a Dispense action is scheduled at Unix time 1340083613followed by a Cut action at 1342183613
+“dispense@1340083613|cut@1342183613.”
+The received action schedule entries are passed to the
+1588_CR SIFB. This SIFB is functionally similar to the1588_REG SIFB shown in Fig. 9. In addition to the PTP
+time registration (as speciﬁed in the PlanEntry data input),
+this 1588_CR SIFB also manages the action schedule inter-nally. At the time instances stored in the schedule, it triggers
+the CI FB to dispatch the corresponding action commands. Forexample, in the case of the Labeler_TDCM FB, when current
+PTP time matches the ﬁrst schedule entry, the 1588_CR SIFB
+extracts the scheduled action’s details for the Labeler_CI FB,where action name and parameters are speciﬁed in the action
+and the parameters data outputs, respectively. The Labeler_CI
+FB accordingly issues the DISPENSE or CUT event signalsbased on these details. The decoupling of command regis-
+tration and implementation frees developers from repeatedly
+developing new SIFBs implementing the PTP time registrationfor every TDCM FB.
+The EDPM FB is responsible for updating the action sched-
+ule based on the received commands. Fig. 12(a) illustrates
+the operation ﬂow of EDPM FB. The action scheduling is
+demonstrated in Fig. 12(b). Upon receipt of a command at
+time t
+0, the Labeler_EDPM FB calculates actuation times for
+the printer, cutter, and dispenser based on the estimated item
+arrival time ( t6), which is embedded in the received mod-
+ule command. Due to the synchronized local clock, it is able
+to precisely schedule the start and completion of each action
+and thereby optimize the overall operations. The EDPM FBinteracts with the TDCM FB and TCED FB using two sig-
+nal interfaces. As shown in Fig. 10, the Labeler_EDPM FB
+updates the action schedule stored in the Labeler_TDCM FBusing the signal interface IND+PlantEntry+Mode, while the
+signal interface PRINT+OScheduledTime is used to schedule
+the actuation of the Printer_TCED FB.
+E. TCED Module
+Finally, the TCED module is implemented as the compo-
+sition of the corresponding EDPM, TDCM, Agent, and other
+TCED FBs. For example, the Labeler_TCED FB shown in
+Fig. 10, and the Diverter_TCED FB are connected to form
+the Sorter_TCED FB as presented in Fig. 13.
+F . Deployment Conﬁguration of Sorting Machine
+Fig. 14illustrates the top-level deployment conﬁguration
+of the FB control system for the sorting machine following
+its mechanical structure. The FB application is deployed tothree control devices communicating over an Ethernet net-
+work. Within each control device, there is a 1588_PTP SIFB
+
+--- Page 11 ---
+PANG et al. : TIME-COMPLEMENTED EVENT-DRIVEN ARCHITECTURE FOR DISTRIBUTED AUTOMATION SYSTEMS 11
+Fig. 12. EDPM FB. (a) Operation sequence. (b) Command scheduling.
+Fig. 13. Sorter module FB composition.
+Fig. 14. FB control system for the sorting machine.
+synchronizing its local clock and providing PTP time to the
+time-driven control logic. The MainControl_TCED FB ana-
+lyzes scan results and decides at which sorter a scanned
+item must be diverted. Then a sortation module commandwill be issued to the target Sorter_TCED FB to instruct its
+actuation.TABLE V
+DIVERSION FAILURE RATES AT VARYING CONVEYOR SPEEDS
+VIII. S IMULATION
+The performance of the proposed TCED control architecture
+has been evaluated using simulation. An extended Model-
+View-Controller (MVC) approach [ 39] was utilized in order to
+examine the performance beneﬁts of the TCED control model.An extra emulation layer was added between the plant model
+and controller to simulate timing delays. An example applica-
+tion was developed for the reference sorting machine as shownin Fig. 15. This architecture can be scaled up with multiple
+sorters by replicating the corresponding FBs. The emulation
+layer consists of FBs representing physical controllers and I/Onetwork topology of a control system. These controller FBs
+have been designed to be parameterized with metrics such as
+I/O scan time, PLC cycle time, network delay, and so on.
+A simulation to compare the centralized event-driven con-
+trol conﬁguration with the TCED control conﬁguration was
+deployed to the nxtControl IEC 61499 runtime [ 40]. The speed
+of the conveyor was ramped up and the numbers of diver-
+sion failures were recorded. The simulation metrics for the
+centralized control conﬁguration were as follows: the sorta-tion algorithm’s (as discussed in Section VI) execution time
+of 25 ms, the network propagation time of 5 ms, the sorter
+actuation time of 300 ms, the conveyor load rate of 50%, and
+the item size of 0.3 m. The same metrics were also used for the
+TCED control conﬁguration with the corresponding omissions.Some failure rate results are listed in Table V . The TCED con-
+ﬁguration shows a much lower failure rate when the conveyor
+speed is ramped up. A lower failure rate at the same speedis a consequence of better reaction time of the control system
+for the same plant conﬁguration.
+A second test was conducted by ﬁxing all metrics except
+the execution time of the centralized sortation algorithm. This
+is because, as discussed in Table II, execution time would
+increase based on system size. The conveyor speed was thenramped up until diversion failure. The TCED algorithm exe-
+cution time was ﬁxed at 25 ms due to the independence
+from system size as discussed in Table IV . These resultswere compared to theoretical conveyor speeds provided by
+the analytical models. The simulation results presented in
+Fig. 16shows that the TCED conﬁguration performs consis-
+tently better than a centralized conﬁguration as the algorithm
+execution time increases. The discrepancies compared to theanalytical model may arise from overheads in the simulation,
+such as the performance of the target runtime and simulation
+hardware.
+IX. C
+ONCLUSION
+This paper presented the TCED architecture for designing
+distributed controls in complex systems composed of modu-
+lar objects. The architecture provides application developers a
+
+--- Page 12 ---
+12 IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS
+Fig. 15. TCED simulation model for the sorting machine.
+Fig. 16. Analytical performance comparison based on simulation results.
+practical mechanism to combine time-driven and event-driven
+logic in distributed control systems. The semantics of the
+TCED control model have been illustrated using a Petri net
+model as applied to a sample material sorting system. Such amodel can be used in formal methods, such as model-checking.
+To conﬁrm the performance beneﬁts of the proposed model,
+analytic models of performance have been developed. Thesemodels have been respectively derived for the centralized,
+distributed, and TCED control architectures.
+A simulation architecture was proposed to integrate tim-
+ing characteristics into simulation as an extension of the
+popular MVC architecture. The performance advantage of
+TCED control conﬁguration over the centralized event-drivenconﬁguration has been conﬁrmed in simulation using this
+architecture. At last, guidelines for practical implementation
+of the TCED control architecture have been given by present-
+ing a complete implementation of the control system of the
+example sorting machine using IEC 61499 FB.
+The proposed method can be applied to domains requiring
+distributed precision time control. In the future, the claimed
+beneﬁts of the TCED control model will be experimented inother domains, such as the distributed automation of smart
+grids that has been modeled in IEC 61499 [ 16].R
+EFERENCES
+[1] IEC, Programmable Controllers—Part 3: Programming Languages ,I E C
+Standard 61131-3, 2013.
+[2] H. Kopetz and G. Grunsteidl, “TTP—A protocol for fault-tolerant real-
+time systems,” Computer , vol. 27, no. 1, pp. 14–23, Jan. 1994.
+[3] IEC, Function Blocks—Part 1: Architecture , IEC Standard 61499-1,
+2012.
+[4] G. Black and V . Vyatkin, “Intelligent component-based automation of
+baggage handling systems with IEC 61499,” IEEE Trans. Autom. Sci.
+Eng., vol. 7, no. 2, pp. 337–351, Apr. 2010.
+[5] J. Yan and V . V . Vyatkin, “Distributed execution and cyber-physical
+design of baggage handling automation with IEC 61499,” in Proc. 9th
+IEEE INDIN , Lisbon, Portugal, 2011, pp. 573–578.
+[6] M. Colla, A. Brusaferri, and E. Carpanzano, “Applying the IEC-61499
+model to the shoe manufacturing sector,” in Proc. 11th IEEE ETFA ,
+Prague, Czech Republic, 2006, pp. 1301–1308.
+[7] S. Preuße, D. Missal, C. Gerber, M. Hirsch, and H.-M. Hanisch, “On
+the use of model-based IEC 61499 controller design,” IJDECS, vol. 1,
+pp. 115–128, Mar. 2010.
+[8] H.-M. Hanisch, M. Hirsch, D. Missal, S. Preusse, and C. Gerber,
+“One decade of IEC 61499 modeling and veriﬁcation—Results and
+open issues,” in Proc. IFAC Symp. INCOM , Moscow, Russia, 2009,
+pp. 211–216.
+[9] C. Sünder, A. Zoitl, F. Mehofer, and B. Favre-Bulle, “Advanced use of
+PLCopen motion control library for autonomous servo drives in IEC61499 based automation and control systems,” Elektrotech. Inf. Tech .,
+vol. 123, no. 5, pp. 191–196, 2006.
+[10] M. Sorouri, V . Vyatkin, and S. Xie, “Distributed control design of med-
+ical devices using plug-and-play IEC 61499 function blocks,” in Proc.
+19th M2VIP , Auckland, New Zealand, 2012, pp. 450–455.
+[11] C. Pang, V . Vyatkin, Y . Deng, and M. Sorouri, “Virtual smart metering
+in automation and simulation of energy-efﬁcient lighting system,” in
+Proc. 18th IEEE ETFA , Cagliari, Italy, 2013, pp. 1–8.
+[12] L. Wang, G. Adamson, M. Holm, and P. Moore, “A review of function
+blocks for process planning and control of manufacturing equipment,”
+J. Manuf. Syst ., vol. 31, no. 3, pp. 269–279, 2012.
+[13] M. Minhat, V . Vyatkin, X. Xu, S. Wong, and Z. Al-Bayaa, “A novel open
+CNC architecture based on STEP-NC data model and IEC 61499 func-tion blocks,” Robot. Comput. Integr. Manuf ., vol. 25, no. 3, pp. 560–569,
+2009.
+[14] P. Tait, “A path to industrial adoption of distributed control technology,”
+inProc. 3rd IEEE INDIN , Perth, WA, Australia, 2005, pp. 86–91.
+[15] M. Merdan, W. Lepuschitz, B. ˇSahovi ´c, and M. Vallée, “Failure detection
+and recovery in the batch process automation domain using automation
+agents,” in Proc. 2nd ACT , Jakarta, Indonesia, 2010, pp. 113–117.
+[16] G. Zhabelova and V . Vyatkin, “Multiagent Smart Grid automation archi-
+tecture based on IEC 61850/61499 intelligent logical nodes,” IEEE
+Trans. Ind. Electron ., vol. 59, no. 5, pp. 2351–2362, May 2012.
+
+--- Page 13 ---
+PANG et al. : TIME-COMPLEMENTED EVENT-DRIVEN ARCHITECTURE FOR DISTRIBUTED AUTOMATION SYSTEMS 13
+[17] C. H. Yang, G. Zhabelova, C. W. Yang, and V . Vyatkin, “Co-simulation
+environment for event-driven distributed controls of SmartGrid,” IEEE
+Trans. Ind. Inf ., vol. 9, no. 3, pp. 1423–1435, Aug. 2013.
+[18] V . Vyatkin, “IEC 61499 as enabler of distributed and intelligent automa-
+tion: State-of-the-art review,” IEEE Trans. Ind. Inf ., vol. 7, no. 4,
+pp. 768–781, Nov. 2011.
+[19] IEEE Standard for a Precision Clock Synchronization Protocol for
+Networked Measurement and Control Systems , IEEE Standard 1588-
+2008.
+[20] V . Vyatkin, “Intelligent mechatronic components: Control system engi-
+neering using an open distributed architecture,” in Proc. 9th IEEE ETFA ,
+Lisbon, Portugal, 2003, pp. 277–284.
+[21] S. Patil, V . Vyatkin, and M. Sorouri, “Formal veriﬁcation of intelligent
+mechatronic systems with decentralized control logic,” in Proc. 17th
+IEEE ETFA , Krakow, Poland, 2012, pp. 1–7.
+[22] M. Sorouri, S. Patil, and V . Vyatkin, “Distributed control patterns for
+intelligent mechatronic systems,” in Proc. 10th IEEE INDIN , Beijing,
+China, 2012, pp. 259–264.
+[23] M. Mazo, Jr., and M. Cao, “Decentralized event-triggered control with
+asynchronous updates,” in Proc. 50th CDC , Orlando, FL, USA, 2011.
+[24] J. H. Sandee, W. P. M. H. Heemels, and P. P. J. Van Den Bosch, “Event-
+driven control as an opportunity in the multidisciplinary developmentof embedded controllers,” in Proc. ACC , Portland, OR, USA, 2005,
+pp. 1776–1781.
+[25] W. Heemels, J. H. Sandee, and P. P. J. Van Den Bosch, “Analysis of
+event-driven controllers for linear systems,” Int. J. Control , vol. 81, no. 4,
+pp. 571–590, 2008.
+[26] J. L. M. Lastra, A. Lobov, and L. Godinho, “Closed loop control using
+an IEC 61499 application generator for scan-based controllers,” in Proc.
+10th IEEE ETFA , Catania, Italy, 2005, pp. 323–330.
+[27] L. H. Yoong, P. S. Roop, V . Vyatkin, and Z. Salcic, “A synchronous
+approach for IEC 61499 function block implementation,” IEEE Trans.
+Comput ., vol. 58, no. 12, pp. 1599–1614, Dec. 2009.
+[28] W. Dai and V . Vyatkin, “Redesign distributed PLC control systems using
+IEC 61499 function blocks,” IEEE Trans. Autom. Sci. Eng ., vol. 9, no. 2,
+pp. 390–401, Apr. 2012.
+[29] S. Campanelli, P. Foglia, and C. A. Prete, “Integration of existing IEC
+61131-3 systems in an IEC 61499 distributed solution,” in Proc. 17th
+IEEE ETFA , Krakow, Poland, 2012, pp. 1–8.
+[30] W. Dai, V . N. Dubinin, and V . Vyatkin, “Migration from PLC to
+IEC 61499 using semantic web technologies,” IEEE Trans. Syst., Man,
+Cybern., Syst ., vol. 44, no. 3, pp. 277–291, Mar. 2014.
+[31] F. De Paoli and F. Tisato, “On the complementary nature of event-driven
+and time-driven models,” Control Eng. Pract ., vol. 4, no. 6, pp. 847–854,
+1996.
+[32] K. Harris, “An application of IEEE 1588 to industrial automation,” in
+Proc. ISPCS , Ann Arbor, MI, USA, 2008, pp. 71–76.
+[33] J. C. Eidson, E. A. Lee, S. Matic, S. A. Seshia, and Z. Jia, “Distributed
+real-time software for cyber-physical systems,” Proc. IEEE , vol. 100,
+no. 1, pp. 45–59, Jan. 2012.
+[34] The Offset Pressman. (2011, Mar.). How a Flying Paster Works [Online].
+Available: http://offsetpressman.blogspot.se/2011/03/how-ﬂying-paster-
+works.html
+[35] P. Derler, J. Eidson, S. Goose, E. A. Lee, and M. Zimmer, “Deterministic
+execution of Ptides programs,” EECS Dept., UCB/EECS, Berkeley, CA,USA, Tech. Rep. UCB/EECS-2013-65, May 2013.
+[36] V . Vyatkin, Z. Salcic, P. S. Roop, and J. Fitzgerald, “Now that’s smart!”
+IEEE Ind. Electron. Mag ., vol. 1, no. 9, pp. 17–29, Dec. 2007.
+[37] C. Pang and V . Vyatkin, “Time-complemented event-driven control
+framework for distributed motion control systems,” in Proc. 9th IEEE
+INDIN , Lisbon, Portugal, 2011.
+[38] C. Pang, J. Yan, V . Vyatkin, and S. Jennings, “Distributed IEC 61499
+material handling control based on time synchronization with IEEE1588,” in Proc. IEEE ISPCS
+, Munich, Germany, 2011, pp. 126–131.
+[39] J. Christensen, “IEC 61499 architecture, engineering methodologies and
+software tools,” in Knowledge and Technology Integration in Production
+and Services ,V .M a ˇrík, L. Camarinha-Matos, and H. Afsarmanesh, Eds.
+New York, NY , USA: Springer, 2002, pp. 221–228.
+[40] nxtControl. (2014). nxtSTUDIO—Engineering Software for All
+Tasks [Online]. Available: http://www.nxtcontrol.com/en/products/
+nxtstudio.html
+Cheng Pang (S’08–M’13) received the B.E. (Hons.)
+and M.E. (Hons.) degrees in computer systems engi-neering and the Ph.D. degree in electrical and elec-tronic engineering from the University of Auckland,
+Auckland, New Zealand, in 2005, 2007, and 2013,
+respectively.
+He is currently a Post-Doctoral Research Fellow
+with the Laboratory of Advanced Computing and
+Communications for Industrial Applications, Luleå
+University of Technology, Luleå, Sweden. His cur-rent research interests include model-driven engi-
+neering for industrial automation systems, building automation and control
+systems, and distributed control for the Internet of things.
+Jeffrey Yan (S’13) received the B.E. (Hons.)
+and M.E. (Hons.) degrees from the University of
+Auckland, Auckland, New Zealand, in 2009 and
+2010, respectively, where he is currently pursuingthe Ph.D. degree from the Department of Electricaland Computer Systems Engineering.
+His current research interests include the applica-
+tion of distributed, intelligent control in the ﬁeld oflarge-scale cyber physical systems.
+Valeriy Vyatkin (M’03–SM’04) received the
+Engineering degree in applied mathematics, andthe Ph.D. and Dr. Sci. degrees from the TaganrogState University of Radio Engineering (TSURE),
+Taganrog, Russia, and the Dr. Eng. degree from the
+Nagoya Institute of Technology, Nagoya, Japan, in1988, 1992, 1998, and 1999, respectively.
+He is on joint appointment as a Chaired Professor
+(Åmnesprofessor) of dependable computation and
+communication systems at Luleå University ofTechnology, Luleå, Sweden, and a Professor of infor-
+mation and computer engineering in automation, Aalto University, Aalto,
+Finland. Previously, he served as a Visiting Scholar at the Cambridge
+University, Cambridge, U.K., and on permanent appointments with theUniversity of Auckland, Auckland, New Zealand, Martin Luther University ofHalle-Wittenberg, Halle, Germany, and with TSURE as an Associate Professor
+and Professor from 1991 to 2002. His current research interests include the
+area of dependable distributed automation and industrial informatics, includingsoftware engineering for industrial automation systems, distributed architec-
+tures, and multiagent systems applied in various industry sectors, including
+smart grids, material handling, building management systems, and reconﬁg-urable manufacturing. He is also active in research on dependability provisionsfor industrial automation systems, such as methods of formal veriﬁcation and
+validation, and theoretical algorithms for improving their performance.
+Dr. Vyatkin was the recipient of the Andrew P. Sage Award for the Best
+IEEE SMC T
+RANSACTIONS Paper in 2012.
