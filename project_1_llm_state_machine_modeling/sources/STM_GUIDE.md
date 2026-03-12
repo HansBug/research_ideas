@@ -70,7 +70,7 @@
 推荐顺序如下：
 
 1. 先读同目录下的 `bibtex.bib`，确认标题、作者、年份、会议/期刊、DOI、URL 等元信息。
-2. 若目录下额外存在 `desc.md`，可以快速浏览以建立主题印象，但不能替代原文阅读。
+2. 若目录下额外存在 `DESC.md`，可以快速浏览以建立主题印象，但不能替代原文阅读。
 3. 再精读 `paper_content.txt`，以此作为 `STM.md` 的主要证据来源。
 4. 如 `paper_content.txt` 提取质量差，优先用 `tools/pdf_extractor.py` 重新提取；必要时改用 OCR。
 5. 如文本仍明显异常，应回到 PDF 原文核对，不得在证据不足时硬写。
@@ -79,7 +79,7 @@
 
 1. 不推荐只看标题、摘要或少量关键词后直接开始写 `STM.md`。
 2. 不推荐跳过 `bibtex.bib`，直接凭 PDF 首页手工拼元信息。
-3. 若 `desc.md` 与原文有出入，以 `paper_content.txt` / PDF 原文为准，而不是以 `desc.md` 为准。
+3. 若 `DESC.md` 与原文有出入，以 `paper_content.txt` / PDF 原文为准，而不是以 `DESC.md` 为准。
 
 ### 3.2 证据原则
 

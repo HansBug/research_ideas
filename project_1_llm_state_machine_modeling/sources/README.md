@@ -90,7 +90,7 @@ AI 在开始具体工作前，推荐阅读顺序为：
 
 1. `paper_content.txt` 必须优先使用 `tools/pdf_extractor.py` 生成，默认先走 `text` 模式；若提取异常，立即切换 `ocr` 模式。
 2. `STM.md` 是本论文集的核心派生文件，必须遵循 [STM_GUIDE.md](./STM_GUIDE.md)。
-3. `desc.md` 在本论文集中不是强制文件；除非任务另有要求，不默认批量生产 `desc.md`。
+3. `DESC.md` 在本论文集中不是强制文件；除非任务另有要求，不默认批量生产 `DESC.md`。
 
 ## 7. AI 工作入口提示
 
