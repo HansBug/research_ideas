@@ -8,9 +8,10 @@
 
 ### 当前推荐关键词簇
 
-- 主线始终是 `具体控制对象 + control/controller/system + design/specification/verification/modeling`，对象优先选 `traffic light`、`railway level crossing`、`railway interlocking`、`elevator`、`mechanical ventilator`、`bottle filling`、`conveyor`、`washing machine`、`automatic irrigation`、`parking`。
+- 主线始终是 `具体控制对象 + control/controller/system + design/specification/verification/modeling`，对象继续优先选 `traffic light`、`railway level crossing`、`railway interlocking`、`elevator`、`mechanical ventilator`、`parking`，并新增强化 `landing gear`、`flight guidance system`、`autonomous helicopter`、`CubeSat flight software`、`UAV mission management`。
 - 状态机显式词继续优先：`state machine`、`FSM`、`statechart`、`mode switching`、`operation mode`、`control logic`。
-- 高产对象词簇优先深挖：`traffic light + PLC + sensor + priority/emergency`，`railway level crossing + gate + PLC + sensor`，`elevator + PLC + push button + level sensor + door`。
+- 航空方向高产词簇本轮验证有效：`landing gear + handle + door + extend/retract + Event-B/Hybrid Event-B`，`flight guidance + mode logic + armed/active/capture/track`，`autonomous helicopter + supervisory controller + takeoff + waypoint + landing point`。
+- 航空航天控制软件方向可继续扩展：`CubeSat + safe mode + CONOPS + finite state machine`，`UAV mission management + FSM/behavior tree + takeoff + search and rescue + return to base`。
 - 泊车、液位和医疗方向继续保留：`parallel parking + stage/trajectory/three steps/path shifting`，`water level/head tank/irrigation + PLC + solenoid valve + threshold/moisture`，`mechanical ventilator + mode + inspiration + expiration + valve`。
 - 离散制造方向继续保留：`bottle filling + conveyor + valve + level sensor`，`conveyor + PLC + proximity sensor + delay`，`washing machine + rinse + dehydration + water level sensor`，`packaging + case erector + count=6 + taping + weighing`。
 
@@ -18,6 +19,9 @@
 
 - 标题直接点名具体控制对象，并同时出现 `control system/controller`、`design/specification/verification`，命中率最高。
 - `state machine/FSM/statechart/mode/operation mode/control logic` 这类显式状态信号词仍然高产。
+- 航空方向高命中特征：`landing gear`、`flight guidance system`、`take-off procedure`、`supervisory controller`、`safe mode`、`CONOPS`、`mission management`。
+- 起落架方向一旦同时出现 `handle`、`door`、`gear`、`extend/retract`、`lock`，很容易命中可整理的离散动作链。
+- 飞行模式方向一旦同时出现 `mode logic`、`armed`、`active`、`capture`、`track`，通常能直接抽到模式切换叙述。
 - 交通灯方向高命中词：`PLC`、`sensor`、`priority`、`override`、`emergency vehicle`、`countdown`、`green/red/yellow`、`open-loop/closed-loop`。
 - 电梯方向高命中词：`push button`、`level sensor`、`door operation`、`selective operation`、`hall call/car call`、`overload`。
 - 铁路方向高命中词：`railway level crossing`、`barrier`、`gate control`、`interlocking`、`route request`、`conflicting movement`。
@@ -28,22 +32,25 @@
 
 - `review`、`survey`、`state of the art`、`architecture`、`framework`、`middleware`、`standards` 这类题名通常低产。
 - “状态/模式”如果指的是开发流程、分析流程、工具流程，而不是控制对象运行状态，应直接降权。
+- 航空方向低命中特征本轮比较明确：`pose estimation`、`visual feedback`、`bearing-only observations`、`disturbance rejection`、`bifurcation analysis` 往往导向连续控制/估计论文。
+- `simulator`、`scenario definition language`、`digital twin` 如果没有真实控制对象状态流，通常更像工具/场景论文而非目标样本。
 - `security analysis`、`attack`、`vulnerability`、`knowledge-based system` 这类安全分析文献通常不是目标样本。
 - 只讲连续优化、PI/PID 调参、纯控制性能或纯路径规划，而不写阶段切换、阈值触发、门控/锁闭/恢复顺序的论文，通常低产。
 
 ### 检索倾向调整
 
 - 优先沿“具体控制对象 + control/controller/system + design/specification/verification”主线检索，不从宽泛 `formal methods` 出发。
-- 继续优先补样本偏少但仍高产的方向，当前是 `🩺` 医疗控制、`🌡️` 液位/灌溉、`✈️` 飞行/起落架控制，其次是 `🚆` 道口门控/联锁与 `🏢` 电梯控制。
+- 本轮验证表明 `✈️` 方向在精确标题检索下明显提效，尤其是 `landing gear`、`flight guidance mode logic`、`autonomous helicopter supervisor`、`CubeSat safe mode`。
+- 下一轮若继续扩 `✈️`，应优先找 `landing gear / flight guidance / UAV mission / spacecraft mode` 这类离散模式词，而不是再追连续估计与视觉控制。
 - 新词允许扩展，但必须能解释为什么会导向“具体控制系统的状态机描述”，并在每轮更新时回写到本节。
 - 每次更新只保留仍然有效的高命中经验，删除被新结果证明价值不高的冗余词簇。
 
 ## 当前收录统计
 
-- 已收录论文：**139** 篇
-- 本轮新增论文：**11** 篇
-- 本轮下载失败记录：**53** 条
-- 已完成 STM 梳理：**139** 篇
+- 已收录论文：**149** 篇
+- 本轮新增论文：**10** 篇
+- 本轮下载失败记录：**63** 条
+- 已完成 STM 梳理：**149** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 `STM_GUIDE.md` 补齐 `STM.md`。
 
@@ -70,28 +77,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **139** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **149** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 23 | 16.5% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 21 | 15.1% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
-| ✈️ 航空航天与飞行/空管控制 | 10 | 7.2% | 无人机、起落架、飞机制动、空管协调协议等 |
-| 🩺 医疗设备与生命支持控制 | 6 | 4.3% | 起搏器、输液泵、机械通气控制与医疗 CPS 相关文献 |
-| 🏭 工业自动化与离散制造 | 17 | 12.2% | IEC 61499/61131、PLC、输送、灌装、包装与制造控制 |
-| 🏢 楼宇机电与电梯控制 | 15 | 10.8% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 6 | 4.3% | 液位、水处理、灌溉、锅炉与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 17 | 12.2% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 13 | 9.4% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
-| 🧩 建模方法与系统工程 | 4 | 2.9% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
-| 🔐 安全/安保分析 | 4 | 2.9% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 3 | 2.2% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
-| **合计** | **139** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 23 | 15.4% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 21 | 14.1% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
+| ✈️ 航空航天与飞行/空管控制 | 20 | 13.4% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理 |
+| 🩺 医疗设备与生命支持控制 | 6 | 4.0% | 起搏器、输液泵、机械通气控制与医疗 CPS 相关文献 |
+| 🏭 工业自动化与离散制造 | 17 | 11.4% | IEC 61499/61131、PLC、输送、灌装、包装与制造控制 |
+| 🏢 楼宇机电与电梯控制 | 15 | 10.1% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 6 | 4.0% | 液位、水处理、灌溉、锅炉与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 17 | 11.4% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 13 | 8.7% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
+| 🧩 建模方法与系统工程 | 4 | 2.7% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 2.7% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| ⚙️ 通用控制与形式化工具 | 3 | 2.0% | 混成系统、实时系统、通用控制工具与基础形式化文献 |
+| **合计** | **149** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-03-12 10:38:41 | 新增 **10** 篇，当前累计 **149** 篇 | 本轮仅聚焦 `✈️` 航空航天与飞行/空管控制，沿 `landing gear + handle + door + extend/retract`、`flight guidance + mode logic + armed/active/capture/track`、`autonomous helicopter + supervisory controller + takeoff + landing point`、`CubeSat + safe mode + CONOPS + finite state machine`、`UAV mission management + FSM/behavior tree` 等精确标题词簇深挖。 | 机场起飞流程、飞行引导模式逻辑、起落架序列、搜救 UAV 高层控制、自主直升机监督控制、CubeSat 模式与故障管理。 |
 | 2026-03-12 09:46:57 | 新增 **11** 篇，当前累计 **139** 篇 | 在既有高命中主线上继续深挖 `traffic light + PLC + sensor + priority/emergency`、`railway gate + barrier + PLC + sensor`、`elevator + PLC + push button + level sensor + door`、`mechanical ventilator + PCV + PSV + inspiration + expiration` 等组合，并优先保留可稳定直链下载的开放 PDF。 | PLC 交通灯优先控制、铁路道口门控、双梯/旧梯电梯控制、机械呼吸机模式与吸呼相位控制。 |
 | 2026-03-12 02:40:17 | 新增 **11** 篇，当前累计 **128** 篇 | 继续沿 `railway level crossing + gate + PLC + sensor`、`bottle filling + conveyor + valve + level sensor`、`washing machine + rinse + dehydration + PLC`、`automatic packaging + count=6 + taping + weighing` 等高命中对象词簇扩展，并优先保留可直链下载 PDF 的工程型开放文献。 | 铁路道口门控、瓶装灌装、输送带延时控制、洗衣机顺序控制、塔式停车与自动包装线。 |
 | 2026-03-11 23:21:28 | 新增 **3** 篇，当前累计 **117** 篇 | 继续沿高命中主线深挖 `traffic light + emergency vehicle + RF/RFID + override sequence` 与 `automatic parking assistance + exploration phase + parking phase + path shifting points` 等组合，并优先保留可直链下载 PDF 的开放文献。 | RFID/RF 抢占式交通灯控制、低成本 APAS 两阶段泊车辅助。 |
@@ -242,6 +250,16 @@
 | 137 | 🏢 | Rehabilitation of an Old Traditional Elevator Based on PLC Techniques | 2018 | 旧电梯 PLC 改造与门锁联动 | `elevator, PLC, level sensor, floor request, door interlock` | [rehabilitation-of-an-old-traditional-elevator-based-on-plc-techniques](sources/rehabilitation-of-an-old-traditional-elevator-based-on-plc-techniques/) |
 | 138 | 🏢 | A Control System of Elevators by Using Programmable Logic Controller (PLC) | 2006 | 双梯五层选择性调度 | `elevator, PLC, dual elevator, selective operation, door timer` | [a-control-system-of-elevators-by-using-programmable-logic-controller](sources/a-control-system-of-elevators-by-using-programmable-logic-controller/) |
 | 139 | 🩺 | Developing a Prototype of a Mechanical Ventilator Controller from Requirements to Code with ASMETA | 2021 | 机械呼吸机模式与吸呼相位控制 | `mechanical ventilator, ASMETA, PCV, PSV, inspiration, expiration` | [developing-a-prototype-of-a-mechanical-ventilator-controller-from-requirements-to-code-with-asmeta](sources/developing-a-prototype-of-a-mechanical-ventilator-controller-from-requirements-to-code-with-asmeta/) |
+| 140 | ✈️ | Formal specification and analysis of take-off procedure using VDM-SL | 2016 | 机场地面起飞流程建模 | `air traffic control, take-off procedure, ground controller, queue management, VDM-SL` | [formal-specification-and-analysis-of-take-off-procedure-using-vdm-sl](sources/formal-specification-and-analysis-of-take-off-procedure-using-vdm-sl/) |
+| 141 | ✈️ | Mode confusion analysis of a flight guidance system using formal methods | 2003 | 飞行引导模式逻辑分析 | `flight guidance system, mode logic, lateral mode, vertical mode, capture, tracking` | [mode-confusion-analysis-of-a-flight-guidance-system-using-formal-methods](sources/mode-confusion-analysis-of-a-flight-guidance-system-using-formal-methods/) |
+| 142 | ✈️ | Modelling and Analysing the Landing Gear System: a Solution with Event-B/Rodin | 2018 | 起落架伸收序列建模 | `landing gear system, Event-B, Rodin, handle, door, outgoing sequence` | [modelling-and-analysing-the-landing-gear-system-a-solution-with-event-b-rodin](sources/modelling-and-analysing-the-landing-gear-system-a-solution-with-event-b-rodin/) |
+| 143 | ✈️ | An Automatically Verified Prototype of a Landing Gear System | 2021 | 起落架 Event-B 原型验证 | `landing gear system, Event-B, proof obligations, setlog, prototype` | [an-automatically-verified-prototype-of-a-landing-gear-system](sources/an-automatically-verified-prototype-of-a-landing-gear-system/) |
+| 144 | ✈️ | The landing gear case study: challenges and experiments | 2017 | 起落架案例与要求梳理 | `landing gear system, extend sequence, retract sequence, analogical switch, pilot interface` | [the-landing-gear-case-study-challenges-and-experiments](sources/the-landing-gear-case-study-challenges-and-experiments/) |
+| 145 | ✈️ | A Parallel Hierarchical Finite State Machine Approach to UAV Control for Search and Rescue Tasks | 2014 | 搜救无人机分层并行 FSM | `UAV control, search and rescue, parallel hierarchical FSM, tracking, safe flight` | [a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks](sources/a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/) |
+| 146 | ✈️ | Methodology To Develop A Discrete-Event Supervisory Controller For An Autonomous Helicopter Flight | 2025 | 自主直升机监督控制器 | `autonomous helicopter, supervisory controller, DEVS, takeoff, landing` | [methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight](sources/methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/) |
+| 147 | ✈️ | Formal Verification of Simulation Scenarios in Aviation Scenario Definition Language (ASDL) | 2018 | 航空场景 DSL 验证 | `aviation scenarios, ASDL, landing scenario, statecharts, verification` | [formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language](sources/formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language/) |
+| 148 | ✈️ | Reusable and Reliable Flight-Control Software for a Fail-Safe and Cost-Efficient Cubesat Mission: Design and Implementation | 2020 | CubeSat 模式与故障管理 | `CubeSat, flight software, finite state machine, safe mode, CONOPS` | [reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation](sources/reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/) |
+| 149 | ✈️ | Behavior Trees for UAV Mission Management | 2013 | UAV 任务管理行为树 | `UAV mission management, behavior tree, autopilot mode, transient behavior` | [behavior-trees-for-uav-mission-management](sources/behavior-trees-for-uav-mission-management/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -301,12 +319,23 @@
 | 51 | 🚆 | PLC Based Automatic Railway Gate Controller and Obstacle Detector | 2026-03-12 09:46 | https://www.ijltet.org/journal/151736881223%202050.pdf -> HTTP 406  |
 | 52 | 🏢 | Simulation and Modelling of 3-Floor Elevator System using PLC | 2026-03-12 09:46 | https://www.researchgate.net/profile/Ajith-Srikanth/publication/361865098_Simulation_and_Modelling_of_3-Floor_Elevator_System_using_PLC/links/62c920ff00d0b4511042f9ad/Simulation-and-Modelling-of-3-Floor-Elevator-System-using-PLC.pdf -> HTTP 403  |
 | 53 | 🚦 | Smart control system for LEDs traffic-lights based on PLC | 2026-03-12 09:46 | https://www.researchgate.net/profile/Miguel-Calvo-6/publication/237554112_Smart_control_system_for_LEDs_traffic-lights_based_on_PLC/links/02e7e5321d6d0a6f31000000/Smart-control-system-for-LEDs-traffic-lights-based-on-PLC.pdf -> HTTP 403  |
+| 54 | ✈️ | Verification Guided Refinement of Flight Safety Assessment and Management System for Takeoff | 2026-03-12 10:38 | https://hdl.handle.net/2027.42/140668 -> 跳转到 deepblue.lib.umich.edu 后触发 Cloudflare 403，未获得 PDF  |
+| 55 | ✈️ | On the formal verification of the TCAS conflict resolution algorithms | 2026-03-12 10:38 | https://rosap.ntl.bts.gov/view/dot/41174/dot_41174_DS1.pdf -> HTTP 403  |
+| 56 | ✈️ | Formally Verified Next-generation Airborne Collision Avoidance Games in ACAS X | 2026-03-12 10:38 | https://dl.acm.org/doi/pdf/10.1145/3544970 -> HTTP 403  |
+| 57 | ✈️ | Modeling a Landing Gear System in Event-B | 2026-03-12 10:38 | https://link.springer.com/content/pdf/10.1007/978-3-319-07512-9_6.pdf -> 实际返回章节 HTML，未发现开放 PDF  |
+| 58 | ✈️ | Validation of the ABZ Landing Gear System Using ProB | 2026-03-12 10:38 | https://link.springer.com/content/pdf/10.1007/978-3-319-07512-9_5.pdf -> 实际返回章节 HTML，未发现开放 PDF  |
+| 59 | ✈️ | Development of a Finite State Machine for a Small Unmanned Aircraft System to Follow a Ground Vehicle using Experimental Design | 2026-03-12 10:38 | https://scholar.afit.edu/cgi/viewcontent.cgi?article=2888&context=etd -> HTTP 403  |
+| 60 | ✈️ | Methodology for Mode Awareness in Flight Guidance Systems | 2026-03-12 10:38 | https://ntrs.nasa.gov/api/citations/20030014778/downloads/20030014778.pdf -> 下载结果与目标标题不符，实际为无关云层研究报告，放弃入库  |
+| 61 | ✈️ | Modeling and Verification of Aircraft Takeoff Through Novel Quantum Nets | 2026-03-12 10:38 | https://www.techscience.com/CMES/v141n1/57707/pdf -> 返回 HTML 包装页，未获得稳定 PDF  |
+| 62 | ✈️ | Finite state machine control for aircraft electrical distribution system | 2026-03-12 10:38 | https://onlinelibrary.wiley.com/doi/pdfdirect/10.1049/joe.2018.0039 -> Cloudflare 403  |
+| 63 | ✈️ | Fuzzy State Machine Energy Management Strategy for Hybrid Electric UAVs with PV/Fuel Cell/Battery Power System | 2026-03-12 10:38 | http://downloads.hindawi.com/journals/ijae/2018/2852941.pdf -> Cloudflare 403  |
 ## 状态机描述收获盘点
 
 ### 更新日志
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-03-12 10:38:41 | 新增 10 篇航空航天文献的 STM 提取 | 🟢 6 篇 / 🟡 2 篇 / ⚪ 2 篇 | 新增 10 个 `STM.md`，补入 8 条控制逻辑，当前已完成 149/149 篇文献的 STM 盘点 |
 | 2026-03-12 09:46:57 | 新增 11 篇文献的 STM 提取 | 🟢 8 篇 / 🟡 3 篇 / ⚪ 0 篇 | 新增 11 个 `STM.md`，补入 12 条控制逻辑，当前已完成 139/139 篇文献的 STM 盘点 |
 | 2026-03-12 02:40:17 | 新增 11 篇文献的 STM 提取 | 🟢 9 篇 / 🟡 2 篇 / ⚪ 0 篇 | 新增 11 个 `STM.md`，补入 13 条控制逻辑，当前已完成 128/128 篇文献的 STM 盘点 |
 | 2026-03-11 23:21:28 | 新增 3 篇文献的 STM 提取 | 🟢 3 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 3 个 `STM.md`，补入 3 条控制逻辑，当前已完成 117/117 篇文献的 STM 盘点 |
@@ -316,32 +345,32 @@
 | 2026-03-11 21:45:03 | 新增 6 篇文献的 STM 提取 | 🟢 6 篇 / 🟡 0 篇 / ⚪ 0 篇 | 新增 6 个 `STM.md`，补入 9 条控制逻辑，当前已完成 94/94 篇文献的 STM 盘点 |
 | 2026-03-11 20:18:12 | 完成此前 58 篇“尚未提取”文献的 STM 梳理与回填 | 🟢 13 篇 / 🟡 9 篇 / ⚪ 36 篇 | 新增 58 个 `STM.md`，当前已完成 88/88 篇文献的 STM 盘点 |
 
-- ✅ 直接可用论文：**64** 篇
-- 🟡 可整理论文：**21** 篇
-- ⚪ 暂未收获论文：**54** 篇
+- ✅ 直接可用论文：**70** 篇
+- 🟡 可整理论文：**23** 篇
+- ⚪ 暂未收获论文：**56** 篇
 - ⏳ 尚未提取论文：**0** 篇
-- 🧾 已提取到的状态机/控制逻辑条目：**100** 条
-- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 70 类**（新增 PLC 交通灯优先控制、联锁/道口门控、双梯选择性调度、旧梯门锁联动、机械呼吸机模式与吸呼相位控制等对象）
+- 🧾 已提取到的状态机/控制逻辑条目：**108** 条
+- 🔁 去重后可归纳的控制对象/子控制逻辑类型：**约 78 类**（新增机场起飞队列控制、飞行引导模式逻辑、起落架伸收序列、搜救 UAV 高层控制、自主直升机监督控制、CubeSat 模式与故障管理等对象）
 
 ### 领域分布（按已提取条目统计）
 
-- 统计口径：按 `STM.md` 中已经入账的 **100** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `STM.md` 中已经入账的 **108** 个状态机/控制逻辑条目统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 条目数 | 占比 | 代表控制对象 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 10 | 10.0% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
-| 🚆 轨道交通与铁路控制 | 16 | 16.0% | 进路建立与释放、道岔锁闭、联锁模式选择、RBS 调度、道口门控 |
-| 🏭 工业自动化与离散制造 | 14 | 14.0% | 输送带延时控制、瓶装灌装、洗衣机顺序控制、自动包装线、IEC 61499 BFB/ECC |
-| 🩺 医疗设备与生命支持控制 | 7 | 7.0% | 输液泵模式切换、双腔起搏器节律控制、机械呼吸机模式与吸呼相位控制 |
-| 🚦 道路交通信号控制 | 18 | 18.0% | 紧急车辆优先放行、动态相位选择、拥堵覆盖、行人/栏杆联动控制 |
-| ✈️ 航空航天与飞行/空管控制 | 2 | 2.0% | 空管协调协议、起落架伸收与锁定控制 |
-| 🏢 楼宇机电与电梯控制 | 12 | 12.0% | 电梯运行与门控逻辑、双梯调度、旧梯 PLC 改造与门锁联动 |
-| 🌡️ 过程与环境控制 | 6 | 6.0% | 恒温器开关控制、液位阈值控制、头水箱阀控、湿度反馈灌溉 |
-| 🅿️ 智慧停车与车位管理 | 13 | 13.0% | 车位分配、入口门禁、塔式停车、电梯式空位搜索、分阶段泊车 |
+| 🚗 汽车与道路车辆控制 | 10 | 9.3% | ABS 轮端控制、自动变速器、车队 join/leave、AEB-P |
+| 🚆 轨道交通与铁路控制 | 16 | 14.8% | 进路建立与释放、道岔锁闭、联锁模式选择、RBS 调度、道口门控 |
+| 🏭 工业自动化与离散制造 | 14 | 13.0% | 输送带延时控制、瓶装灌装、洗衣机顺序控制、自动包装线、IEC 61499 BFB/ECC |
+| 🩺 医疗设备与生命支持控制 | 7 | 6.5% | 输液泵模式切换、双腔起搏器节律控制、机械呼吸机模式与吸呼相位控制 |
+| 🚦 道路交通信号控制 | 18 | 16.7% | 紧急车辆优先放行、动态相位选择、拥堵覆盖、行人/栏杆联动控制 |
+| ✈️ 航空航天与飞行/空管控制 | 10 | 9.3% | 机场起飞队列、飞行引导模式、起落架序列、UAV 任务控制、自主直升机监督、CubeSat 模式管理 |
+| 🏢 楼宇机电与电梯控制 | 12 | 11.1% | 电梯运行与门控逻辑、双梯调度、旧梯 PLC 改造与门锁联动 |
+| 🌡️ 过程与环境控制 | 6 | 5.6% | 恒温器开关控制、液位阈值控制、头水箱阀控、湿度反馈灌溉 |
+| 🅿️ 智慧停车与车位管理 | 13 | 12.0% | 车位分配、入口门禁、塔式停车、电梯式空位搜索、分阶段泊车 |
 | 🔐 安全/安保分析 | 0 | 0.0% | 当前无已入账条目 |
-| 🧩 建模方法与系统工程 | 1 | 1.0% | 飞机轮刹四模态自动机 |
-| ⚙️ 通用控制与形式化工具 | 1 | 1.0% | 恒温器开关控制 |
-| **合计** | **100** | **100.0%** | - |
+| 🧩 建模方法与系统工程 | 1 | 0.9% | 飞机轮刹四模态自动机 |
+| ⚙️ 通用控制与形式化工具 | 1 | 0.9% | 恒温器开关控制 |
+| **合计** | **108** | **100.0%** | - |
 
 | 目录 | 领域 | 结果 | 条目数 | 备注 | STM |
 |---|---|---|---:|---|---|
@@ -484,6 +513,16 @@
 | `rehabilitation-of-an-old-traditional-elevator-based-on-plc-techniques` | 🏢 | 🟢 直接可用 | 1 | 楼层请求、位置传感和门锁联动逻辑完整。 | [STM](sources/rehabilitation-of-an-old-traditional-elevator-based-on-plc-techniques/STM.md) |
 | `a-control-system-of-elevators-by-using-programmable-logic-controller` | 🏢 | 🟢 直接可用 | 1 | 双梯分区响应、计时开门和继续去目标层顺序清楚。 | [STM](sources/a-control-system-of-elevators-by-using-programmable-logic-controller/STM.md) |
 | `developing-a-prototype-of-a-mechanical-ventilator-controller-from-requirements-to-code-with-asmeta` | 🩺 | 🟢 直接可用 | 2 | 同时给出主模式切换与吸呼/阀门相位控制。 | [STM](sources/developing-a-prototype-of-a-mechanical-ventilator-controller-from-requirements-to-code-with-asmeta/STM.md) |
+| `formal-specification-and-analysis-of-take-off-procedure-using-vdm-sl` | ✈️ | 🟢 直接可用 | 1 | 地面控制/本地控制与起飞队列流转顺序明确。 | [STM](sources/formal-specification-and-analysis-of-take-off-procedure-using-vdm-sl/STM.md) |
+| `mode-confusion-analysis-of-a-flight-guidance-system-using-formal-methods` | ✈️ | 🟢 直接可用 | 1 | FGS 的 armed/active/capture/track 模式逻辑很清楚。 | [STM](sources/mode-confusion-analysis-of-a-flight-guidance-system-using-formal-methods/STM.md) |
+| `modelling-and-analysing-the-landing-gear-system-a-solution-with-event-b-rodin` | ✈️ | 🟢 直接可用 | 1 | handle、door automaton 与 outgoing sequence 描述完整。 | [STM](sources/modelling-and-analysing-the-landing-gear-system-a-solution-with-event-b-rodin/STM.md) |
+| `an-automatically-verified-prototype-of-a-landing-gear-system` | ✈️ | ⚪ 未收获 | 0 | 重点是 proof obligations 与编码验证，不是直接的控制系统自然语言描述。 | [STM](sources/an-automatically-verified-prototype-of-a-landing-gear-system/STM.md) |
+| `the-landing-gear-case-study-challenges-and-experiments` | ✈️ | 🟢 直接可用 | 1 | 起落架伸出/回收顺序、指示灯与模拟开关行为明确。 | [STM](sources/the-landing-gear-case-study-challenges-and-experiments/STM.md) |
+| `a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks` | ✈️ | 🟢 直接可用 | 1 | 搜救 UAV 的 Start/Search/Track/Return/Land 流程清楚。 | [STM](sources/a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/STM.md) |
+| `methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight` | ✈️ | 🟢 直接可用 | 1 | Bell 412 supervisor 的 Takeoff/On Route/Landing 分解明确。 | [STM](sources/methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/STM.md) |
+| `formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language` | ✈️ | ⚪ 未收获 | 0 | 对象是 scenario DSL 与场景验证，不是实际控制系统。 | [STM](sources/formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language/STM.md) |
+| `reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation` | ✈️ | 🟡 可整理 | 1 | Masat-1 的 closed-mode CONOPS、safe mode 与 mode trigger 可整理。 | [STM](sources/reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) |
+| `behavior-trees-for-uav-mission-management` | ✈️ | 🟡 可整理 | 1 | UAV mission management 的 task activation/interruption 逻辑可整理为构件级样本。 | [STM](sources/behavior-trees-for-uav-mission-management/STM.md) |
 
 ### 说明
 

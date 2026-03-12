@@ -1,0 +1,1017 @@
+--- Page 1 ---
+arXiv:2112.15147v1  [cs.SE]  30 Dec 2021An Automatically Veriﬁed Prototype of a
+Landing Gear System
+Maximiliano Cristi´ a1and Gianfranco Rossi2
+1Universidad Nacional de Rosario and CIFASIS, Rosario, Arge ntina
+cristia@cifasis-conicet.gov.ar
+2Universit` a di Parma, Parma, Italy
+gianfranco.rossi@unipr.it
+Abstract. In this paper we show how {log}(read ‘setlog’), a Constraint
+Logic Programming (CLP) language based on set theory, can be used
+as an automated veriﬁer for B speciﬁcations. In particular w e encode
+in{log}an Event-B speciﬁcation, developed by Mammar and Laleau,
+of the case study known as the Landing Gear System (LGS). Next we
+use{log}to discharge all the proof obligations proposed in the Event -
+B speciﬁcation by the Rodin platform. In this way, the {log}program
+can be regarded as an automatically veriﬁed prototype of the LGS. We
+believe this case study provides empirical evidence on how C LP and set
+theory can be used in tandem as a vehicle for program veriﬁcat ion.
+1 Introduction
+In the fourth edition of the ABZ Conference held in Toulouse (Franc e) in 2014,
+ONERA’s Boniol and Wiels proposed a real-life, industrial-strength ca se study,
+known as the Landing Gear System (LGS) [1]. The initial objectives of the
+proposalwere “to learn from experiences and know-howof the us ers of the ASM,
+Alloy, B, TLA, VDM and Z methods” and to disseminate the use of veriﬁ cation
+techniques based on those methods, in the aeronautic and space in dustries. The
+LGS was the core of an ABZ track of the same name. The track rece ived a
+number of submissions of which eleven were published [1]. Six of the pub lished
+papers approachedthe problem with methods and tools rooted in th e B notation
+[2] (Event-B, ProB, Hybrid Event-B and Rodin). In this paper we co nsider the
+article by Mammar and Laleau [3] and a journal version [4] as the star ting point
+for our work. In those articles, the authors use Event-B as the s peciﬁcation
+language and Rodin [5], ProB [6] and AnimB3as veriﬁcation tools.
+The B method was introduced by Abrial [2] after his work on the Z not ation
+[7]. B is a formal notation based on state machines, set theory and ﬁ rst-order
+logic aimed at software speciﬁcation and veriﬁcation. Veriﬁcation is a pproached
+by discharging proof obligations generated during speciﬁcation reﬁ nement. That
+is, the engineer starts with a ﬁrst, abstract speciﬁcation and reﬁ nes it into a
+second, less abstract speciﬁcation. In order to ensure that the reﬁnement step
+3http://www.animb.org
+
+--- Page 2 ---
+is correct a number of proof obligations must be discharged. This pr ocess is
+continued until an executable program is obtained. Given that all re ﬁnements
+have been proved correct, the executable program is correct by construction.
+Discharginga proof obligation entails to perform a formal proof (most often)
+in the form of a mechanized proof . A formal proof is a proof of a mathematical
+theorem; a mechanized proof is a formal proof made by either an int eractive
+theorem prover or an automated theorem prover4. That is, mechanized proofs
+are controlled, guided or veriﬁed by a program. Unless there are er rors in the
+veriﬁcation software, a mechanized proof is considered to be erro r-free because
+those programs are supposed to implement only sound proof steps . The mecha-
+nizationofproofsisimportantforat leasttworeasons:errorsca nnotbe tolerated
+in safety-critical systems and mechanization enables the possibility of proof au-
+tomation which in turn reduces veriﬁcation costs.
+Our work starts by considering the Event-B speciﬁcation of the LG S de-
+veloped by Mammar and Laleau. Event-B [8] is a further development over B
+aimed at modeling and reasoning about discret-event systems. The basis of B
+are nonetheless present in Event-B: state machines, set theory , ﬁrst-order logic,
+reﬁnement and formal proof. The Event-B speciﬁcation develope d by Mammar
+and Laleau has an important property for us. They used the Rodin p latform to
+write and verify the model. This implies that proof obligations were gen erated
+by Rodin according to a precise and complete algorithm [5].
+In this paper we consider the LGS casy study and Mammar and Leleau ’s
+Event-B speciﬁcation as a benchmark for {log}(read ‘setlog’). {log}is a Con-
+straint Logic Programming (CLP) language and satisﬁability solver ba sed on
+set theory. As such, it can be used as a model animator and as an au tomated
+theorem prover. Since {log}is based on set theory, it should also be a good
+candidate to encode Event-B (or classic B) speciﬁcations; since it im plements
+several decision procedures for set theory, it should be a good ca ndidate to auto-
+maticallydischargeproofobligationsgeneratedfromreﬁnement st epsofEvent-B
+(or classic B) speciﬁcations.
+Therefore, we proceed as follows: a)Mammar and Leleau’s Event-B speci-
+ﬁcation is encoded as a {log}program; b)all the proof obligations generated
+by the Rodin platform are encoded as {log}queries; and c){log}is used to
+automatically discharge all these queries. We say ‘encode’ and not ‘im plement’
+due to the similarities between the {log}language and the mathematical basis
+of the Event-B language; however, the encoding provides an implem entation in
+the form of a prototype.
+The contributions of this paper are the following:
+–We provide empirical evidence on how CLP and set theory can be used in
+tandemasavehicleforprogramveriﬁcation.Morespeciﬁcally, {log}isshown
+to work well in practice.
+4In this context the term ‘automated theorem prover’ include s tools such as satisﬁa-
+bility solvers.
+
+--- Page 3 ---
+–Given that the {log}prototype of the LGS has been (mechanically and
+automatically) proved to verify a number of properties, it can be re garded
+as correct w.r.t. those properties.
+The paper is structured as follows. In Sect. 2 and 3 we introduce {log}
+by means of several examples. In particular, in Sect. 3 we shown th eformula-
+program duality enjoinedby {log}.Section4presentstheencodingoftheEvent-B
+speciﬁcation of the LGS in {log}. The encoding of the proof obligations gener-
+ated by the Rodin tool is introduced in Sect. 5. Finally, we discuss our approach
+in Sect. 6 and give our conclusions in Sect. 7.
+2 Overview of {log}
+{log}is a publicly available satisﬁability solver and a declarative set-based,
+constraint-basedprogramminglanguageimplementedinProlog[9]. {log}isdeeply
+rooted in the work on Computable Set Theory [10], combined with the id eas put
+forward by the set-based programming language SETL [11].
+{log}implements various decision procedures for diﬀerent theories on th e
+domain of ﬁnite sets and integer numbers. Speciﬁcally, {log}implements: a deci-
+sion procedurefor the theoryof hereditarily ﬁnite sets (SET), i.e., ﬁnitely nested
+sets that are ﬁnite at each level of nesting [12]; a decision procedur e for a very
+expressive fragment of the theory of ﬁnite set relation algebras ( BR) [13,14]; a
+decision procedure for the theory SETextended with restricted intensional sets
+(RIS) [15]; a decision procedure for the theory SETextended with cardinality
+constraints ( CARD) [16]; a decision procedure for the latter extended with inte-
+ger intervals ( INT V) [17]; and integrates an existing decision procedure for the
+theory of linear integer arithmetic ( LIA). All these procedures are integrated
+into a single solver, implemented in Prolog, which constitutes the core part of
+the{log}tool.Severalin-depthempiricalevaluationsprovideevidencethat {log}
+is able to solve non-trivial problems [13–15,18]; in particular as an aut omated
+veriﬁer of security properties [19,20].
+2.1 The theories
+Figure 1 schematically describes the stack of the ﬁrst-order theo ries supported
+by{log}. The fact that theory Tis over theory Smeans that TextendsS. For
+example, CARDextends both LIAandSET.
+LIAprovides integer linear arithmetic constraints(e.g., 2 ∗X+5≤3∗Y−2)
+bymeansofProlog’sCLP(Q)library[21]. SET[12]providesthe Booleanalgebra
+ofhereditarilyﬁnitesets;thatis,itprovidesequality(=),union( un),disjointness
+(disj), and membership ( in). In turn, these operators enable the deﬁnition of
+other operators, such as intersection and relative complement, a sSETformulas.
+In all set theories, set operators are encoded as atomic predicat es, and are dealt
+with as constraints. For example, un(A,B,C) is a constraint interpreted as C=
+A∪B.CARD[16] extends SETandLIAby providing the cardinality operator
+
+--- Page 4 ---
+LIA SETCARD RIS(X) BRINT VARRAYLIST
+decidableundecidablework in progress
+Fig.1.The stack of theories dealt with by {log}
+(size) which allows to link sets with integer constraints5(e.g.,size(A,W)&
+W−1≤2∗U+ 1).RIS[15] extends SETby introducing the notion of
+restricted intensional set (RIS) into the Boolean algebra. RIS are ﬁnite sets
+deﬁned by a property. For example, x∈ {y:A|φ(y)}, whereAis a set and φ
+is a formula of a parameter theory X.BR[13,14] extends SETby introducing
+ordered pairs, binary relations and Cartesian products (as sets o f ordered pairs),
+and the operators of relation algebra lacking in SET—identity ( id), converse
+(inv) and composition ( comp). For example6,comp(R,S,{[X,Z]})&inv(R,T)&
+[X,Y]inT. In turn, BRallows the deﬁnition of relational operators such as
+domain, range and domain restriction, as BRformulas. INT V[17] extends
+CARDby introducing ﬁnite integer intervals thus enabling the deﬁnition of
+several non-trivial set operators such as the minimum of a set and the partition
+of a set w.r.t. a given number. ARRAYandLISTare still work in progress. They
+should provide theories to (automatically) reason about arrays an d lists from a
+set theoretic perspective. For example, Ais an array of length niﬀ is a function
+with domain in the integer interval7int(1,n). Then, in ARRAYit is possible to
+deﬁne the predicate array(A,n)/hatwide=pfun(A)&dom(A,int(1,n)), where pfunand
+domare predicates deﬁnable in BR. However, it is still necessary to study the
+decidability of such an extension to BR+INT Vas, at the bare minimum, it
+requires for domto deal with integer intervals. The following subsections provide
+some clariﬁcations on the syntax and semantics of the logic language s on which
+these theories are based on.
+5‘&’ stands for conjunction ( ∧); see Sect. 2.4.
+6[x,y] stands for the ordered pair ( x,y).
+7int(a,b) stands for the integer interval [ a,b]; see Sect. 2.2.
+
+--- Page 5 ---
+2.2 Set terms
+The integrated constraint language oﬀered by {log}is a ﬁrst-orderpredicate lan-
+guage with terms of three sorts: terms designating sets (i.e., set terms ), terms
+designating integer numbers, and terms designating ur-elements ( including or-
+dered pairs, written as [ x,y]). Terms of either sort are allowed to enter in the
+formation of set terms (in this sense, the designated sets are hyb rid), no nesting
+restrictions being enforced (in particular, membership chains of an y ﬁnite length
+can be modeled).
+Set terms in {log}can be of the following forms:
+–A variable is a set term; variable names start with an uppercase lette r.
+–{}is the term interpreted as the empty set.
+–{t/A}, where Ais a set term and tis any term accepted by {log}(ba-
+sically, any Prolog uninterpreted term, integers, ordered pairs, o ther set
+terms, etc.), is called extensional set and is interpreted as {t} ∪A. As a
+notational convention, set terms of the form {t1/{t2/···{tn/t}···}}are
+abbreviated as {t1,t2,...,tn/t}, while{t1/{t2/···{tn/{}}···}} is abbrevi-
+ated as{t1,t2,...,tn}.
+–ris(XinA,φ), whereφis any{log}formula, Ais a any set term among the
+ﬁrstthree,and Xisaboundvariablelocaltothe risterm,iscalled restricted
+intensional set (RIS) and is interpreted as {x:x∈A∧φ}. Actually, RIS
+have a more complex and expressive structure [15].
+–cp(A,B), where AandBare any set term among the ﬁrst three, is inter-
+preted as A×B, i.e., the Cartesian product between AandB.
+–int(m,n), where mandnare either integer constants or variables, is inter-
+preted as {x∈Z|m≤x≤n}.
+Set terms can be combined in several ways: binary relations are her editarily
+ﬁnite sets whose elements are ordered pairs and so set operators can take binary
+relations as arguments; RIS and integer intervals can be passed as arguments to
+SEToperators and freely combined with extensional sets.
+2.3 Set and relational operators
+{log}implements a wide range of set and relational operators covering mo st
+of those used in B. Some of the basic operators are provided as primitive con-
+straints.Forinstance, pfun(F) constrains Ftobea(partial)function; dom(F,D)
+corresponds to dom F=D;subset(A,B) corresponds to A⊆B;comp(R,S,T)
+is interpreted as T=Ro
+9S(i.e., relational composition); and apply(F,X,Y)
+is equivalent to pfun(F)&[X,Y]inF.
+A number of other set, relational and integer operators (in the fo rm of predi-
+cates) are deﬁned as {log}formulas, thus making it simpler for the user to write
+complex formulas. Dovier et al. [12] proved that the collection of pre dicate sym-
+bols implementing {=,/\e}a⊔io\slash=,∈,/∈,∪,/bardbl}is suﬃcient to deﬁne constraints for the set
+operators ∩,⊆and\. This result has been extended to binary relations [13] by
+
+--- Page 6 ---
+showing that adding to the previouscollection the predicate symbols implement-
+ing{id,o
+9,⌣}is suﬃcient to deﬁne constraints for most of the classical relationa l
+operators, such as dom, ran, ⊳,⊲, etc. Similarly, {=,/\e}a⊔io\slash=,≤}is suﬃcient to deﬁne
+<,>and≥. We call predicates deﬁned in this way derived constraints .
+{log}provides also so-called negated constraints . For example, nun(A,B,C)
+is interpreted as C/\e}a⊔io\slash=A∪Bandnincorresponds to /∈—in general, a constraint
+beginning with ‘ n’ identiﬁes a negated constraint. Most of these constraints are
+deﬁned as derived constraints in terms of the existing primitive cons traints; thus
+their introduction does not really require extending the constraint language.
+2.4{log}formulas
+Formulas in {log}are built in the usual way by using the propositional connec-
+tives (e.g., &,or) between atomic constraints. More precisely, {log}formulas are
+deﬁned according to the following grammar:
+F::=true|false| C | F&F | ForF | P |neg(F)| Fimplies F | Q(F)
+where:Cis any{log}atomic constraint; Pis any atomic predicate which is
+deﬁned by a Horn clause of the form:
+H::=P | P:-F
+and the user-deﬁned predicates possibly occurring in the body of t he clause do
+not contain any direct or indirect recursive call to the predicate in P;Q(F) is
+the quantiﬁed version of F, using either restricted universal quantiﬁers (RUQ)
+or restricted existentially quantiﬁers (REQ). The deﬁnition and usa ge of RUQ
+and REQ in {log}will be discussed in Section 4.4. It is worth noting that fresh
+variables occurring in the body of a clause but not in its head are all imp licitly
+existentially quantiﬁed.
+negcomputes the propositional negation of its argument. In particular, if F
+is an atomic constraint, neg(F) returns the corresponding negated constraint.
+For example, neg(xinA&zninC) becomes xninAorzinC. However, the
+result ofnegis not always correct because, in general, the negated formula may
+involveexistentially quantiﬁed variables,whose negation calls into play (general)
+universal quantiﬁcation that {log}cannot handle properly. Existentially quanti-
+ﬁed variables may appear in the bodies of clauses or in the formula par t of RIS
+and RUQ. Hence, there are cases where {log}users must manually compute the
+negation of some formulas.
+The same may happen for some logical connectives, such as implies, whose
+implementation uses the predicate neg.8
+2.5 Types in {log}
+{log}is an untyped formalism. This means that, for example, a set such as
+{(x,y),1,‘red‘}is accepted by the language. However, recently, a type system
+8Indeed,Fimplies Gis implemented in {log}asneg(F)orG.
+
+--- Page 7 ---
+and a type checker have been deﬁned and implemented in {log}. Typed as well
+as untyped formalisms have advantages and disadvantages [22]. Fo r this reason,
+{log}users can activate and deactivate the typechecker according to their needs.
+{log}types are deﬁned according to the following grammar:
+τ::=int|str|Atom|etype([Atom,...,Atom])|[τ,...,τ]|stype(τ)
+whereAtomis any Prolog atom other than intandstr.intcorresponds to the
+type of integer numbers; strcorrespondsto the type of Prologstrings; if atom∈
+Atom, then it deﬁnes the type given by the set {atom?t|tis a Prolog atom },
+where ‘?’ is a functor of arity 2. etype([c1,...,cn]), with 2 ≤n, deﬁnes an
+enumerated type; [ T1,...,Tn] with 2≤ndeﬁnes the Cartesian product of types
+T1,...,Tn; andstype(T) deﬁnes the powerset type of type T. As can be seen,
+this type system is similar to B’s.
+When in typechecking mode, all variables and user-deﬁned predicat es must
+be declared to be of a precise type. Variables are declared by means of the
+dec(V,τ) constraint, meaning that variable Vis of typeτ. In this mode, every
+{log}atomic constraint has a polymorphic type much as in the B notation. F or
+example, in comp(R,S,T) the type of the arguments must be stype([τ1,τ2]),
+stype([τ2,τ3]) andstype([τ1,τ3]), for some types τ1,τ2,τ3, respectively.
+Concerninguser-deﬁnedpredicates,iftheheadofapredicateis p(X1,...,Xn),
+thenapredicateoftheform :- decptype(p(τ1,...,τ n)),whereτ1,...,τ nare
+types, must precede p’s deﬁnition. This is interpreted by the typechecker as Xi
+is of typeτiinp, for alli∈1...n. See an example in Sect. 4.1.
+More details on types in {log}can be found in the user’s manual [23].
+2.6 Constraint solving
+As concerns constraint solving, the {log}solver repeatedly applies specialized
+rewritingprocedurestoits input formula Φandreturnseither falseoraformula
+in a simpliﬁed form which is guaranteed to be satisﬁable with respect to the in-
+tended interpretation. Each rewriting procedure applies a few non -deterministic
+rewrite rules which reduce the syntactic complexity of primitive cons traints of
+one kind. At the core of these procedures is set uniﬁcation [24]. The execution of
+the solver is iterated until a ﬁxpoint is reached, i.e., the formula is irre ducible.
+The disjunction of formulas returned by the solver represents all the concrete
+(or ground) solutions of the input formula. Any returned formula is divided into
+two parts: the ﬁrst part is a (possibly empty) list of equalities of the formX=t,
+whereXis a variable occurring in the input formula and tis a term; and the
+second part is a (possibly empty) list of primitive constraints.
+3 Using {log}
+In this section we show examples on how {log}can be used as a programming
+language (3.1) and as an automated theorem prover (3.2). The main goal is to
+provide examples of the formula-program duality enjoined by {log}code.
+
+--- Page 8 ---
+3.1{log}as a programming language
+{log}is primarily a programminglanguage at the intersection of declarative pro-
+gramming,set programming[11]andconstraintprogramming.Spec iﬁcally,{log}
+isaninstanceofthegeneralCLPscheme.As such, {log}programsarestructured
+asa ﬁnite collectionof clauses, whosebodies can containboth atomicconstraints
+and user-deﬁned predicates. The following example shows the prog ram side of
+the formula-program duality of {log}code along with the notion of clause.
+Example 1. The following clause corresponds to the Start GearExtend event of
+the Doors machine of the Event-B model of the LGS. It takes four arguments
+and the body is a {log}formula.
+startGearExtend (PositionsDG ,Gearretp,Dooropenp,Gearretp) :-
+PoinPositionsDG &
+applyTo(Gearretp,Po,true)&
+Dooropenp=cp(PositionsDG ,{true})&
+foplus(Gearretp,Po,false,Gearretp).
+Note that Pois anexistential variable. applyTo andfoplusarepredicatesdeﬁn-
+able in terms of the atomic constraints provided by BR. For example, applyTo
+is as follows:
+applyTo(F,X,Y) :- (1)
+F={[X,Y]/G}&[X,Y]ninG&comp({[X,X]},G,{}).
+Now we can call startGearExtend by providing inputs and waiting for
+outputs:
+Pos={front,right,left}&
+startGearExtend (Pos,cp(Pos,{true}),cp(Pos,{true}),Gearretp).
+returns:
+Gearretp={[front,false]/cp({right,left},{true})} ⊓ ⊔
+As a programming language, {log}can be used to implement set-based spec-
+iﬁcations (e.g., B or Z speciﬁcations). As a matter of fact, an indust rial-strength
+Z speciﬁcation has been translated into {log}[20] and students of a course on Z
+taught both at Rosario (Argentina) and Parma (Italy) use {log}as the proto-
+typing language for their Z speciﬁcations [25]. This means that {log}can serve
+as a programming language in which a prototype of a set-based speciﬁcation
+can be easily implemented. In a sense, the {log}implementation of a set-based
+speciﬁcation can be seen as an executable speciﬁcation .
+Remark 1. A{log}implementation of a set-based speciﬁcation is easy to get
+but usually it will not meet the typical performance requirements de manded by
+
+--- Page 9 ---
+users. Hence, we see a {log}implementation of a set-based speciﬁcation more as
+aprototype than as a ﬁnal program. On the other hand, given the similarities
+between a speciﬁcation and the corresponding {log}program, it is reasonable to
+think that the prototype is a correctimplementation of the speciﬁcation9.
+For example, in a set-based speciﬁcation a table (in a database) with a pri-
+mary key is usually modeled as a partial function, t:X/maps⊔o →Y. Furthermore, one
+may specify the update of row rwith data dby means of the oplusoroverride
+(⊕) operator: t′=t⊕{r/maps⊔o→d}. All this can be easily and naturally translated
+into{log}:tis translated as variable Tconstrained to verify pfun(T), and the
+update speciﬁcationistranslatedas oplus(T,{[R,D]},T). However,the oplus
+constraint will perform poorly compared to the updatecommand of SQL, given
+thatoplus’s implementation comprises the possibility to operate in a purely log-
+ical manner with it (e.g., it allows to compute oplus(T,{[a,D]},{[a,1],[b,3]})
+whileupdatedoes not). ⊓ ⊔
+Then, we can use these prototypes to make an early validation of th e require-
+ments.Validatinguserrequirementsbymeansofprototypesenta ilsexecutingthe
+prototypes together with the users so they can agree or disagre e with the behav-
+ior of the prototypes. This early validation will detect many errors, ambiguities
+and incompleteness present in the requirements and possible misund erstandings
+or misinterpretations generated by the software engineers. With out this valida-
+tion many of these issues would be detected in later stages of the pr oject thus
+increasing the project costs.
+3.2{log}as an automated theorem prover
+{log}is also a satisﬁability solver . This means that {log}is a program that can
+decide if formulas of some theory are satisﬁable or not. In this case the theory
+is the combination of the decidable (fragments of the) theories of F ig. 1.
+Being a satisﬁability solver, {log}can be used as an automated theorem
+proverand as a counterexample generator.To provethat formu laφis a theorem,
+{log}has to be called to prove that ¬φis unsatisﬁable.
+Example 2. We canprovethat setunionis commutativebyasking {log}toprove
+the following is unsatisﬁable:
+neg(un(A,B,C)&un(B,A,D)implies C=D).
+{log}ﬁrst applies negto the formula, returning:
+un(A,B,C)&un(B,A,D)&CneqD
+As there are no sets satisfying this formula, {log}answersno. Note that the
+initial formula can also be written as: neg(un(A,B,C)implies un (B,A,C)).
+In this case, the result of applying neguses the nunconstraint, un(A,B,C)&
+nun(B,A,C). ⊓ ⊔
+9In fact, the translation process can be automated in many cas es.
+
+--- Page 10 ---
+When{log}fails to prove that a certain formula is unsatisﬁable, it generates
+a counterexample. This is useful at early stages of the veriﬁcation phase because
+it helps to ﬁnd mismatches between the speciﬁcation and its propert ies.
+Example 3. If the following is run on {log}:
+neg(un(A,BBBB,C)&un(B,A,D)implies C=D).
+the tool will provide the following as the ﬁrst counterexample:
+C={N3/N1},N3ninD,un(A,N2,N1),...
+More counterexamples can be obtained interactively. ⊓ ⊔
+Remark 2. As we have mentioned in Sect. 2.4, there are cases where {log}’sneg
+predicate is not able to correctly compute the negation of its argum ent. For in-
+stance, if we want to compute the negation of applyTo as deﬁned in Example
+1 withneg, the result will be wrong—basically due to the presence of the exis-
+tentially quantiﬁed variable G. In that case, the user has to compute and write
+down the negation manually.
+Evaluatingproperties with {log}helps to run correctsimulations by checking
+that the starting state is correctly deﬁned. It also helps to testwhether or not
+certain properties are true of the speciﬁcation or not. However, by exploiting
+the ability to use {log}as a theorem prover, we can provethat these properties
+are true of the speciﬁcation. In particular, {log}can be used to automatically
+discharge veriﬁcation conditions in the form of state invariants. Pr ecisely, in
+order to prove that state transition T(from now on called operation ) preserves
+state invariant Ithe following proof must be discharged:
+I∧T⇒I′(2)
+whereI′correspondsto the invariantin the next state. If we want to use {log}to
+discharge (2) we have to ask {log}to check if the negation of (2) is unsatisﬁable .
+In fact, we need to execute the following {log}query:
+neg(I&Timplies I′) (3)
+As we have pointed out in Example 2, {log}rewrites (3) as:
+I&T&neg(I′) (4)
+Example 4. The following is the {log}encoding of the state invariant labeled
+inv2in machine Doors of the LGS:
+doorsinv2(PositionsDG ,Gearextp,Gearretp,Dooropenp) :-
+exists(PoinPositionsDG ,
+applyTo(Gearextp,Po,false)&applyTo(Gearretp,Po,false))
+implies Dooropenp=cp(PositionsDG ,{true}).
+
+--- Page 11 ---
+Besides, Rodin generates a proof obligation as (2) for startGearExtend and
+doorsinv2. Then, we can discharge that proof obligation by calling {log}on
+its negation:
+neg(doorsinv2(PosDG,Gearextp,Gearretp,Dooropenp)&
+startGearExtend (PosDG,Gearretp,Dooropenp,Gearretp)
+impliesdoors inv2(PosDG,Gearextp,Gearretp,Dooropenp))
+The consequent corresponds to the invariant evaluated in the nex t state due to
+the presence of Gearretpinstead of Gearretpin the third argument—the
+other arguments are not changed by startGearExtend . ⊓ ⊔
+Examples 1 and 4 show that {log}is a programming and proof platform
+exploiting the program-formula duality within the theories of Fig. 1. I ndeed, in
+Example 1 startGearExtend is treated as a program (because it is executed)
+while in Example 4 is treated as a formula (because it participates in a th eorem).
+4 Encoding the Event-B Speciﬁcation of the LGS in {log}
+We say ‘encoding’ and not ‘implementing’ the LGS speciﬁcation becaus e the
+resulting {log}code:a)is a prototype rather than a production program; and
+b)is a formula as the LGS speciﬁcation is. In particular, {log}provides all the
+logical, set and relational operators used in the LGS speciﬁcation. F urthermore,
+these operators are not mere imperative implementations but real mathematical
+deﬁnitions enjoying the formula-program duality discussed in Sect. 3.
+Given that we prove that the {log}program veriﬁes the properties proposed
+by Rodin (see Section 5), we claim the prototype is a faithful encodin g of the
+Event-B speciﬁcation.
+Due to space considerations we are not going to explain in detail the E vent-B
+development of Mammar and Laleau. Instead we will provide some exa mples of
+howwe haveencoded it in {log}. The interestedreadercan ﬁrsttake aquick read
+to the problem description [1], and then download the Event-B develo pment10
+and the{log}program11in order to make a thorough comparison. The Event-
+B development of the LGS consists of eleven models organized in a reﬁ nement
+pipeline[4].Eachmodelspeciﬁesthebehaviorandstateinvariantsof increasingly
+complex and detailed versions of the LGS. For example, the ﬁrst and simplest
+model speciﬁes the gears of the LGS; the second one adds the doo rs that allow
+the gears to get out of the aircraft; the third one adds the hydra ulic cylinders
+that either open (extend) or close (retract) the doors (gears) ; and so on and so
+forth. In this development each Event-B model consists of one Ev ent-B machine.
+In the following subsections we show how the main features of the Ev ent-B
+model of the LGS are encoded in {log}.
+10http://deploy-eprints.ecs.soton.ac.uk/467
+11http://www.clpset.unipr.it/SETLOG/APPLICATIONS/lgs. zip
+
+--- Page 12 ---
+4.1 Encoding Event-B machines
+Fig. 2 depicts at the left the Event-B machine named Gears and at th e right the
+corresponding {log}encoding.Fromhereon, {log}codeiswrittenin typewriter
+font.Wetriedtoalignasmuchaspossiblethe {log}codew.r.t.thecorresponding
+Event-Bcode sothe readercan compareboth descriptions line by lin e. The{log}
+code corresponding to a given Event-B machine is saved in a ﬁle with th e name
+of the machine (e.g., gears.pl ).
+As can be seen in the ﬁgure, each invariant, the initialization predicat e and
+each event are encoded as {log}clauses. In Event-B the identiﬁers for each of
+these constructs can be any word but in {log}clause predicates must begin with
+a lowercase letter. For instance, event Make GearExtended corresponds to the
+{log}clause predicate named make_GearExtended12.
+Each clause predicate receives as many arguments as variables and con-
+stants are used by the corresponding Event-B construct. For e xample,inv1
+waits for two arguments: PositionsDG , corresponding to a set declared in the
+Event-B context named PositionsDoorsGears (not shown); and Gear_ext_p ,
+corresponding to the state variable declared in the machine. When a n event
+changes the state of the machine, the corresponding {log}clause predicate con-
+tains as many more arguments as variables the event modiﬁes. For e xample,
+MakeGearExtended modiﬁes variable gearextp, somake_GearExtended has
+Gear_ext_p_ as the third argument. Gear_ext_p_ corresponds to the value of
+Gear_ext_p in the next state; i.e., the value of gearextpafter considering the
+assignment gearextp(po) :=TRUE. Observe that in {log}variables must be-
+gin with an uppercase letter and constants with a lowercase letter, while such
+restrictionsdo not apply in Event-B.For example, in the Event-Bmo del we have
+the Boolean constant TRUEwhich in our encoding is written as true. Likewise,
+in Event-B we have variable gearextpwhich is encoded as Gear_ext_p .
+In Fig. 2 we have omitted type declarations for brevity. We will include them
+only when strictly necessary. For instance, the {log}clauseinv1is actually
+preceded by its type declaration:
+:- dec_p_type(inv1(stype(positionsdg),stype([positio nsdg,bool]))).
+wherepositionsdg is a synonym for etype([front,right,left]) andboolis
+foretype([true,false]) .
+Guardsandactionsareencodedas {log}predicates.Theidentiﬁersassociated
+to guards and actions can be provided as comments. {log}does not provide
+language constructs to label formulas. As an alternative, each gu ard and action
+can be encoded as a clause named with the Event-B identiﬁer. These clauses
+are then assembled together in clauses encoding events. More on t he encoding
+of actions in Sect. 4.3.
+12Actually, the name of each clause predicate is preﬁxed with t he name of the machine.
+Then, is gearsmakeGearExtended rather than makeGearExtended . We omit the
+preﬁx whenever it is clear from context.
+
+--- Page 13 ---
+MACHINE Gears
+SEESPositionsDoorsGears
+VARIABLES gearextp
+INVARIANTS
+inv1:gearextp∈PositionsDG →BOOL
+EVENTSInitialisation
+begin
+act1:gear
+extp:=PositionsDG ×{TRUE}
+end
+EventMakeGearExtended /hatwide=
+any
+po
+where
+grd1:po∈PositionsDG ∧gearextp(po) =FALSE
+then
+act1:gearextp(po) :=TRUE
+end
+EventStartGearRetract /hatwide=
+any
+po
+where
+grd1:po∈PositionsDG ∧gearextp(po) =TRUE
+then
+act1:gearextp(po) :=FALSE
+end
+ENDinv1(PositionsDG,Gear_ext_p) :-
+pfun(Gear_ext_p) & dom(Gear_ext_p,PositionsDG).
+init(PositionsDG,Gear_ext_p) :-
+Gear_ext_p = cp(PositionsDG,{true}).
+make_GearExtended(PositionsDG,Gear_ext_p,Gear_ext_p _) :-
+Po in PositionsDG &applyTo(Gear_ext_p,Po,false) &foplus(Gear_ext_p,Po,true,Gear_ext_p_).
+start_GearRetract(PositionsDG,Gear_ext_p,Gear_ext_p _) :-
+Po in PositionsDG &applyTo(Gear_ext_p,Po,true) &foplus(Gear_ext_p,Po,false,Gear_ext_p_).
+Fig.2.The Event-B Gears machine at the left and its {log}encoding at the right
+
+--- Page 14 ---
+4.2 Encoding (partial) functions
+Functions play a central role in Event-B speciﬁcations. In Event-B functions are
+sets of ordered pairs; i.e., a function is a particular kind of binary rela tion.{log}
+supports functions assets oforderedpairsand supportsall the relatedoperators.
+Here we show how to encode functions and their operators.
+Function deﬁnition. In order to encode functions, we use a combination of
+types and constraints. In general, we try to encode as much as po ssible with
+types, as typechecking performs better than constraint solving . Hence, to en-
+codef∈X/maps⊔o →Y, we declare it as dec(F,stype([X,Y])) and then we assert
+pfun(F). Iffis a total function, then we conjoin dom(F,D) , whereDis the set
+representation of the domain type.
+For instance, predicate inv1in Gears asserts gearextp∈PositionsDG →
+BOOL(Fig. 2). In {log}we declare Gear_ext_p to be of type stype([posi -
+tionsdg,bool]) (see thedec_p_type predicate in Sect. 4.1). This type decla-
+ration only ensures gearextp∈PositionsDG ↔BOOL—i.e., a binary relation
+between PositionsDG andBOOL. The type assertion is complemented by a
+constraint assertion: pfun(Gear_ext_p) & dom(Gear_ext_p,PositionsDG) ,as
+explained above.
+Function application. Functionapplicationisencodedbymeansofthe applyTo
+predicate deﬁned in (1). The encoding is a little bit more general than Event-B’s
+notion of function application. For instance, in Make GearExtended (Fig. 2):
+gearextp(po) =FALSE (5)
+might be undeﬁned becauseEvent-B’stype systemcanonlyensure gearextp∈
+PositionsDG ↔BOOLandpo∈PositionsDG . Actually, the following well-
+deﬁnedness proof obligation is required by Event-B:
+po∈domgearextp∧gearextp∈PositionsDG /maps⊔o →BOOL
+As said, we encode (5) as applyTo(Gear_ext_p,Po,false) .applyTo cannot
+be undeﬁned but it can fail because: a)Podoes not belong to the domain of
+Gear_ext_p ;b)Gear_ext_p contains more than one pair whose ﬁrst component
+isPo; orc)falseis not the image of PoinGear_ext_p . Then, by discharging
+the proof obligation required by Event-B we are sure that applyTo will not fail
+due toa)andb). Actually, gearextp∈PositionsDG /maps⊔o →BOOLis unnecessarily
+strong for function application. As applyTo suggests, f(x) is meaningful when f
+islocally functional onx. For example, {x/maps⊔o→1,y/maps⊔o→2,y/maps⊔o→3}(x) is well-deﬁned
+in spite that the set is not a function.
+Encoding membership to dom. In diﬀerent parts of the Event-B speciﬁca-
+tion we ﬁnd predicates such as po∈domgearextp. There is a natural way
+
+--- Page 15 ---
+of encoding this in {log}:dom(Gear_ext_p,D) & Po in D . However, we use an
+encoding based on the ncompconstraint because it turns out to be more eﬃ-
+cient in{log}:ncomp({[Po,Po]},Gear_ext_p,{}) .ncompis the negation of the
+compconstraint (composition of binary relations). Then, ncomp({[X,X]},F,{})
+states that {(X,X)}o
+9F/\e}a⊔io\slash=∅which can only hold if there is a pair in Fof the
+form (X,). Then, Xis in the domain of F.
+4.3 Encoding action predicates
+Action predicates describe the state change performed due to an event or the
+value of the initial state. Next, we show the encoding of two forms o f action
+predicates: simple assignment and functional override. In events , the next state
+variable is implicitly given by the variable at the left of the action predica te. In
+{log}we must make these variables explicit.
+Encoding simple assignments. Consider a simple assignment x:=E. If this
+is part of the initialization, we interpret it as x=E; if it is part of an event, we
+interpret it as x′=E. As we have said in Sect. 4.1, x′is encoded as X_. Hence,
+simple assignments are basically encoded as equalities to before-sta te variables
+in the case of initialization and to after-state variables in the case of events.
+As an example, part of the initialization of the Gears machine is:
+act1:gearextp:=PositionsDG ×{TRUE} (6)
+This is simply encoded in {log}as follows:
+Gear_ext_p = cp(PositionsDG,{true})
+An example of a simple assignment in an event, can be the following (eve nt
+ReadDoors, machine Sensors):
+act1:dooropenind:=
+{front/maps⊔o→dooropensensorvalueF,
+left/maps⊔o→dooropensensorvalueL,
+right/maps⊔o→dooropensensorvalueR}
+Then, we encode it as follows:
+Door_open_ind_ =
+{[front,Door_open_sensor_valueF],
+[left,Door_open_sensor_valueL],
+[right,Door_open_sensor_valueR]}
+Functional override. The functional override f(x) :=Eis interpreted as
+f′=f⊕ {x/maps⊔o→E}, which in turn is equivalent to f′=f\ {x/maps⊔o→y|y∈
+ranf}∪{x/maps⊔o→E}. This equality is encoded by means of the foplusconstraint:
+
+--- Page 16 ---
+foplus(F,X,Y,G) :-
+F = {[X,Z]/H} & [X,Z] nin H & comp({[X,X]},H,{}) & G = {[X,Y]/H }
+or comp({[X,X]},F,{}) & G = {[X,Y]/F}.
+That is, if there is more than one image of XthroughF,foplusfails. Then,
+foplus(F,X,Y,G) is equivalent to:
+G=F\{(X,Z)}∪{(X,Y)}, for some Z
+This is a slight diﬀerence w.r.t. the Event-B semantics but it is correct in a
+context where Fis intended to be a function (i.e, pfun(F)is an invariant).
+As an example, consider the action part of Make GearExtended (Fig. 2):
+gearextp(po) :=TRUE. As can be seen in the same ﬁgure, the encoding is:
+foplus(Gear_ext_p,Po,true,Gear_ext_p_) .
+ThefollowingisamorecomplexexampleappearingineventStart GearExtend
+of machine TimedAspects:
+act2:deadlineGearsRetractingExtending (po) :=
+{front/maps⊔o→cT+12,left/maps⊔o→cT+16,right/maps⊔o→16}(po)
+The encoding is the following:
+foplus(DeadlineGearsRetractingExtending,
+Po,M1,DeadlineGearsRetractingExtending_) &
+applyTo({[front,M2],[left,M3],[right,16]},Po,M1) &
+M2 is CT + 12 & M3 is CT + 16
+Given that in {log}function application is a constraint, we cannot put in the
+third argument of foplusan expression encoding {front/maps⊔o→cT+12,...}(po).
+Instead, we have to capture the result of that function applicatio n in a new vari-
+able (M1) which is used as the third argument. Along the same lines, it would be
+wrong to write CT + 12 in place of M2inapplyTo({[front,M2],...},Po,M1)
+because {log}(as Prolog) does not interpret integer expressions unless explic-
+itly indicated. Precisely, the isconstraint forces the evaluation of the integer
+expression at the right-hand side.
+4.4 Encoding quantiﬁers
+The best way of encoding quantiﬁers in {log}is by means of the foreach and
+existsconstraints, which implement RUQ and REQ. Unrestricted existentia l
+quantiﬁcation is also supported. Then, if an Event-B universally qua ntiﬁed for-
+mula cannot be expressed as a RUQ formula, it cannot be expressed in{log}.
+Universal quantiﬁers. In its simplest form, the RUQ formula ∀x∈A:φis
+written in {log}asforeach( XinA,φ)[15, Sect. 5.1]13. However, foreach
+13In turn,the foreach constraint is deﬁnedin {log}byusing RISandthe ⊆constraint,
+by exploiting the equivalence ∀x∈D:F(x)⇔D⊆ {x∈D| F(x)}
+
+--- Page 17 ---
+can also receive four arguments: foreach( XinA, [vars],φ,ψ), whereψ
+is a conjunction of functional predicates . Functional predicates play the role of
+letexpressions; that is, they permit to deﬁne a name for an expressio n [15,
+Sect. 6.2]. In turn, that name must be one of the variables listed in vars. These
+variables are implicitly existentially quantiﬁed inside the foreach. A typical
+functional predicate is applyTo(F,X,Y) because there is only one Yfor given F
+andX. Functional predicates can be part of φbut in that case its negation will
+not always correct.
+As an example, consider the second invariant of machine GearsInte rmediate:
+inv2:∀po·(po∈PositionsDG
+⇒ ¬(gearextp(po) =TRUE∧gearretp(po) =TRUE))
+This is equivalent to a restricted universal quantiﬁed formula:
+inv2:∀po∈PositionsDG ·
+¬(gearextp(po) =TRUE∧gearretp(po) =TRUE))(7)
+Then, we encode (7) as follows:
+inv2(PositionsDG, Gear_ext_p, Gear_ret_p) :-
+foreach(Po in PositionsDG,[M1,M2],
+neg(M1 = true & M2 = true),
+applyTo(Gear_ext_p,Po,M1) & applyTo(Gear_ret_p,Po,M2) ).
+In some quantiﬁed formulas of Mammar and Laleau’s Event-B projec t the
+restricted quantiﬁcation is not as explicit as in (7). For instance, inv3of the
+Cylinders machine is:
+∀po·doorcylinder lockedp(po) =TRUE⇒doorclosedp(po) =TRUE)
+However, given that pomust be in the domain of doorclosedpthen it must
+belong to PositionsDG .
+Existential quantiﬁers. Like universal quantiﬁers, also existential quanti-
+ﬁers are encoded by ﬁrst rewriting them as REQ, and then by using {log}’s
+existsconstraint. However, {log}supports also general (i.e., unrestricted) ex-
+istential quantiﬁcation: in fact, all variables occurring in the body o f a clause
+but not in its head are implicitly existentially quantiﬁed. Thus, the Even t-B
+construct anyis not explicitly encoded. For instance, in the encoding of event
+MakeGearExtended we just state Po in PositionsDG because this declares Po
+as an existential variable.
+4.5 Encoding types
+In Event-B type information is sometimes given as membership const raints. Be-
+sides, type information sometimes becomes what can be called type invariants .
+
+--- Page 18 ---
+That is, state invariants that convey what normally is typing informa tion. As
+we have said, we try to encode as much as possible with {log}types rather
+than with constraints. Some type invariants can be enforced by th e typechecker.
+Nevertheless, for the purpose of using this project as a benchma rk for{log}, we
+have encoded all type invariants as regular invariants so we can run all the proof
+obligations involving them.
+Type guards and type invariants. Forexample,ineventReadHandleSwitch-
+Circuit (machine Failures) we can ﬁnd the guard:
+Circuitpressurized sensorvalue∈BOOL
+Guards like this are encoded as actual type declarations and not as constraints:
+dec(Circuit_pressurized_sensor_value,bool)
+In this way, the typechecker will reject any attempt to bind this va riable to
+something diﬀerent from trueandfalse.
+As an example of a type invariant we have the following one in machine
+HandleSwitchShockAbsorber:
+inv5:Intermediate 1∈BOOL
+This is an invariant that can be enforced solely by the typechecker. However, for
+the purpose of the empirical comparison, we encoded it as a state in variant:
+:- dec_p_type(inv5(bool)).
+inv5(Intermediate1) :- Intermediate1 in {true,false}.
+Encodingthe set of natural numbers ( N).TheEvent-Bmodelincludestype
+invariants involving the set of natural numbers. This requires to be treated with
+care because {log}can only deal with ﬁnite sets so there is no set representing
+N. As these invariants cannot be enforced solely by the typechecke r we need to
+combine types and constraints. Then, an invariant such as:
+inv1:currentTime ∈N
+is encoded by typing the variable as an integer and then asserting th at it is
+non-negative:
+:- dec_p_type(inv1(int)).
+inv1(CurrentTime) :- 0 =< CurrentTime.
+There are, however, more complex invariants involving Nsuch as:
+deadlineUnlockLockDoorsCylinders ∈PositionsDG →N
+In this case {log}’s type system can only ensure:
+deadlineUnlockLockDoorsCylinders ∈PositionsDG ↔Z (8)
+
+--- Page 19 ---
+Then, we need to use constraints to state: a) deadlineUnlockLockDoorsCylinders
+is a function; b)the domain is PositionsDG ; andc)the range is a subset of N.
+The ﬁrst two points are explained in Sect. 4.2. The last one is encoded with the
+foreach constraint:
+foreach([X,Y] in DeadlineUnlockLockDoorsCylinders, 0 =< Y)
+As can be seen, the control term of the foreach predicate can be an ordered
+pair [15, Sect. 6.1]. Then, the complete encoding of (8) is the following :
+:- dec_p_type(inv5(stype(positionsdg),stype([positio nsdg,int))).
+inv5(PositionsDG,DeadlineUnlockLockDoorsCylinders) : -
+pfun(DeadlineUnlockLockDoorsCylinders) &
+dom(DeadlineUnlockLockDoorsCylinders,PositionsDG) &
+foreach([X,Y] in DeadlineUnlockLockDoorsCylinders, 0 =< Y).
+5 Encoding Proof Obligations in {log}
+Rodin is one of the tools used by Mammar and Leleau in the project. Ro din
+automaticallygeneratesasetofproofobligationsforeachmodela ccordingtothe
+Event-Bveriﬁcationrules[5]. Amongthe manykinds ofproofobligatio nsdeﬁned
+in Event-B, in the case of the LGS project Rodin generates proof o bligations of
+the following three kinds:
+–Well-deﬁnedness ( wd). Awdcondition is a predicatedescribing when an ex-
+pression or predicate can be safely evaluated. For instance, the wdcondition
+forxdivyisy/\e}a⊔io\slash= 0. Then, if xdivyappears in some part of the speciﬁcation,
+Rodin will generate a proof obligation asking for y/\e}a⊔io\slash= 0 to be proved in a
+certain context.
+–Invariant initialization ( init). LetIbe an invariant depending on variable
+x. Letx:=Vbe the initialization of variable x. Then, Rodin generates the
+following proof obligation14:
+⊢I[V/x] (9)
+–Invariant preservation ( inv). LetIbe as above. Let E/hatwide=G∧Abe an event
+whereGare the preconditions (called guardsin Event-B) and Aare the
+postconditions (called actionsin Event-B). Say Echanges the value of x;
+e.g., there is an assignment such as x:=VinE. Then, Rodin generates the
+following proof obligation:
+I ∧I∧G∧A⊢I[V/x] (10)
+whereI/hatwide=/logicalandtext
+j∈JIjis a conjunction of invariants in scope other than I.
+14This is a simpliﬁcation of the real situation which, nonethe less, captures the essence
+of the problem. All the technical details can be found in the E vent-B literature [5].
+
+--- Page 20 ---
+Dealingwith invproofobligationsdeservessomeattention.When confronted
+with amechanized proof we can think on two general strategies concerning the
+hypothesis for that proof:
+–The interactive strategy. When proving a theorem interactively, t he more
+the hypothesis are available the easiest the proof. In other words , users of
+an interactive theorem prover will be happy to have as many hypoth esis as
+possible.
+–The automated strategy. When using an automated theorem prov er, some
+hypothesis can be harmful. Given that automated theorem prover s do not
+have the intelligence to chose (only) the right hypothesis in each pro of step,
+they might chose hypothesis that do not lead to the conclusion or th at pro-
+duce a long proof path. Therefore, a possible working strategy is t o run the
+proof with just the necessary hypothesis.
+Our approach is to encode proof obligations by following the ‘automat ed
+strategy’. For example, in the case of invproofs, we ﬁrst try (10) withoutI.
+If the proof fails, the counterexample returned by {log}is analyzed, just the
+necessary Ijare added, and the proof is attempted once more. Furthermore, in
+extreme cases where a proof is taking too long, parts of GandAare dropped
+to speed up the prover. As we further discuss it in Sect. 6, this pro of strategy
+considerably reduces the need for truly interactive proofs.
+The combination between typechecking and constraint solving also h elps in
+improving proof automation. As we have explained in Sect. 4, the enc oding of
+inv1in Fig. 2 does not include constraints to state that the range of gearextp
+is a subset of BOOL. This is so because this fact is enforced by the typechecker.
+Hence, the {log}encoding of inv1is simpler than inv1itself. As a consequence,
+proof obligations involving inv1will be simpler, too. For example, the invproof
+forinv1and event Make GearExtended (of machine Gears) is the following:
+gearextp∈PositionsDG →BOOL∧MakeGearExtended
+⇒gearextp′∈PositionsDG →BOOL(11)
+However, the {log}encoding of the negation of (11) is the following15:
+neg(pfun(Gear_ext_p) & dom(Gear_ext_p, PositionsDG) &
+make_GearExtended(PositionsDG, Gear_ext_p, Gear_ext_p _)
+implies pfun(Gear_ext_p_) & dom(Gear_ext_p_, PositionsD G)).
+That is, {log}will not have to prove that:
+ran(Gear_ext_p,M) & subset(M,{true,false})
+is an invariant because this is ensured by the typechecker.
+PositionsDG is a set declared in the context named PositionsDoorsGears
+where it is bound to the set {front,right,left}.PositionsDG is used by the
+15Predicate inv1of Fig. 2 is expanded to make the point more evident.
+
+--- Page 21 ---
+vast majority of events and thus it participates in the vast majorit y of proof
+obligations. In the {log}encoding, instead of binding PositionsDG to that value
+we leave it free unless it is strictly necessary for a particular proof. For example,
+the proof obligation named ReadDoors/grd/ wd(machine Sensors) cannot be
+discharged if leftis not an element of PositionsDG . Hence, we encoded that
+proof obligation as follows:
+ReadDoors_grd2 :-
+neg(PositionsDG = {left / M} &
+doors_inv1(PositionsDG, Door_open_p) &
+Door_open_sensor_valueL = true
+implies
+ncomp({[left,left]},Door_open_p,{}) & pfun(Door_open_ p)).
+Note that: we state the membership of only lefttoPositionsDG ;inv1of
+machine Doors is needed as an hypothesis; the encoding based on ncompis used
+to state membership to dom; and pfunensures that Door_open_p is a function
+while the type system ensures its domain and range are correct (no t shown).
+Furthermore, binding PositionsDG to{front,right,left}is crucial in a hand-
+ful of proof obligations because otherwise the encoding would fall o utside the de-
+cision procedures implemented in {log}. One example is passingTime/grd7/ wd
+(machine TimedAspects):
+randeadlineOpenCloseDoors /\e}a⊔io\slash={0}
+⇒ran(deadlineOpenCloseDoors −⊲{0})/\e}a⊔io\slash=∅
+∧(∃b∈ran(deadlineOpenCloseDoors −⊲{0})·
+(∀xran(deadlineOpenCloseDoors −⊲{0})·b≤x))(12)
+Ascanbeseen,thequantiﬁcationdomainofboththeREQandRUQist hesame,
+the REQ is before the RUQ and the REQ is at the consequent of an implic ation.
+This kind of formulas lies outside the decision procedures implemented in{log}
+unless the quantiﬁcation domain is a closed set—such as {front,right,left}.
+6 Discussion and Comparison
+The LGS Event-B project of Mammar and Leleau comprises 4.8 KLOC o f LATEX
+code which amounts to 213 Kb. The {log}encoding is 7.8 KLOC long weighting
+216 Kb. Although {log}’s LOC are quite more than the encoding of the speciﬁ-
+cation in L ATEX, we would say both encodings are similar in size—we tend to use
+very short lines. Beyond these numbers, it is worth noting that sev eral key state
+variables of the Event-Bspeciﬁcation are Boolean functions. We wo nder why the
+authors used them instead of sets because this choice would have im plied less
+proof obligations—for instance, many wdproofs would not be generated simply
+because function application would be absent.
+
+--- Page 22 ---
+Table 1 summarizes the veriﬁcation process carried out with {log}16. Each
+row shows the proof obligations generated by Rodin and discharged by{log}
+for each reﬁnement level (machine). The meaning of the columns is a s follows:
+postands for the total number of proof obligations; init,wdandinvis the
+number of each kind of proof obligations; and Timeshows the computing time
+(in seconds) needed to dischargethose proof obligations ( ǫmeans the time is less
+than one second). As can be seen, all the 465 proofs are discharg ed, roughly, in
+290 s, meaning 0.6 s in average. Mammar and Leleau [4, Sect. 10.1] ref er that
+there are 285 proof obligations, of which 72% were automatically disc harged. We
+believe that this number corresponds to the invproofs—i.e., those concerning
+with invariantpreservation.Then,MammarandLeleauhad toworko ut 80proof
+obligations interactively in spite of Roding using external proverssu ch as Atelier
+B and SMT solvers.
+Table 1. Summary of the veriﬁcation process
+Machine po init wd inv Time
+Gears 5 1 2 2 ǫ
+GearsIntermediate 13 2 5 6 ǫ
+Doors 10 2 2 6 ǫ
+DoorsIntermediate 13 2 5 6 ǫ
+Cylinders 37 5 14 18 ǫ
+HandleSwitchShockAbsorber 29 5 4 20 ǫ
+ValvesLights 12 2 2 8 ǫ
+Sensors 52 12 17 23 55 s
+TimedAspects 98 14 34 50 4 s
+Failures 38 9 9 20 3 s
+PropertyVeriﬁcation 158 27 1 130 228 s
+Totals 465 81 95 289 290 s
+The ﬁgures obtained with {log}for the LGS are aligned with previous results
+concerning the veriﬁcation of a {log}prototype of the Tokeneer ID Station writ-
+ten from a Z speciﬁcation [20] and the veriﬁcation of the Bell-LaPadu la security
+model [19].
+There is, however, a proof obligation that, as far as we understan d, cannot
+be discharged. This proof is HandleFromIntermediate2ToInterme diate1/inv2 of
+the TimedAspects machine which would prove that event HandleFrom Interme-
+diate2ToIntermediate1 preserves 0 ≤deadlineSwitch . However, the assignment
+deadlineSwitch :=currentTime +(8−(2/3)∗(deadlineSwitch −currentTime )),
+present in that event, implies that the invariant is preserved iﬀ deadlineSwitch ≤
+(5/2)∗currentTime +12.But there is no invariantimplying that inequality. Both
+16The veriﬁcation process was runon aLatitudeE7470 with a4co re Intel(R)Core ™i7-
+6600U CPU at 2.60GHz with 8 Gb of main memory, running Linux Ub untu 18.04.5,
+SWI-Prolog 7.6.4 and {log}4.9.8-10i.
+
+--- Page 23 ---
+deadlineSwitch andcurrentTime areﬁrst declared in the TimedAspects machine
+which states only two invariants concerning these variables: both o f them must
+be non-negative integers.
+Mammar and Leleau use ProBand AnimB besides Rodin during the veriﬁc a-
+tion process.They use these othertools in the ﬁrst reﬁnement st eps to tryto ﬁnd
+obvious errorsbefore attempting any serious proofs. For instan ce, they use ProB
+to checkthat invariantsare not trivially falsiﬁed. In this sense, the tool is used to
+ﬁnd counterexamples for invalid invariants. In general, ProB canno t prove that
+an invariant holds, it can only prove that it does not hold—as far as we know
+ProB does not implement a decision procedure for a signiﬁcant fragm ent of the
+set theory underlying Event-B. {log}could potentially be used as a back-end
+system to run the checks carried out by Mammar and Leleau. It sho uld produce
+more accurate and reliable results as it implements several decision p rocedures
+as stated in Sect. 2.
+Nevertheless, the main point we would like to discuss is our approach t o
+automated proof. That is, the automated strategy mentioned in S ect. 5 plus
+some details of the {log}encoding of the LGS. Our approach is based on the
+idea expressed as specify for automated proof . In other words, when confronted
+with the choice between two or more ways of specifying a given requir ement, we
+try to chose the one that improves the chances for automated pr oof. Sooner or
+later,automated proofhits acomputationalcomplexitywall that m akesprogress
+extremely diﬃcult. However, there are language constructs that move that wall
+further away than others.
+For example, the encoding of function application by means of applyTo,
+the encoding of functional override by means of foplus, and the encoding of
+membership to dom by means of ncomp, considerably simplify automated proofs
+becausethesearesigniﬁcantlysimplerthanencodingsbasedonoth erconstraints.
+However, in our experience, the so-called automated strategy pr ovides the
+greatest gains regarding automated proof. As we have said, we ﬁr st try to dis-
+charge a proof such as (10) without I. If the proof fails we analyze the coun-
+terexample returned by {log}and add a suitable hypothesis—i.e., we pick the
+rightIj∈ I. This process is iterated until the proof succeeds. Clearly, this pr oof
+strategy requires some degree of interactivity during the veriﬁca tion process.
+The question is, then, whether or not this approach is better than attempting
+to prove (10) as it is and if it does not succeed, an interactive proof assistant is
+called in. Is it simpler and faster our strategy than a truly interactiv e proof?
+We still do not have strong evidence to give a conclusive answer, alth ough we
+can provide some data. We have developed a prototype of an intera ctive proof
+tool based on the automated strategy [26]. Those results provide evidence for
+a positive answer to that question. Now, the data on the LGS proje ct further
+contributes in the same direction. In this project, {log}discharges roughly 60%
+ofthe proofsofTable 1in the ﬁrstattempt. In the vast majorityo fthe remaining
+proofs only oneevidentIj∈ Iis needed. For example, in many proofs we had
+to add the invariant 0 ≤currentTime as an hypothesis; and in many others an
+invariant stating that some variable is a function.
+
+--- Page 24 ---
+In part, our approach is feasible because it is clear what {log}can prove and
+what it cannot, because it implements decision procedures. As a mat ter of fact,
+the proof of (12) is a good example about the value of working with de cision
+procedures: users can foresee the behavior of the tool and, if p ossible, they can
+take steps to avoid undesired behaviors.
+7 Final Remarks
+This paper providesevidence that many B speciﬁcations can be easily translated
+into{log}. This means that {log}can serve as a programming language in which
+prototypes of those speciﬁcations can be immediately implemented. Then, {log}
+itself can be used to automatically prove or disprove that the speciﬁ cations
+verify the proof obligations generated by tools such as Rodin. In th e case study
+presented in this paper, {log}was able to discharge all such proof obligations.
+In turn, this provides evidence that CLP and set theory are valuab le tools
+concerningformalspeciﬁcation,formalveriﬁcationandprototy ping.Indeed {log},
+as a CLP instance, enjoys properties that are hard to ﬁnd elsewhe re. In particu-
+lar,{log}code can be seen as a program but also as a set formula. This duality
+allows to use {log}as both, a programming language and an automated veriﬁer
+for its own programs. In {log}, users do not need to switch back and forth be-
+tweenprogramsandspeciﬁcations:programs arespeciﬁcationsandspeciﬁcations
+areprograms.
+References
+1. Boniol, F., Wiels, V.: The landing gear system case study. In Boniol, F., Wiels,
+V., Ameur, Y.A., Schewe, K., eds.: ABZ 2014: The Landing Gear Case Study -
+Case Study Track, Held at the 4th International Conference o n Abstract State
+Machines, Alloy, B, TLA, VDM, and Z, Toulouse, France, June 2 -6, 2014. Pro-
+ceedings. Volume 433 of Communications in Computer and Info rmation Science.,
+Springer (2014) 1–18
+2. Abrial, J.R.: The B-book: Assigning Programs to Meanings . Cambridge University
+Press, New York, NY, USA (1996)
+3. Mammar, A., Laleau, R.: Modeling a landing gear system in e vent-b. In Boniol,
+F., Wiels, V., Ameur, Y.A., Schewe, K., eds.: ABZ 2014: The La nding Gear Case
+Study - Case Study Track, Held at the 4th International Confe rence on Abstract
+State Machines, Alloy, B, TLA, VDM, and Z, Toulouse, France, June 2-6, 2014.
+Proceedings. Volume 433 of Communications in Computer and I nformation Sci-
+ence., Springer (2014) 80–94
+4. Mammar, A., Laleau, R.: Modeling a landing gear system in e vent-b. Int. J. Softw.
+Tools Technol. Transf. 19(2) (2017) 167–186
+5. Abrial, J., Butler, M.J., Hallerstede, S., Hoang, T.S., M ehta, F., Voisin, L.: Rodin:
+an open toolset for modelling and reasoning in Event-B. Int. J. Softw. Tools
+Technol. Transf. 12(6) (2010) 447–466
+6. Leuschel, M., Butler, M.: ProB: A model checker for B. In Ke ijiro, A., Gnesi, S.,
+Mandrioli, D., eds.: FME. Volume 2805 of Lecture Notes in Com puter Science.,
+Springer-Verlag (2003) 855–874
+
+--- Page 25 ---
+7. Spivey, J.M.: The Z notation: a reference manual. Prentic e Hall International
+(UK) Ltd., Hertfordshire, UK, UK (1992)
+8. Abrial, J.R.: Modeling in Event-B: System and Software En gineering. 1st edn.
+Cambridge University Press, New York, NY, USA (2010)
+9. Rossi, G.: {log}.http://www.clpset.unipr.it/setlog.Home.html (2008) Last
+access 2021.
+10. Cantone, D., Ferro, A., Omodeo, E.: Computable Set Theor y. Clarendon Press,
+USA (1989)
+11. Schwartz, J.T., Dewar, R.B.K., Dubinsky, E., Schonberg , E.: Programming with
+Sets - An Introduction to SETL. Texts and Monographs in Compu ter Science.
+Springer (1986)
+12. Dovier, A., Piazza, C., Pontelli, E., Rossi, G.: Sets and constraint logic program-
+ming. ACM Trans. Program. Lang. Syst. 22(5) (2000) 861–931
+13. Cristi´ a, M., Rossi, G.: Solving quantiﬁer-free ﬁrst-o rder constraints over ﬁnite sets
+and binary relations. J. Autom. Reason. 64(2) (2020) 295–330
+14. Cristi´ a, M., Rossi, G.: A set solver for ﬁnite set relati on algebra. In Desharnais, J.,
+Guttmann, W., Joosten, S., eds.: Relational and Algebraic M ethods in Computer
+Science - 17th International Conference, RAMiCS 2018, Gron ingen, The Nether-
+lands, October 29 -November 1, 2018, Proceedings. Volume11 194 of Lecture Notes
+in Computer Science., Springer (2018) 333–349
+15. Cristi´ a, M., Rossi, G.: Automated reasoning with restr icted intensional sets. J.
+Autom. Reason. 65(6) (2021) 809–890
+16. Cristi´ a, M., Rossi, G.: Integrating cardinality const raints into constraint logic
+programming with sets. Theory and Practice of Logic Program ming (2021) 1–33
+17. Cristi´ a, M., Rossi, G.: A decision procedure for a theor y of ﬁnite sets with ﬁnite in-
+teger intervals. CoRR abs/2105.03005 (2021) Under consideration in Theoretical
+Computer Science.
+18. Cristi´ a, M., Rossi, G., Frydman, C.S.: {log}as a test case generator for the Test
+Template Framework. In Hierons, R.M., Merayo, M.G., Bravet ti, M., eds.: SEFM.
+Volume 8137 of Lecture Notes in Computer Science., Springer (2013) 229–243
+19. Cristi´ a, M., Rossi, G.: Automated proof of Bell-LaPadu la security properties. J.
+Autom. Reason. 65(4) (2021) 463–478
+20. Cristi´ a, M., Rossi, G.: An automatically veriﬁed proto type of the Tokeneer ID
+station speciﬁcation. J. Autom. Reason. 65(8) (2021) 1125–1151
+21. Holzbaur, C., Menezes, F., Barahona, P.: Defeasibility in CLP(Q) through gener-
+alized slack variables. In Freuder, E.C., ed.: CP. Volume 11 18 of Lecture Notes in
+Computer Science., Springer (1996) 209–223
+22. Lamport, L., Paulson, L.C.: Should your speciﬁcation la nguage be typed? ACM
+Trans. Program. Lang. Syst. 21(3) (1999) 502–526
+23. Rossi, G., Cristi´ a, M.: {log}user’s manual. Technical report, Dipartimento di
+Matematica, Universit´ a di Parma (2020) http://www.clpset.unipr.it/SETLOG/
+manual_4_9_8.pdf .
+24. Dovier, A., Pontelli, E., Rossi, G.: Set uniﬁcation. The ory Pract. Log. Program.
+6(6) (2006) 645–701
+25. Cristi´ a, M., Rossi, G.: {log}: Applications to software speciﬁcation, prototyping
+and veriﬁcation. CoRR abs/2103.14933 (2021)
+26. Cristi´ a, M., Katz, R.D., Rossi, G.: Proof Automation in the Theory of Finite Sets
+and Finite Set Relation Algebra. The Computer Journal (05 20 21) bxab030.
