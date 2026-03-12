@@ -1,0 +1,1031 @@
+--- Page 1 ---
+Requirements Capture and Evaluation in Nimbus :
+The Light-Control Case Study1
+Jeﬀrey M. Thompson
+University of Minnesota
+Department of Computer Science and Engineering
+Minneapolis, MN 55455
+thompson@cs.umn.edu
+Michael W. Whalen
+University of Minnesota
+Department of Computer Science and Engineering
+Minneapolis, MN 55455
+whalen@cs.umn.edu
+Mats P.E. Heimdahl
+University of Minnesota
+Department of Computer Science and Engineering
+Minneapolis, MN 55455
+heimdahl@cs.umn.edu
+Abstract: Evaluations of methods and tools applied to a reference problem are useful
+when comparing various techniques. In this paper, we present a solution to the challengeof capturing the requirements for the Light Control System case study, which wasproposed before the Dagstuhl Seminar on Requirements Capture, Documentation, and
+Validation in June of 1999.
+The paper focuses primarily on howthe requirements were speciﬁed: what techniques
+were used, and what the results were. The language used to capture the requirements is
+RSML
+−e; a state-based speciﬁcation language with a fully speciﬁed formal denotational
+semantics. In addition, the Nimbus environment – a toolset supporting RSML−e–i s
+used to visualize and execute the high-level requirements.
+Keywords: light control system, speciﬁcation-based prototyping, formal requirements
+modeling, state-based speciﬁcation languages, requirements execution and simulation.
+Category: D2.1 Requirements Speciﬁcations – Languages
+1 Introduction
+In this paper we present a solution to the challenge of capturing the requirements
+for the Light Control System (LCS) case study described in [ ?]2.
+1This work has been partially supported by NSF grants CCR-9624324 and CCR-
+9615088, and University of Minnesota Grant in Aid of Research 1003-521-5965.
+2The case study is available at http://www.rn.informatik.uni-kl.de/ ∼recs.
+
+--- Page 2 ---
+The solution in this paper is captured in a fully formal, executable, state-
+based modeling language called RSML−e(Requirements State Machine Lan-
+guage without events). We will demonstrate how the language is used to capture
+thesystem requirements for the Light Control System and how our requirements
+engineering environment ,Nimbus (based around RSML−e), is used to dynami-
+cally validate and evaluate the system requirements. Furthermore, we will show
+how RSML−eis used to reﬁne the system requirements to software requirements
+and how Nimbus can assist in this process—an approach we call speciﬁcation-
+based prototyping [Thompson et al., 1999].
+The paper’s focus is on howthe requirements speciﬁcation eﬀort was com-
+pleted and what was learned about the original informal requirements speciﬁca-
+tion in the process. Our goal is to give the reader a basic understanding of the
+capabilities of RSML−eand the Nimbus environment. The completed formal re-
+quirements speciﬁcation and the models of the environment (sensors, actuators,and process) are too lengthy to include in this report. The full speciﬁcation is
+nevertheless available for review on-line
+3.
+In the next section we will present our general view of control systems of
+the type presented in the Light Control System case study. We will discuss our
+view of the system and software requirements as well as a proposed structur-
+ing of the requirements speciﬁcation. In [Section 3] we present the high-levelstructure of our view of the Light Control System and the system scope. [Sec-tion 4] and [Section 5] present the requirements of the Light Control System in
+RSML
+−eand demonstrate how the requirements can be dynamically evaluated
+in the Nimbus environment. The process of reﬁning the system requirements
+to software requirements, and how to dynamically evaluate the reﬁnement steps
+inNimbus , is discussed in [Section 6]. [Section 7] contains an evaluation of the
+project and our approach as applied to the Light Control System, and providessome recommendations and discuss directions for future research.
+2 The General Modeling Approach
+The primary application domain for RSML−eand the Nimbus environment is
+safety critical applications; that is, applications where malfunction of the soft-
+ware may lead to death, injury, or environmental damage. Most, if not all, such
+systems are some form of a process control system where the software is par-ticipating in the control of a physical system. In this section we will provide ageneral overview of our modeling approach and describe what information must
+be captured in the system requirements speciﬁcation and the software require-
+ments speciﬁcation.
+2.1 Control Systems
+A general view of a software controlled system can be seen in [Fig. 1]. This
+model consists of a process, sensors, actuators, and a software controller. Theprocess is the physical process we are attempting to control. The sensors mea-sure physical quantities in the process. These measurements are provided asinput to the software controller. The controller makes decisions on what ac-
+tions are needed and commands the actuators to manipulate the process. The
+3The full LCS speciﬁcation as well as information on our tools are available at
+www.cs.umn.edu/crisys/lcs/
+
+--- Page 3 ---
+goal of the software control is to maintain some properties in the physical
+process. Thus, understanding how the sensors, actuators, and process behave
+is essential for the development and evaluation of correct software. The im-
+portance of this systems view has been repeatedly pointed out in the litera-
+ture [Parnas and Madey, 1991],[Leveson et al., 1994], [Heitmeyer et al., 1996].
+Process
+Sensors Actuators
+ControllerSoftware
+OutputSoftware
+InputControlled
+VariablesMonitored
+Variables
+Figure 1: Traditional feedback process control model
+To reason about this type of software controlled systems, David Parnas
+and Jan Madey deﬁned what they call the four-variable model (outside squareof [Fig. 2]) [Parnas and Madey, 1991]. In this model, the monitored variables
+(MON) are physical quantities we measure in the system and controlled vari-
+ables (CON) are physical quantities we will control. The requirements on thecontrol system are expressed as a mapping (REQ) from monitored to controlledvariables. For instance, a requirement may be that “when a room is occupied,
+there must be safe illumination.” Naturally, to implement the control software
+we must have sensors providing the software with measured values of the mon-itored variables (INPUT), for example, an indication if there is a person in theroom. The sensors transform MON to INPUT through the IN relation; thus,
+the IN relation deﬁnes the sensor functions. To adjust the controlled variables,
+the software generates output that activates various actuators that can manipu-late the physical process, for instance, a means to vary the illumination level inthe room. The actuator function OUT maps OUTPUT to CON. The required
+behavior of the software controller is deﬁned by the SOFT relation that maps
+I N P U Tt oO U T P U T .
+The requirements on the control system are expressed with the REQ relation;
+the system requirements shall always be expressed in terms of quantities in the
+physical world. To develop the control software, however, we are interested in
+the SOFT relation. Thus, we must somehow reﬁne the system requirements (the
+REQ relation) into the software requirements (the SOFT relation).
+2.2 Structuring SOFT
+The IN and OUT relations are determined by the sensors and actuators used
+in the system. For example, to measure the light level in a room we may usea photo resistor coupled with an A/D converter that provides us an estimateof the light level as an integer. Similarly, to control the light level we may use
+
+--- Page 4 ---
+REQ
+MON CON
+INPUT OUTPUTIN
+SOFTOUTProcess
+Sensors Actuators
+ControllerSoftware
+OutputSoftware
+InputControlled
+VariablesMonitored
+Variables
+Figure 2: The four variable model for process control systems
+dimmers and the light ﬁxtures in the room. Equipped with the REQ relation
+(mapping MON to CON), the IN relation (mapping MON to INPUT), and the
+OUT relation (mapping OUTPUT to CON) we can derive the SOFT relation.The question is, how shall we create SOFT and what is the best way to structureSOFT in a language such as RSML
+−e?
+As mentioned above, the system requirements should always be expressed in
+terms of the physical process. These requirements are likely to change over thelifetime of the controller (or family of similar controllers). The sensors and ac-tuators are likely to change independently of the requirements as new hardware
+becomes available or the software is used in subtly diﬀerent operating environ-
+ments; thus, all three relations; REQ, IN, and OUT, are likely to change overtime. If any of the REQ, IN, or OUT relations change, the SOFT relation mustbe modiﬁed. To provide a smooth transition from system requirements (REQ)
+to the software speciﬁcation (SOFT) and to isolate the impact of requirements,
+sensor, and actuator changes, Steven Miller at Rockwell Collins has proposed tostructure the software speciﬁcation SOFT based heavily on the relations in thefour variable model [Miller, 1999],[Thompson et al., 1999].
+MON CON INPUT OUTPUTIN SOFT OUT
+SOFTREQOUT-1IN-1
+Figure 3: The SOFT relation can be split into three composed relations. The
+SOFT REQ relation is based on the original requirements (REQ) relation.
+
+--- Page 5 ---
+Miller proposed splitting the SOFT relation into three pieces, IN−1,O U T−1,
+and SOFT REQ([Fig. 3]). IN−1takes the measured input and reconstructs an
+estimate of the physical quantities in MON. The OUT−1relation maps the
+internal representation of the controlled variables to the output needed for theactuators to manipulate the actual controlled variables. Given the IN
+−1and
+OUT−1relations, the SOFT REQrelation will now be essentially isomorphic to
+the REQ relation and, thus, be robust in the face of likely changes to the IN andOUT relations (sensor and actuator changes). Such changes would only aﬀect the
+IN
+−1and OUT−1portions of the software speciﬁcation. Thus, the structuring
+approach outlined in this section will isolate the impact of system changes in the
+software speciﬁcation SOFT.
+In the rest of this paper we illustrate how this framework for requirements
+speciﬁcation and reﬁnement is used. We will demonstrate how the REQ rela-
+tion is captured in RSML−eand how it can be validated through execution and
+simulation in Nimbus . We will also demonstrate how the REQ relation is re-
+ﬁned to the SOFT relation and how the Nimbus environment supports dynamic
+evaluation of the various models created throughout the reﬁnement process. The
+result of this process will be a formal speciﬁcation of SOFT that, in Nimbus ,
+also serves as a prototype of the control software.
+3 The Light Control System
+The informal requirements for the Light Control system were provided by the
+problem description included in the call for papers [ ?]. This description provided
+us with a rough idea of the functionality of the system, but left many areas ofthe system underspeciﬁed, or, more seriously, speciﬁed in a way that contra-dicted other requirements in the system. What follows is our interpretation of
+the requirements of the system, with a few changes and additions to provide
+a complete and consistent description of the system. First, we will clarify thephysical structure of the components of the system. Then, we can set the systemboundaries and identify the monitored (MON) and controlled (CON) variables.
+3.1 System Structure
+The physical structure of the system and the control software boundaries are
+outlined in [Fig. 4]. The control software is in the center of the diagram. TheLight Control System can be thought of as a set of small control systems, each of
+which control the light level for a given room or hallway. Because the behaviors
+of the rooms and hallways are independent of one another, we can model eachsystem separately and then combine the speciﬁcations into a complete controlsystem for a ﬂoor or a building.
+We view a system as a collection of components connected by communication
+channels . A graphical representation of the collection of system components and
+communication channels for a single room can be seen in [Fig. 5]. The compo-nents are connected to the channels through interfaces and can send messages
+over the channels. A message is a collection of ﬁeldsholding the atomic pieces of
+information communicated between the components. The only information ﬂow
+between the components is through the unidirectional channels.
+Dividing up the speciﬁcations in this way allows us to focus on small parts of
+the system and makes the task of analyzing these pieces simpler. In general, the
+
+--- Page 6 ---
+Software Control System
+(Specified in RSML-e )Door Sensors
+Hallway
+SpecificationLight Sensors
+Motion Sensors
+Facility Manager
+ConsoleRoom
+Specification
+Event Log
+ManagerLight BanksRoom Control
+Panels
+Figure 4: The software control system boundaries for the Light Control System.
+Bank A Status
+Bank B StatusDoor Sensor
+Light Sensor
+Motion SensorDoor Sensor
+Light Sensor
+Motion Sensor
+Facility Manager ConsoleMalfunction Energy
+UsageManual
+ShutoffLight Bank A
+Light Bank BControl System Active
+Bank B
+CommandRSML-e Requirements
+Model for RoomBank A
+CommandRoom Control Panel
+Status Control
+Figure 5: The room model and its interconnections.
+
+--- Page 7 ---
+hallway can be viewed as providing a subset of the functionality provided by the
+rooms. For this reason, as well as space concerns, the remainder of this paper
+will focus on the speciﬁcation of the system and software requirements for the
+rooms only (the full speciﬁcations for rooms and hallways are available on-line).
+3.2 Monitored and Controlled Variables
+The ﬁrst step in a requirements modeling project is to deﬁne the system bound-
+aries and identify the monitored and controlled variables; the monitored and
+controlled variables exist in the physical system and act as the interface betweenthe proposed controller (software and hardware) and the system to be controlled.
+In this paper we will not go into the details of how to scope the system
+requirements and identify the monitored and controlled variables—guidelines
+to help identify monitored and controlled variables are covered in, for exam-
+ple, [Miller, 1999],[Faulk et al., 1992], [Jackson, 1995].
+In the case of the Light Control System, we identiﬁed, for example, the
+presence of a person in a room as a monitored variable and the light level in
+the room as a controlled variable. Both are clearly concepts in the physical
+world, and thus suitable candidates as monitored and controlled variables forthe requirements speciﬁcation. A complete list of the monitored and controlledvariables we identiﬁed in the LCS for a room are deﬁned in [Tab. 1].
+4 Modeling the REQ Relation
+After we have determined the scope of our system we are ready to capture REQ.Since our work is based around a modeling language called RSML
+−e, we start
+the section with a short introduction to the notation before we discuss the Light
+Control System requirements.
+4.1 Introduction to RSML−e
+RSML−eis based on Requirements State Machine Language (RSML) devel-
+oped by the Irvine Safety Research group under the leadership of Nancy Leve-
+son [Leveson et al., 1994]. RSML−ewas developed as a requirements speciﬁca-
+tion language speciﬁcally for embedded control systems. One of the main designgoals of RSML
+−ewas readability and understandability by non-computer profes-
+sionals such as users, engineers in the application domain, managers, and repre-sentatives from regulatory agencies. RSML
+−eis based on hierarchical ﬁnite state
+machines [Harel and Pnueli, 1985], [Harel, 1987], [Harel et al., 1990] and state-
+based dataﬂow languages [Heitmeyer et al., 1996], [Heitmeyer et al., 1995a].
+RSML−esupports parallelism, hierarchies, and guarded transitions. The main
+diﬀerences between RSML−eand RSML are the addition in RSML−eof rigor-
+ous speciﬁcations of the interfaces between the environment and the control
+software, and the removal of internal broadcast events [Leveson et al., 1999],
+[Heimdahl et al., 1998].
+An RSML−especiﬁcation consists of a collection of state variables ,I/O vari-
+ables,interfaces ,functions ,macros ,a n d constants , which will be brieﬂy discussed
+below.
+In RSML−e, the state of the model is the values of a set of state variables ,
+similar to mode classes in SCR [Heitmeyer et al., 1995b]. These state variables
+
+--- Page 8 ---
+Monitored Variables:
+Name Range Description
+System Variables:
+Light Level 0..10000 Lux The amount of light in the room
+Occupied Boolean TRUE if room is occupied
+Light Level Undetectable Boolean Used for light sensor failure.
+Occupied Undetectable Boolean Used for motion or door sensor
+failure.
+Window Light Bank Intensity 0..100 Percent intensity of Window Light
+Bank
+WallLight Bank Intensity 0..100 Percent intensity of Wall Light
+Bank
+Operator Inputs:
+Chosen1 LSButton InVar Boolean Chooses/Replaces light scene 1
+Chosen2 LSButton InVar Boolean Chooses/Replaces light scene 2
+Chosen3 LSButton InVar Boolean Chooses/Replaces light scene 3
+Default LSButton InVar Boolean Chooses/Replaces default light
+scene
+SetLSButton InVar Boolean If TRUE and another LS button
+is pressed, replaces the light scenewith the current light scene.
+T1 1..1440 minutes Timeout to reestablish default
+light scene
+T3 1..1440 minutes Timeout to shut oﬀ lights
+FacM Shutoﬀ Boolean Allows fac. man. to remotely shut
+oﬀ lights.
+Controlled Variables:
+Name Range Description
+System Variables:
+ConWindow Light Bank Intensity 0..100 Intensity of Window Light Bank
+ConWallLight Bank Intensity 0..100 Intensity of Wall Light Bank
+Outputs to Operator:
+Failed Boolean TRUE if system detects compo-
+nent failure.
+Table 1: The monitored and controlled variables for the Light Control System in
+a room.
+
+--- Page 9 ---
+can be organized in parallel or hierarchically to describe the current state of
+the system. Parallel state variables are used to represent the inherently parallel
+or concurrent concepts in the system being modeled. Hierarchical relationships
+allow childstate variables to present an elaboration of a particular parent state
+value. Hierarchical state variables allow a speciﬁcation designer to work at mul-tiple levels of abstraction, and make models simpler to understand.
+Light_Control_System_Room
+Light_Maintenance_Modes
+Room_Occupied
+Room_Occupied_Eq
+Maintain_Light_Scene
+User_Set_Mode
+Room_Empty
+Occupancy_UndetectableChosen_Light_Scene
+Chosen1_LS
+Chosen2_LS
+Chosen3_LS
+Default_LS
+Failure_Modes
+Ok
+Failed
+Figure 6: The state machine for the requirements model of the Light Control
+System in an individual room
+For example, consider the Light Control System for an individual room.
+The state variable hierarchy used to model the requirements on this system
+could be represented as in [Fig. 6]. This representation includes both paral-lel and hierarchical relationships of state variables. Light
+Maintenance Modes,
+Chosen Light Scene and Failure Modes are three parallel state variables, and
+Room Occupied Eqis a child state variable of Light Maintenance Modes
+Next state functions in RSML−edetermine the value of state variables. These
+functions can be organized as transitions orcondition tables . Condition tables
+describe the conditions under which a state variable assumes each of its possible
+values. Transitions describe the condition under which a state variable is to
+change value. A transition consists of a source value, a destination value, and
+a guarding condition. A transition is taken (causing a state variable to changevalue) when (1) the state variable value is equal to the source value, and (2)
+the guarding condition evaluates to true. The two next state function types are
+logically equivalent and mechanized procedures exist to ensure that types of nextstate functions are complete and consistent [Heimdahl and Leveson, 1996].
+The state functions are placed into a partial order based on data dependencies
+and the hierarchical structure of the state machine. State variables are data-
+dependent on any other state variables, macros, or I/O variables that are named
+in their transitions or condition tables. If a variable is a child variable of anotherstate variable, then it is also dependent on its parent variable. The value of thestate variable must be computed after the items on which it is data-dependent
+have been computed. For example, the value of the Room
+Occupied Eqstate
+variable would be computed after the Light Maintenance Modes state variable,
+because its value is dependent on whether or not Light Maintenance Modes is in
+
+--- Page 10 ---
+theRoom Occupied state.
+Conditions are simply predicate logic statements over the various states and
+variables in the speciﬁcation. The conditions are expressed in disjunctive normal
+form using a notation called and/or tables [Leveson et al., 1994] (see [Fig. 7],
+[Fig. 8], etc.). The far-left column of the and/or table lists the logical phrases.
+Each of the other columns is a conjunction of those phrases and contains the
+logical values of the expressions. If one of the columns is true, then the table
+evaluates to true. A column evaluates to true if all of its elements match thetruth values of the associated columns. An asterisk denotes “don’t care.”
+I/O Variables in the speciﬁcation are the quantities that are available to
+the interfaces of the speciﬁcation. Input variables allow the analyst to record
+the monitored variables (MON) or values reported by various external sensors
+(INPUT) which are received in a message. Output variables provide a place tocapture the controlled variables (CON) or the values of the outputs (OUTPUT)of the system prior to sending them out in a message.
+Interfaces , discussed brieﬂy in [Section 3.1], encapsulate the boundaries be-
+tween the RSML
+−especiﬁcation and the external world.
+To further increase the readability of the speciﬁcation, RSML−econtains
+many other syntactic conventions. For example, it allows expressions used inthe predicates to be deﬁned as functions (e.g., TotalIntensity()), and familiarand frequently used conditions to be deﬁned as macros (e.g., OccupancyUnde-
+tectable()). Functions in RSML
+−eare mathematical functions that are used to
+abstract complex calculations. A macro is simply a named and/or table that
+is used for frequently repeated conditions and is deﬁned in a separate section of
+the document.
+The LCS has a number of diﬀerent timing properties which must be recorded.
+RSML−eviews time as a continuously increasing input variable with a user de-
+ﬁned granularity. From this formal deﬁnition, we have built a number of diﬀerent
+time expressions (for example, the analyst can get the time that various vari-ables were assigned or changed value). This allows timing properties to be easilyexpressed. The speciﬁc time expressions used in the LCS will be introduced as
+they are used. For more information on the formal semantics of RSML
+−e, please
+see [Whalen, 2000].
+4.2 Overview of REQ
+Our choice of the various monitored and controlled quantities places certain
+constraints on what can, and cannot, be speciﬁed in the REQ relation. If themonitored and controlled variables are chosen appropriately, then the speciﬁca-
+tion of the REQ relation will be focused on the issues which are central to the
+requirements on the system.
+In the Light Control System, some of the informal needs from the problem de-
+scription will notbe represented in the REQ relation or they will be represented
+in an abstract form. For example, the problem description states that “If any
+outdoor light sensor or the motion detector of a room does not work correctly,the user of this room has to be informed” (U8) [ ?]. The REQ relation does not
+include any notion of a motion detector nor of the outdoor light sensors. Instead,
+we use the monitored quantities for the light level in the room and whether the
+room is occupied.
+Often when starting to construct the REQ relation, it is helpful to examine
+the controlled variables of the system. It is necessary to determine what condi-
+tions partition the value of a particular controlled variables (i.e., what modes
+
+--- Page 11 ---
+eﬀect the controlled variable) and under what scenarios various outputs should
+be generated. In this light control system, the controlled variables are the inten-
+sity of the window and wall light groups in the oﬃce and the failure indication
+operator output. For now, we will focus on the window and wall intensity vari-ables.
+From the problem description, it becomes clear that there are two main
+activities which aﬀect the way that the REQ relation must determine the values
+of the controlled variables. First, the REQ relation must be able to capture anduse the various user set points (U6, U7, and U9 [ ?], page 9). Second, the control
+system should somehow maintain the light level in the rooms (FM1 on page 10and U2 on page 9). Furthermore, it would appear that these two tasks occur
+concurrently. The following two subsections consider these two tasks.
+4.3 User Functionality
+In this section, we will consider the maintenance of the various set points by the
+user and the way in which they are modeled in our version of the REQ relation.
+This is the simplest of the two main tasks of the REQ relation. Nevertheless, byconstructing a formal speciﬁcation, several issues with the deﬁnition of a lightscene were exposed.
+In the problem description, the room control panel (RCP) is described by U7,
+U9, and U12. U12 states that the RCP is a mobile, stand-alone device; therefore,a reasonable design for such a device seemed to be to keep the controls as simpleas possible. Our design of the RCP is shown in [Fig. 12].
+We envisioned the user selecting a light scene by simply pressing its associated
+button and setting a light scene by ﬁrst adjusting the light in the room using thetop two control groups and then pressing the “set” button while pressing one ofthe light scene buttons (i.e., similar to the functionality of a typical car radio).
+This seems a simple, and intuitive solution; nevertheless, the deﬁnition of
+a light scene given in the problem description states that a name is associated
+with each light scene. In order to allow the user to enter a name, a more complexinterface would seem to be in order. However, this would (1) add signiﬁcantly tothe cost and complexity of the RCP and (2) probably not add much, if anything,
+in terms of functionality and user satisfaction. Therefore, we decided to simplify
+the deﬁnition of the light scene so that the light scene is simply selected with abutton on the RCP ( Scene 1, Scene 2, Scene 3 ).
+To model the light scenes, we use three state variables to capture the light
+level (measured in Lux). [Fig. 7] shows the RSML
+−edeﬁnition for the state
+variable for the ﬁrst light scene. As part of the deﬁnition of any non-enumeratedtype state variable in RSML
+−e, the expected minimum and maximum of the
+variable are given. This, and other criteria, were outlined in [Jaﬀe et al., 1991].
+There are two possible assignments to the Chosen1 LSLight Level vari-
+able. The ﬁrst covers the case that the user is pressing the “set” buttonand the button for light scene 1. This condition is determined by checkingwhether the button in pressed ( Chosen1
+LSButton InVar is the input vari-
+able for the button, it is equal to kPressed if button is pressed). Similarly, the
+SetLight Scene Button InVar must also equal kPressed. If these two predicates
+are true, then the state variable records the value of the monitored variable forthe current light level in the room ( Light
+Level InVar ). Otherwise, the variable’s
+value must stay the same. In RSML−ethis must be explicitly speciﬁed (the sec-
+ond case in [Fig. 7]). The other light scenes (chosen2, chosen3, and default) all
+have similar deﬁnitions for the capture of the desired light level.
+
+--- Page 12 ---
+ 
+State Variable 
+Chosen1_LS_Light_Level 
+ 
+Type: INTEGER 
+Units: lux 
+Expected Min:  0 
+Expected Max:  10000 
+:= Light_Level_InVar IF 
+Chosen1_LS_Button_InVar = ButtonPressType::kPressed T 
+Set_Light_Scene_Button_InVar = ButtonPressType::kPressed T 
+:= PREV_STEP(Chosen1_LS_Light_Level) IF 
+Chosen1_LS_Button_InVar = ButtonPressType::kPressed T F F 
+Set_Light_Scene_Button_InVar = ButtonPressType::kPressed F T F 
+ 
+Figure 7: Capturing the Light Level in a Light Scene
+The light scene deﬁnition in the problem description states that the scene
+consists of the light level and an option: window, wall, or both. Furthermore, if
+the selection is both, then both light banks are used equally to obtain the desiredlight level. The control system can detect whether or not both light banks are onand thereby determine the value of this option when the set button was pressed.
+Nevertheless, we reasoned that the user would almost always have both light
+banks on to some degree or other.
+Imagine what would happen if the user (1) adjusted the lights as desired, for
+example, 40% window and 60% wall; (2) set this to the ﬁrst light scene; and (3)
+pressed the ﬁrst light scene button. Clearly, this light scene uses both the wall
+and the window light groups. But, if the light scene stores the “both” option,then when the users presses the button for the ﬁrst light scene, the window lightgroup will be raised in illumination and the wall light group will be lowered.
+This behavior does not seem intuitive. Therefore, we expanded the deﬁnition of
+a light scene so that it consists of the light level in the room plus intensity ofthe window light group (0 - 100) and the intensity of the wall light group. Usingthis information, we can maintain the proportion (window/wall) that the user
+has selected and thereby, in our opinion, provide a better control behavior for
+the system.
+4.4 Maintaining the Light Level
+After the user has chosen the light level and distribution(between window and
+wall) for the room, this light scene must be maintained. Also, there are a num-
+ber of requirements related to the user leaving the room and whether or not
+
+--- Page 13 ---
+room occupancy is detectable that need to be considered when computing the
+values of the controlled variables. This section discusses the control behavior for
+maintaining the light level and light distribution in the room.
+The control system clearly behaves diﬀerently depending on the occupancy
+of the room; if there is a person in the room, the control system must maintainthe light level in the room. If there is no one in the room, the control system
+must determine whether or not to shut oﬀ the lights.
+ 
+State Variable 
+Light_Maintenance_Modes 
+ 
+Location:  Light_Control_System_Room 
+:= Room_Occupied IF 
+Occupied_InVar = TRUE T 
+Occupied_Detectable_InVar = TRUE T 
+:= Occupancy_Undetectable IF 
+Occupied_Detectable_InVar = TRUE F 
+:= Room_Empty IF 
+Occupied_InVar = TRUE F 
+Occupied_Detectable_InVar = TRUE T 
+ 
+Figure 8: Light Maintenance Modes in the REQ Relation
+[Fig. 6] shows this partitioning of the Light Maintenance Modes. Each mode
+has certain conditions under which it is active. These conditions are speciﬁed
+with a state variable deﬁnition as shown in [Fig. 8]. These modes depend on twomonitored variables (see [Tab. 1]) Occupancy
+Detectable and Room Occupied ,
+which determine whether we can detect the occupancy status of the room, and
+if so, whether or not the room is occupied. Note that because this is a speciﬁca-
+tion of REQ, the monitored variables are actually the input quantities. Thus, in[Fig. 8], the monitored quantities have the suﬃx
+InVar (this is a naming con-
+vention that we commonly use in RSML−especiﬁcations, not something which
+is enforced by the tool). Also, we have adopted the convention for boolean vari-ables of writing the more lengthy expression “X
+var = TRUE” rather than simly
+“Xvar” which would be a valid boolean expression by itself. Nimbus ,o fc o u r s e ,
+
+--- Page 14 ---
+allows either convention to be used.
+The way that we have chosen to describe the control of the light level in the
+room is as follows: (1) the light level in the room is compared with the light
+level required by the current light scene, (2) if light level is not equal to the lightlevel speciﬁed in the current light scene, the light intensity of the window/walllight banks are adjusted proportionally up or down by a small increment. Then,
+the system will poll the light level again within a short amount of time and
+eventually, the light in the room will comply with the selected light scene.
+There is an issue, however, with the fact that it is notdesirable to have the
+control system chage the light intensity at the same time as the user attemptsto adjust it; that is, the control system should not ﬁght the user for control over
+the lights. Thus, it is necessary to partition the Room
+Occupied mode into two
+sub-modes: one where the system is receiving user input and should produce nocontrol actions and one where the system is responsible for maintaining the lightlevel in the room. This partition can be seen in [Fig. 6].
+The current light scene is the basis of the control of the light in the room.
+First, it is computed and then it is used to determine the values of the controlledvariables. The current light scene, like any other light scene, consists of a lightlevel (in lux) and the intensity of the window and wall light banks.
+[Fig. 9] shows the state variable deﬁnition for the light level of the current
+light scene. On the right, the cases are labeled to clarify the presentation in thispaper; this labeling is not a part of RSML
+−e. The ﬁrst case in the deﬁnition
+simply states that the light level will be updated to the current light level in the
+room if the user is setting the controls for the room. This ensures that as the
+user makes changes to the lights, the changes are maintained, not reset, by thesystem.
+The second group of cases in [Fig. 9] (cases 2-5) handles the user pressing one
+of the light scene buttons on the RCP. If the user presses one of these buttons,
+the light level associated with the selected light scene is used as the current light
+scene and will thus be maintained by the system.
+The sixth case determines the light level in the room if the room is unoccu-
+pied. The lights are shut oﬀ (the light level set to zero) if the room is empty and
+either T3 has passed or the facility manager has issued the shutoﬀ command.
+T3 is measured from the time that the Light
+Maintenance Modes state variable
+assumes the value Room Empty (the TIME ENTERED part of line 2). If the
+facility manager issues a shutoﬀ command, this is indicated by the reciept of a
+message at the FacM Shutoﬀ interface. The MESSAGE AT expression in line 3
+of the condition table is true if this is the case.
+The speciﬁcation determines whether the room has been reoccupied by ex-
+amining the Light Maintenance Modes state variable. In order to detect a change
+in the variable, the speciﬁcation must be able to reason about previous values of
+the variable. RSML−eallows this through the use of the PREV STEP expres-
+sion, which returns the value its sub-expression had at the close of the previouscomputation of the RSML
+−especiﬁcation. In case 7, the room is reoccupied if
+theRoom Occupied Eqstate variable has the value Maintain Light Scene and
+in the previous step, the Light Maintenance Modes state machine did not have
+the value Room Occupied4. When the room is reoccupied, then the light level is
+determined by whether or not T1 has passed (case seven). The function Reoccu-
+4Note that the “..” notation in the ﬁgure before the state variable names is used to
+indicate that the RSML−eparser should search through the state variable tree to
+ﬁnd the given state variable. This notation avoids having to specify full path nameswithin the speciﬁcation, as duplicate names are allowed in the tree.
+
+--- Page 15 ---
+Case 8:
+Otherwise, the lightlevel should remainconstantOutput Variable
+Current_LS_Light_Level
+Type: INTEGER
+Units: lux
+Expected Min:  0
+Expected Max:  10000
+:= Light_Level_InVar IF
+..Room_Occupied_Eq IN_STATE  User_Set_Mode T
+:= Chosen1_LS_Light_Level IF
+Chosen1_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= Chosen2_LS_Light_Level IF
+Chosen2_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= Chosen3_LS_Light_Level IF
+Chosen3_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= Default_LS_Light_Level IF
+Default_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= 0 IF
+..Light_Maintenance_Modes IN_STATE  Room_Empty T T
+TIME >= ..Light_Maintenance_Modes TIME_ENTERED  Room_Empty +
+T3_InVarT*
+MESSAGE_AT(FacM_Shutoff) * T
+:= Reoccupied_Light_Level() IF
+..Room_Occupied_Eq IN_STATE  Maintain_Light_Scene T
+PREV_STEP (..Light_Maintenance_Modes IN_STATE  Room_Occupied) F
+:= PREV_STEP(Current_LS_Light_Level) IF
+..Room_Occupied_Eq IN_STATE  Maintain_Light_Scene T
+PREV_STEP (..Light_Maintenance_Modes IN_STATE  Room_Occupied) TCase 1:
+The user is settingthe light level
+Case 2-5:
+The user haspressed one of thelight scene buttons
+on the room control
+panel.
+Case 6:The room is emptyand the lights
+should be turned off
+Case 7:
+The room isreoccupied.
+Figure 9: Current Light Scene Light Level in the REQ relation
+
+--- Page 16 ---
+pied Light Level returns the default light level if T1 has passed and the chosen
+light level otherwise. Due to space constraints, this simple function will not be
+shown.
+Finally, the light level will remain the same if the user is not making changes
+to the light level and room has not been recently reoccupied.
+Once the light level is computed, it is compared with the monitored light
+level in the room. The actual sampling of the light level is performed by the
+Light Level InInterface. If the light needs to be increased/decreased, it is done
+so while maintaining the proportion of window light to wall light speciﬁed inthe current light scene. The details of this part of the speciﬁcation will not beincluded in this report due to space considerations.
+5 Execution of the REQ Relation in Nimbus
+Now that we have an initial version of the REQ speciﬁcation, it is possible to
+analyze it and simulate it in a realistic environment using the Nimbus tools for
+requirements modeling. The Nimbus tools provide support for analysis, simula-
+tion, and speciﬁcation construction. Nimbus is currently being used at the Uni-
+versity of Minnesota, Massachusetts Institute of Technology, NASA, and othersites.
+Assurance that the requirements speciﬁcation (system or software) pos-
+sesses desired properties can be achieved through (1) manual inspections, (2)formal veriﬁcation of the desired properties, or (3) simulation and testing ofthe speciﬁcation. To achieve the high level of conﬁdence in the correctness re-
+quired in a safety-critical system, all three approaches must be used in con-
+cert. One environment, called Nimbus , under development at the University
+of Minnesota provides support for all these activities [Thompson et al., 1999],
+[Thompson and Heimdahl, 1999]. This is the environment which we have used
+to capture and evaluate the required behavior of the Light Control System.
+The three V&V techniques ﬁll complementary roles within the validation
+and veriﬁcation process. Manual inspections and visualization provide the spec-iﬁcation team, customers, systems engineers, and regulatory representatives themeans to informally verify that the behavior described formally in the speciﬁca-
+tion matches the desired “real world” behavior of the system. Formal analysis
+is helpful to determine if the speciﬁcation possesses desirable properties, for in-stance, if the speciﬁcation is complete and consistent, and whether unsafe statesare reachable. Simulation and testing are necessary to provide additional assur-
+ance that the speciﬁcation captures the desirable behavior and is free of faults.
+In this report we will focus on the capabilities for execution and simulationavailable in Nimbus .
+5.1 The Nimbus Environment
+The execution and simulation capabilities Nimbus environment are based on
+the ideas that (1) the engineers would like to have an executable speciﬁcation ofthe system early in the project and that (2) as the speciﬁcation is reﬁned it is
+desirable to integrate it with more detailed models of the environment to enable
+accurate validation of the requirements speciﬁcation. Other work has been donein this area, for example, other tools, such as Statemate from i-Logix, providevisualizations of the state of the speciﬁcation. In Nimbus , however, we also
+provide a ﬂexible way to integrate the visualizations of the speciﬁcation with
+
+--- Page 17 ---
+visualizations of the embedding environment. An eﬀort with similar goals was
+presented in [Heitmeyer et al., 1995a]; however, the eﬀort was mostly a proof of
+concept and no real tool support for this kinds of visualizations was provided.
+Nimbus allows a vast array of visualizations to be constructed using industry
+standard tools in a quick, cost eﬀective, and ﬂexible manner.
+Nimbus also contains a logging facility, capable of recording all inputs and
+outputs to the simulation. These logs can later be played back and analyzed,
+allowing step by step analysis of earlier real-time simulations. The logging facilitycan also be used to easily create a library of speciﬁc test scenarios.
+In the initial stages of the project, we want the executions to take their input
+from simple models of the embedding environment, for example, text ﬁles or user
+input. As the speciﬁcation is reﬁned, the analyst can add more detailed models
+of how the controlled system behaves, for example, additional RSML
+−especiﬁ-
+cations or software simulations of the system. As the requirements speciﬁcation(REQ) is reﬁned to a software speciﬁcation (SOFT), models of the sensors and
+actuators can be incorporated into the executions. In order to have a closed
+loop simulation, a model of the process can be added between the sensor andactuator models. Finally, when the speciﬁcation has been reﬁned to the point ofdeﬁning the software inputs and outputs (INPUT and OUTPUT), the analyst
+can execute it directly with the hardware. This hardware-in-the-loop simulation
+closes the gap between the prototype and the actual hardware. These ideas areillustrated in [Fig. 10].
+Actual
+hardwareControl Software
+Simulation
+(RSML Specification)
+Small, standard interfaces allow the
+most suitable model (or physical
+component)  to be used.  Model
+used is easily changeable.Software
+simulationsRSML
+models
+Sensor models at various
+levels of abstractionActuator models at various
+levels of abstractionProcess model
+(for closed loop simulation)
+Text Files/
+User Input
+Actual
+hardwareSoftware
+simulationsRSML
+modelsText Output
+(file/screen)
+Figure 10: The Nimbus Environment
+The ﬂexibility to quickly and easily connect diﬀerent models of the com-
+ponents in a system provides new opportunities when creating and validatingformal speciﬁcations. An environment such as ours can be used to aid in re-
+quirements based prototyping, in reﬁnement of the speciﬁcation as well as the
+environmental models, the evaluation of the operator interface, and in testingboth the speciﬁcation and the implementation derived from it. The detailed dis-cussion of the various capabilities of our environment is beyond the scope of this
+
+--- Page 18 ---
+paper and the interested reader is referred to [Thompson et al., 1999].
+5.2 Executing the Requirements
+User input of RSML-e model of
+the REQ relationText file collecting Light_Level Window/Wall
+Excel spreadsheet
+generating
+light dataRSML-e model of
+the REQ relationText file collecting Light_Levela.
+b.light data lighting commands
+lighting commandsIntensity
+Window/Wall
+Intensity
+Figure 11: The REQ relation can be evaluated using text ﬁles or user input (a)
+or interacting with a simulation of the environment (b).
+TheNimbus environment allows us to execute and simulate the model we
+discussed in [Section 4] using input data representing the monitored variablesand collect output representing the controlled variables. Input data could come
+from several sources. The simplest option for input is, of course, to have the user
+specify the values (either interactively, or by putting the values into a text ﬁleahead of time). This scenario is illustrated in [Fig. 11](a).
+Unfortunately, it is often diﬃcult to create appropriate input scenarios since
+the physical characteristics of the environment enforce constraints and interrela-
+tionships over the monitored and controlled variables. For example, if we increasethe light output from one of the light groups, how much will the illuminationin the room increase? Thus, to create a valid (i.e., physically realistic) input se-
+quence, the analyst must have a model of the environment. Initially, this model
+may be an informal mental model of how the environment operates. As the eval-uation process progresses, however, a more detailed model is most likely needed.Therefore, in this stage of the modeling we may develop a simulation of thephysical environment. The Nimbus architecture lets us easily replace the inputs
+read from text ﬁles with a software simulation emulating the environment. This
+reﬁnement can be done without any modiﬁcations to the REQ speciﬁcation.
+For the Light Control System, we created a spreadsheet in Microsoft Excel
+to emulate the behavior of light groups and the illumination level in the room
+([Fig. 11](b)) This simple environmental model allows us to interactively modify
+the traﬃc through the room, the external light available, etc., and to easilyexplore many possible scenarios.
+Developing a speciﬁcation of the room control panel is another way to en-
+hance the simulation of the REQ speciﬁcation. There are a number of reasons
+why input from a mockup of the room control panel (RCP) is better than thatof manually-created text ﬁles.
+First, the RCP provides a signiﬁcant amount of data to the REQ speciﬁca-
+tion: The user settings of the window and wall intensity, the values of T1 and
+T3, and the selection and setting of four diﬀerent light scenes. There are manydiﬀerent combinations of input sequences that can be generated from the RCP.Manually creating test ﬁles for even a small number of them early in a modeling
+eﬀort would be time-consuming and error-prone.
+
+--- Page 19 ---
+Second, constructing an interface mockup provides valuable opportunities to
+evaluate the control system with the intended users. For example, in our case
+we constructed a mockup of the RCP similar to the one pictured in [Fig. 12].
+When we tried to use this mockup, however, it became clear that the user woulddesire a separate control to set the hours and minutes so as to more easily enterthe times T1 and T3 into the system and we modiﬁed the RCP accordingly. Our
+mockup was done using Visual Basic and is pictured in [Fig. 12]. In the ﬁgure,
+both the window and the wall light groups have been turned on and the userhas selected a value for T1 of 1 hour and 30 minutes and a value for T3 of 5minutes.
+Figure 12: The Room Control Panel with both light banks on.
+[Fig. 13] shows data ﬂow between the applications used to do the system
+simulation of the REQ relation. The values for the room occupancy and the
+facility manager shutoﬀ signal are still represented by user inputs because in
+our opinion, representing how occupancy is determined is not part of the REQrelation. The values for light level and the RCP are represented as describedabove. Note that the user settings of the window and wall intensity must be
+passed both to the REQ speciﬁcation and to the light model of the room.
+5.3 Results
+Simulating the requirements speciﬁcation provides the opportunity to discover
+conceptual errors in the requirements speciﬁcation as well as gain a greater
+understanding into the requirements themselves. In some cases, the problems
+were simple modeling errors on our part. More interesting are errors which can be
+
+--- Page 20 ---
+REQ Specification
+(NimbusSim)Room Control Panel
+(Visual Basic)Room Light Model
+(Excel)Room Occupancy
+(User Input)Facility Manager Shutoff
+(User Input)
+Occupied, Occupied Detectable FacM Shutoff
+User sets Window Intensity
+User sets Window Intensity
+User sets Wall Intensity User sets Wall IntensityWindow Intensity
+Wall IntensityT1, T3
+Light Scene Buttons[1..4]
+Set Button
+Failure IndicationLight Level
+Figure 13: Overview of the REQ simulation
+traced back to inconsistencies or underspeciﬁcation of the original requirements
+document.
+Consider the case where the user has set the values of T1 and T3 so that T3
+is greater than T1. In other words, suppose the user has adjusted the lights toa chosen light scene and then left the room. The user is out of the room long
+enough for T1 to pass, i.e., when the user re-enters the room (according to [ ?],
+Page 9:U4) the default light scene has to be established. Because the user didnot turn out the lights and T3 has not passed yet the lights in the room will stillbe on as the user left them. Nevertheless, when the control system detects thatthe room is occupied it willchange the lighting in the room to comply with the
+default scene. This is the behavior that is speciﬁed in the problem description,
+but it might not be the behavior that users expect.
+We have found that simulation of the high-level requirements in a realistic
+environment is valuable for ﬁnding these and other types of conceptual errors.Experimentation in this fashion provides a speciﬁcation of REQ that is a solidfoundation from which to reﬁne a speciﬁcation of the SOFT relation, a topicwhich is addressed in the following section.
+6 Reﬁning System Requirements to Software
+Requirements
+Once the model of REQ has been thoroughly simulated and analyzed, it is ready
+to be extended to a model of SOFT. This section discusses how to extend REQ
+to SOFT and how this was done for several monitored variables in the lightcontrol system.
+6.1 Reﬁne REQ to SOFT
+REQ
+In the real system, the monitored and controlled variables are not directly avail-
+able; they must be approximated using sensors and actuators. Thus, when re-ﬁning REQ to SOFT, variables such as Occupied will not be directly available
+
+--- Page 21 ---
+from the environment. At this early stage, we may not know exactly what hard-
+ware will be used for sensors and actuators; however, we do know that we must
+use something and we may as well prepare for it early. By encapsulating the
+monitored and controlled variables we can get a model that is isomorphic to therequirements model; the only diﬀerence is that this model is more suited for thereﬁnement steps that will follow as the surrounding system is completed.
+In our case, using a macro, IsOccupied (), instead of the monitored variable
+Occupied will shield the speciﬁcation from possible changes in how the ﬁnal
+software will determine that a room is occupied (See [Fig. 14]). By performingthis encapsulation for all monitored and controlled variables we reﬁne REQ toSOFT
+REQ, a mapping from estimates of the monitored variables to an internal
+representation of the controlled variables.
+Macro
+IsOccupied
+Parameters:  NONE
+Condition:
+..Occupied_In IN_STATE  Occupied T
+Figure 14: The IsOccupied() macro from the reﬁned light control system
+6.2 IN, OUT, IN−1, and OUT−1
+As the hardware components of the system are deﬁned (either developed in house
+or procured), the IN and OUT relations can be rigorously speciﬁed. The IN and
+OUT models represent our assumptions about how the sensors and actuatorsoperate.
+With the information about the sensor (IN) and actuator (OUT) relations,
+we can start adding pieces of the IN
+−1and OUT−1relations to move towards
+SOFT. To achieve this, we create the IN−1and OUT−1relations in our model.
+In the following sections, we will focus our attention on the sensors needed to
+determine if a room is occupied and to detect the light level in the room.
+6.2.1 Reﬁning Occupied
+The control system must compute whether or not the room is occupied based on
+the input from the motion and door sensors. For simplicity, we assume that the
+door sensors are wired as one input to the system, so that if any of the doors are
+open, the door sensor indicates “open”, and if all the doors are closed, the door
+
+--- Page 22 ---
+sensor reads “closed”. When computing whether or not the room is occupied,
+it is necessary to have some state information (i.e., we must know whether or
+not the room was occupied in the previous instance in time); therefore, a state
+variable needs to be added so that IN−1can be properly computed.
+The reﬁned state machine can be seen in [Fig. 15]. Instead of assuming that
+Occupancy is a direct input to the system, as it would be in REQ, the spec-
+iﬁcation now takes the input from one motion detector and the door sensors.Thanks to the structuring of the SOFT relation, this reﬁnement could be donewith minimal changes to the SOFT
+REQrelation.
+Light_Control_System_Room
+Occupied_In
+Occupied
+Not_Occupied
+Not_DetectableLight_Maintenance_Modes
+Room_Occupied
+Room_Occupied_Eq
+Maintain_Light_Scene
+User_Set_Mode
+Room_Empty
+Occupancy_UndetectableChosen_Light_Scene
+Chosen1_LS
+Chosen2_LS
+Chosen3_LS
+Default_LS
+Failure_Modes
+Ok
+Failed
+Figure 15: The state machine from [Fig. 6] reﬁned to include the IN−1portions
+for Occupied
+The computation of the occupied quantity is shown in [Fig. 16]. The ﬁrst two
+cases determine whether or not the room is occupied based on the value of the
+motion detector. The last case, the condition to be in Not Detectable , deﬁnes
+the conditions under which there may be a sensor failure or malfunction. If theroom was not occupied and the doors have remained closed and then motion isdetected, there must be a problem with the sensors.
+When attempting to complete this reﬁnement, we discovered conﬂicts in the
+problem statement. For instance, consider the following elements from the prob-lem description: (1) “If any motion detector of a room or hallway section doesnot work correctly, the control system should behave as if the room or hallway
+section were occupied” (NF4); (2) the motion detector can detect even small
+motions within the room and it covers the whole room (sensor description); and(3) the occupancy of a room cannot change when the doors are closed (customerfeedback 25).
+On the surface, these all seem reasonable statements. The ﬁrst two statements
+imply that the control software should attempt to detect sensor failures. The laststatement says that if the doors in the room are closed, it doesn’t matter whatthe reading from the motion detector is, the occupancy of the room will be
+unchanged. However, if this were added to, for example, the condition to be in
+
+--- Page 23 ---
+State Variable
+Occupied_In
+Location:  Light_Control_System_Room
+:= Not_Occupied IF
+Motion_Detected_InVar = FALSE T
+:= Occupied IF
+PREV_STEP(DoorSensor_InVar = DoorSensorType::kClosed) * *
+PREV_STEP(..Occupied_In IN_STATE  Not_Occupied) T F
+Motion_Detected_InVar = TRUE T T
+DoorSensor_InVar = DoorSensorType::kClosed F *
+:= Not_Detectable IF
+PREV_STEP(DoorSensor_InVar = DoorSensorType::kClosed) T
+PREV_STEP(..Occupied_In IN_STATE  Not_Occupied) T
+Motion_Detected_InVar = TRUE T
+DoorSensor_InVar = DoorSensorType::kClosed T
+Figure 16: The deﬁnition for the Occupied Instate variable
+Not Occupied then it would overlap with the condition to be in Not Detectable
+and an inconsistency is introduced in the model.
+6.2.2 Reﬁning Light Level
+In the REQ speciﬁcation, we assume we know the correct level of light in the
+room ( Light Level). In reality, this is not the case; we must add sensing capabil-
+ities to determine an approximation of the light level in the room.
+The speciﬁcation states that we should attempt to compute the light level
+given an outdoor light sensor and the amount of illumination from the two light
+banks (in a feed-forward type fashion). However, this is very diﬃcult because of
+several factors:
+–In most oﬃce buildings, oﬃces are equipped with blinds or curtains. If the
+user closes the blinds, then little sunlight will enter the room. Even if there
+are no blinds, if the light coming into the room bothers the occupant he or
+she will most likely ﬁnd some way to cover the windows (e.g., by putting uppaper). Thus, transmission of light through the glass cannot be assumed tobehave according to some set function.
+–Users may have desk lamps or other sources of illumination. The light-level
+algorithm will not be able to account for these alternate light sources.
+
+--- Page 24 ---
+–The amount of illumination measured by the outdoor light source depends
+on the angle of the sun relative to the sensor, as well as the intensity of the
+light. The amount of light actually entering a room depends on the position
+of the window relative to the sun. All these factors vary with the time ofday, weather conditions, and time of year. Providing an accurate calculationof the light level in the room based on the light level at an external sensor
+would be prohibitively diﬃcult.
+–The algorithm must assume that all ﬁlaments in the light banks are func-
+tioning correctly (i.e., no burned out ﬁlaments). This assumption may not
+be valid.
+Because these concerns make the light-level computation error-prone at best,
+we have chosen to introduce a light sensor into each room or hallway that wemonitor. Using this approach, we can directly measure the light level in the room.
+The monitored variable Light
+Levelcan be viewed as a state variable whose value
+is a scaling function of the light sensor value. For now, we assume that the lightsensor is similar to type as described for the outdoor light sensor, so the scalingfactor is 1.
+In the speciﬁcation, we introduce a new input variable Light
+Sensor Level
+that records the raw sensor value. Then we (trivially) convert it to the Light Level
+monitored variable. Although in this case Light Sensor Level is always the same
+asLight Level, both are useful, because they decouple the REQ relation from the
+particular sensors. If we change the sensors, we just have to change the deﬁnition
+of the Light Level variable, without impacting the rest of the model.
+Given that we have a light sensor in the room, one problem is that we only
+know the light level at the location of the light sensor. Therefore, where the light
+sensor is placed in the room is important. If the light sensor is obscured, or if
+it is placed very close to one of the light banks, then the light level of the roommay be inaccurately measured. Depending on how accurate we required the lightlevel to be, we could create an environment model of the room in which we couldmove the the light sensor around, then connect it to a RSML
+−esimulation to
+investigate the behavior of the system.
+6.3 Reﬁning the Simulations
+When evaluating RSML−especiﬁcations in Nimbus , the analyst has great free-
+dom in how he or she models the environment. When we evaluated the REQ
+speciﬁcation in [Section 4], we used a user or a software simulations to provide
+the RSML−especiﬁcation with monitored variables and to evaluate the con-
+trolled variables. As the IN−1and OUT−1relations are added to the RSML−e
+speciﬁcation, the data provided (and consumed) by the model of the embedding
+environment must be reﬁned to reﬂect the software inputs and outputs (INPUT
+and OUTPUT) instead of the monitored and controlled variables (MON and
+CON).
+This can be achieved in two ways; (1) reﬁne the model of the physical process
+to produce INPUT and consume OUTPUT (incorporate sensors and actuatorsinto the model of the environment), or (2) add explicit and separate models of
+the sensors and actuators to the simulation. In reality, the reﬁnement of the en-
+vironmental model and the SOFT relation progress in parallel and is an iterativeprocess. The sensor and actuator models may be added one at a time and theinteraction with diﬀerent components may merit diﬀerent reﬁnement strategies.
+
+--- Page 25 ---
+Nimbus naturally allows any combination of the approaches mentioned above
+to be used.
+REQ Specification
+(NimbusSim)Room Control Panel
+(Visual Basic)Room Light Model
+(Excel)Facility Manager Shutoff
+(User Input)
+FacM Shutoff
+User sets Window Intensity
+User sets Window Intensity
+User sets Wall Intensity User sets Wall IntensityWindow Intensity
+Wall IntensityT1, T3
+Light Scene Buttons[1..4]
+Set Button
+Failure IndicationLight LevelRoom Occupancy
+(Excel)
+Door SensorMotion Detector
+Figure 17: The simulation with the reﬁned notion of occupied
+[Fig. 17] shows the reﬁned simulation overview for the light control system.
+We have replaced the user input for the room occupancy monitored variable withan Excel spreadsheet to model the motion detectors and the doors in the room.
+This spreadsheet now supplies the required motion detector and door status
+inputs to the speciﬁcation. Also, the light model spreadsheet has been reﬁned.
+Nimbus provides a ﬂexible framework in which a software speciﬁcation ex-
+pressed in RSML
+−ecan be executed while it interacts with various models of
+the other components in a proposed system. Nimbus supports the reﬁnement
+of the REQ relation to a SOFT relation by allowing easy interchange of com-ponents in the environment. It is important to recognize the diﬀerence betweenmodels which are good for representing the physical process versus models, likeRSML
+−especiﬁcations, which are good for modeling the software control of the
+process. Modeling the process itself accurately may require complex numerical
+functions and simulations. These types of functions are not and should not bewithin the scope of RSML
+−e. However, an accurate model of the process is key
+to the success of speciﬁcation-based prototyping. In addition, Nimbus provides
+the abilitiy to perform hardware-in-the-loop simulations. This ﬂexibility allows
+Nimbus to provide an environment for realistic evaluation of the system.
+7 Evaluation and Discussion
+In this report we have summarized our experiences with using RSML−eand the
+Nimbus environment to model the required control behavior of the Light Control
+System. Our experiences were generally positive and the modeling eﬀort went
+by without any major complications.
+The model was developed by two graduate students over approximately three
+weeks time (part time). Both students were very familiar with the language,its formal semantics, and the Nimbus environment. Unfortunately, we did not
+compile any accurate data on the eﬀort required to complete the speciﬁcation.
+
+--- Page 26 ---
+The complete formal speciﬁcation is approximately 50 pages in length. This
+may seem like a large speciﬁcation for such a simple problem, but the speciﬁca-
+tion is formatted for readability (a lot of white space and page breaks to make it
+visually appealing) as well as informal English descriptions of the various partsof the speciﬁcation.
+The main problem we encountered during the speciﬁcation eﬀort was the in-
+completeness of the informal requirements provided in the problem description.
+The formal speciﬁcation we developed forced resolution of many issues thatmight otherwise have been passed over until the detailed design or implementa-tion stages. The simulation and execution allowed us to evaluate diﬀerent paneldesigns and helped clarify the requirements. In addition, the detailed nature of
+an RSML
+−emodel forces early adoption of a control strategy. In this eﬀort we
+found the notion of an external light sensor wholly unacceptable and modiﬁedthe requirements accordingly. A less detailed modeling approach may defer thisissue until later and end up requiring a behavior that cannot be realized in a
+physical system.
+Naturally, the eﬀort exposed some areas where our modeling approach needs
+improvements.
+7.1 Issues for Future Work
+The main issue raised during the modeling eﬀort was the lack of an array con-
+struct (similar to what is available in Statecharts) in RSML
+−e. The light scenes
+are concepts that are naturally modeled as an array of identical models (thethree user programmable light scenes and the default light scene are identical).
+In our speciﬁcation, however, we had to explicitly include four sets of variables
+to model the light scenes.
+There is no technical reason why arrays have not been included in RSML
+−e.
+We originally developed the tool support for RSML−eto prototype and eval-
+uate various static analysis procedures, for instance, completeness and consis-
+tency checking, reachability analysis, etc. Since arrays do not add any modelingpower—they are simply a syntactic nicety—but add considerable eﬀort whenimplementing a tool supporting the language, we deemed them superﬂuous forthe more theoretical work we were involved with at the time; to make the tool
+development easier we omitted arrays from the language. Our subsequent ex-
+periences, however, have convinced us that arrays are an absolute necessity inpractical modeling and we are currently extending our tool to support arrays.
+References
+[Faulk et al., 1992] S. Faulk, J. Brackett, P. Ward, and J Kirby, Jr. The CoRE method
+for real-time requirements. IEEE Software , 9(5):22–33, September 1992.
+[Harel and Pnueli, 1985] D. Harel and A. Pnueli. On the development of reactive sys-
+tems. In K.R. Apt, editor, Logics and Models of Concurrent Systems , pages 477–498.
+Springer-Verlag, 1985.
+[Harel et al., 1990] D. Harel, H. Lachover, A. Naamad, A. Pnueli, M. Politi,
+R. Sherman, A. Shtull-Trauring, and M. Trakhtenbrot. Statemate: A workingenvironment for the development of complex reactive systems. IEEE Transactions
+on Software Engineering , 16(4):403–414, April 1990.
+[Harel, 1987] D. Harel. Statecharts: A visual formalism for complex systems. Science
+of Computer Programming , 8(3):231–274, June 1987.
+
+--- Page 27 ---
+[Heimdahl and Leveson, 1996] Mats P. E. Heimdahl and Nancy G. Leveson. Com-
+pleteness and consistency in hierarchical state-base requirements. IEEE Transactions
+on Software Engineering , 22(6):363–377, June 1996.
+[Heimdahl et al., 1998] Mats P.E. Heimdahl, Jeﬀrey M. Thompson, and Barbara J.
+Czerny. Speciﬁcation and analysis of intercomponent communication. IEEE Com-
+puter, pages 47–54, April 1998.
+[Heitmeyer et al., 1995a] C. Heitmeyer, A. Bull, C. Gasarch, and B. Labaw. SCR∗:A
+toolset for specifying and analyzing requirements. In Proceedings of the Tenth Annual
+Conference on Computer Assurance, COMPASS 95 , 1995.
+[Heitmeyer et al., 1995b] C. L. Heitmeyer, B. L. Labaw, and D. Kiskis. Consistency
+checking of SCR-style requirements speciﬁcations. In Proceedings of the Second IEEE
+International Symposium on Requirements Engineering , March 1995.
+[Heitmeyer et al., 1996] C.L. Heitmeyer, R.D. Jeﬀords, and B.G. Labaw. Automated
+consistency checking of requirements speciﬁcations. ACM Transactions on Software
+Engineering and Methodology , 5(3):231–261, July 1996.
+[Jackson, 1995] Michael Jackson. The world and the machine. In Proceedings of the
+1995 Internation Conference on Software Engineering , pages 283–292, 1995.
+[Jaﬀe et al., 1991] Matthew S. Jaﬀe, Nancy G. Leveson, Mats P.E. Heimdahl, and
+Bonnie E. Melhart. Software requirements analysis for real-time process-control sys-tems. IEEE Transactions on Software Engineering , 17(3):241–258, March 1991.
+[Leveson et al., 1994] N.G. Leveson, M.P.E. Heimdahl, H. Hildreth, and J.D. Reese.
+Requirements Speciﬁcation for Process-Control Systems. IEEE Transactions on Soft-
+ware Engineering , 20(9):684–706, September 1994.
+[Leveson et al., 1999] Nancy G. Leveson, Mats P.E. Heimdahl, and Jon Damon Reese.
+Designing Speciﬁcation Languages for Process Control Systems: Lessons Learned and
+Steps to the Future. In Seventh ACM SIGSOFT Symposium on the Foundations on
+Software Engineering , volume 1687 of LNCS , pages 127–145, September 1999.
+[Miller, 1999] Steven P. Miller. Modeling software requirements for embedded systems.
+Technical report, Advanced Technology Center, Rockwell Collins, Inc., 1999. InProgress.
+[Parnas and Madey, 1991] David L. Parnas and Jan Madey. Functional documenta-
+tion for computer systems engineering (volume 2). Technical Report CRL 237, Mc-Master University, Hamilton, Ontario, September 1991.
+[Thompson and Heimdahl, 1999] Jeﬀrey M. Thompson and Mats P.E. Heimdahl. An
+integrated development environment prototyping safety critical systems. In Tenth
+IEEE International Workshop on Rapid System Prototyping (RSP) 99 , pages 172–
+177, June 1999.
+[Thompson et al., 1999] Jeﬀrey M. Thompson, Mats P.E. Heimdahl, and Steven P.
+Miller. Speciﬁcation based prototyping for embedded systems. In Seventh ACM
+SIGSOFT Symposium on the Foundations on Software Engineering ,n u m b e r1 6 8 7i n
+LNCS, pages 163–179, September 1999.
+[Whalen, 2000] Michael W. Whalen. A formal semantics for RSML
+−e. Master’s thesis,
+University of Minnesota, May 2000.

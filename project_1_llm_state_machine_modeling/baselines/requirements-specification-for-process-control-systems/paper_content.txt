@@ -1,0 +1,2252 @@
+--- Page 1 ---
+684 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING. VOL. 20. NO. 9, SEPTEMBER 1994 
+Requirements Specification for 
+Process-Control Systems 
+Nancy G. Leveson, Mats Per Erik Heimdahl, Student Member, IEEE, Holly Hildreth, and Jon Damon Reese 
+Abstract-This paper describes an approach to writing require- 
+ments specifications for process-control systems, a specification 
+language that supports this approach, and an example application 
+of the approach and the language on an industrial aircraft 
+collision avoidance system (TCAS 11). The example specification 
+demonstrates 1) the practicality of writing a formal requirements 
+specification for a complex, process-control system, and 2) the 
+feasibility of building a formal model of a system using a speci- 
+fication language that is readable and reviewable by application 
+experts who are not computer scientists or mathematicians. Some 
+lessons learned in the process of this work, which are applicable 
+both to forward and reverse engineering, are also presented. 
+Index Terms-Process control, reactive systems, requirements, 
+blackbox specifications, formal methods, safety analysis, reverse 
+engineering. 
+I. INTRODUCTION 
+MBEDDED software is part of a larger system and has E a primary purpose of providing at least partial control 
+of the system or process in which it is embedded. Most such 
+software is real-time and reactive (i.e., required to interact with 
+and respond to its environment in a timely fashion during 
+execution). A high cost is associated with determining the 
+correctness of such software and a still higher cost associated 
+with its incorrectness. The requirements for complex, embed- 
+ded software systems are particularly difficult to specify and 
+validate. 
+The very first stages of software development have the 
+fewest formal procedures to aid the analyst, and this is also the 
+time at which the most costly errors are introduced in terms 
+of being the last and most difficult to find. Many software 
+requirements validation techniques involve building prototypes 
+or executable specifications or waiting until the software is 
+constructed and then testing the whole system. Although cer- 
+tainly much can be learned by “testing” a specification through 
+executing it, or a prototype built from it, the confidence that the 
+system will have certain properties is limited to the test cases 
+that were executed. Our approach is to model the required 
+Manuscript received November 9, 1992; revised June, 1994. This work has 
+been partially supported by NSF Grant CCR-9006279, NASA Grant NAG-I- 
+668, and NSF CER Grant DCR-8521398. Recommended for acceptance by 
+J. Gannon. 
+N. 0. Leveson is with the Department of Computer Science and Engi- 
+neering, FR-35 University of Washington, Seattle, WA 98 195 USA; e-mail: 
+leveson@cs.washington.edu. 
+M. P. E. Heimdahl is with the Computer Science Department, A-7 14 Wt:lln 
+Hall, Michigan State University, East Lansing. MI 48824- 1027 USA; e-”: 
+heimdahl@cps.msu.edu. 
+H. Hildreth and Jon D. Reese are with the Information and Computcr 
+Science Department, University of Califomia, Irvine, Irvine, CA 92717 USA. 
+IEEE Log Number 9404465. software blackbox behavior along with the assumptions about 
+the behavior of the other components of the system, and 
+then to apply formal analysis procedures to the model in 
+order to ensure that the software requirements model satisfies 
+required system functional goals and constraints, including 
+safety. 
+Several different safety analysis procedures have been de- 
+veloped by members of the Irvine Safety Research Group [ 161, 
+[17], [15], [14], but they work on diverse models and have 
+not been validated on real software. Our long-term goal is 
+to develop a coherent, complete, and practical methodology 
+for building safety-critical systems. This paper concentrates 
+on the earliest part of the methodology, i.e., requirements 
+specification, and demonstrates it on a real system. Future 
+papers will describe the analysis procedures we are developing 
+and evaluating for our model. 
+Most of the information to be included in our system 
+requirements model aIready is collected by system engineers 
+or software engineers. However, the information is commonly 
+scattered throughout the system documentation, is usually 
+informally specified, and is not in a form amenable to formal 
+analysis. In addition, the information is often specified using 
+multiple different and incompatible models within the same 
+specification (e.g.. Statemate [8], HatleyPirbhai [ 121, and 
+Ward/Mellor [26]). For example, Statemate uses Statecharts, 
+Activity Charts, and Structure Charts; HatleyPirbhai uses 
+data flow diagrams, control flow diagrams, control spec- 
+ifications (finite state machines), and a process activation 
+table. 
+Our approach is to build one state-based model that includes 
+all of the information needed to describe the blackbox behavior 
+of the components of the system (including but not only 
+the computer) and the interface between the components 
+and no more. By having all the requirements information 
+in one model, formal analysis of the entire system becomes 
+feasible and redundancy is reduced. The latter reduces the 
+difficulty of changing the specification without introducing 
+inconsistency. 
+Furthermore, a blackbox model separates the specification 
+of requirements from design, simplifying the model and mak- 
+ing the requirements model easier to construct, review, and 
+formally analyze. Most software requirements specification 
+languages include software design information; the original 
+A-7 specification [7] is a notable exception. The modeling 
+language described in this paper differs from the A-7 language, 
+however, in the use of higher-level, global abstractions of 
+the entire system and in the goal of providing formal system 
+0098-5589/94$04.00 0 1994 IEEE 
+
+--- Page 2 ---
+LEVESON et 01.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 685 
+analysis procedures to operate on the underlying formal model. 
+Research has increased on the development of higher-level 
+abstractions for embedded systems [3], [24]; and although 
+large-scale examples are still lacking, some of these more 
+recent ideas are being applied in retrospect to the A-7 sys- 
+tem. 
+Finally, the language defined here has analysis goals sim- 
+ilar to the ProCoS approach [22], but uses state machines 
+whereas ProCoS uses process algebras. Consequently, the 
+analysis procedures applicable to our model are related to 
+ongoing work in automated state space analysis [lo], [2], 
+while the ProCoS approach relies on traditional methods of 
+theorem proving to analyze their models. Our approach is 
+also similar to some recent work by Pamas [21], which also 
+uses tables and state machines but uses trace semantics for 
+analysis. 
+The most important result of our research is verification 
+that building a formal requirements model for a complex 
+process control system is possible and that such a model 
+can be readable and reviewable by non-computer scientists. 
+Few examples exist of the application of formal methods 
+to a complex, reactive system requirements specification. In 
+order to evaluate our safety analysis ideas, we needed to 
+build a model of a realistic system to use as a testbed. This 
+paper describes the resulting formal system modeling method 
+and its use to specify the system requirements of an aircraft 
+collision avoidance system called TCAS 11. In the midst of 
+this effort, our model was adopted as the official requirements 
+specification for TCAS 11, so the research effort and the 
+resulting model had to be industrial quality. The unique part 
+of this effort, at least in terms of university research, is that the 
+specification language was developed with continual feedback 
+and evaluation by FAA employees, airframe manufacturers, 
+TCAS manufacturers, airline representatives, pilots, and other 
+external reviewers. Most of the reviewers were not software 
+engineers or even computer scientists; this helped in producing 
+a specification language that is easily learned and used by 
+application experts. 
+Although we describe a particular language that we used 
+for this model, the details of the actual language features are 
+less important than the other results of the research: 1) the 
+general criteria that any such modeling method and language 
+must satisfy, 2) the type of information that must be included 
+in such a system requirements model in order for it to be 
+analyzable for safety, and 3) the required features of such a 
+language in order to make it possible to model real systems and 
+to be usable by application experts. All of these are described 
+in this paper. Future papers will describe the actual application 
+of safety analysis techniques to the model. 
+Our results have both forward engineering and reverse 
+engineering implications. A detailed design specification writ- 
+ten in low-level pseudocode (about 300 pages long) already 
+existed for most of our application. Other parts, however, had 
+only an English language description. Some of the lessons 
+leamed about reverse engineering are described in this pa- 
+per. 
+The next section briefly describes the application, a collision 
+avoidance system called TCAS 11. This is followed by an overview of the specification approach and descriptions of both 
+the language and the system requirements specification. 
+11. THE TRAFFIC ALERT AND COLLISION 
+AVOIDANCE SYSTEM (TCAS) 
+A real aircraft collision avoidance system (called TCAS 11) 
+was used as a testbed to provide immediate evaluation and 
+feedback for our modeling and analysis ideas. TCAS I1 has 
+been described by the head of the program at the FAA as 
+the most complex system to be incorporated into the avionics 
+of commercial aircraft. It therefore provides a challenging 
+experimental application of formal methods to a real system. 
+TCAS is a family of airborne devices that function in- 
+dependently of the ground-based air traffic control (ATC) 
+system to provide collision avoidance protection for a broad 
+spectrum of aircraft types (commercial aircraft and larger 
+commuter and business aircraft). TCAS I provides proximity 
+waming (traffic advisories) to assist the pilot in the visual 
+sighting of intruder aircraft and is intended for use by smaller 
+commuter and general aviation aircraft. TCAS I1 provides 
+traffic advisories and recommended escape maneuvers (res- 
+olution advisories) in a vertical direction to avoid conflicting 
+aircraft. TCAS 111 will add resolution advisories in a horizontal 
+direction. 
+Development of aircraft collision avoidance systems started 
+over 20 years ago. In 198 1, the FAA decided to develop and 
+implement TCAS 11, and a Minimal Operational Performance 
+Standards (MOPS) document was produced using a combina- 
+tion of English and pseudocode. Since its adoption in 1983, 
+the MOPS has been extensively revised six times to fix errors 
+or improve the specification. In 1989, the FAA required that 
+TCAS I1 be installed on commercial aircraft with more than 
+30 seats by December 1991 and on commercial aircraft with 
+10 to 30 seats by 1995. The FAA relaxed the first deadline 
+to require installation on half the commercial aircraft fleet by 
+1991 and on the remainder by 1993. 
+The MOPS document contains information that we would 
+classify as system design (in English) and software design (in 
+English and pseudocode). Because of perceived deficiencies in 
+this document and the difficulty of FAA certification without 
+real system or software requirements, an effort was begun 
+in 1990 to provide a requirements document for TCAS 11. 
+An industry/govemment committee began to write a fairly 
+standard English language specification while we started an 
+experimental formal specification and safety analysis. Our 
+specification was subsequently adopted by the committee as 
+the official TCAS requirements specification and the other 
+specification effort was abandoned. 
+111. SPECIFYING REQUIREMENTS FOR 
+PROCESS CONTROL SYSTEMS 
+A. Goals, Constraints, and Requirements 
+A system is a set of components working together to achieve 
+some common purpose or objective. The requirements speci- 
+fication language being described in this paper was designed 
+
+--- Page 3 ---
+686 
+Is ; 
+I 
+I 
+I IEEE TRANSAflIONS ON SOFTWARE ENGINEERING. VOL. 20. NO. 9, SEPTEMBER 1994 
+i 0s 
+I Y Y I V 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+Fig. 1. A basic process control model 
+for process control systems, where the goal is to maintain a 
+particular relationship or function F over time (t) between 
+the input to the system (2,) and the output from the system 
+(0,) in the face of disturbances (D) in the process (see Fig. 
+1). These relationships will involve fundamental chemical, 
+thermal, mechanical, aerodynamic or other laws as embodied 
+within the nature and construction of the system. 
+Besides the basic objective or function implemented by the 
+process, these types of systems may also have constraints on 
+their operating conditions. Constraints may be regarded iiS 
+boundaries that define the range of conditions within which the 
+system may operate. Another way of thinking about constraints 
+is that they limit the set of acceptable designs with which the 
+objectives may be achieved. 
+Constraints may arise from several sources, including qual- 
+ity considerations, physical limitations and equipment capac- 
+ities (e.g., avoiding equipment overload in order to reduce 
+maintenance), process characteristics (e.g., limiting process 
+variables to minimize production of byproducts), and safety 
+(i.e., avoiding hazardous states). In some systems, the func- 
+tional goal is to maintain safety, so safety is part of the overall 
+objective as well as potentially part of the constraints. 
+As an example, for an airborne collision avoidance system 
+like TCAS, 2, can be viewed as all aircraft that fly into the 
+airspace of the TCAS-equipped aircraft and 0,3 as all aircraft 
+that fly out of the airspace of the TCAS aircraft. The goal 
+of the TCAS system is to maintain a minimum separation 
+function between the aircraft. Constraints include such things 
+as not interfering with the ground-based air traffic contrsol 
+(ATC) system, operating with an acceptably low level of 
+unwanted alarms (advisories to the pilot), and minimizing the 
+amount of deviation of the aircraft from their ATC-assigned 
+tracks. 
+Note that the goals of a system are just that, i.e., they may 
+not be entirely achievable. Although the goal of TCAS I1 is to eliminate near-misses (i.e., aircraft violating minimum 
+separation standards), this cannot be a requirement since it 
+is not possible to achieve: It is, however, a legitimate goal. 
+Another way of stating this goal is to minimize the number 
+of near-misses. The latter, however, is not a measurable 
+goal since its achievement cannot be determined. Another 
+possibility that theoretically can be evaluated is to reduce near- 
+misses. The amount of reduction that is actually achieved then 
+becomes a criterion for whether the system can be justified 
+based on cost and possible increased risk with respect to 
+other hazards in the system. The point here is that goals 
+are different from requirements because the goals may not 
+be achievable. The actual required and achieved behavior 
+can be evaluated with respect to the goals and constraints to 
+determine whether the system, as specified and designed, is 
+acceptable. 
+Early in the development process, tradeoffs between func- 
+tional goals and constraints that are conflicting or not com- 
+pletely achievable must be identified and resolved according to 
+the priorities assigned to them. Identifying these conflicts and 
+resolving them is a major task in both the system and software 
+requirements analysis process. A second task is ensuring that 
+the specified (or required) behavior of the process-control 
+system will achieve the goals to an acceptable degree while 
+satisfying the constraints. Semantic analysis of our system 
+requirements model can potentially address both of these 
+elements of correctness since it includes a model of the 
+behavior of all the components of the system. 
+B. Purpose and Content of Requirements 
+Specificarion for Process-Control Systems 
+A typical process-control system can be divided into four 
+types of components: the process, sensors, actuators, and 
+controller (see Fig. 1). 
+
+--- Page 4 ---
+LEVESON et U/.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 687 
+The behavior of the process is monitored through cow 
+trolled variables (V,) and controlled by manipulated variables 
+(V,,,). The process can be described by the process function 
+Fp, a mapping from V,,, x 2, x 2) x t + 0, x V,. LJn- 
+fortunately, it is usually difficult to derive a mathematical 
+model of the process due to the fact that most processes 
+are highly nonlinear (i.e., the process characteristics depend 
+on the level of operation), and, even at a constant operating 
+level, the process characteristics change with time (i.e., the 
+process is nonstationary). Any attempt to provide a niathe- 
+matical expression describing the process involves simplifying 
+assumptions and therefore will be imperfect. Some of the 
+process characteristics, however, can be described, and this 
+description can be used to derive and validate the control 
+function. 
+Sensors are used to monitor the actual behavior of the 
+process by measuring the controlled variables. For example, 
+a thermometer may measure the temperature of a solvent in 
+a chemical process or a barometric altimeter may measure 
+altitude of an aircraft above sea level. The sensor function Fs 
+maps V, x t -.+ 2. 
+Actuators are devices designed to manipulate the behavior 
+of the process, e.g. valves controlling the flow of a fluid 
+or a pilot changing the direction and speed of an aircraft. 
+The actuators physically execute commands issued by the 
+controller in order to change the manipulated variables. The 
+functionality of the actuators is described by the actuator 
+function FA mapping 0 x t + VTn. 
+The controller is an analog or digital device used to im- 
+plement the control function. The functional behavior of the 
+controller is described by a control function (Fc) mapping 
+2 x C x t -+ U, where C denotes extemal command signals. 
+The process may change state not only through intemal 
+conditions and through the manipulated variables, but also 
+by disturbances (D) that are not subject to adjustment and 
+control by the controller. The general control problem is to 
+adjust the manipulated variables so as to achieve the system 
+goals despite disturbances. 
+This model is an abstraction-responsibility for imple- 
+menting the control function may actually be distributed 
+among several components including analog devices, digital 
+computers, and humans. Furthermore, the controller may have 
+only partial control over the process-state changes in the 
+process may occur due to intemal conditions in the process 
+or because of extemal disturbances or the actuators may not 
+perform as expected. For example, the pilot in a TCAS system 
+may not follow the resolution advisory (escape maneuver) 
+issued by the TCAS controller. 
+The purpose of the control-system requirements specifica- 
+tion is to detine the system goals and constraints, the function 
+Fc (i.e., the required blackbox behavior of the controller), and 
+the assumptions about the other components of the process- 
+control loop that I) the implementors need to know in order 
+to implement the control function correctly, and 2) the system 
+engineers and analysts need to know in order to validate the 
+model against the system goals and constraints. 
+A blackbox, behavioral specification of the function Fc uses 
+only: the current process state inferred from measurements of 
+the controlled variables, 
+past process states that were measured and inferred, 
+past corrective actions output from the controller, and 
+prediction of future states of the controlled process 
+to generate the corrective actions (or current outputs) needed 
+to maintain F. 
+Information about the process state has to be inferred 
+from measurements. For example, in TCAS, relative range 
+positions of other aircraft are computed based on round-trip 
+message propagation time. Theoretically, the function Fc can 
+be defined using only the true values of the controlled variables 
+or component states (e.g., true aircraft positions). However, 
+at any time, the controller has only measured values of the 
+component states (which may be subject to time lags' or 
+measurement inaccuracies), and the controller must use these 
+measured values to infer the true conditions in the process and 
+possibly to output corrective actions (U) to maintain F. In 
+the TCAS example, sensors include on-board devices such as 
+altimeters that provide measured altitude (not necessarily true 
+altitude) and antennas for communicating with other aircraft. 
+The primary TCAS actuator is the pilot. who may or may 
+not respond to system advisories. Pilot response delays are 
+important time lags that must be considered in designing the 
+control function. Time lags in the actual process may be caused 
+by aircraft performance limitations. 
+C. An Approach to Writing Requirements 
+for Process-Control Systems 
+We specify the blackbox behavior of the controller (i.e., the 
+function FC to be computed by the controller) using a state 
+machine model. The outputs of the controller are specified 
+with respect to state changes in the model as information is 
+received about the current state of the controlled process via 
+the controlled variables V,. In the TCAS example, the control 
+function is specified using a model of the state of all other 
+aircraft within the host aircraft's airspace, the state of the on- 
+board components of its own aircraft (e.g., altimeters, aircraft 
+discretes,* and cockpit display), and the state 01' ground-based 
+radar stations in the vicinity. Information about this state is 
+received from the sensors (e.g., antennas and transponders) and 
+commands are sent to the actuators (e.g., the pilot, antennas, 
+and transponders). 
+The state machine model of the control function Fc is 
+iteratively fine tuned during requirements specification de- 
+velopment to mimic the current understanding of the real- 
+world process and the required controller behavior. The state 
+machine model is essentially an abstraction of the behavior 
+of the system function F since it models all the relevant 
+aspects of the components of the process control loop. Errors 
+in the state machine model represent mismatches between 
+this model and the desired behavior of the control loop, 
+including the process. We detine the informal concept of 
+'Time lags are delays in the system caused by the reaction time of the 
+Aircraft Discretes are airframe-specific characteristics provided as input sensors, actuators, and the actual process. 
+to TCAS from hardware witches. 
+
+--- Page 5 ---
+688 IEEE TRANSACTIONS ON SOITWARE ENGINEERING. VOL. 20. NO. 9, SEmEMBER 1994 
+_- -i A- I 7-7 
+I Desired I I Black-box 1 I Specificatlonof I I I 
+behavior controller functional 
+Fig. 2. Semantic distance 
+semantic distance as the amount of effort required to translate 
+from one model to another. We believe that in order to 
+maximize the application expert’s ability to find errors in 
+the requirements specification, the semantic distance (dl in 
+Fig. 2) between their understanding of the desired process 
+control behavior (their mental model of the system) and 
+the specification of that behavior must be minimized. This, 
+in tum, implies that the requirements be written entirely in 
+terms of the components and state variables of the controlled 
+system. Specifically, “private” variables related only to the 
+implementation of the requirements and not part of the appli- 
+cation expert’s view of the controlled system should not be 
+used. 
+The requirements review process involves validating the 
+relationship between changes in the real-world process iind 
+the specified changes and response in the control function 
+model. Therefore, reviewability will be enhanced if the re- 
+quirements specification explicitly shows this relationship. 
+Moreover, when the description of the required controller 
+behavior includes more than just its blackbox behavior (e.g., 
+includes software design information and functional decom- 
+position), then the semantic distance ((14) between the process 
+control behavior and the specified controller behavior in- 
+creases, and the relationship between them becomes more 
+difficult to validate. TCAS application experts who know very 
+little or nothing about computers or software have been able 
+to read our requirements model of TCAS and find errors in 
+it. 
+In addition, a formal blackbox, behavioral model of the 
+requirements makes possible 1) a mathematical verification of 
+various desired properties such as consistency of the control 
+model with the system goals and constraints, 2) the generation 
+of standard system engineering and system safety analyses 
+such as fault trees [18], and 3) the application of formal 
+correctness and robustness criteria to the specification model 
+Although we believe that this type of blackbox specification 
+is easier for application experts to review and easier to validate 
+using formal analysis procedures, the semantic distance (dg) 
+between the requirements and a standard implementation based 
+on functional decomposition is increased. To alleviate this 
+problem, the specification step can be divided into separate 
+requirements and design specifications or special software 
+designs that result naturally from this type of blackbox spec- 
+ification may be used. If performance requirements can be 
+satisfied, the specification can be implemented directly without 
+an intervening design step. ~41. Blackhox 
+Minimal 
+Semantically simple 
+Coherent, consistent. and concise 
+[Jnamblgnons underlying language with a formal foundation for analysis 
+Readable. rrvirwablr. and usablr by application pxprrts arid drvelnpers 
+Flexihlp notations (graphiral. tabular, symbolir) tit4 tn the, hrst way tn provide thr 
+RentIat,ility given priority over writability 
+lsrr nwds given priority owr personal preferericcs 
+Iiiforindtion exposure particular type of information 
+Fig. 3. Design criteria for the language. 
+Given the error-proneness of the requirements specification 
+step and the few tools available to find these errors, the use of 
+pure blackbox specifications (as advocated here and by Pamas 
+et al. [7]) appears justified. 
+IV. SPECIFICATION LANGUAGE 
+The first step in designing a specification language or 
+modeling method is to determine goals and criteria for the 
+language. This section describes general design criteria for 
+such a requirements specification language and the language 
+actually used to specify TCAS. 
+A. Design Criteria for the Specification Language 
+We identified several criteria that were important with 
+respect to our goals and that we believe apply in general to 
+this type of specification language (see Fig. 3). 
+The first criterion, as described in the previous section, is 
+that the language specify blackbox behavior of the software 
+only and not include intemal design information. Because of 
+the safety and other types of formal analysis we planned to 
+perform on the model, it also had to be based on a state 
+machine as the underlying model: this is obviously not a 
+requirement for all languages. 
+Two other criteria are minimality and simplicity. Minimality 
+implies that the specification should contain only the informa- 
+tion needed by the developers and analysts. Otherwise, time 
+is wasted in specifying things that are not used. Many of the 
+popular real-time requirements specification languages include 
+facilities that are not strictly necessary. The problem with 
+the “kitchen sink” approach is that the specification language 
+becomes unnecessarily complex and the specification process 
+becomes unnecessarily tedious and time-consuming. Also, for 
+readability, information that is of limited help at a particular 
+point in the specification should be omitted; the specification 
+should help the reader focus on what is important. 
+To enhance simplicity, we tried to avoid specification lan- 
+guage features that complicated the analysis and the speci- 
+fication. Language features that are semantically simple and 
+straightforward to define are usually also easy to use and result 
+in more readable and reviewable specifications. 
+Related to the minimality and simplicity criteria are co- 
+herency, consistency, and conciseness. Other specification lan- 
+guages for reactive systems, e.g., Statemate [8], Hatleypirbhai 
+[ 121, and Wardmellor [26], include a variety of diverse 
+models, some of which are not formally defined. Our goal 
+
+--- Page 6 ---
+LEVESON er al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 689 
+was to specify all the required information using one formally- 
+defined modeling language based on one underlying state- 
+machine model. We also wanted our language to represent 
+information as economically as possible while still maintaining 
+readability. 
+Because of our goal to provide a safety analysis of the 
+specification, the language must be unambiguous and the 
+underlying model must have a mathematical foundation. At 
+the same time, the requirements specification must be readable, 
+reviewable, and usable. In some respects, these criteria may 
+be conflicting but it is possible to satisfy both if there is a 
+separation between the actual specification language and the 
+underlying formal model. The specification must be unam- 
+biguous and translatable into mathematical notation, but it 
+need not itself include arcane mathematical symbols that are 
+unfamiliar to the application experts and software developers. 
+We spent considerable time and energy developing a notation 
+that was readable yet maintained the underlying formal state- 
+machine model. This notation has graphical, symbolic. and 
+tabular aspects depending on which was best for specifying 
+a particular type of information [4]. Because readability and 
+writability are often conflicting goals, we chose readability 
+in cases where a conflict existed: The added investment in 
+constructing the requirements specification pays off in terms 
+of discovering more requirements-level errors. 
+The specification language was developed while specifying 
+TCAS for the FAA, and we therefore received continual feed- 
+back by airframe manufacturers, component subcontractors, 
+FAA certification experts, airline representatives, and pilot 
+group representatives during development. This feedback pro- 
+vided invaluable information about the practicality, feasibility, 
+and usability of the modeling language during its development. 
+It helped us both with determining what did and did not need 
+to be in the language and with satisfying our language design 
+criteria. 
+One of the advantages of the feedback was to help us 
+overcome our individual preferences. When devising the spec- 
+ification language, we usually had ourselves in mind as the 
+user. However, our familiarity with certain notations. espe- 
+cially mathematical notations such as predicate calculus, hides 
+their weaknesses. Our first attempts at devising our language, 
+therefore, were failures: the notation was clear to us but 
+not to others. The feedback from a diverse group of users 
+helped us to evaluate the evolving specification language more 
+objectively. 
+A final criterion for our specification became obvious only 
+after trying to specify a complex system. We first used 
+unrestricted hierarchical abstraction in our model, thinking this 
+would aid in understanding the specification. We found that the 
+use of what Harel [5] calls “clustering” (grouping states into 
+superstates) indeed made the specification more readable. On 
+the other hand, the use of what Harel calls “abstraction,” a type 
+of information hiding that allows showing only the superstate 
+(as an empty state) and hid the component substates, often had 
+an undesirable effect on readability. One of the purposes of 
+such abstraction is that lower-level information, i.e., substates 
+and transitions, can be hidden from the reader and in that way 
+the system is presented in digestible chunks. Our first modeling attempts maximized this type of hi- 
+erarchical abstraction, thinking this would aid our goals of 
+readability and understandability. Negative results were im- 
+mediately apparent. Predicates (or guarding conditions) for 
+transitions that “crossed’ levels became very difficult to un- 
+derstand because they referred to nonvisible states. Context, 
+which is vitally important to understandability, was lost. Thus, 
+the information hiding concept that has contributed so much to 
+the design, development, and maintenance of large, complex 
+systems, proved detrimental to the understanding of such 
+systems-a key element in requirements specification. For 
+requirements specification, the reader (and specifier) needs 
+as much context and specific detail as possible. We call this 
+criterion “information exposure.” 
+For the most part, our final TCAS specification has only 
+two levels of abstraction-a top level to provide an over- 
+all global view and one lower level to model each major 
+component in the controlled system. In a few places, a third 
+level became necessary to aid understanding and ensure that 
+each subcomponent model fit on one page. For TCAS 11, 
+this was all that was necessary, and we believe this to be 
+true for most process control systems. The use of parallel 
+state machines reduces the state explosion problem in state- 
+machine models and each component of the process control 
+loop usually has a limited number of relevant states and 
+transitions. 
+B. Specification Language Description 
+Previously, we defined a formal state machine model called 
+RSM (Requirements State Machine) for modeling the black- 
+box behavior of process-control systems along with formal 
+criteria and heuristics to check the model for completeness, 
+robustness, and safety [14]. RSM, while appropriate for formal 
+analysis, has few of the desirable characteristics of a specifi- 
+cation language. So we needed a usable specification language 
+to put on top of the underlying RSM model. 
+Because our original goal was not to design a new speci- 
+fication language, we evaluated our criteria against existing 
+languages, decided that Statecharts came the closest, and 
+started specifying TCAS 11 using it. However, we soon real- 
+ized that reviewers had difficulty understanding some aspects 
+of pure Statecharts specifications and that some things we 
+needed to specify were not easily described using it. Our 
+Specification language evolved as we got feedback on our 
+drafts until it no longer is reasonable to refer to the language 
+as Statecharts. We call our current formulation RSML (Re- 
+quirements State Machine Language). This section describes 
+the syntax and semantics of RSML and how it differs from 
+Statecharts. 
+A basic state machine is composed of states connected by 
+transidcms (see Fig. 4). Defuulr or start states are signified 
+by states whose connecting transition has no source. In the 
+example, state A is the start state. Transitions define how to 
+get from one state to another. In the example, states B and C 
+are directly reachable from A. State D is not directly reachable 
+from A (no transitions connect the two states); however, state 
+D is reachable from iZ via state C. 
+
+--- Page 7 ---
+690 IEEE TRANSACTIONS ON SOITWARE ENGINEERING. VOL. 20, NO. 9. SEFTEMBER 1994 
+7 
+Fig. 4. A basic state machine. 
+Is U” I I 
+Fig. 5. A superstate example. 
+Statecharts are finite state machines augmented with hi- 
+erarchy, parallelism, and modularity. An introduction to ba- 
+sic statechart notation can be found in [5]. RSML borrows 
+the notions of superstates, AND decomposition, broadcast 
+communication, statechart arrays, and conditional connectives 
+from Statecharts. Other features of Statecharts, e.g., history and 
+event selector connectives, were left out either because they 
+were unnecessary or the semantics were too complicated to 
+allow for formal analysis. We then added some features, such 
+as interface descriptions and directed communication between 
+state machines, and changed the syntactic notation to make it 
+easier for our reviewers to read and review the specification. 
+The syntactic extensions were found to be necessary to model 
+a realistic problem rather than the small examples often found 
+in research papers. We also changed somewhat the semantic 
+definition of a “step,” i.e., the semantics of state transitions. 
+The rest of this section first describes the features in common 
+with Statecharts and then our changes and extension$. 
+C. Feutures in Common with Stutechurts 
+Superstates: In Statecharts (and RSML), states may be 
+grouped into supersrates (see Fig. 5). Such groupings reduce 
+the number of transitions by allowing transitions to and from 
+the wperstate rather than requiring explicit transitions to and 
+from all of the grouped states (suhstates). There are two ways 
+to enter a superstate. First, the transition to the superstate may 
+end at the superstate’s border (transition A in Fig. 5). In this 
+case, a default state must be specified within the superstate. A 
+U C 
+%&& ID@ 
+I 
+Fig. 6. The parallel state. 
+In the example, state S is entered upon taking transition A. 
+Alternatively, the transition may be made to a particular state 
+inside the superstate (transition B in Fig. 5). Note that the 
+same superstate may have transitions ending at the border and 
+at any number of the inner states. The superstate may be exited 
+in two ways (transitions C and D in Fig. 5). Analogous to 
+transitions into the superstate, transitions out of the superstate 
+may originate from the border or from an inner state. The same 
+superstate may contain both types of exiting transitions. 
+AND Decomposition: One of the most important innova- 
+tions in Statecharts is what Hare1 calls the parallel state3 which 
+contains two or more state machines, separated by dashed 
+borders (Fig. 6). When the parallel state S is entered, each 
+of the state machines A, B, C, and D within it is entered. All 
+state machines are exited when any transition is taken out of 
+the parallel state. The use of parallel states greatly reduces the 
+size of the specification. For example, we estimate that the 
+TCAS system (i.e., the underlying RSM model) contains at 
+least lo4* states whereas the graphical state diagram in our 
+RSML specification of TCAS has approximately 100 states 
+and fits on five pages. Although the syntax of parallel states 
+is the same in both Statecharts and RSML, the semantic 
+definition is different, as described in the Step Semantics 
+sect ion be low. 
+Arrays: Both Statecharts and RSML allow the use of 
+state-machine arrays (see Fig. 7). State machine arrays are 
+semantically equivalent to identical parallel state machines 
+uniquely identified by an index. Each of the array elements is 
+entered or exited when the array is entered or exited. Individual 
+array elements are referenced by the array name and an index 
+value. For example, “Other-Aircraft[3]” refers to the third 
+array element in the example. We found that defining a special 
+token “THIS” that references the element value from within 
+that element is useful for passing the identity of the element 
+to a function, e.g., Traffic-Score(TH1S). 
+Connectives. Conditional connectives are used when tran- 
+sitions out of a particular state into two or more different 
+Parallel states are also known as “orthogonal products.” “product states,” 
+and “AND states.” 
+
+--- Page 8 ---
+LEVESON er al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 69 I 
+Other-Aircraft, i:[1..30] % 
+Fig. 7. A state machine array. 
+Fig. 8. In the diagrams, “e” is the triggering event and “X,” “Y,” and “Z’ are 
+the guarding conditions; (a) is a state machine without a conditional array; (b) 
+is the same state machine using a conditional connective; (c) is the conditional 
+connective used to select default state. 
+states are taken based on the same event but guarded by 
+different conditions (Fig. 8 (a)). The transition from the source 
+state to the connective is taken at the occurrence of the 
+event. The appropriate destination state is determined based 
+on guarding conditions that are defined on the transitions from 
+the connective to the destination states (Fig. 8 (b)). Some 
+guarding conditions may be placed on the transition from 
+source state to connective if all the destination states share 
+those conditions. For a complete specification, the guarding 
+conditions from the connective to the destination states must be 
+mutually exclusive and must form a tautology [ 141. Sometimes 
+a state change is not desired. For these cases, a transition leads 
+from the conditional connective back to the source state, thus 
+explicitly specifying the circumstances for changing state and 
+for remaining in a state. 
+A transition must begin and end in a state; therefore, 
+the actual state transition is the transition from the source 
+state to the connective combined with the transition from the 
+connective to the destination state. Conditional connectives 
+often appear as default “states” (Fig. 8(c)) in RSML, even 
+though they are not states. The actual default state is chosen 
+based on the conditions on the transitions out of the conditional 
+connective. 
+D. Changes to Statecharts 
+made to these basic features of Statecharts. Both syntactic and semantic changes and additions were I Component-Name I 
+’Input: 
+Input-Variable : Type 
+Input-Variable : Type 
+Input-Variable : Type 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+output: 
+Output-Variable : Type 
+Output-Variable : Type 
+Output-Variable : Type 
+Fig. 9. State machine with associated variables. 
+Directed Communication: RSML includes the ability to 
+model the behavior of all control loop components (not 
+just the controller) and the communication between them. 
+Physically distinct components are modeled as separate 
+(communicating) state machines. Broadcast communication, 
+as defined in Statecharts, is an inappropriate abstraction 
+for communication between physically distinct components 
+(e.g., two aircraft). Intercomponent communication in RSML 
+is modeled as directed messages sent and received over 
+unidirectional channels between component state machines. 
+The limits of internal broadcast communication are denoted 
+by thick borders around a component state machine (see 
+Fig. 9); intemally broadcast events within a component state 
+machine cannot cross thick borders. 
+Events: RSML includes two types of events-internal and 
+external. Intemal events are communicated within a single 
+component state machine using the Statechart broadcast mech- 
+anism, i.e., they cannot cross the thick borders around the 
+component state machines. Thus, TCAS does not necessarily 
+know about any events in the altimeter or in other aircraft 
+unless an external message has been sent between these two 
+components. Internal events are used only for one very specific 
+purpose: RSML specifications are pure blackbox specifications 
+of the mathematical (input/output) function to be computed by 
+the software; internal events are used to order the evaluation 
+of that function. Basically they serve the same purpose as 
+parentheses in algebraic equations. 
+External events, on the other hand, represent real com- 
+munication (message passing) between TCAS and the other 
+
+--- Page 9 ---
+692 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 20, NO. 9, SEFTEMBER 1994 
+Transition(s): -1 -+ [ (Destination State) [ 
+Location: 
+Trigger Event: 
+Condition: (path to the transition being considered.) 
+(The event that causes this transition to be taken.) 
+(Optional guarding condition on the transition.) 
+Output Action: (Optional output action.) 
+Description: 
+MOPS Ref. (Used for tracing requirements to software design) 
+Comments: (Optional comments.) 
+Fig. 10. Transition definition. (Optional English description of the transition information) 
+components (sensors, actuators, etc) of the system. They are 
+required only because we include in our model the extemal 
+interface to the system (in this case, TCAS) and the assumed 
+behavior of the other components of the process control loop 
+(the altimeters, other aircraft, pilots, etc.). The language does 
+not prohibit the use of extemal events as triggering events on 
+transitions; however, in the TCAS I1 specification, extemal 
+event triggers are restricted to system component interface 
+definitions. 
+Interface Definitions: The interface description is an impor- 
+tant part of any requirements specification language. RSML 
+includes an interface description for each separately modeled 
+system component, which describes all external communica- 
+tion for that component. Our underlying model is communi- 
+cating state machines: SEND events in one component trigger 
+RECEIVE events in another component. Each communication 
+specifies its source and destination. Unlike CSP [9] and some 
+communicating state machine models, e.g., [23], RSML does 
+not require synchronous intercomponent communication. 
+The receipt of a message by a component state machine is 
+signalled by the occurrence of an external RECEIVE event. 
+These events may trigger state changes within the receiving 
+component, i.e., values are assigned to input variables based 
+on information communicated in the message. Because the 
+state diagrams representing such state transitions are trivial 
+and provide no useful information, only the transition descrip- 
+tions are included in the RSML specification. The interface 
+description includes the source and destination of the message, 
+the triggering RECEIVE event and guarding condition, the 
+mapping of message field names and values to variable names 
+and values, and any internally generated events resulting from 
+the receipt of the message. Note again that interface descrip- 
+tions describe transitions within the receiving component state 
+machine. Thus, guarding conditions will never block receipt 
+of a message but may prevent the assignment of message field 
+values to input variables. 
+Output variable value assignments and the sending of mes- 
+sages to other control-loop components are triggered by the 
+occurrence of internal events. Each output interface description 
+(representing a transition within the sending component state 
+machine) contains the message source and destination, the 
+internal triggering event and guarding condition, the map- 
+ping of output variable names and values to message field 
+names and values, and the internally generated extemal SEND 
+event. Component State Machines: Each state machine in RSML 
+may be divided into three parts separated by double solid 
+lines (see Fig. 9). The middle part contains the graphical 
+state machine. The top and bottom parts contain input and 
+output variables, respectively. All RSML inputs are black- 
+box inputs while outputs are calculated (derived) blackbox 
+outputs. 
+Definitions must be provided for all input and output 
+variables. Each definition contains: 
+Location (the associated RSML state machine, e.g., 
+Own-Aircraft) 
+Source or Destination (extemal component, e.g., altime- 
+ter) 
+Type (e.g., integer) 
+Expected Range (e.g., -10,000 ... l0,OOO) 
+Granularity (e.g., 10) 
+Units (e.g., feet) 
+Load (e.g., one per second) 
+Exception Handling Information (e.g., out of range val- 
+ues are treated as zero) 
+Traceability information (e.g., MOPS Reference) 
+In addition to the above items, output variable descriptions 
+also contain triggering events and value assignments. 
+Transition Definitions: Transition definitions in RSML con- 
+tain five parts: 1) the identification, 2) the location, 3) the 
+triggering event, 4) the guarding condition, and 5) the output 
+action. The identification, location, and triggering event are 
+the only required parts. Fig. 10 shows the form of a transition 
+definition in RSML. 
+Each transition is identified by its source and destination 
+states 
+-1 - pizq. 
+Transitions split by a conditional connective are defined in 
+two parts. The first part of the definition is identified by the 
+connective destination, while the second part is identified by 
+the connective source, - 0 or 0 -m- 
+If several transitions have the same definition (i.e., the same 
+location, trigger, condition, and output action), then they may 
+be defined together. Sometimes a single transition definition 
+applies to all transitions into a particular state. The special 
+symbol ANY may be used as a shorthand for all source states. 
+For example, the following transition identification 
+Transition( s): 
+piG+pl 
+pZ+pGil 
+p-iGq -[Enst) 
+might be rewritten using: 
+Transition(s): ANY - ~~~t . I 
+The locarion field of the transition definition shows where 
+in the state machine the transition may be found. The location 
+
+--- Page 10 ---
+LEVESON er al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 693 
+rrue-Tau-Citppedf.3tir 2 Time-To-CPA A 
+( Other-(’apability,.Zlz # TCAS-TA/RA V 
+( ( Down-Separationf.mi(low-tirm) 5 Alt-Threshold A ( Other-VRC,.,,, = No-Intent A Tro-Of-Three,~3z;) ) A 
+Vp-Separationf.36r(loa-firm) 5 Alt-Threshold) V 
+( (‘urri,nt-Vertiral-Separationr.33~ > 150 ft A 
+( ( Inhibit-niased-Climbr.:,39(low-firm) > I)own-Separation~.~~;(low-firm) A 
+( I~ihibit-Biased-Clirnbr.~~g(low-fir~n) 5 Down-Separatio~~~.~:~~(luw~lirm) A Own-Tracked-Altr.3rg < Other-Tracked~A1tf.344) V 
+Own-Trarked-Altr3rg > Other~Tracked-Altol,) 1 ) ) 
+Transition condition written in predicate calculus. Fig. 1 I. 
+is given as a hierarchical path, using the “D” symbol to 
+separate the RSML state labels. For example, a transition at 
+the location 
+Location: Other-Aircraft D Tracked D Intruder-Statuss-6 1 
+has its source and destination states in Intruder-Status (found 
+on p. 61 of the requirements specification) which is contained 
+in the hierarchy formed by Other-Aircraft and Tracked. The 
+location in the example can be traced in Figs. 25, 28, and 29. 
+Transitions are taken upon the occurrence of the trigger 
+event, provided that the guarding condition is true. Internally 
+generated events may be either internal or external events, i.e. 
+they are either broadcast within the component state machine 
+or are explicitly sent to another component. 
+The condition defines what must be true before the transition 
+can be taken and is specified using AND/OR tables, described 
+below. 
+Outpur actions identify events that are generated when the 
+transition is taken. 
+The rest of the transition definition is for explanation and 
+documentation only. The description includes any English 
+language description of the transition definition that may be 
+appropriate to include and the MOPS Ref. is a reference to 
+the pseudocode (design specification) that implements this 
+transition. The latter provides traceability and was used in the 
+independent verification performed on our TCAS specification. 
+An optional Comments section can be used to provide extra 
+explanatory information. For example, we sometimes used it 
+to explain why a particular decision was made. 
+AND/OR Tables: Our first attempt to write the conditions 
+for the state transitions used pure predicate calculus (Fig. 
+1 I), as this was what we had seen in previous statechart 
+examples [l], [5], and it was natural to us. Our external 
+reviewers, however, did not find it natural or reviewable 
+and told to us to come up with something else. In fact, we 
+found that we had difficulty in writing and reading complex 
+predicate calculus expressions ourselves even though we were 
+familiar and comfortable with the notation; while developing 
+another notation, we found logical errors in our first attempt 
+at specifying a part of TCAS that were not at all obvious in 
+the original form. 
+Our second attempt replaced logical phrases with English 
+phrases and a list of Engl.ish-to-logic mappings. Although this 
+is superficially more readable, we found that annotating the 
+logic with English did not provide an appreciable advantage in 
+terms of the underlying complexity of the logical expressions. 
+The notation we finally chose is a tabular representation of 
+disjunctive normal form (DNF) that we call AND/OR tables. Fig. 12. The AND/OR table. 
+The far-left column of the AND/OR table lists the logical 
+phrases; each of the other columns is a conjunction of those 
+phrases and contains the logical values of the expressions. 
+If one of the columns is true, then the table evaluates to 
+true. A column evaluates to true if all of its elements are 
+true. To make all these relationships clearer, we physically 
+separated the columns, the far-left column a little more than 
+the others. The AND/OR tables do not eliminate the need 
+for existential and universal quantifiers; however, their scope 
+is limited to a disjunct term or to the entire table, making 
+it much easier to parse the expressions. We also discovered 
+that omissions became apparent when application experts were 
+forced to consider the explicit “don’t cares” (.) that appeared 
+in the tables. 
+OR 
+The above table is equivalent to 
+((Expression- 1 A 7 Expression-2) 
+V (Expression- 1 A Expression-3)). 
+The AND/OR table for the predicate calculus expression in 
+Fig. I I is shown in Fig. 12. 
+Some evidence of the readability and reviewability of the 
+AND/OR tables is that errors we made in our first representa- 
+tion of the system were quickly discovered by the application 
+experts after only a very minimal (ten minute) tutorial on 
+our notation. Below the AND/OR tables, we later added an 
+English language description of the guarding conditions on 
+each transition. 
+Macros and Functions: As we wrote the TCAS require- 
+ments, we discovered that some of the AND/OR tables became 
+very complicated. Also, some of the logic is repeated in 
+several tables. We solved both problems by using macros, 
+which are just labeled AND/OR tables. These macros, for 
+the most part, correspond to typical abstractions used by the 
+application experts in describing the TCAS requirements and 
+therefore add to the understandability of the specification. 
+We did, however, try to use them sparingly in order not to 
+provide too many levels of indirection in the specification. To 
+increase flexibility, macros may be parameterized. Also, rather 
+than including complex mathematical functions directly in the 
+transition tables, such functions are specified separately and 
+referenced in the tables. 
+
+--- Page 11 ---
+694 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 20, NO. 9, SEFTEMBER 1994 
+(a) (b) 
+Fig. 13. 
+same information. Transitions: (a) unreadable graphic diagram; (b) transition bus with 
+Transition Buses: One of the advantages of Statecharts over 
+other state machine models is the ability to reduce a large 
+number of states to a conceptually manageable number by 
+using superstates and parallel states (AND-decomposition). We 
+kept both of these features, but we found it helpful to introduce 
+more constructs to reduce clutter. For example, many parts 
+of the TCAS model are fully- or almost fully-interconnected, 
+i.e., there is a transition from each state to nearly every other 
+one. Showing each transition explicitly is confusing and can 
+make the graphical diagram unreadable (see Fig. 13(a)); the 
+transition bus (Fig. 13(b)) provides the same information. A 
+transition must be defined for each source-state/destination- 
+state pair on the transition bus, where a source state is a state 
+with a transition to the bus and a destination state is a state 
+with a transition from the bus. 
+Cross Referencing and Identifier Types: Another problem 
+arose with writing transition information on the arrows 
+between states. This is fine for relatively simple transitions and 
+relatively simple statecharts. Even marking the arrows with 
+a short tag that identifies the transition logic elsewhere was 
+found to complicate the graphics and make it more difficult 
+to comprehend when the statechart was complex. Such tags 
+are symbolic “noise;” the information is not salient, even 
+when using supposedly mnemonic tags, and the resulting 
+clutter is more harmful than helpful. Unless the complete 
+transition condition can be written on the arrow between 
+states (not possible for anything but the trivial examples 
+found in textbooks), such transition tags provide no useful 
+information to the user except to match the arrow with 
+a separate specification of the condition elsewhere in the 
+document. The use of a special tag for this purpose merely 
+increases the number of names and synonyms that the user 
+must remember. 
+We opted instead, at first, to put page references on the 
+arrow indicating where the transition logic could be found 
+in the document (since this was really the information that 
+the user needed); later we moved this information under each 
+diagram in order to reduce clutter and make the diagrams more 
+readable. This had no effect on the ease with which the page 
+number information could be obtained. Paging through the 
+document when reading transition definitions in order to view the corresponding statechart was minimized by including fold- 
+out pages of the graphical part of the statecharts visible from 
+anywhere in the document. 
+Cross referencing was used liberally elsewhere in the lan- 
+guage as well. No matter how concise the notational style, 
+requirements specifications for large systems span many pages 
+(and sometimes volumes) and usually contain references to 
+other parts of the specification. We wanted to reduce redun- 
+dancy while still making easily accessible all information that 
+is needed to understand or review each part of the document. 
+Liberal use of page references as subscripts on names defined 
+elsewhere was a practical compromise. 
+Another problem is how to identify the types of identifiers 
+that are used in the specification. Solutions that have been 
+used in the past include surrounding the name with special 
+symbols as in the A-7 specification [7] or using special fonts. 
+Both of these solutions have drawbacks in terms of readability 
+and leamability. The RSML approach is to use subscripts. 
+Each identifier in the specification is subscripted with a single 
+letter denoting its type--v for variable, s for state, m for 
+macro, f for function, and e for event-and a page number 
+where that element is defined. Page numbers are updated 
+automatically when changes are made to the specification. For 
+example, aZtztude,-l76 is a variable whose type definition 
+can be found on page 176. An alphabetized index also is 
+included that shows all the pages on which the name is used 
+in the document and denotes the page on which the name is 
+originally defined. 
+Identity Transitions: Identity transitions originate and ter- 
+minate in the same state and generate output actions without 
+causing a state change. The need for identity transitions 
+arises when output actions are necessary for synchronization 
+although no state change is required; the underlying Mealy 
+machine model allows associating output actions only with 
+transitions and not with states. All identity transitions are 
+guarded by the negation of the disjunction of all the conditions 
+guarding transitions that are triggered by the same trigger 
+event and that originate in the same state. Identity transitions 
+are not included in the state-machine graphical diagram in 
+order to reduce clutter since they are not needed for reviewing 
+the specification but for analysis and completeness reasons. 
+Instead, they are grouped in tables. 
+Timing: During the specification of TCAS, we needed only 
+three temporal functions: the value of a variable at some 
+previous point in time, the truth value of a condition at some 
+point in the past, and an implicitly generated event based on 
+time (i.e., a timeout relative to state entry). Rather than treating 
+timeouts specially and defining triggering events for them, 
+all timing functions are written as expressions in guarding 
+conditions. An example of such an expression is 
+t 2 (t(entered(Threat)) + 5.0 secs) 
+This expression states that the current time (‘t’ without an 
+argument) is greater than or equal to the time that state Threat 
+was entered plus 5.0 seconds. Such expressions evaluate to true 
+or false and generally appear as logical phrases in AND/OR 
+tables. 
+
+--- Page 12 ---
+LEVESON et al.: REQUIREMENTS SPECIF'ICATION FOR PROCESS-CONTROL SYSTEM ~ 
+695 
+Fig. 14. Transitions a and b are inconsistent. 
+Procedure Strp-('oiistl.rirtion(Var C : configuration. 1 : setofeveotsj ; 
+begin 
+I:=$: 
+while T c En('T, c', 1) do 
+non~let~rrriiriistirally pick a transition t E (En(T. C. I) - Tj and add it CD T ; 
+(' := Next('oiifig((',T) ; { Calrulate the new ronfigriration ] 
+end 
+Fig. 15. Step construction in Statecharts. 
+TCAS is required to operate based on a cycle, called a 
+surveillance cycle, started by an event (Surv-Comp-Event) 
+and all temporal requirements are based on this cycle. In the 
+TCAS requirements document the function Prev,(x) has been 
+overloaded to apply to both variable values, functions, and 
+predicates: 
+Prev,(v) refers to the value of variable (or function) v at 
+Prev,(y) refers to the truth value of p at j surveillance 
+Step Semantics: The semantics of Statecharts have been 
+described in detail in several papers [ll], [5]. Unfortunately 
+the descriptions are not consistent with each other; small 
+(but significant) differences exist. The following comparison 
+between Statecharts and RSML semantics is based on the 
+formal description by Pnueli and Shalev [20]. 
+The semantic description of Statecharts in [20] is based 
+on the notion of steps. A step is initiated when an external 
+event arrives at the model boundary, causing a cascade of 
+subsequent intemal events. A step is completed when no 
+more intemal events are generated or there are no more 
+transitions triggered by the events that were generated, i.e., 
+the model has stabilized in a state. It is assumed that a 
+step is completed before another extemal event arrives, i.e., 
+there is no delay in the response to an external stimulus 
+(this assumption is called the synchrony hypothesis). The main 
+difference between Statecharts and RSML is in the way a step 
+is constructed. 
+In both Statecharts and RSML, a step starts when a set of 
+external events (I) arrives at the model boundary. The set of 
+transitions that are triggered by the events in Z are denoted 
+by trzggpred(1). If a transition is taken, a new event may be 
+generated. The set of events generated when the transitions in a 
+set of transitions T are taken is defined by generated(T). The 
+state (or configuration) of the model is denoted by C, e.g., the 
+initial configuration in Fig. 16 is' the set {A, C}. Transitions 
+whose source states are members of a particular configuration 
+C are said to be relevant to C. 
+In the set of transitions denoted by reZevant(C), a (possibly 
+empty) subset are triggered by the events in Z, i.e., the J surveillance cycles back in time; 
+cycles back in time. I 
+I I 
+I 
+I 
+Fig. 16. A Statechart and RSML example. 
+TABLE I 
+TWO POSSIBLE STEP CONS rRUCTlONS IN STATECHARTS 
+Construction 1 
+loop # T En(T) generated(T) C 
+0 0 {tl,t4} 0 {A7 C) 
+1 {tl} {tl,t3,t4) 
+Construction 2 
+loop # T En(T) generated(T) C 
+0 0 {tl,t4) 0 {A7 c> 
+1 
+transitions that could possibly be taken given a configuration 
+G and a set of events Z are defined by 
+reZevant(C) n trzggered(1). 
+In this set, only a few transitions are compatible, i.e., can be 
+taken together. For example, the transition labeled a in Fig. 14 
+is not consistent with the transition labeled b since only one 
+of them can be taken. Let the set consistent(T) contain all 
+transitions that are compatible with the transitions in the set T. 
+The construction of a step in Statecharts is based on an 
+enabling function En that determines which transitions can 
+be taken given a set of extemal events (I) and a configuration 
+C. In the Statecharts step creation, a transition relevant to C 
+and triggered by an event in Z is initially picked and added to 
+the set T. T is then expanded by adding transitions that are 
+relevant to C, consistent with the transitions already in T, and 
+triggered by either an event in I or an event generated by a 
+transition in T. For example, consider the model in Fig. 16. 
+When the external event z arrives and the model is in the initial 
+configuration {A.C}, tl and t4 are the only two transitions 
+that can be taken. Assume tl is picked and added to T. Since 
+tl generates the event y, the new set of possible transitions is 
+expanded to include t3. Both t4 and t3 are consistent with tl, 
+so either one can be picked and added to T. 
+
+--- Page 13 ---
+696 IEEE TRANSACTIONS ON SOFIWARE ENGINEERING. VOL. 20. NO. 9, SEPTEMBER 1994 
+TABLE I1 
+THE STEP CONSTRUCTION IN RSML 
+I En(T) outer loop # I inner loop # I T 
+Exit 
+2 1 
+2 Exit 
+3 0 0 
+Comdetion of Step 
+TABLE 111 
+AN EXAMPLE OF A RSML STATE MACHINE 
+LEADING TO AN INFINITE STEP CONSTRUCTION 
+.. .. .. 
+Procedure Strp~(’oiistnirtioriHSMI.(Var C : configuration, Var I : srlofcvmts) : 
+begin 
+repeat 
+‘1 := 0 ; 
+while T c Kn(‘1. C. I) do 
+(’ := Sf,xt(‘onfig((’.T) ; { Calrulatp the new (-oiifigiirntion } 
+I := grueratcd(T) : { (‘alcolatr the Internal rbrnts generatcd by tlic tmnsitioiis rrotidetcrnministicall~ pick transition t E (En(T, (’, 1) - T) and add it la T : 
+in T and usc thmi to roiiliiiiir the constructioii of tlw htep } 
+until 1’ = 11 ; 
+end 
+Fig, 17. Step construction in RSML : [2 x/y I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I I 
+I t3 : 
+Fig. 18. An RSML state machine that will not terminate. 
+1 Introduction 
+2 Goals and Constraints 
+2.1 High Level Goals.. ............................. 
+2.2 High Level Constraints.. ....................... 
+3.1 Components ................................... 
+3.2 Input Interfaces.. .............................. 3 Environment 
+3.3 Output Interfaces ............................. 
+3.4 Message Formats.. ............................. 
+4 TCAS Physical Requirements 
+5 Surveillance Requirements 
+6 CAS Requirements 
+5.1 Own Aircraft. .................................. 
+5.1.1 Own Aircraft Inputs.. ................... 
+5.1.2 Own Aircraft Outputs.. ................. 
+5.1.3 Own Aircraft Transitions.. .............. 
+5.2 Other Aircraft ................................. 
+5.2.1 Other Aircraft Inputs.. .................. 
+5.2.2 Other Aircraft Outputs .................. 
+5.2.3 Other Aircraft Transitions. .............. 
+5.3 Ground Station.. .............................. 
+5.3.1 Ground Station Inputs .................. 1 
+11 
+11 
+16 
+23 
+25 
+58 
+66 
+71 
+85 
+97 
+125 130 
+132 
+147 
+156 
+200 
+207 
+223 
+230 
+293 
+294 
+5.3.2 
+Ground Station Outputs ................ 294 
+5.3.3 Ground Station Transitions.. ............ 295 
+5.4 CAS Macros.. ................................. 296 
+5.5 CAS Functions.. ............................... 330 
+En(T, C, I) =r&~~~~t(c)n 7 Performance Monitor Requirements 365 
+WTLS LS ten 1 (T) n A Constant Definitions 367 In general, the set of transitions that can be added to T can 
+be defined with an enabling function: 
+tri!ggered(I U generuted(T)). 
+The construction of a Statechart step is defined by the 
+operational definition in Fig. 15. 
+The function NeztConfzg calculates the new state con- 
+figuration given the old state configuration C and the set 
+of transitions T. The possible constructions of a step in 
+Fig. 16 are summarized in Table I. The configuration at the 
+beginning of the step is defined by the set {A, C}, assuming 
+that I = {z}. Note here that due to the nondeterministic 
+nature of the step construction (i.e., the selection of the 
+transition to put in T is made nondeterministically), there are 
+(in this case) three different ways of constructing a step; two 
+constructions yielding different results are illustrated in the 
+table. The behavior defined in construction 1 in Table I is 
+counterintuitive since transition t4, which should ‘‘obviously’’ 
+be triggered by the input event 2, is not taken. B Table Definitions 
+C Event Definitions 
+D Glossary 
+E Notation 
+F Reference Algorithms 
+G Index 
+Fig. 19. The table of contents. 371 
+379 
+383 
+39 1 
+403 
+410 
+The semantics of RSML is slightly different and enforces a 
+more rigorous causal ordering of the transitions taken within 
+a step. The enabling function in the RSML step construction 
+does not consider the transitions triggered by the output events 
+of the transitions in T to be enabled, i.e., 
+
+--- Page 14 ---
+LEVESON et al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 697 
+Fig. 20. Component communication. 
+The step construction in RSML can now be described by the 
+algorithm in Fig. 17. 
+This definition forces an RSML state machine to take first 
+all transitions triggered by the external event starting the step 
+and then the transitions triggered by the events generated as 
+a result of that first micro-step. The process is repeated until 
+there are no more transitions triggered by the events generated 
+by the preceding micro-step. Table I1 shows the construction 
+of a step according to the semantics of RSML. 
+This approach has one disadvantage compared to the Stat- 
+echarts step construction. It can easily be seen that the Stat- 
+echarts step construction will always terminate since E74 I’) 
+is a finite set. The step construction in RSML state machines can potentially be infinite as is shown in Fig. 18 and Table 111. 
+The events in Fig. 18 will get altemately generated forever. 
+The advantage of the RSML approach is that it is more 
+consistent with our intuitive notion of a step. In the example 
+shown in Fig. 16, the Statecharts step semantics allows transi- 
+tion t3 to be taken, even though event y is generated after 5. A 
+reviewer could be misled by such a specification, not realizing 
+that the specification is inconsistent with what is intended. We 
+felt that reviewability, in this case, was more important than 
+the ability to force termination. 
+v. THE SYSTEM REQUIREMENTS SPECIFICATION 
+The RSML language was developed using TCAS I1 as 
+a testbed. The resulting specification not only acts as an 
+
+--- Page 15 ---
+698 IEEE TRANSACTIONS ON SOFIWARE ENGINEERING. VOL. 20, NO. 9, SEhTEMBER 1994 
+Radio Altimeter 
+b 
+Operating-Normal1 y 
+Failed-Self-Test 
+Not-Sending-Output 
+Fig. 21. Altimeter component. 
+example of a blackbox process-control system requirements 
+specification, but also as an example of a real-life, successful 
+application of formal methods to a complex system. We 
+caution the reader, however, that compromises in the specific 
+model created for TCAS I1 were required due to real-life 
+constraints explained further in Section VI (Evaluation and 
+Future Goals). 
+Fig. 19 shows the contents of the TCAS specification! 
+There are similarities in content with the A-7 requirements 
+document [7], but we include behavioral descriptions of the 
+other components in the process control loop as well as system 
+goals and constraints. Physical requirements for the TCAS 
+box (e.g., size, weight and materials) and some I/O devices 
+(e.g., TCAS antennas) are contained in the MOPS and should 
+be in our document, but currently are not (simply due. to 
+a lack of resources to retype them). The A-7 specification 
+includes sections on possible subsets of the program and the 
+characteristics of the computer, which we do not include. Both 
+specifications include requirements for timing, accuracy, and 
+response to undesired events, but we do not separate them 
+from the functional behavior; instead they are included where 
+the functional behavior is specified. Jaffe [ 131 has argued that 
+functional and timing information is too inextricably connected 
+to be usefully separated. 
+4The entire TCAS specification is complete at this time except for Section 
+III-A. Only a few of the environment components have been specified so far 
+due to FAA pressures to deliver the TCAS specification first. Section 111-A is 
+primarily required only for the safety analysis. The goals and constraints in the first section of the docu- 
+ment are written in English. In general, they would be the 
+first thing specified when developing the system, although 
+they may be modified as the system engineering process 
+progresses. 
+Normally, the next step in system engineering involves 
+identifying and designing (if necessary) the components of the 
+control loop. In the case of TCAS, most of the components 
+already exist. Early in the system design process, a detailed 
+description of the allocation of high-level functional require- 
+ments to each physical component along with the interfaces 
+between them is generated. 
+The environment section of the specification includes a 
+high-level system component and communication diagram (see 
+Fig. 20). Note that this diagram is a directed graph and not a 
+state machine diagram. The TCAS system consists of various 
+sensors (e.g., radio altimeter and Mode-S transponder) and 
+actuators (e.g., a pilot display and transmitters) aboard the 
+aircraft. Some of these communicate with other aircraft (which 
+have varying collision avoidance capabilities) and ground 
+radar stations. 
+The blackbox behavior of each control loop component 
+(except TCAS) and the relevant behavior of each process 
+component is modeled in the environment section. The RSML 
+specifications of the physical components other than TCAS 
+itself reflect the assumptions that the designers of TCAS can 
+make about the components’ behavior including their failure 
+behavior. Including these assumptions in the specification is 
+useful in designing the controller software to be robust against 
+the effects of design changes to the other components and 
+against failures in the environment. 
+As an example, Fig. 21 shows the RSML state machine 
+description of the radio altimeter. This device provides CAS 
+with own (the host) aircraft’s altitude above the ground. An 
+accompanying status message indicates, to some extent, the 
+reliability of the altitude data based on an altimeter self- 
+test mechanism. Under normal operating conditions, the radio 
+altitude is correct (within a certain tolerance) and the status 
+indicates “okay.” In one possible failure mode, the radio 
+altitude is correct, but the status indicates a failure. In a 
+second failure mode, the radio altimeter produces no output, 
+neither altitude data nor status information. Finally, in the 
+third failure mode, the radio altitude sent is incorrect, but the 
+status indicates “okay.” In this mode, the altimeter may send 
+all zeroes, repeatedly send the maximum, repeatedly send the 
+same value, or send random values. 
+The environment section also includes the description of 
+the communication interface between the components of the 
+control loop. This includes CAS inputs and outputs although 
+other communication (such as between other aircraft) would 
+be included if it were relevant to the operation of TCAS. Figs. 
+22 and 23 show examples of an input interface and output 
+interface specification, respectively. Fig. 24 shows an example 
+of a message formal specification. 
+TCAS has three logical subcomponents (see Fig. 20); the 
+collision avoidance subsystem (CAS) that contains the actual 
+collision-avoidance logic, a surveillance subsystem that han- 
+dles communication with other aircraft and the ground radar 
+
+--- Page 16 ---
+LEVESON er al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 
+1 699 
+56 89 32 Interface: 
+Standby ......................... 
+Other-Aircraft, i:[ I ..NI 
+________----------------- 
+Mode-S-Ground-Statio, i:[ 1..15] Source: Mode-S-Transponder 
+Destination: CAS 
+nigger Event: RECEIVE( Sensitivity-LevelLCommatid( IIS, SLC)) 
+Condition: 
+Assignment(s): 
+Mode-S-Ground-Station[lIS] D Ground-Commanded-SL,.zs, = Cancel if SLC = 15 { SLC if2 5 SLC 5 7 
+Output Action: None 
+Description: 
+If a sensitivity level command is received from own transponder, then set 
+Ground-Commanded-SL of the appropriate ground station parallel state. 
+MOPS Ref.: SL-command-processing (p. 3-P21) 
+Fig. 22. An example of an input interface definition. 
+Interface: 
+Source: CAS 
+Destination: Mode-S-Transponder 
+Trigger Event: Receivpd-lntruder-Intent-F,vent,Js, 
+Condition: true 
+Assignment( 8): 
+VUC = Encode-RACf.3~(Vertical-RAC,.Isr. 
+ARA = Enc0d~-AR.4f.33~(Climb-RA".,~,, Horizontal- RACu.255) 
+Descend- U A,., 52 ) 
+Output Action: SEh.o(Coordination-Update(VRC, AKA)) 
+Description: 
+MOPS Ref.: RESOLIITIO~.MESSAGEPROCESSING (p. 3-Pll). 
+Comments: ARINC 73.5 specifies the format of the coordination update message. It rontains 
+additional fields, qurh as sensitivity levpl, that are not specified in the pseudocode. 
+Fig. 23. An example of an output interface definition. This sends a coordination update message to own transponder 
+stations, and a performance monitor. All three could have 
+been specified together as one logical component, but for 
+historical and political reasons we were required to specify 
+the behavior of each separately. The three models are there- 
+fore specified as separate components with defined external 
+interfaces. CAS is by far the most complex of the three 
+and is used here as the example. The following overview 
+of the CAS specification guides the reader through exam- 
+ples of the various parts of the specification although the 
+description is greatly simplified in order to make it un- 
+derstandable to those unfamiliar with collision avoidance 
+systems. 
+The highest level CAS state machine is shown in Fig. 25. At 
+this level, CAS is either on or off if it is on, it may be either 
+fully operational or in standby mode. As explained previously, 
+the control function is specified only in terms of the state of 
+the controlled process and the states of relevant control loop 
+components. In the case of the CAS logic, the states of three Name: Mode S All-Call Reply (squitter) 
+Message Format: DF-11 (All-Call Reply) 
+MOPS Reference: Detection 2.2.8.2.1 
+Source: Mode S equipped aircraft. 
+Destination: Broadcast. 
+Timetype: S-R or Periodic (as squitters at maximum period of 1.2s) 
+Data Representation: 
+PI 
+Parity/- 
+Identity 
+33 56 
+= 
+= 
+= Comm AJB and extended capability report available. 
+Comm A/B/C and extended capability report available. 
+Comm AJBJCJD and extended capability report available. 
+Comments: 
+Generated as a reply to ground sensor all-call interrogation or as squitters 
+Fig. 24. Message format definition. 
+LGz-l 
+Inputs: 
+TCAS-Operational-Status : (Operational, Not-Operational } 
+I Fully-Operational I 
+Own-Aircraft 
+Fig. 25. Collision Avoidance System. 
+types of process components are modeled: our own aircraft, 
+other aircraft, and mode-S ground radar stations. Each of the 
+three subcomponents of CAS is elaborated in more detailed 
+RSML models. 
+Fig. 26 shows the expanded Own-Aircraft portion of the 
+CAS model. The top portion of the diagram lists variables 
+that represent inputs to CAS from the TCAS sensors that 
+are associated with the state of Own-Aircraft. The bottom 
+
+--- Page 17 ---
+700 IEEE TRANSACTIONS ON SOFI’WARE ENGINEERING. VOL. 20, NO. 9. SEPTEMBER 1994 
+Own- Aircraft - 
+Traffic-Display-Permitted : flrue,False} 
+Aircraft-Altitude-Limit : Integer 
+Prox-Traffic-Dis lay : flruc,False} 
+Config-Climb-Inhibit : flruepalse} 
+Altitude-ClimbInhibActive : Vrue, False} 
+Increase-ClimbInhibit-Dhte : ~ruePalse} Input: 
+Own-Alt-Radio : Integer 
+Standby-Dismte-Input : grue, False} 
+Own-Alt-Barometric : Integer 
+Mode-Selector : flm, Standby, TA-Only, 3,4,5,6,7} Own-Alt-Rate : Rteger 
+Radio-Altimeter-Status : {Valid, Not-Valid} 
+Own-Air-Status : {Airborne, On-Ground) 
+Own-Mode-S-Address : Integer 
+Barometric-Altimeter-Status : (Fine, Coarse} 
+EffectivcSL I Auto-SL ; Dtrocnd-mibit 
+I 
+I .................................. 
+4 
+I I 
+I I 
+I I 
+I 
+I 
+I 
+I 
+I 
+I I 
+I I -1 
+I Advisory-Ststus (expmded in section) 
+output: 
+Sound-Aural-Alarm : flrue,False} 
+Aural-Alarm-Inhibit : flruepalse} 
+Combined-Control-Out : Enumerated 
+Vertical-Control-Out : Enumerated Climb-RA : Enumerated 
+Descend-RA : Enumerated 
+Own-Goal-Alt-Rate : Integer 
+Vertcal-RAC : Enumerated 
+Horizontal-RAC : Enumerated \ / 
+Fig. 26. Own-Aircraft. 
+portion of the diagram lists variables that represent outputs 
+from CAS to TCAS actuators. The middle portion of the 
+diagram represents the parts of the derived Own-Aircraft state 
+necessary for the evaluation of the CAS control function. 
+Effective-SL (sensitivity level) controls the dimensions of 
+the protected airspace around own aircraft. It is used to control 
+the trade-off between necessary protection and unnecessary 
+pilot advisories. Higher sensitivity levels increase protection, 
+but also increase the incidence of unnecessary alerts. 
+There are two primary means that CAS uses to deter- 
+mine Effective-SL: ground-based selection and pilot selection. 
+Ground-based selection of sensitivity level is not envisioned 
+for use in the U.S. airspace at this time; however, the capability 
+for such selection has been included in the CAS logic. The 
+pilot, on the other hand, can select three modes of operation 
+(STANDBY, TA-ONLY, and TAKA) which are converted to 
+sensitivity level by the logic. In STANDBY mode, neither 
+traffic advisories (TA’s) nor resolution advisories (RA’s) are 
+output by CAS. The pilot normally selects STANDBY when 
+on the ground. In TA-ONLY mode, only traffic advisories are 
+output by CAS. This mode is often selected by the pilot to avoid unnecessary distractions while at low altitudes on final 
+approach to an airport. When the pilot selects TA/RA mode 
+(also called AUTOMATIC), CAS selects sensitivity level 
+based on the current altitude of own aircraft (Auto-SL state). 
+Alt-Layer effectively divides vertical airspace into layers 
+(e.g., Layer-3 is approximately equal to the range 20000 feet 
+to 30000 feet). State changes are made using a hysteresis: 
+the criteria for transitioning into the Layer-2 state is different 
+depending on whether the current state is Layer-I (own aircraft 
+is climbing) or Layer-3 (own aircraft is descending). Alt-Layer 
+and Effective-SL are used in the determination of individual 
+other aircraft threat classification (see Fig. 29). 
+Due to aircraft climb performance limitations at high alti- 
+tude or in the landing configuration, the CAS logic may inhibit 
+a climb maneuver. Descend maneuvers are inhibited if own 
+aircraft is too close to the ground to safely command the pilot 
+to descend. The increase inhibits (Increase-Climb-Inhibit and 
+Increase-Descend-Inhibit) prohibit the command of higher rate 
+maneuvers (e.g., 2500 fpm vs. 1500 fpm), and therefore use 
+more stringent altitude thresholds. The Advisory-Status part of 
+the Own-Aircraft model (Fig. 27) shows the CAS resolution 
+
+--- Page 18 ---
+LEVESON et al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 701 
+No-RA 3 
+> 
+1, Advisory -Status 
+Composite-RA I n- 
+1 I Negative 
+I Climb-VSL I Descend-VSL - 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I I I Corrrctiveclimb 
+CombinedConbol 
+i 
+Fig. 27. Advisory status. I 
+I 
+I 
+I I 
+I I 
+I 
+I 
+I 
+I I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I I I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I 
+I I ;z I I I 
+I 
+I 
+I 
+I 
+I 
+advisory (RA), if there is one, that is currently displayed to 
+the pilot. 
+Fig. 28 shows the expanded Other-Aircraft portion of the 
+CAS model. Again, the top portion of the diagram lists vari- 
+ables that represent inputs to CAS from the TCAS sensors, and 
+the bottom portion of the diagram lists variables that represent 
+outputs from CAS to TCAS actuators. The middle portion of 
+the diagram contains parallel state machines representing the 
+derived Other-Aircraft state necessary for the evaluation of 
+the CAS control function. 
+RM-Send-Status synchronizes coordination interrogations 
+with other TCAS-equipped aircraft, where “RM” stands for 
+Resolution Message. Coordination interrogations contain in- 
+formation about an aircraftls intended vertical maneuver or 
+“intent” with respect to a threat. This information is expressed 
+in the form of a complement; e.g., if own aircraft has selected a 
+climb maneuver against the threat (see Fig. 29), it will transmit 
+a message in its coordination interrogation restricting the threat 
+aircraft to descend maneuvers against own aircraft. CAS can track up to 30 aircraft simultaneously (it can 
+track more but is limited by the number of conflicting flight 
+scenarios it can resolve simultaneously). The Track-Status 
+state reflects whether a particular Other-Aircraft is currently 
+being tracked or not. Fig. 29 shows the expanded Tracked 
+portion of the Other-Aircraft RSML model. 
+The Intruder-Status state within Tracked reflects the cur- 
+rent classification of Other-Aircraft (Other-Traffic, Proximate- 
+Traffic, Potential-Threat, and Threat). Intruder-Status is deter- 
+mined using (among other criteria) Own-Aircraft Effective-SL 
+and Alt-Layer. When an intruder is classified as a threat, 
+a two-step process is used to select a Resolution Advisory 
+(RA). The first step is to select a sense (Climb or Descend). 
+Based on the range and altitude tracks of the intruder, the 
+CAS logic models the intruder’s path until Closest Point 
+of Approach (CPA). The CAS logic computes the predicted 
+vertical separation for both climb and descend maneuvers, 
+and selects the sense that provides the greater vertical sep- 
+aration. 
+
+--- Page 19 ---
+702 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 20, NO. 9, SEPTEMBER 1994 
+lothcr-mdrii I 
+Input: 
+Other-Ah : Integer 
+Other-Mode-S-Addrrss : Integer 
+0th-Sensitivity-Level : {Not-Known. 1.2,3,4,5,6,7} 
+0th-Capability : (Non-XAS,TCAS-TA,TCAS-TNRA } 
+Othcr-Transponder-Equippage : {ATCRBS,M&-S} 
+Other-All-Repaiting : ~rue,False} 
+SurveillsncclD : Integer 
+Range-Report-Timestamp : Tim 
+Other-RangeValid : flrue,False} 
+Other-Alt-Valid : flNe,Fakc} 
+0th-Bearing : Integer 
+Other-Bearing-Valid : flrue.False} 
+TA-In-Sms-Level-2 : fl~e,False) 
+Other-VRC : { Nonc. Dont-Descend, DontClimb } 
+Other-HRC : { Nonc, Dont-Turn-Left, Dont-Tum-Right } 0th-Range : Integer 
+(Expanded next page.) r; [-/ 
+DntpUk 
+Display-Arrow-Out : (up.Down} 
+Other-Relative-All-Out : Integer 
+Othcr-Range-Out : Integer 
+0th-Bearing-Out : Integer 
+Othcr-Bearing-OK-Out : flrue,False} 
+Othcr-Alt-Reporting-Out : {Truepaise} 
+Advisory-Code : {Other,PA,TA,RA} 
+L 
+Fig. 28. Other aircraft overview. 
+The second step in selecting an RA is to select the strength 
+of the advisory. The least disruptive vertical rate maneuver that 
+will still achieve safe separation is selected. Possible advisory 
+strengths are Nominal-1500 fpm (1500 feet per minute), VSL- 
+2000, 1000, 500, and 0-fpm (vertical speed limits of 2000, 
+1000, 500 and 0 feet per minute; 0-fpm means level flight). 
+Advisory strength is continuously evaluated and modified, if 
+necessary, during the course of the encounter. After CAS 
+has chosen an RA, occasionally the threat aircraft maneuvers 
+vertically in a manner that thwarts the RA. In this case, 
+CAS may increase the strength of the advisory from 1,500 
+feet per minute to 2,500 feet per minute (Increase-2500fpm) 
+or it may reverse sense (from Climb to Descend or vice 
+versa). 
+The Mode-S-Ground Station model is quite simple and, 
+therefore, is not shown here. Although theoretically the CAS 
+logic uses input from the ground stations, these are not 
+operational at this time. 
+The specification must include a description of each input 
+and output variable. Examples are shown in Figs. 30 and 3 1. As an example of a transition definition, Fig. 32 contains 
+the definition of the transition from the state Threat to the 
+state Other-Traffic, substates of Intruder-Status. In order for 
+an intruder to be classified as a Threat, it must be reporting 
+its altitude, it must be airbome, and it must satisfy the threat 
+altitude and threat range tests. Once classified as a Threat, 
+it may not be downgraded (to Potential-Threat, Proximate- 
+Traffic, or Other-Traffic) based on the threat altitude test. 
+It may be downgraded based on the threat range test, but 
+only if it fails on two consecutive attempts-represented by a 
+separate transition. However, if the intruder stops reporting 
+altitude, or if it reports that it is on the ground, it can 
+no longer be classified as a threat. The first and last rows 
+of the AND/OR table represent this criteria. Note that this 
+transition represents a downgrade directly to Other-Traffic, 
+bypassing the intermediate classifications of Potential-Threat 
+and Proximate-Traffic. This happens when the intruder is 
+no longer airbome (column 4) or when altitude reporting 
+is lost and either the bearing or range inputs are invalid 
+(columns 1 and 2). Column 3 represents a situation in which 
+a partial downgrade to Potential-Threat or Proximate-Traffic 
+might have been possible, i.e., altitude reporting is lost, but 
+both the range and bearing inputs are valid. If either the 
+Potential-Threat-Condition or the Proximate-Traffic-Condition 
+were satisfied, the intruder classification would have been 
+downgraded to Potential-Threat or Proximate-Traffic, respec- 
+tively. However, in this transition, neither criteria are satisfied, 
+so the classification is downgraded all the way to Other- 
+Traffic. 
+As an example of a macro, Fig. 33 contains the Potential- 
+Threat-Condition macro referenced in the above transition. In 
+order for an intruder to be classified as a Potential-Threat, 
+it must satisfy the Potential-Threat-Range-Test. In addition, 
+if it is reporting altitude and is airbome, it must satisfy the 
+Potential-Threat-Altitude-Test. If it is not reporting altitude, 
+own aircraft must be below 15 500 feet. 
+Functions and macros are used in a similar way, but func- 
+tions retum values. Fig. 34 contains an example of an RSML 
+function, Vertical-Resolution-Complement. This function is 
+related to the coordination interrogations described earlier 
+(Other-Aircraft b RM-Send-Status). If CAS has selected a 
+climb maneuver against this particular intruder (Other-Aircraft 
+in state Climb), the Vertical Resolution Complement (VRC) is 
+Don't Climb. A value of 2 will be assigned to the VRC field 
+of the Mode S message. 
+The appendices to the document contain additional infor- 
+mation to make the specification more readable or changeable. 
+The first appendix defines constants. Everywhere a constant is 
+used in the document, a label is attached as a subscript, e.g., 
+300 fqMINSEP) associates the constant 300 feet with a label 
+that designates this as the minimum vertical separation allowed 
+between aircraft. A change of the value of this constant (e.g., 
+the FAA decides in the future that minimum vertical separation 
+should be 350 feet) can be automatically and easily made 
+throughout the document. An alternative (and more common) 
+solution to the maintenance and change problem for constants 
+would be to use the label alone throughout the document and 
+put the values associated with the labels into a table. However, 
+
+--- Page 20 ---
+LEVESON et al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 703 
+Fig. 29. Tracked. 
+the latter solution makes the document much less readable and 
+requires constant flipping to the constant definition section to 
+determine the actual numbers associated with the labels. 
+The second appendix, Table Definitions, is used for con- 
+stants that are more naturally stored in a tabular form, e.g., 
+potential-threat minimum-range threshold indexed by our own 
+aircraft sensitivity level. 
+We found that a list of events associated with the state 
+transition that generates them and the state transitions that are 
+triggered by them was helpful in producing the document and 
+included this list in a third appendix. 
+The Glossary contains definitions of technical terms and 
+abbreviations used throughout the document, and the Notation 
+Appendix provides a tutorial on the RSML language. 
+The Reference Algorjthms appendix contains tracking and 
+other algorithms that are not required but are used to define 
+criteria for accuracy of the actual algorithms selected. For 
+example, a tracker chosen by the designer might be required to have at least the accuracy of the alpha-beta tracker specified 
+in the Appendix. 
+Finally, an index to the document is provided that includes 
+an entry for every name used in the document giving the pages 
+on which it is used and the page where it is defined. Currently, 
+there are over 500 entries in the index. 
+VI. EVALUATION AND FUTURE GOALS 
+This paper has defined 1) an approach to specifying system 
+requirements for real-time, reactive systems; 2) the criteria that 
+should be used in designing a language for such requirements; 
+3) a language demonstrating the approach and criteria; and 
+4) the necessary and desirable contents and organization of a 
+system requirements specification using this approach. These 
+were developed while writing a system requirements specifica- 
+tion for an aircraft collision avoidance system, which provided 
+continual evaluation and feedback during development and 
+
+--- Page 21 ---
+704 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 20, NO. 9, SEITEMBER 
+Input: Other-Mode-S-Address 
+Location: Other-Aircraft,20z 
+Source: Surveillance 
+Type: Integer 
+Expected Range: 1 ... (2” - 2) 
+Granularity: I (unit) 
+Units: N/A 
+Load: NJA 
+Exception handling information: Mode-S addresses outside the valid range (i.e., all 
+Os or all 1s) are presently ignored. It is assumed that no such addresses will ocrur 
+because administrative procedures will preclude this event. Duplicate addresses are 
+treated similarly. 
+MOPS Reference: IDINTR 
+Description: The unique address of the Other-Aircraft 
+Comments: This field has no meaning for non-Mode-S-equipped aircraft. No decision 
+has been made about what to do about addresses that are outside the valid rangc or 
+duplicate addresses due to failures of administrative procedures. 
+Fig. 30. Input variable definition. 
+Output: Display-Arrow-Out 
+Location: Other-Aircraft,zoz 
+Destination: Display-Unit 
+Type: Enumerated 
+Expected Range: {No-Arrow. Up, Down) 
+Granularity: N/A 
+Trigger: Display-Arrow-Evaluated-Event,.ael 
+Value: Value Condition 
+No-Arrow Display-Arrow in state No-Arrow 
+Up Display-Arrow in state Up 
+Down Display-Arrow in state Down 
+Units: N/A 
+Load: 11s for CAS. 
+MOPS Reference: ARROW 
+Description: From ATA-STD-TCAS II/lA 4.2.1.10: “A vertical arrow shall be placed 
+to the immediate right of the traffic symbol if the vertical speed of the intruder is equal 
+to or greater than 500 fpm with the arrow pointing up for climbing traffic and dowii for 
+descending traffic.” 
+Comments: 
+Fig. 31. Output variable definition. 
+demonstrated the practicality of writing a formal requirements 
+specification for a complex process-control system. 
+Because the specification (which was originally intended 
+merely to be experimental) was adopted by the FAA during the 
+development of RSML, deadlines required us to deliver parts 
+of the specification while the notation was still evolving. There 
+are some aspects of this type of a specification that still cause 
+difficulties in understanding such as the overall event sequenc- 
+ing and synchronization. During the independent verification 
+and validation of our TCAS specification, we needed to derive 
+addition diagrams and tables so that the reviewers could easily 
+check the consistency of our specification with the previous, 
+pseudocode version. Although parallel state machines and 
+other features of the language did reduce the specification 
+of states enough to make such state-machine specifications Transition(s): - 71 
+Location: Other-Aircraft D Tracked D Intruder-Status,23; 
+Trigger Event: Air-Status-Evaluated-Evente3w 
+Condition: 1994 
+Output Action: Intruder-Status-Evaluated-Event..3,9 
+Description: 
+Columns 1-2 Lost altitude reporting and either the bearing or range inputs are invalid 
+Column S Lost altitude reporting and both range and bearing are valid, but neither the proxi- 
+mate nor potential threat classification criteria are satisfied. 
+Column 4 Aircraft is on ground 
+MOPS Ref. Section 7.1. TRAFFICADVISORY. 
+Fig. 32. Transition definition. 
+practical, the proliferation of events causes problems that need 
+to be handled. 
+Reviews of our document for correctness by users during 
+development made clear that specifications should include 
+graphical, symbolic, tabular and textual notation, depending 
+on the type of information being conveyed. For example, the 
+graphical state machines were a great help during reviews for 
+finding certain types of errors as were the tables for finding 
+other errors. Even though the state transition information had 
+to be removed from the graphical state diagrams and put 
+into tables, the graphical representation provided important information to reviewers of the document that would have been 
+very difficult 
+or impossible to derive from the transition tables 
+alone. A language that contains only graphics or only tables 
+or only symbolic strings is probably less useful than one in 
+which different notational techniques are used to communicate 
+different types of information. More research is needed to 
+determine the most appropriate notations for each type of 
+information that needs to be conveyed. 
+One result of this effort was a demonstration that formal 
+specifications can be applied to complex, reactive systems and 
+that such specifications can be readable and reviewable by 
+application experts with a minimal knowledge of mathemat- 
+ics and computer science. A lesson to be leamed from the 
+experience is that formal specifications can be usable if their 
+design takes into consideration the training and backgrounds 
+of those who are to read and review the specification. Some 
+engineers working with us on the TCAS specification reported 
+that they liked the AND/OR table description of the transition 
+conditions because it resembles the logic tables that they are 
+used to using and that the state machines and logic tables fit 
+the way they think about systems. 
+Although formal specification languages obviously have to 
+be defined in an unambiguous and mathematical way, the 
+syntax itself does not have to contain obscure mathematical 
+symbols that are familiar and comfortable to neither the appli- 
+cation expert nor the implementor of the system. There must 
+simply be an unambiguous translation from the specification 
+language (in our case RSML) to the formal model (RSM for 
+our language) underlying it. Currently, formal specification 
+
+--- Page 22 ---
+LEVESON ef al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 705 
+Macro: Potential-Threat-Condition 
+Definition: 
+Description: 
+potential thrrat range criteria. If the intruder is altitude reporting, it must also satisfy 
+the potential threat altitude criteria. If the intruder is not altitude reporting, then it ic 
+considered a potential threat only if own altitude is helow 15500 It,,.,,,,,.,. 
+MOPS Ref. TRAFFI(!ADVISORY.Traffic~d~isor?-[letection, Rangehit-processing. 
+Fig. 33. Macro definition. To he considered a PolenidThrenf, the intruder must satisfy the 
+languages are designed primarily by mathematicians who use 
+a notation with which they are comfortable, but which is 
+foreign to those who must use the language. One solution 
+is to train hardware and software engineers to think like 
+mathematicians while our alternative solution is to provide 
+languages that allow the user to think about the system in 
+the way that they have been trained in their discipline. We 
+hypothesize that providing a model of a system that is closer 
+to the mental model that the reviewer and implementor have of 
+the system and closer to the way they have thought about such 
+systems in the past will aid in finding errors in the specification 
+itself and reduce the numbers of errors that are introduced in 
+implementing the specification. This hypothesis, of course, still 
+needs to be experimentally validated, although our experience 
+provides some anecdotal support. 
+Because the specification of the CAS logic, from which we 
+built the CAS part of our TCAS model, was low-level pseu- 
+docode, the exercise had many features of reverse engineering. 
+The pseudocode used is a low-level language containing only: 
+1) simple data types (bits, bit strings, character strings, 
+2) arithmetic expressions, 
+3) the structured control statements IF-THEN-ELSE, integers, pointers, and floating point variables), 
+IF-ELSEIF-OTHERWISE, REPEAT-WHILE, REPEAT- 
+UNTIL, and LOOP-EXITIF-LOOP, and 
+4) subroutines (without local variables). 
+All variables are global: There are no local variables but there 
+is provision for passing parameter names to subroutines to 
+show which variables are used by the subroutine (few sub- 
+routines actually use this feature in the TCAS specification). 
+The only complex data structure allowed is a “group” that 
+provides for grouping related variables into a “data structure,” 
+i.e., giving them a group name. 
+In many ways, the TCAS reverse engineering was even 
+more difficult than the usual reverse engineering exercise since 
+the language was so low-level and difficult to read. This 
+specification has acted as the requirements specification for 
+TCAS from 1983 to 1992 and was continually changed as 
+errors were found and changes made to the requirements. 
+Several lessons can be leamed from our experience that are 
+applicable to both forward and reverse engineering efforts in 
+general. Function: Vertical-Resolution-Complement (i) 
+Return type: 
+Definition: { 0. 1, 2 } 
+Vertical-Rrsolution-(‘omplement = 
+0 if Other-Aircraft..?oz[i] not in state Threat 
+1 if Other-Aircraft..mz[i] in state Threat D Descend 
+2 if Other-AircraftS.2o2[i] in state Threat D Climb 
+Description: 
+Mode S message field. Its values have the following meaning: This function returns the value of the Vertical-Rrsolution-Complement 
+Value 14eaning 
+0 
+1 Don’t descend. 
+2 Don’t climb. No vertical resolution advisory complemenl sent. 
+Explanation of value selection criteria: If Other-Aircraft is not in state Threat, then 
+Vertical-Resolution-Complement has value 0 (no vertical RA complement). If TCAS has 
+selected a Descend sense RA against the intruder, then Vertical-Resolution-Complement 
+is set to 1 (don’t descend). Likewise, if TCAS has selected a Climb sense RA against the 
+intruder, then Vertical-Resolution-Complement is set to 2 (don’t climb). 
+MOPS Ref.: Sendinitialintent (p. 6-P57). 
+Fig. 34. Function definition. 
+First, we had difficulty abstracting away from the design. 
+Even when we did not look at the pseudocode, we found it 
+difficult in the beginning to eliminate functional decomposition 
+and flowchart-like logic, i.e., to specify the problem without 
+trying to solve it. With practice we became better at omitting 
+design information, but the struggle never entirely abated. 
+The very low level of the pseudocode also made the process 
+of abstraction more difficult as many purely implementa- 
+tion features, such as flags, had to be used extensively in 
+the pseudocode. After the specification of the CAS logic 
+was completed, an independent verification and validation 
+was performed to compare the pseudocode specification and 
+the RSML specification. The verifiers experienced the same 
+problems that we did, and a large number of identified dis- 
+crepancies resulted in no change to the RSML specification 
+because they merely represented design peculiarities of the 
+pseudocode and not requirements. 
+Second, although it may be a function of the particular 
+system we were reverse engineering, we found it impossible 
+to derive the requirements specification strictly from the pseu- 
+docode and an accompanying English language description. 
+Although the basic information was all there, the intent was 
+missing. Therefore, distinguishing between requirements and 
+artifacts of the implementation was not possible in all cases. 
+As has been discovered by most people attempting to maintain 
+such systems, an audit trail of decisions and the reasons why 
+decisions were made is absolutely essential. This was not done 
+for TCAS over the 15 years of its development and those 
+responsible for the system today are currently attempting to 
+reconstruct decision-making information from old memos and 
+corporate memory. 
+Third, the final requirements specification model would have 
+been different and much simpler if we had been starting 
+from scratch. Because the TCAS pseudocode specification had 
+evolved over a period of more than 15 years, the current 
+version contains more complexity than is necessary. What was 
+originally a simple conceptual model degraded as changes 
+
+--- Page 23 ---
+706 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 20, NO. 9, SEPTEMBER 1994 
+were made to the pseudocode that simplified the process of 
+making the change or minimized the amount of code that 
+needed to be changed, but complicated or degraded the original 
+conceptual model. As Pamas said in [19]: “The problem is 
+that the subsets and extensions are not the programs that we 
+would have designed if we had set out to design just that 
+product.” This is a common maintenance dilemma, and TCAS 
+was no exception. When changes are made to design or code 
+without backing up all the way to requirements, such problems 
+arise and increase as time passes. For TCAS, the highest-level 
+specification was the pseudocode. 
+The problem of increasing complexity and lack of con- 
+ceptual coherency in the underlying model were exacerbated 
+as more and more changes were made over the years and 
+more errors introduced due to the increasing difficulty in 
+determining the consequences of the changes. What we did 
+for the TCAS system was to make the current underlying 
+conceptual model explicit. Because of the necessity of building 
+a requirements specification that matches the TCAS systems 
+actually in use (which were certified against the pseudocode 
+specification), our resulting model is more complicated than 
+necessary, includes more than the minimum required behavior, 
+and is harder to understand than is strictly necessary. This was 
+frustrating as we first built a nice, simple model and found that 
+we had to complicate it for no better reason than that it had to 
+match some errors or poor decisions in the pseudocode. Once 
+our specification is complete, future versions of the system 
+will hopefully retum to a simpler model. We believe that 
+if a blackbox behavioral model of our type had been built 
+originally, not only would the final specification be simpler and 
+more understandable, but making changes without introducing 
+errors or unnecessarily complicating the resulting requirements 
+also would have been simplified. 
+Now that the specification is complete, our work on vali- 
+dating the feasibility and practicality of formal analysis pro- 
+cedures on such specifications has begun. Heimdahl [6] has 
+1) implemented a simulator for RSML so specifications can 
+be executed; 2) formally defined the semantics of RSML 
+using composable functions; 3) devised algorithms to perform 
+semantic analysis on the underlying RSM formal model to 
+ensure completeness and consistency in requirements [ 141; 
+and 4) experimentally validated the analysis algorithms on the 
+TCAS I1 specification. 
+We are currently working on analysis procedures 1) to 
+analyze the entire system model for safety [17]; and 2) to 
+perform standard system engineering risk analyses such as 
+fault tree analysis [18] directly from the system requirements 
+specification. Attempts have also begun to derive test data 
+satisfying various coverage criteria automatically from the 
+specification [251. 
+ACKNOWLEDGMENT 
+Important contributions to this effort were made by R. 
+Ortega and R. Greenberg, both of whom were graduate stu- 
+dents at UCI. We would also like to acknowledge the help 
+of M. DeWalt, J. Treacy, L. Nivert, and T. Choyce of the 
+FAA and the members of the RTCA Working Group on TCAS Requirements, especially K. Ybarra of Honeywell, D. 
+Lubkowski and U. Satyen of MITRE, G. Kyriakos of Bendix, 
+A. Johnson and J. Perez of Rockwell Collins, A. Drumm of 
+Lincoln Labs, and Captain R. Beins (United Airlines) of the 
+TCAS Pilots Working Group. 
+REFERENCES 
+G. R. Bruns, S. L. Gerhart, I. Forman, and M. Graf. “Design technology 
+assessment: The statecharts approach,” Tech. Rep. STP-107-86. MCC, 
+Mar. 1986. 
+E. M. Clarke, E. A. Emerson, and A. P. Sistla, “Automatic verification 
+of finite-state concurrent systems using temporal logic,” Trans. Prog. 
+Lung. and Syst., vol. 8, no. 2, pp. 244-263, Apr. 1986. 
+S. Faulk, J. Brackett, P. Ward, and J. Kirby Jr. “The core method for 
+real-time requirements,” IEEE Software, vol .9, no. 5. Sept. 1992. 
+M. Fitter and T. R. G. Green. “When do diagrams make good computer 
+languages,’’ Int. J. Man-Machine Studies, vol. 1 I, 1979. 
+D. Harel. Statecharts: “A visual formalism for complex systems,” Sci. 
+of Comput. Prog., vol. 8, pp. 231-274, 1987. 
+Mats P. E. Heimdahl, “Static analysis of state based requirements: 
+Analysis for completeness and consistency,” Ph.D. thesis, Univ. of 
+Califomia, Irvine, 1994. 
+K. L. Heninger, “Specifying software for complex systems: New tech- 
+niques and their application,” IEEE Trans. Software Eng., vol. SE-6, no. 
+1, Jan. 1980. 
+D. Harel, H. Lachover, A. Naamad, A. Pnueli. M. Politi. R. Sherman, A. 
+Shtull-Trauring, and M. Trakhtenbrot, “Statemate: A working environ- 
+ment for the development of complex reactive systems,” IEEE Trans. 
+Software Eng., vol. 16, no. 4, Apr. 1990. 
+C. A. R. Hoare, “Communicating sequential processes,” Commun. ACM, 
+vol. 21, no. 8, pp. 666477, 1978. 
+G. J. Holzmann, Design and validation of computer protocols. Engle- 
+wood Cliffs, NJ: Prentice Hall, 1991. 
+D. Harel and A. Pnueli, “On the development of reactive systems” 
+K.R. Apt, Ed., Logics and Models of Concurrent Systems. New York: 
+Springer-Verlag, 1985, pp. 477-498. 
+D. Hatley and I. Pirbhai, Strategies for Real Time System Specification. 
+New York: Dorset House Publishing, 1987. 
+M. S. Jaffe, “Completeness, Robustness, and Safety in Real-Time 
+Software Requirements and Specifications,” Ph.D. thesis, Univ. of 
+Califomia, Irvine, 1988. 
+M. S. Jaffe, N. G. Leveson, M. P. E. Heimdahl, and B. Melhart, 
+“Software requirements analysis for real-time process-control systems,” 
+IEEE Trans. Sofhvare Eng., vol. 17, no. 3,, Mar. 1991. 
+N. G. Leveson, S. S. Cha, and T. J. Shimeall, “Safety Verification of 
+Ada Programs using Software Fault Trees,” IEEE Software, vol. 14, no. 
+I, July 1991. 
+N. G. Leveson and P. R. Harvey, “Analyzing Software Safety,” IEEE 
+Trans. on Software Eng., SE-vol. 9, no. 5. pp. 569-579, Sept. 1983. 
+N. G. Leveson and J. L. Stolzy, “Safety analysis using Petri nets,” IEEE 
+Trans. on Software Eng., vol. 13, no. 3, Mar. 1987. 
+B. E. Melhart. “An external interaction model for specifying require- 
+ments of embedded software,” Tech. Rep. Draft, Texas Christian Univ., 
+Jan. 1991. 
+D. L. Pamas, “Designing software for ease of extension and contrac- 
+tion,” IEEE Trans. Software Eng.. vol. SE-5, no. 2, pp. 128-138, Mar. 
+1979. 
+A. Pnueli and M. Shalev, “What is in a step?’ J.W. De Baker, Liher 
+Amicorum, J. Klop, J. Meijer, and J. Rutten, Eds. Amsterdam: CWI, 
+pp. 373-400, 1989. 
+D. L. Pamas and Y. Wang, “The trace assertion method of module 
+interface specification,” Tech. Rep. 89-261, Queen’s Univ., Kingston, 
+ON, 1989. 
+A. P. Ravn and H. Rischel, “Requirements capture for embedded real- 
+time systems, “ in IMACS Symp. MCTS, 1991. 
+A. C. Shaw, “Communicating real-time state machines,” IEEE Trans. 
+Software Eng., vol. 18, no. 9, pp. 805-816, Sept. 1992. 
+A. J. van Schouwen, “The A-7 requirements model: Re-examination for 
+real-time systems and an application to monitoring systems,” Tech. Rep. 
+90-276, Queen’s Univ., Kingston, ON, May 1990. 
+E. Weyuker, T. Goradia, and A. Singh. “Automatically generating test 
+data from boolean specification,” IEEE Transactions Software Eng., vol. 
+20, no. 5, May 1994. 
+P. Ward and S. Mellor, Structured Development for Real-Time Systems. 
+New York: Yourdon Press, 1985. 
+
+--- Page 24 ---
+LEVESON el al.: REQUIREMENTS SPECIFICATION FOR PROCESS-CONTROL SYSTEM 707 
+Nancy Leveson (received the bachelor’s degree in 
+math, an M.S. in business administration (operations 
+research), and a Ph.D. in computer science from 
+UCLA. 
+She is Boeing Professor of Computer Science 
+and Engineering at the University of Washington 
+(and Adjunct Professor at the University of British 
+Columbia). Her research interests are in software 
+safety and reliability. 
+Dr. Leveson is the Editor-in-Chief of IEEE 
+TRANSACTIONS ON SOFTWARE ENGINEERING and a 
+member of the Board of Directors of the Computing Research Association, 
+the National Research Council Commission on Engineering and Technical 
+Systems, and the ACM Committee on Computers and Public Policy. She 
+recently completed a study of the Space Shuttle Flight Software Processes 
+for NASA and the National Research Council. She consults widely on safety- 
+critical systems for both government and industry. evolution, and domain m Holly Hildreth received the B.S. degree in com- 
+puter science in 1987 from Califomia State Uni- 
+versity, Dominguez Hills, and the M.S. degree in 
+computer science in 1991 from the University of 
+Califomia, Irvine. 
+She is currently working toward the Ph.D. degree 
+in computer science at the University of Califomia, 
+Irvine. She is also with TRW Space and Defense, 
+Redondo Beach, CA. Her research interests in- 
+clude requirements engineering, formal specification 
+languages, reverse engineering. maintenance and 
+iodeling for process-control software. 
+Mats Per Erik Heimdahl (S’90-M’92-S’92) re- 
+ceived the M.S. degree in computer science and 
+engineering from The Royal Institute of Technol- 
+ogy, Stockholm, Sweden, in 1988, and the Ph.D. 
+degree from the University of Califomia at Irvine, 
+in 1994. 
+He is currently an Assistant Professor at the 
+Computer Science Department at Michigan State 
+University. His research interests include require- 
+ments specification, formal methods, static analysis, 
+and software development for critical systems. Jon Damon Reese was born in Waxahachie, TX, on 
+October 24, 1966. He received the B.A. degree in 
+computer science and linguistics from Rice Univer- 
+sity in 1989, and the M.S. degree in information and 
+computer science from the University of California, 
+Irvine, in 1991. He is currently pursuing a Ph.D. in 
+the area of software safety. 

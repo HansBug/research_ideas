@@ -11,11 +11,11 @@
 
 ## 当前收录统计
 
-- 已收录 baseline 论文：**16** 篇
-- 本轮新增论文：**5** 篇
-- 已完成 `DESC.md`：**16** 篇
+- 已收录 baseline 论文：**31** 篇
+- 本轮新增论文：**15** 篇
+- 已完成 `DESC.md`：**31** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮规范化工作：新增 5 篇 baseline 论文目录并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`
+- 本轮规范化工作：新增 15 篇 baseline 论文目录并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`
 
 ## BASELINE评估口径
 
@@ -35,6 +35,9 @@
 - `iterative refinement/model repair/model completion/test generation` + `state machine/FSM`
 - `diagram recognition/vision-language/multimodal` + `state diagram/FSM`
 - `state machine` + `formal verification/model checking/constraint repair`
+- `Given-When-Then` + `SysML state machine`
+- `process-control/control system` + `requirements specification` + `state-based/RSML/statechart`
+- `temporal logic/LTL` + `SysML v2 state machine`
 
 ### 已观察到的高命中特征
 
@@ -43,6 +46,8 @@
 - `partial model -> completion/repair` 且对象明确是状态机时，命中率更稳定
 - 出现 `iterative`、`refinement`、`feedback`、`few-shot`、`RAG` 等方法词
 - 安全关键或工业领域关键词常能带来更贴近 `project_1` 的论文
+- `process-control`、`reactive systems`、`RSML`、`state-based specification` 这条经典控制软件线索很容易找到高任务对齐前身工作
+- `Given-When-Then`、`LTL -> state machine`、`sequence diagrams -> statecharts` 这类显式桥接链路词，命中率明显高于泛 MBSE 关键词
 
 ### 已观察到的低命中特征
 
@@ -51,10 +56,13 @@
 - 输出是顺序图、类图、goal model、一般 domain model 的论文默认不是本 collection 的主线
 - 纯教学经验、课堂问卷或学习体验类 UML 论文通常弱于“真正生成模型”的论文
 - 纯综述、纯经验报告，缺少明确方法与实验对比
+- 只做 requirements formalization、DSL 翻译或 temporal logic 输出的论文，若没有状态机落点，通常只能保留为 `🟠`
+- 控制逻辑图、功能块图、PLC/DCS 工程图等虽然很贴近工业控制，但若没有显式状态机语义，也不能直接算 `🟢`
 
 ### 检索倾向调整
 
 - 优先补“直接生成状态机模型”和“带反馈闭环的状态机精化/修复”两类工作
+- 当 LLM 直接命中不足时，优先补“任务定义高度一致”的经典非 LLM 前身，而不是继续扩张到泛建模论文
 - 泛 UML/SysML 论文仅在其方法明确输出状态机时保留
 - 多模态图样识别和自动 benchmark 构建可保留，但需在 `DESC.md` 中明确说明其“邻近 baseline”性质
 - 非状态机输出论文原则上不再继续扩张收录，只在少量必要场合作为弱相关参照保留
@@ -79,6 +87,21 @@
 | 14 | 🟠 | 多模态邻近 | From Image to UML: First Results of Image-Based UML Diagram Generation Using LLMs | 2024 | UML 类图图像 / 手绘图 | PlantUML 类图代码 | UML 类图 | GPT-4V、Gemini Pro、Gemini Ultra、CogVLM | 多模态图像识别到 PlantUML 的重复实验比较 | [paper](./from-image-to-uml/) |
 | 15 | 🟠 | 泛建模补全 | Towards using Few-Shot Prompt Learning for Automating Model Completion | 2023 | 部分 UML 类图 / 活动图 | 类、属性、关联名与活动流补全建议 | UML 类图 / 活动图 | GPT-3 (`text-davinci-002`) | 将模型补全转写为 few-shot prompt learning 任务 | [paper](./few-shot-model-completion/) |
 | 16 | 🟠 | 泛建模 | On the Use of GPT-4 for Creating Goal Models: An Exploratory Study | 2023 | 领域描述 + TGRL 语法提示 | GRL/TGRL 目标模型 | Goal model | GPT-4 | 多 prompt、多次运行与结果聚合的目标建模探索 | [paper](./gpt4-goal-models/) |
+| 17 | 🟡 | 状态机补全 | Completion of SysML state machines from Given–When–Then requirements | 2024 | 部分 SysML 模型 + GWT 需求 | 补全后的 SysML 状态机 | SysML state machine | 未使用 | GWT 需求规则化后补全迁移与 traceability | [paper](./completion-of-sysml-state-machines-from-gwt-requirements/) |
+| 18 | 🟡 | 形式化需求到状态机 | Enhancing model-based development with formalized requirements: integrating temporal logic and SysML v2 for comprehensive state and transition modeling | 2025 | LTL 形式化需求 | SysML v2 状态机 | SysML v2 state machine | 未使用 | LTL 生成允许状态/迁移并编译到 SysML v2 | [paper](./enhancing-model-based-development-formalized-requirements/) |
+| 19 | 🟠 | 需求状态抽取 | Extraction of System States from Natural Language Requirements | 2019 | 自然语言需求文本 | 状态实体/状态短语 | 状态标签列表 | BiLSTM-CNN | 需求文本 NER 抽取系统状态 | [paper](./extraction-of-system-states-from-natural-language-requirements/) |
+| 20 | 🟢 | 经典直接建模 | Executable State Machines Derived from Structured Textual Requirements - Connecting Requirements and Formal System Design | 2019 | 结构化文本需求 | 可执行有限状态机模型 | Executable FSM | 未使用 | 结构化需求 -> 时序逻辑 -> 状态机 -> 可执行模型 | [paper](./executable-state-machines-derived-from-structured-textual-requirements/) |
+| 21 | 🟠 | 邻近UML设计生成 | Automatic Synthesis of UML Designs from Requirements in an Iterative Process | 2002 | 用例 / 场景 / Sequence Diagrams | UML 设计工件（含 statecharts） | UML statecharts + class diagrams | 未使用 | 场景驱动综合 UML 设计并在迭代中保持一致性 | [paper](./automatic-synthesis-of-uml-designs-from-requirements/) |
+| 22 | 🟠 | 需求形式化 | Technical Report on Neural Language Models and Few-Shot Learning for Systematic Requirements Processing in MDSE | 2022 | 非正式汽车需求 | Requirement DSL | Requirement DSL | 预训练语言模型（few-shot） | few-shot requirements-to-DSL 翻译 | [paper](./tech-report-neural-language-models-few-shot-mdse/) |
+| 23 | 🟠 | LLM控制逻辑邻近 | Spec2Control: Automating PLC/DCS Control-Logic Engineering from Natural Language Requirements with LLMs - A Multi-Plant Evaluation | 2025 | 自然语言 control narratives | 图形化 PLC/DCS 控制逻辑 | Graphical control logic | GPT-5 等 | 从 control narrative 识别策略/连接/报警并生成控制逻辑图 | [paper](./spec2control/) |
+| 24 | 🟡 | 状态机执行化 | Specification-based Prototyping for Embedded Systems | 1999 | 形式化需求规格 | 可执行层次状态机原型 | Hierarchical state machine prototype | 未使用 | 把规格当作原型执行并沿层次状态机做 refinement | [paper](./specification-based-prototyping-for-embedded-systems/) |
+| 25 | 🟠 | 工具环境 | NIMBUS: A Tool for Specification Centered Development | 2000 | RSML-e 规格 | 分析/执行/代码测试工件 | RSML-e toolchain | 未使用 | 围绕 RSML-e 提供分析、仿真、代码生成与测试 | [paper](./nimbus-tool-for-specification-centered-development/) |
+| 26 | 🟢 | 经典直接建模 | Requirements Capture and Evaluation in Nimbus: The Light-Control Case Study | 2000 | 灯光控制系统需求 | RSML-e 状态化需求模型 | State-based requirements model | 未使用 | 用 RSML-e + Nimbus 捕获并执行灯光控制需求 | [paper](./requirements-capture-and-evaluation-in-nimbus-light-control/) |
+| 27 | 🟢 | 经典直接建模 | Requirements Specification for Process-Control Systems | 1994 | 过程控制系统需求 | 形式化状态化需求规格 | State-based formal requirements spec | 未使用 | 面向过程控制的规格语言建模并以 TCAS II 演示 | [paper](./requirements-specification-for-process-control-systems/) |
+| 28 | 🟠 | 需求分析 | Software Requirements Analysis for Real-Time Process-Control Systems | 1991 | 状态机式需求规格 | 语义分析准则 | Semantic analysis criteria | 未使用 | 基于抽象状态机模型定义需求分析准则 | [paper](./software-requirements-analysis-for-real-time-process-control/) |
+| 29 | 🟡 | 状态机补全/调试 | Automatic Debugging Support for UML Designs | 2000 | Annotated sequence diagrams | Structured statecharts + 冲突解释 | Structured statecharts | 未使用 | 序列图综合 statecharts 并做 backward debugging | [paper](./automatic-debugging-support-for-uml-designs/) |
+| 30 | 🟡 | 需求-状态机集成 | Integrating Inter-Object Scenarios with Intra-object Statecharts for Developing Reactive Systems | 2020 | LSC 场景规格 | LSC + Statecharts 联合模型 | Integrated scenario-statechart model | 未使用 | 将 scenario-based programming 与 Statecharts 联合执行 | [paper](./integrating-inter-object-scenarios-with-intra-object-statecharts/) |
+| 31 | 🟠 | 需求形式化 | Formal Requirements Elicitation with FRET | 2020 | FRETish 需求 | FRETish + 时序逻辑 | Restricted NL / temporal logic | 未使用 | 受限自然语言到时序逻辑、解释与仿真分析入口 | [paper](./formal-requirements-elicitation-with-fret/) |
 
 ## 数据集与 Benchmark 清单
 
@@ -115,6 +138,21 @@
 | 14 | [paper](./from-image-to-uml/) | 🟠 | IMG2UML examples | 自己制作 + 开源示例 | 准备 4 张 UML 类图图像，比较 4 个视觉 LLM 在不同 prompts 下的转写效果 | UML 类图图像 | PlantUML 类图代码 | 4 个图像样例 × 3 prompts × 3 runs | 🟢 | [IMG2UML-Examples](https://github.com/BESSER-PEARL/IMG2UML-Examples) | 面向图像到 UML 转写的开放示例集 |
 | 15 | [paper](./few-shot-model-completion/) | 🟠 | ModelSet + activity diagram examples | 使用现成数据集 | 从 ModelSet 中选取 30 个领域模型做类名补全，并基于公开活动图示例展示动态图补全 | 部分 UML 类图 / 活动图 | 模型补全建议 | 30 个领域模型；212 个类；40 对关联名 | 🟢 | [GitHub 仓库](https://github.com/meriembenchaaben/model-completion) | 面向模型补全的 few-shot prompting 实验工件 |
 | 16 | [paper](./gpt4-goal-models/) | 🟠 | GRL_GPT prompts 与评分结果 | 自己制作 | 整理 18 个 goal-modeling 问题和 2 个案例的 prompts、评分结果与实验记录 | 领域描述 + TGRL 提示 | GRL/TGRL 目标模型 | 18 个问题 + 2 个案例 | 🟢 | [GitHub 仓库](https://github.com/ChenKua/GRL_GPT) | 面向 GPT-4 目标建模评估的开放实验记录 |
+| 17 | [paper](./completion-of-sysml-state-machines-from-gwt-requirements/) | 🟡 | ETCS Level 3 + 医疗告警系统案例 | 案例系统 | 基于部分 SysML 模型和 GWT 需求做状态机补全与 traceability 建模 | 部分 SysML 模型 + GWT 需求 | SysML 状态机 | 2 个案例 | 🟠 | 原文未提供公开下载链接 | 关键系统案例驱动的状态机补全实验 |
+| 18 | [paper](./enhancing-model-based-development-formalized-requirements/) | 🟡 | 汽车照明系统示例 | 简化工业示例 | 将需求人工形式化为 LTL，再自动生成允许状态/迁移并落到 SysML v2 | LTL 形式化需求 | SysML v2 状态机 | 1 个示例 | 🟠 | 原文未提供公开数据集下载链接 | 车辆功能需求的形式化与状态机建模示例 |
+| 19 | [paper](./extraction-of-system-states-from-natural-language-requirements/) | 🟠 | 需求状态抽取语料 | 需求文档 | 人工/半自动标注约 2000 条需求，用于训练状态抽取 NER 模型 | 自然语言需求文本 | 状态实体 | 约 2000 条需求 | 🟠 | 原文未提供公开语料链接 | 用于从需求文本中抽取状态短语的标注语料 |
+| 20 | [paper](./executable-state-machines-derived-from-structured-textual-requirements/) | 🟢 | Adaptive Outside Light Control 案例 | 工业汽车案例 | 将结构化文本需求映射到时序逻辑，再生成可执行状态机 | 结构化文本需求 | Executable FSM | 1 个工业案例 | 🟠 | 原文未提供公开下载链接 | Daimler 汽车系统的可执行状态机派生案例 |
+| 21 | [paper](./automatic-synthesis-of-uml-designs-from-requirements/) | 🟠 | 场景驱动 UML 设计示例 | 说明性示例 | 从用例和场景综合 UML 设计，并在迭代中保持一致 | 用例 / 场景 / Sequence Diagrams | UML 设计工件（含 statecharts） | 原文未明确 | 🟠 | 原文未提供公开数据集链接 | 早期 UML 需求到设计综合的说明性流程 |
+| 22 | [paper](./tech-report-neural-language-models-few-shot-mdse/) | 🟠 | 开源汽车需求集 | 开源需求语料 | 在汽车需求语料上做 few-shot requirements-to-DSL 翻译 | 非正式汽车需求 | Requirement DSL | 原文首页未明确 | 🟠 | 原文首页未给出统一下载链接 | 面向 MDSE 的需求结构化语料与翻译实验 |
+| 23 | [paper](./spec2control/) | 🟠 | 开放 control narratives 测试集 | 开放数据集 | 10 份 control narratives + 65 个复杂测试用例，用于评估控制逻辑自动生成 | 自然语言 control narratives | 图形化控制逻辑 | 10 narratives + 65 tests | 🟠 | PDF 首页未给出明确下载入口 | 工业控制 narrative 与测试用例集合 |
+| 24 | [paper](./specification-based-prototyping-for-embedded-systems/) | 🟡 | Nimbus/RSML-e 原型化案例 | 方法与环境示例 | 以形式化规格驱动可执行原型与状态机 refinement | 形式化需求规格 | 可执行层次状态机原型 | 原文未明确 | 🟠 | 原文未提供公开数据集链接 | 规格即原型的嵌入式系统案例脉络 |
+| 25 | [paper](./nimbus-tool-for-specification-centered-development/) | 🟠 | 无独立 benchmark | 工具环境说明 | 围绕 RSML-e 规格提供分析、执行、代码生成与测试支持 | RSML-e 规格 | 分析/执行/代码测试工件 | 不适用 | 🟠 | 不适用 | 规格中心开发工具链说明 |
+| 26 | [paper](./requirements-capture-and-evaluation-in-nimbus-light-control/) | 🟢 | Light Control System case study | 参考案例 | 用 RSML-e 与 Nimbus 捕获、执行并评估灯光控制需求 | 灯光控制需求 | RSML-e 状态化需求模型 | 1 个案例 | 🟢 | 论文正文即给出案例与建模过程 | 经典灯光控制状态化需求建模案例 |
+| 27 | [paper](./requirements-specification-for-process-control-systems/) | 🟢 | TCAS II 案例 | 工业航空案例 | 用面向过程控制的规格语言把需求写成形式化状态模型 | 过程控制系统需求 | 形式化状态化需求规格 | 1 个案例 | 🟠 | 原文未提供独立案例下载页 | TCAS II 需求规格化与状态建模案例 |
+| 28 | [paper](./software-requirements-analysis-for-real-time-process-control/) | 🟠 | 无独立 benchmark | 理论分析 | 基于抽象状态机模型定义需求语义分析准则 | 状态机式需求规格 | 分析准则 | 不适用 | 🟠 | 不适用 | 面向实时过程控制需求规格的分析框架 |
+| 29 | [paper](./automatic-debugging-support-for-uml-designs/) | 🟡 | UML 需求/设计示例 | 算法示例 | 从 annotated sequence diagrams 综合 structured statecharts 并回查冲突 | Annotated sequence diagrams | Structured statecharts | 原文未明确 | 🟠 | 原文未提供公开数据集链接 | 场景需求到状态图再到冲突调试的示例链路 |
+| 30 | [paper](./integrating-inter-object-scenarios-with-intra-object-statecharts/) | 🟡 | 无统一 benchmark | 环境/语义说明 | 将 LSC 场景规格和 Statecharts 做联合执行集成 | LSC 场景规格 | LSC + Statecharts 联合模型 | 不适用 | 🟠 | 原文未提供公开数据集链接 | 需求场景与状态图集成开发环境 |
+| 31 | [paper](./formal-requirements-elicitation-with-fret/) | 🟠 | NASA / LMCPS 案例需求 | 工业/航空案例 | 在 FRET 中用 FRETish 写需求并自动得到时序逻辑与解释 | FRETish 需求 | FRETish + 时序逻辑 | 原文首页未明确 | 🟠 | [FRET GitHub](https://github.com/NASA-SW-VnV/fret) | 受限自然语言需求形式化与分析案例 |
 
 ## 初步归类与覆盖盘点
 
@@ -122,31 +160,29 @@
 
 | 类别 | 篇数 | 说明 |
 |---|---:|---|
-| 直接生成 | 5 | 直接从自然语言或系统规格生成状态机、状态图或 SysML 状态机等核心工件 |
-| 精化/修复/扩展 | 2 | 从已有 FSM/状态图出发做约束注入、扩展或修复 |
-| FSM代码生成 | 2 | 围绕有限状态机问题生成 RTL / HDL 代码，但输出不是状态机模型 |
-| 泛建模/邻近 baseline | 5 | 结构建模、目标建模、UML 建模经验评估与非状态机补全等支撑项 |
-| 多模态邻近 | 2 | 图像状态图或 UML 图像识别到机读模型/代码的邻近工作 |
-| 邻近行为建模 | 1 | 输出是行为图但不是状态机，保留作弱相关参照 |
+| 直接状态机建模 | 8 | 直接从自然语言、结构化需求或控制系统需求得到状态机/状态化规格的核心基线 |
+| 补全/精化/扩展/集成 | 8 | 围绕已有模型、场景或形式化需求做状态机补全、扩展、调试、执行化或双层集成 |
+| 需求形式化/分析/状态抽取 | 5 | 需求 DSL、时序逻辑、状态抽取与需求语义分析等前置/支撑方法 |
+| 邻近建模与控制逻辑 | 10 | 非状态机输出的 UML/goal/domain/control-logic 邻近工作与多模态/代码生成参照 |
 
 ### BASELINE评估分布
 
 | 评估 | 篇数 | 说明 |
 |---|---:|---|
-| 🟢 | 5 | 可与“自然语言自动生成状态机模型”直接对比的核心 baseline |
-| 🟡 | 3 | 仍围绕状态机精化、扩展或识别，但不属于纯自然语言直接建模 |
-| 🟠 | 8 | 邻近建模、多模态识别、FSM代码生成、非状态机行为建模或经验评估工作，可借鉴但不可直接公平对比 |
+| 🟢 | 8 | 可与“需求/描述到状态机或等价状态化规格”直接对比的核心 baseline，其中包含 5 篇 LLM 直接工作和 3 篇经典前身工作 |
+| 🟡 | 8 | 仍围绕状态机补全、扩展、调试、执行化或场景-状态机集成，但不是纯自然语言直接建模 |
+| 🟠 | 15 | 邻近建模、需求形式化、状态抽取、控制逻辑生成、FSM代码生成或经验评估工作，可借鉴但不可直接公平对比 |
 | ⚪ | 0 | 当前正式收录中暂无仅作背景资料的论文 |
 
 ### 当前最有价值的整体观察
 
-1. 真正直接做“自然语言到状态机模型”的论文仍然不多，当前直接 baseline 仍集中在 5 篇核心论文。
-2. 直接可比 baseline 主要集中在 `llms_emp`、`fsm-gen-iec-61499`、`req`、`umple` 和 `ttool-ai`。
-3. 真正仍可评为 `🟡` 的，只剩 `STPA`、`safety` 和 `I4.0` 这三类明确围绕状态机本体的精化、扩展或识别工作。
-4. `requirements-to-uml-sequence-diagrams` 虽然输入也是自然语言需求，但输出是顺序图而非状态机，因此只能作为弱相关邻近证据，不能算直接 baseline。
-5. `enhance` 与 `LLM-FSM` 虽然都围绕 FSM，但输出是 HDL/RTL 代码与推理 benchmark，因此按新标准都应降为 `🟠`，不能再算状态机 baseline。
-6. `chatgpt-uml-assessment`、`few-shot-model-completion` 与 `gpt4-goal-models` 提供了重要负面和中性证据：通用 LLM 有建模潜力，但若输出不是状态机族模型，就只能作为弱相关参照。
-7. 多模态方向中 `I4.0` 仍保留为 `🟡`，因为它能恢复可机读状态机；而 `from-image-to-uml` 只到类图，因此仅是 `🟠`。
+1. 真正直接做“自然语言到状态机模型”的**LLM** 论文仍然不多，直接 LLM baseline 依旧集中在 `llms_emp`、`fsm-gen-iec-61499`、`req`、`umple` 和 `ttool-ai` 五篇。
+2. 本轮新增最有价值的补充不是更多 LLM 直出状态机论文，而是 1990s-2020s 间一条很清晰的经典前身线：`Requirements Specification for Process-Control Systems`、`Requirements Capture and Evaluation in Nimbus`、`Executable State Machines Derived...` 等。
+3. 这条经典线说明：控制系统/安全关键系统里，“需求 -> 状态化规格/状态机/可执行模型”并不是新问题，真正稀缺的是把这条链现代化为 LLM 驱动、低门槛、可验证的自动建模流程。
+4. 很多新增论文虽然不能评为 `🟢`，但在前处理和后处理层面极有价值，例如状态抽取（`Extraction of System States...`）、DSL/LTL 形式化（`Technical Report...`、`FRET`）、状态机调试回写（`Automatic Debugging Support...`）和规格执行化（`Specification-based Prototyping...`）。
+5. `Spec2Control` 这类新近工业 LLM 工作说明：控制系统自然语言到图形化工件已经开始落地，但主流落点仍是 PLC/DCS control logic，而不是状态机。
+6. `requirements-to-uml-sequence-diagrams`、`from-image-to-uml`、`gpt4-goal-models` 等工作继续提供重要边界证据：输入形式虽然接近，但只要输出不是状态机族模型，就不能混入直接 baseline。
+7. 新增经典控制规格论文也为本课题后续“生成-验证-修复”闭环提供了现成约束源，可用于提炼状态、守卫、模式切换和鲁棒性检查规则。
 
 ## 待补充高优先级候选
 
@@ -160,6 +196,7 @@
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-03-12 | 新增 15 篇更贴近任务定义的 baseline/经典前身/邻近支撑论文 | 本轮补入 `completion-of-sysml-state-machines-from-gwt-requirements`、`enhancing-model-based-development-formalized-requirements`、`extraction-of-system-states-from-natural-language-requirements`、`executable-state-machines-derived-from-structured-textual-requirements`、`automatic-synthesis-of-uml-designs-from-requirements`、`tech-report-neural-language-models-few-shot-mdse`、`spec2control`、`specification-based-prototyping-for-embedded-systems`、`nimbus-tool-for-specification-centered-development`、`requirements-capture-and-evaluation-in-nimbus-light-control`、`requirements-specification-for-process-control-systems`、`software-requirements-analysis-for-real-time-process-control`、`automatic-debugging-support-for-uml-designs`、`integrating-inter-object-scenarios-with-intra-object-statecharts`、`formal-requirements-elicitation-with-fret`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 新增 5 篇 baseline 并补齐单篇分析 | 新增 `chatgpt-uml-assessment`、`requirements-to-uml-sequence-diagrams`、`from-image-to-uml`、`few-shot-model-completion`、`gpt4-goal-models`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 建立 `baselines/` 四件套并统一命名 | 新增 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)、[DESC_GUIDE.md](./DESC_GUIDE.md)，并将全部 `desc.md` 更名为 `DESC.md` |
 | 2026-03-12 | 补充 BASELINE 评估、输入输出方法字段和数据集总表 | 将论文清单改为固定字段表，并新增“数据集与 Benchmark 清单” |

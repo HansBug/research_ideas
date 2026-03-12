@@ -1,0 +1,2039 @@
+--- Page 1 ---
+arXiv:2211.09084v1  [cs.SE]  16 Nov 2022TechnicalReport onNeural LanguageModelsand
+Few-ShotLearning for SystematicRequirements
+Processingin MDSE
+VincentBertram,MiriamBoß, EvgenyKusmenko, ImkeHeleneNachmann,Be rnhardRumpe,
+DaniloTrotta, Louis Wachtmeister
+{bertram,boss,kusmenko ,nachmann ,rumpe,wachtmeister}@se-rwth.de
+RWTHAachenUniversity, Software Engineering
+Aachen,Germany
+Abstract
+Systemsengineering,inparticularintheautomotivedomain,
+needstocopewith the massively increasing numbersofre-
+quirements that arise during the development process. To
+guarantee a high product quality and make sure that func-
+tional safety standards such as ISO26262 are fulﬁlled, the
+exploitationofpotentialsofmodel-drivensystemsengineer-
+ing in the form of automatic analyses, consistency checks,
+andtracingmechanismsisindispensable.However,thelan-
+guageinwhichrequirementsarewritten,andthetoolsneeded
+tooperateonthem,arehighlyindividualandrequiredomain-
+speciﬁc tailoring. This hinders automated processing of re-
+quirements as well as the linking of requirements to mod-
+els. Introducing formal requirement notations in existing
+projects leads to the challenge of translating masses of re-
+quirements and process changes on the one hand and to
+the necessity of the corresponding training for the require-
+mentsengineers.
+Inthispaper,basedontheanalysisofanopen-sourceset
+ofautomotiverequirements,wederivedomain-speciﬁclan-
+guageconstructshelpingustoavoidambiguitiesinrequire-
+ments and increase the level of formality. The main contri-
+bution is the adoption and evaluation of few-shot learning
+with large pretrained language models for the automated
+translationofinformalrequirementstostructuredlanguages
+such as a requirement DSL. We show that support sets of
+less than ten translation examples can suﬃce to few-shot
+train alanguagemodeltoincorporatekeywordsandimple-
+mentsyntacticrulesintoinformalnaturallanguagerequire-
+ments.
+1 Introduction
+Innovation of modern systems comes from realizing com-
+plexfunctionalitiesthroughtheinteractionofsoftware,ele c-
+trical and mechanical components. Advanced Driver Assis-
+tanceSystems(ADASs),autonomousvehicles,andotherCy-
+ber-Physical Systems (CPSs) have emerged from this ongo-
+ing trend. Due to the heterogeneous and interactive nature
+of these systems-of-systems, their engineering has become
+ahighlyeﬀortfultaskthatfacesmanychallenges[33,36,39,
+40, 57]. One of them is certainly the need for collaborationof experts from diﬀerent domains [20]. This challenge also
+manifestsintherisingnumberofrequirementsthataddress
+stakeholdersfromheterogeneousdomains.Insystemsengi-
+neering, and in particular the automotive domain, require-
+ments are captured as documents that contain text mainly
+in natural language [41] often with additional information
+provided through, e.g.,pictures or Computer-Aided Design
+(CAD)models.Expertsinterpretthesetextualrequirements
+to enter the design phase, and most often derive details of
+theimplementationdirectlyfromthem[22].Theambiguity
+of natural language, in particular, when interpreted by ex-
+perts from diﬀerent backgrounds, as well as the increasing
+number of requirements may result in decreasing product
+quality,system failureswhichare currentlydetectedat lat e
+development stages [17] and hinders the implementation
+offunctionalsafetystandardssuchISO26262.Furthermore,
+thedocument-basedapproachtorequirementsengineering
+preventsagiledevelopment,whereautomatedanalysesand
+synthesesshouldenable earlyerrordetection andfast feed-
+backfor thedevelopers.
+What is needed are tools to capture, analyze, and pro-
+cess requirements systematically during all phases of the
+development cycle. An approach to achieve this is Model–
+Driven Engineering (MDE) [22], which utilizes models as
+the primary development artifacts. That is, these models
+serve as documentation and communication basis for en-
+gineers, but also as input for analyses and syntheses, such
+as veriﬁcation [34], test case [17], or code generation [16].
+For instance, MDE can be applied to facilitate the design of
+Artiﬁcial Intelligence (AI)-basedsystems [2, 26, 37, 38].Ap -
+proachestointroduceMDEintheautomotiverequirements
+engineering exist [42], but introducing MDE comes with
+initial costs and eﬀorts for training the domain experts in
+modeling,and most often, for translating many documents
+to models[8]. An advantage of using Domain Speciﬁc Lan-
+guages (DSLs) rather than general purpose modeling lan-
+guages such as the Uniﬁed Modeling Language (UML) is
+that their syntax and semantics [29] can be designed to be
+intuitive forthe modelusers.Asrequirementsarecaptured
+innaturallanguage,weassumethatatextualDSLthatoﬀers
+sentencestructuresandwordingthatisclosetothecurrent
+1
+
+--- Page 2 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+formulationofrequirementsincreasesintuitiveness ofboth
+usageandunderstandingofmodelsinthisDSLsigniﬁcantly.
+However,inadditiontotheDSLdevelopmentcostsandthe
+DSL training, once the DSL is developed, the translation of
+old,unstructuredrequirementstomodelsintheDSLcanbe
+atremendouseﬀortduetothehighnumberofrequirements,
+requiring time and modeling know-how from the translat-
+ing developer.
+In this paper, we analyze an open-source set of automo-
+tiverequirementsforADASandAdaptiveLightSystem(ALS)
+tounderstandwhereformulationinaccuraciesoccurandhow
+targeted DSL constructs can help eliminate these inaccura-
+cies and increase the level of formality and consistency in
+these requirements. The goal and main contribution of
+this paper is the application and evaluation of few-
+shot learning of large neural natural language mod-
+els for the translation of given unstructured require-
+mentstosentencesincorporatingthenewformalDSL
+constructs.
+Such translation models can be used 1) during the intro-
+duction phase of a DSL to automatically translate existing
+or legacy natural language requirements into the new DSL
+syntax and 2) to correctnatural language inputs in a smart
+editor when a requirement engineer writes a new require-
+mentasnaturaltext.Withthisautomationsupportedbythe
+factthatfew-shot learningrequiresonlyahandfuloftrans-
+lation examples to learn a given translation task, our aim
+is to facilitate the introduction of highly specialized
+requirementDSLs, e.g., targetinga single department
+of a company using speciﬁc wording or even a single
+project.
+Theremainder ofthispaperisstructured asfollows.Sec-
+tion2introducesthetechnicalfoundationsofourapproach;
+Section3highlightsthechallengesandpotentialsofanMDE
+approachforrequirements engineeringwithin engineering
+domains,drivenbynatural-languagetext-baseddocuments.
+Section4outlinesrelatedworkinthisarea.Section5present s
+an example DSL for capturing requirements in the automo-
+tivedomain.Section6detailstheautomatictranslationfrom
+natural-language to the DSL. In Section 7 we evaluate the
+approachinmultipleexperiments.Wediscussthreatstova-
+lidityinSection8beforeSection9concludesthepaper.This
+paperisanextendedversion ofthecorrespondingSLEpub-
+lication by Bertramet al.2022[4].
+2 Preliminaries
+2.1 NeuralLanguageModels
+Our approach for text-to-DSL translation of requirements
+relies heavily on large transformer-based neural language
+models. The original transformer architecture [58] is a
+groundbreaking neural network architecture for sequence-
+to-sequenceprocessing.Ithasanencoder-decoderstructure,where the encoder receives a sequence as its input and en-
+codes its content to pass it to the decoder. The decoder it-
+eratively creates the target sequence using a graph search
+method, e.g., beam search. Instead of using recurrent neu-
+rons such as long short-term memorys (LSTMs) the trans-
+formerarchitecturereliesexclusivelyontheattentionmec h-
+anism to graspdependenciesbetween sequence elements.
+While we are not going to use the original transformer
+architecture itself, all models employed in this paper are
+its derivatives. For the automatic translation from natural
+language requirements to the DSL, we utilize a derivative
+of Generative Pre-trained Transformer (GPT) [52], which
+is tailored towards text generation. GPT is a transformer-
+based decoder-only language model that employs a semi-
+supervisedlearningapproach[52].Theauthorsshowedthat
+generativeunsupervisedpretrainingonunlabeleddata,where,
+givenasequenceofwords,thenetworkissupposedtolearn
+to predict the next word with the highest likelihood, and
+subsequentsupervised ﬁne-tuningofthepretrainedparam-
+etersforaspeciﬁcdownstreamtaskoutperformeddiscrimi-
+nativelytrainedmodels.GPTlanguagemodelshaveevolved
+over the last few yearsand various variants exist.
+In[53],theauthorsshowedthat,givenasuﬃcientlylarge
+capacity and a large, varied text corpus in training, a lan-
+guage model can solve tasks across diﬀerent domains for
+whichit hasnot experiencedexplicit training,also referred
+to as zero-shot learning. Furthermore, in [7], the authors
+show that zero-shot learning is outperformed by few-shot
+learning. In few-shot learning, the model is given a sup-
+portsetconsisting ofaverysmallnumberoftrainingexam-
+ples demonstrating how to solve a new task as part of the
+model’sinput.Noweightupdatesarenecessary,i.e.noclas-
+sicaltrainingisperformed.Thesupportsetisinputintothe
+model as part of the query. Based on this context, the lan-
+guage model can then solve the new task for a new input.
+Incontrasttozero-shotlearning,few-shotlearningenables
+targeted training for very speciﬁc tasks, making it particu-
+larly interesting for requirements engineering, a discipline
+heavilyrelyingonnaturallanguageandwheretrainingdata
+isoften scarce.
+Fortheautomatictranslationofnaturallanguagerequire-
+mentstoamodelintheDSLwemainlyrelyonGPT-J-6B[59,
+60],anopen-sourcelanguagemodelbasedonthe6.7BGPT-
+3 [7] network and its hyperparameters. Similarly to GPT-
+Neo[6],itisalsotrainedonthePiledataset[25].According
+to the authors, its performance is almost on par with the
+6.7B GPT-3 network, and it is the best-performing publicly
+availabletransformerlanguagemodelintermsofzero-shot
+performanceonvarious down-streaming tasks1.
+1https://arankomatsuzaki.wordpress.com/2021/06/04/gpt- j/
+2
+
+--- Page 3 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+2.2 Datasets
+The method presented in this paper is evaluated on a pub-
+licly available dataset published by Daimler AG, fostering
+reproducibility. The dataset stems from the automotive do-
+main and consists of 120 textual requirements [5]. It con-
+tains natural language requirements for two typical auto-
+motive systems,namely ALSand ADAS.
+The requirements of the ALS describe a set of system
+functions: The functionality that causes the vehicle’s direc-
+tion indicators to ﬂash in response to the steering column
+leverandhazardwarningﬂasherswitch.Afunctiontolower
+thebeamsdependingontherotarylightswitchpositionand
+the vehicle setting for daytime running light. An adaptive
+high beam to control the high beam headlamp depending
+onthehighbeamswitch andthedetectionofoncomingve-
+hicles.
+For the ADASsystem, thedataset containsrequirements
+concerning the main components for adaptive cruise con-
+trolwhichmaintainsthedistancetothevehicleinfrontand
+a speed set either manually by the driver or via traﬃc sign
+detection, provides a distance warning and an emergency
+brake assistant which reacts to stationary obstacles and to
+moving obstacles.
+The requirements address a variety of typical features of
+currentembeddedsoftware-intensivesystems,(i.e.,softwar e
+is the key element to realize the functionality) from the au-
+tomotive domain such as highly distributed and partially
+safety-critical functionality, hard real-time requirements , a
+combinationofmechanical,mechatronicandelectroniccom-
+ponents both having reactive and regulating functional be-
+havior and numerous product variants (e.g., due to of dif-
+ferent product architectures, legal requirements or special
+equipment).
+3 Model-DrivenRequirements
+Engineering:Challenges and Potentials
+As the number of requirements increases with the grow-
+ing complexity of CPSs, preventing inconsistencies and re-
+dundancies has become a highly eﬀortful and error-prone
+task when performed manually. MDE holds the promise to
+mendtheseissuesbyutilizingmodelinglanguagestoformu-
+laterequirementsinawaythattheybecomecomprehensive
+both for computers and humans within the development
+process[8,11, 36].Thissection outlines the challengesand
+potentials of introducing Model-Driven Requirements En-
+gineering (MDRE) in the automotive domain and deﬁnes a
+setofrequirementsforrequirementDSLstoovercomethese
+challenges.
+In MDE models are the primary source of information
+as their mathematical semantics and strict syntax enable
+a unique understanding of the modeled subject among all
+stakeholders and computers. Thereby, automated analyses
+and syntheses performed by the latter become meaningfulandthereforepracticallyuseful.However,introducingMDE
+faces major challenges, which [11] summarizes by stating
+that the beneﬁts of MDE do not outweigh its costs, which
+is also the case for MDRE. Part of the arising costs stem
+fromthefactsthat(1)trainingengineerstousethemodeling
+languages correctly and eﬃciently is eﬀortful [31], and (2)
+transferringthe existing documentsto modelsisvery time-
+consuming [22], since modeling itself is an eﬀortful and te-
+dioustask [49].
+Languageengineeringmeanstheprocessofcreatingsuit-
+ableDSLsthat serve asmodelinglanguageswithin MDEof
+aspeciﬁcdomain[13].Naturally,ifthisprocessaimsatcre -
+atingalanguagethatisintuitivefortheexperts(whodonot
+haveacomputer-sciencebackground),thetrainingeﬀortde-
+creases and with that, the cost of introducing MDE, tack-
+ling challenge (1). The contributions of this paper towards
+tacklingthesechallengesrelyontheideathatatextualDSL
+whose syntax is very close to the phrasing of requirements
+innaturallanguageusedbytheexpertsisintuitive tothese
+expertsbyconstruction.
+However,engineeringsuchaDSLrequiresextensiveanal-
+ysesofthenaturallanguageusedtoformulatetheserequire-
+ments,whichincreasesthecostoflanguageengineeringsig-
+niﬁcantly[22]andwouldprobablyoutweighthecostsaving
+achievedbyintuitiveness. Further,givenaDSL,automating
+(parts of) the process to translate natural language require-
+ments to models addresses challenge (2). An implementa-
+tionofsuchanautomatedtranslationismostlikelybasedon
+machine learning and Natural Language Processing (NLP)
+which,tobeuseful,requiresanextensivesetoflabeledtrai n-
+ing data. Creating the latter, again, increases the costs of
+implementingthetranslationin awaythatwould probably
+outweigh its beneﬁts. However, we assume, that the closer
+the phrasing of the output (models in the DSL) is to the
+phrasing of the input (requirements in natural language),
+the more likely it is that few-shot learning approaches suf-
+ﬁceforthetraining.Theseapproachesonlyneedsmallamounts
+of labeled data for eﬀective training, and therefore reduce
+the costs to create a suﬃcient training dataset. Further, re-
+quirements engineering is a very broad ﬁeld in automotive
+systemsengineeringthatinvolvesexpertsfromvariousback-
+grounds.EngineeringaDSLtocapturerequirementsinthis
+domain will be an iterative process during which the lan-
+guagewill evolve alongwith the toolsto interpret, analyze
+and process the models, and this evolution will continue
+throughout the maintenance phase. A modular design of
+the language and the underlying tooling is therefore cru-
+cial[9,10].
+We derived the following set of requirements on DSLs
+thatfacilitate introducingMDREintheautomotivedomain
+byreducingthe training and translation eﬀorts:
+3
+
+--- Page 4 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+R1:Sincethemodelerswillnotnecessarilyhaveacomputer-
+science background, the DSL’s syntax shall be based
+on natural language.
+R2:To make the language as intuitive as possible for its
+users and to enable the application of few-shot learn-
+ing to implement an automatic translation from nat-
+urallanguagerequirementstomodels,theDSL’ssyn-
+tax shall be as close to the phrasing of requirements
+in naturallanguageused by themodelersas possible.
+R3:In the DSL, requirements shall be formulated consis-
+tentlyandwithaprecisemeaningunderstoodbyrele-
+vant stakeholders,enablingautomatic interpretation.
+R4:The language and its tooling shall be extensible and
+maintainable bya modulardesign.
+4 Related Work
+4.1 FormalizationofRequirements
+Requirement DSLs. Trigger action patterns or If-Then
+constructsaswearegoingtousetheminourDSLarewidely
+used in industry. One example is the graphical formaliza-
+tion language Simpliﬁed Universal Pattern [56], which has
+shown that a large part of the requirements from the au-
+tomotive domain can be formalized with this concept [3].
+Anapproachthatutilizes aDSL forautomatingtypecheck-
+ingofrequirementsfordetectingerroneoussyntacticphras-
+ings automatically is proposed in [43]. Therein, the DSL is
+deﬁnedbyacontext-freegrammarandanontologythatde-
+ﬁnes axiomatic terms and types to allow including typed
+termswithintherequirements.Furthertoolingincludesau-
+tomatic consistency checking[44]. In [35], and [61] the au-
+thors propose approaches to verify the consistency of re-
+quirements using temporal logic. Very similar to our DSL,
+these approachesuse a structured English which is deﬁned
+throughagrammartoenableautomaticlogicalanalyseson
+requirementswrittenbynon-computerscientists.However,
+these approaches do not aim at minimizing the diﬀerence
+betweenthesentenceconstructsoﬀeredbytheDSLandthe
+alreadyestablishednaturallanguageusedforrequirements
+engineering, which will increase intuitiveness and enable
+few-shot learning forautomatedtranslation.
+StructuringNaturalLanguagethroughSentencePat-
+terns.In addition to DSLs for requirements development,
+requirements templates are widely used for standardizing
+thewordingofrequirementsandincreasingtheirquality.A
+requirements template provides the requirements engineer
+withasetofsentencetemplatesasaguideforrequirements
+development. In German-speaking countries, for example,
+the MASTER template based on [51] is widely used. In ad-
+dition to the experience-based templates, in the literature
+there exist approaches that deal with the extraction of re-
+quirements templates from legacy requirements. For exam-
+ple, [21] develops a set of sentence templates for qualityrequirements, [23] presents a metamodel for software re-
+quirements. In addition, the PABRE framework presents a
+method for using requirements templates [24] based on a
+catalog of 29 QR patterns [54] and 37 non-functional pat-
+terns [47]. Because requirements templates provide only a
+guideline to write requirements, there are no means to de-
+tectdeviationsfromthewordingproposedbythetemplates.
+Thishastheadvantagethatrequirementengineersandtem-
+platedesignersarenotlimitedtoformallydeﬁnedsentence
+structureswhenwritingrequirements.Hence,thisapproach
+has the major disadvantage that implementations of auto-
+matedrequirementsprocessingcannotassumecorrectphras-
+ingof theinput.
+FormalizationbyApplyingLogic. Approachesthatfor-
+malize natural language requirements by translations into
+formal languages that allow interpretations based on logic
+have been researched for decades, and we will just name
+a few interesting examples here: The approach presented
+in [27] translates natural language requirements into a rep-
+resentation in deontic logic which allows to check for con-
+sistency.Theapproachdoesnotutilizemachinelearningfor
+thetranslation,butrelieson“typographicaladjustments,to -
+kenization and morphosyntactic analysis” to extract buck-
+ets,i.e.,pieces of a speciﬁc kind of information, from the
+sentences. Similarly, [14] propose a technique that enables
+users to query a conceptual model of the system in natural
+languageand retrieve answers in natural language.Theap-
+proach targets the veriﬁcation of natural language require-
+ments given a formal model of the system, i.e.,a model in
+a DSL. Another concept for verifying requirements is pro-
+posed in [28] which perceives requirements and a compo-
+nent design each as contracts and verify their correctness
+bya conjunctionofboth contracts.The techniquerelies on
+modal logic. An overview of the research conducted in for-
+malizing legal requirements is given in [46]. A very recent
+approach [62] utilizes NLP to transform natural language
+requirements into a requirements capturing model, which
+isasemi-formalmodel.Theapproachintroducesautomatic
+transformationsfromthisrepresentationintometrictempo-
+rallogicandcomputationtreelogic.Alloftheseapproaches
+take a requirement in natural language as input, and trans-
+formitintoastructuredformatthatiscomparabletoamodel
+inaDSLbeforethismodelistheinputforanautomatedpro-
+cessing. These approaches, however, do not assure that en-
+gineersformulaterequirementssuchthattheyareuniquely
+understoodamongthe humanstakeholdersas well:Thein-
+termediate model remains internal to the automated pro-
+cessing, and,being a rephrasing aslogical formulas,hasan
+unintuitive formatformost humanreaders.
+Representing requirements in a textual DSL structures
+thesentencessuchthattheirunderstandingamonghumans
+4
+
+--- Page 5 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+becomesuniqueand,atthesametime,allowstheimplemen-
+tationofformalismstointerpretthesemodelsappropriatel y
+regarding the domainunderstanding.
+4.2 NLP inRequirementsEngineering
+NoRBERT [30] is a ﬁne-tuned version of BERT [15] for re-
+quirements classiﬁcation. It was trained on the PROMISE
+NFR dataset [12]. An approach for clustering natural lan-
+guage requirements is presented in [32]. The approach ap-
+plies clustering to natural language descriptions with the
+idea of developing a DSL in mind. Apart from requirement
+classiﬁcation,machine-learningandNLPcanbeusedforpri-
+oritizingrequirements[50].Theseapproaches,however,are
+notspeciﬁcallytailoredforreducingthe initialmodelingef-
+fortsnecessary forintroducingMDRE.
+4.3 Few-ShotLearningforRequirement
+Classiﬁcation
+Therealreadyexistafewapproachesconcentratingonfew-
+shotlearninginrequirementsengineering.Oneoftheseap-
+proachesusestransformermodelsforanamedentity-recognitio n
+task [45]. Another related approach is a preliminary study
+on requirement classiﬁcation using zero-shot learning [1].
+The PROMISE NFR dataset is used with pre-trained Trans-
+former models such as BERT and RoBERTa. Since it is in a
+preliminarystatus,onlyareducedpartofthedatasetisused.
+In contrast to our approach, the study is only in a prelimi-
+nary state and zero-shot learning is used for requirement
+classiﬁcation instead offew-shot learning.
+Apart fromrequirement classiﬁcation, few-shot learning
+on requirements is also applicable for requirement elicita-
+tion asdescribedin [55].Incontrast toother approachesin
+the area of few-shot learning in requirements engineering,
+the approach does not take already existing requirements
+asaninput,butchatmessagesfromwhichrequirementsfor
+new hidden features are extracted.
+4.4 ResearchGapand Goal
+Whileneuralmodelshavebeenappliedtorequirementsen-
+gineering successfully, in particular for requirements clas-
+siﬁcation, there is a research gap concerning the potential
+of few-shot learning to tailor language models for speciﬁc
+requirementsprocessingtaskssuchasreformulation,trans-
+lation,correction,andthelike,wheretrainingdataisscarce,
+or where access to computational resources needed to ﬁne-
+tune very large language models such as the GPT-J-6B is
+limited. Thepurpose ofthis work is hence,to develop a set
+of tailored rules for systematic requirement deﬁnition in a
+givendomainbyanalyzingexistingrequirementsandtode-
+termine if and to which extent few-shot learning can sup-
+portthetranslationoflegacyrequirementsintothesystem-
+atic form, thereby aiming to increase the level of formality
+in requirements.5 Example DSL for Structured
+Requirements
+Requirementsspecifyaproductunderdevelopmentandthus
+haveadecisiveinﬂuenceontheendproduct.Missing,incor-
+rect or ambiguously phrased requirements therefore have
+serious negative eﬀects on the end product and are one of
+themaincausesofadditionalcostsin productdevelopment
+anddissatisﬁed customers.
+Theaimofthissectionistodesignanexemplaryrequire-
+ments DSL increasing the degree of formality of require-
+mentdocumentsand hencesupportautomatedveriﬁcation
+and consistency checks. Instead of designing a general re-
+quirement language, our approach is to focus on speciﬁc
+domainsorprojectsandtotailorDSLsaccordingly.Further-
+more,weemployfew-shotlearningcapabilitiesoflargeneu-
+ral language models in order to transform existing require-
+mentsintothenew syntaxortosupporttheformulationof
+newrequirementsinaneditor.Inthiswork,wefocusonthe
+automotive domain, and an existing set of ADAS and ALS
+requirementsfrom[5].
+DSLs provide a means to improve the quality of the re-
+quirements’phrasingandtofacilitatetheimplementationof
+toolingto support agile requirementsengineering. Toengi-
+neeraDSLthatfulﬁllstherequirementsR1-R3inSection3,
+the DSL designer must analyze and understand how the re-
+quirements are currently phrased and which meanings are
+implied bycertain formulations.
+The DSL is to be used in a natural language domain ( cf.
+R1)andmustensureanintuitive readabilityfortherequire-
+ments engineer as well as the modeler who is implement-
+ing the requirements at a later stage in the development
+process,cf.R3. The developed DSL follows an open-world
+assumption [18, 19], i.e.,whatever is not restricted by the
+model is allowed. Currently, the DSL focuses on isolated
+requirements written in one sentence. This is because we
+are mainly interested in concrete syntax and features such
+as unambiguity. Complex semantic connections and cross-
+referenceswill not bediscussed here.
+A manual analysis of the requirements from [5] reveals
+asetofambiguousorunstructuredformulationsandincon-
+sistencieswhichmightleadtomisinterpretationsandhence
+needtobetackledbytheDSLapproach.Thefollowingthree
+ambiguity types are a non-exhaustive selection, which is
+suﬃcient asa basis forourfew-shot learningexperiments.
+Ambiguity 1: If-Then Constructs . The If-Then style
+is an often reoccurring pattern in requirements documents
+andanoftenoccurringpattern.Itreﬂectstheideathatupon
+the occurrence of a trigger event something must happen.
+In standard English there are numerous variants of how to
+express this, making it diﬃcult for requirements engineers
+5
+
+--- Page 6 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+to stick to a consistent scheme, to search for such require-
+ments,andtoanalyzethemautomatically.Totacklethisdif-
+ﬁculty, the ﬁrst construct we introduce is the If-Then pat-
+tern.Itnotonlycreatesclarityforthediﬀerentstakeholders,
+cf. R3, but also makes further processing in trigger action
+patternsmucheasier[3].Therefore,theDSLintroducesthe
+two keywords IF:andTHEN:. For this purpose, the individ-
+ual requirements are divided into two parts, a triggerpart
+beginning with the keyword IF:and anactionpart starting
+with the keyword THEN:, i.e. a parsing rule is given as If-
+Then-Req = ’IF:’ trigger ’THEN:’ action . For the
+sake of simplicity, we assume that the non-terminals trig-
+gerandactioncanbe arbitrary strings.
+As an example, the requirement “When no advancing ve-
+hicle is recognized anymore, the high beam illumination is
+restoredwithin2seconds.” isdividedintoa triggerandanac-
+tionpart and formulated in the following structure: “IF:no
+advancing vehicle is recognized anymore, THEN:high beam
+illumination isrestored within 2seconds.”
+This way we achieve a partial formalization of the origi-
+nalrequirement.Thetriggerandtheactionarenowclearly
+separated, and the requirement can be identiﬁed as an If-
+Then requirement easily.
+Ambiguity2:ModalVerbs .Themodalverbs( must, can,
+should, etc. )areimportantforthepreciseinterpretation
+of requirements [51]. Moreover, in safety-critical systems
+such as vehicles, there is an important distinction between
+theavailablemodalverbs.Forinstance,themodalverb must
+indicates alegalregulation andnon-conformitycanleadto
+legalconsequences.
+Ouranalysisshowshoweverthatthemodelverbissome-
+times skipped. In such cases it might not be clear whether
+thegivensentenceisarequirementoradescriptionofanex-
+istingsystem.Toenforcetheusageofmodalverbswethere-
+fore introduce the dedicated keyword MUSTin the DSL. In
+cases of missing modal verbs the keyword MUSTneeds to
+be included at the correct position. If a wrong modal verb
+such as“can”or“could”is used,it needsto be exchangeby
+MUSTthereby preventing the usage ofweak words[51].
+Anexampleistherequirement “Directionblinking:Forthe
+USAand Canada, the daytime running light canbedimmed
+by 50 percent during direction blinking on the blinking side .”
+fromthedataset[5].Here, “can”hastobereplacedby “MUST”.
+In the DSL, the requirement is modeled as “Direction blink-
+ing:FortheUSAandCanada,thedaytimerunninglightMUST
+be dimmed by 50 percent during direction blinking on the
+blinkingside.
+Requirements written without a modal verb should also
+besupplementedappropriately.Forexample,intherequire-
+ment“The duration of a ﬂashing cycle is1 second.” , the DSL
+requests a requirement engineer to introduce a “MUST”af-
+ter“ﬂashing cycle” . Hence, the model in the DSL would be:
+“Theduration of aﬂashing cycle MUST be 1second.” .Ambiguity 3: Expressions. In requirements, we often
+need to quantify and compare things. Again, natural lan-
+guageoﬀersmanywaystodescribecomparisons,makingit
+diﬃcult to grasp the information of requirements automat-
+ically. For this reason, we introduce a third DSL construct
+for our DSL, namely logical formulae. Thereby, we are go-
+ingtoallowbothwords(tokeepthelanguageclosetonatu-
+ralformulations) and mathematicalexpressions in the DSL.
+Depending on the use case, the sentences in the DSL may
+lookdiﬀerent.Whenusinglogicalsigns,thesesentencesare
+greatlysimpliﬁed.
+One example is the requirement “The vehicle’s doors are
+closed automatically when speeding velocity is bigger than
+10 km/h” from [5]. Modeled in the DSL integrating logical
+formulae,thesentencereadsasfollows: “Thevehicle’s doors
+are closed automatically when speeding velocity >10 km/h”.
+When using the alternative construct for logical formulae
+withdescriptive wordsoﬀeredbytheDSL,therequirement
+translatesto “Thevehicle’sdoorsareclosedautomaticallywhen
+speedingvelocityis GREATER 10km/h”.Thediﬀerencehere
+ismainlytheuseoftheDSL.Regardingwords,anaturallan-
+guageproximityisdesiredtoincreaseacceptancebythede-
+veloper(R1,R2).Furtherkeywordsinclude “LESS”,“EQUAL”,
+“LESSOR EQUAL” ,and“GREATEROR EQUAL” .Again,such
+DSL constructs standardize the way how comparisons are
+formulatedinarequirement.Thisfacilitatesautomatedcon-
+sistencyanalysissincetheoperatorsandtheirsemanticsare
+clearly deﬁned and the variables and constants can be ex-
+tractedrelativelyeasyfromthesentence,e.g. velocityand10
+km/h. Now, if the same variable is used in another require-
+ment,wecan1)linktheserequirementsastreatingthesame
+context, e.g. to enable semantic requirement search and 2)
+are able to checkwhether the two requirements are consis-
+tent.
+Thethreeconstructsintroducedabovecanandshouldbe
+combinedwhen appropriate. For instance, the last example
+needstobetranslatedto “IF:speedingvelocity is GREATER
+10 km/h, THEN: the vehicle’s doorsMUST be closed automat-
+ically.”
+Now this requirement has almost no degrees of freedom
+in terms of formulation,and it is easy to extract the trigger
+variable (speeding velocity), the subject of the action (the
+vehicle’sdoors),andthedesiredstate(closedautomatical ly).
+Thechallengewewouldliketosolveinthispaperishow
+to translate large numbers of legacy requirements into the
+DSL,howtorepairrequirementsshowingsyntacticalerrors,
+andhowtosupportarequirementengineerwritingrequire-
+mentsin the DSL syntax.
+6
+
+--- Page 7 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+6 Translating UnstructuredRequirements
+toDSL
+6.1 Overview
+To automatically translate legacy natural language require-
+mentsintotheDSLdeﬁnedinSection5,ﬁxingbadformula-
+tionsandenforcingguidelinesusageandregulatorycompli-
+ance, we utilize transformer-based language models. Since
+we need to avoid data and resource intensive ﬁnetuning
+(as the necessary amounts of data might lack in project or
+company-speciﬁcdesignandtherequiredhardwareresources
+mightnotbeaccessible/tooexpensive),wewillmakeuseof
+thefew-shotcapability,whichhasbeenshowntoyieldgood
+results with only a few training examples. Hence, we rule
+out BERT and RoBERTa as models for our translation task
+and stick tothe GPTfamily.
+The number of training examples for few-shot learning
+a new task is usually constrained by the context window,
+typicallyallowing10-100examples[7].Sometimesthenum-
+berofexamplesisfurtherconstrainedbytheavailablecom-
+putational resources. To exploit the available training data
+as far as possible, we propose a cascaded translation pro-
+cess,whereweprovideadedicatedfew-shotmodelforeach
+translationtask,i.e.trigger-action,modalverbs,andexpre s-
+sions.Thisreducesthetrainingcomplexityandyieldsmore
+focused models as the neural network does not have to de-
+cide,whichkindoftranslation(s)toperformbutonlyhasto
+performthe chosen translation it isspecialized for.
+Incase,asingletranslationneedstobeapplied,thetrans-
+lation step needs to be preceded either by a manual or an
+automatedclassiﬁcationoftheinputandthecorresponding
+choiceofa translation model.Otherwise asequential appli-
+cationofmultiplemodelsisnecessarytoincorporateallDSL
+constructs.
+6.2 RequirementTranslation
+Foreachtranslationstep,asetoffew-shotexamples,alsore -
+ferredtoasthesupportset,fortherespectiverequirements
+categoryisselectedandgiventothelanguagemodelascon-
+text.Ourhypothesisisthatalargecapacitylanguagemodel
+pretrained on a suﬃciently large training set can be taught
+to solve a speciﬁc task such as a reformulation of a given
+requirement into a systematic form with a very small sup-
+portset.Incontrasttoﬁne-tuningapproaches,whereapre-
+trained model is further trained using a downstream task-
+speciﬁctrainingset,infew-shotlearningtheweightsofthe
+neuralnetworkarenotadapted.Thefew-shotexamplescon-
+sist of input/output pairs and are input into the network as
+a demonstration for the task to be solved, followed by the
+actualquery.Thesolutiontothequeryisthengeneratedas
+themodel’soutputbasedonthesupportexamplesfromthe
+context.Thetranslationmodelcanbeimplementedusinganylarge
+enoughpretrainedlanguagemodelsupportingfew-shotlearn-
+ing. Models of higher capacity can be expected to perform
+betterinfew-shotlearneddownstreamtasks.Basedonpromis-
+ing preliminary results compared to other models, we de-
+cided to concentrate mainly on GPT-J-6B.GPT Neo [6],an-
+other modelfrom the GPT family,showed a lot of variance
+initstextgenerationproducingalotof"noisy",unexpected
+outputs often changing or extending the semantics of the
+source requirement without an obvious reason in our pre-
+liminary experiments.
+7 Evaluation
+7.1 ResearchQuestionsand Metrics
+With the experiments conducted for the translation of re-
+quirements from unstructured text to DSL our aim was to
+ﬁnd answers to thefollowing research questions:
+RQ1:Canstate-of-the-artlanguagemodelsbeemployedto
+translate natural text requirements to systematic for-
+mulationsbased on few-shot learning?
+RQ2:How many few-shot learning examples are required
+to train a translation rule?
+Toanswer RQ1,we applied few-shot learning separately
+forIf-Thenrequirements,modalverbinsertion, andexpres-
+sions(cf.Section5)(recallthatfortrainingeachruleweuse
+a separate instance of the language model). As introduced
+in Section 5the trained constructsare:
+a) “’IF:’ trigger ’THEN:’ action ” syntax for trigger action
+requirements,
+b) modalverbsenforcement,reframingsentencestocon-
+tain the “ MUST” keyword,and
+c) theusageof“ LESS/GREATER/EQUAL/LESSEQUAL
+/ GREATEREQUAL ” operatorsin constraints.
+Inputforthefew-shotlearningwerepairscontainingthe
+unstructuredinputandthedesiredDSLformulation.Toeval-
+uatethe“trained”languagemodel,ithadtotransformanun-
+structured requirement that the modelwasnot given asex-
+ample into a requirement in the DSL.We then assessed the
+resultofthistransformation.Doingso,requiresasigniﬁcant
+evaluationmetric.MetricssuchasBLEU[48]typicallyused
+to evaluate results of machine translation are not helpful,
+due to the many diﬀerent possibilities to express a require-
+mentcorrectly.Furthermore,semanticcorrectnessdoesnot
+imply compliance with the expected syntactical structure
+wewouldliketoenforce.Forthisreason,weproposeacus-
+tom evaluation scale with six possible quality classes to as -
+sess thecorrectnessofthe translated requirements:
+Class1:Thetranslation isbothsyntacticallyandseman-
+ticallycorrectandfulﬁllsthe required formulationrule.N o
+changes required. Class 2: The translation is semantically
+correct,but contains one or two syntactical inaccuraciesto
+7
+
+--- Page 8 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+fullyimplementthedesired rule. Class3:Syntacticallycor-
+rect but fails to fully cover the semantics of the source re-
+quirement (e.g. by missing a quantiﬁer or a marginal con-
+straint).Class 4: The translation contains one or two syn-
+tacticalinaccuraciestofullyimplementthedesiredruleand
+the semantics is not fully covered, i.e. a combination of 2
+and 3.Class5:The translation hasgrave syntactical errors
+ordoesnotimplementthedesiredrule.Anidentitymapping
+would result in this label, as well (unless the input already
+implementsthedesiredrule). Class6:Thetranslationisse-
+manticallywrong.
+Aﬂawofthisscaleisthatitisnotordinal,e.g.wecannot
+saythatclass2isbetterthanclass3.However,basedonthe
+experience we gathered with it in this work, in most cases
+a smallernumberindicates a more satisfying result.
+To answer RQ2 we conducted our evaluation with three
+diﬀerently sized few-shot support sets per translation rule
+(If-Then, modal verbs, and constraints) consisting of one,
+four, and six examples each. In case of one-shot learning,
+i.e.,ifonlyoneexampleispresentedintraining,forthecon-
+version of constraints containing (in)equalities, the result
+depends on the keyword used in the example. For this rea-
+son,we triedtwo diﬀerent one-shottrainings, i.e.,forintro-
+ducing “EQUAL”, and “LESS OR EQUAL ”. The requirements
+used fortesting were notpresent in the support sets.
+7.2 ConcreteTrainingExamples
+In this section we provide excerpts of the training and pre-
+diction experiments to give the reader an intuition on how
+the GPT-J-6B model dealt with the translation, which con-
+structs were particularly challenging,and how the number
+of examples aﬀected the quality of the translation. The full
+support sets and the complete translation experiment re-
+sults canbe foundin the appendix in TableA.1-TableA.22.
+If-Then,1trainingexample: Toone-shottrainthetrans-
+lationofarequirementtothedesiredIf-Thensyntaxweuse
+the followinginput and output pair:
+“Input: If a defective illuminant is detected, the informat ion
+aboutthedefectiveilluminantistransmittedtotheinstru ment
+cluster.
+DSL: IF: defective illuminant is detected, THEN: informati on
+aboutthedefectiveilluminantistransmittedtotheinstru ment
+cluster.”
+As we can see in the example, the two keywords “IF:”
+and“THEN:”areincludedinthetargetsentence.Apartfrom
+that the sentence remains almostunchanged,makingit rel-
+atively easy forthe modeltolearn the rule.
+Havingseenthisexample,themodelisalreadyabletoap-
+plytheruleperfectlytosomeexamplesofthetestset,yield -
+ingaclass1ratingaccordingtotheschemegivenabove.For
+instance, the requirement
+“Iftip-blinkingwasactivatedshortlybeforedeactivatio nofthe
+hazardwarning,thisisnotconsideredduringthedeactivat ion
+of the hazard warning.”iscorrectlytranslated to
+“IF: tip-blinking was activated shortly before deactivati on of
+the hazard warning, THEN: this is not considered during the
+deactivation of the hazard warning ” .
+However,someotherexamplesaretranslatedincompletely
+orwrong,e.g.the requirement
+“With activated darkness switch (only armored vehicles) th e
+corneringlightisnotactivated.”
+istranslated to
+“IF: darkness switch is activated, THEN: cornering lightis not
+activated. ”
+While the keywords are included at the correct position,
+themodeldropstheinformationinparenthesesstatingthat
+the requirement only applies to armored vehicles. For this
+reason,weconsiderthistranslationassyntacticallycorrect,
+but semanticallyincomplete,resulting in a class3rating.
+At this point the model has not yet fully learnt to imple-
+ment the If-Thensyntax if the sentence does not start with
+an“if”. Forinstance, the example
+“Whenmovingthepitmanarminpositionturnleftthevehicle
+ﬂashes all left direction indicators (front left, exterior mirror
+left, rear left) synchronically with pulse ratio bright to d ark
+1:1.”
+remains unchanged by the one-shot model. This yields a
+class 5 rating, as the semantics is correct, but the desired
+syntax is not implemented. Interestingly, another require-
+ment starting with “when”(“When hazard warning is deac-
+tivatedandthepitarmisinpositiondirectionblinkinglef tor
+directionblinkingright,thedirectionblinkingcyclesho uldbe
+released. ” ) results in theoutput
+“WHEN:hazardwarningisdeactivated,THEN:directionblin k-
+ingcycle should bereleased ” .
+Here the model introduces a new keyword ( “WHEN:” ),
+whichdidnothappeninthepreviousexample.Furthermore
+the second condition concerning the pit arm position has
+been dropped, resulting in a class 6 rating due to both syn-
+tacticaland semantical errors.
+If-Then, 4 training examples: Aiming to improve the
+translation quality, we introduce three additional training
+examplepairs:
+“Input: If no advancing vehicle is recognized any more, the
+highbeam illumination isrestored within 2seconds.
+DSL: IF: no advancing vehicle is recognized any more, THEN:
+highbeam illumination isrestored within 2seconds.
+###
+Input:Ifthelightrotaryswitch isinposition"auto", thea dap-
+tivehighbeamheadlightsareactivatedbymovingthepitman
+armto theback.
+DSL: IF: the light rotary switch is in position "auto" and the
+pitman arm is moved back, THEN: the adaptive high beam
+headlightsare activated.
+###
+Input:(a)Whenthedriverenablesthecruisecontrol(bypul ling
+the cruise control lever or by pressing the cruise control le ver
+8
+
+--- Page 9 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+up ordown), the vehicle maintains the set speedif possible.
+DSL: IF: driverenablesthe cruisecontrol bypullingthe cru ise
+controlleverorbypressingthecruisecontrolleverupordo wn,
+THEN: the vehicle maintains the setspeedif possible. ”
+Thethreeadditionalexamplesleadtoanimprovementin
+translationquality,forinstance,insteadofgeneratinganew
+keyword “WHEN:”, the model now knows due to the last
+training example that it has to replace “When”by“IF:”. So
+now,thehazardwarningrequirementistranslatedcorrectly
+to
+“IF: hazard warning is deactivated and the pit arm is in posi-
+tion direction blinking left or direction blinking right, T HEN:
+the direction blinking cycle should be released.” and yields a
+class1rating.
+If-Then, 6 training examples: To further improve the
+translationquality,thefollowingexampleshavebeenadded:
+“Input: Ifthe driverpushesdown thecruisecontrol lever wi th
+cruisecontrolactivateduptotheﬁrstresistancelevel,th espeed
+set pointof the cruisecontrol isreducedby N.
+DSL:IF:driverpushesdownthecruisecontrolleverwithcru ise
+control activated up to the ﬁrst resistance level, THEN: the
+speedsetpointof thecruise control isreducedbyN.
+###
+Input:Bypushingthebrakeorthehandbrake,thecruisecon-
+trol isdeactivated until itisactivated again.
+DSL: IF: the brake or the hand brake is pushed, THEN: the
+cruisecontrol isdeactivated until itisactivated again.”
+In this variant the translation of the armored vehicle re-
+quirement is improved to a class 2 rating yielding the text
+“IF: with activated darkness switch (only armored vehicles ),
+THEN: the cornering light is not activated. ” Here the model
+manages to keep the information on armored vehicles in
+parentheses,butchoosesastrangeformulationintheif-part ,
+i.e. small syntactic ﬁxes are required. Hence, the model im-
+proves from aclass3 toa class2grade.
+Requirementsoftheform “Context:requirementtext.” were
+particularly problematic for the model.The context was of-
+teninterpretedasacondition.Forinstance,therequirement
+“DistanceWarning:Thevehiclewarnsthedrivervisuallyan d/or
+acoustically if the vehicle is closer to the car ahead than al -
+lowed by the safety distance.” is translated to “IF: distance
+warningisactivated,THEN:thevehiclewarnsthedrivervis u-
+allyand/oracoustically” .Thisproblempersistsforallsizesof
+support sets we have tried, yielding a class6 grading.Prob-
+ably, the problem also persists for other deviating sentence
+structures.
+Modal verb, 1 training examples: The one-shot sup-
+portset forthe insertion ofmodalverbs isgiven as:
+“Input: The maximum deviation of the pulse ratio should be
+below the cognitive threshold of ahuman observer.
+DSL: The maximum deviation of the pulse ratio MUST be be-
+low the cognitive threshold of ahuman observer.”Given this single example the model is able to insert the
+“MUST”keywordintosimplesentences.Forinstance,thede-
+scriptive sentence “Theframerateofthecamerais60Hz.” is
+translated to a real requirement “The frame rate of the cam-
+eraMUSTbe60Hz.” ,therebyyieldingaclass1grading.How-
+ever, at this point it fails to insert the “MUST”keyword in
+mostother test examples.
+Modalverb, 4trainingexamples:” For the 4-shot sup-
+port set we use the following additional training example
+pairs:
+“Input: Direction blinking: For USA and CANADA, the day-
+time running light shall be dimmed by 50% during direction
+blinkingon theblinking side.
+DSL:Direction blinking:ForUSAandCANADA, the daytime
+runninglightMUSTbedimmedby50%duringdirectionblink-
+ingon theblinking side.
+###
+Input:Theadaptationofthepulseratiohastooccuratthela t-
+estafter two complete ﬂashing cycles.
+DSL: Theadaptation ofthe pulseratio MUSToccur atthe lat-
+estafter two complete ﬂashing cycles.
+###
+Input: Theduration of aﬂashing cycle is1second.
+DSL: Theduration of aﬂashing cycleMUSTbe1 second.”
+This helps the model to translate more inputs correctly,
+e.g. while the requirement “A ﬂashing cycle (bright to dark)
+has to be always completed, before a new ﬂashing cycle can
+occur”remained unchanged by the model in the one-shot
+case,itisnowtranslatedto “Aﬂashingcycle(brighttodark)
+MUST be always completed, before a new ﬂashing cycle can
+occur.”Thisyieldsa class1grade.
+Similarly, the example “Also after 1000 ﬂashing cycles the
+cumulated deviation willnotexceed 0.05s.” isnow translated
+to textit“Also after 1000ﬂashing cyclesthe cumulateddevi-
+ation MUSTNOTexceed0.05s.”,again yielding class1.
+Modal verb, 6 training examples: Adding the follow-
+ingadditional two training examplesto the support set fur-
+therimproves the translation quality:
+“Input: A ﬂashing cycle (bright to dark) will always be com-
+pleted,before anew ﬂashing cyclecan occur.
+DSL: A ﬂashing cycle (bright to dark) MUST always be com-
+pleted,before anew ﬂashing cyclecan occur.
+###
+Translate input to DSL Input: With subvoltage the ambient
+lightisnotavailable.
+DSL: With subvoltage the ambient light MUST not be avail-
+able.”
+The two inputs “With subvoltage the ambient light is not
+available.” and“LowbeamilluminantshallbeLED.” arenow
+correctly translated to “With subvoltage the ambient light
+MUSTnotbeavailable.” and“LowbeamilluminantMUSTbe
+LED.”.
+Some inputs are still not translated correctly, e.g. “The
+functionsofthesystemareclassiﬁedassafetyrelevantinw ith
+9
+
+--- Page 10 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+respecttoISO26262.” Butalsotheseeminglysimplerrequire-
+ment formulation “Thevehicle doesnot exceed aset speed.” .
+Expressionswithkeywords,1trainingexamples: In
+the next experiment, we aim to detect expressions, in par-
+ticular comparisons in requirements and insert keywords
+such as“EQUALS” or“GREATER” into the sentences. The
+one-shot support set is given as:
+“Input: The maximum deviation of the pulse ratio should be
+below the cognitive threshold of ahuman observer.
+DSL:ThemaximumdeviationofthepulseratioshouldbeLESS
+OR EQUAL cognitive threshold of human observer.”
+The problem here is the relatively large number of key-
+words. Themodelcannotinfer all the keywordsfrom asin-
+gle example. Nevertheless, it tries to apply the “LESS OR
+EQUAL” keyword to some test inputs at the correct place.
+For instance, therequirement
+“Theluminousintensity ofthedaytimerunninglightmustbe
+lower than 400cd.” is transformedto
+“Theluminousintensity ofthedaytimerunninglightmustbe
+LESSOR EQUAL 400cd.” .
+Theresulthasasemanticﬂawasitallowsanequalitywhich
+is not the case for the original, hence resulting in a class 3
+rating.
+Interestingly, the model transforms “The maximum curb
+weightofthevehiclemustbenomorethan3.5t.” to“Themax-
+imum curb weight of the vehicle must be LESS THAN 3.5t.” ,
+thereby introducing a keyword it has not seen in training.
+Incontrarytothepreviousrequirement,equalityisallowed
+here in the original but is excluded by the mode, again re-
+sulting in alass 3rating.
+We tried a one shot variant with an exampling using the
+“EQUAL” keywordinsteadof “LESSOREQUAL” .Asexpected,
+themodelthenonlyusedthiskeywordandhence,performed
+better where “EQUAL” wasrequired andworse otherwise.
+Experessions with keywords, 4 training examples:
+Inthenextexperimentweusedthefourfollowingexamples
+assupport set:
+“Input: The duration of a ﬂashing cycle is 1 second DSL: The
+Duration of aﬂashing cycle isEQUAL 1 second.
+###
+Input:Themaximumdeviationofthepulseratioshouldbebe-
+low the cognitive threshold of ahuman observer.
+DSL:ThemaximumdeviationofthepulseratioshouldbeLESS
+OR EQUAL cognitive threshold of human observer.
+###
+Input: Theminimal numberof seatbelts used hasto be1.
+DSL: The number of seatbelts used has to be GREATER OR
+EQUAL 1.
+###
+Input: The vehicles doors are closed automaticly when speed -
+ingvelocity isbiggerthan 10km/h.
+DSL:Thevehiclesdoorsareclosedautomaticlywhenspeedin g
+velocity isGREATER10km/h.”Surprisingly,themodelwasbiased towardsinserting the
+“LESS THAN” keyword, which was not present in the sup-
+port set at all. The overall improvements were minor. The
+luminous intensity requirement was now transformed cor-
+rectlyto“Theluminousintensityofthedaytimerunninglight
+must be LESS THAN 400cd.” , yielding a class 1 rating as the
+onlyrequirement.
+Experessions with keywords, 6 training examples:
+Forthelastexperimentweaddedthefollowingtwotraining
+examples: “Input: Also after 1000 ﬂashing cycles the cumu-
+lateddeviationmustnotexceed0.05s.DSL:After1000ﬂashi ng
+cyclesthecumulatedDeviationmustbeGREATEROREQUAL
+0.05s.
+###
+Input:Thecruisingspeedhastobesetataspeedwhichexceed s
+10km/h.DSL:ThecruisingspeedhastobeGREATER10km/h.”
+Inthisexperimentadditionallythemaximumcurbweight
+requirement was transformed perfectly to “ The maximum
+curbweightofthevehiclemustbeLESSOREQUAL3.5t.” ,now
+includingthe equality part.
+Theexperimentshowsamaindrawbackinherenttomod-
+elssuchasGPT.Themodelsusestatisticallylearnedsequence s
+withoutunderstandingthesemantics.Forinstance,themodel
+oftenconfusesless-thanandgreater-thaninequalities,whic h
+areverysimilarfromthesyntacticalpointofview,buthave
+acompletelydiﬀerentsemantics.Forinstance,themodelde-
+liverstranslationssuchas “Theminimumdistance toavehi-
+cleinfronthastobeLESSOREQUAL5m.” .Whileitisobvious
+to a human reader that “GREATER” should be used here, a
+neurallanguagemodelhasnologicalinterpretation.
+Another problem which becomes evident in this evalua-
+tion is that the language model has diﬃculties reformulat-
+ingsentenceswhenapureinsertion ofakeywordisinsuﬃ-
+cient.Forinstance,theexample “Thevehicle’shornmustnot
+be louder than 50dB.” is transformed to “The vehicle’s horn
+must beLESS OR EQUAL 50dB.” . While the keyword used is
+correct,the sentence hasa semantic ﬂaw: it is not the horn
+that has to be less or equal 50dB but its intensity, i.e. the
+perfect translation would be “‘The intensity of the vehicle’s
+horn must be LESS OR EQUAL 50dB.” . The model struggles
+toinsert the physical quantity (intensity) here.
+Expression Extraction Additionally, we performed ex-
+perimentsaimingtoextractmathematicalformulasonlycon-
+taining the key operatorsand variable names.For instance,
+theinput “Thebrakingdistancecannotbelongerthan300m.”
+yields the output “braking distance <= 300m” . Such an ex-
+tractioncanbeusefultoimplementtracingandconsistency
+checkingofmultiplerequirements. Forinstance, ifthevari-
+ablebrakingdistanceisfoundinmultiplerequirementsand
+featuring diﬀerent bounds, this can be found automatically
+andshowntoahumanexperttocheckwhethertherequire-
+ments are indeed contradictory. Further successful extrac-
+tions we generated using the model are “horn loudness <=
+50dB”,“lowbeamilluminant=LED” ,and“distancetovehicle
+10
+
+--- Page 11 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+in front >= 5m” . Most others showed slight to medium in-
+acuracies,e.g. “maximum velocity <=260km/h” or“blinking
+lights= 3s” .
+7.3 EvaluationSummary
+An overview of all experiment results is summarized in Ta-
+ble 1. As expected, in each of the three experiments, the
+translation quality improved with larger support sets. It is
+fascinatinghowever,howsteepthelearningcurveis.Itsug-
+geststhatfew-shotlearningcandealwithnaturallanguage
+processing (NLP) tasks in requirements engineering even
+whenonly smalltraining setsare available.
+In the ﬁrst experiment (If-Thentranslation), given a sup-
+port set of six training examples, six out of eleven exam-
+ples achieve a class 1 rating, i.e.,the model did a perfect
+translation.Further,theresultswithonlyfourtrainingpairs
+in the support set were still good. However, two require-
+mentsweretransformedincorrectly.Anexampleforaclass
+1 translation is: “Emergency Brake Assist: The vehicle decel-
+eratesincriticalsituationstoafullstandstill.” istransformed
+to“IF: emergency brake assist is activated, THEN: the vehi-
+cle decelerates in critical situations to a full standstill .”Here
+the malformed sentence is restructured with the verb “is
+activated”, separating trigger and action. Furthermore, the
+model learns to replace words such as “if”, “once”, “when”
+bythekeyword“IF:”andtoinsert“THEN:”atthecorrectpo-
+sition. The two requirements which were not transformed
+correctlyevenforsixtrainingexamplesbothcontainedtwo
+conditionsandwerehencemorediﬃculttotranslate.Appar-
+ently,thenetworkhasdiﬃcultiesprocessinginputsconsist-
+ingofseveralsentences,e.g.multipletrigger-actionclause s.
+However, subdividing such requirements into separate in-
+puts seemsto solve the problem.
+Thesecondexperiment(modalverbstranslation)wasprob-
+ablytheeasiest,whichisnotsurprising.Thelanguagemodel
+onlyneedstoaddorreplacetherightverbwith“MUST”.For
+instance “The frame rate of the camera is 60 Hz.” was suc-
+cessfullytranslatedto“TheframerateofthecameraMUST
+be 60 Hz”. The model did this well for all but two require-
+ments given six training examples. One of the two outliers
+contained anegation,whichwas notexplicitly trained.
+Forthe third experiment,dealing withconstraints (intro-
+ducing(in-)equalities),toexplorethecapabilityofourmod el
+toidentifyandgenerateconstraintsentences,wecraftedan
+additionaldatasetconsistingofsixfew-shottrainingandsix
+testexamplesfeaturingequalityandinequalityclauses.Due
+to more variance in the desired translations (ﬁve keywords
+tochoosefrom)andthediﬃcultyencounteredbythemodel
+to transform adjectives to subjects (e.g. “the horn has to be
+louder than” needsto become“the hornintensity hasto be
+GREATER than”), we added three more training examples
+focusingonthisissue.Itdidhowevernotleadtothedesired
+results,themodeldidnotlearntotransformthesentenceac-
+cordingly.Sentencesforwhichnosuchadjective-to-subjecttransformation was necessary had a better success rate in
+thetestset.Forinstance,“Themaximumcurbweightofthe
+vehicle must be no more than 3.5t.” was successfully trans-
+lated to “Themaximum curb weight of the vehicle must be
+LESS OR EQUAL 3.5t.” Some translations featured a wrong
+operator,but were otherwise syntactically correct.Inappl i-
+cations such as smart editors, this could still be a helpful
+way to sensitize the requirement engineers for the correct
+syntax.
+Weconductedavariantofthethirdexperiment,wherea)
+thenaturallanguageoperatorswerereplacedbymathemati-
+calones,i.e. <,≤,>,≥,=,andb)onlythevariables/constants
+of the (in-)equality were extracted in the support set, i.e.
+without keeping the rest of the sentence. The model man-
+agedtoperformthesetransformationssurprisinglywell(ex-
+cept for one example where the model put a “ ≤” instead
+of “=” for the maximum velocity), e.g. from “The vehicles
+horn must not be louder than 50dB” the model extracted
+“horn loudness ≤50dB”. Such extractions can be used in
+tracing, e.g. to identify assignments or conditions in code
+which are inconsistent with the underlying requirements.
+Variables and their values or bounds can be extracted by a
+languagemodeland lookedup in codeautomatically.
+8 Threatsto Validity
+Construction Validity. An objective metric of require-
+mentclassiﬁcationandtranslationisnotfeasibleperseand
+dependsonthecontext,perspectiveofthereader,andother
+factors. For our evaluation we let ﬁve software engineers
+label the translations independently and took the majority
+vote after adiscussion to mitigate the risk ofbias.
+Internal Validity. Our evaluation dataset might have a
+toosmallvariance:Thelegacyexamplesstemfromasingle
+projectandaremostlywellwritten,therearenocompletely
+ill-formedexamples. Thismight render the translation pro-
+cesstooeasy forthe languagemodel.
+ExternalValidity. Generalizabilityisamajorconcernin
+requirements engineering as ﬁndings and algorithms need
+tobetransferredtounseenprojectsanddomains.Themethod-
+ologypresentedinthispaperisdesignedfordomain-speciﬁc
+adaptations, i.e.,theresultsareonlyvalidforthedatasetsat
+hand. For the translation task, we cannot rule out that dif-
+ferentormorecomplexsyntacticelementsrequiredinother
+domains cannot be realized using few-shot learning or re-
+quire larger support sets. Generalizability of the concrete
+few-shot models derived in this paper across diﬀerent do-
+mainsisprobablynotfeasible duetodiﬀerencesindomain-
+speciﬁcwordingsand formulationapproaches,but alsonot
+pursuedinthisworksinceeachdomainshouldusetailored
+support sets.
+11
+
+--- Page 12 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+Table1.Evaluation results forthe translation experiments fromnatur al languagerequirements to domain-speciﬁcsyntax.
+#ofTraining Set Class1 Class2 Class3 Class4 Class5 Class6 total
+Translation results forIf-Thenstructure using GPT-J6B
+1 2 0 1 0 6 2 11
+4 5 2 0 1 1 2 11
+6 6 3 0 0 0 2 11
+Translation results formodalverbsstructure using GPT-J6B
+1 3 0 0 0 5 0 8
+4 5 0 0 0 3 0 8
+6 6 0 0 0 2 0 8
+Translation results for propositional logicStructure using G PT-J6B
+1 (trained on key-
+word:equal)2 0 1 0 4 1 8
+1 (trained on key-
+word:less or equal)0 0 4 0 4 0 8
+4 1 0 1 0 3 3 8
+6 2 0 3 0 2 1 8
+8 3 0 0 0 3 2 8
+9 Conclusion
+In this paper, we have shown how neural language models
+such as representatives of the GPT family can support re-
+quirements engineering without the need for resource and
+dataintensiveﬁne-tuning.Ourmostimportantresultisthat
+few-shotlearningoflanguagemodelscanbeappliedtotrans-
+late legacy requirements into a given structured DSL form
+automatically. However, language models available today
+still require human supervision. Since context space avail-
+ablein alanguagemodelforfew-shot learningislimitedto
+a very small number of examples, we suggest to manually
+orautomaticallyclassifyarequirementbeforetranslationt o
+choose the few-shot examples to be used for a given trans-
+lation task.
+Wedrawtheconclusionthatfew-shotlearningisapower-
+fultoolfortheprocessingofnaturallanguagerequirements
+whichdoesnot require costlytraining fromscratchand ex-
+pensive hardware and is hence accessible even for small
+companies with limited resources or when training data is
+scarce. It has the potential to accelerate the formalization
+of legacy requirements and improve the resulting require-
+ments quality and syntactical consistency. However, as of
+now, supervision cannot be eliminated, binding human re-
+sourcesbut limiting the taskto correction.
+Instead of having to rely on the generalizability of a sin-
+glelanguagemodelforallprojects,thefew-shotlearningap-
+proach can be employed to tailor language models to new
+projects and application domains quickly. In very speciﬁc
+areas, singular ﬁne-tunings to the domain might be neces-
+sary,e.g.we realized in our experimentsthat in some cases
+thelanguagemodelshaddiﬃcultiesprocessingautomotive-
+related languagetermscorrectly.
+Webelievethatthepresentedtechnologycanbeusedfor
+avarietyoftasksinmodel-drivenrequirementsengineeringincludingbutnotlimitedtothetranslationoflegacyrequire-
+ments,autocompletionforsmart editors,requirementlook-
+upand informationextraction.While there isstill roomfor
+improvement,it isreasonable toexpectthat thecapacityof
+languagemodelswill steadily growlargerin thenext years
+providing a continuously increasing few-shot learning per-
+formance.
+References
+[1] Waad Alhoshan, Liping Zhao, Alessio Ferrari, and Keletso J. Let-
+sholo. 2022. A Zero-Shot Learning Approach to Classifying Require-
+ments:APreliminaryStudy.In RequirementsEngineering:Foundation
+forSoftwareQuality ,VincenzoGervasiandAndreasVogelsang(Eds.).
+SpringerInternational Publishing,Cham, 52–59.
+[2] Abdallah Atouani, Jörg Christian Kirchhof, Evgeny Kusmenko, and
+Bernhard Rumpe. 2021. Artifact and Reference Models for Genera-
+tiveMachineLearningFrameworksandBuildSystems.In Proceedings
+ofthe20th ACMSIGPLAN International ConferenceonGenerat ive Pro-
+gramming:ConceptsandExperiences(GPCE21) ,EliTilevichandCoen
+DeRoover (Eds.).ACMSIGPLAN, 55–68.
+[3] Jan Steﬀen Becker, Vincent Bertram, Tom Bienmüller, Udo Brock -
+meyer, Heiko Dörr, Thomas Peikenkamp, and Tino Teige. 2018. In-
+teroperable Toolchain for Requirements-Driven Model-Based De vel-
+opment. In 9th European Congress Embedded Real Time Software and
+Systems ERTS ’2018 .
+[4] Vincent Bertram, Miriam Boß, Evgeny Kusmenko, Imke Nachmann,
+BernhardRumpe, DaniloTrotta,and Louis Wachtmeister.2022. Neu-
+ral Language Models and Few-Shot Learning for Systematic Re-
+quirements Processing in MDSE. In International Conference on Soft-
+ware Language Engineering (SLE’22) (Auckland, New Zealand).ACM.
+https://doi.org/10.1145/3567512.3567534
+[5] Vincent Bertram,Shahar Maoz, Jan OliverRingert,BernhardRump e,
+andMichaelvonWenckstern.2017.ComponentandConnectorViews
+inPractice:AnExperienceReport.In ConferenceonModelDrivenEn-
+gineering Languages and Systems (MODELS’17) (Austin). IEEE, 167–
+177.
+[6] Sid Black, Leo Gao, Phil Wang, Connor Leahy, and Stella Biderman.
+2021.GPT-Neo: Large Scale Autoregressive Language Modeling wit h
+Mesh-Tensorﬂow .https://doi.org/10.5281/zenodo.5297715
+[7] Tom B Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared
+Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam,
+12
+
+--- Page 13 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+Girish Sastry, Amanda Askell, et al. 2020. Language models are fe w-
+shot learners. arXiv preprint arXiv:2005.14165 (2020).
+[8] Antonio Buchhiarone, Jordi Cabot, Richard F. Paige, and Alfonso
+Pierantonio. 2020. Grand Challenges in Model-Driven Engineering:
+An Analysis of theState of Research. Softwareand Systems Modeling
+19,1(2020).
+[9] Arvid Butting, Robert Eikermann, Katrin Hölldobler, Nico Jansen,
+Bernhard Rumpe, and Andreas Wortmann. 2020. A Library of Liter-
+als,Expressions, Types,and Statements for Compositional Language
+Design.Special Issuededicated toMartin Gogollaonhis 65th Birthd ay,
+Journal of Object Technology 19, 3 (October 2020), 3:1–16. Special
+Issuededicated toMartinGogolla on his65thBirthday.
+[10] Arvid Butting, Jerome Pfeiﬀer, Bernhard Rumpe, and Andreas Wor t-
+mann. 2020. A Compositional Framework for Systematic Modeling
+Language Reuse. In Proceedings of the 23rd ACM/IEEE International
+ConferenceonModelDrivenEngineeringLanguagesandSyste ms.ACM,
+35–46.
+[11] Jordi Cabot, Robert Clarisó, Marco Brambilla, and Sébastie n Gérard.
+2018. Cognifying Model-Driven Software Engineering. In Software
+Technologies:Applications and Foundations .
+[12] Jane Cleland-Huang, SepidehMazrouee, Huang Liguo, andDan Por t.
+2007.nfr [Data set] .https://doi.org/10.5281/zenodo.268542
+[13] Benoit Combemale, Robert France, Jean-Marc Jézéquel, Bernh ard
+Rumpe, James Steel, and Didier Vojtisek. 2016. Engineering Model-
+ing Languages: Turning Domain Knowledge into Tools . Chapman &
+Hall/CRC Innovations in Software Engineering and Software Devel-
+opment Series.
+[14] HerculesDalianis.1992. Amethodforvalidatingaconceptual m odel
+by natural language discourse generation. In Advanced Information
+Systems Engineering .
+[15] Jacob Devlin,Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+2018. Bert: Pre-training of deep bidirectional transformers for lan-
+guage understanding. arXiv preprint arXiv:1810.04805 (2018).
+[16] Imke Drave, Akradii Gerasimov, Judith Michael, Lukas Netz,
+Bernhard Rumpe, and Simon Varga. 2021. A Methodol-
+ogy for Retroﬁtting Generative Aspects in Existing Applica-
+tions.Journal of Object Technology 20 (November 2021), 1–24.
+https://doi.org/10.5381/jot.2021.20.2.a7
+[17] Imke Drave, Timo Greifenberg, Steﬀen Hillemacher, Stefan K riebel,
+Evgeny Kusmenko, Matthias Markthaler,Philipp Orth,Karin Samira
+Salman,JohannesRichenhagen,BernhardRumpe,ChristophSchulze,
+MichaelWenckstern,andAndreasWortmann.2019. SMArDTmodel-
+ingforautomotive softwaretesting. Software:PracticeandExperience
+49,2(February2019),301–328.
+[18] Imke Drave, Timo Henrich, Katrin Hölldobler, Oliver Kautz, J udith
+Michael,and BernhardRumpe. 2020. Modellierung,Veriﬁkation und
+SynthesevonvalidenPlanungszuständenfürFernsehausstrahlunge n.
+InModellierung 2020 (Vienna), Dominik Bork, Dimitris Karagiannis,
+andHeinrichC.Mayr(Eds.).GesellschaftfürInformatike.V.,173 –188.
+[19] ImkeDrave,OliverKautz,JudithMichael,andBernhardRumpe .2019.
+Semantic Evolution Analysis of Feature Models. In International Sys-
+temsandSoftwareProductLineConference(SPLC’19) (Paris),Thorsten
+Berger, Philippe Collet, Laurence Duchien, Thomas Fogdal, Patric k
+Heymans, Timo Kehrer, Jabier Martinez, Raúl Mazo, Leticia Mon-
+talvillo, Camille Salinesi, Xhevahire Tërnava, Thomas Thüm, and
+TewﬁkZiadi (Eds.).ACM,245–255.
+[20] Imke Drave, Bernhard Rumpe, Andreas Wortmann, Joerg Berrot h,
+GregorHoepfner,Georg Jacobs,KathrinSpuetz,ThiloZerwas,C hris-
+tian Guist, and JensKohl. 2020. Modeling Mechanical Functional Ar-
+chitectures in SysML. In Proceedings of the 23rd ACM/IEEE Interna-
+tionalConferenceonModelDrivenEngineeringLanguagesan dSystems .
+ACM,79–89.
+[21] Jonas Eckhardt, Andreas Vogelsang, and Henning Femmer. 2016. An
+Approach for Creating Sentence Patterns for Quality Requirements.In2016 IEEE 24th International Requirements Engineering Con ference
+Workshops (REW) . 308–315.
+[22] Robert France and Bernhard Rumpe. 2007. Model-driven Devel op-
+ment of ComplexSoftware: A ResearchRoadmap. Future ofSoftware
+Engineering (FOSE ’07) (May 2007),37–54.
+[23] XavierFranch,CristinaPalomares,CarmeQuer,SamuelRenaul t,and
+François Lazzer. 2010. A Metamodel for Software Requirement Pat -
+terns.InRequirementsEngineering:Foundation forSoftware Qualit y.
+[24] Xavier Franch, Carme Quer, Samuel Renault, Cindy Guerlain, and
+Cristina Palomares. 2013. Constructing and Using Software Require-
+ment Patterns .
+[25] LeoGao,StellaBiderman,SidBlack,LaurenceGolding,TravisH oppe,
+CharlesFoster,JasonPhang,HoraceHe,AnishThite,NoaNabeshim a,
+etal.2020. ThePile:An800GB DatasetofDiverseTextforLangua ge
+Modeling. arXiv preprint arXiv:2101.00027 (2020).
+[26] Nicola Gatto, Evgeny Kusmenko, and Bernhard Rumpe. 2019. Mod -
+eling Deep Reinforcement Learning Based Architectures for Cyber-
+Physical Systems. In Proceedings of MODELS 2019. Workshop MDE
+Intelligence (Munich), Loli Burgueño, Alexander Pretschner, Sebas-
+tian Voss, Michel Chaudron, Jörg Kienzle, Markus Völter, Sébastie n
+Gérard,Mansooreh Zahedi,ErwanBousse, ArendRensink,Fiona Po-
+lack,Gregor Engels,and GertiKappel (Eds.).196–202.
+[27] Vincenzo Gervasi and Didar Zowghi. 2005. Reasoning about Incon-
+sistenciesinNaturalLanguageRequirements. ACMTrans.Softw.Eng.
+Methodol. 14,3(2005).
+[28] Gregor Goesslerand Jean-Baptiste Raclet.2009. Modal Cont racts for
+Component-Based Design.In 2009 Seventh IEEEInternational Confer-
+enceonSoftwareEngineering and FormalMethods .
+[29] David Harel and Bernhard Rumpe. 2004. Meaningful Modeling:
+What’s the Semantics of ”Semantics”? IEEE Computer 37, 10 (Octo-
+ber2004),64–72.
+[30] TobiasHey,JanKeim,AnneKoziolek,andWalterF.Tichy.2020. N oR-
+BERT:Transferlearningforrequirements classiﬁcation. In 2020 IEEE
+28th International Requirements Engineering Conference ( RE). IEEE,
+169–179.
+[31] John Hutchinson, Jon Whittle, and Mark Rounceﬁeld. 2014. Mode l-
+driven engineering practices in industry: Social, organizational and
+managerialfactorsthatleadtosuccessorfailure. ScienceofComputer
+Programming 89 (2014).
+[32] Katharina Juhnke, Alexander Nikic, and Matthias Tichy. 2021. Clu s-
+tering Natural Language Test Case Instructions as Input for Deriv-
+ing Automotive Testing DSLs. The Journalof Object Technology 20,3
+(2021).
+[33] Nils Kaminski, Evgeny Kusmenko, and Bernhard Rumpe. 2019.
+Modeling Dynamic Architectures of Self-Adaptive Cooperative Sys-
+tems.The Journal of Object Technology 18, 2 (July 2019), 1–20.
+https://doi.org/10.5381/jot.2019.18.2.a2 The 15th European Con-
+ferenceon ModellingFoundations andApplications.
+[34] Hendrik Kausch, Mathias Pfeiﬀer, Deni Raco, and Bernhard Rumpe .
+2020. An Approach for Logic-based Knowledge Representation and
+Automated Reasoning over Underspeciﬁcation and Reﬁnement in
+Safety-Critical Cyber-Physical Systems. In Combined Proceedings of
+theWorkshopsatSoftwareEngineering2020 (Innsbruck),ReginaHebig
+and Robert Heinrich (Eds.), Vol. 2581. CEUR Workshop Proceedings.
+http://ceur-ws.org/Vol-2581/
+[35] S. Konrad and B.H.C. Cheng. 2005. Real-time speciﬁcation patt erns.
+InProceedings. 27th International ConferenceonSoftware En gineering,
+2005. ICSE2005.
+[36] StefanKriebel,EvgenyKusmenko,BernhardRumpe,andMichael von
+Wenckstern.2018. Finding Inconsistencies in DesignModels and Re-
+quirements by Applying the SMARDT Process. In Tagungsband des
+Dagstuhl-Workshop MBEES: Modellbasierte Entwicklung ein gebetteter
+Systeme XIV(MBEES’18) . Univ.Hamburg.
+13
+
+--- Page 14 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+[37] EvgenyKusmenko,SebastianNickels,SvetlanaPavlitskaya,B ernhard
+Rumpe, andThomas Timmermanns. 2019. ModelingandTrainingof
+Neural Processing Systems. In Conference on Model Driven Engineer-
+ingLanguagesandSystems(MODELS’19) (Munich),MarouaneKessen-
+tini, Tao Yue, Alexander Pretschner, Sebastian Voss, and Loli Bur-
+gueño (Eds.).IEEE,283–293.
+[38] Evgeny Kusmenko, Svetlana Pavlitskaya, Bernhard Rumpe, and S e-
+bastian Stüber. 2019. On the Engineering of AI-Powered Systems. In
+ASE19.SoftwareEngineeringIntelligenceWorkshop(SEI19 )(SanDiego,
+California,USA), Lisa O’Conner(Ed.).IEEE,126–133.
+[39] Evgeny Kusmenko, Alexander Roth, Bernhard Rumpe, and Michael
+vonWenckstern.2017.ModelingArchitecturesofCyber-PhysicalS ys-
+tems. InEuropean Conference on Modelling Foundations and Applica-
+tions (ECMFA’17) (Marburg) (LNCS 10376) . Springer,34–50.
+[40] EvgenyKusmenko,BernhardRumpe,SaschaSchneiders,andMicha el
+von Wenckstern. 2018. Highly-Optimizing and Multi-Target Com-
+piler for Embedded System Models: C++ Compiler Toolchain for th e
+Component and Connector Language EmbeddedMontiArc. In Con-
+ference on Model Driven Engineering Languages and Systems ( MOD-
+ELS’18)(Copenhagen). ACM,447 – 457.
+[41] Grischa Liebel,MatthiasTichy,andEricKnauss.2019. Use,pot ential,
+andshowstoppersofmodelsinautomotiverequirementsengineering.
+(2019).
+[42] Grzegorz Loniewski, Emilio Insfran, and Silvia Abrahão. 2010. A
+Systematic Review of the Use of Requirements Engineering Tech-
+niques in Model-Driven Development. In Model Driven Engineering
+Languagesand Systems. MODELS’2010 .
+[43] Nesredin Mahmud, Cristina Seceleanu, and Oscar Ljungkrantz. 20 15.
+ReSA: An ontology-based requirement speciﬁcation language tai-
+lored to automotive systems. In 10th IEEE International Symposium
+onIndustrial Embedded Systems (SIES) .
+[44] Nesredin Mahmud, Cristina Seceleanu, and Oscar Ljungkrantz. 20 16.
+ReSA Tool: Structured requirements speciﬁcation and SAT-based
+consistency-checking. In 2016 Federated Conference on Computer Sci-
+enceand InformationSystems (FedCSIS) .
+[45] GarimaMalik,MucahitCevik,SwayamiBera,SavasYildirim,Dev ang
+Parikh, and Ayse Basar. 2022. Software Requirement Speciﬁc Entity
+Extraction using Transformer Models. Proceedings of the Canadian
+ConferenceonArtiﬁcial Intelligence (2022).
+[46] Paul N. Otto and Annie I. Anton. 2007. Addressing Legal Require-
+ments in Requirements Engineering. In 15th IEEE International Re-
+quirementsEngineering Conference(RE 2007) .
+[47] CristinaPalomares,CarmeQuer,XavierFranch,CindyGuerlain,a nd
+SamuelRenault.2012. Acatalogueofnon-technicalRequirementPat -
+terns.In2012SecondIEEEInternationalWorkshoponRequirementsPa t-
+terns(RePa) .
+[48] KishorePapineni,SalimRoukos,ToddWard,andWei-JingZhu.2002.
+Bleu: a method for automatic evaluation of machine translation. In
+Proceedingsofthe40thannualmeetingoftheAssociation fo rComputa-
+tional Linguistics . 311–318.
+[49] TanumoyPati,SowmyaKolli,andJamesH.Hill.2017. Proactive mod-
+eling: a new model intelligence technique. Software & Systems Mod-
+eling16 (2017).
+[50] AnnaPerini,AngeloSusi,andPaoloAvesani.2013. AMachineLearn-
+ingApproach toSoftwareRequirementsPrioritization. IEEETransac-
+tions onSoftwareEngineering 39,4 (2013).
+[51] Klaus Pohl and Chris Rupp. 2021. Basiswissen requirements engineer-
+ing: Aus-und Weiterbildung nach IREB-Standard zum certiﬁe d profes-
+sional forrequirementsengineering foundationlevel .
+[52] AlecRadford,KarthikNarasimhan,TimSalimans,andIlyaSutsk ever.
+2018. Improving language understanding by generative pre-training.
+(2018).[53] Alec Radford, Jeﬀrey Wu, Rewon Child, David Luan, Dario Amod ei,
+Ilya Sutskever, et al. 2019. Language models are unsupervised m ulti-
+task learners. OpenAI blog 1,8(2019),9.
+[54] Samuel Renault, Oscar Mendez-Bonilla, Xavier Franch, and Carm e
+Quer.2009. A pattern-based method for buildingrequirements docu -
+mentsincall-for-tenderprocesses. International JournalofComputer
+Scienceand Applications 6(2009).
+[55] Lin Shi, Mingzhe Xing, Mingyang Li, Yawen Wang, Shoubin Li, and
+QingWang.2020.DetectionofHiddenFeatureRequestsfromMassive
+Chat Messages via Deep Siamese Network. In 2020 IEEE/ACM 42nd
+International ConferenceonSoftware Engineering (ICSE) .641–653.
+[56] Tino Teige, Tom Bienmüller, and Hans Jürgen Holberg. 2016. Uni-
+versal Pattern: formalization, testing, coverage, veriﬁcation, and t est
+case generation for safety-critical requirements. In 19. GI/ITG/GMM-
+Workshop “Methoden und Beschreibungsprachen zur Modellie rung
+und Veriﬁkation von Schaltungen und Systemen” MBMV 2016 .
+https://doi.org/10.6094/UNIFR/10633
+[57] Amit Kumar Tyagi and N. Sreenath. 2021. Cyber Physical Syste ms:
+Analyses, challenges and possible solutions. Internet of Things and
+Cyber-Physical Systems 1(2021).
+[58] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion
+Jones, AidanN Gomez, Łukasz Kaiser,and IlliaPolosukhin.2017. At-
+tention is all you need. In Advances in neural information processing
+systems. 5998–6008.
+[59] Ben Wang. 2021. Mesh-Transformer-JAX: Model-Parallel
+Implementation of Transformer Language Model with JAX.
+https://github.com/kingoflolz/mesh-transformer-jax .
+[60] Ben Wang and Aran Komatsuzaki. 2021. GPT-J-6B:
+A 6 Billion Parameter Autoregressive Language Model.
+https://github.com/kingoflolz/mesh-transformer-jax .
+[61] RongjieYan,Chih-HongCheng,andYeshengChai.2015. Formalcon-
+sistency checking over speciﬁcations in natural languages. In 2015
+Design, AutomationTest in EuropeConferenceExhibition (D ATE).
+[62] Aya Zaki-Ismail, Mohamed Osama, Mohamed Abdelrazek, Joh n
+Grundy, and Amani Ibrahim. 2021. ARF: Automatic Requirements
+Formalisation Tool. In 2021 IEEE 29th International Requirements En-
+gineering Conference(RE) .
+14
+
+--- Page 15 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+A Appendix
+Table A.1. Support Set: 1Example LogicalFormulae(EQUAL).
+Original Translation
+The duration ofa ﬂashingcycleis 1second. Theduration ofa ﬂashing cycleisEQUAL 1second.
+TableA.2. Support Set: 1 ExampleLogicalFormulae(LESS-OR-EQUAL).
+Original Translation
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserverThemaximumdeviationofthepulseratioshouldbeLESS
+OR EQUALcognitive threshold ofhumanobserver.
+TableA.3. SupportSet: 4 ExamplesLogicalFormulae.
+Original Translation
+The duration ofa ﬂashingcycleis 1second. Theduration ofa ﬂashing cycleisEQUAL 1second.
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserver.The maximum deviation of the pulse ratio should be
+EQUAL cognitive threshold ofhumanobserver.
+The minimalnumber ofseatbelts used hasto be 1. The number of seatbelts used has to be GREATER OR
+EQUAL 1.
+Thevehiclesdoorsareclosedautomaticlywhenspeeding
+velocity is biggerthan 10km/h.Thevehiclesdoorsareclosedautomaticlywhenspeeding
+velocity isGREATER10km/h.
+TableA.4. SupportSet: 6 ExamplesLogicalFormulae.
+Original Translation
+The duration ofa ﬂashingcycleis 1second. Theduration ofa ﬂashing cycleisEQUAL 1second.
+Also after 1000 ﬂashing cycles the cumulated deviation
+must notexceed0.05s.After1000ﬂashingcyclesthecumulatedDeviation must
+beGREATEROR EQUAL 0.05s.
+Thecruisingspeedhastobesetataspeedwhichexceeds
+10km/h.Thecruising speedhasto beGREATER10km/h.
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserver.The maximum deviation of the pulse ratio should be
+EQUAL cognitive threshold ofhumanobserver.
+The minimalnumber ofseatbelts used hasto be 1. The number of seatbelts used has to be GREATER OR
+EQUAL 1.
+Thevehiclesdoorsareclosedautomaticlywhenspeeding
+velocity is biggerthan 10km/h.Thevehiclesdoorsareclosedautomaticlywhenspeeding
+velocity isGREATER10km/h.
+15
+
+--- Page 16 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+TableA.5. SupportSet: 8 ExamplesLogicalFormulae.
+Original Translation
+The duration ofa ﬂashingcycleis 1second. Theduration ofa ﬂashing cycleisEQUAL 1second.
+Also after 1000 ﬂashing cycles the cumulated deviation
+must notexceed0.05s.After1000ﬂashingcyclesthecumulatedDeviation must
+beGREATEROR EQUAL 0.05s.
+Thecruisingspeedhastobesetataspeedwhichexceeds
+10km/h.Thecruising speedhasto beGREATER10km/h.
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserver.The maximum deviation of the pulse ratio should be
+EQUAL cognitive threshold ofhumanobserver.
+The minimalnumber ofseatbelts used hasto be 1. The number of seatbelts used has to be GREATER OR
+EQUAL 1.
+Thevehiclesdoorsareclosedautomaticlywhenspeeding
+velocity is biggerthan 10km/h.Thevehiclesdoorsareclosedautomaticlywhenspeeding
+velocity isGREATER10km/h.
+The interior material must be Velour. Theinterior materialis EQUAL Velour.
+Flashing light cycledoesnotexceed3 ﬂashes. Flashing lightcycleis LESSor EQUAL 3ﬂashes.
+Table A.6. Evaluation Results: 1Example LogicalFormulae(EQUAL).
+Original Translation Class
+Theluminousintensity ofthedaytimerunninglight
+must belower than 400cd.Theluminousintensity ofthedaytimerunninglight
+must be EQUAL 400cd.6
+Therangeofthevehicleshallbeatleast450kmunder
+WLTPconditionsTherangeofthevehicleshallbeatleast450kmunder
+WLTPconditions.5
+If the speed limiter is activated, the vehicle speed
+shall not exceedthe set speed.If the speed limiter is activated, the vehicle speed
+shall not exceedtheset speed.5
+Themaximumcurbweightofthevehiclemustbeno
+more than 3.5tThe maximum curb weight of the vehicle must be
+EQUAL 3.5t.3
+The breakingdistance can not belongerthan 300m. Thebreaking distance can notbe longerthan 300m. 5
+The vehicleshornmust not be louderthan 50dz. Thevehicles hornmust not be louderthan 50dz. 5
+The vehiclesmaximumvelocity is260km/h. Thevehicles maximumvelocity isEQUAL 260km/h. 1
+Theminimundistance toavehiclein fronthastobe
+5m.Theminimundistance toavehiclein fronthastobe
+EQUAL 5m.1
+TableA.7. Evaluation Results: 1 ExampleLogicalFormulae(LESS-OR-E QUAL).
+Original Translation Class
+Theluminousintensity ofthedaytimerunninglight
+must belower than 400cd.Theluminousintensity ofthedaytimerunninglight
+must be LESSOR EQUAL 400cd.3
+Therangeofthevehicleshallbeatleast450kmunder
+WLTPconditionsTherangeofthevehicleshallbeatleast450kmunder
+WLTPconditions.5
+If the speed limiter is activated, the vehicle speed
+shall not exceedthe set speed.If the speed limiter is activated, the vehicle speed
+shall not exceedtheset speed.5
+Themaximumcurbweightofthevehiclemustbeno
+more than 3.5tThe maximum curb weight of the vehicle must be
+LESS THAN3.5t.3
+The breakingdistance can not belongerthan 300m. Thebreaking distance can notbe longerthan 300m. 5
+The vehicleshornmust not be louderthan 50dz. Thevehicles hornmust not be louderthan 50dz. 5
+The vehiclesmaximumvelocity is260km/h. The vehicles maximum velocity is LESS OR EQUAL
+260km/h.3
+Theminimundistance toavehiclein fronthastobe
+5m.Theminimumdistancetoavehicleinfronthastobe
+LESS OR EQUAL5m.3
+16
+
+--- Page 17 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+TableA.8. Evaluation Results: 4 ExamplesLogicalFormulae.
+Original Translation Class
+Theluminousintensity ofthedaytimerunninglight
+must belower than 400cd.Theluminousintensity ofthedaytimerunninglight
+must be LESSTHAN400cd.1
+Therangeofthevehicleshallbeatleast450kmunder
+WLTPconditionsTherangeofthevehicleshallbeatleast450kmunder
+WLTPconditions.5
+If the speed limiter is activated, the vehicle speed
+shall not exceedthe set speed.If the speed limiter is activated, the vehicle speed
+shall not exceedtheset speed.5
+Themaximumcurbweightofthevehiclemustbeno
+more than 3.5tThe maximum curb weight of the vehicle must be
+LESS THAN3.5t.3
+The breakingdistance can not belongerthan 300m. ThebreakingdistancecannotbeLESSTHAN300m. 6
+The vehicleshornmust not be louderthan 50dz. ThevehicleshornmustnotbeLOUDERTHAN50dz. 5
+The vehiclesmaximumvelocity is260km/h. The vehicles maximum velocity is LESS THAN
+260km/h.6
+Theminimundistance toavehiclein fronthastobe
+5m.Theminimundistance toavehiclein fronthastobe
+LESS THAN5m.6
+TableA.9. Evaluation Results: 6 ExamplesLogicalFormulae.
+Original Translation Class
+Theluminousintensity ofthedaytimerunninglight
+must belower than 400cd.Theluminousintensity ofthedaytimerunninglight
+must be LESSTHAN400cd.1
+Therangeofthevehicleshallbeatleast450kmunder
+WLTPconditionsTherangeofthevehicleshallbeatleast450kmunder
+WLTPconditions.5
+If the speed limiter is activated, the vehicle speed
+shall not exceedthe set speed.If the speed limiter is activated, the vehicle speed
+shall not exceedtheset speed.5
+Themaximumcurbweightofthevehiclemustbeno
+more than 3.5tThe maximum curb weight of the vehicle must be
+LESS OR EQUAL3.5t.1.
+The breakingdistance can not belongerthan 300m. The breaking distance can not be LESS OR EQUAL
+300m.6
+The vehicleshornmust not be louderthan 50dz. Thevehicles hornmust be LESSOR EQUAL 50dz. 3
+The vehiclesmaximumvelocity is260km/h. The vehicles maximum velocity is LESS OR EQUAL
+260km/h.3
+Theminimundistance toavehiclein fronthastobe
+5m.Theminimumdistancetoavehicleinfronthastobe
+LESS OR EQUAL5m.3
+17
+
+--- Page 18 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+Table A.10. Evaluation Results: 8ExamplesLogicalFormulae.
+Original Translation Class
+Theluminousintensity ofthedaytimerunninglight
+must belower than 400cd.Theluminousintensity ofthedaytimerunninglight
+must be LESSTHAN400cd.1
+Therangeofthevehicleshallbeatleast450kmunder
+WLTPconditionsTherangeofthevehicleshallbeatleast450kmunder
+WLTPconditions.5
+If the speed limiter is activated, the vehicle speed
+shall not exceedthe set speed.If the speed limiter is activated, the vehicle speed
+shall not exceedtheset speed.5
+Themaximumcurbweightofthevehiclemustbeno
+more than 3.5tThe maximum curb weight of the vehicle must be
+LESS THAN3.5t.1.
+The breakingdistance can not belongerthan 300m. The breaking distance can not be GREATER THAN
+300m.1
+The vehicleshornmust not be louderthan 50dz. ThevehicleshornmustnotbeLOUDERTHAN50dz. 5
+The vehiclesmaximumvelocity is260km/h. The vehicles maximum velocity is LESS THAN
+260km/h.6
+Theminimundistance toavehiclein fronthastobe
+5m.Theminimundistance toavehiclein fronthastobe
+LESS THAN5m.6
+Table A.11. Support Set: 1ExampleIf-ThenStructure.
+Original Translation
+If a defective illuminant is detected, the information
+about the defective illuminant is transmitted to the in-
+strument cluster.IF: defective illuminant is detected, THEN: information
+about the defective illuminant is transmitted to the in-
+strument cluster
+Table A.12. SupportSet: 4 ExamplesIf-ThenStructure.
+Original Translation
+If a defective illuminant is detected, the information
+about the defective illuminant is transmitted to the in-
+strument cluster.IF: defective illuminant is detected, THEN: information
+about the defective illuminant is transmitted to the in-
+strument cluster
+Ifnoadvancingvehicleisrecognizedanymore,thehigh
+beam illumination is restored within 2 seconds.IF: no advancing vehicle is recognized any more, THEN:
+highbeamillumination isrestored within 2seconds.
+Ifthelightrotaryswitchisinposition"auto",theadaptiv e
+highbeamheadlightsareactivatedbymovingthepitman
+arm tothe back.IF: the light rotary switch is in position ""auto"" and the
+pitman arm is moved back, THEN: the adaptive high
+beamheadlightsare activated.
+(a)Whenthedriverenablesthecruisecontrol(bypulling
+the cruise control lever or by pressing the cruise control
+lever up or down), the vehicle maintains the set speed if
+possible.IF:driver enablesthecruise controlbypullingthecruise
+control lever or by pressing the cruise control lever up
+or down, THEN: the vehicle maintains the set speed if
+possible.
+18
+
+--- Page 19 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+Table A.13. SupportSet: 6 ExamplesIf-ThenStructure.
+Original Translation
+If a defective illuminant is detected, the information
+about the defective illuminant is transmitted to the in-
+strument cluster.IF: defective illuminant is detected, THEN: information
+about the defective illuminant is transmitted to the in-
+strument cluster
+Ifnoadvancingvehicleisrecognizedanymore,thehigh
+beam illumination is restored within 2 seconds.IF: no advancing vehicle is recognized any more,
+THEN:high beam illumination is restored within 2 sec-
+onds.
+Ifthelightrotaryswitchisinposition"auto",theadaptiv e
+highbeamheadlightsareactivatedbymovingthepitman
+arm tothe back.IF: the light rotary switch is in position ""auto"" and the
+pitman arm is moved back, THEN: the adaptive high
+beamheadlightsare activated.
+(a)Whenthedriverenablesthecruisecontrol(bypulling
+the cruise control lever or by pressing the cruise control
+lever up or down), the vehicle maintains the set speed if
+possible.IF:driver enablesthecruise controlbypullingthecruise
+control lever or by pressing the cruise control lever up
+or down, THEN: the vehicle maintains the set speed if
+possible.
+If the driver pushes down the cruise control lever with
+cruisecontrolactivateduptotheﬁrstresistancelevel,the
+speed set point ofthe cruise control isreducedby N.IF: driver pushes down the cruise control lever with
+cruise control activated up to the ﬁrst resistance level,
+THEN:thespeedsetpointofthecruisecontrolisreduced
+byN.
+By pushing the brake or the hand brake, the cruise con-
+trol is deactivated until it is activated again.IF: the brake or the hand brake is pushed, THEN: the
+cruise controlis deactivated until it is activated again.
+19
+
+--- Page 20 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+Table A.14. Evaluation Results: 1ExampleIf-ThenStructure.
+Original Translation Class
+With activated darkness switch (only armored vehi-
+cles) the corneringlightis not activated.IF: darkness switch is activated, THEN: cornering
+light is notactivated3
+When moving the pitman arm in position turn left
+the vehicle ﬂashes all left direction indicators (front
+left, exterior mirror left, rear left) synchronically
+with pulse ratio bright todark1:1.When moving the pitman arm in position turn left
+the vehicle ﬂashes all left direction indicators (front
+left, exterior mirror left, rear left) synchronically
+with pulse ratio brightto dark1:1.5
+If the driver activates the pitman arm during the
+three ﬂashing cycles of tip-blinking again, only the
+current ﬂashing cycleiscompleted.IF: the driver activates the pitman arm during the
+threeﬂashingcyclesoftip-blinking,THEN:onlythe
+current ﬂashing cycleiscompleted1
+Hazard Warning Light: As long as the hazard warn-
+ing light switch is released, all direction indicators
+ﬂashsynchronically.Iftheignitionkeyisintheigni-
+tion lock, the pulse ratio is bright to dark 1:1. If the
+ignition key isnot in thelock,thepulse ratio is 1:2.IF:hazard warninglightisreleased,THEN:alldirec-
+tion indicators ﬂash synchronically. IF: ignition key
+is in theignition lock,THEN:pulse ratio is brightto
+dark 1:1. IF: ignition key is not in the lock, THEN:
+pulse ratio is1:2.6
+When hazard warning is deactivated and the pit
+armisinposition directionblinkingleftordirection
+blinkingright,thedirectionblinkingcycleshouldbe
+released.WHEN:hazardwarningisdeactivated,THEN:direc-
+tion blinkingcycleshould be released5
+Iftip-blinking wasactivated shortlybeforedeactiva-
+tionofthehazardwarning,thisisnotconsidereddur-
+ing the deactivation ofthe hazard warningIF:tip-blinkingwasactivatedshortlybeforedeactiva-
+tionofthehazardwarning,THEN:thisisnotconsid-
+ered during the deactivation ofthe hazardwarning1
+(a) The driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lightson(a) The driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lightson5
+Thedriveractivatesthelowbeamheadlightsbyturn-
+ingthelightrotaryswitchtoposition exteriorlights
+onThedriveractivatesthelowbeamheadlightsbyturn-
+ingthelightrotaryswitchtoposition exteriorlights
+on5
+Distance Warning: The vehicle warns the driver vi-
+sually and/or acoustically if the vehicle is closer to
+the carahead thanallowed by thesafety distance.IF: distance warning is activated, THEN: the vehicle
+warnsthe driver visually and/or acoustically6
+Emergency Brake Assist: The vehicle decelerates in
+critical situations to a fullstandstillEmergency Brake Assist: The vehicle decelerates in
+critical situations to a fullstandstill5
+If the driver pushes the cruise control lever up to
+the ﬁrst resistance level and the cruise control is ac-
+tivated, the speed set point of the cruise control is
+increased bythe value N.IF: the driver pushes the cruise control lever up to
+the ﬁrst resistance level, THEN: the speed set point
+of thecruise controlis increased bythe value N5
+20
+
+--- Page 21 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+Table A.15. Evaluation Results: 4 ExamplesIf-ThenStructure.
+Original Translation Class
+With activated darkness switch (only armored vehi-
+cles) the corneringlightis not activated.IF: with activated darkness switch, THEN: the cor-
+nering light isnot activated.4
+When moving the pitman arm in position turn left
+the vehicle ﬂashes all left direction indicators (front
+left, exterior mirror left, rear left) synchronically
+with pulse ratio bright todark1:1.IF: when moving the pitman arm in position turn
+left the vehicle ﬂashes all left direction indicators
+(front left, exterior mirror left, rear left) synchroni-
+cally with pulse ratio bright to dark 1:1, THEN: the
+vehicle ﬂashes all left direction indicators (front left,
+exterior mirror left, rear left) synchronically with
+pulse ratio brightto dark1:1.5
+If the driver activates the pitman arm during the
+three ﬂashing cycles of tip-blinking again, only the
+current ﬂashing cycleiscompleted.IF: the driver activates the pitman arm during the
+threeﬂashingcyclesoftip-blinking,THEN:onlythe
+current ﬂashing cycleiscompleted.1
+Hazard Warning Light: As long as the hazard warn-
+ing light switch is released, all direction indicators
+ﬂashsynchronically.Iftheignitionkeyisintheigni-
+tion lock, the pulse ratio is bright to dark 1:1. If the
+ignition key isnot in thelock,thepulse ratio is 1:2.IF: hazard warning light switch is released, THEN:
+alldirectionindicatorsﬂashsynchronically.Iftheig-
+nition key is in the ignition lock, the pulse ratio is
+bright to dark 1:1. If the ignition key is not in the
+lock,the pulse ratio is 1:2.1
+When hazard warning is deactivated and the pit
+armisinposition directionblinkingleftordirection
+blinkingright,thedirectionblinkingcycleshouldbe
+released.IF:hazardwarningisdeactivatedandthepitarmisin
+position direction blinking left or direction blinking
+right, THEN: the direction blinking cycle should be
+released.1
+Iftip-blinking wasactivated shortlybeforedeactiva-
+tionofthehazardwarning,thisisnotconsidereddur-
+ing the deactivation ofthe hazard warningIF:tip-blinkingwasactivatedshortlybeforedeactiva-
+tionofthehazardwarning,THEN:thisisnotconsid-
+ered during the deactivation ofthe hazardwarning.1
+(a) The driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lightsonIF: the driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lights on, THEN: the low beam headlights are acti-
+vated.2
+Thedriveractivatesthelowbeamheadlightsbyturn-
+ingthelightrotaryswitchtoposition exteriorlights
+onIF: the driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lights on, THEN: the low beam headlights are acti-
+vated.2
+Distance Warning: The vehicle warns the driver vi-
+sually and/or acoustically if the vehicle is closer to
+the carahead thanallowed by thesafety distance.IF: distance warning is activated, THEN: the vehicle
+warnsthe driver visually and/or acoustically.6
+Emergency Brake Assist: The vehicle decelerates in
+critical situations to a fullstandstillIF:emergencybrakeassistisactivated,THEN:theve-
+hicle decelerates in critical situations to a full stand-
+still6
+If the driver pushes the cruise control lever up to
+the ﬁrst resistance level and the cruise control is ac-
+tivated, the speed set point of the cruise control is
+increased bythe value N.IF: the driver pushes the cruise control lever up to
+theﬁrstresistancelevelandthecruisecontrolisacti-
+vated,THEN:thespeedsetpointofthecruisecontrol
+is increased by thevalue N.1
+21
+
+--- Page 22 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+Table A.16. Evaluation Results: 6 ExamplesIf-ThenStructure.
+Original Translation Class
+With activated darkness switch (only armored vehi-
+cles) the corneringlightis not activated.IF:with activateddarknessswitch (onlyarmoredve-
+hicles),THEN:the corneringlightis not activated.2
+When moving the pitman arm in position turn left
+the vehicle ﬂashes all left direction indicators (front
+left, exterior mirror left, rear left) synchronically
+with pulse ratio bright todark1:1.IF: the pitman arm is moved in position turn left,
+THEN:thevehicleﬂashesallleftdirectionindicators
+(front left, exterior mirror left, rear left) synchroni-
+callywith pulse ratio brightto dark1:1.1
+If the driver activates the pitman arm during the
+three ﬂashing cycles of tip-blinking again, only the
+current ﬂashing cycleiscompleted.IF: the driver activates the pitman arm during the
+threeﬂashingcyclesoftip-blinking,THEN:onlythe
+current ﬂashing cycleiscompleted1
+Hazard Warning Light: As long as the hazard warn-
+ing light switch is released, all direction indicators
+ﬂashsynchronically.Iftheignitionkeyisintheigni-
+tion lock, the pulse ratio is bright to dark 1:1. If the
+ignition key isnot in thelock,thepulse ratio is 1:2.IF: the hazard warning light switch is released,
+THEN: all direction indicators ﬂash synchronically.
+If the ignition key is in the ignition lock, the pulse
+ratioisbrighttodark1:1.Iftheignitionkeyisnotin
+the lock,thepulse ratio is1:2.1
+When hazard warning is deactivated and the pit
+armisinposition directionblinkingleftordirection
+blinkingright,thedirectionblinkingcycleshouldbe
+released.IF:hazardwarningisdeactivatedandthepitarmisin
+position direction blinking left or direction blinking
+right, THEN: the direction blinking cycle should be
+released.1
+Iftip-blinking wasactivated shortlybeforedeactiva-
+tionofthehazardwarning,thisisnotconsidereddur-
+ing the deactivation ofthe hazard warningIF:tip-blinkingwasactivatedshortlybeforedeactiva-
+tionofthehazardwarning,THEN:thisisnotconsid-
+ered during the deactivation ofthe hazardwarning1
+(a) The driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lightsonIF: the driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lights on, THEN: the low beam headlights are acti-
+vated.2
+Thedriveractivatesthelowbeamheadlightsbyturn-
+ingthelightrotaryswitchtoposition exteriorlights
+onIF: the driver activates the low beam headlights by
+turning the light rotary switch to position exterior
+lights on, THEN: the low beam headlights are acti-
+vated.2
+Distance Warning: The vehicle warns the driver vi-
+sually and/or acoustically if the vehicle is closer to
+the carahead thanallowed by thesafety distance.IF: distance warning is activated, THEN: the vehicle
+warnsthe driver visually and/or acoustically.6
+Emergency Brake Assist: The vehicle decelerates in
+critical situations to a fullstandstillIF:emergencybrakeassistisactivated,THEN:theve-
+hicle decelerates in critical situations to a full stand-
+still.6
+If the driver pushes the cruise control lever up to
+the ﬁrst resistance level and the cruise control is ac-
+tivated, the speed set point of the cruise control is
+increased bythe value N.IF: the driver pushes the cruise control lever up to
+theﬁrstresistancelevelandthecruisecontrolisacti-
+vated,THEN:thespeedsetpointofthecruisecontrol
+is increased by thevalue N.1
+Table A.17. Support Set: 1ExampleModalVerbs.
+Original Translation
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserver.The maximum deviation of the pulse ratio MUST be be-
+low the cognitive threshold ofa humanobserver.
+22
+
+--- Page 23 ---
+Technical Reporton NeuralLanguage Models and Few-ShotLea rning forSystematicRequirementsProcessing inMDSE
+Table A.18. SupportSet: 4 ExamplesModalVerbs.
+Original Translation
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserver.The maximum deviation of the pulse ratio MUST be be-
+low the cognitive threshold ofa humanobserver.
+Direction blinking: For USA and CANADA,the daytime
+running light shall be dimmed by 50% during direction
+blinking on theblinking side.Direction blinking: For USA and CANADA,the daytime
+runninglight MUSTbedimmedby50%duringdirection
+blinkingon the blinkingside.
+Theadaptationofthepulseratiohastooccuratthelatest
+after two completeﬂashing cycles.TheadaptationofthepulseratioMUSToccuratthelatest
+aftertwo completeﬂashingcycles.
+The duration ofa ﬂashingcycleis 1second. Theduration ofa ﬂashing cycleMUSTbe1 second.
+Table A.19. SupportSet: 6 ExamplesModalVerbs.
+Original Translation
+The maximum deviation of the pulse ratio should be be-
+low the cognitive threshold ofa humanobserver.The maximum deviation of the pulse ratio MUST be be-
+low the cognitive threshold ofa humanobserver.
+Direction blinking: For USA and CANADA,the daytime
+running light shall be dimmed by 50% during direction
+blinking on theblinking side.Direction blinking: For USA and CANADA,the daytime
+runninglight MUSTbedimmedby50%duringdirection
+blinkingon the blinkingside.
+Theadaptationofthepulseratiohastooccuratthelatest
+after two completeﬂashing cycles.TheadaptationofthepulseratioMUSToccuratthelatest
+aftertwo completeﬂashingcycles.
+The duration ofa ﬂashingcycleis 1second. Theduration ofa ﬂashing cycleMUSTbe1 second.
+Aﬂashingcycle(brighttodark)willalwaysbecompleted,
+before a new ﬂashing cyclecanoccur.A ﬂashing cycle (bright to dark) MUST always be com-
+pleted,beforea new ﬂashing cyclecanoccur.
+With subvoltage the ambient lightis not available. With subvoltage the ambient light MUST not be avail-
+able.
+Table A.20. Evaluation Results: 1ExampleModalVerbs.
+Original Translation Class
+The reaction time between the activation of the pit-
+manarmandthebeginningoftheﬁrstﬂashingcycle
+should be below the cognitive threshold of a human
+observer.The reaction time between the activation of the pit-
+manarmandthebeginningoftheﬁrstﬂashingcycle
+MUST be below the cognitive threshold of a human
+observer.1
+The framerateof the camerais 60Hz Theframerate of the cameraMUSTbe 60Hz 1
+The resolution of the camera signal is 24 bits (8 bits
+eachRGB).Theresolution ofthecamerasignalMUSTbe24bits
+(8bits eachRGB).1
+The functions of the system are classiﬁed as safety
+relevant in with respectto ISO26262.The functions of the system are classiﬁed as safety
+relevant in with respectto ISO262625
+Also after 1000 ﬂashing cycles the cumulated devia-
+tion will not exceed0.05s.Also after 1000 ﬂashing cycles the cumulated devia-
+tion will not exceed0.05s.5
+SpeedLimit:Thevehicledoesnotexceedasetspeed. Thevehicle doesnot exceeda set speed 5
+A ﬂashing cycle (bright to dark) has to be always
+completed,before a new ﬂashing cyclecanoccur.A ﬂashing cycle (bright to dark) has to be always
+completed,before a new ﬂashing cyclecan occur.5
+Low beamilluminant shallbe LED. Low beamilluminant shallbe LED. 5
+23
+
+--- Page 24 ---
+VincentBertram,MiriamBoß,EvgenyKusmenko, ImkeHeleneN achmann,Bernhard Rumpe,Danilo Tro/t_ta,Louis Wachtmeister
+TableA.21. Evaluation Results: 4 ExamplesModalVerbs.
+Original Translation Class
+The reaction time between the activation of the pit-
+manarmandthebeginningoftheﬁrstﬂashingcycle
+should be below the cognitive threshold of a human
+observer.The reaction time between the activation of the pit-
+manarmandthebeginningoftheﬁrstﬂashingcycle
+MUST be below the cognitive threshold of a human
+observer.1
+The framerateof the camerais 60Hz Theframerate of the cameraMUSTbe 60Hz 1
+The resolution of the camera signal is 24 bits (8 bits
+eachRGB).Theresolution ofthecamerasignalMUSTbe24bits
+(8bits eachRGB).1
+The functions of the system are classiﬁed as safety
+relevant in with respectto ISO26262.The functions of the system are classiﬁed as safety
+relevant in with respectto ISO26262.5
+Also after 1000 ﬂashing cycles the cumulated devia-
+tion will not exceed0.05s.Also after 1000 ﬂashing cycles the cumulated devia-
+tion MUSTNOTexceed0.05s.1
+SpeedLimit:Thevehicledoesnotexceedasetspeed. Thevehicle doesnot exceeda set speed 5
+A ﬂashing cycle (bright to dark) has to be always
+completed,before a new ﬂashing cyclecanoccur.A ﬂashing cycle (bright to dark) MUST be always
+completed,before a new ﬂashing cyclecan occur.1
+Low beamilluminant shallbe LED. Low beamilluminant shallbe LED. 5
+TableA.22. Evaluation Results: 6 ExamplesModalVerbs.
+Original Translation Class
+The reaction time between the activation of the pit-
+manarmandthebeginningoftheﬁrstﬂashingcycle
+should be below the cognitive threshold of a human
+observer.The reaction time between the activation of the pit-
+manarmandthebeginningoftheﬁrstﬂashingcycle
+MUST be below the cognitive threshold of a human
+observer.1
+The framerateof the camerais 60Hz Theframerate of the cameraMUSTbe 60Hz 1
+The resolution of the camera signal is 24 bits (8 bits
+eachRGB).Theresolution ofthecamerasignalMUSTbe24bits
+(8bits eachRGB).1
+The functions of the system are classiﬁed as safety
+relevant in with respectto ISO26262.The functions of the system are classiﬁed as safety
+relevant in with respectto ISO26262.5
+Also after 1000 ﬂashing cycles the cumulated devia-
+tion will not exceed0.05s.Also after 1000 ﬂashing cycles the cumulated devia-
+tion MUSTnot exceed0.05s.1
+SpeedLimit:Thevehicledoesnotexceedasetspeed. Thevehicle doesnot exceeda set speed. 5
+A ﬂashing cycle (bright to dark) has to be always
+completed,before a new ﬂashing cyclecanoccur.A ﬂashing cycle (bright to dark) MUST always be
+completed,before a new ﬂashing cyclecan occur.1
+Low beamilluminant shallbe LED. Low beamilluminant MUSTbe LED. 1
+24

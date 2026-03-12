@@ -1,0 +1,2445 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL 17, NO. 3, MARCH 1991                                                                       241
+
+Software Requirements Analysis for
+Real-Time Process-Control Systems
+
+Matthew S. Jaffe, Nancy G. Leveson, Mats P.E. Heimdahl, and Bonnie E. Melhart
+
+Abstract—A set of criteria is defined to help find errors in software
+requirements specifications, Particular attention is focused on the proper-
+ties of robustness and lack of ambiguity. The criteria are defined using an
+abstract state-machine model for generality. Using these criteria, analysis
+procedures can be defined for particular state-machine modeling lan-
+guages to provide semantic analysis of real-time process-control software
+requirements.
+
+Index Terms—Behavioral modeling, completeness, process control, real-
+time specification, robustness, semantic analysis, software requirements.
+
+I. INTRODUCTION
+
+OFTWARE requirements errors have been found to account
+
+for a majority of production software failures [5], [8] and
+have been implicated in a large number of accidents [20].
+Errors introduced during the requirements phase can cost up to
+200 times more to correct than errors introduced later in the life
+cycle [6] and can have a major impact on safety. Therefore,
+techniques to provide adequate requirements specifications and
+to find errors early are of great importance.
+
+One application area for which requirements specification is
+particularly critical is process-control, i.., software that controls
+arbitrarily large or energetic physical phenomena. Such software
+is usually real-time and often embedded within some larger
+system such as a ship, aircraft, missile, spacecraft, manufacturing
+or processing plant, or transportation system. Its role within the
+embedded system is to assist in the formulation and implemen-
+tation of decisions made by the computer or by humans for the
+purpose of controlling the larger system. In such process-control
+systems, minor behavioral distinctions often have significant
+consequences. It is therefore particularly important that the
+requirements specification distinguish the behavior of the desired
+software from that of any other, undesired program that might
+be designed; that is, it must be both precise (unambiguous) and
+correct with respect to the encompassing system requirements.
+The requirements analysis techniques discussed in this paper are
+most relevant for these types of systems.
+
+Our long-term goal is to provide analysis procedures to help
+find flaws in the software requirements specifications for process-
+control systems early in the software development. The ap-
+proach is an engineering one where a model (the requirements
+specification) is built and then analyzed to ensure that the
+
+Manuscript received March 14, 1990; revised October 15, 1990. Recom-
+mended by the Guest Editors for the special section.
+
+This work was supported in part by NASA under Grant NAG-1-668, and by
+the National Science Foundation under Grant CCR-8718001, and CER Grant
+DCR-8521398.
+
+M.S. Jaffe is with the Hughes Aircraft Company, Ground Systems Group,
+Fullerton, CA 92634.
+
+NN.G, Leveson and M.P.E. Heimdahl are with the Department of Informa-
+tion and Computer Science, University of California, Irvine, CA 92717.
+
+B.E. Melhart is with the Department of Computer Science, Texas Christian
+University, Fort Worth, TX 76129.
+
+TEEE Log Number 9041661.
+
+properties of the model match the desired behavior. Before such
+analysis procedures can be developed for particular specification
+or modeling languages, general correctness criteria are needed
+for the analysis to check.
+
+Some of the criteria defined in this paper must be satisfied
+by all such systems; these criteria often arise from the basic
+properties inherent in process-control. Other criteria are heuristics
+that can be used to improve the specification by examining,
+within the context of the particular process being controlled,
+properties that are often present in such systems.
+
+This approach complements other approaches to the same
+problem that have been proposed. For example, prototyping is
+very useful for ensuring that the human/machine interface (HMI)
+has been properly described. It is less powerful when attempting
+to ensure that physical processes are correctly controlled by the
+software, especially when, as is usual, the rest of the system has
+not yet been built or even completely designed when the software
+development must begin. Furthermore, prototyping has the same
+limitations as testing when the goal is to ensure with very high
+
+confidence that certain constraints, such as safety, are always
+
+satisfied. It is possible to make guarantees about the behavior of
+the software only for the particular inputs applied and not for all
+inputs. Prototyping may involve a lot of work just to find out
+that the wrong software was built and the work must start again.
+It is helpful to find and eliminate as many problems as possible
+before the prototyping begins.
+
+Executable specifications (such as [4], [27], [26]) are related
+to prototypes in that such specifications may actually act as a
+prototype, but they may involve less coding than prototyping.
+Like a prototype, such specifications may be inefficient since they
+may require specifying more than would normally be necessary
+and again are limited in power of analysis and assurance to that
+possible with testing. Some executable specifications are also not
+very readable and thus are less useful as specifications for the
+rest of the software development process. But like prototypes,
+executable specifications are better than the approach presented
+in this paper at finding problems in the specification of the
+HMI—few models of human behavior exist and very little is
+known about the desirable and necessary properties of HMI
+design.
+
+Because our goal is to define general analysis criteria that can
+be applied to black-box requirements specified in any language,
+we use a notation and analysis model in this paper, i.e., the first-
+order predicate calculus and a simple state machine, that can
+be easily mapped to many of the current real-time requirements
+specification languages (such as [12], [11], [2]). Our goal is not
+to provide another language for specification or requirements;
+the formal notation is for the purpose of providing rigor in
+defining the analysis criteria while requiring only a small number
+of primitives that are easily mapped to existing specification
+languages.
+
+The next section defines what we mean by semantic analysis
+
+0098-5589/91/0300-0241$01.00 © 1991 IEEE
+
+
+--- Page 2 ---
+242                                                            IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+of software requirements. To devise analysis techniques and
+procedures, it is first necessary to determine the properties for
+which the requirements must be evaluated. In the rest of the
+paper we provide a description of the analysis criteria we have
+developed that imply these properties. In this paper, we consider
+only analysis criteria that examine the behavioral description
+of the computer. However, our long range goal is to define
+procedures that include detailed consideration of the behavior
+of the entire system working together in order to model and to
+analyze the interface between the process and the computer. Also,
+only black-box requirements are considered—the behavior of the
+software is described in terms of observable phenomena external
+to the software. Although requirements and design often become
+intertwined, even a specification that includes design information
+needs to include a complete set of black-box behavioral require-
+ments as well, and these behavioral requirements are the subject
+of this paper.
+
+II. SEMANTIC ANALYSIS OF REQUIREMENTS
+
+A system is a set of components working together to achieve
+some common purpose or objective. For the most part, the
+systems of interest in this paper are physical systems or processes.
+Besides the basic objective or function implemented by the
+process, these types of systems also may have constraints on their
+operating conditions. Constraints may be regarded as boundaries
+that define the range of conditions within which the system may
+operate. Constraints may arise from several sources including:
+
+* quality considerations,
+
++ physical limitations and equipment capacities (e.g., avoiding
+
+overload of equipment in order to reduce maintenance),
+
+* process characteristics (e.g., limiting process variables to
+
+minimize production of byproducts), and
+
+* safety (e.g., avoiding hazardous states).
+
+Early in the development process, tradeoffs between functional
+goals and constraints must be identified and resolved according
+to priorities assigned to each. Identifying these conflicts and
+resolving them is a major component of both the system and
+software requirements analysis process. The other component
+is ensuring that the behavior of the process-control system
+implements the function to be achieved by the system. Both of
+these together are necessary to determine whether the software
+is “correct” for process-control systems. Semantic analysis of
+the software requirements addresses both of these elements as it
+examines the correctness of the specification.
+
+Software correctness can be separated into two aspects: subsys-
+tem correctness and system correctness. Subsystem correctness
+implies that the implementation or constructed version of the
+subsystem satisfies the subsystem requirements while system cor-
+rectness implies that the external behavior of all the subsystems
+together satisfy the system requirements.
+
+The most important property of the requirements specification
+with respect to achieving subsystem correctness is precision or
+Jack of ambiguity. The behavior of the software must have
+been specified in sufficient detail to distinguish the behavior of
+the desired software from that of any other, undesired program
+that might be designed. If a requirements document contains
+insufficient information for the designers to distinguish between
+observably distinct behavioral patterns, then the specification is
+ambiguous. If the differences between two programs that satisfy
+the same set of requirements are not significant for a given
+application (i.e., will not affect the achievement of the system
+goals and the satisfaction of the constraints), the ambiguity
+
+may not matter—the specification is sufficiently unambiguous
+or complete. But languages or specification procedures that
+do not permit the expression of subtle distinctions or do not
+include requirements to cover all possible circumstances will be
+inadequate for some applications. Ambiguity or imprecision in
+the software requirements specification can have a major impact
+on testing, formal verification, and reuse of the software. It can
+also affect the ability to determine system correctness.
+
+System correctness implies that the subsystems working to-
+gether, if they satisfy their requirements (i.e., the subsystems
+are correct), will implement the required system function while
+satisfying the constraints on how that function may be achieved.
+For most process-control systems, this must be accomplished
+under all possible conditions, i.e., the system must be robust.
+Note that the constraints may include acceptable failure behavior
+if it becomes impossible to continue to achieve the goals of the
+system. More specifically, the behavior of the control subsystem
+(in our case, the computer) is defined with respect to assumptions
+about the behavior of the other parts of the system, i.e., the
+conditions in the environment within which it operates. A robust
+system will detect and respond appropriately to violations of
+these assumptions. Therefore, the robustness of the software
+built from the specification depends upon the completeness of
+the specification of the environmental assumptions; there must
+be no observable events that leave the program’s behavior
+indeterminate.
+
+Documenting all environmental assumptions and checking
+them at run-time may seem expensive and unnecessary. Many
+assumptions are made on the basis of the physical characteristics
+of input devices and cannot be falsified even under unreasonable
+physical conditions and failures. For example, an input line
+connected to a 1200 baud modem cannot fail in such a fashion as
+to cause the data rate to exceed 1200 baud. The interrupt signal
+may stick high (i.e., on), but for most modern hardware that will
+stop data transfer, not accelerate it. However, if the environment
+in which the program executes ever changes, the assumption
+may no longer remain valid; e.g., the 1200 baud modem may be
+upgraded to 9600 baud. Similarly, if the software is ever reused,
+the environment for the new program may differ from that of the
+earlier use. A striking example of this type of problem involved
+the reuse of air traffic control software in Great Britain that was
+originally written and designed for air traffic control centers in the
+U.S. It was not discovered until after the software was installed
+that the American designers had not taken zero degrees longitude
+into account which caused the computer to fold its map of Britain
+in two at the Greenwich meridian [19].
+
+Besides documentation of assumptions, it is important for
+real-time software to check assumptions at run-time when the
+improper performance of the software can have serious con-
+sequences. Examples abound of accidents resulting from in-
+complete requirements and nonrobust software [20], [24]. For
+example, an accident occurred when a flight-control system was
+not programmed to. handle a particular attitude of the aircraft
+[24]. System safety engineers have concluded that inadequate
+requirements specification and design foresight are the greatest
+cause of software safety problems [20].
+
+The software requirements specification must contain the infor-
+mation necessary to make possible the determination of both of
+these types of correctness—system and subsystem. The problem
+then is to determine the criteria that imply these properties and
+the type and amount of information sufficient to satisfy the
+criteria. That is the topic of this paper, with special emphasis
+on criteria for ensuring robustness and lack of ambiguity. Once
+
+ 
+
+
+--- Page 3 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+243
+
+ 
+
+these criteria have been identified, semantic analysis techniques
+associated with particular models and specification languages
+can be developed to ensure that these criteria are satisfied for
+a particular specification.
+
+Il. Basic MopEt AND TERMINOLOGY
+Traditionally, process control has been defined as:
+
+An arrangement of elements (such as amplifiers, convert-
+ers, and human operators) interconnected in such a way
+as to maintain, or to affect in a prescribed manner, some
+physical quantity or condition of the process which forms
+
+a part of the system [23].
+
+The scope of modern process control is, however, not limited
+to maintaining and regulating the variables in a system but also
+includes supervision and planning by means of scheduling and
+sequencing events and operations in the system.
+
+The operation of a system can be expressed as a function
+F relating system inputs (Z,), outputs (O,), and time (¢). This
+system function consists of the functional description and the set
+of constraints on the system [23]. At any moment, there is a
+unique set of relationships between inputs and outputs whereby
+each output value will be related to the past and present values of
+the inputs and time. These relationships will involve fundamental
+chemical, thermal, mechanical, aerodynamic, or other laws as
+embodied within the nature and construction of the system.
+The system is constructed from components whose interaction
+implements F including, usually, a  controller or controllers
+whose function is to ensure that F is correctly achieved.
+
+A closed-loop process-control system can be modeled as four
+basic components within a control loop (Fig. 1): the process,
+controller(s), actuators, and sensors.
+
+Process: The behavior of the process is controlled through
+manipulated variables (V,,), and the actual behavior is monitored
+through controlled variables (V.). The process can be described
+by the process function Fp, a mapping from V,, x Z, x D x
+t > O, x V,. Unfortunately, it is usually difficult to derive a
+mathematical model of the process due to the fact that most
+processes are highly nonlinear (i.e., the process characteristics
+depend on the level of operation), and, even at a constant
+operating level, the process characteristics change with time (i.e.,
+the process is nonstationary). However, some of the process
+characteristics can be described or assumptions can be made
+
+control loop.
+
+about the characteristics, and these can be used to derive the
+control function. It is important to remember that any attempt
+to provide a mathematical expression describing the process
+involves simplifying assumptions and therefore will be imperfect
+although useful.
+
+Controller: This component is an analog or digital imple-
+mentation of the control function. The functional behavior of
+the controller is described by a control function (Fc) mapping
+IxC xt — O. The process may change state not only through
+internal conditions and through the manipulated variables, but
+also by disturbances (D) that are not subject to adjustment and
+control by the controller. The general control problem is to adjust
+the manipulated variables so as to achieve the system goals
+despite. disturbances. Feedback is provided via the controlled
+variables in order to monitor the behavior of the process. This
+feedback information (along with external command signals C)
+can be used as a foundation for future control decisions as well
+as an indicator of whether the changes in the process initiated
+by the controller have been achieved. Note that the controller
+may have only partial control over the process—state changes
+in the process may occur due to internal conditions in the process
+or because of external disturbances. Also, this mode} is an
+abstraction; responsibility for implementing the control function
+may actually be distributed among several components including
+analog devices, digital computers, and humans.
+
+‘Actuators: These are devices designed to manipulate the
+behavior of the process, e.g., valves controlling the flow of a
+fluid. The actuators physically execute commands issued by the
+controller in order to change the manipulated variables. The
+functionality of the actuators is described by the actuator function
+F, mapping O x t > Vn.
+
+Sensors: These devices constantly monitor the actual behavior
+of the process. For example, a thermometer may measure the
+temperature of a solvent in a chemical process. Sensors provide
+the controller with measurements of the controlled variables. The
+sensor function F's maps V, x t > I.
+
+This model describes a classic feedback control system where
+the controller monitors the process through controlled variables
+and makes adjustments accordingly. There are disadvantages
+with such a system. It does not take corrective action until the
+controlled variables already deviate from their desired values.
+Furthermore, any corrective action is not realized until the
+changing conditions have propagated around the control loop.
+
+
+--- Page 4 ---
+Delays, called time lags, caused by each component may cause
+serious problems in the system.
+
+A complementary approach, feedforward control, measures
+and estimates disturbances and tries to predict their effect on
+the process. Corrective actions are taken before the controlled
+variables deviate from their desired values. Feedforward control
+cannot replace a feedback control, however. The effectiveness
+of a feedforward system is limited by the mathematical model
+describing the system and the accuracy of the components
+involved. Inaccuracies may cause the feedforward system to have
+a steady-state offset taking the system out of balance. Also,
+the feedforward controller cannot compensate for unexpected
+disturbances. Process-control systems often combine feedforward
+and feedback strategies in order to offset the disadvantages of
+each.
+
+Process-control is a time-based concept, and therefore timing is
+a crucial aspect of any process-control specification method. The
+control objective is to maintain some property at some specified
+value over time or to effect some sequence of state changes
+over time. The sequence of steps to be taken may be depéndent
+on both satisfaction of prerequisite conditions in the process or
+environment and on time.
+
+Control actions will lag in their effects on the process because
+of delays in signal propagation around the control loop: an
+actuator may not respond immediately to an external command
+signal; the process may have delays in responding to manipulated
+variables; sensors may obtain values only at certain “sampling”
+intervals. Time lags also restrict the speed and extent with which
+the effects of disturbances can be reduced. On the other hand,
+time lags may have positive effects in that they restrict the
+rapidity with which disturbances can upset the process; there
+are instances where the presence of time lags makes some types
+of closed-loop control both possible and effective. Furthermore,
+time lags in some components may be so small in comparison
+with other components that their effects may not be crucial. In
+fact, if the sampling period of the sensors becomes small in
+telation to the time lags of the rest of the system, the sampled
+control system becomes, in effect, continuous. This is also true
+for actuators that operate in a discrete manner.
+
+Because many of the problems associated with computerized
+Process control stem from timing, a large number of the criteria
+described in this paper involve timing.
+
+A. An Example System
+
+Fig. 2 shows a process-control system that will be used
+throughout the paper to illustrate the concepts introduced. (The
+complete example is included in the Appendix.) It is based on a
+set of requirements introduced in [15] as an example of safety-
+assertion analysis. The system controls the coolant temperature
+in a reactor tank by moving two independent control rods.
+The goal or basic required functionality is maintenance of the
+coolant at an externally defined temperature of C°K. The coolant
+temperature is measured by an automatic sensor and is provided
+to the controller when the temperature changes by c,°K. If
+the temperature of the coolant cannot be changed, a complete
+shutdown is required. A safety constraint on the control function
+of the cooling system is that a rod cannot be moved within 30 s
+of its previous movement.
+
+The following assumptions are made:
+
+1) The rods have mechanical stops so that an attempt to move
+
+a rod past its limit will have no effect on the system.
+
+IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+Disturbances
+
+  
+ 
+  
+
+Rodl actual setting
+Rod? actual setting
+
+Measured temperature
+
+Fig. 2. Block diagram of the temperature control system.
+
+2) Every rod movement will perturb a stable system enough
+to report a temperature change.
+
+3) The goal will always be attainable; i.e., the possible move-
+ment of the rods is always enough to stabilize the temper-
+ature at the right value.
+
+4) The process is dynamically stable; i.e., no runaway temper-
+ature changes will take place. There will never be a need
+to move the rods with shorter than 30 s intervals.
+
+B. The Requirements State Machine
+
+The goal of this paper is to describe semantic analysis criteria
+that can be applied to any behavioral requirements specification.
+In order to make these criteria independent of any specific, ex-
+isting requirements language, we introduce a general behavioral
+model of the contro! function, called a requirements state machine
+(RSM), which is an abstraction of most state-based specification
+languages. The RSM is quite low-level, and it is not expected
+that analysts would specify their systems using it. The RSM
+was designed to be straightforward and to provide the minimum
+amount of power necessary to specify the semantic criteria. In
+this paper, the RSM is used to model the control function Fe
+while properties of the process, sensor, and actuator functions
+(Fp, Fs, and F4, respectively) are used to derive the semantic
+analysis criteria.
+
+The RSM model we use is a Mealy machine [13] with
+outputs on the transitions between states. Transitions are labeled
+with logical expressions of the form Input predicate || Output
+Predicate, and a transition is taken if the Input predicate on that
+transition evaluates to true. If an output is to be produced, the
+constraints on that output are expressed in the Output predicate
+associated with the transition.
+
+The RSM is denoted as a seven-tuple (©, Q, go, Pr, Po, 6,
+y) where:
+
+* ¥ is the set of input/output variables, Z and O, used by the
+
+controller (software).
+
+* Q is the finite set of states of the controller C.
+
+* go € Q is the initial state of the controller C; the software
+is in this state before startup.
+
+* Pr is the set of boolean functions over © representing
+predicates on the values and timing of the inputs (Z) from
+the sensors. These predicates are called trigger predicates
+since they trigger a state change in the RSM.              .
+
+* Po is the set of boolean functions over © representing
+predicates on the outputs (©) of the controller.
+
++ 6 is the state transition function mapping Q x Pr to Q.
+That is, 6(q,p) where g € Q and p € Pr defines the next
+
+
+--- Page 5 ---
+JAFFE et al.: SOFTWARE REQUIREMENTS ANALYSIS
+
+If ALou||Out( Rod) , up)
+
+ 
+   
+
+IT AHigh||Out(Rod1, down)
+
+TimeOut( Rod!) ||-
+
+Fig. 3. A fragment of an RSM.
+
+state when the software is in state g and takes the transition
+having p as the input predicate.
+
+* 7 is the trigger-to-output relationship mapping from Q x Pr
+to Po. That is, 7(q,p) gives the predicate describing the
+output © to the actuators to be generated when the transition
+with input predicate p is taken out of state q.
+
+In addition the RSM has the following properties:
+
+* Predicates in Pr and Po are expressed using the standard
+boolean operators and ordinary arithmetic operators, The
+expression X{ represents an input or output occurrence of
+X. This expression evaluates to true the moment input X
+arrives at the black-box boundary or output X is produced
+and presented at the black-box boundary. The value of a
+variable X is denoted v(X).
+
+* When an input J arrives at the software boundary, i.e., an
+IT event has occurred, it is denoted as J; or simply I. The
+previous occurrence of the same input will be denoted J;_;
+and so forth. The ordering of outputs will be expressed in
+the same manner. Note that the first variable X arriving
+at the black-box boundary will be referred to as X,. The
+ordering of inputs and outputs is externally visible.
+
+¢ The predicates in Pr are either equivalent to the form Input
+event \ Input Constraints or they represent a timeout. Every
+input predicate that is not a timeout will contain only one
+Input event. For a timeout, the mere passage of time with
+no triggering input event will eventually result in a true
+predicate.
+
+* Acclock and a function giving the absolute time of an event
+are needed to express timing. The expression t(J{) denotes
+the time when J arrives at the black-box boundary. The
+clock is started when the system receives the signal to
+startup, ie., t(Sut) = 0.
+
+To illustrate, consider the reactor coolant example (Fig. 3). If
+no rods have been moved recently (within 30 s) and an input J
+indicating a temperature change occurs, the control tries to move
+Rod1. The rod will be moved up or down, depending on the
+value of J. After moving Rodi, the RSM will wait 30 s in state
+Rod1Moved. If no additional input arrives during this time, the
+RSM changes to NoRodsMoved. In Fig. 3 the predicates used
+are abbreviated:
+
+Low = v(I) < C°K
+High = v(1) > C°K
+TimeOut(X) =t > (XT) + 30
+Out(O, X) = OT A (v(O) = X)
+
+The transition predicate on the uppermost transition can be
+expressed informally as follows: if an input I arrives and the
+value of J is less than C°K, then produce an output Rod/ with
+the value up.
+
+Semantic analysis of requirements involves procedures for
+examining each of the parts of the RSM within the context of
+the system function F in order to find flaws in the software
+requirements specification and to ensure that it (and the software
+built from it) has certain desirable properties. This paper de-
+scribes some of the semantic analysis that might be performed.
+Unfortunately, it is usually not possible to specify a complete
+formal model of the system function F’. However, it is possible to
+define criteria that must be satisfied by the software requirements
+specifications for all such systems and also heuristics that will
+aid in finding missing requirements, incorrect requirements, and
+ambiguous requirements when considered within the context
+of the particular goals and constraints of the system being
+developed. We define these criteria and heuristics in terms of
+the parts of the RSM, i.e., input/output variables (2), states (Q),
+trigger predicates (P;), output predicates (Po), the trigger-to-
+output relationship (y), and transitions (6), considering each in
+turn.
+
+IV. Input/Output VARIABLES
+
+The input and output alphabet © represents all the types
+of information the sensors can provide to the software and
+the commands that the software can provide to the actuators
+(manipulated variables). These variables need to be rigorously
+defined in the specification document. With this information, the
+variable coverage in the RSM can be determined.
+
+All information from the sensors should be used somewhere
+in the RSM. If not, it is very likely that important behavior has
+been omitted from the software requirements specification.
+
+ 
+
+Criterion 4.1: Let Pr, be the subset of the predicates in Pr
+with IT as a conjunctive component. Then,
+
+VIdp : (IED p€ Pr,).       a
+
+ 
+
+Although this criterion is admittedly weak, it is included for
+completeness. An input variable I is said to be used if the
+predicate J} appears as a conjunctive part of the input predicate
+on some transition, i.e., the arrival of the variable at the black-
+box boundary is required for at least one input predicate in the
+state machine to evaluate to true.
+
+Like inputs, there is a great likelihood that some important
+requirement for software behavior has been forgotten if there
+is some legal value for an output that is never produced. An
+output variable O is used if OT appears in the predicate, i.e.,
+the production of this variable is included in an output predicate
+on at least one transition. For example, if v(O) € {up, down}
+and the RSM specifies when to generate v(O) = up but not
+when to generate 1(O0) = down, the specification is almost
+certainly incomplete. Checking for this property may help to
+locate omissions from the specification.
+
+V. Stares
+
+The possible states of the control software requirements are
+elements of Q. These will, of course, be specific to the ap-
+plication. However, there are states, i.e., those involved in
+software startup and shutdown, that must be treated in the
+requirements specification of all systems. There are also some
+general characteristics of Q that may be examined.
+
+
+--- Page 6 ---
+246                                                           IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+ 
+   
+
+Sut Av(h) = ++
+
+(a)                      Sul |=
+
+ 
+
+Fig. 4. (a) The first input /, if any, is used at the time of startup. (b) The
+last input J, if any, that arrived before startup is used. (c) All input before
+startup is ignored, and the first / arriving after startup is used.
+
+A. Startup and Shutdown
+
+There are two different startup situations: initial startup after
+complete process shutdown and startup after the software has
+been temporarily off-line. These present special problems that
+need attention in the requirements specification; many accidents
+and run-time failures stem from inadequacies in the software
+dealing with the transitions between normal processing and
+various types of partial or total shutdown.
+
+In the initial startup or after temporary process shutdown,
+the clock (as well as other system and local variables) will
+need to be initialized, ic, ¢ = 0. In the second case where
+only the software has been shutdown, the variables and status
+of the process, including time, will probably have changed since
+the time the computer was last operational. Unlike other types
+of software, such as data processing systems, an important
+consideration when developing software for process-control is
+that the process usually continues to change state even when the
+computer-controller is not executing. The behavior of the black-
+box during the startup event can be dependent on input arriving
+before startup, and this needs to be modeled.
+
+Criterion 5.1: The behavior of the software with respect to
+input received before startup, after shutdown, or when the
+computer is temporarily disconnected from the process (off-line)
+must be specified, or it must be determined that this information
+can be safely ignored.                                                    a
+
+In Fig. 4, three distinct startup behaviors are modeled. An
+example of a complete startup procedure can be found in the
+Appendix.
+
+Serious accidents have occurred because designers did not
+consider the problem of how to handle information about the
+state of the world that arrived while the system was in a manual
+mode and the computer was temporarily off-line. As an example,
+an accident occurred in a batch chemical reactor when a computer
+was taken off-line to modify the software [16]. At the time the
+computer was shut-down, it was counting the revolutions on a
+
+metering pump that was feeding the reactor. When the computer
+came back on-line, the software continued counting where it had
+
+- left off with the result that the reactor was overcharged.
+
+There are a variety of potential solutions to this resynchroniza-
+tion problem. Message serialization, for example, is a commonly
+used technique that will detect “lost” information and indicate po-
+tential discontinuities in software operations. Another technique
+often used involves checking elapsed time between apparently
+successive inputs by means of a self-contained timestamp in
+each input (requiring clock synchronization) or via reference to
+a time-of-day clock upon the receipt of each input. Shutdown
+will be different depending on the application, but all shutdown
+states require that consideration be given to how to restart. Each
+method and each application will lead to unique requirements, but
+the need to ensure synchronization of data and status between the
+software and the external system elements is invariant.
+
+If the hardware can retain a signal indicating the existence
+of an input J prior to software startup, the program has two
+startup states with respect to the given input (i.e., the input was
+present or not) and (at least) two separate requirements must
+be specified: one to deal with startup when there is indication
+of a prior input signal, one when there is not. Note that in the
+case of an input event J occurring before program startup, ¢(JT)
+is unobservable by the software. Systems where the software
+time-stamps incoming data must include special requirements
+to handle this situation correctly at startup or errors can result.
+Furthermore, careful consideration must be given to the use of the
+value of the prestartup input event J as it is hardware dependent
+which v(J) is retained in the case (unobservable by the software)
+that there were multiple events J prior to program startup. Some
+hardware may retain the value from the first such event, some
+the most recent, etc.
+
+Any specification for a real-time system should also include re-
+quirements to detect a possible disconnect between the computer
+and the environment that occurred prior to any program startup.
+After program startup, there should be some finite bound on the
+time the program waits without receiving a given input before it
+tries various alternative strategies such as alerting an operator or
+shifting to an open-loop control mechanism that does not utilize
+the absent input. This is very similar to a maximum-time-between
+events condition (discussed in Section V1) but applies to the time
+after startup in the absence of even the first input of a given type.
+There may (and, in general, will) be a series of intervals d,, do,
+etc. during which the program is required to attempt various
+means of dealing with the lack of input from the environment.
+Eventually, however, there must be some period after which, in
+the absence of input, the conclusion must be that there is some
+malfunction.
+
+B. Modes
+
+Some languages for requirements specification, e.g., [12], [11],
+have features that provide for specifying modes of operation
+(c.g., an aircraft is taking-off, in-transit, landing). These modes
+partition Q into subsets with common characteristics. Modes may
+be defined in terms of previous states of the process, current
+process characteristics, or possible future states.
+
+The use of modes helps to simplify the description of the
+required operation of the software. It also affects the analysis in
+that particular criteria or procedures may be applied differently
+when in different modes or may apply only to particular modes.
+Modes generally allow a higher-level view of control flow in the
+system.
+
+
+--- Page 7 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+Besides general operational characteristics (which are usu-
+ally application dependent), Q may be partitioned according
+to certain desired, or undesired, properties of the system. A
+partitioning that is important for safety-critical systems groups
+states according to risk of leading to an accident or unacceptable
+event as defined by system engineers or clients. Risk is related to
+possible events or paths that could result from a particular state.
+In particular, when in a state q, there are a set of states Q, that
+it is possible to reach. These may be partitioned into safe and
+hazardous subsets: Q,, and Q,,. Q,, could even be ordered so
+that a further subset of hazardous states with minimum risk is
+defined, Quinrisx-
+
+Various properties or modes may have complex interactions.
+For example, the appropriate action to be taken in the event that
+an unsafe state is reached may differ depending upon the current
+mode of operation (e.g., the aircraft is landing or is in level flight).
+
+VI. TriGGER PREDICATES
+
+There must always be a way for the RSM to leave every state
+if the system it describes is to be robust.’ The first criteria for
+robustness may then be stated:
+
+Criterion 6.1: Every state must have a behavior (transition)
+defined for every possible input. Formally,
+
+(6(q,p) =a) A(p € Pr,)
+
+where I € D3 q,q: € Q; and Pz, is defined as in Section IV. O
+
+Vi,gia.p :
+
+Criterion 6.2: The logical OR (V) of the input predicates on
+the transitions out of any state s must form a tautology:
+
+上 Ve:
+
+where the p;’s are the input predicates leading out of s.       口
+
+Criterion 6.3: Every state must have a behavior (transition)
+defined in case there is no input for a given period of time, i.e.,
+a timeout.                                                               Oo
+
+These criteria imply that if there is a trigger condition for a
+state to handle inputs within a range, there will be some transition
+defined to handle data that is out-of-range. There will also be a
+requirement that specifies what to do if no input occurs at all,
+Le., a timeout.
+
+Another restriction on the input predicates is necessary if
+deterministic behavior is desired in the RSM. Consider the case
+of two transitions with the input predicates It A v(I) > 0
+and If A v(I) < 2 respectively. If v(I) = 1, both predicates
+will evaluate to true, and both transitions should be taken. This
+leads to nondeterministic behavior of the RSM. The problem is
+eliminated by forcing all transitions out of any state to be disjoint.
+
+Criterion 6.4: Let p; represent the input predicate on the ith
+transition out of a state. Then deterministic behavior is guaranteed
+by
+
+ViVg : (645) > -(piAD,)).       口
+
+1This is not a sufficient condition for robustness一other conditions are
+discussed elsewhere in this paper—but it is a necessary condition.
+
+247
+
+Ensuring that the RSM satisfies the tautology requirements
+along with a transition involving a timeout ensures that exactly
+one predicate will always evaluate to true and that, therefore,
+there is always a transition out of every state. It does not ensure,
+however, that all assumptions about the environment have been
+adequately specified or that there is a defined response for all
+possible input conditions the environment can produce. This is
+dependent upon the amount and type of information (restrictions
+and assumptions) that is included in the triggers.
+
+At the black-box boundary to the computer, only time and
+value are observable to the software. Therefore, the predicates
+in Py and Po defining triggers and outputs must be defined
+only in terms of constants and the value and time of observable
+events or conditions. In the rest of this section, we define the
+type of information needed in the trigger predicates to express
+the assumptions about the environment. The combination of
+Criteria 6.2 and 6.5—6.9 will guarantee that violation of essential
+environmental assumptions are handled by the software, i.e., that
+the specification has input trigger robustness.
+
+A. Essential Value Assumptions
+
+The existence of an input at the black-box boundary does not
+in itself require a value assumption. For example, a hard-wired
+hardware interrupt has no value, but it may still trigger an output.
+In other words, the existence of I helps trigger O, but v(I) is
+not referred to further in the definition of v(O) or t(O). When
+v(1) is used in the definition of p € Po, appropriate assumptions
+on the acceptable characteristics of v(I) must be specified, e.g.,
+ange of acceptable values, set of acceptable values, parity of
+acceptable values, etc.
+
+ 
+
+Criterion 6.5: A value assumption is required for every input
+I where v(J) is used to define the value or the time for some
+output O.                                                        口
+
+The completeness of value specification has been adequately
+covered elsewhere, e.g., [7].
+
+As noted earlier, even where an assumption is not essential,
+it should be specified whenever possible, i.e., whenever it is
+known. The receipt of an input with an “unexpected” value
+is a sign that something in the environment is not behaving
+as the designer anticipated. Checking simple value assumptions
+on inputs is comparatively inexpensive. Since failure of such
+assumptions is one indication of various, reasonably common
+hardware malfunctions or of misunderstanding about software
+requirements, it is difficult to envision an application where the
+specification should not require robustness in this regard, i.e.,
+incoming values should have their values checked and there
+should be a specified response in the event of an out-of-range
+condition.
+
+For example, consider the coolant in the reactor. Assume that
+physical limitations in the process ensure that the temperature
+of the coolant will never drop below 273°K or rise above
+500°K. It is also clear from the example that a temperature
+reading J; should differ from a previous reading I;_; by c,, i.¢.,
+I; = I;_1 +c,. Violation of these assumptions is an indication
+of a sensor failure. By adding the predicates
+
+Valid], = (273 < v(Z) < 500) A (u(Z,;) = o(Li-1) £€,)
+Error, = ((v{Z) < 273) v (v(Z) > 500)
+V (u(Zi) # v(Ti-1) + ¢,))
+
+
+--- Page 8 ---
+248                                                          IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+1 AErrory ++
+
+  
+   
+                                                                                                                                                                                                                                                   
+ 
+
+I} ALow A Validh; || Out(Rod1, up)
+
+I} AHligh A Validl,||Out( Rod, down)
+
+TimeOut( Rod1)||-
+
+Fig. 5. Value assumptions added.
+
+the RSM is modified to check the required value assumptions
+(Fig. 5).
+
+Even when real-time response is not required, it is important
+that violations of assumptions be logged for off-line analysis. A
+hole in the ozone layer at the South Pole was not detected for
+six years because the depletion of the ozone was so severe that
+a computer analyzing the data had been suppressing it, having
+been programmed to assume that deviations so extreme must be
+errors [1].
+
+B.- Essential Timing Assumptions
+
+Timing problems are one of the common causes of run-
+time failures in process-control systems, and timing is often
+inadequately specified. The need for and importance of specifying
+timing assumptions in the software requirements stems from the
+basic nature and importance of timing in process-control systems
+as described previously. Several different timing assumptions are
+essential in the requirements specification of triggers: ranges,
+capacity, and load.
+
+1) Time Ranges: While the specification of the value of an
+event is usual but optional, a timing specification is always
+required. The mere existence of an observable event (with no
+timing specification) in and of itself is never sufficient—at the
+least, inputs must be required to arrive after program startup
+or handled as described in Section V-A. For systems described
+using a state machine specification, this basic timing assumption
+is explicitly defined by the initial state where the transition
+labeled with the startup event must be the only exit point. Besides
+this, a trigger specification must include either 1) the occurrence
+of an observable signal (or signals) or 2) the specification of a
+duration of time without a specific signal.
+
+For triggers of the first type (containing the occurrence of
+an observable signal), the arrival of an input at the black-box
+boundary has to include a lower bound on time. It will also, in
+general, include an upper bound on the time interval in which the
+input is to be accepted. Requirements dealing with input arriving
+outside the time interval and the nonexistence of an input during
+a given time interval, i.c., a duration of time without an expected
+signal, also have to be defined to ensure robustness.
+
+ 
+
+Criterion 6.6: All inputs I must be fully bounded in time,
+ie., a predicate
+
+trow S tI) S thign
+
+has to be included on every transition triggered by the arrival of
+I, or the bounds must be implied by the specification.         a
+
+ 
+
+The accepting interval will always be bounded from below by
+the time of the event that brought the machine to the current state.
+
+Some other lower bound may be desirable, but the limit must
+always be expressed in terms of previous, observable events.
+
+In the rod-example it is assumed that two consecutive tem-
+perature readings will be separated by at least tmin seconds. By
+modifying Valid! and Error, this timing constraint is included in
+the RSM.
+
+Valid = Valid A (t(:t) > tU-11) + tmin)
+Error, = Error, V (tit) < tif) + tin)
+
+Note that requirements such as t(J{) = 11:00 AM are am-
+biguous. The value of ¢(JT) is the value of the reference clock
+observed “simultaneously” with the occurrence of I. Concep-
+tually, the clock is ticking at the rate of one tick per unit of
+temporal precision. In general, J will occur between two ticks of
+any clock, no matter how frequent the ticks. To say that it must
+occur exactly at 11:00 AM is meaningless unless the specification
+also specifies what clock is to be used, and, even then, the
+time cannot be known more precisely than the granularity of
+the clock. Concrete discussion of specific clocks should be
+avoided in a software requirements specification; all that it is
+really necessary to know is the required precision of the clock.
+Translating the clock’s precision into an attribute of the input
+results in a requirement with bounding inequalities rather than an
+equality, e.g., 10:59 AM < ¢(IT) < 11:01 AM (commonly written
+as t(It) = 11:00 AM + 1 min), which specifies an accuracy of
+plus or minus a minute on the timing.
+
+For requirements of the second type, i.e., those that involve the
+nonexistence of a signal during a given interval, both ends of the
+interval must be either bound by or calculable from observable
+events. Informally, there must be an upper bound on the time
+the program “waits” before producing the output O. There must
+also be a specific time to start timing the lack of inputs or an
+infinite number of intervals (and thus outputs) would be specified.
+For example, a requirement of the type “if there is no input
+I for 10 seconds, then produce output O” is not bound at the
+lower end of the interval and therefore is ambiguous. Should the
+nonexistence interval start at time ¢, at t + €, t + 2c, etc.? The
+observable event need not occur at either end of the interval, the
+ends need only be calculable from that event, e.g., there is no
+input for 5 s preceding or following event E.
+
+ 
+
+Criterion 6.7: A trigger involving the nonexistence of an
+input I during a specific interval must be fully bounded in time,
+ie., of the form:
+
+t > tetart + taur
+
+where tsar, and ty,, are calculable from observable events or
+expressed as absolute time.                                    口
+
+ 
+
+An example of a completely bounded interval is the require-
+ment that when in state NoRodsMoved, an output Rod1 is to
+be generated if tax seconds elapse without the receipt of a
+temperature reading J in case the system has stabilized to the
+wrong temperature. If
+
+TempStable(X) =t > t(XT) + tmaz
+
+the complete requirement can be seen in Fig. 6 where t(JT)
+provides the lower, observable bound of the  interval and the
+duration of t,az seconds effectively sets the upper bound.
+
+2) Capacity and Load: 1n an interrupt driven system, the count
+of unmasked input interrupts received over a given period of time
+partitions the software state space into at least two states: normal
+
+
+--- Page 9 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+| AErrora||--+
+
+If ALow A ValidI,||Out( Rod}, up)
+
+No Rods                                                       Rodl
+Moved                                                         Moved
+I] AHigh A Validl;||Out( Rod1, dows
+
+TimeOut(Rodl)\—-
+
+TempStable(1)||Out(Rodl, down)
+
+ 
+
+Fig. 6. Complete requirement for state NoRodsMoved.
+
+and overloaded. The required response to an input will differ in
+the two states; there must therefore be separate output assertions
+to deal with them. The term capacity will be used to refer to the
+count of inputs of a single homogeneous type, while load is the
+count of a set of heterogeneous input events.
+
+Specifications of capacity and load requirements are properly
+included in a black-box requirements specification since they
+stem from properties in the environment of the computer (ie.,
+properties of the process being controlled or of the sensors
+providing information about the process) and because the arrival
+rate of inputs is observable at the black-box boundary. In general,
+inputs to process-control systems should have both minimum and
+maximum capacity assumptions and will often be part of one or
+more load assumptions as well. A bank in Australia reportedly
+lost a great deal of money from the omission of proper behavior
+to deal with “excessive” load in an ATM system [25]. When the
+central computer was unable to cope with the load, the ATM’s
+dispensed cash whether the customer had adequate funds to cover
+the withdrawal or not. Failure to handle the actual load, although
+irksome, would not by itself have caused as much damage as that
+which resulted from the lack of an explicit, black-box overload
+response behavior.
+
+Although inputs from human operators or other, slow, system
+components may be normally incapable of overloading a pro-
+gram, various malfunctions can cause excessive, spurious inputs
+to be generated. Robustness requires consideration of that case
+and specification of a capacity limit for such inputs as a means of
+detecting possible external malfunctions. In one serious accident,
+an aircraft went out of control and crashed when a mechanical
+malfunction in a fiy-by-wire flight-control system set up an
+accelerated environment for which the flight control computer
+was not programmed [10].
+
+a) Capacity: The treatment of capacity depends upon
+whether interrupts are allowed to be disabled or not. Assuming
+for the moment that interrupts are not locked out on a given
+port, there is always some arrival rate for an interrupt signaling
+an input that will overload the physical machine. Either it will run
+out of CPU resources as it spends execution cycles responding
+to the interrupt or it will run out of memory as it stores the
+data for future processing. Thus, both the hardware selection and
+the software design require that an assumption be made about
+the maximum number of inputs N signaled by a given interrupt
+that must be accommodated within a duration of time d. This is
+the requirement called capacity. Note that a capacity assumption
+with N = 1 is the same as an assumption on the minimum time
+between successive inputs.
+
+249
+
+Capacity is not some separate, Special type of requirement (i.e.，
+“performance”). Instead it is specifiable as a conjunctive phrase in
+the trigger predicates for all outputs that are capacity-dependent.
+Let n be the number of inputs of type J that have arrived at the
+black-box boundary, w; be predefined weights allowing penalties
+if more than one input arrives during the time interval d, and
+Mr(d) be the capacity for input J over the interval d. Then the
+trigger predicates may be expressed:
+
+a(S <mia) New
+
+t=1
+a fu it)一tiTD<a
+where bj   {5   otherwise.
+
+Multiple capacity assumptions are meaningful, although not
+necessarily required in any given case. For example, the capac-
+ities could be 4 per second but not more than 7 in any two
+seconds nor more than 13 in four seconds, etc. One capacity
+assumption is required; multiple assumptions may derive from
+application-specific considerations. There can also be multiple
+capacities assumed for a given input based on additional data
+characteristics, such as: not more than 4 inputs per second when
+v(Z) > 8 but not more than 3 per second when v(I) > 20.
+
+Even if a particular statistical distribution of arrivals over time
+is assumed and specified, a capacity limit assumption is still
+required: assuming the arrival distribution to be Poisson or Erlang
+does not preclude the possibility, no matter how improbable, of
+an “overflow” of any given capacity. If capacity is exceeded,
+there must be some specification of the ways that the system can
+acceptably fail-soft or fail-safe. This is discussed in Section VIII
+with respect to specifying graceful degradation.
+
+Where interrupts can be masked or disabled, the situation
+is more complex. If disabling the interrupt could result in a
+“Jost” event (depending on the hardware, the duration of the
+lockout, and the characteristics of the device at the other end
+of the channel), the need for a capacity assumption will then
+depend on the usage of the input in the specification. An input
+I appearing as the only Z7 event in the production of an
+output O clearly requires a capacity assumption, since a “lost”
+J (caused by interrupt lockout) is a violation of the requirement.
+If it is not the only input event in the trigger, its capacity
+may be dominated by some other event. Domination of I, by
+another input J, occurs when a transition predicate can be written
+as +++ A (tat) < t(t) < t(ht) +d) || ---. In this case, an
+interrupt for J, could potentially be disabled untit the event J.T
+is detected, then enabled and left enabled until [If occurs or
+a period of time d elapses (whichever occurs first) and then
+disabled again. Thus the interrupt could not be overly disruptive
+of the computation, in that it could occur at most once in the
+specified interval.
+
+ 
+
+Criterion 6.8: An interrupt-signaled event that is at any time
+undominated in the requirements specification requires a capacity —
+assumption.                                                             口
+
+ 
+
+The capacity of a totally dominated event is inferable from its
+dominators’ capacities.
+
+b) Load: Whereas capacity is defined in terms of one single
+type of input, load involves multiple input types. Assume that
+we have an ordering of all types of inputs from 1 to m, and
+let J;f symbolize the arrival of an input of type 7. Then the jth
+arrival of this input can be written J; |. The acceptable load when
+
+
+--- Page 10 ---
+input I; arrives at the black-box boundary can now formally be
+expressed as:
+
+Zt (Ea : (Ss) < zu Ave
+.        一                     if (1.1) - t(L,1) <d
+
+where kj = {3   otherwise
+
+and where n is a count of inputs of type i that have arrived, w;
+is defined as in the capacity definition, the h;’s are weights that
+allow some inputs to be specified as more expensive than others,
+and L(d) is the required load or capacity limit for a period of
+time with duration d.
+
+Load is more general than capacity, in that a load condition
+such as that above will suffice to implicitly define M;,(d),
+even if no explicit definition is given. In that case, for any
+undefined M;,(d), the maximum number of J, possible within
+a duration of time d will be L(d) (or min{L;(d)} if there are
+multiple load assumptions, L;), since all the other event terms
+could conceivably be zero unless there are minimum arrival rate
+assumptions m,,(d) specified as well. If minimum arrival rate
+assumptions are specified, then the maximum capacity for any
+undefined M;, would be min{L,} — 4; ™1,-
+
+The smallest time period d for which a minimum arrival rate
+assumption is explicitly assumed and specified is the maximum
+possible time between successive events. If there must be at least
+n IT events within the interval of duration d preceding each such
+event (where n/d is the assumed minimum arrival rate), then no
+more than time d can elapse between any two occurrences of It
+or the minimum arrival rate assumption would be violated. For
+process-control systems, robustness dictates the specification of
+a minimum arrival rate assumption for most, if not all, possible
+inputs: indefinite, total inactivity on the part of any real-world
+process is unlikely. Robust software should have the capability
+to query its environment with regard to inactivity over a given
+communication path.
+
+ 
+
+Criterion 6.9: Each physically distinct communication path
+should be designed to require a minimum-arrival-rate check by
+the software.                                                            口
+
+ 
+
+VI. Ourpur PREDIcATES
+
+As with inputs, the complete specification of the behavior of
+an output O requires specification of both its value v(O) and
+upper and lower bounds for its time ¢(OT). There is no limit to
+the complexity of timing specifications for outputs, but there are
+some special requirements for the specification of predicates on
+the outputs: environment capacity, data age, and latency.
+
+A. Environmental Capacity Considerations
+
+The rate at which the sensors are producing data and sending it
+to the computer is the concern in input capacity. Output capacity,
+on the other hand, defines the rate that the actuators can accept
+and react to data produced by the software. If the sensors can
+generate M;(d) inputs of type I during the time period of
+duration d, but the output environments can only “absorb” or
+process a lower number of outputs, an output overload might
+occur.
+
+Output capacity limitations often stem from the constraints on
+behavior of the control system. They may be required because
+
+IBEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+of physical limitations in the actuators (e.g., a valve can only
+perform a limited number of adjustments per second), constraints
+on process behavior (excessive wear on actuators might increase
+maintenance costs), or safety considerations (e.g., a restriction on
+how often a catalyst can be added safely to a chemical process).
+
+ 
+
+Criterion 7.1: For the largest interval in which both input and
+output capacities are assumed and specified, the absorption rate
+of the output environment must equal or exceed the input arrival
+Tate.                                                                      口
+
+ 
+
+Differences in input capacity and output capacity result in the
+
+need to handle three cases:
+
+1) The input and output rates are both within limits and the
+“normal” response can be generated.
+
+2) The input rate is within limit but the output rate would
+be exceeded if a normally timed output were produced, in
+which case some sort of special action is required.
+
+3) The input rate is excessive, in which case some abnormal
+response is necessary (graceful degradation).
+
+When input and output capacities differ, there must be multiple
+periods for which discrete capacity assumptions are specified. For
+example, the output capacities may be 10 per second but only
+40 per minute while the input sensor has a peak rate capacity
+of 12 per second but a sustained rate of only 36 per minute.
+Over the short term, the program can buffer the environment,
+but over the long term, Criterion 7.1 must hold or the program
+might never catch up.
+
+B. Data Age
+
+Another important aspect of the specification of output timing
+involves data obsolescence. In practical terms, there are few, if
+any, input values that are valid forever. Even if nothing else
+happens and the entire program is idle, the mere passage of
+time renders much data of dubious validity eventually. Although
+the program is idle, the real world in which the computer is
+embedded, i.e., the process that the computer is controlling, is
+unlikely to be. Control decisions have to be based on data from
+the current state of the system, not on obsolete information. Data
+obsolescence considerations require the following criterion:
+
+ 
+
+Criterion 7.2: All inputs used in specifying output events
+must be properly bounded in time:
+
+++] OTA (#1) + Dy > (0) Av(O) = +
+
+where Dy is the data validity factor or age limit for the input J
+triggering O.                                                     口
+
+ 
+
+That is, the input is only valid for the output O if it occurred
+within the preceding period of time of duration Dy. As an
+example of the possible implementation implications of such a2
+requirement, MARS, a distributed fault-tolerant system for real-
+time applications, includes a validity time for every message
+in the system after which the information in the message is
+discarded [18], [17].
+
+Frola and Miller [10] report on an accident related to and
+perhaps caused by lack of specification of a data-age factor.
+A computer issued a close weapons bay door command on a
+B-1A aircraft at a time when a mechanical inhibit had been
+put in place on the door. The close command was generated
+when someone in the cockpit punched the “close door switch”
+on the control panel during a test. Several hours later, when the
+
+ 
+
+
+--- Page 11 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+maintenance was completed and the inhibit removed, the door
+unexpectedly closed. The situation had never been considered in
+the requirements definition phase; it was fixed by putting a time
+limit on all commands.
+
+C. Latency
+
+Since a computer is not arbitrarily fast, there is an interval
+of time during which the receipt of new information cannot
+change an output O even though it arrives prior to the actual
+output of O. The duration of this latency interval At is a
+factor influenced by both the hardware and the software. An
+executive or operating system that permits interrupts for data
+arrival may be able to exhibit a shorter A¢ than one that polls
+periodically, but underlying hardware constraints prevent it from
+being eliminated. completely. Thus the latency interval can be
+made quite small, but it can never be reduced to zero. The
+acceptable size of At is set by the process that the software is
+controlling. In chemical process control, a fairly large At could
+be allowed, while in an aircraft a much smaller value of At
+may be required. The choice of operating system, interrupt logic,
+scheduling priority and/or system design parameters will be
+influenced by the latency value. Also, behavioral analysis of the
+requirements to determine consistency with process functional
+Tequirements and constraints may not be correct unless the value
+of this behavioral parameter is known and specified for the
+software. Therefore, the requirements must include the allowable
+latency factor.
+
+ 
+
+Criterion 7.3: The latency factor must be included in the
+specification when the nonexistence interval’s upper bound is
+not a simple observable event.
+
+ 
+
+As an example, consider an output O that is to signal, within
+a response time r,, the fact that no input of type J; has been
+teceived within the previous time period of duration d. This
+could be specified as:
+
+t>t(ht)+d+ Ail]
+OT AKOT) StUIT) +dt+re+ At
+
+ 
+
+The use of an interval of time without some event It to trigger
+an output always requires the specification of a At factor between
+the end of the interval and the occurrence of the output. Where
+the upper bound on the interval is a simple event, i.e., the trigger
+is not the nonexistence interval but the terminating event itself,
+then latency is not an issue. However, where the intent is to
+signal the nonexistence of an input after some other event, then
+a latency specification is required. This is true for both trigger
+and output predicates.
+
+In some cases, the need for latency specification is application-
+dependent. Consider the following example where input I
+prompts a different response if it is followed by an input
+I, than if there is an interval of time in which J, does not
+arrive:
+
+251
+
+t>t(ht)+el]
+OTA
+
+ 
+
+ta T A-++|| < exception handling >
+
+If the intent is to require that there be no input J, prior
+to the output O, the latency factor is missing. If the intent is
+
+- to require that no J, occur within an interval around J, the
+
+latency factor is unnecessary. Because software may be reused
+in environments where the current intentions may differ from
+what was actually implemented, safety and other considerations
+dictate that a latency factor be specified.
+
+There may need to be additional transitions in the RSM to
+handle the case where an event is observed within the latency
+period. For example, if an action is taken based on the assumption
+that some input never arrived and if it is subsequently discovered
+that the input actually did arrive but too late to affect the output,
+it may then be necessary to take corrective action. Criterion 6.2
+will ensure that such requirements are included.
+
+VIII. Triccer-To-OurpuT RELATIONSHIP
+
+There are some criteria for analyzing requirements specifica-
+tions that relate not to input or output predicates alone but to
+their relationship 7. These include requirements in most process-
+control systems for graceful degradation and for responsiveness
+and spontaneity.
+
+A. Graceful Degradation
+
+The requirements needed to deal with overload will generally
+fall into one of five classes:
+
+1) Requirements to generate warning messages.
+
+2) Requirements to generate outputs to reduce the load—i.e.,
+
+messages to external systems to “slow down.”
+
+3) Requirements to lock out interrupt signals for the over-
+loaded channels.
+
+4) Requirements to produce outputs (up to some higher load
+limit) that have reduced accuracy and/or response time
+requirements and/or some other characteristic that will
+allow the CPU to continue to cope with the higher load.
+
+5) Requirements to reduce the functionality of the software
+or, in extreme cases, to shutdown the computer and/or the
+process.
+
+The first three cases are handled in an obvious way. The
+fourth case, commonly called performance degradation, should
+be graceful, i.e., predictable and nonabrupt. Graceful degradation
+may be specified by including the load in the timing or accuracy
+factors for the output. Assume the observed load Z (during the
+interval of duration d immediately preceding the input J) is
+defined as
+
+where k; = {wi   if tt) -t(L,,1) <4
+
+otherwise
+
+
+--- Page 12 ---
+252                                                            IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+Response Time
+
+ 
+
+Response Time
+
+Suv
+
+Jo
+
+四          Load
+Sup
+Stow
+Load
+
+Fig. 7. (a) frigh faster growing than fiow. (b) frigh = flow, ie., predictability is maintained. (c) Abrupt degradation of fy,igh-
+
+and where n, w;, and A; are defined as in the definition of load
+given previously. Then a gracefully degrading predicate for O
+can be written as                                   :
+
+Of A(v(O) = 2+ f.(L))
+A ((t(IT) + frow(L)) < #(OT) < (t (ET) +¢ + frign(Z)))
+
+where f, defines the accuracy of O and fio. and frign de-
+fine the limits on the response time. The functions f,:9, and
+frow are continuous, monotonically-increasing functions of load;
+fiow(%) < frigh(2) for all x; and c is a constant. If frign is a
+faster growing function than fo, the time window in which an
+output can legally be produced will grow and the predictability of
+the response time will decrease [Fig. 7(a)]. Two inputs occurring
+quite close to one another in time could then legally trigger
+outputs having widely different response times, potentially even
+appearing in the reverse order from the order in which their
+respective triggers arrived.
+
+ 
+
+Criterion 8.1: If the desired response to an overload condition
+is performance degradation, the specified degradation should be
+graceful, i.e., fiw = frign-                           口
+
+ 
+
+For safety-critical systems, abrupt degradation [Fig. 7(c)]
+and/or random (although bounded) degradation often need to
+be avoided. Certainly for operator feedback, predictability is
+preferable to variability, at least within limits, even if the cost
+of the predictability is a slight increase in average response time
+[9] [Fig. 7(b)].
+
+Function shedding, the fifth case listed above, is specified by
+the use of different load prerequisites for different outputs—the
+outputs with the lower load prerequisites being “shed” first.
+When the load is exceeded, then the program changes state to
+a degraded-performance state wherein some observable action
+should usually be taken such as alerting a human operator,
+disabling or requesting resets of busy interfaces, recording critical
+parameters for subsequent analysis, etc.
+
+Once a state with a degraded performance has been entered,
+there needs to be a specification of the conditions required to
+return to a normal processing mode. Informally, what is needed
+
+is a hysteresis delay. After detecting a capacity or load violation,
+the system must not attempt to return to the normal state too
+quickly; the exact same set of circumstances that caused it to
+leave may still exist. For example, let the event that caused the
+state to change be the receipt of the nth input of J within a period
+d, where the capacity is specified as limited to n — 1. Then if the
+system attempts to return to normal within a period of x < d,
+the very next occurrence of an I might cause the state to change
+again to the overload state. The system could thus ping-pong
+back and forth in an unacceptable fashion.
+
+If the transition to return to normal operation is triggered by an
+input J,,,, the transition taking the RSM from an overloaded state
+to normal operation should include a hysteresis factor assuring
+that the return signal is not too close in time to the input J,; that
+caused the overload. The input predicate on the transition could
+be written as
+
+Font A(H(Trnt) — tort) > ha) A+
+
+where ha is the hysteresis delay required before the transition
+can be taken.
+
+ 
+
+Criterion 8.2: If functional shedding is used, a hysteresis
+delay and other checks must be included in the conditions
+required to return to normal processing load.                  口
+
+ 
+
+Discrete events such as operator actions or reset messages from
+external (temporarily overloaded) interfaces are not the only way
+a system can return to normal processing. It may be desired
+to attempt to change state purely on the basis of time elapsed
+since last state change. System robustness considerations suggest
+the specification of a complex series of checks on the temporal
+history of mode exit/resumption activities to avoid constant ping-
+ponging at a cyclic rate ha. Choice of responses and checking
+logic is an application-dependent activity, as is choice of the
+value hg, but these need to be considered when developing the
+requirements.
+
+B. Responsiveness and Spontaneity
+Responsiveness and spontaneity deal with the actual behavior
+
+ 
+
+
+--- Page 13 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+of the controlled process and how it reacts (or does not react)
+to output produced by the controller. In particular, does a
+given output O cause the process to change, and, if so, is that
+change detectable by means of some input J. Basic process-
+control models include feedback to provide information to the
+controller about changes in state caused by disturbances or
+about expected responses caused by changes to the manipulated
+variables. This is a basic property of almost all process-control
+systems: If feedback information is not used by the software, the
+requirements specification is probably deficient.
+
+ 
+
+Criterion 8.3: Basic feedback loops, as defined by the process
+function F', must be included in the software requirements. That
+is, there should be an input J that the software can use to
+detect the effect of an output O affecting a manipulated variable
+in the process-control system. The requirements must include
+appropriate feedback on these inputs in order to detect internal
+or external failures or errors.
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Missing feedback loops provide clues as to deficiencies in the
+requirements specification. As an example, an accident occurred
+when a steel plant furnace was returned to production after being
+shut down for repair [3]. A power supply had bumed out in
+a digital thermometer during power-up so that the thermometer
+continually registered a low constant temperature. The controller,
+knowing it was a cold start, ordered 100% power to the gas tubes.
+The furnace should have reached operating temperature within
+one hour, but the computer failed to detect that the thermometer
+inputs were not increasing as they should have been. After four
+hours, the furnace had bummed itself out, and major repairs were
+Tequired.
+
+A situation like this one could easily have been avoided if the
+information about the characteristics of the process was used as
+a predictor to forecast the expected behavior of the system. In
+this case, the only knowledge needed to avoid the accident was
+that the temperature should increase if the burners are on.
+
+The information about the expected response of the process
+is to be found in the process function F’p. If the process does
+not respond to an output as expected and within some expected
+period of time, there is presumably something wrong and the
+software should be required to act accordingly—perhaps by
+trying a different output, by alerting a human operator, or at
+the least, by logging the abnormality for future, off-line analysis.
+
+It is desirable to design a process-control system such that the
+effects of every output O affecting a manipulated variable in the
+system can be detected by some input J provided by the feedback
+loop. Disturbances interfering with the process can inhibit desired
+changes that the software has commanded or can cause changes
+that are not initiated by the software.
+
+Every output O to which a detectable response I is expected
+within a period of time d induces at least two requirements: the
+“normal” response requirement, i.e.,
+
+ITA (HOT) + At <tIt) <e(O1) +a)
+
+ 
+
+and the requirement to deal with a failure of the environment to
+produce the expected response. The failure could involve either
+
+ 
+
+253
+
+the response having an erroneous or unreasonable value, or the
+expected response might be missing entirely:
+
+ITA (OT) + At < tT) < 401) +4)
+
+                                                                                                                                                         
+
+t> (ON +dr-f
+
+where At represents the latency period, i.e., the time between the
+receipt of an input and its processing (as defined previously). If
+the environment responds too quickly, one suspects coincidence
+rather than appropriate stimulus-response behavior.
+
+ 
+
+Criterion 8.4: Every output O to which a detectable input I
+
+. is expected must have associated with it:
+
+1) A requirement to handle the normal response.
+2) Requirements to handle a response that is too late, too
+early, or has an unexpected value.                         口
+
+ 
+
+Most processes do not react instantaneously but only after a
+delay (time lag). A value-based handshake protocol can be used
+to eliminate the need for the latency factor, i.e., some field of
+the input J identifies it as uniquely a response to some specific
+output O. Note that some inputs J are spontaneous, i.e., they may
+be triggered by environmental factors not necessarily caused by
+some prior output O. But an input J that is su          to be tightly
+coupled to some output, i.e., one that is only supposed to arrive
+in response to some prior system output, induces yet another
+requirement to respond to a spontaneous and hence erroneous
+input.                                       1
+
+ 
+
+Criterion 8.5: Spontaneous receipt of a nonspontaneous input
+must be detected and responded to (as an abnormal condition).0
+
+ 
+
+IX. TRANSITIONS
+
+Requirements may involve looking not only at the triggers and
+outputs associated with each state, but also at paths between the
+states. In particular, some analyses rely on the guarantee that
+certain states will be reachable.
+
+If a path exists between states g, and gz, it can be uniquely
+defined by a sequence of input predicates. Formally, the transition
+function 6 is extended to apply to sequences of input predicates.
+Define 6 as a mapping Q x Ps — Q.
+
+Let g€ Q, p€ Pr, and s € Py then
+QA) =4
+4(q, sp) = 5(8(4, *),p)
+
+where A is the null predicate. The existence of an input predicate
+sequence s from q; to q (path) is formally expressed as
+
+3s: &q,8)=@
+
+The analysis in this section is based on examination of the paths
+between states of interest and the predicate sequences describing
+
+
+--- Page 14 ---
+254                                                           IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+these paths, Few absolute criteria can be identified as with the
+other parts of the state machine description: most of the criteria
+are application dependent. However, general properties can be
+identified that, together with application-specific information, can
+be used to guide the analysis procedure.
+
+A. Basic Reachability
+
+A state g,, is said to be reachable from state q,, if there exists
+a path from q,, to qm and the logical AND (A) of the predicates
+in the instantiated predicate sequence s; corresponding to that
+path does not result in a contradiction. Define a function ¢ as the
+boolean value of the conjunction of the predicates in a predicate
+sequence. Formally, let p € Pr and s € P3. Then ¢ is:
+
+o(A) = true
+(sp) = $(8) Ap.
+State qn is reachable from state q,, iff
+
+38 + (8(Gn.8) = am) A((8)-
+
+ 
+
+Criterion 9.1: All states must be reachable from the initial
+State qo, ic.,
+
+Vqas : (Bans) =2) Aa)      o
+
+ 
+
+Most state-based models include techniques for reachability
+analysis. Although in complex systems it is often impractical to
+do a complete reachability analysis, in some cases it is possible
+to devise algorithms that reduce the necessary state space search
+by focusing on a few properties [21].                        ,
+
+If a state is unreachable there are two possibilities. Either the
+state has no function and can be eliminated from the specification,
+or the state should be reachable and the requirements document
+must be modified accordingly.
+
+B. Recurrent Behavior
+
+Most process-control software is cyclic in nature, i.e., it is not
+designed to terminate under normal operation. The purpose of
+the software is to control and monitor a physical environment
+and the nature of the problem usually calls for software to
+perform continuously one single task, to alternate between a
+finite set of distinct tasks, or to perform continuously a sequence
+of tasks while in a given mode. Most systems, however, do
+include some states with noncyclic behavior such as temporary or
+permanent shutdown states or states where the software changes
+to a different operating mode.
+
+ 
+
+Criterion 9.2: Desired recurrent behavior must be part of at
+least one cycle. Formally, state q is part of a cycle iff
+
+Bs + (8,8) =a) AH) A(s 4D).       品
+
+ 
+
+Assuring that a state is included in cyclic behavior will in many
+cases be insufficient; the nature of the path describing the cycle
+may also need to be examined. Consider an output to start a piece
+of equipment. It may be necessary to start the equipment more
+than once, i.e., the state g,rare Where the start command is issued
+has to be in a cycle. It may, however, be harmful to the equipment
+if two start commands are issued without an intermediary stop
+
+command. Therefore, every cycle including qetar: also has. to
+include a state g,top. Formally
+
+Vs: ((B(detarts8) = Getart) A (9(8:)) A (8 # A))
+=> 351,82 : ((5(gstart, 81) = dstop) A (4(81;))
+A (6(dstops 82) = Gatart) A ($(822))
+A (8 = 8182))-
+
+The analysis of the recurrent behavior in the RSM can easily
+be generalized to cover arbitrarily complex sequences of events.
+
+C. Reversibility
+
+In a process-control system, there are frequently cases where
+a command issued to an actuator can be canceled or reversed by
+some other command or combination of commands. This capa-
+bility is referred to as reversibility. Outputs should be reviewed
+and classified as to their reversibility. If an on command is to be
+reversible, then a state where the canceling off command is issued
+must be reachable from the state in which the on command was
+issued. Otherwise, the command cannot be reversed.
+
+ 
+
+Criterion 9.3: Reversibility of an operation x (performed in a
+state g,) by an operation y (performed in a state g € Q,) requires
+a path between q, and a state belonging to Q,. Formally,
+
+338: (Sa,8)=4) A(6(8))
+where g € Qy.                                                口
+
+ 
+
+As another example, an alert condition to an operator (such as a
+below-minimum-safe-altitude warning to an air traffic controller)
+should be reversible when the condition no longer holds (e.g.,
+the aircraft is now at a safe altitude). There will usually be
+several different classes of the reversing outputs. For example,
+the appropriate reversing output may depend on whether the
+controller has acknowledged the receipt of the original alert, is
+in the process of reviewing the alert, or has taken positive action
+to ameliorate the alert condition. The human/machine interface,
+in particular, is full of complex classes of reversible phenomena
+[14].
+
+D. Reachability of Safe States
+
+We define an unsafe state as one with an unacceptable level of
+risk of leading to an accident. In the early conceptual stages of the
+development of a safety-critical system, system safety engineers
+usually perform a preliminary hazard analysis to identify hazards
+(unsafe states) and categorize them as to risk level. Further
+analysis can be performed to translate system hazards into
+software hazards, i.e., software outputs that would put the system
+into a hazardous state given certain environmental conditions.
+
+It is not always possible to enforce a requirement that the
+system can reach no hazardous states—in some systems, tem-
+porarily being in an elevated risk state is unavoidable. However,
+the system should never be in an undesired hazardous state. Safe
+states may have limited or no functionality, but they all have the
+property that they have acceptable risk of leading to an accident.
+Let Q, and Q,, represent the set of all safe states and the set of
+all hazardous states, respectively.
+
+One simple definition of a safety policy, for which the speci-
+fication could be checked, is the following:
+
+* The computer never initiates a control action (command)
+
+that will move the process from a safe to an unsafe state.
+
+
+--- Page 15 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+ 
+
+Criterion 9.4: There must be no paths to undesired hazardous
+States.
+
+Vgesdns8 + (8(a,8) # an) V(-4(6.))
+
+where q, € Q, and gn € Qu.                                 口
+
+ 
+
+* Given that the system gets into an unsafe state (by a
+failure of a component, including a computer error, or by
+a transformation that is not initiated by the computer, e.g.,
+human error or environmental disturbances or stress), then
+the computer-controller will transform the hazardous state
+into a safe state, ie. every path from a hazardous state
+leads to a safe state.
+
+There may be several possible safe states, depending upon
+the type of hazard or on conditions in the environment. For
+example, the action to be taken if there is a failure in a
+flight-control system may depend on whether the aircraft is
+in level flight or if it is landing.
+
+Criterion 9.5: Every path from a hazardous state must lead
+to a safe state.
+
+Vans + ((6(m,s) =) A(H()) > @EQ)) 0
+
+ 
+
+It may not be possible to build a safe system, i.e., it may not be
+possible to get from every hazardous state to a safe state. In that
+event, the system must be redesigned, abandoned, or some risk
+accepted. This risk can be minimized by providing procedures
+to minimize the probability of the hazardous state leading to an
+accident or to minimize the effects of an accident. Then a third
+criterion for safety is:
+
+* Ifa system gets into a hazardous state and there is no pos-
+sible path to a safe state, then the computer will transform
+the state into one with the minimum risk possible given the
+hazard and the environmental conditions.
+
+ 
+
+Criterion 9.6: If a safe state cannot be reached from a haz-
+ardous state all paths from that state must lead to minimum risk
+states
+
+Van (v ao)3  ((iw， 3) 天 a) v (-4(s:)))
+
+=>Vsq: (io = 4) A ($(8:)) > 9 € Quinnier))-
+口
+
+ 
+
+E. Path Robustness
+
+For most safety-critical process-control software, there are
+concerns in addition’ to pure reachability. Even if a state fulfills
+all reachability requirements, there is still the question of the
+robustness of the path, or paths, affecting this particular state.
+
+Consider an output O such that v(O) € {up, down}. Suppose
+that every possible path from a state g,, with v(O) = up to
+any state qgown Where v(O) = down includes the arrival of
+input J in at least one input predicate. Then if the software’s
+ability to receive I is ever lost (¢.g., through sensor failure),
+there are circumstances under which it will not be able to set
+v(O) = down. Thus, the loss of the ability to receive I can be
+said to be a soft-failure mode since it could inhibit the software
+
+255
+
+from setting v(O) = down. Formally, the inability to receive I
+is a soft-failure mode iff
+
+3 dup V daowns3 + ((8(Gu 8) = déown) = (>0(6:) VIN).
+
+If the predicate Zt occurs in every path expression from all
+states in which v(O) = up to all states that set v(O) = down, the
+loss of the ability to receive J is now said to be a hard-failure
+mode since it will inhibit the software from producing a down
+command. Lacking ability to receive J is a hard-failure mode iff
+
+V dup:GdownsS : (((aups2) = déown ) => (>9(s:) vin)
+
+eee
+
+Criterion 9.7: Soft and hard-failure modes should be elimi-
+nated for all hazard-reducing outputs. Formally, let Q, and Qy
+be the sets of states where actions x and y are performed. The
+loss of the ability to receive I is a soft-failure mode for the paths
+from action x to action y iff
+
+daVans : ((8qs) =a) > 98) VIN)
+
+where ¢ € Q, and q € Qy.
+The loss of the ability to receive J is a hard-failure mode iff
+
+Wasans + (68) =a) > (-9(s:) V1)
+
+where q € Q, and q € Qy.                                  口
+
+ 
+
+The more failure modes the RSM has, whether soft or hard,
+the less robust with respect to external disturbances will be the
+software that is correctly built to that specification.
+
+F. Constraint Analysis
+
+In addition to ensuring that the basic goals of Fo are imple-
+mented correctly in the software, an evaluation of the consistency
+of the requirements with the system constraints is necessary.
+Conflicts may exist—these should be detected and tradeoffs to
+resolve them evaluated.
+
+As an example, path robustness requirements may conflict
+with safety constraints. Consider the following conflicting re-
+quirements. An unsafe state, i.e., one from which an a priori
+“dangerous” output such as a command to launch a weapon can
+be produced, should have at least one, and possibly several, hard-
+failure modes for the production of the output command: no input
+received from proper authority, no weapons launch. This conflicts
+with the requirement that a fail-safe system should have no soft-
+failure modes, much less hard ones, on paths between dangerous
+states and safe states. Leveson and Stolzy [22] describe Petri
+net analysis procedures to provide the information necessary to
+detect and resolve some of these types of conflicts.
+
+The type of analysis required to guarantee consistency with
+the system constraints will depend upon the type of constraints
+involved. The presence of constraints can potentially affect most
+of the criteria mentioned in this paper. Some constraints can
+be ensured using the criteria already described. Others require
+additional analysis. For example, procedures for ensuring that
+only safe states are reachable have been described. In addition,
+basic reachability analysis must be extended. Even though a path
+predicate does not form a contradiction, it might be infeasible
+or undesirable when viewed in conjunction with the behavior
+of the rest of the system and with the constraints. Therefore,
+reachability analysis needs to be performed considering not only
+
+
+--- Page 16 ---
+256                                                             IBEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+the basic path predicates, but also constraints on the sequence
+of events.                                  .
+
+To illustrate, consider the constraint to be satisfied in our
+example, ie., a rod is not allowed to move within 30 seconds
+of its previous movement. Formally, let
+
+Constraint = (t(Rod1,1) > t(Rod1;_,t) + 30 s)
+A (t(Rod2;1) > t(Rod2;_,1) + 30 s)
+
+where i and j are positive integers. To guarantee this property, all
+paths taking the RSM from one occurrence of a rod command
+to another must be consistent with this constraint. If Qroa is
+defined as the set of all states to which at least one transition
+issuing a Rod1 command leads, and Qrode is defined similarly,
+then consistency with Constraint is expressed as
+
+Ve:  ((iw， a)= a) = (=9(81) V Constraint)) A
+Vs:  ((5(as,s) = a) => (79(8i1) V Constraint))
+
+where q1, G2 € Qroa and gs, 94 © Qroa2-
+
+To analyze with respect to Rod 1, the first step is to identify the
+transitions where a Rod1 command can be issued. Path analysis
+can then be applied to find the sequences of events that will
+make the software issue two consecutive Rod1 commands. By
+showing that all possible paths described by these sequences
+will take at least 30 seconds to traverse, it is guaranteed that
+the constraint on Rod1 will be satisfied. In the example there
+are two possible shortest-time sequences separating two Rodt
+commands, s; = {TimeOut(Rod1),TempHigh} and s =
+{TempStable(Rod1)}. Sequence s; is guaranteed to take at least
+30 seconds since it contains the predicate t > t(Rod1t) + 30
+as a conjunctive trigger. Sequence s; consists of the single
+predicate t > ¢(Rod1T)+tmnaz which will guarantee consistency
+with the constraint if ta: > 30s. Thus consistency with the
+system constraint on Rod 1 requires the assumption t,,22 > 30s.
+The consistency for Rod2 is handled similarly.
+
+X. CONCLUSIONS
+
+Our long-term goal is to provide analysis procedures to help
+find flaws, e.g., errors and omissions, in the software require-
+ments specification early in the software development. Our
+approach is to build a formal model and then to analyze this
+model to ensure that the properties of the model match the desired
+behavior. To accomplish this, it is necessary to determine the
+properties of interest, to devise specific criteria that imply these
+properties, and to use these criteria to devise analysis techniques
+specific to a particular specification language and model.
+
+This paper accomplishes the first two parts of this goal, i.e., it
+defines important properties of real-time, process-control systems
+that must be reflected in the software requirements specification
+(Section II) and identifies specific criteria that imply these prop-
+erties (Sections IV—IX). Some of these criteria, such as value
+assumptions, have been adequately described previously. Others
+imply the need for including information in the requirements
+specification that is not normally included. All have implications
+for the design of requirements specification languages. Our
+criteria are most certainly incomplete, but they provide a baseline
+upon which to build.
+
+In this paper, we have focused on application-independent
+criteria that can be evaluated by looking at the software re-
+quirements specification alone. As noted, it is difficult to provide
+such general criteria for the state transitions, but some general
+
+goals (¢.g., safety and constraint analysis) and criteria (e.g.，
+reachability, reversibility, path robustness) have been described
+that can be used as the basis for analysis techniques that also
+incorporate information from the system requirements. We are
+currently designing a formal specification language and defining
+specific semantic analysis procedures for it.
+
+Because our goal is to define general criteria, no specific
+software requirements language is used in this paper. However,
+some type of formal model is necessary in order to provide
+rigorous definitions of the criteria. We have used an abstrac-
+tion of most state-based specification methods that includes the
+minimum power necessary for our goals; we do not intend this
+to be used to specify real systems.
+
+The RSM, as defined in this paper, models only the behavior
+of the controller C. Many useful criteria can be defined in this
+model, but our long-term goal is to extend the RSM to model
+the interface between the controller and the process, i.e., the
+sensors S and the actuators A along with some aspects of the
+process P. This will extend the amount of analysis that can
+be defined including many of the traditional types of analysis
+performed by system engineers, such as failure modes and effects
+analysis (FMEA), thus potentially bridging some of the gap
+between system engineering and software engineering models
+and activities.
+
+APPENDIX
+TeE Rop-ExAMPLE
+
+Variables
+
+Input: I = int 273..500. The temperature reading sent by the
+automatic sensor.
+
+Output: Rod1, Rod2 = {up, down}. The control commands
+to the rods in the reactor.
+
+Constants
+
+tmin = Minimum time between temperature readings.
+tmaz = Maximum time between temperature readings.
+c, = Resolution of temperature reading.
+d = Maximum response time.
+
+Input Predicate Abbreviations
+
+Validl, = 273 < v(I) < 500.
+Valid! = Validl, A (v(I:) = v(Tis +o) A (tit) >
+t(s-aT) + train)
+Error = It (-Validl, V (v(Ii) # v(Ii-1) #¢-) V
+(tz) < t(i-1) + tmin))-
+Low = vo(I) < C.
+High = v(I) > C.
+TempLow = It A ValidI A Low.
+TempHigh = It A ValidI A High.
+TimeOut(x) = t > t(zt) + 30 where z € E.
+TempStable(x) = t > t(zt) + tmaz
+where x € {I, Su, Rod1} .
+
+Output Predicate Abbreviations
+
+Out(O, x) = OT A(v(O) = 2) A (t(OT) < tT) + 2)
+where O € {Rod1, Rod2} and x € {up, down}
+
+ 
+
+
+--- Page 17 ---
+JAFFE et al: SOFTWARE REQUIREMENTS ANALYSIS
+
+The Startup Sequence
+
+   
+   
+                                                                          
+ 
+
+站aa
+Shatdown TergpStable(Su)|Out{ Rodi, down)
+
+‘Teanp. Stil Rot”
+
+Ty AValidhy A High||Out Rod2, downy
+
+Normal Operation
+
+‘TimeOut Rodi)
+
+                                                                                                                                  
+   
+
+TempLowhOul Rod! up)
+
+  
+
+TimeOut(Rod?\1-
+TimeDut( Rodd)
+
+TimeOut Rod }\~
+1 AVatiat|-
+
+REFERENCES
+
+引 New York Times (Science Times Section), July 29, 1986.
+
+'2| M.W. Alford, “A requirements engineering methodology for real-
+
+time processing requirements,” IEEE Trans. Software Eng., vol. SE-
+3, no. 1, pp. 60-68, Jan. 1977.
+
+{3] D. Bahn, “Reliance on computers,” in Proc. Forum Risks to the
+Public in Computer Systems, P.G. Neumann, moderator, ACM
+Committee Computers and Public Policy, vol. 6, issue 40, Mar. 9,
+1988.
+
+[4] R.M. Balzer, D. Cohen, M.S. Feather, N.M. Goldman, W.
+Swartout, and D.S. Wile, “Operational specification as the basis
+for specification validation,” in Theory and Practice of Software
+Technology, D. Ferrari, M. Bolognani, and J. Goguen, Eds.
+Amsterdam, The Netherlands: North-Holland, 1983, pp. 21-49.
+
+[5] B. W. Boehm, R.L. McClean, and D. B. Urfig, “Some experiences
+with automated aids to the design of large-scale reliable software,”
+IEEE Trans. Software Eng., vol. SE-1, no. 2, Feb. 1975.
+
+[6] B.W. Boehm, Software Engineering Economics. Englewood
+Cliffs, NJ: Prentice-Hall, 1981.
+
+{7] F. Cristian, “Correct and robust programs,” JEEE Trans. Software
+Eng., vol. SE-10, no. 2, pp. 163-174, Mar. 1984.
+
+[8] A. Endres, “An analysis of errors and their causes in system pro-
+grams,” IEEE Trans. Software Eng., vol. SE-1, no. 6, pp. 140-149,
+June 1975.
+
+[9] J.D. Foley and A. Van Dam, Fundamentals of Interactive Com-
+puter Graphics (The System Programming Series). Reading, MA:
+Addison-Wesley, 1982.
+
+[10] F.R. Frola and C.O. Miller, “System safety in aircraft manage-
+ment,” Logistics Management Inst., Washington, DC, Tech. Rep.,
+Jan. 1984,
+
+{11] D. Harel, “Statecharts: A visual formalism for complex systems,”
+Sci. Comput, Program., vol. 8, pp. 231-274, 1987.
+
+[12] K.L. Heninger, “Specifying software requirements for complex
+systems: New techniques and their applications,” JEEE Trans.
+Software Eng., vol. SE-6, no. 1, pp. 2-12, Jan. 1980.
+
+[13] J.E. Hopcroft and J.D. Uliman, Introduction to Automata Theory,
+Languages, and Computation. Reading, MA: Addison-Wesley,
+
+9.
+
+1979.
+
+[14] M.S. Jaffe, “Completeness, robustness, and safety in real-time
+software requirements and specifications,” Ph.D. dissertation, Univ.
+California, Irvine, 1988.
+
+[15] F. Jahanian and A. K. Mok, “A graph-theoretic approach for timing
+analysis and its implementation,” JEEE Trans. Comput., vol. 36,
+pp. 961-975, Aug. 1987.
+
+[16] T. Kletz, “Wise after the event,” Contr. Instrum., vol. 20, no. 10,
+
+Oct. 1988.
+
+[17] H. Kopetz and A. Damm, “MARS: Concepts and design of the
+second prototype,” Tech. Univ. Vienna, Austria, Tech. Rep. 4/87,
+Jan. 1987.
+
+[18] H. Kopetz and W. Merker, “The architecture of Mars,” in Proc. Int.
+Symp. Fault Tolerant Computing Systems, June 1985, pp. 274—279.
+
+[19] J. Lamb, “The everyday risks of playing it safe,” New Scientist,
+Sept. 8, 1988.
+
+[20] N.G. Leveson, “Software safety: What, why, and how,” ACM
+Comput. Surveys, vol. 18, no. 2,     125-164, June 1986.
+
+[21] N.G. Leveson and J.L. Stolzy, “Safety analysis of ada programs
+using fault trees,” IEEE Trans. Rel., vol. R-32, no. 5, pp. 479-484,
+Dec. 1983.
+
+[22] —_, “Safety analysis using Petri nets,” JEEE Trans. Software
+Eng., vol. SE-13, no. 3, pp. 386-397, Mar. 1987.
+
+[23] E.I Lowe, Computer Control in Process Industries. London:
+Peregrinus, 1971.
+
+[24] P.G. Neumann, “Some computer-related disasters and other egre-
+gious horrors,” ACM Software Eng. Notes, vol. 10, no. 1, pp. 6-7,
+Jan, 1985.
+
+[25] D. Purdue, “Australian ATMs . . . Forum on risks to the public in
+computer systems,” ACM Committee Computers and Public Policy,
+P.G. Neumann, moderator; vol. 5, issue 3, June 18, 1987.
+
+[26] Refine User’s Guide, Reasoning Systems Inc., Palo Alto, CA, June
+1989.
+
+(27] P. Zave, “An operational approach to requirements specifications
+for embedded systems,” JEEE Trans. Software Eng., vol. SE-8,
+no. 3, pp. 250-269, May 1982.
+
+
+--- Page 18 ---
+258                                                          IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 17, NO. 3, MARCH 1991
+
+Matthew S. Jaffe received the A.B. degree in
+mathematics from the University of California
+at Berkeley, the M.S. degree in aeronautical
+systems from the University of West Florida, and
+the Ph.D. degree in information and computer
+sciences from the University of California at
+Irvine.
+
+He is with Hughes Aircraft Company,
+Fullerton, CA. His research interests include
+requirements engineering, the design of human—
+machine interfaces for real-time systems, and the
+theory and practice of secure C3I systems.
+
+Nancy G. Leveson received the B.A. degree in
+mathematics, the M.S. degree in management,
+and the Ph.D. degree in computer science from
+the University of California, Los Angeles.
+
+She has worked for IBM and is currently
+an Associate Professor of Computer Science at
+the University of California, Irvine. Her current
+interests are in software reliability, software
+safety, and software fault tolerance. She heads
+the Software Safety Project at UCI which is
+exploring a range of software engineering topics
+involved in specifying, designing, verifying, and assessing reliable and
+safe real-time software.
+
+Dr. Leveson is a member of the Association for Computing Machin-
+ery, the IEEE Computer Society, and the System Safety Society.
+
+ 
+
+ 
+
+ 
+
+Mats P. E. Heimdahl received the M.S. degree
+in computer science and engineering from The
+Royal Institute of Technology, Stockholm, Swe-
+den, in 1988.
+
+He is currently working toward the Ph.D.
+degree in computer science at the University
+of California, Irvine. His research interests in-
+clude specification and analysis of safety critical
+software and formal specification languages.
+
+Bonnie E. Melhart received the B.A. degree
+in mathematics from Wright State University,
+Dayton, OH, the M.S. degree in mathematics
+from Southern Illinois University, Edwardsville,
+and the M.S. and Ph.D. degrees in information
+and computer science from the University of
+California, Irvine.
+
+She is currently an Assistant Professor of
+Computer Science at Texas Christian Univer-
+sity, Fort Worth. Her research interests include
+requirements specification and analysis of real-
+
+time embedded software, system design, software safety, and formal
+methods for software development.
+

@@ -1,0 +1,245 @@
+--- Page 1 ---
+Formal Requirements Elicitation with FRET
+Dimitra Giannakopoulou,
+Thomas Pressburger
+NASA Ames Research CenterAnastasia Mavridou, Julian Rhein,
+Johann Schumann, Nija Shi
+KBR / NASA Ames Research Center
+Abstract
+fret is a tool for writing, understanding, formalizing, and analyzing
+requirements. Users write requirements in an intuitive, restricted
+natural language, called fretish , with precise, unambiguous meaning.
+For a fretish requirement, fret : 1) produces natural language
+and diagrammatic explanations of its exact meaning, 2) formalizes
+the requirement in future-time and past-time temporal logic, and 3)
+supports interactive simulation of produced logic formulas to ensure
+that they capture user intentions. fret connects to analysis tools
+by facilitating the mapping between requirements and models/code,
+and by generating verication code. fret is available open source at
+https://github.com/NASA-SW-VnV/fret; a video can be accessed at:
+https://tinyurl.com/fretForREFSQ.
+1 Introduction
+Requirements engineering is a central step in the development of safety-critical systems. The vision for NASA
+Ames' Formal Requirements Elicitation Tool ( fret ) is 1) to make the writing, understanding, and debugging of
+formal requirements as natural and intuitive as possible, 2) to seamlessly connect to powerful external tools for
+analysis, and 3) to support the correction of requirements suggested by analysis results. fret users have been
+limited to teams within NASA Ames and external collaborators, but with fret 's recent open sourcing, we hope
+to obtain feedback and contributions from the wider research community and industry. This paper presents the
+features of the rst fret release, which form a solid basis for extensions and further development.
+In practice, requirements are typically written in natural language, which is ambiguous and consequently not
+amenable to formal analysis. Since formal, mathematical notations are unintuitive, requirements in fret are
+entered in a restricted natural language named fretish .fret helps users write fretish requirements both
+by providing grammar information and examples during editing, but also through English and diagrammatic
+explanations to clarify subtle semantic issues. For each requirement, fret automatically produces formulas that
+can be used by analysis tools at all phases of the software lifecycle. An extensive verication framework ensures
+that the generated formulas conform to the semantics of the fretish language [9]. Moreover, fret supports
+the mapping of high-level requirements to the signals or variables that appear in software models or code. fret
+then exports verication code that can be used directly by a variety of analysis tools.
+Novelty. fret incorporates ideas from several existing approaches to requirements engineering. The structure
+offretish requirements includes features from temporal logic, the Specication Pattern System (SPS) [5], and
+the Easy Approach to Requirements Syntax (EARS, [13]), implemented in tools like Prospec [8], SPIDER [11],
+SpeAR [7], and EARS-CTRL [12]. In the commercial tool STIMULUS [10], requirements are built by assembling
+phrases. The ASSERTTM[4] tool uses the constrained natural language SADL for formalizing domain ontologies,
+and a requirements language SRL that expresses requirements as assignments to controlled variables conditioned
+on (possibly temporal) conditions. The main goal of fret is to be an open source, extensible requirements
+Copyright c2020 for this paper by its authors. Use permitted under Creative Commons License Attribution 4.0 International
+(CC BY 4.0).
+In: M. Sabetzadeh, A. Vogelsang, S. Abualhaija, M. Borg, F. Dalpiaz, M. Daneva, N. Fern andez, X. Franch, D. Fucci, V.
+Gervasi, E. Groen, R. Guizzardi, A. Herrmann, J. Horko, L. Mich, A. Perini, A. Susi (eds.): Joint Proceedings of REFSQ-2020
+Workshops, Doctoral Symposium, Live Studies Track, and Poster Track, Pisa, Italy, 24-03-2020, published at http://ceur-ws.org
+
+
+--- Page 2 ---
+Figure 1: FRET dashboard
+platform that can connect to external requirements analysis tools. As such, the fretish language and the
+formalization capabilities aim at being inclusive, and for this reason are modular, and extensible. For example,
+fret produces formalizations in both future-time and past-time metric linear temporal logic. Since we plan on
+using fret in safety-critical contexts, ensuring correctness of the supported formalizations is key.
+2 Interacting with FRET
+This section describes a user's end-to-end interaction with fret through an example from the publicly-available
+Lockheed Martin Cyber Physical Systems (LMCPS) challenge [6]. The application of fret to LMCPS is, to
+date, the largest fret case study [15]. fret 's entry point is a dashboard that summarizes the status of selected
+projects, and provides a hierarchical view of all requirements, as shown in Figure 1 for LMCPS. The \Recent
+Activity" tab summarizes requirements that were most recently edited, highlighting those that belong to the
+selected project. Requirements can also be displayed in standard tabular form (see Figure 3).
+Requirements Elicitation. Figure 2 illustrates fret 's requirements elicitation interface. fretish require-
+ment [AP-002a] :\in roll hold mode RollAutopilot shall always satisfy autopilot engaged & no other lateral mode " expresses
+the natural language description included in the \Rationale and Comments" eld. i.e., that the autopilot should
+be engaged and no other lateral mode should be active when the Roll Autopilot is in roll hold mode. The
+interface window consists of the editor, on the left, and a help tab on the right (gray background). The fretish
+grammar, displayed as \railroad diagrams", is accessible from this view by clicking on the question mark.
+Afretish requirement description is automatically parsed into six sequential elds, with the fret editor
+dynamically coloring the text corresponding to the elds as the requirement is typed in (Figure 2): scope ,
+condition ,component ,shall ,timing , and response . Help and examples on each specic eld can be displayed
+in the help tab by clicking on the corresponding eld bubble. The mandatory component eld species the
+component that the requirement applies to (RollAutopilot). The shall keyword states that the component
+behavior must conform to the requirement. The response eld currently is of the form satisfy R , where Ris a
+non-temporal Boolean-valued expression.
+Field scope (optional) states that the requirement is only relevant in specic scopes of the system behavior,
+
+--- Page 3 ---
+Figure 2: fret editor with formalizations and explanations in the help tab
+.
+Figure 3: FRET tabular view of requirements
+for example when the system is \ in roll hold mode ". The Boolean expression eld condition (optional) states that,
+within the specied mode, the requirement becomes relevant only from the point where the condition becomes
+true. When, as in our example, condition is omitted, there is no such restriction. Field timing (optional) species
+at which points the response must occur, for example \ always ", meaning at all points where the system is \ in
+rollhold mode ". Default timing is eventually .
+By clicking semantics , the help tab displays various explanations of the requirement, as well as temporal
+formulas. The diagram of Figure 2 illustrates that the requirement is only relevant within the grayed box M (M
+represents intervals where the Autopilot is in \ rollhold" mode). The green band states that \ autopilot engaged &
+noother lateral mode " is required to hold at all time points within the gray box.
+Requirements Visualization. Getting a requirement with temporal relationships right is a tricky and
+subtle task. Errors and misunderstandings might creep into the formulation, resulting in a requirement that
+does not correctly reect the temporal interdependencies of the involved signals. Based upon the graphical
+signal representation commonly used in digital electronics, we developed an interactive requirements visualizer
+infret , available by clicking simulate in the semantics view of the help tab (see Figure 2). Given a fret
+requirement, it shows temporal traces of each of the signals (variables) involved as well as the valuation of the
+
+--- Page 4 ---
+requirement for each point in time (see Figure 4). The user can interactively modify the input signals; the
+valuation of the requirement is updated automatically and thus makes it possible for the user to visually inspect
+the temporal behavior of the requirement. The valuation is computed based on the construction of a nite state
+machine from the input trace, which is then veried against the metric linear temporal logic (LTL) formalization
+of the requirement, using the model checker NuSMV [2].
+Figure 4: Screenshot of visualiza-
+tion for AP-002a (Figure 2)Requirements Analysis. fret 's main purpose is to facilitate the elic-
+itation of unambiguous requirements. For analysis, it allows users to
+export requirements in formats that can be digested by external analysis
+tools. fret currently connects to the CoCoSim tool [3] for analysis of
+Simulink models, and through CoCoSim to the Kind2 [1], Zustre1, and
+Simulink Design Verier (SLDV) tools for analysis.
+To analyze requirements against an implementation as model or code,
+one needs to associate the requirement variables, which are at a high lev-
+el, with variables in the model or code (signals in the case of Simulink).
+Moreover, fret needs to generate verication code that can be under-
+stood by the target analysis tool. To connect with CoCoSim, fret
+transforms requirements into CoCoSpec code. In this process, fret sup-
+ports the import of Simulink model information provided by CoCoSim,
+and association of high-level requirements with target model signals and
+components (see Figure 5).
+Figure 5: Associating fretish requirements with Simulink models
+3 FRET architecture
+fret is implemented mainly in JavaScript as an Electron JS app. Electron JS2is a framework for creating
+desktop-suite applications by using web development programming languages. Electron JS uses two main tech-
+nologies: the Node.js runtime and the Chromium web browser. Its le system provided through the Node.js
+API is compatible with Linux, Mac OS, and Windows. fret 's interactive interface was developed with the
+React JavaScript library3.fret uses PouchDB4as an in-browser database that also runs in Node.js. fret 's
+architecture is illustrated in Figure 6. This section reviews the main modules in the architecture.
+Oine Formalization. Formalization of fretish requirements is performed by the formalizer component,
+which is described in detail in [9]. Formalization is performed based on semantic template keys, which are
+valuations of the elds that make up each fretish requirement. For example, the template key for requirement
+[AP-002a] is [in,null,always ], meaning that the scope is \in mode", condition is omitted, and timing is
+\always". For each template key, the formalizer generates a variety of mathematical formulas, as well as
+1https://github.com/coco-team/zustre
+2https://electronjs.org/3https://reactjs.org/4https://pouchdb.com/learn.html
+
+--- Page 5 ---
+English language explanations and diagrams, which are all saved in a cache. Note that all these artefacts are
+templates that contain variables. These variables get instantiated by fret to capture the details of specic
+requirements, as will be described later.
+formalization verifier is a modular, extensible framework, which provides assurance that formulas gen-
+erated by the formalizer capture the intended semantics. It implements 1) a module that generates traces,
+i.e., example executions over which to interpret formulas; 2) a module that, given a trace and a template key,
+generates an expected value of true or false based on the semantics of the fretish language, 3) a module which
+interprets formulas over traces and compares the outcome to expected values, and 4) a module that compares
+future and past-time formulas generated for the same template key, for equivalence.
+requirement eldsfretish
+(explanation + diagram + formulas)formalized requirementtemplate keyLTL formulas
+trace
+generator
+oraclesemantics
+evaluatorequivalence
+checkertemplate keysTrue/Falseformula
+diagram
+explanationformalizer editor/elicitor
+parser
+instantiatorcache
+verication code + traceability datasimulator
+architectural
+data
+analysis portalvisualizer
+formula translatormapperrequirements-model
+formalization verifier
+Figure 6: Architecture of fret
+Requirements Elicitation. The bulk of the work in formalizing fretish requirements is performed oine
+and cached. When users write a requirement, the parser identies the corresponding template key, and the
+values of the requirement elds, which instantiate the template key. The instantiator uses the template key
+to fetch correct artefacts from the cache, and uses the requirement elds to appropriately instantiate them. The
+produced LTL formulas can be explored interactively through the simulator .
+Analysis Portal. This component connects fret with analysis tools. The user needs to dene mappings
+between fretish variables and model variables, as well as additional information such as variable types, which
+is not relevant at a high level. Module requirements-model mapper supports this process and stores the
+provided information in a database. It is also able to import architectural data about model components and
+signals, when available, to facilitate this task. Module formula translator currently uses information from
+the mapper, and the past-time LTL formalization of a requirement, to generate CoCoSpec code, as well as
+traceability data. The latter is used to report analysis results in the context of fretish requirements. This
+component could also be used in the context of other tools, and is described in detail in [14].
+4 Applications and Future Work
+As mentioned, we have successfully applied fret to the LMCPS industrial case study; a detailed evaluation
+is provided in [6]. fret is currently being used by a mission within the NASA Ames Research Center. We
+are working closely with mission developers to help them with using the tool and get feedback regarding its
+usability. We have noticed, for example, that developers initially need help from us to capture requirements in
+fretish and understand the semantic nuances of the elds that are supported. However, their requirements
+fall into recurring patterns, so they become eective with the use of fretish quite fast. For this reason, we
+are considering ways of supporting new fretish users, by, for example, displaying typical requirement patterns
+within a domain or project, and allowing users to import patterns within the editor and customize as needed.
+More generally, now that fret has its basic features established, we are focusing on improving the interaction
+with users both in editing and correcting requirements. Similarly, we are working on additional analysis tool-
+s/algorithms to integrate with fret ; for example, we have been developing support for checking requirements
+realizability. In general, given fret 's open source status, we hope to obtain feedback and contributions from the
+wider research community. For example, we expect that as the tool gets used in various domains, fretish could
+be extended or customized accordingly. Moreover, researchers could connect fret to issue and project tracking
+systems, requirements management systems, assurance case environments, as well as additional analysis tools.
+Acknowledgements. We thank David Bushnell and Tanja de Jong for working on early prototypes of fret .
+This work was funded by the NASA ARMD System-Wide Safety Project.
+
+--- Page 6 ---
+References
+[1] Champion, A., Mebsout, A., Sticksel, C., Tinelli, C.: The Kind 2 model checker. In: Computer Aided Veri-
+cation - 28th International Conference, CAV 2016, Toronto, ON, Canada, July 17-23, 2016, Proceedings,
+Part II. pp. 510{517 (2016). https://doi.org/10.1007/978-3-319-41540-6 29
+[2] Cimatti, A., Clarke, E., Giunchiglia, F., Roveri, M.: NuSMV: a new symbolic model check-
+er. International Journal on Software Tools for Technology Transfer 2(4), 410{425 (Mar 2000).
+https://doi.org/10.1007/s100090050046
+[3] CoCo-team: CoCoSim { automated analysis framework for Simulink. the version used in this paper is a
+closed source version of the tool at NASA Ames that is based on the open source version. https://github.com/
+coco-team/cocoSim2
+[4] Crapo, A., Moitra, A., McMillan, C., Russell, D.: Requirements capture and analysis in ASSERT(TM).
+In: 2017 IEEE 25th International Requirements Engineering Conference (RE). pp. 283{291 (Sep 2017).
+https://doi.org/10.1109/RE.2017.54
+[5] Dwyer, M.B., Avrunin, G.S., Corbett, J.C.: Patterns in property specications for nite-state verication.
+In: Proceedings of the 21st International Conference on Software Engineering. pp. 411{420. ICSE '99, ACM,
+New York, NY, USA (1999). https://doi.org/10.1145/302405.302672
+[6] Elliott, C.: On example models and challenges ahead for the evaluation of complex cyber-physical systems
+with state of the art formal methods V&V, Lockheed Martin Skunk Works. In: Laboratory, A.F.R. (ed.)
+Safe & Secure Systems and Software Symposium (S5), 9-11 July 2015, Dayton, Ohio (2015), http://mys5.org/
+Proceedings/2015/Day_1/2015-S5-Day1_1405_Elliott.pdf
+[7] Fifarek, A.W., Wagner, L.G., Homan, J.A., Rodes, B.D., Aiello, M.A., Davis, J.A.: SpeAR v2.0: For-
+malized past LTL specication and analysis of requirements. In: NASA Formal Methods - 9th Internation-
+al Symposium, NFM 2017, Moett Field, CA, USA, May 16-18, 2017, Proceedings. pp. 420{426 (2017).
+https://doi.org/10.1007/978-3-319-57288-8 30
+[8] Gallegos, I., Ochoa, O., Gates, A., Roach, S., Salamah, S., Vela, C.: A property specication tool for
+generating formal specications: Prospec 2.0. In: 20th International Conference on Software Engineering
+and Knowledge Engineering, SEKE 2008. pp. 273{278 (01 2008)
+[9] Giannakopoulou, D., Pressburger, T., Mavridou, A., Schumann, J.: Generation of formal requirements from
+structured natural language. In: 26th Intl Working Conference on Requirements Engineering: Foundation
+for Software Quality (REFSQ-2020)
+[10] Jeannet, B., Gaucher, F.: Debugging Embedded Systems Requirements with STIMULUS: an Automotive
+Case-Study. In: 8th European Congress on Embedded Real Time Software and Systems (ERTS 2016).
+Toulouse, France (Jan 2016), https://hal.archives-ouvertes.fr/hal-01292286
+[11] Konrad, S., Cheng, B.H.C.: Facilitating the construction of specication pattern-based properties. In: 13th
+IEEE International Conference on Requirements Engineering (RE 2005), 29 August - 2 September 2005,
+Paris, France. pp. 329{338. IEEE Computer Society (2005). https://doi.org/10.1109/RE.2005.29
+[12] L ucio, L., Rahman, S., Cheng, C.H., Mavin, A.: Just Formal Enough? Automated Analysis of EARS
+Requirements. In: Barrett, C., Davies, M., Kahsai, T. (eds.) NASA Formal Methods. pp. 427{434. Springer
+International Publishing, Cham (2017)
+[13] Mavin, A.: Listen, then use EARS. IEEE Software 29(2), 17{18 (Mar 2012).
+https://doi.org/10.1109/MS.2012.36
+[14] Mavridou, A., Bourbouh, H., Garoche, P.L., Giannakopoulou, D., Pressburger, T., Schumann, J.: Bridging
+the gap between requirements and Simulink model analysis. In: 26th Intl Working Conference on Require-
+ments Engineering: Foundation for Software Quality (REFSQ-2020, Poster) (2020), http://ceur-ws.org
+[15] Mavridou, A., Bourbouh, H., Garoche, P.L., Hejase, M.: Evaluation of the FRET and CoCoSim tools on the
+ten Lockheed Martin cyber-physical challenge problems. Tech. Rep. TM-2019-220374, National Aeronautics
+and Space Administration (November 2019)

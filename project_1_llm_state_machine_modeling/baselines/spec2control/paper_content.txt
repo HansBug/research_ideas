@@ -1,0 +1,1342 @@
+--- Page 1 ---
+Spec2Control: Automating PLC/DCS Control-Logic Engineering
+from Natural Language Requirements with LLMs
+- A Multi-Plant Evaluation
+Heiko Koziolek, Thilo Braun
+Virendra Ashiwal, Sofia Linsbauer
+firstname.lastname@de.abb.com
+ABB Corporate Research Center, Germany
+Mannheim, GermanyMarthe Ahlgreen Hansen
+Karoline Grøtterud
+firstname.lastname@no.abb.com
+ABB Process Automation Energy Industries Division
+Oslo, Norway
+Abstract
+Distributed control systems (DCS) manage the automation for many
+industrial production processes (e.g., power plants, chemical re-
+fineries, steel mills). Programming the software for such systems
+remains a largely manual and tedious process, incurring costs of
+millions of dollars for extensive facilities. Large language models
+(LLMs) have been found helpful in generating DCS control logic,
+resulting in commercial copilot tools. Today, these tools are fo-
+cused on textual notations, they provide limited automation, and
+have not been tested on large datasets with realistic test cases. We
+introduce Spec2Control, a highly automated LLM workflow to gen-
+erate graphical control logic directly from natural language user
+requirements. Experiments using an open dataset with 10 control
+narratives and 65 complex test cases demonstrate that Spec2Control
+can successfully identify control strategies, can generate 98.6% of
+correct control strategy connections autonomously, and can save
+between 94-96% of human labor. Spec2Control is being integrated
+into commercial ABB engineering tools, but is also available as an
+open-source variant for independent validation.
+CCS Concepts
+•Applied computing →Computer-aided design;•Software
+and its engineering →Automatic programming;•Computing
+methodologies→Intelligent agents.
+Keywords
+LLM, Automation Engineering, Control Logic Generation, IEC
+61131-3, FBD, ST
+ACM Reference Format:
+Heiko Koziolek, Thilo Braun, Virendra Ashiwal, Sofia Linsbauer and Marthe
+Ahlgreen Hansen, Karoline Grøtterud. 2025. Spec2Control: Automating
+PLC/DCS Control-Logic Engineering from Natural Language Requirements
+with LLMs - A Multi-Plant Evaluation. InProceedings of (ABB Corporate
+Research Center).ACM, New York, NY, USA, 12 pages. https://doi.org/10.
+1145/nnnnnnn.nnnnnnn
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+ABB Corporate Research Center, Germany
+©2025 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-x-xxxx-xxxx-x/YYYY/MM
+https://doi.org/10.1145/nnnnnnn.nnnnnnn1 Introduction
+A DCS is a computerized system that automates industrial equip-
+ment used in manufacturing processes [ 22]. ABB has been a leader
+in the 22 BUSD DCS market for 24 years, having installed more than
+35.000 systems [ 2]. A large DCS may contain dozens of real-time
+controllers, hundreds of servers, and control hundreds of thou-
+sands of sensors and actuators [ 3]. The brain of such installations
+is the software, which reads sensor values and calculates actuator
+setpoints based on control logic written in domain-specific IEC
+61131-3 programming languages [1, 52].
+Programming such systems is referred to as control-logic engi-
+neering and incurs high costs due to the induced manual labor [ 19].
+A mid-sized production plant may require more than a year of
+control engineering from a team of 10 engineers [ 22]. Automation
+engineers interpret prose text customer requirements and imple-
+ment them in specialized programming environments [ 1,22,52].
+Despite measures for reusing functionality across projects, this
+process remains tedious and error-prone and is one of the most
+significant cost factors for automation projects [19, 22].
+Recently, automation vendors and researchers demonstrated
+the capability of modern large language models (LLMs) to gen-
+erate IEC 61131-3 control logic from natural language specifica-
+tions [ 16,33,37]. This capability could automate parts of the control-
+logic engineering process. For example, the Siemens Industrial
+Copilot [ 47], TwinCAT CoAgent [ 9], or B&R Automation Studio
+Copilot [ 8] can create and explain IEC 61131-3 control logic using
+chat interfaces. These tools are focused on textual notations and
+have not been systematically tested for large DCS projects so far.
+The contribution of this paper is Spec2Control, the first end-to-
+end LLM workflow that generates graphical IEC 61131-3 function
+block diagrams (FBD) directly from customer-written specifications.
+Spec2Control automates the control logic engineering process be-
+yond interactive chat sessions of previous engineering copilots by
+autonomously mapping customer specifications to control logic. It
+includes a dedicated context generation approach, a streamlined
+pseudo-code LLM notation for graphical FBDs, and performs a
+custom hierarchical auto-layout.
+While we designed Spec2Control for commercial ABB engineer-
+ing tools, we have extended its output generation to support open-
+source tooling (OpenPLC [ 5]), enabling independent validation and
+enhancement. Based on numerous commercial control narratives,
+we have constructed an open dataset comprising 10 diverse control
+narratives, which include 65 test cases for control logic. For thesearXiv:2510.04519v1  [cs.SE]  6 Oct 2025
+
+--- Page 2 ---
+ABB Corporate Research Center, Mannheim, Germany Koziolek et al.
+test cases, Spec2Control achieved a flawless control strategy detec-
+tion using GPT-5, 98.6% correct strategy connections, and 97.1%
+correct alarm mappings, potentially saving 94-96% time compared
+to human control engineering.
+This paper is structured as follows: Section 2 provides back-
+ground and explains control-logic engineering in more detail. Sec-
+tion 3 describes Spec2Control as a 7-step workflow, supported by
+a running example. Section 4 presents our multi-plant testing ap-
+proach with quantitative and qualitative results. Section 5 highlights
+threats to validity, followed by Section 6, which discusses related
+work. Section 7 concludes the paper and sketches future work.
+2 Background
+Control logic engineering refers to the process of programming a
+real-time automation controller to process sensor values and com-
+pute output values for actuators and human operators. While some
+controllers are directly programmed in C, most control engineers
+use domain-specific programming languages, notably IEC 61131-3
+and IEC 61499. The former standardizes three textual notations:
+structured text (ST, see Fig. 1), ladder diagrams (LD), and instruction
+lists (IL), and two graphical notations: function block diagrams (FBD,
+see Fig. 2) and sequential function charts (SFC). Control engineers
+use these notations, for example, to encode PID (proportional/inte-
+gral/derivative) control algorithms, interlocks between devices, and
+alarm procedures. They often employ reusable function blocks with
+standard algorithms from elaborate and well-tested programming
+libraries, which they parametrize and connect but do not program
+from scratch.
+IF I _TI_101_2 >= 70 THEN ( *temperature > 70 degrees *)
+P_101_ON_VAR := FALSE; ( *stop pump *)
+E_104_ON_VAR := FALSE; ( *stop heat exchanger *)
+CMD_TMR(IN := 2.0); ( *wait for 2 seconds *)
+END_IF;
+Figure 1: Example code snippet for IEC 61131-3 Structured
+Text (ST) encoding an interlock in a Pascal-like syntax.
+Once implemented and tested, such control logic can comprise
+thousands of diagrams and hundreds of thousands of function block
+instantiations [ 36]. The logic gets compiled and deployed on a
+programmable logic controller (PLC) or Industrial PC [ 22]. The
+runtime environment executes control logic cyclically (e.g., every
+100-1000 ms). There are also open-source programming and runtime
+environments (e.g., OpenPLC [ 5]). In each cycle, the controller scans
+all input signals, executes the control logic, and writes the analog
+or digital output signals. To minimize jitter, controllers utilize real-
+time operating systems, such as VxWorks or real-time-enabled
+Linux. Human operators supervise the automation using desktop
+applications or web-based clients.
+User requirements for automation control logic typically include
+I/O lists, piping-and-instrumentation diagrams (P&ID), and control
+narratives, written by specialized EPC (engineering, procurement,
+and construction) contractors with process engineering domain
+knowledge on behalf of the automation user (e.g., a chemical com-
+pany). Control narratives are prose text documents (MS Word, PDF,
+interlocks
+Seite: 1P101_ON_varAND
+IN1
+IN2
+IN3OUT O_P101_ON
+O_P101_ctrlModeAND
+IN1
+IN2OUT
+AND
+IN1
+IN2OUTLE
+IN1
+IN2OUTI_LS_101_3
+TON0
+TON
+IN
+PTQ
+ETI_FI_101_6
+0.7
+O_P101_ON
+T#2s
+TOF0
+TOF
+IN
+PTQ
+ETAND
+IN1
+IN2OUTAND
+IN1
+IN2
+IN3OUT
+LE
+IN1
+IN2OUTT#2sO_YS_103_1_open
+GE
+IN1
+IN2OUTAND
+IN1
+IN2
+IN3OUT O_E104_ONO_YS_103_1_open
+O_P101_ON
+90
+I_LI_102_1
+V103_1_open_var
+I_TI_101_2
+120I_LS_101_3E104_ON_varFigure 2: Example for an IEC 61131-3 Function Block Dia-
+gram (FBD) encoding simple boolean logic.
+5-500+ pages) that specify automation requirements in natural lan-
+guage, referring to tag names from the I/O list and occasionally
+explaining structures from P&IDs. EPCs write control narratives
+independently of a particular control system, allowing them to be
+used to solicit bids from different automation vendors.
+“The ratio control system is interlocked with the reactor level
+transmitter LT-104 and the vent scrubber VS-107 to ensure safe
+operation. LT-104 provides a permissive signal to FFIC-102, al-
+lowing acid flow only when the reactor level is above 20% and
+below 90% of its capacity.”
+Figure 3: Control Narrative Text Snippet Example
+Control engineers read such narrative texts (Fig. 3) when im-
+plementing the control logic. In the example, the control engineer
+needs to instantiate a function block for the level transmitter LT-
+104 and for the ratio controller FFIC-102, and then connect them
+so that a high or low alarm raised by the level transmitter stops
+the controller and, consequently, stops the inflow to the reactor,
+preventing underflow or overflow. In many cases, the specifica-
+tions are more complex and require recognizing particular control
+strategies (e.g., ratio control, cascade control) and considering in-
+tricate inter-dependencies between the different devices. Control
+engineers are trained in vendor-specific libraries and can translate
+user requirements into control system specifics.
+As prose texts, control narratives may be inexact, inconsistent,
+and incomplete, complicating the task of the control engineer. EPCs
+write them in local languages and without standardized formatting
+or structure, which makes them convenient and cheap to create.
+Before the advent of Generative AI, attempts to perform informa-
+tion retrieval on control narratives (e.g., [ 24]) were still limited by
+the heterogeneity of formulations used, and thus focused only on
+extracting specific information items (e.g., setpoints), rather than
+the entire content. A few large automation customers utilize more
+formalized notations to specify their requirements [ 11,14], but even
+these are often accompanied by prose text control narratives.
+
+--- Page 3 ---
+Spec2Control ABB Corporate Research Center, Mannheim, Germany
+3 Spec2Control: Conceptual Approach
+Spec2Control’s goal is to automate the previously described control
+logic engineering process as much as possible, thereby reducing
+engineering costs. We first describe Spec2Control conceptually,
+supported by a running example, before sketching a prototypical
+implementation.
+3.1 Running Example
+Consider the control narrative of a chemical production plant that
+manufactures ammonium nitrate, a fertilizer. Section 2 of the control
+narrative describes parts of the desired automation for the included
+neutralization reactor, referencing 10 tags related to components
+such as level transmitters, flow controllers, and flow valves.
+Neutralization 
+Reactor
+ 
+FV-101 
+FV-101
+ 
+FV-102 
+FV-102LT
+104
+FIC
+101
+FIC
+102FT
+101PH
+105TIC
+103VS
+107
+FFIC
+102H
+L
+H
+L
+Figure 4: Running Example: Control Narrative Section on
+Neutralization Reactor in Ammonium Nitrates Chemical
+Production Plant
+Figure 4 provides a graphical P&ID of the text for illustration
+purposes in the context of this paper. This graphical representation
+is not part of the actual specification and is not available to the
+LLM for FBD generation, as it exclusively relies on text. Circles indi-
+cate sensors, butterfly shapes indicate valves, and squares indicate
+control functionalities. The text describes a ratio control strategy
+involving a ratio controller (FFIC-102) with two flow controllers
+(FIC-101, FIC-102) regulating the inflow valves (FV-101, FV-102) of
+the reactor. Interlocks, permissives, and alarm signals needed in the
+plant segment are also described and represented in the graphics
+by dashed lines. A control engineer needs to map the described
+devices to matching function blocks from a library and then con-
+nect and parametrize these blocks. The result will be an FBD. This
+task typically requires 1-2 hours of manual work per section and is
+followed by extensive testing.
+3.2 Control Logic Generation Method
+Fig. 5 illustrates the Spec2Control method, which begins with a
+narrative and culminates in FBD control logic deployed on an au-
+tomation controller. The method consists of seven steps, whereLLM agents execute the first four steps under the supervision of a
+control engineer.
+Step 1(Planning):First, a planning procedure analyzes the
+control narrative provided by the control engineer to determine
+a suitable chunking and processing strategy. In practice, control
+narrative sizes span from only 1-2 pages to more than 500 pages, in
+which case chunking is essential to avoid overloading LLM context
+windows. Chunks are ideally self-contained, semantically coherent
+sections mappable to individual diagrams. Often, the user-defined
+sections provide a good template for chunking; however, in some
+cases, sections are ill-defined or need to be combined for coherence.
+Our current prototype supports 1) processing the entire document,
+2) chunking by sections, and 3) chunking by user selection. Future
+additions could enhance the chunking strategy selection process
+by utilizing LLM prompts and human revision. For the running
+example, chunking by sections yields semantically coherent results
+and is the selected strategy.
+Step 2(Control Narrative Extraction):Based on the selected
+chunking strategy, this step extracts parts of the control narrative
+and feeds them one by one to the subsequent workflow. The step
+also encapsulates the handling of different input file formats (e.g.,
+Word, PDF, and Markdown). The result of chunking is typically
+2-3 paragraphs of text, possibly accompanied by tables and images.
+Optionally, this step can run pre-specified LLM summarization
+prompts on the chunk to strip excessive formatting instructions,
+redundancies, and overly verbose formulations. In practical cases,
+this can often reduce the chunk size by more than 50 percent, thus
+preserving more context window space for later instructions. For
+the running example, this step extracts Section 2 of the control
+narrative, which contains 3826 characters and 10 referenced tags.
+Step 3(LLM Context Generation):Before actually generating
+control logic, Spec2Control establishes an appropriate context [ 39].
+Context generation itself is a multi-step workflow with several
+LLM prompts that gather 1) required function block definitions, 2)
+required control strategies, and 3) previously existing control logic
+to connect to.
+A typical control narrative chunk requires only a subset of the
+available library block types, and from these, only a subset of the
+available input and output parameters. Via LLM prompts on the
+current narrative chunk, Spec2Control identifies the required type
+definitions (e.g., PID_BASIC), which include function block name,
+input/output parameters (e.g., SP for set point), their types (e.g.,
+BOOL, REAL, etc.), and descriptions (e.g., "setpoint for the PID
+control loop"). Retrieval-augmented generation [ 17] can support
+this step, as shown in previous work [ 34], but this usually requires
+specially prepared source documents from a library repository. For
+example, the section in the running example requires, among others,
+a function block type ANALOG_IN with input parameters for high
+and low alarms to integrate the level transmitter LT-104 into the
+DCS (Fig. 4).
+The step selects a suitable control strategy for the given chunk
+from a list of pre-specified strategies. There are a dozen popular
+control strategies, which already cover more than 95 percent of the
+typical process control cases [ 27]. These include, for example, PID,
+cascade, feedforward, split-range, or duty/standby control. Func-
+tion block libraries support these strategies and induce specific
+block composition patterns, which this step loads into the context.
+
+--- Page 4 ---
+ABB Corporate Research Center, Mannheim, Germany Koziolek et al.
+Control Engineer
+Control 
+Narrative
+Control 
+Narrative 
+Extraction
+Control 
+Narrative 
+ChunkProcess
+Loop
+LLM Context 
+Generation
+Required Library 
+Function Blocks
+Selected existing 
+logic 
+to attach to
+Identified 
+Control Strategy
+LLM Control Logic Generation
+Control Logic 
+Pseudo Code
+Pseudo Code 
+Conversion
+Function Block 
+Diagram (XML)
+PLC 
+Integrated 
+Development 
+EnvironmentLoad 
+into 
+Context 
+Window
+Existing 
+Control LogicRetrieve
+Store / Retrieve
+IO-List
+P&IDs
+Instantiate 
+Function Blocks
+Create Connections
+Create 
+Interlocking Logic
+Create Alarm Logic
+Validate Function 
+Block Diagram
+Parametrize 
+Function Blocks
+Import CreateImportsupervise review
+Library 
+Repository
+Retrieve specs / strategies
+supervise
+RuntimeDeploy logic
+Automation Controller
+Planning1
+Execute 
+Selected 
+StrategyAnalyze
+2 34
+56
+7
+human -curated
+Strategies: 
+1) extract section 
+unchanged
+2) summarize section with 
+LLM before passing
+3) fact extraction 
+(e.g., for specific tags)
+deterministic, 
+no LLM
+Figure 5: Spec2Control Control Logic Generation Method: control narratives serve as input, are processed in seven steps by
+LLM workflows and deterministic tools, resulting in control logic deployed onto an automation controller.
+This information helps the LLM to determine the required func-
+tion block connections for the narrative chunk. For cases where a
+control strategy is challenging to detect or where a chunk includes
+overlapping strategies, Spec2Control provides confidence levels for
+the possible strategy options. It optionally involves the human user
+in making a decision. For the running example, Spec2Control au-
+tonomously selects the ratio control strategy, which here requires a
+RATIO_CONTROL block and two PID_BASIC control blocks with
+specific connections between the blocks, as it controls the ratio
+between the two reactor inflows.
+Finally, step 3 also loads selected existing control logic into the
+context. For example, function blocks may have already been instan-
+tiated in the control logic from previous generation steps, using so-
+called bulk engineering tools, or through manual work. Especially
+for extensions of existing automation systems, this step is crucial
+to enhance the existing implementation seamlessly. Spec2Control
+searches in a repository of existing control logic based on the tag
+names in the current narrative chunk, and retrieves related function
+block instantiations and connections. For example, in the running
+example, the PID_BASIC block for temperature controller TIC-103
+was already available. Therefore, the Spec2Control appends its def-
+inition with connections to the context, so that subsequent steps
+do not need to recreate the block.
+Step 4(LLM Control Logic Generation):With the required
+context (i.e., block types, composition patterns, existing logic) in
+place, the following workflow can now generate the actual con-
+trol logic for the current control narrative chunk. There can be
+different variants of the workflow, e.g., for the different IEC 61131-3
+languages (e.g., ST, FBD, SFC), for IEC 61499, or vendor-specificnotations. For the scope of this work, we focus on FBDs; previous
+work, for example, has demonstrated the generation of ST [33].
+Spec2Control divides the FBD generation into several steps, each
+supported by individual LLM prompts, which enables focusing the
+LLM processing on smaller subtasks, thereby producing more reli-
+able outcomes. First, it instantiates block types and assigns them
+names based on the tag names. Then it creates block instance con-
+nections according to the spec and the identified control strategies.
+Parameters, such as alarm levels or setpoints, are added to the
+blocks before two additional steps deal with interlocking logic and
+alarms. Interlocks connect the states of two devices (e.g., a high
+alarm causes a pump to stop). In contrast, alarms define thresholds
+for additional logic or human operator monitoring (e.g., a reactor
+temperature maximum of 190 degrees Celsius). Finally, a valida-
+tion step receives the output of all previous steps and checks for
+well-formedness and completeness using another LLM call.
+Spec2Control defines a streamlined pseudo-code notation for
+FBDs, which focuses the LLM solely on outputting the essential
+instantiation, connection, and parametrization of function block
+types (running example in Fig. 6). This notation does not include
+graphical coordinates, sizes of function blocks, or coordinates for
+edge routing, as this information is added in a subsequent step
+using an auto-layout algorithm. For the running example, the result
+of the control logic generation step is an FBD with 11 function block
+instances, three functions, 11 variable definitions, 32 connections,
+and 24 parameters.
+Step 5(Pseudo Code Conversion & Layout):Spec2Control
+parses the pseudo-code notation, converts it into a data format
+required for the PLC IDE, and generates graphical coordinates for
+
+--- Page 5 ---
+Spec2Control ABB Corporate Research Center, Mannheim, Germany
+Figure 6: Spec2Control’s LLM FBD output notation (“pseudo-
+code”) for the neutralizer reactor section of the ammonium
+nitrites chemical production plant (excerpt).
+the FBD blocks and connections. This step does not utilize an LLM
+but instead employs deterministic code. There are vendor-specific
+proprietary formats and standardized formats (PLCOpen XML).
+This step enables us to adapt the method to different PLC IDEs
+by simply replacing the conversion logic, while leaving steps 1-4
+unchanged. A prerequisite for such an adaptation to work is that
+the library block types are available in the target PLC IDE. Auto-
+layout for FBDs requires a custom hierarchical graph layout with
+horizontal orientation and backward looping [ 50]. For the running
+example, this step yields an FBD in OpenPLC’s implementation of
+the PLCopen XML schema.
+Step 6(PLC Integrated Development Environment):When
+loaded into a PLC IDE, the FBD can be rendered graphically and
+displayed to the user. Fig. 8 in Section 4.2 shows an excerpt of the
+FBD auto-layouted and rendered for the running example FBD in
+OpenPLC. If required, the user can now use the IDE to correct the
+FBD, to add more logic beyond the narrative chunk, and to test the
+implementation. Additional control logic, for example, can come
+from P&IDs or other sources, which is outside the scope of this
+work. LLM-generated test cases can support the validation [34].
+Step 7(Runtime):Once complete and tested, the user deploys
+the control logic to an automation controller, which is network-
+connected to the sensors and actuators, and cyclically executes the
+logic.
+A control engineer supervises the entire control narrative gen-
+eration process and is looped in for additional input in case the
+executed workflows encounter low-confidence situations or ambi-
+guities. Spec2Control can integrate with existing bulk engineering
+tools [1], which in some cases can already pre-populate PLC IDEs
+with unconnected function block instances based on I/O lists.
+3.3 Prototype Implementation
+Different LLM application frameworks can support the implemen-
+tation of Spec2Control. We chose to build a prototype based onLangChain [ 6]. The prototype is connected to ABB control engineer-
+ing tools [ 1] and loaded with specifications of several proprietary
+ABB function block libraries. For independent reproduction and
+evaluation of the concepts, we have now also implemented an
+adapter for the open-source PLC IDE OpenPLC [ 5]. This adapter
+enables interested users and researchers to evaluate the approach
+without exposing proprietary ABB information.
+The prototype [ 30] follows the steps described previously. For
+Step 1 (Planning), the user manually selects a narrative chunk-
+ing strategy; a more dynamic strategy selection is under devel-
+opment. In Step 2 (Control Narrative Extraction), Spec2Control
+utilizes PyPDF to split PDF files and extract the raw text. The user
+can optionally integrate prompts for summarizing control narra-
+tive chunks to reduce the token count. For Step 3 (LLM Context
+Generation), we utilize LangChain to instantiate prompt templates
+and integrate LLM calls. We use OpenAI LLM models hosted on
+Azure AI Foundry (currently GPT-5). The user can configure the
+specific model, as Spec2Control is LLM-model agnostic and thus
+can benefit from the best available models. The merging of existing
+control logic is currently under development.
+In the current prototype, the LLM Control Logic Generation (Step
+4) for FBDs is a linear prompt chain, which is easy to test. There are
+other prompt workflows for generating SFC and ST. We crafted the
+included prompts to support typical IEC 61131-3 logic. The prompt
+chains result in pseudo-code, which Spec2Control converts into
+ABB proprietary formats or PLCopen XML (Step 5). As OpenPLC
+does not support auto-layout of FBDs, we have implemented this
+functionality in our prototype. A FastAPI exposes all workflow
+steps.
+Figure 7: Control Narrative Workbench: an interactive front-
+end for Spec2Control to assist in prompt engineering and
+LLM supervision
+For the frontend, we have created a purpose-built user inter-
+face called “Control Narrative Workbench” using ReactJS, where
+control engineers can load control narratives, perform prompt engi-
+neering, configure workflows, and monitor LLM outputs (Fig. 7). A
+
+--- Page 6 ---
+ABB Corporate Research Center, Mannheim, Germany Koziolek et al.
+command-line utility allows users to execute the steps unattended
+and process entire control narrative documents in batch mode.
+4 Case Studies
+A GQM (Goal-Question-Metric) approach [ 12] structures the evalu-
+ation of Spec2Control. The goal was to determine the feasibility of
+automated control logic generation from natural language specifi-
+cations. Derived from the goal, we asked three questions:
+(1)Question Q1:How many human interventions are required,
+and how complex are they? Derived metric Q1M1 counts
+the number of human interventions to produce FBD control
+logic for a given control narrative chunk. As metric Q1M2,
+we estimate the rework time required for generated FBDs
+resulting from erroneous LLM-generated content. As metric
+Q1M3, we estimate the time needed for review and correction
+to achieve confident semantic correctness.
+(2)Question Q2:What is the quality of the LLM-generated
+control logic? Notice that there are different ways to imple-
+ment the functionality defined in a control narrative chunk.
+For example, other naming conventions are valid, and the
+LLM may combine complex Boolean expressions in various
+valid ways. To address this variability, we created a baseline
+of FBDs, reviewed by domain experts, to serve as a refer-
+ence for evaluation. Since exact structural matches are not a
+reliable indicator of correctness, we instead assessed each
+LLM-generated output using the following metrics compared
+to the baseline:
+•Q2M1: percentage of correctly identified control strategies
+•Q2M2: percentage of correctly instantiated function blocks
+relevant to the control strategy
+•Q2M3: percentage of correct control strategy connections
+•Q2M4: percentage of correctly configured alarm parame-
+ters
+(3)Question Q3:What is the cost/benefit ratio of an automated
+vs. manual control engineering approach? Metric Q3M1 is
+the percentage of LLM construction time plus LLM-induced
+rework time divided by the estimated manual construction
+time. Metric Q3M2 quantifies the average LLM costs to pro-
+cess a control narrative chunk in USD.
+Measuring the metrics on representative reference test cases helps
+assess the feasibility and usefulness of the approach, providing
+ABB control engineering units with data for initiating AI adoption
+across worldwide engineering centers.
+4.1 Test Setup
+To collect data for the metrics, we analyzed dozens ofcontrol
+narrativesfrom ABB automation customers in recent and past
+ABB automation projects. These control narratives ranged in size
+from 5 to 500+ pages or more and concerned various applications,
+including offshore wind farms, wastewater treatment facilities, and
+power plants. Such control narratives are proprietary, about intel-
+lectual properties, and thus, we cannot publish them. We therefore
+created an LLM-based control narrative generator that can synthe-
+size realistic control narratives utilizing process descriptions from
+textbooks or based on P&ID images.Using the generator, we created 10 non-proprietary control nar-
+ratives across various industrial automation use cases to capture a
+wide range of control strategies and required equipment. A large-
+scale industrial plant inspires each control narrative. Three of the
+narratives originate from P&ID images, while seven narratives
+come from textbook seed texts. We ensured a detail level compara-
+ble to commercial control narratives, which were cross-checked by
+experienced control engineers. The control narratives comprise up
+to 10 sections, each spanning 1-3 pages, and collectively covering
+more than 50 tags (sensors, controllers, actuators). Each section con-
+tains a tag name table and describes the main control philosophy
+for a plant segment (e.g., “vacuum distillation unit”) in prose text
+referring to the tag names. Each section also provides subsections
+for interlocks and alarms. The non-proprietary control narratives
+enable a transparent test setup outside corporate borders, which
+automation experts and researchers can validate.
+Name Type Description
+#Inputs
+#Outputs
+ANALOG_IN SensorMeasures an analog value 
+(temperature, flow, …)8 4
+BOOL_IN SensorMeasures an boolean value (HMI 
+button, variable, …)7 3
+DIGITAL_IN SensorMeasures a digital sensor signal 
+(alarm switch, feedback, …)5 2
+MOTOR_ON_OFF ActuatorStarts/Stops a motor (pump, 
+conveyor, …)7 5
+MOTOR_VSD ActuatorStarts/Stops a motor with variable 
+speed (conveyor, mixer, …)8 7
+VALVE_ELECTRIC ActuatorOperates an analog valve (flow 
+valve, pressure valve, …)9 5
+VALVE_ON_OFF ActuatorOperates a digital valve (only open 
+or close, …)6 6
+DUTY_STANDBY Control StrategyControls situations with primary 
+and secondary devices17 8
+PID_BASIC Control StrategyControls PID loops 
+(proportional–integral–derivative)15 4
+RATIO_CONTROL Control StrategyControls ratio situations involving 
+PID controllers13 3
+SPLIT_RANGE Control StrategyControls split-range situations 
+with output to two actuators9 2
+VOTING_ANALOG Control StrategyImplements a voting logic unit for 
+multiple sensor readings9 6
+Table 1: Function Blocks in BASIC_LIB library
+We also analyzed more than a dozen ABB controlfunction
+block libraries, which are used in different industry domains (e.g.,
+metals, chemicals, power production, etc.) and in other regions (e.g.,
+Europe, US, Asia). Often, these libraries contain 15-20 major func-
+tion blocks with 50+ input and output parameters, in addition to
+smaller supporting function blocks. Function block libraries are also
+proprietary and carry company-internal IP. Therefore, we defined
+a new library (“BASIC_LIB”) inspired by the commercial libraries.
+It contains 13 function blocks, which, for example, convert digital
+and analog input signals, implement control algorithms, and steer
+valves and pump motors (Table 1). Each block defines up to 10
+input and 10 output parameters, along with their type and textual
+description. While some commercial function blocks can have more
+than 50 parameters, in many situations, control engineers only use
+a few of these parameters, while the others encapsulate special-
+ized functionality. Therefore, the function blocks in the BASIC_LIB
+capture the most typical parameters, which cover 80-90 percent
+
+--- Page 7 ---
+Spec2Control ABB Corporate Research Center, Mannheim, Germany
+of the usual functionality. For validation purposes, we defined the
+blocks as OpenPLC user-defined blocks, allowing OpenPLC to in-
+stantiate them. Besides the BASIC_LIB function blocks, our LLM
+control logic generation workflow can also instantiate standard IEC
+61131-3 function blocks, including, for example, boolean expres-
+sions, arithmetic calculations, or timers.
+We created abaselineimplementation of the FBDs for the 65
+sections of our 10 control narratives. Subject matter experts manu-
+ally reviewed these FBDs and verified their correct functionality
+and completeness. They found that the BASIC_LIB blocks could not
+explicitly address all specific details of the control narratives, such
+as handling particular operator interactions via UI elements. Fur-
+thermore, they found that the BASIC_LIB interlock handling with
+inhibit pins was slightly simplified compared to some commercial
+libraries, but not unrealistic. The subject matter experts, however,
+did not consider these gaps as critical and focused on reviewing
+the main control strategy implementations and alarm logic. We
+then used this baseline implementation to compute the metrics
+Q2M1-Q2M4 from test runs and to make the effort estimations for
+Q3M1.
+Thetest executioncomprised running the workflows for extrac-
+tion, context generation, control logic generation, and pseudo-code
+conversion. We used our CLI tool to run the tests in a batch style
+against the entire control narrative dataset. OpenAI GPT-5 with
+auto-reasoning needed up to 1 minute for individual prompts and
+approximately 1 hour for a complete control narrative. After test ex-
+ecution, scripts computed the metrics Q2M1-Q2M4, whose results
+we manually reviewed.
+4.2 Results with Open Dataset
+For illustrative purposes, Fig. 8 shows an excerpt of an LLM-generated
+FBD for the running example described in Section 3. Due to space
+constraints, we cannot display the entire FBD in this paper; how-
+ever, the full 65 FBDs for the complete dataset are available in
+the paper’s supplementary material [ 30]. In the top left corner of
+the FBD, the figure shows an ANALOG_IN function block named
+“FT-101”, which the LLM has instantiated for the flow transmitter
+FT-101. This function block has an output “PV” (for process value),
+which drives the RATIO_CONTROL block FFIC-102, according to
+the ratio control strategy detected by the LLM in the control narra-
+tive section (highlighted connection in light blue). Several functions
+“OR” and “NOT” implement interlocking control logic involving
+Boolean expressions. The LLM correctly configured the alarm levels
+of the ANALOG_IN block “LT-104” with values of 20 and 90 for the
+low and high alarm thresholds of the signal. The FBD control logic
+will thus ensure that the reactor inflow valves are closed when the
+tank level rises above 90 percent. The complete diagram includes 11
+function blocks, three functions, 11 variables, 32 data connections,
+and 24 parameters.
+Our unattended test runs required no human intervention (Q1M1
+= 0), which demonstrates that the LLM workflows and prompts are
+defined with a sufficient level of detail and generality to handle
+the various control narrative specifications. Context generation
+was fully automated, as well as diagram creation and auto-layout.
+However, our tests did not yet involve merging prior control logic
+or utilizing rare parameters of function blocks, which may requirehuman input in some instances. Furthermore, the control narra-
+tive texts were reviewed before FBD generation. In contrast, other
+control narratives may contain inconsistencies that require human
+intervention, including clarifications with the narrative’s author.
+An LLM could flag such inconsistencies before attempting FBD
+generation.
+The generated FBDs are complex and require careful inspection
+at the moment. A PLC IDE can often already indicate obvious errors
+(e.g., type mismatch in connections, or disallowed characters) to
+the user. Mismatches in function block type names could prevent
+the IDE from instantiating them; however, in our tests, such mis-
+matches did not occur. Therefore, we foresee the time for checking
+syntactical errors of the LLM-generated FBDs as almost negligible
+per FBD (Q1M2≈5min).
+Checking semantic correctness is challenging, especially with
+complex “glue logic” such as Boolean expressions, timers, and arith-
+metic. Human-crafted FBDs require functional checks through peer
+reviews by control engineers. Based on tests, we estimated review
+times for FBDs by complexity, allocating an average time per el-
+ement (e.g., 1 minute per connection). Review times across the
+dataset ranged from 19.4 to 114.7 minutes per section, with a me-
+dian of 42.8 minutes (Q1M3= 42.8 min).
+Fig. 9 provides an overview of all the control narrative sections in
+our dataset. It illustrates the diverse range of production plants (e.g.,
+chemical, water, paper, steel) and the realistic segments within these
+plants, presented in linear sequence across the different sections.
+There is a mix of various control strategies, with “PID control” being
+the most prevalent strategy, which aligns with experience from
+practice. The statistics for the baseline FBDs indicate that the control
+narrative sections required 4-20 function block instantiations and
+3-68 connections per FBD.
+Fig. 9 depicts the measurements for Q2M1-Q2M4 to assess the
+quality of the LLM output compared to the manually reviewed base-
+line for each tested control narrative section. As there are different
+valid ways to implement the narrative specifications in an FBD, the
+LLM test outputs will never be identical to the baseline. Our metrics
+assess whether the LLM-generated FBDs accurately recognize and
+implement the required control strategies, and whether the LLM
+correctly maps important alarm parameters from the specification
+to the function block. GPT-5 consistently identified the control
+strategy needed in all cases flawlessly (Q2M1= 100%).
+Q2M2 assessed whether transmitters and actuators from the
+control narrative were correctly mapped to BASIC_LIB function
+blocks, in line with the identified control strategy. Our automated
+scripts indicated several mismatches between the block mappings
+of the baseline and the test runs. However, upon reviewing these
+mismatches, we found that most of them stemmed from either in-
+completeness or ambiguities in the control narrative, which allowed
+for different valid ways of implementing the FBD. A detailed ex-
+planation of each mismatch is in the supplementary material [ 30].
+Only for the continuous digester of the Chemical Pulping and Paper
+Production (section 3), the LLM-generated FBD missed mapping the
+control valve LV-103 to a VALVE_ELECTRIC function block. For
+the other sections, GPT-5 instantiated the control strategy-related
+function blocks correctly (Q2M2=99.6%).
+Q2M3 measured the correct creation of connections related to
+the identified control strategy. We omitted comparing additional
+
+--- Page 8 ---
+ABB Corporate Research Center, Mannheim, Germany Koziolek et al.
+Figure 8: Excerpt of an LLM-generated Function Block Diagram (FBD) for the Ammonium Nitrates Plant (Section Neutralization
+Reactor) in OpenPLC. The LLM has instantiated the required function block types from a user-defined library and connected
+and parametrized them according to the detected control strategy.
+“glue logic” connections to the baseline, as there are many degrees
+of freedom in the implementation that would result in an exact
+match only by chance. Except in two cases, GPT-5 generated the
+control strategy connections in the FBD correctly (Q2M3=98,6%).
+In one case, the LLM generated an erroneous connection to a ratio
+controller. In the other case, the LLM routed a feedback signal from
+a valve back to a PID controller, which our subject matter experts
+considered incorrect.
+Q2M4 measured the correct mapping of important alarm pa-
+rameters from the specification to the FBD. In 5 of 173 cases, the
+LLM-generated mapping to the FBD resulted in a mismatch with
+the baseline FBD, as the LLM created values that were not present
+in the control narrative or missed specified values. However, in 168
+out of 173 cases, GPT-5 mapped the alarm parameters correctly
+(Q2M4= 97.1%).
+Qualitative findings support the quantitative metrics: The LLM
+created necessary function block instantiations that were not explic-
+itly mentioned in the control narrative, indicating that the narrative
+was slightly incomplete. Its additions matched what a control engi-
+neer would do. The LLM also inferred parameters such as scaling
+slopes and alarm levels correctly. Although the narrative specified
+interlocking logic in separate sentences, the LLM formulated them
+into correct Boolean expressions. Our limited BASIC_LIB library
+complicated the implementation of some safety features (e.g., per-
+missive ranges), leading the LLM to devise custom logic or omit
+these features. Enhancements in BASIC_LIB are needed.
+For quantifying the cost/benefit ratio of Spec2Control, Q3M1
+divides the LLM construction time (Q1M1) plus LLM-induced re-
+work time (Q1M2) by the manual construction time of an FBD. This
+ratio excludes the time for checking semantical correctness (Q1M3),
+which is still required both with and without Spec2Control. Manualconstruction time is estimated as a multiple of Q1M3, as the manual
+creation of the FBD requires understanding and interpretation of
+the control narrative, as well as manual work to use the PLC IDE,
+depending on the complexity of the FBD. With a factor of 2 - 3
+on Q1M3 (median 42.8 minutes), the manual creation of an FBD
+for a single control narrative section would require between 85.6
+and 128.4 minutes. With LLM-construction time assumed zero (no
+human labor due to Q1M1=0) and Q1M2 estimated as 5 minutes
+human labor, this would lead to a time saving between 94.2% and
+96.1% (Q3M1≈95%).
+While the FBD generation leads to time and cost savings due to
+shorter human labor, the generation induces monetary costs for
+LLM token usage. From our test runs, Azure AI Foundry monitoring
+tools showed that generating an FBD for a single control narrative
+section required approximately 25,000 input tokens and 60,000
+completion tokens. According to current pricing, Azure GPT-5
+token costs are 1.25 USD per 1 million input tokens and 10 USD per
+1 million completion tokens. Therefore, the costs for processing a
+control narrative chunk and generating an FBD are 0.031 + 0.6 =
+0.631 USD (Q3M2≈0.63 USD). Compared to human labor costs, the
+LLM costs are thus negligible.
+4.3 Results with Commercial Data
+We also tested Spec2Control in several commercial ABB automa-
+tion projects, including a desalination plant with multiple pumping
+stations, a water supply system for an offshore converter station,
+and an asphalt production facility. These tests used different ABB
+libraries and generated ABB’s proprietary version of FBDs. We
+found that experiences with using libraries and best practices for
+composing the pre-specified blocks require interviews with experi-
+enced control engineers. Context generation may differ significantly
+
+--- Page 9 ---
+Spec2Control ABB Corporate Research Center, Mannheim, Germany
+Production 
+Plant
+Control Narrative Section Title
+Control Strategy
+Function Blocks
+Functions
+Variables
+Data Connections
+Parameter Data Connections
+Q2M1 - GPT-5 - Control Strategy 
+Q2M2 - GPT-5 - Block Mapping
+Q2M3 - GPT-5 - Connections found vs. required
+Q2M3 - GPT-5 - Connections (%)
+Q2M4 - GPT-5 - Alarms found vs. Required
+Q2M4 - GPT-5 - Alarms (%)
+2Neutralization Reactor Ratio 11 3113224 100,0 100,0 4/4 100,0 7/7 100,0
+3Evaporation and Conditioning Cascade 1111 13227 100,0 100,0 4/4 100,0 4/4 100,0
+4Prilling Tower/Granulator Cascade 9372626 100,0 100,0 4/4 100,0 2/2 100,0
+5Cooling and Coating Circuit Cascade 812 53327 100,0 100,0 4/4 100,0 4/4 100,0
+6Storage and Load-Out Ratio 714 43221 100,0 100,0 3/4 75,0 3/3 100,0
+2Distillation Column (T-101) PID 8352117 100,0 100,0 2/2 100,0 4/4 100,0
+3Reboiler Heat Exchanger (E-106) PID 9151723 100,0 100,0 2/2 100,0 3/3 100,0
+4Overhead Condenser and Accumulator (E-104 and V-104) Cascade 8582923 100,0 100,0 4/4 100,0 3/3 100,0
+6Bottoms Product Handling Ratio 9442514 100,0 100,0 4/4 100,0 1/1 100,0
+2Atmospheric Distillation Unit (ADU) Ratio 93113930 100,0 100,0 4/4 100,0 9/9 100,0
+3Vacuum Distillation Unit (VDU) PID 5321315 100,0 100,0 2/2 100,0 2/2 100,0
+4Fluid Catalytic Cracking (FCC) Unit PID 1119114738 100,0 100,0 2/2 100,0 2/2 100,0
+5Delayed Coking Unit PID 11 472721 100,0 100,0 2/2 100,0 2/2 100,0
+6Hydrotreating Units PID 1017 94932 100,0 100,0 5/5 100,0 4/4 100,0
+7Petroleum Coke Handling System PID 1014205230 100,0 100,0 2/2 100,0 3/3 100,0
+8Utilities and Offsites Ratio 9512315 100,0 100,0 4/4 100,0 2/2 100,0
+9Flare and Relief Systems PID 6632115 100,0 100,0 2/2 100,0 2/2 100,0
+2Seawater and Reservoir Intake Pipelines PID 1326146857 100,0 100,0 2/2 100,0 7/7 100,0
+3Intake Screens and Air-Blast Cleaning System Ratio 2029 253100,0 100,0 4/4 100,0 3/3 100,0
+4Intake Pumps and Sump Pumps PID 14 55317 100,0 100,0 2/2 100,0 2/2 100,0
+5Shock Chlorination System PID 10 742714 100,0 100,0 2/2 100,0 2/2 100,0
+6Sampling and Bypass Flow Systems Ratio 6261822 100,0 100,0 3/3 100,0 0/0 100,0
+2Feed-Gas Reception and Pretreatment Ratio 7262017 100,0 100,0 3/3 100,0 0/0 100,0
+3Acid Gas Removal (Amine Absorber System) PID 6251619 100,0 100,0 2/2 100,0 2/2 100,0
+4Molecular-Sieve Dehydration and Mercury Removal Ratio 9161920 100,0 100,0 4/4 100,0 2/3 66,7
+5Heavy-Hydrocarbon and NGL Recovery VOTING 16 423640 100,0 100,0 5/5 100,0 2/2 100,0
+6Liquefaction and Refrigerant System Ratio 823 95126 100,0 100,0 4/4 100,0 1/1 100,0
+7LNG Storage and Ship-Loading Ratio 92102934 100,0 100,0 4/4 100,0 4/4 100,0
+22-Phase Separator Control Ratio 9252411 100,0 100,0 4/4 100,0 4/4 100,0
+33-Phase Separator Control PID 4231618 100,0 100,0 2/2 100,0 4/4 100,0
+4Oil Tank Control PID 5561814 100,0 100,0 2/2 100,0 2/2 100,0
+5Water Tank and Pump Control PID 1012104234 100,0 100,0 4/4 100,0 2/2 100,0
+6Water Coalescer Control PID 7332230 100,0 100,0 4/4 100,0 4/4 100,0
+7Air Compressor Control PID 5341615 100,0 100,0 2/2 100,0 2/2 100,0
+2Wood Handling and Chipping PID 811 83428 100,0 100,0 4/4 100,0 2/2 100,0
+3Continuous Digester Cascade 8262326 100,0 80,0 2/2 100,0 4/4 100,0
+4Washing and Screening PID 11 753217 100,0 100,0 3/4 75,0 2/2 100,0
+5Bleaching Towers PID 9161943 100,0 100,0 2/2 100,0 4/4 100,0
+6Refining and Machine Chest PID 14 973634 100,0 100,0 5/5 100,0 4/4 100,0
+7Approach Flow and Forming Ratio 10 917 55100,0 100,0 2/2 100,0 2/3 66,7
+8Press Section PID 85122922 100,0 100,0 4/4 100,0 2/2 100,0
+9Dryer Section PID 13 863851 100,0 100,0 2/2 100,0 5/5 100,0
+10Finishing and Winding Ratio 7932622 100,0 100,0 2/2 100,0 1/1 100,0
+2Sinter Plant Ratio 6542211 100,0 100,0 4/4 100,0 2/2 100,0
+3Coking Facility VOTING 1517 24427 100,0 100,0 5/5 100,0 3/3 100,0
+4Blast Furnace Ratio 7763018 100,0 100,0 4/4 100,0 4/4 100,0
+5Basic Oxygen Furnace (BOF) VOTING 1630 36528 100,0 100,0 4/4 100,0 0/0 100,0
+6Secondary Metallurgy PID 6552321 100,0 100,0 2/2 100,0 4/4 100,0
+7Continuous Casting PID 10 242018 100,0 100,0 2/2 100,0 1/2 50,0
+8Rolling Mills Ratio 818135327 100,0 100,0 4/4 100,0 1/1 100,0
+9By-Product Recovery Systems Ratio 1011 73622 100,0 100,0 4/4 100,0 0/0 100,0
+2Feed System PID 9332118 100,0 100,0 2/2 100,0 2/2 100,0
+3Column 1 and Reboiler PID 7341925 100,0 100,0 2/2 100,0 4/4 100,0
+4Decanter 1 PID 4682024 100,0 100,0 2/2 100,0 2/2 100,0
+5Column 2 and Reboiler PID 7241327 100,0 100,0 4/4 100,0 3/3 100,0
+7Column 3 and Reboiler PID 711 93235 100,0 100,0 4/4 100,0 2/2 100,0
+8Decanter 2 PID 819 54538 100,0 100,0 4/4 100,0 2/2 100,0
+9Condenser Systems PID 6672822 100,0 100,0 2/2 100,0 2/2 100,0
+2Influent & Headworks PID 812104017 100,0 100,0 4/4 100,0 2/2 100,0
+4Primary Treatment Ratio 8252916 100,0 100,0 4/4 100,0 2/2 100,0
+7Secondary Clarification Duty-Standby 17 644431 100,0 100,0 2/2 100,0 2/4 50,0
+9Disinfection Ratio 817 64913 100,0 100,0 2/2 100,0 0/0 100,0
+10Influent Lift Station Duty-Standby 619 75115 100,0 100,0 4/4 100,0 1/1 100,0
+11Utilities, Chemicals & Controls Ratio 6322614 100,0 100,0 4/4 100,0 0/0 100,0
+12Sludge/Biosolids Management PID 6351621 100,0 100,0 3/3 100,0 3/3 100,0
+Total: 100,0 99,7 204/
+20798,6 168/
+17397,1Chemical 
+Pulping and 
+Paper 
+Production
+Integrated 
+Steel Plant 
+Process
+Multi-Column 
+Chemical 
+Distillation 
+System
+Waste Water 
+Treatment 
+PlantAmmonium 
+Nitrates 
+Production
+Benzene 
+Distillation 
+Column
+Coking 
+Refinery
+Desalination 
+Plant Intake 
+System
+LNG 
+(Liquified 
+Natural Gas) 
+Production 
+Train
+Multi-Phase 
+Separation 
+and Storage 
+System
+Figure 9: Open Dataset with 10 control narratives and 65
+sections: statistics on the baseline FBDs (left-hand side) and
+metrics Q2M1-Q2M4 based on test runs (right-hand side).between different libraries, meaning that each library requires a
+distinct prompt workflow.
+These tests used various strategies to segment control narratives.
+Some short narratives were processed in one shot, while others
+required manual selection of coherent segments. For standalone
+chunks focusing on a single strategy without sequential logic, we
+achieved the same LLM output quality as the open dataset. Control
+engineers are keen on the results due to the tool’s integration with
+their systems and the familiar notation it generates. A software
+team is refining the Spec2Control prototype into a commercial
+product.
+5 Threats to Validity
+After analyzing our results, we discuss potential threats to their
+validity. Theinternal validityrefers to causal correctness, i.e.,
+whether the outcome (generated FBDs) was really caused by the
+treatment (using Spec2Control/LLM) or whether other factors in-
+terfered with the results. In our case, LLM non-determinism could
+affect the generated FBDs. We noticed, for example, slight varia-
+tions in the naming of variables or in the composition of glue logic
+across different GPT-5 runs. Still, the non-determinism rarely led
+to syntactical errors. The metrics Q2M1-Q2M4 for the open dataset
+remained stable across runs, indicating that our LLM workflows
+sufficiently control LLM token generation.
+Another threat to internal validity is the missing FBD verification,
+e.g., based on a simulation of sensors and actuators. The safety
+of Spec2Control-generated FBDs relies on three principles: First,
+Spec2Control uses pre-validated function blocks, instantiated from
+extensively tested libraries. Second, unlike general code generation,
+FBD generation is limited to instantiating predefined block types,
+creating connections, setting numerical parameters, and composing
+glue logic, which reduces potential failure modes. Third, industrial
+practice already requires a layered verification procedure, where
+logic is simulation-tested before deployment, undergoes factory
+acceptance tests (FAT) [ 22], and also relies on runtime monitoring.
+Thus, Spec2Control fits well within this existing safety framework.
+Our subject matter experts deemed the baseline FBDs sufficiently
+valid based on inspections.
+Theconstruct validityrefers to whether the operational mea-
+sures (e.g., test cases, function blocks, LLM) truly represent the
+constructs (e.g., customer narratives, commercial libs, engineering
+tools) that shall be studied. While we generated the control narra-
+tives for testing Spec2Control, they are based on screening many
+customer-written narratives and were reviewed by experienced
+ABB control engineers. These control narratives may not capture
+all the intricacies observed in practice, such as incompleteness, in-
+consistencies, local languages, or distorted images, which require
+addressing through pre-processing steps. Spec2Control currently
+supports the most popular control strategies (e.g., PID, cascade),
+but has not been tested for other, less common strategies or custom
+logic. The BASIC_LIB used for testing is synthetic due to IP con-
+cerns and less complex than commercial libraries [ 1,10,48]. It may
+thus be unable to deal with any control narrative. We focused on
+FBD as a popular IEC 61131-3 notation [ 52] and excluded sequen-
+tial procedures, which control engineers usually realize with SFCs.
+Our tests ran with GPT-5 as a typical state-of-the-art LLM. Subject
+
+--- Page 10 ---
+ABB Corporate Research Center, Mannheim, Germany Koziolek et al.
+matter experts reviewed our constructs and deemed them realistic,
+as they accurately reflect many practical cases.
+Theexternal validityquestions if our findings apply beyond
+the tested dataset. We have conducted successful spot tests of
+Spec2Control with customer narratives, ABB libraries, and PLC
+IDEs. Our LLM workflows can extend to other notations, such as
+SFC and ST, or generate C code. Spec2Control can adapt to various
+vendor-specific libraries and notations. Our tests span multiple in-
+dustries and encompass primary control strategies, interlocks, and
+alarms. HMI functionality is not yet supported. Implementing pro-
+duction sequences, such as startup/shutdown, in FBDs is complex
+and requires Spec2Control’s extension to SFCs with embedded ST.
+We support thereliabilityof our study by publishing the test
+data and Spec2Control implementation in supplementary data for
+independent validation and reproduction.
+6 Related Work
+Modern control logic engineering in industrial automation often
+involves notations based on IEC 61131-3, IEC 61499, or vendor-
+specific variants [ 22,52]. Briefly after the popularization of LLMs,
+researchers demonstrated the capabilities of GPT-4 to synthesize
+syntactically correct IEC 61131-3 ST programs [ 33,53,58]. Fakih et
+al. [16] from Siemens proposed LLM4PLC. This approach utilizes
+fine-tuned LLMs for a Siemens variant of ST (SCL), which gener-
+ates simple control logic and performs model checking in a lab
+environment. Liu et al. [ 37] introduced a multi-agent framework
+for ST-code generation, called Agents4PLC, which incorporates
+chain-of-thought reasoning and iterative refinement. Yang et al.[ 59]
+developed AutoPLC, a framework for LLM-supported ST-code gen-
+eration using a database of implementation examples. Haag et
+al. [20] fine-tuned LLMs for the generation of ST-code, achieving a
+higher compilation success rate. All of these approaches used small
+test programs and generated output in the simple ST notation.
+Researchers then continued to refine LLM-based control logic
+generation. Koziolek et al. [ 34] showed how proprietary informa-
+tion can be integrated into ST-code using retrieval-augmented
+generation. Another approach demonstrated LLM-based ST gen-
+eration from P&ID images, utilizing the capabilities of a multi-
+modal LLM [ 35]. Zhang and de Sousa [ 60,61] explored generating
+graphical IEC 61131-3 notations (LD, SFC) via ASCII art. Test case
+generation for IEC 61131-3 ST function blocks was investigated
+with moderate success [ 29]. Salari et al. converted the ST-code to
+Python to enable the reuse of LLM-based test case generation ap-
+proaches [ 42]. Ren et al. proposed “MetaIndux-PLC”, a fine-tuned
+foundation model for control code generation, which enables the
+creation of more accurate and structured PLC code. Siemens, Beck-
+hoff, and B&R Automation created industrial copilots, mainly for
+interactive PLC programming in ST. So far, none of these approaches
+has generated IEC 61131-3 FBDs or utilized industrial-scale test
+samples. Therefore, a direct comparison of Spec2Control to these
+approaches is not appropriate since they address different use cases.
+Before the advent of generative AI, researchers and practition-
+ers had been pursuing the automation of the laborious and cost-
+intensive control engineering process for several decades [ 31]. One
+line of work tried synthesizing ST control logic directly fromobject-
+oriented P&IDs[ 7,14,26,28,40,43]. Drath and Fay proposedthe CAEX translator [ 13], which applied rules on P&IDs to detect
+topological patterns that could be translated into interlocking logic
+expressed as ST-code. Steinegger and Zoitl [ 49] explored translating
+industrial requirements into a reference ontology from which they
+generated IEC 61131-3 ST. The AUKOTON method [ 21] mapped
+XML-based P&IDs into a domain-specific model in Eclipse Ecore
+and then generated IEC 61131-3 programs. Gruener et al. [ 18] con-
+verted a P&ID-based plant structure into a Neo4J graph database
+and used Cypher queries to generate control logic. Koziolek et
+al. [32] showed the successful derivation of interlocking logic from
+P&IDs in four large-scale case studies.
+Another line of work exploredmodel-driven techniquesfrom
+software engineering to generate control logic. Researchers mod-
+eled manufacturing equipment using extensions to UML [ 23,41,51,
+55–57] and SysML [ 54] and then generated IEC 61131-3. Others pro-
+posed novel domain-specific modeling notations [ 4,15,25,38,44–
+46] to ease the generation of IEC 61131-3 control logic. As a result
+of this research, one commercial PLC IDE (CODESYS) now enables
+UML modeling; however, many control engineers still prefer to
+work directly with the IEC 61131-3 notations.
+7 Conclusions
+We introduced Spec2Control, an LLM workflow that generates
+control logic autonomously from control narrative specifications.
+Spec2Control chunks control narratives, builds up context corre-
+sponding to a control library of pre-specified function blocks, and
+then creates function block diagrams and passes them to typical
+PLC IDEs for rendering. Tests with a comprehensive open dataset
+demonstrated that Spec2Control can, in almost all cases, generate
+control logic of high quality (with more than 97% correctness com-
+pared to a baseline). The approach can save around 95% of effort
+compared to the manual control logic engineering.
+Programmers and control engineers in industrial automation
+can test Spec2Control on their own data or utilize the open dataset
+to refine their own LLM-based generation approaches. The open
+dataset is independent of Spec2Control and published in the sup-
+plementary material. Researchers can independently validate the
+results and further refine the approach. We are currently working
+with ABB control engineers to productize the tooling and further
+strengthen it, so that control engineers can use it in many future
+automation projects.
+Planned near-term enhancements of Spec2Control include ad-
+dressing sequential logic and translating it into sequential function
+charts (SFCs) with embedded structured text. Merging newly gen-
+erated logic with existing logic is under development. Furthermore,
+the planning step for chunking the control narratives shall be auto-
+mated and refined further. We will enhance the LLM workflow to
+make it more robust in handling inconsistencies or incomplete in-
+puts by incorporating human user feedback. Additional user require-
+ments, such as I/O lists and graphical P&IDs, shall be integrated
+into the processing chain to make it more flexible and comprehen-
+sive. Future work with a long-term focus includes extending the
+approach from control logic to the generation of graphical human
+operator interfaces and supporting the conversion of legacy control
+logic into modern notations for migration projects.
+
+--- Page 11 ---
+Spec2Control ABB Corporate Research Center, Mannheim, Germany
+References
+[1]ABB. 2019. ABB Ability System 800xA Engineering Overview. https://search.
+abb.com/library/Download.aspx?DocumentID=3BDD013082
+[2]ABB. 2025. ABB No.1 global market leader in Distributed Control Systems.
+https://new.abb.com/control-systems/the-most-popular-dcs
+[3]ABB. 2017. Sadara Brochure. https://library.e.abb.com/public/
+69d320c591c542d49b7a3d555820ab95/SadaraProjectBrochure.pdf
+[4]María Luz Alvarez, Isabel Sarachaga, Arantzazu Burgos, Elisabet Estévez, and
+Marga Marcos. 2016. A methodological approach to model-driven design and
+development of automation systems.IEEE Transactions on Automation Science
+and Engineering15, 1 (2016), 67–79.
+[5]Thiago Rodrigues Alves, Mario Buratto, Flavio Mauricio De Souza, and
+Thelma Virginia Rodrigues. 2014. OpenPLC: An open source alternative to
+automation. InIEEE Global Humanitarian Technology Conference (GHTC 2014).
+IEEE, 585–589.
+[6]Sangeetha Annam, Merry Saxena, Ujjwal Kaushik, and Shikha Mittal. 2025.
+LangChain: Simplifying Development with Language Models.Textual Intelligence:
+Large Language Models and Their Real-World Applications(2025), 287–304.
+[7]Esteban Arroyo, Mario Hoernicke, Pablo Rodríguez, and Alexander Fay. 2016.
+Automatic derivation of qualitative plant simulation models from legacy piping
+and instrumentation diagrams.Computers & Chemical Engineering92 (2016),
+112–132.
+[8]B&R Automation. 2024. B&R introduces new coding environment with cloud
+collaboration and AI assistant. https://www.br-automation.com/en/about-
+us/press-room/bampr-introduces-new-coding-environment-with-cloud-
+collaboration-and-ai-assistant-12-11-2024/
+[9]Beckhoff. 2025. From chatbot to intelligent agent: TwinCAT Chat becomes
+TwinCAT CoAgent. https://www.beckhoff.com/en-en/products/automation/
+twincat-projects-with-ai-supported-engineering/
+[10] Beckhoff. 2025. TwinCAT3 - PLC Libraries. https://infosys.beckhoff.
+com/english.php?content=../content/1033/tcinfosys3/4340797963.html&id=
+8505895370400145937
+[11] Michael Brendelberger and Martin Dubovy. 2013. Erfahrungen mit Web-basierter
+As-Built-Dokumentation.atp edition55, 01-02 (2013), 32–37.
+[12] Victor R Basili1 Gianluigi Caldiera and H Dieter Rombach. 1994. The goal
+question metric approach.Encyclopedia of software engineering(1994), 528–532.
+[13] Rainer Drath, Alexander Fay, and Till Schmidberger. 2006. Computer-aided
+design and implementation of interlock control code. In2006 IEEE Conference
+on Computer Aided Control System Design, 2006 IEEE International Conference on
+Control Applications, 2006 IEEE International Symposium on Intelligent Control.
+IEEE, 2653–2658.
+[14] Rainer Drath and Idar Ingebrigtsen. 2018. Digitalization of the IEC PAS 63131
+standard with AutomationML. In2018 IEEE 23rd International Conference on
+Emerging Technologies and Factory Automation (ETFA), Vol. 1. IEEE, 901–909.
+[15] Elisabet Estévez, Marga Marcos, and Darío Orive. 2007. Automatic generation
+of PLC automation projects from component-based models.The International
+Journal of Advanced Manufacturing Technology35, 5 (2007), 527–540.
+[16] Mohamad Fakih, Rahul Dharmaji, Yasamin Moghaddas, Gustavo Quiros,
+Oluwatosin Ogundare, and Mohammad Abdullah Al Faruque. 2024. Llm4plc: Har-
+nessing large language models for verifiable programming of plcs in industrial
+control systems. InProceedings of the 46th International Conference on Software
+Engineering: Software Engineering in Practice. 192–203.
+[17] Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jinliu Pan, Yuxi Bi, Yixin
+Dai, Jiawei Sun, Haofen Wang, and Haofen Wang. 2023. Retrieval-augmented
+generation for large language models: A survey.arXiv preprint arXiv:2312.10997
+2, 1 (2023).
+[18] Sten Grüner, Peter Weber, and Ulrich Epple. 2014. Rule-based engineering using
+declarative graph database queries. In2014 12th IEEE International Conference on
+Industrial Informatics (INDIN). IEEE, 274–279.
+[19] Georg Gutermuth, Ben Schroeter, Rainer Drath, Nuo Li, and Christian Messinger.
+2014. A novel approach to measure engineering efficiency of automation projects.
+InProceedings of the 2014 IEEE Emerging Technology and Factory Automation
+(ETFA). IEEE, 1–8.
+[20] Aaron Haag, Bertram Fuchs, Altay Kacan, and Oliver Lohse. 2025. Training
+LLMs for Generating IEC 61131-3 Structured Text with Online Feedback. In2025
+IEEE/ACM International Workshop on Large Language Models for Code (LLM4Code).
+IEEE, 65–71.
+[21] David Hästbacka, Timo Vepsäläinen, and Seppo Kuikka. 2011. Model-driven
+development of industrial process control applications.Journal of Systems and
+Software84, 7 (2011), 1100–1113.
+[22] Martin Hollender. 2010.Collaborative process automation systems. ISA.
+[23] Tanvir Hussain and Georg Frey. 2006. UML-based development process for IEC
+61499 with automatic test-case generation. In2006 IEEE Conference on Emerging
+Technologies and Factory Automation. IEEE, 1277–1284.
+[24] Raoul Jetley, Divyasheel Sharam, Abdulla Puthan Peedikayil, Dirk Schulz, and
+Vadthyavath Ramu. 2024. Method and system to generate control logic for
+performing industrial processes. US Patent 12,153,406.[25] Robert Julius, Max Schürenberg, Frank Schumacher, and Alexander Fay. 2017.
+Transformation of GRAFCET to PLC code including hierarchical structures.
+Control Engineering Practice64 (2017), 173–194.
+[26] Byung Chul Kim, Hyungki Kim, Yoochan Moon, Gwang Lee, and Duhwan Mun.
+2022. End-to-end digitization of image format piping and instrumentation dia-
+grams at an industrially applicable level.Journal of Computational Design and
+Engineering9, 4 (2022), 1298–1326.
+[27] Myke King. 2016.Process control: a practical approach. John Wiley & Sons.
+[28] Gennadiy Koltun, Moritz Kolter, and Birgit Vogel-Heuser. 2018. Automated
+generation of modular PLC control software from P&ID diagrams in process
+industry. In2018 IEEE International Systems Engineering Symposium (ISSE). IEEE,
+1–8.
+[29] Heiko Koziolek, Virendra Ashiwal, Soumyadip Bandyopadhyay, and Chandrika
+KR. 2024. Automated control logic test case generation using large language
+models. In2024 IEEE 29th International Conference on Emerging Technologies and
+Factory Automation (ETFA). IEEE, 1–8.
+[30] Heiko Koziolek, Thilo Braun, Virendra Ashiwal, Sofia Linsbauer, Marthe
+Ahlgreen Hansen, and Karoline Grotterud. 2025. Spec2Control: Source Code and
+Supplemental Data. https://github.com/hkoziolek/Spec2Control. Version v1.0;
+accessed 28 Sep 2025.
+[31] Heiko Koziolek, Andreas Burger, Marie Platenius-Mohr, and Raoul Jetley. 2020.
+A classification framework for automated control code generation in industrial
+automation.Journal of Systems and Software166 (2020), 110575.
+[32] Heiko Koziolek, Andreas Burger, Marie Platenius-Mohr, Julius Rückert, Hadil
+Abukwaik, Raoul Jetley, and Abdulla P P. 2020. Rule-based code generation
+in industrial automation: four large-scale case studies applying the cayenne
+method. InProceedings of the ACM/IEEE 42nd International Conference on Software
+Engineering: Software Engineering in Practice. 152–161.
+[33] Heiko Koziolek, Sten Gruener, and Virendra Ashiwal. 2023. ChatGPT for
+PLC/DCS Control Logic Generation. InProc. IEEE Int. Conf. on Emerging Tech-
+nologies and Factory Automation (ETFA2023).
+[34] Heiko Koziolek, Sten Gruener, Rhaban Hark, Virendra Ashiwal, Sofia Linsbauer,
+and Nafise Eskandani. 2024. LLM-based and Retrieval-Augmented Control Code
+Generation. InProc. 1st International Workshop on Large Language Models for
+Code(2024). ACM.
+[35] Heiko Koziolek and Anne Koziolek. 2024. Llm-based control code generation
+using image recognition. InProceedings of the 1st International Workshop on Large
+Language Models for Code. 38–45.
+[36] Herbert Krause. 2007. Virtual commissioning of a large LNG plant with the DCS
+800XA by ABB. In6th EUROSIM Congress on Modelling and Simulation, Ljubljana,
+Slovénie.
+[37] Zihan Liu, Ruinan Zeng, Dongxia Wang, Gengyun Peng, Jingyi Wang, Qiang
+Liu, Peiyu Liu, and Wenhai Wang. 2024. Agents4plc: Automating closed-loop plc
+code generation and verification in industrial control systems using llm-based
+agents.arXiv preprint arXiv:2410.14209(2024).
+[38] Tomaž Lukman, Giovanni Godena, Jeff Gray, Marjan Heričko, and Stanko Str-
+mčnik. 2013. Model-driven engineering of process control software–beyond
+device-centric abstractions.Control Engineering Practice21, 8 (2013), 1078–1096.
+[39] Lingrui Mei, Jiayu Yao, Yuyao Ge, Yiwei Wang, Baolong Bi, Yujun Cai, Jiazhi
+Liu, Mingyu Li, Zhong-Zhi Li, Duzhen Zhang, et al .2025. A survey of context
+engineering for large language models.arXiv preprint arXiv:2507.13334(2025).
+[40] Cheng Pang, Valeriy Vyatkin, and Wenbin Dai. 2014. Iec 61499 based model-
+driven process control engineering. InProceedings of the 2014 IEEE Emerging
+Technology and Factory Automation (ETFA). IEEE, 1–8.
+[41] Seno Panjaitan and Georg Frey. 2006. Combination of UML modeling and the IEC
+61499 function block concept for the development of distributed automation sys-
+tems. In2006 IEEE Conference on Emerging Technologies and Factory Automation.
+IEEE, 766–773.
+[42] Mikael Ebrahimi Salari, Eduard Paul Enoiu, Alessio Bucaioni, Wasif Afzal, and
+Cristina Seceleanu. 2025. PyLC+: A Scalable Python Framework for Automated
+Translation and Testing of Industrial PLC Programs. In2025 IEEE 49th Annual
+Computers, Software, and Applications Conference (COMPSAC). IEEE, 628–639.
+[43] Nicolai Schoch, Mario Hoernicke, Nika Strem, and Katharina Stark. 2024. En-
+gineering Data Funnel (WIP)–An Ontology-Enhanced LLM-Based Agent and
+MoE System for Engineering Data Processing. In2024 IEEE 29th International
+Conference on Emerging Technologies and Factory Automation (ETFA). IEEE, 1–5.
+[44] Frank Schumacher and Alexander Fay. 2014. Formal representation of GRAFCET
+to automatically generate control code.Control Engineering Practice33 (2014),
+84–93.
+[45] Frank Schumacher, Sebastian Schröck, and Alexander Fay. 2013. Tool support
+for an automatic transformation of GRAFCET specifications into IEC 61131-3
+control code. In2013 IEEE 18th Conference on Emerging Technologies & Factory
+Automation (ETFA). IEEE, 1–4.
+[46] Frank Schumacher, Sebastian Schröck, and Alexander Fay. 2013. Transforming
+hierarchical concepts of GRAFCET into a suitable Petri net formalism.IFAC
+Proceedings Volumes46, 9 (2013), 295–300.
+[47] Siemens. 2025. SIEMENS Engineering Copilot. https://docs.tia.siemens.cloud/r/
+en-us/v1.1/siemens-engineering-copilot/
+
+--- Page 12 ---
+ABB Corporate Research Center, Mannheim, Germany Koziolek et al.
+[48] Siemens. 2025. SIMATIC Control Function Library. https://www.industry-
+mobile-support.siemens-info.com/en/article/detail/109974209
+[49] Michael Steinegger and Alois Zoitl. 2012. Automated code generation for pro-
+grammable logic controllers based on knowledge acquisition from engineering
+artifacts: Concept and case study. InProceedings of 2012 IEEE 17th International
+Conference on Emerging Technologies & Factory Automation (ETFA 2012). IEEE,
+1–8.
+[50] Roberto Tamassia. 2013.Handbook of graph drawing and visualization. CRC
+press.
+[51] Kleanthis Thramboulidis and Georg Frey. 2011. An MDD process for IEC 61131-
+based industrial automation systems. InETFA2011. IEEE, 1–8.
+[52] Michael Tiegelkamp and Karl-Heinz John. 2010.IEC 61131-3: Programming
+industrial automation systems. Vol. 166. Springer.
+[53] Kilian Tran, Jingxi Zhang, Jérôme Pfeiffer, Andreas Wortmann, and Bianca Wies-
+mayr. 2024. Generating plc code with universal large language models. In2024
+IEEE 29th International Conference on Emerging Technologies and Factory Automa-
+tion (ETFA). IEEE, 1–8.
+[54] Birgit Vogel-Heuser, Daniel Schütz, Timo Frank, and Christoph Legat. 2014.
+Model-driven engineering of manufacturing automation software projects–A
+SysML-based approach.Mechatronics24, 7 (2014), 883–897.
+[55] Birgit Vogel-Heuser, Daniel Witsch, and Uwe Katzke. 2005. Automatic code
+generation from a UML model to IEC 61131-3 and system configuration tools. In2005 international conference on control and automation, Vol. 2. IEEE, 1034–1039.
+[56] Daniel Witsch and Birgit Vogel-Heuser. 2009. Close integration between UML
+and IEC 61131-3: New possibilities through object-oriented extensions. In2009
+IEEE Conference on Emerging Technologies & Factory Automation. IEEE, 1–6.
+[57] Daniel Witsch and Birgit Vogel-Heuser. 2011. PLC-statecharts: An approach
+to integrate UML-statecharts in open-loop control engineering–aspects on be-
+havioral semantics and model-checking.IFAC Proceedings Volumes44, 1 (2011),
+7866–7872.
+[58] Weiyi Xia, Yinggang Zhang, Ben Zhao, Wei Liu, Linjie Han, and Qifu Ye. 2025. In-
+telligent PLC Code Generation in HCPS 2.0: A Multi-dimensional Taxonomy and
+Evolutionary Framework. InProceedings of the 2025 2nd International Conference
+on Generative Artificial Intelligence and Information Security. 202–212.
+[59] Donghao Yang, Aolang Wu, Tianyi Zhang, Li Zhang, Fang Liu, Xiaoli Lian, Yum-
+ing Ren, and Jiaji Tian. 2024. A multi-agent framework for extensible structured
+text generation in PLCs.arXiv preprint arXiv:2412.02410(2024).
+[60] Yimin Zhang and Mario de Sousa. 2024. Exploring LLM Support for Generat-
+ing IEC 61131-3 Graphic Language Programs. In2024 IEEE 22nd International
+Conference on Industrial Informatics (INDIN). IEEE, 1–7.
+[61] Yimin Zhang and Mario de Sousa. 2025. Converting IEC 61131-3 LD into SFC
+Using Large Language Model: Dataset and Testing.arXiv preprint arXiv:2509.12593
+(2025).
