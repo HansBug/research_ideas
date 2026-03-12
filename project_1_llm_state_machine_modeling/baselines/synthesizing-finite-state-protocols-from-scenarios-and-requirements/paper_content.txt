@@ -1,0 +1,1221 @@
+--- Page 1 ---
+Synthesizing Finite-state Protocols from
+Scenarios and Requirements?
+Rajeev Alur1, Milo Martin1, Mukund Raghothaman1, Christos Stergiou1;2,
+Stavros Tripakis2;3, and Abhishek Udupa1
+1University of Pennsylvania
+2University of California, Berkeley
+3Aalto University
+Abstract. Scenarios, or Message Sequence Charts, oer an intuitive
+way of describing the desired behaviors of a distributed protocol. In
+this paper we propose a new way of specifying nite-state protocols
+using scenarios: we show that it is possible to automatically derive a
+distributed implementation from a set of scenarios augmented with a
+set of safety and liveness requirements, provided the given scenarios
+adequately cover all the states of the desired implementation. We rst
+derive incomplete state machines from the given scenarios, and then
+synthesis corresponds to completing the transition relation of individual
+processes so that the global product meets the specied requirements.
+This completion problem, in general, has the same complexity, PSPACE,
+as the verication problem, but unlike the verication problem, is NP-
+complete for a constant number of processes. We present two algorithms
+for solving the completion problem, one based on a heuristic search in the
+space of possible completions and one based on OBDD-based symbolic
+xpoint computation. We evaluate the proposed methodology for protocol
+specication and the eectiveness of the synthesis algorithms using the
+classical alternating-bit protocol.
+1 Introduction
+In formal verication, a system model is checked against correctness requirements
+to nd bugs. Sustained research in improving verication tools over the last few
+decades has resulted in powerful heuristics for coping with the computational
+intractability of problems such as Boolean satisability and search through the
+state-space of concurrent processes. The advances in these analysis tools now
+oer an opportunity to develop new methodologies for system design that allow
+a programmer to specify a system in more intuitive ways. In this paper, we focus
+on distributed protocols: the multitude of behaviors arising due to asynchronous
+concurrency makes the design of such protocols dicult, and the benets of
+using model checkers to debug such protocols have been clearly demonstrated.
+Traditionally a distributed protocol is described using communicating nite-state
+?This is the working draft of a paper currently in submission. (February 10, 2014)arXiv:1402.7150v1  [cs.FL]  28 Feb 2014
+
+--- Page 2 ---
+machines (FSMs), and the goal of this paper is to develop a methodology aimed
+at simplifying the task of specifying them.
+A more intuitive way of specifying the desired behaviors of a protocol is
+byscenarios , where each scenario describes an expected sequence of message
+exchanges among participating processes. Such scenarios are used in textbooks and
+classrooms to explain the protocol and can be specied using the intuitive visual
+notation of Message Sequence Charts. In fact, the MSC notation is standardized
+by IEEE [ 1], and it is supported by some system development environments as
+design supplements. These observations raise the question: is it plausible to ask
+the designer to provide enough scenarios so that the protocol implementation can
+be automatically synthesized? Although one cannot expect a designer to provide
+scenarios that include all the possible behaviors, our key insight is that even a
+representative set of scenarios covers all the states of the desired implementation.
+From a scenario, (local) states of a process are obtained from explicit state-labels
+that appear as annotations as well as from the histories of events in which
+the process participates. If we consider all the states and the input/output
+transitions out of these states for a given process that appear in the given set of
+scenarios, we obtain a skeleton of the desired FSM implementation of that process.
+The synthesis problem now corresponds to completing this skeleton by adding
+transitions. This requires the synthesizer to infer, for instance, how to process a
+particular input event in a particular state even when this information is missing
+from the specied scenarios. The more such completions that the synthesizer can
+learn successfully, the lower the burden on the designer to specify details of each
+and every case. To rule out incorrect completions, we ask the designer to provide
+a model of the environment and correctness requirements. Some requirements
+such as absence of deadlocks can be generic to all the protocols, whereas other
+requirements specic to the coordination problem being solved by the protocol
+are given as nite-state monitors for safety and liveness properties commonly
+used in model checkers.
+The synthesis problem then maps to the following protocol completion problem:
+given (1) a set of FSMs with incomplete transition functions, (2) a model of the
+environment, and (3) a set of safety/liveness requirements, nd a completion of
+the FSMs so that the composition satises all the requirements. We show this
+problem, similar to the model checking problem, to be Pspace -complete, but,
+unlike the model checking problem, to be NP-hard for just one process. We focus
+on two approaches to solving this problem: the rst performs a search through
+the space of possible completions with heuristics guiding the search order and the
+second uses OBDD-based symbolic model checking to compute the set of correct
+completions by encoding the unknown targets of transitions as rigid variables.
+To evaluate our methodology, we consider the Alternating Bit Protocol,
+a classical solution to provide reliable transmission using unreliable channels.
+The canonical description of the protocol [ 2] uses four scenarios to explain its
+behavior. It turns out that the rst scenario corresponding to the typical behavior
+contains a representative of each local state of both the sender and receiver
+processes. Our symbolic algorithm for protocol completion is able to nd the
+2
+
+--- Page 3 ---
+correct implementation from just one scenario, and thus, automatically learn how
+to cope with message losses and message duplications. We then vary the input,
+both in terms of the set of scenarios and the set of correctness requirements, and
+study how it aects the computational requirements and the ability to learn the
+correct protocol for both the completion algorithms.
+Related Work
+Our work builds on techniques and tools for model checking [ 3] and also on the
+rich literature for formal modeling and verication of distributed protocols [4].
+The problem of deriving nite-state implementations from formal requirements
+specied, for instance, in temporal logic, is called reactive synthesis , and has
+been studied extensively [ 5,6,7]. When the implementation is required to be
+distributed, the problem is known to be undecidable [ 8,9,10,11]. In bounded
+synthesis , one xes a bound on the number of states of the implementation, and
+this allows algorithmic solutions to distributed synthesis [ 12]. Another approach
+uses genetic programming , combined with model checking, to search through
+protocol implementations to nd a correct one, and has been shown to be eective
+in synthesizing protocols such as leader election [13,14].
+Specifying a reactive system using example scenarios has also a long tradi-
+tion. In particular, the problem of deriving an implementation that exhibits at
+least the behaviors specied by a given set of scenarios is well-studied (see, for
+instance, [ 15,16]). A particularly well-developed approach is behavioral program-
+ming [17] that builds on the work on an extension of message sequence charts,
+called live sequence charts [18], and has been shown to be eective for specifying
+the behavior of a single controller reacting with its environment. More recently,
+scenarios | in the form of \ows" | have been used in the modular verication
+of cache coherence protocols [19].
+Our approach of using both the scenarios and the requirements in an inte-
+grated manner, and using scenarios to derive incomplete state machines, oers a
+conceptually new methodology compared to the existing work. We are inspired
+by recent work on program sketching [ 20] and on protocol specication [ 21]. Com-
+pared to Transit [21], in this paper we limit ourselves to nite-state protocols,
+but consider both safety and liveness requirements, and provide a fully automatic
+synthesis procedure.
+The protocol completion problem itself has conceptual similarities to problems
+such as program repair studied in the literature [ 22], but diers in technical details.
+2 Methodology
+We explain our methodology by illustrating it on an example, the well-known
+Alternating Bit Protocol (ABP). The ABP protocol ensures reliable message
+transmission over unreliable channels which can duplicate or lose messages. As
+input to the synthesis tool the user provides the following:
+3
+
+--- Page 4 ---
+ABP
+senderForward
+Channel
+Backward
+ChannelABP
+receiver
+Safety Monitor
+Liveness MonitorsTimer
+timeout
+send,deliver ,p0,p1,p0
+0,p0
+1,a0,a1,a0
+0,a0
+1p0,p1 p0
+0,p0
+1
+a0
+0,a0
+1 a0,a1
+deliver send errorsend?
+deliver ?
+deliver ? send?
+send?,deliver ?
+Fig. 1. ABP system architecture (left) and the safety monitor which ensures that send
+and deliver messages alternate (right)
+{The protocol skeleton : this is a set of processes which are to be synthesized,
+and for each process, the interface of that process, i.e., its inputs and outputs.
+{The environment : this is a set of processes which are known and xed, that
+is, are not to be synthesized nor modied in any way by the synthesizer. The
+environment processes interact with the protocol processes and the product
+of all these processes forms a closed system, which can be model-checked
+against a formal specication.
+{Aspecication : this is a set of formal requirements. These can be expressed
+in dierent ways, e.g., as temporal logic formulas, safety or liveness (e.g.,
+B uchi) monitors, or \hardwired" properties such as absence of deadlock.
+{A set of scenarios : these are example behaviors of the system. In our frame-
+work, a scenario is a type of message sequence chart (MSC).
+In the case of the ABP example, the above inputs are as follows. The overall
+system is shown in Figure 1. The protocol skeleton consists of the two unknown
+processes ABP Sender and ABP Receiver . Their interfaces are shown in the
+gure, e.g., ABP Sender has inputs a0
+0,a0
+1, andtimeout and outputs send,p0, and
+p1. The environment processes are: Forward Channel (FC) (from ABP Sender
+to ABP Receiver, duplicating and lossy), Backward Channel (BC) (from ABP
+Receiver to ABP Sender, also duplicating and lossy), Timer (sendstimeout
+messages to ABP Sender), Safety Monitor , and a set of Liveness Monitors .
+As specication for ABP we will use the following requirements: (1) deadlock-
+freedom, i.e., absence of reachable global deadlock states (in the product system);
+(2) safety, captured by a safety monitor such as the one depicted in Figure 1;
+(3) B uchi liveness monitors, that accept incorrect innite executions in which
+either a send message is not followed by a deliver, a deliver is not followed by
+a send, or a send never appears, provided that the channels are fair; as well as
+(4) a property that we call non-blockingness , which informally requires that in
+every reachable global state, if a process wants to send a message to another
+process, then the latter must be able to receive it. Non-blockingness allows to
+specify that the system does not have local deadlocks, where a process is blocked
+from making progress while the system as a whole is not deadlocked.
+4
+
+--- Page 5 ---
+before
+sending 0 sendSender Receiver
+before
+receiving 0
+before
+receiving 0p0
+deliver
+a0
+before
+sending 1 send before
+receiving 1p1
+delivera1
+send
+p0
+deliver
+a0before
+sending 0sendSender Receiver
+p0
+deliver
+a0
+sendp1
+timeout
+p1
+deliver
+a1
+send
+p0
+deliver
+a0Sender Receiver
+send
+p0
+deliver
+a0
+send
+p1
+a1
+timeout
+p1deliver
+a1
+send
+p0
+deliver
+a0Sender Receiver
+send
+p0
+deliver
+a0
+send
+p1
+deliver
+a1
+send
+p0
+deliver
+a0timeout
+p1
+a1
+Fig. 2. Four scenarios for the alternating-bit protocol. From left to right: No loss, Lost
+packet, Lost ACK, Premature timeout/duplication.
+We will use the four message sequence charts shown in Figure 2 to describe
+the behavior of the ABP protocol. They come from a textbook on computer
+networking [ 2]. The rst scenario describes the behavior of the protocol when
+no packets or acknowledgments are lost or duplicated. The second and the third
+scenarios correspond to packet and acknowledgment loss respectively. Finally,
+the fourth scenario describes the behavior of ABP on premature timeouts and/or
+packet duplication.
+A candidate solution to the ABP synthesis problem is a pair of processes,
+one for the ABP Sender and one for the ABP Receiver. Such a candidate is a
+valid solution if: (a) the two processes respect their I/O interface and satisfy
+some additional requirements such as determinism (these are dened formally in
+Section 3.1), (b) the overall ABP system (product of all processes) may exhibit
+each of the input scenarios, and (c) it satises the correctness requirements.
+The output of the BDD-based algorithm when run with the requirements
+mentioned above and only the rst scenario from Figure 2 is shown in Figure 4. It
+can be checked that these solutions are \similar/equivalent" in the sense that they
+satisfy the same intuitive properties that one expects from the ABP protocol. In
+particular, the computed solution in Figure 4 eagerly retransmits the appropriate
+packet when an unexpected acknowledgment is received. This behavior might
+incur additional trac but satises all the safety and liveness properties for the
+ABP protocol. The computed solution for the ABP receiver is the same as the
+manually constructed automaton shown in Figure 3.
+3 The Automata Completion Problem
+We now describe how the problem, which we have set up in Section 2, can be
+viewed as a problem of completing the transition relations of nite IO automata.
+5
+
+--- Page 6 ---
+send!p0!
+timeout ?a0
+1?
+a0
+0?
+send!p1!
+timeout ?a0
+0?
+a0
+1?p0
+0?deliver !a0!
+p0
+0?
+p0
+1? deliver !a1!
+p0
+1?
+Fig. 3. ABP \manual" solution: ABP Sender (left), ABP Receiver (right).
+send!p0!
+timeout ?a0
+1?
+a0
+0?
+send!p1!
+timeout ?a0
+0? a0
+1?
+Fig. 4. Solution computed for ABP Sender by the BDD-based symbolic algorithm
+using only the rst scenario.
+3.1 Finite-state Input-Output Automata
+Anite-state input-output automaton is a tupleA= (Q;q 0;I;O;T ) whereQis
+a nite set of states, q02Qis the initial state, Iis a nite (possibly empty)
+set of inputs, Ois a nite (possibly empty) set of outputs, with I\O=;and
+TQ(I[O)Qis a nite set of transitions4.
+We write a transition ( q;x;q0)2Tasqx?!q0whenx2I, and asqx!!q0when
+x2O. We write q!q0if there exists xsuch that ( q;x;q0)2T. A transition
+labeled with x2I(respectively, x2O) is called an input transition (respectively,
+anoutput transition ).
+A stateq2Qis called a deadlock if it has no outgoing transitions. qis
+called an input state if it has at least one outgoing transition, and all outgoing
+transitions from qare input transitions. qis called an output state if it has a
+single outgoing transition, which is an output transition.
+Automaton Ais called deterministic if for every state q2Q, if there are
+multiple outgoing transitions from q, then all these transitions must be labeled
+with distinct inputs. Determinism implies that every state q2Qis a deadlock,
+an input state, or an output state.
+Automaton Ais called closed ifI=;.
+Asafety monitor is an automaton equipped with a set of error states Qe,
+A= (Q;q 0;I;O;T;Q e). A liveness monitor is an automaton equipped with a set
+ofaccepting states Qa,A= (Q;q 0;I;O;T;Q a). A monitor could be both safety
+and liveness, in which case it is a tuple A= (Q;q 0;I;O;T;Q e;Qa).
+4The framework and synthesis algorithms can easily be extended to handle internal
+transitions as well, but we suppress this detail for simplicity of presentation.
+6
+
+--- Page 7 ---
+Arunof an automaton Ais a nite or innite sequence of transitions starting
+from the initial state: q0!q1!q2! . A stateqis called reachable if there
+exists a nite run reaching that state: q0!q1!!q. A safety automaton
+is called safe if it has no reachable error states. An innite run of a liveness
+automaton is called accepting if it visits accepting states innitely often. A liveness
+automaton is called empty if it has no innite accepting runs.
+3.2 Composition
+We dene an asynchronous (interleaving-based) parallel composition operator
+with rendezvous synchronization. Given two automata A1= (Q1;q0;1;I1;O1;T1)
+andA2= (Q2;q0;2;I2;O2;T2), the composition of A1andA2, denotedA1kA2, is
+dened, provided O1\O2=;, as the automaton
+A1kA2b= (Q1Q2;(q0;1;q0;2);(I1[I2)n(O1[O2);O1[O2;T)
+where ((q1;q2);x;(q0
+1;q0
+2))2Ti one of the following holds:
+{x2O1andq1x!!q0
+1and eitherx2I2andq2x?!q0
+2orx62I2andq0
+2=q2.
+{x2O2andq2x!!q0
+2and eitherx2I1andq1x?!q0
+1orx62I1andq0
+1=q1.
+{x2(I1[I2)n(O1[O2) and at least one of the following holds: (1) x2I1nI2
+andq1x?!q0
+1andq0
+2=q2, (2)x2I2nI1andq2x?!q0
+2andq0
+1=q1, (3)
+x2I1\I2andq1x?!q0
+1andq2x?!q0
+2.
+During composition, the product automaton A1kA2\inherits" the safety and
+liveness properties of each of its components. Specically, a product state ( q1;q2)
+is an error state if either q1orq2are error states. A product state ( q1;q2) is an
+accepting state if either q1orq2is an accepting state.
+Note thatkis commutative and associative. So we can write A1kA2kkAn
+without parentheses, for a set of nautomata.
+We call a product A1kkAnstrongly non-blocking if in each reachable global
+state (s1;:::;sn), if some automaton Aiis willing to send a message x, and all
+automataAjwhich accept xare in non-output states, then these automata
+should be able to synchronize on the transition xin that global state. On the
+other hand, we call a product weakly non-blocking if in each reachable global
+state (s1;:::;sn), if some automaton Aiis willing to send a message x, then it
+is possible for all automata which accept xto eventually synchronize on the
+transitionx. Note that strong non-blockingness is a safety property and can be
+useful when the model-checker cannot verify liveness properties.
+3.3 From Scenarios to Incomplete Automata
+The rst step in our synthesis method is to automatically generate from the set
+of input scenarios an incomplete automaton for each protocol process. The second
+step is then to complete these incomplete automata to derive a complete protocol.
+In the sections that follow, we formalize and study the automata completion
+7
+
+--- Page 8 ---
+send! p0! a0
+0? send! p1! a0
+1? send! p0! a0
+0?
+timeout ?
+p1! a0
+1? send! p0! a0
+0?
+a0
+1?
+a0
+0?
+p0
+0? deliver ! a0! p0
+1? deliver ! a1! p0
+0? deliver ! a0!
+p0
+1?
+a1! p0
+0? deliver ! a0!
+Fig. 5. Incomplete protocol automata for ABP: Sender (top), Receiver (bottom).
+problem. In this section, we illustrate the rst step of going from scenarios to
+incomplete automata, by means of the ABP example.
+The idea for transforming scenarios into incomplete automata is simple. First,
+for every \swim lane" in the message sequence chart corresponding to a given
+scenario, we identify the corresponding automaton in the overall system. For
+example, in each scenario shown in Figure 2, the left-most lane corresponds to
+ABP Sender and the right-most lane to ABP Receiver. These scenarios omit the
+environment processes for simplicity. In particular channel processes are omitted,
+however, we will use a primed version of a message when referencing it on the
+process that receives it.
+Second, for every protocol process P, we generate an incomplete automaton
+APas follows. For every message history(i.e., nite sequence of messages
+received or sent by the process) specied in some scenario in the lane for P, we
+identify a state sinAP. If0=xis an extension of history by one message
+x, then there is a transition sx!s0inAP. Applying this procedure to the four
+scenarios of Figure 2, we obtain the two incomplete automata shown in Figure 5.
+Third, scenarios are annotated with labels. As shown in the rst scenario of
+Figure 2, labels appear between messages on swim lanes. These are used to merge
+the states that correspond to message histories that are followed by the same
+label. Merging occurs for states of a single scenario as well as across multiple
+ones if the same label is used in dierent scenarios. If consistent labels are given
+to the initial and nal positions in all swim lanes of the scenarios the resulting
+incomplete automata can be made cyclic. Furthermore, labels are essential for
+specifying recurring behaviors in scenarios and the structure of the incomplete
+automaton depends on the number and positions of labels used.
+Finally, it is often the case that dierent behaviors of a system are equivalent
+up to simple replacement of messages. For example, all the ABP scenarios express
+valid behaviors if p0anda0messages are consistently replaced with p1anda1
+messages respectively and vice versa. Thus, our framework allows for scenarios
+to be characterized as \symmetric".
+We annotate the swim lanes of the ABP Sender scenarios of Figure 2 with
+\before sending 0" and \before sending 1" labels, and the swim lanes of the ABP
+8
+
+--- Page 9 ---
+q1 q2 q5
+q3 q4before sending 0 before sending 1send! p0! a0
+1? a0
+0?a0
+0?
+timeout ? a0
+0? p0!send!
+Fig. 6. Incomplete protocol automaton for ABP Sender after adding symmetric scenarios
+and merging labeled states. (Only the rst half of the automaton is shown, the rest is
+the symmetric case for packet 1.)
+Receiver with \before receiving 0" and \before receiving 1" labels. We also add
+the symmetric scenarios by switching 0 messages with 1 messages. The resulting
+incomplete automaton for ABP Sender is shown in Figure 6.
+3.4 Automata Completion
+Having transformed the input scenarios into incomplete automata, the next step
+is to complete those automata by adding the appropriate transitions, so as to
+synthesize a complete and correct protocol. In this section we formalize this
+completion problem. We dene two versions of the problem: a general version
+(Problem 2) and a special version with only a single incomplete automaton
+(Problem 1). We will use Problem 1 in Section 4.1 to show that even in the
+simplest case automaton completion is combinatorially hard.
+Consider an automaton A= (Q;q 0;I;O;T ). Given a set of transitions T0
+Q(I[O)Q, the completion of AwithT0is the new automaton A0=
+(Q;q 0;I;O;T[T0).
+Problem 1. Given automaton E(the environment ) and deterministic automaton
+P(the process ) such that EkPis dened, nd a set of transitions Tsuch that,
+ifP0is the completion of PwithT, thenP0is deterministic and EkP0has no
+reachable deadlock states.
+Note that if EkPis dened then EkP0is also dened, because, by denition,
+completion does not modify the interface (sets of inputs and outputs) of an
+automaton.
+Problem 2. Given a set of environment automata E1;:::;Emand set of deter-
+ministic process automata P1;:::;Pnsuch thatE1kkEmkP1kkPnis dened,
+nd sets of transitions T1;:::;Tnsuch that, if P0
+iis the completion of PiwithTi,
+fori= 1;:::;n , then
+{P0
+iis deterministic, for i= 1;:::;n ,
+{if the product automaton :=E1kkEmkP0
+1kkP0
+nis a safety automaton
+then it is safe,
+9
+
+--- Page 10 ---
+{ifis a liveness automaton then it is empty,
+{has no reachable deadlock states,
+{and, optionally, is weakly (or strongly) non-blocking.
+Some of the environment processes Eican be be safety or liveness monitors.
+The last requirement means that Problem 2 comes in three versions, one where
+strong non-blockingness is required, one where the weak version is required, and
+a third where none is. These are options provided by the user.
+4 Solving Automata Completion
+In this section, we consider procedures to solve the automata completion problem.
+First, we show that Problems 1 and 2 are NP-complete and PSPACE-complete
+respectively. Then, we present an explicit search algorithm that eagerly prunes
+parts of the search space and a heuristic which ranks candidate completions.
+Finally, we describe an algorithm which reduces automata completion to a
+model-checking problem for a symbolic model-checker.
+4.1 Complexity
+It can be shown that Problem 2 is PSPACE-complete. Note that this is not
+surprising, as the verication problem itself is PSPACE-complete, for safety
+properties of distributed protocols. However, in the special case of two processes,
+while verication can be performed in polynomial time, a reduction from 3-SAT
+shows that the corresponding completion Problem 1 is NP-complete. The proofs
+can be found in the appendix.
+Theorem 1. Problem 2 is PSPACE-complete and Problem 1 is NP-complete.
+4.2 Explicit search
+This algorithm for solving the automata completion problem (Problem 2) is based
+on an explicit search over the space of possible completions, guided by various
+heuristics. More specically, the algorithm explores a search tree in which every
+node is a set of added transitions T(we include in Tthe transitions added in
+all incomplete protocol automata). The children of each node Tare those nodes
+T0Twhich contain exactly one more transition than T. The root of the tree
+is the empty set of transitions, which corresponds to the original input (i.e., the
+incomplete automata generated from the scenarios).
+For every newly visited node T(including the root) a model-checking problem
+is solved: we form the product of all environment processes, protocol processes
+(with the added transitions T), and monitors, and we check the absence of
+deadlocks, safety, and liveness violations (and optionally also non-blockingness).
+The following cases are possible:
+1.No violations are found. In this case, Tis a correct solution, and the search
+terminates.
+10
+
+--- Page 11 ---
+2.A safety or liveness violation is found. This means that this candidate solution
+Tis incorrect. Moreover, any other candidate T0obtained by adding extra
+transitions to T, i.e.,T0T, will also be incorrect, by exhibiting the same
+violations. This is because adding extra local transitions can only add, but not
+remove, global transitions. This in turn implies that any reachable error state
+withTwill also be a reachable error state with T0, so any safety violation with
+Twill also be a safety violation with T0. Similarly, any reachable accepting
+cycle with Twill also be a reachable accepting cycle with T0, so liveness
+violations cannot be removed either. In conclusion, in this case, the entire
+sub-tree under Tcan be pruned from the search.
+3.No safety nor liveness violation is found, but a deadlock or blocking state is
+found. In this case, Tis incorrect, but could potentially be made correct by
+adding more transitions. The search continues exploring the children of T.
+The search algorithm saves every visited node T. The same node might be visited
+via dierent paths. For example, adding rst t1, thent2, leads to the same node
+as adding rst t2, thent1. To reduce the search space, the search stops (and
+backtracks) when it nds a node that has already been visited. This is clearly
+sound and complete.
+The search continues only in Case 3. In this case, we use heuristics to de-
+termine in which order should the children of Tbe explored. The heuristic we
+used prioritizes the children of Taccording to how similar they are to existing
+transitions in the protocol automaton. We deem two transitions as being similar
+if their message and destination are the same and if their starting states already
+agree on some other transition. In other words, if two states handle a message by
+transitioning to the same state, or indistinguishable states, the heuristic extrapo-
+lates that the states should also handle other messages in the same manner. For
+example, in Figure 6, states q1andq4both handle message a0
+0by transitioning to
+stateq5. Hence, the heuristic prioritizes the candidate transition from q4toq3on
+timeout , over sayq4toq2, sinceq1also handles timeout by transitioning to q3.
+Note that this transition correctly generalizes the behavior on a single timeout
+described in the scenarios to multiple timeouts.
+4.3 BDD-based Symbolic Computation
+This technique reduces the automata completion problem to an instance of a
+model-checking query, which is then solved by using BDD-based symbolic model-
+checking techniques. Consider a set of environment automata fE1;E2;:::;Emg
+and a set of (possibly incomplete) deterministic process automata fP1;P2;:::Png,
+with eachPi= (Qi;q0;i;Ii;Oi;Ti), as described in Section 3. For each state
+qi2Qiand for each event x2Ii[Oisuch thatqix!q0
+i=2Tfor anyq0
+i2Qi, we
+introduce a variable tqi;ewhose value ranges over the set Qi[f?g . Intuitively,
+these variables encode all possible ways to complete the transition relation Ti,
+including the possibility that no transition exists. Each of the transition relations
+Tiis now parametrized by the newly introduced variables tqi;e. LetP0
+ibe the
+11
+
+--- Page 12 ---
+automata obtained by replacing the transition relation of Piwith the parametrized
+transition relation whose construction we have just described.
+We denote the composition E1kE2k:::kEmkP0
+1kP0
+2k:::kP0
+nbyPand its
+transition relation by T. Note thatTis also parametrized by the newly introduced
+tqi;evariables. Also, the original composition E1kE2k:::kEmkP1kP2:::kPnhas
+only one initial state, by denition, and thus, Phas only one (parametrized)
+initial state as well.
+Suppose we are given a safety monitor with a set of error states. We can
+symbolically represent the states where the monitor automaton is in an error
+state by a propositional formula '. Now, the parameter values such that states
+satisfying:'are not reachable in the composition Pcan be obtained by model-
+checkingPwith the CTL property, EF:'. If this property is found to be true,
+then an erroneous state in the monitor is reachable for every valuation of the
+parameters. If the property is found to be false, then there must exist a valuation
+for the parameters which prevents a state satisfying :'from being reachable.
+These parameter values represent a completion that satises the property that
+no state satisfying :'is reachable.
+Determinism, Deadlock Freedom, Non-blockingness and Liveness. We
+encode constraints for determinism by restricting the set of initial values that
+the parameters can take.
+A deadlock state is characterized by the formula DL=V
+o2S
+iOi(:sync(o)),
+where sync(o) is a formula which expresses that the (sole) sender of the event ois
+in a state where it can send o, and all the receivers of event oare in states where
+they can receive an o. Thus the formula EF(DL) represents the set of states which
+eventually deadlock. A valid completion would render these states unreachable.
+Suppose we are given a liveness automaton with a set Qaof accepting states.
+A completion which is live needs to have no runs that visit states in Qainnitely
+often. If all states in Qaare represented symbolically by the propositional formula
+Qs
+a, then the set of states from which it is possible to visit states in Qainnitely
+often can be characterized by the CTL formula  =AGEFQs
+a. Again, we desire
+that these states be unreachable in a valid completion.
+The non-blockingness requirement can expressed as a safety requirement
+NonBlock , and hence can be handled in a similar manner. Finally, we use a
+symbolic model-checker (NuSMV [ 23]) to check ifPsatises EF(:'_DL_
+:NonBlock_ ). The valuation of parameters for which Pdoes not not satisfy
+this property represents the completion which has the required safety, liveness,
+and deadlock-freedom properties.
+5 Evaluation
+We investigate (1) how eective scenarios are in reducing the empirical complexity
+of the automata completion problem, (2) the amount of generalization that the
+proposed algorithms are able to perform, and (3) how adding scenarios reduces
+the number of formal specications required for successful completion.
+12
+
+--- Page 13 ---
+Synthesis with no scenarios. To validate our hypothesis that scenarios make
+the synthesis problem easier, we attempted to synthesize the ABP protocol with
+no transitions specied, but with bounds on the number of states of the processes.
+These bounds were set to be equal to the corresponding number of states in the
+manually constructed version of the ABP protocol. We required that the protocol
+satisfy all the properties discussed in Section 2.
+The BDD-based symbolic algorithm ran out of memory5and failed to synthe-
+size a protocol. Recall that the heuristic algorithm performs generalization by
+using a similarity metric between states. When the starting point is an empty
+transition relation, there is no similarity between states, and the heuristic fails
+to dierentiate between candidate transitions. The resulting search procedure
+runs out of time.
+Varying the number of scenarios. When all four of the scenarios in Figure 2
+are used, both the explicit search algorithm and the BDD-based search are able
+to nd a correct completion for the protocol. Moreover, both the algorithms nd
+a correct completion, when applied to just onescenario. A quantitative summary
+of our experiments can be found in Table 1. We applied our algorithms on the
+incomplete automata constructed from the rst scenario (row 1), the second
+scenario (row 2), and all four scenarios (row 3). For each case, we report the
+number of states of the incomplete automata, the number of transitions in the
+completions found by the algorithms, and their computational requirements.
+In the case of all four scenarios, the ranking heuristic described in Section 4.2
+chooses a candidate transition that is part of the correct completion at every step.
+The search does not backtrack, does not prune any nodes, and takes less than a
+minute to complete. When only the rst scenario is used, the ranking heuristic
+is less eective in the same way as when no scenarios were used. However, the
+additional structure imposed by the scenarios signicantly constrains the search
+space and the explicit search with pruning successfully returns a completion. The
+incomplete automata that correspond to scenario 2 include intermediate states
+that the heuristic can use to successfully rank candidate edges. The runtime of
+the explicit search algorithm varies with the order in which candidate transitions
+are explored. We report the 75th percentile over several randomly chosen orders.
+In contrast, the BDD-based search performs better when a single scenario is
+used rather than all four. The intuition behind this is that the number of BDD
+variables is smaller when there are fewer intermediate states in the incomplete
+automata. As a result, the search nishes in less than 15 seconds when only the
+rst scenario of Figure 2 is used, less than 15 minutes when only the second
+scenario is used, and less than 35 minutes when all four are used. Synthesis takes
+longer with the second scenario because the incomplete sender automaton, as
+mentioned earlier, has more intermediate states than the rst scenario.
+Generalization and inference of unspecied behaviors. With just one
+scenario specied, the algorithms successfully perform the generalization required
+5We used a memory limit of 16GB and a time limit of one hour.
+13
+
+--- Page 14 ---
+Table 1. Quantitative summary of experiments.
+Number of states
+in incomplete
+automatonNumber of
+transitions
+to be
+completedComputational requirements
+Sender ReceiverHeuristic
+timeBDD timeBDD
+memory
+Scenario 1 6 6 6 4 min. 15 sec. 100MB
+Scenario 2 10 6 8 30 sec. 15 min. 1GB
+All scenarios 12 8 8 45 sec. 35 min. 3.8GB
+to obtain a correct completion. We believe that the generalization performed is
+non-obvious: the correct protocol behaviors on packet loss, loss of acknowledg-
+ments and message duplication are inferred, even though the scenario does not
+describe what needs to happen in these situations. As can be seen in Figure 7, the
+incomplete automata constructed from the scenario only describe the protocol
+behavior over lossless channels. The algorithms are guided solely by the liveness
+and safety specications to infer the correct behavior. In contrast, when all
+four scenarios are specied, the scenarios already contain information about the
+behavior of the protocol when a single packet loss or a single message duplication
+occurs. The algorithm thus needs to only generalize this behavior to handle an
+arbitrary number of packet losses and message duplications.
+Varying the Correctness Requirements. We observed that when fewer
+scenarios were used, we needed to specify more properties | some of which were
+non-obvious | so that the algorithms could converge to a correct completion.
+For instance, when only one scenario was specied, we needed to include the
+liveness property that every deliver message was eventually followed by a send
+message. Owing to the structure of the incomplete automata, this property was
+not necessary to obtain a correct completion when all four scenarios were specied.
+Another property which was necessary to reject trivial completions when no
+scenarios were specied was that there has to be at least one send message in
+every run. Therefore, in some cases, using scenarios can compensate for the lack
+of detailed formal specications.
+Discussion of Experimental Results. The experimental results clearly dem-
+onstrate that specifying the behavior of the protocol using scenarios is essential
+for the algorithms we have evaluated to be able to construct a correct completion.
+In particular, even providing just one scenario allows the algorithms to converge
+on a correct completion within a reasonable amount of time. In contrast, none of
+the approaches we have evaluated were successful in synthesizing the required
+protocol when no scenarios were provided. An interesting trend that we observed
+was that the heuristic algorithm and the BDD-based symbolic algorithm seem
+to complement each other. Specically, the BDD-based symbolic algorithm was
+14
+
+--- Page 15 ---
+send!p0!
+a0
+0?
+send!p1!a0
+1?p0
+0?deliver !
+a0!
+p0
+1?deliver !a1!
+Fig. 7. Incomplete automata constructed from the rst scenario of Figure 2.
+eective when the number of scenarios | and therefore the number of states in
+the incomplete automata | was small. On the other hand, the heuristic search
+does better when more information is provided in the form of additional scenarios
+| which in turn causes a larger number of states in the incomplete automata to be
+similar. This is because the BDD-based symbolic algorithm essentially constructs
+BDDs for allpossible completions and picks one that satises the properties. In
+general, the number of possible completions increases with the number of states
+in the automata, which explains why the BDD-based algorithm performs well
+when the number of states in the automaton is small. The heuristic algorithm
+exploits similarities between states to converge on a correct completion. When
+the algorithm is provided with the incomplete automaton from the rst scenario
+| which has a minimal number of states | it is unable to nd states which
+are similar and thus degenerates to an exhaustive search over all completions.
+Finally, we also observe that additional scenarios can compensate for unspecied
+correctness properties. This frees the protocol designer from having to specify
+the requirements completely formally.
+6 Conclusions
+The main contribution of this paper is a new methodology, supported by automatic
+synthesis techniques, for specifying nite-state distributed protocols using a mix
+of representative behaviors and correctness requirements. The synthesizer derives
+a skeleton of the state machine for each process using the states that appear in
+the scenarios and then nds a completion that satises the requirements. The
+promise of the proposed method is demonstrated by the ability of the synthesizer
+to learn the correct ABP protocol from just a single scenario corresponding to
+the typical case. Future research should focus on the scalability of the algorithms
+for protocol completion. One idea is to heuristically limit the choices for targets
+of transitions before applying the BDD-based symbolic computation, and another
+approach is to reduce the number of states by representing the implementation
+as an extended FSM with variables.
+References
+1.ITU Telecommunication Standardization Sector: ITU-R recommendation Z.120,
+Message Sequence Charts (MSC '96). (May 1996)
+2.Kurose, J.F., Ross, K.W.: Computer Networking: A Top-Down Approach. 5th edn.
+Addison-Wesley Publishing Company, USA (2009)
+3. Clarke, E.M., Grumberg, O., Peled, D.A.: Model checking. MIT Press (2000)
+15
+
+--- Page 16 ---
+4. Lynch, N.: Distributed algorithms. Morgan Kaufmann (1996)
+5.Ramadge, P., Wonham, W.: The control of discrete event systems. IEEE Transac-
+tions on Control Theory 77(1989) 81{98
+6.Pnueli, A., Rosner, R.: On the synthesis of a reactive module. In: Proceedings of
+the 16th ACM Symposium on Principles of Programming Languages. (1989)
+7.Bloem, R., Jobstmann, B., Piterman, N., Pnueli, A., Sa'ar, Y.: Synthesis of
+reactive(1) designs. J. Comput. Syst. Sci. 78(3) (2012) 911{938
+8.Pnueli, A., Rosner, R.: Distributed reactive systems are hard to synthesize. In:
+31st Annual Symposium on Foundations of Computer Science. (1990) 746{757
+9.Tripakis, S.: Undecidable Problems of Decentralized Observation and Control on
+Regular Languages. Information Processing Letters 90(1) (April 2004) 21{28
+10.Finkbeiner, B., Schewe, S.: Uniform distributed synthesis. In: IEEE Symposium
+on Logic in Computer Science. (2005) 321{330
+11.Lamouchi, H., Thistle, J.: Eective control synthesis for DES under partial obser-
+vations. In: 39th IEEE Conference on Decision and Control. (2000) 22{28
+12.Finkbeiner, B., Schewe, S.: Bounded synthesis. Software Tools for Tchnology
+Transfer 15(5-6) (2013) 519{539
+13.Katz, G., Peled, D.: Model checking-based genetic programming with an application
+to mutual exclusion. In: Tools and Algorithms for the Construction and Analysis
+of Systems, 14th International Conference. LNCS 4963 (2008) 141{156
+14.Katz, G., Peled, D.: Synthesizing solutions to the leader election problem using
+model checking and genetic programming. In: Haifa Verication Conference. (2009)
+117{132
+15.Alur, R., Etessami, K., Yannakakis, M.: Inference of message sequence charts. IEEE
+Transactions on Software Engineering 29(7) (2003) 623{633
+16.Uchitel, S., Kramer, J., Magee, J.: Synthesis of behavioral models from scenarios.
+IEEE Trans. Softw. Eng. 29(2) (February 2003) 99{115
+17.Harel, D., Marron, A., Weiss, G.: Behavioral programming. Commun. ACM 55(7)
+(2012) 90{100
+18.Damm, W., Harel, D.: LSCs: Breathing life into message sequence charts. Formal
+Methods in System Design 19(1) (2001) 45{80
+19.O'Leary, J., Talupur, M., Tuttle, M.R.: Protocol verication using ows: An indus-
+trial experience. In: Formal Methods in Computer-Aided Design, 2009. FMCAD
+2009. (Nov 2009) 172{179
+20.Solar-Lezama, A., Rabbah, R., Bodik, R., Ebcioglu, K.: Programming by sketching
+for bit-streaming programs. In: Proc. 2005 ACM Conference on Programming
+Language Design and Implementation. (2005) 281{294
+21.Udupa, A., Raghavan, A., Deshmukh, J.V., Mador-Haim, S., Martin, M.M.K., Alur,
+R.: TRANSIT: specifying protocols with concolic snippets. In: ACM SIGPLAN
+Conference on Programming Language Design and Implementation. (2013) 287{296
+22.Jobstmann, B., Griesmayer, A., Bloem, R.: Program repair as a game. In: Computer
+Aided Verication, 17th International Conference. LNCS 3576 (2005) 226{238
+23.Cimatti, A., Clarke, E., Giunchiglia, E., Giunchiglia, F., Pistore, M., Roveri, M.,
+Sebastiani, R., Tacchella, A.: NuSMV 2: An OpenSource Tool for Symbolic Model
+Checking. In: Computer-Aided Verication, 14th International Conference (CAV).
+LNCS 2404, Springer (2002) 359{364
+16
+
+--- Page 17 ---
+Appendix: Complexity of Automata Completion
+Theorem 2. Problem 1 is in NP.
+Proof. Problem 1 is in NP since we can guess a completion, and then check
+whether the requirements of the problem are satised. Checking whether the
+resulting process automaton is deterministic can be done in polynomial time.
+Checking whether the product automaton is deadlock-free can be done in poly-
+nomial time also, because there are only two automata in the product.
+Theorem 3. Problem 1 is NP-complete.
+Proof. We will show that 3SAT is reducible to Problem 1. Together with Theo-
+rem 2 this shows that Problem 1 is NP-complete.
+LetU=fu1;u2;:::;ungbe a set of variables and C=fc1;c2;:::;cmgbe a set
+of clauses, such that jcij= 3 for 1im, making up an arbitrary instance of
+3SAT.
+We writez1
+j,z2
+j,z3
+jfor the literals of cj. We writevi
+jfor the variable of literal
+zi
+j. Note that zi
+jcan be equal to vi
+jor its negation vi
+j.
+We construct a process automaton Pand an environment EwithEkPdened,
+such that the following are equivalent:
+{there is a set of transitions Tsuch that if P0is the completion of PwithT,
+thenP0is deterministic and EkP0has no reachable deadlock states
+{there is a truth assignment for Uthat satises all clauses in C.
+The process automaton has an initial state q0, and a pair of states qt
+iand
+qf
+ifor each variable ui. At each step, the environment challenges the process to
+instantiate some variable uiby transmitting the message xD
+i. On receipt of this
+message, the completed process has to transition to one of qt
+iandqf
+i. It responds
+with either xt
+iorxf
+iindicating the assignment made to ui. The environment
+performs this challenge for each literal in each clause, and enters a deadlock
+state if any clause is left unsatised. It follows that a completion exists i Cis
+satisable.
+P is an automaton ( QP;qP
+0;IP;OP;TP) such that:
+{QP=fqP
+0g[fqt
+i;qf
+iji2[1;n]g
+{IP=fxsg[fxD
+iji2[1;n]g
+{OP=fxt
+i;xf
+iji2[1;n]g
+{TP=f(qt
+i;xt
+i;qP
+0);(qf
+i;xf
+i;qP
+0)ji2[1;n]g[f (qP
+0;xs;qP
+0)g
+E is an automaton ( QE;qE
+0;IE;OE;TE) such that:
+{QE=fdeadlock;success g[fqD
+i;j;qV
+i;j)ji2f1;2;3gandj2[1;m]g
+{qE
+0=qD
+1;1
+{IE=fxt
+i;xf
+iji2[1;n]g
+{OE=fxsg[fxD
+iji2[1;n]g
+17
+
+--- Page 18 ---
+qP
+0qt
+1qf
+1
+xt
+1!xf
+1!qt
+2
+qf
+2xt
+2!
+xf
+2!
+qt
+3qf
+3xt
+3!xf
+3!xs?
+Fig. 8. Process automaton before completion. Choosing an assignment to a boolean
+variable uiof the SAT problem means choosing whether to add an input transition
+labeled xD
+i? from qP
+0toqt
+i(in which case uiis assigned to true) or to qf
+i(in which case
+uiis assigned to false).
+{TEis the smallest set such that the following hold:
+fori2f1;2gandj2[1;m 1], (qV
+i;j;xf
+k;qD
+i+1;j);(qV
+i;j;xt
+k;qV
+1;j+1)2TEif
+zi
+j=uk,
+fori2f1;2g, (qV
+i;m;xf
+k;qD
+i+1;m);(qV
+i;j;xt
+k;success )2TEifzi
+m=uk,
+(qV
+3;m;xt
+k;success ) and (qV
+3;m;xf
+k;deadlock ) ifzi
+m=uk,
+fori2f1;2gandj2[1;m 1], (qV
+i;j;xt
+k;qD
+i+1;j);(qV
+i;j;xf
+k;qV
+1;j+1)2TEif
+zi
+j=uk,
+fori2f1;2g, (qV
+i;m;xt
+k;qD
+i+1;m);(qV
+i;j;xf
+k;success )2TEifzi
+m=uk,
+(qV
+3;m;xf
+k;success ) and (qV
+3;m;xt
+k;deadlock ) ifzi
+m=uk, and
+(success;x s;success )2TE.
+Note thatjQPj=jTPj= 2n+ 1,jQEj= 6m+ 2, andjTEj= 9m+ 1,
+andPandEcan be constructed in polynomial time.
+ForU=fu1;u2;u3g,C=fc1;c2g,c1=fu1;u2;u3g, andc2=fu1;u2;u3g,
+the process automaton Pand the environment automaton are shown in Figure 8
+and in Figure 9 respectively.
+We now prove the correctness of the reduction:
+3SAT = )Problem 1: Assume that there is a truth assignment tforU
+that satises all clauses in C.
+LetTbe the set of transitions such that ( qP
+0;xD
+i;qt
+i)2Tit(ui) =true and
+(qP
+0;xD
+i;qf
+i)2Tit(ui) =false.
+LetP0be the completion of PwithT. It is easy to see that every transition
+leaving state qP
+0has a distinct label, since we add exactly one transition for
+18
+
+--- Page 19 ---
+Clause c1=fu1;u2; u3g Clause c2=fu1;u2; u3g
+qD
+1;1
+qV
+1;1
+qD
+2;1
+qV
+2;1
+qD
+3;1
+qV
+3;1
+deadlockqD
+1;2
+qV
+1;2
+qD
+2;2
+qV
+2;2
+qD
+3;2
+qV
+3;2success
+xD
+1!
+xf
+1?xt
+1?
+xD
+2!
+xt
+1?xf
+1?
+xD
+3!
+xf
+1?xt
+1?xD
+1!
+xt
+1?xf
+1?
+xD
+2!
+xt
+2?xf
+2?
+xD
+3!
+xf
+3?xt
+3?xs!
+Fig. 9. Environment Automaton
+each labelxD
+i. Therefore P0is deterministic. We now show that EkP0has no
+reachable deadlock states.
+LetRbe the sequence of states in a run of EkP0. Ifkis even then R(k) is of
+the form (qD
+i;j;qP
+0), (success;qP
+0), or (deadlock;qP
+0). In the rst case, R(k) has
+exactly one outgoing edge and R(k+ 1) is of the form ( qV
+i;j;q), where ifuk=vi
+j,q
+is eitherqt
+korqf
+k. In the second case R(k+ 1) =R(k) and in the third case R(k)
+has no outgoing transitions. By construction of EandP0, (qV
+i;j;q), whereqis
+eitherqt
+korqf
+k, has exactly one outgoing transition. Therefore, if ( deadlock;qP
+0)
+is not reachable, then EkP0has no reachable deadlock states.
+19
+
+--- Page 20 ---
+We assume that ( deadlock;qP
+0) is reachable and arrive at a contradiction. If
+it is then there is j2[1;m] such that the following hold: ( qV
+1;j;q1)x1!!(qD
+2;j;qP
+0),
+(qV
+2;j;q2)x2!!(qD
+3;j;qP
+0), and (qV
+3;j;q3)x3!!(deadlock;qP
+0), where one of the following
+holds for each pair qiandxi:
+{zi
+j=ukandqi=qf
+kandxi=xf
+k,
+{zi
+j=ukandqi=qt
+kandxi=xt
+k.
+Furthermore, by the construction of T, (qV
+i;j;qf
+k) is reachable if ( qP
+0;xD
+k;qf
+k)2T
+or ift(uk) =false, and (qV
+i;j;qt
+k) is reachable if ( qP
+0;xD
+k;qt
+k)2Tor ift(uk) =true.
+We have shown that there is j2[1;m] such that for every i2[1;3], if
+zi
+j=ukthent(uk) =false and ifzi
+j=ukthent(uk) =true which implies that
+t(cj) =false and contradicts tbeing a satisfying assignment.
+Problem 1 = )3SAT: AssumeTis a set of transitions, such that P0is the
+completion of PwithT,P0is deterministic, and EkP0has no reachable deadlock
+states.
+We construct a truth assignment tforUthat satises all the clauses in C.
+SinceEkP0is deadlock free, for every i2[1;3] andj2[1;m], if a state
+(qV
+i;j;q) is reachable, because the only outgoing transitions from qV
+i;jinEare
+input transitions with labels xt
+kandxf
+k, whereuk=vi
+j, and the only two states
+inP0that have outgoing output transitions with such labels are qt
+kandqf
+k, then
+qhas to beqt
+korqf
+k.
+Similarly, the only outgoing transition from qD
+i;jinE, ifuk=vi
+j, is an output
+transition with label xD
+k, and the only state in P0that can have an outgoing
+input transition with label xD
+kisqP
+0. Therefore, if ( qD
+i;j;q) is reachable in EkP0
+thenqisqP
+0.
+Combining the last two observations, and because qV
+i;jalways follows qD
+i;jinE,
+if a state (qV
+i;j;q) is reachable, then either ( qP
+0;xD
+k;qt
+k)2Tor (qP
+0;xD
+k;qf
+k)2T.
+We construct a truth assignment tforUas follows: for every uksuch that
+there exists iandjsuch thatvi
+j=ukand (qV
+i;j;q) is reachable, we set t(uk) to
+true if (qP
+0;xD
+k;qt
+k)2Tand to false if (qP
+0;xD
+k;qf
+k)2T. We assign an arbitrary
+value to the remaining variables in U.tis well-dened because P0is deterministic
+and thus it cannot be the case that both ( qP
+0;xD
+k;qt
+k)2Tand (qP
+0;xD
+k;qf
+k)2T.
+We show that tsatises all clauses in C.
+No deadlock states are reachable in EkP0, therefore ( deadlock;q ) is not
+reachable.
+Therefore for each j2[1;m] there isi2[1;3] such that one of the following
+holds:
+{zi
+j=ukand (qV
+i;j;qt
+k) is reachable or
+{zi
+j=ukand (qV
+i;j;qf
+k) is reachable.
+20
+
+--- Page 21 ---
+This guarantees that whenever ( qD
+1;j;qP
+0) is reachable in a run of EkP0, the
+run continues to ( qD
+1;j+1;qP
+0) or (success;qP
+0) and does not reach ( deadlock;qP
+0).
+In the rst case, it has to be that ( qP
+0;xD
+k;qt
+k)2Tort(uk) =true.
+In the second case, it has to be that ( qP
+0;xD
+k;qf
+k)2Tort(uk) =false.
+Hence, for every j2[1;m] there isi2[1;3] such that if zi
+j=ukthen
+t(uk) =true and ifzi
+j=ukthent(uk) =false, ortsatises all clauses in C.
+Claim. Problem 2 is PSPACE-complete.
+Proof. Problem 2 is in NPSPACE since we can guess a set of completions, and then
+check whether the requirements of the problem are satised. Checking whether
+the resulting process automata are deterministic can be done in polynomial time.
+Checking whether the product automaton is safe, empty, and deadlock-free can
+all be done in PSPACE. Since NPSPACE = PSPACE, Problem 2 is in PSPACE.
+PSPACE-hardness can be seen by observing that a special case of Problem 2
+is when the set of process automata is empty. This special case of determining
+the safety of a set of environment automata is at least as hard as reachability,
+which is PSPACE-hard.
+21

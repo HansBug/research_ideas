@@ -1,0 +1,2118 @@
+--- Page 1 ---
+eprints@whiterose.ac.uk
+https://eprints.whiterose.ac.uk
+Universities of Leeds, Sheffield and York
+Deposited via The University of York.
+White Rose Research Online URL for this paper:
+https://eprints.whiterose.ac.uk/id/eprint/103139/
+Version: Accepted Version
+Article:
+Carvalho, G., Cavalcanti, A. L. C. and Sampaio, A. C. A . (2016) Modelling Timed Reactive 
+Systems from Natural-Language Requirements. Formal Aspects of Comp uting. pp. 725-
+765. ISSN: 1433-299X 
+https://doi.org/10.1007/s00165-016-0387-x
+Reuse 
+Items deposited in White Rose Research Online are protect ed by copyright, with all rights reserved unless 
+indicated otherwise. They may be downloaded and/or prin ted for private study, or other acts as permitted by 
+national copyright laws. The publisher or other rights h olders may allow further reproduction and re-use of 
+the full text version. This is indicated by the licence info rmation on the White Rose Research Online record 
+for the item. 
+Takedown 
+If you consider content in White Rose Research Online to b e in breach of UK law, please notify us by 
+emailing eprints@whiterose.ac.uk including the URL of th e record and the reason for the withdrawal request. 
+
+--- Page 2 ---
+Under consideration for publication in Formal Aspects of Co mputing
+Modelling Timed Reactive Systems
+from Natural-Language Requirements
+Gustavo Carvalho1, Ana Cavalcanti2and Augusto Sampaio1
+1Universidade Federal de Pernambuco - Centro de Inform´ atic a, 50740-560, Brazil
+2University of York - Department of Computer Science, YO10 5G H, UK
+Abstract. At the very beginning of system development, typically only natural -language requirements
+are documented. As an informal source of information, however, natural-l anguage speciﬁcations may be
+ambiguous and incomplete; this can be hard to detect by means of manual ins pection. In this work, we
+present a formal model, named Data-Flow Reactive System (DFRS), wh ich can be automatically obtained
+from natural-language requirements that describe functional, reactiv e and temporal properties. A DFRS can
+also be used to assess whether the requirements are consistent and complete. We deﬁne two variations of
+DFRS: a symbolic and an expanded version. A symbolic DFRS (s-DFRS) i s a concise representation that
+inherently avoids an explicit representation of (possibly inﬁnit e) sets of states and, thus, the state space-
+explosion problem. We use s-DFRS as part of a technique for test-case ge neration from natural-language
+requirements. In our approach, an expanded DFRS (e-DFRS) is built dynamically from a symbolic one,
+possibly limited to some bound; in this way, bounded analysis (e.g., reachability, determinism, completeness)
+can be performed. We adopt the s-DFRS as an intermediary representati on from which models, for instance,
+SCRandCSP,areobtainedforthepurposeoftestgeneration.Ane-DFRScanal sobeviewedasthesemantics
+of the s-DFRS from which it is generated. In order to connect such a se mantic representation to established
+ones in the literature, we show that an e-DFRS can be encoded as a TIOT S: an alternative timed model
+based on the widely used IOLTS and ioco. To validate our overall approach, we consider two toy examples
+and two examples from the aerospace and automotive industry. Test cases ar e independently created and
+we verify that they are all compatible with the corresponding e-DFRS models generated from symbolic
+ones. This veriﬁcation is performed mechanically with the aid of the NA T2TEST tool, which supports the
+manipulation of such models.
+Keywords: natural-language; formal model; model mapping; TIOTS
+1. Introduction
+According to the Federal Aviation Administration (FAA), which publish ed a report [FAA09] that discusses
+current practices concerning requirements engineering manageme nt, “... the overwhelming majority of the
+Correspondence and oﬀprint requests to : Gustavo Carvalho, Universidade Federal de Pernambuco - Ce ntro de Inform´ atica,
+50740-560, Brazil, e-mail: ghpc@cin.ufpe.br
+
+--- Page 3 ---
+2 G. Carvalho, A. Cavalcanti and A. Sampaio
+survey respondents indicated that requirements are being captured a s English text... ”. This supports the
+thesis that, at the very beginning of system development, typicall y only natural-language requirements are
+documented. As an informal source of information, natural-language speciﬁc ations may be ambiguous and
+incomplete; this problem can be diﬃcult to identify by means of manu al inspection.
+If formal models are derived from the requirements, it is possible to reason about the speciﬁcation and its
+implementation formally. For instance, animation of these models might be a useful tool for validating the
+system requirements. Moreover, given a formal deﬁnition of ambiguit y and incompleteness, a formal model
+canbeusedto checkconsistencyandcompletenessofthe speciﬁcati on toprovesomethingthatcanbehardto
+achieve by means of manual inspection. Generation of test cases is also mad e possible by the availability of a
+formal model via Model-Based Testing (MBT) techniques. To achie ve practical impact, however, automation
+is essential, since requiring knowledge of formal modelling by pr actitioners is often not feasible.
+The research problem addressed here is the automatic generation of time d state-rich formal models
+from natural-language speciﬁcations to support test generation using a var iety of techniques and tools,
+besides analysis of the speciﬁcation. Formal modelling of requireme nts described using natural languages
+is not a new research topic. However, previous results do not cover t ime and state-richness simultaneously
+[ADS14, BCMW15, BGMC04, NSM14, ES07, SHG10] or rely on user intervention [AG06, Ili 07, LHHR94,
+MTWH06, Sch09, SJV12], in which case it is necessary to identify and classi fy entities.
+We deﬁne here a timed and state-rich automata-based notation for represe ntation of natural-language
+requirements: Data-Flow Reactive System (DFRS). Besides writ ing the system requirements according to
+the grammar of a controlled natural language (CNL), and deﬁning a dictionary, th ere is no need of user
+involvement to generate the proposed models. They are derived automat ically from the requirements.
+Moreover, we provide atechnique to check properties ofthe formal models, includingwhether the natural-
+language requirements are consistent and complete. Opposed to other wor ks, we consider here deﬁnitions of
+consistency and completeness tailored to our domain (reactive embedd ed systems). Requirements are said to
+be inconsistent if, in the natural language description, there are two or more requirements describing diﬀerent
+system reactions for the same condition. In addition, we consider a spe ciﬁcation to be complete if it describes
+how the system should react (which outputs are produced) for every possible situation (any given inputs).
+For instance, our interpretation of consistency contrasts to the one adop ted in [BGFT10, FLGS14], where
+the focus is detecting the use of ambiguous terms and sentences that might lead to diﬀerent interpretations,
+or diﬀerent interpretations arising from the background knowledge of t he reader, respectively.
+The proposed model is part of a broader strategy, NAT2TEST (see Fig. 1), whi ch generates test cases
+fully automatically from natural-language requirements based on diﬀeren t internal and hidden formalisms.
+The ﬁrst phase of NAT2TEST is a syntactic analysis to determine wheth er the requirements are written in
+accordance with the CNL we proposed (SysReq-CNL). For each syntactically correct requirement, we obtain
+the corresponding syntax tree.
+Although the adoption of this CNL by practitioners is an interesting and st ill open question, we already
+have indication that the NAT2TEST strategy is of practical relevance. W e have designed and tested the
+SysReq-CNLconsideringindustrialexamples(providedbyEmbrae r1).Wehavelateralsoconsidereddiﬀerent
+examples provided by diﬀerent companies. These include an exampl e provided by Mercedes, discussed in this
+paper, as well as others not discussed here: a consolidation function, al so in the aerospace domain, and the
+Ford car-alarm system reported in [ABJ+15]. In none of these case studies, there has been a need to adapt
+the CNL to cope with the new examples. So, we have some evidence that, although the CNL has a controlled
+structure, it is not limited to particular examples; rather, it se ems ﬂexible enough to express requirements of
+reactive systems more generally. Another aspect that also contributes to the general application of our CNL
+is the associated dictionary. While the CNL deﬁnes a writing struc ture, it does not restrict the vocabulary
+being used. The dictionary is deﬁned by the user and it is domain spe ciﬁc.
+The second phase of the NAT2TEST strategy is a semantic analysis, which m aps the syntax trees into an
+informal semantic representation based on the Case Grammar theory [Fil68] . We have previously generated
+formal representations of the system requirements directly from t his informal semantic representation. We
+have been able to construct models using CSP# [SLDP09] (the CSP [Ros 10] dialect processed by the Pro-
+cess Analysis Toolkit – PAT2), the Intermediate Model Representation (IMR [PVLZ11] – NAT2TEST IMR
+[CBL+14]) of the RT-Tester tool3, and the Software Cost Reduction (SCR [BBF97] – NAT2TEST SCR
+1www.embraer.com.br
+2http://pat.comp.nus.edu.sg/
+3https://www.veriﬁed.de/products/rt-tester/
+
+--- Page 4 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 3
+Fig. 1. The NAT2TEST strategy
+[CFB+14]) version accepted by the T-VEC tool4. This has allowed us to take advantage of a variety of
+testing tools and techniques.
+With those results, we have realised that, in spite of the particul arities of each notation (e.g., IMR/RT-
+Tester has native support for dealing with time, whereas in T-VEC we n eed to manually encode the time
+evolving), we have used diﬀerent notations to represent a common abst ract behaviour. Based on this obser-
+vation and on the experience of generating test cases using diﬀerent f ormal representations, and with the
+perspective of instantiating our approach to several other target notation s, we have proposed the DFRS
+model from which the more concrete notations can be generated. Translati ng the natural-language require-
+ments to an intermediate formal notation is a promising alternative. Th is makes it easier to generate models
+in several target notations, since the direct translation from natural-l anguage is a more elaborate task. A
+new architecture for our strategy that incorporates this new approach is presented in Fig. 1. Now, the third
+phase of the NAT2TEST strategy concerns the generation of DFRS models. Aft erwards, this model is used
+to generate more concrete notations. Our account and implementation of NAT2T EST with CSP [CSM13]
+already takes advantage of DFRS representations.
+Our focus in this paper is exactly the third step of NAT2TEST ( DFRS Generation ) and the DFRS model
+that it generates. A DFRS allows exploring the original requirements from diﬀerent perspectives, besides
+being independent of a speciﬁc tool. In [CSM13], where we present a CSP timed input-output conformance
+relation, we discuss our preliminary ideas for the DFRS model. In [C CR+14], we formalise the model using
+Z [ISO02], besides describing how to use it to represent reactiv e systems. We also prove that a DFRS can be
+characterised as a Timed Input-Output Transition System (TIOTS) —a labelled transition system extended
+with time, which is widely used to characterise conformance relati ons for timed reactive systems. Being more
+abstract than a TIOTS, a DFRS comprises a more concise representation of timed requirements.
+The present paper is an extension of [CCR+14]. Here, we propose a symbolic representation of DFRSs
+(s-DFRSs), deﬁne algorithms for incrementally generating s-DFRSs from natural-language requirements, and
+revise and extend the expanded DFRS (e-DFRS) discussed in [CCR+14]. An s-DFRS inherently avoids an
+explicit representation of possibly inﬁnite sets of states and, thu s, the state space explosion problem. An
+e-DFRS is built dynamically from its symbolic counterpart, possibl y limited to some bound, and then used
+in bounded analyses such as requirements consistency, completene ss, and reachability. To avoid confusion,
+we consider that, hereafter, s-DFRS and e-DFRS refer to symbolic an d expanded DFRSs, respectively, while
+DFRS refers to both of them. In summary, this work enhances our previ ous eﬀorts by:
+•Proposing a symbolic representation of DFRSs (s-DFRSs);
+4https://www.t-vec.com/solutions/tvec.php
+
+--- Page 5 ---
+4 G. Carvalho, A. Cavalcanti and A. Sampaio
+•Deﬁning six algorithms for incrementally generating s-DFRSs from nat ural-language requirements;
+•Revising and extending the expanded DFRS (e-DFRS) deﬁnition;
+•Deﬁning a translation function from s-DFRSs to e-DFRSs;
+•Showing how to check via e-DFRS whether the requirements are c onsistent, complete and reachable;
+•Presenting our tool support for manipulating DFRS models (s-DFRSs and e-DFRSs).
+Regarding related work, the formal model proposed here (DFRS) stands ou t for its richness and for the pos-
+sibility of fully automatic generation of models from natural-language requ irements. A DFRS can represent
+input-output variables, besides discrete and continuous time inf ormation.
+To evaluate the expressiveness of DFRSs, we consider examples from four domains: a vending machine
+(VM a- toy example); a control system for safety injection in a nuclear p ower plant (NPP — toy example);
+a priority command (PC) control provided by Embraer; and the turn ind icator system (TIS) of Mercedes
+vehicles. Test cases are independently generated for each example, and we assess whether they are compatible
+with the corresponding DFRS models.
+Section 2 provides the formal deﬁnition of an s-DFRS. Section 3 descr ibes how an s-DFRS can be
+automatically obtained from natural-language requirements; this strategy is implemented by the NAT2TEST
+tool.Section4ﬁrstrevisitsthedeﬁnitionofane-DFRS,thenexpl ainshowitcanbeobtainedfromitssymbolic
+counterpart. Finally, it shows how an e-DFRS model can be used to ch eck whether its corresponding natural-
+language requirements are consistent and complete. Section 5 present s a theoretical and a practical validation
+of DFRS models. Finally, Sections 6 and 7 address related work and pres ent our conclusions.
+2. Deﬁnition and properties of an s-DFRS
+In this section, ﬁrst, we give an informal overview of the deﬁnition of DFRSs, and then we provide a formal
+deﬁnition for its symbolic representation. It is important to say th at all deﬁnitions in Z presented here are
+syntactically correct and typed checked with the CZT plug-in for Ec lipse5.
+2.1. Overview of DFRSs
+A DFRS models an embedded system whose inputs and outputs are always available, as signals. The input
+signals can be seen as data provided by sensors, whereas the outputs as d ata provided to actuators. Each
+signal carries a binary value that represents boolean and numerical valu es. Hereafter, we directly refer to
+boolean ( trueandfalse, represented as 1and0, respectively) and numerical values, instead of their binary
+representation.
+It is assumed that a DFRS can also have internal timers, which might b e used to trigger timed-based
+behaviour. An e-DFRS represents a timed system with continuous or discrete behaviour modelled as a state-
+based machine. Each state comprises a valuation for each element of the sy stem: its inputs, outputs, and
+timers, as well as its global clock.
+The states of an e-DFRS are connected by delayandfunction transitions. A delay transition represents
+the observation of the input signals’ values after a given delay, where as the function transition represents
+how the system reacts to the input signals: the observed values of th e output signals. The transitions are
+encoded as assignments to input and output variables as well as timers.
+Asarunningexample,weconsideraVendingMachine(VM),whichis anadaptationofthecoﬀeemachine
+presented in [LMN04]. Despite being a toy example, the vending mach ine comprises many diﬀerent operating
+situations, which are described by ﬁve natural-language requirement s.
+Initially, the VM is in an idlestate. When it receives a coin, it goes to the choicestate. After inserting a
+coin, when the coﬀee option is selected, the system goes to the weakorstrongcoﬀee state. If coﬀee is selected
+within 30 seconds after inserting the coin, the system goes to the weak coﬀee state. Otherwise, it goes to the
+strong coﬀee state. The time required to produce a weak coﬀee is also diﬀerent f rom that of a strong coﬀee:
+the former is produced within 10 to 30 seconds, whereas the latter wi thin 30 to 50 seconds. Three seconds
+5http://czt.sourceforge.net/eclipse/
+
+--- Page 6 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 5
+Vending Machine
+request timersensor
+requestmode
+output
+Fig. 2. The vending machine speciﬁcation – abstract representation
+01
+2 5 40time(s)sensor01
+12 16 40time(s)request
+01234
+2 12 32 35 40time(s)mode
+012
+32 35 40time(s)output
+Fig. 3. Example of signals for the vending machine
+after having produced weak or strong coﬀee, the system goes to the resetstate, where it resets the type of
+the produced coﬀee to undeﬁned , and then returns to the idle state.
+As shown in Fig. 2, in this example we have two input signals related to the coin sensor ( sensor) and the
+coﬀee request button ( request). Atruevalue means that a coin was inserted and the coﬀee request button
+was pressed. There are two output signals related to the system mode (mode) and the vending machine
+output (output). The values communicated by these signals reﬂect the system possi ble states ( idle,choice,
+weak,strong, andreset) and the possible outputs ( undeﬁned ,weak, andstrong).
+The VM has just one timer: the requesttimer, which is used to register the moments when a coin is
+inserted, when the coﬀee request button is pressed, and when the coﬀee is produced. Fig. 3 illustrates a
+scenario where there is continuous observation of the input and output signals. If we had chosen to observe
+the system discretely, we would have a similar scenario, but with a discrete number of samples over time.
+In Fig. 3, a coin is inserted 2 seconds after starting the vending mac hine (the signal sensorchanges to 1
+–true). Immediately, the system state changes from idletochoice. Here, the system states are encoded as
+follows:idle/mapsto→1,choice/mapsto→0,weak/mapsto→3,strong/mapsto→2, andreset/mapsto→4. Therefore, this change is represented
+by changing the value of the signal modefrom 1 to 0. In this example, the signal sensorremains true for 3
+seconds.
+When 10 seconds have elapsed since the coin was inserted, which happ ens 2 seconds after starting the
+vending machine, the user requests a coﬀee (the signal requestbecomes true when the system global clock is
+equal to 12). At this moment, the system state changes to weakcoﬀee (the signal modebecomes 3). In this
+example, the signal requestremains true for 4 seconds.
+As the coﬀee request occurs within 30 seconds of the coin being inser ted, the system produces a weak
+coﬀee, which is represented as the value 2 of the signal output, 20 seconds after receiving the coﬀee request.
+We recall that a weak coﬀee is produced within 10 and 30 seconds after the coﬀee request. Then, as stated
+by the system description, the system goes to the resetstate (the value of signal modebecomes 4), and
+3 seconds later it goes back to the idlestate, besides resetting the outputtoundeﬁned (the signal output
+becomes 1).
+As a state-based notation, the example illustrated in Fig. 3 is represe nted in an e-DFRS as a set of
+states and transitions (see Fig. 4). The states are related by delay(D) and function (F) transitions. The
+former represents time elapsing along with input stimuli, where as the latter describes an instant reaction of
+
+--- Page 7 ---
+6 G. Carvalho, A. Cavalcanti and A. Sampaio
+the system. It is important to emphasize that the diagram presented i n Fig. 4 is just an illustration of an
+e-DFRS based on the particular scenario depicted in Fig. 3.
+The ﬁrst state is the top and left-most one: s,r,m,o,tandgcrepresent the current value of the coin
+sensor, the coﬀee request button, the system mode, the system out put, the request timer and the system
+global clock, respectively. The delay transition emanating from thi s state denotes that after 2 seconds a coin
+is inserted and, thus, the value of schanges to 1.
+Afterwards, the system reaction is illustrated by a function transi tion that changes the system mode to
+choice(0), besides resetting the request timer. This reset operation i s performed to register the moment
+when the coin is inserted, as this information is required when dec iding if the system should produce a weak
+or a strong coﬀee.
+The reset of a timer is represented by assigning 0 to it, but it is e ncoded as assigning the current value
+of the system global clock to the corresponding timer. This is possib le as we have a single and global clock
+source (the system global clock). Otherwise, we would need to updat e the value of all timers every time
+a delay transition is performed. We provide more details about this d esign decision when formalising the
+e-DFRS elements.
+We note that the changes produced by the transitions are highlighted in bold in Fig. 4. Moreover, each
+delay transition comprises the values of all input signals, whereas eac h function transition considers a subset
+of the output signals, besides the internal request timer, when app ropriate.
+When the user requests a coﬀee (third delay transition), as it is r equested 10 seconds after inserting the
+coin (gc−t= 12−2 = 10), the system goes to the weak(3) state, and resets again the request timer. Later
+(20s), it changes the system output to 2 to denote the production of weakcoﬀee. Finally, 3 seconds later it
+returns to the idle (1) state.
+The main diﬀerence between an s-DFRS and its expanded version, char acterised as just explained and
+illustratedinFig.4,isthatthecharacterisationofans-DFRSdeﬁnest heinitialstateandmeansofcalculating
+the next states via a set of functions. Diﬀerently, an e-DFRS compr ises the set of all states and how they
+are related by delay and function transitions. Now, after presenting an informal discussion of DFRS models,
+we deﬁne the s-DFRS precisely.
+2.2. Formal model of an s-DFRS
+Formally, an s-DFRS is a 6-tuple: ( I,O,T,gcvar,s0,F). Inputs ( I) and outputs ( O) are system variables,
+whereas timers ( T) are a distinct kind of variable, which can be used to model temporal b ehaviour. The
+global clock is gcvar, a variable whose values are non-negative numbers representing a dis crete or a dense
+(continuous) time. The initial state is s0, andFis a set of functions. In what follows, we describe in Z the
+constituent components of an s-DFRS.
+2.2.1. Inputs, Outpus and Timers
+We use a given set NAMEto represent the set of all valid variable names, and deﬁne gcto be the name of
+the system global clock; as speciﬁed in the sequel, the component gcvaris a pair that maps gcto its type.
+AlsoVNAME is the set of all system variables except for the global clock.
+[NAME]
+gc:NAME
+VNAME ==NAME\{gc}
+Based on these deﬁnitions, we deﬁne SVARS andSTIMERS to represent inputs and outputs as diﬀerent
+mappings of the same type, and timers, respectively, as ﬁnite partial functions from VNAME toTYPE. We
+assume that the system has a ﬁnite number of inputs, outputs and time rs; timers only hold non-negative
+values (natoruﬂoat).
+SVARS=={f:VNAME /mapsto/mapsto →TYPE|f/\e}atio\slash=∅ ∧ranf⊆ {bool,int,ﬂoat}}
+STIMERS =={f:VNAME /mapsto/mapsto →TYPE|ranf={nat} ∨ranf={uﬂoat}}
+
+--- Page 8 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 7
+s = 0
+r = 0
+m = 1
+o = 1
+t = 0
+gc = 0s = 1
+r = 0
+m = 1
+o = 1
+t = 0
+gc = 2s = 1
+r = 0
+m = 0
+o = 1
+t = 2
+gc = 2
+s = 0
+r = 0
+m = 0
+o = 1
+t = 2
+gc = 5s = 0
+r = 1
+m = 0
+o = 1
+t = 2
+gc = 12s = 0
+r = 1
+m = 3
+o = 1
+t = 12
+gc = 12
+s = 0
+r = 0
+m = 3
+o = 1
+t = 12
+gc = 16s = 0
+r = 0
+m = 3
+o = 1
+t = 12
+gc = 32s = 0
+r = 0
+m = 4
+o = 2
+t = 32
+gc = 32
+s = 0
+r = 0
+m = 4
+o = 2
+t = 32
+gc = 35s = 0
+r = 0
+m = 1
+o = 1
+t = 32
+gc = 35s = 0
+r = 0
+m = 1
+o = 1
+t = 32
+gc = 40(D) – 2s
+s := 1r := 0(F)
+m := 0t := 0
+(D) – 3ss := 0r := 0
+(D) – 7s
+s := 0r := 1(F)
+m := 3t := 0
+(D) – 4ss := 0r := 0
+(D) – 16s
+s := 0r := 0(F)
+m := 4o := 2t := 0
+(D) – 3ss := 0r := 0
+(F)
+m := 1o := 1(D) – 5s
+s := 0r := 0
+Fig. 4. The vending machine speciﬁcation – e-DFRS representation
+We consider as valid types boolean, integer and ﬂoat types ( bool, int, nat, ﬂoat, uﬂoat ). The type uﬂoat
+stands for unsigned ﬂoat numbers.
+TYPE::=bool|int|nat|ﬂoat|uﬂoat
+More complex types are not needed since we are dealing with systems w hose inputs and outputs are signals.
+As ﬂoat numbers are not part of Standard Z, we provide an axiomatisation that ful ﬁls our needs. For a more
+comprehensive axiomatisation, we refer, for instance, to ProofPower -Z6.
+The schema DFRSVARIABLES deﬁnes the variables of a DFRS as a set of inputs ( I), outputs ( O),
+timers (T) and a global clock ( gcvar). In Z, a schema is a named element used to structure and encapsul ate
+deﬁnitions for reuse. As IandOare distinct and non-empty sets, we have that a DFRS has at least one
+input and one output variable. Diﬀerently, one can have a system with no timers: a DFRS whose behaviour
+is not dependent on time elapsing. These three sets ( I,OandT) are disjoint.
+6http://www.lemma-one.com/ProofPower/index/index.htm l
+
+--- Page 9 ---
+8 G. Carvalho, A. Cavalcanti and A. Sampaio
+DFRSVARIABLES
+I,O:SVARS
+T:STIMERS
+gcvar:NAME×TYPE
+gcvar= (gc,nat)∨gcvar= (gc,uﬂoat)
+disjoint/a\}bracketle{tdomI,domO,domT/a\}bracketri}ht
+ranT⊆ {gcvar.2}
+We note that our model can represent discrete, gcvar= (gc,nat), or continuous time, gcvar= (gc,uﬂoat),
+systems. Besides that, the type of all timers must be the same (ran T⊆ {gcvar.2}): one can analyse the
+behaviour of the system discretely or continuously, but not in both w ays simultaneously.
+Example 1 Besides the system global clock, ﬁve variables are identiﬁed in the VM example (see Fig. 4): two
+systeminputs( thecoinsensor—s,thecoﬀeerequestbutton—r),twosystemoutputs( thesystemmode—
+m,thecoﬀeemachine output—o), and one timer ( therequesttimer—t). The sensor and the button are
+modelled by booleans that indicate whether a coin has been inserted or the button has been pressed. The
+system mode and the output of the VM are non-negative numbers. The requ est timer is modelled as a
+non-negative natural number since the temporal properties of the VM are d eﬁned in terms of discrete values
+(e.g., “... 30 seconds ...” instead of “... 30.0 seconds ...”). /square
+2.2.2. Initial state
+A state is a relation between names and values, which include boolean an d numerical values. The letter R
+refers to R, andR+to the positive elements of R.
+BOOLVALUES ::=TRUE|FALSE
+VALUE ::=b/a\}bracketle{t/a\}bracketle{tBOOLVALUES /a\}bracketri}ht/a\}bracketri}ht |i/a\}bracketle{t/a\}bracketle{tZ/a\}bracketri}ht/a\}bracketri}ht |n/a\}bracketle{t/a\}bracketle{tN/a\}bracketri}ht/a\}bracketri}ht |f/a\}bracketle{t/a\}bracketle{tR/a\}bracketri}ht/a\}bracketri}ht |uf/a\}bracketle{t/a\}bracketle{tR+/a\}bracketri}ht/a\}bracketri}ht
+Each name within a state is mapped to two values: the ﬁrst one represe nts the previous value, and the second
+one the current value. Therefore, Fig. 4 shows a simpliﬁed and not th e actual representation of states. For
+instance, in the ﬁrst state, s= 0 should be s/mapsto→(b(false),b(false)), and, in the second state, s= 1 should
+bes/mapsto→(b(false),b(true)). Note that in Fig. 4 we use numbers to represent boolean values.
+STATE==NAME /mapsto →(VALUE ×VALUE)
+Keeping the previous value of variables allows us to trigger system re actions to more complex behaviour.
+For example, the system goes to the choicestate at the exact moment when the coin sensor changes from
+false to true; in other words, when the previous value of sis 0 and the current one is 1.
+To simplify the access to current and previous values of a state, we c onsider two projection functions that
+yield the set of previous and current values of a given state: previousValues andcurrentValues , respectively.
+Their deﬁnition is not provided here as they are straightforward. Here , we concentrate on the most important
+deﬁnitions, but all omitted ones can be found in [CCS15]7.
+The initial state of an s-DFRS is then deﬁned as one possible state.
+DFRSINITIAL STATE== [s0:STATE]
+A variable n, whose type is t, is well typed in a state sif, and only if, nbelongs to the domain of s, and the
+previous and current values associated with ninsbelong to the set of possible values of t. This property
+of well typedness for variables in the context of a state is captured by the following predicate. Here, we use
+sets to denote predicates. The underlying idea is that welltypedvaris a set composed by all well typed
+variables. Therefore, we represent the fact of being well typed as b elonging to welltypedvar.
+welltypedvar:P(STATE×NAME×TYPE)
+∀s:STATE;n:NAME;t:TYPE;v1,v2 :VALUE |n∈doms∧(s(n)).1 =v1∧(s(n)).2 =v2•
+(s,n,t)∈welltypedvar⇔v1∈values(t)∧v2∈values(t)
+7Available for download in http://www.cin.ufpe.br/ ~ghpc/TR_DFRS.pdf
+
+--- Page 10 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 9
+The function valuesyields all possible values of a speciﬁc type t. Although we could directly access the range
+of a type, we use this auxiliary function to avoid legibility issues on bigger predicates.
+Now, we lift the deﬁnition of well typedness for a state. Considerin g a setfof variables (names related
+to types), a state sis well typed if, and only if, it provides a value for each variable (th at is, its domain is
+that of the function f) and those variables are well typed in s.
+welltypedstate:P(STATE×(NAME /mapsto →TYPE))
+∀s:STATE;f:NAME /mapsto →TYPE•(s,f)∈welltypedstate⇔
+doms= domf∧(∀n: domf;t:TYPE|f(n) =t•(s,n,t)∈welltypedvar)
+Example 2 Considering the example shown in Fig. 4, its initial state is:
+{(s/mapsto→(b(false),b(false)),r/mapsto→(b(false),b(false)),
+(m/mapsto→(n(1),n(1)),o/mapsto→(n(1),n(1)),
+(t/mapsto→(n(0),n(0)),gc/mapsto→(n(0),n(0))}
+Regarding the variables m(thesystemmode) ando(thecoﬀeemachine output), as previously said, the
+natural numbers represent elements of an enumeration of possible valu es:{0/mapsto→choice, 1/mapsto→idle, 2/mapsto→preparing
+strong coﬀee , 3/mapsto→preparing weak coﬀee , 4/mapsto→reset}, and{0/mapsto→strong coﬀee , 1/mapsto→undeﬁned output , 2/mapsto→weak
+coﬀee}, respectively. /square
+2.2.3. Functions
+The system behaviour is deﬁned as a non-empty ﬁnite set of function s (see schema DFRSFUNCTIONS )
+that describe how the system reacts in a given context. There is one function per system component; if the
+system comprises parallel components, we are going to have one function describing the behaviour of each
+component.
+DFRSFUNCTIONS == [F==F1FUNCTION ]
+A function is a set of tuples. Each one models how the system reacts i n a given context, which is characterised
+by a pair of static ( sGuard) and timed ( tGuard) guards, each one being a set (conjunction) of boolean
+expressions. The system reaction is denoted as a set of assignments ( asgmts). Note that one of the guards
+can be empty, but not both. As formalised later, the static guards range ove r input and output variables,
+whereas timed guards are restricted to timers.
+FUNCTION =={sGuard,tGuard:EXP;asgmts:ASGMTS |sGuard∪tGuard/\e}atio\slash=∅}
+When both guards evaluate to true in a given state, the system reacts in stantly performing the corresponding
+assignments. These reactions are the function transition (F) shown in Fig. 4. An s-DFRS does not capture
+this dynamic behaviour (occurrence of reactions explicitly), bu t only includes the deﬁnition of the function
+that symbolically characterises the reactions.
+The guards are expressions ( EXP) whose structure adheres to a Conjunctive Normal Form (CNF): a
+ﬁnite set of conjunctions ( CONJ) of disjunctions ( DISJ), where each disjunction has at least one binary
+expression ( BEXP).
+EXP==CONJ
+CONJ==FDISJ
+DISJ==F1BEXP
+A binary expression relates a variable ( VAR) with a literal ( VALUE) by means of an operator ( OP), which
+can beless than or equal to (le),less than (lt),equal to (eq),greater than (gt), andgreater than or equal to
+(ge).
+BEXP=={v:VAR;op:OP;literal:VALUE}
+OP::=le|lt|eq|ne|gt|ge
+The element VARrefers to the current or previous value of the corresponding variable . By previous value we
+mean the last value received as input, if it refers to an input variabl e, or the last value produced as output,
+otherwise.
+VAR::=current/a\}bracketle{t/a\}bracketle{tVNAME /a\}bracketri}ht/a\}bracketri}ht |previous/a\}bracketle{t/a\}bracketle{tVNAME /a\}bracketri}ht/a\}bracketri}ht
+
+--- Page 11 ---
+10 G. Carvalho, A. Cavalcanti and A. Sampaio
+Timers are variables continuously evolving in a discrete or dense fas hion, depending on their type and, thus,
+the notion of previous value does not necessarily apply. For instance, w hat would be the previous value of
+a timer whose current value is 3.52 seconds? So, although the model synt actically permits retrieving the
+previous values of timers, we prohibit this usage (see the following deﬁnition of varconsistent be).
+A binary expression is said to be consistent with respect to a set o f variables ( f) and a set of timers
+(T) if, and only if, v(the ﬁrst element of a binary expression) refers to a variable name ( n) within f, and
+the third element ( literal) is consistent with the type of the corresponding variable (it is one of the possible
+values of this variable). Moreover, if one of the operators le,lt,gtorgeis used,literalmust not be a boolean
+value. Finally, as explained in the last paragraph, if nis the name of a timer, then the binary expression
+must consider the current value of this variable. This consistency property is formalised by the following
+predicate.
+varconsistent be:P(BEXP×(VNAME /mapsto →TYPE)×(VNAME /mapsto →TYPE))
+∀be:BEXP;f,T:VNAME /mapsto →TYPE;n:VNAME |varName (be) =n•
+(be,f,T)∈varconsistent be⇔
+(n∈domf)∧be.3∈values(f(n))∧
+(be.2 =le∨be.2 =lt∨be.2 =gt∨be.2 =ge⇒be.3/∈values(bool))∧
+(n∈domT⇒be.1∈rancurrent)
+To get the name referenced by a binary expression, we rely on the auxi liary function varName , which projects
+theVNAME within the constructors currentorprevious. This concept of consistency is lifted to guards,
+which are said to be consistent if, and only if, all of its binary expres sions are consistent. The last component
+of a function entry is a ﬁnite and non-empty set of assignments ( ASGMTS ). The right-hand side of an
+assignment ( ASGMT ) is a value ( VALUE), and the left-hand side is the name of a variable ( VNAME ).
+ASGMT ==VNAME ×VALUE
+ASGMTS ==
+{asgmts:F1ASGMT |(∀asgmt1,asgmt2 :asgmts|asgmt1.1 =asgmt2.1•asgmt1 =asgmt2)}
+Note that it is not possible to deﬁne a set of assignments that considers d iﬀerent values to the same variable
+(e.g.,{(x,n(0)),(x,n(1))}). If such a scenario were allowed, it would not be clear what would be t he value
+ofxafter the assignments.
+This restriction does not prevent us from dealing with non-determ inistic requirements. For example, it
+is possible to say that the system can non-deterministically assign 0 or 1 to xin a certain situation. In this
+case, we would have two entries within the function, and the set of as signments of one would be {(x,n(0))},
+whereas {(x,n(1))}would be the assignment of the other one. Note that the property deﬁned he re with
+respect to assignments can be statically veriﬁed, whereas the veri ﬁcation of non-deterministic requirements
+demands a dynamic analysis.
+As deﬁned for expressions, the names mentioned by assignments should refer to one of the system vari-
+ables, and the assigned value should be consistent with the type of thi s variable. The following predicate
+(welltypedasgmts) formalises these assumptions.
+welltypedasgmts:P(ASGMTS ×(NAME /mapsto →TYPE))
+∀asgmts:ASGMTS ;f:NAME /mapsto →TYPE•(asgmts,f)∈welltypedasgmts⇔
+∀asgmt:asgmts•asgmt.1∈domf∧asgmt.2∈values(f(asgmt.1))
+Example 3 Considering the VM, the requirement that states that the system goe s to thechoicemode, and
+resets the request timer , when a coin is inserted while in the state idle, is formalised as follows:
+{({ {(current(m),eq,n(1))},{(current(s),eq,b(true))},{(previous(s),eq,b(false))} },∅,
+{(m,n(0),(r,n(0))})}
+The static condition is a conjunction of three binary expressions. Th e ﬁrst denotes that the system mode is
+1 (idle), the second that the current value of sistrue, and the third that the previous value of swasfalse(a
+coin was inserted). The time guard is empty, and when the static guard e valuates to true, the system shall
+assign 0 to m(go to the choicestate), and assign 0 to r(reset the request timer). /square
+
+--- Page 12 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 11
+2.2.4. Complete deﬁnition of an s-DFRS
+Considering the schemas DFRSVARIABLES ,DFRSINITIAL STATE, andDFRSFUNCTIONS , pre-
+viously deﬁned, an s-DFRS is deﬁned as follows.
+sDFRS
+DFRSVARIABLES
+DFRSINITIAL STATE
+DFRSFUNCTIONS
+(s0,I∪O∪T∪{gcvar})∈welltypedstate
+∀f:F• ∀entry:f•
+(entry.1,I∪O,T)∈varconsistent exp∧
+(entry.2,T,T)∈varconsistent exp∧
+(entry.3,O∪T)∈welltypedasgmts
+The schema sDFRSdeﬁnes a type that comprises the set of all valid s-DFRSs. Two invari ants hold for all
+valid elements of this type. An invariant is a constraint that must alwa ys be satisﬁed. First, the initial state
+is well typed with respect to all system variables. Second, for all e ntries of all functions deﬁned, the static
+guard is deﬁned only in terms of input and output variables, the timed gu ard only considers timers, and the
+assignments can only modify the value of outputs and timers.
+3. Formalising natural-language requirements
+Before explaining how an s-DFRS can be generated from natural-language req uirements, we present infor-
+mation about the ﬁrst two phases of the NAT2TEST strategy (see Fig. 1) that is essential for understanding
+the generation of s-DFRSs.
+3.1. Syntactic and semantic analyses
+The syntactic analysis checks whether the system requirements are correct with respect to the SysReq-CNL
+grammar, yielding the corresponding syntax trees if they are. Brieﬂ y, this Controlled Natural Language
+(CNL) allows writing requirements that have the form of action stateme nts guarded by conditions. For
+example, consider the REQ001 requirement for the VM, which is correc t according to the SysReq-CNL
+grammar.
+•When the system mode is idle, and the coin sensor changes to true, the co ﬀee machine system shall: reset
+the request timer, assign choice to the system mode.
+Thesemanticanalysisphasereceivesasinputthegeneratedsyntaxtr ees,anddeliversarequirementsemantic
+representation. In this work, we adopt the Case Grammar theory [Fil68] to represent meaning. In this theory,
+a sentence is analysed in terms of the semantic (Thematic) Roles (TR ) played by each word, or group of
+words in the sentence. The verb is the main element of the sentenc e, and it determines the possible semantic
+relations with other words in the sentences, that is, the role that eac h word plays with respect to the action
+or state described by the verb.
+The verb’s associated TRs are aggregated into a structure named as Case Fr ame (CF). Each verb in a
+requirement speciﬁcation gives rise to a diﬀerent CF. All derive d CFs are joined afterwards to compose what
+we call a Requirement Frame (RF). In other words, a requirement frame is a structure to encod e data such
+as the one presented in Table 1: a collection of case frames for conditions an d action statements.
+In this work, we consider four TRs (the adopted nomenclature is inspi red by [All95]) for the verbs used
+in action statements: action (ACT) – the action performed if the requi rement conditions are satisﬁed; agent
+(AGT) – entity who performs the action; patient (PAT) – entity who is aﬀected by the action; TOV – the
+patient value after action completion. Similarly, other ﬁve roles are de ﬁned for the verbs used in conditions:
+condition action (CAC), condition patient (CPT), condition from value ( CFV), condition to value (CTV),
+and condition modiﬁer (CMD).
+
+--- Page 13 ---
+12 G. Carvalho, A. Cavalcanti and A. Sampaio
+Table 1. Example of requirement frame for REQ001
+Condition #1 - Main Verb (CAC): is
+CPT: the system mode CFV: -
+CMD: - CTV: idle
+Condition #2 - Main Verb (CAC): changes
+CPT: the coin sensor CFV: -
+CMD: - CTV: true
+Action #1 - Main Verb (ACT): reset
+AGT: the coﬀee machine system TOV: -
+PAT: the request timer
+Action #2 - Main Verb (ACT): assign
+AGT: the coﬀee machine system TOV: choice
+PAT: the system mode
+Based on the inference rules deﬁned in [CFB+14], each word, or group of words, identiﬁed in the syntax
+tree is associated to the corresponding TR. For instance, Table 1 sho ws the requirement frame corresponding
+to REQ001. The requirement frames obtained from the system requirem ents are the input for the generation
+of s-DFRSs.
+An s-DFRS is derived from requirement frames according to three con secutive steps. First, the system
+variables are identiﬁed. Then, the functions that describe the sy stem behaviour are deﬁned. Finally, an
+s-DFRS is created from these two pieces of information. The followin g sections detail each step.
+3.2. Identifying variables
+We consider inputs as variables provided to the system by the envi ronment; their values cannot be modiﬁed
+bythesystem.Thus,avariableisclassiﬁedasaninputif,andonlyif ,itappearsonlyinconditions.Otherwise,
+if it also appears in action statements, it is classiﬁed as an output. To d istinguish between timers and other
+variables, we require the former to have the word “timer” as a suﬃx. T imers can appear both in conditions
+and in statements.
+Our algorithm for identifying variables (Algorithm 1) receives as input a list of requirement frames and
+yields a list of variables.
+After initializing the output (Line 1), the algorithm iterates over th e list of requirement frames (Line 2)
+analysing each condition (Lines 3–4), which comprises a conjunction of dis junctions, and each action (Line
+15). When analysing conditions, we extract variables from the Condition Patient (CPT) role.
+For example, Table 1 shows that “the system mode” is the CPT of the ﬁrst condition. Thus, if the
+corresponding variable has not yet been identiﬁed (Lines 6–7), we create a new variable considering the CPT
+content, replacing white spaces by an underscore (Lines 8–9), which is done by the “toString” function (Line
+5). So, in this case, we create the variable thesystemmode. Then, we verify whether the variable has the
+word“timer”as a suﬃx; if so, it is classiﬁed as a timer, otherwise it is an input (Li nes 10–11). Then we add
+the created variable to the list of identiﬁed variables (Line 12).
+To infer the type of the variable we analyse the value associated with i t in the case frame, which is the
+content of the CTV role. For instance, the variable thesystemmodeis associated with the value “idle”in
+the ﬁrst condition of Table 1. Thus, the algorithm extracts the CTV conte nt (Line 13), and uses it to infer
+the variable type, which is done by the inferType function (Line 14) that is later explained (see Algorithm 2).
+Lines 15–27 are analogous to those previously explained. The diﬀerences are as follows:
+•The variables are identiﬁed from the Patient (PAT) role;
+•If a variable that is initially identiﬁed as an input appears in action st atements, it is reclassiﬁed as an
+output (Lines 24–25);
+
+--- Page 14 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 13
+Algorithm 1: Identify Variables
+input :reqCFList
+output :varList
+1varList=new List ();
+2forreqCF∈reqCFList do
+3forandCond ∈reqCFdo
+4 fororCond ∈andCond do
+5 varName =toString (orCond.CPT);
+6 var=varList.ﬁnd(varName );
+7 ifvar==nullthen
+8 var=new Var (varName );
+9 var.type=undeﬁned ;
+10 ifvarName .endsWith (“timer”)thenvar.kind=timer;
+11 elsevar.kind=input;
+12 varList.add(var);
+13 value=toString (orCond.CTV);
+14 inferType (var,value,varList);
+15foraction∈reqCFdo
+16 varName =toString (action.PAT);
+17 var=varList.ﬁnd(varName );
+18 ifvar==nullthen
+19 var=newVar(varName );
+20 var.type=undeﬁned ;
+21 ifvarName .endsWith (“timer”)thenvar.kind=timer;
+22 elsevar.kind=output;
+23 varList.add(var);
+24 else ifvar.kind=inputthen
+25 var.kind=output;
+26 value=toString (action.TOV);
+27 ifvalue/negationslash=nulltheninferType (var,value,varList);
+28forvar∈varListdo
+29ifvar.type=enumthen
+30 ifvar.possibleValuesList .size() = 1thenvar.type=boolean;
+31 elsevar.type=integer;
+32else ifvar.kind=timer∧var.type=undeﬁned then
+33 var.type=ﬂoat
+34gcVar=newVar(gc);
+35allDiscrete =true;
+36allContinuous =true;
+37forvar∈varListdo
+38ifvar.kind=timer∧var.type=integerthenallContinuous =false;
+39ifvar.kind=timer∧var.type=ﬂoatthenallDiscrete =false;
+40ifallDiscrete thengcVar.type=integer;
+41else ifallContinuous thengcVar.type=ﬂoat;
+42elsethrow Exception (“timers: incompatible types”);
+43varList.add(gcVar);
+•The variable value is the content of the TOV role, excluding the case ( Line 27) when the “reset”verb is
+used (see the ﬁrst action of Table 1). In this case, the TOV is empty and what is assigned to the timer is
+the system global clock, which is an integer or a ﬂoat. In such a situation , we do not try to infer the type
+of the timer. If this timer is also mentioned in a condition, its typ e is determined by the value associated
+with it in this condition. If this timer is never mentioned withi n a condition, its type is left undeﬁned
+(Lines 32–33), and then we assume that its type will be ﬂoat, representing continuous time.
+Lines34–43createthesystemglobalclock( gc),besidesinferringitstype.Ifalltimersarediscrete(inte ger)
+or continuous (ﬂoat), the type of gcis integer or ﬂoat, respectively. If there are mixed types, an excep tion is
+thrown (Line 42). Finally, Lines 29–31 are related to the type inference ou tcome, which is explained in what
+follows.
+
+--- Page 15 ---
+14 G. Carvalho, A. Cavalcanti and A. Sampaio
+Algorithm 2 infers the variable type. First, this function veriﬁes whether the value received as argument
+is already listed as a possible value of the corresponding variable (Line 1). If not, this value is added to the
+list of possible values of the respective variable (Line 2), and this val ue is used to infer the variable type.
+Algorithm 2: Infer Type
+input :var,value,varList
+output :−
+1ifvalue/∈var.possibleValuesList then
+2outVar.possibleValuesList .add(value);
+3newType =undeﬁned ;
+4var=varList.ﬁnd(varName );
+5ifvar.kind=timerthen
+6 ifisFloat(value)thennewType =ﬂoat;
+7 else ifisInteger (value)thennewType =integer;
+8 elsethrow Exception (“incompatible type for a timer”);
+9else
+10 ifisBoolean (value)thennewType =boolean;
+11 else ifisFloat(value)thennewType =ﬂoat;
+12 else ifisInteger (value)thennewType =integer;
+13 elsenewType =enum;
+14ifvar.type/negationslash=undeﬁned ∧var.type/negationslash=newType thenthrow Exception (“type change is not allowed”);
+15elsevar.type=newType ;
+If the variable is a timer, the associated values need to be numbers (ﬂoat or integer), otherwise an
+exception is raised (Lines 5–8). If the variable is an input or an output, it s type might be boolean (if the
+value is the boolean constants “true” or “false” – Line 10), a ﬂoat or an integer (Li nes 11-12), or an enum
+(e.g., if the value is a string such as “idle” – see Table 1). It is worth mentioning that the enumtype is not
+expected within DFRS models. Therefore, later it is mapped to an i nteger.
+Ifthetypeof thevariableisundeﬁned,the functionassignstheinf erredtypetothe correspondingvariable
+(Line 15). However, if the variable already has a type, it is veriﬁed whe ther the inferred type from the current
+value is the same. If not, an exception is raised, since we expect typ e coherence between the values used
+with respect to the same variable (Line 14). In other words, for instance , a variable cannot be treated as a
+boolean and as an integer simultaneously.
+Finally, Lines 29–31 of Algorithm 1 map an enumtype to a boolean or an integer. It is mapped to
+a boolean when the enumeration has only one possible value (Line 30). For ins tance, for the variable
+thecoﬀeerequestbutton, whose possible value is “pressed” , we assume that “pressed” denotestrue, whereas
+“not pressed” meansfalse. However, if the number of possible values is greater than 1, the variabl e is clas-
+siﬁed as an integer (Line 31). This is the case of the variable thesystemmode, whose possible values are
+“choice”, “idle”, “preparing strong coﬀee”, “preparing weak coﬀe e”, “reset” . The type of this variable is
+integer considering the following mapping: {0/mapsto→choice, 1/mapsto→idle, 2/mapsto→preparing strong coﬀee , 3/mapsto→preparring
+weak coﬀee , 4/mapsto→reset}.
+3.3. Identifying functions
+Algorithm 3 identiﬁes functions that describe the system behaviou r. We identify one function for each
+diﬀerent Agent (AGT). We consider an agent as a system component, since this thematic role denotes the
+entity that performs an action. This algorithm yields a list of function s indexed by the corresponding agents.
+As previously formalised, each function is a list of action statements m apped to the respective static and
+timed guards.
+The algorithm iterates over the list of requirement frames (Line 2) to identify the guards (Lines 3–24)
+and the corresponding actions (Lines 25–28). The variables staticGuard andtimedGuard are declared to
+store the static and timed guards that are extracted from the conditions ( conjunctions of disjunctions) of
+each requirement (Lines 3–7). Then, for each disjunction, we obtain the corresponding boolean expression
+by means of the function generateConditionExpression (Line 8). Then, Lines 9–16 ﬁnd out the type (static
+or timed) of the expression. If the expression concerns a timer vari able, it represents a timed guard (Line
+12), otherwise it is a static one (Line 15).
+
+--- Page 16 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 15
+Algorithm 3: Identify Functions
+input :reqCFList ,varList
+output :functionMap
+1functionMap =new Map ();
+2forreqCF∈reqCFList do
+3staticGuard ,timedGuard =null;
+4forandCond ∈reqCFdo
+5 guardType =undeﬁned ;
+6 newTerm =null;
+7 fororCond ∈andCond do
+8 exp=generateConditionExpression (orCond,varList);
+9 varName =toString (orCond.PAT);
+10 var=varList.ﬁnd(varName );
+11 ifvar.kind=timerthen
+12 ifguardType =undeﬁned thenguardType =timed;
+13 else ifguardType =staticthenthrow Exception (“format error”);
+14 else
+15 ifguardType =undeﬁned thenguardType =static;
+16 else ifguardType =timedthenthrow Exception (“format error”);
+17 ifnewTerm =nullthennewTerm =exp;
+18 elsenewTerm =newTerm + “∨” +exp;
+19 ifguardType =staticthen
+20 ifstaticGuard =nullthenstaticGuard = (newTerm );
+21 elsestaticGuard =staticGuard + “∧” + (newTerm );
+22 else
+23 iftimedGuard =nullthentimedGuard = (newTerm );
+24 elsetimedGuard =timedGuard + “∧” + (newTerm );
+25actionList =new List ();
+26foraction∈reqCFdo
+27 actionStatement =generateStatement (action,varList);
+28 actionList .add(actionStatement );
+29componentName =toString (reqCF.actions.get(0).AGT);
+30function =functionMap .ﬁnd(componentName );
+31iffoundFunction =nullthen
+32 function =new Function ();
+33 functionMap .add(componentName ,function );
+34previousActionList =function .ﬁnd(staticGuard ,timedGuard );
+35ifpreviousActionList /negationslash=nullthen
+36 previousActionList .add(actionList )
+37else
+38 function .add(staticGuard ,timedGuard ,actionList )
+With this information, we check whether each conjunction concerns t he same type of guards (static
+or timed). If it is not the case, an exception is raised (Lines 13, 16). This is necessary, since we want to
+divide the conditions into two disjoint categories (static and timed ) without performing boolean algebra
+manipulation. As examples, we consider the following abstract cases: c1:T∧(c2:T∨c3:S)∧c4:Sand
+c1:T∧(c2:S∨c3:S)∧c4:S, wherecidenotes the i-th condition, and “ :S” and “:T” indicates whether the
+condition concerns a static or a timed guard, respectively. The ﬁrst expression does not comprise two disjoint
+sets of static and timed guards, whereas the second one does (timed: c1; static: ( c2∨c3)∧c4). Lines 17–18
+group each disjunction in newTerm , and Lines 19–24 group the disjunctions in staticGuard ortimedGuard
+depending on the type of the disjunctions.
+After identifying the static and timed guards, the algorithm iterates over the list of actions of the re-
+quirement frame and creates a list of action statements using the fun ctiongenerateStatement (Lines 25–28).
+Then, the algorithm checks whether a function is already created for t he current agent. If not, it cre-
+ates a new function and maps it to the current agent (Lines 29–33). Finally, t he element staticGuard ×
+timedGuard ×actionList is added to the corresponding function (Lines 37–38). If an entry for the pai r
+
+--- Page 17 ---
+16 G. Carvalho, A. Cavalcanti and A. Sampaio
+staticGuard ×timedGuard already exists, the list of actions is added to this entry (Lines 35–36). In what
+follows, we explain the auxiliary functions: generateConditionExpression andgenerateStatement .
+3.3.1. Generating condition expressions
+Algorithm 4 yields a boolean expression from a single case frame, which c omprises the condition thematic
+roles. The variable name is obtained from the CPT role (Line 1). Initially (Lines 2–7), the algorithm veriﬁes
+whether the verb being used, which is obtained from the CAC role, d enotes the previous value of a variable.
+This is the case when the verbs “was”and“were”are used. In this situation, the boolean expression concerns
+not the current value of a variable, but its previous one. As explained i n Section 2.2.3, we use the predicate
+previous(v) to denote the previous value of v, andcurrent(v), to denote its current value.
+Forinstance,thefragment “v was 2” meanstheconditionwherethepreviousvalueof visx,previous(v) =
+2. As we do not allow the use of the predicate previous(v) whenvis a timer, the algorithm raises an exception
+if it happens (Line 5).
+The next step is to obtain the value, which is compared to the variable . First, the value is obtained from
+the CTV role (Line 8). If the value is a string, we consider as value the i ndex of this string within the list
+of possible values of the corresponding variable (Line 9). For a concrete e xample, see the one shown in the
+end of Section 2.2.2.
+Afterwards, the algorithm inspects the content of the CMD role to ﬁnd ou t which operator is used in the
+expression (Line 10). Lines 11–16 check the content of the CMD role, and set b oolean ﬂags accordingly. If
+“lesser than” or“greater than” is used with a non-boolean variable, an exception is raised (Line 16). Base d
+on the boolean ﬂags, Lines 17–25 assign to operator the operator symbol used in the expression.
+After that, it creates the expression assembling these three elem ents: variable, operator, and value (Line
+26). Line 27 negates the expression if the negation ﬂag is true: when “not”is used as a modiﬁer.
+Finally, Lines 28–45 deal with a special case that occurs when the verbs “change” or“become” are used.
+When“change” is used, as explained in depth in [CFB+14], we expect one of the two following structures:
+“v changes from x to y” or“v changes to y” , whose meaning is previous(v) =x∧current(v) =yand
+previous(v)/\e}atio\slash=y∧current(v) =y, respectively. In the ﬁrst case, the CFV is not null, whereas in the second
+case it is null. It is important to note that the expression current(v) =yis already built by the algorithm
+(denoted as exp). Therefore, we just need to create a second condition expression r elated to the previous
+value ofv. Lines 30–44 create a temporary and auxiliary case frame with the verb “was”, which enforces the
+use ofprevious(v), and then we recursively call the function generateConditionExpression . If CFV is not null
+(Lines 30–35), e.g., “changes from x to y” , the CTV in the auxiliary case frame comprises the current CFV
+(x), otherwise (e.g., “changes to y” ) it is the negation of the current CTV ( y). After that, we compose the
+yielded expression ( previousExp ) with the expression previously identiﬁed by the algorithm ( exp) (Line 45).
+When the verb “become” is used (e.g., “becomes y” ), the algorithm behaves similarly to the case “changes
+to y”.
+This algorithm is tightly dependent on the verbs used. However, the verbs currently supported by our
+approach are suﬃcient to express requirements from diﬀerent examp les and domains. If more verbs are used,
+one just needs to extend this function, informing how to form an exp ression from its thematic roles. No extra
+change is needed.
+3.3.2. Generating action statements
+Algorithm 5 generates an action statement from a case frame that depicts an act ion. First, Lines 1–3 retrieve
+the verb from the ACT role, as well as the name of the variable involved in the action from the PAT role. If
+the variable is a timer and the verb is not reset, an exception is raise d, since timers can only be reset (Line
+4).
+The next step concerns the identiﬁcation of the value being assigned to the involved variable (Lines 5–9).
+If the verb is “reset”, the value that is assigned to the timer is 0 or 0.0, depending on its typ e (integer or
+ﬂoat). As already mentioned, and detailed when describing how an s-DFR S is used to produce an expanded
+one in Section 4.2, this assignment actually means assigning to the timer the system global clock. If the
+variable is not a timer, the value is the content of the TOV role (Line 8). If the content of TOV is not an
+integer, a ﬂoat or a boolean, it is a string. Therefore, we consider as valu e the index of this string within
+the list of possible values of the corresponding variable (Line 9). Fin ally, the action statement is created
+assembling the variable and the assigned value (Lines 10–11).
+
+--- Page 18 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 17
+Algorithm 4: Generate Condition Expression
+input :cond,varList
+output :exp
+1varName =toString (cond.CPT);
+2var=varList.ﬁnd(varName );
+3verb=cond.CAC;
+4ifverb.equals(“was”)∨verb.equals(“were”)then
+5ifvar.kind=timerthenthrow Exception (“previous cannot be used with timers”);
+6elsevarName =“previous(” + varName + “)”;
+7elsevarName =“current(” + varName + “)” ;
+8value=toString (cond.CTV);
+9if¬isInteger (value)∧¬isFloat(value)∧¬isBoolean (value)thenvalue=var.possibleValuesList .getIndex (value) ;
+10modiﬁer =cond.CMD;
+11negation ,lesserThan ,greaterThan ,equalTo =false;
+12ifmodiﬁer .contains (“not”)thennegation =true;
+13ifmodiﬁer .contains (“lesser than” )thenlesserThan =true;
+14ifmodiﬁer .contains (“greater than” )thengreaterThan =true;
+15ifmodiﬁer .contains (“equal to” )thenequalTo =true;
+16if(lowerThan ∨greaterThan )∧var.type=booleanthenthrow Exception (“lt/le/gt/ge cannot be used with booleans”) ;
+17operator =new String ();
+18iflesserThan then
+19ifequalTo thenoperator =“le”;
+20elseoperator =“lt”;
+21else ifgreaterThan then
+22ifequalTo thenoperator =“ge”;
+23elseoperator =“gt”;
+24else
+25operator =“eq”;
+26exp=varName +operator +value;
+27ifnegation thenexp=“¬(” +exp+ “)” ;
+28ifverb.contains (“change” )∨verb.contains (“become” )then
+29prevExp =null;
+30ifcond.CFV/negationslash=nullthen
+31 auxiliaryCond =new OrCond ();
+32 auxiliaryCond .CPT=cond.CPT;
+33 auxiliaryCond .CAC=“was”;
+34 auxiliaryCond .CTV=cond.CFV;
+35 previousExp =generateConditionExpression (auxiliaryCond );
+36else
+37 auxiliaryCond =new OrCond ();
+38 auxiliaryCond .CPT=cond.CPT;
+39 auxiliaryCond .CAC=“was”;
+40 auxiliaryCond .CTV=cond.CTV;
+41 auxiliaryCond .CMD=cond.CMD;
+42 previousExp =generateConditionExpression (auxiliaryCond );
+43 previousExp =¬previousExp ;
+44 previousExp =“¬(” +previousExp + “)”;
+45exp=prevExp + “∧” +exp;
+3.4. Creating an s-DFRS
+Based on the algorithms previous described, we create an s-DFRS from a l ist of requirement frames. This is
+done by Algorithm 6. First, the algorithm calls identifyVariables to identify the system variables (Line 1).
+Then, it divides this list into inputs, outputs, timers, and th e global clock (Lines 2–9).
+This algorithm also creates an initial binding considering 0as the initial default value for integers,0.0
+forﬂoats, andfalseforbooleans (Lines 10–12). Afterwards, the algorithm calls identifyFunctions to identify
+the functions that describe the system behaviour (Line 13). In the e nd (Lines 14–20), the algorithm creates
+an s-DFRS considering the list of inputs, outputs and timers, as wel l as the initial binding and the functions
+identiﬁed.
+
+--- Page 19 ---
+18 G. Carvalho, A. Cavalcanti and A. Sampaio
+Algorithm 5: Generate Statement
+input :action,varList
+output :actionStatement
+1verb=action.ACT;
+2varName =toString (action.PAT);
+3var=varList.ﬁnd(varName );
+4ifvar.kind=timer∧¬verb.equals(“reset”)thenthrow Exception (“timers can only be reset”) ;
+5value=null;
+6ifverb.equals(“reset”)∧var.type=integerthenvalue=“0”;
+7else ifverb.equals(“reset”)∧var.type=ﬂoatthenvalue=“0.0”;
+8elsevalue=toString (action.TOV);
+9if¬isInteger (value)∧¬isFloat(value)∧¬isBoolean (value)thenvalue=var.possibleValuesList .getIndex (value) ;
+10actionStatement =new Statement ();
+11actionStatement =varName + “:=” + value;
+Algorithm 6: Derive s-DFRS
+input :reqCFList
+output :dfrs
+1varList=identifyVariables (reqCFList );
+2inputList ,outputList ,timerList =new List ();
+3gc=null;
+4initialBinding =new Map ();
+5forvar∈varListdo
+6ifvar.kind=inputtheninputList .add(var);
+7else ifvar.kind=outputthenoutputList .add(var);
+8else ifvar.kind=timerthentimerList .add(var);
+9elsegc=var;
+10ifvar.type=integertheninitialBinding .add(var.name,0);
+11else ifvar.type=ﬂoattheninitialBinding .add(var.name,0.0);
+12elseinitialBinding .add(var.name,false);
+13functionMap =identifyFunctions (reqCFList ,varList);
+14dfrs=new sDFRS();
+15dfrs.I=inputList ;
+16dfrs.O=outputList ;
+17dfrs.T=timerList ;
+18dfrs.s0=initialBinding ;
+19dfrs.gcvar=gc;
+20dfrs.F=functionMap ;
+3.5. Tool support
+The algorithms presented here are implemented in the NAT2TEST tool. It is written in Java (it is multi-
+platform), and its Graphical User Interface (GUI) is built using the E clipse RCP8framework, which provides
+means to create client-side applications quickly using a collecti on of plug-ins.
+Each phase of the NAT2TEST strategy (see Fig. 1), is realised by a diﬀeren t component. The DFRS-
+Generator component is the one that implements the above algorithms. Fi g. 5 shows the inferred variables,
+along with their types for our vending machine. The tool also allows th e user to edit the initial values and,
+thus, the initial state.
+In Fig. 6 one can see part of the function obtained from the VM requirement s. It is important to note
+that the tool keeps traceability information between the requireme nts and the function entries. We also note
+that there are some syntactic sugars to prevent a verbose representat ion. For instance, previous is reduced
+toprev, andcurrentis simply hidden. Moreover, the format of the timed guard, as well as th e assignment of
+timers, show explicitly how timers are dealt with by our strategy: the reset of a timer is encoded as assigning
+the value of gcto the timer, and comparisons concerning the timer mean comparing the diﬀerence between
+the current value of gcand the timer. More details are provided in Section 4.2, where we expl ain how to
+obtain an e-DFRS from a symbolic one.
+8http://wiki.eclipse.org/index.php/Rich_Client_Platf orm
+
+--- Page 20 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 19
+Fig. 5. NAT2TEST tool – editing initial value of DFRS variables
+Fig. 6. NAT2TEST tool – viewing DFRS’ functions and traceability inform ation
+The tool also supports validation of the requirements by animating the s-DFRS; in other words, by
+manually exploring the state space of the corresponding e-DFRS. In Se ction 4.5 we detail this feature.
+In [CBC+15] we provide a comprehensive explanation of other aspects of the NAT2TES T tool. Particularly,
+we emphasise that, for all examples considered, the s-DFRS models ar e generated from the corresponding
+natural-language requirements within 1 second. The NAT2TEST tool, as we ll as the examples that are
+public, can be downloaded in http://www.cin.ufpe.br/ ~ghpc/.
+4. Deﬁnition and properties of an e-DFRS
+Here, we formalise e-DFRSs (Section 4.1), and show how they can be obtain ed from their symbolic coun-
+terpart (Section 4.2) via a sound process (Section 4.3). Moreover, we d escribe how an e-DFRS can be used
+to verify properties of the system requirements, such as consist ency, completeness and reachability (Sec-
+tion 4.4). We also describe here the support provided by the NAT2TEST tool with respect to e-DFRS
+models (Section 4.5).
+4.1. Formal model of an e-DFRS
+An e-DFRS diﬀers from the symbolic one as it encodes the system beha viour as a state-based machine,
+whereas an s-DFRS does that symbolically via deﬁnitions of functions . As we detail later, states are obtained
+from an s-DFRS by applying its functions to states where the corresp onding guards evaluate to true, but
+also letting the time evolve.
+4.1.1. Transition relation
+An e-DFRS has a set of states, which is named Sby the schema DFRSSTATES below. Besides that, it
+also has an initial state ( s0), which is an element of S. We note that, by deﬁnition, Shas at least one state
+(the initial state), since it is an element of STATES , which represents the non-empty power set of STATE.
+STATES ==P1STATE
+DFRSSTATES == [S:STATES ;s0:STATE|s0∈S]
+A transition relation (an element of TRANSREL deﬁned below) comprises a set of transitions ( TRANS). A
+transition relates two states by a label ( TRANS LABEL). As shown in Fig. 4, this label can be of a delay
+
+--- Page 21 ---
+20 G. Carvalho, A. Cavalcanti and A. Sampaio
+(del) or afunction (fun) transition.
+TRANS LABEL::=fun/a\}bracketle{t/a\}bracketle{tASGMTS /a\}bracketri}ht/a\}bracketri}ht |del/a\}bracketle{t/a\}bracketle{tDELAY ×ASGMTS /a\}bracketri}ht/a\}bracketri}ht
+TRANS == (STATE×TRANS LABEL×STATE)
+TRANSREL ==PTRANS
+A function transition represents the system instantaneous reaction as a set of assignments ( ASGMTS ), which
+are performed atomically. It is worth noting that, although the function t ransition describes an instantaneous
+reaction,itispossibletomodelsystemreactionsthatoccurafters ometimeelapsing.Wejustneedtoconsider
+a timer, which is reset when the event of interest happens, and th en use it later to check the elapsed time
+and to decide on what event to engage next. For instance, this approach is u sed in the VM example (see
+Fig. 4). When the coﬀee request button is pressed, the request tim er is reset (see the ﬁrst state on the second
+row). Afterwards, when a speciﬁc time has elapsed, the system reac ts producing coﬀee (see the last state on
+the third row).
+A delay transition represents model stimuli from the environmen t (input signals values) that happen
+immediately after a delay ( DELAY). We note that environment stimuli are modelled as a set of assignment s
+(ASGMTS ). A delay can represent a discrete or dense (continuous) time elap sing. The former delay is
+characterised by a positive natural number ( N1), whereas the latter by a positive ﬂoat number ( R+
+1).
+DELAY ::=discrete/a\}bracketle{t/a\}bracketle{tN1/a\}bracketri}ht/a\}bracketri}ht |dense/a\}bracketle{t/a\}bracketle{tR+
+1/a\}bracketri}ht/a\}bracketri}ht
+The reason for not allowing delays equal to 0 is that the delay transiti on represents interaction with the
+environment and, thus, it is not reasonable to assume that the environm ent can interact with the system,
+providing it with new stimuli, without time elapsing.
+Aiming at legibility, we deﬁne two auxiliary functions ( functionTransition anddelayTransition ), which
+project the elements of a transition. The deﬁnition of delayTransition is shown below. It is a partial function,
+since it can only be applied to delay transitions; its domain is equal t o the set of valid delay transitions
+(domdelayTransitions = randel). To obtain the delay and assignments embedded in a delay transition
+(denoted by labelbelow), we use the inverse deﬁnition of the constructor del(del∼), which yields a pair of
+delay and assignments ( DELAY ×ASGMTS ) from a given delay transition ( labelbelow). The inverse of del
+is well deﬁned, since, by deﬁnition in Z, all constructors are deﬁn ed as injections. Therefore, del∼exists,
+since the inverse of an injection is also a function. The function functionTransition is deﬁned similarly.
+delayTransition :TRANS LABEL /mapsto →DELAY ×ASGMTS
+domdelayTransition = randel
+∀label:TRANS LABEL|label∈randel•delayTransition (label) = (del∼)(label)
+All transitions of an e-DFRS are required to be well typed: a function transition must belong to the set of
+well typed function transitions ( welltypedfunction transition ), while a delay transition must belong to the
+analogous set ( welltypeddelaytransition ), besides being compatible with the type of the system global
+clock (clockcompatible transition ).
+To be well typed, a function transition must modify only values of out puts and timers. In other words,
+the system does not interfere with the environment stimuli, wh ich are modelled by input variables. This
+property is formalised by welltypedfunction transition when stating that the domain of functionTransition
+is a subset of or equal to the union of the domains of OandT. The outputs and timers that are not changed
+by the transition retain the same value.
+welltypedfunction transition :P(TRANS LABEL×
+(VNAME /mapsto →TYPE)×(VNAME /mapsto →TYPE))
+∀label:TRANS LABEL;O,T:VNAME /mapsto →TYPE|
+label∈ranfun•(label,O,T)∈welltypedfunction transition ⇔
+(dom(functionTransition (label))⊆(domO∪domT))
+Similarly, a delay transition is well typed if, and only if, its stat ements modify only values of inputs. Fur-
+thermore, there must be one statement concerning each input; on the occurrence of each delay transition,
+the system receives the current value of all its inputs. The pred icatewelltypeddelaytransition formalises
+these two requirements when stating that the domain of delayTransition is equal to the domain of I.
+
+--- Page 22 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 21
+welltypeddelaytransition :P(TRANS LABEL×(VNAME /mapsto →TYPE))
+∀label:TRANS LABEL;I:VNAME /mapsto →TYPE|label∈randel•
+(label,I)∈welltypeddelaytransition ⇔
+dom(delayTransition (label)).2 = dom I
+One might ﬁnd strange that here we expect the assignments to range over all inputs, whereas the function
+transition can cover only a subset of its outputs. We could have also ass umed here that the inputs that are
+not mentioned by the assignments retain the same value. However, this modelling decision would make the
+translation from s-DFRSs to e-DFRSs more complicated. We return to t his topic later, when explaining how
+e-DFRSs are obtained from symbolic ones.
+The delay transitions also need to be compatible with the system glob al clock in the sense that if the
+delay is discrete (an element of ran discrete), the type of the system global time must be nat, whereas if the
+delay is dense (an element of ran dense), the type of the clock must be uﬂoat. As a consequence, all delay
+transitions share the same type of delay, meaning that they are all disc rete or dense. This is captured by the
+clockcompatible transition property.
+clockcompatible transition :P(TRANS LABEL×(NAME×TYPE))
+∀label:TRANS LABEL;gcvar:NAME×TYPE•
+(label,gcvar)∈clockcompatible transition ⇔
+label∈randel∧
+((delayTransition (label)).1∈randiscrete⇒gcvar.2 =nat)∧
+((delayTransition (label)).1∈randense⇒gcvar.2 =uﬂoat)
+Now,wedeﬁneintheschema DFRSTRANSITION RELATION thetransitionrelation( TR)ofane-DFRS
+as an element of TRANSREL . As previously said, we assume that when the system is ready to react i t does
+so instantaneously. Therefore, it would not make sense to have both de lay and function transitions from the
+same state, since the system always reacts (performing the functi on transition), instead of letting the time
+evolve (performing the delay transition). This invariant is formali sed in what follows by the ﬁrst predicate:
+for every two transitions ( trans1 andtrans2) emanating from the same state ( trans1.1 =trans2.1), they are
+either function (they belong to ran fun) or delay transitions (they belong to ran del).
+DFRSTRANSITION RELATION
+TR:TRANSREL
+∀trans1,trans2 :TR|trans1.1 =trans2.1•
+{trans1.2,trans2.2} ⊆ranfun∨ {trans1.2,trans2.2} ⊆randel
+∀trans:TR• ¬(trans.1 =trans.3)
+Another invariant associated with TRis the absence of self-transitions: for all transitions, ¬(trans.1 =
+trans.3) holds. In the case of delay transitions, self-transitions do not make sense as every delay transition
+advances the time by some amount greater than 0 and, thus, the global clock of the next state is diﬀerent
+from the previous one. Concerning function transitions, self-trans itions are superﬂuous, since the absence of
+function transitions already indicates that the system state has not ch anged.
+For a concrete example, we refer to the second delay transition pres ented in Fig. 4: after the delay of 3s,
+there is no reaction by the system (there is no function transition ), and the system state remains the same
+until the following delay transition. Moreover, we note that the pos sibility of adding a function transition to
+this state (the last state on the second row) would violate the invariant that requires that only function or
+delay transitions ﬁre from the same state.
+4.1.2. Complete deﬁnition of an e-DFRS
+An e-DFRS is an element of the type deﬁned by the following schema: eDFRS. Hereafter, for simplicity,
+we only consider discrete delays, since dense delays are analogously deﬁned. For all valid e-DFRSs, three
+invariants hold. First, all states are well typed (they range over the same set of variables deﬁned as the
+system inputs, outputs, timers and global clock, besides mapping v alues consistent with the corresponding
+variable types). Second, all transitions are well typed. Third, the state reached by any transition is deﬁned
+by the previous state updated by the assignments performed by the tr ansition.
+
+--- Page 23 ---
+22 G. Carvalho, A. Cavalcanti and A. Sampaio
+To formalise this last property, we rely on the auxiliary function nextState . Given a source state and a set
+of assignments, the function nextState yields a new state updating all system variables, but the global clock ,
+according to these assignments. When dealing with delay transition s, besides considering the output of the
+function nextState ,wealsoupdatetheglobalclockaddingtoitsvalueinthesourcestatet hedelayperformed.
+This last case is formalised by the last invariant ( trans.2∈randel⇒trans.3 =...). After extracting the
+value embedded in the delay transition via the inverse deﬁnition ofdiscrete (discrete∼), and similarly the
+current value of the system global clock (value mapped to gc) in the source state (( n∼)((trans.1(gc)).2)),
+we add these two values and the result is deﬁned as the current value of the system global clock in the target
+state. The constructor nindicates that this result is a natural number. We note that the curr ent value of
+the system global clock in the source state (( trans.1(gc)).2) becomes the previous value of gcin the target
+state.
+eDFRS
+DFRSVARIABLES
+DFRSSTATES
+DFRSTRANSITION RELATION
+∀s:S•(s,I∪O∪T∪{gcvar})∈welltypedstate
+∀trans:TR• {trans.1,trans.3} ⊆S∧
+(trans.2,I,O,T,gcvar)∈welltypedtransition ∧
+(trans.2∈ranfun⇒trans.3 =nextState (trans.1,T,functionTransition (trans.2)))∧
+(trans.2∈randel⇒trans.3 =
+nextState (trans.1,T,(delayTransition (trans.2)).2)⊕{(gc,((trans.1(gc)).2,
+n((n∼)((trans.1(gc)).2)+(discrete∼)((delayTransition (trans.2)).1))))})
+The state yielded by the function nextState is obtained by overriding the values of the previous state by the
+assignments of a given transition ( s⊕...). Moreover, it updates accordingly the previous and current values
+of the variables: when a variable has its value updated, the current val ue of the previous state (( n,(v1,v2)))
+becomes the previous value of the next state, ( n,(v2,asgmts(n))).
+nextState : (STATE×(NAME /mapsto →TYPE)×ASGMTS )→STATE
+∀s:STATE;T: (NAME /mapsto →TYPE);asgmts:ASGMTS •nextState (s,T,asgmts) =s⊕
+({n:NAME;v1,v2 :VALUE |(n,(v1,v2))∈s∧n∈domasgmts∧
+n/∈domT•(n,(v2,asgmts(n)))}∪
+{n:NAME;v1,v2 :VALUE |(n,(v1,v2))∈s∧n∈domasgmts∧
+n∈domT•(n,(v1,(s(gc)).2))})
+We note that there is a diﬀerent deﬁnition when dealing with timer s (n∈domT). In this case, the reset
+of a timer, which is represented by assigning 0, is encoded as an assign ment of the current value of the
+global clock, ( s(gc)).2. As the system has a single clock, it is easier to encode time reset by assigning the
+current value of the global clock, instead of assigning 0 and updating its value every time a delay transition
+is performed. Therefore, when evaluating timed guards such as t<v, wheretis a timer and va value, we
+actually evaluate the result of ( gc−t)<v, wheregcis the current value of the system global clock. Despite
+this representation, the previous value of the timer remains unchan ged.
+4.2. From s-DFRSs to e-DFRSs
+The function expandedDFRS deﬁnes how an e-DFRS can be obtained from a symbolic one. The inputs
+(I), outputs ( O), timers ( T), the global clock ( gcvar), and the initial state ( s0) are the same within both
+representations ( dfrs.I=symDFRS .I∧dfrs.O=symDFRS .O∧dfrs.T=symDFRS .T∧dfrs.gcvar=
+symDFRS .gcvar∧dfrs.s0=symDFRS .s0). The transition relation ( TR) is obtained via the auxiliary
+function buildTR (dfrs.TR=buildTR({dfrs.s0},∅,dfrs.I,dfrs.O,dfrs.T,symDFRS .F)). The states of an
+e-DFRS ( S) are deﬁned as the states related by this transition relation ( trans.1 andtrans.3), besides the
+initial state.
+
+--- Page 24 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 23
+expandedDFRS :sDFRS→eDFRS
+∀symDFRS :sDFRS;dfrs:eDFRS•expandedDFRS (symDFRS ) =dfrs⇔
+dfrs.I=symDFRS .I∧dfrs.O=symDFRS .O∧dfrs.T=symDFRS .T∧
+dfrs.gcvar=symDFRS .gcvar∧dfrs.s0=symDFRS .s0∧
+dfrs.TR=buildTR({dfrs.s0},∅,dfrs.I,dfrs.O,dfrs.T,symDFRS .F)∧
+dfrs.S=/uniontext{trans:dfrs.TR• {trans.1,trans.3}}∪{dfrs.s0}
+The function buildTR has six parameters: a set of states to visit ( toVisit), a set of visited states ( visited),
+the inputs ( I), the outputs ( O), the timers ( T), and the functions of an s-DFRS ( F). We note that in
+expandedDFRS , with respect to the function buildTR,toVisithas a single state to visit ( {dfrs.s0}), and
+visitedis an empty set. Recursively, the function buildTR identiﬁes new states to visit by the application of
+function and delay transitions that can emanate from the already visited states.
+buildTR : ((PSTATE)×(PSTATE)×(NAME /mapsto →TYPE)×
+(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×(F1F1FUNCTION ))→TRANSREL
+∀toVisit,visited:PSTATE;I,O,T:NAME /mapsto →TYPE;F:F1F1FUNCTION •
+(toVisit=∅ ⇒buildTR(toVisit,visited,I,O,T,F) =∅)∧
+(toVisit/\e}atio\slash=∅ ⇒ ∃s:toVisit;tr1 :TRANSREL •
+genTransitions (s,I,O,T,F) =tr1∧
+buildTR(toVisit,visited,I,O,T,F) =tr1∪
+buildTR((toVisit∪{trans:tr1•trans.3})\(visited∪{s}),visited∪{s},I,O,T,F))
+As an inductive function, the base case for builtTRhappens when toVisitis empty. For this value of toVisit,
+we have that buildTR(toVisit,visited,I,O,T,F) is an empty transition relation. In the inductive case,
+toVisitis not empty and, thus, there is at least one state sin the states to visit ( s:toVisit). The result
+ofbuildTR is then deﬁned as the union of the relation transition ( tr1) obtained via genTransitions , which
+considers the emanating transitions from s, with the result of the recursive application of buildTR. This
+recursive application considers the not yet visited states, and also the new states reached by tr1 (toVisit∪
+{trans:tr1•trans.3})\(visited∪ {s}). We note that we also need to add sto the set of visited states
+(visisted∪{s}).
+The function genTransitions identiﬁes either function or delay transitions from a given state s. Delay
+transitions are performed from stable states, whereas function transi tions occur in non-stable states. A state
+sis stable, ( s,...)∈isstable, when it does not represent a situation that triggers a system reacti on: for all
+entries of the functions ( entry∈f) of an s-DFRS ( f∈F), their static ( entry.1) and timed guards ( entry.2)
+evaluate to false. The predicates staticguardstrueandtimedguardstrue, which are not presented here,
+are deﬁned as the set of all static and timed guards that evaluate to true in a given state.
+isstable:P(STATE×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×(F1F1FUNCTION ))
+∀s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);F:F1F1FUNCTION •
+(s,IO,T,F)∈isstable⇔
+∀f:F• ∀entry:f•(s,entry.1,IO,T)/∈staticguardstrue∨
+(s,entry.2,T)/∈timedguardstrue∨s=nextState (s,T,entry.3)
+A state is also considered to be stable if the reaction denoted by the as signments associated with these
+guards lead to a target state that is equal to the current one ( s=nextState (s,T,entry.3)). In other words,
+the assignments do not have any eﬀect. If there is no eﬀect, this st ate is considered stable, since we do not
+have self transitions.
+If a state sis stable, there are delay transitions emanating from sfor all possible delays, delay∈
+possibleDelays (...), which is formalised later, and all possible valid assignments, those whose values are
+consistent with the variable types ( asgmts.2∈values(I(asgmts.1))). These assignments also need to range
+overthecompletesetofinputs(dom asgmts= domI).Thereachedstateisdeﬁnedbythefunction nextState ,
+but also updating the system global clock based on the performed delay (nextState (...)⊕ {(gc,...+...)}).
+These three information (the given state – s; the delay transition considering a delay value and assignments
+–del((delay,assigmts)); and the reached state – nextState (...)⊕ {(gc,...)}) are used to deﬁne the delay
+transition part of the result of genTransitions .
+
+--- Page 25 ---
+24 G. Carvalho, A. Cavalcanti and A. Sampaio
+s = 0
+r = 0
+m = 1
+o = 1
+t = 0
+gc = 0s = 0
+r = 0
+m = 1
+o = 1
+t = 0
+gc = 1s = 1
+r = 0
+m = 1
+o = 1
+t = 0
+gc = 1
+s = 0
+r = 1
+m = 1
+o = 1
+t = 0
+gc = 1s = 1
+r = 1
+m = 1
+o = 1
+t = 0
+gc = 1(D) – 1s
+s := 0r := 0(D) – 1s
+s := 1r := 0
+(D) – 1ss := 0r := 1(D) – 1ss := 1r := 1
+Fig. 7. The vending machine speciﬁcation – example of delay transition s
+genTransitions : (STATE×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×
+(NAME /mapsto →TYPE)×(F1F1FUNCTION ))→TRANSREL
+∀s:STATE;I,O,T: (NAME /mapsto →TYPE);F:F1F1FUNCTION •
+((s,I∪O,T,F)∈isstable⇒genTransitions (s,I,O,T,F) =
+{delay:DELAY;asgmts:ASGMTS |delay∈genPossibleDelays (s,I∪O,T,F)∧
+domasgmts= domI∧(∀asgmt:asgmts•asgmt.2∈values(I(asgmt.1)))•
+(s,del((delay,asgmts)),nextState (s,T,asgmts)⊕
+{(gc,((s(gc)).2,n((n∼)((s(gc)).2)+(discrete∼)(delay))))})})∧
+((s,I∪O,T,F)/∈isstable⇒genTransitions (s,I,O,T,F) =
+{entry:FUNCTION |(∃f:F•entry∈f)∧
+(s,entry.1,I∪O,T)∈staticguardstrue∧(s,entry.2,T)∈timedguardstrue•
+(s,fun(entry.3),nextState (s,T,entry.3))})
+Fig. 7 shows a concrete example of delay transitions emanating from the initial state of the VM. We note
+that we have a transition for each valid combination of input values: the c oin sensor and the request button
+remain false (ﬁrst state on ﬁrst row), only the coin sensor becomes tru e (third state on ﬁrst row), only the
+request button becomes true (ﬁrst state on second row), and both signal s become true (second state on
+second row). Although only the transitions with delay equal to 1 second are shown, there are transitions
+with greater delays (2s, 3s, ...) emanating from the initial state. In t his case, all delays are possible and, thus,
+there is no upper bound. This leads to an inﬁnite number of delay t ransitions emanating from the initial
+state.
+To understand how we deﬁne the maximum valid delay, we ﬁrst need t o explain the concept of enabling
+delays, which is captured by the following partial function enablingDelays . The domain of this function is
+the set of states that are stable, ( s,...)∈isstable. Given a stable state sand a single entry ( entry) of a
+function of an s-DFRS, the function enablingDelays yields a set of delays such that, after advancing the
+time by this delay (( gc,...+...)), without changing any input value, the reached state ( next) is not stable,
+(next,...)/∈isstable. In other words, if we just let the time evolve by some amount, we are goin g to see
+some reaction of the system.
+enablingDelays : (STATE×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×FUNCTION )/mapsto →PDELAY
+domenablingDelays ={s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);
+entry:FUNCTION |(s,IO,T,{{entry}})∈isstable•(s,IO,T,entry)}
+∀s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);entry:FUNCTION •
+enablingDelays (s,IO,T,entry) ={delay:DELAY;next:STATE|next=s⊕
+{(gc,((s(gc)).2,n((n∼)((s(gc)).2)+(discrete∼)(delay))))} ∧
+(next,IO,T,{{entry}})/∈isstable•delay}
+
+--- Page 26 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 25
+The situation described in the end of the last paragraph (reaching a non- stable state by just letting the time
+advance) happens in the VM when the system is producing coﬀee. After pressing the coﬀee request button, if
+a weak coﬀee is going to be produced, we observe this system reaction w ithin 10 to 30 seconds. Therefore, if
+weareintheﬁrststateonthethirdrow(Fig.4),fordelaysgreaterthan orequalto10andlowerthanorequal
+to 30, we observe a system reaction leading the system to the reset st ate, besides changing accordingly the
+system output. In such a state, for instance, it would not make sense t o have a delay transition, whose delay
+is 31, since we would be modelling an input received after elapsing 31 seconds, but before this input being
+received we should have observed a system reaction. This captures the principle of delayable transitions: the
+time might advance an arbitrary amount as long as it does not disable an enabled transition.
+ConsideringthesituationexplainedinthelastparagraphfortheVMexamp le,thefunction enablingDelays
+yields the set 10 ..30. It is worth noting that the result of enablingDelays can be an inﬁnite set, for example,
+if a weak coﬀee should be produced at least 10 seconds after its request . In such a case, as we do not have
+an upper bound, the result of enablingDelays is 10..∞.
+Now,givenastablestate s,andconsideringallfunctionsofans-DFRS( F),thefunction maxDelays yields
+the upper bound ( upperBound ) of the set enabling delays ( delays=enablingDelays (...)) with respect to each
+entry (entry∈f) of the s-DFRS functions ( f:F). Ifdelaysis not empty, discrete(upperBound )∈delays,
+and there is an upper bound, ∀n:delays•(discrete∼)(n)≤upperBound ,delaysis not inﬁnite; this upper
+bound is considered in the return of maxDelays . In other words, its result considers the maximum delay
+allowed, based on the delayable principle, for each entry of the functions of an s-DFRS.
+maxDelays : (STATE×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×(F1F1FUNCTION ))/mapsto →FN1
+dommaxDelays ={s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);
+F: (F1F1FUNCTION )|(s,IO,T,F)∈isstable•(s,IO,T,F)}
+∀s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);F:F1F1FUNCTION •
+maxDelays (s,IO,T,F) ={f:F;entry:FUNCTION ;delays:PDELAY;upperBound :N1|
+entry∈f∧delays=enablingDelays (s,IO,T,entry)∧discrete(upperBound )∈delays∧
+(∀n:delays•(discrete∼)(n)≤upperBound )•upperBound }
+To deﬁne the set of possible delays that we need to consider when gen erating delay transitions, we rely
+on the auxiliary function genPossibleDelays . Basically, for a given state s, if the result of the application
+ofmaxDelays is empty ( maxDelays (...) =∅), it means that there is no upper bound we need to consider
+and, thus, all delays are possible, genPossibleDelays (...) ={delay:DELAY}. Otherwise, we can perform all
+delays that are lower than or equal to the lowest upper bound deﬁned b ymaxDelays , (discrete∼)(delay)≤
+miniumDelay (...). The function mininumDelay yields this lowest upper bound, whose deﬁnition is not shown
+here as it is straightforward.
+genPossibleDelays : (STATE×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×(F1F1FUNCTION ))
+/mapsto →PDELAY
+domgenPossibleDelays ={s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);
+F: (F1F1FUNCTION )|(s,IO,T,F)∈isstable•(s,IO,T,F)}
+∀s:STATE;IO: (NAME /mapsto →TYPE);T: (NAME /mapsto →TYPE);F:F1F1FUNCTION •
+(maxDelays (s,IO,T,F) =∅ ⇒genPossibleDelays (s,IO,T,F) ={delay:DELAY})∧
+(maxDelays (s,IO,T,F)/\e}atio\slash=∅ ⇒genPossibleDelays (s,IO,T,F) ={delay:DELAY |
+(discrete∼)(delay)≤minimumDelay (maxDelays (s,IO,T,F))})
+To ﬁnish our explanation of how to obtain an e-DFRS from a symbolic one, we n eed to detail how function
+transitions are created. If we refer to the deﬁnition of genTransitions , presented at the beginning of this
+section and partially reproduced below, we can see that function tran sitions, ( s,fun(...),...), emanate from
+states that are not stable. ( s,...)/∈isstable.
+
+--- Page 27 ---
+26 G. Carvalho, A. Cavalcanti and A. Sampaio
+genTransitions : (STATE×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)×
+(NAME /mapsto →TYPE)×(F1F1FUNCTION ))→TRANSREL
+∀s:STATE;I,O,T: (NAME /mapsto →TYPE);F:F1F1FUNCTION •
+...∧
+((s,I∪O,T,F)/∈isstable⇒genTransitions (s,I,O,T,F) =
+{entry:FUNCTION |(∃f:F•entry∈f)∧
+(s,entry.1,I∪O,T)∈staticguardstrue∧(s,entry.2,T)∈timedguardstrue•
+(s,fun(entry.3),nextState (s,T,entry.3))})
+For every entry ( entry∈f) of the functions of an s-DFRS ( f:F), whose static ( entry.1) and timed guards
+(entry.2) evaluate to true, we add a function transition with the correspondin g assignments, fun(entry.3),
+leading to a target state that is the previous one modiﬁed by these assi gnments ( nextState (...)). In the VM
+example, we have a deterministic system. However, for non-deter ministic systems, we would have more than
+one function transition emanating from the same source state.
+In summary, from the initial state of an s-DFRS, we recursively iden tify which states are reached by
+function and delay transitions. The set of all reachable states, which is deﬁned as the states of an e-DFRS,
+besidestheirtransitions,isconsideredthetransitionrelationof ane-DFRS.Theotherelementsofane-DFRS
+are directly obtained from the corresponding symbolic ones.
+4.3. Soundness of generation of an e-DFRS
+Besides presenting a function that yields an e-DFRS from a symboli c one, it is important to show that this
+function is sound: for all s-DFRSs, all invariants of eDFRShold in the obtained e-DFRS (Theorem 4.1).
+Theorem 4.1. Soundness of expandedDFRS
+∀symDFRS :sDFRS•expandedDFRS (symDFRS )∈eDFRS
+The complete proof of Theorem 4.1 is available in [CCS15]. Here, we prese nt a proof sketch. The three
+invariants of DFRSVARIABLES (reproduced below) trivially hold as the elements I,O,T, andgcvarare
+the same of the corresponding s-DFRS, and these properties are also in variants of valid s-DFRSs.
+gcvar= (gc,nat)∨gcvar= (gc,uﬂoat)
+disjoint/a\}bracketle{tdomI,domO,domT/a\}bracketri}ht
+ranT⊆ {gcvar.2}
+The invariant of DFRSSTATE(s0∈S) also holds, since expandedDFRS deﬁnesSas the union of the states
+ofTRwiths0. The invariants of DFRSTRANSITION RELATION (reproduced below) are also preserved
+by the function expandedDFRS .
+∀trans1,trans2 :TR|trans1.1 =trans2.1•
+{trans1.2,trans2.2} ⊆ranfun∨ {trans1.2,trans2.2} ⊆randel
+∀trans:TR• ¬(trans.1 =trans.3)
+The ﬁrst one holds because function transitions are only created from non -stable states, whereas delay
+transitions are created from stable states. As one state cannot be non-stabl e and stable simultaneously, all
+transitions emanating from a state are function or delay ones. We also do n ot have self transitions as the
+delay transitions advance the time by a value greater than 0 and, thus, i t leads to a diﬀerent state (a diﬀerent
+value for global clock). The function transition is only performed if it has a collateral eﬀect (changes the
+value of at least one variable) and, thus, it also leads to a diﬀerent state . Therefore, the second invariant of
+DFRSTRANSITION RELATION also holds.
+The function expandedDFRS also preserves the invariants of eDFRS. Concerning the ﬁrst one (repro-
+duced below), a state is said to be well typed if, and only if, it range s over the complete set of system
+variables, and the values assigned to them are consistent with the vari able types.
+∀s:S•(s,I∪O∪T∪{gcvar})∈welltypedstate
+Considering the deﬁnition of buildTR, the states of an e-DFRS are reachable from its initial state, which is
+well typed based on the deﬁnition of s-DFRSs, performing delay and f unction transitions. Each transition
+
+--- Page 28 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 27
+onlychangesthevaluesmappedtothevariables,butnotthesetofvariabl es.Therefore,allstatesconsiderthe
+same set of variables, which are all system variables. Concerning the c onsistency of values, the assignments
+performed by the transitions also need to be consistent with the var iable types and, thus, this consistency is
+respected in all states.
+Now, we explain why the invariants related to the transition relation ( reproduced below) also hold.
+∀trans:TR• {trans.1,trans.3} ⊆S∧
+(trans.2,I,O,T,gcvar)∈welltypedtransition ∧
+(trans.2∈ranfun⇒trans.3 =nextState (trans.1,T,functionTransition (trans.2)))∧
+(trans.2∈randel⇒trans.3 =
+nextState (trans.1,T,(delayTransition (trans.2)).2)⊕{(gc,((trans.1(gc)).2,
+n((n∼)((trans.1(gc)).2)+(discrete∼)((delayTransition (trans.2)).1))))})
+The ﬁrst invariant is clearly preserved, since expandedDFRS deﬁnesSas all states related by TR, besides
+its initial state. Regarding the second invariant of eDFRS, which states that all transitions are well typed,
+it is a consequence of how delay and function transitions are deﬁned b y the function genTransitions . As one
+can notice from the deﬁnition of this function, the delay transition c onsiders all input variables, and the
+delay value is consistent with the system global clock. Therefore, the delay transitions are well typed and
+clock compatible. The function transitions are deﬁned considering the assignments mapped to static and
+timed guards of the functions of an s-DFRS. Considering the deﬁnition of s-DFRSs, these assignments are
+well typed and, thus, consider a subset of the system outputs and ti mers. Therefore, the function transitions
+of an e-DFRS are also well typed.
+Finally, the last invariants of eDFRSsay that the target state of a delay and a function transition
+is deﬁned by the source state updated with the corresponding assignm ents, besides advancing the system
+global clock by the delay value in delay transitions. This is exactly how the next (target) states are deﬁned
+by the auxiliary function genTransitions and, thus, this last invariant holds too.
+4.4. Verifying properties of requirements via e-DFRSs
+By exploring the state space of an e-DFRS, we can verify interesting properties of the system requirements.
+Besides checking whether the requirements are ambiguous (hereaf ter, called inconsistent) or incomplete, we
+can also verify the presence of unreachable requirements and time l ock.
+4.4.1. Consistent requirements
+The system requirements are said to be consistent if, and only if, t hey do not describe diﬀerent system
+reactions for the same context (state). Deﬁnition 4.1 formalises this c oncept.
+Deﬁnition 4.1. Consistent requirements: let reqsbe an arbitrary set of requirements, and symDFRS the
+corresponding s-DFRS obtained via Algorithm 6; the following predicat e deﬁnes when these requirements
+are said to be consistent:
+consistent (reqs)⇔ ∃dfrs:eDFRS|dfrs=expandedDFRS (symDFRS )•
+∀s:dfrs.S•(s,dfrs.I∪dfrs.O,dfrs.T,symDFRS .functions )/∈isstable⇒
+∀f1,f2 :symDFRS .F• ∀e1 :f1;e2 :f2•
+{(s,e1.1,dfrs.I∪dfrs.O,dfrs.T),(s,e2.1,dfrs.I∪dfrs.O,dfrs.T)} ⊆staticguardstrue
+∧ {(s,e1.2,dfrs.T),(s,e2.2,dfrs.T)} ⊆timedguardstrue⇒e1 =e2
+According to the algorithms presented in Section 3, each requirement is mapped to an entry of a func-
+tion. Therefore, if the requirements are consistent, for all states (s) of the e-DFRS ( dfrs), if the guards
+(.1,.2) of two entries ( e1,e2) of two arbitrary functions ( f1,f2) evaluate to true ( ...⊆staticguardstrue
+and...⊆timedguardstrue) in the same non-stable state, ( s,...)/∈isstable, these entries are the same
+(e1 =e2). In such a case, we say that the requirements are consistent. Oth erwise, we would have two diﬀer-
+ent system reactions for the same state. /square
+To give a concrete example of inconsistent requirements, we consid er the following ones:
+•When input1 is true, the system shall assign 1 to output1.
+
+--- Page 29 ---
+28 G. Carvalho, A. Cavalcanti and A. Sampaio
+•When input1 is true, the system shall assign 2 to output1.
+These two requirements are not consistent, since they describe diﬀerent system reactions (assigning 1 or
+assigning 2, respectively) for the same context (when input1 is tru e).
+4.4.2. Complete requirements
+Therequirementsaresaidtobecompleteifforeverypossiblesyst eminput(aftereachdelaytransition),there
+is some system reaction (a function transition). This notion of complet eness is formalised by Deﬁnition 4.2
+Deﬁnition 4.2. Complete requirements: let reqsbe an arbitrary set of requirements, and symDFRS the
+corresponding s-DFRS obtained via Algorithm 6; the following predicat e deﬁnes when these requirements
+are said to be complete:
+complete (reqs)⇔ ∃dfrs:eDFRS|dfrs=expandedDFRS (symDFRS )•
+∀s1,s2 :dfrs.S|(∃trans:dfrs.TR|trans.1 =s1∧trans.3 =s2∧trans.2∈randel)•
+∃s3 :dfrs.S;trans2 :dfrs.TR•trans2.1 =s2∧trans2.3 =s3∧trans.2∈ranfun
+/square
+To exemplify complete requirements, we consider a simple syst em that has a single input ( input1) and a
+single output ( output1). The following requirements are said to be complete:
+•When input1 is true, the system shall assign 1 to output1.
+•When input1 is false, the system shall assign 2 to output1.
+We note that for every possible value of input1 (trueorfalse), the requirements deﬁne the expected system
+reaction (assigning 1 or assigning 2, respectively). Therefore, after every delay transition, there is a function
+transition.
+4.4.3. Reachable requirements
+A requirement is reachable if there is a state of the e-DFRS where t he guards of the function entry obtained
+from this requirement evaluate to true. If there is no such a sta te, we say that this requirement is not
+reachable, since it describes a system reaction that will never oc cur. Deﬁnition 4.3 deﬁnes formally the
+notion of reachable requirements.
+Deﬁnition 4.3. Reachable requirements: let reqsbe an arbitrary set of requirements, and symDFRS the
+corresponding s-DFRS obtained via Algorithm 6; the following predicat e deﬁnes when these requirements
+are said to be reachable:
+reachable (reqs)⇔ ∃dfrs:eDFRS|dfrs=expandedDFRS (symDFRS )•
+∀f:symDFRS .F• ∀entry:f• ∃s:dfrs•
+(s,dfrs.I∪dfrs.O,dfrs.T,symDFRS .functions )/∈isstable∧
+(s,entry.1,dfrs.I∪dfrs.O,dfrs.T)∈staticguardstrue∧
+(s,entry.2,dfrs.T)∈timedguardstrue
+/square
+To give a concrete example of an unreachable requirement, we consider the following one:
+•When input1 is true, and input1 is false, the system shall assign 1 t o output1.
+This requirement is not reachable (its reaction is never observed) , since its condition does not evaluate to
+true in any possible state due to the fact that the same boolean variable ( input1) cannot be trueandfalse
+simultaneously.
+4.4.4. Absence of time lock
+Finally, the last property concerns the absence of time lock (see De ﬁnition 4.4). A time lock is characterised
+by a state from which it is not possible to perform delay transitions, immediately and not even from states
+reachable by this state. If such a state exists, we have a time lock , since delay transitions cannot occur and,
+
+--- Page 30 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 29
+input1 = 0
+out1 = 0
+gc = 0input1 = 1
+out1 = 0
+gc = 1
+input1 = 1
+out1 = 1
+gc = 1input1 = 1
+out1 = 2
+gc = 1(D) – 1s
+input := 1
+(F)out1 := 1 (F)out1 := 2
+(F)
+out1 := 2
+(F)
+out1 := 1
+Fig. 8. Example of time lock
+thus, time cannot elapse. Another way of expressing this property i s to say that time lock happens if there
+is a state from which it is not possible to reach stable states (states t hat have delay transitions).
+Deﬁnition 4.4. Absence of time lock: let reqsbe an arbitrary set of requirements, and symDFRS the
+corresponding s-DFRS obtained via Algorithm 6; the following predicat e deﬁnes when these requirements
+describe a system without time lock:
+noTimeLock (reqs)⇔ ∃dfrs:eDFRS|dfrs=expandedDFRS (symDFRS )•
+∀trans:dfrs.TR|trans.2∈ranfun• ∃trans2 :dfrs.TR•|trans2.2∈randel•
+(trans.3,trans.1,dfrs.TR)∈isreachable
+/square
+To give a concrete example of time lock, we consider the sample exampl e that was given to illustrate
+Deﬁnition 4.1. Fig. 8 shows part of the e-DFRS obtained from these two re quirements. We note that when
+input1 becomes true (equal to 0), the system reaches a state from which is n ot possible to reach a stable
+state, since it can perform indeﬁnitely function transitions. In s uch a situation, we say that there is a time
+lock. In this example, the requirements are also inconsistent, s ince we can perform more than one function
+transition from the second state on the ﬁrst row.
+The properties deﬁned in this section can be veriﬁed by exploring the e-DFRS state space. However, as
+an e-DFRS possibly comprises an inﬁnite set of states, it is necessar y to specify a bound for this check. Then,
+one can dynamically create an e-DFRS until this bound is reached, and, w hile it is created, check whether
+the desired properties are met (bounded model checking). Eligibl e criteria for this bound are the number of
+delay (function) transitions performed, and an upper bound for the sy stem global clock, among others. If the
+speciﬁcation is inconsistent or there is an unreachable requiremen t, we can easily identify the requirements
+involved as we keep traceability between the s-DFRS functions and t he requirements (see Section 3.5).
+4.5. Tool support
+The NAT2TEST tool implements the function genTransitions , allowing us to create and explore the states
+of an e-DFRS dynamically (see Fig. 9). When the animator screen is opened, it automatically creates the
+e-DFRS initial state (state 0): the initial state of the corresponding s-DFRS, which is obtained from the
+system requirements.
+On the top right, the tool shows the possible delay or function transi tions that can be performed from
+the selected state. A double-click on a transition creates an edge to t he target state to represent it. If the
+transition is a delay one, a pop-up opens, and the user can inform the amou nt of (discrete or continuous)
+time that advances with the delay transition, and new values for the in put signals. On the right, the tool
+
+--- Page 31 ---
+30 G. Carvalho, A. Cavalcanti and A. Sampaio
+Fig. 9. The NAT2TEST tool – dynamic creation of e-DFRSs
+shows the history of performed transitions. On the bottom, the tool s hows the value of the system variables
+considering the selected state.
+Fig. 9 illustrates part of the e-DFRS for the example shown in Fig. 4, bu t it also describes the transition
+that leads to the production of strong coﬀee. We note that from the state 3, if the coﬀee request button
+is pressed 12 seconds after inserting the coin, the system goes to t he weak mode ( thesystemmode:= 3),
+which is represented by the state 5. Diﬀerently, if the request is made 32 seconds after inserting the coin,
+the system goes to the strong mode ( thesystemmode:= 2), which is represented by the state 7.
+With the aid of this tool support, as explained in Section 5.2, we assess w hether test cases, either
+independently written by domain specialists from industry or gene rated by a commercial tool from the
+same set of requirements, are compatible with the corresponding DFR S models. We detail this analysis in
+Section 5.2.
+5. Theoretical and practical validations
+After presenting the DFRS models (s-DFRS and e-DFRS), we now di scuss a theoretical (Section 5.1) and a
+practical validation (Section 5.2).
+5.1. Theoretical validation: mapping e-DFRSs to TIOTSs
+While an e-DFRS can be viewed as a semantics for the s-DFRS, from whic h it is obtained, in order to
+connect such a semantic representation to established ones in the literature, we show that an e-DFRS can
+be encoded as a Timed Input-Output Transition System (TIOTS). T his is an alternative timed model based
+on the widely used IOLTS and ioco [Tre99]. First, we deﬁne TIOTSs i n Z (Section 5.1.1), and then we show
+how it can be obtained from e-DFRSs (Section 5.1.2) via a sound process ( Section 5.1.3).
+
+--- Page 32 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 31
+5.1.1. Formal model of TIOTS
+A TIOTS is a 6-tuple ( Q,q0,I,O,D,T), where Qis a (possibly inﬁnite) set of states, q0is the initial
+state,Irepresents input and Ooutput actions, Dis a set of delays, and Tis a (possibly inﬁnite) transition
+relation on states.
+In a TIOTS, the states are related by labelled transitions. A label can be an input or an output
+action, a delay, or an internal action. The given set TIOTS ACTION represents all valid actions, and
+TIOTS ACTIONS a set of actions. A TIOTS delay (an element of TIOTS DELAY) represents a dis-
+crete or a dense time elapsing, but diﬀerently from an e-DFRS delay , a delay in a TIOTS can also be 0.
+TIOTS DELAYS is a set of delays.
+[TIOTS ACTION ]
+TIOTS ACTIONS ==PTIOTS ACTION
+TIOTS DELAY ::=tiotsdiscrete/a\}bracketle{t/a\}bracketle{tN/a\}bracketri}ht/a\}bracketri}ht |tiotsdense/a\}bracketle{t/a\}bracketle{tR+/a\}bracketri}ht/a\}bracketri}ht
+TIOTS DELAYS ==PTIOTS DELAY
+The schema TIOTS LABELS formalises the concept of TIOTS labels.
+TIOTS LABELS
+I,O:TIOTS ACTIONS
+D:TIOTS DELAYS
+disjoint/a\}bracketle{tI,O/a\}bracketri}ht
+D∈tiotstimecompatible
+The sets of input and output actions are disjoint, and the delays need t o be time compatible, which means
+that all delays are of the same type (discrete or dense). The time comp atible delays are characterised by the
+elements of a set tiotstimecompatible , whose simple deﬁnition is omitted here.
+A state of a TIOTS is an element of the given set TIOTS STATE, andTIOTS STATES SETis a
+non-empty set of states. The initial state of a TIOTS ( q0) is necessarily an element of the set of states of a
+TIOTS ( Q). The schema TIOTS STATES formalises this invariant.
+[TIOTS STATE]
+TIOTS STATES SET==P1TIOTS STATE
+TIOTS STATES == [Q:TIOTS STATES SET;q0:TIOTS STATE|q0∈Q]
+The transition relation ( T), which is an element of the set of all possible TIOTS transition relat ions
+(TIOTS TRANSREL ), relates two states by means of a label, an element of TIOTS TRANS LABEL.
+A TIOTS has four types of transitions: input, output, delay and inter nal transitions, which are labelled
+with input actions, output actions, delay events, and internal action s, represented by the invisible event τ,
+respectively.
+TIOTS TRANS LABEL::=in/a\}bracketle{t/a\}bracketle{tTIOTS ACTION /a\}bracketri}ht/a\}bracketri}ht |out/a\}bracketle{t/a\}bracketle{tTIOTS ACTION /a\}bracketri}ht/a\}bracketri}ht |
+tiotsdel/a\}bracketle{t/a\}bracketle{tTIOTS DELAY/a\}bracketri}ht/a\}bracketri}ht |tau
+TIOTS TRANS == (TIOTS STATE×TIOTS TRANS LABEL×TIOTS STATE)
+TIOTS TRANSREL ==PTIOTS TRANS
+The schema TIOTS TRANSITION RELATION deﬁnes the component T.
+TIOTS TRANSITION RELATION
+T:TIOTS TRANSREL
+Finally, a TIOTS is deﬁned by the schema TIOTS, which requires that each transition relates states of Q
+and is well-typed.
+TIOTS
+TIOTS LABELS
+TIOTS STATES
+TIOTS TRANSITION RELATION
+∀entry:T• {entry.1,entry.3} ⊆Q∧(entry.2,I,O,D)∈welltypedtiotstransition
+
+--- Page 33 ---
+32 G. Carvalho, A. Cavalcanti and A. Sampaio
+2s ?s.1.r.0 !m.0.o.1 3s
+?s.0.r.0
+!m.0.o.1 7s ?s.0.r.1 !m.3.o.1
+Fig. 10. The vending machine speciﬁcation – TIOTS representation
+A transition is said to be well typed (as characterised by the elemen ts ofwelltypedtiotstransition ) if, and
+only if, its label is equal to τ,in,out, ordel(label=tau,label∈ranin,label∈ranout,label∈rantiotsdel,
+respectively).
+welltypedtiotstransition :P(TIOTS TRANS LABEL×
+TIOTS ACTIONS ×TIOTS ACTIONS ×TIOTS DELAYS )
+∀label:TIOTS TRANS LABEL;I,O:TIOTS ACTIONS ;D:TIOTS DELAYS •
+(label,I,O,D)∈welltypedtiotstransition ⇔
+(label=tau)∨(label∈ranin∧(in∼)label∈I)∨
+(label∈ranout∧(out∼)label∈O)∨(label∈rantiotsdel∧(tiotsdel∼)label∈D)
+If the label represents an input action ( label∈ranin), it comprises elements of I, (in∼)label∈I. Similarly,
+the same idea applies to output actions and delays, where OandDare considered, respectively.
+5.1.2. From e-DFRSs to TIOTSs
+BeforeformalisingthegenerationofaTIOTSfromane-DFRS,weexplaint heintuitionbehindthegeneration
+process. While a function transition is mapped to an output action, a d elay transition is mapped to a delay
+followed by an input action. When a function transition leads to a non-s table event, this transition is
+mapped to an internal hidden event, since only stable communication of outputs can be observed. If a delay
+transition leads to a state from which there are other delay transition s (after the ﬁrst delay no system
+reaction is observed), we also consider an output action between these two transitions to show explicitly that
+the system outputs have not changed.
+Fig. 10 shows the TIOTS obtained from the ﬁrst ﬁve transitions presen ted in Fig. 4. To diﬀerentiate
+input from output actions, we add “?” as a preﬁx to the former, and “!” to th e latter. We note that the
+actions performed are strings that represent the value received for al l system inputs or generated for all
+system outputs, even if the function transition does not range neces sarily over the complete set of system
+outputs. We note that an output action is performed between the delay t ransitions, whose delays are 3s and
+7s, to show that the system outputs remain unchanged. In this short ex ample, we do not have τevents, as
+all states reached by function transitions are stable. However, consid ering the example shown in Fig. 8, the
+corresponding TIOTS does not have any output action after the delay tr ansition, but a loop of τevents due
+to the time lock.
+The function fromDFRStoTIOTS deﬁnes how a TIOTS is obtained from an e-DFRS. The main step
+is how to obtain the TIOTS transition relation ( tiots.T), which is deﬁned by mapTransitionRelation . The
+TIOTSinputs( tiots.I),outputs( tiots.O)anddelays( tiots.D)aredeﬁnedastheresultofauxiliaryprojection
+functions ( getInputActions ,getOutputActions , andgetDelays , respectively). Basically, these functions yield
+the labels of TIOTS transitions.
+
+--- Page 34 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 33
+fromDFRStoTIOTS :eDFRS→TIOTS
+∀dfrs:eDFRS;tiots:TIOTS•
+fromDFRStoTIOTS (dfrs) =tiots⇔
+tiots.Q=getStates (tiots.T)∪{tiots.q0} ∧tiots.q0=mapState (dfrs.s0)∧
+tiots.I=getInputActions (tiots.T)∧tiots.O=getOutputActions (tiots.T)∧
+tiots.D=getDelays (tiots.T)∧tiots.T=mapTransitionRelation (dfrs.TR,dfrs.I,dfrs.O)
+The function mapState is a total injection from DFRS states to TIOTS ones. It is used to deﬁn e the initial
+state (tiots.q0) of the TIOTS; it is the result of this function when applied to the initial state of the e-
+DFRS. The states ( tiots.Q) of a TIOTS are the ones related by its transition relation ( tiots.T), which are
+characterised by getStates , besides its initial state.
+To obtain the TIOTS transition relation, the function mapTransitionRelation considers two partitions
+of e-DFRS transitions: the ﬁrst one comprises only function transit ions,getTransitions (tr,ranfun), whereas
+the second one comprises delay transitions, getTransitions (tr,randel). The function getTransitions ﬁlters
+function or delay transitions from a given transition relation ( tr). The functions mapFunTransitions and
+mapDelTransitions consider these partitions and yield transition relations ( tr1, andtr2), whose union is
+deﬁned as the result of mapTransitionRelations (mapTransitionRelation =tr1∪tr2).
+mapTransitionRelation :TRANSREL ×(NAME /mapsto →TYPE)×(NAME /mapsto →TYPE)→
+TIOTS TRANSREL
+∀tr:TRANSREL ;I,O: (NAME /mapsto →TYPE)• ∃tr1,tr2 :TIOTS TRANSREL •
+tr1 =mapFunTransitions (getTransitions (tr,ranfun),tr,O)∧
+tr2 =mapDelTransitions (getTransitions (tr,randel),tr,ranmapState ,I,O)∧
+mapTransitionRelation (tr,I,O) =tr1∪tr2
+One important concern is related to the fresh states that are needed d uring this process. Therefore, we note
+that the third argument of mapDelTransitions is ranmapState (all TIOTS states that can be obtained from
+DFRS states), which is later used to identify fresh ones. For inst ance, one can see in Fig. 10 that the ﬁrst
+and third states are obtained from the ﬁrst and second states in Fig. 4, whe reas the second state does not
+have any correspondence with a DFRS state.
+The recursive function mapFunTransitions appliesmapFunTransition for each function transition that
+leads to a stable state. The latter function yields an output action, out(...), relating the TIOTS states
+obtained from the source, mapState (s1) and target, mapState (s2), states of the e-DFRS function transition.
+mapFunTransition : (TRANS ×(NAME /mapsto →TYPE))/mapsto →TIOTS TRANSREL
+dom(mapFunTransition ) = (STATE×ranfun×STATE)×(NAME /mapsto →TYPE)
+∀s1,s2 :STATE;label:TRANS LABEL;O: (NAME /mapsto →TYPE)|label∈ranfun•
+mapFunTransition ((s1,label,s2),O) ={(mapState (s1),
+out(genAction (currentValues (domO⊳s2))),mapState (s2))}
+The output action, out(...), is deﬁned in terms of the current values of the output variables in the target
+state (currentValues (domO⊳s2)). An example of output action is ! m.0.o.1 (see Fig. 10). When the function
+transition leads to a non-stable state, the application mapFunTransitions yields a transition relation, whose
+single element relates the source, mapState (trans.1), and target, mapState (trans.3), states with a τevent,
+{(mapState (trans.1),tau,mapState (trans.3))}.
+The process of mapping delay transitions is more complicated due to t hree main reasons. First, as previ-
+ously explained, we need to identify fresh states (that do not have correspondence to DFRS states); second,
+as also commented before, we need to deﬁne an output action between cons ecutive delay transitions; ﬁnally,
+the delay transitions that have the same amount of time elapsing are group ed intonon-time deterministic
+partitions, since they have a particular treatment. To exemplify this last situation, we consider the states
+presented in Fig. 7. The TIOTS transition relation obtained from this e xample is shown in Fig. 11. One can
+see that ﬁrst we have a delay of 1s leading to a state from which there ar e multiple possible input actions.
+5.1.3. Soundness of mapping to TIOTS
+Similarly to Theorem 4.1, the function fromDFRStoTIOTS is also proven to be sound: for all e-DFRSs, all
+invariants of TIOTS hold in the obtained TIOTS (Theorem 5.1).
+
+--- Page 35 ---
+34 G. Carvalho, A. Cavalcanti and A. Sampaio
+1s
+?s.0.r.0 ?s.1.r.0
+?s.0.r.1 ?s.1.r.1
+Fig. 11. The vending machine speciﬁcation – TIOTS representation of de lay transitions
+Theorem 5.1. Soundness of fromDFRStoTIOTS
+∀expDFRS :eDFRS•fromDFRStoTIOTS (expDFRS )∈TIOTS
+The detailed proof is available in [CCS15]; here we present a proof sk etch. Concerning the invariants of
+TIOTS LABELS (reproduced below), the sets IandOare disjoint because they are deﬁned by the auxiliary
+function genAction , which is an injection, applied to diﬀerent elements: the value of DFRS input and output
+variables, respectively.
+disjoint/a\}bracketle{tI,O/a\}bracketri}ht
+D∈tiotstimecompatible
+The TIOTS delays are compatible (all of them are discrete or dense) be cause the e-DFRS delays are time
+compatible, and the TIOTS delays preserve the delay type (discr ete and dense delays in an e-DFRS are
+translated to discrete and dense delays in a TIOTS, respectivel y).
+The invariant of TIOTS STATES (q0∈Q) also holds, since the states of a TIOTS ( Q) are deﬁned by
+fromDFRStoTIOTS as the union of the application of getStates with its initial state ( q0). Therefore, it is
+valid that q0is an element of Q.
+Concerning the invariants of TIOTS(reproduced below), as Qis obtained from all states mentioned by
+T, it is trivial that all states related by Tbelong to Q.
+∀entry:T• {entry.1,entry.3} ⊆Q∧(entry.2,I,O,D)∈welltypedtiotstransition
+To be well typed, an input transition must be labelled with an eleme nt ofI, and an output transition with
+an element of O. Similarly, a delay transition must be labelled with an element of D. As the sets I,O, and
+Dare deﬁned in terms of the labels used on the TIOTS transitions, this invariant also holds. Therefore, we
+conclude that the function fromDFRStoTIOTS is also sound.
+5.2. Practical validation: compatibility between test cases and DFRSs
+Here, we provide an empirical argument as to whether the DFRS models are expressive enough to repre-
+sent the behaviour of a timed reactive system as deﬁned using natur al language. We assess whether test
+cases, either independently written by domain specialists from i ndustry or generated by a commercial tool
+(RT-Tester9) from the same set of requirements, are compatible with the correspon ding DFRS models.
+Compatibility requires that there is a sequence of delay and funct ion transitions of the e-DFRS, which is
+obtained from the s-DFRS generated from the natural-language requiremen ts, that illustrates the delays,
+the system inputs and the expected outputs described in the tes t case. In other words, in our evaluation,
+we generate test cases from a set of requirements, without the aid of DF RS models. Later, we use the same
+9www.veriﬁed.de/products/rt-tester/
+
+--- Page 36 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 35
+Table 2. Performance metrics
+VM NPP PC TIS
+Time to process the requirements: 0.11s 0.07s 0.14s 0.35s
+Time to identify the requirement frames: 0.10s 0.14s 0.10s 0 .20s
+Time to generate the s-DFRSs: 0.02s 0.01s 0.01s 0.01s
+Total time : 0.23s 0.22s 0.25s 0.56s
+requirements to derive s-DFRS models. Finally, we check whet her the tests can be obtained from simulation
+of the corresponding e-DFRS models. This analysis considers exampl es from four diﬀerent domains.
+•Vending machine (toy example): this vending machine (VM) is an adapt ation of the coﬀee machine
+presentedin[LMN04].AsexplainedinSection2,thismachinedispense sweakandstrongcoﬀeedepending
+on the amount of time elapsed between inserting a coin and requesting the coﬀee. The system has two
+input signals (the coin sensor, and the coﬀee request button) and two ou tput signals (the system mode,
+and the coﬀee machine output).
+•Nuclearpowerplant(toyexample):weconsiderasimpliﬁedversion ofacontrolsystemforsafetyinjection
+in a nuclear power plant (NPP) as described in [LH03]. This is a system t hat controls the injection of
+coolant in the reactor. If the water pressure is too low (less than 900 u nits), the system injects coolant
+into the reactor, otherwise there is no need to inject coolant. Thi s system has three input signals: the
+actual water pressure, a switch to block the injection of coolant, and a switch that reset the system after
+blockage. There are three output signals: the safety injection mode, the current blockage mode, and the
+pressure mode.
+•Priority command (provided by Embraer): the priority command funct ion (PC) decides whether the pilot
+or copilot will have priority in controlling the airplane side sticks . The system monitors whether the pilot
+and copilot side sticks are in the neutral position, and whether the si de stick priority button has been
+pressed. Taking into account this information, a control logic is applie d to decide who has priority. This
+system has four input signals (the stick position and the status of the p riority button for both the pilot
+and the co-pilot) and one output signal (a priority command).
+•Turn indicator system (from Mercedes): we have also considered a simpliﬁcation of the turn indicator
+system(TIS)speciﬁcationthatiscurrentlyusedbyDaimlerforaut omaticallyderivingtestcases,concrete
+test data and test procedures. In 2011 Daimler allowed the publication of this speciﬁcation to serve as
+a “real-world” benchmark supporting research on MBT techniques. Ou r simpliﬁcation results in a size
+reduction of the original model presented in [Pel11], but serves wel l as a proof of concept, because it still
+is a safety-critical system component with real-time and concurren t aspects. The system has three inputs:
+(1) the turn indicator lever, which may be in the idle, left or right position; (2) the emergency ﬂashing
+button; and (3) the battery voltage. The system outputs are the car ﬂashin g lights. The simpliﬁed TIS
+comprises two parallel components: the ﬂashing mode component, which is responsible for controlling
+the system ﬂashing state (only left or right lights ﬂashing, left and ri ght lights ﬂashing, left or right tip
+ﬂashing, and no lights ﬂashing), and the lights controller component, which is responsible for turning on
+and oﬀ the ﬂashing lights respecting the ﬂashing periods: 320 millis econds on and 240 milliseconds oﬀ.
+Using the mechanisation of our strategy presented in Sections 3.5 and 4.5, w e have derived DFRS models
+from the natural-language requirements of the aforementioned four exampl es. Table 2 presents the metrics
+related to our performance analysis. All time measurements are for expe riments using an i3 CPU with
+2.27GHz equipped with 4 GB of RAM memory running the Ubuntu 14.04 LTS operati ng system. As can
+be seen in Table 2, the time required to process the system requi rements and to deliver the corresponding
+s-DFRSs models is low (less than 1s). Furthermore, it is worth noti ng that the total time required increases
+linearly according to the size of the speciﬁcation. Therefore, we can expect that the proposed approach might
+scale for larger examples.
+Afterwards, we have assessed whether test cases, either indepen dently written or generated from the same
+set of requirements, are compatible with the corresponding DFRS mo dels. To analyse whether the test cases
+are compatible with the corresponding DFRS models, we have develop ed a depth-ﬁrst search algorithm that
+explores the state space of an e-DFRS guided by a test case. We provide to the model the inputs described
+
+--- Page 37 ---
+36 G. Carvalho, A. Cavalcanti and A. Sampaio
+Table 3. Example of test case
+TIME (ms) Volt. Emerg. Button Turn Indic. L. Lights R. Lights
+0 80 oﬀ right oﬀ oﬀ
+7918 81 oﬀ left on oﬀ
+8258 81 oﬀ left oﬀ oﬀ
+8478 81 oﬀ left on oﬀ
+Table 4. Metrics concerning compatibility analysis
+VM NPP PC TIS
+# of requirements: 6 11 8 21
+# of words: 228 268 294 942
+# of test vectors: 5 16 401 83
+# of compatible test vectors: 5 (100%) 16 (100%) 401 (100%) 83 (100%)
+Time for analysis: 9ms 52ms 184ms 192ms
+by each test vector, and check whether the outputs provided by the system are equal to those in the vector.
+This comparison is straightforward (that is, the test oracle is trivial) since we are dealing with primitive
+types.
+Table3showsatestcasecomprisingfourtestvectors(oneineachlin e),fortheturnindicatorsystem.The
+ﬁrst line tests that no lights are turned on, even if, for instance, t he turn indicator is on the right position,
+when the car voltage is too low (below 81 volts). However, when the volt age is greater than 80 (Line 2),
+the lights are turned on based on the turn indicator position (in this cas e, left), and the light remains on
+for 340ms, and oﬀ for 220ms, periodically. In Table 3, Volt.,Emerg. Button ,Turn Indic. ,L. Lights , andR.
+Lightsrefer toVoltage,Emergency Button ,Turn Indicator ,Left Lights , andRight Lights , respectively. The
+ﬁrst line of the test is derived from the initial state of the obtained s-DFRS. The next three lines are derived
+from six alternating delay and function transitions.
+1. Delaytransition:after7918ms,thevoltagebecomes81,andtheturnindicat orchangestotheleftposition;
+2. Function transition: the system reacts turning on the left lights ;
+3. Delay transition: the input signals remain the same for 340ms;
+4. Function transition: the system reacts turning oﬀ the left lights ;
+5. Delay transition: the input signals remain the same for 220ms;
+6. Function transition: the system reacts turning on the left lights .
+The selected set of test cases is relevant as discussed in details i n [CBL+14]. They are able to detect a
+signiﬁcant number of errors introduced by mutation testing (for ins tance, roughly 98% of the mutants
+generated for the TIS example). Table 4 presents some metrics concer ning our compatibility analysis. The
+verdict of our testing experiments have been successful, sinc e all selected test cases are compatible with the
+corresponding DFRS models, which gives evidence that these mode ls for the four examples indeed capture
+the underlying semantics of the natural-language requirements as sugge sted in this paper.
+6. Related work
+A classical notation for modelling timed reactive systems is timed au tomata. DFRS, however, is speciﬁcally
+designed to facilitate automatic generation of formal models from natural-l anguage requirements. In par-
+ticular, DFRS is tailored for embedded systems whose inputs and outp uts are always available, as signals.
+The advantage of a DFRS model is the fact that, as opposed to classical timed reactive systems notations
+such as timed automata, it is a state-rich notation that embeds and enforce s a number of properties of the
+models that are required of reactive embedded systems. For example , DFRS models enforce the principle of
+
+--- Page 38 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 37
+Table 5. Analysis of related work
+Domain Input Model Data Time Requirement analyses
+[LCK98] General Use cases CMPN No No Consistency
+Completeness
+[LSL+14] General Use cases Activity diagram No No Consistency
+Integrity
+[Sch02] General NL requirements FOL No No Not reported
+[ADS14] General NL requirements CCM Yes No Oﬀ-nominal
+[BCMW15] Embedded systems NL requirements AADL Yes No Realis ability
+[BGMC04] General NL requirements FMONA Yes No Consistency
+[NSM14] Mobile app. Use cases CSP Yes No Not reported
+[ES07] General NL requirements FRL No Yes Not reported
+[SHG10] General NL requirements TUM No Yes Consistency
+Completeness
+[AG06] General NL requirements CNM Yes Yes Consistency
+Completeness
+Ambiguity
+[Ili07] General NL requirements B method Yes Yes Consistenc y
+[LHHR94] Embedded systems NL requirements RSML Yes Yes Cons istency
+Completeness
+[MTWH06] Embedded systems NL requirements RSML−eYes Yes Consistency
+Completeness
+Reachability
+[Sch09] Automotive systems NL requirements TQE Yes Yes Reac hability
+[SJV12] General NL requirements Statecharts Yes Yes Not rep orted
+NAT2TEST Embedded systems NL requirements DFRS Yes Yes Consistency
+Completeness
+Reachability
+Time lock
+delayable transitions; use delay transitions to represent envir onment sitimuli and, thus, they cannot range
+over the output signals and timers of the system; include no self-t ransitions; ensure that there are no delay
+and function transitions emanating from any state. If we were to use gene ral purpose notations such as
+timed automata to capture the natural-language requirements, the trans lation would be more complicated
+and costly.
+Previous works have already investigated and proposed formal models for d escribing natural-language
+requirements. Here, we analyse such works from six distinct persp ectives: (1) domain: whether the modelling
+approachistailoredforaspeciﬁcdomain;(2)input:howthesystemreq uirementsaredocumented;(3)model:
+the underlying formal notation used to represent the system behav iour; (4) data: whether this notation can
+explicitly deal with variables; (5) time: whether this notation can e xplicitly deal with temporal behaviour;
+and (6) requirement analyses: which properties of the requirement s can be analysed via this notation. Table 5
+summarises our analyses of related work considering these six perspe ctives.
+Some notations only consider the occurrence of events (e.g., the butt on has been pressed, the voltage is
+higher than 10), as opposed to others that have an explicit model of variable s and values. The fundamental
+diﬀerence between these two approaches is that the second one is easi er to connect with generation of
+automated test cases, since data (variables and values) are embedded in the model. However, as a drawback,
+if one considers a large amount of variables and possible values, the numbe r of possibilities can be a problem
+to deal with, when symbolic techniques are not used. As the ultimate goal of our work is the generation of
+
+--- Page 39 ---
+38 G. Carvalho, A. Cavalcanti and A. Sampaio
+test cases, we consider as more appropriate for our purposes the second app roach, when variables and values
+are part of the model.
+Similarly, as we want to model and test temporal aspects of systems, wh ich can be discrete or continuous,
+we also want to incorporate time as an element of the model. Some approaches consider limited temporal
+analysis, for instance, when representing and verifying Linear Tem poral Logic (LTL) properties. Here, we do
+not consider these works as allowing time modelling, since only the s equencing of events is considered.
+Considering these remarks, we group similar works into three disti nct categories (see Table 5). While the
+ﬁrst group comprises techniques that do not support data and time infor mation on requirements, the second
+one supports at least one of these two concepts. The last group, to which ou r approach belongs, supports
+both of them. In what follows, we summarise the previous studies, wh ile comparing them with our own work.
+Whilesomeapproachesaretailoredforusecasesdescribedinnatural-lan guage[LCK98,LSL+14,NSM14],
+processing natural-language requirements is more common. In [LCK98], a v ariant of Petri Nets (Constraints-
+based Modular Petri Nets – CMPNs) is proposed for modelling use cases. To generate the corresponding
+CMPN model, one needs to ﬁll an action-condition table manually, besid es clarifying event names, which
+represent the actions described in the use cases. There is no sup port for data and time. On the other hand,
+using the CMPN model, it is possible to perform consistency and com pleteness analyses automatically.
+In[LSL+14]and[NSM14],usecasesareusedassourceforthegenerationofformalmodels: theformeruses
+a restricted and formal version of activity diagrams, and the latter CSP. The CNL considered by [NSM14] is
+tailored for mobile applications, whereas the strategy of [LSL+14] is for general purpose. Data is considered
+in [NSM14] via annotations in the use cases. Only events are considered b y [LSL+14], where it is also shown
+how the derived activity diagrams can be used to verify the consiste ncy and integrity of requirements.
+[Sch02] proposes a computer-processable CNL for writing unambiguous and precise requirements: PENG.
+The speciﬁcation written in PENG can be deterministically translat ed into ﬁrst-order predicate logic (FOL).
+Data and time aspects are not considered, nor is the analysis of propertie s of the requirements.
+In [ADS14], a Casual Component Model (CCM) is used to model the behavi our described by natural-
+language requirements. This formal model needs to be manually created from the speciﬁcation. In CCM,
+the states can be used to model valuations of a variable (e.g., s1 – switc h(oﬀ), s2 – switch(on)), from
+which a NuSMV speciﬁcation [CCGR99] is automatically derived. Then, t emporal logic can be used to seek
+oﬀ-nominal (undesired) behaviour.
+The approach of [BCMW15] also considers variables, and it is tailored for emb edded systems. It uses as
+internal notation AADL (Architecture Analysis and Design Language), where ass ume-guarantee contracts
+are manually created. In this work, it is possible to assess whether t hese contracts and the corresponding
+requirements are realisable. Diﬀerently from other approaches, the authors show how to perform this analysis
+in a compositional way.
+The work reported in [BGMC04] presents a requirements analysis tool called RETNA. This tool accepts
+natural-language requirements and, with user interaction, it translat es the requirements into a logical nota-
+tion: FMONA, which is a high-level language for describing weak monadic se cond-order logic. This model
+can then be used to analyse whether the natural-language requirements are consistent.
+In [ES07] requirements are written in a limited standardized format . The requirements need to be written
+according to a strict if-then sentence template, which, howeve r, can be used to represent time properties.
+Despite describing how to translate these templates to the Formal Requirement Language (FRL), the work
+does not elaborate on how this model could be used to check properties of the requirements. In [SHG10] it
+is also possible to represent timed-behaviour using Timed Usage Mo dels (TUM), which are Markov Chain
+UsageModels(MCUM)withtimeinformation.Thismodelismanuallycreat edfromthesystemrequirements.
+Consistency and completeness properties can be veriﬁed automaticall y. Diﬀerently from other approaches,
+this model can also take into account probabilistic properties.
+The works analysed so far do not take into account both data and time aspects and, thus, diﬀer from
+our approach: the DFRS models consider both of them. The approaches propos ed in [AG06, Ili07, LHHR94,
+MTWH06, Sch09, SJV12] are closer related to our work, since they share the fact that data and time are
+both supported.
+TheCIRCEenvironment,whichenablesanalysisofnatural-languagerequ irements,ispresentedin[AG06].
+In this environment, requirements are interpreted according to the CIRCE Native Meta-Model (CNM).
+Besides analysing properties of requirements, this environment allows the generation of UML models and
+code from the CNM notation. Diﬀerently from our strategy, it requires m anual eﬀort when modelling the
+system requirements. Here, one needs to create by hand designations and deﬁnitions. The former establishes
+equivalences between diﬀerent terms that refer to the same enti ty, and the latter establishes notations for
+
+--- Page 40 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 39
+expressingrequirementsinasuccinctway.Whilethesetwoe lementshaveawell-deﬁnedandformalstructure,
+the requirements description statements are expected to be fre e-form text.
+In [Ili07], the B method [Abr96] is used to construct formal models for s ystem requirements. In this
+work, the requirements need to be translated to predeﬁned templ ates for describing events, data and time,
+from which B speciﬁcations are systematically translated. Each templ ate deﬁnes the information that is
+mandatory. Comparing to our approach, the thematic roles are the counterpar t of these templates. As
+just said, in [Ili07], one needs to classify manually the requiremen ts according to these templates, besides
+ﬁlling them. Diﬀerently, thematic roles are automatically inferre d from the requirements in the NAT2TEST
+strategy.
+In [LHHR94, MTWH06], the Requirements State Machine Language (RSML) is used as f ormal model for
+natural-language requirements. A restricted version of this notation ( RSML−e) is adopted by [MTWH06],
+where events are not allowed. This notation, which is argued to be tailor ed for embedded systems, is used to
+document the system requirement. In [LHHR94], this internal model is analysed by proposed algorithms to
+check whether the requirements are consistent and complete. In [ MTWH06], these analyses are automated
+with the aid of NuSMV and PVS [ORS92]. These two studies require user i ntervention to classify and edit
+requirements. This is not a necessity within the NAT2TEST strate gy.
+In [Sch09], assuming that the system speciﬁcation is manually repres ented conforming to a set of tem-
+plates, developed for automotive systems, a Temporal Qualiﬁed Expres sion (TQE) is derived. It is also
+necessary to identify manually signal names along with its possible val ues. Diﬀerently, in our approach, the
+signal names, their types, and possible values are automatically inferr ed.
+In [SJV12], the SOLIMVA methodology is presented. The methodology has to ol support to translate
+automatically natural-language requirements into statechart models. An other tool (GTSC) is used to gen-
+erate test cases. In this work, besides writing the requirement s, one needs to identify and partition inputs
+and outputs. This is not required in our approach. Moreover, this work d oes not explain how the statechart
+models can be used to analyse requirements, but considers this as a possible line for future work.
+In summary, the NAT2TEST strategy formally describes system requir ements using DFRS models, which
+are explained in details here. Similarly to other approaches previous ly identiﬁed, the formal model used to
+represent the system behaviour considers both data and time inform ation. It can also be used to check system
+propertiessuchasconsistency,completeness,reachability,andab senceoftimelock.Ourworkstandsoutfrom
+the similar approaches reported here by the richness of the model gen erated solely from natural-language
+requirements without user intervention.
+Theabsenceofuserinterventioninourstrategyisaconsequenceofth ecompromisereachedbythedeﬁned
+controlled natural language. As we focus on a speciﬁc domain of embedded sys tems, whose behaviour can be
+described as actions guarded by conditions, we can impose some restrict ions, while allowing the requirements
+to be expressed as a textual speciﬁcation, and automatically obtain a form al model from these requirements.
+However, these restrictions make our approach not suitable for writing requirements that do not adhere to
+this format of actions and guards.
+7. Conclusions
+We have presented a symbolic formalism (s-DFRS) for modelling ti med-systems, which is suitable to describe
+formal models that can be automatically obtained from natural-language requir ements. We have also shown
+that an expanded version of a symbolic DFRS model can be dynamically gene rated and used for checking
+properties such as consistency, completeness and reachability of re quirements, as well as the absence of time
+lock. To connect the proposed models to established ones in the lit erature, we have also presented how
+e-DFRSs, the notation used to describe the expanded models is call ed e-DFRS, can be encoded as Timed
+Input-Output Transition System (TIOTS): an alternative timed mo del based on the widely used IOLTS and
+ioco. All deﬁnitions have been formally described in Z, and checked with the aid of the CZT plug-in for
+Eclipse.
+Wehavealsoconsideredexamplesfromfourdiﬀerentdomains,andshow edthatthederivedDFRSmodels
+are expressive enough to represent a set of independently writte n and generated test cases. To support this
+analysis, we have developed a tool NAT2TEST that automatically generates s -DFRS models from natural-
+language requirements, besides other features such as dynamic explor ation of the e-DFRS state space.
+DFRSmodelsaresuitableformodellingembeddedsystemswhosein putsandoutputsarealwaysavailable,
+
+--- Page 41 ---
+40 G. Carvalho, A. Cavalcanti and A. Sampaio
+as signals. Moreover, the system reactions are described as assignment s guarded by static and timed guards.
+Further empirical analysis is a topic for future work.
+We also envisage the following tasks as future work.
+•Integrate this work with our previous work described in [CFaB+13, CBL+14] to take advantage of the
+generality of DFRSs as indicated in Figure 1;
+•Enhance the DFRS models to deal with more complex structures. For i nstance, currently, only literals
+are allowed in assignments;
+•Evolve the DFRS models to deal with new classes of timed-systems, namely, hybrid systems. To achieve
+such a goal, we plan to incorporate into our models diﬀerential equations to describe the continuous
+evolution of variables.
+Despite the potential for improvement, we believe that the resul ts obtained give some evidence that DFRSs
+are a promising modelling notation for describing the behaviour ot ti med-systems, in particular, when this
+behaviour is deﬁned using natural-language requirements of the form of actions guarded by conditions. A
+detailed account of our models, notations, tools, and examples are found in [Car16].
+Acknowledgments
+This work was carried out with the support of the CNPq (Brazil), INES10, and the grants: FACEPE
+573964/2008-4, APQ-1037-1.03/08, CNPq 573964/2008-4 and 476821/2011-8. The research reported in this
+paper was also partially funded by the UK EPSRC.
+References
+[ABJ+15] Bernhard K. Aichernig, Harald Brandl, Elisabeth J¨ obst l, Willibald Krenn, Rupert Schlick, and Stefan Tiran. Killin g
+strategies for model-based mutation testing. Software Testing, Veriﬁcation and Reliability , 25(8):716–748, 2015.
+[Abr96] J.-R. Abrial. The B-book: Assigning Programs to Meanings . Cambridge University Press, New York, NY, USA,
+1996.
+[ADS14] Daniel Aceituna, Hyunsook Do, and Sudarshan Sriniv asan. A Systematic Approach to Transforming System
+Requirements into Model Checking Speciﬁcations. In Companion Proceedings of the 36th International Conferenc e
+on Software Engineering , ICSE Companion 2014, pages 165–174, New York, NY, USA, 2014 . ACM.
+[AG06] Vincenzo Ambriola and Vincenzo Gervasi. On the Syste matic Analysis of Natural Language Requirements with
+CIRCE. Automated Software Engineering , 13(1):107–167, 2006.
+[All95] James Allen. Natural Language Understanding . Benjamin/Cummings, 1995.
+[BBF97] M Blackburn, R Busser, and J Fontaine. Automatic Gen eration of Test Vectors for SCR-style Speciﬁcations. In
+Annual Conference on Computer Assurance , 1997.
+[BCMW15] John Backes, Darren Cofer, Steven Miller, and Micha elW. Whalen. Requirements Analysis of a Quad-Redundant
+Flight Control System. In Klaus Havelund, Gerard Holzmann, and Rajeev Joshi, editors, NASA Formal Methods ,
+volume 9058 of Lecture Notes in Computer Science , pages 82–96. Springer International Publishing, 2015.
+[BGFT10] Antonio Bucchiarone, Stefania Gnesi, Alessandro Fantechi, and Gianluca Trentanni. An experience in using a
+tool for evaluating a large set of natural language requirem ents. In Proceedings of the 2010 ACM Symposium on
+Applied Computing , SAC ’10, pages 281–286, New York, NY, USA, 2010. ACM.
+[BGMC04] R. Boddu, L. Guo, S. Mukhopadhyay, and Bojan Cukic. RETNA: from Requirements to Testing in a Natural Way.
+InIEEE International Requirements Engineering Conference , pages 262–271, 2004.
+[Car16] Gustavo Carvalho. NAT2TEST: Generating Test Cases from Natural Language Requirem ents based on CSP . PhD
+thesis, Centro de Inform´ atica, Universidade Federal de Pe rnambuco (UFPE), Brazil, 2016.
+[CBC+15] Gustavo Carvalho, Fl´ avia Barros, Ana Carvalho, Ana Cav alcanti, Alexandre Mota, and Augusto Sampaio.
+NAT2TEST Tool: from Natural Language Requirements to Test C ases based on CSP. In International Conference
+on Software Engineering and Formal Methods . Springer International Publishing, 2015.
+[CBL+14] Gustavo Carvalho, Fl´ avia Barros, Florian Lapschies, U we Schulze, and Jan Peleska. Model-Based Testing from
+Controlled Natural Language Requirements. In Cyrille Arth o and Peter Csaba lveczky, editors, Formal Techniques
+for Safety-Critical Systems , volume 419 of Communications in Computer and Information Science , pages 19–35.
+Springer International Publishing, 2014.
+[CCGR99] Alessandro Cimatti, Edmund M. Clarke, Fausto Giun chiglia, and Marco Roveri. NuSMV: A New Symbolic Model
+Veriﬁer. In Proceedings of the 11th International Conference on Compute r Aided Veriﬁcation , CAV ’99, pages
+495–499, London, UK, UK, 1999. Springer-Verlag.
+10www.ines.org.br
+
+--- Page 42 ---
+Modelling Timed Reactive Systems from Natural-Language Re quirements 41
+[CCR+14] Gustavo Carvalho, Ana Carvalho, Eduardo Rocha, Ana Cava lcanti, and Augusto Sampaio. A Formal Model for
+Natural-Language Timed Requirements of Reactive Systems. In Stephan Merz and Jun Pang, editors, Formal
+Methods and Software Engineering, International Conferen ce on Formal Engineering Methods ICFEM , volume
+8829 ofLecture Notes in Computer Science , pages 43–58. Springer International Publishing, 2014.
+[CCS15] Gustavo Carvalho, Ana Cavalcanti, and Augusto Samp aio. DFRS: Deﬁnition and Proofs. Technical report, Uni-
+versidade Federal de Pernambuco, 2015.
+[CFaB+13] Gustavo Carvalho, Diogo Falc˜ ao, Fl´ avia Barros, Augus to Sampaio, Alexandre Mota, Leonardo Motta, and Mark
+Blackburn. TestCaseGenerationfromNaturalLanguageRequ irementsbasedonSCRSpeciﬁcations. In Symposium
+on Applied Computing , volume 2, pages 1217–1222, 2013.
+[CFB+14] Gustavo Carvalho, Diogo Falc˜ ao, Fl´ avia Barros, Augus to Sampaio, Alexandre Mota, Leonardo Motta, and Mark
+Blackburn. NAT2TEST SCR: Test case generation from natural language requirements b ased on SCR speciﬁcations.
+Science of Computer Programming , 95, Part 3(0):275 – 297, 2014.
+[CSM13] Gustavo Carvalho, Augusto Sampaio, and Alexandre M ota. A CSP Timed Input-Output Relation and a Strategy
+for Mechanised Conformance Veriﬁcation. In Formal Methods and Software Engineering , volume 8144 of LNCS,
+pages 148–164. Springer Berlin Heidelberg, 2013.
+[ES07] M. Esser and P. Struss. Obtaining Models for Test Gene ration from Natural-Language like Functional Speciﬁca-
+tions. In International Workshop on Principles of Diagnosis , pages 75–82, 2007.
+[FAA09] FAA. Requirements Engineering Management Finding s Report. Technical report, U.S. Department of Transporta-
+tion - Federal Aviation Administration, 2009.
+[Fil68] Charles J. Fillmore. The Case for Case. In Bach and Ha rms, editors, Universals in Linguistic Theory , pages 1–88.
+New York: Holt, Rinehart, and Winston, 1968.
+[FLGS14] A. Ferrari, G. Lipari, S. Gnesi, and G. O. Spagnolo. Pragmatic ambiguity detection in natural language require -
+ments. In Artiﬁcial Intelligence for Requirements Engineering (AIRE ), 2014 IEEE 1st International Workshop
+on, pages 1–8, Aug 2014.
+[Ili07] D. Ilic. Deriving Formal Speciﬁcations from Inform al Requirements. In Computer Software and Applications
+Conference, 2007. COMPSAC 2007. 31st Annual International , volume 1, pages 145–152, July 2007.
+[ISO02] ISO. Z formal speciﬁcation notation (ISO/IEC 13568 ). Technical report, International Organization for Stand ard-
+ization, 2002.
+[LCK98] Woo Jin Lee, Sung Deok Cha, and Yong Rae Kwon. Integra tion and analysis of use cases using modular Petri nets
+in requirements engineering. Software Engineering, IEEE Transactions on , 24(12):1115–1130, Dec 1998.
+[LH03] Elizabeth Leonard and Constance Heitmeyer. Program Synthesis from Formal Requirements Speciﬁcations Using
+APTS.Higher Order Symbol. Comput. , 16:63–92, 2003.
+[LHHR94] Nancy G. Leveson, Mats Per Erik Heimdahl, Holly Hil dreth, and Jon D. Reese. Requirements Speciﬁcation for
+Process-Control Systems. IEEE Trans. Softw. Eng. , 20(9):684–707, Sep 1994.
+[LMN04] Kim Larsen, Marius Mikucionis, and Brian Nielsen. O nline Testing of Real-time Systems using Uppaal: Status and
+Future Work. In Perspectives of Model-Based Testing - Dagstuhl Seminar , volume 04371, 2004.
+[LSL+14] Shuang Liu, Jun Sun, Yang Liu, Yue Zhang, Bimlesh Wadhwa, Jin Song Dong, and Xinyu Wang. Automatic Early
+Defects Detection in Use Case Documents. In Proceedings of the 29th ACM/IEEE International Conference on
+Automated Software Engineering , ASE ’14, pages 785–790, New York, NY, USA, 2014. ACM.
+[MTWH06] Steven P. Miller, Alan C. Tribble, Michael W. Whalen, a nd Mats P.E. Heimdahl. Proving the shalls. International
+Journal on Software Tools for Technology Transfer , 8(4-5):303–319, 2006.
+[NSM14] Sidney Nogueira, Augusto Sampaio, and Alexandre Mo ta. Test generation from state based use case models.
+Formal Aspects of Computing , 26(3):441–490, 2014.
+[ORS92] S. Owre, J. M. Rushby, , and N. Shankar. PVS: A prototy pe veriﬁcation system. In Deepak Kapur, editor, 11th
+International Conference on Automated Deduction (CADE) , volume 607 of Lecture Notes in Artiﬁcial Intelligence ,
+pages 748–752, Saratoga, NY, jun 1992. Springer-Verlag.
+[Pel11] Peleska, J. et al. A Real-World Benchmark Model for T esting Concurrent Real-Time Systems in the Automotive
+Domain. In Proceedings of the ICTSS , ICTSS’11, pages 146–161, Berlin, Heidelberg, 2011. Sprin ger-Verlag.
+[PVLZ11] Jan Peleska, Elena Vorobev, Florian Lapschies, an d Cornelia Zahlten. Automated Model-Based Testing with
+RT-Tester. Technical report, Universit¨ at Bremen, 2011.
+[Ros10] A. W. Roscoe. Understanding Concurrent Systems . Springer, 2010.
+[Sch02] R. Schwitter. English as a Formal Speciﬁcation Lang uage. In Proceedings of the 13th International Workshop on
+Database and Expert Systems Applications , 2002.
+[Sch09] Matthias Schnelte. Generating Test Cases for Timed Systems from Controlled Natural Language Speciﬁcations.
+InInternational Conference on System Integration and Reliab ility Improvements , pages 348–353, 2009.
+[SHG10] S. Siegl, K.-S. Hielscher, and R. German. Model Base d Requirements Analysis and Testing of Automotive Systems
+with Timed Usage Models. In Requirements Engineering Conference (RE), 2010 18th IEEE In ternational , pages
+345–350, Sept 2010.
+[SJV12] Valdivino Santiago Junior and Nandamudi Lankalapa lli Vijaykumar. Generating Model-based Test Cases from
+Natural Language Requirements for Space Application Softw are.Software Quality Journal , 20:77–143, 2012.
+[SLDP09] Jun Sun, Yang Liu, Jin Song Dong, and Jun Pang. Pat: T owards ﬂexible veriﬁcation under fairness. volume 5643
+ofLecture Notes in Computer Science , pages 709–714. Springer, 2009.
+[Tre99] Jan Tretmans. Testing Concurrent Systems: A Formal Approach. In Proceedings of CONCUR , pages 46–65,
+London, UK, UK, 1999. Springer-Verlag.

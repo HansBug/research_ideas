@@ -1,0 +1,2493 @@
+--- Page 1 ---
+International Journal on Software Tools for Technology Transfer manuscript No.
+(will be inserted by the editor)
+Exact Finite-State Machine
+Identication from Scenarios
+and Temporal Properties
+Vladimir Ulyantsev1
+Igor Buzhinsky1;2
+Anatoly Shalyto1
+The nal publication is available at Springer via
+http://dx.doi.org/10.1007/s10009-016-0442-1
+Abstract Finite-state models, such as nite-state ma-
+chines (FSMs), aid software engineering in many ways.
+They are often used in formal verication and also can
+serve as visual software models. The latter application
+is associated with the problems of software synthesis
+and automatic derivation of software models from spec-
+ication. Smaller synthesized models are more general
+and are easier to comprehend, yet the problem of mini-
+mum FSM identication has received little attention in
+previous research.
+This paper presents four exact methods to tackle
+the problem of minimum FSM identication from a set
+of test scenarios and a temporal specication repre-
+sented in linear temporal logic. The methods are im-
+plemented as an open-source tool. Three of them are
+based on translations of the FSM identication prob-
+This work was nancially supported by the Government
+of Russian Federation, Grant 074-U01, and also partially
+supported by the Russian Foundation for Basic Research
+(RFBR), research project No. 14-07-31337 mol a. We also
+thank Maxim Buzdalov, Daniil Chivilikhin and anonymous
+reviewers for useful comments.
+Vladimir Ulyantsev
+ulyantsev@rain.ifmo.ru
+Igor Buzhinsky (corresponding author)
+igorbuzhinsky@corp.ifmo.ru
+Anatoly Shalyto
+shalyto@mail.ifmo.ru
+1Computer Technologies Laboratory, ITMO University,
+St. Petersburg, Russia
+2Department of Electrical Engineering and Automation,
+Aalto University, Espoo, Finlandlem to SAT or QSAT problem instances. Accounting for
+temporal properties is done via counterexample prohi-
+bition. Counterexamples are either obtained from pre-
+viously identied FSMs, or based on bounded model
+checking. The fourth method uses backtracking. The
+proposed methods are evaluated on several case stud-
+ies and on a larger number of randomly generated in-
+stances of increasing complexity. The results show that
+the Iterative SAT-based method is the leader among
+the proposed methods. The methods are also compared
+with existing inexact approaches, i.e. the ones which do
+not necessarily identify the minimum FSM, and these
+comparisons show encouraging results.
+Keywords Finite-state machine identication linear
+temporal logic model checking SATQSAT
+1 Introduction
+Finite-state models, such as nite-state machines, or
+FSMs, and deterministic nite automata (DFA), are
+commonly used for solving various problems arising in
+software engineering, such as software verication and
+reverse engineering. Recently, there has been growing
+interest in automated FSM construction based on given
+specications, which are often represented as execu-
+tion traces and logs [23,38,39,31]. Other types of data
+employed in model construction are temporal proper-
+ties [38,9,31] and invariants [3]. This research direc-
+tion is appealing, since inferred nite-state models can
+help comprehend software, reveal faults in it, facilitate
+model-driven development, or even serve as software.
+Existing techniques, such as state merging [27,38]
+and metaheuristic approaches [34,9], demonstrate ac-
+ceptable performance. However, they are almost not
+concerned about the size of generated models: it is not
+always possible to obtain the FSM with the minimum
+number of states, and even when it is, existing meth-
+ods do not provide the proof that the found automa-
+ton is indeed the smallest possible one. Smaller FSMs
+are preferred since they are easier to comprehend, to
+maintain, and, according to the Occam's principle, are
+more general, which is useful in the cases of incomplete
+specications. In particular, if FSMs are further used
+for test case generation [11,6], the smaller number of
+states leads to more concise test suites.
+In order to address this problem of constructing the
+smallest possible FSM, or the problem of exact FSM
+identication , this paper presents four exact methods
+of FSM identication from test scenarios and temporal
+properties represented in linear temporal logic (LTL)
+[32]. The results of Gold [21] and Rosner [33] on com-
+putational complexity of other nite-state model iden-arXiv:1601.06945v2  [cs.SE]  19 Nov 2016
+
+--- Page 2 ---
+2 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+tication problems make us believe that the consid-
+ered problem is NP-hard, although no proof is provided
+in this paper. The proposed methods are hence based
+on heuristics. Three of them translate the problem to
+either the Boolean satisability problem (SAT) or its
+quantied version (QSAT). The SAT problem has been
+previously used in related research: in [22] the authors
+learn DFA, and in [35] extended nite-state machines
+(EFSMs) are identied. Conversely, the translation to
+QSAT has not been applied in solving such problems.
+In this paper it is used for FSM construction in com-
+bination with bounded model checking [4], which is a
+form of model checking [12], an approach in formal soft-
+ware verication. The remaining method is based on
+backtracking. All the methods are incorporated into an
+open-source tool written in Java.
+Another issue, which might be important in reac-
+tive software model identication, is completeness {
+the property of having a transition for each event in
+each state of the identied FSM. For example, complete
+FSMs are essential in sequential circuit synthesis [10],
+nite-state protocol synthesis [1], and in the IEC 61499
+international industrial standard [37]. The majority of
+existing methods neglect this requirement, but is not
+the case for the proposed techniques.
+The proposed methods are evaluated on case stud-
+ies and randomly generated instances. They are fur-
+ther compared with existing inexact approaches. First,
+two of them are shown to outperform the approach
+from [9]. Compared to state merging [38], the proposed
+approaches need more time, but are applicable under
+fewer premises (such as the absence of actions on transi-
+tions). Finally, the comparison with symbolic bounded
+LTL synthesis [16,17] suggests that the proposed meth-
+ods generate notably smaller models.
+The rest of the paper is organized as follows. In Sec-
+tion 2, we examine related research. In Section 3, we
+review several key concepts from the elds of model
+checking and bounded model checking. The considered
+problem is formally stated in Section 4. Next, in Sec-
+tion 5, we describe the contribution of the paper: the
+proposed FSM identication techniques. In Section 6,
+we evaluate them on case study systems and random in-
+stances, and then compare them with other techniques.
+Section 7 concludes the paper.
+2 Related work
+Many previously proposed nite-state model identi-
+cation methods are heuristic. The EDSM state merg-
+ing algorithm [27] for constructing DFA from a number
+of words labeled with acceptance/rejection information
+was among the rst ones. State merging starts from anaugmented prex tree acceptor (APTA), a tree-shaped
+automaton, and iteratively merges its states until no
+valid merge exists. This algorithm serves as the basis
+for the method of FSM identication from execution
+traces and LTL safety formulae proposed in [38]. The
+authors perform a number of state merging executions
+(the practically ecient Blue Fringe approach is cho-
+sen) with the increasing number of negative execution
+traces, which are obtained as contradictions between
+the current FSM and LTL properties. The validity of
+each merge is additionally checked against the temporal
+properties. This reduces the size of the search space and
+thus makes the state merging procedure more ecient.
+While in [38] LTL properties are either known in
+advance (in the \passive" approach) or messaged to
+the FSM identication tool by its user (in the \ac-
+tive" approach), in [28] and [3] they are mined from
+software traces or logs using predened templates. In
+[28], the mined temporal properties are employed to
+guide state merging so that they are not violated. In
+[3], the initially constructed compact model is itera-
+tively rened to fulll the temporal properties and then
+is additionally coerced to cancel the renements which
+are redundant due to an imperfect heuristic renement
+procedure. The approach [3] is improved in the work
+[31], which focuses on learning models whose transi-
+tions are annotated with numbers indicating resource
+(i.e. time or memory) consumption. Inferring models
+richer than simple discrete transition systems has also
+been attempted in [39], but the idea in this work is
+dierent and does not employ temporal properties: in-
+stead, nite-state machines are enriched with numeric
+data classiers learnt from traces with data values.
+Another group of methods is based on metaheuris-
+tics, such as genetic algorithms [30] and ant colony op-
+timization [13]. The genetic algorithm has been applied
+for EFSM construction in [34], but the work [8] shows
+that the evolutionary algorithm based on ant colony
+optimization solves this problem faster.
+One of the ways of nding an exact solution (i.e.
+the FSM with the minimum number of states conform-
+ing with the specication), apart from the naive brute-
+force solution enumeration, is the translation of the
+problem to another NP-hard problem such as SAT or
+the constraint satisfaction problem (CSP) and feed-
+ing the obtained set of constraints to an exact solver
+(a third-party tool based on heuristics). To the best
+of our knowledge, all existing translation-based meth-
+ods currently do not support temporal specications. A
+translation-to-SAT DFA learning method, which em-
+ploys labeled examples as input data, has been pro-
+posed in [22]. This method nds a proper coloring of the
+so-called consistency graph , which determines unmerge-
+
+--- Page 3 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 3
+able pairs of APTA vertices. The paper [36] improves
+this approach by adding breadth-rst search (BFS) sym-
+metry breaking predicates to narrow the search space.
+Another work [35], which is based on [22], introduces a
+SAT-based method of FSM synthesis from user-prepared
+behavior examples, or test scenarios. Since one of the
+methods proposed in our paper is based on the method
+from [35], we will examine it in more detail in Sec-
+tion 5.1.1.
+Finally, the problem of identifying an FSM from
+both scenarios and temporal properties represented in
+the LTL language is solved in [9]. The solution called
+CSP+MuACO smcombines the use of a CSP solver and
+a metaheuristic search with an ant colony optimization
+algorithm. More precisely, the CSP solver nds the ini-
+tial solution based on scenarios only, and then it is ad-
+justed metaheuristically to account for temporal formu-
+lae. Thus, this approach is inexact.
+There has also been a large volume of research con-
+cerning the LTL synthesis problem, wherein a reactive
+system compliant with given LTL properties must be
+derived [5]. This problem in known to be 2EXPTIME-
+complete [33] in terms of specication length. While
+the majority of techniques mentioned above aim to con-
+struct a nite-state model which explains the behavior
+of a software system, the LTL synthesis problem re-
+quires a software system to be constructed . In this case
+LTL properties are often easier to obtain than traces,
+since there is no software which can generate them. Re-
+cent works, which attempted to solve this problem in a
+practically feasible way, include the approach to bound
+the parameters of the target system [17,20], paper de-
+scribing a tool which implements this idea [16], and an
+approach based on incremental model renement [19].
+3 Model checking and bounded model checking
+Concepts related to model checking [12] will be exten-
+sively used in the rest of the paper. Model checking
+is a formal verication technique for nite-state mod-
+els which suggests describing the specication for the
+software in the form of temporal properties . One of the
+ways to dene temporal properties is linear temporal
+logic (LTL): each property to check is expressed as a
+formula dened over the set of innite paths in the
+Kripke structure , a special model of software execution.
+A Kripke structure [12] Mis a quadruple pSK;I;T;Lq
+whereSKis the set of states ,ISKis the set of
+initial states ,TSKSKis the transition relation ,
+which must be left-total (that is, from each state there
+is a transition to at least one state), and L:SKÑ2P
+is the labeling function , wherePis the set of atomic
+propositions , which characterize states. An example of
+L(4) = { r }L(3) = { } 
+L(2) = { q }L(1) = { p, q }
+L(5) = { p, r }
+2 4 5 3 4 5...
+p, q q r p, r r p, r1Fig. 1 An example of a Kripke structure (top) and an in-
+nite path in it (bottom). The structure has 5 states, and its
+labeling function annotates them with three atomic propo-
+sitionsp,q, andr. Two initial states 1 and 2 are marked
+with incoming arrows from the left. Other arrows describe
+the transition relation.
+a Kripke structure with an innite path is shown in
+Fig. 1.
+LTL formulae consist of Boolean operators ( ^,_, ,
+Ñ), temporal operators and atomic propositions. If fis
+simply a Boolean formula, then it asserts that the rst
+state of the path is marked with some atomic proposi-
+tions and is not marked with some other ones. If fis
+an LTL formula, then saying that fholds for a state
+within an innite path means that it holds for the in-
+nite sux of the path starting from this state. The
+following temporal operators can be used:
+{The neXtoperator: Xfindicates that formula f
+holds for the next state of the path.
+{TheGlobal operator: Gfindicates that fholds for
+the current state and all future states of the path.
+{TheFuture operator: Ffindicates that there exists
+a future state for which fholds, or it already holds
+for the rst state of the path.
+{TheUntiloperator:fUgindicates that fholds for
+a nite number of states, and then gholds for the
+next state.
+{TheRelease operator:fRgindicates that either g
+holds until both fandgare true in some state, or
+gholds forever if fnever becomes true.
+Iffis an LTL formula, then M(Afmeans that f
+is satised for all innite paths in Mwhich start in I.
+Alternatively, M(Efmeans that there exists a path
+starting in Ifor whichfis satised.
+Bounded model checking [4], or BMC, is a technique
+to approximately verify LTL formulae by reducing the
+problem to a SAT instance. The idea is to search for
+a counterexample for the formula being veried among
+nite execution paths and innite paths with a simple
+structure, which enter an innite loop at some point.
+Each path, either nite orlooping , is represented as
+a number of Boolean vectors s0;:::;sk, wherekdeter-
+mines the strength of the verication procedure. This
+integer can be iteratively increased until a counterex-
+
+--- Page 4 ---
+4 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+ample is found, or a theoretical boundary [4] is reached
+which proves that BMC of the Kripke structure with
+the current kis equivalent to its usual model checking,
+or the employed SAT solver fails to solve the current
+SAT instance. Each sjp0¨j¨kqdetermines the j-th
+state of the path.
+4 Problem statement
+In this work, a nite state machine (FSM) is a sextuple
+pS;sinit;E;Z;;qwhereSis a nite set of states ,sinitP
+Sis the initial state ,Eis a nite set of input events ,
+Zis a nite set of output actions ,:SEÑSis
+thetransition function , and:SEÑZ, where
+Zis the set of strings over Z, is the output function .
+Ifandare partial functions dened over the same
+subset ofSE, then the FSM is called incomplete : some
+of its transitions are missing. Otherwise, if andare
+total functions, we call such an FSM complete . An FSM
+execution is a sequence of cycles: on each cycle the FSM
+receives an input event, generates an output sequence
+according to and changes its active state according
+to.
+The considered problem involves identifying an FSM
+with a xed number of states |S|which satises two
+types of specication: scenarios and LTL properties. If
+such an FSM does not exist, this also must be eventu-
+ally spotted. Note that to nd an FSM with the small-
+est number of states, one might try increasing |S|until
+a solution is found. The rst type of specication is
+a set of test scenarios . A test scenario is a sequence
+of pairspe1;A1q;:::;pen;Anq, where each eiPEand
+AiPZp1¨i¨nq. These pairs are called scenario
+elements .
+The second type of specication is a set of LTL
+formulae. An FSM complies with an LTL formula, if
+the formula holds for each possible execution of the
+FSM. We assume the following correspondence between
+FSMs and their Kripke structures: the Kripke struc-
+ture's states SKare FSM's transitions (thus, SK
+SEZS), and a state of the Kripke structure is
+initial if and only if it corresponds to an FSM transition
+from its initial state sinit:
+Itpsinit;e;psinit;eq;psinit;eqq|ePEu:
+Consequently, the pair composed of two states ps1,e,z,
+s2qandps1
+1;e1;z1;s1
+2qbelongs to the transition relation
+T, if and only if s2s1
+1. An example of the described
+transformation is shown in Fig. 2. Finally, to dene the
+labeling function L, we consider the following set of
+atomic propositions P:
+1
+2e1 / z1
+e1 / z1
+e2 / z2e2 / z1
+(2, e1, z1, 1)
+(2, e2, z2, 1) (1, e2, z1, 2)(1, e1, z1, 1)a)
+b)Fig. 2 An example of an FSM (a) and its Kripke struc-
+ture (b).
+{wasEventpeq,ePE: whether the corresponding tran-
+sition of the FSM is triggered by event e;
+{wasActionpzq,zPZ: whether the corresponding
+transition of the FSM includes at least one action z
+in its output sequence.
+The second type of atomic propositions is not suf-
+cient to express constraints which involve the posi-
+tions of actions in output sequences. Nevertheless, since
+these propositions were considered in one of the previ-
+ous works [9] with which we compare our work, we will
+also use them. Besides, generalizing wasAction to han-
+dle positions would not essentially inuence the pro-
+posed methods. Below are some examples of LTL for-
+mulae with the dened atomic propositions, which are
+satised for the FSM shown in Fig. 2:
+{wasActionpz1q^XpwasActionpz1q_wasActionpz2qq:
+the rst state of the path is marked with atomic
+proposition wasActionpz1q(and possibly with some
+other atomic propositions), and the second state is
+marked with either wasActionpz1qorwasActionpz2q.
+In terms of the corresponding FSM, this means that
+z1is emitted on the rst cycle of FSM execution,
+and eitherz1orz2is emitted on the second cycle.
+{ GpwasEventpe1qÑFpwasActionpz1qqq: each event
+e1received by the FSM will cause action z1in the
+future.
+It is also possible to optionally require the identied
+FSM to be complete. While describing the FSM iden-
+tication techniques, we will mention the cases of both
+presence and absence of the completeness requirement.
+
+--- Page 5 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 5
+The nal remark in this section concerns the corre-
+spondence of our denitions of the FSM and its identi-
+cation problem with the ones from previous works. The
+model of EFSMs considered in [35] and [9] additionally
+employs guard conditions on transitions. Such condi-
+tions depend on Boolean variables { an extra type of in-
+put data for an FSM. Nevertheless, any instance of the
+FSM learning problem with both events and guard con-
+ditions can be transformed to an instance with events
+only. Each event of the transformed instance is a pair
+of an event from the initial instance and a combination
+of variable values. Thus, this transformation would in-
+crease the number of events in 2|V|times, where |V|
+is the number of variables. For large |V|such a trans-
+formation is expensive, but since in this work we deal
+with|V|¨2, smarter handling of guard conditions is
+not considered.
+Another FSM denition is the one from [38]. Its
+main dierence with our one is the absence of actions,
+but the problem stated in [38] assumes the optional
+presence of negative scenarios { the ones with which
+the identied FSM must not comply.
+5 FSM identication methods
+Four exact FSM identication methods are presented in
+this paper. Our rst method, the Iterative SAT-based
+approach, is largely based on a known method of identi-
+fying FSMs from test scenarios only [35] and the idea of
+iterative counterexample prohibition [38]. The second
+one, the QSAT-based method, uses the translation of
+the considered problem to QSAT and involves execut-
+ing a QSAT solver. Instead, the third approach, named
+the Exponential SAT-based one, executes a SAT solver
+on the expanded version of the quantied Boolean for-
+mula. Eventually, the fourth and the simplest Back-
+tracking method is based neither on SAT nor on QSAT
+and performs a heuristic search with backtracking. We
+implemented the last method to make it the baseline in
+its comparison with the others. The implementations of
+all the methods in Java are available online as a cross-
+platform software tool1with a command-line interface.
+5.1 Iterative SAT-based solution
+The idea of the Iterative SAT-based solution is as fol-
+lows. We iteratively execute the method of identifying
+FSMs from test scenarios only, presented in [35], with
+several adjustments. After each iteration, we verify the
+obtained FSM with model checking against the LTL
+1https://github.com/ulyantsev/EFSM-tools/
+e1 / z1
+e2 / z1 e2 / z2e1 / z1e1 / z1
+e2 / z1e1 / z1
+e2 / z1Fig. 3 An example of a scenario tree for four test
+scenarios:pe1;z1q;pe1;z1q;pe1;z1q;pe1;z1q;pe1;z1q;pe2;z1q;
+pe1;z1q;pe2;z1q; andpe2;z1q;pe2;z2q;pe1;z1q.
+specication. We employ the model checker written by
+the authors of [34] and further modied to make it out-
+put minimum counterexamples to falsied formulae. If
+the FSM's Kripke structure does not comply with the
+specication, we prohibit the counterexamples found by
+the model checker using additional Boolean constraints
+and thus enforce the SAT solver to nd a dierent so-
+lution after it is restarted.
+An important optimization is to use the capabilities
+of incremental solvers [15] instead of restarts. On each
+iteration, only new constraints are fed to the running
+instance of the solver. This saves computation time,
+since the number of iterations can be large.
+An approach similar to the proposed one, but based
+on state merging instead of the SAT problem, was intro-
+duced in [38]. Another work [19] which applies related
+ideas is devoted to LTL synthesis.
+5.1.1 Method of identifying FSMs from scenarios only
+We now shortly describe the method from [35]. In this
+method, test scenarios are merged into the scenario
+tree. An example of such tree is shown in Fig. 3. De-
+note the set of tree nodes as Vsc. Two variable types are
+introduced in [35] (we slightly alter the notation from
+this work):
+{xv;i: whether node vPVscof the scenario tree cor-
+responds to state ip1¨i¨|S|qof the FSM ( vis
+\colored" into color i);
+{yi1;i2;e: whether the transition from state i1p1¨
+i1¨ |S|qtriggered by event ePEleads to state
+i2p1¨i2¨|S|q, i.e. whether pi1;eqi2.
+A number of constraints enforce the proper coloring
+of the scenario tree and the compliance of the FSM
+with this tree. Briey, these constraints ensure that the
+rst state of the FSM is the initial one (i.e. x1;11),
+that exactly one color (FSM state) is assigned to each
+node of the tree, that there is no pair of inconsistent
+nodes [23] with identical colors, that there is at most
+one transition yi1;i2;ein the FSM for each source state
+i1and evente, and thatyvariables are consistent with
+
+--- Page 6 ---
+6 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+the coloring of the tree. Denote the logical conjunction
+of all these constraints as S.
+5.1.2 Action constraints
+In [35], output actions were not included into the SAT
+model, but were restored based on scenarios. In our
+case, actions must be considered explicitly to facili-
+tate counterexample prohibition (Section 5.1.3). First
+we need to introduce an additional variable type for
+output actions:
+{zi;a;e: whether the transition from state itriggered
+by eventeproduces output action a, i.e. whether
+aPpi;eq.
+The constraint Zensures the compliance of zvari-
+ables with scenarios by stating that they do not con-
+tradict with each edge of the scenario tree. Let outpvq
+be the set of outgoing edges from node v, then:
+Z©
+vPVsc|S|©
+i1
+xv;iÑ©
+pe;A;v1qPoutpvqMi;e;A
+;
+whereMi;e;A©
+aPZ#
+zi;a;e;ifaPA
+ zi;a;e;ifaRA:
+5.1.3 Negative scenario tree
+We introduce the concept of the negative scenario tree ,
+which is used to represent counterexamples prohibited
+after each iteration of the method. To do this, we need
+one more type of variables which will represent the col-
+ors of negative scenario tree nodes, the set of which we
+denote asVsc:
+{xv;i: whether node vPVscof the negative scenario
+tree corresponds to state ip1¨i¨|S|qof the FSM.
+As in the case of the ordinary, positive scenario tree,
+the structure of the FSM, encoded in its Boolean model,
+determines the mapping between tree nodes and FSM
+states (this will be asserted below with Boolean con-
+straints). However, there are several dierences between
+these types of trees:
+{It is possible for negative scenario nodes to not cor-
+respond to any of the FSM states. This is intuitive
+for terminal counterexample nodes, for which the
+opposite situation would mean that the counterex-
+ample belongs to the set of possible FSM behaviors.
+Some nodes of the tree, nevertheless, correspond to
+FSM states: when a counterexample is added into
+the tree, some of its prexes are still correct.
+e1 / z1
+e2 / z1 e2 / z2e1 / z2e1 / z1
+e2 / z2xe1 / z2
+e2 / z2Fig. 4 An example of a negative scenario tree. Two
+looping counterexamples are pe1;z1q;rpe1;z1q;pe1;z2qs
+andpe2;z1q;pe2;z2q;rpe1;z2qs(cycles are denoted with
+square brackets), and the single nite counterexample is
+pe1;z1q;pe2;z2q;pe2;z2q.
+{For each node of the positive scenario tree and each
+event, there cannot be more than one outgoing edge.
+Otherwise, the tree would require the FSM to be
+nondeterministic. This restriction does not apply to
+the negative tree: such a situation just means that
+more than one combination of actions is prohibited
+in a particular node for a particular event.
+{Generally, each counterexample to an LTL formula
+is an innite path, and without loss of generality we
+may assume that it is composed of a nite prex
+followed by a cycle [12]. Moreover, for some formu-
+lae there are nite prexes such that all possible
+innite continuations of them are counterexamples,
+so we will regard such prexes as counterexamples
+themselves. A nite counterexample simply corre-
+sponds to a path from the root of the tree to the end
+node of the counterexample. To represent a looping
+counterexample, after adding the nite prex and a
+single occurrence of the cycle, a back edge is inserted
+to link the end of the cycle with its beginning.
+An example of a negative scenario tree is shown in
+Fig. 4. It consists of three counterexamples: two looping
+ones (back edges are shown in dashed lines) and a nite
+one (indicated with a cross inside its end node).
+Boolean constraints which specify the negative sce-
+nario tree are totally dierent from the ones of the posi-
+tive tree. First, proper coloring of the negative scenario
+tree must be ensured. Its root (node 1) corresponds to
+the initial state of the FSM:
+S1x1;1:
+Then, negative node colors are propagated along the
+edges of the tree (excluding back edges) according to
+the Boolean model of the FSM:
+S2©
+vPVsc
+pe;A;v1qPoutpvq
+1¨i1;i2¨|S|pxv;i1^yi1;i2;e^Mi1;e;AÑxv1;i2q:
+
+--- Page 7 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 7
+Similarly to the positive scenario tree, it is possi-
+ble to ensure that exactly one color is assigned to each
+negative node, but these constraints can be shown to
+be redundant.
+Next, each added counterexample is associated with
+its own constraint. The simplest case is adding nite
+counterexamples: their end nodes (denoted as \termi-
+nal" ones) are asserted to not correspond to any states:
+S3©
+vPVsc:terminalpvq|S|©
+i1 xv;i:
+Note that in general such terminal nodes may still have
+outgoing edges: this corresponds to situations when a
+shorter, more restrictive counterexample is added after
+a longer one.
+Next, recall that a looping counterexample is added
+to the tree as a path consisting of the before-the-cycle
+prex, a single occurrence of the cycle, and a back edge
+which links the end of the cycle to its beginning (see
+Fig. 4). In general, such an end node may still have
+outgoing edges due to previously added counterexam-
+ples. The respective constraints state that cycles are
+forbidden: their start and end nodes (the ones linked
+by back edges) cannot have identical colors, i.e. they
+do not correspond to the same state of the FSM:
+S4©
+vPVsc©
+u:backEdgepv;uq|S|©
+i1 pxv;i^xu;iq:
+Finally, the overall constraint on the negative sce-
+nario tree is denoted as S:
+SS1^S2^S3^S4:
+5.1.4 FSM completeness
+To simply resolve the FSM completeness issue, we add
+the completeness constraint which ensures that for ev-
+ery statei1and every event ethere exists a transition
+to some state i2:
+CC@|S|©
+i11©
+ePE|S|ª
+i21yi1;i2;e:
+However, even when completeness is not required, we
+must ensure that there is at least one transition from
+each state of the FSM to prevent vague interpretations
+of LTL formulae, which are dened over innite paths.
+This can be done with a weaker constraint:
+CCD|S|©
+i11ª
+ePE|S|ª
+i21yi1;i2;e:5.1.5 Symmetry breaking
+In addition, symmetry-breaking constraints [36] are used
+to speed up solver execution on unsatisable problem
+instances. They ensure that the states of the FSM are
+traversed in the BFS order. We denote them as B. The
+use of Brequires additional variables described in [36],
+but we omit them for simplicity.
+5.1.6 Assembled formula
+Finally, we assemble all the mentioned constraints into
+the formula which is fed to the SAT solver:
+Dtxv;i; yi1;i2;e;zi;a;e;xv;iu:S^Z^S^C^B: (1)
+The Iterative SAT-based solution is summarized in
+Algorithm 1. The function ModelCheck runs the model
+checker on the FSM and the LTL specication and re-
+turns minimum counterexamples to falsied formulae,
+andSatSolve runs a SAT solver (in the Iterative SAT-
+based solution, SAT solving is implemented incremen-
+tally, thus on each step only changes in the Boolean
+formula are fed to the solver). SatSolve might fail and
+returnnull.
+Data : set of scenarios SC, temporal specication LTL
+fÐgenerate formula (1)
+run a SAT solver in the incremental mode
+while truedo
+FSMÐSatSolve( f)
+ifFSM = null then return `UNSATISFIABLE'
+counterexamples ÐModelCheck( FSM,LTL)
+ifcounterexamples ?then update Swithinf
+else return FSM
+end
+Algorithm 1: Iterative SAT-based solution.
+5.2 QSAT-based solution
+The QSAT-based solution employs BMC. Assume kis
+the BMC boundary, that is, paths with the length of
+k 1 are checked for counterexamples. If we nd a
+way of identifying an FSM which satises scenarios and
+LTL properties with the boundary k, then we can iter-
+atively increase kuntil the FSM satises the properties
+in the unbounded sense (this can be checked with model
+checking). Such kalways exists according to Theorem 1
+from [4], and the reasons why this theorem is applicable
+here will become evident soon.
+
+--- Page 8 ---
+8 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+5.2.1 Idea of the method
+In usual BMC, the Kripke structure to be model-checked
+is assumed to be known in advance. BMC checks whether
+there are no paths with length bounded with kin this
+structure for which the negation of the LTL specica-
+tion hold { such a path would be a counterexample
+for the specication, which must hold for every path in
+the Kripke structure. But instead of querying the SAT
+solver whether there exists such a path, with the help
+of a QSAT solver we can solve a quantied Boolean
+formula which states that each path in the model is
+not a counterexample. Furthermore, we can now as-
+sume that the Kripke structure is not known in advance
+and add the existential part of the formula, which de-
+nes the structure to be identied, before the univer-
+sal one, which species the absence of counterexamples.
+The proof of the correctness of the outlined idea and its
+formal description are provided below.
+Recall the notations M(AfandM(Ef, which
+state thatfis satised either for all paths or for some
+path inM(see Section 3). Assume Mis the Kripke
+structure which models an FSM complying with sce-
+narios (denote the set of such models as Msc), and for
+whichM(Ag, wheregis the LTL property we require
+from the FSM. If there are several such properties, as-
+sume that gis their logical conjunction. M(Agis
+equivalent to  pM(E gq. Next, we need to utilize
+two theorems from [4]:
+{Theorem 1. M(EfôDk©0 :M(kEf, where
+the symbol \(k" denotes property satisability in
+thek-bounded sense.
+{Theorem 2. There is a Boolean formula JM;f Kk
+(dened in [4]), which is satisable if and only if
+M(kEf.
+Theorem 1 implies: M(E gô Dkk0©
+0 :M(kE g. Thus, if we try kk0, we need to
+ndMsuch that pM(kE gq. Then, according to
+Theorem 2, M(kE gcan be expressed as a Boolean
+formulaDpJM;f Kk, wherepis a variable assignment
+which determines a path in M(possibly an invalid one,
+see clarications below), and f g. Hence, we search
+forMsuch thatDpJM;f Kkis false. To nd M, we
+start fromk0 and iteratively increase it by one. On
+each iteration, we solve the following quantied Boolean
+formula:
+DMPMsc@p JM;f Kk: (2)
+If the formula is unsatisable, then it is also unsat-
+isable for greater k(this can be inferred from the de-
+nition of JM;f Kk[4]) and thus the desired Kripke struc-
+tureMdoes not exist. Otherwise, we verify M(Afwith model checking. If the desired Kripke structure M
+exists, it will be found together with the corresponding
+FSM when kreachesk0.
+5.2.2 Kripke structure representation and correctness
+We have not yet discussed the way Mcan be repre-
+sented with Boolean variables and how the constraint (2)
+can be expressed as a QSAT instance. The translation
+of the stated problem to QSAT is again based on the
+method from [35]. If we assume that state 1 is the initial
+state of the FSM, then yandzvariables are sucient to
+dene the Kripke structure. Thus, we will search both
+the scenario coloring determined by xvariables and the
+information sucient to construct the Kripke structure
+of the FSM. We constrain all three types of variables
+withS,Z,BandC(see Section 5.1).
+5.2.3 Path representation and correctness
+We have just identied how to express MPMscas a
+Boolean formula. We now move to the way of dening a
+path inM(recall that its length is k 1). We introduce
+the following variables for each position jp0¨j¨kq
+of the path:
+{i;j: thej-th position of the path is a transition from
+stateiof the FSM;
+{"e;j: thej-th position of the path is a transition
+triggered by event e;
+{a;j: thej-th position of the path is a transition with
+actiona.
+Thus, each Boolean vector sj, introduced in the
+end of Section 3, is composed of i;jp1¨i¨ |S|q,
+"e;jpePEq, anda;jpaPZq. In fact,and"vari-
+ables are sucient to determine a path in the Kripke
+structure, since the action sequence of the transition in
+the FSM can be uniquely determined from the source
+state of the transition and its triggering event. Thus, 
+variables are supplemental, but later they will become
+helpful to express atomic propositions. In Fig. 5, we
+show an example of a path in a Kripke structure with
+the corresponding variable assignment.
+Which constraints would ensure that an assignment
+of the introduced variables produces a correct path?
+We denote this constraint as JMKk(from now on, some
+notations from [4] are employed):
+JMKk1;0^P^P"^Py^Pk
+y^Pz;where
+Pk©
+j0
+
+|S|ª
+i1i;j
+^|S|©
+i11|S|©
+i2i1 1 pi1;j^i2;jq
+;
+
+--- Page 9 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 9
+(2, e1, z1, 1)
+(2, e2, z2, 1) (1, e2, z1, 2)(1, e1, z1, 1)j = 0
+j = 1 j = 2
+Fig. 5 An example of a path in a Kripke structure shown in
+Fig. 2 fork2. The following path variables are true for this
+path:1;0;"e1;0;z1;0;1;1;"e2;1;z1;1;2;2;"e2;2;z2;2, and
+the other ones are false.
+P"k©
+j0
+ª
+ePE"e;j
+^©
+te1e2u p"e1;j^"e2;jq
+;
+Pyk1©
+j0©
+pi1;i2;eqpi1;j^"e;j^i2;j 1Ñyi1;i2;eq;
+Pk
+y©
+pi1;eq
+i1;k^"e;kÑª
+i2yi1;i2;e
+;
+Pzk©
+j0©
+pi;a;eqpi;j^"e;jÑpa;jØzi;a;eqq:
+The path must start in the initial state of the FSM,
+therefore we need 1;0. The constraints PandP"check
+that each transition in the path starts in exactly one
+state and is triggered by exactly one event, respectively.
+Among several existing encodings of the at-most-one
+constraint [24] in PandP", we have chosen the sim-
+plest binomial encoding, since these constraints do not
+form a signicant portion of the nal formula. The con-
+straints PyandPk
+y(the special case of Pyforjk)
+assert that the transitions in the path correspond to
+yvariables. Note that Pk
+yis not required if the com-
+pleteness constraint Cis included. Finally, Pzdenes
+variables, enforcing correct (corresponding to zvari-
+ables) actions in each state of the path.
+5.2.4 Absence of a witness of the formula's negation
+By now, the only remaining thing is to express JM;f Kk
+as a Boolean formula. The idea of JM;f Kkis to check
+whether there exists a nite or looping path in Mfor
+whichfholds { its witness . Such path is also a coun-
+terexample for the original formula g. According to [4],
+JM;f KkJMKk^W;
+where the path correctness condition JMKkhas been
+discussed previously, and Wexpresses the existencecondition of a witness of f, the negation of g. More pre-
+cisely, Wstates that there exists a path in the Kripke
+structure on which the negation fof the required LTL
+formulagholds. While dening W, we will largely use
+the derivations from [4].
+By`Lkp0¨`¨kqwe denote a Boolean formula
+which requires a path to be a pk;`q-loop. In such a path,
+there exists a transition in the Kripke structure from
+the last position kof the path to some position `.`Lk
+has the following form:
+`Lkª
+pi1;i2;eqi1;k^"e;k^i2;`^yi1;i2;e:
+Note that the looping edge is not included in the
+Boolean description of the path, and thus yi1;i2;eis
+obligatory in the denition of `Lk. An example of a
+looping path with p2;0qandp2;1q-loops is the one shown
+in Fig. 5: its last state has transitions to the rst two
+ones. Next, Lkwill denote the existence of a pk;`q-loop
+for at least one `:
+Lkkª
+`0`Lk:
+Finally, the witness condition is expressed in the
+following way:
+W 
+ Lk^JfK0
+k
+_kª
+`0 
+`Lk^`JfK0
+k
+;
+where JfK0
+kand`JfK0
+kare formula \translations" { con-
+straints produced from the structure of f. The transla-
+tions can be performed according to the rules dened
+in [25], but before this fmust be transformed to the
+negation-normal form [25]: all negations must be prop-
+agated towards atomic propositions. Atomic proposi-
+tions encountered at position jof the path are trans-
+lated in the following simple way:
+{wasEventpeq"e;j;
+{wasActionpaqa;j.
+5.2.5 Assembled formula
+We are now ready to assemble the complete quantied
+formula (2), which is further fed to a QSAT solver:
+Dtxv;i; yi1;i2;e; zi;a;eu:@ti;j; "e;j; a;ju:
+S^Z^B^C^p JMKk_ Wq:(3)
+Variablesxv;i,yi1;i2;e, andzi;a;edene the FSM be-
+ing identied and its Kripke structure. Constraints S,
+ZandBensure that the assignment of these variables
+is valid and denes an FSM with BFS symmetry break-
+ing predicates, and Cguarantees the completeness of the
+
+--- Page 10 ---
+10 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+synthesized FSM (or, if completeness is not required, it
+just forbids states with no outgoing transitions). Next,
+each assignment of path variables either does not dene
+a correct path (  JMKk) or is not a witness for f( W).
+The pseudocode of the QSAT-based solution is shown
+in Algorithm 2. The function QSatSolve runs a QSAT
+solver to nd a proper FSM, and it returns null in case
+of the unsatisability of the formula. The dierences
+between the QSAT-based and the Iterative SAT-based
+solutions are also stressed in Fig. 6. In addition, a par-
+tial example of a QSAT translation is given in Table 1.
+Data : set of scenarios SC, temporal specication LTL
+kÐ0
+while truedo
+fÐgenerate formula (3), FSMÐQSatSolve( f)
+ifFSM = null then return `UNSATISFIABLE'
+else if ModelCheck( FSM,LTL)?then
+return FSM
+end
+elsekÐk 1
+end
+Algorithm 2: QSAT-based solution.
+5.3 Exponential SAT-based solution
+Any QSAT instance can be transformed to a SAT in-
+stance by eliminating every universal quantier: each
+formula@xfis converted to fjx:0^fjx:1, where the
+subscript expressions after vertical lines denote vari-
+able assignments. If the formula contains quniversally
+quantied variables, then this procedure can bloat its
+size in up to 2qtimes. We take this approach in an op-
+timized form and feed the following constraint to the
+SAT solver:
+Dtxv;i; yi1;i2;e; zi;a;eu:
+S^Z^B^C^©
+tPX 
+ Py_ Pk
+y_ W
+t;
+whereTtti;j;"e;j;a;ju|1;0^P^P"^Pzu:
+First, constraints S,Z,BandCdo not depend on
+path variables and thus are included into the formula
+only once. Then we iterate over the set Tof all valid
+path variable assignments { the ones for which 1;0,P,
+P", and Pzhold. It is important to mention that while
+and"variables are assigned to constants (improper
+assignments are ltered out by 1;0^P^P"), eacha;j
+is assigned to the corresponding zi;a;evariable, which
+is uniquely determined from the Pzconstraint based
+onand"values. For each path variable assignment,
+we include the remaining part of the constraint withTable 1 Several subformulae of the QSAT translation for
+|S|  |E|  |Z|  2, the scenario tree from Fig. 3 and
+the LTL formula GpwasActionpz2qÑXwasActionpz1qq. The
+FSM from Fig. 2 satises these data. For this particular ex-
+amplek0 is sucient, but k1 is used instead to make
+the example nontrivial.
+Name Subformula
+VariablesDx1::9;1::2;y1::2;1::2;1::2;z1::2;1::2;1::2
+@"1::2;0::1;1::2;0::1;1::2;0::1
+Pp1;0_2;0q^ p1;0^2;0q^
+p1;1_2;1q^ p1;1^2;1q
+P"p"1;0_"2;0q^ p"1;0^"2;0q^
+p"1;1_"2;1q^ p"1;1^"2;1q
+Pyp1;0^"1;0^1;1Ñy1;1;1q^
+p1;0^"2;0^1;1Ñy1;1;2q^
+p1;0^"1;0^2;1Ñy1;2;1q^
+p1;0^"2;0^2;1Ñy1;2;2q^
+p2;0^"1;0^1;1Ñy2;1;1q^
+p2;0^"2;0^1;1Ñy2;1;2q^
+p2;0^"1;0^2;1Ñy2;2;1q^:::
+Pzp1;0^"1;0Ñp1;0Øz1;1;1qq^
+p1;0^"2;0Ñp1;0Øz1;1;2qq^
+p1;0^"1;0Ñp2;0Øz1;2;1qq^
+p1;0^"2;0Ñp2;0Øz1;2;2qq^
+p2;0^"1;0Ñp1;0Øz2;1;1qq^
+p2;0^"2;0Ñp1;0Øz2;1;2qq^:::
+0L1p1;1^"1;1^1;0^y1;1;1q_
+p1;1^"2;1^1;0^y1;1;2q_
+p1;1^"1;1^2;0^y1;2;1q_
+p1;1^"2;1^2;0^y1;2;2q_
+p2;1^"1;1^1;0^y2;1;1q_
+p2;1^"2;1^1;0^y2;1;2q_
+p2;1^"1;1^2;0^y2;2;1q_
+p2;1^"2;1^2;0^y2;2;2q
+JfK0
+1p2;0^ 1;1q_p2;1^falseq
+0JfK0
+1p2;0^ 1;1q_p2;1^ 1;0q
+1JfK0
+kp2;0^ 1;1q_p2;1^ 1;1q
+substituted concrete values of i;j;"e;j, anda;jinto
+the nal Boolean formula.
+5.4 Backtracking solution
+The solution based on backtracking is the baseline one
+and does not involve SAT or QSAT solver execution. A
+recursive procedure iterates over various (possibly in-
+complete) FSMs, starting from the FSM with no tran-
+sitions. It maintains the current set of edges of the sce-
+nario tree which can not yet be passed by the FSM due
+to the absence of transitions { the frontier (see Fig. 7
+for an example).
+If the frontier is not empty, then the procedure tries
+augmenting the FSM with one of its edges. Each new
+FSMAis checked for compliance with the scenario tree,
+and if it complies with it, then the new frontier is found.
+Moreover,Ais veried and thus again can be rejected.
+The rationale behind verifying intermediate FSMs is
+as follows. If Ais incomplete, then the set of paths in
+
+--- Page 11 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 11
+YesStart 
+Unsatisfiable Generate the initial formula 
+Run a SAT solver in the 
+incremental mode 
+Was an 
+FSM found? 
+Satisfiable Does the 
+FSM comply with 
+LTL properties? No
+YesAdd 
+counterexamples Solve the formula 
+NoStart 
+Unsatisfiable k ← 0 
+Generate the quantified 
+formula 
+Was an 
+FSM found? 
+Satisfiable Does the 
+FSM comply with 
+LTL properties? No
+Yes
+Yesk ← k + 1 Solve the formula 
+Noa) b)
+Fig. 6 Flowcharts of the proposed Iterative SAT-based (a) and the QSAT-based approaches (b).
+1
+2e2 / z2e2 / z1
+e1 / z1
+e2 / z1e2 / z2 e1 / z1e1 / z1
+e2 / z1e1 / z1
+e2 / z1a)
+b)
+Fig. 7 An example of an FSM under construction (a) and
+a scenario tree (b) with a frontier (shown by bold dashed
+arrows). The frontier consists of two occurrences of the same
+scenario element pe1;z1q.
+its Kripke structure is included into the path sets of
+augmentations of A. This allows to limit the search: if
+verication fails, then it will fail for all augmentations
+of the current FSM. If Acomplies with scenarios and is
+veried, the procedure recursively executes itself for A.
+If the frontier is empty, we ensure FSM complete-
+ness with the same procedure as the one applied in the
+Iterative SAT solution, or we just return the found an-
+swer in the case of incomplete FSM identication.
+Algorithm 3 illustrates the solution. An additional
+function FindNewFrontier is used, which nds the fron-tier for the FSM augmented with a new transition, or
+returnsnull, if the FSM is inconsistent with scenarios.
+Backtracking is the recursive invocation of the algo-
+rithm being dened.
+Data : set of scenarios SC, temporal specication LTL,
+current FSM (initially empty), frontier (initially
+contains rst test elements of scenarios in SC)
+edgeÐany edge in frontier
+fordestinationP1::|S|do
+ifDunvisited FSM's states destination
+then break
+sourceÐthe state of FSM from which edge should
+be added
+FSM1ÐFSMYtransition( source ,edge,
+destination )
+frontier1ÐFindNewFrontier( SC,FSM1,frontier )
+iffrontier1null^ModelCheck( FSM1,LTL)?
+then
+iffrontier1=?then
+ifcompleteness is required then
+FSM1ÐComplete( FSM1,LTL)
+ifFSM1nullthen return FSM1
+else return FSM1
+else
+FSM1ÐBacktracking( SC,LTL,FSM1,
+frontier1)
+ifFSM1`UNSATISFIABLE' then
+return FSM1
+end
+end
+end
+end
+return `UNSATISFIABLE'
+Algorithm 3: Backtracking solution.
+
+--- Page 12 ---
+12 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+5.5 Preliminary comparison
+In this subsection we present a brief preliminary qual-
+itative comparison of the proposed methods and two
+other previously mentioned approaches which solve sim-
+ilar problems: the ones presented in [38] and [9]. This
+comparison is summarized in Table 2.
+The row of the table which lists formula sizes de-
+serves some comments. To begin, the part of the Boolean
+formula expressing the compliance of the FSM with
+scenarios is Opl2|S|q(assuming the total length of sce-
+nariosl© |S|). This scenario-related part is present
+in formulae generated by all three solver-based meth-
+ods. Next, LTL formula \translations" mentioned in
+Section 5.2.4 are in the worst case exponential of the
+formula size. Overcoming this issue with the subterm
+extraction technique [4] is impractical, since in our case
+this technique would introduce new universally quanti-
+ed variables. As we found, this slows down the QSAT
+solver and further increases the length of the formula
+produced by the Exponential SAT-based approach. How-
+ever, in some cases this estimate is polynomial: for ex-
+ample, for the case of a number of LTL formulae of a
+preassigned size, the Boolean formula length grows lin-
+early with the number of LTL formulae. Finally, the
+Exponential SAT-based solution produces the formula
+whose length is exponential not only of the LTL for-
+mula size, but also of k, since the number of considered
+combinations of universal variables is Opk|S|q. In the
+estimations in this paragraph we assumed |E|and|Z|
+to be constant.
+6 Experimental evaluation
+This section reports on experimental evaluation of the
+proposed approaches. It consists of three main parts:
+the evaluation on case studies from the literature (Sec-
+tion 6.1), the evaluation on randomly generated in-
+stances (Section 6.2) and the comparison of the pro-
+posed approaches with the known ones (Section 6.3).
+The experimental evaluation seeks to answer the fol-
+lowing research questions:
+RQ1: Are the proposed methods practically applica-
+ble?
+(a) Are they applicable on FSM synthesis tasks
+from the literature?
+(b) Is there a potential to use them in industry?
+RQ2: To which extent are the proposed methods scal-
+able with respect to the size of the problem?
+RQ3: What are the benets and shortcomings of the
+proposed methods in comparison with known
+approaches?To answer research questions RQ1 (a), RQ2 and
+RQ3, three groups of experiments are conducted, which
+are described in Sections 6.1, 6.2 and 6.3, respectively.
+To answer RQ1 (b), all three experiments will be used.
+The analysis of the results with respect to the research
+questions is provided in Section 6.5.
+6.1 Experimental evaluation on case studies
+This subsection reports on the evaluation of the pro-
+posed FSM identication techniques on case study in-
+stances. Its purpose is to examine whether the proposed
+methods are applicable in practice and how one might
+benet from identifying minimum FSMs consistent with
+the given specication.
+6.1.1 Case study systems
+Several case study instances connected with software
+model inference were collected from previous works. In
+the alarm clock example [35], the FSM controlling the
+alarm clock must be identied. This example is an easy
+one since the original set of scenarios for the clock ex-
+ample was very comprehensive. Next, in the elevator
+example [34] the elevator door controlling logic is to be
+induced. A more complex instance obtained from the
+repository2of the same authors is the ATM example.
+The remaining examples, adopted from [38], are con-
+nected not with industrial automation but with desktop
+software. They include the problems of model inference
+for a simple text editor, the JHotDraw framework and
+the Jakarta Commons CVS client. The properties of the
+mentioned problem instances and the number of states
+of reference FSMs from previous studies are summa-
+rized in Table 3.
+6.1.2 Experiment setup
+Since the proposed methods are exact, we were inter-
+ested in nding a minimum FSM for each instance. We
+did it by increasing the number of states |S|until the
+solver found a satisfying assignment. As the starting
+point for|S|we chose the size of the clique in the con-
+sistency graph of the scenario tree found by the greedy
+max-clique algorithm [22], which is a lower bound on
+|S|min, the optimal number of states. Total execution
+times (i.e. sums of execution times for each attempted
+|S|) were recorded, and the obtained FSMs were further
+analyzed. The computation was performed on the In-
+tel Core i 7-4510U 2.0 GHz CPU on a single core. Each
+execution series was given a time limit of 48 hours. As
+2https://code.google.com/p/gabp/
+
+--- Page 13 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 13
+Table 2 Qualitative comparison of the proposed and known FSM identication methods. Denotations: ITER { the Iterative
+SAT-based solution, QSAT { the QSAT-based solution, EXP { the Exponential SAT-based solution, BTR { the Backtracking
+solution, CMA { CSP+MuACO sm[9], SM { the passive state merging approach [38].
+Method Exact LTL class Solver type Formula size
+ITER Yes Arbitrary SAT O l2|S|
+QSAT Yes Arbitrary QSAT O l2|S| 2|LTL|
+EXP Yes Arbitrary SAT O l2|S| 2|LTL| k|S|
+BTR Yes Arbitrary { {
+CMA No Arbitrary CSP O l2 l|S|
+SM No Safety { {
+Table 3 Case study systems and properties which measure their complexity.
+Instance Events Actions Scenarios LTL properties Original |S|
+Alarm clock 16 7 38 11 3
+Elevator 5 3 9 13 5
+ATM 14 13 37 30 unknown
+Text editor 5 0 13 5 4
+JHotDraw 6 0 27 10 7
+CVS client 16 0 12 29 18
+for the memory limit, it was roughly equal to 8GB, the
+amount of memory installed on the used computer.
+Boolean formulae in the context-free representation
+obtained as the result of translations described in Sec-
+tions 5.2 and 5.3 were transformed to the DIMACS
+format by limboole3. As for Boolean formulae in Sec-
+tion 5.1, they were suciently simple to generate them
+straightly in the DIMACS format.
+To solve SAT instances, we used two solvers, both
+of which were highly ranked in the SAT Competition
+20164. In the Iterative SAT-based approach, cryptomin-
+isat5, the winner of the incremental track, was applied.
+The Exponential SAT-based approach, in which incre-
+mental SAT solving was not used, employed lingeling6.
+This solver won the third prize in the main track of the
+competition, but showed excellent performance on un-
+satisable instances, which is important for nding the
+minimum FSM.
+To solve the quantied formula (3) in the QSAT-
+based solution, we applied the DepQBF QSAT solver
+[29], which has shown the best performance among sev-
+eral QSAT solvers tried. Its input format is QDIMACS,
+an extension of DIMACS, but limboole can still be used
+to produce such inputs: it mostly remains to append
+quantiers to its output.
+6.1.3 Results
+The results of the evaluation are summarized in Ta-
+ble 4, which outlines whether the FSM identication
+3http://fmv.jku.at/limboole/
+4http://baldur.iti.kit.edu/sat-competition-2016/
+5http://www.msoos.org/cryptominisat4/
+6http://fmv.jku.at/lingeling/methods succeeded, how much time they consumed and
+how large the FSMs they produced were.
+Unfortunately, the QSAT-based method, which has
+more complex theory behind it compared to other meth-
+ods, failed to solve almost all instances, being success-
+ful only on the alarm clock and the text editor ex-
+amples. Its substitute, the Exponential SAT-based ap-
+proach, performed better, but still violated memory
+limits on three instances. The Backtracking and the
+Iterative SAT-based methods were much more success-
+ful, with the performance of the former being biased to-
+wards smaller instances. Clearly, the leader in this com-
+parison is the Iterative SAT-based method, but even it
+was unable to solve the CVS client instance. More pre-
+cisely, it was able to nd the solution fast (in only 35
+seconds) for|S||S|min18, but the proofs of unsat-
+isability of instances with smaller |S|did not terminate
+within the time limit.
+In general, the major fraction of time is spent by
+the Iterative SAT-based and the Backtracking methods
+to prove that solutions with |S|   |S|min(in particu-
+lar, with|S||S|min1) do not exist. For the Iterative
+SAT-based method, long delays were caused exclusively
+by the last iteration (after adding all counterexamples),
+when the SAT solver was faced with unsatisable prob-
+lem instances. This is the cost of solving the problem
+precisely. If the proper |S|is known in advance, their
+run times will be much smaller.
+For the presented case study instances, the target
+FSMs were known in advance (except the ATM exam-
+ple) and were proved by our methods to be minimum
+(except the CVS client example) by showing that there
+is no solution with fewer states. The minimality of a
+solution implies that all its states are obligatory and
+
+--- Page 14 ---
+14 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+Table 4 Execution times (in seconds) of the proposed methods on case study systems and the state numbers of identied
+FSMs. ML and TL stand for a failure due to the memory limit (8GB) and the time limit (48 hours) respectively.
+Instance ITER QSAT EXP BTR Minimum |S|
+Alarm clock 0.7 77.0 1.6 0.4 3
+Elevator 2.2 TL 5.7 1.3 5
+ATM 19.0 TL ML 481.5 9
+Text editor 1.3 14433.3 8.9 1.0 4
+JHotDraw 3.6 TL ML 27.9 7
+CVS client TL TL ML TL 18
+meaningful, which can aid the comprehension of the
+system subject to model inference. We provide the pre-
+viously unknown minimum FSM for the ATM instance
+in Fig. 8.
+6.2 Experimental evaluation on random instances
+This subsection reports on the evaluation of the pro-
+posed FSM construction techniques on a larger num-
+ber of random problem instances of increasing com-
+plexity. While in the previous subsection almost all in-
+stances (except the alarm clock) specied incomplete
+FSM identication, in this part of the evaluation both
+types of instances are equally present.
+6.2.1 Instance preparation
+To evaluate the proposed FSM identication methods
+on a larger sample and on a more diverse set of LTL
+properties, we prepared problem instances based on
+random FSMs. For each 3 ¨ |S| ¨12 and both sub-
+types of the problem (either complete or incomplete
+FSM identication), 50 FSMs were randomly gener-
+ated. Each generated FSM had four events and four
+actions, and the lengths of output sequences on each
+transition were sampled uniformly at random from the
+sett0;:::;4u. Incomplete FSMs possessed 50% of pos-
+sible transitions. Following that, four random LTL for-
+mulae were generated for each FSM with the randltl
+tool [14]. To ensure that the formulae were suciently
+dicult, we discarded the ones satised for more than
+5 of 10 other random FSMs generated with the same
+parameters.
+Then we randomly generated test scenarios by ex-
+ecuting the generated FSMs choosing on each cycle a
+random outgoing transition from the current state. For
+complete FSMs, each transition was prohibited to be
+executed with the probability of 50% while generat-
+ing scenarios. The rationale behind this was to test the
+methods on instances for which the use of scenarios
+only is not sucient to generate a proper FSM. For
+each FSM we created 10 scenarios with a total length
+of 50|S|.While generating instances for the problem of in-
+complete FSM identication, we accepted only hard in-
+stances: the ones for which the method from [35] is in-
+sucient, i.e. it produces an FSM not compliant with
+the formulae. If the instance was not hard, it was re-
+placed with a new one until the new instance appeared
+to be hard. A similar approach was applied in [9]. Thus,
+we prepared satisable problem instances, for which a
+solution is guaranteed to exist. The entire instance gen-
+eration procedure is outlined in Algorithm 4.
+for|S|P3::12,completePftrue, false g,iP1::50do
+repeat
+FSMiÐRandomFSM(|S|,|E|4,|Z|4,
+complete )
+SCiÐRandomScenarios( FSMi,number10,
+l50|S|,complete )
+forjP1::4do
+repeat
+LTLi;jÐRandomLTL( FSMi)
+forkP1::10do
+CheckFSMkÐRandomFSM(|S|,
+|E|4,|Z|4,complete )
+end
+until LTLi;jis true for less than 6 FSMs
+out of CheckFSM 1::10
+end
+until the method from [35] run on FSMiandSCi
+produces an FSM incompliant with LTLi;1::4
+end
+returnpFSM 1::50;SC1::50;LTL1::50;1::4q
+Algorithm 4: Instance generation procedure.
+6.2.2 Experiment setup
+Similarly to the experiments with the case study sys-
+tems, we again aimed to nd a minimum FSM for each
+instance and thus applied the same procedure of iterat-
+ing over|S|as before. Note that the number of states
+|S|minof a minimum FSM can not exceed |S|maxof the
+FSM from which the scenarios were generated.
+While evaluating the methods, we wished to deter-
+mine how many instances could be solved by the meth-
+ods within a reasonable time limit. The time span given
+
+--- Page 15 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 15
+0
+1IC / z1 EC / z2
+4A / z3AE / z1
+2AS / z4EC / z2
+8C / z5
+6M / z8
+3CR / z6CNL / z4 CP / z7, z4CNL / z4
+7MR / z9ME / z8
+5
+MS / z10CNL / z11, z12, z4MP / z11, z12, z13, z4Events:
+IC: card inserted
+EC: card removal 
+request
+A: authorization request
+AE: invalid PIN
+AS: authorization 
+success
+C: balance query
+CR: balance returned
+CP: balance statement 
+request
+M: cash request
+MR: request money from 
+server
+MS: suﬃcient funds
+ME: insuﬃcient funds
+MP: receipt request
+CNL: cancelActions:
+z1: request PIN
+z2: remove card
+z3: send PIN to the server
+z4: show main menu
+z5: request balance from the server
+z6: show balance
+z7: print balance statement
+z8: ask about cash amount
+z9: send query to the server
+z10: ask about receipt
+z11: return cash
+z12: acknowledge money 
+withdrawal to the server
+z13: print receipt
+Fig. 8 Generated FSM for the ATM problem.
+for each method to solve each |S|-iteration of each in-
+stance was chosen to be 5 minutes. If either of the it-
+erations failed, then the whole run for the instance was
+regarded as failed. Except violating the time limit, the
+Exponential SAT-based method could fail due to the
+lack of memory for its operation.
+For each problem subtype (complete and incomplete
+FSM identication), 3 ¨ |S|max¨12 and each FSM
+construction algorithm, 50 executions were performed
+for target FSMs with these properties. The number of
+solved instances was recorded for each set of executions.
+6.2.3 Results
+Table 5 shows the results of FSM identication method
+executions in terms of numbers of solved instances. It
+is clearly visible from the table that the QSAT-based
+approach again performed almost inadequate. Follow-
+ing that, the Exponential SAT-based solution solved
+the majority of instances being unsuccessful only on in-complete instances with large |S|max. Finally, the lead-
+ers among the strategies were the Backtracking and
+the Iterative approaches with the latter being better on
+large|S|max. The obtained results are consistent with
+the ones obtained in Section 6.1.
+We note that the complete instance set was gener-
+ally easier for all methods to solve. This was due to the
+fact that the minimum numbers |S|minfor this instance
+set were often less than the ones of the incomplete set.
+For example, for |S|max10, FSMs had average |S|min
+of 5.8 for complete instances and 8.5 for incomplete
+ones.
+In addition to performance measurements, we exam-
+ined in more detail the execution of the Iterative SAT-
+based approach, which is the most appealing one ac-
+cording on the results. In Fig. 9, its execution times are
+compared with iteration numbers (the data for all in-
+stances is combined). From this plot it is clearly visible
+that a considerable fraction of instances (more precisely,
+96.2%) was solved within only 10 seconds. The vertical
+
+--- Page 16 ---
+16 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+Table 5 Numbers of problem instances (out of 50) solved by FSM identication method executions arranged by the type of
+problem (complete and incomplete identication) and the number of states |S|max.
+|S|maxComplete FSM identication Incomplete FSM identication
+ITER QSAT EXP BTR ITER QSAT EXP BTR
+3 50 47 50 50 50 42 50 50
+4 50 34 50 50 50 19 50 50
+5 50 33 50 50 50 12 50 50
+6 50 23 49 50 50 6 45 50
+7 50 20 47 50 50 5 37 50
+8 50 20 46 47 50 4 28 48
+9 50 11 48 44 50 1 17 42
+10 50 10 46 41 46 0 19 28
+11 50 9 41 38 44 0 21 20
+12 50 15 44 30 43 0 18 7
+0.51.02.0 5.010.020.0 50.0100.0200.0125102050100200500
+Execution time (sec)Iterations
+●●
+●
+●●
+●
+●●●●
+●
+●●●●
+●●
+●
+●●
+●
+●●
+●●
+●
+●●●●
+●
+●
+●●●●●●●●
+●●
+●●●
+●●
+●●●
+●
+●●
+●●
+●●
+●
+●
+●●
+●
+●●●●
+● ●●
+●●
+●
+●●●
+●●
+●●
+●
+●●
+●●
+●
+●●
+●●●
+●●●
+●●
+●
+●●
+●
+●●
+●●●
+●
+●
+●●●
+●●●
+●●
+●●●●
+●●
+●●
+●
+●●●
+●●
+●
+●●●
+●
+●●
+●●
+●●
+●●●
+●●
+●●
+●●
+●●●●
+●●●
+●●●●
+●
+●●●●
+●●●
+●●
+●
+●●
+●●
+●
+●
+●●●
+●●●
+●●●●
+●
+●
+●●
+●
+●●
+●●
+●
+●●
+●
+●
+●●●
+●●●
+●●
+●●●
+●●
+●●●
+●●●
+●●
+●●●
+●
+●●●
+●●
+●●
+●●
+●●
+●●●
+●●
+●
+●●
+●●
+●●
+●●●●
+●
+●●●
+●●●
+●●
+●●
+●●
+●●
+●●
+●●
+●●●
+●
+●●
+●●●
+●●
+●
+●●
+●●
+●
+●●
+●
+●●●
+●
+●
+●●●
+●●
+●●
+●
+●●●
+●●
+●
+●●
+●●●●
+●●●
+●●
+●
+●●
+●●
+●●●
+●●●
+●
+●●
+●●
+●
+●●●
+●●●
+●●
+●●●
+●●
+●●●
+●●
+●
+●●●●
+●
+●●
+●●
+●●
+●
+●●
+●●●
+●
+●●●
+●●
+●●●
+●●●
+●●
+●
+●●
+●●●
+●
+●●●
+●●
+●●●●
+●
+●
+●●
+●
+●●
+●●
+●●
+●●●●
+●
+●●
+●●
+●●●●
+●●
+●
+●●●
+●●
+●●
+●●
+●
+●
+●
+●●●●
+●
+●●
+●
+●●●
+●●
+●●●
+●
+●●●●
+●●●
+●●
+●●
+●●
+●
+●●●●
+●
+●●●●
+●●
+●●●
+●●
+●●●●
+●●●●●
+●
+●●
+●●●
+●●●
+●●●●
+●●●
+●●●●
+●●
+●●●●●
+●
+●●
+●
+●●●
+●●●
+●●●●
+●●●●●
+●●
+●●
+●
+●●
+●●
+●
+●●●
+●●●
+●●
+●●
+●●
+●
+●
+●●
+●●●
+●●
+●●●●
+●
+●●
+●●●●
+●
+●●
+●●●
+●●
+●●
+●●●●
+●
+●●●●
+●●
+●
+●●●
+●●
+●●
+●●
+●●
+●●
+●
+●
+●●●●●
+●●
+●
+●●●
+●●
+●
+●
+●●●
+●●●●
+●
+●●●●
+●●●
+●●
+●●
+●
+●●
+●●●
+●●
+●●
+●●●
+●●●
+●
+●●●
+●●
+●●
+●
+●
+●●●●
+●
+●●●
+●●
+●
+●●
+●●●
+●●
+●●
+●●●●●
+●
+●
+●●
+●●●
+●●
+●●
+●
+●●
+●●●
+●
+●●●●
+●●
+●●
+●●●●
+●●●
+●●●●
+●
+●
+●●
+●
+●●●
+●
+●●●
+●●●
+●●●●
+●●
+●●●
+●
+●●●
+●
+●●●
+●●●
+●●
+●●
+●●●
+●●●
+●●
+●
+●●
+●
+●●
+●●
+●●●
+●●
+●●
+●
+●●
+●
+●
+●●●
+●●
+●●
+●●●
+●●
+●●●●
+●
+●
+●●
+●●
+●
+●
+●●●
+●●●
+●
+●●
+●●●
+●●●
+●●
+●●●
+●
+●●
+●
+●●
+●●
+●
+●●●
+●
+●
+●●●
+●
+●
+●●
+●
+●●●
+●●
+●●
+●●
+●●
+●
+●●●●
+●●●
+●●●
+●●
+●●
+●●
+●
+●●
+●●●
+●
+●●●●
+●
+●
+●●
+●●
+●
+●
+●●
+●●
+●●●
+●●
+●●
+●●
+●●
+●●●
+●●
+●
+●●●
+●
+●●
+●
+●●
+●●
+●●
+●
+●●
+●●
+●
+●●
+●
+●●●●
+●
+●●
+●●
+●●
+●●
+●
+●●●
+●●
+●
+●
+●●●●
+●
+●●
+●●
+●
+Fig. 9 Execution time vs. iteration number for the Iterative
+SAT-based method.
+row of point on the right corresponds to unsolved in-
+stances (1.7%). This plot additionally provides a glance
+at instance complexity: for example, 59.7% of instances
+required at least ve iterations to be solved. Since the
+instances were ltered based on complexity during their
+generation, the number of instances solved in one iter-
+ation is small (8.6%), which implies that a method not
+supporting LTL properties, like the one from [35], would
+not perform adequately on our dataset.
+6.3 Comparison with inexact methods
+This subsection reports on the comparison of the pro-
+posed FSM identication techniques with three inexact
+methods: the CSP+MuACO smalgorithm [9], the state
+merging approach [38], and the Unbeast tool [16] based
+on bounded LTL synthesis. Since the performance of
+the QSAT-based method has been shown to be inap-
+propriate, this method was excluded from experiments
+in this subsection.6.3.1 Comparison with the metaheuristic FSM
+identication method
+We compared the Iterative SAT-based, the Backtrack-
+ing and the Exponential SAT solutions with the CSP
++MuACO smmethod introduced in [9] to infer FSMs
+with no completeness requirement. In [9], the evalu-
+ation of the method for three total scenario lengths
+(lPt50|S|, 100|S|, 200|S|u) and six dierent state num-
+bers (5¨|S|¨10) is reported. For each combination of
+these parameters, 50 instances were prepared, and only
+hard ones were retained. This test data was obtained
+from [9] with precise values of median method execu-
+tion times (these values were shown in [9] on charts)
+and with annotations of which instances are hard.
+Since the FSM model of [9] uses input variables,
+we transformed them into events as described in Sec-
+tion 4. Problem instances considered in [9] have two
+variables and two events. Hence, we end up with |E|8
+new events. Such a transformation also duplicates some
+edges in the scenario tree, since there might be several
+satisfying assignments for a Boolean guard condition of
+a scenario element. Thus, we had to modify the Back-
+tracking approach to handle multiple edges: each edge
+group originating from a common scenario element is
+always added or removed simultaneously.
+Table 6 presents the comparison of median execu-
+tion times of the proposed methods and the CSP+
+MuACO smalgorithm on this data. This time, since
+CSP+MuACO smis not an exact method, we did not
+try to minimize |S|and executed the methods for the
+maximum possible numbers of states. Note that [9] used
+theAMD Phenom II x 4 955 3.2 GHz CPU for exper-
+iments. As for the proposed methods, which were still
+executed on an Intel Core i 7-4510U 2.0 GHz CPU, they
+were now given 15 minutes for l50|S|, 30 minutes for
+l100|S|and 60 minutes for l200|S|, since solver
+execution time was aected by the length of scenarios
+
+--- Page 17 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 17
+Table 6 Median execution times (in seconds) of the proposed methods and CSP+MuACO sm(designated as CMA) on the
+instance sets from [9]. Asterisks (*) show lower bounds on medians in the cases when less than 50% of runs were nished
+within their time limits.
+|S|l50|S| l100|S| l200|S|
+ITER EXP BTR CMA ITER EXP BTR CMA ITER EXP BTR CMA
+5 0.7 3.5 0.8 25.5 1.1 8.1 1.1 27.5 2.1 20.1 0.9 76.5
+6 0.9 6.1 3.8 32.0 1.5 15.6 10.2 19.0 2.8 40.2 4.1 41.5
+7 1.0 9.4 37.4 68.0 1.8 28.5 26.6 103.0 4.0 91.1 16.1 169.5
+8 1.2 10.8 900* 410.0 2.5 27.9 465.1 191.0 5.3 61.2 3205.6 462.0
+9 1.4 39.1 900* 213.0 3.0 41.9 1800* 406.5 8.2 169.6 3600* 299.5
+10 2.4 15.9 900* 958.0 3.9 40.9 1800* 2443.0 9.9 408.8 3600* 4025.5
+and we wished the methods to solve the majority of
+instances.
+The Iterative approach solved all the instances, un-
+like the other methods, and, according to the table, its
+performance was also the best. Next, the Exponential
+SAT-based approach failed to solve around 16% of in-
+stances (92 of 580), mostly due to reaching the memory
+limit of 8GB (this can be explained by the fact that
+the length of the formula to be solved grows exponen-
+tially withk). Still, this did not inuence the execution
+time medians, and this approach outperformed CSP+
+MuACO smas well. The superiority of the Iterative and
+the Exponential SAT-based approaches in comparison
+with CSP+MuACO smis most evident for |S| 10.
+Finally, the Backtracking approach was less successful:
+starting from |S|8, it generally lacked time to solve
+the instances. Nonetheless, this approach has the ben-
+et of being quite indierent to scenario length and
+consumes little memory.
+6.3.2 Comparison with counterexample-based state
+merging
+A more narrow problem than the one considered in this
+paper is the problem of nite-state model identica-
+tion stated in [38]. Their task was to construct an FSM
+whose transitions are marked only with events using a
+number of software execution traces (event sequences)
+and temporal properties, represented as LTL safety for-
+mulae. An LTL formula is a safety formula, if every
+counterexample to it has a nite prex such that every
+its continuation is a counterexample { such nite coun-
+terexamples were previously mentioned in Section 5.1.3.
+Informally speaking, such formulae ensure that some
+undesired conditions never become true.
+The passive approach from [38] (this paper also sug-
+gested the active approach, in which the user is inquired
+during FSM synthesis) was implemented independently,
+and instead of the Spin7verier we used the one men-
+tioned previously. Following [38], we chose Blue Fringe
+[27] as the state merging method.
+7http://spinroot.com/Table 7 Execution times (in seconds) of the proposed meth-
+ods and the passive state merging (SM) approach [38] on three
+instances adopted from the same work. ML and TL stand for
+a failure due to the memory limit (8GB) and the time limit
+(48 hours) respectively.
+Instance |S|min ITER EXP BTR SM
+Text editor 4 1.3 8.9 1.0 0.4
+JHotDraw 7 3.6 ML 27.9 0.8
+CVS client 18 TL ML TL 36.2
+As the data for comparison, we adopted the exam-
+ples from [38] with few changes. In particular, we en-
+sured that the data allowed the compared methods to
+produce the desired FSMs, if they were able to pro-
+duce any FSMs at all. The data used in this compari-
+son has already been applied in Section 6.1 for the case
+study evaluation. It includes the instances in which the
+nite-state models of a simple text editor, the JHot-
+Draw drawing framework and the Jakarta Commons
+CVS client are to be learnt.
+The results of the method comparison are presented
+in Table 7, which partially duplicates the data from
+Table 4 in Section 6.1. The performance of the proposed
+methods on the considered instances has been discussed
+previously. As for state merging, it appeared to be much
+faster than the exact methods. Nonetheless, although
+it identied target minimum FSMs, in general it does
+not guarantee the minimality of its solutions: it has
+no means of proving that its answers are optimal with
+respect to the number of states. Moreover, as far as
+we know, there are no ways of applying it in the cases
+of FSMs with actions or non-safety (i.e. general) LTL
+properties.
+To demonstrate that state merging may not nd
+a minimum FSM, we randomly generated 100 FSMs
+without output actions, each with 5 states, 10 events
+and 25% of possible transitions. To ensure that LTL for-
+mulae were safety ones, instead of using randltl we gen-
+erated them according to several simple templates. One
+of such templates was GpeÑXpe1_:::_ekqq, wheree
+is an event and e1;:::;ekare the events which can occur
+on a transition which follows a transition marked with
+
+--- Page 18 ---
+18 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+e. For 12 of 100 FSMs state merging failed to nd the
+minimum answer.
+Similarly to the approach from [38], our Iterative,
+Backtracking and Exponential SAT-based approaches
+can be modied to be active: while at least two FSMs
+can be identied from the input data, it may ask the
+user to conrm or reject an execution trace of one of
+such FSMs to obtain more data. These approaches can
+also be applied to nd all possible solutions of the prob-
+lem. To do this for solver-based methods, after a solu-
+tion is found, a constraint prohibiting the found FSM
+is appended to the formula, and the solver is restarted.
+Instead of this, the Backtracking approach can simply
+continue its search.
+6.3.3 Comparison with LTL synthesis
+Recent advances in LTL synthesis resulted in software
+tools called Lily [26], Acacia [18] and Unbeast [16].
+Among them, we used Unbeast for comparison since
+it is more recent and is claimed to be superior over oth-
+ers [17]. Another tool G4LTL-ST [7] is also known, but
+it is focused solely on program synthesis for PLCs and
+more rich forms of LTL specication.
+Since in the problem of LTL synthesis the specica-
+tion is given only as LTL properties, we had to encode
+scenarios in LTL. While doing so we unfortunately lost
+the ability to distinguish the order of actions produced
+on the same cycle, which could potentially allow smaller
+FSMs to satisfy scenarios.
+Next, the problem of LTL synthesis requires the con-
+struction of complete reactive systems. We tried to ex-
+press incompleteness using a dummy action for transi-
+tions which are to be removed after the synthesis and
+exempting paths which included such dummy transi-
+tions (i.e. actually impossible paths) from the need to
+match LTL properties. Unfortunately, this led to the
+problem of states with no proper outgoing transitions;
+paths leading to such states were also exempted from
+compliance with temporal specications. Thus, we re-
+port on the results of running Unbeast only on instances
+for complete FSM identication.
+Unbeast produces the target system as a game which
+resembles a Mealy FSM. Using the provided game sim-
+ulator, it is possible to reconstruct this FSM. After
+the reconstruction, we also greedily minimized the FSM
+maintaining the compliance with the specication.
+We executed Unbeast on complete instances from
+our instance set described in Section 6.2.1 for 3 ¨|S|max
+¨6 (for larger |S|max the execution time of Unbeast
+was often impractically large). Executions for various
+|S|maxresulted in median run times of 8, 38, 130 and
+510 seconds, respectively. As described in Section 6.2.3,the majority of the methods proposed in this paper per-
+formed better. Furthermore, the number of states in
+FSMs produced by Unbeast was immense, reaching the
+median of 103 already for |S|max3.
+The reason for the weak performance of Unbeast
+seems to be the large size of LTL specications, which
+mainly results from scenarios. Shortened scenarios were
+noticed to cause better performance. We conclude that
+while Unbeast might perform well on natural LTL spec-
+ications, the inclusion of scenarios, which are typical
+for the problem of software model reverse engineering,
+causes it to perform much worse.
+6.4 Threats to validity
+All three groups of experiments, which are described
+above, are potentially prone to validity threats. In Sec-
+tion 6.1, a number of instances from the literature are
+used to evaluate the proposed methods. This set of in-
+stances is small, and hence might be not representa-
+tive with respect to other software models. This threat
+has been partially mitigated by selecting case instances
+from dierent studies.
+Next, the random FSM generation procedure (Algo-
+rithm 4) might have produced nonsensical or oversim-
+plied reference models. Unfortunately, the extent to
+which randomly generated models are similar to soft-
+ware models encountered in practice is problematic to
+determine, so threat mitigation was limited to instance
+complexity evaluation. First, the data generation algo-
+rithm (Algorithm 4) was equipped with complexity l-
+tering. The numbers of iteration required to solve the
+remaining instances were provided in Fig. 9 and appear
+to be satisfactory. Next, a subset of generated models
+was examined visually, which conrmed that state tran-
+sition graphs of the generated FSMs were suciently
+complex. Following that, minimum solution sizes were
+determined during the evaluation. According to Sec-
+tion 6.2.3, the complete instance set was generally eas-
+ier in terms of this measure; nevertheless, instances with
+|S|max12 were able to distinguish the performance
+of dierent methods.
+A possible error in the implementations of methods
+might have made the corresponding execution metrics
+meaningless. To prevent this, for each solved instances
+its correspondence with the required specication was
+ensured. Finally, in Section 6.3.2, we use our own im-
+plementation of the state merging method from [38],
+which might perform dierently than in [38]. Neverthe-
+less, the performance of this method is clearly superior
+to the one of the proposed ones, and the shortcomings
+of this approach are mainly qualitative and do not de-
+pend on the implementation.
+
+--- Page 19 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 19
+6.5 Discussion
+It remains to discuss the results from all subsections of
+the evaluation and nally answer the research questions
+formulated in the beginning of Section 6. As revealed
+in Section 6.1.3, the Iterative SAT-based and the Back-
+tracking methods were able to cope with the majority
+of considered case instances, which answers RQ1 (a).
+However, it was also found that for large numbers of
+states the performance of these methods (especially the
+one of the Iterative SAT-based method) could be much
+better if the optimal number of states was known in
+advance. This raises the question whether the precision
+of solving the problem can be partially traded for per-
+formance. This question is discussed in more detail in
+Section 7.
+With respect to scalability, which is questioned in
+RQ2, the methods are ranked in the following order:
+the Iterative SAT-based, the Exponential SAT-based,
+the Backtracking, and the QSAT-based methods. These
+are the results of both Section 6.2.3 are Section 6.3.1.
+The rst of these methods was able to solve almost all
+of the hardest instances considered.
+As for RQ3, the comparison of the proposed meth-
+ods with the known ones can be viewed in terms of
+capabilities and performance. In terms of capabilities,
+the considered alternative methods lacked some of the
+features supported by the proposed ones. However, we
+did not compare our methods with the ones which are
+able to synthesize richer nite-state models, like in [31,
+39], which is obviously an advantage of such methods.
+The results in terms of performance are quite diverse.
+Even the most scalable Iterative SAT-based method
+did not excel state merging, but one should remember
+that the latter is quite limited in the set of problem in-
+stances it can handle (this is also the reason why state
+merging was not included in the majority of experi-
+ments considered in this paper). On the other hand,
+two of the proposed methods were able to surpass CSP
++MuACO sm(see Section 6.3.1).
+Finally, we must answer RQ1 (b) by determining
+whether the proposed methods are potentially appli-
+cable in industrial software engineering. All empirical
+evaluations performed in this study assume that the
+number of FSM states is quite small: it did not ex-
+ceed 18. Clearly, this number of states is insucient
+to represent real-world systems in full detail. Never-
+theless, identied models should not be considered as
+full-scale substitutes of the target systems. Their pur-
+pose is to provide a picture of the system's logic for a
+software engineer, which becomes more clear and con-
+cise once the minimality requirement is fullled. This
+picture can serve as a basis either for understanding orreverse-engineering the system. It is also worth noting
+that FSMs which include 20 or more states are dicult
+to comprehend. If this number of states is insucient
+for the given specication, one might try simplifying it
+by focusing only on particular aspects of the system.
+These thoughts, as well as the performed case study
+evaluation, make us hope that the Iterative SAT-based
+approach (the proposed approach with the best perfor-
+mance) is potentially applicable in practice, although
+more research is needed to improve it.
+Aside from research questions, we need to explain
+why the methods obtained the results observed in the
+evaluation. Despite complex theory behind, the QSAT-
+based approach is clearly an outsider. This might be due
+to the low performance of the state-of-the-art QSAT
+solvers, which will hopefully be improved in the future.
+Another possible reason is the consideration of only one
+translation [4] of the BMC problem into SAT. Some
+other translations can be found in [2].
+The SAT-based implementation of the QSAT-based
+approach, the Exponential SAT-based approach, per-
+formed better, but at least two drawbacks still hin-
+dered its performance. First, the length of the BMC
+part of the Boolean formula is exponential of the LTL
+property length in the worst case. Second, the length of
+the formula is exponential of k, therefore in our experi-
+ments the tractable value of kdid not exceed four. This
+means that only counterexamples with length up to ve
+were taken into account, which is clearly insucient for
+large FSMs. When a larger value of kwas required, this
+method consumed too much memory.
+Next, the good results of the Backtracking approach
+were quite surprising given its simplicity. Because of
+it, it easily solves small instances, but its performance
+drops fast when the number of states becomes su-
+ciently high (around 11 in Table 5 and around 8 in Ta-
+ble 6). A possible reason why this approach performs
+worse in Table 6 compared to Table 5 is the more com-
+plex structure of the scenario tree (see Section 6.3.1).
+The Backtracking approach is also not prone to memory
+problems, unlike the Exponential SAT-based approach.
+Finally, possible reasons for the success of the Itera-
+tive SAT-based approach include matching the idea of
+the method with the ecient incremental solver cryp-
+tominisat , and a relatively small overhead of encoding
+counterexamples in the Boolean formula compared to
+the Exponential SAT-based approach. We must note
+that the performance of this approach can be much
+worse on large unsatisable problem instances (see Sec-
+tion 6.1.3).
+
+--- Page 20 ---
+20 V. Ulyantsev, I. Buzhinsky, A. Shalyto
+7 Conclusions and future work
+We have presented a number of approaches for the exact
+FSM identication problem from scenarios and tempo-
+ral properties. This problem arises when one wants to
+infer or reverse engineer the model of a software sys-
+tem, such as a desktop application or an industrial re-
+active system (e.g. elevator controller). The approaches
+were evaluated and compared with existing inexact (i.e.
+not producing minimum FSMs) solutions both on case
+study instances from previous research and on randomly
+generated instances. The ranking of the methods in
+terms of their performance, from the best to the worst,
+was determined to be as follows: the Iterative SAT-
+based, the Exponential SAT-based, the Backtracking,
+and the QSAT-based approaches.
+Unlike the earlier metaheuristic approach [9], the
+proposed ones support the FSM completeness require-
+ment and are able to prove the unsatisability of in-
+stances, which can be applied to construct minimum
+FSMs compliant with the given specication. However,
+on a more narrow problem of identifying FSMs without
+actions from scenarios and LTL safety properties, the
+proposed approaches are outperformed by the one from
+[38]. As for the comparison with the symbolic bounded
+LTL synthesis tool [16], it reveals that scenarios, which
+usually do not cause problems for the presented ap-
+proaches, make this tool produce large solutions and
+work slowly.
+The performance of the Iterative SAT-based method
+is encouraging, but supporting larger FSMs would bring
+it closer to industrial application. An alternative way
+of applying FSM synthesis in software engineering is
+sacricing features, such as precision and full support
+of LTL, in order to improve performance. If only pos-
+itive examples are used for learning, then prohibiting
+invalid model behaviors is only possible by providing
+an exhaustive set of scenarios. Also, as shown in [38,28,
+3], temporal properties are important in guiding FSM
+synthesis, thus the entire refusal of LTL specications
+would be discouraging. Among known methods, a good
+option is the method from [38]. However, it supports
+only the safety subset of LTL, which, for example, does
+not include the common unbounded response property
+GpxÑFyq. As for the methods proposed in this paper,
+Section 6.1.3 has shown that proving the optimality of
+the solution can be much more time consuming than
+nding the solution. Thus, nding the minimum solu-
+tion approximately may be a proper trade-o between
+precision and performance.
+Another possible future work direction might in-
+volve considering other translations from BMC into SAT
+[2], which may improve the QSAT-based solution. Then,the methods can be brought closer to practice by sup-
+porting wider classes of FSMs, like in [31] and [39]. One
+more interesting idea to try is automatic mining of tem-
+poral properties from execution traces [28,3], which can
+solve the diculty of obtaining temporal specications.
+References
+1. Alur, R., Martin, M., Raghothaman, M., Stergiou, C.,
+Tripakis, S., Udupa, A.: Synthesizing nite-state proto-
+cols from scenarios and requirements. In: Hardware and
+Software: Verication and Testing, pp. 75{91. Springer
+(2014)
+2. Amla, N., Du, X., Kuehlmann, A., Kurshan, R.P., McMil-
+lan, K.L.: An analysis of SAT-based model checking
+techniques in an industrial environment. In: Correct
+Hardware Design and Verication Methods, pp. 254{268.
+Springer (2005)
+3. Beschastnikh, I., Brun, Y., Schneider, S., Sloan, M.,
+Ernst, M.D.: Leveraging existing instrumentation to au-
+tomatically infer invariant-constrained models. In: Pro-
+ceedings of the 19th ACM SIGSOFT Symposium and the
+13th European Conference on Foundations of Software
+Engineering, pp. 267{277. ACM (2011)
+4. Biere, A., Cimatti, A., Clarke, E.M., Strichman, O., Zhu,
+Y.: Bounded model checking. ADV COMPUT, Elsevier
+58, 117{148 (2003)
+5. Bodik, R., Jobstmann, B.: Algorithmic program syn-
+thesis: introduction. International Journal on Software
+Tools for Technology Transfer, Springer 15(5-6), 397{411
+(2013)
+6. Broy, M., Jonsson, B., Katoen, J.P., Leucker, M.,
+Pretschner, A. (eds.): Model-based testing of reactive sys-
+tems: advanced lectures. Lecture Notes in Computer Sci-
+ence, vol. 3472. Springer (2005)
+7. Cheng, C.H., Huang, C.H., Ruess, H., Stattelmann, S.:
+G4LTL-ST: Automatic generation of PLC programs.
+In: Computer Aided Verication, pp. 541{549. Springer
+(2014)
+8. Chivilikhin, D., Ulyantsev, V.: MuACOsm: a new
+mutation-based ant colony optimization algorithm for
+learning nite-state machines. In: Proceedings of the 15th
+Annual Conference on Genetic and Evolutionary Compu-
+tation (GECCO), pp. 511{518. ACM (2013)
+9. Chivilikhin, D., Ulyantsev, V., Shalyto, A.: Combining
+exact and metaheuristic techniques for learning extended
+nite-state machines from test scenarios and temporal
+properties. In: Proceedings of the 13th International Con-
+ference on Machine Learning and Applications (ICMLA),
+pp. 350{355. IEEE (2014)
+10. Chongstitvatana, P., Aporntewan, C.: Improving correct-
+ness of nite-state machine synthesis from multiple par-
+tial input/output sequences. In: Proceedings of the 1st
+NASA/DoD Workshop on Evolvable Hardware, pp. 262{
+266. IEEE (1999)
+11. Chow, T.S.: Testing software design modeled by nite-
+state machines. IEEE Transactions on Software Engi-
+neering 4(3), 178{187 (1978)
+12. Clarke, E.M., Grumberg, O., Peled, D.: Model checking.
+MIT press (1999)
+13. Dorigo, M., St utzle, T.: Ant colony optimization. MIT
+Press (2004)
+14. Duret-Lutz, A.: Manipulating LTL formulas using Spot
+1.0. In: Automated Technology for Verication and Anal-
+ysis, pp. 442{445. Springer (2013)
+
+--- Page 21 ---
+Exact Finite-State Machine Identication from Scenarios and Temporal Properties 21
+15. E en, N., S orensson, N.: Temporal induction by incremen-
+tal SAT solving. Electronic Notes in Theoretical Com-
+puter Science, Elsevier 89(4), 543{560 (2003)
+16. Ehlers, R.: Unbeast: Symbolic bounded synthesis. In:
+P. Abdulla, K. Leino (eds.) Tools and Algorithms for
+the Construction and Analysis of Systems, Lecture Notes
+in Computer Science , vol. 6605, pp. 272{275. Springer
+Berlin Heidelberg (2011)
+17. Ehlers, R.: Symbolic bounded synthesis. Formal Methods
+in System Design, Springer 40(2), 232{262 (2012)
+18. Filiot, E., Jin, N., Raskin, J.F.: An antichain algorithm
+for LTL realizability. In: Computer Aided Verication,
+pp. 263{277. Springer (2009)
+19. Finkbeiner, B., Jacobs, S.: Lazy synthesis. In: Interna-
+tional Workshop on Verication, Model Checking, and
+Abstract Interpretation, pp. 219{234. Springer (2012)
+20. Finkbeiner, B., Schewe, S.: Bounded synthesis. Interna-
+tional Journal on Software Tools for Technology Transfer,
+Springer 15(5-6), 519{539 (2013)
+21. Gold, E.M.: Complexity of automaton identication from
+given data. Information and Control 37(3), 302{320
+(1978)
+22. Heule, M.J., Verwer, S.: Exact DFA identication using
+SAT solvers. In: Grammatical Inference: Theoretical Re-
+sults and Applications, pp. 66{79. Springer (2010)
+23. Heule, M.J., Verwer, S.: Software model synthesis us-
+ing satisability solvers. Empirical Software Engineering,
+Springer 18(4), 825{856 (2013)
+24. H olldobler, S., Nguyen, V.H.: On SAT-encodings of the
+at-most-one constraint. In: Proceedings of the 12th In-
+ternational Workshop on Constraint Modelling and Re-
+formulation, Uppsala, Sweden, pp. 16{20 (2013)
+25. Jackson, P.B., Sheridan, D.: A compact linear transla-
+tion for bounded model checking. Electronic Notes in
+Theoretical Computer Science 174(3), 17{30 (2007)
+26. Jobstmann, B., Bloem, R.: Optimizations for LTL syn-
+thesis. In: Formal Methods in Computer Aided Design
+(FMCAD), pp. 117{124. IEEE (2006)
+27. Lang, K.J., Pearlmutter, B.A., Price, R.A.: Results of
+the Abbadingo One DFA learning competition and a new
+evidence-driven state merging algorithm. In: Grammati-
+cal Inference, pp. 1{12. Springer (1998)
+28. Lo, D., Mariani, L., Pezz e, M.: Automatic steering of be-
+havioral model inference. In: 7th Joint Meeting of the Eu-
+ropean Software Engineering Conference and the ACM
+SIGSOFT Symposium on the Foundations of Software
+Engineering (ESEC-FSE), pp. 345{354. ACM (2009)29. Lonsing, F., Bacchus, F., Biere, A., Egly, U., Seidl,
+M.: Enhancing search-based QBF solving by dynamic
+blocked clause elimination. In: Proceedings of the 20th
+International Conference on Logic for Programming, Ar-
+ticial Intelligence and Reasoning (LPAR), Lecture Notes
+in Computer Science (to appear). Springer (2015)
+30. Mitchell, M.: An introduction to genetic algorithms. MIT
+press (1998)
+31. Ohmann, T., Herzberg, M., Fiss, S., Halbert, A., Palyart,
+M., Beschastnikh, I., Brun, Y.: Behavioral resource-aware
+model inference. In: Proceedings of the 29th ACM/IEEE
+International Conference on Automated Software Engi-
+neering (ASE), pp. 19{30. ACM (2014)
+32. Pnueli, A.: The temporal logic of programs. In: 18th
+Annual Symposium on Foundations of Computer Science,
+1977, pp. 46{57. IEEE (1977)
+33. Rosner, R.: Modular synthesis of reactive systems. Ph.D.
+thesis, Weizmann Institute of Science (1992)
+34. Tsarev, F., Egorov, K.: Finite state machine induction us-
+ing genetic algorithm based on testing and model check-
+ing. In: 13th Annual Conference Companion on Genetic
+and Evolutionary Computation (GECCO), pp. 759{762.
+ACM (2011)
+35. Ulyantsev, V., Tsarev, F.: Extended nite-state ma-
+chine induction using SAT-solver. In: Proceedings of the
+14th IFAC Symposium \Information Control Problems
+in Manufacturing (INCOM)", pp. 512{517. IFAC (2012)
+36. Ulyantsev, V., Zakirzyanov, I., Shalyto, A.: BFS-based
+symmetry breaking predicates for DFA identication. In:
+Language and Automata Theory and Applications, pp.
+611{622. Springer (2015)
+37. Vyatkin, V.: IEC 61499 function blocks for embedded
+and distributed control systems design, Second ed. In-
+strumentation Society of America (2012)
+38. Walkinshaw, N., Bogdanov, K.: Inferring nite-state
+models with temporal constraints. In: Proceedings of
+the 23rd IEEE/ACM International Conference on Auto-
+mated Software Engineering (ASE), pp. 248{257. IEEE
+Computer Society (2008)
+39. Walkinshaw, N., Taylor, R., Derrick, J.: Inferring ex-
+tended nite state machine models from software execu-
+tions. Empirical Software Engineering, Springer 21(3),
+811{853 (2016)

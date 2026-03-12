@@ -11,11 +11,11 @@
 
 ## 当前收录统计
 
-- 已收录 baseline 论文：**46** 篇
+- 已收录 baseline 论文：**61** 篇
 - 本轮新增论文：**15** 篇
-- 已完成 `DESC.md`：**46** 篇
+- 已完成 `DESC.md`：**61** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮规范化工作：新增 15 篇以 arXiv/作者版预印本为主的 baseline 论文目录并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`
+- 本轮规范化工作：新增 15 篇更贴近“use case / scenario / 自然语言需求 -> 状态机或等价行为模型”的经典前身与传统自动化方法论文目录，并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`
 
 ## BASELINE评估口径
 
@@ -41,6 +41,8 @@
 - `MBSE/SysML v2` + `state machine diagram` + `prompt/temperature`
 - `behavioral model correctness / sequence diagram` + `benchmark / judge / evaluation`
 - `requirements` + `UML` + `multi-agent / judge / benchmark`
+- `scenario / use case / MSC / LSC` + `statechart / state model / LTS / FSM`
+- `controlled natural language` + `reactive system / timed / data-flow / Coq`
 
 ### 已观察到的高命中特征
 
@@ -53,6 +55,8 @@
 - `Given-When-Then`、`LTL -> state machine`、`sequence diagrams -> statecharts` 这类显式桥接链路词，命中率明显高于泛 MBSE 关键词
 - arXiv 预印本里，直接出现 `state machine diagrams`、`SysML behavior`、`Mermaid/PlantUML` 的题名或摘要，命中率显著高于泛泛的 `UML modeling`
 - `benchmark`、`judge`、`correctness evaluation` 常能命中公开工件更好的论文，虽然很多只能评为 `🟠`
+- `scenario / use case / statechart`、`LSC / MSC / UML state machine` 这条经典软件工程线索，更容易命中真正任务对齐的前身工作
+- `controlled natural language`、`reactive systems`、`timed`、`Coq` 常能命中带验证闭环的经典自动化方法
 
 ### 已观察到的低命中特征
 
@@ -126,6 +130,26 @@
 | 44 | 🟠 | UML经验研究 | How LLMs Aid in UML Modeling: An Exploratory Study with Novice Analysts | 2024 | 课程案例 + 学生 prompts | 用例图 / 类图 / 顺序图 | UML multi-diagram | ChatGPT | 45 名学生的人机协作建模实验 | [paper](./how-llms-aid-uml-modeling/DESC.md) |
 | 45 | 🟠 | 需求到架构 | From Requirements to Architecture: An AI-Based Journey to Semi-Automatically Generate Software Architectures | 2024 | 需求 + 领域模型/用例场景 | 架构候选 | Software architecture | LLaMA（探索性） | 分阶段半自动 requirements-to-architecture 流程 | [paper](./from-requirements-to-architecture/DESC.md) |
 | 46 | 🟡 | 设计恢复/行为恢复 | Generating Software Architecture Description from Source Code using Reverse Engineering and Large Language Model | 2025 | 源码 + 逆向工程结果 | SAD + component/state machine views | Architecture + state machine views | GPT-4o | reverse engineering + few-shot prompting 恢复组件图和状态机图 | [paper](./generating-software-architecture-description-source-code-llm/DESC.md) |
+| 47 | 🟡 | 场景到状态图综合 | Synthesis Revisited: Generating Statechart Models from Scenario-Based Requirements | 2005 | LSC 场景化需求 | UML 风格 statecharts | Statechart | 未使用 | 通过 Play-Engine 把 LSC 需求自动综合为 statecharts | [paper](./synthesis-revisited-scenario-based-requirements/DESC.md) |
+| 48 | 🟡 | 场景到状态系统综合 | Synthesizing State-Based Object Systems from LSC Specifications | 2002 | LSC 规格 | 状态化对象系统 | State-based object system | 未使用 | 在一致性约束下自动综合满足 LSC 的状态化对象系统 | [paper](./synthesizing-state-based-object-systems-from-lsc-specifications/DESC.md) |
+| 49 | 🟡 | 多场景到状态图综合 | Synthesizing Statecharts from Multiple Interrelated Scenarios | 2001 | 多个互相关联场景 | statecharts | Statechart | 未使用 | 基于场景关系规则联合综合 statecharts | [paper](./synthesizing-statecharts-from-multiple-interrelated-scenarios/DESC.md) |
+| 50 | 🟡 | 用例到状态图中间建模 | An Approach to Building Object Models with UML in Embedded Systems | 2004 | 嵌入式系统 use case 文本 | statechart + object model | Statechart / object model | 未使用 | 先把 use case 转成 statechart，再基于状态图识别对象 | [paper](./from-use-cases-to-statecharts/DESC.md) |
+| 51 | 🟢 | 用例到状态模型直接建模 | Beyond Scenarios: Generating State Models from Use Cases | 2002 | use case 规格 | state models | State model | 未使用 | 用规则化转换直接从 use case 生成状态模型 | [paper](./beyond-scenarios-generating-state-models-from-use-cases/DESC.md) |
+| 52 | 🟡 | 场景与目标驱动行为综合 | Scenarios, Goals, and State Machines: a Win-Win Partnership for Model Synthesis | 2006 | end-user scenarios + goals | 行为模型 | LTS | 未使用 | 把 goals 注入场景综合器，减少提问并生成 LTS | [paper](./scenarios-goals-and-state-machines/DESC.md) |
+| 53 | 🟡 | 场景到可解释行为模型 | Generating Annotated Behavior Models from End-User Scenarios | 2006 | MSC 正反例场景 | 带状态注释的局部/全局行为模型 | LTS | 未使用 | 从场景交互式学习 LTS，并自动生成状态不变式 | [paper](./generating-annotated-behavior-models-from-end-user-scenarios/DESC.md) |
+| 54 | 🟡 | 场景与性质约束下的 FSM 综合 | Exact Finite-State Machine Identification from Scenarios and Temporal Properties | 2017 | 场景 + temporal properties | FSM | Finite-state machine | 未使用 | 在场景和时序性质约束下精确识别最小 FSM | [paper](./exact-finite-state-machine-identification-from-scenarios-and-temporal-properties/DESC.md) |
+| 55 | 🟡 | 场景与需求综合协议 | Synthesizing Finite-state Protocols from Scenarios and Requirements | 2014 | 场景 + 安全/活性 requirements | 分布式有限状态协议 | Distributed FSM | 未使用 | 先得不完整状态机，再补全转移关系满足 requirements | [paper](./synthesizing-finite-state-protocols-from-scenarios-and-requirements/DESC.md) |
+| 56 | 🟢 | 自然语言到定时反应模型 | Modelling Timed Reactive Systems from Natural-Language Requirements | 2016 | 自然语言需求 | DFRS[^dfrs] 模型 | Timed reactive model | 未使用 | 从自然语言需求自动构建 symbolic / expanded DFRS[^dfrs] | [paper](./modelling-timed-reactive-systems-from-natural-language-requirements/DESC.md) |
+| 57 | 🟢 | 受控自然语言到形式化反应模型 | Modelling and Testing Timed Data-Flow Reactive Systems in Coq from Controlled Natural-Language Requirements | 2019 | 受控自然语言需求 | Coq[^coq] 中的 timed DFRS[^dfrs] | Formal reactive model in Coq[^coq] | 未使用 | 把 CNL 需求自动翻译为 Coq[^coq] 中的 DFRS[^dfrs]，并结合 QuickChick 测试 | [paper](./modelling-and-testing-timed-data-flow-reactive-systems-in-coq/DESC.md) |
+| 58 | 🟢 | 受控自然语言到形式化反应模型扩展版 | Validating, Verifying and Testing Timed Data-Flow Reactive Systems in Coq from Controlled Natural-Language Requirements | 2020 | 受控自然语言需求 | Coq[^coq] 中的 timed DFRS[^dfrs] | Formal reactive model in Coq[^coq] | 未使用 | 在 Coq[^coq] 中统一完成 DFRS[^dfrs] 的 validation / verification / testing | [paper](./validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq/DESC.md) |
+| 59 | 🟡 | 需求模型到 UML FSM 转换 | A Transformation Approach for Collaboration Based Requirement Models | 2012 | augmented UML activity diagrams | distributed UML FSM | UML finite state machine | 未使用 | 用元模型和 ATL 规则把需求模型自动转换为分布式 FSM | [paper](./transformation-approach-for-collaboration-based-requirement-models/DESC.md) |
+| 60 | 🟠 | 用例到形式规范自动提取 | Extração Automática de Modelos CSP a Partir de Casos de Uso | 2011 | 状态化 use cases | CSP 形式模型 | Process algebra model | 未使用 | 用受控自然语言模板把状态化 use case 自动翻译成 CSP | [paper](./automated-formal-specification-generation-and-refinement-from-requirement-documents/DESC.md) |
+| 61 | 🟠 | 需求形式化支持 | Computer-Aided Formalization of Requirements Based on Patterns | 2014 | 文本需求 | 形式化规格 | Formal specification | 未使用 | 用 pattern system 与 HFSM 组织 formalization knowledge 并辅助形式化 | [paper](./computer-aided-formalization-of-requirements-based-on-patterns/DESC.md) |
+
+备注：
+
+- [^coq] `Coq` 是交互式定理证明助手（proof assistant）/形式化证明系统；按官方 `Rocq Prover`（原 `Coq Proof Assistant`）的介绍，它既支持书写数学定义、程序/软件规格与定理，也支持交互式开发并由小型内核机器检查证明，还可从规格中抽取可执行程序。中文入门可参考上海交大课程 [Coq定理证明器入门](https://jhc.sjtu.edu.cn/public/courses/CS263/CoqTheoremProver/) 与清华大学出版社《Coq艺术》的图书简介页。英文权威来源优先参考 [Rocq/Coq 官方 About 页](https://rocq-prover.org/about) 和 [官方首页介绍](https://rocq-prover.org/)。
+- [^dfrs] `DFRS` 是 `Data-Flow Reactive System`。按 Carvalho 等人的原始论文，这类系统通常被视为一类嵌入式/反应式系统，其输入和输出始终以“信号”的形式可用：输入可看作传感器提供的数据，输出可看作发给执行器的数据；相应模型强调数据流、事件响应与时间语义。在本论文集里，`DFRS` 主要指 `Modelling Timed Reactive Systems from Natural-Language Requirements` 及其 Coq 扩展论文中使用的那套形式模型。英文权威来源优先参考 [2016 FAC 论文页](https://eprints.whiterose.ac.uk/id/eprint/103139/) 与 [2021 SciCo 论文摘要页](https://www.sciencedirect.com/science/article/pii/S0167642320301453)。
 
 ## 数据集与 Benchmark 清单
 
@@ -192,6 +216,21 @@
 | 44 | [paper](./how-llms-aid-uml-modeling/DESC.md) | 🟠 | UML 建模教学实验材料 | 教学实验 | 45 份课程项目报告，记录学生使用 LLM 生成 UML 模型的过程与结果 | 课程案例 + 学生 prompts | UML 用例图/类图/顺序图 | 45 份项目报告 | 🟠 | [Zenodo 案例材料](https://doi.org/10.5281/zenodo.10532600)；完整项目报告未公开 | 面向新手 UML 建模的课程实验材料 |
 | 45 | [paper](./from-requirements-to-architecture/DESC.md) | 🟠 | MobSTr + requirements2architecture 探索工件 | 使用现成数据集 + GitHub | 用 MobSTr 的 91 条需求做探索性 requirements-to-architecture 流程验证 | 需求文本 | 架构候选 | 91 条需求 | 🟢 | [GitHub 探索分支](https://github.com/qw3ry/requirements2architecture/tree/exploration) | 面向需求到架构候选生成的探索性工件 |
 | 46 | [paper](./generating-software-architecture-description-source-code-llm/DESC.md) | 🟡 | 源码到 SAD 恢复案例 | 公开工件 | 利用逆向工程 + GPT-4o 从源码恢复 component/state machine views，并公开 diagrams/notebooks/prompts | 源码 + RE 结果 | SAD + state machine views | 多个案例系统，含 Coffee Machine | 🟢 | [GitHub 仓库](https://github.com/ahmadhatahet/generate-software-architecture-description-using-llm) | 面向架构与行为视图恢复的公开工件 |
+| 47 | [paper](./synthesis-revisited-scenario-based-requirements/DESC.md) | 🟡 | LSC 场景需求示例 | 方法论文示例 | 以 LSC 场景需求作为综合输入，由 Play-Engine 生成状态图 | LSC 场景化需求 | UML statecharts | 小规模示例 | 🟠 | 原文未提供统一 benchmark 下载链接 | 经典 LSC 场景到状态图综合示例 |
+| 48 | [paper](./synthesizing-state-based-object-systems-from-lsc-specifications/DESC.md) | 🟡 | LSC 规格示例 | 方法论文示例 | 在一致性前提下从 LSC 规格综合状态化对象系统 | LSC 规格 | 状态化对象系统 | 小规模示例 | 🟠 | 原文未提供统一下载入口 | 经典场景规格到状态系统综合示例 |
+| 49 | [paper](./synthesizing-statecharts-from-multiple-interrelated-scenarios/DESC.md) | 🟡 | 多场景需求示例 | 方法论文示例 | 用规则联合处理多个互相关联场景并综合 statechart | 多个互相关联场景 | statecharts | 小规模示例 | 🟠 | 原文未提供公开数据集链接 | 多场景关系驱动的 statechart 综合示例 |
+| 50 | [paper](./from-use-cases-to-statecharts/DESC.md) | 🟡 | 嵌入式系统 use case 示例 | 方法论文示例 | 从 use case 建立 statechart，再派生 object model | use case 文本 | statechart + object model | 小规模示例 | 🟠 | 原文未提供公开数据集链接 | 嵌入式系统用例驱动的中间 statechart 建模案例 |
+| 51 | [paper](./beyond-scenarios-generating-state-models-from-use-cases/DESC.md) | 🟢 | use case 规格示例 | workshop 示例 | 通过规则化转换从 use case 直接得到 state model | use case 规格 | state models | 小规模示例 | 🟠 | 原文未提供公开 benchmark 链接 | 经典用例到状态模型工作坊示例 |
+| 52 | [paper](./scenarios-goals-and-state-machines/DESC.md) | 🟡 | 场景与目标案例 | 方法论文示例 | 用 scenarios + goals 驱动交互式 LTS 综合 | end-user scenarios + goals | LTS 行为模型 | 小规模案例 | 🟠 | 原文未提供公开数据集链接 | 场景与目标联合驱动的行为模型学习案例 |
+| 53 | [paper](./generating-annotated-behavior-models-from-end-user-scenarios/DESC.md) | 🟡 | 正反例场景案例 | 方法论文示例 | 从 MSC 正反例学习全局/局部 LTS 并生成状态注释 | MSC 场景正反例 | Annotated LTS | 小规模案例 | 🟠 | 原文未提供公开数据集链接 | 面向可解释 LTS 的场景学习案例 |
+| 54 | [paper](./exact-finite-state-machine-identification-from-scenarios-and-temporal-properties/DESC.md) | 🟡 | 场景与时序性质实验集 | 算法实验 | 以场景和 temporal properties 约束精确识别 FSM | 场景 + temporal properties | FSM | 原文未给统一规模 | 🟠 | 原文未提供统一下载入口 | 场景与性质约束下的 FSM 求解实验 |
+| 55 | [paper](./synthesizing-finite-state-protocols-from-scenarios-and-requirements/DESC.md) | 🟡 | 协议场景与需求案例 | 算法案例 | 从场景得不完整协议状态机，再补全满足 safety/liveness | 场景 + safety/liveness requirements | 分布式有限状态协议 | 若干案例 | 🟠 | 原文未提供统一下载入口 | 分布式协议场景综合案例 |
+| 56 | [paper](./modelling-timed-reactive-systems-from-natural-language-requirements/DESC.md) | 🟢 | timed reactive requirements cases | 文献/案例系统 | 从自然语言需求自动构建 DFRS 并做有界分析 | 自然语言需求 | DFRS | 原文未给统一 benchmark 规模 | 🟠 | 原文未提供公开数据集链接 | 面向 timed reactive systems 的自然语言需求案例 |
+| 57 | [paper](./modelling-and-testing-timed-data-flow-reactive-systems-in-coq/DESC.md) | 🟢 | 文献案例 + Embraer 案例 | 混合案例 | 从 CNL 需求自动生成 Coq 中的 DFRS，并做测试 | 受控自然语言需求 | Coq 中的 timed DFRS | 多个文献案例 + 航空工业案例 | 🟠 | 原文未提供统一公开入口 | 含航空工业案例的 CNL 到 Coq 形式化链路 |
+| 58 | [paper](./validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq/DESC.md) | 🟢 | NAT2TEST/DFRS 案例 | 研究案例 | 在 Coq 中对 DFRS 模型做 validation / verification / testing | 受控自然语言需求 | Coq 中的 timed DFRS | 学位论文案例集 | 🟠 | 原文未提供公开 benchmark 链接 | NAT2TEST 路线的扩展版案例整理 |
+| 59 | [paper](./transformation-approach-for-collaboration-based-requirement-models/DESC.md) | 🟡 | 协作式需求模型示例 | 说明性案例 | 用 ATL 把 augmented activity diagrams 转换为 distributed FSM | augmented UML activity diagrams | distributed UML FSM | 小规模示例 | 🟠 | 原文未提供公开数据集链接 | 需求模型到 FSM 转换案例 |
+| 60 | [paper](./automated-formal-specification-generation-and-refinement-from-requirement-documents/DESC.md) | 🟠 | Motorola SMS/MMS use case 案例 | 工业案例 | 用受控自然语言模板把状态化 use cases 转译为 CSP | 状态化 use cases | CSP 形式模型 | 7 个 use cases + 6 个 alternative flows | 🔒 | 原文未提供公开下载链接 | Motorola 工业用例驱动的 CSP 自动生成案例 |
+| 61 | [paper](./computer-aided-formalization-of-requirements-based-on-patterns/DESC.md) | 🟠 | pattern-based formalization experiments | 实验任务 | 用 pattern system 与 HFSM 辅助需求 formalization | 文本需求 | 形式化规格 | 2 组实验 | 🟠 | 原文未提供公开数据集链接 | 基于 pattern knowledge 的需求 formalization 实验 |
 
 ## 初步归类与覆盖盘点
 
@@ -199,29 +238,29 @@
 
 | 类别 | 篇数 | 说明 |
 |---|---:|---|
-| 直接状态机建模 | 9 | 直接从自然语言、结构化需求或控制系统需求得到状态机/状态化规格的核心基线 |
-| 补全/精化/扩展/集成 | 11 | 围绕已有模型、场景或形式化需求做状态机补全、扩展、调试、恢复、执行化或双层集成 |
-| 需求形式化/分析/状态抽取 | 5 | 需求 DSL、时序逻辑、状态抽取与需求语义分析等前置/支撑方法 |
+| 直接状态机建模 | 16 | 直接从自然语言、结构化需求、use case 或场景规格得到状态机/状态化规格的核心基线 |
+| 补全/精化/扩展/集成 | 17 | 围绕已有模型、场景、目标或形式化需求做状态机补全、综合、调试、恢复、执行化或双层集成 |
+| 需求形式化/分析/状态抽取 | 7 | 需求 DSL、时序逻辑、状态抽取与需求语义分析等前置/支撑方法 |
 | 邻近建模与控制逻辑 | 21 | 非状态机输出的 UML/goal/domain/control-logic/benchmark 邻近工作与多模态/代码生成参照 |
 
 ### BASELINE评估分布
 
 | 评估 | 篇数 | 说明 |
 |---|---:|---|
-| 🟢 | 9 | 可与“需求/描述到状态机或等价状态化规格”直接对比的核心 baseline，其中新增 1 篇预印本直接触达 SysML v2 state machine generation |
-| 🟡 | 10 | 仍围绕状态机补全、扩展、调试、恢复、执行化或场景-状态机集成，但不是纯自然语言直接建模 |
-| 🟠 | 27 | 邻近建模、benchmark、需求形式化、状态抽取、控制逻辑生成、FSM代码生成、经验评估或验证器工作，可借鉴但不可直接公平对比 |
+| 🟢 | 13 | 可与“需求/描述到状态机或等价状态化规格”直接对比的核心 baseline；本轮新增的绿色条目主要来自 use case 与 controlled NL 两条经典前身路线 |
+| 🟡 | 19 | 围绕场景/用例/目标/需求模型做状态机综合、扩展、调试、恢复或形式化执行化，但入口不是纯自然语言长文本 |
+| 🟠 | 29 | 邻近建模、形式规范、benchmark、需求形式化、控制逻辑生成、FSM代码生成或评测基础设施，可借鉴但不可直接公平对比 |
 | ⚪ | 0 | 当前正式收录中暂无仅作背景资料的论文 |
 
 ### 当前最有价值的整体观察
 
-1. 聚焦 arXiv/作者版预印本后，真正直接新增到 `🟢` 的工作依然很少，本轮最像直接 baseline 的新增条目主要是 `pushing-the-generative-envelope-mbse-artifacts`；这再次说明公开预印本里“自然语言 -> 状态机”仍然稀缺。
-2. arXiv 预印本的主流落点更偏 `benchmark / judge / correctness evaluation / UML 邻近工件`，如 `SysMBench`、`MermaidSeqBench`、`MCeT`、`NOMAD`，而不是控制系统状态机本体。
-3. 与状态机最近的预印本往往不是“从零生成”，而是“需求变更传播”和“设计恢复”，例如 `workflow-level-design-principles-trustworthy-genai-automotive` 与 `generating-software-architecture-description-source-code-llm`。
-4. 这轮公开工件质量最好的条目大多是 `🟠`，说明当前开放生态更成熟的是 benchmark、UML 邻近建模和行为评估基础设施，而不是直接状态机生成器。
-5. `requirements -> use case/class/sequence` 这条链条在预印本里明显比 `requirements -> state machine` 更拥挤，说明状态机任务的真正难点仍在行为抽象、事件语义和约束保持。
-6. 对 `project_1` 而言，这些 `🟠` 论文并非无用：它们分别补上了多智能体建模、LLM judge、公开 benchmark、行为图自动查错和 RE+LLM 恢复等可直接迁移的技术块。
-7. 后续若继续追预印本，最值得盯紧的是题名/摘要中同时出现 `state machine diagrams`、`SysML behavior`、`behavioral model`、`prompt/temperature`、`correctness evaluation` 的条目。
+1. 真正与 `project_1` 任务定义最贴近的新增条目，更多来自前大模型时代的经典线路，而不是最近的泛 UML 预印本；尤其是 `use case/scenario -> state model` 和 `controlled NL -> reactive model` 两条线最有产出。
+2. 经典直接基线往往不直接处理完全自由的自然语言，而是要求中间层更规整，例如 `LSC`、`MSC`、`use case`、`controlled natural language`；这说明“先规范化、再综合”可能是更稳妥的主线。
+3. 若只盯 `statechart` 关键词，会漏掉不少高度相关工作；很多直接基线实际输出 `LTS`、`FSM`、`DFRS` 或 `Coq` 中的反应式模型，但任务本质仍是需求到行为模型自动建模。
+4. 时间与反应约束处理在新增经典文献里主要由 `DFRS / Coq / timed reactive systems` 这条线承担，这对控制系统建模比泛 UML 生成更有直接价值。
+5. 多个经典场景综合论文表明：需求到状态机往往不是一次成图，而是“场景采样 -> 不完整行为模型 -> 补全/约束求解”的过程，这对本研究的生成-验证-修复闭环很有启发。
+6. 本轮新增的 `🟠` 条目虽然不直接输出状态机，但它们提供了前端 formalization 支撑，例如受控模板、HFSM pattern knowledge 和 CSP 形式化翻译，可作为需求规范化模块参照。
+7. 后续继续扩检时，应优先追 `use case/scenario/MSC/LSC/CNL + statechart/LTS/FSM/reactive model` 组合，而不是继续扩张到一般 UML 结构图生成。
 
 ## 待补充高优先级候选
 
@@ -235,6 +274,7 @@
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-03-12 | 新增 15 篇更贴近 `自然语言/用例/场景/需求模型 -> 状态机或等价行为模型` 的经典前身与传统自动化方法 | 本轮补入 `synthesis-revisited-scenario-based-requirements`、`synthesizing-state-based-object-systems-from-lsc-specifications`、`synthesizing-statecharts-from-multiple-interrelated-scenarios`、`from-use-cases-to-statecharts`、`beyond-scenarios-generating-state-models-from-use-cases`、`scenarios-goals-and-state-machines`、`generating-annotated-behavior-models-from-end-user-scenarios`、`exact-finite-state-machine-identification-from-scenarios-and-temporal-properties`、`synthesizing-finite-state-protocols-from-scenarios-and-requirements`、`modelling-timed-reactive-systems-from-natural-language-requirements`、`modelling-and-testing-timed-data-flow-reactive-systems-in-coq`、`validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq`、`transformation-approach-for-collaboration-based-requirement-models`、`automated-formal-specification-generation-and-refinement-from-requirement-documents`、`computer-aided-formalization-of-requirements-based-on-patterns`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 新增 15 篇以 arXiv/作者版预印本为主的 LLM baseline/邻近论文 | 本轮补入 `workflow-level-design-principles-trustworthy-genai-automotive`、`sysmbench-system-model-generation-benchmark`、`text-to-model-via-sysml`、`pushing-the-generative-envelope-mbse-artifacts`、`inference-time-intervention-requirement-verification`、`llm-assisted-semantic-alignment-sysml-v2`、`leveraging-llms-for-use-case-model-generation`、`nomad-uml-class-diagram-generation`、`class-model-generation-from-requirements-llm`、`behavioral-augmentation-uml-class-diagrams`、`mermaidseqbench`、`mcet`、`how-llms-aid-uml-modeling`、`from-requirements-to-architecture`、`generating-software-architecture-description-source-code-llm`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 新增 15 篇更贴近任务定义的 baseline/经典前身/邻近支撑论文 | 本轮补入 `completion-of-sysml-state-machines-from-gwt-requirements`、`enhancing-model-based-development-formalized-requirements`、`extraction-of-system-states-from-natural-language-requirements`、`executable-state-machines-derived-from-structured-textual-requirements`、`automatic-synthesis-of-uml-designs-from-requirements`、`tech-report-neural-language-models-few-shot-mdse`、`spec2control`、`specification-based-prototyping-for-embedded-systems`、`nimbus-tool-for-specification-centered-development`、`requirements-capture-and-evaluation-in-nimbus-light-control`、`requirements-specification-for-process-control-systems`、`software-requirements-analysis-for-real-time-process-control`、`automatic-debugging-support-for-uml-designs`、`integrating-inter-object-scenarios-with-intra-object-statecharts`、`formal-requirements-elicitation-with-fret`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 新增 5 篇 baseline 并补齐单篇分析 | 新增 `chatgpt-uml-assessment`、`requirements-to-uml-sequence-diagrams`、`from-image-to-uml`、`few-shot-model-completion`、`gpt4-goal-models`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |

@@ -1,0 +1,1142 @@
+--- Page 1 ---
+198IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+PAPER
+Computer-Aided Formalization of Requirements Based on Patterns
+Xi WANG†a),Member and Shaoying LIU†,Nonmember
+SUMMARY Formalizing requirements in formal speciﬁcations is an
+eﬀective way to deepen the understanding of the envisioned system and
+reduce ambiguities in the original requirements. However, it requires math-ematical sophistication and considerable experience in using formal nota-tions, which remains a challenge to many practitioners. To handle thischallenge, this paper describes a pattern-based approach to facilitate the
+formalization of requirements. In this approach, a pattern system is pre-deﬁned to guide requirements formalization where each pattern providesa speciﬁc solution for formalizing one kind of function into a formal ex-pression. All of the patterns are classiﬁed and organized into a hierarchicalstructure according to the functions they can be used to formalize. Thedistinct characteristic of our approach is that all of the patterns are stored
+on computer as knowledge for creating e ﬀective guidance to facilitate the
+developer in requirements formalization; they are “understood” only bythe computer but transparent to the developer. We also describe a prototypetool that supports the approach. It adopts Hierarchical Finite State Machine(HFSM) to represent the pattern knowledge and implements an algorithmfor applying it to assist requirements formalization. Two experiments onthe tool are presented to demonstrate the e ﬀectiveness of the approach.
+key words: formal speciﬁcation, pattern system, HFSM, computer-aided
+1. Introduction
+Requirements formalization is a process of constructing for-
+mal speciﬁcations by clarifying relevant function details andrepresenting the clariﬁed requirements in formal notations.It helps deepen the understanding of the envisioned sys-tem and signiﬁcantly improves the precision of the origi-
+nal requirements. With well-established formalism, the re-
+sultant formal speciﬁcations can be manipulated automat-ically and serve as prerequisite for verifying the correct-ness of the implementation alternatives using formal proof
+or speciﬁcation-based testing [1]. Unfortunately, most of
+the practitioners are still confronting challenges in formaliz-ing requirements. They lack of su ﬃcient skills and experi-
+ence in identifying the function details necessary to be clari-ﬁed and describing functions with appropriate mathematical
+statements [2]. Even if they manage to understand formal
+notations through long-term practice, formalizing complexfunctions is still error-prone and costly. Therefore, the kindof automatic support to provide for requirements formaliza-tion, as well as how to provide it, is a crucial problem to
+be solved in order for software industry to beneﬁt from the
+formal speciﬁcation technique.
+Manuscript received May 7, 2013.
+Manuscript revised September 12, 2013.
+†The authors are with the Department of Computer Science,
+Hosei University, Koganei-shi, 184–8584 Japan.
+a) E-mail: sliu@hosei.ac.jp
+DOI: 10.1587/transinf.E97.D.198Compared with formal notation, natural language is
+easier to use and a number of researchers are devoted toautomatic or semi-automatic transformation of informal de-scriptions into formal speciﬁcations [3]–[5]. However, mostof these transformation methods largely depend on the Nat-
+ural Language Processing technique which is still facing the
+problem of the great amount of ambiguity issues at everylinguistic level of natural language [5]. Although ControlledNatural Languages are proposed to reduce these ambigui-
+ties to some extent by restricting the grammar and vocab-
+ulary [6], [7], they need to be studied and their complete-ness is hard to guarantee. There are also some intermediatelanguages being invented [8], [9], but developers still needto deal with details concerned with formal notation when
+reaching the bottom level of formal speciﬁcations.
+Experience suggests that resolving ambiguities of re-
+quirements is a learning process that often requires the an-alyst to make decisions and formalizing requirements is ameans to precisely understand them. We believe that an ef-
+fective way to facilitate formalization of requirements into
+formal expressions is to take the approach in which ambigu-ities of informal requirements are gradually clariﬁed whilethe corresponding formal expressions are automatically gen-erated. If the necessary function details can be correctly
+retrieved, its formalization only involves changing its for-
+mat, which can be more e ﬃciently and reliably done by a
+software tool [4]. To this end, a pattern-based approach to
+requirements formalization is proposed in this paper. In this
+approach, a pattern system is pre-deﬁned where each pat-
+tern provides a speciﬁc solution for formalizing one kindof function. All of the patterns are categorized into a hi-erarchy according to the functions they can be used to for-malize. In contrast to the conventional template libraries of
+formal languages that require human e ﬀort in understand-
+ing the overall structure of the library to select and apply aproper template for a speciﬁc problem, the distinct charac-teristic of our approach is that all of the patterns are storedon computer as knowledge for creating e ﬀective guidances
+to facilitate the developer in writing formal speciﬁcations;
+they are “understood” only by the computer but transparentto the developer.
+Speciﬁcally, a pattern treats the corresponding function
+as the composite of its attributes. It includes a set of clari-
+ﬁcation rules for guiding the assignment of these attributes
+and a set of transformation rules for generating the formalrepresentation of the function according to the assigned at-tributes. To be “understood” by machines, the formal def-
+Copyright c/circlecopyrt2014 The Institute of Electronics, Information and Communication Engineers
+
+--- Page 2 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+199
+inition of pattern is given to guarantee the precision of the
+pattern system. Based on the formal deﬁnition, the method
+for guiding requirements formalization by using the patternsystem is described. And a case study is presented to illus-trate the method.
+We also describe a prototype tool that implements the
+pattern-based approach. It consists of a knowledge base forstoring the pattern system and the implementation of an al-gorithm for utilizing the stored pattern knowledge to deter-mine the behavior of the tool. The knowledge base stores
+the pattern system in terms of a set of HFSMs (Hierarchi-
+cal Finite State Machines) where each HFSM represents theknowledge included in an individual pattern. On the basisof the HFSM representation, the algorithm for utilizing thepattern knowledge is given. Two experiments on the proto-
+type tool were conducted and their results demonstrate the
+eﬀectiveness of the pattern-based approach.
+Note that the underlying principle of the approach
+is language-independent. We choose SOFL (Structured
+Object-oriented Formal Language) to illustrate how the ap-
+proach works in this paper because we are familiar withSOFL. One can refer to [1] for the details of the language.
+The remainder of this article is organized as follows.
+Section 2 introduces the pattern system and gives the for-
+mal deﬁnition of pattern. Section 3 describes the method
+for guiding requirements formalization based on the patternsystem and illustrates the method through a case study. Sec-tion 4 presents the prototype tool that implements the pro-posed approach and two experiments for evaluating the per-
+formance of the tool. Section 5 reviews the related work.
+Finally, Sect. 6 concludes the paper and discusses the futurework.
+2. Pattern SystemThe pattern system is composed of a set of patterns each
+dealing with the formalization of one kind of function onthe assumption that all the necessary types and variables are
+already deﬁned. Instead of isolating from each other, these
+patterns are connected in a way that one pattern adopts otherpatterns to formalize certain sub-functions. All the patternsare categorized according to the kind of functions they canbe used to formalize. We will present pattern deﬁnition and
+pattern categorization respectively.
+2.1 Pattern DeﬁnitionA pattern needs to tackle two tasks when formalizing a kind
+of function f: the clariﬁcation of fand the representation
+of the clariﬁed fin a formal notation. Therefore, our pat-
+tern mainly consists of two parts providing solutions for theabove two tasks respectively. In the ﬁrst part, fis treated
+as a composition of its necessary attributes. These attributes
+are formally deﬁned and clarifying fis to assign values to
+the attributes according to their deﬁnitions. A set of clariﬁ-cation rules are provided for guiding such assignments. Inthe second part, a set of transformation rules are given forgenerating formal representation of faccording to the val-
+ues assigned to the attributes. Consider the function “belong
+to” which describes a relation where certain object is a mem-ber of another object. Each speciﬁc “belong to” function iscomposed of two attributes: the member and the object that
+the member belongs to. Therefore, the corresponding pat-
+tern includes clariﬁcation rules for guiding the assignmentof the two attributes and transformation rules for generatinga formal representation of the “belong to” function accord-ing to the assigned values.
+In our approach, the patterns are designed to be applied
+by machines; any ambiguity will impede their automatic uti-lization. For this reason, a formal deﬁnition for pattern isgiven as follows where P(s) denotes the power set of set s.
+Deﬁnition 1: A pattern pi sa6 - t u p l e( f,E,PR,expl,Φ,Ψ)
+where
+•fis the unique identity of pdenoting the kind of func-
+tion that pis used to formalize
+•Eis a set of elements where each element denotes a
+necessary attribute of f
+•PRis a set of constraints on por the elements in E
+•expl :{f}∪E
+∪PR−→ string informally interprets f,
+elements in Eand constraints in PRfor the purpose of
+human-machine interaction
+•Φ:ΦE∪ΦRdenotes the set of clariﬁcation rules for
+guiding the assignment of the elements in Ewhere
+–ΦE:E−→ Edetermines the order for specifying
+elements where
+∗∃ e0∈E·e0/nelementran(ΦE)(e0represents the ﬁrst
+element to be speciﬁed)
+∗∀ e→e/prime∈ΦE·e/nequale/prime(e→e/primedenotes a maplet in
+ΦEwhere e/primeshould be speciﬁed after e)
+–ΦR:E−→ RPT deﬁnes a rule repository for each
+element einEto guide the assignment of ewhere
+each repository in RPT i sat r i p l e( R,R0,γ) where
+∗R:P(PR)−→ P (PR) denotes the set of
+rules in the repository where each rule de-termines the satisfactory of a set of con-straints based on already satisﬁed constraints
+and∀
+PR i→PR/prime
+i∈R·PR i∩PR/prime
+i=∅
+∗R0⊂Ris the ﬁrst set of candidate rules to be
+applied
+∗γ:R→P (R) determines the sequence for
+applying the rules in Rwhereγ(r) indicates
+the candidate rules for further clarifying eaf-
+ter rule ris applied
+∗∀ RS i∈ran(γ)·∀ PR m→PR/primem,PR n→PR/primen∈RS i·∀ pr∈PR m·
+pr⇒∃ pr/prime∈PR n·¬pr/prime(for each r∈R, only
+one of the candidate rules in γ(r) will be ac-
+tivated when formalizing a function using p)
+•Ψ:P(PR)−→ string denotes the set of transforma-
+tion rules for generating the formal representation of f
+according to the values assigned to the elements where
+
+--- Page 3 ---
+200IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+Fig. 1 The formal deﬁnition of the pattern “sort”.
+∀PR i→si,PR j→sj∈Ψ·∀pr∈PR i·pr⇒∃ pr/prime∈PR j·¬pr/prime(only
+one of the rules in Ψwill be activated for the speciﬁed
+elements)
+We explain each item in the above deﬁnition se-
+quentially via the example pattern shown in Fig. 1 wheredataType (x) denotes the type of variable x. According to
+thefitem, the identity of the example pattern is “sort” de-
+noting that it is used to formalize sort functions.Table 1 An overview on element types.
+element type deﬁnition
+nil The type of the element is not determined yet
+strValue Universal set of strings
+numValue Universal set of numbers
+Universal set of formal expressions for representing
+expValue system variables where each formal expression
+is written with deﬁned variables and operators
+typeValue Universal set of built-in and custom types
+choice{c1,..., cn}where each ciis a candidate item
+Universal set of constraints on system variables
+constraintwhere constraint (a) denotes constraints on a,
+constraint (a1,..., an) denotes constraints on the
+relations between a1,..., an
+An element of composite type is speciﬁed by a set of
+composite low-level elements where each element is deﬁned for
+specifying one aspect of the corresponding attribute
+setAn element of set type refers to an
+unordered collection of distinct low-level elements
+reqAn element of reqtype is speciﬁed by
+a low-level function formalized by another pattern
+union t1|...|tnwhere each tidenotes a constitute type
+In the deﬁnition, an element denotes an attribute of f
+and item Econsists of all the necessary attributes to be clar-
+iﬁed to formalize f. Each element is formally deﬁned with
+one of the element types given in Table 1 according to the
+nature of the corresponding attribute. The ﬁrst type nilde-
+notes a special state of elements. An element of niltype
+can be assigned with a value of any element type and needs
+to be more speciﬁcally deﬁned through further clariﬁcation.
+The ﬁrst six types after nilare atomic types for deﬁning el-
+ements that can be clariﬁed without further decomposition.And the rest types are structured types for deﬁning elementsthat need to be clariﬁed by low-level elements. For each el-
+ement eof atomic type t, deﬁnition format is e:t. Elements
+of diﬀerent structured types uses di ﬀerent formats. For an
+element eof composite type with ﬁelds f
+1,..., fn, its deﬁni-
+tion format is: e:f1×···× fn. For an element edeﬁned as
+a set of elements e/prime, its deﬁnition format is e:set o f e/prime.F o r
+elements of reqtype, three kinds of formats are provided.
+•e:p: element ewill be assigned with a function for-
+malized by applying pattern p
+•e:p(v1,..., vn): let the item Eof the pattern pbe
+{e1,..., em}(m≥n), element ewill be assigned with a
+function formalized by applying pwith each eispeci-
+ﬁed as viwhere∀ei,ei+1∈E·ei+1=Φ E(ei).
+•e:c(v1,..., vn): element eranges over a set of for-
+malized functions {p1(v1,..., vn),..., pm(v1,..., vn)}
+where category cconsists of mpatterns{p1,..., pm}
+(The concept of category will be introduced in the nextsection).
+There are three elements in the pattern sort, each de-
+noting a necessary attribute for composing a sort function
+(the attributes that these elements stand for will be presented
+when explaining the expl item of the deﬁnition). Elements
+ob js andresult are both deﬁned as varValue types. The last
+element ruleis of composite type with two ﬁelds: ruleType
+deﬁned as choice type with four candidate items and content
+
+--- Page 4 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+201
+deﬁned as niltype meaning its deﬁnition cannot be decided
+at the beginning of the formalization process.
+Item PRincludes three kinds of constraints. The ﬁrst
+kind is the propositions on the pattern p, such as the con-
+straint Reuse in the PRitem of the pattern sortwhich means
+that “ pis applied to describe sub-functions for the applica-
+tion of other patterns”. The second kind is deﬁnition con-
+straints , i.e., the constraints on element deﬁnition. For ex-
+ample, element ruleType is initially deﬁned as a choice type
+with four candidate items. Constraint ruleType :{etg,gr}
+reﬁnes this deﬁnition by eliminating two of the candidate
+items. If the constraint establishes, specifying elementruleType will be facilitated as fewer candidate items are
+provided. The third kind is value constraints , i.e., the
+constraints on element value, such as ruleType=etand
+dataType (ob js)=char meaning that the value assigned
+to element ob js is a character. All these constraints can
+be evaluated as either true or false when formalizing cer-tain function using p. Their evaluation results determine the
+guidance to be displayed and the formal expression of the
+function.
+Item expl converts three kinds of objects into corre-
+sponding informal expressions for forming comprehensibleguidance. The ﬁrst object is fand expl(f) gives the in-
+formal explanation on fso that the developer can obtain a
+better understanding on the functions that pcan be used to
+formalize. For example, the ﬁrst maplet in the expl item
+of the pattern sortprovides an explanation on sort function.
+The second kind is the elements included in E. For each el-
+ement e,expl(e) indicates the attribute of fthat estands for.
+In the expl
+item of the pattern sort, for example, maplets 2,
+3, 4 reveal the attributes denoted by elements ob js,result ,
+and rulerespectively. These attributes will replace the cor-
+responding element names in the produced guidance to al-
+low interactions on the semantic level. The third kind is
+the deﬁnition constraints and value constraints in PR.F o r
+each deﬁnition constraint or value constraint pron element
+e,expl(pr) indicates the informal guidance that requires for
+assigning ewith a value satisfying pr. Maplet 5 in the expl
+item of the pattern sortgives an example. It generates the in-
+formal guidance for a deﬁnition constraint on element rule.
+By following this guidance, the developer will specify rule
+with a value that satisﬁes the deﬁnition constraint.
+ItemΦis designed to tackle the ﬁrst task in formalizing
+the corresponding function f: clarifying the necessary de-
+tails of f. Since the elements in Eindicate all the attributes
+needed to be clariﬁed to formalize f, clarifying fis actually
+to assign appropriate values to these elements according to
+the intended requirement. Therefore, a set of rules are pro-
+vided byΦto guide the assignments of the elements in E.
+These rules are divided into two groups. The ﬁrst groupΦ
+Ereveals the order for specifying the elements in Ewhere
+each rule e→e/primemeans that element eshould be assigned
+before e/prime. For example, in the item ΦEof the pattern sort,
+rule result→ruleindicates that element ruleis required to
+be speciﬁed after result is speciﬁed.
+The second group ΦRprovides a rule repository forguiding the clariﬁcation of each element in Estep by step.
+Each rule repository ( R,R0,γ)o w n sar u l es e t Rand deter-
+mines the sequence for applying the rules in R. A rule in
+Rinfers new constraint from premise constraint. It will be
+activated and applied if the premise constraint can be sat-
+isﬁed. This application results in new constraint serving as
+a guideline that requires for assigning the relevant elementwith a value satisfying the new constraint. The sequence forapplying the rules is R
+0,R1,..., Rn. Each Ridenotes the ith
+applied set of candidate rules where each candidate rule is
+ar u l ei n Rand the premise constraints of all the candidate
+rules in Riare exclusive. Only one of the candidate rules can
+be activated when applying Ri. Therefore, applying each
+candidate rule set Riis actually applying its activated candi-
+date rule and treating the newly derived constraint as guid-
+ance. After Riis applied and the response to the produced
+guidance is received, the next candidate rule set Ri+1is de-
+termined asγ(rj) where rjdenotes the activated rule when
+applying Ri.I fRi+1is not an empty set, it will be applied to
+guide the further clariﬁcation of the corresponding element.
+Otherwise, the application of the rules in the rule repositoryis terminated and the clariﬁcation of the corresponding ele-ment is ﬁnished.
+Let’s take the item Φ
+Rof the pattern sortas an example
+where the rule repositories of the three elements are given.
+The rule repository for ob js is (R1,{r1},γ) where three ex-
+ample rules r1,r2,r3i n R1 are listed and{r1}is the ﬁrst
+candidate rule set to be applied. Premise constraint truein-
+dicates that r1 will be activated under any condition. There-
+fore, the application of {r1}is actually the application of r1
+which results in the constraint “ ob js :varValue ”. This
+constraint serves as a guideline that asks for the assignmentofob js with a value of varValue type. When the response
+from the developer is received, candidate rule set γ(r1), i.e.,
+{r2,r3,...}, will be applied by applying its activated rule.
+Assigning diﬀerent values to ob js leads to diﬀerent acti-
+vated rules. For example, if the given ob js is a character, r2
+will be activated and applied where the retrieved constraint
+re(ob js) means that ob js should be assigned again with a
+new value since sorting one character makes no sense (Weuse the keyword rein pattern deﬁnitions to represent reas-
+signment. For each element e,re(e) means the reassignment
+ofe). But if the given ob js
+is a set, r3 will be activated
+and applied where ∅means that ob js needs not to be clari-
+ﬁed further at the moment. Assume aris the activated rule
+when applyingγ(r1), the next candidate rule set to be ap-
+plied after the application of γ(r1) isγ(ar). Such kind of
+process repeats until the application of a ﬁnal rule frwhere
+γ(fr)=∅. We skip the explanation on the rule repository of
+element result since it is similar to that of ob js.I nt h er u l e
+repository for element rule, the ﬁrst candidate rule set R3i n -
+cludes more than one candidate rules for initial clariﬁcationof element rule. Rules r6 and r7 are given as the example
+rules in R3. Rule r6 states that if the given ob js owns two
+members, composite element rule’s ﬁeld ruleType will be
+assigned as et.R u l e r7 means that if its premise constraint
+can be satisﬁed, the deﬁnition of rule’s ﬁeld ruleType will
+
+--- Page 5 ---
+202IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+be reﬁned from four to two candidate items. The sequence
+for applying other candidate rule sets after R3 is determined
+by the itemγ. For example,{r8,...}will be applied if r6i s
+activated when applying R3 and{r9,...}will be applied if
+r7 is activated.
+Note that the constraints derived by r8 and r9i n
+the pattern sortinvolve the use of categories and patterns
+such as Relation and group . They utilize the deﬁnition
+format for deﬁning elements of reqtype. For example,
+“group (ob js,elems (result ))” is used to deﬁne low-level el-
+ement gRinr9 (According to mapping 6 in the expl of
+the pattern sort,gRrefers to attribute “the intended rule
+for grouping the given objects before sorting”. It is cre-ated and deﬁned as a low-level element for specifying oneaspect of the high-level element rule.content ). It indicates
+that gRwill be assigned as the formal representation gen-
+erated by applying the pattern group with the element in-
+formation ( ob js,elems (result )). As shown in Fig. 2, three
+elements are included in the item Eof the pattern group .
+TheΦ
+Eitem reveals that gob js and gresult are the ﬁrst two
+elements to be speciﬁed. Therefore, the above element in-formation means that when applying the pattern group for
+Fig. 2 The formal deﬁnition of the pattern “group”.assigning gR, elements gob js and gresult are assigned as
+ob js and elems (result ) respectively.
+ItemΨsolves the second task in formalizing f: repre-
+senting the clariﬁed fin formal notations, i.e., generating
+the formal expression of the clariﬁed faccording to the val-
+ues assigned to the elements in E. In the formal expression,
+element names are used to denote the values assigned to thecorresponding elements when applying p. For example, rule
+tr1 in the pattern sorthas ﬁve premise constraints. If all
+these ﬁve constraints can be satisﬁed by the values assigned
+to the three elements, the formal expression starting with
+“rule.gR” will be generated as the suggested formal repre-
+sentation of the clariﬁed f.
+On the basis of the above formal deﬁnition, individual
+patterns can be created. Di ﬀerent patterns have di ﬀerent ele-
+ments in the Eitem and diﬀerent rules in theΦandΨitems.
+Since their structures are consistent with the formal deﬁni-tion, their complexities are the same as the complexity ofthe deﬁnition. Due to the fact that each individual pattern
+needs to be designed by analyzing the semantics of the cor-
+responding kind of function, the construction of patterns isan intellectual work without a general method. It is manu-ally done according to our experience and understanding onthe semantics of the corresponding functions.
+2.2 Pattern Categorization
+All the patterns are organized in a hierarchical structure in
+the pattern system by categorizing the functions they areused to formalize. Figure 3 shows the hierarchy whererightmost items represent patterns and others represent cat-
+egories. Root “Pattern system” owns two sub-items, which
+indicates that patterns are divided into two categories: onefor describing unit functions and the other for depictingcompound functions. Their sub-categories are further clas-
+siﬁed into more speciﬁc sub-categories or patterns. For ex-
+ample, UFis divided into three sub-categories: Relation
+patterns for describing relations between objects, Retrieval
+patterns for obtaining the formal representations of systemvariables and Recreation patterns for depicting the update of
+system variables.
+Currently, there are 41 patterns in the pattern system
+where 31 patterns are included in category UFand 10 pat-
+Fig. 3 Pattern categorization.
+
+--- Page 6 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+203
+terns in category CF. Among the patterns in UF, 9 of them
+compose sub-category Relation , 2 of them compose sub-
+category Retrieval and 20 of them compose sub-category
+Recreation . Patterns in Relation and Recreation are divided
+into two and ﬁve categories respectively.
+The ﬁnal goal of the pattern system is to support the re-
+quirements formalization for general system development.But as the ﬁrst step, the domain of the current pattern sys-tem described in this paper is the bottom level functions thatare commonly used to compose more complex functions in
+typical formal speciﬁcations. Therefore, the pattern system
+is not expected to be complete at present and will be updatedwhen new patterns and categories are introduced, or existingones are modiﬁed to provide more e ﬃcient guidance. Such a
+task is accomplished manually at present and its automation
+would be gradually enhanced as further research progresses
+are made.
+3. Requirements Formalization Based on the Pattern
+System
+In this section, we will present the method for assisting re-
+quirements formalization based on our pattern system andsimulate the formalization process using an example re-
+quirement in the case study to illustrate the method.
+Given a requirement rq, its formalization based on the
+pattern system contains two major steps.
+Step 1 Pattern selection
+Appropriate patterns for formalizing rqneed to
+be selected ﬁrst. The selection process can be guidedby the hierarchy of the pattern categorization. Start-ing from the top level of the hierarchy, the developer
+is required to select a sub-category on each level un-
+til reaching a pattern p. It is not diﬃcult to ﬁnd the
+right pattern because of three reasons. First, patternnames are written in natural language and designedto be distinguishable from each other on the semantic
+level. Second, the patterns are organized by categories
+at diﬀerent levels and the developer only needs to deal
+with one category or sub-category at a time. Third, theexpl items of the patterns describe their usage in more
+details and can help conﬁrm the selection decision.
+In most cases, it is hard to ﬁnd a pattern speciﬁ-
+cally designed for formalizing rqifrqis a high-level
+function consisting of a set of basic functions since thecurrent patterns are designed to deal with basic func-
+tions. Human intelligence is needed to analyze rqon
+the semantic level and decompose it into a set of ba-sic functions where each basic function can be formal-ized by a pattern. For example, when formalizing themoney trans f er function for an ATM system, one can-
+not ﬁnd a pattern speciﬁcally designed for formalizing
+money trans f er functions. Considering that the func-
+tion’s meaning is to transfer certain amount of moneyfrom an original account to a destination account, it canbe divided into two sub-functions: add the amount ofthe transferred money to the destination account and
+delete the same amount of money from the original ac-
+count. These two sub-functions are essentially updat-ing system variables and therefore can be formalizedby selecting patterns from Recreation category.
+Step 2 Pattern application
+With a set of patterns {p
+1,..., pn}selected for all
+the sub-functions {f1,..., fn}ofrq, the next step is
+to apply them. Each pattern pidenoted as ( f,E,PR,
+expl,Φ,Ψ) is applied by the following two steps.
+a. requirement clariﬁcation
+In this step, the developer will be guided to
+clarify the necessary details of fiby assigning val-
+ues to the elements of pi. Speciﬁc algorithm is as
+follows where e0denotes the ﬁrst element to be
+speciﬁed when applying pi.
+ce=e0;//cedenotes the element being speciﬁed
+while (ceis an element in E){
+if(cehas not been speciﬁed) {
+retrieve the rule repository ΦR(ce)=(R,R0,γ);
+CR=R0;//CR denotes the candidate rule set
+being applied
+while( CR/nequal∅){
+apply CRby applying its activated rule ar;
+accordingly display guidance and receiveresponse;
+CR=γ(ar);
+}
+}
+ce=Φ
+E(ce);
+}
+b. formal expression generation
+In this step, an expression expthat formally
+describes fiwill be generated based on the values
+assigned to the elements in pi. Speciﬁc algorithm
+is as follows.
+for each ( PR i→str)∈Ψ
+if(∀pr∈PR i·pr) exp=Ψ(PR i);
+A case study on the functions of a bank data analy-
+sis system is presented to illustrate the above two steps.This system provides analysis services for a bank datas-tore account
+store where each authorized customer owns
+a banking account manipulating on di ﬀerent kinds of cur-
+rencies. Each account includes balance and transaction his-tory information where each transaction records an opera-tion on the account from four aspects: the date when the op-
+eration performed, operation type, the type and amount of
+the currency that the operation performs on. Figure 4 showsthe types and variables formally deﬁned for describing theabove bank data.
+Four services are provided by the analysis system in-
+cluding balance analysis ,transaction analysis ,global bal-
+ance analysis and global transaction analysis . We will take
+the formalization of the function transaction analysis as an
+example. It extracts transactions from certain account andsorts them by dividing them into di ﬀerent groups by date
+
+--- Page 7 ---
+204IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+Fig. 4 Types and variables declared for the bank data analysis system.
+and sorting these groups by the number of the included
+members in descending order.
+Suppose a module named Data Analysis is created to
+describe the system and process tran Analysis in the mod-
+ule describes the function transaction analysis (In SOFL,
+a formal speciﬁcation consists of a set of modules. Each
+module describes an relatively independent function by aset of inter-related processes. Each process describes an op-eration producing outputs from inputs in terms of pre- andpost-conditions). Process tran
+Analysis requires one input:
+in f:CustomerIn f denoting the customer owning the ac-
+count that the desired transactions belong to. It produces anoutput tranList :seq o f set o f T ransaction according to
+the input which denotes the desired transaction list.
+With the well-deﬁned input and output, the formaliza-
+tion of the function transaction analysis , i.e., the generation
+of the post-condition of the process tran
+Analysis , can be
+started.
+Step 1 Pattern selection
+The hierarchy of the pattern categorization is ﬁrst
+shown for pattern selection. By analyzing the seman-tics of the example function, the hierarchy is traversedfrom the top level to an appropriate pattern throughthe path: UF→Recreation→rearrangement→
+sort. After conﬁrming the select decision by reading
+expl(sort), the pattern sort(previously shown in Fig. 1)
+is ﬁnally selected to assist the formalization of the ex-ample function.
+Step 2 The application of the pattern sort
+a. requirement clariﬁcation
+According to the given algorithm, ob js is the
+ﬁrst element to be speciﬁed in the pattern sortand
+its rule repository{R1,{r1},γ}is derived to guide
+its assignment. As the ﬁrst candidate rule set, {r1}
+is ﬁrst applied. Since the premise constraint of r1
+istrue, it is activated and applied resulting in a
+new constraint “ ob js :varValue ”. By applying
+expl(ob js) and expl(ob js :varValue ), a compre-
+hensible guidance “Specify the set of objects to be
+sorted by a system variable described in deﬁnedvariable or formal expression.” is produced fromthe new constraint. Representing the transactionsto be sorted, “ account
+store (in f).transactions ”i sgiven as response to the above guidance and as-
+signed to ob js (If the developer ﬁnds it hard to
+write this formal expression, he can apply the pat-tern direct which is used to retrieve the formal
+representation of system variables). After the ap-
+plication of r1,γ(r1)={r2,r3,...}becomes the
+next candidate rule set to be applied. By au-tomatically evaluating the premise constraint foreach included candidate rule, r3 is determined as
+the activated one since its premise constraint can
+be satisﬁed by the given ob js. The derived new
+constraint is empty and no guidance is provided.Sinceγ(r3)=∅, the assignment of ob js is thus
+ﬁnished.
+TheΦ
+Eitem of the pattern sort tells that
+ΦE(ob js)=result , i.e., element result is the next
+element to be speciﬁed. Again, the rule repos-itory{R1,{r4},γ}is derived to guide the assign-
+ment of result . Similar to ob js, candidate rule r4
+is ﬁrst applied resulting in the constraint “ result :
+varValue ”. Accordingly, guidance “Specify the
+sorting result by a system variable described in de-ﬁned variable or formal expression.” is displayedfor a reply. Obviously, output variable tranList
+is the correct response and used to assign result .
+Candidate rule setγ(r4)={r5,...}is then applied
+where r5 is activated. The derived new constraint
+is empty and the assignment of result terminates
+sinceγ(r5)=∅.
+Element ruleis the last element to be spec-
+iﬁed. According to its rule repository {R3,{r6,
+r7,...},γ},{r6,r7,...}is ﬁrst applied where r7i s
+activated. Based on the expl item, the derived
+constraint “ rule.ruleType :
+{etg,gr}” is trans-
+formed into guidance “Specify the category of the
+intended sorting rule by choosing from: 1. objectsare organized into groups and each pair of neigh-bor groups in the sorting result holds the same re-
+lation 2. more than one rule is used to sort the
+grouped objects”. After analyzing the semanticsof the example function, the ﬁrst choice is selectedas response and assigned to the ruleType ﬁeld
+ofrule. The next candidate rule set is γ(r7)=
+{r9,...}where r9 is activated and applied. The
+obtained constraint decomposes rule.content into
+two low-level elements gRand sR. Its mean-
+ing is displayed as the guidance “Specify the de-tail of the sorting rule from two aspects: how to
+group transactions and how to sort grouped trans-
+actions.”. According to gR’s deﬁnition given in
+the constraint, its assignment is guided by apply-ing the pattern group with the ﬁrst two elements
+assigned as ob js and elems (result ) respectively
+(In SOFL, elems (seq) means the set of elements
+in sequence seq).
+The application of the pattern group also fol-
+lows the given two steps. Step astarts from the
+
+--- Page 8 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+205
+assignment of element grule , since the ﬁrst two
+elements gob js and gresult have already been as-
+signed in gR’s deﬁnition. According to the pat-
+tern, the rule repository of grule is (R/prime3,{r5},γ)
+and r5 is ﬁrst applied resulting in constraint
+“grule.ruleType :{uR,iR}” . B a s e do nt h e expl
+item, this constraint is displayed as guidance“Specify the category of the intended groupingrule by choosing from: 1. certain parts of the ob-jects in each group are the same 2. objects in each
+group satisfy the same properties.”. In the exam-
+ple function, transactions are grouped accordingto their date, which belongs to the ﬁrst kind. Thus,uRis chosen and assigned to grule.ruleType .T h e
+assignment of grule continues with the candidate
+rule setγ(r5)={r6,...}where r6 is activated.
+The derived constraint allows the assignment ofgrule.content by choosing from f1,..., fnwhere
+each fidenotes grouping gob js according to the
+ﬁeld fi. In our case, each fiis instantiated as one
+of the ﬁelds of transaction and the grule.content
+is guided to be assigned by choosing from date,
+operationT ype ,currencyT ype and amount .I t
+is easy to make the selection decision according
+to the semantics of the example function. Item
+date is selected as the response and assigned to
+grule.content .S t e p afor applying the pattern
+group is then ﬁnished since γ(r6)=∅. Then the
+application moves to step b
+with the assigned el-
+ements. By automatically evaluating the premise
+constraint of each rule in the Ψitem of the pat-
+tern group ,r u l e tr1 is activated since its premise
+constraint can be satisﬁed by the values assignedto the three elements. The formal expression sug-
+gested by tr1 is generated as the result of applying
+the pattern group .
+Since the above application of the pattern
+group is to clarify the low-level element gR,t h e
+generated formal expression is assigned to gR
+and the algorithm goes back to the application ofthe pattern sortwhere r9 has been activated and
+applied. According to γ(r9), candidate rule set
+{r10,...}is then applied where r10 is activated.
+The application of r10 results in a constraint on
+the deﬁnition of the low-level element sRwhich is
+interpreted, by the expl item, as guidance “Spec-
+ify the detail of the sorting rule by specifying oneof the following relations between each pair of
+neighbor groups ( g
+i,gj) in the sorting result: 1. re-
+lation between the date of the transactions in gi
+andgj2. relation between the member numbers ni
+and njofgiand gj3.···”. In the example func-
+tion, transaction groups are sorted by the number
+of their included members in descending order.
+Therefore, the sorting rule should be clariﬁed bythe second kind of relation and n
+i>njis input as
+the response to the above guidance. This responseFig. 5 The formal representation of the function transaction analysis .
+is assigned to low-level element sRand the step
+aof the application of the pattern sortis ﬁnished
+sinceγ(r10)=∅.
+b. formal expression generation
+All the three elements are assigned with de-
+termined values through step a, that is, all the nec-
+essary details of the function transaction analy-
+sishas been clariﬁed and recorded through step a.
+These values will be used for the automatic gen-eration of the corresponding formal expression in
+this step.
+Each rule in the Ψitem of the pattern
+sortis automatically analyzed in the context of
+the clariﬁed elements to explore the activated
+one “{pr
+1,..., prn}→ str” where constraints
+pr1,..., prnare all satisﬁed. String stris then
+generated as the formal representation of the func-tion transaction analysis . Since the premise con-
+straint of the rule tr1 can be satisﬁed, tr1 is ap-
+plied and the corresponding formal expression is
+given as shown in Fig. 5.
+The case study simulates the interaction process for
+guiding the formalization of the function transaction anal-
+ysisbased on the pattern system. It demonstrates that the
+developer will not be aware of the existence of the patternsystem when it is applied to guide requirements formaliza-tion. Instead of studying and utilizing the pattern systemmanually, the developer only needs to respond in a speci-
+ﬁed format to the sequentially displayed guidelines written
+in natural language. And the formal representation of theintended function is automatically generated based on thecollected responses and the pattern system. For any require-ment within the scope of the pattern system, practitioners
+without formal notation expertise are able to formalize it
+through the application of the pattern system similar to theapplication process presented in the case study. But for re-quirements beyond the pattern system’s scope, no appropri-
+ate patterns can be applied to formalize them. We will keep
+creating new patterns to expand the application domain ofthe pattern system.
+We give the details of the function transaction analysis
+in advance to enable the explanation of the application pro-
+cess. However, in most real cases, the developer may not be
+able to have all the necessary details of a function in mindbefore formalizing it. The provided guidelines reveals whatkind of attributes are needed to formalize the intended func-tion and the responses to these guidelines will be adequate
+
+--- Page 9 ---
+206IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+to form the formal representation of the function. Besides,
+the developer can obtain a better understanding on the envi-
+sioned system through the interaction process for clarifyingthe required attributes.
+4. Prototype Tool and Experiment4.1 Prototype Tool
+We have developed a prototype tool for supporting require-
+ments formalization based on the pattern system. It consists
+of two major components: a knowledge base for storing thepattern system and the implementation of an algorithm forutilizing the stored pattern knowledge to determine the be-
+havior of the tool. We will ﬁrst explain these two compo-
+nents in detail respectively, and then describe the tool im-plemented based on them.
+The knowledge base stores the pattern system in terms
+of a set of HFSMs (Hierarchical Finite State Machines)
+where each HFSM represents the knowledge included in
+an individual pattern (The pattern categorization structure isnot included in the knowledge base since it is directly giventhrough the tool’s interface for pattern selection). An HFSMis composed of a set of FSM (Finite State Machine) models
+where the details of some portion of each high-level FSM is
+interpreted by a set of low-level FSMs.
+We use HFSM, instead of the static structure of the
+pattern deﬁnition, to represent pattern knowledge because
+of the following reasons. First, the algorithm for utilizing
+the static structure of the pattern deﬁnition is complex andwill become more and more complex as the patterns keepbeing updated with new knowledge. By contrast, the algo-rithm for analyzing HFSM is much easier and its complexity
+remains unchanged as the patterns become more complex.
+Second, each time when the pattern deﬁnition is slightlymodiﬁed, the algorithm for utilizing it must be updated todeal with the newly introduced deﬁnitions and all the par-ties who share the knowledge have to update their tool with
+the new algorithm. The algorithm for utilizing HFSM, how-
+ever, does not need to be modiﬁed when the pattern deﬁni-tion is changed, since the semantics of the basic elementsinvolved in HFSM remain the same. Whatever modiﬁca-tion is done on the HFSM, the original algorithm can still
+work on the updated knowledge, which saves much time
+in implementing a new one. Third, compared with othermodeling languages, HFSM is precise and easier to be com-prehend and manipulated by automated means. The graphi-
+cal notation of HFSM demonstrates the hierarchical relation
+between patterns and more clearly shows the behavior ofindividual patterns through FSMs. Besides, many maturetechniques and tools are proposed to analyze FSMs, whichcan be suﬃciently utilized to analyze our pattern knowl-
+edge. It should be noted that the semantics of the knowl-
+edge included in a pattern deﬁnition is equivalent to that ofthe knowledge included in its corresponding HFSM. Theirdetermined tool behaviors are the same. We only changethe representation of the knowledge to facilitate its utiliza-tion and maintenance.
+To enable automatic utilization, knowledge represen-
+tation must be formally deﬁned. The formal deﬁnitions ofFSM and HFSM are given and explained through an exam-ple HFSM.
+Deﬁnition 2: A FSM (Finite State Machine) is a 9-tuple
+(Q,q0,F,VP,I,G,ϕ,δ,λ ) where Qis a non-empty ﬁnite set
+of states, q0∈Qis the initial state, F⊂Qis the set of
+accept states, VPis a set of triples ( V,V
+/prime,θ) where Vis
+the ﬁnite set of state variables, V/primeis a set of values and
+θ:V−→ V/primeindicates the value of each v∈V,Iis the
+ﬁnite set of symbols for composing inputs and outputs, G
+is the ﬁnite set of guard conditions, ϕ:Q−→ VPis the
+state f unction indicating the values of the involved vari-
+ables on each state, δ:Q×(I×P(G))−→ Qis the transition
+f unction relating two states by input and guard conditions,
+λ:Q×(I×P(G))−→ Iis the output f unction determining
+output based on the current state and input.
+Deﬁnition 3: HFSM (Hierarchical FSM) is a pair ( F,σ)
+where Fis a set of FSMs and σ:∪A∈FQA∪∪ A∈FIA∪
+∪A∈FVA−→P (F) indicates the hierarchical relations among
+FSMs in Fwhere lower-level FSMs interpret certain portion
+of upper-level FSMs i ﬀ∃A0∈F·∀F/prime∈ran(σ)·A0/nelementF/prime(A0is the
+top-level FSM).
+Figure 6 shows an example HFSM representing the
+knowledge included in the pattern sortwhereαdenotes the
+actual input from the developer. For the sake of space, weonly give parts of the top-level FSM to illustrate how a pat-tern is represented in the knowledge base.
+The state set of the FSM is {p
+0,..., pn}where p0is
+the initial state and p13is one of the accepted states. Equa-
+tions attached to each state pireﬂectϕ(pi) meaning that the
+state variables will be assigned according to these equationswhen the FSM is transferred to p
+i. For example, “ ob js=α”
+attached to p3indicates that state variable ob js will be as-
+signed asαwhen the FSM is transferred to p3.
+Connecting states with arrowed lines, transitions reﬂect
+thetransition function δand output functionλof the FSM.
+Each transition pi→pjis attached with a label i(G)/o
+Fig. 6 The HFSM for representing the pattern “sort”.
+
+--- Page 10 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+207
+where pj=δ(pi,(i,G))∧o=λ(pi,(i,G)), which means that
+when the FSM stays on state pi, if input iis received and
+each g∈Gis satisﬁed, output owill be displayed and the
+FSM will be transferred to state pj. Let’s take the transition
+p0→p1as an example. It describes that if ob js=nullcan
+be satisﬁed on p0, guidance produced from the constraint
+ob js :expValue will be displayed without input and the
+FSM will be transferred to p1. Since no equation is attached
+to state p1, system variables will not be updated. For transi-
+tions without the involvement of guard conditions, label i/o
+is used which means that the corresponding transition will
+be triggered when receiving iunder any condition.
+The example HFSM models the behavior of the pat-
+tern sortaccording to its application process. Paths between
+states p1and p12reﬂect step a, i.e., pattern sort’s behavior
+of guiding the requirement clariﬁcation process. Each path
+indicates the guiding process for clarifying a speciﬁc kind offunction details. For example, the requirements clariﬁcationprocess simulated in the previous case study corresponds to
+the path:
+p
+1→p2→p3→p5→p6→p7→p8→p9→
+p10→p11→···→ p12
+Transitions originated from state p12reﬂect step b,
+i.e., pattern sort’s behavior of generating formal expressions
+based on the clariﬁed elements. Each transition reﬂects one
+of the rules in the Ψitem of the pattern sort. For instance,
+transition p12→p13generates formal expressions accord-
+i n gt ot h er u l e tr1.
+Hierarchical relations between FSMs within an HFSM
+are used to describe the behavior of applying other patterns
+to formalize sub-functions. For example, the label of thetransition p
+10→p11involves pattern group , which indi-
+cates that the interpretation of the transition needs the in-volvement of a low-level FSM. This low-level FSM is the
+top-level FSM of the HFSM corresponding to the pattern
+group , which also uses lower-level FSMs to describe the de-
+tails of certain components.
+Based on the representation, the algorithm for utilizing
+the knowledge base can be given. Let q0 be the initial state
+of the top-level FSM in the HFSM of the selected pattern,the utilization algorithm is given as follows where csis an
+external variable denoting the current state of the HFSM andrsis an external variable denoting the sequence of high-level
+states.
+cs=q0;
+if(csis an accept state)
+if(rsis empty) return no guidance;
+else cs=rs[rs.length−1];
+for each transition cs
+i(G)/o−→ cs/primeoriginating from cs
+if(i=processed input&&each g∈Gis satisﬁed)
+cs=cs/prime;
+return o;
+return error;
+It starts from the initial state q0 and displays guidance
+by traversing the states of the HFSM according to actual in-puts from the developer. To deal with hierarchical relations
+Fig. 7 Tool snapshot.
+in the HFSM, the following method is adopted. Given a
+upper-level FSM A, for each component cinAinterpreted
+by the set of lower-level FSMs LF, it is utilized by travers-
+ing the FSMs in LF.
+In the developed prototype tool, the knowledge base is
+stored in a XML ﬁle with a set of pre-deﬁned XML tagsand the utilization algorithm is implemented to determinethe tool’s behavior. The proposed approach is language-
+independent but its supporting tool can only work on a spe-
+ciﬁc formal notation. Due to our expertise, we chose SOFLas an example formal notation and the prototype tool sup-ports requirements formalization to construct SOFL formal
+speciﬁcations.
+Figure 7 shows the main interface of the tool where the
+formal speciﬁcation of the previously introduced bank dataanalysis system is under construction.
+On the top left of the interface, a tree structure is
+given to demonstrate the architecture of the formal speci-
+ﬁcation under construction. Users can edit the tree accord-ing to his design on the hierarchy of the involved modules.The example formal speciﬁcation contains only one mod-uleData
+Analysis which is denoted as the root node of the
+tree. On the right half of the interface, four editable text ar-
+eas are used to display the content of the selected modulewhere Type area denotes the deﬁned data types, Vararea de-
+notes the deﬁned variables, Processes area denotes the set
+of processes in the module and Invarea denotes the invari-
+ants in the module. When specifying the selected module,
+necessary types and variables are required to be ﬁrst writ-ten. They will be automatically transformed into pre-deﬁneddata structures for producing formalization guidance. As
+can be seen from the ﬁgure, Data
+Analysis is the selected
+module where the types and variables are already declared.With well-deﬁned types and variables, the specifying of theincluded processes and invariants can be started. Since thespecifying of invariants under tool’s guidance is similar to
+that of the processes, we only present how the tool guides
+the writing of processes.
+For each process, its inputs and outputs should be ﬁrst
+deﬁned manually. Then the functionality of the process canbe described by writing pre- and post-conditions. Tool-
+
+--- Page 11 ---
+208IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+Fig. 8 Tool snapshot.
+aided formalization is provided for users who ﬁnd it di ﬃ-
+cult to directly write the pre- /post-condition in SOFL nota-
+tion. It includes two tasks corresponding to the two steps for
+formalizing requirements based on the pattern system. Theﬁrst task is to select an intended function from the “Func-tion Selection” area on the bottom left of the interface. Asthe implementation of the pattern selection step, a tree struc-
+ture is created in the “Function Selection” area to represent
+the hierarchy of the pattern categorization. The user cansearch for the intended function (pattern) from the root nodeto a leaf node and check the explanation of the function. InFig. 7, the tool is supporting the writing of the previously in-
+troduced process tran
+Analysis where its inputs and outputs
+are already deﬁned by the developer. Function (pattern) sort
+is selected to aid the writing of the post-condition.
+Once the selection decision is made by pressing “se-
+lect”, a new interface will be displayed and the second task
+is to interact with the given guidelines through this interface.Figure 8 shows the interface for sortfunction consisting of
+two parts. The left part denotes the hierarchy of the guide-lines in a guidance tree where high-level guidelines use low-
+level guidelines to deal with parts of their formalization
+problems, while the right part displays the detailed guide-lines of the selected node. At the beginning, the tree struc-ture is initialized with a root node denoting the top-levelguidelines for formalizing sort functions and the ﬁrst top-
+level guideline is shown. Since the previous case study has
+already explained how the guidelines are produced by ap-plying the pattern sortto formalize process tran
+Analysis ’s
+behavior, it is skipped here and we focus on presenting thefunctionality of the tool.
+As the response to the displayed guidance, formal ex-
+pression “ account
+store (in f).transactions ” denoting the set
+of transactions to be sorted is input to the given text box.After being conﬁrmed by the developer, the response is sub-
+mitted to the tool by pressing the “submit” button. The orig-
+inal interface is then refreshed as shown in Fig. 9 where thesecond top-level guideline is displayed below the ﬁrst one.According to the interaction process presented in the casestudy, “ tranList ” is submitted as the response and the inter-
+face is refreshed again with a newly produced guideline that
+requires for the selection of the sorting rule’s category.
+Once the selection decision is made and submitted, the
+guidance for clarifying the content of the sorting rule isprovided as shown in Fig. 10 (The included two snapshots
+Fig. 9 Tool snapshot.
+Fig. 10 Tool snapshot.
+show the details of the two nodes in the guidance tree re-
+spectively). It derives the sorting rule from two aspects: therule for grouping transactions and the rule for sorting the
+grouped transactions. Since the guidance for the ﬁrst aspect
+involves the application of the pattern group , node “aspect
+1” is created as a child node of the root node “sort” to pro-vide a clearer view on such an hierarchical relation. The
+detailed guidelines for specifying “aspect 1” is given in a
+new tab identiﬁed as “aspect 1” which can be activated bypressing the button “aspect 1” created in the original top-level guidance. In the ﬁgure, the top snapshot shows thetop-level guidance for clarifying the sorting rule while the
+bottom snapshot shows the low-level guidance for specify-
+ing aspect 1.
+Based on the understanding of process tran
+Analysis ’s
+behavior, the displayed graphical components can be ﬁlledout and submitted to the tool. After the tool receives the sub-
+
+--- Page 12 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+209
+Fig. 11 Tool snapshot.
+mitted information, the interaction process is ﬁnished and no
+more human eﬀort is needed in the next formalization stage.
+With the function details derived from the interaction pro-cess, the tool automatically generates a formal expressionas the post-condition of process tran
+Analysis which is dis-
+played in a new tab “result” as shown in Fig. 11. One can
+either directly copy the expression to the main interface or
+modify the expression in the tab before utilizing it.
+4.2 ExperimentsTo evaluate the eﬀectiveness of the pattern-based approach,
+two experiments on the supporting tool have been con-ducted.
+In the ﬁrst experiment, we invited our master students
+to use the supporting tool to formalize the functions of sev-
+eral typical software systems. These students have studiedthe SOFL formal language for one or two years and havewritten two or three SOFL formal speciﬁcations. They areable to read and even analyze a SOFL formal speciﬁcation
+but still not experienced enough to express their envisioned
+functions in SOFL formal notations e ﬃciently.
+There are six software systems to be formally speciﬁed:
+Hotel reservation system, Banking system, E-ticket system,Suica card system, Library information system and Online
+shopping system (For concise illustration, we will use H,B,
+E,S,L,Oas the abbreviation of these six systems respec-
+tively in the following presentation). Each student is askedto write the formal speciﬁcation of one of these systems us-ing the tool. For the purpose of assessing the application
+domain of the patterns, manual formalization is not allowed,
+i.e., all the pre- and post-conditions are required to be writ-ten under the guidance of the tool.
+Table 2 shows the result of the experiment. It sum-
+maries the collected data for each formal speciﬁcation and
+its construction process. The second column indicatesthe number of the included processes and the third col-umn records the number of the patterns applied for writ-ing these processes. Column “Simplicity” denotes the rate
+((ss/s)+(sg/g))/2 where ssdenotes the number of pattern
+selection decisions easy to be made, sdenotes the total num-
+ber of the pattern selection activities, sgdenotes the num-
+ber of guidelines easy to understand and gdenotes the total
+number of the displayed guidelines. It represents the sim-Table 2 The result of the ﬁrst experiment.
+Software Number of Number of Simplicity Number
+system processes applied patterns (%) of errors
+H 53 10 89% 13
+B 49 9 85% 11
+E 50 9 89% 10
+S 53 11 87% 13
+L 55 12 90% 10
+O 60 12 85% 11
+plicity of using the tool in requirements formalization, in-
+cluding the simplicity of selecting appropriate patterns andthe simplicity of interacting with the given guidance.
+After interviewing the participants, we found that the
+pattern system can cover all the functions in these six sys-
+tems. The provided categorization tree facilitates pattern se-lection and the distinct pattern and category names give littlechance to wrong selections. The major di ﬃculty is the de-
+composition of the intended functions into basic functions
+that can be formalized by patterns. They suggest the de-
+sign of more abstract patterns for speciﬁc systems to furtherfacilitate pattern selection. Designing such kind of patternsneeds technical support from domain experts and we will ex-tend our framework along this line based on the foundation
+proposed in this paper. We also found that most of the par-
+ticipants cannot fully understand the representation of theprovided guidance when formalizing the ﬁrst several func-tions. But once getting familiar to the guidance representa-
+tion through formalizing the ﬁrst several functions, they can
+independently interact with the prototype tool to formalizethe rest of the functions.
+The last column reveals the number of errors explored
+in the formal speciﬁcation. Most of these errors are caused
+by the misunderstanding of the displayed guidance when
+formalizing the ﬁrst several functions. As more functionsare formalized, fewer errors are made.
+Although this result cannot lead to the conclusion that
+any requirement can be formalized by a set of our patterns, it
+does demonstrate that the proposed approach is able to sup-
+port computer-aided formalization of commonly used func-tions.
+In the second experiment, a class of undergraduate stu-
+dents who have received training on SOFL for only one
+semester are invited to formalize the requirements of a bank-
+ing system. This system consists of two parts: a sub-systemfor providing banking services to customers and the previ-ously introduced bank data analysis system for managers.
+We selected 11 processes from the formal speciﬁcation of
+the banking system and replaced their post-conditions withinformal explanations on the behaviors of the processes.The participated students are divided into two groups. Eachstudent in group 1 is asked to manually write the post-
+conditions of the 11 processes and the students in group 2
+formalize the 11 processes in terms of post-conditions byusing our prototype tool. All the students are required torecord the time they spent for formalizing each process be-havior.
+
+--- Page 13 ---
+210IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+Table 3 The result of the second experiment.
+Average time Average number
+Process behavior for formalization of errors
+group 1 group 2 group 1 group 2
+customer authorization 4.5min 1min 2 0
+deposit 16.7min 14min 6 2
+withdraw 7.6min 4min 5 2
+currency exchange 10.7min 5.2min 7 1
+information display 24.5min 8.4min 9 1
+transfer 13min 6.5min 4 0
+manager authorization 0.4min 0.8min 1 0
+transaction analysis 15min 4.2min 5 2
+balance analysis 8.5min 3.8min 6 2
+global transaction analysis 19.7min 7.9min 8 3
+global balance analysis 14min 7.1min 9 1
+After collecting the materials provided by the students
+and reviewing the submitted formal speciﬁcations, the re-sult of the experiment is organized in Table 3. As can beseen from the table, the average time for formalizing each
+function in group 2 is less than that in group 1 while the av-
+erage number of errors found in the formalization result ofeach function in group 1 is more than that in group 2. Thisdemonstrates that the tool can help formalize requirementsmore eﬃciently and enhance the quality of the resultant for-
+mal expressions. Besides, as the complexity of the intended
+function increases, more time will be saved. For example,process behavior information display is more complex than
+withdraw . Formalizing information display with the tool
+saves more time than withdraw . This is because as the com-
+plexity of the function increases, students in group 1 haveto spend more time on both clarifying and transforming thedetails of the function. By contrast, students in group 2 onlyneed to respond to more guidances for requirements clariﬁ-
+cation and the tool will handle the rest of the work.
+There are also some data demonstrating the same con-
+clusion with the ﬁrst experiment. Although the complexitiesof the functions deposit and withdraw are the same, there is
+a large diﬀerence between the average times for formalizing
+them in group 2. An important reason is that the students
+have deepened their understanding on the meaning of theguidance produced by the tool when formalizing the func-tion deposit , which enables them to respond to the tool more
+quickly and speeds up the interaction process for formaliz-
+ing the function withdraw . Therefore, a course needs to be
+designed to train the potential users to help them use the toolmore eﬃciently.
+Another interesting phenomenon is that formalizing a
+behavior by reusing the formal representation of a similar
+one can signiﬁcantly promote the e ﬃciency. For example,
+the formal representations of the behaviors transaction anal-
+ysisand balance analysis are similar and the formalization
+ofbalance analysis can be easily done by modifying certain
+parts of transaction analysis ’s formal representation. As
+can be seen from the table, the average time for formaliz-ingbalance analysis is much less than transaction analysis
+in group 1 although their complexities are almost the same.This phenomenon indicates a way to enhance the e ﬃciencyof the tool where some “standard” formal fragments can be
+designed to facilitate the formalization of the similar func-
+tions.
+Note that the students participating in both experiments
+are non-experts in requirements formalization. We chose
+them because the proposed approach mainly aims to sup-
+port non-experts and the experiment result can reﬂect theeﬀectiveness of the approach.
+Nevertheless, it is also important to know the ap-
+proach’s performance on supporting experts. We have dis-
+covered some features according to our experience in using
+the prototype tool, although they are not proved by large-sized experiments yet. For simple functions, manual formal-ization is more eﬃcient than tool-supported formalization.
+The reason is that experts have formed their own patterns
+in mind and can quickly write formal expressions based
+on these patterns. For su ﬃciently complex functions, man-
+ual formalization becomes time-consuming and error-proneeven for experts, and the prototype tool can largely reduce
+the time cost and enhance the quality of the formalization
+result. Another discovery is that the amount of interactionsis appropriate for non-experts but needs to be reduced forexperts. One solution is to design the pattern knowledge ondiﬀerent levels for assisting di ﬀerent users, which is part of
+our future work.
+5. Related Work
+There are mainly two kinds of requirements formalization
+methods. One kind is the methods for transforming from in-formal languages to formal notations. They allow develop-ers to model the target system in graphical notations and for-malize the graphical models automatically. William E et al.
+introduce a general framework for formalizing a subset of
+UML diagrams in terms of di ﬀerent formal languages based
+on a homomorphic mapping between metamodels describ-ing UML and the formal language [10]. Cory Plock et al.
+show how to transform LSC (Live Sequence Charts) spec-
+iﬁcations with concurrency to timed automata [11]. Sunil
+Vadera et al. propose an interactive approach for producing
+formal speciﬁcations from English speciﬁcations [4]. Sev-eral tools have also been proposed for automatic transforma-tion, such as U2B [12] and RoZ [13]. But such transforma-
+tion is conducted based on certain pre-deﬁned syntactic rule
+without considering the real meaning of the models. Dueto the inherent diﬃculty in NLP technology, there is no ef-
+fective tool-support in constructing formal speciﬁcations on
+the semantic level, but the introduction of patterns seems to
+oﬀer a solution.
+Some eﬀorts have been made in the ﬁeld of spec-
+iﬁcation patterns. For informal speciﬁcations, severalbooks [14], [15] about UML based object-oriented design
+with patterns are published, aiming at promoting design pat-
+terns among practitioners to help create well crafted, ro-bust and maintainable systems. Meanwhile, researchers arestill improving the usability of such patterns by specifyingpattern solutions with pattern speciﬁcation languages [16],
+
+--- Page 14 ---
+WANG and LIU: COMPUTER-AIDED FORMALIZATION OF REQUIREMENTS BASED ON PATTERNS
+211
+[17]. For formal speciﬁcations, Stepney et al. describe a pat-
+tern language for using notation Z in computer system en-
+gineering [2]. The patterns proposed are classiﬁed into sixtypes, including presentation patterns, idiom patterns, struc-ture patters, architecture patterns, domain patterns, develop-
+ment patterns. Each pattern provides a solution to a type
+of problem. Ding et al. propose an approach for speciﬁ-
+cation construction through property-preserving reﬁnementpatterns [18]. Konrad et al. [19] create real-time speciﬁca-
+tion patterns in terms of three commonly used real-time tem-
+poral logics based on an analysis of timing-based require-
+ments of several industrial embedded system applicationsand oﬀer a structured English grammar to facilitate the un-
+derstanding of the meaning of a speciﬁcation.
+Eﬀective application of the above patterns requires full
+understanding, and the ability to select an appropriate one
+and solve speciﬁc problem using the suggested solution,because the representations make it impossible to utilizethese pattern knowledge without human involvement. Con-
+sequently, although a large number of patterns have been de-
+veloped, most of them are wasted as users may not fully un-derstand how to leverage them in practice [20]. By contrast,our patterns serve as knowledge for machines to generateguidance and the formal deﬁnitions enable their automatic
+application.
+Similar to us, authors in [21] also give formal deﬁni-
+tions for their patterns for automatic utilization. However,their patterns are designed only for a speciﬁc domain: for-mal speciﬁcation of OCL constraints. They can only be
+described in the context of UML and can only be used by
+UML experts. By contrast, our patterns are aimed at deal-ing with commonly used functions and allow new ones tobe designed to handle wider range of functions. Users canfocus on function design of the envisioned system and leave
+the syntax issues to the tool. Moreover, the user of the OCL
+speciﬁcation patterns is asked to provide all parameters ofthe intended requirement at one time and an OCL constraintwill be automatically generated. This is good enough for
+OCL constraints but may have problems for complex func-
+tions. The reason is that in most cases, it is very di ﬃcult to
+determine all the parameters of a requirement at one time,especially for complex functions. We believe that require-ments formalization is also a clariﬁcation process. Thus,
+our patterns are designed to guide the clariﬁcation of the in-
+tended requirements step by step and collect the providedfunction details for further formalization.
+6. Conclusion and Future Work
+To assist practitioners in formalizing requirements, this pa-
+per proposes a pattern-based approach to guide the clariﬁ-cation of requirements and representation of the clariﬁed
+requirements in formal expressions. A set of patterns are
+pre-deﬁned in this approach and categorized in a hierarchyaccording to the functions they are used to formalize. A pro-totype tool that implements the approach is also described.It adopts HFSM to represent the pattern knowledge and im-plements the proposed algorithm for utilizing the pattern
+knowledge. Through two experiments, we have shown that
+the proposed approach is able to support computer-aidedformalization of requirements. When writing formal expres-sions, practitioners are only required to focus on the design
+of the relevant functions and the tool will handle the rest of
+the work. Besides, the tool can help formalize requirementsmore eﬃciently and enhance the quality of the resultant for-
+mal expressions.
+Our ﬁrst experiment applies the prototype tool to sev-
+eral software systems and demonstrates that it is able to
+tackle most of the commonly used functions. But the ap-plication to large-scale systems is still needed to improvethe pattern knowledge. We plan to carry out more large-scale experiments involving both non-experts and experts in
+the future to observe the e ﬀectiveness of our approach in
+supporting engineers with di ﬀerent levels of formal speciﬁ-
+cation writing skills. For non-experts, we plan to invite ourpartners from industry to use the tool in their real projects,
+and collect the result and feedback to improve the approach.
+For experts, we plan to invite two groups of experiencedresearchers to formalize functions with di ﬀerent complexi-
+ties. One group formalizes functions manually and the othergroup formalizes functions using our prototype tool. The
+participants in both groups will be required to record the
+time cost for each function. This experiment can help usvalidate whether the approach is e ﬃcient in supporting ex-
+perts and clarify its e ﬀectiveness in formalizing functions
+with diﬀerent complexities.
+Sometimes, the informal guidance given by the tool is
+not easy to understand. Due to the inherent complexity ofdata structures in empirical systems, the generated guidanceoften involves a large number of objects and sophisticatedrelations. One solution is to adopt simple formal expres-
+sions in describing part of the guidance since they can be
+more comprehensible than their informal counter-part. Ex-periments need to be held to investigate this feasibility.
+In addition to the above factor, the correctness of the
+pattern knowledge is also important to the performance of
+our approach. We plan to use the following three methodsfor tackling this problem. First, since the pattern knowl-edge is represented in FSM, we can visualize the knowl-edge using the graphical components of FSM. This facil-
+itates the understanding and inspection of the knowledge.
+Besides, model checking is a mature technique for verify-ing FSM models and several tools have been implemented.We can formally verify the pattern knowledge using thesetools. Second, since the pattern knowledge represented in
+FSM can be regarded as a formal speciﬁcation, formal spec-
+iﬁcation inspection technique would be suitable for improv-ing the quality of the pattern knowledge. Third, testing ofthe prototype tool can also help us explore the correctnessof the pattern knowledge. We plan to invite students and in-
+dustry people to use our tool and record the bugs or incorrect
+behaviors. Based on these pieces of information, the errorsin the pattern knowledge can be found and removed.
+We are also interested in developing techniques for au-
+
+--- Page 15 ---
+212IEICE TRANS. INF. & SYST., VOL.E97–D, NO.2 FEBRUARY 2014
+tomatically adding new knowledge to make the tool sup-
+port more intelligent, as well as the techniques for support-
+ing type and variable declarations and architecture design tosupport the whole process of formal speciﬁcation construc-tion.
+Acknowledgement
+This work has been conducted as a part of “Research Initia-
+tive on Advanced Software Engineering in 2012” supportedby Software Reliability Enhancement Center (SEC), Infor-mation Technology Promotion Agency Japan (IPA).
+References
+[1] S. Liu, Formal Engineering for Industrial Software Development,
+Springer, 2004.
+[2] S. Stepney, F. Polack, and I. Toyn, “An outline pattern language
+for Z: Five illustrations and two tables,” ZB2003: Third Interna-
+tional Conference of B and Z Users, Turku, Finland, ed. D. Bert,
+J.P. Bowen, S. King, and M. Walden, LNCS, vol.2651, pp.2–19,
+Springer, 2003.
+[3] K. Miriyala and M. Harandi, “Automatic derivation of formal soft-
+ware speciﬁcations from informal descriptions,” IEEE Trans. Softw.
+Eng., vol.17, no.10, pp.1126 –1142, Oct. 1991.
+[4] S. Vadera and F. Meziane, “From English to formal speciﬁcations,”
+The Computer Journal, vol.37, no.9, pp.753–763, 1994.
+[5] M. Elbendak, P. Vickers, and B.N. Rossiter, “Parsed use case de-
+scriptions as a basis for object-oriented class model generation,” J.
+Systems and Software, vol.84, no.7, pp.1209–1223, 2011.
+[6] G. Cabral and A. Sampaio, “Automated formal speciﬁcation gen-
+eration and reﬁnement from requirement documents,” J. Brazilian
+Computer Society, vol.14, no.1, pp.87–106, 2008.
+[7] B. Macias and S.G. Pulman, “A method for controlling the produc-
+tion of speciﬁcations in natural language,” The Computer Journal,
+vol.38, no.4, pp.310–318, 1995.
+[8] L. Jin and H. Zhu, “Automatic generation of formal speciﬁcation
+from requirements deﬁnition,” Proc. 1st International Conference on
+Formal Engineering Methods, ICFEM ’97, Washington, DC, USA,pp.243–251, 1997.
+[9] D. Ilic, “Deriving formal speciﬁcations from informal require-
+ments,” 31st Annual International Computer Software and Appli-
+cations Conference, COMPSAC 2007, pp.145–152, July 2007.
+[10] W. McUmber and B. Cheng, “A general framework for formalizing
+uml with formal languages,” Proc. 23rd International Conference on
+Software Engineering, 2001, ICSE 2001, pp.433–442, May 2001.
+[11] C. Plock, B. Goldberg, and L. Zuck, “From requirements to speciﬁ-
+cations,” 12th IEEE International Conference and Workshops on the
+Engineering of Computer-Based Systems, ECBS ’05, pp.183–190,
+April 2005.
+[12] C. Snook and M. Butler, “U2B — A tool for translating UML-B
+models into B,” in UML-B Speciﬁcation for Proven Embedded Sys-
+tems Design, ed. J. Mermet, Springer, April 2004. Chapter: 6.
+[13] S. Dupuy, Y. Ledru, and M. Chabre-Peccoud, “An overview of RoZ:
+A tool for integrating UML and Z speciﬁcations,” Proc. 12th Interna-
+tional Conference on Advanced Information Systems Engineering,
+CAiSE ’00, pp.417–430, London, UK, 2000.
+[14] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, Design pat-
+terns: Elements of reusable object-oriented software, Addison-
+Wesley Longman Publishing, Boston, MA, USA, 1995.
+[15] C. Larman, Applying UML and Patterns: An Introduction to Object-
+Oriented Analysis and Design and Iterative Development, 3rd ed.,
+Prentice Hall, 2004.
+[16] R. France, D.K. Kim, S. Ghosh, and E. Song, “A UML-based pat-
+tern speciﬁcation technique,” IEEE Trans. Softw, Eng., vol.30, no.3,pp.193–206, March 2004.
+[17] N. Soundarajan and J. Hallstrom, “Responsibilities and rewards:
+Specifying design patterns,” Proc. 26th International Conference on
+Software Engineering, ICSE 2004, pp.666–675, May 2004.
+[18] J. Ding, L. Mo, and X. He, “An approach for speciﬁcation construc-
+tion using property-preserving reﬁnement patterns,” SAC, pp.797–
+803, 2008.
+[19] S. Konrad and B.H.C. Cheng, “Real-time speciﬁcation patterns,”
+Proc. 27th International Conference on Software Engineering,
+ICSE ’05, New York, NY, USA, pp.372–381, 2005.
+[20] D. Manolescu, W. Kozaczynski, A. Miller, and J. Hogg, “The grow-
+ing divide in the patterns world,” IEEE Softw., vol.24, no.4, pp.61–
+67, 2007.
+[21] J. Ackermann and K. Turowski, “A library of ocl speciﬁcation pat-
+terns for behavioral speciﬁcation of software components,” Proc.
+18th International Conference on Advanced Information SystemsEngineering, CAiSE ’06, pp.255–269, Berlin, Heidelberg, 2006.
+Xi Wang is a Ph.D. student in the De-
+partment of Computer Science at Hosei Uni-versity. She received her M.S. degree in the
+School of Computer Engineering and Science
+from Shanghai University, China, and Bache-lor’s degree in the School of Information Engi-
+neering from Nanchang University, China. Her
+research interests include formal methods, for-mal engineering methods, formal speciﬁcation
+and software engineering.
+Shaoying Liu is a professor in the De-
+partment of Computer Science at Hosei Univer-sity. He received his Ph.D. in formal methods
+at the University of Manchester, UK. His re-
+search interests include formal methods, formalengineering methods, software inspection, test-
+ing, and intelligent software engineering envi-
+ronments. He has published over 130 papers in
+refereed journals and international conferences
+and one book titled “Formal Engineering for In-dustrial Software Development” with Springer.
+He recently serves as a General Co-Chair for ICFEM 2012 and a PC mem-
+ber for many other conferences. He is a Fellow of British Computer So-ciety, Senior Member of IEEE Computer Society, and member of Japan
+Society for Software Science and Technology.

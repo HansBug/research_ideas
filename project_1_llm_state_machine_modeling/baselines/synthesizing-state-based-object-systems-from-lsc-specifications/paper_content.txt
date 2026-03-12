@@ -1,0 +1,1661 @@
+--- Page 1 ---
+International Journal of Foundations of Computer Science Vol. 13 No. 1 (2002) 5-51 
+© World Scientific Publishing Company 
+SYNTHESIZING STATE-BASED OBJECT SYSTEMS 
+FROM LSC SPECIFICATIONS* 
+DAVID HAREL 
+Department of Computer Science and Applied Mathematics 
+The Weizmann Institute of Science, Rehovot, Israel, 76100 
+hareWwisdom. weizmann. ac.il 
+HILLEL KUGLER 
+Department of Computer Science and Applied Mathematics 
+The Weizmann Institute of Science, Rehovot, Israel, 16100 
+kugler@wisdom. weizmann. ac. il 
+Received 17 December 2000 
+Revised 6 April 2001 
+Communicated by David Harel 
+ABSTRACT 
+Live sequence charts (LSCs) have been defined recently as an extension of message 
+sequence charts (MSCs; or their UML variant, sequence diagrams) for rich inter-object 
+specification. One of the main additions is the notion of universal charts and hot, manda­
+tory behavior, which, among other things, enables one to specify forbidden scenarios. 
+LSCs are thus essentially as expressive as statecharts. This paper deals with synthesis, 
+which is the problem of deciding, given an LSC specification, if there exists a satisfy­
+ing object system and, if so, to synthesize one automatically. The synthesis problem 
+is crucial in the development of complex systems, since sequence diagrams serve as the 
+manifestation of use cases — whether used formally or informally — and if synthesizable 
+they could lead directly to implementation. Synthesis is considerably harder for LSCs 
+than for MSCs, and we tackle it by defining consistency, showing that an entire LSC 
+specification is consistent iff it is satisfiable by a state-based object system, and then 
+synthesizing a satisfying system as a collection of finite state machines or statecharts. 
+Keywords: Synthesis, Sequence Charts, Statecharts, Object-Oriented Systems, Reactive 
+Systems, Software Engineering. 
+* Early version appeared as Weizmann Institute Technical Report MCS99-20 October 1999. 
+An abridged version appeared in Proc. Fifth Int. Conf. on Implementation and Application of 
+Automata (CIAA 2000), Lecture Notes in Computer Science, Springer-Verlag, July 2000. 
+5 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 2 ---
+6 D. Harel & H. Kugler 
+1. Introduction 
+1.1. Background and motivation 
+Message sequence charts (MSCs) are a popular means for specifying scenarios 
+that capture the communication between processes or objects. They are particularly 
+useful in the early stages of system development. MSCs have found their way into 
+many methodologies, and are also a part of the UML [30], where they are called 
+sequence diagrams. There is also a standard for the MSC language, which has 
+appeared as a recommendation of the ITU [33] (previously called the CCITT). 
+Damm and Harel [8] have raised a few problematic issues regarding MSCs, most 
+notably some severe limitations in their expressive power. The semantics of the 
+language is a rather weak partial ordering of events. It can be used to make sure 
+that the sending and receiving of messages, if occurring, happens in the right order, 
+but very little can be said about what the system actually does, how it behaves 
+when false conditions are encountered, and which scenarios are forbidden. This 
+weakness prevents sequence charts from becoming a serious means for describing 
+system behavior, e.g., as an adequate language for substantiating the use-cases 
+of [15, 30]. Damm and Harel [8] then go on to define live sequence charts 
+(LSCs), as a rather rich extension of MSCs. The main addition is liveness, or 
+universality, which provides constructs for specifying not only possible behavior, 
+but also necessary, or mandatory behavior, both globally, on the level of an entire 
+chart and locally, when specifying events, conditions and progress over time within a 
+chart. Liveness allows for the specification of "anti-scenarios" (forbidden ones), and 
+strengthens structuring constructs like subcharts, branching and iteration. LSCs are 
+essentially as expressive as statecharts. As explained in [8], the new language can 
+serve as the basis of tools supporting specification and analysis of use-cases and 
+scenarios — both formally and informally — thus providing a far more powerful 
+means for setting requirements for complex systems. 
+The availability of a scenario-oriented language with this kind of expressive 
+power is also a prerequisite to addressing one of the central problems in behavioral 
+specification of systems: (in the words of [8]) to relate scenario-based inter-object 
+specification with state machine intra-object specification. One of the most pressing 
+issues in relating these two dual approaches to specifying behavior is synthesis, i.e., 
+the problem of automatically constructing a behaviorally equivalent state-based 
+specification from the scenarios. Specifically, we want to be able to generate a 
+statechart for each object from an LSC specification of the system, if this is possible 
+in principle. The synthesis problem is crucial in the development of complex object-
+oriented systems, since sequence diagrams serve to instantiate use cases. If we 
+can synthesize state-based systems from them, we can use tools such as Rhapsody 
+(see [13]) to generate running code directly from them, and we will have taken 
+a most significant step towards going automatically from instantiated use-cases to 
+implementation, which is an exciting (and ambitious!) possibility. See the discussion 
+in the recent [12]. And, of course, we couldn't have said this about the (far easier) 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 3 ---
+Synthesizing State-Based Object Systems 7 
+problem of synthesizing from conventional sequence diagrams, or MSCs, since their 
+limited expressive power would render the synthesized system too weak to be really 
+useful; in particular, there would be no way to guarantee that the synthesized system 
+would satisfy safety constraints (i.e., that bad things — such as a missile firing with 
+the radar not locked on the target — will not happen). 
+In this paper we address the synthesis problem in a slightly restricted LSC 
+language, and for an object model in which behavior of objects is described by 
+state machines with synchronous communication. For the most part the resulting 
+state machines are orthogonality-free and flat, but in the last section of the paper 
+we sketch a construction that takes advantage of the more advanced constructs of 
+statecharts. 
+An important point to be made is that the most interesting and difficult aspects 
+in the development of complex systems stem from the interaction between different 
+features, which in our case is modeled by the requirements made in different charts. 
+Hence, a synthesis approach that deals only with a single chart — even if it is an 
+LSC — does not solve the crux of the problem. 
+The paper is organized as follows. Section 2 introduces the railcar system of 
+[13] and shows how it can be specified using LSCs. This example will be used 
+throughout the paper to explain and illustrate our main ideas. Section 3 then goes 
+on to explain the LSC semantics and to define when an object system satisfies an 
+LSC specification. In Section 4 we define the consistency of an LSC specification 
+and prove that consistency is a necessary and sufficient condition for satisfiability. 
+We then describe an algorithm for deciding if a given specification is consistent. 
+The synthesis problem is addressed in Section 5, where we present a synthesis 
+algorithm that assumes fairness. We then go on to show how this algorithm can be 
+extended to systems that do not guarantee fairness. (Lacking fairness, the system 
+synthesized does not generate the most general language as it does in the presence 
+of fairness.) In Section 6 we outline an algorithm for synthesizing statecharts, with 
+their concurrent, orthogonal state components. 
+1.2. Related work 
+As far as the limited case of classical message sequence charts goes, there has 
+been quite some work on synthesis from them. This includes the SCED method 
+[18, 19] and synthesis in the framework of ROOM charts [22]. Other relevant work 
+appears in [28, 4, 2, 7, 16, 32, 23]. In addition, there is the work described in 
+[21], which deals with LSCs, but synthesizes from a single chart only: an LSC is 
+translated into a timed Biichi automaton (from which code can be derived). 
+In addition to synthesis work directly from sequence diagrams of one kind or 
+another, one should realize that constructing a program from a specification is a 
+long-known general and fundamental problem. There has been much research on 
+constructing a program from a specification given in temporal logic (e.g., [25]). 
+We now provide brief descriptions of some of these efforts. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 4 ---
+8 D. Harel & H. Kugler 
+1.2.1. ROOM charts 
+The message sequence chart language used in [22] contains basic (existential) 
+MSCs, called bMSCs, and high level MSCs (hMSCs). The hMSCs provide opera­
+tors for describing the composition and hierarchical arrangement of bMSCs. The 
+semantics assumes mutually exclusive charts: during a run, the system is always in 
+exactly one bMSC. 
+The synthesis in [22] generates both structural and behavioral components of 
+ROOM models [29]. The structural components are actors, protocols, ports and 
+bindings, and the behavioral components are a variant of statecharts with no con­
+currency, i.e., no orthogonal components. The mutual exclusion semantics between 
+the charts allows a fairly simple synthesis algorithm. 
+One of the questions addressed in [22] is how many events should be executed 
+during a single transition. Two main synthesis algorithms are developed according 
+to the answer to this question, one for maximum traceability and one for maximum 
+progress. In the former case each actor has a state for each bMSC, and each such 
+state has substates corresponding to the local state of the chart. The number of 
+events executed during one transition here is relatively small, since events can be 
+sent only if they appear before the end of the bMSC, and moving to a new bMSC 
+must be done by an additional transition. This approach produces ROOMcharts 
+with many states, but the simple traceability to the structure of the MSCs contains 
+important high level design information. 
+In the maximum progress approach, events are sent during a single transition 
+until the next received event is reached, possibly in a different bMSC. The syn­
+thesized ROOMcharts in this approach are flat state machines with a potentially 
+smaller number of states in comparison to the maximum traceability approach. In 
+this approach, the state machines of the different actors will not have identical 
+structure (which is unlike the situation in the maximum traceability approach). 
+Here, when synthesizing a state machine for an object O the information used 
+by the synthesis algorithm involves only the set of messages directly relevant to O, 
+i.e., those in which O is either the sender or the receiver. We will show later that 
+when the specification language allows both existential and universal quantification 
+and does not assume mutual exclusion semantics, like in LSCs, this projection 
+information is not enough. 
+1.2.2. SCED 
+In the SCED project [18, 19], the semantics of the MSC language used allows 
+overlapping of scenarios: the system can be in different scenarios at the same time. 
+This assumption makes the synthesis more difficult than in the case of mutually 
+exclusive MSCs, and the work is thus of special interest. The synthesis algorithm 
+produces a state machine for an object selected by the user, and it is basically an 
+application of an early algorithm of Biermann and Krishnaswamy that deals with 
+constructing programs from example computations [6]. 
+The work in [6] describes a setting in which the user performs example compu-
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 5 ---
+Synthesizing State-Based Object Systems 9 
+tations that are stored by the system. The system then automatically synthesizes 
+the shortest (in the number of states) possible program capable of executing the 
+observed examples. Furthermore, it is proved in [6] that if the user has a program 
+P in mind, and shows the system example execution traces Ti,T2,... from any enu­
+meration of the executions of P, after a finite number of examples the system can 
+synthesize a program P$ capable of executing all the traces of P. This is known as 
+identification in the limit in learning theory. 
+The SCED synthesis algorithm of [18, 19] adapts the algorithm of [6] to the case 
+of synthesizing state machines from standard (existential) message sequence charts. 
+The MSC language from which the synthesis takes place has been extended with 
+conditional and repetition constructs, subscenarios, assertions, actions and states. 
+A limitation in SCED is the constraint that requires the synthesized state ma­
+chine to be deterministic. In some situations this causes synthesizing state machines 
+with disjoint sets of states. An additional problem is that the initial state is not 
+fully defined by the synthesis algorithm, which can lead to underspecified state ma­
+chines that are not executable. For synthesized state machines with disjoint sets of 
+states it is not possible to define an initial state without violating determinicity. 
+SCED also lacks the ability to express partial traces in the message sequence 
+chart language, by constraining only some of the events relevant to an object but 
+not others, letting any event not listed as participating be free to occur at any time. 
+This is important in order to support appropriate levels of abstraction, but it makes 
+the synthesis problem harder. 
+Like in ROOM, here too the information used by the synthesis algorithm is only 
+those messages relevant directly to the object in question, which is not sufficient for 
+LSCs. 
+1.2.3. Verification of timing diagrams 
+Timing diagrams [5, 1] constitute a graphical specification language especially 
+appropriate for the description of hardware designs. In [28] timing diagrams and 
+their semantics are formally defined based on a translation into temporal logics. 
+The timing diagrams allow to express partial order of events as well as causality 
+constraints. In fact, they were one of the driving motivations behind the LSCs of 
+[8]. It is shown in [28] that the resulting type of formula has an efficient model 
+checking procedure. 
+1.2.4. Model checking of MSCs 
+The problem of verifying whether an MSC or an HMSC (hierarchical MSC) satis­
+fies a temporal requirement given by an automaton is studied in [4]. The complexity 
+of different cases is derived for synchronous and asynchronous interpretations. For 
+the MSC case, an automaton with states corresponding to the cuts is constructed 
+and a bound on the size of the automaton is given. Interestingly, this construction 
+and the one we have in Section 4.2 were carried out independently, and have turned 
+out to be very similar. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 6 ---
+10 D. Harel & H. Kugler 
+1.2.5. Interaction interfaces 
+Interaction interfaces [7] are used to formally specify the interaction between two 
+or more components that co-operate as subsystems of a distributed system. Their 
+format uses predicates to characterize sets of interaction histories. It is shown in [7] 
+how to derive component specifications from a general interaction interface spec­
+ification (though for liveness properties some external intervention is required to 
+assign responsibilities to specific components). The issue of realizability of compo­
+nents is also studied in that paper. The same authors also co-designed a synthesis 
+algorithm from MSCs to state machines, appearing in [16]. 
+1.2.6. Synthesis from temporal logic 
+The early work on this kind of synthesis considered closed systems, that do not 
+interact with the environment [24, 10]. In this case a program can be extracted 
+from a constructive proof that the formula is satisfiable. This approach is not 
+suited to synthesizing open systems that interact with the environment, since satis­
+fiability implies the existence of an environment in which the program satisfies the 
+formula, but the synthesized program cannot restrict the environment. Later work 
+in [25, 26, 3, 31] dealt with the synthesis of open systems from linear temporal logic 
+specifications. The realizability problem is reduced to checking the nonemptiness of 
+tree automata, and a finite state program can be synthesized from an infinite tree 
+accepted by the automaton. The problems of realizability checking and synthesis 
+from linear temporal logic are shown to be 2EXPTIME-complete. Work on synthe­
+sis from branching temporal logics, based on alternating tree automata [20], show 
+that the synthesis problems for CTL and CTL* are EXPTIME and 2EXPTIME 
+complete, respectively. 
+In [27], synthesis of a distributed reactive system is considered. Given an archi­
+tecture — a set of processors and their interconnection scheme — a solution to the 
+synthesis problem yields finite state programs, one for each processor, whose joint 
+behavior satisfies the specification. It is shown in [27] that the realizability of a 
+given specification over a given architecture is undecidable. Previous work assumed 
+the easy architecture of a single processor, and then realizability was decidable. In 
+our work, an object of the synthesized system can share all the information it has 
+with all other objects, so the undecidability results of [27] do not apply here. 
+Another important approach discussed in [27] is first synthesizing a single pro­
+cessor program, and then decomposing it to yield a set of programs for the different 
+processors. The problem of finite-state decomposition is an easier problem than 
+realizing an implementation. Indeed, it is shown in [27] that decompositionality 
+of a given finite state program into a set of programs over a given architecture is 
+decidable. The construction we present in Section 5 can be viewed as following 
+parts of this approach by initially synthesizing a global system automaton describ­
+ing the behavior of the entire system and then distributing it, yielding a set of state 
+machines, one for each object in the system. However, the work on temporal logic 
+synthesis assumes a model in which the system and the environment take turns 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 7 ---
+Synthesizing State-Based Object Systems 11 
+making moves, each side making one move in its turn. We consider a more realistic 
+model, in which after each move by the environment, the system can make any 
+finite number of moves before the environment makes its next move. 
+2. An Example 
+In this section we introduce the railcar system, which will be used throughout 
+the paper as an example to explain and illustrate the main ideas and results. A 
+detailed description of the system appears in [13], while [8] uses it to illustrate LSC 
+specifications. To make this paper self contained and to illustrate the main ideas of 
+LSCs, we now show some of the basic objects and scenarios of the example. 
+The automated railcar system consists of six terminals, located on a cyclic path. 
+Each pair of adjacent terminals is connected by two rail tracks. Several railcars are 
+available to transport passengers between terminals. 
+Here now is some of the required behavior, using LSCs. Fig. 1 describes a car 
+departing from a terminal. The objects participating in this scenario are cruiser, 
+car, carHandler. The chart describes the message communication between the 
+objects, with time propagating from top to bottom. The chart of Fig. 1 is universal. 
+Whenever its activation message occurs, i.e., the car receives the message setDest 
+from the environment, the sequence of messages in the chart should occur in the 
+following order: the car sends a departure request departReq to the car handler, 
+which sends a departure acknowledgment departAck back to the car. The car 
+then sends a start message to the cruiser in order to activate the engine, and the 
+cruiser responds by sending started to the car. Finally, the car sends engage to 
+the cruiser and now the car can depart from the terminal. 
+A scenario in which a car approaches the terminal is described in Fig. 2. This 
+chart is also universal, but here instead of having a single message as an activation, 
+the chart is activated by the prechart shown in the upper part of the figure (in dashed 
+line-style, and looking like a condition, since it is conditional in the cold sense of 
+the word — a notion we explain below): in the prechart, the message depart Ack 
+is communicated between the car handler and the car, and the message alert 100 
+is communicated between the proximity sensor and the car. If these messages 
+indeed occur as specified in the prechart, then the body of the chart must hold: the 
+car sends the arrival request arrivReq to the car handler, which sends an arrival 
+acknowledgment arrivAck back to the car. 
+Figs. 3 and 4 are existential charts, depicted by dashed borderlines. These 
+charts describe two possible scenarios of a car approaching a terminal: stop at 
+terminal and pass through terminal, respectively. Since the charts are existential, 
+they need not be satisfied in all runs; it is only required that for each of these charts 
+the system has at least one run satisfying it. In an iterative development of LSC 
+specifications, such existential charts may be considered informal, or underspecified, 
+and can later be transformed into universal charts specifying the exact activation 
+message or prechart that is to determine when each of the possible approaches 
+happens. 
+The simple universal chart in Fig. 5 requires that when the proximity sensor 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 8 ---
+12 D. Harel & H. Kugler 
+setDest 
+car carHandler 
+start 
+started 
+engage departReq 
+departAck 
+Fig. 1. Perform departure. 
+proxSensor car carHandler 
+\ alertlOO departAck 
+arrivReq 
+arrivAck 
+Fig. 2. Perform approach. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 9 ---
+Synthesizing State-Based Object Systems 13 
+proxSensor cruiser car carHandler 
+alertStop 
+disengage 
+stop arrivReq 
+arrivAck 
+Fig. 3. Stop at terminal. 
+car carHandler 
+arrivReq 
+arrivAck 
+departReq 
+departAck 
+Fig. 4. Pass through terminal. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 10 ---
+14 D. Harel & H. Kugler 
+comingClose 
+proxSensor car 
+alertlOO 
+Fig. 5. Coming close to terminal. 
+receives the message comingClose from the environment, signifying that the car 
+is getting close to the terminal, it sends the message alertlOO to the car. This 
+prevents a system from satisfying the chart in Fig. 2 by never sending the message 
+alertlOO from the proximity sensor to the car, so that the prechart is never satisfied 
+and there is no requirement that the body of the chart hold. 
+The set of charts in Figs. 1-5 can be considered as an LSC specification for (part 
+of) the railcar system. Our goal in this paper is to develop algorithms to decide, for 
+any such specification, if there is a satisfying object system and, if so, to synthesize 
+one automatically. As mentioned in the introduction, what makes our goal both 
+harder and more interesting is in the treatment of a set of charts, not just a single 
+one. 
+3. LSC Semantics 
+The semantics of the LSC language0 is defined in [8], and we now explain some 
+of the basic definitions and concepts of this semantics using the railcar example. 
+Consider the Perform Departure chart of Fig. 1. In Fig. 6 it appears with a 
+labeling of the locations of the chart. The set of locations for this chart is thus: 
+{(cruiser, 0), (cruiser, 1), (cruiser, 2), (cruiser, 3), (car, 0), (car, 1), (car, 2), 
+(car, 3), (car, 4), (car, 5), (carHandler, 0), (carHandler, 1), (carHandler, 2)} 
+aA more detailed description of the semantics and the embedding of LSCs into branching 
+temporal logic CTL* appears in the appendix. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 11 ---
+Synthesizing State-Based Object Systems 15 
+setDest 
+cruiser 
+Oi 
+1 
+2 
+3 start 
+started 
+engage car carHandler 
+Oi 0| 1 
+1 
+2 departReq 
+departAck 
+3 
+4 
+5 1 
+2 
+Fig. 6. 
+The chart defines a partial order <m on locations. The requirement for order 
+along an instance line implies, for example, (car, 0) <m (car, 1). The order induced 
+from message sending implies, for example, (car, 1) <m (carHaudier, 1). From 
+transitivity we get that (car, 0) <m (carHandler, 1). 
+One of the basic concepts used for defining the semantics of LSCs, and later on 
+in our synthesis algorithms, is the notion of a cut. A cut through a chart represents 
+the progress each instance has made in the scenario. Not every "slice", i.e., a set 
+consisting of one location for each instance, is a cut. For example, 
+((cruiser, 1), (car, 2), (carHandler, 2)) 
+is not a cut. Intuitively the reason for this is that to receive the message start by 
+the cruiser (in location (cruiser, 1)), the message must have been sent, so location 
+(car, 3) must have already been reached. 
+The cuts for the chart of Fig. 6 are thus: 
+{((cruiser, 0), (car, 0), (carHandler, 0)), ((cruiser, 0), (car, 1), (carHandler, 0)), 
+((cruiser, 0), (car, 1), (carHandler, 1)), ((cruiser, 0), (car, 1), (carHandler, 2)), 
+((cruiser, 0), (car, 2), (carHandler, 2)), ((cruiser, 0), (car, 3), (carHandler, 2)), 
+((cruiser, 1), (car, 3), (carHandler, 2)), ((cruiser, 2), (car, 3), (carHandler, 2)) 
+((cruiser, 2), (car, 4), (carHandler, 2)), ((cruiser, 2), (car, 5), (carHandler, 2)) 
+((cruiser, 3), (car, 5), (carHandler, 2))} 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 12 ---
+16 D. Harel & H. Kugler 
+-^ setDest 
+Fig. 7. 
+The sequence of cuts in this order constitutes a run. The trace of this run is: 
+{(era;, car.setDest), {car, car Handler.departReq), {car Handler, car.depart Ack), 
+{car, cruiser.start), {cruiser, car.started), {car, cruiser.engage)} 
+This chart has only one run, but in general a chart can have many runs. Consider 
+the chart in Fig. 7. From the initial cut (0,0,0,0)6 it is possible to progress either 
+by the car sending departReq to the car handler, or by the passenger sending 
+pressButton to the destPanel. Similarly there are possible choices from other 
+cuts. Fig. 8 gives an automaton representation for all the possible runs. This 
+will be the basic idea for the construction of the synthesized state machines in 
+our synthesis algorithms later on. Each state, except for the special starting state 
+so, represents a cut and is labeled by the vector of locations. Successor cuts are 
+connected by edges labeled with the message sent. Assuming a synchronous model 
+we do not have separate edges for the sending and receiving of the same message. 
+A path starting from so that returns to SQ represents a run. 
+Here are two sample traces from these runs: 
+{(era;, car.setDest), {car, car Handler.departReq), {car Handler, car.depart Ack), 
+{passenger, destPanel .pressButton), {destPanel, passenger. flashSign)} 
+{(era;, car.setDest), {car, car Handler.departReq), {passenger, destPanel.press 
+Button), {car Handler, car.depart Ack), {destPanel, passenger. flashSign)} 
+bWe often omit the names of the objects, for simplicity, when listing cuts. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 13 ---
+Synthesizing State-Based Object Systems 17 
+Fig. 8. 
+As part of the "liveness" extensions, the LSC language enables forcing progress 
+along an instance line. Each location is given a temperature hot or cold, graphically 
+denoted by solid or dashed segments of the instance line. A run must continue down 
+solid lines, while it may continue down dashed lines. Formally, we require that in 
+the final cut in a run all locations are cold. Consider the perform approach 
+scenario appearing in Fig. 9. The dashed segments in the lower part of the car and 
+carHandler instances specify that it is possible that the message arrivAck will not 
+be sent, even in a run in which the prechart holds. This might happen in a situation 
+where the terminal is closed or when all the platforms are full. 
+When defining the languages of a chart in [8], messages that do not appear in 
+the chart are not restricted and are allowed to occur in-between the messages that 
+do appear, without violating the chart. This is an abstraction mechanism that 
+enables concentrating on the relevant messages in a scenario. In practice it may be 
+useful to restrict messages that do not appear explicitly in the chart. Each chart 
+will then have a designated set of messages that are not allowed to occur anywhere 
+except if specified explicitly in the chart; and this applies even if they do not appear 
+anywhere in the chart. A tool may support convenient selection of this message set. 
+Consider the perform departure scenario in Fig. 1. By taking its set of messages 
+to include those appearing therein, but also alert 100, arrivReq and arrivAck, we 
+restrict these three messages from occurring during the departure scenario, which 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 14 ---
+18 D. Havel & H. Kugler 
+proxSensor car carHandler 
+\ 
+\ alertlOO departAck 
+arrivReq 
+arrivAck / 
+Fig. 9. 
+makes sense since we cannot arrive to a terminal when we are just in the middle of 
+departing from one. 
+As in [8], an LSC specification is defined as: 
+LS = (M, amsg, mod), 
+where M is a set of charts, and amsg and mod are the activation messages0 and 
+the modes of the charts (existential or universal), respectively. 
+A system satisfies an LSC specification if, for every universal chart and every 
+run, whenever the activation message holds the run must satisfy the chart, and if, 
+for every existential chart, there is at least one run in which the activation message 
+holds and then the chart is satisfied. Formally, 
+Definition 1 A system S satisfies the LSC specification LS — (M, amsg, mod), 
+written S |= LS, if: 
+1. Mm e M, mod{m) = universal => V77 C7^ C Cm 
+2. Vra G M, mod(m) = existential => 3n C7^ D Cm ^ 0 
+Here C7^ is the trace set of object system S on the sequence of directed requests 
+n. We omit a detailed definition here, which can be found, e.g., in [14]. Cm is the 
+language of the chart m, containing all traces satisfying the chart. We say that an 
+LSC specification is satisfiable if there is a system that satisfies it. 
+cIn the general case we allow a prechart instead of only a single activation message. However, in 
+this paper we provide the proofs of our results for activation messages, but they can be generalized 
+rather easily to precharts too. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 15 ---
+Synthesizing State-Based Object Systems 
+setDest 
+cruiser "^ 
+start 
+started 
+engage car carHandler 
+departReq 
+departAck 
+Fig. 10. 
+4. Consistency of LSCs 
+Our goal is to automatically construct an object system that is correct with 
+respect to a given LSC specification. When working with an expressive language 
+like LSCs that enables specifying both necessary and forbidden behavior, and in 
+which a specification is a well-defined set of charts of different kinds, there might 
+very well be self contradictions, so that there might be no object system that satisfies 
+it. 
+Consider an LSC specification that contains the universal charts of Figs. 10 and 
+11. The message setDest sent from the environment to the car activates Fig. 10, 
+which requires that following the departReq message, departAck is sent from the 
+car handler to the car. This message activates Fig. 11, which requires the sending 
+of engage from the car to the cruiser before the start and started messages are 
+sent, while Fig. 10 requires the opposite ordering. A contradiction. 
+This is only a simple example of an inconsistency in an LSC specification. Incon­
+sistencies can be caused by such an "interaction" between more than two universal 
+charts, and also when a scenario described in an existential chart can never oc­
+cur because of the restrictions from the universal charts. In a complicated system 
+consisting of many charts the task of finding such inconsistencies manually by the 
+developers can be formidable, and algorithmic support for this process can help in 
+overcoming major problems in early stages of the analysis. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 16 ---
+20 D. Harel & H. Kugler 
+' departAck 
+cruiser car carHandler 
+engage 
+start 
+started 
+Fig. 11. 
+4-1. Consistency = Satisfiability 
+We now provide a global notion of the consistency of an LSC specification. 
+This is easy to do for conventional, existential MSCs, but is harder for LSCs. In 
+particular, we have to make sure that a universal chart is satisfied by all runs, from 
+all points in time. 
+We will use the following notation: A{n is the alphabet denoting messages sent 
+from the environment to objects in the system, while Aout denotes messages sent 
+between the objects in the system. 
+Definition 2 An LSC specification LS = (M, amsg, mod) is consistent if there 
+exists a nonempty regular language C\ C (Ain • A*ut)* satisfying the following prop­
+erties: 
+' 1 — I ImjGM, mod(mj)=universal rnj 
+2. Vw e C\ Va e Ain 3r e A*out, s.t w-a-reCi. 
+3. \/w G £i, w = x-y - z, ye Ain => x e L\. 
+4. Vm € M, mod(m) — existential => Cm C\C\ ^ 0. 
+The language C\ is what we require as the set of satisfying traces. Clause 1 in the 
+definition requires all universal charts to be satisfied by all the traces in C\, Clause 
+2 requires a trace to be extendible if a new message is sent in from the environment, 
+Clause 3 essentially requires traces to be completed before new messages from the 
+environment are dealt with, and Clause 4 requires- existential charts to be satisfied 
+by traces from within C\. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 17 ---
+Synthesizing State-Based Object Systems 21 
+We now want to prove the first central result of the paper, showing that the 
+consistency of an LSC specification is a necessary and sufficient condition for the 
+existence of an object system satisfying it. As to object systems, we adopt the 
+definitions of an object system appearing in [14], somewhat modified. In [14] a 
+basic computational model for object-oriented designs is presented. It defines the 
+behavior of systems composed of instances of object classes, whose behavior is given 
+by conventional state machines. In our work we assume a single instance of each 
+class during the entire evolution of the system — we do not deal with dynamic 
+creation and destruction of instances. We assume all messages are synchronous and 
+that there are no failures in the system — every message that is sent is received. 
+We have made several other modifications to [14]: 
+When considering the languages of words generated by a system, we take the 
+order of requests in the generated behavior to correspond to the order in which the 
+requests were made and not to the order in which they were accomplished (which is 
+the decision made in [14]). This ordering seems more natural when relating systems 
+to LSCs, which specify the order between messages but do not relate explicitly to 
+the accomplishment of requests. 
+In our setting, systems generate languages over the alphabet A = (O U env) x 
+((D.£), where the letter (Oj, Oi.a) corresponds to object Oj requesting a from object 
+0{. The letter (env, Oi.a) corresponds to the environment requesting a from Oi. 
+In [14], the sender is not taken to be part of the language, so the alphabet is simply 
+C.E. 
+We do not allow deadlocks. If a request is made to an object that is in a state 
+with no relevant outgoing transitions, or to an object that is in the midst of making 
+a transition and is therefore suspended, the request is received but it does not affect 
+the receiving object. 
+We allow objects in the system to have null transitions. The semantics pre­
+scribes that after entering a new state the transition is completed by taking null 
+transitions, if possible. We add a fairness requirement: a null transition that is 
+enabled an infinite number of times is taken an infinite number of times. A fair 
+cycle is a loop of states connected by null transitions, which can be taken repeat­
+edly without violating the fairness requirement. We require that the system has no 
+fair cycles, thus ensuring that the system's reactions are finite. 
+Now comes the result: 
+Theorem 1 A specification LS is satisfiable if and only if it is consistent. 
+Proof. 
+(=>) Let the object system S be such that S f= LS. We let Cs = U^A* £5, and 
+show that Cs satisfies the four requirements of C\ in the definition of a consistent 
+specification, Def. 2. 
+(1) From the definition of an object system it follows that Cs is regular and 
+nonempty. The system S satisfies the specification LS. Hence, if we set C — 
+rimjeM^modim^universa^rn^ Clause 1 of the definition of satisfaction (Def. 1) 
+implies V77 Cg C C. Thus, Cs = U^C7^ C C. 
+(2 and 3) Let w e Cs> There exists a sequence of directed requests sent by 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 18 ---
+22 D. Harel & H. Kugler 
+the environment, rj = O0.a° • O1 .a1 • • • On.an, such that w is the behavior of the 
+system S while reacting to the sequence of requests rj. Now, w belongs to the trace 
+set of S on 77, so that w = Wo • w\ • • -wn, Wi G A*, first(wi) — (env,Ol.a1), and 
+there exists a sequence of stable configurations Co, ci,..., cn+i such that Co is initial 
+and for all 0 < i < n, leads(ci,Wi,Ci+\). The Zeads predicate is defined in [14]. It 
+describes the reaction of the system to a message sent from the environment to the 
+system that causes a transition of the system from the stable configuration ci to 
+a new stable configuration c*+i, passing through a set of unstable configurations. 
+The trace describing this behavior is W{. 
+As to Clause 2 in Def. 2, the system reaches the stable configuration cn+1 at the 
+end of the reactions to 77. For any object Oi and request cr, there is a reaction of 
+the system to the directed request 0\.a from the stable configuration cn+i. If we 
+denote by iun+i the word that captures such a reaction, wn+\ is in the trace set of 
+S on Oi.a from cn+i, from which we obtain w • wn+i G £5. 
+For Clause 3, assuming that w = x-y-z,y G Ain, there exists % with x = w$ • • • Wi 
+and therefore x e £5. 
+(4) The system 5 satisfies the specification LS. Hence, from Clause 2 of Def. 1 
+we have 
+Vm G M, mod(m) — existential => 3rj £vs H Cm ^ 0 
+Since Cvs C £s = U^JC^, we obtain 
+Vm G M, mod(m) — existential => £5 Pi £m ^ 0 
+(4=) Let L5 be consistent. We have to show that there exists an object system 5 
+satisfying LS. To prove this we define the notion of a global system automaton, 
+or a GSA. We will show that there exists a GSA satisfying the specification and 
+that it can be used to construct an object system satisfying LS. 
+A GSA A describing a system with objects O — {Oi,..., On} and message set 
+E = Y>in U T,out is a tuple A = {Q,qo,8), where Q is a finite set of states, <?o 
+is the initial state, and ^CQx^xQisa transition relation. Here B is a set 
+of labels, each one of the form a/r, where a G A{n — (env) x (0.£^n) and r G 
+Kut = ((°) x (O.Ylout))*. Let 77 = a0 • a1 • • • where a* G Ain. The trace set of 
+A on n is the language £^ C (A* UAW), such that a word w = wo • w\ • u>2 • • • 
+is in £^ iff Wi = a1 - xl, xz = xl° •••xZfci-1 G A*out and there exists a sequence 
+of states g01,^11, ...,<7lfci,g2l,...,g2fc2,... with ^0l = ^o, and such that for all i,j 
+(qij,/xi-1*,qi*+1) G 5 and {qiki,a*/xio,q**1*) G 5. 
+The satisfaction relation between a GSA and an LSC specification is defined as 
+for object systems: the GSA A satisfies LS — (M,amsg,mod), written A (= LS, if 
+Vm G M, mod(m) = universal => V77 £^ C £m, and Vm G M, 
+mod{m) — existential => 3n C\ D £m ^ 0. 
+Since L5 is consistent, there exists a language £1 as in Def. 2. Since £1 is 
+regular, there exists a DFA A — (A, 5, So> />, -F) accepting it. We may assume that 
+A is minimal, so all states in 5 are reachable and each state leads to some accepting 
+state. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 19 ---
+Synthesizing State-Based Object Systems 23 
+From Clause 2 of Def. 2, for every accepting state s of A and for every a G Ain 
+there exists an outgoing transition with label a leading to a state that is connected 
+to an accepting state by a path labeled r G A*out. Formally, 
+VseFVae Ain p(s, a) = s' => 3r G A*out s.t. p(s', r) G F 
+From Clause 3 of Def. 2, no nonaccepting states of A have any outgoing tran­
+sitions with label a G A{n. This is true since if there were such a state s £ F 
+reachable from the initial state by x, we would have p(so,x) = s and p(s,a) = s', 
+and from sf we can reach an accepting state p(sf, z) G F. Then w = x • a • z would 
+violate Clause 3. 
+We have shown that A has transitions labeled by A{n only for accepting states, 
+and for an accepting state there is such a transition for every letter from A{n. We 
+now convert A into an NFA A' with the same properties, but, in addition, accepting 
+states do not have outgoing transitions labeled Aout. This can be done by adding, 
+for each state s G F, an additional state s' £ F. All incoming transitions into s 
+are duplicated so that they also enter s' and all outgoing transitions from s labeled 
+Aout are transferred to s'. A! accepts the same language as A since it can use 
+nondeterminism to decide if to take a transition to s ox s'. 
+We now transform the automaton A! into a GSA B by changing all transitions 
+with a label from Aout into null transitions with that letter as an action. All 
+transitions with a label from Ain are left unchanged. 
+We have to show that B satisfies the specification LS. From the construction of 
+B, we have 
+£B = UrjCg = C\ 
+From Clause 1 of Def. 2, we have 
+mj£M,mod(mj)=universal 
+Hence, 
+Vm G M,mod(m) — universal => C\ C £m, 
+yielding 
+Vm G M, mod{rn) = universal => V77 C7^ C^C £m 
+This proves Clause 1 of Def. 1. 
+Now, from Clause 4 of Def. 2, we have 
+Vm G M, mod(m) = existential => Cm Pi C\ ^ 0 
+But since C\ = U^/^g, this becomes 
+Vm G M, mod(m) — existential => 3ry CVB D £m 7^ 0, 
+thus proving Clause 2 of Def. 1. 
+• 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 20 ---
+24 D. Harel & H. Kugler 
+As can be seen in the proof, the basic concept used is the notion of a global 
+system automaton, or a GSA. A GSA describes the behavior of the entire system 
+— the message communication between the objects in the system in response to 
+messages received from the environment. To recap the definition appearing in the 
+proof, a GSA is a finite state automaton with input alphabet consisting of messages 
+sent from the environment to the system (Ain), and output alphabet consisting 
+of messages communicated between the objects in the system (Aout)- The GSA 
+may have null transitions, transitions that can be taken spontaneously without the 
+triggering of a message. We add a fairness requirement: a null transition that is 
+enabled an infinite number of times must be taken an infinite number of times. 
+A fair cycle is a loop of states connected by null transitions, which can be taken 
+repeatedly without violating the fairness requirement. We require that the system 
+has no fair cycles, thus ensuring that the system's reactions are finite. 
+In the Consistency => Satisfiability direction of the proof of Theorem 1 we show 
+that it is possible to construct a GSA satisfying the specification. This implies the 
+existence of an object system (a separate automaton for each object) satisfying the 
+specification. Later on, when discussing synthesis, we will show methods for the 
+distribution of the GSA between the objects to obtain a satisfying object system. In 
+section 5.5 we show that the fairness requirement is not essential for our construction 
+— it is possible to synthesize a satisfying object system that does not use null 
+transition and the fairness requirement, although it does not generate the most 
+general language. 
+4-2. Deciding consistency 
+It follows from Theorem 1 that to prove the existence of an object system sat­
+isfying an LSC specification LS, it suffices to prove that LS is consistent. In this 
+section we present an algorithm for deciding consistency. 
+A basic construction used in the algorithm is that of a deterministic finite au­
+tomaton accepting the language of a universal chart. Such an automaton for the 
+chart of Fig. 7 is shown in Fig. 12. The initial state so is the only accepting state. 
+The activation message setDest causes a transition from state so? and the automa­
+ton will return to so only if the messages departReq, departAck, pressButton 
+and flashSign occur as specified in the chart. Notice that the different orderings 
+of these messages that are allowed by the chart are represented in the automaton 
+by different paths. Each such message causes a transition to a state representing a 
+successor cut. The self transitions of the nonaccepting states allow only messages 
+that are not restricted by the chart. The initial state so has self transitions for 
+message comingClose sent from the environment and for all other messages be­
+tween objects in the system. To avoid cluttering the figure we have not written the 
+messages on the self transitions. 
+We use the notations and definitions of the formal LSC semantics appearing in 
+the appendix. 
+For a universal chart m we define the DFA A = (A, 5, so, P, F), as follows: 
+• A — Ain U Aout is the alphabet. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 21 ---
+Synthesizing State-Based Object Systems 25 
+comingClose 
+flashSign departReq y^ departAck 
+Fig. 12. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 22 ---
+26 D. Harel & H. Kugler 
+• the set of states S consists of the cuts through m, with an additional state SQ. 
+Thus, 
+S = {c | c G cuts(m)} U so-
+• assuming the natural mapping / between (dom(m) U env) x XI x dom(m) to 
+the alphabet ^4, the transition function p is defined as follows: 
+- p(so, a) = Co if a = f(amsg(m)) and Co is the initial cut; 
+- p(c, a) = c if a is not restricted by m; 
+- p(c, a) = c' if succm(c, < j, lj >, c") and succm(c", < /, Zj/ >, c') 
+and f(msg(m)(< j, lj >)) = a and < j, lj >, < f, lj' > are send and 
+receive events of the same message and not all locations in d are cold; 
+- p(c, a) = so if sizccm(c, < j, lj >,d) and f(msg(m)(< j, lj >)) = a 
+and all locations in d are cold; 
+• the set of accepting states is F = {so}. 
+Claim: C(A) = Cm. 
+Proof. 
+C(A) C Cm: Assume that w = wi-itf2 • • • wn G £(A), and that Wi = f(amsg(m)). 
+We have to show that the chart m is satisfied, i.e., that 3z'i,Z2, ...,«& and 3v = 
+vi • V2 • • • Vfc € £^£c, such that i < ii < i<i < ... < ifc and Vj, 1 < j < fc, u^- = Vj and 
+Vj', i<j'< ik, f & {n, -..,**:}, ^f £ f(Messages(m)). 
+Let g0,^1, ...,gn be the sequence of states that *4. goes through while reading 
+w. Clearly, g2_1 = SQ> otherwise A will reject when reading wi since the only 
+transition with amsg(m) is from so- Let z^ be the smallest index larger than i such 
+that qik = so- (Such an index exists, since qn = so follows from the acceptance 
+condition of A and the fact that w G C{A).) Now let ii, 22,..., ifc be the ordered list 
+of indices in the sequence ql,...,qtk, for which q^ ^ %-i- From the definition of p, 
+the cuts corresponding to the states ql,ql1, ...,qtk are successive, qi corresponds to 
+the initial cut Co, and qlk implies by the definition of p a cut in which all locations 
+are cold. Hence, the series of cuts is a run that corresponds to chart m, and which 
+generates the trace v = v\ • V2 • • • Vk G £j£c- For a^ indices j' with i < jf < ik 
+and jf 0 {*i,...,*fc}? we know that qji = qj>-i. Hence, by the definition of p, 
+Wjf £ f(Messages(m)). 
+£m Q C(A): This direction is similar, but we have to make use of the assumption 
+that the activation message is not sent before the end of the activity that follows 
+the previous time it was sent. 
+• 
+An automaton accepting exactly the runs that satisfy all the universal charts 
+can be constructed by intersecting these separate automata. This intersection au­
+tomaton will be used in the algorithm for deciding consistency. The idea is to start 
+with this automaton, which represents the "largest" regular language satisfying all 
+the universal charts, and to systematically narrow it down in order to avoid states 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 23 ---
+Synthesizing State-Based Object Systems 27 
+from which the system will be forced by the environment to violate the specification. 
+An the end we must check that there are still representative runs satisfying each of 
+the existential charts. 
+Here, now is our algorithm for checking consistency: 
+Algorithm 1 
+1. Find the minimal DFA A = (A, 5, so, P, F) that accepts the language 
+£= n £mj 
+mj £ M, mod(mj )=universal 
+(The existence of such an automaton follows from the construction above.) 
+2. Define the sets Badi C S, for i — 0,1,..., as follows: 
+Bad0 = {s G S | 3a G Ain, s.L Vx G A*out p(s, a-x) & F}, 
+Badi = {s G S | 3a G Ain, s.t. Vx G A*out p(s, a • x) 0 F - Badi-i}. 
+The series Badi is monotonically increasing, with Badi £ Badi+i, and since 
+S is finite it converges. Let us denote the limit set by BadmaX' 
+3. From A define a new automaton A! = (A,S,so,p,Ff), where the set of ac­
+cepting states has been reduced to Ff = F — Badmax 
+4. Further reduce A, by removing all transitions that lead from states in S — F', 
+and which are labeled with elements of Ain. This yields the new automaton 
+A!'. 
+5. Check whether C(A") ^ 0 and whether, in addition, Cmi n£(A") ^ 0 for each 
+rrii G M with mod{mi) = existential. If both are true output YES; otherwise 
+output NO. 
+Theorem 2 Algorithm 1 is correct: given a specification LS, it terminates and 
+outputs YES iff LS is consistent. 
+Proof. 
+(=>) Assume the algorithm outputs YES. We will show that £(A") satisfies the 
+four properties of the language C\ in the consistency definition, Def. 2. 
+(1) We constructed A to be the intersection of runs satisfying the universal 
+charts, so C(A) = nmi€M,mod(mi)=timt,er.aZ£mi. When moving from A to A" we 
+make accepting states nonaccepting and remove transitions. This cannot add words 
+to the language only remove words. Hence, C(A,f) C C(A). 
+(2) Assume w e C(A") and let s — p(so,w). Since w is accepted by A"', which 
+is deterministic, it must be that s G F'. Therefore, s £ Badmax. In particular, 
+s £ Bado; so Va G Ain 3x G A*ut, s.t. p(s,a • x) G F — Badmax. Disconnecting 
+transitions labeled from Ain does not change the existence of x, since x G A*out. 
+This shows that Mw G C(A") Va G Ain 3x G A*ut, s.t. w • a • x G £(A") 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 24 ---
+28 D. Harel & H. Kugler 
+(3) Assume w G £(A"), w = x • y • z and y G Ain. Let s = /o(so> #)• Then there 
+is a transition labeled i/ from state s, since otherwise iy will be rejected. From the 
+construction of An we disconnected all transitions with labels in A{n from the states 
+in S — Ff, so it must be that s G F'. Therefore, x is accepted by C(A!'). 
+(4) This property follows directly, since the algorithm outputs YES if for every 
+rrii G M such that mod(rrii) = existential we have Cmi fi C(A") ^ 0. 
+(<=) We will show that for every C\ satisfying the four clauses of Def. 2, C\ C 
+C{An). Then, the fact that for every rrii G M such that mod(mi) — existential we 
+have £mi H A ^ 0, will imply that also £mi n C(A") ^ 0. 
+Let £i be any language satisfying the clauses of Def. 2. From Clause 1, C\ C 
+£(*4). We will first show that for every w with p(so, w) G Badmax, we have w ^ C\. 
+Then £i C £(*/4'), since *A' was created from A by turning states in Badmax into 
+nonaccepting states. 
+Let s — p(so,w) and 5 G Badmax, and assume, for the sake of obtaining a 
+contradiction, that w e C\. The fact that s G Badmax for Badmax = Bad{ implies 
+that 3a G Ain V# G A*out p(s,a-x) & F — Badi-i. We assumed w G A; hence, from 
+Clause 2 we know that 3r G A*ut s.t. w-a-r G £i, form which we get p(s,a-r) G F, 
+since £i C £(,A). Now, from p(s,a • r) G F and p(s,a • r) ^ F — Badi-i we get 
+p(s,a-r) G Badi-i. Forty1 = w-a-r, w1 G A, ^(sojW1) € Bad{-\. In the same way, 
+we can find w2,w3, ...,iy% so that for every j, wj G A, p(so,wi) G Badi-j. For w* 
+we get that iy^ G £i and p(s0,Wi) G £?ado. Let s' = p(so,wz), s' G £ado therefore, 
+3a G AinVx G A*ut p(s',a-x) £ F but iu* G A, so that 3r G A*out s.t. iy* -a-r G C±. 
+Since £i C £(*4), we obtain p(s',a • r) G F, which is a contradiction. 
+So, we have showed that L\ C £(Af), and we still have to show that L\ C £(^4;/). 
+Let u> G A and assume, again for contradiction, that w $ £(A"). Since w G C\ 
+and £i C C(Af), we have iy G £(*4"), so that p(so,w) G F'. Now, it must be the 
+case that Af, when reading iy, uses one of the transitions that were removed when 
+we went from A' to A", since otherwise A" would accept w. Let w = x -y • z, with 
+y G A;n and s = p(so, x), and assume that the transition p(s, a) was removed in A!'. 
+From Clause 3 of Def. 2 x-y - z e £\ and y G A{n implies x G £i, so x G £(*A') and 
+5 = p(so,£) G F', contradicting the fact that the transition p(s,a) was removed, 
+since transitions were removed only from states in S — F'. 
+• 
+In case the algorithm answers YES, the specification is consistent and it is 
+possible to proceed to automatically synthesize the system, as we show in the next 
+section. However, for the cases where the algorithm answers NO, it would be 
+very helpful to provide the developer with information about the source of the 
+inconsistency. Step 5 of our algorithm provides the basis for achieving this goal. 
+Here is how. 
+The answer is NO if £(A") — 0 or if there is an existential chart ra* such that 
+Crni fl C(A") = 0. In the second case, this existential chart is the information we 
+need. The first case is more delicate: there is a sequence of messages sent from the 
+environment to the system (possibly depending on the reactions of the system) that 
+eventually causes the system to violate the specification. Unlike verification against 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 25 ---
+Synthesizing State-Based Object Systems 29 
+a specification, where we are given a specific program or system and can display 
+a specific run of it as a counter-example, here we want to synthesize the object 
+system so we do not yet have any concrete runs. A possible solution is to let the 
+supporting tool play the environment and the user play the system, with the aim of 
+locating the inconsistency. The tool can display the charts graphically and highlight 
+the messages sent and the progress made in the different charts. After each message 
+sent by the environment (determined by the tool using the information obtained 
+in the consistency algorithm), the user decides which messages are sent between 
+the objects in the system. The tool can suggest a possible reaction of the system, 
+and allow the user to modify it or choose a different one. Eventually, a universal 
+chart will be violated, and the chart and the exact location of this violation can be 
+displayed. 
+5. Synthesis of FSMs from LSCs 
+We now show how to automatically synthesize a satisfying object system from 
+a given consistent specification. We first use the algorithm for deciding consistency 
+(Algorithm 1), relying on the equivalence of consistency and satisfiability (Theo­
+rem 1) to derive a global system automaton, a GSA, satisfying the specification. 
+Synthesis then proceeds by distributing this automaton between the objects, creat­
+ing a desired object system. 
+The synthesis is demonstrated on our example, taking the charts in Figs. 1-5 
+to be the required LSC specification. For the universal charts, Figs. 1, 2 and 5, we 
+assume that the sets of restricted messages (those not appearing in the charts) are 
+{ alert Stop, alert 100, arrivReq, arrivAck, disengage, stop }, { depart Req, 
+start, started, engage } and { departAck}, respectively. 
+Figs. 13, 14 and 15 show the automata for the perform departure, perform 
+approach and coming close charts, respectively. Notice that in Fig. 14 there are 
+two accepting states so and si, since we have a prechart with messages depart Ack 
+and alertlOO that causes activation of the body of the chart. To avoid cluttering the 
+figures we have not written the messages on the self transitions. For nonaccepting 
+states these messages are the non-restricted messages between objects in the system, 
+while for accepting states we take all messages that do not cause a transition from 
+the state, including messages sent by the environment. 
+The intersection of the three automata of Figs. 13, 14 and 15 is shown in Fig. 
+16. It accepts all the runs that satisfy all three universal charts of our system. 
+The global system automaton (GSA) derived from this intersection automaton 
+is shown in Fig. 17. The two accepting states have as outgoing transitions only 
+messages from the environment. This has been achieved using the techniques de­
+scribed in the proof of Theorem 1. Notice also the existence of runs satisfying each 
+of the existential charts. We have used the path extraction methods of Section 5.5 
+to retain these runs. 
+After constructing the GSA, the synthesis proceeds by distributing the automa­
+ton between the objects, creating a desired object system. To illustrate the distribu­
+tion we focus on a subautomaton of the GSA consisting of the states qo,qi,Q2,q3, #4 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 26 ---
+30 D. Harel & H. Kugler 
+comingClose 
+engage 
+Fig. 13. Automaton for perform departure. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 27 ---
+Synthesizing State-Based Object Systems 31 
+departAck 
+alertlOO 
+arrivReq arrivAck 
+Fig. 14. Automaton for perform approach. 
+alertlOO 
+Fig. 15. Automaton for coming close. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 28 ---
+32 D. Harel & H. Kugler 
+arrivAck comingClose 
+alertlOO 
+Fig. 17. The global system automaton. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 29 ---
+Synthesizing State-Based Object Systems 33 
+arrivAck comingClose 
+alertlOO 
+alertlOO 
+comingClose 
+Fig. 17. The global system automaton. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 30 ---
+34 D. Harel & H. Kugler 
+(carHandler, car.arrivAck) 
+(car, carHandler.departReq) 
+(car, cruiser.disengai (carHandler, car.departAck) 
+Fig. 18. Subautomaton of the GSA. 
+and #5, as appearing in Fig. 17. This subautomaton is shown in Fig. 18. In this 
+figure we provide full information about the message, the sender and receiver, since 
+this information is important for the distribution process. 
+In general, let A = (Q,qo,5) be a GSA describing a system with objects O = 
+{Oi,..., On} and messages E = E^n U Eout. Assume that A satisfies the LSC speci­
+fication LS. Our constructions employ new messages taken from a set Eco/, where 
+Yicol D E = 0. They will be used by the objects for collaboration in order to satisfy 
+the specification, and are not restricted by the charts in LS. 
+There are different ways to distribute the global system automaton between 
+the objects. In the next three subsections we discuss three main approaches — 
+controller object, full duplication, and partial duplication — and illustrate 
+them on the GSA subautomaton of Fig. 18. The first approach is trivial and is 
+shown essentially just to complete the proof of the existence of an object system 
+satisfying a consistent specification. The second method is an intermediate stage 
+towards the third approach, which is more realistic. 
+5.1. Controller object 
+In this approach we add to the set of objects in the system O an additional 
+object Ocon which acts as the controller of the system, sending commands to all the 
+other objects. These will have simple automata to enable them to carry out the 
+commands. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 31 ---
+Synthesizing State-Based Object Systems 35 
+Let |£coj| = \Ain\ + |^40ut|5 and let / be a one-to-one function 
+/ • A{n U Aout —> ZJCO/ 
+We define the state machine of the controller object Ocon to be (Q, qo, 5con), and 
+the state machines of object Oi G O to be ({^OiJj^Oijfoi)-
+The states and the initial state of Ocon are identical to those of the GSA. The 
+transition relation Scon and the transition relations 5oi are defined as follows: 
+If (g, a, q') G 5 where a G -Ain, a = (env, Oi.ai) then 
+(q,f(a),q')€5con and (qoi,<Ti/Ocon.f(a),q0i) e S0i-
+If (g, /a, </') G 5 where a G -Aout, Q> — (Oi,Oj.(Tj) then 
+(q,/Oi.f(a),q') G 5con and (qOiJ^/Oj.a^qo,) G <J0<. 
+This construction is illustrated in Fig. 19, which shows the object system ob­
+tained by the synthesis from the GSA of Fig. 18. It includes the state machine of 
+the controller object 0con, and the transitions of the single-state state machines of 
+the objects carHandler, car and proxSensor. 
+The size of the state machine of the controller object Ocon is equal to that of 
+the GSA, while all other objects have state machines with one state. Section 5.4 
+discusses the total complexity of the construction. 
+5.2. Full duplication 
+In this construction there is no controller object. Instead, each object will have 
+the state structure of the GSA, and will thus "know" what state the GSA would 
+have been in. 
+Recalling that A — (Q,qo,S) is the GSA, let k be the maximum outdegree of 
+the states in Q. A labeling of the transitions of A is a one-to-one function tn: 
+tn: 5 -> {l,...,fe} 
+Let |Eco/| = k and let / be a one-to-one function 
+/:{l,...,fc}->£co/ 
+The state machine for object Oi in O is defined to be (Q, qo, Sot)- If (q, &5 qf) € $, 
+where a G Ain, a = (env, Oi.o~i) and a' = f(tn(q, a, qf)) G £co/, then (g, <Ji/Oi+\.a') G 
+50i and for every j ^ i, (q,af/Oj+1.af,qf) G 50j. 
+If (q, /a, q') G 5, where a G AouU a = (Oi, Oj.aj) and af = f(tn(q, /a, q')) G HCoZ, 
+then (q, /Oj.cjj;Oi+i.a',q') G Sot and for every j ^ i, (q,a!/Oj+\.a!,q') G 5or 
+This construction is illustrated in Fig. 20 on the sub-GSA of Fig. 18. The 
+maximal outdegree of the states of the GSA in this example is 2, and the set of 
+collaboration messages is £co/ = {1,2}. Again, complexity is discussed in Section 
+5.4. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 32 ---
+36 D. Harel & H. Kugler 
+/carHandler->send_ arrivAck_to_car 
+1 
+proxSensor->send_ alertStop^to_car \car->send_departReq_to_carHandler 
+S 
+car->send/disengage_to_cruiser carHandler->send_departAck_to_car 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 33 ---
+Synthesizing State-Based Object Systems 37 
+carHandler: 
+/car->arrivAck; car->l 
+/car->departAck;car-> 1 
+l/proxSensor->l l/proxSensor->l 
+2/carHandler->departReq;proxSensor->2 
+l/proxSensor->l 
+proxSensor: 
+Fig. 20. Full duplication. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 34 ---
+38 D. Harel & H. Kugler 
+5.3. Partial duplication 
+The idea here is to distribute the GSA as in the full duplication construction, 
+but to merge states that carry information that is not relevant to this object in 
+question. In some cases this can reduce the total size, although the worst case 
+complexity remains the same. 
+The state machine of object Oi is defined to be (Qoi U qidie,qo,$Oi)i where 
+Qoi Q Q is defined 
+Q0i QZQ by 
+3q' eQ3ae Aout s.t. 
+a = (Oi, Oj.aj), (q, /a, qf) G S or 
+3q' eQ 3a e Ain s.t. 
+a = (era;, O^a*), (q', a,q) G 5 
+Thus, in object Oi we keep the states that the GSA enters after receiving a message 
+from the environment, and the states from which Oi sends messages. 
+Let |£coj| = |Q|, and let / be a one-to-one function 
+/ : Q -> Xcol 
+The transition relation So* f°r object Oi is defined as follows: 
+If {q,a,q') e 5, a = (env,Oi.<Ti) then (q,cri/Oi+i.f(q'),q') G 50i. 
+If (q, /a, a') G 5, a — (0^,0^.(7^), then either q' G Qo6 and then 
+(qJOi.ai;Oj+1.f(q,),qf) G 60j, or q' £ Q0j and then 
+(q, /Oi.<Ti]Oj+i.f(q'),qidie) € *Or 
+If 9 € Qo«, qf G Qo, then {qj(q'),qf) e S0i- U q e Q0i, q' i Qo, then 
+(q,f(q'),qidie) e 50i> 
+For every g G Qo«, (qidie, f(q),q) € $Oi-
+This construction is illustrated in Fig. 21. The states of the GSA of Fig. 18 
+that were eliminated are qi,q2,q4 and q$ for car Handler, qo and q% for car and 
+qo 5 92 5 93 and </4 for proxSensor. 
+5.^. Complexity issues 
+In the previous sections we showed how to distribute the satisfying GSA between 
+the objects, to create an object system satisfying the LSC specification LS. We now 
+discuss the size of the resulting system, relative to that of LS. 
+We take the size of an LSC chart m to be \m\ = \dom(m)\ — |# of locations in ra|, 
+and the size of an LSC specification LS — (M, amsg, mod) to be \LS\ = YlmeM lml-
+The size of the GSA A = (Q,qo,5) is simply the number of states |Q|. We ignore 
+the size of the transition function 5 which is polynomial in the number of states \Q\. 
+Similarly, the size of an object is the number of states in its state machine. 
+Let LS be a consistent specification, where the universal charts in M are charts 
+{mi,777,2, ...,mt}. Let A be the satisfying GSA derived using the algorithm for 
+deciding consistency (Algorithm 1). A was obtained by intersecting the automata 
+A\,A2,...,At that accept the runs of charts mi,m2,...,mt, respectively, and then 
+performing additional transformations that do not change the number of states in A. 
+The states of automaton Ai correspond to the cuts through chart m^, as illustrated, 
+for example, in Fig. 9. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 35 ---
+Synthesizing State-Based Object Systems 39 
+carHandler: 
+/car->arrivAck; car->l 
+/car->departAck;car->5 
+/carHandler->departReq;proxSensor->3 1/proxS 
+/proxSensor->2 
+/cruiser->disengage; praxSensor->4 
+proxSensor: 
+I j 2/car->alertStop; carHandler->2 
+Fig. 21. Partial Duplication. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 36 ---
+40 D. Harel & H. Kugler 
+Proposition 1 The number of cuts through a chart m with n instances is bounded 
+by \m\n. 
+Proof. A cut through a chart is specified by the locations of all the instances 
+appearing in it. Since there is only one location for each instance in a cut and 
+the number of locations of instance i is \dom(m, i)\, the number of cuts is at most 
+Tlieinst(m) \dom(m,i)\. (Actually, the number of cuts will often be smaller because 
+of the order induced by message sending that restricts some of the possibilities.) • 
+This is consistent with the estimate given in [4] for their analysis of the com­
+plexity of model checking for MSCs. We now estimate the size of the GSA. 
+Proposition 2 The size of the GSA automaton A constructed in the proof of The­
+orem 1 satisfies 
+t 
+\A\ < ni^r ^ \LS\nt> i=l 
+where ni is the number of instances appearing in chart rrii, n is the total number of 
+instances appearing in LS, and t is the number of universal charts in LS. 
+Proof. Since intersection is multiplicative in size, we have 
+i^i=ni^i<n n I*™K>J)I 
+*=1 i=l j€inst(rrii) 
+The result then follows immediately from Proposition 1. (Notice that in construc­
+tion of an automaton for a universal chart the constructed automaton was deter­
+ministic, hence the intersection automaton is deterministic too, and there is no need 
+for a determinization procedure that could have added an exponential factor.) • 
+The size of the GSA A is thus polynomial in the size of the specification LS, 
+if we are willing to treat the number of objects in the system and the number of 
+charts in the specification as constants. In some cases a more realistic assumption 
+would be to fix one of these two, in which case the synthesized automaton would be 
+exponential in the remaining one. The time complexity of the synthesis algorithm 
+is polynomial in the size of A. 
+The size of the synthesized object system is determined by the size of the GSA 
+A. In the controller object approach (Section 5.1), the controller object is of size 
+\A\ and each of the other objects is of constant size (one state). In the full dupli­
+cation approach (Section 5.2), each of the objects is of size \A\, while in the partial 
+duplication approach (Section 5.3), the size of each of the objects can be smaller 
+than \A\, but the total size of the system is at least \A\. 
+5.5. Synthesis without fairness assumptions 
+We have shown that for a consistent specification we can find a GSA and then 
+construct an object system that satisfies the specification. This construction used 
+null transitions and a fairness assumption related to them, i.e., that a null transition 
+that is enabled an infinite number of times is taken an infinite number of times. We 
+now show that consistent specifications also have satisfying object systems with no 
+null transitions. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 37 ---
+Synthesizing State-Based Object Systems 41 
+Let A = (Q,qo,S) be the GSA satisfying the specification LS, derived using 
+the algorithm for deciding consistency. We partition Q into two sets: Qstable, the 
+states in Q that do not have outgoing null transitions, and Qtransient, the states of 
+which all the outgoing transitions are null transitions. Such a partition is possible, 
+as implied by the proof of Theorem 1. Now, A may have a loop of null transitions 
+consisting of states in Qtransient • Such a loop represents an infinite number of paths 
+and it will not be possible to maintain all of them in a GSA without null transitions. 
+To overcome this, we create a new GSA A! = (Q',qo,5f), with Q' C Q and 5' C J, 
+as follows. 
+Let m G M be an existential chart, mod(m) — existential. A satisfies the 
+specification LS, so there exists a word w, with w e £A^ £>m- Let q°, q1,... be the 
+sequence of states that A goes through when generating u>, and let S0^1... be the 
+transitions taken. Since w G £m) ^t ii,..., ifc, such that w^ • Wi2 • • • Wik G £^c« Let 
+j be the minimal index such that j > ik and qi G Qstable- The new GSA A' will 
+retain all the states that appear in the sequence g°,...,gJ and all the transitions 
+that were used in <J°,..., <P. This is done for every existential chart m € M. 
+In addition, for every ^, qj G Q and for every a G Ain, if there exists a sequence 
+of states qi,q1,.--,ql,qj such that (qi,a,ql) G S and for every 1 < k < I there is a 
+null transition Sk G 5 between qk and </fc+1, then for one such sequence we keep in 
+A! the states ql,...,qk and the transitions S1,..., Jfc. 
+All other states and transition of A are eliminated in going from A to A'. 
+Proposition 3 The GSA A! satisfies the specification LS. 
+Proof. We know that A satisfies LS. Hence, Vra G M, mod(m) = universal => 
+Vr/ C\ C £m. When moving from yl to A! we only removed states and transitions, 
+so C7^, C £^, and therefore Vra G M, raod(ra) = universal => V77 £^, C £m. Notice 
+that the construction preserves representative paths, so that from every stable state 
+the new automaton can react to every message from the environment. 
+We show that Vra G M, raod(ra) = existential => 3n C7^, fl Cm ^ 0. Let 
+ra be an existential chart, and w G £A H £m, as in the construction. Let n = 
+770,771,... be the sequence of directed requests sent to the GSA, that generated w. 
+Let 7/ = 77°,77i, ...,rjj be a prefix of 77 which A responded to by tracing the state 
+path g0,^1, ...,^ and using transitions 81, ...,5J. Denote by wf the word generated 
+by this trace. Then wf G C\, and K/ G £m. • 
+6. Synthesizing statecharts 
+We now outline an approach for a synthesis algorithm that uses the main suc­
+cinctness feature of statecharts [11] (see also [13]), namely, concurrency, via orthog­
+onal states. 
+Consider a consistent specification LS = (M,amsg,mod), where the universal 
+charts in M are Muniversai — {rai,ra2, ...,rat}. In the synthesized object system 
+each object Oi will have a top-level AND state with t orthogonal component OR 
+states, si,$2,..., St- Each Sj has substates corresponding to the locations of object 
+Oi in chart raj. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 38 ---
+42 D. Harel & H. Kugler 
+Assume that in a scenario described by one of the charts in Muniversai, object Oi 
+has to send message a to object Oj. If object Oi is in a state describing a location 
+just before this sending, Oi will check whether Oj is in a state corresponding to 
+the right location, and is ready to receive. (This can be done using one of the 
+mechanisms of statecharts for sensing another object's state.) The message a can 
+then be sent and the transition taken. All the other component states of Oi and Oj 
+will synchronously take the corresponding transitions if necessary. 
+This was a description of the local check that an object has to perform before 
+sending a message and advancing to the next location for one chart. Actually, the 
+story is more complicated, since when advancing in one chart we must check that 
+this does not contradict anything in any of the other charts. Even more significantly, 
+we also must check that taking the transition will not get the system into a situation 
+in which it will not be able to satisfy one of the universal charts. 
+To deal with these issues the synthesis algorithm will have to figure out which 
+state configurations should be avoided. Specifically, let Ci be a cut through chart m*. 
+We say that C = (c\, C2,..., Ct) is a supercut if for every i, Ci is a cut through m^. We 
+say that supercut C — (c'l5 c'2,..., c't) is a successor of supercut C = (ci, C2,..., ct), 
+if there exists i with sucCm^Ci, (j,/j)jci) anc^ sucn tnat f°r all A: ^ i the cut c'k is 
+consistent with communicating the message msg(j,lj) while in cut c^. 
+Now, for i = 0,1,..., define the sets 
+Badi C {all supercuts s.t. at least one of the cuts has at least one hot location} 
+as follows: 
+Bado — [C | C has no successors } 
+Badi = {C\C G Badi-i or all successors of C are in Badi-i} 
+The series Badi is monotonically increasing under set inclusion, so that Badi Q 
+Badi+i. Since the set of all supercuts is finite the series converges. Denote its limit 
+by Badmax. The point now is that before taking a transition the synthesized object 
+system will have to check that it does not lead to a supercut in Badmax. 
+The construction is illustrated in Figs. 22, 23, 24 and 25 which show the state-
+charts for car, carHandler, proxSensor and cruiser, respectively, obtained from the 
+railcar system specification. Notice that an object that does not actively participate 
+in some universal chart, does not need a component in its statechart for this sce­
+nario, for example proxSensor does not have a Perform Departure component. 
+Notice the use of the in predicate in the statechart of the proxSensor for sensing if 
+the car is in the stop state. 
+The number of states in this kind of synthesized statechart-based system is on 
+the order of the total number of locations in the charts of the specification. Now, 
+although in the GSA solution the number of states was exponential in the number 
+of universal charts and in the number of objects in the system, which seems to 
+contrast sharply with the situation here, the comparison is misleading; the guards 
+of the transitions here may involve lengthy conditions on the states of the system. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 39 ---
+Synthesizing State-Based Object Systems 43 
+Perform_Departure 
+V-Perform_Approach 
+) 
+I setDest/cruiser 
+f->PD active 
+/carHandler-> y departReq 
+alertStop/ 
+cruiser->disengage 
+cruiser->stop 
+Fig. 22. Statechart of car. 
+carHandler 
+Perform_Departure Perform_Approach 
+Fig. 23. Statechart of carHandler. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 40 ---
+44 D. Harel & H. Kugler 
+proxSensor 
+Coming_Close Perform_Approach 
+comingClose .active PA_over 
+[car->in(stop)] 
+Fig. 24. Statechart of proxSensor. 
+^ F 
+c 
+F cruiser 1 
+Perform Departure 
+v^ >D active/ 
+arHandler-> 
+>D active ' \ 
+cp \ start 
+' 
+CD / /car->started 
+r / engage 
+J 
+Fig. 25. Statechart of cruiser. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 41 ---
+Synthesizing State-Based Object Systems 45 
+In practice, it may prove useful to use OBDD's for efficient representation and 
+manipulation of conditions over the system state space. 
+Acknowledgements: We would like to thank Orna Kupferman, Tarja Systa and 
+Erkki Makinen for their insightful comments on an early version of the paper. 
+References 
+1. Amon, T., G. Boriello and C. Sequin, "Operation/Event Graphs: A design repre­
+sentation for timing behavior", Proc. '91 Conf. on Computer Hardware Description 
+Language, pp. 241 - 260, 1991. 
+2. Alur, R., K. Etessami and M. Yannakakis, "Inference of Message Sequence Charts", 
+Proc. 22nd Int. Conf. on Software Engineering (ICSE'00), Limerick, Ireland, June 
+2000. 
+3. Abadi, M., L. Lamport and P. Wolper, "Realizable and unrealizable concurrent 
+program specifications", Proc. 16th Int. Colloq. on Automata, Languages and 
+Programming, Lecture Notes in Computer Science, vol. 372, Springer-Verlag, pp. 
+1-17, 1989. 
+4. Alur, R., and M. Yannakakis, "Model Checking of Message Sequence Charts", Proc. 
+10th Int. Conf. on Concurrency Theory (CONCUR'99), Lecture Notes in Computer 
+Science, vol. 1664, Springer-Verlag, pp. 114-129, 1999. 
+5. Boriello, G., "A new interface specification methodology and its application to 
+transducer synthesis", Technical Report UCB/CSD 88/430, University of California 
+Berkeley, 1988. 
+6. Biermann, A.W., and R. Krishnaswamy, "Constructing Programs from Example 
+Computations", IEEE Trans. Softw. Eng., SE-2 (1976), 141-153. 
+7. Broy, M., and I. Kniger, "Interaction Interfaces — Towards a Scientific Foundation 
+of a Methodological Usage of Message Sequence Charts", In Formal Engineering 
+Methods, (J. Staples, M. G. Hinchey, and Shaoying Liu, eds), IEEE Computer So­
+ciety, 1998, pp. 2-15. 
+8. Damm, W., and D. Harel, "LSCs: Breathing Life into Message Sequence Charts", 
+Formal Methods in System Design 19:1 (2001). (Early version in Proc. 3rd IFIP 
+Int. Conf. on Formal Methods for Open Object-based Distributed Systems, (P. 
+Ciancarini, A. Fantechi and R. Gorrieri, eds.), Kluwer Academic Publishers, pp. 
+293-312, 1999.) 
+9. Emerson, E.A., "Temporal and modal logic", Handbook of Theoretical Computer 
+Science, (1990), 997-1072. 
+10. Emerson, E.A., and E.M. Clarke, "Using branching time temporal logic to synthe­
+size synchronization skeletons", Sci. Comp. Prog. 2 (1982), 241-266. 
+11. Harel, D., "Statecharts: A Visual Formalism for Complex Systems", Sci. Corn-
+put. Prog. 8 (1987), 231-274. (Preliminary version: Tech. Report CS84-05, The 
+Weizmann Institute of Science, Rehovot, Israel, February 1984.) 
+12. Harel, D., "From Play-In Scenarios To Code: An Achievable Dream", IEEE Com­
+puter, (January 2001), 53 - 60. (Also in Proc. Fundamental Approaches to Software 
+Engineering (FASE), Lecture Notes in Computer Science, Vol. 1783 (Tom Maibaum, 
+ed.), Springer-Verlag, March 2000, pp. 22-34.) 
+13. Harel, D., and E. Gery, "Executable Object Modeling with Statecharts", IEEE 
+Computer, (July 1997), 31-42. (Also in Proc. 18th Int. Conf. Soft. Eng., Berlin, 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 42 ---
+46 D. Harel & H. Kugler 
+IEEE Press, March, 1996, pp. 246-257.) 
+14. Harel, D., and O. Kupferman, "On the Inheritance of State-Based Object Behav­
+ior", Proc. 34th Int. Conf. on Component and Object Technology, IEEE Computer 
+Society, Santa Barbara, CA, August 2000. 
+15. Jacobson, I., Object-Oriented Software Engineering: A Use Case Driven Approach. 
+Addison-Wesley, Reading, MA, 1992. 
+16. Kriiger, L, R. Grosu, P. Scholz and M. Broy, "From MSCs to Statecharts", Proc. 
+DIPES'98, Kluwer, 1999. 
+17. Kugler, H., D. Harel, A. Pnueli, Y. Lu and Y. Bontemps, "Temporal Logic for Live 
+Sequence Charts", in preparation. 
+18. Koskimies, K., and E. Makinen, "Automatic Synthesis of State Machines from 
+Trace Diagrams", Software — Practice and Experience 24:7 (1994), 643-658. 
+19. Koskimies, K., T. Systa, J. Tuomi and T. Mannisto, "Automated Support for 
+Modeling OO Software", IEEE Software 15:1 (1998), 87-94. 
+20. Kupferman, O., and M.Y. Vardi, "Synthesis with incomplete information", Proc. 
+2nd Int. Conf. on Temporal Logic (ICTL97), pp. 91-106, 1997. 
+21. Klose, J., and H. Wittke, "Automata Representation of Live Sequence Charts", 
+Proc. Tools and Algorithms for the Construction and Analysis of Systems 
+(TACAS'01), 2001. 
+22. Leue, S., L. Mehrmann and M. Rezai, "Synthesizing ROOM Models from Message 
+Sequence Chart Specifications", University of Waterloo Tech. Report 98-06, April 
+1998. 
+23. Mukund, M., K.N. Kumar, and M. Sohoni, "Synthesizing Distributed Finite-State 
+Systems from MSCs", Proc. 11th Int. Conf. on Concurrency Theory (CON-
+CUR'00), Lecture Notes in Computer Science, vol. 1877, Springer-Verlag, pp. 521-
+535, 2000. 
+24. Manna, Z., and R.J. Waldinger, "A deductive approach to program synthesis" 
+ACM Trans. Prog. Lang. Sys. 2 (1980), 90-121. 
+25. Pnueli, A., and R. Rosner, "On the Synthesis of a Reactive Module", Proc. 16th 
+ACM Symp. on Principles of Programming Languages, Austin, TX, January 1989. 
+26. Pnueli, A., R. Rosner, "On the Synthesis of an Asynchronous Reactive Module", 
+Proc. 16th Int. Colloquium on Automata, Languages and Programming, Lecture 
+Notes in Computer Science, vol. 372, Springer-Verlag, pp. 652-671, 1989. 
+27. Pnueli, A., R. Rosner, "Distributed Reactive Systems are Hard to Synthesize", 
+Proc. 31st IEEE Symp. on Foundations of Computer Science, pp. 746-757, 1990. 
+28. Schlor, R. and W. Damm, "Specification and verification of system-level hardware 
+designs using timing diagrams", Proc. European Conference on Design Automation, 
+Paris, France, IEEE Computer Society Press, pp. 518 - 524, 1993. 
+29. Selic, B., G. Gullekson and P. Ward, Real-Time Object-Oriented Modeling, John 
+Wiley & Sons, New York, 1994. 
+30. Documentation of the Unified Modeling Language (UML), available from the Ob­
+ject Management Group (OMG), http://www.omg.org. 
+31. Wong-Toi, H., and D.L. Dill, "Synthesizing processes and schedulers from temporal 
+specifications", In Computer-Aided Verification '90 (Clark and Kurshan, eds.), DI-
+MACS Series in Discrete Mathematics and Theoretical Computer Science, volume 
+3, pp. 177-186, 1991. 
+32. Whittle, J. and J. Schumann, "Generating Statechart Designs from Scenarios", 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 43 ---
+Synthesizing State-Based Object Systems 47 
+Proc. 22nd Int. Conf. on Software Engineering (ICSE'OO), Limerick, Ireland, June 
+2000. 
+33. Z.120 ITU-T Recommendation Z.120: Message Sequence Chart (MSC), ITU-T, 
+Geneva, 1996. 
+APPENDIX: Live Sequence Charts (LSCs) 
+Basic LSC definitions 
+This section defines the languages specified by a set of LSCs. The LSC definition 
+is a restricted and simplified version of the one in [8]. It does not include condi­
+tions, and so does not have to deal with variables. We assume that all messages 
+are synchronous and that there are no failures in the system. An additional restric­
+tion is that communication with the environment can appear only as an activation 
+condition of a chart and not as part of the messages in the chart itself. 
+We assume the LSC specification relates to a system composed of a set of objects 
+O — {0\.. . On}. The instance identifiers in the charts are objects from O. The 
+LSC specifies the behavior of the system in terms of the message communication 
+between the objects in the system. 
+As explained earlier, messages sent from the environment to the system are 
+distinguished from those sent within the system by the two subsets of E, E;n and 
+T,out. Let Ain = (env) x (£>.Ein), Aout = Ox (O.Eout), and A = Ain U Aout. 
+We want to define the notion of satisfiability of an LSC specification. In other 
+words, we want to capture the languages £ C A* U A" generated by the object 
+systems that satisfy the LSC specification. 
+Let inst(m) be the set of all instance-identifiers referred to in chart m. With each 
+instance i we associate a finite number of locations dom(m,i) C {0, ...,Lmax(i)}. 
+We collect all locations of m in the set 
+dom(m) = {< i, I >\ i € inst(m) A I G dom(m, i)} 
+We associate with each location in the chart m a temperature from the set Temp = 
+{hot, cold}, by the mapping: 
+temp(m) : dom(m) -> Temp 
+The messages appearing in m are triples 
+Messages(m) — dom{m) x E x dom(m), 
+where (< i,l >, a, < i\V >) corresponds to instance i, while at location Z, sending a 
+to instance i' at location /'. Each location can appear in at most one message in the 
+chart. The relationship between locations and messages is given by the mapping 
+msg(m) : dom(m) —>• Messages(m) 
+The msg function induces two Boolean predicates send and receive. We define the 
+binary relation R(m) on dom(m) to be the smallest relation satisfying the following 
+axioms and closed under transitivity and reflexivity: 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 44 ---
+48 D. Hard & H. Kugler 
+• order along an instance line: 
+V < i, I >e dom(m), I < Lmax(i) =>< i, I > R(m) < i, I + 1 > 
+• order induced from message sending: 
+Vmsg e Messages(m),msg = (< i, Z >, cr, < i', I' >) => 
+< z,Z > R(m) < i',l' > 
+• messages are synchronous; they block sender until receipt: 
+Mmsg G Messages(m),msg = (< i, Z >, cr, < i', V >) => 
+< 2',/' > ^(m) < i,Z + l > 
+We say that the chart m is well-formed if the relation R(m) is acyclic. We 
+assume all charts to be well-formed, and use <m to denote the partial order R(m). 
+We denote the preset of a location < i, / > containing all elements in the domain 
+of a chart smaller than < i, / > by 
+• < ij >= {< i'j' >e dom(m)\ < i'Jf ><m< i,l >}. 
+We denote the partial order induced by the order along an instance line by -<m, 
+thus < i, / >^m< i', V > iff ii = if and / < /'. 
+A cut through m is a set c of locations, one for each instance, such that for every 
+location < i,I > in c, the preset • < z,Z > does not contain a location < i',/' > 
+such that < j, lj Xm< i',l' > for some location < j, lj > in c. A cut c is specified 
+by the locations in all of the instances in the chart: 
+c= (< ii,/i >,< 12M >,-..,< inJn >) 
+For a chart m with instances i\, ...,zn the initial cut Co has location 0 in all the 
+instances. Thus, CQ = (< ii,0 >,< Z2,0 >,...,< zn,0 >). We denote cuts(m) the 
+set of all cuts through the chart m. 
+Dynamic semantics of LSCs 
+For chart m, some 1 < j < n and cuts c, cr, with 
+C = (< H, h >, < 22, ^2 >, •••, < «nj ^n >) 
+c' = (< zl51[ >, < t2,^ >,..., < »n,z; >), 
+we say that d is a < jf, Zj >-successor of c, and write succm(c, < j,lj >,c'), if c 
+and c' are both cuts and 
+l'j = lj + l A Vi^jJ'^k 
+Notice that the successor definition requires that both c and c' are cuts, so that 
+advancing the location of one of the instances in c is allowed only if the obtained 
+set of locations remains unordered. 
+A run of m is a sequence of cuts, CQ, C\, ..., c^, satisfying the following: 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 45 ---
+Synthesizing State-Based Object Systems 49 
+• Co is an initial cut. 
+• for all 0 < i < k, there is 1 < ji < n, such that succm(ci, < ji, lj. >, Ci+i). 
+• in the final cut c& all locations are cold. 
+Assume the natural mapping / between (dom(m) U env) xSx dom(m) to the 
+alphabet A, defined by 
+/(< i,l >,a,<j,l' >) = (Oi,Oj.a) 
+/(era;, <j, < j, I >) = (env, Oj.a) 
+Using this notation, /(Messages(TO)) will be used to denote the letters in A 
+corresponding to messages that are restricted by chart m: 
+f(Messages(m)) = {f(v) \ v e Messages(m)} 
+Let c = Co, ci,..., Ck be a run. The execution trace, or simply the trace of c, 
+written w = trace(c), is the word w = w\ • w<i • • • Wk over the alphabet A, defined 
+by: 
+w =i «f(m5#(m)(<-?'^' >)) if succm(ci_i,< j,/j >,Ci) A send(<j,lj >) 
+2 |^ e otherwise 
+We define the trace language generated by chart m, £^c C ^4*, to be 
+^mC = (^ I 3(co, ci,..., Cfc) € Runs(m) s.t. w = trace(c0l ci,..., c^)} 
+There are two additional notions that we associate with an LSC, its mode and 
+its activation message. These are defined as follows: 
+mod : m -> {existential, universal) 
+amsg : m —>• (dom(m) U era;) x E x dom(m) 
+The activation message of a chart designates when a scenario described by the 
+chart should start, as we describe below. In the original LSCs [8], there were 
+activation conditions, which were assertions over the variables of the system, and 
+precharts which were charts that designate a communication sequence that leads 
+to the activation point. Here, we take the activation condition to be a message, 
+in order to simplify the model and not deal explicitly with variables. Our version 
+is not too restricting because a condition being true can trigger the sending of an 
+appropriate message as activation in our model. Notice that in our restricted model 
+we allow activation messages to be sent from the environment while all messages in 
+the chart itself are communications between the objects in the system. Although 
+we will not consider precharts the results in this paper can be extended for such 
+a model. The main modification involves the construction of the automaton for a 
+chart. 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 46 ---
+50 D. Havel & H. Kugler 
+The charts and the two additional notions are now put together to form a spec­
+ification. An LSC specification is a triple 
+LS = (M, amsg, mod), 
+where M is a set of charts, and amsg and mod are the activation messages and 
+modes of the charts, respectively. 
+The language of the chart m, denoted by £m C A* U A°, is defined as follows: 
+• For an existential chart, mod(m) = existential, we require that the activation 
+message is relevant (i.e., sent) at least once, and that the trace will then satisfy 
+the chart: 
+An = {w = wi'W2'"\ 3i0, H,..., ik and 3v = vi • v2 • • • vk G £^c, s.t. 
+(i0 < i\ < ... < ik) A (wio = f(amsg(m))) A 
+(Vj,l <j< k,w{j =Vj)A 
+(Vj',io <f < ikj' &{io,h,-..,ik} =» ^j' i f{Messages(m)))} 
+The formula requires that the activation message is sent once 
+(wi0 — f(amsg(m))), and then the trace satisfies the chart; i.e., there is a 
+subsequence belonging to the trace language of chart m (v = v± • v2 • • • Vk = 
+Wix • Wi2 • • • Wik G JC^0)' and a^ ^he messages between the activation message 
+until the end of the satisfying subsequence (Vj',io < f < ik) that do not 
+belong to the subsequence (f £ {io, ii,..., ik}) are not restricted by the chart 
+m (WJ> £ f(Messages(m))). 
+• For a universal chart, mod(m) = universal, we require that each time the 
+activation message is sent the trace will satisfy the chart: 
+£m — {w = w\ • w2- - - \\/i,Wi = f(amsg(m)) ^3i\,i2,...,ik and 
+3v = vi • v2 • • • vk G C^c, s.t. (i <ii <i2< ... < ik) A 
+(Vj,l <j< k,Wi. =VJ)A 
+(Vj',2 <jf <ikjf £{n,-,u} =>Wj> i f(Messages(m)))} 
+The formula requires that after each time the activation message is sent 
+(Vi,Wi — f(amsg(m))), the trace will satisfy the chart m (this is expressed in 
+the formula in a similar way to the case for an existential chart.) 
+Now come the main definitions, which finalize the semantics of our version of 
+LSCs by connecting them with an object system: 
+Definition 
+A system S satisfies the LSC specification LS — (M, amsg,mod), written S \= 
+LS, if: 
+1. Vra G M, mod(m) — universal ==> V77 C7^ C Cm 
+2. Vra G M, mod(m) = existential =>3n C^H Cm ^ 0 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
+
+--- Page 47 ---
+Synthesizing State-Based Object Systems 51 
+Here, £^, the trace set of object system S on the sequence of directed requests 
+77, is as defined in [14]. 
+Definition An LSC specification LS is satisfiable if there is a system that satisfies 
+it. 
+Embedding LSCs into CTL* 
+We now show that LSC specifications can be embedded in the branching tem­
+poral logic CTL* [9], Let LS = {M,amsg,mod) be an LSC specification. For a 
+chart m € M, we define the formula ipm as follows: 
+• If mod(m) = universal, then ipm = AG(amsg(m) —> \Jwectrc ^)* 
+• If mod(m) = existential, then ipm — EF(amsg(m) A (\J,weCtrc <t>w))-
+Here, if w = mim2mz...mk is an execution of m, we define 
+<f)w = NUirm A (X(NU{m2 A (X(NU(ms...))))))), 
+where the formula N is given by N = -irai A ->rae... A ->mfc. 
+The following can now be proved: 
+Proposition Given LS = (M^amsg^mod), let ip be the CTL* formula Am€M^m, 
+and let S be an object system. Then 
+S\=^ & S{=LS. 
+It is noteworthy that the reverse is not true: CTL* cannot be embedded in the 
+language of LSCs. In particular, given the single level quantification mechanism of 
+LSCs, the language cannot express formulas of with alternating path quantifiers. 
+However, it shouldn't be too difficult to extend LSCs to allow certain kinds of 
+quantifier alternation, as noted in [8]. This was not done there, since it was judged 
+to have been too complex and unnecessary for real world usage of sequence charts. 
+Since the writing of the current paper we have extended the translation described 
+here, the details will be published separately, see [17] 
+Int. J. Found. Comput. Sci. 2002.13:5-51. Downloaded from www.worldscientific.com
+by WEIZMANN INSTITUTE OF SCIENCE on 03/20/24. Re-use and distribution is strictly not permitted, except for Open Access articles.
+
