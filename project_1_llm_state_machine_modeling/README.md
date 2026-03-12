@@ -44,9 +44,6 @@
    - 样本来源论文集。
    - 收录真实控制系统论文，并从中提取可用于状态机建模的自然语言描述与控制逻辑证据。
    - 这里重点沉淀“可作为我们建模输入样本的数据源”。
-3. [scripts/](./scripts/)
-   - 项目辅助脚本目录。
-   - 用于支持批量检索、批量处理或其他工程化整理动作。
 
 因此，这个项目当前可以理解为两条主线并行：
 
@@ -97,16 +94,6 @@
 2. [sources/GUIDE.md](./sources/GUIDE.md)
 3. [sources/SUMMARY.md](./sources/SUMMARY.md)
 4. 若涉及 `STM.md`，再读 [sources/STM_GUIDE.md](./sources/STM_GUIDE.md)
-
-### 4.3 `scripts/`
-
-[scripts/](./scripts/) 不是论文集，而是项目辅助目录。这里的文件主要用于：
-
-1. 批量检索候选论文。
-2. 批量生成或检查中间产物。
-3. 支持 `baselines/` 和 `sources/` 的工程化整理流程。
-
-它不承担 collection 总账功能，也不替代各 collection 的 `README.md / GUIDE.md / SUMMARY.md`。
 
 ## 5. 本项目整体工作流
 
