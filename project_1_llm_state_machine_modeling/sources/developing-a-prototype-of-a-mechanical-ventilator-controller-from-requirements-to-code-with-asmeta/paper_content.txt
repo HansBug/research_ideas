@@ -1,0 +1,925 @@
+--- Page 1 ---
+M. Gleirscher, J.v.d. Pol, J. Woodcock (Eds.):
+First Workshop on Applicable Formal Methods (AppFM 2021).
+EPTCS 349, 2021, pp. 13–29, doi:10.4204/EPTCS.349.2© A. Bombarda, S. Bonfanti, A. Gargantini & E. RiccobeneDeveloping a Prototype of a Mechanical Ventilator Controller
+from Requirements to Code with ASMETA
+Andrea Bombarda
+University of Bergamo, Bergamo, Italy
+andrea.bombarda@unibg.itSilvia Bonfanti
+University of Bergamo, Bergamo, Italy
+silvia.bonfanti@unibg.it
+Angelo Gargantini
+University of Bergamo, Bergamo, Italy
+angelo.gargantini@unibg.itElvinia Riccobene
+University of Milano, Milan, Italy
+elvinia.riccobene@unimi.it
+Rigorous development processes aim to be effective in developing critical systems, especially if fail-
+ures can have catastrophic consequences for humans and the environment. Such processes generally
+rely on formal methods, which can guarantee, thanks to their mathematical foundation, model pre-
+ciseness, and properties assurance. However, they are rarely adopted in practice.
+In this paper, we report our experience in using the Abstract State Machine formal method and
+the ASMETA framework in developing a prototype of the control software of the MVM (Mechan-
+ical Ventilator Milano), a mechanical lung ventilator that has been designed, successfully certiﬁed,
+and deployed during the COVID-19 pandemic. Due to time constraints and lack of skills, no for-
+mal method was applied for the MVM project. However, we here want to assess the feasibility of
+developing (part of) the ventilator by using a formal method-based approach.
+Our development process starts from a high-level formal speciﬁcation of the system to describe
+the MVM main operation modes. Then, through a sequence of reﬁned models, all the other re-
+quirements are captured, up to a level in which a C++ implementation of a prototype of the MVM
+controller is automatically generated from the model, and tested. Along the process, at each re-
+ﬁnement level, different model validation and veriﬁcation activities are performed, and each reﬁned
+model is proved to be a correct reﬁnement of the previous level. By means of the MVM case study,
+we evaluate the effectiveness and usability of our formal approach.
+1 Introduction
+To prevent catastrophic consequences for humans and the environment due to system failure or unsafe
+operation, safety-critical software requires development methods and processes that could lead to prov-
+ably correct system operation [24,25]. From long time the use of models and formal analysis techniques
+is highly demanded already at design-time to improve software quality and guarantee safety, reliability,
+and other desired qualities. However, the usage of formal methods in industrial projects is still lim-
+ited [3, 20, 21] and practitioners are still skeptical in using formal methods since they are considered
+time-consuming approaches that do not ﬁt into an agile continuous integration development process.
+Besides the well-known lack of training, among the barriers to the adoption of formal methods, we
+can remark (i) the complexity of formal notations, (ii) the poor scalability, (iii) the lack of easy-to-use
+tools supporting modeling, validation, and veriﬁcation activities at the design phase, and (iv) the gap be-
+tween models and code. Formal approaches allowing model reﬁnement would help the designer in facing
+the complexity of system requirements, and techniques of automatic code generation from models would
+allow for producing correct-by-construction code/artifacts of the system in a seamless manner from the
+requirements to the ﬁnal implementation. We believe that some characteristics of formal methods would
+
+--- Page 2 ---
+14 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+also favor their use in the assurance process: models should possibly be executable for high-level de-
+sign validation and endowed with properties veriﬁcation mechanisms; operational approaches are more
+adequate than denotational ones to support (automatic) code generation from models and model-based
+testing.
+In principle, different methods and tools can be used to guarantee software safety and reliability;
+however, the integrated use of different tools around the same formal method is much more convenient
+than having different tools working on input models with their own languages.
+Among the plethora of existing formal methods, the Abstract State Machines (ASMs) [17, 18] are
+a system engineering method that can guide the development of software systems seamlessly from re-
+quirements capture to their implementation. This is shown by the adoption of ASMs in a series of cases
+studies, as in [6, 8, 10, 13], to name a few. Although ASMs have a rigorous mathematical foundation
+– as transition systems that extend the Finite State Machines (FSMs) [17]–, ASMs can be understood
+as pseudo-code or virtual machines working over abstract data structures. Besides their pseudo-code
+format , (1) ASM models can be speciﬁed at any desired level of abstraction and are executable models ;
+(2)model reﬁnement is an embedded concept in the ASM formal approach; it allows facing the complex-
+ity of system speciﬁcation by starting with a high-level description of the system and then proceeding
+step-by-step by adding further details till a desired level of speciﬁcation has been reached; each reﬁned
+model must be proved to be a correct reﬁnement of the previous one, and checking of such relation can
+be performed automatically [4]; (3) the concept of ASM module , i.e., an ASM without the main ﬁring
+rule, facilitates model scalability and separation of concerns, so tackling the complexity of big systems
+speciﬁcation;
+(4) ASM-based modeling and analysis are supported by a set of tools that can be used in an integrated
+manner within the ASMETA (ASM mETAmodeling) [5, 11, 12] framework. ASMETA provides tools
+for specifying the executable behavior of a system, for checking properties of interest, specifying and
+executing validation scenarios, generating prototype code, etc.
+During the COVID-19 pandemic, our research team was involved in the design, development, and
+certiﬁcation of a mechanical lung ventilator called MVM (Mechanical Ventilator Milano)1[2]. The
+project started from an idea of the physicist Cristiano Galbiati, who was soon joined by dozens of physi-
+cists, engineers, physicians, and computer scientists from 12 countries around the world, including the
+authors of this paper. The team was able to realize a ventilator that is reliable, easily reproducible on a
+large scale, available in a short amount of time, and at a limited cost [22]. The MVM has obtained the
+FDA (Food and Drug Administration) Emergency Use Authorization (EUA) followed by similar autho-
+rizations issued by Health Canada and the CE marking as well. During the development of the software,
+no formal method has been applied mainly because of time constraints and a lack of developers’ skills
+with any formal method. However, we wanted to assess the feasibility (and possibly also the limits) of
+developing (part of) the ventilator by using a formal method-based approach. Because we were involved
+in all the software development process and its certiﬁcation (we wrote the requirements and were in-
+volved also in the coding and testing for the MVM), we have all the knowledge and expertise necessary
+to perform this experiment. In this paper, we report the practical experience of using ASMs/ASMETA
+in modeling, analyzing, and encoding the control software of the MVM.
+The paper is structured as follows. Sect. 2 presents the background regarding the ASMETA frame-
+work and Sect. 3 introduces the MVM case study. In Sect. 4 we present the modeling, veriﬁcation, and
+validation activities performed for the case study. The automatic generation of C ++code and unit tests
+from the ASMETA speciﬁcation is described in Sect. 5, while the deployment process on Arduino is
+1https://mvm.care/
+
+--- Page 3 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 15
+Modelling
+Editor AsmetaL - AsmEE
+Visualizer AsmetaVisRefinement prover 
+AsmRefProver
+ASM 0 ASM 1ASM 
+final
+Validation and verification
+At any 
+levelCode Generator
+Asm2C++ C++ Code
+Abstract unit tests generator
+Model -Based Testing 
+ATGTValidation Property Verification
+Model Checking 
+AsmetaSMVModel Review
+AsmetaMASimulation 
+AsmetaS
+Scenarios 
+AsmetaVC++ Unit test
+Animator 
+AsmetaA
+Figure 1: The ASM development process powered by the ASMETA framework
+described in Sect. 6. Sect. 7 discusses the pros and cons of the ASMETA approach and the aspects that
+could prevent or favor its use in practice and concludes the paper.
+2 Abstract State Machines and ASMETA development process
+The formal design of the MVM we propose here is based on the ASMs formal method [17,18], which is
+an extension of FSMs where unstructured control states are replaced by states with arbitrarily complex
+data. The development process from formal requirement speciﬁcation to code generation has been sup-
+ported by the ASMETA framework [5], a set of tools around the ASMs, which we used for modeling the
+ventilator and performing validation and veriﬁcation activities, together with automatic source code and
+tests generation.
+ASM states are mathematical structures, i.e., domains of objects with functions and predicates (i.e.,
+boolean functions) deﬁned on them. The transition from one state sito the next state si+1is obtained by
+ﬁring the set of all ASM transition rules invoked by a unique main rule, which is the starting point of a
+computation step. Transition rules express the modiﬁcation of dynamic controlled functions interpreta-
+tion from one state to the next one. Indeed, functions are classiﬁed as static (never change during any
+run of the machine) or dynamic (may change as a consequence of agent actions or updates ). Dynamic
+functions are distinguished between monitored (only read by the machine and modiﬁed by the environ-
+ment) and controlled (read in the current state and updated by the machine in the next state). Derived
+functions are not part of the state since they are deﬁned in terms of other (dynamic) functions.
+Theupdate rule, as assignment of the form f(t1; : : : ; tn):=v, is the basic unit of rules construction,
+being fan n-ary function, titerms, and vthe new value of f(t1; : : : ; tn)in the next state. By a limited but
+powerful set of rule constructors , function updates can be combined to express other forms of machine
+actions as, for example, guarded actions ( if-then ) and simultaneous parallel actions ( par).
+The ASM method can facilitate the entire life cycle of software development, i.e., from modeling to
+code generation. Fig. 1 shows the development process based on ASMs and supported by the ASMETA
+framework2[11] which provides a set of tools to help the developer in the following activities: modeling,
+validation, veriﬁcation, and, when required, code generation.
+In the modeling phase, the user speciﬁes the system models by using the AsmetaL language, and the
+editor AsmetaXt provides some useful editing support. ASM models can be read as pseudo-code over
+abstract data types. Moreover, the ASM visualizer AsmetaVis can be used to transform the textual
+2https://asmeta.github.io/
+
+--- Page 4 ---
+16 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+model into graphs using the ASM graphical notation proposed in [4]. The reﬁnement correctness can be
+automatically proved using the tool ASMRefProver [9].
+The validation process is supported by the model simulator AsmetaS , the animator AsmetaA , the
+scenarios executor AsmetaV – all supporting models exposing time features [14] –, and the model re-
+viewer AsmetaMA . The simulator AsmetaS allows performing two types of simulation: interactive
+simulation (the user inserts the value of monitored functions) and random simulation (the tool randomly
+chooses the value of monitored functions among those available). A tabular presentation of a simula-
+tion is possible by means of the animator AsmetaA that shows the models’ execution through the use
+of tables. AsmetaV executes scenarios written in Avalla language. Each scenario contains the ex-
+pected system behavior and the tool checks whether the machine runs correctly. The model reviewer
+AsmetaMA performs the static analysis. It determines whether a model has sufﬁcient quality attributes,
+e.g., minimality (the speciﬁcation does not contain elements deﬁned or declared in the model but never
+used), completeness (it requires that every behavior of the system is explicitly modeled), and consistency
+(it guarantees that locations are never simultaneously updated to different values).
+Property veriﬁcation is performed with the AsmetaSMV tool. It veriﬁes if the properties derived
+from the requirements are satisﬁed by the models. When a property is veriﬁed, it guarantees that the
+model complies with the intended behavior. AsmetaSMV exploits the NuSMV and NuXmv model
+checkers. Linear Temporal Logic (LTL) and Computation Tree Logic (CTL) properties can be proved
+by using the classical NuSMV model checker in the case of limited domains. NuXmv (an extension of
+NuSMV) is able to deal also with unlimited domains in the case of LTL properties and allows for proving
+properties based on time values.
+In case the code is available, the ASMETA framework provides the ATGT tool that generates ab-
+stract unit tests starting from the ASM speciﬁcation by exploiting the counterexample generation of a
+model checker (NuXMV or NuSMV). If not, a tool that automatically generates C ++code from ASMs
+is available ( Asm2C ++) [16].
+3 MVM Case study
+MVM [2] is an electro-mechanical ventilator equivalent to the old and reliable Manley Ventilator [26].
+It is intended to provide ventilation support for patients that are in intensive therapy and that require
+mechanical ventilation. MVM works in pressure-mode, i.e., the respiratory time cycle of the patient is
+controlled by the pressure, and, therefore, this ventilator requires a source of compressed oxygen and
+medical air that are readily available in intensive care units. More precisely, MVM has two operative
+modes: Pressure Controlled Ventilation (PCV) and Pressure Support Ventilation (PSV). In the PCV
+mode, the respiratory cycle is kept constant and the pressure level changes between the target inspiratory
+pressure and the positive end-expiratory pressure. New inspiration is initiated either after a breathing
+cycle is over, or when the patient spontaneously initiates a breath. In the former case, the breathing
+cycle is controlled by two parameters: the respiratory rate (RR) and the ratio between the inspiratory
+and expiratory times (I/R). In the latter case, a spontaneous breath is triggered when the MVM detects
+a sudden pressure drop within the trigger window during expiration. The PSV mode is not suitable for
+patients that are not able to start breathing on their own because the respiratory cycle is controlled by
+the patient, and MVM partially takes over the work of breathing. A new respiratory cycle is initiated
+with the inspiratory phase, detected by the ventilator when a sudden pressure drop occurs. When the
+patient’s inspiratory ﬂow drops below a set fraction of the peak ﬂow, MVM stops the pressure support,
+thus allowing exhalation. If a new inspiratory phase is not detected within a certain amount of time
+
+--- Page 5 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 17
+(apnea lag), MVM will automatically switch to the PCV mode because it is assumed that the patient is
+not able to breathe alone.
+The ventilator allows the air to enter/exit through two valves, i.e., an input valve and an output
+valve. When the ventilator is not running, the valves are set to safe mode: input valve closed and output
+valve opened. When the inspiration starts, the input valve is opened and the output valve is closed,
+while during the expiration the input valve is closed and the output valve is opened. Both in PCV and
+PSV mode inspiratory pause, expiratory pause, and recruitment manoeuvrer are allowed by user request.
+Inspiratory/Expiratory pause consists in closing the input and output valves of the ventilator respectively
+after the inspiration and expiration phase. The inspiratory pause allows measuring the pressure reached
+inside the alveoli at the end of the inspiratory cycle, while the expiratory pause allows measuring the
+residual pressure to check possible obstruction in the exhalation channel. Recruitment manoeuvrer is an
+emergency procedure required after intubation and it consists in prolonged lung inﬂation as necessary
+to reactivate the alveoli immediately; during this manoeuvrer, the input valve is opened and the output
+valve is closed.
+Before starting the ventilation the MVM controller passed through three phases. The start-up in
+which the controller is initialized with default parameters, self-test which ensures that the hardware is
+fully functional, and ventilation off in which the controller is ready for ventilation when requested.
+To give an idea of the complexity of the entire MVM, its detailed behavior is described in the re-
+quirements documents which count altogether about 1000 requirements, each being a brief sentence.
+One document describes the behavior of the overall system, while 15 requirements documents describe
+the detailed behavior of software components. The controller itself has its own requirement document
+which consists of 31 pages and 157 requirements.
+4 Modeling and V&V
+In this section, we present the modeling of the MVM controller and the validation and veriﬁcation ac-
+tivities we have performed. We proceeded through three reﬁnement steps. (1) The ﬁrst model ( MVM-
+Controller00 ) describes the transition between the main operation phases: startup, self-test, ventilation
+off, PCV , and PSV modes. (2) The second model ( MVMController01 ) introduces the modeling of in-
+spiration and expiration in both PCV and PSV , (3) while the third model ( MVMController02 ) adds the
+expiratory/inspiratory pauses, the recruitment manoeuvrer, and the apnea. (4) The last reﬁnement step
+(MVMController03 ) introduces (in both PCV and PSV) the transition between expiration and inspira-
+tion in case of pressure drop, and the transition between inspiration and expiration in case the pressure
+exceeds a threshold. The time features have been modeled using the TimeLibrary [14].
+We have proved the reﬁnement correctness by using the SMT-based tool AsmRefProver which
+proves the stuttering reﬁnement as deﬁned in [9].
+In order to have an idea of the complexity of the ventilator models, Table 1 shows the models’
+dimensions in terms of the number of functions and rules.
+4.1 First model: MVMController00
+The ﬁrst model introduces the operation phases of the MVM controller. At the end of startup and self-
+test, the ventilator goes in the ventilation off state. Afterward, on the basis of the user request, it can go
+to one of the two operation modes: PCV or PSV . Code 1 shows the main rule of the controller in the
+ﬁrst model. It speciﬁes the transitions among the MVM states by setting the value of the state variable
+
+--- Page 6 ---
+18 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+declarations # Functions # Rules
+mon. con. der. static decl. rules
+TimeLibrary 1 2 2 0 2 2
+MVMController00 5 1 0 0 8 27
+MVMController01 6 5 0 5 19 98
+MVMController02 9 6 0 9 27 160
+MVMController03 11 6 0 10 27 170
+Table 1: Models dimension (including the TimeLibrary)
+mon. = monitored, con. = controlled, der. = derived, decl. = macro rule
+declarations, rules = number of rules (inluding nested)main rule rMain =
+par
+ifstate = STARTUP then rstartup[] endif
+ifstate = SELFTEST then rselftest[] endif
+ifstate = VENTILATIONOFF then rventilationoff[] endif
+ifstate = PCV STATE then rrunPCV[] endif
+ifstate = PSV STATE then rrunPSV[] endif
+endpar
+Code 1: MVMController00 main rule
+Figure 2: MVM state diagram
+(initialized at the STARTUP value). Depending on the state value, the corresponding rule is executed.
+The semantic visualization of the model, and in particular of the main rule, is shown in Fig. 2. It
+represents the MVM operation in terms of a control state machine: the value of the variable state is used
+as state mode to determine machine states.
+4.2 Second model: MVMController01
+The second model reﬁnes the inspiration and expiration phases in PCV and PSV mode. Code 2 shows
+the reﬁnement of the rule rrunPCV , which here calls rules for the inspiration rrunPCVInsp (line 6) and
+the expiration rrunPCVExp (line 24) rules.
+In PCV mode, the transition between inspiration and expiration is determined by the duration of
+each phase decided by the physician (when timers timerInspirationDurPCV , in case of inspiration, and
+timerExpirationDurPCV , in case of expiration, expire). When the inspiration time is passed (line 11),
+the controller goes to the PCV expiration phase (line 14). If the physician has required (by setting the
+value of the monitored function respirationMode ) to move to PSV mode the machine changes the state
+from PCV to PSV and executes the rule rPSVStartExp (line 15). If a stop request (by the monitored
+function stopRequested ) is received during the inspiration phase, it is stored (in stopVentilation ) and
+will be executed in the expiration phase (line 8). When in expiration, if no stop request is received, the
+ventilator moves to PCV inspiration when expiration duration expires (line 27).
+In PSV mode (see Code 3), the transition from inspiration to expiration happens when the airﬂow
+drops a deﬁned threshold ( ﬂowDropPSV holds, line 12) after a minimum inspiration time ( timerMin-
+InspTimePSV expires), or when the maximum inspiration time set by the doctor is expired. The opposite
+transition occurs after a minimum expiration time ( timerMinExpTimePSV expires, line 19). The transition
+to ventilation off is allowed only from the expiration phase regardless of the stop command is received.
+Moreover, the physician can change from PSV to PCV and without interrupting the ventilation when in
+expiration phase (line 21).
+Depending on the ventilator state, the input ( iValve ) and output ( oValve ) valves are in the following
+position: input valve is closed and output valve is open when the ventilator is not running or in the
+
+--- Page 7 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 19
+1rule rrunPCV =
+2 par
+3 ifphase = INSPIRATION then rrunPCVInsp[] endif
+4 ifphase = EXPIRATION then rrunPCVExp[] endif
+5 endpar
+6rule rrunPCVInsp =
+7 par
+8 ifnot stopVentilation then
+9 ifstopRequested then stopVentilation := true endif
+10 endif
+11 ifexpired(timerInspirationDurPCV) then
+12 par
+13 ifrespirationMode = PCV then
+14 r PCVStartExp[] endif
+15 ifrespirationMode = PSV then
+16 par
+17 state := PSV STATE
+18 r PSVStartExp[]
+19 endpar
+20 endif
+21 endpar
+22 endif
+23 endpar
+24 rule rrunPCVExp =
+25 ifstopVentilation then rstopVent[]
+26 else if stopRequested then rstopVent[]
+27 else if expired(timerExpirationDurPCV) then
+28 r PCVStartInsp[]
+29 endif endif endif
+30 rule rPCVStartInsp =
+31 par
+32 phase := EXPIRATION
+33 iValve := CLOSED
+34 oValve := OPEN
+35 r reset timer[timerInspirationDurPCV]
+36 endpar
+Code 2: MVMController01 PCVrule rrunPSV =
+par
+ifphase = INSPIRATION then rrunPSVInsp[] endif
+ifphase = EXPIRATION then rrunPSVExp[] endif
+endpar
+rule rrunPSVInsp =
+par
+ifnot stopVentilation then
+ifstopRequested then stopVentilation := true endif
+endif
+if(expired(timerMinInspTimePSV) and ﬂowDropPSV)
+or expired(timerMaxInspTimePSV) then
+rPSVStartExp[]
+endif
+endpar
+rule rrunPSVExp =
+ifstopVentilation then rstopVent[]
+else if stopRequested then rstopVent[]
+else if expired(timerMinExpTimePSV) then
+par
+ifrespirationMode = PCV then
+par
+state := PCV STATE
+rPCVStartInsp[]
+endpar
+endif
+ifrespirationMode = PSV then rPSVStartInsp[] endif
+endpar endif endif endif
+rule rPSVStartInsp =
+par
+phase := EXPIRATION
+iValve := CLOSED
+oValve := OPEN
+rreset timer[timerMinExpTimePSV]
+rreset timer[timerMaxInspTimePSV]
+endpar
+Code 3: MVMController01 PSV
+expiration phase, input valve is open and output valve is closed when it is in inspiration phase.
+Model validation. While modeling the ventilator, we have performed validation activities: animation
+(simulation traces), model review, and validation. An example of animation is reported in Fig. 3, where
+the ventilator, after performing startup and self-test, is in the ventilation off state. As expected, the input
+valve is closed and the output valve is opened. When the start PCV command is sent to the ventilator,
+the PCV mode starts from the inspiration phase, and the valves are moved to the expected position: the
+input valve is opened and the output valve is closed. After the inspiration duration, the ventilator is in
+the expiration phase, the input valve is closed while the output valve is opened.
+For the validation phase, we have written scenarios to check, whenever it is needed, that the desired
+behavior is captured by the model. Code 4 reports a scenario where at each step of the machine we
+check the ventilator state ( check state ) and the position of the input ( check iValve ) and output ( check
+oValve ) valves, given the inputs received ( set).
+Model veriﬁcation. Using the model checker, we have veriﬁed the following safety properties:
+• Valves are never both open or closed at the same time:
+
+--- Page 8 ---
+20 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+Figure 3: PCV animation example
+check state = STARTUP;
+setstartupEnded := true;
+step
+check state = SELFTEST;
+setselfTestPassed := true;
+step
+check state = VENTILATIONOFF;
+setstartVentilation := true;
+setrespirationMode := PCV;
+stepcheck state = PCV STATE;
+check oValve = CLOSED;
+check phase = INSPIRATION;
+check iValve = OPEN;
+step
+check state = PCV STATE;
+check oValve = CLOSED;
+check phase = INSPIRATION;
+check iValve = OPEN;
+stepcheck state = PCV STATE;
+check oValve = OPEN;
+check phase = EXPIRATION;
+check iValve = CLOSED;
+step
+check state = PCV STATE;
+check oValve = OPEN;
+check phase = EXPIRATION;
+check iValve = CLOSED;
+check stopVentilation = false;
+Code 4: PCV scenario example
+LTLSPEC not f(iValve=oValve)
+• When ventilation is off, the output valve is open and the input valve is closed
+LTLSPEC g(state=VENTILATIONOFF implies (iValve=CLOSED and oValve=OPEN))
+These two properties are crucial for the safety of the ventilator. The former guarantees that the patient
+can not choke, while the latter assures that the system is fail-safe since, when the ventilator is off, the
+relief valve allows the patient to breathe.
+4.3 Third model: MVMController02
+At the end of the inspiration phase, the physician can perform an inspiratory pause or recruitment ma-
+neuver, and the expiratory pause is allowed after the expiration phase. This has been modeled as shown
+in Code 5 for PCV mode and Code 6 for PSV mode, which respectively extend the behavior of the
+MVMController01 as shown in Code 2 and Code 3.
+After inspiration, if an inspiratory pause is required (monitored function cmdInPause holds, Code 5
+line 11 and Code 6 line 10) the valves are both closed for the entire pause duration. If inspiratory pause
+is not required, the doctor can select the recruitment maneuver (by setting cmdRm , Code 5 line 14 and
+Code 6 line 11) and the lungs are ﬁlled with oxygen and medical air.
+An expiratory pause can be performed upon the doctor’s request after the expiration phase (monitored
+function cmdExPause holds, Code 5 line 29, and Code 6 line 25).
+In the expiratory and inspiratory pause states, the input and output valves are both closed, while in
+the recruitment maneuver the output valve is closed and the input valve is opened to allow the air ﬂowing
+
+--- Page 9 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 21
+1rule rrunPCV =
+2 par ...
+3 ifphase = INPAUSE then rrunInPause[] endif
+4 ifphase = RM then rrunRm[] endif
+5 ifphase = EXPAUSE then rrunExPause[] endif
+6 endpar
+7rule rrunPCVInsp = ...
+8 ifexpired(timerInspirationDurPCV) then
+9 par
+10 ifrespirationMode = PCV then
+11 ifcmdInPause then
+12 r InPause[]
+13 else
+14 ifcmdRm then rrm[]
+15 elserPCVStartExp[]
+16 endif
+17 endif endif
+18 ifrespirationMode = PSV then
+19 par
+20 state := PSV STATE
+21 r PSVStartExp[]
+22 r resetApneaBackup[]
+23 endpar
+24 endif
+25 endpar
+26 endif ...
+27 rule rrunPCVExp = ...
+28 ifexpired(timerExpirationDurPCV) then
+29 ifcmdExPause then
+30 r exPause[]
+31 else
+32 r PCVStartInsp[]
+33 endif
+34 endif ...
+Code 5: MVMController02 PCVrule rrunPSV =
+par ...
+ifphase = INPAUSE then rrunInPause[] endif
+ifphase = RM then rrunRm[] endif
+ifphase = EXPAUSE then rrunExPause[] endif
+endpar
+rule rrunPSVInsp = ...
+if(expired(timerMinInspTimePSV) and ﬂowDropPSV)
+or expired(timerMaxInspTimePSV) then
+ifcmdInPause then rInPause[]
+else if cmdRm then rrm[]
+elserPSVStartExp[] endif endif
+endif ...
+rule rrunPSVExp =...
+ifexpired(timerApneaLag) then rrunApnea[]
+else if expired(timerMinExpTimePSV) then
+par
+ifrespirationMode = PCV then
+par
+state := PCV STATE
+rPCVStartInsp[]
+endpar
+endif
+ifrespirationMode = PSV then
+ifcmdExPause then rExPause[] endif
+endif
+endpar
+endif endif ...
+rule rrunApnea =
+par
+state := PCV STATE
+rPCVStartInsp[]
+apneaBackupMode := true
+endpar
+Code 6: MVMController02 PSV
+in the alveoli. Moreover, as shown in Code 6, when PSV is running and the ventilator does not detect a
+new breath within apnea lag (timer timerApneaLag expires, line 15), the ventilator automatically changes
+to PCV mode starting from the inspiration phase (line 32).
+Model validation and veriﬁcation. Model validation activities have been performed also at this level.
+Considering the properties veriﬁed in the previous reﬁnement step, the property that states “valves are
+never closed at the same time” does not hold anymore. Indeed, when the ventilator is in pause the valves
+are both closed as guaranteed by this property:
+LTLSPEC g(((phase=INPAUSE or phase=EXPAUSE) and (state = PCV STATE or state = PSV STATE)) implies
+(iValve=CLOSED and oValve=CLOSED))
+To ensure that the valves are never both closed outside inspiratory and expiratory pause, we have veriﬁed
+the following property, in which valves are both closed if the ventilator is not in inspiration, expiration,
+recruitment maneuver, ventilation off, startup, or selftest.
+LTLSPEC g((iValve=CLOSED and oValve=CLOSED) implies ((not ((phase=INSPIRATION or
+phase=EXPIRATION or phase=RM) and (state = PCV STATE or state = PSV STATE)))) or
+(not (state = VENTILATIONOFF or state = STARTUP or state = SELFTEST)))
+
+--- Page 10 ---
+22 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+1rule rrunPCVInsp =
+2 ...
+3 ifexpired(timerInspirationDurPCV) then
+4 ...
+5 else if pawGTMaxPinsp then
+6 r PCVStartExp[]
+7 endif endif
+8rule rrunPCVExp =
+9 ...
+10 ifexpired(timerExpirationDurPCV) then
+11 ...
+12 else if expired(timerTriggerWindowDelay) and dropPAW ITSthen
+13 r PCVStartInsp[]
+14 endif endif ...
+Code 7: MVMController03 PCVrule rrunPSVInsp =
+...
+if(expired(timerMinInspTimePSV) and ﬂowDropPSV) or
+expired(timerMaxInspTimePSV) then
+...
+else if pawGTMaxPinsp then
+rPCVStartExp[]
+endif endif
+rule rrunPSVExp =
+...
+ifexpired(timerTriggerWindowDelay) and dropPAW ITSthen
+rPSVStartInsp[]
+else if expired(timerApneaLag) then
+...
+Code 8: MVMController03 PSV
+4.4 Fourth model: MVMController03
+In the last model, we have introduced the transition from inspiration to expiration and vice versa de-
+pending on the pressure changes due to spontaneous breathing. The new behavior has been modeled by
+extending the rules rrunPCVInsp andrrunPCVExp as shown in Code 7, and rules rrunPSVInsp and
+rrunPSVExp as shown in Code 8.
+When the ventilator is in expiration (Code 7 line 8 and Code 8 line 9) and it detects after an instant of
+time (a trigger window here modeled as the expiration of the timer timerTriggerWindowDelay ) a sudden
+drop in pressure below the inhale trigger sensitivity threshold (monitored function dropPAW ITSholds,
+Code 7 line 13 and Code 8 line 11), the ventilator directly moves to the inspiration phase.
+The transition from inspiration to expiration is automatically performed when the pressure goes be-
+yond the maximum threshold set by the doctor (monitored function pawGTMaxPinsp holds, Code 7
+line 5 and Code 8 line 6). At this third reﬁnement level, we have performed the validation and veriﬁca-
+tion activities as done for the previous levels.
+5 C++ automatic code generation and unit testing
+After having modeled the mechanical ventilator controller with AsmetaL and veriﬁed the speciﬁca-
+tion, we have automatically generated the C ++code using the Asm2C ++tool starting from the last
+model, MVMController03.asm . The tool generates two different ﬁles, MVMController03.h andMVM-
+Controller03.cpp , which contain the translation of the ASM model as a C ++class. During the C ++code
+generation, each ASM rule is translated into a class method. An example of the content of the MVMCon-
+troller03.cpp ﬁle is reported in Code 9, which contains the C ++translation of the two rules previously
+shown in Code 8.
+Besides the source code implementing the ASM in C ++, we have automatically generated the unit
+tests in C ++for that code. The automatic test generation is performed by the ATGT tool, which can exploit
+both the counterexamples given by the model checker and random traces generated by the ASMETA
+simulator. ATGT produces abstract tests as sequences of ASM states. These tests are then concretized
+using the Catch2 framework3and used for performing unit testing on the C ++code (see Code 10).
+Each test contains the declaration of the object under test (the mvmcontroller03 in our case). Then, the
+3https://github.com/catchorg/Catch2
+
+--- Page 11 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 23
+1 [...]
+2void MVMController03::r runPCVInsp() f
+3 if(!stopVentilation[0]) f...g
+4 if(expired(timerInspirationDurPCV)) f
+5 if((respirationMode == PCV)) f
+6 if(cmdInPause) f
+7 r InPause();
+8 gelse if (cmdRm) f
+9 r rm();
+10 gelsef
+11 r PCVStartExp();
+12 g
+13 g
+14 gelse if (pawGTMaxPinsp)
+15 r PCVStartExp();
+16 gvoid MVMController03::r runPCVExp() f
+if(stopVentilation[0]) f
+rstopVent();
+gelse if (stopRequested) f
+rstopVent();
+gelse if (expired(timerExpirationDurPCV)) f
+if(cmdExPause) f
+rexPause();
+gelsef
+rPCVStartInsp();
+g
+gelse if (expired(timerTriggerWindowDelay) & dropPAW ITS)f
+rPCVStartInsp();
+g
+g
+[...]
+Code 9: Example of the MVMController03.cpp ﬁle
+[...]
+TEST CASE ( ”my test0”, ”my test0”)f
+// instance of the SUT
+MVMController03 mvmcontroller03;
+// init controlled with monitored term
+mvmcontroller03.initControlledWithMonitored();
+// check controlled variables
+REQUIRE (mvmcontroller03.state[0] == STARTUP);
+// set monitored variables
+mvmcontroller03.startupEnded = true;
+mvmcontroller03.mCurrTimeSecs=1;// call main rule
+mvmcontroller03.r Main();
+mvmcontroller03.ﬁreUpdateSet();
+// check controlled variables
+REQUIRE (mvmcontroller03.state[0] == SELFTEST);
+// set monitored variables
+mvmcontroller03.mCurrTimeSecs=2;
+// call main rule
+mvmcontroller03.r Main();
+mvmcontroller03.ﬁreUpdateSet();
+[...]g
+Code 10: Example of a Catch2 test case
+following steps are repeated: (I) the monitored functions are set (such as startupEnded in Code 10),
+(II) the possible controlled functions, which need to be initialized to the same value of the monitored
+ones, are set using the initControlledWithMonitored() method, (III) the main rule rMain() is executed,
+(IV) the update set is ﬁred using the ﬁreUpdateSet() method, (V) the values of controlled functions are
+checked against the expected ones (for instance, state in Code 10). For the MVM controller, the testing
+process requires the simulation of the time as well: the time is represented as a monitored function
+whose value is incremented by one second at each step. As shown in Code 10, mCurrTimeSecs takes
+value initially 1 and is then incremented by 1 at each step.
+In this case study, we have used the random test generation based on the use of the simulator. The
+user can conﬁgure the test generation process by choosing the number of tests to be generated and the
+number of steps each. We have generated 50 tests of 50 steps each and we have veriﬁed the compliance
+of the C ++code with the MVMController03.asm model. We have measured the code coverage and found
+that with the automatically generated tests we have covered 100% of code in terms of instructions of the
+MVMController03.cpp andMVMController03.h classes generated from the model. We have investigated
+why we have been able to completely cover the generated code and found that the tests, although they
+are randomly generated, cover every possible ASM transition, and the tool Asm2C ++does not generate
+dead code.
+
+--- Page 12 ---
+24 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+Figure 4: Arduino code generation process
+f
+”arduinoVersion”: ”UNO”,
+”stepTime”: 0,
+”bindings”: [
+f
+”mode”: ”DIGITALOUT”,
+”function”: ”iValve”,
+”pin”: ”D8”
+g,f
+”mode”: ”DIGITALOUT”,
+”function”: ”oValve”,
+”pin”: ”D7”
+g,f
+”mode”: ”DIGITALIN”,
+”function”: ”startupEnded”,
+”pin”: ”A5”
+g,f
+”mode”: ”DIGITALIN”,
+”function”: ”selfTestPassed”,
+”pin”: ”A4”
+g,
+[...]
+g
+Code 11: Example of the a2c conﬁguration ﬁle
+6 Code deployment on Arduino
+Exploiting the Asm2C ++tool, ASMETA allows the deployment of the C ++code as an Arduino sketch
+too [15]. The entire process is depicted in Fig. 4. After the generation of the .hand.cpp ﬁles as
+explained in Sect. 5, Asm2C ++automatically generates an .a2c ﬁle. This conﬁguration ﬁle is used
+for binding each ASM function to an Arduino physical pin. It must be completed by the user who has
+to insert the correspondence between Arduino physical pins and functions deﬁned in the ASM model.
+For example, in Code 11, input and output valves ( iValve andoValve ) are mapped on digital output pins,
+while the monitored functions are used to set if the current phase is ﬁnished or not (e.g. startupEnded
+andselfTestPassed ) are read using digital input pins.
+Having completed the .a2c ﬁle with the correct mappings, Asm2C ++generates two additional ﬁles:
+thehw.cpp and the .ino . The former (see Code 12) implements the hardware-speciﬁc methods, i.e.
+those related to the reading of inputs ( getInputs() method in Code 12) and writing of outputs ( setOutputs()
+method in Code 12) through physical pins. The latter (see Code 13), contains the execution policy to
+run the ASM on Arduino and performs cyclically the following operations: (i) getInputs() reads the
+inputs through digital and analog pins, (ii) rMain() , represents the main rule of the ASM and executes
+all the rules, (iii) setOutputs() , sends the output values through the physical Arduino pins to the output
+components, (iv) ﬁreUpdateSet() , updates the values of controlled functions to be used in the next state.
+When modeling time we have exploited the TimeLibrary for time management. However, Arduino
+has very limited support for time and timers. We decided to use the millis instruction to implement
+temporized operations. millis returns the number of milliseconds passed since the Arduino board
+began running the current program and we have translated all the operations over the timers in terms of
+this function. We have chosen the hardware to be used in our Arduino-based implementation of the
+simpliﬁed MVM as follows (see Fig. 5):
+• Arduino Uno, that executes the state machine;
+• 3 LEDs used to communicate the status of input and output valves and the apnea alarm; one 1602
+LCD display, which shows the current state;
+
+--- Page 13 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 25
+#include ”MVMController03.h”
+void MVMController03::getInputs() f
+startupEnded = (digitalRead(A5) == HIGH);
+selfTestPassed = (digitalRead(A4) == HIGH);
+[...]
+g
+void MVMController03::setOutputs() f
+if(iValve[0] != iValve[1]) f
+if(iValve == OPEN)
+digitalWrite(8, LOW);else
+digitalWrite(8, HIGH);
+g
+if(oValve[0] != oValve[1]) f
+if(oValve == OPEN)
+digitalWrite(7, LOW);
+else
+digitalWrite(7, HIGH);
+g
+[...]
+g
+Code 12: Extract of the hw.cpp ﬁle containing hardware-speciﬁc functions
+#include ”MVMController03.h”
+void setup() f
+pinMode(8, OUTPUT);
+// ... set all the other outputs
+pinMode(A2, INPUT);
+// ... set all the other inputs
+gMVMController03 mvmcontroller03;
+void loop() f
+mvmcontroller03.getInputs();
+mvmcontroller03.r Main();
+mvmcontroller03.setOutputs();
+mvmcontroller03.ﬁreUpdateSet();
+g
+Code 13: Example of the .ino ﬁle containing the implementation of the ASM execution
+• 9 buttons, which simulates all the monitored functions contained in the ASM, namely dropPAW -
+ITS,pawGTMaxPinsp ,cmdRm ,cmdInPause ,cmdExPause ,ﬂowDropPSV ,respirationMode ,sto-
+pRequested ,startupEnded ,selfTestPassed , and startVentilation . They represent both user inputs
+and external breathing events.
+One can play with the MVM on Arduino by pressing the buttons and observing the status of the
+MVM. However, as it is, it provides a very limited user interface. To enable a more meaningful user
+experience, we have developed a custom-made Java breathing simulator . It is based on a simple lung
+model [19] whose electrical equivalent circuit is shown in Fig. 7. The breathing simulator allows the
+simulation of different patients, by setting the right values for resistance and compliance of their lungs, it
+can provide the measure of the pressure and ﬂow of air in the patient lungs, and moreover, it can simulate
+events related to the patient’s breathing like a drop in the pressure when the patient starts. We connected
+the software simulator to the MVM on the Arduino using a serial port - so the MVM can communicate
+the status of the valves and therefore set the pressure of the ventilator and can read breathing events. An
+example of the breathing simulation is shown in Fig. 6.
+We have tested the Arduino version of the MVM and a video, showing the functioning in all the
+ventilation modes, can be found at the following link https://youtu.be/a3fhqLpYVMI .
+7 Discussion and Conclusions
+In this section, we try to address the concerns and answer the questions proposed by the organizers.
+We believe that applying ASMETA to a real case study, that has been successfully completed with our
+direct involvement but without the use of formal methods, can put us in the privileged position to better
+understand the strength and weaknesses points of ASMETA and what is still needed to make it applicable
+in the future. Regarding applicability , ASMETA has never been applied in industrial projects, but we
+have used it in industrial case studies provided in several contexts like in the medical sector [6, 13],
+automotive [8], and avionics [10] to name a few. Barriers to the wide adoption of a formal method do
+
+--- Page 14 ---
+26 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+Figure 5: The Arduino version of the MVM
+Figure 6: Example of the breathing simulation
+Figure 7: RC equivalent circuit of a human lung
+exist [20, 21] and thanks to this work we have a better vision of what we need to do in order to favor the
+use of ASMETA in an industrial setting.
+We have always given great importance to automation and our method is well supported by a set
+of tools (as explained in Sect. 2). In this case study, we did not suffer from the lack of a speciﬁc tool
+supporting a task. However, as explained below, our tools have different levels of maturity and sometimes
+the tool support has not been exhaustive.
+For this work, integration among tools and techniques has played an important role. We think that
+having a model on which several techniques can be applied, including V&V , testing, and code generation
+is crucial for the use in the context of critical systems. Some integration among ASMETA tools is still
+work-in-progress. For instance, the TimeLibrary is not directly supported by the test generator tool and
+the support for the model checker NuXmv is rather new and it has some problems.
+Another aspect to be considered is the integration of a formal approach into the engineering process.
+For MVM, as for some critical software lately [23], the software development process has been agile,
+with frequent changes in requirements that are then implemented in the code in a continuous integration
+way. ASMETA, as any Model-Driven Engineering approach, struggles in the integration with agile
+processes. For instance, direct modiﬁcations of the generated source code risk being lost if a change in
+the speciﬁcation is performed and a new version of the code is generated.
+For complex systems, modeling their entire behavior in one shot may be difﬁcult. Thus, with the
+ASMETA methodology , users can incrementally add details in models using the reﬁnement technique
+(see Sect. 4) or including already existing modules. Reﬁnement and modularity are exploitable also when
+deﬁning scenarios for model validation. We envision the application of a formal process only to core
+components of the entire system. In the case of the MVM ventilator, for example, only the controller has
+
+--- Page 15 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 27
+been modeled by using ASMETA and the code obtained automatically from the speciﬁcations. Although
+for other MVM components, like the alarm system, a formal methodology could be a good ﬁt, for
+other parts, such as graphical widgets or sensor drivers, formal speciﬁcations are possible but sometimes
+useless or even not suitable, especially if the source code is already provided or it can be reused (for
+instance for sensor drivers). In any case, the methodology must foresee a phase in which the whole
+code (the one obtained through formal speciﬁcation and the one handwritten) is integrated (and tested)
+for building the complete system. In terms of the hardware platform, Arduino is a good choice when it
+comes to developing prototypes. However, for the real medical device, it should be replaced with a more
+robust one (MVM actually embeds a microcontroller that is Arduino code compatible).
+One undoubted advantage regarding the usefulness of using a formal approach is that the certiﬁcation
+process, if required, is easier to complete. The main standard for medical software certiﬁcation to be
+considered is the IEC 62304 [1]. It does not prescribe a speciﬁc life cycle model but deﬁnes the process,
+activities, and tasks that the life cycle model has to follow.
+In [6], we have identiﬁed how ASMs can be used to satisfy the process and how the activities pre-
+scribed by the standard can be mapped to activities performed by using our formal approach. After
+requirements are captured by models, the veriﬁcation and validation activities are straightforward, and
+the desired system behavior is automatically transferred to the generated code. Moreover, the formal
+process allows for requirements traceability which is required by the certiﬁcation. Wrt the MVM agile
+process used for deploying the device and that required a huge effort to provide and guarantee require-
+ments traceability, here, the use of ASMETA formal approach makes traceability easier to demonstrate
+(e.g. by mapping requirements to rules). When it comes to the usefulness in terms of the rapidness of
+code development, with the ASMETA framework and following the process described in this paper, we
+have been able to obtain the ﬁnal code of the MVM controller in only a couple of days. However, one
+must consider that when modeling with ASMETA we already knew requirements, having contributed to
+the device development.
+One activity whose usefulness is sometimes questioned is the unit test generation. After all, if the
+code is automatically generated from models, is there any need to validate it with tests derived from
+the same speciﬁcation? We believe that there are at least three motivations: (i) the source code could
+be modiﬁed and the tests can check that the behavior as speciﬁed by the ASM is preserved; (ii) the
+translation from ASM to C ++itself must be validated, so unit tests check the conformance between the
+ASM and the C ++code; (iii) for certiﬁcation purposes, source code must come with a test suite that
+provides conﬁdence in its correctness.
+Over the years, we have strived to improve ASMETA usability [7] by developing it as a set of Eclipse
+plugins, and feedbacks from our students, as well as the application of the method to competitive case
+studies, have been the basics for further improvements and extensions. However, it remains an academic
+tool whose stability and maintenance cannot reach the level often required in an industrial setting (and
+this was one of the reasons why we decided not to use it during the real MVM development). Moreover,
+the improvements introduced in the years have made ASMETA similar to higher-level programming
+languages, as for other formal methods. Nevertheless, the pseudo-code style and freedom of abstrac-
+tion in ASMs allow for capturing of requirements at a very high-level of abstraction in a form that is
+understandable by the stakeholders.
+In conclusion, we have applied ASMETA to assemble a prototype of a system which we have con-
+tributed to develop and deploy in the recent past and we have been able to evaluate the feasibility of
+our formal process. Although we believe that there is still some work to be done in order to provide the
+necessary stability and maturity of the tools and of the process, we were able to carry on the development
+of the MVM controller from the requirement speciﬁcation to the code.
+
+--- Page 16 ---
+28 Developing a Prototype of a Mechanical Ventilator Controller from Reqs to Code with ASMETA
+References
+[1]IEC 62304 Medical device software — Software life cycle processes .
+[2] A. Abba et al. (2021): The novel Mechanical Ventilator Milano for the COVID-19 pandemic .Physics of
+Fluids 33(3), p. 037122, doi:10.1063/5.0044445.
+[3] Jean-Raymond Abrial (2006): Formal Methods in Industry: Achievements, Problems, Future , p. 761–768.
+Association for Computing Machinery, New York, NY , USA, doi:10.1145/1134285.1134406.
+[4] P. Arcaini, S. Bonfanti, A. Gargantini & E. Riccobene (2016): Visual Notation and Patterns for Abstract State
+Machines . In Paolo Milazzo, D ´aniel Varr ´o & Manuel Wimmer, editors: Software Technologies: Applications
+and Foundations: STAF 2016 Collocated Workshops: DataMod, GCM, HOFM, MELO, SEMS, VeryComp,
+Vienna Austria, July 4-8, 2016 , LNCS, Springer International Publishing, pp. 163–178, doi:10.1007/978-3-
+319-50230-4 12.
+[5] Paolo Arcaini, Andrea Bombarda, Silvia Bonfanti, Angelo Gargantini, Elvinia Riccobene & Patrizia Scan-
+durra (2021): The ASMETA Approach to Safety Assurance of Software Systems . In Alexander Raschke,
+Elvinia Riccobene & Klaus-Dieter Schewe, editors: Logic, Computation and Rigorous Methods: Essays
+Dedicated to Egon B ¨orger on the Occasion of His 75th Birthday , Springer International Publishing, Cham,
+pp. 215–238, doi:10.1007/978-3-030-76020-5 13.
+[6] Paolo Arcaini, Silvia Bonfanti, Angelo Gargantini, Atif Mashkoor & Elvinia Riccobene (2018): Integrating
+formal methods into medical software development: The ASM approach .Science of Computer Programming
+158, pp. 148–167, doi:10.1016/j.scico.2017.07.003.
+[7] Paolo Arcaini, Silvia Bonfanti, Angelo Gargantini, Elvinia Riccobene & Patrizia Scandurra (2020): Address-
+ing Usability in a Formal Development Environment . In: AFFORD 2019 - Workshop on Practical Formal
+Veriﬁcation for Software Dependability - workshop of FM 19 , Springer International Publishing, pp. 61–76,
+doi:10.1007/978-3-030-54994-7 6.
+[8] Paolo Arcaini, Silvia Bonfanti, Angelo Gargantini, Elvinia Riccobene & Patrizia Scandurra (2020): Mod-
+elling an Automotive Software-Intensive System with Adaptive Features Using ASMETA . In Alexander
+Raschke, Dominique M ´ery & Frank Houdek, editors: Rigorous State-Based Methods , Springer International
+Publishing, Cham, pp. 302–317, doi:10.1007/978-3-030-48077-6 25.
+[9] Paolo Arcaini, Angelo Gargantini & Elvinia Riccobene (2016): SMT-based automatic proof of ASM model
+reﬁnement . In Rocco De Nicola & Eva K ¨uhn, editors: Software Engineering and Formal Methods: 14th Inter-
+national Conference, SEFM 2016, Held as Part of STAF 2016, Vienna, Austria, July 4-8, 2016, Proceedings ,
+Lecture Notes in Computer Science, Springer International Publishing, Cham, pp. 253–269, doi:10.1007/978-
+3-319-41591-8 17.
+[10] Paolo Arcaini, Angelo Gargantini & Elvinia Riccobene (2017): Rigorous development process of a safety-
+critical system: from ASM models to Java code .International Journal on Software Tools for Technology
+Transfer 19(2), pp. 247–269, doi:10.1007/s10009-015-0394-x.
+[11] Paolo Arcaini, Angelo Gargantini, Elvinia Riccobene & Patrizia Scandurra (2011): A model-driven pro-
+cess for engineering a toolset for a formal method .Software: Practice and Experience 41, pp. 155–166,
+doi:10.1002/spe.1019.
+[12] ASMETA (ASM mETAmodeling) toolset .https://asmeta.github.io/ .
+[13] Andrea Bombarda, Silvia Bonfanti & Angelo Gargantini (2019): Developing Medical Devices from Abstract
+State Machines to Embedded Systems: A Smart Pill Box Case Study . In: Software Technology: Methods and
+Tools , Springer International Publishing, Cham, pp. 89–103, doi:10.1007/978-3-030-29852-4 7.
+[14] Andrea Bombarda, Silvia Bonfanti, Angelo Gargantini & Elvinia Riccobene (2021): Extending ASMETA
+with Time Features . In: Rigorous State-Based Methods , Springer International Publishing, pp. 105–111,
+doi:10.1007/978-3-030-77543-8 8.
+
+--- Page 17 ---
+A. Bombarda, S. Bonfanti, A. Gargantini & E. Riccobene 29
+[15] Silvia Bonfanti, Marco Carissoni, Angelo Gargantini & Atif Mashkoor (2017): Asm2C++: A Tool for Code
+Generation from Abstract State Machines to Arduino . In: Lecture Notes in Computer Science , Springer
+International Publishing, pp. 295–301, doi:10.1007/978-3-319-57288-8 21.
+[16] Silvia Bonfanti, Angelo Gargantini & Atif Mashkoor (2019): Design and validation of a C++ code gen-
+erator from Abstract State Machines speciﬁcations .Journal of Software: Evolution and Process 32(2),
+doi:10.1002/smr.2205.
+[17] Egon B ¨orger (2003): Abstract State Machines : a Method for High-Level System Design and Analysis .
+Springer Berlin Heidelberg, Berlin, Heidelberg, doi:10.1007/978-3-642-18216-7.
+[18] Egon B ¨orger & Alexander Raschke (2018): Modeling Companion for Software Practitioners . Springer Berlin
+Heidelberg, doi:10.1007/978-3-662-56641-1.
+[19] D. Campbell & J. Brown (1963): THE ELECTRICAL ANALOGUE OF LUNG .BJA: British Journal of
+Anaesthesia 35, pp. 684–692, doi:10.1093/bja/35.11.684.
+[20] Hubert Garavel, Maurice H. ter Beek & Jaco van de Pol (2020): The 2020 Expert Survey on Formal Methods .
+In Maurice H. ter Beek & Dejan Ni ˇckovi ´c, editors: Formal Methods for Industrial Critical Systems , Springer
+International Publishing, Cham, pp. 3–69, doi:10.1007/978-3-030-58298-2 1.
+[21] Mario Gleirscher & Diego Marmsoler (2020): Formal methods in dependable systems engineering: a survey
+of professionals from Europe and North America .Empirical Software Engineering 25(6), pp. 4473–4546,
+doi:10.1007/s10664-020-09836-5.
+[22] Maria Chiara Di Guardo, Elona Marku, Walter Marcello Bonivento, Manuel Castriotta, Fernando Ferroni,
+Cristiano Galbiati, Giuseppe Gorini & Michela Loi (2021): When nothing is certain, anything is possible:
+open innovation and lean approach at MVM .R&D Management , doi:10.1111/radm.12453.
+[23] Gibrail Islam & Tim Storer (2020): A case study of agile software development for safety-Critical systems
+projects .Reliability Engineering & System Safety 200, p. 106954, doi:10.1016/j.ress.2020.106954.
+[24] Nancy Leveson (2020): Are You Sure Your Software Will Not Kill Anyone? Commun. ACM 63(2), pp. 25–28,
+doi:10.1145/3376127.
+[25] Robyn R. Lutz (2000): Software Engineering for Safety: A Roadmap . In: Proceedings of the Conference
+on The Future of Software Engineering , ICSE ’00, Association for Computing Machinery, New York, NY ,
+USA, pp. 213–226, doi:10.1145/336512.336556.
+[26] Rodney N Westhorpe & C Ball (2012): The Manley Ventilator .Anaesthesia and intensive care 40(5), pp.
+749–750, doi:10.1177/0310057X1204000501.
