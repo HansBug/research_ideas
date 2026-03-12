@@ -1,0 +1,451 @@
+--- Page 1 ---
+Towards using Few-Shot Prompt Learning for
+Automating Model Completion
+Meriem Ben Chaaben
+DIRO, Université de Montréal
+Montréal, Canada
+meriem.ben.chaaben@umontreal.caLola Burgueño
+University of Malaga
+Malaga, Spain
+lolaburgueno@uma.esHouari Sahraoui
+DIRO, Université de Montréal
+Montréal, Canada
+sahraouh@iro.umontreal.ca
+Abstract —We propose a simple yet a novel approach to
+improve completion in domain modeling activities. Our approach
+exploits the power of large language models by using few-shot
+prompt learning without the need to train or ﬁne-tune those
+models with large datasets that are scarce in this ﬁeld. We
+implemented our approach and tested it on the completion of
+static and dynamic domain diagrams. Our initial evaluation
+shows that such an approach is effective and can be integrated
+in different ways during the modeling activities.
+Index Terms —language models, few-shot learning, prompt
+learning, domain modeling, model completion.
+I. I NTRODUCTION AND MOTIVATION
+Recent developments in deep learning-based language mod-
+els (LMs) open a world of possibilities to automate and assist
+software specialists in software development and maintenance
+tasks. At the implementation level, large code bases allow us
+to leverage these language models by pre-training them to have
+good code representations and by ﬁne-tuning them on software
+engineering speciﬁc tasks.
+These opportunities are, however, limited when dealing
+with early software development phases such as analysis and
+design. Datasets are scarce, and when available, they are not
+large enough to pre-train or ﬁne-tune deep-learning models.
+For software modeling activities, several contributions were
+proposed to circumvent the lack of large datasets. The goal of
+these research contributions is to recommend domain concepts,
+their features, and relationships during modeling activities1.
+Di Rocco et al. [1] proposed an approach based on graph
+kernels that only need a small-size dataset for training. Al-
+though the results were promising, the quality of the recom-
+mended elements remains too low to be used in real settings.
+Similarly, Weyssow et al. [2], used such model/metamodel
+datasets to train an LSTM neural network. Here again, the
+authors obtained limited results, especially when applied to
+the iterative construction of a metamodel. From another per-
+spective, Capuano et al. [3], exploited the available large
+code bases to reverse-engineering a set of models to train
+a RoBERTa language model. The results are acceptable, but
+the reverse-engineered models on which the authors had to
+1Note that “deep-learning/language model” and “software model” do not
+refer to the same type of model. To avoid confusion, in this work, each time
+we refer to a deep-learning or language model (LM), we always refer to it as
+such, and never as “model” alone.rely for training led to suggestions that reﬂect implementation
+aspects rather than the modeled domains. With the goal of
+exploiting knowledge captured in general and speciﬁc natural-
+language documents, Burgueño et al. [4] used these documents
+to train language models to suggest model completions. We
+believe that exploiting natural-language sources is a good idea
+to overcome the scarcity of the data to exploit deep-learning
+to assist in modeling activities. However, this work requires to
+train a language model from scratch for each speciﬁc domain,
+which remains a challenging problem in many scenarios.
+In this paper, we propose the novel idea of exploiting pow-
+erful left-to-right large language models (LLMs). To this end,
+we use few-shot prompt learning, which allows us to exploit
+these LLMs without having to train or ﬁne-tune them on a
+speciﬁc domain or task, and which has proven its efﬁciency
+to various natural language processing tasks [5]. For example,
+if the goal is to use a LLM to generate the name of the capital
+of a given country, we need to prepare a prompt where we ﬁrst
+provide the LM a description on how to reply to our queries,
+then we add relevant labeled samples such as two countries
+and their corresponding capitals (two shots). Finally, we give
+the country for which we want the LM to provide its capital,
+i.e., autocomplete. Figure 1 gives an overview on how to use
+LLM with prompt learning, with the example of countries and
+capitals. Note that apart from being an autocomplete engine,
+these language models are also pattern matching and pattern
+generation engines. This is why we need to provide not only
+information about the task to perform but also the pattern
+that we want them to replicate. As our example shows, the
+generated text could include further information. For instance,
+Japan => Tokyo has also been generated, which is not of
+our interest. To deal with this behaviour, properly transforming
+queries into prompts and results into modeling elements is an
+essential part of the approach.
+We speciﬁcally take advantage of GPT-3, which is one of
+the most powerful LM (which contains 175 billion parame-
+ters [6]), to represent most of the existing general concepts
+to support software specialists when modeling. To adapt the
+semantics of the general concepts represented in GPT-3 to
+the semantics of modeling formalisms, we use two semantic
+mappings: one that takes the model under construction (i.e.,
+the input to our system) and builds the prompt, and another one
+that obtains model auto-completion suggestions from the textarXiv:2212.03404v1  [cs.SE]  7 Dec 2022
+
+--- Page 2 ---
+Fig. 1. Explanatory example
+produced by the language model. These semantic mappings
+rely heavily on the targeted modeling formalisms.
+In this new-ideas paper, we illustrate our approach with two
+examples coming from two categories of modeling languages:
+static models, i.e., UML class diagrams; and dynamic models,
+i.e., UML activity diagrams. We propose an initial implemen-
+tation of this idea and a preliminary evaluation.
+II. P ROMPT -LEARNING FOR MODEL COMPLETION
+A. Approach Overview
+The main goal of our approach is to complete a model
+under-construction (a.k.a. partial model) by suggesting related
+elements. Given a partial model, we apply a semantic mapping,
+i.e, we construct a text representation that will serve as input
+to GPT-3. We query GPT-3 and it returns a textual output that
+follows a certain pattern. Then, we ﬁnish by applying another
+semantic mapping—in particular, a parsing—to the obtained
+text and extracting relevant model elements by applying suit-
+able text transformations.
+B. Static diagram completion
+Using static diagrams for domain modeling usually consists
+of representing the domain entities, their properties or features
+and their relationships. For example, the UML class diagrams
+shown in Fig. 2 is a partial description of a banking system.
+The upper part represents the partial domain model that is
+already deﬁned by the user.
+Fig. 2. Example of domain model: Bank class diagram
+We focus ﬁrst on how we design our completion system to
+suggest entities, i.e., new classes. We create the prompt using
+some existing diagrams of unrelated domains. From these
+diagrams, we extract pairs of related classes and, to followa certain pattern where we introduce the relationship between
+two related elements, we represent them between brackets as
+shown in Fig. 3. These are the few-shots that we provide.
+Then, we build a query from the partial domain model. To do
+this, we select between 2 and 4 pairs of related classes, put
+the classes names in brackets and add them to the prompt.
+In Fig. 3, under “Generated text” we can observe the text
+that has been generated for our example when the model
+has been hyper-parameterized with a temperature value of 0.7
+which is a setting to control the randomness and creativity of
+the model’s predictions, and a maximum number of tokens
+of 20. Furthermore, our engine follows a ranking strategy to
+suggest new elements. We query GPT-3 several times with
+different prompts, where all the prompt have the same shots
+but different queries, each query containing a different subset
+of model elements from the partial model. As a result, we
+obtain for each prompt a set of suggested concepts. Then, all
+the obtained concepts from the different prompts are ranked
+by its frequency from higher to lower. Only those concepts
+with higher frequency are considered.
+Prompt:
+Generate related concepts:
+hospital: [Nurse, Staff], [Department, Room], [Nurse,patient],
+[Nurse,department]
+reservationSystem: [SpeciﬁcFlight, GeneralFlight], [Airport, City],
+[passenger, plane], [trip, passenger], ...
+...(Three more shots)
+Bank: [bank, client], [client, clientcollection]
+Generated text:
+Bank: [bank, client], [client, clientcollection], [loan, clientcollec-
+tion], [loan,deposit],[account, balance], [account, transaction]
+Fig. 3. Prompt and generated text for class names and association prediction
+to complete the Class Diagram of Fig. 2
+We apply a string-searching algorithm on the generated text
+to extract relevant class names and the association that exist
+between them; we also remove spelling errors and noisy data
+such as digits, which are usually not part of domain models. In
+our example, after this step, we obtain that potential missing
+classes (and associations between them) are Transaction,
+Balance,Deposit, Account andLoan . These classes
+are suggested to the user as shown in the bottom part of Fig. 2
+with a white color. One can notice that for this example all
+the suggestions are closely related to the banking domain that
+is being modeled.
+Given a partial model, to generate prompts for attribute
+completion, we concatenate the package name and existing
+class names with their attributes in brackets, ending with the
+class for which we are ﬁnding potential attributes. Like we do
+for classes, we use a frequency based ranking function that
+takes as input all the text generated by GPT-3 for different
+prompts. Then, we generate attribute suggestions using those
+concepts which are higher in the ranking.
+Figure 4 illustrates the prompt and resulting text for the class
+Client of Fig. 2. We have obtained name, address and
+idas potential relevant attributes.
+
+--- Page 3 ---
+Prompt:
+Generate missing attributes for each class in this class diagram:
+package company: employee: [id, name, lastName, occupation];
+manager: [id, name, department]; company: [name, holding] =>
+employee: [id, name, lastName, occupation, department, experience,
+revenue]; manager: [id, name, department, team, revenue]; company:
+[name, holding, address, website]
+package bank: bank: [id,name]; clientCollection: [amount]; client:
+[card]
+Generated Text:
+package bank: bank: [id, name]; clientCollection: [amount]; client:
+[card, name, address, id]
+Fig. 4. Prompt and generated text for attribute completion.
+Regarding the suggestion of association names, we design
+our prompt as follows; we introduce a few shots corresponding
+to pairs of classes and their association names that we select
+from unrelated diagrams. Then, we add both class names
+whose association name we are aiming suggest.
+There are different ways of using the prompts for static
+diagram completion; either at each iteration of the modeling
+activity, one prompt at a time, or after the designer has
+completed his diagram to suggest potentially missing elements,
+with the combination of the results of many prompts.
+C. Dynamic diagram completion
+Since structural diagrams do not deﬁne sequences, any
+fragment can be used to generate the prompts to complete
+a diagram. In the case of dynamic/behavioral diagrams, such
+as activity diagrams [7], there are strong precedence/sequence
+constraints to consider (e.g., to represent time), as it can be
+seen in Fig 6. Hence, to apply prompt learning, we need
+to deﬁne shots and prompts in a way that preserves those
+constraints.
+Once again, we need to map the semantics of activity
+diagrams to a pattern that a LLM such as GPT-3 is able to
+understand and for which it provides meaningful results. To
+deal with precedence constraints, we designed our prompts
+and parameterised them to predict the next actions in a partial
+sequence. This implies to set the max token hyperparameter
+to a relatively low number—in our experiments it has been set
+to 50. To build the prompts, we deﬁned simple transformation
+rules to match the elements of the activity diagram to the
+appropriate keywords that conform the prompt that we send
+to GPT-3 as Fig. 5 shows. Note that so far, we have only
+focused on a subset of the activity diagram language.
+Fig. 5. Semantic Mapping for Activity DiagramsTo illustrate our idea, we introduce the example of an online
+shopping workﬂow. Fig 6 shows, in the upper part, the partial
+activity diagram that is already deﬁned by the user.
+To create our prompt, we design 3 shots using real activity
+diagrams extracted from a public repository [8], which have
+been mapped using the rules described above. Fig 7 represents
+the prompt for this example and the GPT-3 generated text.
+Fig. 6. Example of activity diagram: Online Shopping
+Prompt:
+Complete the workﬂow:
+Ticket Vending Machine: start => request trip info => provide trip
+info => process trip info => payment request => provide payment
+Info => process payment => pay with card / pay with cash => if
+with card fauthorize card payment g=>end.
+...(two more shots)
+Online Shopping: start => search item => found / not found => if
+found fview item => buy / not to buy g}=>
+Generated Text:
+ifbuyfselect item => add to cart => checkout=> provide shipping
+information => process payment => order placed => endgelse
+fcontinue shopping => endg}elsefsearch g.
+Fig. 7. Prompt and generated text for the Activity Diagram of Fig. 6
+After mapping the generated text into model elements, the
+elements that Fig. 6 shows in white represent the comple-
+tion elements that we obtain. The resulting completions are
+considered good from two different points of view. From a
+conceptual point of view, it ﬁts perfectly the domain being
+modeled; and from a syntactic point of view, the completion
+suggested comply with the activity diagram syntax.
+III. P RELIMINARY EVALUATION AND DISCUSSION
+The work presented in this NIER paper is an initial attempt
+to improve the completion of software models. At the current
+stage of our research, we have evaluated our idea on domain
+models represented as class diagrams from a public repository.
+A. Setup
+We consider 30 domain models, selected manually from
+the dataset ModelSet [9]. In our experiments, we have used
+the GPT-3 model text-davinci-002 . Regarding the hyper-
+parameters, we have set the temperature to a value between
+0.70–0.90, and the maximum number of tokens to 20 when
+generating suggestions for new classes (and their associations)
+and new attributes, and to 1 when suggesting association
+
+--- Page 4 ---
+names. Furthermore, we have automated the completion pro-
+cess by automatically simulating the behaviour of a designer
+using our proof of concept tool. A replication package with
+the code of our tool and experiments can be found on our
+Github repository [10].
+1) Class names suggestions: To evaluate whether our ap-
+proach leads to an effective suggestion of new classes, from
+each model Mi, we take 20% of its elements as the already
+deﬁned partial diagram M0
+iand we simulated an incremental
+design process starting from M0
+i. First, we performed a ﬁrst
+round (R1) of completion suggestions, then we validated
+the suggested results manually adding to the model under-
+construction Mi’those which were semantically equivalent to
+those elements in Mi. The accepted elements were included in
+the partial model M0
+i, resulting in the partial model M00
+i. Then,
+we performed a similar second round (R2) starting from the
+partial model M00
+i.
+2) Attributes suggestion: To assess the effectiveness of our
+approach when suggesting new attributes within a class, we
+have selected randomly 212 classes from our dataset, have
+removed 75% of their attributes and have generated attribute
+completions for them. Note that this means that for classes
+with three or less attributes, we removed all of them, which
+was the case for most of the classes. Once we obtained
+the completion suggestions from our engine, we manually
+approved those which are either exact matches or semantically
+equivalent elements to those in the ground-truth model.
+3) Association names suggestion: We ﬁnally evaluate
+whether our approach is able to suggest meaningful association
+names. We extract from our dataset 40 pairs of concepts,
+where each pair contains the names of two associated classes.
+Then, we query 3 times our engine to suggest a name for
+each association, each attempt with the same prompt but a
+different temperature. We validated manually the output of
+our engine and approved those which are either exact matches
+or semantically equivalent to those in the ground-truth model.
+B. Results
+1) Class names suggestion: As explained previously, we
+collect results for two successive steps. Table III-B1 sum-
+marizes the precision and recall metrics for both steps. We
+observed that the Recall improved from R1 to R2 while the
+Precision decreased slightly. This is due to the fact that the
+number of correctly suggested elements increases from one
+round to the next, while the number of incorrect elements
+increases too.
+Precision R1 Precision R2 Recall R1 Recall R2
+avg 0.57 0.56 0.29 0.45
+std 0.26 0.24 0.18 0.25
+TABLE I
+RESULTS EVALUATING CLASS NAMES PREDICTION
+We also observed that domain models that resulted in the
+best results (recall 0.8 to 1) were addressing very common
+domain/topics used by humans in natural language such as
+Bank, University andlibrary system. Yet, domains
+with noisy information and non understandable data, such asa model whose package name was AUni , resulted into poor
+results (0 to 0.1 recall).
+2) Attributes suggestion: For attribute suggestions, we only
+evaluate the recall because most of the classes in these selected
+domain models contain a very few number of attributes, thus
+our interest is to check whether we are able to obtain these
+missing attributes. The average recall is 0.7 with a standard
+deviation is 0.4, which can be considered a promising result.
+3) Association names suggestion: An interesting metric to
+evaluate these suggestions is the accuracy, deﬁned as the
+ratio of correctly predicted association names w.r.t. the total
+suggestions. This is, unlike before, we are no longer interested
+in recognizing the relevant elements, but checking how many
+times the engine was correct. We have obtained an accuracy
+of0.64 , which also seems promising.
+IV. C ONCLUSION AND DISCUSSION
+We proposed a novel approach based on few-shot prompt
+learning to enable large language models to solve completion
+tasks in modeling activities. We reformulate model comple-
+tion as a semantic mapping problem that consists, ﬁrstly, in
+transforming modeling formalism elements into meaningful
+patterns of sequences of tokens to create prompts with learning
+shots. Then, we exploit the ability of LLMs to complete
+partial sequences following the speciﬁed patterns to recover
+elements that can be used for the completion. Those elements
+are transformed into constructs conforming to the modeling
+language syntax and suggested to the designers. Although
+many research contributions were proposed to solve model
+completion problems, we do believe that none of them can
+be effectively used in a real setting, because of the resources
+needed, i.e., large training datasets, and the limited perfor-
+mance they offer. We do believe, however, that our approach
+can be effective when modeling both static and dynamic
+diagrams for two main reasons. Firstly, it does not require
+to pre-train or ﬁne tune language models on speciﬁc tasks
+or domain. Secondly, the used LLMs are trained on a huge
+volume of data, which makes it generalizable to many domains
+and different concept natures and relationships.
+Although our approach shows promising results, it is still
+a ﬁrst attempt and there is room for improvement. Indeed,
+when deﬁning a prompt, the elements of the already-deﬁned
+partial diagrams have a great inﬂuence on the accuracy of
+the suggested token. A calibration study is still necessary
+to determine the boundaries of the provided existing context
+to have the best suggestions. For example, when we added
+systematically the package name in the pattern, the results
+improved considerably, but we cannot determine whether this
+observation is valid only on the used benchmark. Another
+consideration that has to be studied is the use of non-natural
+language elements such as symbols and digits. In our experi-
+ments, their existance generated poor results as these elements
+are rarely present in the data used for training LLM. We
+believe that a more sophisticated mapping of those elements
+would considerably improve the results. Using LLMs proves to
+be efﬁcient in modeling formalism that rely heavily on natural
+
+--- Page 5 ---
+language identiﬁers. However, other modeling languages such
+as Petri nets are deﬁnitely difﬁcult to handle as they involve
+modeling elements that cannot be captured by LLMs.
+In summary, the proposed approach, although simple to
+implement, is powerful and showed promising results. Those
+results are possibly even better if we consider the fact that
+the boundaries of a domain are broader than the diagrams we
+considered as ground truth in our experiments. In fact, some
+of the suggested elements, although absent in the considered
+diagrams may be relevant for the considered domain. To asses
+such a claim, we plan to conduct a user study to better assess
+the correctness of the suggestions, but also the usefulness of
+the completion for the domain modelers.
+REFERENCES
+[1] J. D. Rocco, C. D. Sipio, D. D. Ruscio, and P. T. Nguyen, “A gnn-based
+recommender system to assist the speciﬁcation of metamodels and
+models,” in 24th International Conference on Model Driven Engineering
+Languages and Systems (MODELS 2022) . IEEE, 2021, pp. 70–81.
+[Online]. Available: https://doi.org/10.1109/MODELS50736.2021.00016
+[2] M. Weyssow, H. A. Sahraoui, and E. Syriani, “Recommending
+metamodel concepts during modeling activities with pre-trained
+language models,” Software and Systems Modeling , vol. 21, no. 3,
+pp. 1071–1089, 2022. [Online]. Available: https://doi.org/10.1007/
+s10270-022-00975-5
+[3] T. Capuano, H. A. Sahraoui, B. Frénay, and B. Vanderose, “Learning
+from code repositories to recommend model classes,” Journal of Object
+Technology , vol. 21, no. 3, pp. 3:1–11, 2022. [Online]. Available:
+https://doi.org/10.5381/jot.2022.21.3.a4
+[4] L. Burgueño, R. Clarisó, S. Gérard, S. Li, and J. Cabot, “An
+nlp-based architecture for the autocompletion of partial domain
+models,” in Prof. of the 33rd International Conference on Advanced
+Information Systems Engineering (CAiSE 2021) , ser. Lecture Notes
+in Computer Science, M. L. Rosa, S. W. Sadiq, and E. Teniente,
+Eds., vol. 12751. Springer, 2021, pp. 91–106. [Online]. Available:
+https://doi.org/10.1007/978-3-030-79382-1_6
+[5] P. Liu, W. Yuan, J. Fu, Z. Jiang, H. Hayashi, and G. Neubig, “Pre-train,
+prompt, and predict: A systematic survey of prompting methods in
+natural language processing,” ACM Comput. Surv. , aug 2022, just
+Accepted. [Online]. Available: https://doi.org/10.1145/3560815
+[6] T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. Kaplan, P. Dhariwal,
+A. Neelakantan, P. Shyam, G. Sastry, A. Askell, S. Agarwal, A. Herbert-
+V oss, G. Krueger, T. Henighan, R. Child, A. Ramesh, D. M. Ziegler,
+J. Wu, C. Winter, C. Hesse, M. Chen, E. Sigler, M. Litwin, S. Gray,
+B. Chess, J. Clark, C. Berner, S. McCandlish, A. Radford, I. Sutskever,
+and D. Amodei, “Language models are few-shot learners,” in Advances
+in Neural Information Processing Systems 33: Annual Conference on
+Neural Information Processing Systems 2020, NeurIPS 2020, December
+6-12, 2020, virtual , H. Larochelle, M. Ranzato, R. Hadsell, M. Balcan,
+and H. Lin, Eds., 2020.
+[7] J. Rumbaugh, I. Jacobson, and G. Booch, Uniﬁed Modeling Language
+Reference Manual, version 2.1.1 . OMG, 2007. [Online]. Available:
+http://www.omg.org/technology/documents/formal/uml.htm
+[8] “UML activity diagram examples,” https://www.uml-diagrams.org/
+activity-diagrams-examples.html, [Online; accessed 12-October-2022].
+[9] J. A. Hernández López, J. L. Cánovas Izquierdo, and
+J. Sánchez Cuadrado, “Modelset: a dataset for machine learning
+in model-driven engineering,” Software and Systems Modeling , vol. 21,
+no. 3, pp. 967–986, 2022.
+[10] M. B. Chaaben, L. Burgueño, and H. Sahraoui, https://github.com/
+meriembenchaaben/model-completion, 2022.
