@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
 - 简要判断：论文把包装线拆成 bottle filling、case erector、6 瓶装箱、自动贴带和称重剔除等多个顺序段，适合沉淀多个离散控制样本。
 

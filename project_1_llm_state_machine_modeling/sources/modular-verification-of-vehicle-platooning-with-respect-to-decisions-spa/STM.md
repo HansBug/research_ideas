@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：join procedure 的通信、变道、速度/转向接管顺序明确。
 

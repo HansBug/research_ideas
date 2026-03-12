@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：⚪ 未收获
-- 是否计入 `SOURCES.md` 盘点：否
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：否
 - 提取条目数：0
 - 简要判断：论文关注的是航空场景 DSL 与 landing scenario 验证流程，核心对象是 scenario/tool 而不是实际控制系统或控制器。
 

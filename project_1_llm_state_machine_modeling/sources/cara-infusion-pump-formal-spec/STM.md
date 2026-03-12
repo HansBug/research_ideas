@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
 - 简要判断：OCR 后可以把泵控制模式和 cuff auto control 要求链完整还原出来。
 

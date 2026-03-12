@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
 - 简要判断：三步 box-fill 过程和外层 auto/standby 控制都可直接写成自然语言流程。
 

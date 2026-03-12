@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：联锁系统状态由组件状态组合构成，route/sub-route 的 set/lock 逻辑可整理。
 

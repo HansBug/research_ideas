@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：⚪ 未收获
-- 是否计入 `SOURCES.md` 盘点：否
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：否
 - 提取条目数：0
 - 简要判断：论文重点是把既有 Event-B 起落架模型编码到 `{log}` 并自动 discharge proof obligations，不是直接提供可复用的控制系统自然语言描述。
 

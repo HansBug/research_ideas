@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文直接描述了 flight guidance system 的 lateral/vertical 模式、armed/active/capture/track 子状态及其约束，非常适合作为飞行控制模式逻辑样本。
 

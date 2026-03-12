@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文提供了 Masat-1 的 operational modes、触发条件和 safe mode 策略，证据较分散但可整理为 CubeSat 控制逻辑样本。
 

@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：⚪ 未收获
-- 是否计入 `SOURCES.md` 盘点：否
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：否
 - 提取条目数：0
 - 简要判断：论文主体聚焦联锁建模方法、模型生成与验证流程，虽然介绍了 train route based interlocking，但当前可直接摘出的控制对象行为描述仍偏方法论。
 

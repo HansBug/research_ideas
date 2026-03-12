@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 是否计入 `SOURCES.md` 盘点：是
+- 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文对 primary/open-loop 与 secondary/closed-loop 的切换、传感器反馈和优先服务关系描述完整，适合直接入账。
 
