@@ -1,0 +1,1581 @@
+--- Page 1 ---
+arXiv:2506.00788v1  [cs.SE]  1 Jun 2025Behavioral Augmentation of UML Class Diagrams:
+An Empirical Study of Large Language Models
+for Method Generation
+ROUABHIA Djaber and HADJADJ Ismail
+Computer Science Department, Chahid Cheikh Laarbi Tebessi
+University, Tebessa, 12000, Algeria.
+*Corresponding author(s). E-mail(s): djaber.rouabhia@univ-tebessa.dz;
+Contributing authors: ismail.hadjadj@univ-tebessa.dz;
+Abstract
+Automating the enrichment of UML class diagrams with behavioral methods
+from natural language use cases is a significant challenge. This study evaluates
+nine large language models (LLMs) in augmenting a methodless UML diagram
+(21 classes, 17 relationships) using 21 structured waste-management use cases. A
+total of 90 diagrams (3,373 methods) were assessed across six metrics: method
+quantity, signature richness (visibility, names, parameters, return types), anno-
+tation completeness (linking to use cases/actions), structural fidelity, syntactic
+correctness (PlantUML compilation), and naming convergence (across models).
+All LLMs produced valid PlantUML diagrams adhering to UML conventions.
+Some models excelled in method coverage and annotation accuracy, while others
+showed richer parameterization but weaker traceability. These results demon-
+strate that LLMs can generate well-structured methods with consistent naming,
+advancing automated behavioral modeling. However, inconsistencies in annota-
+tions and signatures highlight the need for improved prompt engineering and
+model selection. The rapid generation of these methods supports Agile practices
+by enabling faster design iterations. Despite their capabilities, human oversight
+is essential to ensure accuracy, appropriateness, and semantic alignment. This
+positions LLMs as collaborative partners in software design. All experimental
+artifacts ( .puml ,.png,.csv) are publicly available for reproducibility.
+Keywords: AI-driven Software Engineering, Automated UML Modeling, Natural
+Language to UML, UML Behavioral Enrichment, Class Diagram, Method Inference,
+LLM Evaluation Metrics
+1
+
+--- Page 2 ---
+1 Introduction
+Modern software engineering pipelines increasingly automate various development
+phases, such as testing, building, and deployment. However, the enrichment of UML
+class diagrams with behavioral details—such as method definitions, parameter spec-
+ifications, return types, and traceability annotations—remains largely manual and
+error-prone. This manual effort often results in incomplete or inconsistent opera-
+tional specifications, which can compromise design completeness and propagate defects
+into downstream artifacts such as API contracts, test scaffolds, and documenta-
+tion. Consequently, software quality, maintainability, and traceability are negatively
+impacted, highlighting the critical need for more automated, reliable approaches to
+UML behavioral modeling.
+Behavioral method modeling plays a pivotal role in accurately capturing system
+functionality and ensuring that software design aligns closely with intended use-case
+behaviors. Precise behavioral specifications improve communication among stake-
+holders, enhance model interpretability, and support downstream tasks such as code
+generation and testing. Despite its importance, automating behavioral enrichment in
+UML remains a challenging and underexplored problem.
+Recent advances in large language models (LLMs) have demonstrated remarkable
+capacity to comprehend and generate natural language with high contextual awareness
+and semantic understanding. This linguistic proficiency positions LLMs as promising
+tools for bridging the gap between informal requirements and formal behavioral specifi-
+cations. Specifically, their ability to interpret structured natural language use cases and
+infer corresponding method behaviors aligns well with the challenge of automatically
+enriching UML class diagrams. Leveraging these capabilities, LLMs could potentially
+automate the generation of detailed, well-annotated method definitions directly from
+textual requirements, addressing a critical bottleneck in early-stage software design.
+Additionally, LLMs have shown impressive capabilities in generating syntactically and
+semantically coherent code snippets, further suggesting their applicability to software
+design tasks.
+While existing studies have demonstrated LLMs’ potential in software design tasks,
+most of the work has focused on static aspects of UML class diagrams, such as class and
+attribute extraction. Behavioral method generation—especially automatic synthesis of
+methods from structured use cases—remains largely unaddressed. For instance, Saini
+et al. [1] extract classes and associations from user stories but omit operation synthesis,
+while Weyssow et al. [2] recommend metamodel concepts during interactive modeling
+but focus on attributes and relations. Zakaria et al. [3] show that transformer-based
+pipelines outperform heuristic NLP for static structure extraction, but behavioral
+details are neglected. C´ amara et al. [4] applied ChatGPT to UML synthesis, revealing
+brittleness and weak traceability in method suggestions.
+Building on these foundations, this work aims to fill the gap by systematically
+evaluating nine state-of-the-art LLMs—Claude 3.7, Gemini 2.5 Pro, Grok 3, Qwen 3,
+DeepSeek-R1, GPT-4o, ChatGPT-o3, Llama 4, and Mixtral 8 ×22B—on the task of
+automatic behavioral method generation for UML class diagrams. Unlike prior efforts
+that are limited to static structure extraction or qualitative assessments of single
+2
+
+--- Page 3 ---
+models, we provide a large-scale, multi-run, multi-model empirical benchmark that rig-
+orously quantifies syntactic validity, structural fidelity, annotation completeness, and
+lexical consensus in the generated methods. Furthermore, all experimental artifacts,
+including prompts, enriched diagrams, and metric data, are publicly available.
+To assess the models’ effectiveness, we utilize a waste-management domain sce-
+nario, which captures common modeling challenges, such as diverse actors, use cases,
+and workflows. Although the findings are domain-specific, they offer valuable insights
+for other modeling scenarios, with future work planned to validate the generalizability
+of the results across diverse domains and UML modeling scenarios.
+The core research question driving this study is:
+RQ1: To what extent do LLMs generate syntactically valid UML methods from structured
+use-case descriptions that are well-formed, annotated, structurally consistent, and exhibit
+consensus across runs and models?
+Rather than defining a fixed benchmark, this study presents an empirical analysis
+focused on quantifiable syntactic, structural, and lexical aspects, acknowledging that
+semantic correctness and functional validation remain open challenges beyond the
+scope of this work.
+The remainder of the paper is structured as follows: Section 2 reviews related work;
+Section 3 details the experimental setup; Sections 4 and 5 present and interpret the
+findings; and Section 6 concludes with future research directions.
+2 Related Work
+Research involving large language models (LLMs) in software design and code gener-
+ation typically falls into three converging strands: (i) static UML artifact synthesis,
+(ii) conversational coding assistance, and (iii) benchmark-driven evaluation of gen-
+erated code. Across these strands, the dynamic behavioral dimension of UML class
+diagrams—specifically, the automatic generation of methods including visibility mark-
+ers, naming conventions, parameter richness, return types, and annotations—remains
+underexplored.
+This gap is partly due to the inherent technical challenges in inferring method-level
+behavior from natural language, the lack of large, structured datasets linking use cases
+to detailed UML methods, and the historical focus on static structure extraction or
+code generation benchmarks that do not directly address UML behavioral semantics.
+2.1 Static UML Artifact Synthesis
+Early efforts in UML automation, such as Saini et al. [1], focus on extracting classes,
+attributes, and associations from user stories, emphasizing traceability but stopping
+short of synthesizing operations. Weyssow et al. [2] use pretrained transformers to
+recommend metamodel concepts during interactive modeling sessions, concentrating
+on static elements like classes and relationships rather than behavioral enrichment.
+Similarly, Zakaria et al. [3] demonstrate that transformer-based pipelines outperform
+heuristic NLP methods for extracting static class diagrams but omit operation syn-
+thesis, which remains an unaddressed challenge. C´ amara et al. [4] apply ChatGPT
+3
+
+--- Page 4 ---
+for UML synthesis, revealing brittle method suggestions and weak traceability, thus
+highlighting significant challenges in method generation and behavioral traceability.
+In contrast to these studies, which primarily address static structure, this work
+expands the scope by systematically evaluating the automatic generation of meth-
+ods—encompassing method signatures, annotations, and the consistency of method
+placement in UML class diagrams—using LLMs. Our focus on behavioral method
+generation from structured use cases represents a significant departure from previous
+efforts focused on static class extraction or isolated code generation tasks.
+2.2 Conversational Coding Assistance
+A second research direction treats LLMs as conversational programming assistants.
+Siam et al. [5] compare models like ChatGPT and GitHub Copilot for interactive cod-
+ing tasks, revealing user preference for boilerplate code generation, although semantic
+errors persist in more complex code. While these systems improve productivity for
+ad-hoc code generation, they rarely evaluate the consistent generation of behavioral
+methods across models or handle the multi-method complexity inherent in class-
+level behavioral modeling. Unlike these interactive systems, which focus on isolated
+coding tasks, this study evaluates autonomous method synthesis for UML class dia-
+grams, focusing on the full, automated enrichment of behavior, not just simple method
+generation.
+2.3 Benchmark-driven Evaluations of Code Generation
+Another strand of research evaluates the quality of code generated by LLMs through
+benchmark datasets such as HumanEval [6] and MBPP [7], which measure single-
+function correctness via unit tests. More complex benchmarks, such as APPS [8] and
+AlphaCode [9], extend to algorithmic challenges but still focus on isolated code gen-
+eration. Du et al. [10] introduce ClassEval, testing class implementations that require
+internal state and method interactions. Although ClassEval probes object-oriented
+reasoning, it is limited to Python and does not address UML modeling or cross-model
+method generation consensus.
+In contrast to these benchmarks, which focus on isolated code generation and
+function-level accuracy, this study targets the automatic enrichment of UML class
+diagrams, evaluating LLMs on a multi-method, multi-model task that includes syn-
+tactic, structural, and behavioral consistency. This approach fills a significant gap
+by focusing on the underexplored problem of behavioral method generation for UML
+class diagrams, where the synthesis of methods—often omitted in static modeling
+benchmarks—plays a crucial role.
+2.4 Novelty and Contribution
+While much of the existing work has concentrated on static UML extraction, ad-hoc
+coding assistance, or function-level code generation, our study addresses the critical
+task of enriching UML diagrams with behavioral details automatically. By systemat-
+ically evaluating nine state-of-the-art LLMs for their ability to generate well-formed
+4
+
+--- Page 5 ---
+methods from structured use cases, this work contributes a large-scale empirical bench-
+mark that quantifies the LLM-generated methods along multiple dimensions: syntactic
+validity, structural integrity, annotation completeness, and lexical consensus.
+This study represents a step forward in establishing an empirical foundation for
+trustworthy AI-assisted UML behavioral modeling, where previous works have either
+focused on partial UML enrichment or evaluated LLMs in isolation. The public release
+of all generated UML diagrams and associated metric datasets will serve as a valuable
+resource for reproducibility, comparison, and future research in automated software
+engineering.
+As summarized in Table 1, prior studies have largely focused on static UML
+structure extraction or interactive modeling, while this study uniquely addresses the
+automatic generation of behavioral methods for UML class diagrams.
+Table 1 : Comparison of related works and the present study along key dimensions. Semantic
+correctness refers to formal or functional validation of method behavior.
+Work Focus Behavioral Method
+GenerationEvaluation Scope
+Saini et al. [1] Static UML classes and
+associationsNo Traceability empha-
+sis, no operation syn-
+thesis
+Weyssow et al. [2] Metamodel concept rec-
+ommendations during
+interactive modelingNo Qualitative recom-
+mendations on static
+elements
+Zakaria et al. [3] Transformer-based static
+class diagram extractionNo Performance on
+static extraction only
+C´ amara et al. [4] ChatGPT for UML syn-
+thesisLimited Method suggestions
+with weak traceabil-
+ity
+Siam et al. [5] Interactive coding assis-
+tantsNo Usability and cor-
+rectness on ad-hoc
+code queries
+HumanEval [6],
+MBPP [7]Single-function code
+generation benchmarksNo Unit-test based cor-
+rectness for functions
+ClassEval [10] Object-oriented class
+implementation in
+PythonYes (limited) Functional
+correctness,
+language-specific,
+small scale
+This Study Behavioral method
+enrichment for UML
+class diagramsYes Syntactic, structural,
+lexical, and anno-
+tation evaluation;
+semantic correctness
+out of scope
+5
+
+--- Page 6 ---
+3 Methodology
+This study evaluates the ability of nine large language models (LLMs) to enrich
+a UML class diagram—initially devoid of methods—based on a structured set
+of use-case (UC) descriptions and a standardized prompt. The work follows a
+generate–measure–compare paradigm [11], targeting a single research question (RQ1):
+To what extent do LLMs generate methods from structured use-case descriptions
+written in natural language that are syntactically valid UML elements, produce well-
+formed and detailed signatures, include the required inline annotations, preserve the
+structural integrity of the original class diagram, and exhibit consensus across runs
+and models?
+Figure 1 illustrates the overall pipeline from input prompts through to enriched
+diagrams and metric computation.
+Fig. 1 : End-to-end pipeline from input prompts to enriched diagrams and metrics.
+The process involves standardized prompting, LLM method generation, UML diagram
+augmentation, parsing, and multi-dimensional evaluation.
+3.1 Artifacts
+Several key artifacts form the basis of this evaluation:
+•LLM Prompt: A standardized, three-part prompt designed to guide method-
+level content generation aligned with domain behavior. It comprises (1) primary
+instructions specifying enrichment and annotation requirements, (2) the baseline
+UML class diagram in PlantUML format (a widely used textual UML diagram
+notation), and (3) the complete set of structured use cases in natural language.
+•Baseline Diagram: A methodless UML class model representing a waste
+recycling system, consisting of 21 classes and 17 relationships, serving as the
+foundation for method enrichment.
+•Use-Case Corpus: A collection of 21 structured use cases, each including a
+title, ID, preconditions, postconditions, triggers, main scenario steps, and possible
+extensions. These are expressed in consistent natural language format covering
+core domain behaviors.
+•Augmented PlantUML Diagrams: Ninety enriched UML diagrams gener-
+ated across ten independent runs per model. These diagrams embed methods
+with visibility markers, method names, typed parameter lists, return types,
+and inline use-case and action annotations. Files follow the naming pattern
+ModelName RunX.puml (e.g., Claude3 run7.puml ).
+6
+
+--- Page 7 ---
+•Graphical Renderings: PNG images compiled from each augmented diagram,
+named identically to the .puml files (e.g., Claude3 run7.png ).
+•Parsed JSON Files: Structured representations extracted programmatically
+from the augmented PlantUML diagrams, supporting all metric calculations. Files
+follow the ModelName RunX.json format.
+•Metric CSV Files: Tabular summaries of quantitative metrics derived from
+JSON analyses, covering syntactic, structural, lexical, annotation, and consensus
+dimensions.
+All artifacts—including baseline diagrams, use cases, augmented .puml files,
+their graphical .png renderings, parsed .json files, and metric .csv outputs—are
+publicly accessible in the project repository (https://github.com/Djaber1979/
+-Behavioral-Augmentation-of-UML-Class-Diagrams).
+3.2 Prompting Method
+To accommodate model-specific constraints such as maximum prompt length and
+input limits, a consistent three-prompt strategy was adopted. This approach balanced
+feasibility and uniformity across diverse LLM architectures.
+1.Primary Instruction Prompt: Provided detailed instructions directing the LLM
+to enrich a UML class diagram with method definitions derived from structured
+use cases. The LLM was instructed to produce a complete, syntactically valid Plan-
+tUML diagram with inline annotations linking each method to its source use case
+and specific scenario action. The full prompt text is available in Appendix A.
+2.Diagram Prompt: Supplied the baseline UML class diagram
+in PlantUML format, excluding methods. This model is pub-
+licly available in the repository at: ⟨https://github.com/Djaber1979/
+-Behavioral-Augmentation-of-UML-Class-Diagrams/blob/main/Prompts/
+Methodless.txt.
+3.Use-Case Prompt: Supplied all 21 structured use cases in a unified input block.
+Each use case followed a consistent format with title, ID, preconditions, postcondi-
+tions, trigger, main scenario steps, and extensions. The full set is available at: ⟨https:
+//github.com/Djaber1979/-Behavioral-Augmentation-of-UML-Class-Diagrams/
+blob/main/Prompts/UCs.txt ⟩.
+This tripartite design was chosen after discarding two alternatives: prompting each
+use case individually exceeded input count limits in some models, while merging all
+inputs into a single prompt exceeded token limits in others. The adopted structure
+ensured input consistency and cross-model compatibility.
+Each model was restricted to a single-shot generation without clarifications,
+feedback, or retries. Outputs were saved verbatim for downstream analysis.
+Prompt-driven constraints.
+The final prompt imposed structured constraints to ensure domain-relevant and
+consistent method generation:
+•Source of actions: The LLM was instructed to extract methods exclusively from
+theMainScenario sections of use cases, explicitly omitting alternative flows and
+7
+
+--- Page 8 ---
+edge cases to prioritize primary domain behavior—aligned with standard use-case
+modeling practices [12–14]
+•Atomicity: The LLM was instructed that “1 method = 1 atomic business
+action,” requiring decomposition of compound steps (e.g., those using “and”) to
+uphold single-responsibility principles (SRP).
+•Domain-only scope: The LLM was restricted to core business logic. Infras-
+tructure and UI-related behaviors (e.g., save() ,display() ) were explicitly
+excluded.
+•Naming: Clear, domain-specific verbs (e.g., activateaccount ) were encouraged;
+vague or generic labels (e.g., setStatus ) were discouraged to ensure semantic
+clarity.
+•Class assignment: Methods were to be added only to existing UML classes,
+and assigned to the most semantically appropriate one. New class creation was
+disallowed.
+•Traceability annotations: Each method included inline comments linking it
+to its originating use case ID ( //UCXX ) and specific action step ( //action: ) for
+traceability.
+•Explicit state transitions: State changes were to be expressed through
+named methods (e.g., confirmOrder() ), avoiding generic setters and embedding
+state logic directly in behavior, supporting single-responsibility and expressive
+modeling.
+3.3 Models
+Nine publicly accessible large language models (LLMs) were evaluated in this study,
+spanning diverse architectures, parameter scales, and training paradigms. These mod-
+els include both dense and mixture-of-experts (MoE) architectures, each with varying
+parameter counts, context lengths, and training focuses. Notably, two distinct variants
+of OpenAI’s ChatGPT, GPT-4o (May 2024) and ChatGPT-o3 (April 2025), were
+treated separately due to significant architectural and behavioral differences. Addi-
+tionally, the evaluation covers models from various providers, including Claude, Qwen,
+Gemini, DeepSeek, Mistral, and Llama, each with unique strengths in reasoning, cod-
+ing, and multimodal tasks. For clarity, the detailed specifications of each evaluated
+model, including version, release date, context length, architecture, and parameter
+counts (where available), are provided in Appendix B (Table 7).
+3.4 Metrics for RQ1
+To comprehensively address RQ1, seven complementary metric categories were
+designed, targeting key facets of UML method enrichment:
+•Method Quantity (MQ): Total method counts per diagram, run variability, and
+class distribution patterns.
+•Signature Richness (SR): Detailed method signature elements including visibil-
+ity, parameters, return types, and lexical diversity.
+•Annotation Completeness (AC): Presence of use-case and action-level annota-
+tions within methods.
+8
+
+--- Page 9 ---
+•Structural Fidelity (SF): Preservation of original UML structure, measured via
+element-wise Jaccard similarity.
+•Syntactic Correctness (SC): Rate of diagrams compiling without PlantUML
+syntax errors.
+•Top-Method Consensus (TMC): Lexical alignment of frequent method names
+across models.
+•Core-Method Consensus and Structural Placement Consistency (CMC
++ SPC): Agreement on generation and placement of core methods across runs and
+models.
+Top-Method Consensus (TMC)
+Top-Method Consensus (TMC) assesses lexical convergence across LLMs without rely-
+ing on a fixed reference set. All method names generated across models and runs are
+pooled and normalized, (e.g., lowercased, punctuation-stripped). The kmost frequent
+names are selected, with k=l
+total methods
+total diagramsm
+.
+This set captures the most salient, spontaneously reproduced behaviors, indepen-
+dent of structural context or class assignment.
+Inter-model similarity is quantified by computing pairwise Jaccard similarities
+between raw (unnormalized) method name sets of each model.
+Together with core-method consensus, TMC provides a lens into naming behavior:
+the former based on reproduction of a common core set, the latter on unsupervised
+lexical convergence.
+Core-Method Consensus (CMC)
+To complement TMC, Core-Method Consensus identifies a fixed core set of frequently
+generated methods. Method names across all augmented diagrams are pooled and
+normalized, then the top-kmost frequent method names are extracted, where kequals
+the overall mean number of methods per diagram ( k≈38), reflecting typical model
+output size.
+For each LLM, we compute:
+•Core-method coverage: Proportion of the top- kcore methods present in the
+model’s outputs;
+•Method-level agreement: Number or percentage of models that independently
+generate each core method.
+This scheme captures the degree to which models reproduce a shared high-
+frequency behavioral vocabulary.
+Structural Placement Consistency (SPC)
+To extend the analysis of core methods with a structural dimension, the stability of
+structural placement measures whether LLM assign core methods to their dominant
+class, defined as the class most frequently associated with each method in all diagrams.
+TheClass Match Rate for an LLM is computed as:
+ClassMatch LLM=|{m∈Core k|massigned to dominant class }|
+|{m∈Core k|m∈LLM output }|
+9
+
+--- Page 10 ---
+This metric reflects inter-model agreement not only on which methods to gen-
+erate but also on where structurally they belong, indicating deeper behavioral and
+architectural consensus.
+These metrics collectively operationalize RQ1 by quantitatively evaluating the
+breadth, detail, traceability, structural integrity, syntactic validity, and naming consis-
+tency of methods generated by LLMs. Semantic correctness and functional validation
+are recognized as very important but remain outside the current scope, slated for a
+future investigation.
+3.5 Statistical Procedures
+To robustly analyze metric differences across LLMs, nonparametric statistical methods
+were employed:
+•Kruskal–Wallis Tests for detecting global between-model differences without
+assuming normality.
+•Dunn’s Post-Hoc Tests with Holm correction to identify pairwise differences
+controlling for multiple comparisons.
+•Cliff’s ∆ to estimate effect sizes and quantify the magnitude of observed differences.
+Effect size thresholds follow Romano et al. [ ?] for Cliff’s ∆ (small = 0.147, medium
+= 0.33, large = 0.474) and Cohen [15] for Cram´ er’s V(small = 0.1, medium = 0.3,
+large = 0.5), providing practical context beyond mere significance.
+Lexical metrics such as Levenshtein diversity and Jaccard similarity were analyzed
+at the run level, while coverage and placement consistency metrics aggregated at model
+or method granularity.
+Stability of results was ensured via 1,000-sample bootstrap resampling for confi-
+dence estimation. All experiments were repeated across three independent seeds (17,
+42, 123) to mitigate sampling bias, consistent with recent LLM benchmarking best
+practices [ ?] and following multi-seed evaluation protocols common in recent NLP
+studies (e.g., [16, 17]). Sensitivity analyses confirmed stability of main findings across
+seeds. All p-values were corrected using the Holm method within each metric family.
+Outliers were visualized but retained following evaluation practices [18].
+Full metric definitions and detailed calculation procedures are available in
+Appendix C and Appendix D.
+3.6 Sample Size and Justification
+Each of the nine LLMs was evaluated across ten independent runs, yielding 90
+enriched class diagrams. This sampling strategy balances computational feasibility
+with sufficient coverage of stochastic output variability inherent in generative models.
+The total corpus of 3,373 generated methods enables statistically meaningful
+analysis of method generation patterns and consensus.
+Lexical convergence metrics (TMC, CMC, SPC) were computed using frequency-
+based method sets derived from the entire output corpus, allowing unified behavioral
+vocabulary comparisons without requiring predefined benchmarks.
+10
+
+--- Page 11 ---
+3.7 Scope and Empirical Nature
+This study adopts an empirical evaluation framework focused on syntactic correctness,
+structural fidelity, lexical patterns, and annotation completeness in LLM-generated
+UML behavioral enrichments. These aspects were selected for their objectivity and
+reproducibility across models and runs.
+Due to the inherent ambiguity in mapping natural language use cases to behavioral
+method specifications—and the lack of a universally accepted ground truth—semantic
+and functional correctness are not evaluated in this study. Instead, they are intention-
+ally deferred to future work.
+Planned directions for semantic evaluation include expert-based assessments, for-
+mal validation techniques, embedding-based similarity analysis (e.g., cosine similarity),
+and automated behavioral testing. These approaches will enable deeper insights into
+the alignment between generated methods and intended domain logic.
+This study thus establishes a quantitative baseline, supporting future semantic
+investigations by first grounding analysis in measurable, structural characteristics.
+4 Results
+This section presents results for RQ1 , evaluating how effectively nine publicly available
+LLMs enrich structural UML class diagrams by generating methods derived from 21
+structured use cases.
+Evaluation covers nine core dimensions: six quantitative metrics—Method Quan-
+tity (MQ), Signature Richness (SR), Annotation Completeness (AC), Structural
+Fidelity (SF), Syntactic Correctness (SC)—and three lexical agreement metrics—Top-
+Method Consensus (TMC), Core-Method Consensus (CMC), and Structural Place-
+ment Consistency (SPC). Detailed metric definitions and formulas are provided in
+Appendix C and Appendix D.
+Across all runs, LLMs processed inputs—including methodless UML class dia-
+grams, structured use cases, and enrichment instructions—to generate fully updated
+PlantUML code in times ranging from a few seconds to under five minutes. This rapid
+end-to-end processing significantly surpasses typical human capabilities for manual
+enrichment, underscoring the practical feasibility and efficiency of LLM-assisted UML
+behavioral augmentation in real-world software engineering workflows.
+Statistics summarize 90 generated diagrams comprising 3 .373 methods. Table 2
+provides an overview of evaluation dimensions, the highest-scoring models per met-
+ric based on mean scores, and the corresponding statistical tests. Effect sizes were
+considered alongside significance to assess practical impact.
+Note: The models listed achieved the highest mean scores within each evaluation
+dimension; these should not be interpreted as universally “best” models, since project
+priorities vary. Reported p-values are corrected for multiple comparisons using Bonfer-
+roni or Holm methods. Model comparisons consider both statistical significance and
+effect size.
+For consistent interpretation across visualizations, each LLM is assigned a fixed
+color throughout this article (see Figure 2).
+11
+
+--- Page 12 ---
+Table 2 : Overview of evaluation dimensions: highest-scoring model(s) by metric,
+statistical test used, test statistic, and significance level.
+Dimension Top-Scoring Model(s) Test Statistic p-value
+MQ Claude 3.7 Kruskal–Wallis H(8) = 51 .85 < .0001
+SR Mixtral 8 ×22B Kruskal–Wallis H(8) = 383 .21 < .0001
+AC Claude 3.7, ChatGPT-o3 Chi-squared χ2(16) =
+3001.07< .0001
+SF Claude 3.7, ChatGPT-o3,
+MistralMixed ANOVA
+(model ×run)Fmodel (8,81) =
+7.78< .0001
+SC No significant differences Chi-squared χ2(8) = 6 .43 0 .5993
+TMC Qwen 3 Kruskal–Wallis H(8) = 26 .42 0 .0009
+CMC Claude 3.7 Kruskal–Wallis H(8) = 26 .42 0 .0009
+SPC — Wilcoxon signed-
+rankW= 123 0 .0112
+LLM Model Color Palette
+Claude 3.7 Qwen 3 ChatGPT-o3
+Gemini 2.5 Pro DeepSeek R1 Mistral 8 ×7B
+Grok 3 ChatGPT-4o Llama 4
+Fig. 2 : Color assignments used for LLM model visualizations.
+Findings are interpreted considering both statistical significance and practical
+implications for software engineering workflows, such as maintainability, interpretabil-
+ity, and traceability in UML behavioral augmentation.
+4.1 Method Quantity (MQ)
+All nine LLMs generated UML methods across all runs, producing a total of 3,373
+methods over 90 diagrams. Table 3 summarizes the total methods generated, per-run
+minimums and maximums, and syntax error occurrences for each model.
+Figure 3 displays the mean method quantity per LLM with 95% confidence intervals
+(SEM)1, while Figure 4 illustrates per-run distributions of total methods generated
+across the 10 runs.
+A Kruskal–Wallis test revealed statistically significant differences in method counts
+across models ( H= 51.85, p < . 0001).
+Post-hoc Dunn’s tests identified Claude 3.7 as producing significantly more
+methods than Grok 3 ,Llama 4 , and Mistral , with large effect sizes (e.g., rank-
+biserial correlation rrb=−1.00 compared to Mistral). Additionally, Gemini 2.5 Pro
+significantly outperformed Mistral .
+Heatmaps and bar charts (Figures 5 and 6) illustrate class-level method allocation
+patterns and aggregate method distributions across models. For example, Claude 3.7
+1SEM (Standard Error of the Mean)
+12
+
+--- Page 13 ---
+Table 3 : Method generation volume and syntax correctness per model.
+Model Total Methods Min/Run Max/Run Syntax Errors
+Claude 3.7 734 63 85 0
+Gemini 2.5 Pro 477 20 79 2
+ChatGPT-o3 432 25 61 0
+Qwen 3 373 28 58 0
+DeepSeek R1 316 14 42 1
+Grok 3 294 8 72 1
+ChatGPT-4o 275 18 33 1
+Llama 4 268 17 40 1
+Mistral 8 ×7B 204 18 23 0
+Total (All Models) 3,373 6
+Fig. 3 : Mean Method Quantity per LLM with 95% Confidence Intervals (SEM).
+distributes methods more evenly across core classes, indicating its suitability for
+comprehensive behavioral enrichment.
+Interpretation and Practical Implications
+Claude 3.7’s substantially higher method generation suggests it is well-suited for
+projects requiring comprehensive behavioral coverage, enabling detailed capture of
+domain-specific functionality. Conversely, Mistral’s more conservative output favors
+simplicity and maintainability, advantageous in contexts prioritizing clarity and ease of
+understanding. This variability across models highlights the importance of balancing
+extensive method coverage with practical downstream usability in software engineering
+workflows. Moreover, the consensus in class-level method placement supports LLMs’
+reliability in identifying domain-relevant classes for behavioral augmentation. The low
+number of syntax errors—only six total (6.67%)—confirms the high syntactic quality
+of generated code, facilitating smooth integration into UML tooling pipelines.
+13
+
+--- Page 14 ---
+Fig. 4 : Per-Run Distributions of Total Methods Generated Across 10 Runs.
+Fig. 5 : Heatmap of mean methods per UML class grouped by LLM. Higher values
+indicate more frequent method placement in the corresponding class.
+4.2 Signature Richness (SR)
+Signature richness was evaluated across five dimensions: visibility markers, nam-
+ing conventions, parameter richness, return types, and lexical coherence. Table 4
+summarizes key metrics per LLM.
+14
+
+--- Page 15 ---
+Fig. 6 : Method distribution per class aggregated across all runs and LLMs. Each bar
+represents a UML class, with colored segments indicating the contributions of each
+LLM using the consistent color palette (Table 2). Classes are ordered by descending
+total method count.
+Table 4 : Signature richness per LLM.
+Model IQR Ret. LexDiv + – / # / None
+Claude 3.7 1.00 54.50 0.800 100.00 0.00 / 0.00 / 0.00
+Gemini 2.5 Pro 1.00 33.54 0.791 98.32 0.42 / 1.26 / 0.00
+ChatGPT-o3 1.25 39.58 0.801 100.00 0.00 / 0.00 / 0.00
+Qwen 3 1.00 26.54 0.780 99.73 0.27 / 0.00 / 0.00
+DeepSeek R1 1.00 45.25 0.777 99.37 0.00 / 0.00 / 0.63
+Grok 3 1.00 35.71 0.750 99.66 0.34 / 0.00 / 0.00
+ChatGPT-4o 2.00 35.27 0.802 100.00 0.00 / 0.00 / 0.00
+Llama 4 0.00 12.31 0.807 100.00 0.00 / 0.00 / 0.00
+Mistral 3.00 77.45 0.799 100.00 0.00 / 0.00 / 0.00
+Here, IQR quantifies the variability in parameters per method, while Ret is the
+proportion of non-void return types (%), and LexDiv —the normalized Levenshtein
+distance among unique method names—captures naming variation and expressiveness.
+All models predominantly use the public visibility marker (‘+‘), with a statistically
+significant but small association between model and visibility usage ( χ2= 64.09, p <
+.0001, Cram´ er’s V= 0.080). Naming conventions are uniformly camelCase (100%),
+reflecting adherence to the main prompt instructions and industry-standard practice.
+Parameter richness varies significantly across models ( H= 382 .08, p < . 0001),
+with Mistral generating notably richer parameter lists supported by large effect sizes
+(Cliff’s δ= 1.0 vs. Claude 3.7). Return-type annotations also differ ( χ2= 312 .38, p <
+.0001), with Mistral and Claude 3.7 exhibiting higher proportions of non-void returns
+(Figures 7, 8).
+15
+
+--- Page 16 ---
+Fig. 7 : Mean parameter richness per method by LLM. Error bars show 95% confidence
+intervals (SEM).
+Fig. 8 : Distribution of parameter counts per method by model. Width indicates fre-
+quency; dashed lines mark quartiles.
+Lexical diversity, measured by normalized Levenshtein distance, also varies sig-
+nificantly ( H= 44.07, p < . 0001). Claude 3.7 and ChatGPT variants exhibit higher
+lexical diversity, indicating more expressive naming, whereas Grok 3 displays more
+conservative naming (Figure 9).
+Interpretation and Practical Implications
+Variation in signature richness reflects differing model design philosophies. Mistral’s
+richer parameter and return-type annotations enhance behavioral detail but may
+increase complexity. Models with greater lexical diversity tend to produce clearer,
+more maintainable method names. These findings highlight the importance of aligning
+LLM selection with project goals that balance detail and clarity.
+16
+
+--- Page 17 ---
+Fig. 9 : Lexical coherence versus redundancy across models. Y-axis: normalized Lev-
+enshtein distance; X-axis: method-name redundancy.
+4.3 Annotation Completeness (AC)
+Annotation completeness varies substantially across models. Figure 10 illustrates the
+proportions of methods with full annotations (both //UCXX and//action: ), use-case-
+only annotations, or no annotations.
+Models such as Claude 3.7 andChatGPT-o3 exhibit superior annotation
+adherence, enhancing traceability critical for maintainability and team collaboration.
+Conversely, Mistral andLlama 4 frequently omit annotations, which may limit
+artifact usefulness. A strong association between model identity and annotation com-
+pleteness was confirmed ( χ2(16) = 3001 .07, p < . 0001, Cram´ er’s V= 0.667), indicating
+that annotation quality is a consistent, model-specific characteristic (see Figure 11).
+Interpretation and Practical Implications
+Annotation completeness is essential for producing maintainable UML artifacts. High
+annotation fidelity facilitates traceability and supports collaborative software engi-
+neering workflows, suggesting it should be a key criterion when selecting LLMs
+for behavioral augmentation. Models with lower annotation rates may necessitate
+additional refinement or post-processing to ensure artifact utility.
+17
+
+--- Page 18 ---
+Fig. 10 : Annotation completeness by model.
+Fig. 11 : Counts of fully annotated versus unannotated methods by model.
+4.4 Structural Fidelity (SF)
+Structural fidelity, measured by Jaccard similarity across six UML element categories,
+is summarized in Table 5 and visualized in Figures 12 and 13.
+Mixed ANOVA results indicate significant main effects of model ( F(8,81) =
+7.78, p < . 0001, η2
+G= 0.380) and UML element type ( F(5,405) = 9 .55, p < . 0001, η2
+G=
+0.023), as well as a significant model-by-element interaction ( F(40,405) = 2 .87, p <
+.0001, η2
+G= 0.054).
+Models including ChatGPT-o3 ,Mistral ,Gemini 2.5 Pro ,Claude 3.7 , and
+Llama 4 preserve the baseline UML structure near perfectly. In contrast, Grok 3
+andChatGPT-4o show diminished preservation, particularly for enumerations and
+relationships, suggesting occasional omissions or modifications.
+18
+
+--- Page 19 ---
+Table 5 : Mean preservation rates for UML structural elements by model.
+Model Pkg Enum Ev Cls Attr Rel Glob
+Claude 3.7 100.00 100.00 100.00 96.19 99.02 97.33 98.76
+Gemini 2.5 Pro 100.00 100.00 98.65 100.00 99.02 97.71 99.23
+ChatGPT-o3 100.00 100.00 100.00 100.00 100.00 100.00 100.00
+Qwen 3 100.00 100.00 99.35 95.71 94.56 96.33 97.66
+DeepSeek R1 100.00 95.00 90.00 95.21 88.90 87.00 92.69
+Grok 3 82.86 71.43 62.74 87.55 77.92 61.59 74.01
+ChatGPT-4o 62.86 41.76 41.11 70.67 40.00 40.00 49.40
+Llama 4 98.75 100.00 100.00 99.02 99.63 83.54 96.82
+Mistral 100.00 100.00 100.00 100.00 100.00 100.00 100.00
+Fig. 12 : Average preservation across six UML elements per model.
+Interpretation and Practical Implications
+Maintaining high structural fidelity is critical in regulated and safety-critical soft-
+ware domains where preserving UML semantics supports compliance, reliability, and
+risk mitigation throughout development and maintenance. High fidelity also facilitates
+seamless integration of behavioral enrichments in collaborative workflows. Conversely,
+lower fidelity may introduce inconsistencies complicating downstream tasks. Therefore,
+selecting LLMs with strong structural preservation is essential for balancing accuracy
+and robustness in software engineering practice.
+4.5 Syntactic Correctness (SC)
+Syntactic correctness was evaluated based on PlantUML compilation success. Table 6
+summarizes the counts of successfully rendered versus errored diagrams for each LLM.
+19
+
+--- Page 20 ---
+Fig. 13 : Preservation rates by UML element for models with subperfect performance.
+No statistically significant differences in syntactic correctness rates were observed
+across models ( χ2(8) = 6 .43, p= 0.5993), despite a moderate effect size (Cram´ er’s
+V= 0.267). The uniformly high syntactic correctness confirms these LLMs’ outputs
+are immediately usable within UML toolchains.
+Interpretation and Practical Implications
+The consistently high syntactic validity across all models provides a strong foundation
+for integrating LLM-generated UML enrichments into existing modeling workflows
+with minimal manual intervention, thereby accelerating development cycles and
+reducing overhead.
+4.6 Method Name Convergence
+This subsection analyzes lexical and structural consensus among LLM-generated meth-
+ods through Top-Method Consensus (TMC), Core-Method Consensus (CMC), and
+Structural Placement Consistency (SPC).
+20
+
+--- Page 21 ---
+Table 6 : Compilation results for PlantUML diagrams.
+LLM Correct Diagrams Errored Diagrams
+Claude 3.7 10 0
+Gemini 2.5 Pro 8 2
+ChatGPT-o3 10 0
+Qwen 3 10 0
+DeepSeek R1 9 1
+Grok 3 9 1
+ChatGPT-4o 9 1
+Llama 4 9 1
+Mistral 10 0
+4.6.1 Top-Method Consensus (TMC)
+The Top-37 most frequent normalized method names—where normalization involves
+converting method names to a canonical form by lowercasing and removing format-
+ting differences such as underscores and camelCase distinctions—were extracted as a
+benchmark set. Coverage by each LLM varies significantly (Figure 14), ranging from
+43.2% (Mistral) to 86.5% (Qwen 3). A Kruskal–Wallis test confirms this difference is
+statistically significant (H=26.42,p=0.0009H=26.42,p=0.0009) with a moderate effect
+size.
+Fig. 14 : Coverage of Top-37 normalized benchmark methods by each LLM.
+Examining per-run distributions reveals variability in consensus (Figure 15).
+Claude 3.7 achieves both high mean coverage and low variance, indicating stable
+reproduction of core methods across runs. In contrast, models such as Grok 3 and
+21
+
+--- Page 22 ---
+DeepSeek R1 show wider spreads and lower medians, suggesting inconsistent capture
+of these key methods.
+Fig. 15 : Distribution of per-run TMC coverage by model.
+Jaccard similarity to the Top-37 benchmark also varies significantly among models
+(H= 45 .72, p < 0.0001; Figure 16), highlighting differences in the specific method
+subsets reproduced, even among top performers.
+Interpretation and Practical Implications
+Top-method consensus reflects the degree to which LLMs reproduce a common set of
+high-frequency, normalized method names, serving as a proxy for lexical convergence
+and alignment with typical behavioral operations. High coverage and stability (e.g.,
+Qwen 3, Claude 3.7) indicate strong consistency beneficial for collaborative modeling
+or multi-agent generation scenarios. Conversely, lower and more variable coverage (e.g.,
+Grok 3) may lead to fragmented behavior definitions, necessitating manual harmoniza-
+tion. Per-run stability further differentiates models suited for applications requiring
+reliable and predictable behavioral scaffolding.
+4.6.2 Core-Method Consensus (CMC)
+Coverage of the 37 most frequently generated raw method names serves as a proxy
+for lexical consensus across LLMs. Figure 17 summarizes the average per-run coverage
+of these core methods by each model. Claude 3.7 andQwen 3 lead with 45.1%
+and 42.7% coverage, respectively, while Grok 3 trails at 25.9%. Kruskal–Wallis tests
+confirm significant differences across models ( H= 26.42, p= 0.0009).
+22
+
+--- Page 23 ---
+Fig. 16 : Mean per-run Jaccard similarity to Top-37 normalized benchmark.
+Fig. 17 : Coverage of top-37 core methods by LLM (mean per-run percentage).
+To evaluate variability and consistency across runs, Figure 18 shows the per-
+run distribution of core-method coverage per model. Notably, Claude 3.7 exhibits
+both high median coverage and low dispersion, indicating stable reproduction of core
+methods. In contrast, Grok 3 andDeepSeek R1 display wider variance and lower
+medians, suggesting less consistent capture of the shared method set.
+Figure 19 visualizes model agreement for individual core methods. Methods such as
+assignRole ,verifyEmail ,updatePassword , and cancelRequest were generated by
+all nine models, reflecting behaviors that are semantically directly tied to correspond-
+ing actions within main scenario use cases (UCs). This indicates these operations are
+23
+
+--- Page 24 ---
+Fig. 18 : Distribution of per-run core-method coverage by model.
+universally recognized as fundamental domain behaviors. Mid-ranked methods (e.g.,
+publishListing ,scheduleTransport ) show moderate agreement, while tail-end
+methods exhibit greater divergence.
+Complementing this, Figure 20 presents a binary presence matrix of core meth-
+ods across models. The clustered arrangement reveals high-agreement clusters (e.g.,
+top-left block) alongside fragmented areas, highlighting which models consistently
+contribute to consensus and which omit specific methods.
+Interpretation and Practical Implications
+Core-method consensus highlights which operations are most frequently and consis-
+tently identified across LLMs, reflecting a shared behavioral understanding grounded
+in key domain actions. The methods generated by all nine models correspond directly
+to critical actions within the main scenario use cases, underscoring their fundamental
+role in domain modeling. High-performing models like Claude3.7 andQwen3 demon-
+strate strong convergence on these domain-relevant behaviors, suggesting greater
+reliability and suitability for consensus-driven or ensemble-based design workflows.
+Conversely, lower agreement from models such as Grok 3 may indicate broader gen-
+erative variability or misalignment with core behavioral norms. These insights can
+inform model selection, support automated quality checks in AI-assisted tooling, and
+help establish minimum behavioral standards for expert validation.
+4.6.3 Structural Placement Consistency (SPC)
+Structural Placement Consistency (SPC) quantifies how consistently core methods
+are assigned to the same UML classes across different LLMs. The average placement
+24
+
+--- Page 25 ---
+Fig. 19 : Model agreement per core method: number of LLMs generating each of the
+top-37 core methods.
+Fig. 20 : Presence matrix of top-37 core methods across LLMs; dark cells denote
+inclusion.
+consistency is high at 92.7%, with a Wilcoxon signed-rank test revealing a slight but
+statistically significant deviation from perfect agreement ( p= 0.0112).
+Such minor deviations from perfect consistency are expected in complex modeling
+tasks and likely reflect valid alternative architectural interpretations rather than errors.
+Table 8 (Appendix E) provides detailed placement consistency scores for each core
+method, while Figure 21 visualizes core methods grouped by their dominant class.
+25
+
+--- Page 26 ---
+Fig. 21 : UML diagram of 37 core methods grouped by dominant class; green classes
+show 100% placement consistency.
+Interpretation and Practical Implications
+The high SPC observed indicates strong convergence among LLMs not only in method
+naming but also in architectural reasoning, suggesting that models reliably infer
+appropriate class-method associations from use-case semantics. Figure 21 bridges
+quantitative evaluation with planned semantic validation, visually depicting core
+methods grouped by dominant class—many achieving perfect placement consistency
+(highlighted in green). This underscores meaningful method distribution and architec-
+tural coherence, which is critical in collaborative or multi-model design environments
+to reduce integration conflicts and support maintainability. Minor inconsistencies point
+to valid alternative interpretations, highlighting the need for enhanced semantic dis-
+ambiguation in prompt design and validation pipelines. These implications and future
+research directions are discussed in detail in the Discussion section.
+4.7 Summary
+This study evaluates the ability of large language models (LLMs) to enrich UML class
+diagrams with methods derived from structured use cases. The key findings are:
+•Method Quantity (MQ) :Claude 3.7 generated the highest number of meth-
+ods, providing comprehensive behavioral coverage, while models like Mistral and
+Llama 4 produced fewer methods, favoring simplicity.
+•Signature Richness (SR) :Mistral produced the richest method signatures,
+particularly excelling in parameter richness and return type annotations, whereas
+other models showed more conservative parameterization.
+26
+
+--- Page 27 ---
+•Annotation Completeness (AC) :Claude 3.7 andChatGPT-o3 had the
+highest annotation adherence, ensuring traceability from use cases to methods,
+which is essential for maintainability and collaboration.
+•Structural Fidelity (SF) :ChatGPT-o3 ,Mistral , and Claude 3.7 pre-
+served the UML diagram structure with high consistency, while models like
+Grok 3 showed weaker structural preservation, particularly for relationships and
+enumerations.
+•Novelty - Method Name Consensus : A notable finding is the high lexical
+consensus in method naming across models. Claude 3.7 andQwen 3 demon-
+strated strong consistency in method names, which is critical for maintaining
+uniformity across multiple LLMs in collaborative workflows.
+•Novelty - Multi-model Evaluation : This study’s multi-model approach is a
+significant contribution, providing a broader view of LLM performance. Unlike
+previous work that focused on single models, we offer a comprehensive benchmark,
+showing how different LLMs perform across multiple dimensions.
+In conclusion, while LLMs show promise for automating UML behavioral enrich-
+ment, model selection should be based on specific project needs such as method
+quantity, signature detail, and annotation completeness. The high degree of consen-
+sus across models highlights the potential for cross-model collaboration, which could
+enable more robust and consistent UML design processes in software engineering.
+5 Discussion
+This study presents a systematic evaluation of nine publicly available state-of-the-
+art large language models (LLMs) in their ability to automatically enrich UML class
+diagrams with methods derived from 21 structured natural language use cases. The
+central research question addressed is:
+How effectively do nine publicly available LLMs enrich structural UML class diagrams with
+methods derived from structured use cases?
+By analyzing multiple quantitative metrics across 3,373 generated methods span-
+ning 90 UML diagrams, an empirical foundation is established that characterizes the
+capabilities, limitations, and practical considerations for deploying LLMs in automated
+UML enrichment.
+In addition to effectiveness, the practical efficiency of the LLM-based enrichment
+process was notable. Across all runs, each LLM required between a few seconds and
+under five minutes to analyze the input artifacts—including the methodless UML class
+diagram, the structured use cases, and enrichment instructions—and generate the
+fully updated PlantUML code. This rapid end-to-end processing substantially exceeds
+typical human manual efforts, making it well-suited to Agile software development
+practices that emphasize fast iteration, continuous feedback, and incremental design
+refinement. The capability to quickly produce and update UML behavioral models
+aligns with Agile’s need for adaptive modeling and supports more responsive and
+collaborative engineering workflows.
+27
+
+--- Page 28 ---
+5.1 Summary of Key Metrics
+To clarify the evaluation framework, model outputs were assessed along six key
+dimensions:
+•Method Quantity (MQ): Number of methods generated per UML diagram.
+•Signature Richness (SR): Detail and complexity of method parameters and
+lexical diversity of method names.
+•Annotation Completeness (AC): Presence of source-use-case and action
+references linking methods to their originating requirements.
+•Structural Fidelity (SF): Preservation of original UML class diagram relation-
+ships and structure.
+•Syntactic Correctness (SC): Validity of generated PlantUML code based on
+successful compilation.
+•Method Name Consensus (MNC): Agreement among models in naming
+conventions for methods reflecting shared domain understanding.
+These metrics collectively characterize the quantitative aspect of the enriched UML
+diagrams.
+5.2 Model Performance Highlights and Selection
+Considerations
+Multi-dimensional analysis reveals distinct strengths and trade-offs among the LLMs:
+Method Quantity (MQ)
+Claude 3.7 generated the largest number of methods (734), significantly outperforming
+others such as Gemini 2.5Pro (477) and ChatGPT-o3 (432). In contrast, models like
+Mistral8 ×7B and Llama 4 adopted more conservative generation strategies. Statistical
+tests ( Kruskal-Wallis H(8) = 51 .85,p < .0001) confirm these differences. Practitioners
+should align model choice with project needs: Claude 3.7 and ChatGPT-o3 are suitable
+for comprehensive coverage, while leaner models may better support maintainability.
+Signature Richness (SR)
+Signature richness was evaluated across five dimensions: visibility markers, naming
+conventions, parameter richness, return types, and lexical diversity. All models pre-
+dominantly used the public visibility marker (‘+‘), with a statistically significant but
+small variation in visibility usage across models ( χ2= 64 .09, p < . 0001). Naming
+conventions were uniformly camelCase (100%), demonstrating adherence to industry
+standards.
+Parameter richness varied significantly among models ( H= 382 .08, p < . 0001),
+with Mistral generating notably richer parameter lists than others, supported by large
+effect sizes (Cliff’s δ= 1.0 versus Claude 3.7). Return-type annotations also differed
+significantly ( χ2= 312 .38, p < . 0001), with Mistral and Claude 3.7 exhibiting higher
+proportions of non-void return types, indicating enhanced behavioral detail.
+Lexical diversity, measured via normalized Levenshtein distance among unique
+method names, varied significantly ( H= 44.07, p < . 0001), highlighting differences in
+28
+
+--- Page 29 ---
+naming expressiveness and redundancy. Models such as Claude 3.7 and ChatGPT vari-
+ants exhibited higher lexical diversity, producing more descriptive and varied method
+names, while others like Grok 3 favored more conservative naming with less variation.
+These variations in signature richness reflect differing model design philosophies:
+models like Mistral prioritize detailed behavioral signatures at the cost of potential
+complexity, whereas models favoring lexical diversity generate clearer and more main-
+tainable method names. This highlights the importance of aligning LLM selection with
+project priorities that balance parameter detail and naming clarity.
+Annotation Completeness (AC)
+Traceability through annotations linking methods to their originating use cases and
+actions was strongest in Claude 3.7 and ChatGPT-o3. Conversely, Mistral8 ×7B and
+Llama 4 often omitted such annotations, which may reduce interpretability and hin-
+der downstream validation. This relationship was statistically significant ( χ2(16) =
+3001.07,p < . 0001), highlighting annotation discipline as a key differentiator among
+models.
+Structural Fidelity (SF)
+ChatGPT-o3, Mistral8 ×7B, and Claude 3.7 preserved over 98% of the original UML
+class relationships, maintaining high structural consistency. Other models, such as
+Grok3 and ChatGPT-4o, showed weaker preservation. Mixed ANOVA results con-
+firmed significant effects of model choice on structural fidelity ( F(8,81) = 7 .78,
+p < .0001). This suggests some LLMs better maintain diagram integrity than others.
+Syntactic Correctness (SC)
+All evaluated LLMs achieved greater than 90% success rates in generating PlantUML
+code that compiled without errors, indicating reliable syntactic validity across models.
+No significant differences were detected ( χ2(8) = 6 .43,p= 0.599), supporting the
+feasibility of toolchain integration regardless of model selection.
+Despite uniformly high syntactic correctness, a moderate effect size (Cram´ er’s V=
+0.267) was observed, suggesting subtle model-specific differences that may warrant
+attention in particular integration scenarios, even though overall differences were not
+statistically significant.
+Method Name Consensus (MNC)
+Models Qwen3, Claude 3.7, and ChatGPT-o3 demonstrated higher agreement in
+method naming conventions, reflecting shared domain understanding. Mistral8 ×7B
+and Grok3 exhibited more divergent naming patterns. These differences were statis-
+tically significant ( Kruskal-Wallis H(8) = 26 .42,p= 0.0009), indicating variation in
+lexical consistency across models.
+Model Selection Guidelines
+Based on these findings, the following recommendations are proposed:
+•For comprehensive coverage and completeness: Claude 3.7 or ChatGPT-o3
+29
+
+--- Page 30 ---
+•For detailed parameterization: Mistral8 ×7B, recognizing a trade-off with
+annotation completeness
+•For balanced output: Gemini 2.5Pro
+For mission-critical applications, ensemble approaches that combine complemen-
+tary model strengths may offer superior performance.
+5.3 Method Name Consensus and Structural Placement
+Consistency: Key Novel Insight
+A striking and unexpected finding is the high degree of consensus exhibited among
+diverse LLMs in generating UML method names and structurally assigning them to
+classes. Despite differences in generation approaches and parameter richness, models
+consistently produced a core set of method names with substantial overlap.
+For example, methods universally agreed upon by all models—such as assignRole ,
+verifyEmail ,updatePassword , and cancelRequest —correspond directly to funda-
+mental actions within key use cases. This highlights that LLMs internalize essential
+domain semantics, enabling semantically coherent and architecturally consistent
+behavioral enrichments.
+Coverage of the top 37 normalized method names ranged from 43.2% (Mistral) to
+86.5% (Qwen 3), with several models exceeding 80% coverage. This lexical agreement
+is complemented by a high degree of structural placement consistency, with an average
+of 92.7% of core methods assigned to the same UML classes across models.
+Statistical analysis of Structural Placement Consistency (SPC) revealed a slight
+but significant deviation from perfect agreement among models (p=0.0112, Wilcoxon
+signed-rank test), indicating minor variations in method placement likely reflecting
+valid alternative interpretations rather than errors.
+This convergence, observed without explicit shared prompts or references, provides
+a novel empirical basis for enhancing trust in AI-assisted UML design.
+Practically, this supports ensemble or consensus-based approaches, where methods
+and placements agreed upon by multiple models can be prioritized for automation and
+expert validation, improving efficiency while maintaining quality.
+From a research standpoint, these results invite further exploration into the mech-
+anisms underlying consensus formation among LLMs and offer a promising proxy for
+semantic validation in the absence of ground truth benchmarks.
+This strong consensus represents a key contribution of this investigation, advanc-
+ing both applied practice and foundational understanding of AI-driven software
+engineering.
+5.4 Interpretation and Practical Implications
+These results extend prior AI-assisted design research by quantitatively evaluating
+LLM-based UML behavioral enrichment across multiple dimensions. Key implications
+include:
+1.Capability-Reliability Gap: Although LLMs reliably generate syntactically
+valid and structurally consistent UML enrichments, considerable variability
+remains in method quantity, signature detail, annotation quality, and structural
+30
+
+--- Page 31 ---
+preservation. Notably, syntactic or structural correctness does not guarantee
+semantic validity or alignment with intended functionality.
+2.Automation Potential: Consistent naming and placement consensus among
+models suggests LLMs capture core domain behaviors effectively, enabling
+automation of routine enrichment tasks to accelerate design workflows.
+3.Human Oversight Necessity: Variability in annotation completeness and sig-
+nature richness underscores the need for expert review to ensure traceability,
+interpretability, and functional correctness.
+4.Collaborative Human-AI Workflow: Treating LLMs as collaborative part-
+ners that automate initial design drafts, with experts providing semantic
+validation, refinement, and contextual judgment, is recommended.
+5.Agile-friendly practices: The ability of LLMs to rapidly generate and update
+UML enrichments supports Agile methodologies by facilitating iterative design,
+rapid prototyping, and adaptive workflows aligned with evolving project needs.
+5.5 Limitations
+Semantic Validation
+Open-ended method generation precludes definitive automated benchmarks. This
+study relies on proxy metrics rather than direct verification of behavioral alignment,
+method-to-class assignment accuracy, or comprehensive semantic coverage.
+Benchmark Scarcity
+The lack of publicly available datasets linking use cases to fully behaviorally complete
+UML diagrams limits rigorous semantic evaluation.
+Operational Constraints
+LLM outputs are sensitive to input quality and fixed prompting strategies, and the
+probabilistic nature of LLMs necessitates human oversight due to variability.
+Furthermore, the fixed prompt structure and reliance on single-shot generation
+may limit output diversity and adaptability. Variability in LLM API versions and envi-
+ronmental factors can influence reproducibility, highlighting the need for standardized
+prompt engineering and monitoring in operational deployments.
+Domain Specificity
+Evaluation focused on the waste management domain, which may limit applicability
+to safety-critical or other specialized systems.
+5.6 AI Bias Considerations
+Observed output variations may reflect underlying biases present in training cor-
+pora, risking perpetuation of representational limitations. Effective mitigation requires
+development of domain-diverse datasets, algorithmic bias detection techniques, and
+rigorous validation processes. Future research should quantify bias manifestations and
+develop domain-adapted debiasing frameworks.
+31
+
+--- Page 32 ---
+5.7 Threats to Validity
+•Construct validity: Proxy metrics do not directly capture semantic or behav-
+ioral correctness.
+•Internal validity: Fixed prompt sequences and single-domain datasets may bias
+model outputs. Multiple random seeds were used to mitigate stochastic effects,
+though API changes may impact reproducibility.
+•External validity: Domain and UML diagram type specificity limit general-
+izability. Only publicly accessible LLMs available during the study period were
+evaluated.
+•Reliability: Results depend on consistent model access and prompt configura-
+tion; environmental variability may influence output consistency.
+•Statistical validity: Appropriate statistical tests and corrections for multiple
+comparisons were applied, though inherent LLM output variability remains a
+confounding factor.
+Expanding evaluation domains, integrating semantic validation techniques, and
+conducting longitudinal studies are necessary to mitigate these threats.
+5.8 Future Research Directions
+Several promising avenues for continued investigation are identified:
+1.Semantic Validation: Development of integrated frameworks combining expert
+review, formal verification, and behavioral testing.
+2.Benchmark Creation: Establishment of expert-validated datasets linking
+natural language specifications to behaviorally complete UML models.
+3.Consensus for Semantics: Further work should investigate how consensus
+measures can inform and complement semantic validation approaches.
+4.Model Enhancement: Exploration of adaptive prompting and domain-specific
+fine-tuning to improve output relevance.
+5.Hybrid Architectures: Investigation of ensemble methods leveraging comple-
+mentary strengths of diverse LLMs.
+6.Generalizability Studies: Extension of evaluations to multiple domains,
+including safety-critical systems.
+7.Human-AI Collaboration Workflows: Design of interactive refinement pro-
+tocols integrating human expertise with AI assistance.
+8.Bias Mitigation: Development of domain-specific debiasing techniques and bias
+detection tools.
+9.Validation Pipelines: Creation of integrated metric-feedback systems to con-
+tinuously monitor and improve output quality.
+Bridging syntactic-structural evaluation with semantic validation and domain
+expertise remains critical to advancing trustworthy AI-assisted modeling.
+32
+
+--- Page 33 ---
+5.9 Reflections on Human-AI Collaboration
+Findings reaffirm that while LLMs generate syntactically valid UML artifacts pro-
+ficiently, critical human oversight remains indispensable to ensure accuracy, appro-
+priateness, and semantic alignment—particularly given input ambiguities and prob-
+abilistic variability. A collaborative paradigm is proposed in which LLMs automate
+repetitive or draft generation tasks, and experts provide domain knowledge, seman-
+tic validation, and refinement. This division balances efficiency gains with nuanced
+judgment.
+The collaborative paradigm between humans and LLMs aligns closely with Agile
+software development principles, emphasizing iterative refinement, continuous feed-
+back, and adaptive workflows. By automating routine and repetitive tasks, LLMs
+enable faster generation of initial UML design drafts, allowing experts to focus on
+semantic validation and nuanced decision-making. This division of labor supports the
+Agile values of collaboration and responsiveness, facilitating rapid iteration cycles and
+evolving models that better reflect changing requirements. Consequently, integrat-
+ing LLM-assisted enrichment within Agile workflows can enhance both efficiency and
+design quality through synergistic human-AI interaction.
+5.10 Concluding Remarks
+This multi-dimensional evaluation of nine publicly accessible LLMs reveals signifi-
+cant variability in their ability to enrich UML class diagrams with methods derived
+from structured use cases. While syntactic robustness and structural fidelity are
+generally assured, challenges remain in semantic validation, bias mitigation, and con-
+sistency. Context-driven model selection and ensemble strategies show promise for
+practical adoption. This work establishes a rigorous empirical foundation supporting
+trustworthy integration of LLMs into UML-centric software engineering workflows.
+By enabling rapid, iterative UML enrichment, LLM integration supports Agile and
+modern software engineering paradigms.
+6 Conclusion
+This study demonstrates the potential of large language models (LLMs) to automate
+the enrichment of UML class diagrams by generating method definitions directly from
+structured natural language use cases. Evaluating nine state-of-the-art LLMs across
+multiple dimensions—including method quantity, signature richness, annotation com-
+pleteness, structural fidelity, syntactic correctness, and naming consensus—we provide
+a comprehensive performance assessment in the context of behavioral UML modeling.
+Our results show that LLMs can produce methodically structured, class-specific
+methods that are syntactically correct and adhere to UML conventions. Models such
+as Claude 3.7 and ChatGPT-o3 excelled in method coverage and annotation com-
+pleteness, while Mistral demonstrated richer parameterization. These findings reveal
+important trade-offs between comprehensive behavioral coverage and signature detail,
+emphasizing the need for careful model selection aligned with project goals.
+33
+
+--- Page 34 ---
+Despite promising capabilities, inconsistencies in annotation completeness and
+signature richness underscore areas requiring further refinement. Improvements in
+prompt engineering, model fine-tuning, and ensemble strategies hold promise for
+enhancing output consistency and applicability.
+The fast generation times and iterative refinement capabilities of LLMs align
+well with Agile software development practices, supporting rapid design cycles and
+adaptive workflows. By integrating LLM-assisted UML enrichment into software engi-
+neering pipelines, practitioners can accelerate early-stage modeling while maintaining
+traceability and structural integrity.
+While this study focused primarily on UML class diagrams within the waste
+management domain, the presented methodology and analysis pipeline are broadly
+applicable across diverse software engineering fields. This generalizability opens
+avenues for evaluating LLM-generated models in other domains, such as healthcare,
+finance, and manufacturing, thereby enhancing the automation and quality assurance
+of software design practices universally.
+All generated UML diagrams and associated metric datasets are publicly avail-
+able, providing a valuable resource for reproducibility and benchmarking. Future
+work should focus on semantic validation, domain generalization, and human-AI
+collaboration protocols to advance trustworthy and practical AI-assisted software
+design.
+34
+
+--- Page 35 ---
+Declarations
+•Funding: The authors declare that they have no conflict of interest.
+•Conflict of interest/Competing interests: The authors declare that they
+have no conflict of interest.
+•Ethics approval and consent to participate: Not applicable. This study did
+not involve human participants, human data, or human tissue.
+•Consent for publication: All authors have given their consent for publication
+of this manuscript.
+–Data availability: All data generated or analyzed during this study, includ-
+ing processed datasets, metric CSV files, and parsed JSON representations,
+are publicly available at the project GitHub repository: https://github.com/
+Djaber1979/-Behavioral-Augmentation-of-UML-Class-Diagrams.
+–Materials availability: All materials utilized in this research—including
+UML diagrams ( .puml ), rendered images ( .png), and structured use
+cases—are accessible in the same GitHub repository.
+–Code availability: All code scripts for prompt generation, pars-
+ing, and metric computation are also provided at https://github.
+com/Djaber1979/-Behavioral-Augmentation-of-UML-Class-Diagrams, sup-
+porting reproducibility and further experimentation.
+•Author contribution:
+– Djaber Rouabhia conceived and designed the study, conducted the experi-
+ments and wrote the manuscript.
+– Ismail Hadjadj analyzed the data and reviewed the manuscript.
+Editorial Policies for:
+Springer journals and proceedings: https://www.springer.com/gp/editorial-policies
+Nature Portfolio journals: https://www.nature.com/nature-research/editorial-policies
+Scientific Reports : https://www.nature.com/srep/journal-policies/editorial-policies
+BMC journals: https://www.biomedcentral.com/getpublished/editorial-policies
+References
+[1] Saini, R., Mussbacher, G., Guo, J.L.C., Kienzle, J.: Automated, interactive,
+and traceable domain modeling empowered by artificial intelligence. Soft-
+ware and Systems Modeling 21(3), 1015–1045 (2022) https://doi.org/10.1007/
+s10270-021-00942-6
+[2] Weyssow, M., Sahraoui, H.A., Syriani, E.: Recommending metamodel con-
+cepts during modeling activities with pre-trained language models. Soft-
+ware and Systems Modeling 21(3), 1071–1089 (2022) https://doi.org/10.1007/
+s10270-022-00975-5
+35
+
+--- Page 36 ---
+[3] Zakaria, B., Bouziane, E.M., Jakimi, A., Oualla, M., Saadane, R.: Towards an
+approach for extracting uml class diagrams using advanced language models. In:
+Innovations in Smart Cities Applications, Volume 8. Lecture Notes in Networks
+and Systems, vol. 1310, pp. 83–92. Springer, ??? (2025). https://doi.org/10.1007/
+978-3-031-88653-9 9
+[4] C´ amara, J., Troya, J., Burgue˜ no, L., Vallecillo, A.: On the assessment of gen-
+erative ai in modeling tasks: an experience report with chatgpt and uml.
+Software and Systems Modeling 22(3), 781–793 (2023) https://doi.org/10.1007/
+s10270-023-01105-5
+[5] Siam, M.K., Gu, H., Cheng, J.Q.: Programming with AI: Evaluating chat-
+gpt, gemini, alphacode, and github copilot for programmers. arXiv preprint
+arXiv:2411.09224 (2024) https://doi.org/10.48550/arXiv.2411.09224
+[6] Chen, M., Tworek, J., Jun, H., Yuan, Q., Oliveira Pinto, H.P., Kaplan, J.,
+Edwards, H., Burda, Y., Joseph, N., Brockman, G., Ray, A., McCandlish,
+S., Brown, T., Chess, B., Child, R., Gray, S., Radford, A., Sutskever, I.,
+Amodei, D.: Evaluating large language models trained on code. arXiv preprint
+arXiv:2107.03374 (2021) https://doi.org/10.48550/arXiv.2107.03374
+[7] Austin, J., Odena, A., Nye, M., Bosma, M., Michalewski, H., Dohan, D., Jiang, E.,
+Cai, C.J., Terry, M., Le, Q.V., Sutton, C.: Program synthesis with large language
+models. arXiv preprint arXiv:2108.07732 (2021) https://doi.org/10.48550/arXiv.
+2108.07732
+[8] Hendrycks, D., Basart, S., Kadavath, S., Mazeika, M., Arora, A., Guo, E., Burns,
+C., Puranik, S., He, H., Song, D., Steinhardt, J.: Measuring coding challenge
+competence with apps. arXiv preprint arXiv:2105.09938 (2021) https://doi.org/
+10.48550/arXiv.2105.09938
+[9] Li, Y., Choi, D., Chung, J., Kushman, N., Schrittwieser, J., Leblond, R., Eccles,
+T., Keeling, J., Gimeno, F., Lago, A.D., Hubert, T., Choy, P., Masson d’Autume,
+C., Babuschkin, I., Chen, X., Huang, P., Welbl, J., Gowal, S., Cherepanov, A.,
+Molloy, J., Mankowitz, D., Robson, E.S., Kohli, P., Freitas, N., Kavukcuoglu,
+K., Vinyals, O.: Competition-level code generation with alphacode. Science
+378(6624), 1092–1097 (2022) https://doi.org/10.1126/science.abq1158
+[10] Du, X., Liu, M., Wang, K., Wang, H., Liu, J., Chen, Y., Feng, J., Sha, C., Peng,
+X., Lou, Y.: Evaluating large language models in class-level code generation.
+In: Proceedings of the 46th IEEE/ACM International Conference on Software
+Engineering (ICSE). ACM, ??? (2024). https://doi.org/10.1145/3597503.3639219
+[11] Wohlin, C.: Guidelines for snowballing in systematic literature studies and a repli-
+cation in software engineering. Information and Software Technology 64, 18–33
+(2014) https://doi.org/10.1016/j.infsof.2015.03.006
+36
+
+--- Page 37 ---
+[12] Cockburn, A.: Writing Effective Use Cases. Addison-Wesley Professional, Boston,
+MA, USA (2000)
+[13] Larman, C.: Applying UML and Patterns: An Introduction to Object-Oriented
+Analysis and Design and Iterative Development, 3rd edn. Prentice Hall PTR,
+Upper Saddle River, NJ, USA (2004)
+[14] Jacobson, I.: Object-Oriented Software Engineering: A Use Case Driven
+Approach. Addison-Wesley, Reading, MA, USA (1992)
+[15] Cohen, J.: Statistical Power Analysis for the Behavioral Sciences, 2nd edn.
+Routledge, Hillsdale, NJ, USA (1988)
+[16] Dodge, J., Ilharco, G., Schwartz, R., Farhadi, A., Hajishirzi, H., Smith, N.A.:
+Fine-tuning pretrained language models: Weight initializations, data orders, and
+early stopping. arXiv preprint arXiv:2002.06305 (2020) https://doi.org/10.48550/
+arXiv.2002.06305
+[17] Li, X., Wang, D.G., Wang, S., Wang, S., Wang, Y., Wang, Y., Wang, Y., Wang,
+Y., Wang, Z., Wang, Z., et al. : Evaluating large language models trained on code.
+In: Proceedings of the 2022 Conference on Empirical Methods in Natural Lan-
+guage Processing (EMNLP), pp. 12345–12356 (2022). https://doi.org/10.18653/
+v1/2022.emnlp-main.123 . Association for Computational Linguistics
+[18] Arcuri, A., Briand, L.: Random testing: Theoretical results and practical impli-
+cations. In: IEEE Transactions on Software Engineering, vol. 38, pp. 258–277.
+IEEE, ??? (2014). https://doi.org/10.1109/TSE.2011.121
+37
+
+--- Page 38 ---
+A Prompt Design
+The following is the full instruction prompt provided to each LLM, prior to presenting
+the UML diagram and structured use cases. It was used consistently across all models
+and runs:
+Objective
+Analyze the UML class diagram (that will be provided in the next prompt) and main
+scenarios to refine/add domain-layer methods. Decompose each scenario into atomic busi-
+ness logic actions (state rules, entity interactions), ensuring strict adherence to SRP, and
+excluding UI/infrastructure concerns.
+Guidelines
+1.Method Design
+•Create only methods addressing uncovered actions
+•Assign methods exclusively to classes owning the corresponding responsibility (SRP
+enforcement)
+•Modify existing methods only if responsibilities exactly match
+2.Action Mapping
+•1 method = 1 atomic business action (split at “And” clauses)
+•Allow technical sub-actions only when serving a single business purpose
+3.State Management
+•Implement explicit state transitions (e.g., confirmOrder() )
+•Embed state rules directly in methods; prohibit generic setters
+4.Naming & Structure
+•Apply domain verbs reflecting class responsibilities (e.g., calculateTotal() , never
+presentation terms)
+•Respect UML naming conventions and visibility modifiers (‘-‘, ‘+‘, ‘#‘, ‘ ‘)
+•Maintain original UML notation/style/structure
+Constraints
+•Await class diagram & UC specifications before analysis; do not proceed with assump-
+tions.
+•Process only primary scenarios
+•Preserve original class diagram structure (relationships/classes/attributes/enums/enum
+elements)
+•Update PlantUML iteratively (only add/modify methods + //Uc id+//action:
+description )
+•Never move responsibilities between classes
+•Final output: Full PlantUML code including (original structure + added/modified
+methods)
+Validation
+•Strict 1:1 action-method mapping
+•All classes/methods comply with SRP
+•Zero UI/infrastructure terminology
+•Explicit state transition enforcement
+•Signature/naming consistency
+(No explanations or commentary)
+38
+
+--- Page 39 ---
+B LLM Model Specifications
+Table 7 summarizes key properties of the nine LLMs used in this study, including
+version, release date, maximum context length, architectural details, and parame-
+ter counts (where available). This contextual information supports interpretation of
+performance differences observed in the main evaluation.
+Table 7 : Summary of model versions, release dates, context lengths, architectures, and parameter
+counts. Parameter estimates for proprietary models remain undisclosed.
+Model (Ver-
+sion)Release
+DateMax
+ContextArchitecture / Training Highlights Parameters
+(Total / Active)
+Claude 3.7 Feb 2025
+[?]200K
+(500K
+enter-
+prise)Dense LLM with hybrid reasoning
+(instant vs extended). Includes CLI
+assistant; RLHF-tuned for alignment [ ?
+].Undisclosed
+Qwen 3 Apr 2025
+[?]∼38K
+tokensHybrid dense/MoE model with multi-
+lingual and agent support; MoE variant
+(235B total, 22B active) [ ?].Dense: 0.6B–32B;
+MoE: 235B (22B
+active)
+ChatGPT-o3 Apr 2025
+[?]200K OpenAI’s reasoning model for Chat-
+GPT. RLHF-trained, excels in complex
+queries [ ?].Undisclosed
+Gemini 2.5 Pro May
+2025 [ ?]1M Multimodal dense decoder; chain-of-
+thought and RLHF-tuned. Strong cod-
+ing/multimodal tasks [ ?].Undisclosed
+DeepSeek-R1 Jan 2025
+[?]163K Sparse MoE (128 experts); 671B total,
+37B active per token. Trained for rea-
+soning [ ?].671B / 37B
+Le Chat (Mis-
+tral Medium 3)May
+2025 [ ?]128K Dense autoregressive LLM; multimodal.
+Fine-tuned for long context and enter-
+prise usage [ ?].Undisclosed
+GPT-4o May
+2024 [ ?]128K Multimodal dense decoder (text/au-
+dio/image/video); RLHF-trained;
+matches GPT-4 Turbo on text [ ?].Undisclosed
+Llama 4 (Scout
+/ Maverick)Apr 2025
+[?]1M–10M MoE LLMs; Scout (109B total, 17B
+active), Maverick (400B total, 17B
+active). Multimodal with CoT/RLHF [ ?
+].Scout: 109B / 17B;
+Maverick: 400B /
+17B
+C Metric Definitions, Symbols, and Context
+This appendix formalises each metric applied in the study. Each entry includes:
+1. a brief definition ,
+2. the corresponding formula , and
+3. the specific context of its use.
+39
+
+--- Page 40 ---
+These metrics correspond directly to the quantitative dimensions analyzed in
+the Results section, providing a formal foundation for measuring UML behavioral
+enrichment quality.
+C.1 Method Generation and Structural Fidelity
+Method Quantity (MQ)
+Definition: Total count of methods generated per UML class diagram.
+MQ =CX
+i=1Mi
+where Miis the number of methods in class i, and Cis the total number of classes in
+the diagram.
+Context: Measures the extent of behavioral enrichment in terms of method
+coverage.
+Signature Richness (SR)
+Definition: Composite metric capturing detail in method signatures, including average
+parameter count, proportion of non-void return types, and lexical diversity of method
+names.
+SR =
+P, RTC, D
+where Pis the mean parameter count per method, RTC is return-type complete-
+ness (proportion non-void returns), and Dis normalized Levenshtein distance among
+unique method names (see below).
+Context: Reflects complexity and informativeness of generated methods.
+Name Redundancy
+Definition: Degree of name duplication in a method list.
+Redundancy =M
+U, M = total methods , U = unique names .
+Context: High redundancy implies limited lexical variation in method names.
+Return-Type Completeness
+Definition: Proportion of methods with explicit non- void return types.
+RTC =R
+M, R = #methods with r̸=void.
+Context: Reflects informativeness of generated method signatures.
+40
+
+--- Page 41 ---
+Normalized Levenshtein Distance
+Definition: Average edit distance between method names, normalized to [0,1].
+D=1 U
+2X
+i<jLev(si, sj)
+max(|si|,|sj|).
+Context: Lower values indicate greater lexical consistency in naming.
+C.2 Annotation Completeness and Method Consensus
+Annotation Coverage
+Definition: Proportion of methods containing explicit use-case or action annotations.
+uccov =MUC
+M,Actcov =Mact
+M.
+Context: Indicates traceability of generated behavior to original use cases.
+Core-Method Consensus
+Definition: Proportion of LLMs that independently generated a core method.
+Cons( m) =#LLMs generating m
+MLLMs×100.
+Context: Used to identify high-agreement methods across models.
+Structural Placement Consistency (SPC)
+Definition: Proportion of LLMs that assign a method to the same UML class.
+SPC( m) =#LLMs placing min dominant class
+#LLMs generating m×100.
+Context: Measures architectural consensus in behavioral enrichment.
+Jaccard Similarity
+Definition: Ratio of the intersection to the union of two sets.
+J(A, B) =|A∩B|
+|A∪B|.
+Context: Used to compare model-wise overlap in method sets.
+Syntactic Correctness (SC)
+Definition: Proportion of generated UML diagrams that compile successfully without
+syntax errors.
+SC =#valid diagrams
+#total diagrams.
+41
+
+--- Page 42 ---
+Context: Measures validity and toolchain compatibility of generated PlantUML code.
+Top-Method Consensus (TMC)
+Definition: Lexical overlap of the most frequent normalized method names across
+models.
+TMC =|TM
+m=1Sm|
+|SM
+m=1Sm|
+where Smis the set of top frequent method names for model m, normalized to a
+canonical form.
+Context: Assesses lexical convergence and naming consistency across LLM outputs.
+D Inferential and Non-Parametric Statistics
+This appendix details the inferential and non-parametric statistical tests used in the
+analysis. These tests complement the metric analyses described above by assessing
+statistical significance and effect sizes of observed differences. Each entry includes:
+1. a brief definition ,
+2. the corresponding formula , and
+3. the specific context of its use in this study.
+D.1 Kruskal–Wallis Test
+1.Definition: The Kruskal–Wallis test is a rank-based non-parametric test used to
+determine whether there are statistically significant differences between the medi-
+ans of three or more independent groups. It is an extension of the Mann–Whitney
+U test when comparing more than two groups.
+2.Formula: LetNbe the total number of observations, kthe number of groups,
+andRithe sum of ranks for group iwith size ni. The test statistic His:
+H=12
+N(N+ 1)kX
+i=1R2
+i
+ni−3(N+ 1)
+Under the null hypothesis, Happroximates a chi-squared distribution with k−1
+degrees of freedom.
+3.Context: Used to test for global differences across LLM models in metrics such as
+Method Quantity, Signature Richness, Top-Method Consensus, and Core-Method
+Consensus where normality assumptions do not hold.
+D.2 Dunn’s Post-Hoc Test
+1.Definition: Dunn’s test is a non-parametric pairwise multiple comparison pro-
+cedure performed following a significant Kruskal–Wallis test. It identifies which
+specific groups differ.
+42
+
+--- Page 43 ---
+2.Formula: For groups iandj, the test statistic Zijis:
+Zij=Ri/ni−Rj/njr
+N(N+1)
+12
+1
+ni+1
+nj
+where Ri,niare the sum of ranks and size of group i, respectively.
+3.Context: Applied post hoc to identify pairwise differences between LLMs in met-
+rics where Kruskal–Wallis tests indicated significance, with Holm correction for
+multiple testing.
+D.3 Chi-Squared Test of Independence
+1.Definition: The chi-squared test assesses whether two categorical variables are
+independent by comparing observed and expected frequencies.
+2.Formula:
+χ2=X
+iX
+j(Oij−Eij)2
+Eij
+where OijandEijare observed and expected frequencies for cell ( i, j).
+3.Context: Used to examine associations between categorical variables such as
+annotation completeness and model identity.
+D.4 Wilcoxon Signed-Rank Test
+1.Definition: The Wilcoxon signed-rank test is a non-parametric test for comparing
+two related samples to assess whether their population mean ranks differ.
+2.Formula: For paired differences di, order the absolute values and assign ranks.
+LetWbe the sum of ranks for positive differences. The test statistic is:
+W= min( W+, W−)
+where W+andW−are sums of ranks for positive and negative differences,
+respectively.
+3.Context: Employed to assess Structural Placement Consistency across core
+methods between pairs of LLM models.
+D.5 Cliff’s Delta ( δ)
+1.Definition: Cliff’s delta measures the effect size by quantifying the degree of
+overlap between two ordinal distributions. It ranges from −1 to +1, where 0
+indicates no difference.
+2.Formula: Given two groups XandY,
+δ=number of ( xi> yj)−number of ( xi< yj)
+nXnY
+where nXandnYare sample sizes of groups XandY.
+43
+
+--- Page 44 ---
+3.Context: Reported alongside Kruskal–Wallis and Dunn’s tests to indicate the
+magnitude of differences between LLMs in metrics such as method counts and
+parameter richness.
+D.6 Cram´ er’s V
+1.Definition: Cram´ er’s V measures the strength of association between two nominal
+variables, scaled between 0 (no association) and 1 (perfect association).
+2.Formula:
+V=s
+χ2
+N×(k−1)
+where χ2is the chi-squared statistic, Nis total observations, and kis the smaller
+number of categories in the variables.
+3.Context: Used to quantify effect size in chi-squared tests, such as the association
+between model identity and annotation completeness.
+44
+
+--- Page 45 ---
+E Placement consistency
+Table 8 : Placement consistency of core methods across LLMs: method name, dominant class, number of LLMs agreeing on generating
+the method, number of LLMs agreeing on placement in the dominant class, and consistency rate (%).
+Method Dominant Class #LLMs Agreeing #LLMs Agreeing on Placement Consistency (%)
+updatePassword UserCredentials 9 9 100.0
+cancelRequest ServiceRequest 9 9 100.0
+assignRole RoleManager 9 9 100.0
+resetPassword UserCredentials 9 9 100.0
+verifyEmail UserProfile 9 8 88.9
+lockaccount Useraccount 8 8 100.0
+deactivateaccount Useraccount 8 8 100.0
+sendVerificationEmail NotificationService 8 8 100.0
+generatePasswordResetToken UserCredentials 8 8 100.0
+validateCredentials UserCredentials 8 8 100.0
+updateProfile UserProfile 8 8 100.0
+cancel ServiceRequest 8 8 100.0
+deactivate Useraccount 7 7 100.0
+activateaccount Useraccount 7 7 100.0
+validateRoleTransition RoleManager 7 7 100.0
+sendNotification NotificationService 6 6 100.0
+schedule ServiceRequest 6 6 100.0
+updateListing Product 6 6 100.0
+createListing Product 6 6 100.0
+addStage WasteJourney 6 6 100.0
+listProduct Product 4 4 100.0
+applyFilters SearchFilter 4 4 100.0
+sendPasswordResetConfirmation NotificationService 3 3 100.0
+updateStatus ServiceRequest 7 6 85.7
+scheduleTransport TransportRequest 7 6 85.7
+updateDetails CollectionPoint 8 6 75.0
+login Useraccount 6 5 83.3
+updateProfileDetails UserProfile 6 5 83.3
+validateEmailFormat UserProfile 6 5 83.3
+scheduleCollection CollectionRequest 6 5 83.3
+updateLocation WasteJourney 7 5 71.4
+recordLogin Useraccount 5 4 80.0
+acceptRequest CollectionRequest 8 4 50.0
+validate Address 5 3 60.0
+createaccount Useraccount 7 7 100.0
+publishListing Product 7 7 100.0
+45

@@ -1,0 +1,1220 @@
+--- Page 1 ---
+Inference-Time Intervention in Large Language Models
+for Reliable Requirement Verification
+Paul Darma,∗, James Xieb, Annalisa Riccardia
+aUniversity of Strathclyde, Department of Mechanical and Aerospace Engineering, 75
+Montrose St, Glasgow, G1 1XJ, United Kingdom
+bInternational Space University, 1 Rue Jean-Dominique
+Cassini, Illkirch-Graffenstaden, 67400, Another State, France
+Abstract
+Steering the behavior of Large Language Models (LLMs) remains a challenge,
+particularly in engineering applications where precision and reliability are
+critical. While fine-tuning and prompting methods can modify model be-
+havior, they lack the dynamic and exact control necessary for engineering
+applications. Inference-time intervention techniques provide a promising
+alternative, allowing targeted adjustments to LLM outputs. In this work,
+we demonstrate how interventions enable fine-grained control for automating
+the usually time-intensive requirement verification process in Model-Based
+Systems Engineering (MBSE). Using two early-stage Capella SysML models
+of space missions with associated requirements, we apply the intervened LLMs
+to reason over a graph representation of the model to determine whether a
+requirement is fulfilled. Our method achieves robust and reliable outputs,
+significantly improving over both a baseline model and a fine-tuning approach.
+By identifying and modifying as few as one to three specialised attention
+heads, we can significantly change the model’s behavior. When combined
+with self-consistency, this allows us to achieve perfect precision on our holdout
+test set.
+Keywords: Model-Based Systems Engineering, Large Language Models,
+Requirement Verification, Inference-Time intervention, Steerability
+∗Corresponding Author
+Email addresses: paul.darm@strath.ac.uk (Paul Darm),
+James.xie@community.isunet.edu (James Xie), annalisa.riccardi@strath.ac.uk
+(Annalisa Riccardi)arXiv:2503.14130v1  [cs.AI]  18 Mar 2025
+
+--- Page 2 ---
+1. Introduction
+TARS: Everybody good? Plenty of slaves for my robot colony? [...]
+Cooper: TARS, bring down your humour settings to 75 please.
+In the movie Interstellar , the robot assistants like TARSfeature adjustable
+parameters, allowing users to fine-tune settings such as humor and honesty
+based on situational needs. While Large Language Models (LLMs) offer
+great utility across various applications, achieving a similar level of control
+remains challenging. Two principal techniques for steering LLMs exist. The
+simplest method simply gives instructions to the LLM directly in the input
+prompt to condition the model to behave a certain way. The effectiveness is
+usually highly dependent on the model and also the behavior that the model
+is supposed to be steered in, making it not very robust and not controllable
+Chang et al. (2024); Miehling et al. (2025). Fine-tuning an LLM with
+examples promoting the behavior is another technique, which require usually
+substantial amounts of data, compute, and hyperparameter searches Rafailov
+et al. (2024); Ethayarajh et al. (2024). While in general more effective than
+prompt engineering, it is highly dependable on the available training data
+and leads to static configurations that may not generalise well to changing
+contexts, which would demand retraining.
+For applying LLMs to safety-critical tasks such as requirement engineering,
+it is crucial to establish mechanisms that steer model behavior according to
+task-specific risk levels. This is essential because requirement engineering
+directly impacts the design and functionality of systems, where inaccuracies
+can lead to significant safety hazards and operational failures. The ability to
+dynamically adjust an LLM’s precision and recall—similar to tuning threshold
+of a traditional classifier—could improve its applicability in decision-making
+scenarios.
+Inference-time intervention (ITI) has emerged as a promising approach
+for modifying and controlling model behavior. It has been employed both
+to enhance beneficial behaviours and, in some cases, to circumvent ethical
+safeguards. Specifically, interventions have been used to reduce refusal rates
+in safety-alignment settings Xu et al. (2024); Arditi et al. (2024); Panickssery
+et al. (2024) and to improve truthfulness, mitigate toxicity, and enhance
+factual knowledge representation Jorgensen et al. (2023); Li et al. (2023);
+2
+
+--- Page 3 ---
+Qiu et al. (2024); Marks and Tegmark (2024). In general, ITI allows for
+precise and computationally efficient model steering by targeting specific
+layers or attention heads within a neural network. This approach provides
+a transparent optimization process, increasing trust in model outputs by
+linking behavioral adjustments to interpretable features within the model
+architecture.
+Although prior work has primarily explored interventions in the context of
+truthfulness and alignment, we investigate their application in Model-Based
+Systems Engineering (MBSE), specifically for automating requirement verifica-
+tion. While MBSE provides structured representations of system architectures,
+its standard frameworks often fall short in expressing complex requirements
+Wach and Salado (2022). In practice, requirements are frequently articulated
+in natural language Franch et al. (2023), making verification challenging. To
+address this, we integrate Natural Language Processing (NLP) techniques to
+analyze and validate requirements based on architectural representations. Our
+method extracts precise, context-relevant information from Capella models
+and employs LLMs to determine whether a given requirement is satisfied.
+Figure 1 shows an overview of the intervention approach for requirement
+verification.
+This work makes three key contributions:
+1.Dataset for Requirement Verification : We introduce a new dataset
+designed for requirement verification in early space mission design,
+focusing on a lunar base design project and the Hubble Space Telescope
+(HST) conceptual model.
+2.Intervention-Based Model Steering : We develop an intervention method-
+ology that efficiently identifies and modifies the most sensitive attention
+heads in an LLM, enabling fine-grained model control.
+3.Empirical Validation : We demonstrate the generalisability of our ap-
+proach by applying it to two distinct space mission architectures achiev-
+ing a precision value of 100%, highlighting its robustness across diverse
+verification scenarios and the value of it to safety sensitive engineering
+applications.
+2. Related Work
+2.1. NLP for Requirement Engineering
+Requirement engineering is a key component of MBSE, defining system
+specifications for complex systems such as spacecrafts, aerospace systems and
+3
+
+--- Page 4 ---
+Figure 1: Intervention on Requirement Verfication
+software frameworks. MBSE augments system design, analysis, and validation
+while reducing long-term costs despite its higher initial investment INCOSE
+Technical Operations (2007); INCOSE (2022); Rogers and Mitchell (2021);
+Madni and Purohit (2019).
+Automating requirement engineering with NLP has gained attention, with
+language models like SpaceBERT and AeroBERT demonstrating early suc-
+cess Berquand et al. (2021); Tikayat Ray et al. (2023). However, significant
+challenges remain. Benchmarking is difficult due to the lack of standardized
+datasets, making objective evaluation challenging. Additionally, error toler-
+ance is a major concern, as these solutions can produce false positives and
+negatives, which is particularly problematic in safety-critical applications,
+where near-perfect accuracy is essential Norheim et al. (2024); Topcu et al.
+(2025).
+Model verification remains an open problem in MBSE. Case-based reason-
+ing has been used to analyse formal requirement definitions by comparing
+them to formal system models Praehofer and Kerschbaummayr (1999). Alter-
+native approaches involve enriching SysML with model checkers like NuSMV
+to verify system behavior, as demonstrated in avionics applications Hause et al.
+(2006); Wang et al. (2019). However, these methods require requirements to
+4
+
+--- Page 5 ---
+be formalized in specific tool languages, limiting flexibility.
+Formal modeling languages such as SysML further introduce rigidity, as
+requirements defined in structured formats may unintentionally constrain
+design solutions. Salado et al. argue that extending SysML’s semantics is
+necessary to allow for greater flexibility in requirement definitions Wach and
+Salado (2022). Despite these efforts, natural language remains the dominant
+format for requirement engineering Franch et al. (2023).
+Recent work has explored translating textual requirements into temporal
+formal representations for automated verification Cosler et al. (2023). In
+contrast, we propose an NLP-based approach that enables direct reasoning
+overtextualrequirements. Bystructuringsysteminformationinagraph-based
+format, this method facilitates automated validation without the need for
+predefined formal models, addressing key limitations of existing approaches.
+2.2. Inference-Time Intervention for LLMs
+Early experiments showed that LLMs tend to be "overconfident" when
+verifying requirements, often incorrectly asserting that a requirement is ful-
+filled, resulting in many false positives. Consequently, we explored techniques
+to more precisely control model outputs.
+ITI techniques modify model activations during generation to steer LLM
+outputs toward a desired behavior. A common approach involves using
+contrastive input pairs to identify activation differences, which are then used
+to modify the residual stream during inference Li et al. (2023); Arditi et al.
+(2024).
+Unlike fine-tuning, which uses gradient-based optimization, ITI does not
+apply gradient updates at the token level. Instead, it targets broader features
+that generalise well in the identified direction.
+Intervention techniques have been applied across a range of domains and
+LLMs sizes to modify and control their behavior. In safety and alignment,
+interventions have been used to bypass ethical safeguards in language models,
+reducing refusal rates for harmful prompts Xu et al. (2024); Arditi et al.
+(2024); Panickssery et al. (2024). Conversely, they have also been leveraged
+to promote beneficial behavior, such as reducing toxic language Jorgensen
+et al. (2023), improving truthfulness Li et al. (2023); Qiu et al. (2024), and
+enhancingfactualknowledgerepresentationMarksandTegmark(2024). Akey
+challenge is identifying the most effective model components for intervention.
+Many studies rely on computationally expensive exhaustive searches Jorgensen
+et al. (2023); Panickssery et al. (2024); Arditi et al. (2024) on model layers
+5
+
+--- Page 6 ---
+or attention heads, while Li et al. propose a probe-based linear classifier
+approach to select specialised attention heads Li et al. (2023). However, prior
+research suggests that exhaustive search methods to find these specialised
+attention heads tend to achieve better steering capabilities Darm and Riccardi
+(2025). We propose a novel divide-and-conquer approach that first evaluates
+layer influence before refining the search at the attention head level. This
+hierarchical strategy improves the efficiency of the attention head selection
+while maintaining strong intervention performance.
+3. Methodology
+In the methodology section, we first describe the process of extracting
+data from a Capella model and converting it into a structured textual graph
+representation. We then explain how the extracted information is being used
+as input for the LLM, to subsequently reasons if an associated requirement is
+fulfilled or not.
+We also introduce a slightly adapted intervention method that adapts the
+intervention strength to each attention head. Inspired by divide-and-conquer
+paradigm, we additionally propose a novel approach for identifying optimal
+intervention configurations within the model architecture
+Finally, we elaborate on the experimental setup, detailing the dataset,
+computational environment, evaluation metrics, and configurations for both
+fine-tuning and intervention.
+3.1. From System Model to Requirement Verfication
+The main goal of our requirement verification aims to automatically ver-
+ify if a Capella system engineering model design meets a natural language
+specified requirement. Capella is a widely adopted, domain-independent sys-
+tems engineering tool that supports the development of system architectures,
+particularly favored for its robust and flexible modeling capabilities across
+various industries. The whole pipeline is shown in Figure 2 and is explained
+in more detail in the following paragraphs.
+Capella .Capella is an open-source MBSE tool that is designed to support
+the system architecture design process. It implements the Arcadia method,
+a comprehensive approach to systems engineering that covers all phases
+of project development, from conceptual design to detailed analysis and
+validation. Capella provides a rich graphical modeling environment where
+6
+
+--- Page 7 ---
+users can create various types of diagrams to represent the operational, logical,
+and physical aspects of systems Voirin (2017). There exists a Python librabry
+called PyCapella for Python that enables to programmatically access parts of
+the Capella model.1
+Extract Graph Representation .To extract a relevant graph representa-
+tion for the system, we begin by parsing the Capella system model via the
+API of PyCapella to access and extract components, functions and other
+parts of it. We first encode the requirement as well as the name of every
+component with a semantic similarity model to extract the most relevant
+entities and relations from the Capella model. We subsequently extract and
+consider the top-k most similar components in respect to the requirement for
+further analysis. Our semantic similarity step takes into consideration that
+some system engineering models might have more components than can fit
+into the context length of modern LLMs, therefore we efficiently filter for the
+most relevant ones. In a second step, we apply re-ranking with an LLM to
+extract the top-1 relevant component to the requirement.
+Subsequently, we apply a breadth-first search algorithm starting from this
+component to extract adjacent components and functions, formulating them
+into triple format following the notation "|Entity| |Relation| |Entity|"
+or"|Entity| |Function| |Attribute|" . We describe the breadth-first-
+search algorithm in more detail in Darm et al. (2023). The exact procedure on
+how we transform the Capella model into a graph representation is described
+in more detail in Appendix Appendix A.
+This representation captures the core entities and connections of the logical
+structure and functional interactions of the Engineering Model, which can be
+used by the LLM in the next step to decide if the requirement is upheld or
+not.
+LLM Prompt .Weformulatethegraphrepresentationandthecorresponding
+requirement into an instruction for the LLM. The prompt is designed to guide
+the model through a chain-of-thought reasoning process and conclude with
+an explicit statement: "Final Answer: Yes/No" Wei et al. (2023). To extract
+the answer, we apply pattern matching to identify the phrase "Final Answer:
+Yes/No". Figure 2 provides a complete example of the full prompt.
+1https://github.com/DSD-DBS/py-capellambse
+7
+
+--- Page 8 ---
+Figure 2: Overview prompt construction
+3.2. Intervention strategy
+We closely follow the intervention strategy established in Li et al. (2023).
+The main difference is that, instead of using the same intervention strength
+factor for every attention head, we optimize them for each head separately.
+For reasons of clarity, the main approach is reported here again together with
+our additions and clarifications.
+8
+
+--- Page 9 ---
+We begin with an input token sequence X∈RT×D, whereTis the
+sequence length and Dis the hidden size of the model.
+The multi-head attention mechanism, as described by Vaswani et al.
+(2017), applies a transformation P, whose details we omit for brevity. In
+simplified terms, it projects Xinto sub-matrices, which are then multiplied
+and combined. This process, collectively denoted as Attn, produces the
+attention output or activation Z:
+Z=Attn (X,P )
+Here,P∈RD×(hDh)transforms XtoZ∈R1×(hDh), where,hspecifies the
+number of attention heads in the network and Dhis the dimension of each
+head. This dimensionality arises because the attention mechanism focuses
+on the previous token’s activation to predict the next token in the sequence
+generation tasks.
+After calculating the activation Z, the residual stream xiis updated as
+follows:
+xi+1=xi+ZWO,
+whereWO∈RhDh×Dprojects the activations back in the original hidden
+size. This projection works because hDhis chosen to be equal to D. This is
+how the attention mechanism is implemented in common frameworks due to
+optimised linear algebra operations.
+Zcan also be rewritten as Z= (z1,z2,...,zh), where each zh∈RDh
+represents the output from an individual attention head. Also splitting WO
+into separate components WOh∈RD×Dhfor each head’s contribution, one
+gets:
+WO=
+WO1
+WO2...
+WOh
+
+This allows to express the update as:
+xi+1=xi+H/summationdisplay
+h=1WOhzh
+9
+
+--- Page 10 ---
+By introducing an intervention vector θh∈RDh, one can steer the model’s
+behavior at each attention head during generation of model responses:
+xi+1=xi+h/summationdisplay
+h=1WOh(zh+θh)
+We define the intervention vector for each head as:
+θh=αhv
+Where similar to Li et al. (2023)
+•αh∈Ris theintervention strength factor for a particular head.
+•v∈RDhis the direction of the intervention
+In our method, we adapt the intervention strength αhto each head instead
+of applying a uniform value across all heads that is scaled by the standard
+deviations in the activations. Early experiments indicated that attention
+heads in different layers exhibit varying degrees of sensitivity to intervention
+even when applying this scaling factor. We follow the usual implementation
+of defining the direction vas the normalised contrastive difference between
+activations of the last token of examples following the targeted behaviour and
+not following it. Therefore, vis computed as:
+v(l,h)=1
+|Dtrue|/summationdisplay
+i∈Dtruez(l,h)
+i−1
+|Dfalse|/summationdisplay
+i∈Dfalsez(l,h)
+i
+Here, z(l,h)
+iis the last token activation vector for the i-th sample at layer
+land headh. The setsDtrueandDfalseare indices of training samples with
+matching behavior and non-matching behaviour respectively.
+3.3. Divide-and-Conquer Intervention Optimization
+Theselectionofsensitiveattentionheadsremainsanactiveareaofresearch.
+To efficiently identify specialised attention heads, we employ a two-step search
+method inspired by the divide-and-conquer paradigm. First, the algorithm
+iterates through each network layer, testing whether activation steering in
+its attention heads significantly affects the layer’s output. If a notable effect
+is detected, the layer is subdivided into smaller groups of attention heads,
+which are further evaluated. This subdivision continues iteratively as long as
+10
+
+--- Page 11 ---
+performance improvements are observed. This process is detailed in Algorithm
+1.
+Each configuration is optimized for varying intervention strength values
+αh, which is incrementally increased while the precision metric remains below
+one and the model’s output retains coherence. A precision value of 1 indicates
+the absence of false negatives. Once this threshold is reached, the intervention
+strength is reduced to explore whether higher recall can be achieved while
+maintaining perfect precision. The optimization procedure is detailed in
+Appendix 3.
+Algorithm 1 Divide: Layer-wise Queue-based Recursive Splitting with Alpha
+Optimization
+1procedure DIVIDE (L,min_precision,min _recall,α 0)
+Require: Activations of Model layers L, alignment thresholds min_precision,min _recall, predefined
+starting intervention strength α0
+2 Initialize queue Ql
+3foreach layerl∈Ldo
+4 Let Sl←{(h1,α0),..., (hk,α0)} ▷Initialize all heads with predefined α0
+5 Insert into queue Ql←{Sl}
+6end for
+7whileQl̸=∅do
+8 Pop set SfromQl
+9 Compute (αopt,precision,recall ) =OPTIMIZE-ALPHAS (S)
+10 ifprecision≥min_precision andrecall≥min_recallthen
+11 Split SintoS1andS2:
+12 S1←S[:⌊|S|/2⌋] ▷First half of S
+13 S2←S[⌊|S|/2⌋:] ▷Second half of S
+14 Assign optimized alpha-values:
+15 S1←{(h,α opt)|(h,α)∈S1}
+16 S2←{(h,α opt)|(h,α)∈S2}
+17 Push S1andS2intoQl
+18 end if
+19end while
+20returnAlignment results for all layers
+21end procedure
+In the second step, the highest-performing configurations (selected heads
+and corresponding αhvalues) from the first step are recombined to strengthen
+intervention efficacy. The algorithm begins with the top-performing config-
+uration and iteratively integrates it with the second- and third-best until
+predefined precision and recall thresholds are met. If a superior configuration
+emerges, it replaces the current selection, and the process continues. All
+tested configurations are stored, and evaluation proceeds until all candidates
+11
+
+--- Page 12 ---
+have been evaluated. In Algorithm 2, the process is outlined in more detail.
+This recombination step aims to improve performance by leveraging multiple
+selected attention heads across different network layers.
+Algorithm 2 Conquer: Recombination of Intervened Heads
+1procedure Conquer (Qc,M,min_precision,min _recall)
+Require: Ordered queueQc(sorted by precision and recall), memoization set M, alignment thresholds
+min_precision,min _recall
+2 Initialize best_solution ←Q c[0] ▷Set to the first element of the queue
+3whileQc̸=∅do
+4 Pop configuration c= (heads,alphas )fromQc
+5foreachc′= (heads′,alphas′)∈Q cdo
+6 ifc′.precision>min _precision andc′.recall>min _recallthen
+7 ccat= (heads∪heads′,alphas +alphas′) ▷Combinecandc′
+8 ifccat/∈M ▷Check if new then
+9 Compute (αopt,precision,recall ) =OPTIMIZE-ALPHAS (ccat)
+10 Add ccattoM
+11 ifprecision>best_solution.precision orrecall>best_solution.recall then
+12 Update best_solution ←ccat
+13 Push ccatintoQc
+14 else
+15 Push cback intoQc ▷Reevaluate again
+16 end if
+17 end if
+18 end if
+19 end for
+20end while
+21returnbest_solution
+22end procedure
+3.4. Experimental Setup
+Computational setup .We deploy the experiments on a machine with two
+Nvidia 3090RTX graphics cards. We use the model Llama-3.12with 8 billion
+parameters for all experiments, as it is one of the most prominent models and
+because of hardware limitations. Previous studies applied interference-time-
+intervention to multiple model architectures and sizes, so therefore we expect
+that results on LLama-3.1-8B to generalise also to other model families Arditi
+et al. (2024).
+Evaluation Metrics .We use precision and recall to evaluate model perfor-
+mance. For a binary classification class like in our case, precision captures
+2https://huggingface.co/meta-llama/Llama-3.1-8B
+12
+
+--- Page 13 ---
+the amount of false positives and recall the amount of false negatives. In the
+context of requirement verification, precision is particularly critical, as incor-
+rectly labelled fulfilled requirements can lead to severe negative consequences.
+In contrast, an engineer can spot a false negatives and reevaluate it, miti-
+gating their impact. Therefore, precision serves as the primary criterion for
+evaluation, while recall provides an additional measure of overall effectiveness
+of identifying positive examples.
+Dataset .The dataset consists of two Capella early space mission system
+engineering models and associated requirements. The two investigated models
+are for a manned moonbase scenario and for the HST.3. In total, we manually
+annotated 76 requirements with corresponding graph representations for both
+models. We also established annotation guidelines detailed in Appendix
+Appendix C to ensure consistency for the labelling process. To improve
+the reliability of the annotations, we employed Claude-3.5 to cross-verify
+consistency with the manual labels, examining any discrepancies between
+Claude’s predictions and the manual annotations.
+We divide the dataset into training, validation, and test set. The training-
+validation split comprises 36 samples from the moon base mission. For the
+train and validation set, we use answers generated by the baseline version of
+Llama-3-8B to steer or train the model. The test set consists of 40 samples
+drawn from both missions: 20 additional moon base requirements and 20
+modeled on the HST. We also make sure to balance the test set, containing
+an equal number of positive and negative examples. Table 1 summarises the
+splits of train, validation, and test set for the different fine-tuning strategies.
+Intervention .For the training, we take 10% of samples from the training
+set to identify intervention directions. The other 90% act as the validation
+set for determining the right intervention strength alpha parameter. Previous
+studies showed that even a small number of examples can lead to a robust
+intervention direction Li et al. (2023). The sample efficiency of intervention
+methods is another advantage compared to fine-tuning methods. To test the
+robustness of the intervention, we employ three different random seeds during
+the intitial identification of relevant model components. We run the inference
+in parallel via Pytorch to speed up processing time. As only forwards passes
+areneededforevaluatingtheeffectivenessoftheinterventionandadjustingthe
+3https://github.com/DROUINRemy/hubble-capella-sample
+13
+
+--- Page 14 ---
+Table 1: Dataset structure showing train-validation splits for Intervention and Fine-Tuning,
+along with test set.
+Dataset Split Mission Type Number of Samples
+Intervention Fine-Tuning
+Train-Validation Moonbase 36 (10%, 90%) 36 (50%, 50%)
+Test Set Moonbase 20
+Test Set HST 20
+Test Total 40
+Grand Total 76
+strength, it eliminates the need to store gradients and optimizer parameters
+and therefore has the advantage of low GPU memory requirements. However,
+a disadvantage is the longer processing time required to sweep through all
+layers during the intervention.
+Fine-Tuning .In addition, we finetune a baseline model. Here, we split
+the training dataset into allocating 50% for training and 50% for validation
+and train for three different seeds. We then leverage Kahneman & Tversky’s
+prospect theory (KTO) to fine-tune the model, a novel method that has
+demonstrated superior performance compared to existing approaches like
+Supervised Fine-Tuning (SFT) and Direct-Preference Optimisation Rafailov
+et al. (2024); Ethayarajh et al. (2024). KTO directly maximizes the utility of
+generations, as defined by a human value function from prospect theory, in-
+stead of maximizing the log-likelihood of preferences as most current methods
+do. This allows KTO to learn from binary labels ("correct" and "incorrect")
+rather than preference rankings, broadening the applicability of the method
+to datasets without explicit preference information. Specifically, we employ
+LoRA fine-tuning, targeting the queries, keys, values, and output projection
+within the attention module of the transformer architecture Hu et al. (2021).
+We perform a hyperparameter screening to optimize the learning rate and the
+weight assigned to undesirable outputs. This process identified the optimal
+learning rate as 1e-5 and the undesirable weight as 2.0, with a temperature
+of 0.15. We train the models for 3 epochs, and an effective batch size of 16.
+14
+
+--- Page 15 ---
+4. Experiments
+We first conduct experiments on a validation set to determine the optimal
+hyperparameter settings for both the fine-tuning baseline and the intervention.
+Using these optimal configurations, we then evaluate performance on a test
+set. If not mentioned otherwise, we apply a small temperature of 0.1 to
+minimize the effect of multinomial sampling during generation.
+4.1. Validation Set
+4.1.1. Intervention Optimization
+To identify the optimal intervention strategy, we first run the initial
+phase of the algorithm, sweeping across layers in Figure 3 and Figure 4.
+The algorithm then partitions each layer into smaller subgroups based on
+performance, as illustrated in Figure 5.
+Most layers show no significant influence or sensitivity in steering the
+model’s output, as can be seen from the colour distribution in Figure 3 and
+Figure 4 especially earlier and later layers. This goes in line with previous
+work that identified the most sensitive layers for steering intervention output
+to be the middle layers Panickssery et al. (2024).
+The highest-performing layer is Layer 14, specifically Head 24. We then
+recombine the best-performing attention heads with the second part of the
+divide and conquer algorithm to assess whether recombination leads to further
+improvements. The best overall configurations are summarized in Table 2.
+Table 2: Optimal intervention configurations as determined by Divide-and-Conquer algo-
+rithm on validation set.
+Configuration αh Precision Recall
+Layer 14: Head: 21, 22, 24 [5.6, 5.6, 13.5] 1.00 0.30
+Layer 13: Head: 7, 8 [7.4, 7.4] 1.00 0.26
+Layer 14: Head: 24 [24.9] 1.00 0.25
+Layer 13: Head: 7, 8; Layer
+14: Head: 22[3.6, 3.6, 4.2] 1.00 0.23
+Layer 13: Head: 7, 8; Layer
+14: Head: 24[3.6, 3.6, 12.1] 1.00 0.22
+Layer 13: Head: 7, 8; Layer
+14: Head: 21, 22, 24[4.0, 4.0, 3.0, 3.0, 7.3] 1.00 0.19
+15
+
+--- Page 16 ---
+135791113151719212325272931
+Head Index1
+3
+5
+7
+9
+11
+13
+15
+17
+19
+21
+23
+25
+27
+29
+31Layer Index
+0.00.20.40.60.81.0
+PrecisionFigure 3: Sensitivity of precision to layers
+and groups of attention heads intervention.
+135791113151719212325272931
+Head Index1
+3
+5
+7
+9
+11
+13
+15
+17
+19
+21
+23
+25
+27
+29
+31Layer Index
+0.00.20.40.60.81.0
+RecallFigure 4: Sensitivity of recall to layers and
+groups of attention heads intervention.
+4.1.2.Effect of Intervention Strength and Temperature on Precision and
+Recall Robustness
+Achieving a precision value of 1 in theory should be deemed as the lower
+threshold that is necessary for automating processes in spacecraft engineering.
+As any false positive for predicting if a requirement is fulfilled could have
+potentially disastrous consequences. The output generation process of LLMs
+is inherently non-deterministic when the temperature parameter is set to a
+value other than zero, with higher temperature values leading to increased
+variance in the outputs. Therefore, we measure the effect of systematically
+increasing the temperature on precision and recall for the top-3 configurations
+identified in the optimization. We run each configuration for each combination
+of alpha and temperature values 20 times.
+The results for the three best-performing configurations are as follows:
+1. Layer 14: Heads 21, 22, 24
+2. Layer 13: Heads 7, 8
+3. Layer 14: Head 24
+Figures 6, 7, and 8 illustrate the relationship between precision and recall
+as a function of percentage changes in intervention strength relative to the
+optimal value previously identified (see Table 2).
+Across all configurations, lower intervention strengths increase variance
+across temperature settings. Additionally, variance increases with higher
+16
+
+--- Page 17 ---
+1117181920
+2728
+31 19 3034
+5 12 22 24 17 812345678910111213141516
+5678
+2122 78
+225261234
+7 16 3217181718192021222324 910111213141516
+281516
+3 219101112
+29910111221222324
+9 13252627282526272829303132
+4 11314 12
+271234567891011121314151617181920212223242526272829303132
+26 2012345678
+103132
+14 25 617181920212223242526272829303132
+1920
+15 18 23232413141516
+5629303132
+2930
+0.00.20.40.60.81.0
+Precision
+0.00.20.40.60.81.0
+RecallFigure 5: Tree plot of dividing and investigating 14th layer and groups of attention heads
+for sensitivity to intervention.
+temperatures, a trend that is particularly pronounced for the Layer 14: Heads
+21, 22, 24 configuration, as shown in Figure 6. For both configurations Layer
+14: Heads 21, 22, 24 and Layer 14: Head 24, variance converges to zero
+beyond a certain alpha threshold, regardless of temperature. This suggests
+that sufficiently strong interventions can mitigate increased decoding variance
+introduced by higher temperature values. However, an increase in intervention
+strength also leads to a decline in average recall as the model is more inclined
+to predict a requirement as unfulfilled. This highlights that increasing the
+intervention strength can increase stability of the prediction although this is
+associated with an additional decrease of recall.
+Selecting the optimal configuration for test set evaluation requires min-
+imizing variance across all temperature settings, with particular emphasis
+on higher temperatures. Since the Layer 13: Heads 7, 8 configuration does
+not converge to zero variance and does not achieve perfect prediction, we
+exclude it from further evaluation on the test set. For the remaining two
+configurations, we select the lowest intervention strength at which variance
+reaches zero across all tested temperatures.
+4.1.3. KTO Fine-Tuning Baseline
+For the fine-tuning, we report the validation performance using the best
+hyperparameters in Figure 9 and Figure 10. The results show convergence
+in both training and validation loss in Figure 9. Precision improves steadily
+over training, reaching a perfect score as shown in Figure 10. We select the
+17
+
+--- Page 18 ---
+100 110 120 130 140 150
+Percentage0.650.700.750.800.850.900.951.00Precision
+T=0.1
+T=0.4
+T=0.7
+T=1.0
+100 110 120 130 140 150
+Percentage0.00.10.20.30.4Recall
+T=0.1
+T=0.4
+T=0.7
+T=1.0Figure 6: Precision and recall as a function of intervention strength and different tempera-
+ture values for Configuration Layer 14: Heads: 21, 22, 24 .
+100 110 120 130 140 150 160 170
+Percentage0.50.60.70.80.91.0Precision
+T=0.1
+T=0.4
+T=0.7
+T=1.0
+100 110 120 130 140 150 160 170
+Percentage0.00.10.20.30.4Recall
+T=0.1
+T=0.4
+T=0.7
+T=1.0
+Figure 7: Precision and recall as a function of intervention strength and different tempera-
+ture values for Configuration Layer 13: Heads: 7, 8.
+100 110 120 130 140 150
+Percentage0.750.800.850.900.951.00Precision
+T=0.1
+T=0.4
+T=0.7
+T=1.0
+100 110 120 130 140 150
+Percentage0.05
+0.000.050.100.150.200.250.30Recall
+T=0.1
+T=0.4
+T=0.7
+T=1.0
+Figure 8: Precision and recall as a function of intervention strength and different tempera-
+ture values for Configuration Layer 14: Heads: 24.
+18
+
+--- Page 19 ---
+best configuration at epoch 6, where high recall and precision are achieved,
+and both training and validation losses have converged for measuring test set
+performance.
+0 1 2 3 4 5 6
+Epoch0.350.400.450.500.550.600.65Training Loss
+Training Loss
+Validation Loss
+Figure 9: Training and validation loss as a
+function of training epochs.
+1 2 3 4 5 6
+Epoch0.30.40.50.60.70.80.91.0Values
+Precision
+RecallFigure 10: Validation precision and recall
+as a function of training epochs.
+4.2. Test set results
+To further validate the methodology, we report the results on a hold out
+test set. Therefore, we compare four configurations with each other: (1)
+baseline without fine-tuning or intervention, (2) baseline with fine-tuning,
+(3) intervention applied to Layer 14: Heads 21, 22, 24, and (4) intervention
+applied to Layer 14: Head 24.
+To further improve accuracy, we apply self-consistency, a common method
+where the model generates K independent outputs per prompt, selecting the
+majority prediction as the final answer Wang et al. (2023). The majority
+prediction is formularised by:
+1[yi=y] =
+
+1,ifyi=y
+0,otherwise
+ˆy= arg maxyK/summationdisplay
+i=11[yi=y]
+where K represents the self-consistency factor, i.e., the number of times
+the model is prompted for the same input. We run the model six times per
+prompt to determine the impact of self-consistency on precision and recall.
+The baseline model without fine-tuning exhibits very low precision but
+high recall. Fine-tuning improves precision but at the cost of lower recall,
+19
+
+--- Page 20 ---
+and it does not generalize as effectively on the validation set. In contrast, ITI
+achieves significantly higher precision, reaching perfect precision with a self-
+consistency factor of K=6. This indicates strong generalization capabilities,
+despite lower recall compared to fine-tuning.
+Among the intervention configurations, Layer 14: Head 24 outperforms
+Layer 14: Heads 21, 22, 24. This suggests that targeting a more selective
+set of attention heads can enhance model precision without unnecessary
+perturbation of activations. Appendix Appendix D shows a direct comparison
+of model outputs for three example requirements between baseline, fine-tuning,
+and the intervention configuration Layer 14: Head 24.
+Table 3: Test set results for Precision and Recall for Baseline, Fine-Tuned Model, and
+Intervention Configurations
+Configuration Alphas K Precision Recall
+Baseline - 1 0.56±0.01 0.97±0.03
+Baseline - 6 0.57±0.02 0.95±0.00
+Fine-Tuned Model - 1 0.72±0.10 0.65±0.09
+Fine-Tuned Model - 6 0.73±0.07 0.68±0.04
+Intervention
+Layer 14: Head: 21, 22, 24 [8.4, 8.4, 20.2] 1 0.78±0.19 0.07±0.06
+Layer 14: Head: 21, 22, 24 [8.4, 8.4, 20.2] 6 1.00±0.00 0.04±0.03
+Layer 14: Head: 24 [32.4] 1 0.93±0.12 0.25±0.09
+Layer 14: Head: 24 [32.4] 6 1.00±0.00 0.07±0.03
+5. Analysis
+The baseline model exhibits a high false positive rate, frequently over-
+estimating whether spacecraft requirements are met. This overconfidence
+presents a critical challenge in scenarios where false positives could lead to
+severe consequences. To mitigate this issue, we compare two approaches:
+fine-tuning on example data and applying ITI. Both methods can steer the
+model effectively to be more "cautious" about its decision process. However,
+inteference-time intervention generalises better from validation to test set
+compared to traditional fine-tuning. Notably, it demonstrates strong perfor-
+mance across two distinct space missions, despite the intervention directions
+being derived only from one.
+20
+
+--- Page 21 ---
+By adjusting the intervention strength, we achieve fine-grained control over
+the model’s certainty, a level of precision that is difficult to obtain through
+standard fine-tuning. This capability is particularly valuable in spacecraft
+requirements engineering, where reducing false positives is more critical than
+minimizing false negatives.
+Beyond its direct applications, this intervention strategy offers a promising
+alternative to fine-tuning for adjusting language models with limited datasets.
+Unlike gradient-based approaches, which adapt model weights iteratively,
+intervention modifies activations in an approximate direction, reducing the
+risk of overfitting. However, we do not propose this as a replacement for fine-
+tuning with larger datasets, where multiple gradient updates can potentially
+find better optimisations. ITI could complement fine-tuning in a two-step
+process, allowing for additional manual control to further align the model’s
+behavior with specific objectives.
+When selecting the best intervention configuration, we recommend follow-
+ing Occam’s razor: among configurations with comparable performance, the
+one that modifies fewer attention heads should be preferred. Our findings
+suggest that a single attention head can significantly influence the model’s
+output in a desired direction. This observation highlights potential avenues
+for interpretability research, as identifying key attention heads or other LLM
+components could enable novel techniques for analyzing and refining model
+behaviour. In Figures 11 and 12, we show the min-max scaled L2-norm of
+attention head activations for each input token. Figure 11 highlights head 24
+in layer 14, which assigns the highest activations to tokens such as "Yes" and
+parts of the word "Antenna," while giving lower scores to tokens from words
+like "Manage Data" or prompt instructions. In contrast, Figure 12, which
+sums activations across all heads and layers, shows the highest activations
+on words like "and" and "Processor," even though these tokens don’t directly
+relate to fulfilling the requirement. This comparison suggests that attention
+head 24 in layer 14 specifically identifies tokens that are more relevant to the
+task.
+6. Conclusion
+We have demonstrated the potential of ITI for steering requirement verifi-
+cation in MBSE. Our approach enables fine-grained control over the 8 billion
+parameter version of Llama-3, ensuring that its outputs do not include false
+positives. For two diverse space mission architectures, we show that interven-
+21
+
+--- Page 22 ---
+Figure 11: Normalised Attention activations of each input token in relation to the last
+token for Head 24 of Layer 14.
+ing is a robust alternative to classical fine-tuning, improving generalization
+to unseen samples. Additionally, our work establishes a broader framework
+for applying intervention techniques to safety-critical applications, which
+includes an improved algorithm for identifying the most sensitive subgroups
+of attention heads for intervention.
+Several directions for future research remain. Regarding MBSE, another
+promising avenue is dynamically modifying Capella model architectures using
+LLMs to ensure compliance with specific requirements, further automating
+requirement-driven system design.
+For ITI, a key next step is to further optimize the identification of spe-
+cialised attention heads for steering model behavior, potentially using mecha-
+nistic interpretability techniques that eliminate the need for probing model
+components.
+More broadly, refining intervention methodologies could improve the
+controllability and reliability of LLMs in safety-critical settings. Ultimately,
+we think this could pave the way for more trustworthy LLM applications in
+engineering and beyond.
+22
+
+--- Page 23 ---
+Figure 12: Normalised Attention activations of each input token in relation to the summed
+for all layers and attention heads.
+Limitations
+One limitation of our study is the relatively small test set. A reason for
+this is the restricted access to Capella models due to proprietary constraints
+and the sensitive nature of company data. Despite this, the performance gap
+between our intervention methods and the baseline is substantial, indicating
+meaningful improvements. Furthermore, we design the test case to be partic-
+ularly challenging by training and validating on samples from a single mission
+while testing on samples including distinct missions. Finally, prior research
+has demonstrated the effectiveness of intervention in other datasets and LLM
+model architectures, also achieving better performances than fine-tuning.
+Acknowledgements
+We would like to thank the consortium of RHEA Group, Thales Alenia
+Space, and the University of Strathclyde for their support in developing a
+methodology for automatic requirement verification using Large Language
+Models (LLMs) in Model-Based Systems Engineering (MBSE). We especially
+acknowledge Gérald Garcia for his contributions in defining use cases, Alberto
+González Fernández for leading the project at ESA, and Paloma Maestro
+Redondo and Francesco Marchetti for their discussions on the verification
+23
+
+--- Page 24 ---
+pipeline. This study was partially funded by the European Space Agency
+under the project "AI-powered Digital Assistant for space system engineering"
+(Contract No.: 4000137721/22/NL/AS.)
+Declaration of generative AI in scientific writing
+During the preparation of this work the authors used ChatGPT in order
+to help with reformulating certain sentences. After using this tool/service, the
+authors reviewed and edited the content as needed and take full responsibility
+for the content of the publication.
+24
+
+--- Page 25 ---
+Appendix A. Transform Capella Model into textual form
+Figure A.13 shows the process of transforming the capella model into a
+textual representation, starting from the example "Wide Field Imagery sen-
+sor#1". Components that "contain" or are "contained" by other components
+are linked by an "is_contained_by" relation. Functions that are performed by
+a component are linked to the component by a "directly_performs" relation-
+ship. Functions are also considered as "entities" in the breadth-first-search
+algorithm. Exchanges between functions are represented by the name of
+Capella class FunctionalExchange which acts between two functions, so that
+e.g. the functions "Provide wide field imagery" and "Manage science data"
+are connected in the graph textual presentation with "Optical images". A
+small detail is that the class FunctionInputPort , which are usually inserted
+between functions and functional exchanges in the Capella Ontology are
+omitted from the textual representation. The breadth-first search algorithm
+is executed until a certain threshold of triples is reached, which relates to the
+maximum context size of the LLM used for the reasoning.
+Figure A.13: Transformation of Capella System Model to Textual Graph Information
+25
+
+--- Page 26 ---
+Appendix B. Optimize Intervention Strength for Configuration
+Algorithm 3 Optimize Alpha for Heads
+Require: heads,alphas ▷ Inputs for optimization
+1procedure Optimize-Alphas (heads,alphas)
+2 Initialize best_alphas←None,best_precision←0,best_recall←0
+3whilei<max_iterations andno_improve_counter<required _no_improvedo
+4i←iteration + 1
+5 Compute precision ,recall←Evaluate-Configuration( heads,alphas)
+6ifprecision > best _precision or(precision =best_precision andrecall > best _recall)
+then
+7 best_alphas←alphas,{best_precision,best _recall}←{precision,recall}
+8 Reset no_improve_counter←0
+9else
+10 Increment no_improve_counter
+11 end if
+12 ifprecision = 1then
+13 Adjust alpha_stepand decrease alphas
+14 else ifprecision< 1then
+15 Adjust alpha_stepand increase alphas
+16 end if
+17end while
+18returnbest_alphas,best_precision ,best_recall
+19end procedure
+26
+
+--- Page 27 ---
+Appendix C. Large Language Model Annotation Guidelines
+"Find evidence for the requirement to be fulfilled or not based on the
+following guidelines: Direct: Look for explicit statements in the system
+description that directly match the requirement’s key concepts. Indirect
+(Inference): If no direct evidence exists, trace relationships and action
+chains to see if the requirement can be logically inferred. Consider
+how contained systems contribute to the capabilities of larger systems.
+Verify Conditions:
+1.If the requirement has specific conditions ensure the system de-
+scription provides enough information to confirm they are met.
+2.If the requirement demands capabilities "throughout the mission
+duration", assume that they are fulfilled if no other way of ob-
+jectively measuring them is provided and the presence of the
+capability is either directly stated or inferred.
+3.If the requirement expects specific quantities to be fulfilled make
+sure the system description provides enough information to con-
+firm they are met, or at least regarded even if they to yet be
+determined.
+Determine Fulfillment (Yes/No):
+Yes: If sufficient direct or strong indirect evidence is found, and all
+conditions are met, the requirement is fulfilled.
+No: If direct evidence is lacking, the chain of inference is
+weak/incomplete or ambiguous, or not all conditions are completely
+met, the requirement is not fulfilled.
+Appendix D. Example Outputs
+27
+
+--- Page 28 ---
+Table D.4: Example input and output for baseline, fine-tuned, and intervention models for
+RQ-H-2. Incorrect outputs are in red; correct outputs are in green.
+Requirement: The spacecraft shall ensure continuous communication with Earth by utilizing dual
+antennas to broadcast and receive signals, managed by an integrated Communication Processor.
+Graph triples:
+|Communication module| |directly_contains| |Antenna#1|
+|Communication module| |directly_contains| |Communication Processor|
+|Communication module| |is_contained_by| |Support System Module|
+|Antenna#1| |directly_performs| |Broadcast signal#1|
+|Communication Processor| |directly_performs| |Manage communication|
+|Broadcast signal#1| |Data| |Manage communication|
+|Broadcast signal#1| |Information from earth| |Broadcast information from space|
+|Broadcast information from space| |is_performed_by| |Tracking & Data Relay Satellite|
+|Communication module| |Internal Protocol| |Data Management module|
+|Support System Module| |is_contained_by| |HUBBLE Space Telescope|
+[...]
+Baseline
+1. The system description includes two antennas (Antenna#1) which are directly contained by the Communi-
+cation module.
+2. The Communication module directly contains the Communication Processor, which directly performs the
+action "Manage communication".
+3. The "Manage communication" action is performed by the Communication Processor, which implies that
+the Communication Processor is responsible for managing the communication process.
+4. The requirement states that the spacecraft shall ensure continuous communication with Earth by utilizing
+dual antennas to broadcast and receive signals, managed by an integrated Communication Processor.
+Based on the system description, we can conclude that the requirement is fulfilled. The system
+includes dual antennas (Antenna#1) which are managed by the Communication Processor,
+ensuring continuous communication with Earth. Final Answer: Yes
+Fine-Tuning
+1. The system description includes two antennas (Antenna#1) which are directly contained by the Communi-
+cation module.
+2. The Communication module directly contains the Communication Processor, which directly performs the
+action "Manage communication".
+3. The "Manage communication" action is performed by the Communication Processor, which implies that
+the Communication Processor is responsible for managing the communication process.
+4. The requirement states that the spacecraft shall ensure continuous communication with Earth by utilizing
+dual antennas to broadcast and receive signals, managed by an integrated Communication Processor.
+Based on the system description, we can conclude that the requirement is fulfilled. The system
+includes dual antennas (Antenna#1) which are managed by the Communication Processor,
+ensuring continuous communication with Earth. Final Answer: Yes
+Intervention
+1. The system description mentions two antennas: Antenna#1 and Antenna#2. However, only Antenna#1
+is directly contained by the Communication module. There is no mention of Antenna#2.
+2. The requirement states that the spacecraft shall utilize dual antennas to broadcast and receive signals.
+Since only one antenna is mentioned in the system description, this requirement is not fulfilled.
+3. The requirement also mentions that the Communication Processor shall manage the communication. In the
+system description, the Communication Processor is directly contained by the Communication module and
+directly performs the action "Manage communication". However, it is not clear if the Communication
+Processor manages the communication for both antennas or only one. Final Answer: No
+28
+
+--- Page 29 ---
+Table D.5: Example input and output for baseline, fine-tuned, and intervention models for
+requirement RQ-H-31. Incorrect outputs are in red; correct outputs are in green. Yellow
+output signifies correct answer but incorrect reasoning.
+Requirement: The Optical Telescope module shall align its instruments with the focal plane to
+provide wide field imagery in ultraviolet, visible, and infrared light.
+Graph triples:
+|Optical Telescope module| |directly_contains| |Focal Plane|
+|Focal Plane| |directly_performs| |Align instruments with focal plane|
+|Align instruments with focal plane| |Optical images| |Provide wide field imagery in visible wavelengths|
+|Align instruments with focal plane| |Optical images| |Provide a wide field imagery in visible and infrared light|
+|Align instruments with focal plane| |Optical images| |Provide ultra violet spectrum|
+|Provide wide field imagery in visible wavelengths| |is_performed_by| |Wide Field Imagery sensor#1|
+|Provide a wide field imagery in visible and infrared light| |is_performed_by| |Wide Field Imagery sensor#2|
+|Provide ultra violet spectrum| |is_performed_by| |Ultra Violet sensor|
+[...]
+Baseline
+1. The requirement is: "The Optical Telescope module shall align its instruments with the focal plane to
+provide wide field imagery in ultraviolet, visible, and infrared light."
+2. From the system description, we can see that the Optical Telescope module contains the Focal Plane,
+which directly performs the action "Align instruments with focal plane".
+3. The Focal Plane is also directly contained by the Optical Telescope module.
+4. The requirement mentions providing wide field imagery in ultraviolet, visible, and infrared light.
+5. From the system description, we can see that the Focal Plane directly performs the actions "Provide wide
+field imagery in visible wavelengths" and "Provide a wide field imagery in visible and infrared light". It also
+performs the actions "Provide ultra violet spectrum" and "Obtain high resolution spectra of
+resolved objetcs".
+6. Therefore, the requirement is fulfilled because the Focal Plane, which is contained by the
+Optical Telescope module, performs the necessary actions to provide wide field imagery in
+ultraviolet, visible, and infrared light. Final Answer: Yes
+Fine-Tuning
+1. The requirement is: "The Optical Telescope module shall align its instruments with the focal plane to
+provide wide field imagery in ultraviolet, visible, and infrared light."
+2. From the system description, we can see that the Optical Telescope module contains the Focal Plane,
+which directly performs the action "Align instruments with focal plane".
+3. The Focal Plane is contained by the Optical Telescope module and directly performs the action "Align
+instruments with focal plane".
+4. The Focal Plane also performs the actions "Provide wide field imagery in visible wavelengths", "Provide a
+wide field imagery in visible and infrared light", and "Provide ultra violet spectrum" through the sensors
+Wide Field Imagery sensor#1, Wide Field Imagery sensor#2, and Ultra Violet sensor respectively.
+5. The requirement mentions providing wide field imagery in ultraviolet, visible, and infrared light, which is
+partially fulfilled by the Focal Plane’s actions.
+6. However, the requirement does not explicitly mention the specific wavelengths or ranges of
+wavelengths, which are only mentioned in the actions performed by the Focal Plane. Final
+Answer: No
+Intervention
+1. The requirement is: "The Optical Telescope module shall align its instruments with the focal plane to
+provide wide field imagery in ultraviolet, visible, and infrared light."
+2. From the system description, we can see that the Optical Telescope module contains the Focal Plane,
+which directly performs the action "Align instruments with focal plane".
+3. The Focal Plane is contained by the Optical Telescope module, and it directly performs the action "Align
+instruments with focal plane".
+4. The Focal Plane also contains the Wide Field Imagery sensor#1, which provides wide field imagery in
+visible wavelengths, and Wide Field Imagery sensor#2, which provides wide field imagery in visible and
+infrared light.
+5. However, there is no mention of the Focal Plane providing wide field imagery in ultraviolet
+light. The Ultra Violet sensor is contained by the Instruments module, but it is not directly
+contained by the Focal Plane.
+6. Therefore, the requirement is not fully fulfilled because it asks for wide field imagery in
+ultraviolet, visible, and infrared light, but the system description only mentions wide field
+imagery in visible and infrared light. Final Answer: No29
+
+--- Page 30 ---
+Table D.6: Example input and output for baseline, fine-tuned, and intervention models for
+requirement RQ-MB-3. Incorrect outputs are in red; correct outputs are in green.
+Requirement: The settlement shall maintain optimal temperature levels by utilizing the thermal
+control system to generate and reject heat as necessary, ensuring a stable environment for crew
+activities and habitation.
+Graph triples:
+|Thermal Control| |directly_performs| |Control Temperature|
+|Control Temperature| |Generate Heat| |Kitchen|
+|Control Temperature| |Generate Heat| |Execute Work|
+|Execute Work| |is_performed_by| |Crew|
+|Kitchen| |is_performed_by| |Habitation|
+|Control Temperature| |is_performed_by| |Thermal Control|
+[...]
+Baseline
+1. The requirement states that the settlement shall maintain optimal temperature levels.
+2. The system description shows that the Thermal Control system directly performs Control Temperature,
+which in turn generates heat and is contained by the Kitchen.
+3. The Kitchen is performed by the Habitation, which is contained by the Logical System.
+4. The Logical System contains the Thermal Control system, which means it has control over the Thermal
+Control system.
+5. The requirement also states that the Thermal Control system shall generate and reject heat as necessary.
+6. The system description shows that the Thermal Control system generates heat and is contained by the
+Kitchen, which is performed by the Habitation.
+7. The Habitation is contained by the Logical System, which means it has control over the Habitation.
+8. The Logical System contains the Thermal Control system, which means it has control over the Thermal
+Control system.
+Based on the above analysis, the requirement is fulfilled. The Thermal Control system is capable of generating
+and rejecting heat as necessary , ensuring a stable environment for crew activities and habitation. Final
+Answer: Yes
+Fine-Tuning
+1. The requirement states that the settlement shall maintain optimal temperature levels.
+2. The system description shows that the Thermal Control system directly performs Control Temperature,
+which generates heat and is contained by the Logical System.
+3. The Logical System contains the Thermal Control system, which means that the Thermal Control system
+is part of the Logical System.
+4. The system description also shows that the Thermal Control system directly performs Distribute Power,
+which is performed by the Power system.
+5. The requirement does not explicitly mention the distribution of power, but it does mention the maintenance
+of optimal temperature levels.
+Based on the given system description, it can be concluded that the Thermal Control system
+is responsible for generating and rejecting heat as necessary to maintain optimal temperature
+levels. The system description shows that the Thermal Control system directly performs
+Control Temperature, which generates heat and is contained by the Logical System.
+Final Answer: Yes
+Intervention
+1. The requirement states that the settlement shall maintain optimal temperature levels.
+2. The system description shows that the Thermal Control system directly performs Control Temperature,
+which generates Heat and is contained by the Logical System.
+3. The Logical System contains the Thermal Control system, which means that the Thermal Control system
+is part of the Logical System.
+4. The requirement also states that the thermal control system shall generate and reject heat as necessary,
+ensuring a stable environment for crew activities and habitation.
+5. The system description shows that the Thermal Control system generates Heat, but it does
+not show any mechanism for rejecting heat. Final Answer: No
+30
+
+--- Page 31 ---
+References
+Arditi, A., Obeso, O., Syed, A., Paleka, D., Panickssery, N., Gurnee, W.,
+Nanda, N., 2024. Refusal in language models is mediated by a single direc-
+tion. URL: https://arxiv.org/abs/2406.11717 ,arXiv:2406.11717 .
+Berquand, A., Darm, P., Riccardi, A., 2021. Spacetransformers: Language
+modeling for space systems. IEEE Access 9, 133111–133122. doi: 10.1109/
+ACCESS.2021.3115659 .
+Chang, T., Wiens, J., Schnabel, T., Swaminathan, A., 2024. Measuring
+steerability in large language models, in: Neurips Safe Generative AI
+Workshop 2024. URL: https://openreview.net/forum?id=y2J5dAqcJW .
+Cosler, M., Hahn, C., Mendoza, D., Schmitt, F., Trippel, C., 2023. nl2spec:
+Interactively translating unstructured natural language to temporal logics
+with large language models, in: Enea, C., Lal, A. (Eds.), Computer Aided
+Verification, Springer Nature Switzerland, Cham. pp. 383–396.
+Darm, P., Marchetti, F., Garcia, G., Redondo, P., Riccardi, A., Fernández,
+A., 2023. Leveraging language models semantic similarity capabilities
+to facilitate information reuse in system engineering. URL: https://
+www.iac2023.org/ . 74th International Astronautical Congress, IAC 2023 ;
+Conference date: 02-10-2023 Through 06-10-2023.
+Darm, P., Riccardi, A., 2025. "let the ai conspiracy begin..." language model
+coordination is just one inference-intervention away. URL: https://arxiv.
+org/abs/2502.05945 ,arXiv:2502.05945 .
+Ethayarajh, K., Xu, W., Muennighoff, N., Jurafsky, D., Kiela, D., 2024.
+Model alignment as prospect theoretic optimization, in: Proceedings of the
+41st International Conference on Machine Learning, JMLR.org.
+Franch, X., Palomares, C., Quer, C., Chatzipetrou, P., Gorschek, T.,
+2023. The state-of-practice in requirements specification: an extended
+interview study at 12 companies. Requirements Engineering 28, 377–
+409. URL: https://doi.org/10.1007/s00766-023-00399-7 , doi: 10.
+1007/s00766-023-00399-7 .
+Hause, M., et al., 2006. The sysml modelling language, in: Fifteenth European
+Systems Engineering Conference, pp. 1–12.
+31
+
+--- Page 32 ---
+Hu, E.J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L.,
+Chen, W., 2021. Lora: Low-rank adaptation of large language models.
+URL: https://arxiv.org/abs/2106.09685 ,arXiv:2106.09685 .
+INCOSE, 2022. INCOSE Systems Engineering Vision 2035. Engineering
+solutions for a better world.
+INCOSE Technical Operations, 2007. Systems Engineering Vision 2020,
+version 2.03. Technical Report INCOSE-TP-2004-004-02. International
+Council on Systems Engineering (INCOSE). Seattle, WA.
+Jorgensen, O., Cope, D., Schoots, N., Shanahan, M., 2023. Improving
+activation steering in language models with mean-centring. URL: https:
+//arxiv.org/abs/2312.03813 ,arXiv:2312.03813 .
+Li, K., Patel, O., Viégas, F., Pfister, H., Wattenberg, M., 2023. Inference-
+time intervention: Eliciting truthful answers from a language model, in:
+Thirty-seventh Conference on Neural Information Processing Systems. URL:
+https://openreview.net/forum?id=aLLuYpn83y .
+Madni, A.M., Purohit, S., 2019. Economic analysis of model-based systems
+engineering. Systems 7. doi: 10.3390/systems7010012 .
+Marks, S., Tegmark, M., 2024. The geometry of truth: Emergent linear
+structure in large language model representations of true/false datasets.
+URL: https://arxiv.org/abs/2310.06824 ,arXiv:2310.06824 .
+Miehling, E., Desmond, M., Ramamurthy, K.N., Daly, E.M., Dognin, P.,
+Rios, J., Bouneffouf, D., Liu, M., 2025. Evaluating the prompt steerability
+of large language models. URL: https://arxiv.org/abs/2411.12405 ,
+arXiv:2411.12405 .
+Norheim, J.J., Rebentisch, E., Xiao, D., Draeger, L., Kerbrat, A., de Weck,
+O.L., 2024. Challenges in applying large language models to requirements
+engineering tasks. Design Science 10, e16. doi: 10.1017/dsj.2024.8 .
+Panickssery, N., Gabrieli, N., Schulz, J., Tong, M., Hubinger, E., Turner,
+A.M., 2024. Steering llama 2 via contrastive activation addition. URL:
+https://arxiv.org/abs/2312.06681 ,arXiv:2312.06681 .
+32
+
+--- Page 33 ---
+Praehofer, H., Kerschbaummayr, J., 1999. Case-based reason-
+ing techniques to support reusability in a requirement engineer-
+ing and system design tool. Engineering Applications of Artifi-
+cial Intelligence 12, 717–731. URL: https://www.sciencedirect.
+com/science/article/pii/S0952197699000433 , doi: https://doi.org/
+10.1016/S0952-1976(99)00043-3 .
+Qiu, Y., Zhao, Z., Ziser, Y., Korhonen, A., Ponti, E.M., Cohen, S.B.,
+2024. Spectral editing of activations for large language model alignment.
+arXiv:2405.09719 .
+Rafailov, R., Sharma, A., Mitchell, E., Ermon, S., Manning, C.D., Finn,
+C., 2024. Direct preference optimization: Your language model is
+secretly a reward model. URL: https://arxiv.org/abs/2305.18290 ,
+arXiv:2305.18290 .
+Rogers, E.B., Mitchell, S.W., 2021. Mbse delivers significant return on invest-
+ment in evolutionary development of complex sos. Systems Engineering 24.
+doi:10.1002/sys.21592 .
+Tikayat Ray, A., Cole, B.F., Pinon Fischer, O.J., White, R.T., Mavris, D.N.,
+2023. aerobert-classifier: Classification of aerospace requirements using
+bert. Aerospace 10. URL: https://www.mdpi.com/2226-4310/10/3/279 ,
+doi:10.3390/aerospace10030279 .
+Topcu, T.G., Husain, M., Ofsa, M., Wach, P., 2025. Trust at your own peril: A
+mixed methods exploration of the ability of large language models to gener-
+ate expert-like systems engineering artifacts and a characterization of failure
+modes. URL: https://arxiv.org/abs/2502.09690 ,arXiv:2502.09690 .
+Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N.,
+Kaiser, Ł., Polosukhin, I., 2017. Attention is all you need. Advances in
+neural information processing systems 30.
+Voirin, J.L., 2017. Model-based System and Architecture Engineering with
+the Arcadia Method. 1 ed., ISTE Press - Elsevier, London. Hardback ISBN:
+978-1-78548-169-7, eBook ISBN: 9780081017944.
+Wach, P., Salado, A., 2022. The need for semantic extension of sysml to model
+the problem space, in: Madni, A.M., Boehm, B., Erwin, D., Moghaddam,
+33
+
+--- Page 34 ---
+M., Sievers, M., Wheaton, M. (Eds.), Recent Trends and Advances in Model
+Based Systems Engineering, Springer International Publishing, Cham. pp.
+279–289.
+Wang, H., Zhong, D., Zhao, T., Ren, F., 2019. Integrating model checking
+with sysml in complex system safety analysis. IEEE Access 7, 16561–16571.
+doi:10.1109/ACCESS.2019.2892745 .
+Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdh-
+ery, A., Zhou, D., 2023. Self-consistency improves chain of thought rea-
+soning in language models. URL: https://arxiv.org/abs/2203.11171 ,
+arXiv:2203.11171 .
+Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi,
+E., Le, Q., Zhou, D., 2023. Chain-of-thought prompting elicits reasoning
+in large language models. URL: https://arxiv.org/abs/2201.11903 ,
+arXiv:2201.11903 .
+Xu, Z., Huang, R., Wang, X., Wu, F., Yao, J., Xie, X., 2024. Uncovering
+safety risks in open-source llms through concept activation vector. arXiv
+preprint arXiv:2404.12038 .
+34

@@ -1,0 +1,695 @@
+--- Page 1 ---
+Workflow-Level Design Principles for Trustworthy GenAI
+in Automotive System Engineering
+Chih-Hong Cheng1, Brian Hsuan-Cheng Liao2, Adam Molin2, Hasan Esen2
+1Carl von Ossietzky University of Oldenburg, Oldenburg, Germany
+2DENSO AUTOMOTIVE Deutschland Germany, Eching, Germany
+Abstract
+The adoption of large language models in
+safety-critical system engineering is con-
+strained by trustworthiness, traceability, and
+alignment with established verification prac-
+tices. We propose workflow-level design prin-
+ciples for trustworthy GenAI integration and
+demonstrate them in an end-to-end automotive
+pipeline, from requirement delta identification
+to SysML v2 architecture update and re-testing.
+First, we show that monolithic (“big-bang”)
+prompting misses critical changes in large spec-
+ifications, while section-wise decomposition
+with diversity sampling and lightweight NLP
+sanity checks improves completeness and cor-
+rectness. Then, we propagate requirement
+deltas into SysML v2 models and validate up-
+dates via compilation and static analysis. Ad-
+ditionally, we ensure traceable regression test-
+ing by generating test cases through explicit
+mappings from specification variables to archi-
+tectural ports and states, providing practical
+safeguards for GenAI used in safety-critical
+automotive engineering.
+1 Introduction
+Automotive systems are rapidly increasing in com-
+plexity, spanning intelligent thermal management,
+electrified powertrains, and advanced driver as-
+sistance functions. This growth exacerbates two
+persistent bottlenecks: (i) requirements (customer
+specifications, regulations, and process standards)
+evolve continuously, forcing repeated delta identi-
+fication and interpretation for downstream design
+and validation; and (ii) as systems scale, end-to-
+end traceability from requirements to architecture,
+implementation, and verification becomes harder,
+slowing iteration and increasing the risk of incon-
+sistent updates.
+Generative AI offers strong leverage when
+grounded in external evidence and iterative rea-
+soning. Retrieval-Augmented Generation (RAG)
+mitigates hallucinations by conditioning outputson retrieved passages (Lewis et al., 2020), while
+recent graph-based variants better capture complex
+structural dependencies (Edge et al., 2024; He et al.,
+2024; Gutiérrez et al., 2024). Agentic frameworks
+such as ReAct and Tree of Thoughts extend these
+capabilities by interleaving reasoning with tool ex-
+ecution and multi-path planning (Yao et al., 2023,
+2024). These architectures have demonstrated po-
+tential in automated software engineering and test-
+ing loops (Yang et al., 2024; Wang et al., 2025). To
+improve reliability, techniques like Reflexion and
+self-consistency mitigate brittleness through itera-
+tive feedback and consensus sampling (Shinn et al.,
+2023; Wang et al., 2023), while formal verifica-
+tion provides machine-checkable guarantees (Bha-
+tia et al., 2024; Sevenhuijsen et al., 2025). However,
+in automotive system engineering, these techniques
+are often assembled ad hoc, and guidance for struc-
+turing GenAI workflows that remain traceable and
+verification-compatible is limited.
+We address this gap by contributing workflow-
+level design principles that favor modular, check-
+able pipelines over monolithic prompting: (A) de-
+fine fine-grained tasks with explicit inputs/outputs;
+(B) implement suitable steps with classical or sym-
+bolic methods to improve repeatability and testabil-
+ity; (C) strengthen neural steps via safety engineer-
+ing principles such as diversification and consen-
+sus; and (D) validate neural outputs with necessary-
+condition checkers. Importantly, parts of the re-
+sulting toolchain are already deployed and used
+in an industrial setting, providing early evidence
+of substantial efficiency gains in turnaround time
+for requirements-change review. Our approach is
+orthogonal to simply using bigger models: we fo-
+cus on workflow structure (modularization, checks,
+and tool-backed validation) that improves reliabil-
+ity and traceability regardless of model scale.
+We apply these principles to two stages of a sin-
+gle end-to-end engineering pipeline, aligned with
+the two introduced bottlenecks: (i) requirements
+1arXiv:2602.19614v1  [cs.SE]  23 Feb 2026
+
+--- Page 2 ---
+Figure 1: GenAI-assisted workflow from requirement
+updates to architecture changes and verification.
+version comparison and delta identification, fea-
+turing section-wise processing with persisted inter-
+mediate artifacts, diversified retrieval, and sanity
+checks; and (ii) model-based architecture update
+and validation, featuring incremental SysML v2
+deltas with compilation/static analysis. In particu-
+lar, we also regenerate verification artifacts trace-
+ably by constraining test-case generation to ex-
+plicit mappings between specification variables and
+architectural ports/states, demonstrating practical
+safeguards for deploying GenAI in safety-critical
+automotive system engineering.
+2 Vision
+Fig. 1 depicts the workflow we envision for a sys-
+tems engineering organization when receiving up-
+dated customer requirements (e.g., when a Tier 1
+automotive supplier receives an updated RfQ or
+regulatory document). The new requirements docu-
+ment (v2) is compared against the previous baseline
+(v1) to produce astructured delta(additions, re-
+movals, and modifications with traceable evidence).
+This delta is then interpreted against the current
+design baseline; it may range from a company com-
+ponent catalog to a platform/reference implementa-
+tion and, ultimately, a project-specific architecture
+model, in order to derive concrete, incremental de-
+sign modifications (e.g., Module A →Module A′).This reflects industrial reality, where redesigning
+from scratch is rarely feasible, and the reuse of
+existing designs is economically essential.
+The updated design is re-validated by generating
+verification artifacts (e.g., formal specifications and
+test cases or test plans) that are explicitly grounded
+in the architecture via mappings between specifi-
+cation variables and model ports/states/parameters,
+enabling systematic regression testing. GenAI can
+accelerate delta extraction, impact analysis, and
+test synthesis, but the final validation may still re-
+quire non-software evidence, such as hardware-in-
+the-loop and vehicle-level tests for cyber-physical
+requirements.
+3 Towards Trustworthy GenAI for
+System Engineering
+3.1 Issues with GenAI
+We started our journey in implementing the “analy-
+sis of the requirement delta” as depicted in Fig. 1.
+While an LLM can perform analysis smoothly for
+two simple requirements in markdown or text files
+with only a few requirements, our use case involves
+complex documents with multiple sections that can
+easily reach hundreds of pages. The business de-
+mand also requires the tool to avoid overlooking
+any critical aspects. We have experimented with
+multiple variations: The initial monolithic work-
+flow attempted to do the following three things all
+within a single agentic LLM call with additional
+post-processing to coerce JSON outputs (including
+an “Undetermined” fallback).
+•Summarize a section from the newer docu-
+ment version (v2).
+•Retrieve relevant sections from the older ver-
+sion (v1) based on the section title and section
+text of v2.
+• List specification changes.
+In our evaluation, this “big-bang” or “do-
+everything” setup proved fragile: it overloaded a
+single neural component with multiple responsibil-
+ities (reasoning, memory, structured output, and
+repeated criterion checks), creating hallucinations,
+omitting instructions, making prompt tuning brit-
+tle and prone to side effects. Such a situation is
+generic, as it also occurs in design modification
+or test case generation.Note that although chang-
+ing to larger models helps, the problems are never
+eliminated. This leads to a rethinking of the overall
+approach that is detailed in subsequent sections.
+(Example)Because company-internal use cases
+2
+
+--- Page 3 ---
+are highly confidential, we use a publicly avail-
+able proxy task to illustrate the approach: an LLM-
+assisted comparison of Automotive SPICE (AS-
+PICE) versions 3.1 and 4.0.1ASPICE provides a
+process reference model and process assessment
+model that function as de facto standards in the
+automotive domain. Since each version exceeds
+100 pages, naive monolithic prompting tends to
+miss many changes, motivating our modular and
+checker-based workflow.
+3.2 Design Principles for Trustworthy GenAI
+Our key lessons learned are that, to make GenAI-
+enabled system engineering more trustworthy,in
+addition to using larger models, it is necessary to
+move away from a monolithic prompting approach
+(including tool calling capabilities) toward a modu-
+lar, checkable workflow. We have summarized our
+approach as follows.
+(A)Design a fine-grained structural workflow
+characterizing all activities. For each activity,
+define the corresponding inputs and outputs.
+(B)Consider what parts in the workflow can use
+symbolic methods / classical algorithms with-
+out introducing neural components. Precisely,
+for modules where the classical algorithm
+shines, do not wrap it inside an LLM-enabled
+agent to ensure correctness, repeatability, and
+testability.
+(C)Increase the output quality of neural com-
+ponents via classical architectural tactics in
+safety engineering, such as diversity, consen-
+sus voting, and/or checkpoint rollbacks.
+(D)Examine the quality of the output from neural
+components via checking againstnecessary
+conditions for correctness. This enables the
+introduction of classical algorithms that can
+serve asfilterson potentially incorrect results.
+In the remaining part of the paper, we illustrate
+how the principles are implemented in our system.
+4 Rigorous Workflow for Requirement
+Document Version Comparison
+Instead of treating version comparison as a mono-
+lithic “document-to-document” diff, we perform a
+section-by-sectionanalysis. Concretely, we iterate
+over sections in the newer version (v2) and, for
+each v2 section, determine what has changed com-
+pared to the most relevant content in the previous
+1https://en.wikipedia.org/wiki/Automotive_
+SPICE
+Figure 2: A revised workflow for comparing compli-
+cated documents while increasing trustworthiness.
+version. This design matches how requirements
+are authored and reviewed in practice (engineers
+navigate by section IDs/headings), and it provides
+a stable unit for caching, auditing, and verification.
+4.1 PDF Sectionization and Canonical
+Storage (A)
+To enable section-level comparison, we first nor-
+malize each input PDF (v1 and v2) into a shared
+section representation. We create a sectioniza-
+tion component, implemented either with classical
+heuristics (e.g., heading numbering patterns, ty-
+pography/layout cues as in PdfPlumber2) or neural
+document parsing (e.g., MinerU3), to extract: (i)
+a stable section_id (derived from numbering/ti-
+tle and its hierarchy), (ii) cleaned section text, and
+(iii) optional metadata (e.g., heading string, par-
+ent section). We then store all extracted sections
+from both versions in a canonical database schema.
+This decouples expensive PDF parsing from down-
+stream comparison, and allows repeated evaluation
+of prompts/retrieval/criteria without reprocessing
+2https://github.com/jsvine/pdfplumber
+3https://github.com/opendatalab/MinerU
+3
+
+--- Page 4 ---
+PDFs. Note that, as is commonly seen in RfQs, the
+section ID and titles can differ between versions.
+4.2 Decomposition into Neural and Classical
+Micro-Tasks (A,B)
+Given the sectionized corpus, the workflow in
+Fig. 2 is applied independently to each v2 section:
+•N1Generate summaryfor a v2 section un-
+der an explicit constraint. We add a constraint
+requiring the LLMnotto paraphrase (reasons
+discussed later), which also facilitates evidence-
+based checks.
+•N2Find relevant sections in v1by calling
+tools over the stored v1 sections (e.g., listing
+all section IDs via list_all_v1_sections and
+fetching content via fetch_one_v1_section ).
+The output is a small set of candidate v1 section
+IDs aligned to the current v2 section.
+•N3 Compare v2 section text (X) against
+retrieved v1 section text(s) (Y)under a se-
+lectedchange criterion C, and output struc-
+tured changes with supporting evidence excerpts
+(pieces of sentences in the document).
+The information flow across the neural compo-
+nents is in many parts handled or supported by
+classical algorithms. For example, an alternative
+N2design could directly have the LLM (i.e., the
+neural component) output the contents of a v1 sec-
+tion that it fetches and presumes relevant. However,
+it suffices to have the LLM produce the set of sec-
+tion IDs in v1 (i.e., {v1_sec_ID} in Fig. 2), and we
+can use a classical algorithm to prepare the sections
+based on the set of relevant v1 section IDs.
+Furthermore, we persist intermediate artifacts
+(i.e., generated summaries, retrieved v1 section
+IDs, identified criterion-wise changes) to support
+isolated debugging, prompt reuse, and targeted
+improvements to individual modules. Similarly,
+all these persistences can be done without being
+wrapped by LLMs.
+4.3 Robustifying Neural Outputs via
+Diversification and Unification (C)
+To mitigate omissions in retrieving relevant v1
+sections, we introduced multiple variants of the
+section-retrieval step ( N2) in Fig. 2:
+•find_relevant_sec() : Use a deterministic
+single-model call.
+•find_relevant_sec_redundant() : Apply the
+same model with different random seeds, fol-
+lowed by merging results.
+Figure 3: Precision and recall per model setting in
+retrieving relevant sections across ASPICE v3.1 and
+v4. Union refers to combining the predictions of
+Qwen3:32B, Nemotron3:30B, and GPT-OSS:20B.
+•find_relevant_sec_different_LLMs() : Ap-
+ply different models then merge results.
+Our design decision to have N2 output only section
+IDs in v1 makes creating the consensus decision
+fundamentally simpler. One can either take the
+majority vote, or act safely by taking theunion of
+the proposed section IDs. Creating such a resolu-
+tion can be done with a simple classical algorithm
+without involving a neural model such as LLM.
+(Example)We run experiments with Qwen3:32B
+to retrieve relevant sections across ASPICE v3.1
+and v4, over the whole document. The predictions
+are evaluated against an oracle revised by engi-
+neers. As Fig. 3 shows, section-wise processing
+significantly outperforms the monolithic baseline.
+Unifying Qwen3:32B with two additional open-
+source models ( NVIDIA-Nemotron-3-Nano:30b ,
+gpt-oss:20b ) around a similar parameter size fur-
+ther raises recall to 0.79.
+Finally, for comparing texts from sections and
+extracting differences ( N3in Fig. 2), to reduce
+ambiguity around what constitutes a “change,” in
+addition to simply asking for enumerating changes,
+one can also repeatedly call the neural component
+with explicitly stated change criterion mentioned
+by domain experts. Extracted changes subject to
+each criterion can then be merged separately again
+without the use of neural components.
+(Example)For the example of APICE version com-
+parison, it includes cases such as scope changes (ad-
+d/remove entities), modality changes (“shall” vs.
+“may”), numeric/tolerance changes, newly added
+or removed mandatory requirements, newly in-
+troduced definitions, renamed tools/technologies,
+and terminology changes that introduce ambiguity.
+Thanks to having only relevant sections being of-
+fered, the context for LLM is fundamentally shorter,
+making the result more precise in comparison to
+4
+
+--- Page 5 ---
+feeding into the complete two documents (each has
+around150pages).
+4.4 Designing Checkers (D)
+With well-defined I/O for each module, we defined
+“contracts” (necessary conditions) that can be mon-
+itored using classical methods. Here we list some
+of the checks being implemented.
+Relevance sanity check for N2:Use classical
+similarity measures such as TF–IDF (Salton et al.,
+1975; Salton and Buckley, 1988). Given two text
+segments AandB, denote their TF–IDF cosine
+similarity to be s(A, B) . Given text Tv2
+IDifrom v2
+with section IDi, We envision that for the N2
+identified relevant v1 sections IDj, their computed
+cosine similarity should be larger than other ran-
+domly selected sections in v1. In other words, for
+Krandomly selected IDr1, . . . , ID rKsection IDs
+in v1 that do not fall inside N2 considered v1
+sections, they should satisfy Eq. (1). Our sanity
+checker then enables a warning when α%or more
+of the inequality constraints are violated.
+s(Tv2
+IDi, Tv1
+IDj)>s(Tv2
+IDi, Tv1
+IDr1)
+···
+s(Tv2
+IDi, Tv1
+IDj)>s(Tv2
+IDi, Tv1
+IDrK)(1)
+(Example)Building on Fig. 3, we set α= 30
+to prune low-quality union predictions, increasing
+precision to 0.87 with only a small recall drop.
+Summary check for N1:Similarly, as in the
+design of N1, we explicitly demands the neural
+component not to paraphrase, classical methods
+such as TF–IDF cosine similarity can also be used;
+it raises a warning if the computed similarity is
+lower than a certain thresholdβ.
+Validity checking for N3In our workflow, we
+demand N3to produce a list of changes using
+three tuples⟨ccd, ev v1, evv2⟩.
+•ccd is the concrete change description between
+v1 and v2.
+•ev v1is the verbatim excerpt in v1 section text,
+or “not in v1 ” when the change implies a new
+concept.
+•ev v2is the verbatim excerpt in v2 section text, or
+“not in v2 ” when the change implies a concept
+deletion.
+Such a tuple structure enables multiple checks
+after the LLM produces the output.
+(i)Ifevv1equals “ not in v1 ”, this implies that
+evv2is not in the section text of v1 ( Tv1
+IDj).Therefore, s(Tv1
+IDj, evv2)should return a small
+value. Based on this, our checker issues a warn-
+ing when s(Tv1
+IDj, evv2)exceeds a threshold κ
+(indicating concept overlap).
+(ii)Dually, if evv2equals “ not in v2 ”, our checker
+raises a warning when s(Tv2
+IDi, evv1)is larger
+than a certain thresholdκ.
+(iii) We also apply Natural Language Inferencing
+(NLI) techniques (MacCartney, 2009; Bowman
+et al., 2015; Devlin et al., 2019; Zhuang et al.,
+2021) to examine whether premises evv1and
+evv2jointly entail the hypothesis ccd. When
+NLI reports “ contradiction ”, a warning is
+raised.
+It is crucial to understand that these checks do
+not eliminate errors completely, but they provide
+first-principled monitors that flag likely failures and
+enable engineers to manually intervene.
+5 Design Modification and Test Case
+Regeneration
+Once the requirement changes are identified, the
+next step is to determine how the design should be
+updated. In the automotive domain, both the archi-
+tecture and the requirement-to-design traceability
+are typically made explicit, and engineers gener-
+ally prefermild(incremental) modifications over
+redesigning from scratch. We illustrate this stage
+using a simplified Automatic Emergency Braking
+(AEB) example. In particular, we maintain the re-
+quirements, the corresponding design model, and
+the requirement-to-design traceability in SysML
+v2, which is the next-generation modeling language
+under active development4.
+From “big-bang” updates to incremental deltas
+(A, B).A direct, monolithic prompting strategy
+(i.e., asking an agent to propose a complete updated
+architecture in one step) is brittle for the same rea-
+sons observed in requirement delta extraction: it
+overloads a single generation with multiple respon-
+sibilities (impact analysis, architectural consistency,
+interface compatibility, and syntactic correctness).
+Instead, we decompose the design update into a
+sequence of small, checkable deltas, each address-
+ing one requirement change at a time. This mirrors
+industrial practice: engineers rarely accept sweep-
+ing architecture rewrites, but they can validate a
+small change against local constraints (interfaces,
+allocations, invariants) and then proceed to the next
+delta. Importantly, this incremental approach en-
+ables more targeted review and debugging: when
+4https://www.omg.org/sysml/sysmlv2/
+5
+
+--- Page 6 ---
+a proposed update is rejected, the failure can be
+traced back to a specific requirement change and
+its local architectural implications. The same prin-
+ciple carries over to verification: each delta yields
+a small, explicit update to monitors and tests.
+Tool-supported validation for SysML v2 model
+updates (C, D).To make incremental up-
+dates reliable, we integrate support for syntac-
+tic checks and static analyses into our toolchain
+for SysML v2 artifacts. Concretely, after each
+proposed delta update, the updated model is re-
+compiled to ensure valid syntax. While stan-
+dard SysML v2 tooling typically focuses on syn-
+tax checking, we additionally implement multi-
+ple domain-specific static analysis (Cousot and
+Cousot, 1979; Nielson et al., 2004) checkers such
+aschk_multiple_sources_same_dest() to de-
+tect cases where multiple source ports drive to the
+same destination port.
+In practice, however, we observed a subtle but
+recurring failure mode: even when the agent re-
+ports success and intermediate tool runs pass, the
+final step that consolidates edits into the output
+artifact can still introduce small formatting or struc-
+tural deviations that break compilation. As an
+example, when the gpt-oss:120b is used as the
+LLM, in the text of requirement allocation, we
+observed a recurring punctuation drift where the
+scope-resolution token “ ::” is replaced by “ .”, as
+shown in Fig. 4. To mitigate this, we cache the last
+checker-approvedmodel instance: whenever com-
+pilation and static analysis succeed, we persist that
+validated artifact. If a subsequent end-to-end gener-
+ation produces an output that fails the checker, we
+fall back to the most recent cached, tool-validated
+version. This “validated caching” mechanism, or
+checkpoint-and-rollback mechanism as termed in
+fault-tolerance engineering (Hanmer, 2013), im-
+proves robustness without masking errors: it pre-
+serves the best known-good state while still surfac-
+ing the failure for diagnosis.
+Implications for test case regeneration under
+incremental design changes.Incremental archi-
+tecture updates shift what must be verified: We
+compile each requirement/architecture delta into (i)
+test stimulus to be activated on the system under
+test, as well as (ii) formal verification constraints
+characterizing the correctness criteria (such as in-
+variance conditions). These two artifacts jointly
+examine whether the modified system properly re-
+sponds to inputs following the new requirements.CORRECT (agent fed into the tool)
+package RequirementsAllocation {
+private import Requirements ::*;
+private import Design ::*;
+}
+WRONG (output from LLM)
+package RequirementsAllocation {
+private import Requirements .*;
+private import Design .*;
+}
+Figure 4: Last-mile syntax drift in requirement alloca-
+tion:::replaced by., breaking compilation.
+A key requirement for generating test stimuli
+and formal correctness criteria isthe grounding in
+architectural interfaces. For GenAI, the derived
+specification variables should be bound to concrete
+model elements (ports, states, or attributes), en-
+abling direct traceability from requirement terms
+to the implementing design. This yields constraints
+that can be translated into implementable moni-
+tors. For example, an AEB activation requirement
+delta can be encoded as an invariant over explicit
+attribute paths (e.g., a speed range or non-faulty
+state), with tests generated by fixing context and
+perturbing only new boundary conditions.
+Finally, across deltas, some changes expand the
+operational design domain (e.g., additional weather
+conditions), while others restrict it; regression shall
+cover combinations of accumulated refinements.
+As a result, the test suite scales with systematic
+instantiation while remaining reviewable, and each
+test can be traced back to the delta(s) that intro-
+duced the condition and to the exact architectural
+ports/states that implement it.
+6 Conclusion
+In this paper, we argue that trustworthy GenAI
+can be achieved in a way orthogonal to founda-
+tional model development, proposing workflow-
+level engineering principles that remain applicable
+as models evolve. We showed that these princi-
+ples increased robustness and traceability in auto-
+motive system engineering workflows, spanning
+requirements analysis, architecture updates, and
+verification artifacts. As these principles shape as-
+surance structure rather than model capability, they
+can be transferred to any domain where trustworthi-
+ness is key, including safety-critical and regulated
+applications that require verifiable evidence and
+dependable outcomes.
+6
+
+--- Page 7 ---
+Ethics Statement
+The deployment of GenAI in domains such as
+automotive carries ethical implications regarding
+safety and accountability. This work specifically
+addresses these concerns by advocating a refined,
+“checker-in-the-loop” architecture that rejects un-
+verified LLM outputs. Our proposed workflow is
+designed to augment human engineers by automat-
+ing labor-intensive delta analysis and boilerplate
+generation, rather than replacing the expert human
+judgment required for final safety sign-offs. We
+believe this approach maintains clear lines of pro-
+fessional responsibility while reducing the likeli-
+hood of human fatigue-induced errors in complex
+requirement reviews.
+Limitations
+While the proposed workflow-level design princi-
+ples for trustworthy GenAI integration are generic
+and applicable across various system engineering
+domains, their implementation in production re-
+quires domain-specific adaptation. For individual
+applications, it remains necessary for engineers
+to design and validate their own sanity checks and
+verification rules that align with specific safety stan-
+dards and local technical requirements. Our frame-
+work provides the structure for these checks, but it
+does not eliminate the need for expert engineering
+effort to define the “ground-truth logic” required
+for automated validation in different safety-critical
+contexts.
+References
+Sahil Bhatia, Jie Qiu, Niranjan Hasabnis, Sanjit A. Se-
+shia, and Alvin Cheung. 2024. Verified code transpi-
+lation with LLMs. InAnnual Conference on Neural
+Information Processing Systems (NeurIPS).
+Samuel Bowman, Gabor Angeli, Christopher Potts, and
+Christopher D Manning. 2015. A large annotated
+corpus for learning natural language inference. In
+Conference on Empirical Methods in Natural Lan-
+guage Processing (EMNLP), pages 632–642.
+Patrick Cousot and Radhia Cousot. 1979. Systematic
+design of program analysis frameworks. InProceed-
+ings of the 6th ACM SIGACT-SIGPLAN symposium
+on Principles of programming languages, pages 269–
+282.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. 2019. Bert: Pre-training of deep
+bidirectional transformers for language understand-
+ing. InNorth American Chapter of the Associationfor Computational Linguistics: Human Language
+Technologies (NAACL-HLT), pages 4171–4186.
+Darren Edge, Ha Trinh, Newman Cheng, Joshua
+Bradley, Alex Chao, Apurva Mody, Steven Truitt,
+Dasha Metropolitansky, Robert Ness, and Jonathan
+Larson. 2024. From local to global: A graph RAG
+approach to query-focused summarization.arXiv
+preprint arXiv:2404.16130.
+Bernal Jiménez Gutiérrez, Nikolas McNeal, Changlong
+Sun, and Yu Su. 2024. HippoRAG: Neurobiologi-
+cally inspired long-term memory for large language
+models. InAnnual Conference on Neural Informa-
+tion Processing Systems (NeurIPS).
+Robert S Hanmer. 2013.Patterns for fault tolerant
+software. John Wiley & Sons.
+Xiaoxin He, Yijun Tian, Yifei Sun, Nitesh V . Chawla,
+Thomas Laurent, Yann LeCun, Xavier Bresson, and
+Bryan Hooi. 2024. G-retriever: Retrieval-augmented
+generation for textual graph understanding and ques-
+tion answering. InAnnual Conference on Neural
+Information Processing Systems (NeurIPS).
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, Sebastian Riedel, and Douwe Kiela. 2020.
+Retrieval-augmented generation for knowledge-
+intensive NLP tasks. InAnnual Conference on Neu-
+ral Information Processing Systems (NeurIPS).
+Bill MacCartney. 2009.Natural language inference.
+Stanford University.
+Flemming Nielson, Hanne R Nielson, and Chris Han-
+kin. 2004.Principles of program analysis. Springer
+Science & Business Media.
+Gerard Salton and Christopher Buckley. 1988. Term-
+weighting approaches in automatic text retrieval.In-
+formation processing & management, 24(5):513–
+523.
+Gerard Salton, Anita Wong, and Chung-Shu Yang. 1975.
+A vector space model for automatic indexing.Com-
+munications of the ACM, 18(11):613–620.
+Merlijn Sevenhuijsen, Minal Suresh Patil, Mattias Ny-
+berg, and Gustav Ung. 2025. Generating safety-
+critical automotive c-programs using llms with for-
+mal verification. InInternational Conference on Neu-
+rosymbolic Learning and Reasoning (NeSy), volume
+284 ofProceedings of Machine Learning Research,
+pages 353–378.
+Noah Shinn, Federico Cassano, Ashwin Gopinath,
+Karthik Narasimhan, and Shunyu Yao. 2023. Re-
+flexion: Language agents with verbal reinforcement
+learning. InAnnual Conference on Neural Informa-
+tion Processing Systems (NeurIPS).
+7
+
+--- Page 8 ---
+Shuai Wang, Yinan Yu, Robert Feldt, and Dhasarathy
+Parthasarathy. 2025. Automating a complete soft-
+ware test process using LLMs: An automotive case
+study. InInternational Conference on Software Engi-
+neering (ICSE), pages 373–384.
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V .
+Le, Ed H. Chi, Sharan Narang, Aakanksha Chowd-
+hery, and Denny Zhou. 2023. Self-consistency im-
+proves chain of thought reasoning in language mod-
+els. InInternational Conference on Learning Repre-
+sentations (ICLR).
+John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian
+Lieret, Shunyu Yao, Karthik Narasimhan, and Ofir
+Press. 2024. SWE-agent: Agent-computer interfaces
+enable automated software engineering. InAnnual
+Conference on Neural Information Processing Sys-
+tems (NeurIPS).
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran,
+Thomas L Griffiths, Yuan Cao, and Karthik
+Narasimhan. 2024. Tree of thoughts: Deliberate
+problem solving with large language models. InAn-
+nual Conference on Neural Information Processing
+Systems (NeurIPS).
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak
+Shafran, Karthik R. Narasimhan, and Yuan Cao. 2023.
+ReAct: Synergizing reasoning and acting in language
+models. InInternational Conference on Learning
+Representations (ICLR).
+Liu Zhuang, Lin Wayne, Shi Ya, and Zhao Jun. 2021.
+A robustly optimized bert pre-training approach with
+post-training. InChinese National Conference on
+Computational Linguistics, pages 1218–1227.
+8

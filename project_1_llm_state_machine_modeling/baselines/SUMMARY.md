@@ -11,11 +11,11 @@
 
 ## 当前收录统计
 
-- 已收录 baseline 论文：**31** 篇
+- 已收录 baseline 论文：**46** 篇
 - 本轮新增论文：**15** 篇
-- 已完成 `DESC.md`：**31** 篇
+- 已完成 `DESC.md`：**46** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮规范化工作：新增 15 篇 baseline 论文目录并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`
+- 本轮规范化工作：新增 15 篇以 arXiv/作者版预印本为主的 baseline 论文目录并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`
 
 ## BASELINE评估口径
 
@@ -38,6 +38,9 @@
 - `Given-When-Then` + `SysML state machine`
 - `process-control/control system` + `requirements specification` + `state-based/RSML/statechart`
 - `temporal logic/LTL` + `SysML v2 state machine`
+- `MBSE/SysML v2` + `state machine diagram` + `prompt/temperature`
+- `behavioral model correctness / sequence diagram` + `benchmark / judge / evaluation`
+- `requirements` + `UML` + `multi-agent / judge / benchmark`
 
 ### 已观察到的高命中特征
 
@@ -48,6 +51,8 @@
 - 安全关键或工业领域关键词常能带来更贴近 `project_1` 的论文
 - `process-control`、`reactive systems`、`RSML`、`state-based specification` 这条经典控制软件线索很容易找到高任务对齐前身工作
 - `Given-When-Then`、`LTL -> state machine`、`sequence diagrams -> statecharts` 这类显式桥接链路词，命中率明显高于泛 MBSE 关键词
+- arXiv 预印本里，直接出现 `state machine diagrams`、`SysML behavior`、`Mermaid/PlantUML` 的题名或摘要，命中率显著高于泛泛的 `UML modeling`
+- `benchmark`、`judge`、`correctness evaluation` 常能命中公开工件更好的论文，虽然很多只能评为 `🟠`
 
 ### 已观察到的低命中特征
 
@@ -58,6 +63,8 @@
 - 纯综述、纯经验报告，缺少明确方法与实验对比
 - 只做 requirements formalization、DSL 翻译或 temporal logic 输出的论文，若没有状态机落点，通常只能保留为 `🟠`
 - 控制逻辑图、功能块图、PLC/DCS 工程图等虽然很贴近工业控制，但若没有显式状态机语义，也不能直接算 `🟢`
+- `semantic alignment`、`architecture candidate generation`、`accessible interface` 这类 MBSE/SE 预印本容易“看起来很像”，但往往不直接产出状态机
+- 只做 sequence diagram correctness / UML classroom study 的论文通常只能提供边界证据，不能抬成直接 baseline
 
 ### 检索倾向调整
 
@@ -66,6 +73,8 @@
 - 泛 UML/SysML 论文仅在其方法明确输出状态机时保留
 - 多模态图样识别和自动 benchmark 构建可保留，但需在 `DESC.md` 中明确说明其“邻近 baseline”性质
 - 非状态机输出论文原则上不再继续扩张收录，只在少量必要场合作为弱相关参照保留
+- 对 arXiv/作者版预印本，应优先追 `state machine diagram / SysML behavior / behavioral model`，其次才是 `class/use case/sequence`
+- 若预印本主要贡献是 benchmark、judge 或 correctness evaluation，应明确把它们归为“生成后基础设施”，而不是误标成直接状态机 baseline
 
 ## 论文清单
 
@@ -102,6 +111,21 @@
 | 29 | 🟡 | 状态机补全/调试 | Automatic Debugging Support for UML Designs | 2000 | Annotated sequence diagrams | Structured statecharts + 冲突解释 | Structured statecharts | 未使用 | 序列图综合 statecharts 并做 backward debugging | [paper](./automatic-debugging-support-for-uml-designs/DESC.md) |
 | 30 | 🟡 | 需求-状态机集成 | Integrating Inter-Object Scenarios with Intra-object Statecharts for Developing Reactive Systems | 2020 | LSC 场景规格 | LSC + Statecharts 联合模型 | Integrated scenario-statechart model | 未使用 | 将 scenario-based programming 与 Statecharts 联合执行 | [paper](./integrating-inter-object-scenarios-with-intra-object-statecharts/DESC.md) |
 | 31 | 🟠 | 需求形式化 | Formal Requirements Elicitation with FRET | 2020 | FRETish 需求 | FRETish + 时序逻辑 | Restricted NL / temporal logic | 未使用 | 受限自然语言到时序逻辑、解释与仿真分析入口 | [paper](./formal-requirements-elicitation-with-fret/DESC.md) |
+| 32 | 🟡 | 增量建模/验证 | Workflow-Level Design Principles for Trustworthy GenAI in Automotive System Engineering | 2026 | 需求变更片段 + 既有 SysML v2 工件 | 更新后的 SysML v2 工件 + 回归测试追踪 | SysML v2 architecture | Qwen3、Nemotron3、GPT-OSS | requirement delta 分段识别 + 工件更新 + 编译/静态分析 | [paper](./workflow-level-design-principles-trustworthy-genai-automotive/DESC.md) |
+| 33 | 🟠 | Benchmark | A System Model Generation Benchmark from Natural Language Requirements | 2025 | 自然语言需求描述 | 参考系统模型 + 评测框架 | System-model benchmark | 多种开源 LLM（评测对象） | 构建 151 场景 SysMBench，并用 SysMEval-F1 等指标评测 | [paper](./sysmbench-system-model-generation-benchmark/DESC.md) |
+| 34 | 🟠 | SysML建模 | Text to model via SysML: Automated generation of dynamical system computational models from unstructured natural language text via enhanced System Modeling Language diagrams | 2025 | 工程文本语料 + 特定系统描述 | SysML 图 + 动态系统计算模型 | SysML BDD / computational model | LLM + NLP 混合 | 五步 text-to-model pipeline，经 SysML 中转到代码/模型 | [paper](./text-to-model-via-sysml/DESC.md) |
+| 35 | 🟢 | 直接生成 | Pushing the (Generative) Envelope: Measuring the Effect of Prompt Technique and Temperature on the Generation of Model-based Systems Engineering Artifacts | 2025 | 简短自然语言系统描述 | requirements list + state machine diagrams | SysML v2 state machine | Mixtral-8x7B-Instruct、Llama-3-Smaug-8B | 比较 zero/one/few-shot、CoT 和 temperature 对状态机生成的影响 | [paper](./pushing-the-generative-envelope-mbse-artifacts/DESC.md) |
+| 36 | 🟠 | 需求验证邻近 | Inference-Time Intervention in Large Language Models for Reliable Requirement Verification | 2025 | 需求 + Capella/SysML 模型图 | fulfillment 判断 | Requirement verification | Llama-3.1-8B、Claude-3.5 | ITI 干预 + self-consistency 做需求验证 | [paper](./inference-time-intervention-requirement-verification/DESC.md) |
+| 37 | 🟠 | 模型对齐 | LLM-Assisted Semantic Alignment and Integration in Collaborative Model-Based Systems Engineering Using SysML v2 | 2025 | 多个 SysML v2 模型 | 语义对齐后的集成模型 | SysML v2 structural model | 原文未强调固定单一模型 | prompt-driven semantic alignment 与 variation-point 集成 | [paper](./llm-assisted-semantic-alignment-sysml-v2/DESC.md) |
+| 38 | 🟠 | 需求到用例 | Leveraging Large Language Models for Use Case Model Generation from Software Requirements | 2025 | 软件需求文本 | actors + use cases + 用例模型 | UML use case model | Llama 3.1 70B | actor/use-case 抽取 + prompt engineering | [paper](./leveraging-llms-for-use-case-model-generation/DESC.md) |
+| 39 | 🟠 | 需求到类图 | NOMAD: A Multi-Agent LLM System for UML Class Diagram Generation from Natural Language Requirements | 2025 | 自然语言需求 | UML 类图 | UML class diagram | GPT-4o、DeepSeek-V3 | 多智能体拆分实体/关系/图综合 | [paper](./nomad-uml-class-diagram-generation/DESC.md) |
+| 40 | 🟠 | 需求到类图 | Class Model Generation from Requirements using Large Language Models | 2026 | 自然语言需求 | PlantUML 类图 | UML class diagram | GPT-5、Claude Sonnet 4、Gemini 2.5、Llama-3.1-8B | CoT 生成 + LLM judge + 人工评审 | [paper](./class-model-generation-from-requirements-llm/DESC.md) |
+| 41 | 🟠 | 行为补全 | Behavioral Augmentation of UML Class Diagrams: An Empirical Study of Large Language Models for Method Generation | 2025 | 无方法类图 + 结构化 use cases | 增强后的类图与方法签名 | Augmented UML class diagram | 9 个 LLM | 从 use case 推断 methods/params/注释 | [paper](./behavioral-augmentation-uml-class-diagrams/DESC.md) |
+| 42 | 🟠 | Benchmark | MermaidSeqBench: An Evaluation Benchmark for LLM-to-Mermaid Sequence Diagram Generation | 2025 | 文本提示 | Mermaid 顺序图 + 评分 | Sequence diagram benchmark | Qwen/Llama/Granite；judge 为 DeepSeek-V3 / GPT-OSS | 132 样本 benchmark + LLM judge | [paper](./mermaidseqbench/DESC.md) |
+| 43 | 🟠 | 行为模型评估 | MCeT: Behavioral Model Correctness Evaluation using Large Language Models | 2025 | 需求 + 顺序图 | issue 报告 | Sequence diagram evaluation | GPT-4o-mini、GPT-4o、DeepSeek-v3、DeepSeek-R1 | 多检查器 + self-consistency 自动查错 | [paper](./mcet/DESC.md) |
+| 44 | 🟠 | UML经验研究 | How LLMs Aid in UML Modeling: An Exploratory Study with Novice Analysts | 2024 | 课程案例 + 学生 prompts | 用例图 / 类图 / 顺序图 | UML multi-diagram | ChatGPT | 45 名学生的人机协作建模实验 | [paper](./how-llms-aid-uml-modeling/DESC.md) |
+| 45 | 🟠 | 需求到架构 | From Requirements to Architecture: An AI-Based Journey to Semi-Automatically Generate Software Architectures | 2024 | 需求 + 领域模型/用例场景 | 架构候选 | Software architecture | LLaMA（探索性） | 分阶段半自动 requirements-to-architecture 流程 | [paper](./from-requirements-to-architecture/DESC.md) |
+| 46 | 🟡 | 设计恢复/行为恢复 | Generating Software Architecture Description from Source Code using Reverse Engineering and Large Language Model | 2025 | 源码 + 逆向工程结果 | SAD + component/state machine views | Architecture + state machine views | GPT-4o | reverse engineering + few-shot prompting 恢复组件图和状态机图 | [paper](./generating-software-architecture-description-source-code-llm/DESC.md) |
 
 ## 数据集与 Benchmark 清单
 
@@ -153,6 +177,21 @@
 | 29 | [paper](./automatic-debugging-support-for-uml-designs/DESC.md) | 🟡 | UML 需求/设计示例 | 算法示例 | 从 annotated sequence diagrams 综合 structured statecharts 并回查冲突 | Annotated sequence diagrams | Structured statecharts | 原文未明确 | 🟠 | 原文未提供公开数据集链接 | 场景需求到状态图再到冲突调试的示例链路 |
 | 30 | [paper](./integrating-inter-object-scenarios-with-intra-object-statecharts/DESC.md) | 🟡 | 无统一 benchmark | 环境/语义说明 | 将 LSC 场景规格和 Statecharts 做联合执行集成 | LSC 场景规格 | LSC + Statecharts 联合模型 | 不适用 | 🟠 | 原文未提供公开数据集链接 | 需求场景与状态图集成开发环境 |
 | 31 | [paper](./formal-requirements-elicitation-with-fret/DESC.md) | 🟠 | NASA / LMCPS 案例需求 | 工业/航空案例 | 在 FRET 中用 FRETish 写需求并自动得到时序逻辑与解释 | FRETish 需求 | FRETish + 时序逻辑 | 原文首页未明确 | 🟠 | [FRET GitHub](https://github.com/NASA-SW-VnV/fret) | 受限自然语言需求形式化与分析案例 |
+| 32 | [paper](./workflow-level-design-principles-trustworthy-genai-automotive/DESC.md) | 🟡 | 汽车 requirement delta 与 SysML v2 更新案例 | 工业内案例 | 从大型规格中分段识别变更，并传播到 SysML v2 工件与回归测试 | 需求变更片段 + 既有 SysML v2 工件 | 更新后的 SysML v2 工件 + 测试追踪 | 1 条端到端汽车工程流程 | 🔒 | 原文未提供公开下载链接 | 工业内汽车系统工程变更传播与验证案例 |
+| 33 | [paper](./sysmbench-system-model-generation-benchmark/DESC.md) | 🟠 | SysMBench | 自己制作 | 人工整理 151 个场景，配套参考系统模型、语法标签与评测框架 | 自然语言需求描述 | 系统模型 | 151 个场景 | 🟠 | 原文说明会发布 benchmark，但首页未给出稳定公开入口 | 面向 requirements-to-system-model 的公开 benchmark |
+| 34 | [paper](./text-to-model-via-sysml/DESC.md) | 🟠 | 多个工程 text-to-model 案例 | 案例系统 | 通过 SysML BDD 中间层把工程文本转成代码和动态系统模型 | 工程文本语料 + 系统描述 | SysML 图 + 计算模型 | 多个案例，含 simple pendulum | 🟠 | 原文未提供统一公开数据集链接 | 面向动态系统建模的 text-to-model 案例集 |
+| 35 | [paper](./pushing-the-generative-envelope-mbse-artifacts/DESC.md) | 🟢 | air purifier / vacuum MBSE artifact 集 | 自己制作 | 针对 2 个题项生成 requirements list 与 state machine diagrams，并在多 prompt、多 temperature 下重复 100 次 | 简短自然语言系统描述 | requirements list + state machine diagrams | 2 个题项 × 2 类工件 × 每配置 100 次 | 🟠 | 原文未提供独立下载页 | 面向 local LLM 的小规模 MBSE 工件生成实验集 |
+| 36 | [paper](./inference-time-intervention-requirement-verification/DESC.md) | 🟠 | 两个早期空间任务 Capella/SysML 模型 | 案例系统 | 将需求与模型图表示配对，用于 requirement fulfillment 判断 | 需求文本 + Capella/SysML 模型图 | fulfilled / not fulfilled 判断 | 2 个模型 + 40 个 holdout samples | 🟠 | 原文未提供公开数据集链接 | 面向 MBSE requirement verification 的空间任务案例 |
+| 37 | [paper](./llm-assisted-semantic-alignment-sysml-v2/DESC.md) | 🟠 | 协同 SysML v2 集成示例 | 案例系统 | 通过 SysML v2 variation points、parts、ports 做语义对齐与集成 | 多个 SysML v2 模型 | 语义对齐后的集成模型 | 原文未给出统一规模 | 🟠 | 原文未提供公开下载链接 | 跨组织协同 MBSE 的模型集成案例 |
+| 38 | [paper](./leveraging-llms-for-use-case-model-generation/DESC.md) | 🟠 | Use Case Model Generation 工件集 | 公开工件 | 从软件需求中抽取 actor 与 use case，并记录工程师对比实验结果 | 软件需求文本 | UML 用例模型 | 5 位专业工程师参与探索研究 | 🟢 | [Zenodo 工件](https://doi.org/10.5281/zenodo.15441831) | 面向需求到用例模型生成的公开工件包 |
+| 39 | [paper](./nomad-uml-class-diagram-generation/DESC.md) | 🟠 | Northwind + human-validated 类图 benchmark | 案例系统 + benchmark | 使用 Northwind 做深度分析，并配套人工验证的 requirements-to-class-diagram 数据 | 自然语言需求 | UML 类图 | 1 个大案例 + 1 组 benchmark | 🟠 | 原文未提供统一公开下载链接 | 多智能体类图生成与评估案例 |
+| 40 | [paper](./class-model-generation-from-requirements-llm/DESC.md) | 🟠 | requirements-to-class-diagram artifacts | 公开工件 | 多模型生成 PlantUML 类图，并结合 LLM judge 与人工评审 | 自然语言需求 | PlantUML 类图 | 多领域案例；工件仓库公开 | 🟢 | [GitHub 工件](https://github.com/jackson0076/FIT4701-GenAI) | 面向需求到类图生成的公开实验工件 |
+| 41 | [paper](./behavioral-augmentation-uml-class-diagrams/DESC.md) | 🟠 | waste-management 行为增强数据 | 自己制作 + GitHub | 对 methodless 类图和 21 条 use cases 做 methods/annotations 生成与评测 | 无方法类图 + 结构化 use cases | 增强后的类图 | 1 个基础类图 + 21 条 use cases + 90 图 / 3373 methods | 🟢 | 原文说明完整工件公开于项目 GitHub | 面向类图行为增强的开放实验集 |
+| 42 | [paper](./mermaidseqbench/DESC.md) | 🟠 | MermaidSeqBench | 自己制作 | 以人工样本、LLM 扩展和规则变化构建 132 个 sequence diagram benchmark 样本 | 文本提示 | Mermaid 顺序图 | 132 个样本 | 🟢 | [GitHub](https://github.com/IBM/MermaidSeqBench-Eval)；[Hugging Face 数据集](https://huggingface.co/datasets/ibm-research/MermaidSeqBench) | 面向文本到顺序图生成的公开 benchmark |
+| 43 | [paper](./mcet/DESC.md) | 🟠 | FBENCH / MCeT evaluation dataset | 公开工件 | 基于真实 requirements 与 sequence diagrams 构建 correctness evaluation 数据与 prompts | 需求文本 + 顺序图 | issue 报告 | 16 张图 / 27 个人工问题 + 完整公开数据 | 🟢 | [GitHub](https://github.com/Huawei-TTE/MCeT) | 面向行为模型正确性评估的公开工具与数据 |
+| 44 | [paper](./how-llms-aid-uml-modeling/DESC.md) | 🟠 | UML 建模教学实验材料 | 教学实验 | 45 份课程项目报告，记录学生使用 LLM 生成 UML 模型的过程与结果 | 课程案例 + 学生 prompts | UML 用例图/类图/顺序图 | 45 份项目报告 | 🟠 | [Zenodo 案例材料](https://doi.org/10.5281/zenodo.10532600)；完整项目报告未公开 | 面向新手 UML 建模的课程实验材料 |
+| 45 | [paper](./from-requirements-to-architecture/DESC.md) | 🟠 | MobSTr + requirements2architecture 探索工件 | 使用现成数据集 + GitHub | 用 MobSTr 的 91 条需求做探索性 requirements-to-architecture 流程验证 | 需求文本 | 架构候选 | 91 条需求 | 🟢 | [GitHub 探索分支](https://github.com/qw3ry/requirements2architecture/tree/exploration) | 面向需求到架构候选生成的探索性工件 |
+| 46 | [paper](./generating-software-architecture-description-source-code-llm/DESC.md) | 🟡 | 源码到 SAD 恢复案例 | 公开工件 | 利用逆向工程 + GPT-4o 从源码恢复 component/state machine views，并公开 diagrams/notebooks/prompts | 源码 + RE 结果 | SAD + state machine views | 多个案例系统，含 Coffee Machine | 🟢 | [GitHub 仓库](https://github.com/ahmadhatahet/generate-software-architecture-description-using-llm) | 面向架构与行为视图恢复的公开工件 |
 
 ## 初步归类与覆盖盘点
 
@@ -160,29 +199,29 @@
 
 | 类别 | 篇数 | 说明 |
 |---|---:|---|
-| 直接状态机建模 | 8 | 直接从自然语言、结构化需求或控制系统需求得到状态机/状态化规格的核心基线 |
-| 补全/精化/扩展/集成 | 8 | 围绕已有模型、场景或形式化需求做状态机补全、扩展、调试、执行化或双层集成 |
+| 直接状态机建模 | 9 | 直接从自然语言、结构化需求或控制系统需求得到状态机/状态化规格的核心基线 |
+| 补全/精化/扩展/集成 | 11 | 围绕已有模型、场景或形式化需求做状态机补全、扩展、调试、恢复、执行化或双层集成 |
 | 需求形式化/分析/状态抽取 | 5 | 需求 DSL、时序逻辑、状态抽取与需求语义分析等前置/支撑方法 |
-| 邻近建模与控制逻辑 | 10 | 非状态机输出的 UML/goal/domain/control-logic 邻近工作与多模态/代码生成参照 |
+| 邻近建模与控制逻辑 | 21 | 非状态机输出的 UML/goal/domain/control-logic/benchmark 邻近工作与多模态/代码生成参照 |
 
 ### BASELINE评估分布
 
 | 评估 | 篇数 | 说明 |
 |---|---:|---|
-| 🟢 | 8 | 可与“需求/描述到状态机或等价状态化规格”直接对比的核心 baseline，其中包含 5 篇 LLM 直接工作和 3 篇经典前身工作 |
-| 🟡 | 8 | 仍围绕状态机补全、扩展、调试、执行化或场景-状态机集成，但不是纯自然语言直接建模 |
-| 🟠 | 15 | 邻近建模、需求形式化、状态抽取、控制逻辑生成、FSM代码生成或经验评估工作，可借鉴但不可直接公平对比 |
+| 🟢 | 9 | 可与“需求/描述到状态机或等价状态化规格”直接对比的核心 baseline，其中新增 1 篇预印本直接触达 SysML v2 state machine generation |
+| 🟡 | 10 | 仍围绕状态机补全、扩展、调试、恢复、执行化或场景-状态机集成，但不是纯自然语言直接建模 |
+| 🟠 | 27 | 邻近建模、benchmark、需求形式化、状态抽取、控制逻辑生成、FSM代码生成、经验评估或验证器工作，可借鉴但不可直接公平对比 |
 | ⚪ | 0 | 当前正式收录中暂无仅作背景资料的论文 |
 
 ### 当前最有价值的整体观察
 
-1. 真正直接做“自然语言到状态机模型”的**LLM** 论文仍然不多，直接 LLM baseline 依旧集中在 `llms_emp`、`fsm-gen-iec-61499`、`req`、`umple` 和 `ttool-ai` 五篇。
-2. 本轮新增最有价值的补充不是更多 LLM 直出状态机论文，而是 1990s-2020s 间一条很清晰的经典前身线：`Requirements Specification for Process-Control Systems`、`Requirements Capture and Evaluation in Nimbus`、`Executable State Machines Derived...` 等。
-3. 这条经典线说明：控制系统/安全关键系统里，“需求 -> 状态化规格/状态机/可执行模型”并不是新问题，真正稀缺的是把这条链现代化为 LLM 驱动、低门槛、可验证的自动建模流程。
-4. 很多新增论文虽然不能评为 `🟢`，但在前处理和后处理层面极有价值，例如状态抽取（`Extraction of System States...`）、DSL/LTL 形式化（`Technical Report...`、`FRET`）、状态机调试回写（`Automatic Debugging Support...`）和规格执行化（`Specification-based Prototyping...`）。
-5. `Spec2Control` 这类新近工业 LLM 工作说明：控制系统自然语言到图形化工件已经开始落地，但主流落点仍是 PLC/DCS control logic，而不是状态机。
-6. `requirements-to-uml-sequence-diagrams`、`from-image-to-uml`、`gpt4-goal-models` 等工作继续提供重要边界证据：输入形式虽然接近，但只要输出不是状态机族模型，就不能混入直接 baseline。
-7. 新增经典控制规格论文也为本课题后续“生成-验证-修复”闭环提供了现成约束源，可用于提炼状态、守卫、模式切换和鲁棒性检查规则。
+1. 聚焦 arXiv/作者版预印本后，真正直接新增到 `🟢` 的工作依然很少，本轮最像直接 baseline 的新增条目主要是 `pushing-the-generative-envelope-mbse-artifacts`；这再次说明公开预印本里“自然语言 -> 状态机”仍然稀缺。
+2. arXiv 预印本的主流落点更偏 `benchmark / judge / correctness evaluation / UML 邻近工件`，如 `SysMBench`、`MermaidSeqBench`、`MCeT`、`NOMAD`，而不是控制系统状态机本体。
+3. 与状态机最近的预印本往往不是“从零生成”，而是“需求变更传播”和“设计恢复”，例如 `workflow-level-design-principles-trustworthy-genai-automotive` 与 `generating-software-architecture-description-source-code-llm`。
+4. 这轮公开工件质量最好的条目大多是 `🟠`，说明当前开放生态更成熟的是 benchmark、UML 邻近建模和行为评估基础设施，而不是直接状态机生成器。
+5. `requirements -> use case/class/sequence` 这条链条在预印本里明显比 `requirements -> state machine` 更拥挤，说明状态机任务的真正难点仍在行为抽象、事件语义和约束保持。
+6. 对 `project_1` 而言，这些 `🟠` 论文并非无用：它们分别补上了多智能体建模、LLM judge、公开 benchmark、行为图自动查错和 RE+LLM 恢复等可直接迁移的技术块。
+7. 后续若继续追预印本，最值得盯紧的是题名/摘要中同时出现 `state machine diagrams`、`SysML behavior`、`behavioral model`、`prompt/temperature`、`correctness evaluation` 的条目。
 
 ## 待补充高优先级候选
 
@@ -190,12 +229,13 @@
 
 | 优先级 | 标题 | 来源文档 | 当前价值 |
 |---|---|---|---|
-| 中 | 当前暂无比现有 16 篇更高优先级的新增状态机候选 | - | 后续应优先继续检索真正输出状态机/Statechart/SysML 状态机的论文，而不是扩张到顺序图、goal model 或一般 UML 建模 |
+| 中 | 当前暂无比现有条目更高优先级的新增状态机候选 | - | 后续应继续优先检索题名或摘要显式出现 `state machine diagrams`、`SysML behavior`、`behavioral model` 的预印本，而不是继续扩张到一般 UML 建模 |
 
 ## 更新日志
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-03-12 | 新增 15 篇以 arXiv/作者版预印本为主的 LLM baseline/邻近论文 | 本轮补入 `workflow-level-design-principles-trustworthy-genai-automotive`、`sysmbench-system-model-generation-benchmark`、`text-to-model-via-sysml`、`pushing-the-generative-envelope-mbse-artifacts`、`inference-time-intervention-requirement-verification`、`llm-assisted-semantic-alignment-sysml-v2`、`leveraging-llms-for-use-case-model-generation`、`nomad-uml-class-diagram-generation`、`class-model-generation-from-requirements-llm`、`behavioral-augmentation-uml-class-diagrams`、`mermaidseqbench`、`mcet`、`how-llms-aid-uml-modeling`、`from-requirements-to-architecture`、`generating-software-architecture-description-source-code-llm`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 新增 15 篇更贴近任务定义的 baseline/经典前身/邻近支撑论文 | 本轮补入 `completion-of-sysml-state-machines-from-gwt-requirements`、`enhancing-model-based-development-formalized-requirements`、`extraction-of-system-states-from-natural-language-requirements`、`executable-state-machines-derived-from-structured-textual-requirements`、`automatic-synthesis-of-uml-designs-from-requirements`、`tech-report-neural-language-models-few-shot-mdse`、`spec2control`、`specification-based-prototyping-for-embedded-systems`、`nimbus-tool-for-specification-centered-development`、`requirements-capture-and-evaluation-in-nimbus-light-control`、`requirements-specification-for-process-control-systems`、`software-requirements-analysis-for-real-time-process-control`、`automatic-debugging-support-for-uml-designs`、`integrating-inter-object-scenarios-with-intra-object-statecharts`、`formal-requirements-elicitation-with-fret`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 新增 5 篇 baseline 并补齐单篇分析 | 新增 `chatgpt-uml-assessment`、`requirements-to-uml-sequence-diagrams`、`from-image-to-uml`、`few-shot-model-completion`、`gpt4-goal-models`，均已补齐 PDF、文本、BibTeX 与 `DESC.md` |
 | 2026-03-12 | 建立 `baselines/` 四件套并统一命名 | 新增 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)、[DESC_GUIDE.md](./DESC_GUIDE.md)，并将全部 `desc.md` 更名为 `DESC.md` |

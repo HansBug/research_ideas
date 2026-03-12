@@ -1,0 +1,431 @@
+--- Page 1 ---
+From Requirements to Architecture: An AI-Based Journey to
+Semi-Automatically Generate Software Architectures
+Tobias Eisenreich
+eisenreich@iste.uni-stuttgart.de
+Institute of Software Engineering
+Stuttgart, GermanySandro Speth
+sandro.speth@iste.uni-stuttgart.de
+Institute of Software Engineering
+Stuttgart, GermanyStefan Wagner
+stefan.wagner@iste.uni-stuttgart.de
+Institute of Software Engineering
+Stuttgart, Germany
+ABSTRACT
+Designing domain models and software architectures represents
+a significant challenge in software development, as the resulting
+architectures play a vital role in fulfilling the system’s quality of ser-
+vice. Due to time pressure, architects often model only one architec-
+ture based on their known limited domain understanding, patterns,
+and experience instead of thoroughly analyzing the domain and
+evaluating multiple candidates, selecting the best fitting. Existing
+approaches try to generate domain models based on requirements,
+but still require time-consuming manual effort to achieve good
+results. Therefore, in this vision paper, we propose a method to gen-
+erate software architecture candidates semi-automatically based
+on requirements using artificial intelligence techniques. We fur-
+ther envision an automatic evaluation and trade-off analysis of
+the generated architecture candidates using, e.g., the architecture
+trade-off analysis method combined with large language models
+and quantitative analyses. To evaluate this approach, we aim to
+analyze the quality of the generated architecture models and the
+efficiency and effectiveness of our proposed process by conducting
+qualitative studies.
+CCS CONCEPTS
+•Software and its engineering →Designing software ;Soft-
+ware architectures ; System description languages; •Computing
+methodologies →Artificial intelligence .
+KEYWORDS
+Requirements, Software Architecture, Architecture Evaluation, LLM
+1 INTRODUCTION
+Software architecture plays a vital role in the quality of every soft-
+ware system. However, deriving a software architecture model
+fitting the functional and non-functional requirements is challeng-
+ing, especially for complex and unknown domains, as it requires
+domain knowledge and understanding. Especially in modern meth-
+ods like Domain-Driven Design [6], building an elaborate domain
+model constitutes the basis for deriving the architecture. In addition,
+architecture creation is very time-consuming and often based on in-
+complete or contradictory requirements documents. New software
+architects especially lack experience and technical knowledge, but
+more experienced ones may focus more on concepts and technolo-
+gies they are used to.
+Hence, architects often design one architecture instead of mul-
+tiple architecture candidates, which are evaluated against the re-
+quirements and other factors. Thus, mistakes during the design
+phase of the architecture can show up later, imposing high main-
+tenance costs. Therefore, we require means to support softwarearchitects in their architectural design decisions and evaluation to
+reduce the time required and make the resulting architectures more
+reproducible through semi-automation.
+In related work, Kof [ 8] tries to generate domain models as a
+basis for the architecture from requirements. However, his process
+still requires a lot of time-consuming manual work to generate a
+fitting domain model. Due to the rapidly growing capabilities of
+modern artificial intelligence (AI) techniques, e.g., natural language
+processing (NLP), such as large language models, we believe that
+we can reduce the manual effort substantially by applying these
+techniques in a semi-automated way.
+We propose a method, i.e., a process and tool, to generate archi-
+tectures semi-automatically based on requirements using modern
+AI techniques. In our method, we first generate domain models and
+use-case scenarios using large language models. Then, we derive
+multiple software architecture candidates with their architectural
+decision decisions and evaluate them to make informed decisions
+about which candidate to take. We include manual iterations to
+improve the overall outcome. We believe that this process can po-
+tentially improve the quality of architecture and the creation time
+in most projects.
+It may seem counter-intuitive to restrict the AI to the standard
+procedure. However, the standard procedure has the advantage
+that it can easily be applied semi-automatically, and an experienced
+architect can nudge the LLM in the right direction. Our exploratory
+analysis in section 4 suggests that a fully automated solution might
+not perform well with current state-of-the-art LLMs. Furthermore,
+no data is available to train LLMs for this task, so we cannot easily
+improve upon the standard LLMs. Our approach has the advantage
+of relying on general-purpose LLMs without special training.
+To evaluate our approach, we aim to answer the following re-
+search questions:
+RQ1: “Can state-of-the-art NLP technology generate reproducible,
+correct, and elaborate domain models and use case scenarios based
+on requirements in natural language?”
+RQ2: “Can state-of-the-art AI technology generate software archi-
+tectures based on a domain model, use case scenarios, and require-
+ments that can appropriately fulfill these requirements?”
+RQ3: “Can quantitative and qualitative software architecture eval-
+uations and trade-off analyses be automated through the use of
+AI?”arXiv:2401.14079v1  [cs.SE]  25 Jan 2024
+
+--- Page 2 ---
+Eisenreich et al.
+RQ4: “Does a method for semi-automatic architecture genera-
+tion improve the architecture’s quality while reducing the time
+required?”
+The remainder of this paper is structured as follows: First, we
+outline the related work in Section 2. In Section 3, we describe our
+proposed approach. In Section 4, we describe an exploratory analy-
+sis we have conducted. Finally, we explain our planned evaluation
+in Section 5 and conclude in Section 6.
+2 RELATED WORK
+Souza et al. [ 14] reviewed the state-of-the-art of architecture deriva-
+tion from requirement specifications. They found 39 relevant stud-
+ies, some of which included methods with tooling support, but all
+of them relied heavily on the experience and knowledge of the
+architect. Kof [ 8] took an approach to more automated support. He
+developed a semi-automatic method to create domain models from
+requirements documents. Despite the semi-automatic approach, his
+method took extensive manual effort, especially for preparing the
+requirements documents.
+Researchers have touched on automated architecture evaluation
+before: Bashroush et al. [ 2] manage to apply ATAM [ 7] with partial
+automation. This accelerates the process of the evaluation. They use
+a formal Architecture Description Language for this task. Kr??ger et
+al. [11] also try to speed up the architecture evaluation, but go down
+a different route: They developed a method to transition scenarios
+into AspectJ prototypes. With these prototypes, multiple architec-
+tures can be manually evaluated and compared during runtime.
+Scheerer et al. [ 13] use PerOpteryx, a Palladio [ 3] plugin, to run
+automated quantitative analysis on architectures. They evaluate ar-
+chitecture design decisions by analyzing their performance impact
+for predefined scenarios. Numerous works evaluate architectures
+based on metrics; Coulin et al. [ 4] provide an overview of the state
+of the art. Mo et al. [ 12] successfully find architectural flaws in
+industrial projects with fully automated architecture metrics. Other
+works try to optimize architectures: Aleti et al. [ 1] conducted a sys-
+tematic literature review of 188 papers that evaluate architecture
+optimization methods. To the best of our knowledge, there is no
+automatic and comprehensive architecture evaluation that takes
+the requirements fully into account.
+3 VISION FOR SEMI-AUTOMATIC
+ARCHITECTURE GENERATION
+In the following, we propose our vision for a process and tool
+framework to generate software architectures semi-automatically
+based on requirements. Our process is envisioned to be iterative
+throughout a software development life-cycle. Figure 1 depicts this
+process and the relevant artifacts. The process consists of six steps:
+(1) automatically generating a domain model and use-case scenarios
+based on textual requirements, (2) manually refining the domain
+model and scenarios, (3) automatically deriving multiple software
+architecture candidates and architectural decisions leading to them
+using the domain model, scenarios, and non-functional require-
+ments, (4) automatically evaluating and comparing the candidates,
+(5) manually refining the candidates, and (6) manually selecting thebest fitting candidate. In the following, we will describe each step
+in more detail.
+3.1 Generating Domain Model and Use-Case
+Scenarios
+In the first step, we want to generate a domain model and use-case
+scenarios out of functional and non-functional requirements. While
+we only consider textual requirements in the first iteration, in later
+ones, we also include the current architecture and architecture
+decisions leading to it. This will allow us to apply this process to
+incremental architecture.
+Using a large language model (LLM), the software architect pro-
+cesses the requirements to create an initial domain model and
+use-case scenarios. We deem LLMs suitable for such a task as they
+provide decent knowledge in plenty of domains and, thus, are uni-
+versally usable in contrast to more domain-specific AI models. A
+first exploratory analysis with LLaMA showed promising results
+(c.f. Section 4). To be able to fine-tune the LLM if required, we plan
+to use an open-source LLM for this task. Currently, we are consider-
+ing LLaMA, Falcon, and Yi, but we will evaluate the state-of-the-art
+models for their suitability as part of our research, potentially in-
+cluding other models that have not been published yet. Furthermore,
+we will compare these LLMs’ results with those obtained from the
+latest GPT version.
+The generated domain model will omit details that are irrele-
+vant to the architecture generation, e.g., an entity’s attributes. The
+domain model’s primary focus lies in the relations of the domain
+concepts to each other. With these relations, we can cut the domain
+into bounded contexts. We can then cut the architecture into its
+components with these bounded contexts. The use case scenarios
+will complement the domain model with the description of the
+system’s functional behavior.
+After generating the domain model and scenarios, the architect
+can inspect and refine them using additional prompts. We assume
+that the domain model and the scenarios can be refined using the
+LLM, so the architect does not need to do any work directly on the
+models but instead instructs the tooling.
+3.2 Generating Architecture Candidates and
+Architecture Decision Records
+In the third step, we want to generate multiple architecture can-
+didates based on the requirements, the domain model, and the
+use-case scenarios. These architecture candidates model the differ-
+ent design decisions that are viable to take when considering the
+requirements, the domain model, and the use-case scenarios.
+We will consider various models for the architecture: First, there
+is the classic “4+1 Model” by Kruchten [ 10], where an architecture
+consists of multiple views: A logical view, a development view, a
+process view, and a physical view. With this model, we have full
+freedom to choose representations for these views, like PlantUML
+or Mermaid diagrams. Another promising option is the Palladio
+Component Model [ 3], which would allow us to run quantitative
+architecture evaluations. This model specifies the exact format
+for its different views. To some degree, we can also convert an
+architecture from one model into another. The exact format used
+will be the subject of our research.
+
+--- Page 3 ---
+From Requirements to Architecture: An AI-Based Journey to Semi-Automatically Generate Software Architectures
+Domain Model,
+ScenariosEvaluation and
+Comparison
+Generation Generation GenerationSemi-automatic
+RefinementSemi-automatic
+Refinement
+SelectionCurrent ArchitectureRequirementsArchitecture
+Candidates
+Design DecisionsArchitecture
+Candidates
+Design DecisionsArchitecture
+Candidates
+Design DecisionsFinal Architecture
+Design Decisions
+Figure 1: Semi-automatic architecture creation process.
+To generate the architectures, we will employ multiple tech-
+niques and technologies: For tasks that require a deep understand-
+ing of the requirements, like cutting the architecture into compo-
+nents, we will employ LLMs. Where feasible, we will also consider
+other modern AI technologies. Some tasks are very technical and
+based on well-structured data, like the process view, which explains
+the execution path the use cases take through the components. For
+such tasks, we will instead apply classic algorithms, which do not
+have the engineering difficulties that modern AI technology has,
+like shaky and unpredictable results.
+Furthermore, we want to extract the architectural design de-
+cisions taken during the generation and model them as architec-
+ture design decision records (ADRs) [ 9,17]. They will give a quick
+overview of the essence of each architecture candidate. They will
+give hints to each architecture candidate on potential refinements
+that can be made. Moreover, they will document the architect’s
+decisions during this process instead of implicit or unconscious
+decisions taken by the tooling.
+3.3 Architecture Candidate Evaluation
+After the generation, we want to assist the architect in selecting
+the best-fitting architecture candidate for the system he designs.
+We aim to evaluate the architecture candidates and find their pros
+and cons. We want to automate established architecture evaluation
+technologies like ATAM [ 7] to achieve this. In addition, we will
+calculate quality metrics on the generated architecture candidates.
+By conducting a quantitative analysis, we aim to find potential
+performance hotspots. The selection of the architecture evaluation
+methods will be part of our research: We will consider multiple
+evaluation techniques and assess the ability to conduct them auto-
+matically. Furthermore, we will compare the aspects of the archi-
+tecture they evaluate and select the techniques in a manner that
+makes sure we evaluate a wide range of aspects to give a compre-
+hensive architecture evaluation overall. Whether an accurate and
+comprehensive automatic evaluation is possible will be an outcome
+of our research. If this proves to be difficult, we will fall back to a
+semi-automated evaluation.
+3.4 Architecture Candidate Selection
+Finally, we present the generated architecture candidates, design
+decisions, and evaluations to the architect. With this information
+given, the architect can understand the advantages and disadvan-
+tages of each architecture candidate. The architect can factor in
+potential implicit requirements that are not documented. Such re-
+quirements might exist for various reasons: Maybe no one foundit necessary to document them because all the people involved
+were aware of them. Another possibility could be that those are not
+strictly considered requirements, but the architect already suspects
+they might become such.
+At this stage, the architect might find that none of the generated
+architecture candidates quite fit their needs. In this case, the archi-
+tect can refine the architecture candidates similarly as they refined
+the scenarios and the domain model: Using prompts, the architect
+can tell the tooling what aspects of the architecture candidate need
+to be changed. They might even ask for the generation of further
+architecture candidates that they can assess and refine as well. With
+all these choices available and with the evaluation assistance, the
+architect can select one of these candidates as the final architecture.
+3.5 Further Iterations
+After the architecture is selected, the development team can con-
+tinue implementing it. We assume that, in practice, at some point,
+the requirements will change. This might either be planned, e.g.,
+when the next iteration of an agile process begins, or unplanned, e.g.,
+due to a misconception in the requirements. In this case, we want
+to support the iteration of the proposed process: This means that,
+as an additional requirement in the iteration, the generated archi-
+tecture candidates should differ as little as possible from the current
+software architecture. Each change in the architecture might im-
+ply expensive changes in the source code, and we want to reduce
+them as much as possible. But sometimes, architectural changes
+are necessary to keep up with the project’s quality requirements.
+This means that we cannot restrict the process to retain the cur-
+rent architecture at all costs. Instead, the tooling needs to weigh
+the quality implications against the expenses for an architectural
+change. These decisions will – to some degree – be presented to
+the architects, with these decisions factored into the presented data.
+This will also enable this process for agile environments, which are
+very common in the industry.
+4 EXPLORATORY ANALYSIS
+We did an exploratory analysis with chat versions of LLaMA2 70-B
+and GPT-3.5 to generate domain models of text requirements. For
+this, we supplied 91 requirements from the MobSTr-dataset [ 16] and
+asked the model to generate a PlantUML domain model. The exact
+procedure can be found in our GitHub1. Both models could identify
+concepts from the requirements. It appears that the prompts were
+misunderstood, though – instead of modeling the domain, the LLMs
+1https://github.com/qw3ry/requirements2architecture/tree/exploration
+
+--- Page 4 ---
+Eisenreich et al.
+modeled the system itself. Still, both LLMs showed an understand-
+ing of the requirements. While both models could generate valid
+PlantUML, LLaMA did not create relations between the concepts,
+even though it claimed it did. GPT handled this task well, though.
+In a small iteration, we could improve the results of both models
+substantially with basic prompt engineering.
+With these tests, using general, unmodified LLMs, we can as-
+sume that LLMs are generally capable of understanding application
+domains. We must invest some work into adjusting these mod-
+els, prompt engineering, and translating the LLM output into the
+chosen format.
+5 PLANNED EVALUATION
+We plan to evaluate the process as a whole with two studies, and
+we aim to evaluate both the technical quality of the outcome and
+the impact on the development process. In addition, we plan to
+evaluate the intermediate steps of the process thoroughly, especially
+regarding the technical quality of the intermediate artifacts. We
+hope to apply these intermediate studies’ findings to improve the
+final evaluation process.
+5.1 Evaluation Based on Reference
+Architectures
+We want to take well-established reference architectures like T2-
+Project [ 15], TeaStore [ 18], and SockShop, re-engineer their re-
+quirements, and apply our process. We will then manually apply
+architecture evaluation techniques to compare the reference archi-
+tecture to the generated architecture candidates. Because we are not
+constrained to automatic evaluation techniques, we can evaluate
+the architectures more in-depth when compared to the automatic
+evaluation described in section 3.3. In addition, we will examine
+the generated architecture candidates and compare them to the ref-
+erence architecture to detect potential flaws that the more formal
+architecture evaluation techniques missed. Furthermore, we will
+ask experts to create architectures for the evaluated requirements
+and then rate the generated architecture candidates for their fit to
+the requirements. With the architecture created by the expert, we
+have a baseline of what an architect in a typical project is roughly
+capable of.
+The used LLM might have been trained with the reference ar-
+chitectures previously. Thus, we will carefully check whether the
+LLMs only reproduce the reference architectures, or incorporate
+new ideas. If we find that this limitation applies, we will apply the
+described evaluation instead with a new set of requirements.
+5.2 Industrial Field Study
+We want to conduct an industrial field study to evaluate our process
+in a real-world environment. For this evaluation, we will use the
+requirements of a project and apply our process. We will then
+interview the project members on the quality of the generated
+architecture and the quality of the actual architecture of the project.
+Secondly, we will deploy our process for some time in the pro-
+ject’s ongoing development. Afterward, we will interview the pro-
+ject members again, this time focusing on the challenges of the
+process implementation and the advantages and disadvantages
+of the process. This evaluation will be very open, and we aim tofind challenges in usability, practicality, and the overall hurdles of
+implementing this process. We want to evaluate the effectiveness
+and efficiency of the process.
+Lastly, we want to apply the Technology Acceptance Model
+(TAM [ 5]) to evaluate the attitude towards and the intentions to
+use this process.
+6 CONCLUSION
+We propose research for a new process that aids architects in their
+daily work. This process spans the whole creation of a new archi-
+tecture and can support the adaption of an existing architecture
+to new requirements. We believe this process can be the basis for
+a considerable step forward in the quality of industrial software
+architectures.
+REFERENCES
+[1] Aldeida Aleti, Barbora Buhnova, Lars Grunske, Anne Koziolek, and Indika Mee-
+deniya. 2012. Software architecture optimization methods: A systematic literature
+review. IEEE Transactions on Software Engineering 39, 5 (2012), 658–683.
+[2] Rabih Bashroush, Ivor Spence, Peter Kilpatrick, and John Brown. 2004. Towards
+an automated evaluation process for software architectures. (2004).
+[3] Steffen Becker, Heiko Koziolek, and Ralf Reussner. 2009. The Palladio component
+model for model-driven performance prediction. Journal of Systems and Software
+82, 1 (2009), 3–22.
+[4]Théo Coulin, Maxence Detante, William Mouchère, and Fabio Petrillo. 2019.
+Software Architecture Metrics: a literature review. arXiv preprint arXiv:1901.09050
+(2019).
+[5] Fred D Davis. 1985. A technology acceptance model for empirically testing new end-
+user information systems: Theory and results . Ph. D. Dissertation. Massachusetts
+Institute of Technology.
+[6]Eric Evans. 2004. Domain-driven design: tackling complexity in the heart of
+software . Addison-Wesley Professional.
+[7]Rick Kazman, Mark Klein, and Paul Clements. 2000. ATAM: Method for archi-
+tecture evaluation . Carnegie Mellon University, Software Engineering Institute
+Pittsburgh, PA.
+[8] Leonid Kof. 2005. Text Analysis for Requirements Engineering . Ph. D. Dissertation.
+Technische Universität München.
+[9] Oliver Kopp, Anita Armbruster, and Olaf Zimmermann. 2018. Markdown Archi-
+tectural Decision Records: Format and Tool Support.. In ZEUS . 55–62.
+[10] P.B. Kruchten. 1995. The 4+1 View Model of architecture. IEEE Software 12, 6
+(1995), 42–50. https://doi.org/10.1109/52.469759
+[11] Ingolf H Krüger, Gunny Lee, and Michael Meisinger. 2006. Automating software
+architecture exploration with M2Aspects. In Proceedings of the 2006 International
+Workshop on Scenarios and State Machines: Models, Algorithms, and Tools . 51–58.
+[12] Ran Mo, Will Snipes, Yuanfang Cai, Srini Ramaswamy, Rick Kazman, and Martin
+Naedele. 2018. Experiences applying automated architecture analysis tool suites.
+InProceedings of the 33rd ACM/IEEE International Conference on Automated
+Software Engineering . 779–789.
+[13] Max Scheerer, Axel Busch, and Anne Koziolek. 2017. Automatic evaluation
+of complex design decisions in component-based software architectures. In
+Proceedings of the 15th ACM-IEEE International Conference on Formal Methods
+and Models for System Design . 67–76.
+[14] Eric Souza, Ana Moreira, and Miguel Goulão. 2019. Deriving architectural models
+from requirements specifications: A systematic mapping study. Information and
+software technology 109 (2019), 26–39.
+[15] Sandro Speth, Sarah Stieß, and Steffen Becker. 2022. A Saga Pattern Microservice
+Reference Architecture for an Elastic SLO Violation Analysis. In 2022 IEEE 19th
+International Conference on Software Architecture Companion (ICSA-C) . 116–119.
+https://doi.org/10.1109/ICSA-C54293.2022.00029
+[16] Jan-Philipp Steghöfer, Björn Koopmann, Jan Steffen Becker, Ingo Stierand, Marc
+Zeller, Maria Bonner, David Schmelter, and Salome Maro. 2021. The MobSTr
+dataset: Model-Based Safety Assurance and Traceability. https://doi.org/10.
+5281/zenodo.4981481
+[17] U. van Heesch, P. Avgeriou, and R. Hilliard. 2012. A documentation framework
+for architecture decisions. Journal of Systems and Software 85, 4 (2012), 795–820.
+https://doi.org/10.1016/j.jss.2011.10.017
+[18] Jóakim von Kistowski, Simon Eismann, Norbert Schmitt, André Bauer, Johannes
+Grohmann, and Samuel Kounev. 2018. TeaStore: A Micro-Service Reference
+Application for Benchmarking, Modeling and Resource Management Research.
+InProceedings of the 26th IEEE International Symposium on the Modelling, Analysis,
+and Simulation of Computer and Telecommunication Systems (MASCOTS ’18) .
