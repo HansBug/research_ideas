@@ -1,0 +1,547 @@
+--- Page 1 ---
+SOFTWARE—PRACTICE AND EXPERIENCE
+Softw. Pract. Exper. 2000;00:1–6 Prepared using speauth.cls [Version: 2002/09/23 v2.2]
+Developing Uppaal over 15
+years
+Gerd Behrmann1, Alexandre David2,∗, Kim Guldstrand Larsen2, Paul
+Pettersson3, Wang Yi4
+1NORDUnet A/S, Copenhagen, Denmark
+2Department of Computer Science, Aalborg University, Denmar k
+3M¨ alardalen Real-Time Research Centre, M¨ alardalen University , Sweden
+4Department of Information Technology, Uppsala University, S weden
+SUMMARY
+Uppaal is a tool suitable for model checking real-time syste ms described as networks of
+timed automata communicating by channel synchronisations and extended with integer
+variables. Its ﬁrst version was released in 1995 and its deve lopment is still very active. It
+now features an advanced modelling language, a user-friend ly graphical interface, and a
+performant model checker engine. In addition, several ﬂavo urs of the tool have matured
+in recent years. In this paper, we present how we managed to ma intain the tool during
+15 years, its current architecture with its challenges, and we give future directions of the
+tool.
+key words: Uppaal , real-time, model-checker, development
+INTRODUCTION
+Uppaal is ﬁrst of all a research tool born from the collaboration of U ppsala and Aalborg
+universities [ 44]. It takes its theoretical roots from Alur and Dill’s pionee r work on timed
+automata[ 2].Itsperformanceoriginallycomesfromzones[ 36]asarepresentationforstatesand
+the eﬃcient implementation of operators on its canonical da ta-structure known as diﬀerence
+bound matrix (DBM) [ 13]. Since then the development has been fuelled by scientiﬁc r esults on
+algorithmsornewdatastructures[ 7,8,10,18,37,38],academiccase-studies[ 41,17,24,28,20],
+industrial case-studies [ 39,21,12,1,4], and also teaching [ 27].
+On the other hand, having such a tool helps to develop and test new theories and algorithms,
+which has given us synergy during the last decade between too l development and theoretical
+results.
+∗Correspondence to: Department of Computer Science, Aalborg University, D enmark
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd.
+
+--- Page 2 ---
+2BEHRMANN ET AL.
+Recently, the tool has blossomed into several domain speciﬁ c versions, namely, Cora
+[8,9] (cost-optimal reachability), Tron[34,35] (online testing), CoVer[29,30] (oﬄine test
+generation), Tiga[6] (timed game solver), Port[25] (component based and partial order),
+Pro(extension with probabilities, in progress), and Times[23,3] (scheduling and analysis).
+These extensions are made based on a common code base, re-usi ng basic data structures to
+represent states, store them, and perform common operation s such as delay, intersection, or
+computing successor states.
+Corais based on linearly priced timed automata [ 11]. The model extends timed automata
+with a special cost variable whose rate is speciﬁed for every state. The algorithm uses guiding
+to solve minimum cost reachability problems.
+Tronis a testing tool suited for black-box conformance testing [ 43,32] of timed systems.
+It is mainly targeted for embedded software commonly found i n various controllers. Testing is
+done online in the sense that that tests are derived, execute d, and checked while maintaining
+the connection to the system in real-time.
+CoVer is a tool for creating test suites from Uppaal models with coverage speciﬁed by
+coverage observers a.k.a. observer automata.
+Tigais an extension for solving reachability and safety problem s on timed game automata.
+Its algorithm [ 16] is a symbolic extension of the on-the-ﬂy algorithm suggest ed by Shann
+et al [40] for linear-time model-checking of ﬁnite-state systems. I t is used for controller
+synthesis [ 31], it has application to testing [ 19], and it has been extended to synthesis under
+partial observability [ 15].
+Portis a version targeted to component-based modelling and veri ﬁcation. Its interface is
+developed as an Eclipse plug-in. The tool supports graphica l modelling of internal component
+behaviour as timed automata and hierarchical composition o f components. It is able to exploit
+the structure of such systems and apply partial order reduct ion techniques successfully [ 26].
+Prois an extension for timed automata with probabilities [ 5,33]. The model is extended
+withbranchingnodesthatallow theusertospecifyweights f oreveryoutgoingedge.Theengine
+can then compute probability bounds to reach speciﬁed state s. It is work-in-progress.
+Timesis a tool-set for modelling, schedulability analysis, synt hesis of (optimal) schedules
+and executable code. Its modelling language is timed automa ta extended with tasks. It models
+systems that can be described as a set of tasks that are trigge red periodically or sporadically
+by time or external events. The release pattern is given by a t imed automaton and the tool
+performs schedulability analysis on it. Timesworks by encoding the problem into timed
+automata and it uses the Uppaal engine for the checks. It translates back the answer in
+terms of Gantt chart to visualise schedules. There are other tools that are using Uppaal as a
+back-end veriﬁcation engine, e.g., REX [ 22].
+In this paper we focus on the “core” tool Uppaal and present our experience in developing
+and maintaining it for the last decade. In particular, we pre sent the backbone architecture
+that has allowed us to expand the tool on diﬀerent variants of timed automata. The following
+sections give an overview of the tool architecture, our expe rience in the process of building the
+tool, and future development directions.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 3 ---
+DEVELOPING UPPAAL OVER 15 YEARS 3
+Figure 1. View of the “concrete” simulator of Tiga.
+OVERVIEW OF THE TOOL ARCHITECTURE
+Client-server architecture. The tool has two main components: a graphical user interface
+written in Java and a model-checker engine written in C++. Th e interface runs almost
+eﬀortlessly on diﬀerent platforms and we can exploit the ric h functionalities available for
+programming interfaces inherent to the libraries coming wi th the Java programming language.
+The C++ language gives us both advanced object oriented prog ramming and performance.
+These two components form a basic client server architectur e with the graphical interface
+(client) communicating with the model checker (server) via a local pipe†or the network‡. This
+separation of concerns makes Uppaal easier to port and maintain on diﬀerent platforms.
+The graphical interface has three “tabs” that correspond to the main tasks a user needs to
+do: to edit a model in the editor, to simulate it in the simulat or, and submit veriﬁcation queries
+†A common inter-process communication mechanism.
+‡The veriﬁcation can be done on a remote server, which is a rarely exploit ed feature.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 4 ---
+4BEHRMANN ET AL.
+PWList
+Transition SuccessorDelay ExtrapolationInitial state
+LazyCopySorterTrace Symmetry
+Query
+Figure 2. Pipeline architecture for the reachability ﬁlter .
+to the model-checker. Additionally, the user may come back t o the simulator to visualise a
+trace generated by the veriﬁcation. Figure 1gives a view of the simulator of the tool. The
+diﬀerent variants of the tool have specialised interfaces a nd the ﬁgure shows the simulator
+used inTiga. On the left is the command part where the user can select transitions, go back
+inthetrace,playrandomly,ornavigatethroughthecurrent trace(historyofstates).Thelistin
+the middle shows the values of the variables and clocks. The t imed automata are shown on the
+right and below them a Gantt chart and a message sequence char t. The simulator of Uppaal
+lacks the Gantt chart and has other similar components, alth ough instead of navigating with
+concrete clock valuations, the user sees symbolic states. The point here is to stress reuse of
+components across diﬀerent tools. It is important to amorti se development costs over time on
+diﬀerent specialisations of the tool without having to rewr ite everything from scratch. This is
+obvious but the insidious consequence is that it is often diﬃ cult in practice to publish on these
+new additions. This is due to the lack of dedicated conferenc es where tool developments can
+be reported on.
+Pipeline architecture. The model-checker itself (the engine) is designed around a pipeline
+architecture [ 7] where each block or ﬁlterprocesses states and sends them to the next stage as
+shown in Fig. 2. The ﬁgure shows the conﬁguration for the reachability ﬁlter. Other algorithms
+such as the livenessand theleadstocheckers have their own ﬁlters built on the same principle.
+In this example, the initial state is pushed to the reachabil ity ﬁlter in its delay component to
+start theexploration. Then it runsits main loop that takes s tates from our (uniﬁed passedand)
+waiting list structure, explores them, and puts the success ors in that structure. This structure
+(also called the PWList) implements one (coloured) state set with states marked wai ting and
+passed. It is uniﬁed in the sense that we have one structure in stead of the traditional waiting
+and passed lists that need two lookups in hash tables per loop iteration of the reachability
+algorithm. Only states coloured as waiting are explored and inclusion check between symbolic
+states is done against all states. The main chain for the expl oration is Transition (which
+transitions can be taken) - Successor (execution of the transitions) - Delay(let time pass)
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 5 ---
+DEVELOPING UPPAAL OVER 15 YEARS 5
+-Extrapolation (apply an appropriate extrapolation to ensure ﬁnite explor ation) - PWList
+(inclusion check and mark the state to be explored) - Query(evaluate the formula if the state
+was not included).
+In fact we inserted a LazyCopy ﬁlter to reduce copies of states between the transition
+and successor ﬁlters. This ﬁlter really copies states only w hen necessary, e.g., computing one
+successor only does not require a copy and two successors req uire one copy only. It acts as
+a one place buﬀer. When priorities are used in the model, this ﬁlter is swapped by another
+ﬁlter that is going to buﬀer transitions and sort them by prio rity, without changing the rest
+of the pipeline. Some ﬁlters are optional, such as Sorterthat can sort transitions, Tracethat
+is used to store traces, or Symmetry that is projecting the states to a representant of its
+equivalence class (orbit) when symmetry is used in the model . In addition, diﬀerent kinds
+of extrapolations can be used depending on the model, which r esults in diﬀerent kinds of
+instances for the Extrapolation ﬁlter. We note that it is simpler to have the logic (in terms of
+if statements) to instantiate the right type of a component o nce and use the generic design
+to connect the components and use them transparently. The re ader understands that the
+combination of these features gives rise to a lot of conﬁgura tions. The point here is to keep
+orthogonal features separated.
+The overall pipeline architecture allows us to reason about the algorithm in terms of blocks
+that we can change if we need another semantics. Implementin g another checker, e.g. a timed
+game solver, is relatively easy and consists in adding compo nents that will do the backward
+propagation, changing the ﬁrst ﬁlter to either explore forw ard or backward, add a post-
+processing ﬁlter to detect what is winning or losing in the ga me after Extrapolation , and
+changing the graph representation. The new pipeline still h as the same structure and follows
+the same design. To change the semantics of the game, e.g. to i mplement simulation checking
+[14], we change Transition that implements the transition relation and Delayto allow turn-
+based delays.
+There are two important points that this architecture illus trates: object-oriented
+programming and reuse of components. The ﬁlters are in pract ice abstract classes so these
+components are managed at a high level. Second, we can reuse t hese ﬁlters for diﬀerent pipeline
+conﬁgurations, i.e., for diﬀerent checkers. We note that th e architecture is also ﬁt for functional
+languages.
+Additional components. In addition to these components, Uppaal contains a virtual machine
+to execute the compiled byte-code of our C-like input langua ge supporting user deﬁned
+functions and types. This allows the user to write complex an d compact models while still
+limiting the state-space explosion – complexity can be conc entrated in functions to avoid
+using intermediate states.
+We currently distribute some open source components, such a s the parser and the diﬀerence
+bound matrix (DBM) library. The DBM library has a Ruby bindin g, which allows for quick
+prototyping. The parser understands the XML format we use in Uppaal, which allows other
+researchers to use the same format. The DBM library handles D BMs and federations (unions
+of DBMs) used to represent symbolic states. The DBM library s upports a wide range of
+operations including subtractions and merging of DBMs.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 6 ---
+6BEHRMANN ET AL.
+TOOL BUILDING PROCESS
+Tools are not prototypes. It is relatively easy to produce prototypes as proofs of conc ept of
+some theory or algorithm to strengthen a paper but it is notor iously more diﬃcult to develop
+a tool that is going to survive the test of time. Unfortunatel y, prototypes are more common in
+practice. Building and maintaining tools takes a lot of time and is generally given less academic
+credits compared to more theoretical work, which explains t he limited number of maintained
+tools. In the domain of formal methods, tools are crucial and they also serve as a dissemination
+means for theoretical results. Tools do have a positive impa ct through the case-studies they
+allow other users to do, often in collaboration, which is imp ortant to amortise the development
+cost (in terms of time) and earn publications (otherwise we p erish)§.
+Who develops? The ﬁrst question for developing tools is who is going to do it ? Most of the
+time it is done by master or Ph.D. students, which makes sense economically since professors
+cannot aﬀord writing C++ code. However, when temporary deve lopers who have their own
+agenda (own thesis to write) work on the tools, there is the ob vious issue that someone needs
+to take over otherwise the tool will disappear. In addition, temporary developers do not have a
+long term vision and are interested (rightfully so) in their own thesis. Over the years, changing
+teams without a common interest or focus means that the code w ill degrade if there is no
+control. What happened for us was that there were some Ph.D. s tudents who stayed in the
+team for a long time, long enough to lay down a solid architect ure and durable design. As a
+ﬁrst rule of survival, one should have a solid design and encourage people to stick to it even if
+they do not like it. At some point in time old design decisions will not make sense any more
+but this is a diﬀerent issue.
+Code size. When the code grows (see Fig. 3) it is increasingly diﬃcult for new people to
+use the code so it becomes important to have some permanent st aﬀ to take care of it and
+revise it so it can oﬀer a limited and more useful interface. T his is a considerable eﬀort that
+is essential to the survival of the tool. In the past we had a fe w such revisions: the pipeline
+architecture, the virtual machine , and handling of federations in the model-checker. The size
+and complexity of the code has now become a barrier for new int ernal people but it is also a
+serious problem for external collaboration. We need a new re vision to update the interfaces of
+the diﬀerent components and add more abstraction to the code . For long term development,
+it is important to have some permanent staﬀ to take care of suc h revisions and keep a long
+term vision. However, it is a trade-oﬀ between academic and d evelopment work.
+Code aging. Curiously code ages. This is due to the fact that developers f orget old code
+and new methods or libraries appear over the years, which mak es the code become older or
+deprecated.Inaddition,progressincompilersalsomeanst hatspecialeﬀortsinthepasttomake
+some algorithms eﬃcient are now obsolete, e.g., we can commo nly address iteratively elements
+§The well-known motto publish or perish emphasised by a system holding that name is a testament of the tool
+development dilemma in academia.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 7 ---
+DEVELOPING UPPAAL OVER 15 YEARS 7
+in matrices by expressions like dbm[i∗dim+j] with conﬁdence that the compiler will notuse
+relativelyexpensivemultiplicationsforelementaccesse s.Tocountercodeaging,documentation
+is vital. Our experience has been to “document” the code usin gdoxygen formatted comments.
+There is no real documentation apart from these comments, al though some eﬀorts have been
+made to describe overall design decisions and the communica tion protocol. We have crash
+courses to inform new programmers, which is a limited soluti on. As for the comments, they are
+extensive and they keep the memory of former developers. It i s a weakness in the development
+process to lack stand-alone white papers that give technical details on the code but this has
+not been our priority.
+Life cycles. The tool has gone over diﬀerent life cycles over the years. A l ife cycle can be
+deﬁned by major changes in architecture that are needed to ac commodate new developments.
+It happens when old designs become too obsolete for new addit ions that were not foreseen in
+the past. The ﬁrst cycle was with the original ATGgraph editor¶and an early custom simulator.
+The second cycle introduced an integrated graphical editor , the client-server architecture still
+in use today, and an improved engine. The third cycle is the cu rrent one with a modular
+pipeline architecture. This pipeline architecture is prob ably the determinant factor for keeping
+additions of new features without breaking the tool. In term s of features it is interesting to note
+that early developments eﬀorts were focused on performance improvements and then later on
+interface and language features. The later developments of the tool introduced new algorithms
+to handle diﬀerent problems rather than improvements of the current algorithms.
+During a cycle, the development is incremental, following t he current design and making
+changes until the amount of desired new features and algorit hms conﬂicts too much with
+the design. At this point there is a major eﬀort to redesign (o r re-factor) the code. The
+current architecture has lived up to its expectations for th e approximately 8 years, during
+which we could re-use existing components and create new one s that we could litteraly plug
+together. However, the plethora of new variants of the tool h ides current internal issues with
+the architecture and now is the time for a major update.
+Distributed development. We use a centralised version management system ( CVSand later
+subversion), which allows distributed teams to work on the s ame code. This is common for
+distributed projects. A given checkout of the repository co ntains all variants of the tool but
+eachofthemislocatedinitsownseparatedmodule.Develope rsareresponsibleforfewmodules
+(their own) and modify other modules occasionally only. The key here is to have responsibility
+for the diﬀerent parts for maintenance. In addition, we have the simple rules committed code
+must compile andany distributed code must pass the regression test . Since breaking these rules
+produces heated reactions, they tend to be observed. The goa l here is to keep discipline.
+Testing. For a tool in the ﬁeld of formal methods we would expect to appl y formal veriﬁcation
+techniques to it to ensure its correctness. Let’s say resear ch is not there yet. The code base has
+currently 200+ KLoC in C++ that implement algorithms that ar e themselves notoriously
+¶This is an editor tool used by Uppaal from 1995 to 1999.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 8 ---
+8BEHRMANN ET AL.
+diﬃcult to prove. There are tools we have used to assist us, su ch asgcov,purify, and
+valgrind . However, what we routinely do is to test. We use regression t esting on a battery of
+known examples and results. When a bug is discovered, we inse rt that new example in the test
+suite and make sure new versions pass the new tests. This is an automatic process handled by
+a script.
+Bug management. Another well known tool we are using is the bug management sys tem
+bugzilla. Bugs are not only program errors but also requested feature s. They are sorted by
+priority that developers can set. Errors usually come with e xamples to reproduce them. They
+are added to the regression tests when the errors are correct ed. Sometimes a change in the
+code triggers a new error that was not present in the past. We u se binary search on the
+revision number (in our subversion repository) to ﬁnd which revision introduced the changes
+that triggered that error. This is a simple and very eﬀective technique.
+Cross-platform. An integral part of the development process is to take care of cross-platform
+development. Early on we decided to stick with one compiler, gcc/g++. We can use the same
+code and change a few headers only and compile for Windows, Li nux, and MacOS. By doing so
+we can also take advantage of some useful gnu extensions. We d ropped support for SunOS due
+to absence of users and also machines installed with SunOS. A ll three supported platforms
+are actively used with an increase for MacOS in recent years. What we do to manage this
+is to keep third party libraries at a minimum. Currently we ne edlibxml2 compiled for all
+platforms and we use boostheaders only. The rest is generated code by tools like bisonand
+flex. Compilation is done under Linux for Linux and Windows, MacO S binaries are compiled
+on a Mac. We foresee problems in the future when supporting mu lti-threads since we will have
+to use additional libraries such as Win32-pthread to support POSIX threads (to begin with,
+the library needs to be patched for Win64).
+Community. Finally, to survive, a tool needs its community. We have a dis cussion forum/bardbl
+that our user community uses to ask or answer questions and ma intain an active discussion
+on the tool. In fact, this helps us tremendously because we ca nnot handle all newcomers to
+the tool individually and we are grateful to users who help ea ch other. The community also
+provides us with new problems and case-studies, which in tur n instill progress in algorithms
+and theory.
+CHALLENGES
+The ﬁrst challenge is to manage complexity and size of the pro ject. Implementing advanced
+algorithms is tricky, specially when it is in a formal tool th at is used for veriﬁcation. As
+shown in Fig. 3the code (in kilo lines of code of C/C++) has been steadily gro wing. This
+growth comes from new variants and algorithms that are added to the repository. The count
+/bardblhttp://tech.groups.yahoo.com/group/uppaal/
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 9 ---
+DEVELOPING UPPAAL OVER 15 YEARS 9
+ 60 80 100 120 140 160 180 200 220 240
+ 0  10  20  30  40  50  60  70  80kLoC
+Months from 2004kLOC over the years
+Figure 3. Evolution of the code base.
+includes all code (used or not) for all variants of Uppaal for the model-checker engine only.
+The graphical interface adds 40+ kLoC in Java.
+The second challenge is to keep improving performance and fe atures of the tool despite
+growing algorithm complexity. Table Ishows the evolution of the performance of the tool.
+Experiments have been performed on a Pentium D 2.80GHz with 1 GB RAM. We use memtime
+that measures time and polls memory (not reliable below 0.1s ). Entries marked ’-’ denote
+veriﬁcations that were stopped after 2h or 900M. The models a re available on www.uppaal.org
+underExamples/benchmarks . Apart from the performance improvements, recent versions
+support user-deﬁned functions and symmetry reduction. The se features are not used in the
+experiments but they would further improve performance.
+The third challenge is to cope with new extensions of the tool to explore diﬀerent theoretical
+paths. The current architecture has been pushed to implemen t the diﬀerent known ﬂavours
+ofUppaal but also to extend every checker. Recent extensions to Uppaal include priorities
+and stop-watches. Tigawas recently extended with a simulation checker. It is being extended
+with a new timed interface checker. Although the overall pip eline architecture accommodates
+these extensions, we have reached the limit of some “impleme ntation details”. These are: 1)
+there can be only one global system, 2) long wished features, such as clock constraints on
+receiving edges of broadcast synchronisations, are now nee ded, 3) the engine is designed for
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 10 ---
+10BEHRMANN ET AL.
+Table I. Evolution of performance in terms of time (seconds) and memory consumption (MB).
+Version CSMA5 CSMA7 CSMA12 Fischer5 Fischer7 Fischer12 HDDI7 HDDI12
+3.0.39 8.4s - - 4.2s - - 36.3s -
+7.2MB - -10.6MB - -20.1MB -
+3.2.12 0.3s 417s - 1.6s - - 7.2s -
+3.8MB 145MB - 6.8MB - -11.9MB -
+3.3.25 0.2s 198s - 1.1s - - 3.2s -
+3.4MB 113MB - 6MB - - 8.4MB -
+3.4.6 <0.1s 40.7s - 0.3s 4706s - 0.1s 5.3s
+3.1MB 34.5MB - 4.9MB 267MB - 1.6MB 14.1MB
+4.0.11 <0.1s 0.2s 33.8s <0.1s 0.4s 418s <0.1s 0.4s
+1.6MB 38MB 115MB 1.6MB 38.1MB 300MB 1.6MB 38MB
+4.1.2 <0.1s 0.2s 41.9s <0.1s 0.3s 341s 0.05s 0.2s
+1.6MB 21.6MB 99MB 21MB 21.6MB 248MB 1.6MB 22.9MB
+32-bit architectures, 4) there is no multi-core support, 5) there is only one kind of symbolic
+state, and the list goes on. These are obstacles for doing com positional model-checking where
+we would need to handle several systems and combine results. In addition, it is diﬃcult to
+adapt the engine to diﬀerent kinds of systems without changi ng core structures such as the
+states. Currently, when compiling Cora, one C macro is changed to swap to a diﬀerent type
+of DBM supporting costs. That works because we made sure the c ommonly needed interface
+was exactly the same. This is a very limited solution.
+Another challenge is to use modern technology to its full pot ential. Updating to 64-bit is
+mainly technical. Taking real advantage of 64-bit is challe nging. Modern compilers have the
+ability to vectorize code∗∗but this is still limited to simple algorithms and not to crit ical
+O(n3) algorithms that we have. Going for multi-core support (mul ti-threaded Uppaal) is
+more diﬃcult. There have been experiments in the past in this direction and we know that the
+currentarchitecturecouldbeadaptedbyhavingonethreadp erpipelinecopy.Thisﬁtsmemory
+locality but we also know that it did not work so well because b locking data-structures (access
+protected by mutex) were major bottlenecks. It is crucial to have non-blocking structures such
+as [42] if we want to use multi-cores eﬃciently, even though this is a temporary solution that
+will last at most 10 years††. In addition, we want to make the components extendable more
+easily in particular to allow more people to work on Uppaal without having to know what
+most of the code is doing. The bottom line is that there are res earch opportunities but not all
+issues are research related.
+∗∗This in essence allows the use of SIMD instructions (single instruction, multiple data) on streams of data.
+††Shared memory architectures do not scale and message passing based architectu res will take over.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 11 ---
+DEVELOPING UPPAAL OVER 15 YEARS 11
+FUTURE
+We have shown in this paper the main challenges that we have fa ced in building Uppaal
+over the years along with our own solutions. The conclusion i s to get the synergy theory–
+implementation–case-studies that in turn provides with publications . There is no bullet-proof
+solution and we consider ourselves to have been lucky to have started at the right time and
+got such a good response from the community to get this synerg y.
+Uppaal has already spawned one company, UP4ALL‡‡, that sells a version of the tool for
+commercial uses. Another market we intend to target is testi ng. Research tools really have
+a future if they can be applied and used outside academia, as w itnessed by Lustre/SCADE.
+However, their future as free academic tool is uncertain as d iscussed in this paper in relation
+with the dilemmas. The situation is that tool paper tracks ex ist and show the interest in
+academic tool development but they are often on the side of ma in conferences and they usually
+accept short papers with short talks. This could be improved to stimulate tool development
+in the community.
+To continue the development on the academic path, we are expl oring diﬀerent domains
+as the diﬀerent ﬂavours of Uppaal show. That also means that a new life-cycle with another
+architectural revision is now needed to cope with more exten sions ofUppaal. That will enable
+us to let other researchers experiment with the internals of Uppaal and still maintain our
+core engine.
+ACKNOWLEDGEMENTS
+It is important to remember that Uppaal is the result of the cumulative eﬀorts of many
+collaborators. Among them we would like to thank early pione ers Johan Bengtsson and Fredrik Larsen,
+former contributor of the graphical interface Carsten Weis e, and active contributor and maintainer
+Marius Mikuˇ cionis ( Uppaal andTron). Wealsothankcontributorsofdiﬀerent extensions of Uppaal,
+amongthemDidierLime( Tiga),JohnH˚ akansson( Port),AndersHessel( CoVer),LeonidMokrushin
+(Times), Jakob Illum ( Cora), Arild Haugstad ( Pro). Last but not least we thank our supporting
+user community.
+REFERENCES
+1. I. AlAttili, F. Houben, G. Igna, S. Michels, F. Zhu, and F.W. Va andrager. Adaptive scheduling of data
+paths using uppaal tiga. In S. Andova et. al., editor, Proceedings of the First Workshop on Quantitative
+Formal Methods: Theory and Applications (QFM’09) , number 13 in Electronic Proceedings in Theoretical
+Computer Science, pages 1–12. arXiv:0912.1897v1, 2009.
+2. Rajeev Alur and David L. Dill. Automata for Modeling Real-Time Systems. In Proc. of ICALP , volume
+443 ofLNCS, pages 322–335, 1990.
+3. Tobias Amnell, Elena Fersman, Leonid Mokrushin, Paul Pettersson, an d Wang Yi. Times: A tool for
+modelling and implementation of embedded systems. In J.-P. Katoen and P. Stevens, editors, Proc. of
+‡‡To contact UP4ALL email sales@uppaal.com .
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 12 ---
+12BEHRMANN ET AL.
+the 8thInternational Conference on Tools and Algorithms for the Construct ion and Analysis of Systems ,
+number 2280 in Lecture Notes in Computer Science, pages 460–464. Spring er–Verlag, 2002.
+4. Yoann Arnaud, Jean-Louis Boimond, Jos´ e E.R. Cury, Jean Jacqu es Loiseau, and Claude Martinez. Using
+uppaal for the secure and optimal control of agv ﬂeets. In 7th Workshop on Advanced Control and
+Diagnosis ACD 2009 , 2009. http://hal.archives-ouvertes.fr/hal-00463480.
+5. Dani` ele Beauquier. On probabilistic timed automata. Theoretical Computer Science , 292:65–84, 2003.
+6. Gerd Behrmann, Agnes Cougnard, Alexandre David, Emmanuel Fleury , Kim G. Larsen, and Didier Lime.
+Uppaal-tiga : Time for playing games! In CAV’07, number 4590 in LNCS, pages 121–125. Springer, 2007.
+7. Gerd Behrmann, Alexandre David, Kim G. Larsen, and Wang Yi. Uniﬁca tion & Sharing in Timed
+Automata Veriﬁcation. In SPIN Workshop 03 , volume 2648 of LNCS, pages 225–229, 2003.
+8. Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim G. Larsen, Paul Petter sson, and Judi Romijn.
+Eﬃcient Guiding Towards Cost-Optimality in Uppaal. In T. Margaria and W. Yi, editors, Proc. of the
+7th Int. Conf. on TACAS , number 2031 in LNCS, pages 174–188. Springer-Verlag, 2001.
+9. Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim Guldstrand Larsen, P aul Pettersson, Judi Romijn,
+andFritsW.Vaandrager. Minimum-costreachabilityforpricedtim edautomata. In HSCC,pages147–161,
+2001.
+10. Gerd Behrmann, Kim G. Larsen, Justin Pearson, Carsten Weise, and Wang Yi . Eﬃcient Timed
+Reachability Analysis Using Clock Diﬀerence Diagrams. In Proc. of the 12th Int. Conf. on CAV , volume
+1633 ofLNCS, pages 341–353. Springer, 1999.
+11. Gerd Behrmann, Kim Guldstrand Larsen, and Jacob Illum Rasmussen. Pri ced timed automata:
+Algorithms and applications. In FMCO, pages 162–182, 2004.
+12. Johan Bengtsson, W.O. David Griﬃoen, K˚ are J. Kristoﬀersen, Kim G. Larsen, Fredrik Larsson, Paul
+Pettersson, and Wang Yi. Automated veriﬁcation of an audio-control p rotocol using uppaal.Journal of
+Logic and Algebraic Programming , 52–53:163–181, 2002.
+13. Johan Bengtsson and Wang Yi. Lectures on Concurrency and Petri Nets , volume 3098 of LNCS, chapter
+Timed Automata: Semantics, Algorithms and Tools, pages 87–124. Sp ringer-Verlag, 2003.
+14. Peter Bulychev, Thomas Chatain, Alexandre David, and Kim G. La rsen. Eﬃcient on-the-ﬂy Algorithm for
+Checking Alternating Timed Simulation. In FORMATS’09 , number 5813 in LNCS, pages 73–87. Springer,
+2009.
+15. F. Cassez, A. David, K. G. Larsen, D. Lime, and J.-F. Raskin. Timed con trol with observation based
+and stuttering invariant strategies. In Proceedings of the 5th International Symposium on Automated
+Technology for Veriﬁcation and Analysis , volume 4762 of LNCS, pages 192–206. Springer, 2007.
+16. Franck Cassez, Alexandre David, Emmanuel Fleury, Kim G. Larsen, an d Didier Lime. Eﬃcient on-the-
+ﬂy algorithms for the analysis of timed games. In CONCUR’05 , volume 3653 of LNCS, pages 66–80.
+Springer–Verlag, August 2005.
+17. P.R. D’Argenio, J.-P. Katoen, T.C. Ruys, and J. Tretmans. The b ounded retransmission protocol must
+be on time! In E. Brinksma, editor, Proceedings of the Third Workshop on Tools and Algorithms for
+the Construction and Analysis of Systems, Enschede, The Netherlands, volume 1217 of Lecture Notes in
+Computer Science , pages 416–431. Springer, 1997.
+18. Alexandre David, John H˚ akansson, Kim G. Larsen, and Paul Petter sson. Model Checking Timed
+Automata with Priorities using DBM Subtraction. In Proc. of the 4th Int. Conf. on FORMATS , volume
+4202 ofLNCS, pages 128–142, 2006.
+19. Alexandre David, Kim G. Larsen, Shuhao Li, and Brian Nielsen. Coo perative testing of uncontrollable
+real-time systems. In 4th workshop of Model-Based Testing (MBT’08) , 2008.
+20. Alexandre David, M. Oliver M¨ oller, and Wang Yi. Formal Veriﬁ cation of UML Statecharts with Real-
+Time Extensions. In Ralf-Detlef Kutsche and Herbert Weber, editors, FASE, 5th Int. Conf. 2002 , volume
+2306 ofLNCS, pages 218–232. Springer, 2002.
+21. Alexandre David and Wang Yi. Modelling and Analysis of a Comm ercial Field Bus Protocol. In Proc.
+of Euromicro-RTS’00 , pages 165–172. IEEE Computer Society, 2000.
+22. AnneMarie Ericsson, Mikael Berndtsson, Paul Pettersson, and Lena Pettersso n. Veriﬁcation of an
+industrial rule-based manufacturing system using rex. In 1st International Workshop on Complex Event
+Processing for Future Internet . ISSN 1613-0073 ceur-ws.org, September 2008.
+23. Elena Fersman, Paul Pettersson, and Wang Yi. Timed automata with a synchronous processes:
+Schedulability and decidability. In J.-P. Katoen and P. Stevens, edi tors,Proc. of the 8 thInternational
+Conference on Tools and Algorithms for the Construction and Analys is of Systems , number 2280 in
+Lecture Notes in Computer Science, pages 67–82. Springer–Verlag, 2002.
+24. Biniam Gebremichael, Frits Vaandrager, and Miaomiao Zhang. A nalysis of the zeroconf protocol using
+uppaal. In Proceedings of the 6th ACM & IEEE International conference on Embed ded software , pages
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls
+
+--- Page 13 ---
+DEVELOPING UPPAAL OVER 15 YEARS 13
+242–251. ACM, 2006.
+25. John H˚ akansson, Jan Carlson, Aurelien Monot, Paul Pettersson, an d Davor Slutej. Component-Based
+Design and Analysis of Embedded Systems with UPPAAL PORT. In Sung Deok Cha, Jin-Young Choi,
+Moonzoo Kim, Insup Lee, and Mahesh Viswanathan, editors, ATVA, volume 5311 of LNCS, pages 252–257.
+Springer, 2008.
+26. John H˚ akansson and Paul Pettersson. Partial Order Reduction for V eriﬁcation of Real-Time Components.
+InProc. of the 5th Int. Conf. on FORMATS , LNCS, pages 211–226. Springer-Verlag, 2007.
+27. R. Hamberg and F.W. Vaandrager. Using model checkers in an intro ductory course on operating systems.
+Operating Systems Review , 42(6):101–111, 2008.
+28. F. Heidarian, J. Schmaltz, and F.W. Vaandrager. Analysis of a clock synchronization protocol for wireless
+sensor networks. In A. Cavalcanti and D. Dams, editors, Proceedings of FM 2009: Formal Methods , volume
+5850 ofLNCS, pages 516–531. Springer-Verlag, 2009.
+29. Anders Hessel and Paul Pettersson. A Test Case Generation Algorithm for R eal-Time Systems. In Hans-
+Dieter Ehrich and Klaus-Dieter Schewe, editors, Proc. of the Fourth ICQS , pages 268–273. IEEE Computer
+Society, 2004.
+30. Anders Hessel and Paul Pettersson. Cover — A Test-Case Generation Tool for Timed Systems. In
+Alexandre Petrenko, Margus Veanes, Jan Tretmans, and Wolfgang Grieska mp, editors, Testing of Software
+and Communicating Systems: Work-in-Progress and Position Papers , Tool Demonstrations, and Tutorial
+Abstracts of TestCom/FATES , pages 31–34. Institute of Cybernetics at Tallinn University of Tech nology,
+2007.
+31. Jan Jakob Jessen, Jacob Illum Rasmussen, Kim G. Larsen, and Alexandre D avid. Guided controller
+synthesis for climate controller using uppaal-tiga . InProceedings of the 19th International Conference
+on Formal Modeling and Analysis of Timed Systems , number 4763 in LNCS, pages 227–240. Springer,
+2007.
+32. Moez Krichen and Stavros Tripakis. Model Checking Software , volume 2989 of LNCS, chapter Black-Box
+Conformance Testing for Real-Time Systems, pages 109–126. Springer- Verlag, 2004.
+33. Marta Kwiatkowska, Gethin Norman, Jeremy Sproston, and Fuzhi W ang. Symbolic model checking for
+probabilistic timed automata. In Formal Techniques, Modelling and Analysis of Timed and Fault-Tole rant
+Systems, volume 3253 of LNCS, pages 293–308. Springer-Verlag, 2004.
+34. K.G. Larsen, M. Mikuˇ cionis, and B. Nielsen. Online Testing of Real-t ime Systems Using Uppaal. In
+FATES’04 , LNCS, pages 79–94, Linz, Austria, September 2004.
+35. Kim G. Larsen, Marius Mikucionis, and Brian Nielsen. Testing real-ti me embedded software using uppaal-
+tron: an industrial case study. In the 5th ACM international conference on Embedded software , pages 299
+– 306. ACM Press New York, NY, USA, September 18–22 2005.
+36. Kim G. Larsen, Paul Pettersson, and Wang Yi. Model-Checking for Rea l-Time Systems. In Proc. of
+Fundamentals of Computation Theory , number 965 in LNCS, pages 62–88, August 1995.
+37. Fredrik Larsson, Kim G. Larsen, Paul Pettersson, and Wang Yi. Eﬃcient Veriﬁcation of Real-Time
+Systems: Compact Data Structures and State-Space Reduction. In Proc. of the 18th IEEE RTSS , pages
+14–24. IEEE Computer Society Press, December 1997.
+38. Fredrik Larsson, Paul Pettersson, and Wang Yi. On Memory-Block Tra versal Problems in Model Checking
+Timed Systems. In Susanne Graf and Michael Schwartzbach, editors, Proc. of the 6th Conf. on TACAS ,
+number 1785 in LNCS, pages 127–141. Springer-Verlag, 2000.
+39. Magnus Lindahl, Paul Pettersson, and Wang Yi. Formal Design and Analysis of a Gear-Box Controller.
+InProc. of the 4th Workshop on TACAS , number 1384 in LNCS, pages 281–297. Springer-Verlag, March
+1998.
+40. X. Liu and S. Smolka. Simple Linear-Time Algorithm for Min imal Fixed Points. In Proc. 26thConf.
+on Automata, Languages and Programming (ICALP’98) , volume 1443 of LNCS, pages 53–66. Springer,
+1998.
+41. Henrik L¨ onn and Paul Pettersson. Formal Veriﬁcation of a TDMA Pr otocol Startup Mechanism. In Proc.
+of the Paciﬁc Rim Int. Symp. on Fault-Tolerant Systems , pages 235–242. IEEE Computer Society Press,
+December 1997.
+42. Chien-Hua Shann, Ting-Lu Huang, and Cheng Chen. A practical no nblocking queue algorithm using
+compare-and-swap. In Seventh International Conference on Parallel and Distributed System s, pages 470–
+475, 2000.
+43. Jan Tretmans. A Formal Approach to Conformance Testing . PhD thesis, University of Twente, 1992.
+44. Wang Yi, Paul Pettersson, and Mats Daniels. Automatic Veriﬁcatio n of Real-Time Communicating
+Systems By Constraint-Solving. In Dieter Hogrefe and Stefan Leue, edito rs,Proc. of FORTE’94 , pages
+223–238. Chapman & Hall, 1994.
+Copyright c/circlecopyrt2000 John Wiley & Sons, Ltd. Softw. Pract. Exper. 2000;00:1–6
+Prepared using speauth.cls

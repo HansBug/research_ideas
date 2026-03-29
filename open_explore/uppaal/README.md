@@ -109,66 +109,80 @@
 
 ## 6. 现有收录论文的作者关联主线
 
-人物检索簇的起点不是官网 team 页面，而是当前文库 **11 个已收录顶层条目** 的 `bibtex.bib` 作者统计。官方 team / org 只用于交叉核验源码、案例和工具入口，不直接决定“核心人员”名单。
+人物检索簇的起点不是官网 team 页面，而是当前文库 **23 个已收录顶层条目** 的 `bibtex.bib` 作者统计。官方 team / org 只用于交叉核验源码、案例和工具入口，不直接决定“核心人员”名单。
 
 ### 6.1 当前已形成稳定主线的作者
 
-| 作者 | 当前收录篇数 | 当前关联条目 | 当前形成的联系 | 后续优先扩张方向 |
-|---|---:|---|---|---|
-| `Kim Guldstrand Larsen` | 6 | `bblp04`、`bdl04`、`dhlp06`、`llpy97`、`lpw95`、`lpy97` | 贯穿早期模型检查、紧凑 DBM、教程与优先级扩展，是当前文库最强主线 | `UPPAAL + zones/priced/strategy/statistical` |
-| `Wang Yi` | 4 | `by04`、`llpy97`、`lpw95`、`lpy97` | 连接早期模型检查、紧凑数据结构与语义综述，是 timed automata 主干线的重要作者 | `UPPAAL + semantics/algorithms/symbolic state` |
-| `Paul Pettersson` | 4 | `dhlp06`、`llpy97`、`lpw95`、`lpy97` | 同时覆盖早期引擎、DBM 存储优化与 priorities 扩展，适合继续追踪工具能力演化 | `UPPAAL + priority/federation/reduction` |
-| `Gerd Behrmann` | 3 | `bblp04`、`bdl04`、`behrmann03` | 把 tutorial、zone abstraction 与 thesis 级数据结构总结连成了一条连续线 | `UPPAAL + CDD/abstraction/tool architecture` |
-| `Alexandre David` | 2 | `bdl04`、`dhlp06` | 当前文库中连接 tutorial、priorities 与后续扩展分支的关键桥接作者 | `UPPAAL + priced/strategy/game` |
-| `Johan Bengtsson` | 2 | `bengtsson02`、`by04` | 连接 DBM thesis 与语义综述，是理解 UDBM 内核与工具语义的核心入口之一 | `UPPAAL + DBM/federation/implementation` |
+这里的“角色判断”不是按官网头衔写的，而是根据当前 `23` 个顶层条目里作者跨越了哪些技术分支、是否出现在关键转折论文上、以及是否贯穿多个年代综合判断出来的。
+
+| 作者 | 当前收录篇数 | 角色判断 | 主要贡献方向 | 代表关联条目 | 后续优先扩张方向 |
+|---|---:|---|---|---|---|
+| `Kim Guldstrand Larsen` | 16 | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / tutorial / Tiga / SMC / Stratego` | `lpw95`、`llpy97`、`bdl04`、`behrmann07`、`david11-smc`、`david15-stratego` | `UPPAAL + Tiga/SMC/Stratego/priced/importance splitting` |
+| `Alexandre David` | 12 | 中后期扩展主线整合者 | `architecture / Tiga / SMC / expected cost / Stratego` | `bdl04`、`behrmann02`、`behrmann07`、`david11-*`、`david14`、`david15` | `Alexandre David + UPPAAL + SMC/Stratego/cost/game` |
+| `Gerd Behrmann` | 8 | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / UPPAAL 4.0 / evolution survey` | `behrmann02`、`behrmann03`、`behrmann06`、`behrmann07`、`behrmann11` | `Gerd Behrmann + UPPAAL + architecture/Tiga/engine` |
+| `Wang Yi` | 8 | 早期语义与算法骨架作者 | `timed automata semantics / symbolic algorithms / engine foundations` | `lpw95`、`llpy97`、`by04`、`behrmann02`、`behrmann06`、`behrmann11` | `Wang Yi + UPPAAL + semantics/engine/history` |
+| `Paul Pettersson` | 7 | `DBM / engine / priority` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities` | `lpw95`、`llpy97`、`behrmann02-secrets`、`behrmann06`、`dhlp06`、`behrmann11` | `Paul Pettersson + UPPAAL + federation/priority/engine` |
+| `Axel Legay` | 4 | `SMC / optimization` 分支关键协作者 | `statistical model checking / priced models / expected-cost optimization` | `david11-statistical`、`david11-smc-priced`、`bulychev12`、`david14` | `Axel Legay + UPPAAL + statistical/expected cost` |
+| `Johan Bengtsson` | 3 | `DBM` 数据结构专题化奠基作者 | `clocks / DBMs / states / DBM internals / implementation detail` | `bengtsson02`、`behrmann02-secrets`、`by04` | `Johan Bengtsson + UPPAAL + DBM/implementation` |
 
 ### 6.2 当前已出现但仍属补充线索的作者
 
-| 作者 / 别名 | 当前关联条目 | 关系定位 | 检索使用方式 |
-|---|---|---|---|
-| `John Håkansson` / `John Haakansson` | `dhlp06` | `DBM subtraction + priorities` 的定向作者线索 | 与 `UPPAAL + priority/subtraction` 联用 |
-| `Fredrik Larsson` | `llpy97` | 紧凑 DBM 与状态空间削减的共作者 | 与 `UPPAAL + compact DBM/mingraph` 联用 |
-| `Patricia Bouyer` | `bblp04` | zone abstraction / extrapolation 分支共作者 | 与 `UPPAAL + abstraction/extrapolation` 联用 |
-| `Radek Pelánek` / `Radek Pelanek` | `bblp04` | zone abstraction 分支共作者，检索时需兼顾重音与 ASCII 写法 | 与 `UPPAAL + zone abstraction` 联用 |
-| `Rajeev Alur` | `ad90` | timed automata 理论前驱作者 | 只在明确追踪 `UPPAAL` 理论源头时纳入检索 |
-| `David Dill` / `David L. Dill` | `ad90`、`dill89` | dense-time verification / clock constraints 的历史前驱作者 | 只在明确追踪 `UPPAAL` 技术前史时纳入检索 |
+| 作者 / 别名 | 当前关联条目 | 角色判断 | 主要贡献方向 | 检索使用方式 |
+|---|---|---|---|---|
+| `Didier Lime` | `cassez05`、`behrmann07`、`david14` | `timed games -> Tiga -> optimization` 分支协作者 | `timed games / controller synthesis / cost analysis` | 与 `UPPAAL + timed games/Tiga/cost` 联用 |
+| `Marius Mikučionis` / `Marius Mikucionis` | `david11-smc`、`david11-statistical`、`david15` | `SMC / Stratego` 中后期扩展作者 | `statistical model checking / stochastic analysis / strategy synthesis` | 与 `UPPAAL + SMC/Stratego/statistical` 联用 |
+| `Peter Gjøl Jensen` / `Peter G. Jensen` | `david14`、`david15` | `optimization / Stratego` 关键协作者 | `expected cost / optimization / strategy synthesis` | 与 `UPPAAL + Stratego/optimization` 联用 |
+| `Danny Bøgsted Poulsen` / `Danny Bogsted Poulsen` | `bulychev12`、`david11-smc` | `distributed SMC` 协作者 | `distributed statistical model checking` | 与 `UPPAAL + distributed statistical model checking` 联用 |
+| `Zheng Wang` | `david11-statistical`、`david11-smc` | `SMC / priced timed automata` 协作者 | `NPTA / priced SMC` | 与 `UPPAAL + SMC/priced timed automata` 联用 |
+| `John Håkansson` / `John Haakansson` | `behrmann06`、`dhlp06` | `priorities / DBM subtraction` 定向贡献者 | `priority timed automata / DBM subtraction` | 与 `UPPAAL + priority/subtraction` 联用 |
+| `Emmanuel Fleury` | `cassez05`、`behrmann07` | `timed games -> Tiga` 协作者 | `on-the-fly timed games / Tiga` | 与 `UPPAAL + timed games/Tiga` 联用 |
+| `Fredrik Larsson` | `llpy97` | 紧凑 `DBM` 与状态空间削减共作者 | `compact DBM / mingraph / reduction` | 与 `UPPAAL + compact DBM/mingraph` 联用 |
+| `Patricia Bouyer` | `bblp04` | zone abstraction 外推分支外部关键合作者 | `lower-upper bound extrapolation / zone abstraction` | 与 `UPPAAL + abstraction/extrapolation` 联用 |
+| `Radek Pelánek` / `Radek Pelanek` | `bblp04` | zone abstraction 外推分支外部关键合作者 | `zone abstraction / extrapolation` | 与 `UPPAAL + zone abstraction` 联用 |
+| `Rajeev Alur` | `ad90` | 理论前史奠基者 | `timed automata semantics` | 只在明确追踪 `UPPAAL` 理论源头时纳入检索 |
+| `David Dill` / `David L. Dill` | `ad90`、`dill89` | dense-time verification 前史奠基者 | `timing assumptions / clock constraints / symbolic verification` | 只在明确追踪 `UPPAAL` 技术前史时纳入检索 |
 
 后续检索时，默认先从这条“文库内部作者主线”出发，再用官方 team 与 org 做补充，而不是反过来。新的 team 成员或官方贡献者，只有在已收录或待收录论文中形成稳定作者链后，才提升为“核心人员”。
 
 默认检索写法是“作者名 + UPPAAL + 分支词”，例如：
 
-1. `Kim G. Larsen + UPPAAL + zones`
-2. `Paul Pettersson + UPPAAL + federation`
-3. `Alexandre David + UPPAAL + priced`
-4. `Johan Bengtsson + UPPAAL + DBM`
-5. `Gerd Behrmann + UPPAAL + CDD`
+1. `Kim Guldstrand Larsen + UPPAAL + importance splitting`
+2. `Alexandre David + UPPAAL + Stratego`
+3. `Axel Legay + UPPAAL + statistical model checking`
+4. `Peter G. Jensen + UPPAAL + expected cost`
+5. `Gerd Behrmann + UPPAAL + architecture/Tiga`
 
 ### 6.3 作者年代与持续性观察
 
-当前文库里的正式顶层条目，时间主要集中在 `1990-2006`。但这不代表 `UPPAAL` 在后续二十年里没有继续演化。按 `2026-03-29` 对官方站点、官方 GitHub org 与 DBLP 的核验结果，至少可以确认：
+当前文库里的正式顶层条目现在已经覆盖 `1990-2015`。这一轮新增后，文库已经补进了 `2001-2015` 的一整段核心扩展链条：`cost-optimality -> architecture/implementation -> timed games/Tiga -> SMC -> Stratego`。但这仍不代表 `UPPAAL` 在 `2015` 之后没有继续演化。按 `2026-03-29` 对官方站点、官方 GitHub org 与 DBLP 的核验结果，至少可以确认：
 
 1. 官方 changelog 仍记录到 `2023-06-21` 的 `UPPAAL 5.0.0`、`2023-12-11` 的 `UPPAAL 5.1.0-beta5` 和 `2025-07-04` 的 `UPPAAL 5.1.0-b5-COSHY`。
 2. 官方 GitHub org 中 `UDBM`、`docs.uppaal.org`、`utap`、`uppaal-libs` 等仓库在 `2025-2026` 仍有更新。
 3. `UPPAAL` 论文线在当前文库之外还能确认到 `2012` 的 `UPPAAL-SMC`、`2015` 的 `Uppaal Stratego`、`2018` 的 `20 Years of UPPAAL Enabled Industrial Model-Based Validation and Beyond`、`2022` 的 `Importance Splitting in Uppaal` 等后续工作。
 
-因此，后续维护时不能只把现有作者当作“早期史料作者名单”，还要把他们分成“近年仍有明确延展”“2010s 仍有中期扩展”“当前核验主要停在早期主线”三类。
+因此，后续维护时不能再把现有作者简单看成“早期史料作者名单”，而要区分：
+
+1. 当前文库里已经覆盖到 `2010s` 的持续主线作者。
+2. 当前文库里主要还是早期 / 中期，但外部仍能核到后续条目的作者。
+3. 主要用于追溯理论前史的作者。
 
 下表中的“继续沿该作者线扩张概率”是**检索价值推断**，表示继续追这个作者线能否大概率找到 `2007+ / 2010s / 2020s` 的后续 `UPPAAL` 工作，不是对作者个人职业状态的断言。
 
-| 作者 | 当前文库覆盖年份 | 当前核验到的较新 `UPPAAL` 相关年份 | 最近性判断 | 继续沿该作者线扩张概率 | 备注 |
-|---|---|---|---|---|---|
-| `Kim Guldstrand Larsen` | `1995-2006` | `2022` | 🟢 近年仍有直接延展 | 🟢 高 | 已核到 `2018` 的工业回顾和 `2022` 的 `Importance Splitting in Uppaal` |
-| `Alexandre David` | `2004-2006` | `2015` | 🟨 2010s 仍有明显扩展 | 🟩 较高 | 已核到 `2012` 的 `UPPAAL-SMC`、`2015` 的 `Uppaal Stratego` |
-| `Paul Pettersson` | `1995-2006` | `2013` | 🟨 2010s 仍有延展 | 🟨 中等 | 已核到 `2013` 的 `Verifying MARTE/CCSL Mode Behaviors Using UPPAAL` |
-| `Gerd Behrmann` | `2003-2006` | `2007` | 🟧 中后期扩展后趋缓 | 🟨 中低 | 已核到 `2007` 的 `UPPAAL-Tiga`，当前未继续核到更晚的直接代表条目 |
-| `Wang Yi` | `1995-2006` | `2006` | 🟧 当前核验主要停在早期主线 | 🟧 低 | 已核到 `2006` 的 `UPPAAL 4.0`，但本轮未继续核到更晚直接条目 |
-| `Johan Bengtsson` | `2002-2004` | `2004` | 🟥 当前核验基本停在早期 | 🟥 低 | 当前直接主线主要仍落在 thesis 与早期综述阶段 |
+| 作者 | 角色判断 | 主要贡献方向 | 当前文库覆盖年份 | 当前核验到的较新 `UPPAAL` 相关年份 | 最近性判断 | 继续沿该作者线扩张概率 | 备注 |
+|---|---|---|---|---|---|---|---|
+| `Kim Guldstrand Larsen` | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / tutorial / Tiga / SMC / Stratego` | `1995-2015` | `2022` | 🟢 近年仍有直接延展 | 🟢 高 | 当前文库已直接覆盖到 `Stratego`；外部还能核到 `2018` 与 `2022` 条目 |
+| `Alexandre David` | 中后期扩展主线整合者 | `architecture / Tiga / SMC / expected cost / Stratego` | `2002-2015` | `2015` | 🟩 当前文库已覆盖到 2010s 后段 | 🟢 高 | 当前文库已经直接串起 `architecture -> Tiga -> SMC -> Stratego` |
+| `Gerd Behrmann` | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / UPPAAL 4.0 / evolution survey` | `2002-2011` | `2011` | 🟨 中期主线已较完整 | 🟨 中等 | 当前文库已覆盖 `architecture / 4.0 / Tiga / evolution survey` |
+| `Wang Yi` | 早期语义与算法骨架作者 | `timed automata semantics / symbolic algorithms / engine foundations` | `1995-2011` | `2011` | 🟨 早期到中期主线较完整 | 🟨 中等 | 当前文库已覆盖语义、引擎、实现与 `UPPAAL 4.0` |
+| `Paul Pettersson` | `DBM / engine / priority` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities` | `1995-2011` | `2013` | 🟨 2010s 仍有延展 | 🟨 中等 | 当前文库已直接覆盖早期引擎、实现细节与中期回顾 |
+| `Axel Legay` | `SMC / optimization` 分支关键协作者 | `statistical model checking / priced models / expected-cost optimization` | `2011-2014` | `2014` | 🟨 2010s 分支作者 | 🟩 较高 | 是 `SMC / optimization` 分支继续扩张时最该追的协作作者之一 |
+| `Johan Bengtsson` | `DBM` 数据结构专题化奠基作者 | `clocks / DBMs / states / DBM internals / implementation detail` | `2002-2004` | `2004` | 🟥 当前核验基本停在早期 | 🟥 低 | 仍主要用于 `DBM` 与基础实现脉络梳理 |
 
 这个判断对后续扩库的直接含义是：
 
-1. 不能因为现有文库偏 `1990-2006`，就误判 `UPPAAL` 后续缺少新工作。
-2. 下一轮应优先补 `2012-2023` 的 `SMC / Stratego / Tiga / 工业案例 / 现代工具链` 条目。
-3. 作者关键词簇维护时，应同时记录“作者名 + 年代窗口”，而不是只留一串人名。
+1. 当前文库已经不再只停留在 `1990-2006`，而是完成了到 `2015` 的核心技术/扩展补链。
+2. 下一轮优先缺口应从“补 `SMC / Tiga / Stratego` 奠基条目”切换为“补 `2016-2022` 的后续技术演进”。
+3. 作者关键词簇维护时，应同时记录“作者名 + 角色判断 + 主要贡献方向 + 年代窗口”，而不是只留一串人名。
 
 ## 7. 本论文集下文件说明
 
@@ -256,11 +270,11 @@ AI 在开始具体工作前，推荐阅读顺序为：
 
 优先做的事：
 
-1. 扩充 `🧪 应用与案例` 类条目，补足当前偏基础技术、偏引擎内部的结构失衡。
-2. 围绕现有文库里的高频作者主线继续补齐重要扩展工作，如 priced、strategy、statistical 或 game-based 分支。
+1. 继续补 `2016-2022` 的核心技术/扩展条目，优先沿 `SMC`、`Stratego`、`controller synthesis`、`importance splitting` 等方向推进。
+2. 围绕现有文库里的高频作者主线继续补齐重要扩展工作，尤其是 `Kim Guldstrand Larsen`、`Alexandre David`、`Axel Legay` 相关的后续条目。
 3. 在新增条目时同步评定双维材料状态，而不是只写“有无 PDF”。
-4. 在检索时同时维护“技术关键词簇”和“作者关键词簇”。
-5. 重点补齐 `2007+ / 2010s / 2020s` 的 `UPPAAL` 后续工作，避免文库长期停留在早期奠基阶段。
+4. 在检索时同时维护“技术关键词簇”和“作者关键词簇”，并回写作者的角色判断、主要贡献方向和年代窗口。
+5. 在核心技术演进脉络相对成型前，应用类条目可以继续后置，不必抢先扩充。
 
 应避免的事：
 

@@ -1,0 +1,705 @@
+--- Page 1 ---
+UPPAAL Implementation Secrets
+Gerd Behrmann2, Johan Bengtsson1, Alexandre David1, Kim G. Larsen2,
+Paul Pettersson1, and Wang Yi1
+1Department of Information Technology, Uppsala University, Sweden
+{johanb,adavid,paupet,yi }@docs.uu.se .
+2Basic Research in Computer Science, Aalborg University, Denmark
+{behrmann,kgl }@cs.auc.dk .
+Abstract. In this paper we present the continuous and on-going de-
+velopment of datastructures and algorithms underlying the veriﬁcationengine of the tool Uppaal . In particular, we review the datastructures
+of Diﬀerence Bounded Matrices, Minimal Constraint Representation andClock Diﬀerence Diagrams used in symbolic state-space representationand -analysis for real-time systems.
+In addition we report on distributed versions of the tool, and outline the
+design and experimental results for new internal datastructures to beused in the next generation of Uppaal .
+Finally, we mention work on complementing methods involving acceler-
+ation, abstraction and compositionality.
+1 Introduction
+Uppaal [LPY97] is a tool for modeling, simulation and veriﬁcation of real-time
+systems, developed jointly by BRICS at Aalborg University and the Depart-ment of Computer Systems at Uppsala University. The tool is appropriate forsystems that can be modeled as a collection of non-deterministic processes withﬁnite control structure and real-valued clocks, communicating through channelsor shared variables. Typical application areas include real-time controllers andcommunication protocols.
+Since the ﬁrst release of Uppaal in 1995, the tool has been under constant
+development by the teams in Aalborg and Uppsala. The tool has consistentlygained in performance over the years, which may be ascribed both to the devel-opment of new datastructures and algorithms as well as constant optimizationsof their actual implementations. By now (and since long) Uppaal has reached
+a state, where it is mature for application on real industrial development ofreal-time systems as witnessed by a number of already carried out case-studies
+1.
+Tables 1 and 2 show the variations of time and space consumption for three
+diﬀerent versions of Uppaal applied to ﬁve examples from the literature: Fis-
+cher’s mutual exclusion protocol with ﬁve processes [Lam87], Philips audio-control protocol with bus-collision detection [BGK
++96], a Power-Down Con-
+troller [HLS99], a TDMA start-up algorithm with three nodes [LP97], and a
+1Seewww.uppaal.com for detailed list.
+W. Damm and E.-R. Olderog (Eds.): FTRTFT 2002, LNCS 2469, pp. 3–22, 2002.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2002
+
+--- Page 2 ---
+4 Gerd Behrmann et al.
+Table 1. Time requirements (in seconds) for three diﬀerent Uppaal versions.
+1998 2000 DBM Min Ctrl ActPWL State 2002
+Fischer 5 126.3013.50 4.796.023.982.133.8312.660.19
+Audio - 2.23 1.501.791.450.501.572.280.45
+Power Down *407.82207.76233.63217.6253.00125.25364.8713.26
+Collision Detection 128.6417.40 7.758.507.437.947.0419.166.92
+TDMA 108.7014.36 9.159.849.386.019.3316.966.01
+CSMA/CD protocol with eight nodes [BDM+98]. In the column “1998” and
+“2000” we give the run-time data of Uppaal versions dated January 1998 and
+January 2000 respectively. In addition, we report the data of the current ver-sion dated June 2002. The numbers in column “DBM” were measured with-out any optimisations, “Min” with Minimal Constraints Representation, “Ctrl”with Control Structure Reduction [LPY95], “Act” with Active Clock Reduction[DT98], “PWL” with the Passed and Waiting List Uniﬁcation, “State” withCompact Representation of States, and ﬁnally “2002” with the best combina-tion of options available in the current version of Uppaal . The diﬀerent versions
+have been compiled with a recent version of gccand were run on the same Sun
+Enterprise 450 computer equipped with four 400 MHz processors and 4 Gb orphysical memory. In the diagrams we use “-” to indicate that the input modelwas not accepted due to compability issues, and “*” to indicate that the veri-ﬁcation did not terminate within one hour. We notice that both the time andspace performance has improved signiﬁcantly over the years. For the previousperiod December 1996 to September 1998 a report on the run-time and spaceimprovements may be found in [Pet99]. Similar diagrams for the time periodNovember 1998 to Januari 2001 are reported in [ABB
++01].
+Despite this success improvement in performance, the state-explosion prob-
+lem is a still a reality2which prevents the tool from ever3being able to provide
+fully automatic veriﬁcation of arbitrarily large and complex systems. Thus, totruely scale up, automatic veriﬁcation should be complemented by other meth-ods. Such methods investigated in the context of Uppaal include that of accel-
+eration [HL02] and abstractions and compositionality [JLS00].
+The outline of the paper is as follows: Section 2 summaries the deﬁnition of
+timed automata, the semantics, and the basic timed automaton reachability al-gorithm. In section 3 we present the three main symbolic datastructures appliedinUppaal : Diﬀerence Bounded Matrices, Minimal Constraint Representation
+and Clock Diﬀerence Diagrams and in section 4 we review various schemes forcompact representations for symbolic states. Section 5 introduces a new exlo-ration algorithm based on a uniﬁcation of Passed and Waiting list datastructuresand Section 6 reviews our considerable eﬀort in parallel and distributed reach-
+2Model-checking is either EXPTIME- or PSPACE-complete depending on the expres-
+siveness of the logic considered.
+3unless we succeed in showing P=PSPACE
+
+--- Page 3 ---
+Uppaal Implementation Secrets 5
+Table 2. Space requirements (in Mb) of for diﬀerent Uppaal versions.
+1998 2000 DBM Min Ctrl ActPWL State 2002
+Fischer 5 8.86 8.14 9.726.976.406.356.744.833.21
+Audio - 3.02 5.585.535.584.334.753.063.06
+Power Down *218.90162.18161.17132.7544.3218.58117.738.99
+Collision Detection 17.0012.7825.7521.9425.7525.7510.3813.7010.38
+TDMA 8.42 8.0011.298.0911.2911.294.826.584.82
+ability checking. Section 7 presents recent work on acceleration techniques and
+section 8 reviews work on abstraction and compositionality. Finally, we concludeby stating what we consider open problems for future research.
+2 Preliminaries
+In this section we summaries the basic deﬁnition of timed automata, their con-crete and symbolic semantics and the reachability algorithm underlying the cur-rently distributed version of Uppaal .
+Deﬁnition 1 (Timed Automaton). LetCbe the set of clocks. Let B(C)be
+the set of conjunctions over simple conditions on the forms x⊿ /triangleleftc andx−y⊿ /triangleleft
+c, where x, y∈C,⊿/triangleleft∈{<,≤,=,≥,>}andcis a natural number. A timed
+automaton over Cis a tuple (L, l
+0,E,g,r ,I ), where Lis a set of locations, l0∈L
+is the initial location, E∈L×Lis a set of edges, g:E→B(C)assigns guards
+to edges, r:E→2Cassigns clocks to be reset to edges, and I:L→B(C)
+assigns invariants to locations.
+Intuitively, a timed automaton is a graph annotated with conditions and
+resets of non-negative real valued clocks.
+Deﬁnition 2 (TA Semantics). A clock valuation is a function u:C→R≥0
+from the set of clocks to the non-negative reals. Let RCbe the set of all clock
+valuations. Let u0(x)=0 for all x∈C. We will abuse the notation by considering
+guards and invariants as sets of clock valuations.
+The semantics of a timed automaton (L, l 0,E,g,r ,I )overCis deﬁned as a
+transition system (S,s 0,→), where S=L×RCis the set of states, s0=(l0,u0)
+is the initial state, and →⊆S×Sis the transition relation such that:
+–(l,u)→(l,u+d)ifu∈I(l)andu+d∈I(l)
+–(l,u)→(l/prime,u/prime)if there exists e=(l,l/prime)∈Es.t.u∈g(e),u/prime=[r(e)/mapsto→0]u,
+andu/prime∈I(l)
+where for d∈R,u+dmaps each clock xinCto the value u(x)+d, and[r/mapsto→0]u
+denotes the clock valuation which maps each clock in rto the value 0 and agrees
+withuoverC\r.
+
+--- Page 4 ---
+6 Gerd Behrmann et al.
+The semantics of timed automata results in an uncountable transition system.
+It is a well known-fact that there exists a exact ﬁnite state abstraction based onconvex polyhedra in R
+Ccalled zones (a zone can be represented by a conjunction
+inB(C)). This abstraction leads to the following symbolic semantics.
+Deﬁnition 3 (Symbolic TA Semantics). LetZ0=/logicalandtext
+x∈Cx≥0be the initial
+zone. The symbolic semantics of a timed automaton (L, l 0,E,g,r ,I )overCis
+deﬁned as a transition system (S,s 0,⇒)cal led the simulation graph , where S=
+L×B(C)is the set of symbolic states, s0=(l0,Z0∧I(l0))is the initial state,
+⇒={(s, u)∈S×S|∃e, t:se⇒tδ⇒u}:is the transition relation, and:
+–(l,Z)δ⇒(l,norm(M,(Z∧I(l))↑∧I(l)))
+–(l,Z)e⇒(l/prime,re(g(e)∧Z∧I(l))∧I(l/prime))ife=(l,l/prime)∈E.
+where Z↑={u+d|u∈Z∧d∈R≥0}(thefuture operation), and re(Z)=
+{[r(e)/mapsto→0]u|u∈Z}(thereset operation). The function norm :N×B(C)→
+B(C)normalises the clock constraints with respect to the maximum constant M
+of the timed automaton.
+The relationδ⇒contains the delay transitions ande⇒the edge transitions.
+Given the symbolic semantics it is straight forward to construct the reachabilityalgorithm, shown in Figure 1. The symbolic semantics can be extended to covernetworks of communicating timed automata (resulting in a location vector to beused instead of a location), timed automata with data variables (resulting in theaddition of a variable vector).
+3 Symbolic Datastructures
+To utilize the above symbolic semantics algorithmically, as for example in thereachability algorithm of Figure 1, it is important to design eﬃcient data struc-tures and algorithms for the representation and manipulation of clock con-straints. In this section, we present three such datastructures: Diﬀence BoundedMatrices, Minimal Constraint Representation and Clock Diﬀerence Diagrams.
+Diﬀerence Bounded Matrices
+Diﬀerence Bounded Matrices (DBM, see [Bel57,Dil89]) is well–known data struc-
+ture which oﬀers a canonical representation for constraint systems. A DBM rep-resentation of a constraint system Zis simply a weighted, directed graph, where
+the vertices correspond to the clocks of Cand an additional zero–vertex 0. The
+graph has an edge from xtoywith weight mprovided x−y≤mis a con-
+straint of Z. Similarly, there is an edge from 0 to x(from xto 0) with weight
+m, whenever x≤m(x≥−m) is a constraint of Z
+4. As an example, consider
+the constraint system Eover{x0,x1,x2,x3}being a conjunction of the atomic
+constraints x0−x1≤3,x3−x0≤5,x3−x1≤2,x2−x3≤2,x2−x1≤10,
+andx1−x2≤−4. The graph representing Eis given in Figure 2 (a).
+4We assume that Zhas been simpliﬁed to contain at most one upper and lower bound
+for each clock and clock–diﬀerence.
+
+--- Page 5 ---
+Uppaal Implementation Secrets 7
+W={(l0,Z0∧I(l0))}
+P=∅
+while W/negationslash=∅do
+(l,Z)=W.popstate ()
+iftestProperty (l,Z)then return true
+if∀(l,Y)∈P:Z/negationslash⊆Ythen
+P=P∪{(l,Z)}
+∀(l/prime,Z/prime):(l,Z)⇒(l/prime,Z/prime)do
+if∀(l/prime,Y/prime)∈W:Z/prime/negationslash⊆Y/primethen
+W=W∪{(l/prime,Z/prime)}
+endif
+done
+endif
+donereturn false
+Fig. 1. The timed automaton reachability algorithm, with Pbeing the passed-list
+containing all explored symbolic states, and Wbeing the waiting-list containing en-
+countered symbolic states waiting to be explored. The function testProperty evaluates
+the state property that is being checked for satisﬁability. The while loop is refered toas the exploration loop.
+In general, the same set of clock assignments may be described by several
+constraint systems (and hence graphs). To test for inclusion between constraintsystems ZandZ
+/prime5, which we recall is essential for the termination of the reacha-
+bility algorithm of Figure 1, it is advantageous, that Zisclosed under entailment
+in the sense that no constraint of Zcan be strengthened without reducing the
+solution set. In particular, for Za closed constraint system, Z⊆Z/primeholds if
+and only if for any constraint in Z/primethere is a constraint in Zat least as tight;
+i.e. whenever ( x−y≤m)∈Z/primethen ( x−y≤m/prime)∈Zfor some m/prime≤m.
+Thus, closedness provides a canonical representation, as two closed constraintsystems describe the same solution set precisely when they are identical. To closea constraint system Zsimply amounts to derive the shortest–path closure for
+its graph and can thus be computed in time O(n
+3), where nis the number of
+clocks of Z. The graph representation of the closure of the constraint system E
+from Figure 2 (a) is given in Figure 2 (b). The emptiness-check of a constraintsystem Zsimply amounts to checking for negative–weight cycles in its graph
+representation. Finally, given a closed constraint system Zthe operations Z
+↑
+andr(Z) may be performed in time O(n). For more detailed information on
+how to eﬃciently implement these and other operations on DBM’s we refer thereader to [Ben02,Rok93].
+Minimal Constraint Representation
+For the reasons stated above a matrix representation of constraint systems in
+closed form is an attractive data structure, which has been successfully employed
+5To be precise, it is the inclusion between the solution sets forZandZ/prime.
+
+--- Page 6 ---
+8 Gerd Behrmann et al./DC/BC
+/DC/BF
+/DC/BE
+/DC/BD/BF/BH
+/B9/BG/BD/BC/BE/BE/B4/CP/B5
+/DC/BC
+/DC/BF
+/DC/BE
+/DC/BD/BF /BF/BH
+/B9/BG/BG/BE /B9/BE
+/B9/BD/BJ /BE
+/B9/BE/B4/CQ/B5
+/DC/BC
+/DC/BF
+/DC/BE
+/DC/BD/BF /BF
+/B9/BG/BE/BE/B4/CR/B5
+Fig. 2. Graph for E(a), its shortest–path closure (b), and shortest–path reduction(c).
+by a number of real–time veriﬁcation tools, e.g. Uppaal [BLL+96] and Kro-
+nos[DY95]. As it gives an explicit (tightest) bound for the diﬀerence between
+each pair of clocks (and each individual clock), its space–usage is of the orderO(n
+2). However, in practice it often turns out that most of these bounds are re-
+dundant, and the reachability algorithm of Figure 1 is consequently hampered intwo ways by this representation. Firstly, the main–data structure P(the passed
+list) will in many cases store all the reachable symbolic states of the automaton.Thus, it is desirable, that when saving a symbolic state in the passed list, wesave a representation of the constraint–system with as few constraints as pos-sible. Secondly, a constraint system Zadded to the passedlist is subsequently
+only used in checking inclusions of the form Z
+/prime⊆Z. Recalling the method for
+inclusion–check from the previous section, we note that (given Z/primeis closed) the
+time–complexity of the inclusion–check is linear in the number of constraints ofZ. Thus, again it is advantageous for Zto have as few constraints as possible.
+In [LLPY97,LLPY02] we have presented an O(n
+3) algorithm, which given
+a constraint system constructs an equivalent reduced system with the mini-mal number of constraints. The reduced constraint system is canonical in thesense that two constrain systems with the same solution set give rise to identi-cal reduced systems. The algorithm is essentially a minimization algorithm forweighted directed graphs. Given a weighted, directed graph with nvertices, it
+constructs in time O(n
+3) a reduced graph with the minimal number of edges
+having the same shortest path closure as the original graph. Figure 2 (c) showsthe minimal graph of the graphs in Figure 2 (a) and (b), which is computed bythe algorithm.
+The key to reduce a graph is obviously to remove redundant edges , i.e. edges
+for which there exist alternative paths whose (accumulated) weight does notexceed the weight of the edgesthemselves. E.g. in the graph of Figure 2 (a)the edge ( x
+1,x2) is clearly redundant as the accumulated weight of the path
+(x1,x3,(x3,x2) has a weight (4) not exceeding the weight of the edge itself
+(10). Being redundant, the edge ( x1,x2) may be removed without changing the
+shortest-path closure (and hence the solution-set of the corresponding constraintsystem). In this manner both the edges ( x
+1,x2) and ( x2,x3) of Figure 2 (b) are
+
+--- Page 7 ---
+Uppaal Implementation Secrets 9
+found to be redundant. However, thought redundant, we cannot just remove the
+two edges as removal of one clearly requires the presence of the other. In fact,all edges between the vertices x
+1,x2andx3are redundant, but obviously we
+cannot remove them all simultaneously without aﬀecting the solution-set. Thekey explanation of this phenomena is that x
+1,x2andx3constitute a zero-cycle.
+In fact, for zero-cycle free graphs simulataneous removal of redundant edges leadsto a canonical shortest-path reduction form. For general graphs the reduction isbased on a partitioning of the vertices according to membership of zero-cycles.
+Our experimental results demonstrated signiﬁcant space-reductions compared
+with traditional DBMimplmentation: on a number of benchmark and indus-trial examples the space saving was between 75% and 94%. Additionally, time-performance was improved.
+Clock Diﬀerence Diagrams
+Diﬀerence Bound Matrices (DBM’s) as the standard representation for time
+zones in analysis of Timed Automata have a well-known shortcoming: they arenot closed under set-union. This comes from the fact that a set represented bya DBM is convex, while the union of two convex sets is not necessarily convex.
+Within the symbolic computation for the reachability analysis of Uppaal ,
+set-union however is a crucial operation which occurs in every symbolic step.The shortcoming of DBM’s leads to a situation, where symbolic states whichcould be treated as one in theory have to be handled as a collection of severaldiﬀerent symbolic states in practice. This leads to trade-oﬀs in memory and timeconsumption, as more symbolic states have to be stored and visited during inthe algorithm.
+DBM’s represent a zone as a conjunction of constraints on the diﬀerences
+between each pair of clocks of the timed automata (including a ﬁctitious clockrepresenting the value 0). The major idea of CDD’s (Clock Diﬀerence Diagrams)is to store a zone as a decision tree of clock diﬀerences, generalizing the ideasof BDD’s (Binary Decision Diagrams, see [Bry86]) and IDD’s (Integer DecisionDiagrams, see [ST98])
+The nodes of the decision tree represent clock diﬀerences. Nodes on the same
+level of the tree represent the same clock diﬀerence. The order of the clockdiﬀerences is ﬁxed a-priori, all CDD’s have to agree on the same ordering. Theleaves of the decision tree are two nodes representing true and false, as in thecase of BDD’s.
+Each node can have several outgoing edges. Edges are labeled with integral
+intervals: open, half-closed and closed intervals with integer values as the borders.A node representing the clock diﬀerence X−Ytogether with an outgoing edge
+with interval Irepresents the constraint ” X−Ywithin I”. The leafs represent
+the global constraints true and false respectively.
+A path in a CDD from a node down to a leaf represents the set of clock values
+with fulﬁll the conjunction of constraints found along the path. Remember thata constraint is found from the pair node and outgoing edge. Paths going to falsethus always represent the empty set, and thus only paths leading to the true
+
+--- Page 8 ---
+10 Gerd Behrmann et al.
+/0/0/0/0/0
+/1/1/1/1/1
+/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1 /0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1 /0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/0/0/0/0 /0 /0/0 /0 /0/0 /0 /0/0/0/0
+/1/1/1/1 /1 /1/1 /1 /1/1 /1 /1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1 /0/0/0/0/0 /0/0 /0/0/0/0/0
+/1/1/1/1/1 /1/1 /1/1/1/1/1
+/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/0/0/0/0/0 /0/0 /0/0 /0/0 /0/0/0/0/0
+/1/1/1/1/1 /1/1 /1/1 /1/1 /1/1/1/1/1
+/0/0/0/0 /0 /0/0 /0 /0/0/0/0
+/1/1/1/1 /1 /1/1 /1 /1/1/1/1/CG/CH
+/CJ/BD /BN /BF/CL /CJ/BG /BN /BI/CL/CJ/BD /BN /BF/CL/CC /D6/D9/CT
+/CG/CH /CH /CH
+/CJ/BD /BN /BE/CL /CJ/BF /BN /BG/CL/CJ/BD /BN /BF/CL
+/CJ/BD /BN /BG/CL/CJ/BE /BN /BG/CL/CC /D6/D9/CT
+/B4/BE /BN /BF/B5
+/CG/CH/CG /A0 /CH /CG /A0 /CH
+/CJ/BE/B8/BF/CL/CJ/BC/B8/BC/CL
+/CJ/BC /BN /BE/CL/CJ/BC /BN /BD/CL/CJ /A0 /BF /BN /BC/CL/CC /D6/D9/CT
+/CH/BD /BE /BF /BG /BH /BI/CG
+/BD
+/BE
+/BF
+/CH/BD /BE /BF /BG /BH /BI/CG
+/BD
+/BE
+/BF
+/CH/BD /BE /BF /BG /BI/CG
+/BD
+/BE
+/BF/BH/B4/CP/B5/B4/CQ/B5 /B4/CR/B5
+Fig. 3. Three example CDD’s. Intervals not shown lead implicitly to False.
+node need to be stored in the CDD. A CDD itself represents the set given by
+the union of all sets represented by the paths going from the root to the truenode. From this clearly CDD’s are closed under set-union. Figure 3 gives threeexamples of two-dimensional zones and their representation as CDDs. Note thatthe same zone can have diﬀerent CDD representations.
+All operations on DBM’s can be lifted straightforward to CDD’s. Care has
+to be taken when the canonical form of the DBM is involved in the operation, asthere is no direct equivalent to the (unique) canonical form of DBM’s for CDD’s.
+CDD’s generalize IDD’s, where the nodes represent clock values instead of
+clock diﬀerences. As clock diﬀerences, in contrast to clock values, are not inde-pendent of each other, operations on CDD’s are much more elaborated than thesame operations on IDD’s. CDD’s can be implemented space-eﬃcient by usingthe standard BDD’s technique of sharing common substructure. This sharingcan also take place between diﬀerent CDD’s.
+Experimental results have shown that using CDD’s instead of DBM’s can
+lead to space savings of up to 99%. However, in some cases a moderate increasein run time (up to 20%) has to be paid. This comes from the fact that operationsinvolving the canonical form are much more complicated in the case of CDD’scompared to DBM’s. More on CDD’s can be found in [LWYP99] and [BLP
++99].
+A similar datastructure is that of DDD’s presented in [MLAH99a,MLAH99b].
+4 Compact Representation of States
+Symbolic states are the core objects of state space search and one of the keyissues in implementing a veriﬁer is how to represent them. In the earlier versionsofUppaal each entity in a state (i.e. an element in the location vector, the value
+of an integer variable or a bound in the DBM) is mapped on a machine word.
+
+--- Page 9 ---
+Uppaal Implementation Secrets 11
+The reason for this is simplicity and speed. However the number of possible
+values for each entity is usually small, and using a machine word for each ofthem is often a waste of space.
+To conquer this problem two additional, more compact, state representations
+have been added. In both of them the discrete part of each state is encoded asa number, using a multiply and add scheme. This encoding is much like lookingat the discrete part as a number, where each digit is an entity in the discretestate and the base varies with the number of diﬀerent digits.
+In the ﬁrst packing scheme, the DBM is encoded using the same technique
+as the discrete part of the state. This gives a very space eﬃcient but computa-tionally expensive representation, where each state takes a minimum amount ofmemory but where a number of bignum division operations have to be performedto check inclusion between two DBMs.
+In the second packing scheme, some of the space performance is sacriﬁced to
+allow a more eﬃcient inclusion check. Here each bound in the DBM is encodedas a bit string long enough to represent all the possible values of this bound plusone test bit , i.e. if a bound can have 10 possible values then ﬁve bits are used to
+represent the bound. This allows cheap inclusion checking based on ideas of Pauland Simon [PS80] on comparing vectors using subtraction of long bit strings.
+In experiments we have seen that the space performance of these represen-
+tations are both substantially better than the traditional representation, withspace savings of between 25% and 70%. As we expect, the performance of theﬁrst packing scheme, with an expensive inclusion check, is somewhat better,space-wise, than the packing scheme with the cheap inclusion check.
+Considering the time performance for the packed state representations we
+have found that the price for using the encoding with expensive inclusion checki sas l o w d o w no f2–1 2 times, while using the other encoding sometimes is even
+faster than the traditional representation. For more detailed information on thiswe refer the interested reader to [Ben02].
+5 Passed and Waiting List Uniﬁcation
+The standard reachability algorithm currently applied in Uppaal is based on
+two lists: the passed and the waiting lists. These lists are used in the explorationloop that pops states to be explored from the waiting list, explores them, andkeeps track of already explored states with the passed list. The ﬁrst algorithmof Figure 4 shows this algorithm based on two distinct lists.
+We have uniﬁed these structures to a PWList and a queue. The queue has
+only references to states in PWList and is a trivial queue structure: it storesnothing by itself. The PWList acts semantically as a buﬀer that eliminates du-plicate states, i.e. if the same state is added to the buﬀer several times it canonly be retrieved once, even when the state was retrieved before the state isinserted a second time. To achieve this eﬀect the PWList must keep a record ofthe states seen and thus it provides the functionality of both the passed list andthe waiting list.
+
+--- Page 10 ---
+12 Gerd Behrmann et al.
+W={(l0,Z0∧I(l0))}
+P=∅
+while W/negationslash=∅do
+(l,Z)=W.popState ()
+iftestProperty (l,Z)
+then return trueif∀(l,Y)∈P:Z/negationslash⊆Y
+then
+P=P∪{(l,Z)}
+∀(l
+/prime,Z/prime):(l,Z)⇒(l/prime,Z/prime)do
+if∀(l/prime,Y/prime)∈W:Z/prime/negationslash⊆Y/prime
+then
+W=W∪{(l/prime,Z/prime)}
+endif
+done
+endif
+donereturn false→Q=PW={(l0,Z0∧I(l0))}
+while Q/negationslash=∅do
+(l,Z)=Q.popState ()
+iftestProperty (l,Z)
+then return true∀(l
+/prime,Z/prime):(l,Z)⇒(l/prime,Z/prime)do
+if∀(l/prime,Y/prime)∈PW:Z/prime/negationslash⊆Y/prime
+then
+PW=PW∪{(l/prime,Z/prime)}
+Q.append (l/prime,Z/prime)
+endif
+done
+donereturn false
+Fig. 4. Reachability algorithm with classical passed (P) and waiting (W) lists adapted
+to a the uniﬁed list (Q and PW).
+Deﬁnition 4 (PWList). Formally, a PWList can be described as a pair (P,W)
+∈2S×2S, where Sis the set of symbolic states, and the two functions put:
+2S×2S×S→2S×2Sandget:2S×2S→2S×2S×S, such that:
+–put(P,W,(l,Z) )=( P∪{(l,Z)},W/prime)where
+W/prime=/braceleftBigg
+W∪{(l,Z)}if(l,Z)/negationslash∈P
+W otherwise
+–get(P,W)=(P,W\{(l,Z)},(l,Z))for some (l,Z)∈W.
+HerePandWplay the role of the passed list and waiting list, respectively,
+but as we will see this deﬁnition provides room for alternative implementations.It is possible to loosen the elimination requirement such that some states canbe returned several times while still ensuring termination, thus reducing thememory requirements [LLPY97].
+The reachability algorithm can then be simpliﬁed as shows in Figure 4. The
+main diﬀerence with the former algorithm shows when a state is pushed toPWList: it is pushed conceptually to the passed and the waiting lists at thesame time. States to be explored are considered already explored for the inclusionchecking of new generated states. This greedy behaviour improves performance.
+The reference implementation uses a hash table based on the discrete part of
+the states to ﬁnd them. Every state entry has its symbolic part represented asa zone union (single linked list of zones). The queue is a simple linked list withreferences to the discrete and symbolic parts. Only one hash computation and
+
+--- Page 11 ---
+Uppaal Implementation Secrets 13
+one inclusion checking are necessary for every state inserted into this structure,
+compared to two with the former passed and waiting lists. Furthermore we gatherstates with a common discrete part. The former representation did not have thiszone union structure. This zone union structure is particularly well-suited forother union representations of zones such as CDDs [BLP
++99,LWYP99].
+A number of options are realisable via diﬀerent implementations of the PWList
+to approximate the representation of the state-space such as bitstate hashing
+[Hol87], or choose a particular order for state-space exploration such as breadth
+ﬁrst,depth ﬁrst ,best ﬁrst orrandom [BHV00,BFH+01]. The ordering is orthog-
+onal to the storage structure and can be combined with any data representation.
+This implementation is built on top of the storage structure that is in charge
+of storing raw data. The PWList uses keysas references to these data. This
+storage structure is orthogonal to a particular choice of data representation, inparticular, algorithms aimed at reducing the memory footprint such as convex
+hull approximation [WT95] or minimal constraint representation [LLPY97] are
+possible implementations. We have implemented two variants of this storage,namely one with simple copy and the other one with data sharing.
+Depending on the careful options given to Uppaal our new implementation
+has been experimentally show to give improvements of up to 80% in memory andimproves speed signiﬁcantly. The memory gain is expected due to the showedsharing property of data. The speed gain (in spite of the overheads) comes fromonly having a single hash table and from the zone union structure: the discretetest is done only once, then comes only inclusion checks on all the zones inone union. This is showed by the results of the simple copy version. For moreinformation we refer the interested reader to [DBLY].
+6 Parallel and Distributed Reachability Checking
+Parallel and distributed reachability analysis has become quite popular duringrecent years. Most work is based on the same explicit state exploration algorithm:The state space is partitioned over a number of nodes using a hash function.Each node is responsible for storing and exploring those states assigned to it bythe hash function. The successors of a state are transfered to the owning nodesaccording to the hash function. Given that all nodes agree on the hash functionto use and that the hash function maps states uniformly to the nodes, this resultsin a very eﬀective distributed algorithm where both memory and CPU usage aredistributed uniformly among all nodes.
+In [BHV00] we reported on a version of Uppaal using the variation in Fig-
+ure 5 of the above algorithm on a parallel computer (thus providing eﬃcientinterprocess communication). The algorithm would only hash on the discretepart of a symbolic state such that states with the same discrete part would mapto the same nodes, thus keeping the inclusion checking on the waiting list andpassed list. Due to the symbolic nature of the reachability algorithm, the numberof states explored depends on the search order. One noticeable side eﬀect of thedistribution was an altered search order which most of the time would increase
+
+--- Page 12 ---
+14 Gerd Behrmann et al.
+W A={(l0,Z0∧I(l0))|h(l0)=A}
+PA=∅
+while ¬terminated do
+(l,Z)=W A.popState ()
+if∀(l,Y)∈PA:Z/negationslash⊆Ythen
+PA=PA∪{(l,Z)}
+∀(l/prime,Z/prime):(l,Z)⇒(l/prime,Z/prime)do
+d=h(l/prime,Z/prime)
+if∀(l/prime,Y/prime)∈W d:Z/prime/negationslash⊆Y/primethen
+W d=W d∪{(l/prime,Z/prime)}
+endif
+done
+endif
+done
+Fig. 5. The distributed timed automaton reachability algorithm parameterised on node
+A. The waiting list Wand the passed list Pis partitioned over the nodes using a
+function h. States are popped of the local waiting list and added to the local passed
+list. Successors are mapped to a destination node d.
+the number of states explored. Replacing the waiting list with a priority queue
+always returning the state with the smallest distance to the initial state solvedthe problem.
+More recently [Beh] we have ported the algorithm to a multi-threaded version
+and a version running on a Linux Beowulf Cluster using the new PWList struc-ture. Surprisingly, initial experiments on the cluster showed severe load balancingproblems, despite the fact that the hash function distributed states uniformly.The problem turned out to be that the exploration rate of each node dependson the load of the node
+6(due to the inclusion checking). Slight load variations
+will thus result in slight variations of the exploration rate of each node. A nodewith a high load will have a lower exploration rate, and thus the load rapidlybecomes even higher. This is an unstable system. On the parallel machine usedin [BHV00] this is not a problem for most input systems (probably due to thefast interprocess communication which reduces the load variations). Increasingthe size of the hash table used for the waiting list and/or using the new PWListstructure reduces this eﬀect. Even with these modiﬁcations, some input systemscause load balancing problems, e.g. Fischer protocol for mutual exclusion. Mostremaining load balancing problems can be eliminated by an explicit load balanc-ing layer which uses a proportional controller that redirects states from nodeswith a high load to nodes with a low load.
+The multi-threaded version uses a diﬀerent approach to ensure that all threads
+are equally balanced. All threads share the same PWList, or more precisely, thehash table underlying the PWList is shared but the list of states needed to beexplored is thread local. Thus, if a thread inserts a state it will be retrieved by
+6The load of a node is deﬁned as the length of its waiting list.
+
+--- Page 13 ---
+Uppaal Implementation Secrets 15
+the same thread. With this approach we avoid that the threads need to access
+the same queue. Each bucket in the hash table is protected by a semaphore. If thehash table has much more buckets than we have threads, then the risk of multiplesimultaneous accesses is low. By default, each thread keeps all successors on thesame thread (since the hash table is shared it does not matter to which threada state is mapped). When the system is unbalanced some states are redirectedto other threads. Experiments show that this results in very high locality.
+Experiments with the parallel version are very encouraging, showing excel-
+lent speedups (in the range of 80-100% of optimal o n a 4 processor machine).
+The distributed version is implemented using MPI
+7over TCP/IP over Fast Eth-
+ernet. This results in high processing overhead of communication causing lowspeedups in the range of 50-60% of optimal at 14 nodes. Future work will focuson combining the two approaches such that nodes located on the same physicalmachine can share the PWList. Also, experiments with alternatives to MPI overTCP/IP will be evaluated, such as VIA
+8. Finally, it is unclear if the sharing
+of sub-elements of a state introduced in the previous section will scale to thedistributed case.
+7 Accelerating Cycles
+An important problem concerning symbolic model checking of timed automata,is encountered when the timed automata in a model use diﬀerent time scales .
+This, for example, is often the case for models of reactive programs with their en-vironment. Typically, the automata that model the reactive programs are basedon microseconds whereas the automata of the environment function in the or-der of seconds. This diﬀerence can give rise to an unnecessary fragmentation ofthe symbolic state space. As a result, the time and memory consumption of themodel check process increases.
+The fragmentation problem has already been encountered and described by
+Hune and Iversen et al during the veriﬁcation of LEGO Mindstorms programsusing Uppaal [Hun00,IKL
++00]. The symbolic state space is severely fragmented
+by the busy-waiting behaviour of the control program automata. Other exam-ples were the phenomena of fragmantation is likely to show up include reactiveprograms, and polling real-time systems, e.g., programmable logic controllers[Die99]. The validation of communication protocols will probably also suﬀerfrom the fragmentation problem when the context of the protocol is taken intoaccount.
+In [HL02] we have proposed an acceleration technique for a subset of timed
+automata, namely those that contain special cycles, that addresses the frag-mentation problem. The technique consists of a syntactical adjustment that caneasily be computed from the timed automaton itself. It is proven that the syn-tactical adjusment is exact with repsect to reachability properties, and it is
+7The Message Passing Interface.
+8The Virtual Interface Architecture.
+
+--- Page 14 ---
+16 Gerd Behrmann et al.
+L3L2
+y<=5L0y<=2
+L4
+L1y<=4y>3
+y:=0y>=3 z>=LARGE
+y:=0 y>=1
+Fig. 6. Timed automaton P.
+experimentally validated that the technique eﬀectively speed-up the symbolic
+reachability analysis.
+The timed automaton of ﬁgure 6 oﬀers a simpliﬁed modeling of a control
+program combined with an environment. The cycle L0,L1,L2corresponds to
+cyclic execution of a control program consisting of three atomic instructions withthe invariants and guards on the clock yproviding execution time information.
+Whenever the control cycle is in location L0, the enviroment (modelled by the
+clock z) is consulted potentially leading to an exit of the control cycle. The size
+of the threshold constant LARGE determines how slow the environment is relative
+to the execution time of control program instructions: the larger the constantthe slower. Depending on the value of LARGE the cycle in automaton Pmust
+be executed a certain (large) number of times before the edge to location L4is
+enabled. In a symbolic forward exploration the cycle must similarly be exploreda large number of times with a fragmentation of the symbolic states involvinglocation L0as a consequence.
+The acceleration technique proposed in [HL02] eliminates the fragmentation
+that is due to special cycles. The subset of cycles we can accelerate may use onlya single clock yin the invariants, guards and resets. Though this might seem like
+a strong restriction, this kind of cycles often occur in control graphs of single-processor polling real-time systems. To be acceleratable all ingoing edges to theﬁrst location of the cycle Cshould reset the clock y. This guarantees that C
+has a window [a, b], in the sense that any execution of Chas accumulated delay
+between aandb, and, conversely, for any delay dbetween aandbany execution
+ofCcan be ’adjusted’ to have accumulated delay d. Now, the acceleration of such
+a cycle Cis given by addition of a simple unfolding of C, where the invariant
+of the (copy of the) intial location is removed. Figure 7 illustrates the result ofadding the unfolded cycle to the model. Provided 3 a≤2bit can be proved that in
+terms of rechability (of original locations) the two models are equivalent. Thus,the acceleration is exact. In case ( n+1 )b≤naa similar result holds provided
+the cycle is unfolded ntimes. If moreover the clock yis reset on the ﬁrst edge
+ofC, all reachable states may be obtained by a single execution of the unfolded
+cycle. Consequently, a symbolic breadth-ﬁrst analysis of the accelerated versionofPin Figure 7 experimentally proves to be insensitive to the value of LARGE .
+
+--- Page 15 ---
+Uppaal Implementation Secrets 17
+L3L2
+y<=5L0y<=2
+L4
+L1y<=4L1’y<=4
+L2’y<=5L2’’y<=5
+L1’’y<=4
+L0’y>3
+y:=0y>=3 z>=LARGE
+y:=0 y>=1 y:=0
+y>=1
+y>=3
+y:=0 y:=0y>=1y>=3
+y:=0
+Fig. 7. The accelerated version of P.
+In [HL02] and [Hen02] the proposed acceleration technique has been succes-
+fully applied to analysis of models of LEGO Mindstorm byte code. In particular,the acceleration technique allowed Uppaal to establish (at the byte code level)
+several properties of the Production Cell which could not otherwise be analysed.
+8 Abstraction and Compositionality
+Despite the vast improvement in performance of Uppaal due to the development
+improved datastructures and algorithms, the state-explosion is a reality. Thus, inorder for the application of a veriﬁcation tools to truely scale up it is imperativethat they are complemented by other methods.
+One such method is that of abstraction . Assume that SYS is a model of
+some considered real-time system, and assume that we want some property ϕ
+to be established, i.e. SYS |=ϕ. Now, the model, SYS, may be too complex
+for our tools to settle this veriﬁcation problem automatically (despite all ofour algorithmic eﬀorts). The goal of abstraction is to replace the problem withanother, hopefully tractable problem ABS |=ϕ, where ABS is an abstraction
+of SYS being smaller in size and less complex. This method requires the usernot only to supply the abstraction but also to argue that the abstraction issafein the sense that all relevant properties established for ABS also hold for
+SYS; i.e. it should be established that SYS ≤ABS, for some property-preserving
+relationship ≤between models
+9. Unfortunately, this brings the problem of state-
+explosion right back in the picture because establishing SYS ≤ABS may be as
+computationally diﬃcult as the original veriﬁcation problem SYS |=ϕ.
+To alleviate the above problem, the method of abstraction may be com-
+bined with that of compositionality . Here, compositionality refers to principles
+9i.e.A≤BandB|=φshould imply that A|=φ.
+
+--- Page 16 ---
+18 Gerd Behrmann et al.
+allowing properties of composite systems to be inferred from properties of their
+components. In particular we want to establish the safe abstraction condition,SYS≤ABS, in a compositional way, that is, assuming that SYS is a composite
+system of the form SYS
+1/bardblSYS 2, we may hope to ﬁnd simple abstractions ABS 1
+and ABS 2such that:
+SYS 1≤ABS 1and SYS 2≤ABS 2
+Provided the relation ≤is a precongruence with respect to the composition
+operator /bardbl, we may now complete the proof of the safe abstraction condition by
+establishing:
+ABS 1/bardblABS 2≤ABS
+This approach nicely factors the original problem into the smaller problems
+and, and may be applied recursively until problems small enough to be handledby automatic means are reached.
+The method of abstraction and compositionality is an old-fashion recipe
+with roots going back to the original, foundational work on concurrency theory[Mil89,Hoa78,OG76,Jon83,CM88]. In [JLS00] we have instantiated the methodtoUppaal , where real-time systems are modelled as networks of timed au-
+tomata communicating over (urgent) channels and shared discrete (e.g. integer)variables. A fundamental relationship between timed automata preserving safetyproperties — and hence useful in establishing safe abstraction properties — isthat of timed simulation. However, in the presence of urgent communication andshared variables, this relationship fails to be a precongruence, and hence doesnot support compositionality. In [JLS00] we identify a notion of timed ready sim-ulation supporting both abstraction and compositionality for Uppaal models.
+In addition, a method for automatically testing for the existence of timed ready
+simulation between timed automata using reachability analysis is presented (seealso [ABL98]). Thus Uppaal itself may be applied for such tests. The usefulness
+of the developed method is demonstrated by application to the veriﬁcation ofan industrial design: a system for audio/video power control developed by thecompany Bang & Olufsen. The size of the full protocol model is of such complex-ity that Uppaal immediately encounters the state-explosion problem in a direct
+veriﬁcation. However by application of the compositionality result and testingtheory we were able to carry through a veriﬁcation of the full protocol model. In[SS01] a similar approach is applied to the veriﬁcation of the IEEE 1394a Rootcontentin Protocol using Uppaal .
+9 Conclusion
+In addition to the techniques described in the previous sections, Uppaal oﬀers a
+range of other veriﬁcation options including active clock reduction and approx-imate analysis based on convex-hull, supertrace and hash compaction. We referthe reader to www.uppaal.com for information on this.
+The long eﬀort eﬀort spend on developing and implementing eﬃcient datas-
+tructures and algorithms for analysing timed systems has succesfully payed oﬀ
+
+--- Page 17 ---
+Uppaal Implementation Secrets 19
+in terms of tools mature for industrial real-time applications. However, there is
+still room and need for improvements. Below we give an incomplete list of whatcould be some of the main algorithmic challanges for future research in the area:
+–Continued search for appropriate BDD-like datastructures allowing for ef-
+ﬁcient representation and analysis of real-timed systems. CDDs and DDDsmay be seen as promissing ﬁrst attempts.
+–Partial order reduction for timed systems, and more generally, methods for
+exploiting structure (e.g. hierarchicies) and (in)dependencies.
+–Exploitation of symmetries to reduction explored and stored state-space.
+–Extension of distributed and parallel reachability algorithm towards full
+TCTL model checking.
+–Development of techniques allowing eﬃcient use of disk (secondary memory)
+for storing explored state-spaces.
+–Extension of acceleration technique to allow for more general cycles (e.g.
+involving more than one clock).
+–Application of abstract interpretation in particular for dealing with models
+where the discrete part plays a major role (which is increasingly the case).
+References
+ABB+01. Tobias Amnell, Gerd Behrmann, Johan Bengtsson, Pedro R. D’Argenio,
+Alexandre David, Ansgar Fehnker, Thomas Hune, Bertrand Jeannet,Kim G. Larsen, M. Oliver M¨ oller, Paul Pettersson, Carsten Weise, and
+Wang Yi. Uppaal - Now, Next, and Future. In F. Cassez, C. Jard,
+B. Rozoy, and M. Ryan, editors, Modelling and Veriﬁcation of Parallel
+Processes , number 2067 in Lecture Notes in Computer Science, pages
+100–125. Springer–Verlag, 2001.
+ABL98. Luca Aceto, Augusto Burgueno, and Kim G. Larsen. Model checking
+via reachability testing for timed automata. In Bernhard Steﬀen, editor,Proc. 4th Int. Conference on Tools and Algorithms for the Constructionand Analysis of Systems (TACAS’98) , volume 1384 of Lecture Notes in
+Computer Science , pages 263–280. Springer, 1998.
+BDM
++98. Marius Bozga, Conrado Daws, Oded Maler, Alfredo Olivero, Stavros Tri-
+pakis, and Sergio Yovine. Kronos: A model-Checking Tool for Real-TimeSystems. In Proc. of the 10th Int. Conf. on Computer Aided Veriﬁca-
+tion, number 1427 in Lecture Notes in Computer Science, pages 546–550.
+Springer–Verlag, 1998.
+Beh. Gerd Behrmann. A performance study of distributed timed automata
+reachability analysis. Submitted.
+Bel57. Richard Bellman. Dynamic Programming . Princeton University Press,
+1957.
+Ben02. Johan Bengtsson. Clocks, DBMs and STates in Timed Systems . PhD
+thesis, Faculty of Science and Technology, Uppsala University, 2002.
+BFH
++01. Gerd Behrmann, Ansgar Fehnker, Thomas S. Hune, Kim Larsen, Paul
+Petterson, and Judi Romijn. Eﬃcient guiding towards cost-optimality inuppaal. In Proc. of TACAS’2001 , Lecture Notes in Computer Science.
+Springer–Verlag, 2001.
+
+--- Page 18 ---
+20 Gerd Behrmann et al.
+BGK+96. Johan Bengtsson, W.O. David Griﬃoen, K˚ are J. Kristoﬀersen, Kim G.
+Larsen, Fredrik Larsson, Paul Pettersson, and Wang Yi. Veriﬁcation ofan Audio Protocol with Bus Collision Using Uppaal . In Rajeev Alur and
+Thomas A. Henzinger, editors, Proc. of the 8th Int. Conf. on Computer
+Aided Veriﬁcation , number 1102 in Lecture Notes in Computer Science,
+pages 244–256. Springer–Verlag, July 1996.
+BHV00. Gerd Behrmann, Thomas Hune, and Frits Vaandrager. Distributed timed
+model checking - How the search order matters. In Proc. of 12th Inter-
+national Conference on Computer Aided Veriﬁcation , Lecture Notes in
+Computer Science, Chicago, Juli 2000. Springer-Verlag.
+BLL
++96. Johan Bengtsson, Kim G. Larsen, Fredrik Larsson, Paul Pettersson, and
+Wang Yi. Uppaal in 1995. In Proc. of the 2 ndWorkshop on Tools and
+Algorithms for the Construction and Analysis of Systems , number 1055
+in Lecture Notes in Computer Science, pages 431–434. Springer–Verlag,March 1996.
+BLP
++99. Gerd Behrmann, Kim G. Larsen, Justin Pearson, Carsten Weise, and
+Wang Yi. Eﬃcient Timed Reachability Analysis Using Clock DiﬀerenceDiagrams. In Proc. of the 11th Int. Conf. on Computer Aided Veriﬁcation ,
+number 1633 in Lecture Notes in Computer Science. Springer–Verlag,1999.
+Bry86. Randal E. Bryant. Graph-Based Algorithms for Boolean Function Ma-
+nipulation. IEEE Trans. on Computers , 1986.
+CM88. K.M. Chandy and J. Misra. Parallel Program Design: A Foundation .
+Addison Wesley, 1988.
+DBLY. Alexandre David, Gerd Behrmann, Kim G. Larsen, and Wang Yi. The
+next generation of uppaal. Submitted.
+Die99. H. Dierks. Speciﬁcation and Veriﬁcation of Polling Real-Time Systems .
+PhD thesis, Carl von Ossietzky Universit¨ at Oldenburg, July 1999.
+Dil89. David Dill. Timing Assumptions and Veriﬁcation of Finite-State Con-
+current Systems. In J. Sifakis, editor, Proc. of Automatic Veriﬁcation
+Methods for Finite State Systems , number 407 in Lecture Notes in Com-
+puter Science, pages 197–212. Springer–Verlag, 1989.
+DT98. Conrado Daws and Stavros Tripakis. Model checking of real-time reach-
+ability properties using abstractions. In Bernard Steﬀen, editor, Proc.
+of the 4 thWorkshop on Tools and Algorithms for the Construction and
+Analysis of Systems , number 1384 in Lecture Notes in Computer Science,
+pages 313–329. Springer–Verlag, 1998.
+DY95. C. Daws and S. Yovine. Two examples of veriﬁcation of multirate timed
+automata with Kronos .I n Proc. of the 16 thIEEE Real-Time Systems
+Symposium , pages 66–75. IEEE Computer Society Press, December 1995.
+Hen02. Martijn Hendriks. Devlopment of reactive programs using uppaal. Mas-
+ter’s thesis, KUN, Nijmegen University, 2002.
+HL02. Martin Hndriks and Kim G. Larsen. Exact acceleration of real-time model
+checking. In Theory and Practice of Timed Systems , volume 65 of Elec-
+tronic Notes in Theoretical Computer Science . Elsevier Science Publish-
+ers, 2002.
+HLS99. Klaus Havelund, Kim G. Larsen, and Arne Skou. Formal veriﬁcation of a
+power controller using the real-time model checker uppaal .I n Proceed-
+ings of AMST 1999 , volume 1601 of Lecture Notes in Computer Science ,
+pages 277–298, 1999.
+
+--- Page 19 ---
+Uppaal Implementation Secrets 21
+Hoa78. C.A.R. Hoare. Communicating Sequential Processes. Communications
+of the ACM , 21(8):666–677, 1978.
+Hol87. Gerard J. Holzmann. On limits and possibilities of automated protocol
+analysis. In Proc. 7th IFIP WG 6.1 Int. Workshop on Protocol Speciﬁ-
+cation, Testing, and Veriﬁcation , pages 137–161, 1987.
+Hun00. Thomas S. Hune. Modeling a language for embedded systems in timed
+automata. Technical Report RS-00-17, BRICS, Basic Research in com-puter Science, August 2000. 26 pp. Earlier version entitled Modelling a
+Real-Time Language appeared in FMICS99, pages 259–282.
+IKL
++00. Torsten K. Iversen, K˚ are J. Kristoﬀersen, Kim G. Larsen, Morten
+Laursen, Rune G. Madsen, Steﬀen K. Mortensen, Paul Pettersson, andChris B. Thomasen. Model-Checking Real-Time Control Programs —Verifying LEGO Mindstorms Systems Using uppaal .I n Proc. of 12 th
+Euromicro Conference on Real-Time Systems , pages 147–155. IEEE Com-
+puter Society Press, June 2000.
+JLS00. Henrik Ejersbo Jensen, Kim G. Larsen, and Arne Skou. Scaling up Uppaal
+- automatic veriﬁcation of real-time systems using compositionality andabstraction. In Procee dings of FTRTFT 2000 , volume 1926 of Lecture
+Notes in Computer Science , pages 19–30, 2000.
+Jon83. C. Jones. Tentative steps toward a development method for interfering
+programs. ACM Transactions on Programming Languages and Systems ,
+5(4):596–620, 1983.
+Lam87. Leslie Lamport. A Fast Mutual Exclusion Algorithm. ACM Trans. on
+Computer Systems , 5(1):1–11, February 1987. Also appeared as SRC
+Research Report 7.
+LLPY97. Kim G. Larsen, Fredrik Larsson, Paul Pettersson, and Wang Yi. Eﬃ-
+cient Veriﬁcation of Real-Time Systems: Compact Data Structures andState-Space Reduction. In Proc. of the 18thIEEE Real-Time Systems
+Symposium , pages 14–24. IEEE Computer Society Press, December 1997.
+LLPY02. Kim G. Larsen, Fredrik Larsson, Paul Pettersson, and Wang Yi. Compact
+data structure and state-space reduction for model-checking real-timesystems. Real-Time Systems - the International Journal of Time-Critical
+Computing Systems , 2002. To appear – accepted for publication.
+LP97. Henrik L¨ onn and Paul Pettersson. Formal Veriﬁcation of a TDMA Pro-
+tocol Startup Mechanism. In Proc. of the Paciﬁc Rim Int. Symp. on
+Fault-Tolerant Systems , pages 235–242, December 1997.
+LPY95. Kim G. Larsen, Paul Pettersson, and Wang Yi. Compositional and Sym-
+bolic Model-Checking of Real-Time Systems. In Proc. of the 16 thIEEE
+Real-Time Systems Symposium , pages 76–87. IEEE Computer Society
+Press, December 1995.
+LPY97. Kim G. Larsen, Paul Pettersson, and Wang Yi. Uppaal in a Nutshell.
+Int. Journal on Software Tools for Technology Transfer , 1(1–2):134–152,
+October 1997.
+LWYP99. Kim G. Larsen, Carsten Weise, Wang Yi, and Justin Pearson. Clock
+Diﬀerence Diagrams. Nordic Journal of Computing , 6(3):271–298, 1999.
+Mil89. R. Milner. Communication and Concurrency . Prentice Hall, Englewood
+Cliﬀs, 1989.
+MLAH99a. J. Møller, J. Lichtenberg, H. R. Andersen, and H. Hulgaard. Diﬀerence
+decision diagrams. In Procee dings 13th International Conference on Com-
+puter Science Logic , volume 1683 of Lecture Notes in Computer Science ,
+pages 111–125, Madrid, Spain, September 1999.
+
+--- Page 20 ---
+22 Gerd Behrmann et al.
+MLAH99b. J. Møller, J. Lichtenberg, H. R. Andersen, and H. Hulgaard. Fully sym-
+bolic model checking of timed systems using diﬀerence decision diagrams.InProcee dings First International Workshop on Symbolic Model Check-
+ing, volume 23-2 of Electronic Notes in Theoretical Computer Science ,
+Trento, Italy, July 1999.
+OG76. S. Owicki and D. Gries. An Axiomatic Proof Technique for Parallel
+Programs I. Acta Informatica , 6(4):319–340, 1976.
+Pet99. Paul Pettersson. Modelling and Analysis of Real-Time Systems Using
+Timed Automata: Theory and Practice . PhD thesis, Department of Com-
+puter Systems, Uppsala University, February 1999.
+PS80. Wolfgang J. Paul and Janos Simon. Decision Trees and Random
+Access Machines. In Logic and Algorithmic , volume 30 of Monogra-
+phie de L’Enseignement Math´ ematique , pages 331–340. L’Enseignement
+Math´ematique, Universit´ e de Gen` eve, 1980.
+Rok93. Tomas Gerhard Rokicki. Representing and Modeling Digital Circuits .
+PhD thesis, Stanford University, 1993.
+SS01. D.P.L. Simons and M.I.A. Stoelinga. Mechanical veriﬁcation of the IEEE
+1394a root contention protocol using Uppaal2k. Springer International
+Journal of Software Tools for Technology Transfer , 2001.
+ST98. Karsten Strehl and Lothar Thiele. Symbolic Model Checking of Pro-
+cess Networks Using Interval Diagram Techniques. In Procee dings of
+the IEEE/ACM International Conference on Computer-Aided Design(ICCAD-98) , pages 686–692, 1998.
+WT95. Howard Wong-Toi. Symbolic Approximations for Verifying Real-Time
+Systems . PhD thesis, Standford University, 1995.

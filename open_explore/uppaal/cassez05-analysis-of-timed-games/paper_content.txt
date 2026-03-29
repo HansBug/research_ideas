@@ -1,0 +1,739 @@
+--- Page 1 ---
+Eﬃcient On-the-ﬂy Algorithms for the Analysis
+of Timed Games
+Franck Cassez1, Alexandre David2, Emmanuel Fleury2, Kim G. Larsen2,
+Didier Lime2
+1IRCCyN, UMR 6597, CNRS, France
+Franck.Cassez@irccyn.ec-nantes.fr
+2Computer Science Department
+CISS (Center for Embedded Software Systems),
+Aalborg University, Denmark
+{adavid,fleury,kgl,didier }@cs.aau.dk
+Abstract. In this paper, we propose a ﬁrst eﬃcient on-the-ﬂy algorithm
+for solving games based on timed game automata with respect t o reach-
+ability and safety properties1.
+The algorithm we propose is a symbolic extension of the on-th e-ﬂy al-
+gorithm suggested by Liu & Smolka [15] for linear-time model -checking
+of ﬁnite-state systems. Being on-the-ﬂy, the symbolic algo rithm may ter-
+minate long before having explored the entire state-space. Also the in-
+dividual steps of the algorithm are carried out eﬃciently by the use of
+so-called zones as the underlying data structure.
+Various optimizations of the basic symbolic algorithm are p roposed as
+well as methods for obtaining time-optimal winning strateg ies (for reach-
+ability games). Extensive evaluation of an experimental im plementation
+of the algorithm yields very encouraging performance resul ts.
+1 Introduction
+On-the-ﬂy algorithms oﬀer the beneﬁt of settling propertie s of individual system
+states ( e.g.an initial state) in a local fashion and without necessarily having to
+generate or examine the entire state-space of the given mode l. For ﬁnite-state
+(untimed) systems the search for optimal (linear) on-the-ﬂ y or local algorithms
+has been a very active research topic since the end of the 80’s [12,4, 15] and is
+one of the most important techniques applied in ﬁnite-state model-checkers using
+enumerative or explicit state-space representation, as is the case with SPIN [10],
+which performs on-the-ﬂy model-checking of LTL properties .
+Also for timed systems, on-the-ﬂy algorithms have been abso lutely crucial
+to the success of model-checking tools such as Kronos [8] and Uppaal [13] in
+their analysis of timed automata based models [2]. Both reac hability, safety as
+well as general liveness properties of such timed models may be decided using
+1Though timed games for long have been known to be decidable th ere has until now
+been a lack of eﬃcient and truly on-the-ﬂy algorithms for the ir analysis.
+
+--- Page 2 ---
+on-the-ﬂy algorithms exploring the reachable state-space in a (symbolic) forward
+manner with the possibility of early termination. More rece ntly, timed automata
+technology has been successfully applied to optimal schedu ling problems with
+guiding and pruning heuristics being added to yield on-the- ﬂy algorithms which
+quickly lead to near-optimal (time- or cost-wise) schedule s [5, 3,11,18].
+We consider timed game automata and how to
+ℓ1
+ℓ2
+ℓ3
+ℓ4Goalℓ5
+x≤1;c1x >1;u1
+x <1
+u2
+x:= 0
+x≥2;c2
+x <1
+u3
+c3x≤1;c4
+Fig.1. A Timed Game Automatondecide the existence of a winning strategy w.r.t.
+reachability or safety. As an example, consider
+the timed game automaton Aof Fig. 1 consist-
+ing of a timed automaton with one clock xand
+two types of edges: controllable ( ci) and uncon-
+trollable ( ui). The reachability game consists in
+ﬁnding a strategy for a controller, i.e.when to
+take the controllable transitions that will guaran-
+tee that the system, regardless of when and if the
+opponent chooses to take uncontrollable transi-
+tions, will eventually end up in the location Goal.
+Obviously, for all initial states of the form ( ℓ1, x)
+withx≤1 there is such a winning strategy2.
+Though such timed game automata for long have been known to be decid-
+able [16,6, 9] there is still a lack of eﬃcient and truly on-th e-ﬂy algorithms for
+their analysis. Most of the suggested algorithms are based o n backwards ﬁx-point
+computations of the set of winning states [16,6,9]. In contr ast, the on-the-ﬂy al-
+gorithms used for model-checking timed automata models ( w.r.t. reachability)
+makes a forward symbolic state-space exploration resultin g in the so-called sim-
+ulation graph . However, the simulation graph is by itself too abstract to b e
+used as the basis for an on-the-ﬂy algorithm for computing wi nning strategies.
+Fig. 2 (a) gives the simulation graph of the timed game automa ta of Fig. 1,
+which incorrectly classiﬁes the initial state as being unco ntrollable when viewed
+as a ﬁnite-state game.
+As a remedy to this problem, the authors of [20,1] propose a pa rtially on-
+the-ﬂy method for solving reachability games for a timed gam e automaton A.
+However, this method involves an extremely expensive prepr ocessing step in
+which the quotient graph of the dense time transition system SAw.r.t. time-
+abstracted bisimulation3needs to be built. Once obtained this quotient graph
+may be used with any on-the-ﬂy game-solving algorithm for un timed (ﬁnite-
+state) systems. As an illustration, Fig. 2 (b) gives the time abstracted quotient
+graph for the timed game automaton of Fig. 1. It should be easy for the reader
+to see that the initial state will now (correctly) be classiﬁ ed as controllable.
+2A winning strategy would consist in taking c1immediately in all states ( ℓ1, x) with
+x≤1; taking c2immediately in all states ( ℓ2, x) with x≥2; taking c3immediately
+in all state ( ℓ3, x) and delaying in all states ( ℓ4, x) with x <1 until the value of xis
+1 at which point the edge c4is taken.
+3A time-abstracted bisimulation is a binary relation on stat es preserving discrete
+states and abstracted delay-transitions.
+2
+
+--- Page 3 ---
+ℓ1, x≥0
+ℓ2, x≥0
+ℓ3, x≥0
+ℓ4, x≥0Goal, x≥2Bad, x≥1
+c1u1
+u2
+c2
+u3
+c3c4
+(a) Simulation Graph1, x <1 ℓ1, x= 1 ℓ1, x >1
+ℓ2, x <1 ℓ2, x= 1 ℓ2, x >1
+ℓ3, x <1 ℓ3, x= 1 ℓ3, x >1
+ℓ4, x <1 ℓ4, x= 1 ℓ4, x >1Goal, x≥2ℓ5, x >1λ λ
+u1
+c1 c1
+λ λ
+λ, c2
+u3
+λ λ
+c3 c3
+λ λu2
+c4 c4
+(b) Time-abstracted Quotient Graph
+Fig.2. Simulation and time-abstracted quotient graph of Fig. 1 ( λis for time elapsing)
+In this paper, we propose an eﬃcient, truly on-the-ﬂy algori thm for the com-
+putation of winning states for timed game automata. Our algo rithm is a sym-
+bolic extension of the on-the-ﬂy algorithm suggested by Liu & Smolka [15] for
+linear-time model-checking of ﬁnite-state systems. Being on-the-ﬂy, the symbolic
+algorithm may terminate before having explored the entire s tate-space, i.e.as
+soon as a winning strategy has been identiﬁed. Also the indiv idual steps of the al-
+gorithm are carried out eﬃciently by the use of so-called zon es as the underlying
+data structure.
+The rest of the paper is organized as follows. Section 2 provi des deﬁnitions
+and preliminaries about timed game automata and classic bac kwards algorithm
+for solving them. Section 3 presents our instantiation of th e general on-the-ﬂy
+algorithm of Liu & Smolka [15] to untimed reachability games . Then, in Section
+4, we present our symbolic extension of this algorithm, prov iding a ﬁrst forward,
+zone-based and fully on-the-ﬂy algorithm for solving timed reachability games.
+Section 5 discusses few optimizations of the basic algorith m and how to apply
+the algorithm to determine time-optimal winning strategie s. Section 6 presents
+experimental evaluation of an eﬃcient implementation of th e algorithm to deter-
+mine (time-optimal) winning strategies. The performance r esults obtained are
+very encouraging. Finally, Section 7 presents conclusion a nd future work and all
+proofs can be found in the Appendix .
+2 Backward Algorithms for Solving Timed Games
+Timed Game Automata [16] (TGA) were introduced for control p roblems on
+timed systems. This section recalls basic results of contro ller synthesis for TGA.
+3
+
+--- Page 4 ---
+LetXbe a ﬁnite set of real-valued variables called clocks. We not eC(X) the
+set of constraints ϕgenerated by the grammar: ϕ::=x∼k|x−y∼k|ϕ∧ϕ
+where k∈Z,x, y∈Xand∼∈ {<,≤,=, >,≥}.B(X) is the subset of C(X) that
+uses only rectangular constraints of the form x∼k. Avaluation of the variables
+inXis a mapping X/mapsto→R≥0(thus RX
+≥0). We write /vector0 for the valuation that
+assigns 0 to each clock. For Y⊆X, we denote by v[Y] the valuation assigning
+0 (resp.v(x)) for any x∈Y(resp.x∈X\Y). We denote v+δforδ∈R≥0
+the valuation s.t.for all x∈X, (v+δ)(x) =v(x) +δ. For g∈ C(X) and
+v∈RX
+≥0, we write v|=gifvsatisﬁes gand [ [g] ] denotes the set of valuations
+{v∈RX
+≥0|v|=g}. AzoneZ is a subset of RX
+≥0s.t.[ [g] ]=Zfor some g∈ C(X).
+2.1 Timed Game Automata & Simulation Graph
+Deﬁnition 1 (Timed Automaton [2]). ATimed Automaton (TA) is a tuple
+A= (L, ℓ0,Act, X, E, Inv)where Lis a ﬁnite set of locations ,ℓ0∈Lis the
+initial location, Actis the set of actions ,Xis a ﬁnite set of real-valued clocks ,
+E⊆L× B(X)×Act×2X×Lis a ﬁnite set of transitions ,Inv:L→ B(X)
+associates to each location its invariant .
+Astate of a TA is a pair ( ℓ, v)∈L×RX
+≥0that consists of a discrete part
+and a valuation of the clocks. From a state ( ℓ, v)∈L×RX
+≥0s.t.v|=Inv(ℓ),
+a TA can either let time progress or do a discrete transition a nd reach a new
+state. This is deﬁned by the transition relation − →built as follows: for a∈Act,
+(ℓ, v)a− − →(ℓ′, v′) if there exists a transition ℓg,a,Y− − − − − → ℓ′inEs.t.v|=g,v′=v[Y]
+andv′|=Inv(ℓ′); forδ≥0, (ℓ, v)δ− − →(ℓ, v′) ifv′=v+δandv, v′∈[ [Inv(ℓ)] ]. Thus
+the semantics of a TA is the labeled transition system SA= (Q, q0,− →) where
+Q=L×RX
+≥0,q0= (ℓ0,/vector0) and the set of labels is Act∪R≥0. Arunof a timed
+automaton Ais a sequence of alternating time and discrete transitions i nSA.
+We use Runs((ℓ, v), A) for the set of runs that start in ( ℓ, v). We write Runs(A)
+forRuns((ℓ0,/vector0), A). Ifρis a ﬁnite run we denote last(ρ) the last state of the run
+andDuration (ρ) the total elapsed time all along the run.
+The analysis of TA is based on the exploration of a ﬁnite graph , thesimulation
+graph, where the nodes are symbolic states ; a symbolic state is a pair ( ℓ, Z) where
+ℓ∈LandZis a zone of RX
+≥0. LetX⊆Qanda∈Actwe deﬁne the a-successor of
+XbyPost a(X) ={(ℓ′, v′)| ∃(ℓ, v)∈X,(ℓ, v)a− − →(ℓ′, v′)}and the a-predecessor
+Pred a(X) ={(ℓ, v)| ∃(ℓ′, v′)∈X,(ℓ, v)a− − →(ℓ′, v′)}. The timed successors and
+predecessors of Xare respectively deﬁned by Xր={(ℓ, v+d)|(ℓ, v)∈X∩
+[ [Inv(ℓ)] ], (ℓ, v+d)∈[ [Inv(ℓ)] ], d∈R≥0}andXւ={(ℓ, v−d)|(ℓ, v)∈X, d ∈
+R≥0}. Let→be the relation deﬁned on symbolic states by: ( ℓ, Z)a− − →(ℓ′, Z′) if
+(ℓ, g, a, Y, ℓ′)∈EandZ′= ((Z∩[ [g] ])[Y])ր. The simulation graph SG(A) ofA
+is deﬁned as the transition system ( Z(Q), S0,→), where Z(Q) is the set of zones
+ofQ,S0= (({ℓ0,/vector0}ր)∩[ [Inv(ℓ0)] ] and →deﬁned as above.
+Deﬁnition 2 (Timed Game Automaton [16]). ATimed Game Automa-
+ton (TGA) Gis a timed automaton with its set of actions Actpartitioned into
+controllable (Actc) and uncontrollable (Actu) actions.
+4
+
+--- Page 5 ---
+2.2 Safety and Reachability Games
+Given a TGA Gand a set of states K⊆L×RX
+≥0thereachability control problem
+consists in ﬁnding a strategy fs.t.Gsupervised by fenforces K. The safety
+control problem is the dual asking for the strategy to constantly avoid K. By
+“a reachability game ( G, K)” (resp.safety) we refer to the reachability ( resp.
+safety) control problem for GandK.
+Let (G, K) be a reachability (resp. safety) game. A ﬁnite or inﬁnite (r uling
+out runs with an inﬁnite number of consecutive time transiti ons of duration 0)
+runρ= (ℓ0, v0)e0− →(ℓ1, v1)e1− → · · ·en− →(ℓn+1, vn+1)· · ·inRuns(G) iswinning if
+there is some k≥0s.t.(ℓk, vk)∈K(resp. for all k≥0s.t.(ℓk, vk)∈K). The
+set of winning runs in Gfrom ( ℓ, v) is denoted WinRuns ((ℓ, v), G).
+For reachability games we assume w.l.o.g. that the goal is a p articular location
+Goal. For safety games the goal is a set a locations to avoid.
+The formal deﬁnition of the control problems is based on the d eﬁnitions of
+strategies andoutcomes . A strategy [16] is a function that during the course
+of the game constantly gives information as to what the contr oller should do
+in order to win the game. In a given situation, the strategy co uld suggest the
+controller to either i) “do a particular controllable actio n” or ii) “do nothing at
+this point in time, just wait” which will be denoted by the spe cial symbol λ.
+Deﬁnition 3 (Strategy). LetG= (L, ℓ0,Act, X, E, Inv)be a TGA. A strategy
+foverGis a partial function from Runs(G)toActc∪ {λ}s.t.for every ﬁnite
+runρ, iff(ρ)∈Actcthen last (ρ)f(ρ)− − − → SG(ℓ′, v′)for some (ℓ′, v′).
+We denote Strat(G) the set of strategies over G. A strategy fisstate-based
+whenever ∀ρ, ρ′∈Runs(G),last(ρ) =last(ρ′) implies that f(ρ) =f(ρ′). State-
+based strategies are also called memoryless strategies in game theory [9,19].
+The restricted behavior of a TGA Gcontrolled with some strategy fis deﬁned
+by the notion of outcome [9].
+Deﬁnition 4 (Outcome). LetG= (L, ℓ0,Act, X, E, Inv)be a TGA and fa
+strategy over G. The outcome Outcome (q, f)offfromqinSGis the subset of
+Runs(q, G)deﬁned inductively by:
+–q∈Outcome (q, f),
+–ifρ∈Outcome (q, f)thenρ′=ρe− − →q′∈Outcome (q, f)ifρ′∈Runs(q, G)
+and one of the following three conditions hold:
+1.e∈Actu,
+2.e∈Actcande=f(ρ),
+3.e∈R≥0and∀0≤e′< e,∃q′′∈Qs.t.last(ρ)e′
+− − →q′′∧f(ρe′
+− − →q′′) =λ.
+–for an inﬁnite run ρ,ρ∈Outcome (q, f)if all the ﬁnite preﬁxes of ρare in
+Outcome (q, f).
+We assume that uncontrollable actions can only spoil the gam e and the con-
+troller has to do some controllable action to win [6, 16,11]. In other words, an
+uncontrollable action cannot be forced to happen in G. Thus, a run may end in
+5
+
+--- Page 6 ---
+a state where only uncontrollable actions can be taken. More over we focus on
+reachability games and assume K={Goal}×RX
+≥0. Amaximal run ρis either an
+inﬁnite run (supposing no inﬁnite sequence of delay transit ions of duration 0) or
+a ﬁnite run ρthat satisﬁes either i) last(ρ)∈Kor ii) if ρa− − →thena∈Actu(i.e.
+the only possible next discrete actions from last(ρ), if any, are uncontrollable
+actions).
+A strategy fiswinning from qif all maximal runs in Outcome (q, f) are in
+WinRuns (q, G). A state qin a TGA Giswinning if there exists a winning strat-
+egyffromqinG. We denote by W(G) the set of winning states in Gand
+WinStrat (q, G) the set of winning strategies from qoverG.
+2.3 Backwards Algorithms for Solving Timed Games
+LetG= (L, ℓ0,Act, X, E, Inv) be a TGA. For reachability games, the computa-
+tion of the winning states is based on the deﬁnition of a controllable predecessor
+operator [9,16]. The controllable and uncontrollable disc rete predecessors of X
+are deﬁned by cPred(X) =/uniontext
+c∈ActcPred c(X) anduPred(X) =/uniontext
+u∈ActuPred u(X).
+A notion of safetimed predecessors of a set Xw.r.t. a setYis also needed. Intu-
+itively a state qis inPred t(X, Y) if from qwe can reach q′∈Xby time elapsing
+and along the path from qtoq′we avoid Y. Formally this is deﬁned by:
+Pred t(X, Y)={q∈Q| ∃δ∈R≥0s.t.qδ− →q′, q′∈XandPost[0,δ](q)⊆Y}(1)
+where Post[0,δ](q) ={q′∈Q| ∃t∈[0, δ]s.t.qt− − →q′}andY=Q\Y. The
+controllable predecessors operator πis deﬁned as follows4:
+π(X) =Pred t/parenleftbig
+X∪cPred(X),uPred(X)/parenrightbig
+(2)
+Let (G, K) be a reachability game, if Sis a ﬁnite union of symbolic states, then
+π(S) is again a ﬁnite union of symbolic states. Moreover the iter ative process
+given by W0=KandWn+1=π(Wn) will converge after ﬁnitely many steps
+for TGA [16] and the least ﬁxed point obtained is W∗. It is also proved in [16]
+thatW∗=W(G). Note also that W∗is the maximal set of winning states of G
+i.e.a state is winning iﬀ it is in W∗. Thus there is a winning strategy in Giﬀ
+(ℓ0,/vector0)∈W∗. Altogether this gives a symbolic algorithm for solving rea chability
+games. Extracting strategies can be done using the winning s et of states W∗.
+For safety games ( G, K), it suﬃces to swap the roles of the players leading to
+a game Gand solve a reachability game ( G,K). If the winning set of states for
+(G,K) isWthen the winning set of states of ( G, K) isW.
+3 On-the-ﬂy Algorithm for Untimed Games
+For ﬁnite-state systems, on-the-ﬂy model-checking algori thms has been an ac-
+tive and successful research area since the end of the 80’s, w ith the algorithm
+4Note that πis deﬁned here such that uncontrollable actions cannot be us ed to win.
+6
+
+--- Page 7 ---
+proposed by Liu & Smolka [15] being particularly elegant (an d optimal). We
+present here our instantiation of this algorithm to untimed reachability games.
+We consider untimed games as a restricted class of timed game s with only
+ﬁnitely many states Qand with only discrete actions, i.e.the set of labels is
+Act. Hence (memoryless) strategies simpliﬁes to a choice of con trollable action
+given the current state, i.e.f:Q− →Actc. For (untimed) reachability games we
+assume a designated set Goalof goal-states and the purpose of the analysis is
+to decide the existence of a strategy fwhere all runs contains at least one state
+fromGoal.
+Now, our instantiation OTFUR of the local algorithm by Liu & S molka
+to untimed reachability games is given in Fig. 3. This algori thm is based on
+a waiting-list, Waiting ⊆Eofedges waiting to be explored together with a
+passed-list Passed ⊆Qcontaining the states that have been encountered so far.
+Information about the current winning status of a state is gi ven by a function
+Win:Passed → {0,1}, where Win[q] is initialized to 0 and later potentially
+upgraded to 1 when the winning status of successors to qchange from 0 to 1.
+To activate the reevaluation of the winning status of states , each state qhas
+an associated set of edges Depend [q]depending on it: at any stage Depend [q]
+contains all edges ( q′, α, q) that was encountered at a moment when Win[q] =
+0 and where the winning status of the source state q′must be scheduled for
+reevaluation at the movement Win[q] = 1 becomes true. We refer to [15] for
+the formal proof of correctness of this algorithm summarize d by the following
+theorem:
+Theorem 1 ([15]). Upon termination of running the algorithm OTFUR on a
+given untimed game Gthe following holds:
+1. Ifq∈Passed andWin[q] = 1thenq∈ W(G);
+2. IfWaiting =∅andWin[q] = 0thenq/\e}atio\slash∈ W(G).
+In fact, the ﬁrst property is an invariant of the while -statement holding
+after each iteration. Also, the algorithm is optimal in that it has linear time
+complexity in the size of the underlying untimed game: it is e asy to see that
+each edge e= (q, α, q′) will be added to Waiting at most twice, the ﬁrst time
+qis encountered (and added to Passed ) and the second time when Win[q′]
+changes winning status from 0 to 15.
+4 On-the-ﬂy Algorithm for Timed Games
+Now let us turn our attention to the timed case and present our symbolic exten-
+sion of the algorithm of Liu & Smolka providing a zone-based f orward and on-
+the-ﬂy algorithm for solving timed reachability games. The algorithm, SOTFTR,
+5To obtain an algorithm running in linear time in the size of G(i.e.|Q|+|E|) it is
+important that the reevaluation of the winning status of a st ateqdoes not directly
+involve (repeated and expensive) evaluation of the large bo olean expression for Win∗.
+In a practice, this may be avoided by adding a boolean bqand a counter cqrecording
+the existence of a winning, controllable successor of q, and the number of winning,
+uncontrollable successor of q.
+7
+
+--- Page 8 ---
+Initialization:
+Passed←{q0};
+Waiting←{(q0, α, q′)|α∈Act qα− →q′};
+Win[q0]←(q0∈Goal? 1 : 0);
+Depend [q0]←∅;
+Main:
+while ((Waiting/\e}atio\slash=∅)∧Win[q0]/\e}atio\slash= 1))do
+e= (q, α, q′)←pop(Waiting );
+ifq′/\e}atio\slash∈Passed then
+Passed←Passed∪{q′};
+Depend [q′]←{(q, α, q′)};
+Win[q′]←(q′∈Goal? 1 : 0);
+Waiting←Waiting∪{(q′, α, q′′)|q′α− →q′′};
+ifWin[q′]then Waiting←Waiting∪{e};
+else (* reevaluate *)
+Win∗←
+/CE
+qu− →uWin[u]∧
+/CF
+qc− →wWin[w];
+ifWin∗then
+Waiting←Waiting∪Depend [q];Win[q]←1;
+ifWin[q′] = 0then Depend [q′]←Depend [q′]∪{e};
+endif
+endwhile
+Fig.3. OTFUR: On-The-Fly Algorithm for Untimed Reachability Games
+is given in Fig. 4 and may be viewed as an interleaved combinat ion of forward
+computation of the simulation graph of the timed game automaton together with
+back-propagation of information of winning states . As in the untimed case the
+algorithm is based on a waiting-list, Waiting , of edges in the simulation-graph
+to be explored, and a passed-list, Passed , containing all the symbolic states of
+the simulation-graph encountered so far by the algorithm.
+The crucial point of our symbolic extension is that the winni ng status Win[q]
+of an individual state qis replaced by a set Win[S]⊆Sidentifying the subset of
+the symbolic state Swhich is currently known to be winning. The set Depend [S]
+indicates the set of edges (or predecessors of S) which must be reevaluated
+(i.e. added to Waiting ) when new information about Win[S] is obtained (i.e.
+when Win[S]/subsetnoteqlWin∗). Whenever an edge e= (S, α, S′) is considered with
+S′∈Passed , the edge eis added to the dependency set of S′in order that
+possible future information about additional winning stat es within S′may also
+be back-propagated to S. In Table 1, we illustrate the forward exploration and
+backwards propagation steps of the algorithm.
+The correctness of the symbolic on-the-ﬂy algorithm SOTFTR is given by
+the following lemma and theorem, the rigorous proofs of whic h can be found in
+the appendix.
+8
+
+--- Page 9 ---
+Initialization:
+Passed←{S0}where S0={(ℓ0,/vector0)}ր;
+Waiting←{(S0, α, S′)|S′=Post α(S0)ր};
+Win[S0]←S0∩({Goal}× /CAX
+≥0);
+Depend [S0]←∅;
+Main:
+while ((Waiting/\e}atio\slash=∅)∧(s0/\e}atio\slash∈Win[S0]))do
+e= (S, α, S′)←pop(Waiting );
+ifS′/\e}atio\slash∈Passed then
+Passed←Passed∪{S′};
+Depend [S′]←{(S, α, S′)};
+Win[S′]←S′∩({Goal}× /CAX
+≥0);
+Waiting←Waiting∪{(S′, α, S′′)|S′′=Post α(S′)ր};
+ifWin[S′]/\e}atio\slash=∅then Waiting←Waiting∪{e};
+else (* reevaluate *)a
+Win∗←Pred t(Win[S]∪
+/CB
+Sc− →TPred c(Win[T]),/CB
+Su− →TPred u(T\Win[T]))∩S;
+if(Win[S] /B4Win∗)then
+Waiting←Waiting∪Depend [S];Win[S]←Win∗;
+Depend [S′]←Depend [S′]∪{e};
+endif
+endwhile
+aWhen T/\e}atio\slash∈Passed ,Win[T] =∅
+Fig.4. SOTFTR: Symbolic On-The-Fly Algorithm for TimedReachability Games
+Lemma 1. Thewhile-loop of algorithm SOTFTR has the following invariance
+properties when running on a timed game automaton G:
+1. For any S∈Passed ifSα− →S′then either (S, α, S′)∈Waiting orS′∈
+Passed and(S, α, S′)∈Depend [S′]
+2. Ifq∈Win[S]for some S∈Passed thenq∈ W(G)
+3. Ifq∈S\Win[S]for some S∈Passed then either
+–e∈Waiting for some e= (S, α, S′)withS′∈Passed ,
+or
+–q/\e}atio\slash∈Pred t/bracketleftbig
+Win[S]∪/uniontext
+Sc− →TPred c(Win[T]),/uniontext
+Su− →TPred u(T\Win[T])/bracketrightbig
+.
+Theorem 2. Upon termination of running the algorithm SOTFTR on a given
+timed game automaton Gthe following holds:
+1. Ifq∈Win[S]for some S∈Passed thenq∈ W(G);
+2. IfWaiting =∅,q∈S\Win[S]for some S∈Passed thenq/\e}atio\slash∈ W(G).
+Termination of the algorithm SOTFTR is guaranteed by the ﬁni teness of
+symbolic states6and the fact that each edge ( S, α, T ) will be present in the
+6Strictly speaking, this requires that we either transforms the given TGA into an
+equivalent one in which all location-invariants insist on a n upper bound on all clocks
+or, alternatively, that we apply standard extrapolation w.r.t. maximal constant oc-
+curring in the TGA (which is correct up to time-abstracted bi simulation).
+9
+
+--- Page 10 ---
+Steps Waiting Passed Depend Win
+#SS′
+0--(S0, u1, S1),(S0, u2, S2),(S0,c1,S3)S0 - (S0,∅)
+1S0S3(S0, u1, S1),(S0, u2, S2)
++ (S3,c1,S4),(S3, u3, S2)S3 S3/mapsto→(S0, c1, S3)(S3,∅)
+2S3S4(S0, u1, S1),(S0, u2, S2),(S3, u3, S2)
++ (S3,c2,S4)S4 S4/mapsto→(S3, c2, S4)(S4, S4)
+3S3S4(S0, u1, S1),(S0, u2, S2),(S3, u3, S2)
++ (S0,c1,S3)- - (S3, x≥1)
+4S0S3(S0, u1, S1),(S0, u2, S2),(S3,u3,S2)S4 S3/mapsto→(S0, c1, S3)(S0, x= 1)
+5S3S2(S0, u1, S1),(S0, u2, S2)
++ (S2,c3,S5)S2 S2/mapsto→(S3, u3, S2)(S2,∅)
+6S2S5(S0, u1, S1),(S0, u2, S2)
++ (S5,c4,S3)S5 S5/mapsto→(S2, c3, S2)(S5,∅)
+7S5S3(S0, u1, S1),(S0, u2, S2)
++ (S2,c3,S5)- S3/mapsto→(S2, c3, S2)
+(S5, c4, S3)(S5, x≤1)
+8S2S5(S0, u1, S1),(S0, u2, S2)
++ (S3,u3,S2)- S5/mapsto→(S2, c3, S2)(S2, x≤1)
+9S3S2(S0, u1, S1),(S0,u2,S2)
++ (S0, c1, S3),(S5, c4, S3)- - (S3, S3)
+10S0S2(S0, u1, S1),(S0, c1, S3),(S5,c4,S3) - S2/mapsto→(S3, u3, S2)
+(S0, u2, S2)(S0, x≤1)
+11S5S3 (S0, u1, S1),(S0,c1,S3) - - -
+12S0S3 (S0,u1,S1) - - -
+13S0S1 ∅ S1 S1/mapsto→(S0, u1, S1)(S1,∅)
+At step n, (S, α,S′) is the transition popped at step n+ 1;
+At step n, +(S, α, S′) the transition added to Waiting at step n;
+Symbolic States: S0= (ℓ1, x≥0),S1= (ℓ5, x >1),S2= (ℓ3, x≥0),S3= (ℓ2, x≥0),
+S4= (Goal, x≥2),S5= (ℓ4, x≥0)
+Table 1. Running SOTFTG
+Waiting -list at most 1 + |T|times, where |T|is the number of regions of T:
+(S, α, T ) will be in Waiting the ﬁrst time that Sis encountered and subse-
+quently each time the value of Win[T] increases. Now, any given region may be
+contained in several symbolic states of the simulation grap h (due to overlap).
+Thus the SOTFTR algorithm is notlinear in the region-graph and hence not
+theoretically optimal, as an algorithm with linear worst-c ase time-complexity
+could be obtained by applying the untimed algorithm directl y to the region-
+graph. However, this is only a theoretical result and, as we s hall see, the use of
+zones yields very encouraging performance results in pract ice, as is the case for
+reachability analysis of timed automata.
+5 Implementation, Optimizations and Extensions
+5.1 Implementation of the Pred tOperator with Zones
+In order to be eﬃcient, the algorithm SOTFTR manipulates zon es. However,
+while a forward step always gives a single zone as a result, th ePred toperator
+does not. So, given a symbolic state S,Win[S] is, in general, an union of zones
+(and so is S\Win[S]). As a consequence, we now give two results, which allow
+us to handle unions of zones (Theorem 3) and to deﬁne the compu tation of Pred t
+in terms of basic operations on zones (Theorem 4).
+10
+
+--- Page 11 ---
+Theorem 3. The following distribution law holds:
+Pred t(/uniondisplay
+iGi,/uniondisplay
+jBj) =/uniondisplay
+i/intersectiondisplay
+jPred t(Gi, B) (3)
+Theorem 4. IfBis a convex set, then the Pred toperator deﬁned in equation (1)
+can be expressed as:
+Pred t(G, B) = (Gւ\Bւ)∪((G∩Bւ)\B)ւ(4)
+5.2 Optimizations
+Zone Inclusion. When we explore forward the automaton, we check if any
+newly generated symbolic state S′belongs to the passed list: S′∈Passed . As
+an optimization we may instead use the classical inclusion c heck: ∃S′′∈Passed
+s.t.S′⊆S′′, in which case, S′is discarded and we update the dependency graph
+as well. Indeed, new information learned from the successor s ofS′′can be new
+information on S′but not necessarily. This introduces an overhead in the sens e
+that we may back-propagate information for nothing.
+On the other hand, back-propagating only the relevant infor mation would be
+unnecessarily complex and would void most of the memory gain introduced by
+the use of inclusion. In practice, the reduction of the numbe r of forward steps
+obtained by the inclusion check pays oﬀ for large systems and is a little overhead
+otherwise, as shown in our experiments.
+Losing states. In the case of reachability games we can sometimes decide at an
+early stage that a state qis losing ( i.e.q/\e}atio\slash∈ W(SG)), either because it is given
+as a part of the model in the same way as goal states, or because it is deadlock
+state, which is not in the set of goal states.
+The detection of such losing states has a two-fold beneﬁt. Fi rst, we can stop
+the forward exploration on these states, since we know that w e have lost (in the
+case of a user-deﬁned non-deadlock losing state). Second, w e can back-propagate
+these losing states in the same way as we do for winning states and stop the
+algorithm if we have the initial state s0∈Lose[S0], where Lose[S] is the subset
+of the symbolic state Scurrently known to be losing. In some cases, this can
+bring a big beneﬁt, illustrated by Fig. 1, if the guard x <1 is changed to true
+in the edge from ℓ1toℓ5.
+Pruning. In the basic algorithm early termination takes place when th e initial
+state is known to be winning ( i.e.s0∈Win[S0]). However, we may extend
+this principle to other parts of the algorithm. In particula r, we can add the
+condition that whenever an edge e= (S, α, S′) is selected and it turns out
+thatWin[S] =Sthen we may safely skip the rest of the while loop as we
+know that no further knowledge on the winning states of Scan be gained. In
+doing so, we prune unnecessary continued forward explorati on and/or expensive
+reevaluation. When we back-propagate losing states as desc ribed previously, the
+condition naturally extends to Win[S]∪Lose[S] =S.
+11
+
+--- Page 12 ---
+5.3 Time Optimal Strategy Synthesis
+Time-optimality for reachability games consists in comput ing the best (optimal)
+time the controller can guarantee to reach the Goallocation: if t∗is the optimal-
+time, the controller has a strategy that guarantees to reach location Goalwithin
+t∗time units whatever the opponent is doing, and moreover, the controller has
+no strategy to guarantee this for any t < t∗.
+First consider the following problem: decide whether z
+5
+3
+x 0 1
+Fig.5. Winning subset
+of the initial zone of
+the TGA of Fig. 1 with
+clock zadded.the controller has a strategy to reach location Goal
+within Btime units. To solve this problem, we just
+add a fresh clock zto the TGA Gand the invari-
+antInv(ℓ)≡z≤Bfor all locations ℓwithzbeing
+unconstrained in the initial state. Then we compute
+the set of winning states of this game and check that
+(ℓ0,/vector0, z= 0) is actually a winning state. If not, try with
+some B′> B. Otherwise we know that the controller
+can guarantee to reach Goalwithin Btime units . .. but
+in addition we have the optimal-time to reach Goal7.
+Indeed, when computing the winning set of states W∗
+on the TGA Gaugmented with the zclock (being ini-
+tially unconstrained), we have the maximal set of winning st ates. This means
+that we obtain some ( ℓ0, Z0)∈W∗and (ℓ0,/vector0, z= 0)∈(ℓ0, Z0). But Z0∩{(ℓ0,/vector0)}
+gives us for free the optimal-time to reach Goal. Assume I=Z0∩ {(ℓ0,/vector0)}, then
+0∈Iand the upper bound of Iis less than B. This means that starting in ( ℓ0,/vector0)
+withz∈Ithe controller can guarantee to reach Goalwithin Btime units. And
+asW∗is the maximal set of winning states, starting with z/\e}atio\slash∈Icannot guar-
+antee this any more. Assume I= [0, b]. The optimal-time is then t∗=B−b.
+If it turns out that Iis right open [0 , b[, we even know more: that this optimal
+timet∗cannot be achieved by any strategy, but we can reach Goalin a time
+arbitrarily close to t∗. On the example of Fig. 1, if we choose B= 5 we obtain
+a closed interval I= [0,3] giving the optimal time t∗= 2 to reach Goal(Fig. 5).
+Moreover we know that there is a strategy that guarantees thi s optimal.
+6 Experiments
+Several versions of the described timed game reachability a lgorithm have been
+implemented: with or without inclusion checking between zo nes, with or with-
+out back-propagation of the losing states, and with or witho ut pruning. To
+benchmark the implementations we used the Production Cell [ 14,17] case study
+(Fig. 6). Unprocessed plates arrive on a feeding belt, are ta ken by a robot to a
+press, are processed, and are taken away to a departure belt. The robot has two
+arms (A and B) to take and release the plates and its actions ar e controllable,
+except for the time needed to rotate. The arrival of the plate s and the press are
+uncontrollable.
+We run experiments on a dual-Xeon 2.8GHz equipped with 3GB of RAM
+running Linux 2.4.21. Table 2 shows the obtained results. Th e tests are done
+7To get an optimum, the condition of the while -loop must be Waiting/\e}atio\slash=∅alone in
+the algorithm, disabling early termination.
+12
+
+--- Page 13 ---
+with varying number of plates from 2 to 7, and with controllab le (win) and
+uncontrollable (lose) conﬁgurations. The models contain f rom 4 to 10 clocks.
+The inclusion checking of zones
+/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0
+/1/1/1/1/1/1
+/0/0/0/0/0/0
+/1/1/1/1/1/1
+/0/0/0/0/0/0
+/1/1/1/1/1/1/0/0/0/0
+/1/1/1/1
+/0/0/0/0
+/1/1/1/1
+AVAILABLEPRESSMIN_ROT..MAX_ROT
+Arriving unprocessed platesLeaving processed plates
+MIN_INI..MAX_INI
+ARRIVINGB
+A
+Fig.6. The production cellis shown to be an important op-
+timization. Furthermore, activat-
+ing pruning, which really exploits
+that the algorithm is on-the-ﬂy ,
+is useful in practice: the algorithm
+really terminates earlier. The re-
+sults for time optimal reachabil-
+ity conﬁrm that the algorithm is
+exploring the whole state-space
+and is comparable to exploring
+without pruning. We stress in the
+tables the best result obtained
+for every conﬁguration: it turns
+out that propagating back the losing states has a signiﬁcant overhead that pays
+oﬀ for large systems, i.e.it is clearly better from 6 plates.
+Plates Basic Basic +inc Basic +inc Basic+lose +inc Basic+lose +inc
++pruning +pruning +topt
+time mem time mem time mem time mem time mem
+win0.0s 1M 0.0s 1M 0.0s 1M 0.0s 1M 0.04s 1M2lose0.0s 1M 0.0s 1M 0.0s 1M 0.0s 1M n/a n/a
+win0.5s 19M 0.0s 1M 0.0s 1M 0.1s 1M 0.27s 4M3lose1.1s 45M 0.1s 1M 0.0s 1M 0.2s 3M n/a n/a
+win33.9s 1395M 0.2s 8M 0.1s 6M 0.4s 5M 1.88s 13M4lose - - 0.5s 11M 0.4s 10M 0.9s 9M n/a n/a
+win - - 3.0s 31M 1.5s 22M 2.0s 16M 13.35s 59M5lose - -11.1s 61M 5.9s 46M 7.0s 41M n/a n/a
+win - -89.1s 179M 38.9s 121M 12.0s 63M 220.3s 369M6lose - -699s 480M 317s 346M 135.1s 273M n/a n/a
+win - -3256s 1183M 1181s 786M 124s 319M 6188s 2457M7lose - - - -16791s 2981M 4075s 2090M n/a n/a
+Table 2. Results for the diﬀerent implementations: basic algorithm , then with inclusion
+checking (inc), pruning (pruning), back propagation of los ing states (lose) and time
+optimal strategy generation (topt, only for “win”, and prun ing has little eﬀect). Time
+(user process) is given in seconds (s) rounded to 0.1s and mem ory in megabytes (M).
+’-’ denotes a failed run (not enough memory). Results in bold font are the best ones.
+The state-space grows exponentially with respect to the num ber of plates but
+the algorithm keeps up linearly with it, which is shown on Fig . 7 that depicts
+pre+post8. These results show that the algorithm based on zones behave s well
+despite the fact that zones are (in theory) worse than region s.
+8pre+postrepresents the number of iterations of the algorithm and is t herefore an
+abstraction in both time and space of the implementation.
+13
+
+--- Page 14 ---
+ 100 1000 10000 100000 1e+06 1e+07
+ 2  3  4  5  6  7Iterations
+PlatesScalability
+Bad, winning
+Good, winning
+Bad, losing
+Good, losing
+Fig.7. Scalability of the algorithm. The scale is logarithmic.
+7 Conclusion and Future Work
+In this paper we have introduced what we believe is the ﬁrst co mpletely on-the-
+ﬂy algorithm for solving timed games. For its eﬃcient implem entation we have
+used zones as the main datastructure, and we have applied dec isive optimiza-
+tions to take full advantage of the on-the-ﬂy nature of our al gorithm and its
+zone representation. Experiments have shown that an implem entation based on
+zones is feasible and with encouraging performances w.r.t. the complexity of the
+problem. Finally, we have exhibited how to obtain the time op timal strategies
+with minor additions to our algorithm (essentially book-ke eping).
+We are working on an improved version of the implementation t o distribute
+it and use the Uppaal GUI augmented with (un)controllable transitions. We are
+investigating more aggressive abstractions for the underl ying simulation graph
+computed by our algorithm and eﬃcient guiding of the search, in particular for
+optimal strategies. Our algorithm is well suited for distri buted implementation
+by its use of unordered waiting-list and there are plans to pu rsue this directions as
+has been done for Uppaal [7]. We are also investigating how to extract strategies
+and represent them compactly with CDDs (Clock Decision Diag rams).
+Acknowledgments. The authors want to thank Patricia Bouyer and Gerd
+Behrmann for inspiring discussions on the topic of timed gam es.
+References
+1. K. Altisen and S. Tripakis. Tools for controller synthesi s of timed systems. In
+Proc. 2nd Work. on Real-Time Tools (RT-TOOLS’02) , 2002. Proc. published as
+Technical Report 2002-025, Uppsala University, Sweden.
+14
+
+--- Page 15 ---
+2. R. Alur and D. Dill. A theory of timed automata. Theoretical Computer Science ,
+126(2):183–235, 1994.
+3. R. Alur, S. La Torre, and G. J. Pappas. Optimal Paths in Weig hted Timed
+Automata. In Proc. of 4thWork. Hybrid Systems: Computation and Control
+(HSCC’01) , volume 2034 of LNCS , pages 49–62. Springer, 2001.
+4. Henrik R. Andersen. Model Checking and Boolean Graphs. Theoretical Computer
+Science , 126(1):3–30, 1994.
+5. E. Asarin and O. Maler. As Soon as Possible: Time Optimal Co ntrol for Timed Au-
+tomata. In Proc. 2nd Work. Hybrid Systems: Computation & Control (HSCC ’99),
+volume 1569 of LNCS , pages 19–30. Springer, 1999.
+6. E. Asarin, O. Maler, A. Pnueli, and J. Sifakis. Controller Synthesis for Timed
+Automata. In Proc. IFAC Symp. on System Structure & Control , pages 469–474.
+Elsevier Science, 1998.
+7. Gerd Behrmann. Distributed reachability analysis in tim ed automata. Journal of
+Software Tools for Technology Transfer (STTT) , 7(1):19–30, 2005.
+8. M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine. Kronos : a
+Model-Checking Tool for Real-Time Systems. In Proc. 10thConf. on Computer
+Aided Veriﬁcation (CAV’98) , volume 1427 of LNCS , pages 546–550. Springer, 1998.
+9. L. De Alfaro, T. A. Henzinger, and R. Majumdar. Symbolic Al gorithms for Inﬁnite-
+State Games. In Proc. 12thConf. on Concurrency Theory (CONCUR’01) , volume
+2154 of LNCS , pages 536–550. Springer, 2001.
+10. Gerard J. Holzmann. The SPIN Model Checker . Addison-Wesley, 2003.
+11. S. La Torre, S. Mukhopadhyay, and A. Murano. Optimal-Rea chability and Control
+for Acyclic Weighted Timed Automata. In Proc. 2ndIFIP Conf. on Theoretical
+Computer Science (TCS 2002) , volume 223, pages 485–497. Kluwer, 2002.
+12. K. G. Larsen. Eﬃcient Local Correctness Checking. In Proc. of Conf. of Computer
+Assisted Veriﬁcation (CAV’92) , volume 663 of LNCS , pages 30–43. Springer, 1992.
+13. K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a Nutshell. Journal of Software
+Tools for Technology Transfer (STTT) , 1(1-2):134–152, 1997.
+14. C. Lewerentz and T. Lindner. Production Cell: A Comparat ive Study in Formal
+Speciﬁcation and Veriﬁcation. In Methods, Languages & Tools for Construction of
+Correct Software , volume 1009 of LNCS , pages 388–416. Springer, 1995.
+15. X. Liu and S. Smolka. Simple Linear-Time Algorithm for Mi nimal Fixed Points. In
+Proc. 26thConf. on Automata, Languages and Programming (ICALP’98) , volume
+1443 of LNCS , pages 53–66. Springer, 1998.
+16. O. Maler, A. Pnueli, and J. Sifakis. On the synthesis of di screte controllers for
+timed systems. In Proc. 12thSymp. on Theoretical Aspects of Computer Science
+(STACS’95) , volume 900, pages 229–242. Springer, 1995.
+17. H. Melcher and K. Winkelmann. Controller Synthesis for t he “Production Cell”
+Case Study. In Proc. of 2ndWork. on Formal Methods in Software Practice , pages
+24–36. ACM Press, 1998.
+18. J. Rasmussen, K. G. Larsen, and K. Subramani. Resource-o ptimal scheduling
+using priced timed automata. In Proc. 10thConf. on Tools and Algorithms for the
+Construction and Analysis of Systems (TACAS’04) , volume 2988 of LNCS , pages
+220–235. Springer, 2004.
+19. W. Thomas. On the Synthesis of Strategies in Inﬁnite Game s. InProc. 12thSymp.
+on Theoretical Aspects of Computer Science (STACS’95) , volume 900, pages 1–13.
+Springer, 1995. Invited talk.
+20. S. Tripakis and K. Altisen. On-the-Fly Controller Synth esis for Discrete and Timed
+Systems. In Proc. of World Congress on Formal Methods (FM’99) , volume 1708
+ofLNCS , pages 233–252. Springer, 1999.
+15

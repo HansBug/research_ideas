@@ -1,0 +1,1032 @@
+--- Page 1 ---
+Checking&DistributingStatisticalModel
+Checking⋆
+PeterBulychev1,AlexandreDavid1,KimG.Larsen1,AxelLegay2,
+MariusMikuˇcionis1,DannyBøgstedPoulsen1,
+1ComputerScience,AalborgUniversity,Denmark
+2INRIA/IRISA,RennesCedex,France
+Abstract.Inthispaperweproposeageneralframeworkfordistributed
+statisticalmodelcheckingofnetworksofpricedtimedautomata.The
+ﬁrstcontributionisanewalgorithmtodistributesequentialhypot hesis
+testingwithoutintroducingbiasintheresults.Thesecondcont ributionis
+animplementationofthisalgorithmin Uppaal.Themajorcontribution
+isanexperimentalandanalyticalevaluationoftheapproachthrough
+casestudies,includingananalysisoftheSMCalgorithmitself.
+1 Introduction
+StatisticalModelCheckingtechniques (SMC)[8,12,17],canbeseenasatrade-
+oﬀbetweentestingandformalveriﬁcation.Thecoreideaoftheapproachisto
+conductsomesimulationsofthesystemandverifyiftheysatisfysomegiven
+property.Theresultsarethenusedtogetherwithstatisticalalgorithmsin order
+todecidewhetherthesystemsatisﬁesthepropertywithsomeprobability.Statis-
+ticalmodelcheckingtechniquescanalsobeusedtoestimatetheprobabilitythat
+asystemsatisﬁesagivenproperty[8,6].Ofcourse,incontrasttoanexhaust ive
+approach,asimulation-basedsolutiondoesnotguaranteeacorrectresultwith
+100%conﬁdence.However,itispossibletoboundtheprobabilityofmakingan
+error.SMCgetswidelyacceptedinvariousresearchareasandappliedtoprob-
+lemsthatarebeyondthescopeofclassicalformaltechniques[1,2,10,11,1 3,19,20].
+Unfortunately,extremelyhugesizedproblemsandademandofextremely
+highconﬁdencemayrequiregenerationofalargenumberofsimulationruns,each
+ofwhichmayitselfbeextremelytimeconsuming.Toaddressthis conﬁdence-
+explosionproblem,wesuggestinthispapertotakeadvantageofPC-clusters
+andGRIDcomputers.Infact,itiswell-knownthatstatisticalsolutionsmet hods
+thatusesamplesofindependentobservationsareoftentriviallyparallelizable.
+Asobservedin[18],SMCalgorithmscanbedistributedthroughthehelpofa
+master/slavearchitecturewheremultiplecomputersareusedtogeneratethe
+simulations.Theideaisasfollows:oneormoreslaveprocessesregistert heir
+abilitytogeneratesimulationwithasinglemasterprocessthatisusedtoco llect
+thosesimulationsandperformthestatisticaltest.
+⋆WorkpartiallysupportedbyVKRCentreofExcellence–MT-LAB,an“Ac tionde
+RechercheCollaborative”ARC(TP)I
+
+--- Page 2 ---
+However,thisprocessmaybecomecomplexwhenconsideringsequentialhy-
+pothesistesting(whenthenumberofsimulationsisnotknowninadvance).The
+problemisthattheremightexistacorrelationbetweenatimeneededtogenerate
+arandomsimulationandthefactthatapropertyissatisﬁedbythissimulati on.
+Thusitisimportanttoguaranteethatthetechniquewillnotintroduceabias
+towardstheresultsthataregeneratedbyshortersimulations.
+Inaseriesofrecentworks[4],wehaveextended UppaalwithSMCalgo-
+rithmsappliedtoNetworksofPricedTimedAutomata–henceleadingtothe
+ﬁrstimplementationofSMCforreal-timedstochasticsystems.Theobjecti ve
+ofthispaperistogoonestepfurtherandproposetheﬁrstcompletestudyof
+distributedSMC,ingeneral,andintheframeworkof Uppaalinparticular.Our
+contributionsare:
+1.Adistributedimplementation oftheestimationalgorithmproposedin[8].
+BuildingonclassicalMonteCarlotechniques[7],anestimationalgorit hm
+precomputesthenumberofsimulationsneededtoestimatetheprobability
+tosatisfyapropertywithagivenconﬁdence.Suchanalgorithmwhichistriv-
+iallyparallelizableamountstoequallydistributethenumberofsimulatio ns
+toperformbetweentheslavecomputers.
+2.Anewdistributedalgorithm forsequentialhypothesistestingwheresimu-
+lationsarecomputedontheﬂyuntilathresholdispassedandadecisionis
+taken.Here,itisimportanttoavoidintroducingbiasintheresults,which
+maybepotentiallycomplexandeventuallydecreasethebeneﬁtofusingsev-
+eralprocessors.Tocounterthis,[18]proposedaround-Robinsolutionwhere
+therunsarecountedinrounds.Wegeneralisethesolutionin[18]byintro-
+ducingbatchesandbuﬀers.Thebatchisusedtoreducecommunicationby
+sendinganaggregateresultofpredeﬁnedsize(insteadofindividualresults).
+Thebuﬀerisusedtoimproveconcurrencysincethenodesaremoreloosely
+synchronized.
+3.Athoroughevaluation ofourimplementationthroughnewapplicationsof
+SMCalgorithms.Inparticular,weapplythedistributedSMCengineto
+ananalysisofaninstanceoftheLMACprotocolofunprecedentedsize.
+Additionally,athoroughevaluationofthedistributedSMCframeworkitself
+ismadeaimingatidentifyingoptimalsettingsoftheparametersforthe
+framework.Theevaluationiscarriedoutbothexperimentally(usingthe
+implementation)aswellasanalytically(usingSMC)basedonamodelofthe
+distributedSMCalgorithmitself,andwithhighconsistencyinidentiﬁcations
+madebythetwoapproaches.
+2 StatisticalModel-CheckinginUppaal
+Thissectionintroducestheformalismsusedin Uppaalformodelingsystems
+andandspecifyingproperties.Then,webrieﬂysurveyexistingStatisticalModel
+Checking(SMC)algorithms.Finally,anovelapplicationofSMCispresented.
+2.1 NetworksofPricedTimedAutomata
+ThenewSMCengineof Uppaal[3]supportstheanalysisofPricedTimed
+Automata(PTAs)thataretimedautomatawhoseclockscanevolvewithdi f-
+2
+
+--- Page 3 ---
+ferentrates,andwithnorestrictionsinguardsandinvariants.Additional ly,we
+supportotherfeaturesofthe Uppaalmodelchecker’sinputlanguagesuchas
+integervariables,datastructuresanduser-deﬁnedfunctions.Wealsoassume
+PTAsareinput-enabled,deterministic(withaprobabilitymeasuredeﬁnedon
+thesetsofsuccessors),andnon-zeno.PTAscommunicateviabroadcastchannels
+andsharedvariablestogenerateNetworksofPriceTimedAutomata(NPTA).
+A1A0
+x<=1
+a!
+B1B0
+y<=2
+b!T1
+T3T0
+C’==2C’==4
+a?
+b?
+A B T
+Fig.1:AnNPTA, (A|B|T).Fig.1providesanNPTAwiththreecom-
+ponentsA,B,andTasspeciﬁedusingthe
+UppaalGUI.Onecaneasilyseethatthe
+compositesystem (A|B|T)hasthetransition
+sequence:
+/parenleftbig
+(A0,Bo,T0),[x= 0,y= 0,C= 0]/parenrightbig1−→a!−→/parenleftbig
+(A1,B0,T1),[x= 1,y= 1,C= 4]/parenrightbig1−→b!−→/parenleftbig
+(A1,B1,T2),[x= 2,y= 2,C= 6]/parenrightbig
+,
+demonstratingthattheﬁnallocation T3ofT
+isreachable.Infact,location T3isreachable
+withincost 0to6andwithintotaltime 0and2in(A|B|T)dependingonwhen
+(andinwhichorder) AandBchoosetoperformtheoutputactions a!andb!.
+Assumingthatthechoiceofthesetime-delaysisgovernedbyprobabilitydis-
+tributions,ameasureonsetsofrunsofNPTAsisinduced,accordingtowhich
+quantitativepropertiessuchas “theprobabilityof T3beingreachedwithinatotal
+cost-boundof4.3”becomewell-deﬁned.
+TimeCost
+Time/Costprobability
+00.120.240.360.480.600.72
+0 1.2 2.43.64.86.0
+Fig.2:Cumulativeprobabilitiesfor time
+andCost-boundedreachabilityof T3.Inourearlyworks[4],thestochas-
+ticsemanticofPTAcomponentsas-
+sociatesprobabilitydistributionson
+boththedelaysonecanspendina
+givenstateaswellasonthetransition
+betweenstates.In Uppaaluniform
+distributionsareappliedforbounded
+delaysandexponentialdistributions
+forthecasewhereacomponentcan
+remainindeﬁnitelyinastate.Inanet-
+workofPTAsthecomponentsrepeat-
+edlyraceagainsteachother,i.e.theyindependentlyandstochasticallydecide
+ontheirownhowmuchtodelaybeforeoutputting,withthe“winner”being
+thecomponentthatchoosestheminimumdelay.Forinstance,intheNPTAof
+Fig.1,Awinstheinitialraceover Bwithprobability 0.75.
+PropertiesForspecifyingpropertiesofNPTAs,weusecost-constrainttempo-
+ralpropertiesoverrunsoftheform ψ=3C≤cϕ.HereCisanobserverclock
+(thatisneverresetandshouldgrowtoinﬁnityonanyinﬁniterun), c∈IR≥0
+andϕisastate-predicate.Wesaythatarun πsatisﬁesψ=3C≤cϕifthere
+existsastate (ℓ,v)inπsatisfyingϕandwithv(C)≤c.ForanNPTA Mwe
+deﬁnePM(ψ)tobetheprobabilitythatarandomrunof Msatisﬁesψ.
+ReconsidertheexampleofFig.1,wecanevaluatethetheprobabilities
+Pr[time<=2]( 3T.T3)andPr[C<=6]( 3T.T3)inUppaal,obtainingasex-
+3
+
+--- Page 4 ---
+pected0.75forthecomposition (A|B|T)forbothoftheseprobabilities.Infact
+Fig.2givesthetime-andcost-boundedreachabilityprobabilitiesfor (A|B|T)
+forarangeofbounds.
+2.2 StatisticalModelCheckingAlgorithms
+Webrieﬂyrecallstatisticalalgorithmsallowingtoanswerthefollowing twotypes
+ofquestions:(1)Qualitative:Istheprobabilitythatarandomrunofagiven
+NPTAAsatisﬁesaproperty 3C≤cϕgreaterthanacertainthreshold θ?and(2)
+Quantitative:Whatistheprobabilitythatarandomrunof Asatisﬁes3C≤cϕ?
+ForbothquestionarunofthesystemisencodedasaBernoullirandomvariable
+thatistrueiftherunsatisﬁesthepropertyandfalseotherwise.
+QualitativeQuestion ThisreducestotestthehypothesisH: p=PA(3C≤cϕ)≥
+θagainstK:p<θ.Toboundtheprobabilityofmakingerrors,weusestrength
+parameters αandβandwetestthehypothesisH 0:p≥p0andH 1:p≤p1
+withp0=θ+δ0andp1=θ−δ1(δ0andδ1areparametersofthealgorithm).
+Theinterval p0−p1deﬁnesanindiﬀerenceregion,and p0andp1areusedas
+thresholdsinthealgorithm.Theparameter αistheprobabilityofacceptingH 0
+whenH 1holdsandtheparameter βistheprobabilityofacceptingH 1when
+H0holds.TheabovetestcanbesolvedbyusingWald’ssequentialhypothesis
+testing[16].Thistest,whichispresentedinAlgorithm1,computesaproport ion
+ramongthoserunsthatsatisfytheproperty.Withprobability1,thevalueof
+theproportionwilleventuallycross log(β/(1−α)orlog((1−β)/α)andoneof
+thetwohypothesiswillbeselected.
+Algorithm1:Hypothesistesting
+functionhypothesis( S:model,ψ:property)
+r:=01
+whiletruedo 2
+Observetherandomvariable xcorrespondingto 3C≤cϕforarun. 3
+r:=r+x∗log(p1/p0)+(1−x)∗log((1−p1)/(1−p0)) 4
+ifr≤log(β/(1−α))thenacceptH0 5
+ifr≥log((1−β)/α)thenacceptH1 6
+end
+QuantitativeQuestion ThisreducestoaMonteCarloapproachthatcom-
+putesthenumber Nofrunsneededinordertoproduceanapproximationinterval
+[p−ǫ,p+ǫ]forp=Pr(ψ)withaconﬁdence 1−α.Thevaluesof ǫandαare
+chosenbytheuserand NreliesontheChernoﬀ-Hoeﬀdingbound.
+2.3 AnalysingSMCinUppaal
+InthissectionwewillusetheSMCengineof Uppaaltoourﬁrstnon-trivialtask,
+namelytoanalyseitself!Moreprecisely,bysuitablymodelingthesequentual
+4
+
+--- Page 5 ---
+testingalgorithmaswellasasamplemodel M,wewillbeabletousetheSMC
+engineofUppaaltoanalysetheperformanceofSMCon M.Later,inSection
+4,thiswillallowustoevaluatevariousnaive(andevenfaulty)proposal sfor
+distributingSMC.
+Thesamplemodel MgiveninFig.3a3makesaninitialprobabilisticchoice
+betweenthetwobranches,eachhavingaloopingtransitiontakenrepeatedly
+withadelaychoosenuniformlyfrom ]0,2].Performingsequentialtestingofthe
+hypothesisH 0:Pr[<=100]( 3OK)≥0.5some10timeswith α= 0.05aslevel
+ofsigniﬁcanceandwithanindiﬀerenceregionof ±0.01,weconsistently(and
+correctly)dismissthehypothesiswithanaverageof 408.6runsandwithstandard
+deviation 127.5.
+58 x<=242 x<=2NOK
+x=0OK
+x=0
+x=0x=0
+(a)M.r=r−17 r=r+17add? sub?
+r=r−17 r=r+17r>−1262 r<1262
+H0 r>=1262 r<−1262
+add? sub?H1
+(b)Master.time>=100
+time<100x<=2sub!
+58x<=242add!
+runs=++t runs=++t
+x=0OK NOKtime=0
+x=0x=0 x=0
+(c)Generator.
+Fig.3:Samplemodel M(a)satisfyingPr[<=100]( 3OK)= 0.42andmodeling
+SMCofM(b,c)withrespecttoH 0:Pr[<=100]( 3OK)≥0.5with0.05aslevel
+ofsigniﬁcanceand [0.49,0.51]asindiﬀerenceregion.
+Now,aimingatobtainingabetterunderstandingofsequentialtesting4we
+maysimplymodelthesequentialtestingalgorithmof Mdirectlyandanalyse
+its(expected)performanceusing UppaalSMC.Theresultingmodelisgivenin
+Fig.3andconsistsofanextensionofthesamplemodel Mintothecomponent
+Generatorthatwillrepeatedlygeneraterandomrunsof M(oftime-duration
+100)andreporttheoutcometoa Masterusingthechannels add(when100
+time-unitshaselepasedwithout OKhavingbeenobserved)and sub(usedas
+soonasitisobservedthatthe OKbranchhasbeentaken,notetheabsenceof
+thetime>=100guardontherightsideofthe Generatormodel).TheMaster
+hastheobligationofadjustingappropriatelytheratio-variable raccordingto
+Alg.1,andconcludeonH 0orH1assoonasthevalueof rexceedsthegiven
+threshold.Giventheindiﬀerenceregion [0.49,0.51]andlevelofsigniﬁcance 0.05,
+weﬁndthattheapproximatevaluestobeused5inAlg.1are: −log(p1/p0) =
+log(1−p0/1−p1) = 0.01715andlog((1−β)/α) =−log(β/(1−α)) = 1.2787
+(≈1.262+0.017).InthemodelofFig.3weareusingscaledintegerconstantsfor
+thesevalues.Now,lookingattheestimationof Pr[#<=20000]( 3Master.H 1)
+inFig.4,weﬁnd–asexpected–thattheprobabilityofacceptingH 1(H0)tends
+3Misatimedvariantofthemodelproposedin[17]andusedtodemonstratebi asin
+anaivedistributedapproachtoSMC.
+4Theperformanceofsequentialtestinghasbeensubjecttosigniﬁcan tstudiesandis
+well-understood[15].Theaimhereistodemonstratethatour UppaalSMCengine
+isausefultoolforobtainingsuchaninsight.
+5ThosevaluesareobtainedbyobservingWald’sratioonseveralapplication ofthe
+SMCalgorithmtothesameproblem,andthentaketheaverageoftheobservat ions.
+5
+
+--- Page 6 ---
+to1(0)asthenumberofstepsincreases.Wealsoseethattheaveragenumber
+ofrunsisestimatedto 481.4.The“mismatch”withtheexperimentallyfound
+average408.6isduetoearlyterminationwhenthethresholdforH 0isexceeded.
+avgH1
+stepsprobability
+00.160.320.480.640.800.96
+1.3E4 4.2E4 7.1E4
+(a)Pr[#≤80000](3Master.H1)avgH1
+runsprobability
+00.160.320.480.640.800.96
+100 400 7001000
+(b)Pr[runs≤20000](3Master.H1)
+Fig.4:Cumulativeprobabilityplotsovernumberofstepsandruns.
+3 DistributedStatisticalModel-CheckinginUppaal
+SMCsuﬀerfromthefactthathighconﬁdencerequiredbyananswermaydemand
+alargenumberofsimulationruns,eachofwhichmayitselfbetimeconsumi ng.
+Asanexample,theﬁrsthypothesistestshownlaterinthissectioncangenerate
+between14,000and2,390,000runsiftheparameters α,β,δrangebetween0.01
+and0.001.Apossiblewaytoleveragethisproblemistouseseveralcomputers
+workinginparallelusingamaster/slavesarchitecture:oneormoreslavepr o-
+cessesregistertheirabilitytogeneratesimulationwithasinglemasterpro cess
+thatisusedtocollectthosesimulationsandperformthestatisticaltest.W hen
+workingwithanestimationalgorithm,thiscollectionistrivially performedas
+thenumberofsimulationstoperformisknowninadvanceandcanbeequally
+distributedbetweentheslaves.
+201051
+runsprobability
+00.120.240.360.480.600.720.840.96
+10 90 170250330410
+Fig.5: Probability distributions ob-
+tainedwith1(top),5,10,and20(bot-
+tom)generatornodes.Whenworkingwithsequentialal-
+gorithms, the situation gets more
+complicated.Indeed,weneedtoavoid
+introducingbiaswhencollectingthe
+resultsproducedbytheslavecomput-
+ers.Thismeansthatresultsshould
+notbecollectedarbitrarilyasillus-
+trated by considering the model of
+Section 2.3 with several instances
+of theGeneratortemplate. Check-
+ingthepropertyPr[runs<=20000]( 3
+Master.H1)Fig.5showsthatdiﬀer-
+entdistributionscanbeobtainedwith
+diﬀerentnumbersofgeneratornodes,
+hencerevealingabiasintheresults.InfacttheprobabilityofacceptingH 1tends
+(incorrectly)to0whenthenumberof Generatorcomponentsincreases.
+6
+
+--- Page 7 ---
+Asolution,whichwasproposedin[17],consistsinobservingthatWald’s
+ratiorisupdatedasafunctionoftheBernouillirandomvariable xasr+ =
+x∗racc+(1−x)∗rrejwithraccandrrejbeingconstantsdependingonthetested
+hypothesis.Toreduceblockingandstillupdate r,thenon-biasedalgorithm
+updatestwosafeapproximationsfor r(r1andr2).Ifxisunknownthenit
+updateswith r1+ =rrejandr2+ =racc,andthentestingif r1≤Itoaccept
+H0orifr2≥StoacceptH16.Whenalloutcomesofaroundareknownthen
+wecanreset r1:=r2:=r.Thisallowsustoaccept H0evenifsomeaccepting
+outcomesaremissingorconverselytoaccept H1ifsomerejectingoutcomesare
+missing.
+Wegeneralize[17]byaggregatingtheoutcomes xbybatches(ofsizeB)and
+also by implementing a buﬀer(of size K) of incoming results.
+K
+buffer
+size
+N number of nodesAsynchronous incoming messages
+Fig.6:Buﬀerofresultsatthemaster
+node.Thebatchisusedtoreducecommuni-
+cation by sending Baggregate results.
+The buﬀer is used to improve concur-
+rencysincethenodesaremoreloosely
+synchronized and they can be Kruns
+aheadoftheslowestnode.Fig.6illus-
+tratesouralgorithmatthemasternode
+thatreceivesasynchronousmessagesfrom
+allothernodesinabuﬀer.Amessageisan
+aggregateresultcontainingtheoutcome
+ofBruns.Themastermaytakeadeci-
+sionassoonas r1≤Iorr2≥S.Whenall
+outcomesatthebottomlineofthebuﬀer
+areknownwereset r1:=r2:=rwiththe
+exactupdatedvalueof rwiththoseoutcomes,andfreethebottomlineofthe
+buﬀer.Inpractice,ouralgorithmiscalibratedtocounttherunsuptoacertain
+depthinthebuﬀer.Indeed,theoutcomesareweightedby Bsofewmissing
+aggregatedoutcomescanpreventthealgorithmfromdeciding.Wehaveimple-
+mentedthisalgorithmwithasynchronouscommunications(usingOpenMPI).
+Therecanbeatmost Kpendingmessagesduetothesizeofthebuﬀer.Ifa
+slavetriestosendmoremessages,thenthecommunicationwillblockwaiting
+fora“slot”tobefree.Theexperimentperformedintheremainderofthepaper
+hasbeencarriedoutonvaryingnumbersofnodesonaclusterwithdualXeons
+5650(hexa-coresat2.66GHz)interconnectedwithinﬁniband.
+Weﬁrstmaketwotypesofexperimentstoexhibittheperformancecharac-
+teristicsofouralgorithm.Theexperimentsarecarriedoutusingthetrain-ga te
+exampleavailableasademoof Uppaal.Thismodelcomprisesanumberof
+trainscrossingabridgewithonlyonetrack.Agatecontrollerstopsandr estart
+thetrainstoensuremutualexclusiononthebridgeandabsenceofstarvation
+forthetrains.Ourﬁrstexperimentconcerns6trainsandthepropertyofbeing
+inastatewheretrain5iscrossingwhilealltheothertrainsarestopped.
+Pr[<=100](<>Train(5).Crossand
+6I= log(β/(1−α))andS= log((1 −β)/α)asstatedinAlg.1.
+7
+
+--- Page 8 ---
+(forall(i:id_t)i!=5implyTrain(i).Stop))>=0.46188
+Therunsarerelativelyshortwithfewcomponentssotheywillbecheapto
+computeandweexpectthethroughputofmessagestobehigh.Inaddition,the
+hypothesiswearetestingisnotdeterministic,whichmeansthattheoutcomes
+andcomputationtimesoftherunswillvary.Thepropertyischeckedwithhigh
+conﬁdence(99.999%)andsmallindiﬀerenceregions(+/-0.00001)tohavea
+preciseandreliableresult–andtostressourdistributedalgorithm.
+Oursecondexperimentconsidersa“large”instancewith20trains,where
+wecheckifthemodelsatisﬁesmutualexclusiononthebridge,expressedbythe
+property
+Pr[<=1000]([]forall(i:id_t)forall(j:id_t)
+Train(i).CrossandTrain(j).Crossimplyi==j)>=0.9999
+Here,therunsarerandombutboundedbythesamelargeboundandsince
+theinnerproperty[]forall(i:id_t)forall(j:id_t)... holdsbymodel-
+checking,alltherunswillallreachtheirbounds.Inaddition,wehave20trains
+andtherunsarelong(1000timeunits)sotheyarerelativelyexpensivetogen-
+erate.Thismeansthatalltherunsareimplicitelysynchronizedandsmalldevi-
+ationsareamortizedbythelongruns.Thethroughputofmessageswillbelow,
+whichmeansalowoverheadcomparedtotheactualusefulworkofgenerating
+theruns.
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 90 100 110 120 130 140 150 160 170 18016 cores
+’4x1x4.dat’
+Batch
+Buffer 90 100 110 120 130 140 150 160 170 180
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 50 60 70 80 90 100 11032 cores
+’8x1x4.dat’
+Batch
+Buffer 50 60 70 80 90 100 110
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 10 20 30 40 50 60 70 80128 cores
+’16x2x4.dat’
+Batch
+Buffer 10 20 30 40 50 60 70 80
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 54 54.5 55 55.5 56 56.5 57 57.5 58 58.5 5916 cores
+'topo-4x1x4.dat'
+Batch
+Buffer 54 54.5 55 55.5 56 56.5 57 57.5 58 58.5 59
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 27.5 28 28.5 29 29.5 30 30.5 31 31.5 3232 cores
+'topo-8x1x4.dat'
+Batch
+Buffer 27.5 28 28.5 29 29.5 30 30.5 31 31.5 32
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 8.5 9 9.5 10 10.5 11 11.5 12 12.5 13 13.5 14128 cores
+'topo-16x2x4.dat'
+Batch
+Buffer 8.5 9 9.5 10 10.5 11 11.5 12 12.5 13 13.5 14
+Fig.7:Veriﬁcationtimeson16,32,and128coresinfunctionof BandKforthe
+“small”model(ﬁrstrow)andthe“large”model(secondrow).
+Figure7showsourresultsfordiﬀerentnumberofcores.Thesolutionin[18]
+correspondstotheparticularcasewith KandBareequaltoone,exhibitinginall
+theexperimentstheworstveriﬁcationtime,andwithperformancedeteriorati ng
+withincreasingnumberofcores(i.e.for128coresperformancelossisafacto r
+of4).Thoughtheimpactofthebuﬀersizeisless,theexperimentsindicatethat
+abuﬀerofsize2-4willsuﬃce.Theresultsalsodemonstratelinearscalabilityof
+8
+
+--- Page 9 ---
+Waiti:node_t
+Got
+Done
+time'==0!H0 && !H1
+H0 || H1req!
+saveWork(i,value),
+value=0deliver[i]?
+(a)Master.
+run length in stepscount
+02.0E34.0E36.0E38.0E31.0E4
+13 18 232833384348
+(b)Histogramofveriﬁcationsteps.compute
+iteratestart
+i:bucket_treq?
+tmp
+latencydeliver[id]!
+x<=LatencyUpx<=(j+1)*H_stepw[i]
+runs<Bx>=j*H_steplevel[id]<K
+x>=LatencyLow
+runs==Bruns=0,sat=0,
+x=0
+j=0,x=0busy[id]=0,
+value=sat
+j=i, runs++,
+busy[id]=1,
+sat+=(i<H_last),
+x=0
+(c)Slave.
+Fig.8:Timedautomatamodelofastatisticalmodelcheckingprocess.
+ourdistributedimplementation:for B= 32andK= 2theveriﬁcationtimesfor
+16,32and128coresare108,56and19seconds(respectively).
+4 AnalyzingDistributedSMCinUppaal
+Inthissectionwemodeltheimplementeddistributedalgorithmofsequential
+hypothesistestingandwecheckitusingtheSMCengineof Uppaal.Thegoal
+istoestimatetheveriﬁcationtimeandprocessorutilization,checkforbias in
+thedistributedalgorithm,andexploretheparametersofourdistributedSMC
+algorithminananalyticalmanner.
+Modeling.WemodelthemasterandslaveprocessesdescribedinSection3as
+showninFigure8.Themastersendsabroadcastrequest req!toverifybatches
+ofruns(ofsize B).Weuseastandardmodelingpatterntosynchronizeonthe
+correspondingreq?assoonaspossible.Themastergatherstheresultswithits
+saveWorkfunctionandloopsagainifneitherH 0norH1isaccepted.Listing1.1
+showsthissaveWorkfunctionthatimplementsthedistributedhypothesistesting
+algorithmofSection3. Uppaalusesﬂoatingpointnumbersthatarenotavailable
+inthemodelinglanguage.Insteadweencodeﬁxedpointarithmeticswithintegers
+andweuseprecomputedtablesforlogarithmvalues(showninListing1.3inthe
+appendix).OncethemasteracceptsH 0orH1,itmovestothelocation Doneand
+stopstheclocktime.
+Slaveprocessesproceedtocomputetheirbatchesiftheircommunication
+buﬀersarenotfull( level[id]<K)orwaitfortheconditiontohold.The
+9
+
+--- Page 10 ---
+Listing1.1:Mastercode.
+1//buﬀer portion for early termination:
+2constintP=(K<=4)?K:((K <=8)?5:((K <=16)?8:((K <=32)?10:12)));
+3boolH0=false, H1=false;//for hypothesis H0andH1
+4intbatch[N][K];//buﬀer ofbatches(Kbatchesfor Nnodes)
+5longsatisﬁed =0,unsatisﬁed=0; //information aboutﬁlled lines
+6longsat=0,unsat=0,unknown=N ∗P∗B;//earlyresultsinunﬁlled lines
+7longlogRatio =0,ratioLow=0,ratioUp=0; //scaled byp.scale
+8voidsaveWork(constnodetnode,constintvalue){
+9if(level[node] <=P){//enteredtheearlyresults portion
+10sat +=value;unsat+=B −value;unknown −=B;
+11}
+12batch[node][level[node]] =value;level[node]++; //store
+13if(level[node]==1) {//enteredatthelowest level
+14boolﬁlled =forall(i:node t)level[i]>0;
+15if(ﬁlled ) {//line atthelowest level hasbeenﬁlled
+16intL;
+17for(i: nodet){//shift all queuesonebyone
+18 satisﬁed +=batch[i][0]; //countasﬁrm results
+19 unsatisﬁed +=B −batch[i][0];
+20 sat−=batch[i][0];//discount fromearly results
+21 unsat−=B−batch[i][0]; unknown+=B;
+22 level[i]−−;//removefrombuﬀer
+23 for(L=0;L<level[i]; ++L) {
+24 batch[i][L]=batch[i][L+1]; //shift
+25 if(L==P) {//enteredtheearlyresults portion
+26 sat +=batch[i][L+1];unsat+=B −batch[i][L+1];
+27 }
+28 }
+29 batch[i][level[i]]=0; //cleanup
+30 }
+31logRatio =p.valAcc ∗satisﬁed +unsatisﬁed ∗p.valRef;
+32if(logRatio<=p.logInf)H0=true;
+33if(logRatio>=p.logSup)H1=true;
+34 }
+35}
+36ratioLow=p.valAcc ∗(satisﬁed +sat+unknown)+
+37p.valRef ∗(unsatisﬁed +unsat);
+38ratioUp =p.valAcc ∗(satisﬁed +sat)+
+39p.valRef ∗(unsatisﬁed +unsat+unknown);
+40if(ratioUp<=p.logInf)H0=true;
+41if(ratioLow>=p.logSup)H1=true;
+42}
+computelocationmodelsthecomputationtimeofarun,chosenaccordingtothe
+distributionshowninFigure8b.Thisisencodedusingprobabilisticedgeswith
+10
+
+--- Page 11 ---
+weightsmatchingthedistribution.Thedistributioncomesfromarealveriﬁcati on
+ofthepropertyinSection3:
+Pr[<=100](<>Train(5).Crossand
+(forall(i:id_t)i!=5implyTrain(i).Stop))>=0.46188
+Thelastweightededge(case i=H)isreservedfortherunsthatdidnotsatisfy
+theproperty.
+Veriﬁcation.Inthehypothesiswetest,theactualprobabilityisverycloseto
+0.46188.Sincetherealprobabilityfallsintheindiﬀerenceregionofourtest,w e
+wouldexpectthatanon-biasedimplementationwouldacceptH 0orH1equally
+often.EstimatingtheprobabilityofconﬁrmingthehypothesisH 0withthequery
+Pr[<=10000000](<>master.H0) givestheprobability0.503 ±0.005with99.9%
+conﬁdence,conﬁrmingthatouralgorithmisnotbiasedaswellasthevalidityof
+ourmodel.
+Similarly,weobtainthedistributionoftheveriﬁcationtimebythequery
+Pr[<=10000000](<>master.Done) foramodelwithnumberofnodes N= 128,
+batchsizeB= 64,andbuﬀersize K= 4.Theresultis9557.6timeunitsin
+averageandthedistributionhistogramisdepictedinFigure9a.Toestimate the
+processorusagetime,weaddanotherprocesswithasinglelocationwiththe
+invariantusage’==sum(i:node t)busy[i].Here,usageisaclockthatgrows
+witharateequaltothenumberofbusynodes.
+max: timecount
+04008001200160020002400
+2E3 3E4 5E4 8E4
+(a)Estimatedtimedistribution.max: Global.usagecount
+0300600900120015001800
+2.04770E6 2.04779E6 2.04788E6 2.04797E6
+(b)Processorusagetimedistribution.
+Fig.9:Timeestimationfrom6000runsofDSMCmodel.
+Thequestionisnowtoﬁndagoodsettingsfortheparametersofouralgo-
+rithm(BandK).Weperformparametersweeptoestimatetheveriﬁcationtime
+forvaluesof BandKtakingvaluesin 1,2,4,8,16,32,64forthreetopologieswith
+thenumberofprocessingnodes N= 16,32,or128.Theresultsaredepictedin
+Fig.10,whereitisvisiblethatextremelysmallbatchsizerequiresmoret ime.
+Largebatchsizescanalsobedetrimentalinalargeclustersetting(Fig.1 0c
+wheretoomanyrunsarerequestedinbulkthanactuallyneededtoestablish
+theresult).Buﬀersizeofonehasahugepenaltyofblockingwithsmallblocks ,
+butitisbarelynoticeableotherwise.Thisconﬁrmstheexperimentalﬁndingsof
+Section3.
+11
+
+--- Page 12 ---
+(a)16nodes. (b)32nodes. (c)128nodes.
+Fig.10:Estimatedveriﬁcationtimesinmodeltimeunits.
+5 LightweightMediaAccessControl
+LMACisaLightweightMediaAccessprotocol(studiedin[4,5])usedforschedul-
+ingcommunicationinwirelesssensornetworkswherethetopologyisdetermined
+byphysicallocationandradioconnectivityoftheindividualnodes.Oneofthe
+goalsoftheLMACprotocolistominimizethenumberofcollisionsinthenet-
+workandtoreconﬁgurethenetworktoavoidfurthercollisions.
+Fig.11:LMACprotocolphases.The original model has been developed
+in[5]wheretopologiesof4-5nodesarestud-
+iedexhaustivelyusingclassical Uppaaland
+anumberoftopologiesareidentiﬁedasprob-
+lematic, containing perpetual collisions. In
+thispaperweprovidenewinsightastothe
+likelihoodofperpetualcollisionsindiﬀerent
+topologies.Thisinsightcouldnotbedelivered
+bytheuseofclassical Uppaalandtheexper-
+imentconductedisofunprecedentedsize.
+In LMAC communication media access
+timeisdiscretizedintotimeframesandeach
+timeframeisdividedintotimeslots.Thegoal
+oftheprotocolistoallocatethetimeslots
+toeachnodeeﬃciently.Thechallengeisthat
+thereisnocentralnodedistributingandas-
+signingslotsandnodescannotthemselveslistenwhiletransmitting,henceneigh-
+boursareresponsiblefordetectingandinformingeachotheraboutcollisions.
+Afterwaitingphase,thenodemovestoadiscoveryphaseandlistensfor
+anentiretimeframeandnoteswhichtimeslotsareusedbyitsneighbours .
+Thecollisioncountingexpression collisions=++cc; isaddedontheedgefrom
+recone0todone0inFig.12b.Afteronetimeframeofdiscoveryphase,the
+nodechoosesseeminglyunusedtimeslotandmovestoanactivephase.The
+nodefallsbacktowaitingphaseiftherearenoneighbours(nosignalreceived)
+orallslotsareoccupied.Duringactiveanddiscoveryphasesthenodelistens
+andnotesanycollisions(severalreceptionsduringthesameslot).Duringactive
+phasethenodetransmitsinformationaboutcollisionsithasdetectedduringits
+timeslotandlistensforcollisionsandinformationaboutcollisionsdur ingother
+timeslots.Fromtheactivephasethenodemayfallbacktodiscoveryphaseif
+12
+
+--- Page 13 ---
+itisnotiﬁedaboutthecollisionsonitstimeslotandfallsbacktothewa iting
+phaseifitdetectsthatneighboursaregone.
+Figure11showsthefourphasesoftheprotocol.Initiallyallnodesexcept
+thegatewayarelisteningandwaitingforaradiosignalfromitsneighbour hood
+duringtheinitializationphase.Thecommunicationistriggeredbyadedicated
+gatewaynode.Uponreceptionofsignal,thenodenotestherelativetimeoﬀset
+ofthesignalandmovestowaitingphase,duringwhichitchoosestowaitfora
+randomamountoftimeframes.Therandomdelayismodeledusingprobabilistic
+branching(seeFig.12a)withgeometricalweights( weightarray).
+waiting
+t==2*counterk:frame_t
+t<=2*countert==1
+counter=k*frame,
+mode=1, t=0curr=(curr+1)%frame,
+power[id]=SLEEP,
+t=0
+counter=0,
+power[id]=LISTEN,
+mode=2, t=0weight[k]
+(a)Waiting.rec_one0
+listening0t<=2
+done0 t<=2t<=2
+d
+e
+!aux_vec[slot]&&t==2counter<frame−1
+t==2
+can_hear[id][aux_node]t==2
+t<=2
+slot:int[0,frame−1]can_hear[id][aux_node]==1
+counter>=frame−1
+aux_vec==max_vec || got_info==0counter++,
+power[id]=LISTEN
+curr=(curr+1)%frame,
+t=0curr=(curr+1)%frame, acc(second[id],rec_vec),
+rec_vec=zero_vec, got_info=1, t=0
+detected=(detected<0)?curr:detected,
+rec_vec=zero_vec, collisions=++ccaux_vec=first[id],
+acc(aux_vec,second[id]),
+second[id]=zero_vec, 
+mode=3rec_vec=first[aux_node],
+first[id][curr]=1,
+power[id]=RECV
+counter=−1, aux_vec=zero_vec,
+first[id]=zero_vec, second[id]=zero_vec,
+got_info=0, detected=−1sendWM?sendWM?
+curr=(curr+1)%frame,
+t=0power[id]=LISTEN,
+mode=2, t=0
+(b)Discovery.
+Fig.12:LMACphasesinthemodel.
+Startingfromthemodel7of[5],weremovedtheveriﬁcationoptimizations
+constrainingtheparallelism,annotateditwithpowerconsumptionandcollisi on
+counting(ascostvariables).Themodelcontainstwiceasmanyslotsasnodes,
+whereasoneslotpernodeisenoughtoscheduleﬂawlesscommunicationinany
+topologyifnodeswereawareofeachotherschoices.
+Firstweexaminethedistributionoftheﬁrstcollisionsovertime.Theﬁrstr ow
+ofFig.13isaresultofaquery Pr[<=1000]( 3collision>0)anditshowsthat
+mostcollisionshappenearlyintimeandinaringtopologysomecollisi onsmaybe
+discoveredlater(possiblywhentheﬁrstsignalpropagationmeetsattheopposi te
+ofthering).InthesecondrowofFig.13thedistributionofpossiblenumber
+ofcollisionsisexaminedusingaquery Pr[collisions<=100]( 3time>=1000):
+inachainandaringtopologiesthecollisionsareunlikelytooccur( >90%
+probabilityof0collisions),butinastaritisalmostguaranteedtooccur( only
+8%probabilityof0collisions).ThethirdrowofFig.13showstheprobabilit y
+distributionofcollisioncountsaftertwiceaslongperiodoftime(using query
+Pr[collisions<=100]( 3time>=2000)).Noticethattheshapeofdistributions
+hasnotchanged,butthesmallbumpshaveshiftedtotherightatexactlytwice
+thenumberofcollisionsandalmostidenticalprobabilitydensity,whichimpli es
+thatthoseparticularcollisionsareaccumulatingproportionallytotheprog ress
+oftime,andinotherwordsitmeansthatcollisionsarereoccurringperpetually
+7ThankstoAnsgarFehnkerandAngelikaMader.
+13
+
+--- Page 14 ---
+chain ring star
+run duration in timeprobability density07.0E−51.4E−42.1E−42.8E−43.5E−4
+40 200 360520680
+run duration in timeprobability density07.0E−51.4E−42.1E−42.8E−43.5E−4
+40 240 440640840
+run duration in timeprobability density00.0020.0040.0060.0080.0100.012
+40 150 260370480
+collisionsprobability density00.190.380.570.760.95
+0 4 812162024
+collisionsprobability density00.180.360.540.720.90
+0 5 101520253035
+collisionsprobability density00.0190.0380.0570.0760.095
+0 15 3045607590
+collisionsprobability density00.190.380.570.760.95
+0 8 1624324048
+collisionsprobability density00.180.360.540.720.90
+0 12 2436486072
+collisionsprobability density00.0190.0380.0570.0760.095
+0 50 100150200
+Fig.13:Collisionstatisticsinthreediﬀerenttopologies,inrows :probabilityofa
+collisionovertime,probabilitiesofanumberofcollisionsupto1000andup to
+2000timeunits.
+withoutrecovery.Wecheckedthesethreepropertiesona128coresclusterwith
+highprecision(with α=β= 0.0001andε= 0.0005)inabout30minutes,which
+generatedaround19millionruns.
+Wehavedemonstratedhow UppaalSMCcanbeusedtoidentifyprob-
+lematictopologiesanddistributedimplementationcanprovideahighdegreeof
+accuracyinspottingthereoccurringcollisions.
+6 ConclusionandFuturework
+Inthispaperwehavedeveloped,implemented,appliedandevaluatedageneral
+andscalableframeworkfordistributedstatisticalmodelchecking.Wehavet hor-
+oughlyinvestigatedthedistributionofsequentialalgorithmswherebiascan be
+introducedwhencollectingthesamplesproducedbyslavecomputers.Inparticu-
+lar,wehaveidentiﬁedbestchoicesofbatchandbuﬀersizesbothexperimentally
+andanalytically,withagreementintheﬁndingsofthetwoapproaches.Inthe
+future,weplantoimplementanddistributeotherSMCalgorithms,principaly
+theBayesianalgorithmsintroducedin[20,9].
+Finally,itisworthmentioningthatwehavetriedtouseotherdistributed
+SMCmodelcheckerssuchasYmer[18]orPVesta[14].Asidefromthefactthat
+theGuiofthosetwotoolsisquiterestricted,weobservedthatYmerdoesnot
+workanymoreandthatPVestaonlydistributesthosealgorithmswherethenum -
+berofsimulationsisprecomputedinadvance.Acomparisonbetweenourtoolset
+andPVestaisgivenintheAppendix.
+14
+
+--- Page 15 ---
+References
+1.J.Bogdoll,L.-M.Fiorti,A.Hartmanns,andH.Hermanns.Partialorderm ethods
+forstatisticalmodelcheckingandsimulation.In FORTE,LNCS.Springer,2011.
+toappear.
+2.E.M.Clarke,J.R.Faeder,C.J.Langmead,L.A.Harris,S.K.Jha,andA .Legay.
+Statisticalmodelcheckinginbiolab:Applicationstotheautomatedan alysisof
+t-cellreceptorsignalingpathway.In CMSB,LNCS,pages231–250,2008.
+3.A.David,K.Larsen,A.Legay,Z.Wang,andM.Mikucionis.Timeforre alstatistical
+model-checking:Statisticalmodel-checkingforreal-timesyst ems.InCAV,LNCS.
+Springer,2011.
+4.A.David,K.G.Larsen,A.Legay,M.Mikuˇcionis,D.B.Poulsen,J .V.Vliet,and
+Z.Wang. Statisticalmodelcheckingfornetworksofpricedtimedautom ata. In
+FORMATS,LNCS,pages80–96.Springer,2011.
+5.A.Fehnker,L.vanHoesel,andA.Mader.Modellingandveriﬁcation ofthelmac
+protocolforwirelesssensornetworks.InJ.DaviesandJ.Gibbons,e ditors,Inte-
+gratedFormalMethods ,volume4591ofLNCS,pages253–272.SpringerBerlin/
+Heidelberg,2007.
+6.R.GrosuandS.A.Smolka. Montecarlomodelchecking. In Proc.of11thInt.
+ConferenceonToolsandAlgorithmsfortheConstructionandAnalys isofSystems
+(TACAS),volume3440ofLNCS,pages271–286.Springer,2005.
+7.J.M.HammersleyandD.C.Handscomb. MonteCarloMethods .Methuen,1975.
+8.T.H´erault,R.Lassaigne,F.Magniette,andS.Peyronnet. Approxim ateproba-
+bilisticmodelchecking.In VMCAI,LNCS,pages73–84,2004.
+9.S.K.Jha,E.M.Clarke,C.J.Langmead,A.Legay,A.Platzer,andP.Zul iani.A
+bayesianapproachtomodelcheckingbiologicalsystems.In CMSB,volume5688
+ofLNCS,pages218–234.Springer,2009.
+10.A.LegayandB.Delahaye. Statisticalmodelchecking:Anovervie w.CoRR,
+abs/1005.1327,2010.
+11.D.E.RabihandN.Pekergin.Statisticalmodelcheckingusingper fectsimulation.
+InATVA,volume5799ofLNCS,pages120–134.Springer,2009.
+12.K.Sen,M.Viswanathan,andG.Agha. Statisticalmodelcheckingofblac k-box
+probabilisticsystems.In CAV,LNCS3114,pages202–215.Springer,2004.
+13.K.Sen,M.Viswanathan,andG.Agha.Onstatisticalmodelcheckingofs tochastic
+systems.InCAV,LNCS3576,pages266–280,2005.
+14.K.Sen,M.Viswanathan,andG.A.Agha. Vesta:Astatisticalmodel-che cker
+andanalyzerforprobabilisticsystems.In QEST,pages251–252.IEEEComputer
+Society,2005.
+15.A.Wald.Sequentialtestsofstatisticalhypotheses. AnnalsofMathematicalStatis-
+tics,16(2):117–186,1945.
+16.R.Wald.SequentialAnalysis .DovePublisher,2004.
+17.H.L.S.Younes. VeriﬁcationandPlanningforStochasticProcesseswithAsyn-
+chronousEvents.PhDthesis,CarnegieMellon,2005.
+18.H.L.S.Younes. Ymer:Astatisticalmodelchecker. In CAV,volume3576of
+LNCS,pages429–433.Springer,2005.
+19.H.L.S.Younes,M.Z.Kwiatkowska,G.Norman,andD.Parker. Numeric alvs.
+statisticalprobabilisticmodelchecking. STTT,8(3):216–228,2006.
+20.P.Zuliani,A.Platzer,andE.M.Clarke.Bayesianstatisticalmode lcheckingwith
+applicationtosimulink/stateﬂowveriﬁcation. In HSCC,pages243–252.ACM
+ACM,2010.
+15
+
+--- Page 16 ---
+A LMACModel
+rec_onewaiting
+rec_one0
+listening0
+listening
+readya
+t<=1t<=1
+t<=2
+done0
+done t<=2t<=2t<=2b
+sendingd
+senteinitial
+f
+curr==slot_no[id] && 
+( ( !alone && 
+    (first[id]!=zero_vec || sent_info) && 
+    (detected<0 || olddetected!=detected) ) 
+   || id==0)!aux_vec[slot]&&
+got_info
+t==1t==2t==2counter<frame−1
+t==2
+can_hear[id][aux_node]t==2
+t==2t==2 &&
+(col==slot_no[id] || 
+  (rec_vec[slot_no[id]] && 
+    !sent_info))
+can_hear[id][aux_node]==1
+can_hear[id][aux_node]t==2*counter
+t==2 &&
+col!=slot_no[id] && 
+(!rec_vec[slot_no[id]] || sent_info)t<=1
+t<=2t<=2k:frame_t
+slot:int[0,frame−1]
+t<=2t<=2*counter
+t<=2can_hear[id][aux_node]==1t==1
+can_hear[id][aux_node]
+t==1
+curr==slot_no[id] &&
+(  alone ||
+   (first[id]==zero_vec && !sent_info) ||
+   (olddetected==detected && detected>=0) && 
+   id!=0)can_hear[id][aux_node]
+curr!=slot_no[id]counter>=frame−1
+aux_vec==max_vec || got_info==0
+t==2counter++,
+power[id]=LISTEN
+slot_no[id]=slot,
+aux_vec=zero_vec,
+got_info=0curr=(curr+1)%frame,
+t=0curr=(curr+1)%frame, acc(second[id],rec_vec),
+rec_vec=zero_vec, got_info=1, t=0
+detected=(detected<0)?curr:detected,
+rec_vec=zero_vec, collisions=++cc
+col=aux_slot, first[id][curr]=1,
+rec_vec=(!sent_info)?first[aux_node]:zero_vec,
+alone=0
+readyUpdate()
+curr=(curr+1)%frame,
+t=0aux_node=id,
+aux_slot=detected
+detected=(detected<0)?curr:detected,
+rec_vec=zero_veccurr=slot_no[aux_node],
+power[id]=RECV, t=0
+aux_vec=first[id],
+acc(aux_vec,second[id]),
+second[id]=zero_vec, 
+mode=3
+counter=−1, aux_vec=zero_vec,
+detected=−1, slot_no[id]=−1,
+first[id]=zero_vec, sent_info=0,
+alone=0, olddetected=−1counter=k*frame,
+mode=1, t=0
+rec_vec=first[aux_node],
+first[id][curr]=1,
+power[id]=RECVcurr=(curr+1)%frame,
+power[id]=SLEEP,
+t=0
+counter=−1, aux_vec=zero_vec,
+first[id]=zero_vec, second[id]=zero_vec,
+got_info=0, detected=−1t=0, power[id]=LISTEN
+detected=−1,
+sent_info=1sendWM?sendWM?sendWM?sendWM?
+curr=(curr+1)%frame,
+rec_vec=zero_vec,
+detected=(detected==curr)?−1:detected,
+t=0curr=(curr+1)%frame,
+t=0
+counter=0,
+curr=(curr+1)%frame,
+col=−1,
+detected=−1,
+slot_no[id]=−1,
+first[id]=zero_vec,
+sent_info=0,
+rec_vec=zero_vec,
+mode=2,
+olddetected=−1,
+power[id]=LISTEN,
+t=0
+first[id][curr]=0,
+curr=(curr+1)%frame,
+detected=(detected==curr)?−1:detected,
+t=0counter=0,
+power[id]=LISTEN,
+mode=2, t=0sendWM?
+sendWM!curr=(curr+1)%frame,
+first[id]=zero_vec,
+t=0sendWM?
+weight[k]
+Fig.14:LMACnodemodel.
+16
+
+--- Page 17 ---
+B DSMCModelListings
+Listing1.2:DSMCmodelglobaldeclarations.
+1typedefint[-1024 ∗1024∗1024,1024 ∗1024∗1024]long;//highprecision
+2constintN=128;//numberofprocessors
+3constintB=32;//numberofrunsinabatch
+4constintK=4;//maximumdiﬀerenceofbatchesamongprocessors
+5constintLatencyLower=19; //latencylowerbound
+6constintLatencyUpper=20; //latencyhigher bound
+7typedefint[0, N-1]nodet;//nodeidtype
+8typedefstruct {//SMCveriﬁcation parameters:
+9longscale;//denominatorfor ﬁxed pointoperations
+10longalpha;//probability offalse positive (multiplied byscale)
+11longbeta;//probability offalse negative (multiplied byscale)
+12longtheta;//theprobability for hypothesis testing
+13longdeltaM;//lowerprobability deviation
+14longdeltaP;//upperprobability deviation
+15longp1;//lowerprobability bound[theta -deltaM]
+16longp0;//upperprobability bound[theta+deltaP]
+17longvalAcc;//value accumulation[log(p1/p0)]
+18longvalRef;//value reference [log((1 -p1)/(1-p0))]
+19longlogInf;//log inﬁmum(lowervalue bound)[log(beta/(1 -alpha))]
+20longlogSup;//log supremum(uppervaluebound)[log((1 -beta)/alpha))]
+21}SMCparamst;//thestructureis passedtoMasteruponinstantiation
+22constintHﬁrst =13;//thestart ofthehistogram
+23constintHlast =48;//theendofthehistogram
+24constintHstep=1;//timestepofonebucket
+25typedefint[Hﬁrst, Hlast] buckett;//typeofinteger withspeciﬁc range
+26constintw[buckett] ={6207,0,0,0,0,10463,0,0,0,5,10903,0,0,0,4,
+279133,0,0,0,3,8569,0,0,0,2,8837,0,0,0,1,1233,0,0,0,1,64469 };
+28broadcastchanreq;//masterrequests
+29broadcastchandeliver[nodet];//slave delivers
+30intlevel[nodet];//level ofthebatchqueuefor eachnode
+31boolbusy[nodet];//encodeswhetherthenodeis computing
+Listing1.3:DSMCinstantiationandsystemdeclaration.
+1intvalue;//sharedvariable for transfering results
+2constSMCparamstp[3]= {
+3//scale alpha betatheta+delta -delta p1 p0 valAccvalRef logInf logSup
+4{100000, 100, 100,46188, 100, 100,46088,46288, -433, 372,-690675,690675 },
+5{100000,1000,1000,46188,1000,1000,45188,47188,-4331,3717,-459512,459512 },
+6{100000,5000,5000,46188,5000,5000,41188,51188,-21736,18637,-294444,294444 }
+7};
+8master=Master(p[1],value);
+9slave(constnodetid)=Slave(id, value);
+10systemmaster,slave, Global;
+17
+
+--- Page 18 ---
+(a)16nodes. (b)32nodes. (c)128nodes.
+Fig.15:Estimatedprocessorusagetimes: E[≤16000;150](max:usage)
+B.1 DistributingEstimation
+Distributingtheestimationalgorithmismuchsimplerthandistributingseq uen-
+tialhypothesistesting.Weneeda ﬁxednumberofrunstocomputeanestimate
+oftheprobabilityvaluewithgivenconﬁdencelevel.Thisisanembarrassingly
+parallelproblemsincewecansimplydividetheworkequallyandgatherthe
+resultattheend.Thespeedofgeneratingtherunshasnoinﬂuenceheresince
+everycomputernodeisallocatedthesamenumberofrunsandifthisnumberis
+highenough(andthecomputersidentical),therunningtimeoneverynodewill
+becloselythesame.Thislatterclaimisindeedconﬁrmedbyourexperiments
+sinceweobservethattheperformancescalesalmostlinearlywiththenumberof
+nodes.Interestingly,thelossineﬃciencyinthelatercasesexhibitstheoverhead
+ofstartingupalltheprocessors(around3-4seconds),whichwouldbecompen-
+satedformuchlongerruns.Thejobsherearetoosmallandfast,whichisan
+extremecase.Figure1showsrunningtimeandrelativeeﬃciencyforestimating
+afewprobabilitiesontheFirewireandLMACprotocol8withconﬁdence99.9%
+anduncertaintyinterval0.005.Timeisnotverysensitivetothephysicalpl ace-
+mentofthecoresherebecausethereisessentiallyonecommunicationround
+whenallthenodeshaveﬁnishedtheirjobs.
+C Comparisonwithothertoolsets
+Tothebestofourknowledge,thereareonlytwotoolsthatimplementdistributed
+statisticalmodelcheckingalgorithms,namelyYmerand PVesta.Wecould
+notconductadirectcomparisonwithdistributedYmerhastheimplementation
+iscurrentlybroken(PersonnalcommunicationwithH.Youness).However,we
+couldcomparethebatchalgorithmimplementedinYmerwithoursinthesetting
+ofUppaal(seeSection3).
+PVestaisadistributedstatisticalmodelcheckerbasedonvesta[14].Itper-
+formshypothesistestingbutinsteadofusingasequentialapproach,itrelieson
+asinglesamplingwherethenumber, N,ofsamplesneededtosolvethequalita-
+tivequestionispre-computed.Asfortheestimationalgorithm,samplingplan is
+8Themodelandpropertiesareavailableonhttp://people.cs.aau.dk/˜adavi d/smc/.
+18
+
+--- Page 19 ---
+Firewire LMAC
+PxC/N1 2 4 8 16 1 2 4 8 16
+1x1621.7s316.7s160.2s81.1s44.7s 279.3s140.7s73.0s37.0s19.5s
+1.00 0.98 0.97 0.96 0.87 1.00 0.99 0.96 0.94 0.90
+1x2300.9s162.2s 80.5s47.6s24.3s 144.3s 71.037.5s19.2s10.4s
+1.03 0.96 0.97 0.82 0.80 0.97 0.98 0.93 0.91 0.84
+1x4161.2s 84.0s 44.8s24.1s16.0s 74.2s 36.1s19.3s 9.6s 8.1s
+0.96 0.93 0.87 0.81 0.61 0.94 0.97 0.90 0.91 0.54
+2x485.1s 46.5s 23.1s14.1s 8.5 35.5s 19.6s10.1s10.2s 6.4s
+0.91 0.84 0.84 0.69 0.57 0.98 0.89 0.86 0.43 0.34
+Table1:Timeinsecondsandeﬃciency(italic)toestimateprobabilitiesonthe
+FirewireandLMACmodelinfunctionofthenumberofnodes(N),processors
+pernode(P)andcoresperprocessor(C).
+thustriviallyparallelizable.Tocompare PVestawithourimplementationwe
+createdaUppaalmodelofthecyclicpollingserverexampleofthe PVesta
+distribtution.
+Time(900st.) Samples(900st.) Time(9000st.)
+NodesUppaal hPVestaUppaal eUppaal hPVestaUppaal eUppaal hUppaal e
+1≤446.012.151151690618448 ≤484.0
+2≤423.77.51901690618448 ≤444.4
+4≤412.73.915571690618448 ≤423.8
+8≤47.25.523401690618448 ≤412.5
+Table2:Veriﬁcationtimefor UppaalandPVesta.Thenodescolumnrefers
+onlytothenodesusedforsamplegeneration( PVestaactuallyused nodes+1
+processingunitsfortheveriﬁcation).The Uppaal hcolumnshowstheveriﬁca-
+tiontimeinsecondsforhypothesistestingand Uppaal eforestimationusing
+Uppaal.
+Wecarryourexperimentsonthe pollingexampledistributedwith PVesta
+thatwetranslateintoanequivalent Uppaalmodel.Wetestforthehypothesis
+providedwiththeexample,namely P>=0.5[<><20.0@0] anditsequiv-
+alentinUppaalandweestimatethisprobabilityin Uppaal.Theresultsare
+givenintable2.Wecomparethetoolswithaconﬁgurationof900stations inthe
+model.Wenotethatfor900,thecomputationtimeof Uppaalissoshortthat
+wecanonlymeasuretheoverheadofstartinganddistributingthecomputation
+thattakeslessthan4seconds,whichiswhyweshow ≤4inthetable.Tosee
+thescalabilityofUppaal,weexperimentwith9000stationsinthemodel.We
+canonlyshowtheresultsfor UppaalsincePVestareacheditstimelimitof
+onehourbeforeitcouldgivearesult.Theexperimentsshowthat Uppaaland
+19
+
+--- Page 20 ---
+PVestascalealmostlinearlyand Uppaalisatleasttwoordersofmagnitude
+fasterthanPVestaonforhypothesistesting.
+20

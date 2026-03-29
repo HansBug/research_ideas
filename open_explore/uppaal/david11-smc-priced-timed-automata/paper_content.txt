@@ -1,0 +1,874 @@
+--- Page 1 ---
+Statistical Model Checking for Networks of
+Priced Timed Automata⋆
+Alexandre David1, Kim G. Larsen1, Axel Legay2, Marius Mikuˇ cionis1,
+Danny Bøgsted Poulsen1, Jonas van Vliet1, and Zheng Wang3
+1Aalborg University, Denmark
+2INRIA/IRISA Rennes, France
+3East China Normal University, China
+Abstract This paper oﬀers a natural stochastic semantics of Networks
+of Priced Timed Automata (NPTA) based on races between compo n-
+ents. The semantics provides the basis for satisfaction of Pr obabilistic
+Weighted CTL properties (PWCTL), conservatively extending the clas-
+sical satisfaction of timed automata with respect to TCTL. I n particular
+the extension allows for hard real-time properties of timed a utomata
+expressible in TCTL to be reﬁned by performance properties, e .g. in
+terms of probabilistic guarantees of time- and cost-bounde d properties.
+A second contribution of the paper is the application of Stat istical Model
+Checking (SMC) to eﬃciently estimate the correctness of non- nested
+PWCTL model checking problems with a desired level of conﬁden ce,
+based on a number of independent runs of the NPTA. In addition to ap-
+plying classical SMC algorithms, we also oﬀer an extension tha t allows
+to eﬃciently compare performance properties of NPTAs in a pa rametric
+setting. The third contribution is an eﬃcient tool implemen tation of our
+result and applications to several case studies.
+1 Introduction
+Model Checking (MC) [11] is a widely recognised approach to g uarantee the
+correctness of a system by checking that any of its behaviors is a model for
+a given property. There are several variants and extensions of MC aiming at
+handling real-time and hybrid systems with quantitative co nstraints on time,
+energy or more general continuous aspects [1–3,6]. Within t he ﬁeld of embedded
+systems these formalisms and their supporting tools [16,29 ,30,32] are now suc-
+cessfully applied to time- and energy-optimal scheduling, WCET analysis and
+schedulability analysis.
+Compared with traditional approaches, a strong point of rea l-time model
+checking is that it (in principle) only requires a model to be applicable, thus
+extensions to multi-processor setting is easy. A weak point of model checking
+is the state-space explosion, i.e. the exponential growth i n the analysis eﬀort
+measured in the number of model-components. Another limita tion of real-time
+⋆Work partially supported by VKR Centre of Excellence – MT-LAB a nd by an “Ac-
+tion de Recherche Collaborative” ARC (TP)I.
+
+--- Page 2 ---
+model checking is that it merely provides – admittedly most i mportant – hard
+quantitative guarantees, e.g. the worst case response time of a recurrent task
+under a certain scheduling principle, the worst case execut ion time of a piece of
+code running on a particular execution platform, or the wors t case time before
+consensus is reached by a real-time network protocol. In add ition to these hard
+guarantees, it would be desirable in several situations to o btain reﬁned perform-
+ance information concerning likely or expected behaviors i n terms of timing and
+resource consumption. In particular, this would allow to di stinguish and select
+between systems that perform identically from a worst-case perspective.
+As a ﬁrst contribution we propose a stochastic semantics for Priced Timed
+Automata (PTA), whose clocks can evolve with diﬀerent rates , while4being used
+with no restrictions in guards and invariants. Networks of P TAs (NPTA) are cre-
+ated by composing PTAs via input and output actions. More pre cisely, we deﬁne
+a natural stochastic semantics for networks of NPTAs based o n races between
+components being composed. We shall observe that such race c an generate ar-
+bitrarily complex stochastic behaviors from simple assump tions on individual
+components. We shall see that our semantics cannot be emulat ed by applying
+the existing stochastic semantic of [4,8] to the product of c omponents. Other
+related work includes the very rich framework of stochastic timed systems of
+MoDeST [10]. Here, however, general hybrid variables are no t considered and
+parallel composition does not yield fully stochastic model s. For the notion of
+probabilistic hybrid systems considered in [31] the choice of time is resolved non-
+deterministically rather than stochastically as in our cas e. Moreover, based on
+the stochastic semantics, we are able to express reﬁned perf ormance properties,
+e.g. in terms of probabilistic guarantees of time- and cost- bounded properties5.
+To allow for the eﬃcient analysis of probabilistic performa nce properties we
+propose to work with Statistical Model Checking (SMC) [28,3 5], an approach
+thathasbeenproposedasanalternativetoavoidanexhausti veexplorationofthe
+state-space of the model. The core idea of SMC is to monitor so me simulations
+of the system, and then use results from the statistic area (i ncluding sequential
+hypothesis testing or Monte Carlo simulation) in order to de cide whether the
+system satisﬁes the property with some degree of conﬁdence.
+Thus, as a second contribution, we provide an eﬃcient implem entation of
+several existing SMC algorithms that we use for checking the correctness of
+NPTAs with respect to a stochastic extension of cost-constr ained temporal logic
+– this extension being conservative with respect to the clas sical (non-stochastic)
+interpretationofthelogic.Weshallobservethattwotimed bisimilarNPTAsmay
+be distinguisable by PWCTL. The series of algorithms we impl emented includes
+the sequential hypothesis test by Wald [34] as well as a quant itative approach
+[18]. Our implementation relies on a new eﬃcient algorithm f or generating runs
+of NPTAs in a random manner. In addition, we also propose anot her SMC
+algorithm to compare the probabilities of two properties wi thout computing
+them individually – which is useful to compare the performan ces of a program
+4in contrast to the usual restriction of priced timed automat a [3,6]
+5Clocks with diﬀerent rates can be used to model costs.
+2
+
+--- Page 3 ---
+with one of its evolutions at cheap cost. This probability co mparison problem,
+which is far beyond the scope of existing time model checking approaches, can
+be approximated with an extension of the sequential hypothe sis testing and has
+the advantage of unifying the conﬁdence in the comparison. I n addition to be the
+ﬁrst to apply such extension in the context of formal veriﬁca tion, we also propose
+a new variant that allows to reuse existing results in parall el when comparing
+the properties on diﬀerent timed bounds.
+Finally, one of the most interesting contribution of our wor k takes the form
+of a series of new case studies that are analyzed with a new sto chastic extension
+ofUppaal [13]. Particularly, we show how our approach can be used to re solve
+scheduling problems. Such problems are deﬁned using Durati on Probabilistic
+Automata (DPA) [24], a new and natural model for specifying l ist of tasks and
+shared resources. We observe that our approach is not only mo re general, but
+also an order of magnitude faster than the hypothesis testin g engine recently
+implemented in the Prismtoolset. Our work thus presents signiﬁcant advances
+inboththemodelingandtheeﬃcientveriﬁcation ofnetworko fcomplexsystems.
+Related work. Some works on probabilistic semantics of timed automata
+have already been discussed above. Simulation-based appro aches such as Monte
+Carlo have been in use since decades, however the use of simul ation and hypo-
+thesistestingtoreasononformalmodelsisamorerecentadv ance.Firstattempts
+to apply hypothesis testing on stochastic extension of Henn essy-Milner logic can
+be found in [23]. In [35,37], Younes was the ﬁrst to apply hypo thesis testing to
+stochastic systems whose properties are speciﬁed with (bou nded) temporal logic.
+HisapproachisimplementedintheYmertoolset[36]andcanb eappliedontime-
+homogeneous generalized semi-Markov processes, while our semantics addresses
+the composition of stochastic systems allowing to compose a global system from
+components and reason about communication between indepen dent processes.
+In addition to Younes work we explore continuous-time featu res, formalize and
+implement Wald’s ideas where the probability comparison ca n be evaluated on
+NPTAprocesses.Inarecentwork[38],Zulianietal.extende dtheSMCapproach
+tohybridsystems.Theirworkisacombinationof[20]and[12 ]basedonSimulink
+models (non-linear hybrid systems), whereas our method is s pecialised to net-
+worksofpricedtimedautomatawheremodel-checkingtechni quescanbedirectly
+applicable using the same tool suite. In addition we provide means of comparing
+performances without considering individual probabiliti es. Finally, a very recent
+work [9] proposes partial order reduction techniques to res olve non-determinism
+between components rather than deﬁning a unique stochastic distribution on
+their product behaviors. While this work is of clear interes t, we point out that
+the application of partial order may considerably increase the computation time
+and for some models partial orders cannot resolve non-deter minism, especially
+when considering continuous time [25]. Finally, we mention [22] that proposes
+a stochastic semantics to Uppaal’s models through simulation. This work does
+not consider race between components and oﬀers no tool imple mentation.
+3
+
+--- Page 4 ---
+2 Network of Priced Timed Automata
+We consider the notion of Networks of Priced Timed Automata (NPTA) , gener-
+alizing that of regular timed automata (TA) in that clocks ma y have diﬀerent
+rates in diﬀerent locations. In fact, the expressive power ( up to timed bisimilar-
+ity) of NPTA equals that of general linear hybrid automata (L HA) [1], rendering
+most problems – including that of reachability – undecidabl e.
+LetXbe a ﬁnite set of variables, called clocks6. Aclock valuation overXis
+a mapping ν:X→IR≥0, where IR ≥0is the set of nonnegative reals. We write
+IRX
+≥0for the set of clock valuations over X. Letr:X→IN be arate vector ,
+assigning to each clock of Xa rate. Then, for ν∈IRX
+≥0andd∈IR≥0a delay, we
+writeν+r·dfor the clock valuation deﬁned by ( ν+r·d)(x) =ν(x)+r(x)·d
+for any clock x∈X. We denote by INXthe set of all rate vectors. If Y⊆X, the
+valuationν[Y] is the valuation assigning 0 when x∈Yandν(x) whenx/ne}ationslash∈Y. An
+upper bounded (lower bound) guard overXis a ﬁnite conjunction of simple clock
+bounds of the form x∼nwherex∈X,n∈IN, and∼∈ {<,≤}(∼∈ {>,≥}) We
+denote by U(X) (L(X) the set of upper (lower) bound guards over X, and write
+ν|=gwheneverνis a clock valuation satisfying the guard g. LetΣ=Σi⊎Σo
+be a disjoint sets of input and output actions.
+Deﬁnition 1. APriced Timed Automaton (PTA) is a tuple A= (L,ℓ0,X,Σ,
+E,R,I)where: (i)Lis a ﬁnite set of locations, (ii) ℓ0∈Lis the initial location,
+(iii)Xis a ﬁnite set of clocks, (iv) Σ=Σi⊎Σois a ﬁnite set of actions
+partitioned into inputs ( Σi) and outputs ( Σo), (v)E⊆L×L(X)×Σ×2X×L
+is a ﬁnite set of edges, (vi) R:L→INXassigns a rate vector to each location,
+and (viii)I:L→ U(X)assigns an invariant to each location.
+The semantics of NPTAs is a timed labelled transition system whose states are
+pairs (ℓ,ν)∈L×IRX
+≥0withν|=I(ℓ), and whose transitions are either delay
+(ℓ,ν)d−→(ℓ,ν′) withd∈IR≥0andν′=ν+R(ℓ)·d, or discrete ( ℓ,ν)a−→(ℓ′,ν′)
+if there is an edge ( ℓ,g,a,Y,ℓ′) such that ν|=gandν′=ν[Y]. We write
+(ℓ,ν);(ℓ′,ν′) if there is a ﬁnite sequence of delay and discrete transitio ns from
+(ℓ,ν) to (ℓ′,ν′).
+Networks of Priced Timed Automata Following the compositional spe-
+ciﬁcation theory for timed systems in [14], we shall assume t hat NPTAs are:
+(1)[Input-enabled :] for all states ( ℓ,ν) and input actions ι∈Σi, for all TAs j,
+there is an edge ( ℓj,g,ι,Y,ℓj′) such that ν|=g, (2) [Deterministic :] for all states
+(ℓ,ν) and actions a∈Σ, whenever ( ℓ,ν)a−→(ℓ′,ν′) and (ℓ,ν)a−→(ℓ′′,ν′′)
+thenℓ′=ℓ′′andν′=ν′′, and (3) [ Non-zenos :] time always diverge. Moreover,
+diﬀerent automata synchronize on matching inputs and outpu ts as a standard
+broadcast synchronization [17].
+Whenever Aj= (Lj,Xj,Σj,Ej,Rj,Ij) (j= 1...n) are NPTA, they are
+composable into aclosed network iﬀ their clock sets are disjoint ( Xj∩Xk=∅
+6We will (mis)use the term “clock” from timed automata, though in the setting of
+NPTAs the variables in Xare really general real-valued variables.
+4
+
+--- Page 5 ---
+whenj/ne}ationslash=k), they have the same action set ( Σ=Σj=Σkfor allj,k), and
+their output action-sets provide a partition of Σ(Σj
+o∩Σk
+o=∅forj/ne}ationslash=k, and
+Σ=∪jΣj
+o). Fora∈Σwe denote by c(a) the unique jwitha∈Σj.
+Deﬁnition 2. LetAj= (Lj,Xj,Σ,Ej,Rj,Ij)(withj= 1...n) be composable
+NPTAs. Their composition ( A1|...|An)is the NPTA A= (L,X,Σ,E,R,L )
+where (i)L=×jLj, (ii)X=∪jXj, (iii)R(ℓ)(x) =Rj(ℓj)(x)whenx∈Xj, (iv)
+I(ℓ) =∩jI(ℓj), and (v) (ℓ,∩jgj,a,∪jrj,ℓ′)∈Ewhenever (ℓj,gj,a,rj,ℓ′
+j)∈Ej
+forj= 1...n.
+A1A0
+x<=1
+a!
+B1B0
+y<=2
+b!
+B1B0
+b!1:2 y<=2
+END x<=1x<=1 && 
+y<=2
+b!a!
+b!
+a!T1
+T3T0
+C’==2C’==4
+a?
+b?
+A B B rAB T
+Figure1: Three composable
+NPTAs:A,BandT;A,Brand
+T; andABandT.Example 1. LetA,B,TandABbe the
+priced timed automata depicted in Fig. 17
+ThenA,BandTare composable as well
+asABandT. In fact the composite sys-
+tems (A|B|T) and (AB|T) are timed (and
+priced) bisimilar, both having the transition
+sequence:
+/parenleftbig
+(A0,Bo,T0),[x= 0,y= 0,C= 0]/parenrightbig1−→a!−→/parenleftbig
+(A1,B0,T1),[x= 1,y= 1,C= 4]/parenrightbig1−→b!−→/parenleftbig
+(A1,B1,T2),[x= 2,y= 2,C= 6]/parenrightbig
+,
+demonstrating that the ﬁnal location T3ofTis reachable with cost 6.
+3 Probabilistic Semantics of NPTA
+Continuing Example 1 we may realise that location T3of the component Tis
+reachable within cost 0 to 6 and within total time 0 and 2 in bot h (A|B|T)
+and (AB|T) depending on when (and in which order) AandB(AB) chooses to
+perform the output actions a! andb!. Assuming that the choice of these time-
+delays is governed by probability distributions, we will in this section deﬁne a
+probability measure over sets of inﬁnite runs of networks of NPTAs.
+In contrast to the probabilistic semantics of timed automat a in [4,8] our
+semantics deals with networks and thus with races between co mponents. Let
+Aj= (Lj,Xj,Σ,Ej,Rj,Ij) (j= 1...n) be a collection of composable NPTAs.
+Under the assumption of input-enabledness, disjointness o f clock sets and output
+actions, states of the the composite NPTA A= (A1|...|An) may be seen as
+tupless= (s1,...,s n) wheresjis a state of Aj, i.e. of the form ( ℓ,ν) where
+ℓ∈Ljandν∈IRXj
+≥0. Our probabilistic semantics is based on the principle of
+independency between components. Repeatedly each compone nt decides on its
+own – based on a given delay density function and output proba bility function
+– how much to delay before outputting and what output to broad cast at that
+moment. Obviously, in such a race between components the out come will be de-
+termined by the component that has chosen to output after the minimum delay:
+theoutputisbroadcastandallothercomponentsmayconsequ entlychangestate.
+7The broadcast synchronization we use allows us to ignore miss ing input transitions
+that may otherwise be added as looping transitions.
+5
+
+--- Page 6 ---
+Probabilistic Semantics of NPTA Components Let us ﬁrst consider a
+component Ajand letStjdenote the corresponding set of states. For each state
+s= (ℓ,ν) ofAjwe shall provide probability distributions for both delays and
+outputs. In this presentation, we restrict to uniform and un iversal distributions,
+but arbitrary distributions can be considered.
+Thedelay density function µsover delays in IR ≥0will be either a uniform
+or an exponential distribution depending on the invariant o fℓ. Denote by Eℓ
+the disjunction of guards gsuch that ( ℓ,g,o,−,−)∈Ejfor some output o.
+Denote by d(ℓ,ν) the inﬁmum delay before enabling an output, i.e. d(ℓ,ν) =
+inf{d∈IR≥0:ν+Rj·d|=Eℓ}, and denote by D(ℓ,ν) the supremum delay,
+i.e.D(ℓ,ν) = sup{d∈IR≥0:ν+Rj·d|=Ij(ℓ)}. IfD(ℓ,ν)<∞then the delay
+density function µsis a uniform distribution on [ d(ℓ,ν),D(ℓ,ν)]. Otherwise –
+that isIj(ℓ) does not put an upper bound on the possible delays out of s– the
+delay density function µsis an exponential distribution with a rate P(ℓ), where
+P:Lj→IR≥0is anadditional distribution rate component added to the NPTA
+Aj. For every state s= (ℓ,ν), theoutput probability function γsoverΣj
+ois the
+uniform distribution over the set {o: (ℓ,g,o,−,−)∈Ej∧ν|=g}whenever this
+set is non-empty8. We denote by sothe state after the output of o. Similarly,
+for every state sand any input action ι, we denote by sιthe state after having
+received the input ι.
+Probabilistic Semantics of Networks of NPTA We shall now see that
+while the stochastic semantics of each PTA is rather simple ( but quite realistic),
+arbitrarily complex stochastic behavior can be obtained by their composition.
+Reconsider the closed network A= (A1|...|An) with a state space St=
+St1× ··· ×Stn. Fors= (s1,...,s n)∈Standa1a2...ak∈Σ∗we denote by
+π(s,a1a2...ak) the set of all maximal runs from swith a preﬁx t1a1t2a2...tkak
+for somet1,...,tn∈IR≥0, that is runs where the i’th actionaihas been output-
+ted by the component Ac(ai). We now inductively deﬁne the following measure
+for such sets of runs:
+PA/parenleftbig
+π(s,a1...an)/parenrightbig
+=/integraldisplay
+t≥0µsc(t)·/parenleftbig/productdisplay
+j/negationslash=c/integraldisplay
+τ>tµsj(τ)dτ/parenrightbig
+·γsct(a1)·PA/parenleftbig
+π(st)a1,a2...an)/parenrightbig
+dt
+wherec=c(a1), and as base case we take PA(π(s),ε) = 1.
+This deﬁnition requires a few words of explanation: at the ou termost level
+we integrate over all possible initial delays t. For a given delay t, the outputting
+component c=c(a1) will choose to make the broadcast at time twith the stated
+density. Independently, the other components will choose t o a delay amount,
+which – in order for cto be the winner – must be larger than t; hence the
+product of the probabilities that they each make such a choic e. Having decided
+for making the broadcast at time t, the probability of actually outputting a1
+is included. Finally, in the global state resulting from all components having
+delayedttime-units and changed state according to the broadcasted a ctiona1
+the probability of runs according to the remaining actions a2...anis taken into
+account.
+8otherwise a speciﬁc weight distribution can be speciﬁed and used instead.
+6
+
+--- Page 7 ---
+A|Br|TA|B|TAB|T
+Timeprobability
+00.150.300.450.600.75
+0 0.7 1.42.1A|Br|TA|B|TAB|T
+Cprobability
+00.150.300.450.600.75
+0 2.0 4.06.0
+(a) (b)
+Figure2: Cumulative probabilities for time and cost-bound ed reachability of T3.
+Logical Properties Following [26], the measure PAmay be extended in a
+standard and unique way to the σ-algebra generated by the sets of runs (so-
+called cylinders) π(s,a1a2...an). As we shall see this will allow us to give proper
+semantics to a range of probabilistic time- and cost-constr ained temporal prop-
+erties. Let Abe a NPTA. Then we consider the following non-nested PWCTL
+properties:
+ψ::=P/parenleftbig
+3C≤cϕ/parenrightbig
+∼p|P/parenleftbig
+2C≤cϕ/parenrightbig
+∼p
+whereCis an observer clock (of A),ϕa state-property (wrt. A) ,∼∈ {<,≤,=
+,≥,>}, andp∈[0,1]. This logic is a stochastic extension of the classical WCT L
+logic for non-stochastic systems, where the existential qu antiﬁer is replaced by a
+probability operator. For the semantics let A∗be the modiﬁcation of A, where
+the guardC≤chas been conjoined to the invariant of all locations and an ed ge
+(ℓ,ϕ,oϕ,∅,ℓ) has been added to all locations ℓ, whereoϕis a new output action.
+Then:
+A |=P/parenleftbig
+3C≤cϕ/parenrightbig
+∼piﬀPA∗/parenleftBig/uniondisplay
+σ∈Σ∗π(s0,σoϕ)/parenrightBig
+∼p
+which is well-deﬁned since the σ-algebra on which PA∗is deﬁned is closed under
+countable unions and ﬁnite intersections. To complete the s emantics, we note
+thatP(2C≤cϕ)∼pis equivalent to (1 −p)∼P(3C≤c¬ϕ).9
+Compared with previous stochastic semantics of timed autom ata (see e.g.,
+[4,8]), we emphasize the novelty of the semantics of NPTA in t erms of RACES
+betweencomponents, truthfully reﬂectingtheir independe ncies.Inparticular our
+stochastic semantics of a network ( A1|..|An) is signiﬁcantly diﬀerent from that
+obtained by applying the stochastic semantics of [4,8] to a p roduct construction
+A1A2...An, as information about independencies are lost. So though ( A1|..|An)
+andA1A2...Anare timed bisimilar they are in general not probabistic time d
+bisimilar,andhencedistinguishablebyPWCTL.Thesituati onisillustratedwith
+the following example.
+Example 2. Reconsider the Example of Fig. 1. Then it can be shown that
+(A|B|T)|=P/parenleftbig
+3t≤2T3/parenrightbig
+= 0.75 and (A|B|T)|=P/parenleftbig
+3C≤6T3/parenrightbig
+= 0.75, whereas
+9We also note that the above (stochastic) interpretation of P WCTL is a conservative
+extension of the classical (non-stochastic) interpretatio n of WCTL, in the sense that
+A |=P/parenleftbig
+3C≤cϕ/parenrightbig
+>0 implies An|=E3C≤cϕ, whereAnrefers to the standard non-
+stochastic semantics of A.
+7
+
+--- Page 8 ---
+(AB|T)|=P/parenleftbig
+3t≤2T3/parenrightbig
+= 0.50 and (AB|T)|=P/parenleftbig
+3C≤6T3/parenrightbig
+= 0.50. Fig. 2 gives a
+time- and cost-bounded reachability probabilities for ( A|B|T) and (AB|T) for a
+range of bounds. Thus, though the two NPTAs satisfy the same W CTL proper-
+ties, they are obviously quite diﬀerent with respect to PWCT L. The NPTA Br
+of Fig. 1 is a variant of B, with the uniform delay distribution enforced by the
+invarianty≤2 being replaced by an exponential distribution with rate1
+2. Here
+(A|Br|T) satisﬁes P/parenleftbig
+3t≤2T3/parenrightbig
+≈0.41 andP/parenleftbig
+3C≤6T3/parenrightbig
+≈0.49.
+4 Statistical Model Checking for NPTA
+As we pointed out, most of model checking problems for NPTAs a nd PWCTL
+(including reachability) are undecidable. Our solution is to use a technique that
+approximates the answer. We rely on Statistical Model Checking (SMC) [28,35],
+that is a series of simulation-based techniques that genera te runs of the systems,
+monitor them, and then use algorithms from statistics to get an estimate of the
+entire system. At the heart of any SMC approach, there is an al gorithm used to
+generate runs of the system following a stochastic semantic s. We propose such
+an algorithm for NPTAs corresponding to the stochastic sema ntics proposed in
+Section 3. Then, we recap existing statistic algorithms, pr oviding the basis for a
+ﬁrst SMC algorithm for NPTAs.
+Generating Runs of NPTA SMCisusedforpropertiesthatcanbemonitored
+on ﬁnite runs. Here, we propose an algorithm that given an NPT A generates a
+random run up to a cost bound c(with time bounds being a simple case) of
+an observer clock C. A run of a NPTA is a sequence of alternations of states
+s0d0− →s′
+0o0− →s1d1− →...snobtained by performing delays diand emitting
+outputsoi. Here we consider a network of NPTAs with states being of the f orm
+(ℓ,ν). We construct random runs according to Algorithm 1. We star t from an
+initial state ( ℓ0,ν0) and repeatedly concatenate random successor states until we
+reach the bound cfor the given observer clock C. Recall that ν(C) is the value of
+Cinstate( ℓ,ν),andtherateof Cinlocation ℓisR(C)(ℓ).Weusethenotation ⊕
+to concatenate runs and tail(run) to access the last state of a run and delay(µs)
+returns a random delay according to the delay density functi onµsas described
+in Section 3. The statement “pick” means choose uniformly am ong the possible
+choices. Lines 5-6 stop the delay when the runs reach their ti me bounds with the
+values of the clocks depending on their rates. The Algorithm 1 may be seen to be
+correct with respect to the stochastic semantics of NPTAs gi ven in Section 3 in
+the sense that the probability of the (random) run RRA/parenleftbig
+(ℓ0,ν0),C,c/parenrightbig
+satisfying
+3C≤cϕisPA/parenleftBig
+3C≤cϕ/parenrightBig
+.
+Statistical Model Checking Algorithms We brieﬂy recap statistical al-
+gorithms permitting to answer the following two types of que stions : (1) Qual-
+itative : Is the probability for a given NPTA Ato satisfy a property 3C≤cϕ
+greater or equal to a certain threshold θ? and (2) Quantitative : What is the
+probability for Ato satisfy 3C≤cϕ. Each run of the system is encoded as a
+8
+
+--- Page 9 ---
+Algorithm 1 : Random run for a NPTA-network A
+functionRRA((ℓ0,ν0),C,c)
+run:= (ℓ,ν) :=tail(run) := (ℓ0,ν0) 1
+whileν(C)<cdo 2
+fori= 1 to|ℓ|dodi:=delay(µ(ℓi,νi)) 3
+d:=min1≤i≤|ℓ|(di) 4
+ifd= +∞∨ν(C)+d∗R(ℓ)(C)≥cthen 5
+d:= (ν(C)−c)/R(ℓ)(C) 6
+returnrun⊕d− →(ℓ,ν+d∗R(ℓ)) 7
+end
+else8
+pickksuch thatdk=d;νd:=ν+d∗R(ℓ) 9
+pickℓkg,o,r− −− →ℓ′
+kwithg(νd) 10
+run:=run⊕d− →(ℓ,νd)g,o,r− −− →(ℓ[l′
+k/lk],[r/mapsto→0](νd)) 11
+end
+(ℓ,ν) :=tail(run) 12
+end
+returnrun
+Bernoulli random variable that is true if the run satisﬁes th e property and false
+otherwise.
+Qualitative Question This problem reduces to test the hypothesis H:p=
+PA(3C≤cϕ)≥θagainstK:p<θ. To bound the probability of making errors,
+we use strength parameters αandβand we test the hypothesis H0:p≥p0and
+H1:p≤p1withp0=θ+δ0andp1=θ−δ1. The interval p0−p1deﬁnes an
+indiﬀerence region, and p0andp1are used as thresholds in the algorithm. The
+parameterαis the probability of accepting H0whenH1holds (false positives)
+and the parameter βis the probability of accepting H1whenH0holds (false
+negatives). The above test can be solved by using Wald’s sequ ential hypothesis
+testing [34]. This testcomputes a proportion ramong those runs that satisfy the
+property. With probability 1, the value of the proportion wi ll eventually cross
+log(β/(1−α) or log((1 −β)/α) and one of the two hypothesis will be selected.
+Quantitative Question This algorithm [19] computes the number Nof runs
+needed in order to produce an approximation interval [ p−ǫ,p+ǫ] forp=Pr(ψ)
+with a conﬁdence 1 −α. The values of ǫandαare chosen by the user and N
+relies on the Chernoﬀ-Hoeﬀding bound.
+5 Beyond “Classical” Statistical Model-Checking
+Here, we want to compare p1=PA(3C1≤c1ϕ1) andp2=PA(3C2≤c2ϕ2) without
+computing them. This comparison has clear practical applic ations e.g. it can be
+used to compare the performances of an original program with one of its newly
+9
+
+--- Page 10 ---
+designed extensions. This comparison cannot be performed w ith the algorithm
+presented in the previous section. Moreover, using Monte Ca rlo to estimate the
+probabilities (which is costly) would not help as both such p robabilities would
+be estimated with diﬀerent conﬁdences that could hardly be r elated10. In [34],
+Wald has shown that this problem can be reduced to a sequentia l hypothesis
+testing one. Our contributions here are (1) to apply this alg orithm in the formal
+veriﬁcation area, (2) to extend the original algorithm of [3 4] to handle cases
+where we observe the same outcomes for both experiments, and (3) to implement
+a parametric extension of the algorithm that allows to reuse results on several
+timed bounds. More precisely, instead of comparing two prob abilities with one
+common cost bound C≤c, the new extension does it for all the Nbounds
+i∗c/Nwithi= 1...Nby reusing existing runs.
+Comparison Algorithm. Let the eﬃciency of satisfying 3C1≤c1ϕ1over runs
+be given by k1=p1/(1−p1) and similarly for 3C2≤c2ϕ2. The relative superior-
+ity of “ϕ2overϕ1” is measured by the ratio u=k2
+k1=p2(1−p1)
+p1(1−p2). Ifu= 1 both
+properties are equally good, if u>1,ϕ2is better, otherwise ϕ1is better. Due to
+indiﬀerence region, we have two parameters u0andu1such thatu0<u1to make
+the decision. If u≤u0we favorϕ1and ifu≥u1we favorϕ2. The parameter α
+is the probability of rejecting ϕ1whenu≤u0and the parameter βis the prob-
+ability of rejecting ϕ2whenu≥u1. An outcome for the comparison algorithm is
+a pair (x1,x2) = (r1|=3C1≤c1ϕ1,r2|=3C2≤c2ϕ2) for two independent runs r1
+andr2. In Wald’s version (lines 10–14 of Algorithm 2), the outcome s (0,0) and
+(1,1) are ignored. The algorithm works if it is guaranteed to eve ntually generate
+diﬀerent outcomes. We extend the algorithm with a qualitati ve test (lines 5–9
+of Algorithm 2) to handle the case when the outcomes are alway s the same.
+The hypothesis we test is PA((r1|=3C1≤c1ϕ1) = (r2|=3C2≤c2ϕ2))≥θfor
+two independent runs r1andr2. We note that this does not aﬀect the correct-
+ness of the original algorithm for accepting or rejecting pr ocess 2. The modiﬁed
+algorithm now returns indiﬀerent in addition, which corresponds to our added
+hypothesis to cut down the number of necessary runs11. Typically we want the
+parameters p′
+0=θ+δ0(for the corresponding hypothesis H0) andp′
+1=θ−δ1
+(forH1) to be close to 1. Our version of the comparison algorithm is s hown in
+algorithm 2 with the following initializations:
+a=log(β
+1−α)
+log(u1)−log(u0),r=log(1−β
+α)
+log(u1)−log(uo),c=log(1+u1
+1+u0)
+log(u1)−log(uo)
+Parametrised Comparisons We now generalise the comparison algorithm to
+give answers not only for one cost bound cbutNcost bounds i∗c/N(with
+i= 1...N). This algorithm is of particular interest to generate dist ribution
+over timed bounds value of the property. The idea is to reuse t he runs of smaller
+bounds. When 3C≤cϕ1or3C≤cϕ2holds on some run we keep track of the
+corresponding point in cost (otherwise the cost value is irr elevant). Every pair or
+10Interleaving intervals for the estimate (even with same conﬁ dence) may give non-
+deterministic results, not to mention that computing estim ates is more expensive
+than hypothesis testing in terms of runs.
+11Thisalsofreesusfromtheassumptionthattheprocesseshav esomediﬀerentoutputs.
+10
+
+--- Page 11 ---
+Algorithm 2 : Comparison of probabilities
+function comprise(S:model ,ψ1,ψ2: properties)
+check:= 1,q:= 0,t:= 0 1
+whiletruedo 2
+Observe the random variable x1corresponding to ψ1for a run. 3
+Observe the random variable x2corresponding to ψ2for a run. 4
+ifcheck = 1 then 5
+x:= (x1==x2) 6
+q:=q+x∗log(p′
+1/p′
+0)+(1−x)∗log((1−p′
+1)/(1−p′
+0)) 7
+ifq≤log(β/(1−α))then return indiﬀerent 8
+ifr≥log((1−β)/α) thencheck:= 0 9
+end
+ifx1/negationslash=x2then 10
+a:=a+c,r:=r+c 11
+ifx1= 0 andx2= 1thent:=t+1 12
+ift≤athenaccept process 2. 13
+ift≥rthenreject process 2. 14
+end
+end
+runs gives a pair of outcomes ( x1,x2) at cost points ( c1,c2). For every i= 1...N
+we deﬁne the new pair of outcomes ( yi1,yi2) =/parenleftbig
+x1∧(i·c/N≥t1·rateC),x2∧
+(i·c/N≥t2·rateC)/parenrightbig
+for which we use our comparison algorithm. We terminate
+the algorithm when a result for every ithbound is known.
+6 Case Studies
+We have extended Uppaal with the algorithms described in this paper. The
+implementation provides access to all the powerful feature s of the tool, including
+user deﬁned functions and types, and use of expressions in gu ards, invariants,
+clock-rates as well as delay-rates. Also the implementatio n supports branching
+edges with discrete probabilities (using weights), thus su pporting probabilistic
+timed automata (a feature for which our stochastic semantic s of NPTA may
+be easily extended). Besides these additional features, th e case-studies reported
+below (as well as the plots in the previous part of the paper) i llustrate the nice
+features of the new plot composing GUI of the tool12. Our objective here is not
+to study the evolutions of performances with the increase of condidence level,
+but rather to give a sample of case studies on which our approa ch can be applied.
+Train-Gate Example We consider the train-gate example [5], where Ntrains
+want to cross a one-track bridge. We extend the original mode l by specifying an
+arrival rate for Train i((i+1)/N). Trains are then approaching, but they can be
+stopped before some time threshold. When a train is stopped, it can start again.
+12http://www.cs.aau.dk/˜adavid/smc/ for details.
+11
+
+--- Page 12 ---
+Eventually trains cross the bridge and go back to their safe s tate. The template
+of these trains is given in Fig. 3(a). Our model captures the n atural behavior
+of arrivals with some exponential rate and random delays cho sen with uniform
+distributions in states labelled with invariants. The tool is used to estimate
+the probability that Train 0 and Train 5 will cross the bridge in less than 100
+units of time. Given a conﬁdence level of 0 .05 the conﬁdence intervals returned
+are [0.541,0.641] and [0 .944,1]. The tool computes for each time bound Tthe
+frequency count of runs of length Tfor which the property holds. Figure 3(b)
+shows a superposition of both distributions obtained direc tly with our tool that
+provides a plot composer for this purpose.
+a)Safe
+StopCross
+Appr Startx>=10
+x<=10x>=3
+x>=7
+stop[id]?leave[id]!
+appr[id]!
+go[id]?(1+id):N*N
+x=0 x=0 x=0
+x=0x<=5
+x<=20 x<=15 b)Train(0)Train(5)
+Timeprobability
+00,0050,0100,0150,0200,025
+10 80 150220290
+Figure3: Template of a train (a) and probability density dis tributions for
+3T≤tTrain(0).Crossand3T≤tTrain(5).Cross.
+The distribution for Train 5 is the one with higher probabili ty at the begin-
+ning, which conﬁrms that this train is indeed the faster one. An interesting point
+is to note the valleys in the probability densities that corr espond to other trains
+conﬂicting for crossing the bridge. They are particularly v isible for Train 0. The
+number of valleys corresponds to the number of trains. This i s clearly not a
+trivial distribution (not even uni-modal) that we could not have guessed manu-
+ally even from such a simple model. In addition, we use the qua litative check to
+cheaply reﬁne the bounds to [0 .541,0.59] and [0.97,1].
+We then compare the probability for Train 0 to cross when all o ther trains
+are stopped with the same probability for Train 5. In the ﬁrst plot (Fig. 4 top),
+we check the same property with 100 diﬀerent time bounds from 10 to 1000 in
+steps of 10 and we plot the number of runs for each check. These experiments
+only check for the speciﬁed bound, they are not parametrised . In the second
+plot, we use the parametric extension presented in Section 5 with a granularity
+of 10 time units. We conﬁgured the thresholds u0andu1to diﬀerentiate the
+comparisons at u0= 1−ǫandu1= 1+ǫwithǫ= 0.1,0.05,0.01 as shown on
+the ﬁgure. In addition, we use a larger time bound to visualis e the behaviors
+after time 600 that are interesting for our checker. In the ﬁr st plot of Fig. 4,
+we show for each time bound the average of runs needed by the co mparison
+algorithm repeated 30 times for diﬀerent values of ǫ. In the bottom plot, we
+ﬁrst superpose the cumulative probability for both trains ( curves Train 0 and
+Train 5) that we obtain by applying the quantitative algorit hm of Section 4
+for each time bound in the sampling. Interestingly, before t hat point, train 5 is
+betterandlatertrain0isbetter.Second,wecomparethesep robabilitiesbyusing
+the comparison algorithm (curves 0.1 0.05 0.01). This algor ithm can retrieve 3
+12
+
+--- Page 13 ---
+ 0 50000 100000 150000 200000 250000 300000
+ 0 100  200  300  400  500  600  700  800  900 1000Runs
+Time bound0.1
+0.05
+0.01
+ 0 0.2 0.4 0.6 0.8 1
+ 0 100  200  300  400  500  600  700  800  900 1000Cumulative distributions and comparisonsTime bound0.1
+0.05
+0.01
+Train(0)
+Train(5)
+Figure4: Comparing trains 0 and 5.
+values: 0 if Train 0 wins, 1 if Train 5 wins and 0.5 otherwise. W e report for each
+time bound and each value of ǫthe average of these values for 30 executions of
+the algorithm.
+In addition, to evaluate the eﬃciency of computing all resul ts at once to
+obtain these curves, we measure the accumulated time to chec k all the 100
+properties for the ﬁrst plot (sequential check), which take s 92s,182s,924sfor
+ǫ= 0.1,0.05,0.01, and the time to obtain all the results at once (parallel ch eck),
+which takes 5 s,12s,92s. The experiments are done on a Pentium D at 2.4GHz
+and consume very little memory. The parallel check is about 1 0 times faster13. In
+fact it is limited by the highest number of runs required as sh own by the second
+peak in Fig. 4. The expensive part is to generate the runs so re using them is
+important. Note that at the beginning and at the end, our algo rithm aborts the
+comparison of the curves, which is visible as the number of ru ns is sharply cut.
+Lightweight Media Access Control Protocol (LMAC). This protocol is
+used in sensor networks to schedule communication between n odes. It is tar-
+geted for distributed self-conﬁguration, collision avoid ance and energy eﬃciency.
+In this study we reproduce the improved Uppaal model from [15] without veri-
+ﬁcation optimisations, parametrise with network topology (ring and chain), add
+probabilistic weights (exponential and uniform) over disc rete delay decisions and
+examine statistical properties which were not possible to c heck before. Based
+on [33], our node model consumes 21, 22, 2 and 1 power units whe n a node is
+sending, receiving, listening for messages or being idle re spectively.
+Fig. 5a shows that collisions may happen in all cases and the p robability
+of collision is higher with exponential decision weights th an uniform decision
+13The implementation checks simulations sequentially using a s ingle thread.
+13
+
+--- Page 14 ---
+a)uni−ringuni−chainexp−ringexp−chain
+timeprobability
+00,020,040,060,080,100,12
+13 20 2734414855b)uni−chainexp−chain
+collisionsprobability
+00.150.300.450.600.750.90
+0 1.4 2.84.25.67.0
+Figure5: Collision probabilities when using exponential a nd uniform weights in
+chain and ring topologies, a) cumulative probability of col lision over time and
+b) probability of having various numbers of collisions.
+weights, but seems independent of topology (ring or chain). The probability of
+collision stays stable after 50 time units, despite longer s imulations, meaning
+that the network may stay collision free if the ﬁrst collisio ns are avoided. We
+alsoappliedthemethodforparametrisedprobability compa risonforthecollision
+probability. The results show that up to 14 time units the pro babilities are
+the same and later exponential weights have higher collisio n probability than
+uniform, but the results were inconclusive when comparing d iﬀerent topologies.
+The probable collision counts in the chain topology are show n in Fig. 5b,
+where the case with 0 collisions has a probability of 87.06% a nd 89.21% when
+using exponential and uniform weights respectively. The ma ximum number of
+probable collisions is 7 for both weight distributions desp ite very long runs,
+meaning that the network eventually recovers from collisio ns.
+exp−chainuni−chainexp−ringuni−ring
+energyprobability
+00.030.060.090.120.150.18
+3.0E4 3.4E4 3.9E4
+Figure6: Total energy consumption.Fig. 6 shows energy consumption
+probability density: using uniform and ex-
+ponential weights in a chain and a ring to-
+pologies. The probability Pr[energy <=
+50000](<> time>=1000) as estimated.
+Ring topology uses more power (possibly
+duetocollisions),anduniformweightsuse
+slightly less energy than exponential weights in these part icular topologies.
+Duration Probabilistic Automata (DPA) [21]. Those automata are used
+formodellingjob-shopproblems.ADPAconsistsofseveralS impleDPAs(SDPA).
+An SDPA is a processing unit, a clock and a list of tasks to proc ess sequentially.
+Each task has an associated duration interval, from which it s duration is chosen
+(uniformly). Resources are used to model task races – we allo w diﬀerent resource
+types and diﬀerent quantities of each type. A ﬁxed priority s cheduler is used to
+resolve conﬂicts. An example is shown in Fig. 7. DPA can be enc oded in our tool
+start [2,5] [1,2]End
+wt2
+1start [1,6] [2,3]End[r1=4] [ r2=2]
+[r1=1,r2=2] [ r1=2,r2=1]
+Figure7: Rectangles are busy states and circles are for wait ing when resources
+are not available. There are r1= 5 andr2= 3 resources available.
+14
+
+--- Page 15 ---
+(continuous or discrete time semantics) or in Prism(discrete semantics), see the
+technical report [27]. In Prism, integer and boolean variables are used to encode
+the current tasks and resources. Prismonly supports the discrete time model.
+InUppaal, a chain of waiting and task locations is created for each SDP A.
+Guards and invariants encode the duration of the task, and an array of integers
+contain the available resources. The scheduler is encoded a s a separate template.
+Table 1: Performance of SMC (sec)
+Param. Estim. Hyp. Testing
+n k mPrismUppUpdUpcPrismUppUpdUpc
+4 4 3 2.7 0.3 0.2 0.2 2.0 0.1 0.1 0.1
+6 6 3 7.7 0.6 0.5 0.4 3.9 0.2 0.2 0.3
+8 8 3 26.5 1.2 0.9 0.7 16.4 0.5 0.4 0.3
+2040 20 >300 >30035.526.2 20.7
+3040 20 >300 >30061.241.8 33.2
+4040 20 >300 >30092.256.9 59.5
+4020 20 >300 >30041.131.2 26.5
+4030 20 >300 >30068.846.7 46.1
+4055 40 >300 >300 219.5ForUppaal, we have mod-
+elled a discrete version as
+close as possible to the Prism
+model (Upp), an improved dis-
+crete version that “jumps”
+to interesting points in time
+(Upd), and a continuous time
+version that making full use of
+our formalism ( Upc).
+The performance of the
+translationsisshowninTab.1,
+based on DPAs with nSDPAs,
+ktasks per SDPA and mre-
+source types. The resource usage and duration interval are r andomised. In the
+hypothesis testing column, Uppaal uses the sequential hypothesis testing in-
+troduced in Section 4, whereas Prismuses its own new implementation of the
+hypothesistestingalgorithm.Intheestimationcolumn,bo thUppaal andPrism
+use the quantitative check of Section 4, but Uppaal is faster thanks to its more
+suitable formalism. For both tools, the error bounds used ar eα=β= 0.05. In
+the hypothesis test, the indiﬀerence region size is 0 .01, while we have ǫ= 0.05
+for the quantitative approach. The query for the approximat ion test is: “What
+is the probability of all SDPAs ending within ttime units?”, and for hypothesis
+testing it is: “Do all SDPAs end within ttime units with probability greater
+than 40%?”. The value of tvaries for each model as it was computed by simu-
+lating the system 369 times and represent the value for which at least 60% of
+the runs reached the ﬁnal state. Each number in the table is th e average of 10
+SMC analyses on the given model. The results show that Uppaal is an order
+of magnitude faster than Prismeven with the discrete encoding, which puts
+Uppaal at a disadvantage given that it is designed for continuous ti me14.
+Acknowledgments
+We thank Holger Hermans who helped us to clarify the relation between WCTL
+and the conservative stochastic extension considered in th is paper. We are also
+thankful to David Parker for fruitful discussions on SMC and PRISM.
+14We note that the number of steps generated for the runs of the P RISM model and
+the discrete Uppaal modelupppare comparable.
+15
+
+--- Page 16 ---
+References
+1. R. Alur, C. Courcoubetis, N. Halbwachs, T. A. Henzinger, P .-H. Ho, X. Nicollin,
+A. Olivero, J. Sifakis, and S. Yovine. The algorithmic analysis of hybrid systems.
+Theoretical Computer Science , 138(1):3–34, 1995.
+2. R. Alur and D. Dill. A Theory of Timed Automata. Theoretical Computer Science ,
+126:183–235, 1994.
+3. Rajeev Alur, Salvatore La Torre, and George J. Pappas. Optima l paths in weighted
+timed automata. In Benedetto and Sangiovanni-Vincentelli [7], pages 49–62.
+4. Christel Baier, Nathalie Bertrand, Patricia Bouyer, Tho mas Brihaye, and Marcus
+Gr¨ oßer. Probabilistic and topological semantics for timed automata. In FSTTCS ,
+volume 4855 of LNCS, pages 179–191. Springer, 2007.
+5. Gerd Behrmann, Alexandre David, and Kim Guldstrand Larsen. A tu torial on
+Uppaal. In Marco Bernardo and Flavio Corradini, editors, SFM, ncs(3185), pages
+200–236. Springer, 2004.
+6. Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim Guldstrand L arsen, Paul
+Pettersson, Judi Romijn, and Frits W. Vaandrager. Minimum-co st reachability
+for priced timed automata. In Benedetto and Sangiovanni-Vi ncentelli [7], pages
+147–161.
+7. Maria Domenica Di Benedetto and Alberto L. Sangiovanni-V incentelli, editors.
+Hybrid Systems: Computation and Control, 4th International Workshop, HSCC
+2001, Proceedings , volume 2034 of LNCS. Springer, 2001.
+8. Nathalie Bertrand, Patricia Bouyer, Thomas Brihaye, and Nicolas Markey. Quant-
+itative model-checking of one-clock timed automata under pr obabilistic semantics.
+InQEST, pages 55–64. IEEE Computer Society, 2008.
+9. J. Bogdoll, L-M Fiorti, A. Hartmanns, and H. Hermanns. Part ial order methods
+for statistical model checking and simulation. In FORTE, LNCS. Springer, 2011.
+to appear.
+10. H. Bohnenkamp, P.R. D’Argenio, H. Hermanns, and J.-P. Kato en. Modest: A
+compositional modeling formalism for real-time and stocha stic systems. Technical
+Report CTIT 04-46, University of Twente, 2004.
+11. E. Clarke, O. Grumberg, and D. Peled. Model Checking . MIT Press, 1999.
+12. E. M. Clarke, A. Donz´ e, and A. Legay. Statistical model c hecking of mixed-analog
+circuits with an application to a third order delta-sigma mo dulator. In HVC,
+volume 5394 of LNCS, pages 149–163. Springer, 2008.
+13. A. David, K.G. Larsen, A. Legay, Z.Wang, and M. Mikucionis. Ti me for real
+statistical model-checking: Statistical model-checking fo r real-time systems. In
+CAV, LNCS. Springer, 2011.
+14. Alexandre David, Kim.G. Larsen, Axel Legay, Ulrik Nyman, and An drzej
+Wasowski. Timed I/O automata: a complete speciﬁcation theor y for real-time
+systems. In HSCC. ACM, 2010.
+15. Ansgar Fehnker, Lodewijk van Hoesel, and Angelika Mader . Modelling and veri-
+ﬁcation of the lmac protocol for wireless sensor networks. In Jim Davies and
+Jeremy Gibbons, editors, Integrated Formal Methods , volume 4591 of LNCS, pages
+253–272. Springer Berlin / Heidelberg, 2007.
+16. Goran Frehse. Phaver: algorithmic veriﬁcation of hybrid s ystems past hytech.
+STTT, 10(3):263–279, 2008.
+17. Rodolfo G´ omez. A compositional translation of timed aut omata with deadlines
+to uppaal timed automata. In Formal Modeling and Analysis of Timed Systems ,
+volume 5813, pages 179–194, 2009.
+16
+
+--- Page 17 ---
+18. T. H´ erault, R. Lassaigne, F. Magniette, and S. Peyronnet . Approximate probab-
+ilistic model checking. In VMCAI, LNCS, pages 73–84, 2004.
+19. Thomas H´ erault, Richard Lassaigne, Fr´ ed´ eric Magnie tte, and Sylvain Peyronnet.
+Approximate probabilistic model checking. In VMCAI, volume 2937 of LNCS,
+pages 307–329. Springer, 2003.
+20. Sumit Kumar Jha, Edmund M. Clarke, Christopher James Langme ad, Axel Legay,
+Andr´ e Platzer, and Paolo Zuliani. A bayesian approach to mo del checking biolo-
+gical systems. In CMSB, volume 5688 of LNCS, pages 218–234. Springer, 2009.
+21. V. Kaczmarczyk, M. Sir, and Z. Bradac. Stochastic timed auto mata simulator. In
+4th European Computing Conference . WSEAS.
+22. Vaclav Kaczmarczyk, Michal Sir, and Zdenek Bradac. Stochas tic timed automata
+simulator. 2010. In Proceedings of the 4th European Computi ng Conference.
+23. KimGuldstrandLarsenandArneSkou. Bisimulation through probabilistictesting.
+InPOPL, pages 344–352, 1989.
+24. Oded Maler, Kim G. Larsen, and Bruce H. Krogh. On zone-based ana lysis of
+duration probabilistic automata. In INFINITY , volume 39 of EPTCS, pages 33–
+46, 2010.
+25. M. Minea. Partial Order Reduction for Veriﬁcation of Timed Systems . PhD thesis,
+Carnegie Mellon, 1999.
+26. P. Panangaden. Labelled Markov Processes . Imperial College Press, 2010.
+27. D. Poulsen and J. van Vliet. Duration probabilistic autom ata. Technical report,
+Aalborg University, 2011.
+28. Koushik Sen, Mahesh Viswanathan, and Gul Agha. Statistica l model checking of
+black-box probabilistic systems. In CAV, LNCS 3114, pages 202–215. Springer,
+2004.
+29. The smv model checker. Available at http://www.kenmcmil.com/smv.html .
+30. The spin tool (spin). Available at http://spinroot.com/spin/whatispin.html .
+31. Tino Teige, Andreas Eggers, and Martin Fr¨ anzle. Constr aint-based analysis of
+concurrent probabilistic hybrid systems: An application to n etworked automation
+systems. Nonlinear Analysis: Hybrid Systems , 2011.
+32. The uppaal tool. Available at http://www.uppaal.com/ .
+33. Lodewijk Frans Willem van Hoesel. Sensors on speaking terms: schedule-based me-
+dium access control protocols for wireless sensor networks . PhD thesis, University
+of Twente, June 2007.
+34. R. Wald. Sequential Analysis . Dove Publisher, 2004.
+35. H. L. S. Younes. Veriﬁcation and Planning for Stochastic Processes with Asyn -
+chronous Events . PhD thesis, Carnegie Mellon, 2005.
+36. H˚ akan L. S. Younes. Ymer: A statistical model checker. I nCAV, volume 3576 of
+LNCS, pages 429–433. Springer, 2005.
+37. H˚ akan L. S. Younes and Reid G. Simmons. Probabilistic ver iﬁcation of discrete
+event systems using acceptance sampling. In CAV, LNCS 2404, pages 223–235.
+Springer, 2002.
+38. P. Zuliani, A. Platzer, and E. M. Clarke. Bayesian statis tical model checking with
+application to simulink/stateﬂow veriﬁcation. In HSCC, pages 243–252. ACM
+ACM, 2010.
+17

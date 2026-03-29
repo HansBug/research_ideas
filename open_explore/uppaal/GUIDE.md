@@ -92,17 +92,18 @@
 
 当前文库中，后续应优先沿下表继续扩张：
 
-| 作者 | 当前关联条目 | 当前作用定位 | 推荐联用分支词 |
-|---|---|---|---|
-| `Kim Guldstrand Larsen` | `bblp04`、`bdl04`、`dhlp06`、`llpy97`、`lpw95`、`lpy97` | 当前最强主线，横跨核心引擎、tutorial 与扩展能力 | `zones/priced/strategy/statistical` |
-| `Wang Yi` | `by04`、`llpy97`、`lpw95`、`lpy97` | 连接语义、算法与早期 symbolic verification | `semantics/algorithms/symbolic state` |
-| `Paul Pettersson` | `dhlp06`、`llpy97`、`lpw95`、`lpy97` | 连接紧凑 DBM、状态空间优化与 priorities 扩展 | `priority/federation/reduction` |
-| `Gerd Behrmann` | `bblp04`、`bdl04`、`behrmann03` | 连接 tutorial、abstraction 与 thesis 级数据结构总结 | `CDD/abstraction/tool architecture` |
-| `Alexandre David` | `bdl04`、`dhlp06` | tutorial 到扩展分支的桥接作者 | `priced/strategy/game` |
-| `Johan Bengtsson` | `bengtsson02`、`by04` | DBM thesis 与语义综述的关键连接点 | `DBM/federation/implementation` |
-| `John Håkansson` / `John Haakansson` | `dhlp06` | 单篇定向扩展作者，适合追 priorities/subtraction | `priority/subtraction` |
-| `Patricia Bouyer` / `Radek Pelánek` | `bblp04` | zone abstraction / extrapolation 的扩展共作者 | `abstraction/extrapolation` |
-| `Rajeev Alur` / `David Dill` / `David L. Dill` | `ad90`、`dill89` | `UPPAAL` 的理论前驱，只在追溯前史时使用 | `timed automata/history` |
+| 作者 | 当前关联条目 | 角色判断 | 主要贡献方向 | 推荐联用分支词 |
+|---|---|---|---|---|
+| `Kim Guldstrand Larsen` | `lpw95`、`llpy97`、`bdl04`、`behrmann07`、`david11-*`、`david15` | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / tutorial / Tiga / SMC / Stratego` | `zones/priced/strategy/statistical` |
+| `Alexandre David` | `bdl04`、`behrmann02`、`behrmann07`、`david11-*`、`david14`、`david15` | 中后期扩展主线整合者 | `architecture / Tiga / SMC / expected cost / Stratego` | `priced/strategy/game/statistical` |
+| `Gerd Behrmann` | `behrmann02`、`behrmann03`、`behrmann06`、`behrmann07`、`behrmann11` | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / UPPAAL 4.0 / evolution survey` | `CDD/abstraction/tool architecture` |
+| `Wang Yi` | `lpw95`、`llpy97`、`by04`、`behrmann02`、`behrmann06` | 早期语义与算法骨架作者 | `timed automata semantics / symbolic algorithms / engine foundations` | `semantics/algorithms/symbolic state` |
+| `Paul Pettersson` | `lpw95`、`llpy97`、`behrmann02-secrets`、`dhlp06`、`behrmann11` | `DBM / engine / priority` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities` | `priority/federation/reduction` |
+| `Johan Bengtsson` | `bengtsson02`、`behrmann02-secrets`、`by04` | `DBM` 数据结构专题化奠基作者 | `clocks / DBMs / states / DBM internals / implementation detail` | `DBM/federation/implementation` |
+| `Axel Legay` | `david11-statistical`、`david11-smc`、`bulychev12`、`david14` | `SMC / optimization` 分支关键协作者 | `statistical model checking / priced models / expected-cost optimization` | `statistical/expected cost/optimization` |
+| `Didier Lime` | `cassez05`、`behrmann07`、`david14` | `timed games -> Tiga -> optimization` 分支协作者 | `timed games / controller synthesis / cost analysis` | `timed games/Tiga/cost` |
+| `Patricia Bouyer` / `Radek Pelánek` | `bblp04` | zone abstraction 外推分支关键合作者 | `lower-upper bound extrapolation / zone abstraction` | `abstraction/extrapolation` |
+| `Rajeev Alur` / `David Dill` / `David L. Dill` | `ad90`、`dill89` | `UPPAAL` 理论前史奠基者 | `timed automata semantics / dense-time verification / clock constraints` | `timed automata/history` |
 
 执行时还应遵守以下约束：
 
@@ -110,11 +111,14 @@
 2. 对含重音或 BibTeX 转义的人名，检索时应同时尝试规范写法与 ASCII 变体，例如 `John Håkansson / John Haakansson`、`Radek Pelánek / Radek Pelanek`。
 3. 若某作者当前只在一篇边缘背景论文中出现，默认不提升为核心主线，除非后续又在新增条目中反复出现。
 4. 作者表不能只记“出现过没有”，还应同时维护：
+   - 角色判断
+   - 主要贡献方向
    - 当前文库覆盖年份
    - 当前核验到的较新 `UPPAAL` 相关年份
    - 最近性判断
    - 继续沿该作者线扩张的检索价值推断
-5. 如果当前文库明显偏早期，而官方工具线或 DBLP 已显示 `2010s/2020s` 仍有后续工作，必须把“年代缺口”明确写回 [SUMMARY.md](./SUMMARY.md)，不能默认文库已经代表完整演进脉络。
+5. 作者角色判断必须先根据当前已收录论文里的共著关系、跨分支覆盖和关键转折条目来写，再参考官方入口做补证；不允许只按 team 页面职位或主页简介臆测。
+6. 如果当前文库明显偏早期，而官方工具线或 DBLP 已显示 `2010s/2020s` 仍有后续工作，必须把“年代缺口”明确写回 [SUMMARY.md](./SUMMARY.md)，不能默认文库已经代表完整演进脉络。
 
 ### 2.3 官方入口与实现可得性核验
 
@@ -238,11 +242,12 @@
 1. 关键词簇相关小节默认每节最多 `10` 行，必须整合更新而不是持续累加。
 2. 统计数字必须与论文表、失败表真实内容一致。
 3. `🧱 / ⚡ / 🛠️` 三类条目默认合并维护在同一张统一表格中；不要再拆成三张分表。
-4. `🧪 应用与案例` 单独维护；即使当前数量为 `0`，也要保留其统计位置。
-5. thesis/合集条目若带 `paper-*` 子目录，默认只以父条目在总账中记一条，并在备注中说明含有哪些子目录。
-6. 双维状态必须显式写出，而不是继续使用“基础材料齐全/不齐全”作为主状态列。
-7. 作者表默认要体现“当前文库年份范围 + 当前核验到的较新年份 + 最近性判断 + 继续扩张价值推断”。
-8. 论文表中的源码状态列必须按源码标准填写，不得把“可下载运行”写成“源码可得”。
+4. 论文清单必须按年份升序维护；当前 `🧱 / ⚡ / 🛠️` 统一表要求全局按年份升序，同年按 `Key` 字典序稳定排序；若未来 `🧪` 单列，也同样按年份升序。
+5. `🧪 应用与案例` 单独维护；即使当前数量为 `0`，也要保留其统计位置。
+6. thesis/合集条目若带 `paper-*` 子目录，默认只以父条目在总账中记一条，并在备注中说明含有哪些子目录。
+7. 双维状态必须显式写出，而不是继续使用“基础材料齐全/不齐全”作为主状态列。
+8. 作者表默认要体现“角色判断 + 主要贡献方向 + 当前文库年份范围 + 当前核验到的较新年份 + 最近性判断 + 继续扩张价值推断”。
+9. 论文表中的源码状态列必须按源码标准填写，不得把“可下载运行”写成“源码可得”。
 
 ## 7. 工作流程
 
@@ -254,7 +259,7 @@
 4. 如果条目自带 `paper-*` 子论文结构，先补齐父目录 README 和子目录材料，再决定是否需要逐个补子目录 README。
 5. 完成单论文目录必要文件后，再统一回填 [SUMMARY.md](./SUMMARY.md)。
 6. 回填时同时给出“内容详细程度”和“实现可获取程度”的判定。
-7. 回填后复核统计、一致性、分类和链接。
+7. 回填后复核统计、一致性、分类、链接和年份顺序。
 
 如果某轮因领域过窄或开放获取受限而无法达到大批量新增，应在更新日志中如实说明。
 

@@ -1,0 +1,650 @@
+--- Page 1 ---
+NewUppaal Architecture
+Alexandre David1, Gerd Behrmann2, Kim G. Larsen2, and Wang Yi1
+1Department of Information Technology, Uppsala University, Sweden
+{adavid,yi }@docs.uu.se
+2Department of Computer Science, Aalborg University, Denmark
+behrmann@cs.auc.dk .
+Abstract. We present the design of the new model-checking engine ar-
+chitecture and new internal data structures for the next generation of
+Uppaal . Experimental results demonstrate that the new implementation
+based on these structures improves the eﬃciency of Uppaal by about
+80% in both time and space. In addition, the new version is built to
+handle hierarchical models. The challenge in handling hierarchy com es
+from the very dynamic structure of hierarchical systems: the leve l of
+concurrency and the scope of data variables and clocks are not constant.
+1 Introduction
+The interest in timed automata, ﬁrst introduced by Alur and Dill[1] in 1990 , as
+a modelling language for timed systems has risen as tools have become more
+sophisticated and faster. Although the basic model checking algorithms and
+data structures, including techniques for approximative analysis[18], state s pace
+reduction[16], compact data structures[16, 6], clock reduction [11] and other op-
+timisations, for timed automata are well known, there has been little info rmation
+on how these techniques ﬁt together into a common eﬃcient architecture.
+This paper provides a view of the architecture of the real time model checker
+Uppaal .1The goal of Uppaal has always been to serve as a platform for research
+in timed automata techniques. As such, it is crucial for the tool to provide a
+ﬂexible architecture that allows experimentation, i.e., it must be possible to
+integrate orthogonal features in an orthogonal manner such that it becomes
+possible to evaluate various techniques within a single framework and investigate
+how these inﬂuence each other.
+The timed automaton reachability algorithm is basically a graph explorat ion
+algorithm where the vertices are symbolic states and the graph is unfolded on
+the ﬂy. During exploration, the algorithm maintains two sets of symbolic states:
+Thewaiting list contains reachable but yet unexplored states, and the passed
+listcontains reachable explored states. Maintaining two sets of states does incur
+some overhead that can be eliminated by unifying them. We show that this
+results in a signiﬁcant speedup.
+Hierarchical automata are extensions of regular automata where each state
+can contain another automaton or a number of concurrent automata. The notion
+1Visit http://www.uppaal.com for more information.
+
+--- Page 2 ---
+of hierarchy in automata languages was ﬁrst introduced by Harel as statechar ts[14]
+and later in UML2. There has been recent eﬀort in extending UML with real
+time concepts and, vice versa, extending timed automata with a notion of hierar-
+chy [13]. Although the hierarchical concepts do not invalidate the existing model
+checking algorithms for timed automata, the varying degree of concurrency and
+number of variables make it challenging to represent the states of the system in
+a compact, eﬃcient and orthogonal manner. We present how this can be done
+in the new architecture of Uppaal .
+Contributions We contribute a ﬂexible and eﬃcient architecture for timed au-
+tomata model checkers. We show how this architecture makes it possible to im-
+plement various algorithms and data structures in an orthogonal manner making
+it possible to evaluate these techniques within a common framework. Especial ly,
+we show how hierarchical timed automata can be supported. We present re-
+sults of combining the two main data structures, the waiting list and the passed
+list, into a single data structure. Finally, we show the eﬀect of sharing common
+elements of states, thereby reducing the memory requirements by up to 80%.
+Related work The state space storage approach presented in this paper is simi-
+lar to the one in[12] for hierarhical coloured petri nets. Both approaches share
+similarities with BDDs [10] in that common substructures are shared, but avo id
+the overhead of the ﬁned grained data representation of BDDs.
+The zone union used our state representation is a simple list of zones. A
+more elaborate representation is the CDD [6] that can be used eﬃciently for
+analysis. However there are still a number of unresolved problems if we want
+to use a uniﬁed passed and wait structure. Furthermore it is not known how to
+cope with meta-data needed for individual symbolic states.
+Hiearchical state-space veriﬁcation is not new [2, 7]. However these stud-
+ies concern theory with algorithm presentations and complexity analysis. They
+do not address the practical issues for hierarchical searching. In [17] a hybrid
+approach is used to deal with hierarchical systems but they do not handle hi-
+erarchical timed automata. In [3] an ROBDD based approach to hierarchical
+reachability analysis for untimed systems is presented, but ROBDD based tech-
+niques are not directly applicable to timed automata, although a number of
+attempts have been made.
+Outline Section 2 summarises the deﬁnition of timed automata, the semantics,
+and the timed automaton reachability algorithm. In section 3 we present the a r-
+chitecture of Uppaal and in section 4 we discuss how the passed and waiting list
+can be combined into a single eﬃcient data structure. The actual representation
+of the states in this new data structure is discussed in section 5 and section 6
+extends this to hierarchical timed automata. Finally, we present preliminary
+experimental results in section 7.
+2http://www.uml.org
+
+--- Page 3 ---
+2 Notations
+In this section we summaries the basic deﬁnition of a timed automaton, the
+concrete and symbolic semantics and the reachability algorithm.
+Deﬁnition 1 (Timed Automaton). LetCbe the set of clocks. Let B(C)be
+the set of conjunctions over simple conditions on the form x ⊿ /triangleleft c orx−y ⊿ /triangleleft c,
+where x,y∈Cand⊿ /triangleleft∈ {<,≤,=,≥,>}. A timed automaton over Cis a tuple
+(L,l0,E,g,r,I ), where Lis a set of locations, l0∈Lis the initial location,
+E∈L×Lis a set of edges, g:E→B(C)assigns guards to edges, r:E→2C
+assigns clocks to be reset to edges, and I:L→B(C)assigns invariants to
+locations.
+Intuitively, a timed automaton is a graph annotated with conditions and reset s
+of non-negative real valued clocks.
+Deﬁnition 2 (TA Semantics). A clock valuation is a function u:C→R≥0
+from the set of clocks to the non-negative reals. Let RCbe the set of all clock
+valuations. Let u0(x) = 0for all x∈C. We will abuse the notation by considering
+guards and invariants as sets of clock valuations.
+The semantics of a timed automaton (L,l0,E,g,r,I )overCis deﬁned as a
+transition system (S,s0,→), where S=L×RCis the set of states, s0= (l0,u0)
+is the initial state, and →⊆S×Sis the transition relation such that:
+–(l,u)→(l,u+d)ifu∈I(l)andu+d∈I(l)
+–(l,u)→(l/prime,u/prime)if there exist e= (l,l/prime)∈Es.t.u∈g(e),u/prime= [r(e)/mapsto→0]u,
+andu/prime∈I(l)
+where for d∈R,u+dmaps each clock xinCto the value u(x)+d, and[r/mapsto→0]u
+denotes the clock valuation which maps each clock in rto the value 0 and agrees
+withuoverC\r.
+The semantics of timed automata results in an uncountable transition system .
+It is a well known-fact that there exists a exact ﬁnite state abstraction based on
+convex polyhedra in RCcalled zones (a zone can be represented by a conjunction
+inB(C)). This abstraction leads to the following symbolic semantics.
+Deﬁnition 3 (Symbolic TA Semantics). LetZ0=I(l0)∧/logicalandtext
+x,y∈Cx=ybe
+the initial zone. The symbolic semantics of a timed automato n(L,l0,E,g,r,I )
+overCis deﬁned as a transition system (S,s0,⇒)called the simulation graph ,
+where S=L×B(C)is the set of symbolic states, s0= (l0,Z0∧I(l0))is the
+initial state, ⇒={(s,u)∈S×S| ∃e,t:se⇒tδ⇒u}:is the transition relation,
+and:
+–(l,Z)δ⇒(l,norm(M,(Z∧I(l))↑∧I(l)))
+–(l,Z)e⇒(l/prime,re(g(e)∧Z∧I(l))∧I(l/prime))ife= (l,l/prime)∈E.
+
+--- Page 4 ---
+where Z↑={u+d|u∈Z∧d∈R≥0}(thefuture operation), and re(Z) =
+{[r(e)/mapsto→0]u|u∈Z}. The function norm :N×B(C)→B(C)normalises the
+clock constraints with respect to the maximum constant Mof the timed automa-
+ton.
+The relationδ⇒contains the delay transitions ande⇒the edge transitions.
+The classical representation of a zone is the Diﬀerence Bound Matrix (DBM).
+For further details on timed automata see for instance [1, 9]. Given the symb olic
+semantics it is straight forward to construct the reachability algorit hm, shown
+in Fig. 1. The symbolic semantics can be extended to cover networks of commu-
+nicating timed automata (resulting in a location vector to be used instead of a
+location), timed automata with ﬁnite data variables (resulting in the additi on
+of a variable vector) and to hierarchical timed automata.
+waiting ={(l0, Z0∧I(l0))}
+passed =∅
+while waiting /negationslash=∅do
+(l, Z) = select state from waiting
+waiting =waiting \ {(l, Z)}
+iftestProperty (l, Z)then return true
+if∀(l, Y)∈passed :Z/negationslash⊆Ythen
+passed =passed ∪ {(l, Z)}
+∀(l/prime, Z/prime) : (l, Z)⇒(l/prime, Z/prime)do
+if∀(l/prime, Y/prime)∈waiting :Z/prime/negationslash⊆Y/primethen
+waiting =waiting ∪ {(l/prime, Z/prime)}
+endif
+done
+endif
+done
+return false
+Fig. 1. The timed automaton reachability algorithm. The function testProperty evalu-
+ates the state property that is being checked for satisﬁability. The w hile loop is refered
+to as the exploration loop.
+3 Architecture
+The seemingly simple algorithm of Fig. 1 turns out to be rather complicated
+when implemented. To make matters worse it has been extended and optimised
+to reduce the runtime and memory usage of the tool. Most of these optimisatio ns
+are optional since they involve a tradeoﬀ between speed, memory usage and
+feature richness.
+The architecture of Uppaal has changed a lot over time. Some years ago
+Uppaal was a more or less straightforward implementation of the timed au-
+
+--- Page 5 ---
+State Space
+RepresentationState
+Manipulation
+State RepresentationLeadsTo
+CheckerLiveness
+CheckerReachability
+Checker
+System RepresentationQueryUser InterfaceParser
+Parser
+Fig. 2. Uppaal uses a layered architecture. Components for representing the in put
+model and a symbolic state are placed at the bottom. The state space repre sentations
+are semantically a set of symbolic states and together with the state oper ations they
+form the next layer. The various checkers combine these operations t o provide the com-
+plex functionality needed. This functionality is made available vi a either a command
+line interface or a graphical user interface.
+tomaton reachability algorithm annotated with conditional tests on featur es or
+options. Although simple it had several disadvantages:
+–The core reachability algorithm became more and more complicated as new
+options where added.
+–There was an overhead involved in checking if an option was enabled. This
+might not seem as much, but when this is done inside the exploration loop
+the overhead adds up.
+–Some experimental designs and extensions required that certain algorithms
+were replaced with radically diﬀerent algorithms.
+The architecture of Uppaal is constantly restructured in order to facilitate
+new designs and algorithms without needing to fork the code base, see Fig. 2
+for the latest incarnation. The main goals of the design are speed and ﬂexibil-
+ity. The bottom layer providing the system and state representations has only
+seen minimal architectural changes over the years. In fact, the code where most
+options are implemented are in the state space manipulation andstate space
+representation components.
+The basic building blocks of the three checkers are ﬁlters andbuﬀers . Buﬀers
+have the traditional putandgetmethods to add and remove elements and a
+mechanism for enumerating all elements. Filters accept input via a putmethod
+and provide output by putting data into another ﬁlter or a buﬀer (ﬁlters and
+buﬀers share the same sinkinterface containing the put method). Several ﬁl-
+
+--- Page 6 ---
+ters and buﬀers can be connected to form a pipeline.3The various state space
+representations provide an implementation of the buﬀer interface and the state
+manipulations provide an implementation of the ﬁlter interface.
+Reachability
+Transition
+Expand
+expressionSuccessor TraceStoreDelay Normalisation Progress ActiveClockReduction
+PWList
+QueryFork
+Only if
+ unexplored Push flow
+Pull flowEnumerate
+Fig. 3. The reachability checker is actually a compound object consisting of a pipeline
+of ﬁlters. Optional elements are dotted.
+The reachability checker is actually a ﬁlter that takes the initial state as
+its input and generates all reachable states satisfying the property. It is impl e-
+mented by composing a number of other ﬁlters into a pipeline, see Fig. 3. The
+pipeline realises the reachability algorithm of Fig. 1. The pipeline consists of
+ﬁlters computing the edge successors ( Transition andSuccessor ), the delay
+successors ( Delay andNormalisation ), and the uniﬁed passed and waiting list
+buﬀer (PWList ). Additional components include a ﬁlter for generating progress
+information (e.g. throughput and number of states explored), a ﬁlter implement-
+ing active clock reduction [11], and a ﬁlter storing information needed to generate
+diagnostic traces. Notice that some of the components are optional. If disa bled
+a ﬁlter can be bypassed completely and does not incur any overhead.
+Semantically, the PWList acts as a buﬀer that eliminates duplicate states,
+i.e. if the same state is added to the buﬀer several times it can only be retrieved
+ones, even when the state was retrieved before the state is inserted a second
+time. To achieve this eﬀect the PWList must keep a record of the states seen and
+thus it provides the functionality of both the passed list and the waiting list .
+Deﬁnition 4 (PWList). Formally, a PWList can be described as a pair (P,W)∈
+2S×2S, where Sis the set of symbolic states, and the two functions put:
+2S×2S×S→2S×2Sandget: 2S×2S→2S×2S×S, such that:
+–put(P,W,(l,Z)) = ( P∪ {(l,Z)},W/prime)where
+W/prime=/braceleftBigg
+W∪ {(l,Z)}if∀(l,Y)∈P:Z/negationslash⊆Y
+W otherwise
+3In contrast to pipeline designs seen in audio and video processing software and
+hardware design there is no concurrency involved.
+
+--- Page 7 ---
+–get(P,W) = (P,W\ {(l,Z)},(l,Z))for some (l,Z)∈W.
+HerePandWplay the role of the passed list and waiting list, respectively,
+but as we will see this deﬁnition provides room for alternative implementations .
+It is possible to loosen the elimination requirement such that some states can be
+returned several times while still ensuring termination, thus reducing the mem-
+ory requirements[16]. In this paper we will call such states transient . Section 4
+will describe various implementations of the PWList .
+In case multiple properties are veriﬁed, it is possible to reuse the previously
+generated reachable state space by reevaluating the new property on all previ-
+ously retrieved states. For this purpose, the PWList provides a mechanism for
+enumerating all recorded states. One side eﬀect of transient states is that when
+reusing the previously generated reachable states space not all states are actually
+enumerated. In this case it is necessary to explore some of the states using the
+Expand ﬁlter.4Still, this is more eﬀective than starting over.
+The number of unecessary copy operations during exploration has been re-
+duced as much as possible. In fact, a symbolic state is only copied twice during
+exploration. The ﬁrst time is when it is inserted into the PWList , since the
+PWList might use alternative and more compact representations than the rest of
+the pipeline. The original state is then used for evaluating the state property us -
+ing theQuery ﬁlter. This is destructive and the state is discarded after this step.
+The second is when constructing the successor. In fact, one does not retrieve a
+state from the PWList directly but rather a reference to a state. The discrete
+and continous parts of the state can then be copied directly from the internal
+representation used in the PWList to the memory reserved for the successor.
+Since handling the discrete part is much cheaper than handling the continous
+part, all integer guards are evaluated ﬁrst. Only then a copy of the zone is made
+and the clock guards are evaluated.
+The beneﬁts of using a common ﬁlter and buﬀer interface are ﬂexibility ,code
+reuse, andacceptable eﬃciency . Any component can be replaced at runtime with
+an alternate implementation providing diﬀerent tradeoﬀs. Stages in the pipeline
+can be skipped completely with no overhead. The same components can be used
+and combined for diﬀerent purposes. For instance, the Successor ﬁlter is used
+by both the reachability checker, the liveness checker, the deadlock checker, the
+Expand ﬁlter, and the trace generator. Since the methods on buﬀers and ﬁlters
+are declared virtual they do incur a measurable call overhead (approximatively
+5%). But this is outweighed by the possibility of skipping stages and simila r ben-
+eﬁts. In fact, the functionality provided by the Successor ﬁlter was previously
+provided by a function taking a symbolic state as input and generating the set of
+successors. This function was called from the exploration loop which then added
+these successors to the waiting list. The function returned the successors as an
+array of states.5The overhead of using this array was much higher than the call
+overhead caused by the pipeline architecture.
+4TheExpand ﬁlter is actually a compound ﬁlter containing an instance of the
+Successor andTransition ﬁlters.
+5It was actually a vector from the C++ Standard Library .
+
+--- Page 8 ---
+4 Unifying the Passed list and Waiting List
+In this section we present the concept of the uniﬁed passed and waiting list, and
+we detail a reference implementation of it.
+4.1 Uniﬁcation Concept
+The main conceptual diﬀerence between the present and previous implementa-
+tions of the algorithm is the uniﬁcation of the passed list and waiting list. As
+described in the previous sections, these two lists are the major data structures
+of the reachability algorithm. The waiting list holds states that have been f ound
+to be reachable but not yet been explored whereas the passed list contains the
+states that have been explored. Thus a state is ﬁrst inserted into the waiting
+list where it is kept until it is explored at which point it is moved to the pas sed
+list. The main purpose of the passed list is to ensure termination and secondly
+to avoid exploring the same state twice. Fig. 1 shows the reachability alg orithm
+based on these lists.
+One crucial performance optimisation is to check whether there is already a
+state in the waiting list that is a subset or superset of the state being added.
+In this case one of the two states can be discarded [8]. This was implemented
+by combining the queue or stack structure in the waiting list with a hash table
+providing a fast method to ﬁnd duplicate states. Obviously, the same is done for
+the passed list. This approach has two drawbacks:
+–States are looked up in a hash table twice.
+–The waiting list might contain a large number of states that have previous ly
+been explored, but this is not realised until the state is moved to the passed
+list thus wasting memory.
+The present implementation uniﬁes the two hash tables into one. There is still
+a collection structure representing the waiting list, but it only contains simple
+references to entries in the hash table. Furthermore pushing a state to the waiting
+list is a simple append operation.
+A number of options are realisable via diﬀerent implementations of the PWList
+to approximate the representation of the state-space such as bitstate hashing [15],
+or choose a particular order for state-space exploration such as breadth ﬁrst ,
+depth ﬁrst ,best ﬁrst orrandom [5, 4]. The ordering is orthogonal to the storage
+structure and can be combined with any data representation.
+This uniﬁed structure implements the PWList interface deﬁned in the previ-
+ous section: From the pipeline point of view new states are pushed and waiting
+states to be explored are popped. Using this structure allows the reachability
+algorithm to be simpliﬁed to the one given in Fig. 4. In this algorithm the states
+popped from the queue do not need inclusion checking, only the successors need
+this.
+
+--- Page 9 ---
+Q=PW={(l0, Z0∧I(l0))}
+while Q/negationslash=∅do
+(l, Z) = select state from Q
+Q=Q\ {(l, Z)}
+iftestProperty (l, Z)then return true
+∀(l/prime, Z/prime) : (l, Z)⇒(l/prime, Z/prime)do
+if∀(l/prime, Y/prime)∈PW:Z/prime/negationslash⊆Y/primethen
+PW=PW∪ {(l/prime, Z/prime)}
+Q.append (l/prime, Z/prime)
+endif
+done
+done
+return false
+Fig. 4. Reachability algorithm using the uniﬁed PWList. In the reference i mplemen-
+tation Qonly contains references to the entries in PW.
+4.2 Reference Implementation
+Figure 5 shows the reference implementation of our uniﬁed structure. The hash
+table gives access to the reachable state-space. Every state has a discrete state
+entry and a union of zone as its symbolic part. The waiting queue is a simple
+collection of state references (e.g. a linked list).
+The ﬁrst characteristic of this reference implementation is that it builds on
+top of the storage interface, which allows to change the actual data represent ation
+independent of the exploration order. This order may be changed by modifying
+only where the state reference is added in the waiting queue.
+hash tabledouble linked (collision) list
+discrete part (keys)
+zone union (list of keys)
+waiting queuereference to state entry
+reference to zone
+Fig. 5. Reference implementation of PWList.
+
+--- Page 10 ---
+The second characteristic comes from its state-space representation: the main
+structure is a hash table giving access to states. The states have a unique entry
+for a given discrete part, i.e. locations and variables. The symbolic part i s a
+union of zones, or more precisely of zone keys handled by the storage structure.
+As a ﬁrst implementation this union is a list of keys, but we plan for future
+experiments a CDD representation that is well-suited for such union of zones[6].
+Besides, this representation avoids any discrete state duplicates. There is shari ng
+of discrete data at this level. The storage underneath may implement sharing of
+all data between diﬀerent discrete states and zones of diﬀerent unions of zones:
+this is at a lower level and it is described in section 5.
+The third characteristic is the limited use of double-linked lists. The discrete
+state list (collision list of the hash table) is double-linked because we need to b e
+able to remove transient states when they are popped of the waiting list. The
+waiting queue is single-linked because its length is rather small and it is eﬃcient
+to decide on a validity bit if a popped state should be explored or thrown away.
+In this case we postpone the removal of states. The same applies for the zones
+in the zone union. Proper removal of states involves a simple ﬂag manipulation.
+It is an implementation detail, not to be discussed here.
+The push operation is described as follows: hash the discrete part of the state
+to get access to the zone union. Check for inclusion, remove included zones, add
+this new zone, or refuse the zone. Finally add a reference to the waiting queue.
+The pop operation consists of popping a state reference and checking for its
+validity (a simple ﬂag).
+4.3 Experiments
+We instrumented the reference implementation to isolate the impact of the uni-
+ﬁed list. We use the same experiments presented in section 7 with the addition
+of dacapo, a TDMA protocol. We count in the inclusion checking the number
+of (symbolic) states that are included in the new state and the number of new
+states rejected because they are already explored. Among these states that are
+on the passed and the waiting list, we count those that are marked “waiting” ,
+i.e. not yet explored. Table 1 shows how often an inclusion is detected with a
+waiting state. The ﬁgures are highly dependent on the model and which states
+are generated. Compared with the traditional 2-lists approach, we avoid to pus h
+states to the passed list or the waiting list. However the exploration is s till the
+same since a waiting state that is going to be explored is guaranteed not to b e
+in the passed or the waiting list in both approaches. In addition to this, if we
+consider the length of the waiting list compared with the passed list, we expect a
+performance improvement, but not critical. This is conﬁrmed in the experiments
+of section 7.
+5 Storage Structure
+The storage structure is the lower layer whose role is to store simple dat a. It is in
+charge of storing location vectors, integer variables, zone data, and other m eta
+
+--- Page 11 ---
+Model superset subset
+Cups 97% 86%
+Bus Coupler 17% 60%
+Dacapo 86% 81%
+Table 1. Percentage of waiting states of the inclusion detections. Waiting stat es may
+be superset (strict) or subset (non-strict) of the new state we are testing.
+vector
+int
+DBMvector
+int
+DBM save
+load
+inclusionstorage
+key
+DBM
+key
+subset, superset,
+equal, nonekeyallocator
+allocate
+free
+Fig. 6. The interface of the storage with the allocator underneath.
+variables used for certain algorithms, i.e. guiding[4]. This structure is bas ed on
+keys: data is sent to the storage that returns a key to be able to retrieve the
+data later. In addition to this the storage is able to perform simple oper ations
+such as equality testing of vectors and inclusion checking of zones, without the
+intermediate step of reading the data ﬁrst with the associated key. The diﬀerent
+storage implementations are built on top of a specialised data allocator . This
+allocator allocates memory by big chunks and is optimised to deliver many sm all
+memory blocks of limited diﬀerent types. This means that the memory allocatio n
+has very little overhead and is very eﬃcient for allocating and deallocating many
+memory blocks of the same size. This is justiﬁed by the nature of the data we
+are storing: there are few types of vectors and data structures stored but their
+number is huge. Figure 6 illustrates the main functions of the interface with t he
+allocator underneath.
+The storage structure is orthogonal to a particular choice of data represen-
+tation and the pwlist structure. Particular algorithms aimed at reducing the
+memory footprint such as convex hull approximation [18] or minimal constraint
+representation [16] are possible implementations. These will be ported from the
+Uppaal code base. We have implemented two variants of this storage, namely
+one with simple copy and the other one with data sharing.
+It is important to notice that Uppaal implements a minimal constraint rep-
+resentation based on graph reduction and we do not compare this reduction.
+
+--- Page 12 ---
+This reduction gives 20-25% gain in memory. This reduction can give more gain
+in addition to the shared storage implementation. This is not discussed here.
+5.1 Simple Storage
+The simple storage copies data in memory allocated by the allocator and is a ble
+to restore original data. This is similar to the default implementation o fUppaal
+with the diﬀerence that DBM matrices are save without their diagonal. The
+diagonal contains the constraints xi−xi≤0 which do not need to be copied.
+This implementation is the reference implementation for comparison against
+Uppaal and against other implementations of this storage structure.
+5.2 Shared Storage
+Before implementing such a structure we instrumented the current implementa-
+tion of Uppaal to see how much of the data was shared. We put a printout code
+at the stage where a state is stored after having tested it for inclusion. The pr int-
+ing was processed through a perl script to analyse it. Table 2 shows consistent
+results concerning storage of location vectors, integer variables, and DBM dat a.
+This property holds through diﬀerent examples and can be explained by the way
+the reachability works: when computing the next state all the possibilities ar e
+tried, so for a given location many variable settings exist. The same hol ds in the
+other direction: a given variable set will exist in many location conﬁguratio ns.
+The diﬀerences in the results are consistent: audio anddacapo are middle sized
+models, ﬁscher is the well-known Fischer’s protocol for mutual exclusion which
+behaves badly with respect to timing constraints, and bus coupler is a very big
+example. The bigger the model, the more combinations, and the more sharing we
+get. The audio model is more oriented on control locations. The pre-experiment
+justiﬁed this shared storage implementation.
+Table 2. Results from instrumented Uppaal . The smaller the numbers are, the more
+copies there are.
+Model Unique locations Unique variables Unique DBMs
+Audio 52.7% 25.2% 17.2%
+Dacapo 4.3% 26.4% 12.7%
+Fischer4 9.9% 0.6% 64.4%
+Bus coupler 7.2% 8.7% 1.3%
+The shared storage has a hash table internally to be able to ﬁnd previously
+saved data quickly. This requires to compute a hash value for every saved data.
+However we need to compute hash values anyway to retrieve the discrete part
+of a state so this is done only once. Another possible overhead is the lookup in
+collision lists. By a careful choice of the hash function collisions are rar e and
+
+--- Page 13 ---
+besides this matches are found in 80% of the cases because of the high sharing
+property of stored data.
+A particular choice has been made concerning the deletion of stored data
+for this implementation (the interface is free on this point). Only zone data , i.e.
+DBMs here, are really deallocated. We justify this by the high expected sharing
+of the discrete part of the states, that is not going to be removed from the
+passed list. When testing for zone inclusion, we may have to remove zones (this
+is implemented), but the discrete part is equal. The only case where this does not
+hold is for transient states because they are stored only in the waiting list and
+never in the passed list. This will give a set of locations that could be freed fr om
+memory. However removing data requires double linked lists, and the locations
+and variables are saved the same way. For this implementation we adopted thi s
+compromise.
+6 Ready for the Future: Hierarchy
+Hierarchy is commonly used to handle complexity of models. Well known hier-
+archical statecharts are those used in State-mate and Rhapsody. Uppaal will
+support hierarchy natively in the future on the base of hierarchical timed au-
+tomata. The main challenge in hierarchical exploration is to handle the dynami c
+of data, in particular when changing scope and level of parallelism. The pipeline
+ofUppaal was modiﬁed with this in mind and the storage is built to deal with
+such dynamic data.
+Concerning the discrete data, they are simple vectors that need to be handled
+at the beginning of the successor state computation. It is there that we get the
+information on which variables and clocks we need for the next state. Then
+we need to handle the symbolic part based on this information. We have to
+carry operations on the smallest possible zones because such operations are cubi c
+and quadratic. To do so the storage structure has built-in addition of clocks in
+the load function and the zones have a shrink method. The future pipeline for
+successor computation using this is depicted in Fig. 7. This ﬁgure shows the
+diﬀerent steps needed to compute a successor of a state with the smallest number
+of useless copies. From a given state with a clock xin its scope, we have to copy
+the discrete part of the state to evaluate the guards of a particular transitio n. It
+it is false other transitions from the same state may be tried, otherwis e the next
+location may be computed. Then the symbolic part is copied and new clocks may
+be added and removed. In our case the state is changed with a new scope with a
+clocky: we have to add constraints for y. Further operations can be computed like
+delays, resets, and assignments to obtain the symbolic successor state. Inv ariant
+evaluation occurs after the resets. The main diﬀerence with the non-hierarchical
+version is the operation add/remove clocks. This operation will be ski pped in
+most cases since transitions that change scope and level of parallelism are in
+minority. So we expect no negative impact on performance.
+
+--- Page 14 ---
+clock x;
+clock y;copy discrete
+guard eval false: try next
+true: next locationcopy symbolic+add/remove clocks
+resets−delay−assignments
+invariant eval false: try next
+true
+Fig. 7. Future hierarchical pipeline for successor computation.
+7 Experiments
+We conduct the experiments on the development version of Uppaal . We compare
+results before and after the modiﬁcations presented in this paper. It is worth
+noticing that comparing the oﬃcial version is too unfair because the development
+version is already twice as fast as the oﬃcial one due to memory management
+optimizations, better hash functions and other optimisations.
+We use two examples for these tests. Other examples such as dacapo are too
+small and they are irrelevant here though the results are still consistent. We
+focus on a cupexample (a combinatorial problem) and the bus coupler example
+(a communication protocol). Table 3 shows the obtained results. These numbers
+correspond to the whole state-space construction for the “bus coupler” example
+(property A[] true ), and to the reachability property E<> cups[2] == 4 and
+y <= 30 for the cups example because the whole state-space is too large.
+Table 3. Experimental results.
+Version Bus coupler Cups
+Uppaal 617s - 695M 52s - 116M
+New - copy 422s - 655M 46s - 113M
+New - shared 350s - 167M 44s - 27M
+We chose the best appropriate options to have fair comparisons: we used
+-H273819,273819 to have large passed and waiting lists for the Uppaal run.
+
+--- Page 15 ---
+These tables are not resized dynamically as in the new versions and a good
+large size have a signiﬁcant impact on speed (2x). Furthermore we used the
+options-Ca. TheCsays not to use the compact data structure, so that zones are
+manipulated and saved as DBMs. The aenables active clock reduction, which
+reduces memory consumption. Our new implementation does not take advantage
+of this yet because this information is not transmitted to the storage.
+Depending on the careful options given to Uppaal our new implementation
+gives improvements of up to 80% in memory and improves speed signiﬁcantly.
+The memory gain is expected due to the showed sharing property of data. The
+speed gain (in spite of the overheads) comes from only having a single hash
+table and from the zone union structure: the discrete test is done only once,
+then comes only inclusion checks on all the zones in one union. This is showed
+by the results of the simple copy version.
+8 Conclusions
+In this paper we have presented a pipeline architecture. The idea borrowed from
+the computer graphics domain is appropriate for model-checking engines. Fur-
+thermore we have uniﬁed the traditional passed and waiting lists used in reach-
+ability algorithms, we have changed the representation of states towards a more
+symbolic one with the union of zones, and ﬁnally we have showed the sharing
+property of data composing a state and taken advantage of it.
+This work paves the way for a new version of the Uppaal engine with full
+support for hierarchy. These new structures support it. Furthermore these new
+structures allow new optimization experiments and they are ﬂexible enough to
+support all the previous list representations currently being ported.
+Future work is now to continue to develop Uppaal with hierarchy support
+and to combine diﬀerent zone representations with the sharing implementation
+we have, in particular the minimal constraint representation.
+References
+[1] R. Alur and D. L. Dill. A theory of timed automata. Theoretical Computer
+Science , 126:183–235, 1994.
+[2] Rajeev Alur and Mihalis Yannakakis. Model checking of hierarchic al state ma-
+chines. In Foundations of Software Engineering , pages 175–188, 1998.
+[3] G. Behrmann, K. G. Larsen, H. R. Andersen, H. Hulgaard, and J. Lind -Nielsen.
+Veriﬁcation of hierarchical state/event systems using reusability an d composition-
+ality.Formal Methods in System Design , 21(2):225–244, 2002.
+[4] Gerd Behrmann, Ansgar Fehnker, Thomas S. Hune, Kim Larsen, Paul Pe tterson,
+and Judi Romijn. Eﬃcient guiding towards cost-optimality in uppaal. In Proc. of
+TACAS’2001 , Lecture Notes in Computer Science. Springer-Verlag, 2001.
+[5] Gerd Behrmann, Thomas Hune, and Frits Vaandrager. Distributed tim ed model
+checking - How the search order matters. In Proc. of 12th International Conference
+on Computer Aided Veriﬁcation , Lecture Notes in Computer Science, Chicago,
+Juli 2000. Springer-Verlag.
+
+--- Page 16 ---
+[6] Gerd Behrmann, Kim G. Larsen, Justin Pearson, Carsten Weise, and Wang Yi.
+Eﬃcient timed reachability analysis using clock diﬀerence diagrams. InProceed-
+ings of the 12th Int. Conf. on Computer Aided Veriﬁcation , volume 1633 of Lecture
+Notes in Computer Science . Springer-Verlag, 1999.
+[7] Michael Benedikt, Patrice Godefroid, and Thomas W. Reps. Model c hecking of
+unrestricted hierarchical state machines. In Automata, Languages and Program-
+ming, pages 652–666, 2001.
+[8] Johan Bengtsson. Reducing memory usage in symbolic state-space expl oration
+for timed systems. Technical Report 2001-009, Uppsala University, Depar tment
+of Information Technology, May 2001.
+[9] Patricia Bouyer, Catherine Dufourd, Emmanuel Fleury, and Antoin e Petit. Are
+timed automata updatable? In Proceedings of the 12th Int. Conf. on Computer
+Aided Veriﬁcation , volume 1855 of Lecture Notes in Computer Science . Springer-
+Verlag, 2000.
+[10] Randal E. Bryant. Graph-based algorithms for boolean function manipulat ion.
+InTransactions on Computers , volume C-35 no. 8 of IEEE, August 1986.
+[11] C.Daws and S.Yovine. Reducing the number of clock variables of t imed automata.
+InProceedings of the 1996 IEEE Real-Time Systems Symposium, RTSS’9 6. IEEE
+Computer Society Press, 1996.
+[12] S. Christensen and L.M. Kristensen. State space analysis of hier archical coloured
+petri nets. In B. Farwer, D.Moldt, and M-O. Stehr, editors, Proceedings of Work-
+shop on Petri Nets in System Engineering (PNSE’97) Modelling, Veri ﬁcation,
+and Validation , number 205, pages 32–43, Hamburg, Germany, 1997. Universit¨ at
+Hamburg, Fachbereich Informatik.
+[13] Alexandre David, Oliver M¨ uller, and Wang Yi. Formal veriﬁcation u ml statecharts
+with real time extensions. In Proceedings of FASE 2002 (ETAPS 2002) , volume
+2306 of Lecture Notes in Computer Science , pages 218–232. Springer-Verlag, 2002.
+[14] David Harel. Statecharts: A visual formalism for complex systems. Science of
+Computer Programming , 8:231–274, 1987.
+[15] Gerard J. Holzmann. On limits and possibilities of automated protocol analysis.
+InProc. 7th IFIP WG 6.1 Int. Workshop on Protocol Speciﬁcation, Tes ting, and
+Veriﬁcation , pages 137–161, 1987.
+[16] Fredrik Larsson, Kim G. Larsen, Paul Pettersson, and Wang Yi. Eﬃcie nt Veriﬁca-
+tion of Real-Time Systems: Compact Data Structures and State-Space Re duction.
+InProc. of the 18thIEEE Real-Time Systems Symposium , pages 14–24. IEEE
+Computer Society Press, December 1997.
+[17] Soﬁene Tahar, Paul Curzon, and Iskander Kort. Hierarchical formal veriﬁc ation
+using a mdg-hol hybrid tool. In IFIP CHARME 2001 , volume 2144 of Lecture
+Notes in Computer Science , pages 244–258. Springer-Verlag, September 2001.
+[18] Howard Wong-Toi. Symbolic Approximations for Verifying Real-Time Systems .
+PhD thesis, Standford University, 1995.

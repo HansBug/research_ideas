@@ -1,0 +1,924 @@
+--- Page 1 ---
+On Time with Minimal Expected Cost!
+Alexandre David1, Peter G. Jensen1, Kim Guldstrand Larsen1,A x e lL e g a y2,
+Didier Lime3, Mathias Grund Sørensen1,a n dJ a k o bH .T a a n k v i s t1
+1Aalborg University, Denmark
+2INRIA Rennes, France
+3´Ecole Centrale de Nantes, IRCCyN, Nantes, France
+{adavid,kgl }@cs.aau.dk, {pgje09,mgso09,jtaank09 }@student.aau.dk,
+axel.legay@inria.fr, didier.lime@irccyn.ec-nantes.fr
+Abstract. (Priced) timed games are two-player quantitative games in-
+volving an environment assumed to be completely antogonistic. Classical
+analysis consists in the synthesis of strategies ensuring safety,time-bounded or cost-bounded reachab ility objectives. Assuming a ran-
+domized environment, the (priced) timed game essentially deﬁnes an
+inﬁnite-state Markov (reward) decision proces. In this setting the ob-jective is classically to ﬁnd a strategy that will minimize the expected
+reachability cost, butwith no guarantees on worst-case behaviour. Inthis
+paper, we provide eﬃcient methods for computing reachability strate-gies that will both ensure worst case time-bounds as well as provide
+(near-) minimal expected cost. Our method extends the synthesis algo-
+rithms of the synthesis tool Uppaal-Tiga with suitable adapted rein-
+forcement learning techniques, that e xhibits several orders of magnitude
+improvements w.r.t. previously known automated methods.
+1 Motivation
+Sparse time and resources are common problems to projects in almost any do-
+main, ranging from manufacturing to oﬃce work-ﬂow and program paralleliza-tion. In a real world setting, the duration of a process is dependent on the tasks
+it is composed of. The durations and arrival pattern of tasks are not static,
+but uncertain by nature. Furthermore, tasks are often solved by diﬀerent agentsrunning in parallel, creating races for shared resources. A scheduler is needed to
+handle these conﬂict situations.
+The above type of scheduling problem may conveniently be represented as a
+timed game (TG) [27], being a two-player quantitative game involving an ad-
+versary (modeling the environment – here the tasks) which is assumed to be
+completely antagonistic. Classical analysis consists in the synthesis of strategies
+ensuring safety or time-bounded reachability objectives. In all cases, decidability
+for TGs are obtained from the existence of equivalent ﬁnite-state games con-structed using the classica l notion of regions for timed automata [3]. Moreover,
+eﬃcient symbolic on-the-ﬂy algorithms using have been developed and imple-
+mented as found in Uppaal-Tiga [4]. The assignment of resources to tasks
+incurs a cost – e.g. energy-consumption. This naturally leads to the extended
+F. Cassez and J.-F. Raskin (Eds.): ATVA 2014, LNCS 8837, pp. 129–145, 2014.
+c/circlecopyrtSpringer International Publishing Switzerland 2014
+
+--- Page 2 ---
+130 A. David et al.
+setting of pricedtimed games [10,11] (PTG), for which – unfortunately – the
+corresponding synthesis problem of cost-bounded reachability strategies is un-
+decidable in general [13], with the one-cl ock case being a notable exception [11].
+Now, assuming a randomized environment – e.g. where the duration of tasks
+are stochastic – the (priced) timed game essentially deﬁnes an inﬁnite-state
+Markov (reward) decision process, here named (priced) timed Markov decision
+processes (PTMDP). In this setting the objective is to ﬁnd a strategy that will
+minimize the expected reachability cost, but with no guarantees on worst-case
+behavior.
+In thispaper,weprovideeﬃcient methodsforsynthesizingreachabilitystrate-
+gies for PTMDPs that subject to guaranteeing a given worst case time-bound,
+will provide (near-) minimal expected reachability cost.
+Assume a (deterministic) strategy ha s been synthesized guaranteeing a given
+time-bound, we may – as a ﬁrst attempt – apply statistical model checking as
+found in Uppaal SMC [16], to estimate the expected reachability cost in the
+(priced) timed game under the given strategy. Statistical model checking [26] is
+a highly scalable technique which achieves its estimates by random sampling of
+runs, the number of which depending on the desired precision and conﬁdence.
+However, there may be several strategie sguaranteeingthe given time-bound and
+we want the one with minimal expected reachability cost. For this much more
+ambitious goal, we apply suitable adapted reinforcement learning techniques:
+startingfrom a uniformized versionofthe most permissive strategyguaranteeing
+the given time bound, the learning technique iteratively improves the strategy
+– by observing the eﬀect of control-ch oices in sampled runs – until a strategy
+with satisfactory expected reachability-cost is found. Crucial to the eﬃciency of
+our simulation-based synthesis method is the eﬀective and space-eﬃcient rep-
+resentation and manipulation of strategies. Besides the symbolic (zone-based)
+representation used for TGs, we consider a number of techniques well-known
+from Machine Intelligence (covariance matrices, logistic regression) as well as
+a new splitting data-structure of ours. The resulting method is implemented
+in a new version of Uppaal-Tiga that supports the statistical model-checking
+techniques of Uppaal. The experimental evaluation has been performed on a
+large collection of job-shop-like problems (so-called Duration Probabilistic Au-
+tomata) demonstrating several order or magnitude improvements with respect
+to previous exact synthesis methods [22].
+Example. Consider the PTMDP of Fig. 1 modeling a process consisting of a
+sequence of two uncontrollable steps (indicated by dashed edges), r, d,w i t ha
+possible control action (indicated by full edges), a, b, w being taken after the
+ﬁrst step. The ﬁrst step ris taken between 0 and 100 time-units according to
+a uniform distribution1as can be seen by the invariant x<=100and the absent
+guard, and with cost-rate c’==0. In the next step, the controller may suggest to
+play any of the time-action pairs ( d,a), (d,b) withd≤100 or (100 ,w). These
+1Following the stochastic semantics for timed automata components applied in Up-
+paalSMC.
+
+--- Page 3 ---
+On Time with Minimal Expected Cost! 131
+will be in competition with the uniformly distributed choices of the environment
+(e,d) withe∈[90,100]. It is clear that in terms of worst-case time, the best
+choice for the controller is (100 ,w) with 200 as worst-case overall time. In con-
+trast, the worst choice for the controller is (100 ,b) with 340 as worst-case time.
+bdd
+x=0
+dwx=0a
+rCHOICE
+x<=140 &&
+c’==2x<=120 &&
+c’==3
+ENDA
+Bx=0
+x>=20x==100
+x>=90x>=60
+x<=100 &&
+c’==4x<=100 &&
+c’==0
+Fig. 1.AP r i c e dT i m e dM D PFor expected cost, the optimal and
+worst choices are (0 ,b) respectively
+(90,a)w i t h2 ∗80 = 160 respectively
+4∗90 +3∗90 = 630 as expected re-
+maining reachability cost due to the
+uniform distributions resolving thedelays. Thus, in case there is no up-
+per time bound to be guaranteed (or
+itisabove240)thecost-optimalstrat-egy will be to choose bimmediately,
+yielding an expected cost of 160.
+Now assume that the ENDloca-
+tion must be reached within an upper
+time-bound of 210. The on-the-ﬂy method of Uppaal-Tiga (exploiting early
+termination) may (in fact will) produce the strategy which deterministically
+chooses (100 ,w). This clearly meets the given upper time-bound, and yields an
+expected reachability cost of 4 ∗95 = 380. The most permissive strategy guar-
+anteeing the time-bound 210(also obtainable by Uppaal-Tiga ) will have the
+choice depend on the time-point twhen CHOICEis reached: if t>90 only (100 ,w)
+is a legal choice; if 70 <t≤90 also (d,a) withd≤90−tare legal choices, and
+ﬁnally if t≤70 also (e,b) withe≤70−tare legal. The strategy with minimal
+expected reachability cost while guaranteeing the time-bound 210, will (obvi-
+ously) deterministically make the “cheapest” legal choice for a given value of t,
+i.e. (100,w)f o rt>90, (0,a)w h e n7 0 <t≤90, and (0 ,b)w h e nt≤70. This
+yields 204 as minimum expected value
+Related Work. A number of models combining continuous time and Markov
+decision processes have previously b een proposed. We mention some of these
+below, and point out that they are all special cases of our proposed PTMDP
+formalism.
+Probabilistic timed automata (PrTA) [2 1,24] extends the fully non-determini-
+sticformalismoftimedautomatawithprobabilisticresolutionofdiscretechoices,
+thus providing an inﬁnite-state MDP with choices of dealys to be resolved by thestrategy. Decidability for PrTA w.r.t. optimal (minimum and maximum) reach-
+ability probabilities as well as general model checking with respect to PCTL
+are obtained using region-constructions. Tool support for analysis of PrTAs are
+provided in Prism[23]. More recently, cost-bounded reachability for priced ex-
+tensions of PrTAs has been considered, showing undecidability for more than 3clocks [6] and with the semi-decision algorithmic based tool Fortuna [7].
+Continuous-time Markov decision pro cesses (CTMDPs) are also special cases
+of PTMDPs, where the delay choice of the environment is always made ac-cording to exponential distributions , and with choices of the strategy being
+
+--- Page 4 ---
+132 A. David et al.
+instantaneous. In the setting of CTMDPs a number of bounded reachability
+synthesis problems has been recently addr essed. In [19] multi- dimensional max-
+imal cost-bounded reachability probability over CTMDPs are considered, oﬀer-
+ing a numerical approximation algorithm. In [8] a marriage of CTMDPs with
+timed automata is considered showing the existence of ﬁnite optimal schedulersfor time-bounded reachability objectives. In [12], stochastic real-time games are
+considered where states are partitioned into environment nodes - where the be-
+haviour is similar to CTMDPs - and control nodes - where one player chooses a
+distribution over actions, which induces a probability distribution for the next
+state.Forthis gamemodel,objectivesar egivenbydeterministic timed automata
+(DTA), with results focusing on qualitative properties.
+Our real-time synthesis problem – aim ing at optimal expected cost subject
+to worst-case time bounds – extends the notion of beyondworst-case synthesis
+in [14] introduced for ﬁnite state MDPs, with consideration of minimizing ex-
+p e c t a t i o no fm e a n - p a y o ﬀ( s h o w nt ob ei nN P ∩coNP) as well reachability cost
+(shown to be NP-hard). The DPA formalisms considered in [22] is a proper sub-class of PTMDP of this paper. In [22] exac t methods for synthesizing strategies
+with minimal expected completion time ar egivenand implemented. However,no
+worst-caseguaranteesareconsidered.As we shalldemonstrateour reinforcement
+learning method produces identical solutions and with an order of magnitude
+time-improvement. [25] uses a version of Kearns algorithm to ﬁnd a memorylessscheduler for expecting reward, however with no implementation provided, and
+no real-time consideration. Our use of statistical model checking for learning
+optimal strategies of PTMDPs extends that of [20] from ﬁnite-state MDPs tothe setting of timed game automata based, inﬁnite state MDPs requiring the
+use of symbolic strategies. Finally, statistical model checking has been used for
+conﬂuent MDPs in [9].
+2 Priced Timed Markov Decision Processes
+Priced Timed Games [27] are two-player games played on (priced) timed
+automata [3,5]. Here we recall the basic results. Let X={x,y,...}be a ﬁnite
+set of clock. We deﬁne B(X) as the set of clock constraints over Xgenerated by
+grammar: g,g1,g2::=x⊿ /triangleleftn|x−y⊿ /triangleleftn|g1∧g2,w h e r ex,y∈Xare clocks,
+n∈Nand⊿/triangleleft∈{ ≤,<,=,>,≥}.
+Deﬁnition 1. APriced Timed Automaton (PTA)A=(L,/lscript 0,X,Σ,E,P, Inv)
+is a tuple where Lis a ﬁnite set of locations, /lscript0∈Lis the initial location,
+Xis a ﬁnite set of non-negative real-valued clocks, Σis a ﬁnite set of actions,
+E⊆L×B(X)×Σ×2X×Lis a ﬁnite set of edges, P:L→Nassigns a price-rate
+to each location, and Inv :L→B(X)sets an invariant for each location.
+The semantics of a PTA Ais apriced transition system SA=(Q,q 0,Σ,→),
+where the set of states Qconsists of pairs ( /lscript,v) with/lscript∈Landv∈RX
+≥0such
+thatv|=Inv(/lscript)},a n dq0=(/lscript0,0) is the initial state. Σis a ﬁnite set of actions,
+and→⊆Q×(Σ∪R≥0)×R≥0×Qis the priced transition relation deﬁned
+separately for action a∈Σand delay d∈R≥0as:
+
+--- Page 5 ---
+On Time with Minimal Expected Cost! 133
+–(/lscript,v)a−→ 0(/lscript/prime,v/prime) if there is an edge ( /lscriptg,α,r−−−→/lscript/prime)∈Esuch that v|=g,
+v/prime=v[r/mapsto→0] andv/prime|=Inv(/lscript/prime),
+–(/lscript,v)d−→p(/lscript,v+d), where p=P(/lscript)·d,v|=Inv(/lscript)a n dv+d|=Inv(/lscript).
+Thus,thepriceofanaction-transitionis0,whereasthepriceofadelaytransition
+is proportional to the delay according to the price-rate of the given location.
+We shall omit price-subscripts when th e actual price do not matter. We shall
+assume that SAisdeterministic in the sense that any state q∈Qhas at most
+one successor qαfor any action or delay α∈(Σ∪R≥0). A runof a PTA Ais an
+alternatingsequenceofpricedactionanddelaytransitionsofits pricedtransition
+systemSA:π=q0d0−→p0q/prime
+0a0−→ 0q1d1−→p1q/prime
+1a1−→ 0···dn−1−→pn−1q/prime
+n−1an−1−→ 0
+qn···,w h e r eai∈Σ,di,pi∈R≥0,a n dqiis a state ( /lscriptqi,vqi). We denote the set
+ofrunsof AasExecA,and Execf
+A(Execm
+A)forthesetofitsﬁnite(maximal)runs.
+For a run πwe denote by π[i]t h es t a t e qi,a n db y π|i(π|i) the preﬁx (suﬃx) of π
+ending(starting)at qi.Foraﬁnite run π,C(π)denotesitstotalaccumulatedcost/summationtextn−1
+i=0pi.Similarly T(π)denotesthetotalaccumulatedtime/summationtextn−1
+i=0di.Aninﬁnite
+runπis said to be cost-divergentprovided lim n→∞/summationtextn−1
+i=0pi=+∞.W es a yt h a t
+Ais (cost-) non-Zeno provided every inﬁnite run is time-(cost-)divergent.
+Deﬁnition 2. APriced Timed Game G(PTG) is a PTA whose actions Σare
+partitioned into controllable ( Σc) and uncontrollable ( Σu)a c t i o n s .
+We note, that for PTAs and PTGs with P(/lscript) = 1 in all locations /lscript,w eo b t a i n
+standard timed automata (TA) and timed games (TG). Given a (P)TG G,as e t
+of goal-locations G⊆Land a cost- (time-) bound B∈R≥0,t h e(G,B)cost-
+(time-) bounded reachability control problem forGconsists in ﬁnding a strategyσ
+that will enforce Gto be reached within accumulated cost (time) B. Informally,
+as t r a t e g y σdecides to continue a run πeither by a proposed controllable action
+a∈Σcor by a delay - indicated by the symbol λ. The formal deﬁnition of this
+control problem is based on deﬁnitions of strategyandoutcome.
+Deﬁnition 3. Astrategy σover a PTG Gis a partial function from Execf
+Gto
+P(Σc∪{λ})\{∅} such that for any ﬁnite run πending in state q=last(π),i f
+a∈σ(π)∩Σc, then there must exist a transition qa−→q/primeinSG.
+Given a PTG Gand a strategy σoverG, the outcome Out(σ) is the subset of
+ExecGdeﬁned inductively by q0∈Out(σ), and:
+–Ifπ∈Out(σ)t h e nπ/prime=πe−→q/prime∈Out(σ)i fπ/prime=ExcelGand either one of
+the following three conditions hold:
+1.e∈Σu,o r
+2.e∈Σcande∈σ(π), or
+3.e∈R≥0and for all e/prime<e,last(π)e/prime
+−→q/primefor some q/primes.t.σ(πe/prime
+−→q/prime)/ownerλ.
+Let (G,B) be a cost- (time-) bounded reachability objective for G.W es a y
+that a maximal, ﬁnite run πiswinning w.r.t. (G,B), iflast(π)∈G×RX
+≥0and
+
+--- Page 6 ---
+134 A. David et al.
+C(π)≤B.As t r a t e g y σoverGis awinning strategy if all runs in Out(σ)a r e
+winning (w.r.t. ( G,B)).
+Amemoryless strategy σonlydepends onthe laststate ofa run,e.g.whenever
+last(π)=last(π/prime), thenσ(π)=σ(π/prime). For unbounded reachabilityand safety ob-
+jectives for TGs, memoryless strategie s suﬃces [27], For TGs with an additional
+clock time,whichisneverreset(herenamed clockedTGs),memorylessstrategies
+even suﬃces for time-bounded reachability objectives.
+The notion of strategy in Def. 3 is non-deterministic, thus inducing a natural
+order of permissiveness :σ/precedesequalσ/primeiﬀσ(π)⊆σ/prime(π) for any ﬁnite run π.Deter-
+ministic strategies – returning singleton-sets for each run – are least permissive.
+For safety objectives – being maximal ﬁxed-points – strategies are closed under
+point-wise union, yielding (unique) most permissive strategies .F o rT G sb e i n g
+non-Zeno, time-bounded reachability objectives aresafety properties.
+Theorem 1. LetGbe a non-Zeno, clocked TG. If a time-bounded reachability
+objective (G,T)has a winning strategy, then it has (a) deterministic, memoryless
+winning strategies, and (b) a (unique) most permissive, memoryless winning
+strategyσp
+G(G,T).
+The tool Uppaal-Tiga [4] provides on-the-ﬂy, symbolic (zone-based) algo-
+rithms for computing both types of memoryless safety strategies for TGs. For
+PTGs,thesynthesisproblemforcost-boundedreachabilityproblemsisingeneral
+undecidable [13].
+Priced Timed Markov Decision Processes. The deﬁnition of outcome of
+a strategy in the previous Section assumes that an environment behaves com-
+pletely antagonistically. We will now assume a randomized environment, where
+the choices of delay and uncontrollable actions are stochastic according to a
+(delay,action)-density function for a given state.
+Deﬁnition 4. APriced Timed Markov Decision Process (PTMDP) is a pair
+M=/angbracketleftG,μu/angbracketright,w h e r eG=(L,/lscript 0,X,Σc,Σu,E,P, Inv)is a PTG, and μuis a
+family of density-functions, {μu
+q:∃/lscript∃v.q=(/lscript,v)},w i t hμu
+q(d,u)∈R≥0assigning
+thedensity of the environment aiming at taking the uncontrollable action u∈Σu
+after a delay of dfrom state q.
+In the above deﬁnition, it is tacitly assumed that μu
+q(d,u)>0o n l yi f qd,u−→
+inG. Also, we shall wlogfor time-bounded reachability objectives assume that/summationtext
+u(/integraltext
+t≥0μu
+q(t,u)dt)=12. In case the environment wants to perform an action
+deterministically after an exact delay d,μu
+qwill involve the use of Dirac delta
+function (see [15]).
+The presence of the stochastic component μumakes a PTMDP a de facto
+inﬁnite state Markovdecision process. Here we seek strategiesthat will minimize
+the expected accumulated cost of reaching a given goal set G.
+2For a time-bounded rea chability objective ( G,T), we may without aﬀecting control-
+lability assume that each location has each action (controllable or uncontrollable)
+action enabled after T.
+
+--- Page 7 ---
+On Time with Minimal Expected Cost! 135
+Deﬁnition 5. Astochastic strategy μcfor a PTMDP M=/angbracketleftG,μu/angbracketrightis a family
+of density-functions, {μc
+q:∃/lscript∃v.q=(/lscript,v)},w i t hμc
+q(d,c)∈R≥0assigning the
+density of the controller aiming at taking the controllable action c∈Σcafter a
+delay of dfrom state q.
+Again it is tacitly assumed that μc
+q(d,c)>0o n l yi f qd,c−→inG.N o w ,a
+PTMDP M=/angbracketleftG,μu/angbracketrightand a stochastic strategy μcdeﬁnes a race between the
+environment and the control strategy, where the outcome is settled by the two
+competing density-functions. Mo re precisely, the combination of Mandμcde-
+ﬁnes a probability measure PM,μcon (certain) sets of runs.
+For/lscripti∈LandIi=[li,ui] withli,ui∈Q,i=0..n,w ed e n o t et h e cylinder set
+byC(q,I0/lscript0I1···In−1/lscriptn) consisting of all maximal runs having a preﬁx of the
+form:qd0−→a0−→(/lscript1,v1)d1−→a1− →···dn−1−→an−1−→(/lscriptn,vn)w h e r edi∈Iifor alli<n.
+Providing the basis for a σ-algebra, we now inductively deﬁne the probability
+measure for such sets of runs3:
+P/angbracketleftG,μu/angbracketright,μc/parenleftbig
+C(q,I 0/lscript0I1···In−1/lscriptn)/parenrightbig
+=
+/summationdisplay
+p∈{u,c}/summationdisplay
+a∈Σp
+/lscriptqa→/lscript1/integraldisplay
+t∈I0μp
+q(t,a)·/parenleftbig/integraldisplay
+τ>tμ
+p
+q(τ)dτ/parenrightbig
+·P/angbracketleftG,μu/angbracketright,μc/parenleftbig
+C((qt)a,C(I1···In−1/lscriptn)/parenrightbig
+dt
+The above deﬁnition requires a few words of explanation: the outermost sums
+divide into cases according to who wins the race of the ﬁrst action ( coru),
+and which action athe winner will perform. Next, we integrate over all the legal
+delaysthewinnermaychooseaccordingtothegiveninterval I0usingtherelevant
+density-function. Independently, the non-winning player(
+ p)m u stc h ooseal arger
+delay; hence the product of the probability that this will happen. Finally, the
+probability of runs according to the remaining cylinder I1/lscript1,···,In−1/lscriptnfrom
+the new state ( qt)ais taken into account.
+Now let π∈Execmand letGbe as set of goal locations. Then CG(π)=
+min{C(π|i):π[i]∈G}denotes the accumulated cost before πreachesG4.N o w
+CGis a random variable, which for a given stochastic strategy, μc, will have ex-
+pected value EM
+μc(CG) givenbythe Lesbegueintegral/integraltext
+π∈ExecmCG(π)PM,μc(dπ).
+Now, we want a (near-optimal) stochastic strategy μothat minimizes this ex-
+pected value, subject to guaranteeing Tas a worst-case reachability time-bound
+– or alternatively – subject to μobeing a stochastic reﬁnement ( ≺5)o ft h e
+most permissive time-bounded reachability strategy σp(G,T)f o rM.T h a ti s
+EM
+T(CG) = inf/braceleftbig
+EM
+μc(CG)|μc≺σp(G,T)/bracerightbig
+. We note that letting μcrange over
+deterministic strategies σdsuﬃces in attaining EM
+T(CG).
+3With the base case, e.g. n=0 ,b e i n g1 .
+4Note that CG(π) will be inﬁnite in case πdoes not reach G. However, this case will
+never happen in our usages.
+5μc≺σiﬀμc
+q(d,a)>0o n l yi f λ∈σ(qe) for alle<danda∈σ(qd).
+
+--- Page 8 ---
+136 A. David et al.
+maxRuns
+maxGood
+maxBestSimulation
+Filteringȫߤ௖ൌܷ ሺ ߪ௉ሻ
+LearningȫԢ
+Determinizationߤ௖Ԣ
+Evaluationሺߤ௖Ԣሻߤ௖ൌܷߪ௉
+ݎ݋
+ߤ௖ൌߤ௖Ԣ
+ሺߤ௕௖ሻevalRuns
+maxNoBetter
+maxIterationsmaxResetsZonificationߪ௭ௗߪ௉
+Fig. 2.Optimal scheduler approximation using reinforcement learning
+3 Optimal Scheduler Approximation
+Given a PTMDP Mand a time-bounded reachability goal ( G,T), we present
+a method for approximating EM
+T(CG) by computing a (deterministic) sched-
+uler obtained using reinforced learning. In general, the technique of statistical
+model-checking (SMC) is used to generat e runs according to a given stochastic
+semantics and then to analyze their outcomes w.r.t some property or expecta-tion. In our context, given a PTMDP Mand a stochastic control strategy μ
+c,
+we use SMC to generate runs that are used both to estimate EM
+μc(CG)a n dt o
+iteratively improve μctowardsμo. We combine the techniques of Uppaal-Tiga
+to guaranteea giventime-boundand Uppaal SMC forexpected-costoptimality.
+The core concept is similar to [20] but diﬀers on the goal of the scheduler. Wealso diﬀer on the termination criteria since our algorithm can reset itself to get
+out of local minima. We start with an overview of the procedure:
+Figure 2 shows the general ﬂow of the algorithm. The idea is to reinforce
+a current stochastic strategy representing distributions over controllable actions
+notedμ
+c. This strategyis initialized to a uniform strategynoted U(σP) basedon
+a most permissive (zone-based) strategy σPobtained from Uppaal-Tiga .T h i s
+strategy allows all possible moves that still guarantee the controller to meet its
+goal within the given time-bound. The algorithm reinforces μcwithμc/primeunless
+μc/primeis not improving too many times in a row, in which case it is reset to the
+initial uniform strategy. When it is improving and it is better than the currently
+bestknown strategy μc
+b, then it replaces it. A strategy is better if it exhibits a
+lower expected cost.
+The diﬀerent steps are detailed as follows. First, the simulation step uses
+Uppaal SMC to generateatmost maxGood good runs that areusedfor learning.
+To do so, at most maxRuns runsin total aregenerated.The result is a set ofruns
+
+--- Page 9 ---
+On Time with Minimal Expected Cost! 137
+Π. It may happen that Πis empty, in which case μcis reset and the simulation
+is restarted. This is not depicted on the ﬁgure. Second, the set of runs Πis then
+ﬁlteredwhere at most maxBest best runs among those are kept. We retain the
+subsetΠ/prime⊆Πof runs that have minimum cost. In practice this is done with
+a heap structure to keep a set of maxBest runs with their associated costs used
+for ordering the runs.
+Then, central to the algorithm, comes the learning phase where the actual
+algorithm depends on the data structure used to represent μc. This phase com-
+putes a new μc/primeand we detail in the following section diﬀerent ways to represent
+μc. Also, the strategy σPfrom Uppaal-Tiga is used here to ensure that any
+learned strategy still guarantees the required bound.
+The resulting strategy is then determinized before being evaluated .T h i ss t e p
+uses Uppaal SMC again to evaluate the expected time (or cost) for the rein-
+forced strategy det(μc/prime)o nan u m b e ro f evalRuns runs. The resulting μc/primemay
+have a lower cost than μc, in which case we update μc(and possibly the best
+known strategy μc
+bif it is better than this one too). However, if μc/primeis not better
+thanμcmaxNoBetter times then we reset it to μc=U(σP). This makes sure
+that the reinforcement learning does not get stuck into local minima. Finally,
+the algorithm loops at most maxIteration times if μchas been reset no more
+than maxResets times.
+When the algorithm stops, the best known deterministic strategy det(μc
+b)i s
+outputted. It is then possible to “zonify” the strategy, meaning to approximate
+it with the zone-based representation σd
+zused in Uppaal-Tiga , thus allowing
+for model checking of additional properties.
+4 Strategies: Data Structures, Algorithms and Learning
+Non-determistic Strategies. Crucial to our reinforcement learning algorithm
+Fig. 2 is the eﬃcient representation and manipulation of control strategies. InUppaal-Tiga , non-deterministic stra tegiesarerepresentedusingzones, e.g.sets
+Zof valuations described by a guard in B(X). In a representation R, each lo-
+cation/lscripthas an associated ﬁnite set R
+/lscript={(Z1,a1),...,(Zk,ak)}of zone-action
+pairs,where ai∈Σc∪{λ}.NowRrepresentsthestrategy σRwhereσR((/lscript,v))/ownera
+iﬀ (Z,a)∈R/lscriptfor some Zwithv∈Z.I n Uppaal-Tiga Ris eﬃciently imple-
+mented as a hash-table with the location /lscriptas key, and using diﬀerence bounded
+matrices (DBMs) [17] for representing zones.
+For a non-determistic strategy σand (l,v)as t a t e ,w ew r i t e( l,v)d→σto
+denote that σallows a delay of d, i.e. for all d/prime<d , λ∈σ(l,v+d/prime). Sim-
+ilarly, we write ( l,v)c→σto denote that the controllable action cis allowed,
+i.e.c∈σ(l,v). Uniformization and zoniﬁcation are operations between non-
+deterministic and stochastic strategies. Uniformization is an operation that re-
+ﬁnes a non-deterministic strategy σinto a stochastic strategy μσ, subject to the
+condition that μσ
+(l,v)(d,c)>0 if and only if ( l,v)d→σc→σ. Several implemen-
+tations of uniformization may easily be obtained from the representation of anon-determistic strategy. Dually, zoniﬁcation is an operation that abstracts a
+
+--- Page 10 ---
+138 A. David et al.
+stochastic strategy μinto a non-deter mistic strategy σR, with a zone-based rep-
+resentation R, and subject to the condition that whenever μ(l,v)(d,c)>0t h e n
+(l,v)d→σRc→σR.
+Stochastic and Non-Lazy Strategies. For stochastic strategies, we shall in
+the following restrict our attention to so-called non-lazy strategies6,μc,w h e r e
+the controller either urgently decides on an action, i.e. μc
+q(d,a)=0i fd>0, or
+prefer to wait until the environment makes a move, i.e. μc
+(/lscript,v)(d,a) = 0 whenever
+v(time)+d≤TwithTbeing the time-bound of the reachability property in
+question. We shall use wto denote such an indeﬁnite delay choice. Thus, for non-
+lazy stochastic strategies, the functionality may be recast as discrete probability
+distributions, i.e. μc
+q:(Σc∪{w})→[0,1]. In particular, we note that any non-
+lazy, stochastic strategy can trivially be transformed to a deterministic strategy
+by always selecting the action with the highest probability.
+In the following we introduce three diﬀerent data structuring and learning
+algorithms for stochastic strategies. Given that memoryless strategies suﬃces,
+we will learn a set of sub-strategies μc
+/lscript={μc
+q:∃v.q=(/lscript,v)},w h e r e/lscript∈L.
+The sub-strategies are then learned solely from a set of (action,valuation) pairs.
+Given a set of runs Πthe relevant information for the sub-strategy μc
+/lscriptis given
+asIn/lscript:
+In/lscript={(sn,v)∈(Σc∪R)×RX
+≥0|(q0s0→p0...sn−1→pn−1(/lscript,v)sn→pn...)∈Π}
+Thus, in the following we only describe methods for learning sub-strategies.
+Sample Mean and Covariance. For each controllableaction cand location /lscript,
+we approximate the set of points representing clock valuations from which that
+action was successfully taken in /lscriptby its sample mean and covariance matrix.
+Suppose we have Npoints corresponding to clock valuations v1,...,v N.T h e
+sample mean vector
+ vis the arithmetic mean, component-wise, for all the points:
+v=1
+N/summationtextN
+k=1vk. The sample covariance matrix is deﬁned as the square matrix
+Q=[qij]=1
+N−1/summationtextN
+k=1(vk−
+v)(vk−
+v)T.
+Intuitively, if the sample covariance qijbetween two clocks xiandxjis posi-
+tive, then bigger (resp. smaller) values of xicorrespond to bigger (resp. smaller)
+values of xj. If it is negative, then the bigger (resp. smaller) values of xicorre-
+spond to the smaller (resp. bigger) values of xj. If it is zero then there is no such
+relation between the values of those two variables.
+Note that the covariance matrix has size n2wherenis the number of clocks
+but it is symmetric. Furthermore, for the matrix to be signiﬁcant we need at
+leastn(n+1 )/2 sample points that correspond to the number of (potentially)
+diﬀerent elements in the matrix, otherwise we default to using only the mean
+vector.
+6In [22] it is shown that non-lazy strategies suﬃces for optimal scheduling of so-called
+DPAs.
+
+--- Page 11 ---
+On Time with Minimal Expected Cost! 139
+Distribution. The purpose of this representation is to derive a distance from an
+arbitrarypointtothis“set”thatisusedtocomputeaweightforeachcontrollable
+action.Foragivenvaluation,suchadistance d(v) isevaluatedasfollows: d(v)2=
+(u−
+v)TQ−1(u−
+v).Iftherearetoofewsamplepointsthenwedefaulttousingthe
+Euclidian distance to the mean
+ v. The weight is then given by w(v)=N·e−d(v).
+The weights for the diﬀerent actions deﬁne a probability distribution.
+Algorithm and Complexity. When generating runs using SMC, controllable ac-
+tions are chosen according to the represen ted distribution that is initialized to
+be uniform. The time complexity is O(n2),nbeing the number of clocks. For
+the learning phase, the covariance matrix is computed using the ﬁltered “best”
+samples. Then we need to invert it (once) before the next learning phase. The
+time complexity is O(n3). This is done for every action.
+Logistic Regression. We considera sub strategy μc
+/lscriptwherethe onlyoptions are
+either to take a transition ( a) or wait until the environment takes a transition
+(w) (the case with more options is addressed later). The goal is to learn the
+weightsβ0,β1,...,β |X|∈Rto use in the logistic function: Equation 4.
+f(v)=1
+1+e−(β0+β1·v(x1)+···+β|X|·v(x|X|)),
+wherex1,...,x |X|∈X. This function, combined with the learned weights
+β0,β1,...,β |X|, deﬁnes a stochastic sub-strategy s.t. μc
+(/lscript,v)(a)=f(v)a n d
+μc
+(/lscript,v)(w)=1−f(v). Using Figure 3 we here give an intuition on how, given
+an input set In/lscript, we learn the weights β0,...,β |X|(for details, see [18]). We
+assume that there exists only two options ( aand w)i nt h el o c a t i o n /lscript,a n d( f o r
+simplicity and wlog) a single clock in the system. For each input ( sn,v)∈In/lscript:
+–Ifsn=a, construct a point at ( v(x),1) where x∈Xis the clock. These are
+the triangles in Figure 3.
+–Otherwise, construct a point at ( v(x),0) where x∈Xis the clock. These
+are the circles in Figure 3.
+We use L1-regularized logistic regression provided by LIBLINEAR [18] for
+ﬁtting the function to the constructed points. The output of this process is the
+weightsβ0,β1,...,β |X|and the result is shown in Figure 3. In the case of more
+than two options (e.g. if we also had an action b) we use the one-versus-all
+method. This method learns a function for each action7.
+Complexity. Thecomplexityofﬁtting the pointsusingthis method is O(|In/lscript|+i)
+[29], where iis the number of iterations before the ﬁtting algorithm converges
+thus for multiple actions, the complexity for learning is O(c·(|In/lscript|+i)) where
+cis the number of options. We need to store c·|X|weights per location, this is
+the space complexity.
+7If e.g. we have three actions, a,bandw, we will learn three functions, one which is
+aversusbandw,o n ew h i c hi s bversusaandw, and one which is wversusaandb.
+
+--- Page 12 ---
+140 A. David et al.
+f(v)
+v(x)f(v)=1
+1+e−(−1.131+0.647v(x))
+Fig. 3.Example of logistic regression with one clock xand two options aandw.F o r
+valuation v,f(v) gives the probability of selecting action a(triangle) and 1 −f(v)g i v e s
+theprobability of selecting action w(circle). The probabilities are equal at v(x)=1.747
+because f(0.5) = 1.747.
+Splitting. Here we represent a sub-strategy as a binary tree, where an internal
+nodeisafour-tuple( x,s,low,high ),where lowandhighareeitherinternalnodes
+or leaf nodes, x∈Xis the clock we split on and s∈R>0is the discriminating
+valuefor the clock.A leafnodeis afunction Wmapping actions, a,fromΣc∪{w}
+to weights, W(a)∈R>0. Figure 4 shows an example of a tree with a splitting
+for the clock xat value 2. For a given clock valuation v, the tree is traversed
+to the leaf node Wto which it “belongs”, with Wrepresented by the pairs
+(a,W(a))withW(a)>0.Thisdeﬁnesastochasticsub-strategy μc
+/lscripts.t.μc
+/lscript,v)(a)=
+W(a)//summationtext
+b∈Σc∪{w}W(b) for alla∈Σc∪{w}. Initially, the tree consists of only a
+single leaf node assigning weight 1 to all actions. In eachiteration of the learning
+algorithm presented in Section 3, a percentage of the leaf nodes are split on one
+clock according to the following algorithm:
+1.Select nodes to split. Given a set In/lscript, count how many of these did not
+perform the action with the highest weight in the corresponding leaf node.
+The leaf nodes over all locations wi th the highest counts are chosen for
+splitting,the remaininghavetheirweightsupdatedusingreinforcedlearning.
+2.Select clock to split on. For each node to split:
+(a) Let Inn
+lbe the runs from Inlwhich satisfy the constraints of the tree,
+to this leaf node.
+(b) For every clock x∈X:
+i. Find the minimum and maximum v(x)w h e r e( sn,v)∈Inn
+land call
+the average of these two s.
+ii. In the set {(sn,v)∈Inn
+/lscript|v(x)≤s}count for each a∈Σc∪{w}
+how many runs choose a. Insert these points in a vector. Make a
+corresponding vector for the set {(sn,v)∈Inn
+/lscript|v(x)>s}.
+iii. Compute Euclidean distance of the vectors.
+3.Update tree. For clock xand split swith largest Euclidian distance, split
+the leaf node by replacing the n ode itself with internal node ( x,s,low,high )
+where lowand highare new leaf nodes. Compute weights using reinforced
+learning for the new leaf nodes.
+
+--- Page 13 ---
+On Time with Minimal Expected Cost! 141
+x,2
+{(,3),(,1),
+(,3)}{(,1),(,6),
+(,1)}
+Fig. 4.A binary tree with a splitting on clock xand value 2
+Complexity. The complexity of step 1 is O(nl·|Π|)w h e r e nlis the current
+number of leafs in the tree, and Πis the number of good runs in the batch. The
+complexity of step 2 is O(nl·|X|·|Π|) and the complexity of step 3 is O(|Π|).
+This means the complete complexity of the whole learning is O(nl·|X|·|Π|). In
+step 1 we select a percentage of the clocks t o split on, thus the space complexity
+of this method is exponential in the worst case, however we bound this by notallowing splitting a leaf on a clock with a range shorter than a predeﬁned (small)
+constant.
+5 Experiments
+We now present experiments for evaluating the algorithms proposed in Section
+4. Table 1 shows a selection of results. The results are elaboratedin the following
+sections.Thefullsetofresultswillbeavailableinafullversionofthispapertobe
+foundonarXiv.orgofCornellUniversity.Ineachoftheexperiments,weuse2000runs pr. iteration. We have evaluated the learned strategies using Uppaal SMC,
+also with 2000 runs.
+Small Examples. The ﬁrst row in Table 1 shows the statistics for the moti-
+vational example in Figure 1, for obtaining the optimal strategy w.r.t. expected
+cost under the constraint that ENDis guaranteed to be reached within 210 time
+units. Recall from Section 1 that the optimal expected cost for this case is 204.
+An optimal strategy according to SMC is found using all the methods, achievingan expected cost very close t o the optimal expected cost.
+The second row shows the statistics for a Go-To-Work example from [14]. We
+ﬁrst use Uppaal-Tiga to ensure that you are guaranteed to get to work in 60
+time units and then minimize the expected timefor going to work under this
+constraint. The three diﬀerent metho ds ﬁnd strategies with the same expected
+time, the splitting is the fastest and uses slightly less memory than the others.
+Duration Probabilistic Automata. In Section 1, we initially mentioned a
+type of scheduling problems where tasks have uncertainty in execution time
+and depends no an amount of resources. This class of job-shop-like scheduling
+problems can be represented as Duration Probabilistic Automata (DPAs) [22].A DPA is a multiset of resources and a set of Simple Duration Probabilistic
+Automata (SDPAs). An SDPA is a series of tasks which cannot be executed in
+parallel, be preempted and must be execu ted according to someorder.Eachtask
+requires a multiset of resources and has a uniformly distributed duration with a
+
+--- Page 14 ---
+142 A. David et al.
+Table 1. Computed expected cost (1strow) and time/memory consumption for syn-
+thesis (2ndand 3rdrows) for various strategies. 4throw shows resets/iterations to ﬁnd
+optimal strategy. For uniform strategies, o nly the computed expected cost is reported.
+Time/memory consumption for computing exact optimal strategies by Kempf et al.
+[22] reported where available.
+Model
+ Uniform
+ Co-variance
+ Splitting
+ Regression
+ Exact [22]
+Motivational
+ 404.299
+ 205.169
+ 206.328
+ 203.721
+example
+ 33.78s
+ 30.55s
+ 42.61s
+8.17MB
+ 15.79MB
+ 8.46MB
+2/82
+ 4/109
+ 1/52
+38.64
+ 32.69
+ 32.81
+ 32.81
+GoWork
+ 9.8s
+ 24.41s
+ 14.18s
+7.96MB
+ 8.38MB
+ 8.08MB
+5/72
+ 0/10
+ 4/71
+18.08
+ 17.53
+ 17.34
+ 17.38
+p0s3p1s4
+ 4
+ 28.84s
+ 27.06s
+ 51.92s
+ 1062.77s
+8.75MB
+ 17.25MB
+ 8.88MB
+ 145.47MB
+3/54
+ 3/40
+ 2/58
+18.56
+ 17.75
+ 16.90
+ 16.83
+p0s3p1s4
+ 16
+ 36.67s
+ 46.13s
+ 69.51s
+ 176.15s
+8.63MB
+ 14.38MB
+ 9.07MB
+ 35.60MB
+6/119
+ 0/22
+ 0/27
+19.90
+ 19.27
+ 19.21
+ 19.27
+p0s4p1s4
+ 5
+ 45.91s
+ 47.1s
+ 60.11s
+ 8547.52s
+9.03MB
+ 26.11MB
+ 9.23MB
+ 486.92MB
+1/31
+ 3/86
+ 5/115
+3946.76
+ 2213.35
+ 2303.47
+ 2218.34
+ran-4-3
+ 196.19s
+ 242.7s
+ 330.64s
+19.65MB
+ 124.06MB
+ 20.28MB
+2/59
+ 1/37
+ 3/141
+8068.02
+ 4111.77
+ 4221.75
+ 3641.61
+ran-4-4
+ 323.35s
+ 281.58s
+ 459.08s
+34.46MB
+ 167.66MB
+ 28.88MB
+5/190
+ 6/159
+ 5/194
+3965.73
+ 2765.19
+ 2780.45
+ 2765.77
+tiga-ran-4-3
+ 230.06s
+ 351.45s
+ 337.39s
+17.44MB
+ 127.10MB
+ 25.23MB
+4/88
+ 5/165
+ 6/164
+8058.78
+ 6343.45
+ 6307.29
+ 6358.3
+tiga-ran-4-4
+ 262.09s
+ 323.7s
+ 270.93s
+26.37MB
+ 170.63MB
+ 20.76MB
+2/32
+ 5/121
+ 2/30
+giventime-interval.TheDPAschedulingproblemisnow:givenaconﬁgurationof
+an DPA, which SDPA should be allocated which resources at what time in order
+to minimize expected completion time? For this scheduling problem, Kempf et
+al.[22]provideamethodforexactoptimalschedulersynthesisunderuncertainty.
+We will use their results as a benchmark. Poulsen et al. [28] provides a method
+
+--- Page 15 ---
+On Time with Minimal Expected Cost! 143
+for translating DPA into TAs with a uniform scheduler, it is trivial to adapt this
+for translating DPAs into PTMPDs.
+Qualitative Comparison. Rows 3-5 show the statistics of obtaining the optimal
+strategy for three small models (2 processes, 2 tasks) from Kemp et al. [22]8
+using our approach. If we examine the synthesized strategies, we see that these
+are in fact the same strategies as those found using the exact computation (with
+decision boundaries located within 0 .5 time units of the optimal boundaries).
+We also observe that even though an optimal strategy is found, this does not
+aﬀect the expected time signiﬁcantly. F urthermore, the exact computation of
+[22] for these models took between 176 −8547 seconds, whereas our method
+synthesize optimal strategies in less t han 70 seconds in each case, thus an order
+of magnitude faster and less memory-consuming.
+Scalability Comparison. For testing the method on larger models, we randomly
+generate a number of larger DPAs (3-5 processes, 3-5 tasks). On two of these
+DPAs we ﬁrst ran Uppaal-Tiga to ﬁnd the best possible worst case time guar-
+antee (rows 8 ,9 in Table 1). Then on all four (rows 6 −9 in Table 1) we ran
+the three diﬀerent methods to synthesiz e a strategy with near -minimal expected
+completion-cost subject to the possible time-bound guarantee.
+Generallyweobserve,thatitisspeciﬁctotheexamplewhichmethod performs
+the best. We observe that all three methods are able to learn a strategy which
+is signiﬁcantly better than the uniformly random strategy. We see that in the
+examples, where we constrain the allowed strategies using Uppaal-Tiga only
+little overheadis incurred,but the strategywe learndoesnot improveasmuchas
+otherwise. This is natural as Uppaal-Tiga constrain the choices we are allowed
+to learn.
+6 Conclusion and Future Works
+In this paper, we have presented a new technique that combines classical con-
+troller synthesis with reinforcement lea rning to compute strategies that provide
+near optimal expected cost andtime-bound guarantees. Our experiments show
+very good results on the class of DPA models. The framework presented is gen-
+eral and not limited to neither DPAs or PTMDPs. In particular, if a time-bound
+is not required then we can omit the Uppaal-Tiga step and apply our tech-
+nique to hybrid MDPs by utilizing Uppaal SMC’s support for stochastic hybrid
+systems [15]. Future works include developing suitable data structures for more
+general classes of strategies than non-lazy ones. Though our method is guaran-
+teed to convergeto the optimal strategy(under the assumption of non-lazyness),
+it would be usefull if an estimation of how close a given proposed solution is to
+the optimal one. However, given the diﬃculty in obtaining such error-bounds in
+much simpler cases such as job-shop and task-graph scheduling [2,1], we believe
+that this will be very diﬃcult.
+8Models and results available
+athttp://www-verimag.imag.fr/PROJECTS/TEMPO/DATA/201304_dpa/
+
+--- Page 16 ---
+144 A. David et al.
+References
+1. Abdedda¨ ım, Y., Kerbaa, A., Maler, O.: Task graph scheduling using timed au-
+tomata. In: IPDPS, p. 237. IEEE Computer Society (2003)
+2. Abdedda¨ ım, Y., Maler, O.: Job-shop scheduling using timed automata. In: Berry,
+G., Comon, H.,Finkel,A.(eds.)CAV 2001. LNCS,vol.2102, pp.478–492. Springer,
+Heidelberg (2001)
+3. Alur, R., Dill, D.L.: A theory of timed automata. Theor. Comput. Sci. 126(2),
+183–235 (1994)
+4. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+UPPAAL-Tiga: Time for playing games !I n :D a m m ,W . ,H e r m a n n s ,H .( e d s . )C A V
+2007. LNCS, vol. 4590, pp. 121–125. Springer, Heidelberg (2007)
+5. Behrmann, G., Fehnker, A., Hune, T., Larsen, K.G., Pettersson, P., Romijn, J.,
+Vaandrager, F.W.: Minimum-cost reachability for priced timed automata. In:Di Benedetto, M.D., Sangiovanni-Vincentelli, A.L. (eds.) HSCC 2001. LNCS,
+vol. 2034, pp. 147–161. Springer, Heidelberg (2001)
+6. Berendsen, J., Chen, T., Jansen, D.N.: U ndecidability of cost- bounded rea chability
+in priced probabilistic timed automata. In: Chen, J., Cooper, S.B. (eds.) TAMC
+2009. LNCS, vol. 5532, pp. 128–137. Springer, Heidelberg (2009)
+7. Berendsen, J., Jansen, D.N., Vaandrager, F.W.: Fortuna: Model checking priced
+probabilistic timed automata. In: QEST, pp. 273–281. IEEE Computer Society
+(2010)
+8. Bertrand, N., Schewe, S.: Playing optimally on timed automata with random de-
+lays. In: Jurdzi´ nski, M., Niˇ ckovi´c, D. (eds.) FORMATS 2012. LNCS, vol. 7595, pp.
+43–58. Springer, Heidelberg (2012)
+9. Bogdoll, J., Hartmanns, A., Hermanns, H.: Simulation and statistical model check-
+ing for modestly nondeterministic models. In: Schmitt, J.B. (ed.) MMB & DFT2012. LNCS, vol. 7201, pp. 249–252. Springer, Heidelberg (2012)
+10. Bouyer, P., Cassez, F., Fleury, E., Larsen, K.G.: Synthesis of optimal strategies
+using hytech. Electr. Notes Theor. Comput. Sci. 119(1), 11–31 (2005)
+11. Bouyer, P., Larsen, K.G., Markey, N., Rasmussen, J.I.: Almost optimal strategies
+in one clock priced timed games. In: Arun-Kumar, S., Garg, N. (eds.) FSTTCS2006. LNCS, vol. 4337, pp. 345–356. Springer, Heidelberg (2006)
+12. Br´azdil, T., Krc´ al, J., Kret´ ınsk´y, J., Kucera, A., Reh´ ak,V.: Measuring performance
+of continuous-time stochastic processes using timed automata. In: Caccamo, M.,Frazzoli, E., Grosu, R. (eds.) HSCC, pp. 33–42. ACM (2011)
+13. Brihaye, T., Bruy` ere, V., Raskin, J.F.: On optimal timed strategies. In: Pettersson,
+P.,Yi,W.(eds.)FORMATS2005. LNCS,vol.3829, pp.49–64. Springer,Heidelberg
+(2005)
+14. Bruy` ere, V., Filiot, E., Randour, M., Raskin, J.F.: Meet your expectations with
+guarantees: Beyond worst-case synthesis in quantitative games. In: Mayr, E.W.,
+Portier, N. (eds.) STACS. LIPIcs, vol. 25, pp. 199–213. Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik (2014)
+15. David, A., Du, D., Larsen, K.G., Legay, A., Mikucionis, M., Poulsen, D.B., Sed-
+wards, S.: Statistical model checking for stochastic hybrid systems. In: Bartocci,E., Bortolussi, L. (eds.) HSB. EPTCS, vol. 92, pp. 122–136 (2012)
+1 6 .D a v i d ,A . ,L a r s e n ,K . G . ,L e g a y ,A . ,M i k u ˇ cionis, M., Wang, Z.: Time for statistical
+model checking of real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)
+CAV 2011. LNCS, vol. 6806, pp. 349–355. Springer, Heidelberg (2011)
+
+--- Page 17 ---
+On Time with Minimal Expected Cost! 145
+17. Dill, D.L.: Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems.
+In: Sifakis, J. (ed.) CAV 1989. LNCS, vol. 407, pp. 197–212. Springer, Heidelberg
+(1990)
+18. Fan, R.E., Chang, K.W., Hsieh, C.J., Wang, X.R., Lin, C.J.: LIBLINEAR: A li-
+brary for large linear classiﬁcation. Journal of Machine Learning Research 9, 1871–
+1874 (2008)
+19. Fu, H.: Maximal cost-bounde d reachability probability on continuous-time markov
+decision processes. In: Muscholl, A. (ed.) FOSSACS 2014. LNCS, vol. 8412, pp.
+73–87. Springer, Heidelberg (2014)
+20. Henriques, D., Martins, J., Zuliani, P., Platzer, A., Clarke, E.: Statistical model
+checking for markov decision processes. In: 2012 Ninth International Conference
+on Quantitative Evaluation of Systems (QEST), pp. 84–93 (2012)
+21. Jensen, H.E., Gregersen, H.: Model checkingprobabilistic real time systems. Nordic
+Workshop on Programming Theory 7, 247–261 (1996)
+22. Kempf, J.F., Bozga, M., Maler, O.: As soon as probable: Optimal scheduling under
+stochastic uncertainty. In: Piterman, N., Smolka, S.A. (eds.) TACAS 2013. LNCS,
+vol. 7795, pp. 385–400. Springer, Heidelberg (2013)
+23. Kwiatkowska, M.Z., Norman,G., Parker,D.:Probabilistic symbolicmodel checking
+with prism: A hybrid approach. In: Katoen, J.-P., Stevens, P. (eds.) TACAS 2002.
+LNCS, vol. 2280, pp. 52–66. Springer, Heidelberg (2002)
+24. Kwiatkowska, M.Z., Norman, G., Segala, R., Sproston, J.: Verifying quantitative
+properties of continuous probabilistic timed automata. In: Palamidessi, C. (ed.)
+CONCUR 2000. LNCS, vol. 1877, pp. 123–137. Springer, Heidelberg (2000)
+25. Lassaigne, R., Peyronnet, S.: Approximate planning and veriﬁcation for large
+markov decision processes. In: Ossowski, S., Lecca, P. (eds.) SAC, pp. 1314–1319.
+ACM (2012)
+26. Legay, A., Delahaye, B., Bensalem, S.: Statistical model checking: An overview.
+In: Barringer, H., et al. (eds.) RV 2010. LNCS, vol. 6418, pp. 122–135. Springer,
+Heidelberg (2010)
+27. Maler, O., Pnueli, A., Sifakis, J.: On the synthesis of discrete controllers for timed
+systems (an extended abstract). In: Mayr, E.W., Puech, C. (eds.) STACS 1995.
+LNCS, vol. 900, pp. 229–242. Springer, Heidelberg (1995)
+28. Poulsen, D.B., van Vliet, J.: Duration probabilistic automata,
+http://www.cs.aau.dk/ ~adavid/smc/DurationProbabilisticAutomata.pdf
+29. Yuan, G.X., Ho, C.H., Lin, C.J.: An improved glmnet for l1-regularized logistic
+regression. In: Proceedings of the 17th ACM SIGKDD International Conferenceon Knowledge Discovery and Data Mining, KDD 2011, pp. 33–41. ACM, NewYork (2011), http://doi.acm.org/10.1145/2020408.2020421

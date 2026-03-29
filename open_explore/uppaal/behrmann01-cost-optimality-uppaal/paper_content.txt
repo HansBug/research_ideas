@@ -1,0 +1,948 @@
+--- Page 1 ---
+BRICS RS-01-4 Behrmann et al.: Efﬁcient Guiding Towards Cost-Optimalityin U PPAALBRICS
+Basic ResearchinComputer Science
+Efﬁcient Guiding Towards
+Cost-Optimality in U PPAAL
+GerdBehrmann
+AnsgarFehnkerThomas S. HuneKimG.Larsen
+PaulPettersson
+JudiRomijn
+BRICSReport Series RS-01-4
+ISSN 0909-0878 January2001
+
+--- Page 2 ---
+Copyright c/circlecopyrt2001, Gerd Behrmann &AnsgarFehnker &
+Thomas S. Hune&KimG. Larsen&Paul
+Pettersson & Judi Romijn.
+BRICS, Department of Computer Science
+University of Aarhus. All rightsreserved.
+Reproduction ofallorpart ofthis work
+is permitted foreducational orresearch use
+on conditionthat thiscopyright noticeisincluded in any copy.
+SeebackinnerpageforalistofrecentBRICSReportSeriespublications.
+Copiesmay be obtained by contacting:
+BRICS
+Department of Computer Science
+Universityof Aarhus
+NyMunkegade, building 540DK–8000Aarhus CDenmark
+Telephone:+45 89423360
+Telefax: +45 89423255Internet: BRICS@brics.dk
+BRICS publications are in general accessible through the World Wide
+Weband anonymous FTP through these URLs:
+http://www.brics.dk
+ftp://ftp.brics.dkThis document insubdirectory RS/01/4/
+
+--- Page 3 ---
+Ecient Guiding Towards Cost-Optimality in
+UPPAAL?
+Gerd Behrmann1, Ansgar Fehnker3y, Thomas Hune2, Kim Larsen4,
+Paul Petterssonz5, and Judi Romijn3
+1Basic Research in Computer Science, Aalborg University,
+E-mail: behrmann@cs.auc.dk
+2Basic Research in Computer Science, Aarhus University,
+E-mail: baris@brics.dk
+3Computing Science Institute, University of Nijmegen,
+E-mail: [ansgar,judi]@cs.kun.nl
+4Department of Computer Science, University of Twentex,
+E-mail: kgl@cs.auc.dk
+5Department of Computer Systems, Information Technology,
+Uppsala University, E-mail: paupet@docs.uu.se .
+Abstract. In this paper we present an algorithm for eciently comput-
+ing the minimum cost of reaching a goal state in the model of Uniformly
+Priced Timed Automata (UPTA). This model can be seen as a submodel
+of the recently suggested model of linearly priced timed automata, whichextends timed automata with prices on both locations and transitions.
+The presented algorithm is based on a symbolic semantics of UTPA, and
+an ecient representation and operations based on dierence bound ma-trices. In analogy with Dijkstra's shortest path algorithm, we show that
+the search order of the algorithm can be chosen such that the number of
+symbolic states explored by the algorithm is optimal, in the sense thatthe number of explored states can not be reduced by any other searchorder based on the cost of states. We also present a number of techniques
+inspired by branch-and-bound algorithms which can be used for limiting
+the search space and for quickly nding near-optimal solutions.
+The algorithm has been implemented in the verication tool Uppaal .
+When applied on a number of experiments the presented techniques re-
+duced the explored state-space with up to 90%.
+1 Introduction
+Recently, formal verication tools for real-time and hybrid systems, such as Up-
+paal[LPY97], Kronos [BDM+98] and HyTech [HHWT97], have been applied
+?This work is partially supported by the European Community Esprit-LTR Project
+26270 VHS (Verication of Hybrid systems).
+xOn sabbatical from Basic Research in Computer Science, Aalborg University.
+yResearch supported by Netherlands Organization for Scientic Research (NWO)
+under contract SION 612-14-004.
+zResearch partly sponsored by the AIT-WOODDES Project No IST-1999-10069.
+
+--- Page 4 ---
+to solve realistic scheduling problems [Feh99b,HLP00,NY99]. The basic com-
+mon idea of these works is to reformulate a scheduling problem to a reachabilityproblem that can be solved by verication tools. In this approach, the automata
+based modeling languages of the verication tools serve as the input language in
+which the scheduling problem is described. These modeling languages have been
+found to be very well-suited in this respect, as they allow for easy and ﬂexible
+modeling of systems consisting of several parallel components that interact in atime-critical manner and constrain the behavior of each other in a multitude of
+ways.
+A main dierence between verication algorithms and dedicated scheduling
+algorithms is in the way they search a state-space to nd solutions. Schedulingalgorithms are often designed to nd optimal (or near optimal) solutions and
+are therefore based on techniques such as branch-and-bound to identify and
+prune parts of the states-space that are guaranteed to not contain any optimalsolutions. In contrast, verication algorithms do normally not support any notion
+of optimality and are designed to explore the entire state-space as eciently as
+possible. The verication algorithms that do support notions of optimality are
+restricted to simple trace properties such as shortest trace [LPY95], or shortest
+accumulated delay in trace [NTY00].
+In this paper we aim at reducing the gap between scheduling and verication
+algorithms by adopting a number of techniques used in scheduling algorithms
+in the verication tool Uppaal . In doing so, we study the problem of eciently
+computing the minimal cost of reaching a goal state in the model of Uniformly
+Priced Timed Automata (UPTA). This model can be seen as a restricted version
+of the recently suggested model of Linearly Priced Timed Automata (LPTA)
+[BFH
++01], which extends the model of timed automata with prices on all tran-
+sitions and locations. In these models, the cost of taking an action transition is
+the price associated with the transition, and the cost of delaying dtime units in
+al o c a t i o ni s dp,w h e r e pis the price associated with the location. The cost of a
+trace is simply the accumulated sum of costs of its delay and action transitions.
+The objective is to determine the minimum cost of traces ending in a goal state.
+The innite state-spaces of timed automata models necessitates the use of
+symbolic techniques in order to simultaneously handle sets of states (so-called
+symbolic states). For pure reachability analysis, tools like Uppaal and Kro-
+nosuse symbolic states of the form ( l;Z), where lis a location of the timed
+automaton and ZRC1is a convex set of clock valuations called a zone.F o r
+the computation of minimum costs of reaching goal states, we suggest the use of
+symbolic cost states of the form ( l;C), where C:RC!(R0[f 1 g )i sac o s t
+function mapping clock valuations to real valued costs or 1. The intention is
+that, whenever C(u)<1, reachability of the symbolic cost state ( l;C) should
+ensure that the state ( l;u) is reachable with cost C(u).
+Using the above notion of symbolic cost states, an abstract algorithm for
+computing the minimum cost of reaching a goal state satisfying 'of a uniformly
+1Cdenotes the set of clocks of the timed automata, and RCdenotes the set of functions
+fromCtoR0.
+2
+
+--- Page 5 ---
+Cost :=1
+Passed :=;
+W aiting :=f(l0;C0)g
+while W aiting 6=;do
+select ( l;C) from W aiting
+if(l;C)j='andmin(C)<Cost then
+Cost :=min(C)
+iffor all ( l;C0)i n Passed :C06vCthen
+add (l; C)t o Passed
+for all ( m;D) such that ( l;C);(m;D): add ( m;D)t o W aiting
+return Cost
+Fig. 1. Abstract Algorithm for the Minimal-Cost Reachability Problem.
+priced timed automaton is shown in Fig. 1. The algorithm is similar to a stan-
+dard state-space traversal algorithm that uses two data-structures Waiting and
+Passed to store states waiting to be examined, and states already explored, re-
+spectively. Initially, Passed is empty and Waiting holds an initial (symbolic
+cost) state. In each iteration, the algorithm proceeds by selecting a state ( l;C)
+from Waiting , checking that none of the previously explored states ( l;C0)h a s
+a \smaller" cost function, written C0vC2, and if this is the case, adds it to
+Passed and its successors to Waiting . In addition the algorithm uses the global
+variable Cost, which is initially set to 1and updated whenever a goal state is
+found that can be reached with a lower cost than the current value of Cost.T h e
+algorithm terminates when Waiting is empty, i.e. when no further states are
+left to be examined. Thus, the algorithm always searches the entire state-space
+of the analyzed automaton.
+In [BFH+01] an algorithm for computing the minimal cost of reaching desig-
+nated goal states was given for the full model of LPTA. However, the algorithm
+is based on a cost-extended version of regions, and is thus guaranteed to be ex-
+tremely inecient and highly sensitive to the size of constants used in the models.
+As the rst contribution of this paper, we give for the subclass of UPTA an ef-cient zone representation of symbolic cost states based on Dierence Bound
+Matrices [Dil89], and give all the necessary symbolic operators needed to im-
+plement the algorithm. As the second contribution we show that, in analogywith Dijkstra’s shortest path algorithm, if the algorithm is modied to always
+select from Waiting the (symbolic cost) state with the smallest minimum cost,
+the state-space exploration may terminate as soon as a goal state is explored.
+This means that we can solve the minimum-cost reachability problem without
+necessarily searching the entire state-space of the analyzed automaton. In fact,it can even be shown that the resulting algorithm is optimal in the sense that
+choosing to search a symbolic cost state with non-minimal minimum cost can
+never reduce the number of symbolic cost states explored.
+The third contribution of this paper is a number of techniques inspired by
+branch-and-bound algorithms [AC91] that have been adopted in making the
+2Formally C0vCi8u: C0(u)C(u).
+3
+
+--- Page 6 ---
+algorithm even more useful. These techniques are particularly useful for limiting
+the search space and for quickly nding solutions near to the minimum cost ofreaching a goal state. To support this claim, we have implemented the algorithm
+in an experimental version of the verication tool Uppaal and applied it to
+a wide variety of examples. Our experimental ndings indicate that in some
+cases as much as 90% of the state-space searched in ordinary breadth-rst order
+can be avoided by combining the techniques presented in this paper. Moreover,the techniques have allowed pure reachability analysis to be performed in cases
+which were previously unsuccessful.
+The rest of this paper is organized as follows: In Section 2 we formally dene
+the model of uniformly priced timed automata and give the symbolic semantics.
+In Section 3 we present the basic algorithm and the branch-and-bound inspired
+techniques. The experiments are presented in Section 4. We conclude the paper
+in Section 5.
+2 Uniformly Priced Timed Automata
+In this section linearly priced timed automata are formalized and their seman-
+tics are dened. The denitions given here resemble those of [BFH+01], except
+that the symbolic semantics uses cost functions whereas [BFH+01] uses priced
+regions. Zone-based data-structures for compact representation and ecient ma-nipulation of cost functions are provided for the class of uniformly priced timed
+automata.
+2.1 Linearly Priced Timed Automata
+Formally, linearly priced timed automata (LPTA) are timed automata with
+prices on locations and transitions. We also denote prices on locations as rates.
+Let Cbe a set of clocks. Then B(C) is the set of formulas that are conjunc-
+tions of atomic constraints of the form x. /n andx−y. /n forx; y2C,
+./2f<;;=;;>gandnbeing a natural number. Elements of B(C) are called
+clock constrains over C.P(C) denotes the power set of C.
+Denition 1 (Linearly Priced Timed Automata). A linearly priced timed
+automaton Aover clocks Cand actions Actis a tuple (L;l
+0;E;I;P )where Lis
+a nite set of locations, l0is the initial location, ELB(C)ActP(C)L
+is the set of edges, where an edge contains a source, a guard, an action, a set
+of clocks to be reset, and a target, I:L!B(C)assigns invariants to locations,
+andP:(L[E)!Nassign prices to both locations and edges. In the case of
+(l;g;a;r;l0)2E,w ew r i t e lg;a;r−−−!l0.
+Following the common approach to networks of timed automata, we extend
+LPTA to networks of LPTA by introducing a synchronization function f:(Act[
+f0g)(Act[f0g),!Act, where 0 is a distinguished no-action symbol.3In
+3We extend the edge set Esuch that ltt ;0;;;0−−−−!lfor any location l. This allows
+synchronization functions to implement internal actions.
+4
+
+--- Page 7 ---
+addition, two functions hL;hE:NN!Nfor combining prices of transitions
+and locations respectively are introduced.
+Denition 2 (Parallel Composition). LetAi=(Li;li;0;Ei;Ii;Pi),i=1;2
+be two LPTA. Then the parallel composition is dened as A1jf
+hL;hEA2=
+(L1L2;(l1;0;l2;0);E;I;P ),w h e r e , l=(l1;l2),I(l)=I1(l1)^I2(l2),P(l)=
+hL(P1(l1);P2(l2)),a n d lg;a;r−−−!l0i there exist gi;ai;risuch that f(a1;a2)=a,
+ligi;ai;ri−−−−−!il0
+i,g=g1^g2,r=r1[r2,a n d P((l;g;a;r )) =hE(P((l1;g1;a1;r1));
+P((l2;g2;a2;r2))).
+Useful choices for hLandhEguaranteeing commutativity and associativity of
+parallel composition are summation, minimum and maximum.
+Clock values are represented as functions called clock valuations from Cto
+the non-negative reals R0.W ed e n o t eb y RCthe set of clock valuations for C.
+Denition 3 (Semantics). The semantics of a linearly priced timed automa-
+tonAis dened as a labeled transition system with the state-space LRCwith
+initial state (l0;u0)(where u0assigns zero to all clocks in C) and with the fol-
+lowing transition relation:
+{(l;u)(d);p−−−! (l;u+d)if80ed:u+e2I(l),a n d p=dP(l),
+{(l;u)a;p−−!(l0;u0)if there exists g,rs.t.lg;a;r−−−!l0,u2g,u0=u[r7!0],
+u02I(l),a n d p=P((l;g;a;r;l0)),
+where for d2R0,u+dmaps each clock xinCto the value u(x)+d,a n d
+u[r7!0]denotes the clock valuation which maps each clock in rto the value 0
+and agrees with uover Cnr.
+The transitions are decorated with a delay-quantity or an action, together with
+the cost of the transition. The cost of an execution trace is simply the accumu-
+lated cost of all transitions in the trace.
+Denition 4 (Cost). Let=(l0;u0)a1;p1−−−!(l1;u1)an;pn−−−−!(ln;un)be a
+nite execution trace. The cost of ,cost(),i st h es u m n
+i=1pi.F o rag i v e n
+state(l;u)the minimum cost mincost (l;u)of reaching the state, is the inmum
+of the costs of nite traces ending in (l;u). For a given location lthe minimum
+costmincost (l)of reaching the location, is the inmum of the costs of nite
+traces ending in (l;u)for some u
+mincost (l) = inf fcost()jends in a state ( l;u)g
+Example 1. An example of a LPTA can be seen in Fig. 2. The LPTA has three
+locations and two clocks, xandy. The number inside the locations is the rate
+of the location, and the number on the transition from the leftmost location is
+the cost of the transition. The two other transitions have no cost. The initial
+location is the leftmost location.
+Because of the invariants on the locations, a trace reaching the rightmost
+location must rst visit the middle location and then go back to the initial loca-
+tion. The minimal cost of reaching the rightmost location is 14. Note that there
+5
+
+--- Page 8 ---
+22 2y>3 x< 3x< 34
+fxg
+Fig. 2. The LPTA from Example 1.
+is no trace actually realizing the minimum cost because of the strict inequality
+on the transition to the rightmost location. However, because of the inmum in
+the denition of minimum cost, we will say that the minimum cost of reaching
+the rightmost location is 14.
+2.2 Cost Functions
+The semantics of LPTA yields an uncountable state-space and is therefore not
+suited for state-space exploration algorithms. To overcome this problem, the al-gorithm in Fig. 1 uses symbolic cost states, quite similar to how timed automata
+model checkers like Uppaal use symbolic states.
+Typically, symbolic states are pairs on the form ( l;Z), where ZR
+Cis a
+convex set of clock valuations, called a zone, representable by Dierence Bound
+Matrices (DBMs) [Dil89]. The operations needed for forward state-space explo-
+ration can be eciently implemented using the DBM data-structure. However,
+the operations might as well be dened in terms of characteristic functions,
+RC!f0;1g. For example, let be the characteristic function of a zone Z.T h e n
+delay can be dened as ":u7!maxf(v)j9d2R0:v+d=ug,t h a t
+is,uis in"if there is a clock valuation v, that can delay into u. Looking at
+zones in terms of their characteristic functions extends nicely to symbolic cost
+states, but here zones are replaced by mappings, called clock functions, from
+clock valuations to real valued costs.
+In the priced setting we must in addition represent the costs with which
+individual states are reached. For this we suggest the use of symbolic cost states ,
+(l;C), where Cis a cost function mapping clock valuations to real valued costs.
+Thus, within a symbolic cost state ( l;C), the cost of a state ( l;u)i sg i v e nb y
+C(u).
+Denition 5 (Cost Function). Ac o s tf u n c t i o n C:RC!R0[f1 g assigns
+to each clock valuation, u, a positive real valued cost, c, or innity. The support
+sup(C)=fujC(u)<1gis the set of valuations mapped to a nite cost.
+Table 2 summarizes several operations that are used by the symbolic semantics
+and the algorithm in Fig. 1. In terms of the support of a cost function, the
+operations behave exactly as on zones; e.g. sup(r(C)) =r(sup(C)). The opera-
+tions eect on the cost value reﬂect the intent to compute the minimum cost of
+reaching a state, e.g., r(C)(u) is the inmum of C(v) for all vthat reset to u.
+6
+
+--- Page 9 ---
+Table 1. Common operations on clock valuations and zones.
+Operation Clock Valuation ( RC)Z o n e( P(RC))
+Delay u+d; d2R0 Z"=fu+dju2Z^d2R0g
+Reset u[r7!0] r(Z)=fr(u)ju2Zg
+Satisfaction uj=gg (Z)=fu2Zjuj=gg
+Comparison u=vZ 1Z2def,8u:u2Z1)u2Z2
+Table 2. Common operations on cost functions.
+Operation Cost Function ( RC!R0)
+Delay delay(C;p):u7!inffC(v)+pdjd2R0^v+d=ug
+Reset r(C):u7!inffC(v)ju=r(v)g
+Satisfaction g(C):u7!minfC(v)jvj=g^u=vg
+Increment C+k:u7!C(u)+k;k2N
+Comparison DvCdef,8u:D(u)C(u)
+Inmum min(C)=i n f fC(u)ju2RCg
+2.3 Symbolic Semantics
+The symbolic semantics for LPTA is very similar to the common zone based
+symbolic semantics used for timed automata.
+Denition 6 (Symbolic Semantics). LetA=(L;l0;E;I;P )be a linearly
+priced timed automaton. The symbolic semantics is dened as a labelled transi-
+tion system over symbolic cost states on the form (l;C),lbeing a location and
+Ca cost function with the transition relation:
+{(l;C)−!
+l;I(l)
+delay/parenleftbig
+C;P(l)
+,
+{(l;C)a−!
+l0;I(l)/parenleftbig
+r(g(C))
++p
+ilg;a;r−−−!l0,a n d p=P((l;g;a;r;l0)).
+The initial state is (l0;I(l0)(C0))where sup(C0)=fu0gandC0(u0)=0.
+Notice that the support of any cost function reachable by the symbolic semantics
+is a zone.
+Lemma 1. Given LPTA A, for each trace of A that ends in state (l;u),t h e r e
+exists a symbolic trace ofA, that ends up in a symbolic cost state (l;C),s u c h
+thatC(u)=cost().
+Proof. By induction in the length of the run . The base case, a run of length
+0, is trivial.
+For the induction step assume we have a trace ending in a state ( l;u)a n d
+a symbolic trace ending in a symbolic state ( l;C), such that C(u)=cost(). We
+look at two cases:
+7
+
+--- Page 10 ---
+{The trace is extended with a delay transition ( l;u)(d);p−−−! (l;u+d)s u c h
+that80ed:u+e2I(l)w h e r e p=dP(l). The cost of u+discost()+
+p. This can be matched in the symbolic semantics by a delay transition
+(l;C)−!
+l;I(l)
+delay/parenleftbig
+C;P(l)
+. Using the denition of delay(C;p)i n
+Table 2 we get that the cost of u+dafter the delay is C(u)+dP(l). Since
+C(u)=cost() from the induction hypothesis we have the wanted result.
+{The trace is extended with an action transition ( l;u)a;p−−!(l0;u0) using a
+transition lg;a;r−−−!l0where u2g,u0=u[r], and u02I(l0). The cost of ( l;u0)
+iscost()+pwhere p=P((l;g;a;r;l0)). This can be matched in the symbolic
+semantics by an action transition ( l;C)a−!
+l0;I(l)/parenleftbig
+r(g(C))
++p
+. Since u
+satises the guard g,u0=u[r], and u0satises the invariant I(l0), then
+I(l0)(r(g(C)))(u0)=C(u). Therefore according to Table 2 ( I(l0)(r(g(C))) +
+p)(u0)=C(u)+p,w h e r e p=P((l;g;a;r;l0)).
+ut
+Lemma 2. Given an LPTA A, for each symbolic trace, , ending in a symbolic
+state(l;C),f o re a c h u2sup(C), there exist a trace ending in state (l;u)such
+that and cost()C(u).
+Proof. We prove this by induction in the length of the symbolic trace leading to
+(l;C). The case case, a trace of length zero, is trivial.
+For the induction we assume that there is a symbolic trace ending in ( l;C)
+and for u2sup(C) there is a trace ending in state ( l;u), such that and
+cost()C(u). We look at two cases:
+{The symbolic trace is extended with a delay transition ( l;C)−!C0where
+C0=
+l;I(l)
+delay/parenleftbig
+C;P(l)
+. For the valuations uwhich were in sup(C)
+before the delay, the cost has not changed (in the denition of delay(C;p)i n
+Table 2, choose d= 0). The valuations u0which are in sup(I(l)
+delay/parenleftbig
+I(l)(C);P(l)
+)
+but not in sup(C), are reachable from a valuation uinsup(C) by a delay d.
+The cost of u0is inffC(u)+dpju2sup(C)g. This can be match in the con-
+crete semantics by a delay transition from ( l;u). Since mincost (l;u)C(u)
+and the delay is the same, mincost (l;u0)C0(u0).
+{The symbolic trace is extend with an action transition ( l;C)a−!(l0;C0)
+where C0=I(l)/parenleftbig
+r(g(C))
++pusing the transition lg;a;r−−−!l0with cost p.
+The same transition can be used to extend the trace, also with cost p. Since
+mincost (l;u)C(u) from the assumption and the same transition is used,
+we are nished.
+ut
+Theorem 1. mincost (l)=m i n fmin(C)j(l;C)is reachable g
+Theorem 1 ensures that the algorithm in Fig. 1 indeed does nd the minimum
+cost, but since the state-space is still innite there is no guarantee that the algo-
+8
+
+--- Page 11 ---
+rithm ever terminates. For zone based timed automata model checkers, termina-
+tion is ensured by normalizing all zones with respect to a maximum constant M
+[Rok93], but for LPTA ensuring termination also depends on the representation
+of cost functions.
+2.4 Representing Cost Functions
+As stated in the introduction, we provide an ecient implementation of cost
+functions for the class of Uniformly Priced Timed Automata (UPTA).
+Denition 7 (Uniformly Priced Timed Automata). An uniformly priced
+timed automaton is an LPTA where all locations have the same rate. We refer
+to this rate as the rate of the UPTA.
+Lemma 3. Any UPTA Awith positive rate can be translated into an UPTA B
+with rate 1 such that mincost (l)inAis identical to mincost (l)inB.
+Proof (sketch). LetAbe an UPTA with positive rate r.N o w ,l e t Bbe like A
+except that all constants on guards and invariants are multiplied by rand set
+the rate of Bto 1. ut
+Thus, in order to nd the inmum cost of reaching a satisfying state in UPTA,
+we only need to be able to handle rate zero and rate one.
+In case of rate zero, all symbolic states reachable by the symbolic semantics
+have very simple cost functions: The support is mapped to the same integer
+(because the cost is 0 in the initial state and only modied by the increment
+operation). This means that a cost function Ccan be represented as a pair ( Z;c),
+where Zis a zone and can integer, s.t. C(u)=cwhen u2Zand1otherwise.
+Delay, reset and satisfaction are easily implementable for zones using DBMs.
+Increment is a matter of incrementing cand a comparison ( Z1;c1)v(Z2;c2)
+reduces to Z2Z1^c1c2. Termination is ensured by normalizing all zones
+with respect to a maximum constant M.
+In case of rate one, the idea is to use zones over C[fg,w h e r e is an addi-
+tional clock keeping track of the cost, s.t. every clock valuation uis associated
+withexactly one costZ(u)i nz o n e Z4. Then, C(u)=ciu[7!c]2Z. This
+is possible because the continuous cost advances at the same rate as time. De-lay, reset, satisfaction and inmum are supported directly by DBMs. Increment
+C+ctranslates to Z[7!+k]=fu[7!u()+k]ju2Zgand is also re-
+alizable using DBMs. For comparison between symbolic cost states, notice thatZ
+2Z1)Z1vZ2, whereas the implication in the other direction does not
+hold in general, see Fig. 3. However, it follows from the following Lemma 4 that
+comparisons can still be reduced to set inclusion provided the zone is extended
+in the dimension, see Fig. 3.
+Lemma 4. LetZy=fu[7!u()+d]ju2Z^d2R0g. Then Z1vZ2,
+Zy
+2Zy
+1.
+4We dene Z(u)t ob e 1ifuis not in Z.
+9
+
+--- Page 12 ---
+x
+Z
+Z1Zy
+2Zy
+Z2
+Fig. 3. Letxbe a clock and let be the cost. In the gure, ZvZ1vZ2, but
+onlyZ1is a subset of Z.T h e( )yoperation removes the upper bound on , hence
+Zy
+2Zy,ZvZ2.
+Proof. By denition Z1vZ2,8u:Z1(u)Z2(u). First, assume Z1vZ2and
+letu[7!c]2Zy
+2.T h e n Z1(u)Z2(u)cand by denition u[7!Z1(u)+d]2
+Zy
+1ford2R0implying u[7!c]2Zy
+1. This proofs one direction of the lemma.
+Second, assume Zy
+2Zy
+1. By denition u[7!Z2(u)]2Zy
+2Zy
+1and it follows
+thatZ1(u)Z2(u). ut
+It is straightforward to implement the ()y-operation on DBMs. However, a
+useful property of the ()y-operation is, that its eect on zones can be obtained
+without implementing the operation. Let ( l0;Zy
+0), where Z0is the zone encoding
+C0, be the initial symbolic state. Then Z=Zyfor any reachable state ( l;Z)|
+intuitively because is never reset and no guards or invariants depend on .
+Termination is ensured if all clocks except for are normalized with respect
+to a maximum constant M. It is important that normalization never touches
+. With this modication, the algorithm in Fig. 1 will essentially encounter
+the same states as the traditional forward state-space exploration algorithm for
+timed automata, except for the addition of .
+3 Improving the State-Space Exploration
+As mentioned the major drawback of using the algorithm in Fig. 1 to nd the
+minimum cost of reaching a goal state is that the complete states space has
+to be searched. However, this can in most cases be improved in a number of
+ways. Realizing the connection between Dijkstra’s shortest path algorithm and
+theUppaal state-space search leads us to stop the search as soon as a goal state
+has been found. However, this is based on a kind of breadth rst search which
+might not be possible for systems with very large state-spaces. In this case using
+techniques inspired by branch and bound algorithms can be helpful.
+3.1 Minimum Cost Order
+In realizing the algorithm of Fig. 1, and in analogy with Dijkstra’s algorithm for
+nding the shortest path in a directed weighted graph, we may choose always to
+10
+
+--- Page 13 ---
+select a (symbolic cost) state ( l;C) from Waiting for which Chas the smallest
+minimum cost. With this choice, we may terminate the algorithm as soon as agoal state is selected from Waiting . We will refer the search order arising from
+this strategy as the Minimum Cost order (MC order).
+Lemma 5. Using the MC order, an optimal solution is found by the algorithm
+in Fig. 1 when a goal state is selected from Waiting the rst time.
+Proof. When a state is taken from Waiting using the MC order, no state with
+lower cost are reachable. Therefore, when the rst goal state is taken from Wait-
+ingno (goal) states with lower cost are reachable, so the optimal solution has
+been found. ut
+When applying the MC order, the algorithm in Fig. 1 can be simplied since
+the variable Cost is not needed any more.
+Again in analogy with Dijkstra’s shortest path algorithm, the MC ordering
+nds the minimum cost of reaching a goal state with guarantee of its optimality,in a manner which requires exploration of a minimum number of symbolic cost
+states.
+Lemma 6. Finding an the optimal cost of reaching a location and proving it
+to be optimal using the algorithm in Fig. 1, it can never reduce the number of
+explored states to prefer exploration of a symbolic cost state of Waiting with
+non-minimal minimum cost.
+Proof. Assume on the contrary that this would be the case. Then at some stage,
+the exploration of a symbolic cost state ( l;C)o fWaiting with non-minimal cost
+should be able to reduce the subsequent exploration of one of the symbolic coststates ( m; D)o f Waiting with smaller minimum cost. That is, some derivative
+of (l;C) should be applicable in pruning the exploration of some derivative of
+(m; D), or more precisely, ( l;C);
+(l0;C0)a n d( m; D);(m0;D0)w i t h l0=m0
+andC0vD0. By denition of vand since ;never decreases minimum cost, it
+follows that min(C)min(C0)min(D0). But then, application of the MC
+order would also explore ( l;C)a n d( l0;C0) before ( m0;D0) and hence lead to the
+same pruning of ( m0;D0) contradiction the assumed superiority of the non-MC
+search order. ut
+In situations when Waiting contains more than just one symbolic cost state
+with smallest minimum cost, the MC order does not oer any indication as towhich one to explore rst. In fact, for exploration of the symbolic state-space for
+timed automata without cost, we do not know of a denite strategy for choos-
+ing a state from Waiting such that the fewest number of symbolic states are
+generated. However, any improvements gained with respect to the search-order
+strategy for the state-space exploration of timed automata will be directly appli-cable in our setting with respect to the strategy for choosing between symbolic
+cost states with same minimum cost.
+11
+
+--- Page 14 ---
+3.2 Using Estimates of the Remaining Cost
+From a given state one often has an idea about the cost remaining in order to
+reach a goal state. In branch-and-bound algorithms this information is used both
+to delete states and to search the most promising states rst. Using informationabout the remaining cost can also decrease the number of states searched before
+an optimal solution is reached.
+For a state ( l;u)l e trem((l;u)) be the minimum cost of reaching a goal state
+from that state. In general we cannot expect to know exactly what the remainingcost of a state is. We can instead use an estimate of the remaining cost as long
+as the estimate does not exceed the actual cost. For a symbolic cost state ( l;C)
+we require that Rem(l;C) satises Rem(l;C)inffrem((l;u))ju2sup(C)g,
+i.e.Rem(l;C) oers a lower bound on the remaining cost of all the states with
+location land clock valuation within the support of C.
+Combining the minimum cost min(C) of a symbolic cost state ( l;C) with the
+estimate of the remaining cost Rem(l;C), we can base the MC order on the sum
+ofmin(C)a n d Rem(l;C). Since min(C)+Rem(l;C) is smaller than the actual
+cost of reaching a goal state, the rst goal state to be explored is guaranteed to
+have optimal cost. We call this the MC+ order but it is also known as Least-
+Lower-Bound order. In Section 4 we will show that even simple estimates of the
+remaining cost can lead to large improvements in the number of states searchedto nd the minimum cost of reaching a goal state.
+One way to obtain a lower bound is for the user to specify an initial estimate
+and annotate each transition with updates of the estimate. In this case it is the
+responsibility of the user to guarantee that the estimate is actually a lower boundin order to ensure that the optimal solution is not deleted. This also allows the
+user to apply her understanding and intuition about the system.
+To obtain a lower bound of the remaining cost in an automatic andecient
+manner, we suggest to replace one or more automata in the network with \moreabstract" automata. The idea is that this should result in an abstract network
+which (1) contains (at least) all runs of the original one, and (2) with no larger
+costs. Thus computing the minimum cost of reaching a goal state in the abstractnetwork will give the desired lower bound estimate of reaching a goal state in
+the original network. Moreover, the abstract network should (3) be substantially
+simpler to analyze than the original network making it possible to obtain the es-timate eciently. We are currently working with dierent ideas of implementing
+this idea. In Section 4 we have used the idea when guiding systems manually.
+3.3 Heuristics and Bounding
+It is often useful to quickly obtain an upper bound on the cost instead of waiting
+for the minimum cost. In particular, this is the case when faced with a state-space
+too big for the MC order to handle. As will be shown in Section 4, the techniques
+described here for altering the search order using heuristics are very useful. Inaddition, techniques from branch-and-bound algorithms are useful for improving
+the upper bound once it has been found. Applying knowledge about the goal
+12
+
+--- Page 15 ---
+state has proven useful in improving the state-space exploration [RE99,HLP00],
+either by changing the search order from the standard depth or breadth-rst, orby leaving out parts of the state-space.
+To implement the MC order, a suitable data-structure for Waiting would
+be a priority queue where the priority is the minimum cost of a symbolic coststate. We can obviously generalize this by extending a symbolic cost state with a
+new eld, priority , which is the priority of the state used by the priority queue.
+Allowing various ways of assigning values to priority combined with choosing
+either to rst select a state with large or small priority opens for a large variety
+of search orders.
+Annotating the model with assignments to priority on the transitions, is one
+way of allowing the user to guide the search. Because of its ﬂexibility it proves to
+be a very powerful way of guiding the search. The assignment works like a normal
+assignment to integer variables and allows for the same kind of expressions.
+Example 2. An example of a strategy which we have used in Section 4 for the
+Biphase Mark protocol, is rst to search a limited part of the state-space in a
+breadth-rst manner. The sender of the protocol can either send the value 0 or1. We are mainly interested in the part where a 1 is send because we suspect
+that errors will occur in this case. Therefore, we want to search the part of the
+state-space where a 1 is send before searching the part where 0 is send, and wewant to do this in a breadth rst manner.
+Using guiding a standard breadth-rst search can be obtained by adding the
+assignment priority := priority-1 to each transition and select the symbolic
+state with the highest value from Waiting . This can be done by adding a global
+assignment to the model. Giving very low priority to the part of the state-space
+where a 0 has been send we will obtain the desired search order. The choice ofwhat to send is made in one place in the model of the sender. On the transition
+choosing to send a 0 we add the assignment priority := priority-1000 which
+will give this state and all its successors very low priority and therefore these
+will be explored last. In this way we do not leave out any part of the state-space,
+but rst search the part we consider to be interesting.
+When searching for an error state in a system a random search order might
+be useful. We have chosen to implement what we call random depth-rst order
+which as the name suggests is a variant of a depth-rst search. The only dierence
+between this and a standard depth-rst search is that before pushing all the
+successors of a state on to Waiting (which is implemented as a stack), the
+successors are randomly permuted.
+Once a reachable goal state has been found, an upper bound on the minimum
+cost of reaching a goal state has been obtained. If we choose to continue the
+search, a smaller upper bound might be obtained. During state-space exploration
+the cost never decreases therefore states with cost bigger than the best cost found
+in a goal state cannot lead to an optimal solution, and can therefore be deleted.The estimate of the remaining cost dened in Section 3.2 can also be used for
+pruning exploration of states since whenever min(C)+Rem(l;C) is larger than
+13
+
+--- Page 16 ---
+the best upper bound, no state covered by ( l;C) can lead to a better solution
+than the one already found.
+All of the methods described in this section have been implemented in Up-
+paal. Section 4 reports on experiments using these new methods.
+4 Experiments
+In this section we illustrate the benets of extending Uppaal with heuristics and
+costs through several verication and optimization problems. All of the examples
+have previously been studied in the literature.
+4.1 The Bridge Problem
+The following problem was proposed by Ruys and Brinksma [RB98]. A timed
+automaton model of this problem is included in the standard distribution of
+Uppaal5.
+Four persons want to cross a bridge in the dark. The bridge is damaged
+and can only carry two persons at the same time. To cross the bridge safely in
+the darkness, a torch must be carried along. The group has only one torch to
+share. Due to dierent physical abilities, the four cross the bridge at dierent
+speeds. The time they need per person is (one-way) 25, 20, 10 and 5 minutes,respectively. The problem is to nd a schedule, if possible, such that all four
+cross the bridge within a given time. This can be done with standard Uppaal .
+With the proposed extension, it is also possible to nd the fastest time for thefour to cross the bridge, and a schedule achieving this.
+We compare four dierent search orders: Breadth-First (BF), Depth-First
+(DF), Minimum Cost (MC) and an improved Minimum Cost (MC+). In this
+example we choose the lower bound on the remaining cost, Rem(C), to be the
+time needed by the slowest person, who is still on the \wrong" side of the bridge.
+For the dierent search orders, Table 3 shows the number of states explored
+to nd the initial and the optimal time, and the values of the times. It can beseen that BF explores 4491 states to nd an initial schedule and 4539 to prove
+what the optimal solution is. This number is reduced to 4493 explored states if
+we prune the state-space, based on the estimated remaining cost (third column).Thus, in this case only two additional states are explored after the initial solution
+is found. DF nds an initial solution (with high costs) quickly, but explores 25779
+states to nd an optimal schedule, which is much more than the other heuristics.
+Most likely, this is caused by encountering many small and incomparable zones
+during DF search. In any case, it appears that the depth-rst strategy alwaysexplores many more states than any other heuristic.
+Searching with the MC order does indeed improve the results, compared to
+BF and DF. It is however outperformed by the MC+ heuristic that explores only
+404 states to nd a optimal schedule. Note that pruning based on the estimate
+5The distribution can be obtained at http://www.uppaal.com .
+14
+
+--- Page 17 ---
+Table 3. Bridge problem by Ruys and Brinksma.
+Initial Solution Optimal Solution With est. remainder
+states cost states cost states cost
+BF 4491 65 4539 60 4493 60
+DF 169 685 25780 60 5081 60
+MC 1536 60 1536 60 N/A N/A
+MC+ 404 60 404 60 N/A N/A
+of the remaining cost does not apply to MC and MC+ order, since the rst
+explored goal state has the optimal value.
+Without costs and heuristics, Uppaal can only show whether a schedule
+exists. The extension allows Uppaal to nd the optimal schedule and explores
+with the MC+ heuristic only about 10% of the states that are needed to nd ainitial solution with the breadth-rst heuristic.
+4.2 Job Shop Scheduling
+A well known class of scheduling problems are the Job Shop problems. The
+problem is to optimally schedule a set of jobson a set of machines . Each job
+is a chain of operations, usually one on each machine, and the machines have
+a limited capacity, also limited to one in most cases. The purpose is to allocate
+starting times to the operations, such that the overall duration of the schedule,themakespan , is minimal. Many solution methods such as local search algorithms
+like simulated annealing [AvLLU94], shifting bottleneck [AC91], branch-and-
+bound [AC91] or even hybrid methods have been proposed [JM99].
+We apply Uppaal to 25 of the smaller Lawrence Job Shop problems.
+6Our
+models are based on the timed automata models in [Feh99a]. In order to es-timate the lower bound on the remaining cost, we calculate for each job and
+each machine the duration of the remaining operations. These estimates may
+be seen as obtained by abstracting the model to one automaton as describedin Section 3.2. The nal estimate of the remaining cost is then estimated to be
+the maximum of these durations. Table 4 shows results obtained for the search
+orders BF, MC, MC+, DF, Random DF, and a combined heuristic. The latter is
+based on depth-rst but also takes into account the remaining operation times
+and the lower bound on the cost, via a weighted sum which is assigned to thepriority eld of the symbolic states. The results show BF and MC order cannot
+complete a single instance in 60 seconds, but even when allowed to spend more
+than 30 minutes using more than 2Gb of memory no solution was found. It isimportant to notice that the combined heuristic used includes a clever choice
+between states with the same values of cost plus remaining cost. This is the rea-
+son it is able to outperform the MC+ order which is only able to nd solution
+to two instances within the time limit of 60 seconds.
+As can be seen from the table Uppaal is handling the rst 15 examples quite
+well nding the optimal solution in 11 cases and in 10 of these showing that it
+6These and other benchmark problems for Job Shop scheduling can be found on
+ftp://ftp.caam.rice.edu/pub/people/applegate/jobshop/ .
+15
+
+--- Page 18 ---
+is optimal. This is much more than without the added guiding features. For the
+10 largest problems (la16 to la25) with 10 machines we did not nd optimalsolutions though in some cases we were very close to the optimal solution. Since
+branch-and-bound algorithms generally do not scale too well when the number
+of machines and jobs increase, this is not surprising. The branch-and-bound
+algorithm for [AC91], who solves about 10 out the 15 problems in the same
+setting, faces the same problem. Note that the results of this algorithm dependsensitively on the choice of an initial upper bound. Also the algorithm used in
+[BJS95], which combines a good heuristic with an ecient branch-and-bound
+algorithm and thus solves all of these 15 instances, does not nd solutions forthe larger instances with 15 jobs and 10 machines or larger.
+Table 4. Results for the 15 Job Shop problems with 5 machines and 10 jobs (la1-
+la5), 15 jobs (la6-la10) and 20 jobs (la11-la15), and 10 problems with 10 machines,
+10 jobs (la16-20) and 15 jobs (la21-25). The table shows the best solution found by
+dierent search orders within 60 seconds cputime on a Pentium II 300 MHz. If thesearch terminated also the number of explored states is given. The last row gives the
+makespan of an optimal solution.
+problem BF MC MC+ DF RDF comb. heur. minimal
+instance coststates coststates coststates coststates coststates coststates makespan
+la01 - -- -- -2466 -842 -666 292 666
+la02 - -- -- -2360 -806 -672 - 655
+la03 - -- -- -2094 -769 -626 - 597
+la04 - -- -- -2212 -783 -639 - 590
+la05 - -- -59397911955 -696 -593 284 593
+la06 - -- -- -3656 -1076 -926 480 926
+la07 - -- -- -3410 -1113 -890 - 890
+la08 - -- -- -3520 -1009 -863 400 863
+la09 - -- -- -3984 -1154 -951 425 951
+la10 - -- -- -3681 -1063 -958 454 958
+la11 - -- -- -4974 -1303 -1222 642 1222
+la12 - -- -- -4557 -1271 -1039 633 1039
+la13 - -- -- -4846 -1227 -1150 662 1150
+la14 - -- -129210653 5145 -1377 -1292 688 1292
+la15 - -- -- -5264 -1459 -1289 - 1207
+la16 - -- -- -4849 -1298 -1022 - 945
+la17 - -- -- -4299 -938 -786 - 784
+la18 - -- -- -4763 -1034 -922 - 848
+la19 - -- -- -4566 -1140 -904 - 842
+la20 - -- -- -5056 -1378 -964 - 902
+la21 - -- -- -7608 -1326 -1149 -(1040,1053)
+la22 - -- -- -6920 -1413 -1047 - 927
+la23 - -- -- -7676 -1357 -1075 - 1032
+la24 - -- -- -7237 -1346 -1061 - 935
+la25 - -- -- -7141 -1290 -1070 - 977
+4.3 The Sidmar Steel Plant
+Proving schedulability of an industrial plant via a reachability analysis of a
+timed automaton model was rstly applied to the SIDMAR steel plant, whichwas included as case study of the Esprit-LTR Project 26270 VHS (Verication of
+Hybrid Systems). It deals with the part of the plant in-between the blast furnace
+16
+
+--- Page 19 ---
+placestorage
+casting
+machinecontinuouscranes
+convertor
+convertorvessel #1
+buffercrane#2crane#1overhead
+vessel #2track#2track#11 23
+5 4
+Fig. 4. Layout of the SIDMAR plant
+and the hot rolling mill. The plant consists of ve machines placed along two
+tracks and a casting machine where the nished steel leaves the system. The
+two tracks and the casting machine are connected via two overhead cranes on
+one track. Figure 4 depicts the layout of the plant. Each quantity of raw ironenters the system in a ladle and depending on the desired steel quality undergoes
+treatments in the dierent machines of dierent durations. The aim is to control
+the plant in particular the movement of the ladles with steel between the dierent
+machines, taking the topology of the plant into consideration.
+We use a model based on the models and descriptions in [BS99,Feh99b,HLP99].
+A full model of the plant that includes all possible behaviors was however not
+immediate suitable for verication. Its state space is very large since at each
+point in time many dierent possibilities are enabled. Consequently, depth-rst
+(and breadth-rst) search gives either no answer within reasonable time or comes
+up with a solution that is far from optimal. In this way we were only able tond schedules for models of the plant with two ladles.
+Priorities can be used to inﬂuence the search order of the state space, and
+thus to improve the results. Based on a depth-rst strategy, we reward transitions
+that are likely to serve in reaching the goal, whereas transitions that may spoil
+a partial solution result in lower priorities. For instance, when a batch of ironis being treated by a machine, it pays o to reward other scheduling activities
+rather than wait for the treatment to nish.
+A schedule for three ladles was produced in [Feh99b] for a slightly simplied
+model using Uppaal . In [HLP99] schedules for up to 60 ladles were produced also
+using Uppaal . However, in order to do this, additional constraints were included
+that reduce the size of the state-space drastically, but also prune possibly sensible
+behavior. A similar reduced model was used by Stobbe in [Sto00], who usesconstraint programming to schedule 30 ladles. All these works only consider
+ladles with the same quality of steel and the initial solutions cannot be improved.
+17
+
+--- Page 20 ---
+100011
+cell
+cell edges
+signals sentmark subcell
+code subcell
+if these two signals are 
+equal, a 0 was sentif these two signals are 
+different, a 1 was sentmessage
+sampling distance
+Fig. 5. Biphase mark terminology
+A lower bound for the time duration of any feasible schedule is given by the
+time the rst load needs for all treatments plus least the time one needs to cast
+all batches. Analogously, an upper bound is given by the maximal time duringwhich the rst batch is allowed to stay in the system, plus the maximal time
+needed to cast the ladles. For the instance with ten batches, these bounds are
+291 and 425, respectively. With the sketched heuristic, our extended Uppaal
+is able to nd a schedule with duration 355, within 60 seconds cputime on a
+Pentium II 300 MHz. The initial solution found is improved by 5% within thetime limit. Importantly, in this approach we do not rule out optimal solutions.
+Allowing the search to go on for longer, models with more ladles can be handled.
+4.4 Pure Heuristics: The Biphase Mark Protocol
+The Biphase Mark protocol is a convention for transmitting strings of bit and
+clock pulses simultaneously as square waves. This protocol is widely used forcommunication in the ISO/OSI physical layer; for example, a version called
+\Manchester" is used in the Ethernet. The protocol ensures that strings of bits
+can be submitted and received correctly, in spite of clock drift, jitter and lteringby the channel. A formal parameterized timed automaton model of the Biphase
+Mark Protocol was given in [Vaa00], where also necessary and sucient condi-
+tions on the correctness for a parametric model were derived. We will use the
+corresponding Uppaal models to investigate the benets of heuristics in pure
+reachability analysis.
+The model assumes that sender and receiver have both their own clock with
+drift and jitter. The sender encodes each bit in a cellof length cclock cycles (see
+Fig. 5). At the beginning of each cell, the sender toggles the voltage. The senderthen waits for mclock cycles, where mstands for the marksubcell. If the sender
+has to encode a \0", the voltage is held constant throughout the whole cell. If
+it encodes a \1" it will toggle the voltage at the end of the mark subcell. The
+signal is unreliable during a small interval after the sender generates an edge.
+Reading it during this interval may produce any value.
+The receiver waits for an edge that signals the arrival of a cell. Upon detecting
+an edge, the receiver waits for a xed number of clock cycles, the sampling dis-
+18
+
+--- Page 21 ---
+tance s, and samples the signal. We adopt the notation bpm(c; m; s ) for instances
+of the protocol with cell size c, mark size mand sampling distance s.
+Table 5. Results for nine erroneous instances of the Biphase Mark protocol. Numbers
+of state explored before reaching an error state
+nondetection sampling sampling
+mark subcell early late(16,3,11)
+(18,3,10)
+(32,3,23)
+(16,9,11)
+(18,6,10)
+(32,18,23)
+(15,8,11)
+(17,5,10)
+(31,16,23)
+breadth rst 19312582404999047012561123017093035
+in==1 heuristic 11531431233363219451586 72510391763
+There are three kind of errors that may occur in an incorrect conguration.
+Firstly, the receiver may not detect the mark subcell. Secondly, the receiver may
+sample too early, before or right after the sender left the mark subcell. Finally,the receiver may also sample too late, i.e. the sender has already started to
+transmit the next cell. The rst two errors can only occur if there is an edge
+after the mark subcell. This is only the case if input "1" is oered to the coder.
+The third error seems to be independent of the oered input.
+Since two of the three errors occur only if input "1" is oered to the coder,
+and the third error can occur in any case, it seems worthwhile to choose a heuris-
+tic that searches for states with input \1" rst, rather than exploring state-space
+for both possible inputs concurrently. We apply a heuristic which is a mixtureof only choosing input 1 and the breadth-rst order, see Example 2, to erro-
+neous modications of the (correct) instances bpm(16;6;11), bpm(18;5;10) and
+bpm(32;16;23). Table 5 gives the results. It turns out that a bit more than half
+of the complete state-space size is explored, which is due to the fact that for
+input "1", there is more activity in the protocol. The corresponding diagnostictraces show that the errors were found within the rst cell or at the very begin-
+ning of the second cell, thus at a stage were only one bit was sent and received.
+An exception on this rule is the fth instance bpm(18;6;10), which produces an
+error after one and a half cell, and shows consequently a larger reduction when
+veried with the heuristic.
+5 Conclusion
+On the preceding pages, we have contributed with (1) a cost function based sym-bolic semantics for the class of linearly priced timed automata; (2) an ecient,
+zone based implementation of cost functions for the class of uniformly priced
+timed automata; (3) an optimal search order for nding the minimum cost of
+reaching a goal state; and (4) experimental evidence that these techniques canlead to dramatic reductions in the number of explored states. In addition, we
+have shown that it is possible to quickly obtain upper bounds on the minimum
+19
+
+--- Page 22 ---
+cost of reaching a goal state by manually guiding the exploration algorithm using
+priorities.
+References
+[AC91] D. Applegate and W. Cook. A Computational Study of the Job-Shop
+Scheduling Problem. OSRA Journal on Computing 3 , pages 149{156, 1991.
+[AvLLU94] E.H.L. Aarts, P.J.M. van Laarhoven, J.K. Lenstra, and N.L.J. Ulder. A
+Computational Study of Local Search Algorithms for Job-Shop Scheduling.
+OSRA Journal on Computing , 6(2):118{125, Spring 1994.
+[BDM+98] M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine.
+Kronos: A Model-Checking Tool for Real-Time Systems. In P r o c .o ft h e
+10th Int. Conf. on Computer Aided Verication , number 1427 in Lecture
+Notes in Computer Science, pages 546{550. Springer{Verlag, 1998.
+[BFH+01] G. Behrmann, A. Fehnker, T. Hune, K. G. Larsen, P. Pettersson, J. Romijn,
+and F. Vaandrager. Minimum-Cost Reachability for Priced Timed Au-tomata. Accepted for Hybrid Systems: Computation and Control, 2001.
+[BJS95] P. Brucker, B. Jurisch, and B. Sievers. Code of a Branch &
+Bound Algorithm for the Job Shop Problem. Available at url
+http://www.mathematik.uni-osnabrueck.de/research/OR/ , 1995.
+[BS99] R. Boel and G. Stremersch. Report for VHS: Timed Petri Net Model of
+Steel Plant at SIDMAR. Technical report, SYSTeMS Group, University
+Ghent, 1999.
+[Dil89] D. Dill. Timing Assumptions and Verication of Finite-State Concurrent
+Systems. In J. Sifakis, editor, Proc. of Automatic Verication Methods for
+Finite State Systems , number 407 in Lecture Notes in Computer Science,
+pages 197{212. Springer{Verlag, 1989.
+[Feh99a] A. Fehnker. Bounding and heuristics in forward reachability algorithms.
+Technical Report CSI-R0002, Computing Science Institute Nijmegen, 1999.
+[Feh99b] A. Fehnker. Scheduling a steel plant with timed automata. In Proceedings
+of the 6th International Conference on Real-Time Computing Systems andApplications (RTCSA99) , pages 280{286. IEEE Computer Society, 1999.
+[HHWT97] T. A. Henzinger, P.-H. Ho, and H. Wong-Toi. HyTech : A Model Checker
+for Hybird Systems. In Orna Grumberg, editor, Proc. of the 9th Int. Conf.
+on Computer Aided Verication , number 1254 in Lecture Notes in Com-
+puter Science, pages 460{463. Springer{Verlag, 1997.
+[HLP99] T. Hune, K. G. Larsen, and P. Pettersson. Guided synthesis of control
+programs using UPPAAL for VHS case study 5. VHS deliverable, 1999.
+[HLP00] T. Hune, K. G. Larsen, and P. Pettersson. Guided Synthesis of Control
+Programs Using Uppaal . In Ten H. Lai, editor, Proc. of the IEEE ICDCS
+International Workshop on Distributed Systems Verication and Valida-
+tion, pages E15{E22. IEEE Computer Society Press, April 2000.
+[JM99] A.S. Jain and S. Meeran. Deterministic job-shop scheduling; past, present
+and future. European Journal of Operational Research , 1999. to appear in
+volume 113, issue 2.
+[LPY95] K. G. Larsen, P. Pettersson, and W. Yi. Diagnostic Model-Checking for
+Real-Time Systems. In Proc. of Workshop on Verication and Control of
+Hybrid Systems III , number 1066 in Lecture Notes in Computer Science,
+pages 575{586. Springer{Verlag, October 1995.
+20
+
+--- Page 23 ---
+[LPY97] K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a Nutshell. Int. Journal
+on Software Tools for Technology Transfer , 1(1{2):134{152, October 1997.
+[NTY00] P. Niebert, S. Tripakis, and S. Yovine. Minimum-time reachability for timed
+automata. In IEEE Mediteranean Control Conference , 2000. Accepted for
+publication.
+[NY99] P. Niebert and S. Yovine. Computing optimal operation schemes for multi
+batch operation of chemical plants. VHS deliverable, May 1999. Draft.
+[RB98] T. C. Ruys and E. Brinksma. Experience with Literate Programming in
+the Modelling and Validation of Systems. In Bernhard Steen, editor, Pro-
+ceedings of the Fourth International Conference on Tools and Algorithms
+for the Construction and Analysis of Systems (TACAS'98) , number 1384
+in Lecture Notes in Computer Science (LNCS), pages 393{408, Lisbon,Portugal, April 1998. Springer-Verlag, Berlin.
+[RE99] F. Reel and S. Edelkamp. Error Detection with Directed Symbolic Model
+Checking. In Proc. of Formal Methods , volume 1708 of Lecture Notes in
+Computer Science , pages 195{211. Springer{Verlag, 1999.
+[Rok93] T. G. Rokicki. Representing and Modeling Digital Circuits . PhD thesis,
+Stanford University, 1993.
+[Sto00] M. Stobbe. Results on scheduling the sidmar steel plant using constraint
+programming. Internal report, 2000.
+[Vaa00] F. Vaandrager. Analysis of a biphase mark protocol with Uppaal. to appear,
+2000.
+21
+
+--- Page 24 ---
+RecentBRICS ReportSeriesPublications
+RS-01-4 Gerd Behrmann, Ansgar Fehnker, Thomas S. Hune, Kim G.
+Larsen, Paul Pettersson, and Judi Romijn. Efﬁcient Guiding
+Towards Cost-Optimality in UPPAAL. January 2001. 21 pp.
+To appear in Tools and Algorithms for The Construction and
+Analysis of Systems: 7th International Conference , TACAS ’01
+Proceedings, LNCS, 2001.
+RS-01-3 Gerd Behrmann, Ansgar Fehnker, Thomas S. Hune, Kim G.
+Larsen, Paul Pettersson, Judi Romijn, and Frits W. Vaan-drager.Minimum-CostReachabilityforPricedTimedAutomata .
+January 2001. 22 pp. To appear in Hybrid Systems: Computa-
+tion and Control ,2001.
+RS-01-2 Rasmus Pagh and Jakob Pagter. Optimal Time-Space Trade-
+Offs for Non-Comparison-Based Sorting . January 2001.
+ii+20pp.
+RS-01-1 GerthStøltingBrodal,Anna ¨Ostlin,andChristianN.S.Peder-
+sen.The Complexity of Constructing Evolutionary Trees Using
+Experiments . 2001.
+RS-00-52 Claude Cr ´epeau, Fr ´ed´eric L´egar´e, and Louis Salvail. How to
+ConvertaFlavorofQuantumBitCommitment . December2000.
+24pp.Toappearin AdvancesinCryptology: InternationalCon-
+ference on the Theory and Application of Cryptographic Tech-niques, EUROCRYPT’01Proceedings, LNCS, 2001.
+RS-00-51 Peter D. Mosses. CASL for CafeOBJ Users . December 2000.
+25 pp. Appears in Futatsugi, Nakagawa and Tamai, editors,CAFE: An Industrial-StrengthAlgebraicFormalMethod , 2000,
+chapter 6,pages 121–144.
+RS-00-50 Peter D. Mosses. Modularity in Meta-Languages . December
+2000. 19pp. Appears in 2nd WorkshoponLogical Frameworks
+and Meta-Languages ,LFM ’00Proceedings, 2000.
+RS-00-49 Ulrich Kohlenbach. Higher Order Reverse Mathematics .D e -
+cember 2000. 18 pp.
+RS-00-48 MarcinJurdzi ´nskiandJensV ¨oge.ADiscreteStratetyImprove-
+ment AlgorithmforSolving ParityGames . December 2000.
