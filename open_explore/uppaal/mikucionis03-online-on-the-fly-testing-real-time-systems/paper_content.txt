@@ -1,0 +1,572 @@
+--- Page 1 ---
+BRICS RS-03-49 Mikucionis et al.: OnlineOn-the-Fly Testing ofReal-timeSystemsBRICS
+Basic ResearchinComputer Science
+Online On-the-Fly Testingof
+Real-time Systems
+Marius Mikucionis
+KimG.Larsen
+BrianNielsen
+BRICSReport Series RS-03-49
+ISSN 0909-0878 December 2003
+
+--- Page 2 ---
+Copyright c/circlecopyrt2003, Marius Mikucionis &KimG. Larsen&Brian
+Nielsen.
+BRICS, Department of Computer Science
+University of Aarhus. All rightsreserved.
+Reproduction ofallorpart ofthis work
+is permitted foreducational orresearch use
+on conditionthat thiscopyright noticeis
+included in any copy.
+SeebackinnerpageforalistofrecentBRICSReportSeriespublications.
+Copiesmay be obtained by contacting:
+BRICS
+Department of Computer Science
+Universityof Aarhus
+NyMunkegade, building 540DK–8000Aarhus CDenmark
+Telephone:+45 89423360
+Telefax: +45 89423255
+Internet: BRICS@brics.dk
+BRICS publications are in general accessible through the World Wide
+Weband anonymous FTP through these URLs:
+http://www.brics.dk
+ftp://ftp.brics.dkThis document insubdirectory RS/03/49/
+
+--- Page 3 ---
+OnlineOn-the-FlyTestingof Real-timeSystems∗
+MariusMikucionis KimG. Larsen Brian Nielsen
+{marius,kgl,bnielsen }@cs.auc.dk
+Department ofComputerScience, AalborgUniversity
+Fredrik Bajers Vej7B, 9220 AalborgØst,Denmark
+Abstract
+Inthispaperwepresentaframework,analgorithmandanewtoolforonlinetestingofreal-time
+systems based on symbolic techniques used in U PPAALmodel checker. We extend the U PPAAL
+timed automata network model to a test speciﬁcation which is used to generate test primitivesand to checkthe correctnessof system responsesincludingthe timing aspects. We use timed traceinclusionasaconformancerelationbetweensystemandspeciﬁcationtodrawatestverdict. Thetestgeneration and execution algorithm is implemented as an extension to U
+PPAALand experiments
+carried out to examine the correctness and performance of the tool. The experiment results arepromising.
+1 Introduction
+The goal of testing is to gain conﬁdence in a physical computer based system by means of
+executing it. More than one third of typical project resources is spent on testing embed-dedand real-time systems, but still itremains ad-hoc, based onheuristics, anderror-prone.Moreover, it is estimated that 99% of processors produced today are targeted for embed-ded applications. Real-time and embedded systems require a special attention be givento timing where the moment of input and output event appearance is as important as theevent itself. Therefore special attention must be paid to timing during testing. The goal ofconformance testingistocheckwhetherthebehavior ofthesystemundertest(IUT)iscor-rect (conforming) to that of its speciﬁcation. We follow a model driven approach where aformal model (or speciﬁcation) deﬁnes the required (real-time) observable behavior of theIUT, and from this we automatically derive and execute real-time test cases to determine
+whether the IUT is conforming.
+Test cases can be generated ofﬂinewhere the complete test scenarios and verdicts are
+computed a-priori and before execution. The ofﬂine test generation is often based on acoverage criterion of the model like in [11, 5], on a test purpose as e.g. [12], or a fault-model as [10].
+∗Funded by BasicResearch in Computer Science URL: http://www.brics.dk/ .
+1
+
+--- Page 4 ---
+A new approach to model based test generation is onlinetesting that combines test
+generation andexecution: onlyasingletestprimitiveisgenerated fromthemodelatatimewhich is then immediately executed on the IUT. Then the output produced by the IUT aswell as its time of occurrence is checked against the speciﬁcation, a new test primitive isproduced and so forth until it is decided to end the test. An observed test run is a timed
+traceconsisting ofanalternating sequence of(inputoroutput)actions andtimedelays. We
+use theterm on-the-ﬂy todescribe atest generation and execution algorithm that computes
+a set of states and stimuli incrementally as needed and directed by the test execution.
+There are several advantages ofonline on-the-ﬂy testing. First,testing maypotentially
+continue for a long time. A single test run may take hours or even weeks), and thereforevery long, intricate, and stressful test cases may be executed. Second, the state-space-explosion problem experienced by many ofﬂine test generation tools is reduced becauseonly a very limited part of the state-space need to be stored at any point in time. Third,ofﬂinetestgenerators oftenlimittheexpressiveness andamountofnon-determinism ofthespeciﬁcation language. This has been a particular problem for ofﬂine test generation fromtimed automata speciﬁcations, see e.g. [6, 7].
+On-the-ﬂy testing from Promela [3] and L
+OTOSspeciﬁcations for non-timed systems
+have been implemented in the T ORX [2]tool, and practical application to real case studies
+show promising results [13, 2, 9]. However, T ORX provides no support for real-time
+constraints.
+In this paper we describe a technique for online testing of real-time systems, which
+consists of the following main contributions:
+Real-time testing framework: Wepresent the framework for automatic online testing of
+real-time systems from adensely timed automata model of the system under test andits environment.
+OnlineTesting algorithms: We propose a set of algorithms for on-the-ﬂy testing which
+ensure that the IUT is subjected to relevant tests and that verdicts are given accord-ing the speciﬁcation. The algorithms use symbolic techniques derived from model-checking to efﬁciently represent and operate on inﬁnite state-sets.
+Tool implementation: We have implemented the algorithms by extending the U
+PPAAL
+tool. UPPAALisatimedautomata modelchecker developed jointly byagroup ofre-
+searches atUppsalaUniversityandAalborg University. Weadoptthe U PPAALtimed
+automata speciﬁcation language and extend the veriﬁcation engine for the on-the-ﬂytesting. ThemostimportantfeatureofU
+PPAAListheuseofsymbolicalgorithmsand
+data structures to represent and manipulate thereal-valued clocks oftimed automata.
+Example: We demonstrate the applicability of our technique using a small case.
+Experiments: We have conducted an experiment using our tool and technique to test an
+emulated IUT against non-trivial model of a train controller. We examine both theerror detection capability and its performance. The results are promising.
+2
+
+--- Page 5 ---
+2 Real-time Testing Framework
+First we present the concept of timed I/O automaton as theoretical background used in
+model checking forreasoning about the real-time systems. Weproceed withtest setup anddiscuss how timed automata model is extended for test speciﬁcation. Inthe last subsectionwe deﬁne what IUTs we consider to be conforming to speciﬁcation and give an intuitionfor the test verdict.
+2.1 Timed Automata
+LetXbeasetofnon-negativereal-valued variablescalled clocks,an dAct=I∪O∪{ τ}a
+setofinputactions Iandoutput-actions O,(denoted a?anda!),andthenon-synchronizing
+action (denoted τ). Let G(X)denote the set of guardson clocks being conjunctions of
+simple constraints of the form x⊿ /triangleleftc,a n dl e t U(X)denote the set of updatesof clocks
+corresponding to sequences of statements of the form x:=c,w h e r e x∈X,c∈N,
+and⊿/triangleleft∈{ ≤,<,=,≥}.Atimed automaton (timed automata) over (Act,X )is a tuple
+(L,/lscript 0,I,E),w h e r e Lis a set of locations, /lscript0∈Lis an initial location, I:L→G(X)
+assigns invariants to locations, and Eis a set of edges such that E⊆L×G(X)×Act×
+U(X)×L. We write /lscriptg,α,u−−−−→/lscript/primeiff(/lscript,g,α,u,/lscript/prime)∈E.
+The semantics of a timed automata is deﬁned in terms of a timed transition system
+over states of the form p=(/lscript,σ),w h e r e /lscriptis a location and σ∈RX
+≥0is a clock valuation
+satisfying theinvariant of /lscript. Intuitively, therearetwokindsoftransitions: delaytransitions
+and discrete transitions. In delay transitions, (/lscript,σ)d−→(/lscript,σ+d), the values of all clocks
+of the automaton are incremented with the amount of the delay, d. Discrete transitions
+(/lscript,σ)α−→(/lscript/prime,σ/prime)correspond to execution of edges (/lscript,g,α,u,/lscript/prime)for which the guard g
+is satisﬁed by σ. The clock valuation σ/primeof the target state is obtained by modifying σ
+according to updates u. Wewrite pγ−→asashort for ∃p/prime.pγ−→p/prime,γ∈Act∪R≥0. Atimed
+trace is a sequence of alternating time delays and actions in Act.
+Anetwork of timed automata A1/bardbl ··· /bardbl A nover(Act,X )is deﬁned as the parallel
+composition of ntimed automata over (Act,X ). Semantically, a network again describes
+a timed transition system obtained from those of the components by requiring synchronyon delay transitions and requiring discrete transitions to synchronize on complementaryactions (i.e. a?is complementary to a!).
+2.2 Test Speciﬁcations
+The test framework consists of the IUT and its environment that is to be simulated by the
+tester. In our case the tester is a test computer equipped with a test speciﬁcation , an online
+testing engine, and an adapter, see Figure 1.
+An IUT usually operates in a particular environment – a collection of conditions and
+assumptions that the IUT is used under. Not every environment is realistic or reasonableandthereforeonlytestsrelevanttothisenvironment shouldbeexecuted. Moreoverwemaywanttotesthowthesystemwouldbehaveunderveryspeciﬁcconditions, e.g. trysometest
+3
+
+--- Page 6 ---
+Under TestT−UPPAALTest Specification:
+model of
+Environmentmodel of
+Implementation
+EnvironmentImplementationAdapterin
+outabs_in
+abs_out
+Figure 1: Framework of online testing using on-the-ﬂy veriﬁcation techniques.
+purpose which leads toa failure. Also,by controlling the behavior and the amount of non-
+determinism inthe environment modeltheuser canguide ortune thetestgeneration torunmore efﬁciently. Therefore the test speciﬁcation is allowed to be a parallel composition ofa model of the implementation and a model of environment. A small example of a coffeemachine model with its environment (one scientist) model is presented in Figure 2.
+coin!weakCoffee?
+strongCoffee?req!
+k2k1k0
+(a) Scientist.req? req?
+strongCoffee!weakCoffee!coin?
+l2l1
+l3l0
+x:= 0x≤5 x≥3
+x:= 0x≥1
+x≥3
+x:= 0
+x≤3 x≤5
+(b) Coffee machine.
+Figure 2: Timed system model for famous coffee machine.
+The adapter component translates the abstract input and output representation ( absin,
+absout)intorealactions( in,out)appliedtoandreceivedfromtheIUT.Weassumethatthe
+IUT and its model are input enabled to be able to accept any input offered at any momentin time. The tester is allowed to offer any input allowed by the environment from the testspeciﬁcation.
+The test speciﬁcation is given as a closed network of timed automata that can be par-
+titioned into one subnetwork modeling the behavior of the IUT, and one modeling the
+behavior of its environment (ENV). The environment model can be replaced with a com-pletely unconstrained one that allows all possible interaction sequences. We assume thatthe tester can take the place of the environment and control the IUT via adistinguished setobservable input and output actions. Weallow the full U
+PPAALtimed automata language,
+including non-deterministic (both w.r.t.actions and timing) speciﬁcations.
+2.3 ConformanceRelation.
+A conformance relation deﬁnes what IUT behaviors are considered correct compared toits speciﬁcation. In the non-timed setting the formal conformance relation ioco[3] has
+4
+
+--- Page 7 ---
+proved suitable in practice and is used in many model based testing tools. Informally, the
+ioco-relation requires that theimplementation neverproduces anoutput that isnot allowedby the speciﬁcation, and that the implementation is quiescent (eternally unable to produceoutputs) only when the speciﬁcation may also be.
+Anatural extension ofiocotoreal-timesystems isobtained byusing timedtraceinclu-
+sionas a conformance relation meaning that the timed traces of the IUT must be included
+inthetimedtracesofspeciﬁcation. Like ioco,thisrelation ensures thattheimplementation
+has no behavior that is not allowed by the speciﬁcation. In particular, the implementationmay stay quiet as time passes only if the same time passage is possible in the speciﬁ-cation without an output. Thus, timed trace inclusion offers the notion of time-boundedquiescence that—in contrast to ioco’s eternal quiescence—can be observed in a real-timesystem.
+Theconformance relation forms the basis for atest verdict – pass,failorinconclusive .
+Consider that we know the current state the implementation is in, then the intuition of averdict is as follows:
+failis given if some output or time delay observed is not permitted by the speciﬁcation,
+i.e. the output is not deﬁned in the model of IUT for the current state, or the delay isnot allowed by an invariant on the state;
+inconclusive is given if some output observed was not expected by the model of environ-
+ment,i.e. anunpredicted event happened whichprevents reaching thegoalofthetestpurpose. Such events may happen for example if you consider testing a communica-tion protocol and the connection was lost;
+passis given if all outputs observed are allowed by the speciﬁcation also with respect to
+the time instances at which the outputs occur. The passage of time implies that theIUT may stay quiet (not produce any output) only if the speciﬁcation allows.
+However, we can hardly be sure what state our black-box IUT is in. We use the reach-
+ability algorithms from model checking to track the current state as described in the nextsection.
+3 TestGeneration and Execution
+Ourtesting method consists of the main test generation and execution algorithm describedbelowwhichcontrols thetestprocess asdescribed inSection3.1. Themainalgorithm usesthe adopted version of U
+PPAALreachability algorithms to track the state of the IUT as
+described Section 3.2.
+3.1 The MainAlgorithm
+The test generation and execution algorithm is based on maintaining the current reachablestate set Zrepresenting all states that the test speciﬁcation can possibly occupy after the
+timed trace observed so far. Knowing this state estimate allows us to choose appropri-ate test primitives and to validate IUT outputs. Initially Zcontains the initial state /angbracketleft¯l
+0,¯0/angbracketright
+5
+
+--- Page 8 ---
+where ¯l0is the initial location vector of timed automata network and ¯0is the initial clock
+assignment where all clocks are zero. The process of the testing tool is described in Algo-rithm 1.
+The tester can perform two actions: either send an input to the IUT, or wait for an
+output for some time. The choice of input is based on the current symbolic state set and
+thesystemmodel. Iftheoutputortimedelayisobservedthenthetestercheckswhetheritis
+legal according the speciﬁcation at that moment. The current symbolic state set is updatedeach time the input is offered or the output or delay is observed. Illegal occurrence orabsence of the output is detected if the current symbolic state set update leads to an emptyset which is the result if the observed trace is not in the speciﬁcation.
+Algorithm 1 Test generation and execution. Initially Z:={/angbracketleft¯l0,¯0/angbracketright}.
+while (more time for testing )∧(Z/negationslash=∅)doswitch(action,delay) randomly:
+action: // offer an input
+a:=ChooseAction (EnvOutput (Z))
+sendato implementation
+Z:=After(Z,a)
+delay: // wait for an output
+δ:=ChooseDelay (Z)
+sleep for δtime units and wake up on output o
+ifooccurs at δ/prime≤δthen
+Z:=After(Z,δ/prime)
+ifo/∈ImpOutput (Z)then return fail
+else if o/∈EnvInput (Z)then return inconclusive
+elseZ:=After(Z,o)
+else // no output within δdelay
+Z:=After(Z,δ)
+ifZ=∅then return fail
+else return pass
+The functions used in Algorithm 1 are:
+•The function Aftercomputes aclosure of states reachable after performing all poten-
+tialinternal(unobservable) transitions andoneobservable input,outputordelay. Duetonon-determinism inthespeciﬁcation thisrequires arepresentation ofasetofstates
+as opposed to a single state. Afterreturns an empty set if the action or delay was not
+allowed bythespeciﬁcation. Theunderlying algorithms are described inSection 3.2.
+•TheEnvInput,EnvOutput andImpOutput functions compute theapplicable input and
+output actions for themodel ofrespectively theenvironment and themodel ofimple-
+mentation:
+EnvInput (Z)= {a∈A
+out|/angbracketleft¯l,z/angbracketright∈Z,/angbracketleft¯l,z/angbracketrighta?−→} (1)
+EnvOutput (Z)= {a∈Ain|/angbracketleft¯l,z/angbracketright∈Z,/angbracketleft¯l,z/angbracketrighta!−→} (2)
+ImpOutput (Z)= {a∈Aout|/angbracketleft¯l,z/angbracketright∈Z,/angbracketleft¯l,z/angbracketrighta!−→} (3)
+6
+
+--- Page 9 ---
+•The functions ChooseDelay andChooseAction respectively selects a delay and an
+action applicable to IUT when expected to occupy some state mentioned in Z.T h e
+ChooseAction andChooseDelay functions currently selects actions or delays at ran-
+dom.
+Different strategies can be applied to guide the test generation to “interesting” or un-
+covered states by changing the model of environment, “choose” functions and adoptingthem to a particular test purposes. The best results are expected in symbiosis with [5], [7]
+and other future works in this area.
+3.2 SymbolicState-set Computation
+We use symbolic constraint solving techniques to represent sets of clock valuations com-
+pactly. In particular, since weuse real-valued clocks they cannot be represented explicitly.Asymbolic state i sap a i r /angbracketleft¯l,z/angbracketrightconsisting of a location vector ¯land the clock constraint
+system zdenotingasetofclockvaluations,i.e. asymbolicstaterepresentsasetofconcrete
+states: /angbracketleft¯l,z/angbracketright={(¯l,¯v)|¯v∈z}.
+We assume the following operations on clock constraints systems: conjunction z∧z
+/prime,
+future z↑={¯v+δ|¯v∈z,δ∈R≥0},c l o c k xassignment to cvaluezx:=c, containment
+check z⊆z/prime. The symbolic transition relation between symbolic states denotes the
+possibility of taking a transition from a (concrete) state in the source symbolic state to aone in the destination. It is computed as follows:
+/angbracketleft¯l,z/angbracketrightγ/angbracketleft¯l/prime,(z∧g)r∧I(¯l/prime)/angbracketrightif¯lg,γ,r−−−→¯l/primeis an (internal or synchronized) γ-action
+transition.
+Therequired reachability algorithms for on-the-ﬂy testing are similar to those used for
+model checking[8] except that only states up to a certain time limit needs to be computed.This is most easily accomplished by introducing an auxiliary clock tthat is set to zero
+whenever an observable action occurs. Again due to non-determinism it is necessary torepresent the state-set as a set Zof symbolic states.
+Algorithm 2computes the Closure
+δτ(Z,d)function collecting thereachable symbolic
+state set within a delay from 0tod. The predicate Contains (Z,/angbracketleft¯l,z/angbracketright)tests whether a
+symbolic state zis included in the state set Z.
+Algorithm 2 Closure δτ(Z,d)passed :=∅,waiting :=Z..
+while waiting /negationslash=∅do
+waiting :=waiting \{/angbracketleft¯l,z/angbracketright} // pick a symbolic state
+z:=z↑∧(t≤d)∧I(¯l) // limited delay
+passed :=passed ∪{ /angbracketleft¯l,z/angbracketright}
+for eachsymbolic transition /angbracketleft¯l,z/angbracketrightτ/angbracketleft¯l/prime,z/prime/angbracketrightwhere τ/∈I∪O
+ifnotContains (passed ,/angbracketleft¯l/prime,z/prime/angbracketright)then waiting :=waiting ∪{ /angbracketleft¯l/prime,z/prime/angbracketright}
+return passed.
+The algorithm for the Closure τ(Z)function computing the reachable symbolic state
+set after making all possible internal transitions in zero delay is similar to Algorithm 2.
+7
+
+--- Page 10 ---
+Given the closure functions, the actual algorithms for computing After(Z,δ)and
+After(Z,a)functions become trivial:
+After(Z,a)= Closure τ
+{/angbracketleft¯l/prime,z/prime/angbracketright|/angbracketleft¯l,z/angbracketright∈Closure τ(Z),/angbracketleft¯l,z/angbracketrighta/angbracketleft¯l/prime,z/prime/angbracketright}
+(4)
+After(Z,δ)=n
+/angbracketleft¯l,z/prime/angbracketright/angbracketleft¯l,z/angbracketright∈Closure δτ(Z,δ),z/prime=/parenleftbig
+z∧(t==δ)
+t:=0o
+(5)
+Note that the outer Closure τoperation is redundant if we use After(Z,a)only in a
+context ofAlgorithm1and isomitted inactual computations. Wemayalso consider notto
+reset the clock tand count the absolute testing time with some minor adjustments which
+in turn would even more lessen the amount of expensive computations.
+3.3 Implementation
+Wehaveimplemented ouralgorithms inaprototype toolbyextending theU PPAALmodel-
+checker tool. U PPAAL, besides agraphical editor fortimedautomata, provides anefﬁcient
+implementation of the needed symbolic constraint solving operations, and symbolic state
+successor computation. Unlike U PPAAL, our implementation does not store the reached
+state space, but only the current symbolic state set.
+4 Experiments
+This section presents the results of a ﬁrst set of experiments using our prototype imple-mentation to test an implementation. The purpose of the experiments is to give some ﬁrstindications of the feasibility of our technique in terms of applicability, error detection ca-pability, and performance in terms of state-set size and computation time.
+4.1 TestSpeciﬁcation
+The experiment is based on a non-trivial version of a rail-road intersection controller thatcontrols trains on a set of rail-road tracks with a shared track segment, e.g. a train-station.The main objective of the controller is to ensure that only one train occupies the sharedsegment at a time, and that they are granted access in arrival order.
+Throughout the paper we use U
+PPAALsyntax to illustrate timed automata, and the
+ﬁgures are direct exports from U PPAAL. Initial locations are marked using a double cir-
+cle. Edges are by convention labeled by the triple: guard, action, and assignment in thatorder. The internal τ-action is indicated by an absent action-label. Committed locations
+are indicated by a location with an encircled “C”. A committed location must be left im-
+mediately as the next transition taken by the system. Finally, bold-faced clock conditionsplaced under locations are location invariants.
+In the concrete setup we assume 4 tracks, and for simplicity 1 train per track at a time.
+Trains on track isignals the controller when they approach and leave the station using
+signals appr
+iand leave irespectively. When train iapproaches an occupied station the
+8
+
+--- Page 11 ---
+Safe
+StopStation
+Appr Startx>=10
+x:=0
+x<=10stop_1?x:=0x>=3leave_1!
+x:=0
+appr_1!
+x:=0x>=7
+x:=0
+go_1?x:=0
+(a) Train1of 4.Remove
+ApproachFree
+SignalRed
+x<=5
+HoldingTrainWaitForLeave
+SignalGreen
+x<=5leave_1?e:=1
+stop_1!rem!
+appr_1?e:=1
+x:=0add!len>0
+e==1
+release?x:=0go_1!len==0add!
+e==1
+release?
+(b) Controller 1 of 4.Start
+Shiftdown
+i < len
+list[i]:=list[i+1],
+i++len==i,len==0
+list[i] := 0len>=1,
+e==list[0]
+rem?
+len--,
+i := 0add?
+list[len]:=e,
+len++
+len==i,len>0
+list[i]:=0,
+e:=list[0]release!
+(c) Queue
+Figure3: Testspeciﬁcation fortraincontroller: trainsasenvironment, controller andqueue
+as implementation.
+controller is required to issues a stop isignal within 5 time units, and is similarly required
+issue a goisignals within 5 time units after the station becomes free.
+Theenvironmentassumptionmodelconsistsof4concurrenttimedautomataeachmod-
+eling the assumed behavior a train. The model for train 1 is shown in Figure 3(a); theremaining trains are identical except for the train-id. In location safethe train is outside
+theareaofthecontroller. Aftersignaling appr
+1itisinlocation in Appr. Ifitthenreceives
+astop 1signal before 10 time units has elapsed it stops and enters location Stop;a f t e r1 0
+time units the train may enter the station and thus change to location Station, and it may
+be too late to stop it (perhaps depending on the speed and weight of the train). A stoppedtrain that has been resumed (thus in location Start) takes at least 7 time units to start and
+enter the station. It takes a train at least 3 time units to clear the station.
+The model of the IUT requirements consists of 4 concurrent train control automata
+tracking theposition ofeachpotential train,andonequeueautomaton tracking theirarrivalorder. Train id’s are added and removed from the queue using signals addandremand
+a shared integer variable e. Signal releaseis issued by the queue to indicate the front
+of the queue. The shared integer variable lencontains the number of elements stored in
+the queue. An approaching train (location Approach ) is ﬁrst enqueued, but immediately
+allowed to enter the station if no other trains are waiting ( len== 0). The controller keeps
+thetraininlocation WaitForLeave untilitissignaled thatthetrainhasleftthestationafter
+which the controller dequeues it. If other trains were waiting, the controller issues a stop
+signal within5timeunits asensured bytheinvariant inlocation SignalRed ,maintains and
+thenholdsthetraininlocation HoldingTrain untilthefrontofthequeueindicates thatthis
+is the next train to be granted access. Once release, the train is given the gosignal within
+5 time units.
+Figure3(b)depicts thecontrol automaton fortrain1,andFigure3(c)depicts thequeue
+automaton ( listis an array of integers, and iis an index into the array).
+Thecompletetestspeciﬁcation isreasonably largeandnontrivialforaﬁrstexperiment:
+it consist of 9 concurrent timed automata, 8 clocks, and a sequential queue data structure.
+9
+
+--- Page 12 ---
+4.2 Implementation Under Test
+Thesystemundertestisimplementedasanapproximately100lineC++programfollowing
+the basic structure of the speciﬁcation. It uses POSIX Threads and POSIX locks andcondition variables for multi-threading and synchronization. It consists of one thread pertrain, and queue data structure whose access is guarded by mutual exclusion and conditionvariables. In the experiment, the IUT runs in the same address space as the T-U
+PPAAL
+tool, and input and output actions are communicated to and from the driver/adapter viatwo single place bounded buffers.
+In addition we have created a number of erroneous mutations based on the assumed
+correct implementation ( M0):
+M1:The stop
+3signal is issued 1 time unit too late.
+M2:The controller issues stop 1instead of stop 3.
+M3:The controller never issues stop 3
+M4:The controller uses a bounded queue limited to 3 trains. Thus, the fourth train over-
+writes the third train in the queue.
+M5:Thecontroller uses LIFOqueue instead of FIFO.
+M6:The controller ignores appr 3signals if a train arrives before 2 time units after enter-
+ing the location Free.
+4.3 Error Detection Capability
+The purpose of this experiment is to determine that our technique can in fact detect basic
+timing and implementations errors, and to determine how fast this can be done.
+The experiments are run on a 8x900 MHZ Sun Sparc Fire v880R workstation with 32
+GBmemoryrunning SunSolaris9(SunOS5.9). T-U PPAALrunsononeCPUwhereasthe
+IUT may run on one or more of the remaining. T-U PPAALit self does not require these
+extreme amount of resources, and it runs well on a standard PC, but the fact a multipro-
+cessor is used in the experiment allows T-U PPAALand the IUT to run in parallel as they
+would normally do in a black-box system level test.
+To allow for faster and more experiments and reduce potential problems with real-
+time clock synchronization between the engine and IUT, the experiments are run using asimulated clock. Preliminary experiements with testing in real-time (with one model timeunit corresponding to 10 ms on a single CPU linux host) we observe in about 5% of the(especially longer) runs that the clocks become unsynchronized.
+The experiment is conducted by testing each mutant 1100 times. For each test run
+the number of communicated observable actions and total running time until the error isfound isrecorded. Anupperbound of10.000 timeunitsisplacedoneachexperiment. The
+number ofpass, fail,and inconclusive verdicts together withtheminimum,maximum,and
+average running time and number of used input actions are summarized in Table 4.
+The results show that all erroneous mutants are killed surprisingly quickly using less
+than22inputactionsandlessthan700(model)timeunits. Theassumedcorrectimplemen-tation is not killed in the available 10.000 time units using in average 377 input actions,
+10
+
+--- Page 13 ---
+Table 4: Error Detection Capability:
+Mu- Numberofverdicts Inputactions Duration(timeunits)
+tantPassFailInconCrashMinAvgMaxMin AvgMax
+M1 01100 0025.018672.7 359
+M2 01099 0124.612366.7 370
+M3 01100 0024.812680.2 389
+M4 01100 0068.62237163.4 641
+M5 01099 0145.7141792.0 435
+M6 01100 0023.914662.8 349
+M01077 3101099376.0 44224089951.1 10000
+except 23 cases. In 3 cases T-U PPAALwrongly gives a fail verdict. In the remaining 20
+cases the our prototype produced wrongly an inconclusive verdict (meaning that the envi-ronment model received an unexpected output) or it crashed (segmentation fault). We donotknowtheexactreasonfortheseproblems,buttheytypically occurafterlongsequencesof events on the correct IUT, and we believe that they are caused by a bug in our proto-type implementation. Running this part of the experiment on a single CPU Linux host weneither observed the false negatives nor the crashes.
+In conclusion, the results indicate that real-time on-the-ﬂy testing may beavery effec-
+tivetechnique,butthatarememoryleaksorthreadsynchronization bugsinT-U
+PPAALthat
+sometimes prevent very long test runs. Also the real-time clock synchronization betweenIUT and tester implemented in the prototype should be improved.
+4.4 Performance
+The purpose of this experiment is to evaluate the performance of the symbolic state-setexploration technique. Two metrics are important: the number of symbolic states (size)of the state-sets measured, and the amount of computation time to compute the state-set
+successors after a delay ran observable action.
+Based on thesame experimental setup as described inSection 4.3weinstrumented the
+T-U
+PPAALtool to record the size of the symbolic state-set (i.e. the number of symbolic
+states in the state-set) as the test was executed, and to record the amount of CPU timeused to compute the next state-set after a delay and an observable action. Because the testgeneration algorithm is randomized and because its behavior depends on the responses ofthe IUT, we made a total of 1100 test runs against each mutant M0resulting in more than
+2 million data points for After(delay)and 1.5 million After(action ).
+Table5summarizestheresults. Thestate-setsizeisinaverageonly2-3symbolicstates
+perstate-set, but itvaries alot,upto36states. Thestate-set sizes reached after performingan action appear slightly larger than after a delay.
+In average it costs 2.7 ms to compute the successor state-set after a delay, but less that
+0.2msafteranaction. The After(delay)algorithmisthemostcomplexandcomputational
+demanding of the two, and it is not surprising that it cost an order of magnitude more.
+11
+
+--- Page 14 ---
+Table 5: Execution Performance
+Execution time, µs State-set size,
+Mu-After(delay) After(action) After(delay) After(action)
+tant AvgMaxAvgMaxAvgMaxAvgMax
+M12720.8 6739.3 123.3762.22.31 172.65 34
+M22783.9 6744.6 131.0759.92.38 192.76 30
+M32770.9 6640.2 125.9755.52.38 202.68 30
+M42696.1 6666.1 106.5750.22.91 313.04 36
+M52771.0 6830.4 129.6731.22.94 313.26 32
+M62814.6 6660.7 130.2810.32.07 162.50 32
+M02573.8 7066.6 78.0722.42.91 322.83 44
+Againobserve that the computation timevaries alot,e.g. between 2msand upto7msfor
+After(delay).
+To examine these variations in greater detail and the dependency of computation time
+on state-set size, we created the scatter plot in Figure 4.4, also including the regression
+lineofthemean. Theﬁgureshowsthedistribution of After(delay)successor computation
+time of as function of state-set size. The ﬁgure shows graphically by far that most of thepopulationofstate-setsizesareconcentrated below5symbolicstates,andthatveryfewarelarger than 25. Wefound asimilar, but less dispersed, pattern for After(action )successor
+computation time.
+Figure 7 plots the average successor state computation time asfunction of the state-set
+size. The After(delay)computation time appear to depend linearly on the state-set size,
+where as After(action )appear even sub-linear. But this conclusion is uncertain because
+only few measurements points are available for large state-set sizes.
+In conclusion, based on this fairly large example, the performance of our technique
+looks verypromising andappear tobefast enough formanyreal-time systems. Obviously,
+manymoreexperiments withdifferent modelofvarying sizeand complexity areneeded to
+obtain ﬁrmconclusions.
+5 Conclusions and Future Work
+The current work on the on-the-ﬂy test generator has resulted in the ﬁrst prototype of T-
+UPPAAL(Testing-U PPAAL)[1],whichshowpromisingresultsingeneratingandexecuting
+test from non-trivial system models, such as the train-gate controller [4]. The concept isrealizable,functionalandtheperformanceofthesymbolicstatesetcomputationalgorithmsappear fast enough for many realistic real-time systems. However, further work is neededto evaluate the behavior and performance of the algorithms in details.
+The future T-U
+PPAALprototype development includes enhanced test generation and
+execution algorithm with further test event selection strategies. We also aim at improving
+12
+
+--- Page 15 ---
+Figure 6: Distribution of After(delay) state-set successor computation on state-set size.
+0 5 10 15 20 25 302500 3000 3500 4000
+Symbolic state set sizemean CPU time, micro−s
+(a)After(delay)0 1 02 03 04 0100 300 500
+Symbolic state set sizemean CPU time, micro−s
+(b)After(action)
+Figure 7: The scatter plots of average CPUtime per state-set size with regression line.
+clock synchronization and time-stamp the events observed by an interval rather than by
+speciﬁc time points, and use absolute time measurements of events avoiding resets of theauxiliary t-clock in the algorithms.
+Thedata value passing protocol described in [1] must be implemented to enable the
+data value communication between the tool and the IUT. Also it should be applied to
+realistic embedded and real-time systems and protocols.
+13
+
+--- Page 16 ---
+References
+[1] MariusMikucionisand Egle Sasnauskaite. On-the-ﬂyTesting Using U PPAAL. AalborgUni-
+versity. Distributed Systems and Semantics unit, Department of Computer Science. Masterthesis,June2003.URL: http://www.cs.auc.dk/ marius/master.pdf
+[2] R. de Vries, J. Tretmans, A. Belinfante, J. Feenstra, L. Feijs, S. Mauw, N. Goga, L. Heerink,
+and A. de Heer. Cˆ ote de Resyste in PROGRESS. In STW Technology Foundation, editor,
+PROGRESS 2000 - Workshop on Embedded Systems, pages 141-148, Utrecht, The Nether-
+lands,October132000.
+[3] Rene de Vries, Jan Tretmans. On-the-Fly Conformance Testing Using Spin. University of
+Twente. Formal Methods and Tools group, Departmentof Computer Science. P.O. Box 217,
+7500AE Enschede,TheNetherlands.
+[4] WangYi, Paul PetterssonandMatsDaniels.AutomaticVeriﬁcationofReal-TimeCommuni-
+catingSystems byConstraintSolving.In Proceedingsofthe 7th InternationalConferenceon
+FormalDescriptionTechniques,pages223-238,North-Holland.1994.
+[5] Anders Hessel, Kim G.Larsen, Brian Nielsen, Paul Pettersson, Arne Skou. Time-optimal
+Real-TimeTestCaseGenerationusingU
+PPAAL.Inthe3rdInternationalWorkshoponFormal
+ApproachestoTestingofSoftware(FATES’03).Montreal,Canada,
+[6] Ahmed Khoumsi and Thierry J´ eron and Herv´ e Marchand. Test Cases Generation for non-
+deterministic real-time systems In the 3rd International Workshop on Formal Approaches to
+TestingofSoftware(FATES’03).Montreal,Canada,
+[7] Brian Nielsen and Arne Skou. Automated Test Generation from Timed Automata. In proc.
+TACAS 2001- Tools and Algorithmsfor the Construction and Analysis of Systems (TizianaMargariaandWang YiEds.),343–357,Genova,Italy,April2–6,2001.
+[8] Gerd Behrmann, Johan Bengtsson, Alexandre David, Kim G. Larsen, Paul Pettersson, and
+WangYi.UppaalImplementationSecrets.InProceedingsofthe7thInternationalSymposiumon Formal Techniques in Real-Time and Fault Tolerant Systems (FTRTFT’02), 2002. URL:
+http://www.uppaal.com/
+[9] A. Belinfante, J. Feenstra, R.G. de Vries, J. Tretmans, N. Goga, L. Feijs, S. Mauw, and
+L. Heerink. Formal test automation: A simple experiment. In G. Csopaki, S. Dibuz, and
+K.Tarnay,editors, 12
+thInt.WorkshoponTestingofCommunicatingSystems ,pages179–196.
+KluwerAcademicPublishers,1999.
+[10] Teruo Higashino, Akio Nakata, Kenichi Taniguchi, and Ana R. Cavalli. Generating Test
+Cases for a Timed I/O Automaton Model. In Gyula Csopaki, Sarolta Dibuz, and Katalin
+Tarnay,editors, TestingofCommunicatingSystems: MethodandApplications,IFIPTC612th
+International Workshop on Testing Communicating Systems (IWTCS), September 1-3, 1999,
+Budapest, Hungary , volume 147 of IFIP Conference Proceedings , pages 197–214. Kluwer,
+1999.
+[11] Hyoung Seok Hong, Insup Lee, Oleg Sokolsky, and Hasan Ural. A Temporal Logic Based
+TheoryofTestCoverageandGeneration.InJ.-P.KatoenandP.Stevens,editors, TACAS2002 ,
+pages327–341.KluwerAcademicPublishers,April2002.
+[12] ThierryJ´ eron and Pierre Morel. Test GenerationDerivedfromModel-Checking. In Interna-
+tionalConferenceonComputerAidedVeriﬁcation(CAV’99) ,July7–101999. Italy.
+[13] J. Tretmans and A. Belinfante. Automatic testing with formal methods. In EuroSTAR’99:
+7thEuropean Int. Conference on Software Testing, Analysis & Review , Barcelona, Spain,
+November8–12,1999.EuroStarConferences,Galway,Ireland.
+14
+
+--- Page 17 ---
+RecentBRICS ReportSeriesPublications
+RS-03-49 Marius Mikucionis, Kim G. Larsen, and Brian Nielsen. On-
+line On-the-Fly Testing of Real-time Systems . December 2003.
+14 pp.
+RS-03-48 Kim G. Larsen, Ulrik Larsen, Brian Nielsen, Arne Skou, and
+Andrzej Wasowski. Danfoss EKC Trial Project Deliverables .
+December 2003. 53pp.
+RS-03-47 HansH ¨uttelandJi ˇr´ıSrba.RecursivePing-PongProtocols .D e -
+cember 2003. To appear in the proceedings of 2004 IFIP WG1.7,ACMSIGPLANandGIFoMSESSWorkshoponIssuesin
+the Theory of Security (WITS’04).
+RS-03-46 Philipp Gerhardy. The Role of Quantiﬁer Alternations in Cut
+Elimination . December 2003. 10 pp. Extends paper appear-
+ing in Baaz and Makowsky, editors, European Association for
+ComputerScienceLogic: 17thInternationalWorkshop ,CSL’03
+Proceedings, LNCS2803, 2003,pages212-225.
+RS-03-45 Peter Bro Miltersen, Jaikumar Radhakrishnan, and Ingo We-
+gener.On converting CNF to DNF . December 2003. 11 pp.
+A preliminary version appeared in Rovan and Vojt ´as, editors,
+Mathematical Foundations of Computer Science: 28th Interna-
+tional Symposium , MFCS ’03 Proceedings, LNCS 2747, 2003,
+pages 612–621.
+RS-03-44 Anna G ´al and Peter Bro Miltersen. The Cell Probe Complex-
+ity of Succinct Data Structures . December 2003. 17 pp. An
+early version of this paper appeared in Baeten, Lenstra, Par-
+row and Woeginger, editors, 30th International Colloquium on
+Automata, Languages, and Programming ,ICALP ’03 Proceed-
+ings, LNCS2719,2003,pages 332–344.
+RS-03-43 Mikkel Nygaardand GlynnWinskel. DomainTheory for Con-
+currency. December 2003. 45 pp. To appear in a Theoretical
+Computer Science special issueon DomainTheory.
+RS-03-42 Mikkel NygaardandGlynnWinskel. Full AbstractionforHO-
+PLA. December 2003. 25 pp. Appears in Amadio and Lugiez,
+editors,Concurrency Theory: 14th International Conference ,
+CONCUR’03 Proceedings, LNCS2761,2003,pages 383–398.

@@ -1,0 +1,900 @@
+--- Page 1 ---
+Aalborg Universitet
+Randomized Refinement Checking of Timed I/O Automata
+Kiviriga, Andrej; Larsen, Kim Guldstrand; Nyman, Ulrik
+Published in:
+Proceedings of SETTA 2020
+DOI (link to publication from Publisher):
+10.1007/978-3-030-62822-2_5
+Creative Commons License
+Unspecified
+Publication date:
+2020
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Kiviriga, A., Larsen, K. G., & Nyman, U. (2020). Randomized Refinement Checking of Timed I/O Automata. In J.
+Pang, & L. Zhang (Eds.), Proceedings of SETTA 2020: Dependable Software Engineering. Theories, Tools, and
+Applications (pp. 70-88). Springer. https://doi.org/10.1007/978-3-030-62822-2_5
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: March 29, 2026
+
+--- Page 2 ---
+Randomized Reﬁnement Checking
+of Timed I/O Automata
+Andrej Kiviriga, Kim Guldstrand Larsen, and Ulrik Nyman
+Aalborg University, Selma Lagerløfs Vej 300, 9220 Aalborg, Denmark
+{kiviriga, kgl, ulrik}@cs.aau.dk
+Abstract. To combat the state-space explosion problem and ease sys-
+tem development, we present a new reﬁnement checking (falsiﬁcation)
+method for Timed I/O Automata based on random walks. Our memory-
+less heuristics Random Enabled Transition (RET) and Random Channel
+First(RCF) provide eﬃcient and highly scalable methods for counterex-
+ample detection. Both RET and RCF operate on concrete states and
+are relieved from expensive computations of symbolic abstractions. We
+compare the most promising variants of RET and RCF heuristics to ex-
+isting symbolic reﬁnement veriﬁcation of the Ecdartool. The results
+show that as the size of the system increases our heuristics are signiﬁ-
+cantly less prone to exponential increase of time required by Ecdarto
+detect violations: in very large systems both “wide” and “narrow” viola-
+tions are found up to 600 times faster and for extremely large systems
+when Ecdartimeouts, our heuristics are successful in ﬁnding violations.
+Keywords: Model-checkingtimed I/O automata randomizedstate-
+spacereﬁnement.
+1 Introduction
+Model-checking has been established as a useful technique for verifying proper-
+ties of formal system models. The most notable obstacle in this ﬁeld, state-space
+explosion , relates to the exponential growth of the state-space to be explored as
+thesizeofmodelsincreases.Overthelastthreedecadesavastamountofresearch
+has attempted to combat this problem resulting in a plethora of techniques that
+reduce the number of states to be explored [1,4,28]. Various symbolic and reduc-
+tion techniques (e.g. [3,9,23,25,34]) have become a ground for implementation
+of veriﬁcation tools ( CADP, NuSMV,Kronos ,Spin,Uppaal, etc.), allowing
+them to handle a much larger domain of ﬁnite state and timed systems; how-
+ever, for all cases symbolic and exhaustive veriﬁcation still remains an expensive
+approach.
+Counterexample detection techniques (e.g. [22]) can be used to even further
+avoid state-space explosion and facilitate a more eﬃcient process of model ver-
+iﬁcation. A prominent example in this area is the Counterexample-Guided Ab-
+straction Reﬁnement (CEGAR) [12] technique which has been intensely studied
+Supported by the ERC Advanced Grant Project: LASSO: Learning, Analysis, Syn-
+thesis and Optimization of Cyber-Physical Systems.
+
+--- Page 3 ---
+2 A. Kiviriga et al.
+and applied to a variety of systems in model-checking including probabilistic
+systems [21], hybrid automata [37,31], Petri net state equations [35] and timed
+automata [27,20,29]. The core idea is to automatically generate abstraction mod-
+els(e.g. by reducing the amount of clocks), which may have a substantially
+smaller state-space, and verify them in a traditional model-checker to generate
+counterexamples if a property is not satisﬁed. The counterexamples are in turn
+used to reﬁne the abstraction models.
+On the other hand, some counterexample detection techniques give up on
+the requirement of completeness and only explore part of the state-space, which
+no longer allows to guarantee correctness but provides a powerful mechanism for
+fault detection if one exists in the model. This is similar in approach to using
+the QuickCheck tool [11] for testing of Haskell program properties. Therefore,
+we believe a productive development method should consist of two steps: running
+multiple cheap and approximate counterexample detection algorithms early in
+the development for quick violation discovery and performing an expensive and
+exhaustive symbolic model-checking at the very end.
+A very promising approach in counterexample detection methods is based on
+employing randomness. The ﬁrst steps in that direction were made by [19,30]
+where the state-space is explored by means of repeatedly performing random
+walks.Withasuﬃcientamountofsuchwalksanexistingviolationwilleventually
+be found; nonetheless, designing eﬃcient methods that excel at counterexample
+detection is not a trivial task. The diﬃculty lies in unintentional probabilities
+in the exploration methods that may lead to uneven coverage of the models’
+state-space. A recent example in the domain of untimed systems was done by
+[24] where the authors study veriﬁcation of LTL properties and compare their
+random walk tactics, namely continue walking andonly accepting and respective
+memory-eﬃcient variants of those, to the tactics of [19].
+A ﬁrst attempt to use randomness in the setting of timed systems was made
+by[18],wherea Deep Random Search (DRS)algorithm,whichexploresthestate-
+space of a simulation graph of a timed automaton (TA) [2] in a symbolic manner,
+was presented. DRS performs an exhaustive exploration by means of random
+walks in a depth-ﬁrst manner until a speciﬁed cutoﬀdepth. Even though DRS
+conducts a complete search of the state-space, its computational advantage relies
+on detecting existing counterexamples quickly. In some sense DRS conforms to
+both steps of the above-mentioned development method - either counterexamples
+aredetectedpotentiallyearlyinthesearchor,ifnoneexist,theentirestate-space
+is explored. DRS has been experimentally shown to outperform Open-Kronos
+andUppaal model-checkers; however, the experiments do not compare DRS
+withUppaal’sRandom Depth First Search (RDFS) - a powerful method for
+TA with strong fault detection potential.
+In this paper we focus on carrying out random walks on networks of timed
+I/O automata (TIOA) for reﬁnement checking as a quick and eﬃcient falsiﬁ-
+cation method. To improve performance we intend to work with the concrete
+semantics which relieves us from expensive computations of symbolic abstrac-
+tions based on such data structures as Diﬀerence Bounded Matrices (DBM) [17].
+
+--- Page 4 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 3
+(a)Concrete system
+ (b)Overall speciﬁcation
+Fig.1:Detailed automaton (a) reﬁnes overall speciﬁcation (b).
+The reﬁnement veriﬁcation helps to determine if a system speciﬁcation can be
+successfully replaced by a single or even a number of other systems. Figure 1
+shows a common reﬁnement application example where a detailed system (a)
+reﬁnes a more general speciﬁcation of desired behavior (b). The detailed system
+models a token being passed around a ring. The clock xensures that the to-
+ken is passed within the time bounds of x>dand x<=D. The overall speciﬁcation
+requires the whole loop to be completed within x<=3D.
+An easy way to perform randomized exploration is to exploit the stochastic
+semanticsofTIOAallowingtheuseofexistingStatisticalModelChecking(SMC)
+techniques[33,36].TheideaofSMCistoproduceanumberof sample traces from
+a stochastic model, that are then statistically analyzed to estimate a probability
+that a random run of the model will satisfy a given property. Moreover, the
+estimate comes with a level of conﬁdence which requires more sample traces for
+higher precision. The SMC method has been implemented in a number of tools,
+including Uppaal SMC [13] which uses stochastic timed automata (STA). For
+more details of this stochastic semantics see [8,13]. Due to its simplicity, SMC
+is widely accepted in industrial applications where exhaustive model-checking is
+not feasible.
+Fig.2:Timed I/O Automaton. Diﬃcult case for SMC.
+For the purpose of violation discovery however, SMC simulation techniques
+may not be a productive approach. Figure 2 shows a trivial, yet very diﬃcult
+case for SMC to detect if an ErrorLoc is ever reached. Due to the stochastic
+semantics SMC operates on, a delay is uniformly chosen between 0and106
+making it nearly impossible to traverse “narrow guard” edges. The probability of
+reaching ErrorLoc in one step is1
+210 6, thus it requires in average 2106steps
+to reach that location. While such stochastic semantics allows for a model to
+mimic the behavior of a real system, counterexample detection methods require
+diﬀerent heuristics in order to be eﬃcient.
+
+--- Page 5 ---
+4 A. Kiviriga et al.
+In this paper we present two lightweight, randomized and memory-less tech-
+niques for reﬁnement checking of Timed I/O Automata: Random Enabled Tran-
+sition(RET) and Random Channel First (RCF). Similarly to Uppaal SMC
+and existing randomized techniques, our methods operate on concrete states
+and perform random walks through systems to detect violations. We show ex-
+perimentally the potential of these algorithms on Milner’s scheduler and Leader
+Electionprotocolwithavaryingnumberofnodesandcomparetheirperformance
+to those of existing symbolic and discrete state-space exploration methods - Ec-
+darand SMC for Timed I/O Automata. Our heuristics detect violations of the
+overall speciﬁcation up to 600 times faster than Ecdarand scale better.
+2 TIOA, Composition and Reﬁnement
+We now introduce key deﬁnitions of the formalism based on [16]. Let Clkbe a
+ﬁnite set of clocks. A clock valuation over Clkis a mapping u2[Clk7!R0].
+A guard is represented as a ﬁnite conjunction of expressions of the form xn,
+wherex2Clk,is a relational operator ( <;;>;;=;6=)andn2N. A set of
+suchguardsoverClkis denoted asB(Clk), whereasP(Clk)is used to denote a
+powerset of the clock set.
+Deﬁnition 1 (Timed I/O Automaton). A Timed I/O Automaton (TIOA)
+is represented as a tuple A= (Loc;q0;Clk;E;Act;Inv)whereLocis a ﬁnite
+set of locations, q02Locis the initial location, Clkis a ﬁnite set of clocks
+that represent time, ELocActB(Clk)P(Clk)Locis a set of edges,
+Act=ActiActois a ﬁnite set of actions, partitioned into inputs and outputs
+respectively, and Inv:Loc!B(Clk)is a set of location invariants.
+An edge is a tuple (q; a; '; c; q0)2Ewhere the source location is q, the
+action label is a, the constraint over clocks to be satisﬁed is ', the clocks to be
+reset arec, and the target location is q0. The semantics of TIOA is given by a
+Timed I/O Transition System S= (St;s 0;;!), whereStis an inﬁnite set of
+states,s02Stis the initial state, =iois a ﬁnite set of actions and
+!:St([R0)Stis a transition relation (see [16] for complete deﬁnition).
+Fig.3: Researcher automaton.An example of Researcher TIOA, shown
+in Figure 3, contains three locations - id0,
+id1andid2.Inputandoutputactionsarede-
+noted by ?and !respectively. A Researcher
+can do some work w!(e.g. research) with at
+least8and at most 10time units required to
+ﬁnish the job, deﬁned as constraints on clock
+x: the guard x>=8on edge from id0toid2
+and invariant x<=10at location id0, respec-
+tively. Alternatively, if a researcher receives a
+cup of tea ( tea?) the work can be done faster
+- between 6and7time units. However, for
+
+--- Page 6 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 5
+now this TIOA has a ﬂaw in that the initial work progress, if any, is lost (due
+to the update x=0) when a researcher gets a cup of tea.
+A run within TIOA is a sequence of concrete states deﬁned as (l;u), wherel
+is a location and uis a function that assigns values to all clocks. The following
+gives two sample runs 1and2of the Researcher :
+1(id0;x=0)9.27   ! (id0;x=9.27 )w!  !(id2;x=9.27 )
+2(id0,x=0)1.14   !(id0,x=1.14)tea?   !(id1,x=0)4.91   !(id1,x=4.91)w!  !
+(id2;x=4.91 )
+Fig.4: Machine speciﬁcation.
+ Fig.5: SlowMachine speciﬁcation.
+Parallel composition , a feature allowing to combine speciﬁcations, is an
+important aspect of reﬁnement veriﬁcation. An overall speciﬁcation is often chal-
+lenged to be reﬁned by a number of parallelly composed systems. Consider a
+simplistic Machine component, shown in Figure 4, which is responsible for pro-
+viding tea immediately after the payment ( coin) is received. It can be run in
+parallel (i.e. composed) with previously seen Researcher (Figure 3) where both
+components are able to interact with each other and altogether act as a single
+system. To avoid state-space unfolding, composition is usually not constructed,
+but its behavior is deduced based on transition synchronization rules (see [16] for
+formal deﬁnition). For illustration purposes, the automaton which captures the
+overall behavior of parallelly composed Machine and Researcher components is
+given in Figure 6 (a).
+(a)Researcher || Machine .
+ (b)Overall speciﬁcation Spec.
+Fig.6:Composition (a) reﬁnes overall speciﬁcation (b).
+Note that only automata whose output action sets are disjoint may be com-
+posed. Moreover, input and output edges that synchronize on identical signa-
+tures become output edges in a resulting composition (e.g. coinand tea). Such
+internal synchronization reﬂects both components advancing to new locations
+simultaneously. Since the composition component is now in control of when the
+tea is received, the work progress of a researcher can no longer be lost.
+
+--- Page 7 ---
+6 A. Kiviriga et al.
+To capture the desired behavior of components a notion of speciﬁcation is in-
+troduced. Its concept of input-enabledness reﬂects a belief that an input cannot
+be prevented from being sent to the system and thus requires an explicitly mod-
+elled behavior. To improve the modelling process, model-checking tools such as
+Ecdartreat unspeciﬁed behavior for inputs as location loops in the automaton.
+Deﬁnition 2 (Speciﬁcation). A TIOTSS= (St;s 0;;!)is a speciﬁcation
+if each of its states s2Stis input-enabled: 8i?2i:9s02St: si? !s0.
+The speciﬁcation theory of TIOA supports a notion of reﬁnement which if
+satisﬁed allows to replace a speciﬁcation with another one in every environment
+and obtain an equivalent system. For a speciﬁcation Sto reﬁne speciﬁcation T,
+both outputs and delays done by Smust be matched by T, leading to a new pair
+of states in the reﬁnement relation. Moreover, all inputs of Tare required to be
+matchedby S,whichisalwaysthecaseduetoinput-enablednessofspeciﬁcations.
+Deﬁnition 3 (Reﬁnement). A speciﬁcation S= (StS;s0;;!S)reﬁnes a
+speciﬁcation T= (StT;t0;;!T), writtenST, iﬀ there exists a binary rela-
+tionRStSStTcontaining (s0; t0)such that for each pair of states (s; t)2R
+we have:
+Input rule: wheneverti? !Tt0for somet02StTthensi? !Ss0
+and(s0; t0)2Rfor somes02StS
+Output rule: wheneverso!  !Ss0for somes02StSthento!  !Tt0
+and(s0; t0)2Rfor somet02StT
+Delay rule: wheneversd  !Ss0ford2R0thentd  !Tt0
+and(s0; t0)2Rfor somet02StT
+Figure 6 shows a reﬁnement example where a Researcher || Machine com-
+position (a) is challenged to reﬁne a more general desired behavior speciﬁcation
+Spec(b). Since the composition requires between 6to10time units to per-
+form the work, which is what the overall speciﬁcation expects, the reﬁnement
+relation holds. However, if the Researcher is composed with the SlowMachine
+from Figure 5 instead, the tea is no longer provided immediately but requires
+up to4time units to be prepared. Performing the work after getting the tea
+altogether now requires 11time units at most. This is not allowed by the overall
+speciﬁcation with invariant z<=10and thus reﬁnement fails.
+The reﬁnement in the Ecdartool is handled by using the Uppaal-Tiga
+engine [5] for veriﬁcation of timed games. This engine searches for a winning
+strategy by playing a turn-based game between two players using the on-the-ﬂy
+algorithm proposed in [10]. The ﬁrst player, being the attacker, plays outputs
+of the left side and inputs of the right side of the reﬁnement, while the second
+player, the defender, plays inputs of the left side and outputs of the right side.
+The reﬁnement fails if the defender cannot match either a delay or an action per-
+formed by the attacker. The underlying data structure for the algorithm of [10]
+is based on zoneswhich provides a zone-based symbolic abstraction, allowing
+to eﬀectively store and manipulate states. Zones represent sets of clock valua-
+tions, deﬁned as lower and upper bound constraints on clocks and on diﬀerences
+
+--- Page 8 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 7
+between each of the clocks. Unlike reachability analysis, reﬁnement veriﬁcation
+requires keeping track of a pair of states - one for each reﬁnement side, which
+includes a single zone containing the union of clocks from both sides of the re-
+ﬁnement relation. All newly discovered state pairs and already veriﬁed ones are
+stored in the waitingandpasseddata structures respectively, the latter of which
+allows to guarantee termination and avoid repeated exploration of states.
+3 Random Walk Heuristics
+Conducting concrete-state based random walks means that we are no longer able
+to verify reﬁnement but are rather looking for violations of one of the reﬁnement
+rules. Veriﬁcation of the delay rule is similar to the symbolic approach. Following
+the deﬁnition, it suﬃces to check if the reﬁnement right side allows delaying at
+least as much as the left side. With a concrete state as a starting point it is easy
+to compute the maximal delay available for that state by selecting the smallest
+diﬀerence between the upper bound speciﬁed by the invariant and the current
+value for each individual clock. Since such computations are also necessary for
+determining transition’s availability, for each encountered state pair we check if
+the maximal delay on the right side is at least as big as on the left side, thus
+potentially capturing more delay rule violations at a small cost.
+To maintain quick state-space exploration, our random walks are completely
+memory free, i.e. no state pairs are stored in memory except for the current
+one. When a transition is taken, we advance to the target state pair and verify
+either input or output rule based on the action type of the transition. Due to
+input-enabledness, an input transition may only result in the discovery of a new
+state pair, whereas an output transition on the left side, if not followed by the
+right side, can provide a counterexample. Moreover, not storing any information
+about already visited states introduces two issues: termination guarantee and
+repeated exploration of the states.
+Termination In the setting of concrete-state random walks, revisiting already
+exploredstatepairsisnotnecessarilyabadthing;infact,itcanbebeneﬁcialasit
+may lead to traversal of other, yet unseen, transitions. Termination on the other
+hand requires certain conditions. Upon reaching a state with either no outgoing
+transitions or no eventually enabled (after performing a delay) transitions we
+terminate the random walk and issue a new one. This, however, becomes a
+problem for cyclic systems where above-mentioned conditions may never occur,
+resulting in an inﬁnite exploration. We approach the termination problem in
+a straightforward way by supplying random walks with a parameter of steps
+(number of transitions) that can be taken before a walk is terminated. Ideally,
+this parameter should be dynamically adapted to the target system; however,
+ﬁnding the optimal value is far beyond from trivial (e.g. see [7]). Therefore, we
+limit ourselves to a predeﬁned (static) number of steps.
+
+--- Page 9 ---
+8 A. Kiviriga et al.
+3.1 Selecting transition
+During a random walk through the model, the actions of both delaying and
+traversing transition are made in sequence. We, however, reverse the process
+such that the concrete delay is selected after the target transition is chosen. As a
+result,notonlydodelaysnotdeterminetransitionchoice,butadelayisnolonger
+made if there are no transitions available. Given that the delay rule is checked
+by comparison of maximal delays of reﬁnement sides, this strategy (of choosing
+transition ﬁrst) makes sense as with no available transitions no other reﬁnement
+rules can be violated. We propose two heuristics for selecting transitions.
+The idea of the Random Enabled Transition (RET) heuristic is to ﬁrst com-
+pute all eventually enabled transitions, i.e. transitions which are either currently
+available or will become such after a delay, for a given state of the reﬁnement left
+side.Contrarytothereﬁnementinputrule,weconsiderinputtransitionsstarting
+from the left side as due to input-enabledness they can never violate reﬁnement
+relation, but can only lead to new, potentially unexplored, state pairs. Next, we
+uniformly choose one of the computed transitions as a target for traversal. The
+counterexample is found when the right side cannot match an output transition.
+Proﬁlinghasshownthatcomputingeventuallyenabledtransitionsisthemost
+resource demanding operation in our random walks. It needs to consider all par-
+allelly composed automata and construct transitions on the ﬂy. Given a concrete
+state it is necessary to check potential availability, i.e. if guards are satisﬁed, for
+each edge by computing lower and upper bounds that correspond to minimal
+and maximal delays after which a transition is enabled. To reduce the total
+amount of such computations we propose an alternative heuristic for choosing
+transitions - Random Channel First (RCF). It chooses a random channel (same
+as action) from the list of all channels and computes enabled transitions only for
+that channel. If none exist, the selected channel is removed from the list. The
+process is repeated until either transitions are found or the list of channels is
+exhausted, where the latter option leads to termination of the random walk. If
+transitions are discovered, a random one is uniformly chosen for traversal.
+3.2 Selecting delay
+Next, we need to select a concrete delay, i.e. value to increase all clocks by, before
+traversing a transition as it potentially aﬀects further choices. With target tran-
+sition being selected ﬁrst, the choice of delay is made within availability bounds
+of the transition which are computed during transition selection. This keeps the
+process lightweight as no additional computations are required. Choosing a tar-
+get transition prior to delaying also allows to exclude the width (size) of the
+edge’s guard from aﬀecting the probability for that edge to be explored. A delay
+for the automaton from Figure 2 would therefore depend on a chosen transition
+and be in either of the two ranges - [0; 106]or(106 1; 106]. In comparison
+to SMC our heuristics have a probability of1
+2to traverse the edge leading to
+ErrorLoc thus requiring 2 runs in average to discover the error. This leads to a
+
+--- Page 10 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 9
+better state-space coverage and increases the chance to detect counterexamples
+since “narrow” and “wide” edges become equally easy to traverse.
+Initially, we selected the delay uniformly from the transition’s range of avail-
+able delays. We believe however that selecting lower bound (LB) or upper bound
+(UB) is often more eﬃcient for violation detection. This is because the prevail-
+ing amount of practical model-checking applications is concerned with either
+meeting deadlines, i.e. something that has an upper limit, or satisfying minimal
+requirements,i.e.somethingthatcannotbedonefasterthanspeciﬁed.Forexam-
+ple, the overall speciﬁcation from Figure 6 (b) ensures both upper and lower time
+limits to be followed by a more concrete system. Similarly in QuickCheck [11]
+the random selection of datatype values is biased towards base-elements (empty
+list, empty tree, etc.) because they are more likely to be the source of errors.
+Thus, we expect a more corner-case oriented delay choice distribution (e.g. 40%
+LB, 20% uniform, 40% UB) to show better results at violation detection.
+3.3 RET vs RCF
+Since the RCF heuristic partitions the computation of eventually enabled tran-
+sitions into smaller chunks, which are based on channel, and chooses a target
+transition as soon as one of these chunks yields a result, it is less computation-
+ally demanding than RET. For models with outdegree of at least two edges with
+diﬀerent channels, RCF in average will perform fewer expensive operations to
+compute transitions which implies a faster exploration of the state-space; how-
+ever, due to underlying probabilities this is not always the case.
+Fig.7:Diﬃcult case for RCF.
+Consider the automaton from Figure 7 where the Errorlocation represents a
+counterexample. At the initial location Initboth the values of clocks xandyare
+set to 0 and the output edge with action fis not available until x==0and y==8.
+Moreover, the invariant ( x<=1) on Initrestricts us from directly delaying until
+thefedge becomes available. This leaves three enabled edges: two of action a,
+both of which increase the clock yby 1 unit upon returning to Init, and one of
+action u, which is “undesired” in a sense that it prohibits the walk from reaching
+Errorby resetting clock yand must therefore be avoided during exploration.
+While clock yis less than 8, only channels aand ucan yield a result for a
+target transition. The probabilities for RCF and RET to choose edges for these
+channels is shown in Table 1. RCF heuristic randomly chooses one of two chan-
+nels at a 50% probability, leaving a 50% chance to traverse either one of the a!
+edges or the only existing edge for channel u, which “resets” the model back to its
+
+--- Page 11 ---
+10 A. Kiviriga et al.
+Table1: RETandRCF
+probabilities to traverse
+edges while y<8.
+Action RETRCF
+a!(x<1)33.3%50%a!(x==1)33.3%
+u!33.3%50%initial state. On the other hand, choosing randomly
+amongst all eventually enabled transitions regardless
+of channel, RET selects any of the three edges at a
+probability of 33%. To reach the Errorlocation either
+of the two a!edges must be taken 8 times in a row,
+followed by the f!edge. The probability of doing so in
+oneattemptfor RET is 0:6780:25102
+10000, whereas
+for RCF it is 0:580:3313
+10000. After traversing the
+“undesired” edge, a random walk continues making
+newattempts until either the violation is found or the number of allowed steps
+is made. Given the probabilities, RCF requires 769 attempts in average to reach
+Errorcompared to an average of 98 attempts for RET.
+3.4 Delay probability distribution changes
+The drawback of the static delay choice proposed in Section 3.2 is that such (or
+any) static distribution (40% LB, 20% uniform, 40% UB) naturally favors some
+models more than others in terms of error detection. In fact, some sophisticated
+systems might beneﬁt the most from delaying only LB or UB; however, it might
+be impossible to derive this knowledge from a static analysis of the system.
+Algorithm 1 Check reﬁnement
+1:function checkRefinement
+2: chanceUB 0:5; chanceLB 0:5
+3: while violation not found do
+4: perform random walk with chanceLB andchanceUB
+5: ifviolation found then return false
+6: else
+7: chanceUB += 0 :1; .Increase UB by 10%
+8: if(chanceUB > 1)then chanceUB = 0;
+9: chanceLB = 1 chanceUB ;
+To ﬁght this, we propose a strategy where each random walk has a diﬀerent
+delay choice distribution, as shown in Algorithm 1. First, a random walk is
+executedwhereallthedelaysfollow50%LB/50%UBdistribution.Ifaviolation
+is not found, a new random walk is issued where the probability to delay LB is
+decreased and probability to delay UB is increased by 10%, resulting in 40% LB
+/ 60% UB. Upon reaching a probability distribution which guarantees the choice
+of an upper bound value (0% LB / 100% UB), the next random walk has its
+probabilities“ﬂipped”,s.t.onlythelowerboundvalueischosenforthedelay.The
+process continues until the violation is found. Naturally, if a random walk with
+the most eﬃcient probability distribution for a target model is unsuccessful at
+ﬁndingaviolation,itwilltakeanother11randomwalkstoreachthatprobability
+distribution again. However, the main drawback of this strategy is its inability
+to detect the “in between” violations as only bounds of the potential delay range
+are considered; nonetheless, while always missing a particular kind of violation,
+we believe this technique will often be substantially more eﬃcient than others.
+
+--- Page 12 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 11
+4 Test setting
+The experiments are performed on the models of Milner’s scheduler [26] and
+Leader Election protocol [14], which operate on a ring topology and can be
+instantiated for an arbitrary number of nodes that communicate in sequence.
+4.1 Milner’s scheduler
+We analyze a real-time version of Milner’s scheduler [15], where each node Ni
+can perform two actions in parallel: do some work by outputting on wi!and
+pass the token to the next node Ni+1in the sequence by outputting on reci+1!.
+Figure 8 shows a node template (a) and a template for the overall speciﬁcation
+(b) that a ring of nodes has to reﬁne. Templates allow multiple instances of the
+same model as also used in Uppaal [6]. Each node starts at a location where it
+waits to receive a token before any actions can be taken. As soon as the token
+is received clocks are reset and all further actions are limited by a lower bound
+ofdand an upper bound Drepresented by guards and invariants respectively.
+(a)Node template.
+ (b)Overall speciﬁcation
+template.
+Fig.8:Real-time version of Milner’s Scheduler. Templates for the Ecdartool.
+Note that the ﬁrst node of the system has to be instantiated with a diﬀerent
+initial location (bottom one) to represent the initial ownership of the token. The
+overall speciﬁcation on the other hand only ensures that w0!, i.e. work done
+by initial node, requires at most (N+1)Dtime units. Later in our experiments,
+we modify the overall speciﬁcation such that it is violated in order to create
+counterexamples that can be detected by RET, RCF and SMC. To do so, we
+modify the invariant of the overall speciﬁcation to be z<=(N+1)D(1-v), s.t.
+fv2R: 0v1gwhere vis the desired violation size in percentage. The
+higherthevalueof vthewider,andthereforeeasiertodetect,violationiscreated.
+Apart from diﬀerent node amounts, we also manipulate the lower bound variable
+on guards ( d), the smaller values of which drastically increase the state-space.
+4.2 Leader Election protocol
+The Leader Election protocol has each of its nodes assigned a unique priority
+in addition to id. The goal of the protocol is to elect a leader with the highest
+
+--- Page 13 ---
+12 A. Kiviriga et al.
+priorityby having nodes pass their current priorityto the next node in sequence.
+If thepriorityreceived by a node is higher than its own, the node records that
+priority and further only sends it to the next node instead of its own priority.
+Otherwise, the received priority is discarded. Upon receiving its own priority
+the node knows it can claim the leadership since that priorityhas travelled one
+full round without being discarded and is thus the highest.
+(a)Node template.
+ (b)Overall speciﬁcation
+template.
+Fig.9:Leader Election protocol templates for the Ecdartool.
+The templates for this protocol are shown in Figure 9. The overall speciﬁca-
+tion (b) ensures that only the correct node (a) can declare itself a leader, and
+only within NMaxD-vtime units, s.t.fv2Z: 0vNMaxDg, where vis used
+to modify speciﬁcation to introduce reﬁnement violations. Here, two-dimensional
+channel arrays, e.g. send[id][pr] , are used as way of value passing, where the
+ﬁrst and the second indices represent node idandpriority respectively. The
+curvariable, representing the highest received priority, is initialized to pr(own
+priority) for each node. Contrary to Milner’s scheduler, this protocol does not
+constrain nodes to acting only after having received the token; instead, any node
+is free to send its priority at all times.
+4.3 Implementation
+We have implemented a Java prototype of both the RET and RCF heuristics
+for reﬁnement checking of TIOA. For a more fair comparison of our heuristics
+with SMC, we reimplemented SMC in Java for the network of TIOA with the
+stochastic semantics. Table 2 gives an overview on performance diﬀerences be-
+tween Java and that of Uppaal C++ implementation of SMC. Surprisingly,
+Java SMC appeared to be faster, however this is most likely due to it being a
+prototype which does not retain all the features of Uppaal SMC. For the rest
+of the paper we will be using Java SMC as it is not substantially diﬀerent.
+Table 2: Average time (in seconds) to detect violation for Milner’s scheduler.
+Settings Java SMC Uppaal SMC
+N=8, d=20, v=6% 1.720 3.413
+N=12, d=20, v=6% 33.869 57.762
+To use SMC in a reﬁnement setting, we transform reﬁnement into a reacha-
+bility problem by constructing a complement automaton of the reﬁnement right
+side and composing it with the left side.
+
+--- Page 14 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 13
+5 Experiments
+To understand how delay choice inﬂuences violation detection, we compare the
+performance of three variants of each heuristic and the SMC approach. The
+results are reported in Table 3 for Milner’s scheduler where each case ran for 60
+minutes. RET-U and RCF-U did a uniform delay choice, RET-PD and RCF-
+PD delayed based on a predeﬁned distribution of 40% LB, 20% uniform, 40%
+UB, and RET and RCF had changing probability distributions, but could miss
+violations requiring “intermediate delays”, as described in Section 3.4.
+Table 3: Each cell represents an average time (in sec) to discover a violation
+calculated over all discovered violations within 60 minutes in Milner’s scheduler.
+Not found (nf) cells represent no discovered violations.
+Settings RET-URET-PD RETRCF-URCF-PD RCF SMC
+N=8
+d=20v=2% nf0.0420.011 nf0.024 0.007 nf
+v=4% 21.577 0.0080.003 12.590 0.005 0.002 50.832
+v=6% 0.558 0.0040.003 0.361 0.003 0.002 1.720
+N=8
+d=4v=2% nf0.0780.010 nf0.043 0.005 nf
+v=4%491.800 0.0440.0101506.872 0.026 0.005891.425
+v=6% 58.688 0.0330.010 42.996 0.017 0.005 96.811
+N=12
+d=20v=2% nf0.6550.030 nf0.336 0.017 nf
+v=4%2770.389 0.0820.0171376.237 0.043 0.0102882.110
+v=6% 26.082 0.0210.008 13.564 0.012 0.005 33.869
+N=12
+d=4v=2% nf2.0560.032 nf0.886 0.017 nf
+v=4% nf0.8510.031 nf0.440 0.017 nf
+v=6% nf0.5010.031 nf0.254 0.017 nf
+It is clear that delay choice strategies have a large impact on the eﬃciency of
+random walks. Both the SMC approach and our heuristics with uniform delay
+choice (RET-U, RCF-U) have the weakest potential in terms of counterexample
+detection and are strongly aﬀected by the size of the violation. While “wide”
+violations are found relatively quickly, “narrow” counterexamples ( v=2%) were
+not discovered at all. Therefore, the low eﬃciency of SMC, RET-U and RCF-
+U approaches makes their practical application not feasible for a number of
+nodes higher than 12. On the other hand, RET-PD, RET, RCF-PD and RCF
+are signiﬁcantly quicker at discovering violations and less sensitive to increasing
+the number of nodes or decreasing the dvariable, both of which explode the
+state-space. The delay choice based on the predeﬁned distribution (RET-PD and
+RCF-PD) was, as expected, superior to uniform choice and enabled detection
+of even “narrow” violations. The most eﬃcient appears to be RET and RCF
+heuristicvariantswithchangingprobabilities,whichhavealsoshownthesmallest
+diﬀerence in time for detection of “wide” and “narrow” violations.
+We further compare the most promising RET and RCF heuristics with Ec-
+daron a large number of nodes and report results in Table 4. Increasing the
+number of nodes or especially decreasing dsigniﬁcantly increases time needed
+byEcdarfor veriﬁcation. Contrary to that, RET and RCF are not so sensitive
+
+--- Page 15 ---
+14 A. Kiviriga et al.
+Table 4: Each cell represents an average time (in sec) to discover a violation
+calculated over all discovered violations within 60 minutes in Milner’s Scheduler.
+Thev= 0%case can only be veriﬁed by the complete exploration of Ecdar.
+Settings ECDAR RETRCF
+N=50
+d=20v=0% 0.619 --
+v=2% 0.6860.638 0.314
+v=4% 0.6880.487 0.249
+v=6% 0.6890.360 0.176
+N=50
+d=10v=0% 1.576 --
+v=2% 2.2520.692 0.326
+v=4% 2.2080.613 0.291
+v=6% 2.1820.547 0.255
+N=50
+d=4v=0% 160.015 --
+v=2%224.724 0.688 0.322
+v=4%274.632 0.621 0.292
+v=6%295.818 0.576 0.268Settings ECDAR RETRCF
+N=100
+d=20v=0% 3.622 --
+v=2% 4.0502.791 1.304
+v=4% 3.9422.206 1.024
+v=6% 3.9741.701 0.776
+N=100
+d=10v=0% 9.510 --
+v=2% 13.367 2.873 1.302
+v=4% 13.252 2.686 1.194
+v=6% 12.832 2.383 1.080
+N=100
+d=4v=0% 2631.751 --
+v=2% 693.688 2.856 1.279
+v=4% 695.181 2.721 1.231
+v=6% 689.754 2.490 1.102
+to the change of dwhich shows that due to probability changes our heuristics
+perform almost equally well on “narrow” and “wide” edge systems. For N= 100
+andd= 4Ecdartakes more than 10 minutes to detect the violation, whereas
+RET and RCF require just under 3 and 1.3 seconds respectively. Surprisingly,
+complete symbolic reﬁnement veriﬁcation in Ecdarin case ofv= 0%is still fea-
+sible on such high number of nodes as 50 and 100. Thus, the use of our proposed
+development method is supported: ﬁrst RET and RCF can be used to quickly
+detect possible violations, and once no further violations are found using our
+heuristics an expensive and complete veriﬁcation by Ecdaris to be conducted.
+Fig.10: RETandRCFcomparisononMilner’sschedulerwith d= 4andv= 2%
+InFigure10theperformanceofRETandRCFforMilner’sschedulerincreas-
+ing number of nodes is compared in the diﬃcult setting of d= 4andv= 2%
+which signiﬁcantly reduces chances to detect violations. The results are very en-
+couraging: even for 500 nodes RET and RCF manage to discover violations in
+an average of under 100 and 50 seconds respectively.
+We now compare most promising variants of RET and RCF (with changing
+probabilities) against Ecdaron a much heavier, non tokenized Leader Evalua-
+
+--- Page 16 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 15
+tion protocol. The results (shown in Table 5) demonstrate a severe state-space
+explosion: even for 7 nodes Ecdaris not able to conclude veriﬁcation within an
+hour.Onthepositivenote,RETandRCFareabletohandleupto10nodes;how-
+ever, in comparison to Milner’s scheduler, here the “width” of the violation has
+a much stronger impact on the performance. Moreover, the exponential growth
+of channels ( send[id][e] ) makes the RCF heuristic much more favorable.
+Table 5: Each cell represents an avg. time (in sec) to discover a violation calcu-
+latedoveralldiscoveredviolationswithin60minutesinLeaderElectionprotocol.
+Thev= 0case can only be veriﬁed by the complete exploration of Ecdar. Not
+found (nf) cells represent no discovered violations.
+Settings ECDAR RET RCF
+N=5v=0 0.103 - -
+v=2 0.127 1.411 0.403
+v=40.130 0.080 0.024
+v=60.085 0.009 0.003
+N=7v=0 nf - -
+v=2 nf102.653 26.617
+v=4 nf4.140 0.722
+v=6 nf0.345 0.073Settings ECDAR RET RCF
+N=6v=0 17.190 - -
+v=218.170 11.392 2.916
+v=415.952 0.576 0.138
+v=68.695 0.059 0.015
+N=8v=0 nf - -
+v=2 nf170.782 172.880
+v=4 nf38.217 5.166
+v=6 nf2.113 0.340
+To further examine the eﬃciency of our heuristics to quickly detect violations
+during iterative development, we perform mutation testing on Leader Election
+protocol. Table 6 reports the results where either one ( M9
+1 4) or all (M8
+1 4)
+nodes have been replaced with a certain type of mutant, s.t. the reﬁnement
+relation is violated. We have tried a mutant with the initial location’s invariant
+bound doubled ( M1), a mutant that always sends its own priorityinstead of the
+recorded one ( M2), a mutant that forgets to record the received priority (M3)
+and a mutant that records its own idinstead of the received priority(M4).
+Table 6: Mutation testing for Leader Election protocol. Each cell represents an
+avg. time (in sec) to discover a violation calculated over all discovered violations
+within 60 minutes. Not found (nf) cells represent no discovered violations.
+Settings ECDAR RET RCF
+N=6M9
+138.20451.704 11.697
+M9
+225.183 0.002 0.001
+M9
+319.709 0.002 0.001
+M9
+418.007 0.002 0.001
+N=6M8
+112.592 0.077 0.016
+M8
+211.452 0.006 0.001
+M8
+310.643 0.003 0.001
+M8
+411.183 0.005 0.001Settings ECDAR RET RCF
+N=7M9
+1nf563.254 125.991
+M9
+2nf0.005 0.001
+M9
+3nf0.005 0.001
+M9
+4687.573 0.005 0.001
+N=7M8
+1nf0.054 0.011
+M8
+2nf0.007 0.001
+M8
+3nf0.006 0.001
+M8
+435.230 0.001 0.001
+The time to discover violation with mutants M2-M4is surprisingly small,
+which persists for even higher amount of nodes with very small increments in
+
+--- Page 17 ---
+16 A. Kiviriga et al.
+time. This occurs due to the modiﬁcations in these mutants in diﬀerent ways
+leading to an overall inability of the “node ring” to elect a leader, which most of
+thetimecanbedetectedwithonlyasinglerandomwalk.Mutant M1ontheother
+hand does not prevent leadership from being correctly declared, but creates the
+possibility of it happening too late, i.e. violating the time requirement imposed
+by the overall speciﬁcation. In cases where only one such mutant is present in
+the “ring” ( M9
+1) it is signiﬁcantly harder to detect violation for both Ecdar,
+due to the state-space growth, and our heuristics, due to decreasing underlying
+probabilities to ﬁnd a violation.
+Overall, for both of the models RCF appears to be noticeably faster than
+RET. This is caused by frequently occurring states with the outdegree of at least
+2 transitions for diﬀerent channels, which helps RCF to avoid a lot of expensive
+transition computations. This diﬀerence is especially large for Leader Election
+protocol, where the amount of channels grows exponentially to the amount of
+nodes. The general tendency is such that our heuristics are much less aﬀected
+by state-space explosion than symbolic veriﬁcation using Ecdar.
+The complete model, test results and Java prototype code are available at
+http://www.cs.aau.dk/~ulrik/submissions/982983/SETTA2020.zip .
+6 Conclusions and Future Work
+We have presented what we believe to be the ﬁrst randomized technique for
+reﬁnement checking of Timed I/O Automata by means of random walks. Our
+two heuristics RET and RCF provide a fast and scalable way of detecting coun-
+terexamples, the beneﬁts of which are most noticeable in large systems where the
+memorydemandsofsymbolicveriﬁcationarehigh.Suchtechniquesarebestused
+for quick falsiﬁcation to save time during development of large and industrial
+sized systems. If no errors are found, a long and expensive complete symbolic
+veriﬁcation can be conducted.
+The experiments have shown that the choice of delays can strongly inﬂuence
+the eﬃciency of the technique. The most eﬃcient and scalable variations of RET
+and RCF heuristics appeared to be the ones based on the adaptive approach,
+s.t. the delay choice distribution changes based on the outcome of the previous
+run. We anticipate that some models may even require the delay choice heuristic
+to be diﬀerent for each state while for other systems it might suﬃce delaying
+accordingtothesamedistribution.Therefore,webelievethatasmoretechniques
+appear,asuccessfulviolationdetectionstrategywillbetorunmultipleheuristics
+in parallel (see e.g [32]).
+The direction for the future work is to test RET and RCF on more models
+to see if these heuristics are eﬃcient or diﬀerent strategies are required. Our
+methods can also be applied for real time model-checking of other analysis prob-
+lems than reﬁnement. Furthermore, a better performance of the heuristics can
+potentially be achieved by supplying random walks with the dynamic number
+of steps based on a static analysis of the model and/or certain heuristics that
+manipulate the depth of each walk based on the outcome of the previous one.
+
+--- Page 18 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 17
+References
+1. Alur, R., Brayton, R.K., Henzinger, T.A., Qadeer, S., Rajamani, S.K.: Partial-
+Order Reduction in Symbolic State Space Exploration. In: Grumberg, O. (ed.)
+Computer Aided Veriﬁcation. pp. 340–351. Springer Berlin Heidelberg, Berlin, Hei-
+delberg (1997)
+2. Alur, R., Dill, D.: The theory of timed automata. In: de Bakker, J.W., Huizing, C.,
+de Roever, W.P., Rozenberg, G. (eds.) Real-Time: Theory in Practice. pp. 45–73.
+Springer Berlin Heidelberg, Berlin, Heidelberg (1992)
+3. Behrmann, G., Larsen, K.G., Pearson, J., Weise, C., Yi, W.: Eﬃcient Timed
+Reachability Analysis Using Clock Diﬀerence Diagrams. In: Halbwachs, N., Peled,
+D. (eds.) Computer Aided Veriﬁcation. pp. 341–353. Springer Berlin Heidelberg,
+Berlin, Heidelberg (1999)
+4. Behrmann, G., Bouyer, P., Larsen, K.G., Pelánek, R.: Lower and Upper Bounds in
+Zone Based Abstractions of Timed Automata. In: Jensen, K., Podelski, A. (eds.)
+Tools and Algorithms for the Construction and Analysis of Systems. pp. 312–326.
+Springer Berlin Heidelberg, Berlin, Heidelberg (2004)
+5. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+UPPAAL-Tiga: Time for Playing Games! In: Damm, W., Hermanns, H. (eds.)
+Computer Aided Veriﬁcation. pp. 121–125. Springer Berlin Heidelberg, Berlin, Hei-
+delberg (2007)
+6. Behrmann, G., David, A., Larsen, K.G.: A Tutorial on Uppaal. In: Bernardo, M.,
+Corradini, F. (eds.) Formal Methods for the Design of Real-Time Systems, Inter-
+national School on Formal Methods for the Design of Computer, Communication
+and Software Systems, SFM-RT 2004, Bertinoro, Italy, September 13-18, 2004,
+Revised Lectures. Lecture Notes in Computer Science, vol. 3185, pp. 200–236.
+Springer (2004). https://doi.org/10.1007/978-3-540-30080-9_7
+7. Behrmann,G.,Larsen,K.G.,Pelánek,R.:ToStoreorNottoStore.In:Hunt,W.A.,
+Somenzi, F. (eds.) Computer Aided Veriﬁcation. pp. 433–445. Springer Berlin Hei-
+delberg, Berlin, Heidelberg (2003)
+8. Bertrand, N., Bouyer, P., Brihaye, T., Carlier, P.: When are stochastic transition
+systems tameable? Journal of Logical and Algebraic Methods in Programming 99,
+41 – 96 (2018)
+9. Burch,J.,Clarke,E.,McMillan,K.,Dill,D.,Hwang,L.: SymbolicModelChecking:
+1020 States and Beyond. Information and Computation 98(2), 142 – 170 (1992)
+10. Cassez, F., David, A., Fleury, E., Larsen, K.G., Lime, D.: Eﬃcient On-the-Fly
+Algorithms for the Analysis of Timed Games. In: Abadi, M., de Alfaro, L. (eds.)
+CONCUR 2005 – Concurrency Theory. pp. 66–80. Springer Berlin Heidelberg,
+Berlin, Heidelberg (2005)
+11. Claessen, K., Hughes, J.: QuickCheck: A Lightweight Tool for Random Testing of
+Haskell Programs. SIGPLAN Not. 46(4), 53–64 (May 2011)
+12. Clarke, E., Grumberg, O., Jha, S., Lu, Y., Veith, H.: Counterexample-Guided Ab-
+straction Reﬁnement. In: Emerson, E.A., Sistla, A.P. (eds.) Computer Aided Ver-
+iﬁcation. pp. 154–169. Springer Berlin Heidelberg, Berlin, Heidelberg (2000)
+13. David, A., Larsen, K.G., Legay, A., Mikucionis, M., Poulsen, D.B.: Uppaal SMC
+tutorial. International Journal on Software Tools for Technology Transfer 17(4),
+397–415 (2015)
+14. David, A., Larsen, K.G., Legay, A., Møller, M.H., Nyman, U., Ravn, A.P., Skou,
+A., Wasowski, A.: Compositional Veriﬁcation of Real-Time Systems Using Ec-
+dar. International Journal on Software Tools for Technology Transfer 14, 703–720
+(2012)
+
+--- Page 19 ---
+18 A. Kiviriga et al.
+15. David, A., Larsen, K.G., Legay, A., Nyman, U., Wąsowski, A.: ECDAR: An Envi-
+ronment for Compositional Design and Analysis of Real Time Systems. In: Boua-
+jjani, A., Chin, W.N. (eds.) Automated Technology for Veriﬁcation and Analysis.
+pp. 365–370. Springer Berlin Heidelberg, Berlin, Heidelberg (2010)
+16. David, A., Larsen, K.G., Legay, A., Nyman, U., Wasowski, A.: Timed I/O Au-
+tomata: A Complete Speciﬁcation Theory for Real-Time Systems. In: Proceedings
+of the 13th ACM International Conference on Hybrid Systems: Computation and
+Control. p. 91–100. HSCC ’10, Association for Computing Machinery, New York,
+NY, USA (2010)
+17. Dill, D.L.: Timing Assumptions and Veriﬁcation of Finite-State Concurrent Sys-
+tems. In: Sifakis, J. (ed.) Automatic Veriﬁcation Methods for Finite State Systems.
+pp. 197–212. Springer Berlin Heidelberg, Berlin, Heidelberg (1990)
+18. Grosu,R.,Huang,X.,Smolka,S.A.,Tan,W.,Tripakis,S.:DeepRandomSearchfor
+Eﬃcient Model Checking of Timed Automata. In: Kordon, F., Sokolsky, O. (eds.)
+Composition of Embedded Systems. Scientiﬁc and Industrial Issues. pp. 111–124.
+Springer Berlin Heidelberg, Berlin, Heidelberg (2008)
+19. Grosu, R., Smolka, S.A.: Monte Carlo Model Checking. In: Halbwachs, N., Zuck,
+L.D. (eds.) Tools and Algorithms for the Construction and Analysis of Systems.
+pp. 271–286. Springer Berlin Heidelberg, Berlin, Heidelberg (2005)
+20. He, F., Zhu, H., Hung, W.N., Song, X., Gu, M.: Compositional Abstraction Re-
+ﬁnement for Timed Systems. In: 2010 4th IEEE International Symposium on The-
+oretical Aspects of Software Engineering. pp. 168–176. IEEE (2010)
+21. Hermanns,H.,Wachter,B.,Zhang,L.:ProbabilisticCEGAR.In:Gupta,A.,Malik,
+S. (eds.) Computer Aided Veriﬁcation. pp. 162–175. Springer Berlin Heidelberg,
+Berlin, Heidelberg (2008)
+22. Kupferschmid, S., Wehrle, M., Nebel, B., Podelski, A.: Faster Than Uppaal? In:
+Gupta, A., Malik, S. (eds.) Computer Aided Veriﬁcation. pp. 552–555. Springer
+Berlin Heidelberg, Berlin, Heidelberg (2008)
+23. Larsen, K.G., Larsson, F., Pettersson, P., Yi, W.: Eﬃcient Veriﬁcation of Real-
+Time Systems: Compact Data Structure and State-Space Reduction. In: Proceed-
+ings Real-Time Systems Symposium. pp. 14–24 (1997)
+24. Larsen, K., Peled, D., Sedwards, S.: Memory-Eﬃcient Tactics for Randomized LTL
+Model Checking. In: Paskevich, A., Wies, T. (eds.) Veriﬁed Software. Theories,
+Tools, and Experiments. pp. 152–169. Springer International Publishing, Cham
+(2017)
+25. Lind-Nielsen, J., Andersen, H.R., Behrmann, G., Hulgaard, H., Kristoifersen, K.,
+Larsen, K.G.: Veriﬁcation of Large State/Event Systems Using Compositionality
+and Dependency Analysis. In: Steﬀen, B. (ed.) Tools and Algorithms for the Con-
+struction and Analysis of Systems. pp. 201–216. Springer Berlin Heidelberg, Berlin,
+Heidelberg (1998)
+26. Milner, R.: A Calculus of Communicating Systems. Springer-Verlag, Berlin, Hei-
+delberg (1982)
+27. Nagaoka, T., Okano, K., Kusumoto, S.: An Abstraction Reﬁnement Tech-
+nique for Timed Automata Based on Counterexample-Guided Abstrac-
+tion Reﬁnement Loop. IEICE Trans. Inf. Syst. 93-D(5), 994–1005 (2010).
+https://doi.org/10.1587/transinf.E93.D.994
+28. Norris IP, C., Dill, D.L.: Better veriﬁcation through symmetry. Formal Methods
+in System Design 9(1), 41–75 (1996)
+29. Okano, K., Bordbar, B., Nagaoka, T.: Clock Number Reduction Abstraction on
+CEGAR Loop Approach to Timed Automaton. In: 2011 Second International Con-
+ference on Networking and Computing. pp. 235–241. IEEE (2011)
+
+--- Page 20 ---
+Randomized Reﬁnement Checking of Timed I/O Automata 19
+30. Oudinet, J., Denise, A., Gaudel, M.C., Lassaigne, R., Peyronnet, S.: Uniform
+Monte-Carlo Model Checking. In: Giannakopoulou, D., Orejas, F. (eds.) Funda-
+mental Approaches to Software Engineering. pp. 127–140. Springer Berlin Heidel-
+berg, Berlin, Heidelberg (2011)
+31. Prabhakar, P., Duggirala, P.S., Mitra, S., Viswanathan, M.: Hybrid automata-
+based CEGAR for rectangular hybrid systems. Formal Methods in System Design
+46(2), 105–134 (2015)
+32. Rasmussen, J.I., Behrmann, G., Larsen, K.G.: Complexity in Simplicity: Flexible
+Agent-BasedStateSpaceExploration.In:Grumberg,O.,Huth,M.(eds.)Toolsand
+Algorithms for the Construction and Analysis of Systems. pp. 231–245. Springer
+Berlin Heidelberg, Berlin, Heidelberg (2007)
+33. Sen, K., Viswanathan, M., Agha, G.: Statistical Model Checking of Black-Box
+Probabilistic Systems. In: Alur, R., Peled, D.A. (eds.) Computer Aided Veriﬁca-
+tion. pp. 202–215. Springer Berlin Heidelberg, Berlin, Heidelberg (2004)
+34. Valmari, A.: A Stubborn Attack on State Explosion. In: Clarke, E.M., Kurshan,
+R.P. (eds.) Computer-Aided Veriﬁcation. pp. 156–165. Springer Berlin Heidelberg,
+Berlin, Heidelberg (1991)
+35. Wimmel, H., Wolf, K.: Applying CEGAR to the Petri Net State Equation. In:
+Abdulla,P.A.,Leino,K.R.M.(eds.)ToolsandAlgorithmsfortheConstructionand
+Analysis of Systems. pp. 224–238. Springer Berlin Heidelberg, Berlin, Heidelberg
+(2011)
+36. Younes, H.L.S., Simmons, R.G.: Probabilistic Veriﬁcation of Discrete Event Sys-
+tems Using Acceptance Sampling. In: Brinksma, E., Larsen, K.G. (eds.) Computer
+Aided Veriﬁcation. pp. 223–235. Springer Berlin Heidelberg, Berlin, Heidelberg
+(2002)
+37. Zutshi, A., Deshmukh, J.V., Sankaranarayanan, S., Kapinski, J.: Multiple Shoot-
+ing, CEGAR-Based Falsiﬁcation for Hybrid Systems. In: Proceedings of the 14th
+International Conference on Embedded Software. EMSOFT ’14, Association for
+Computing Machinery, New York, NY, USA (2014)

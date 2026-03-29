@@ -1,0 +1,796 @@
+--- Page 1 ---
+Uppaal Coshy : Automatic Synthesis of
+Compact Shields for Hybrid Systems
+Asger Horn Brorholt1, Andreas Holck Høeg-Petersen1, Peter Gjøl Jensen1,
+Kim Guldstrand Larsen1, Marius Mikučionis1, Christian Schilling1, and
+Andrzej Wąsowski2
+1Aalborg University, 9220 Aalborg, Denmark
+{asgerhb,ahhp,pgj,kgl,marius,christianms}@cs.aau.dk
+2IT University of Copenhagen, 2300 Copenhagen, Denmark
+wasowski@itu.dk
+Abstract. Wepresent Uppaal Coshy ,atoolforautomaticsynthesisof
+a safety strategy—or shield—for Markov decision processes over continu-
+ousstatespacesandcomplexhybriddynamics.Thegeneralmethodology
+is to partition the state space and then solve a two-player safety game [8],
+which entails a number of algorithmically hard problems such as reach-
+ability for hybrid systems. The general philosophy of Uppaal Coshy is
+to approximate hard-to-obtain solutions using simulations. Our imple-
+mentation is fully automatic and supports the expressive formalism of
+Uppaal models, which encompass stochastic hybrid automata.
+The precision of our partition-based approach benefits from using finer
+grids, which however are not efficient to store. We include an algorithm
+called Caapto efficiently compute a compact representation of a shield
+in the form of a decision tree, which yields significant reductions.
+Keywords: Shield synthesis ·Uppaal ·Decision tree.
+1 Introduction
+In prior work, we proposed an algorithm to synthesize shields(i.e., nondetermin-
+istic safety strategies) for Markov decision processes with hybrid dynamics [8].
+The algorithm partitions the state space into finitely many cells and then solves
+a two-player safety game, where it uses approximation through simulation to ef-
+ficiently tackle algorithmically hard problems. In this tool paper, we present our
+implementation Uppaal Coshy , which is fully integrated in Uppaal, offering
+an automatic tool3that supports the expressive Uppaal modeling formalism,
+including reinforcement learning under a shield.
+Our algorithm represents a shield by storing the allowed actions for each cell
+individually,whichresultsinalarge datastructure.Sincemanyneighboringcells
+allow the same actions in practice, as a second contribution, we propose a new
+algorithm called Caapto compute a compact representation in the form of a
+decision tree. We demonstrate that this algorithm leads to significant reductions
+as part of the workflow in Uppaal Coshy .
+3Available at https://uppaal.org/features/#coshyarXiv:2508.16345v1  [cs.LO]  22 Aug 2025
+
+--- Page 2 ---
+2 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+1.1 Related Tools for Shield Synthesis and Compact Representation
+Shielding. Shields are obtained by solving games, for which there exist a wide
+selection of tools for discrete state spaces [9,10,18]. Notably, Tempest [20] syn-
+thesizes shields for discrete systems and facilitates learning through integration
+withPrism[19].Uppaal Tiga synthesizes shields for timed games [4].
+In contrast, our tool applies to a richer class of models, including stochastic
+hybrid systems with non-periodic control and calls to external C libraries.
+One benefit of our tool is the full integration with Uppaal Stratego [11]
+to directly use the synthesized shield in reinforcement learning.
+Decision trees. Encoding strategies as decision trees is a popular approach to
+achieving compactness and interpretability [2,3,6,15,21]. However, these works
+focus on creating approximate representations from tabular data. For a fixed
+set of predicates, the smallest possible tree can be obtained by enumeration
+techniques [12,13]. In contrast, our method transforms a given decision tree into
+anequivalent decisiontree.Ourmethodisspecificallydesignedtoefficientlycope
+with strategies of many axis-aligned decision boundaries.
+2 Shield Synthesis for Hybrid Systems
+In this section, we recall a general shield synthesis algorithm for hybrid systems
+outlinedinpriorwork[8].Westartbyrecallingtheformalismforcontrolsystems.
+2.1 Euclidean Markov Decision Processes
+Definition 1 (Euclidean Markovdecision process[17]). Ak-dimensional
+Euclidean Markov decision process (EMDP) is a tuple M= (S, A, T )where
+–S⊆Rkis a closed and bounded subset of the k-dimensional Euclidean space,
+–Ais a finite set of actions, and
+–T:S×A→(S→R≥0)maps each state-action pair (s, a)to a probability
+density function over S, i.e., we haveR
+s′∈ST(s, a)(s′)ds′= 1.
+For simplicity, the state space Sis continuous. However, the extension to
+discrete variables, e.g., locations of hybrid components, is straightforward. Since
+optimizing strategies is not our focus, we do not formally introduce the notion
+of cost and rely on the reader’s intuition. (See [8] for details.)
+Arunπof an EMDP is an alternating sequence π=s0a0s1a1. . .of states
+and actions such that T(si, ai)(si+1)>0for all i≥0. A (memoryless) stochastic
+strategy for an EMDP is a function ¯σ:S→(A→[0,1]), mapping a state to a
+probability distribution over the actions. A run π=s0a0s1a1. . .is anoutcome
+of¯σif¯σ(si)(ai)>0for all i≥0. Similarly, a (memoryless) nondeterministic
+strategy is a function σ:S→2A, mapping a state to a set of actions. A run
+π=s0a0s1a1. . .is an outcome of σifai∈σ(si)for all i≥0.
+Asafety property (or invariant) φis a set of states φ⊆S. A run π=
+s0a0s1a1. . .issafewith respect to φifsi∈φfor all i≥0. A nondeterministic
+strategy σis ashieldwith respect to φif all outcomes of σare safe.
+
+--- Page 3 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 3
+(a) Player component.
+ (b) Ball component.
+Fig.1: The bouncing ball modeled in Uppaal.
+2.2 Running Example (Bouncing Ball)
+We introduce our running example: a bouncing ball that can be hit by a player to
+keep it bouncing [8,17]. We shortly explain our two-component Uppaal model.
+The player component is shown in Fig. 1(a). In the (initial) location Choose,
+there are two available control actions (solid lines). The player chooses every 0.1
+seconds (enforced by the clock x). The hitaction (upper edge) attempts to hit
+the ball, and increments the cost counter cto be used for reinforcement learning
+in Section 5.1. The other action (lower edge) does not attempt to hit the ball.
+The ball component, shown in Fig. 1(b), is described by two state variables,
+position pand velocity v, which evolve according to the ordinary differential
+equations shown below the initial location InAir. The two dashed edges on the
+right model a successful hitaction, which is only triggered if the ball is high
+enough (four meters or higher above the ground); they differ in whether the ball
+is currently jumping up or falling down. The two dashed edges on the left model
+abounceon the ground. The ball bounces back up with a random dampening
+(upper edge) or goes to the state Stopif the velocity is very low (lower edge).
+In the following, we shall see how to obtain a shield that enforces the safety
+property that Stopis never reached, i.e., φ={s|Ball is not in Stopins}.
+2.3 Partition-Based Shield Synthesis
+Since an EMDP consists of infinitely many states, we employ a finite-state ab-
+straction. For that, we partition the state space S⊆Rkwith a regular rectan-
+gulargrid. (In [8], we only allowed a grid of uniform size in all dimensions.) For-
+mally, given a (user-defined) granularity vector γ∈Rkand offset vector ω∈Rk,
+we partition the state space into disjoint cellsof equal size. Each cell Cis the
+Cartesian product of half-open intervals [ωi+piγi, ωi+(pi+1)γi[in each dimen-
+sioni, for cell index p∈Nk. We define the gridas the set Pω
+γ={C|C∩S̸=∅}
+of all cells that overlap with the bounded state space. Note the number of cells
+will depend on γ. For each s∈S,[s]Pωγdenotes the unique cell containing s.
+
+--- Page 4 ---
+4 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+M
+EMDPTM,γ,ω
+Transition systemσφ
+ShieldM |σφ
+Shielded EMDPσ∗
+Shielded,
+near-optimal
+strategyNew integration in Uppaal
+GridPω
+γ SynthesisApply
+shieldReinforcement
+learning
+Fig.2: Workflow for obtaining a near-optimal shielded strategy in Uppaal.
+An EMDP M, a granularity vector γand offset vector ωinduce a finite
+labeled transition system TM,γ,ω= (Pω
+γ, A,→), where
+Ca− →C′⇐⇒ ∃ s∈C.∃s′∈C′. T(s, a)(s′)>0. (1)
+Given a safety property φ⊆Sand a grid Pω
+γ, letC0
+φ={C∈ Pω
+γ|C⊆φ}
+denote those cells that are safe in zero steps. We define the set of safe cells as
+the maximal set Cφsuch that
+Cφ=C0
+φ∩ {C∈ Pω
+γ| ∃a∈A.∀C′∈ Pω
+γ. Ca− →C′=⇒C′∈ Cφ}.(2)
+Given the finiteness of Pω
+γand monotonicity of Eq. (2), Cφmay be obtained
+in a finite number of iterations using Tarski’s fixed-point theorem [22].
+A (nondeterministic) strategy for TM,γ,ωis a function ν:Pω
+γ→2A. The
+most permissive shield νφ(i.e., safe strategy) obtained from Cφ[5] is given by
+νφ(C) ={a∈A| ∀C′∈ Pω
+γ. Ca− →C′=⇒C′∈ Cφ}.
+A shield νforTM,γ,ωinduces a shield σforMin the standard way [8]:
+Theorem 1. Given an EMDP M, a safety property φ⊆S, and a grid Pω
+γ, ifν
+is a shield for TM,γ,ω, then σ(s) =ν([s]Pωγ)is a shield for M.
+Fig. 2 shows the overall workflow of the shield synthesis and how the shield
+can later be used to (reinforcement-) learn a near-optimal strategy under this
+shield. The green box marks the steps that we newly integrated in Uppaal.
+For thebouncing ball , we will obtain the shield shown in Fig. 3(a). To effec-
+tively implement the aforementioned approach, there are additional challenges
+which we address in the following section.
+3 Effective Implementation of Shield Synthesis
+In this section, we discuss our implementation of the approach to synthesize
+a shield as outlined in Section 2 in Uppaal Coshy . In particular, a practical
+implementation faces the following two main challenges.
+First, we receive the safety property φin the form of a user query (described
+in Appendix A). Thus, the definition of the cells C0
+φthat are immediately safe
+generally requires symbolic reasoning, which is not readily available. Instead, we
+check a finite number of states within each cell, which we describe in Section 3.1.
+
+--- Page 5 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 5
+vp
+(a) It is safe to leave the bounds.
+vp
+(b) It is unsafe to leave the bounds.
+Fig.3: Two shields for the bouncing ball . Colors represent the allowed actions in
+the corresponding state of velocity vand position pwhile in location InAir.
+Second, determining Eq. (1) requires to solve reachability questions for in-
+finitely many states. While this can be done for simple classes of systems, we deal
+with very general systems (e.g., nonlinear hybrid dynamics), for which reacha-
+bility is undecidable [14]. This motivated us to instead compute an approximate
+solution, which we outline in Section 3.2.
+Thanks to the above design decisions, our implementation is fully automatic
+andsupportstheexpressiveformalismofgeneral Uppaal models(e.g.,stochastic
+hybrid automata with calls to general C code).
+We also identified further practical challenges, which we address in the later
+parts of this section. Definition 1 requires a bounded state space, but it is for
+instance difficult to determine upper bounds for the position and velocity of the
+bouncing ball ; in Section 3.3, we explain how we treat such cases in practice. In
+Section 3.4, we discuss an optimization to omit redundant dimensions.
+3.1 Determining Initial Safe Cells
+We apply systematic sampling from a cell, i.e., samples are not drawn at random.
+Rather,weuniformlycoverthecellwith nksamples,where n∈N, n̸= 0isauser-
+defined parameter. Recall from Section 2.3 that a cell Cof a grid Pω
+γis rectangu-
+lar and defined by an index vector p, an offset ωand a granularity vector γ, all of
+dimension k. Let δi=γi
+n−1be the distance between two samples in dimension i
+when n >1, and δi= 0otherwise. For any cell, we define the corresponding set
+of samples as {(ω1+p1γ1+q1δ1, . . . , ω k+pkγk+qkδk)|qi∈ {0,1, . . . , n −1}}.
+To account for the open upper bounds, we subtract a small number ϵ >0from
+the highest samples. An example of a two-dimensional set of samples for n= 4
+is shown as the dark blue points inside the light blue cells in Fig. 4.
+We note that the above only applies to continuous variables. Our implemen-
+tation treats discrete variables (e.g., component locations) in the natural way.
+
+--- Page 6 ---
+6 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+Finally, to approximate the set C0
+φ, we draw samples from each cell and check
+for each sample whether it violates the specification. A cell is added to C0
+φonly
+if all samples in that cell satisfy the specification.
+For thebouncing ball , the ball should never be in the Stoplocation. Since
+the location is a discrete variable, and each cell only belongs to one location,
+checking a single sample from a cell Calready determines whether C∈ C0
+φ.
+Thus, our approach is exact and efficient in the common case where the safety
+property is given via an error location.
+3.2 Determining Reachability
+We approximate cell reachability Ca− →C′, as defined in Eq. (1), similarly to [8]
+but adapted to work in Uppaal. In a Uppaal model, actions a∈Acorrespond
+to controllable edges (indicating that the controller can act).
+For each cell Cand action a∈A, we iterate over all sampled states s(as
+described before) and select the edge corresponding to a, which gives us a new
+state s′; starting from s′, we simulate the environment (using the built-in sim-
+ulator in Uppaal) until a state s′′is reached in which the controller has the
+next choice (i.e., multiple action edges are enabled) again.4Thus, s′′is a wit-
+ness to add the corresponding cell [s′′]Pωγto the transition relation Ca− →[s′′]Pωγ.
+Assuming the simulator is numerically sound, the resulting transition system
+underapproximates TM,γ,ω. As observed in [8], the more simulations are run,
+the more likely do we obtain the true solution. To check whether this under-
+approximation is sufficiently accurate, the existing queries for statistical model
+checking in Uppaal can be used, as we shall see in Section 5.
+In general, two simulations starting in the state smay not yield the same
+state s′′due to stochasticity. In [8], stochasticity was treated as additional di-
+mensions over which to sample (systematically). This was possible by manually
+crafting the reachability sampling for each model. Detecting stochastic behavior
+inUppaal modelsautomaticallyturnedouttobedifficultduetotherichformal-
+ism. Instead, we decided to simply let the simulator sample from the stochastic
+distribution. As a side effect, this new design allows us to support stochasticity
+with general distributions, particularly with unbounded support.
+Since this design may generally miss some corner-case behavior, we expose a
+user-defined parameter mto control the number of times sampling is repeated.
+Weillustratethereachabilityapproximationforthe bouncing ball inFig.4for
+n= 4(number of samples per dimension) and m= 1(number of re-sampling).
+When the ball moves through the air, it behaves deterministically. In Fig. 4(a),
+when the ball is not hit, we obtain successor states that keep a regular “forma-
+tion” (top right green dots). When the ball is hit, the successor states are affected
+by randomness (bottom left green dots). Fig. 4(b) shows a similar randomized
+effect when the ball touches the ground.
+4Where [8] required a fixed control period, Uppaal Coshy supports non-periodic
+control. We include an example of this feature in Appendix B.
+
+--- Page 7 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 7
+(a) The ball is rising and high enough to
+be hit. When the ball is hit, the outcome
+is partially random.
+(b) The ball is too low to be hit, but it
+bounces off the ground. The velocity loss
+upon a bounce is partially random.
+Fig.4: Example of a grid for the bouncing ball . By sampling from the initial cell
+(blue) and simulating the dynamics, we discover reachable cells (green).
+3.3 Generalization to Unbounded State Spaces
+Definition 1 requires the state space to be bounded, but bounds can be hard
+to determine for some systems. This includes the bouncing ball , for which upper
+boundsforpositionandvelocityarenotimmediatelyclear.Indeed,ifweconsider
+theboundedstatespacewhere p∈[0,11]andv∈[−13,13],thesystemdynamics
+do not guarantee that the ball stays within these bounds. If we plot velocity
+against position, as in Fig. 3, then a falling ball near the left end of the plot may
+leave the bounds on the left (because it becomes too fast).
+Conceptually, our implementation deals with out-of-bounds situations by
+modifying the transition system. All samples leading to a state outside the spec-
+ified bounds go to a dummy cell Cout, for which all transitions lead back to itself.
+A user-defined option with the following choices determines the behavior:
+1. Raise an error when reaching Coutduring simulation (default behavior).
+2. Include CoutinC0
+φ, i.e., leaving the bounds is always safe.
+3. Exclude Coutfrom C0
+φ, i.e., leaving the bounds is always unsafe.
+4. Automatically choose between options 2 and 3 using sampling.
+With Option 4, samples are taken outside the specified bounds, similar to
+Section3.1.Forthe bouncing ball ,ourtoolsamplesstatessuchas (v= 26,p= 22,
+Ball.Stop), even though these states may not be reachable in practice. If any
+sample state is found to be unsafe, Coutis considered unsafe, and safe otherwise.
+The result of synthesizing a shield with this option is shown in Fig. 3(b). In
+particular, that shield forbids to hit the ball when it is too fast, which ensures
+that it does not leave the bounds. Alternatively, we obtain a more permissive
+shield by choosing Option 2, as shown in Fig. 3(a) (and also Fig. 7(b)).
+3.4 Omitting Variables from Consideration
+As emphasized in [1], a shield can be obtained from an abstract model that
+only simulates behaviors relevant to the safety specification. For example, cost
+
+--- Page 8 ---
+8 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+variables may only be relevant during learning. While every variable in a model
+can be included in the partitioning, this is computationally demanding.
+Therefore, we allow that variables are omitted from the grid specification.
+However, this raises a new challenge when sampling a state from a cell, since a
+concrete state requires a value for each variable. To address that, we set each
+omitted variable to the unique value of the initial state, which must always be
+specified in a Uppaal model. Hence, the user must define the initial state such
+that the values of omitted variables are sensible defaults. (Note that the initial
+state is ignored by the shield synthesis in all other respects.)
+The choice not to include a variable in the grid must be made carefully, as
+this can change the behavior of the transition system and potentially lead to an
+unsound shield. As a rule of thumb, it is appropriate to omit variables if they
+always have the same value when actions are taken, or if they are only relevant
+for keeping track of a performance value such as cost.
+For thebouncing ball , the player (Fig. 1(a)) is always in the location Choose
+when taking an action. By setting Chooseas the initial location, this compo-
+nent’s location is not relevant to keep track of in the partitioning. Moreover, the
+variable cis used to keep track of cost and does not matter to safety. Lastly,
+the clock variable xis used to measure time until the next player action. It is
+always 0when it is time for the player to act, and so it can also be omitted.
+4 Obtaining a Compact Shield Representation
+In this section, we present a new technique for obtaining a compact represen-
+tation of shields that stem from an axis-aligned state-space partitioning (as de-
+scribed in Section 2.3). Here, we choose to represent the shield as a decision
+tree. We note that we aim for a functionality-preserving representation, i.e., we
+transform a grid-based shield to an equivalent decision-tree-based shield.
+Recall that each cell prescribes a set of allowed actions. Let two cells be
+similarif the shield assigns the same set of actions to them. Our goal is to
+form (hyper)rectangular clusters of similar cells, which we call regions; in other
+words, we aim to find a coarser partitioning. In a nutshell, our approach works as
+follows.Initially,westartfromthefinestpartitioningwhereeachcellisaseparate
+region. Then, we iteratively merge neighboring regions of similar cells, thereby
+obtaining a coarser partitioning, such that the resulting region is rectangular
+again. We call our algorithm Caap(CoarsifyAxis-AlignedPartitionings).
+4.1 Representation of Partitionings and Regions
+We start by noting that an axis-aligned partitioning of a state space S⊆Rk
+can be represented by a binary decision tree Twhere each leaf node is a set of
+actions and each inner node splits the state space with a predicate of the form
+ρ(s) =si< c, where sis a state vector, siis a state dimension, and c∈R. Given
+a state s, the tree evaluation, written T(s), is defined as usual: Start at the root
+node. At an inner node, evaluate the predicate ρ(s). Ifρ(s) =⊤, descend to
+
+--- Page 9 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 9
+(a)
+ (b)
+ (c)
+ (d)
+Fig.5: Expansion example. Yellow and purple denote distinct actions. Striped
+regions have been fixed in previous iterations. The dashed border is the new
+candidate region R′. (a) An input partitioning. (b) A violation of Rule 1, since
+the expanded region contains different actions. (c) A violation of Rule 2, since
+the expanded region overlaps with a striped area. (d) A violation of Rule 3, since
+the expansion cuts the rightmost region into two new regions.
+the left child; otherwise, descend to the right child. At a leaf node, return the
+corresponding set of actions. We denote the partitioning induced by a decision
+treeTasPT. Our goal in this section is: given a decision tree Tinducing a
+partitioning PT, find an equivalent but smaller decision tree.
+1 2 3 4
+s10 2 3 4
+s20 2 3 4Given a tree T, we store all bounds cof the predicates si< c
+in a matrix Mofkrows where the i-th row contains the bounds
+associated with state dimension siin ascending order. For exam-
+ple, consider the bounds in Fig. 5(a) and Mon the right.
+We extract a bounds vector from Mvia an index vector p∈
+Nksuch that the i-th entry of pcontains the column index for the i-th row.
+In other words, the resulting vector consists of the values Mi,pi. For instance,
+p= (1,3)yieldsthevector sp= (0,3)(rows1column 1androw s2column 3).We
+canviewthisvectorasastateinthestatespacegivenas sp= (M1,p1, . . . , M k,pk).
+We define a region Rin terms of two index vectors (pmin, pmax)represent-
+ing the minimal and maximal corner in each dimension. Then, increasing pmax
+i
+corresponds to expanding Rin dimension i.
+4.2 Expansion of Rectangular Regions
+For an expansion to be legal, it must satisfy the following three expansion rules :
+Definition 2 (Expansion rules). LetR′be a candidate region for a new
+partitioning P′derived from PT. Then R′is legal if it satisfies these three rules:
+1. All cells in region R′have the same action set,
+2. Region R′does not intersect with other regions in P′,
+3. Region R′does not cut any other region Rfrom the original partitioning PT
+in two, i.e., the difference R\R′is either empty or rectangular.
+The first two cases are directly related to the definition of the problem, i.e., the
+produced partitioning should respect Tand only have non-overlapping regions
+
+--- Page 10 ---
+10 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+Table 1: Queries run on the bouncing ball model. All statistical results are given
+with a 99% confidence interval.
+# Query Result
+1strategy efficient = minE(c) [<=120]
+{} -> {v, p} : <> time>=120✓
+2 simulate [<=120]{ p, v } under efficient ✓
+3 E[<=120;100] (max: c) under efficient ≈0
+4 Pr[<=120;10000] (<> Ball.Stop) under efficient [0.9995,1]
+5strategy shield = acontrol: A[] !Ball.Stop
+{ v[-13, 13]:1300, p[0, 11]:550, Ball.location }✓
+6 saveStrategy("/shield.json", shield) ✓
+7 strategy compact_shield = loadStrategy("/compact.json") ✓
+8 simulate [<=120]{ p, v } under compact_shield ✓
+9strategy shielded_efficient = minE(c) [<=120]
+{} -> {v, p} : <> time>=120 under compact_shield✓
+10 simulate [<=120]{ p, v } under shielded_efficient ✓
+11 E[<=120;100] (max: c) under shielded_efficient 34.6±0.6
+12 Pr[<=120;10000] (<> Ball.Stop) under shielded_efficient [0,0.00053]
+(see Fig. 5(b) and Fig. 5(c)). The third case is required in order to ensure that
+in each iteration, the algorithm does not increase the overall number of regions
+when adding a region from the original partitioning to the new partitioning. To
+appreciate this, consider the visualization in Fig. 5(d). The candidate expansion
+cuts the rightmost region (given by (3,0)and(4,4)) in two such that the remain-
+der would have to be represented by tworegions — one given by ((3,0),(4,2))
+and one given by ((3,3),(4,4)). Clearly, all three expansion rules of Definition 2
+can be checked in time linear in the number of nodes of PT.
+The rules induce a nondeterministic greedy algorithm for expanding regions.
+This algorithm is included in Appendix C.
+5 Case Studies and Evaluation
+Inthissection,weevaluateourimplementationof Uppaal Coshy andCaap.In
+Section 5.1, we demonstrate a typical application. In Section 5.2, we benchmark
+the implementations on several models.
+5.1 A Complete Run of the Bouncing Ball
+Table 1 shows a typical usage of Uppaal with a sequence of queries on the
+bouncing ball example to produce a safe and efficient strategy (cf. Fig. 2). A
+detailed explanation of the new query syntax can be found in Appendix A.
+Documentation is also available online,5including standard Uppaal queries.
+5https://docs.uppaal.org/language-reference/query-syntax/controller_synthesis/
+#approximate-control-queries
+
+--- Page 11 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 11
+In Query 1, we train a strategy called efficient , which is only concerned
+with cost and does not consider safety. Such a strategy is trivial: simply never
+pick the hitaction. This is seen in Query 2, which simulates a single run of 120
+seconds. It outputs position pand velocity v, which are visualized in Fig. 6(a).
+Query 3 statistically evaluates the strategy in 100 runs to estimate the expected
+value of c. The result “ ≈0” indicates that only this value was observed. Query 4
+estimates the probability of a run being unsafe to be in the interval [0.9995,1]
+with 99% confidence; in this case, as expected, all 10 000runs were unsafe.
+Query 5 synthesizes a shield shield. The shield matches the one shown in
+Fig. 3(a). In queries 6 and 7, the shield is converted to a compact representation
+by saving it to a file, calling the Caapimplementation, and loading the result
+back into Uppaal. The shield is simulated in Query 8, for which any of the
+allowed actions is selected randomly (this happens implicitly); while safe, this
+shielded but randomized strategy is not efficient and hits the ball more often
+than needed, as visualized in Fig. 6(b).
+In Query 9, we learn a strategy shielded_efficient under the shield using
+Uppaal Stratego [11]. This strategy keeps the ball in the air without excessive
+hitting, as shown by the output of Query 10 in Fig. 6(c). The result of Query 11
+shows the expected cost, and Query 12 shows that the safety property holds
+with high confidence: None of the 10 000runs were unsafe.
+5.2 Further Examples
+State-spacetransformationscanbeusedtosynthesizeashieldmoreefficiently[7].
+Since Uppaal supports function calls, transformations can also be applied in our
+tool by modifying the model. We demonstrate that in Appendix D.
+Next, we show quantitative results of the shield synthesis and subsequent
+shield reduction, for which we also use three additional models. Firstly, the boost
+converter [8] models a real circuit for stepping up the voltage of a direct current
+(DC) input. The controller must keep the voltage close to a reference value,
+without exceeding safe bounds for the voltage and current. The state space is
+continuous, with significant random variation in the outcome of actions.
+In therandom walk model [8,16], the player must travel a certain distance
+before time runs out by choosing between a fast but expensive and a slow but
+(a)efficient
+ (b)compact_shield
+ (c)shielded_efficient
+Fig.6:Bouncing ball simulations (position, velocity) under different strategies.
+
+--- Page 12 ---
+12 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+Table 2: Computation time and sizes for synthesizing and reducing shields for
+three models. The original size is the number of cells, whereas the reduced size
+is the number of regions. All shields were statistically evaluated to be at least
+99.47% safe with a confidence interval of 99% (no unsafe runs observed).
+Model n m Synthesis time Size Reduction time Reduced size
+Bouncing ball 3 1 218s 1430000 53s 2972
+Boost converter 3 20 1430s 136800 21s 571
+Random walk 4 20 82s 40000 1.5s 60
+Water tank 3 1 0.1s 168 0.1s 24
+cheap action. The state space is continuous and the outcomes of actions follow
+uniform distributions.
+In thewater tank model inspired from [1], a tank must be kept from overflow-
+ing or running dry. Water flows from the tank at a rate that varies periodically.
+At each time step, the player can control the inflow by switching a pump on or
+off. The state space is discrete.
+We show results for computing and reducing shields in Table 2. The water
+tankis fully deterministic, and the bouncing ball only has low-variance stochastic
+behavior. The boost converter andrandom walk have a high variance in action
+outcomes, which is why we use m= 20simulation runs per sampled state. We
+evaluated the shields statistically and found no unsafe runs in 10 000trials. The
+reduction yields significantly smaller representations at acceptable run time.
+6 Conclusion
+We have described our implementation of the shield synthesis algorithm from [8]
+in the tool Uppaal Coshy . Our tool can work with rich inputs modeled in
+Uppaal. We have also presented the Caapalgorithm to reduce the shield rep-
+resentation significantly, which is crucial for deployment on an embedded device.
+We see several directions for future integration into Uppaal. As discussed,
+our implementation does not apply systematic sampling for random dynamics;
+however, we think that many sources of randomness in Uppaal models can be
+handledsystematically.Currently,thereductionalgorithm Caapisimplemented
+as a standalone tool, but it would be useful to also integrate it directly with Up-
+paal. During development, we found it helpful to visualize shields, as in Fig. 3,
+which could be offered in the user interface. In the same line, an explanation
+why a state is marked unsafe in a shield would help in debugging a model.
+Acknowledgments. ThisresearchwaspartlysupportedbytheIndependentResearch
+Fund Denmark under reference number 10.46540/3120-00041B, DIREC - Digital Re-
+search Centre Denmark under reference number 9142-0001B, and the Villum Investi-
+gator Grant S4OS under reference number 37819.
+Disclosure of Interests. TheUppaal tool is developed by Aalborg University.
+
+--- Page 13 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 13
+References
+1. Alshiekh, M., Bloem, R., Ehlers, R., Könighofer, B., Niekum, S., Topcu, U.: Safe
+reinforcement learning via shielding. In: McIlraith, S.A., Weinberger, K.Q. (eds.)
+AAAI. pp. 2669–2678. AAAI Press (2018). https://doi.org/10.1609/AAAI.V32I1.
+11797
+2. Ashok, P., Jackermeier, M., Jagtap, P., Kretínský, J., Weininger, M., Zamani,
+M.: dtControl: decision tree learning algorithms for controller representation. In:
+Ames, A.D., Seshia, S.A., Deshmukh, J. (eds.) HSCC. pp. 17:1–17:7. ACM (2020).
+https://doi.org/10.1145/3365365.3382220
+3. Ashok, P., Jackermeier, M., Kretínský, J., Weinhuber, C., Weininger, M., Yadav,
+M.: dtControl 2.0: Explainable strategy representation via decision tree learning
+steeredbyexperts.In:Groote,J.F.,Larsen,K.G.(eds.)TACAS.LNCS,vol.12652,
+pp. 326–345. Springer (2021). https://doi.org/10.1007/978-3-030-72013-1_17
+4. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+Uppaal-tiga: Time for playing games! In: Damm, W., Hermanns, H. (eds.)
+CAV. LNCS, vol. 4590, pp. 121–125. Springer (2007). https://doi.org/10.1007/
+978-3-540-73368-3_14
+5. Bernet, J., Janin, D., Walukiewicz, I.: Permissive strategies: from parity games
+to safety games. RAIRO Theor. Informatics Appl. 36(3), 261–275 (2002). https:
+//doi.org/10.1051/ita:2002013
+6. Breiman, L., Friedman, J.H., Olshen, R.A., Stone, C.J.: Classification and Regres-
+sion Trees. Wadsworth (1984)
+7. Brorholt, A.H., Høeg-Petersen, A.H., Larsen, K.G., Schilling, C.: Efficient shield
+synthesis via state-space transformation. In: Steffen, B. (ed.) AISoLA. LNCS, vol.
+15217, pp. 206–224. Springer (2024). https://doi.org/10.1007/978-3-031-75434-0_
+14
+8. Brorholt, A.H., Jensen, P.G., Larsen, K.G., Lorber, F., Schilling, C.: Shielded re-
+inforcement learning for hybrid systems. In: Steffen, B. (ed.) AISoLA. LNCS, vol.
+14380, pp. 33–54. Springer (2023). https://doi.org/10.1007/978-3-031-46002-9_3
+9. Chatterjee, K., Henzinger, T.A., Jobstmann, B., Radhakrishna, A.: Gist: A
+solver for probabilistic games. In: Touili, T., Cook, B., Jackson, P.B. (eds.)
+CAV. LNCS, vol. 6174, pp. 665–669. Springer (2010). https://doi.org/10.1007/
+978-3-642-14295-6_57
+10. Chatterjee, K., Henzinger, T.A., Jobstmann, B., Singh, R.: QUASY: quantitative
+synthesis tool. In: Abdulla, P.A., Leino, K.R.M. (eds.) TACAS. LNCS, vol. 6605,
+pp. 267–271. Springer (2011). https://doi.org/10.1007/978-3-642-19835-9_24
+11. David, A., Jensen, P.G., Larsen, K.G., Mikucionis, M., Taankvist, J.H.: Uppaal
+Stratego. In: Baier, C., Tinelli, C. (eds.) TACAS. LNCS, vol. 9035, pp. 206–211.
+Springer (2015). https://doi.org/10.1007/978-3-662-46681-0_16
+12. Demirovic, E., Lukina, A., Hebrard, E., Chan, J., Bailey, J., Leckie, C., Ra-
+mamohanarao, K., Stuckey, P.J.: Murtree: Optimal decision trees via dynamic
+programming and search. J. Mach. Learn. Res. 23, 26:1–26:47 (2022), https:
+//jmlr.org/papers/v23/20-520.html
+13. Demirović, E., Schilling, C., Lukina, A.: In search of trees: Decision-tree policy
+synthesis for black-box systems via search. In: AAAI. pp. 27250–27257. AAAI
+Press (2025). https://doi.org/https://doi.org/10.1609/aaai.v39i26.34934
+14. Doyen, L., Frehse, G., Pappas, G.J., Platzer, A.: Verification of hybrid systems. In:
+Handbook of Model Checking, pp. 1047–1110. Springer (2018). https://doi.org/10.
+1007/978-3-319-10575-8_30
+
+--- Page 14 ---
+14 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+15. Du, M., Liu, N., Hu, X.: Techniques for interpretable machine learning. Commun.
+ACM 63(1), 68–77 (2020), https://doi.org/10.1145/3359786
+16. Jaeger, M., Bacci, G., Bacci, G., Larsen, K.G., Jensen, P.G.: Approximating eu-
+clidean by imprecise markov decision processes. In: Margaria, T., Steffen, B. (eds.)
+ISoLA. LNCS, vol. 12476, pp. 275–289. Springer (2020). https://doi.org/10.1007/
+978-3-030-61362-4_15
+17. Jaeger, M., Jensen, P.G., Larsen, K.G., Legay, A., Sedwards, S., Taankvist, J.H.:
+Teaching Stratego to play ball: Optimal synthesis for continuous space mdps. In:
+Chen, Y., Cheng, C., Esparza, J. (eds.) ATVA. LNCS, vol. 11781, pp. 81–97.
+Springer (2019). https://doi.org/10.1007/978-3-030-31784-3_5
+18. Kwiatkowska, M., Norman, G., Parker, D., Santos, G.: PRISM-games 3.0: Stochas-
+tic game verification with concurrency, equilibria and time. In: Lahiri, S.K.,
+Wang, C. (eds.) CAV. LNCS, vol. 12225, pp. 475–487. Springer (2020). https:
+//doi.org/10.1007/978-3-030-53291-8_25
+19. Kwiatkowska, M.Z., Norman, G., Parker, D.: PRISM 4.0: Verification of
+probabilistic real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)
+CAV. LNCS, vol. 6806, pp. 585–591. Springer (2011). https://doi.org/10.1007/
+978-3-642-22110-1_47
+20. Pranger, S., Könighofer, B., Posch, L., Bloem, R.: TEMPEST - synthesis tool for
+reactive systems and shields in probabilistic environments. In: Hou, Z., Ganesh, V.
+(eds.) ATVA. LNCS, vol. 12971, pp. 222–228. Springer (2021). https://doi.org/10.
+1007/978-3-030-88885-5_15
+21. Quinlan, J.R.: Learning decision tree classifiers. ACM Comput. Surv. 28(1), 71–72
+(1996), https://doi.org/10.1145/234313.234346
+22. Tarski, A.: A lattice-theoretical fixpoint theorem and its applications. Pacific
+J. Math. 5(2), 285–309 (1955), https://www.projecteuclid.org/journalArticle/
+Download?urlId=pjm%2F1103044538
+
+--- Page 15 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 15
+A Query Syntax
+Eq. (3) shows a query to compute the shield in Fig. 3(a) for the bouncing ball .
+Declarationz }| {
+strategy shield = acontrol:Desired invariantz }| {
+A[] !Ball.Stop
+{ v[-13, 13]:1300, p[0, 11]:550, Ball.location }| {z }
+Parameters of the grid(3)
+InUppaal,strategiesarefirst-classobjectsofthequerylanguage[11].Inthis
+case, we declare a strategy named shield. The query starts with the keyword
+acontrol to indicate synthesis of a control strategy by approximating a tran-
+sition system, as previously described. Next comes the safety property, which
+must be an invariant property, indicated by a (mandatory) A[]prefix, followed
+by an expression in the Uppaal language. Finally, the query expects a descrip-
+tion of the grid. The user must list all relevant variables of the system; all other
+variables are ignored, as described in Section 3.4. For each relevant variable,
+we expect lower and upper bounds of the state space as well as the number of
+cells. In the example, the velocity vis bounded to [−13,13]and we ask for 1300
+cells in that dimension, corresponding to a cell diameter of 0.02. The location
+of a component is a special case of a (discrete) variable and requires no further
+parameters. In the example, we want to keep track of Ball.location , for which
+the tool automatically infers that there are two possible values. This results in
+a grid of 1300×550×2 = 1 430 000 cells.
+We note that, for the bouncing ball model, a coarser grid yields a less per-
+missive shield, or even a shield where no action is considered safe (i.e., Cφis
+empty). From the plots, we see that neighboring cells often have the same al-
+lowed actions. In fact, every cell where the ball is in location Stop(half of all
+cells) is immediately marked as unsafe. In the next section, we describe a general
+method to obtaining a compact shield representation.
+B Nonperiodic Controllers
+The previous work [8] focused on systems with periodic control, i.e. there is a
+constant amount of time between player actions. In contrast, Uppaal Coshy
+allows the time between player actions to vary according to the environment. As
+described in Section 3.2, it does so by running the simulation until the player
+faces a new choice. We demonstrate this by modifying the player component
+from Fig. 1(a), which uses guards and invariants to ensure that the player can
+act exactly when x==0.1.
+The guard on the edge between Waitand Chooseis changed to allow the
+system to stay in Waitfor any period in the interval ]0.05,0.1](see Fig. 7(a)). For
+the modified system, we obtain a slightly different shield, as shown in Fig. 7(b).
+
+--- Page 16 ---
+16 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+(a) Stochastic player component. Com-
+pared to Fig. 1(a), the guard has been up-
+dated to x>0.05. The ball component re-
+mains unchanged.
+ vp
+(b) Resulting shield.
+Fig.7: Variant of the bouncing ball with uniformly random decision periods.
+CCaapalgorithm
+Let(pmin, pmax)define a region. We then want to find a vector ∆p∈Zksuch
+that(pmin, pmin+∆p)defines a region that obeys the three expansion rules and
+is (locally) maximal, in the sense that increasing it in any dimension would
+violate at least one of the expansion rules. Note that a vector ∆p=pmax−
+pminsatisfies the expansion rules trivially but is possibly not maximal. Thus,
+a solution is guaranteed to exist. However, note that there is not necessarily
+a unique maximal solution, and that the set of solutions is not convex, i.e.,
+there may exist solutions ∆1
+pand∆2
+psuch that ∆1
+p≤∆2
+pbut no other ∆′
+pwith
+∆1
+p≤∆′
+p≤∆2
+psatisfies the expansion rules. Formally:
+Definition 3 (Expansion vector ∆p).Given pmin∈Zk, a decision tree T
+over a k-dimensional state space, and a set Pof fixed regions, ∆p∈Zkis a
+vector such that for pmax=pmin+∆pthe region R= (pmin, pmax)does not
+violate any of the expansion rules in Definition 2 and for any vector ∆′
+p=
+(∆p1, . . . , ∆ pi+ 1, . . . , ∆ pk)at least one of the rules is violated.
+In Algorithm 1, we formally present our greedy approach to finding ∆p.
+It that starts with ∆p=pmax−pminfor some region R= (pmin, pmax). It then
+iteratively selects a dimension dand attempts to increment the d-th entry of ∆p.
+For that, we define the candidate region R′= (pmin, pmin+∆p)and check the
+rules 1 and 2. If any of them is violated, we mark the corresponding dimension d
+as exhausted, roll back the increment, and continue with a new dimension not
+marked as exhausted yet, until none is left.
+We implement the nondeterminism in line 4 by prioritizing lower regions; this
+accountsforonlyexpandingtheupperbounds.Ontheotherhand,weimplement
+the nondeterminism in line 8 with a uniformly random choice.
+As mentioned above, the set of solutions is not convex. Correspondingly, if
+Rule 3 is violated, the algorithm initiates an attempt at repairing the candidate
+
+--- Page 17 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 17
+Algorithm 1 Caap
+Input T: A binary decision tree inducing the partitioning PT
+Output P′: A partitioning
+1:P′← {}
+2: Initialize matrix MfromPT
+3:while P′does not cover PTdo
+4: (pmin, pmax)←select an unexplored region from M
+5: ∆p←pmax−pmin
+6: ∆′
+p←∆p
+7: whilenot all dimensions have been exhausted do
+8: d←select a non-exhausted dimension
+9: ∆′
+pd←∆pd+ 1
+10: R′←(pmax, pmax+∆′
+p)
+11: ifR′violates rules 1 or 2 then
+12: ∆′
+pd←∆pd
+13: mark das exhausted
+14: else if R′violates Rule 3 (Definition 2) then
+15: ∆′′
+p←Repair (∆′
+p, d)
+16: ifrepair was successful then
+17: ∆′
+p←∆′′
+p
+18: else
+19: ∆′
+p←∆p
+20: mark das exhausted
+21: else
+22: ∆p←∆′
+p
+23: R←region defined by (pmin, pmin+∆p)according to M
+24: P′← P′∪ {R}
+25:return P′
+expansion by continuing the expansion to the largest bound in the expansion
+dimension of any of the broken regions. This way, we check whether the violation
+can be overcome by simply expanding more aggressively. For conciseness, we
+do not describe the operation Repairfurther. When all dimensions have been
+exhausted, ∆padheres to Definition 3.
+We note that the algorithm is not guaranteed to find a local optimum. One
+reason is that the repair only expands in one dimension. This choice is deliberate
+to keep the algorithm efficient and avoid a combinatorial explosion.
+D State-Space Transformation
+In [7], we showed that state-space transformations can drastically reduce the
+synthesis time of a shield. The idea is to define the grid in a transformed state
+space S′⊆Rk′. The method relies on a function f:S→S′, mapping each
+state to a transformed state, and another function f−1:S′→Smapping back.
+Fig. 8(a) shows how to compute successors in S′, which is required for approxi-
+mating reachability as described in Section 3.2. Given a state s′
+0∈S′, we wish
+
+--- Page 18 ---
+18 Brorholt, Høeg-Petersen, Jensen, Larsen, Mikučionis, Schilling, Wąsowski
+to find a possible successor s′
+1for a given action. The transition function Tof
+the EMDP is defined over S. Hence, we apply f−1to obtain a corresponding
+state s0∈S. Then, we simulate Tas before. Finally, we apply fto obtain s′
+1.
+The same method can be applied in Uppaal Coshy by modifying the model,
+which we show using the bouncing ball model. In [7], the transformation uses the
+ball’s mechanical energy einstead of p, with transformation function f(p, v) =
+(9.81p+1
+2v2, v).
+s′
+0 s′
+1
+s0 s1T′
+f−1
+Tf
+(a) Commutative diagram.
+ (b) Augmented player component (cf. Fig. 1(a)).
+Fig.8: State-space transformations and template implementation in Uppaal.
+Thanks to the rich modeling language in Uppaal, it is easy to augment a
+Uppaal model to support state-space transformations. We propose the following
+general modifications. First, add corresponding new variables and implement the
+transformation functions as standard functions (e.g., called f()and f_inv())
+in the Uppaal language. Then, modify the controller actions as illustrated in
+Fig. 8(b): add calls to f_inv() immediately after the Chooselocation is left, and
+add calls to f()right before the Chooselocation is entered again.
+The following query ran for 5 seconds and produced a shield of just 2×25×
+26 = 1300 cells, which Caapcan further reduce to just 79regions.
+strategy safe = acontrol: A[] !Ball.Stop
+{ e[0, 100]:25, v[-13, 13]:26, Ball.location }
+E From Regions to a Decision Tree
+The output of the Caapalgorithm is a set of regions, each of which has an
+associated set of actions. While this set of regions represents a shield, it is not
+efficientforqueryingatruntime.Hence,weaimtorepresentthesetwithanother
+decision tree. However, it is unlikely that the suggested partitioning can be
+perfectly represented by a decision tree. For instance, the predicate in the root
+node always splits the whole state space, but we may have partially eliminated
+that split. To that end, we propose a simple algorithm that constructs a new tree
+from a list of regions by recursively searching for a predicate that balances the
+task of splitting as few regions as possible while also dividing the regions into
+two nearly equal-sized subsets. The resulting tree induces a partitioning that is
+finer than the partitioning used to create it. Still, as we will see, the reduction
+
+--- Page 19 ---
+Automatic Synthesis of Compact Shields for Hybrid Systems 19
+gained from applying Caapto the original input is so significant that the cost
+of converting its output to a decision tree is negligible.
+Since Caapdoes not guarantee optimal reduction but selects its expansion
+dimensions nondeterministically, we can achieve a better reduction by repeated
+application of the algorithm. That is, after obtaining a smaller partitioning and
+converting it to a decision tree, we use that new tree as input to the algorithm
+once again. This process is repeated until no significant reduction is observed.
+Note that the process does not converge to a fixed-point due to the nondeter-
+ministic choices. We found experimentally that the main reduction is achieved
+in the first application, and that the size of the output typically stabilizes after a
+few iterations. Later repetitions are also less expensive due to the reduced input.

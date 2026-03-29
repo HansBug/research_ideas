@@ -1,0 +1,1019 @@
+--- Page 1 ---
+Aalborg Universitet
+Methodologies for Specification of Real-Time Systems Using Timed I/O Automata
+David, Alexandre; Larsen, Kim Guldstrand; Legay, Axel; Nyman, Ulrik; Wasowski, Andrzej
+Published in:
+Lecture Notes in Computer Science
+DOI (link to publication from Publisher):
+10.1007/978-3-642-17071-3_15
+Publication date:
+2010
+Document Version
+Other version
+Link to publication from Aalborg University
+Citation for published version (APA):
+David, A., Larsen, K. G., Legay, A., Nyman, U., & Wasowski, A. (2010). Methodologies for Specification of Real-
+Time Systems Using Timed I/O Automata. Lecture Notes in Computer Science, 6286, 290-310.
+https://doi.org/10.1007/978-3-642-17071-3_15
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: March 29, 2026
+
+--- Page 2 ---
+MethodologiesforSpeciﬁcationofReal-Time
+SystemsUsingTimedI/OAutomata
+AlexandreDavid1,KimG.Larsen1,AxelLegay2,
+UlrikNyman1,AndrzejWąsowski3
+1ComputerScience,AalborgUniversity,Denmark
+2INRIA/IRISA,RennesCedex,France
+3ITUniversityofCopenhagen,Denmark
+Abstract.Wepresentareal-timespeciﬁcation framework basedon
+TimedI/OAutomataandacomprehensivetoolsupportforit.T he
+frameworksupportsvariousdesignmethodologiesincludin g:top-down
+reﬁnement—fordecompositionofabstractspeciﬁcationsto wardsincreas-
+inglydetailedmodels;bottom-upabstraction—forsynthes isofcomplex
+systemsfrommoreconcretemodels;andstep-wisemodularis ationof
+requirements—tofactoroutbehavioursgivenbyexistingav ailablecom-
+ponentsfromacomplexglobalrequirementsspeciﬁcationto beimple-
+mented.Thesemethodologiesarerealizedbyconsecutiveap plicationsof
+operatorsfromthefollowingset:reﬁnement,consistencyc hecking,log-
+icalandstructuralcompositionandquotienting.Addition ally,ourtool
+allowscombiningthecomponent-orienteddesignprocesswi thveriﬁca-
+tionoftemporallogicpropertiesincreasingtheﬂexibilit yoftheprocess.
+1 ContextandMotivation
+Industriesdevelopingcomplexembeddedsystems,suchasae rospaceandauto-
+motive,haveundergonedeeporganisationalchangeswithtr emendousimpacton
+developmentprocesses.Inthepast,theywereverticallyin tegratedcompanies,
+internallysupportingalldesignactivitiesfromspeciﬁca tiontoimplementation.
+Todaytheyrelyincreasinglyonexternalsuppliersandonin dependentteams
+toprovideessentialcomponentsofsystems.Itisnolongerp ossibleforasingle
+teamtocontroltheentiredesignprocessfromspeciﬁcation toimplementation.
+Complexsystemsemergefromassemblingmultiplecomponent s.Thesecom-
+ponentsaredesignedbyindependentlyworkingteams,whoad heretoacommon
+agreement,acontract,onwhattheinterfaceofeachcomponentshouldbe.Such
+aninterfacedeﬁnesthebehavioursexpectedfromthecompon entaswellasthe
+environmentinwhichitcanbeused.Themainadvantageistha titabstracts
+fromthewaythecomponentcanbeimplemented.
+Inpracticeinterfacesaredescribedusingtextualdocumen tsormodellinglan-
+guagessuchasUMLorWSDL.Unfortunately,suchspeciﬁcatio nsareambiguous
+andthusaresubjecttointerpretation.Weinsteadrecommen drelyingonmath-
+ematicallysoundformalismstoreduceambiguities.Inthis context,thevibrant
+researchareaofcompositionalreasoning [20]givesthefoundationsthatallowto
+
+--- Page 3 ---
+reasonaboutpropertiesoftheglobalsystembasedonproper tiesofindividual
+components.Theessentialadvantageofcompositionalreas oningisitssupport
+forsafereuseofcomponents,wellknownfromotherengineer ingdisciplines.
+Buildingspeciﬁcationtheoriesisasubjectofintensivest udies[11,14].One
+particularlysuccessfuldirectionareinterfaceautomata [14,15,23,31].Inthis
+framework,aninterfaceisrepresentedbyaninput/outputa utomaton[29],where
+transitionsaretypedas inputandoutput.Thesemanticsisgivenbyatwo-
+playergame:theinputplayerrepresentstheenvironment,andthe outputplayer
+representsthecomponentitself.Contrarytotheinput/out putmodelof[29],
+thissemanticoﬀersanoptimistictreatmentofcomposition :twointerfacescan
+becomposedifthereexistsanenvironmentinwhichtheycans afelyinteract.
+Theexistinginterfacetheoriesfocusprimarilyoncomposi tion(andsome-
+timesonreﬁnement).Therehardlyexistsupportingtoolsth atcouldbeused
+byengineers.Overtheyearsofinteractionwithindustrial partners,wehave
+collectedthefollowingrequirementsforinterfacestheor ies.Noticethattheysig-
+niﬁcantlyexceedtheusualscopeofstudyingcompositionan dreﬁnement.
+1.Itshouldbedecidablewhetheraninterfaceadmitsanimpl ementation.4
+2.Theremustbeamechanismtosafelyreplaceacomponentbya notherone.
+Technicallythiscorrespondstotherequirementsofprecon gruenceandcom-
+pletenessforReﬁnement.Reﬁnement(written ≤),whichisapreorderonthe
+setofinterfaces,shouldsatisfythefollowingproperty:
+Everyimplementationsatisfyingareﬁnementofaninterfac eshould
+alsosatisfythisinterface.
+3.Tocontroldesigncomplexity,oneshouldbeabletodecide whetherthere
+existsaninterfacethatreﬁnestwodiﬀerentinterfaces(a sharedreﬁnement).
+4.Diﬀerentaspectsofsystemsareoftenspeciﬁedbydiﬀeren tteams.Theissue
+ofdealingwithmultipleaspectsormultipleviewpointsist husessential.It
+shouldbepossibletorepresentseveralinterfaces(viewpo ints)forthesame
+component,andtocombinetheninaconjunctivefashion.Con junction(writ-
+ten∧)shouldsatisfythefollowingproperty:
+Giventwoviewpointsrepresentedbytwointerfaces,anyimp lemen-
+tationthatsatisﬁestheconjunctionmustsatisfythetwovi ewpoints.
+5.Theframeworkshouldprovideacombinationoperationreﬂ ectingthestan-
+dardinteractionbetweensystems.Itshouldrespectthereﬁ nementtosup-
+portindependentdevelopment:
+Giventwoimplementationsoftwointerfaces,thecompositi onofthe
+implementationssatisﬁesthecompositionoftheirinterfa ces.
+6.Itshouldbepossibletofactorinexistingcomponentsint ogeneralrequire-
+ments,inordertofacilitatereuseofaccumulatedassets.I ninterfacetheories
+thisisrealizedusingaquotientoperator.
+7.Conjunctionandcompositionmustbeassociativeandcomm utative,sothat
+theemergentbehaviourofthesystemdependsonlyonthespec iﬁcations,
+notontheorderinwhichtheyhavebeencombined.
+4Inourtheory,animplementationshallnotbeviewedasaprog raminaconcrete
+programminglanguagebutratherasanabstractmathematica lobjectthatrepresents
+asetofprogramssharingcommonproperties.
+2
+
+--- Page 4 ---
+8.Theremustexistaspeciﬁcationlanguagetospecifyprope rtiesofinterfaces
+aswellasaproceduretodecidewhethertheinterfacesatisﬁ estheproperties.
+9.Alltheaboveoperationsandpropertiesshouldbeperform edandchecked
+witheﬃcientalgorithms.
+10.User-friendlytoolsprovidingcomprehensiblefeedbac ktotheusermustbe
+available.Forexample,ifanimplementationviolatesaspe ciﬁcation,auseful
+feedbackinspiresthedesigneronhowtocorrectit.
+In[16],atimedextensionofthetheoryofinterfaceautomat ahasbeenintro-
+duced,motivatedbythefactthattimecanbeacrucialparame terinpractice,
+forexampleinembeddedsystems.Theresultsof[16]focusmo stlyonstructural
+composition.Recently[12]wehaveproposedwhatseemstobe theﬁrstcomplete
+interfacetheoryfortimedsystems(withrespecttotheabov erequirements).Our
+speciﬁcationsaretimedinput/outputautomata[21]—timedautomatawhose
+setsofdiscretetransitionsaresplitinto inputandoutputtransitions.Contrary
+to[16]and[21]ourtheorydistinguishesbetweenimplement ationsandspeciﬁ-
+cations.Thisisdonebyassumingthattheformerhaveﬁxedti mingbehaviour
+andtheycanalwaysadvanceeitherbyproducinganoutputord elaying.The
+theoryalsoprovidesagame-basedalgorithmtodecidewheth eraspeciﬁcationis
+consistent,i.e.whetherithasatleastoneimplementation .Thelatterreducesto
+decidingexistenceofastrategythatdespitethebehaviour oftheenvironment
+willavoidstatesthatcannotpossiblysatisfytheimplemen tationrequirements.
+Apruningfacilityremovesallthestatesnotcoveredbythestrategy. Itcan
+drasticallyreducethestate-spaceofthesystem.Followin gasimilarprinciple,it
+ispossibletoconstrainaninterfacewithatimedtemporall ogicformula[1].For
+example,likein[16],onecanuseaB¨uchiobjectivetoremov estatesallowingZeno
+behaviours.Ourtheoryisrichinthesensethatitcapturesa llthegoodoperations
+foracompositionaldesigntheorypresentedabove.Alsoall thealgorithmshave
+beenimplemented.Thisimplementation(availableat[36]) comesasanextension
+oftheUppaal-tigatool-set[3].Uppaal-tigaisatoolthatimplementsaseries
+ofalgorithmsforsolvingtimedgames[9]aswellaschecking timedtemporallogic
+properties.Workingwithin Uppaal-tigaallowsustoproposeastate-of-the-art
+userinterfaceforveriﬁcationtools.
+Inthispaperourobjectivesare(1)togivemoreinsightinto designchoices
+madein[12],(2)toreportonchallengesoftheimplementati on,(3)todiscuss
+designmethodologiescompatiblewithourtheory,(4)toeva luatetheimplemen-
+tation,and(5)tocompareourresultswithotherresultsint hesameﬁeld.
+2 SpeciﬁcationsandImplementations
+Weshallnowintroduceourcomponentmodel.
+Deﬁnition1.ATimedI/OTransitionSystem(TIOTS)isaquadruple S=
+(StS,s0,ΣS,− →S),whereStSisaninﬁnitesetofstates, s0∈Stistheinitial
+state,ΣS=ΣS
+i⊕ΣS
+oisaﬁnitesetofactionspartitionedintoinputs( ΣS
+i)and
+outputs( ΣS
+o)and− →S:StS×(ΣS∪R≥0)×StSisatransitionrelation.We
+3
+
+--- Page 5 ---
+writesa− →Ss′insteadof (s,a,s′)∈− →Sandusei?,o!anddtorangeoverinputs,
+outputsand R≥0respectively.InadditionanyTIOTSsatisﬁesthefollowing :
+[timedeterminism]whenever sd− →Ss′andsd− →Ss′′thens′=s′′
+[timereﬂexivity] s0− →Ssforalls∈StS
+[timeadditivity]forall s,s′′∈StSandalld1,d2∈R≥0wehave sd1+d2−−−−→Ss′′iﬀ
+sd1− − →Ss′ands′d2− − →Ss′′forans′∈StS
+TIOTSsaresemanticobjectsthatrepresenttimedinteracti veprocesses.In
+ourframeworkweuse TimedI/OAutomata asasyntacticdomaininwhich
+speciﬁcationsandimplementationsarerepresented.
+Deﬁnition2.ATimedI/OAutomaton (TIOA)isatuple A= (Loc,q0,Clk,E,
+Act,Inv)whereLocisaﬁnitesetoflocations, q0∈Locistheinitiallocation,Clk
+isaﬁnitesetofclocks, E⊆Loc×Act×B(Clk)×P(Clk)×Locisasetofedges
+withB(Clk)beingasetofclockconstraints,Act =Acti⊕Actoisaﬁnitesetof
+actions,partitionedintoinputsandoutputsrespectively ,andInv :Loc/mapsto→ B(Clk)
+isasetoflocationinvariants.
+Asfortimedautomata,a stateofAisapair (q,V)whereqisalocationand
+V:Clk/mapsto→R≥0isavaluationfunctionthatassignsanon-negativevaluetoeach
+clockinClk.Wewrite u+dtodenoteavaluationsuchthatforanyclock rwe
+have(u+d)(r) =x+diﬀu(r) =x.Givend∈R≥0,wewrite u[r/mapsto→0]r∈cfora
+valuationwhichagreeswith uonallvaluesforclocksnotin c,andreturns0for
+allclocksin c.Weuse0todenotetheconstantfunctionmappingallclocksto
+zero.TheinitialstateofAisthepair (q0,0).
+WevisualiseTIOAsusingclassicalTimedAutomatanotation ,extendingit
+withtwotypesoftransitions(inputsandoutputs).Seeexam pleinFigure1.
+ThesemanticsofaTIOA A=(Loc,q0,Clk,E,Act,Inv)isaTIOTS [[A]]sem=
+(Loc×(Clk/mapsto→R≥0),(q0,0),Act,− →),where− →isthelargesttransitionrelation
+generatedbythefollowingrules:
+–Each(q,a,ϕ,c,q′)∈Egivesriseto (q,u)a− →(q′,u′)foreachclockvaluation
+u∈[Clk/mapsto→R≥0]suchthat u|=ϕandu′=u[r/mapsto→0]r∈candu′|=Inv(q′).
+–Eachlocation q∈Locwithavaluation u∈[Clk/mapsto→R≥0]givesrisetoa
+transition (q,u)d− →(q,u+d)foreachdelay d∈R≥0suchthat u+d|=Inv(q).
+ObservethattheTIOTSsinducedbyaTIOAsnaturallysatisfy thethreeaxioms
+ofDeﬁnition1.Intherestofthepaper,wewillonlyconsider deterministic
+TIOAs,whosecorrespondingTIOTSsaredeterministic.
+ATIOTSrepresentsatwo-player timedgame[9].TheInputplayer(theen-
+vironment)controlstheinputtransitionsoftheTIOTS.The Outputplayer(the
+system)controlstheoutputtransitions.Theformaldeﬁnit ionsofstrategyand
+moveoutcomesforsuchagamearegivenin[12].Thesetof winningstates
+fromwhichoneoftheplayershasastrategytosatisfyasafet yorareachability
+objectivecanbecomputedwithalgorithmspresentedin[9]— eﬃcientsymbolic
+versionsofwell-knowncontrollersynthesisalgorithmsof [30].
+4
+
+--- Page 6 ---
+WenowdeﬁneimplementationsandspeciﬁcationsintermsofT IOAs.
+Deﬁnition3.AspeciﬁcationautomatonisaTIOAthatisinput-enabled,i. e.,
+ineachstatealltheinputsshouldbeavailable.
+Theassumptionofinput-enabledness,alsoseeninmanyinte rfacetheories[28,
+18,34,37,32],reﬂectsourbeliefthataninputcannotbepre ventedfrombe-
+ingsenttoasystem,butitmightbeunpredictablehowthesys tembehaves
+afterreceivingit.Input-enablednessencouragesexplici tmodellingofthisun-
+predictability,andcompositionalreasoningaboutit;for example,decidingifan
+unpredictablebehaviourofonecomponentinducesunpredic tabilityoftheentire
+system.ObservethatitiseasytocheckwhetheraTIOAisinpu t-enabled.In
+practicetoolscaninterpretabsentinputtransitionsinat leasttworeasonable
+ways.First,theycanbeinterpretedasignoredinputs,corr espondingtolocation
+loopsintheautomaton.Second,theymaybeseenasunavailab le(’blocking’)
+inputs,whichcanbeachievedbyassumingimplicittransiti onstoadesignated
+errorstate.Later,inSection4.2wewillcallsuchastate strictlyundesirable and
+givearationaleforthisname.
+Theroleofspeciﬁcationsinaspeciﬁcationtheoryistoabst ract,orunder-
+specify,setsofpossibleimplementations. Implementationsareconcreteexe-
+cutablerealizationsofsystems.Wewillassumethatimplem entationsoftimed
+systemshaveﬁxedtimingbehaviour(outputsoccuratpredic tabletimes)and
+systemscanalwaysadvanceeitherbyproducinganoutputord elaying.Formally:
+Deﬁnition4.Animplementationisaspeciﬁcationthatsatisﬁesthetwofo llow-
+ingconditions:
+1.Independentprogress: implementationscannotgetstuckinastatewhere
+itisuptotheenvironmenttoinduceprogress.Ineachimplem entationstate
+eitheranoutputispossibleoronecandelayuntilanoutputi senabled.
+2.Outputurgency: ifanoutputisavailable,thenitcannotbedelayed.
+SincespeciﬁcationsandimplementationsareTIOAs,theirs emanticsarestill
+givenintermsofTIOTs.Werefertheinterestedreaderto[12 ]formoredetails.
+Example.Figure1aspeciﬁesavendingmachinethatcanserveteaorcoﬀ ee.A
+possibleimplementationofthismachinecanbefoundinFigu re1b.Bothau-
+tomataaredeterministic.Notethattheoutputtransitions oftheimplementation
+Implarriveataﬁxedmomentintimeandcannotbedelayed,whichgu arantees
+outputurgency(theinvariantguaranteesprogressandtheg uardconstrainsthe
+transition).Eachtimetheoutput tea!fromIdletoIdleistaken,theclock y
+isreset.Withoutthisreset,independentprogresswouldno tbeguaranteedfor
+valuationsoftheclock ythataregreaterthan 6.
+Wenowintroducereﬁnement—anotionofcomparisonbetweentwospeciﬁ-
+cationsandawaytorelateimplementationstospeciﬁcation s.Reﬁnementshould
+satisfythefollowing substitutabilitycondition.If ASreﬁnesAT,itshouldbepos-
+sibletoreplace ATwithASineverycontextandobtainanequivalentsystem.
+Contrarytotheotheroperations,reﬁnementisdeﬁnedatthe levelofTIOTSs.
+5
+
+--- Page 7 ---
+a)
+tea coin coftea!
+coin?tea!
+cof!coin?Idle
+Servingy=0
+y>=4y<=6y>=2 Machine b)
+tea coin cofcoin?tea!
+y=0
+cof!coin?Idle
+y<=5Servingy = 0
+y==5y <= 6y==6 Impl.
+Fig.1.a)Speciﬁcationofacoﬀeeandtea Machineandb)animplementation
+Deﬁnition5.LetASandATbetwospeciﬁcationautomataand S= (StS,s0,Σ,
+− →S)andT= (StT,t0,Σ,− →T)betheircorrespondingtimedtransitionsystems.
+Wesaythat ASreﬁnesAT,written AS≤AT,iﬀthereexistsabinaryrelation
+R⊆StS×StTcontaining (s0,t0)andforallstates sRtimplies:
+1.whenever ti?− − →Tt′forsome t′∈StTthensi?− − →Ss′ands′Rt′forsome s′∈StS
+2.whenever so!− − →Ss′forsome s′∈StSthento!− − →Tt′ands′Rt′forsome t′∈StT
+3.whenever sd− →Ss′ford∈R≥0thentd− →Tt′ands′Rt′forsome t′∈StT
+Itiseasytoseethatthereﬁnementisreﬂexiveandtransitiv e,soitisapre-
+orderonthesetofallspeciﬁcations.Reﬁnementcanbecheck edforspeciﬁcation
+automatabyreducingtheproblemtoaspeciﬁcreﬁnementgame ,andusinga
+symbolicrepresentationtoreasonaboutit.SeeSection5fo rmoredetails.
+Satisfactionisasimpleapplicationofreﬁnement.Moreprecisely,wesay that
+animplementationsatisﬁesaspeciﬁcationautomatoniﬀitr eﬁnesthisspeciﬁca-
+tion.Asanexample,observethattheautomatoninFigure1bi sareﬁnementof
+theoneinFigure1a,andthusitisalsoanimplementationofi t.
+Thesetofallimplementationsof Aisdenoted [[A]]mod.In[12],wehave
+shownthatthereﬁnementrelationiscompleteforourspeciﬁ cationmodel,i.e,
+ASreﬁnesATiﬀthesetofimplementationsthatsatisfy ASisincludedinthe
+setofimplementationsthatsatisfy AT.
+Aspeciﬁcationmaybe locallyinconsistent inthesensethatitmaycontain
+badstates,i.e.,statesthatdonotsatisfythe independentprogress property5.
+Wesaythataspeciﬁcationis consistent,andthususeful,ifitadmitsatleast
+oneimplementation.Itisimportanttohaveaproceduretode cidewhethera
+speciﬁcationadmitsatleastoneimplementation.In[12],w ehaveshownthatthis
+questionreducestotheoneofdecidingifthereexistsastra tegyforthesystem
+(Outputplayer)toavoidreaching badstatesinthespeciﬁcation.A pruning
+facilityremovesfromtheTIOAallthebehavioursthatareno tcoveredbythe
+strategy.Itcandrasticallyreducethestate-spaceofthea utomaton.Intherest
+ofthepaper,weassumethatbadstatesarealwaysprunedaway .
+5Insection4,weshallobservethatthecombinationoftwospe ciﬁcationswithoutbad
+statesmayleadtoaspeciﬁcationwithbadstates.
+6
+
+--- Page 8 ---
+a)
+grant patentpatent!grant?grant?grant?
+u>2u<=2
+u<=20grant?u=0
+patent!u=0UniSpecb)
+grant pub patent coinpatent!
+pub?grant?
+grant?pub?
+coin!grant?B A
+z<=2CD
+grant?pub?z=0
+pub?z<=2
+z=0Administration
+Fig.2.a)Universityspeciﬁcation UniSpec.b)Speciﬁcationofan Administration.
+3 DesignMethodologies
+Inthefollowingweintroducethreediﬀerentdevelopmentme thodologiessup-
+portedbyourframework.Thesedevelopmentmethodologiesa reinnowayin
+conﬂictwitheachother,butshouldmorebeseenasprototype work-ﬂowsthatin
+aconcretedevelopmentprocesswouldbecombined.Firstwep resenttherunning
+examplethatwillbeusedinpresentingthemethodologies.
+Theexampleisbasedonaverysimpliﬁedviewofamodernunive rsity.The
+purposeoftheuniversityistoﬁleasmanypatentsaspossibl e.Moreprecisely
+therequirementsimposedontheuniversityisgivenbytheTI OAUniSpecas
+presentedinFigure2a.Theborderaroundthespeciﬁcations howstheinputand
+outputsortbyincomingandoutgoingarrowsrespectively.T heinitialstateof
+thespeciﬁcationismarkedbyadoublecircledstate.Givent hattheuniversity
+receivesagrant(solidtransitionmarkedwith grant?)afteradelayoflessthan
+twotimeunitsitwilloutput(dashedtransitionmarkedwith patent!)apatent
+withinthenext20timeunits.Iftheﬁrstgrantcomesaftermo rethantwotime
+unitsoranysubsequentgrantcomesmorethantwotimeunitsa fterapatenthas
+beenﬁledthenthebehaviouroftheuniversitybecomesunpre dictable,whichis
+modelledbytheleftmoststateinthespeciﬁcation.
+StepwiseReﬁnement. Theﬁrstmethodologypresentedistheclassictop-down
+developmentthrough stepwisedecompositionandreﬁnement .Startingfromthe
+overallspeciﬁcationofFigure2aonecanreﬁnethisintoasp eciﬁcationthat
+containsseveralparallelcomponents.Thereﬁnementisbas edonaknowledgeof
+howthesystemunderdesignissupposedtomeettheoverallre quirements.This
+reﬁnedspeciﬁcationcanagainbereﬁnedfurther,untilthed esiredlevelofdetail
+hasbeenreached.Itisimportanttonotethatthe independentimplementability
+propertyallowsforthesereﬁnementstepstobetakenforind ividualcomponents,
+greatlyincreasingthescalabilityoftheframeworkthroug hcompositionaldesign.
+Wewilldecomposethe Universityspeciﬁcationintothreecomponents:an
+Administration,aCoﬀee/TeamachineandaResearcher.Ther esponsibilityof
+theAdministration(Figure2b)istoconvertthegrantsprovidedtotheUniversi ty
+intocoinsthatcanbeusedinthecoﬀeeandteamachine.Theco ﬀeeandtea
+7
+
+--- Page 9 ---
+a)
+cof teapubtea?
+tea?
+pub!cof?
+pub!
+x=0pub!tea?cof?Idle
+x<=8 x<=4Stuck
+Coffee Teax=0 x=0x<=15 x=0x>15
+x>=4x>=2Researcher
+b)
+grant pub patent coinpatent!
+pub?grant?
+grant?pub?
+coin!grant?B A
+z<=2CD
+grant?pub?z=0
+pub?z<=2
+z=0Administration2
+Fig.3.Speciﬁcationsforthea) Researcherandb)Administration2.
+Administration ||Machine ||Researcher≤UniSpec
+Administration2 ||Machine ||Researcher/\egatio\slash≤UniSpecStepwiserefinement
+Fig.4.OnepossiblestepinTop-downdevelopment:Modifyingacomp onent
+andrecheckingreﬁnement.
+Machine(Figure1a)willtheninturnprovidethe Researcher(Figure3a)with
+coﬀeeandteasothattheresearchercanproducepublication s.TheAdministration
+componentalsohastheresponsibilityofconvertingpublic ationsintopatents.
+ThetoplineinFigure4showsasuccessfulreﬁnementcheckwh ichshows
+thatthethreecomponentstogetherreﬁnetheoverallspeciﬁ cation.
+ThebottompartofFigure4showsanadditionalstepinthereﬁ nementpro-
+cess.Hereasinglecomponentisupdated( AdministrationtoAdministration2).
+Thisnewversion(Figure3b)diﬀersinasingletransition.I fitreceivesapubli-
+cation(pub?)intheinitial,leftmoststate,thenitwillno tloopbutinsteadshift
+tothelowerleftstateindicatingthatitisreadytooutputa patentbasedon
+thispublication.Thisnewversionoftheadministrationis thusabletoreceive
+andprocessfreepublicationsthatithasnotpayedfor.
+Figure4showsthatthereﬁnementcheckfailsafterthisupda teofthemodel.
+Bytheindependentimplementabilitypropertythiscouldal sohavebeendiscov-
+eredbycheckingwhether Administration2reﬁnesAdministration,whichindeed
+itdoesnot.Thismightcomeasasurprisetothedeveloperasi tseemslike
+areasonableimprovementtobeabletoacceptfreepublicati ons.Wedeferthe
+discussionofhowtosolvethisissuetoSection5.
+Instepwisereﬁnementthisstepofdecomposingandreﬁningi ndividualcom-
+ponentsisappliediteratively,untilasuitablelevelofde tailisreached.
+Bottom-upSynthesis. Theseconddevelopmentmethodologythatourframework
+supportsisabottom-updevelopmentprocessthrough stepwisecomposition .Here
+weassumethatactualimplementationsofsomecomponentsal readyexistand
+thatmodelsaremadethatdescribethebehaviourofthesecom ponents.Theaim
+8
+
+--- Page 10 ---
+consistency:Administration ||Machine ||Researcher
+consistency:Administration ||MachineAddingacomponent
+Fig.5.OnepossiblestepinBottom-updevelopment:Checkingconsi stencybe-
+foreandafteraddinganextracomponent.
+Machine ||Researcher ||Administration≤UniSpec
+Machine ||Researcher≤UniSpec \\AdministrationFactoringoutsomebehaviour
+Fig.6.OnepossiblestepinStepwisemodularisationofrequiremen ts:Factoring
+outthebehaviouroftheAdministration.
+ofthebottom-updevelopmentinoursettingistoverifythat acompletesystem
+canbebuiltfromthepreexistingcomponents.Figure5shows onepossiblestepin
+abottom-updevelopmentprocess.Hereaconsistencychecki sperformedonthe
+parallelcompositionoftwocomponentsafterwhichanother componentisadded
+andtheconsistencycheckisredone.Thebottomupdevelopme ntmethodology
+couldeasilybecombinedwithreﬁnementcheckingwheretheo verallrequire-
+mentsarestepwisereﬁnedtoseewhattheactualcombination ofcomponents
+canguaranteeintermsofbehaviourandtiming.
+StepwiseModularisationofRequirements. Thethirdandmorenoveltypeof
+developmentmethodologythatourframeworksupportsisthe Stepwisemodu-
+larisationofrequirements .Heretheideais,likeforthe top-downdevelopment
+tostartwithageneralspeciﬁcationoftherequirementstot hesystemandthen
+usingthequotientoperatortofactoroutbehaviourthatisalreadyimplemente d
+byexistingcomponents,sothatoneisleftwithaspeciﬁcati onforthemissingbe-
+haviour.Thisspeciﬁcation,whichissynthesisedbythetoo l,cannowbefurther
+reﬁnedtoprovidetheimplementationofmissingfunctional ityintermsofnew
+components.Inthatthisprocessgeneralisesstepwisereﬁn ementandbottom-up
+synthesis.Figure6showshowonecomponentcanbemovedfrom onesideof
+thereﬁnementchecktotheotherbyfactoringoutthebehavio ur.
+Anotheraspectofourframeworkthatcanbeusedorthogonall ytothethree
+describeddevelopmentideasisconjunction.Conjunctiona llowstospecifydif-
+ferentaspectsorrequirementstoacomponentandthencompo setheseusing
+logicalconjunction,suchthatanimplementationwouldhav etoindividually
+satisfyeachconjunctinordertosatisfytheconjunction.F igure7showsanex-
+ampleoftwospeciﬁcationsthateachhandleoneaspectofthe responsibilitiesof
+theAdministrationcomponent.Figure7adescribesanalternationbetweenthe
+9
+
+--- Page 11 ---
+a)
+grant pub patent coinpub? patent!
+patent!coin! grant?A
+B
+pub?grant?x<=2x=0HalfAdm1 b)
+grant pub patent coingrant? coin!
+coin!patent! pub?C
+D
+pub?grant?y<=2y=0HalfAdm2
+Fig.7.Exampleoftwoconjuncts,eachhandlingoneaspect,thatmak eupa
+diﬀerentmodeloftheAdministrationcomponent.
+coin!andgrant?whileFigure7bdescribesthealternationbetween patent!and
+pub?.Togethertheseformanalternativeandslightlymoreloose speciﬁcationof
+theadministration.Itisthecasethatboth AdministrationandAdministration2
+reﬁnetheconjunction HalfAdm1 ∧HalfAdm2,whiletheoppositeisnotthecase.
+FinallythetoolisabletoverifyTCTL∗[1]propertiesonthespeciﬁcations.
+Thisfeatureismadepossiblethankstothemodiﬁedunderlyi ngveriﬁcation
+engine.Thiswillbeexempliﬁedinsection5.
+4 CombiningSpeciﬁcationAutomata
+Inthissection,wediscussthethreemainoperationsdeﬁned onspeciﬁcation
+automata,namely:conjunction,composition,andquotient .Allofthesewere
+usedtosupportdiﬀerentdesignprocessesdescribedinthep revioussection.
+Intherestofthesection,wewillconsidertwospeciﬁcation automata AS=
+(Loc1,q1
+0,Clk1,E1,Act1,Inv1)andAT= (Loc2,q2
+0,Clk2,E2,Act2,Inv2).Fortech-
+nicalreasons,wealsoassumethat Clk1∩Clk2=∅.
+4.1 Conjunction
+Conjunctionallowstotestwhetherseveralspeciﬁcationsc anbesimultaneously
+metbythesamecomponent.Inourframework,conjunctioncan onlybedeﬁned
+ifActS
+i=ActT
+iandActS
+o=ActT
+o.Theoperationreducestocheckwhether
+thetwospeciﬁcationscanprogressinthesameway.Formally theconjunction
+ofASandAT,denoted AS∧AT,istheTIOA A= (Loc,q0,Clk,E,ActS,Inv)
+givenby:Loc=LocS×LocT,q0= (qS
+0,qT
+0),Clk=ClkS⊎ClkT,Inv((qS,qT)) =
+Inv(qS)∧Inv(qT).Thesetofedges Eisdeﬁnedbythefollowingrule:
+–If(qS,a,ϕS,cS,q′
+S)∈ESand(qT,a,ϕT,cT,q′
+T)∈ETthisgivesriseto
+((qS,qT),a,ϕS∧ϕT,cS∪cT,(q′
+S,q′
+T))∈E.
+10
+
+--- Page 12 ---
+AS0
+AS1AS2InvS
+a?gi
+ri···o!hl
+sl···AT0
+AT1AT2InvT
+a?uj
+tj···o!vm
+pm···AS0T0
+AS1T1AS2T2InvA∧InvB
+a?gi∧uj
+ri∪tj···o!hl∧vm
+sl∪pm···
+Fig.8.TwostatesofTIOAs ASandATarecombinedintooneTIOA Awith
+theconjunctionoperatorforonestep.Thisprocessistheni terated.
+Anexampleofhowtheconjunctionoftwospeciﬁcstatesfromt wodiﬀerent
+TIOAwithexampleinputandoutputtransitionswilllookisg iveninFigure4.1.
+Conjunctionmayintroducelocallyinconsistentstates.Fo rexample,assume
+thatASreachesastatefrom swheretheonlyavailableactionistheoutput a
+andATreachesastate tfromwheretheonlyavailableactionistheoutput b.
+Assumealsothat ASandATcannotdelayin sandt.In(s,t),theconjunction
+willnotissueanyoutputandwillnotbeabletodelay,whichv iolatestheinde-
+pendentprogressproperty.AsstatedinSection2,locallyinconsistentstat escan
+beremovedwiththehelpofapruningoperation.Intherestof thepaper,we
+assumethateachconjunctionisimmediatelyfollowedbyapr uning.
+In[12],wehaveshownthefollowingresults:
+–Thesetofimplementationssatisfyingaconjunctionisthei ntersectionofthe
+implementationsetsoftheoperands: [[(AS∧AT)]]mod=[[AS]]mod∩[[AT]]mod.
+–Theconjunctionof ASandATcorrespondstothegreatestlowerboundof
+theirimplementationssets:if A≤ASandA≤ATwehavethat A≤AS∧AT.
+–Theconjunctionoperation(alsoifcombinedwithpruning)i sassociativeand
+commutative,soamongothers: [[(AS∧AT)∧AU]]mod= [[AS∧(AT∧AU)]]mod.
+4.2 Composition
+Weshallnowdeﬁne structuralcomposition ,alsocalledparallelcomposition ,be-
+tweenspeciﬁcations.Roughlyspeaking,thisoperationcom putestheclassical
+productbetweentimedspeciﬁcations[21],wherecomponent ssynchroniseon
+commoninputs/outputs.Twocomponentsare composableiﬀtheintersection
+betweentheiroutputalphabetsisempty.Formallythe parallelcomposition of
+ASwithAT,denoted AS||AT,istheTIOA A= (Loc,q0,Clk,E,Act,Inv)given
+by:Loc=LocS×LocT,q0= (qS
+0,qT
+0),Clk=ClkS⊎ClkT,Inv((qS,qT)) =
+Inv(qS)∧Inv(qT)andthesetofactions Act=Acti⊎ActoisgivenbyActi=
+ActS
+i\ActT
+o∪ActT
+i\ActS
+oandActo=ActS
+o∪ActT
+o.Thesetofedges Eisdeﬁned
+bythefollowingrules:
+1.If(qS,a,ϕS,cS,q′
+S)∈ESwitha∈ActS\ActTthenforeach qT∈LocTthis
+gives((qS,qT),a,ϕS,cS,(q′
+S,qT))∈E
+11
+
+--- Page 13 ---
+2.If(qT,a,ϕT,cT,q′
+T)∈ETwitha∈ActT\ActSthenforeach qS∈LocSthis
+gives((qS,qT),a,ϕS,cS,(qS,q′
+T))∈E
+3.If(qS,a,ϕS,cS,q′
+S)∈ESand(qT,a,ϕT,cT,q′
+T)∈ETwitha∈ActS∩ActT
+thisgivesriseto ((qS,qT),a,ϕS∧ϕT,cS∪cT,(q′
+S,q′
+T))∈E.
+Theﬁrstrulerepresentallthecaseswhere ASmakesanindividualmove,beit
+inputoroutput,because aisnotinthesignatureof AT.Similarlythesecondrule
+handlesallindividualmovesbythesecondcomponent AT.Thethirdrulehandles
+allsynchronisationsbetweenthetwocomponents,nomatter thecombinationof
+inputand/oroutput.Theruleissosimplebecausethetypeof theresulting
+transitionisgivenbythesets ActiandActo.Thenewoutputset, Acto,isjusta
+simpleunionoftheoutputs,whiletheinputset, Acti,isalltheinputsthatare
+notoutputsoftheothercomponent.
+Observethatifwecomposetwolocally-consistentspeciﬁca tionsusingthe
+aboveproductrules,thentheresultingproductisalsoloca llyconsistent.More-
+over,unlike[16],ourspeciﬁcationsareinput-enabled,an dthereisnowayto
+deﬁneanerrorstateinwhichacomponentcanissueanoutputt hatcannotbe
+capturedbytheothercomponent.Theabsenceof“model-rela ted”errorstates
+allowsustodeﬁnemoreelaboratederrorsspeciﬁedbythedes igner[12].Asan
+example,atemporalpropertywritteninsomelogicsuchasTC TL∗canbein-
+terpretedoverourspeciﬁcation,whichwhenanalysedbyamo delchecker,will
+resultinpartitioningofthestatesintogoodones(saysati sfyingtheproperty)
+andbadones(violatingtheproperty).
+Incontrasttoconjunction,parallelcompositionisusedto reasonaboutexter-
+naluseoftwo(ormore)components.Weassumeanindependent implementation
+scenario,wherethetwocomposedcomponentsareimplemente dbyindependent
+designers.Thedesignerofanyoftheenvironmentcomponent scanonlyassume
+thatthecomposedimplementationswilladheretooriginals peciﬁcationsbeing
+composed.Consequentlyifanerroroccursinparallelcompo sitionofthetwo
+speciﬁcations,theenvironmentistheonlyentitythatispossiblyinaposition
+toavoidit.Thus,eachcompositionisfollowedbyapruningo perationwhereall
+thestatesfromwhichtheenvironmenthasnostrategytoavoi dthesetofbad
+statesareremoved.
+In[12],wehaveshownthefollowingimportantresultsregar dingcomposition.
+–Anyimplementationofcompositioncanberealizedbyimplem entationsof
+composedspeciﬁcations: [[(AS||AT)]]mod= [[AS]]mod||[[AT]]mod.
+–Thecompositionoperation(alsoifcombinedwithapruning) isassociative
+andcommutative,soamongothers: [[(AS||AT)||AU]]mod= [[AS||(AT||AU)]]mod.
+–Reﬁnementisaprecongruencewithrespecttoparallelcompo sition;forany
+speciﬁcations AS,AT,andAUsuchthat AS≤ATandAScomposablewith
+AU,wehavethat ATcomposablewith AUandAS||AU≤AT||AU.Moreover
+ifATcompatiblewith AUthenAScompatiblewith AU.
+12
+
+--- Page 14 ---
+a)
+AT0
+AT1AT2AT3 InvT
+i?gT
+rT···oS!hT
+sT···oX!kTqT···
+b)
+AS0
+AS1AS2AS3 InvS
+i?uS
+tS···oS!vS
+pS···oX?wSzS···d)
+T0\\S0lul∅
+T1\\S1
+T3\\S3
+lu l∅T2\\S2¬InvSAct?/!
+¬InvT∧InvSinew?
+gT∧uSi?rT,tS
+kT∧wS
+oX!
+qT,zS¬G
+S
+oS?
+vS∧¬GToS?
+hT∧vSoS?sT,pSc)
+X
+S
+Ti?os!
+ox!
+Fig.9.InitialstatesoftwoexampleTIOAa) AT,b)AS,c)anoverviewof
+thecommunicationﬂowandd)theinitialstateoftheresulti ngquotient.Blue
+indicateslatercorrectionstothisﬁgure,lastupdated202 0-08-25.
+4.3 Quotient
+Anessentialoperatorinacompletespeciﬁcationtheoryist heoneofquotienting.
+Itallowsforfactoringoutbehaviourfromalargercomponen t.Ifonehasalarge
+componentspeciﬁcation ATandasmallone ASthenAT\\ASisthespeciﬁcation
+ofexactlythosecomponentsthatwhencomposedwith ASreﬁneAT.Inother
+words,AT\\ASspeciﬁestheworkthatstillneedstobedone,givenavailabi lity
+ofanimplementationof AS,inordertoprovideanimplementationof AT.This
+isanontrivialoperationwhichreducestosynthesisofatim edgame.Tothebest
+ofourknowledge,wearetheﬁrsttocomputethequotientinat imedsetting.
+Werequirethatforthedividend ATandthedivisor ASthefollowingrelations
+onactionsetshold: ΣS
+i⊆ΣT
+iandΣS
+o⊆ΣT
+o.Iftheserequirementsontheinput
+andoutputsetsaremet,thenthequotientof ATbyAS,whichisdenoted
+AT\\ASistheTIOAgivenby: Loc=LocT×LocS∪{lu,l∅},q0= (qT
+0,qS
+0),Clk=
+ClkT⊎ClkS⊎{xnew},Inv((qT,qS)) =Inv(lu) =trueandInv(l∅) ={xnew≤0}.
+Thetwonewstates luandl∅arerespectivelyuniversalandinconsistent.The
+setofactionsAct=Acti⊎ActoisgivenbyActi=ActT
+i∪ActS
+o∪ {inew}and
+Acto=ActT
+o\ActS
+o.Thesetofedges Eisdeﬁnedbythefollowingrules:
+1.ifqT∈LocT,qS∈LocS,a∈Actthen((qT,qS),a,¬InvS(qS),{xnew},lu)∈E
+2.ifqT∈LocT,qS∈LocSthen((qT,qS),inew,¬InvT(qT)∧InvS(qS),{xnew},l∅)∈E
+3.if(qT,a,ϕT,cT,q′
+T)∈ETand(qS,a,ϕS,cS,q′
+S)∈ESthisgives ((qT,qS),a,
+ϕT∧ϕS,cT∪cS,(q′
+T,q′
+S))∈E
+4.foreach (qS,a,ϕS,cS,q′
+S)∈ESwitha∈ActS
+othisgivesriseto ((qT,qS),a,
+ϕS∧¬GT,{xnew},l∅)whereGT=/logicalortext{ϕT|(qT,a,ϕT,cT,q′
+T)}
+13
+
+--- Page 15 ---
+5.if(qT,a,ϕT,cT,q′
+T)∈ET,a/∈ActSthen((qT,qS),a,ϕT,cT,(q′
+T,qS))∈E
+6.foreach (qT,a,ϕT,cT,q′
+T)∈ETwitha∈ActS
+othisgivesriseto ((qT,qS),a,
+¬GS,{},lu)whereGS=/logicalortext{ϕS|(qS,a,ϕS,cS,q′
+S)}
+7.foreach a∈Actithisgivesriseto (l∅,a,xnew= 0,{},l∅)
+8.foreach a∈Actthisgivesriseto (lu,a,true,{},lu)
+Thequotientsinputset, Acti,consistsoftheinputstotheoutercomponent
+ATandtheoutputsoftheexistinginnercomponent AS(SeeFigure9c)and
+anewfreshinputaction inew.Theoutputsetofthequotient, Acto,issimply
+theoutputsetoftheoutercomponent, AT,minustheoutputshandledbythe
+existinginnercomponent AS.Theresultingquotienthastwonewspecialstates
+luandl∅.Theﬁrstuniversalstate,lu,representsallthecaseswheretheexisting
+innercomponent Ashasviolatedtheguaranteesoftheoutercomponent ATand
+thustherearenorestrictionsonthefuturebehaviourofthe quotient.Thesecond
+inconsistentstate,l∅,representsallthecaseswherethequotientbytakingthis
+actionwoulditselfviolatetheassumptionsoftheothercom ponents.
+Intheabovedeﬁnitionwehaveeightrules.Theﬁrstrulecrea tesanew
+transitionleadingtothe universalstatewithaguardthatequalstheoriginal
+invariantoftheexistinginnerspeciﬁcation.Thesecondru lereﬂectsthecase
+wheretheinvariantof ATisnotsatisﬁedwhiletheinvariantof ASis.Thethird
+rulehandlesallregularsynchronisationwheretheguardso fbothcomponentsare
+satisﬁed.Thefourthrulehandlesthecasewheretheinnerco mponentgenerates
+anoutputatatimewhereitisnotallowedbyanyofthematchin gguardsinthe
+outercomponent AT.Theﬁfthrulehandlesthecaseswhere ATtakesanaction
+whichisnotintheactionsetof AS.Thesixthrulerepresentsallthecaseswhere
+ATtakesanactionwhichisnotallowedbyanyofthematchinggua rdsinAS
+thusleadingtotheuniversalstate.Finallytheseventhrul emakesthe l∅state
+inconsistentandtheeighthruleensuresthattheuniversal statehasallpossible
+behaviour.Figure9illustratesonestepinthecomputation ofaquotient.
+LikeConjunction,thequotientoperationmayproduce(loca lly)inconsistent
+speciﬁcations.Hence,eachquotientoperationhastobefol lowedbyapruning.
+In[12],wehaveshownthatthequotientoperationproducest hemostliberal
+speciﬁcationwithrespecttoreﬁnement.Formallywehaveth efollowingtheorem.
+Theorem6.Foranytwospeciﬁcationautomata ASandATsuchthatthequo-
+tientisdeﬁned,andforanyimplementation Xoverthesamealphabetas T\\S
+wehavethat S||Xisdeﬁnedand S||X≤TiﬀX≤T\\S.
+5 ToolImplementation
+Webeginwithsummarisingthefunctionalityofthetool,and proceedlaterto
+presentarunningexample.
+Ourspeciﬁcationtheoryhasbeenimplementedasanextensio nofUppaal-
+tiga[3],whichisanengineforsolvingtimedgames.Wehavemadet womajor
+modiﬁcationstotheoriginalengine.Theﬁrstmodiﬁcationw astoenrichthein-
+putlanguageinordertoallowforthedescriptionofspeciﬁc ations/implementations
+14
+
+--- Page 16 ---
+andoperationsbetweenthem;thesecondonewastomodifythe timed-gameal-
+gorithmsinordertotakethecompositionalreasoningmetho dologyintoaccount.
+ModellingLanguage. Theinputsyntaxof Uppaal-tigaisidenticaltotheone
+ofUppaal[4,26]–atoolforspecifying,combiningandverifyingprop ertiesof
+timedautomata.Theuser-friendlyinterfaceof Uppaalisdividedintwoparts:
+1)thespeciﬁcationinterface whereautomataarespeciﬁedinagraphicalmanner,
+and2)thequeryinterfacewhereonecanaskveriﬁcationquestions.Themain
+diﬀerencebetweentheinputlanguageof Uppaal-tigaandUppaalisthat,due
+tothegameinterpretation,transitionsaretypedwithcont rolmodalities.The
+speciﬁcationinterfaceofourtoolissimilartotheoneof Uppaal-tiga,except
+thatwedecoratetransitionswith inputandoutputmodalities,whichallows
+theusertospecifytimedI/Oautomata.Liketimedautomata, interfacescan
+communicateviabroadcastchannels,butglobalvariablesa renotpermitted.
+Thequeryinterfaceallowstheuserto(a)checkwhetheraTIO Aisaproper
+implementationoraspeciﬁcation,(b)toapplycomposition operationsand(c)
+tocheckreﬁnementrelations.Moredetailscanbefoundat[3 6].
+EachtimewespecifyaTIOA,thetoolautomaticallycheckswh etheritis
+deterministicandinput-enabled.Incaseofanimplementat ion,thetoolalso
+checkswhetheritsatisﬁestheoutputurgencyandindepende ntprogressprop-
+erties.Also,thetoolautomaticallycomputesthesetofsta tesforwhichthe
+speciﬁcationisconsistent.Whenthespeciﬁcationiscombi nedwithanotherone,
+thisinformationisusedinordertoavoidinvolvingbadstat es.
+TimedInterfaceOperators. Wehaveimplementedthecomposition,conjunction,
+andreﬁnementoperators.Quotientisbeingimplemented.Th eseoperatorsare
+availablefromthequeryinterface.Wenowgivedetailsrega rdingthemodiﬁca-
+tionswehavemadeontheoriginalversionof Uppaal-tiga.
+Aswehaveseen,theoperationsof conjunction,composition,andquotienting
+mayproducespeciﬁcationswith badstates.Suchstatesneedtobeidentiﬁedand
+prunedaway.Fordoingso,wehaveadaptedthegamealgorithm implemented
+inUppaal-tiga.Themainchallenge,intermsofimplementation,isthatthe
+originalalgorithmsworkonﬁxedinputautomata.Inourcase theautomataare
+notknowninadvancesincetheyresultfromthesuccessivepr uningoperations.
+Theproblemofcheckingwhether ASreﬁnesATreducestotheoneofsolving
+atimedgamebetweentwoplayersonthegraph-productof ASandAT[12].The
+ﬁrstplayer,orattacker,playsoutputson ASandinputson AT,whereasthe
+secondplayer,ordefender,playsinputson ASandoutputson AT.Onecan
+showthatReﬁnementdoesnotholdifandonlyiftheattackerc anputthe
+defenderinabadstate.Therearetwokindsofbadstatesinth isgame:1)
+theattackermaydelayandviolatesinvariantson AT,whichis,thedefender
+cannotmatchadelay,and2)thedefenderhastoplayagivenac tionandcannot
+doso,i.e.,adeadlockwithrespecttothegame.In[8],wehav eproposedand
+implementedaneﬃcientalgorithmforsolvingsuchagame.
+15
+
+--- Page 17 ---
+Enginetea!
+coin?tea!
+cof!coin?Idle
+Servingy=0
+y>=4y<=6y>=2Machine
+pub? patent!
+patent!coin! grant?A
+B
+pub?grant?x<=2x=0HalfAdm1
+grant? coin!
+coin!patent! pub?C
+D
+pub?grant?y<=2y=0HalfAdm2
+tea?
+tea?
+pub!cof?
+pub!
+x=0pub!tea?cof?Idle
+x<=8 x<=4Stuck
+Coffee Teax=0 x=0x<=15 x=0x>15
+x>=4x>=2Researcher
+grant?grant?grant?
+patent!patent!grant?
+GrantStartEndu=0u<=2
+u=0u<=20u>2UniSpec
+exploreandprune
+internalTIOA&&conjunct
+||composition
+combinewithoperator≤reﬁnementcheck
+yes/no+strategy
+Fig.10.Illustrationofthestepsperformedinaconcretereﬁnement check.The
+greyboxrepresentsthepartcarriedoutinternallybytheve riﬁcationengine.
+Weillustratetheinputlanguageandthefunctionalitiesof thetoolwiththeuni-
+versityexamplepresentedinSection3.Weﬁstconsiderthep artoftheexample
+inwhichtheadministrationissplitintwoparts(seeFigure 7).Wethushave
+fourimplementations( Machine,HalfAdm1,HalfAdm2,andResearcher )andone
+speciﬁcation(UniSpec).Allofthesemachinescaneasilybedrawninthespeci-
+ﬁcationinterface.Inthequeryinterface,speciﬁcationsa ndimplementationsare
+declaredasfollows: speciﬁcation:UniSpec ,andimplementation:HalfAdm1 .The
+toolautomaticallyplaysasafety-gamefollowedbyaprunin ginordertoremove
+locallyinconsistentstates.Thetoolalsomakessurethatt heimplementation
+andthespeciﬁcationsatisfyDeﬁnitions3and4.Ifthisisno tthecase,orifthe
+speciﬁcationadmitnoimplementation,thenthetoolstops.
+Wecombineimplementationswithcompositionandconjuncti onoperatorsas
+follows.Theinterfaceoftheadministrationistheconjunc tionoftwointerfaces,
+onespecifyingwhentooutputcoins(aftergrants)andtheot herwhentodelivera
+patent(afterapublication).Thisisabetter(andlessrest rictiveapproach)than
+tospecifymanuallythecombinationofboth.Thenwecompose theinterfaces
+oftheresearcher,theuniversity,andthemachine.Tocheck ifthiscomposition
+reﬁnesouroriginalspeciﬁcationwecheckthefollowingque ry
+refinement:(Researcher||(HalfAdm1&&HalfAdm2)||Machi ne)<=UniSpec.
+Figure10illustratesthediﬀerentstepsoftheveriﬁcation .Thecheckerex-
+ploreseachcomponentlocallyandprunesthemfrominconsis tentstates.The
+resultsoftheexplorationofthetwo“half-administration s”areconjunctedand
+pruned.Thenthethreeautomataarecomposedandpruned.The sameisdone
+forthespeciﬁcationandthenthesafety-gamealgorithmisu sedtocheckwhether
+reﬁnementholds.Ifatanystepanautomatonturnstobeincon sistentthenthe
+checkstopsandthetoolreportstheerrortotheuser.Inthis lattercase,the
+usercaninvokethesimulatorof Uppaal-tigawhichwillplaythegameuntil
+itbreaksdown.Thisinformationcanbeusedtoimprove/chan gethedesignof
+thespeciﬁcationoroftheimplementation.
+16
+
+--- Page 18 ---
+Fortheaboveexample,itturnsoutthatthereﬁnementdoesno thold.The
+toolrevealsthatthe UniSpecinterfacedoesnotallowpatentstobeproduced
+withoutaprecedinggrant.However,thecompositionallows researcherstopub-
+lishwithfreetea,whichisacceptedbytheconjunctionofth etwohalfadminis-
+trations,whichresultsinapatent.Ifwecheckinstead
+refinement:(Researcher||Administration ||Machine)<=U niSpec.
+withtheadministrationofFigure2bthenthereﬁnementhold sasmentionedin
+Section3becausethisadministrationdoesnotacceptpaten tswithoutgrants
+ﬁrst.However,specifyingtheadministrationmanuallyexh ibitsarestrictingbe-
+haviourthatisnotpresentinthecleanerconjunctionofthe twosmallerspeciﬁ-
+cations.Heretherightcorrectionwouldbetoallowforfree patentsinUniSpec.
+Theconclusionisthattheusershouldnottrytomaketheconj unctionbyhand
+anduseconjunctionstospecifymoreaccuratespeciﬁcation s.
+Finally,weillustratetheadvantageofbeingcapabletomod elcheckTCTL
+propertiesonTIOAs.Wewouldliketoavoidconsideringzeno behaviours.The
+ideaistocombineourspeciﬁcationwithanobserverandthen makesurethat
+theobservervisitsinﬁnitelyoftenastateinwhichtimeadv ances.Thelattercan
+bespeciﬁedwithaTCTLproperty.Theobserver Obshastwostatesresetand
+advanceandawitnessclock w.Theobserverissuesanonsharedoutputfrom
+resettoadvanceifw>1.Thenitdirectlymovesbackto resetandresetsthe
+clock.Theobserveristhencomposedwiththespeciﬁcation. Therewillbeno
+synchronisationbetweentheobserverandthespeciﬁcation .Nonzenobehaviours
+inthecompositionarethosewhere Obsvisitsthestateadvanceinﬁnitelyoften.
+Weusethefollowingpropertythatchecksforreﬁnementwith anadditional
+B¨uchiconditionconstrainingthecomposition.
+refinement:(Researcher||Administration2 ||Machine||O bs
+:A[]A<>Obs.advance)<=UniSpec.
+6 RelatedWork
+Inthissection,wecompareourresultswithothertimedinte rfacetheories.
+Input/Outputautomatamodel Therehavebeenseveralotherattemptstopro-
+poseaninterfacetheoryfortimedsystems(see[14,16,13,7 ,6,10,35,17,27]for
+someexamples).Ourmodelshalldeﬁnitelybeviewedasanext ensionofthe
+timedinput/outputautomatonmodelproposedbyLynchetal. [21].Themajor
+diﬀerencesareinthegame-basedtreatmentofinteractions andtheadditionof
+quotientandconjunctionoperators.
+TimedInterfacesbydeAlfaroetal. In[16],deAlfaroetal.proposed timed
+interfaces,atimedextensionoftheinterfacemodeltheyintroducedin [14].Like
+forspeciﬁcationautomata,thesyntaxofatimedinterfacei ssimilartotheone
+ofatimedinput/outputautomaton [22]andthesemanticisgivenbyatimed
+17
+
+--- Page 19 ---
+game.However,unlikespeciﬁcationautomata,timedinterf acesarenotforced
+tobedeterministicorinput-enabled.Theabsenceofinput- enablednessallows
+fordeﬁnederrorstatesinthecompositionwhereonecompone ntcanissuean
+outputthatcannotbecapturedbytheothercomponent.Twoti medinterfaces
+aresaidtobecompatibleifthereexistsanenvironmentinwh ichtheycan
+worktogetherwhileavoidingsucherrorstates.Thisdeﬁnit ionofcompatibility
+allowstocapturethetimingbetweeninterfaces:“whataret hetemporalordering
+constraintsoncommunicationeventsbetweencomponents?” .Unfortunately,the
+workin[16]isincomplete.Indeedthereisnonotionofimple mentationand
+reﬁnement.Moreover,conjunctionandquotientarenotstud ied.Also,deAlfaro
+etal.didnotconsidermoreelaboratederrorstatesspeciﬁe dbytheuserwith
+sometimedtemporallogic.Finally,thetheoryhasonlybeen implementedin
+aprototypetoolcalledTICC[13],whichdoesnothandlecont inuoustime.A
+maindrawbackofTICCisitstextualinputlanguagethatisfa rfrommodern
+graphicalspeciﬁcationlanguagesusedbyengineers.
+TimedModalSpeciﬁcations In[23]Larsenproposes modalautomata,whichare
+deterministicautomataequippedwithtransitionsofthefo llowingtwotypes:may
+andmust.Thecomponentsthatimplementsuchinterfacesaresimplel abelled
+transitionsystems.Roughly,amusttransitionisavailabl eineverycomponent
+thatimplementsthemodalspeciﬁcation,whileamaytransit ionneednotbe.
+Recently[7,6]atimedextensionof modalautomatawasproposed,whichem-
+bedsalltheoperationspresentedinthepresentpaper.Howe ver,modalitiesare
+orthogonaltoinputsandoutputs,anditiswell-known[24]t hat,contraryto
+thegame-semanticapproach,theycannotbeusedtodistingu ishbetweenthe
+behavioursofthecomponentandthoseoftheenvironment.As idefromtheor-
+thogonalitybetweeninput/outputandmay/mustmodalities .Ourmodeldoes
+notallowtocombine/compareautomatathatsharecommonclo cknames,while
+in[7,6]theyrestrictthemselvestoeven-clockautomata[2 ]fordoingso.Weare
+convincedthatourtheorydirectlyextendstoanevent-cloc kautomataversion
+ofTIOAwithsharedclocks.Finally,ourworkisimplemented ,whilethework
+in[7,6]isnotimplemented.
+7 Conclusion
+Wehaveproposedacompletegame-basedspeciﬁcationtheory forrealtimesys-
+tems,inwhichwedistinguishbetweenacomponentandtheenv ironmentin
+whichitisused.Tothebestofourknowledge,ourcontributi onistheﬁrst
+game-basedapproachtosupportbothreﬁnement,consistenc ychecking,logical
+andstructuralcomposition,andquotient.Ourresultshave beenimplemented
+intheUppaaltoolfamily[3].
+Inthefutureonecouldextendourmodelwithglobalvariable s.Thiswas
+alreadysuggestedbyBerendsenandVaandragerin[5],buton lyforstructural
+compositionandreﬁnementandwithoutthegame-basedseman tic.
+Onecouldalsoinvestigatewhetherourapproachcanbeusedt operform
+schedulingoftimedsystems(see [13,19,17]forexamples). Forexample,the
+18
+
+--- Page 20 ---
+quotientoperationcouldperhapsbeusedtosynthesiseasch edulerforsuch
+problems.Itwouldalsobeofinteresttoaddstochasticfeat urestothemodel.
+In[33,25],wehaveproposedamodelwhichtakesadvantageso fbothinterface
+automataandmodalspeciﬁcations.Oneshouldfollowasimil ardirectioninthe
+timedsettingandcombineourmodelwiththeoneproposedin[ 7,6].
+Finally,ournotionoferrorstatesisstillprimitiveandin thefutureweplan
+toallowtheuserstodeﬁnetheirownerrorstates.Thiswillb edonewiththe
+helpofsometemporallogic,justlikeitwasdoneforareﬁnem entin[8].
+References
+1. R.AlurandD.L.Dill. Atheoryoftimedautomata. Theor.Comput.Sci. ,
+126(2):183–235,1994.
+2. R.Alur,L.Fix,andT.A.Henzinger. Event-clockautomata :Adeterminizable
+classoftimedautomata. TheoreticalComputerScience ,211:1–13,1999.
+3. G.Behrmann,A.Cougnard,A.David,E.Fleury,K.G.Larsen ,andD.Lime.
+Uppaal-tiga:Timeforplayinggames! In CAV,volume4590ofLNCS.Springer,
+2007.
+4. G.Behrmann,A.David,K.G.Larsen,J.H˚ akansson,P.Pett ersson,W.Yi,and
+M.Hendriks.Uppaal4.0.In QEST,pages125–126.IEEEComputerSociety,2006.
+5. J.BerendsenandF.W.Vaandrager.Compositionalabstrac tioninreal-timemodel
+checking.InFORMATS,volume5215ofLNCS.Springer,2008.
+6. N.Bertrand,A.Legay,S.Pinchinat,andJ.-B.Raclet.Aco mpositionalapproach
+onmodalspeciﬁcationsfortimedsystems.In ICFEM,LNCS.Springer,2009.
+7. N.Bertrand,S.Pinchinat,andJ.-B.Raclet.Reﬁnementan dconsistencyoftimed
+modalspeciﬁcations. In LATA,volume5457ofLNCS,Tarragona,Spain,2009.
+Springer.
+8. P.Bulychev,T.Chatain,A.David,andK.G.Larsen.Eﬃcien ton-the-ﬂyalgorithm
+forcheckingalternatingtimedsimulation.In FORMATS,volume5813ofLNCS,
+pages73–87.Springer,2009.
+9. F.Cassez,A.David,E.Fleury,K.G.Larsen,andD.Lime. Eﬃ cienton-the-ﬂy
+algorithmsfortheanalysisoftimedgames.In CONCUR,2005.
+10. K.ˇCer¯ans,J.C.Godskesen,andK.G.Larsen.Timedmodalspeci ﬁcation-theory
+andtools.InProceedingsofthe5thInternationalConferenceonCompute rAided
+Veriﬁcation(CAV’93) ,volume697ofLNCS,pages253–267.Springer,1993.
+11. A.Chakabarti,L.deAlfaro,T.A.Henzinger,andM.I.A.S toelinga. Resource
+interfaces. InR.AlurandI.Lee,editors, EMSOFT03:3rdIntl.Workshopon
+EmbeddedSoftware ,LNCS.Springer,2003.
+12. A.David,K.G.Larsen,A.Legay,U.Nyman,andA.Wąsowski . TimedI/O
+automata:acompletespeciﬁcationtheoryforreal-timesys tems.InHSCC,2010.
+Accepted.
+13. L.deAlfaroandM.Faella.Anacceleratedalgorithmfor3 -colorparitygameswith
+anapplicationtotimedgames.In CAV,volume4590ofLNCS.Springer,2007.
+14. L.deAlfaroandT.A.Henzinger. Interfaceautomata. In FSE,pages109–120,
+Vienna,Austria,Sept.2001.ACMPress.
+15. L.deAlfaroandT.A.Henzinger.Interface-baseddesign .InMarktoberdorfSummer
+School.KluwerAcademicPublishers,2004.
+16. L.deAlfaro,T.A.Henzinger,andM.I.A.Stoelinga. Time dinterfaces. In
+EMSOFT,volume2491ofLNCS,pages108–122.Springer,2002.
+19
+
+--- Page 21 ---
+17. Z.DengandJ.W.s.Liu. Schedulingreal-timeapplicatio nsinanopenenviron-
+ment. IninProceedingsofthe18thIEEEReal-TimeSystemsSymposium ,IEEE
+Computer,pages308–319.SocietyPress,1997.
+18. S.J.GarlandandN.A.Lynch.TheIOAlanguageandtoolset :Supportfordesign-
+ing,analyzing,andbuildingdistributedsystems.Technic alreport,Massachusetts
+InstituteofTechnology,Cambridge,MA,1998.
+19. T.A.HenzingerandS.Matic.Aninterfacealgebraforrea l-timecomponents.In
+IEEERealTimeTechnologyandApplicationsSymposium ,pages253–266.IEEE
+ComputerSociety,2006.
+20. T.A.HenzingerandJ.Sifakis.Theembeddedsystemsdesi gnchallenge.InFM,
+volume4085ofLNCS,pages1–15.Springer,2006.
+21. D.K.Kaynar,N.A.Lynch,R.Segala,andF.W.Vaandrager. Timedi/oautomata:
+Amathematicalframeworkformodelingandanalyzingreal-t imesystems.InRTSS,
+pages166–177.IEEEComputerSociety,2003.
+22. D.K.Kaynar,N.A.Lynch,R.Segala,andF.W.Vaandrager. TheTheoryofTimed
+I/OAutomata. SynthesisLecturesonComputerScience.Morgan&Claypool
+Publishers,2009.
+23. K.G.Larsen. Modalspeciﬁcations. InJ.Sifakis,editor ,AutomaticVeriﬁcation
+MethodsforFiniteStateSystems ,volume407ofLNCS,pages232–246.Springer,
+1989.
+24. K.G.Larsen,U.Nyman,andA.Wasowski. ModalI/Oautomat aforinterface
+andproductlinetheories.InR.D.Nicola,editor, ESOP,volume4421ofLNCS,
+pages64–79.Springer,2007.
+25. K.G.Larsen,U.Nyman,andA.Wasowski. Modali/oautomat aforinterface
+andproductlinetheories. In ESOP,volume4421ofLectureNotesinComputer
+Science,pages64–79.Springer,2007.
+26. K.G.Larsen,B.Steﬀen,andC.Weise. Continuousmodelin gofreal-timeand
+hybridsystems:Fromconceptstotools. STTT,1(1-2):64–85,1997.
+27. I.Lee,J.Y.-T.Leung,andS.H.Son. HandbookofReal-TimeandEmbedded
+Systems.Chapman,2007.
+28. N.Lynch. I/Oautomata:Amodelfordiscreteeventsystem s. InAnnualCon-
+ferenceonInformationSciencesandSystems ,pages29–38,PrincetonUniversity,
+Princeton,N.J.,1988.
+29. N.A.LynchandM.R.Tuttle.Anintroductiontoinput/out putautomata.Tech-
+nicalReportMIT/LCS/TM-373,TheMITPress,Nov.1988.
+30. O.Maler,A.Pnueli,andJ.Sifakis. Onthesynthesisofdi scretecontrollersfor
+timedsystems(anextendedabstract).In STACS,pages229–242,1995.
+31. R.Milner.CommunicationandConcurrency .PrenticeHall,1988.
+32. R.D.NicolaandR.Segala.Aprocessalgebraicviewofinp ut/outputautomata.
+TheoreticalComputerScience ,138,1995.
+33. J.-B.Raclet,E.Badouel,A.Benveniste,B.Caillaud,A. Legay,andR.Passerone.
+Modalinterfaces:unifyinginterfaceautomataandmodalsp eciﬁcations. InEM-
+SOFT,pages87–96.ACM,2009.
+34. E.W.Stark,R.Cleavland,andS.A.Smolka. Aprocess-alg ebraiclanguagefor
+probabilisticI/Oautomata.In CONCUR,LNCS,pages189–2003.Springer,2003.
+35. L.Thiele,E.Wandeler,andN.Stoimenov. Real-timeinte rfacesforcomposing
+real-timesystems.In EMSOFT,pages34–43.ACM,2006.
+36.http://www.cs.aau.dk/~adavid/tiga/tio.html .
+37. F.W.Vaandrager.Ontherelationshipbetweenprocessal gebraandinput/output
+automata.InLICS,pages387–398,1991.
+20

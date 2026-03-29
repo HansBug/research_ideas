@@ -1,0 +1,1035 @@
+--- Page 1 ---
+Online Testing of Real-time Systems Using U PPAAL :
+Status and Future Work
+Kim G. Larsen, Marius Mikucionis, and Brian Nielsen
+Department of Computer Science, Aalborg University
+Fredrik Bajers Vej 7B, 9220 Aalborg Øst, Denmark
+{kgl,marius,bnielsen }@cs.auc.dk
+Abstract. We present the development of T-U PPAAL — a new tool for online black-box
+testing of real-time embedded systems from non-deterministic timed automata speciﬁca-tions. It is based on a sound and complete randomized online testing algorithm and is im-
+plemented using symbolic state representation and manipulation techniques. We propose
+the notion of relativized timed input/output conformance as the formal implementationrelation. A novelty of this relation and our testing algorithm is that they explicitly take
+environment assumptions into account, generate, execute and verify the result online using
+the U
+PPAAL on-the-ﬂy model-checking tool engine.
+This paper introduces the principles behind the tool, describes the present implementationstatus, and future work directions.
+1 Introduction
+The goal of testing is to gain conﬁdence in a physical computer based system by means of
+executing it. More than one third of typical project resources is spent on testing embedded and
+real-time systems, but still it remains ad-hoc, based on heuristics, and error-prone. Therefore
+systematic, theoretically well-founded and effective automated real-time testing techniques is of
+great practical value.
+1.1 Model Based Testing
+Testing conceptually consists of three activities: test case generation , test case execution and
+verdict assignment . Using model based approach, a behavioral model can be interpreted as a
+speciﬁcation that deﬁnes the required and allowed observable (real-time) behavior of the im-plementation. It can therefore be used for automatic generation of sound and (theoretically)
+complete test suites.
+An embedded system interacts closely with its environment which typically consists of the
+controlled physical equipment (the plant) accessible via sensors and actuators, other computer
+based systems or digital devices accessible via communication networks using dedicated pro-
+tocols, and human users. A major task of the embedded system development is to ensure that
+it works correctly in its real operating environment. Due to lack of development resources it is
+not feasible to validate the system for all possible environments. Also it is not necessary if thesystem environments are known to a large extent. However, the requirements to the system and
+the assumptions made about the environment should be clear and explicit.
+
+--- Page 2 ---
+RealENVinput
+output
+o ESIUT
+i
+(a) Abstraction of an embedded system.coin?weakCoffee!
+strongCoffee!
+req? req?l0
+l3l1
+l2x:= 0
+x:= 0x>10
+x>30
+x>30
+x:= 0x<50
+x<50 x<30
+(b) Example Speciﬁcation Sc.
+strongCoffee?weakCoffee?coin!
+req!k0
+k1
+k2x≥60x:= 0
+x:= 0
+(c) Example environment Ec.
+Fig. 1. Embedded system and example models.
+We denote the system being developed IUT, and its real operating environment RealENV .
+These communicate by exchanging input andoutput signals (seen from the perspective of
+IUT). Using a model-based development approach, the environment assumptions and system
+requirements are captured through abstract behavioral models denoted EandSrespectively,
+communicating on abstract signals i∈Ainando∈Aoutcorresponding (via a suitable abstrac-
+tion) to the real input andoutput . This setup is depicted in Figure 1(a).
+1.2 Online Testing
+Test cases can be generated from the model ofﬂine where the complete test scenarios and verdicts
+are computed apriori and before execution. Another approach is online (on-the-ﬂy) testing that
+combines test generation and execution: only a single test primitive is generated from the model
+at a time which is then immediately executed on the IUT. Then the produced output by the IUT
+as well as its time of occurrence are checked against the speciﬁcation, a new test primitive is
+produced and so forth until it is decided to end the test, or an error is detected. An observed test
+run is a timed trace consisting of an alternating sequence of (input or output) actions and timedelays.
+There are several advantages of online testing: 1) testing may potentially continue for a
+long time (hours or even days), and therefore long, intricate, and stressful test cases may be
+executed; 2) the state-space-explosion problem experienced by many ofﬂine test generation tools
+is reduced because only a limited part of the state-space needs to be stored at any point in time;
+3) online test generators often allow more expressive speciﬁcation languages, especially wrt.allowed non-determinism in real-time models.
+Non-deterministic speciﬁcation allows great ﬂexibility in modeling. The implementation
+model can be precise, following the exact computation. If the exact implementation model be-
+comes so large or complex that it cannot be interpreted online in real-time, it may be replaced
+by a more abstract one, where the functional and/or timed behavior is more important than the
+computation result itself. Moreover, the model can be a mixture of abstraction and precisionwhere its needed. If desired, the observed trace can then be analyzed ofﬂine against the detailed
+implementation model.
+
+--- Page 3 ---
+1.3 Relativized Online Testing
+The goal of relativized conformance testing is to check whether the behavior of the IUTis correct
+(conforming) to its speciﬁcation Swhen operating under assumptions Eabout the environment.
+We propose relativized timed input/output conformance relation between model and IUT which
+coincides with timed trace inclusion taking the environment behavior into account.
+The environment models the use of the system whereas the implementation speciﬁcation
+models the required and allowed system behavior. An online test generation tool uses the envi-ronment model to generate relevant input stimuli sequences to the implementation. Thus, from
+a testing perspective the environment model functions as a load generator or environment sim-
+ulator. Similarly, the test tool uses the implementation model to check whether the actual ob-served (timed) input-output sequences are legal according to the implementation relation. The
+implementation speciﬁcation Sthus monitors the implementation and functions as a test oracle .
+Figure 2 shows the test setup of relativized online testing, where the real environment is substi-
+tuted by testing tool behaving according to the model of environment and monitoring based on
+the model of implementation.
+Implementation Environment
+assumptions specification
+Simulated Environmentin!out!
+in?"in"
+out?Under TestImplementation
+outputinput
+"out"
+AdapterAdapter APIT−UPPAAL engine
+Physical API
+Fig. 2. Test setup in online relativized testing.
+Modeling the environment explicitly and separately and taking this into account during test
+generation has several advantages, which we are going to elaborate further in this section.
+The test generation tool can synthesize only relevant andrealistic scenarios for the given
+type of environment, which in turn reduces the number of required tests and improves the quality
+of the test suite.
+The test engineer can use the environment model to guide the test generator to more speciﬁc
+situations of interest. This can be used to concentrate on positive behavior testing of early pro-
+totypes rather than all possible situations for robustness testing. Later, testing can be based on
+a more generic environment which allows any input sequences required for negative and stress-
+testing. Further, the implementation model often contain parts that may be hard to reach by a
+random chance and a more intelligent guiding is needed. Finally, it allows the test engineer toguide testing on speciﬁc parts of the speciﬁcation, either for regression testing ordebugging .
+A separate environment model makes it easy to test the system under different assumptions
+anduse patterns . It is sometimes the case that the same basic controller is reused in a slightly dif-
+ferent setup, e.g. temperature regulator in refrigeration plants and incubation houses, embedded
+software in PC CD-ROM controller and portable CD players, etc.. The implementation can be
+designed to work in a number of different environments and might never be used in their strange
+superposition at the same time. Relativized testing allows to concentrate on different function-
+ality aspects which are identiﬁed in application usage patterns. Also it is worth mentioning thatour assumption that the implementation models are input enabled can be relaxed; they need only
+be input enabled in the speciﬁc assumed environment. This eases the construction of the model.
+
+--- Page 4 ---
+From a testing tool implementation point of view, the online testing consists of environment
+simulation andverdict assignment , which are quite independent tasks concentrating on different
+models in the system speciﬁcation: simulation mainly follows the model of environment, deals
+with test generation and execution and therefore is time critical, while test oracle is focusing on
+possible violations in the implementation model and therefore can be postponed to a time where
+there are more processing power or time available. We can separate the simulator and oracle into
+two processes, potentially running on different hosts or even postponing verdicts to ofﬂine traceanalysis.
+1.4 Related Work
+Model based test generation for real-time speciﬁcations has been investigated by others (see
+e.g., [6, 9, 11, 13, 14, 18,21,22, 27,28, 30]), but remain relatively immature.
+A solid and widespread implementation relation used in model based conformance test-
+ing of untimed systems is the input/output conformance relation by Tretmans [32]. Informally,input/output conformance requires that, for all traces in the speciﬁcation, the implementation
+never produces an output not allowed by the speciﬁcation, and that it never refuses to produce
+an output (stays quiescent) when the speciﬁcation requires one.
+As also noted in [18,21] a timed input/output conformance relation can be obtained (assum-
+ing input enabledness) as timed trace inclusion between the implementation and its speciﬁcation.
+Our work further extends this to a relativized conformance relation taking environment assump-
+tions explicitly into account. In [32] the speciﬁcation is permitted to be non-input enabled (thusmaking the conformance relation non-transitive in general) in order to capture environmental
+constraints. However, this requires explicit rewriting of the speciﬁcation when different envi-
+ronments are to be used. Following the seminal work [19] our approach is based on an separatemodel of the environment. In particular, once conformance has been established with respect to
+a particular environment we can automatically conclude conformance under more restricted en-
+vironments. Also, when the IUTis to be used in different environments, it sufﬁces to test it under
+the most liberal environment assumptions. Furthermore, relativized conformance is transitive.
+Model based ofﬂine testing is often based on a coverage criterion of the model like in [13,15],
+on a test purpose as e.g. [17, 18], or a fault-model as [11, 14]. When speciﬁcations allow non-
+determinism, the generated test cases cannot simply be a sequence, but take the form of behav-
+ior trees adaptive to implementation controlled actions, e.g different outputs or timing. There-
+fore, most ofﬂine test generation algorithms explicitly determinize the speciﬁcation [10,17,27].
+However, for expressive formalisms like timed automata this approach is infeasible becausein general they cannot be determinized [2] and their unobservable actions cannot always (and
+when they can it may be very costly) be removed [34]. Much work on timed test generation
+from timed automata therefore restricts the amount and type of allowed non-determinism. Someworks [11, 13, 30] completely disallow non-determinism, whereas others [18, 27] restrict the
+use of clocks, guards or clock resets. However, in many cases it is important to allow non-
+determinism, because 1) speciﬁcations are often given as a parallel composition of model-
+components, 2) it allows the implementor some freedom, and 3) the tester is usually concerned
+with abstract requirements rather than concrete details of the IUT. Note that in particular for
+real-time systems it may be crucial to allow speciﬁcation of timing uncertainty, e.g., that an
+output is expected in some interval of time (e.g., between 1 and 5 time units from now), but not
+
+--- Page 5 ---
+exactly when. Timed automata model this by a non-deterministic choice of letting time pass or
+outputting an event.
+In contrast, online testing is automatically adaptive and only implicitly determinizes the
+speciﬁcation, and only partially up to the concrete trace observed so far. The (untimed) online
+testing algorithm proposed by Tretmans et. al. in [4, 36] continually computes the set of states
+that the speciﬁcation can possibly occupy after the observations made so far. Based on this the
+tester can at any time decide to either perform one of the inputs enabled in the speciﬁcation, orwait for output from the implementation, and then check whether the output (or its absence) is
+allowed in the state-set. Online testing from Promela [36] and L
+OTOS speciﬁcations for untimed
+systems have been implemented in the T ORX [35] tool, and practical application to real case
+studies show promising results [4, 33, 35]. However, T ORX provides no support for real-time.
+Our work generalizes the T ORX approach to timed systems and to the handling of the explicit
+environment assumptions. We allow a quite generous (non-deterministic) timed automata lan-
+guage. In addition, we compute the state-set symbolically to track the (potentially dense) timed
+state space.
+Online testing from unrestricted non-deterministic timed automata using symbolic state-set
+computation [29] was ﬁrst published by Krichen and Tripakis [21]. We implement a similar ap-
+proach by extending the U PPAAL model-checker resulting in an integrated and mature testing
+and veriﬁcation tool. Our work (originating from [7, 24, 26]; an abstract appeared in [25]) is
+different from [21] in that 1) the exact timed automata language variant is different and includes
+separable environment models, 2) we propose a relativized version of timed input/output con-
+formance, 3) our algorithm (presented in much greater detail) generates tests relevant only for
+the speciﬁed environment, and 4) is shown to be sound and complete under certain assumptions,and ﬁnally 5) we provide experimental evidence of the feasibility of the technique.
+1.5 Contributions
+In this paper we describe a tool for online testing of real-time systems. Our main contributions
+are the notion of relativized timed input/output conformance and an implementation of a sym-
+bolic algorithm in testing tool T-U
+PPAAL , which is based on U PPAAL model checking engine.
+T-U PPAAL performs online testing of timed systems from a (possibly densely timed and poten-
+tially non-deterministic) timed automata model of the IUT and its assumed environment. Under
+a certain testing hypothesis, we prove that our algorithm is complete (in a precise probabilistic
+sense) and sound. Furthermore, we apply T-U PPAAL to a medium sized case that demonstrates
+good error detection potential and very encouraging performance. We describe the status and
+future work of our testing concept and implementation.
+2 Test Speciﬁcation
+This section formally presents our semantic framework, and introduces TIOTS, timed automata,
+and our relativized input/output conformance relation.
+2.1 Timed I/O Transition Systems
+We assume a given set of actions Apartitioned into two disjoint sets of output actions Aout
+and input actions Ain. In addition we assume that there is a distinguished unobservable action
+τ/negationslash∈A. We denote by Aτthe set A∪{τ}.
+
+--- Page 6 ---
+Deﬁnition 1. A timed I/O transition system (TIOTS) Sis a tuple (S, so,Ain,Aout,−→), where
+Sis a set of states, s0∈S, and−→⊆S×(Aτ∪R≥0)×Sis a transition relation satisfying the
+usual constraints of time determinism (ifsd−→s/primeandsd−→s/prime/primethens/prime=s/prime/prime) and time additivity
+(ifsd1−→s/primeands/primed2−→s/prime/primethensd1+d2−−−−→s/prime/prime),d∈R≥0, where R≥0denotes non-negative real
+numbers.
+Notation for TIOTS. Leta, a1...n∈A,α∈Aτ∪R≥0, andd, d1...n∈R≥0. We write sα−→iff
+sα−→s/primefor some s/prime.W eu s e ⇒to denote the τ-abstracted transition relation such that sa⇒s/prime
+iffsτ−→∗a−→τ−→∗s/prime, andsd⇒s/primeiffsτ−→∗d1−→τ−→∗d2−→τ−→∗···τ−→∗dn−→τ−→∗s/primewhere d=d1+d2+
+···dn. We extend ⇒to sequences of actions and delays in the usual manner.
+We assume that the TIOTS Sis strongly input enabled andnon-blocking .Sis strongly input
+enabled iff si−→for all states sand for all input actions i.Sis non-blocking iff for any state sand
+anyt∈R≥0there is a timed output trace σ=d1o1...o ndn+1such that sσ⇒and/summationtext
+idi≥t.
+ThusSwill not block time in any input enabled environment.
+To model potential implementations it is usefull to deﬁne the properties of isolated outputs
+anddeterminism . We say that Shas isolated outputs if whenever so−→for some output action o,
+thens/negationslashτ−→ands/negationslashd−→for all d>0and whenever so/prime
+−→theno/prime=o. Finally, Sis deterministic if
+for all delays or actions αand all states s, whenever sα−→s/primeandsα−→s/prime/primethens/prime=s/prime/prime.
+An observable timed trace σ∈(A∪R≥0)∗is of the form σ=d1a1d2...a kdk+1. We deﬁne
+the observable timed traces TTr(s)of a state sas:
+TTr(s)={σ∈(A∪R≥0)∗|sσ⇒} (1)
+For a state s(and subset S/prime⊆S) and a timed trace σ,sAfterσis the set of states that can
+be reached after σ:
+sAfterσ={s/prime|sσ⇒s/prime},S/primeAfterσ=/uniondisplay
+s∈S/primesAfterσ (2)
+The set Out/parenleftbig
+s/parenrightbig
+of observable outputs or delays that can occur in s∈S/prime⊆Sis deﬁned as:
+Out/parenleftbig
+s/parenrightbig
+={a∈Aout∪R≥0|sa⇒},Out/parenleftbig
+S/prime/parenrightbig
+=/uniondisplay
+s∈S/primeOut/parenleftbig
+s/parenrightbig
+, (3)
+Timed Automata [2] is an expressive and popular formalism for modelling real-time systems.
+LetXbe a set of R≥0-valued variables called clocks . LetG(X)denote the set of guards on
+clocks being conjunctions of simple constraints of the form x⊿ /triangleleftc , and let U(X)denote the set
+ofupdates of clocks corresponding to sequences of statements of the form x:=c, where x∈X,
+c∈N, and⊿/triangleleft∈{ ≤,<,=,>,≥}.Atimed automaton over(A, X)is a tuple (L,/lscript 0,I,E), where
+Lis a set of locations, /lscript0∈Lis an initial location, I:L→G(X)assigns invariants to locations,
+andEis a set of edges such that E⊆L×G(X)×Aτ×U(X)×L. We write /lscriptg,α,u−−−−→/lscript/primeiff
+(/lscript,g,α,u,/lscript/prime)∈E.
+The semantics of a timed automaton is deﬁned in terms of a TIOTS over states of the form
+s=(/lscript,¯v), where /lscriptis a location and ¯v∈RX
+≥0is a clock valuation satisfying the invariant of /lscript.
+Intuitively, there are two kinds of transitions: delay transitions and discrete transitions. In delay
+transitions, (/lscript,¯v)d−→(/lscript,¯v+d), the values of all clocks of the automaton are incremented by the
+amount of the delay, d. Discrete transitions (/lscript,¯v)α−→(/lscript/prime,¯v/prime)correspond to execution of edges
+(/lscript,g,α,u,/lscript/prime)for which the guard gis satisﬁed by ¯v. The clock valuation ¯v/primeof the target state is
+obtained by modifying ¯vaccording to updates uand satisﬁes the invariants on /lscript/prime.
+
+--- Page 7 ---
+Figure 1(b) shows a timed automaton specifying the requirements to a coffee machine. It has
+a facility that allows the user, after paying, to indicate his eagerness to get coffee by pushing arequest button on the machine forcing it to output coffee. However, allowing insufﬁcient brewing
+time results in a weak coffee. Waiting less than 30 time units deﬁnitely results in weak coffee,
+and waiting more than 50 deﬁnitely in strong coffee. Between 30 and 50 time units the choice
+is non-deterministic, meaning that the IUT/implementor may decide what to produce. After
+the request, it takes the machine an additional (non-deterministic) 10 to 30 (30 to 50) timeunits to produce weak coffee (strong coffee). The timed automaton in Figure 1(c) models a
+potential (nice) user of the machine that pays before requesting coffee and wants strong coffee
+thus requesting only after 60 time units.
+TIOTS Composition. LetS=(S, s
+0,Ain,Aout,−→)be an input enabled, non-blocking
+TIOTS. An environment EforSis itself an input enabled, non-blocking, TIOTS E=(E,e o,
+Aout,Ain,−→). Here Eis the set of environment states and the set of input (output) actions of E
+is identical to the output (input) actions of S. The parallel composition of SandEforms a closed
+system S/bardblE whose observable behavior is deﬁned by the TIOTS (S×E,(s0,e0),Ain,Aout,−→)
+where −→is deﬁned as
+sa−→s/primeea−→e/prime
+(s, e)a−→(s/prime,e/prime)sτ−→s/prime
+(s, e)τ−→(s/prime,e)eτ−→e/prime
+(s, e)τ−→(s, e/prime)sd−→s/primeed−→e/prime
+(s, e)d−→(s/prime,e/prime)(4)
+The timed automata ScandEcrespectively shown in Figure 1(b) and 1(c) can be composed
+in parallel on actions Ain={req,coin}andAout={weakCoﬀee ,strongCoﬀee }forming a
+closed network1.
+2.2 Relativized Timed Conformance
+In this section we deﬁne our notion of conformance between TIOTSs. Our notion derives from
+the input/output conformance relation ( ioco) of Tretmans and de Vries [32, 36] by taking time
+and environment constraints into account. Under assumptions of input enabledness our rela-
+tivized timed conformance relation coincides with relativized timed trace inclusion. Like ioco,
+this relation ensures that the implementation has only the behavior allowed by the speciﬁcation.
+In particular, 1) it is not allowed to produce an output at a time (too late or too early) when
+one is not allowed by the speciﬁcation, 2) it is not allowed to omit producing an output whenone is required by the speciﬁcation by delaying more than allowed. Thus, timed trace inclusion
+offers the notion of time-bounded quiescence [8] that—in contrast to ioco’s conceptual eternal
+quiescence—can be observed in a real-time system.
+Deﬁnition 2. Given an environment e∈Ethee-relativized timed input/output conformance
+relation rtioco
+ebetween system states s, t∈Sis deﬁned as:
+srtioco etiﬀ∀σ∈TTr(e).Out/parenleftbig
+(s, e)Afterσ/parenrightbig
+⊆Out/parenleftbig
+(t, e)Afterσ/parenrightbig
+Whenever srtioco etwe will say that sis a correct implementation (or reﬁnement) of the spec-
+iﬁcation tunder the environmental constraints expressed by e. Under the assumption of input-
+enabledness of both SandEwe may characterize relativized conformance in terms of trace-
+inclusion as follows:
+1To avoid cluttering the ﬁgures we have not made them explicitly input enabled; for the unspeciﬁed inputs
+there is an undrawn self looping edge that merely consumes the input without changing the location.
+
+--- Page 8 ---
+Lemma 1. LetSandEbe input-enabled with states s, t∈Sande∈Erespectively. Then
+srtioco etiﬀTTr(s)∩TTr(e)⊆TTr(t)∩TTr(e)
+Thus if srtioco etdoes not hold then there exists a trace σofesuch that sσ⇒butt/negationslashσ⇒.G i v e n
+the notion of relativized conformance it is natural to consider the preorder on environments
+based on their discriminating power, i.e. for two environments eandf:
+e/subsetsqequalfiﬀrtioco f⊆rtioco e (5)
+(to be read fis more discriminating than e). It follows from the deﬁnition of rtioco that
+e/subsetsqequalfiffTTr(e)⊆TTr(f). In particular there is a most (least) discriminating input en-
+abled and non-blocking environment U(O) given by TTr(U)=( A∪R≥0)∗/parenleftbig
+TTr(O)=
+(Aout∪R≥0)∗/parenrightbig
+. The corresponding conformance relation rtioco U(rtioco O) specializes to sim-
+ple timed trace inclusion (timed output trace inclusion) between system states. In Figure 3(a) and
+Figure 3(b) the most-discriminating and the least-discriminating environments are given whenA
+in={req,coin}andAout={weakCoﬀee ,strongCoﬀee }.
+req!coi
+n!strongCoffee?
+weakCoffee?
+k0
+(a) most- /subsetsqequalenvironment EU.weakCoffee?strongCoffee?
+k0
+(b) least- /subsetsqequalenvironment EO.req? req?
+strongCoffee!coin?weakCoffee!
+l2 l3l1l0
+x≥41
+x:= 0
+x==DS
+x≤40x:= 0
+x:= 0x==DW
+x≤DWx≤DS
+(c)IUT:I(DS,DW).
+Fig. 3. Implementation of coffee machine
+2.3 Examples
+The speciﬁcation machine Scand environment Ecwere described in Section 2.1. The (de-
+terministic) implementation I(DS,DW)in Figure 3(c) produces weak coffee (strong coffee)
+after less than 40 time units (more than 41 time units) and an additional brewing time of
+DS(resp. DW) time units. Observe that any trace of the implementation I(40,20)(in any
+environment) can be matched by the speciﬁcation; hence I(40,20)rtioco EUS. Thus also
+I(40,20)rtioco EcSc. In contrast I(70,5)rt iocoEUScfor two reasons: 1) it has the timed
+tracecoin·30·req·5·weakCoﬀee thatScdoes not, i.e., it may produce weak coffee too soon
+(no time to insert a cup); 2) it has the trace coin·50·req·70not in Scmeaning that it produces
+strong coffee too slowly. Assume now that the strong coffee error is ﬁxed, and that the machine
+I(40,5)is used in the restricted environment of nice users Ec. Here, despite the remaining weak
+coffee error in EU,I(40,5)rtioco EcScbecause Ecnever requests weak coffee.
+3 Test Generation and Execution
+We present the main algorithm, its soundness and completeness proof, and how to implement it.
+
+--- Page 9 ---
+3.1 The Main Algorithm
+The input to Algorithm 1 is two TIOTSs S/bardblE respectively modelling the IUTand environment.
+It maintains the current reachable state set Z⊆S×Ethat the test speciﬁcation can possibly
+occupy after the timed trace observed so far. Knowing this, state estimate allows it to chooseappropriate test primitives and to validate IUT outputs.
+Algorithm 1 Test generation and execution: TestGenExe (S,E,IUT,T).Z:={(s0,e0)}.
+while Z/negationslash=∅∧/sharpiterations ≤Tdoswitch( action ,delay ,restart ) randomly:
+action : // offer an input
+ifEnvOutput (Z)/negationslash=∅
+randomly choose a∈EnvOutput (Z)
+sendatoIUT
+Z:=ZAftera
+delay : // wait for an output
+randomly choose δ∈Delays (Z)
+sleep for δtime units and wake up on output o
+ifooccurs at δ/prime≤δthen
+Z:=ZAfterδ/prime
+ifo/∈ImpOutput (Z)then return fail
+elseZ:=ZAftero
+else // no output within δdelay
+Z:=ZAfterδ
+restart : //reset and restart
+Z:={(s0,e0)}
+resetIUT
+ifZ=∅then return fail
+else return pass
+The tester can perform three basic actions: either send an input (enabled environment output)
+to the IUT, wait for an output for some time, or reset the IUT and restart. If the tester observes
+an output or a time delay it checks whether this is legal according to the state set. The state set
+is updated whenever an input is offered, or an output or delay is observed. Illegal occurrenceor absence of an output is detected if the state set becomes empty which is the result if the
+observed trace is not in the speciﬁcation. The functions used in Algorithm 1 are deﬁned as:
+EnvOutput (Z)={a∈A
+in|∃(s, e)∈Z.ea−→},ImpOutput (Z)={a∈Aout|∃(s, e)∈
+Z.sa−→}, andDelays (Z)={d|∃(s, e)∈Z.ed⇒}. Note that EnvOutput is empty if the
+environment has no outputs to offer. Similarly, Delays cannot pick at random from the entire
+domain of real-numbers if the environment must produce an input to the IUT model before
+a certain moment in time. We use the efﬁcient reachability algorithm implementation [3] to
+compute the operator After . It operates on bounded symbolic states, checks for inclusions and
+thus always terminates even if the model contains τaction loops.
+3.2 Soundness and Completeness
+Algorithm 1 constitutes a randomized algorithm for providing stimuli to (in terms of input and
+delays) and observing resulting reactions from (in terms of output) a given IUT. Assuming the
+
+--- Page 10 ---
+behavior of the IUTis a non-blocking, input enabled, deterministic TIOTS with isolated outputs
+the reaction to any given timed input trace σ=d1i1...d kikdi+1is completely deterministic.
+More precisely, given the stimuli σthere is a unique ρ∈TTr(IUT)such that ρ↑Ain=σ,
+where ρ↑Ainis the natural projection of the timed trace ρto the set of input actions.
+Under a certain (theoretically necessary) testing hypothesis about the behavior of IUT and
+given that the TIOTSs SandEsatisfy certain assumptions, the randomization used in Algo-
+rithm 1 may be chosen such that the algorithm is both complete and sound in the sense that it(eventually with probability one) gives the verdict “fail” in all cases of non-conformance and
+the verdict “pass” in cases of conformance. The hypothesis and assumptions are based on the
+results on digitization techniques in [31]
+2which allow the dense-time trace inclusion problem
+between two sets of timed traces to be reduced to discrete time. In particular it sufﬁces to choose
+unit delays in Algorithm 1 (assuming that the models and IUT share the same magnitude of a
+time unit).
+Theorem 1. Assume that the behavior of IUT may be modelled3as an input enabled, non-
+blocking, deterministic TIOTS with isolated outputs. Furthermore assume that TTr(IUT)and
+TTr(E)areclosed under digitization and that TTr(S)isclosed under inverse digitization . Then
+Algorithm 1 with only unit delays is sound and complete in the following senses:
+1. Whenever TestGenExe (S,E,IUT,T)=failthenIUTrt iocoES.
+2. Whenever IUTrt iocoESthenProb/parenleftbig
+TestGenExe (S,E,IUT,T)=fail/parenrightbigT→∞−−−−→1
+where Tis the maximum number of iterations of the while-loop before exiting.
+Proof. See [20]
+From [16, 31] it follows that the closure properties required in Theorem 1 are satisﬁed if
+the behavior of IUT andEare TIOTSs induced by closed timed automata (i.e. where all guards
+and invariants are non-strict) and Sis a TIOTS induced by an open timed automaton (i.e. with
+guards and invariants being strict). In practice these requirements are not restrictive, e.g. for
+strict guards one can always scale the clock constants to obtain arbitrary high precision.
+3.3 Symbolic State-set Computation
+The concrete realization of Algorithm 1 is described in [20]. We use (well established) symbolic
+constraint solving techniques to represent sets of clock valuations compactly by so-called zones.
+A zone over a set of clocks Xis a conjunction of clock in-equations of the form xi−xj≺
+ci,j,xi≺ciu, andcil≺xi, where ≺∈ {<,≤},ci,j,cil,ciuare integer constants including
+±∞, andxi,xj∈X.Asymbolic state is a pair /angbracketleft¯/lscript, Z/angbracketrightconsisting of a vector ¯/lscriptof locations for
+each parallel automaton and the zone Z.Zdenotes a set of clock valuations, i.e., a symbolic
+state represents a set of concrete states: /angbracketleft¯/lscript,Z/angbracketright={(¯/lscript,¯v)|¯v∈Z}.
+The required symbolic algorithms are similar to those used for model checking [1,3] except
+that only states up to a certain time limit need to be computed. This is most easily accomplished
+by introducing an auxiliary clock tthat is set to zero whenever an observable action occurs.
+2We refer the reader to [31] for the precise deﬁnition of digitization and inverse digitization.
+3The assumption that the IUT can be modelled by a formal object in a given class is commonly referred
+to as the test hypothesis . Only its existence is assumed, not a known instance. In particular it may be
+extremely large, and structurally totally unrelated to the speciﬁcation.
+
+--- Page 11 ---
+4 Experiments
+We implemented our algorithm by extending the mature U PPAAL model-checker tool to the
+testing tool T-U PPAAL . Besides a graphical timed automata editor, U PPAAL provides an efﬁcient
+implementation of the needed basic symbolic operations. Unlike U PPAAL ,T - U PPAAL does not
+store the reached state space, but only the current symbolic state set. We allow the full U PPAAL
+timed automata language, including non-deterministic (action and timing) speciﬁcations and
+discrete variables. The IUT is connected to T-U PPAAL via an adapter component translating
+abstract I/O actions into their real representation, and sends (receives) them to (from) the IUT.
+This section presents the results of the ﬁrst set of experiments using our implementation.
+The purpose is to give an indication of the feasibility of our technique in terms of applicability,error detection capability, and performance in terms of state-set size and computation time.
+4.1 Test Speciﬁcation
+For our experiment we used a slightly changed and adopted speciﬁcation of a simple railway
+control system originally published in [37] and found in U
+PPAAL distribution. A rail-road inter-
+section controller monitors trains on a set of rail-road tracks with a shared track segment, e.g. atrain-station. Its main objective is to ensure that only one train occupies the shared segment at
+a time, and to grant access in arrival order. In this setup we assume 4 tracks, and for simplicity
+1 train per track at a time. Trains on track isignal the controller when they approach and leave
+the station using signals appr
+iandleave irespectively. When train iapproaches an occupied sta-
+tion the controller is required to issue a stop iwithin 5 mtu(model time units), and is similarly
+required to issue goiwithin 5 mtuafter the station becomes free.
+Safe
+StopStation
+Appr Startx>=10
+x:=0
+x<=10stop_1?x:=0x>=3leave_1!
+x:=0
+appr_1!
+x:=0x>=7
+x:=0
+go_1?x:=0
+(a) Train 1 of 4.Remove
+ApproachFree
+SignalRed
+x<=5
+HoldingTrainWaitForLeave
+SignalGreen
+x<=5leave_1?e:=1
+stop_1!rem!
+appr_1?e:=1
+x:=0add!len>0
+e==1
+release?x:=0go_1!len==0add!
+e==1
+release?
+(b) Controller 1 of 4.Start
+Shiftdown
+i < len
+list[i]:=list[i+1],
+i++len==i,len==0
+list[i] := 0len>=1,
+e==list[0]
+rem?
+len--,
+i := 0add?
+list[len]:=e,
+len++
+len==i,len>0
+list[i]:=0,
+e:=list[0]release!
+(c) Queue
+Fig. 4. Test speciﬁcation for train controller: trains as environment, controller and queue as implementation.
+The environment assumption model consists of 4 concurrent timed automata each modeling
+the assumed behavior of a train. The model for train 1 is shown in Figure 4(a); the remaining
+trains are identical except for the train-id. The model of the IUT requirements consists of 4
+concurrent train control automata (Figure 4(b)) tracking the position of each potential train, andone queue automaton tracking their arrival order (Figure 4(c): listis an array of integers, and iis
+an index into the array). We use U
+PPAAL syntax to illustrate timed automata. Initial locations are
+
+--- Page 12 ---
+marked using a double circle. Edges are by convention labeled by the triple: guard, action, and
+assignment in that order. The internal τ-action is indicated by an absent action label. Committed
+locations are indicated by a location with an encircled “C”. A committed location must be left
+immediately as the next transition taken by the system. Finally, bold-faced clock conditions
+placed under locations are location invariants.
+The complete test speciﬁcation is a reasonably large and nontrivial ﬁrst experiment: it con-
+sists of 9 concurrent timed automata, 8 clocks, and a sequential queue data structure.
+4.2 Implementation Under Test
+TheIUTis implemented as an approximately 100 line C++ program following the basic structure
+of the speciﬁcation. It uses POSIX Threads and POSIX locks and condition variables for multi-
+threading and synchronization. It consists of one thread per train, and queue data structure whose
+access is guarded by mutual exclusion and condition variables. In the experiment, the IUT runs
+in the same address space as the T-U PPAAL tool, and input and output actions are communicated
+to and from the driver/adapter via two single place bounded buffers.
+In addition we have created a number of erroneous mutations based on the assumed correct
+implementation ( M0):
+M1: Thestop 3signal is issued 1 mtutoo late.
+M2: The controller issues stop 1instead of stop 3.
+M3: The controller never issues stop 3
+M4: The controller uses a bounded queue limited to 3 trains. Thus, the fourth train overwrites the third
+train in the queue.
+M5: The controller uses LIFO queue instead of FIFO.
+M6: The controller ignores appr 3signals if a train arrives before 2 mtuafter entering the location Free.
+4.3 Error Detection Capability
+The experiments are run on a 8x900 MHZ Sun Sparc Fire v880R workstation with 32 GB
+memory running Sun Solaris 9 (SunOS 5.9). T-U PPAAL runs on one CPU whereas the IUT may
+run on one or more of the remaining. T-U PPAAL itself does not require these extreme amount
+of resources, and it runs well on a standard PC, but a multiprocessor allows T-U PPAAL and the
+IUT to run in parallel as they would normally do in a black-box system level test.
+To allow for faster and more experiments and reduce potential problems with real-time clock
+synchronization between the engine and IUT, the experiments are run using a simulated clock
+progressing when both T-U PPAAL and the IUT needs to let time pass. Each mutant is tested
+1100 times each with an upper time limit of 100000 mtu. All runs of M1-6 mutants failed and
+all runs of M0passed with timeout for testing. The minimum, maximum, and average running
+time and number of used input actions are summarized on the left side of Table 5.
+The results show that all erroneous mutants are killed surprisingly quickly using less than
+100 input actions and less than 2100 mtu. In contrast the assumed correct implementation M0
+was not killed and was subjected to at least 3500 inputs stimuli and survived for more than300 times longer than other mutants in average. In conclusion, the results indicate that online
+real-time testing may be a highly effective technique.
+
+--- Page 13 ---
+Table 5. Error detection and performance measures:
+Error detection capability
+ State-set size
+ Execution time, µs
+Mu-
+ Input actions
+ Duration, mtu
+ After (delay)
+ After (action)
+ After (delay)
+ After (action)
+tant
+ Min
+ Avg
+ Max
+ Min
+ Avg
+ Max
+ Avg
+ Max
+ Avg
+ Max
+ Avg
+ Max
+ Avg
+ Max
+M1
+ 2
+ 4.8
+ 16
+ 0
+68.8
+ 318
+ 2.3
+ 18
+ 2.7
+ 28
+ 1113
+ 3128
+ 141
+ 787
+M2
+ 2
+ 4.6
+ 13
+ 1
+66.4
+ 389
+ 2.3
+ 22
+ 2.8
+ 30
+ 1118
+ 3311
+ 147
+ 791
+M3
+ 2
+ 4.7
+ 14
+ 0
+66.4
+ 398
+ 2.2
+ 22
+ 2.7
+ 30
+ 1112
+ 3392
+ 141
+ 834
+M4
+ 6
+ 8.5
+ 18
+ 28
+165.0
+ 532
+ 2.8
+ 24
+ 3.1
+ 48
+ 1113
+ 3469
+ 125
+ 936
+M5
+ 4
+ 5.6
+ 12
+ 14
+89.8
+ 364
+ 2.8
+ 24
+ 3.3
+ 48
+ 1131
+ 3222
+ 146
+ 919
+M6
+ 2
+14.1
+ 92
+ 0
+299.6
+ 2077
+ 2.7
+ 27
+ 2.9
+ 36
+ 1098
+ 3531
+ 110
+ 861
+M0
+ 3565
+ 3751.4
+ 3966
+ 105
+105
+105
+2.7
+ 31
+ 2.9
+ 46
+ 1085
+ 3591
+ 101
+ 950
+4.4 Performance
+Based on the same setup from Section 4.3 we instrumented T-U PPAAL to record the number of
+symbolic states in the state-set, and the amount of CPU time used to compute the next state-
+set after a delay and an observable action. The right side of Table 5 summarizes the results. The
+state-set size is in average only 2-3 symbolic states per state-set, but it varies a lot, up to 48 states.
+In average, the state-set sizes reached after performing a delay appear larger than after an action.In average it costs only 1.1msto compute the successor state-set after a delay, and less than
+0.2msafter an action. Thus it seems feasible to generate tests from much larger speciﬁcations,
+obviously depending on the scale of time units.
+To examine these variations in greater detail and the dependency of computation time on
+state-set size, we created the scatter plot in Figure 6, also including the regression line of the
+mean. The ﬁgure shows the distribution of After (delay) successor computation time of as func-
+tion of state-set size. The ﬁgure shows graphically by far that most of the population of state-set
+sizes are concentrated below 5 symbolic states, and that very few are larger than 25. We found a
+similar, but less dispersed, pattern for After (action) successor computation time.
+Figure 7 plots the average successor state computation time as function of the state-set size.
+TheAfter (delay) computation time appear to depend linearly on the state-set size, where as
+After (action) appear even sub-linear. But this conclusion is uncertain because only few mea-
+surements points are available for large state-set sizes. The scatter plot in Figure 7(a) shows the
+average of After (delay) successor computation times as function of state-set size. Figure 7(b)
+displays After (action) with a similar pattern as After (delay), but is about 10 times cheaper to
+compute (varies between 0.4 and 1 ms).
+In conclusion, the performance of our technique looks very promising and appears to be fast
+enough for many real-time systems. Obviously, more experiments on varying size and complex-
+ity models are needed to ﬁnd the ﬁrm limitations of the technique.
+4.5 Industrial Case Study
+We applied T-U
+PPAAL on a ﬁrst industrial case study provided by Danfoss Refrigeration Con-
+trols Division. The system under test is an Electronic Cooling Controller (EKC) for industrial
+cooling plants. Its main objective is to keep the refrigerator room air temperature at a user de-ﬁned set point by switching a compressor on and off. It monitors the actual room temperature,
+and sounds an alarm if the temperature is too high (low) for too long a period. In addition it
+
+--- Page 14 ---
+Fig. 6. Distribution of After (delay) state-set successor computation on state-set size.
+0 5 10 15 20 25 302500 3000 3500 4000
+Symbolic state set sizemean CPU time, micro−s
+(a)After delay.0 1 02 03 04 0100 300 500
+Symbolic state set sizemean CPU time, micro−s
+(b)After action.
+Fig. 7. The scatter plots of average CPU time per state-set size with linear regression lines.
+offers a myriad of features (e.g. defrosting and safety modes in case of sensor errors) and ap-
+proximately 40 user set-able parameters. Figure 8 depicts the photo of EKC unit.
+The EKC obtains input from a room air temperature sensor, a defrost temperature sensor,
+and a two-button keypad that controls approximately 40 user set-table parameters. It delivers
+output via a compressor relay, a defrost relay, an alarm relay, a fan relay, and a LED display unitshowing the currently calculated room air temperature as well as indicators for alarm, error and
+operating mode.
+Figure 9 shows a simpliﬁed view of control objective, namely to keep the temperature within
+setPoint andsetPoint +differential . The regulation is to be based on an weighted averaged room
+
+--- Page 15 ---
+Fig. 8. Photo of EKC unit on a desk.
+temperature Tncalculated from periodically sampling the air temperature sensor such that a new
+sample Tis weighted by 20% and the old average Tn−1by 80%:
+Tn=Tn−1∗4+T
+5
+A certain minimum duration must pass between restarts of the compressor, and similarly
+the compressor must remain on for a minimum duration. An alarm must sound if the tempera-
+ture increases (decreases) above (below) highAlarmLimit (lowAlarmLimit ) for alarmDelay time
+units. All time constants in the EKC speciﬁcation are in the order of seconds to minutes, and a
+few even in hours.
+Temperature
+Timesetpointsetpoint
++differentialhighAlarm
+Deviation
+lowAlarm
+LimithighAlarm
+Limit
+lowAlarm
+Deviationdifferentialstart 
+compressor
+stop
+compressorstart 
+compressor
+stop
+compressorstart
+alarm
+normal min restart 
+time not elapsedmin cooling 
+time not elapsedalarm delay
+Fig. 9. Main Control Objective of an EKC is to maintain temperature within bounds.
+
+--- Page 16 ---
+Test Interface. The test interface deﬁnes how the IUT can be controlled and observed. Danfoss
+proposed to test the EKC by reading and writing its parameter database. Nearly every input,output or system parameter is stored in a so-called parameter database in the EKC, essentially
+a parameter id indexed table that contains the value, type and permitted range of each variable.
+The parameter database is accessible from a PC host computer ﬁrst via a LON network from
+the EKC to a EKC-gateway, from there via a RS-232 bus to the PC host, and ﬁnally via pro-
+tocol software implemented as a Microsoft COM object. We implemented adaptation softwareallowing T-U
+PPAAL running on a UNIX host to interact with the COM object via a TCP/IP con-
+nection. In addition the adaptation translated changes in the parameter database into events and
+vice versa.
+The model. We modeled a central subset of the functionality of the EKC as a network of
+UPPAAL timed automata, namely basic temperature regulation, alarm monitoring, and defrost
+modes with manual and automatic controlled (ﬁxed) periodical defrost (de)activation. The al-
+lowed timing tolerances and timing uncertainties introduced by the adaptation software is mod-
+eled explicitly by allowing output events to be produced within a certain error envelope, typically2 seconds. The model consists of the main components depicted in Figure 10, and explained be-
+low:
+OutputInputIUT-Model
+alarm
+Relaycompressor
+RelaytempMeasurement
+compressornewTemp newTemp
+on/off on/offEnvironment
+TemperatureGenerator
+defrost
+RelaydefrostautoDefrost
+on/offdefrostEventGen
+alarm
+Displayon/offhighTempAlarm
+Fig. 10. Main timed automata components in model
+Compressor controls the compressor relay based on the estimated room temperature, alarm
+and defrost status.
+Defrost Controls the events that must take place during a defrost cycle.
+Auto Defrost automatically engages defrost mode periodically, according to a user setting. In
+this mode the compressor and alarm handling functions are disengaged until delayAfterDe-
+frost time units have elapsed.
+Relay automata model a digital physical output (compressor, defrost alarm, alarm display) that
+when given command switches on (respectively off) within a certain time bound.
+Temperature Generator (part of the environment) simulates the variation in room tempera-
+ture, currently either as a sinus curve or randomly.
+Defrost Event Generator (part of the environment) randomly issues manual defrost on/off
+commands.
+
+--- Page 17 ---
+Experiences. Our preliminary experiences shows that it is possible to accurately model the
+behavior of EKC like devices as timed automata and use the resulting model as a test speciﬁca-tion for online testing. It is also possible to model only selected desired aspects of the system
+behavior, i.e. a complete and detailed behavioral description is not required for system test-
+ing. However making the model was not trivial because the system speciﬁcation was generally
+incomplete and ambiguous. This meant that much time was spent on questioning Danfoss en-
+gineers, qualiﬁed guessing, and reverse engineering. We conclude that explicit modeling is astrong method of understanding and capturing the required system behavior. Once the behavior
+is understood we ﬁnd it important to simulate and verify the model to ensure that it has the
+intended behavior; some errors were introduced in the model and detected by spurious behaviorof the resulting test run.
+We also learned that the provided test interface is not ideal. Originally the AK-online soft-
+ware is designed for basic monitoring and changing conﬁguration of the EKC rather than test-
+ing. It lacks controllability of some physical sensor inputs and synchronization features with the
+tester. We are collaborating with Danfoss to propose a better test interface for new generationEKCs with improved control and observation.
+Before the submission deadline of this report we encountered numerous test runs where the
+EKC disengages defrosting earlier than expected. According to Danfoss a possible explanationis that the EKC uses a low resolution timer with a precision of around 5 seconds to control
+defrosting, whereas the model expects 2 seconds. It remains to be seen if this can explain all
+failing test runs, but it indicates that our method indeed candetect such timing errors.
+5 Status and Future Work
+T-U PPAAL is based on symbolic model-checking techniques based on different bound matrices,
+which are efﬁciently implemented in the U PPAAL veriﬁcation engine. The test speciﬁcation can
+be created through a user friendly U PPAAL timed automata network graphical editor. The envi-
+ronment and the IUTseparation is speciﬁed by deﬁning the observable communication channels
+between them. In addition, for testing, T-U PPAAL needs an adapter (loaded as dynamic library)
+to connect to the IUT.
+The tool implementation has been released to the public and the latest T-U PPAAL versions
+can be downloaded for non-commercial use at [23]. The experiments can be re-examined and a
+few more examples can be tried out using scripts from the distribution.
+Our ﬁrst experience with online timed-model-based testing has been encouraging so far.
+We observed promising error detection capabilities having just random guiding techniques and
+the model-checking engine provided us with fast enough reachability algorithms—not just to
+generate tests online—but also to execute them, analyze and compute the conformance verdict in
+real-time. The abstract and non-deterministic test speciﬁcation minimized the effort in modelingand testing various event and timing combinations. Non-determinism proved to be useful to deal
+with some practical issues like uncertainty in ﬂoating point computation, possible timing drifts
+and could even partially substitute the basic value passing.
+Test generation imp rovements. Although generally successful, our ﬁrst applications also re-
+vealed the lack of certain modeling features, e.g., for interprocess communication since U
+PPAAL
+channels deﬁne only handshake communication and data sharing via global variables which
+
+--- Page 18 ---
+need to be categorized into IUT and environment in the T-U PPAAL framework. During testing
+an input action has to be (non-deterministically) selected and/or pre-computed in the model ofenvironment. We plan to improve the value passing by implementing variable value binding to
+channel synchronization. To improve the data selection, a special types of variables could be in-
+troduced. Further, it would be interesting to combine with state of the art testing data generators
+(e.g. GAST [12]) from symbolic speciﬁcations, especially when complex C-like data structures
+are soon to be available in U
+PPAAL engine.
+Some speciﬁcations happen to contain (probabilistically) narrow passages that may be hard
+to reach by a randomized algorithm. Moreover it is not trivial to detect such bottlenecks whilemodeling. To improve the guiding in such cases, we plan to combine the results from ofﬂine
+test case generators by converting the generated test traces into models of the environment.
+Speciﬁcally for online testing, there are even bigger expectations from online model coverageanalysis described below.
+Although the test runs can be long, there is still too little support implemented for estimating
+the conﬁdence of successful test runs and the tester is left in doubt whether all behavior com-
+binations have been tried out. To complement this lack of conﬁdence, a coverage of the system
+model can be measured according to various criteria. The coverage of structure, variables usage,
+and functional behavior for U
+PPAAL speciﬁcations has recently been proposed in [5, 13] and
+are awaiting to be implemented for online testing. However the coverage criteria for real-timeproperties need more fundamental research.
+When a test run fails the tester needs to ﬁnd out why test failed and what parts of speciﬁcation
+were potentially violated, i.e. the test failure diagnostic information needs to be provided and
+most preferably automatically. To provide this knowledge we propose to analyze the evolution of
+the state-set, more speciﬁcally dead-ends which are cut off by observable actions and branchingpoints which start alternative histories of computation. The coverage estimate of the system
+model by various test traces can provide probabilistic clue of what went wrong according to
+speciﬁcation. In some cases, the coverage of the executed IUT code can be examined too and
+the erroneous parts spotted when a failing test run is identiﬁed.
+Test execution imp rovements. One of the main problems for the real-time system developer
+is the uncontrollable progression of time. Mainly there are two ways of designing real-time
+applications to be time-aware: schedule events based on absolute clock values or schedule events
+based on offset from previous (internal or observable input/output) events. Both approacheshave their pros and cons, but the later may have timing drifts. The situation becomes even more
+complicated if the system is built mixing both approaches are used. We propose to introduce
+timing uncertainties in input/output event observation in order to synchronize model clocks with
+the ones in IUT, which requires further future research.
+So far the testing algorithm proved to be efﬁcient enough for online execution, but still
+the performance is unpredictable because of highly varying state-set size, which may strain
+time synchrony. Therefore, more sophisticated algorithms could be used to allow state-set pre-
+computation in advance, faster algorithms allowing testing of larger speciﬁcations and/or with
+ﬁner time units. One alternative is to investigate whether the tool should be separated into two
+parts, the environment simulator and test oracle (monitor). This would allow ﬁner computingpower distribution in time. Moreover, test oracle can be extended to a fully equipped monitor:
+at the same time as analyzing the trace with the implementation model, it can mark the model
+
+--- Page 19 ---
+coverage and gather diagnostic information. The model coverage facts can be converted (online
+or ofﬂine) into guiding hints for (slightly) later testing. The diagnostic information can helpdevelopers in identifying the possibly violated parts of speciﬁcation.
+Figure 11 shows the information ﬂow and breakdown into functional blocks of our envi-
+sioned online testing tool: the test speciﬁcation consists of the environment model MEnv and
+the implementation model MImp composed in parallel, the online testing tool separated into
+emulator (as environment simulator) and monitor (as test oracle) and extended with test selec-
+torfor smart guiding based on coverage facts produced by monitor ; generated test traces (from
+ofﬂine case generator ,model checker or from online testing diagnostic information ) are loaded
+as environment models through trace converter .
+MEnv || MImp test oracleMonitor
+cov. into guidingSelector
+branching pointsdeadend−states
+traces, verdictsDiagnostic Data
+Best tracesbreadth−first reach.Model CheckerAdapter
+Coverage
+factsoffline testerCase Generator
+Implem.
+under test
+trace display and editingConcrete Simulator Converter
+trace to TANCoverage
+criteriaEmulator
+env. simulator hintsGuiding
+oi
+online testinginput
+output
+TestSpec:i/o
+Fig. 11. Data ﬂow in online testing: active processes are in bold and passive storages are in normal font.
+6 Conclusions
+We have presented the T-U PPAAL tool and approach to testing of embedded systems using
+real-time online testing from non-deterministic timed automata speciﬁcations. Based on an ex-
+periment with a non-trivial speciﬁcation we conclude that our notion of relativized input/output
+conformance and our sound and complete randomized online testing algorithm appear correct
+and feasible. We further conclude that our algorithm is implementable, and T-U PPAAL tool
+implementation shows encouraging results both in terms of error detection capability and per-formance of the symbolic state-set computation algorithm. However, further work and real-life
+applications are needed to evaluate the algorithm and the tool in detail.
+Besides practical application, we plan to improve the tool in several directions. For instance,
+to estimate model coverage of the trace and use it to guide the random choices made by the
+algorithm and investigate their impact on the error detection capability. Also we plan to include
+observation uncertainty into our algorithm (i.e., outputs and given stimuli classiﬁed in an interval
+of time rather than a time instance), to improve clock synchronization between T-U
+PPAAL and
+the implementation, and a value passing mechanism to make tool easier to adopt.
+Acknowledgments. We would like to thank STRESS project participants, in particular Jan Tretmans,
+Ed Brinksma and Laura Brand´ an Briones for valuable discussions.
+
+--- Page 20 ---
+References
+1. T. Henzinger and X. Nicollin and J. Sifakis and S. Yovine. Symbolic model checking for real-time
+systems. Information and Computation , 111(2):193–244, June 1994.
+2. R. Alur and D.L. Dill. A Theory of Timed Automata. Theoretical Computer Science , 126(2):183–235,
+April 1994.
+3. G. Behrmann, J. Bengtsson, A. David, K.G. Larsen, P. Pettersson, and W. Yi. Uppaal implementation
+secrets. In Formal Techniques in Real-Time and Fault-Tolerant Systems: 7th International Symposium,
+FTRTFT 2002 , pages 3–22, September 2002.
+4. A. Belinfante, J. Feenstra, R.G. de Vries, J. Tretmans, N. Goga, L. Feijs, S. Mauw, and L. Heerink.
+Formal test automation: A simple experiment. In 12thInt. Workshop on Testing of Communicating
+Systems , pages 179–196, 1999.
+5. Johan Blom, Anders Hessel, Bengt Jonsson, and Paul Pettersson. Specifying and generating test cases
+using observer automata. In Formal Approaches to Testing of Software , Linz, Austria, September 21
+2004. Lecture Notes in Computer Science.
+6. V . Braberman, M. Felder, and M. Marr´ e. Testing Timing Behaviors of Real Time Software. In Quality
+Week 1997. San Francisco, USA. , pages 143–155, April-May 1997 1997.
+7. E. Brinksma, K.G. Larsen, B. Nielsen, and J. Tretmans. Systematic Testing of Realtime Embedded
+Software Systems (STRESS), March 2002. Research proposal submitted and accepted by the Dutch
+Research Council.
+8. Laura Brand´ an Briones and Ed Brinksma. A test generation framework for quiescent real-time sys-
+tems. In Formal Approaches to Testing of Software , Linz, Austria, September 21 2004. Lecture Notes
+in Computer Science.
+9. R. Cardell-Oliver. Conformance Testing of Real-Time Systems with Timed Automata. Formal Aspects
+of Computing , 12(5):350–371, 2000.
+10. R. Cleaveland and M. Hennessy. Testing Equivalence as a Bisimulation Equivalence. Formal Aspects
+of Computing , 5:1–20, 1993.
+11. A. En-Nouaary, R. Dssouli, F. Khendek, and A. Elqortobi. Timed Test Cases Generation Based on
+State Characterization Technique. In 19th IEEE Real-Time Systems Symposium (RTSS’98) , pages
+220–229, December 2–4 1998.
+12. Lars Frantzen, Jan Tretmans, and Tim Willemse. Test generation based on symbolic speciﬁcations.
+InFormal Approaches to Testing of Software , Linz, Austria, September 21 2004. Lecture Notes in
+Computer Science.
+13. A. Hessel, K.G. Larsen, B. Nielsen, P. Pettersson, and A. Skou. Time-Optimal Test Cases for Real-
+Time Systems. In 3rd International Workshop on Formal approaches to Testing of Software (FATES
+2003) , Montr´ eal, Qu´ ebec, Canada, October 2003.
+14. T. Higashino, A. Nakata, K. Taniguchi, and A R. Cavalli. Generating test cases for a timed i/o automa-
+ton model. In IFIP Int’l Work. Test. Communicat. Syst. (IWTCS) , pages 197–214, 1999.
+15. H.S. Hong, I. Lee, O. Sokolsky, and H. Ural. A temporal logic based theory of test coverage and
+generation. In Proceedings of the 8th International Conference on Tools and Algorithms for the Con-
+struction and Analysis of Systems , pages 327–341. Springer-Verlag, 2002.
+16. J. Ouaknine and J. Worrell. Revisiting digitization, robustness, and decidability for timed automata. In
+18th IEEE Symposium on Logic in Computer Science (LICS 2003) Ottawa, Canada , pages 198–207.
+IEEE Computer Society, june 2003.
+17. T. J´ eron and P. Morel. Test generation derived from model-checking. In N. Halbwachs and D. Peled,
+editors, CAV’99, Trento, Italy , volume 1633 of LNCS , pages 108–122. Springer-Verlag, July 1999.
+18. A. Khoumsi, T. J´ eron, and H. Marchand. Test cases generation for nondeterministic real-time systems.
+In3rd International Workshop on Formal Approaches to Testing of Software (FATES’03). LNCS 2931 ,
+Montreal, Canada, 2003.
+
+--- Page 21 ---
+19. K.G. Larsen. A Context Dependent Equivalence Between Processes. Theoretical Computer Science ,
+49:185–215, 1987.
+20. K.G. Larsen, M. Mikucionis, and B. Nielsen. Online testing of real-time systems using UPPAAL .
+InFormal Approaches to Testing of Software , Linz, Austria, September 21 2004. Lecture Notes in
+Computer Science.
+21. M. Krichen and S. Tripakis. Black-box Conformance Testing for Real-Time Systems. In Model
+Checking Software: 11th International SPIN Workshop , volume LNCS 2989. Springer, april 2004.
+22. D. Mandrioli, S. Morasca, and A. Morzenti. Generating Test Cases for Real-Time Systems from Logic
+Speciﬁcations. ACM Transactions on Computer Systems , 13(4):365–398, 1995.
+23. M. Mikucionis. T-U PPAAL web page. http://www.cs.aau.dk/˜marius/tuppaal/ .
+24. M. Mikucionis, K.G. Larsen, and B. Nielsen. Online on-the-ﬂy testing of real-time systems. Technical
+Report RS-03-49, Basic Research In Computer Science (BRICS), December 2003.
+25. M. Mikucionis, B. Nielsen, and K.G. Larsen. Real-time system testing on-the-ﬂy. In the 15th Nordic
+Workshop on Programming Theory , number 34 in B, pages 36–38, Turku, Finland, October 29–31
+2003. ˚Abo Akademi, Department of Computer Science, Finland. Abstracts.
+26. M. Mikucionis and E. Sasnauskaite. On-the-ﬂy testing using U PPAAL. Master’s thesis, Department
+of Computer Science, Aalborg University, Denmark, June 2003.
+27. B. Nielsen and A. Skou. Automated Test Generation from Timed Automata. In TACAS 2001 - Tools
+and Algorithms for the Construction and Analysis of Systems , pages 343–357, April 2001.
+28. J. Peleska, P. Amthor, S. Dick, O. Meyer, M. Siegel, and C. Zahlten. Testing Reactive Real-Time
+Systems. In Material for the School – 5th International School and Symposium on Formal Techniques
+in Real-Time and Fault-Tolerant Systems (FTRTFT’98) , 1998. Lyngby, Denmark.
+29. S. Tripakis. Fault Diagnosis for Timed Automata. In Formal Techniques in Real-Time and Fault
+Tolerant Systems (FTRTFT’02) , volume LNCS 2469. Springer, 2002.
+30. J. Springintveld, F. Vaandrager, and P.R. D’Argenio. Testing Timed Automata. Theoretical Computer
+Science , 254(1-2):225–257, March 2001.
+31. T.A. Henzinger and Z. Manna and A. Pnueli. What good are digital clocks? In Werner Kuich, editor,
+Automata, Languages and Programming, 19th International Colloquium, ICALP92, Vienna, Austria ,
+volume 623 of LNCS , pages 545–558. Springer, july 1992.
+32. J. Tretmans. Testing concurrent systems: A formal approach. In J.C.M Baeten and S. Mauw, edi-
+tors, CONCUR’99 – 10thInt. Conference on Concurrency Theory , volume 1664 of Lecture Notes in
+Computer Science , pages 46–65. Springer-Verlag, 1999.
+33. J. Tretmans and A. Belinfante. Automatic testing with formal methods. In EuroSTAR’99: 7thEu-
+ropean Int. Conference on Software Testing, Analysis & Review , Barcelona, Spain, November 8–12,
+1999. EuroStar Conferences, Galway, Ireland.
+34. V . Diekert, P. Gastin, A. Petit. Removing epsilon-Transitions in Timed Automata. In 14th Annual Sym-
+posium on Theoretical Aspects of Computer Science, STACS 1997 , pages 583–594, L¨ ubeck, Germany,
+February 1997. LNCS, V ol. 1200, Springer.
+35. R. de Vries, J. Tretmans, A. Belinfante, J. Feenstra, L. Feijs, S. Mauw, N. Goga, L. Heerink, and A. de
+Heer. Cˆ ote de resyste in P ROGRESS . In STW Technology Foundation, editor, P ROGRESS 2000 –
+Workshop on Embedded Systems , pages 141–148, Utrecht, The Netherlands, October 2000.
+36. R.G. de Vries and J. Tretmans. On-the-ﬂy conformance testing using S PIN.Software Tools for Tech-
+nology Transfer , 2(4):382–393, March 2000.
+37. Wang Yi, Paul Pettersson, and Mats Daniels. Automatic Veriﬁcation of Real-Time Communicating
+Systems By Constraint-Solving. In Dieter Hogrefe and Stefan Leue, editors, Proc. of the 7 thInt. Conf.
+on Formal Description Techniques , pages 223–238. North–Holland, 1994.

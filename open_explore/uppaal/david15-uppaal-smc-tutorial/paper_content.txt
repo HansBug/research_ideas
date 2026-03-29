@@ -1,0 +1,1676 @@
+--- Page 1 ---
+Aalborg Universitet
+Uppaal SMC tutorial
+David, Alexandre; Larsen, Kim Guldstrand; Legay, Axel; Mikučionis, Marius; Poulsen, Danny
+Bøgsted
+Published in:
+International Journal on Software Tools for Technology Transfer
+DOI (link to publication from Publisher):
+10.1007/s10009-014-0361-y
+Publication date:
+2015
+Document Version
+Early version, also known as pre-print
+Link to publication from Aalborg University
+Citation for published version (APA):
+David, A., Larsen, K. G., Legay, A., Mikučionis, M., & Poulsen, D. B. (2015). Uppaal SMC tutorial. International
+Journal on Software Tools for Technology Transfer, 17(4), 397-415. https://doi.org/10.1007/s10009-014-0361-y
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: March 29, 2026
+
+--- Page 2 ---
+Software Tools for Technology Transfer manuscript No.
+(will be inserted by the editor)
+Uppaal SMC Tutorial?
+Alexandre David1, Kim G. Larsen1, Axel Legay2, Marius Miku cionis1??, Danny Bgsted Poulsen1
+1Department of Computer Science, Aalborg University, Denmark
+2INRIA/IRISA Rennes, France
+The date of receipt and acceptance will be inserted by the editor
+Abstract. This tutorial paper surveys the main features
+ofUppaal SMC, a model checking approach in Uppaal
+family that allows us to reason on networks of complex
+real-timed systems with a stochastic semantic. We demon-
+strate the modeling features of the tool, new verication
+algorithms and ways of applying them to potentially
+complex case studies.
+1 Introduction
+Computer systems play a central role in modern soci-
+eties and their errors can have dramatic consequences.
+Proving the correctness of computer systems is therefore
+a highly relevant activity, on which both industry and
+academics invest a considerable amount of eort. Among
+such techniques, one nds (1) testing [12], the traditional
+approach that detects bugs by exercising the real sys-
+tem with test cases, and (2) formal methods , e.g., model
+checking [ 17], that is a more mathematical approach that
+canguarantee the absence of bugs in the system design.
+Both approaches have been largely deployed on complex
+case studies.
+Originally, formal verication was devoted to software
+and hardware systems by considering their discrete be-
+haviors. However, the past years shown that real-time
+aspects play central roles in systems, and that this fea-
+ture should be taken into account in the verication
+process. Developing formal techniques for such systems
+?The research leading to these results has received funding from
+the European Union Seventh Framework Programme (FP7/2007-
+2013) under grant agreements 318490 (SENSATION) and
+601148 (CASSTING). Also the research has received funding
+from the Sino-Danish Basic Research Center IDEA4CPS funded
+by the Danish National Research Foundation and the National
+Science Foundation China.
+??EU ARTEMIS grant agreement 269335 (MBAT).has thus been the subject of intensive studies. One of
+the prominent results on the topic was the introduction
+of model checking techniques for timed automata [ 1], a
+natural model to capture real-time systems whose be-
+haviors depends on clocks that can be reset. Among all
+the tools that have been developed to implement the
+timed automata theory, one nds Uppaal , which has
+now become the leader in the area.
+Uppaal is a toolbox for verication of real-time sys-
+tems represented by (a network of) timed automata ex-
+tended with integer variables, structured data types, and
+channel synchronization. The tool is jointly developed
+by Uppsala University and Aalborg University. It has
+been applied successfully in case studies ranging from
+communication protocols to multimedia applications (see
+[4] and [ 5] for concrete examples). The rst version of Up-
+paal was released in 1995 [ 36]. Since then it has been in
+constant development. In the same spirit as any other pro-
+fessional model checker such as SPIN, Uppaal proposes
+ecient data structures [ 37], a distributed version of Up-
+paal [9,3], guided and minimal cost reachability [ 7,35,8],
+work on UML Statecharts [ 25], acceleration techniques
+[27], and new data structures and memory reductions
+[10,6].
+Unfortunately, timed automata is not a panacea. In
+fact, albeit powerful, the model is not expressive enough
+to capture behaviors of complex cyber-physical systems.
+Indeed, the continuous time behaviors of those systems
+often rely on rich and complex dynamics as well as on
+stochastic behaviors. The model checking problem for
+such systems is undecidable, and approximating those
+behaviors with timed automata [ 29] was originally the
+best one could originally do in Uppaal .
+In this paper, we introduce Uppaal SMC that pro-
+poses an alternative to the above mentioned problem.
+This new branch of Uppaal proposes to represent sys-
+tems via networks of automata whose behaviors may
+depend on both stochastic and non-linear dynamical fea-
+
+--- Page 3 ---
+tures. Concretely, in Uppaal SMC, each component of
+the system is described with an automaton whose clocks
+can evolve with various rates. Such rates can be specied
+with, e.g., ordinary dierential equations.
+To allow for the ecient analysis of probabilistic per-
+formance properties Uppaal SMC proposes to work with
+Statistical Model Checking (SMC) [ 42,38], an approach
+that has been proposed as an alternative to avoid an
+exhaustive exploration of the state-space of the model.
+The core idea of SMC is to monitor some simulations
+of the system, and then use results from the statistics
+area (including sequential hypothesis testing or Monte
+Carlo simulation) in order to decide whether the system
+satises the property with some degree of condence. By
+nature, SMC is a compromise between testing and classi-
+cal model checking techniques. Simulation-based methods
+are known to be far less memory and time intensive than
+exhaustive ones, more expressive and are oftentimes the
+only option. SMC has been implemented in a series of
+tools that have been applied to a wide range of case
+studies. Unlike more \academic" exhaustive techniques,
+SMC gets widely accepted in various research areas such
+as systems biology [ 18,33,34,21,32], energy-centric sys-
+tems [ 20], automotive/avionics, or software engineering,
+in particular for industrial applications. There are sev-
+eral reasons for this success. First, it is very simple to
+implement, understand and use (especially by industry,
+software engineers, and generally all people that are not
+pure researchers but customers of our results and tools)
+[15,11,4]. Second, it does not require extra modeling or
+specication eort, but simply an operational model of
+the system that can be simulated and checked against
+state-based properties. Third, it allows to model check
+properties that cannot be expressed in classical temporal
+logics. Aside from this, the exibility of SMC allows it
+to be used in other areas than verication, including
+planning and robotics.
+In this paper SMC is presented as a technique for fully
+stochastic models thus it validates performance properties
+of a given deterministic (or stochastic) controller in a
+given stochastic environment. However, we note that
+SMC is applicable to systems exhibiting non-determinism
+(transitions with undened probability distributions): for
+instance the SMC tool Cosmos has been used to nd
+optimal schedulers for Markov Decision Processes [ 28]
+and in a more recent work[ 22] an experimental version of
+Uppaal SMC was used for synthesizing controllers for
+priced timed markov decision processes.
+This paper is a complete tutorial on Uppaal SMC for
+hybrid and fully stochastic systems. We illustrate most
+of the modeling features of the tool, the usage of the
+graphical interface and of the simulation framework. We
+discuss the SMC algorithms that are available, and in-
+troduce some techniques to deal with dynamical systems.
+Finally, we present some modeling features and tricks.
+(a)A1.
+(b)A2.
+(c)A3.
+Fig. 1: Three stochastic timed automata.
+2 Modeling Formalism
+The modeling formalism of Uppaal SMC is based on
+a stochastic interpretation and extension of the timed
+automata (TA) formalism [ 1] used in the classical model-
+checking version of Uppaal [4]. For individual TA com-
+ponents the stochastic interpretation replaces the non-
+deterministic choices between multiple enabled transi-
+tions by probabilistic choices (that may or may not be
+user-dened). Similarly, the non-deterministic choices
+of time-delays are rened by probability distributions,
+which at the component level are given either uniform
+distributions in cases with time-bounded delays or expo-
+nential distributions (with user-dened rates) in cases of
+unbounded delays.
+Consider the three TAs A1,A2andA3from Fig. 1. Ig-
+noring (initially) the weight annotations on locations and
+edges, the END-locations in the three automata are eas-
+ily seen to be reachable within the time-intervals [6 ;12],
+[4;12] and [0;+1). The stochastic interpretation of the
+three TAs provides probability distributions over the
+reachability time. For A1, the delay of the three tran-
+sitions will all be (automatically) resolved by indepen-
+dent, uniform distributions over [2 ;4]. Thus the overall
+reachability time is given as the sum of three uniform
+distributions as illustrated in Fig. 2a. For A2, the delay
+distributions determined by the upper and lower path to
+theEND-location are similarly given by sums of uniform
+distributions. Subsequently the combination (1
+6to5
+6) of
+these as illustrated in distribution of the overall delay is
+obtained by a weighted Fig. 2b. Finally, in A3{ in the
+2
+
+--- Page 4 ---
+(a)A1arrival to END.
+(b)A2arrival to END.
+(c)A3arrival to END.
+Fig. 2: Distributions of reachability time
+absence of invariants { delays are chosen according to
+exponential distributions with user-supplied rates (here
+1
+2, 2 and1
+4). In addition, after the initial delay a discrete
+probabilistic choice (1
+4versus3
+4) is made. The resulting
+distribution of the overall reachability time is given in
+Fig. 2c.
+Importantly, the distributions provided by the stochas-
+tic semantics are in agreement with the delay intervals
+determined by the standard semantics of the underlying
+timed automata. Thus, the distributions for A1andA2
+have nite support by the intervals [6 ;12] and [4;12],
+respectively. Moreover, as indicated by A3, the notion
+of stochastic timed automata encompasses both discrete
+and continuous time markov chains. In particular, the
+class of reachability-time distributions obtained from
+the stochastic timed automata (STA) of Uppaal SMC
+includes that of phase-type distributions.
+Networks. As in Uppaal , a model in Uppaal SMC con-
+sists of a network of interacting component STAs. Here
+it is assumed that these components are input-enabled,
+deterministic (with a probability measure dened on the
+sets of successors), and non-zeno. The component STAs
+communicate via broadcast channels and shared variables
+A1A0
+x<=1
+a!
+B1B0
+y<=2
+b!
+T1
+T3T0
+C’==2C’==4
+a?
+b?A B T
+Fig. 3: An NSTA, ( AjBjT).
+TimeCost
+Time/Costprobability
+00.120.240.360.480.600.72
+0 1.2 2.4 3.6 4.8 6.0
+Fig. 4: Cumulative probabilities for time and Cost-
+bounded reachability of T3.
+to generate Networks of Stochastic Timed Automata
+(NSTA). The communication is restricted to broadcast
+synchronizations to keep a clean semantics of only non-
+blocked components which are racing against each other
+with their corresponding local distributions.
+Figure 3 shows an NSTA with three parallel compo-
+nentsA,B, andTas specied using the Uppaal GUI.
+One can easily see that the composite system ( AjBjT)
+has a transition sequence:
+ 
+(A0;B0;T0);[x= 0;y= 0;C= 0]1 !a! ! 
+(A1;B0;T1);[x= 1;y= 1;C= 4]1 !b! ! 
+(A1;B1;T2);[x= 2;y= 2;C= 6]
+;
+demonstrating that the nal location T3ofTis reachable.
+In fact, location T3is reachable within cost 0 to 6 and
+within total time 0 and 2 in ( AjBjT) depending on when
+(and in which order) AandBchoose to perform the
+output actions a! andb!. Given that the choice of these
+time-delays is governed by probability distributions, a
+measure on sets of runs of NSTAs is induced, according
+to which quantitative properties such as \the probabil-
+ity ofT3being reached within a total cost-bound of 4.3"
+become well-dened (plot shown in Fig. 4).
+For components, as stated in the previous section,
+Uppaal SMC applies uniform distributions for bounded
+delays and exponential distributions where a component
+STA can remain indenitely in the same location. In a
+network of STAs the components repeatedly race against
+each other, i.e. they independently and stochastically
+decide on their own how much to delay before outputting,
+with the \winner" being the component that chooses the
+3
+
+--- Page 5 ---
+minimum delay. For instance, in the NSTA of Fig. 3, A
+wins the initial race over Bwith probability 0 :75.
+As observed in [ 24], though the stochastic semantic
+of each individual STA in Uppaal SMC is rather sim-
+ple (but quite realistic), arbitrarily complex stochastic
+behavior can be obtained by their composition when
+mixing individual distributions through message passing.
+The beauty of our model is that these distributions are
+naturally and automatically dened by the network of
+STAs.
+Train Crossing Example Uppaal SMC takes as input
+NSTAs as described above. Additionally, there is support
+for all other features of the Uppaal model checker's
+input language such as integer variables, data structures
+and user-dened functions, which greatly ease modeling.
+Uppaal SMC allows the user to specify an arbitrary
+(integer) rate for the clocks on any location. In addition,
+the automata support branching edges where weights can
+be added to give a distribution on discrete transitions.
+It is important to note that rates and weights may be
+general expressions that depend on the states and not
+just simple constants.
+To illustrate the extended input language, we consider
+a train-gate example adapted from [ 41]. The example
+model is distributed together with Uppaal SMC tool.
+A number of trains are approaching a bridge on which
+there is only one track. To avoid collisions, a controller
+stops the trains. It restarts them when possible to make
+sure that trains will eventually cross the bridge. There
+are timing constraints for stopping the trains modeling
+the fact that it is not possible to stop trains instantly.
+The interesting point w.r.t. SMC is to dene the arrival
+rates of these trains. Figure 5a shows the template for
+a train. The location Safe has no invariant and denes
+the rate of the exponential distribution for delays. Trains
+delay according to this distribution and then approach by
+synchronizing on appr[i] with the gate controller. Here
+we dene the rational1+id
+N2whereidis the identier of
+the train and Nis the number of trains. Rates are given
+by expressions that can depend on the current states.
+Trains with higher idarrive faster. Taking transitions
+from locations with invariants is given by a uniform dis-
+tribution over the time interval dened by the invariant.
+This happens in locations Appr,Cross , and Start , e.g.,
+it takes some time picked uniformly between 3 and 5
+time units to cross the bridge. Figure 5b shows the gate
+controller that keeps track of the trains with an internal
+queue data-structure (not shown here). It uses functions
+to queue trains (when a train approaches and the bridge
+is occupied in Occ) or dequeue them (when some train
+leaves and the bridge is free).
+(a) Train.
+appr[e]?leave[e]?
+appr[e]?dequeue()
+enqueue(e)stop[tail()]!go[front()]!
+Occ
+StoppingFree
+e == front()
+e:id_te : id_t
+e : id_tenqueue(e)len == 0
+len > 0
+(b) Gate controller.
+Fig. 5: Templates for the train-gate example.
+3 Query Language
+In addition to the standard model checking queries { i.e.
+reachability, invariance, inevitability and leads-to, which
+are still available { Uppaal SMC provides a number
+of new queries related to the stochastic interpretation
+of timed automata. Uppaal SMC allows the user to
+visualize the values of expressions (evaluating to integers
+or clocks) along simulated runs. This gives insight to
+the user on the behavior of the system so that more
+interesting properties can be asked to the model-checker.
+The concrete syntax applied in Uppaal SMC is as follows:
+simulate N [<=bound] { E1,..,Ek }
+where Nis a natural number indicating the number of
+simulations to be performed, bound is the time bound
+on the simulations, and E1;::;Ekare thek(state-based)
+expressions that are to be monitored and visualized. To
+demonstrate this on our previous train-gate example, we
+can monitor when Train(0) and Train(5) are crossing as
+well as the length of the queue. The query is
+simulate 1 [<=300] { Train(0).Cross,
+Train(5).Cross, Gate.len}
+4
+
+--- Page 6 ---
+Gate.lenTrain[5].CrossTrain[0].Cross
+timevalue
+01.53.04.56.0
+0 50 100 150 200 250 300SimulationsFig. 6: Visualizing the gate length and when Train(0)
+and Train(5) cross on one random run.
+This gives us the plot of Fig. 6. Interestingly Train(5)
+crosses more often (since it has a higher arrival rate).
+Secondly, it seems unlikely that the gate length drops
+below 3 after some time (say 20), which is not an obvious
+property from the model. We can conrm this by ask-
+ingPr[<=300](<> Gate.len < 3 and t > 20) and adding
+a clock t. The probability is in [0 :102;0:123].
+For specifying properties over NSTAs, we use a weighted
+extension of the temporal logic MITL [ 2] expressing prop-
+erties over runs [13], dened by the grammar:
+'::=apj:'j'1^'2jO'j'1Ux
+d'2
+where apis a conjunction of predicates over the state of
+a NSTA,dis a natural number and xis a clock. Here,
+the logical operators are interpreted as usual, and Ois a
+next state operator. A weighted MITL-formula '1Ux
+d'2
+is satised by a run if '1is satised on the run until
+'2is satised, and this will happen before the value of
+the clockxexceedsd. As usual:('1^'2) =:'1_:'2
+and we use standard MITL abbreviations tt='_:',
+3xd'=tt Ux
+d'and2xd'=:3xd:'.
+For an NSTA Mwe dene PM(') to be the proba-
+bility that a random run of Msatises'. The problem
+of checking PM(')p(p2[0;1]) is undecidable in
+general.1For the sub-logic of cost-bounded reachability
+problems PM(3xCap)p, wherexis a clock and C
+is a bound, Uppaal SMC approximates the answer us-
+ing simulation-based algorithms known under the name
+of statistical model checking[ 42] algorithms (SMC). We
+briey recap statistical algorithms permitting to answer
+the following three types of questions:
+1.Probability Estimation:
+What is the probability PM(3xCap) for a given
+NSTAM?
+2.Hypothesis Testing:
+Is the probability PM(3xCap) for a given NSTA M
+greater or equal to a certain threshold p2[0;1] ?
+3.Probability Comparison:
+Is the probability PM(3xCap1) greater than the
+probability PM(3yDap2)?
+1Exceptions being stochastic TAs with 0 or 1 clocks and with p
+being 0 or 1.
+P1
+0
+estimatesprobabilityFig. 7: True probability Pand condence intervals.
+From a conceptual point of view solving the above
+questions using SMC is simple. First, each run of the
+system is encoded as a Bernoulli random variable that is
+true if the run satises the property and false otherwise.
+Then a statistical algorithm groups the observations to
+answer the three questions. For the quantitative question
+(1), we will use an estimation algorithm that resemble the
+classical Monte Carlo simulation, while for the qualitative
+questions (2 and 3) we shall use sequential hypothesis
+testing. The two solutions are detailed hereafter.
+Probability Estimation. The probability estimation algo-
+rithm [ 31] computes the number of runs needed in order
+to produce an approximation interval [p ";p+"]for
+p=P( ) with a condence 1  . A frequentist interpre-
+tation of this result tells us that if we repeat the interval
+estimationNtimes, then the estimated condence inter-
+valp"contains the true probability at least (1  )N
+times in the long run ( N!1 ). Figure 7 shows the
+relation between the estimated probability condence
+intervals and the true (unknown) probability P.
+The original algorithm for interval estimation decides
+the number of runs apriori based on the values of "and
+by using Cherno-Hoeding inequality [ 16,30], however
+for practical purposes this inequality is too conservative,
+moreover the result can be even more improved when the
+probability is further from1
+2.Uppaal SMC implements
+a sequential method where a probability condence in-
+terval (for given ) is derived with each new simulation
+measurement and the simulation generation is stopped
+when the condence interval width is less than 2 ". The
+condence interval is derived by using Clopper-Pearson
+\exact" method [ 19] using the fact that the measurements
+are always binary (the property is either satised or not)
+and thus the result follows binomial distribution. The
+condence level is also adjusted for one sided intervals,
+where the measured property is always true or always
+false.
+InUppaal SMC the probability condence interval
+can be estimated by the following query:
+Pr[bound ]( )
+Example 1. Recall the Train Crossing example of the
+previous section. The following queries estimates the
+probabilities that Train(0) and Train(5) will be in the
+crossing before 100 time-units:
+5
+
+--- Page 7 ---
+Fig. 8: The Verier of Uppaal SMC
+Fig. 9: The cumulative probability distribution of
+Pr[<=T](<> Train(5).Cross) .
+Pr[<=100](<> Train(0).Cross)
+Pr[<=100](<> Train(5).Cross)
+Figure 8 shows how these (and other) queries are en-
+tered in the \Query" eld of the Verier tab of Up-
+paal SMC. In the \Overview" eld the answers are pro-
+vided: [0:502421;0:602316] and [0 :902606;1] are the two
+95% condence intervals obtained from 383 and 36 runs,
+respectively. This shows { as we would expect { that the
+more eager Train(5) has a higher probability of reaching
+the crossing than Train(0) within the given time-limit.
+Right-clicking on the answers provide easy access to more
+detailed information in terms of (cumulative, condence
+interval, frequency histogram) probability distribution of
+the time-bounded reachability property, e.g. Fig. 9.
+Hypothesis Testing This approach reduces the qualitative
+question to e test the null-hypothesis:
+H:p=PM( )
+against the alternative hypothesis:
+K:p=PM( )<To bound the probability of making errors, we use strength
+parameters andand we test the hypothesis H0:p
+p0andH1:pp1withp0=+0andp1= 1.
+The interval p0 p1denes an indierence region, and
+p0andp1are used as thresholds in the algorithm. The
+parameter is the probability of accepting H0when
+H1holds (false positives) and the parameter is the
+probability of accepting H1whenH0holds (false neg-
+atives). The above test can be solved by using Wald's
+sequential hypothesis testing [40]. This test computes a
+proportion ramong those runs that satisfy the property.
+With probability 1, the value of the proportion will even-
+tually cross log(=(1 ) orlog((1 )=) and one of
+the two hypothesis will be selected. In Uppaal SMC we
+use the following query:
+Pr[bound ]( ) >=p0
+wherebound denes how to bound the runs. The three
+ways to bound them are 1) implicitly by time by specify-
+ing<=M(where M is a positive integer), 2) explicitly by
+cost withx<=Mwherexis a specic clock, or 3) by num-
+ber of discrete steps with #<=M. In the case of hypothesis
+testingp0is the probability to test for. The formula  is
+either <>qor[]qwhereqis a state predicate.
+Remark 1. Bounding runs for a number of discrete steps
+guarantees termination of the simulation. Bounding over
+time may however result in non-termination if the model
+is not time diverging. Similarly, bounding over a non-
+diverging clock can result in non-termination.
+Uppaal SMC cannot detect if a clock (or time) is
+diverging in a model thus the modeler needs to ensure
+this.
+Example 2. Returning to the Train Crossing example,
+we may not be directly interested in the actual prob-
+ability of Train(0) crossing within 100 time-units, but
+merely whether this unknown probability is above 0 :2,
+as reected by the following query (see also Fig. 8):
+Pr[<=100] (<> Train(0).Cross) >= 0.2
+Within a number of runs signicantly smaller than that of
+estimating the same probability (383 runs), this property
+may be conrmed. The number of runs needed by Wald's
+sequential hypothesis testing method varies, e.g. posing
+the above query 5 times, the property was conrming
+within 66, 62, 65, 67, and 49 runs respectively with 5%
+level of signicance.
+Probability Comparison This algorithm, which is de-
+tailed in [ 24], exploits an extended Wald testing. In
+Uppaal SMC, we use the following query:
+Pr[bound 1]( 1)>= Pr[bound 2]( 2)
+Example 3. In the Train Gate example, it might be suf-
+cient to conrm that the probability that Train(5)
+reaches the crossing within 100 time-units is larger than
+that of Train(0) . Posing the query:
+6
+
+--- Page 8 ---
+Fig. 10: Frequency histogram of maximum number of
+trains stopped within 20 time-units.
+Pr[<=100](<>Train(5).Cross) >=
+Pr[<=100](<>Train(0).Cross)
+conrms this belief within 120 (132, 144, 108, 174) runs
+with 5% level of signicance.
+In addition to those three classical tests, Uppaal SMC
+also supports the evaluation of expected values of min
+or max of an expression that evaluates to a clock or an
+integer value. The syntax is as follows:
+E[bound ;N](min: expr )
+or
+E[bound ;N](max: expr )
+wherebound is as explained in this section, Ngives the
+number of runs explicitly, and expr is the expression to
+evaluate. Also for these properties a condence interval
+is given by using the fact that measurements follow Stu-
+dent's t-distribution (approaching Normal distribution
+whenN!1 ).
+Example 4. As an interesting property of the Train Cross-
+ing example, we want to know the average of the maxi-
+mum number of trains that are stopped within the rst
+20 time-units:
+E[<=20; 20000](max: sum(i:id_t) Train(i).Stop)
+Using the explicitly required 20.000 runs, this average
+is estimated to be in the condence interval 3.64775
+0.0126354. Right-clicking gives easy access to more
+detailed views, e.g. the frequency histogram in Fig. 10.
+Full Weighted MITL Regarding the implementation, we
+note that both of the above statistical algorithms are triv-
+ially implementable. To support the full logic of weighted
+MITL is slightly more complex as our simulation en-
+gine needs to rely on monitors for such logic. In [ 14], we
+proposed an extension of Uppaal SMC that can handle
+arbitrary formulas of weighted MITL. Given a property ',
+our implementation rst constructs deterministic under-
+and over-approximation monitoring PTAs for '. Then it
+puts these monitors in parallel with a given model M, andapplies SMC-based algorithms to bound the probability
+that'is satised on M. More recently [ 13], the exact
+evaluation of whether the generated run satises a given
+weighted MITL formula is done on-line by constantly
+rewriting the formula during generation of the run.
+The probability of satisfying an MITL property  is
+estimated by Uppaal SMC using the query Pr , where
+ :: =BExpr
+j( && )j( || )
+j( U[a,b] )j( R[a,b] )
+j(<>[a,b] )j([][a,b] )
+a;b2N,aband BExpr is a Boolean expression over
+clocks, variables and locations.
+Example 5. The following query:
+Pr( <>[10,100] ([][0,5] Train(0).Stop) )
+asks for the probability that Train(0) will stopped for
+at least 5 consecutive time-units somewhere in the time-
+interval [10,100] . Within 738 runs [0.880894,0.980894]
+is returned as a 95%-condence-interval indicating that
+this happens with a very high probability.
+4 Extension to Hybrid Systems
+Uppaal SMC allows for statistical model checking of
+stochastic hybrid systems, i.e. extensions of (stochastic)
+timed automata, where the rate of clocks may be given
+by general expressions involving clocks, thus eectively
+using ODEs.
+To illustrate the various aspects of the (extended)
+modeling formalism supported by Uppaal SMC, we
+consider the case of two independent rooms that can be
+heated by a single heater shared by the two rooms, i.e.,
+at most one room can be heated at a time. Figure 11(a)
+shows the automaton for the heater. It turns itself on
+with a uniform distribution over time in-between [0 ;4]
+time units. With probability 1 =4 room 0 is chosen and
+with probability 3 =4 room 1. The heater stays on for
+some time given by an exponential distribution (rate 2
+for room 0, rate 1 for the room 1). In summary, one
+may say that the controller is more eager to initiate the
+heating of room 1 than room 0, as well as less eager
+to stop heating room 1. The rooms are similar and are
+modeled by the same template instantiated twice as
+shown in Fig. 11(b-c). The room is initialized to its initial
+temperature and then depending on whether the heater
+is turned on or not, the evolution of the temperature is
+given byT0
+i= Ti=10 +P
+j=0;1Ai;j(Tj Ti) orT0
+i=
+K Ti=10+P
+j=0;1Ai;j(Tj Ti) wherei;j= 0;1 are room
+identiers. The sum expression corresponds to an energy
+ow between rooms and matrix Aencodes the energy
+transfer coecient between adjacent rooms. Furthermore,
+when the heater is turned on, its heating is not exact
+7
+
+--- Page 9 ---
+on[1]!on[0]!
+off[1]!off[0]!
+ON_1ON_0
+3x<=41
+OFF
+1x=0x=02
+K’==0 &&
+T[0]’==K - T[0]/10
+  +sum(j:int[0,1]) 
+     A[0][j]*(T[j]+-T[0])/son[0]?
+off[0]?ON
+T[0]’==-T[0]/10
+  +sum(j:int[0,1]) 
+     A[0][j]*(T[j]+-T[0])/sInit
+OFFK=9+random(3) T[0]=T0[0]
+K’==0 &&
+T[1]’==K - T[1]/10
+  +sum(j:int[0,1]) 
+     A[1][j]*(T[j]+-T[1])/son[1]?
+off[1]?ON
+T[1]’==-T[1]/10
+  +sum(j:int[0,1]) 
+     A[1][j]*(T[j]+-T[1])/sInit
+OFFK=9+random(3) T[1]=T0[1](a) stochastic heater (b) Room(0) (c)Room(1)
+Fig. 11: A simple two room example with an autonomous heater
+and is picked with a uniform distribution of K2[9;12],
+realized by the update K=9+ random (3).
+This example illustrates the support for stochastic
+hybrid systems in Uppaal SMC with extended arithmetic
+on clocks and generalized clock rates.
+Uppaal SMC takes as input networks of stochastic
+hybrid automata as described above. In addition, the
+automata support branching edges where weights can
+be added to give a distribution on discrete transitions.
+It is important to note that rates and weights may be
+general expressions that depend on the states and not
+just simple constants.
+Remark 2. The ODE solver implemented within Up-
+paal SMC is xed time step Euler's integration method
+thus the results may be sensitive to the discretization
+step size. Euler's method is known to be unstable for
+stis systems thus care must taken when deciding on
+the discretization step size controlled in the settings of
+statistical parameters.
+4.1 Floating-Point Support
+The syntax has been extended to support a double pre-
+cision oating-point type ( double ). This type can be
+used mixed with clocks for computing or storing arith-
+metic expressions. Its rate cannot be changed. When
+using oating-point types or operations in a model, the
+model is marked as being hybrid. For such models, model-
+checking is disabled, unless the clocks are declared to
+behybrid clock andthese clocks nor the oating-point
+variables aect the control of the automata, i.e., such
+variables are inactive and used as costs.
+4.2 Example
+All the new queries of Uppaal SMC described in Sec-
+tion 3 are available for stochastic hybrid systems. We
+illustrate this by a number of queries related to the two-
+room example from the previous Section.
+We can simulate and plot the temperatures of the
+two rooms with the query
+simulate 1 [<=600] { T[0], T[1] }
+T[1]T[0]
+timevalue
+0918273645
+0 60 120180240300360420480540600Fig. 12: Evolution of the temperatures of the two rooms.
+The query request the checker to provide one simulate
+run over 600 time units and plot the temperatures of
+Room(0) and Room(1) . The heater in this example is
+purely stochastic and is not intended to enforce any par-
+ticular property. Yet, the simulation obtained from this
+query in Fig. 12 shows that the heater is able to maintain
+the temperatures within (mostly) distinct intervals.
+We can evaluate on a shorter time scale the probability
+for the temperature of Room(0) to stay below 30 and the
+temperature of Room(1) to stay above 5 with the queries
+Pr[<=100]([] Room(0).Init || T[0] <= 20)
+Pr[<=100]([] Room(1).Init || T[1] >= 7 )
+The results are respectively in [0 :45;0:55] and [0:65;0:75].
+The precision and condence of condence intervals are
+user-dened (see later) and inuence the number of runs
+needed to compute the probability. In this example, for
+having the precision to be 0:05 and a condence of 95%,
+we needed 738 runs. In fact if we are only interested in
+knowing if the second probability is above a threshold it
+may be more ecient to test the hypothesis
+Pr[<=100]([] Room(1).Init || T[1] >= 7) >= 0.69
+which is accepted in our case with 902 runs for a level of
+signicance of 95%. To obtain an answer at comparable
+level of precision with probability evaluation, we would
+need to use a precision of 0:005, which would require
+73778 runs instead.
+We can test the hypothesis that the heater is better
+at keeping the temperature of Room(1) above 8 than
+keeping the temperature of Room(0) below 20 by the
+following comparison query:
+Pr[<=100]([] Room(1).Init || T[1] >= 7 ) >=
+Pr[<=100]([] Room(0).Init || T[0] <= 20)
+which is accepted in this case with 95% level of signi-
+cance with just 258 runs.
+8
+
+--- Page 10 ---
+Remark 3. As it can be observed, the MITL specica-
+tions allowed in Uppaal SMC are bounded properties.
+That is specications only depend on a run up to a given
+time-bound, step-bound or bound on some other quantity
+dened in the model. Thus specications only express
+properties of transient behavior of systems, and may or
+may not be indicative of safety of a deployed system in
+steady operational state, depending on how long the sys-
+tem takes to settle. However, given knowledge of the size
+of the model , estimation of probability of unbounded
+properties may be obtained from the observation of nite
+runs as shown in [39].
+5 Extension to Dynamic Creation of Processes
+An underlying assumption of networks of timed automata
+is that computer systems are statically encoded. This is
+however not reality. Instead systems are composed of a
+number of threads/processes that interact and capable
+of spawning other processes/threads. Modeling such dy-
+namic systems in standard Uppaal requires the modeler
+to model an underlying resource manager. In addition,
+the model would consist of a large number of components
+in an inactive state available for the resource manager
+to \start" whenever a spawn request was made in the
+model. A necessary assumption for modeling this resource
+manager is thus that the maximum number of spawned
+threads during any execution is known in advance (or
+can be safely over-approximated). This does not only
+make modeling tedious but also aects analysis time.
+Uppaal SMC supports instantiating dynamic processes
+out of the box. Any automata in the system can spawn
+instances of templates of the model that has been de-
+clared to be spawnable . Dynamically created instances
+act within the system as the static instances with the
+exception that they at any time may terminate, and thus
+remove themselves from the system.
+In Fig. 13 is a high level model of a client server
+architecture. The model consists of a number of servers
+(10), shown in Fig. 13a, that listens on all possible input
+channels req. When a request arrives all the servers will
+\race" to acknowledge the connection over the channel
+ack[c] . The winner will proceed to communicate with
+the client (we abstract from this part) while the others
+return to their listening state. When a client has n-
+ished communication with the server it will terminate
+the connection by synchronizing on term[c] . Afterwards
+the server returns to its listening state.
+In Fig. 13b we show the client side of the model. A
+client is given an idwhen spawned which tells it what
+channel to connect on ( req[id] ). A client is rst attempt-
+ing to get a connection, then it awaits an acknowledgment
+from a server and then do some work taking less than
+ten time units. Finally, it disconnects from the server by
+synchronizing on term[id] and at the same time tears
+itself down by using the exit ()construction.
+i : clientid_t
+2req[i]?
+c = i, x =0
+term[c]? ack[c]!ack[c]?(a)Server
+Workx=0Wait
+exit()x<=10term[id]!ack[id]?req[id]! (b)Client
+spawn Client (next++),x=0
+x<=5
+(c)ClientSpawner
+Fig. 13: Modeling a server with dynamic spawning
+Clients are spawned by the template in Fig. 13c by
+using the spawn Client(next++) update. This instantiates
+a client and passes the value of next as a parameter to
+the client which binds that value to its own local variable
+id.
+Remark 4. We realize that the template in Fig. 13c may
+create an unbounded number of clients whereas the num-
+ber of communication channels are bounded. For our
+particular use this is not a problem as we know the num-
+ber of spawned clients will not exceed the number of
+communication channels within the time limit we work
+with in our queries.
+5.1 Syntax in Uppaal SMC
+A template that will be dynamically spawned must be de-
+clared as a dynamic template. This is done in the global
+declaration of the Uppaal model using the dynamic key-
+word. The declaration for the Client template would for
+instance be dynamic Client(int id) . The template takes
+one parameter id. Parameters to spawnable templates
+are restricted to be pass-by-value parameters or a refer-
+ence to a broadcast channel. The reasoning behind this
+restriction is that templates may cease to exist - invali-
+dating any references to its local variables that it could
+have passed on to spawned templates.
+The actual behavior of a spawnable template is de-
+ned as usual in the editor. Note, however, that there
+must be a correspondence between the parameters de-
+ned in the dynamic declaration and the denition. In
+theClient example this means that the parameters both
+in the dynamic declaration and the denition must be
+int id .
+Spawnable templates may be spawned by any tem-
+plate during a transition using the spawn keyword. For
+9
+
+--- Page 11 ---
+instance, adding spawn Client(2) to the update expres-
+sion of an edge will spawn an instance of the template
+Client with parameter 2. Obviously, there must be pa-
+rameter compatibility between the actual and the formal
+parameters.
+A spawnable template can tear itself down during a
+transition. This is expressed by adding the exit ()expres-
+sion to the update of an edge.
+5.2 Extensions for Queries
+Having extended the modeling language of Uppaal SMC
+to allow dynamically spawning templates, we also need
+an extended specication formalism.
+For the statically dened components specications
+are made as described in Section 3. For the dynami-
+cally created components of the system three additional
+constructions are available:
+forall (i : T) ( q ) ,
+exists (i : T) ( q ) and
+sum(i : T) ( a ) ,
+which may be used anywhere in a specication.
+The predicate forall (i : T) ( q ) asserts that qis
+true for all the dynamically created instances of T. The
+name imay be used anywhere in qto refer to the variables
+of the instances of Ti.e. the name iis temporally bound
+to the instances of Twhile evaluating q. The construct
+exists (i : T) ( q ) is the dual of forall .
+Example 6. Returning to the Server example from before,
+we may consider the probability that a client is not served
+for 5 time units i.e. that it is working in the Wait location
+for 5 time units. In the extended specication formalism
+this can be checked using the query:
+Pr(<>[0,20] ( exists (c : Client) ([][0,5]c.Wait)))
+The expression sum(i : T) ( a ) can be used in arith-
+metic expressions and simply evaluates afor all the in-
+stances of T. In the Server example we can for instance
+count the number of clients that are waiting for a connec-
+tion with the expression sum(c : Client)(c.Wait) . The
+sum construction can also be used to count the number
+of active clients sum(c:Client)(1) . An optimised version
+of this is available as numOf (Client) . In Fig. 14 we show
+one simulation, 100 time units long, where we observe
+these two expressions.
+The sum operator is useful for computing aggregate
+data about all components of a given type but cannot
+give the exact value of each component. For instance sum
+cannot be used to plot the location of each client. If this
+is wanted Uppaal SMC supports the query:
+simulate 1 [<=100] { foreach (c:Client)
+(3*c.id+c.Wait+2*c.Work) }
+Fig. 14: Plot of the number of waiting and total num-
+ber of clients from the query: simulate 1 [<=50] {
+numOf (Client), sum(c:Client)(c.Wait) }
+Fig. 15: Life span of each client from the query: simulate
+1 [<=50] { numOf (Client), sum(c:Client)(c.Wait) }
+The foreach statement is here used to tell the plotting
+facility of Uppaal SMC to plot the expression
+(3*c.id+c.Wait+2*c.Work) for each dynamic instance of
+Client . The actual expression is just a smart way to
+obtain a \gantt-like" chart of each client. The result of
+the query is shown in Fig. 15 where each colored line
+correspond to a client.
+6 Graphical Interface
+We focus in this section on the main features of the
+interface related to SMC. For a more complete overview
+of the interface the reader is referred to [4].
+Overview. The graphical interface of Uppaal is divided
+into an editor, two simulators, and a verier. The editor
+serves the purpose to dene the automata and declaration
+of variables and functions. The verier is used to specify
+and check dierent queries, and to get the results. Then
+there are two simulators, one is the well-known symbolic
+simulator that has been available in Uppaal since the
+birth of this interface. The second simulator is a con-
+crete simulator that was originally used in Uppaal-tiga .
+This simulator allows the user to simulate a system with
+concrete values of clocks, which is more intuitive than
+with the symbolic simulator. This simulator is shown
+in Fig. 16. The choice of transition is situated in the
+upper-left corner. The user chooses with one click a tran-
+sition (vertical choice) and a delay (horizontal choice).
+10
+
+--- Page 12 ---
+
+gantt {
+gate:
+Gate.Occ -> 0, // red
+Gate.Free -> 1; // green
+train(i:id_t):
+Train(i).Appr -> 2, // blue
+Train(i).Stop -> 1, // green
+Train(i).Start -> 3, // magenta
+Train(i).Cross -> 0; // red
+}
+	  
+(a) Denition in System declarations.
+(b) Trace visualization in Concrete Simulator.
+Fig. 17: Gantt chart.
+The simulator shows the automata and a message se-
+quence chart on the right. On the lower left corner is
+the trace corresponding to the current simulation. The
+central view shows the variables and the user can show
+and hide variables in dierent scopes. In the example,
+only the clocks of Train(2) and Train(4) are shown.
+The concrete simulator also supports Gantt chart vi-
+sualization of the interactive concrete trace. Figure 17
+shows a sample use case of Gantt chart for the train-
+gate example. The chart is dened in system declarations
+(Fig. 17a), where each chart line is dened by a statement
+separated by a semicolon. Each statement consists of a
+line label (e.g. gate and train ) and a comma-separated
+list of predicates implying color-numbers. For example, a
+line gate is painted in color #0 (red) whenever Gate.Occ
+is true and in color #1 (green) whenever Gate.Free . The
+colors are mixed when the corresponding predicates are
+true at the same time. It is also possible to dene a chart
+line for a whole range of discrete values at once, like
+the parameterized denition of train(i:id_t) , where the
+temporary variable ihas a range of type idt. For exam-
+ple, the rst 32 colors can be rendered by the following
+denition: gantt { C(i:int[0,31]): true -> i; } .
+SMC Options. Under the menu Options the user can
+choose Statistical parameters . This opens the window
+shown in Fig. 18.
+{ and +: When testing for hypothesis of the form
+Pr('), the algorithm behind tests for two hy-
+pothesis. They are 1) H0:Pr(')++and 2)
+H1:Pr(')  . These parameters dene the
+region of indierence .
+{and:andare used for hypothesis testing.
+The probability of accepting H1instead of H0is
+and conversely for . In the case of probability
+Fig. 18: The statistical parameters from the options menu.
+evaluation, is also used and it is then the probability
+to be outside the result interval of probability. For
+probability comparison, the use of andis the
+same as for hypothesis testing.
+{"is the uncertainty for probability evaluations. The
+tool evaluate some probability and outputs the
+result [ ";+"].
+{u0andu1are the lower and upper bounds used in
+probability comparison. Similarly to hypothesis test-
+ing, the algorithm tests two hypotheses: H0:Pr('1)
+Pr('2)
+u1andH1:Pr('1)
+Pr('2)u0. These parameters dene
+the region of indierence for comparing probabilities.
+{Histogram parameters: If the bucket width is set to a
+positive value, its value determines the width of the
+bars in the histogram and the number of bars depends
+on the range of the obtained results. Otherwise if the
+bucket count is positive then the number of bars is
+set to this value and the width of the bars depends
+on the range of the obtained result. Otherwise if both
+parameters are set to zero (default), the number of
+bars in the histogram is set to the square root of the
+number of runs used to obtain the graph.
+{Trace resolution: When computing a simulation using
+thesimulate query, the tool lters out the data on-
+the-y and retains points that are distinguishable
+w.r.t. a certain resolution when plotted on a screen.
+This parameter controls the maximum width of the
+plot in pixels.
+{Discretization step: This is used for integration when
+ODEs are used in the model. We note that dening
+rates as constants does not qualify as ODE, but having
+x'==y does.
+Plotting and Composing. Most of SMC queries also pro-
+vide quick result visualization in a form of data plots
+accessible in the Verier by right-clicking on a selected
+property and choosing one of the available plots from a
+pop-up menu. Simulation queries display all the requested
+trajectories in one plot with dierent colors assigned to
+various expressions. Statistical queries result in a number
+of dierent histograms showing the data scattered along
+time, cost or discrete transitions horizontal axis. The
+displayed plot elements (like title, legend, transparency,
+11
+
+--- Page 13 ---
+Fig. 16: The concrete simulator in Uppaal .
+Fig. 19: Visual data comparison in the Plot Composer.
+comments and logarithmic scale) can be customized by
+right-clicking on the plot and choosing appropriate items
+from a pop-up menu. The plotted data can be exported
+as either a picture or a text le by using the same plot
+pop-up menu. The size of the exported plot can be cus-
+tomized by resizing the plot window. Note that larger
+window will result in smaller fonts when rescaled for in-
+clusion into a document, so smaller window will result in
+fewer details but clearer picture with larger fonts. The
+dark-colored areas are printer-friendlier when the plot is
+brightened by choosing Areas/Bright in the plot pop-up
+menu.
+The dierent data can also be contrasted and com-
+pared in one plot by using the Plot Composer from the
+Tools menu. Figure 19 shows a sample Plot Composer win-
+dow with data from several verications already loaded.
+The bottom panel on the right shows the resulting plot
+and the data is organized in the tree on the left. Each ver-
+ication data is appended to the tree to its corresponding
+query. For example simulate query has been checked
+four times and each result contains one plot with twodatasets. The data can be added to the composite plot
+by ticking its check-box and its drawing properties can
+be customized in the top-right panel when it is selected
+in the tree. For example E2and E4are ticked in Fig 19
+and E2is selected and drawing properties can be changed.
+The main plot attributes like the title and the labels of
+both axis can be changed by selecting the root node and
+changing its properties in the upper panel on the right.
+It is also possible to edit several composite plots at the
+same time by invoking Plot Composer several times from
+the Tools menu.
+7 Modeling Tricks
+7.1 How to Convert Channel Synchronizations Into
+Broadcast Synchronizations
+Problem. It is common that a user wants to analyze
+performance of a given model previously model-checked
+withUppaal . This model may contain ordinary channel
+synchronizations that work by hand-shake. The problem
+is that the SMC extension does not support them as
+explained in Subsection 2. Here we present a translation
+to convert these models so that they can be analyzed by
+Uppaal SMC.
+Translation. We distinguish three cases: the basic simple
+one-to-one synchronization, the one-to-any synchroniza-
+tion, and a problematic case.
+The common simple case is of one process synchroniz-
+ing with exactly one other process on a channel as shown
+12
+
+--- Page 14 ---
++
+Fig. 20: Basic case of a one-to-one channel synchroniza-
+tion and its translation to a broadcast channel synchro-
+nization.
+in Fig. 20. The sender in state Amay have an invariant or
+not. The receiver in state Loc2 does nothave an invariant.
+The synchronization may be guarded by, resp. g1() and
+g2(), for resp. the sender and the receiver. To convert this
+model, the user should redeclare the channel aas broad-
+cast, move the guard of the receiver to the sender2, and
+make the actual location visible from the sender by using
+a simple encoding with the extra integer variable recvLoc .
+Other encodings may be used, e.g., with booleans, but
+the integer presents the advantage to keep the translation
+of several synchronizations simple. The integer allows the
+user to map each location to a unique value that is used
+by the sender to allow the synchronization only in the
+right state. The example illustrates the update of this
+variable for some other peripheral locations Loc0,Loc1,
+and Loc4.
+The second more general case is of one process syn-
+chronizing with one process out of several ones. There is
+a choice of one-to-any synchronization shown in Fig. 21.
+Here as well, the receiver is in a location without in-
+variants. In this case, the same principle as the simple
+case is used with in addition a renaming of the channel.
+The initial transition in the sender has a copy with a
+unique channel name for each possible synchronization
+that is possible in the original model. Each copy uses
+the right associated guard and looks up the state of the
+2This may require moving local variables to the global scope to
+make the state visible.
+)
+Fig. 21: Extended case of a one-to-any channel synchro-
+nization (only two here) and its translation to a broadcast
+channel synchronization.
+Fig. 22: Problematic case where the translation to broad-
+cast channel is not possible.
+right process. In the example, we illustrate with the use
+of an array a generic encoding where there would be
+several instances of the same template for the receiver. If
+the guards g2() and g3() are generic or depend on some
+idused to instantiate the receivers, the select construct
+can be used, in which case the original transition is not
+copied and the channel ais renamed as a[id] with an
+array.
+The last case is the problematic one where a receiver
+has an invariant as shown in Fig. 22. Any translation of
+this model will violate the independent progress condi-
+tion because here a receiver would force another sender
+process to synchronize. Not synchronizing would result
+in a deadlock. We note that if there is an output from
+that location, i.e., some b!synchronization, then there is
+no problem.
+The last technical detail to take care of is to add
+exponential rates to the locations without invariants and
+that have output synchronizations (or tautransitions).
+This is the rate of the exponential distribution used for
+picking delays.
+7.2 How to Encode Custom Distributions
+Problem. Sometimes, the default uniform or exponential
+distributions available in Uppaal SMC are not enough.
+The user needs a simple way to encode any distribution
+into the model to generalize the ones illustrated in Fig. 2.
+13
+
+--- Page 15 ---
+
+const double PI = 3.14159265358979323846;
+double stdNormal() { // N(0, 1)
+return sqrt (-2* ln(1-random (1))) *
+cos(2*PI* random (1));
+}
+double Normal(double mean , double stdDev) {
+return mean + stdDev * stdNormal();
+}
+double f() { // N(10.0, 1.0)
+return Normal(10.0, 1.0);
+}
+	  
+Listing 1: Normal distribution generating functions.
+Fig. 23: Result from modeling a Gaussian distribution.
+Encoding. The pattern for encoding general distributions
+is given in Fig. 24. The principle is that upon entry of
+a given location Wait where the actual custom delay is
+to take place, the actual delay is computed and stored
+into a clock delay . The function f()that computes this
+delay returns a oating-point value of type double . The
+automaton will then delay for this amount and take
+the transition. The location Wait has its invariant set
+tox<=delay and delay'==0 . The clock delay is used here
+only for storage. This technique is similar to the one used
+for computing stochastic simulations in Modest [26].
+Implementation of f().The function that computes the
+delay may use the random (n)function with nbeing a
+oating-point value. The function returns a number in
+[0;n) with a uniform distribution. This can then be trans-
+formed to return a delay with another distribution. We
+note that the function may keep a state as well, by storing
+what it wants into global variables (also of type double ),
+which allows the encoding of virtually any distribution.
+For example, to generate random numbers according to
+a normal distribution using the Box-M uller method, we
+can use the following function: The distribution obtained
+is shown in Fig. 23 together with the parameters used.
+Remark. The reader may wonder why the pattern pro-
+poses to use a clock for the variable delay instead of
+a variable of type double . In fact it is possible to use
+double , which saves the trouble of setting its rate to 0.
+However , the performance of the model-checker may drop.
+In its current implementation, Uppaal SMC uses a ned-
+grained discretization if guards or invariants contain a
+\general" oating-point expression. The syntax analyzer
+will not recognize that the discretization is not needed
+in this case. Using clocks alleviates the problem.
+Fig. 24: Pattern for custom delay distributions.
+7.3 How to Model Physics
+Problem. The formalism of Uppaal SMC is stochastic
+hybrid automata so modeling physics is a simple matter
+of writing the ODEs in the model. However, only rst
+degree derivatives are allowed.
+Modeling. To model an n-degree derivative, the user
+should use a clock variable for every intermediate deriva-
+tive. This is standard renaming technique used in other
+tools, e.g., Matlab. For example, instead of modeling
+y''==-9.81 for a falling object, the user should declare
+y'==v and v'==-9.81 . Using dierent clocks or arithmetic
+expressions mixing double typed variables is also sup-
+ported.
+7.4 How to Model Biochemistry
+Problem. Cyber-physical systems may involve chemical
+and even biological processes and hence there is a need
+to evaluate the performance of control systems in such a
+context. Suppose the reaction involves a mixed solution
+of materials AandBand produce CandDwith reaction
+speed of:
+A+ 2B !C+ 3D
+Here we show how this reaction can be modeled as either
+probabilistic or dynamical system. The containment of re-
+actions and other interactions can be modeled by adding
+additional locations, edges and channel synchronizations.
+Stochastic model. Figure 25 shows a stochastic model
+of the reaction and its behavior. The discrete quantities
+(molecules) of the materials involved are counted by the
+corresponding integers A,B,Cand D. The reaction rate is
+represented by the double precision oating point variable
+gamma . The automaton in Fig. 25b captures the interaction
+between chemicals AandBin the following way:
+{The automaton takes a discrete transition when the
+reaction happens.
+{The reaction requires at least one molecule of Aand
+at least two molecules of B, hence the edge is guarded
+by an expression A>0 && B>1 .
+{Each reaction consumes Aand 2Band produces C
+and 3D, hence the edge has the update A--, B-=2,
+C++, D+=3 .
+14
+
+--- Page 16 ---
+
+int A=100, B=200, C=0, D=0;
+double gamma=0.0001;
+	  
+(a) Declarations.
+(b) Automaton.
+ (c) Simulation.
+Fig. 25: Stochastic model and its behavior.
+{In a well mixed (homogeneous) compound the prob-
+ability of a reaction is proportional to its speed 
+and the probability of meeting the required three
+molecules ( A,Band another B) in one place. The
+probability of reaction remains the same as long as
+the conditions (quantities and temperature) do not
+change, hence the reaction is a Poisson process and
+the delay until the next reaction follows an exponen-
+tial distribution with the rate gamma*A*B*B .
+If there are more reactions, then they have to be modeled
+by another parallel process. The trajectory of the quanti-
+ties can be inspected by the following query: simulate 1
+[<=5]{A,B,C,D} . The resulting plot is shown in Fig. 25c:
+AandBare slowly decaying, replaced by CandD. We
+notice that the trajectory is jittery and can be slightly
+dierent with every new simulation due to probabilis-
+tic nature of the stochastic process and relatively small
+amounts of molecules. The trajectories are smoother
+when quantities are much larger and approach the limit
+of the continuous dynamics.
+Scaling. Usually chemical reactions involve huge num-
+bers of molecules with dierent orders of magnitude and
+thus some scaling of dimensions may be desired. Note
+that if the quantities are scaled by 1000, then the expo-
+nential rate gamma*A*B*B has to be scaled by 106(while
+the dynamical coecients are scaled by 109) and thus
+it is very easy to overow the default range of int. Fig-
+ure 26 shows the same model but with molecule quantities
+scaled by 1000. The simulated trajectories are divided
+bysback down to a comparable scale as in previous and
+next example. The simulated behavior is smoother and
+closer to the dynamical model (shown next).
+The default integer range is rather small ( 216), thus
+one may need to broaden it by dening a custom range.
+Uppaal supports integer ranges up to 32 bits, hence
+the type declaration typedef int[-(1<<31),(1<<31)-1]
+int32_t; corresponds to a range of signed 32 bit integer.
+The range can be expanded further to a double precision
+oating point, but note that its precision is limited to 52
+typedef int[-(1<<31) ,(1<<31) -1] int32_t;
+const int s=1000; // scale by a thousand
+int32_t A=100*s, B=200*s, C=0, D=0;
+double gamma=0.0001;
+	  
+(a) Scaled declarations.
+(b) Scaled rate.
+ (c) Scaled trajectories.
+Fig. 26: Scaled stochastic model and its scaled behavior.
+bits (4:51012) and hence beyond that point minor
+increments (like +1) will not aect the variable value
+anymore.
+Dynamical model. The same reaction can be rewritten
+using a set of dierential equations describing the rate of
+change of the quantities:
+8
+>>>>>>>>>>><
+>>>>>>>>>>>:d[A]
+dt= [A][B]2
+d[B]
+dt= [A][B]22
+d[C]
+dt=[A][B]2
+d[D]
+dt=[A][B]23
+The idea here is that the rate of change in quantities
+is proportional to the speed of reaction and concentra-
+tion of materials. The contribution to various materials
+is then scaled by coecients from the original reaction.
+We have one equation per each material mentioned. If
+there are more reactions then their contributions can be
+added up to the same system of dierential equations
+either as separate extra terms or a separate equation
+for each new chemical. Fig. 27 shows the dynamical
+model and its behavior. The quantities are captured by
+dynamical clock variables A,B,Cand Dand the same
+reaction coecient gamma . The dierential equations are
+then typeset as a single invariant of derivative expres-
+sions in Lagrange's prime notation (Fig. 27b). We also
+added an escape transition if/when the quantity of A
+reaches zero, i.e. the reaction stops. The trajectories can
+be inspected by the same simulation query as previously
+and the result is shown in Fig. 27c. Notice that the tra-
+jectory is smoother, very close to the scaled-up stochastic
+simulation, and is the same every time (deterministic),
+15
+
+--- Page 17 ---
+
+clock A=100.0, B=200.0, C=0.0, D=0.0;
+double gamma=0.0001;
+urgent broadcast chan ASAP;
+	  
+(a) Declarations.
+(b) Automaton.
+ (c) Simulation.
+Fig. 27: Dynamical model and its behavior.
+because ordinary dierential equations have one xed
+solution for the same initial conditions. Some ODE sys-
+tems might require tuning the discrete integration step
+in the Statistical parameters from the Options menu: the
+smaller the step the more precise simulation is, but it is
+also computationally more expensive. Sti systems may
+require smaller integration steps. A more complicated
+biochemical model can be found in a study of a circadian
+rhythm genetic oscillator [23,21].
+7.5 How to Obtain Distributions Over Costs
+When the user checks queries to evaluate probabilities,
+e.g., Pr[<=100](<> Proc.Goal) ,Uppaal SMC keeps track
+of when the runs satisfy the specied goal state and
+uses this information to build a frequency histogram.
+Specically, what is counted is the number of runs that
+were satised at a given \time" as dened by the bound
+of the run. When no explicit variable is used, e.g., <=100 ,
+the plot is the count of satised runs as a function of time,
+discretized in the histogram bars (so in fact in function
+of time intervals). When a clock variable is used, the plot
+is in function of this variable. Alternatively the runs can
+be bound by number of discrete steps of the form #<=100 .
+Now suppose that we want to estimate a cost ex-
+pressed as some energy consumption. To illustrate this,
+let us consider the example in Fig. 28a. In this model,
+a random power level is chosen stochastically and the
+corresponding energy consumption is integrated by Up-
+paal SMC. The evolution of the energy is naturally
+expressed by the equation E'==P .
+Figure 28b shows one stochastic simulation bounded
+by two time units obtained with the query simulate
+1 [<=2] {E,P} . Every run will have its own energy con-
+sumption. The question is to know the mean of the en-
+ergy consumption and its distribution over runs bounded
+by two time units. To obtain this we check the query
+Pr[E<=10](<> t==2) . The trick is that rst we bound the
+clock E,t;
+double P;
+	  
+(a) Model.
+ (b) Trajectories of energy and power.
+(c) Estimated energy probability distribution.
+Fig. 28: Cost estimation in terms of energy.
+actual energy by a high enough bound that covers the
+reachable range for all runs. It could be E<=1000 if the
+user is unsure. Second, the goal state is the time bound
+that will be reached since time progresses3. The result
+probability is one but this is not the point. The point is
+the distribution generated by this query. Uppaal SMC
+will record \when" (in function of the bound) the runs
+reach the goal, here t==2. We obtain now a distribution
+of energy consumption on runs bounded by two time
+units as shown in Fig. 28c.
+Remarks. If the suggested query is checked with the
+default settings the obtained histogram will have poor
+precision because Uppaal SMC does not need many
+runs to conclude that the result probability is one. The
+user should increase the precision by changing the SMC
+options as described in Section 6. Specically, Fig. 28c was
+obtained from 7598 runs using = 0:001 and"= 0:0005.
+It is also possible to estimate discrete costs even
+though the tool does not support integers as bounds.
+Users can use clocks for this purpose by maintaining their
+rates to zero and updating them manually. For example,
+ifcis a counter, then it is declared as a clock. Then the
+user adds one process with one location and no transition
+with the invariant c'==0 . Finally, the increment c = c +
+1is used wherever necessary and the bound c<=100 can
+now be used.
+7.6 How to Model Custom Discretizations
+Problem. Sometimes users want to use a custom integra-
+tion method or want to change the integration granularity
+at the level of locations. Uppaal SMC uses a global time
+3Uppaal SMC detects zeno runs and rejects models producing
+them.
+16
+
+--- Page 18 ---
+
+clock T = T0[i], dt;
+void cool()
+{
+T = T - (T*dt)/KCOOL;
+}
+void heat()
+{
+cool();
+T = T + KHEAT*dt;
+}
+	  
+(a) Variable and function declarations.
+(b) The model.
+ (c) Temperature trajectories.
+Fig. 29: The temperature of a heated room with a manual
+discretization using a high exponential rate RATE.
+step when it detects that some integration is needed. It
+may be better for performance or precision to change this
+step depending on the locations and the type of equation
+to integrate.
+Modeling. The modeling trick consists of using a \high"
+exponential rate on the locations where the manual dis-
+cretization is needed. The tool will then take small delay
+steps, albeit random according to an exponential distribu-
+tion with high rate, which allows for custom discretization.
+Fig. 29 shows an example of the temperature of a room
+that can have a heater turned on or o4. The value of RATE
+controls the precision. The functions for cooling and heat-
+ing are depicted in Listing 29a. The value of the clock dt
+is the time elapsed and is used for the integration. KHEAT
+and KCOOL are constants used in the model. The result of
+a simulation is shown in Fig. 29. This manual encoding
+replaces, resp., T'==-T/KCOOL and T'==KHEAT-T/KCOOL for,
+resp., cooling and heating. The example also illustrates
+a recent new feature of the language, namely initializers
+for clocks with the declaration T = T0[i] , where T0is
+declared as const double T0={70.0,60.0} .
+8 Conclusion
+This paper presented Uppaal SMC as an ecient tool
+for evaluating performance properties of stochastic hy-
+brid systems. The modeling language has been extended
+to handle dynamical behaviors, discrete probabilities, a
+stochastic interpretation for timed delays and even dy-
+namic process creation { far beyond analytically tools
+reach. Most importantly the old Uppaal models require
+4The actual controller is not important for this example and is
+not given here.only small changes in order to benet also from Up-
+paal SMC features, thus it is straightforward to gain
+also performance measures in addition to rm results. The
+paper also includes tricks for handling more problematic
+corner cases to satisfy Uppaal SMC assumptions and in
+particular how to transform handshake synchronization
+to broadcast synchronization. The query language has
+been expanded to request simulation trajectories, com-
+pute probabilistic aspects and evaluate weighted MITL
+formulas.
+In the future, we intend to include better ODE solvers
+to improve dynamical simulations and improve the in-
+teractive concrete run simulator including a Gantt chart
+visualization of a run.
+References
+1.R. Alur and D. L. Dill. A theory of timed automata.
+Theor. Comput. Sci. , 126(2):183{235, 1994.
+2.R. Alur, T. Feder, and T. A. Henzinger. he benets of
+relaxing punctuality. J. ACM , 43(1):116{146, Jan. 1996.
+3.G. Behrmann. Distributed reachability analysis in timed
+automata. STTT , 7(1):19{30, 2005.
+4.G. Behrmann, A. David, and K. Larsen. A tutorial on
+Uppaal. Lecture Notes in Computer Science , pages 200{
+236, 2004.
+5.G. Behrmann, A. David, K. G. Larsen, P. Pettersson, and
+W. Yi. Developing uppaal over 15 years. Softw., Pract.
+Exper. , 41(2):133{142, 2011.
+6.G. Behrmann, A. David, K. G. Larsen, and W. Yi. Uni-
+cation & sharing in timed automata verication. In SPIN
+Workshop 03 , volume 2648 of LNCS , pages 225{229, 2003.
+7.G. Behrmann, A. Fehnker, T. Hune, K. G. Larsen, P. Pet-
+tersson, and J. Romijn. Ecient guiding towards cost-
+optimality in uppaal . In T. Margaria and W. Yi, editors,
+Proceedings of the 7 thInternational Conference on Tools
+and Algorithms for the Construction and Analysis of Sys-
+tems, number 2031 in Lecture Notes in Computer Science,
+pages 174{188. Springer{Verlag, 2001.
+8.G. Behrmann, A. Fehnker, T. Hune, K. G. Larsen, P. Pet-
+tersson, J. Romijn, and F. Vaandrager. Minimum-cost
+reachability for priced timed automata. In M. D. D.
+Benedetto and A. Sangiovanni-Vincentelli, editors, Pro-
+ceedings of the 4th International Workshop on Hybris Sys-
+tems: Computation and Control , number 2034 in Lecture
+Notes in Computer Sciences, pages 147{161. Springer{
+Verlag, 2001.
+9.G. Behrmann, T. Hune, and F. Vaandrager. Distributed
+timed model checking - How the search order matters.
+InProc. of 12th International Conference on Computer
+Aided Verication , Lecture Notes in Computer Science,
+Chicago, Juli 2000. Springer-Verlag.
+10.G. Behrmann, K. G. Larsen, J. Pearson, C. Weise, and
+W. Yi. Ecient timed reachability analysis using clock
+dierence d iagrams. In Proceedings of the 12th Int. Conf.
+on Computer Aided Vericat ion , volume 1633 of Lecture
+Notes in Computer Science . Springer{Verlag, 1999.
+11.B. Boyer, K. Corre, A. Legay, and S. Sedwards. Plasma-
+lab: A exible, distributable statistical model checking
+library. In QEST , pages 160{164, 2013.
+17
+
+--- Page 19 ---
+12.M. Broy, B. Jonsson, J.-P. Katoen, M. Leucker, and
+A. Pretschner, editors. Model-Based Testing of Reactive
+Systems, Advanced Lectures The volume is the outcome
+of a research seminar that was held in Schloss Dagstuhl in
+January 2004 , volume 3472 of Lecture Notes in Computer
+Science . Springer, 2005.
+13.P. Bulychev, A. David, K. G. Larsen, A. Legay, G. Li, and
+D. B. Poulsen. Rewrite-based statistical model checking
+of wmtl. In Runtime Verication , volume 7687 of LNCS ,
+pages 260{275, 2012.
+14.P. Bulychev, A. David, K. G. Larsen, A. Legay, G. Li,
+D. B. Poulsen, and A. Stainer. Monitor-based statisti-
+cal model checking for weighted metric temporal logic.
+In N. Bjrner and A. Voronkov, editors, 18th Interna-
+tional Conference on Logic for Programming, Articial
+Intelligence, and Reasoning , volume 7180 of LNCS , pages
+168{182. Springer, 2012.
+15.P. E. Bulychev, A. David, K. G. Larsen, A. Legay,
+M. Miku cionis, and D. B. Poulsen. Checking and distribut-
+ing statistical model checking. In NASA Formal Methods ,
+volume 7226 of Lecture Notes in Computer Science , pages
+449{463. Springer, 2012.
+16.H. Cherno. A measure of asymptotic eciency for tests
+of a hypothesis based on the sum of observations. The An-
+nals of Mathematical Statistics , 23(4):pp. 493{507, 1952.
+17.E. Clarke, O. Grumberg, and D. Peled. Model Checking .
+MIT Press, Cambridge, MA, USA, 1999.
+18.E. M. Clarke, J. R. Faeder, C. J. Langmead, L. A. Harris,
+S. K. Jha, and A. Legay. Statistical model checking in
+biolab: Applications to the automated analysis of t-cell
+receptor signaling pathway. In CMSB , LNCS, pages 231{
+250, 2008.
+19.C. J. Clopper and E. S. Pearson. The use of condence
+or ducial limits illustrated in the case of the binomial.
+Biometrika , 26(4):404{413, 1934.
+20.A. David, D. Du, K. G. Larsen, A. Legay, and
+M. Miku cionis. Optimizing control strategy using statis-
+tical model checking. In NASA Formal Methods , volume
+7871 of Lecture Notes in Computer Science , pages 352{
+367. Springer, 2013.
+21.A. David, D. Du, K. G. Larsen, A. Legay, M. Miku cionis,
+D. B. Poulsen, and S. Sedwards. Statistical model check-
+ing for stochastic hybrid systems. In E. Bartocci and
+L. Bortolussi, editors, Hybrid Systems and Biology (HSB) ,
+volume 92 of EPTCS , pages 122{136, Newcastle Upon
+Tyne, UK, September 2012.
+22.A. David, P. G. Jensen, K. G. Larsen, A. Legay, D. Lime,
+M. G. Srensen, and J. H. Taankvist. On time with
+minimal expected cost! In F. Cassez and J.-F. Raskin,
+editors, Automated Technology for Verication and Anal-
+ysis (ATVA) , volume 8837 of Lecture Notes in Computer
+Science , pages 129{145. Springer International Publishing,
+2014.
+23.A. David, K. G. Larsen, A. Legay, M. Miku cionis, D. B.
+Poulsen, and S. Sedwards. Runtime verication of bio-
+logical systems. In T. Margaria and B. Steen, editors,
+ISoLA (1) , volume 7609 of Lecture Notes in Computer
+Science , pages 388{404. Springer, 2012.
+24.A. David, K. G. Larsen, A. Legay, M. Miku cionis, D. B.
+Poulsen, J. V. Vliet, and Z. Wang. Statistical model check-
+ing for networks of priced timed automata. In FORMATS ,
+LNCS, pages 80{96. Springer, 2011.25.A. David, M. O. M oller, and W. Yi. Formal verica-
+tion of UML statecharts with real-time extensions. In
+R.-D. Kutsche and H. Weber, editors, Fundamental Ap-
+proaches to Software Engineering, 5th International Con-
+ference, FASE 2002 , volume 2306 of LNCS , pages 218{232.
+Springer{Verlag, 2002.
+26.A. Hartmanns. Model-checking and simulation for
+stochastic timed systems. In B. K. Aichernig, F. S.
+de Boer, and M. M. Bonsangue, editors, FMCO , vol-
+ume 6957 of Lecture Notes in Computer Science , pages
+372{391. Springer, 2010.
+27.M. Hendriks and K. G. Larsen. Exact acceleration of
+real-time model checking. In E. Asarin, O. Maler, and
+S. Yovine, editors, Electronic Notes in Theoretical Com-
+puter Science , volume 65. Elsevier Science Publishers,
+April 2002.
+28.D. Henriques, J. ao Martins, P. Zuliani, A. Platzer, and
+E. M. Clarke. Statistical model checking for markov
+decision processes. In Ninth International Conference on
+Quantitative Evaluation of Systems, QEST 2012, London,
+United Kingdom, September 17-20, 2012 , pages 84{93.
+IEEE Computer Society, 2012.
+29.T. A. Henzinger and P. Ho. Algorithmic analysis of non-
+linear hybrid systems. In P. Wolper, editor, Computer
+Aided Verication, 7th International Conference, Li ege,
+Belgium, July, 3-5, 1995, Proceedings , volume 939 of Lec-
+ture Notes in Computer Science , pages 225{238. Springer,
+1995.
+30.W. Hoeding. Probability inequalities for sums of
+bounded random variables. Journal of the American
+Statistical Association , 58(301):pp. 13{30, 1963.
+31.T. H erault, R. Lassaigne, F. Magniette, and S. Peyronnet.
+Approximate probabilistic model checking. In B. Steen
+and G. Levi, editors, Verication, Model Checking, and
+Abstract Interpretation , volume 2937 of Lecture Notes in
+Computer Science , pages 73{84. Springer Berlin Heidel-
+berg, 2004.
+32.C. J egourel, A. Legay, and S. Sedwards. Importance
+splitting for statistical model checking rare properties. In
+CAV, volume 8044 of Lecture Notes in Computer Science ,
+pages 576{591. Springer, 2013.
+33.S. K. Jha, E. M. Clarke, C. J. Langmead, A. Legay,
+A. Platzer, and P. Zuliani. A bayesian approach to model
+checking biological systems. In CMSB , volume 5688 of
+LNCS , pages 218{234. Springer, 2009.
+34.M. Z. Kwiatkowska, G. Norman, and D. Parker. Prism
+2.0: A tool for probabilistic model checking. In Proc. of
+1th Int. Conference on the Quantitative Evaluation of
+Systems (QEST) , pages 322{323. IEEE, 2004.
+35.K. G. Larsen, G. Behrmann, E. Brinksma, A. Fehnker,
+T. Hune, P. Pettersson, and J. Romijn. As cheap as
+possible: Ecient cost-optimal reachability for priced
+timed automata. In G. Berry, H. Comon, and A. Finkel,
+editors, Proceedings of CAV 2001 , number 2102 in Lecture
+Notes in Computer Science, pages 493{505. Springer{
+Verlag, 2001.
+36.K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a
+Nutshell. Int. Journal on Software Tools for Technology
+Transfer , 1(1{2):134{152, Oct. 1997.
+37.F. Larsson, K. G. Larsen, P. Pettersson, and W. Yi.
+Ecient verication of real-time systems: Compact data
+structures and state-space reduction. In Proc. of the 18th
+18
+
+--- Page 20 ---
+IEEE Real-Time Systems Symposium , pages 14{24. IEEE
+Computer Society Press, Dec. 1997.
+38.K. Sen, M. Viswanathan, and G. Agha. Statistical model
+checking of black-box probabilistic systems. In CAV ,
+LNCS 3114, pages 202{215. Springer, 2004.
+39.B. Theelen. Performance Modelling for System-Level
+Design . PhD thesis, Eindhoven University of Technology,
+2004. ISBN 90-386-1633-3.
+40.A. Wald. Sequential tests of statistical hypotheses. Annals
+of Mathematical Statistics , 16(2):117{186, 1945.
+41.W. Yi, P. Pettersson, and M. Daniels. Automatic veri-
+cation of real-time communicating systems by constraint-
+solving. In Proceedings of the 7th IFIP WG6.1 Interna-
+tional Conference on Formal Description Techniques VII ,
+pages 243{258, London, UK, UK, 1995. Chapman & Hall,
+Ltd.
+42.H. L. S. Younes. Verication and Planning for Stochas-
+tic Processes with Asynchronous Events . PhD thesis,
+Carnegie Mellon, 2005.
+19

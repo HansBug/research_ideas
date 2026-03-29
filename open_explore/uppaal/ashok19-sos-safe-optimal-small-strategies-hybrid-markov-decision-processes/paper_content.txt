@@ -1,0 +1,972 @@
+--- Page 1 ---
+SOS: Safe, Optimal and Small Strategies for
+Hybrid Markov Decision Processes
+Pranav Ashok1, Jan Kretinsky1, Kim Guldstrand Larsen2, Adrien Le Co ent2,
+Jakob Haahr Taankvist2, and Maximilian Weininger1
+1Technical University of Munich, Germany
+2Aalborg University, Denmark
+Abstract. For hybrid Markov decision processes, Uppaal Stratego can
+compute strategies that are safe for a given safety property and (in the
+limit) optimal for a given cost function. Unfortunately, these strategies
+cannot be exported easily since they are computed as a very long list. In
+this paper, we demonstrate methods to learn compact representations of
+the strategies in the form of decision trees. These decision trees are much
+smaller, more understandable, and can easily be exported as code that
+can be loaded into embedded systems. Despite the size compression and
+actual dierences to the original strategy, we provide guarantees on both
+safety and optimality of the decision-tree strategy. On the top, we show
+how to obtain yet smaller representations, which are still guaranteed safe,
+but achieve a desired trade-o between size and optimality.
+1 Introduction
+Cyber-physical systems often are safety-critical and hence strong guarantees
+on their safety are paramount. Furthermore, resource eciency and the quality of
+the delivered service are strong requirements; the behaviour needs to be optimized
+with respect to these objectives, while of course staying within the bounds of what
+is still safe. In order to achieve this, controllers of such systems can be either
+implemented manually or automatically synthesized. In the former case, due to
+the complexity of the system, coming up with a controller that is safe is dicult,
+even more so with the additional optimization requirement. In the latter case,
+the synthesis may succeed with signicantly less eort, though the requirement
+on both safety and optimality is still a challenge for current synthesis methods.
+However, due to the size of the systems, the produced controllers may be very
+complex, hard to understand, implement, modify, or even just output. Indeed, even
+for moderately sized systems, we can easily end up with gigabytes-long descriptions
+of their controllers (in the algorithmic context called strategies).
+In this paper, we show how to provide a more compact representation, which
+can yield acceptably short and simple code for resource-limited embedded devices,
+and consequently can be more easily understood, maintained, modied, debugged,
+and the requirements are better traceable in the nal controller. To this end, as
+the formalism for the compact representation we choose decision trees [42]. This
+representation is typically several orders of magnitude smaller than the classical
+explicit description and also is known for its interpretability and understandability
+[42, 48, 8]. The resulting encoded strategy may dier from the original one, butarXiv:1906.10640v1  [eess.SY]  25 Jun 2019
+
+--- Page 2 ---
+DistanceVelocityEgo
+AccelerationEgoVelocityFront
+AccelerationFront
+Fig. 1: The two cars, EgoandFront . We control Egoand the environment controls Front .
+Both cars have an acceleration and a velocity. In addition, we know the distance between
+the cars.
+despite that and despite being smaller, it is still guaranteed to be safe and as
+nearly-optimal as the original one. Moreover, we can trade o additional decrease
+in size for decrease in performance (getting farther from optimum) to a desired
+degree, while maintaining safety.
+Example 1. As a running example and one of the case studies, we use the following
+example introduced in [36] and expanded with stronger safety guarantees in [35].
+We consider two cars Egoand Front , depicted in Figure 1. We control Ego,
+whereas Front is controlled by the environment. Egois driving behind Front , and
+both cars have a discrete input (the acceleration) and a continuous state (the
+velocity). The goal of the adaptive cruise control in Egois, rst, to stay safe (by
+keeping the distance between the cars greater than a given safe distance), and
+second, to drive as close to Front as possible, i.e. to optimize the aggregated
+distance between the cars.
+We use Uppaal Tiga [1] to get a safe strategy for Egoas in [35], and then
+Uppaal Stratego [18] to learn a (near-)optimal strategy for a desired cost
+function, given the constraints from the safe strategy. The resulting strategy is
+output as a list with almost 6 million congurations. Using our new methods, we
+obtain a decision tree representing the strategy, that has only about 2713 nodes.
+Additionally, we can trade performance to reduce the size even further, e.g. by
+increasing the aggregated distance reasonably we can reduce the size to 1247 nodes.
+Our contribution:
+{We design and implement a framework Stratego+to transform safe and
+(near-)optimal strategies into their decision-tree representation, preserving
+safety and the same level of optimality, while being much smaller.
+{We provide several transformations and ways to yet further decrease the size
+while preserving safety, but relaxing the optimality to a desired extent.
+{We test our methods on three case studies, where we show size reductions of
+up to three orders of magnitude, and quantify the additional size-performance
+trade-o.
+Our techniques can be used to represent (nite-memory non-stochastic) strate-
+gies for arbitrary systems exhibiting non-determinism (e.g. Markov decision pro-
+cesses, timed/concurrent/stochastic games). This paper demonstrates the technique
+on hybrid Markov decision processes, as that is the formalism used in Uppaal
+Stratego .
+
+--- Page 3 ---
+Related Work: The problem of computing strategies for hybrid systems has been ex-
+tensively studied in the past years. Most approaches rely on abstraction techniques:
+the continuous and innite state space of the system is represented with a nite
+number of symbols, e.g.discrete points [25, 51], sets of states [15], etc. However, it
+is still hard to deal with uncontrollable components, even though some approaches
+exist such as robust control [27], or contract-based design [52], but they usually
+consider the uncontrollable component as a bounded perturbation and do not
+tackle stochastic behaviour. The tool PESSOA [49, 39] can synthesize controllers
+for cyber-physical systems represented by a set of smooth dierential equations
+with a specication in a fragment of Linear Temporal Logic (LTL). Abstraction
+techniques are used in [28] for synthesizing strategies for a class of hybrid systems
+that involve random phenomena together with discrete and continuous behaviours.
+Discrete, stochastic dynamical systems are considered in [55], where the synthesis
+of strategies with respect to LTL objectives is made possible with an abstraction-
+renement method. In [23] a number of benchmarks for hybrid system verication
+has been proposed, including a room heating benchmark. In [16] Uppaal SMC
+was applied to the performance evaluation of several strategies proposed in the
+benchmark. However, there was no focus on safety in this approach. In our work,
+the safety strategy synthesis relies on a discretization of the continuous variables,
+leading to a decidable problem that can be handled by Uppaal Tiga , but we
+furthermore provide safety guarantees for the original system with the use of a
+Timed Game abstraction based on a guaranteed Euler scheme [37].
+In articial intelligence, compact (factored) representations of Markov decision
+processes (MDPs) have been developed using dynamic Bayesian networks [6, 32],
+probabilistic STRIPS [34], algebraic decision diagrams [31], and also decision
+trees [6]. For a detailed survey of compact representations see [4]. Formalisms used
+to represent MDPs can, in principle, be used to represent strategies as well. In
+particular, variants of decision trees are probably the most used [6, 13, 33]. Decision
+trees have been also used in connection with real-time dynamic programming and
+reinforcement learning [5, 45].
+In the context of verication, MDPs are often represented using variants of
+(MT)BDDs [20, 29, 40], and strategies by BDDs [56]. Learning a compact decision-
+tree representation of a strategy has been investigated in [38] for the case of body
+sensor networks, in [8] for nite (discrete) MDPs, and in [9] for nite games, but
+only with Boolean variables. Moreover, these decision trees can only predict a
+single action for a state conguration whereas in this work, we allow the trees
+to predict more than one action for a single conguration. In control theory, [57]
+proves that the problem of computing size-optimal determinisiation of controllers is
+NP-complete and hence discuss various heuristic-based determinisation algorithms.
+None of these works consider the optimization aspect, which being a soft constraint
+enables the trade-os.
+Permissive strategies have been studied in e.g. [2, 7, 21].
+
+--- Page 4 ---
+2 Preliminaries
+2.1 Hybrid Markov Decision Processes
+We describe the mathematical modelling framework. The correspondence to
+theUppaal models is straightforward.
+Denition 1 (HMDP). Ahybrid Markov decision process (HMDP)Mis a
+tuple (C;U;X;F; )where:
+1. the controller Cis a nite set of (controllable) modes C=fc1;:::;ckg,
+2.the uncontrollable environment Uis a nite set of (uncontrollable) modes
+U=fu1;:::;ulg,
+3.X= (x1;:::;xn)is a nite tuple of continuous (real-valued) variables,
+4.for eachc2Candu2U,Fc;u:R>0RX!RXis the ow-function that
+describes the evolution of the continuous variables over time in the combined
+mode (c;u), and
+5.is a family of probability functions :U![0;1], where= (c;u;x)is
+a global conguration. More precisely, (u0)is the probability that uin the
+global conguration = (c;u;x)will change to the uncontrollable mode u0.
+In the following, we denote by Cthe set of global congurations CURXof the
+HMDPM. The above notion of HMDP actually describes an innite-state Markov
+Decision Process [44], where choices of mode for the controller is made periodically
+and choice of mode for the uncontrollable environment is made probabilistically
+according to . Note that abstracting to the support ^=fuj(u)>0g,
+turnsMinto a (traditional) hybrid two-player game. The inclusion of allows
+for a probabilistic renement of the uncontrolled environment in this game. Such
+a renement is irrelevant for the purposes of guaranteeing safety; however, it
+will be useful for optimizing the cost of operating the system. Indeed, rather
+than optimizing only the worst-case performance, we wish to optimize the overall
+expected behaviour.
+Strategies A { memoryless and possibly non-deterministic { strategy for
+the controller Cis a function :C!2C, i.e. given the current conguration
+= (c;u;x), the expression () returns the set of allowed actions in that
+conguration; in our setting, the actions are the controllable modes to be used
+for the duration of the next period. Non-deterministic strategies are also called
+permissive since they permit many actions instead of prescribing one.
+The evolution of system over time is dened as follows. Let = (c;u;x) and
+0= (c0;u0;x0). We write !0in casec0=c;u0=uandx0=F(c;u)(;x).
+Arunis an interleaved sequence 2C(RCCC)of congurations
+and relative time-delays of some given period P:
+=o::P::1::1::1::P::2::2::2::P::
+Thenis arun according to the strategy if after each period Pthe following
+sequence of discrete (instantaneous) changes are made:
+
+--- Page 5 ---
+1.the value of the continuous variables are updated according to the ow of the
+current mode, i.e. i 1= (ci 1;ui 1;xi 1)P!(ci 1;ui 1;xi) =:i;
+2.the environment changes to any possible new mode, i.e. i= (ci 1;ui;xi)
+wherei(ui)>0;
+3.the controller changes mode according to the strategy , i.e.i= (ci;ui;xi)
+withci2(i).
+Safety A strategyis said to be safewith respect to a set of conguration SC,
+if for any run according to all congurations encountered are within S, i.e.
+i;i;i2Sfor alliand also0
+i2Swheneveri!0
+iwithP. Note that the
+notion of safety does not depend on the actual , only on its supports. Recall that
+almost-sure safety, i.e. with probability 1, coincides with sure safety.
+We use a guaranteed set-based Euler method introduced in [35] to ensure safety
+of a strategy not only at the congurations where we make decisions, but also in
+the continuum in between them. We refer the reader to Appendix A.2 for a brief
+reminder of this method.
+Optimality Under a given deterministic (i.e. permitting one action in each
+conguration) strategy the gameMbecomes a completely stochastic process
+M, inducing a probability measure on sets of runs. In case isnon-deterministic
+orpermissive , the non-determinism in Mis resolved uniformly at random. On
+such a process, we can evaluate a given optimization function. Let H2Nbe a
+given time-horizon, and Da random variable on runs, then EM;
+;H(D)2R0is
+the expected value of Don the space of runs of Mof length3Hstarting in
+the conguration . As an example of D, consider the integrated deviation of a
+continuous variable, e.g. distance between Egoand Front , with respect to a given
+target value.
+Consequently, given a (memoryless non-deterministic) safety strategy safe
+with respect to a given safety set S, we want to nd a deterministic sub-strategy4
+optthat optimizes (minimizes or maximizes) EM;
+safe;H(D).
+2.2 Decision Trees
+From the perspective of machine learning, decision trees (DT) [42] are a
+classication tool assigning classes to data points. A data point is a d-dimensional
+vector v= (v1;v2;:::;vd) of features with each vidrawing its value from some
+setDi. IfDiis an ordered set, then the feature corresponding to it is called
+ordered ornumerical (e.g. velocity2R) and otherwise, it is called categorical
+(e.g. color2 fred;green;blueg). A (multi-class) DT can represent a function
+f:Qd
+i=1Di!AwhereAis a nite set of classes.
+A (single-label) DT over the domain D=Qd
+i=1Diwith labels Ais a tuple
+T= (T;; ), whereTis a nite binary tree, assigns to every inner node
+3Note that there is a bijection between length of the run and time, as the time between
+each step,P, is constant.
+4i.e. a strategy that for every conguration returns a (non-strict) subset of the actions
+allowed by the safe strategy
+
+--- Page 6 ---
+predicates of the form xicwhere 2f;=g,c2Di, andassigns to every
+leaf node a list of natural numbers [ m1;m2;:::;mjAj]. For every v2D, there
+exists a decision path from the root node to some leaf `v. We say that vsatises
+a predicate (t) if(t) evaluates to true when its variables are evaluated as given
+byv. Given vand an inner node twith a predicate (t), the decision path selects
+either the leftorright child oftbased on whether vsatises(t) or not. For v
+from the training set, we say that the leaf node `vcontains v. Thenmaof a leaf
+is the number of points contained in the leaf and classied ain the training set.
+Further, the classes assigned by a DT to a data point v(from or outside of the
+training set) are given by arg max(`v) =fij8i;jjAj: (`v)i(`v)jg, i.e.
+the most frequent classes in the respective leaf.
+Decision trees may also predict sets of classes instead of a single class. Such
+a generalization (representing functions of the typeQd
+i=1Di!2A) is called a
+multi-label decision tree. In these trees, assigns to every leaf node a list of
+tuples [(n1;y1), (n2;y2),:::, (njAj;yjAj)] wherena;ya2Nare the number of data
+points in the leaf notlabelled by class aand labelled by class a, respectively. The
+(multi-label) classication of a data point is then typically given by the majority
+rule, i.e. it is classied as aifna<ya.
+A DT may be constructed using decision-tree learning algorithms such as ID3
+[46], C4.5 [47] or CART [10]. These algorithms take as input a training set, i.e. a
+set of vectors whose classes are already known, and output a DT classier. The
+tree constructions start with a single root node containing all the data points of
+the training set. The learning algorithms explore all possible predicates p=xic,
+which split the data points of this node into two sets, XpandX:p. The predicate
+that minimizes the sum of entropies5of the two sets is selected. These sets are
+added as child nodes to the node being split and the whole process is repeated,
+splitting each node further and further until the entropy of the node becomes 0,
+i.e. all data points belong to the same class. Such nodes are called pure nodes.
+This construction is extended to the multi-label setting by some of the algorithms.
+A multi-label node is called pure if there is at least one class that is endorsed by
+all data points in that node, i.e. 9a2A:na= 0.
+If the tree is grown until all leaves have zero entropy, then the classier
+memorizes the training data exactly, leading to overtting [42]. This might not be
+desirable if the classier is trained on noisy data or if it needs to predict classes of
+unknown data. The learning algorithms hence provide some parameters, known
+ashyperparameters , which may be tuned to generalize the classier and improve
+its accuracy. Overtting is not an issue in our setup where we want to learn the
+strategy function (almost) precisely. However, we can use the hyperparameters
+to produce even smaller representations of the function, at the \expense" of not
+being entirely precise any more. One of the hyperparameters of interest in this
+paper is the minimum split size k. It can be used to stop splitting nodes once the
+number of data points in them become smaller than k. By setting larger k, the
+size of the tree decreases, usually at the expense of increasing the entropy of the
+5Entropy of a set XisH(X) =P
+a2Apalog2(pa) + (1 pa)log2(1 pa), wherepais
+the fraction of samples in Xbelonging to class a. See [14] for more details.
+
+--- Page 7 ---
+leaves. There also exist several pruning techniques [41, 22], which remove either
+leaves or entire subtrees after the construction of the DT.
+2.3 Standard Uppaal Stratego Workow
+The process of obtaining an optimized safe strategy optusing Uppaal Strat-
+ego is depicted as the grey boxes in Fig. 2. First, the HMDP Mis abstracted into
+a 2-player (non-stochastic) timed game TG, ignoring any stochasticity of the be-
+haviour. Next, Uppaal Tiga is used to synthesize a safe strategy safe:C!2C
+forTGand the safety specication ', which is specied using a simplied version
+of timed computation tree logic (TCTL)[1]. After that, the safe strategy is applied
+onMto obtainMsafe. It is now possible to perform reinforcement learning
+onMsafein order to learn a sub-strategy optthat will optimize a given quan-
+titative cost, given as any run-based expression containing e.g. discrete variables,
+locations, clocks, hybrid variables. For more details, see [17, 19].
+3 Stratego+
+In this section, we discuss the new Uppaal Stratego+framework following
+with each of its components are elucidated.
+3.1 New Workow
+SOS
+MTG safeMsafe opt Topt
+Tk;p
+safeMTk;p
+safe k;p
+opt Tk;p
+optUppaal
+Tiga
+Stratego
+learningStratego
+learning
+DT learning
+exactDT learning k,pDT learning
+exact
+Fig. 2: Uppaal Stratego+workow. The dark orange nodes are the additions to the
+original workow, which now involve DT learning, the yellow-shaded area delimits the
+desired safe, optimal, and small strategy representations.
+Uppaal Stratego+extends the standard workow in two ways: Firstly, in
+the top row, we generate the DT Toptthat exactly represents opt, yielding a small
+representation of the strategy.
+The DT learning algorithm can make use of two (hyper-)parameters kandp
+which may be used to prune the DT; this approach is described in Section 3.4.
+While pruning reduces the size of the DT, the resultant tree no longer represents the
+strategy exactly. Hence it is not possible to prune a DT representing deterministic
+
+--- Page 8 ---
+strategies, like in the case of the optdescribed in the rst row of the workow, as
+safety would be violated.
+However, for our second extension we apply the DT learning algorithm to the
+non-deterministic, permissive strategy safe, resulting inTk;p
+safe. This DT is less
+permissive, thereby smaller, since the pruning disallows certain actions; yet it
+still represents a safe strategy (details in Section 3.4). Next, as in the standard
+workow, this less permissive safe strategy is applied to the game and Stratego
+is used to get a near-optimal strategy k;p
+optfor the modied game M Tk;p
+safe.
+In the end, we again construct a DT exactly representing the optimal strategy,
+namelyTk;p
+opt. Note that in the game restricted to Tk;p
+safefewer actions are allowed
+than when it is restricted only to safe, and hence the resulting strategy could
+perform worse. For example, let safeallow decelerating or remaining neutral for
+some conguration, while Tk;p
+safepruned the possibility to remain neutral and only
+allows decelerating. Thus, optremains neutral, whereas k;p
+opthas to decelerate
+and thereby increase the distance that we try to minimize.
+In both cases, the resulting DT is safe by construction since we allow the
+DT to predict only pure actions (actions allowed by all congurations in a leaf,
+see next section for the formal denition). We convert these trees into a nested
+if-statements code, which can easily be loaded onto embedded systems.
+3.2 Representing strategies using DT
+A DT with domain Cand labelsCcan learn a (non-deterministic) strategy
+:C!2C. The strategy is provided as a list of tuples of the form ( ;fa1;:::;akg),
+whereis a global conguration and fa1;:::;akgis the set of actions permitted by
+. The training data points are given by the integer congurations 2C(safety
+for non-integer points is guaranteed by the Euler method; see Section 2.1) and
+the set of classes for each is given by (). Consequently, a multi-label decision
+tree learning algorithm as described in Section 2.2 can be run on this dataset to
+obtain a treeTrepresenting the strategy .
+Each node of the tree contains the set of congurations that satisfy the decision
+path traced from the root of the tree to the node. The leaf attribute gives, for
+each action a, the number of congurations in the leaf where the strategy disallows
+and allows a, respectively. For example, consider a node with 10 congurations
+with= [(0;10);(2;8);(9;1)]. This means that the rst action is allowed by all 10
+congurations in the node, the second action is disallowed by 2 congurations and
+allowed by 8, and the third action is disallowed by 9 congurations and allowed
+only by 1.
+Since we want the DT to exactly represent the strategy, we need to run
+the learning algorithm until the entropy of all the leaves becomes 0, i.e. all
+congurations of the leaf agree on every action. More formally, given a leaf `with
+ncongurations we require (`) = (0;n) or(`) = (n;0) for every action. We call
+an action that all congurations allow a pure action .
+The table on the left of Fig. 3 shows a toy strategy. Based on values of distance d
+and velocity v, it permits a subset of the action set fdec;neu;accg. A corresponding
+DT encoding is displayed on the right of Fig. 3.
+
+--- Page 9 ---
+distance velocity actions
+2 51fdecg
+3 20fdecg
+5 30fdecg
+7 1fdec, neug
+20 46fdec, neug
+25 25fdec, neu, accg
+45 70fdec, neug[(0, 3),
+(3, 0),
+(3, 0)]distance6
+[(0, 2),
+(0, 2),
+(2, 0)]distance22.5
+[(0, 1),
+(0, 1),
+(0, 1)]distance35
+[(0, 1),
+(0, 1),
+(1, 0)]False True
+Fig. 3: A sample dataset (left); and a (multi-label) decision tree generated from the
+dataset (right). The leaf nodes contain the list of tuples assigned by , the inner nodes
+contain the predicates assigned by 
+3.3 Interpreting DT as strategy
+To extract a strategy from a DT, we proceed as follows: Given a conguration C,
+we pick the leaf `Cassociated with it by evaluating the predicates and following a
+path through the DT. Then we compute (`C) = [(n1;y1);(n2;y2);:::; (njAj;yjAj)]
+wherena;ya2Nare the number of data points in the leaf notlabelled by class
+aand labelled by class a, respectively. The classes assigned to `Care exactly its
+pure actions, i.e. faj(0;ya)2(`C)g.
+Note that allowing only pure actions is necessary in order to preserve safety. We
+do not follow the common (machine learning) way of assigning classes to the nodes
+based on the majority criterion, i.e. the majority of the data points in that node
+allow the action; because then the decision tree might prescribe unsafe actions
+just because they were allowed in most of the congurations in the node. This is
+also the reason why the DT-learning algorithm described in the previous section
+needs to run until the entropy of all leaves becomes 0.
+3.4 Learning smaller, yet safe DT
+We now describe how to learn a DT for a safe strategy that is smaller than the
+exact representation, but still preserves safety. A tree obtained using o-the-shelf
+DT learning algorithms is unlikely to exactly represent the original strategy.6
+We use two dierent methods to achieve the goal: rstly, we use the standard
+hyperparameter named minimum split size , and secondly, we introduce a new
+post-processing algorithm called safe pruning . Both methods rely on the given
+strategy being non-deterministic/permissive, i.e. permitting several actions in a
+leaf.
+(1) Using minimum split size The splitting process can be stopped before the
+entropy becomes 0. We do this by introducing a parameter k, which determines
+6This is because DT learning algorithms are usually congured to avoid overtting on
+the dataset
+
+--- Page 10 ---
+A
+(0, 7): dec
+(7, 0): neu
+(7, 0): accx5
+B
+(0, 7): dec
+(0, 7): neu
+(3, 4): accFalse TrueC
+(0, 14): dec
+(7, 7): neu
+(10, 4): acc
+Fig. 4: Illustration of safe pruning applied to a node. The pure action of leaf Ais just
+dec, forBit is both decand neu. Safe pruning replaces the nodes with C, where only
+decis a pure action.
+the minimum number of data points required in a node to consider splitting it
+further. During the construction of the tree, a node is usually split if its entropy is
+greater than 0. When kis set to an integer greater than 2, a node is split only if
+both the entropy is greater than 0 andthe number of data points (congurations)
+in the node is at least k. The strategy given by such a tree is safe as long as it
+predicts only pure actions, i.e. awithna= 0. In order to obtain a fully expanded
+tree,kmay be set to 2 (in nodes with <2 congurations, there is nothing to split).
+For largerk, the number of pure actions in the leaves decreases. Ultimately, for
+too largek, we would obtain a tree that has some leaf nodes not containing any
+pure actions. In such a case, the strategy represented by the DT would not be
+well-dened, as for some data point no action could be picked. However, this can
+be detected immediately during the construction.
+Algorithm 1 Safe Pruning
+1:procedure Safe-Pruning (DTT= (T;; ),p2N)
+2: fori 1::pdo
+3:N fn2TjLEFT (n) and RIGHT (n) are leavesg
+4: .Candidate nodes for pruning
+5: foreachn2Ndo
+6: c` LEFT (n),cr RIGHT (n)
+7: if(c`)\(cr)6=;then
+8: .Prune and keep the common classication
+9: Convert nto a leaf node
+10: (n) (c`)\(cr)
+11: Remove c`andcrfromT
+(2) Using safe pruning Another way of obtaining a smaller tree is by using
+a procedure to prune the leaves of the produced tree by merging them while
+preserving safety. For example, consider the decision node on the left of Figure
+4 with two children that are leaves AandB. For A, only the action decis pure
+(i.e. allowed by all congurations in the leaf), while for Bboth decand neuare
+pure. Since the sets of pure actions of the two leaf nodes intersect, we can safely
+
+--- Page 11 ---
+remove both AandBand replace the decision node with a new leaf node Cthat
+contains only those actions that are in the intersection, in this case only dec.
+Algorithm 1 describes the pruning process formally. If returns only safe
+actions, then the tree obtained after pruning is guaranteed to represent a safe
+strategy, although a less-permissive one. The algorithm may be run for multiple
+(possibly 0) rounds, denoted by p, at most until we get a \fully pruned" tree
+representing a safe but deterministic strategy. We denote by Tk;p
+safethe decision tree
+forsafeconstructed by only splitting nodes with kor more data points, followed
+byprounds of safe pruning. Clearly, the more permissive the original strategy is,
+the more we can prune using safe pruning.
+When generating Tk;p
+safe, we use a modied implementation of the CART decision
+tree learning algorithm implemented in the DecisionTreeClassifier class of
+the Python-based machine learning library Scikit-learn [43]. Since we construct
+the DT from a safe strategy and as long as we let the DT-encoded strategy have
+at least one pure action in each leaf, the strategy will remain safe. With this in
+mind, we can freely change the parameters of the DecisionTreeClassifier class.
+However, in our experiments, we picked only the minimum split size kfrom the
+Scikit-parameters as a demonstrative example, as well as our newly introduced p.
+The methods described in this paper would work with other parameters as well.
+3.5 Comparing DTs to Binary Decision Diagrams
+A Binary Decision Diagram (BDD, e.g. [11]) is a popular data structure that
+can be used to represent boolean functions f:Bn!B. It may also be used to
+represent strategies by encoding congurations and actions into a suitable form
+via bit-blasting, i.e. converting them into propositional formulae. For example, the
+conguration-action pair (( x= 6;y= 2);a0) can be represented as ( x2^x1^:x0^
+:y2^y1^:y0^a0), if it is known that the maximum value that xandycan take
+is less than 8 (3 bits). A strategy can be seen as a disjunctionW
+;a2()(;a) of
+all conguration-action pairs ( ;a) permitted by the strategy . Such an encoding
+allows for an easy conversion into a BDD. Though theoretically straightforward,
+there are some practical concerns involved when constructing the BDD. Mainly,
+the ordering of the variables in the BDD can drastically change its size. While
+computing the optimal ordering so as to have the smallest BDD is an NP-complete
+problem [3], various heuristics exist that can be used to get better orderings. We
+use the CUDD package [54] to construct the BDD, along with Rudell's Sifting
+reordering technique [50].
+The main disadvantage of DTs compared to BDDs is that isomorphic subgraphs
+are not merged (DTs are trees, BDDs are directed acyclic graphs); and even if
+merging was allowed, it would not save much. Indeed, since DT may choose
+dierent predicates on the same level (which is an advantage in contrast to BDD
+with a xed variable ordering) isomorphic subgraphs occur rarely. There are further
+advantages of DT, related to learning, that make them more compact than BDD in
+some contexts, e.g. [8, 9]. Firstly, they can be learnt fast, using the entropy-based
+heuristic, compared to the graph processing and variable re-ordering of BDDs.
+Secondly, a DT can ignore \don't-care inputs"; these inputs are encodings of things
+
+--- Page 12 ---
+that are not valid conguration-action pairs, in the sense that either the action is
+not available in the conguration or that it is not a valid conguration at all. In
+contrast, a BDD has to explicitly either allow or disallow these inputs. Thirdly, DT
+learning can also be used to represent the strategy imprecisely using a smaller DT,
+which can be model checked for safety. For the modications described in Section
+3.4, we do not even need to re-verify safety, because this property is preserved
+by both our size reduction techniques. Fourthly, DT can use much wider class of
+predicates, compared to single bit tests for a bit representation in a BDD. This
+nal point is also a reason (together with the smaller size) why DT is a more
+understandable representation than a BDD [8, 9]. We also illustrate this point on
+a case-study in Remark 1.
+4 Case Studies and Experimental Results
+In this section, we evaluate the techniques discussed above on three dierent
+case studies: (1) the adaptive cruise control model introduced in the motivation;
+(2) a two tank case study introduced in [30]; and (3) the heating system of a two
+room apartment adapted from [26].
+Table 1 compares representations for our case studies obtained in dierent
+ways. We discuss results for the three case studies, denoted cruise ,twotanks ,
+and tworooms respectively. Additionally, the rst line displays cruise without
+the integrated Euler method, to illustrate the eect of Euler method on the nal
+size. All the representations are safe and as optimal as optproduced by Uppaal
+Stratego .
+For each of the models we display the following information: the third column
+lists the number of items in the explicit list representation of optoutput by
+Uppaal Stratego . The fourth column lists the number of those items that are
+actually relevant, i.e. sets of congurations where an actual decision is to be made.
+The fth and sixth column list the sizes of BDD and DT representations learnt
+fromopt, i.e. the upper path in Fig. 2. For BDDs, since the initial ordering plays
+a role in the size of the nal result despite applying the re-ordering heuristics, we
+ran 40 experiments for each model with random initial variable orderings. For
+creating BDDs, we used the free Python library tulip-control/dd as an interface to
+CUDD.
+We conclude that both BDDs and DTs reduce the size by several order of
+magnitude. DTs are slightly better in all cases, and 2 orders of magnitude smaller
+in the tworooms model. Note that reliably achieving good results when construct-
+ing the BDD relies on repeating the construction several times; since already
+constructing a single BDD and applying the heuristics [50] already took roughly 10
+times longer than DT learning, DT can be obtained one or two orders of magnitude
+faster than BDDs, depending on how many times one tries constructing the BDD.
+Further, for the two tanks, only DT realizes that the strategy is actually trivial.
+The main reason for BDD not to spot this is the point of ignoring \don't-care"
+inputs addressed in Section 3.5.
+Table 2 shows how the size of the DT can be further reduced by the bottom
+path of Fig. 2, when the \exact representation" criterion is relaxed. It displays the
+
+--- Page 13 ---
+Table 1: Sizes of the dierent representations: explicit list as output by Uppaal Stratego ,
+the relevant part of the list, BDD displaying [minimum/median/maximum] over the 40
+trials, and DT according to the upper path in Fig. 2.
+#Variables Stratego list List BDD[min/med/max] DT Toptsize
+cruise non-Euler 5 1,790,034 308,216 [3,718/5,066/5,890] 2,899
+cruise 7 5,931,154 304,752 [3,470/4,728/4,742] 2,713
+twotanks 9 23,182 23,182 [65/69/91] 1
+tworooms 11 1,924,708 509,715 [16,370/20,214/25,909] 487
+Table 2: Tables displaying the number jTk;p
+optjof nodes ofTk;p
+opt(left) and the expected
+performance EM;
+;H(D) (right) for various kandp, i.e. using the bottom path of Fig. 2,
+for the cruise model. Higher performance corresponds to a lower number.
+Min split
+size (k)Rounds of pruning (p)
+0 1 2
+2 2,713 1,725 1,267
+10 2,705 1,733 1,249
+20 2,667 1,733 1,131
+30 2,657 1,695 993
+40 2,627 1,669 1,015
+50 2,557 1,695 1,003
+60 2,635 1,489 963
+70 2,613 1,441 955
+80 2,519 1,537 915
+90 2,455 1,323 923
+100 1,929 1,023 877
+Min split
+size (k)Rounds of pruning (p)
+0 1 2
+2 2,627 3,618 4,240
+10 2,696 3,596 4,210
+20 2,778 3,625 14,039
+30 2,778 3,589 14,108
+40 2,778 3,600 14,096
+50 2,825 3,614 14,037
+60 2,905 3,673 14,074
+70 2,898 3,714 14,095
+80 2,907 3,717 14,092
+90 3,006 3,741 14,077
+100 3,030 14,061 14,292
+performance, i.e. the aggregated distance to Front car, and size ofTk;p
+optfor dierent
+combinations of the pruning parameters kandp. Recall that using no pruning
+(k= 2;p= 0) yields the same DT as the upper path of Fig. 2, i.e. T2;0
+opt=Topt.
+We observed that for cruise , increasing the values of kandpbuys a reduction in
+size of the DT against a reduction in performance. For instance, using k= 80;p= 0,
+one can decrease the size to 2485 (by 8.4%) while deteriorating the performance to
+2907 (by 10%). Allowing for half the performance (double the aggregated distance),
+one can make the DT even smaller than half of its original size, e.g. by setting
+k= 10;p= 2. The shading and colouring of the table display dierent \trade-
+o zones", each with comparable savings/losses. The same conclusions hold for
+cruise non-Euler , see the similar Table 4 in Appendix A.3. For tworooms (Table 3),
+the best performance is observed not with k= 2;p= 0, but with k= 50;p= 0. We
+conjecture that the less permissive safe strategy assists Stratego in performing
+the optimisation faster by reducing the size of the search space. As a result, here
+we get a both smaller and more performant strategy. In the case of twotanks ,
+alreadyTopthas only a single node, hence no further reductions are possible.
+
+--- Page 14 ---
+Table 3: Tables displaying the number jTk;p
+optjof nodes ofTk;p
+opt(left) and the expected
+performance EM;
+;H(D) (right) for various kandp, i.e. using the bottom path of Fig. 2,
+for the tworooms model. Higher performance corresponds to a lower number.
+Min split
+size (k)Rounds of pruning (p)
+0 1 2 3
+2 543 403 283 191
+10 525 387 271 185
+50 497 365 251 171
+125 445 317 219 151
+250 387 265 179 123
+500 323 211 139 97
+750 277 175 111 77
+Min split
+size (k)Rounds of pruning (p)
+0 1 2 3
+2 2,096 2,353 2,821 3,156
+10 2,156 2,460 3,285 3,283
+50 1,989 2,778 3,287 3,281
+125 2,374 2,053 3,280 3,284
+250 2,283 2,071 3,288 3,282
+500 2,563 2,155 3,280 3,282
+750 2,333 2,210 3,279 3,286
+Remark 1. Interestingly, domain knowledge can reduce the DT size further and
+make the representation more understandable. Indeed, for the cruise model we
+were able to construct a DT with only 25 nodes, designing our predicates based
+on the car kinematics. For example, the expected time until the front car reaches
+minimal velocity if it only decelerates from now on (1) plays an important role
+in the decision making and (2) can be easily expressed by solving the standard
+kinematics equation v(t) =vcurrent adect. The resulting DT (illustrated in
+Appendix A.4) is thus very small and easy to interpret, as each of the few nodes
+has a clear kinematic interpretation. The DT thus open the possibility for strategy
+representation to prot from predicate/invariant synthesis.
+5 Conclusion
+We have provided a framework for producing small representations of safe and
+(near-)optimal strategies, without compromising safety. As to (near-)optimality, we
+can choose between two options: (i) not compromising it, or (ii) nding a suitable
+trade-o between compromising it (causing drops of performance) and additional
+size reductions. Compared to the original sizes, we achieve orders-of-magnitude
+reductions, allowing for ecient usage of the strategies in e.g. embedded devices.
+Compared to BDD representation, the size of the DT representation is smaller and
+can be computed faster; additionally trivial solutions are represented by trivial
+DTs. DTs are more readable as argued in [9, 8].
+A detailed examination of the latter point in the hybrid context remains future
+work. Further, candidates for more complex predicates could be automatically
+generated based on given domain knowledge or learnt from the data similarly
+to invariants from program runs [24, 53]. As illustrated in Remark 1, this could
+lead to further reduction in size and improved understandability. Additionally,
+isomorphic/similar subtrees could be merged as in decision diagrams and further
+optimizations for algebraic decision diagrams [57] could be employed. Finally,
+we plan to visualize the DT representation of the strategies directly in Uppaal
+Stratego+for convenience of the users.
+
+--- Page 15 ---
+References
+1.G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G. Larsen, and D. Lime.
+Uppaal-tiga: Time for playing games! In CAV , 2007.
+2.J. Bernet, D. Janin, and I. Walukiewicz. Permissive strategies: from parity games to
+safety games. ITA, 2002.
+3.B. Bollig and I. Wegener. Improving the variable ordering of obdds is np-complete.
+IEEE Transactions on Computers , 1996.
+4.C. Boutilier, T. L. Dean, and S. Hanks. Decision-theoretic planning: Structural
+assumptions and computational leverage. J. Artif. Intell. Res. , 11:1{94, 1999.
+5.C. Boutilier and R. Dearden. Approximating value trees in structured dynamic
+programming. In ICML , 1996.
+6.C. Boutilier, R. Dearden, and M. Goldszmidt. Exploiting structure in policy con-
+struction. In IJCAI , 1995.
+7.P. Bouyer, N. Markey, J. Olschewski, and M. Ummels. Measuring permissiveness in
+parity games: Mean-payo parity games revisited. In ATVA , 2011.
+8.T. Br azdil, K. Chatterjee, M. Chmelik, A. Fellner, and J. Kret nsk y. Counterexample
+explanation by learning small strategies in markov decision processes. In CAV, 2015.
+9.T. Br azdil, K. Chatterjee, J. Kret nsk y, and V. Toman. Strategy representation by
+decision trees in reactive synthesis. In TACAS , 2018.
+10. L. Breiman. Classication and regression trees . Routledge, 2017.
+11.R. E. Bryant. Symbolic manipulation of boolean functions using a graphical repre-
+sentation. In DAC , 1985.
+12.J. C. Butcher and N. Goodwin. Numerical methods for ordinary dierential equations .
+Wiley, 2008.
+13.D. Chapman and L. P. Kaelbling. Input generalization in delayed reinforcement
+learning: An algorithm and performance comparisons. In IJCAI . Morgan Kaufmann,
+1991.
+14.A. Clare and R. D. King. Knowledge discovery in multi-label phenotype data. In
+Principles of Data Mining and Knowledge Discovery , 2001.
+15.A. L. Co ent, J. A. D. Sandretto, A. Chapoutot, and L. Fribourg. An improved
+algorithm for the control synthesis of nonlinear sampled switched systems. Formal
+Methods in System Design , 53(3):363{383, 2018.
+16.A. David, D. Du, K. G. Larsen, M. Mikucionis, and A. Skou. An evaluation
+framework for energy aware buildings using statistical model checking. SCIENCE
+CHINA Information Sciences , 55(12):2694{2707, 2012.
+17.A. David, P. G. Jensen, K. G. Larsen, A. Legay, D. Lime, M. G. Srensen, and J. H.
+Taankvist. On time with minimal expected cost! In ATVA , 2014.
+18.A. David, P. G. Jensen, K. G. Larsen, M. Mikucionis, and J. H. Taankvist. Uppaal
+stratego. In TACAS , 2015.
+19.A. David, P. G. Jensen, K. G. Larsen, M. Miku cionis, and J. H. Taankvist. Uppaal
+stratego. In TACAS , 2015.
+20.L. de Alfaro, M. Z. Kwiatkowska, G. Norman, D. Parker, and R. Segala. Sym-
+bolic model checking of probabilistic processes using mtbdds and the kronecker
+representation. In TACAS , 2000.
+21.K. Dr ager, V. Forejt, M. Z. Kwiatkowska, D. Parker, and M. Ujma. Permissive
+controller synthesis for probabilistic systems. In TACAS 2014 , 2014.
+22.F. Esposito, D. Malerba, and G. Semeraro. Decision tree pruning as a search in the
+state space. In ECML , 1993.
+23.A. Fehnker and F. Ivan ci c. Benchmarks for hybrid systems verication. In HSCC ,
+2004.
+
+--- Page 16 ---
+24.P. Garg, C. L oding, P. Madhusudan, and D. Neider. ICE: A robust framework for
+learning invariants. In CAV , 2014.
+25.A. Girard. Controller synthesis for safety and reachability via approximate bisimula-
+tion. Automatica , 48(5):947{953, 2012.
+26.A. Girard. Low-complexity quantized switching controllers using approximate bisim-
+ulation. Nonlinear Analysis: Hybrid Systems , 10:34{44, 2013.
+27.A. Girard and S. Martin. Synthesis for constrained nonlinear systems using hy-
+bridization and robust controllers on simplices. IEEE Trans. Automat. Contr. ,
+57(4):1046{1051, 2012.
+28.E. M. Hahn, G. Norman, D. Parker, B. Wachter, and L. Zhang. Game-based
+abstraction and controller synthesis for probabilistic hybrid systems. In QEST , 2011.
+29.H. Hermanns, M. Z. Kwiatkowska, G. Norman, D. Parker, and M. Siegle. On the
+use of mtbdds for performability analysis and verication of stochastic systems. J.
+Log. Algebr. Program. , 56(1-2):23{67, 2003.
+30. I. A. Hiskens. Stability of limit cycles in hybrid systems. In HICSS , 2001.
+31.J. Hoey, R. St-aubin, A. Hu, and C. Boutilier. Spudd: Stochastic planning using
+decision diagrams. In UAI, 1999.
+32.M. Kearns and D. Koller. Ecient reinforcement learning in factored MDPs. In
+IJCAI , 1999.
+33.D. Koller and R. Parr. Computing factored value functions for policies in structured
+MDPs. In IJCAI , 1999.
+34.N. Kushmerick, S. Hanks, and D. Weld. An algorithm for probabilistic least-
+commitment planning. In AAAI , 1994.
+35.K. G. Larsen, A. Le Co ent, M. Miku cionis, and J. Taankvist. Guaranteed control
+synthesis for continuous systems in Uppaal Tiga . In CyPhy , 2018.
+36.K. G. Larsen, M. Mikucionis, and J. H. Taankvist. Safe and optimal adaptive cruise
+control. In Correct System Design , 2015.
+37.A. Le Co ent, F. De Vuyst, L. Chamoin, and L. Fribourg. Control synthesis of
+nonlinear sampled switched systems using Euler's method. In SNR, 2017.
+38.S. Liu, A. Panangadan, A. Talukder, and C. S. Raghavendra. Compact representation
+of coordinated sampling policies for body sensor networks. In 2010 IEEE Globecom
+Workshops , 2010.
+39.R. Majumdar, E. Render, and P. Tabuada. Robust discrete synthesis against
+unspecied disturbances. In HSCC , 2011.
+40.A. S. Miner and D. Parker. Symbolic representations and analysis of large probabilistic
+systems. In Validation of Stochastic Systems , Lecture Notes in Computer Science.
+Springer, 2004.
+41.J. Mingers. An empirical comparison of pruning methods for decision tree induction.
+Machine Learning , 4:227{243, 1989.
+42. T. M. Mitchell. Machine Learning . McGraw-Hill, Inc., 1997.
+43.F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, O. Grisel, M. Blon-
+del, P. Prettenhofer, R. Weiss, V. Dubourg, J. VanderPlas, A. Passos, D. Cournapeau,
+M. Brucher, M. Perrot, and E. Duchesnay. Scikit-learn: Machine learning in python.
+Journal of Machine Learning Research , 12:2825{2830, 2011.
+44. M. L. Puterman. Markov Decision Processes . J. Wiley and Sons, 1994.
+45.L. D. Pyeatt. Reinforcement learning with decision trees. In Applied Informatics ,
+pages 26{31, 2003.
+46. J. R. Quinlan. Induction of decision trees. Machine Learning , 1986.
+47. J. R. Quinlan. C4.5: Programs for Machine Learning . 1993.
+48.P. J. Riddle, R. Segal, and O. Etzioni. Representation design and brut-force induction
+in a boeing manufacturing domain. Applied Articial Intelligence , 8, 1994.
+
+--- Page 17 ---
+49.P. Roy, P. Tabuada, and R. Majumdar. Pessoa 2.0: a controller synthesis tool for
+cyber-physical systems. In HSCC , 2011.
+50.R. Rudell. Dynamic variable ordering for ordered binary decision diagrams. In CAD ,
+1993.
+51.M. Rungger and M. Zamani. Scots: A tool for the synthesis of symbolic controllers.
+InHSCC , 2016.
+52.A. Saoud, A. Girard, and L. Fribourg. On the composition of discrete and continuous-
+time assume-guarantee contracts for invariance. In ECC , 2018.
+53.R. Sharma, S. Gupta, B. Hariharan, A. Aiken, and A. V. Nori. Verication as
+learning geometric concepts. In SAS, 2013.
+54. F. Somenzi. Cudd: Cu decision diagram package release 2.4. 2. 2009.
+55.M. Svore nov a, J. K ret nsk y, M. Chmel k, K. Chatterjee, I. Cern a, and C. Belta.
+Temporal logic control for stochastic linear systems using abstraction renement of
+probabilistic games. Nonlinear Analysis: Hybrid Systems , 23:230{253, 2017.
+56.R. Wimmer, B. Braitling, B. Becker, E. M. Hahn, P. Crouzen, H. Hermanns,
+A. Dhama, and O. Theel. Symblicit calculation of long-run averages for concurrent
+probabilistic systems. In QEST , 2010.
+57.I. S. Zapreev, C. Verdier, and M. Mazo. Optimal symbolic controllers determinization
+for BDD storage. In ADHS , 2018.
+A Appendix
+A.1 Description of case studies
+Two rooms model. This case study is based on a simple model of a two-room
+apartment, heated by one heater in each room. In this example, the objective is
+to control the temperature of both rooms by switching on or o the heaters in the
+rooms. There is heat exchange between the two rooms and with the environment
+(external temperature, which varies randomly within a set).
+Cruise Control. Two cars EgoandFront are driving on a road as shown in Figure 1.
+We are capable of controlling Egobut not Front . Both cars can drive a maximum
+of 20 m/s forward and a maximum of 10 m/s backwards. The cars have three
+dierent possible accelerations: -2 m/s2, 0 m/s2and 2 m/s2, between which they
+can switch instantly. For the cars to be safe, there should be a distance of at least
+5 m between them. Any distance less than 5 m between the cars is considered
+unsafe. Ego's sensors can detect the position of Front only within 200 meters. If
+the distance between the cars is more than 200 meters, then Front is considered
+to be far away .
+In this example, the aim is to synthesize a strategy for controllable car Ego
+such that it always stays far enough from uncontrollable car Front .
+For the adaptive cruise control model, we dierentiate between the model that
+is only safe at time points where an action is possible, called cruise non-Euler ; and
+the model improved with the Euler method to be safe at all time points between
+two actions, called just cruise .
+Two Tanks. The two-tank system, illustrated in Figure 5, is a linear example
+taken from [30]. The system consists of two tanks and two valves. The rst valve
+(Q1in Fig. 5) adds to the inow of tank 1 and the second valve ( Q2) is a drain
+valve for tank 2. There is a constant outow from tank 2 caused by a pump ( QB),
+
+--- Page 18 ---
+Fig. 5: The two tank example.
+as well as a constant inow into tank 1 ( Q0). There is also a ow from tank 1 to
+tank 2 (QA) which depends on the water level in tank 1. The system is linearised
+at a desired operating point. The objective is to keep the water level in both tanks
+within limits using a discrete open/close switching strategy for the valves.
+A.2 Guaranteed over-approximation using the Euler Method
+We briey recall the technique used in [35] to compute strategies that are safe
+at all time points, not just at multiples of the period P.
+Let us consider an HMDP M= (C;U;X;F; ) where the dynamics of each
+continuous variable xi2Xis subject to a dierential equation of the form
+_xi=fi(c;u;x); (1)
+withc2Candu2U. For every = (c;u;x) and2R, the update !
+(c;u;F (c;u)(;x)) must match the solution of the dierential equation (1), i.e.
+F(c;u)(;x) =x+Z
+0f(c;u;x)dt: (2)
+It is easy to compute the solution of a linear dierential equation [12]. However,
+in the general case, computing the integral on the right-hand side of (2)is
+not possible exactly. Approximate solutions can be obtained with the use of
+numerical schemes, such as Euler or Runge-Kutta schemes, but in order to ensure
+absolute safety of the system, they should be associated with guaranteed error
+bounds. Furthermore, one has to ensure that the system is safe between time
+steps (02Swheneveri!0withP). In order to achieve that, [35]
+proceeds as follows. First, the given HMDP M= (C;U;X;F; ) is extended into
+an HMDPM0= (C;U; (Xmin;Xmax);F0;0) whereXmin= (xmin
+1;:::;xmin
+n) and
+Xmax= (xmax
+1;:::;xmax
+n) will form a lower and an upper bound on the actual
+valuation of Xat all times, and 0is an abstract transition function for the opponent.
+From a given global conguration 0= (c;u;(xmin;xmax)) ofM0,0enables all
+possible transitions that have non zero probability from = (c;u;x) inMfor some
+value of xbetween xminandxmax,i.e.0=fuj(c;u;x)(u)>0;xminxxmaxg.
+
+--- Page 19 ---
+Then the ow function F0
+c;u:R>0R(Xmin;Xmax)!R(Xmin;Xmax)implements
+a guaranteed (set-based) Euler method which ensures the following property:
+whenever
+{(wmin;wmax) =F0
+(c;u)(P;(vmin;vmax)) and
+{w=F(c;u)(t;v) for sometPandvminvvmax
+then also wminwwmax. For further details, we refer the reader to [37, 35].
+From the augmented HMDP M0, we can build a standard timed game [35] TG
+by under-approximating Xminto its oor integer part, and Xmaxto its ceiling
+integer part. Consequently, one can use Uppaal Tiga to synthesize a strategy
+that ensures the safety of the initial HMDP. A simulation showing the bounding
+of the continuous trajectory of Mby its timed-game abstraction TGis given in
+Fig. 6.
+Fig. 6: Simulation of the distance between the cars, the red line is the continuous
+trajectories of the HMDP M, the blue and green lines are the integer trajectory of the
+timed gameTGbounding it within time.
+
+--- Page 20 ---
+A.3 More experimental results
+Table 4 shows the trade-o between size and performance for the cruise non-Euler
+model. Figure 7 shows a simulation run of tworooms .
+Table 4: Tables displaying the number jTk;p
+optjof nodes ofTk;p
+opt(left) and the expected
+performance EM;
+;H(D) (right) for various kandp, i.e. using the bottom path of Fig. 2,
+for the cruise non-Euler model. A lower corresponds to a higher performance.
+Min split
+size (k)Rounds of pruning (p)
+0 1 2
+2 2,977 1,693 1,329
+10 2,981 1,685 1,329
+20 2,911 1,739 1,289
+30 2,919 1,735 1,127
+40 2,847 1,649 1,055
+50 2,839 1,665 1,003
+60 2,579 1,629 961
+70 2,543 1,513 939
+80 2,467 1,463 909
+90 2,427 1,401 845
+100 2,419 1,041 897
+Min split
+size (k)Rounds of pruning (p)
+0 1 2
+2 1,855 2,744 3,592
+10 1,889 2,735 3,597
+20 1,932 2,845 13,448
+30 1,937 2,843 13,490
+40 1,975 2,844 13,494
+50 1,976 2,859 13,450
+60 2,015 2,843 13,637
+70 2,018 2,862 10,145
+80 2,050 2,976 13,685
+90 2,107 3,024 13,716
+100 2,211 11,532 13,876
+Fig. 7: Simulation of the temperature of Room 2 rT2(red line). The blue and green lines
+are the integer trajectory of the timed game TGbounding it within time.
+
+--- Page 21 ---
+A.4 Handcrafted Small DT for Adaptive Cruise Control
+Listing 1.1: Handcrafted C-code describing the safe and optimal strategy for cruise
+bool strategy ( int act , int vEgo , int d, int vFront , int aFront , int aEgo ) {
+if ( check (d, vEgo , vFront , 2, aFront ) > 5) {
+return act == 1; // accelerate
+} else if ( check (d, vEgo , vFront , 0, aFront ) > 5) {
+return act == 0; // neutral
+} else {
+assert ( check (d, vEgo , vFront , -2, aFront ) > 5);
+return act == 2; // decelerate
+}
+}
+float check (int d, int vEgo , int vFront , int aEgo , int aFront ) {
+// One unit of aEgo while front plays worst case
+float d1 , d2 , d3 , t1 , t2 , vFrontNext , vEgoNext ;
+t1 = ( vFront + 10)/2;
+if (t1 > 0.5) {
+d1 = d_t (d, vEgo , vFront , aEgo , -2, 1);
+vFrontNext = vFront - 2;
+vEgoNext = vEgo + aEgo ;
+} else {
+d1 = d_t (d, vEgo , vFront , aEgo , 0, 1);
+vFrontNext = vFront ;
+vEgoNext = vEgo + aEgo ;
+}
+// Decelerating while front decelerates to -10
+if (t1 > 1) {
+d2 = d_t (d1 , vEgoNext , vFrontNext , -2, -2, t1 - 1);
+vEgoNext = vEgoNext - 2*( t1 - 1);
+} else {
+d2 = d1;
+}
+// Decelerating while front stays at -10
+t2 = ( vEgoNext + 10)/2;
+if (t2 > 0) {
+d3 = d_t (d2 , vEgoNext , -10, -2, 0, t2 );
+} else {
+d3 = d2;
+}
+return d3;
+}
+
+--- Page 22 ---
+float d_t(int d, int vEgo , int vFront , int aEgo , int aFront , int t) {
+return d + 0.5*( aFront - aEgo )*t*t
++ ( vFront - vEgo )*t;
+}

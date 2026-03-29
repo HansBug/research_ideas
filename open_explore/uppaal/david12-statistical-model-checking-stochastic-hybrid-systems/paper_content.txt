@@ -1,0 +1,743 @@
+--- Page 1 ---
+EzioBartocci andLuca Bortolussi (Eds.): HSB2012
+EPTCS92, 2012, pp. 122–136,doi:10.4204/EPTCS.92.9© David,Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards
+This workis licensed under the
+Creative Commons AttributionLicense.StatisticalModelCheckingfor StochasticHybridSystems∗
+AlexandreDavid KimG. Larsen MariusMikuˇ cionis DannyBøgs ted Poulsen
+Department of Computer Science
+Aalborg University, Denmark
+{adavid,kgl,marius,dannybp }@cs.aau.dk
+Axel Legay Sean Sedwards
+INRIARennes
+Bretagne Atlantique, France
+axel.legay@inria.fr,sean.sedwards@gmail.comDehuiDu
+Shanghai KeyLaboratory of TrustworthyComputing
+EastChina Normal University,
+Shanghai 20062, China
+dehuidu@cs.aau.dk
+This paper presents novel extensions and applications of th e UPPAAL-SMCmodel checker. The
+extensions allow for statistical model checking of stochas tic hybrid systems. We show how our
+race-based stochastic semantics extends to networks of hyb ridsystems, and indicate the integration
+technique applied for implementing this semantics in the U PPAAL-SMCsimulation engine. We re-
+port on two applications of the resulting tool-set coming fr om systems biology and energy aware
+buildings.
+1 Introduction
+Statistical Model Checking (SMC)[29,27,32,34,25]isanap proach that has recently been proposed as
+new validation technique for large-scale, complex systems . The core idea of SMC is to conduct some
+simulations of the system, monitor them, and then use statis tical methods (including sequential hypoth-
+esis testing or Monte Carlo simulation) in order to decide wi th some degree of conﬁdence whether the
+system satisﬁes the property or not. By nature, SMC is a compr omise between testing and classical for-
+mal method techniques. Simulation-based methods are known to be far less memory and time intensive
+thanexhaustiveones,andaresometimestheonlyoption. SMC hasbeenimplementedinaseriesoftools
+that have defeated well-known tools such as PRISM on several case studies. Unlike more “academic”
+exhaustive (and intractable) techniques, SMC is spreading to various research areas such as systems
+biology[21, 24] and software engineering[36, 30], in parti cular for industrial applications[4,6,5].
+There are several reasons for this success. Firstly, SMC is s imple to understand, use and (in princi-
+ple) to implement. Secondly, no additional modelling or spe ciﬁcation effort isneeded, provided that the
+mode-ling formalism used can be given a natural stochastic s emantics serving as the basis for interpre-
+tation of the speciﬁcation formalism and asabasis for gener ating simulation-runs. Thirdly, SMCallows
+toanalyse properties[11,4]thatcannot beexpressed incla ssical temporal logic, including properties for
+which classical model checking isundecidable.
+In a series of recent works[16, 15], we have investigated the problem of Statistical Model Checking
+for networks of Priced Timed Automata (PTAs). PTAs are timed automata, whose clocks can evolve
+with different rates, while1being used with no restrictions in guards and invariants. In [15], we have
+proposed a natural stochastic semantics for such automata, which allows to perform statistical model
+∗WorkpartiallysupportedbytheVKRCentreofExcellenceMT- LAB,theSino-DanishBasicResearchCenterIDEA4CPS,
+and bythe CREATIVEproject ESTASE.
+1incontrast tothe usual restrictionof pricedtimedautomat a [7,1]
+
+--- Page 2 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 123
+checking. Our work has later been implemented in U PPAAL-SMC, that is a stochastic and statistical
+model checking extension of U PPAAL. UPPAAL-SMCrelies on a series of extensions of the statistical
+model checking approach generalised to handle real-time sy stems and estimate undecidable problems.
+UPPAAL-SMCcomes together with a friendly user interface that allows a u ser to specify complex prob-
+lemsinanefﬁcientmanneraswellastogetfeedbackinthefor mofprobabilitydistributions andcompare
+probabilities to analyse performance aspects of systems. T he UPPAAL-SMCmodel checking has been
+applied to a wide range of examples from networking and Nash e quilibrium[9] through systems biol-
+ogy[14], real-time scheduling[13], and energy awaresyste ms[12].
+For PTAsclocks evolve with ﬁxed rates depending only on the d iscrete state of the model, i.e. loca-
+tions and discrete variables. In this paper, we present and i mplement an extension of the modelling for-
+malismof U PPAAL-SMC, whereclock ratesmaydepend not onlyonvaluesofdiscrete v ariables butalso
+on the value of other clocks, effectively amounting to ordin ary differential equations (ODEs). As a ﬁrst
+contribution ofthispaper, wepresent anextension of our ra ce-based stochastic semantics tonetworks of
+stochastic hybrid automata (SHA). One major difﬁculty is th e implementation of this extensions in our
+engineforgenerating random runs,inamanner whichiscorre ct withrespect tothestochastic semantics.
+In fact U PPAAL-SMCdoes not solve the equations exactly but currently supports the Euler integration
+method. Aﬁxedtimestep (deﬁned bythe user) isused by aninte rnal integrator component added to the
+system. This integrator races with the other processes duri ng its time step and all rates are considered
+constant and deﬁned by the equations in the model. As a second contribution of the paper we describe
+this integration in U PPAAL-SMC. It is worth mentioning that while other SMC-based approach es exist
+for SHAs[36, 35,2],none of them do consider ODE-based model isation for clock rates.
+To demonstrate the applicability of this new extension, we a pply advanced SMC techniques to two
+challenging applications coming from systems biology and e nergy aware buildings. For the case of
+systems biology, weshow howthecombination of ODEsandSMCa llowsustoreason onbiological os-
+cillations–aproblemthatisbeyondthescopeofmostexisti ngformalveriﬁcationtechniques. Wemodel
+a genetic circadian oscillator, which is used todistil the e ssence of several real circadian oscillators. For
+the case of energy aware buildings, we refer to a recently dev eloped framework including components
+for layout of buildings, availability of heaters, climate a nduser behaviours allowing toevaluate different
+strategiesfordistributingheatersamongroomsintermsof theresultingcomfortandenergyconsumption.
+Toindicate central parts of thisframework andthe clear adv antages of modelling theevaluation of room
+temperatures withODEs,weillustrate inthispaper thefram eworkwithasmall instance comprising two
+rooms with asingle shared heater.
+Structure of the Paper. The remainder of the paper is structured as follows. In the ne xt Section 2
+we preview the expressive power of the hybrid extensions of U PPAAL-SMCusing an extension of the
+well-knownbouncing ball. Sections3and4detailstheseman ticsoftheextended formalismofnetworks
+of stochastic hybrid automata. Applications to Energy Awar e Buildings and a Biological Oscillator are
+given in Section 5 and Section 6, respectively. Finally, Sec tion 7 concludes the paper and suggests
+directions for future research.
+2 Throwing, Bouncing andHitting Ball
+To give an early illustration of the expressive power of the e xtended modelling formalism of U PPAAL-
+SMC, we consider a variant of the well-known bouncing ball. In ou r version2the ball is initially thrown
+
+--- Page 3 ---
+124 Statistical Model Checking for Stochastic Hybrid Systems
+x = 10,
+vx = −10+random(0.5)
+vx = −(0.85+random(0.15))*vxbounce!
+x == 0 && vx < 0x’==1*vx
+(a)Modelof xcoordinate.hit?
+hit?y = 10,
+vy = 5.8+random(0.5)
+vy = −(0.8+random(0.12))*vyy == 0 && vy < 0bounce!y>=6 && vy<0 && vy>=−4 &&
+x>=10y >= 6 && vy >= 0 &&
+x >= 10vy’ == −9.81 &&
+y’ == 1*vy
+vy = −4.0vy=−(0.85+random(0.1))*vy−4
+(b)Modelof ycoordinate.
+5:2
+hit!
+(c) Player trying to hit with exponentially
+distributeddelay.y
+xvalue
+0246810
+0 5 10152025303540
+(d)Trajectoryas (x,y)plot.
+Figure 1: Models and atrajectory of a thrown/bouncing ball h it by aplayer.
+against a wall, bounces against it, and then continues its tr ajectory by falling and bouncing against the
+ﬂoor. In addition, a (inexperienced) player tries to hit the ball randomly according to an exponential
+distribution. The model is depicted in Fig. 1(a)–(c). The pl ayer is modelled as a simple automaton that
+broadcasts hit!with an exponential distribution of rate 5 /2. Thexcoordinate (Fig. 1a) is initialised to
+10 with an uncertain derivative vxuniformly between [−10,−9.5](the ball is thrown against the wall),
+after which the ball moves toward the wall (placed at 0). Here , the automaton outputs bounce! on an
+urgentchannel, which forces the transition to take place determin istically at x=0. After a bounce with
+arandom dampening factor of thevelocity vxuniformly between [0.85,1], theball continues tomovein
+theopposite direction. The ycoordinate (Fig.1b)isinitialised to10withanuncertain d erivativevy. The
+model shows the effect of gravitation with vy’=−9.81. The ball bounces with a random dampening
+factor onthe ﬂoor (at 0) and when theball isaway from the wall (x≥10) then it canbe hit by the player
+provided itishighenough ( y≥6). Dependingonthecurrent direction oftheball,theballm aybounceor
+it is pushed. One possible trajectory of the ball is shown in F igure 1d. The plot is obtained by checking
+the query “ simulate 1 [x<=40] {y}”. The vertical line shows the ball moving to its initial posi tion
+and should be ignored. The ball bounces as expected against t he wall, the ﬂoor, and the hitting of the
+player. U PPAAL-SMCis able to simulate this hybrid system that has a second order ODE, a stochastic
+controller (the player), and astochastic environment (ran dom dampening factor).
+In addition, we may perform statistical model-checking in o rder to estimate the probability that the
+ball is still bouncing above aheight of 4after 12 timeunits w iththe query:
+Pr[<=20](<> time>=12 and y>=4)
+which returns the conﬁdence interval [0.44,0.55]with 95% conﬁdence after having generated 738 runs.
+Wecan also test for thehypothesis
+2Our version is inspired by the recently announced solution b y a 16 year old German school boy (Shouryya Ray), to a 350
+year openproblem by Newtonconcerned withpredicting the tr ajectoryof a ballthrown ata wall.
+
+--- Page 4 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 125
+Pr[<=20](<> time>=12 and y>=4) >= 0.45 ,
+which gives a more precise lower bound. The hypothesis holds with a region of indifference ±0.01 and
+alevel of signiﬁcance of 5% after generating 970 runs.
+3 Networks ofHybrid Automata
+UPPAAL-SMCnow supports the analysis of stochastic hybrid automata (SH A) that are timed automata
+whose clock rates can be changed to be constants or expressio ns depending on other clocks, effectively
+deﬁning ODEs. This generalizes the model used in our previou s work [16, 15] where only linear priced
+automata were handled. Our new release U PPAAL-SMC4.1.103supports fully hybrid automata with
+ODEsand afew built-in complex functions (such as sin,cos,log,expandsqrt)!
+Hybrid Automata Intuitively, a hybrid automaton His a ﬁnite-state automaton extended with con-
+tinuousvariables thatevolveaccording todynamicscharac terizing eachdiscretestate(calleda location).
+LetXbeaﬁnitesetofcontinuous variables. A variable valuation overXisamapping ν:X→R,where
+Ris the set of reals. We write RXfor the set of valuations over X. Valuations over Xevolve over time
+according to delay functions F :R≥0×RX→RX,wherefor adelay dand valuation ν,F(d,ν)provides
+the new valuation after a delay of d. As is the case for delays in timed automata, delay functions are as-
+sumedtobetimeadditiveinthesensethat F(d1,F(d2,ν))=F(d1+d2,ν). Toallowforcommunication
+between different hybrid automata weassumeaset ofactions Σ,whichispartitioned intodisjoint setsof
+input and output actions, i.e. Σ=Σi⊎Σo.
+Deﬁnition 1. A Hybrid Automaton (HA) His a tuple H=(L,ℓ0,X,E,F,I),where: (i) L is a ﬁnite set
+oflocations, (ii) ℓ0∈Lisaninitial location, (iii)X isaﬁnitesetofcontinuous v ariables, (iv) Σ=Σi⊎Σo
+is a ﬁnite set of actions partitioned into inputs ( Σi) and outputs ( Σo), (v) E is a ﬁnite set of edges of
+the form(ℓ,g,a,ϕ,ℓ′), whereℓandℓ′are locations, g is a predicate on RX, action label a ∈Σandϕ
+is a binary relation on RX, (vi) for each location ℓ∈L F(ℓ)is adelay function , and (vii) I assigns an
+invariant predicate I (ℓ)to any location ℓ.
+ThesemanticsofaHA Hisatimedlabeledtransitionsystem,whosestatesarepairs (ℓ,ν)∈L×RX
+withν|=I(ℓ), and whose transitions are either delay transitions (ℓ,ν)d−→(ℓ,ν′)withd∈R≥0and
+ν′=F(d,ν), or discrete transitions (ℓ,ν)a−→(ℓ′,ν′)if there is an edge (ℓ,g,a,ϕ,ℓ′)such that ν|=g
+andϕ(ν,ν′). Wewrite (ℓ,ν)/squiggleright(ℓ′,ν′)ifthereisaﬁnitesequence ofdelayanddiscrete transition s from
+(ℓ,ν)to(ℓ′,ν′).
+In the above deﬁnition, we have deliberately left open the co ncrete syntax for the delay function F
+aswellastheinvariant I. In UPPAAL-SMCthedelay update forasimpleclock x–usedin(priced) timed
+automata – is given by an implicit rate x′=1 or an explicit rate x′=eappearing in the invariant of ℓ,
+whereeis an expression only depending on the discrete part of the cu rrent state. More generally, the
+effect of the delay function Fmaybe speciﬁed by aset of ODEsneeding to besolved. It is impo rtant to
+note that inspecifying the delay function Fand the invariant I, the full syntax of U PPAALexpressions –
+including user-deﬁned functions –isat thedisposal.
+Example 1. Reconsider the extended bouncing ball example from Section 2. Here the automaton for
+thexcoordinate maybeinitialized tothestate (x=10,vx=−9.8), after whichthe following transition
+sequence mayoccur:
+(x=10,vx=−9.8)10÷9.8−→(x=0,vx=−9.8)bounce!−→(x=0,vx=9.31)
+3www.uppaal.org .
+
+--- Page 5 ---
+126 Statistical Model Checking for Stochastic Hybrid Systems
+where in the bounce!-transition the dampening factor has non-deterministical ly been chosen from the
+interval[0.85,1.00]as0.95. The automaton for the ycoordinate may be initialized to the state (y=
+10,vy=5.9)after which the delay function will effectively be given by d elay transitions:
+(y=10,vy=5.9)d−→(y=−9.81/2d2+5.9d+10,vy=−9.81d+5.9)
+The ballbounce!’es on the ﬂoor, i.e. y=0or when (approximately) d =2.15, and will afterwards
+- having non-deterministically chosen the dampening facto r0.9- continue from the state (y=0,vy=
+13.67).
+NetworksofHybridAutomata Followingthecompositional speciﬁcationtheoryfortimed systemsin
+[17],weshallassumethatNHAsare input-enabled inthesense,thatforallstates (ℓ,ν)andinputactions
+ι∈Σi, for all HAs j, there isanedge (ℓj,g,ι,ϕ,ℓj′)such that ν|=gandϕ(ν,ν′)for somevaluation ν′.
+Also, we shall assume that time always diverges, and that dif ferent automata synchronize on matching
+inputs and outputs asastandard broadcast synchronization [20].
+Whenever Aj= (Lj,Xj,Σj,Ej,Fj,Ij)(j=1...n) are NHA, they are composable into aclosed
+networkiff their variable-sets are disjoint ( Xj∩Xk=/ 0 whenj/ne}ationslash=k), they have the same action set
+(Σ=Σj=Σkfor allj,k), andtheir output action-sets provide apartition of Σ(Σj
+o∩Σk
+o=/ 0forj/ne}ationslash=k,and
+Σ=∪jΣj
+o). Fora∈Σwedenote by c(a)the unique jwitha∈Σj. Ifν∈RXwithX=∪jXj,wedenote
+byν↓Xjthe projection of νtoXj.
+Deﬁnition2. LetAj=(Lj,Xj,Σ,Ej,Fj,Ij)(with j=1...n) becomposable NHAs. Their composition
+(A1|...|An)is the HA A= (L,X,Σ,E,F,I)where (i) L =×jLj, (ii) X=∪jXj, (iii) F(ℓ)(d,ν)(x) =
+Fj(ℓj)(d,ν↓Xj)(x)whenx∈Xj,(iv)I(ℓ)=∩jI(ℓj),and(v)(ℓ,∩jgj,a,∪jϕj,ℓ′)∈E whenever (ℓj,gj,a,ϕj,ℓ′
+j)∈
+Ejfor j=1...n.
+4 StochasticSemantics for Networks ofHybrid Automata
+Reconsidering again our extended version of the bouncing ba ll from Section 2, it is clear that there is
+a constant race between the ball bounce!ing on the ﬂoor and the player hit!ing the ball. Whereas
+the time of bouncing is deterministic – given by the ODE obtai ned from the (stochastic) effect of the
+previousbounce! orhit!– the time of hitting is stochastic according to an exponenti al distribution
+with rate 5 /2. However based on this, a measure on sets of runs of the syste ms is induced, according
+to which quantitative properties such as “the probability that the ball with have a height greater tha n 4
+after 12time-units” become well-deﬁned.
+Our early works [15] – though aimed at stochastic semantics o fpriced timed automata – is sufﬁ-
+ciently general that it also provides the basis for a natural stochastic semantics for networks of HAs,
+where components associate probability distributions to b oth the time-delays spent in a given state as
+well astothe transition between states.
+LetAj=(Lj,Xj,Σ,Ej,Fj,Ij)(j=1...n) be a collection of composable HAs. Under the assump-
+tion of input-enabledness, disjointedness of clock sets an d output actions, states of the composite NHA
+A=(A1|...|An)maybeseen astuples s=(s1,...,sn)wheresjisastate of Aj,i.e. of theform (ℓ,ν)
+whereℓ∈Ljandν∈RXj. Ourprobabilistic semanticsisbasedontheprincipleofin dependence between
+components. Repeatedly each component decides on its own – b ased on a given delay density function
+and output probability function – how much to delay before ou tputting and what output to broadcast at
+that moment. Obviously, in such a race between components th e outcome will be determined by the
+
+--- Page 6 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 127
+component that has chosen to output after the minimum delay: the output is broadcast and all other
+components may consequently change state.
+StochasticSemanticsofHAComponents ThestochasticsemanticsofHAsreﬁnethenon-deterministi c
+choices that may exist with respect to delay, output and next state. We consider the component Ajand
+letStjdenote the corresponding set of states. Foreachstate s=(ℓ,ν)ofAj,weshall assume that there
+exist probability distributions for delays, output as well asnext-state:
+• thedelay density function ,µsover delays in R≥0, provides stochastic information for when the
+component will perform anoutput, thus/integraltextµs(t)dt=1;
+• theoutputprobabilityfunction γsassignsprobabilities forresolvingwhatoutput o∈Σj
+otogenerate,
+i.e.∑oγs(o)=1;
+• thenext-statedensityfunction ηa
+sprovidestochasticinformationonthenextstate s′=(ℓ′,ν′)∈RX
+given anaction a, i.e./integraltext
+s′ηa
+s(s′)=1.
+For outputs happening deterministically at anexact time po intd(or deterministic next states s′),µs(ηa
+s)
+becomes aDirac delta function δd(δs′)4.
+In UPPAAL-SMCuniform distributions are applied for states where delay is bounded, and exponen-
+tial distributions (with location-speciﬁed rates) areapp lied for the cases, whereacomponent canremain
+indeﬁnitely inalocation. Also, U PPAAL-SMCprovides syntax forassigning discrete probabilities todi f-
+ferentoutputsaswellasspecifyingstochasticdistributi ons onnext-states(usingthefunction random[b]
+denoting auniform distribution on [0,b]).
+StochasticSemanticsofNetworksofHA ForthestochasticsemanticsofclosednetworksofHAcon-
+siderA=(A1|...|An)withastatespace St=St1×···×Stn. Fors=(s1,...,sn)∈Standa1a2...ak∈
+Σ∗wedenoteby π(s,a1a2...ak)thesetofallmaximalrunsfrom swithapreﬁx t1a1t2a2...tkakforsome
+t1,...,tn∈R≥0, that is runs where the i’th action aihas been outputted by the component Ac(ai). Pro-
+viding thebasic elements of aSigma-algebra, wenow inducti vely deﬁne thefollowing measure for such
+sets of runs:
+PA/parenleftbig
+π(s,a1...an)/parenrightbig
+=
+/integraldisplay
+t≥0µsc(t)·/parenleftbig∏
+j/ne}ationslash=c/integraldisplay
+τ>tµsj(τ)dτ/parenrightbig
+·γsct(a1)·/integraldisplay
+s′/parenleftbig∏
+jηa1
+st
+j(s′
+j)·PA/parenleftbig
+π(s′,a2...an)/parenrightbig
+ds′/parenrightbig
+dt
+This deﬁnition requires a few words of explanation: at the ou termost level we integrate over all
+possible initial delays t. For a given delay t, the outputting component c=c(a1)will choose to make
+the broadcast at time twith the stated density. Independently, the other componen ts will choose to a
+delay amount, which – in order for cto be the winner – must be larger than t; hence the product of the
+probabilities that they each make such a choice. Having deci ded for making the broadcast at time t, the
+probability of actually outputting a1is included. Finally, integrating over all global states s′that may
+result from all components having delayed ttime-units and changed state stochastically with respect t o
+thebroadcasted action a1,theprobability ofrunsaccordingtotheremainingactions a2...anistakeninto
+account.
+4which should formally be treated as the limit of a sequence of delay density functions with decreasing, non-zero support
+aroundd.
+
+--- Page 7 ---
+128 Statistical Model Checking for Stochastic Hybrid Systems
+Generation of Random Runs The central component of the SMC engine of U PPAAL-SMCis the
+efﬁcient generation of random runs according to the stochas tic semantics proposed in the preceding
+Section. U PPAAL-SMChas to integrate the ODEsgiven in the model while still respe cting its stochastic
+semantics. The tool does not solve the equations exactly and currently supports the Euler integration
+method. A ﬁxed time step δt(deﬁned by the user) is used by an internal integrator compon ent added to
+thesystem. Thisintegrator raceswiththeotherprocesses d uringitstimestepandallratesareconsidered
+constant and deﬁned by the equations in the model. At the end o f every step or if another process wins
+the race, all the rates are re-evaluated and the resulting va lues of the clocks are computed according to
+xnew=xold+δt∗x′
+old. We plan to implement more robust methods, such as Runge-Kut ta’s, that give
+different evaluations of xnew. In this case, x′
+oldis then derived from the method and not directly from the
+equation in the model and kept constant during δt. The stochastic semantics and the races between the
+components are still respected.
+Theintegratorcomponentalwayspicksadelayequaltothegi ventimestep δt. Theothercomponents
+pickdelaysaccording totheirdistributions. Thewinningc omponent delaystothepoint intimeitwanted
+and tries to take a transition at that point. If it appears tha t no guard is satisﬁed, no transition is taken
+and all components race again. In practice, every component will use the current rates of the clocks to
+evaluate alower bound on thedelay from which anything can ha ppen toskip delaying for nothing.
+Statistical Model Checking We use SMC[28, 32, 34, 29] to estimate and test on the probabil ity that
+arandom runofanetworkofSHAswillsatisfyagivenproperty . Givenamodel Handatraceproperty
+ϕ(e.g. expressed in LTL [31] or MTL [26]), SMC refers to a serie s of simulation-based techniques
+that can be used to answer two questions: (1) Qualitative: is the probability that a random run of H
+will satisfy ϕgreater or equal to a certain threshold θ(or greater or equal to the probability to satisfy
+another property ϕ′)? and (2) Quantitative: what is the probability that a random run of Hwill satisfy
+ϕ? Inboth cases, theanswer will becorrect uptoauser-speciﬁ ed level of conﬁdence, providing aupper
+bound on the probability that the conclusion made by the algo rithm will be wrong. For the quantitative
+approach, which we will use intensively in this paper, the me thod computes a conﬁdence interval that
+is an interval of probabilities that contains the true proba bility to satisfy the property. Here the conﬁ-
+dence level provides the probability that the computed conﬁ dence interval indeed contains the unknown
+probability.
+Our UPPAAL-SMCtool-set implements a wide range of SMC algorithms for netwo rks of SHAs not
+only for reachability and safety properties, but also for ge neral weighted MTL properties [10, 8]. In
+addition, the tool offers several features to visualize and reason on the results.
+5 EnergyAware Buildings
+UPPAAL-SMChas recently [12] been applied to an evaluation framework fo r energy aware buildings,
+where the control of heating is optimized with respect to env ironmental and user proﬁles. To indicate
+central partsofthisframeworkandtheclear beneﬁtofmodel ingwithODEs,weillustratetheframework
+on a simpliﬁed instance and recall results from our case stud y [12] based on a benchmark for hybrid
+systems veriﬁcation [18].
+A Simple 2-Room Example To illustrate the various aspects of the (extended) modelin g formalism
+supported by U PPAAL-SMC, we consider the case of two independent rooms that can be hea ted by a
+single heater shared by the two rooms, i.e., at most one room c an be heated at a time. Fig.2(a) shows
+
+--- Page 8 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 129
+on[1]!on[0]!
+off[1]!off[0]!
+ON_1ON_0
+3x<=41
+OFF
+1 x=0x=0 2
+K´'==0 &&
+T[0]´'==K - T[0]/10
+  +sum(j:int[0,1]) 
+     A[0][j]*(T[j]+-T[0])/son[0]?
+off[0]?ON
+T[0]´'==-T[0]/10
+  +sum(j:int[0,1]) 
+     A[0][j]*(T[j]+-T[0])/sInit
+OFFK=9+random(3) T[0]=T0[0]
+K´'==0 &&
+T[1]´'==K - T[1]/10
+  +sum(j:int[0,1]) 
+     A[1][j]*(T[j]+-T[1])/son[1]?
+off[1]?ON
+T[1]´'==-T[1]/10
+  +sum(j:int[0,1]) 
+     A[1][j]*(T[j]+-T[1])/sInit
+OFFK=9+random(3) T[1]=T0[1]
+(a) stochastic heater. (b) room 0. (c) room 1.
+Figure 2: Asimple tworoom example with anautonomous heater .
+the automaton for the heater. It turns itself on with a unifor m distribution over time in-between [0,4]
+time units. With probability 1 /4 room 0 is chosen and with probability 3 /4 room 1. The heater stays
+on for some time given by an exponential distribution (rate 2 for room 0, rate 1 for the room 1). In
+summary, one may say that the controller is more eager to init iate the heating of room 1 than room
+0, as well as less eager to stop heating room 1. The rooms are si milar and are modeled by the same
+template instantiated twice as shown in Fig. 2(b-c). The roo m is initialized to its initial temperature and
+then depending on whether the heater is turned on or not, the e volution of the temperature is given by
+T′
+i=−Ti/10+∑j=0,1Ai,j(Tj−Ti)orT′
+i=K−Ti/10+∑j=0,1Ai,j(Tj−Ti)wherei,j=0,1 are room
+identiﬁers. The sum expression corresponds to an energy ﬂow between rooms and matrix Aencodes
+the energy transfer coefﬁcient between adjacent rooms. Fur thermore, when the heater is turned on, its
+heating is not exact and is picked with a uniform distributio n ofK∈[9,12], realized by the update
+K=9+random(3) .
+Thisexampleillustrates thesupport forNSHAin U PPAAL-SMCwithextended arithmetics onclocks
+and generalized clock rates.
+Extended Input Language UPPAAL-SMCtakes as input NSHA as described above. Additionally,
+there is support for other features of the U PPAALmodel checker’s input language such as integer vari-
+ables, datastructures anduser-deﬁned functions, whichgr eatly easemodeling. U PPAAL-SMCallowsthe
+usertospecifyarbitraryratesfortheclocks,whichinclud esamixofintegerandclockexpressionsonany
+location. Inaddition, the automata support branching edge s where weights can beadded togive adistri-
+bution on discrete transitions. It is important to note that rates and weights may be general expressions
+that depend onthe states and not just simple constants.
+Checking Queries The fundamental principle in U PPAAL-SMCis to generate runs and evaluate some
+expression on the states along the obtained run. Runs are alw aysbounded, either by time, by a number
+of steps, or more generally by cost (when using a clock explic itly). The engine has a built-in heuristic
+detection of Zeno behaviours to abort the generation of such runs. Examples of the syntax for the
+different typesof bounds are [<=100] for 100timeunitssince thebeginning of therun, [#<=50] for 50
+discrete transitions taken from the initial state, and [x<=200] until the clock xreaches 2005.
+UPPAAL-SMCsupports simulations withmonitoring custom expressions, probability evaluation, hy-
+pothesis testing, and probability comparison. Wecan simul ate and plot the temperatures with thequery
+simulate 1 [<=600] {T[0],T[1] }
+5Itis uptothe modeler toensure that the clockeventually rea ches the bound.
+
+--- Page 9 ---
+130 Statistical Model Checking for Stochastic Hybrid Systems
+T[1]T[0]
+timevalue
+0918273645
+0 60 120180240300360420480540600
+Figure 3: Evolution of the temperatures of the tworooms.
+Thequery request the checker toprovide one simulate run ove r 600 timeunits and plot thetemperatures
+ofRoom(0) andRoom(1). Theheater in this example is purely stochastic and is not in tended toenforce
+any particular property. Yet, the simulation obtained from this query in Fig. 3 shows that the heater is
+able to maintain the temperatures within (mostly) distinct intervals.
+Wecanevaluateonashorter timescaletheprobability forth etemperature of Room(0) tostaybelow
+30 and the temperature of Room(1) tostay above 5withthe queries
+Pr[<=100]([] Room(0).Init || T[0] <= 20)
+Pr[<=100]([] Room(1).Init || T[1] >= 7)
+The results are respectively in [0.45,0.55]and[0.65,0.75]. The precision and conﬁdence of these so-
+called conﬁdence intervals are user-deﬁned and inﬂuence th e number of runs needed to compute the
+probability. In this example, for having the precision to be ±0.05 with a conﬁdence of 95%, we need
+738 runs. In fact if we are only interested in knowing if the se cond probability is above a threshold it
+may bemore efﬁcient totest the hypothesis
+Pr[<=100]([] Room(1).Init || T[1] >= 7) >= 0.69
+which is accepted in our case with 902 runs for a level of signi ﬁcance of 95%. To obtain an answer at
+comparable level of precision with probability evaluation , we would need to use a precision of ±0.005,
+which would require 73778 runs instead.
+The tool can also compare probabilities without needing to c ompute them individually. We can test
+the hypothesis that the heater is better at keeping the tempe rature ofRoom(1) above 8 than keeping the
+temperature of Room(0) below 20:
+Pr[<=100]([] Room(1).Init || T[1] >= 7) >=
+Pr[<=100]([] Room(0).Init || T[0] <= 20)
+which is accepted in this case with95% level of signiﬁcance w ithjust 258 runs.
+Results In [12] we have estimated the comfort time (duration while be ing in comfortable temperature
+range)andenergyconsumption forvariousweatherconditio ns, userproﬁlesandcentralcontroller strate-
+gies. Fig.4showssixenergy consumption estimates indiffe rent conﬁgurations (abuilding with5rooms
+and 3 heaters). The energy comparison shows that the dynamic user proﬁle can save more than 33% of
+energy regardless of thechosen central controller strateg y.
+
+--- Page 10 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 131
+dynamicstatic
+energy consumptionprobability density
+00.020.040.060.080.100.120.140.16
+244 282 320358396
+(a)Strategy1.dynamicstatic
+energy consumptionprobability density
+00.020.040.060.080.100.12
+232 274 316358400
+(b)Strategy2.dynamicstatic
+energy consumptionprobability density
+00.020.040.060.080.100.120.140.16
+229 273 317361405
+(c)Strategy3.
+Figure 4: Energy consumption estimates for static and dynam ic user proﬁles.
+6 BiologicalOscillator
+One of the key oscillatory behaviours in biology is the circa dian rhythm that allows an organism to
+take advantage of periods of day and night to optimise when to maximise activity and recovery. We
+show how the genetic circadian oscillator of [3, 33] can be mo delled and analysed using U PPAAL-SMC.
+This synthetic model distils the essence of several real cir cadian oscillators and demonstrates how a
+reliable system can be constructed in the face of inherent st ochasticity. Figure 5a shows a system of
+differential equations from [33]. The equations are typese t in UPPAALas invariant expression on a
+location shown in Fig. 5b, where each quantity DA,DR,D′
+A,MA,MR,A,R,Care modelled as continuous
+clock variables DA,DR,DA,MAetc with rates deﬁned by a corresponding differential equat ion. The
+preceding expressions about alphaA,alphaA,alphaR,alphaR,betaAand so on are modelling the
+constants αA,α′
+A,αR,α′
+R,βAand so on. The assignments on the ﬁrst transition initialise all the variables
+with initial conditions. U PPAAL-SMCis then used to simulate the model and provide plots of how the
+variable values evolve over time, which are displayed in Fig ure 7a.
+dDA/dt=θAD′
+A−γADAA
+dDR/dt=θRD′
+R−γRDRA
+dD′
+A/dt=γADAA−θAD′
+A
+dD′
+R/dt=γRDRA−θRD′
+R
+dMA/dt=α′
+AD′
+A+αADA−δMAMA
+dMR/dt=α′
+RD′
+R+αRDR−δMRMR
+dA/dt=βAMA+θAD′
+A+θRD′
+R
+−A(γADA+γRDR+γCR+δA)
+dR/dt=βRMR−γCAR+δAC−δRR
+dC/dt=γCAR−δAC
+(a)Ordinarydifferentialequations.alphaA’==0 && alpha_A’==0 && alphaR’==0 && alpha_R’==0 &&
+betaA’==0 && betaR’==0 && deltaA’==0 && deltaR’==0 && 
+deltaMA’==0 && deltaMR’==0 && gammaA’==0 && 
+gammaR’==0 && gammaC’==0 && thetaA’==0 && thetaR’==0 &&
+DA’== thetaA*D_A−gammaA*DA*A &&
+DR’== thetaR*D_R−gammaR*DR*A &&
+D_A’== gammaA*DA*A−thetaA*D_A &&
+D_R’== gammaR*DR*A−thetaR*D_R &&
+MA’== alpha_A*D_A+alphaA*DA−deltaMA*MA &&
+MR’== alpha_R*D_R+alphaR*DR−deltaMR*MR &&
+A’== betaA*MA+thetaA*D_A+thetaR*D_R
+    −A*(gammaA*DA+gammaR*DR+gammaC*R+deltaA) &&
+R’== betaR*MR−gammaC*A*R+deltaA*C−deltaR*R &&
+C’== gammaC*A*R−deltaA*CalphaA=50, alpha_A=500, alphaR=0.01, alpha_R=50, 
+betaA=50, betaR=5, deltaMA=10, deltaMR=0.5, deltaA=1, deltaR=0.2,
+gammaA=1, gammaR=1, gammaC=2, thetaA=50, thetaR=100,
+DA=1, DR=1, D_A=0, D_R=0, MA=0, MR=0, A=0, R=0, C=0
+(b) UPPAALautomatonrepresentation.
+Figure 5: Dynamics of genetic oscillator.
+The ODE system can be interpreted as a system behavior near th e thermodynamic limit (inﬁnite
+population sizeswhilemaintainingthesameconcentration s). Alternativelythisoscilator canbemodeled
+as a system of stochastic chemical reactions, where each mol ecule is counted as discrete entity moving
+according to Brownian motion laws. Using a standard transla tion between deterministic and stochastic
+semantics of chemically reacting systems (e.g., Gillespie ’s algorithm [19]) the coefﬁcients in ODE can
+be interpreted as reaction rates. The reactions are enumera ted in Fig. 6a. Each reaction is then modeled
+
+--- Page 11 ---
+132 Statistical Model Checking for Stochastic Hybrid Systems
+A+DAγA−→D′
+A
+D′
+AθA−→DA+A
+A+DRαR−→D′
+R
+D′
+RθR−→DR+A
+D′
+Aα′
+A−→MA+D′
+A
+DAαA−→MA+DA
+D′
+Rα′
+R−→MR+D′
+R
+DRαR−→MR+DRMAβA−→MA+A
+MRβR−→MR+R
+A+RγC−→C
+CδA−→R
+AδA−→/ 0
+RδR−→/ 0
+MAδMA−→/ 0
+MRδMR−→/ 0
+(a)Reactions.A>0 && DA>0
+A*DA*gammaAA−−, DA−−,
+D_A++D_A>0
+D_A*thetaAD_A−−,
+DA++, A++A>0 && DR>0
+A*DR*gammaRA−−, DR−−,
+D_R++D_R>0
+D_R*thetaRD_R−−,
+DR++, A++
+D_A>0
+D_A*alpha_AMA++DA>0
+DA*alphaAMA++D_R>0
+D_R*alpha_RMR++DR>0
+DR*alphaRMR++
+MA>0
+MA*betaAA++MR>0
+MR*betaRR++A>0 && R>0
+A*R*gammaCA−−, R−−, 
+C++C>0
+C*deltaAC−−, R++
+A>0
+A*deltaAA−−R>0
+R*deltaR:100R−−MA>0
+MA*deltaMAMA−−MR>0
+MR*deltaMR:100MR−−
+(b) UPPAALmodelrepresentation.
+Figure 6: Stochastic model of genetic oscilator.
+as a separate SHA process shown in Fig. 6b, which can be viewed as an encoding of continuous-time
+Markov chain process. For example, the ﬁrst reaction means t aking one molecule of each AandDA
+substance and producing D′
+Awith arate of γA, which can be interpreted as a transition requiring positiv e
+amount of AandDA(modeled as integer variables), consuming one molecule eac h and producing one
+DAand the reaction rate is gammaAand proportional to available quantities of AandDA. The resulting
+trajectories of quantities A,CandRare displayed in Fig. 7b, where the patterns seem to resemble the
+one from ODE model (Fig. 7a), but the inherent stochasticity result in shaky lines (even saw teeth) and
+unpredictably ﬂuctuating amplitudes and their periods. In terestingly, our formalism is ﬂexible enough
+to accommodate ahybrid model combining stochastic aspects asin Fig.7b andcontinuous aspects asin
+Fig. 7a.
+Theamplitudeofeachproteinquantitycanbemeasuredbythe queriesE[<=75; 2000](max: q),
+where 75 is the time limit for simulation, 2000 is the number o f simulations and qis eitherA,C, orR.
+Theupper plots of Fig. 8show the probability density for ara nge of possible values of amplitude witha
+vertical line for average value.
+UPPAAL-SMCcan also estimate a distance between peaks by using techniqu es developed for MITL
+(Metric Interval Temporal Logic –a more expressive propert y language than a subset of CTLsupported
+by UPPAAL). The idea of the approach is to translate MITL formula into a monitoring automata which
+start an auxiliary clock xwith a ﬁrst peak and stop with a second peak [10]. To detect pea ks ofAwhen
+its amount rises above 1100 and drops below 1000 within 5 time units, we use the formula (in the tool
+syntax):true U [<=1000] (A>1100 & true U[<=5] A<=1000) . Then the distance between peaks
+canbeestimatedbymeasuringmaximalvalueofclock x. Theresultisshownaslogarithmofprobability
+density plotsinasecondrowofFig.8. Theplotsshowthatinm ostcasesthemeasureddistance between
+peaks is about 24.2 hours (slightly more than one day-night c ycle). Then there are some smaller bumps
+with several magnitudes lower probability which can be expl ained by either a) false positive peak as
+MITL monitor is confused by a sudden stochastic saw tooth in s ignalA, or b) missing a peak or two, or
+eventhree(in C)ifthepeakisnot highenough toberegistered, hence thenex toneisregistered instead.
+
+--- Page 12 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 133
+RCA
+timevalue
+070014002100
+0 5 1015202530354045505560657075
+(a)ODEmodelsimulationplot.
+RCA
+timevalue
+070014002100
+0 5 1015202530354045505560657075
+(b)Stochasticmodelsimulationplot.
+Figure 7: U PPAAL-SMCsimulations: simulate 1 [<=75] {A, C, R }.
+max: A * vprob. density00.00140.00280.0042
+1140 1530 1920
+max: C * vprob. density00.00160.00320.0048
+1960 2280 2600
+max: R * vprob. density00.00160.00320.0048
+1500 1800 2100
+A periodlog prob. density−4.0−3.0−2.0−1.0
+0 13 263952
+C periodlog prob. density−4.2−3.1−2.0−0.9
+15 35 557595
+R periodlog prob. density−4.1−3.1−2.1−1.1
+1 19 375573
+(a)A. (b) C. (c) R.
+Figure 8: Estimated probability density distributions for amplitude and period.
+7 Conclusions
+ThispaperpresentsanextensionsoftheU PPAAL-SMCmodelcheckersupportingstatisticalmodelcheck-
+ing for stochastic hybrid automata, where dynamic of system s can be speciﬁed with ODEs. This is a
+major advance in comparison to existing SMC checkers that ca n only handle simple derivatives. Cur-
+rently, the tool applies the Euler integration method. In th e future, we plan to implement more robust
+methods, such as Runge-Kutta’s. Another contribution will be to support rare-events as it is the case in
+[35, 23,22].
+
+--- Page 13 ---
+134 Statistical Model Checking for Stochastic Hybrid Systems
+References
+[1] Rajeev Alur, Salvatore La Torre & George Pappas (2001): Optimal Paths in Weighted Timed Au-
+tomata. In Maria Di Benedetto & Alberto Sangiovanni-Vincentelli, editors:Hybrid Systems: Compu-
+tation and Control ,Lecture Notes in Computer Science 2034, Springer Berlin / Heidelberg, pp. 49–62,
+doi:10.1007/3-540-45351-2 8.
+[2] Paolo Ballarini, Hilal Djafri,Marie Duﬂot, Serge Hadda d& Nihal Pekergin(2011): COSMOS: A Statistical
+ModelCheckerfortheHybridAutomataStochasticLogic . In:QEST,IEEEComputerSociety,pp.143–144.
+Availableat http://doi.ieeecomputersociety.org/10.1109/QEST.201 1.24.
+[3] Naama Barkai & Stanislas Leibler (2000): Biological rhythms: Circadian clocks limited by noise .Nature
+403,pp.267–268,doi:10.1038/35002258.
+[4] Ananda Basu, Saddek Bensalem, Marius Bozga, Benoˆ ıt Cai llaud, Benoˆ ıt Delahaye & Axel Legay (2010):
+Statistical Abstraction and Model-Checking of Large Heter ogeneous Systems . In:FMOODS/FORTE ,Lec-
+tureNotesin ComputerScience 6117,Springer,pp.32–46,doi:10.1007/978-3-642-13464- 74.
+[5] Ananda Basu, Saddek Bensalem, Marius Bozga, Benoˆ ıt Del ahaye & Axel Legay (2012): Statis-
+tical abstraction and model-checking of large heterogeneo us systems .STTT14(1), pp. 53–72,
+doi:10.1007/s10009-011-0201-2.
+[6] AnandaBasu, SaddekBensalem,MariusBozga,Benoˆ ıtDel ahaye,AxelLegay&EmmanuelSifakis(2010):
+Veriﬁcationof anAFDXInfrastructureUsingSimulationsan dProbabilities . In:RV,LectureNotesin Com-
+puterScience 6418,Springer,pp.330–344,doi:10.1007/978-3-642-1661 2-925.
+[7] Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim Guldstr and Larsen, Paul Pettersson, Judi Romijn &
+Frits W. Vaandrager (2001): Minimum-Cost Reachability for Priced Timed Automata . In:HSCC, pp. 147–
+161,doi:10.1007/3-540-45351-2 15.
+[8] P. Bulychev, A. David, K.G. Larsen, A. Legay, G. Li & D.B. P oulsen:Rewrite-Based Statistical Model
+CheckingofWMTL . To appearatRV 2012.
+[9] Peter E. Bulychev, AlexandreDavid, Kim G. Larsen, Axel L egay & MariusMikucionis(2012): Computing
+Nash Equilibriumin Wireless AdHoc Networks: A Simulation- BasedApproach . In:IWIGP,EPTCS78,pp.
+1–14,doi:10.4204/EPTCS.78.1.
+[10] Peter E. Bulychev, Alexandre David, Kim Guldstrand Lar sen, Axel Legay, Guangyuan Li, Danny Bøgsted
+Poulsen&Am´ elieStainer(2012): Monitor-BasedStatisticalModelCheckingforWeightedMet ric Temporal
+Logic. In Nikolaj Bjørner & Andrei Voronkov, editors: LPAR,Lecture Notes in Computer Science 7180,
+Springer,pp.168–182,doi:10.1007/978-3-642-28717-6 15.
+[11] Edmund Clarke, Alexandre Donz´ e & Axel Legay (2010): On simulation-based probabilistic
+model checking of mixed-analog circuits .Formal Methods in System Design 36, pp. 97–113,
+doi:10.1007/s10703-009-0076-y.
+[12] AlexandreDavid,DeHuiDu,KimG.Larsen,MariusMikuˇ c ionis&ArneSkou(2012): AnEvaluationFrame-
+work forEnergyAware BuildingsusingStatisticalModelChe ckingSubmitted.
+[13] Alexandre David, Kim. G. Larsen, Axel Legay & Marius Mik uˇ cionis (2012): Schedulability of Herschel-
+Planck Revisited Using Statistical Model Checking . In Bernhard Steffen & Tiziana Margaria, editors: 5th
+InternationalSymposiumOn LeveragingApplicationsof For malMethods,Veriﬁcationand Validation ,Her-
+aclion,Crete. Toappear.
+[14] Alexandre David, Kim G. Larsen, Axel Legay, Marius Miku ˇ cionis, Danny Bøgsted Poulsen & Sean Sed-
+wards(2012): RuntimeVeriﬁcationof BiologicalSystems . In BernhardSteffen & Tiziana Margaria,editors:
+5th International Symposium On Leveraging Applications of Formal Methods, Veriﬁcation and Validation ,
+Heraclion,Crete. To appear.
+[15] AlexandreDavid,KimG.Larsen,AxelLegay,MariusMiku ˇ cionis,DannyBøgstedPoulsen,JonasVanVliet
+&ZhengWang(2011): StatisticalModelCheckingforNetworksofPricedTimedAut omata. In:FORMATS ,
+LNCS, Springer,pp.80–96,doi:10.1007/978-3-642-24310- 37.
+
+--- Page 14 ---
+David, Du, Larsen, Legay, Mikuˇ cionis, Poulsen, Sedwards 135
+[16] Alexandre David, Kim G. Larsen, Axel Legay, Marius Miku ˇ cionis & Zheng Wang (2011): Time for
+statistical model checking of real-time systems . In:Proceedings of the 23rd international conference
+on Computer aided veriﬁcation , LNCS, Springer-Verlag, Berlin, Heidelberg, pp. 349–355. Available at
+http://dl.acm.org/citation.cfm?id=2032305.2032332 .
+[17] Alexandre David, Kim G. Larsen, Axel Legay, Ulrik Nyman & Andrzej Wasowski (2010): Timed I/O
+automata: a complete speciﬁcation theory for real-time sys tems. In:HSCC, ACM ACM, pp. 91–100,
+doi:10.1145/1755952.1755967.
+[18] Ansgar Fehnker & Franjo Ivancic (2004): Benchmarks for Hybrid Systems Veriﬁcation . In Rajeev Alur
+& George J. Pappas, editors: HSCC,Lecture Notes in Computer Science 2993, Springer, pp. 326–341,
+doi:10.1007/978-3-540-24743-2 22.
+[19] DanielT.Gillespie(1977): ExactStochasticSimulationofCoupledChemicalReactions .JournalofPhysical
+Chemistry 81,pp.2340–2361,doi:10.1021/j100540a008.
+[20] Rodolfo G´ omez (2009): A Compositional Translation of Timed Automata with Deadlin es to UPPAAL
+Timed Automata . In Jo¨ el Ouaknine & Frits Vaandrager, editors: Formal Modeling and Analysis of
+Timed Systems ,Lecture Notes in Computer Science 5813, Springer Berlin / Heidelberg, pp. 179–194,
+doi:10.1007/978-3-642-04368-0 15.
+[21] Haijun Gong, Paolo Zuliani, Anvesh Komuravelli, James R. Faeder & Edmund M. Clarke (2010): Compu-
+tational Modeling and Veriﬁcation of SignalingPathways in Cancer. In:ANB,Lecture Notes in Computer
+Science6479,Springer,pp.117–135,doi:10.1007/978-3-642-2806 7-27.
+[22] Cyrille Jegourel, Axel Legay& Sean Sedwards (2012): Cross-entropy optimisation of importancesampling
+parameters for statistical model checking . In MadhusudanParthasarathy & Sanjit A. Seshia, editors: CAV,
+LNCS, Springer,Berkeley,California,USA. To appear.
+[23] Cyrille Jegourel, Axel Legay & Sean Sedwards (2012): A Platform for High Performance Statistical Model
+Checking – PLASMA . In Cormac Flanagan & Barbara K¨ onig, editors: TACAS, LNCS, Springer, Tallinn,
+Estonia,doi:10.1007/978-3-642-28756-5 37.
+[24] Sumit Kumar Jha, Edmund M. Clarke, Christopher James La ngmead, Axel Legay, Andr´ e Platzer & Paolo
+Zuliani (2009): A Bayesian Approach to Model Checking Biological Systems . In:CMSB,LNCS5688,
+Springer,pp.218–234,doi:10.1007/978-3-642-03845-7 15.
+[25] Joost-Pieter Katoen, Ivan S. Zapreev, Ernst Moritz Hah n, Holger Hermanns & David N. Jansen (2011):
+The ins and outs of the probabilistic model checker MRMC .Perform. Eval. 68(2), pp. 90–104,
+doi:10.1016/j.peva.2010.04.001.
+[26] Ron Koymans (1990): Specifying Real-Time Properties with Metric Temporal Logi c.Real-Time Systems
+2(4),pp.255–299,doi:10.1007/BF01995674.
+[27] S. Laplante, R. Lassaigne, F. Magniez, S. Peyronnet & M. de Rougemont (2007): Probabilistic abstraction
+formodelchecking: Anapproachbasedonpropertytesting .ACMTCS 8(4),doi:10.1145/1276920.1276922.
+[28] KimGuldstrandLarsen&ArneSkou(1991): BisimulationthroughProbabilisticTesting .Inf.Comput. 94(1),
+pp.1–28,doi:10.1016/0890-5401(91)90030-6.
+[29] Axel Legay, Benoˆ ıt Delahaye & Saddek Bensalem (2010): Statistical Model Checking: An Overview . In:
+RV,LectureNotesinComputerScience 6418,Springer,pp.122–135,doi:10.1007/978-3-642-1661 2-911.
+[30] Jo˜ ao Martins, Andr´ e Platzer & Jo˜ ao Leite (2011): Statistical Model Checking for Distributed Probabilistic -
+Control Hybrid Automata with Smart Grid Applications . In:ICFEM,Lecture Notes in Computer Science
+6991,Springer,pp.131–146,doi:10.1007/978-3-642-2455 9-611.
+[31] Amir Pnueli (1977): The Temporal Logic of Programs . In:FOCS, IEEE Computer Society, pp. 46–57.
+Availableat http://doi.ieeecomputersociety.org/10.1109/SFCS.197 7.32.
+[32] Koushik Sen, Mahesh Viswanathan & Gul Agha (2004): Statistical Model Checking of Black-Box Proba-
+bilistic Systems . In:CAV, LNCS 3114,Springer,pp.202–215,doi:10.1007/11513988 26.
+
+--- Page 15 ---
+136 Statistical Model Checking for Stochastic Hybrid Systems
+[33] Jos´ e M. G. Vilar, Hao Yuan Kueh, Naama Barkai & Stanisla s Leibler (2002): Mechanisms of noise-
+resistance in genetic oscillators .Proceedings of the National Academy of Sciences 99(9), pp. 5988–5992,
+doi:10.1073/pnas.092133899. Availableat http://www.pnas.org/content/99/9/5988.abstract .
+[34] H˚ akanL. S. Younes& Reid G. Simmons(2002): Probabilistic Veriﬁcationof Discrete Event SystemsUsing
+AcceptanceSampling . In:CAV,LNCS 2404,Springer,pp.223–235,doi:10.1007/3-540-456 57-017.
+[35] Paolo Zuliani, Christel Baier & Edmund M. Clarke (2012) :Rare-event veriﬁcation for stochastic hybrid
+systems. In:HSCC, ACM,pp.217–226,doi:10.1145/2185632.2185665.
+[36] Paolo Zuliani, Andr´ e Platzer & Edmund M. Clarke (2010) :Bayesian statistical model checking with appli-
+cationto Simulink/Stateﬂowveriﬁcation . In:HSCC, ACM,pp.243–252,doi:10.1145/1755952.1755987.

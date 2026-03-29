@@ -1,0 +1,177 @@
+--- Page 1 ---
+Uniﬁcation & Sharing in Timed Automata
+Veriﬁcation
+Alexandre David1, Gerd Behrmann2, Kim G. Larsen2, and Wang Yi1
+1Department of Information Technology, Uppsala University , Sweden
+2Department of Computer Science, Aalborg University, Denma rk
+Abstract. We present work on unifying the two main data structures
+involved during reachability analysis of timed automata. W e also present
+result on sharing common elements between states. The exper imental
+evaluations show speedups of up to 60% and memory savings of u p to
+80% compared to previous implementations.
+1 Introduction
+Timed automata (TA) is a popular formalism for modelling rea l-time aspects.
+The distinctive feature of TA is the use of clocks. Clocks are non-negative real
+valued variables, that can be compared and reset, and which i ncrease at identical
+rates during delay transitions. A number of veriﬁcation too ls for TA exist. Like all
+veriﬁcation tools, they suﬀer from the state explosion prob lem. In addition, they
+must deal with the inﬁnite state-space of TA (due to the real v alued clocks). Most
+tools use a pseudo-explicit state-space exploration algor ithm based on zones.
+Zones describe inﬁnite sets of clock valuations, and the sta te-space is represented
+by pairs ( l, Z) called symbolic states containing the current location and the
+zone (more generally, the state-space of a network of TA exte nded with bounded
+integer variables might be represented by triples ( l,ν, Z) containing a location
+vector l, a variable vector νand a zone Z).
+During state-space exploration, it is for reasons of termin ation and eﬃciency
+necessary to keep track of both which symbolic states have be en explored as well
+as which still need to be explored. In this paper we present re sults on unifying
+these two data structures into a common structure. We also pr esent orthogonal
+results on sharing common location vectors, variable vecto rs and zones between
+symbolic states. We will motivate these decisions and evalu ate them through
+experiments in a prototype implementation based on the real -time veriﬁcation
+toolUppaal .
+Related work The sharing approach presented in this paper is similar to th e one
+in [1] for hierarhical coloured Petri nets. Both approaches share similarities with
+BDDs in that common substructures are shared, but avoid the o verhead of the
+ﬁne grained data representation of BDDs. The uniﬁcation has been applied to
+Petri Nets [2] for the purpose of distributed model-checkin g. Our approach aims
+at reducing look-ups in the hash table and eliminating waiti ng states earlier. To
+our knowledge, there has been no work on these issues in the co ntext of TA.
+
+--- Page 2 ---
+2 Uniﬁcation and Sharing
+During state-space exploration, there is a fundamental nee d to maintain two sets
+of symbolic states: States that need to be explored (the wait ing list) and states
+that have been explored (the passed list). States are taken f rom the waiting list,
+compared to the states in the passed list, and if unexplored a dded to the passed
+list while successors are added to the waiting list.
+Since symbolic states are sets of concrete states, it makes s ence to deﬁne
+inclusion between states having the same location and varia ble vector, i.e.,
+(l,ν, Z)⊆(l,ν, Z′) iﬀZ⊆Z′. We say that ( l,ν, Z) is covered by ( l,ν, Z′).
+Three observations are essential for good performance:
+–When determining whether a state shas already been explored by comparing
+it to the passed list, rather than searching for states ident ical to s, we might
+as well look for states covering s.
+–When adding a state sto the waiting list, there is no need to add sif it is
+covered by an existing state.
+–When adding a state sto the passed list or the waiting list, all states covered
+byscan be removed.
+The traditional approach to imple- WL=PL={s0}
+while WL/ne}ationslash=∅do
+s= select and remove state from WL
+ifs|=ϕthen return true
+∀s′:s⇒s′do
+if∀s′′∈PL:s′/ne}ationslash⊆s′′then
+PL=PL∪ {s}
+WL=WL∪ {s}
+endif
+done
+done
+return false
+Fig.1. Explicit state reachability algo-
+rithm. States are inserted into both the
+passed list and the waiting list.menting these operations is to use a hash
+table and deﬁne the hash function on
+the location vector and variable vector,
+but not on the zone. Thus, it is easy to
+ﬁnd states with the same location vector
+and variable vector. This approach has
+a major drawback: It is often the case
+that many states in the waiting list are
+covered by states in the passed list, but
+this is not realized until the states are
+moved from the waiting list to the passed
+list. This enlarges the waiting list, wast-
+ing memory and increasing the cost of
+adding new states. One solution would
+be to move the passed list lookup s.t. states are added to the p assed list and
+the waiting list at the same time, see Fig. 1. Then the waiting list is guaranteed
+to only contain unexplored states. However, this solution i s undesirable: First,
+states in the waiting list are duplicated. Second, although it is not apparent from
+Fig. 1, adding a state sto the passed and waiting lists still requires a partial
+traversal of those data structures in order to eliminate sta tes covered by s.
+Instead we propose to unify the two data structures into a sin gle data struc-
+ture – for lack of a better name we call it the uniﬁed list . When adding a state
+sto the uniﬁed list, it is compared to existing states: If sis covered by any of
+the existing states, then sis not added. Otherwise, all states covered by sare
+removed and sis added. Internally, it is still necessary to keep track of w hich
+states have been explored and when retrieving a state from th e list, it is marked
+
+--- Page 3 ---
+waiting queuereference to state entry
+reference to zonehash tabledouble linked (collision) list
+discrete part (keys)
+zone union (list of keys)
+Fig.2. Implementation of a uniﬁed passed and waiting list.
+as explored, but not actually removed. Figure 2 shows one pos sible implemen-
+tation of the uniﬁed list data structure. A hash table provid es fast access to a
+linked list of zones sharing the same location vector and var iable vector. At the
+same time, a list (ordered either in FIFO or LIFO depending on the desired
+exploration order) of references to unexplored states is ma intained.
+Unifying the passed and waiting lists reduces the number of n eedless states,
+i.e.states covered by previously explored states, stored on the waiting list. It
+does not reduce the amount of memory needed to store each symb olic state. Our
+second proposal is to share common location vectors, variab le vectors, and zones
+among states. This is motivated by the results shown in Tab. 1 . This can be
+implemented by storing location vectors, variable vectors , and zones in diﬀerent
+hash tables. The uniﬁed list then only maintains references (keys) to the elements
+in those hash tables.
+3 Experiments
+We conduct our experiments on development version 3.3.24 of Uppaal on an
+Ultra Sparc II 400MHz with 4GB of memory. This version incorp orates a new ar-
+chitecture and is already twice as fast as the oﬃcial 3.2 vers ion. Here we compare
+results without and with the uniﬁed list structure for an aud io protocol (Audio),
+a TDMA protocol (Dacapo), an engine gear controller (Engine ), a combinatorial
+problem (Cups), a ﬁeld bus communication protocol (diﬀeren t parts BC, Master,
+Table 1. The number of unique location vector, variable vectors and z ones, measured
+in percent for four diﬀerent examples. The lower the number, the more copies of the
+same data there are.
+Model Unique locations Unique variables Unique zones
+Audio 52.7% 25.2% 17.2%
+Dacapo 4.3% 26.4% 12.7%
+Fischer4 9.9% 0.6% 64.4%
+Bus coupler 7.2% 8.7% 1.3%
+
+--- Page 4 ---
+Table 2. Experimental results for 8 examples without uniﬁcation, wi th uniﬁcation,
+and with uniﬁcation and sharing.
+Model Before Uniﬁcation Unication & Sharing
+Audio ≤0.5s 2M ≤0.5s 2M ≤0.5s 2M
+Engine ≤0.5s 3M ≤0.5s 4M ≤0.5s 5M
+Dacapo 3s 7M 3s 5M 3s 5M
+Cups 43s 116M 37s 107M 36s 26M
+BC 428s 681M 359s 641M 345s 165M
+Master 306s 616M 277s 558M 267s 153M
+Slave 440s 735M 377s 645M 359s 151M
+Plant 19688s >4G 9207s 2771M 8513s 1084M
+and Slave), and a production plant with three batches. We ref er to the Uppaal
+web-site for references to these examples.
+Table 2 shows time and space requirements to generate the who le state-space,
+except for cups where a reachability property is used becaus e the whole state
+space is too large. The result >4Gmeans the veriﬁer crashed because it ran
+out of memory. In all examples, zones were represented using the DBM data
+structure, and active clock reduction was enabled. In the fo ur last examples, the
+hash table size of the passed list and waiting list was enlarg ed to 273819 (using
+the default size doubles the veriﬁcation time). The uniﬁed l ist implementation
+automatically resizes the hash table and does not suﬀer from this problem.
+Focusing on the experiments with uniﬁcation and without sha ring, we see
+an increase in speed and a slight reduction in memory usage. T his is due to
+not wasting space on storing states in the waiting list, that are not going to be
+explored anyway and due to keeping a list of zones having the s ame location
+and variable vector. The latter is also responsible for the s peedup. This is in
+particular the case in the plant example, which has 9 clocks a nd 28 integer vari-
+ables. Focusing on the experiments with sharing, we see a sig niﬁcant reduction
+in memory usage of up to 80%. We also observe a slight speedup, which we
+expect is due to the smaller memory footprint - this seems to c ompensate for
+the computational overhead caused by maintaining extra has h tables. For small
+examples, the results are identical for all versions. The re sults scale with the size
+of the models, in particular the sharing property of the data holds. In total, we
+observe a speedup of up to 60%.
+Acknowledgments go to Ahiable Antoinette and Johan Bengtsson.
+References
+[1] S. Christensen and L.M. Kristensen. State space analysi s of hierarchical coloured
+petri nets. In B. Farwer, D.Moldt, and M-O. Stehr, editors, Proceedings of
+PNSE’97 , number 205, pages 32–43, Hamburg, Germany, 1997.
+[2] Gianfranco F. Ciardo and David M. Nicol. Automated paral lelization of discrete
+state-space generation. In Journal of Parallel and Distributed Computing , vol-
+ume 47, pages 153–167. ACM, 1997.

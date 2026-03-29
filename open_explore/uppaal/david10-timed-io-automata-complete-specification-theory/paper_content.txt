@@ -1,0 +1,1251 @@
+--- Page 1 ---
+Aalborg Universitet
+Timed I/O automata
+a complete specification theory for real-time systems
+David, Alexandre; Larsen, Kim Guldstrand; Nyman, Ulrik; Legay, Axel; Wasowski, Andrzej
+Published in:
+Proceedings of the 13th ACM international conference on Hybrid systems: computation and control
+DOI (link to publication from Publisher):
+10.1145/1755952.1755967
+Publication date:
+2010
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+David, A., Larsen, K. G., Nyman, U., Legay, A., & Wasowski, A. (2010). Timed I/O automata: a complete
+specification theory for real-time systems. In Proceedings of the 13th ACM international conference on Hybrid
+systems: computation and control : HSCC '10 Association for Computing Machinery (ACM).
+https://doi.org/10.1145/1755952.1755967
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: March 29, 2026
+
+--- Page 2 ---
+Timed I/O Automata:
+A Complete Speciﬁcation Theory for Real-time Systems
+Alexandre David
+Computer Science
+Aalborg University, Denmark
+adavid@cs.aau.dkKim G. Larsen
+Computer Science
+Aalborg University, Denmark
+kgl@cs.aau.dkAxel Legay
+INRIA/IRISA
+Rennes Cedex, France
+axel.legay@irisa.fr
+Ulrik Nyman
+Computer Science
+Aalborg University, Denmark
+ulrik@cs.aau.dkAndrzej W ˛ asowski
+IT University
+Copenhagen, Denmark
+wasowski@itu.dk
+ABSTRACT
+A specication theory combines notions of specications and
+implementations with a satisfaction relation, a renement
+relation and a set of operators supporting stepwise design.
+We develop a complete specication framework for real-time
+systems using Timed I/O Automata as the specication for-
+malism, with the semantics expressed in terms of Timed
+I/O Transition Systems. We provide constructs for rene-
+ment, consistency checking, logical and structural composi-
+tion, and quotient of specications { all indispensable ingre-
+dients of a compositional design methodology.
+The theory is implemented on top of an engine for timed
+games, Uppaal-tiga , and illustrated with a small case study.
+Categories and Subject Descriptors
+F.3.1 [ Specifying and Verifying and Reasoning about
+Programs ]
+General Terms
+Theory, Verication
+1. INTRODUCTION
+Many modern systems are big and complex assemblies of
+numerous components. The components are often designed
+by independent teams, working under a common agreement
+on what the interface of each component should be. Con-
+sequently, compositional reasoning [20], the mathematical
+foundations of reasoning about interfaces, is an active re-
+search area. It supports inferring properties of the global
+implementation, or designing and advisedly reusing compo-
+nents.
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+HSCC’10, April 12–15, 2010, Stockholm, Sweden.
+Copyright 2010 ACM 978-1-60558-955-8/10/04 ...$10.00.In a logical interpretation, interfaces are specications and
+components that implement an interface are understood as
+models/implementations. Specication theories should sup-
+port various features including (1) renement , which allows
+to compare specications as well as to replace a specica-
+tion by another one in a larger design, (2) logical conjunc-
+tion expressing the intersection of the set of requirements
+expressed by two or more specications, (3) structural com-
+position , which allows to combine specications, and (4) last
+but not least, a quotient operator that is dual to structural
+composition. The latter is crucial to perform incremental
+design. Also, the operations have to be related by compo-
+sitional reasoning theorems, guaranteeing both incremental
+design and independent implementability [13].
+Building good specication theories is the subject of in-
+tensive studies [10, 12]. One successfully promoted direction
+is the one of interface automata [12, 13, 22, 28]. In this
+framework, an interface is represented by an input/output
+automaton [26], i.e. an automaton whose transitions are
+typed with input and output . The semantics of such an
+automaton is given by a two-player game: the input player
+represents the environment, and the output player represents
+the component itself. Contrary to the input/output model
+proposed by Lynch [26], this semantic oers an optimistic
+treatment of composition: two interfaces can be composed
+if there exists at least one environment in which they can
+interact together in a safe way. In [15], a timed extension
+of the theory of interface automata has been introduced,
+motivated by the fact that time can be a crucial parameter
+in practice, for example in embedded systems. While [15]
+focuses mostly on structural composition, in this paper we
+go one step further and build what we claim to be the rst
+game-based specication theory for timed systems.
+Component Interface specication and consistency . We rep-
+resent specications by timed input/output transition sys-
+tems [21], i.e., timed transitions systems whose sets of dis-
+crete transitions are split into Input and Output transitions.
+Contrary to [15] and [21] we distinguish between implemen-
+tations and specications by adding conditions on the mod-
+els. This is done by assuming that the former have xed
+timing behaviour and they can always advance either by pro-
+ducing an output or delaying. We also provide a game-based
+methodology to decide whether a specication is consistent,
+i.e. whether it has at least one implementation. The latter
+
+--- Page 3 ---
+reduces to deciding existence of a strategy that despite the
+behaviour of the environment will avoid states that cannot
+possibly satisfy the implementation requirements.
+Renement and logical conjunction . A specication S1re-
+nes a specication S2i it is possible to replace S2with
+S1in every environment and obtain an equivalent system.
+In the input/output setting, checking renement reduces to
+deciding an alternating timed simulation between the two
+specications [12]. In our timed extension, checking such
+simulation can be done with a slight modication of the the-
+ory proposed in [6]. As implementations are specications,
+Renement coincides with the satisfaction relation. Our re-
+nement operator has the model inclusion property , i.e.,S1
+renesS2i the set of implementations satised by S1is
+included in the set of implementations satised by S2. We
+also propose a logical conjunction operator between speci-
+cations. Given two specications, the operator will compute
+a specication whose implementations are satised by both
+operands. The operation may introduce error states that do
+not satisfy the implementation requirement. Those states
+are pruned by synthesizing a strategy for the component to
+avoid reaching them. We also show that conjunction co-
+incides with shared renement, i.e., it corresponds to the
+greatest specication that renes both S1andS2.
+Structural composition . Following [15], specications inter-
+act by synchronizing on inputs and outputs. However, like
+in [21, 26], we restrict ourselves to input-enabled systems.
+This makes it impossible to reach an immediate deadlock
+state, where a component proposes an output that cannot
+be captured by the other component. Unlike in [21, 26],
+input-enabledness, shall not be seen as a way to avoid error
+states. Indeed, such error states can be designated by the
+designer as states which do not warrant desirable temporal
+properties. Here, in checking for compatibility of the com-
+position of specications, one tries to synthesize a strategy
+for the inputs to avoid the error states, i.e., an environment
+in which the components can be used together in a safe way.
+Our composition operator is associative and the renement
+is a precongruence with respect to it.
+Quotient . We propose a quotient operator dual to composi-
+tion. Intuitively, given a global specication Tof a compos-
+ite system as well as the specication of an already realized
+component S, the quotient will return the most liberal spec-
+icationXfor the missing component, i.e. Xis the largest
+specication such that Sin parallel with XrenesT.
+Implementation . Our methodology has been implemented
+as an extension of Uppaal-tiga [3]. It builds on timed in-
+put/output automata, a symbolic representation for timed
+input/output transition systems. We show that conjunc-
+tion, composition, and quotienting are simple product con-
+structions allowing for both consistency and compatibility
+checking to be solved using the zone-based algorithms for
+synthesizing winning strategies in timed games [27, 8]. Fi-
+nally, renement between specications is checked using a
+variant of the recent ecient game-based algorithm of [6].
+Example . Universities operate under increasing pressure
+and competition. One of the popular factors used in de-
+termining the level of national funding is that of societal
+impact, which is approximated by the number of patent ap-
+plications led. Clearly one would expect that the number
+(and size) of grants given to a university has a (positive)
+inuence on the amount of patents led for.
+grant patent
+patent!grant?grant?grant?
+u>2u<=2
+u<=20grant?u=0
+patent!u=0Specication
+Figure 1: Overall specication for a University .
+Figure 2 gives the insight as to the organisation of a very
+small University comprising three components Administra-
+tion,Machine and Researcher . The Adminsitration is respon-
+sible for interaction with society in terms of aquiring grants
+(grant ) and ling patents ( patent ). However, the other com-
+ponents are necessary for patents to be obtained. The Re-
+searcher will produce the crucial publications ( pub) within
+given time intervals, provided timely stimuli in terms of cof-
+fee ( cof) or tea ( tea). Here coee is clearly prefered over
+tea. The beverage is provided by a Machine , which given a
+coin ( coin) will provide either coee or tea within some time
+interval, or even the possibility of free tea after some time.
+In Figure 2 the three components are specications, each
+allowing for a multitude of incomparable, actual implemen-
+tations diering with respect to exact timing behavior ( e.g.
+at what time are publications actually produced by the Re-
+searcher given a coee) and exact output produced ( e.g.does
+theMachine oer tea or coee given a coin).
+As a rst property, we may want to check that the com-
+position of the three components comprising our University
+is compatible: we notice that the specication of the Re-
+searcher contains an Errstate, essentially not providing any
+guarantees as to what behaviour to expect if tea is oered
+at a late stage. Now, compatibility checking amounts sim-
+ply to deciding whether the user of the University (i.e.the
+society) has such a strategy for using it that the Researcher
+will avoid ever entering this error state.
+As a second property, we may want to show that the com-
+position of arbitrary implementations conforming to respec-
+tive component specication is guaranteed to satisfy some
+overall specication. Here Figure 1 provides an overall spec-
+ication (essentially saying that whenever grants are given
+to the University suciently often then patents are also guar-
+anteed within a certain upper time-bound). To avoid clut-
+ter, we have omitted looping guard free output edges for
+the three actions ( coin,cofand tea) which are present in all
+the states. Checking this property amounts to establishing
+a renement between the composition of the three compo-
+nent specications and the overall specication. We leave
+the reader in suspense until the concluding section before
+we reveal whether the renement actually holds or not!
+2. SPECIFICATIONS & REFINEMENT
+Throughout the presentation of our specication theory,
+we continuously switch the mode of discussion between the
+semantic and syntactic levels. In general, the formal frame-
+work is developed for the semantic objects, Timed I/O Tran-
+sition Systems (TIOTSs in short) [18], and enriched with
+syntactic constructions for Timed I/O Automata (TIOAs),
+which act as a symbolic and nite representation for TIOTSs.
+
+--- Page 4 ---
+coin cof
+tea
+pubgrant patent
+pub?coin!patent!grant?
+grant?grant?
+z = 0
+z=0z<=2
+z<=2pub?
+pub?pub?
+grant?z=0Administration
+cof! tea!
+coin?coin?y>=2
+y<=6tea!
+y=0
+y>=4 Machine
+tea?
+tea?
+pub!
+cof?cof?
+pub!
+tea?pub!tea?cof?x>15
+x>=2
+x>=4ERR
+x<=4x<=8
+cof?x=0x=0
+tea?x<=15x=0
+x=0 Researcher
+Figure 2: Specications for and interconnections between the three main components of a modern University :
+Administration ,Machine and Researcher .
+However, it is important to emphasize that the theory for
+TIOTSs does not rely in any way on the TIOAs representa-
+tion { one can build TIOTSs that cannot be represented by
+TIOAs, and the theory remains sound for them (although
+we do not know how to manipulate them automatically).
+Definition 1.A Timed I/O Transition System (TIOTS)
+is a tupleS= (StS;s0;S;  !S), where StSis an innite set
+of states,s02St is the initial state, S= S
+iS
+ois a nite
+set of actions partitioned into inputs ( S
+i) and outputs ( S
+o)
+and  !S:StS(S[R0)StSis a transition relation.
+We writesa !Ss0instead of (s;a;s0)2  !Sand usei?,o!
+anddto range over inputs, outputs and R0respectively.
+In addition any TIOTS satises the following:
+[time determinism] whenever sd !Ss0andsd !Ss00thens0=s00
+[time reexivity] s0 !Ssfor alls2StS
+[time additivity] for all s;s002StSand alld1;d22R0we
+havesd1+d2     !Ss00isd1  !Ss0ands0d2  !Ss00for ans02StS
+In the interest of simplicity, we work with deterministic
+TIOTSs: for all a2[R0wheneversa !Ss0andsa !Ss00,
+we haves0=s00(determinism is required not only for timed
+transitions but also for discrete transitions). In the rest of
+the paper, we often drop the adjective 'deterministic'.
+For a TIOTS Sand a set of states X, write
+predS
+a(X) =n
+s2StS9s02X: sa !s0o
+(1)
+for the set of all a-predecessors of states in X. We write
+ipredS(X) for the set of all input predecessors, and opredS(X)
+for all the output predecessors of X:
+ipredS(X) =S
+a2S
+ipredS
+a(X) (2)
+opredS(X) =S
+a2SopredS
+a(X): (3)
+Also postS
+[0;d0](s) is the set of all time successors of a state s
+that can be reached by delays smaller than d0:
+postS
+[0;d0](s) =n
+s02StS9d2[0;d0]:sd !Ss0o
+(4)
+We shall now introduce a nite symbolic representation
+for TIOTSs in terms of Timed I/O Automata (TIOAs). Let
+Clkbe a nite set of clocks . A clock valuation over Clkis
+a mapping u2[Clk7!R0]. We write u+dto denote avaluation such that for any clock rwe have (u+d)(r) =x+d
+iu(r) =x. Givend2R0, we write u[r7!0]r2cfor a
+valuation which agrees with uon all values for clocks not in
+c, and returns 0 for all clocks in c. Let opwill be the set of
+relational operators: op=f<;;>;g. Aguard over Clkis
+a nite conjunction of expressions of the form xn, where
+is a relational operator and n2N. We writeB(Clk) for
+the set of guards over Clkusing operators in the set op. We
+also write P(X) for the powerset of a set X.
+Definition 2.ATimed I/O Automaton (TIOA) is a tu-
+pleA= (Loc;q0;Clk;E;Act; Inv)where Loc is a nite set of
+locations,q02Loc is the initial location, Clk is a nite set
+of clocks,ELocActB(Clk)P(Clk)Loc is a set of
+edges, Act =ActiActois a nite set of actions, partitioned
+into inputs and outputs respectively, and Inv :Loc7!B(C)
+is a set of location invariants.
+If (q;a;';c;q0)2Eis an edge, then qis an initial location,
+ais an action label, 'is a constraint over clocks that must
+be satised when the edge is executed, cis a set of clocks
+to be reset, and q0is a target location. Examples of TIOAs
+have been proposed in the introduction.
+We dene the semantic of a TIOA A=(Loc;q0;Clk;E;Act;
+Inv) to be a TIOTS [ [ A] ]sem= (Loc(Clk7!R0);(q0;0);
+Act;  !), where 0is a constant function mapping all clocks
+to zero, and  !is the largest transition relation generated
+by the following rules:
+Each (q;a;';c;q0)2Egives rise to ( q;u)a !(q0;u0) for
+each clock valuation u2[Clk7!R0] such thatuj='
+andu0=u[r7!0]r2candu0j=Inv(q0).
+Each location q2Locwith a valuation u2[Clk7!R0]
+gives rise to a transition ( q;u)d !(q;u+d) for each de-
+layd2R0such thatu+dj=Inv(q).
+The TIOTSs induced by TIOAs satisfy the axioms 1{3 of
+Denition 1. In order to guarantee determinism, the TIOA
+has to be deterministic: for each action{location pair only
+one transition can be enabled at the same time. This is
+a standard check. We assume that all TIOAs below are
+deterministic.
+Having introduced a syntactic representation for TIOTSs,
+we now turn back to the semantic level in order to dene the
+basic concepts of implementation and specication:
+
+--- Page 5 ---
+Definition 3.A TIOTSSis aspecication if each of its
+statess2StSis input-enabled: 8i?2S
+i:9s02StS:si?  !Ss0.
+The assumption of input-enabledness, also seen in many in-
+terface theories [25, 17, 30, 33, 29], reects our belief that an
+input cannot be prevented from being sent to a system, but
+it might be unpredictable how the system behaves after re-
+ceiving it. Input-enbledness encourages explicit modeling of
+this unpredictability, and compositional reasoning about it;
+for example, deciding if an unpredictable behaviour of one
+component induces unpredictability of the entire system.
+It is easy to check if a TIOA induces an input-enabled
+TIOTS. Thus we dene Timed Input/Output Specication
+Automata ( Specication Automata in short) to be TIOAs,
+whose semantic TIOTS is a specication. In practice tools
+can interpret absent input transitions in at least two reason-
+able ways. First, they can be interpreted as ignored inputs,
+corresponding to location loops in the automaton. Second,
+they may be seen as unavailable ('blocking') inputs, which
+can be achieved by assuming implicit transitions to a des-
+ignated error state. Later, in Section 4 we will call such a
+state strictly undesirable and give a rationale for this name.
+The role of specications in a specication theory is to
+abstract, or underspecify, sets of possible implementations.
+Implementations are concrete executable ralizations of sys-
+tems. We will assume that implementations of timed sys-
+tems have xed timing behaviour (outputs occur at pre-
+dictable times) and systems can always advance either by
+producing an output or delaying. This is formalized using
+axioms of output-urgency and independent-progress below:
+Definition 4.An implementation P= (StP;p0;P;  !P)
+is a specication such that for each state p2StPwe have:
+[output urgency]8p0;p002StPifpo!  !Pp0andpd !Pp00then
+d= 0(and consequently, due to determinism p=p00)
+[independent progress] either (8d0:pd !P)or
+9d2R0:9o!2P
+o:pd !p0andp0o!  !P.
+Independent progress is one of the central properties in
+our theory: it states that an implementation cannot ever
+get stuck in a state where it is up to the environment to
+induce progress. So in every state there is either an output
+transition (which is controlled by the implementation) or an
+ability to delay until an output is possible. Otherwise a state
+can delay indenitely. An implementation cannot wait for
+an input from the environment without letting time pass.
+A notion of renement allows to compare two specica-
+tions as well as to relate an implementation to a specica-
+tion. Renement should satisfy the following substitutabil-
+itycondition. If PrenesQ, then it should be possible
+to replaceQwithPin every environement and obtain an
+equivalent system.
+We study these kind of properties in later sections. It is
+well known from the literature [12, 13, 6] that in order to
+give these kind of guarantees a renement should have the
+avour of alternating (timed) simulation [2].
+Definition 5.A specication S= (StS;s0;;  !S)re-
+nes a specication T= (StT;t0;;  !T), writtenST, i
+there exists a binary relation RStSStTcontaining (s0;t0)
+such that for each pair of states (s;t)2Rwe have:
+1. whenever ti?  !Tt0for somet02StTthensi?  !Ss0and
+(s0;t0)2Rfor somes02StS
+tea coin cof
+cof!
+coin?coin?y>=2
+y<=5tea!
+y=0
+y>=4Machine2
+Figure 3: A coee machine specication that renes
+the coee machine in Figure 2.
+2. whenever so!  !Ss0for somes02StSthento!  !Tt0and
+(s0;t0)2Rfor somet02StT
+3. whenever sd !Ss0ford2R0thentd !Tt0and(s0;t0)2
+Rfor somet02StT
+A specication automaton A1renes another specication
+automaton A2, writtenA1A2, i[ [A1] ]sem[ [A2] ]sem.
+It is easy to see that the renement is reexive and tran-
+sitive, so it is a preorder on the set of all specications.
+Renement can be checked for specication automata by re-
+ducing the problem to a specic renement game, and using
+a symbolic representation to reason about it. We discuss
+details of this process in Section 6. Figure 3 shows a cof-
+fee machine that is a renement of the one in Figure 2. It
+has been rened in two ways: One output transition has
+been completely dropped and one state invariant has been
+tightened.
+Since our implementations are a subclass of specications,
+we simply use renement as an implementation relation:
+Definition 6.An implementation Psatises a specica-
+tionS, denotedPsatSiPS. We write [ [S] ]modfor the
+set of all implementations of S, so[ [S] ]mod=fPjPsatSg.
+From a logical perspective, specications are like formulae,
+and implementations are their models. This analogy leads
+us to a classical notion of consistency, as existence of models.
+Definition 7.A specication Sis consistent, if there ex-
+ists an implementation Psuch thatPsatS.
+All specication automata in Figure 2 are consistent. An
+example of an inconsistent specication can be found in Fig-
+ure 4. Notice that the invariant in the second state ( x4)
+is stronger than the guard ( x5) on the cofedge.
+We also dene a soundly stricter, more syntactic, notion
+of consistency, which requires that all states are consistent:
+Definition 8.A specication Sislocally consistent , i
+every state s2StSallows independent progress.
+Theorem 1.Every locally consistent specication is con-
+sistent in the sense of Denition 7.
+The opposite implication in the theorem does not hold
+as we shall see later. Local consistency, or independent
+
+--- Page 6 ---
+tea coin cof
+coin?
+cof!x <= 4
+coin?x >= 5Inconsistent
+Figure 4: An inconsistent specication.
+progress, can be checked for specication automata estab-
+lishing local consistency for the syntactic representation.
+Technically it suces to check for each location that if the
+supremum of all solutions of every location invariant exists
+then it satises the invariant itself and allows at least one
+enabled output transition.
+Prior specication theories for discrete time [22] and prob-
+abilistic [7] systems reveal two main requirements for a de-
+nition of implementation. These are the same requirements
+that are typically imposed on a denition of a model as a spe-
+cial case of a logical formula. First, implementations should
+be consistent specications (logically, models correspond to
+some consistent formulae). Second, implementations should
+be most specied (models cannot be rened by non-models),
+as opposed to proper specications, which should be under-
+specied . For example, in propositional logics, a model is
+represented as a complete consistent term. Any implicant
+of such a term is also a model (in propositional logics, it is
+actually equivalent to it).
+Our denition of implementation satises both require-
+ments, and to the best of our knowledge, is the rst exam-
+ple of a proper notion of implementation for timed specica-
+tions. As the renement is reexive we get PsatPfor any
+implementation and thus each implementation is consistent
+as per Denition 7. Furthermore each implementation can-
+not be rened anymore by any underspecied specications:
+Theorem 2.Any locally consistent speciciation Sren-
+ing an implementation Pis an implementation as per Def. 4.
+Just like the specications, we represent implementations
+syntactically using Timed I/O Automata. A TIOA Pis an
+implementation automaton if its underlying TIOTS [ [ P] ]sem
+is an implementation. To decide whether a specication
+automaton is an implementation automaton, one checks for
+output urgency and independent progress.
+We conclude the section with the rst major theorem. Ob-
+serve that every preorder is intrinsically complete in the
+following sense: STi for every smaller element PS
+alsoPT. This means that a renement of two specica-
+tions coincides with inclusion of sets of all the specications
+rening each of them. However, since out of all specications
+only the implementations correspond to real world objects,
+another completeness question is more relevant: does the re-
+nement coincide with the inclusion of implementation sets?
+This property, which does not hold for any preorder in gen-
+eral, turns out to hold for our renement:
+Theorem 3.For any two locally consistent specications
+S,Twe have that STi[ [S] ]mod[ [T] ]mod.
+The restriction of the theorem to locally consistent speci-
+cations is not a serious one. As we shall see, any consistent
+tea coin cof
+cof! tea!
+coin?coin?
+y<=6y<=0coin?
+y=0y=0
+y>=4Partially Inconsistent
+Figure 5: A partially inconsistent specication.
+specication can be transformed into a locally consistent one
+preserving the set of implementations.
+3. CONSISTENCY AND CONJUNCTION
+Animmediate error occurs in a state of a specication
+if the specication disallows progress of time and output
+transitions in a given state { such a specication will break if
+the environment does not send an input. For a specication
+Swe dene the set of immediate error states errSStSas:
+errS=
+s(9d:s6d  !) and8d8o!8s0:sd !s0impliess06o!  !	
+It follows that no immediate error states can occur in im-
+plementations, or in locally consistent specications.
+In general, immediate error states in a specication do
+not necessarily mean that a specication cannot be imple-
+mented. Fig. 5 shows a partially inconsistent specication, a
+version of the coee machine that becomes inconsistent if it
+ever outputs tea. The inconsistency can be possibly avoided
+by some implementations, who would not implement delay
+or output transitions leading to it. More precisely an im-
+plementation will exist if there is a strategy for the output
+player in a safety game to avoid errS. In order to be able to
+build on existing formalizations [8] we will consider a dual
+reachability game, asking for a strategy of the input player
+to reach errS. We rst dene a timed predecessor operator
+[14, 27, 8], which gives all the states that can delay into X
+while avoiding Y:
+cPredS
+t(X;Y ) =fs2StS9d02R0:9s02X:
+sd0  !Ss0and postS
+[0;d0](s)Yg(5)
+Now the controllable predecessors operator is:
+(X) =errS[cPredS
+t(X[ipredS(X);opredS(X)) (6)
+and the set of all inconsistent states consS(i.e. the states for
+which the environment has a winning strategy) is dened as
+the least xpoint of :consS=(consS), which is guaran-
+teed to exist by monotonicity of and completeness of the
+powerset lattice due to the theorem of Knaster and Tarski
+[31]. For transitions systems enjoying nite symbolic rep-
+resentations, automata specications included, the xpoint
+computation converges after a nite number of iterations [8].
+Now we dene the set of consistent states, consS, simply
+as the complement of consS. We obtain it by complement-
+ing the result of the above xpoint computation for consS.
+
+--- Page 7 ---
+For the purpose of proofs it is more convenient to formal-
+ize the dual operator, say , whose greatest xpoint directly
+and equivalently characterizes consS. While least xpoints
+are convenient for implementation of on-the-y algorithms,
+characterizations with greatest xpoint are useful in proofs
+as they allow use of coinduction. Unlike induction on the
+number of iterations, coinduction is a sound proof princi-
+ple without assuming nite symbolic representation for the
+transition system (and thus nite convergence of the xpoint
+computation). We avoid discussing in details here, since
+it is a mere technicality.
+Theorem 4.A specication S= (StS;sS
+0;S;  !S)is con-
+sistent is02consS.
+The set of (in)consistent states can be computed for timed
+games, and thus for specication automata, using controller
+synthesis algorithms [8]. We discuss it briey in Section 6.
+The inconsistent states can be pruned from a consistent
+Sleading to a locally consistent specication. Pruning is
+applied in practice to decrease the size of specications.
+Theorem 5.For a consistent specication S= (StS;sS
+0;
+S;  !S)andS= (consS;s0;S;  !S), where  !S=  !S\
+(consS(S[R0)consS),Sis locally consistent and
+[ [S] ]mod=[ [S] ]mod.
+For specication automata pruning is realized by apply-
+ing a controller synthesis algorithm, obtaining a maximum
+winning strategy, which is then presented as a specication
+automaton itself.
+Consistency guarantees realizability of a single specica-
+tion. It is of further interest whether several specications
+can be simultaneously met by the same component, with-
+out reaching error states of any of them. We formalize this
+notion by dening a logical conjunction for specications.
+We dene a product rst. Let S= (StS;sS
+0;;  !S) and
+T= (StT;sT
+0;;  !T) be two specications. A product of
+SandT, writtenST, is dened to be a specication
+(StSStT;(sS
+0;sT
+0);;  !), where the transition relation   !
+is the largest relation generated by the following rule:
+sa !Ss0ta !Tt0a2[R0
+(s;t)a !(s0;t0)(7)
+In general, a result of the product may be locally incon-
+sistent, or even inconsistent. To guarantee consistency we
+apply a consistency check to the result, checking if ( s0;t0)2
+consSTand, possibly, pruning the inconsistent parts:
+Definition 9.For specications SandTover the same
+alphabet, such that STis consistent, dene S^T= (ST).
+Clearly conjunction is commutative. Associativity of con-
+junction follows from associativity of the product, and the
+fact that pruning does not remove any implementations (The-
+orem 5). Conjunction is also the greatest lower bound for
+lcoally consistent specications with respect to renement:
+Theorem 6.For any locally consistent specications S,
+TandUover the same alphabet:
+1.S^TSandS^TT
+2.(US)and(UT)impliesU(S^T)
+3.[ [S^T] ]mod= [ [S] ]mod\[ [T] ]mod
+4.[ [(S^T)^U] ]mod= [ [S^(T^U)] ]modWe turn our attention to syntactic representations again.
+Consider two TIOA A1= (Loc1;q1
+0;Clk1;E1;Act1;Inv1) and
+A2= (Loc2;q2
+0;Clk2;E2;Act2;Inv2) with Act1
+i=Act2
+iand
+Act1
+o=Act2
+o. Their conjunction, denoted A1^A2, is the
+TIOAA= (Loc;q0;Clk;E;Act1;Inv) given by: Loc=Loc1
+Loc2,q0= (q1
+0;q2
+0),Clk=Clk1]Clk2,Inv((q1;q2)) = Inv(q1)^
+Inv(q2). The set of edges Eis dened by the following rule:
+If (q1;a;' 1;c1;q0
+1)2E1and (q2;a;' 2;c2;q0
+2)2E2this
+gives rise to (( q1;q2);a;' 1^'2;c1[c2;(q0
+1;q0
+2))2E
+It might appear as if two systems can only advance on an
+input if both are ready to receive an input, but because of
+input enabledness this is always the case.
+The following theorem lifts all the results from the TIOTSs
+level to the symbolic representation level:
+Theorem 7.LetA1andA2be two speciation automata,
+we have [ [A1] ]sem^[ [A2] ]sem=[ [A1^A2] ]sem.
+4. COMPATIBILITY & COMPOSITION
+We shall now dene structural composition , also called
+parallel composition , between specications. We follow the
+optimistic approach of [15], i.e., two specications can be
+composed if there exists at least one environment in which
+they can work together . Parallel composition is made of three
+main steps. First, we compute the classical product between
+timed specications [21], where components synchronize on
+common inputs/outputs. The second step is to identify in-
+compatible states in the product, i.e., states in which the
+two components cannot work together. The last step is to
+seek for an environment that can avoid such error states,
+i.e., an environment in which the two components can work
+together in a safe way. Before going further, we would like
+to contrast the structural and logical composition.
+The main use case for parallel composition is in fact dual
+to the one for conjunction. Indeed, as observed in the pre-
+vious section, conjunction is used to reason about internal
+properties of an implementation set, so if a local inconsis-
+tency arises in conjunction we limit the implementation set
+to avoid it in implementations. A pruned specication can
+be given to a designer, who chooses a particular implemen-
+tation satisfying conjoined requirements. A conjunction is
+consistent if the output player can avoid inconsistencies, and
+its main theorem states that its set of implementation co-
+incides with the intersection of implementation sets of the
+conjuncts.
+In contrast, parallel composition is used to reason about
+external use of two (or more) components. We assume an
+independent implementation scenario, where the two com-
+posed components are implemented by independent design-
+ers. The designer of any of the environment components can
+only assume that the composed implementations will adhere
+to original specications being composed. Consequently if
+an error occurs in parallel composition of the two speci-
+cations, the environment is the only entity that is possibly
+in power to avoid it. Thus, following [12], we say that a
+composition is useful , and composed components are com-
+patible , if the input player has a strategy in the safety game
+to avoid error states in the composition. The main the-
+orem will state that if an environment is compatible with
+a useful specication, it is also compatible with any of its
+renements, including implementations.
+
+--- Page 8 ---
+We now propose our formal denition for parallel compo-
+sition. We consider two specications S= (StS;sS
+0;S;  !S)
+andT= (StT;sT
+0;T;  !T) and we say that they are compos-
+able i their output alphabets are disjoint S
+o\T
+o=;.
+As we did for conjunction, before dening the parallel
+composition we rst introduce a suitable notion of product .
+The parallel product ofSandT, which roughly corresponds
+to the one dened on timed input/output automata [21], is
+the specication S
+T= (StS
+StT;(sS
+0;sT
+0);S
+T;  !S
+T),
+where the alphabet S
+T= S[Tis partitioned in inputs
+and outputs in the following way: SjT
+i= (S
+inT
+o)[(T
+in
+S
+o), S
+T
+o= S
+o[T
+o.
+The transition relation of the product is the largest rela-
+tion generated by the following rules:
+sa !Ss0a2SnT
+(s;t)a !SjT(s0;t)[indep-l ]
+ta !Tt0a2TnS
+(s;t)a !SjT(s;t0)[indep-r ]
+sa !Ss0ta !Tt0a2SjT
+i
+(s;t)a !SjT(s0;t0)[sync-in ]
+sd !Ss0td !Tt0d2R0
+(s;t)d !SjT(s0;t0)[delay ]
+sa !Ss0ta !Tt0a2(S
+i\T
+o)[(S
+o\S
+i)
+(s;t)a !SjT(s0;t0)[sync-io ]
+Observe that if we compose to locally-consistent speci-
+cations using the above product rules, then the resulting
+product is also locally consistent. Since we normally work
+with consistent specications in a development process, im-
+mediate errors as dened for conjunction are not applicable
+to parallel composition. Moreover, unlike [15], our speci-
+cations are input-enabled, and there is no way to dene an
+error state in where a component can issue an output that
+cannot be captured by the other component.
+The absence of \model-related" error states allows us to
+dene more elaborated errors, specied by the designer.
+Those cannot easily be considered in [15]. We now give
+more details. When reasoning about parallel composition
+we use model specic error states, i.e., error states indi-
+cated by the designer. These error states could arise in sev-
+eral ways. First, a specication may contain an error state
+in order to model unavailable inputs in presence of input-
+enabledness (transitions under inputs that the system is not
+ready to receive, should target such an incompatible state.
+Typically universal states are used for the purpose, to signal
+unpredictability of the behaviour after receiving an unantic-
+ipated input). Second, a temporal property written in some
+logic such as TCTL [1] can be interpreted over our speci-
+cation, which when analyzed by a model checker, will result
+in partitioning of the states into good ones (say satisfying
+the property) and bad ones (violating the property). Third,
+an incompatibility in a composition can be propagated from
+incompatibilities in the composed components. It should
+alway be the case that a state in a product ( s;t) is an in-
+compatible state if sis an incompatible state in S, ortis an
+incompatible state in T.
+Formally we will model all these sources of incompatibility
+as a set of error states. We will call this set of states, strictlyundesirable states and refer to it as undesirableS. In the rest
+of the section, to simplify the presentation, we will include
+the set of strictly undesirable states as a part of specication
+denition.
+We will say that a specication is useful if there exists an
+environment Ethat can avoid reaching a strictly undesirable
+state whathever the specication will do. The environment
+Eis said to be compatible withS. We are now ready to
+dene structural composition.
+We now propose to compute the set of useful states of S
+using a xpoint characterisation. We consider a variant of
+controllable time predecessor operator, where the roles of
+the inputs and outputs are reversed:
+!(X) =undesirableS[cPred t(X[ipred(X);opred (X)) (8)
+Now the set of useless states usefulScan be characterized
+as the least xpoint of !, so usefulS!(usefulS). Again
+existance and uniqueness of this xpoint is warrented by
+monotonicity of !. The set of useful states is dened as the
+complement: usefulS=usefulS.
+Theorem 8.For a consistent specication S,Sis useful
+is02usefulS.
+The following theorem shows that pruning the specica-
+tion does not change the set of compatible environment.
+Theorem 9.IfSsuch thats02usefulSandS= (usefulS[
+fug;s0;S;  !S;fug). ThenEis compatible with SiE
+compatible with S.
+Having introduced the general notion of usefulness of com-
+ponents and specications, we are now ready to dene com-
+patibility of specications and parallel composition. We pro-
+pose the following denition, which is in the spirit of [12].
+Definition 10.Two composable specications SandT
+are compatible i the initial state of S
+Tis useful.
+Definition 11.For two compatible specications Sand
+Tdene their parallel composition SjT= (S
+T), and
+undesirableSjT=f(s;t)js2undesirableSort2undesirableTg.
+As we have discussed above, the set of strictly undesir-
+able states, undesirableSjT, can be increased by designer as
+needed, for example by adding state for which desirable tem-
+poral properties about the interplay of SandTdo not hold.
+Observe that parallel composition is commutative, and
+that two specications composed, give rise to well-formed
+specications. It is also associative in the following sense:
+[ [(SjT)jU] ]mod= [ [Sj(TjU)] ]mod (9)
+Theorem 10.Renement is a pre-congruence with re-
+spect to parallel composition; for any specications S1,S2,
+andTsuch thatS1S2andS1composable with T, we have
+thatS2composable with TandS1jTS2jT. Moreover if
+S2compatible with TthenS1compatible with T.
+We now switch to the symbolic representation. Parallel
+composition of two TIOA is dened in the following way.
+Consider two TIOA A1= (Loc1;q1
+0;Clk1;E1;Act 1;Inv1) and
+A2= (Loc2;q2
+0;Clk2;E2;Act 2;Inv2) with Act1
+o\Act2
+o=;.
+
+--- Page 9 ---
+Their parallel composition which is denoted A1jA2is the
+TIOAA= (Loc;q0;Clk;E;Act; Inv) given by: Loc=Loc1
+Loc2,q0= (q1
+0;q2
+0),Clk=Clk1]Clk2,Inv((q1;q2)) = Inv(q1)^
+Inv(q2) and the set of actions Act=Acti]Actois given by
+Acti=Act1
+inAct2
+o[Act2
+inAct1
+oandActo=Act1
+o[Act2
+o. The
+set of edges Eis dened by the following rules:
+If (q1;a;' 1;c1;q0
+1)2E1witha2Act1nAct2then for
+eachq22Loc2this gives (( q1;q2);a;' 1;c1;(q0
+1;q2))2E
+If (q2;a;' 2;c2;q0
+2)2E2witha2Act2nAct1then for
+eachq12Loc1this gives (( q1;q2);a;' 1;c1;(q1;q0
+2))2E
+If (q1;a;' 1;c1;q0
+1)2E1and (q2;a;' 2;c2;q0
+2)2E2
+witha2Act1\Act2this gives rise to (( q1;q2);a;' 1^
+'2;c1[c2;(q0
+1;q0
+2))2E
+Finally, the following theorem lifts all the results from
+timed input/output transition systems to the symbolic rep-
+resentation level.
+Theorem 11.LetA1andA2be two speciation automata,
+we have [ [A1] ]semj[ [A2] ]sem=[ [A1jjA2] ]sem.
+5. QUOTIENT
+An essential operator in a complete specication theory
+is the one of quotienting . It allows for factoring out behav-
+ior from a larger component. If one has a large component
+specication Tand a small one SthenTnnSis the specica-
+tion of exactly those components that when composed with
+SreneT. In other words, TnnSspecies the work that still
+needs to be done, given availability of an implementation of
+S, in order to provide an implementation of T.
+We have the following requirements on the sets of inputs
+and outputs of the dividend Tand the divisor Swhen ap-
+plying quotienting: S
+iT
+iand S
+oT
+o.
+We proceed like for structural and logical compositions
+and start with a pre-quotient that may introduce error states.
+Those errors are then pruned to obtain the quotient.
+Given two specications S= (StS;sS
+0;S;  !S) andT=
+(StT;sT
+0;T;  !T) the pre-quotient is a specication ThS=
+(St;(s0;t0);;  !), where St= (StSStT)[fu;egwhere u
+and eare fresh states such that uis universal (allows arbi-
+trary behaviour) and eis inconsistent (no output-controllable
+behaviour can satisfy it). State edisallows progress of time
+and has no output transitions. The universal state guar-
+antees nothing about the behaviour of its implementations
+(thus any renement with a suitable alphabet is possible),
+and dually the inconsistent state allows no implementations.
+Moreover we require that  = Twith  i= T
+i[S
+oand
+o= T
+onS
+o. Finally the transition relation   !ThSis the
+largest relation generated by the following rules:
+ta !Tt0sa !Ss0a2S[R0
+(t;s)a !ThS(t0;s0)[all]
+s6a  !Sa2S
+o[R0
+(t;s)a !ThSu[unreachable ]
+t6a  !Tsa !Ss0a2S
+o
+(t;s)a !ThSe[unsafe ]
+ta !Tt0a2TnS
+(t;s)a !ThS(t0;s)[dividend ]
+a2[R0
+ua !ThSu[universal ]a2i
+ea !ThSe[inconsistent ]Theorem 12 states that the proposed pre-quotient oper-
+ator has exactly the property that it is dual of structural
+composition with regards to renement.
+Theorem 12.For any two specications SandTsuch
+that the pre-quotient ThSis dened, and for any imple-
+mentationXover the same alphabet as ThSwe have that
+SjXis dened and SjXTiXThS.
+Finally, the actual quotient, denoted TnnS, is dened if
+ThSis consistent. It is obtained by pruning the states of
+the prequotient ThSfrom where the implementation has no
+strategy to avoid immediate errors states errTnnSusing the
+same game characterization like in Section 3. Eectively
+we dene the quotient to be TnnS= (ThS). It follows
+from Theorem 5 that Theorem 12 also holds for the actual
+quotient operator nn(as opposed to the prequotient).
+Quotienting for TIOA is dened in the following way.
+Consider two TIOA AT= (LocT;qT
+0;ClkT;ET;ActT;InvT)
+andAS= (LocS;qS
+0;ClkS;ES;ActS;InvS) with ActS
+iActT
+i
+and ActS
+oActT
+o. The quotient, which is denoted ATnnAS
+is the TIOA given by: Loc=LocTLocS[flu;l;g,q0=
+(qT
+0;qS
+0),Clk=ClkT]ClkS]fxnewg,Inv((qT;qS)) = Inv(lu) =
+true and Inv(l;) =fxnew0g. The two new states luand
+l;are respectively universal and inconsistent. The set of ac-
+tions Act=Acti]Actois given by Acti=ActT
+i[ActS
+o[
+finewgand Acto=ActT
+onActS
+o.
+The set of edges Eis dened by the following rules:
+For eachqT2LocT;qS2LocSanda2Actthis gives
+((qT;qS);a;:InvS(qS);fxnewg;lu)2E.
+For eachqT2LocT;qS2LocSthis gives
+((qT;qS);inew;:InvT(qT)^InvS(qS);fxnewg;l;)2E.
+If (qT;a;'T;cT;q0
+T)2ETand (qS;a;'S;cS;q0
+S)2ES
+this gives (( qT;qS);a;'T^'S;cT[cS;(q0
+T;q0
+S))2E
+For each (qS;a;'S;cS;q0
+S)2ESwitha2ActS
+othis
+gives rise to (( qT;qS);a;'S^:GT;fxnewg;l;) where
+GT=Wf'Tj(qT;a;'T;cT;q0
+T)g
+For each (qT;a;'T;cT;q0
+T)2ETanda =2ActSthis
+gives ((qT;qS);a;'T;cT;(q0
+T;qS))2E
+For each (qT;a;'T;cT;q0
+T)2ETwitha2ActS
+othis
+gives rise to (( qT;qS);a;:GS;fg;lu) whereGS=Wf'Sj
+(qS;a;'S;cS;q0
+S)g
+For eacha2Actithis gives rise to ( l;;a;xnew =
+0;fg;l;)
+For eacha2Actthis gives rise to ( lu;a;true;fg;lu)
+Finally, the following theorem lifts all the results from
+timed input/output transition systems to the symbolic rep-
+resentation level.
+Theorem 13.LetA1andA2be two speciation automata,
+we have ([ [A1] ]semh[ [A2] ]sem)= ([ [A1hA2] ]sem).
+6. TOOL IMPLEMENTATION
+Our specication theory has been implemented using the
+verication engine for timed games Uppaal-tiga .
+Application of The Engine . The engine of Uppaal-tiga
+supports the computation of winning strategies for timed
+
+--- Page 10 ---
+games with respect to a large class of TCTL winning ob-
+jectives. The basic algorithm applied is that of [8] being
+an on-the-y algorithm performing forward exploration or
+reachable states and back-propagation of (so-far) computed
+winning states in an interleaved manner.
+Crucial to the algorithm of [8] is the symbolic representa-
+tion and ecient manipulation of state-sets using zones ,i.e.
+sets of clock valuations characterized by constraints on indi-
+vidual clocks and clock-dierences. In particular the opera-
+tors cPred t,ipred and opred used in the xpoint characteri-
+zation of consistent and compatible states may be eectively
+computed using federations (unions of zones).
+The operations of conjunction and quotienting may pro-
+duce specication with inconsistent states, which needs to
+be determined and subsequently pruned away. For this, we
+apply the algorithm of Uppaal-tiga to a timed reachability
+game, where input transitions are controllable, output tran-
+sitions uncontrollable, and where states that do not have
+any outputs nor allow time to elapse are target states. The
+additional eort in implementing this algorithm required an
+on-the-y detection of such states (instead of using ordinary
+state predicates) and back-propagating these according to
+the algorithm of Uppaal-tiga .
+Dually, for the composition of component specications
+with designated error-states, we want to check for compos-
+ability . For this we apply Uppaal-tiga to a timed safety
+game, where input transitions are controllable, output tran-
+sitions uncontrollable, and where error states in any of the
+two (or more) components should be avoided.
+Finally, the problem of checking the renement ST
+is solved as a turn-based game between two players. The
+rst player, or attacker, plays outputs on Sand inputs on
+T, whereas the second player, or defender, plays inputs on
+Sand inputs on T. The product of SandTaccording
+to these rules is then constructed on-the-y, which is the
+forward exploration step. We detect error states on-the-
+y and we back-propagate them. There are two kinds of
+error states: 1) Either the attacker may delay and violates
+invariants on T, which is, the defender cannot match a delay,
+or 2) the defender has to play a given action and cannot do
+so, i.e., a deadlock. In this implementation we can specialize
+our algorithm to simplify the operator cPred tanalogously
+to [6] with inverted rules wth respect to controllable and
+uncontrollable transitions. This has been implemented and
+the tool has been extended to handle open systems.
+Using the Tool . Returning to the example of the University
+of Figure 2, we may apply the extended version of Uppaal-
+tiga for checking the desired properties of compatibility and
+consistency. Checking for compatibility simply amounts to
+checking for controllability of the following safety property:
+control: A[] not Researcher.ERR
+Checking for renement between the University and the
+stated overall specication Specication is checked using the
+following new type of renement property:
+refinement: {Administration,Machine,Researcher}
+\{coin,tea,cof,pub} <= {Spec}
+We are now able to reveal that, unexpectedly, this rene-
+ment does nothold! In fact the Administration 's ability to
+take in publications and produce patents without a preceed-
+ing grant, combined with the Machine 's ability to produce
+Figure 6: A renement counter-strategy in Uppaal
+tea without any coin, violates the overall Specication 's re-
+quirement that patents can only be produced given a pre-
+ceeding grant. In Figure 6 a screen-shot of the extension of
+Uppaal-tiga playing the counter-strategy against a (disbe-
+lieving but to be convinced) user is shown.
+7. CONCLUDING REMARKS
+We have proposed a complete game-based specication
+theory for timed systems, in which we distinguish between
+a component and the environment in which it is used. To
+the best of our knowledge, our contribution is the rst game-
+based approach to support both renement, consistency
+checking, logical and structural composition, and quotient.
+Our results have been implemented in the Uppaal toolset [3].
+There have been several other attempts to propose an
+interface theory for timed systems (see [15, 11, 5, 4, 9, 32, 16,
+24] for some examples). Our model shall denitely be viewed
+as an extension of the timed input/output automaton model
+proposed by Lynch et al. [21]. The majors dierences are in
+the game-based treatment of interactions and the addition
+of quotient and conjunction operators.
+In [15], de Alfaro et al. suggested timed interfaces , a model
+that is similar to the one of TIOTSs. Our denition of com-
+position builds on the one proposed in there. However, the
+work in [15] is incomplete. Indeed there is no notion of im-
+plementation and renement. Moreover, conjunction and
+quotient are not studied. Finally, the theory has only been
+implemented in a prototype tool [11] which does not handle
+continuous time, while our contribution takes advantages of
+the powerful game engine of Uppaal-tiga .
+In [22] Larsen proposes modal automata , which are deter-
+ministic automata equipped with transitions of the following
+two types: may and must . The components that imple-
+ment such interfaces are simple labeled transition systems.
+Roughly, a must transition is available in every component
+that implements the modal specication, while a may transi-
+tion need not be. Recently [5, 4] a timed extension of modal
+automata was proposed, which embeds all the operations
+presented in the present paper. However, modalities are or-
+thogonal to inputs and outputs, and it is well-known [23]
+that, contrary to the game-semantic approach, they cannot
+be used to distinguish between the behaviors of the compo-
+nent and those of the environment.
+One could also investigate whether our approach can be
+
+--- Page 11 ---
+used to perform scheduling of timed systems (see [11, 19, 16]
+for examples). For example, the quotient operation could
+perhaps be used to synthesize a scheduler for such problem.
+8. REFERENCES
+[1] R. Alur and D. L. Dill. A theory of timed automata.
+Theor. Comput. Sci. , 126(2):183{235, 1994.
+[2] R. Alur, T. A. Henzinger, O. Kupferman, and M. Y.
+Vardi. Alternating renement relations. In
+CONCUR'98 , volume 1466 of LNCS . Springer, 1998.
+[3] G. Behrmann, A. Cougnard, A. David, E. Fleury,
+K. G. Larsen, and D. Lime. Uppaal-tiga: Time for
+playing games! In CAV , volume 4590 of LNCS .
+Springer, 2007.
+[4] N. Bertrand, A. Legay, S. Pinchinat, and J.-B. Raclet.
+A compositional approach on modal specications for
+timed systems. In ICFEM , LNCS. Springer, 2009.
+[5] N. Bertrand, S. Pinchinat, and J.-B. Raclet.
+Renement and consistency of timed modal
+specications. In LATA , volume 5457 of LNCS ,
+Tarragona, Spain, 2009. Springer.
+[6] P. Bulychev, T. Chatain, A. David, and K. G. Larsen.
+Ecient on-the-y algorithm for checking alternating
+timed simulation. In FORMATS , volume 5813 of
+LNCS , pages 73{87. Springer, 2009.
+[7] B. Caillaud, B. Delahaye, K. G. Larsen, A. Legay,
+M. Peddersen, and A. Wasowski. Compositional
+design methodology with constraint markov chains.
+Technical report, Hal-INRIA, 2009.
+[8] F. Cassez, A. David, E. Fleury, K. G. Larsen, and
+D. Lime. Ecient on-the-y algorithms for the
+analysis of timed games. In CONCUR , 2005.
+[9] K. Cer ans, J. C. Godskesen, and K. G. Larsen. Timed
+modal specication - theory and tools. In Proceedings
+of the 5th International Conference on Computer
+Aided Verication (CAV'93) , volume 697 of LNCS ,
+pages 253{267. Springer, 1993.
+[10] A. Chakabarti, L. de Alfaro, T. A. Henzinger, and
+M. I. A. Stoelinga. Resource interfaces. In R. Alur and
+I. Lee, editors, EMSOFT 03: 3rd Intl. Workshop on
+Embedded Software , LNCS. Springer, 2003.
+[11] L. de Alfaro and M. Faella. An accelerated algorithm
+for 3-color parity games with an application to timed
+games. In CAV , volume 4590 of LNCS . Springer, 2007.
+[12] L. de Alfaro and T. A. Henzinger. Interface automata.
+InFSE, pages 109{120, Vienna, Austria, Sept. 2001.
+ACM Press.
+[13] L. de Alfaro and T. A. Henzinger. Interface-based
+design. In In Engineering Theories of Software
+Intensive Systems, Marktoberdorf Summer School .
+Kluwer Academic Publishers, 2004.
+[14] L. de Alfaro, T. A. Henzinger, and R. Majumdar.
+Symbolic algorithms for innite-state games. In K. G.
+Larsen and M. Nielsen, editors, CONCUR , volume
+2154 of LNCS , pages 536{550. Springer, 2001.
+[15] L. de Alfaro, T. A. Henzinger, and M. I. A. Stoelinga.
+Timed interfaces. In A. L. Sangiovanni-Vincentelli and
+J. Sifakis, editors, EMSOFT , volume 2491 of LNCS ,
+pages 108{122. Springer, 2002.
+[16] Z. Deng and J. W. s. Liu. Scheduling real-time
+applications in an open environment. In in Proceedingsof the 18th IEEE Real-Time Systems Symposium,
+IEEE Computer , pages 308{319. Society Press, 1997.
+[17] S. J. Garland and N. A. Lynch. The IOA language and
+toolset: Support for designing, analyzing, and building
+distributed systems. Technical report, Massachusetts
+Institute of Technology, Cambridge, MA, 1998.
+[18] T. A. Henzinger, Z. Manna, and A. Pnueli. Timed
+transition systems. In REX Workshop , volume 600 of
+LNCS , pages 226{251. Springer, 1991.
+[19] T. A. Henzinger and S. Matic. An interface algebra for
+real-time components. In IEEE Real Time Technology
+and Applications Symposium , pages 253{266. IEEE
+Computer Society, 2006.
+[20] T. A. Henzinger and J. Sifakis. The embedded systems
+design challenge. In FM, volume 4085 of LNCS , pages
+1{15. Springer, 2006.
+[21] D. K. Kaynar, N. A. Lynch, R. Segala, and F. W.
+Vaandrager. Timed i/o automata: A mathematical
+framework for modeling and analyzing real-time
+systems. In RTSS , pages 166{177. IEEE Computer
+Society, 2003.
+[22] K. G. Larsen. Modal specications. In J. Sifakis,
+editor, Automatic Verication Methods for Finite
+State Systems , volume 407 of LNCS , pages 232{246.
+Springer, 1989.
+[23] K. G. Larsen, U. Nyman, and A. Wasowski. Modal
+I/O automata for interface and product line theories.
+In R. D. Nicola, editor, ESOP , volume 4421 of LNCS ,
+pages 64{79. Springer, 2007.
+[24] I. Lee, J. Y.-T. Leung, and S. H. Son. Handbook of
+Real-Time and Embedded Systems . Chapman, 2007.
+[25] N. Lynch. I/O automata: A model for discrete event
+systems. In Annual Conference on Information
+Sciences and Systems , pages 29{38, Princeton
+University, Princeton, N.J., 1988.
+[26] N. A. Lynch and M. R. Tuttle. An introduction to
+input/output automata. Technical Report
+MIT/LCS/TM-373, The MIT Press, Nov. 1988.
+[27] O. Maler, A. Pnueli, and J. Sifakis. On the synthesis
+of discrete controllers for timed systems (an extended
+abstract). In STACS , pages 229{242, 1995.
+[28] R. Milner. Communication and Concurrency . Prentice
+Hall, 1988.
+[29] R. D. Nicola and R. Segala. A process algebraic view
+of input/output automata. Theoretical Computer
+Science , 138, 1995.
+[30] E. W. Stark, R. Cleavland, and S. A. Smolka. A
+process-algebraic language for probabilistic I/O
+automata. In CONCUR , LNCS, pages 189{2003.
+Springer, 2003.
+[31] A. Tarski. A lattice-theoretical xpoint theorem and
+its applications. Pacic Journal of Mathematics ,
+5:285{309, 1955.
+[32] L. Thiele, E. Wandeler, and N. Stoimenov. Real-time
+interfaces for composing real-time systems. In
+EMSOFT , pages 34{43. ACM, 2006.
+[33] F. W. Vaandrager. On the relationship between
+process algebra and input/output automata. In LICS ,
+pages 387{398, 1991.

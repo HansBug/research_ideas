@@ -1,0 +1,1263 @@
+            UPPAAL - Now, Next, and Future
+
+
+ Tobias Amnell1 Gerd Behrmann2 Johan Bengtsson1 Pedro R. D'Argenio3
+  Alexandre David1 Ansgar Fehnker4 Thomas Hune5 Bertrand Jeannet2
+  Kim G. Larsen2 M. Oliver Moller5 Paul Pettersson1 Carsten Weise6
+                                  Wang Yi1
+      1 Department of Information Te hnology, Uppsala University, Sweden,
+                [tobiasa,johanb,adavid,paupet,yi℄do s.uu.se.
+       2 Basi Resear h in Computer S ien e, Aalborg University, Denmark,
+                      [behrmann,bjeannet,kgl℄ s.au .dk.
+      3 Fa ulty of Computer S ien e, University of Twente, The Netherlands,
+                             dargenio s.utwente.nl.
+     4 Computing S ien e Institute, University of Nijmegen, The Netherlands,
+                                ansgar s.kun.nl.
+       5 Basi Resear h in Computer S ien e, Aarhus University, Denmark,
+                           [baris,omoeller℄bri s.dk.
+                 6 Eri sson Eurolab Deuts hland GmbH, Germany,
+                         Carsten.Weiseeed.eri sson.se.
+
+
+
+
+      Abstra t     Uppaal is a tool for modeling, simulation and veri ation
+      of real-time systems, developed jointly by BRICS at Aalborg University
+      and the Department of Computer Systems at Uppsala University. The
+      tool is appropriate for systems that an be modeled as a olle tion of
+      non-deterministi pro esses with nite ontrol stru ture and real-valued
+        lo ks, ommuni ating through hannels or shared variables. Typi al ap-
+      pli ation areas in lude real-time ontrollers and ommuni ation proto-
+        ols, in parti ular those where timing aspe ts are riti al.
+      This paper reports on the urrently available version and summarizes de-
+      velopments during the last two years. We report on new dire tions that
+      extends Uppaal with ost-optimal exploration, parametri modeling,
+      stop-wat hes, probablisti modeling, hiera hi al modeling, exe utable
+      timed automata, and a hybrid automata animator. We also report on
+      re ent work to improve the eÆ ien y of the tool. In parti ular, we out-
+      line Clo k Di eren e Diagrams (CDDs), new ompa t representations
+      of states, a distributed version of the tool, and appli ation of dynami
+      partitioning.
+      Uppaal has been applied in a number of a ademi and industrial ase
+      studies. We des ribe a sele tion of the re ent ase studies.
+
+
+1   Current Version of          Uppaal
+In the following, we give a brief overview on Uppaal's maturing over the years
+and explain the ore fun tionalities of the urrent release version.
+1.1 Ba kground
+Uppaal    [LPY97℄ is a tool for modeling, simulation and veri ation of real-time
+systems, developed jointly by BRICS at Aalborg University and the Depart-
+ment of Computer Systems at Uppsala University. The tool is appropriate for
+systems that an be modeled as a olle tion of non-deterministi pro esses with
+  nite ontrol stru ture and real-valued lo ks, ommuni ating through hannels
+or shared variables. Typi al appli ation areas in lude real-time ontrollers and
+ ommuni ation proto ols.
+    Uppaal onsists of three main parts: a des ription language, a simulator and
+a model he ker. The des ription language is a non-deterministi guarded om-
+mand language with real-valued lo k variables and simple data types. It serves
+as a modeling or design language to des ribe system behavior as networks of
+automata extended with lo k and data variables. The simulator is a validation
+tool whi h enables examination of possible dynami exe utions of a system dur-
+ing early design (or modeling) stages. It provides an inexpensive mean of fault
+dete tion prior to veri ation by the model he ker whi h overs the exhaustive
+dynami behavior of the system. The simulator also allows visualization of er-
+ror tra es found as result of veri ation e orts. The model he ker is to he k
+invariant and bounded-liveness properties by exploring the symboli state-spa e
+of a system, i.e., rea hability analysis in terms of symboli states represented by
+ onstraints.
+    Sin e the rst release of Uppaal in 1995, the tool has been further developed
+by the teams in Aalborg and Uppsala. The run-time and spa e improvements in
+the period De ember 1996 to September 1998 are reported in [Pet99℄. Figures 1
+and 2 show the variations of time and spa e onsumption in the period from
+November 1998 until January 2001 in terms of four examples: Fis her's mutual
+ex lusion proto ol with seven pro esses [Lam87℄, a TDMA start-up algorithm
+with three nodes [LP97℄, a CSMA/CD proto ol with eight nodes [BDM+ 98℄, and
+the FDDI token-passing proto ol with twelve nodes [Yov97℄. We noti e that the
+time performan e has improved signi antly whereas the spa e improvement is
+only marginal.
+    In July 1999 a new version of Uppaal, alled Uppaal2k, was released. This
+new version, whi h required almost two years of development, is designed to
+improve the graphi al interfa e of the tool, to allow for easier maintenan e, and
+to be portable to the most ommon operating systems while still preserving
+Uppaal's ease-of-use and eÆ ien y. To meet these requirements, it is designed
+as a lient/server appli ation with a veri ation server providing eÆ ient C++
+servi es to a Java lient over a so ket based proto ol. This design also makes it
+possible to exe ute the server and the GUI on two di erent ma hines.
+    The new GUI, shown in Figure 3, integrates the three main tool omponents
+of Uppaal, i.e., the system editor, the simulator, and the veri er. Several new
+fun tionalities have been implemented in the tool. For example, the new system
+editor has been tailored and extended for the new system des ription language
+of Uppaal2k (see below), the simulator an be used to display error tra es
+generated by the veri er, and the veri ation interfa e has been enri hed with a
+            100
+                                                                  TDMA Start-up
+                                                                   FDDI Protocol
+             90                                                Fischer’s Protocol
+                                                              CSMA/CD Protocol
+
+             80
+
+
+             70
+
+
+             60
+ Time (s)
+
+
+
+
+             50
+
+
+             40
+
+
+             30
+
+
+             20
+
+
+             10
+
+
+              0
+                  1999                         2000                                 2001
+                                            Date
+
+
+Figure1.    Time (in se onds) ben hmarks for the Uppaal version 3.x, from internal
+version November 1998 to January 2001. Up to the se ond version in year 2000 the
+settings '-WA' (i.e. no warnings and onvex-hull approximation) were used. For the
+later versions the settings '-WAa' (where '-a' a tivates the (in-)a tive lo k redu tion)
+were used. All tool versions were ompiled with g 2.95.2 and exe uted on the same
+Sun UltraSPARC-II, 400 MHz ma hine.
+
+
+requirement spe i ation editor whi h stores the previous veri ation results of
+a logi al property until the property or the system des ription is modi ed.
+
+
+1.2 The Latest Uppaal Release Version
+The urrent Uppaal version has a ri h modeling language, that supports pro ess
+templates and (bounded) data stru tures, su h as data variables, onstants, ar-
+rays, et . A pro ess template is a timed automaton extended with a list of formal
+parameters and a set of lo ally de lared lo ks, variables, and onstants. Typi-
+ ally, a system des ription will onsist of a set of instan es of timed automata
+de lared from the pro ess templates, and of some global data, su h as global
+ lo ks, variables, syn hronization hannels, et . In addition, automata instan es
+may be de ned from templates re-used from existing system des riptions. Thus,
+the adopted notion of pro ess templates (parti ularly when used in ombination
+with the possibility to de lare lo al pro ess data) allows for onvenient re-use of
+existing models.
+             10
+                                                               TDMA Start-up
+                                                                FDDI Protocol
+                                                            Fischer’s Protocol
+                                                           CSMA/CD Protocol
+
+              8
+
+
+
+
+              6
+Space (MB)
+
+
+
+
+              4
+
+
+
+
+              2
+
+
+
+
+              0
+                  1999                       2000                                2001
+                                          Date
+
+
+Figure2. Spa e (in MB) ben hmarks for Uppaal version 3.x, from internal version
+November 1998 to January 2001. Up to the se ond version in year 2000 the settings
+'-WAS' (where '-S' a tivates ontrol-stru ture redu tion [LLPY97℄) were used. For the
+later versions the settings '-WAaS 2' (where '-S 2' is similar to '-S') were used.
+
+
+    The simulator allows both random and guided tra ing through the model.
+One symboli state is displayed at a time, where the ontrol lo ations are visual-
+ized with red bullets in the timed automata graphs and data is shown by means
+of equations and lo k onstraints. Sub-windows an be s aled or dragged out,
+and the level of detail an be adjusted for user onvenien e. In the simulator,
+the user an steer to any point of an elapsed tra e and save/load tra es of the
+model. If the model he king engine dete ts an error tra e, it an be handed over
+to the simulator for inspe tion.
+    The Uppaal model- he king engine is the working horse of the tool. There-
+fore it is implemented in C++, whereas the GUI of the tool is implemented in
+Java. To interfa e the model- he king server, the GUI uses a so ket-based pro-
+to ol. This means that the GUI and veri ation server an be exe uted on two
+di erent ma hines. The veri ation server an also handle several simultaneous
+ onne tions to serve several GUI lients running on di erent ma hines. By de-
+fault the GUI automati ally spawns a veri ation server pro ess on the lo al
+ma hine 1 .
+1 The ommand line options -serverHost host -serverPort port an be used to in-
+  stru t the GUI to onne t to a server at ma hine host on port port.
+                 Figure3.   Uppaal2k's simulation tool on s reen.
+
+    At the ore of Uppaal veri ation engine we nd a forward-style state-spa e
+exploration algorithm. In prin ipal, we might think of this as a variation of
+sear hing the states (nodes) of a dire ted graph. For this, two data stru tures
+are responsible for the potentially huge memory onsumption. The rst { the
+Waiting list { ontains the states that have been en ountered by the algorithm,
+but have not yet been explored, i.e., the su essors have not been determined.
+The se ond { the Passed list { ontains all states that have been explored. The
+algorithm takes a state from the Waiting list, ompares it with the Passed list,
+and in ase it has not been explored, the state itself is added to the Passed list
+while the su essors are added to the Waiting list.
+    The properties, that the model he king engine an he k, des ribe a subset
+of timed omputation tree logi (TCTL). In short, the four (un-nested) tempo-
+ral quanti ers E<>, A[℄, E[℄, and A<> are supported, whi h stand for possibly,
+always, inevitably, and potentially always. In addition the operator  --> ' is
+supported, whi h stands for the leadsto property A[℄( ! A<> '). An option
+for deadlo k he king is also implemented but it is urrently only available in
+the stand-alone veri er verifyta.
+    This Uppaal2k veri ation server has been extended with various optimiza-
+tion options, des ribed in our publi ations and elsewhere in the literature. The
+ urrent version supports the bit-state hashing under-approximation te hnique
+whi h has been su essfully used in the model- he king tool SPIN for several
+years. A te hnique for generating an over-approximation of a system's rea hable
+state-spa e based on a onvex-hull representations of onstraints is also sup-
+ported. Finally, an abstra tion te hnique based on (in-)a tive lo k redu tions
+is available.
+
+
+2     New Dire tions of         Uppaal
+Several resear h a tivities are ondu ted within the ontext of Uppaal. In this
+se tion we report on developments that extend the ore fun tionalities of the
+tool.
+
+2.1   COUppaal     : Cost-Optimal Sear h
+Uppaal    was initially intended to prove the orre tness of real time systems with
+respe t to their spe i ation. If a system does not meet the spe i ation Uppaal
+  nds an error state and an produ e diagnosti information on how to rea h this
+error state. However, we often prefer to think of these states as desired goal states
+and not as error states. To give an example. Consider four persons, who have
+to ross a bridge that an only arry two persons at a time. Then, one would
+like to know whether they an rea h the safe side, given additional onstraints
+and deadlines. This an be expressed with a timed rea hability question, and if
+the goal state is rea hable, the tra e gives also a feasible s hedule. We an use
+this approa h to generally solve timed s heduling problems. In pro ess industry
+for example, it is often valuable to know whether it is possible to s hedule the
+produ tion steps su h that all onstraints are met. In [Feh99,HLP00℄, we derive
+feasible s hedules for a part of a steel plant in Ghent, Belgium, and a Lego
+model of this plant.
+    Even though it is often hard to nd a solution, as soon as a feasible solution
+is found, the question arises, whether this solution is optimal with respe t to
+time or the number of a tions. To address this, we in luded on epts that are
+well known from bran h and bound algorithms to Uppaal. It is then possible to
+derive optimal tra es for Uniformly Pri ed Timed Automata (UPTA) [BFH+ ℄. In
+this model the ost in reases with a xed rate as time elapses, or with a ertain
+amount if a transition is taken. The ost is treated as a spe ial lo k with extra
+operations, but su h that we an still use the eÆ ient data stru tures urrently
+used in Uppaal. First results for the steel plant and several ben hmark problems
+were obtained in [BFH+ ℄, and we hope to in lude an option that allows to nd
+optimal tra es to goal states in the next release of Uppaal.
+    To be able to nd time-optimal tra es is very useful, but in many situations
+we would like to have a more general notion of ost. We proposed the model
+of Linearly Pri ed Timed Automata (LPTA) to be able to model for example
+ma hines that use a di erent amount of energy per time unit. This model extends
+timed automata with pri es on all transitions and lo ations. In these models,
+the ost of taking an a tion transition is the pri e asso iated with the transition,
+and the ost of delaying d time units in a lo ation is d  p, where p is the pri e
+asso iated with the lo ation. The ost of a tra e is simply the a umulated sum
+of osts of its delay and a tion transitions.
+   To treat LPTA algorithmi ally, we introdu e pri ed zones, whi h assign to
+a zone a linear fun tion that de nes the minimal ost of rea hing a state in
+that zone. In [BFH+ 00℄ it was shown that given a set of goal states the ost-
+optimal tra e is omputable. This result is quite remarkable sin e several similar
+extensions of timed automata have been proven to be unde idable. A prototype
+implementation allows us to perform rst experiments [LBB+ 01℄.
+
+2.2   Parametri -Uppaal      : Solving Parameterized Rea hability
+      Problems
+Timed model he king if frequently applied with the intention to nd out,
+whether the timing onstants of the model are orre t. A ommon problem is to
+adjust timing parameters in a way, that yield a desired behavior. This an be
+a hieved if we given a timed automaton with parameters in the guards and if
+some or all values for the parameters are synthesized to make the model behave
+ orre tly, i.e., satisfy a ertain TCTL formula. We all this parametri model
+ he king. This problem is addressed in [AHV93℄, where it is shown to be un-
+de idable for systems with three lo ks or more. A semi-de ision pro edures is
+suggested in [AHV93℄ whi h nds the orre t values for the parameters when it
+terminates.
+    We extend the model of timed automata to parametri timed automata by
+adding a set of parameters. Guards in parametri timed automata an be on
+the form x ./ e or x y ./ e where e is a linear expression over the parameters.
+Having guards of this type gives a natural way of de ning a symboli state-spa e
+in luding parameters. Instead of having integers in the entries of a DBM we use
+parametri DBMs (PDBMs) where the entries are linear expressions over the
+parameters.
+    All the operations on DBMs are based on adding or omparing entries of
+DBMs. Without knowing anything about the values of the parameters we an in
+general not ompare linear expressions over the parameters to ea h other or to
+integers. Comparing a parameter p to the onstant 3 has two possible out omes
+depending on the value of p. When su h omparisons arises we will have to
+distinguish both possibilities. We will do this by adding a onstraint set to a
+PDBM, onsisting of onstraints of the form e ./ e0 where e and e0 are linear
+expressions and ./2 f<; ; >; g. In the example from before we will then split
+into two ases, one where the onstraint p < 3 is added to the onstraint set and
+one where p  3 is added to the onstraint set. We an now ompare entries of
+PDMs based on their onstraint sets.
+    Changing DBMs to PDBMs and letting symboli states onsist of the lo ation
+ve tor, a PDBM, and a onstraint set, the standard algorithm for state-spa e
+exploration an be used. When a state satisfying the property is found the on-
+straints in the onstraint set of the state gives the onstraints on the parameters
+needed for the state to be rea hable. If we want to nd all the possible values
+for the parameters we need to sear h the omplete state-spa e to nd all the
+di erent onstraint sets making a goal state rea hable.
+    We have implemented a parametri version of Uppaal allowing parameters in
+ lo k guards and invariants. For de iding minimum between linear expressions we
+have borrowed a LP solver from the PMC tool [BSdRT01℄. Parametri versions of
+the root- ontention proto ol and the bounded retransmission proto ol have been
+analyzed using the implementation and minor errors in two published papers on
+these proto ols have been dis overed.
+    Sin e the problem is unde idable, Uppaal is not guaranteed to terminate.
+As a pragmati remedy, our algorithm outputs an explored state and the orre-
+sponding onstraint set, as soon as it if found to satisfy the property. This allows
+the user to get partial results whi h an be very useful and in many ases are the
+full results though the sear h has not terminated. It is also possible to give initial
+ onstraints as input whi h in many ase will make the sear h terminate mu h
+faster, or he k whether partial results obtained are a tually the full results.
+
+2.3   Stopwat h-Uppaal       : From Timed Automata to Hybrid Systems
+For purposes of eÆ ien y, the modeling language of Uppaal was initially de-
+signed to be rather limited in expressive power. In parti ular, when modeling
+hybrid systems omposed of dis rete ontroller programs and ontinuous plants
+the timed automata model underlying Uppaal is rather restri tive.
+    One useful extension of timed automata is that of linear hybrid automata
+[HHWT97℄. In this model guards may be general linear onstraints and the
+evolution rate of ontinuous variables may be given by arbitrary intervals. Con-
+sequently, model- he king and rea hability he king is known to be unde idable
+for this model and more importantly the state-spa e exploration requires manip-
+ulation and representation of general polyhedra, whi h is omputationally rather
+expensive.
+    In [CL00℄ an extension of Uppaal with stopwat hes ( lo ks that may be
+stopped o asionally) has been given allowing an approximate analysis of the
+full lass of linear hybrid automata to be arried out using the eÆ ient data
+stru tures and algorithms of Uppaal.
+    In parti ular, this work investigates the expressive power of stopwat h au-
+tomata, and shows as a main result that any nite or in nite timed language
+a epted by a linear hybrid automaton is also a eptable by a stopwat h au-
+tomaton. The onsequen es of this result are two-fold: rstly, it shows that the
+seemingly minor upgrade from timed automata to stopwat h automata imme-
+diately yields the full expressive power of linear hybrid automata. Se ondly,
+rea hability analysis of linear hybrid automata may e e tively be redu ed to
+rea hability analysis of stopwat h automata. This, in turn, may be arried out
+using an easy (over-approximating) extension of the eÆ ient rea hability anal-
+ysis for timed automata to stopwat h automata. In [CL00℄ we also report on
+preliminary experiments on analyzing translations of linear hybrid automata
+using a stopwat h-extension of Uppaal.
+2.4   PrUppaal    : Probabilisti Timed Automata
+Uppaal      an he k whether a network of timed automata satis es a safety or a
+liveness (timed) property. Many times, this type of properties are not expres-
+sive enough to assert adequately the orre tness of a system. Take for instan e
+the well known Alternating Bit Proto ol (ABP). Using Uppaal, we an he k
+whether the ABP satis es properties like \every message that is sent will even-
+tually be re eived " or \every message that is sent will be re eived within  se ."
+In fa t we will see that the former is satis ed but not the latter, regardless of
+the value of . If our interest is to provide quality of servi e, the latest property
+be omes as important as the former one. However, the fa t that the ABP does
+not satisfy the se ond property does not ne essarily make it an in orre t pro-
+to ol. Knowing the probability with whi h a message is lost or damaged during
+transmission, we an determine the probability that a message is re eived within
+ se . The orre tness of the ABP is now depend on whether we onsider that
+su h a probability measure is satisfa tory.
+    Veri ation of probabilisti timed sys-                           waiting
+tems is one of the future dire tions pursued
+by Uppaal. Probabilisti timed automata
+are a natural extension of timed automata                                send!
+with probabilities. The probabilisti infor- x  10
+mation is atta hted to edges. Now, an edge re eive?
+                                                                 99
+                                                                100
+                                                            x := 0
+                                                                     01     1
+                                                                           100
+                                                                            x := 0
+has the form s ! p where s is a on-
+                    g;a
+
+
+trol node, g is a guard, a is an a tion name,
+and p is a probability fun tion on pairs of set
+                                                       transmiting         msg lost
+of lo ks to be reset and ontrol nodes. Fig-
+                                                           (x  20)        (x  20)
+ure 4 depi ts a probabilisti timed automa-
+ton, that models a lossy hannel. A message
+that is sent an be lost with probability 1001
+                                               ,     Figure4. A lossy hannel.
+otherwise it is transmitted within 10 to 20 nanose onds. You an think of this
+automaton as model of the medium in the ABP.
+    On the setting of probabilisti timed systems we formally des ribe properties
+using PTCTL [HJ94℄. PTCTL extends TCTL with modalities to express prob-
+abilities. For instan e, P0:95 (81000 re eived) expresses that with probability
+at least 0:95, every message is re eived within 1000 nanose onds in any possible
+exe ution.
+    Solutions to model he k probabilisti timed automata have been proposed
+in [Jen96℄ and [KNSS99℄. Unfortunately these approa hes are based on the on-
+stru tion of a region graph [ACD93℄ and therefore they heavily su er from the
+state explosion problem. Another solution proposed in [KNSS99℄ is to use a mod-
+i ation of the forward rea hability te hnique implemented in Uppaal [YPD94℄.
+Unfortunately, su h a modi ation annot de ide the validity of simple rea ha-
+bility properties in general.
+    Our proposal is to use minimization te hniques [ACH+ 92℄ in order to obtain
+(probabilisti ) zone graphs that are stable and whi h behave in a similar manner
+to region graphs. However, this te hnique is still signi antly more expensive
+when ompared to the usual forward rea hability analysis. In order to redu e
+the state spa e we plan to explore the use of CDD's [LWYP99℄ to represent
+non- onvex zones as well as dynami partition te hniques [JHR99℄.
+
+2.5   HUppaal    : Hierar hi al Stru tures for Modeling
+Hierar hi al stru tures are a popular theme in spe i ation formalisms, su h
+as state harts [Har87℄ and UML [BRJ98℄. The main idea is that lo ations not
+ne essarily en ode atomi points of ontrol, but an serve as an abbreviation for
+more omplex behavior. If a non-atomi lo ation is entered, this may trigger a
+  as ade of events irrelevant to a higher level of the system. If a more detailed view
+is required, the expli it des ription of the sub- omponent an be found isolated,
+sin e dependen ies between the di erent levels of hierar hy are restri ted.
+    The immediate bene t is a on ise des ription, whi h allows to view a om-
+plex system on di erent levels of abstra tion and nevertheless ontains all in-
+formation in detail. Moreover, symmetries an be expressed expli itly: If two
+sub- omponents A and B of a super-state S are stru turally identi al, they may
+be des ribed as instantiations of the same template (with possibly di erent pa-
+rameters). Copies of states may exist for notational onvenien e, ambiguities are
+resolved by a unique-name assumption.
+    We believe that Uppaal an bene t greatly from these on epts, sin e they
+support a leaner and more stru tured design of large systems. The model an be
+  onstru ted top down, starting with a very abstra t notion that is re ned subse-
+quently. The simulator an then be used to validate the model against the intu-
+ition of the designer. Con eptually, it is possible to reason about the model with
+di erent stages of granularity. Compositional veri ation an make use of this,
+if lo al information suÆ es to establish safety- and deadlo k-properties. With
+respe t to property-preserving abstra tions, the stru tural information gives a
+natural re nement relation.
+    A se ond|however ambitious|goal is to exploit the stru ture in shaping
+more eÆ ient model- he king algorithms. Related work [AW99℄ indi ates, that
+lo ality of information an be exploited straightforward in rea hability analysis.
+Also, the work in [LNAB+ 98℄ indi ate that|at least for un-timed systems|one
+may exploit the hierar hi al stru ture of a system during analysis. In Uppaal
+this is more diÆ ult, sin e all parallel pro esses impli itly syn hronize on the
+passage of time. Approa hes for lo al-time semanti s [BJLY98℄ have yet to be
+shown to improve veri ation time in reasonable s enarios, i.e., where the de-
+penden y between parallel sub- omponents is low, thus that not all interleavings
+have to be taken into a ount.
+    As a rst step towards this, we work on a areful de nition of hierar hi al
+timed automata, that support en apsulation and lo al de nitions. In parti ular,
+the syn hronization of joins raises semanti problems that an be resolved in
+various ways.
+    Case-studies are planned to test the naturalness of these de nitions in om-
+plex examples. We experiment with a prototype translation of hierar hi al timed
+automata into a parallel omposition of ( at) timed automata. This attened
+                                        A
+                                                    x>10
+                                         (1,2)
+                             a?
+                                                                x:=0
+      x:=0
+                                                                                  x==40
+                   P                                                    Q
+                  (2,10)                                               (4, 20)
+                                                                                 x:=0
+      x==20
+                           x:=0
+                                        B                  b?
+                                            (1,4)
+
+
+              Figure5.     Timed Automaton with Periodi and Sporadi Tasks.
+
+
+system ne essarily ontains auxiliary onstru ts to imitate the behavior of the
+hierar hi al ones. We expe t the ase-studies to give an intuition, whether this
+translation sla k is tolerable.
+    The design of the hierar hi al timed automata is meant to be lose to UML
+state hart diagrams. As for the real-time aspe t, one output of this onsidera-
+tions will be a real-time pro le, that de nes an extension of UML formalisms
+with lo ks and timed invariants in a standard way. This work is arried out in
+the ontext of AIT-WOODDES proje t No IST-1999-10069.
+
+2.6     ExUppaal       : Exe utable Timed Automata
+In this work we develop an exe utable version of timed automata. We view
+a timed automaton as an abstra t model of a running software. The model
+des ribes the possible external events (alphabets a epted by the automaton)
+that may o ur during the exe ution and the o urren e of the events must follow
+the timing onstraints (given by the lo k onstraints). But the model gives no
+information on how these events should be handled. We use an extended version
+of timed automata ([EWY99℄) with real time tasks that may be periodi and/or
+sporadi .
+    The main idea is to asso iate ea h node of an automaton with a task (or sev-
+eral tasks in the general ase). A task is assumed to be an exe utable program
+with two given parameters: its worst ase exe ution time and deadline. An ex-
+ample is shown in Figure 5. The system shown onsists of 4 tasks as annotation
+on nodes, where P, Q are periodi with periods 20 and 40 respe tively (spe i ed
+by the onstraints: x==20 and x==40), and A, B are sporadi or event driven
+(by event a and b respe tively). The pairs in the nodes give the omputation
+times and deadlines for tasks e.g. for P they are 2 and 10 respe tively.
+    Intuitively, a dis rete transition in an extended timed automaton denotes
+an event releasing a task and the guard ( lo k onstraints) on the transition
+spe i es all the possible arrival times of the asso iated task. Note that in the
+simple automaton shown in Figure 5, an instan e of task A ould be released
+before the pre eeding instan e of task P has been omputed. This means that
+the s heduling queue may ontains at least P and A. In fa t, instan es of all four
+tasks may appear in the queue at the same time.
+    Semanti ally, an extended automaton may perform two types of transitions
+just as an ordinary timed automaton. In addition, an a tion transition will release
+a new instan e of the task asso iated with the destination node. Assume that
+there is a queue (the s heduling queue) holding all the task instan es ready to
+run. It orresponds to the ready queue in an operating systems. Whenever a
+task is released, it will be put in the s heduling queue for exe ution. A semanti
+state of an extended automaton is a triple onsisting of a node (the urrent
+ ontrol node), lo k assignment (the urrent setting of the lo ks) and a task
+queue (the urrent status of the ready queue). Then a delay transition of the
+timed automaton orresponds to the exe ution of the task with earliest deadline
+and idling for the other waiting tasks, and a sequen es of dis rete transitions
+ orresponds to a sequen e of arrivals of tasks. Naturally a sequen e of tasks
+is s hedulable if all the tasks an be exe uted within their deadlines and an
+automaton is s hedulable if all task sequen es are s hedulable.
+    In [EWY99℄, it is shown that the s hedulability problem for extended au-
+tomata an be solved by rea hability analysis for non-preemptive tasks. It is
+equivalent to prove that all s hedulable states are s hedulable. For preemptive
+tasks, unfortunately the problem is unde idable. In fa t the model will be as
+expressive as timed automata with stop wat hes.
+    Currently we are working on automati ode synthesis for the extended
+model. Inspired by the design philosophy of syn hronous languages e.g. Esterel,
+we assume that the underlying RT operating system guarantees the Syn hrony
+Hypothesis, that is the OS system fun tions takes little time ompared to the
+worst ase exe ution times and deadlines of tasks. The idea is to use system
+fun tions (primitives) provided by the underlying operating system or run-time
+system, to ode the dis rete transitions (the ontrol stru ture) of an automaton,
+and to ompute the tasks on nodes by pro edure alls or light weight threads.
+    If an automaton is s hedulable ( he ked by s hedulability analysis that all
+tasks instan es an be omputed within their deadlines), and the syn hrony
+hypothesis is guaranteed by the underlying operating system, the generated ode
+in exe ution will meet the onstraints imposed on the tasks.
+
+2.7 Hybrid Automata Animation
+In several ase-studies with Uppaal we have identi ed a need to visualize the
+exe ution of the automata. Currently the simulator in Uppaal's GUI allows an
+intera tive \exe ution" of the modeled system. The user an manually sele t
+one of the enabled transitions and go to the next state of the system. This an
+be very helpful in understanding the model, but it is still on the diÆ ulty level
+of the a tual automaton. To make good use of the simulator the user needs to
+understand all the details of the modelling language and all details of the spe i
+system.
+      Figure6.   A protoype of the hybrid automata animation tool in Uppaal.
+
+
+    To des ribe a typi al situation, onsider one person performing the modeling
+and veri ation of a system, whereas another person wants to validate that
+the model is \ orre t" in the sense that it is an a urate des ription of the
+a tual system. Exploring all possible simulation tra es is often a very tedious
+work. With a visualization tool, where the user an intera t with the underlying
+model on a higher level via buttons, sliders, and other obje ts in a graphi al
+environment this validation task be omes mu h simpler.
+    Several other tools have responded to this demand, for example MATLAB/-
+Simulink and Statemate, where graphi al animation of the models are possible.
+By onsidering simulation and animation of hybrid automata, we adopt these
+te hniques and aim at taking them one step further. The plan is to generalize
+the model of timed automata in Uppaal to the more expressive model of hybrid
+automata, where hanges of a state is de ned by ordinary di erential equations
+(ODE). To ea h lo ation we asso iate a set of ODE's that des ribe how real-
+valued variables hange over time. This more expressive model will be used only
+in the animator to model and visualize the behavior a system's environment.
+The system itself will still normally be modeled with timed automata.
+    The animation is based on the values of the variables, the urrent lo ation,
+and the signals. The values of the variables are al ulated at dis rete time points
+using numeri al solution methods. To solve the ODE's we use a free pa kage
+named CVODE 2 . Around this we have implemented a Hybrid Automata Inter-
+preter that handles the automata transitions, syn hronizations, et ., and allows
+the user to de ne the ODE's using a library of mathemati al fun tions. The
+2 More information about the CVODE pa kage an be found at the web site
+  http://www.netlib.org.
+values that ome out of the Hybrid Automata Interpreter are used to drive the
+animation.
+    In the animation tool, the user de nes a view of the whole system by set-
+ting ertain parameters. For instan e, in a 2-dimensional view two variables x
+and y ould be used to give the position of an image illustrating the modeled
+ omponent, and the urrent lo ation of the orresponding automaton ould be
+visualized as olor- hanges in the image. The user ould also de ide what a tions
+(e.g. mouse- li ks) should orrespond to signals sent to the visualized automata
+model.
+    Following the example of Uppaal's multi-platform user interfa e (see Se tion
+1), the animator is implemented in Java. In this way it ts seamlessly into the
+existing tool ar hite ture. Figure 6 shows the animator when used to simulate a
+boun ing ball.
+
+3   Re ent Developments in            Uppaal
+In this se tion we des ribe the re ent developments in Uppaal, whi h are pri-
+marily aimed at improving the eÆ ien y of the model- he ker of the tool. In
+parti ular, the development of new internal data-stru tures, and approximation
+and partial-order redu tion te hniques are onsidered relevant.
+
+3.1 CDD's: Clo k Di eren e Diagrams
+Di eren e Bound Matri es (DBM's) as the standard representation for time
+zones in analysis of Timed Automata have a well-known short oming: they are
+not losed under set-union. This omes from the fa t that a set represented by
+a DBM is onvex, while the union of two onvex sets is not ne essarily onvex.
+    Within the symboli omputation for the rea hability analysis of Uppaal,
+set-union however is a ru ial operation whi h o urs in every symboli step.
+The short oming of DBM's leads to a situation, where symboli states whi h
+ ould be treated as one in theory have to be handled as a olle tion of several
+di erent symboli states in pra ti e. This leads to trade-o s in memory and time
+ onsumption, as more symboli states have to be stored and visited during in
+the algorithm.
+    DBM's represent a zone as a onjun tion of onstraints on the di eren es
+between ea h pair of lo ks of the timed automata (in luding a titious lo k
+representing the value 0). The major idea of CDD's (Clo k Di eren e Diagrams)
+is to store a zone as a de ision tree of lo k di eren es, generalizing the ideas
+of BDD's (Binary De ision Diagrams, see [Bry86℄) and IDD's (Integer De ision
+Diagrams, see [ST98℄)
+    The nodes of the de ision tree represent lo k di eren es. Nodes on the same
+level of the tree represent the same lo k di eren e. The order of the lo k
+di eren es is xed a-priori, all CDD's have to agree on the same ordering. The
+leaves of the de ision tree are two nodes representing true and false, as in the
+ ase of BDD's.
+                                                                                              1111
+                                                                                              0000
+Y                                              Y                                              Y
+                                                      111
+                                                      00000
+                                                         11
+     3   1111
+         0000
+         0000 111
+         1111 000
+              000
+              111
+                                                      000
+                                                      111
+                                                      000
+                                                      111
+                                                      000
+                                                      111
+                                                   3 111
+                                                     000
+                                                         00
+                                                         11
+                                                         00
+                                                         11
+                                                         00
+                                                         11                                   0000
+                                                                                              11113
+     2
+         0000 111
+         1111 000
+                                                      000
+                                                      111
+                                                     000
+                                                     111
+                                                      000
+                                                      111
+                                                   2 111
+                                                     000
+                                                      000
+                                                      111
+                                                     000
+                                                     111
+                                                         00
+                                                         11
+                                                         00
+                                                         11                                   0000
+                                                                                              1111
+                                                                                              000
+                                                                                              111
+                                                                                                  2
+     1
+         0000 111
+         1111 000                                     000
+                                                      111
+                                                   1 111
+                                                     000
+                                                                                              000
+                                                                                              111 1
+
+
+    (a)
+           1   2    3       4    5     6
+                                           X
+                                                   (b)
+                                                         1   2    3   4     5    6
+                                                                                        X
+                                                                                              000
+                                                                                              111 ( )
+                                                                                                        1   2    3    4
+
+                                                                                                                      X
+                                                                                                                           5   6
+                                                                                                                                   X
+
+
+                                                                                                                     1
+                                                                                                                     0
+                        X                                                                                            0
+                                                                                                                     1
+                                                                      X
+                                                                                                                     0
+                                                                                                                     1 [0; 2℄
+                                                         [1; 2℄                      [3; 4℄                          0
+                                                                                                                     1
+           [1; 3℄               [4; 6℄
+                                                                  (2; 3)
+                                                                                                                     0
+                                                                                                                     1
+                                                                                                                      Y
+                                                                                                           11
+                                                                                                           00             111
+                                                                                                                          000
+                        Y
+                                                                                                           00
+                                                                                                           11
+                                                                                                        [0; 1℄            000
+                                                                                                                          111
+                                                                                                                            [2,3℄
+                                                         Y            Y                Y
+                                                                                                           00
+                                                                                                           11             000
+                                                                                                                          111
+                            [1; 3℄                                                                         00
+                                                                                                           11             000
+                                                                                                                          111
+                                                                   [1; 4℄                               X
+                                                                                                            00
+                                                                                                            11
+                                                                                                             Y
+                                                                                                                           00
+                                                                                                                           11
+                                                                                                                           X    Y
+                                                     [1; 3℄                          [2; 4℄                 00
+                                                                                                            11             00
+                                                                                                                           11
+                                                                                                        [0,0℄11
+                                                                                                            00             00
+                                                                                                                           11 [ 3; 0℄
+                                True                                                                        00
+                                                                                                            11             00
+                                                                                                                           11
+                                                                                True
+                                                                                                                           True
+          Figure7.           Three example CDD's. Intervals not shown lead impli itly to False.
+
+
+
+    Ea h node an have several outgoing edges. Edges are labeled with integral
+intervals: open, half- losed and losed intervals with integer values as the borders.
+A node representing the lo k di eren e X Y together with an outgoing edge
+with interval I represents the onstraint "X Y within I ". The leafs represent
+the global onstraints true and false respe tively.
+    A path in a CDD from a node down to a leaf represents the set of lo k values
+with ful ll the onjun tion of onstraints found along the path. Remember that
+a onstraint is found from the pair node and outgoing edge. Paths going to false
+thus always represent the empty set, and thus only paths leading to the true
+node need to be stored in the CDD. A CDD itself represents the set given by
+the union of all sets represented by the paths going from the root to the true
+node. From this learly CDD's are losed under set-union. Figure 7 gives three
+examples of two-dimensional zones and their representation as CDDs. Note that
+the same zone an have di erent CDD representations.
+    All operations on DBM's an be lifted straightforward to CDD's. Care has
+to be taken when the anoni al form of the DBM is involved in the operation, as
+there is no dire t equivalent to the (unique) anoni al form of DBM's for CDD's.
+    CDD's generalize IDD's, where the nodes represent lo k values instead of
+ lo k di eren es. As lo k di eren es, in ontrast to lo k values, are not inde-
+pendent of ea h other, operations on CDD's are mu h more elaborated than the
+same operations on IDD's. CDD's an be implemented spa e-eÆ ient by using
+the standard BDD's te hnique of sharing ommon substru ture. This sharing
+ an also take pla e between di erent CDD's.
+    Experimental results have shown that using CDD's instead of DBM's an
+lead to spa e savings of up to 99%. However, in some ases a moderate in rease
+in run time (up to 20%) has to be paid. This omes from the fa t that operations
+involving the anoni al form are mu h more ompli ated in the ase of CDD's
+ ompared to DBM's. More on CDD's an be found in [LWYP99℄ and [BLP+ 99℄.
+
+3.2 Compa t Representation of States
+Symboli states are the ore obje ts of state spa e sear h and their representation
+is one of the key issues in implementing an eÆ ient veri er. In the earlier versions
+of Uppaal ea h entity in a state (i.e., an element in the lo ation ve tor, the value
+of an integer variable or a bound in the DBM) is mapped on a ma hine word.
+The reason for this is simpli ity and speed. However, the number of possible
+values for ea h entity is usually small, and using a whole ma hine word for ea h
+of them is often a waste of spa e.
+    To solve this problem two additional, more ompa t, state representations
+have been implemented. In both of them the dis rete part of ea h state is en oded
+as a number, using a multiply and add s heme. This en oding is mu h like looking
+at the dis rete part as a number, where ea h digit is an entity in the dis rete
+state and the base varies with the number of di erent digits.
+    In the rst pa king s heme, a DBM is en oded using the same te hnique
+as the dis rete part of the state. This gives a very spa e eÆ ient but omputa-
+tionally expensive representation, where ea h state takes a minimum amount of
+memory but where a number of bignum division operations have to be performed
+to he k in lusion between two DBMs.
+    In the se ond pa king s heme, some of the spa e performan e is sa ri ed to
+allow a more eÆ ient in lusion he k. Here ea h bound in the DBM is en oded
+as a bit string long enough to represent all the possible values of this bound plus
+one test bit, i.e., if a bound an have 10 possible values then ve bits are used
+to represent the bound. This allows heap in lusion he king based on ideas of
+Paul and Simon [PS80℄ on omparing ve tors using subtra tion of bit strings.
+    In Figure 8 we see that the spa e performan e of these representations are
+both substantially better than the traditional representation, with spa e savings
+of between 25% and 70%. As we expe t, the performan e of the rst pa king
+s heme, with an expensive in lusion he k, is somewhat better, spa e-wise, than
+the pa king s heme with the heap in lusion he k.
+    Considering the time performan e for the pa ked state representations (see
+Figure 9), we note that the pri e for using the en oding with expensive in lusion
+ he k is a slowdown of 2 { 12 times, while using the other en oding sometimes
+is even faster than the traditional representation.
+
+3.3 Partial Order Redu tion for Timed Systems
+Partial-order redu tion is a well developed te hnique, whose purpose is to redu e
+the usage of time and memory in state-spa e exploration by avoiding to explore
+unne essary interleavings of independent transitions. It has been su essfully
+applied to nite-state systems. However, for timed systems there has been less
+progress. The major obsta le to the appli ation of partial order redu tion to
+                    0.8
+
+                    0.7
+
+                    0.6
+   Relative Space
+
+                    0.5
+
+                    0.4
+
+                    0.3
+
+                    0.2
+
+                    0.1
+
+                     0
+                                  Field Bus       B&O   DACAPO    DACAPO     Fischer 5   Fischer 6
+                                                          (big)    (small)
+
+                          First               Second
+
+
+
+
+Figure8.                  Spa e performan e for the two pa king s hemes (denoted First and Se ond).
+
+
+
+timed systems is the assumption that all lo ks advan e at the same speed,
+meaning that all lo ks are impli itly syn hronized. If ea h pro ess ontains
+(at least) one lo al lo k, this means that advan ement of the lo al lo k of a
+pro ess is not independent of time advan ements in other pro esses. Therefore,
+di erent interleavings of a set of independent transitions will produ e di erent
+ ombinations of lo k values, even if there is no expli it syn hronization between
+the pro esses or their lo ks.
+    In [BJLY98℄, we have presented a partial-order redu tion method for timed
+systems based on a lo al-time semanti s for networks of timed automata. The
+main idea is to remove the impli it lo k syn hronization between pro esses
+in a network by letting lo al lo ks in ea h pro ess advan e independently of
+ lo ks in other pro esses, and by requiring that two pro esses resyn hronize
+their lo al time s ales whenever they ommuni ate. The idea of introdu ing lo al
+time is related to the treatment of lo al time in the eld of parallel simulation.
+Here, a simulation step involves some lo al omputation of a pro ess together
+with a orresponding update of its lo al time. A snapshot of the system state
+during a simulation will be omposed of many lo al time s ales. In our work, we
+are on erned with veri ation rather than simulation, and we must therefore
+represent sets of su h system states symboli ally.
+    A symboli version of the lo al-time semanti s is developed in terms of pred-
+i ate transformers, whi h enjoys the desired property that two predi ate trans-
+formers are independent if they orrespond to disjoint transitions in di erent
+pro esses. Thus we an apply standard partial order redu tion te hniques to the
+problem of he king rea hability for timed systems, whi h avoid exploration of
+unne essary interleavings of independent transitions. The pri e is that we must
+introdu e extra ma hinery to perform the resyn hronization operations on lo al
+                      13
+                      12
+                      11
+                      10
+      Relative Time
+                       9
+                       8
+                       7
+                       6
+                       5
+                       4
+                       3
+                       2
+                       1
+                       0
+                                   Field Bus       B&O   DACAPO    DACAPO     Fischer 5   Fischer 6
+                                                           (big)    (small)
+
+                           First               Second
+
+
+
+
+Figure9.                   Time performan e for the two pa king s hemes (denoted First and Se ond).
+
+
+
+ lo ks. A variant of DBM representation has been developed for symboli states
+in the lo al time semanti s for eÆ ient implementation of our method.
+    We have developed a prototype implementation based on the te hnique. Un-
+fortunately, our experimental results are not so satisfa tory, whi h is not so sur-
+prising due to the large number of lo al lo ks introdu ed. We are still struggling
+for an eÆ ient implementation.
+
+3.4                   DUppaal      : Distributed State Spa e Exploration
+Real time model he king is a time and memory onsuming task, quite often
+rea hing the limits of both omputers and the patien e of users. An in reasingly
+ ommon solution to this situation is to use the ombined power of omputers
+ onne ted in a luster. Good results have re ently been a hieved for Uppaal by
+distributing both the model he king algorithm and the main data stru tures
+[BHV00℄.
+    Re all the basi state-spa e exploration des ribed brie y in Se tion 1.2. The
+distributed version of this algorithm is similar. Ea h node (pro essing unit) in
+the luster will hold fragments of both the Waiting list and the Passed list
+a ording to a distribution fun tion mapping states to nodes. In the beginning,
+the distributed Waiting list will only hold the initial state. What ever node
+hosts this state will ompare it to its still empty Passed list fragment and
+ onsequently explore it. Now, the su essors are distributed a ording to the
+distribution fun tion and put into the Waiting list fragment on the respe tive
+nodes. This pro ess will be repeated, but now several nodes ontain states in
+their fragment of the Waiting list and qui kly all nodes be ome busy exploring
+their part of the state spa e. The algorithm terminates when all Waiting list
+fragments are empty and no states are in the pro ess of being transfered between
+nodes.
+     The distribution fun tion is in fa t a hash fun tion. It distributes states uni-
+formly over its range and hen e implements what is alled random load balan ing.
+Sin e states are equally likely to be mapped to any node, all nodes will re eive
+approximately the same number of states and hen e the load will be equally
+distributed.
+     This approa h is very similar to the one taken by [SD97℄. The di eren e
+is that Uppaal uses symboli states, ea h overing (in nitely) many on rete
+states. In order to a hieve optimal performan e, the lookup performed on the
+Passed list is an in lusion he k. An unexplored symboli state taken from the
+Waiting list is ompared with all the explored symboli states on the Passed
+list, and only if non of those states over (in lude) the unexplored symboli state
+it is explored. For this to work in the distributed ase, the distribution fun tion
+needs to guarantee that potentially overlapping symboli states are mapped to
+the same node in the luster. A symboli state an be divided into a dis rete
+part and a ontinuous part. By only basing the distribution on the dis rete part,
+the above is ensured.
+     Pe uliarly, the number of explored states is heavily dependent on the sear h
+order. For instan e, let s and t be two symboli states su h that s in ludes t.
+Thus, if s is en ountered before t, t will not be explored be ause s is already
+on the Passed list and hen e overs t. On the other hand, if we en ounter t
+  rst, both states will be explored. Experiments have shown that breadth rst
+order is lose to optimal when building the omplete rea hable state-spa e. Un-
+fortunately, ensuring stri t breadth rst order in a distributed setting requires
+syn hronizing the nodes, whi h is undesirable. Instead, we order the states in
+ea h Waiting list fragment a ording to their distan e from the initial state,
+exploring those with the smallest distan e rst. This results in an approximation
+of the breadth rst order. Experiments have shown that this order drasti ally
+redu es the number of explored states ompared to simply using a FIFO order.
+     This version of Uppaal has been used on a Sun Enterprise 10000 with 24
+CPUs and on a Linux Beowulf luster with 10 nodes. Good speedups have been
+observed on both platforms when verifying large systems (around 80% of optimal
+at 23 CPUs on the Enterprise 10000).
+
+3.5 Dynami Partitioning: Ta kling the State Explosion Problem
+This line of work addresses the state-spa e explosion problem that has to be
+over omed in the veri ation of systems des ribed by a parallel omposition of
+several automata.
+    Re all that basi algorithm implemented in Uppaal is an exa t rea hability
+algorithm that omputes for ea h rea hable lo ation of the global system a nite
+union of zones. One promising idea here is to make use of approximations in
+order to redu e the omplexity of this algorithm, and nevertheless stay onser-
+vative with respe t to safety properties. In many ases, this greatly improves
+performan e without sa ri ing relevant information.
+    The urrent release of Uppaal already ontains options for onvex-hull ap-
+proximation of zones, basi ally asso iating one unique zone to ea h rea hable
+ ontrol lo ation. Su h a zone represents then an upper-approximation of the
+exa t rea hable lo k values in the onsidered lo ation. Another possible ap-
+proximation would onsist in asso iating the same zone to several lo ations. We
+will use a ombination of these two te hniques.
+    Now, a major diÆ ulty is to adjust the level of approximation used. A tradeo
+has to be found between pre ision and eÆ ien y. Rough approximations make
+analysis heaper but may fail in showing non-trivial properties; more pre ise
+analyses may be too expensive to be able to deal with big systems.
+    The solution we propose [JHR99,Jea00,Jea℄ is de ned within the framework
+of abstra t interpretation theory [CC77℄. It relies on the use of an abstra t
+latti e ombining Boolean and numeri al properties (e.g. zones), and exploits
+the partitioning of the state spa e of the system in order to adjust the pre ision
+of the analysis. Now, given a safety property, it is hardly possible to guess the
+good partition to he k it, i.e., the oarsest partition that is still detailed enough
+to enable the proof of this property. We propose to start the analysis with a
+very oarse partition, and to automati ally re ne it a ording to the needs of
+veri ation, until the obtained pre ision enables a proof of the property, or until
+the partition annot be re ned in a reasonable way any more.
+    This te hnique has been implemented in the tool NBa , using onvex poly-
+hedra to represent numeri al properties, and has been su essfully applied to
+the veri ation of syn hronous programs [Jea00,Jea℄. Work is urrently done to
+extend the tool with ontinuous time semanti , and to onne t it to the Uppaal
+language for timed automata. We are also onsidering to repla e the onvex poly-
+hedra latti e used in the tool by the heaper latti e of zones, used in Uppaal, or
+possibly the new latti e of o tagons [Min00℄, that generalizes zones by allowing
+ onstraints of the form m  xi + xj  M .
+
+
+4   Re ent Case Studies
+
+Uppaal2k     has been applied in a number of ase studies. In this se tion we
+brie y des ribe a sele tion of the more re ent ones. A more omplete overview
+is given on the Uppaal home page http://www.uppaal. om/ (see the se tion
+\Do umentation").
+    In [DY00℄, David and Wang report on an industrial appli ation of Uppaal
+to model and debug a ommer ial eld bus ommuni ation proto ol, AF100
+(Advant Field-bus 100) developed and implemented by pro ess ontrol industry
+for safety- riti al appli ations. The proto ol has been running in various indus-
+trial environments over the world for the past ten years. Due to the omplexity
+of the proto ol and various hanges made over the years, it shows o asionally
+unexpe ted behaviors. During the ase study, a number of imperfe tions in
+the proto ol logi and its implementation are found and the error sour es are
+debugged based on abstra t models of the proto ol; respe tive improvements
+                  Figure10.   An overview of the LEGO plant.
+
+
+have been suggested.
+
+   In [HLP00℄, Hune et al. address the problem of synthesizing produ tion
+s hedules and ontrol programs for the bat h produ tion plant model built in
+LEGO MINDSTORMSTM RCXTM shown in Figures 10. A timed automata
+model of the plant whi h faithfully re e ts the level of abstra tion needed to
+synthesize ontrol programs is des ribed. This makes the model very detailed
+and ompli ated for automati analysis. To solve this problem a general way
+of adding guidan e to a model by augmenting it with additional guidan e
+variables and transition guards is presented. Applying the te hnique makes
+synthesis of ontrol problems feasible for a plant produ ing as many as 60
+bat hes. In omparison, only two bat hes ould be s heduled without guides.
+The synthesized ontrol programs have been exe uted in the plant. Doing this
+revealed some model errors.
+
+   The papers [Hun99,IKL+ 00℄ also onsider systems ontrolled by LEGO
+RCXTM bri ks. Here the studied problem is that of he king properties of the
+a tual programs, rather than abstra t models of programs. It is shown how
+Uppaal models an be automati ally synthesized from RCXTM programs,
+written in the programming language Not Quite C, NQC. Moreover, a proto ol
+to fa ilitate the distribution of NQC programs over several RCXTM bri ks is
+developed and proved to be orre t. The developed translation and proto ol
+are applied to a distributed LEGO system with two RCXTM bri ks pushing
+boxes between two onveyer belts moving in opposite dire tions. The system is
+modeled and some veri ation results with Uppaal2k are reported.
+
+     In [KLPW99℄, Kristo ersen et. al. present an analysis of an experimental
+bat h plant using Uppaal2k. The plant is modeled as a network of timed
+automata where automata are used for modeling the physi al omponents of
+the plant, su h as the valves, pumps, tanks et . To model the a tual levels of
+liquid in the tanks, integer variables are used in ombination with real-valued
+  lo ks whi h ontrol the hange between the (dis rete) levels at instan es of
+time whi h may be predi ted from a more a urate hybrid automata model.
+An ru ial assumption of this dis retization is that the intera tion between the
+tanks and the rest of the plant must be su h that any plant event a e ting the
+tanks only o urs at these time instan es. If this assumption an be guaranteed
+(whi h is one of the veri ation e orts in this framework), the veri ation
+results are exa t and not only onservative with respe t to a more a urate
+model, where the ontinuous hange of the levels may have been given by some
+suitable di erential equation.
+
+    The paper [LAM99℄ reports on the rst time, that a part of the Ada
+run-time omplex has been formally veri ed. To eliminate most implementation
+dependen ies and onstru ts with not learly spe i ed behavior in Ada, the
+Ravens ar Tasking Pro le is used to implement the on urren y part. This
+signi antly advan es the possibility to formally verify properties of on urrent
+programs. The ase study uses Uppaal to prove fourteen properties, where one
+depends dire tly on an upper bound on a real-time lo k value.
+
+    In an ongoing ase study [AJ01℄, Uppaal is applied to model and analyze a
+generalized version of a ar looking system developed by Saab Automobile. The
+looking system is distributed over several nodes in the internal ommuni ation
+network that exists in all modern vehi les. The system onsists of a entral node
+gathering information and based on this instru ting sub nodes atta hed to the
+physi al hardware to lo k or unlo k doors, trunk lid, et . The input sour es are
+di erent kinds of remote ontrollers, speed sensors, automati re-lo king time-
+outs et . whi h based on prede ned rules may a tivate the lo king me hanism.
+The model of the system is derived from the a tual fun tional requirements
+of the looking system used at Saab Automobile. During the urrently ongoing
+work with verifying the fun tional requirements of the model, some in onsisten-
+ ies and other problems between requirement have been found and pointed out
+to the engineers.
+
+5   Online Available Distributions
+Uppaal2k  is urrently available for Linux, SunOS and MS Windows platforms.
+It an be downloaded from the Uppaal home page http://www.uppaal. om/.
+Sin e July 1999, the tool has been downloaded by more than 800 di erent users
+in 60 ountries. On the home page, you also nd answers to frequently asked
+questions, online do umentation, tutorials, and related resear h arti les.
+    An open mailing list at http://groups.yahoo. om/group/uppaal serves
+as a lively dis ussion forum for both Uppaal users and developers.
+
+Referen es
+[ACD93℄     Rajeev Alur, Costas Cour oubetis, and David Dill. Model Che king in
+            Dense Real Time. Information and Computation, 104:2{34, 1993.
+[ACH+ 92℄   Rajeev Alur, Costas Cour oubetis, Ni olas Halbwa hs, David Dill, and
+            Howard Wong-Toi. Minimization of Timed Transition Systems. In Pro .
+            of CONCUR '92, Theories of Con urren y: Uni ation an d Extension,
+            pages 340{354, 1992.
+[AHV93℄     Rajeev Alur, Thomas A. Henzinger, and Moshe Y. Vardi. Parametri
+            Real-time Reasoning. In Pro eedings of the Twenty-Fifth Annual ACM
+            Symposium on the Theory of Computing, pages 592{601, 1993.
+[AJ01℄      Tobias Amnell and Pontus Jansson. Report from aste -rt auto proje t |
+             entral lo king system ase study. In preparation, 2001.
+[AW99℄      Rajeev Alur and Bow-Yaw Wang. \Next" Heuristi for On-the- y Model
+            Che king. In Pro . of CONCUR '99: Con urren y Theory, number 1664 in
+            Le ture Notes in Computer S ien e, pages 98{113. Springer{Verlag, 1999.
+[BDM+ 98℄   Marius Bozga, Conrado Daws, Oded Maler, Alfredo Olivero, Stavros Tri-
+            pakis, and Sergio Yovine. Kronos: A model-Che king Tool for Real-Time
+            Systems. In Pro . of the 10th Int. Conf. on Computer Aided Veri a-
+            tion, number 1427 in Le ture Notes in Computer S ien e, pages 546{550.
+            Springer{Verlag, 1998.
+[BFH+ ℄     Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim G. Larsen, Paul
+            Pettersson, and Judi Romijn. EÆ ient Guiding Towards Cost-Optimality
+            in uppaal. A epted for publi ation in TACAS'2001.
+[BFH+ 00℄   Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim G. Larsen, Paul
+            Pettersson, Judi Romijn, and Frits Vaandrager. Minimum-Cost Rea ha-
+            bility for Pri ed Timed Automata. Submitted for publi ation. Available
+            at http://www.do s.uu.se/do s/rtmv/papers/bfhlprv-sub00-1.ps.gz,
+            2000.
+[BHV00℄     Gerd Behrmann, Thomas Hune, and Frits Vaandrager. Distributing Timed
+            Model Che king { How the Sear h Order Matters. In Pro . of the 12th Int.
+            Conf. on Computer Aided Veri ation, number 1855 in Le ture Notes in
+            Computer S ien e, pages 216{231. Springer{Verlag, 2000.
+[BJLY98℄    Johan Bengtsson, Bengt Jonsson, Johan Lilius, and Wang Yi. Partial Order
+            Redu tions for Timed Systems. In Pro . of CONCUR '98: Con urren y
+            Theory, number 1466 in Le ture Notes in Computer S ien e. Springer{
+            Verlag, 1998.
+[BLP+ 99℄   Gerd Behrmann, Kim G. Larsen, Justin Pearson, Carsten Weise, and Wang
+            Yi. EÆ ient Timed Rea hability Analysis Using Clo k Di eren e Dia-
+            grams. In Pro . of the 11th Int. Conf. on Computer Aided Veri ation,
+            number 1633 in Le ture Notes in Computer S ien e. Springer{Verlag, 1999.
+[BRJ98℄     Grady Boo h, James Rumbaugh, and Ivar Ja obson. The Uni ed Modeling
+            Language User Guide. Addison-Wesley, 1998.
+[Bry86℄   Randal E. Bryant. Graph-Based Algorithms for Boolean-Fun tion Manip-
+          ulation. IEEE Trans. on Computers, C-35(8):677{691, August 1986.
+[BSdRT01℄ Giosue Bandini, R. F. Lutje Spelberg, R. C. M. de Rooij, and W. J.
+          Toetenel. Appli ation of Parametri Model Che king - The Root Con-
+          tention Proto ol. In Pro . of the 34th Annual Hawaii International Con-
+          feren e on System S ien es (HICSS-34), 2001.
+[CC77℄    Patri k Cousot and Radhia Cousot. Abstra t Interpretation: a Uni ed
+          Latti e Model for Stati Analysis of Programs by Constru tion or Approx-
+          imation of Fixpoints. Pro . of the 4th ACM Symposium on Prin iples of
+          Programming Languages, January 1977.
+[CL00℄    Fran Cassez and Kim G. Larsen. The Impressive Power of Stopwat hes.
+          In Pro . of CONCUR '2000: Con urren y Theory, number 1877 in Le ture
+          Notes in Computer S ien e, pages 138{152. Springer{Verlag, 2000.
+[DY00℄    Alexandre David and Wang Yi. Modelling and Analysis of a Commer ial
+          Field Bus Proto ol. In Pro . of 12th Euromi ro Conferen e on Real-Time
+          Systems, pages 165{172. IEEE Computer So iety Press, June 2000.
+[EWY99℄ Christer Eri sson, Anders Wall, and Wang Yi. Timed Automata as Task
+          Models for Eventdriven Systems. In Pro eedings of RTSCA 99. IEEE Com-
+          puter So iety Press, 1999.
+[Feh99℄   Ansgar Fehnker. S heduling a Steel Plant with Timed Automata. In Pro .
+          of the 6th International Conferen e on Real-Time Computing Systems and
+          Appli ations (RTCSA99), pages 280{286. IEEE Computer So iety Press,
+          1999.
+[Har87℄   David Harel. State harts: A Visual Formalism for Complex Systems. S i-
+          en e of Computer Programming, 8:231{274, 1987.
+[HHWT97℄ Thomas A. Henzinger, Pei-Hsin Ho, and Howard Wong-Toi. HyTe h: A
+          Model Che ker for Hybrid Systems. In Orna Grumberg, editor, Pro . of
+          the 9th Int. Conf. on Computer Aided Veri ation, number 1254 in Le ture
+          Notes in Computer S ien e, pages 460{463. Springer{Verlag, 1997.
+[HJ94℄    Hans A. Hansson and Bengt Jonsson. A Logi for Reasoning about Time
+          and Reliability. Formal Aspe ts of Computing, 6:512{535, 1994.
+[HLP00℄ Thomas Hune, Kim G. Larsen, and Paul Pettersson. Guided Synthesis of
+          Control Programs Using uppaal. In Ten H. Lai, editor, Pro . of the IEEE
+          ICDCS International Workshop on Distributed Systems Veri ation and
+          Validation, pages E15{E22. IEEE Computer So iety Press, April 2000.
+[Hun99℄   Thomas Hune. Modelling a Real-time Language. In Pro eedings of FMICS,
+          1999.
+[IKL+ 00℄ Torsten K. Iversen, K  are J. Kristo ersen, Kim G. Larsen, Morten Laursen,
+          Rune G. Madsen, Ste en K. Mortensen, Paul Pettersson, and Chris B.
+          Thomasen. Model-Che king Real-Time Control Programs | Verifying
+          LEGO Mindstorms Systems Using uppaal. In Pro . of 12th Euromi ro
+          Conferen e on Real-Time Systems, pages 147{155. IEEE Computer So iety
+          Press, June 2000.
+[Jea℄     Bertrand Jeannet. Dynami Partitioning in Linear Relation Analysis. Ap-
+          pli ation to the Veri ation of Rea tive Systems. to appear in Formal
+          Methods and System Design, Kluwer A ademi Press.
+[Jea00℄   Bertrand Jeannet. Partitionnement dynamique dans l'analyse de relations
+          lineaires et appli ation a la veri ation de programmes syn hrones. PhD
+          thesis, Institut National Polyte hnique de Grenoble, September 2000.
+[Jen96℄    Henrik E. Jensen. Model Che king Probabilisti Real Time Systems. In
+          B. Bjerner, M. Larsson, and B. Nordstrom, editors, Pro eedings of the 7th
+          Nordi Workshop on Programming Theory, Goteborg Sweden, Report 86,
+          pages 247{261. Chalmers University of Te hnolog, 1996.
+[JHR99℄    Bertrand Jeannet, Ni olas Halbwa hs, and Pas al Raymond. Dynami
+          Partitioning in Analyses of Numeri al Properties. In Stati Analysis Sym-
+          posium, SAS'99, Venezia (Italy), September 1999.
+[KLPW99℄ K  are Kristo ersen, Kim G. Larsen, Paul Pettersson, and Carsten Weise.
+          Vhs Case Study 1 - experimental Bat h Plant using uppaal. BRICS,
+          University of Aalborg, Denmark, http://www. s.au .dk/resear h/FS/-
+          VHS/ s1uppaal.ps.gz, May 1999.
+[KNSS99℄ Marta Z. Kwiatkowska, Gethin Norman, Roberto Segala, and Jeremy
+          Sproston. Automati Veri ation of Real-Time Systems with Probabil-
+          ity Distributions. In J.-P. Katoen, editor, Pro eedings of the 5th AMAST
+          Workshop on Real-Time and Probabilisti System, Bamberg, Germany,
+          number 1601 in Le ture Notes in Computer S ien e, pages 75{95. Springer{
+          Verlag, 1999. An extended version will appear in Theoreti al Computer
+          S ien e.
+[Lam87℄   Leslie Lamport. A Fast Mutual Ex lusion Algorithm. ACM Trans. on
+          Computer Systems, 5(1):1{11, February 1987. Also appeared as SRC Re-
+          sear h Report 7.
+[LAM99℄ Kristina Lundqvist, Lars Asplund, and Stephen Mi hell. A Formal Model
+          of the Ada Ravens ar Tasking Pro le; Prote ted Obje ts. In Springer-
+          Verlag, editor, Pro . of the Ada Europe Conferen e, pages 12{25, 1999.
+[LBB+ 01℄ Kim G. Larsen, Gerd Behrmann, Ed Brinksma, Ansgar Fehnker, Thomas
+          Hune, Paul Pettersson, and Judi Romijn. As Cheap as Possible: EÆ ient
+          Cost-Optimal Rea hability for Pri ed Timed Automata. Submitted for
+          publi ation, 2001.
+[LLPY97℄ Fredrik Larsson, Kim G. Larsen, Paul Pettersson, and Wang Yi. EÆ-
+            ient Veri ation of Real-Time Systems: Compa t Data Stru tures and
+          State-Spa e Redu tion. In Pro . of the 18th IEEE Real-Time Systems
+          Symposium, pages 14{24. IEEE Computer So iety Press, De ember 1997.
+[LNAB+ 98℄ Jrn Lind-Nielsen, Henrik Reif Andersen, Gerd Behrmann, Henrik Hul-
+          gaard, K are J. Kristo ersen, and Kim G. Larsen. Veri ation of Large
+          State/Event Systems Using Compositionality and Dependen y Analysis.
+          In Bernard Ste en, editor, Pro . of the 4th Workshop on Tools and Al-
+          gorithms for the Constru tion and Analysis of Systems, number 1384 in
+          Le ture Notes in Computer S ien e, pages 201{216. Springer{Verlag, 1998.
+[LP97℄     Henrik Lonn and Paul Pettersson. Formal Veri ation of a TDMA Proto ol
+          Startup Me hanism. In Pro . of the Pa i Rim Int. Symp. on Fault-
+          Tolerant Systems, pages 235{242, De ember 1997.
+[LPY97℄ Kim G. Larsen, Paul Pettersson, and Wang Yi. Uppaal in a Nutshell.
+           Int. Journal on Software Tools for Te hnology Transfer, 1(1{2):134{152,
+           O tober 1997.
+[LWYP99℄ Kim G. Larsen, Carsten Weise, Wang Yi, and Justin Pearson. Clo k Dif-
+           feren e Diagrams. Nordi Journal of Computing, 6(3):271{298, 1999.
+[Min00℄    Antoine Mine. The Numeri al Domain of O tagons and Appli ation to
+           the Automati Analysis of Programs. Master's thesis, E       ole Normale
+           Superieure de Paris, 2000.
+[Pet99℄   Paul Pettersson. Modelling and Analysis of Real-Time Systems Using
+          Timed Automata: Theory and Pra ti e. PhD thesis, Department of Com-
+          puter Systems, Uppsala University, February 1999.
+[PS80℄    Wolfgang J. Paul and Janos Simon. De ision Trees and Random
+          A ess Ma hines. In Logi and Algorithmi , volume 30 of Monogra-
+          phie de L'Enseignement Mathematique, pages 331{340. L'Enseignement
+          Mathematique, Universite de Geneve, 1980.
+[SD97℄    Ulri h Stern and David L. Dill. Parallelizing the Mur' Veri er. In Orna
+          Grumberg, editor, Pro . of the 9th Int. Conf. on Computer Aided Veri a-
+          tion, volume 1254 of Le ture Notes in Computer S ien e, pages 256{267.
+          Springer{Verlag, June 1997. Haifa, Isreal, June 22-25.
+[ST98℄    Karsten Strehl and Lothar Thiele. Symboli Model Che king of Pro-
+           ess Networks Using Interval Diagram Te hniques. In Pro eedings of
+          the IEEE/ACM International Conferen e on Computer-Aided Design
+          (ICCAD-98), pages 686{692, 1998.
+[Yov97℄   Sergio Yovine. Kronos: A veri ation Tool for Real-Time Systems.
+          Springer International Journal of Software Tools for Te hnology Transfer,
+          1(1/2), O tober 1997.
+[YPD94℄   Wang Yi, Paul Pettersson, and Mats Daniels. Automati Veri ation
+          of Real-Time Communi ating Systems By Constraint-Solving. In Dieter
+          Hogrefe and Stefan Leue, editors, Pro . of the 7th Int. Conf. on Formal
+          Des ription Te hniques, pages 223{238. North{Holland, 1994.
+

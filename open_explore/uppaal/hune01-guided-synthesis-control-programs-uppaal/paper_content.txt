@@ -1,0 +1,1418 @@
+Nordi   Journal of Computing
+
+
+
+
+   GUIDED SYNTHESIS OF CONTROL PROGRAMS
+               USING UPPAAL
+                    THOMAS HUNE1     KIM G. LARSEN2
+                           PAUL PETTERSSON2
+      1 BRICSy, Department of Computer S ien e, Aarhus University, Denmark
+                              E-mail: barisbri s.dk
+      2 BRICSy, Department of Computer S ien e, Aalborg University, Denmark
+                          E-mail: fkgl,paupetg s.au .dk
+
+
+
+Abstra t.     In this paper we address the problem of s heduling and synthesiz-
+ing distributed ontrol programs for a bat h produ tion plant. We use a timed
+automata model of the bat h plant and the veri ation tool Uppaal to solve the
+s heduling problem.
+In modeling the plant, we aim at a level of abstra tion whi h is suÆ iently a -
+ urate in order that synthesis of ontrol programs from generated timed tra es is
+possible. Consequently, the models qui kly be ome too detailed and ompli ated
+for immediate automati synthesis. In fa t, only models of plants produ ing two
+bat hes an be analyzed dire tly! To over ome this problem, we present a general
+method allowing the user to guide the model- he ker a ording to heuristi ally ho-
+sen strategies. The guidan e is spe i ed by augmenting the model with additional
+guidan e variables and by de orating transitions with extra guards on these. Ap-
+plying this method have made synthesis of ontrol programs feasible for a plant
+produ ing as many as 60 bat hes.
+The synthesized ontrol programs have been exe uted in a physi al plant. Besides
+proving useful in validating the plant model and in nding some modeling errors,
+we view this nal step as the ultimate litmus test of our methodology's ability to
+generate exe utable (and exe uting) ode from basi plant models.
+
+CR Classi ation: D.1.2, D.2.2, D.2.4, F.3.1, I.6.4, J.6
+
+Key words: real-time veri ation, guided model- he king, s heduling, program
+synthesis, distributed systems
+
+
+
+
+  
+     This work is partially supported by the European Community Esprit-LTR Proje t
+26270 VHS (Veri ation of Hybrid systems).
+   y Basi Resear h In Computer S ien e, Centre of the Danish National Resear h Foun-
+dation.
+
+Submitted February 2000
+2                         HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                                1. Introdu tion
+
+
+
+In this paper we suggest a solution to the problem of synthesizing and verifying
+valid s heduling ontrol programs for resour e allo ation, based on a bat h plant
+of SIDMAR [Boel and Stremers h 1999℄,[Fehnker 1999℄, whi h is a ase study of
+the VHS proje t1 . We model the plant in a network of timed automata, with the
+di erent omponents of the plant (e.g. bat hes, re ipes, asting ma hine, ranes,
+et .) onstituting the individual timed automata. The s heduling problem is for-
+mulated as a time-bounded rea hability question allowing us to apply the real-time
+model- he king tool Uppaal [Larsen et al. 1995℄,[Larsen et al. 1997℄ to derive a
+s hedule. An overview of the methodology is shown in Figure 1.1.
+Uppaal o ers a tra e with a tions of the model and timing information of the
+a tions. The remaining e ort required in transforming su h a model tra e into
+an exe utable ontrol program depends heavily on the a ura y of the model with
+respe t to the ontrol programming language and the physi al properties of the
+plant. Given a suÆ iently high level of a ura y of the plant model, a s hedule an
+be obtained from a tra e by proje tion, and synthesis of the ontrol program from
+a s hedule amounts to textual substitution. However, a model suitable for su h
+program synthesis be omes very detailed as all the ne essary information about
+the plant, su h as the timing bounds and the physi al onstraints for movements
+of loads, ranes et , has be to spe i ed. As an immediate drawba k, synthesizing
+s hedules for several bat hes qui kly be omes infeasible.
+To deal with this (unavoidable) problem we introdu e a method, allowing the user to
+guide the model- he king a ording to ertain hosen strategies. Ea h strategy will
+ ontribute with a redu tion of the sear h-spa e, but in ontrast to fully automati
+redu tion methods it is up to the user to 'guarantee' preservation of s hedulability.
+However, if a s hedule is identi ed via the guided sear h, the s hedule is indeed a
+valid one for the original model.
+To be able to run the generated ontrol programs in a physi al plant, we onsider a
+LEGO MINDSTORMS plant, instead of the original plant of SIDMAR. We have
+used the plant to su essfully run synthesized ontrol programs and by doing so
+in reased our on den e in the plant model. We view this nal, s ienti ally rather
+simple step as the ultimate litmus test of our methodology's ability to generate
+exe utable (and exe uting) ode from rather natural plant models.
+The SIDMAR plant has been studied by several other resear hers. Our timed
+automata model is based on the model in [Fehnker 1999℄, whi h is similar to ours
+but more abstra t in the sense that some information, su h as delays for the moving
+of bat hes, is not in luded. A Petri net model of the plant is presented in [Boel
+and Stremers h 1999℄. In [Stobbe 2000℄, onstraint programming te hniques are
+used to generate s hedules of the SIDMAR plant for up to 30 bat hes. To obtain
+this te hniques similar to ours are used for redu ing the size of the sear h spa e.
+Other work applying the model of timed automata and Uppaal to analyze and
+solve planning problems of bat h plants in lude [Kristo ersen et al. 1999℄ in whi h
+an experimental bat h plant is studied.
+The rest of this paper is organized as follows: In the next two se tions we des ribe
+the s heduling problem and how it has been modeled in Uppaal. In Se tion 4 and
+5 we present the guiding te hniques and evaluate their e e t on the plant model. In
+1
+    See the web site http://www-verimag.imag.fr//VHS/main.html.
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                        3
+
+
+                       SIDMAR Plant                  LEGO Plant
+
+
+
+
+                                       Plant Model
+
+
+
+                   desired                                   realized
+
+
+                                Guided Plant Model
+
+
+
+
+                                        S hedule
+
+
+
+
+                                     Control Program
+
+
+
+
+                         Fig. 1.1   : Overview of methodology.
+
+
+
+Se tion 6 we des ribe experiments with the LEGO plant and how programs are
+synthesized for the plant. Se tion 7 on ludes the paper. Finally, timed automata
+des riptions of four plant omponents are en losed in the appendix.
+
+
+                        2. The S heduling Problem
+
+
+
+Our plant is based on a part of the SIDMAR steel produ tion plant lo ated at
+Gent in Belgium. We will onsider the part of the plant between the blast furna e
+and the ontinuous asting ma hine where molten pig iron is onverted into steel of
+di erent qualities. The pro ess is started when pig iron being poured into ladles by
+one of two onverter vessels. The iron is transported in the ladles while it is being
+pro essed. By treatments in di erent ma hines the iron is onverted into steel and
+  nally asted in the asting ma hine. Depending on the ma hines used and how
+long the treatment in the ma hines last, di erent qualities of steel are produ ed.
+When the steel in a ladle has been asted the empty ladle must be moved to a
+storage pla e. From here the ladles are leaned and reused. However, this is not
+part of our model, where ladles are stored at the storage pla e but not reused. The
+physi al omponents of the pro ess are: two onverter vessels where molten iron is
+poured into ladles, ve ma hines, tra ks onne ting these, two ranes running on
+one overhead tra k, a bu er pla e, a storage pla e for empty ladles, and one asting
+ma hine. The layout of the plant an be seen in Figure 2.1.
+Ma hines number one and four are of the same type and so are ma hines number
+two and ve. Ea h rane an only hold one ladle and they annot overtake ea h
+other. On ea h tra k and in ea h ma hine there is room for at most one ladle. This
+means that the ladles annot overtake ea h other without using one of the ranes.
+The steel must sustain a minimum temperature during the pro ess. This gives
+an upper bound on the time a bat h is allowed to spend in the plant from it is
+poured and until it is asted. Casting takes a xed time and must be ontinuous.
+4                            HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                                                 overhead
+                                                  cranes
+                 convertor
+                                                                         crane#1
+                 vessel #1
+
+                             machine#1                                      11111111
+                                                                            00000000
+                                                                           machine#2    machine#3
+                              1111
+                              0000
+                              0000
+                              1111
+                              0000
+                              1111                          track#1         00000000
+                                                                            11111111
+                                                                            00000000
+                                                                            11111111
+                              0000
+                              1111
+                              0000
+                              1111                                          00000000
+                                                                            11111111
+                              0000
+                              1111
+                              0000
+                              1111                                          00000000
+                                                                            11111111
+                             machine#4                                      00000000
+                                                                            11111111
+                                                                            machine#5
+                              0000
+                              1111
+                              1111
+                              0000
+                              0000
+                              1111
+                              0000
+                              1111                          track#2         00000000
+                                                                            11111111
+                                                                            00000000
+                                                                            11111111
+                              0000
+                              1111
+                              0000
+                              1111                                          00000000
+                                                                            11111111
+                 convertor
+                 vessel #2
+                              0000
+                              1111
+                              0000
+                              1111                                          00000000
+                                                                            11111111
+                                                                         crane#2
+
+                                            buffer
+
+
+
+                                         storage
+                                          place
+
+
+                                         holding
+                                          place
+                                                            continuous
+                                                              casting
+                                                             machine
+
+
+
+                                 Fig. 2.1   : Layout of the plant.
+
+
+Therefore a new ladle lled with steel must be waiting in the holding pla e of the
+ asting ma hine when asting of a ladle has nished.
+Steel of di erent qualities an be produ ed depending on whi h types of ma hines
+are visited and for how long. For ea h bat h this is spe i ed by a re ipe. The
+problem to be solved an now be stated as:
+
+    Given an ordered list of re ipes, if possible synthesize a ontrol program for the
+    plant su h that steel spe i ed by the re ipes are produ ed in the right order
+    and within a given time.
+
+The major part of solving this problem is nding a s hedule for the produ tion if
+one exists. A s hedule for the plant de nes whi h a tion takes pla e in the plant
+e.g. moving of bat hes and ranes, and when the a tions take pla e.
+
+                      3. S heduling with Timed Automata
+
+
+Finding a s hedule for produ ing an ordered list of steel qualities is the main part
+of the problem. It an be solved in a number of ways. Here we hose to model
+the plant using timed automata [Alur and Dill 1994℄ and use the veri ation tool
+Uppaal [Larsen et al. 1995℄,[Larsen et al. 1997℄ to solve the s heduling problem 2 .
+For a dis ussion of this approa h to s heduling see [Fehnker 1999℄.
+The modeling language in Uppaal is networks of timed automata extended with
+data variables [Larsen et al. 1997℄. To meet requirements from various ase-
+studies the language has been further extended with the notion of ommitted lo-
+ ations [Bengtsson et al. 1996℄, urgent syn hronization a tions [Larsen et al. 1997℄,
+2
+    See the web site http://www.uppaal. om/ for more information about Uppaal.
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                           5
+
+
+
+                    x>=1, j<50         y:=0, j:=j+2
+          P:                                                  Q:
+                                                                         i<10
+          S0                                          S1           S2    a?
+          x<=4                                        x<=5,              i:=i+1
+                                                      y<=3
+                   x:=0, y:=0     a!
+
+
+
+                       Fig. 3.1   : A Network of Timed Automata.
+
+
+and data stru tures su h as arrays of data-variables et . In this se tion we give
+a brief informal des ription of the modeling language of Uppaal. For a detailed
+des ription we refer the reader to [Larsen et al. 1997℄.
+
+
+3.1 Networks of Timed Automata
+
+
+Consider the network of timed automata P and Q shown in Figure 3.1. Automaton
+P has two ontrol lo ations S0 and S1, two real-valued lo ks x and y, and a
+data variable j. A state of the automaton is of the form (l; s; t; k ), where l is a
+ ontrol lo ation, s and t are non-negative reals giving the value of the two lo ks
+x and y, and k is a natural number giving value to the data variable j. A ontrol
+lo ation is labelled with a ondition (the lo ation invariant) on the lo k values that
+must be satis ed for states involving this lo ation. Assuming that the automaton
+starts to operate in the state (S0; 0; 0; 0), it may stay in lo ation S0 as long as the
+invariant x  4 of S0 is satis ed. During this time the values of the lo ks in rease
+syn hronously. Thus from the initial state, all states of the form (S0; t; t; 0), where
+t  4, are rea hable. The edges of a timed automaton may be de orated with a
+ ondition (guard) on the lo ks and the data variable values that must be satis ed
+in order for the edge to be enabled. Thus, only for the states (S0; t; t; k ), where
+1  t  4 and k < 50, is the edge from S0 to S1 enabled. Additionally, edges
+may be labelled with assignments and syn hronization labels. An assignment may
+reset the value of the lo ks and update the data variables. For example, when
+following the edge from S0 to S1 the lo k y is reset to 0 and the data variable j is
+in remented by 2, leading to states of the form (S1; t; 0; 2), where 1  t  4. The
+syn hronization label is used to establish syn hronization between automata. For
+example the transition from S1 to S0 of automaton P is labeled with a!, requiring
+the transition to be syn hronized with the transition of automaton Q o ering the
+ omplementary a tion a?.
+In general, a timed automaton is a nite-state automata extended with a nite
+ olle tion C of real-valued lo ks ranged over by x; y et . and a nite set of data
+variables D ranged over by i; j et . We use B (C ) ranged over by g to stand for the
+set of formulas that an be an atomi onstraint of the form: x  n or x y  n for
+x; y 2 C ,  2f<; ; =;  >g and n being a natural number, or a onjun tion of su h
+formulas. Similarly, we use B (D) to stand for the set of data-variable onstraints
+that are the onjun tive formulas of i  j or i  k , where  2 f<; ; =; 6=; ; >g
+and k is an integer number. To denote the set of formulas that are onjun tions
+of lo k onstraints and a data-variable onstraints we use B (C ;D) (ranged over by
+g ). The elements of B (C ;D) are alled onstraints or guards.
+6                            HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+An assignment in Uppaal is a sequen e of operations of the form x := 0, or i :=
+Expr, where x is a lo k, i is a data variable, and Expr is an integer expression,
+e.g. 2  (i j) + 3 (where j is a data variable). We shall use R to denote the set of
+assignments. Furthermore, we use A t to denote a nite set of a tions ranged over
+by a, a?, a!, b?, b!, et .
+
+Definition 1. (Timed Automata) A timed automaton A over lo ks C and data
+variables D is a tuple hN; l0 ; !; I i where N is a nite set of ( ontrol-)lo ations,
+l0 is the initial lo ation, !  N  B (C ; D)  A t  R  N orresponds to the
+set of edges and nally, I : N 7! B (C ) assigns invariants to lo ations. In the ase,
+hl; g; a; r; l0i 2 !, we write l g;a;r
+                                   ! l0 .                                         2
+To formalize the semanti s we use variable assignments. A variable assignment is a
+mapping whi h maps the lo ks C to the non-negative reals and the data variables
+D to integers. A semanti al state of an automaton A is now a triple (l; u), where l is
+a lo ation of A and u is a an assignment for C and D, and the semanti s of A is given
+by a transition system with the following two types of transitions ( orresponding
+to delay-transitions and a tion-transitions):
+    Æ   (l; u)   ! (l; u  d) if I (l)(u) and I (l)(u  d)
+    Æ   (l; u)   ! (l ; u ) if there exist g and r su h that l ! l , g(u), u
+                     0   0
+                                                             g;a;r
+                                                                     0       0
+                                                                                 = r[u℄ and
+        I (l )(u )
+           0     0
+
+
+
+
+where d is a non-negative real number, u  d denotes the assignment whi h maps
+ea h lo k x in C to the value u(x) + d and leaves ea h data variable i with the
+un hanged value u(i), and r[u℄ denotes the result of updating the lo ks C and the
+data-variables in D a ording to r 2 R.
+Finally, we brie y introdu e the notion of networks of timed automata [Yi et al.
+1994℄,[Larsen et al. 1995℄. A network is a nite set of automata omposed in parallel
+with a CCS-like parallel omposition operator [Milner 1989℄. For a network with
+the timed automata A1 ; : : : ; An the intuitive meaning is similar to the CCS parallel
+ omposition of A1 ; :::; An with all a tions being restri ted, that is, (A1 j:::jAn )nA t.
+Thus an edge labelled with a tion a must syn hronize with an edge labelled with an
+a tion omplementary to a, and edges with the silent  a tion are internal, so they
+do not syn hronize. In Uppaal '?' and '!' are used to represent omplementary
+a tions, so a? and a! are onsidered omplementary and an syn hronize.
+Given a network of timed automata and a set of states, Uppaal an analyze whether
+or not one of the states is rea hable from the initial state of the network. If the
+answer is positive, Uppaal produ es a tra e with a tion- and delays-transitions
+leading from the initial state to one of the spe i ed states.
+For the model of the plant, whi h will be presented in the following, a tra e de nes a
+s hedule for the plant sin e it spe i es what happens in the plant (the syn hroniza-
+tion a tions) and when (the delays). From a s hedule a working program ontrolling
+the plant may be generated. The level of detail in the tra e (and therefore in the
+s hedule) in uen es the work needed to generate the program. In [Fehnker 1999℄
+the tra es generated did not in lude time for the moving of bat hes, making the
+generation of exe utable programs from the s hedules hard. To minimize the ef-
+fort needed during the translation, we produ e tra es with detailed and pre ise
+information about timing of all a tions in the plant.
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                         7
+
+
+                                         Casting
+                     Controller          Ma hine        Crane A   Crane B
+
+
+
+
+                             Bat h 1
+                                       Bat h 2
+                                             Bat h 3
+
+
+
+
+                                                             Bat h n
+
+                             Re ipe 1
+                                    Re ipe 2
+                                             Re ipe 3
+
+
+                                                             Re ipe n
+
+
+
+
+                                               Tester
+
+
+             Fig. 3.2   : Syn hronization between the automata of a model.
+
+
+3.2 A Model for S heduling the Plant
+
+
+An instan e of the problem is given by a list of qualities of steel (or re ipes) and
+a maximal produ tion time. A model of a problem instan e onsists of: for ea h
+re ipe one automaton representing the re ipe and one automaton representing the
+movement of the bat h; one automaton for ea h of the two ranes; one automaton
+testing that the re ipes nish in the orre t order; one automaton for making some
+a tions syn hronizing; and one automaton modeling the asting ma hine. Figure 3.2
+shows the syn hronizations between the di erent automata. The bat h automata
+ ommuni ate with ea h other through two shared arrays and the two ranes also
+share an array. These arrays will be des ribed in more detail later.
+The most omplex of the automata is the one modeling the possible behaviors
+of a bat h (see Figure 7.4 of the appendix3 )4 . The bat h automaton re e ts the
+topology of the plant (shown in Figure 2.1) as well as the physi al onstraints
+on the movements of a bat h. Basi ally, there is one lo ation for ea h position
+of the plant a bat h an be lo ated at. A position is either a ma hine, a tra k
+segment, the storage pla e, the asting ma hine, or a position on the overhead
+tra k. Positions on the overhead tra k are over one of the two tra ks, the storage
+pla e, the asting ma hine, or in between any of these. A bat h automaton has
+a lo k named x asso iated to it whi h is used to measure the time spend on
+moving along a tra k. The time spend is the worst ase time measured in the
+3
+  Unless stated otherwise, guided versions of the automata are shown sin e these have
+been used for most of the experiments.
+4
+  Pi tures of all the automata and the LEGO plant an be found at the web site
+http://www.bri s.dk/~baris/CaseStudy/.
+8                        HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                                                              posI[3]==0
+                                                                                  x==bmove,
+                               x==bmove,                      b2left?
+                                                 i1aa                             posI[4]==0            i2aa
+                               posI[2]==0     x<=bmove        posI[3]:=1,                               x<=bmove
+                               posI[2]:=0,                    posI[4]:=0,          posI[4]:=1,
+                               posI[3]:=0                     x:=0                 posI[5]:=0
+                          i1                      i1a                        i2                         i2a
+
+                                posI[3]==0                x==bmove,                posI[5]==0
+                                              x<=bmove    posI[4]==0                                    x<=bmove
+                                                                                      b2right?
+                                m1right?                 posI[4]:=1,
+                                                                                          posI[5]:=1,
+                                posI[3]:=1,              posI[3]:=0
+                                                                                          posI[4]:=0,
+                                posI[2]:=0,
+                                                                                          x:=0
+                                x:=0
+                                                         cBIup!        cAIup!
+                                                                                       cIdown_end?
+
+                                                                        k1                  c1down
+
+
+
+
+                  Fig. 3.3   : Part of the unguided bat h automaton.
+
+
+physi al plant whi h is given by the onstant bmove. Shared among all the bat h
+automata in a model are the two binary arrays posI and posII, whi h are used
+for storing whi h positions are o upied on the two tra ks. Figure 3.3 shows the
+part of the unguided bat h automaton modeling the position named i2, between
+ma hines number one and two on tra k one. Moving a bat h between positions
+in the model is done in two steps. First a transition is taken to an intermediate
+position, e.g. from i2 to i1aa. A bat h an only start to move to a position if this
+position is free, whi h in this ase is ensured by he king the array posI using the
+guard posI[3℄ == 0. Taking the transition resets the lo k x and updates whi h
+positions are o upied by the assignment posI[3℄ := 1; posI[4℄ := 0. The bat h an
+stay in the intermediate position at most bmove time units be ause of the invariant
+x  bmove in the lo ation. However, it annot leave the lo ation before bmove time
+units have passed be ause of the guard x == bmove on the transition leaving the
+intermediate lo ation. This means that moving a bat h along a tra k is modeled
+as taking exa tly bmove time units. A bat h an also move when it is arried by a
+ rane. The time spend during su h moving is measured by the rane automaton.
+Ea h bat h has a re ipe asso iated to it (a re ipe using ma hine type one and two is
+shown in Figure 3.4). The re ipe de nes whi h ma hines should be visited, in whi h
+order, and for how long. It also measures the overall time the bat h has spend in
+the plant. A re ipe has two lo ks asso iated to it. One is reset as the bat h starts
+in the plant and measures the overall time spend in the plant by the bat h. The
+other lo k is used for measuring the time of the di erent treatments the bat h
+goes through. When a bat h is lo ated at a ma hine of the right type a ording
+to the re ipe, the bat h and the re ipe an syn hronize to start the ma hine. This
+resets the lo k measuring the time of treatments. When the spe i ed time for the
+treatment has passed the re ipe and the bat h syn hronize to turn the ma hine o .
+When the treatments are ompleted and the bat h is ready to be asted the re ipe
+syn hronizes with the test automaton to ensure that the produ tion order is kept.
+Here it is also he ked that the bat h has not spend too mu h time in the plant.
+As mentioned the positions of a rane are over the two tra ks, over the storage
+pla e, over the asting ma hine and in between these. An automaton modeling a
+ rane has two lo ations for ea h of these positions, one modeling the rane being
+empty and one modeling the rane arrying a bat h. The automaton modeling the
+          GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                                                                                     9
+
+
+
+                                                                                               nextbatch==(number-1)
+                                                                                               next := (posI[0]+posI[1]+posI[2]+
+                                                                                                 posI[3]+posI[4]+posI[5]<=
+                                              t:=0                                               posII[0]+posII[1]+posII[2]+
+        t<=mtreat, tot<=rtotalby2                                                                posII[3]+posII[4]+posII[5]+
+                                                        tot<=rtotalby3
+                                     M4on!                                   go?
+                                                                                                 posII[6] ? m1 : m4 )
+             onT1
+                                     M1on!                                tot:=0
+                                                             gotoT1                  setoff                                      idle
+                                             t:=0
+        t==mtreat        t==mtreat
+            M1off!      M4off!                                                      t:=0, nextbatch:=nextbatch+1
+                                                              tot<=rtotal
+                                                                                                                   t<=mtreat, tot<=rtotal
+                                                                                               M5on!
+        onT1still
+                                                                                                                                onT2
+                                                                                              M2on!
+                      next := (posI[0]+posI[1]+posI[2]+          gotoT2
+                        posI[3]+posI[4]+posI[5]+(next==m1 ? -2 : 0 )<               t:=0, nextbatch:=nextbatch+1                    t==mtreat
+                                                                                                              t==mtreat
+                        posII[0]+posII[1]+posII[2]+                                                                                M5off!
+                        posII[3]+posII[4]+posII[5]+                                                                 M2off!
+                                                                                                                                   next:=fin
+                        posII[6]+(next==m4 ? -2 : 0 ) ? m2 : m5 )                                              next:=fin
+
+                                                                         tot<=rtotal
+                                                     tot<=rtotal
+                                                                                                                                rend
+                              dump!                        done?                       quality1!                   try?
+                    dumped                   terminus                      casted                      cast                tot<=rtotal
+
+
+
+                                 Fig. 3.4           : An example re ipe automaton.
+
+
+
+upper rane whi h is only moving between the two tra ks is shown in Figure 3.5 (the
+automaton modeling the other rane an be seen in Figure 7.2 of the appendix.) A
+ rane pi king up a bat h is modeled by the two automata syn hronizing. Similarly
+when a rane moves or sets a bat h down. Ea h rane automaton has one lo k
+whi h is used for measuring time when the rane is moving. The movement of a
+ rane between two positions is modeled like movement between two positions in the
+bat h automaton with an intermediate lo ation where the time for the movement
+passes. The two rane automata share a binary array like the bat h automata for
+storing whi h positions are o upied
+
+The test automaton syn hronizes with a re ipe automaton just before the re ipe
+allows the bat h to enter the asting ma hine. This ensures that the order of the
+produ tion as stated in the problem des ription is kept (Figure 7.3 in the appendix
+shows a test automaton).
+
+There is also one automaton whi h has no in uen e on the overall behavior of the
+model (shown in Figure 3.6). However, sin e we will use the tra es from the model
+for generating s hedules, it is important that the all a tions of the plant a e ting
+the s hedule appear dire tly in the tra e. Some of these a tions are internal a tions
+in the bat h automaton and will therefore not appear in the generated tra es. An
+example is the movements of a bat h on the belts. The purpose of this automaton
+is to syn hronize with the internal a tions (modi ed to external a tions) to make
+them appear in the tra es.
+
+Finally there is an automaton modeling the asting ma hine (see Figure 7.1 of
+the appendix). It syn hronizes with a bat h to start the asting. After a spe i
+time when the bat h has been asted, the asting ma hine and the bat h should
+syn hronize again to let the bat h leave the asting ma hine and to let a new one
+enter.
+10                                HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                                                                                                 c0full
+                                        c0emp
+                 cpos[1]==0,
+                 cpos[2]==0,           cpos[0]:=1,                               cpos[1]==0            cpos[0]:=1,
+                 posI[4]==1            cpos[1]:=0,                               move01?               cpos[1]:=0
+                 moveAdown?            creq1:=0                                  cpos[1]:=1,
+                                                                                                       evom10?
+                 cpos[1]:=1,                                                     cpos[0]:=0,           x==cdelay,
+                 cpos[0]:=0,           x==cdelay,                                x:=0                  cpos[0]==0
+                 x:=0                  cpos[0]==0
+
+                  c1c0aemp              c1c0emp                               c1c0afull                 c1c0full
+               x<=cdelay                x<=cdelay                          x<=cdelay                    x<=cdelay
+                                       cpos[1]==0,
+                                                                            x==cdelay,                 cpos[1]:=1,
+                                       creq1==1
+                 x==cdelay,                                                 cpos[2]==0                 cpos[2]:=0,
+                                       moveAup?                                                        x:=0
+                 cpos[2]==0                                    c1up              evom01?
+                                       cpos[1]:=1,
+                                                                                 cpos[2]:=1,
+                 cpos[2]:=1,           cpos[2]:=0,             x<=cup                                  move10?
+                                                                                 cpos[1]:=0            cpos[1]==0
+                 cpos[1]:=0            x:=0                                x==cup
+                                                       x:=0
+                                            cAIup?                             posI[4]:=0
+                             c1emp                                    cAIdown_start?                   c1full
+                 cpos[3]==0,                        x==cup            x:=0,         posI[4]==0
+                 cpos[4]==0,             cIdown_end!
+                                                               c1down posI[4]:=1                       cpos[2]:=1,
+                 posII[4]==1                                   x<=cup                                  cpos[3]:=0
+                                       cpos[2]:=1,                            cpos[3]==0
+                 moveAdown?
+                                       cpos[3]:=0,                            moveA12?                 evom21?
+                 cpos[3]:=1,
+                                       creq1:=0                               cpos[3]:=1,              x==cdelay,
+                 cpos[2]:=0,
+                                                                              cpos[2]:=0,              cpos[2]==0
+                 x:=0,                 x==cdelay,                             x:=0,
+                 creq2:=1              cpos[2]==0                             creq2:=1
+                  c2c1aemp                                                  c2c1afull                   c2c1full
+                                        c2c1emp
+               x<=cdelay                                               x<=cdelay                        x<=cdelay
+                                        x<=cdelay
+                                                                            x==cdelay,                 cpos[3]:=1,
+                                       cpos[3]==0,
+                 x==cdelay,                                                 cpos[4]==0                 cpos[4]:=0,
+                                       posI[4]+creq1>=1
+                 cpos[4]==0                                                      evom12?               x:=0
+                                       moveAup?
+                 cpos[4]:=1,                                                     cpos[4]:=1,           moveA21?
+                                       cpos[3]:=1,
+                 cpos[3]:=0,                                                     cpos[3]:=0,           cpos[3]==0
+                                       cpos[4]:=0,           c2up
+                 creq2:=0                                                        creq2:=0
+                                       x:=0       cAIIup?    x<=cup
+                                          creq1!=1      x:=0
+                                                                        x==cup     posII[4]:=0         c2full
+                               c2emp
+                                                                                         posII[4]==0
+                                       cIIdown_end!                               cAIIdown_start?
+                                                      x==cup                x:=0,
+                                                                 c2down     posII[4]:=1
+                                                                 x<=cup
+
+
+
+                                       Fig. 3.5      : The upper rane.
+
+
+
+
+                               4. Guiding Timed Automata
+
+
+
+
+The timed automata des ribed in the previous se tion models the steel produ tion
+plant at a high level of a ura y. The details in the model are needed to allow
+generation of s hedules from model tra es by proje tion, and to allow generation
+of ontrol programs from s hedules by textual substitution. However, the fa t
+that the model is detailed and onsisting of a many parallel timed automata with
+several lo ks is also a serious problem, as the model is too big and ompli ated for
+automati analysis. In fa t, nding tra es of a plant model with just a few bat hes
+is infeasible in pra ti e (see Se tion 5). The limiting fa tor is the amount of time
+and memory onsumed during the analysis to (symboli ally) explore and store the
+rea hable state-spa e of the analyzed model. To solve this problem we introdu e a
+way of user dire ted guiding of a state-spa e exploration algorithm a ording to a
+number of ertain hosen strategies.
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                             11
+
+
+
+
+                                                 not_run
+                                             cpos[2]:=1,
+                                             cpos[4]:=1,
+                                             nextbatch:=1    b1left!
+                         m1right!                            b1right!
+                         m2right!                            b2left!
+                         m4right!                            b2right!
+                                                             b3left!
+                         m1left!
+                                                             b3right!
+                         m2left!
+                                           run               b4left!
+                         m3left!
+                                                             b4right!
+                         m4left!
+                                                             b5left!
+                         m5left!
+                                                             b5right!
+                       moveAup!
+                       moveAdown!                            caststart!
+                       moveBup!
+                       moveBdown!
+
+
+
+                  Fig. 3.6   : The automaton ensuring syn hronization.
+
+
+4.1 Guiding
+
+
+The overall idea of guiding an automata model is to let the user implement redu -
+tion strategies by augmenting the automata with a set of additional lo ks, data
+variables, onstraints and assignments 5 . Ea h strategy will ontribute to the re-
+du tion of the state-spa e by onstraining the behavior of the model. However, in
+ ontrast to automati state-spa e redu tion te hniques, the guiding te hnique trust
+the user to preserve s hedulability of the plant model.
+Assume a network of timed automata over lo ks C and data variables D. The
+automata are guided by introdu ing a set of new lo ks CG and integer variables
+DG . We all CG [ DG guiding variables. A guide is implemented by onjun ting
+new onstraints from B (CG [ C ; DG [ D) to the existing guards of the automata,
+new lo k onstraints from B (CG [ C ) to the lo ation invariants, and adding new
+assignments of variables in CG [ DG to the resets. Thus, the guides may test the
+values of all the lo ks and the data variables in the transition guards and the
+lo ation invariants of the automata. A guide may also assign the guiding variables
+in the reset sets. However, the original lo ks and data variables of the timed
+automata (i.e. C [ D) should not be assigned. This ensures the essential property
+that a tra e generated from a guided network of timed automata indeed is a valid
+tra e of the original network of timed automata. In the plant model this means
+that the s hedules generated from the guided plant model is guaranteed to also be
+valid in the original plant model.
+
+4.2 Implemented Strategies
+
+
+We have used guiding to implement a number of strategies in the plant model. In
+the following we des ribe the strategies abstra tly, in terms of the physi al plant,
+5
+  The te hnique of adding guiding variables presented in this paper is reminis ent of the
+notion of history and prophesy variables used in traditional program veri ation, as in the
+work of Abadi and Lamport [Abadi and Lamport 1991℄.
+12                                  HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                                                     posI[3]==0,
+                                                     next==m1
+                                                                           x==bmove,
+                     x==bmove,                       b2left?
+                                       i1aa                                posI[4]==0            i2aa
+                     posI[2]==0     x<=bmove         posI[3]:=1,                                 x<=bmove
+                     posI[2]:=0,                     posI[4]:=0,            posI[4]:=1,
+                     posI[3]:=0                      x:=0                   posI[5]:=0
+                i1                      i1a                           i2                         i2a
+
+                      posI[3]==0,                x==bmove,                  posI[5]==0,
+                      next!=m1    x<=bmove       posI[4]==0                 next>m1,next<m4      x<=bmove
+                                                                              b2right?
+                      m1right?                  posI[4]:=1,
+                                                                                   posI[5]:=1,
+                      posI[3]:=1,               posI[3]:=0
+                                                                                   posI[4]:=0,
+                      posI[2]:=0,
+                                                              next>m3              x:=0
+                      x:=0                     next>m3
+                                                cBIup!          cAIup!
+                                                                                cIdown_end?
+
+                                                                 k1                  c1down
+
+
+
+
+                       Fig. 4.1      : Guided part of the bat h automaton.
+
+
+and give some detailed examples of how the guides are introdu ed in the plant
+model. We emphasize that many of the strategies are heuristi s and most of them
+ ould in fa t redu e the number of valid s hedules of the plant model. However,
+this is not a problem as long as it is still possible to generate valid s hedules from
+the model (as we are not on erned with nding optimal s hedules).
+The implemented strategies are based on the general observation that the plant
+model des ribed in the previous se tion models all possible behaviors of the plant.
+This also in ludes several behaviors that should not (or are unlikely to) appear
+in a valid s hedule. The implemented strategies aim at redu ing these `unwanted'
+behaviors.
+Strategy 1: Ordering of Bat hes. When the s heduling problem is stated the
+produ tion order of the steel qualities is given. One strategy is to use this order
+when starting new bat hes in the plant. To implement the strategy we introdu e
+the guiding variable nextbat h in the re ipe automaton asso iated to ea h bat h,
+to ontrol whi h bat h is allowed to start next. A ording to the engineers at
+SIDMAR the same strategy is used there.
+A re ipe automaton is shown in Figure 3.4. The guide is implemented in the guard
+nextbat h==(number-1) on the rst transition of the automaton, where number
+is a unique onstant number asso iated to ea h re ipe. The guide ensures that the
+re ipe starts the bat h when the value of nextbat h is equal to number-1. The
+re ipe automaton in rements the nextbat h variable on a transition from lo ation
+goT2 to onT2 (see also Strategy 2 below) to allow the next bat h to start.
+Strategy 2: Delaying of Bat hes. Related to the rst strategy is the starting
+time of bat hes. Sin e there is an upper bound on the time a bat h is allowed to
+spend in the plant, all bat hes should not be started at the same time. Therefore,
+we prevent a bat h from starting based on the progress of the bat h just before it.
+The strategy is implemented in the re ipe automata by delaying the update of the
+nextbat h variable. In the re ipe1 automaton shown in Figure 3.4 the nextbat h
+guiding variable is in remented on the transition from lo ation goT2 to onT2
+instead of immediately after the test on the rst transition. This prevents the next
+bat h to start before the bat h has been treated by two ma hines.
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                          13
+
+
+Strategy 3: Global Routing of Bat hes. To guiding the movements of the
+bat hes we introdu e a new guiding variable named next for ea h bat h. The
+value of next spe i es where the bat h should go next, based on the next ma hine
+treatment spe i ed in its re ipe. When there is a hoi e of ma hines the re ipe will
+ hose the ma hine on the tra k with fewest bat hes present. For example the hoi e
+of the rst ma hine is implemented by a guiding expression on the rst transition
+of the re ipe automaton:
+                if (tra k1  tra k2) then next := m1 else next := m4
+where tra k 1 is the number of bat hes present on tra k one and tra k 2 the number
+of bat hes on tra k two. In the re ipe automaton in Figure 3.4 the value of tra k 1
+and tra k 2 are omputed as the sum of a tive bits in the bit ve tors posI and
+posII respe tively (re all from the previous se tion that posI and posII are used
+to ensure mutex on the positions of the two produ tion tra ks).
+Strategy 4: Lo al Routing of Bat hes. The possible movements of the bat hes
+are further redu ed by a strategy de iding how a bat h should move between two
+given position. The implemented strategy sele ts the only dire t route between
+two positions. To implement the strategy in the plant model we use the guiding
+variable next. A guard onstraining the value of next is added to all transitions
+of the bat h automata leaving a lo ation modeling a physi al position in the plant.
+Figure 4.1 shows a part of the guided bat h automaton orresponding to the partial
+original automaton shown in Figure 3.3. Ma hine one is the only ma hine lo ated
+to the left of position i2 on tra k 1. Therefore, the guides require the next variable
+to have value m1 (representing ma hine 1) to move in the left dire tion. This is
+ensured by the guard next == m1 on the transition from lo ation i2 to i1aa. The
+transitions from lo ation i2 to k1 represents the bat h being pi ked up by one of
+the ranes. When this is the ase the next destination of the bat h should not be
+a ma hine on tra k one (i.e. not ma hine 1, 2, or 3) therefore next is required to
+be greater than m3.
+Strategy 5: Moving of Cranes. When a rane is arrying a bat h it always
+follows the strategy of the bat h. If a rane is empty, the strategy is to move only
+when something is ready to be pi ked up or if it is blo king the other rane. Guiding
+guards in the rane automata testing bits in posI and posII ensure that the ranes
+move towards the pi k up positions on the tra ks when a bat h is waiting to be
+pi ked up (see e.g. the transition from lo ation 2emp to 2 1emp in Figure 7.2
+of the Appendix).
+To allow an empty rane to move in other situations the guiding variables req1 and
+ req2 are introdu ed. Guards testing their value are introdu ed on some transitions
+to allow the rane to move from ertain positions in a spe i ed dire tions when the
+variables are non-zero. The variables are typi ally assigned by the other rane
+to indi ate that it is moving towards a (possibly) o upied position that must be
+empty. For example, in the raneB automaton shown in Figure 7.2 the variable
+ req1 is assigned on the transitions from lo ation 2emp to 1emp to allow rane
+1 to leave rane position 1 (modeled by the lo ations 1emp, 1up, 1down, and
+ 1full in the raneB automaton).
+
+                           5. Experimental Results
+
+
+The plant models have been analyzed in the validation and veri ation tool Uppaal
+[Larsen et al. 1995℄,[Larsen et al. 1997℄. In this se tion we present the results of an
+14                          HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                       All Guides                                  No Guides
+    #        BFS          DFS        BSH                BFS           DFS           BSH
+          se    MB     se    MB   se    MB           se MB         se    MB      se MB
+     1    0.1   0.9    0.1   0.9  0.1    0.9         3.2 6.1       0.8   2.2     3.9 3.3
+     2   18.4 36.4     0.1   1.0  0.1    1.1          -     -      19.5 36.1      -     -
+     3     -     -     3.2   6.5  3.4    1.4          -     -       -     -       -     -
+     4     -     -     4.0   8.2  4.6    1.8          -     -       -     -       -     -
+     5     -     -     5.0 10.2   5.5    2.2          -     -       -     -       -     -
+    10     -     -    13.3 25.3 16.1     9.3          -     -       -     -       -     -
+    15     -     -    31.6 51.2 48.1 22.2             -     -       -     -       -     -
+    20     -     -    61.8 89.6 332 46.1              -     -       -     -       -     -
+    25     -     -    104 144 87.2 83.3               -     -       -     -       -     -
+    30     -     -    166 216 124.2 136               -     -       -     -       -     -
+    35     -     -    209 250      -      -           -     -       -     -       -     -
+
+
+             Table I: Time and spa e requirements for generating s hedules.
+
+experiment where two versions of the plant model have been analyzed: the version
+with no guides des ribed in Se tion 3, and a version with all guides des ribed in
+Se tion 4. To evaluate the e e t of adding guides, we use the standard UNIX
+programs time and top to measure the CPU time and the memory onsumed by
+Uppaal when generating a tra e from the two models.
+
+Uppaal    o ers a number of options to ontrol the internal veri ation algorithm
+applied in the tool [Larsen et al. 1997℄. When analyzing the plant models we have
+used the ompa t data-stru ture for onstraints [Larsson et al. 1997℄, the ontrol-
+stru ture redu tion [Larsson et al. 1997℄, and a re ently implemented version of the
+(in-)a tive lo k redu tion [Daws and Tripakis 1998℄. In addition we experiment
+with using breadth- rst (BFS), depth- rst sear h strategy (DFS), and depth- rst
+sear h in ombination with bit-state hashing (BSH) [Holzmann 1991℄ 6 .
+Table I shows the time (in se onds) and spa e (in MB) onsumed by Uppaal
+version 3.0.12 7 when generating s hedules from the two models. The numbers in
+the leftmost olumn orresponds to the number of bat hes in the model (and in
+the generated s hedule). We use the marker \-" to indi ate that the orresponding
+exe ution requires more than 256MB of memory, more than two hours of exe ution
+time, or that a suitable hash table size has not been found 8 .
+As an be seen in Table I, the use of guides signi antly in reases the size of
+models that an be analyzed. In the guided model, s hedules an be generated for
+35 bat hes using 250 MB in 3.5 minutes, whereas no s hedule an be generated
+for three bat hes (or more) when no guides are used. It an also be observed
+that the bit-state hashing te hnique does not allow analysis of larger models in
+6
+  The bit-state hashing te hnique generates a sub set of the rea hable state-spa e. A
+feasible s hedule found with this te hnique is guaranteed to also be feasible in the original
+plant model.
+7
+  The tool was installed on a Linux Redhat 5.2 ma hine equipped with a Pentium III
+pro essor and 256MB of memory.
+8
+  When applying the hash table te hnique, we have used table sizes from 1048577 to
+33554441 bits. The reported results orresponds to the most suitable hash table sizes
+found.
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                       15
+
+
+
+
+                           Fig. 6.1   : The LEGO plant.
+
+
+this experiment, even though it performs well spa e-wise on most models. We
+experien ed that nding suitable hash table sizes is very tedious for large system
+models. The largest system analyzed in the experiment is therefore a guided model
+using depth- rst sear h strategy but without the bit-state hashing te hnique.
+We have also installed Uppaal on a Sun Ultra ma hine equipped with 1024 MB
+of memory. On this ma hine, a s hedule for 60 bat hes an be generated from the
+guided model in 2 257 se onds.
+
+
+                    6. Synthesis of Control Programs
+
+
+
+We did not expe t to be able to run the generated ontrol programs in the original
+plant of SIDMAR. Therefore we have used a LEGO plant (see Figure 6.1) to
+run the synthesized programs in. This allows for experimenting with the plant to
+validate the model and it also makes it easy to nd answers to a number of questions
+about the plant (e.g. measuring time bounds). The plant onsists of a number of
+distributed units, ea h ontrolled lo ally by one RCX [LEGO 1998℄ bri k. There
+are three types of units used in the plant: a rane, a ma hine with a tra k segment,
+and the asting ma hine. For the ranes there is an overhead tra k. The interfa e to
+the units onsists of a set of ommands like MoveTra kRight, TurnOnMa hine, and
+LiftBat h. Commands are send to the lo al units by one entral ontroller whi h
+is running the synthesized program. Ideally, one would want the lo al ontrollers
+to give feedba k to the entral ontroller when a tions have nished or when an
+error o urs. However, sin e the ommuni ation between the RCX bri ks is slow
+and unreliable espe ially if more than one bri k tries to send at one time, the only
+feedba k from the lo al ontrollers are a knowledgements of ommands re eived
+from the global ontroller. This has big in uen es on the generated programs.
+16                          HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                      :::                     Delay(5)
+                     Load1.Tra k1Right        Crane1.Move1Left
+                     Delay(10)                Delay(5)
+                     Load1.Ma hine1On         Load1.Ma hine2On
+                     Load2.Tra k5Right        Delay(1)
+                     Delay(4)                 Crane1.Move1Left
+                     Crane1.Move1Left         Delay(6)
+                     Delay(6)                 Crane1.Move1Left
+                     Load1.Ma hine1Off        Delay(3)
+                     Load1.Tra k2Right        Load1.Ma hine2Off
+                     Crane1.Pi kup1            :::
+
+
+
+
+                       Fig. 6.2   : Part of a generated s hedule.
+
+
+As a result of the model he king in Uppaal a tra e ontaining information about
+syn hronizations between automata and delays is obtained. Some of the syn hro-
+nizations in the model, like the re ipe syn hronizing with the test automaton, are
+not relevant for the generated s hedule. To get a s hedule for the plant we proje t
+the tra e to the a tions relevant for the plant. Given some numbering of tra ks
+and ma hines, part of a s hedule looks like in Figure 6.2. There is a one-to-one
+ orresponden e between a s hedule of this kind and the ommands of the synthe-
+sized entral ontrol program. Ea h line with a Delay a tion is translated into
+a delay in the ontrol program (in RCX ode there is a Wait instru tion doing
+this). For the rest of the lines only the se ond part is used, whi h de nes what
+unit the ommand should be send to and what the ommand is. For example in
+the line Load1.Tra k2Right, the part Tra k2Right is translated to a ommand
+MoveTra kRight and sent to the lo al ontroller of tra k two.
+The proje tion and the translation have been implemented using the pattern s an-
+ning and pro essing language gawk. Sin e the RCX language does not o er reli-
+able ommuni ation primitives, ea h line in the s hedule is translated into a ode
+segment implementing su h ommuni ation.
+The synthesized programs have been exe uted in the plant. This was mainly in-
+tended as validation of the Uppaal model of the plant. During the validation we
+found three errors in the model: the rane started to move horizontally too early
+when an empty ladle was pi ked up from the asting ma hine, ausing the rane
+to ollide with the asting ma hine and a idently drop the lifted ladle, so here a
+delay was missing in the model; when two ranes were lo ated at positions next to
+ea h other and started to move in the same dire tion they ould ollide be ause
+the rane 'in front' was started last; in systems with only one bat h the asting
+ma hine did not turn orre tly. These problems were orre ted in the model and
+new ontrol programs were synthesized.
+At one point during the experiments with the plant the batteries running the rane
+started to wear out. This meant that the initial timing information obtained from
+the plant was ina urate be ause the ranes were moving slower. At this point
+having the omplete pro ess from generating tra es to synthesizing ontrol programs
+fully automated proved espe ially useful. New times for the moving of the ranes
+were measured and put into the model. Sin e s heduling still was possible, new
+programs were qui kly synthesized and were running in the plant as expe ted.
+Performing the experiments also validate the implementation of the translation
+         GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                        17
+
+
+from s hedules to programs and here no problems were found. Our on den e in
+the orre tness of the model has been signi antly in reased by the experiments.
+
+                                 7. Con lusion
+
+
+In this paper, we have used timed automata and the veri ation tool Uppaal
+to synthesize ontrol programs for a bat h produ tion plant. To deal with the
+unavoidable omplexity of a plant model suitably a urate for program synthesis,
+we suggest and apply a general approa h of guiding a model a ording to ertain
+strategies. With this te hnique, we have been able to synthesize s hedules for as
+many as 60 bat hes on a ma hine with 1024 MB of memory. Applying bit-state
+hashing the spa e onsumption may be de reased even further.
+Based on tra es from the model he king tool Uppaal, s hedules are generated.
+From theses s hedules, ontrol programs are synthesized and later exe uted in a
+physi al plant. During exe ution a few modeling errors were dete ted. After or-
+re tion, new s hedules were generated and orre t programs were synthesized and
+exe uted in the plant.
+The presented method for guiding model- he king has proved very su essful in
+signi antly in reasing the size of models whi h an be analyzed. The largest
+model we analyze onsists of 125 timed automata and a total of 183 lo ks. The
+notion of guides allows the user to add heuristi s for ontrolling the behavior of the
+plant, and we believe that the approa h is appli able and useful for model he king
+in general and rea hability he king in parti ular. The validation of the model
+by running the synthesized programs also proved useful: having a ess to the (a)
+physi al plant during the design of the model, allowed a number of questions to be
+readily answered.
+Based on the tra es generated from the Uppaal model other types of ontrol pro-
+grams an be synthesized. Here it would be espe ially interesting to study how more
+ ommuni ation between the distributed ontrollers an be used, e.g. for generating
+more optimal programs, and for dete ting run-time errors.
+A knowledgements: The authors wish to thank Ansgar Fehnker and Kare Jelling
+Kristo ersen for fruitful dis ussions and many useful suggestions.
+
+                                   Referen es
+
+Abadi, Martin and Lamport, Leslie. 1991. The existen e of re nement mappings.
+   Theoreti al Computer S ien e 82 , 253{284.
+Alur, R. and Dill, D. 1994. Automata for Modelling Real-Time Systems. Theoreti al
+   Computer S ien e 126 , 2 (April), 183{236.
+Bengtsson, Johan, Griffioen, W.O. David, Kristoffersen, Kare J.,
+   Larsen, Kim G., Larsson, Fredrik, Pettersson, Paul, and Yi, Wang.
+   1996. Veri ation of an Audio Proto ol with Bus Collision Using Uppaal. In Pro .
+   of the 8th Int. Conf. on Computer Aided Veri ation, Number 1102 in Le ture Notes
+   in Computer S ien e. Springer{Verlag, 244{256.
+Boel, Rene and Stremers h, Geert. 1999. VHS Case Study 5: Timed Petri net
+   model of steel plant at SIDMAR. Te h. report, SYSTeMS Group, Universiteit Gent,
+   Te hnologiepark-Zwijnaarde 9, B-9052 Ghent, Belgium.
+Daws, Conrado and Tripakis, Stavros. 1998. Model Che king of Real-Time Rea h-
+   ability Properties Using Abstra tions. In Pro . of the 4th Workshop on Tools and
+18                              HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+    Algorithms for the Constru tion and Analysis of Systems , Number 1384 in Le ture
+    Notes in Computer S ien e. Springer{Verlag, 313{329.
+Fehnker, Ansgar. 1999. S heduling a Steel Plant with Timed Automata. In Pro-
+     eedings of the 6th International Conferen e on Real-Time Computing Systems and
+    Appli ations (RTCSA99). IEEE Computer So iety, 280{286.
+Holzmann, Gerard. 1991. The Design and Validation of Computer Proto ols. Prenti e
+    Hall.
+Kristoffersen, K., Larsen, K., Pettersson, P., and Weise, C. 1999. VHS Case
+    Study 1 - Experimental Bat h Plant using UPPAAL.
+Larsen, Kim G. Pettersson, Paul, and Yi, Wang. 1995. Compositional and Symboli
+    Model-Che king of Real-Time Systems. In Pro . of the 16th IEEE Real-Time Systems
+    Symposium. IEEE Computer So iety Press, 76{87.
+Larsen, Kim G. Pettersson, Paul, and Yi, Wang. 1997. Uppaal in a Nutshell. Int.
+    Journal on Software Tools for Te hnology Transfer 1 , 1{2 (O t.), 134{152.
+Larsson, Fredrik, Larsen, Kim G. Pettersson, Paul, and Yi, Wang. 1997. EÆ-
+     ient Veri ation of Real-Time Systems: Compa t Data Stru tures and State-Spa e
+    Redu tion. In Pro . of the 18th IEEE Real-Time Systems Symposium. IEEE Com-
+    puter So iety Press, 14{24.
+LEGO. 1998. Software developers kit.
+Milner, R. 1989. Communi ation and Con urren y . Prenti e Hall, Englewood Cli s.
+Stobbe, M. 2000. Results on S heduling the Sidmar Steel Plant Using Constraint Pro-
+    gramming.
+Yi, Wang, Pettersson, Paul, and Daniels, Mats. 1994. Automati Veri ation of
+    Real-Time Communi ating Systems By Constraint-Solving. In Pro . of the 7th Int.
+    Conf. on Formal Des ription Te hniques . North{Holland, 223{238.
+
+
+                                               Appendix
+
+
+
+
+                                                      turning
+                                                           x<=castturn
+                                             x:=0
+                                    nrut!                           x==castturn
+                         x==casttotal                                  turn!
+                                      fullfull                                      fullfull2
+                                      x<=casttotal                                  x<=casttotal
+
+
+                                  incast?                                outcast?
+
+                                   turn! x:=0                      finish?           fullempty2
+                       go                                                            x<=casttotal
+                   caststart?                        fullempty
+                                                    x<=casttotal                    x==casttotal
+                  emptyfull                                                         nrut!
+                                                                                    x:=0
+                      incast?
+                                        outcast?          x>=castturn
+                                                                                     turning2
+                                emptyempty
+
+
+
+                                  Fig. 7.1    : The asting ma hine.
+GUIDED SYNTHESIS OF CONTROL PROGRAMS USING UPPAAL                                                                      19
+
+                                                                   c1up tCB<=cup
+                                                                            tCB==cup
+                                            tCB:=0                                  posI[4]:=0
+                                      cBIup?
+                       c1emp                                               cBIdown_start?                c1full
+                                    cIdown_end!      tCB==cup               tCB:=0,     posI[4]==0
+             cpos[3]==0,                                          c1down    posI[4]:=1
+             cpos[4]==0,          tCB==cdelay,                    tCB<=cup                             tCB==cdelay,
+                                                                                    cpos[3]==0
+             posII[4]==1          cpos[2]==0                                        moveB12?           cpos[2]==0
+             moveBdown?                                                                                evom21?
+             cpos[3]:=1,          cpos[2]:=1,                                         cpos[3]:=1,
+                                                                                                       cpos[2]:=1,
+             cpos[2]:=0,          cpos[3]:=0,                                         cpos[2]:=0,
+                                                                                                       cpos[3]:=0,
+             tCB:=0               creq1:=0                                            tCB:=0
+                                                                                                       creq1:=0
+          c2c1aemp                   c2c1emp                                   c2c1afull                 c2c1full
+        tCB<=cdelay                 tCB<=cdelay                             tCB<=cdelay                 tCB<=cdelay
+                                   cpos[3]==0, cpos[2]==0,                     tCB==cdelay,
+                                   posI[4]==1                                  cpos[4]==0               cpos[3]==0
+           tCB==cdelay,           moveBup?                                            evom12?          moveB21?
+           cpos[4]==0             cpos[3]:=1,              c2up                        cpos[4]:=1,     cpos[3]:=1,
+                                  cpos[4]:=0,              tCB<=cup                    cpos[3]:=0      cpos[4]:=0,
+              cpos[4]:=1,                                                                              tCB:=0,
+                                  tCB:=0,
+              cpos[3]:=0                         tCB:=0                     tCB==cup
+                                  creq1:=1                                                             creq1:=1
+                                        cBIIup?                                       posII[4]:=0
+                         c2emp              cIIdown_end!                    cBIIdown_start?              c2full
+                                              tCB==cup                      tCB:=0,      posII[4]==0
+                                                             c2down         posII[4]:=1
+             cpos[5]==0,                                     tCB<=cup
+                                                                                       cpos[5]==0      tCB==cdelay,
+             creq2==1             tCB==cdelay,                                                         cpos[4]==0
+             moveBdown?                                                                move23?
+                                  cpos[4]==0
+             cpos[5]:=1,                                                              cpos[5]:=1,      evom32?
+             cpos[4]:=0,          cpos[4]:=1,                                         cpos[4]:=0,
+             tCB:=0               cpos[5]:=0                                          tCB:=0            cpos[4]:=1,
+                                                                                                        cpos[5]:=0
+           c3c2aemp                                                             c3c2afull
+        tCB<=cdelay                 c3c2emp                                  tCB<=cdelay                c3c2full
+                                    tCB<=cdelay                                                        tCB<=cdelay
+                                   cpos[5]==0                                    tCB==cdelay,
+                                   moveBup?                                                            cpos[5]==0
+            tCB==cdelay,                                                         cpos[6]==0
+            cpos[6]==0            cpos[5]:=1,                                                          move32?
+                                                                    c3up         evom23?
+                                  cpos[6]:=0,                                                          cpos[5]:=1,
+                                                                    tCB<=cup      cpos[6]:=1,
+               cpos[6]:=1,        tCB:=0,                                                              cpos[6]:=0,
+                                                                                  cpos[5]:=0
+               cpos[5]:=0         creq1:=1              tCB:=0                                         tCB:=0
+                                          cIIIup?                                   tCB==cup
+                                                                                                        c3full
+                         c3emp
+                                       cIIIdown?    tCB==cup
+             cpos[7]==0,                                            c3down
+             creq2==2                                               tCB<=cup                           tCB==cdelay,
+             moveBdown?           tCB==cdelay,                                                         cpos[6]==0
+             cpos[7]:=1,          cpos[6]==0                                            cpos[7]==0
+             cpos[6]:=0,                                                               move34?         evom43?
+             tCB:=0               cpos[6]:=1,                                      cpos[7]:=1,
+                                                                                                       cpos[6]:=1,
+                                  cpos[7]:=0                                       cpos[6]:=0,         cpos[7]:=0
+           c4c3aemp                                                                tCB:=0
+                                    c4c3emp                                       c4c3afull             c4c3full
+        tCB<=cdelay                                                            tCB<=cdelay
+                                    tCB<=cdelay                                                         tCB<=cdelay
+
+            tCB==cdelay,           cpos[7]+creq2==0                                tCB==cdelay,        cpos[7]==0
+            cpos[8]==0             moveBup?                                        cpos[8]==0
+                                   cpos[7]:=1,                                                           move43?
+               cpos[8]:=1,                                                             evom34?
+                                   cpos[8]:=0,                     c4up                                 cpos[7]:=1,
+               cpos[7]:=0                                                          cpos[8]:=1,
+                                   tCB:=0                                                               cpos[8]:=0,
+                                             cIVup? tCB:=0                tCB==cup
+                                                                                   cpos[7]:=0           tCB:=0
+                                    creq2!=2                       tCB<=cup
+                                                                                                       c4full
+                         c4emp
+                                                     tCB==cup             tCB:=0     cIVdown_start?
+                                     cIVdown_end!                   c4down
+                                                                    tCB<=cup                           tCB==cdelay,
+             cpos[9]==0,                                                                               cpos[8]==0
+                                  tCB==cdelay,                                           cpos[9]==0
+             creq2==2
+             moveBdown?           cpos[8]==0
+                                                                                         move45?
+             cpos[9]:=1,                                                                                evom54?
+                                  cpos[8]:=1,                                     cpos[9]:=1,
+             cpos[8]:=0,                                                                               cpos[8]:=1,
+                                  cpos[9]:=0                                      cpos[8]:=0,
+             tCB:=0                                                                                    cpos[9]:=0
+                                                                                  tCB:=0
+           c5c4aemp                                                                c5c4afull
+                                   c5c4emp                                     tCB<=cdelay             c5c4full
+         tCB<=cdelay
+                                                                                                       tCB<=cdelay
+                                   tCB<=cdelay
+                                                                                   tCB==cdelay,         cpos[9]==0
+          tCB==cdelay,             cpos[9]==0                                      cpos[10]==0
+          cpos[10]==0              moveBup?
+                                                                                                        move54?
+                                   cpos[9]:=1,                   c5up              evom45?
+                                   cpos[10]:=0,                  tCB<=cup
+            cpos[10]:=1,                                                           cpos[10]:=1,         cpos[9]:=1,
+                                   tCB:=0
+            cpos[9]:=0                                  tCB:=0                     cpos[9]:=0           cpos[10]:=0,
+                                                cVup?                                                   tCB:=0
+                                                        c5down
+                                          cVdown_end!   tCB<=cup
+                                                 tCB==cup        tCB:=0 cVdown_start?
+                       c5emp                                                                             c5full
+
+
+
+
+                                 Fig. 7.2           : The lower rane.
+   20                                                                                             HUNE, LARSEN, AND PETTERSSON
+
+
+
+
+                                                                                    quality1?                                      quality2?                                            quality1?                                          finish!
+
+                                                                   t1                                                  t2                                                   t3                                           final                                terminus
+
+
+
+                                                        Fig. 7.3                         : A test automaton for produ ing three bat hes.
+
+
+
+
+                                                                                     machine1                                                                                                                   machine2                                                                              machine3
+
+                                                                  M1off?             M1on?                                                                                                     M2off?          M2on?                                                                                    M3off?        M3on?
+
+
+                                                 posI[1]==0,                                                            posI[3]==0,
+                                                 next==NA                                                               next==m1               tRB1==bmove,
+                                                                                                                                                                                        next!=m2,
+                                                 m1left?                               tRB1==bmove, i1aa                b2left?                posI[4]==0 tRB1<=bmove                                                         tRB1<=bmove                                         tRB1<=bmove
+                        tRB1==bmove, tRB1<=bmove                                                                                                                                        next!=m3
+                                        i0aa     posI[1]:=1,                           posI[2]==0 tRB1<=bmove           posI[3]:=1,                            i2aa                                                               i3aa          next!=m3                              i4aa    next!=m3
+                        posI[0]==0                                                                                                             posI[4]:=1,                              m2left?                                                                    tRB1==bmove
+                                                 posI[2]:=0,                           posI[2]:=1,                      posI[4]:=0,                                                                                                             b3left?                                       m3left?
+                        posI[0]:=1,                                                                                                                                                     tRB1:=0                 tRB1==bmove
+   preI0                                         tRB1:=0                               posI[3]:=0                       tRB1:=0                posI[5]:=0                                                                                       tRB1:=0                                       tRB1:=0
+   tRB1<=bmove          posI[1]:=0
+         tRB1==bmove i0                 i0a                                    i1                      i1a                              i2                              i2a                              i3                        i3a                       i4                        i4a                       i5
+
+                               posI[1]==0          tRB1==bmove,                     posI[3]==0,              tRB1==bmove,                       posI[5]==0,              tRB1==bmove                                                   tRB1==bmove                                        tRB1==bmove
+                                                                                                  tRB1<=bmoveposI[4]==0                                                                                         next==m3                                            next==m3      tRB1<=bmove
+                               b1right? tRB1<=bmove                                 next!=m1                                                                 tRB1<=bmove                                                     tRB1<=bmove
+                                                   posI[2]==0                                                                                   next>m1,next<m4                                                 m2right?                                            b3right?
+          tRB1:=0              posI[1]:=1,                                          m1right?                 posI[4]:=1,                            b2right?                                                    tRB1:=0                                             tRB1:=0
+          b1right?             posI[0]:=0,         posI[2]:=1,                      posI[3]:=1,              posI[3]:=0                              posI[5]:=1,
+                               tRB1:=0             posI[1]:=0                       posI[2]:=0,                                                      posI[4]:=0,
+                                                                                    tRB1:=0                                                          tRB1:=0
+  p1
+          posI[0]:=1
+                                                                                                               next>m3        next>m3
+          goB1!                                                                                                                                          cIdown_end?
+          next==m1,
+          posI[0]==0                                                                                                                                         c1down
+                                b4right?                                                                         cBIup!       cAIup!
+                          p2               preii0
+                               tRB1:=0              tRB1==bmove
+                                                                          ii0                                                                  cAIdown_start!
+            next==m4,                                                                                                                          next<=m3
+source
+            posII[0]==0                     tRB1<=bmove                  posII[0]:=1,                                                                  cBIdown_start!
+                                                                         posII[1]:=0                                                                   next<=m3
+            goB1!                            posII[1]==0
+                                             b4right?                                                                                                                                   k1k0                                          k0
+            posII[0]:=1                                                                                                                             next==NA           move10!                                evom10!
+                                             posII[1]:=1,                tRB1==bmove,                                              k1
+                                             posII[0]:=0,                posII[0]==0
+                                             tRB1:=0                                                                                                                   evom01!                                           move01!
+                                                                                                                        evom21!
+                                              ii0aa                                                                                          next>m3         next>m3
+                                                                        ii0a
+                                     tRB1<=bmove                          tRB1<=bmove
+                                                                                                                       next<=m3              moveA12!        moveB12!
+
+                                            tRB1==bmove,                posII[1]:=1,                                           k2k1
+                                            posII[2]==0                 posII[2]:=0,
+                                                                        tRB1:=0
+                                            posII[2]:=1,                                                                next>m3              moveA21!             moveB21!
+                                                                        m4left?
+                                            posII[1]:=0
+                                                                        posII[1]==0,                                    evom12!              next<=m3             next<=m3
+                                 M4on?                                  next==NA
+                                                                                                             next>m3
+          machine4                                                ii1                         c2down
+                                                                                                             cAIIdown_start!
+                                                                                                             next>m3,next!=fin                 k2
+                                 M4off?
+                                                                                                             cBIIdown_start!
+                                                                        posII[2]:=1,                                                                next==fin
+                                          posII[3]==0,                                                                      next==NA
+                                                                        posII[3]:=0                    cBIIup!
+                                          next!=m4
+                                          m4right?                                                           cAIIup!          evom32!               move23!
+                                          posII[3]:=1,                  tRB1==bmove,
+                                          posII[2]:=0,                  posII[2]==0
+                                          tRB1:=0
+                                              ii1aa                     ii1a                                                                   k3k2
+                                   tRB1<=bmove                            tRB1<=bmove
+                                                                        posII[3]:=1,
+                                                                                                                   next==NA                  next==fin
+                                                                        posII[4]:=0,
+                                                                                                                    move32!                  evom23!
+                                                                        tRB1:=0
+                                             tRB1==bmove,               b5left?
+                                             posII[4]==0                posII[3]==0,                                                                                        cIIIdown!
+                                                                                                                                                    park<buf_size                              park:=park+1
+                                             posII[4]:=1,               next==m4
+                                                                                                                                                                                                                    III2
+                                             posII[3]:=0                        cIIdown_end?                                       k3
+
+                                                                                          next!=m4,                                                   park:=park-1                              park>0
+                                                                        ii2                                                                                                  cIIIup!
+                                                                                          next!=m5                 next==fin
+                                                                                                                                             evom43!
+                                             posII[5]==0,                                         next!=m4,            move34!               next==NA
+                                             next==m5                    posII[4]:=1,             next!=m5,
+                                             b5right?                    posII[5]:=0              next!=fin
+                                                                                                                               k4k3
+                                             posII[5]:=1,               tRB1==bmove,
+                                                                                                                   next==fin
+                                             posII[4]:=0,               posII[4]==0
+                                                                                                                   evom34!                    next==NA
+                                             tRB1:=0
+                                                                                                                                              move43!
+                                             ii2aa                      ii2a
+                                    tRB1<=bmove                                                                                                                                                                 c4down
+                                                                         tRB1<=bmove                                                                                              k4sink cIVdown_start!                  cIVdown_end?        sink
+                                                                                                                                   k4                  dumpB1?
+
+
+                                                                        posII[5]:=1,                                   next==fin             next==emp
+                                             tRB1==bmove,
+                                                                        posII[6]:=0,                                   move45!               evom54!
+                                             posII[6]==0
+                                                                        tRB1:=0
+                                                                        m5left?
+                                             posII[6]:=1,               posII[5]==0,                                                                                         x1                                    c5down cVdown_end?                k5V3b                            waiting
+                                             posII[5]:=0                                                                                                                                   cVdown_start!                                                           tryB1!
+                                 M5on?                                  next!=m5                                              k5k4
+         machine5
+                                                                         ii3                                           next==fin             next==emp
+                                 M5off?                                                                                evom45!                move54!             incast!
+                                                                                                                                                                                                                                                                                             turn?
+                                                                                                                                                      next!=emp
+                                                                                                                                                                             V5k5                                  V6                                cast
+                                                                                                                                                       outcast!                          creq2:=0       cVup!              creq2:=2          nrut?           next:=emp      doneB1!
+                                                                                                                                   k5                                                                                                                                                        V3cast
+
+
+
+
+                                                                                                      Fig. 7.4                          : The bat h automaton.
+
