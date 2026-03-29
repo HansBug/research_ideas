@@ -50,13 +50,13 @@
    - 纳入：能够支撑核心算法理解、工具能力演进理解或技术时间线整理的论文。
    - 排除：只是宽泛背景介绍，无法沉淀为稳定文库条目的论文。
 3. 证据形态
-   - 纳入：正文中能明确看到 `UPPAAL` 相关技术、工具、案例或应用贡献。
+   - 纳入：正文中能明确看到 `UPPAAL` 相关技术、工具、方法或工程贡献。
    - 降优先级：只有部分章节与 `UPPAAL` 有关，但仍值得留作补充背景。
 4. 可提取性
    - 纳入：可获得 PDF 原文，并能生成质量可用的 `paper_content.txt`。
    - 排除：无法获取合法可用 PDF，或提取后仍不足以支持可靠整理。
 5. 与本研究相关性
-   - 纳入：能直接服务博士研究中的状态机建模、形式化验证、验证工具或案例积累。
+   - 纳入：能直接服务博士研究中的状态机建模、形式化验证、验证工具或技术脉络积累。
    - 降优先级：仅提供一般背景，不能直接沉淀出后续可用知识点。
 
 ### 4.1 与同级应用文库的关系
@@ -240,17 +240,21 @@
 3. [SUMMARY.md](./SUMMARY.md)
    - 当前论文集的总账。
    - 记录统计、分类分布、双维材料状态、论文清单、更新日志和失败/阻塞记录。
+4. [DESC_GUIDE.md](./DESC_GUIDE.md)
+   - 单篇 `desc.md` 的专项规范。
+   - 固定“问题 / 方法 / 解决点”三条主线的写法，并要求 `desc.md` 开头先给出三条一句话简述。
 
 AI 在开始具体工作前，推荐阅读顺序为：
 
 1. [README.md](./README.md)
 2. [GUIDE.md](./GUIDE.md)
 3. [SUMMARY.md](./SUMMARY.md)
-4. 若目标条目是 thesis/合集型父路径，先读该目录自己的 `README.md`
-5. 目标论文目录下的 `bibtex.bib`
-6. 目标论文目录下的 `paper_content.txt`
-7. 需要深入具体拆分主题时，再进入对应 `paper-*` 子目录的 `README.md` 与 `paper_content.txt`
-8. 必要时核对 `paper.pdf`
+4. 若任务是生成或重写单篇 `desc.md`，再读 [DESC_GUIDE.md](./DESC_GUIDE.md)
+5. 若目标条目是 thesis/合集型父路径，先读该目录自己的 `README.md`
+6. 目标论文目录下的 `bibtex.bib`
+7. 目标论文目录下的 `paper_content.txt`
+8. 需要深入具体拆分主题时，再进入对应 `paper-*` 子目录的 `README.md` 与 `paper_content.txt`
+9. 必要时核对 `paper.pdf`
 
 ## 8. 单论文路径约束
 
@@ -266,7 +270,7 @@ AI 在开始具体工作前，推荐阅读顺序为：
 2. 若没有现成正文提取物，则必须优先使用 `tools/pdf_extractor.py` 基于 `paper.pdf` 生成 `paper_content.txt`。
 3. 若原始条目本身带有稳定的 `paper-*` 子论文拆分路径，应一并搬入，并为父目录补 `README.md` 说明父子关系和推荐阅读顺序。
 4. 这类 `paper-*` 子目录当前默认视为父条目的辅助阅读单元，不单独计入 [SUMMARY.md](./SUMMARY.md) 的顶层论文数；若后续要把某个子论文提升为独立正式条目，再为其单独补 `bibtex.bib` 并单独入账。
-5. 当前基础文库阶段不强制要求每篇都立即补齐 `desc.md`；但后续若开始单篇深度整理，应在遵守本论文集规范的前提下再补写派生文件。
+5. 当前基础文库阶段不强制要求每篇都立即补齐 `desc.md`；但后续若开始单篇深度整理，必须遵守 [DESC_GUIDE.md](./DESC_GUIDE.md) 的结构和口径，尤其要把“立足问题 / 主要方法 / 解决点”讲清楚。
 
 ## 9. 材料状态口径
 
@@ -304,10 +308,11 @@ AI 在开始具体工作前，推荐阅读顺序为：
 1. 先读 [README.md](./README.md)，理解 `UPPAAL` 理论与技术文库的边界、官方入口、作者主线和状态口径。
 2. 再读 [GUIDE.md](./GUIDE.md)，确认本轮工作流程、检索规则和回填规范。
 3. 再看 [SUMMARY.md](./SUMMARY.md)，掌握当前已有积累、作者分布、分类缺口和失败历史。
-4. 如果目标目录是带内嵌子论文的父路径，先读该目录自己的 `README.md`，确认 thesis 与 `paper-*` 子目录的关系。
-5. 然后再按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时）` 的顺序工作。
-6. 只有在需要深入某个拆分主题时，才进入对应 `paper-*` 子目录继续读其 `README.md` 与 `paper_content.txt`。
-7. 完成单篇目录后，必须回写 [SUMMARY.md](./SUMMARY.md)，不能只增加文件而不入账。
+4. 如果任务是生成或重写单篇 `desc.md`，先读 [DESC_GUIDE.md](./DESC_GUIDE.md)。
+5. 如果目标目录是带内嵌子论文的父路径，先读该目录自己的 `README.md`，确认 thesis 与 `paper-*` 子目录的关系。
+6. 然后再按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时）` 的顺序工作。
+7. 只有在需要深入某个拆分主题时，才进入对应 `paper-*` 子目录继续读其 `README.md` 与 `paper_content.txt`。
+8. 完成单篇目录后，必须回写 [SUMMARY.md](./SUMMARY.md)，不能只增加文件而不入账。
 
 ## 11. 后续 AI 应优先做什么、避免做什么
 
