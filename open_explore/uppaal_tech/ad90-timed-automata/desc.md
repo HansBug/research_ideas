@@ -21,7 +21,7 @@ $$
 在传统自动机视角里，验证通常可以压成语言包含问题：
 
 $$
-I \models S \iff L(I) \subseteq L(S).
+L(I) \subseteq L(S).
 $$
 
 但一旦把 dense-time 真正引进来，问题就变成：还能不能一边保持这种自动机化表达，一边保住类似的验证工作流。
@@ -82,7 +82,7 @@ $$
 对应地，去时间信息的操作也被写成：
 
 $$
-\mathrm{Untime}(P) = \left\{ \rho \mid \exists \tau,\ (\rho, \tau) \in L(P) \right\}.
+\mathrm{Untime}(P) = \{ \rho \mid \exists \tau,\ (\rho, \tau) \in L(P) \}.
 $$
 
 这为后面把 timed-language 问题翻译回 ordinary automata 问题埋下了接口。
@@ -131,13 +131,13 @@ $$
 如果把运行规则压成最关键的两行，它其实就是：
 
 $$
-\nu_i + (t_{i+1} - t_i) \models \delta_i,
+\delta_i(\nu_i + (t_{i+1} - t_i)) = \mathrm{true}.
 $$
 
 以及
 
 $$
-\nu_{i+1} = [\lambda_i \mapsto 0]\bigl(\nu_i + (t_{i+1} - t_i)\bigr).
+\nu_{i+1} = [\lambda_i \mapsto 0](\nu_i + (t_{i+1} - t_i)).
 $$
 
 换句话说，论文真正提供的是一个**带显式 valuation 演化规则的运行语义**，而不只是“状态机上可以写时间约束”这种口头描述。后来的 `UPPAAL` 虽然在实现层已经完全不同，但它的语义核心仍然是这一层机制。
@@ -201,13 +201,13 @@ $$
 形式上，这里的核心等价关系是 $\nu \cong \nu'$。它至少要求：
 
 $$
-[\nu(x)] = [\nu'(x)] \quad \text{or} \quad \nu(x), \nu'(x) > c_x,
+[\nu(x)] = [\nu'(x)] \lor (\nu(x) > c_x \land \nu'(x) > c_x).
 $$
 
 并且对仍处在有效比较范围内的 clocks，要保持 fractional parts 的相对顺序：
 
 $$
-\operatorname{fract}(\nu(x)) \le \operatorname{fract}(\nu(y)) \iff \operatorname{fract}(\nu'(x)) \le \operatorname{fract}(\nu'(y)).
+\mathrm{fract}(\nu(x)) \le \mathrm{fract}(\nu(y)) \iff \mathrm{fract}(\nu'(x)) \le \mathrm{fract}(\nu'(y)).
 $$
 
 更关键的是，作者没有只证明“region 有限”，而是继续把 acceptance 也搬过去：除了要求访问原 automaton 的 accepting states，还要求 clocks 在运行中满足对应的无界推进/重复 reset 条件。于是最终可以把 `TBA` 的 timed-language emptiness 化成普通 Buchi automaton 的 emptiness。

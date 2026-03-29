@@ -335,6 +335,7 @@
 | 2026-03-29 | 把原 `uppaal/` 文库重命名为 `uppaal_tech/`，并新增同级 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)；同时把本总账的“技术演进线”整理成阶段表 | 不新增论文，只做文库拆分、入口重定向、边界收紧和总账结构重构；应用条目后续统一转入 `uppaal_apps/` | 让 `UPPAAL` 本体技术与应用案例彻底分流，并把技术时间线固定为可持续维护的表格 |
 | 2026-03-29 | 新增 [DESC_GUIDE.md](./DESC_GUIDE.md)，并把统一论文表改造成 `问题简述 / 方法简述 / 解决点简述` 三列口径 | 这一轮不补单篇 `desc.md`，只先把单篇写作规范与总账压缩字段对齐，同时要求后续单篇分析优先把“立足问题 / 核心方法 / 解决点”讲清楚 | 让后续单篇 `desc.md` 与总账形成同一套问题-方法-解决点语言，避免只留模糊摘要式记录 |
 | 2026-03-29 | 为 [ad90-timed-automata](./ad90-timed-automata/) 首次补写 `desc.md`，并同步强化 [DESC_GUIDE.md](./DESC_GUIDE.md) 对“方法展开层次”的要求 | 单篇分析严格按 [DESC_GUIDE.md](./DESC_GUIDE.md) 组织，重点补清 dense-time 建模动机、timed automata 运行语义、region 抽象、不可判定性证明思路与 `DTMA` 规格子类的作用；同时把 `DESC_GUIDE` 明确升级为要求写出对象 / 规则 / 过程 / 差异层 | 先拿最早条目验证更细的 `desc.md` 模板是否真的能把“问题 / 方法 / 解决点”讲透，再决定后续批量铺开 |
+| 2026-03-29 | 修正 [ad90-timed-automata/desc.md](./ad90-timed-automata/desc.md) 的 GitHub 数学渲染兼容性问题，并把限制回写到 [DESC_GUIDE.md](./DESC_GUIDE.md) 与仓库级 [AGENTS.md](../../AGENTS.md) | 去掉 `\left / \right / \operatorname` 等已知易炸宏，把展示公式统一改成单行公式体；同时把“不用哪些宏、用什么替代”写成后续单篇整理的硬规则 | 让后续 `UPPAAL` 文库里的形式化公式既保留精度，又能稳定在 GitHub 页面直接渲染 |
 | 2026-03-29 | 为仓库级 [AGENTS.md](../../AGENTS.md) / `CLAUDE.md` 补充 GitHub 友好的数学公式写法规范，并把 [DESC_GUIDE.md](./DESC_GUIDE.md) 与 [ad90-timed-automata/desc.md](./ad90-timed-automata/desc.md) 改成 `$...$ / $$...$$` 口径 | 明确规定行内公式用 `$...$`，展示公式必须写成“`$$` + 恰好一行公式体 + `$$`”，避免多行块公式导致 GitHub 渲染异常；同时把 `ad90` 中关键定义、构造和判定问题改写为单行公式块 | 让后续 `desc.md` 在保留形式化精度的同时，仍能稳定在 GitHub 上直接渲染和阅读 |
 
 ## 失败与阻塞记录
