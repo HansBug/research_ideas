@@ -214,9 +214,9 @@
 ## 当前收录统计
 
 - 已收录顶层条目：**45** 篇
-- 本轮新增顶层条目：**0** 篇（本次仅做文库拆分与文档重构）
+- 本轮新增顶层条目：**0** 篇（本次仅做 `desc.md` 全覆盖与文档同步）
 - 含内嵌 `paper-*` 子目录的 thesis/合集条目：**2** 篇
-- 已完成 `desc.md` 的顶层条目：**1** 篇
+- 已完成 `desc.md` 的顶层条目：**45** 篇（`45/45`）
 - 内容详细程度：
   - `🟢 复现级`：**4** 篇
   - `🟩 较完整`：**24** 篇
@@ -248,6 +248,8 @@
 ## 单篇 `DESC` 对齐口径
 
 后续单篇 `desc.md` 统一遵循 [DESC_GUIDE.md](./DESC_GUIDE.md)。
+
+当前 **45** 个顶层条目已经全部完成首轮 `desc.md` 覆盖；`paper-*` 子目录仍按父条目辅助阅读单元维护，不单独计入这里的顶层 `desc` 统计。
 
 本总表中的三列：
 
@@ -337,6 +339,7 @@
 | 2026-03-29 | 为 [ad90-timed-automata](./ad90-timed-automata/) 首次补写 `desc.md`，并同步强化 [DESC_GUIDE.md](./DESC_GUIDE.md) 对“方法展开层次”的要求 | 单篇分析严格按 [DESC_GUIDE.md](./DESC_GUIDE.md) 组织，重点补清 dense-time 建模动机、timed automata 运行语义、region 抽象、不可判定性证明思路与 `DTMA` 规格子类的作用；同时把 `DESC_GUIDE` 明确升级为要求写出对象 / 规则 / 过程 / 差异层 | 先拿最早条目验证更细的 `desc.md` 模板是否真的能把“问题 / 方法 / 解决点”讲透，再决定后续批量铺开 |
 | 2026-03-29 | 修正 [ad90-timed-automata/desc.md](./ad90-timed-automata/desc.md) 的 GitHub 数学渲染兼容性问题，并把限制回写到 [DESC_GUIDE.md](./DESC_GUIDE.md) 与仓库级 [AGENTS.md](../../AGENTS.md) | 去掉 `\left / \right / \operatorname` 等已知易炸宏，把展示公式统一改成单行公式体；同时把“不用哪些宏、用什么替代”写成后续单篇整理的硬规则 | 让后续 `UPPAAL` 文库里的形式化公式既保留精度，又能稳定在 GitHub 页面直接渲染 |
 | 2026-03-29 | 为仓库级 [AGENTS.md](../../AGENTS.md) / `CLAUDE.md` 补充 GitHub 友好的数学公式写法规范，并把 [DESC_GUIDE.md](./DESC_GUIDE.md) 与 [ad90-timed-automata/desc.md](./ad90-timed-automata/desc.md) 改成 `$...$ / $$...$$` 口径 | 明确规定行内公式用 `$...$`，展示公式必须写成“`$$` + 恰好一行公式体 + `$$`”，避免多行块公式导致 GitHub 渲染异常；同时把 `ad90` 中关键定义、构造和判定问题改写为单行公式块 | 让后续 `desc.md` 在保留形式化精度的同时，仍能稳定在 GitHub 上直接渲染和阅读 |
+| 2026-03-29 | 批量补齐其余 **44** 个顶层条目的 `desc.md`，使顶层条目达到 **45/45** 首轮 `desc` 覆盖，并同步回写 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md) 的维护口径 | 新增条目不变，只补单篇展开版说明；统一按 [DESC_GUIDE.md](./DESC_GUIDE.md) 写出“问题 / 方法 / 解决点”三条开头简述，并补一轮 `论文定位 / 立足问题 / 核心方法 / 解决了什么问题 / 实现与材料 / 对本研究的启发` 结构 | 让当前 `uppaal_tech/` 不再只有总表摘要，而是对每个顶层条目都有可继续深化的单篇入口，同时把“未来新增顶层条目默认同步补 desc”固定下来 |
 
 ## 失败与阻塞记录
 
