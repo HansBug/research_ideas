@@ -1,6 +1,6 @@
-# UPPAAL 文库总账
+# UPPAAL 理论与技术文库总账
 
-本文件是 `open_explore/uppaal/` 论文集的总账，用于记录当前已经正式入账的 `UPPAAL` 谱系论文、分类分布、双维材料状态、更新状态和失败/阻塞历史。
+本文件是 `open_explore/uppaal_tech/` 论文集的总账，用于记录当前已经正式入账的 `UPPAAL` 理论与技术条目、分类分布、双维材料状态、更新状态和失败/阻塞历史。
 
 ## 文档定位与使用方式
 
@@ -13,11 +13,12 @@
 
 ## 收录边界回顾
 
-为避免后续维护时误把 `uppaal/` 写成泛 timed automata 收藏夹，这里重申当前论文集的边界：
+为避免后续维护时误把 `uppaal_tech/` 写成泛 timed automata 收藏夹，这里重申当前论文集的边界：
 
-1. 优先收录 `UPPAAL` 本体、核心理论基础、关键算法/数据结构、扩展能力和代表性应用工作。
+1. 优先收录 `UPPAAL` 本体、核心理论基础、关键算法/数据结构、扩展能力和工程工具链工作。
 2. 历史前驱理论可以收录，但必须能清楚说明它与 `UPPAAL` / UDBM 技术脉络的直接关系。
-3. 只在参考文献里提到 `UPPAAL`、正文没有实质贡献的论文，不应正式入账。
+3. 应用与案例条目已迁移到同级文库 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md) 单独维护，不再在本文件正式入账。
+4. 只在参考文献里提到 `UPPAAL`、正文没有实质贡献的论文，不应正式入账。
 
 ## 官方入口速查
 
@@ -87,7 +88,8 @@
 | 🧱 | 核心算法/数据结构 | timed automata 语义、DBM、zone、symbolic state、核心验证算法 |
 | ⚡ | 改进与扩展 | 抽象优化、状态空间削减、优先级、priced/strategy/statistical 等扩展 |
 | 🛠️ | 工程/工具链 | 工具架构、建模语言、查询语言、教程、建模模式、用户指南 |
-| 🧪 | 应用与案例 | 基于 `UPPAAL` 的具体系统、协议、软件或工业验证案例 |
+
+`🧪 应用与案例` 已迁移到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)，因此本总账只维护 `🧱 / ⚡ / 🛠️` 三类技术条目。
 
 ## 双维材料状态口径
 
@@ -122,7 +124,7 @@
 - 工程主线：`UPPAAL + architecture/implementation/tutorial/TRON/online testing/T-Uppaal/relativized ioco/timed trace inclusion/ECDAR/compositional verification`
 - 作者主线：`Kim Guldstrand Larsen`、`Alexandre David`、`Marius Mikučionis`、`Ulrik Nyman`、`Axel Legay`、`Andrzej Wąsowski`、`Peter Gjøl Jensen`
 - 分支作者：`Brian Nielsen`、`Thomas Hune`、`Sean Sedwards`、`Andrej Kiviriga`、`Pranav Ashok`
-- 应用主线：当前仍保留，但按本轮目标继续后置
+- 应用主线：已迁出到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)，本文件不再继续展开
 
 ### 已观察到的高命中特征
 
@@ -145,17 +147,29 @@
 - 当前文库已经补上 `2001-2012` 的 `guided synthesis / TRON / SHS` 与 `2019` 的 `compact strategies / SOS`，下一轮应继续定点补缺口而不是泛泛扩年份
 - `⚡` 改进与扩展仍是当前主干，后续应继续沿 `importance splitting / planning-guided exploration / UPPAAL 5 / shield synthesis` 扩张
 - `2016-2018` 仍偏空，应优先补这段过渡期的核心技术条目，而不是只继续堆 `2020s`
-- `🧪 应用与案例` 仍然为空，但按当前用户要求继续后置，不抢本轮优先级
+- 应用检索线已迁移到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)，本文件后续只保留必要的技术侧分流说明
 - 每次更新前先删减失效关键词，保持本节简洁
 
-## 年代分布与近年活动观察
+## 技术演进时间线与近年活动观察
 
 - 当前已收录顶层条目已经覆盖 `1990-2025`，不再只停留在 `1990-2015` 的早中期奠基阶段。
-- 本轮新增的 11 篇条目把 `guided synthesis`、`TRON / online testing`、`stochastic hybrid systems`、`compact strategies / SOS` 这几段此前缺口较大的分支接上了。
-- 结合上一轮已补入的 `timed I/O automata / ECDAR / randomized analysis / MCTS / dynamic extrapolation / Coshy`，当前文库已经形成 `1990s foundation -> 2001-2010 early expansion/testing -> 2011-2015 SMC/Stratego -> 2019 compact strategies -> 2020-2025 randomized/planning/Coshy` 的连续链。
+- 当前技术主线已经可以拆成“理论奠基 -> 架构与数据结构固化 -> testing / games 分叉 -> specification theory / ECDAR -> SMC / Stratego -> randomized / planning / modern abstractions / Coshy”这几段。
 - 官方 changelog 仍显示后续版本持续发布：`2023-06-21` 的 `UPPAAL 5.0.0`、`2023-12-11` 的 `UPPAAL 5.1.0-beta5`、`2025-07-04` 的 `UPPAAL 5.1.0-b5-COSHY`。
 - 官方 GitHub org 也显示近期仍有源码活动：`UDBM`、`utap`、`uppaal-libs`、`docs.uppaal.org` 在 `2025-2026` 仍有更新。
-- 虽然文库已经延展到 `2025`，但 `2016-2018` 仍偏稀疏，`importance splitting`、若干 `UPPAAL 5` 论文与现代搜索/抽象优化线仍有缺口。
+- 当前最明显的技术缺口仍是 `2016-2018`，尤其是 `importance splitting`、更系统的 `UPPAAL 5` 技术论文和若干现代搜索/抽象优化条目。
+
+### 技术演进线总表
+
+| 阶段 | 时间范围 | 主线主题 | 关键问题 | 代表条目 | 当前判断 |
+|---|---|---|---|---|---|
+| 理论前史与引擎奠基 | `1990-1997` | timed automata 语义、symbolic model checking、compact DBM | 如何用 clocks / guards / resets / symbolic states 表示 dense-time reachability | `ad90`、`lpw95`、`llpy97`、`lpy97` | 基础骨架已经清楚，后续主要是按引用关系回看源头 |
+| 架构重构与数据结构专题化 | `2001-2004` | architecture、implementation、DBM / zone / federation / CDD | 如何把理论底盘做成可扩展引擎，并压缩状态空间与约束表示 | `behrmann01`、`bengtsson02`、`behrmann03`、`bblp04`、`bdl04` | 这是当前文库最完整的一段，也是后续继续补链的基准骨架 |
+| 测试与博弈工具化 | `2003-2008` | `TRON`、online testing、timed games、`Tiga` | 如何从验证走向 on-the-fly testing 与 controller synthesis | `mikucionis03`、`larsen04-online`、`cassez05`、`behrmann07`、`hessel08` | 支线已经成形，但源码开放性明显弱于 `DBM / ECDAR` 线 |
+| 规范理论化与组合验证 | `2010-2013` | `TIOA`、specification theory、`ECDAR`、compositional verification | 如何定义 refinement / consistency / quotient，并把它做成组件级验证框架 | `david10-method`、`david10-spec`、`david12-ecdar`、`david13-rtspec` | 这是当前“理论最完整且实现可追”的一段，适合继续沿作者线深挖 |
+| 统计模型检查与策略优化 | `2011-2015` | `SMC`、priced PTA、expected cost、`Stratego` | 如何把概率、代价与优化能力接入 `UPPAAL` | `david11-smc`、`david12-shs`、`david14`、`david15-smc`、`david15-stratego` | 主线已经清楚，但向近年现代版本过渡时仍缺中间段 |
+| 过渡空档与待补带 | `2016-2018` | `UPPAAL 5`、importance splitting、过渡期现代化 | 如何把 `SMC / Stratego` 进一步推到更现代的搜索与统计框架 | `importance-splitting-line` | 这是当前最明显的时间缺口，下一轮应优先定点补齐 |
+| 紧凑策略与混成博弈回潮 | `2019` | compact strategies、`SOS`、stochastic hybrid games | 如何在 stochastic / hybrid 场景下同时兼顾 safe、optimal、small | `ashok19-sos`、`larsen19-compact` | 已经有定题点，但仍需继续追其后续实现与扩展 |
+| 随机化、规划、现代抽象与新近混成扩展 | `2020-2025` | randomized analysis、`MCTS`、dynamic extrapolation、`Coshy` | 如何在可扩展性、规划能力、现代 `XTA` 抽象和 hybrid shielding 之间继续推进 | `kiviriga20-randref`、`kiviriga21-randreach`、`jensen22-mcts`、`jensen23-dynext`、`brorholt25-coshy` | 说明 `UPPAAL` 技术线没有停在零几年，近年仍在持续演进 |
 
 ## 现有收录论文作者关联
 
@@ -199,7 +213,7 @@
 ## 当前收录统计
 
 - 已收录顶层条目：**45** 篇
-- 本轮新增顶层条目：**11** 篇
+- 本轮新增顶层条目：**0** 篇（本次仅做文库拆分与文档重构）
 - 含内嵌 `paper-*` 子目录的 thesis/合集条目：**2** 篇
 - 内容详细程度：
   - `🟢 复现级`：**4** 篇
@@ -225,8 +239,9 @@
 | 🧱 核心算法/数据结构 | 8 | 17.8% | 已覆盖 timed automata、DBM、zone、specification theory、dynamic extrapolation 等主线 |
 | ⚡ 改进与扩展 | 23 | 51.1% | 已覆盖 guided synthesis、priced/cost-optimal、timed games、Tiga、SMC、SHS、Stratego、randomized analysis、MCTS、compact strategies、Coshy |
 | 🛠️ 工程/工具链 | 14 | 31.1% | 已覆盖 architecture、implementation、tutorial、`UPPAAL 4.0`、`TRON/testing`、`ECDAR/SMC` 工程入口与路线综述 |
-| 🧪 应用与案例 | 0 | 0.0% | 当前仍为空，按本轮目标继续后置 |
 | **合计** | **45** | **100.0%** | - |
+
+说明：应用类条目已迁移到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md) 单独维护。
 
 ## 论文清单
 
@@ -280,21 +295,27 @@
 | ⚡ | `jensen23-dynext` | Dynamic Extrapolation in Extended Timed Automata | 2023 | 为带离散数据和 `C-like` 构造的 `XTA` 提出 dynamic extrapolation，收紧现代 `Uppaal` 上的抽象精度 | 🟩 较完整 | 🟨 部分实现源码可得 | 当前可拿到 [utap](https://github.com/UPPAALModelChecker/utap) / [UDBM](https://github.com/UPPAALModelChecker/UDBM) 等子库源码，但 dynamic extrapolation 主实现未公开 | [jensen23-dynamic-extrapolation-extended-timed-automata](./jensen23-dynamic-extrapolation-extended-timed-automata/) |
 | ⚡ | `brorholt25-coshy` | Uppaal Coshy: Automatic Synthesis of Compact Shields for Hybrid Systems | 2025 | 把 hybrid/stochastic safety shielding 纳入 `UPPAAL` 家族，扩展到 `COSHY` 的近似控制与 compact shield 合成 | 🟨 中等 | 🟧 仅可执行/可使用版本可得 | 官方 [features](https://uppaal.org/features/) 与 [changelog](https://uppaal.org/changelog/) 已出现 `COSHY` 线索，但当前未见对应源码仓库公开 | [brorholt25-uppaal-coshy](./brorholt25-uppaal-coshy/) |
 
-### 🧪 应用与案例
+## 与应用文库的关系
 
-当前尚无正式入账条目。按本轮目标，应用类仍继续后置；下一轮若核心技术脉络进一步补齐后，再单独扩充。
+当前 `UPPAAL` 应用与案例条目不再在本技术总账中占位，而是统一迁移到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md) 单独维护。
+
+分流原则如下：
+
+1. 若主贡献是 `UPPAAL` 本体的新能力、新抽象、新算法、新工程组件，保留在本文件。
+2. 若主贡献是利用 `UPPAAL` 验证具体系统、协议、控制器或工业对象，转入应用文库。
 
 ## 更新日志
 
 | 时间 | 更新内容 | 整理策略 | 本轮侧重 |
 |---|---|---|---|
-| 2026-03-29 | 初始化 `open_explore/uppaal/`，新增 **11** 篇基础条目，并建立 `README.md`、`GUIDE.md`、`SUMMARY.md` 三个论文集核心文件；随后补入 `behrmann03` 与 `bengtsson02` 的 `paper-*` 子目录及父子导航 README | 只从既有 `UPPAAL/UDBM` 历史论文池挑选一份可用副本，优先完成基础入库，不额外扩新论文；有现成 `content.md` 的直接规范为 `paper_content.txt`，缺失 thesis 级正文的条目用 `tools/pdf_extractor.py` 补齐；对 thesis 型条目把原有拆分子论文与 `content_assets/` 一并带入 | 先搭建 `UPPAAL` 基础文库骨架，再补齐带内嵌子论文条目的父子导航结构，为后续沿专题继续深挖做准备 |
+| 2026-03-29 | 初始化原始 `open_explore/uppaal/`（现 `open_explore/uppaal_tech/`），新增 **11** 篇基础条目，并建立 `README.md`、`GUIDE.md`、`SUMMARY.md` 三个论文集核心文件；随后补入 `behrmann03` 与 `bengtsson02` 的 `paper-*` 子目录及父子导航 README | 只从既有 `UPPAAL/UDBM` 历史论文池挑选一份可用副本，优先完成基础入库，不额外扩新论文；有现成 `content.md` 的直接规范为 `paper_content.txt`，缺失 thesis 级正文的条目用 `tools/pdf_extractor.py` 补齐；对 thesis 型条目把原有拆分子论文与 `content_assets/` 一并带入 | 先搭建 `UPPAAL` 基础文库骨架，再补齐带内嵌子论文条目的父子导航结构，为后续沿专题继续深挖做准备 |
 | 2026-03-29 | 重构 `README.md`、`GUIDE.md`、`SUMMARY.md` 的文库口径，新增官方入口索引、作者主线与双维材料状态体系 | 不再以“文件齐不齐”作为主状态，而是改成“内容详细程度 + 实现可获取程度”；同时把 `🧱 / ⚡ / 🛠️` 合并进统一论文表 | 为后续沿官方 org、官方 docs、核心作者和技术分支系统扩库做准备 |
 | 2026-03-29 | 补充作者年代观察与近年活动判断，并把“实现可获取程度”重定义为严格的源码标准 | 把“当前文库作者”与“较新年份的直接 `UPPAAL` 工作”显式关联，同时把二进制下载与源码实现彻底分开 | 为后续优先补 `2010s/2020s` 的 `SMC / Stratego / Tiga / 现代工具链` 缺口做准备 |
 | 2026-03-29 | 新增 **12** 篇 `2001-2015` 的核心技术/扩展条目，补齐 `cost-optimality / architecture / Tiga / SMC / Stratego` 主链 | 只收录 PDF 实际下载成功且已生成 `paper_content.txt` 的条目；本轮继续后置应用类，优先围绕核心作者和技术分支做全网补链 | 把文库直接覆盖范围从 `1990-2006` 扩展到 `1990-2015`，让 `UPPAAL` 演进脉络初步成形 |
 | 2026-03-29 | 调整作者画像与论文清单维护口径，补充“角色判断 / 主要贡献方向”，并把统一论文表改为按年份升序维护 | 作者分析继续以现有已收录论文为主证据，不以 team 页替代；统一论文表按年份升序、同年按 `Key` 稳定排序 | 让后续扩库同时具备“技术时间线”和“人物贡献线”两条可直接复用的导航 |
 | 2026-03-29 | 新增 **11** 篇 `2010-2025` 的核心技术/扩展条目，补入 `timed I/O automata / ECDAR / randomized analysis / MCTS / dynamic extrapolation / Coshy` 主线 | 只把 `PDF` 实际下载成功且已生成 `paper_content.txt` 的条目正式入账；实现可获取程度同步按“源码优先、二进制降级”重判，并把 `ECDAR` 相关开源入口写回官方索引 | 把文库直接覆盖范围从 `1990-2015` 延展到 `1990-2025`，让 `UPPAAL` 的近年演进不再断在 `Stratego` 之前 |
 | 2026-03-29 | 新增 **11** 篇 `2001-2019` 的核心技术/扩展条目，补入 `UPPAAL now-next-future / guided synthesis / unification & sharing / TRON online testing / stochastic hybrid systems / compact strategies` 主线，并把 `README.md`、`GUIDE.md`、`SUMMARY.md` 全部回填到 **45** 篇口径 | 只把 `PDF` 实际下载成功且已生成 `paper_content.txt` 的条目正式入账；其中 `amnell01`、`hune01`、`mikucionis10` 三篇早期 PDF 的 `text` 抽取质量不足，当前先用 `pdftotext -layout` 回填正文，后续若要做深度抽取再在具备 `tesseract` 的环境重跑 `ocr` | 把 `guided synthesis -> TRON/testing -> SHS -> compact strategies` 这条链补齐，并同步修正作者主线、关键词簇、分类统计与统一总表 |
+| 2026-03-29 | 把原 `uppaal/` 文库重命名为 `uppaal_tech/`，并新增同级 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)；同时把本总账的“技术演进线”整理成阶段表 | 不新增论文，只做文库拆分、入口重定向、边界收紧和总账结构重构；应用条目后续统一转入 `uppaal_apps/` | 让 `UPPAAL` 本体技术与应用案例彻底分流，并把技术时间线固定为可持续维护的表格 |
 
 ## 失败与阻塞记录
 

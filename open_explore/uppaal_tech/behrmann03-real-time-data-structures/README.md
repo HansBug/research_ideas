@@ -2,7 +2,7 @@
 
 ## 条目定位
 
-本目录对应 Gerd Behrmann 的博士论文 *Data Structures and Algorithms for the Analysis of Real Time Systems*。它在当前 `UPPAAL` 文库中既是一个 thesis 级总入口，也是一个带内嵌子论文的父路径。
+本目录对应 Gerd Behrmann 的博士论文 *Data Structures and Algorithms for the Analysis of Real Time Systems*。它在当前 `UPPAAL` 理论与技术文库中既是一个 thesis 级总入口，也是一个带内嵌子论文的父路径。
 
 这里的根目录材料仍然是该条目的规范完整版本：
 
@@ -11,7 +11,7 @@
 3. `bibtex.bib`
 4. `README.md`
 
-`paper-intro/` 与 `paper-a/` 到 `paper-f/` 是从 thesis 中拆出的辅助阅读单元，用于定向进入不同主题；它们不单独计入 `uppaal/SUMMARY.md` 的顶层论文数。
+`paper-intro/` 与 `paper-a/` 到 `paper-f/` 是从 thesis 中拆出的辅助阅读单元，用于定向进入不同主题；它们不单独计入 [../SUMMARY.md](../SUMMARY.md) 的顶层论文数。
 
 ## 子论文导航
 
@@ -41,7 +41,7 @@
 
 ## 推荐阅读顺序
 
-如果只是想快速判断这篇 thesis 在 `UPPAAL` 文库里的价值，建议按下面顺序走：
+如果只是想快速判断这篇 thesis 在 `UPPAAL` 理论与技术文库里的价值，建议按下面顺序走：
 
 1. 先读本文件。
 2. 再读 [paper-intro/README.md](./paper-intro/README.md)。

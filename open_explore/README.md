@@ -36,9 +36,12 @@
 
 当前已建立的专题如下：
 
-1. [uppaal/README.md](./uppaal/README.md)
-   - 面向 `UPPAAL` 系核心技术、工具演化和后续应用的基础文库。
-   - 当前已完成第一批基础条目入库，后续可继续向官方工作、核心算法改进和代表性应用扩张。
+1. [uppaal_tech/README.md](./uppaal_tech/README.md)
+   - 面向 `UPPAAL` 系理论与技术主线的专题文库。
+   - 只收录 `UPPAAL` 本体相关的核心算法/数据结构、改进扩展和工程工具链工作。
+2. [uppaal_apps/README.md](./uppaal_apps/README.md)
+   - 面向 `UPPAAL` 应用与案例主线的专题文库。
+   - 专门收录基于 `UPPAAL` 的软件、系统、协议或工业验证应用，不再混入工具本体技术条目。
 
 ## 6. 推荐工作方式
 

@@ -6,7 +6,7 @@
 
 ## 在母论文中的角色
 
-这是 [behrmann03-real-time-data-structures/README.md](../README.md) 中最直接连接 `UPPAAL` 文库主线的一篇。它主要讨论非凸 symbolic set、CDD，以及为什么单个 DBM 之外的表示也会成为一等对象。
+这是 [behrmann03-real-time-data-structures/README.md](../README.md) 中最直接连接 `UPPAAL` 理论与技术文库主线的一篇。它主要讨论非凸 symbolic set、CDD，以及为什么单个 DBM 之外的表示也会成为一等对象。
 
 ## 什么时候优先读
 

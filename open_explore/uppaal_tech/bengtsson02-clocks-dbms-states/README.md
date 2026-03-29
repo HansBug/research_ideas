@@ -2,7 +2,7 @@
 
 ## 条目定位
 
-本目录对应 Johan Bengtsson 的博士论文 *Clocks, DBMs and States in Timed Systems*。它在当前 `UPPAAL` 文库中是最贴近 DBM 本体与实现语义的一篇 thesis 级条目，同时也是一个带内嵌子论文的父路径。
+本目录对应 Johan Bengtsson 的博士论文 *Clocks, DBMs and States in Timed Systems*。它在当前 `UPPAAL` 理论与技术文库中是最贴近 DBM 本体与实现语义的一篇 thesis 级条目，同时也是一个带内嵌子论文的父路径。
 
 这里的根目录材料仍然是该条目的规范完整版本：
 
@@ -11,7 +11,7 @@
 3. `bibtex.bib`
 4. `README.md`
 
-`paper-a/` 到 `paper-e/` 是从 thesis 中拆出的辅助阅读单元，用于分别进入 DBM、normalization、存储压缩、partial-order reduction 和 `UPPAAL` 工业案例这几条子线；它们不单独计入 `uppaal/SUMMARY.md` 的顶层论文数。
+`paper-a/` 到 `paper-e/` 是从 thesis 中拆出的辅助阅读单元，用于分别进入 DBM、normalization、存储压缩、partial-order reduction 和 `UPPAAL` 工业案例这几条子线；它们不单独计入 [../SUMMARY.md](../SUMMARY.md) 的顶层论文数。
 
 ## 子论文导航
 

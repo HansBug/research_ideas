@@ -16,4 +16,4 @@
 ## 下一步
 
 1. 想继续看同一簇背景，读 [paper-b/README.md](../paper-b/README.md)。
-2. 想进入更贴近 `UPPAAL` 文库主线的 timed 主题，跳到 [paper-c/README.md](../paper-c/README.md)。
+2. 想进入更贴近 `UPPAAL` 理论与技术文库主线的 timed 主题，跳到 [paper-c/README.md](../paper-c/README.md)。
