@@ -216,7 +216,7 @@
 - 已收录顶层条目：**45** 篇
 - 本轮新增顶层条目：**0** 篇（本次仅做文库拆分与文档重构）
 - 含内嵌 `paper-*` 子目录的 thesis/合集条目：**2** 篇
-- 已完成 `desc.md` 的顶层条目：**0** 篇
+- 已完成 `desc.md` 的顶层条目：**1** 篇
 - 内容详细程度：
   - `🟢 复现级`：**4** 篇
   - `🟩 较完整`：**24** 篇
@@ -334,6 +334,7 @@
 | 2026-03-29 | 新增 **11** 篇 `2001-2019` 的核心技术/扩展条目，补入 `UPPAAL now-next-future / guided synthesis / unification & sharing / TRON online testing / stochastic hybrid systems / compact strategies` 主线，并把 `README.md`、`GUIDE.md`、`SUMMARY.md` 全部回填到 **45** 篇口径 | 只把 `PDF` 实际下载成功且已生成 `paper_content.txt` 的条目正式入账；其中 `amnell01`、`hune01`、`mikucionis10` 三篇早期 PDF 的 `text` 抽取质量不足，当前先用 `pdftotext -layout` 回填正文，后续若要做深度抽取再在具备 `tesseract` 的环境重跑 `ocr` | 把 `guided synthesis -> TRON/testing -> SHS -> compact strategies` 这条链补齐，并同步修正作者主线、关键词簇、分类统计与统一总表 |
 | 2026-03-29 | 把原 `uppaal/` 文库重命名为 `uppaal_tech/`，并新增同级 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)；同时把本总账的“技术演进线”整理成阶段表 | 不新增论文，只做文库拆分、入口重定向、边界收紧和总账结构重构；应用条目后续统一转入 `uppaal_apps/` | 让 `UPPAAL` 本体技术与应用案例彻底分流，并把技术时间线固定为可持续维护的表格 |
 | 2026-03-29 | 新增 [DESC_GUIDE.md](./DESC_GUIDE.md)，并把统一论文表改造成 `问题简述 / 方法简述 / 解决点简述` 三列口径 | 这一轮不补单篇 `desc.md`，只先把单篇写作规范与总账压缩字段对齐，同时要求后续单篇分析优先把“立足问题 / 核心方法 / 解决点”讲清楚 | 让后续单篇 `desc.md` 与总账形成同一套问题-方法-解决点语言，避免只留模糊摘要式记录 |
+| 2026-03-29 | 为 [ad90-timed-automata](./ad90-timed-automata/) 首次补写 `desc.md`，并同步强化 [DESC_GUIDE.md](./DESC_GUIDE.md) 对“方法展开层次”的要求 | 单篇分析严格按 [DESC_GUIDE.md](./DESC_GUIDE.md) 组织，重点补清 dense-time 建模动机、timed automata 运行语义、region 抽象、不可判定性证明思路与 `DTMA` 规格子类的作用；同时把 `DESC_GUIDE` 明确升级为要求写出对象 / 规则 / 过程 / 差异层 | 先拿最早条目验证更细的 `desc.md` 模板是否真的能把“问题 / 方法 / 解决点”讲透，再决定后续批量铺开 |
 
 ## 失败与阻塞记录
 
