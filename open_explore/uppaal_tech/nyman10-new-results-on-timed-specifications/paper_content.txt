@@ -1,0 +1,900 @@
+--- Page 1 ---
+New Results on Timed Speciﬁcations?
+Timothy Bourke2, Alexandre David1, Kim. G. Larsen1, Axel Legay2,
+Didier Lime3, Ulrik Nyman1, Andrzej W ˛ asowski4
+1Computer Science, Aalborg University, Denmark
+2INRIA/IRISA, Rennes Cedex, France
+3IRCCyN/Ecole Centrale de Nantes, France
+4IT University of Copenhagen, Denmark
+Abstract. Recently, we have proposed a new design theory for timed systems.
+This theory, building on Timed I/O Automata with game semantics, includes clas-
+sical operators like satisfaction, consistency, logical composition and structural
+composition. This paper presents a new efﬁcient algorithm for checking Büchi
+objectives of timed games. This new algorithm can be used to enforce liveness
+in an interface, or to guarantee that the interface can indeed be implemented. We
+illustrate the framework with an infrared sensor case study.
+1 Introduction and State of The Art
+Several authors have proposed frameworks for reasoning about interfaces of indepen-
+dently developed components (e.g. [20, 13, 9, 12]). Most of these works have, however,
+devoted little attention to real-time aspects. Recently, we proposed a new speciﬁcation
+theory for Timed Systems (TS) [11]. Syntactically, our speciﬁcations are represented as
+Timed I/O Automata (TIOAs) [19], i.e., timed automata whose discrete transitions are
+labeled by Input andOutput modalities. In contrast to most existing frameworks based
+on this model, we view TIOAs as games between two players: Input and Output, which
+allows for an optimistic treatment of operations on speciﬁcations [13].
+Our theory is equipped with features typical of a compositional design framework:
+asatisfaction relation (to decide whether a TS is an implementation of a speciﬁcation),
+aconsistency check (whether the speciﬁcation admits an implementation), and a re-
+ﬁnement (to compare speciﬁcations in terms of inclusion of sets of implementations).
+Moreover, the model is also equipped with logical composition (to compute the inter-
+section of sets of implementations), structural composition (to combine speciﬁcations)
+and its dual operator quotient . Our framework also supports incremental design [14].
+Reﬁnement, Satisfaction, and Consistency problems can be reduced to solving timed-
+games. For example, if inconsistent states are states that cannot be implemented, since
+they violate assumptions of the abstraction, then deciding whether an interface is con-
+sistent is equivalent to checking if a strategy that avoids inconsistent states exists.
+Our theory is implemented in ECDAR [17], a tool that leverages the game engine
+UPPAAL -TIGA [4], as well as the model editor and the simulator of the U PPAAL model
+?Work partially supported by VKR Centre of Excellence – MT-LAB and by an “Action de
+Recherche Collaborative” ARC (TP)I
+
+--- Page 2 ---
+A
+XS=JAKsem
+P=JXKsemj= j=JKsem
+JKsemtimed I/O
+transition systems
+(inﬁnite)timed I/O
+automata
+(ﬁnite)speciﬁcations
+(implementations)models
+Fig. 1: Structure of our speciﬁcation theory for real-time systems.
+checker [5]. The purpose of this paper is to describe enrichments to our theory, and to
+report on the evaluation of the tool on a concrete case study. Our contributions are:
+1.An on-the-ﬂy algorithm for checking Büchi objectives of two-player timed games.
+The algorithm builds on an existing, efﬁcient method for solving reachability objec-
+tives [8, 4], but it uses zones as a symbolic representation. We show how the method
+can be combined with a safety objective. This allows, for example, to guarantee that
+a player has a strategy to stay within a set of states without blocking the progress
+of time. Similar results were proposed by de Alfaro et al. [16] but for a restricted
+class of timed interfaces and without an implementation for the continuous case.
+2.A realistic case study. Most existing interface theories have not been implemented
+and evaluated on concrete applications. We use ECDAR to show that our interface
+theory is indeed a feasible solution for the design of potentially complex timed sys-
+tems. More precisely, we specify an infrared sensor for measuring short distances
+and for detecting obstructions. This extensive case study reveals both the advan-
+tages and disadvantages of our theory, which are summarized in this paper.
+2 Background: Real Time Speciﬁcations as Games
+Following [11], we now introduce the basic objects of this paper. Our speciﬁcations and
+models (implementations) are taken from the same class, timed games. They both exist
+in two ﬂavors: inﬁnite and ﬁnite. Fig. 1 summarizes this structure. The top–bottom divi-
+sion goes across the notion of satisfaction (models and speciﬁcations) and the left–right
+one across syntax-semantics (Timed I/O Transition Systems and Timed I/O Automata).
+This orthogonality is exploited to treat the intricacies of continuous time behaviour sep-
+arately from those of algorithms. Roughly, the inﬁnite models have been used to develop
+the theory, while the ﬁnite symbolic representations are used in the implementation.
+Deﬁnition 1. A Timed I/O Transition System (TIOTS) is a tuple S= (StS;s0;S; !S),
+where StSis an inﬁnite set of states, s02St is the initial state, S=S
+iS
+ois a ﬁnite
+set of actions partitioned into inputs and outputs, and  !S:StS(S[R0)StS
+
+--- Page 3 ---
+is a transition relation. We write sa!Ss0instead of (s;a;s0)2 !Sand usei?,o!andd
+to range over inputs, outputs and R0respectively. Also for any TIOTS we require:
+[time determinism] whenever sd!Ss0andsd!Ss00thens0=s00,
+[time reﬂexivity] s0!Ssfor alls2StS, and,
+[time additivity] for all s;s002StSand alld1;d22 R0we havesd1+d2!Ss00iff
+sd1!Ss0ands0d2!Ss00for somes02StS.
+We writesa!Smeaning that there exists a state s0such thatsa!Ss0.
+TIOTSs are abstract representations of real time behaviour. We use Timed I/O Automata
+(TIOAs) to represent them symbolically using ﬁnite syntax.
+LetClkbe a ﬁnite set of clocks .[Clk7!R0]denotes the set of mappings from Clk
+toR0. Avaluation over Clkis an element uof[Clk7!R0]. Givend2R0, we write
+u+dto denote a valuation such that for any clock r2Clkwe have (u+d)(r) =x+d
+iffu(r) =x. We writeu[r7!0]r2cfor a valuation which agrees with uon all values
+for clocks not in c, and gives 0 for all clocks in cClk. Let opbe the set of relational
+operators: op=f<;;>;g. Aguard over Clkis a ﬁnite conjunction of expressions
+of the form xn, where2 opandn2N. We writeB(Clk)for the set of guards
+over Clkusing operators in the set op, andP(X)for the powerset of a set X.
+Deﬁnition 2. ATimed I/O Automaton (TIOA) is a tuple A= ( Loc;q0;Clk;E;
+Act;Inv)where Loc is a ﬁnite set of locations, q02Loc is the initial location, Clk
+is a ﬁnite set of clocks, ELocActB(Clk)P(Clk)Loc is a set of edges, Act
+is the action set Act =Act iAct o, partitioned into inputs and outputs respectively, and
+Inv:Loc7!B(Clk)is a set of location invariants.
+If(q;a;';c;q0)2Eis an edge, then qis a source location, ais an action, 'is a const-
+raint over clocks that must be satisﬁed when the edge is executed, cis a set of clocks to
+be reset, and q0is the target location. We will give examples of TIOAs in Sect. 4.
+The expansion of the behaviour of a TIOA A= (Loc;q0;Clk;E;Act;Inv)is the
+following TIOTS [ [A] ]sem= (Loc[Clk7!R0];(q0;0);Act; !), where 0is a constant
+function mapping all clocks to zero, and  !is generated by the two rules:
+–Each (q;a;';c;q0)2Egives rise to (q;u)a!(q0;u0)for each clock valuation
+u2[Clk7!R0]such thatuj='andu0=u[r7!0]r2candu0j=Inv(q0).
+–Each location q2Locwith a valuation u2[Clk7!R0]gives rise to a transition
+(q;u)d!(q;u+d)for each delay d2R0such thatu+dj=Inv(q).
+We refer to states and transitions of a TIOA, meaning the states and transitions of the
+underlying TIOTS. As stated above, these states are location–clock valuation pairs.
+The TIOTSs induced by TIOAs conform to Def. 1. In addition, to guarantee deter-
+minism, for each action–location pair only one transition can be enabled at a time. This
+is a standard check. We assume that all TIOAs below are deterministic.
+Implementations (models) are a subclass of speciﬁcations that are amenable to im-
+plementation. They have ﬁxed timing behaviour (outputs occur at predictable times)
+and can always advance either by producing an output or delaying.
+Deﬁnition 3. A TIOAAis aspeciﬁcation if each state s2St[ [A] ]semis input-enabled:
+[input enabledness] 8i?2[ [A] ]sem
+i:si?![ [A] ]sem.
+
+--- Page 4 ---
+Deﬁnition 4. Animplementation Ais a speciﬁcation (so a suitable TIOA), where, in
+addition, for each state p2St[ [A] ]semthe following two conditions hold:
+[output urgency] for each o!2[ [A] ]semo ifpo!![ [A] ]semandpd![ [A] ]semthend= 0and,
+[independent progress] (8d0:pd![ [A] ]sem)or
+(9d2R0:9o!2[ [A] ]semo:pd![ [A] ]semp0andp0o!![ [A] ]sem)
+Speciﬁcations are a subclass of TIOAs (the upper-left quadrant in Fig. 1) which induce
+TIOTSs that are input-enabled (the upper-right quadrant). Implementations are TIOAs
+(the lower-left quadrant) that induce both input-enabled and output-urgent TIOTSs able
+to progress independently (the lower-right quadrant). Although speciﬁcations and im-
+plementations are deﬁned above by restricting their semantic properties, it is possible,
+although more clumsy, to rephrase these conditions syntactically and implement them
+in a tool. These are again standard checks.
+A runof a TIOTS Sfrom its state s1is a sequence s1a1!s2a2!an1!sn
+such that for all i2[1::n];siai!si+1is a transition of S. We write Runs (s1;S)for the
+set of runs of Sstarting ins1, and Runs (S)for the set of runs starting from the initial
+state ofS. We write States ()for the set of states of Spresent inand, ifis ﬁnite,
+last()for the last state occurring in .
+TIOAs are interepreted as two-player real-time games between the output player
+(the component) and the input player (the environment). The input plays with actions
+iniand the output plays with actions in o:
+Deﬁnition 5. A strategyffor the input (resp. output) player, k2fi;og, on the TIOA A
+is a partial function from Runs ([ [A] ]sem)to Act i[fdelayg(resp. Act o[fdelayg) such
+that for every ﬁnite run , iff()2Actkthen last()f()!s0for some state s0and if
+f() =delay , then9d>0:9s00such that last()d!s00.
+For a given strategy, we consider behaviors resulting from the application of the
+strategy to the TIOA, with respect to all possible strategies of the opponent:
+Deﬁnition 6 (Outcome [15]). LetAbe a TIOA, fa strategy over Afor the input
+player, andsa state of [ [A] ]sem. The outcome Outcome i(s;f)offfromsis the sub-
+set of Runs (s;[ [A] ]sem)deﬁned inductively by:
+–s2Outcome i(s;f),
+–if2Outcome i(s;f)then0=e!s02Outcome i(s;f)if
+02Runs (s;[ [A] ]sem)and one of the following three conditions hold:
+1.e2Act o,
+2.e2Act iande=f(),
+3.e2R0and80e0<e:9s00:last()e0
+!s00andf(e0
+!s00) =delay .
+–2Outcome i(s;f)ifinﬁnite and all its ﬁnite preﬁxes are in Outcome i(s;f)
+LetMaxOutcome i(s;f)denote the maximal runs of Outcome i(s;f), that is2
+MaxOutcome i(s;f)iff2Outcome i(s;f)andhas an inﬁnite number of discrete
+actions, orhas a ﬁnite number of discrete actions, but there exist no e2Act[R0
+and no state s0withe !s02Outcome i(s;f), or the sum of the delays in is inﬁnite.
+
+--- Page 5 ---
+For a given TIOA A, a winning condition Wfor input is a subset of
+Runs ([ [A] ]sem). We say that Wdoes not depend on the progress of the opponent (here
+output) iff whenever 2Wand=0e !00, withe2Act o, then either there exists
+e02Act i,d2R0, a statesand a run000such that0d !se0
+!0002Wor there ex-
+istsd2R0and some state ssuch that0d !s2W. This restriction means that input
+should always be able to ensure progress by itself and that the actions of the opponent
+should not be abused to advance the game, since we cannot assume that the opponent
+will ever make use of them. For a winning condition W, we write Strip(W)to denote
+the subset of Win which the runs not satisfying this condition are removed.
+A pair (A;W )is an input timed game . Given a winning condition Wfor input,
+a strategyfof input is winning from statesifMaxOutcome (s;f)W. A statesis
+winning for input, if there exists a winning strategy for input from s. The game (A;W )
+iswinning for input if the initial state of Ais winning for it. For an input timed game
+(A;W ), we writeWi(A;W )for the set of winning states for input and Fi(A;W;s )for
+all winning strategies for input from s. The winning conditions considered here are:
+–Reachability objective: the input player must enforce a set Goal of “good” states.
+The corresponding winning condition is deﬁned as
+WRi(Goal) =Stripf2Runs ([ [A] ]sem)jStates ()\Goal6=;g (1)
+–Safety objective: the player must avoid a set Badof “bad” states. The corresponding
+winning condition is deﬁned as:
+WSi(Bad) =f2Runs ([ [A] ]sem)jStates ()\Bad=;g (2)
+–Büchi objective: the player must enforce visiting Goal , a set of “good” states, in-
+ﬁnitely often. LetjAjdenote the cardinality of set A. The winning condition is:
+WBi(Goal) =Stripf2Runs ([ [A] ]sem)j jStates ()\Goalj=1g (3)
+We deﬁne the outcomes Outcome o(s;f)andMaxOutcome o(s;f)of a strategy of
+the output player, as well as output timed games and all the related notions, by swapping
+‘i’ and ‘ o’ (for instance Act iandAct o) in the above deﬁnitions.
+We now present discuss the reﬁnement relation , which relates TIOTSs of two real
+time speciﬁcations, by determining which one allows more behaviour:
+Deﬁnition 7. A TIOTSsS= (StS;s0;; !S)reﬁnes a TIOTSs T= (StT;t0;; !T),
+writtenST, iff there exists a binary relation RStSStTcontaining (s0;t0)such
+that for each pair of states (s;t)2Rwe have:
+1. ifti?!Tt0for somet02StTthensi?!Ss0and(s0;t0)2Rfor somes02StS
+2. ifso!!Ss0for somes02StSthento!!Tt0and(s0;t0)2Rfor somet02StT
+3. ifsd!Ss0ford2R0thentd!Tt0and(s0;t0)2Rfor somet02StT
+A speciﬁcation A1reﬁnes a speciﬁcation A2, writtenA1A2, iff[ [A1] ]sem[ [A2] ]sem.
+IfA1is an implementation then we also say that it satisﬁes A2, writtenA1j=A2.
+
+--- Page 6 ---
+Reﬁnement between two automata may be checked by playing a safety game on the
+product of their two state spaces, avoiding the error states (where error states are pairs
+of states ofSandTfor which one of the above rules is violated). See details in [11,
+13]. Since the product can be expressed as a TIOA itself, the reﬁnement can be checked
+using the safety game as deﬁned above.
+Consider two TIOTSs S= (StS;sS
+0;S; !S)andT= (StT;sT
+0;T; !T). We say
+that they are composable iff their output alphabets are disjoint S
+o\T
+o=;. The
+product ofSandTis the TIOTS S
+T= (StS
+StT;(sS
+0;sT
+0);S
+T; !S
+T), where
+the alphabet S
+T=S[Tis partitioned into inputs and outputs in the following
+way:S
+T
+i = (S
+inT
+o)[(T
+inS
+o),S
+T
+o=S
+o[T
+o. The transition relation is
+generated by the following rules:
+sa!Ss0a2SnT
+(s;t)a!S
+T(s0;t)[indep-l ]ta!Tt0a2TnS
+(s;t)a!S
+T(s;t0)[indep-r ]
+sa!Ss0ta!Tt0a2R0[S
+T
+i[(S
+i\T
+o)[(S
+o\S
+i)
+(s;t)a!S
+T(s0;t0)[sync]
+Letundesirable be a set of error states that violate a safety property (for example, an
+elevator engine running while its door is open). Two speciﬁcations are useful with re-
+spect to one another if there is an environment that can avoid undesirable states in their
+product. The existence of such an environment is established by ﬁnding a winning strat-
+egy in the game formed by the product automaton and the objective WS i(undesirable ).
+The parallel composition of SandTis deﬁned as SjT=prune (S
+T), where
+the prune operation removes from S
+Tall states which are not winning for the in-
+put player in the game (S
+T;WS i(undesirable )). Parallel composition is deﬁned for
+TIOTSs induced by both speciﬁcations and implementations. A similar construction
+can be given directly for speciﬁcations and implementations on the syntactic level [11].
+In [11] we give constructions for two other operators computed as winning strategies
+in timed games. For TIOAs (TIOTSs) BandCwe deﬁne conjunction B^C, which
+computes an automaton representing shared implementations of BandC, and also
+quotientBnC, which computes a speciﬁcation describing implementations that when
+composed with Cgive a speciﬁcation reﬁning B. Rather than deﬁne these operations
+explicitly we characterize their essential properties, and refer the reader to [11] for
+precise details of the constructions. Let Abe an implementation. Then:
+Aj=B^C iffAj=BandAj=C (4)
+Aj=BnC iffCjAB (5)
+3 Büchi Objectives
+Symbolic On-The-Fly Timed Reachability (SOFTR) [8] is an efﬁcient algorithm for
+solving two-players reachability timed games used in U PPAAL -TIGA [4]. It operates
+on the simulation graph induced by a TIOA representing the game. It follows an es-
+tablished principle: begin with all reachable states and propagate the winning states
+backwards. Its major contribution is the use of zones rather than regions. Zones, which
+
+--- Page 7 ---
+are unions of regions of Alur and Dill [3], are the most efﬁcient representation of clock
+valuations known to date. In the following we recall SOTFTR, extend it to solve Büchi
+objectives, and provide a new algorithm to verify Büchi and safety objectives combined.
+3.1 Solving Büchi Games with SOTFTR
+For a TIOTS Sand a set of states X, write Preda(X) =fs2St9s02X: sa!s0g
+for the set of all a-predecessors of states in X. We write iPred (X)for the set of all
+input predecessors, and oPred (X)for all the output predecessors of X, soiPred (X) =S
+a2S
+iPreda(X)andoPred (X) =S
+a2SoPreda(X). Also post[0;d0](s)is the set of
+all time successors of a state sthat can be reached by delays less than or equal to d0:
+post[0;d0](s) =fs02StS9d2[0;d0]:sd!Ss0g. The safe timed predecessors of a set
+Xrelative to an unsafe set Yare the states from which a state in Xis reached after a
+delay while avoiding any of the states in Y(the subscript tin the deﬁnition of cPred t
+below indicates that these are timed predecessors only):
+cPred t(X;Y ) =fs2StS9d02R0:9s02X:sd0!Ss0andpostS
+[0;d0](s)Yg
+LetAbe a TIOA and Ga set of “good” states in [ [A] ]semthat have to be reached, that
+is the objective is WRi(G). Consider the following computation [21, 8]:
+H0 ;
+repeatHk+1 Hk[i(Hk)[Gfork= 0;1;:::
+untilHk+1=Hk
+wherei(H) =cPred t(iPred (H);oPred (States (Runs ([ [A] ]sem))nH)). Theioperator
+computes the predecessors of set Hthat can enforce Hin one step, regardless of what
+the output player does. This is done by taking timed predecessors of input-predecessors
+ofH, as long as we can avoid output predecessors of states outside H. The ﬁxpoint of
+iis the set of states in which the input player can enforce reaching Geventually [21,
+8]. SOTFTR is a symbolic zone-based implementation of the above ﬁxpoint.
+The winning states of the output player can be computed by replacing iwith
+o(H) =cPred t(oPred (H);iPred (States (Runs ([ [A] ]sem))nH)). Thus, in the remainder,
+we focus on solving the game for the input player only.
+The following algorithm for solving Büchi timed games is an adaptation of the
+above procedure given in [21], adjusted for a TIOA Aand a Büchi objective. The set of
+“good” states, Goal , is to be enforced inﬁnitely often:
+W0 States (Runs ([ [A] ]sem))
+forj= 0;1;:::repeat
+H0 ;
+repeatHk+1 Hk[i(Hk)[(Goal\i(Wj))fork= 0;1;:::
+untilHk+1=Hk
+Wj+1 Hk
+untilWj+1=Wj
+Observe that a Büchi objective is essentially a closure of a reachability objective: it
+corresponds to ﬁnding a subset of “good” Goal states, from which reachability to the
+
+--- Page 8 ---
+good subset again is guaranteed for the player, and then solving for reachability of that
+good subset. In the above computation, the inner loop ﬁnds states that can enforce a
+Goal state in at least one discrete step, and uses this information to determine which
+Goal states are actually “good” (the intersection with Goal ). The outer loop removes the
+Goal states that are not “good” from the target set of the inner loop. In the ﬁxpoint, we
+ﬁnd both the subset of good Goal states and the states from which this subset can be
+reached regardless of what the opponent does.
+SOTFTR itself computes the inner loop of this algorithm when G=Goal\i(Wj),
+this observation leads to the Symbolic Timed Büchi games (STB) algorithm:
+W0 States (Runs ([ [A] ]sem))
+repeatWj+1 SOTFTR (Goal\i(Wj))forj= 0;1;:::
+untilWj+1=Wj
+Observe that STB uses exactly the same operations on zones as SOTFTR, which means
+that it can also be implemented in an efﬁcient manner.
+Theorem 1 ([8, 21]). For any input Büchi timed game (A;WBi(Goal)), STB terminates
+and upon termination Wj=Wi(A;WBi(Goal)).
+The algorithm of [21] computes over inﬁnite sets of states. Our algorithm is nothing
+more than a symbolic implementation of the original one. By construction and because
+of [8], the above correspondence is obtained directly. Termination is shown in [21].
+3.2 Combining Safety and Büchi objectives
+We now strengthen the Büchi objective so that not only the Goal states are visited in-
+ﬁnitely often, but also the set of unsafe states Badis avoided ( Bad\Goal =;):
+WBS(Goal;Bad) =Stripf2Runs ([ [A] ]sem)jStates ()\Bad=;and
+jStates ()\Goalj=1g (6)
+One application of such games is ensuring that the input player has a strategy to avoid
+Badwhile ensuring that time is elapsing [16], eliminating the so called Zeno-behaviours.
+IfBad can be expressed as a ﬁnite union of pairs of locations and ﬁnite unions of
+zones, then this objective can be reduced to the usual Büchi objective by transforming
+the game in the following way: (i) add a location B62Goal ; (ii) add an output action
+err62Act i; (iii) for each pair (q;S
+i=1::nZi)2Bad such thatqis a location of AandS
+i=1::nZiis a ﬁnite union of zones, add nedgesEi(i= 0::n)labelled by errfromq
+toBsuch that for all i, the guard of EiisZi. Since location Bhas no outgoing edges
+and does not belong to Goal , enteringBmeans losing the Büchi game. Suppose we
+want a winning strategy for the input player. Observe that the added edges belong to the
+opponent. By deﬁnition of outcomes, going through any state in Badmeans that one of
+these edges can now be taken by the output player and, as B62Goal , the game is lost for
+the input player. The following theorem expresses the correctness of our transformation.
+Theorem 2. Let(A;WBS i(Goal;Bad))be a TIOA, and A0be its modiﬁcation obtained
+by the above construction. Then Fi(A;WBS i(Goal;Bad)) =Fi(A0;WBi(Goal))
+
+--- Page 9 ---
+Proof. Show thatFi(A;WBS i(Goal;Bad))Fi(A0;WBi(Goal)). Letfbe a strategy in
+Fi(A;WBS i(Goal;Bad))ands0be the initial state of Aands0
+0ofA0. Asfis winning,
+no run in MaxOutcome i(s0;f)goes through a state in Bad. By construction of A0we
+have that no run in MaxOutcome i(s0
+0;f)goes through Bad and therefore the guards of
+the extra edges in Aare never satisﬁed. Since, apart from these edges, A0is identical to
+A, and sincefensures inﬁnite repetition of Goal inA, then it does also in A0.
+Now, showFi(A;WBS i(Goal;Bad))Fi(A0;WBi(Goal)). Letfbe a strategy in
+Fi(A;WBS i(Goal;Bad))ands0be the initial state of A, ands0
+0ofA0. The runs of A0
+that go to location Bare maximal and cannot belong to WBi(Goal)forBhas no outgo-
+ing edge. Let be a run in MaxOutcome i(s0
+0;f)and=0!s!00, and the guard of
+one of the erredges is satisﬁed in s. Then0err!(B;v)for some valuation vis a max-
+imal run and thus belongs to MaxOutcome i(s0
+0;f)and then MaxOutcome i(s0
+0;f)6
+WBi(Goal)which contradicts that fis winning. So the runs in MaxOutcome i(s0
+0;f)
+never go through states in Bad. Furthermore, since AandA0are identical except for B
+and its incoming edges, it must then be that MaxOutcome i(s0;f) =MaxOutcome i(s0
+0;f)
+and so the runs in MaxOutcome i(s0;f)also repeat Goal inﬁnitely often. u t
+y=0NonZenoy==1
+Init
+Z
+Fig. 2: Monitor for non-
+zeno strategiesAn Application: eliminating Zeno Strategies. Consider a
+TIOAAand a set Bad of bad states. Our objective is to
+ﬁnd the set of states from which the input player (symmet-
+rically the output player) has a strategy to avoid Badwhile
+letting time elapse — as opposed to, for example, taking
+inﬁnitely many discrete transitions without any delays.
+In order to generate non-zeno strategies consider the
+productAZofAand the TIOA Zof Fig. 2. Then solve
+the timed game (AZ;WBS i(Goal;Bad)), where Goal is the set of states of AZ
+in whichZis in location NonZeno . To fulﬁll this objective, the input player needs to
+avoid Bad andensure that NonZeno is visited inﬁnitely often: once in NonZeno , the
+only way to revisit it is to pass through Init. This loop requires that 1time unit elapses,
+so repeated visits to NonZeno ensure that time progresses.
+Note that this does not prevent the opposing player from using a spoiling strategy
+producing zeno runs to prevent fulﬁllment of the objective.
+Remark 1. One problem with the above setup is the effect of adding self-loops. Our
+interface theory requires TIOA to be input-enabled. This means that, in any state of
+the game, the input player should always be able to react on any of the input actions.
+This typically means that states have implicit loops on input actions when the designer
+does not specify any other transition for an input. Now, assume that the output player
+wants to win the game and guarantee that time elapses. The input player could always
+play such an input-loop and hence block time. This means that the potential addition
+of arbitrary inputs may corrupt the game. A solution to the above problem is to blame
+the input player each time it plays [16]. Then, the input player loses the game if there
+is a point of time after which it is blamed forever. De Alfaro et al. were the ﬁrst to use
+blames [16]. We can also add a monitor for the blame situation. Another solution, in
+order to avoid adding an extra automaton, is to use a counter in ECDAR to bound the
+number of Inputs (Outputs) that can be played successively.
+
+--- Page 10 ---
+timing diagram
+driver sensor
+voutvin(a) Logical interface
+70ms or more0.2ms or less
+1ms or more1.5 ms or more 1.5ms or more
+Po wer
+OFFVin
+Vout
+MSB LSB LSB (b) Timing diagram; modiﬁed slightly from [22]
+Fig. 3: The driver/sensor system
+4 Case Study
+The ideas just presented have been implemented in the tool ECDAR [10], which sup-
+ports graphical modeling of TIOAs, computing composition operators (including quo-
+tienting), and reachability analysis. For this paper, we have extended ECDAR with sup-
+port for Büchi and Büchi with safety objectives. We apply it to the analysis of a simple
+but realistic example: a sensor component and the software required to interface with
+it.5The case study serves both to elucidate some of the technical deﬁnitions and to
+demonstrate their practicability.
+4.1 Timing diagram model
+The Sharp GP2D02 infrared sensor is a small component for measuring short distances
+and for detecting obstructions. Such sensors are incorporated into larger embedded sys-
+tems through two communication wires which carry a protocol of rising and falling
+voltage levels. The four main components of a sensor subsystem are shown in Fig. 3a:
+an instance of the sensor , adriver component of a larger system, a vinwire controlled
+by the driver and read by the sensor, and a vout wire controlled by the sensor and read
+by the driver. The communication protocol between driver and sensor is described by
+the timing diagram of Fig. 3b.
+The timing diagram describes the permissible interactions between a driver and a
+sensor. It represents a (partial) ordering of events and the timing constraints between
+them. With careful interpretation, against a background of engineering practice, the
+timing diagram can be modeled as the TIOA shown in Fig. 4 and henceforth called T.
+Note that constants are multiples of 0:1ms, so the constant 0:2ms in the timing diagram
+is represented by an integer constant 2 in the model. This model is the result of several
+choices and its ﬁdelity can only be justiﬁed by informal argument [6, Chapter 4].
+We now step through the timing diagram and the TIOA model in parallel describing
+the meaning of the former and justifying the latter. The interaction of driver and sensor
+is essentially quite simple: the driver requests a range reading, then after a brief delay
+the sensor signals that a reading has been made, the driver triggers the sensor to transmit
+5Seehttp://www.tbrk.org/papers/wadt10.tar.gz for the implementation in ECDAR
+
+--- Page 11 ---
+voutL! voutH!voutH!voutL!
+sample!vinH!vinL!
+vinH!x = 0
+x = 0, y = 0x = 0, y = 0,
+b = 7, w = 1,
+changed = falsevinL!
+voutL!
+w = 1vinH!sample!
+y = 0vinL!
+powerOff!vinH!vinL!
+voutH!
+t11t9 t10 t4
+x<=2x <= 700x <= 700
+x <= 15t0
+t2
+t7
+t5t8t1
+t3
+t6y = 0, b = b − 1, changed = false
+b==0 && x>=10
+&& y>minspacew==0y = 0
+x>15x>15
+b>0 &&
+y>minspace
+w = 1, changed = truex = 0w = 0
+w = 0, changed = truex = 0
+b>0 &&
+y>minspace
+w==0 && y<=maxtrans
+&& !changedy>minmark
+y>maxtrans
+w==1 && y<=maxtrans
+&& !changedw==1Fig. 4: TIOA model of the timing diagram: T
+the reading bit by bit, and, ﬁnally, the process is repeated or the sensor is powered off.
+The interaction takes place solely over the two communication wires.
+The signal controlled by the driver is shown in the top half of the timing diagram.
+Its most obvious features are the falling and rising transitions, these have been mod-
+eled in the TIOA as outputs called, respectively, vinL!andvinH!. The driver may also
+perform two other actions which are not entirely evident from the timing diagram. It
+may sample the vout signal to read a bit transmitted by the sensor, which we represent
+by an output called sample !, and it may stop using the sensor, which we represent by
+an output called powerO !. The signal controlled by the sensor is shown in the bottom
+half of the timing diagram. The rising and falling transitions on this signal are mod-
+eled as outputs called, respectively, voutL !andvoutH !. In fact, all of the actions in the
+model are outputs because the timing diagram describes a closed system. The model
+is thus trivially input-enabled and there is no need for self-looping input transitions on
+each state. Furthermore, the model can be simulated in isolation since all channels in
+ECDAR must be broadcast channels (i.e. outputs are non-blocking).
+The driver requests a range reading with vinL!, i.e. by lowering the voltage level
+ofvin. The sensor responds with voutL !, it then performs the necessary measurements
+before signaling completion with voutH !. The timing diagram guarantees that the sensor
+will complete a reading and respond after at least 70ms or more have passed, after which
+the driver may perform a vinH!. This sequence can be seen in the model in the transitions
+linking states T0–T4. We model the timing constraint by resetting a clock xwhen the
+initial vinL!occurs, and adding the location invariant x700to statesT1andT2. By
+rights this invariant should be strict, i.e. x<700, but this is not currently permitted in
+ECDAR.For strict compliance with the timing diagram we should also add the guard
+x > 700to the vinH!transition between T3andT4, in practice, however, there are
+implementations that do not wait the full 700ms but rather respond to voutH !. Both
+possible behaviors will be examined more closely in the next subsection.
+After a reading has been made, the driver transfers the eight bits of the result from
+the sensor, from the most (MSB) to the least (LSB) signiﬁcant bit. For each bit, the sen-
+sor sets the level of vout according to the value being transmitted, hence the ‘crossed
+
+--- Page 12 ---
+blocks’ in Fig. 4. The timing diagram could be more precise about the details, but in
+our interpretation the driver triggers the next bit value with a vinL!, the sensor responds
+within a bounded time, and then the sensor may sample !the value and reset vinwith
+avinH!, in any order, before the next bit is requested. The triggering vinL!appears in
+the model from T4for the ﬁrst bit and from T8for subsequent bits. The ﬁrst action
+must occur in 0.2ms or less , hence the invariant on T4. The associated transition resets
+two clocks: x, for enforcing the 1ms or more constraint across cycles, and y, for con-
+ditions on response times within each cycle. It also sets three variables: b, for counting
+the number of bits transmitted, w, for monitoring the level of vout, and changed , for
+limiting oscillations on vout. We use the wvariable to ensure the strict alternation of
+voutL !andvoutH !, an alternative approach is shown later. Two other constants appear
+around the loop T5–T8:maxtrans is a limit on the time it takes for vout to change after
+a triggering vinL!, and minspace is the minimum width of pulses on vin. We set both
+constants to zero for this case study.
+Finally, after transmitting eight bits, the driver and sensor return their respective
+wires to a high level, and, after 1.5ms or more , either another reading is requested, or
+the sensor is powered off. The timing constraint is expressed as an invariant on T9, i.e.
+a guarantee on the behavior of the sensor, and guards on the transitions from T10, i.e. a
+constraint on the behavior of the driver. The invariant is right-closed and the guards are
+left-open for the same reasons given above for the 700ms constraint. Importantly, they
+do not overlap, so that time alone can be used to enforce the ordering between sensor
+and driver actions.
+ECDAR is used to verify that the model is a valid (deterministic) speciﬁcation, and
+also that it is consistent, i.e. that it has at least one valid implementation. We can also
+show two basic properties of the timing diagram model. The ﬁrst, that vinL!andvinH!
+alternate strictly, is expressed using the automaton Vin, shown in Fig. 5b, and veriﬁed
+by the reﬁnement TVin. The second, that voutL !and voutH !alternate strictly,
+is shown similarly using Vout, shown in Fig. 5c, and the reﬁnement TVout. In
+fact, both properties can also be shown, using composition, by the single reﬁnement
+T(VinjVout).
+4.2 Separate driver and sensor models
+While the single automaton model of the previous section is a suitable formalization
+of the timing diagram, there are at least two motivations for creating separate but inter-
+acting models for the roles of driver and sensor. First, this separation emphasizes the
+distinct behaviors of each and clariﬁes their points of synchronization; each of the two
+wires is, in effect, modeled separately. Second, each of the models may be used in isola-
+tion. This possibility is exploited in an appendix of the full version of this paper where
+a separate driver model serves as the speciﬁcation for a model of an implementation in
+assembly language.
+The components of the models are shown in Fig. 5. We discuss the driver models
+ﬁrst, then the sensor, before relating them all to the timing diagram model.
+The driver model. As previously mentioned, there are two ways for a driver to behave
+after it has requested a range reading: it can wait for a rising transition on the vout wire,
+
+--- Page 13 ---
+voutL?voutH?
+voutH?
+voutL?
+voutL?sample!voutL?
+voutH?vinH!vinH!voutH? voutL?
+voutL? voutH?
+voutH?voutH?voutH?voutL?
+voutL?voutL?vinL!
+sample!vinH!vinL!
+vinH!
+vinH!vinL!
+powerOff!vinL!x>15
+x>700
+x<=2
+d9d8b>0 &&
+y>minspaceb>0 &&
+y>minspace
+y>maxtransy>minmarkx>15
+d6d0
+de1 dd1
+d3d4 d5d7
+de2
+voutH? x = 0, y = 0vinL!x = 0
+x = 0,
+y = 0,
+b = 7y = 0
+voutH?voutL?vinL!
+voutL?
+voutH?
+x>15x = 0
+y = 0
+x = 0y = 0, b = b − 1
+b==0 && x>=10
+&& y>minspacex = 0x = 0x = 0(a) Driver models: DevandDde
+vinL!
+low
+vinH!high
+(b) Driver property: Vin
+voutL!
+low
+voutH!high(c) Auxiliary sensor model: Vout
+vinH?vinH?
+vinL?
+voutL!vinL? voutL!
+vinH?vinH?
+vinH? vinL? vinH?vinL?
+voutH!voutH!voutL!
+voutH!vinL?
+vinL?x <= 700 x <= 700
+s5 x <= 15x<=maxtrans || b==0
+x <= maxtrans || b>0s2 s0 s3 s1
+s4
+vinL?x = 0, b = b − 1, changed = false
+changed = truechanged = true
+x = 0, b = 7,
+changed = false
+vinH?x > maxtrans && b==0x > maxtrans && b>0
+x = 0x = 0x <= maxtrans && changed ==falsex <= maxtrans && changed == false
+(d) Main sensor model: S
+Fig. 5: Sensor and driver models
+or it can just wait 700ms regardless. We model each possibility separately, both models
+shown in Fig. 5a. The model that responds to the sensor event is called Dev, it comprises
+all locations except the one labeled dd1, which should be ignored together with all of its
+incoming and outgoing transitions. The model that always delays is called Dde, it com-
+prises all locations except those labeled de1andde2whose connected transitions are
+also excluded. The models cannot be combined without introducing non-determinism.
+Aside from these initial differences the two models behave identically and their
+structures resemble that of the timing diagram model except that events on vout from
+the sensor are now modeled as the input actions voutL ?andvoutH ?, and a counter-
+part for the state T9is not required. We explicitly model input-enabledness by adding
+self-loops, which, although not mandatory, since actions occur on broadcast channels,
+
+--- Page 14 ---
+are necessary in ECDAR for verifying reﬁnement. Note that both driver variants re-
+quire little interaction with the sensor, relying instead on timing assumptions to ensure
+synchronization. In fact only Devreacts to sensor events directly, through the voutH ?
+transition between Dev
+1andDev
+2, though both models do sample the level of vout.
+Reﬁnement can be used to show a basic property of both driver models, that vinL!
+andvinH!alternate. This property is expressed as the automaton Vin, shown in Fig. 5b,
+and we use ECDAR to show DevVinandDdeVin.
+We would also like to claim that DdereﬁnesDev, i.e. thatDdeDev, sinceDev
+can always wait after receiving voutH ?, but ECDAR rejects this claim since Ddedoes
+not guarantee that voutH ?will precede its initial vinH!. In fact, this type of reﬁnement
+can only be shown in a conditional form where assumptions on the environment are
+made explicit. We revisit this idea after presenting a model for the sensor that embodies
+sufﬁcient assumptions.
+The sensor model. The sensor model Sis shown in Fig. 5d. Events on the vinwire
+are now modeled as the inputs vinL?andvinH?, with additional self-loops on certain
+states, and the outputs sample !andpowerO !are not needed. The initial segment, S0–
+S3, mimics the corresponding part of the timing diagram model, but the clocking loop
+is reduced to a single location S4with ﬁve self-looping transitions and one outgoing
+transition.
+In locationS4, the effect of the inputs, vinL?and voutL ?, depends on the time
+elapsed since the last request for a bit, as measured by the clock x, and the number of
+bits remaining to transmit, as tracked by the counter b. The input vinL?, which requests
+the next bit, is ignored if it occurs (again) within the period given to the sensor to set the
+level of vout, and also when all bits have been transmitted, i.e. when b= 0. The input
+vinH!is ignored until all bits have been transmitted at which time, provided maxtrans
+units have elapsed since the last vinL?, it triggers an exit from S4. The outputs voutL !
+andvoutH !may only occur within maxtrans units of the last vinL?, and, furthermore,
+only at most one output may occur within any cycle, that is between any two successive
+and ‘legal’ vinL?s. The former constraint is expressed in the clause xmaxtrans , and
+the latter using the variable changed .
+Instead of a changed variable, an earlier model [6, Figure 4.16] has two states with
+three transitions from the ﬁrst ( changed =tt) to the second ( changed =): one
+labeled with voutL !, another with voutH !, and the last unlabeled. This last -transition
+marks the possibility that the sensor decides not to change the voltage level, which
+occurs when two consecutive bits of a range reading are identical. Besides being more
+explicit, the two-state version is also more liberal since it is ready to accept vinH?and
+vinL?as soon as the value of vout has been set. Even with maxtrans = 0 there is a
+difference since in the current model there is always a non-zero delay after a triggering
+vinL!before subsequent vinL!orvinH!actions can inﬂuence the sensor. In any case, -
+steps are not permitted in TIOA and replacing them with an explicit output only makes
+modeling awkward, and, moreover, it is unnecessary since the driver models always
+wait and never respond immediately to vinL!orvinH!whose occurrence is a sufﬁcient
+but not necessary indication of a stable value on vout.
+The sensor model as it stands allows arbitrary interleaving of voutL !andvoutH !.
+This is in contrast to the timing diagram model of Fig. 3b, where a variable, w, tracks
+
+--- Page 15 ---
+Dde.vinL! Attacker plays outputs on left of 
+Dev.vinL! Defender’s response on right of 
+Ddewaits 701ms Attacker may delay on left of 
+Devwaits 701ms Defender’s response on right of 
+Dde.vinH! Attacker plays outputs on left of 
+no response Defender loses!
+Table 1: Counterexample for DdeDev
+the level of vout, or effectively which of voutL !orvoutH !occurred most recently, and
+is used to constrain output events. The required alternating behavior is recovered using
+the conjunction operator and the TIOA Vout, depicted in Fig. 5c, giving the complete
+sensor speciﬁcation: (S^Vout). Here, the conjunction operator obviates the need
+to update and query a state variable on multiple transitions. A speciﬁc constraint is
+expressed in a localized and obvious form and the rest of the model can be constructed
+under the assumption that it will hold. In ECDAR, the two automata, SandVout,
+execute in parallel and must synchronize on voutL !andvoutH !, neither of which may
+occur otherwise. Unlike for the timing diagram and the driver models, there is no need
+to separately verify the alternation of outputs—it is guaranteed by construction.
+Relations between the models. Now that we have a few different models, we turn our
+attention to their interrelationships. It turns out that one of the driver models is more
+general than the other under certain assumptions. After verifying that fact, we turn
+our attention to validating the composition of the driver and sensor models against the
+timing diagram model. We also consider how the quotient operator might be applied.
+The two driver models differ only in their initial interaction with the sensor, after
+requesting a range reading, Ddealways waits 700ms whereasDevmay respond as soon
+as the sensor raises vout. One could thus suppose that Devis more general than Dde,
+since it can also refuse to act before 700ms has passed even after receiving a voutH !.
+But, as described earlier, a ﬁrst, naive attempt to show the reﬁnement DdeDevfails!
+The counter-example strategy can be simulated in ECDAR, giving the results shown in
+Table 1. There is no guarantee that the inputs needed by Devwill be provided. We must
+make these assumptions on the environment explicit by instead stating the relation as
+
+Ddej(S^Vout)
+
+Devj(S^Vout)
+,
+which is readily validated by ECDAR.6The veriﬁcation fails if DdeandDevare
+swapped:Devcan perform a vinH?whenx700whileDdecannot.
+The compositions of the driver and sensor models have been proposed as alterna-
+tives to the timing diagram model. We state this, for the more general driver model,
+as two properties: (Devj(S^Vout))T, andT(Devj(S^Vout)). Both of
+which are veriﬁed almost instantaneously by ECDAR. For the similar properties with
+Ddeinstead ofDev, only the version with Ton the right of the reﬁnement holds; as
+would be expected.
+6In the current version of ECDAR, SandVoutmust be explicitly duplicated.
+
+--- Page 16 ---
+Even ignoring the conjunction operator, the possibility of verifying a reﬁnement
+with a composition on the right-hand side is interesting, because it is not possible in
+any other existing tools for checking timed automata reﬁnement. For instance, current
+implementations [7] of the usual construction for checking timed trace inclusion [18,
+23] require that the reﬁned speciﬁcation is an explicit automaton. The capability to
+address compositions is one advantage of incorporating the reﬁnement veriﬁcation into
+the model-checker itself.
+There are limited opportunities to apply the quotient operator in this case study,
+perhaps because there are only a small number of models and the operators are not
+nested in especially complicated ways. There are, though, two types of properties that
+may be attempted.
+The ﬁrst type of property uses the quotient on the right-hand side of a reﬁne-
+ment instead of composition on the left-hand side. For instance, we can verify Dev
+(Tn(S^Vout))in ECDAR. The right hand side expresses the idea of the timing di-
+agram modulo certain assumptions on the environment. Currently the tool requires the
+explicit deﬁnition of universal and inconsistent states when using the quotient operator,
+and simulations are not possible. These issues will be addressed in future versions.
+Second, we could try the quotient on the left-hand side of a reﬁnement. For instance,
+to propose the property (TnDev)(S^Vout)as a means of ﬁnding out whether
+the sensor model is maximal with respect to the timing diagram and driver model. This
+cannot work in general, however, since as soon as Devcannot do an output from a state,
+like vinH!from the initial state for example, the quotient will have a transition to the
+universal state from which any output or delay can be chosen, at any time, to challenge
+the other side of the reﬁnement.
+Büchi objectives. Some aspects of specifying liveness are addressed by the algorithms
+presented earlier, and supported in ECDAR. It is possible, for example, to determine
+whether a given combination of a TIOA and a liveness constraint, expressed as a Büchi
+objective, are consistent; i.e. whether reﬁnement is possible. But other important aspects
+are not yet addressed satisfactorily. Most notably, the interaction of Büchi constraints
+and reﬁnement is limited.
+Büchi objectives offer a way to further constrain speciﬁcations. For example, con-
+sider adding an additional requirement to the timing diagram model T: if an initial
+range reading is requested, the system must eventually be powered off. We will inter-
+pret this to mean that two behaviors are allowed: 1. resting forever in T0, or, 2. termi-
+nating inT11. Our ﬁrst attempt is to simply try to solve a Büchi objective for the current
+model: (T;WB(fT0;T11g)). But this is not correct, and ECDAR reports that the model
+is inconsistent. While the model starts in T0, andT11is always reachable, the Büchi ob-
+jective is only satisﬁed if either of T0orT11is reentered inﬁnitely often. Self-looping
+output transitions must be added to T0andT11to allow ‘resting’ in these states. If we
+do this—choosing an arbitrary output that will not occur in any other models—and call
+the modiﬁed version T0, ECDAR conﬁrms that (T0;WB(fT0
+0;T0
+11g))is consistent.
+The modiﬁed model is easily adapted to allow a system that never stops taking range
+readings: (T0;WB(fT0
+0;T0
+10;T0
+11g)). This model is obviously consistent since increas-
+ing the set of states in the Büchi objective cannot reduce the set of possible implementa-
+tions. More information can be gained by verifying the consistency of (T0;WB(fT0
+10g)),
+
+--- Page 17 ---
+which conﬁrms that the model allows unbounded repetitions of the protocol. Com-
+pliance with the Büchi objective is achieved by pruning away the transition labelled
+powerO !, so this veriﬁcation does not show that the unadorned model T0does not
+allow termination, only that the model can choose to cycle continuously. Verifying the
+consistency of a model with a Büchi objective can be useful as a sanity check.
+While Büchi objectives in ECDAR are quite useful for checking consistency prop-
+erties, they work less well in combination with reﬁnement. For instance, in ECDAR we
+can show (T0;WB(fT0
+0g))(T0;WB(fT0
+10g)):
+This is indeed correct, since any implementation of the left-hand side is also an
+implementation of the right-hand side, but it could be considered misleading, since
+the left-hand side speciﬁes a system that never starts a range reading, while the right-
+hand side could be interpreted as specifying a system that never stops performing range
+readings whereas, in fact, it is a system where it is possible, but not strictly necessary,
+to keep performing range readings. The source of this mismatch is that the current
+reﬁnement is based on partial observations rather than complete ones, which is adequate
+for safety but not for liveness.
+The pruning of output transitions that can result from the combination of a TIOA
+and a Büchi objective gives models where a constraint that is supposedly on inﬁnite
+behaviors also constrains ﬁnite behaviors, which, while not necessarily bad, is perhaps
+not completely reasonable [1]. The methodological implications for our theory are not
+yet clear, but we note here that this situation can be detected using reﬁnement veriﬁca-
+tion in ECDAR. The machine closure [2] of a TIOA Aand a Büchi objective Bcan be
+checked by the reﬁnement A(A;B), which will fail if a reachable output transition
+inAis not present in (A;B).
+5 Summary and Future Work
+We have shown that ECDAR and the underlying theory, are powerful enough to handle a
+small—in terms of the scale of systems developed by industry—but realistic case study.
+The input/output semantics of TIOA works well for open systems, and the game-based
+reﬁnement semantics, i.e. the idea of challenging with inputs from the right-hand side
+and outputs or delays from the left-hand side, quickly comes to seem natural. Including
+reﬁnement testing in the model checker itself is much more convenient than having to
+pass models through an external tool, and the concomitant feature of allowing composed
+models on either side of the relation is a powerful one. Finally, the conjunction operator
+is a very convenient modeling feature.
+Still, several elements could be improved. While Büchi objectives are currently not
+without use, a different notion and implementation of reﬁnement is needed to support
+more sophisticated applications. The quotient operator is supported by ECDAR, but its
+effect is not easily visualized or simulated. More work is needed to determine how it can
+be usefully applied to system development and veriﬁcation; the sensor case study is too
+limited in this regard. ECDAR takes advantage of the mature U PPAAL user interface,
+but strategies, goals, and the effect of pruning are inherently more complicated and
+harder to understand than are simple traces, more work is needed to understand how
+best to compute and communicate this information. Furthermore, the new operators and
+
+--- Page 18 ---
+analyses available in ECDAR make it natural to work with multiple pairings of system
+declarations and properties, but this is not yet well supported by the user interface.
+References
+1. M. Abadi, B. Alpern, K. R. Apt, N. Francez, S. Katz, L. Lamport, and F. B. Schneider. Pre-
+serving liveness: Comments on “Safety and liveness from a methodological point of view”.
+Information Processing Letters , 40(3):141–142, 1991.
+2. M. Abadi and L. Lamport. The existence of reﬁnement mappings. Theoretical Computer
+Science , 82(2):253–284, 1991.
+3. R. Alur and D. L. Dill. A theory of timed automata. Theoretical Computer Science ,
+126(2):183–235, 1994.
+4. G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G. Larsen, and D. Lime. UPPAAL-Tiga:
+Time for playing games! In CAV, volume 4590 of LNCS . Springer, 2007.
+5. G. Behrmann, A. David, and K. G. Larsen. A tutorial on Uppaal. In M. Bernardo and
+F. Corradini, editors, SFM , volume 3185 of LNCS , pages 200–236. Springer, 2004.
+6. T. Bourke. Modelling and Programming Embedded Controllers with Timed Automata and
+Synchronous Languages . PhD thesis, University of New South Wales, Sydney, 2009.
+7. T. Bourke and A. Sowmya. Automatically transforming and relating Uppaal models of em-
+bedded systems. In EMSOFT , pages 59–68, 2008.
+8. F. Cassez, A. David, E. Fleury, K. G. Larsen, and D. Lime. Efﬁcient on-the-ﬂy algorithms
+for the analysis of timed games. In CONCUR , 2005.
+9. A. Chakabarti, L. de Alfaro, T. A. Henzinger, and M. I. A. Stoelinga. Resource interfaces.
+In R. Alur and I. Lee, editors, EMSOFT , LNCS. Springer, 2003.
+10. A. David, K. Larsen, A. Legay, U. Nyman, and A. W ˛ asowski. ECDAR: An environment for
+compositional design and analysis of real time systems. In ATVA , 2010. Accepted.
+11. A. David, K. Larsen, A. Legay, U. Nyman, and A. W ˛ asowski. Timed I/O automata: a com-
+plete speciﬁcation theory for real-time systems. In HSCC’10 , pages 91–100. ACM, 2010.
+12. L. de Alfaro, L. D. da Silva, M. Faella, A. Legay, P. Roy, and M. Sorea. Sociable interfaces.
+InFroCos , volume 3717 of LNCS , pages 81–105. Springer, 2005.
+13. L. de Alfaro and T. A. Henzinger. Interface automata. In FSE, pages 109–120, Vienna,
+Austria, Sept. 2001. ACM Press.
+14. L. de Alfaro and T. A. Henzinger. Interface-based design. In Marktoberdorf Summer School .
+Kluwer Academic Publishers, 2004.
+15. L. De Alfaro, T. A. Henzinger, and R. Majumdar. Symbolic Algorithms for Inﬁnite-State
+Games. In CONCUR , volume 2154 of LNCS , pages 536–550. Springer, 2001.
+16. L. de Alfaro, T. A. Henzinger, and M. I. A. Stoelinga. Timed interfaces. In EMSOFT , volume
+2491 of LNCS , pages 108–122. Springer, 2002.
+17.http://www.cs.aau.dk/~adavid/ecdar/ .
+18. H. E. Jensen, K. G. Larsen, and A. Skou. Scaling up Uppaal: Automatic veriﬁcation of real-
+time systems using compositionality and abstraction. In FTRTFT00 , pages 19–30, 2000.
+19. D. K. Kaynar, N. A. Lynch, R. Segala, and F. W. Vaandrager. Timed I/O Automata: A
+mathematical framework for modeling and analyzing real-time systems. In RTSS , pages
+166–177. IEEE Computer Society, 2003.
+20. K. G. Larsen. Modal speciﬁcations. In J. Sifakis, editor, Automatic Veriﬁcation Methods for
+Finite State Systems , volume 407 of LNCS , pages 232–246. Springer, 1989.
+21. O. Maler, A. Pnueli, and J. Sifakis. On the synthesis of discrete controllers for timed systems
+(an extended abstract). In STACS , pages 229–242, 1995.
+22. Sharp Corp. GP2D02: Compact, high sensitive distance measuring sensor, 1997.
+23. M. I. Stoelinga. Alea Jacta est: Veriﬁcation of probabilistic, real-time and parametric sys-
+tems. PhD thesis, Katholieke Universiteit Nijmegen, 2002.

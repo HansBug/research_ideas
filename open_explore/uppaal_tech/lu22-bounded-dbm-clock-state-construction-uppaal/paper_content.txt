@@ -1,0 +1,2049 @@
+--- Page 1 ---
+International Journal on Software Tools for Technology Transfer
+https://doi.org/10.1007/s10009-022-00667-x
+GENERAL
+Regular
+Bounded DBM-based clock state construction for timed automata in
+Uppaal
+Sascha Lehmann1·Sibylle Schupp1
+Accepted: 9 August 2022
+© The Author(s) 2022
+Abstract
+When the simulation of a system, or the veriﬁcation of its model, needs to be resumed in an online context, we face the
+problem that a particular starting state needs to be reached or constructed, from which the process is then continued. For
+timed automata, especially the construction of a desired clock state, represented as a difference bound matrix ( DBM ), can
+be problematic, as only a limited set of DBM operations is available, which often does not include the ability to set DBM
+entries individually to the desired value. In online applications, we furthermore face strict timing requirements imposed on
+the generation process. In this paper, we present an approach to construct a target clock state in a model via sequences ofDBM operations (as supported by the model checker Uppaal ), for which we can guarantee bounded lengths, solving the
+present problem of ever-growing sequences over time. The approach forges new intermediate states and transitions based
+on an overapproximation of the target state, followed by a constraining phase, until the target state is reached. We provethat the construction sequence lengths are independent of the original trace lengths and are determined by the number ofsystem clocks only, allowing for state construction in bounded time. Furthermore, we implement the (re-)construction routines
+and an extended Uppaal model simulator which provides the original operation sequences. Applying the approach to a test
+model suite as well as randomly generated DBM operation sequences, we empirically validate the theoretical result and theimplementation.
+Keywords Clock state construction ·Difference bound matrix (DBM) ·Timed automata ·DBM overapproximation ·Minimal
+constraint system (MCS)
+1 Introduction
+State (re-)construction , i.e., setting a system to a desired
+state, is a common task. Ranging from physical systems
+to programs and executable models, a system may need tobe in some speciﬁc state to execute particular routines and
+test or verify a certain system behavior. The general task of
+constructing a state is as follows: Starting from a particularknown (and usually static) state s
+init, ﬁnd a sequence of state
+transformations S=(tr1,..., trn)(imposed by, e.g., actions
+in a physical system or transitions in an automaton), such that
+the sequence leads to a known target state starget , i.e., ﬁnd an S
+B Sascha Lehmann
+s.lehmann@tuhh.de
+Sibylle Schupp
+schupp@tuhh.de
+1Hamburg University of Technology, Hamburg, Germanywith S(sinit)=starget . In the easiest case, the system is static ,
+a valid “reference” transformation sequence Srefto the target
+state is known from observing a previous system execution,
+and the construction process is unconstrained in time. Then,
+we can simply replay the given sequence Srefto reach the tar-
+get state. However, systems are usually more complex and
+impose constraints that render the trivial approach inappli-
+cable in many cases:
+C1 The system may change dynamically over time (e.g., as
+some actions become inapplicable in a changed environ-ment); a previously valid sequence that correctly reached
+the target state may become invalid or lead to a wrong
+state due to changed actions.
+C2 The reference transformation sequence may be unknown
+(e.g., as the system actions are unobservable, or as we
+want to construct a state not reached by a previous execu-tion); such a sequence needs to be manually constructed.
+123
+
+--- Page 2 ---
+S. Lehmann, S. Schupp
+C3 The feasible time frame may be constrained (e.g., if
+the construction is embedded in an online setting forongoing monitoring and thus frequently repeated); the
+restoring sequence needs to be limited both in terms of
+its length and the complexity of its transformations.
+As the trivial approach requires access to the observed refer-
+ence sequence, which grows linearly with system progress,and further assumes an unchanged system to apply the for-
+merly valid sequence to, a conﬂict with all three constraints
+becomes clear, and alternative construction approaches areneeded.
+A prominent example of executable models that are fre-
+quently initialized to updated states—and the motivation of
+our work—is the ﬁeld of online model checking .Model
+checking in general proves that speciﬁc system properties
+hold and provides guarantees on the correct behavior of a
+system, and for checking timed systems in particular, themodeling formalism of timed automata (TA) is commonly
+used, which represents time as (zones of) real-valued clocks.
+Foronline model checking, a technique that incrementally
+veriﬁes or falsiﬁes properties of a model under simulationfor limited time scopes, a starting model state that reﬂects
+the state of the real system is required, so that one can con-
+tinue model checking from that state on. In this article, weapproach the state construction problem for TAs regarding
+the initially described system constraints, i.e., for potentially
+dynamic models in an online setting.
+Adding online constraints to the overall construction task,
+one can distinguish two scenarios based on the availability
+of a reference sequence:
+S1If the reference sequence S
+refis given, we need to ﬁnd
+a transformation red=(red 1,..., red m)that reduces
+Srefto a bounded sequence S, but still reaches the target
+state when applied to the initial state, i.e., ﬁnd a red with
+Sdef=red(Sref),|S|≤bound andS(sinit)=Sref(sinit)=
+starget .
+S2IfSrefis not given, we need to determine a bounded
+state transformation sequence Sthat leads to the target
+state, based on the characteristics of the initial and tar-
+get state and the supported actions A, i.e., ﬁnd an S=
+f(sinit,starget,A)with|S|≤bound andS(sinit)=starget .
+Regardless of the concrete construction approach, one is usu-
+ally tied to a limited set of operations and actions supported
+by a system to lead from its initial state to the target state.
+However, depending on the concrete ﬁeld of application, therequirements and restrictions for intermediate states and tran-
+sitions between the initial and target state differ: In case of
+physical systems, we can only use given actions applied in thescope of the system semantics, e.g., move an entity in deﬁneddirections. Consequently, the visited states have to lie in the
+original system state space, and the executed transitions needto correspond to the supported actions. For executable models
+such as those used in model checking, these strict require-
+ments may be relaxed. Compared to a physical system, wemay not be bound to existing states and transitions to reachthe target state; in fact, the strict requirement is only imposed
+on a model if its system description cannot be altered, or if
+a physical system is already executed alongside the modelduring construction of the starting state. Otherwise, we can
+adapt the model by introducing new states and transitions
+which allow reaching the target state faster, or—in case ofadaptive models—enable state construction in the ﬁrst place.
+Instead of requiring original actions exclusively, we are only
+bound to a set of atomic, model-checker speciﬁc operationsthen.
+A general problem is that a model checker may not allow
+us to set the concrete clock state of a TA directly by assign-
+ment. Our work uses the model checker Uppaal , a modeling
+and veriﬁcation tool developed in a collaboration of the
+Uppsala andAalborg universities. Here, the set of possible
+operations is limited to the reset of individual model clocks,constraining of clock differences, and time delays. Further-
+more, all its simulations start at a well-deﬁned clock state,
+where all clocks are initially set to 0. On the one hand, theassignment restriction guarantees that any clock state whichthe model takes is indeed valid and reachable in terms of the
+underlying semantics. On the other hand, the restriction raises
+the need for another strategy to set the system to a desiredclock state. For an online model checking interface, which
+relies on a repeated manual manipulation of the clock state
+in bounded time to iteratively restore the most current statefor the next veriﬁcation run, such a strategy is mandatory.
+We already discovered in the beginning that the triv-
+ial approach neither meets time constraints due to growingsequence lengths over time, nor can it be used if the modelchanges and the prior observed transformation sequence thus
+becomes inapplicable. For the case of a changeable model,
+Rinast [ 31] introduced a graph-based approach that keeps
+track of visited states and traversed transitions and forges
+new transitions as shortcut between existing states on the
+ﬂy. Thus, the states belong to the original state space, whilethe intermediate transitions are potentially composed of seg-
+ments of existing transitions. Even though the approach
+improves on the trivial result, the dependency on originalstates and transition segments still leads to ever-growing stateconstruction sequences if no suitable shortcuts are found.
+To tackle the sequence growth problem, we propose a new
+approach that utilizes both forged intermediate states andtransitions to reach a desired starting state via DBM operation
+sequences of guaranteed bounded length. This article makes
+the following contributions:
+123
+
+--- Page 3 ---
+Bounded DBM-based clock state construction…
+1. We propose and prove a clock state construction approach
+for timed automata based on DBM overapproximationand constraining (which we call OC approach ), which
+guarantees bounded lengths of DBM operation sequences
+Sthat depend quadratically on the number of system
+clocks Tonly (i.e., 0 ≤|S|≤1+2∗|T|+|T|∗(|T|+1)),
+and covers both the scenarios of known ( S1) and unknown
+(S2) reference sequences.
+2. We provide an implementation of all OC approach vari-
+ants as well as the trivial and graph-based Rinast approach
+for comparison, alongside an extended simulator for
+Uppaal timed automata which exposes the applied DBMoperation sequences required by our approach on the ﬂy.
+3. We perform a comparison of the new approach with
+existing alternatives, i.e., the trivial and graph-basedapproaches.
+The proposed overapproximation and constraint strategy
+derives a DBM operation sequence that ﬁrst generates a
+superzone of the target state, and then constrains it until that
+state is reached.
+An example of a model representing a simple process illus-
+trates the state construction problem. The example model
+as shown in Fig. 1) has three locations ( On,Off , and
+Execute ) and two clocks ( t_active andt_exec ). The
+model, which is initially in On, can either perform an exe-
+cution if the system state is not critical , with a duration
+d∈[2,5]given by the guard t_exec >=2 and the invari-
+antt_exec <=5 , or else restart the system via Off .
+Consider a path starting in On, which traverses the Execute
+location ten times, turns Off once, and then visits Execute
+another ten times. An execution of this path, assuming allclocks are initially set to 0, leads to the following difference
+bound matrix (cf. Sect. 3.3for the deﬁnition of DBM ):
+t(0)
+tactive texec/parenleftBigg/parenrightBiggt(0) 0−20 −2
+tactive 50 0 45
+texec 5−18 0(1.1)
+Different reasons may require us to restore the concrete
+model state, assuming the system was already running forsome time: We may want to verify that the system remains
+uncritical for another amount of time steps; then, we do not
+want to perform veriﬁcation from the original initial modelstate on, as what lies in the past was veriﬁed already, but
+from the most current model state. Or we may want to set
+the upper bound for an execution step to a lower value (e.g.,4) according to real observations. As the system was previ-
+ously running with time value 5, and the (veriﬁed) current
+state might not lie in the reachable state space for the adaptedsystem anymore, we need to reach that state in another way.Fig. 1 Example process with two clocks ( t_active andt_exec )
+Setting the location and variable state is straight-forward;
+we can directly select Initlocations which are active on model
+initialization, and set variables via direct assignments. Thechallenge though, as stated before, lies in the recovery of the
+clock state. If we had access to a trivial operation SetValue
+that sets a speciﬁc entry of a DBM with system clocks Tto
+any particular value and is directly callable in a model, wecould simply set all clock state values on a single transition
+via at most (|T|+1)
+2applications of SetValue , and would
+be done. Unfortunately, such an operation is not supported bycommon TA model checkers due to their underlying seman-
+tics, and furthermore, the operations supported by a checker
+cannot be called directly and individually, as they are calledin groups bound to the state and transition semantics of a TA.
+Thus, we have to compose or derive a supported sequence
+of DBM operations (and based on that, a correspondingsequence of automaton locations and edges)—which leadsto this exact clock state DBM and does not require replaying
+the full execution path.
+The article is structured as follows: We describe the related
+work in Sect. 2, followed by prerequisite knowledge of timed
+automata and DBMs in Sect. 3. Afterward, we introduce our
+approach in Sect. 4, where we refer back to the initial exam-
+ple, and describe the overapproximation and constraining
+phases of our approach in Sect. 5and Sect. 6. Then, we trans-
+fer the approach to concrete Uppaal models in Sect. 7and
+cover the tool implementation in Sect. 8,f o l l o w e db yt h e
+conducted experiments in Sect. 9. Finally, we provide a con-
+clusion in Sect. 10.
+2 Related work
+In general terms, our work aims at the optimization of sys-
+tem state constructions, allowing model checkers like Uppaal
+to restore a given state more efﬁciently while relying on
+semantically supported operations only. Our work shares themotivation with fault tolerance and trace replay techniques
+commonly used to restore (past) system states, and draws
+technically on DBM operation sequences, their transforma-tions, and DBM-based constraint solving.
+In broad terms, our work contributes to research in state
+(re-)construction. Typically, research on this ﬁeld can befound in debugging, testing, optimization, and in particular in
+123
+
+--- Page 4 ---
+S. Lehmann, S. Schupp
+fault tolerance since the 1960s. In fault tolerance, one promi-
+nent technique is checkpoint-recovery , during which a system
+on failure is reinitialized to a complete snapshot and option-
+ally updated along several incremental checkpoints. Over the
+past decades, it was used for state recovery both in software(e.g., for databases [ 28] and shared memory multiprocessor
+systems [ 38]) and cyber-physical hardware applications [ 22].
+Compared to our approach, while often targeting entirely
+different domains unrelated to model checking (even thoughvariants of checkpoint recovery are also used in model check-
+ing, e.g., for non-explicit storage of states in colored Petri nets
+[14]), such a technique is used to reduce the memory and
+runtime overhead to reach a certain state. For instance, using
+context-aware [ 25] and online [ 40] variants of checkpoint
+derivation, or optimized techniques such as two-state check-pointing in hard real-time systems [ 33], one tries to reduce
+the number and extent of checkpoints during recovery. For
+all these techniques, the initial state is the snapshot of the full
+state, which the system can be directly assigned to, while thetarget state is the one before the failure occurred, reachable
+via a sequence of incremental checkpoints and additional
+instructions after the ﬁnal checkpoint. In our approach, theinitial state is the starting state speciﬁed by the concrete
+model checker, and the target state is the most recently sim-
+ulated state which we want to recover.
+Other techniques, such as full-system-restart applied in
+cyber-physical systems [ 18]o rsoftware rejuvenation [17],
+rely on a restart of the affected system. The initial state then
+becomes the system state directly after the restart, and thegoal remains getting back to the latest error-free state within
+limited time. The differences to our work are the applica-
+tion domain (these techniques are usually applied to concreteprograms and actuator systems rather than abstract system
+models), the requirements (e.g., full restarts are only feasi-
+ble in applications with non-exponential state spaces to keepthe recovery time bounded), and the absence of clock stateabstractions (i.e., clock zones) as used in timed automata.
+A major challenge to make the aforementioned techniques
+feasible in practice is to ﬁnd suitable reduction strategies forthe involved instructions, so that not all original actions need
+to be replayed on recovery. Therefore, aside from fault tol-
+erance, different forms of state reconstruction are used insoftware optimization, debugging, and testing. The aspect
+of instruction sequence reduction can be found, among oth-
+ers, in the ﬁeld of source code analysis and optimization [9].
+A common aspect of such an optimization is the identiﬁca-tion of shorter instruction sequences to a speciﬁc state by
+omitting redundant instructions, or those leading to unread
+intermediate states. Likewise, in testing applications, tracesof instructions observed during simulation are optimized for
+the purpose of reduced replay times or memory space usage,
+e.g., during virtual memory simulations [ 21].For the problem of clock state (re-)construction in partic-
+ular, only few works can be found. Closely related, in thedomain of timed automata, Rinast approaches the recovery
+problem under the term state space reconstruction [31]. In his
+work, he constructs “shortcut” transitions to states observedduring simulation, i.e., transitions from which DBM oper-ations are removed that were overwritten by subsequent
+operations and thus were rendered redundant. As main use
+case of his work, applied in multiple medical case studies[30], he used the approach to reconstruct a target state via
+such shortcut transitions, visiting only a reduced (and prefer-
+ably bounded) number of intermediate states. The approachrequires that resets of all clocks in all model cycles exist to
+guarantee bounded (re-)construction lengths. Our approach
+omits this requirement and allows the construction of aspeciﬁc state via a ﬁnite amount of transitions linearly pro-portional to the number of system clocks (cf. Sect. 7).
+Several model checking techniques either rely on, or may
+beneﬁt from, clock state (re-)construction techniques: Incre-
+mental model checking [27] veriﬁes multiple iterations of
+a system design, and aims for reusing portions of previous
+checking results. Restoring a state, which is visited in onesystem, in another candidate system directly before reaching
+a differing component (compared to the former system), may
+reduce the time required to check incrementally designedsystem candidates. As the candidates are individual systems,a trivial transfer of one system state to another system is
+not generally possible, and thus, the state needs to be recon-
+structed. Bounded model checking
+[10] reduces the general
+model checking approach to limited scopes of ksteps, and
+was applied to timed systems [ 4], including timed automata
+[37], in the past. Building on this boundedness, online model
+checking [39] veriﬁes a system iteratively for limited future
+time scopes and derives temporarily valid guarantees. With
+optimized state (re-)construction techniques, we can fasterrestore the most recently veriﬁed state that ﬁts new obser-vations, from which another veriﬁcation iteration is then
+started; otherwise, the recovery of such a state would require
+growing amounts of time.
+Technically, we draw on DBM operation sequences,
+sequence transformations, and constraint solving. The con-
+cept of difference bound matrices (DBMs), the data structurewhich is used, e.g., for timed automata to represent the
+clock state, was covered in detail by Bengtsson et al. [ 8].
+Our approach works on such a representation of clocks torestore the overall clock state. For that, it applies algebraictransformations to DBM operation sequences to reach DBM
+overapproximations and eliminate redundant constraints.
+Different DBM overapproximation techniques were alreadyused in the literature, e.g., for the convex hull calculation
+of state unions [ 32] or zone extrapolation [ 6] in Uppaal, or
+for compact graph construction of real-time preemptive Petrinet systems [ 1]. Compared to these techniques, tightness is
+123
+
+--- Page 5 ---
+Bounded DBM-based clock state construction…
+not required by our approach, as the constraint phase reaches
+a target DBM independent of the concrete overapproxima-
+tion; however, more efﬁcient constraint sequences may result
+from tightness requirements.
+OurDBM target -based overapproximation approach relies
+on constraint solving, and, more precisely, the selectivediscarding of constraints. In model checking, various data
+structures such as difference bound matrices (DBMs) [ 8],
+clock difference diagrams (CDDs) [ 24], or the more recent
+constraint matrix diagrams (CMDs) [ 13] are used to span
+the clock state by a set of constraints. Constraint solving can
+then, among others, be applied to such structures to manipu-late the state space symbolically [ 29] and obtain valid clock
+value assignments, or to temporal logic formulae [ 15]t ov e r -
+ify system properties. Furthermore, constraints need to berelaxed in certain cases to deal with inconsistencies of con-straint systems, e.g., for constraint networks [ 16]o rd u r i n g
+model repair [ 3], often with the goal of minimal relaxations or
+consideration of constraint priorities or uncertainties in realworld systems [ 12]. In our case, the relaxed constraints do
+not necessarily need to be minimal, but the constraints cannot
+be relaxed independent of each other, as they are bound tocertain DBM operations (e.g., the future delay) semantically.
+The constraint phase of our approach derives suitable sets
+of constraints that reduce the former overapproximated zoneto the zone of the target DBM. An efﬁcient approach is theuse of minimal constraint systems (MCS), a technique intro-
+duced by Larsen et al. [ 23] for timed automata that is based on
+the transitive reduction in directed graphs [ 2] and commonly
+used as a compact representation of DBM data. Our approach
+builds upon the idea of MCS and extends it to regard con-
+straints that are already fulﬁlled by the overapproximatingDBM, which eliminates redundancy and results in shorter
+operation sequences.
+In regard to tool dependencies and support, our work uses
+models for the model checking tool Uppaal [ 7]. Its imple-
+mentation and formalisms impose speciﬁc requirements for
+our work, i.e., an operation-based construction of DBMs and
+a deﬁned clock space initialization (all clocks set to 0 ini-tially), respectively. The applicability of our approach is not
+limited to that particular model checker, though.
+3 Automata and DBM prerequisites
+In this section, we provide preliminary details on the def-initions of the syntax and semantics of timed automata
+(Sect. 3.1), the model state (Sect. 3.2),DBM s and their
+operations (Sect. 3.3), the graph representation of DBM s
+(Sect. 3.4), sequences of DBM operations (Sect. 3.5), and
+a method for ﬂow dependency analysis on DBM data
+(Sect. 3.6).3.1 Timed automata
+Our work uses timed automata as underlying modeling for-
+malism. We deﬁne the syntax of timed automata as follows:
+Deﬁnition 1 (TA-Syntax) A timed automaton (TA) is a tuple
+/angbracketleftL,l0,C,E,g,r,I/angbracketright, where Lis a ﬁnite set of locations, l0
+is the initial location, Cis a ﬁnite set of (real-valued) clocks,
+E⊆L×Lis a set of edges between locations, g:E→
+/Phi1(C)is a mapping from edges to guards, r:E→R(C)
+is a mapping from edges to partial resets, and I:L→
+/Phi1(C)is a mapping from locations to invariants. The set /Phi1(C)
+contains all possible conjunctions over constraints ta<> c
+andta−tb<>c, with ta,tb∈C,c∈N, and<>∈{<,≤,
+=,≥,>}.R(C)=[C/arrowrighttophalfN0]denotes the set of all partial
+functions ρ:C/arrowrighttophalfN0, where each ρrepresents a right-unique
+mapping from a subset of clocks to reset values (i.e., any
+natural number including 0, where the latter is the usual resetvalue).
+Both edge guards and location invariants express con-
+straints on the valuations of clocks C, which control when
+an edge can eventually be triggered, and for how long a
+location may remain active, respectively. Extending the TA
+formalism, an extended timed automaton (ETA) is a tuple/angbracketleftL,l
+0,C,V,E,g,r,I,a,LU,LC,ChBi,ChBr/angbracketright, where V
+is a set of variable, a:E→A(V)is a mapping from edges
+to variable assignments, LUandLCare urgent and commit-
+ted locations, and ChBiandChBrare binary and broadcast
+channels. We deﬁne A(V)=[V/arrowrighttophalfB+Z]as the set of all
+partial assignment functions α:V/arrowrighttophalfB+Z, where each α
+represents a right-unique mapping from a subset of variablesto boolean or integer values.
+Commonly, the semantics of TAs is deﬁned via real-
+valued delays on transitions in a labeled transition sys-tem, which results in an uncountable state space. Using a
+zone-based abstraction (via convex polyhedra of clock con-
+straints), one can reduce the state space to a ﬁnite set. Weuse the latter for our work and thus deﬁne the symbolic TA
+semantics similar to the deﬁnition of Behrmann et al. [ 5] and
+adapted for N
+0-resets, zero-initialized zones, and included
+variable states as follows:
+Deﬁnition 2 (TA-Symbolic Semantics) LetZ0=/logicalandtext
+x∈Cx=
+0 be the initial zone, and ∀x∈V:uv,0(x)=0b e
+the initial variable valuation. The symbolic semantics of a
+timed automaton /angbracketleftL,l0,C,V,E,g,r,I,a/angbracketrightis deﬁned as a
+transition system (S,s0,⇒), called the simulation graph,
+where S=L×/Phi1(C)×Uvis the set of symbolic states,
+s0=(l0,Z0∧I(l0),uv,0)is the initial state, ⇒= {(s,s/prime)∈
+S×S|∃e,t:se/equal1⇒tδ/equal1⇒s/prime}is the transition relation, with:
+–(l,Z,uv)δ/equal1⇒(l,(Z∧I(l))↑∧I(l),uv)
+123
+
+--- Page 6 ---
+S. Lehmann, S. Schupp
+–(l,Z,uv)e/equal1⇒(l/prime,re(g(e)∧Z∧I(l))∧I(l/prime),[a(e)]uv)
+ife=(l,l/prime)∈E,
+where Z↑={u+d|u∈Z∧d∈R≥0}(thefuture operation),
+andre(Z)={ [r(e)]u|u∈Z}(thereset operation). u:C→
+R≥0is a clock valuation function (note that the deﬁnitions
+consider guards and invariants as sets of clock valuations by
+abuse of notation), u+dmaps each clock x∈Cto the value
+u(x)+d,d∈R≥0, and[r(e)]udenotes the clock valuation
+which maps a subset Crof clocks Cto natural numbers as
+deﬁned by r(e), and agrees with uover C\Cr. Likewise,
+uv:V→ B+Zis a variable valuation function (where Uv
+is the set of all variable valuations), and [a(e)]uvdenotes the
+variable valuation which maps a subset Vaof variables Vto
+boolean or integer numbers as deﬁned by a(e), and agrees
+with uvover V\Va.
+For a deﬁnition of the semantics of networks of timed
+automata and channel synchronization, see [ 7].
+3.2 Model state
+An execution trace of a model is a sequence of transitions.
+During such an execution, each transition leads to a concretemodel state . A state of an ETA consists of three components:
+(a) The location state covering the currently active location of
+each sub-automaton, (b) the variable state spanning all globaland local integer ,bool , etc. valuations that are used by
+components of the ETA, and (c) the clock state including all
+clock differences (e.g., for our work, represented as a DBM).
+The construction of a location and variable state is easilydone: The targeted location can be set as initial location ( l
+init),
+and will be active on model initialization. The variables are
+set directly to their targeted values by assignment. The clockstate, in contrast, needs to be constructed via a sequence of
+invariants, guards, resets, and other operations deﬁned in the
+following sub-section and is the focus of this paper.
+3.3 DBM and operations
+Clocks can take values from a given interval, which is deﬁned
+by the previous invariants, guards, and resets along a path
+through the model. In case of TAs, the concrete value inter-vals of these clocks are represented as DBMs [ 8], which have
+the following structure:
+t(0)t
+1··· tn⎛
+⎜⎜⎝⎞
+⎟⎟⎠t(0) 0 c01··· c0n
+t1 c10 0··· c1n
+...............
+t
+n cn0cn1··· 0(3.1)In a DBM, the matrix entry in the row of clock tiand column
+of clock tjrepresents the upper bound of their clock value
+difference, i.e., ti−tj≤cij, and the diagonal entries are
+naturally 0 (as ti−ti=0). Note that a reference clock t(0)
+is added, which has a constant value of 0, to turn any singleclock constraint into a two-clock constraint t
+i−t(0)≤c
+ort(0)−ti≤c. We denote the set of clocks of a DBM
+asT0(DBM )if the reference clock is included, and as
+T(DBM )otherwise. Altogether, such a DBM represents the
+complete clock state.
+The symbolic deﬁnition of TA semantics provides three
+types of operations that are applied to clock zones over tran-sitions in the simulation graph: The ↑operation delays the
+clock arbitrarily to include all futures, the logical ∧opera-
+tion adds constraints to the clock zone, and the r
+eoperation
+resets selected clocks to natural numbers. In the contextofDBM s in the scope of our work, we call these opera-
+tions DelayFuture ,Constraint , and Reset , respectively.
+A fourth operation is Close , which determines the tightest
+constraints representing the original zone, i.e., the transitive
+closure of constraints. While not required by the base seman-
+tics, that operation is commonly applied by model checkersafter adding constraints to the zone, enabling a more efﬁ-
+cient application of subsequent operations. The full set of
+operations applied during transitions through a model [ 5]i s
+thus
+OP={DelayFuture ,Reset(t
+a,v),
+Constraint (ta,tb,v), Close (ta,tb)}, (3.2)
+which we will abbreviate as DF,R,C, and Cl, respectively,
+where appropriate. On the level of DBM transformations,
+the operations are formally deﬁned as follows for a DBM
+with nclocks ( ∀i,j∈N∩[0,n]):
+DF(DBM )[i,j]=/braceleftBigg
+∞ ifi/negationslash=0∧j=0
+DBM [i,j] otherwise
+(3.3)
+R(ta,v)(DBM )[i,j]=
+⎧
+⎪⎨
+⎪⎩DBM [i,0]−v ifi/negationslash=a∧j=a
+DBM [0,j]+v ifi=a∧j/negationslash=a
+DBM [i,j] otherwise(3.4)
+C(ta,tb,v)(DBM )[i,j]=
+/braceleftBigg
+min(DBM [i,j],v) ifi=a∧j=b
+DBM [i,j] otherwise(3.5)
+Cl(ta,tb)(DBM )[i,j]= min(DBM [i,j],
+DBM [i,a]+DBM [a,b]+DBM [b,j]) (3.6)
+123
+
+--- Page 7 ---
+Bounded DBM-based clock state construction…
+Fig. 2 An overview of all DBM operations op∈OP
+A graphical overview of the operations in OP (Eq. 3.2)i s
+shown in Fig. 2. All clocks are inﬁnitely delayed into the
+future whenever a new (neither urgent nor committed) set of
+locations is reached, before the new invariant constraints ofthe target locations can be applied. The DelayFuture opera-
+tion removes the upper bound of all DBM clocks by setting
+their DBM entries in the ﬁrst column to ∞(see Fig. 2(1)).
+The Reset(t
+a,v)operation resets a single clock tato the
+valuev. The operation adapts all DBM entries in the row and
+column of ta(see Fig. 2(2)), i.e., the difference between that
+clock and all other clocks, according to the reset value.
+The Constraint (ta,tb,v)operation constrains the DBM
+zone by updating a single DBM entry DBM [ta,tb]to the
+minimum of its value and v(see Fig. 2(3)). As Constraint
+is the only operation in OP which does not preserve the
+closedness of the input DBM zone, a following Close (ta,tb)
+call is required.
+The Close(ta,tb)operation transforms the DBM to its
+closed form (see Fig. 2(4)) in case that only one sin-
+gle constraint operation Constraint (ta,tb,v) was applied
+beforehand (cf. [ 11]). A general form, Close (), exists, which
+recalculates all shortest paths between pairs of clocks from
+scratch. For a more compact presentation of the construc-
+tion sequences, we will use a single Close operation after
+sequences of constraints instead of selective Close(ta,tb)
+operations after each constraint.
+3.4 DBMs and graphs
+A DBM can be represented as weighted complete digraph[8] as shown in Fig. 3. In such a graph, each edge (t
+i,tj)
+represents the clock difference tj−ti, and the edge weight
+represents the value of DBM [j,i]. Self-edges, which repre-
+sent the diagonal DBM entries with 0 weight, are usually
+omitted. The weight of a path is the sum of weights ofedges included in the path. Three facts become importantFig. 3 Transformation between DBM and graph
+in the graph-based version of our DBM overapproximation
+approach:
+Fact 1 (Emptyness and weights) A DB M represents a non-
+empty zone iff its graph G has no negative-weight cycles [8].
+Fact 2 (Minimum edge costs) Given a DB M, each edge e =
+(ti,tj)in its graph G has minimum edge costs [23], i.e., given
+a weight function w,w(e)≤w(p)holds for each longer path
+p=((ti,tk),... ,( tl,tj))from t ito t j, iff that DB M is in
+closed form (i.e., represents the transitive closure for a set of
+constraints).
+Fact 3 (Cycles with ∞-weight edges) The total path cost of
+a cycle with at least one ∞-weight edge is ∞.
+Finally, we point out the following path types:
+Asimple cycle in a digraph is a cycle where no vertex
+except for the start vertex is repeated (as the cycle startsand ends in the same vertex).
+123
+
+--- Page 8 ---
+S. Lehmann, S. Schupp
+AHamiltonian path is a path that visits each vertex of
+a graph exactly once.AHamiltonian cycle is a simple cycle over all vertices
+of a graph.
+Acycle chord of a cycle in a digraph is an edge between
+two (non-immediately) consecutive vertices of the cycle,i.e., a “short-cut” between two cycle vertices, such as
+(t
+1,t3)for the cycle (t1,t2),(t2,t3),(t3,t1).
+Apath preﬁx of a path pis a subpath starting with the
+same vertex as p.
+Apreﬁx cycle of a cycle cis a subcycle over a path preﬁx
+ofcfollowed by an edge to the start vertex of c.
+Anall-positive-preﬁx path pin a weighted digraph is
+path in which all path preﬁxes (including pitself) have
+positive weights.
+3.5 DBM operation sequences
+We denote the sets of all possible R,C, and Cloperations as
+follows:
+R(DBM )={R(ta,v)|ta∈T(DBM ),v∈N0}
+C(DBM )={C(ta,tb,v)|ta,tb∈T0(DBM ),v∈Z}
+CL(DBM )={Cl(ta,tb)|ta,tb∈T0(DBM )}
+OP(DBM )=R(DBM )∪C(DBM )∪CL(DBM )
+∪{DF}
+Multiple operations form a sequence, which we denote as
+S=(op1,op2,..., opn), with opi∈OP(DBM ), and for
+which we deﬁne its application to a DBM based on functioncomposition as:
+apply (S,DBM )=(op
+n◦opn−1◦...◦op1)(DBM ).(3.7)
+We deﬁne the merging of two operation sequences S1=
+(op1,..., opm)andS2=(opm+1,..., opn)as
+S1⊕S2=(op1,..., opm,opm+1,..., opn). (3.8)
+Furthermore, we deﬁne the set of all merged sequences
+over the cartesian product of two sequence sets Sa=
+{Sa,1,..., Sa,n}and Sb={Sb,1,..., Sb,m}as
+Sa⊗Sb=/uniondisplay
+(S1,S2)∈Sa×SbS1⊕S2, (3.9)
+and, based on ⊗(written as ⊗iindicating the i-th occurrence
+of the operator), deﬁne for a single sequence set S
+/circlemultiplydisplay
+kS=S⊗1S⊗2...⊗k−1S. (3.10)Finally, we denote the subsequence relation between a
+sequence S=(x1,...,xn)and a subsequence S/prime=
+(xik)k∈[1,n],i1<i2<... asS/prime|S.
+For a single operation op, we deﬁne
+op1={(op)}, op∗={(),(op),(op,op),...}
+op?={()}∪op1op+={(op),(op,op),...}
+for sets of sequences where opis applied once ( op1), zero
+or more times ( op∗), zero or one time ( op?), or one or more
+times ( op+), and for a set OP of operations, we deﬁne
+OP1={(op1) ,...,( opn)},opi∈OP
+OP∗=∞/uniondisplay
+i=0/circlemultiplydisplay
+iOP1,OP+=∞/uniondisplay
+i=1/circlemultiplydisplay
+iOP1
+OP?={(),(op1) ,...,( opn)}={()}∪OP1
+to denote the sets of sequences Swith length |S|= 1(OP1),
+|S|≥0(OP∗),|S|≥1(OP+), or|S|∈[ 0,1](OP?).
+Finally, we deﬁne the following particular types of
+sequences which become relevant in our approach:
+–A reset-all sequence for a DBM is a sequence S∈
+R(DBM )∗in which each clock t∈T(DBM )is reset
+exactly once.
+–A reset-df-all sequence for a DBM is a sequence S∈
+(R(DBM )1⊗DF1)∗in which each clock t∈T(DBM )
+is reset exactly once, and each reset is followed by a DF.
+–A reset-(df)-all sequence for a DBM is a sequence S∈
+(R(DBM )1⊗DF?)∗in which each clock t∈T(DBM )
+is reset exactly once, and each reset may be followed
+by a DF; note that the sets of reset-all and reset-df-
+all sequences are subsets of the set of all reset(-df)-all
+sequences.
+In our O(DBM) approach (cf. Sect. 5.2), a major focus
+lies on the order of resets in operation sequences. In
+general, the two DBM entries DBM [i,j](representing
+ti−tj≤DBM [i,j]) and DBM [j,i](representing
+tj−ti≤DBM [j,i], i.e., ti−tj≥− DBM [j,i]),
+span the interval of possible difference values ti−tj∈
+[−DBM [j,i],DBM [i,j]]. For such an interval, the fol-
+lowing fact holds:
+Fact 4 (Order of clock difference intervals) Given a DB M
+reached via an operation sequence S ∈OP(DBM )∗,f o r
+each pair of clocks t i,tj∈T(DBM ), with t i−tj∈[l,u],
+lower bound l =− DBM [j,i], and upper bound u =
+DBM [i,j], we can distinguish between four cases:
+l≥0∧u>0,iff tireset before t j (3.11)
+l<0∧u≤0,iff tireset after t j (3.12)
+123
+
+--- Page 9 ---
+Bounded DBM-based clock state construction…
+l=0∧u=0,iff ti,tjreset “simultaneously” (3.13)
+l<0∧u>0,iff order “not explicitly known” , (3.14)
+where “reset before” and “reset after” imply that a potential
+delay happened between both resets, while “simultaneously”means without intermediate delay.
+Note that the fourth case can only occur if we reset to values
+other than 0, as only then, a reset may set a clock to a value
+greater than another clock which was actually reset before,
+so that the reset order is “not explicitly known” from theinterval bounds alone.
+ForDBM s reached via reset-df-all sequences (as shown
+in Fig. 4), we note that each entry DBM [i,j]becomes either
+v
+i−vjor∞based on the reset order, and the following fact
+holds:
+Fact 5 (DBM value after reset-df-all sequence) Given a
+DB M with n clocks ( ∀i,j∈ N∩[0,n]), a reset-df-all
+sequence S sets each entry DB M [i,j]tovi−vjfor which
+tiis reset after t j, and to ∞otherwise:
+S(DBM )[i,j]=/braceleftBigg
+vi−vjif tireset after t j
+∞ otherwise(3.15)
+Proof Fact 5can be proven with the sets wr(DF)and
+wr(R(ta,v)) (see Eqs. 3.16 and3.17 in Sect. 3.6). An entry
+DBM [i,j],i,j/negationslash=0 is overwritten twice by a reset-
+df-all sequence; once by R(ti,vi), for which the entry
+DBM [i,j]lies in the row of tiand is overwritten with the
+value DBM [0,j]+vi, and once by R(tj,vj),f o rw h i c h
+DBM [i,j]lies in the column of tjand is overwritten
+with the value DBM [i,0]−vj. We also notice that the
+DF operations set the values DBM [i,0],i/negationslash=0, to∞
+between the resets. It follows that if tiis reset after tj,
+DBM [i,j]becomes DBM [0,j]+vibyR(ti,vi), with
+DBM [0,j]=− vjdue to the previous reset R(tj,vj),
+resulting in DBM [i,j]=vi−vj. Conversely, if tiis reset
+before tj,DBM [i,j]becomes DBM [i,0]−vjbyR(tj,vj),
+with DBM [i,0]=∞ due to the previous DF, resulting in
+DBM [i,j]=∞ . /intersectionsq/unionsq
+For the relation between reset orders in a reset-df-all
+sequence and paths in a graph Gof a DBM , we note the
+following facts:
+Fact 6 (Hamiltonian cycles and reset order) For a DB M and
+its graph G, a one-to-one relation exists between Hamil-tonian cycles p
+Hin G and total reset orders of clocks
+T(DBM ).
+Fact 7 (∞-edges after reset-df-all sequence) Given a DB M
+and its graph G, a reset-df-all sequence sets all edges
+(ti,tj)∈E(G)to∞for which the clocks t iand t jare not
+in reset order.Fact 8 (Hamiltonian path over non- ∞edges) Given a DB M
+and its graph G resulting from a reset-df-all sequence, onlythe Hamiltonian path p
+Hover all vertices t i∈V(G)in reset
+order and all its sub-paths via cycle chords traverse no edges
+with∞costs.
+Proof Fact 6holds as in a complete digraph with exactly one
+edge per ordered vertex pair, only one unique cycle exists
+that traverses all vertices in a particular order. /intersectionsq/unionsq
+Proof Fact 7directly follows from Fact 5. /intersectionsq/unionsq
+Proof Fact 8holds as all other paths contain at least one edge
+in reverse reset order, for which Fact 7holds. /intersectionsq/unionsq
+3.6 Flow dependency of DBM operations
+To prove that particular operations in a sequence can be omit-
+ted without changing the resulting DBM , we need to analyze
+at which points individual DBM entries are read or written.
+For that, we deﬁne the function rd:OP(DBM )→ N→
+N→2N×N, which returns the read set of an operation op
+for a particular entry DBM [i,j], i.e., the set of index pairs
+(a,b)of all entries DBM [a,b]read by opfor the calcu-
+lation of DBM [i,j]. Furthermore, we deﬁne the function
+wr:OP(DBM )→2N×N, which returns the write set of
+the operation op, i.e., the set of index pairs (a,b)of all entries
+DBM [a,b]written to by op. For the supported set of opera-
+tions OP={DF,R(ta,v), C(ta,tb,v), Cl(ta,tb)},rdand
+wrare deﬁned as follows:
+rd(DF,i,j)=∅
+wr(DF)={(i,0)|i∈N∩[1,n]} (3.16)
+rd(R(ta,v), i,j)=⎧
+⎪⎨
+⎪⎩{(i,0)} ifi/negationslash=a∧j=a
+{(0,j)} ifi=a∧j/negationslash=a
+∅ otherwise
+wr(R(ta,v))={(i,a)|i∈N∩[0,n],i/negationslash=a}
+∪{(a,j)|j∈N∩[0,n],j/negationslash=a} (3.17)
+rd(C(ta,tb,v), i,j)=/braceleftBigg
+{(i,j)} ifi=a∧j=b
+∅ otherwise
+wr(C(ta,tb,v))={(a,b)} (3.18)
+rd(Cl(ta,tb),i,j)=
+/braceleftBigg
+{(i,j),(i,a),(a,b),(b,j)} ifi/negationslash=j
+∅ otherwise
+wr(Cl(ta,tb))={(i,j)|i,j∈N∩[0,n],i/negationslash=j} (3.19)
+Based on the rdandwrfunctions, we deﬁne the ﬂow
+dependency function fd:OP(DBM )→2N×N→2N×N,
+which determines how the dependencies from previous oper-
+123
+
+--- Page 10 ---
+S. Lehmann, S. Schupp
+Fig. 4 A sequence of all clock resets with intermediate future delays
+ations are forwarded by an operation op:
+fd(op,I):=(I\wr(op))∪Iop, (3.20)
+with Iop={(i,j)|(i,j)∈wr(op),rd(op,i,j)∩I/negationslash=∅ }
+fd(S,I):=(fd(opn)◦...◦fd(op1))(I) (3.21)
+In other words, to determine how the dependency on a set
+Iof marked index pairs is maintained by an operation op,
+the function fdremoves all index pairs from Iwhose DBM
+values are overwritten by op(i.e., I\w(op)), and (re-)adds all
+those index pairs (i.e., the set Iop) whose new DBM values
+calculated by opdepend on marked entries of the original
+I. That way, we get a new set of marked index pairs based
+on the original marked indices and the dependencies fromthese indices forwarded by op. To determine if an operation
+op
+1can be omitted from a sequence S, we initialize Iwith
+the write set of op1, and recursively apply fdtoIfor each
+following operation until the resulting index set becomes ∅.
+To prove ﬂow independency on inﬁnite sets of opera-
+tion sequences composed from a ﬁnite set of operations as
+required in Sect. 5.1.2 , we use the following properties:
+∀op∈OP:I1⊆I2/equal1⇒ fd(op,I1)⊆fd(op,I2)
+(3.22)
+∀S∈OP(DBM )∗:I1⊆I2/equal1⇒ fd(S,I1)⊆fd(S,I2),
+(3.23)
+from which follows that if a set of marked indices becomes
+∅after applying some sequence S, a subset of that index set
+will certainly become ∅as well after applying S.T h u s ,i ti s
+sufﬁcient to check the superset only.
+4 DBM-based clock state construction
+The main task of this work is to determine a sequence ofoperations that allows reaching an originally observed modelclock state. In this section, we describe the general idea of
+our approach (Sect. 4.1), allowing state construction in lim-
+ited time, and revisit the example from the introduction tocompare concrete state construction approaches ( 4.2).
+4.1 Approach description
+In Sect. 1, we introduced the general state construction task,
+i.e., ﬁnding a sequence Sthat transform a starting state sinit
+into a target state starget , as well as the boundedness require-
+ment|S|≤bound for some strict bound imposed by online
+settings. Our approach splits that state construction task intotwo phases, the O-phase and the C-phase, where the former
+constructs an overapproximation of the target state, and the
+latter constraints that overapproximation until it equals thetarget state:
+–O-Phase : Given a starting state s
+initand a target state
+starget , determine a bounded sequence Sapprox that trans-
+forms sinitinto an overapproximation of starget , i.e., ﬁnd
+anSapprox with Sapprox(sinit)⊇starget .
+–C-Phase : Given a target state starget and an overapprox-
+imating state sapprox ⊇starget , determine a bounded
+sequence Sconstr that transforms sapprox into starget , i.e.,
+ﬁnd an Sconstr with Sconstr(sapprox)=starget .
+The main advantage of this constructive approach is, as
+we will show later, that it is possible to generate operationsequences with bounded lengths for both phases, which do
+not grow throughout a simulation, but keep a constant length
+depending only on the number of clocks involved.
+Combining both phases leads to a formulation of the over-
+all state construction task for our approach:
+–Bounded state construction via OC-approach :G i v e n
+a starting state s
+initand a target state starget , determine a
+bounded sequence S=Sapprox⊕Sconstr that transforms
+123
+
+--- Page 11 ---
+Bounded DBM-based clock state construction…
+sinitintostarget , where Sapprox leads to an overapproxima-
+tion of starget which is then constrained by Sconstr tostarget ,
+i.e., ﬁnd an S=Sapprox⊕Sconstr with|S|≤ bound ,
+Sapprox(sinit)def=sapprox ⊇starget ,Sconstr(sapprox)=
+starget , and thus, S(sinit)=starget .
+We mentioned in Sect. 3that setting the variable and loca-
+tion state is trivially solved for Uppaal TAs, and thus, our
+approach is focused on the construction of the clock state.Thus, in our concrete case of state construction for clock
+states in TAs, each state srepresents a DBM clock state, and
+the sequences Sare composed from a limited set of opera-
+tions OP supported by the TA formalism, i.e., we apply
+s=DBM and require S∈OP(DBM )
+∗.
+4.2 Introductory example
+Recall the example model of a simple process in Fig. 1,a s
+well as the sample trace and reached DBM (i.e., the tar-
+get clock state) described in Sect. 1. In this sub-section, we
+show the differences between possible clock-state construc-tion approaches, i.e., the trivial approach, the graph-basedapproach [ 30], and our OC approach.
+For the example, applying the trivial approach leads to
+unbound sequences along all model paths on the long run.The construction sequence is equal to the executed model
+path and thus grows linearly with the amount of transitions
+taken. The graph-based approach by Rinast keeps track of allmodel states that were reached, and ﬁnds shortcuts between
+these states, which can be taken as replacement for longer
+paths leading to the exact same state during construction.The approach limits the size of the construction path as longas at some point, re-reaching a previous state is guaranteed
+along all paths, which requires a recurrent reset of all clocks
+along such a path. In the example, the resulting states of allpaths that periodically also take the transitions over Off ,
+which leads to a reset of the clock t_active , can be con-
+structed by a path shorter than the original. Otherwise, ifonly transitions over Execute are taken consecutively, the
+clock t_active increases, and thus, no model states are
+repeated.
+Using our approach, we can either refer to the example
+trace and reduce it to a bounded-length sequence, or construct
+one independent from the actual execution path, considering
+only the target state. In both cases, the size depends only onthe number of clocks involved, instead of the actual, growing
+execution path length; this boundedness is the major theoret-
+ical contribution of our work.
+Using the three approaches, we get the construction
+sequences shown in Fig. 5. Applying the trivial approach
+(Fig. 5a), we get a sequence of 43 locations, which have to be
+traversed before we reach the targeted state. This sequencewill keep growing over time, without an upper bound in
+length. Using the approach by Rinast, the ﬁrst sequence of 10Execute steps can be discarded, as the clock state after the
+Off section is identical to the one at the initial model state.
+This identiﬁed shortcut is used to perform the constructiononly via the second round of Execute steps. Neverthe-
+less, the Off location is not necessarily reached frequently,
+and therefore, paths exist for which this approach does not
+return a length-bounded construction sequence. Finally, theapproach introduced in this work leads to a construction
+sequence which requires 10 DBM operations, which are
+transformed into a sequence of 5 locations. In general, wecan guarantee that our approach always requires at most
+1+2∗|T|+|T|∗(|T|+1)=1+2∗2+2∗3=11 operations
+for the clock state construction of this model, based on thenumber of |T|= 2 clocks.
+5 Overapproximation phase (O-phase)
+In the ﬁrst phase, the O-phase , we determine a sequence
+Sapprox , which, when applied to DBM init, results in an approx-
+imation DBM approx∈DBM approx , where DBM approx is the
+set of all overapproximations of DBM target :
+DBM approxdef=Sapprox(DBM init)⊇DBM target (5.1)
+This overapproximation is required, so that we can constrain
+DBM approx selectively in a second step to ﬁnally obtain
+DBM target . Generally, a DBM aoverapproximates another
+DBM bif the ﬁrst forms a superzone of the other. A DBM
+forms such a superzone if the following condition holds:
+DBM a⊇DBM b
+⇐⇒
+∀0≤i≤|T|:∀ 0≤j≤|T|:
+DBM a[i,j]≥DBM b[i,j](5.2)
+Similarly, DBM ais called a subzone of DBM b(denoted as
+DBM a⊆DBM b)i f f DBM a[i,j]≤ DBM b[i,j]for all
+DBM entries.
+In the simplest case, DBM initis already an overapprox-
+imation of DBM target (DBM init∈DBM approx ), and the
+O-phase returns an empty transformation sequence S=().
+In that case, we can directly continue with the C-phase pro-cedure. Otherwise, if DBM
+initdoes not overapproximate
+DBM target , there exist entries in DBM initwhich, following
+from Eq. ( 5.2), are smaller than the corresponding entries
+ofDBM target . To obtain an overapproximation, those entries
+need to be overwritten by values which are equal or greater
+than the ones in DBM target . As mentioned before in Sect. 1,
+aSetValue operation which would set the DBM entry in the
+123
+
+--- Page 12 ---
+S. Lehmann, S. Schupp
+Fig. 5 Construction sequences of the three approaches
+row of tiand column of tjtoc(with c≥DBM target[i,j])i s
+not deﬁned in OP, nor is it supported by model checkers
+such as Uppaal. Therefore, we have to determine a suit-
+able sequence of supported non-constraining operations (i.e.,
+Reset andDF) that leads to DBM approx . In the next two
+sub-sections, we introduce two approaches to ﬁnd such a
+sequence Sapprox : If a reference sequence that leads from
+DBM inittoDBM target is given, we show how to reduce the
+sequence to obtain Sapprox . If such a sequence is not known
+beforehand, we derive an overapproximating sequence from
+DBM target only.
+5.1 O(SEQ): overapproximation based on given
+sequence S
+If an original sequence from DBM inittoDBM target is already
+given, e.g., because DBM target was reached via an observable
+simulation, the sequence construction task is the follow-ing: For an operation sequence S
+refthat transforms DBM init
+intoDBM target , construct a bounded sequence Sapprox which
+overapproximates DBM target .DBM approxdef=Sapprox(DBM init)⊇DBM target,
+with Sapprox|Sref (5.3)
+In particular, considering the set of all possible over-
+approximation sequences Sapprox , we obtain an Sapprox ∈
+Sapprox by repeated elimination of selected operations from
+Sref. As result, we get a sequence which has, independent
+of the original sequence size, a bounded length. In fact, we
+show that it is always possible to reach an overapproximationby at most |T|Reset and|T|+1DF operations, where T
+is the set of clocks of the particular model.
+We split the argumentation for the individual sequence
+reductions into two steps, recalling the operations OP
+described in Sect. 3.3: First, we show that we can elimi-
+nate all Constraint andClose operations from S
+ref, where
+each elimination results in a shorter sequence that leads from
+DBM initto an overapproximation of DBM target . Second, we
+show that we can furthermore eliminate Reset andDF oper-
+ations that are redundant or already overwritten, which leadsto a length-bounded S
+approx .
+123
+
+--- Page 13 ---
+Bounded DBM-based clock state construction…
+5.1.1 Constraint and close elimination
+In this step, we consecutively remove Constraint andClose
+operations from Sref. For the proof that all such operations
+can be removed while obtaining an overapproximation of
+DBM target ,w eh a v et op r o v et h ef o l l o w i n gt h r e el e m m a s( c f .
+Fig. 6):
+Lemma 5.1 (Subzone via Constraint and Close) For a given
+DB M, applying a C or Cl operation to the DB M leads to a
+subzone of that DB M:
+C(DBM )⊆DBM
+Cl(DBM )⊆DBM
+Lemma 5.2 (Chaining of Constraint and Close Elimina-
+tions) Given a DB M and a sequence S =(C(DBM )∪
+CL(DBM ))∗, the subsequence S el, (i.e., S el|S), obtained
+by repeated elimination of operations from S results in
+Sel(DBM )⊇S(DBM ).
+Lemma 5.3 (Preserved superzone relation) The superzone
+relation is preserved by the operations DelayFuture and
+Reset(ta,v), i.e., for op ∈({DF}∪ R(DBM )):
+DBM a⊇DBM b/equal1⇒ op(DBM a)⊇op(DBM b)
+Proof Lemma 5.1 is easily shown based on the deﬁnition
+of a superzone (Eq. 5.2) and the min operation applied by
+C and Cl (Fig. 2). For both operations, entries DBM [a,b]
+are only changed by min operations, which take the orig-
+inal entry value cabas argument (e.g., min(cab,v) for the
+Constraint operation). Therefore, each affected entry can
+only be decreased or remains equal, resulting in a subzoneof the original DBM. /intersectionsq/unionsq
+Proof For Lemma 5.2, we need to show that a zone that is
+obtained via a reduced sequence with multiple CandCloper-
+ations eliminated, is a superzone of the DBM obtained via the
+original sequence, i.e., show monotonicity of the “greater-
+than” relation for CandCloperations. This is the case if
+a superzone DBM
+S2obtained for a superzone DBM S1of
+a DBM is also a superzone of DBM, i.e., for any DBM a,
+DBM b,DBM c,t h e transitivity property holds:
+DBM a⊇DBM b∧DBM b⊇DBM c
+/equal1⇒ DBM a⊇DBM c (5.4)
+It is straightforward to show that this implication holds, based
+on the deﬁnition of a superzone in Eq. ( 5.2): From DBM a⊇
+DBM bfollows for all DBM entries that DBM a[i,j]≥
+DBM b[i,j]. Correspondingly, DBM b⊇DBM cimplies
+that DBM b[i,j]≥ DBM c[i,j]for all DBM entries. As
+a result, DBM a[i,j]≥ DBM b[i,j]≥ DBM c[i,j],and thus, via the transitivity property of “greater-than,”
+DBM a[i,j]≥ DBM c[i,j]. In conclusion, following the
+reverse implication of Eq. ( 5.2), we get DBM a⊇DBM c./intersectionsq/unionsq
+Proof For Lemma 5.3, we need to show monotonicity of DF
+andR, that is, the “greater-than” relation between the entries
+of two DBMs does not change when applied to both of them.
+This property ensures that when we obtain a superzone by
+CandClelimination, following operations keep the super-
+zone property intact. Again, that property is easily shown:
+DF sets all the entries of the ﬁrst column to ∞, so that for
+two DBMs ( DBM a,DBM b), with DBM a⊇DBM b,t h e
+corresponding entries either remain unchanged or are both
+set to∞when DF(DBM a)andDF(DBM b)are applied.
+The Reset(ta,v) operation sets all row values DBM [a,j]
+toDBM [0,j]+v, and all column values DBM [i,a]to
+DBM [i,0]−v.S oa g a i n ,i f DBM a⊇DBM b, those corre-
+sponding entries are set to values for which the “greater-than”
+relation holds ( DBM [0,j]orDBM [i,0]), shifted by a con-
+stant value v. Therefore, for both DF andReset(ta,v),t h e
+superzone relation is preserved. /intersectionsq/unionsq
+Following from the three lemmas, we can derive two
+sequence transformation rules that preserve the subzone rela-
+tion:
+apply (S1⊕(C)⊕S2,DBM )⊆apply (S1⊕S2,DBM ),
+(5.5)
+with C∈C(DBM ),S1,S2∈OP(DBM )∗
+apply (S1⊕(Cl)⊕S2,DBM )⊆apply (S1⊕S2,DBM ),
+(5.6)
+with Cl∈CL(DBM ),S1,S2∈OP(DBM )∗
+We can thus conclude for the resulting DBMs of both
+sequences:
+Proposition 5.1 (Overapproximation by elimination of C/CL)
+For any sequence S ∈OP(DBM )∗and its subsequence
+Ssub|S obtained by elimination of all C and Cl operations,
+Ssub(DBM )⊇S(DBM )holds.
+At this point, the reduced operation sequence Ssubhas the
+following form:
+Ssub∈(DF∗⊗R(ti,vi)1⊗DF∗⊗R(tj,vj)1⊗...
+⊗R(tn,vn)1⊗DF∗)
+Example 5.1 (Example of C and Cl elimination) Given a zero-
+initialized DBM init, i.e., all entries are initially 0, and the
+following reference sequence:
+Sref=(DF,C(t1,t(0),5),Cl,R(t1,0),R(t2,0),DF,
+C(t(0),t2,−3),Cl,R(t1,0),R(t3,0)),
+123
+
+--- Page 14 ---
+S. Lehmann, S. Schupp
+Fig. 6 Clock zone relations for constraint elimination
+which leads to the target DBM
+DBM target=t(0)t1 t2 t3⎛
+⎜⎝⎞
+⎟⎠t(0) 00 −30
+t1 00 −30
+t2∞∞ 0∞
+t3 00 −30
+After elimination of Cand Cl operations, which are
+C(t1,t(0),5),C(t(0),t2,−3), and their corresponding
+Close operations, the approximating sequence becomes:
+Sapprox=(DF,R(t1,0),R(t2,0),DF,
+R(t1,0),R(t3,0)),
+which leads to the overapproximating DBM
+DBM approx=Sapprox(DBM init)=
+t(0)t1t2t3⎛
+⎜⎝⎞
+⎟⎠t(0) 00 0 0
+t1 00 0 0
+t2∞∞ 0∞
+t3 00 0 0
+5.1.2 Reset and delay-future elimination
+Now that we derived a reduced operation sequence by remov-
+ing all Constraint andClose operations, which results in
+a superzone of DBM target , we show that we can further
+reduce the sequence Sapprox by removing speciﬁc Reset
+and DelayFuture operations while retaining the relation
+DBM approx ⊇DBM target . For that, we use the reduction
+rules formulated in the following two lemmas:
+Lemma 5.4 (DF sequence reduction) A sequence of DF
+operations S =DF+can be reduced to a single DF opera-
+tion without affecting the outcome of applying S to a DB M:
+apply (DF+,DBM )=apply (DF,DBM ) (5.7)
+Lemma 5.5 (Reset elimination in reset-df sequences) Given
+a DB M and an operation sequence (R(ta,va,1))⊕SRD,sub⊕(R(ta,va,2))with S RD,sub∈(R(DBM )\{a}∪{DF})∗, i.e.,
+a sequence that starts and ends with a reset of the same
+clock t a(to arbitrary values), and between both resets, only
+contains DF operations and resets of clocks t i, with i /negationslash=a,
+we can omit the ﬁrst reset of t awithout affecting the outcome
+of applying S to a DB M:
+apply ((R(ta,va,1))⊕SRD,sub⊕(R(ta,va,2)),DBM )
+=apply (SRD,sub⊕(R(ta,va,2)),DBM ),
+with t a∈T(DBM ) (5.8)
+Proof Lemma 5.4is easily proven; as a DF operation only
+assigns the ﬁrst-column entries DBM [i,0],i/negationslash=0t o∞,
+subsequent DF operations keep the DBM unchanged. /intersectionsq/unionsq
+Proof We prove Lemma 5.5based on the ﬂow dependency
+function in Eq. ( 3.20 ). Given a DBM with n=|T(DBM )|,
+we ﬁrst initialize I0:
+I0def=w(R(ta,va,1))
+={(a,0) ,...,( a,n),(0,a),...,( n,a)}
+Then, we either apply a ﬁrst DF (resulting in I1,1)o r
+R(ti,vi),i/negationslash=a(resulting in I1,2):
+I1,1=fd(DF,I0)=(I0\w(DF))∪∅
+={(a,1) ,...,( a,n),(0,a),...,( n,a)}⊆I0
+I1,2=fd(R(ti,vi),I0)=(I0\w(R(ti,vi)))∪Iop
+=(I0\{(i,0) ,...,( i,n),(0,i),...,( n,i)})
+∪{(i,a),(a,i)}
+=I0
+AsI1,1⊆I0andI1,2=I0hold, we can make use of Eq.
+(3.23 ) and consider I0the “worst-case” dependency after
+any sequence SRD,sub∈(R(DBM )\{a}∪{DF})∗. In other
+words, using I0means that in the most dependent case result-
+ing from any sequence SRD,sub, still only the entries in the
+row and column of tadepend on values written by R(ta,va,1).
+Finally, we apply R(ta,va,2)and get:
+I2=fd(R(ta,va,2),I0)=(I0\w(R(ta,va,2)))∪Iop
+123
+
+--- Page 15 ---
+Bounded DBM-based clock state construction…
+=(I0\{(a,0),...,( a,n),(0,a),...,( n,a)})∪∅
+=∅
+From I2=∅ , we can conclude that no DBM entry
+is affected by the operation R(ta,va,1)anymore after we
+applied R(ta,va,2), and thus, R(ta,va,1)can be omitted from
+the sequence. /intersectionsq/unionsq
+We can now apply rule ( 5.8) repeatedly, followed by
+rule ( 5.7) where applicable, which leads to the following
+lemma:
+Lemma 5.6 (Reset-df sequence reduction) Any sequence S ∈
+(R(DBM )∪{DF})∗, can be reduced to a sequence S red∈
+(DF?⊗(R1)⊗DF?⊗...⊗(Rm)⊗DF?),Ri∈R(DBM ),
+with∀R(ta,va),R(tb,vb)∈Sred:ta/negationslash=tbby eliminating
+each but the last reset of every clock which is reset in S, and
+removing all but one DF operation in each subsequence of
+DF operations.
+Example 5.2 (Example of R and DF elimination) Based
+on the intermediate overapproximation sequence Sapprox
+obtained in Example 5.1, eliminating the overwritten opera-
+tions, i.e., the operation R(t1,0), results in the ﬁnal overap-
+proximation sequence
+Sapprox=(DF,R(t2,0),DF,R(t1,0),R(t3,0)),
+which leads to the overapproximation of DBM target :
+DBM approx=t(0)t1t2t3⎛
+⎜⎝⎞
+⎟⎠t(0) 00 0 0
+t1 00 0 0
+t2∞∞ 0∞
+t3 00 0 0
+5.1.3 Operation sequence reduction: summary
+In summary, for the O(SEQ) approach based on a given
+sequence S, we proved that all Constraint andClose oper-
+ations can be removed from a sequence of operations, if we
+aim for a DBM approx which overapproximates DBM target
+(cf. Sect. 5.1.1 ). Furthermore, we can reduce the resulting
+sequence by eliminating subsequent occurrences of DF
+operations and resets of clocks which are reset again later
+in the sequence (cf. Sect. 5.1.2 ). Therefore, we have proved
+the following for the overapproximation of DBM states:
+Proposition 5.2 (Overapproximation sequences) Given a
+DB M, any sequence S ∈OP(DBM )∗, i.e., any arbitrary
+sequence of DF, R, C, and Cl operations, can be reduced
+to a sequence S appr∈(DF?⊗(R1)⊗DF?⊗...⊗
+(Rm)⊗DF?),Ri∈R(DBM ), with∀R(ta,va),R(tb,vb)∈Sappr:ta/negationslash=tb, i.e., a sequence of DF and R opera-
+tions in which each clock is reset at most once, and DFoperations occur at most once between resets, such that
+S
+appr(DBM )⊇S(DBM )holds.
+Overall, we can conclude that for each sequence of operations
+inOP for any DBM , there exists a reduced sequence with at
+most|T(DBM )|Reset and|T(DBM )|+1DelayFuture
+operations.
+5.2 O(DBM): overapproximation sequence based on
+DBM target
+In this section, we approach the second scenario S2from
+Sect. 1, i.e., the case that Srefis not given and an over-
+approximation sequence Sapprox (for which the relation
+Sapprox(DBM init)⊇DBM target holds) must be derived from
+characteristics of DBM init,DBM target , and the operation set
+OP alone.
+The following two lemmas provide the base for our
+approach:
+Lemma 5.7 (Approximation sequence existence) Given a
+zero-initialized DB M init, for each DB M target=S(DBM init)
+reached by a sequence S =OP(DBM init)∗, there exists a
+sequence S approx=(DF,R1,DF,R2,..., Rn,DF),Ri∈
+R(DBM init), with S approx(DBM init)⊇DBM target.
+Lemma 5.8 (reset-(df)-all to reset-df-all) If a reset-(df)-
+all sequence overapproximates a DBM, the reset-df-all
+sequences obtained by enforcing a DF after each reset over-
+approximates the DBM as well.
+Proof Lemma 5.7holds as zero-initialization implies a pre-
+ﬁx sequence SR=(R(t1,0),... , R(tn,0)), with n=
+|T(DBM )|, which turns each sequence Sinto Sext=
+SR⊕S. It follows that each clock is reset at least once, and
+due to Proposition 5.2, we can reduce SexttoSapprox , with
+Sapprox(DBM init)⊇DBM target . /intersectionsq/unionsq
+Proof Lemma 5.8holds as DF operations only set particular
+entries to ∞(cf. Eq. ( 3.3)) and thus always lead to superzones
+of the original DBM . /intersectionsq/unionsq
+The challenge is to determine a reset-(df)-all sequence
+without access to an Srefto reduce. The potentially suitable
+reset-(df)-all sequences differ in three characteristics: The
+order of resets (C1), the reset values (C2), and the occur-rence of DF operations between the resets (C3); the set of
+such sequences is inﬁnite. Due to Lemma 5.8, we can remove
+C3 by limiting the search space to reset-df-all sequences.The search space becomes ﬁnite for classes of automata that
+restrict C2, including the formalism of TAs as deﬁned in [ 5],
+which supports resets to 0 (i.e., 0-resets) only; the Uppaal
+tool allows arbitrary positive reset values (i.e., N
+0-resets)
+123
+
+--- Page 16 ---
+S. Lehmann, S. Schupp
+during simulation, but limits support to 0-resets during veri-
+ﬁcation. In the remainder of this section, we approach DBM
+overapproximation for both the case of 0-resets (Sect. 5.2.1 )
+and N0-resets (Sect. 5.2.2 ).
+5.2.1 O(DBM) approach for 0-resets
+The approach for 0-resets is straightforward, as we can
+directly infer reset orders from the two-clock constraints
+DBM [i,j],i/negationslash=j/negationslash=0 (cf. Fact 4). From Fact 4, we know
+that DBM [i,j]is strictly positive iff tiis reset before tj.
+Thus, a possible algorithmic approach to determine a valid
+reset order is to sum the amount of positive values for each
+column j, and order the clocks tjaccordingly in ascending
+order of the sums. This approach builds on the fact that the
+higher the amount of positive values in a column j,t h em o r e
+clocks were reset before tj, so that the clock with the lowest
+column sum was reset ﬁrst, while the clock with the highestsum was reset last. If clocks are reset simultaneously (i.e.,
+without intermediate delay), the same number of clocks must
+be reset before them, and thus, their sums of positive columnvalues are equal; the order of these clocks can be chosen
+arbitrarily.
+The order is formally expressed as follows: Given a
+DBM with n=|T(DBM )|,t h es e t PSUM ={(c
+1,t1),
+...,( cn,tn)},tj∈T(DBM ),cj=| { i|i∈N∩[1,n],
+DBM [i,j]>0}|and any valid order ≤C:PSUM ×
+PSUM , with (ci,ti)≤C(cj,tj)⇐⇒ ci≤cj,w e
+can derive a corresponding reset order Ord R:T(DBM )×
+T(DBM ), with
+Ord R(ti,tj)⇐⇒ ∃ (ci,ti),(cj,tj)∈PSUM :
+(ci,ti)≤C(cj,tj), (5.9)
+The resulting orderings Ord Ronly differ in the order of their
+“simultaneously” reset clocks. Each reset-df-all sequencethat follows such order is guaranteed to lead to an overap-proximation of DBM
+target .
+5.2.2 O(DBM) approach for N0-resets
+While the reset order is the only variable for the case of 0-
+resets, neither the reset order nor the reset values are known
+for the case of N0-resets. In the following, we provide a
+method to derive overapproximating reset-df-all sequenceswith N
+0-resets, and split the argumentation into two parts:
+P1 We show how reset values are obtained if the reset order
+is given.
+P2 We show how reset orders are obtained for which valid
+reset valuations exist.Determine reset values (P1) The process for the determina-
+tion of reset values is shown in Fig. 7. Given a reset-df-all
+sequence Swith unknown reset values (Fig. 7-(1)), we
+derive a constraint system on reset values from the rela-
+tion between the entries of the overapproximating and target
+DBM (Fig. 7-(2)). Following from Fact 5, the constraints are
+either vi−vj≥DBM target[i,j]or∞≥ DBM target[i,j]
+(Fig. 7-(3a–c)). As the constraints DBM target[i,j]≤∞ triv-
+ially hold, they can be omitted from the constraint system.Furthermore, N
+0-resets impose constraints vi≥0 for each
+i∈N∩[1,|T(DBM )|](Fig. 7-(4)). The adapted constraint
+system, which solely consists of constraints on some par-ticular (pairs of) reset values now, can be extended to a
+constraint system over all reset value pairs by adding the
+trivially satisﬁed v
+i−vj≤∞ for the remaining value pairs,
+and introducing an artiﬁcial reset value v(0)=0 (Fig. 7-
+(5)) similar to t(0)for clock differences. We can represent
+this new constraint system as DBM , which we denote as
+DBM v(Fig. 7-(6)), as it expresses constraints on reset val-
+uesv, unlike the usual DBM that expresses constraints on
+clock values. For the system DBM v, the following lemma
+holds:
+Lemma 5.9 (Reset values from DBM v) Given a reset-df-
+all sequence S with unknown reset values, each valid resetvaluation of DB M
+vprovides reset values such that S leads
+to an overapproximation of DB M target.
+Proof Lemma 5.9holds as DBM vis composed of all reset
+value constraints that need to be satisﬁed to overapproximate
+DBM target . /intersectionsq/unionsq
+Finally, the DBM vcan be transformed to a graph Gv
+(Fig. 7-(7), cf. Sect. 3.4).
+V alid reset valuations only exist if DBM vis non-empty,
+and thus, if Gvhas only non-negative weight cycles (cf. Fact
+1). Only a subset of cycles needs to be checked; in fact, we
+can reduce the check as follows:
+Lemma 5.10 (Non-emptyness of DBM vbypH) Given a
+DBM target and a reset-df-all sequence S leading to DBM approx ,
+the DBM vderived from DBM approx⊇DBM target is non-empty
+iff the unique Hamiltonian cycle p Hover non- ∞edges, i.e.,
+the cycle over all vertices in inverse reset order, is an all-
+positive-preﬁx path in its graph G v.
+Proof Fact 8transfers to Gvif we consider the Hamiltonian
+path pHover all vertices vi∈V(Gv)ininverse reset order
+instead (evident from Fig. 7-(7)), and due to Fact 3, we can
+then ignore all paths that are neither pHnor its sub-paths via
+cycle chords. The remaining cycles traverse only edges with−DBM
+target[i,j]and 0 weights; recall that the 0 weights
+were artiﬁcially introduced by vi≥0 for edges e=(vi,v0).
+Given a closed DBM target with minimum edge costs (cf. Fact
+2), we can infer that a maximum edge costs property holds
+123
+
+--- Page 17 ---
+Bounded DBM-based clock state construction…
+Fig. 7 Derive DBM vfrom relation DBM approx⊇DBM target
+for all paths that only traverse edges with −DBM target[i,j]
+weights, and in consequence, we can ignore shorter pathsderived via cycle chords from paths with known positive
+costs. Based on the maximum edge costs property, we can
+ignore all sub-cycles of p
+H(via cycle chords) that do not tra-
+verse the artiﬁcial 0 weights, i.e., we only have to check pH
+and its preﬁx cycles . As the ﬁnal edge of such preﬁx cycles
+has 0 weight and thus does not affect the accumulated pathcost, it sufﬁces to check the preﬁx paths ofp
+Hinstead, and
+thus, the ﬁnal set of paths to check are pHand all its pre-
+ﬁx paths, i.e., we check if pHis an all-positive-preﬁx path .
+Thus, Lemma 5.10 holds. /intersectionsq/unionsqFig. 8 Derive DBM v,Rfrom relation DBM approx ⊇DBM target for a
+reduction to DBM v
+Determine reset order (P2) In the general case, however,
+the reset-df-all sequence is unknown, so we ﬁrst need to
+ﬁnd a suitable reset order that leads to a non-empty DBM v
+before we can derive suitable reset values from that DBM v
+as described in P1. We denote the sets of all potential
+DBM vand their graphs GvasDBM vand Gv, respectively.
+Recall that DBM approx ⊇DBM target yields constraints
+vi−vj≥DBM target[i,j]only for a subset of value
+pairs(vi,vj)depending on the reset order, and if we chose
+another reset order, we would obtain constraints on a dif-
+ferent subset of value pairs. The concept to determine asuitable reset order is shown in Fig. 8. We ﬁrst assume the
+reset-all sequence (Fig. 8-(1)), whose resulting clock zone of
+DBM
+approx (Fig. 8-(2)) represents a single point, and which
+thus results in the most restrictive DBM v,R(Fig. 8-(3)) with
+constraints DBM target[i,j]≤vi−vjonallpairs(vi,vj).
+For this most restrictive constraint set (whose solution set is
+usually empty unless DBM target was constructed by exactly
+such reset-all sequence), we determine which constraints
+have to be removed to transform DBM v,Rinto a valid and
+non-empty DBM v(Fig. 8-(5)), which corresponds to turn-
+ing the reset-all sequence into a reset-df-all sequence with a
+suitable reset order (Fig. 8-(4)). The task is now to derive a
+reset order from the data in DBM v,R, which we approach on
+the level of the corresponding graphs Gv,RandGv.I nt e r m s
+123
+
+--- Page 18 ---
+S. Lehmann, S. Schupp
+of Hamiltonian paths (cf. Lemma 5.10 ), the relation between
+Gv,RandGvis expressed as follows:
+Lemma 5.11 (Relation between Gv,RandGv)I fp His an
+all-positive-preﬁx Hamiltonian path over edges with non- ∞
+weights in G v,R, then there exists a graph G v∈Gv, such that
+pHis an all-positive-preﬁx Hamiltonian path over edges with
+non-∞weights in G v.
+Proof Lemma 5.11 holds as we can obtain such a Gvby set-
+ting all edges e=(vi,vj),e/∈pH,vj/negationslash=v0inGv,Rto∞,
+which is equivalent to removing all constraints not implied
+by the reset order that corresponds to the order of vertices in
+pH. /intersectionsq/unionsq
+We can use such a path pHinGv,Rto derive a valid graph
+Gvand thus a suitable reset order:
+Proposition 5.3 (Reset order from pH)Given a DB M target
+reached by an (unknown) sequence S ∈OP(DBM init)∗from
+a zero-initialized DB M init, if a cycle p H=((v 0,va),(v a,vb),
+... ,(v k,vl),(v l,v0))is an all-positive-preﬁx Hamilto-
+nian cycle in the graph G v,R, the corresponding reset
+order Ord ={(tl,tk),... , ( tb,ta)}leads to a zone
+DBM v, and thus, to reset-df-all sequences S approx =
+(DF,R(tl,xl),DF,R(tk,xk),DF,. . . , R(ta,xa),DF)
+that result in valid overapproximations of DB M target for
+some reset values x i.
+Proof Proposition 5.3directly follows from Lemma 5.11 ./intersectionsq/unionsq
+A concrete reset valuation for the reset-df-all sequence can
+then be picked arbitrarily from the zone DBM vas described
+inP1(cf. Lemma 5.9).
+Algorithm Based on Lemma 5.9, Proposition 5.3, and the
+steps shown in Fig. 8, we propose the algorithm shown
+in Fig. 9for the overapproximation task. In ll.1 −4, we
+derive the graph Gv,RviaDBM v,R, which we calculate as
+DBM v,R=− DBMT
+target , and apply the artiﬁcial constraints
+vi≥0 for non-negative reset values. As optimization, we
+already derive a partial clock reset order Ord Pat this point,
+based on the fact that constraints vi−vj≤− ∞ (which
+result from ∞values in DBM target ) are never satisﬁable
+and thus certainly need to be removed (i.e., replaced byv
+i−vj≤∞ ) by choosing the reset order in the reset-df-
+all sequence accordingly (ll.5 −6). Based on that ordering,
+we apply the sub-algorithm All Pos Pref i x Path (Fig. 10),
+which determines an all-positive-preﬁx path in Gv,Rand its
+corresponding total clock reset order Ord T(l.8, cf. Proposi-
+tion 5.3). Afterward, we obtain the graph Gvfor our particular
+reset order by setting all weights of edges in Gv,Rthat cor-
+respond to clock pairs in reset order to ∞(ll.9−12), and
+transform Gvback to a (non-empty) DBM v(l.13), for which
+we restore the closed form (l.14). Finally, we derive an arbi-trary valuation of reset values from DBM
+v(ll.15-16, cf.Fig. 9 Derive an approximation sequence via DBM
+Fig. 10 Derive reset order from all-positive-preﬁx path
+Lemma 5.9), and based on both the reset order and reset
+values, derive and return the overapproximation sequence
+Sapprox (ll.17−18).
+Example 5.3 (Overapproximation via O(DBM)) Given
+DBM target introduced in Example 5.1. We determine DBM v,R
+=− DBMT
+target and its corresponding DBM graph Gv,R,
+and search for an all-positive-preﬁx path in Gv,R, which is
+pH=(v0,v3), (v 3,v1),(v 1,v2),(v 2,v0)), from which we
+can derive the overapproximation sequence
+Sapprox ,O(DBM )=(DF,R(t2,0),DF,R(t1,0),
+DF,R(t3,0),DF),
+123
+
+--- Page 19 ---
+Bounded DBM-based clock state construction…
+leading to the overapproximation of DBM target :
+DBM approx ,O(DBM )=t(0)t1t2t3⎛
+⎜⎝⎞
+⎟⎠t(0) 00 0 0
+t1∞ 00 ∞
+t2∞∞ 0∞
+t3∞ 000
+5.3 Time and size complexity
+To conclude the discussion of the O-phase, we analyze the
+resulting length and generation time of Sapprox .G i v e na
+DBM with clocks T, for the sequence length, we have shown
+that any given sequence Srefof operations op∈OP(DBM )
+can be reduced to a reset-df sequence Sapprox (Proposi-
+tion 5.2), where each clock is reset at most once (i.e., |T|
+resets at most), and as multiple consecutive DF operations
+can be reduced to one single DF,Sapprox has|T|+1DF
+operations at most. Therefore, the number of required oper-ations during the O-phase, considering a minimum bound of0 operations for the case DBM
+init== DBM approx ,i s :
+0≤|Sapprox|≤1+2∗|T| (5.10)
+Regarding the generation time, we notice that the reduc-
+tion in a given Srefdepends on its length and the number
+of clocks. Algorithmically, we start with the last element
+ofSref, and check for each element, if it is a Reset not
+encountered yet, or a DF; if neither is true, we remove
+the element. As each element is compared against the set
+of already encountered resets, the upper bound of stepsrequired is therefore |S|∗(|T|−1). For the second approach,
+the derivation of S
+approx from DBM target , the transforma-
+tion steps to DBM vand then to Gv, have a complexity of
+O(|T|2). Then, for the determination of an all positive pre-
+ﬁx path, in the worst case, no −∞ weights are given, and
+thus, no a priori information of a partial ordering exists. In
+that case, a possibly full search through the graph is requiredbyAll Pos Pref i x Path (Fig. 10). There again, in the worst
+case, only the last searched path yields positive weight sums
+on all its preﬁxes, and all other paths turn negative on the lastedge, which leads to a complexity of O((|T|−1)!).I nt h e
+general case though, a path can turn negative earlier, and is
+discarded then (together with all paths of which that path is a
+preﬁx); also, an all positive preﬁx path can potentially be dis-covered earlier. Furthermore, the graph size depends only on
+the number of clocks, which is usually small (between 3 and
+10 clocks per model in our experiment model suite). Amongall remaining steps, the Close operation on DBM
+vhas the
+highest complexity O(|T|3). In conclusion, the complexity
+of the O(SEQ)approach grows linearly with the sequence
+length, and is therefore suitable for shorter sequences, e.g.,for the processing of incoming sequence sections in an on-
+the-ﬂy application, while the O(DBM )approach guarantees
+upper construction time bounds for DBMs resulting from
+sequences of arbitrary length.
+6 Constraint phase (C-phase)
+At this point, we have derived an overapproximating sequence
+Sapprox , which, when applied to DBM init, results in
+DBM approx , overapproximating DBM target . In the second
+phase, the C-phase, we now determine a sequence Sconstr ,
+which transforms DBM approx to the ﬁnal DBM target :
+Sconstr(DBM approx)=DBM target (6.1)
+All entries of DBM approx fulﬁll the superzone property of
+Eq. ( 5.2) compared to DBM target at this point. Therefore,
+the main task is now to decrease each entry of DBM approx so
+that it becomes equal to those of DBM target . While OP does
+not contain an operation to increase individual DBM entriesfor the O-phase, it provides such an operation for decreasingindividual entries: Constraint (t
+a,tb,v). Therefore, the goal
+of the C-phase is to obtain a sequence of constraint opera-
+tions:
+Sconstr=C(ta1,tb1,DBM target[a1,b1])◦
+C(ta2,tb2,DBM target[a2,b2])◦...(6.2)
+We describe three approaches to derive such a constraining
+sequence Sconstr with different trade-offs between genera-
+tion time and sequence length: A trivial approach using the
+full constraint system (FCS) in Sect. 6.1, a reduced approach
+using a minimal constraint system (MCS) (introduced by
+Larsen et al. [ 23]) in Sect. 6.2as well as a minimal approach
+using a newly introduced relative constraint system (RCS)in Sect. 6.3. Among these approaches, the former already
+solves the problem of constraining DBM
+approx toDBM target
+in general, and the latter two optimize the resulting sequence
+lengths.
+6.1 C(FCS): full constraint system approach
+The ﬁrst approach uses the FCS, i.e., a system of all
+constraints contained in a DBM, so we perform an indi-
+vidual constraint operation C(ti,tj,DBM target[i,j])on
+DBM approx for each entry of DBM target . This is the simplest
+form, and in fact, for its construction we only turn every entry
+ofDBM target into a Constraint operation:
+Sconstr=C(t(0),t(0),DBM target[0,0])◦...◦
+C(t(0),tn,DBM target[0,n])◦...◦
+C(tn,tn,DBM target[n,n])(6.3)
+123
+
+--- Page 20 ---
+S. Lehmann, S. Schupp
+While the simplicity of generation is a clear advantage of this
+approach, the downsides are manifold, even if we removethe constraints on diagonal DBM entries, representing the
+differences t
+i−tifor clocks ti∈T(DBM ), which are
+constantly 0 and thus do not need an explicit constraintoperation. Certain constraints are already implied by others,and thus, setting a constraint may—via a Close operation—
+already set multiple DBM entries to their targeted values;
+applying their Constraint operations from S
+constr is then
+redundant. Furthermore, several entries may already equal
+those of DBM target after the O-phase, so that a constraint
+for these entries is not required either. Still, this approachallows us to determine a worst case upper bound of required
+Constraint operations during the C-phase as (|T|+1)
+2, i.e.,
+every entry of DBM target , which has T+1 clocks (the model
+clocks plus the reference clock t(0)).
+Example 6.1 (Full constraint system) Given the reference
+sequence Srefand target DBM DBM target introduced in
+Example 5.1. Applying the C(FCS) approach to DBM target
+results in the constraining sequence
+Sconstr ,C(FCS)=
+(C(t(0),t1,0),C(t(0),t2,−3),C(t(0),t3,0),
+C(t1,t(0),0),C(t1,t2,−3),C(t1,t3,0),
+C(t3,t(0),0),C(t3,t1,0),C(t3,t2,−3))
+6.2 C(MCS): minimal constraint system approach
+The second sequence generation strategy uses the data of
+an MCS, i.e., a minimal system of constraints that impliesall remaining constraints. The idea is to perform a con-straint operation on DBM
+approx for each entry of the MCS
+ofDBM target . An algorithm for the reduction in an FCS to
+an MCS was introduced by Larsen et al. [ 23].
+The algorithm performs the following steps: For a graph G
+representing a given DBM, it determines vertex equivalence
+classes Eiregarding zero-equivalence , which means that a
+cycle with a weight of 0 ( zero-cycle ) containing those ver-
+tices exists. In each equivalence class Ei, it determines a cycle
+over all its vertices (in index ordering), where each weightbetween two vertices is the shortest path weight betweenthem. The edges of those cycles are added to the MCS. Fur-
+thermore, between equivalence classes E
+iandEj,i tt a k e st h e
+vertex with smallest index from each of the two classes, andincludes two edges between them with shortest path weight.
+As only a single cycle instead of the complete graph is con-
+sidered inside each equivalence class, and only two edges areneeded between each pair of equivalence classes, it is obvi-
+ous that the total number of constraints in an MCS can be
+much smaller compared to the FCS. On average, the MCScontains a number of constraints reduced by 70–86% [ 23].The trade-off lies in the time complexity, as the complex-
+ity of determining the equivalence classes is O(n
+2), getting
+the edges between equivalence classes is O(n), and ﬁnding
+the cycles within EiisO(n), leading to an overall complex-
+ity of O(n2)(orO(n3), if the DBM is not in closed form).
+Additionally, when applied in our approach, the MCS maystill include constraints whose corresponding DBM entries
+already had the targeted values.
+Example 6.2 (Minimal constraint system) Given the refer-
+ence sequence S
+refand target DBM DBM target introduced in
+Example 5.1. Applying the C(MCS) approach to DBM target
+results in the constraining sequence
+Sconstr ,C(MCS)=(C(t(0),t2,−3),C(t(0),t1,0),
+C(t1,t3,0),C(t3,t(0),0),Cl)
+6.3 C(RCS): relative constraint system approach
+To minimize the required amount of constraints, we introduce
+the RCS, a system which contains only those constraints thatare not already correctly set (i.e., entries DBM
+approx[i,j]/negationslash=
+DBM target[i,j]) or implied by other constraints in the DBM.
+This approach can be based on the concepts of either FCS or
+MCS. In the following, we will refer to edges of constraintsthat are already correctly set as ﬁxed edges , and all remaining
+ones as non-ﬁxed edges .
+Using the FCS, the procedure is straight-forward: While
+transforming each entry of DBM
+target into a Constraint
+operation, we check if the corresponding DBM approx entry
+has the same value as the DBM target entry. In that case, the
+Constraint operation is not added to the ﬁnal sequence of
+constraints.
+Deriving an RCS with the properties of an MCS requires
+additional steps. The overall idea is to obtain a minimal setof constraints not already included in DBM
+approx , which,
+together with the constraints included in DBM approx ,i m p l i e s
+all remaining constraints of DBM target . Recall that for the
+construction of an MCS [ 23], we determine a) two oppos-
+ing edges between each pair of equivalence classes Eiand
+Ejand b) a cycle over all vertices within each equivalence
+class Ei. In steps where vertices are selected, the original
+MCS construction algorithm uses the index order of vertices
+to eliminate non-determinism, which could occur as usually
+multiple minimal sets of constraints exist for a given con-straint system. Our RCS approach introduces an additional
+step which picks ﬁxed edges ﬁrst, and only then—if still mul-
+tiple ambiguous choices exist—relies on the vertex order forthe remaining edges like the original MCS algorithm. That
+way, we reﬁne the selection of vertices in favor of constraints
+that are already correctly set, and thus, reduce the amount ofconstraints required additionally.
+123
+
+--- Page 21 ---
+Bounded DBM-based clock state construction…
+Fig. 11 Construct minimal relative constraint system
+Figure 11shows the adapted procedure, where l.11, l.17
+and ll.19 −20 (with Ef=∅ , i.e., no ﬁxed edges) match
+the original MCS algorithm, and ll.7 −9, ll.13 −15 and
+ll.19−21 (with Ef/negationslash=∅ ) implement our adaptions for the
+case that ﬁxed edges are involved. For the determination of
+edge pairs in a), we will ﬁrst search for edges of already cor-
+rectly set DBM entries (l.7 −9), and only revert to edges of
+index ordered vertices (l.11)—as in the original algorithm—
+if none can be found. For the equivalence classes EiandEj
+(with ta∈Ei,tb∈Ej, and minE ithe vertex with smallest
+index among vertices in Ei), we proceed as follows: Among
+ﬁxed edges (ta,tb), we choose the one with the smallest index
+a(l.7), and if multiple such edges exist, the one with small-
+est index b(l.8) among them. If no such ﬁxed edge exists,
+we choose the edge (minE i,minE j)(l.11) as deﬁned in
+the reference algorithm. Similarly, we determine the second,
+opposing edge (tb,ta)(ll.13−15), but with swapped indices,
+i.e., ﬁrst the smallest b(l.13) and then the smallest a(l.14),
+and(minE j,minE i)(l.17) otherwise.
+For (b), in each equivalence class Ei, we want to determine
+a cycle over all its vertices, which additionally contains themaximal possible number of ﬁxed edges. This problem is NP-
+complete and can be transformed to the traveling salesman
+problem by assigning weight 0 to ﬁxed edges and weight 1to non-ﬁxed edges. Then, the task is to ﬁnd the lowest-cost
+Hamiltonian cycle in that graph, i.e., one that contains as
+few non-ﬁxed edges that impose additional constraints, andas many ﬁxed edges as possible. Fortunately, the problem
+complexity grows non-polynomially only in the number of
+clocks in the DBM, which is rather low in the general case(e.g., between 3 and 10 clocks in our experiment suite, cf.Sect. 9). Therefore, it is viable to determine a solution by both
+brute force and heuristic methods.
+Proof The correctness argument for Fig. 11is as follows: In
+the original MCS algorithm, the choice of both the concrete
+edge pairs between equivalence classes and the edges on a
+Hamiltonian cycle within each equivalence class could be
+arbitrary, and each solution would be a correct minimal con-straint system (cf. [ 23] for justiﬁcation). While the MCS
+algorithm uses the index order of vertices to choose one of
+these correct solutions deterministically, our approach just
+adds another objective (i.e., favoring of ﬁxed edges) to thatchoice in ll.7 −8, ll.13 −14, and l.19. That way, the resulting
+constraint system is still necessarily correct, and as we pick
+ﬁxed edges ﬁrst whenever possible, the resulting RCS is also
+minimal with respect to DBM
+approx . /intersectionsq/unionsq
+Example 6.3 (Relative constraint system) Given the refer-
+ence sequence Srefand target DBM DBM target introduced
+in Example 5.1, and the resulting overapproximation DBM
+DBM approx of Example 5.2. Applying the C(MCS) approach
+toDBM target starting from DBM approx results in the con-
+straining sequence
+Sconstr ,RCS=(C(t(0),t2,−3),Cl)
+6.4 Time and size complexity
+Again, we analyze the resulting length and generation time of
+Sconstr and further consider the application times of sequences
+based on FCS, MCS, and RCS. Given a DBM with clocks T,
+in the worst case (FCS), one Coperation is required for every
+entry of DBM approx , which has |T|+1 columns and |T|+1
+rows. Considering 0 operations as the lower bound for the
+case DBM approx== DBM target , this leads to the following
+estimate of required operations:
+0≤|Sconstr|≤(|T|+1)2(6.4)
+The actual maximal number of required operations lies below
+that bound, as the main diagonal entries are always 0, leading
+to|Sconstr|≤| T|∗(|T|+1). As certain DBM entries may
+already be implied by other entries (MCS), or are alreadyset correctly in DBM
+approx (RCS), we can further reduce the
+bound by ∼80% or ∼90%, respectively (see Sect. 9).
+Combining the sequence length bounds of the O-phase
+and C-phase, we obtain the total size of our sequence S—the
+major theoretical result of this work:
+Theorem 1 (CSC sequence complexity bound) Any valid and
+closed DBM can be reached by a clock state constructionsequence S of
+123
+
+--- Page 22 ---
+S. Lehmann, S. Schupp
+0≤(|S|=| Sapprox|+|Sconstr|)
+≤1+2∗|T|+|T|∗(|T|+1)
+operations.
+Regarding generation times, deriving the FCS has a time
+complexity of O(|T|2), as we directly transform each DBM
+entry into a Constraint operation. For the MCS, the com-
+plexity is O(|T|3), which follows from the complexity of
+deriving the shortest-path reduction GR(cf. [ 23]). Finally,
+the RCS approach has a complexity of O(|T|2)for the edges
+between equivalence classes, and O((|T|−1)!)to obtain a
+Hamiltonian cycle with most ﬁxed edges within an equiv-alence class. However, as for the factorial-time step of the
+O-phase, the actual costs depend only on the number of
+clocks, which is comparatively small in the common case.
+Finally, we consider the complexity of applying the
+derived constraint sequence for the C-phase. On the one hand,
+the FCS approach has the greatest sequence length, but doesnot require a ﬁnal Close operation, as all constraints are
+explicitly contained in the sequence and do not need to be
+inferred. On the other hand, the MCS and RCS approachesresult in shorter sequences, but require a closing step with
+O(|T|
+3)complexity which infers the left out constraints. In
+the end, the most suitable approach in practice depends on
+the concrete aim, i.e., whether we require a comparativelyshort sequence, a shorter execution time, or faster generation
+times; this question cannot be answered universally though.
+7 State construction for Uppaal extended
+timed automata
+At this point, we are given the targeted system state, which—
+as a reminder—contains the information of the variablevalues, active locations, and clock state that we want to set,
+and a clock state construction sequence derived in Sect. 5
+and Sect. 6. In this section, we explain how this information
+extends a concrete (network of) Uppaal automata to restore
+the desired starting state from which the model simulation
+will then continue. Note that this section focuses on the (morecomplex) case of state construction in ETAs (see Sect. 3.1for
+the deﬁnition of ETAs); however, for a simple TA without
+synchronization, urgency, and variables, one would proceed
+similarly, but add the construction sequences directly intothe given TA, and implement urgency via explicit invariants
+t
+u≤0 on a helper clock tuthat was reset before. For state
+construction in ETAs, we transform the clock state construc-tion sequence and variable data into an additional automaton
+whose execution restores the clock and variable state before
+the original system is re-entered at the targeted starting loca-tions. An example of the adapted form of the introductionmodel (Fig. 1) is shown in Fig. 12, and we will explain the
+changes in the following.
+To integrate the derived DBM operation sequence leading
+toDBM
+target into an Uppaal automaton system, we need to
+translate the operations into a sequence of artiﬁcially addedlocations and edges, each labeled with invariants, or guardsand resets, respectively. Transferring the symbolic semantics
+(cf. Deﬁnition 2), i.e., the execution of transitions and validity
+checks of active locations, to corresponding DBM opera-tions, we obtain the following types of operation sequences:
+Initialization: S
+init=(R(t1,0) ,..., R(tn,0))
+Initially, all clocks are reset to 0.
+Location: S loc∈DF?⊗C(DBM )∗⊗Cl1
+In a location l,aDF is applied if no urgent or committed
+next transition is enabled, and all invariants Cl(repre-
+sented as constraint operations) are applied to the DBM.
+Afterward, a Cloperation is performed to restore DBM
+closedness.
+Edge: S edge∈ C(DBM )∗⊗Cl1⊗R(DBM )∗⊗
+C(DBM )∗On an edge eabfrom latolb, the atomic guard
+constraints in g(eab)(again represented as Coperations)
+are applied to the clock state DBM, followed by a Cl
+operation to turn the DBM into closed form again. Then,all clock resets in r(e
+ab)(represented as Roperations)
+are applied to the DBM, and ﬁnally, the invariants I(lb)
+of the target location are checked.
+Recall that our construction sequence Sconsists of a sub-
+sequence of (alternating) RandDF operations (O-phase),
+followed by a sequence of Coperations (C-phase), which,
+when based on the MCS orRCS approach, require a ﬁnal
+Cloperation to adapt the remaining DBM entries:
+S∈(R(DBM )1⊗DF?)∗⊗C(DBM )∗⊗Cl1(7.1)
+The individual elements of this sequence need to be mapped
+to components of the NTA, i.e., locations and edges, based on
+the operation sequences applied during simulation identiﬁed
+above. For the subsequence Sapprox∈(R(DBM )1⊗DF?)∗,
+we can use edges with corresponding resets but withoutguards to new (non-urgent and non-committed) locations
+without invariants, which results in the sequences S
+edge∈
+R(DBM )∗andSloc=(DF). That way, we can express each
+subsequence R(DBM )∗⊗DF1by an edge–location pair; a
+sequence of those pairs will cover the complete O-phase. In
+Fig. 7a, these are the locations Init ,Rec1 , andRec2 , and
+their corresponding edges. To enforce all constraints of the
+C-phase, i.e., the subsequence Sconstr∈(C(DBM )∗⊗Cl1),
+we can use an edge without resets to an unconstrained loca-tion, which results in S
+edge∈(C(DBM )∗⊗Cl1). Note for all
+123
+
+--- Page 23 ---
+Bounded DBM-based clock state construction…
+Fig. 12 Introduction model
+adapted for initial state
+construction
+these sequences that in Uppaal , a partial Close (ta,tb)oper-
+ation is applied after each Constraint (ta,tb,v) instead of a
+single Close over all clocks after a sequence of Constraint
+operations.
+The construction of the variable state, which is introduced
+by the ETA formalism, can be performed via a single tran-sition. We can set the individual variable values, in contrast
+with the DBM state, directly via variable assignments (cf.
+Deﬁnition 2). In Fig. 7a, we added these assignments to a
+new edge from Rec3 toEnd for a separation of concerns;
+however, a separate edge is not needed for these assignments,
+as we could add them to the last edge of the clock state con-struction sequence (i.e., the edge with the constraining guards
+of the C-phase).
+Furthermore, we need to reach the original active locations
+in the adapted model after the variable and DBM state con-struction. Normally, we would simply deﬁne those locations
+asinitial in Uppaal, so that they become active on model
+initialization. To traverse our artiﬁcially added constructionsequence though, the ﬁrst location of that sequence needs
+to be deﬁned as initial , and the ﬁnal edge of the construc-
+tion section should lead to the targeted initial location of theoriginal model section. Once the construction sequence is
+fully traversed (and only then), the original model sections
+of all automata are re-entered (which is achieved in ETAs bybroadcast synchronization via DBM_init_end ).
+8 Implementation
+We provide a Python implementation of the introduced OC
+approach, as well as the required interface and interpretercode needed to apply the approaches to Uppaal models. The
+project implementation is open source [ 34][35] under MIT
+license, and mainly consists of:
+– An Uppaal model and Uppaal C code parser (via EBNF
+grammars building up on the BNF grammar providedwith Uppaal),– An Uppaal model simulator, which allows tracking the
+simulated operation sequences (= S
+ref)[34],
+– The DBM data structure and operations,
+– The state constructor implementations for the trivial
+approach, Rinast approach (port from Java [ 20]), and the
+variants of our OC approach,
+– The experiments performed in this paper, including a ran-
+dom sequence generator as alternative input data source.
+Compared to the concepts introduced in Sect. 5and 6,t h e
+concrete implementation differs in the following aspects:
+– The O(DBM) implementation uses DBM vdirectly
+instead of its graph representation Gv; the result is iden-
+tical.
+– The C(RCS) implementation checks only up to a ﬁxed
+amount of cycle permutations; while this limitation may
+not preserve minimality of the resulting sequences, the
+boundedness is not affected, and it allows a time-efﬁcientapplication to models with higher amounts of clocks as
+well.
+– Where suitable for sequence-based algorithms (i.e.,
+trivial, Rinast, O(SEQ)), on-the-ﬂy versions are imple-mented, which process only the newly tracked operations
+instead of the complete S
+refon each call.
+After installation, executing run in the experiments CLI
+will run all clock state construction experiments and store
+the corresponding analysis data. The experiments are avail-able online [ 36], and the experiment setup and results are
+explained in Sect. 9.
+8.1 Random operation sequence generation
+The experiments in Sect. 9use operation sequences that are
+either obtained from simulation of TA models, or gener-ated (semi-)randomly based on the subsequences for location
+states and transitions described in Sect. 7. In general, the
+sequence generator generates operation sequences via a sim-ulating approach, which keeps track of the current DBM
+123
+
+--- Page 24 ---
+S. Lehmann, S. Schupp
+to which each generated operation is applied; based on that
+current DBM , the next invariant, guard, or reset values
+are selected from intervals that keep the DBM non-empty,
+and thus, keep the sequences feasible. The generation pro-
+cess starts with specifying if non-zero resets should beallowed, and if the sequence should start with an initial-ization sequence (i.e., a sequence of resets of all clocks to
+0). Then, the generator randomly chooses whether a DF
+is added, followed by a sequence of single-clock invariantson a random subset of clocks with (valid) values (i.e., con-
+straints C(t
+i,t(0),vi), with ti∈Tsub⊆T(DBM ),vi∈
+[a,b],a=− DBM [0,i],b=DBM [i,0]) that are ran-
+dom within bounds, and a Cloperation; this part reﬂects
+the sequence imposed by the initially active locations. After-
+ward, until the targeted sequence length is reached, werepeatedly add an operation sequence reﬂecting a transition,followed by another sequence for the newly active location
+state. Each transition sequence is composed of a sequence
+of single-clock guards on a random subset of clocks withrandom (valid) values (i.e., constraints C(t(0),t
+i,−vi), with
+ti∈Tsub⊆T(DBM ),vi∈[a,b],a=− DBM [0,i],b=
+DBM [i,0]), followed by a Cland a sequence of resets
+of a random subset of clocks to values that are either ran-
+dom (within bounds) if non-zero resets are allowed, or 0
+otherwise. The generation of sequences of the newly activelocation state is identical to the process described for the ini-tial location state. Note that we restrict inﬁnite intervals (i.e.,
+constraint intervals [a,∞)or the reset value interval [0,∞))
+to ﬁnite ones during value choice (i.e., [a,a+c
+1]and[0,c2],
+respectively, for some constants c1,c2∈N0).
+9 Empirical evaluation
+Using the described implementation, we evaluate the pre-
+sented approaches for the O-phase and C-phase. All experi-
+ments were executed on an Ubuntu 18.04 LTS system withAMD Ryzen 7 2700X eight-core CPU and 16GB RAM.
+Overall, we perform three types of experiments, by which
+we compare:
+1. The overall state construction sequence lengths of the
+trivial ,Rinast , and our OCapproach, which con-
+ﬁrms that in contrast with the former two, our approach
+generates bounded sequences over time in all tested cases.
+2. The constraint sequence lengths of the C-phase approaches
+C(FCS),C(MCS), and C(RCS), showing that the
+C(MCS)andC(RCS)approaches reduce the sequence
+lengths compared to the C(FCS)approach.
+3. The construction times of the O-phase and C-phase
+approaches.
+We apply these experiments to two types of data:Fig. 13 Uppaal model details
+Fig. 14 Sequence lengths after nsteps for the trivial (cross), Rinast
+(circle) and OC (triangle) approach
+1. A test suite composed of 6 Uppaal demo models and 2
+case study models, from which we derive DBM operation
+sequences during ongoing execution.
+2. 1000 randomly generated operation sequences (per exper-
+iment), reﬂecting the general sequence structure of exe-
+cution traces in a TA (see Sect. 7and Sect. 8.1), as a stress
+test for validation of the model experiment insights.
+The main parameters of the experiments are the model size,
+the number of clocks, and the observed sequence length.
+Our experiment model suite consists of 8 models in
+total, among which the 6 models 2doors ,bridge ,
+fischer ,fischer-symmetry ,train-gate , and
+train- gate-orig are the complete set of cyclic,
+deadlock-free models of the demo model suite of standardUppaal (i.e., without extensions such as Uppaal SMC ), and
+csmacd2 [19] andtdma [26] were developed in case stud-
+ies. Figure 13gives an overview of their characteristics.
+The suite contains models with different amounts of loca-tions (10–100), edges (21–217), and clocks (3–10). For each
+model, we execute 1000 simulation runs over 100 transi-
+tions, and calculate the minimum, average, and maximum ofsequence lengths and construction times over all runs at each
+individual simulation step.
+Applying the approaches to the test suite gives the results
+shown in Figs. 14and 15, as well as the data table as shown in
+Fig. 20provided in appendix 1, which shows the construction
+sequence lengths after 1, 10, 50, and 100 executed transi-tions during model simulation for all Uppaal models. For 3
+123
+
+--- Page 25 ---
+Bounded DBM-based clock state construction…
+Fig. 15 Average construction times at each step
+selected models of the test suite ( 2doors ,bridge , and
+csmacd2 ), the graphs in Fig. 14show the state construction
+sequence lengths of the trivial, Rinast, and OC approach for a
+simulation up to 50 steps, together with the calculated boundsof the OC approach. Finally, Fig. 15shows the total construc-
+tion sequence generation and application time required for
+all 8 Uppaal models on each step during simulation.Applying the approaches to random DBM operation
+sequences based on a range of different numbers of clocksand sequence lengths gives the results shown in Figs. 16,17,
+18, and 19. For a ﬁxed number of 5 clocks, Figs. 16and 18
+show the ranges of reduced lengths and construction times,respectively, for different O-phase and C-phase approachesapplied to different lengths of random input sequences (50–
+500 operations). Figures 17and 19show the lengths of state
+construction sequences derived by the OC approach variantsand construction times, respectively, from ﬁxed-length ran-
+dom sequences (100 operations) based on different numbers
+of clocks (1–10 clocks).
+9.1 Evaluation
+The model-based experiments show that, as expected forall models, the sequences of the trivial approach are not
+bounded, and grow linearly over time (cf. Figure 20). The
+approach by Rinast produces bounded sequences for all mod-els except for bridge , which has a global clock that is
+never reset, and thus, never re-visits any reached state dur-
+ing simulation. Our approach generates bounded sequences
+Fig. 16 State construction sequence lengths for ﬁxed clock count and variable input sequence length (the intervals represent the minimum, average,
+and maximum values over 1000 runs)
+Fig. 17 State construction sequence lengths for ﬁxed input sequence length and variable clock count (the intervals represent the minimum, average,
+and maximum values over 1000 runs)
+123
+
+--- Page 26 ---
+S. Lehmann, S. Schupp
+Fig. 18 State construction times for ﬁxed clock count and variable input sequence length
+Fig. 19 State construction times for ﬁxed input sequence length and variable clock count
+in all cases, with lengths that are generally shorter than the
+other two approaches in the long run (e.g., 26 operations forO(DBM) + C(FCS) for bridge , compared to 212 opera-
+tions of trivial ).
+Figure 14underlines these results. It shows that at an
+(early) point during simulation (for the three models between8 and 28 steps), the sequence lengths of the trivial approach
+outgrow the lengths of our OC approach. For csmacd2 ,w e
+observe that the Rinast approach performs best, as Reset
+operations overwrite the clock values on almost every edge
+in the model. Furthermore, we see that the actual sequence
+lengths of our approach lie well below the theoreticallycalculated bounds (dashed lines) for the most part. Theseproperties also hold for the remaining models.
+As last experiment applied to the test suite, Fig. 15shows
+that the construction times lie in a real-time feasible range;during the experiments, below 50 milliseconds were required
+for most constructions. Only for very few outliers, especially
+in the ﬁrst steps of fischer-symmetry (outside of the
+plotted range), the construction time exceeds 1 second, with
+averages still below 1 second. In the regular case, it is possible
+to restore a model state 2–20 times within a second.The experiments on generated DBM operation sequences
+validate the results of the test suite in a systematic manner,and yield the following results: The construction sequencelengths lie in constant ranges for growing input sequence
+lengths (Fig. 16). With increasing numbers of clocks (Fig. 17),
+the construction sequence lengths grow linearly for the O-phase and quadratically for the C-phase, both as expected
+from Theorem 1. Furthermore, we see that the MCS and
+RCS sequence lengths always lie below the FCS sequencelength, and the C(RCS) approach leads to sequences that are
+∼25% shorter compared to the C(MCS) approach. In terms
+of construction times for growing input sequences (Fig. 18),
+the random sequence experiments conﬁrm that for both O-phase and C-phase the required times stay constant, except
+for O(SEQ); the latter is expected as O(SEQ) gets the com-
+plete sequence as a whole in this experiment, in contrast withthe step-wise data increments of the model experiments, so
+that in the worst case, the full input sequence needs to be
+searched. From Fig. 19, we see that increasing the number
+of clocks results in constant times for O(DBM) and non-
+polynomial times for O(SEQ) (cf. Sect. 5.3) in the O-phase,
+and in the C-phase, the times grow quadratically for C(FCS),cubically for C(MCS), and non-polynomial for C(RCS) (cf.
+123
+
+--- Page 27 ---
+Bounded DBM-based clock state construction…
+Sect. 6.4). C(RCS), however, switches to cubic growth simi-
+lar to C(MCS) once the number of clocks leads to permutationcounts that exceed the predeﬁned limit (cf. Sect. 8).
+Overall, we can conclude that the new approach allows
+generating length-bounded sequences throughout the com-plete model simulation, and does so within real-time capabletime frames.
+10 Conclusion and future work
+In this article, we introduced and implemented multipleapproaches to derive bounded-length operation sequences
+to restore given DBM states in timed automata. We found
+out that the complexity of the individual approach variantseither only depends on the (ﬁxed) amount of clocks in asystem (i.e., for O(DBM), C(FCS), C(MCS), and C(RCS))
+or allows the formulation of alternative versions (i.e., for
+O(SEQ)) which process operations on the ﬂy, making themsuitable for use in online model checking contexts. The exper-
+iments revealed that early during simulation (between 8 and
+28 steps for the test model suite), the sequence lengths of theOC approaches become (and remain) shorter than the lengths
+of the trivial approach and—except for one model—of the
+Rinast approach as well.
+In future versions, the sequence lengths could be further
+shortened by an extension of our approach that handles short
+sections in which not all clocks have been reset already, or
+by a hybrid approach that selects the minimum sequence ofthe trivial and our OC approach. Furthermore, more efﬁcient
+algorithms may be used for the graph-based search prob-
+lems of O(DBM) and C(RCS), so that the approach becomesapplicable for systems with high amounts of clocks. The
+insights on overapproximating and constraining sequences
+may be used for model checking routines, e.g., for time efﬁ-cient falsiﬁcation of safety properties, and deserve furtherinvestigation.Acknowledgements We thank the anonymous reviewers who spotted
+a serious ﬂaw in our argumentation on the removal of operations andwho provided numerous helpful hints that improved the readability andaccessibility of the article.
+Funding Open Access funding enabled and organized by Projekt
+DEAL.
+Availability of data and material The models 2doors ,bridge ,
+train-gate ,train-gate- orig ,fischer ,a n d fischer-
+symmetry are part of the demo model suite of Uppaal available at
+https://www.uppaal.org/ . The models csmacd2 [19]a n d tdma [26]
+were developed in case studies. All other experimental data were pro-grammatically generated by the authors via the experiments linkedunder Code availability .
+Code availability The project implementation is open source under MIT
+license. The base Uppyyl simulator is available at https://github.com/
+S-Lehmann/uppyyl-simulator , the Uppyyl state constructor is avail-
+able at https://github.com/S-Lehmann/uppyyl-state-constructor ,a n d
+the examples and experiments covered in this article are altogetheravailable at https://github.com/S-Lehmann/uppyyl-state-constructor-
+experiments .
+Declarations
+Conﬂicts of interest Not applicable.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-
+cate if changes were made. The images or other third party material
+in this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+Model-based experiments: detailed data
+table
+See Fig. 20.
+123
+
+--- Page 28 ---
+S. Lehmann, S. Schupp
+Fig. 20 Sequence lengths after
+nsteps (minimum, average, and
+maximum lengths)
+123
+
+--- Page 29 ---
+Bounded DBM-based clock state construction…
+References
+1. Abdelli, A.: Improving the construction of the DBM over approx-
+imation of the state space of real-time preemptive systems. ActaCybern. 20, 347–384 (2012)
+2. Aho, A.V ., Garey, M.R., Ullman, J.D.: The transitive reduction of
+a directed graph. SIAM J. Comput. 1(2), 131–137 (1972)
+3. André, É., Arcaini, P ., Gargantini, A., Radavelli, M.: Repairing
+timed automata clock guards through abstraction and testing. In:Tests and Proofs, pp. 129–146 (2019)
+4. Audemard, G., Cimatti, A., Kornilowicz, A., Sebastiani, R.:
+Bounded model checking for timed systems. In: Formal Techniquesfor Networked and Distributed Sytems—FORTE 2002, pp. 243–259 (2002)
+5. Behrmann, G., Bengtsson, J., David, A., Larsen, K.G., Pettersson,
+P ., Yi, W.: Uppaal implementation secrets. In: Formal Techniques
+in Real-Time and Fault-Tolerant Systems, pp. 3–22 (2002)
+6. Behrmann, G., Bouyer, P ., Larsen, K.G., Pelánek, R.: Lower and
+upper bounds in zone based abstractions of timed automata. In:Tools and Algorithms for the Construction and Analysis of Sys-tems, pp. 312–326 (2004)
+7. Behrmann, G., David, A., Larsen, K.G.: A tutorial on Uppaal 4.0
+(2006)
+8. Bengtsson, J.: Clocks, dbms and states in timed systems. Ph.D.
+thesis, Uppsala University (2002)
+9. Bücker, H.M., Petera, M., V ehreschild, A.: Code optimization tech-
+niques in source transformations for interpreted languages. In:Advances in Automatic Differentiation, pp. 223–233 (2008)
+10. Clarke, E., Biere, A., Raimi, R., Zhu, Y .: Bounded model checking
+using satisﬁability solving. Formal Methods Syst. Des. 19, 7–34
+(2001)
+11. David, A.: Uppaal DBM library programmer’s reference (2006)12. Dubois, D., Fargier, H., Prade, H.: Possibility theory in constraint
+satisfaction problems: Handling priority, preference and uncer-tainty. Appl. Intell. 6, 287–309 (1996)
+13. Ehlers, R., Fass, D., Gerke, M., Peter, H.: Fully symbolic timed
+model checking using constraint matrix diagrams. In: 2010 31stIEEE Real-Time Systems Symposium, pp. 360–371 (2010)
+14. Evangelista, S., Pradat-Peyre, J.F.: Memory efﬁcient state space
+storage in explicit software model checking. In: Model Checking
+Software, pp. 43–57 (2005)
+15. Fages, F., Rizk, A.: From model-checking to temporal logic
+constraint solving. In: Principles and Practice of ConstraintProgramming—CP 2009, pp. 319–334 (2009)
+16. Hertzberg, J., Güsgen, H.W., V o β, A., Fidelak, M., V o β,H . :R e l a x -
+ing constraint networks to resolve inconsistencies. In: KünstlicheIntelligenz, pp. 61–65 (1988)
+17. Huang, Y ., Kintala, C., Kolettis, N., Fulton, N.D.: Software reju-
+venation: analysis, module and applications. In: Twenty-FifthInternational Symposium on Fault-Tolerant Computing. Digest ofPapers, pp. 381–390 (1995)
+18. Jagtap, P ., Abdi, F., Rungger, M., Zamani, M., Caccamo, M.: Soft-
+ware fault tolerance for cyber-physical systems via full systemrestart. ACM Trans. Cyber-Phys. Syst. 4(4), 1–20 (2020)
+19. Jensen, H., Larsen, K., Skou, A.: Modelling and analysis of a col-
+lision avoidance protocol using SPIN and UPPAAL. BRICS Rep.Ser.3(24), 1–20 (1996)
+20. Jonas Rinast: OMC framework. https://www.tuhh.de/sts/research/
+model-checking-abstract-interpretation/online-model-checking.html
+21. Kaplan, S.F., Smaragdakis, Y ., Wilson, P .R.: Trace reduction for
+virtual memory simulations. Tech. rep. (1998)
+22. Kong, F., Xu, M., Weimer, J., Sokolsky, O., Lee, I.: Cyber-physical
+system checkpointing and recovery. In: 2018 ACM/IEEE 9th Inter-national Conference on Cyber-Physical Systems (ICCPS), pp.
+22–31 (2018)
+23. Larsen, K.G., Larsson, F., Pettersson, P ., Yi, W.: Efﬁcient veriﬁca-
+tion of real-time systems: compact data structure and state-spacereduction. In: Proceedings Real-Time Systems Symposium, pp.14–24 (1997)
+24. Larsen, K.G., Pearson, J., Weise, C., Yi, W.: Clock difference dia-
+grams. Nordic J. Comput. 6(3), 271–298 (1999)
+25. Liu, Y ., Leangsuksun, C., Song, H., Scott, S.L.: Reliability-aware
+checkpoint/restart scheme: a performability trade-off. In: 2005IEEE International Conference on Cluster Computing, pp. 1–8(2005)
+26. Lonn, H., Pettersson, P .: Formal veriﬁcation of a TDMA proto-
+col start-up mechanism. In: Proceedings Paciﬁc Rim InternationalSymposium on Fault-Tolerant Systems, pp. 235–242 (1997)
+27. Makowsky, J.A., Ravve, E.V .: Incremental model checking for
+decomposable structures. In: Mathematical Foundations of Com-puter Science 1995, pp. 540–551 (1995)
+28. Mohan, C.: A cost-effective method for providing improved data
+availability during DBMS restart recovery after a failure. In: Pro-ceedings of the 19th International Conference on V ery Large DataBases, VLDB ’93, pp. 368–379 (1993)
+29. Pettersson, P .: Modelling and veriﬁcation of real-time systems
+using timed automata: Theory and practice. Ph.D. thesis, Depart-ment of Computer Systems, Uppsala University (1999)
+30. Rinast, J.: An online model-checking framework for timed
+automata. Ph.D. thesis, Hamburg University of Technology (2015)
+31. Rinast, J., Schupp, S., Gollmann, D.: State space reconstruction
+in UPPAAL: an algorithm and its proof. Int. J. Adv. Syst. Meas.7(1–2), 91–102 (2014)
+32. Salah, R.B., Bozga, M., Maler, O.: On interleaving in timed
+automata. In: CONCUR 2006—Concurrency Theory, pp. 465–476(2006)
+33. Salehi, M., Khavari Tavana, M., Rehman, S., Shaﬁque, M., Ejlali,
+A., Henkel, J.: Two-state checkpointing for energy-efﬁcient faulttolerance in hard real-time systems. IEEE Trans. V ery Large ScaleIntegr. (VLSI) Syst. 24(7), 2426–2437 (2016)
+34. Sascha Lehmann: Uppyyl simulator. https://github.com/S-
+Lehmann/uppyyl-simulator
+35. Sascha Lehmann: Uppyyl state constructor. https://github.com/S-
+Lehmann/uppyyl-state-constructor
+36. Sascha Lehmann: Uppyyl state constructor experiments. https://
+github.com/S-Lehmann/uppyyl-state-constructor-experiments
+37. Sorea, M.: Bounded model checking for timed automata. Electron.
+Notes Theor. Comput. Sci. 68(5), 116–134 (2003)
+38. Sorin, D.J., Martin, M.M.K., Hill, M.D., Wood, D.A.: Safetynet:
+improving the availability of shared memory multiprocessors with
+global checkpoint/recovery. In: Proceedings 29th Annual Interna-
+tional Symposium on Computer Architecture, pp. 123–134 (2002)
+39. Zhao, Y ., Rammig, F.: Online model checking for dependable real-
+time systems. In: 2012 IEEE 15th International Symposium onObject/Component/Service-Oriented Real-Time Distributed Com-puting, pp. 154–161 (2012)
+40. Ziv, A., Bruck, J.: An on-line algorithm for checkpoint placement.
+IEEE Trans. Comput. 46(9), 976–985 (1997)
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123

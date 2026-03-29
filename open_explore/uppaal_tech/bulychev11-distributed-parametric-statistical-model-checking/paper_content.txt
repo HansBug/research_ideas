@@ -1,0 +1,576 @@
+--- Page 1 ---
+Submitted to:
+PDMC 2011© Bulychev, David, Larsen,Legay, Miku ˇcionis
+This workis licensed under the
+Creative Commons AttributionLicense.DistributedParametric and Statistical Model Checking∗
+PeterBulychev Alexandre David Kim Guldstrand Larsen Marius Mikuˇcionis
+Department ofComputer Science
+Aalborg University,Denmark
+{pbulychev,adavid,kgl,marius }@cs.aau.dk
+Axel Legay
+INRIARennes,France
+Department ofComputer Science
+Aalborg University,Denmark
+alegay@irisa.fr
+Statistical Model Checking (SMC) is a trade-off between tes ting and formal veriﬁcation. The core
+idea of the approach is to conduct some simulations of the sys tem and verify if they satisfy some
+givenproperty. InthispaperweshowthatSMCiseasilyparal lelizableonamaster/slavesarchitecture
+by introducing a series of algorithms that scale almost line arly with respect to the number of slave
+computers. Our approach has been implemented in the UPPAAL S MC toolset and applied on non-
+trivial case studies.
+1 Introduction
+Computers play a central role in modern societies and their errors can have dramatic consequences.
+For example, such errors could jeopardize a banking system, possibly sta lling the economy of a whole
+country or, more dramatically, endanger human life through the failure of so me safety critical systems
+(railway signaling, integrated avionics, air-trafﬁc, medical life support machines, automotive electron-
+ics). It is therefore not surprising that proving the correctness of co mputer systems is a highly relevant
+problem. Unfortunately, the growing complexity in system design makes it almost impossible to ensure
+correctnesssimplybylookingatthe (possiblydistributed)code. Automatic tec hniques arethus needed.
+Themostcommonmethodtoensurethecorrectnessofasystemis testing(see[3]forasurvey). After
+the computer system is constructed, it is tested using a number of test cases with predicted outcomes.
+Testingtechniqueshaveshowneffectivenessinbughuntinginmanyindus trialproblems. Unfortunately,
+testing is not always the perfect solution. Indeed, since there is, in gene ral, no way for a ﬁnite set of
+testcasestocoverallpossiblescenarios,errorsmayremainundetected . Therearealsomethodsthatcan
+ensure the full correctness of a system. Those methods, also called formal methods , use mathematical
+techniques to check whether the system will behave correctly for all poss ible scenarios. Over the past,
+formal methods such as symbolic model checking [14] have been used to verify systems with more than
+1020reachable states[4].
+In an ideal world, it would thus be “better” to use formal methods rather than testing ones. Unfortu-
+nately,improvementsindevelopmentofformalmethodsdonotseemtofollowthe increasingcomplexity
+in system design. Nowadays, most of formal methods suffer from the so- calledstate-space explosion
+problem, which makes them unenforceable to large industrial case studies. As testin g does not suffer
+∗Work partially supported by VKR Centre of Excellence – MT-LAB, an “Actio n de Recherche Collaborative” ARC (TP)I,
+and theCREATIVEproject ESTASE.
+
+--- Page 2 ---
+2 DistributedParametricandStatisticalModelChecking
+from the same problem, it remains the only scalable technique and it is thus the on e promoted by the
+industrials.
+Aswealreadysaid,themajordrawbackwithtestingisthat,ingeneral,itdoesn otgiveanyconﬁdence
+on the correctness of the entire system. This lack of accuracy has motivate d the development of new
+algorithms that combine testing techniques with statistical algorithms. These techniq ues, also called
+Statistical Model Checking techniques (SMC)[11, 15, 20], can be seen as a trade-off between testing
+and formal veriﬁcation. The core idea of the approach is to conduct some simulations of the system
+and verify if they satisfy some given property. The results are then used together with algorithms from
+the statistical area in order to decide whether the system satisﬁes the proper ty with some probability.
+Statistical model checking techniques can also be used to estimate the probability that a system satisﬁes
+a given property[11, 10]. Of course, in contrast to an exhaustive a pproach, a simulation-based solution
+doesnotguaranteeacorrectresultwith100%conﬁdence. However ,itispossibletoboundtheprobability
+of making an error. Simulation-based methods are known to be far less memory and time intensive than
+exhaustive ones, and are sometimes the only option[22, 12]. Among existing SMC algorithms, one
+ﬁndthosethatuseaﬁxednumberofsamplings(thosetoestimatetheprobability) andthosethatsupport
+sequentialsampling(thosethattestanestimateoftheprobabilityprovidedbyth euser)wherethenumber
+of simulationisnotknowninadvance[17].
+Statistical model checking gets widely accepted in various research areas such as software engi-
+neering, in particular for industrial applications, or even for solving pro blems originating from systems
+biology[6, 13]. There are several reasons for this success. First, SMC is very simple to understand,
+implement, and use. Second, it does not require extra modeling or speciﬁca tion effort, but simply a
+stochastic operational sematics of the model that can be used as the basis fo r simulation and checked
+against state-based properties. Third, it allows to verify properties[5, 2] that cannot be expressed in
+classicaltemporallogics.
+However, SMC is not a panacea and many huge size problems are still beyo nd its scope. Indeed,
+sometimes the algorithm needs a lot of simulation to compute, and the computation of ea ch simulation
+may be time consuming. There are two solutions to this problem. The ﬁrst solution is to propose
+new algorithms and heuristics to reduce the number of simulations needed for th e algorithm to reach a
+decision. The second approach consists in taking new and emerging platfo rms into account. This paper
+goes for the second solution. A trend to speed up computation time and hence to improve the efﬁciency
+of SMC is certainly to take advantage of the new technologies among which one ﬁnd our ability to use
+severalcomputersworkinginparallel. Infact,itiswell-knownthatstatistica lsolutionsmethodsthatuse
+samples of independent observations are often trivially parallelizable (se e the work on Metropolis and
+Ulam). As observed by Youness, SMC algorithms can be distributed through the help of a master/slave
+architecture where multiple computers are used to generate the simulations. The idea is as follows: one
+or more slave processes register their ability to generate simulation with a single ma ster process that is
+usedtocollectthosesimulationsandpeformthestatisticaltest. Aspointedoutb yYouness[21],inorder
+to ensure that simulations are independent, somecare needs to be taken whe n generating pseudorandom
+number on each machines, which can easily be solved by incorporating the n umber of each processor
+in the generation of theses numbers[21]. When using sequential testing, th e situation becomes more
+complex as it is important to guarantee that the technique will not introduce a bia s against simulations
+that take a longer time to generate. The latter can be done by computing an a prio ri to the order in
+which simulations are taken into account. Deﬁning this order so that the algorith m scales up linearly
+withthenumberofslaveprocessorsmaybecomplexandremainsamajorchallen gethroughdistributing
+sequentialalgorithms.
+In this paper, we report on the implementation of a new methodology we use to pa rallelize the
+
+--- Page 3 ---
+Bulychev, David,Larsen,Legay,Miku ˇcionis 3
+statisticalmodelcheckingalgorithmswedevelopedformodelcheckingstoch astictimedautomata[7,8]
+against weighted temporal logic properties. Those SMC algorithms, which ha ve been implemented in
+UPPAAL-SMC– a SMC extension of the U PPAALtoolset[16] – rely on Wald’s sequential hypothesis
+testing (used to test a probability) and Monte Carlo simulation (used to estimate a pr obability). Our
+approach,alsoimplementedin U PPAAL-SMC,scalesbetterthantheoneofYouness. Moreover,weshow
+how to perform parameter estimation with SMC. The latter approach can be use d to optimize a given
+algorithm (what is the best network topology, the best transmission rate, ...) in an efﬁcient manner. Our
+approach isapplied tonon-trivialcasestudies.
+2 Statistical ModelChecking
+2.1 Themodel
+In this section, we brieﬂy recap the concept of Priced Timed Automata (PTA) , see [7] for more details.
+We denote B(X)to be a ﬁnite conjunction of bounds of the form x∼nwherex∈X,n∈II N, and
+∼∈{<,≤,>,≥}. APriced Timed Automaton (PTA) is a tuple A=(L,ℓ0,X,E,R,I)where: (i) Lis a
+ﬁnitesetoflocations,(ii) ℓ0∈Listheinitiallocation,(iii) Xisaﬁnitesetofreal-valuedvariablescalled
+clocks,(iv) E⊆L×B(X)×2X×Lisaﬁnitesetofedges, (v)R:L→Z≥0assignsaratevectortoeach
+location,and(vi) I:L→B(X)assignsaninvarianttoeachlocation. AstateofaPTAisapair (l,v)that
+consists of a location land a valuation of clocks ν:X→IR≥0. From a state (l,v)∈L×IRX
+≥0a PTA can
+eitherlettimeprogressordoadiscretetransitionandreachanewlocation. D uringtimedelayclocksare
+growing with the rates deﬁned by R(l), and the resulting clock valuation should satisfy invariant I(l). A
+discretetransitionfrom (l,v)to(l′,v′)ispossibleifthereis (l,g,Y,l′)∈Esuchthat vsatisﬁesgandv′is
+obtained from vby resetting clocks from the set Yto 0. A run of PTA is a sequence of alternating time
+anddiscretetransitions.
+Several PTA M1,M2,...,Mn, can be put in parallel via message passing in order to form a network
+M1/bardblM2/bardbl.../bardblMnof PTAs. By message passing, we mean that the automata can synchronize o n some
+transitionsandexchange messagesthroughinputand outputactions.
+In order to perform SMC on PTAs, we have to equip them with a stochastic se mantic. The lat-
+ter being needed to deﬁne a probability space over the sets of their executio ns. Giving details on the
+stochastic semantic of PTAs is beyond the scope of this paper but details are available in [7]. Roughly
+speaking, the stochastic semantic associates probability distributions on both th e delays one can spend
+in a given state as well as on a transition between states. In general one co nsiders uniform distribution
+for bounded delays and exponential for the case where a component c an remain indeﬁnitely in a state.
+As observed in [7], though the stochastic semantic of each individual PTA is rather simple (but quite
+realistic), arbitrarily complex stochastic behavior can be obtained by their co mposition when mixing in-
+dividual distributions through message passing. The beauty of our model is that these distributions are
+naturallyand automaticallydeﬁned bythenetworkof PTAs.
+Our implementation supports extensions of PTA, coming from the language of th e UPPAALmodel
+checker[16]. Suchmodelscancontainintegervariablesthatcanbepre sentintransitionguards,andthey
+can be updated only when a discrete transition is taken. Additionally, we supp ort other features of the
+UPPAALmodelchecker’s inputlanguage suchas datastructuresanduser-de ﬁnedfunctions.
+AparametrizedPTA M(p)isaPTAinwhichsomeintegerconstant(transitionweightorconstantin
+variableassignment/clockinvariant)isreplaced byaparameter p.
+For deﬁning properties we use weighted temporal logic PWCTL, which conta ins formulas of the
+form3c≤Cϕ. Herecis an observer clock (that is never reset and should grow to inﬁnity on an y inﬁnite
+
+--- Page 4 ---
+4 DistributedParametricandStatisticalModelChecking
+runofPTA), C∈IR≥0andϕisastate-predicate. Wesaythatarun πsatisﬁesψ=3c≤Cϕifthereexists
+(l,v)∈πsuchthat lsatisﬁesϕandv(c)≤C. Wedenoteby PrA[ψ]theprobabilitythatarandomrunof
+themodel Asatisﬁesψ.
+2.2 Statistical ModelCheckingfor NPTAs
+Theproblemofchecking PrA[3c≤Cϕ]≥p(AbeingaPTAand p∈[0,1])isunfortunatelyundecidable
+in general1. Our solution is to approximate the answer using simulation-based algorithms kno wn under
+the name of statistical model checking algorithms. We brieﬂy recap statistical alg orithms permitting to
+answer thefollowingtwotypes ofquestions :
+1.Testing:Istheprobability PrA[3c≤Cϕ]foragivenNPTA Agreaterorequaltoacertainthreshold
+θ?
+2.Estimation: What isthe probability PrA[3c≤Cϕ]fora givenNPTA A?
+FromaconceptualpointofviewbothsolvingthetwoabovequestionsviaSM Cissimple. First,each
+run of the system is encoded as a Bernoulli random variable that is true if th e run satisﬁes the property
+andfalseotherwise. Thenastatisticalalgorithmgroupstheobservationsto answerthetwoquestions. For
+thequalitativequestion,weshallusesequentialhypothesistesting,whilefo rthequantitativequestionwe
+will use an estimation algorithm that ressemble the classical Monte Carlo simulation. The two solutions
+aredetailed hereafter.
+SequentialSampling/Testing Thisapproachreducesthequalitativequestiontothetestthehypothesis
+H:p=PA(3C≤cϕ)≥θagainstK:p<θ. To bound the probability of making errors, we use strength
+parameters αandβand we test the hypothesis H0:p≥p0andH1:p≤p1withp0=θ+δ0and
+p1=θ−δ1. The interval p0−p1deﬁnes an indifference region, and p0andp1are used as thresholds
+inthealgorithm. Theparameter αistheprobabilityofaccepting H0whenH1holds(falsepositives)and
+the parameter βis the probability of accepting H1whenH0holds (false negatives). The above test can
+be solved by using Wald’s sequential hypothesis testing [17]. This test computes a proportion ramong
+those runs that satisfy the property. With probability 1, the value of the prop ortion will eventually cross
+log(β/(1−α)orlog((1−β)/α)and oneof thetwohypothesiswillbe selected.
+Estimation This algorithm [11] computes the number of runs needed in order to produc e an approxi-
+mation interval [p−ε,p+ε]forp=Pr(ψ)with a conﬁdence 1 −α. The values of εandαare chosen
+bythe userandthenumber of runsrelies ontheChernoff-Hoeffdingbo und.
+3 Distributed StatisticalModel-Checking
+We report on preliminary results on using distributed computing to speed-up S MC algorithms. We start
+bydiscussingthesolutionforhypothesistestingwherethenumberofsimulation sneededbythetestisnot
+knowninadvance. Anaivesolutionindistributingthegenerationoftheruns maygiverisetoa biasinthe
+result,aspointedbyYounes[20]. Inshort,somecomputersmaygenerate (forexample)positiveanswers
+more quickly than some other computers, which may bias the decision toward the p ositive answer. This
+wouldnothappenwhencomputingrunssequentially. Ingeneral,thetimereq uiredtogeneraterunsmay
+not be uniform and can cause this type of bias. To counter this, Younes [ 20] proposed a round-Robin
+1Exceptions being PTAwith0 or 1clocks.
+
+--- Page 5 ---
+Bulychev, David,Larsen,Legay,Miku ˇcionis 5
+solution where the runs are counted in rounds. To improve performance, Younes deﬁned safe lower and
+upper bounds on the Binomial random variable that represents the sum of all the positive realisations,
+i.e., all the simulation that do satisfy the property. Instead of waiting for the res ults of all the nodes, if a
+result is missing the lower and upper bounds are used to take a safe decisio n. This has the potential to
+reducethe executiontimesincedecisions maybetakenearlier.
+We generalize Younes’ algorithm by sending the result of simulations by batc hes and also by im-
+plementing a buffer of incoming result. The batch is used to reduce communicatio n by sending an
+aggregate result of predeﬁned size (instead of individual results). T he buffer is used to improve con-
+currency since the nodes are more loosely synchronized. We experimen t on these two dimensions for
+different topologies, while Younes’ algorithm is the particular case where both are equal to one, which
+is not very scalable since this generates a lot of trafﬁc and the nodes are more synchronized. Figure 1
+shows the time it took to verify that the mutual exclusion property of the train-gate example distributed
+with UPPAALholds with probability 98% conﬁgured with 20 trains and 99.999% conﬁdence . We show
+the results for different topologies of our cluster, NxPxC where N is the n umber of nodes, P the number
+of processorsper node, andCthe number ofcores per processor.
+ 10
+ 20
+ 30
+ 40
+ 50
+ 60 10 20 30 40 50 60 33 34 35 36 37 38 39 40'topo-2x2x2.dat'
+Batch
+Buffer 33 34 35 36 37 38 39 40
+ 10 20 30 40 50 60 10 20 30 40 50 60 16.5 17 17.5 18 18.5 19 19.5 20 20.5 21 21.5'topo-4x2x2.dat'
+Batch Buffer 16.5 17 17.5 18 18.5 19 19.5 20 20.5 21 21.5
+ 10 20 30 40 50 60 10 20 30 40 50 60 4 5 6 7 8 9 10 11 12 13'topo-16x1x4.dat'
+Batch Buffer 4 5 6 7 8 9 10 11 12 13
+Figure1: Timetocheck formutual exclusionfor20trainsqualitatively.
+Wesee,moduloexperimentalvariations2,thatthealgorithmimproveswhenthebatchesorbufferare
+increasedbutthenitbecomes quickly insensitivetotheseparameters.
+Distributing the estimation algorithm is much simpler. We need a ﬁxednumber of runs determined
+by the Chernoff’s bound [11] to conclude on a probability value with give n conﬁdence level. This is
+an embarrassingly parallel problem since we can simply divide the work equ ally and gather the result
+at the end. To compensate for ﬂuctuations in the cluster, we could implement wo rk-stealing but as our
+experiments show, this does not seem to be necessary since the observe d performance scales almost
+linearly. The loss in efﬁciency in the later cases exhibits the overhead of sta rting up all the processors
+(around 3-4 seconds), which would be compensated for much longer ru ns. Figure 1 shows running time
+andrelativeefﬁciencyforchecking afewquantitativepropertiesonthe FirewireandLMACprotocol3.
+4 Distributed ParametricModel-Checking: The Principle
+Inmanypracticalcasessystembehaviorsdependonthevaluesofaﬁnite setofconstantparameters. For
+instance,theseparameters candeﬁne networktopology,or transmissionr ateof anode.
+An interesting question might be to study how a system behavior depends on th e values of these
+parameters. This may include visualisation of this dependency (drawing plots ), optimization/worst case
+2Clustersare sharedresources withvarying load soresults areexpecte d tovary.
+3The modeland properties are available on http://people.cs.aau.dk/˜ada vid/smc/.
+
+--- Page 6 ---
+6 DistributedParametricandStatisticalModelChecking
+Firewire LMAC
+PxC/N 1 2 4 8 16 1 2 4 8 16
+1x1621.7s 316.7s 160.2s 81.1s 44.7s 279.3s 140.7s 73.0s 37.0s 19.5s
+1.00 0.98 0.97 0.96 0.87 1.00 0.99 0.96 0.94 0.90
+1x2300.9s 162.2s 80.5s 47.6s 24.3s 144.3s 71.0 37.5s 19.2s 10.4s
+1.03 0.96 0.97 0.82 0.80 0.97 0.98 0.93 0.91 0.84
+1x4161.2s 84.0s 44.8s 24.1s 16.0s 74.2s 36.1s 19.3s 9.6s 8.1s
+0.96 0.93 0.87 0.81 0.61 0.94 0.97 0.90 0.91 0.54
+2x485.1s 46.5s 23.1s 14.1s 8.5 35.5s 19.6s 10.1s 10.2s 6.4s
+0.91 0.84 0.84 0.69 0.57 0.98 0.89 0.86 0.43 0.34
+Table 1: Time in seconds and efﬁciency (italic) to checking quantitative prop erties on the Firewire and
+LMAC model in function of the number of nodes (N), processors per nod e (P) and cores per processor
+(C).
+analysis and determining the correlation between different parameters. An other example that we will
+study below is computing Nash Equilibrium in wireless ad-hoc networks, e.g. c hoosing a network con-
+ﬁgurationthatis stablewithrespecttothe behavior ofselﬁshnodes.
+Letusassumethatthereisaﬁnitesetofparameters,eachdeﬁnedonaﬁn itedomain. Wewillmodel
+parameterized systems using U PPAALmodels in which some integer constants (transition weights or
+constants in variable assignment/clock invariants) are parameterized, e.g. th ey are replaced by special
+syntacticconstructsthatdeﬁne thesetsof possiblevalues. Currently,we supporttwoconstructs:
+•#range(a, b) deﬁnes thesetofallintegers between aandb,
+•#booleanmatrix(N) deﬁnes the set of all boolean matrices of size N, this construct can be used
+to representthesetof allpossibletopologies of anetworkwith Nnodes.
+We developed a framework for solving the “parametric” problems listed abov e (visualisation, opti-
+mization/worst case analysis, Nash Equilibrium computation). In order to solv e all these problems our
+implementation performs a series of invocations of U PPAAL-SMCfor different values of parameters.
+These invocations are independent of each other, thus they can be eas ily distributed on highly hetero-
+geneous clusters. Our implementation uses the SLURM batch system [19], or it can submit jobs to the
+computational nodes usingSSHconnection byits own.
+5 Distributed ParametricModelChecking: Case-Studies
+5.1 Traingate example
+We consider a model of a railway bridge [18] where several trains are crossing a bridge with one track.
+Our UPPAALmodel is depicted on Fig. 2. Trains start in the Safeinitial location where they are not
+approaching. They will leave that location and be approaching (and go to locationAppr) with an arrival
+rate given by the expression 1:#range(1,20) on the ﬁgure. This is a parameter declaration that will
+be used to generate models with values 1:1, 1:2, ...1:20 . This expression (of the form i:j) is
+an extension of U PPAALand deﬁnes an exponential distribution with the ratei
+jto pick the delay from.
+When a train is approaching, it enters Apprand synchronizes with appr[id]! . The gate controller will
+know that train idis approaching. After 10 time units the train will be crossing (enter location Cross,
+unless it is stopped before by the gate controller. This is done with the synch ronization stop[id]? and
+
+--- Page 7 ---
+Bulychev, David,Larsen,Legay,Miku ˇcionis 7
+the train goes to the location Stop. From there, it is restarted with the synchronization go[id]? by
+the gate controller and after 7 time units it will be crossing. After crossing, tra ins leave the bridge with
+leave[id]! and aresafeagain andcandecide toapproach again.
+The gate controller keeps track of stopped trains with a FIFO queue (not d epicted here) that we will
+not detail. Trains are queued and dequeued with this queue with the help of f unctions as seen on the
+ﬁgure. The gate has two main states FreeandOcc(i.e. occupied) that keeps track of the state of the
+bridge. If trains are approaching then it either stops them if the bridge is oc cupied or let them pass
+otherwise. Whenthebridgebecomesfree(onetrainleaves),thecontrolle rdecidestorestartatrainatthe
+frontofthequeue with go[front()]! .
+x=0x=0
+x=0x<=20x=0
+x<= 15x<=5leave[id]!
+stop[id]?appr[id]!
+go[id]?Start Apprx>=10
+x<=10Safe Cross
+Stop1:#range(1, 20)x>=3
+x>=7
+appr[e]?dequeue()
+enqueue(e)e:id_t
+e : id_t
+appr[e]?leave[e]?go[front()]!
+stop[tail()]!e : id_t
+e == front()len > 0len == 0
+StoppingFree
+Occenqueue(e)
+Figure2: U PPAALmodels of atrain(left)andagate controller(right).
+Here a (qualitative) safety means to ensure that at most one train can be in th e crossing at the same
+time, and such property can be checked using classical U PPAALmodel checker. On top of that, now
+UPPAAL-SMCcanalsoevaluateprobabilistic(quantitative)properties. Forinstance,we canestimatethe
+probability that the ﬁrst train will cross the bridge within 50 time units by checking a PWCTL property
+3time≤50/parenleftbig
+Train(0).Cross/parenrightbig
+.
+Considertwoparametersinourmodel: thenumberoftrains,andtheratewithwh ichthesetrainsare
+coming. The rate parameter is on location ‘ Safeshown in Fig. 2, and the number of trains is declared
+similarlyinthe Systemdeclarations.
+Fig. 3 depicts the results of a parameter sweep of this model. The plot shows th at when the number
+oftrainsincreases,theprobabilitythattheﬁrsttrainwillcrossthebridgew ithin50timeunitsdecreases.
+Indeed, it is more likely that it will be stopped by other trains (there are more) and spend time in the
+Stoplocation. Whenthe arrivalrateisdecreased,theprobabilityalsodecrea ses.
+5.2 Nash equilibriumAlohaCSMA/CDprotocol
+Aloha protocol [1] is a simple Carrier Sense Multiple Access with Collision Detec tion (CSMA/CD)
+protocol that was used in the ﬁrst known wireless data network develope d at the University of Hawaii
+in 1971. The protocol assumes that there are several nodes that shar e the same wireless medium. Each
+nodeislisteningtoitsownsignalduringitstransmissionandchecksthatthesign alisnotcorruptedbya
+simultaneoustransmissionbyanothernode. Incaseofcollisionbothnodess toptransmittingimmediately
+
+--- Page 8 ---
+8 DistributedParametricandStatisticalModelChecking
+ 2 4 6 8 10 12 14 16 18 20 1 2 3 4 5 6 7 8 9 10 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+RATEntrains 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+Figure3: Parametricsweepfor thetraingatemodel.
+andwait forarandomtimebeforetheytrytotransmitagain.
+TheUPPAALmodelofasinglenodeisgiveninFig.4. WeconsiderunslottedAlohawhereth enodes
+are not necessary synchronized. Additionally, we study the p-persiste nt variant of Aloha, i.e. a protocol
+implementation in which a random delay before retransmission is distributed acco rding to a geometric
+distribution. This means that in each time slot a node transmits with probability TransmitProb and
+waits foronemoreslot(andthendecide again) withprobability1 −TransmitProb .
+busy?nt>0nt==0
+100−TransmitProbbusy!
+busy!
+TransmitProbx<=1 &&
+energy’==1 &&
+time’ == 1INITIAL
+x<=1 &&
+energy’==0 &&
+time’ == 1x==1
+x==1
+WAITTRANSMITx <= 1 &&
+time’==0 &&
+energy’ == 0
+x:=0x:=0,
+nt:=nt−1nt:=nt+1,
+x:=0
+ns:=ns + 1,
+nt:= nt − 1,
+x := 0
+Figure4: ModelofAloha in U PPAAL
+In our experiments we assumed that the goal of a node is to transmit a single fr ame within 50 time
+units and to limit energy consumption by 3. This goal for a node ican be expressed using the following
+PWCTL formula:
+ψi≡3Node(i).time≤50(Node(i).ns≥1∧Node(i).energy≤3) (1)
+Then the utility function Uiof a node iis equal to the probability that the goal ψiis satisﬁed by a
+randomrunof asystem,i.e:
+Ui(p1,p2,...,pN)≡Pr[S(p1,p2,...,pN)|=ψi] (2)
+
+--- Page 9 ---
+Bulychev, David,Larsen,Legay,Miku ˇcionis 9
+,wherepjisequal tothevalueof TransmitProb chosenby node j.
+We consider the case where there is a master node that knows the network c onﬁguration (here the
+numberofnodes)andbroadcaststhevalueof TransmitProb parametertoallthenodes. Now,ifthereare
+selﬁsh nodes, they can change their values of TransmitProb to achieve better performance (and other
+nodes will suffer from that). Thus, the interesting question is to ﬁnd the valu e ofTransmitProb that
+satisﬁes Nash Equilibrium (NE). For such a value, it is not proﬁtable for a ny node to alter its behaviour
+to the detriment of other nodes. For our case the network is symmetric, thus we can search for NEfrom
+the point of view of the ﬁrst node only. In other words, parameter psatisﬁes NE, iff U0(p,p,...,p)is
+larger than U0(p′,p,...,p)foranyp′.
+Table2: Nashequilibrium(NE)andSymmetricoptimal (Opt)strategiesforAloha .
+Number of nodes 2 3 4 5 6 7
+NE strategy pNE 0.37 0.40 0.35 0.35 0.41 0.42
+/tildewideU(pNE,pNE) 0.99 0.98 0.95 0.89 0.75 0.61
+Symmetricoptimalstrategy popt0.30 0.30 0.26 0.22 0.19 0.15
+/tildewideU(pOpt,popt) 0.99 0.98 0.96 0.90 0.87 0.98
+Computation time 2m5s 3m44s 7m62s 15m45s 26m11s 37m55s
+ 0 0.2 0.4 0.6 0.8 1
+ 0 0.2 0.4 0.6 0.8 1 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1NE
+Opt
+p'
+p 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+ 0 0.2 0.4 0.6 0.8 1 1.2
+ 0  0.2 0.4 0.6 0.8 1
+pNE
+Opt
+Figure5: Utilityfunction(left)and itsdiagonal slice(right)for Alohawith5nod es.
+Fig. 5 depicts the plot of the utility function U0(p′,p,...,p)for the network of 5 nodes for different
+valuesof p′andp. Herep′isavalueof TransmitProb ofapotentiallyselﬁshnode,and pisavaluefor
+other nodes. You can also see the computed values of Nash Equlibrium (NE ) parameter and symmetric
+optimal(Opt) parameter.
+Table 2 contains the found values of Nash Equilibrium for Aloha with differe nt number of nodes.
+The experiments were done on a 8-node cluster, where each node uses Intel(R) Core(TM)2 Quad CPU
+2.66GHz processor.
+5.3 ParameterizedTopology for NetworkModels
+TherearesituationsTheperformanceofsomenetworkprotocolscandep endnotonlyonretransmission
+parameters as seen previously but also on the actual topology of the netwo rk. In this section we study
+
+--- Page 10 ---
+10 DistributedParametricandStatisticalModelChecking
+theimpact ofdifferenttopologies onthe LMACprotocol.
+LMAC is a Lightweight Media Access protocol (studied in [7, 9]) used for scheduling communi-
+cation in wireless sensor networks where the topology is determined by phys ical location and radio
+connectivity of the individual nodes. One of the goals of the LMAC protoc ol is to minimize the number
+of collisions in the network and to reconﬁgure the network to avoid further c ollisions. The difﬁculty
+of studying such protocols stems from the fact that the topology is not know n in advance and there are
+exponentially many topologies (at least n·2n−1fornnodes with one of them being a gateway), which
+makes systematic analysis of large networks impractical. In order to study the r obustness of the LMAC
+protocol against collisions, we propose to examine hundreds of random topologies and then pick and
+focus on the most problematic ones. Listing 1 shows how a topology is declare d in the U PPAALmodel:
+a two-dimensional array of boolean constants gives the adjacency matrix o f the network graph. The
+receivers then use the guard canhear[receiver][sender] when listening for the broadcast channel
+synchronizations.
+
+1constintNODES = 10; // number of nodes
+2typedef int [0,NODES −1] nodeid t; // used to identify node
+3typedef bool topology t[nodeid t][nodeid t]; // type for topology
+4consttopology t canhear = #binarymatrix(NODES, NODES); // adjacency matrix 
+Listing1: Networktopology declarationin U PPAALmodelof LMAC.
+Inthiscasewetrynetworksofuptotennodesandtwiceasmanyslots,where asoneslotpernodeis
+enough to schedule ﬂawless communication if only nodes were perfectly awa re of each others choices.
+We used a property Pr[3time≤2000(colcount>42)]estimating the probability of having more than 42
+collisionsafter 2000timeunits,whichhints thatthereareperpetuallyreoccurr ingcollisions.
+Thepreparedmodelisthenprocessedbyourparametricmodel-checker thatinstantiatesthekeyword
+#binarymatrix withaconcreterandommatrixanddistributestheveriﬁcationonaclusterofco mputers,
+oneinstanceofthematrixpercore. EachveriﬁcationusesU PPAAL-SMC. Usingthenaiverandomization,
+a cluster of 32 cores (the same as in Section 5.2) can verify 10000 topologie s4in 6h 50min. Figure 6
+shows the ﬁve topologies that yield the highest probabilities. We used low con ﬁdence (95%) statistical
+parameters to gain performance, thus the estimated probabilities have large ±0.05 statistical error, but
+thefoundtopologies can bestudiedfurtherin U PPAAL-SMC.
+0
+1245 6
+7
+938
+01
+2
+4 57
+8
+93
+6 0
+123
+457
+8
+69
+01
+234
+57
+8
+9
+60 123
+45
+6897
+p1=0.630 p2=0.629 p3=0.617 p4=0.607 p5=0.599
+Figure6: Highestprobabilities foundbymodelchecking randomtopologie s of10 nodes.
+Alternativelywetriedgeneratingallgraphsupto10nodeswhichareunlike lytobeisomorphic. The
+procedureisnotguaranteedtocoverallnon-isomorphicclasses(itmay misssome),butitisverysimple
+andcan berecursivelydescribedas follows:
+4We detected 707 duplicates byapost-analysis of thegenerated instance.
+
+--- Page 11 ---
+Bulychev, David,Larsen,Legay,Miku ˇcionis 11
+1. Startwitha topologyconsistingof justone node.
+2. Add anewnodeand considertwonew topologies:
+(a) Connect thenewnode toalltheoldnodes,gotostep2untilenough nod es areadded.
+(b) Leavethenewnode unconnected atall,gotostep2untilenough node sareadded.
+3. For everynodeinatopology, makeanewtopology bymarkingthenodeas agateway.
+4. Get ridof thetopologies wherethe gatewayisnot connected.
+Up to the step 2 the procedure generates 2n−1topologies which are non-isomorphic for sure, then steps
+4 and 5 contain basic heuristics how to pick a gateway, which may yield some isomo rphic graphs due to
+symmetricgateways,butthe overheadissmall.
+Figure 7 shows the 5 cases that achieve the highest probability found by g enerating 5120 topologies
+of up to 10 nodes using our heuristics. The veriﬁcation took about 3h 30min . The heuristic procedure
+hasclearadvantagesovertherandomizedonebutitisnotexhaustive. Ontheotherhand,therandomized
+method hasthe potentialtoﬁndanytopologybutwithout anyguarantee.
+0
+12
+345678
+9
+0 123
+4
+5
+6
+7
+8901
+2
+3
+45678
+901
+2
+345678
+901
+23
+45678
+9
+p1=0.919 p2=0.905 p3=0.898 p4=0.894 p5=0.888
+Figure7: Highestprobabilitiesfoundbymodel checking generatedtopolo gies of 10nodes.
+6 Conclusion
+This paper proposes new algorithms to distribute statistical model checking alg orithms through a mas-
+ter/slaves architecture. Our results have been implemented in the UPPAAL SMC toolset. A series of
+experiments showthatour approach scalesbetter thanexistingsolutions[2 1].
+As a future work, we will extend our distributed algorithms to the setting of rare events and un-
+bounded temporal properties. We shall also implement and distribute Bayesian extensions of the ap-
+proachwe proposedin[13].
+References
+[1] Norman Abramson (1970): THE ALOHA SYSTEM: another alternative for computer communi cations. In:
+Proceedings of the November 17-19, 1970, fall joint compute r conference , AFIPS ’70 (Fall), ACM, New
+York, NY, USA, pp. 281–285, doi: 10.1145/1478462.1478502 .
+[2] A. Basu, S. Bensalem, M. Bozga, B. Caillaud, B. Delahaye & A. Legay (2010): Statistical Abstraction and
+Model-Checking of Large Heterogeneous Systems . In:FORTE,LNCS6117, Springer, pp. 32–46, doi: 10.
+1007/978-3-642-13464-7_4 .
+[3] M. Broy, B. Jonsson, J-P. Katoen, M. Leucker & A. Pretschn er, editors (2005): Model-Based Testing of Re-
+activeSystems,AdvancedLecturesThevolumeistheoutcome ofaresearchseminarthatwasheldinSchloss
+Dagstuhl inJanuary 2004 .Lecture Notes inComputer Science 3472, Springer, doi: 10.1007/b137241 .
+
+--- Page 12 ---
+12 DistributedParametricandStatisticalModelChecking
+[4] J. R. Burch, E. M. Clarke, K. L. McMillan, D. L. Dill & L. J. H wang (1992): Symbolic model
+checking: 1020States and beyond .Information and Computation 98(2), pp. 142–170, doi: 10.1016/
+0890-5401(92)90017-A .
+[5] E. M. Clarke, A. Donz ´e & A. Legay (2008): Statistical Model Checking of Mixed-Analog Circuits with a n
+ApplicationtoaThirdOrderDelta-SigmaModulator . In:Proc.of3rdHaifaVeriﬁcationConference(HVC) ,
+LNCS5394, Springer, pp. 149–163, doi: 10.1007/978-3-642-01702-5_16 .
+[6] Edmund M. Clarke, James R. Faeder, Christopher James Lan gmead, Leonard A. Harris, Sumit Kumar Jha
+& Axel Legay (2008): Statistical Model Checking in BioLab: Applications to the A utomated Analysis of
+T-Cell Receptor Signaling Pathway . In Monika Heiner & Adelinde Uhrmacher, editors: Proceedings of the
+6th International Conference on Computational Methods in S ystems Biology (CMSB) , LNCS, Springer, pp.
+231–250, doi: 10.1007/978-3-540-88562-7_18 .
+[7] Alexandre David, Kim G. Larsen, Axel Legay, Marius Miku ˇcionis, Danny Bøgsted Poulsen, Jonas Van
+Vliet & Zheng Wang (2011): Statistical Model Checking for Networks of Priced Timed Aut omata. In
+Uli Fahrenberg & Stavros Tripakis, editors: 9th International Conference on Formal Modeling and Anal-
+ysis of Timed Systems (FORMATS) ,LNCS6919, Springer, Aalborg, Denmark, pp. 80–96, doi: 10.1007/
+978-3-642-24310-3 .
+[8] AlexandreDavid,KimG.Larsen,AxelLegay,MariusMiku ˇcionis&ZhengWang(2011): TimeforStatistical
+ModelCheckingofreal-timesystems . InGaneshGopalakrishnan&ShazQadeer,editors: 23rdInternational
+Conference on Computer Aided Veriﬁcation (CAV) ,LNCS6806, Springer, Snowbird, UT, USA, pp. 349–
+355, doi:10.1007/978-3-642-22110-1 .
+[9] Ansgar Fehnker, Lodewijk van Hoesel & Angelika Mader (20 07):Modelling and Veriﬁcation of the LMAC
+Protocol for Wireless Sensor Networks . In Jim Davies & Jeremy Gibbons, editors: Integrated Formal Meth-
+ods,LNCS4591, Springer Berlin/ Heidelberg, pp. 253–272, doi: 10.1007/978-3-540-73210-5_14 .
+[10] R. Grosu & S. A. Smolka (2005): Monte Carlo Model Checking . In:Proc. of 11th Int. Conference on Tools
+andAlgorithmsfortheConstructionandAnalysisofSystems (TACAS) ,LNCS3440,Springer,pp.271–286,
+doi:10.1007/978-3-540-31980-1_18 .
+[11] Thomas H ´erault, Richard Lassaigne, Fr ´ed´eric Magniette & Sylvain Peyronnet (2004): Approximate Proba-
+bilistic Model Checking . In Bernhard Steffen & Giorgio Levi, editors: Veriﬁcation, Model Checking, and
+Abstract Interpretation ,LNCS2937, Springer, pp. 307–329, doi: 10.1007/978-3-540-24622-0_8 .
+[12] D. N. Jansen, J-P Katoen, M.Oldenkamp, M. Stoelinga & I. S. Zapreev (2007): How Fast and Fat Is Your
+Probabilistic Model Checker? An Experimental Performance Comparison . In:HVC,LNCS4899, Springer,
+doi:10.1007/978-3-540-77966-7_9 .
+[13] Sumit Kumar Jha, Edmund M. Clarke, Christopher James La ngmead, Axel Legay, Andr ´e Platzer & Paolo
+Zuliani (2009): A Bayesian Approach to Model Checking Biological Systems . In:CMSB,LNCS5688,
+Springer, pp. 218–234, doi: 10.1007/978-3-642-03845-7_15 .
+[14] Kenneth L. McMillan(1993): Symbolic Model Checking . Ph.D. thesis, Carnegie MellonUniversity.
+[15] Koushik Sen, Mahesh Viswanathan & Gul Agha (2004): Statistical Model Checking of Black-Box Proba-
+bilisticSystems . In:CAV,LNCS3114, Springer, pp. 202–215, doi: 10.1007/978-3-540-27813-9_16 .
+[16]The UPPAAL Tool . Available at http://www.uppaal.com/ .
+[17] Abraham Wald (2004): Sequential Analysis . Courier Dover Publications.
+[18] Wang Yi, Paul Pettersson & Mats Daniels (1994): Automatic Veriﬁcation of Real-Time Communicating Sys-
+tems by Constraint-Solving . In Dieter Hogrefe & Stefan Leue, editors: Proceedings of the 7th International
+Conference on Formal Description Techniques , North–Holland, London, UK, pp. 223–238. Available at
+http://dl.acm.org/citation.cfm?id=646213.681364 .
+[19] Andy B. Yoo, Morris A. Jette & Mark Grondona (2003): SLURM: Simple Linux Utility for Resource Man-
+agement. In Dror G. Feitelson, Larry Rudolph & Uwe Schwiegelshohn, e ditors:Job Scheduling Strategies
+forParallelProcessing,9thInternationalWorkshop,JSSP P2003,Seattle,WA,USA,June24,2003,Revised
+Papers,LNCS2862, Springer, pp. 44–60, doi: 10.1007/10968987_3 .
+
+--- Page 13 ---
+Bulychev, David,Larsen,Legay,Miku ˇcionis 13
+[20] H˚akan L. S. Younes (2005): Veriﬁcation and Planning for Stochastic Processes with Asy nchronous Events .
+Ph.D. thesis,Carnegie Mellon University.
+[21] H˚akan L. S. Younes (2005): Ymer: A Statistical Model Checker . In:Proc. of 11th Int. Conference on
+Computer Aided Veriﬁcation (CAV) ,LNCS3576, Springer, pp. 429–433, doi: 10.1007/11513988_43 .
+[22] H˚akan L. S. Younes, Marta Z. Kwiatkowska, Gethin Norman & Davi d Parker (2006): Numerical vs. statis-
+tical probabilistic model checking .International Journal on Software Tools for Technology Tra nsfer (STTT)
+8(3), pp. 216–228, doi: 10.1007/s10009-005-0187-8 .

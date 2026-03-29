@@ -1,0 +1,298 @@
+--- Page 1 ---
+ECDAR:AnEnvironmentforCompositional
+DesignandAnalysisofRealTimeSystems
+AlexandreDavid1,Kim.G.Larsen1,AxelLegay2,
+UlrikNyman1,AndrzejWąsowski3
+1ComputerScience,AalborgUniversity,Denmark
+2INRIA/IRISA,RennesCedex,France
+3ITUniversityofCopenhagen,Denmark
+Abstract.WepresentEcdaranewtoolforcompositionaldesignand
+veriﬁcationofrealtimesystems.In Ecdar,acomponentinterfacede-
+scribesboththebehaviourofthecomponentandthecomponen t’sas-
+sumptionsabouttheenvironment.Thetoolsupportstheimpo rtantoper-
+ationsofagoodcompositionalreasoningtheory:compositi on,conjunc-
+tion,quotient,consistency/satisfactionchecking,andr eﬁnement.The
+operatorscanbeusedtocombinebasicmodelsintolargerspe ciﬁcations
+toconstructcomprehensivesystemdescriptionsfrombasic requirements.
+Algorithmstoperformtheseoperationshavebeenbasedonag amethe-
+oreticalsettingthatpermits,forexample,tocapturether eal-timecon-
+straintsoncommunicationeventsbetweencomponents.Thec omposi-
+tionalapproachallowsforscalabilityintheveriﬁcation.
+1 Overview
+Thecontext.ContemporaryITsystemsareassembledoutofmultipleindep en-
+dentlydevelopedcomponents.Componentprovidersoperate underacontract
+onwhattheinterfaceofeachcomponentis.Interfacesarety picallydescribed
+usingtextualdocumentsormodelsinlanguagessuchasUMLor WSDL.Unfor-
+tunately,suchspeciﬁcationsaresubjecttointerpretatio n.Toavoidtheriskof
+ambiguity,werecommendmathematicallysoundformalisms, suchasinterface
+theories,wheneverpossible.Agoodinterfacetheorysuppo rtsreﬁnementcheck-
+ing(whetheraninterfacecanbereplacedbyanotherone), satisfactionchecking
+(whetheranimplementationsatisﬁestherequirementsexpr essedwiththein-
+terface),consistencychecking (whethertheinterfacecanbeimplemented),a
+compositionoperator (structurallycombininginterfaces),a conjunctionoperator
+(computingaspeciﬁcationwhoseimplementationsaresatis fyingbothoperands),
+andaquotientoperationthatistheadjointforcomposition.Itshouldalsoguar-
+anteeimportantpropertiessuchasindependentimplementa bility[10].
+Ithasbeenargued[7,10]that gamesconstituteanaturalmodelforinter-
+facetheories:eachcomponentisrepresentedbyanautomato nwhosetransitions
+aretypedwithinputandoutputmodalities.Thesemanticsofsuchanautoma-
+tonisgivenbyatwo-playergame:the inputplayerrepresentstheenvironment,
+andtheoutputplayerrepresentsthecomponent.Contrarytotheinput/out put
+
+--- Page 2 ---
+modelproposedbyLynch[13],thissemanticoﬀers(amongman yotheradvan-
+tages)anoptimistictreatmentofcomposition(twointerfa cescanbecomposed
+ifthereexistsatleastoneenvironmentinwhichtheycanint eracttogetherina
+safeway)andreﬁnement(thereﬁnedsystemshouldacceptsat leastthesame
+inputsandnotproducemoreoutputs).Game-basedinterface swereﬁrstdevel-
+opedforuntimedsystems[10,8]andthecompositionandreﬁnementoperations
+wereimplementedintoolssuchasTICC[1]orCHIC[5].
+Example.Wewilldemonstrateourtool,ECDAR,byexecutingacomposi-
+tionalveriﬁcationprocess.Tothatendweintroducearunni ngexamplebased
+onamodiﬁedreal-timeversionofMilner’sscheduler[14].F ig.1(left)shows
+(...)
+(...)
+MiMiMi+1
+recireci+1
+reci+1
+wiwiwi+1M0
+M1
+M2w0
+w1
+w2rec1
+rec2
+SSi
+Fig.1.OverviewofMilner’sscheduler
+exampleandthesub-speciﬁcation SSi.a single node, which can receive a
+startsignalon reci.Thenodesubse-
+quentlybeginsexternalworkbyout-
+puttingon wi.Inparalleltothisitcan
+forwardthetokenbyoutputtingon
+reci+1,butonlyafteradelaybetween
+dandDtimeunits.Fig.1(right)il-
+lustratesaringofsuchnodes Miin
+whichsomenodeshavebeengrouped
+together.Thisgroupingexempliﬁesa
+partofthespeciﬁcation,whichwewill
+laterbeabletoreplacewithanab-
+straction SSiinordertoexecuteacompositionalproof.
+Thetimedcase.Theaboveexamplecontainstimingrequirementsthatcannot
+behandledwithtoolssuchasTICCorCHIC,designedforuntim edsystems.
+Thereexisttimedformalismsbuttheydonotprovideasatisf actorynotionsof
+compositionandreﬁnement.Wehaverecentlyproposedtheﬁr stcompletetimed
+interfacetheorybasedontimedgames[6].Theideaissimila rtotheuntimed
+case:componentsaremodelledusingtimedinput/outputaut omata(TIOAs)
+withatimedgamesemantics[4].Ourtheoryisrichinthesens ethatitcaptures
+allthegoodoperationsforacompositionaldesigntheory.I nthispaperwego
+onestepfurtherandpresent Ecdar,atoolthatimplementsthetheoryof[6].
+Wethusproposetheﬁrstcompletegame-basedtoolfortimedi nterfacesinthe
+densetimesetting.Ecdarimplementscheckerssuchassatisfaction/consistency,
+reﬁnement,andsatisfactionofTCTLformulas.Thetoolalso supportstheclas-
+sicalcompositionalreasoningoperationsofconjunctiona ndcomposition.Tothe
+bestofourknowledge, Ecdaristheﬁrsttooltoproposeanimplementationof
+quotient.Inaddition,itcomeswithauser-friendlyinterf ace,whereerrorsare
+reportedinanintelligibleway.
+2 AnIntegratedEnvironmentforDesignandAnalysis
+Theuserinterfaceof Ecdarisdividedintotwoparts:1)the speciﬁcationin-
+terfacewhereautomataarespeciﬁedinagraphicalmanner,and2)the query
+interfacewhereonecanaskveriﬁcationquestions.
+
+--- Page 3 ---
+w[i]!
+rec[(i+1)%N]!rec[(i+1)%N]! w[i]!
+rec[i]?
+x<=Dy>d
+x<=D
+x<=D
+rec[i]?rec[i]?
+x=0,
+y=0rec[i]?
+y>dw[e]!
+z=0rec[e]!
+w[0]!z<=(N+1)*De!=0e:id_te:id_t
+Fig.2.Left:Templateforasinglenode Mi.Right:Templatefortheoverall
+speciﬁcation.
+SpeciﬁcationInterface. Thespeciﬁcationinterfaceof Ecdarusesthelan-
+guageofUppaal-tigatodescribetimedI/Oautomata(insteadoftimedgame
+automata)withinputandoutputmodalitiesthatareessentialinthiscase.TIOAs
+communicateviabroadcastchannels.Global(shared)varia blesarenotpermit-
+ted.TheuserspeciﬁeswhethertheTIOAshouldbeviewedasan implementation
+orasaspeciﬁcation.Forimplementations,thetoolcheckso n-the-ﬂyifeverystate
+respectstheindependentprogress property[6],thatprogressmustbeensured
+bytheimplementation.Detailsareavailableat ecdar.cs.aau.dk.Thetoolhasits
+ownengine,whichreusescomponentsofthegameengineof Uppaal-tigato
+supportthenewoperators.
+Wemodeltheschedulerusingtemplates,inanentirelymodul arway.One
+onlyneedstoinstantiatemorenodestomakealargerinstanc eofthesystem.A
+singlenodeofourschedulerisshownintheleftsideofFig.2 .Intheinitialloca-
+tionofthespeciﬁcation,itisreadytoreceiveamessageont hechannelrec[i]?.
+Afterthistherearetwowaystoreturntotheinitialstatede pendingontheorder
+inwhichitstartsitswork( w[i]!)andpassesonthetoken( rec[(i+1)%N]!).
+Theﬁrstnodeofthesystem M0isinstantiatedwithadiﬀerentinitiallocation
+(thebottom-mostone),reﬂectingthefactthatitholdsthet okeninitially.The
+rightsideofFig.2showstheoverallspeciﬁcation S0ofthesystem.Itrequires
+thatw[0]!occursatleastevery (N+1)∗Dtimeunits.Remainingactionscan
+beexecutedfreely.
+QueryInterface. Thequeryinterfaceprovidestwomaincheckers,the reﬁne-
+mentcheckerandtheconsistencychecker.Thereﬁnementcheckerisusedto
+decideifanimplementationsatisﬁesagivenspeciﬁcationo rifaspeciﬁcation
+reﬁnesanotherone.Asstatedin[6],reﬁnementcheckingred ucestosolvinga
+safetytimedgamebetweenthetwocomponents.Forourexampl eonewayto
+verifythatthescheduleriscorrectistoverifyapropertyo fthetype:
+refinement:(M0||M1||M2||M3||M4)<=S0
+Wecallthistypeofveriﬁcationmonolithic,sinceitconstr uctsaspeciﬁcation
+preciselyrepresentingtheentiresystem.Thetoolprovide sastrategytoprove
+ordisprovetheproperty,whichcanbeusedtoreﬁnethemodel .Thestrategy
+canbeplayedinteractively.Theconsistencycheckerisuse dtocheckwhethera
+
+--- Page 4 ---
+speciﬁcationadmitsatleastoneimplementation.Thisques tionreducestothe
+oneofdecidingifthereexistsastrategyfortheoutputplay ertoavoidreaching
+badstatesinthespeciﬁcation,i.e.,statesthatdonotsatisfythe independent
+progressproperty.Apruningfacilityremovesallthestatesnotcoveredbythe
+strategy.Itcandrasticallyreducethestate-spaceofthes ystem.Followinga
+similarprinciple,itispossibletoconstrainaninterface withaTCTL∗formula.
+Forexample,likein[11],onecanuseaB¨uchiobjectivetore movestatesallowing
+Zenobehaviours.Thisistheﬁrsttimethatatoolforcomposi tionalreasoning
+proposesthisfeatureinthedensetimesetting.
+3 IllustrationandExperiment
+Inourexamplewehavearingof Nnodes.Itisnaturaltoverifythemonolithic
+propertyinordertoshowthatthecomposedsystemreﬁnesthe overallspeci-
+ﬁcation.Unfortunately,thisstrategyfailsduetostate-s paceexplosion.Asthe
+numberofcomponentsisincreased,thestatespacegrows,an dmorenondeter-
+minismandinterleavingisintroducedinthesystem.
+Inordertocombattheproblemweapplycompositionalveriﬁc ation.Theidea
+istocreate Nsub-speciﬁcationsthatareusedinaseriesofreﬁnementste ps.First
+oneshowsthat M1≤SS1.Afterthisitisprovedforincreasingindexes, 1toN
+refinement:M1<=SS1
+refinement:(SS1||M2)<=SS2
+refinement:(SS2||M3)<=SS3
+refinement:(SS3||M4)<=SS4
+refinement:(SS4||M0)<=S0
+Fig.3.Incrementalveriﬁcation.thatSSi||Mi+1≤SSi+1. Finally the
+property SSn||M0≤S0ischecked.Fig.3
+givesthepropertiesforﬁvenodes.The
+sub-speciﬁcation aims at capturing the
+importantaspectofthesubsystemneeded
+forthenextstepintheveriﬁcationprocess
+oftheoverallproperty.Itisveryimpor-
+tanttonoticethatthesub-speciﬁcationis
+likealltheothercomponentsinthesystemcreatedasatempl ateandthatthus
+itismodelledonlyonceandtheninstantiatedwithdiﬀerent indices.
+rec[(i+1)%N]!
+rec[1]?
+rec[(i+1)%N]!
+rec[1]?w[e]!w[e]!
+rec[1]?rec[1]?rec[1]?
+e:id_t
+e>0 && e<=ie>0 && e<=i
+x<=i*De:id_t
+e:id_t
+w[e]!x=0,
+y=0y<=N*dx=0, 
+y=0
+e>0 && e<=ix>=i*dy>N*d
+Fig.4.Thesub-speciﬁcation SSithatab-
+stractsthethesub-system M1||...||Mi.Herethesub-speciﬁcation SSi,
+asshowninFig.4,isamodelfor
+asequenceofnodes M1||...||Mi
+(seeFig.1). Informally SSiis
+expressed as following, noting
+that the relevantports for this
+subsystem arerec[1]?,w[e]!
+(0<e<=i)andrec[i+1]!: Un-
+der the assumption that a)
+the time elapsing between two
+rec[1]?ismorethan N∗dtime-
+units and b) there are no two
+consecutiverec[1]?without a
+rec[i+1]!,thenitisguaranteed
+thatrec[i+1]!willoccurwithin [i∗d,i∗D]timeunitsfromrec[1]?.
+
+--- Page 5 ---
+Wehaveperformedexperimentsfordiﬀerentvaluesof N,numberofnodes
+inthering,and dtheminimumtimedelaybeforepassingonthetoken.We
+haveﬁxedtheuppertimelimitforpassingthetokento 30.Theresultsofthe
+experimentsareshowninTable1.Thetableshowsthetimeuse dtochecka
+givenpropertymeasuredinseconds.Foreachvalueof Nwehavetworows.
+Thetoponerepresentstheveriﬁcationofallthestepsinthe compositional
+veriﬁcationwhilethebottomrowrepresentstheveriﬁcatio nofonemonolithic
+property.Iftheveriﬁcationtookmorethan600secondswest oppedit.Wehad
+oneinstancewhere Ecdarranoutofmemorywhichisindicatedby om.The
+timeresultsthatarewrittenin italicsarethecasesinwhichthecompositional
+veriﬁcationgaveanegativeresult.Inthesecasesoneneeds toproposemore
+precisesub-speciﬁcationsinordertomakethecomposition alveriﬁcationwork.
+Themonolithicmethodgivespositiveresultsinthesecases .
+Inthecasewhere discloseto Dthereisverylittleinterleavinginthe
+systemandinthiscasetheveriﬁcationofthemonolithicpro pertyisthefastest.
+Thesmallerthe dvaluethemoreinterleavingappearsinthesystemandinthes e
+complexcasesthecompositionalveriﬁcationshowsitsstre ngth.Thecaseswhere
+thecompositionalveriﬁcationbeatsthemonolithicaremar kedbyboldface.
+4 RelatedWork
+IntheuntimedsettingmultiplecontributionsofAlfaroeta l.focusontheoper-
+ationsofcompositionandreﬁnement.Hence,toolssuchasTI CCorCHIConly
+providetheseoperations.Theoriesexistsforquotient[3] andconjunction[12],
+buttheyhavenotbeenimplementedneitherinTICCnorinCHIC .Morere-
+cently,Baueretal.haveproposedanewextensionofinterfa ceautomatawith
+Table1.Resultsoftheveriﬁcationexperiments.
+d= 2920109864
+n= 50.080 0.097 0.191 0.169 0.172 0.151 0.205
+monolithic0.034 0.034 0.073 1.191 1.189 64.933 >600
+n= 60.1020.1330.2310.2280.2380.2380.294
+monolithic0.0400.0430.0956.7866.791>600>600
+n= 80.225 0.349 0.516 0.5150.540 0.600 0.582
+monolithic0.076 0.076 0.230 88.542 88.642 >600>600
+n= 120.8301.4141.8021.8951.8312.0792.181
+monolithic0.2200.2230.843>600>600>600>600
+n= 204.990 9.739 12.377 11.92312.04112.438 12.764
+monolithic1.038 1.030 4.523 >600>600>600>600
+n= 3022.05345.70955.72855.34555.11254.70256.164
+monolithic3.7913.77817.652 >600>600>600om
+
+--- Page 6 ---
+newdeﬁnitionforcomposition/compatibilityandreﬁnemen t;theseresultsare
+implementedintheMIOWorkbench[2].Thisworkremainsatth elevelofun-
+timedsystems,notconsideringoperationssuchasquotient orpruning.
+Aﬁrstdensetimeextensionofthetheoryofinterfaceautoma tahasbeende-
+velopedin[11].Thetheoryin[11]focusesexclusivelyonre ducingcomposition
+andconsistencycheckingtosolvingtimedgamesanddoesnot provideanydef-
+initionandalgorithmsforreﬁnement,conjunction,andquo tient.In[9],Alfaro
+andFaellaproposedaneﬃcientimplementationofthealgori thmusedtosolve
+thetimedgamesintroducedin[11],butforthediscretizedt imedomainonly.In
+addition,theyalsoproposedanextensionofTICCtothetime dsetting.This
+versionofTICCdoesnotprovidethesameservicesas Ecdardoes.First,timed
+TICConlysupportsconsistencycheckingandcomposition;t heusefulnessofthe
+toolforcompositionaldesignofrealtimesystemsisthusli mited.Second,the
+tooldoesnotoﬀerauserfriendlyinterfaceandtheinteract ionswiththeuser
+areextremelylimited.Last,thetoolworksonthediscretiz edtimedomainonly.
+Hence,allthecomplicationsintroducedbythedensesettin garenotstudied.
+References
+1. B.T.Adler,L.deAlfaro,L.D.daSilva,M.Faella,A.Legay ,V.Raman,and
+P.Roy.Ticc:Atoolforinterfacecompatibilityandcomposi tion.InCAV,volume
+4144ofLNCS,pages59–62.Springer,2006.
+2. S.S.Bauer,P.Mayer,A.Schroeder,andR.Hennicker.Onwe akmodalcompatibil-
+ity,reﬁnement,andthemioworkbench.In TACAS,volume6015ofLNCS,pages
+175–189.Springer,2010.
+3. P.Bhaduri. Synthesisofinterfaceautomata. In ATVA,volume3707ofLNCS,
+pages338–353.Springer,2005.
+4. F.Cassez,A.David,E.Fleury,K.G.Larsen,andD.Lime. Eﬃ cienton-the-ﬂy
+algorithmsfortheanalysisoftimedgames.In CONCUR,2005.
+5. Chic,2003.http://www-cad.eecs.berkeley.edu/˜tah/chic/ .
+6. A.David,K.Larsen,A.Legay,U.Nyman,andA.Wąsowski.Ti medI/Oautomata:
+acompletespeciﬁcationtheoryforreal-timesystems.In HSCC,2010.Accepted.
+7. L.deAlfaro.Gamemodelsforopensystems.In Verif(TheoryinPractice) ,volume
+2772ofLNCS.Springer,2003.
+8. L.deAlfaro,L.D.daSilva,M.Faella,A.Legay,P.Roy,and M.Sorea.Sociable
+interfaces.InFroCos,volume3717oflncs,pages81–105.Springer,2005.
+9. L.deAlfaroandM.Faella.Anacceleratedalgorithmfor3- colorparitygameswith
+anapplicationtotimedgames.In CAV,volume4590ofLNCS.Springer,2007.
+10. L.deAlfaroandT.A.Henzinger.Interface-baseddesign .InMarktoberdorfSummer
+School.KluwerAcademicPublishers,2004.
+11. L.deAlfaro,T.A.Henzinger,andM.I.A.Stoelinga. Time dinterfaces. In
+EMSOFT,volume2491ofLNCS,pages108–122.Springer,2002.
+12. L.Doyen,T.A.Henzinger,B.Jobstman,andT.Petrov. Int erfacetheorieswith
+componentreuse.In EMSOFT,pages79–88.ACMPress,2008.
+13. N.A.LynchandM.R.Tuttle.Anintroductiontoinput/out putautomata.Tech-
+nicalReportMIT/LCS/TM-373,TheMITPress,Nov.1988.
+14. R.Milner.ACalculusofCommunicatingSystems . Springer-VerlagNewYork,
+Inc.,Secaucus,NJ,USA,1982.

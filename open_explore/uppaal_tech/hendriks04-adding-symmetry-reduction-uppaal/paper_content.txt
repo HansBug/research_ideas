@@ -1,0 +1,572 @@
+--- Page 1 ---
+Adding Symmetry Reduction to Uppaal⋆
+Martijn Hendriks1, Gerd Behrmann2, Kim Larsen2, Peter Niebert3⋆⋆, and Frits
+Vaandrager1
+1Nijmeegs Instituut voor Informatica en Informatiekunde,
+University of Nijmegen, The Netherlands
+{martijnh,fvaan }@cs.kun.nl
+2Department of Computing Science,
+Aalborg University, Denmark
+{behrmann,kgl }@cs.auc.dk
+3Laboratoire d’Informatique Fondementale, CMI,
+Universit´ e de Provence, France
+peter.niebert@lif.univ-mrs.fr
+Abstract. We describe a prototype extension of the real-time model
+checking tool Uppaal with symmetry reduction. The symmetric data
+type scalarset , which is also used in the Mur ϕmodel checker, was added
+toUppaal ’s system description language to support the easy static de-
+tection of symmetries. Our prototype tool uses state swaps , described
+and proven sound earlier by Hendriks, to reduce the space and memory
+consumption of Uppaal . Moreover, the reduction strategy is canonical ,
+which means that the symmetries are optimally used. For all examples
+that we experimented with (both academic toy examples and industrial
+cases), we obtained a drastic reduction of both computation time and
+memory usage, exponential in the size of the scalar sets used.
+1 Introduction
+Model checking is a semi-automated technique for the validation and veriﬁcation
+of all kinds of systems [8]. The approach requires the construction of a model of
+the system and the deﬁnition of a speciﬁcation for the system. A model check-
+ing tool then computes whether the model satisﬁes its speciﬁcation. Nowadays,
+model checkers are available for many application areas, e.g., hardware systems
+[10, 22], ﬁnite-state distributed systems [17], and timed and hybrid systems [21,
+27, 25, 16].
+Despite the fact that model checkers are relatively easy to use compared to
+manual veriﬁcation techniques or theorem provers, they are not being applied on
+a large scale. An important reason for this is that they must cope with the state
+⋆Supported by the European Community Project IST-2001-35304 (AMETIST),
+http://ametist.cs.utwente.nl .
+⋆⋆Peter Niebert suggested the method for eﬃcient computation of canonical represen-
+tatives at an AMETIST project meeting, and was therefore invited to join the list
+of authors after acceptance of the paper.
+
+--- Page 2 ---
+space explosion problem, which is the problem of the exponential growth of the
+state space as models become larger. This growth often renders the mechanical
+veriﬁcation of realistic systems practically impossible: there just is not enough
+time or memory available. As a consequence, much research has been directed
+at ﬁnding techniques to ﬁght the state space explosion. One such a technique is
+the exploitation of behavioral symmetries [18, 23, 20, 19, 12, 7]. The exploitation
+offullsymmetries can be particularly proﬁtable, since its gain can approach a
+factorial magnitude.
+There are many timed systems which clearly exhibit full symmetry, e.g., Fis-
+cher’s mutual exclusion protocol [1], the CSMA/CD protocol [24, 27], industrial
+audio/video protocols [13], and distributed algorithms, for instance [4].
+Motivated by these examples, the work presented in [14] describes how Up-
+paal , a model checker for networks of timed automata [21, 3, 2], can be enhanced
+with symmetry reduction. The present paper puts this work to practice: a proto-
+type of Uppaal with symmetry reduction has been implemented. The symmetric
+data type scalarset , which was introduced in the Mur ϕmodel checker [10], was
+added to Uppaal ’s system description language to support the easy static detec-
+tion of symmetries. Furthermore, the state swaps described and proven sound
+in [14] are optimally used to reduce the space and time consumption of the
+model checking algorithm. Run-time data is reported for the examples men-
+tioned above, showing that symmetry reduction in a timed setting can be very
+eﬀective.
+Related work. Symmetry reduction is a well-known technique to reduce the
+resource requirements for model checking algorithms, and it has been success-
+fully implemented in model checkers such as Mur ϕ[10, 19], SMV [22], and Spin
+[17, 6]. As far as we know, the only model checker for timed systems that exploits
+symmetry is Red [25, 26]. The symmetry reduction technique used in Red, how-
+ever, gives an over approximation of the reachable state space (this is called the
+anomaly of image false reachability by the authors). Therefore, Red can only
+be used to ensure that a state is notreachable when it is run with symmetry
+reduction, whereas symmetry enhanced Uppaal can be used to ensure that a
+state is reachable, or that it is not reachable.
+Contribution. We have added symmetry reduction as used within Mur ϕ,
+a well-established technique to combat the state space explosion problem, to
+the real-time model checking tool Uppaal . For researchers familiar with model
+checking it will come as no surprise that this combination can be made and
+indeed leads to a signiﬁcant gain in performance. Still, the eﬀort required to
+actually add symmetry reduction to Uppaal turned out to be substantial.
+The soundness of the symmetry reduction technique that we developed for
+Uppaal does not follow trivially from the work of Ip and Dill [19] since the de-
+scription languages of Uppaal andMur ϕ, from which symmetries are extracted
+automatically, are quite diﬀerent. In fact, the proof that symmetry reduction for
+Uppaal is sound takes up more than 20 pages in [14].
+
+--- Page 3 ---
+The main theoretical contribution of our work is an eﬃcient algorithm for the
+computation of a canonical representative. This is not trivial due to Uppaal ’s
+symbolic representation of sets of clock valuations.
+Many timed systems exhibit symmetries that can be exploited by our meth-
+ods. For all examples that we experimented with, we obtained a drastic reduction
+of both computation time and memory usage, exponential in the size of the scalar
+sets used.
+Outline. Section 2 presents a very brief summary of model checking and
+symmetry reduction in general, while Sections 3 and 4 introduce symmetry re-
+duction for the Uppaal model checker in particular. In Section 5, we present
+run-time data of Uppaal ’s performance with and without symmetry reduction,
+and Section 6 summarizes and draws conclusions.
+A full version of the present paper including proofs of lemma 1 and of theorem
+2 is available as [15].
+2 Model Checking and Symmetry Reduction
+This section brieﬂy summarizes the theory of symmetry presented in [19], which
+is reused in a timed setting since (i) it has proven to be quite successful, and (ii)
+it is designed for reachability analysis, which is the main purpose of the Uppaal
+model checker. We simplify (and in fact generalize) the presentation of [19] using
+the concept of bisimulations.
+In general, a transition system is a tuple ( Q, Q 0, ∆), where Qis a set of
+states, Q0⊆Qis a set of initial states, and ∆∈Q×Qis a transition relation
+between states. Figure 1 depicts a general forward reachability algorithm which,
+under the assumption that Qis ﬁnite, computes whether there exists a reachable
+state qthat satisﬁes some given property φ(denoted by q|=φ).
+(1) passed :=∅
+(2) waiting :=Q0
+(3) while waiting /negationslash=∅do
+(4) get qfrom waiting
+(5) ifq|=φthen return YES
+(6) else if q /∈passed then
+(7) add qtopassed
+(8) waiting :=waiting ∪ {q/prime∈Q|(q, q/prime)∈∆}
+(9) ﬁ
+(10) od
+(11) return NO
+Fig. 1. A general forward reachability analysis algorithm.
+Due to the state space explosion problem, the number of states of a transition
+system frequently gets too big for the above algorithm to be practical. We would
+
+--- Page 4 ---
+like to exploit structural properties of transition systems (in particular symme-
+tries) to improve its performance. Here the well-known notion of bisimulation
+comes in naturally:
+Deﬁnition 1 (Bisimulation). Abisimulation on some transition system, say
+(Q, Q 0, ∆), is a relation R⊆Q×Qsuch that, for all (q, q/prime)∈R,
+1.q∈Q0if and only if q/prime∈Q0,
+2. if (q, r)∈∆then there exists an r/primesuch that (q/prime, r/prime)∈∆and(r, r/prime)∈R,
+3. if (q/prime, r/prime)∈∆then there exists an rsuch that (q, r)∈∆and(r, r/prime)∈R.
+Suppose that, before starting the reachability analysis of a transition system,
+we know that a certain equivalence relation ≈is a bisimulation and respects the
+predicate φin the sense that either all states in an equivalence class satisfy φor
+none of them does. Then, when doing reachability analysis, it suﬃces to store
+and explore only a single element of each equivalence class. To implement the
+state space exploration, a representative function θmay be used that converts a
+state to a representative of the equivalence class of that state:
+∀q∈Q(q≈θ(q)) (1)
+Using θ, we may improve the algorithm in Figure 1 by replacing lines 2 and 8,
+respectively, by:
+(2)waiting :={θ(q)|q∈Q0}
+(8)waiting :=waiting ∪ {θ(q/prime)|(q, q/prime)∈∆}
+It can easily be shown that the adjusted algorithm remains correct: for all (ﬁnite)
+transition systems the outcomes of the original and the adjusted algorithm are
+equal. If the representative function is “good”, which means that many equiva-
+lent states are projected onto the same representative, then the number of states
+to explore, and consequently the size of the passed set, may decrease dramati-
+cally. However, in order to apply the approach, the following two problems need
+to be solved:
+–A suitable bisimulation equivalence that respects φneeds to be statically
+derived from the system description.
+–An appropriate representative function θneeds to be constructed that sat-
+isﬁes formula (1). Ideally, θsatisﬁes q≈q/prime⇒θ(q) =θ(q/prime), in which case it
+is called canonical .
+In this paper, we use symmetries to solve these problems. As in [19], the
+notion of automorphism is used to characterize symmetry within a transition
+system. This is a bijection on the set of states that (viewed as a relation) is a
+bisimulation. Phrased alternatively:
+Deﬁnition 2 (Automorphism). Anautomorphism on a transition system
+(Q, Q 0, ∆)is a bijection h:Q→Qsuch that
+
+--- Page 5 ---
+1.q∈Q0if and only if h(q)∈Q0for all q∈Q, and
+2.(q, q/prime)∈∆if and only if (h(q), h(q/prime))∈∆for all q, q/prime∈Q.
+LetHbe a set of automorphisms, let idbe the identity function on states,
+and let G(H) be the closure of H∪{id}under inverse and composition. It can be
+shown that G(H) is a group, and it induces a bisimulation equivalence relation
+≈on the set of states as follows:
+q≈q/prime⇐⇒ ∃ h∈G(H)(h(q) =q/prime) (2)
+We introduce a symmetric data type to let the user explicitly point out the
+symmetries in the model. Simple static checks can ensure that the symmetry that
+is pointed out is not broken. Our approach to the second problem of coming up
+with good representative functions consists of “sorting the state” w.r.t. some
+ordering relation on states using the automorphisms. For instance, given a state
+qand a set of automorphisms, ﬁnd the smallest state q/primethat can be obtained
+by repeatedly applying automorphisms and their inverses to q. It is clear that
+such a θsatisﬁes the correctness formula (1), since it is constructed from the
+automorphisms only.
+3 Adding Scalarsets to Uppaal
+The tool Uppaal is a model checker for networks of timed automata extended
+with discrete variables (bounded integers, arrays) and blocking, binary synchro-
+nization as well as non-blocking broadcast communication (see for instance [21]).
+In the remainder of this section we illustrate by an example Uppaal ’s descrip-
+tion language extended with a scalarset type constructor allowing symmetric
+data types to be syntactically indicated. Our extension is based on the notion of
+scalarset ﬁrst introduced by Ip and Dill in the ﬁnite-state model checking tool
+Mur ϕ[10, 19]. Also our extension is based on the C-like syntax to be introduced
+in the forthcoming version 4.0 of Uppaal .
+To illustrate our symmetry extension of Uppaal we consider Fischer’s mutual
+exclusion protocol. This protocol consists of nprocess identical up to their unique
+process identiﬁers. The purpose of the protocol is to insure mutual exclusion
+on the critical sections of the processes. This is accomplished by letting each
+process write its identiﬁer ( pid) in a global variable ( id) before entering its
+critical section. If after some given lower time bound (say 2) idstill contains the
+pidof the process, then it may enter its critical section.
+A scalarset of size nmay be considered as the subrange {0,1, . . . , n −1}
+of the natural numbers. Thus, the nprocess identiﬁers in the protocol can be
+modeled using a scalarset with size n. In addition to the global variable id,
+we use the array active to keep track of all active locations of the processes4.
+Global declarations are the following:
+4This array is actually redundant and not present in the standard formulations of the
+protocol. However, it is useful for showing important aspects of our extension.
+
+--- Page 6 ---
+typedef scalarset[3] proc_id; // a scalarset type with size 3
+proc_id id; // declaration of a proc_id
+// variable
+bool set; // declaration of a boolean
+int active[proc_id]; // declaration of an array
+// indexed by proc_id
+The ﬁrst line deﬁnes proc idto be a scalarset type of size 3, and the second line
+declares idto be a variable over this type. Thus scalarset is in our extension
+viewed as a type constructor. In the last line we show a declaration of an array
+indexed by elements of the scalarset proc id.
+At this point the only thing missing is the declaration of the actual processes
+in the system. In the description language of Uppaal , processes are obtained as
+instances of parameterized process templates. In general, templates may contain
+several diﬀerent parameters (e.g. bounded integers, clocks, and channels). In our
+extension we allow in addition the use of scalarsets as parameters. In the case
+of Fischer’s protocol the processes of the system are given as instances of the
+template depicted in Figure 2. The template has one local clock, x, and no local
+process Fischer (const proc id pid)
+waitreq
+x<=2idle
+csset==0
+active[pid]:=1,
+x:=0
+x:=0,
+id:=pid,
+set:=1,
+active[pid]:=2set==0
+x:=0,
+active[pid]:=1
+x>2,id==pid
+active[pid]:=3set:=0.
+active[pid]:=0
+Fig. 2. The template for Fischer’s protocol.
+variables. Note that the header of the template deﬁnes a (constant) scalarset
+parameter pidof type proc id. Access to the critical section csis governed
+by suitable updates and tests of the global scalarset variable idtogether with
+upper and lower bound time constraints on when to proceed from requesting
+access ( req) respectively proceed from waiting for access ( wait ). Note that all
+transitions update the array active to reﬂect the current active location of the
+process. The instantiation of this template and declaration of all three process
+in the system can be done as follows:
+FischerProcs = forall i in proc_id : Fischer(i);
+system FischerProcs;
+
+--- Page 7 ---
+The forall construct iterates over all elements of a declared scalarset type. In
+this case the iteration is over proc idand a set of instances of the template
+Fischer is constructed and bound to FischerProcs . In the second line the ﬁnal
+system is deﬁned to be precisely this set.
+4 Using Scalarsets for Symmetry Reduction
+As a preliminary to this section we brieﬂy mention the state representation of
+Uppaal . A state is a tuple ( l, v, Z ), where lis the location vector, vis the integer
+variable valuation, and Zis a zone, which is a convex set of clock valuations that
+can eﬃciently be represented by a diﬀerence bounded matrix (DBM) [5, 9].
+4.1 Extraction of Automorphisms
+This subsection is a very brief summary of [14], to which we refer for further
+details. The new syntax described in the previous section enables us to derive
+the following information from a system description:
+–A set Ωof scalarset types.
+–For each α∈Ω: (i) a set Vαof variables of type α, and (ii) a set Dαof pairs
+(a, n) where ais an array and nis a dimension of athat must be indexed
+by variables of type αto ensure soundness. We assume that arrays that are
+indexed by scalarsets do not contain elements of scalarsets. The reason is
+that this would make computation of a canonical representative as hard as
+testing for graph isomorphism.
+–A partial mapping γ:P×Ω /arrowhookleft→Nthat gives for each process pand scalarset
+αthe element of αwith which pis instantiated. This mapping is deﬁned by
+quantiﬁcation over scalarsets in the process deﬁnition section.
+This information enables us to derive so-called state swaps . Let Qbe the set
+of states of some Uppaal model, and let αbe a scalarset type in the model with
+sizen. A state swap swapα
+i,j:Q→Qcan be deﬁned for all 0 ≤i < j < n , and
+consists of two parts:
+–The multiple process swap swaps the contributions to the state of all pairs of
+processes pandp/primeif they originate from the same template and γ(p, α) =i,
+γ(p/prime, α) =jandγ(p, β) =γ(p/prime, β) for all β/negationslash=α∈Ω. Swapping such a pair
+of symmetric processes consists of interchanging the active locations and the
+values of the local variables and clocks (note that this is not a problem since
+the processes originate from the same template).
+–The data swap swaps array entries iandjof all dimensions that are indexed
+by scalarset α(these are given by the set Dα). Moreover, it swaps the value
+iwith the value jfor all variables in Vα.
+Consider the instance of Fischer’s mutual exclusion protocol (as described
+in the previous section) with three processes. There are three swap functions:
+
+--- Page 8 ---
+swapproc id
+0,1,swapproc id
+0,2and swapproc id
+1,2. Now consider the following state of the model
+(the active location of the i-th process is given by liand the local clock of this
+process is given by xi):
+l :l0=idle, l1=wait, l2=cs
+v :id= 2,set= 1
+Z :x0= 4, x1= 3, x2= 2.5
+active ;active [0] = 0,active [1] = 2,active [2] = 3
+When we apply swapproc id
+0,2to this state, the result is the following state:
+l :l0=cs, l1=wait, l2=idle
+v :id= 0,set= 1
+Z :x0= 2.5, x1= 3, x2= 4
+active ;active [0] = 3,active [1] = 2,active [2] = 0
+The process swap swaps l0with l2, and x0with x2. The data swap ﬁrst changes
+the value of the variable idfrom 2 to 0, since id∈Vproc id, and then swaps the
+values of active [0] and active [2]. Applying swapproc id
+1,2to this state gives the
+following state:
+l :l0=cs, l1=idle, l2=wait
+v :id= 0,set= 1
+Z :x0= 2.5, x1= 4, x2= 3
+active ;active [0] = 3,active [1] = 0,active [2] = 2
+Note that this swap does not change the value of id, since the scalarset elements
+1 and 2 are interchanged and idcontains scalarset element 0.
+A number of syntactic checks have been identiﬁed that ensure that the sym-
+metry suggested by the scalarsets is not broken. These checks are very similar to
+those originally identiﬁed for the Mur ϕveriﬁcation system [19]. For instance,
+it is not allowed to use variables of a scalarset type for arithmetical operations
+such as addition. The next soundness theorem has been proven in [14]:
+Theorem 1 (Soundness). Every state swap is an automorphism.
+As a result, the representative function θcan be implemented by minimiza-
+tion of the state using the state swaps. Note that every state swap resembles a
+transposition of the state. Hence, the equivalence classes induced by the state
+swaps originating from a scalarset with size nconsist of at most n! states. The
+maximal theoretical gain that can be achieved using this set of automorphisms
+is therefore in the order of a factor n!.
+4.2 Computation of Representatives
+The representative of a state is deﬁned as the minimal element of the symmetry
+class of that state w.r.t. a total order ≺on the symmetry class. In general,
+
+--- Page 9 ---
+the DBM representation of zones renders an eﬃcient canonical minimization
+algorithm impossible, since minimization of a general DBM for any given total
+order using state swaps is at least as diﬃcult as testing for graph isomorphism for
+strongly regular graphs [14]. If we assume, however, that the timed automaton
+that is analyzed resets its clocks to zero only, then the zones (DBMs) that
+are generated by the forward state space exploration satisfy the nice diagonal
+property . This property informally means that the individual clocks can always
+be ordered using the order in which they were reset. To formalize this, three
+binary relations on the set of clocks parameterized by a zone Zare deﬁned:
+x/precedesorcurlyZy⇐⇒ ∀ ν∈Zν(x)≤ν(y) (3)
+x≈Zy⇐⇒ ∀ ν∈Zν(x) =ν(y) (4)
+x≺Zy⇐⇒ (x/precedesorcurlyZy∧ ¬(x≈Zy)) (5)
+The diagonal property is then deﬁned as follows.
+Lemma 1 (Diagonal Property). Consider the state space exploration algo-
+rithm described in ﬁgure 6of [21]. Assume that the clocks are reset to the value
+0 only. For all states (l, v, Z )stored in the waiting and passed list and for all
+clocks xandyholds that either x≺Zy, orx≈Zyory≺Zx.
+Using the reset order on clocks and the diagonal property, we can deﬁne a
+total order, say ≺, on all states within a symmetry class whose minimal element
+can be computed eﬃciently. To this end we ﬁrst assume a ﬁxed indexing of the
+set of clocks X: a bijection ρ:X→ {1,2, . . . ,|X|}. Now note that ≈Zis an
+equivalence relation that partitions XinP={X1, X2, . . . , X n}. We deﬁne a
+relation on the cells of Pas follows:
+Xi≤Xj⇐⇒/parenleftbig
+∀x∈Xi,y∈Xjx/precedesequalZy/parenrightbig
+(6)
+Clearly this is a total order on P. Let Xibe a cell of P. The code ofXi,
+denoted by C∗(Xi), then is the lexicographically sorted sequence of the indices
+of the clocks in Xi(the set {ρ(x)|x∈Xi}). The zone code of the zone which
+induced Pis then deﬁned as follows.
+Deﬁnition 3 (Zone code). LetZbe a zone and let P={X1, X2, . . . , X n}be
+the partitioning of the set of clocks Xunder ≈Zsuch that i≤j⇒Xi≤Xj(we
+can assume this since ≤is a total order on P). The zone code ofZ, denoted by
+C(Z), is the sequence (C∗(X1),C∗(X2), . . . ,C∗(Xn)).
+Note that every zone has exactly one zone code since the indices of equivalent
+clocks are sorted. Moreover, zone codes can lexicographically be ordered, since
+they are sequences of number sequences. This order is then used in the following
+way to deﬁne a total order on the states in a symmetry class (the orders on
+the location vectors and variable valuations are just the lexicographical order on
+sequences of numbers):
+
+--- Page 10 ---
+(l, v, Z )≺(l/prime, v/prime, Z/prime)
+⇐⇒
+(l<l/prime)∨(l=l/prime∧v < v/prime)∨(l=l/prime∧v=v/prime∧ C(Z)<C(Z/prime))(7)
+We minimize the state w.r.t. the order of equation (7) using the state swaps
+by applying the bubble-sort algorithm to it, see Figure 3. It is clear that this
+representative computation satisﬁes the soundness equation (1), since states are
+transformed using the state swaps only, which are automorphisms by Theorem
+1. We note that swapα
+j−1,j(q) is not computed explicitly for the comparison in
+the fourth line of the algorithm; using the statically derived γ,DαandVα(see
+section 4.1) we are able to tell whether swapping results in a smaller state.
+(1)for all α∈Ωdo
+(2) fori= 1to|α|do
+(3) forj= 1to|α| −ido
+(4) ifswapα
+j−1,j(q)≺qthen
+(5) q:=swapα
+j−1,j(q)
+(6) od
+(7) od
+(8)od
+Fig. 3. Minimization of state qusing the bubble-sort algorithm. The size of scalarset
+type αis denoted by |α|.
+The following theorem states the main technical contribution of our work.
+Informally, it means that the detected symmetries are optimally used.
+Theorem 2 (Canonical Representative). The algorithm in Figure 3 com-
+putes a canonical representative.
+Note that we assumed that arrays that are indexed by scalarsets do not con-
+tain elements of scalarsets. Otherwise, computation of a canonical representative
+is as hard as graph isomorphism, but this is entirely due to the discrete part of
+the model, and not to the clock part.
+5 Experimental Results
+This section presents and discusses experimental data that was obtained by the
+Uppaal prototype on a dual Athlon 2000+ machine with 3 GB of RAM. The
+measurements were done using the tool memtime , for which a link can be found
+at the Uppaal website http://www.uppaal.com/ .
+In order to demonstrate the eﬀectiveness of symmetry reduction, the resource
+requirements for checking the correctness of Fischer’s mutual exclusion protocol
+were measured as a function of the number of processes for both regular Uppaal
+and the prototype, see Figure 4. A conservative extrapolation of the data shows
+
+--- Page 11 ---
+0.010.1110100100010000
+51015202530354045505560657075808590951001101001000Time [s]
+Memory [MB]
+ProcessesTime
+Memory
+Time (prototype)
+Memory (prototype)Fig. 4. Run-time data for Fischer’s mutual exclusion protocol showing the enormous
+gain of symmetry reduction. The step in the graph of the memory usage is probably
+due to the the fact that Uppaal allocates memory in chunks of a few megabyte at a
+time.
+that the veriﬁcation of the protocol for 20 processes without symmetry reduction
+would take 115 days and 1000 GB of memory, whereas this veriﬁcation can be
+done within approximately one second using less than 10 MB of memory with
+symmetry reduction.
+Similar results have been obtained for the CSMA/CD protocol ([24, 27]) and
+for the timeout task of a distributed agreement algorithm5[4]. To be more pre-
+cise, regular Uppaal ’s limit for the CSMA/CD protocol is approximately 10
+processes, while the prototype can easily handle 50 processes. Similarly, the pro-
+totype can easily handle 30 processes for the model of the timeout task, whereas
+regular Uppaal can only handle 6.
+Besides the three models discussed above, we also investigated the gain of
+symmetry reduction for two more complex models. First, we experimented with
+the previously mentioned agreement algorithm, of which we are unable to verify
+an interesting instance even with symmetry reduction due to the size of the state
+space. Nevertheless, symmetry reduction showed a very signiﬁcant improvement.
+Second, we experimented with a model of Bang & Olufsen’s audio/video proto-
+col [13]. The mentioned paper describes how Uppaal is used to ﬁnd a bug in the
+5Models of the agreement algorithm and its timeout task are available through the
+URL http://www.cs.kun.nl/ ∼martijnh/
+
+--- Page 12 ---
+protocol, and it describes the veriﬁcation of the corrected protocol for two (sym-
+metric) senders. Naturally, we added another sender – veriﬁcation of the model
+for three senders was impossible at the time of the ﬁrst veriﬁcation attempt –
+and we found another bug, whose source and implications we are investigating
+at the time of this writing. Table 1 shows run-time data for these models.
+Table 1. Comparing the time and memory consumption of the relations for the agree-
+ment algorithm and for Bang & Olufsen’s audio/video protocol with two and three
+senders. The exact parameters of the agreement model are the following: n= 2, f= 1,
+ones = 0, c1= 1, c2= 2 and dvaried (the value is written between the brackets).
+Furthermore, the measurements were done for the veriﬁcation of the agreement invari-
+ant only. Three veriﬁcation runs were measured for each model and the best one w.r.t.
+time is shown.
+Model Time [s] Memory [MB]
+Agreement (0)
+Agreement (1)
+Agreement (2)
+Agreement (3)
+B&O (2)
+B&O (3)No reduction Reduction
+1 3
+21 16
+80 23
+231 32
+2 1
+265 36No reduction Reduction
+33 45
+294 180
+905 245
+2126 321
+16 10
+1109 181
+6 Conclusions
+The results we obtained with our prototype are clearly quite promising: with
+relatively limited changes/extensions of the Uppaal code we obtain a rather
+drastic improvement of performance for systems with symmetry that can be
+expressed using scalarsets.
+An obvious next step is to do experiments concerning proﬁling where compu-
+tation time is spent, and in particular how much time is spent on computing rep-
+resentatives. In the tool Design/CPN [18, 20, 11] (where symmetry reduction is a
+main reduction mechanism) there have been interesting prototype experiments
+with an implementation in which the (expensive) computations of representa-
+tives were launched as tasks to be solved in parallel with the main exploration
+algorithm.
+The scalarset approach that we follow in this paper only allows one to express
+total symmetries. An obvious direction for future research will be to study how
+other types of symmetry (for instance as we see it in a token ring) can be
+exploited.
+References
+1. M. Abadi and L. Lamport. An old-fashioned recipe for real time. ACM Transac-
+tions on Programming Languages and Systems , 16(5):1543–1571, September 1994.
+
+--- Page 13 ---
+2. R. Alur, C. Courcoubetis, and D.L. Dill. Model checking in dense real time. In-
+formation and Computation , 104:2–34, 1993.
+3. R. Alur and D.L. Dill. Automata for modeling real-time systems. In 17th Inter-
+national Colloquium on Automata, Languages, and Programming , pages 322–335,
+1990.
+4. H. Attiya, C. Dwork, N. Lynch, and L. Stockmeyer. Bounds on the time to reach
+agreement in the presence of timing uncertainty. Journal of the ACM , 41(1):122–
+152, 1994.
+5. R. Bellman. Dynamic Programming . Princeton University Press, 1957.
+6. D. Bosnacki, D. Dams, and L. Holenderski. A heuristic for symmetry reductions
+with scalarsets. In J.N. Oliveira and P. Zave, editors, FME 2001 , number 2021 in
+LNCS, pages 518–533. Springer–Verlag, 2001.
+7. E. M. Clarke, S. Jha, R. Enders, and T. Filkorn. Exploiting symmetry in temporal
+logic model checking. Formal Methods in System Design , 9(1/2):77–104, 1996.
+8. E.M. Clarke, O. Grumberg, and D.A. Peled. Model Checking . The MIT Press,
+2000.
+9. D. Dill. Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems. In
+J. Sifakis, editor, Proc. of Automatic Veriﬁcation Methods for Finite State Systems ,
+number 407 in LNCS, pages 197–212. Springer–Verlag, 1989.
+10. D. L. Dill, A. J. Drexler, A. J. Hu, and C. Han Yang. Protocol veriﬁcation as
+a hardware design aid. In IEEE International Conference on Computer Design:
+VLSI in Computers and Processors , pages 522–525. IEEE Computer Society, 1992.
+11. L. Elgaard. The Symmetry Method for Coloured Petri Nets - Theory, Tools,
+and Practical Use . PhD thesis, Department of Computing Science, University
+of Aarhus, Denmark, July 2002.
+12. E.A. Emerson and A.P. Sistla. Symmetry and model checking. In CAV’93 , number
+697 in LNCS. Springer–Verlag, 1993.
+13. K. Havelund, A. Skou, K.G. Larsen, and K. Lund. Formal modelling and analysis
+of an audio/video protocol: An industrial case study using uppaal . In18th IEEE
+Real-Time Systems Symposium , pages 2–13, 1997.
+14. M. Hendriks. Enhancing uppaal by exploiting symmetry. Technical Report NIII-
+R0208, NIII, University of Nijmegen, October 2002.
+15. M. Hendriks, G. Behrmann, K. G. Larsen, P. Niebert, and F. W. Vaandrager.
+Adding symmetry reduction to uppaal . Technical Report NIII-R03xx, NIII, Uni-
+versity of Nijmegen, 2003. To appear.
+16. T. A. Henzinger, P. Ho, and H. Wong-Toi. HyTech : A model checker for hybrid
+systems. Software Tools for Technology Transfer , 1:110–122, 1997.
+17. G. J. Holzmann. The spin model checker. IEEE Transactions on Software Engi-
+neering , 23(5):279–295, 1997.
+18. P. Huber, A. M. Jensen, L. O. Jepsen, and K. Jensen. Reachability trees for
+high-level petri nets. Theoretical Computer Science , 45(3):261–292, 1986.
+19. C.N. Ip and D.L. Dill. Better veriﬁcation through symmetry. In D. Agnew, L.
+Claesen, and R. Camposano, editors, Computer Hardware Description Languages
+and their Applications , pages 87–100, Ottawa, Canada, 1993. Elsevier Science Pub-
+lishers B.V., Amsterdam, The Netherlands. Journal version appeared in Formal
+Methods in System Design , 9(1/2):41–75, 1996.
+20. K. Jensen. Condensed state spaces for symmetrical Coloured Petri Nets. Formal
+Methods in System Design , 9(1/2):7–40, 1996.
+21. K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a nutshell. International
+Journal on Software Tools for Technology Transfer , pages 134–152, 1998.
+
+--- Page 14 ---
+22. K. L. McMillan. Symbolic Model Checking . PhD thesis, Carnegie Mellon University,
+Pittsburgh, May 1992.
+23. P.H. Starke. Reachability analysis of petri nets using symmetries. Syst. Anal.
+Model. Simul./5 , 8(4):293–303, 1991.
+24. A. S. Tanenbaum. Computer Networks . Prentice–Hall, 1996.
+25. F. Wang. Eﬃcient data structure for fully symbolic veriﬁcation of real-time soft-
+ware systems. In S. Graf and M. Schwartzbach, editors, TACAS’00 , number 1785
+in LNCS, pages 157–171. Springer–Verlag, 2000.
+26. F. Wang and K. Schmidt. Symmetric symbolic safety-analysis of concurrent
+software with pointer data structures. In D.A. Peled and M.Y. Vardi, editors,
+FORTE’02 , number 2529 in LNCS, pages 50–64. Springer–Verlag, 2002.
+27. S. Yovine. Kronos : a veriﬁcation tool for real-time systems. International Journal
+on Software Tools for Technology Transfer , 1(2), 1997.

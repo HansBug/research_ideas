@@ -1,0 +1,694 @@
+--- Page 1 ---
+Timed Automata with Disjoint Activity
+Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+Albert-Ludwigs-Universit at Freiburg, 79110 Freiburg, Germany
+fmuniz,westphal,podelski g@informatik.uni-freiburg.de
+Abstract. The behavior of timed automata consists of idleness and ac-
+tivity, i.e. delay and action transitions. We study a class of timed au-
+tomata with periodic phases of activity. We show that, if the phases
+of activity of timed automata in a network are disjoint, then location
+reachability for the network can be decided using a concatenation of
+timed automata. This reduces the complexity of verication in Uppaal-
+like tools from quadratic to linear time (in the number of components)
+while traversing the same reachable state space. We provide templates
+which imply, by construction, the applicability of sequential composition,
+a variant of concatenation, which reects relevant reachability properties
+while removing an exponential number of states. Our approach covers
+the class of TDMA-based (Time Division Multiple Access) protocols,
+e.g. FlexRay and TTP. We have successfully applied our approach to
+an industrial TDMA-based protocol of a wireless re alarm system with
+more than 100 sensors.
+1 Introduction
+Timed real world applications may include a large number of components. These
+components can often be modeled using timed automata [1] and their composi-
+tion. The behavior of timed automata consists of idleness and activity, i.e. delay
+and action transitions. In many cases the activity of the timed automata (which
+model an application) is disjoint i.e. one automaton is active while the other
+ones are idle, except at time points where they may synchronize. In timed au-
+tomata with disjoint activity their parallel product will introduce many edges
+and locations which are not relevant given the disjoint activity assumption (un-
+reachable locations). These many edges are unnecessarily evaluated and increase
+the verication costs in tools like Uppaal [3].
+In this paper, we formalize a notion of timed automata with disjoint activity
+and characterize a class of timed automata with periodic cycles of activity. Then,
+we dene a semantic concatenation operator which, when applied to timed au-
+tomata with disjoint activity, produces automata bisimilar to the one obtained
+by their parallel composition. The automaton obtained by the concatenation
+operator has a reduced number of edges and locations than the one obtained
+M. Jurdzi nski and D. Ni ckovi c (Eds.): FORMATS 2012, LNCS 7595, pp. 188-203, 2012.
+cSpringer-Verlag Berlin Heidelberg 2012
+
+--- Page 2 ---
+Timed Automata with Disjoint Activity 189
+by the parallel composition operator. Identifying the periodic cyclic phases of
+activity of a timed automata, and if these activity phases are disjoint can be
+as hard as verifying a property. Therefore, we introduce templates for timed
+automata which by construction ensure periodic phases of activity. In addition,
+a syntactic check in the instances of the templates suces to ensure that their
+corresponding phases of activity are disjoint. We used our approach for verifying
+a real world wireless re alarm system with up to 125 sensors. By using our
+approach in Uppaal the verication times decreased from quadratic to linear on
+the number of sensors.
+An important class of systems which can be veried using our approach is
+the class of real-time network protocols which use the Time Division Multiple
+Access design principle. Well-known examples in this class of TDMA protocols
+include the Bluetooth protocol of [6], the time triggered protocol of [12], and the
+time triggered architectures of [11, 7, 10].
+1.1 Related work
+Since the cost of model checking for a network of timed automata increases
+exponentially in the number of components, much research has been directed
+towards techniques that demonstrate a potentially exponential speedup in in-
+teresting applications (see, e.g., [2]). It turns out that, for the class of timed
+automata with disjoint activity , the cost increases quadratically in the number
+of components (which, as conrmed in our experiments, can be bad enough with
+an increasing number of components); thus, the best one can hope for, is to be
+able to demonstrate a potentially linear speedup (see Figure 1, page 202). Lit-
+tle research has been devoted to the (comparatively modest, albeit occasionally
+relevant) goal of a linear speedup; in particular, we are not aware of techniques
+that are directly related to our approach. Still, let us note that the technique of
+active clock reduction of [4] and its generalisation in [2], which may seem relevant
+in this context, are orthogonal to our approach; in fact, when we present our
+experimental evaluation, we evaluate the improvement obtained by the syntactic
+transformation (for a non-optimized model) with respect to the execution time
+for an optimized model which has only one clock.
+In [5, 9, 14] Communication-Closed Layers and timed automata are studied.
+The approach presented in [14] and ours are complementary. The main dier-
+ences are that the approach in [14] is action based, whereas our approach is time
+based. In addition, we consider cyclic timed automata, whereas in [14], automata
+can not perform actions after reaching their corresponding nal location.
+In Section 6 we introduce sequential timed automata and present in Deni-
+tion 9 the notion of an overclock for two clocks. We use this notion to reduce
+the number of clocks in sequential timed automata. In [8] this notion is general-
+ized to quasi-equal clocks and a more general reduction method for quasi-equal
+clocks is presented. However, we show that for the context of sequential timed
+automata, the Sequentialisation method proposed in Section 6 yields an Au-
+tomaton in which verication can be carried out in linear time on the number
+of sequential timed automata, whereas by using the method proposed in [8] the
+
+--- Page 3 ---
+190 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+/lscriptini
+/lscript2 /lscript3/lscript4x1≤10 x1≤100
+x1≤15 x1≤20x1≥10
+x1≥15alive!x1≥20 ack?x1≥100x1:= 0
+/lscriptini
+/lscript2 /lscript3/lscript4x2≤30 x2≤100
+x2≤35 x2≤40x2≥30
+x2≥35alive!x2≥40 ack?x2≥100x2:= 0
+Fig. 1. Timed automata A1andA2modeling the behavior of two simplied sensors.
+The constants 10 ;20 and 30 ;40 denote the start resp. the end of the i-th time slot
+interval. The i-th sensor waits for the start of its designated time slot, sends its alive
+signal and waits for the acksignal from the central unit to arrive before the end.
+verication will be carried out in quadratic time. This is illustrated in our case
+study in Section 7.
+2 Applications
+First, we elucidate our method by explaining it through an example. Next, we
+describe how our method could be applied to a Time-Triggered Architecture
+system.
+2.1 Example: Fire alarm system
+In the simplied (and simplistic) version that we consider for the example of a
+TDMA protocol, the wireless re alarm system is a network of a central unit and
+a numbernof sensors; here, n= 10. Figure 1 shows two timed automata which
+model two (simplied) sensors. The protocol operates in cycles of xed length of
+time, say 100. The cycle is split in ntime slot intervals, each of the same length
+of time. In each cycle, the central unit listens at the i-th time slot to an alive
+message from the i-th sensor. If the alive message is received, the central unit
+replies with an ackmessage.
+Figure 2 shows the timed automaton that is `equivalent' to the parallel prod-
+uct of the timed automata A1andA2; it is obtained from applying the operation
+that we will introduce in Section 6. We note three phenomena that we observe
+on the example (and describe the concepts that we will introduce in the cor-
+responding section in order to investigate the phenomena). These phenomena
+constitute the premises of our approach.
+(1) The initial location of Aiis visited innitely often, with a regular period
+(in Section 4, we dene notions of cyclicity and periodicity of timed automata).
+(2) Thei-th sensor mostly (but not exclusively!) performs action transitions
+at thei-th time slot (in Section 5, we formally characterize the notion of activity
+
+--- Page 4 ---
+Timed Automata with Disjoint Activity 191
+/lscriptini,ini
+/lscript2,ini /lscript3,ini/lscript4,iniˆo≤10
+ˆo≤15 ˆo≤20/lscript4,2 /lscript4,3/lscript4,4ˆo≤30 ˆo≤100
+ˆo≤35 ˆo≤40ˆo≥10
+ˆo≥15alive!ˆo≥20 ack?ˆo≥30
+ˆo≥35alive!ˆo≥40 ack?ˆo≥100
+ˆo:= 0
+Fig. 2. The timed automaton A1#A2that is `equivalent' to the parallel product of the
+timed automata A1andA2from Figure 1, obtained from applying the operation that
+we will introduce in Section 6.
+for timed automata, give a semantics-based denition of two timed automata
+being sequentialisable, and introduce the concatenation ` ' of sequentialisable
+timed automata).
+(3) In the interleaving semantics of the parallel composition of the automata
+A1andA2, the two dierent (zero-time) action transitions with the reset of the
+clockx1resp. the reset of the clock x2diverge, i.e., they lead to states where the
+values forx1andx2are dierent (in Section 6, when we dene the sequential
+composition ` #' of sequentialisable timed automata, we recover the determinacy
+of the behavior of the parallel product through the concept of the overclock , i.e.,
+the introduction of a new clock ^ o).
+In addition, we observe that the automaton A1jjA2, has an increased number
+of edges in comparision to A1#A2. The reduced number of edges yield a linear
+reduction in the verication time, justied by Lemma 3.
+2.2 Potential Application: Steer-by-wire architecture using TTP/C
+In order to illustrate the applicability of our method, we propose an informal
+model for a system based on the Time-Triggered Architecture.
+In the Time-Triggered Architecture every node consist of a local cpu, a Com-
+munication Network Interface and a TTP/C controller. The data communication
+over TTP/C is organized in TDMA rounds. A TDMA round is divided into slots
+and every node is assigned to a slot. A recurring sequence of TDMA rounds con-
+stitutes a cluster. The system can be globally monitored based on bus tracing.
+A steer-by-wire system would require from 8 to 30 nodes. Interesting proper-
+ties to verify might include: If a node fails, is this node detected as malfunctioning
+in within a TDMA round; or if a node fails, does the system still satisfy a given
+property.
+Let us consider that the system has nnodes and one global monitor. The
+monitor could be modeled by one timed automaton Am. Every node could be
+modeled by Two timed Automata; one for the cpu Acpuand one for the TTP/C
+
+--- Page 5 ---
+192 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+communicationATTP. The automata corresponding to a node could commu-
+nicate via shared variables. A TDMA round would have the following form,
+AmjjAcpu1jj:::jjAcpunjjATTP 1jj:::jjATTP n. Since Automaton ATPP iwill only
+perform actions on its corresponding slot for i2f1;:::;ng, we can apply our
+method and obtain: AmjjAcpu1jj:::jjAcpunjj(ATTP 1#::: #ATTP n). Which we
+believe, would lead to an improvement on the verication time. Given a xed
+number of TDMA rounds we can use the above method to construct a cluster.
+3 Preliminaries
+The formal basis for our work are timed automata [1]. In the following, we
+briey recall the main denitions, our presentation follows [13]. Note that, in
+contrast to [13], we do not distinguish transition sequences and (time-stamped)
+computation paths. Here, the congurations of the labelled transition system
+are already time-stamped.
+LetXbe a set of clocks. The set (X) of simple clock constraints over Xis
+dened by the grammar '::=xCjxyCj'1^'2wherex;y2X,
+C2Q+
+0, and2f<;;;>g. We assume the canonical satisfaction relation
+\j=" between valuations of the clocks :X!Time and simple clock constraints,
+with Time =R>0.
+A Timed Automaton (TA) Ais a tuple ( L;;X;I;E;` ini), which consists
+of a nite set of locationsL, with typical element `, a nite set ofactions
+comprising the internal action , a nite set of clocks X, a mapping I:L!
+(X), that assigns to each location a clock constraint , and a set of edgesE
+L(X)P(X)L. An edgee= (`;;';Y;`0)2Efrom`to`0involves
+an action2, aguard'2(X), and a reset setYX.
+The operational semantics of the timed automaton Ais the labelled transi-
+tion systemTS(A) = ( Conf (A);Time[;f !j2Time[g;Cini). The set
+ofcongurations Conf (A) =f(h`;i;t)2L(X!Time )Timejj=I(`)g
+consists of time-stamped pairs of a location `2Land a valuation of the clocks
+:X!Time which satises the clock constraint I(`). The set of initial con-
+gurations is Cini=f(h`ini;inii;0)g\Conf (A) whereini(x) = 0 for all clocks
+x2X. There is a delay transition from conguration h`;i;ttoh`;+t0i;t+t0,
+i.e.h`;i;tt0
+ !h`;+t0i;t+t0, if and only if +t00j=I(`) for allt002[0;t0],
+where+t0denotes the valuation obtained from by time shift t0. There is an
+action transition betweenh`;i;tandh`0;0i;t, i.eh`;i;t !h`0;0i;t, if and
+only if there exists an edge ( `;;';Y;`0)2Ewithj=',0=[Y:= 0], and
+0j=I(`0), where[Y:= 0] denotes the valuation obtained from by resetting
+exactly the clocks in Y. We write `(c),(c), andt(c), to denote the location `,
+valuation, and time-stamp tof a conguration c=h`;i;t.
+An innite or maximally nite sequence =c00!c11!c2:::is called a
+computation ofAif and only if c02Ciniand (ci;ci+1)2 !for alli2N0. We
+writejto denote the j-th conguration cj=h`j;ji;tjin, and
+jto denote
+the label of j-th transition in , or simply jifis clear from the context. We
+write2TS (A) if and only if is a computation of A.
+
+--- Page 6 ---
+Timed Automata with Disjoint Activity 193
+c1c2 c3 . . . cnt0 α2 α3 αn t1
+∈Fin (A) ∈Start (A)
+/bracehtipupleft /bracehtipdownright/bracehtipdownleft /bracehtipupright
+∈Rst (A)
+Fig. 3. Start congurations are in the initial location and have an action predecessor
+and a delay successor, nal congurations a delay predecessor and an action successor.
+Congurations on an action-only path between a nal and a start conguration are
+called restart congurations.
+The parallel composition of two timed automata Ai= (Li;i;Xi;Ii;Ei;`ini;i),
+i= 1;2, with disjoint sets of clocks X1andX2yields the timed automa-
+tonA1kA2def= (L1L2;1[2;X1[X2;I;E; (`ini;1;`ini;2)) whereI(`1;`2) :=
+I1(`1)^I2(`2), for each `12L1;`22L2, and where Econsists of handshake
+and asynchronous edges dened as follows. There is a handshake transition
+((`1;`2);;' 1^'2;Y1[Y2;(`0
+1;`0
+2))2Eif there are complementary actions
+and in1[2such that (`1;;' 1;Y1;`0
+1)2E1and (`2;;' 2;Y2;`0
+2)2E2.
+For each edge ( `1;;' 1;Y1;`0
+1)2E1and each location `22L2, there is an asyn-
+chronous transition (( `1;`2);;' 1;Y1;(`0
+1;`2))2E, and analogously for each
+transition in E2.
+4 Periodic Cyclic Timed Automata
+Timed automata models of, e.g., TDMA-based protocols can be cyclic and peri-
+odic in the following sense. Intuitively, a timed automaton is cyclic if the initial
+location is visited innitely often on all computations, the corresponding con-
+gurations are called start conguration. A timed automaton is periodic with
+period ptif congurations containing the initial location are reached only at
+integer multiples of the period and are reached from a unique nal location.
+In the following, we formally dene periodic cyclic timed automata in terms
+of the new notions of start, restart, and nal congurations (cf. Figure 3).
+Denition 1 (Start and Final Conguration). LetA= (L;;X;I;E;` ini)
+be a timed automaton. The set Start(A)ofstart congurations ofAconsists of
+those conguration of TS(A)that are at location `iniand occur in a computation
+2 TS (A)as source of a delay transition and as destination of an action
+transition, i.e.
+Start(A)def=fc=h`ini;i;t2Conf (A)j92TS (A);m2N0
+m=c^m2Time^(m12_m= 0)g:
+The set Rst(A)ofrestart congurations consists of those conguration of
+TS(A)that occur in a computation 2TS (A)as action-predecessor of a start
+
+--- Page 7 ---
+194 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+conguration, i.e.
+Rst(A)def=fc2Conf (A)j92TS (A);m;i2N0mi^m=c
+^i2Start(A)^mm!:::i1!i^8mjij2g:
+The set Fin(A)ofnal congurations consists of the maximal restart cong-
+urations ofTS(A), that is, restart congurations which are the destination of a
+delay transition, i.e.
+Fin(A)def=fc2Rst(A)j92TS (A);m2N0
+m=c^(m12Time_m= 0)g:
+The setLrstofrestart locations consists of those locations that occur in a
+restart conguration, i.e.
+Lrstdef=f`2Lj9:X!Time;t2Timeh`;i;t2Rst(A)g:
+Denition 2 (Periodic Cyclic). A timed automaton A= (L;;X;I;E;` ini)
+is called periodic cyclic with period pt2Time if and only if each computation
+comprises innitely many start congurations which occur at a regular period of
+time and if there is a unique nal location `n, i.e.
+peCy (A;pt)def()82TS (A);p2N09c= (h`;i;t)2Start(A);i2N0
+i=c^t=ptp^
+82TS (A);c= (h`;i;t)2Start(A);i2N0
+i=c)9p2N0t=ptp^
+9`n2L8(h`;i;t)2Fin(A)`=`n:
+Theorem 1. LetA1andA2be periodic cyclic timed automata with period pt 2
+Time . ThenA1kA2is periodic cyclic with period pt.
+5 Concatenation of Sequentialisable Timed Automata
+We say a timed automaton is active at a point in time if there exists a computa-
+tion where an action transition is taken at that time. Two periodic cyclic timed
+automataA1andA2are called sequentialisable if, they have the same period
+and within each period, all activity of A1lies strictly before all activity of A2,
+except for integer multiples of the period. In the following, we formally dene
+activity and sequentialisability. We dene the concatenation of two sequential-
+isable timed automata and show in Theorem 2 that the result satises exactly
+the same reachability and leads-to properties as the parallel composition of the
+two. In Lemma 3, we discuss the relation between outgoing and enabled edges
+in the parallel composition and our concatenation.
+
+--- Page 8 ---
+Timed Automata with Disjoint Activity 195
+Denition 3 (Activity). The set of activity points Active (A)Time of a
+timed automaton A= (L;;X;I;E;` ini)consists of those points in time at which
+action transitions take place in some computation, i.e.
+Active (A)def=ft2Timej92TS (A);j2Nj2^t(j) =tg:
+Denition 4 (Sequentialisable). Two timed automata A1andA2are called
+sequentialisable if and only if
+1.A1andA2have disjoint sets of clocks,
+2.A1andA2are periodic cyclic with period pt 2Time , and
+3. for each p2N0,within thep-th period,A1is active strictly before A2, i.e.
+sup(Activep(A1))<inf(Activep(A2))
+where Activep(Ai)def=Active (Ai)\]ptp;pt(p+ 1)[ ,i= 1;2.
+Note 1. Within thep-th period, p2N0, the activity points of two sequentialis-
+able timed automata A1andA2are disjoint, i.e.
+Active (A1)\Active (A2)\]ptp;pt(p+ 1)[ =;:
+IfA1andA2are sequentialisable. Then on each period, rst A1is active and
+reaches its nal location while A2is at its initial location. Subsequently, A2is
+active and reaches its nal location while A1is at its nal location. At the end
+of the period both A1andA2are active at locations corresponding to their reset
+congurations.
+Lemma 1. LetA1andA2be sequentialisable timed automata with period pt.
+1. For all points of time dierent than the integer multiples of pt and within
+the activity ofA1,A2is in its initial location `ini2, i.e.
+8p2N0;t2Timet2[inf(Activep(A1));sup(Activep(A1))]
+=) 82TS (A1kA2)9h(`1;`2);i;t2Conf (A1kA2);j2N0
+j=h(`1;`2);i;t^`2=`ini2:
+2. For all points of time dierent than the integer multiples of pt and within
+the activity ofA2,A1is in its nal location `n1, i.e.
+8p2N0;t2Timet2[inf(Activep(A2));sup(Activep(A2))]
+=) 82TS (A1kA2)9h(`1;`2);i;t2Conf (A1kA2);j2N0
+j=h(`1;`2);i;t^`1=`n1:
+3. In each computation, both, A1andA2, are simultaneously at a restart loca-
+tion at integer multiples of pt, i.e.
+8p2N0;t2Timet=ptp
+=) 82TS (A1kA2)9h(`1;`2);i;t2Conf (A1kA2);j2N0
+j=h(`1;`2);i;t^`12Lrst^`22Lrst:
+
+--- Page 9 ---
+196 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+For sequentialisable automata A1andA2with period pt, Lemma 1 suggests
+that for time points dierent than ptpfor somep. It is not necessary to compute
+the product of the locations on A1andA2. The following concatenation operator
+exploits this fact and computes the product of locations only if both A1andA2
+are active. i.e. at time points ptp.
+Denition 5 (Concatenation).
+LetA1= (L1;1;X1;I1;E1;`ini1)andA2= (L2;2;X2;I2;E2;`ini2)be sequen-
+tialisable timed automata with period pt 2Time . Let`nidenote the nal location
+and letLrstidenote the set of restart locations of automaton Ai,i2f1;2g.
+The concatenation ofA1andA2yields the timed automaton
+A1A2def= (L; 1[2;X1[X2;I;E;` ini)
+where
+{L= (L1f`ini2g)[(f`n1gL2)[(Lrst1Lrst2)
+{I(`1;`2) =I1(`1)^I2(`2),`12L1;`22L2,
+{E=f((`1;`2);;' 1;Y1;(`0
+1;`2))j(`1;;' 1;Y1;`0
+1)2E1^`22Lrst2g
+[f((`1;`2);;' 2;Y2;(`1;`0
+2))j(`2;;' 2;Y2;`0
+2)2E2^`12Lrst1g, and
+{`ini= (`ini1;`ini2).
+Denition 6 (Bisimulation). LetA1andA2be timed automata and
+TSi(Ai) = ( Conf (Ai);Time[i;fi
+!ji2Time[ig;Cinii)
+the corresponding labelled transition systems. A relation R Conf (A1)Conf (A2)
+is called bisimulation ofA1andA2if and only if it satises the following con-
+ditions.
+1.8c12Cini19c22Cini2(c1;c2)2R and8c22Cini29c12Cini1)(c1;c2)2R
+2. for all (c1= (h`1;1i;t1),c2= (h`2;2i;t2))2R,
+(a)1=2,t1=t2,
+(b)8c11
+!c0
+19c22
+!c2(c0
+1;c0
+2)2R
+(c)8c22
+!c0
+29c11
+!c0
+1(c0
+1;c0
+2)2R.
+A1is called bisimilar to A2i there exists a bisimulation of A1andA2.
+For sequentialisable timed automata A1andA2, the implications of Lemma 1
+and the denition of the concatenation operator imply that the transition system
+TS(A1A2) corresponds to the reachable part of TS(A1kA2).
+Theorem 2. LetA1andA2be sequentialisable timed automata.
+ThenTS(A1A2)is bisimilar toTS(A1kA2).
+Theorem 2, ensures that the start congurations of TS(A1kA2) are inTS(A1
+A2). Therefore, the following theorem holds.
+
+--- Page 10 ---
+Timed Automata with Disjoint Activity 197
+Theorem 3. LetA1andA2be sequentialisable timed automata with period pt.
+ThenA1A2is periodic cyclic with period pt.
+Lemma 2 (Bisimulation). Reachability properties are preserved under bisim-
+ulation, i.e. given bisimilar timed automata A1andA2and a state assertion ',
+i.e., an expression over clock constraints and locations, we have
+(92TS (A1)8j2N0jj=')() (92TS (A2)8j2N0jj=')
+(82TS (A1)8j2N0jj=')() (82TS (A2)8j2N0jj='):
+Denition 7 (Enabled Edges). LetA= (L;;X;I;E;` ini)be a timed au-
+tomaton and c2Conf (A)a conguration.
+We use out (c)to denote the set of outgoing edges in c, i.e. the edges e=
+(`;;';Y;`0)2Ewhere`=`(c).
+Edgeeis called enabled if and only if its guard is satised and the eect of
+resets satises the clock constraint of the destination of e, i.e., if(c)j='and
+(c)[Y:= 0]j=I(`0). We use enab (c)to denote the set of edges enabled in c.
+Note 2. LetA1;:::;Anbe timed automata with pairwise disjoint edge sets and
+letc=h(`1;:::;`n);i;t2Conf (A1k:::kAn) be a conguration.
+1. Enabled edges are in particular outgoing, i.e. enab(c)out(c).
+2. The set of outgoing edges in the parallel composition is determined by the
+components, i.e.
+out(c) =[
+1inout(h`i;jXii;t);enab(c) =[
+1inenab(h`i;jXii;t);
+thus (with disjoint edge sets)
+jout(c)j=1injout(h`i;jXii;t)j;jenab(c)j=1injenab(h`i;jXii;t)j:
+Since, outgoing edges are evaluated, a reduction on the number of outgo-
+ing edges yields a reduction on time complexity. This reduction can go from
+quadratic to linear time, as the following lemma shows.
+Lemma 3. LetA1;:::;Anbe sequentialisable timed automata with period pt
+with disjoint edge sets and with exactly one outgoing edge per location.
+1. Letc2Conf (A1k:::kAn)be a conguration of the parallel composition of
+A1;:::;Anwhere the time-stamp is not an integer multiple of the period pt,
+i.e. where @p2N0t(n) =ppt.
+Thenjout(c)j=nandjenab(c)j= 1.
+2. Letc2Conf (A1:::An)be a conguration of the concatenation of A1;:::;An
+where the time-stamp is not an integer multiple the period pt.
+Thenjout(c)j=jenab(c)j= 1.
+
+--- Page 11 ---
+198 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+6 Sequential Composition of Sequential Timed Automata
+As the decision whether a given pair of timed automata is sequentialisable is
+in general at least as dicult as the considered analysis problem, we provide a
+syntactical pattern such that instances of the pattern are sequentialisable and
+such that a specialized sequential composition applies.
+Denition 8 (Sequential Timed Automaton). Asequential timed automa-
+ton(STA) is a tuple
+A= (L;;X;I;E;` ini;`n;sta;n;pt;en;^x)
+whereA0def= (L;;X;I;E;` ini)is a timed automaton, `nis a nal location,
+sta;n2Q+
+0arestart andnal time , pt2Q+
+0is a period, en2Eis an edge
+of the form (`n;?;^xpt;Y[f^xg;`ini) ^x2Xis a master clock, which satises
+the following syntactical constraints:
+{the start time is positive and strictly smaller than the nal time, which is
+strictly smaller than the period, i.e.
+0<sta^sta<n^n<pt; (saActive )
+{the initial location is left if ^xreaches the start time, i.e.
+I(`ini) = ^xsta; (saStart )
+8(`;;';Y;`0)2E`=`ini=)'= ^xsta; (saStartTime )
+{locations connected by an edge to the nal location are only assumed until ^x
+reaches the nal time, i.e.
+8(`;;';Y;`0)2E`0=`n)I(`) = ^xn; (saFinalTime )
+{the nal location is only assumed until ^xreaches the period, i.e.
+I(`n) = ^xpt; (saPeriod )
+{the master clock is reset exactly on edge en, i.e.
+8(`;;';Y;`0)2E^x2Y)(`;;';Y;`0) =en; (saOneReset )
+{`nand`iniare connected exactly by edge en, i.e.
+8(`;;';Y;`0)2E`=`n^`0=`ini=)(`;;';Y;`0) =en;(saOneFin )
+and the following semantical constraint:
+{whenever the initial location is assumed, the nal location is nally reached,
+i.e.
+82TS (A0);j2N0;h`;i;t2Conf (A0)j=h`;i;t^`=`ini
+=) 9k2N0;h`0;0i;t02Conf (A0)
+kj^k=h`0;0i;t0^`0=`n(saCyclic )
+
+--- Page 12 ---
+Timed Automata with Disjoint Activity 199
+/lscriptini
+/lscript2 /lscript3/lscript4
+/lscripti/lscriptﬁnˆx≤sta ˆx≤pt
+ˆx≤c2 ˆx≤c3ˆx≤c4
+ˆx≤ﬁnˆx≥sta
+ˆx≥c21ˆx≥c22
+ˆx≥ciˆx≥cjˆx≥ptˆx:= 0
+Fig. 4. A syntactical pattern for sequential timed automata.
+LetA0be the automaton obtained by replacing synchronization transitions
+inAby internal transitions. Then, saCyclic can be checked for A0in a model
+checker. Figure 4 depicts a purely syntactically restricted template which ensures
+the instances to be sequential automata.
+Theorem 4. Let(L;;X;I;E;` ini;`n;sta;n;pt;en;^x)be a sequential timed
+automaton. Then (L;;X;I;E;` ini)is periodic cyclic with period pt.
+Before applying the sequential operator we must be sure that the activity
+phases of the automata are disjoint. In sequential automata sequentialisability
+can be syntacticaly proven, as the following lemma shows.
+Lemma 4. LetA1andA2be sequential timed automata with the same period
+pt and nal time n1ofA1strictly smaller than the start time sta2ofA2, i.e.
+n1<sta2. ThenA1andA2are sequentialisable.
+Consider the parallel product or the concatenation of nsequential automata
+(see Figure 4) which are sequentialisable. The automaton will include a diamond
+like structure corresponding to the product of the nnal locations. This structure
+will have 2nlocations. In this locations the master clocks ^ x1;:::; ^xnwill not be
+equal, but note that this happends in zero time. Therefore, we dene a new
+clock overclock ^owhich preserves the quasi-equalitiy of the clocks, and allows to
+further optimize the resulting automaton.
+Denition 9 (Overclock). LetA1andA2be timed automata with clocks x1
+andx2, respectively. A clock ^oofA1orA2is an overclock forx1andx2in
+A1kA2if and only if
+82TS (A1kA2);j2N0h(`1;`2);i;t2Conf (A1kA2)j=h(`1;`2);i;t
+=)j= (x1= ^o^x2= ^o)_`12Lrst1_`22Lrst2:
+Lemma 5. Given sequential timed automata, A1;A2with period pt and mas-
+terclocks ^x1,^x2respectively. Then, there exist an overclock ^ofor^x1and^x2.
+
+--- Page 13 ---
+200 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+The diamond structure which we described above, will have 2nlocations and
+n! zero time interleaving sequences, which occur at time points ptpforp2N+.
+Note that clocks ^ x1;:::; ^xnare always equal up to the time points ptp. The
+sequential composition operator which we dene below, will remove this diamond
+structure and will replace all the clocks by an overclock.
+Denition 10 (Sequential Composition). LetAi,
+Ai= (Li;i;Xi;Ii;Ei;`inii;`ni;stai;ni;pt;eni;^xi);i= 1;2;
+be sequential timed automata.
+Then the sequential composition ofA1andA2yields the tuple
+A1#A2def= (L; 1[2;X1[X2;I;E; (`ini1;`ini2);(`n1;`n2);sta1;n2;pt;en;^o)
+where
+{the master clock ^ois an overclock for ^x1,^x2.
+{the set of locations consists of pairs where A2assumes an initial or A1
+assumes a nal location, i.e.
+L= ((L1nf`n1g)f`ini2g)[(f`n1gL2);
+{the nal edge enis
+((`n1;`n2);?;'1^'2;Y1[Y2;(`ini1;`ini2))
+given the nal edges eni= (`ni;?;'i;Yi;`inii),i= 1;2,
+{the clock constraint of location (`1;`2)is the conjunction of the corresponding
+clock constraints in A1andA2where substitute each ^x1and^x2is syntacti-
+cally substituted by ^o, i.e.
+I(`1;`2) = (I1(`1)^I(`2))[^x1=^o;^x2=^o];
+{the set of edges comprises enand compositions of A1andA2edges where
+^x1and^x2are substituted by ^xin guards and reset sets, i.e.
+E=feng[f ((`1;`ini2);;~'1;~Y1;(`0
+1;`ini2))j(`1;;' 1;Y1;`0
+1)2E1nfen1gg
+[f((`n1;`2);;~'2;~Y2;(`n1;`0
+2))j(`2;;' 2;Y2;`0
+2)2E2nfen2gg
+where ~'i='i[^x1=^o;^x2=^o],i= 1;2, and ~Yi=Yi[^x1=^o;^x2=^o],i= 1;2.
+Theorem 5. LetA1andA2be sequential timed automata with the same period
+pt and nal time n1ofA1strictly smaller than the start time sta2ofA2, i.e.
+n1<sta2. ThenA1#A2is periodic cyclic with period pt.
+In Section 5, we have shown that For sequential automata A1;:::;Anwhich
+are sequentialisable A1jj:::jjAnandA1Anare bisimilar. In what follows,
+we will show that A1jj:::jjAnandA1#::: #Anare weak-bisimilar (which reects
+the eect of removing the diamond like structure in the sequential composition of
+thensequential automata). We use the following denition in order to simplify
+a denition of weak-bisimulation.
+
+--- Page 14 ---
+Timed Automata with Disjoint Activity 201
+Denition 11 (Action Reachability). LetAbe a timed automaton and c;c02
+Conf (A)congurations. We say c0isreachable inAfromcvia action transi-
+tions , denoted by actReach (c;c0;A), if and only if
+actReach (c;c0;A)def()9c0;c1;c2;:::;cn2Conf (A);i2N0c0=c^cn=c0
+^80j <n2N0cjj!cj+1^j2:
+Denition 12 (Weak-bisimulation). LetA1andA2be sequential automata
+with ^o2X1and^x1;^x22X2such that ^ois an overclock for ^x1;^x2and let
+TSi(Ai) = ( Conf (Ai);Time[i;fi
+!ji2Time[ig;Cinii);i= 1;2;
+be the corresponding labelled transition systems.
+A relationW Conf (A1)Conf (A2)is called weak-bisimulation ofA1and
+A2if and only if it satises the following conditions.
+1.8c12Cini19c22Cini2(c1;c2)2W and8c22Cini29c12Cini1)(c1;c2)2W
+2. for all (c1= (h`1;1i;t1);c2= (h`2;2i;t2))2W ,
+(a)(1) =2,t1=t2with() =j^o[f^x17!(^o);^x27!(^o)g,
+(b)8c11
+!c0
+1(9c22
+!c0
+2(c0
+1;c0
+2)2W)_(`(c1) =`n1^
+9c00
+2actReach (c2;c00
+2;A2)^`(c00
+2) =`ini2^(c0
+1;c00
+2)2W);
+(c)8c22
+!c0
+29c11
+!c0
+1(c0
+1;c0
+2)2W_ (`(c2) =`n2^
+9c00
+2actReach (c2;c00
+2;A2)^`(c00
+2) =`ini2^(c0
+1;c00
+2)2W);
+A1is called weak-bisimilar to A2i there is a weak-bisimulation of A1andA2.
+Theorem 6. LetA1andA2be sequential timed automata with the same period
+pt and nal time n1ofA1strictly smaller than the start time sta2ofA2, i.e.
+n1<sta2. ThenA1#A2is weak-bisimilar to A1kA2.
+7 Case Study
+For the example in Section 2.1, we have used a simplied version of a re alarm
+system which monitors the well functioning of nsensors by sending and receiving
+alive messages. For our case study, we consider a real world re alarm system
+which we denote by FAS (the system is being developed by a German company;
+an anonymized version of a model of the system will be made public). The FAS
+monitorsnsensors using mchannels. In order, for FAS to obtain an EU quality
+certicate it has to be conform, among others, with the following condition: If
+a sensor is malfunctioning, it has to be recognized in less than 300 seconds. We
+denote this property by AGless300 .
+
+--- Page 15 ---
+202 Marco Mu~ niz, Bernd Westphal, and Andreas Podelski
+System QBroadcast Sequential
+t(s) states t(s) states
+FAS-CB-SW'11103.9 5947.4k 318.1 5971.5k
+'22240.5 11508.3k 704.2 11614.5k
+FAS-CB'1196.4 1184.7k 120.3 1189.5k
+'2272.6 165.7k 150.3 1666.9k
+FAS-SW'113.7 104.1k 87.4 104.7k
+'210.62k 145.5 87.4 146.4k
+FAS'1 2.5 20.7k 87.5 20.8k
+'2 1.3 20.7k 85.6 20.8k
+0 20 40 60 80 100 12005001,0001,5002,000
+number of sensorssec
+BroadCast300 Sequential300
+Table 1. Verication times (AMD Opteron 6174 2.2GHz, 64Gb RAM) and visited
+states for satised properties '1= (AGnot deadlock ) and '2= (AGless300 ) for the
+re alarm system with 125 sensors using Uppaal, and verication times of FAS-CB-SW
+for property ( AGless300 ) over number of sensors.
+In addition, the certifying institution is able to (i) block an arbitrary channel
+for any number of seconds, then (ii) release the blocked channel for at least 1
+second and repeat (i), (ii) any number of times.
+In order to model the above mentioned situations, we constructed a sensor
+switcher SWwhich non-deterministically turns o any sensor. We constructed a
+channel blocker CB, which models the blocking of channels as described above.
+Now, let FAS-CBdenote the re alarm system together with the channel blocker
+CB. Let FAS-SW beFAS together with the sensor switcher. Let FAS-CB-SW
+beFAS together with the channel blocker and a sensor switcher.
+Table 1, show the verication results for the satised properties AGnot dead-
+lock and AGless300 for the corresponding system with 125 sensors by using
+Uppaal. The times include the parsing time of Uppaal templates. The attempt
+of modeling a sensor, with its own clock, did not scale to more than 10 sen-
+sors. Therefore, our modelers manually optimized the system, such that all 125
+sensors share one clock, and synchronizations are performed via a broadcast
+channel. This optimized systems correspond to the column Broadcast. In addi-
+tion, the system FAS-CB-SW Broadcast corresponds to the system obtained by
+applying the technique presented in [8].
+We observe that for a large state space, sequential is much faster that broad-
+cast as expected by Lemma 3. However, for small state space such as FAS broad-
+cast is faster; in this context, note that the parsing time for the large template
+consisting of 125 sequentialized automata is taking about 85 sec.
+Considering the verication times of the system FAS-CB-SW and property
+AGless300 for 10, 20, . . . , 120, and nally 125 sensors, the curve for broadcast
+is comparable with the statement of Lemma 3 (cf. Table 1).
+
+--- Page 16 ---
+Timed Automata with Disjoint Activity 203
+8 Conclusion and Future Work
+We have presented an approach for optimizing the timed model checking method
+for the class of timed automata with disjoint activity. We have presented a syn-
+tactic transformation, by which parallel composition of its component automata
+is replaced by the application of a new sequential composition operator. The
+approach uses the syntactic transformation as a preprocessing step with an ex-
+isting timed model checking method. We have implemented the approach (using
+Uppaal) and applied it to verify a wireless re alarm system with more than
+100 sensors. The experimental evaluation indicates the practical potential of the
+approach for improving upon the time cost in a useful manner.
+For future work we may consider richer forms of expressing the property of
+sequentialisability, for example by means of handshaking communication.
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theoretical Computer Science
+126(2), 183{235 (1994)
+2. Behrmann, G., Bouyer, P., Fleury, E., Larsen, K.G.: Static guard analysis in timed
+automata verication. In: TACAS. pp. 254{270. No. 2619 in LNCS, Springer (2003)
+3. Behrmann, G., David, A., Larsen, K.G.: A tutorial on uppaal . In: Bernardo, M.,
+Corradini, F. (eds.) SFM-RT 2004. pp. 200{236. No. 3185 in LNCS, Springer (2004)
+4. Daws, C., Yovine, S.: Reducing the number of clock variables of timed automata.
+In: Proc. RTSS'96, 73-81, IEEE. pp. 73{81. IEEE Computer Society Press (1996)
+5. Elrad, T., Francez, N.: Decomposition of distributed programs into communication-
+closed layers. Sci. Comput. Program. 2(3), 155{173 (1982)
+6. Haartsen, J.C.: The Bluetooth radio system. Personal Communications, IEEE 7(1),
+28 {36 (Feb 2000)
+7. Heiner, G., Thurner, T.: Time-triggered architecture for safety-related distributed
+real-time systems in transportation systems. In: FTCS. pp. 402{407 (1998)
+8. Herrera, C., Westphal, B., Feo-Arenis, S., Mu~ niz, M., Podelski, A.: Reducing quasi-
+equal clocks in networks of timed automata. In: FORMATS. pp. 155{170. No. 7595
+in LNCS, Springer, Heidelberg (2012)
+9. Janssen, W., Poel, M., Xu, Q., Zwiers, J.: Layering of real-time distributed pro-
+cesses. In: FTRTFT. pp. 393{417. No. 863 in LNCS, Springer (1994)
+10. Kopetz, H.: The time-triggered approach to real-time systems design. In: Randell,
+B., et al. (eds.) Predictably Dependable Computing Systems. Springer (1995)
+11. Kopetz, H., Bauer, G.: The Time-Triggered Architecture. In: Proc. IEEE. pp. 112{
+126 (2003)
+12. Kopetz, H., Gr unsteidl, G.: TTP - a time-triggered protocol for fault-tolerant real-
+time systems. In: FTCS. pp. 524{533 (1993)
+13. Olderog, E.R., Dierks, H.: Real-Time Systems - Formal Specication and Auto-
+matic Verication. Cambridge University Press (2008)
+14. Olderog, E.R., Swaminathan, M.: Layered composition for timed automata. In:
+FORMATS. pp. 228{242. No. 6246 in LNCS, Springer (2010)

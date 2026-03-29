@@ -1,0 +1,1895 @@
+--- Page 1 ---
+Urgent Partial Order Reduction for
+Extended Timed Automata
+Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+Department of Computer Science, Aalborg University, Denmark
+fkgl,marius,muniz,srba g@cs.aau.dk
+Abstract. We propose a partial order reduction method for reachabil-
+ity analysis of networks of timed automata interacting via synchronous
+channel communication and via shared variables. Our method is based
+on (classical) symbolic delay transition systems and exploits the urgent
+behavior of a system, where time does not introduce dependencies among
+actions. In the presence of urgent behavior in the network, we apply par-
+tial order reduction techniques for discrete systems based on stubborn
+sets. We rst describe the framework in the general setting of symbolic
+delay time transition systems and then instantiate it to the case of timed
+automata. We implement our approach in the model checker Uppaal and
+observe a substantial reduction in the reachable state space for case stud-
+ies that exhibit frequent urgent behaviour and only a moderate slowdown
+on models with limited occurence of urgency.
+1 Introduction
+Partial order reduction techniques [4] based on persistent sets [14], ample sets [23]
+or stubborn sets [17,28] have proved benecial for the state space exploration
+of systems that exhibit high degree of concurrency. As many actions in such
+systems can be (in a syntax-driven manner) considered as independent, these
+techniques will explore only a subset of the possible interleavings of independent
+actions while preserving the property of the system we are interested in.
+The techniques of partial order reductions for untimed system have only
+recently been extended to timed systems with indication of success. For more
+than two decades timed systems have resisted several partial order reduction
+attempts, largely caused by the fact that time introduces additional dependencies
+between actions that will normally be considered as independent. In [15] the
+authors show a potential for stubborn reductions for networks of timed automata,
+however using only approximate abstraction approach. A new idea of exploiting
+urgency in timed systems in order to facilitate ecient partial order reduction
+appeared in [8] in the context of timed-arc Petri nets with discrete time.
+We take the idea of urgency-based [24] partial order reduction one step fur-
+ther and extend the method towards the case of networks of extended timed
+automata in the Uppaal style, including handshake and broadcast communi-
+cation primitives, communication over shared variables as well as a C-like im-
+perative programming language allowing for complex computation over discrete
+
+--- Page 2 ---
+2 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+l1;0x11
+l1;1
+x16l1;2
+x112l1;3x11500
+A1:
+x11
+alive!x112 ack?x11500x1:= 0l2;0x213
+l2;1
+x218l2;2
+x224l2;3x21500
+A2:
+x213
+alive!x224 ack?x21500x2:= 0l3;0x325
+l3;1
+x330l3;2
+x336l3;3x31500
+A3:
+x325
+alive!x336 ack?x31500x3:= 0
+(a) Three sensors of the simplied re alarm system
+
+s
+e2
+e3 e1
+e3e2 e3e1
+e1
+e1e2e2
+s e2
+Ste3
+Ste1
+St
+(b) Fragment of the full and reduced transition systems for the system in Figure 1a
+Fig. 1: Simplied Fire Alarm System
+structured variables. Our main contribution is a partial order reduction method
+for urgent behavior based on the classical (zone-based) symbolic semantics for
+networks of timed automata and its ecient implementation in the industrial
+strength real-time verication tool Uppaal . An additional challenge is to de-
+velop static analysis for the rich modeling language of Uppaal and combine it
+with symbolic model checking techniques in a sound way. On a number of ex-
+periments we show the applicability of the proposed method w.r.t. state-space
+and time reduction.
+Fire Alarm System Example. To illustrate the eect of our urgency-based partial
+order reduction technique, we consider a simplied version of an industrial re
+alarm system [11]. The system uses a communication protocol based on the
+Time Division Multiple Access (TDMA) paradigm, and has over 100 sensors
+each of them assigned a unique time slot for sending and receiving messages.
+Figure 1a shows a down-scaled and simplied version of the system with three
+sensors, each modeled as a timed automaton. Each sensor has its own clock
+xi, with the corresponding TDMA slot modeled by guards in ( xi1500) and
+invariants ( xi1500). At the end of the TDMA cycle i.e. when xi= 1500 every
+sensor resets its clock and goes back to its initial location. Figure 1b left shows
+the fragment of the reachable transition system starting at the conguration
+s= ((l1;3;l2;3;l3;3);x1=x2=x3= 1500) where time progress is disabled
+due to the invariants xi1500. The transitions are induced by the edges ei=
+hli;3;;xi1500;xi= 0;li;0i. States of the form denote the so-called zero time
+states where time cannot progress, whereas the lled state denotes a situation
+where time can delay. Figure 1b right shows the corresponding reduced transition
+
+--- Page 3 ---
+Urgent Partial Order Reduction for XTA 3
+system that contains only one interleaving sequence that allows us to reach the
+state where time can delay again.
+Related Work. The most related work in [8] presents an urgent partial order
+reduction method for discrete time systems based on stubborn set construc-
+tion [17,28]. The method is instantiated to timed-arc Petri nets and compared
+to our case, it does not consider discrete data structures nor any communica-
+tion primitives. In our work we focus on continuous time systems modeled as
+networks of timed automata, requiring us to use symbolic transition system as
+the underlying semantic model. The idea of applying partial order reduction for
+independent events that happen at the same time also appeared in [9] however
+this methods is not as ecient as ours because it is static (precomputed before
+the state space exploration). In our approach we apply a dynamic reduction that
+on-the-y identies independent actions even in the presence of communication
+between the components, possibly sharing some resources.
+Partial order reduction techniques applied to timed automata [2] include the
+early works [7,20,10] based on the notion of local and global clocks or the concept
+of covering as generalized dependencies. However, there is not provided any
+experimental evaluation of the proposed techniques. There exist also techniques
+based on event zones [19,22] and on merging zones from dierent interleaved
+executions [26]. These are exact techniques comparable to approximate convex-
+hull abstraction which is by now superseded by the exact LU-abstraction [5].
+More recently, over-approximative methods based on abstracted zone graphs
+were also studied in [15]. The main dierence is that our approach is an exact
+method that is applicable directly to the state-of-the-art techniques implemented
+inUppaal .
+Finally, quasi-equal clocks [16] are clocks for which in all computations their
+values are equal or if one clock gets reset then a reset must urgently eventually oc-
+cur also for the other clocks, assuming that resets occur periodically. Reductions
+using quasi-equal clocks yield exponential savings and have been used to ver-
+ify a number of industrial systems. However, this approach is based on syntactic
+transformations and requires a method for detecting quasi-equal clocks [21]. Our
+approach fully automatizes reductions based on quasi-equal clocks and further
+generalizes to scenarios where clock resets have irregular reset periods.
+2 Partial Order Reduction for Symbolic Delays
+We describe the general idea of our partial order reduction technique in terms
+of symbolic delay transition systems. Intuitively a symbolic delay corresponds
+to time elapsing in the zone graph for timed automata or ow in the region
+graph of a hybrid system. Let Abe a set of actions and a symbolic delay with
+A\fg=;.
+Denition 1 (Symbolic Delay Transition System). Asymbolic delay tran-
+sition system is a tuple (S;s 0; !)whereSis a set of states, s02Sis the initial
+state, and !S(A[fg)Sis the transition relation.
+
+--- Page 4 ---
+4 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+If (s;;s0)2 !we writes !s0. In this paper we consider only deterministic
+systems: a transition system is deterministic ifs !s0ands !s00impliess0=
+s00. For the rest of this section, let us assume a xed symbolic delay transition
+system (S;s 0; !) and a set of goal states GS.
+A states2Siszero time if it can not delay, denoted by zt(s) and dened
+byzt(s) i8s02S;2A[fg: s !s0=)2A. A reduction is a
+function St:S!2A. A reduced transition relation is a relation !St ! such
+thats!Sts0is !s0and2St(s)[fg. For a given state s2Swe dene
+St(s)def=AnSt(s) to be the set of all actions not in St(s). Given a sequence of
+labelsw=123:::n2(A[fg)we writesw !s0is1!:::n!s0. If
+a sequence wof lengthnis such that sw !s0we also write s !ns0. The set of
+enabled actions at states2SisEn(s)def=fa2Aj9s02S: sa !s0g.
+The reachability problem , given a symbolic delay transition system ( S;s 0; !)
+and a set of goal states G, is to decide whether there is s02Gsuch thats0 !s0.
+Denition 2 (Reachability Preserving Reduction). A reduction Stisreach-
+ability preserving if it satises the following conditions:
+(Z)8s2S::zt(s) =)En(s)St(s)
+(D)8s;s02S:8w2St(s):zt(s)^sw !s0=)zt(s0)
+(R)8s;s02S:8w2St(s):zt(s)^sw !s0^s62G=)s062G
+(W)8s;s02S:8w2St(s):8a2St(s):zt(s)^swa!s0=)saw!s0
+If a delay is possible at state sConditionZwill ensure that there is no reduc-
+tion. ConditionDensures that states which can delay are preserved. Condition R
+ensures that goal states are preserved and nally Condition Wcorresponds to
+the classical stubborn set requirement that stubborn actions can be commuted
+to the beginning of the execution. The following theorem was proved in [8] for
+the case of timed transitions systems.
+Theorem 1 (Reachability Preservation). LetStbe a reachability preserving
+reduction. Let s2Sands !ns0for somes02Gthens!Stms00for somes002G
+wheremn.
+3 Extended Timed Automata (XTA)
+We apply our method to the theory of timed automata [2]. Our formal model
+isextended timed automata and it is an abstract representation of modeling
+formalism used in the tool Uppaal [6].
+Clocks and Discrete Variables. LetXbe a set of clocks . Aclock valuation is a
+function:X!R0. We useV(X) to denote the sets of all valuations for
+clocks inX. LetVbe a set of discrete variables . The function Dassigns to
+each variable v2Va nite domain D(v). A variable valuation is a function
+:V!S
+v2VD(v) that maps variables to values such that (v)2D(v). We
+useV(V) to denote the set of all variable valuations. We let 0resp.0to denote
+the valuation that maps every clock resp. variable to the value 0.
+
+--- Page 5 ---
+Urgent Partial Order Reduction for XTA 5
+Expressions. We use expr to denote an expression over V. We assume that
+expressions are well typed and for expression expr we useD(expr) to denote
+its domain. Given a variable valuation and an expression expr, we use expr2
+D(expr) to denote the value of exprunder. We useV(expr)22Vto denote the
+set of variables in expr such that for all v2V(expr) and for all ;02V(V) if
+(v) =0(v) then expr=expr0.
+Constraints. The setB(X) is the set of clock constraints generated by the gram-
+mar::=x./exprj1^2, wherex2X,D(expr) is the domain of all natural
+numbers Nand./2f<;;;>g. The setB(V) is a set of Boolean variable con-
+straints overV. The setB(X;V ) of constraints comprises B(X),B(V), and con-
+junctions over clock and variable constraints. Given a constraint 2B(X;V ),
+we useX() to denote the set of clocks in , andV() to denote the set of
+variables in . We dene the evaluation of a constraint 2B(X;V ) aswhere
+expressions in are evaluated under .
+Updates. Aclock update is of the form x:=exprwherex2X, andD(expr) =N.
+Avariable update is of the form v:=expr wherev2VandD(v) =D(expr).
+The setU(X;V ) ofupdates contains all nite, possibly empty sequences of clock
+and variable updates. Given clock valuation 2V(X), variable valuation 2
+V(V), and update r2U(X;V ), we userto denote the update resulting after
+evaluating all expressions in runder, we useX(r) to denote the set of clocks
+inr, andV(r) to denote the set of variables in r. We let JrK:V(X)[V(V)!
+V(X)[V(V) be a map from valuations to valuations. We use [r] to denote
+the updated clock valuation JrK(). Analogously, for variable valuation 0, we
+use0[r] to denote the updated variable valuation JrK(0).
+Channels. Given a set Cofchannels , the setH(C) of synchronizations over
+channels is generated by the grammar h::=c[expr]!jc[expr]?j, wherec2C,
+D(expr) =N, andrepresents an internal action. Given a variable valuation
+, for synchronization hof the form c[expr]! we usehto denotec[expr]!, and
+similar for synchronizations of the form c[expr]?.
+Denition 3 (Extended Timed Automata XTA). Aextended timed au-
+tomatonAis a tuple (L;Lu;Lc;l0;X;V;H (C);E;I )where:Lis a set of loca-
+tions,LuLdenotes the set of urgent locations in L,LcLdenotes the set of
+committed locations in LandLu\Lc=;,l02Lis the initial location, Xis a
+nonempty the set of clocks, Vis the set of variables, H(C)is a set of channels
+expressions for set of channels C,ELH(C)B(X)B(V)U(X;V )L
+is a set of edges between locations with a channel expressions, a clock guard, a
+variable guard, an update set, and I:L!B(X)assigns clock invariants to
+locations.
+Denition 4 (Network of XTA). A networkNof XTA consists of a nite
+sequenceA1;:::;Anof XTA, whereAi= (Li;Lu
+i;Lc
+i;l0
+i;Xi;Vi;H(C)i;Ei;Ii)
+for1in. Locations are pairwise disjoint i.e. Li\Lj=;for1i;jn
+
+--- Page 6 ---
+6 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+andi6=j. The set of locations is L=[n
+i=1Li, analogously for urgent Luand
+committedLclocations. The set of clocks is X=[n
+i=1Xiand the set of variables
+isV=[n
+i=1Vi. The set of channel expressions is H(C) =[n
+i=1H(C)i. The
+set of edges is E=[n
+i=1Ei. A location vector is a vector ~l= (l1;:::;ln), and
+~l0= (l0
+1;:::;l0
+n)is the initial location vector. The invariant function over location
+vectors isI(~l) =V
+iIi(li).
+We write~l[l0
+i=li] to denote the vector where the i-th element liof~lis replaced
+byl0
+i. We write~lito denote the i-th element of ~l.
+Zones. We assume the canonical satisfaction relation \ j=" between valuations
+and constraints in B(X) andB(V). The setB+(X) ofextended clock constraints
+is generated by the grammar ::=x./cj1^2jxy ./c , wherex;y2X,
+c2Nand./2f<;;;>g. Azone JZKis a set of clock valuations described
+by an extended clock constraint Z2B+(X) where JZKdef=f2V(X)jj=Zg.
+When it is clear from the context, we use Zand JZKinterchangeably. We dene
+Z"def=f+dj2Z;d2R0g, where ford2R0,+dmaps each clock x2X
+to the value (x) +d. For zoneZand update rwe deneZ[r]def=f[r]j2Zg.
+For timed automata we consider the set of actions A= 2Ethat corresponds
+to the discrete transitions induced by the edges E, andis the delay action
+induced by non-zero delay transitions. We can now dene the symbolic semantics
+of networks of timed automata in terms of a zone graph (see e.g. [1]).
+Denition 5 (Semantics of a Network of XTA). LetN=A1;:::;An
+be a network of TA. Its semantics is dened as a symbolic delay transition
+system (zone graph) (S;s 0; !), whereS(LiLn)B+(X)V(V)is
+the set of states comprising a location vector, a zone, and a variable valuation,
+s0= (~l0;f0g;0)is the initial state, and  !S(A[fg)Sis the transition
+relation dened by:
+{delay transition, (~l;Z; ) !(~l;Z"^I(~l);)if~li62Lu
+i[Lc
+ifor1in,
+and92Z;d2R0:d> 0^+dj=I(~l),
+{internal transition, (~l;Z; )feig! (~l[l0
+i=li];Z0;0)ifei=(li;;; ;r;l0
+i)2Ei
+s.t.Z0= (Z^I(~l)^)[r]^I(~l[l0
+i=li])0, whereZ06=;,0=[r],j= ,
+and if~lk2Lc
+kfor some 1knthenli2Lc
+i,
+{handshake transition, (~l;Z; )fei;ejg! (~l[l0
+j=lj;l0
+i=li];Z0;0)if there exists ei=
+(li;hi!;i; i;ri;l0
+i)2Eiandej= (lj;hj?;j; j;rj;l0
+j)2Ejs.t.h
+i=h
+j,
+andZ0= (Z^I(~l)^
+i^
+j)[r
+i][r
+j]^I(~l[l0
+j=lj;l0
+i=li])0, whereZ06=;,
+j= ( 
+i^ 
+j),0=[r
+i][r
+j], and if~lk2Lc
+kfor some 1knthen
+li2Lc
+iorlj2Lc
+j.
+In the following, we are given a network of TA N=A1;:::;Anwith locations
+L, clocksX, variablesV, and induced symbolic transition system ( S;s 0; !).
+
+--- Page 7 ---
+Urgent Partial Order Reduction for XTA 7
+l1 l2
+l1 l2a1
+x3
+a2
+y6
+xy
+01234567890123456789
+x:x3y:y6
+Z
+Fig. 2: Two components with actions a1anda2. Actions are enabled at zone Z.
+Note that executing a1will disable a2and vice versa.
+Denition 6 (Properties). Aformula is given by the grammar ::=deadlockj
+ljx./cj vj1^2, wherel2L,x2X,./2f<;;;>g,c2N, and vis
+a Boolean constraint for v2V. Let (~l;Z; )2Sbe a state. The satisfaction of
+a formula is inductively dened as follows:
+(~l;Z; )j=deadlock i92Z;8d2R0:En((~l;f+dg;)) =;
+(~l;Z; )j=l i~li=lfor someiwith 1in
+(~l;Z; )j=x./c i92Z: j=x./c
+(~l;Z; )j= v ij= v
+(~l;Z; )j=^ i(~l;Z; )j=and(~l;Z; )j= 
+A network satises i its initial state can reach a state that satises .
+4 Reachability Preserving Reduction for XTA
+In this section we provide syntactic based sound approximations for all the ele-
+ments required by our technique. In Subsection 4.1 we give a semantic denition
+for independence of actions, then we describe a syntactic independence relation.
+In Subsection 4.2 we identify the relevant actions which need to be included in
+the stubborn set to preserve states which can delay. Finally, in Subsection 4.3
+we describe the stubborn sets for preserving goal states. For the rest of this
+section we are given a network N=A1;:::;An, with edges Eand components
+Ai= (Li;Lu
+i;Lc
+i;li0;Xi;Vi;H(C)i;Ei;Ii), the corresponding transition system
+(S;s 0; !) with actions A= 2E, and state s= (~l;Z; ).
+4.1 Independence for Actions
+The notion of independence of actions plays a key role in partial order reduction.
+Intuitively two actions are independent if they can not disable each other and
+they commute.
+
+--- Page 8 ---
+8 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+Denition 7 (Independence of Actions). Anindependence relation for state
+s2Sis a symmetric, anti-reexive relation 6!sAAsatisfying the following
+conditions for each (a1;a2)2 6!s:
+1.8s02S: sa1!s0^a22En(s) =)a22En(s0)
+2.a12En(s)^a22En(s) =) 9s02S: sa1a2!s0^sa2a1!s0
+If(a1;a2)2 6!sthey are independent atsdenoted by a16!sa2. Otherwise
+they are dependent atsdenoted by a1!sa2.
+In what follows we will provide a syntactic independence relation on actions.
+Toward this goal, rst we dene operations on actions and we dene a syntactic
+independence relation on operations.
+Additional Notation. For a given edge e= (l;h;; ;r;l0)2Ewe usesrc(e),
+dst(e) to denote the source location land the destination location l0of edgee.
+Given actions a;a02A, for action awe dene its preset asPre(a)def=fsrc(e)2
+Lje2ag, and its poset asPost(a)def=fdst(e)2Lje2ag. We use Active (a)def=
+fAijAiis inNand9l2Pre(a): l2Ligto denote the active components for
+a. We use Parallel (a;a0)def=Active (a)\Active (a0) =;to denote that actions
+aanda0correspond to dierent components. For convenience we dene Op-
+erations for Actions in TA . The set of all operations is the set containing all
+constraints and resets i.e. Opis the power set of B(X;V )[U(X;V ). The set of
+operations for actiona2Ais given by, Op(a)def=Guard (a)[Update (a). Where
+the set of guards is Guard (a)def=Sf^ ^I(l)^I(l0)j(l;h;; ;r;l0)2ag,
+and the set of updates is Update (a)def=Sfrj(l;h;; ;r;l0)2ag. Given
+an operation op2Op, the set of variables which opincrements is given by
+Inc(op) =fv2V(op)j9r2opandrincludesv:=v+ 1 withD(v) =Ng. Anal-
+ogously the set Dec(op) contains the variables which opdecrements Dec(op) =
+fv2V(op)j9r2opandrincludesv:=v1 withD(v) =Ng. The clocks
+and variables the operation writes is given by Write (op)def=S
+r2op0fxvjr2
+U(X;V ) andxv:=expris inrg, where op0is obtained from opby removing
+increment and decrement updates, formally op0=opnfxv:=expr2opj
+expris of the form xv+ 1 orxv1gThe set Readleq (op) =fxv2X[Vjxv
+expr2oporxv < expr2opgis the set containing clock and variables which
+appear in less and equal comparisons. Analogously the set Readgeq (op) contains
+clock and variables which appear in greater and equal comparisons in op. The
+clocks and variables the operation reads is given by Read (op)def=X(op0)[V(op0)
+where op0is obtained from opby removing less (greater) and equal compar-
+isons, formally op0=opnfxv ./ expr2opj./2 f;<;>;gg. Note that
+given a zone, a clock constraint can modify (write to) other clocks. Finally
+x(Z)def=f(x)j2Zgis the set of real values for clock xin zoneZ.
+Denition 8 (Independence of Operations). Given operations op1;op22
+Opand states, operation op1is independent of operation op2atsdenoted by
+
+--- Page 9 ---
+Urgent Partial Order Reduction for XTA 9
+op16 ]
+sop2i the following hold:
+(1)Read (op1)\(Write (op2)[Inc(op2)[Dec(op2)) =;
+(2)Readleq (op1)\(Write (op2)[Inc(op2)) =;
+(3)Readgeq (op1)\(Write (op2)[Dec(op2)) =;
+(4)Write (op1)\(Write (op2)[Inc(op2)[Dec(op2)) =;
+(5)Inc(op1)\(Write (op2)[Dec(op2)) =;
+(6)Dec(op1)\(Write (op2)[Inc(op2)) =;
+(7)fxjx2X(op1)[X(op2)andjx(Z)j6= 1andop1;op22B(X;V )g=;
+Ifop16 ]
+sop2and op26 ]
+sop1the we write op16!]
+sop2and say that op1and
+op2are independent at s. We write op1!]
+sop2iop1andop2are dependent.
+Intuitively two operations are independent if they read and write in dierent
+variables, note that increments and decrements are treated specially. Addition-
+ally for timed automata we need to consider that applying a guard aects a
+number of clocks. As an example consider Figure 2, we have that Z\x6=;
+andZ\y6=;. However, if we apply xwe have that ( Z\x)\y=;this
+will cause the corresponding actions to disable each other. Condition ( 7) is not
+satised for clocks xoryin zoneZ. Therefore we have x!]
+sy. Note that
+Condition ( 7) is rather strong, since only zones which are lines or points will
+satisfy it (which is often the case in urgent states), relaxing this condition is
+subject of future work. Given two independent operations, we can conclude with
+a number of rules which are useful for showing that two actions do not disable
+each other and commute in extended timed automata.
+Lemma 1. Given state s= (~l;Z; ), constraints ;02B(X), updater2
+U(X), and variable valuations ;12V(V). The following hold:
+(1)if6!]
+srthen J(Z^)[r]K=JZ[r]^K
+(2)ifJ(Z^)[r]^K6=;then J(Z^)[r]^K=J(Z^)[r]K
+(3)if6!]
+s0and2JZ^(0)Kand JZ^1K6=;then2J(Z^1)K
+(4)if8x2X():jx(Z)j= 1and JZ^K6=;and JZ^1K6=;then
+JZ^K=JZ^1K
+Lemma 1 ( 1) states that if a reset is independent of a constraint then the
+reset does not aect the constraint. Lemma 1 ( 2) does not require independent
+operations, in our proofs it is used to remove redundant application of invariants
+from components which are not involved in transitions. Lemma 1 ( 3) implicitly
+uses Condition ( 7) from Denition 8 to show that a valuation satisfying a guard
+is preserved after applying another guard. Lemma 1 ( 4) states that if a guard 
+has been updated (via increment or decrement which in our case always produce
+a \bigger" constraint), then because of the shape of the zone the intersections
+will produce the same set.
+Denition 9 (Syntactic Independence of Actions). Given a state s=
+(~l;Z; )with~l= (l1;:::;ln)and two actions a1;a22A]
+s. Actionsa1anda2
+aresyntactically independent at statesdenoted by a16!]
+sa2if and only if the
+
+--- Page 10 ---
+10 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+following conditions hold:
+(Ind1)Pre(a1)\Pre(a2) =;
+(Ind2)9l2F(a1): l2Lc() 9l2F(a2): l2LcforF2fPre;Postg.
+(Ind3)8op12Op(a1);op22Op(a2): op 16!]
+sop2
+(Ind4)8i2f1;2g;op2Op(ai);j2f1;:::;ng:~lj62Pre(ai) =)op6!]
+sI(~lj)
+Condition ( Ind1) ensures that the source locations for the actions are disjoint.
+Condition ( Ind2) takes into account the semantics of committed locations and
+prevents actions from disabling each other. Condition ( Ind3) ensures that all the
+operations on the actions are independent. Finally Condition ( Ind4) ensures that
+the operations in actions aifori2f1;2gdo not modify the invariant of other
+components which could disable action a3i. When these syntactic conditions
+are satised we have the following theorem.
+Theorem 2. Given a zero time state s2Sand two actions a1;a22A]
+s. If
+a16!]
+sa2thena16!sa2.
+Our analysis uses the current state s= (~l;Z; ) to conclude if two actions are
+independent at s. In particular we use the zone Zin Denition 8 Condition ( 7)
+to detect clock constraint dependencies. Due to this condition we can make
+assumptions about the shape of the zone Zwhich allow us to conclude that
+if the actions were syntactically independent at sthen so they are in states
+reachable via independent actions.
+Corollary 1. Given state s, actiona2A]
+s, andA0=fa02A]
+sja!]
+sa0g.
+Then8s02S:a02(A]
+snA0);w2(A]
+snA0):zt(s)^sw !s0a0
+!s00=)a6!]s0a0.
+4.2 Preserving Non-Zero Time States
+In order to satisfy Condition Dfrom Denition 2, which ensures that the reduc-
+tion preserves states that can delay, we need to include particular actions to the
+stubborn set. In XTA time can not elapse at an urgent (committed) location or
+if invariant is stopping time.
+Denition 10 (Time Enabling Action). An actiona2Ais atime enabling
+action at zero time state s= (~l;Z; )if executing amay cause time to elapse.
+Formally tea](a;s)i(9l2Pre(a): l2Lu[Lc)W(82Z;d2R0: +dj=
+I(l) =)d= 0) .
+Consider again Figure 1a and the zero time state s= ((l1;3;l2;3;l3;3);x1=
+x2=x3= 1500) and actions ai=f(li;3;;xi1500;xi= 0;li;0)g. The actions
+are time enabling actions i.e. tea](ai;s) fori2f1;2;3g. Note that as long as a
+time enabling action is enabled, time can not elapse. Thus executing independent
+actions can not cause time to progress.
+Lemma 2. Lets2S,a2En(s)with tea](a;s)andDelay]
+sdef=fag[fa02A]
+sj
+a!]
+sa0g. Then8s02S;w2(A]
+snDelay]
+s): sw !s0^zt(s) =)zt(s0).
+
+--- Page 11 ---
+Urgent Partial Order Reduction for XTA 11
+4.3 Preserving Goal States
+In order to satisfy Condition Rfrom Denition 2, which ensures that the re-
+duction preserves goal states, we need to include actions whose execution is
+necessary to reach a goal state.
+Denition 11 (Interesting Actions for Properties). For formula 'and
+statessuch thats6j='. The set']
+sA]
+sis dened recursively based on the
+structure of 'as given by the following table:
+Formula'']
+s
+lfa2A]
+sjl2Post(a)g
+deadlockpicka2En(s)thenfag[
+fa02A]
+sj(Pre(a)\Pre(a0)6=;)_(Parallel (a;a0)^a!]
+sa0g
+x./cfa2A]
+sj9op2Update (a): x./c!]
+sopg
+'vforv2Vfa2A]
+sj9op2Op(a): 'v!]
+sopg
+'1^'2 ('i)]
+sfor somei2f1;2gwheres6j='i
+Lemma 3. Given a state s, a formula ', and the set ']
+s. Then8s02S;w2
+(A]
+sn']
+s): sw !s0^zt(s)^s6j='=)s06j='.
+5 Computing Stubborn Sets in Uppaal
+We shall rst provide a high level algorithm to compute a reachability preserving
+reduction for networks of timed automata and then discuss details related to the
+implementation of our technique in the model checker Uppaal .
+5.1 Algorithm
+Assume a given network of XTA and reachability formula '. During the reacha-
+bility analysis, we repeatedly use Algorithm 1 at every generated state sto com-
+pute a reduction St]that satises the conditions from Denition 2. At Line 1,
+we output En(s) should the state sbe non-zero time state, thus satisfying Con-
+ditionZ. Line 3 includes all actions that are relevant for the preservation of the
+reachabily of states that can delay or belong to the goal states. Together with
+Lemma 2 and Lemma 3 this ensures that Condition Dand ConditionRare
+satised. Finally, the while loop starting at Line 5 ensures Condition W. The
+while loop considers an action a2St]
+s, if this action is not enabled then it will
+include all necessary actions which can enable it. This is done by adding actions
+which modify the location vector at Line 11, or by adding actions which modify
+the guards in aat Line 14. In the case where action ais enabled then the for
+loop at Line 16 includes all actions that are not independent with a.
+Additionally, note that the set A]
+sis nite and in each iteration the size of
+St]
+scan only increase because the only operation applied to St]
+sis union. In the
+worst case we have St]
+s=A]
+sand hence the algorithm terminates.
+Theorem 3 (Total Correctness). LetNbe a network of XTA and 'a for-
+mula. Algorithm 1 terminates and St]is a reachability preserving reduction where
+St](s)is the output of Algorithm 1 for every state s2S.
+
+--- Page 12 ---
+12 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+Algorithm 1 Computing conditional stubborn sets
+Input NetworkA1;:::;An, states= (~l;Z; ), and formula '.
+Output Conditional stubborn set St]
+s
+1:if:zt(s)then return En(s);
+2: compute A]
+sand']
+s;
+3:if8a2']
+s::tea](a;s)then picka2En(s) with tea](a;s);']:='][fag;
+4:W:=']
+s;R:=A]
+s;St]
+s:=W
+5:whileW6=;andEn(s)\St]
+s6=En(s)do
+6: Pick a2W;W:=Wnfag;St]
+s:=St]
+s[fag;R:=Rnfag;
+7: ifa62En(s)then
+8: for alle2ado
+9: ifsrc(e) is not in~lthen
+10: for alla02Rdo
+11: ifsrc(e)2Post(a0)thenW:=W[fa0g;
+12: ifexistsg2Guard (feg) such that s6j=gthen
+13: for alla02Rdo
+14: if9r2Update (a0): g!]
+srthenW:=W[fa0g;
+15: ifa2En(s)then
+16: for alla02Rdo
+17: if(Pre(a)\Pre(a0)6=;)_(Parallel (a;a0)^a!]
+sa0)then
+18: W:=W[fa0g;
+19:return St]
+s;
+5.2 Implementation Details
+Algorithm 1 is inserted as a state successor lter after the state successors are
+computed. This lter passes through only the states that are the result of stub-
+born actions. To improve the eciency, the stubborn set is computed only when
+the origin state is urgent and has more than one successor, otherwise the lter
+just forwards all successors without any reduction. In the following we describe
+a number of optimizations that we included in our implementation.
+Reachable Actions. In previous sections we have dened A= 2E, as the set
+of actions. This set is unnecessary large and unpractical. The set of reachable
+actions fromscan be semantically dened as Asdef=fa2Aj9s0;s002S;w2
+A: sw !s0a !s00g. Our goal is to compute the smallest set A]
+ssuch that
+AsA]
+sA. Computing a small set has the advantage that potentially less
+dependencies are introduced, additionally it will reduce the computation time
+of stubborn sets. We implemented a static analysis in order to compute the set
+A]
+s. Our analysis exploits the fact that time can not elapse at a state s, and
+thus actions that require a delay to become enabled need not be included in
+A]
+s. For the performance sake, the approximation A]
+sis computed in two steps.
+The rst step is prior to state exploration and is only executed once. In this
+step for each edge we compute the set of edges it can reach without doing a
+delay operation. The starting edge is assumed to be enabled and thus we start
+
+--- Page 13 ---
+Urgent Partial Order Reduction for XTA 13
+with all possible clock assignments in conjunction with the source invariant. If
+clocks are compared against constants, we add the constraints. Otherwise, if
+integer variables appear on the guards, we relax (loose) all the information on
+the aected clock. The second step is executed at every urgent state and it is
+done by using precomputed data structures from the previous step that collect
+for every enabled edge the set of edges it can reach and then composes them
+into actions.
+Broadcast Channels. Many Uppaal models use broadcast channels, however
+the set of possible broadcast synchronizations is exponentially large in terms of
+the number of potential receivers (in contrast to linear complexity of handshake
+synchronizations) and hence untenable for larger networks. Instead of computing
+all possible synchronizations, we compute one super-action for each broadcast
+sending edge, combining all potential receiving edges from other processes|this
+serves as a safe over-approximation. Such combined treatment avoids exponen-
+tial blowup of broadcast actions at the cost of overly-conservative dependency
+checks, which considers a super-set of associated variables instead of precise sets
+involving a particular subset of receiving edges. In addition to broadcast syn-
+chronizations, the static analysis also supports arrays and C-like structures by
+expanding them into individual variables. Array indices, references and functions
+calls are over-approximated by using the ranges from variable types.
+Precomputed Data Structures. To make our implementation fast, we precompute
+a number of data structures required by our technique. Examples include, edges
+leading to locations, some property base sets, reachable edges from locations. In
+particular, in order to compute the dependence between actions, the associated
+variable sets are also precomputed in advance for each action. These variable sets
+are then used to construct a dependency matrix over all reachable actions, thus
+making the action dependency check a constant-time lookup during verication.
+6 Experiments
+Table 1 shows the results of our POR implementation applied on a number of
+industrial case studies1. The experiments were run on a cluster with AMD EPYC
+7551 processor with the timeout of 10 hours (and 15GB of RAM) for all models
+except for SecureRideSharing where the timeout was 48 hours (and 200GB of
+RAM). The model instances are suxed with a number indicating the increasing
+amount of parallel components (sensors and the like).
+FireAlarm is a simplied version of IndustFireAlarm [11] for the communica-
+tion protocol of a wireless sensor network from German Company SeCa GmbH
+as described in Section 1. The AGless300 corresponds to a requirement from EN-
+54 standard that a sensor failure is reported in less than 300 seconds. A stricter
+property AGless100 is added to evaluate the performance when a property does
+1Reproducibility package https://github.com/DEIS-Tools/upor
+
+--- Page 14 ---
+14 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+Model Querywithout POR with POR reduction ratio
+states time sec. states time sec. states time
+FireAlarm4 AGnotdeadlock 27<0.01 22<0.01 1.23 {
+FireAlarm20 AGnotdeadlock 1048635 148.41 270 0.01 3883.83 14841
+FireAlarm100 AGnotdeadlock { OOM 5350 5.18 { {
+IndustFireAlarm13 AGless100* 931496 97.57 24296 2.81 38.34 34.72
+IndustFireAlarm15 AGless100* 3684136 571.75 27672 3.84 133.14 148.89
+IndustFireAlarm17 AGless100* 14694312 2884.18 31496 5.09 466.55 566.64
+IndustFireAlarm19 AGless100* 58734632 15878.47 35768 7.20 1642.1 2205.34
+IndustFireAlarm30 AGless100* { OOM 67272 27.92 { {
+IndustFireAlarm100 AGless100* { OOM 585272 2753.54 { {
+IndustFireAlarm13 AGless300 3731370 439.50 102570 12.73 36.38 34.52
+IndustFireAlarm15 AGless300 14742718 2570.36 116862 17.69 126.15 145.30
+IndustFireAlarm17 AGless300 58784210 12833.69 132946 23.15 442.17 554.37
+IndustFireAlarm19 AGless300 { OOM 150822 32.83 { {
+IndustFireAlarm30 AGless300 { OOM 281172 128.08 { {
+IndustFireAlarm100 AGless300 { OOM 2380752 12715.08 { {
+IndustFireAlarm13 AGnotdeadlock 3731320 388.63 63618 4.96 58.65 78.35
+IndustFireAlarm15 AGnotdeadlock 14742668 2215.16 65654 5.68 224.55 389.99
+IndustFireAlarm17 AGnotdeadlock 58784160 11202.80 67818 6.47 866.79 1731.50
+IndustFireAlarm19 AGnotdeadlock { OOM 70110 8.00 { {
+IndustFireAlarm30 AGnotdeadlock { OOM 85004 17.85 { {
+IndustFireAlarm100 AGnotdeadlock { OOM 270504 530.46 { {
+SecureRideSharing6 AGlessMaxFail 200141 2.23 200141 5.60 1 0.40
+SecureRideSharing7 AGlessMaxFail 7223770 95.60 7223770 252.61 1 0.38
+SecureRideSharing8 AGlessMaxFail* 85622469 1467.49 85622469 3691.46 1 0.40
+SecureRideSharing9 AGlessMaxFail* 1961298623 43548.8 1961298623 106223.46 1 0.41
+SecureRideSharing6 AGnotdeadlock 200141 3.05 184973 6.3 1.08 0.48
+SecureRideSharing7 AGnotdeadlock 7223770 122.29 2428033 93.21 2.98 1.31
+SecureRideSharing8 AGnotdeadlock 97539581 2058.40 39387328 1845.46 2.48 1.12
+SecureRideSharing9 AGnotdeadlock { OOM 944892374 55481.09 { {
+TTAC4 AGnotdeadlock 12213203 308.40 11414483 379.51 1.07 0.81
+TTAC5 AGnotdeadlock 217259289 6724.25 204152089 8679.56 1.06 0.77
+TTPA6 AGnotdeadlock 668421 27.30 668421 55.82 1 0.49
+TTPA7 AGnotdeadlock 3329080 166.34 3329080 337.06 1 0.49
+TTPA8 AGnotdeadlock 18073077 1096.79 18073077 2229.04 1 0.49
+FB14 AGnotdeadlock 98310 138.22 98310 139.5 1 0.99
+FB15 AGnotdeadlock 196614 698.54 196614 702.61 1 0.99
+FB16 AGnotdeadlock 393222 2794.58 393222 2788.83 1 1
+Table 1: Experimental results. Satisability results agree for all queries. Queries
+with * were not satised. The reduction is the ratio of performance without POR
+and with POR. OOM indicates out of memory.
+not hold. Results show exponentially increasing savings in both number of states
+and computation time.
+The SecureRideSharing models a fault-tolerant, duplicate-sensitive aggrega-
+tion protocol for wireless sensor networks [12,3]. This case study did not show
+reductions until special treatment for broadcast synchronizations and variable
+increments was implemented. The AGnotdeadlock property shows substantial
+reductions, and one instance times out when POR is not used, however for the
+AGlessMaxFail query the state space is not reducible and the verication time
+is more than doubled due to variables reverenced in the query.
+The TTAC models a Timed Triggered Architecture protocol [13] used in
+drive-by-wire vehicles. The TTPA models a Time-Triggered Protocol for SAE
+
+--- Page 15 ---
+Urgent Partial Order Reduction for XTA 15
+class A sensor/actuator networks [27]. The model FB models the Field Buss
+scheduling protocol [25]. These case studies were selected as they do not allow
+for any state space reduction, thus allowing us to observe the time-overhead of
+our method. This overhead varies from almost no overhead for the FB models
+to twice as slow for the TTPA models.
+7 Conclusion
+We presented an application of partial order reduction based on stubborn sets
+to the model of network of timed automata in the Uppaal style, including a
+detailed analysis of both clock and discrete variable dependencies among the
+dierent components. The method allows us to reduce the state space in the
+situations where a sequence of mutually independent actions is performed while
+the network is in an urgent conguration where time cannot elapse (caused
+by the fact that at least one component is in urgent/committed location or
+there is a clock invariant imposing the urgency). Our method is implemented in
+the tool Uppaal and the experiments conrm that for the models with enough
+independent concurrent behavior in urgent situations, we can achieve exponential
+speedup in the reachability analysis. For models with limited urgent behavior,
+the overhead of our method is still acceptable (with the worst-case ratio of about
+0.4 slowdown). These results are highly encouraging, yet further optimizations
+can be achieved by a more detailed static analysis of independent actions, one
+of the directions for future research.
+Acknowledgments. We thank Christian Herrera and Sergio Feo Arenis for pro-
+viding the models we use in our experimental section.
+References
+1. L. Aceto, A. Ingolfsdottir, K. Larsen, and J. Srba. Reactive Systems: Modelling,
+Specication and Verication , page 195. Cambridge University Press, 2007.
+2. R. Alur and D. L. Dill. A theory of timed automata. Theoretical Computer Science ,
+126(2):183{235, Apr. 1994.
+3. S. F. Arenis and B. Westphal. Formal verication of a parameterized data aggre-
+gation protocol. In G. Brat, N. Rungta, and A. Venet, editors, NASA FM , volume
+7871 of LNCS , pages 428{434. Springer, 2013.
+4. C. Baier and J.-P. Katoen. Principles of Model Checking . The MIT Press, 2008.
+5. G. Behrmann, P. Bouyer, K. G. Larsen, and R. Pel anek. Lower and upper bounds
+in zone-based abstractions of timed automata. STTT , 8(3):204{215, 2006.
+6. G. Behrmann, A. David, and K. G. Larsen. A tutorial on uppaal . In M. Bernardo
+and F. Corradini, editors, SFM-RT 2004 , number 3185 in LNCS, pages 200{236.
+Springer, 2004.
+7. J. Bengtsson, B. Jonsson, J. Lilius, and W. Yi. Partial order reductions for timed
+systems. In CONCUR'98 , volume 1466 of LNCS , pages 485{500. Springer, 1998.
+8. F. Boenneland, P. Jensen, K. Larsen, M. Muniz, and J. Srba. Start pruning when
+time gets urgent: Partial order reduction for timed systems. In CAV'18 , volume
+10981 of LNCS , pages 527{546. Springer-Verlag, 2018.
+
+--- Page 16 ---
+16 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+9. M. Bozga, S. Graf, I. Ober, I. Ober, and J. Sifakis. The IF toolset. In Int. School
+on Formal Methods for the Design of Computer, Communication and Software
+Systems (SFM-RT'04) , volume 3185 of LNCS , pages 237{267. Springer, 2004.
+10. D. Dams, R. Gerth, B. Knaack, and R. Kuiper. Partial-order reduction techniques
+for real-time model checking. Formal Asp. Comput. , 10(5-6):469{482, 1998.
+11. S. Feo-Arenis, B. Westphal, D. Dietsch, M. Mu~ niz, and A. S. Andisha. The Wireless
+Fire Alarm System: Ensuring Conformance to Industrial Standards through Formal
+Verication , pages 658{672. Springer International Publishing, Cham, 2014.
+12. S. Gobriel, D. Mosse, J. Brustoloni, and R. Melhem. Ridesharing: Fault tolerant
+aggregation in sensor networks using corrective actions. the 3rd annual. IEEE
+SECON , 2:595 { 604, 10 2006.
+13. K. Godary. Validation temporelle de r eseaux embarqu es critiques et ables pour
+lautomobile . PhD thesis, Ins. National des Sc. Appliqu ees de Lyon, France, 2004.
+14. P. Godefroid, J. v. Leeuwen, J. Hartmanis, G. Goos, and P. Wolper. Partial-Order
+Methods for the Verication of Concurrent Systems: An Approach to the State-
+Explosion Problem , volume 1032 of LNCS . Springer-Verlag, 1996.
+15. H. Hansen, S. Lin, Y. Liu, T. K. Nguyen, and J. Sun. Diamonds are a girl's best
+friend: Partial order reduction for timed automata with abstractions. In CAV'14 ,
+volume 8559 of LNCS , pages 391{406. Springer, 2014.
+16. C. Herrera, B. Westphal, S. Feo-Arenis, M. Mu~ niz, and A. Podelski. Reducing
+quasi-equal clocks in networks of timed automata. In FORMATS , number 7595 in
+LNCS, pages 155{170. Springer, Heidelberg, 2012.
+17. L. M. Kristensen, K. Schmidt, and A. Valmari. Question-guided stubborn set
+methods for state properties. FM in System Design , 29(3):215{251, 2006.
+18. X. Liu and S. A. Smolka. Simple linear-time algorithms for minimal xed points.
+InAutomata, Languages and Programming , pages 53{66. Springer, 1998.
+19. D. Lugiez, P. Niebert, and S. Zennou. A partial order semantics approach to the
+clock explosion problem of timed automata. Theor. Comput. Sci. , 345(1):27{59,
+2005.
+20. M. Minea. Partial order reduction for model checking of timed automata. In
+CONCUR'99 , volume 1664 of LNCS , pages 431{446. Springer, 1999.
+21. M. Mu~ niz, B. Westphal, and A. Podelski. Detecting quasi-equal clocks in timed
+automata. In FORMATS , pages 198{212, 2013.
+22. P. Niebert and H. Qu. Adding invariants to event zone automata. In FORMATS'06 ,
+volume 4202 of LNCS , pages 290{305. Springer, 2006.
+23. D. Peled. All from one, one for all: Nn model checking using representatives. In
+(CAV'93) , volume 697 of LNCS , pages 409{423. Springer, 1993.
+24. M. Perin and J. Faure. Coupling timed plant and controller models with urgent
+transitions without introducing deadlocks. In 17th International Conference on
+Emerging Technologies & Factory Automation (ETFA'12) , pages 1{9. IEEE, 2012.
+25. N. Petalidis. Verication of a eldbus scheduling protocol using timed automata.
+Computing and Informatics , 28:655{672, 01 2009.
+26. R. B. Salah, M. Bozga, and O. Maler. On interleaving in timed automata. In
+CONCUR'06 , LNCS, pages 465{476, 2006.
+27. W. Steiner and W. Elmenreich. Automatic recovery of the TTP/A sensor/actuator
+network. In WISES , 2003.
+28. A. Valmari and H. Hansen. Stubborn set intuition explained. In Transactions on
+Petri Nets and Other Models of Concurrency XII , pages 140{165. Springer, 2017.
+
+--- Page 17 ---
+Urgent Partial Order Reduction for XTA 17
+A Over Approximation for Reachable Actions
+A.1 Abstract Zone Successor
+Since we do not have a state we do not know the current integer variable assign-
+ments, thus the abstract successor will relax the zone for all clocks. The abstract
+zone successor succ]:LB+(X)E!B+(X) takes a location a zone, and
+an edge and returns a a zone. Formally: succ](l;Z;(l;h;; ;r;l0)) =Z0where
+Z0=(
+(Z\I(l)\)[r]\I(l0) ifV() =V(I(l)) =V(I(l0)) =V(r) =;
+> otherwise
+A.2 Reachable Edges for an Enabled Edge
+Given an enabled edge i.e. e= (l;h;; ;r;l0)2Esuch thate2afor some
+a2En(s) for some s. We dene a function RE:LB+(X)E!2Efrom
+a location, a zone, and an edge to a set of edges it could reach without time
+delays. The set of reachable edges for an enabled edge ewith initial zone Z=>
+is dened as the least xed point of the following system of equations:
+RE(l;Z;e(l;h;; ;r;l0)) =fejifZ6=;g
+[
+e0=(l0;h0;0; 0;r0;l00)2ERE(l00;succ](l0;Z;e0);e0)(1)
+We have implemented an ecient algorithm for computing the local xed
+point for a given location. Our Algorithm is an instantiation of the algorithm
+proposed by Liu & Smolka [18]. Finally, we construct the set A]
+sby taking the
+union of all reachable edges for every component union all possible synchroniza-
+tions among reachable edges.
+Theorem 4. The setA]
+sis an over approximation of the set of reachable ac-
+tions, formally: AsA]
+s.
+Algorithm for computing reachable edges Equation 1 stabilizes when a global
+xpoint is reached, i.e. a xpoint for every edge in a component Aiis reached.
+For our purposes we only need the xpoint for the current edge. Algorithm 2
+computes a local xpoint for a given location. The Algorithm is our instantiation
+of the algorithm proposed by Liu & Smolka [18]. It maintains a waiting list W
+and a listPof passed states.
+Finally we can build the set A]
+sby composing the set of all reachable edges
+into actions.
+Denition 12 (Reachable Actions for a Network). Given a state s=
+(~l;Z; )2Sand a set of syntactic reachable edges for every component in a
+
+--- Page 18 ---
+18 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+Algorithm 2 Computing Reachable Edges for an enabled edge
+Input Enabled edge e= (l;h;; ;r;l0),
+Output Fixpoint of reachable edges for enabled edge eRE(l;Z=>;e)
+1:RE:=;;P:=;;W:=f(l0;succ](l;>;e))g
+2:whileW6=;do
+3: Pick ( l;Z)2Wand letW:=Wnf(l;Z)g
+4: if8(l;Z0)2P: Z6Z0then
+5:P:=P[(l;Z)
+6: for alle= (l;h;; ;r;l0)2Edo
+7: Z0:=succ](l;Z;e )
+8: ifZ06=;then
+9: RE:=RE[feg
+10: W:=W[f(l0;Z0)g
+11:return RE;
+network RE(s;Mi;~li), the set of syntactic reachable actions for a network is
+dened as:
+A]
+s=Sn
+i=1ffegje= (l;;; ;r;l0)2RE(s;Mi;~li)g[Sn
+i=1ffei;ejgjei= (li;hi?;i; i;ri;l0
+i)2RE(s;Mi;~li)^
+9j2f1;:::;ng:ej= (lj;hj?;j; j;rj;l0
+j)2RE(s;Mj;~lj)g
+B Proofs
+B.1 Proof of Lemma 1
+Proof (Lemma 1). Since we are given a variable valuation , expressions in
+,(0), andrare evaluated to constans in N. In this proof for readability
+we use,0,rinstead of,(0), andrand we now use Zfor a zone JZK.
+Statement (1). () By structural induction on . As I.H. let the claim hold
+for subformulas of . Let[r]2(Z\)[r].
+{Casex./exprwith./2f<;;;>g.
+Casex:=expr12rwe havex:=expr1!]
+sa contradiction.
+Casex:=expr162randy:=expr22rfor somey2Xwithx6=ythen
+[r](x) =(x) and since 2Z\we have[r]2.
+{Inductive step 1^2and[r]2(Z\1\2)[r]. By I.H we have
+[r]2Z[r]\1and[r]2Z[r]\2therefore[x]2Z[r]\1\2.
+() By structural induction on . As I.H. let the claim hold for subformulas
+of. Let[r]2Z[r]\.
+{Casex./exprwith./2f<;;;>g
+Casex:=expr12rwe havex:=expr1!]
+sa contradiction.
+Casex:=expr162randy:=expr22rfor somey2Xwithx6=ythen
+[r](x) =(x) and since 2Z[r]\we have[r]2.
+
+--- Page 19 ---
+Urgent Partial Order Reduction for XTA 19
+{Inductive step 1^2and[r]2(Z\1\2)[r]. By I.H we have
+[r]2Z[r]\1and[r]2Z[r]\2therefore[x]2Z[r]\1\2.
+Statement (2). Assume ( Z\)[r]\6=;. Show (Z\)[r]\= (Z\)[r].
+Thedirection follows trivially since ( Z\)[r]\(Z\)[r]. We now proof
+the () directon by structural induction on . As I.H. let the claim hold for
+subformulas of . Let[r]2(Z\)[r].
+{Casex ./ expr andx:=expr162r. Then[r](x) =(x) and since
+2Z\we have[r]2.
+{Casex./exprandx:=expr12r. Consider the following cases:
+expr=expr
+1. Then[r](x) =(x) and[r]2.
+expr<expr
+1. Consider the cases:
+*x./exprwith./2f<;gthen (Z\)[r]\6=;.
+*x./exprwith./2f>;gthen[r]2
+expr>expr
+1. Consider the cases:
+*x./exprwith./2f<;gthen[r]2.
+*x./exprwith./2f>;gthen (Z\)[r]\6=;.
+{Inductive step 1^2and[r]2(Z\1\2)[r]. By I.H we have
+[r]2(Z\1)[r]\1and[r]2(Z\2)[r]\2. Therefore [r]21\2
+and[r]2(Z\1\2)[r]\1\2.
+Statement (3). By structural induction on and0. As I.H. let the claim
+hold for subformulas of and0.
+{Casex./exprand0x./expr1. Since6!]
+s0we havejx(Z)j= 1.
+By assumption we are given 2Z,20,andZ\6=;. If2we are
+done. Otherwise 62which implies that (x)6j=, but since Z\6=;
+there must exists a 02Zs.t.0(x)j=, that is(x)6=0(x). Yielding
+jx(Z)j6= 1, a contradiction.
+{Casex./ expr and0y./expr1. Since6!]
+s0we havejx(Z)j= 1
+andjy(Z)j= 1. In addition we have Z\6=;. Let02Z\, then02
+and sincejx(Z)j= 1 we have that all valuations in Zare ini.e.Z
+which is equivalent to Z=Z\. By asumption 2Zthus2Z\.
+{Inductive step: given and00
+1^0
+2. By assumption 20
+1^0
+2. Then
+20
+1and by I.H. 2Z\0
+1. Also20
+2and by I.H. 2Z\0
+2. Therefore,
+2Z\0
+1\0
+2.
+{Inductive step: given 1^2and0. By assumption 20andZ\1\
+26=;. By I.H. we have 2Z\1and2Z\2. Therefore 2Z\1\2.
+Statement (4). () By structural induction on . As I.H. let the claim hold
+for subformulas of and0.
+{Casex./ expr with./2f<;g. Then(x)2Z\and(x)expr.
+Now by contradiction assume (x)>expr1i.e.(x)621then this implies
+Z\1=;(a contradiction) because jx(Z)j= 1.
+{Casex./exprwith./2f>;g. Symmetric to the previous case.
+
+--- Page 20 ---
+20 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+{Casex./expr1^y./expr2with./2f<;;;>g. We have2Z\x./
+expr
+1\y./expr
+2. Then(x)2Z\x./expr
+1and(y)2Z\y./expr
+2. By
+I.H.(x)2Z\x ./ expr1
+1and(y)2Z\y ./ expr1
+2. Then2Z\x ./
+expr1
+1\y./expr1
+2.
+The case () is symmetric. u t
+B.2 Proof of Theorem 2
+Proof (Theorem 2). In the following, let s= (~l;Z; ) and the successors states
+ofsaftera1anda2besa1!s1= (~l1;Z1;1) andsa2!s2= (~l2;Z2;2). We use
+9ias a shorthand for 9i2f1;:::;ng. For the rest of the proof we can assume
+a16!]
+sa2. First consider the case when a162En(s) ora262En(s). Then the
+conditions from Denition 7 trivially hold and we have a16!sa2.
+Consider the more involved case when a12En(s) anda22En(s).
+We show Denition 7 Condition 1 , Considersa1!s1we show that a22En(s1).
+Condition ( Ind1) implies Pre(a1)\Pre(a2) =;i.e.8e2a2:9i:~li
+1=src(e),
+therefore all sources for edges in a2are still in~l1. By ( Ind2) committed locations
+do not disable a2. By ( Ind3) and ( Ind4) all guards and invariants of a2are enabled
+aftera1. (We now devote to demonstrate this).
+Without loss of generality let a1=feiga2=fejgwithi6=j,ei=
+(li;;i; i;ri;l0
+i)2Eiandej= (lj;;j; j;rj;l0
+j)2Ej. Let[r
+i]2Z1i.e.
+[r
+i]2(Z\I(~l)\(i))[r
+i]\(I(~l)[l0
+i=li])1:
+By the semantics of resets we have
+2Z\I(~l)\
+i:
+By Lemma 1( 3) sincei6!]
+sj,Z\I(~l)\
+j6=;and2Z\I(~l)\
+i. We
+obtain
+2Z\I(~l)\
+i\
+j:
+By the semantics of reset we have
+[r
+i]2(Z\I(~l)\
+i\
+j)[r
+i]:
+By assumption ri6!]
+sjand by using Lemma 1( 1) we have
+(Z\I(~l)\
+j\
+i)[r
+i] = (Z\I(~l)\
+i)[r
+i]\
+j;
+therefore
+[r
+i]2(Z\I(~l)\
+i)[r
+i]\
+j:
+and by assumption
+[r
+i]2(Z\I(~l)\
+i)[r
+i]\I(~l[l0
+i=li])1\
+j:
+
+--- Page 21 ---
+Urgent Partial Order Reduction for XTA 21
+Sinceri6!]
+sjwe have that V(ri)\V(j) =;which means that jV(j)=
+1jV(j)i.e. valuations agree for all discrete variables in j, which implies 
+j=
+1
+j. Otherwise if V(ri)\V(j)6=;sinceri6!]
+sjwe have the case that exists
+v2V(ri) andricontains the expression v:=v+ 1 an increment (or decrement)
+andjcontains a constraint of the form xexpr (orxexpr for decrements)
+wherevoccurs in expr, then note (v)1(v) (or(v)1(v) in the case of
+decrements) then we have 
+j1
+jand thus
+[r
+i]2(Z\I(~l)\
+i)[r
+i]\I(~l[l0
+i=li])1\1
+j: (2)
+Which means that the guard of a2is satised after executing a1. Let12=
+1[r1
+j] be the variable valuation after executing a2froms1. Now, we need to
+show that the destination invariant of a2is also satised. We need to show
+[r
+i][r1
+j]2((Z\I(~l)\
+i)[r
+i]\I(~l[l0
+i=li])\1
+j)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])12. By
+the semantics of reset and continuing from 2 we have
+[r
+i][r1
+j]2((Z\I(~l)\
+i)[r
+i]\I(~l[l0
+i=li])1\1
+j)[r1
+j]
+Note thatI(~l[l0
+i=li])1=Tf1;:::;ngnfig
+kI(~lk)1\I(l0
+i)1. By assumption rj6!]
+s
+I(~lk) fork2f1;:::;ngnfjgandrj6!]
+sI(l0
+i). By Lemma 1( 1) we obtain:
+((Z\I(~l)\
+i)[r
+i]\I(~l[l0
+i=li])1\1
+j)[r1
+j]
+= ((Z\I(~l)\
+i)[r
+i]\I(lj)1\1
+j)[r1
+j]Tf1;:::;ngnfi;jg
+kI(~lk)1\I(l0
+i)1
+By assumption rj6!]
+sI(~lk) fork2f1;:::;ngnfjgandrj6!]
+sI(l0
+i). Which
+implies (as above) that 1and12agree on all discrete variables in all invariants
+except possible for some variables which have been incremented or decremented
+(c.f. above for 2 ) thus we have
+((Z\I(~l)\
+i)[r
+i]\I(lj)1\1
+j)[r1
+j]Tf1;:::;ngnfi;jg
+kI(~lk)1\I(l0
+i)1
+((Z\I(~l)\
+i)[r
+i]\I(lj)1\1
+j)[r1
+j]Tf1;:::;ngnfi;jg
+kI(~lk)12\I(l0
+i)12
+Therefore
+[r
+i][r1
+j]2((Z\I(~l)\
+i)[r
+i]\I(lj)1\1
+j)[r1
+j]f1;:::;ngnfi;jg\
+kI(~lk)12\I(l0
+i)12:
+(3)
+Then we need to show that [r
+i][r1
+j]2I(l0
+j)12. By assumption ( Z\I(~l)\
+(j))[r
+j]\(I(~l)[l0
+j=lj])26=;. From Derivation 3 we obtain
+[r
+i][r1
+j]2((Z\I(~l)\
+i)[r
+i]\1
+j)[r1
+j]
+Sinceri6!]
+sjby Lemma 1( 1) we obtain
+[r
+i][r1
+j]2((Z\I(~l)\
+i\1
+j)[r
+i])[r1
+j]
+We have that ri6!]
+srj. In particular the only allowed shared variables in
+the updates are the integer variables being incremented (decremented) in both
+
+--- Page 22 ---
+22 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+updates and for every zone Z0and any valuations i;jsince the updates do not
+share clocks. we have Z0[ri
+i][rj
+j] =Z0[rj
+j][ri
+i] . Therefore we obtain
+[r1
+j][r
+i]2((Z\I(~l)\
+i\1
+j)[r1
+j])[r
+i]
+By the semantics of resets we have
+[r1
+j]2(Z\I(~l)\
+i\1
+j)[r1
+j]
+Sinceri6!]
+srjclock are not shared in updates and 1=[r
+i] we haver
+j
+andr1
+jagree on clock updates (for any zone Zwe haveZ[r1
+j] =Z[r
+j] ).
+Furtheri6!]
+srjwe have
+j1
+j(because of incs, decs) (then for any zone
+Z\Z\1). Thus
+[r1
+j]2(Z\I(~l)\
+i\
+j)[r
+j] (4)
+By using Lemma 1( 3) and using zone Z0as template from the Equation 4 without
+constraintiand since by assumption Z0\I(~l[l0
+j=lj])26=;. We have that
+[r1
+j]2I(~l[l0
+j=lj])2and in particular [r1
+j]2I(l0
+j)2. Sinceri6!]
+sI(l0
+j)no clock
+inI(l0
+j) is updated by riand we have [r1
+j][r
+i]2I(l0
+j)2i.e.[r1
+j][r
+i]2I(l0
+j)2.
+In particular we have that I(l0
+j)2I(l0
+j)12(because of possible incs and decs
+inri). Thus we have that [r
+i][r1
+j]2I(l0
+j)12. Finally we obtain
+[r
+i][r1
+j]2((Z\I(~l)\
+i)[r
+i]\I(lj)1\1
+j)[r1
+j]\I(l0
+i)12\I(l0
+j)12:
+That isa22En(s1) if the variable guards are satised. The case for variables is
+easier, since the only shared variables are the ones in increments or decrements.
+The case for sa2!s2anda12En(s2) is symmetric. Therefore we conclude that
+Denition 7 Statement 1 hold.
+We now show Denition 7 Condition 2 ,sa1a2!s0isa2a1!s0. Since Deni-
+tion 7 Statement 1 holds, we have sa1!s1a2!s0
+1andsa2!s2a1!s0
+2. We need
+to show that s0
+1=s0
+2. Lets0
+1= (~l0
+1;Z0
+1;0
+1) ands0
+2= (~l0
+2;Z0
+2;0
+2). First consider
+a1=f(li;;i; i;ri;l0
+i)ganda2=f(lj;;j; j;rj;l0
+j)g. In particular note that
+since Pre(a1)\Pre(a2) =;we have that li6=lj.
+We show that ~l0
+1=~l0
+2, by staring at ~land executing a1we obtain~l[l0
+i=li]
+and by executing a2we obtain~l[l0
+i=li;l0
+j=lj]. By starting at ~land executing a2
+we obtain~l[l0
+j=lj] and by executing a1we obtain~l[l0
+j=lj;l0
+i=li]. Sincei6=jthe
+substitutions occur at dierent positions in ~land~l0[l0
+j=lj;l0
+i=li] =~l0[l0
+i=li;l0
+j=lj].
+We show that 0
+1=0
+2. Assume0
+16=0
+2Then a variable is modied by a1and
+a2, but the only shared variables are when both actions are either increments
+or decrements of a variable. Since increments and decrements commute we have
+0
+1=0
+2.
+Now we show that Z0
+1=Z0
+2. Note that Z=Z\I(~l). We have the following:
+Z0
+1= ((Z\
+i)[r
+i]\I(~l[l0
+i=li])1\1
+j)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])0
+16=;
+
+--- Page 23 ---
+Urgent Partial Order Reduction for XTA 23
+By denition of invarinat we have
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i)[r
+i]f1;:::;ngnfig\
+kI(~lk)1\I(l0
+i)1\1
+j)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])0
+1
+Note that becauseTf1;:::;ngnfig
+kI(~lk)6!]
+sriand1=[r
+i] we have that Tf1;:::;ngnfig
+kI(~lk) we have1. By using Lemma 1 ( 4) we have
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i)[r
+i]f1;:::;ngnfig\
+kI(~lk)\I(l0
+i)1\1
+j)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])0
+1
+by Lemma 1(2) we obtain
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i)[r
+i]\I(l0
+i)1\1
+j)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])0
+1
+sincej6!]
+sriby Lemma 1 ( 4) we have
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i)[r
+i]\I(l0
+i)1\
+j)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])0
+1
+by Lemma 1(1)
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i\
+j)[r
+i]\I(l0
+i)1)[r1
+j]\I(~l[l0
+i=li;l0
+j=lj])0
+1
+by Lemma 1(1)
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i\
+j)[r
+i])[r1
+j]\I(l0
+i)1\I(~l[l0
+i=li;l0
+j=lj])0
+1
+sinceri6!]
+srj
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i\
+j)[r1
+j])[r
+i]\I(l0
+i)1\I(~l[l0
+i=li;l0
+j=lj])0
+1
+Note thatI(~l[l0
+i=li;l0
+j=lj])0
+1containsI(l0
+i)0
+1and since0
+1=1[rj] withI(l0
+i)6!]
+s
+rjwe haveI(l0
+i)1I(l0
+i)0
+1. By using Lemma 1 ( 4) we have
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i\
+j)[r1
+j])[r
+i]\I(~l[l0
+i=li;l0
+j=lj])0
+1
+Note thatI(~l[l0
+i=li;l0
+j=lj])0
+1containsI(l0
+j)0
+1
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i\
+j)[r1
+j])[r
+i]\I(l0
+j)0
+1\I(~l[l0
+i=li;l0
+j=lj])0
+1
+
+--- Page 24 ---
+24 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+In the following let rjXbe the sequence of clock updates obtained from r.
+Sincerj6!]
+sriit is the case that r
+jjX=r1
+jjX, Otherwise if r
+jjX6=r1
+jjX
+we have that there exists an update x:=expr with expr6=expr1and some
+variablev2Read (x:=expr) being modied by ri. By denition we have that
+v2Write (ri)[Inc(ri)[Dec(ri) andrj!]
+sria contradiction thus r
+jjX=r1
+jjX
+and we obtain
+Z0
+1= ((Zn\
+k=1I(~lk)\
+i\
+j)[r
+j])[r
+i]\I(l0
+j)0
+1\I(~l[l0
+i=li;l0
+j=lj])0
+1
+by Lemma 1(1)
+Z0
+1= ((Zn\
+k=1I(~lk)\
+j)[r
+j]\
+i)[r
+i]\I(l0
+j)0
+1\I(~l[l0
+i=li;l0
+j=lj])0
+1
+Sincerj6!]
+sriit is the case that r
+ijX=r2
+ijX, Otherwise if r
+ijX6=r2
+ijXwe
+obtain a contradiction as above thus
+Z0
+1= ((Zn\
+k=1I(~lk)\
+j)[r
+j]\
+i)[r2
+i]\I(l0
+j)0
+1\I(~l[l0
+i=li;l0
+j=lj])0
+1
+Note that0
+1=0
+2thus
+Z0
+1= ((Zn\
+k=1I(~lk)\
+j)[r
+j]\
+i)[r2
+i]\I(l0
+j)0
+2\I(~l[l0
+i=li;l0
+j=lj])0
+2
+We haveI(l0
+j)6!]
+sriand0
+2=2[r2
+i] thenI(l0
+j)2
+iI(l0
+j)0
+2
+ithus by Lemma 1 ( 4)
+we have
+Z0
+1= ((Zn\
+k=1I(~lk)\
+j)[r
+j]\
+i)[r2
+i]\I(l0
+j)2\I(~l[l0
+i=li;l0
+j=lj])0
+2
+by Lemma 1(1)
+Z0
+1= ((Zn\
+k=1I(~lk)\
+j)[r
+j]\I(l0
+j)2\
+i)[r2
+i]\I(~l[l0
+i=li;l0
+j=lj])0
+2
+We havei6!]
+srjand2=[r
+j] then
+i2
+ithus by Lemma 1 ( 4) we have
+Z0
+1= ((Zn\
+k=1I(~lk)\
+j)[r
+j]\I(l0
+j)2\2
+i)[r2
+i]\I(~l[l0
+i=li;l0
+j=lj])0
+2
+SinceTf1;:::;ngnfjg
+kI(~lk)6!]
+srjby Lemma 1(1) we have
+Z0
+1= ((Z\I(~lj)\
+j)[r
+j]f1;:::;ngnfjg\
+kI(~lk)\I(l0
+j)2\2
+i)[r2
+i]\I(~l[l0
+i=li;l0
+j=lj])0
+2
+
+--- Page 25 ---
+Urgent Partial Order Reduction for XTA 25
+we have2=[r
+j] andTf1;:::;ngnfjg
+kI(~lk) we have2. By using
+Lemma 1 ( 4) we have
+Z0
+1= ((Z\I(~lj)\
+j)[r
+j]f1;:::;ngnfjg\
+kI(~lk)2\I(l0
+j)2\2
+i)[r2
+i]\I(~l[l0
+i=li;l0
+j=lj])0
+2
+Finally, by grouping the invariants we get
+Z0
+1= ((Z\
+j)[r
+j]\I(~l[l0
+j=lj])2\2
+i)[r2
+i]\I(~l[l0
+i=li;l0
+j=lj])0
+2=Z0
+2
+Therefore we conclude that Denition 7 Statement 2 holds. u t
+B.3 Proof of Corollary 1
+Proof (Corollary 1). By induction on the length nofw. As I.H. let the claim
+hold for lengths <n. Basejwj= 0. By denition of A0we have that a6!]sa0.
+Sinces0=swe havea6!]s0a0. Inductive stepjwj=n. Letw=a1:::an.
+We need to show s0a1!:::an1!sn1an!s0a0
+!s00=)a6!]s0a0. As
+I.H. we have a6!]sn1a0. In addition we have that a6!]s0an. We need
+to show that conditions ( Ind1), (Ind2), (Ind3), and ( Ind4) hold at state s0for
+aanda0. Conditions ( Ind1), (Ind2) are state independent and hold for state
+s0. We need to show that conditions ( Ind3) and ( Ind4) hold fors0. Conditions
+(Ind3) and ( Ind4) use Denition 8 Independence of Operations. Conditions in
+Denition 8 are state independed except for Condition ( 7) which isfxjx2
+X(op1)[X(op2) andjx(Z)j6= 1 and op1;op22B(X;V )g=;. This means
+that we only need to show that Condition ( 7) holds at state sn. Without loss
+of generality let a=f(l1;; 1; 1;r1;l0
+1)g,a0=f(l2;; 2; 2;r2;l0
+2)g,an=
+f(ln;;n; n;rn;l0
+n)g,sn1= (~ln1;Zn1;n1), and,sn= (~ln;Zn;n).
+By I.H. we have jx(Zn1)j= 1 for any clock in x2X(Guard (1))[
+X(Guard (2))[X(TfI(~lj
+0)^^I(~lj
+n1)j~lj62Pre(i) and 1jngfor
+i2fa;a0g).
+Letxby a clock in x2X(Guard (1))[X(Guard (2))[X(TfI(~lj
+0)j~lj62
+Pre(i) and 1jngfori2 fa;a0g). Note that reset rncan not cause
+jx(Zn1)j6= 1. In addition, intersections with guards nandI(ln) can not
+increase the valuations of xcausingjx(Zn)j>1, because it will imply that
+Zn1\nZn1. Therefore, we have jx(Zn)j= 1. u t
+B.4 Proof of Lemma 2
+Proof (Lemma 2). By induction on w. As I.H. assume that the claim holds for
+all sequences of length smaller and equal to the one of w.
+Base casejwj= 0 thens=s0andzt(s0).
+Inductive stepjw0a0j=n+ 1 Assume s0w0
+!sna0
+!s0^zt(s0). By I.H. we
+have that zt(si) for 0in. By denition we have Delay]
+s0=fag[fa02A]
+sj
+a!]
+s0a0g. By assumption we have tea](a;s0) witha2En(s0) anda6!]
+s0a0.
+
+--- Page 26 ---
+26 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+From Corollary 1 we obtain a6!]
+sia0forin. Therefore a2En(s0). Let
+s0= (~l;Z; ) ands0= (~l0;Z0;0) by denition of tea](a;s0) we have to consider
+two cases:
+{Case9l2Pre(a):l2Lu[Lc. By Denition 9 and condition ( Ind1) we have
+9i:~l0i2Pre(a)^(~l0)i2Lu[Lc(i.e. the urgent/committed location stopping
+time is still in ~l0). By the semantics of the transition relation we have zt(s0).
+{Case9l2Pre(a):82Z;d2R0: +dj=I(l) =)d= 0. Since
+Condition ( Ind1) holds, we have that 9i:(~l0)i2Pre(a) such that I((~l0)i)
+is stopping time. We continue by contradiction assume 8l2Pre(a):902
+Z0;d2R0: 0+dj=I(l)^d >0. This implies that the invariant I((~l0)i)
+has been relaxed by a clock reset in some action a00inw0a0. By denition
+we haveDelay]
+s0fa02A]
+sj9l2Pre(a);r2Update (a0): X(r)2X(I(l))g
+implied by the dependency relation !]
+s0and such an a00can not be in w0a0.
+u t
+B.5 Lemma 4
+Lemma 4. Given basic formula ', the following holds: 8s;s02S;a2(A]
+sn
+']): sa !s0^s6j='=)s06j='
+Proof. By structural induction on '. Lets= (~l;Z; ) ands0= (~l0;Z0;0). For
+the I.H. let the proposition hold for all subformulas of '. We continue by the
+base cases:
+{'l, then for all i2f1;:::;ngwe have~li6=l. Assume (~l0;Z0;0)j=l,
+then there exist i2f1;:::;ngsuch that ( ~l0)i=l, by denition of tran-
+sition relation we have either ~l0=~l[l0
+i=li] or~l0=~l[l0
+j=lj;l0
+i=li] if there ex-
+ists edgesei= (li;;; ;r;l0
+i)2Eiorei= (li;c?;i; i;ri;l0
+i)2Eiand
+ej= (lj;c!;j; j;rj;l0
+j)2Ej. Sincel=l0
+iorl=l0
+j,l2Post(a) and thus
+a2']
+s.
+{'deadlock , by denition we have an a02En(s) indeadlock]
+s. We also
+have thata6!]
+sa0. By Theorem 2 we have that a6!sa0, and by denition
+of!swe have that a2En(s0). Therefore s06j=deadlock .
+{'x./c./2f<;;;>g, we haves6j=x./c ands0j=x./c . Sincestime
+can not elapse with action transitions, this is only possible if there was a reset
+forxina. Thus we have x:=expr2Update (a) withx./expr0!]
+sx:=expr
+and thusa2']
+s.
+{''vforv2V. By assumption we have (v)6j='vands0j='vwhich
+means that 0(v)j='v. Thus the valuation of vhas been updated which
+means9op2Op(a): 'v!]
+sop. Therefore, a2']
+s.
+{We continue with the inductive case: ''1^'2. Then either s6j='1
+ors6j='2. Without loss of generality let s6j='1, then']
+s= ('1)]
+s. Since
+s0j='1^'2, we have that s0j='1by ringa. By I.H. we have that a2('1)]
+s
+and thusa2']
+s.
+u t
+
+--- Page 27 ---
+Urgent Partial Order Reduction for XTA 27
+B.6 Proof of Lemma 3
+We proof this lemma with help from Lemma 4.
+Proof (Lemma 3). We continue by induction on w. As I.H. assume that the claim
+holds for all sequences of length smaller and equal to the one of w.
+Base casejwj= 0 thens=s0ands06j='.
+Inductive Stepjwaj=n+1, we have s0w !sna !sn+1. If existssiin the path
+froms0tosnsuch thatsij='by I.H. we are done. Therefore let sn6j='and
+sn+1j='. By Lemma 4 we have that a2']
+sn. We need to show that a2']
+s0. For
+this we need to consider the structure of the formula to infer their corresponding
+sets. We continue by structural induction on '. As I.H. let a2']
+s0for all sub
+formulas of '.
+{Basis'l,'x=y,'x ./ c ''v, the set of actions denition is
+independent of s0(same set for all states) and we have ']
+s0=']
+snand since
+a2']
+snwe havea2']
+s0.
+{Basis'deadlock , Ifa2']
+s0then we are done. Otherwise we have a62
+']
+s0. By denition of ']
+s0we have9a02']
+s0such thata02En(s0) and
+a06!]
+s0a00for alla00inwa. By Corollary 1 we have a06!]
+snaand therefore
+a02En(sn+1) andsn+16j=deadlock a contradiction. Therefore a2']
+s0.
+{Inductive step ''1^'2. Then either sn6j='1orsn6j='2. Without loss of
+generality let sn6j='1, then']
+sn= ('1)]
+sn. By I.H. we have that a2('1)]
+s0.
+u t
+B.7 Proof of Theorem 3
+Proof (Theorem 3).
+Termination The setA]
+sis nite and so is the set ']
+sA]
+s. The Algorithm starts
+with St]
+s:=']
+s, in each iteration the size of St]
+scan only increase because the
+only operation applied to St]
+sis union. In the worst case we have St]
+s=A]
+s.
+Correctness We show that the algorithm satises the conditions of Denition 2.
+{Denition 2 Condition Zthis condition follows from Line 1 where the output
+isEn(s).
+{Denition 2 Condition DBy line 3 there is an action a2St]
+swith tea](a;s)
+anda2En(s). Because of the loop from Line 16 we have fag[fa02A]
+sj
+a!]
+sa0gSt]
+s. By using Lemma 2 this condition is satised.
+{Denition 2 Condition RWhen the algorithm exists the main while loop
+from Line 5 we have to cases:
+Case En(s)\St]
+s6=En(s), in this case there was no reduction and the
+condition trivially holds.
+CaseW=;, From Line 4 we have that all actions from ']
+sare inW.
+From Line 6 all elements from ']
+shave been added to St]
+s. By applying
+Lemma 3 the condition is satised.
+
+--- Page 28 ---
+28 Kim G. Larsen, Marius Miku cionis, Marco Mu~ niz, and Ji r  Srba
+{Denition 2 Condition W 8a2St(s);w2St(s):zt(s)^swa!s0=)
+saw!s0Recall that St(s) is dened as St]
+s. If the while loop from Line 5
+terminates with En(s)\St]
+s=En(s) then transitions with ware not possible
+and the claim trivially holds. Contrary we have two cases:
+Casea62En(s), by contradiction, consider the sequence s0w !sna0
+!
+sn+1there exists a transition aiinwa0such thata62En(si) anda2
+En(si+1). Letsi= (~li;Zi;i) andsi+1= (~li+1;Zi+1;i+1). Actionacan
+become enabled in si+1in the following cases:
+Source locations of aare not in~libut are in~li+1, this case is captured
+by Line 11.
+A guardg2Guard (a) becomes enabled, this case is captured by Line 14.
+Therefore, such an action aican not be in w.
+Casea2En(s). The following is an invariant of the main while loop in
+Line 5A]
+s=St][R. In addition the following is an invariant from the
+for loop in Line 16.
+8a2St]
+s;a02R:a2En(s)^
+((Pre(a)\Pre(a0)6=;)_(Parallel (a;a0)^a!]
+sa0)) =)a02St]
+s(5)
+Letw=a1a2:::anandsa1!s1:::an!sn. By Invariant 5 we have that
+a6!]saiwithaiinw. From Corollary 1 we have a6!]siai. This means
+thatais independed with all actions in wand sincea2En(s) we can
+moveato produce saw!s0.
+u t
+B.8 Proof of Theorem 4
+Proof. By Denition we have that Asdef=fa2Aj9s0;s002S;w2A: sw !s0a !
+s00g. We continue by induction on the length of w. As I.H. assume that the claim
+holds for all paths of length at most jwj. In the Following let s= (~l;Z; ).
+{Casejwj= 0 then we have a=;anda2A]
+s.
+{Casejwj=n+ 1 then we have sw !s0a !s00. By I.H. we have that a02A]
+s
+for alla0inw. We continue by case distinction on a. For the rest of the proof
+lets0= (~l0;Z0;0).
+Caseafegfor somee= (l;h;; ;r;l0)2Ei. Since the transition is
+executed we have Z0j=and0j= andZ0j=I(l0)_9x2X(I(l0)):x2
+M. Assume that for some v2Vin we have(v)6=0(v) then we have
+thatv2Morvis not local and a2A]
+s. Otherwise we have j= . For
+zoneZ, since time can not elapse by actions in wwe have two cases: (1)
+ZZ0, because intersections from the guards on wwill only produce
+subsets ofZ. SinceZ0j=we haveZj=anda2A]
+s. (2)Z6Z0,
+assumeZ6j=butZ0j=in this case there was a reset to some clock
+x. By denition of REwe havex2Manda2A]
+s.
+
+--- Page 29 ---
+Urgent Partial Order Reduction for XTA 29
+Casea fei;ejgfor someei2Eiandej2Ej. By denition of
+fei;ejg! we have (~l;Z; )fei;ejg! (~l[l0
+j=lj;l0
+i=li];Z0;0) if there exists ei=
+(li;hi!;i; i;ri;l0
+i)2Eiandej= (lj;hj?;j; j;rj;l0
+j)2Ejs.t.h
+i=
+h
+j, andZ0= (Z^I(~l)^
+i^
+j)[r]^I(~l[l0
+j=lj;l0
+i=li])0, where JZ0K6=;,
+j= ( 
+i^ 
+j),0=[r
+i[r
+j], and if~lk2Lc
+kfor some 1knthen
+li2Lc
+iorlj2Lc
+j. From the denition we have that Z0j=i,j= iand
+andZ0j=I(l0
+i)_9x2X(I(l0
+i)):x2Mi. Thereforefeig2RE(s;Mi;li).
+Analogously we have fejg 2 RE(s;Mj;lj). By Denition 12 we have
+a2A]
+s.
+u t
