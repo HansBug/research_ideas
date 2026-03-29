@@ -8,11 +8,23 @@
 
 这篇论文在 `uppaal_tech/` 里属于 `🧱 核心算法/数据结构` 条目，但它更准确地说是 `UPPAAL` 的**理论前史奠基论文**，还不是 `UPPAAL` 工具本身的实现论文。它位于当前总账“理论前史与引擎奠基（1990-1997）”的起点位置，前面更接近 [dill89-timing-assumptions](./../dill89-timing-assumptions/) 这类 dense-time 约束建模前驱，后面则直接通向 [lpw95-real-time-model-checking](./../lpw95-real-time-model-checking/)、[llpy97-compact-data-structure](./../llpy97-compact-data-structure/) 和 [lpy97-uppaal-nutshell](./../lpy97-uppaal-nutshell/) 这些真正把 timed automata 做成 `UPPAAL` 验证引擎和工具链的工作。
 
-它的核心价值不在于给出某个工程实现，而在于把“实时时序行为应该如何被自动机化、哪些操作仍然可判定、哪些边界已经不可判定”这一整套问题先讲清楚。后续 `UPPAAL` 的 clocks、guards、resets、region-based reasoning 以及“实现模型 / 规格模型”分层思路，基本都能在这里找到语义源头。
+它的核心价值不在于给出某个工程实现，而在于把“实时时序行为应该如何被自动机化、哪些操作仍然可判定、哪些边界已经不可判定”这一整套问题先讲清楚。后续 `UPPAAL` 的 clocks、guards、resets、region-based reasoning 以及“实现模型 / 规格模型”分层思路，基本都能在这里找到语义源头。用更形式化的话说，这篇论文把下面几类对象一次性放进了同一个框架里：
+
+$$
+(\rho, \tau), \qquad M = (\Sigma, S, S_0, C, E), \qquad L(M), \qquad L(M) \subseteq L(M').
+$$
 
 ## 立足问题
 
-这篇论文面对的核心问题，是当时的并发系统验证主流形式化模型大多只能处理**事件顺序**，却不能精确处理**事件发生的真实时间**。标准的 `ω`-automata、时序逻辑和 trace semantics 擅长表达“先后关系”，但面对“某响应必须在 2 秒内发生”这类硬实时约束时，原模型不够用。
+这篇论文面对的核心问题，是当时的并发系统验证主流形式化模型大多只能处理**事件顺序**，却不能精确处理**事件发生的真实时间**。标准的 $\omega$-automata、时序逻辑和 trace semantics 擅长表达“先后关系”，但面对“某响应必须在 2 秒内发生”这类硬实时约束时，原模型不够用。
+
+在传统自动机视角里，验证通常可以压成语言包含问题：
+
+$$
+I \models S \iff L(I) \subseteq L(S).
+$$
+
+但一旦把 dense-time 真正引进来，问题就变成：还能不能一边保持这种自动机化表达，一边保住类似的验证工作流。
 
 原文明确指出，当时常见的两类建模办法都存在明显缺陷：
 
@@ -37,13 +49,21 @@
 
 ### 1. 先定义 timed traces，把时间显式放进 trace semantics
 
-作者先从 untimed trace semantics 出发，把一个 trace 扩展成 `(\rho, \tau)` 这样的 timed trace：
+作者先从 untimed trace semantics 出发，把一个 trace 扩展成 $(\rho, \tau)$ 这样的 timed trace：
 
-1. `\rho` 负责记录事件序列。
-2. `\tau` 负责记录对应事件发生的实数时间。
+1. $\rho$ 负责记录事件序列。
+2. $\tau$ 负责记录对应事件发生的实数时间。
 3. 时间序列满足从 `0` 开始、严格递增、并且无界推进。
 
 这一步的关键不只是“给每个事件附上时间戳”，而是明确选择了**非负实数上的 dense-time 语义**。这样一来，模型允许在两个事件之间出现任意细粒度的时间差，也允许异步系统在连续时间上表达精确 delay，而不是被离散步长绑死。
+
+如果用原文的关键约束来写，这里的时间序列至少满足：
+
+$$
+\tau(0) = 0, \qquad \tau(i) < \tau(i + 1).
+$$
+
+并且还要求 progress，也就是任意有界时间之前只能出现有限多个事件。
 
 如果再往机制层看，这里的 timed trace 其实先固定了后面所有 timed automata 运行都要遵守的三条底层规则：
 
@@ -59,9 +79,29 @@
 
 作者还把 parallel composition、hiding、renaming 这些 untimed process 上的操作原样推广到了 timed traces 上。也就是说，方法第一步不是直接谈验证算法，而是先把“实时系统也能像普通 process algebra 一样组合”这件事的语义底座搭起来。
 
+对应地，去时间信息的操作也被写成：
+
+$$
+\mathrm{Untime}(P) = \left\{ \rho \mid \exists \tau,\ (\rho, \tau) \in L(P) \right\}.
+$$
+
+这为后面把 timed-language 问题翻译回 ordinary automata 问题埋下了接口。
+
 ### 2. 用 clocks + guards + resets 定义 timed automata
 
-在 timed trace 语义之上，作者把 `ω`-automata 扩展成 timed automata。其核心机制就是后来 `UPPAAL` 最基本的那套骨架：
+在 timed trace 语义之上，作者把 $\omega$-automata 扩展成 timed automata。其核心对象被定义成：
+
+$$
+M = (\Sigma, S, S_0, C, E),
+$$
+
+其中边集满足
+
+$$
+E \subseteq S \times S \times [\Sigma \cup \{\epsilon\}] \times 2^C \times \Phi(C).
+$$
+
+其核心机制就是后来 `UPPAAL` 最基本的那套骨架：
 
 1. 自动机仍有有限个离散状态。
 2. 另外携带有限个实值 clocks。
@@ -85,8 +125,20 @@
    - 只有当前 valuation 满足 guard `\delta` 时，对应迁移才可执行。
    - 迁移执行后，`λ` 中的 clocks 被 reset 为 `0`。
 3. **过程层**
-   - 给定 timed trace `(\rho, \tau)`，自动机在“离散状态 + 当前 valuation + 当前时间”三元组上运行。
+   - 给定 timed trace $(\rho, \tau)$，自动机在“离散状态 + 当前 valuation + 当前时间”三元组上运行。
    - 每一步先让 clocks 随 `t_{i+1} - t_i` 增长，再检查 guard，最后对指定 clocks reset。
+
+如果把运行规则压成最关键的两行，它其实就是：
+
+$$
+\nu_i + (t_{i+1} - t_i) \models \delta_i,
+$$
+
+以及
+
+$$
+\nu_{i+1} = [\lambda_i \mapsto 0]\bigl(\nu_i + (t_{i+1} - t_i)\bigr).
+$$
 
 换句话说，论文真正提供的是一个**带显式 valuation 演化规则的运行语义**，而不只是“状态机上可以写时间约束”这种口头描述。后来的 `UPPAAL` 虽然在实现层已经完全不同，但它的语义核心仍然是这一层机制。
 
@@ -110,6 +162,12 @@
    - 本质上是对边标签做相应变化。
 
 也就是说，作者不是简单宣称“这些操作大概还成立”，而是把 timed automata 真正纳入了 automata-theoretic constructions 的工作流。这一点对后来 `UPPAAL` 这种组合式建模工具非常关键，因为它保证“多组件系统 = 单组件模型的运算结果”这条路线在理论上站得住。
+
+其中 product construction 的关键拼接动作，本质上就是把两边迁移的约束合成为：
+
+$$
+\lambda = \lambda_1 \cup \lambda_2, \qquad \delta = \delta_1 \land \delta_2.
+$$
 
 ### 4. 用 region equivalence 把无限时钟赋值压成有限状态
 
@@ -136,11 +194,29 @@
    - 对仍在有效范围内的多个 clocks，再保留 fractional parts 的相对顺序。
 3. 把 `(state, valuation)` 压缩成 `(state, region)`。
 4. 再定义 `succ(region)`，表示“仅因时间流逝而首先到达的下一个 region”。
-5. 用这套 region graph 构造一个普通 `ω`-automaton：
+5. 用这套 region graph 构造一个普通 $\omega$-automaton：
    - 一类边表示纯时间流逝；
    - 一类边表示原 timed automaton 的实际迁移。
 
+形式上，这里的核心等价关系是 $\nu \cong \nu'$。它至少要求：
+
+$$
+[\nu(x)] = [\nu'(x)] \quad \text{or} \quad \nu(x), \nu'(x) > c_x,
+$$
+
+并且对仍处在有效比较范围内的 clocks，要保持 fractional parts 的相对顺序：
+
+$$
+\operatorname{fract}(\nu(x)) \le \operatorname{fract}(\nu(y)) \iff \operatorname{fract}(\nu'(x)) \le \operatorname{fract}(\nu'(y)).
+$$
+
 更关键的是，作者没有只证明“region 有限”，而是继续把 acceptance 也搬过去：除了要求访问原 automaton 的 accepting states，还要求 clocks 在运行中满足对应的无界推进/重复 reset 条件。于是最终可以把 `TBA` 的 timed-language emptiness 化成普通 Buchi automaton 的 emptiness。
+
+它最终得到的关键翻译结论可以直接写成：
+
+$$
+L(M') = \mathrm{Untime}(L(M)).
+$$
 
 所以这里的方法贡献其实包含两层：
 
@@ -166,6 +242,12 @@
 3. 再把 automaton 补成 complete，使任意 timed trace 都恰好对应一条运行。
 4. 一旦运行唯一，complement 就不再需要对时钟行为做额外猜测，而只需把 Muller acceptance family 取补。
 
+于是补语言的动作不再作用于时钟演化本身，而是主要落在 acceptance family 上：
+
+$$
+\mathcal{F}^{c} = 2^S - \mathcal{F}.
+$$
+
 因此，作者不是证明“一般 timed automata 其实也能高效验证”，而是明确提出：
 
 1. 实现模型可以继续用更一般的 `TBA`。
@@ -184,6 +266,12 @@
 3. successive configurations 的关系，则通过“相隔 `1` 个时间单位的 matching events”来表达。
 
 这件事的技术味道非常重，因为它说明 dense time 的表达能力已经足够强，强到可以把 counter machine 行为塞进 trace 里。于是 inclusion 的不可判定就不是外部传闻，而是这个模型自身表达能力过强所导致的直接后果。
+
+因此，论文里的负结果不是抽象感慨，而是明确落在下面这个判定问题上：
+
+$$
+L(M) \subseteq L(M').
+$$
 
 这部分方法很值得在 `desc.md` 里保留，因为它提醒我们：这篇论文不只是“提出了 timed automata”，还同时证明了**为什么后续工具设计不能无限制地沿一般语言包含去做**。
 
