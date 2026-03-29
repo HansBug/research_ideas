@@ -7,19 +7,17 @@
 `uppaal/` 下的几个核心文档分工如下：
 
 1. [README.md](./README.md)
-   - 负责解释论文集定位、纳入/排除标准、目录职责和推荐阅读顺序。
-   - 是进入本论文集时的首个入口文档。
+   - 负责解释论文集定位、纳入/排除标准、官方入口、作者主线与材料状态口径。
 2. [GUIDE.md](./GUIDE.md)
    - 负责规定检索、筛选、目录维护、[SUMMARY.md](./SUMMARY.md) 回填和一致性检查的操作规范。
 3. [SUMMARY.md](./SUMMARY.md)
-   - 是当前论文集的总账，记录实时统计、分类分布、论文清单、失败历史和本轮更新。
-   - 所有正式入库和状态变化最终都要回写到这里。
+   - 是当前论文集的总账，记录实时统计、分类分布、双维材料状态、论文清单、失败历史和本轮更新。
 
 默认推荐顺序如下：
 
 1. 先读 [README.md](./README.md)，确认本论文集为什么存在、收什么、不收什么。
 2. 再读 [GUIDE.md](./GUIDE.md)，确认本轮工作流程、字段口径和回填要求。
-3. 再读 [SUMMARY.md](./SUMMARY.md)，确认当前已收录范围、分类缺口、统计和失败历史。
+3. 再读 [SUMMARY.md](./SUMMARY.md)，确认当前已收录范围、作者主线、状态分布和失败历史。
 4. 如果目标条目是 thesis/合集型父路径，先读该目录自己的 `README.md`，再决定是否进入其 `paper-*` 子目录。
 5. 最后进入具体论文目录，按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时）` 的顺序工作。
 
@@ -44,7 +42,22 @@
 
 原则上每篇论文只给一个一级主分类；若同时覆盖多个方面，在 `备注` 中补充次级定位，不要在主分类里重复贴多个 emoji。
 
-### 1.2 非目标边界
+### 1.2 双维材料状态口径
+
+`SUMMARY.md` 中的状态默认按以下两个维度维护：
+
+1. **内容详细程度**
+2. **实现可获取程度**
+
+默认定义与 [README.md](./README.md) 保持一致，不再使用“基础材料齐全/尚未齐全”作为主状态口径。
+
+其中“实现可获取程度”默认严格按**源码级实现**理解：
+
+1. 官方二进制、安装包、在线服务、教程页和案例页都不能直接上调到“源码可得”。
+2. 若只有可执行版本，没有源码，则最高只能评到 `🟧 仅可执行/可使用版本可得`。
+3. 只有当官方或作者公开了源码仓库、源码包、核心库代码或直接对应的实现工程时，才允许评到 `🟨` 及以上。
+
+### 1.3 非目标边界
 
 以下工作即使和 `UPPAAL` 有远距离关系，也不属于本论文集的主任务，应避免混入：
 
@@ -55,16 +68,64 @@
 
 ## 2. 检索策略
 
-后续扩张时，推荐按四条主线分别维护关键词簇，而不是只沿某一类不断膨胀：
+### 2.1 技术关键词簇
+
+后续扩张时，推荐按四条主线分别维护技术词簇，而不是只沿某一类不断膨胀：
 
 1. `🧱` 核心算法/数据结构
-   - 关键词簇优先使用 `UPPAAL + timed automata + DBM/zone/federation/difference bound matrix/symbolic state`。
+   - `UPPAAL + timed automata + DBM/zone/federation/difference bound matrix/symbolic state`
 2. `⚡` 改进与扩展
-   - 关键词簇优先使用 `UPPAAL + abstraction/extrapolation/priced/statistical/strategy/game/priority/reduction`。
+   - `UPPAAL + abstraction/extrapolation/priced/statistical/strategy/game/priority/reduction`
 3. `🛠️` 工程/工具链
-   - 关键词簇优先使用 `UPPAAL + tutorial/user guide/modeling patterns/query language/verifyta/toolbox`。
+   - `UPPAAL + tutorial/user guide/modeling patterns/query language/verifyta/toolbox`
 4. `🧪` 应用与案例
-   - 关键词簇优先使用 `UPPAAL + case study/industrial/application`，并叠加具体系统名或领域名。
+   - `UPPAAL + case study/industrial/application + 具体系统名`
+
+### 2.2 作者关键词簇
+
+人物检索簇的生成顺序必须固定如下：
+
+1. 先以当前已收录顶层条目的 `bibtex.bib` 为主数据源统计作者。
+2. 再根据频次、共现关系和覆盖的技术分支形成“核心作者主线”。
+3. 再用官方 team / org / docs 只做补证，核验其是否仍有对应工具线、源码或案例入口。
+4. 不允许反过来先抓 homepage team，再把人名硬塞进检索关键词簇。
+
+当前文库中，后续应优先沿下表继续扩张：
+
+| 作者 | 当前关联条目 | 当前作用定位 | 推荐联用分支词 |
+|---|---|---|---|
+| `Kim Guldstrand Larsen` | `bblp04`、`bdl04`、`dhlp06`、`llpy97`、`lpw95`、`lpy97` | 当前最强主线，横跨核心引擎、tutorial 与扩展能力 | `zones/priced/strategy/statistical` |
+| `Wang Yi` | `by04`、`llpy97`、`lpw95`、`lpy97` | 连接语义、算法与早期 symbolic verification | `semantics/algorithms/symbolic state` |
+| `Paul Pettersson` | `dhlp06`、`llpy97`、`lpw95`、`lpy97` | 连接紧凑 DBM、状态空间优化与 priorities 扩展 | `priority/federation/reduction` |
+| `Gerd Behrmann` | `bblp04`、`bdl04`、`behrmann03` | 连接 tutorial、abstraction 与 thesis 级数据结构总结 | `CDD/abstraction/tool architecture` |
+| `Alexandre David` | `bdl04`、`dhlp06` | tutorial 到扩展分支的桥接作者 | `priced/strategy/game` |
+| `Johan Bengtsson` | `bengtsson02`、`by04` | DBM thesis 与语义综述的关键连接点 | `DBM/federation/implementation` |
+| `John Håkansson` / `John Haakansson` | `dhlp06` | 单篇定向扩展作者，适合追 priorities/subtraction | `priority/subtraction` |
+| `Patricia Bouyer` / `Radek Pelánek` | `bblp04` | zone abstraction / extrapolation 的扩展共作者 | `abstraction/extrapolation` |
+| `Rajeev Alur` / `David Dill` / `David L. Dill` | `ad90`、`dill89` | `UPPAAL` 的理论前驱，只在追溯前史时使用 | `timed automata/history` |
+
+执行时还应遵守以下约束：
+
+1. 检索默认动作是“作者名 + UPPAAL + 技术分支词”联用；不要只搜作者名，否则噪声过大。
+2. 对含重音或 BibTeX 转义的人名，检索时应同时尝试规范写法与 ASCII 变体，例如 `John Håkansson / John Haakansson`、`Radek Pelánek / Radek Pelanek`。
+3. 若某作者当前只在一篇边缘背景论文中出现，默认不提升为核心主线，除非后续又在新增条目中反复出现。
+4. 作者表不能只记“出现过没有”，还应同时维护：
+   - 当前文库覆盖年份
+   - 当前核验到的较新 `UPPAAL` 相关年份
+   - 最近性判断
+   - 继续沿该作者线扩张的检索价值推断
+5. 如果当前文库明显偏早期，而官方工具线或 DBLP 已显示 `2010s/2020s` 仍有后续工作，必须把“年代缺口”明确写回 [SUMMARY.md](./SUMMARY.md)，不能默认文库已经代表完整演进脉络。
+
+### 2.3 官方入口与实现可得性核验
+
+在判断“实现可获取程度”时，默认按下面顺序核验：
+
+1. 先看 [README.md](./README.md) 中的“官方入口索引”。
+2. 优先检查官方 GitHub org：<https://github.com/UPPAALModelChecker>
+3. 再检查官方 docs、downloads、case studies 和 Meta 仓库。
+4. 若论文正文给出模型、源码、脚本或附录链接，再记录为额外线索。
+5. 若只能拿到官方二进制、安装包或在线可用工具，而拿不到源码，则最多评为 `🟧 仅可执行/可使用版本可得`。
+6. 若只有论文提到工具存在、但找不到对应源码入口，则降为 `🟧` 或 `🟥`，不要把 `downloads` 页面误写成“实现源码可得”。
 
 额外约束如下：
 
@@ -146,12 +207,13 @@
 1. 论文在 `UPPAAL` 谱系中的定位。
 2. 它解决的核心技术问题或应用问题。
 3. 与本博士研究的可复用关系。
-4. 是否值得单独补 `desc.md`、对比表或专题笔记。
+4. 它在双维材料状态上的当前判断和依据。
+5. 是否值得单独补 `desc.md`、对比表或专题笔记。
 
 默认规则如下：
 
 1. 单篇细节尽量写入未来的单篇派生文件，不要把所有观察都堆进 [SUMMARY.md](./SUMMARY.md)。
-2. [SUMMARY.md](./SUMMARY.md) 只保留分类、统计、检索导向和一句话级摘要。
+2. [SUMMARY.md](./SUMMARY.md) 只保留分类、双维状态、检索导向和一句话级摘要。
 
 ## 6. [SUMMARY.md](./SUMMARY.md) 撰写规范
 
@@ -159,21 +221,28 @@
 
 1. 文档定位与使用方式。
 2. 收录边界回顾。
-3. 贡献类型 Emoji 口径。
-4. 检索关键词簇。
-5. 当前收录统计。
-6. 分类分布。
-7. 论文清单。
-8. 更新日志。
-9. 失败与阻塞记录。
+3. 官方入口速查。
+4. 贡献类型 Emoji 口径。
+5. 双维材料状态口径。
+6. 检索关键词簇。
+7. 年代分布与近年活动观察。
+8. 作者关联与作者时间线。
+9. 当前收录统计。
+10. 分类分布。
+11. 论文清单。
+12. 更新日志。
+13. 失败与阻塞记录。
 
 维护约束如下：
 
 1. 关键词簇相关小节默认每节最多 `10` 行，必须整合更新而不是持续累加。
 2. 统计数字必须与论文表、失败表真实内容一致。
-3. 正式论文列表原则上在统一表格中持续维护，不要每轮开新表。
-4. 应始终保留 `🧪 应用与案例` 的统计位置，即使当前数量为 `0`。
+3. `🧱 / ⚡ / 🛠️` 三类条目默认合并维护在同一张统一表格中；不要再拆成三张分表。
+4. `🧪 应用与案例` 单独维护；即使当前数量为 `0`，也要保留其统计位置。
 5. thesis/合集条目若带 `paper-*` 子目录，默认只以父条目在总账中记一条，并在备注中说明含有哪些子目录。
+6. 双维状态必须显式写出，而不是继续使用“基础材料齐全/不齐全”作为主状态列。
+7. 作者表默认要体现“当前文库年份范围 + 当前核验到的较新年份 + 最近性判断 + 继续扩张价值推断”。
+8. 论文表中的源码状态列必须按源码标准填写，不得把“可下载运行”写成“源码可得”。
 
 ## 7. 工作流程
 
@@ -181,10 +250,11 @@
 
 1. 先读 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)。
 2. 先补历史欠账，如缺失的 `paper_content.txt`、缺失的 `bibtex.bib`、遗漏的统计。
-3. 再做新检索或新收录。
+3. 先检查官方入口与作者线索，再做新检索或新收录。
 4. 如果条目自带 `paper-*` 子论文结构，先补齐父目录 README 和子目录材料，再决定是否需要逐个补子目录 README。
 5. 完成单论文目录必要文件后，再统一回填 [SUMMARY.md](./SUMMARY.md)。
-6. 回填后复核统计、一致性、分类和链接。
+6. 回填时同时给出“内容详细程度”和“实现可获取程度”的判定。
+7. 回填后复核统计、一致性、分类和链接。
 
 如果某轮因领域过窄或开放获取受限而无法达到大批量新增，应在更新日志中如实说明。
 
@@ -193,7 +263,9 @@
 1. 所有收录、分类、备注和统计都应有原文依据。
 2. 如果某篇论文只是“前置理论”而非直接 `UPPAAL` 工作，必须在备注中如实标明。
 3. 如果证据不足，必须在 [SUMMARY.md](./SUMMARY.md) 中记为待补证或失败，而不是臆测补齐。
-4. 不得在仓库文档中写入外部本地绝对路径或机器专属路径。
+4. 对“实现可获取程度”的判断必须写明是来自论文、官方 GitHub org、官网下载区、案例页还是其他官方入口。
+5. 对“作者仍有后续工作”的判断，必须区分“作者个人近年仍有直接论文”与“官方工具线近年仍在演化”这两件事；二者不能混写。
+6. 不得在仓库文档中写入外部本地绝对路径或机器专属路径。
 
 ## 9. 与专项 GUIDE 的关系
 
