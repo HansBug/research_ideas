@@ -28,6 +28,7 @@
 ├── project_2_verification_scenario_generation/ # 研究内容二
 ├── project_3_profile_based_verification/      # 研究内容三
 ├── project_4_iterative_model_repair/          # 研究内容四
+├── open_explore/              # 探索型专题入口（暂未归属具体 project 的专题文库）
 │
 ├── tools/                     # 研究辅助工具
 │   └── pdf_extractor.py              # PDF文本提取工具
