@@ -23,7 +23,7 @@
 
 ## 官方入口速查
 
-以下入口已按 `2026-03-29` 核对，后续扩库、查源码、查模型、查支持渠道时应优先从这里反推。
+以下入口已按 `2026-03-30` 核对，后续扩库、查源码、查模型、查支持渠道时应优先从这里反推。
 
 官网与文档：
 
@@ -121,19 +121,20 @@
 ### 当前推荐关键词簇
 
 - 技术主线：`UPPAAL + timed automata + DBM/zone/federation/unification sharing/symbolic state/timed I/O automata/dynamic extrapolation/bounded DBM/clock-state construction`
-- 扩展主线：`UPPAAL + symmetry reduction/guided synthesis/priced/cost-optimal/Tiga/statistical model checking/distributed SMC/stochastic hybrid systems/stochastic hybrid games/compact strategies/SOS/importance splitting/randomized reachability/randomized refinement/MCTS/disjoint activity/urgent partial order reduction/GPU acceleration/Coshy`
-- 工程主线：`UPPAAL + architecture/implementation/tutorial/TRON/online testing/T-Uppaal/relativized ioco/timed trace inclusion/ECDAR/compositional verification/UPPAAL PORT/component-based/local time/Buchi/mutation-based testing`
-- 作者主线：`Kim Guldstrand Larsen`、`Alexandre David`、`Marius Mikučionis`、`Ulrik Nyman`、`Axel Legay`、`Paul Pettersson`、`Marco Muñiz`
-- 分支作者：`Brian Nielsen`、`John Håkansson`、`Jan Carlson`、`Thomas Hune`、`Andrej Kiviriga`、`Pranav Ashok`
+- 扩展主线：`UPPAAL + symmetry reduction/guided synthesis/priced/cost-optimal/priced timed games/discount-optimality/CORA/timed games/Tiga/game-based testing/statistical model checking/distributed SMC/Control-SMC/stochastic hybrid systems/stochastic hybrid games/compact strategies/SOS/importance splitting/randomized reachability/randomized refinement/MCTS/disjoint activity/urgent partial order reduction/GPU acceleration/Coshy/TATL/EADG/vertex merge/expansion abstraction`
+- 工程主线：`UPPAAL + architecture/implementation/tutorial/TRON/online testing/T-Uppaal/relativized ioco/timed trace inclusion/ECDAR/compositional verification/UPPAAL PORT/component-based/local time/Buchi/mutation-based testing/fault localisation/diabolic completion/Yggdrasil`
+- 作者主线：`Kim Guldstrand Larsen`、`Alexandre David`、`Marius Mikučionis`、`Ulrik Nyman`、`Axel Legay`、`Paul Pettersson`、`Marco Muñiz`、`Nicolaj Ø. Jensen`
+- 分支作者：`Brian Nielsen`、`Anders Hessel`、`Uli Fahrenberg`、`John Håkansson`、`Florian Lorber`、`E. J. Njor`
 - 应用主线：已迁出到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)，本文件不再继续展开
 
 ### 已观察到的高命中特征
 
-- 标题直接出现 `UPPAAL`、`ECDAR`、`TRON`、`timed I/O automata`、`symmetry reduction`、`SMC`、`partial order reduction`、`clock state construction`
-- `作者名 + 分支词 + pdf/site:uppaal.org` 的检索效果显著提升，尤其是 `Kim Guldstrand Larsen`、`Ulrik Nyman`、`Marius Mikucionis`、`Marco Muñiz` 这几条线
+- 标题直接出现 `UPPAAL`、`ECDAR`、`TRON`、`timed I/O automata`、`priced timed`、`symmetry reduction`、`SMC`、`partial order reduction`、`clock state construction`、`TATL`
+- `作者名 + 分支词 + pdf/site:uppaal.org` 的检索效果显著提升，尤其是 `Kim Guldstrand Larsen`、`Ulrik Nyman`、`Marius Mikucionis`、`Nicolaj Ø. Jensen`、`Marco Muñiz` 这几条线
 - `uppaal.org/texts/`、Aalborg / VBN / Dagstuhl / EPTCS 等官方或机构直链 PDF 命中率明显高于只搜 DOI
 - `ECDAR / TIOA` 相关条目里，`ecdar.net` 与 `github.com/Ecdar` 能直接提供源码核验入口
 - `TRON / online testing` 相关条目里，官方 `TRON manual` 与 `features/#tron` 对判断“只有运行版还是有源码”很关键；`Uppaal` 新近性能论文则常把实现线索藏在 reproducibility package 或 artifact 说明里
+- `CONCUR / FORMATS / EPTCS` 上的近年条目如果标题直接出现 `ATL / abstractions / EADG`，往往对应 `UPPAAL` 近年的更强博弈逻辑与 symbolic 算法线
 
 ### 已观察到的低命中特征
 
@@ -146,8 +147,8 @@
 
 ### 检索倾向调整
 
-- 当前文库已经把 `symmetry reduction / UPPAAL PORT / distributed SMC / ECDAR liveness/testing / urgent POR / bounded reconstruction / GPU-SMC` 这些支线正式补入，总体策略应转成“补缺口 + 补断代”
-- `⚡` 改进与扩展仍是当前主干，后续应继续沿 `importance splitting / planning-guided exploration / UPPAAL 5 / shield synthesis` 扩张
+- 当前文库已经把 `time-optimal testing / priced timed games / CORA scheduling / adaptive testing / discount-optimality / strategy evaluation / ECDAR fault localisation / UPPAAL-native conformance / TATL` 这些支线正式补入，总体策略应转成“补缺口 + 补断代”
+- `⚡` 改进与扩展仍是当前主干，后续应继续沿 `importance splitting / planning-guided exploration / UPPAAL 5 / shield synthesis / timed ATL` 扩张
 - `2016-2018` 仍偏空，应优先补这段过渡期的核心技术条目，而不是只继续堆 `2020s`
 - 应用检索线已迁移到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md)，本文件后续只保留必要的技术侧分流说明
 - 每次更新前先删减失效关键词，保持本节简洁
@@ -155,7 +156,7 @@
 ## 技术演进时间线与近年活动观察
 
 - 当前已收录顶层条目已经覆盖 `1990-2025`，不再只停留在 `1990-2015` 的早中期奠基阶段。
-- 当前技术主线已经可以拆成“理论奠基 -> 架构与状态压缩 -> testing / games / component-based 分叉 -> specification theory / ECDAR -> SMC / distributed SMC -> structure-aware reduction -> randomized / planning / bounded reconstruction -> GPU / Coshy”这几段。
+- 当前技术主线已经可以拆成“理论奠基 -> 架构与状态压缩 -> testing / priced games / component-based 分叉 -> specification theory / ECDAR -> SMC / strategy evaluation -> testing 工程化回流 -> randomized / planning / bounded reconstruction -> GPU / Coshy / TATL”这几段。
 - 官方 changelog 仍显示后续版本持续发布：`2023-06-21` 的 `UPPAAL 5.0.0`、`2023-12-11` 的 `UPPAAL 5.1.0-beta5`、`2025-07-04` 的 `UPPAAL 5.1.0-b5-COSHY`。
 - 官方 GitHub org 也显示近期仍有源码活动：`UDBM`、`utap`、`uppaal-libs`、`docs.uppaal.org` 在 `2025-2026` 仍有更新。
 - 当前最明显的技术缺口仍是 `2016-2018`，尤其是 `importance splitting`、更系统的 `UPPAAL 5` 技术论文和若干现代搜索/抽象优化条目。
@@ -166,17 +167,17 @@
 |---|---|---|---|---|---|
 | 理论前史与引擎奠基 | `1990-1997` | timed automata 语义、symbolic model checking、compact DBM | 如何用 clocks / guards / resets / symbolic states 表示 dense-time reachability | `ad90`、`lpw95`、`llpy97`、`lpy97` | 基础骨架已经清楚，后续主要是按引用关系回看源头 |
 | 架构重构与状态压缩 | `2001-2004` | architecture、implementation、DBM / zone / federation / symmetry reduction | 如何把理论底盘做成可扩展引擎，并同时压缩约束表示与对称重复状态 | `behrmann01`、`bengtsson02`、`behrmann03`、`bblp04`、`hendriks04`、`bdl04` | 这是当前文库最完整的一段，也是后续继续补链的基准骨架 |
-| 测试、博弈与组件建模分叉 | `2003-2008` | `TRON`、online testing、timed games、`Tiga`、`UPPAAL PORT` | 如何从验证走向 on-the-fly testing、controller synthesis 与 component-based local-time 建模 | `mikucionis03`、`larsen04-online`、`cassez05`、`behrmann07`、`hakansson08`、`hessel08` | 支线已经成形，但源码开放性明显弱于 `DBM / ECDAR` 线 |
+| 测试、博弈、代价优化与组件建模分叉 | `2003-2009` | `TRON`、time-optimal testing、priced timed games、`CORA`、`Tiga`、`UPPAAL PORT` | 如何从验证走向 test generation、optimal scheduling、controller synthesis 与 component-based local-time 建模 | `mikucionis03`、`hessel04`、`bouyer04`、`behrmann05`、`cassez05`、`david08`、`hakansson08`、`fahrenberg09` | 这一段现在已经不再只是“testing 支线”，而是把 priced/game/testing/component 四条早期扩展线都接起来了 |
 | 规范理论化与组合验证环境 | `2010-2013` | `TIOA`、specification theory、`ECDAR`、Büchi timed specs、compositional verification | 如何定义 refinement / consistency / quotient / liveness contract，并把它做成组件级验证环境 | `david10-ecdar-env`、`david10-method`、`david10-spec`、`nyman10`、`david12-ecdar`、`david13-rtspec` | 这是当前“理论最完整且实现可追”的一段，适合继续沿作者线深挖 |
-| 统计模型检查与分布式扩展 | `2011-2015` | `SMC`、distributed SMC、priced PTA、expected cost、`Stratego` | 如何把概率、代价与优化能力接入 `UPPAAL`，并把大量采样扩到分布式环境 | `david11-smc`、`bulychev11`、`bulychev12`、`david12-shs`、`david14`、`david15-*` | 主线已经清楚，但向近年现代版本过渡时仍缺中间段 |
-| 结构感知压缩与测试回流 | `2012-2020` | disjoint activity、mutation-based testing、urgent POR | 如何用顺序活动、refinement strategy 和 urgent behavior 压缩 interleavings 或生成更强测试 | `muniz12`、`nyman17`、`muniz20` | 这条线现在已经成形，后续可继续补更系统的 POR 与 testing 扩展 |
+| 统计模型检查、代价分析与策略评价 | `2011-2015` | `SMC`、distributed SMC、`UPPAAL-SMC`、priced PTA、expected cost、strategy evaluation、`Stratego` | 如何把概率、代价、混杂与策略后评价接入 `UPPAAL`，并把大量采样扩到分布式环境 | `david11-smc`、`bulychev11`、`bulychev12`、`bulychev12-smc`、`david12-shs`、`david14-*`、`david15-*` | 主线已经清楚，但向近年现代版本过渡时仍缺中间段 |
+| 测试工程化与故障定位回流 | `2017-2020` | mutation-based testing、fault localisation、`UPPAAL` 原生 conformance | 如何把 `ECDAR` testing 推进成 IDE 工作流，并把 conformance checking 重新压回 `UPPAAL` verifier | `nyman17`、`gundersen18`、`njor20` | 这条线现在已经从理论 testing 扩展到工程化与 verifier 复用，后续仍可继续补 `Yggdrasil` 相关材料 |
+| 结构感知压缩与现代搜索 | `2012-2023` | disjoint activity、urgent POR、randomized analysis、`MCTS`、dynamic extrapolation、bounded reconstruction | 如何压缩 interleavings，并在 planning、现代 `XTA` 抽象和在线恢复之间继续推进 | `muniz12`、`muniz20`、`kiviriga20-randref`、`kiviriga21-randreach`、`jensen22-mcts`、`lu22`、`jensen23-dynext` | 说明 `UPPAAL` 近年不只做查询语言，也在继续推进引擎能力和在线工作流 |
 | 过渡空档与待补带 | `2016-2018` | `UPPAAL 5`、importance splitting、过渡期现代化 | 如何把 `SMC / Stratego` 进一步推到更现代的搜索与统计框架 | `importance-splitting-line` | 这是当前最明显的时间缺口，下一轮应优先定点补齐 |
-| 随机化、规划、现代抽象与有界恢复 | `2020-2023` | randomized analysis、`MCTS`、dynamic extrapolation、bounded reconstruction | 如何在可扩展性、规划能力、现代 `XTA` 抽象和在线恢复之间继续推进 | `kiviriga20-randref`、`kiviriga21-randreach`、`jensen22-mcts`、`lu22`、`jensen23-dynext` | 说明 `UPPAAL` 近年不只做查询语言，也在继续推进引擎能力和在线工作流 |
-| 混成防护与异构加速 | `2024-2025` | GPU-SMC、`Coshy` | 如何把 `SMC` 推到 GPU，并把 shielding / hybrid synthesis 做成新近分支 | `muniz24`、`brorholt25-coshy` | 说明 `UPPAAL` 技术线没有停在零几年，近年仍在持续演进 |
+| 混成防护、异构加速与更强博弈逻辑 | `2024-2025` | GPU-SMC、`Coshy`、`TATL` | 如何把 `SMC` 推到 GPU，把 shielding 做成新近分支，并把 `TCTL/Tiga` 推进到更强的 timed ATL symbolic 验证 | `muniz24`、`brorholt25-coshy`、`jensen25` | 说明 `UPPAAL` 技术线没有停在零几年，近年仍在持续演进且仍有强理论新作 |
 
 ## 现有收录论文作者关联
 
-以下作者关系只基于当前 **55 个顶层条目** 的 `bibtex.bib` 统计；`paper-*` 子目录当前不单独重复计数。后续扩库时，应先沿这张作者关系表追踪，再去官方入口核验源码、案例和工具实现。
+以下作者关系只基于当前 **65 个顶层条目** 的 `bibtex.bib` 统计；`paper-*` 子目录当前不单独重复计数。后续扩库时，应先沿这张作者关系表追踪，再去官方入口核验源码、案例和工具实现。
 
 这里的“继续沿该作者线扩张判断”是**检索价值推断**，表示继续顺着该作者找 `UPPAAL` 后续工作时的预期收益，不是对作者个人职业状态的断言。
 
@@ -184,13 +185,13 @@
 
 | 作者 | 频次 | 角色判断 | 主要贡献方向 | 当前文库覆盖年份 | 当前核验到的较新 `UPPAAL` 年份 | 最近性判断 | 继续沿该作者线扩张判断 | 代表关联条目 |
 |---|---:|---|---|---|---|---|---|---|
-| `Kim Guldstrand Larsen` | 44 | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / Tiga / SMC / Stratego / TRON / symmetry reduction / ECDAR / modern extensions` | `1995-2025` | `2025` | 🟢 早期到近年全程贯穿 | 🟢 高 | `lpw95`、`hendriks04`、`behrmann07`、`david13`、`muniz24`、`brorholt25` |
-| `Alexandre David` | 24 | 中后期扩展主线整合者 | `architecture / ECDAR environment / Tiga / SMC / distributed SMC / expected cost / Stratego / TIOA / SHS` | `2001-2015` | `2015` | 🟨 文库内高频但近年直接条目暂止于 `2015` | 🟢 高 | `behrmann02`、`david10-*`、`bulychev11`、`david12-*`、`david14`、`david15-*` |
-| `Axel Legay` | 14 | `SMC + specification theory` 桥接作者 | `statistical model checking / priced models / timed I/O specification / optimization / SHS / distributed SMC` | `2010-2023` | `2023` | 🟢 `2020s` 仍有直接延展 | 🟢 高 | `david10-*`、`bulychev11`、`david11-*`、`nyman10`、`david14`、`goorden23` |
-| `Gerd Behrmann` | 12 | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / symmetry-aware engine / UPPAAL 4.0 / evolution survey` | `2001-2011` | `2011` | 🟨 中期工程主线已较完整 | 🟨 中等 | `amnell01`、`behrmann02-*`、`behrmann03`、`hendriks04`、`behrmann06`、`behrmann11` |
-| `Marius Mikučionis` / `Marius Mikucionis` | 12 | `TRON -> SMC -> POR/GPU -> Coshy` 纵向桥接作者 | `online testing / statistical model checking / urgent POR / GPU-SMC / strategy synthesis / hybrid shielding` | `2004-2025` | `2025` | 🟢 横跨早期测试线和近年扩展线 | 🟢 高 | `larsen04-*`、`david12-shs`、`david15-*`、`muniz20`、`muniz24`、`brorholt25` |
-| `Paul Pettersson` | 12 | `DBM / engine / component-modeling / testing` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities / PORT / TRON` | `1995-2011` | `2011` | 🟨 更偏历史骨干作者 | 🟨 中等 | `lpw95`、`llpy97`、`hakansson08`、`hessel08`、`dhlp06`、`behrmann11` |
-| `Ulrik Nyman` | 11 | `ECDAR / timed-spec / testing / randomized analysis` 主线组织者 | `specification theory / refinement / mutation-based testing / compositional verification / randomized analysis / planning` | `2010-2023` | `2023` | 🟢 `2020s` 仍有直接论文 | 🟢 高 | `david10-*`、`nyman10`、`nyman17`、`kiviriga20`、`kiviriga21`、`jensen22` |
+| `Kim Guldstrand Larsen` | 52 | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / priced games / Tiga / SMC / TRON / ECDAR / modern abstractions` | `1995-2025` | `2025` | 🟢 早期到近年全程贯穿 | 🟢 高 | `lpw95`、`bouyer04`、`behrmann07`、`bulychev12-smc`、`muniz24`、`jensen25` |
+| `Alexandre David` | 27 | 中后期扩展主线整合者 | `game-based testing / architecture / ECDAR / SMC / strategy evaluation / TIOA / SHS` | `2001-2015` | `2015` | 🟨 文库内高频但近年直接条目暂止于 `2015` | 🟢 高 | `david08`、`david10-*`、`bulychev12-smc`、`david12-*`、`david14-*`、`david15-*` |
+| `Axel Legay` | 15 | `SMC + specification theory` 桥接作者 | `statistical model checking / priced models / timed I/O specification / optimization / SHS / distributed SMC` | `2010-2023` | `2023` | 🟢 `2020s` 仍有直接延展 | 🟢 高 | `david10-*`、`bulychev11`、`bulychev12-smc`、`david11-*`、`nyman10`、`goorden23` |
+| `Gerd Behrmann` | 13 | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / CORA / symmetry-aware engine / UPPAAL 4.0 / evolution survey` | `2001-2011` | `2011` | 🟨 中期工程主线已较完整 | 🟨 中等 | `amnell01`、`behrmann02-*`、`behrmann03`、`behrmann05`、`behrmann06`、`behrmann11` |
+| `Marius Mikučionis` / `Marius Mikucionis` | 13 | `TRON -> SMC -> POR/GPU -> Coshy` 纵向桥接作者 | `online testing / statistical model checking / urgent POR / GPU-SMC / strategy synthesis / hybrid shielding` | `2004-2025` | `2025` | 🟢 横跨早期测试线和近年扩展线 | 🟢 高 | `larsen04-*`、`bulychev12-smc`、`david15-*`、`muniz20`、`muniz24`、`brorholt25` |
+| `Paul Pettersson` | 13 | `DBM / engine / component-modeling / testing` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities / PORT / TRON / testing` | `1995-2011` | `2011` | 🟨 更偏历史骨干作者 | 🟨 中等 | `lpw95`、`llpy97`、`hessel04`、`hakansson08`、`hessel08`、`dhlp06` |
+| `Ulrik Nyman` | 12 | `ECDAR / timed-spec / testing / randomized analysis` 主线组织者 | `specification theory / refinement / mutation-based testing / fault localisation / compositional verification / randomized analysis / planning` | `2010-2023` | `2023` | 🟢 `2020s` 仍有直接论文 | 🟢 高 | `david10-*`、`nyman10`、`nyman17`、`gundersen18`、`kiviriga20`、`jensen22` |
 | `Wang Yi` | 10 | 早期语义与算法骨架作者 | `timed automata semantics / symbolic algorithms / engine foundations / DBM` | `1995-2011` | `2011` | 🟨 早期到中期主线较完整 | 🟨 中等 | `lpw95`、`llpy97`、`amnell01`、`by04`、`behrmann02`、`behrmann06` |
 | `Andrzej Wąsowski` | 8 | `ECDAR` 规范理论与新近扩展连接者 | `timed I/O specification / quotient / compositional verification / liveness contracts / Coshy 协作线` | `2010-2025` | `2025` | 🟢 近年仍有直接条目 | 🟢 高 | `david10-*`、`nyman10`、`david12-ecdar`、`david13`、`goorden23`、`brorholt25` |
 | `Peter Gjøl Jensen` | 4 | `optimization -> abstraction / GPU-SMC -> hybrid synthesis` 桥接作者 | `expected cost / dynamic extrapolation / GPU-SMC / compact shields` | `2014-2025` | `2025` | 🟢 近年仍有连续新作 | 🟢 高 | `david14`、`jensen23`、`muniz24`、`brorholt25` |
@@ -199,41 +200,44 @@
 
 | 作者 / 别名 | 当前关联条目 | 角色判断 | 主要贡献方向 | 年代观察 | 检索建议 |
 |---|---|---|---|---|---|
-| `Brian Nielsen` | `larsen04-*`、`hessel08`、`nyman17` | `TRON / online testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / mutation-based testing` | 当前文库直接覆盖 `2004-2017` | 与 `UPPAAL + TRON/online testing/mutation-based testing` 联用 |
+| `Brian Nielsen` | `hessel04`、`larsen04-*`、`david08`、`hessel08`、`nyman17` | `TRON / adaptive testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / game-based testing / mutation-based testing` | 当前文库直接覆盖 `2004-2017` | 与 `UPPAAL + TRON/online testing/game-based testing/mutation-based testing` 联用 |
+| `Anders Hessel` | `hessel04`、`hessel08` | `time-optimal / survey-style testing` 分支作者 | `offline test generation / time-optimal testing / testing survey` | 当前文库直接覆盖 `2004-2008` | 与 `UPPAAL + time-optimal testing/test-case generation` 联用 |
 | `Marco Muñiz` | `muniz12`、`muniz20`、`muniz24` | `结构感知压缩 -> urgent POR -> GPU-SMC` 分支作者 | `disjoint activity / urgent partial order reduction / GPU-SMC` | 当前文库直接覆盖 `2012-2025`，且跨越三次明显代际更新 | 与 `UPPAAL + disjoint activity/partial order reduction/GPU-SMC` 联用 |
+| `Uli Fahrenberg` | `fahrenberg09` | infinite-run priced optimization 分支作者 | `discount-optimality / infinite runs / corner-point abstraction` | 当前文库当前只覆盖 `2009`，但它补上了 priced PTA 的长期运行最优语义 | 与 `UPPAAL + priced timed automata/discount-optimal infinite runs` 联用 |
 | `John Håkansson` / `Jan Carlson` | `hakansson08` | `UPPAAL PORT / component-based design` 分支作者 | `component-based design / local time / PORT / SaveCCM` | 当前文库当前只覆盖 `2008`，但方向明显对接嵌入式组件建模 | 与 `UPPAAL PORT/component-based/local time/SaveCCM` 联用 |
 | `Martijn Hendriks` / `Peter Niebert` / `Frits Vaandrager` | `hendriks04` | `symmetry reduction` 分支关键作者 | `scalarset / state swaps / canonical representative / symmetry reduction` | 当前文库当前只覆盖 `2004`，但这是状态压缩线的重要节点 | 与 `UPPAAL + symmetry reduction/scalarset/canonical representative` 联用 |
 | `Thomas Hune` | `amnell01`、`hune01` | 早期 `guided synthesis` 线作者 | `guided synthesis / control programs / early tool planning` | 当前文库直接覆盖 `2001` | 与 `UPPAAL + guided synthesis/control` 联用 |
 | `Sean Sedwards` | `david12-shs` | `SHS / SMC` 分支补强作者 | `stochastic hybrid systems / simulation semantics / statistical analysis` | 当前文库直接覆盖 `2012` | 与 `UPPAAL + stochastic hybrid systems/SMC` 联用 |
 | `Pranav Ashok` / `Jan Křetínský` / `Adrien Le Coënt` / `Jakob Haahr Taankvist` / `Maximilian Weininger` | `ashok19-sos` | `compact strategies / hybrid MDP` 分支作者群 | `safe-optimal-small strategies / stochastic hybrid games / hybrid MDP` | 当前文库直接覆盖 `2019` | 与 `UPPAAL + SOS/compact strategies/stochastic hybrid games` 联用 |
 | `Andrej Kiviriga` | `kiviriga20`、`kiviriga21`、`jensen22` | `randomized analysis / planning` 新近主线作者 | `randomized refinement / randomized reachability / MCTS` | 当前文库直接覆盖 `2020-2022` | 与 `UPPAAL + randomized reachability/refinement/MCTS` 联用 |
-| `Nicolaj Ø. Jensen` | `jensen23` | `modern XTA abstraction` 新近作者 | `dynamic extrapolation / extended timed automata / static analysis` | 当前文库当前只覆盖 `2023`，但方向明显对接现代引擎优化 | 与 `UPPAAL + dynamic extrapolation/XTA` 联用 |
+| `Nicolaj Ø. Jensen` | `jensen23`、`jensen25` | `modern XTA abstraction -> timed ATL` 新近作者 | `dynamic extrapolation / extended timed automata / TATL / EADG / abstractions` | 当前文库直接覆盖 `2023-2025`，而且已经从抽象优化延伸到更强的 timed game logic | 与 `UPPAAL + dynamic extrapolation/TATL/EADG` 联用 |
 | `Martijn A. Goorden` | `goorden23` | `TIOA` 规范理论补完作者 | `complete specification theory / ECDAR` | 当前文库当前只覆盖 `2023`，适合继续追 `ECDAR` 理论后续 | 与 `UPPAAL + timed I/O automata/specification theory` 联用 |
 | `Asger Horn Brorholt` | `brorholt25` | `Coshy` 新近作者 | `automatic shield synthesis / hybrid systems / compact shields` | 当前文库当前只覆盖 `2025`，但非常新，后续继续扩张概率高 | 与 `UPPAAL + Coshy/hybrid shield synthesis` 联用 |
-| `Didier Lime` | `cassez05`、`behrmann07`、`david14` | `timed games -> Tiga -> optimization` 分支协作者 | `timed games / controller synthesis / cost analysis` | 当前文库已直接覆盖到 `2014` | 与 `UPPAAL + timed games/Tiga/cost` 联用 |
+| `Didier Lime` | `cassez05`、`behrmann07`、`david14`、`jensen25` | `timed games -> Tiga -> optimization -> TATL` 分支协作者 | `timed games / controller synthesis / cost analysis / timed ATL` | 当前文库已直接覆盖到 `2025`，说明该线并未停留在早期 `Tiga` 阶段 | 与 `UPPAAL + timed games/Tiga/TATL` 联用 |
+| `Florian Lorber` / `Christian Ovesen` / `E. J. Njor` | `gundersen18`、`njor20` | `ECDAR -> UPPAAL-native conformance testing` 工程分支作者群 | `fault localisation / conformance testing / diabolic completion / Yggdrasil` | 当前文库直接覆盖 `2018-2020`，正好串起 testing 工程化回流线 | 与 `UPPAAL + conformance testing/Ecdar/diabolic completion/Yggdrasil` 联用 |
 | `Johan Bengtsson` | `bengtsson02`、`behrmann02-secrets`、`by04` | `DBM` 数据结构专题化奠基作者 | `clocks / DBMs / states / DBM internals / implementation detail` | 当前文库主要落在 `2002-2004` | 与 `UPPAAL + DBM/implementation` 联用 |
-| `Patricia Bouyer` / `Radek Pelánek` | `bblp04` | zone abstraction 外推分支外部关键合作者 | `lower-upper bound extrapolation / zone abstraction` | 当前文库主要落在 `2004` | 与 `UPPAAL + abstraction/extrapolation` 联用 |
+| `Patricia Bouyer` / `Radek Pelánek` | `bblp04`、`bouyer04` | zone abstraction 与 priced timed games 外推分支关键合作者 | `lower-upper bound extrapolation / zone abstraction / priced timed games` | 当前文库主要落在 `2004`，但已同时覆盖抽象与最优策略两条 priced 线 | 与 `UPPAAL + abstraction/priced timed games/extrapolation` 联用 |
 | `Rajeev Alur` | `ad90` | 理论前史奠基者 | `timed automata semantics` | 属于理论前史，不应用来判断 `UPPAAL` 近年是否仍活跃 | 只在追踪 `UPPAAL` 理论源头时纳入 |
 | `David Dill` / `David L. Dill` | `ad90`、`dill89` | dense-time verification 前史奠基者 | `timing assumptions / clock constraints / symbolic verification` | 属于理论前史，不应用来判断 `UPPAAL` 近年是否仍活跃 | 只在追踪 `UPPAAL` 技术前史时纳入 |
 
 ## 当前收录统计
 
-- 已收录顶层条目：**55** 篇
-- 本轮新增顶层条目：**10** 篇（本次补收 `symmetry reduction / UPPAAL PORT / ECDAR environment / distributed SMC / urgent POR / GPU-SMC` 等条目）
+- 已收录顶层条目：**65** 篇
+- 本轮新增顶层条目：**10** 篇（本次补收 `time-optimal testing / priced timed games / CORA scheduling / adaptive testing / discount-optimality / UPPAAL-SMC formalization / strategy evaluation / ECDAR fault localisation / UPPAAL-native conformance / TATL` 等条目）
 - 含内嵌 `paper-*` 子目录的 thesis/合集条目：**2** 篇
-- 已完成 `desc.md` 的顶层条目：**55** 篇（`55/55`）
+- 已完成 `desc.md` 的顶层条目：**65** 篇（`65/65`）
 - 内容详细程度：
-  - `🟢 复现级`：**5** 篇
-  - `🟩 较完整`：**31** 篇
+  - `🟢 复现级`：**6** 篇
+  - `🟩 较完整`：**40** 篇
   - `🟨 中等`：**11** 篇
   - `🟧 概览级`：**8** 篇
   - `🟥 细节不足`：**0** 篇
 - 实现可获取程度：
-  - `🟢 论文对应实现源码直达`：**4** 篇
-  - `🟩 核心实现源码线直达`：**7** 篇
+  - `🟢 论文对应实现源码直达`：**5** 篇
+  - `🟩 核心实现源码线直达`：**8** 篇
   - `🟨 部分实现源码可得`：**16** 篇
-  - `🟧 仅可执行/可使用版本可得`：**25** 篇
-  - `🟥 暂未获取实现源码`：**3** 篇
+  - `🟧 仅可执行/可使用版本可得`：**30** 篇
+  - `🟥 暂未获取实现源码`：**6** 篇
 - 本轮未纳入/待补证条目：**2** 条
 - 已记录环境级阻塞：**1** 条
 
@@ -243,10 +247,10 @@
 
 | 分类 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🧱 核心算法/数据结构 | 9 | 16.4% | 已覆盖 timed automata、DBM、zone、specification theory、bounded clock-state reconstruction 等主线 |
-| ⚡ 改进与扩展 | 30 | 54.5% | 已覆盖 symmetry reduction、guided synthesis、timed games、SMC、distributed SMC、Büchi timed specs、urgent POR、GPU-SMC、compact strategies、Coshy |
-| 🛠️ 工程/工具链 | 16 | 29.1% | 已覆盖 architecture、implementation、tutorial、`TRON/testing`、`UPPAAL PORT`、`ECDAR` environment 等工程入口与路线综述 |
-| **合计** | **55** | **100.0%** | - |
+| 🧱 核心算法/数据结构 | 9 | 13.8% | 已覆盖 timed automata、DBM、zone、specification theory、bounded clock-state reconstruction 等主线 |
+| ⚡ 改进与扩展 | 38 | 58.5% | 已覆盖 symmetry reduction、priced/timed games、SMC、strategy evaluation、Büchi timed specs、urgent POR、GPU-SMC、compact strategies、Coshy、`TATL` |
+| 🛠️ 工程/工具链 | 18 | 27.7% | 已覆盖 architecture、implementation、tutorial、`TRON/testing`、`UPPAAL PORT`、`ECDAR` environment、fault localisation 与 `UPPAAL` 原生 conformance testing |
+| **合计** | **65** | **100.0%** | - |
 
 说明：应用类条目已迁移到 [uppaal_apps/SUMMARY.md](../uppaal_apps/SUMMARY.md) 单独维护。
 
@@ -254,7 +258,7 @@
 
 后续单篇 `desc.md` 统一遵循 [DESC_GUIDE.md](./DESC_GUIDE.md)。
 
-当前 **55** 个顶层条目已经全部完成首轮 `desc.md` 覆盖；`paper-*` 子目录仍按父条目辅助阅读单元维护，不单独计入这里的顶层 `desc` 统计。
+当前 **65** 个顶层条目已经全部完成首轮 `desc.md` 覆盖；`paper-*` 子目录仍按父条目辅助阅读单元维护，不单独计入这里的顶层 `desc` 统计。
 
 本总表中的三列：
 
@@ -295,17 +299,22 @@
 | ⚡ | `david03-share` | Unification \& Sharing in Timed Automata Verification | 2003 | 符号状态和约束重复造成存储浪费 | unification \& sharing 复用状态与约束 | 压缩表示并提升验证效率 | 🟨 | 🟨 | 可沿 [UDBM](https://github.com/UPPAALModelChecker/UDBM) 与 [utap](https://github.com/UPPAALModelChecker/utap) 追底层符号表示和解析器源码，但论文对应优化实现未完整公开 | [paper](./david03-unification-sharing-timed-automata-verification/) |
 | 🛠️ | `mikucionis03-tron` | Online On-the-Fly Testing of Real-time Systems | 2003 | 实时系统测试难在线利用模型 | on-the-fly testing + timed trace inclusion | 把验证能力扩到实时在线测试 | 🟩 | 🟧 | 官方 [TRON manual](https://uppaal.org/texts/tron-manual.pdf) 与 [downloads](https://uppaal.org/downloads/) 可追运行工具线，但 `TRON` 核心源码未见公开 | [paper](./mikucionis03-online-on-the-fly-testing-real-time-systems/) |
 | ⚡ | `bblp04` | Lower and Upper Bounds in Zone Based Abstractions of Timed Automata | 2004 | zone abstraction 的精度与终止性难平衡 | lower/upper bound extrapolation | 稳定化 zone abstraction 理论 | 🟩 | 🟨 | [UDBM](https://github.com/UPPAALModelChecker/UDBM) 能提供底层 DBM 源码，但该条目的完整外推实现未直出 | [paper](./bblp04-zone-based-abstractions/) |
-| ⚡ | `hendriks04` | Adding Symmetry Reduction to Uppaal | 2004 | 大量对称进程会让 `UPPAAL` 重复探索本质等价状态 | `scalarset + state swaps + canonical representative` | 把 symmetry reduction 真正接进 `UPPAAL` 的 symbolic state | 🟩 | 🟨 | 当前可沿 [UDBM](https://github.com/UPPAALModelChecker/UDBM) 与 [utap](https://github.com/UPPAALModelChecker/utap) 核验同代符号引擎底层，但 symmetry prototype 未见独立公开源码 | [paper](./hendriks04-adding-symmetry-reduction-uppaal/) |
 | 🛠️ | `bdl04` | A Tutorial on Uppaal | 2004 | 用户缺少系统建模与查询指导 | 教程化组织 language/query/interface/patterns | 成为工程使用入口文献 | 🟩 | 🟨 | [utap](https://github.com/UPPAALModelChecker/utap)、[tracer](https://github.com/UPPAALModelChecker/tracer)、[uls](https://github.com/UPPAALModelChecker/uls)、[UDBM](https://github.com/UPPAALModelChecker/UDBM) 等组件源码可得，但完整工具未全部开源 | [paper](./bdl04-uppaal-tutorial/) |
+| ⚡ | `bouyer04` | Optimal Strategies in Priced Timed Game Automata | 2004 | priced timed games 缺少真正的最优策略语义与可计算边界 | 给 timed games 叠加 price，并分析 run-based/state-based optimality 与累计代价扩状态归约 | 为 `UPPAAL` priced timed games / optimal-control 路线补上最优性理论框架 | 🟩 | 🟥 | 当前未见论文对应的 priced timed game 求解源码；主要仍停留在理论框架与后续工具线引用 | [paper](./bouyer04-optimal-strategies-priced-timed-game-automata/) |
 | 🧱 | `by04` | Timed Automata: Semantics, Algorithms and Tools | 2004 | timed automata 语义算法工具脉络分散 | 统一综述 semantics + algorithms + tools | 压缩整理 timed automata/`UPPAAL` 骨架 | 🟨 | 🟨 | [utap](https://github.com/UPPAALModelChecker/utap)、[UDBM](https://github.com/UPPAALModelChecker/UDBM)、[uls](https://github.com/UPPAALModelChecker/uls) 等组件源码可得，但完整工具主实现未公开 | [paper](./by04-semantics-algorithms-tools/) |
+| ⚡ | `hendriks04` | Adding Symmetry Reduction to Uppaal | 2004 | 大量对称进程会让 `UPPAAL` 重复探索本质等价状态 | `scalarset + state swaps + canonical representative` | 把 symmetry reduction 真正接进 `UPPAAL` 的 symbolic state | 🟩 | 🟨 | 当前可沿 [UDBM](https://github.com/UPPAALModelChecker/UDBM) 与 [utap](https://github.com/UPPAALModelChecker/utap) 核验同代符号引擎底层，但 symmetry prototype 未见独立公开源码 | [paper](./hendriks04-adding-symmetry-reduction-uppaal/) |
+| ⚡ | `hessel04` | Time-Optimal Real-Time Test Case Generation Using Uppaal | 2004 | 实时测试缺少可执行的时间最优生成与统一 coverage 编码 | 以 `DIEOU-TA` 为规格类，把 test purpose / coverage 目标编码为 `UPPAAL` reachability，并取 fastest diagnostic trace | 把 `UPPAAL` reachability / A* 能力改造成离线时间最优测试生成器 | 🟩 | 🟧 | 可沿官方 [TRON manual](https://uppaal.org/texts/tron-manual.pdf) 与 testing 论文链核验方法线，但论文对应生成器源码未见公开 | [paper](./hessel04-time-optimal-real-time-test-case-generation-uppaal/) |
 | 🛠️ | `larsen04-online` | Online Testing of Real-time Systems Using Uppaal | 2004 | online testing 缺少可执行工具链 | `TRON` workflow + verdict 执行链 | 让 testing 分支工具化落地 | 🟨 | 🟧 | 官方 [TRON manual](https://uppaal.org/texts/tron-manual.pdf) 与 [features/#tron](https://uppaal.org/features/#tron) 可核验能力线，但核心源码未见公开 | [paper](./larsen04-online-testing-real-time-systems-using-uppaal/) |
 | 🛠️ | `larsen04-status` | Online Testing of Real-time Systems using Uppaal: Status and Future Work | 2004 | `TRON` 当前状态与后续缺口不清 | status review + future-work mapping | 明确 testing 分支议程 | 🟧 | 🟧 | 当前能核到论文与官方测试文档，但未见对应源码公开 | [paper](./larsen04-online-testing-status-future-work/) |
+| ⚡ | `behrmann05` | Optimal Scheduling Using Priced Timed Automata | 2005 | `UPPAAL` 缺少把真实 scheduling / planning 稳定映射到 cost-optimal reachability 的方法 | 用 priced timed automata 统一建模任务、资源和代价，并在 `UPPAAL CORA` 中做 priced symbolic search 与 branch-and-bound | 把 `UPPAAL` cost-optimal 技术线推进成可复用的调度/规划工具链 | 🟩 | 🟧 | 当前可沿 `UPPAAL CORA` 历史文献与官网下载入口追可运行工具，但 `CORA` 主实现源码未见公开 | [paper](./behrmann05-optimal-scheduling-priced-timed-automata/) |
 | ⚡ | `cdfll05` | Efficient On-the-fly Algorithms for the Analysis of Timed Games | 2005 | timed games on-the-fly analysis 效率不足 | 高效 on-the-fly timed-game 算法 | 成为 `Tiga` 的关键理论前置 | 🟩 | 🟧 | 当前未见 timed-games 核心源码公开；可沿 `Tiga` 工具线与官方文档反查 | [paper](./cassez05-analysis-of-timed-games/) |
 | 🛠️ | `behrmann06` | UPPAAL 4.0 | 2006 | 新一代工具能力需要统一对外说明 | 版本快照式整理 language/engine/workflow | 标记 `UPPAAL 4.0` 整合阶段 | 🟧 | 🟨 | [utap](https://github.com/UPPAALModelChecker/utap)、[UDBM](https://github.com/UPPAALModelChecker/UDBM)、[uppaal-libs](https://github.com/UPPAALModelChecker/uppaal-libs) 提供部分源码线索 | [paper](./behrmann06-uppaal-4/) |
 | ⚡ | `dhlp06` | Model Checking Timed Automata with Priorities Using DBM Subtraction | 2006 | priority timed automata 缺少可操作符号差集 | 用 DBM subtraction 支撑 priority analysis | 打通 priorities/federation 分析路径 | 🟩 | 🟨 | [UDBM](https://github.com/UPPAALModelChecker/UDBM) 提供底层 DBM 技术线源码，但 priorities 主实现未直接公开 | [paper](./dhlp06-dbm-subtraction/) |
 | ⚡ | `bcdfll07` | UPPAAL-Tiga: Time for Playing Games! | 2007 | timed-game controller synthesis 缺少工具支撑 | 把 timed games 工具化为 `UPPAAL-Tiga` | 博弈/控制分支正式成型 | 🟧 | 🟧 | 当前未见 `Tiga` 核心源码公开；可沿官方 `Tiga` 历史工具线与文档反查 | [paper](./behrmann07-uppaal-tiga/) |
+| ⚡ | `david08` | A Game-Theoretic Approach to Real-Time System Testing | 2008 | 早期 testing 过度依赖 output urgency / isolated outputs，难处理更真实的时序不确定输出 | 用 `Timed I/O Game Automata` + `tioco` + `UPPAAL-TIGA` winning strategy，把 test case 改成自适应博弈策略 | 把实时测试从固定轨迹生成推进到 game-based adaptive testing | 🟩 | 🟧 | 当前可沿 `TIGA` 历史工具线与 testing 文献核验能力，但论文对应策略生成实现未见公开源码 | [paper](./david08-game-theoretic-approach-real-time-system-testing/) |
 | 🛠️ | `hakansson08` | Component-Based Design and Analysis of Embedded Systems with UPPAAL PORT | 2008 | component model flatten 后会丢掉结构与局部时间信息 | `UPPAAL PORT + local time + read-execute-write + SaveCCM` | 让组件化实时系统能直接保持结构地分析 | 🟨 | 🟧 | 当前可沿 [downloads](https://uppaal.org/downloads/) 与历史论文追 `UPPAAL PORT` 工具线，但 PORT 对应源码未见公开 | [paper](./hakansson08-uppaal-port-component-based-design-analysis/) |
 | 🛠️ | `hessel08-tron` | Testing Real-Time Systems Using UPPAAL | 2008 | testing 理论与工具实践资料分散 | 系统整理 offline/online testing 与 relativized ioco | 成为 `TRON/testing` 标准综述 | 🟩 | 🟧 | 官方 [TRON manual](https://uppaal.org/texts/tron-manual.pdf) 与 [features/#tron](https://uppaal.org/features/#tron) 可核验方法线，但源码未见公开 | [paper](./hessel08-testing-real-time-systems-using-uppaal/) |
+| ⚡ | `fahrenberg09` | Discount-Optimal Infinite Runs in Priced Timed Automata | 2009 | priced timed automata 长期偏向有限路径最优，infinite runs 的折扣最优语义与可算性不清楚 | 为 infinite runs 定义 discounted price，并用 corner-point abstraction 把问题归约到有限 weighted graph | 把 `UPPAAL` priced timed automata 优化线从有限 reachability 推进到无限运行最优 | 🟩 | 🟥 | 当前未见论文对应的折扣最优 PTA 求解源码；更像后续工具与理论工作的基础条目 | [paper](./fahrenberg09-discount-optimal-infinite-runs-priced-timed-automata/) |
 | 🛠️ | `david10-ecdar-env` | ECDAR: An Environment for Compositional Design and Analysis of Real Time Systems | 2010 | `TIOA` 理论若没有可执行环境就难支撑组合验证工作流 | `ECDAR` 环境实现 refinement/consistency/composition/conjunction/quotient | 把 `TIOA/ECDAR` 做成可建模可验证的工具入口 | 🟨 | 🟩 | [ECDAR](https://github.com/Ecdar/ECDAR)、[j-Ecdar](https://github.com/Ecdar/j-Ecdar)、[Reveaal](https://github.com/Ecdar/Reveaal) 提供该环境主线的开源入口 | [paper](./david10-ecdar-environment-compositional-design-analysis/) |
 | 🛠️ | `david10-method` | Methodologies for Specification of Real-Time Systems Using Timed I/O Automata | 2010 | 实时组件规约缺少可执行方法学 | `TIOA` 的 refinement/abstraction/quotient workflow | 给出 `ECDAR` 工程方法入口 | 🟨 | 🟩 | [ECDAR](https://github.com/Ecdar/ECDAR)、[j-Ecdar](https://github.com/Ecdar/j-Ecdar)、[Reveaal](https://github.com/Ecdar/Reveaal) 提供该方法线的开源工具入口 | [paper](./david10-methodologies-timed-io-automata/) |
 | 🧱 | `david10-spec` | Timed I/O automata: a complete specification theory for real-time systems | 2010 | real-time component specification theory 不完整 | 补全 refinement/consistency/composition/quotient 理论 | 奠定 `ECDAR` 形式化核心 | 🟩 | 🟩 | [ECDAR](https://github.com/Ecdar/ECDAR) 与 [Reveaal](https://github.com/Ecdar/Reveaal) 提供同一规范理论/检查线的开源实现入口 | [paper](./david10-timed-io-automata-complete-specification-theory/) |
@@ -315,25 +324,30 @@
 | ⚡ | `dllmpvw11` | Statistical Model Checking for Networks of Priced Timed Automata | 2011 | priced timed automata 缺少 statistical analysis | 对 `NPTA/PTA` 做 statistical model checking | 连接概率分析与代价分析 | 🟩 | 🟧 | 官方 SMC 文档、教程与工具线可用，但对应扩展核心源码未见公开 | [paper](./david11-smc-priced-timed-automata/) |
 | ⚡ | `dllmw11` | Time for Statistical Model Checking of Real-time Systems | 2011 | 穷举验证难覆盖随机实时行为 | 将 `SMC` 引入 real-time systems | 奠定 `UPPAAL-SMC` 主线 | 🟩 | 🟧 | 官方 SMC 文档、教程与工具线可用，但核心源码未见公开 | [paper](./david11-statistical-model-checking-real-time/) |
 | ⚡ | `bdllmp12` | Checking \& Distributing Statistical Model Checking | 2012 | `SMC` 计算规模受单机限制 | distributed statistical model checking | 扩大实验规模与算力利用 | 🟩 | 🟧 | 当前可沿官方 SMC 工具线追运行版本，但分布式扩展源码未见公开 | [paper](./bulychev12-distributed-statistical-model-checking/) |
+| ⚡ | `bulychev12-smc` | UPPAAL-SMC: Statistical Model Checking for Priced Timed Automata | 2012 | `UPPAAL` 缺少覆盖随机、代价与混杂行为的统一统计模型检查工具线 | 给 `NPTA/PTA` 定义 stochastic race semantics，并支持 hypothesis testing、estimation/comparison、expected value 与 `WMTL<=` monitors | 把 `UPPAAL-SMC` 从分散能力推进成正式工具分支 | 🟩 | 🟧 | 官方 [SMC tutorial](https://uppaal.org/texts/uppaal-smc-tutorial.pdf) 与 [downloads](https://uppaal.org/downloads/) 可核验工具可用性，但主引擎源码未直接公开 | [paper](./bulychev12-uppaal-smc-priced-timed-automata/) |
 | ⚡ | `david12-ecdar` | Compositional verification of real-time systems using Ecdar | 2012 | component verification 难以组合扩展 | `ECDAR` 中的 compositional verification 工具链 | 让组合验证可直接操作 | 🟩 | 🟢 | [ECDAR](https://github.com/Ecdar/ECDAR)、[j-Ecdar](https://github.com/Ecdar/j-Ecdar)、[Reveaal](https://github.com/Ecdar/Reveaal) 直接对应 `ECDAR` 工具线 | [paper](./david12-compositional-verification-ecdar/) |
 | ⚡ | `david12-shs` | Statistical Model Checking for Stochastic Hybrid Systems | 2012 | stochastic hybrid systems 难做穷举验证 | 把 `SMC` 扩到 stochastic hybrid semantics | 将 `SMC` 推向 hybrid systems | 🟩 | 🟧 | 当前能核到论文、SMC 工具线与教程，但论文对应 `SHS` 扩展源码未见公开 | [paper](./david12-statistical-model-checking-stochastic-hybrid-systems/) |
 | ⚡ | `muniz12` | Timed Automata with Disjoint Activity | 2012 | 周期系统明明顺序活动却被并行组合制造大量 interleavings | `Active(A)`、sequentialisable、`·` 与 `#` 组合算子 | 把特定周期系统的验证复杂度从二次降到线性 | 🟩 | 🟧 | 当前未见 disjoint-activity 对应公开实现；可沿后续 `urgent POR` 论文与官方引擎线追踪 | [paper](./muniz12-timed-automata-with-disjoint-activity/) |
 | ⚡ | `nyman10` | New Results on Timed Specifications | 2012 | 原有 `TIOA/ECDAR` 规格理论对 liveness、Büchi 目标与 non-Zeno 保证还不够 | 把 `SOTFTR` 推成 zone-based Büchi timed games，并与 safety 组合 | 让 `ECDAR` 能表达 liveness/non-Zeno contract | 🟩 | 🟩 | [ECDAR](https://github.com/Ecdar/ECDAR)、[j-Ecdar](https://github.com/Ecdar/j-Ecdar)、[Reveaal](https://github.com/Ecdar/Reveaal) 提供该规范理论主线的开源实现入口 | [paper](./nyman10-new-results-on-timed-specifications/) |
 | 🧱 | `david13-rtspec` | Real-time specifications | 2013 | specification theory 的规则和语义分散 | 系统整理 operators、闭包与工具语义 | 成为 `TIOA/ECDAR` 标准参考 | 🟩 | 🟩 | [ECDAR](https://github.com/Ecdar/ECDAR)、[j-Ecdar](https://github.com/Ecdar/j-Ecdar)、[Reveaal](https://github.com/Ecdar/Reveaal) 构成对应实现主线 | [paper](./david13-real-time-specifications/) |
+| ⚡ | `david14-gamestrategies` | Verification and Performance Evaluation of Timed Game Strategies | 2014 | `UPPAAL-TIGA` 能合成策略，但合成后缺少统一的后验证与性能评价流程 | 一条路把 zone-based strategy 翻译成 controller TA，另一条路把策略直接接入扩展后的 `MC/SMC` 引擎 | 把 synthesis、verification 与 performance evaluation 串成 `Control-SMC` 工作流 | 🟩 | 🟧 | 可沿 `TIGA / SMC / Stratego` 文献与官方下载入口追功能线，但论文对应策略评价实现未见公开源码 | [paper](./david14-verification-performance-evaluation-timed-game-strategies/) |
 | ⚡ | `djlllst14` | On Time with Minimal Expected Cost! | 2014 | 不确定实时系统缺少 expected-cost 优化 | 把 expected-cost 查询接入 `SMC/optimization` | 为 `Stratego` 优化铺路 | 🟩 | 🟧 | 可沿 `SMC / Stratego` 工具线追可运行版本，但核心优化源码未见公开 | [paper](./david14-minimal-expected-cost/) |
 | 🛠️ | `david15-smc` | Uppaal SMC tutorial | 2015 | `SMC` 查询语义与用法难掌握 | 教程化讲解 stochastic semantics 与 query patterns | 提供 `SMC` 工程使用入口 | 🟧 | 🟧 | 官方 [SMC tutorial](https://uppaal.org/texts/uppaal-smc-tutorial.pdf) 与 [downloads](https://uppaal.org/downloads/) 可得，但核心源码未公开 | [paper](./david15-uppaal-smc-tutorial/) |
 | ⚡ | `djlmt15` | Uppaal Stratego | 2015 | 策略生成与优化缺少统一工具 | 支持 strategy generation/comparison/optimization | 策略优化分支工具化成形 | 🟧 | 🟧 | 官方文档与工具线可追，但 `Stratego` 核心源码未见公开 | [paper](./david15-uppaal-stratego/) |
 | ⚡ | `nyman17` | Mutation-Based Test-Case Generation with Ecdar | 2017 | bounded SMT/BMC 变异测试慢且不自适应 | `Ecdar` unbounded refinement + strategy-driven adaptive testing | 更快生成 timed mutation tests，并减少 inconclusive | 🟩 | 🟨 | [ECDAR](https://github.com/Ecdar/ECDAR) 与 [Ecdar-test](https://github.com/Ecdar/Ecdar-test) 可追底座源码，但论文整体工作流源码未完整公开 | [paper](./nyman17-mutation-based-test-case-generation-ecdar/) |
+| 🛠️ | `gundersen18` | Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar | 2018 | `Ecdar` 若不能直接连接 conformance testing 与 fault localisation，工程落地仍不足 | 把 `MBMT`、refinement-based adaptive testing、primary fail、并行执行与 real/sim time 模式整合进新版 `Ecdar` IDE | 把 `Ecdar` 推进成建模、验证、测试、故障定位一体化平台 | 🟩 | 🟩 | [ECDAR](https://github.com/Ecdar/ECDAR)、[Ecdar-test](https://github.com/Ecdar/Ecdar-test) 与相关 org 仓库可直接追该工程线源码 | [paper](./gundersen18-effortless-fault-localisation-ecdar/) |
 | ⚡ | `ashok19-sos` | SOS: Safe, Optimal and Small Strategies for Hybrid Markov Decision Processes | 2019 | hybrid MDP 策略难同时安全最优且紧凑 | safe optimal small strategy synthesis | 定题 compact strategy / hybrid MDP | 🟩 | 🟧 | 当前可核到论文与相关工具分支，但 `SOS` 对应源码未见公开 | [paper](./ashok19-sos-safe-optimal-small-strategies-hybrid-markov-decision-processes/) |
 | ⚡ | `larsen19-compact` | Synthesis of Safe, Optimal and Compact Strategies for Stochastic Hybrid Games (Invited Paper) | 2019 | stochastic hybrid games 需要 safe/optimal/compact controllers | 概括 compact strategy synthesis 路线 | 为 `SOS/Coshy` 线定型 | 🟨 | 🟧 | 当前能核到论文与官方 `Coshy` 线索，但对应策略合成源码未见公开 | [paper](./larsen19-synthesis-safe-optimal-compact-strategies-stochastic-hybrid-games/) |
 | ⚡ | `kiviriga20-randref` | Randomized Refinement Checking of Timed I/O Automata | 2020 | symbolic refinement 检查扩展性不足 | randomized walk / falsification-style refinement | 提高 `TIOA` refinement 可扩展性 | 🟩 | 🟩 | 可沿 [ECDAR](https://github.com/Ecdar/ECDAR) 与 [Reveaal](https://github.com/Ecdar/Reveaal) 追 `TIOA` 检查实现主线 | [paper](./kiviriga20-randomized-refinement-checking-tioa/) |
 | ⚡ | `muniz20` | Urgent Partial Order Reduction for Extended Timed Automata | 2020 | timed automata 长期难以直接套用经典 POR | 只在 zero-time urgent states 上做 stubborn-set reduction，并结合 zone 与读写分析 | 把 partial-order reduction 真正做进现代 `Uppaal` `XTA` 里 | 🟩 | 🟨 | 论文给出 reproducibility package `DEIS-Tools/upor`，但 `Uppaal` 主工具对应 feature 的完整源码快照未直接公开 | [paper](./muniz20-urgent-partial-order-reduction-extended-timed-automata/) |
+| 🛠️ | `njor20` | Conformance Testing in UPPAAL: A diabolic approach | 2020 | conformance testing 仍主要依赖专门工具，尚未直接复用 `UPPAAL` verifier 主线 | 用 angelic/demonic completion、diabolic completion、kill-state reachability 与 `Yggdrasil` 把 non-conformance 改写成 `UPPAAL` reachability | 把 `UPPAAL` verifier 重新解释成 conformance checker 与 test-case generator | 🟩 | 🟥 | 论文提到基于 `UPPAAL` Java library 与 `Yggdrasil` 生成流程，但当前未见稳定公开源码仓库 | [paper](./njor20-conformance-testing-uppaal-diabolic-approach/) |
 | ⚡ | `kiviriga21-randreach` | Randomized Reachability Analysis in Uppaal: Fast Error Detection in Timed Systems | 2021 | rare errors 难快速发现 | randomized reachability / fast falsification | 引入轻量 error-detection 工作流 | 🟩 | 🟧 | 当前可沿 [downloads](https://uppaal.org/downloads/) 与 [documentation](https://docs.uppaal.org/) 追工具能力，但 randomized reachability 主实现源码未见公开 | [paper](./kiviriga21-randomized-reachability-analysis-uppaal/) |
 | ⚡ | `jensen22-mcts` | Monte Carlo Tree Search for Priced Timed Automata | 2022 | priced timed automata 规划搜索代价高 | `Monte Carlo Tree Search` | 把 planning search 接到 PTA 分析 | 🟨 | 🟧 | 当前未见论文对应 `MCTS` 扩展源码公开；至多能沿 [downloads](https://uppaal.org/downloads/) 追主工具可运行版本 | [paper](./jensen22-monte-carlo-tree-search-priced-timed-automata/) |
 | 🧱 | `lu22` | Bounded DBM-based clock state construction for timed automata in Uppaal | 2022 | 在线恢复目标 `DBM` 状态时，直接回放历史会让恢复序列越跑越长 | `O-phase + C-phase` 的 bounded clock-state reconstruction | 把恢复序列长度压成只依赖时钟数的有界构造 | 🟢 | 🟢 | 论文明确给出 `Uppyyl simulator`、`uppyyl-state-constructor` 与实验仓库等 GitHub 入口 | [paper](./lu22-bounded-dbm-clock-state-construction-uppaal/) |
 | ⚡ | `goorden23-tioa` | Timed I/O Automata: It is never too late to complete your timed specification theory | 2023 | 旧 `TIOA` 理论与实现仍不完整 | 补全证明并给出新开源实现 | 补齐新一代 `ECDAR` 规范线 | 🟢 | 🟢 | 论文明确指向开源 [ECDAR](https://github.com/Ecdar/ECDAR)；同 org 还有 [Reveaal](https://github.com/Ecdar/Reveaal) 与 [j-Ecdar](https://github.com/Ecdar/j-Ecdar) | [paper](./goorden23-timed-io-automata-never-too-late/) |
 | ⚡ | `jensen23-dynext` | Dynamic Extrapolation in Extended Timed Automata | 2023 | extended timed automata 抽象过粗且开销高 | 面向 `XTA` 的 dynamic extrapolation | 收紧现代 `UPPAAL` 抽象精度 | 🟩 | 🟨 | 当前可拿到 [utap](https://github.com/UPPAALModelChecker/utap) / [UDBM](https://github.com/UPPAALModelChecker/UDBM) 等子库源码，但 dynamic extrapolation 主实现未公开 | [paper](./jensen23-dynamic-extrapolation-extended-timed-automata/) |
 | ⚡ | `brorholt25-coshy` | Uppaal Coshy: Automatic Synthesis of Compact Shields for Hybrid Systems | 2025 | hybrid safety 需要自动 compact shields | automatic synthesis of compact shields | 把 `UPPAAL` 扩到 `Coshy` shielding | 🟨 | 🟧 | 官方 [features](https://uppaal.org/features/) 与 [changelog](https://uppaal.org/changelog/) 已出现 `COSHY` 线索，但当前未见对应源码仓库公开 | [paper](./brorholt25-uppaal-coshy/) |
+| ⚡ | `jensen25` | On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions | 2025 | 多方 timed game 上的 `TATL` 验证比 `TCTL/Tiga` 更强也更难，现有 symbolic 算法覆盖和效率都不够 | 用 `EADG` 编码 `TATL`，定义 `Forceable / Unavoidable` 值函数，把 inclusion checking 推广为 vertex merge，并进一步用 expansion abstraction 消掉 zone inclusion 检查 | 给出首个面向 `TATL` 的 on-the-fly symbolic `Uppaal` 算法，并把实现推进到显著快于朴素方法 | 🟢 | 🟢 | 论文提供 reproducibility package `10.5281/zenodo.15195408`，并说明功能将进入后续 `Uppaal` 发布线 | [paper](./jensen25-on-the-fly-symbolic-algorithm-timed-atl-abstractions/) |
 | ⚡ | `muniz24` | GPU Accelerating Statistical Model Checking for Extended Timed Automata | 2025 | `NSXTA` 的 `SMC` 在 CPU/cluster 上时间和能耗成本都高 | CUDA `SMAcc` + JIT/Polish notation/weakest preconditions/shared memory | 把 `UPPAAL` 风格 `SMC` 推到 GPU 平台 | 🟩 | 🟨 | 论文明确有 `SMAcc` prototype，但未像 `lu22` 那样稳定给出完整公开仓库；当前更接近部分实现线索可追 | [paper](./muniz24-gpu-accelerating-smc-extended-timed-automata/) |
 ## 与应用文库的关系
 
@@ -348,6 +362,7 @@
 
 | 时间 | 更新内容 | 整理策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-03-30 | 新增 **10** 篇 `2004-2025` 的核心技术/扩展条目，补入 `time-optimal testing / priced timed games / CORA scheduling / adaptive testing / discount-optimality / UPPAAL-SMC formalization / strategy evaluation / ECDAR fault localisation / UPPAAL-native conformance / TATL` 主线，并把 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md) 全部回填到 **65** 篇口径 | 只把 `PDF` 实际下载成功且已生成 `paper_content.txt` 的条目正式入账；所有新增顶层条目同步补齐 `bibtex.bib + desc.md`，并按“内容详细程度 + 实现可获取程度”双维口径统一重判；统一论文表同时校正为全局按年份升序、同年按 `Key` 稳定排序 | 把文库从“核心骨架 + 近年抽象优化”推进成同时覆盖 testing、priced/game、SMC、conformance 与 `TATL` 新算法的更完整技术时间线 |
 | 2026-03-29 | 初始化原始 `open_explore/uppaal/`（现 `open_explore/uppaal_tech/`），新增 **11** 篇基础条目，并建立 `README.md`、`GUIDE.md`、`SUMMARY.md` 三个论文集核心文件；随后补入 `behrmann03` 与 `bengtsson02` 的 `paper-*` 子目录及父子导航 README | 只从既有 `UPPAAL/UDBM` 历史论文池挑选一份可用副本，优先完成基础入库，不额外扩新论文；有现成 `content.md` 的直接规范为 `paper_content.txt`，缺失 thesis 级正文的条目用 `tools/pdf_extractor.py` 补齐；对 thesis 型条目把原有拆分子论文与 `content_assets/` 一并带入 | 先搭建 `UPPAAL` 基础文库骨架，再补齐带内嵌子论文条目的父子导航结构，为后续沿专题继续深挖做准备 |
 | 2026-03-29 | 重构 `README.md`、`GUIDE.md`、`SUMMARY.md` 的文库口径，新增官方入口索引、作者主线与双维材料状态体系 | 不再以“文件齐不齐”作为主状态，而是改成“内容详细程度 + 实现可获取程度”；同时把 `🧱 / ⚡ / 🛠️` 合并进统一论文表 | 为后续沿官方 org、官方 docs、核心作者和技术分支系统扩库做准备 |
 | 2026-03-29 | 补充作者年代观察与近年活动判断，并把“实现可获取程度”重定义为严格的源码标准 | 把“当前文库作者”与“较新年份的直接 `UPPAAL` 工作”显式关联，同时把二进制下载与源码实现彻底分开 | 为后续优先补 `2010s/2020s` 的 `SMC / Stratego / Tiga / 现代工具链` 缺口做准备 |

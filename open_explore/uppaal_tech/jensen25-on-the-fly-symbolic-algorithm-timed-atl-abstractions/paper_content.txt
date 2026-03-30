@@ -1,0 +1,1000 @@
+--- Page 1 ---
+On-The-Fly Symbolic Algorithm for Timed ATL
+with Abstractions
+Nicolaj Ø. Jensen /envel⌢pe
+Department of Computer Science, Aalborg University, Denmark
+Kim G. Larsen /envel⌢pe
+Department of Computer Science, Aalborg University, Denmark
+Didier Lime /envel⌢pe
+Nantes Université, École Centrale Nantes, CNRS, LS2N, UMR 6004, F-44000 Nantes, France
+Jiří Srba /envel⌢pe
+Department of Computer Science, Aalborg University, Denmark
+Abstract
+Verification of real-time systems with multiple components controlled by multiple parties is a
+challenging task due to its computational complexity. We present an on-the-fly algorithm for
+verifying timed alternating-time temporal logic (TATL), a branching-time logic with quantifiers
+over outcomes that results from coalitions of players in such systems. We combine existing work
+on games and timed CTL verification in the abstract dependency graph (ADG) framework, which
+allows for easy creation of on-the-fly algorithms that only explore the state space as needed. In
+addition, we generalize the conventional inclusion check to the ADG framework which enables
+dynamic reductions of the dependency graph. Using the insights from the generalization, we present
+a novel abstraction that eliminates the need for inclusion checking altogether in our domain. We
+implement our algorithms in Uppaal and our experiments show that while inclusion checking
+considerably enhances performance, our abstraction provides even more significant improvements,
+almost two orders of magnitude faster than the naive method. In addition, we outperform Uppaal
+Tiga, which can verify only a strict subset of TATL. After implementing our new abstraction in
+Uppaal Tiga , we also improve its performance by almost an order of magnitude.
+2012 ACM Subject Classification Software and its engineering →Model checking; Theory of
+computation→Dynamic programming
+Keywords and phrases Timed ATL, Symbolic Algorithms, Dependency Graphs, Timed Games
+Digital Object Identifier 10.4230/LIPIcs.CONCUR.2025.25
+Related Version Full Version :https://arxiv.org/abs/2506.07802
+Supplementary Material
+Software (Reprod.Package) :https://doi.org/10.5281/zenodo.15195408
+Funding VILLUM INVESTIGATOR project S4OS and ANR project BisoUS ANR-22-CE48-0012.
+1 Introduction
+Correctness is essential for many real-time systems, including distributed communication
+networks, energy grid management, and air traffic control. Ensuring the correctness of such
+systems is challenging due to the number of concurrent internal and external components.
+The interleaved behavior of all these components leads to an exponential growth in the
+number of states, a phenomenon known as the state-space explosion problem [ 14]. Addressing
+this challenge is a core focus of the field of model checking. In this paper, we consider
+real-time systems with components controlled by more than two parties, some cooperative,
+others adversarial. Real examples of such systems include electronic circuits with multiple
+components, perhaps some counterfeit [ 27], and networks of routers located in different
+©Nicolaj Ø. Jensen, Kim G. Larsen, Didier Lime, and Jiří Srba;
+licensed under Creative Commons License CC-BY 4.0
+36th International Conference on Concurrency Theory (CONCUR 2025).
+Editors: Patricia Bouyer and Jaco van de Pol; Article No.25; pp.25:1–25:19
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+25:2 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+A,x≤4 B,x≤5C
+D,x≤3GoalIa1I
+a2
+III
+a3,x≤2
+IIa4,x≤3II
+a5
+III
+a6A⊭⟨⟨I⟩⟩♢Goal
+A⊨⟨⟨II⟩⟩♢Goal
+A⊭⟨⟨III⟩⟩♢Goal
+A⊨⟨⟨I,III⟩⟩♢Goal
+A⊨JIIK♢Goal
+A⊭⟨⟨II⟩⟩(¬CUGoal )
+A⊨⟨⟨I,III⟩⟩(¬CUGoal )
+A⊨⟨⟨I⟩⟩□¬⟨⟨III⟩⟩♢Goal
+A⊭⟨⟨II⟩⟩□¬⟨⟨III⟩⟩♢Goal
+A⊭⟨⟨II⟩⟩♢<5Goal
+(a)An example timed game Awith three players: I, II, and III and a single clock xthat increases as time
+passes. Multiple TATL properties of the system are shown on the right.
+I:⟨ℓ,ν⟩∝⇕⊣√∫⊔≀→
+
+a1ifℓ=A
+a2ifℓ=B∧ν(x) = 5
+λotherwiseIII:⟨ℓ,ν⟩∝⇕⊣√∫⊔≀→
+
+a3ifℓ=B∧ν(x)≤2
+a6ifℓ=D
+λotherwise
+(b)An example strategy profile for player I and III that witnesses A⊨⟨⟨I,III⟩⟩(¬CUGoal ).
+Figure 1
+countries [ 16,6]. We model these systems as timed multiplayer games (TMG) and consider
+properties described in timed alternating-time temporal logic (TATL) [ 14,4]. TMGs are
+generalized timed game automata [ 26,7] and can have more than two players. Like in timed
+games, each discrete action belongs to a specific player and can be executed only at the
+discretion of that player. Consider the example TMG in Figure 1a with three players, I,
+II, and III, and a single real-valued clock x, initially at 0, that increases as time passes.
+From the starting location, A, player III has no strategy to ensure that the system reaches
+theGoallocation, expressed as A⊭⟨⟨III⟩⟩♢Goalin TATL. This is because player I can
+wait in location Auntilx>3and then direct the system to location Cwithout giving III
+any influence. Here, the system can remain indefinitely. On the other hand, II can ensure
+Goalis reached as I and III cannot leave the system in a location where II cannot make
+progress. TATL also allows us to consider coalitions of collaborating players. If players
+I and III work together, then they can ensure Goalis reached without visiting location
+C, expressed asA⊨⟨⟨I,III⟩⟩(¬CUGoal ). We also consider nested properties, such as
+A⊨⟨⟨I⟩⟩□¬⟨⟨III⟩⟩♢Goalwhich states that I can ensure that in all reached states, III does not
+have a strategy to ensure Goalis reached. Furthermore, timed properties add conditions on
+the time passed. For example, A⊭⟨⟨II⟩⟩♢<5Goalstates that II cannot guarantee Goalis
+reached strictly within 5 time units.
+For verification, it is often unnecessary to explore the entire state space to determine
+the correctness of a property. One approach that reduces unnecessary work is to decompose
+the problem into sub-problems and lazily structure them in a dependency graph [ 25,17,18].
+As the process unfolds, sub-problems eventually become trivial, and their solutions are
+used to resolve the more complex dependent problems. In many cases, the root problem
+can be answered without first constructing the entire dependency graph and the process
+can terminate early. This framework was formalized in [ 17,18] using extended abstract
+dependency graphs (EADGs) and has been used to create on-the-fly algorithms for other
+model checking domains [12, 13, 20].
+
+--- Page 3 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:3
+Our contributions
+We develop an on-the-fly TATL algorithm within the EADG framework by providing a sound
+encoding of the problem. Our approach builds upon previous work involving encodings
+for timed systems and alternating-time temporal logic, showing their orthogonality, and
+we provide many semantic details that were left out in previous work. Since TATL is
+a superset of TCTL [ 1,2,4], our algorithm is also the first on-the-fly algorithm for TCTL
+with the generic freeze operator. Moreover, we formalize vertex merging in EADGs as
+a generalization of inclusion checking from prior work [ 13] and incorporate it into our
+encoding. In addition, this generalization also leads to an expansion abstraction that removes
+the need for conventional inclusion checking in our encoding altogether. Finally, we implement
+and evaluate various configurations of our algorithm and compare their performance to the
+state-of-the-art model checker for real-time games Uppaal Tiga [13,9]. Our configuration
+with inclusion checking is, as expected, on par with Tigaon the subset of formulae that
+Tigacan handle, however, incorporating our expansion abstraction improves performance
+by nearly an order of magnitude.
+Related work
+The tool Uppaal Tiga [13,9], which has since been integrated in Uppaal [19], uses a similar
+method to solve a simpler version of the problem: strategy synthesis in two-player timed
+games. In fact, [ 13] was published 20 years ago at CONCUR’05, and our paper brings the
+foundational work of that paper into the modern framework and expands it to the broader
+TATL logic. Tigawas the first to adapt the dependency graph-based on-the-fly algorithm
+by Liu and Smolka [ 25] to model checking, and the idea was eventually generalized into the
+EADG framework [ 17,18].Tigarelies on inclusion checking to merge vertices and improve
+performance, a detail that has not been generalized to the EADG framework until this
+paper. This paper also includes many semantic details that were left out in [ 13]. Alternating-
+time temporal logic (ATL), defined by T. Henzinger and R. Alur in [ 4] as an extension to
+branching-time logic [ 14], introduces ways to quantify over possible outcomes resulting from
+coalitions of players working together. ATL properties with a single coalition can be reduced
+to a synthesis problem in a two-player game, a problem that has already been intensively
+studied [26,7,15,13]. However, it is also possible to nest the coalition quantifiers to express
+more intriguing properties. Recently, Carlsen et al. [ 12] used the EADG framework for
+on-the-fly verification of (untimed) ATL properties in concurrent games with multiple players.
+We extend this work to the setting of timed games and timed logics [ 1,2]. An alternative
+approach to checking branching-time logic properties is the bottom-up algorithm [ 1,14,7].
+This method begins by identifying all states that satisfy the relevant atomic propositions. It
+then iteratively propagates these results to compute states satisfying larger sub-properties
+until the original property is fully evaluated. While efficient when processing all reachable
+states is unavoidable, this approach may also waste time on unreachable states or irrelevant
+state-property combinations. Our on-the-fly algorithm mitigates these issues by computing
+only the necessary states and sub-properties on demand. Our new expansion abstraction
+relaxes the relevance criteria, bringing it closer to the bottom-up algorithm in this regard.
+Paper structure
+In Section 2, we present the TMG formalism and TATL logic followed by the general EADG
+framework. Then we present our encoding of the TATL problem in EADGs in Section 3. In
+Section 4, we introduce vertex merging to EADGs and an updated algorithm, allowing us
+CONCUR 2025
+
+--- Page 4 ---
+25:4 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+to perform inclusion checking in our encoding, and we introduce our expansion abstraction.
+Finally, in Section 5, we evaluate our algorithm and compare it against Uppaal Tiga on
+the problem instances where it is possible.
+2 Preliminaries
+We shall first introduce the model of timed games with multiple players as well as a timed
+logics for describing properties of such systems. Afterwards, we present the extended abstract
+dependency graph framework.
+2.1 Timed Multiplayer Games
+LetXbe a finite set of real-valued variables called clocks. LetC(X)be the set of clock
+constraints over the clocks Xgenerated by the following abstract syntax:
+g::=x▷◁k|x−y▷◁k|g1∧g2
+wherek∈Zandx,y∈Xand▷◁∈{<,≤,=,≥,>}. LetB(X)⊆C(X)be the subset
+that does not use any diagonal constraints of the form x−y ▷◁ k. Let ˆB(X)⊆B(X)be
+the subset that also does not use any constraints of the form x < k. A clock valuation
+ν:X→R≥0assigns each clock a real value. The valuation denoted− →0assigns 0 to each
+clock. We write ν[Y]for a valuation that assigns 0 to any clock x∈Yand assigns ν(x)to any
+clockx∈X\Y. Ifδ∈R≥0thenν+δdenotes the valuation such that (ν+δ)(x) =ν(v) +δ
+for allx∈X. Ifg∈C(X), we writeν⊨gand say that νsatisfiesgif replacing all clocks in
+gwith their respective value in νmakes the expression evaluate to true.
+▶Definition 1 (Timed Automaton) .Atimed automaton (TA) is a 6-tuple⟨L,ℓinit,X,A,T,I⟩
+whereLis a finite set of locations, ℓinit∈Lis the initial location, Ais a set of actions, Xis
+a finite set of real-valued clocks, T⊆L×B(X)×A×2X×Lis a finite set of edges each
+with a unique action from A, andI:L→ˆB(X)assigns an invariant to each location.
+The semantics of a TA A=⟨L,ℓ0,X,A,T,I⟩can be described with a labeled transition
+system. The states are pairs ⟨ℓ,ν⟩whereℓ∈Lis a location and ν:X→R≥0is a valuation
+such thatν⊨I(ℓ)andQis the set of all states. Transition labels are discrete actions
+or real-valued delays, i.e. A∪R≥0, and the transition relation →is a union of the binary
+relationsa− →andδ− →defined over states as follows:
+⟨ℓ,ν⟩a− →⟨ℓ′,ν′⟩if there exists an edge ⟨ℓ,g,a,Y,ℓ′⟩∈Tsuch thatv⊨I(ℓ)∧g,v′=v[Y],
+andv′⊨I(ℓ′), and
+⟨ℓ,ν⟩δ− →⟨ℓ,ν′⟩ifδ>0,v⊨I(ℓ),v′=v+δ, andv′⊨I(ℓ).
+Arunin a TA is a sequence ⟨ℓ0,ν0⟩t0−→⟨ℓ1,ν1⟩t1−→⟨ℓ2,ν2⟩···such thatti∈A∪R≥0. A
+run ismaximal if it contains an infinite number of discrete action transitions, ends with an
+infinite number of delay transitions that sum to ∞(divergence), or no transition is possible
+in the final state (a deadlock). For the latter case, there is always a well-defined final state
+since invariants of the form x<kare disallowed. The set RunsA(⟨ℓ,ν⟩)contains all maximal
+runs starting from ⟨ℓ,ν⟩. Given a run σwe writeσ[i]for theith state⟨ℓi,νi⟩.
+▶Definition 2 (Timed Multiplayer Game) .Atimed multiplayer game (TMG) withN
+players is a timed automaton where the actions Ahave been partitioned into Ndisjoint sets,
+A=A1⊎···⊎AN. We denote by Σ ={1,...,N}the set of players.
+
+--- Page 5 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:5
+Strategies and outcomes
+A (memoryless) strategyfor a player p∈Σis a function fp:Q→Ap∪{λ}that maps each
+state toλor a discrete action that is enabled in the state and belongs to p. The strategy
+informspwhat to do in the given state and λis a special symbol indicating that player p
+should do nothing and wait. For states where a delay transition is not possible, a strategy
+can only output λif the player has no enabled actions available. Let Fpbe the set of all
+strategies for the player p. ByξSwe denote a strategy profile that assigns to each player
+p∈S⊆Σa strategyfp∈Fp, and Ξ(S)is the set of all such strategy profiles over S. When
+players pick actions according to their strategies, it restricts the possible runs. We write
+OutA(ξS,⟨ℓ,ν⟩)⊆RunsA(⟨ℓ,ν⟩)for the subset of outcomes (runs) induced when the players
+ofSadhere to the strategies of ξS.
+▶Definition 3 (Outcomes) .LetA=⟨L,ℓinit,X,A,T,I⟩be a TMG with players Σ =
+{1,...,N}, let⟨ℓ0,ν0⟩be a state where ν0⊨I(ℓ0), and letξS∈Ξ(S)be a strategy profile
+forS⊆Σ. A maximal run σ=⟨ℓ0,ν0⟩t0−→⟨ℓ1,ν1⟩t1−→⟨ℓ2,ν2⟩···∈RunsA(⟨ℓ0,ν0⟩)is in
+OutA(ξS,⟨ℓ0,ν0⟩)iff the following conditions hold:
+for alli≥0such thatti=δ∈R≥0we have that ξS(p)(⟨ℓi,νi+δ′⟩) =λfor all 0≤δ′<δ
+and allp∈S,
+for alli≥0such thatti=a∈Awe have either a /∈/uniontext
+p∈SAporξS(p)(⟨ℓi,νi⟩) =awith
+a∈Apfor somep∈S.
+Note that we allow Zeno behavior (an infinite subsequence consisting of no delays) from
+both the coalition Sand the opposition S.
+2.2 Timed Alternating-Time Temporal Logic
+The alternating-time temporal logic [ 4] is a logic that offers quantification over possible
+outcomes resulting from a coalition of players in a multiplayer game.
+▶Definition 4 (Alternating-Time Temporal Logic) .Given a set of atomic propositions Π,
+a set of clocks X, and a set of players Σ, analternating-time temporal logic (ATL) property
+conforms to the abstract syntax:
+ϕ::=π|g|¬ϕ1|ϕ1∨ϕ2|⟨⟨S⟩⟩⃝ϕ1|⟨⟨S⟩⟩(ϕ1Uϕ2)|JSK(ϕ1Uϕ2)
+whereπ∈Π,g∈C(X), andS⊆Σis a coalition of players.
+Given a TMGAwith players Σ ={1,...,N}and a function Lab:L→2Πlabeling
+locations with atomic propositions, the satisfaction relation ⊨over states and ATL properties
+is defined inductively as follows:
+⟨ℓ,ν⟩⊨πiffπ∈Lab(ℓ),
+⟨ℓ,ν⟩⊨giffν⊨g,
+⟨ℓ,ν⟩⊨¬ϕiff⟨ℓ,ν⟩̸⊨ϕ,
+⟨ℓ,ν⟩⊨ϕ1∨ϕ2iff⟨ℓ,ν⟩⊨ϕ1or⟨ℓ,ν⟩⊨ϕ2,
+⟨ℓ,ν⟩⊨⟨⟨S⟩⟩⃝ϕ1iff there exists a strategy profile ξS∈Ξ(S)such that for all maximal
+runsσ=⟨ℓ0,ν0⟩t0−→⟨ℓ1,ν1⟩t1−→⟨ℓ2,ν2⟩···∈OutA(ξS,⟨ℓ,ν⟩)we haveσ[i+ 1]⊨ϕ1where
+i≥0is the smallest isuch thatti∈Aand such an imust exist,1
+1The next operator is usually left out of timed systems, but it is well-defined with action-based semantics
+like here.
+CONCUR 2025
+
+--- Page 6 ---
+25:6 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+⟨ℓ,ν⟩⊨⟨⟨S⟩⟩(ϕ1Uϕ2)iff there exists a strategy profile ξS∈Ξ(S)such that for all maximal
+runsσ∈OutA(ξS,⟨ℓ,ν⟩)we haveσ⊨rϕ1Uϕ2(defined below),
+⟨ℓ,ν⟩⊨JSK(ϕ1Uϕ2)iff for all strategy profiles ξS∈Ξ(S)there exists a maximal run
+σ∈OutA(ξS,⟨ℓ,ν⟩)such thatσ⊨rϕ1Uϕ2,
+and for a maximal run σ=⟨ℓ0,ν0⟩t0−→⟨ℓ1,ν1⟩t1−→⟨ℓ2,ν2⟩···we haveσ⊨rϕ1Uϕ2iff there
+exists ani≥0such that:
+for allj <i:
+iftj∈R≥0then for all δ∈[0,tj)we have⟨ℓj,νj+δ⟩⊨ϕ1, or
+iftj∈Ainstead then⟨ℓj,νj⟩⊨ϕ1, and
+either⟨ℓi,νi⟩⊨ϕ2orti∈R≥0and there exists a δ∈[0,ti)such that⟨ℓi,νi+δ⟩⊨ϕ2,
+and for allδ′∈[0,δ)we have⟨ℓi,νi+δ′⟩⊨ϕ1∨ϕ2. We note that the disjunction ϕ1∨ϕ2
+is necessary for timed big-step runs (instead of simply ϕ1). See [5] for details.
+We note that J∅K≡∃and⟨⟨∅⟩⟩≡∀ and thus ATL is a superset of CTL [ 4]. Other
+notable abbreviations and equivalences are π∨¬π≡trueand⟨⟨S⟩⟩(trueUϕ)≡⟨⟨S⟩⟩♢ϕand
+¬⟨⟨S⟩⟩♢ϕ≡JSK□¬ϕand¬⟨⟨S⟩⟩⃝ϕ≡JSK⃝¬ϕ.
+▶Definition 5 (Timed ATL) .Timed alternating-time temporal logic (TATL) is the timed
+extension of ATL and is defined as ATL but with a new freeze operator: z.ϕ, wherez∈Xis
+aformula clock andϕis another TATL property. Note that a formula clock zmay not be
+used in the guards and invariants of the TMG. Given a state ⟨ℓ,ν⟩∈Qwe have⟨ℓ,ν⟩⊨z.ϕ
+iff⟨ℓ,ν[z]⟩⊨ϕ.
+The TATL freeze operator is commonly used indirectly through the more intuitive
+temporal operator U◁k(where ◁∈{<,≤}). For example, if zis a new clock that does not
+appear elsewhere in the model or the formula then:
+⟨⟨S⟩⟩(ϕ1U◁kϕ2)≡z.⟨⟨S⟩⟩((ϕ1∧z◁k)Uϕ2)
+meaning that coalition S⊆Σhas a strategy profile such that when adhered to, the system
+always reaches a state satisfying ϕ2(strictly) within ktime units by a path where ϕ1
+invariantly holds.
+An example strategy profile that witnesses A⊨⟨⟨I,III⟩⟩(¬CUGoal )for the TMGAin
+Figure 1a is given in Figure 1b. Since some states are never visited under this strategy, a
+partial strategy profile would also suffice as a witness. Such partial strategy witnesses enable
+our algorithm to terminate early for positive cases.
+2.3 Extended Abstract Dependency Graphs
+Apartially ordered set ⟨D,⊑⟩is a setDtogether with a binary relation ⊑⊆D×D that is
+reflexive, transitive and anti-symmetric. Given partially ordered sets ⟨D1,⊑1⟩and⟨D2,⊑2⟩,
+a function f:D1→D 2ismonotonically increasing ifd⊑1d′impliesf(d)⊑2f(d′)and
+monotonically decreasing ifd⊑1d′impliesf(d)⊒2f(d′). When we just say monotonic we
+refer to increasing monotonicity. When a function has multiple inputs, monotonicity is with
+respect to a specific input. Unless we specify further, our monotonic multi-input functions
+are monotonic with respect to all inputs.
+▶Definition 6 (Noetherian Ordering Relation) .ANoetherian ordering relation with a least
+element (NOR) is a triple⟨D,⊑,⊥⟩such that⟨D,⊑⟩is a partially ordered set, ⊥∈Dis the
+least element such that ⊥⊑dfor alld∈D, and⊑satisfies the stabilizing ascending chain
+condition: for any chain d1⊑d2⊑d3⊑···there exists a point isuch thatdi=djfor all
+j >i.
+
+--- Page 7 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:7
+A
+max( ,)
+B
+−C
+min( ,)
+D
+4+E
+max( ,+3)F
+3
+G
+10H
+2C0C1
+(a)Example EADG.vαC0
+minαC1
+min
+A- 8
+B- 8
+C- 3
+D14 14
+E6 6
+F3 3
+G10 10
+H2 2
+(b)Fixed points of compon-
+entsC0andC1.
+A
+max( ,)
+B
+−f( )C
+min( ,)
+D
+4+F
+3where
+f(x) =x+ 3
+G
+10H
+2(c)The EADG after merge by E⪯fF
+wheref(x) =x+ 3.
+Figure 2 (a) An example EADG GoverD=⟨N0∪{∞},≥,∞⟩. For each vertex v, the value
+functionE(v)is displayed below the vertex, and the edges E(v)are displayed using small circles inside
+the value functions, indicating the arity of the value function as well as which vertex assignment
+is used as input. Leaf nodes F,G, andHhave no dependencies and their value function is a
+constant function. Since E(B)is non-monotonic, the graph has two components C0andC1which
+are highlighted with dashed boxes. (b) The fixed-point assignments of component C0andC1found
+by a fixed-point computation. (c) The EADG G[E∝⇕⊣√∫⊔≀→fF]where vertex Ehas been removed through
+derivationE⪯fF. The value function of vertex Bis pointwise composed with the derive function
+fon the second input which now points to the assignment of Finstead. Vertex Hnow has no
+dependents and can be pruned.
+▶Definition 7 (Abstract Dependency Graph) .Anabstract dependency graph (ADG) is tuple
+⟨V,E,D,E⟩whereVis a finite set of vertices, E:V→V∗is an edge function from vertices
+to strings of vertices, Dis a NOR, andE(v) :Dn→Dis a monotonic value function at
+vertexv∈Vthat takesnarguments where n=|E(v)|.
+We writev→v′ifv,v′∈Vandv′∈E(v), and→+denotes the transitive closure of →.
+The empty string of vertices is denoted ε. VerticesvwhereE(v) =εhave constant value
+functions by definition.
+▶Definition 8 (Extended Abstract Dependency Graph) .Anextended abstract dependency
+graph (EADG) is a tuple⟨V,E,D,E⟩whereV,E, andDare defined as for ADGs, but now
+E(v) :Dn→Dis a (possibly non-monotonic) value function at vertex v∈Vthat takesn
+arguments with n=|E(v)|. Furthermore, if E(v)is non-monotonic, then vis not in a cycle,
+i.e. it is not the case that v→+v.
+EADGs can be used to encode and solve various problems. Each vertex in the graph
+represents a problem and the NOR values Drepresent possible answers to problems with
+increasing accuracy. The value function at each vertex describes how the answer to the
+problem represented by the vertex can be derived from the answers to other (sub)problems.
+To describe this formally, we must partition the graph into components. Consider the
+function:
+dist(v) = max{m∈N|∃v0v1···vn∈V∗,v=v0,∀i∈{1,...,n},vi−1→vi, (1)
+m=|{vi|E(vi)is non-monotonic }|}
+describing how many non-monotonic value functions a vertex depends on. Since an EADG
+has no cycles with non-monotonic functions, dist(v)is well-defined. The subgraphs induced
+bydistare called components and Ci⊆Vis theith component where dist(v)≤ifor all
+v∈Ci. Component C0depends only on monotonic value functions.
+CONCUR 2025
+
+--- Page 8 ---
+25:8 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+Letα:V→Dbe an assignment from vertices to NOR values with α⊥being the
+assignment such that α⊥(v) =⊥for all vertices v∈V. LetF0be an update function such
+that:
+F0(α)(v) =E(v)(α(v1),α(v2),...,α (vn)) (2)
+wherev∈C0andE(v) =v1v2...vn. Since all value functions in C0are monotonic and Dis
+a NOR, repeated application of F0onα⊥eventually reaches a least fixed point, i.e. there
+exists anm> 0such thatFm
+0(α⊥) =Fm+1
+0(α⊥). We denote this fixed point αC0
+min. For each
+component Ciwherei>0the update function Fiis defined as follows:
+Fi(α)(v) =/braceleftigg
+E(v)(α(v1),α(v2),...,α (vn)) ifE(v)is monotonic
+E(v)(αCi−1
+min(v1),αCi−1
+min(v2),...,αCi−1
+min(vn))otherwise(3)
+whereE(v) =v1v2...vnand the assignment αCi−1
+minis the minimal fixed point on component
+Ci−1, i.e. the fixed points are defined inductively [ 18]. Finally, let Cmaxbe the component
+associated with the greatest distin EADGG, and letαG
+mindenoteαCmax
+min. Given a vertex
+v0∈V, the value αG
+min(v0)can be efficiently found using the sound and complete on-the-fly
+algorithm introduced in [18].
+A small example EADG can be seen in Figure 2a with the NOR D=⟨N0∪{∞},≥,∞⟩.
+In this domain, chains are descending, stabilizing before or at 0. In Figure 2b we show the
+minimum fixed-point assignment of the components in the example EADG.
+3 Encoding TATL to EADGs
+In this section we will introduce our symbolic encoding of the TATL problem to EADGs.
+Symbolic Operations on Zones and Federations
+Due to the uncountable size of the state space, automated verification of timed automata
+groups the concrete states into effectively representable sets of states and valuations [ 1,10].
+We shall now define some useful operators on such sets. Let JgK={ν∈RX
+≥0|ν⊨g}be the
+set of all valuations satisfying g∈C(X). Azoneis a setZ⊆RX
+≥0of valuations where for
+someg∈C(X)we have JgK=Z. A finite union of zones is called a federation. If W⊆RX
+≥0
+is a set of valuations, then:
+W↗={ν+δ|ν∈W,δ∈R≥0}are the timed successors of W,
+W↙={ν′∈RX
+≥0|∃ν∈W,∃δ∈R≥0,ν′+δ=ν}are the timed predecessors of W,
+W[Y] ={ν[Y]|ν∈W}is a reset of the clocks Y⊆XinW,
+W#x={ν′∈RX
+≥0|∃ν∈W,∀y∈X,y̸=x=⇒ν(y) =ν′(y)}frees clockx∈XinW.
+Zones are closed under all the above operations [ 10]. Now consider a set of states Q′⊆Q
+of a timed automaton ⟨L,ℓinit,X,A,T,I⟩. We extend these operations on clock valuations
+to the sets of states such that if F∈{·↗,·↙,·[Y],·#x}thenF(Q′) ={⟨ℓ,ν′⟩|∃⟨ℓ,ν⟩∈
+Q′,ν′∈F({ν})∩JI(ℓ)K}. Given an action a∈A, we define the discrete a-predecessors
+anda-successors as Preda(Q′) ={⟨ℓ,ν⟩|∃⟨ℓ′,ν′⟩∈Q′,⟨ℓ,ν⟩a− →⟨ℓ′,ν′⟩}andPosta(Q′) =
+{⟨ℓ,ν⟩|∃⟨ℓ′,ν′⟩∈Q′,⟨ℓ′,ν′⟩a− →⟨ℓ,ν⟩}, respectively. Both PredaandPostapreserve zones
+and federations [ 10]. When the automata is a TMG with players Σ ={1,...,N}andS⊆Σ
+is a coalition, then we let ASdenote/uniontext
+p∈SAp. TheS-controllable discrete predecessors of
+the coalition is defined by PredS(Q′) =/uniontext
+a∈ASPreda(Q′). Similarly, the S-uncontrolled
+
+--- Page 9 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:9
+discrete predecessors is PredS(Q′)whereS= Σ\S. Safe timed predecessors are those that
+avoid a set of states Q′′⊆Qeven as time elapses. As defined in [13]:
+Predλ(Q′,Q′′) ={⟨ℓ,ν−δ⟩|⟨ℓ,ν⟩∈Q′,δ≥0,∀δ′∈[0,δ],⟨ℓ,ν−δ′⟩/∈Q′′}.
+The states of Q′where time cannot pass are defined as Q′∖↗={⟨ℓ,ν⟩∈Q′|∃”x≤k”∈
+I(ℓ),ν(x) =k}. These states are also called time-locked . We note that the ·∖↗operator
+preserves federations. Finally, let Zone (Q)⊆2Qbe all subsets of Qthat can be represented
+with a location-zone pair ⟨ℓ,Z⟩(also called a symbolic state), and let Fed(Q)⊆2Qbe all
+subsets ofQthat can be represented with a location-federation pair ⟨ℓ,/uniontext
+iZi⟩.
+The Encoding
+We shall now encode the TATL problem on TMGs as an EADG Gin order to answer the
+question: given a TMG A=⟨L,ℓinit,X,A,T,I⟩with players Σ ={1,...,N}and a TATL
+formulaϕ0, is it the case that ⟨ℓinit,− →0⟩⊨ϕ0? The vertices in EADG will have the form
+⟨R,ϕ⟩whereR∈Zone (Q)is a symbolic state and ϕis a TATL formula (a sub-formula of ϕ0).
+We shall sometimes specify the location and zone of Rand write⟨ℓ,Z,ϕ⟩for vertices instead,
+but the notation is often simpler for sets of states so we use Rin those cases. Our root
+vertex is⟨ℓinit,{− →0}↗∩JI(ℓinit)K,ϕ0⟩and all dependencies of all vertices are generated using
+operators that preserve symbolic states. Without loss of generality, we assume all clocks are
+bounded2[13,10] and hence there are only finitely many symbolic states in practice, and
+therefore the dependency graph is finite. Our assignment domain is the NOR ⟨Fed(Q),⊆,∅⟩
+and we typically denote elements from our NOR using W. We restrict ourselves such that
+αG
+min(⟨R,ϕ⟩)⊆Rby construction and our goal is that ⟨ℓ,ν⟩∈αG
+min(⟨R,ϕ⟩)iff⟨ℓ,ν⟩⊨ϕ.
+The value functions of our EADG rely on the helper function Forceable S(Wϕ1,Wϕ2,W)and
+its counterpart Unavoidable S(Wϕ1,Wϕ2,W)whereSis a coalition of players, Wϕ1andWϕ2
+are sets of states (typically associated with two TATL formulae), and Wis a set of states.
+We have⟨ℓ,ν⟩∈Forceable S(Wϕ1,Wϕ2,W)if and only if there exists a δ≥0such that
+⟨ℓ,ν⟩δ− →⟨ℓ,ν+δ⟩and
+for allδ′∈[0,δ]either⟨ℓ,ν+δ′⟩∈Wϕ2, or⟨ℓ,ν+δ′⟩∈Wϕ1and for all ai∈ASif
+⟨ℓ,ν+δ′⟩ai−→⟨ℓ′,ν′⟩then⟨ℓ′,ν′⟩∈W,
+and additionally
+⟨ℓ,ν+δ⟩∈Wϕ2, or
+⟨ℓ,ν+δ⟩aj−→⟨ℓ′,ν′⟩∈Wfor someaj∈AS, or
+⟨ℓ,ν+δ⟩̸δ′′
+−→for anyδ′′>0and⟨ℓ,ν+δ⟩aj−→⟨ℓ′,ν′⟩∈Wfor someaj∈AS.
+That is, the set is the subset of Wϕ1∪Wϕ2where coalition Scan controllably get to Wϕ2
+with delays or to Wwith delays and a discrete action all while staying in Wϕ1until then.
+The set can be described symbolically as follows:
+Forceable S(Wϕ1,Wϕ2,W) =
+Predλ/parenleftbig
+Wϕ2∪PredS(W)∪H,/bracketleftbig
+Wϕ1∪PredS(W)/bracketrightbig
+\Wϕ2/parenrightbig
+(4)
+whereH=Q∖↗∩PredS(W)\Pred Σ(W). (5)
+Similarly, we have ⟨ℓ,ν⟩∈Unavoidable (Wϕ1,Wϕ2,W)if and only if there exists a δ≥0such
+that⟨ℓ,ν⟩δ− →⟨ℓ,ν+δ⟩and
+2It is also possible to use extrapolation techniques instead [8].
+CONCUR 2025
+
+--- Page 10 ---
+25:10 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+for allδ′∈[0,δ)we have⟨ℓ,ν+δ′⟩∈Wϕ1and for all ai∈ASif⟨ℓ,ν+δ′⟩ai−→⟨ℓ′,ν′⟩
+then⟨ℓ′,ν′⟩∈W,
+and additionally
+⟨ℓ,ν+δ⟩∈Wϕ2, or
+⟨ℓ,ν+δ⟩∈Wϕ1and⟨ℓ,ν+δ⟩aj−→⟨ℓ′,ν′⟩∈Wfor someaj∈AS, or
+⟨ℓ,ν+δ⟩∈Wϕ1and⟨ℓ,ν+δ⟩̸δ′′
+−→for anyδ′′>0and for allai∈ASif⟨ℓ,ν+δ′⟩ai−→
+⟨ℓ′,ν′⟩then⟨ℓ′,ν′⟩∈Wand there exists at least one ai∈ASsuch that⟨ℓ,ν+δ⟩ai−→.
+That is, the set contains the subset of Wϕ1∪Wϕ2where coalition Scannot avoid that the
+system stays in Wϕ1and eventually reaches Wϕ2through delays, or reaches Wthrough
+a delay followed by a discrete action. The set can be described symbolically as follows:
+Unavoidable S(Wϕ1,Wϕ2,W) =
+Predλ/parenleftbig
+Wϕ2∪PredS(W)∪H,/bracketleftbig
+Wϕ1∪(PredS(W)\PredS(W))/bracketrightbig
+\Wϕ2/parenrightbig
+(6)
+whereH=Q∖↗∩PredS(W). (7)
+Assuming a fixed ordering of actions A={a1,...,an}, we now define E(v)andE(v)of the
+EADG as follows based on the form of vertex v:
+Casev=⟨R,π⟩:E(v) =εandE(v)(ε) ={⟨ℓ,ν⟩∈R|π∈Lab(ℓ)}.
+Casev=⟨R,g⟩:E(v) =εandE(v)(ε) ={⟨ℓ,ν⟩∈R|ν∈JgK}.
+Casev=⟨R,¬ϕ⟩:E(v) =⟨R,ϕ⟩andE(v)(W) =R\W.
+Casev=⟨R,ϕ 1∨ϕ2⟩:E(v) =⟨R,ϕ 1⟩⟨R,ϕ 2⟩andE(v)(W1,W2) =W1∪W2.
+Casev=⟨R,ϕ 1∧ϕ2⟩:E(v) =⟨R,ϕ 1⟩⟨R,ϕ 2⟩andE(v)(W1,W2) =W1∩W2.
+Casev=⟨R,z.ϕ⟩:E(v) =⟨R[z]↗,ϕ⟩andE(v)(W) = (W∩Q[z])#z∩R.
+Casev=⟨R,⟨⟨S⟩⟩⃝ϕ⟩:
+E(v) =va1...vanwherevai=⟨Postai(R)↗,ϕ⟩
+E(v)(Wa1,...,Wan) =Forceable S(R,∅,/uniondisplay
+iWai)
+Casev=⟨R,⟨⟨S⟩⟩(ϕ1Uϕ2)⟩:
+E(v) =⟨R,ϕ 1⟩⟨R,ϕ 2⟩va1...vanwherevai=⟨Postai(R)↗,⟨⟨S⟩⟩(ϕ1Uϕ2)⟩
+E(v)(Wϕ1,Wϕ2,Wa1,...,Wan) =Forceable S(Wϕ1,Wϕ2,/uniondisplay
+iWai)
+Casev=⟨R,JSK(ϕ1Uϕ2)⟩:
+E(v) =⟨R,ϕ 1⟩⟨R,ϕ 2⟩va1...vanwherevai=⟨Postai(R)↗,JSK(ϕ1Uϕ2)⟩
+E(v)(Wϕ1,Wϕ2,Wa1,...,Wan) =Unavoidable S(Wϕ1,Wϕ2,/uniondisplay
+iWai)
+We remark that the elements of the NOR ⟨Fed(Q),⊆,∅⟩have finite representations using
+the data structure known as a difference bound matrix [10,14]. All value functions are
+effectively computable since all constituent operations have known algorithms on difference
+bound matrices [10, 13].
+In Figure 3, we show a fragment of the dependency graph generated when checking if
+ϕ=⟨⟨I,III⟩⟩(¬CUGoal )holds in the initial state of Afrom Figure 1a. Eventually, the
+algorithm assigns Jx≤3Kto the vertex⟨A,x≤4,ϕ⟩and then we can terminate as we now
+know that the ϕholds for the initial state ⟨A,− →0⟩.
+We will now state the correctness of the encoding and its supporting lemma.
+
+--- Page 11 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:11
+A,x≤4,ϕ
+Forceable{I,III}(, , )
+/uniontextA,x≤4,¬C
+Jx≤4K
+A,x≤4,Goal
+∅B,x≤5,ϕ
+Forceable{I,III}(, , )
+/uniontextB,x≤5,¬C
+Jx≤5K
+B,x≤5,Goal
+∅···
+···
+···a1 a2
+a3
+a4
+Figure 3 A fragment of the EADG for ϕ=⟨⟨I,III⟩⟩(¬CUGoal )inAfrom Figure 1a.
+▶Lemma 9 (Monotonically Safe) .The EADG encoding of TATL has no cycles of non-
+monotonic value functions and dist(⟨R,ϕ⟩)is the greatest number of nested negations in
+ϕ.
+▶Theorem 10 (Encoding Correctness) .Given a TMGA=⟨L,ℓinit,X,A,T,I⟩, a set of
+statesR∈Zone (Q)such thatR=R↗, a state⟨ℓ,ν⟩∈R, and a TATL formula ϕ, then
+⟨ℓ,ν⟩⊨ϕiff⟨ℓ,ν⟩∈αG
+min(⟨R,ϕ⟩)using the presented EADG encoding of TATL.
+3.1 Unsatisfied states
+We now detail an improvement also investigated in [ 13]. In the encoding presented above,
+the NOR domain represents the states for which the formula is definitely satisfied. It is also
+possible to define an encoding in which the NOR domain represents the states in which the
+formula is definitely not satisfied. It is easy to see that the composition of two NORs is also
+a NOR [ 17], so we can do both simultaneously. If the initial state is ever included in the
+set of unsatisfied valuations then we know that the property does not hold. Hence, with
+this extension, we can terminate early for many negative cases as well. The encoding using
+the unsat NOR is trivial for clock constraints g∈C(X), and operators∧,∨, and¬, but for
+completeness, we state the encoding of formulae containing the ⃝andUoperator below.
+For allv∈V, we use the same edges E(v), but different value functions, denoted Ec, for
+updating the unsatisfied part of the composed NOR. Here Mis used to denote elements in
+the unsat NOR and we assume the same ordering of actions A={a1,...,an}from earlier:
+Casev=⟨R,⟨⟨S⟩⟩⃝ϕ:Ec(v)(Ma1,...,Man) =Unavoidable S(R,∅,/uniontext
+iMai)
+Casev=⟨R,⟨⟨S⟩⟩(ϕ1Uϕ2):
+Ec(v)(Mϕ1,Mϕ2,Ma1,...,Man) =Unavoidable S(Mϕ2,Mϕ1,/uniondisplay
+iMai)
+Casev=⟨R,JSK(ϕ1Uϕ2):
+Ec(v)(Mϕ1,Mϕ2,Ma1,...,Man) =Forceable S(Mϕ2,Mϕ1,/uniondisplay
+iMai)
+As seen, the difference between EandEc, is that every use of Forceable has been replaced
+byUnavoidable , and vice versa, and the terms involving ϕ1andϕ2have been swapped in U
+formulae.
+4 Dynamical Vertex Merge in EADGs
+Usually, automated verification of timed systems takes advantage of inclusion checking, i.e. if
+one discovered symbolic state is included within another, then there is no reason to investigate
+the smaller one. To do this in the EADG framework, we must first introduce the general
+concept of vertex merging, which can be used to dynamically reduce the size of the graph.
+CONCUR 2025
+
+--- Page 12 ---
+25:12 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+Consider the NOR ⟨D,⊑,⊥⟩and an EADG G=⟨V,E,D,E⟩. Ifu∈V∗is a string of
+vertices, then u[i]denotes the ith vertex in the string and u[v1∝⇕⊣√∫⊔≀→v2]denotes the string u
+where all occurrences of v1are replaced with v2. Given an n-ary function h:Dn→D, a
+unary function f:D→Dand an index i,1≤i≤n, we use◦ito denote pointwise function
+composition on the ith input, defined as (h◦if)(x1,...,xn) =h(x1,...,f (xi),...,xn), and
+its extension to multiple points ◦{i1,...,ik}given by (h◦{i1,...,ik}f) = ((h◦i1f)◦i2···)◦ikf
+where notably h◦∅f=h.
+▶Definition 11 (Derivation) .Letv1,v2∈Vbe vertices in EADG G=⟨V,E,D,E⟩with
+dist(v1)≤dist(v2)and letf:D→Dbe a monotonic function such that f(αG
+min(v2)) =
+αG
+min(v1). We callfaderive function and say that v1isderivable fromv2throughf, denoted
+byv1⪯fv2.
+Derivable vertices can be removed by merging without loss of precision.
+▶Definition 12 (Vertex Merge) .Letv1,v2∈Vbe vertices in EADG G=⟨V,E,D,E⟩
+withdist(v1)≤dist(v2)and letf:D→Dbe a monotonic function such that v1⪯fv2.
+Avertex merge of v1intov2byfis an operation that results in a new EADG denoted
+G[v1∝⇕⊣√∫⊔≀→fv2] =⟨V′,E′,D,E′⟩where
+V′=V\{v1},
+E′(v) =E(v)[v1∝⇕⊣√∫⊔≀→v2]for allv∈V′, and
+E′(v) =E(v)◦Iffor allv∈V′whereI={i|E(v)[i] =v1}.
+We can now present a theorem that shows that a vertex merge does not change the
+minimum fixed-point value of any vertex in the dependency graph.
+▶Theorem 13 (Merge Preserves αG
+min).LetG=⟨V,E,D,E⟩be an EADG. If v1,v2∈Vand
+f:D→Dsuch thatv1⪯fv2thenαG
+min(v) =αG[v1∝⇕⊣√∫⊔≀→fv2]
+min (v)for allv∈V\{v1}.
+There are two main reasons why merging vertices can be beneficial when v1⪯fv2. First,
+fmay be computationally cheaper than computing E(v1). Second, it reduces the size of the
+graph, making other operations such as back-propagation of updates and pruning cheaper.
+However, if fis expensive, it may be better to keep v1for the memoization it provides.
+On Figure 2c, we show how the EADG from Figure 2a looks after a merge by derivation
+E⪯fFwheref(x) =x+ 3. The existence of this derivation depends on the user’s domain
+knowledge. In this case, the user might know that the first input to the max function of E
+can never exceed 3, and hence its value can be derived from the second input F. As shown
+in the figure, the resulting graph is smaller and it is also possible to prune the vertex H.
+4.1 Algorithm with Vertex Merging
+Here we present our modification to the fixed-point algorithm from [ 18], enabling it to take
+advantage of vertex merging whenever v1⪯fv2. The updated algorithm uses the following
+data structures:
+ˆvis the current root vertex, initialized to v0,
+ˆfis the root deriving function, initialized to id(the identity function),
+α:V→Dis the current assignment, initialized to α⊥,
+Wis a waiting set of vertices pending exploration or reevaluation,
+Passis a set of explored vertices,
+Dep :V→2Vis a function that for each vertex vreturns a set of dependent vertices
+that should be reevaluated if the assignment of vchanges,
+
+--- Page 13 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:13
+Algorithm 1 Minimum fixed-point computation on an EADG. The lines highlighted in
+gray are our additions to the algorithm from [18].
+Input:An EADG⟨V,E,D,E⟩andv0∈V
+Output:d∈Ds.t.d⊒αmin(v0)
+1Dep(v) =∅,Edges (v) :=E(v), andEval (v) =E(v)for allv∈V;
+2ˆv:=v0;ˆf=id;α:=α⊥;
+3W:={v0};Pass :=∅;Active :={v0};
+4whileW̸=∅do
+5letv∈Wwherevispickable;
+6W:=W\{v};
+7 ifv= ˆvorDep(v)̸=∅then
+8 ifv /∈Pass then
+9 v:=Explore (v);
+10 ifv∈Pass orE(v)is non-monotonic then
+11 letv1v2...vk:=Edges (v);
+12 d:=E(v)(α(v1),α(v2),...,α (vk));
+13 ifα(v)⊏dthen
+14 W:=W∪{u∈Dep(v)|∃i.Edges (u)[i] =v∧i /∈Ignore (α,u)};
+15 α(v) :=d;
+16 ifv= ˆvand{1,2,...,k}⊆Ignore (α,ˆv)then
+17 return ˆf(α(ˆv))
+18 Pass :=Pass∪{v};
+19return ˆf(α(ˆv))
+20proc Explore (v):
+21v∗=v;
+22 fori= 1to|Edges (v)|do
+23 letvi=Edges (v)[i](generate it if needed);
+24 ifvi/∈Active then
+25 Active :=Active∪{vi};
+26 forallv′∈Active wherev′̸=vido
+27 ifvi⪯fv′for somefthen
+28 Active :=Active\{vi};
+29 Eval (v) :=Eval (v)◦if;
+30 Edges (v) :=Edges (v)[vi∝⇕⊣√∫⊔≀→v′];
+31 continue outer loop ;
+32 ifv′⪯fvifor somefthen
+33 Replace (v′,f,vi);
+34 ifv′= ˆvthen
+35 ˆv:=vi;
+36 ˆf:=ˆf◦f;
+37 ifv′=v∗then
+/* We replaced the vertex we were exploring. Record replacement. */
+38 v∗:=vi;
+39 ifv∗̸=vthen
+40 return Explore (vi)
+41 Dep(vi) :=Dep(vi)∪{v};
+42 ifvi/∈Pass thenW:=W∪{vi};
+43 returnv
+44proc Replace (v1,f,v 2):
+45Dep(v2) :=Dep(v1);
+46 forallv′∈Active∩Dep(v1)do
+47 Eval (v′) :=Eval (v′)◦IfwhereI={i|Edges (v′)[i] =v1};
+48 Edges (v′) :=Edges (v′)[v1∝⇕⊣√∫⊔≀→v2]
+49Pass :=Pass\{v1};
+50Active :=Active\{v1};
+51W:=W\{v1};
+Edges :V→V∗is a function that for each vertex vreturns the current edges of v,
+initialized to E(v),
+Eval (v) :Dn→Dis the current value function for vertex vwheren=|E(v)|, initialized
+toE(v),
+Activeis a set of vertices that are (still) relevant for the root node ˆvand considered
+during vertex merging.
+CONCUR 2025
+
+--- Page 14 ---
+25:14 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+The variables ˆvand ˆf, and the data structures Edges,Eval (v), andActiveare introduced
+by us to keep track of the reduced graph. In Algorithm 1, we show the EADG minimum
+fixed point computation algorithm from [ 18] updated with vertex merging.3Incorporating
+vertex merging is relatively straightforward, but there are some edge cases to discuss. Vertex
+merging, highlighted in gray in Algorithm 1, occurs during the exploration of the vertex v
+(line 20-43). Each dependency viofvis checked against all other active vertices. If vican
+be merged into another active vertex v′, then we make vdepend onv′instead and make vi
+inactive (lines 27-31). If an active vertex v′can be merged into vithen we make v′inactive
+and replace v′withviin all our data structures (line 33). Additionally, if v′is the root
+vertex ˆvthen we make vithe new root and update ˆfby composing it with fso that the root
+assignment can be derived later (lines 34-36). In (presumably) rare cases, v′is the explored
+vertexv, and if so, exploration must be restarted (lines 37-40).
+▶Lemma 14. At the start and end of the Explore procedure, there exists no v1,v2∈Active
+such thatv1̸=v2andv1⪯fv2.
+▶Theorem 15. The algorithm terminates and returns αG
+min(v0).
+4.2 Inclusion Checking as Derivation
+Finally, we can do vertex merging in our problem domain. If one symbolic state is included
+within another and the associated query is the same, we merge the smaller one into the bigger
+one, since it contains the same valuations and more (conventional inclusion checking).
+▶Theorem 16 (Derivation by Intersection) .Let⟨R,ϕ⟩,⟨R′,ϕ⟩ ∈Vbe vertices and let
+fR:D→Dbe a function such that fR(W) =W∩R. IfR⊆R′, then⟨R,ϕ⟩⪯fR⟨R′,ϕ⟩is
+a derivation.
+4.3 Expansion Abstraction
+It is known that EADGs can be refined using abstractions [ 18,21,22]. We now present a
+simple abstraction for our domain that has superior performance compared to the inclusion
+checking. As discussed, Ris a symbolic state and ⟨ℓ,Z,ϕ⟩is the actual form of vertices in
+the dependency graph. For any vertex v=⟨ℓ,Z,ϕ⟩there exists a vertex v′=⟨ℓ,JI(ℓ)K,ϕ⟩
+andvcan be merged into v′if it is generated. v′will not be merged into another vertex
+as it is the biggest w.r.t. our derivation function in Theorem 16. Assuming that v′has a
+high chance of being generated whenever vis, it makes sense to use an abstraction that
+takesvdirectly tov′immediately, as the merge is likely to happen later anyway, and their
+value functions require a similar number of operations but v′holds more information. Doing
+so for all vertices induces a new smaller EADG where inclusion checking and merging are
+unnecessary, as for every location there is a unique zone to be explored. In other words, our
+abstracted vertices are defined only by the discrete part of the state. If the assumption is
+wrong, i.e. v′is not discovered although vwas, we may end up exploring states and edges
+that are not relevant in practice as more discrete transitions may be enabled in the the zone
+JI(ℓ)Kthan inZ. However, we assess that timed automata with useless edges are rare in real
+use cases, and most valuations are eventually reached. As a consequence, the downside of
+this abstraction is insignificant, as also demonstrated by our experiments.
+3We also rearranged and renamed some procedures for clarity and omitted the pruning procedure.
+Additionally, Ignorereturns a set of indices instead of vertices in our version.
+
+--- Page 15 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:15
+Formally, we apply the following expansion abstraction X:V→Vto each vertex upon
+generation:
+X(⟨ℓ,Z,ϕ⟩) =⟨ℓ,JI(ℓ)K,ϕ⟩. (8)
+▶Theorem 17. Applying abstraction Xfrom Equation (8)to all vertices preserves encoding
+correctness, i.e.⟨ℓ,ν⟩⊨ϕiff⟨ℓ,ν⟩∈αX(G)
+min(⟨R,ϕ⟩)for every⟨ℓ,ν⟩∈R.
+If follows, that the vertex merging using the derivation we defined in Theorem 16 becomes
+redundant when using Xbecause there is only one vertex per location-formula pair. The
+forward exploration done by the algorithm now only considers whether there exists a valuation
+such that a location can transition another location. This is less strict than a traditional
+reachability analysis, but it avoids expensive inclusion checks of zones while still restricting
+the backward propagation to the location-formula pairs we care about.
+5 Implementation and Experimental Evaluation
+We implement our algorithm in Uppaal [19]. We use two stacks for the waiting list, one for
+vertices waiting for exploration and one for vertices waiting for updates. We always prioritize
+vertices from the update stack over vertices from the exploration stack, as this was found to
+be favorable in [ 24]. To improve performance, the EADG framework also allows us to specify
+a function Ignore (α,v)describing which vertices of E(v)can be skipped given the current
+assignment α. We use the universally sound ignore function suggested in [ 18] by leveraging
+thatα(⟨R,ϕ⟩)⊆R. We can reduce the number of non-monotonic functions and thus graph
+components by rewriting the TATL formulae and pushing negations downward to the atomic
+propositions when possible.
+The Benchmark
+We benchmark various configurations:
+Equal: The traditional EADG algorithm without vertex merging.
+Incl: We use vertex merging through inclusion checking as by Theorem 16.
+Expand: We use the expansion abstraction Xdescribed in Section 4.3 (and no vertex
+merging).
++Unsat : We additionally compute unsatisfied states as described in Section 3.1.
+Tiga(+Unsat) : The verifyta engine distributed with Uppaal version 5.0.0 [ 9,19] and
+specifically the Tigaalgorithm.4
+The benchmark suite consists of 3types of TMG models, each instantiated in various
+sizes and with multiple associated TATL properties, totaling 236 model and query executions.
+The models are:
+Train Gate [ 3]:Ntrains share the same bridge and a controller signals the trains if the
+bridge is occupied. Each train and the controller is a different player. Example queries
+include:
+⟨⟨T1,T2,T3⟩⟩♢num_crossing≥1; Can train T1,T2, andT3create a situation where
+more than one train is crossing at the same time? (No)
+⟨⟨T1⟩⟩♢crossed (T1); Can train T1ensure that it eventually crosses the bridge? (No)
+4Tigaalways keeps track of losing states without a strategy, i.e. the Unsatmodification.
+CONCUR 2025
+
+--- Page 16 ---
+25:16 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+/uni00000013 /uni00000015/uni00000018 /uni00000018/uni00000013 /uni0000001a/uni00000018 /uni00000014/uni00000013/uni00000013 /uni00000014/uni00000015/uni00000018 /uni00000014/uni00000018/uni00000013 /uni00000014/uni0000001a/uni00000018
+/uni00000006/uni00000054/uni00000058/uni00000048/uni00000055/uni0000004c/uni00000048/uni00000056/uni00000003/uni00000044/uni00000051/uni00000056/uni0000005a/uni00000048/uni00000055/uni00000048/uni00000047/uni00000014/uni00000013/uni000000ed/uni00000014/uni00000014/uni00000013/uni00000013/uni00000014/uni00000013/uni00000014/uni00000014/uni00000013/uni00000015/uni00000014/uni00000013/uni00000016/uni00000057/uni0000004c/uni00000050/uni00000048/uni00000003/uni0000004f/uni0000004c/uni00000050/uni0000004c/uni00000057/uni00000003/uni0000000b/uni00000056/uni0000000c/uni00000028/uni00000034/uni00000038/uni00000024/uni0000002f
+/uni00000028/uni00000034/uni00000038/uni00000024/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+/uni0000002c/uni00000031/uni00000026/uni0000002f
+/uni0000002c/uni00000031/uni00000026/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+/uni00000028/uni0000003b/uni00000033 /uni00000024/uni00000031/uni00000027
+/uni00000028/uni0000003b/uni00000033 /uni00000024/uni00000031/uni00000027/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+(a)Time usage.
+/uni00000013 /uni00000015/uni00000018 /uni00000018/uni00000013 /uni0000001a/uni00000018 /uni00000014/uni00000013/uni00000013 /uni00000014/uni00000015/uni00000018 /uni00000014/uni00000018/uni00000013 /uni00000014/uni0000001a/uni00000018
+/uni00000006/uni00000054/uni00000058/uni00000048/uni00000055/uni0000004c/uni00000048/uni00000056/uni00000003/uni00000044/uni00000051/uni00000056/uni0000005a/uni00000048/uni00000055/uni00000048/uni00000047/uni00000014/uni00000013/uni00000018/uni00000014/uni00000013/uni00000019/uni00000014/uni00000013/uni0000001a/uni00000014/uni00000013/uni0000001b/uni00000050/uni00000048/uni00000050/uni00000052/uni00000055/uni0000005c/uni00000003/uni0000004f/uni0000004c/uni00000050/uni0000004c/uni00000057/uni00000003/uni0000000b/uni0000004e/uni00000025/uni0000000c/uni00000028/uni00000034/uni00000038/uni00000024/uni0000002f
+/uni00000028/uni00000034/uni00000038/uni00000024/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+/uni0000002c/uni00000031/uni00000026/uni0000002f
+/uni0000002c/uni00000031/uni00000026/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+/uni00000028/uni0000003b/uni00000033/uni00000024/uni00000031/uni00000027
+/uni00000028/uni0000003b/uni00000033/uni00000024/uni00000031/uni00000027/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037 (b)Memory usage.
+Figure 4 Cactus plots showing how many queries are answered within the indicated per-query
+resource limit. A configuration performs better if it can answer more queries using fewer resources.
+/uni00000013 /uni00000015/uni00000013 /uni00000017/uni00000013 /uni00000019/uni00000013 /uni0000001b/uni00000013
+/uni00000006/uni00000054/uni00000058/uni00000048/uni00000055/uni0000004c/uni00000048/uni00000056/uni00000003/uni00000044/uni00000051/uni00000056/uni0000005a/uni00000048/uni00000055/uni00000048/uni00000047/uni00000014/uni00000013/uni000000ed/uni00000014/uni00000014/uni00000013/uni00000013/uni00000014/uni00000013/uni00000014/uni00000014/uni00000013/uni00000015/uni00000014/uni00000013/uni00000016/uni00000057/uni0000004c/uni00000050/uni00000048/uni00000003/uni0000004f/uni0000004c/uni00000050/uni0000004c/uni00000057/uni00000003/uni0000000b/uni00000056/uni0000000c/uni00000028/uni00000034/uni00000038/uni00000024/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+/uni00000037/uni0000002c/uni0000002a/uni00000024/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+/uni0000002c/uni00000031/uni00000026/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+/uni00000037/uni0000002c/uni0000002a/uni00000024/uni0000000e/uni00000028/uni0000003b/uni00000033/uni00000024/uni00000031/uni00000027/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+/uni00000028/uni0000003b/uni00000033/uni00000024/uni00000031/uni00000027/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024/uni00000037
+(a)Time usage.
+/uni00000013 /uni00000015/uni00000013 /uni00000017/uni00000013 /uni00000019/uni00000013 /uni0000001b/uni00000013
+/uni00000006/uni00000054/uni00000058/uni00000048/uni00000055/uni0000004c/uni00000048/uni00000056/uni00000003/uni00000044/uni00000051/uni00000056/uni0000005a/uni00000048/uni00000055/uni00000048/uni00000047/uni00000014/uni00000013/uni00000018/uni00000014/uni00000013/uni00000019/uni00000014/uni00000013/uni0000001a/uni00000050/uni00000048/uni00000050/uni00000052/uni00000055/uni0000005c/uni00000003/uni0000004f/uni0000004c/uni00000050/uni0000004c/uni00000057/uni00000003/uni0000000b/uni0000004e/uni00000025/uni0000000c/uni00000028/uni00000034/uni00000038/uni00000024/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+/uni00000037/uni0000002c/uni0000002a/uni00000024/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+/uni0000002c/uni00000031/uni00000026/uni0000002f/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+/uni00000037/uni0000002c/uni0000002a/uni00000024/uni0000000e/uni00000028/uni0000003b/uni00000033 /uni00000024/uni00000031/uni00000027/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037
+/uni00000028/uni0000003b/uni00000033 /uni00000024/uni00000031/uni00000027/uni0000000e/uni00000038/uni00000031/uni00000036/uni00000024 /uni00000037 (b)Memory usage.
+Figure 5 Cactus plots showing how many Tiga-compatible queries are answered within the
+indicated per-query resource limit. A configuration performs better if it can answer more queries
+using fewer resources.
+Mexican Standoff [ 12] extended with reload time: Ncowboys are shooting at each other
+and must reload their gun between each shot. Each cowboy is a different player and the
+gun reloading system is also a player. Example queries include:
+⟨⟨C1⟩⟩(alive (C1)Ut>1); Can cowboy C1guarantee staying alive for 1 second? (No)
+⟨⟨Guns,C 1,...,C⌈N/2⌉⟩⟩□¬/logicalortext
+c∈{C1,...,C⌈N/2⌉}alive (c); If half the cowboys cooperate
+and the gun reloading is on their side, can they ensure one of them survives? (Yes)
+Phase King [ 11]: A consensus algorithm for Nnodes where time is divided into phases
+and rounds, and the king of each phase decides the voting tiebreaker. Each node is
+controlled by a unique player. Example queries include:
+J K♢consensus (n1,n2,n3); Noden1,n2,n3will reach consensus in some trace? (Yes)
+⟨⟨⟩⟩♢consensus (n1,n2,n3); Noden1,n2,n3will reach consensus in all traces? (No)
+⟨⟨⟩⟩□(¬consensus (n1,n2,n3)∨⟨⟨n1,n2,n3⟩⟩□consensus (n1,n2,n3)); If nodesn1,n2,
+andn3have consensus, can they can stay in consensus? (Yes, if N≤5)
+Evaluation
+Performance comparison of the configurations can be seen in Figure 4. Here the query
+executions are ordered (independently for each method) by their running time. Note that the
+y-axis is logarithmic. The Inclconfiguration using vertex merging is more than one order of
+magnitude faster than the Equalconfiguration using no merging, and Expand is almost
+
+--- Page 17 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:17
+another order of magnitude faster for the most difficult instances. The Unsatmodification
+further improves the three configurations matching the conclusion in [ 13]. We find a similar
+improvements for memory usage. As described in Section 4.3, Expand may explore edges
+unnecessarily, since the abstraction enables all transitions in a location, assuming they will
+be relevant eventually. In the plots, we see that the Expand configuration performs worse on
+easy queries since these extra edges hinder early termination. However, after just 1 second
+this downside is eliminated by the advantages of the method.
+Of our 236 total queries, 150 have no nested coalitions and can be solved by Uppaal
+Tigaas well. However, for a large portion of them, modifications to the TMG model
+are required to get the edges’ controllability to correspond to the actions of the coalition.
+In Figure 5, we compare the performance with Tigaon this subset of 150 queries. As
+expected, Incl+Unsat andTiga+Unsat have similar performance on challenging queries,
+as these two configurations are very similar in practice. Our implementation seems slightly
+faster on easy queries. When we add the Expand abstraction to Tigaand remove its
+now redundant inclusion checking (configuration Tiga+Expand+Unsat ), the runtime
+performance matches that of our Expand+Unsat , almost an order of magnitude faster than
+the previous state-of-the-art Tigaimplementation.
+A reproducibility package is available at [23].
+6 Conclusion
+We presented an encoding of the timed alternating-timed temporal logic problem in the
+extended abstract dependency graph (EADG) framework. This involved combining previous
+work on timed games, timed CTL, and alternating-time temporal logic. Our work is thus
+an example of how various encodings of model-checking problems in the EADG framework
+are orthogonal and can be combined to solve the combined logic extensions. We also took
+this opportunity to provide many details left out in the previous paper on Uppaal Tiga
+[13]. Furthermore, we formalized a generalization of conventional inclusion checking for the
+EADG framework. The resulting vertex merging technique can be used to remove vertices
+that can be derived from other vertices, which is especially useful when the derivation is
+cheaper than the computation of the value function of the removed vertex. Other domains
+where we foresee vertex merging being useful include model checking for Petri nets where
+one marking can cover other markings with less behavior. The vertex merging also allowed
+us to easily show that we can better exploit the symbolic representation of states using an
+expansion abstraction. In essence, our abstraction simplifies our symbolic states to discrete
+locations and their invariants. Hence, allvaluations satisfying the given property in the
+location are propagated backward through the dependency graph, instead of restricting it to
+valuations that the exploration currently considers reachable. Thus, this abstraction makes
+the algorithm slightly closer to a traditional backward algorithm.
+Our implementation and experiments showed that inclusion checking improves the per-
+formance of the naive encoding, while the expansion abstraction outperforms it by almost
+an additional order of magnitude. We also found that our algorithm is comparable to state-
+of-the-art Uppaal Tiga when both use inclusion checking. By integrating our expansion
+abstraction in Tigawe also improved its performance by almost an order of magnitude.
+The algorithms presented in this paper will be made available in an upcoming release of
+Uppaal.
+CONCUR 2025
+
+--- Page 18 ---
+25:18 On-The-Fly Symbolic Algorithm for Timed ATL with Abstractions
+References
+1R. Alur, C. Courcoubetis, and D. Dill. Model-checking for real-time systems. In Fifth Annual
+IEEE Symposium on Logic in Computer Science , pages 414–425, 1990. doi:10.1109/LICS.
+1990.113766 .
+2R. Alur, C. Courcoubetis, and D. Dill. Model-checking in dense real-time. Information and
+Computation , 104(1):2–34, 1993. doi:10.1006/inco.1993.1024 .
+3Rajeev Alur. Timed automata. In Nicolas Halbwachs and Doron Peled, editors, Computer
+Aided Verification , volume 1633 of LNCS, pages 8–22, Berlin, Heidelberg, 1999. Springer Berlin
+Heidelberg. doi:10.1007/3-540-48683-6_3 .
+4Rajeev Alur, Thomas A. Henzinger, and Orna Kupferman. Alternating-time temporal logic.
+J. ACM, 49(5):672–713, September 2002. doi:10.1145/585265.585270 .
+5Hugh Anderson and P.S. Thiagarajan. Verification of real-time systems. Course material for
+CS5270 at NUS Computing, chapter 6, 2007.
+6Ruwaifa Anwar, Haseeb Niaz, David R. Choffnes, Ítalo F. S. Cunha, Phillipa Gill, and Ethan
+Katz-Bassett. Investigating interdomain routing policies in the wild. Proceedings of the 2015
+Internet Measurement Conference , 2015. doi:10.1145/2815675.2815712 .
+7Eugene Asarin, Oded Maler, Amir Pnueli, and Joseph Sifakis. Controller synthesis for
+timed automata. IFAC Proceedings Volumes , 31(18):447–452, 1998. 5th IFAC Conference
+on System Structure and Control 1998 (SSC’98), Nantes, France, 8-10 July. doi:10.1016/
+S1474-6670(17)42032-5 .
+8Gerd Behrmann, Patricia Bouyer, Emmanuel Fleury, and Kim G. Larsen. Static guard analysis
+in timed automata verification. In Hubert Garavel and John Hatcliff, editors, Tools and
+Algorithms for the Construction and Analysis of Systems , volume 2619 of LNCS, pages 254–
+270, Berlin, Heidelberg, 2003. Springer Berlin Heidelberg. doi:10.1007/3-540-36577-X_18 .
+9Gerd Behrmann, Agnès Cougnard, Alexandre David, Emmanuel Fleury, Kim G. Larsen, and
+Didier Lime. Uppaal-tiga: Time for playing games! In Werner Damm and Holger Hermanns,
+editors,Computer Aided Verification , LNCS, pages 121–125, Berlin, Heidelberg, 2007. Springer
+Berlin Heidelberg. doi:10.1007/978-3-540-7 .
+10Johan Bengtsson and Wang Yi. Timed Automata: Semantics, Algorithms and Tools ,
+pages 87–124. LNCS. Springer Berlin Heidelberg, Berlin, Heidelberg, 2004. doi:10.1007/
+978-3-540-27755-2_3 .
+11Piotr Berman and Juan A. Garay. Cloture votes:n/4-resilient distributed consensus int + 1
+rounds.Mathematical systems theory , 26(1):3–19, January 1993. doi:10.1007/BF01187072 .
+12Falke B. Ø. Carlsen, Lars Bo P. Frydenskov, Nicolaj Ø. Jensen, Jener Rasmussen, Mathias M.
+Sørensen, Asger G. Weirsøe, Mathias C. Jensen, and Kim G. Larsen. Cgaal: Distributed
+on-the-fly ATL model checker with heuristics. Electronic Proceedings in Theoretical Computer
+Science, 390:99–114, September 2023. doi:10.4204/eptcs.390.7 .
+13Franck Cassez, Alexandre David, Emmanuel Fleury, Kim G. Larsen, and Didier Lime. Efficient
+on-the-fly algorithms for the analysis of timed games. In Martín Abadi and Luca de Alfaro,
+editors,CONCUR 2005 – Concurrency Theory , volume 3653 of LNCS, pages 66–80, Berlin,
+Heidelberg, 2005. Springer Berlin Heidelberg. doi:10.1007/11539452_9 .
+14Edmund M. Clarke, Thomas A. Henzinger, Helmut Veith, and Roderick Bloem. Handbook
+of Model Checking . Springer Publishing Company, Incorporated, 1st edition, 2018. doi:
+10.1007/978-3-319-10575-8 .
+15Luca de Alfaro, Thomas A. Henzinger, and Rupak Majumdar. Symbolic algorithms for infinite-
+state games. In Kim G. Larsen and Mogens Nielsen, editors, CONCUR 2001 — Concurrency
+Theory, LNCS, pages 536–550, Berlin, Heidelberg, 2001. Springer Berlin Heidelberg. doi:
+10.1007/3-540-44685-0_36 .
+16Anne Edmundson, Roya Ensafi, Nick Feamster, and Jennifer Rexford. Nation-state hegemony
+in internet routing. Proceedings of the 1st ACM SIGCAS Conference on Computing and
+Sustainable Societies , 2018. doi:10.1145/3209811.3211887 .
+
+--- Page 19 ---
+N.Ø. Jensen, K.G. Larsen, D. Lime, and J. Srba 25:19
+17S. Enevoldsen, K.G. Larsen, and J. Srba. Abstract dependency graphs and their application to
+model checking. In Proceedings of the 25th International Conference on Tools and Algorithms
+for the Construction and Analysis of Systems (TACAS’19) , volume 11427 of LNCS, pages
+316–333. Springer-Verlag, 2019. doi:10.1007/978-3-030-17462-0_18 .
+18Søren Enevoldsen, Kim Guldstrand Larsen, and Jiří Srba. Extended abstract dependency
+graphs.International Journal on Software Tools for Technology Transfer , 24(1):49–65, February
+2022. doi:10.1007/s10009-021-00638-8 .
+19M. Hendriks, Wang Yi, P. Petterson, J. Hakansson, K.G. Larsen, A. David, G. Behrmann,
+M. Hendriks, Wang Yi, P. Petterson, J. Hakansson, K.G. Larsen, A. David, and G. Behrmann.
+Uppaal 4.0. In Third International Conference on the Quantitative Evaluation of Systems -
+(QEST’06) , pages 125–126, 2006. doi:10.1109/QEST.2006.59 .
+20Jonas Finnemann Jensen, Kim Guldstrand Larsen, Jiří Srba, and Lars Kaerlund Oestergaard.
+Efficient model-checking of weighted CTL with upper-bound constraints. International
+Journal on Software Tools for Technology Transfer , 18(4):409–426, August 2016. doi:10.1007/
+s10009-014-0359-5 .
+21Nicolaj Ø. Jensen, Peter G. Jensen, and Kim G. Larsen. Dynamic extrapolation in
+extended timed automata. In Yi Li and Sofiène Tahar, editors, Formal Methods and
+Software Engineering , LNCS, pages 83–99, Singapore, 2023. Springer Nature Singapore.
+doi:10.1007/978-981-99-7584-6_6 .
+22Nicolaj Ø. Jensen, Kim G. Larsen, and Jiří Srba. Token elimination in model checking of petri
+nets. In Tools and Algorithms for the Construction and Analysis of Systems , LNCS, 2025.
+doi:10.1007/978-3-031-90643-5_11 .
+23Nicolaj Ø. Jensen, Kim G. Larsen, Didier Lime, and Jiri Srba. On-the-fly symbolic algorithm
+for timed atl with abstractions reproducibility package, April 2025. doi:10.5281/zenodo.
+15195408 .
+24Peter Gjøl Jensen, Kim Guldstrand Larsen, Jiří Srba, and Nikolaj Jensen Ulrik. Elimination
+of detached regions in dependency graph verification. In Georgiana Caltais and Christian
+Schilling, editors, Model Checking Software , LNCS, pages 163–179, Cham, 2023. Springer
+Nature Switzerland. doi:10.1007/978-3-031-32157-3_9 .
+25Xinxin Liu and Scott A. Smolka. Simple linear-time algorithms for minimal fixed points.
+In Kim G. Larsen, Sven Skyum, and Glynn Winskel, editors, Automata, Languages and
+Programming , pages 53–66, Berlin, Heidelberg, 1998. Springer Berlin Heidelberg. doi:10.
+1007/BFb0055040 .
+26Oded Maler, Amir Pnueli, and Joseph Sifakis. On the synthesis of discrete controllers for timed
+systems. In Ernst W. Mayr and Claude Puech, editors, STACS 95 , LNCS, pages 229–242,
+Berlin, Heidelberg, 1995. Springer Berlin Heidelberg. doi:10.1007/3-540-59042-0_76 .
+27Mark (Mohammad) Tehranipoor, Ujjwal Guin, and Domenic Forte. Counterfeit Integ-
+rated Circuits , pages 15–36. Springer International Publishing, Cham, 2015. doi:10.1007/
+978-3-319-11824-6_2 .
+CONCUR 2025

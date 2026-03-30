@@ -1,0 +1,679 @@
+--- Page 1 ---
+Optimal Scheduling using PricedTimed Automata
+Gerd Behrmann andKim G.Larsen andJacob I.Rasmussen∗
+BRICS, Aalborg University, Denmark
+Abstract
+This contribution reports on the considerable effort made re-
+centlytowardsextendingandapplyingwell-establishedtimed
+automata technology to optimal scheduling and planning
+problems. The effort of the authors in this direction has to a
+large extent been carried out as part of the European projects
+VHS(VHS 2005) and A METIST (AMETIST 2005) and are
+available in the recently released U PPAALCORA(UPPAAL
+CORA 2005), a variant of the real-time veriﬁcation tool U P-
+PAAL(Larsen, Pettersson, & Yi 1997; Behrmann, David, &
+Larsen2004)specializedforcost-optimalreachabilityforthe
+extended modelof so-called pricedtimed automata.
+IntroductionandMotivation
+Since its introduction by Alur and Dill (Alur & Dill 1994)
+themodeloftimedautomatahasestablisheditselfasastan-
+dard modeling formalism for describing real-time system
+behaviour. A number of mature model checking tools (e.g.
+KRONOS, UPPAAL, IF (Bozga et al.1998; Larsen, Petters-
+son, & Yi 1997; IF 2005)) are by now available and have
+beenappliedtothequantitativeanalysisofnumerousindus -
+trialcase-studies (UPPAAL 2005).
+An interesting application of real-time model checking
+that has recently been receiving substantial attention is t o
+extend and retarget the timed automata technology towards
+optimal scheduling and planning. The extensions include
+most importantly an augmentation of the basic timed au-
+tomata formalism allowing for the speciﬁcation of the ac-
+culumationofcostduringbehavior(Behrmann etal.2001a;
+Alur, La Torre, & Pappas 2001). The state-exploring algo-
+rithms have been modiﬁed to allow for “guiding” the (sym-
+bolic) state-space exploration in order that “promising” a nd
+“cheap” states are visited ﬁrst, and to apply branch-and-
+bound techniques (Behrmann et al.2001b) to prune parts
+of the search tree that are guaranteed not to improve on so-
+lutions found so far. Also new symbolic data structures al-
+lowingforefﬁcientsymbolicstate-spacerepresentationw ith
+additional cost-information have been introduced and im-
+plemented in order to efﬁciently obtain optimal or near-
+optimal solutions (Larsen et al.2001). Within the V HSand
+AMETISTprojectssuccessfulapplicationsofthistechnology
+∗Work partially done within the European IST project
+AMETIST.havebeenmadetoanumberofbenchmarkexamplesandin-
+dustrial case studies. With this new direction, we are enter -
+ing the area of Operations Research with a well-established
+and extensive list of existing techniques (MILP, constrain t
+programming, genetic programming, etc.). However, what
+we put forward is a completely new and promising technol-
+ogybasedontheefﬁcientalgorithms/datastructurescomin g
+from timed automta analysis, and allowing for very natu-
+ral and compositional descriptions of highly non-standard
+scheduling problems withtimingconstraints.
+Abstractly, a scheduling or planning problem may be un-
+derstood in terms of a number of objects(e.g. a number of
+different cars, persons) each associated with various dist in-
+guishingattributes(e.g. speed,position). Thepossiblep lans
+solving the problem are described by a number of actions,
+the execution of which may depend on and affect the val-
+uesof(someof)theobjectsattributes. Solutions,orfeasi ble
+schedules, come in(atleast) twoﬂavors:
+FiniteSchedule: a ﬁnite sequence of actions that takes the
+system from the initial conﬁguration to one of a desig-
+nated collection of desiredﬁnal conﬁgurations.
+Inﬁnite Schedule: an inﬁnite sequence of actions that –
+when starting in the initial conﬁguration – ensures that
+thesystemconﬁgurationstaysindeﬁnitelywithinadesig-
+nated collection of desiredconﬁgurations.
+In order to reinforce quantitative aspects, actions may
+additionally be equipped with constraints on durations and
+have associated costs. In this way one may distinguish dif-
+ferentfeasibleschedulesaccordingtotheiraccumulatedc ost
+ortime(forﬁniteschedules)ortheircostpertimeratioint he
+limit (for inﬁnite schedules) in identifying optimalsched-
+ules. It is understood that independent actions, in terms of
+thesetobjectstheactionsdependuponandmayaffect,may
+overlap time-wise.
+One concrete scheduling problem is that of optimal task
+graph scheduling (TGS) consisting in scheduling a number
+of interdependent tasks (e.g. performing some arithmetic
+operations) onto a number of heterogenous processors. The
+interdependenciesstatethatataskcannotstartexecuting be-
+foreall itspredecessors have terminated. Furthermore, ea ch
+task can only execute on a subset of the processors. An ex-
+ample task graph with three tasks is depicted in Figure 1.
+The task t3cannot start executing until both tasks t1andt2
+
+--- Page 2 ---
+t1(3,−)
+t2(−,5)
+t3
+(10,7)Processor costs:
+Processor1-Idle: 2-InUse: 5
+Processor2-Idle: 1-InUse: 4
+Figure1: Taskgraphschedulingproblemwith3tasksand2
+processors.
+haveterminated. Theavailableresourcesaretwoprocessor s
+p1andp2. Thetasks(nodes)areannotatedwiththerequired
+execution times on the processors, that is, t1can only exe-
+cuteon p1,t2onlyon p2whilet3canexecuteonboth p1and
+p2. Furthermore,theidlingcostspertimeunitoftheproces-
+sors are 2 and 1, respectively, and operations costs per time
+unit are5 and 4, respectively.
+Now, scheduling problems are naturally modeled using
+networks of timed automata. Each object is modelled as
+a separate timed automaton annotated with local, discrete
+variables representing the attributes associated with the ob-
+ject. Interaction often involves only a few objects and can
+be modeled as synchronizing edges in the timed automata
+modelsoftheinvolvedobjects. Actionsinvolvingtimedura -
+tions are naturally modeled using guarded edges over clock
+variables. Furthermore, operation costs can be associated
+withstatesandedgesinthemodelofpricedtimedautomata
+(PTA) which was, independently, introduced in (Behrmann
+etal.2001a)and(Alur,LaTorre,&Pappas2001). Thesep-
+arationofindependent objects intoindividual processes a nd
+representing interaction between objects as synchronizin g
+actions allows timed automata to make explicit the control
+ﬂowofschedulingproblems. Inturn,thismakesthemodels
+intuitively understood and easy to communicate. Figure 2
+depicts PTA models for the task graph in Figure 1 and is
+explained indetail inSection .
+The outline of the remainder of the paper is as follows:
+in Sections 2 and 3 we introduce the model of PTA, the
+problem of cost-optimal reachability and sketches the sym-
+bolic branch-and-bound algorithm used by U PPAALCORA
+forsolvingthisproblem. TheninSection4weshowhowto
+model a range of generic scheduling problems using PTA,
+provide experimental evaluation and describe two industri al
+scheduling case-studies. Finally, in Section 5, we comment
+onotherPTA-relatedoptimizationproblemstobesupported
+infuturereleases of U PPAALCORA.
+PricedTimedAutomata
+In this section we give a more precise and formal deﬁnition
+ofpricedtimedautomata(PTA)andtheirsemantics1. LetX
+be a set of clocks. Intuitively, a clock is a non-negative rea l
+valued variable that can be reset to zero and increments at a
+1We ignore the syntactic extensions of discrete variables and
+parallel composition of automata and note that these can be added
+easily.ﬁxed rate with the passage of time. A priced timed automa-
+ton over Xis an annotated directed graph with a vertex set
+L, an edge set Eand a distinguished vertex l0∈Lcalled
+the initial location. In the tradition of timed automata, we
+callvertices locations. Edgesarelabelledwithguardexpres-
+sionsandaresetset. Aguardisaconjunctionofsimplecon-
+straints x ⊲ ⊳ k, where xis a clock in X,kis a non-negative
+integer value, and ⊲ ⊳∈{<,≤,=,≥,>}. We say that an
+edge is enabled if the guard evaluates to true and the source
+location is active. A reset set is a subset of X. The intuition
+isthattheclocksintheresetsetaresettozerowheneverthe
+edge istaken. Finally, locations arelabelledwithinvaria nts.
+An invariant is a conjunction of simple conditions x≺k,
+where xis a clock in X,kis a non-negative integer-value,
+and≺ ∈ { <,≤}. Intuitively, an invariant must evaluate
+to true whenever its location is active. The previous deﬁni-
+tion is in fact that of a timed automaton. To form a priced
+timed automaton, we annotate the edges and the locations
+withcostsandcostrates,respectively. Formally,thisisd one
+by introducing afunction P:L∪E→N0.
+The semantics of a PTA is easily deﬁned as a priced
+transition system . Transitions of a priced transition system
+are labelled with a non-negative real-valued cost p. We
+skip the formal deﬁnition of a priced transition system
+and proceed with the semantics of PTA. A state of a PTA
+contains the active location l∈Land a valuation of all
+clocks v:X→R≥0such that the invariant of levaluates
+to true for v. There are two types of transitions: edge
+transitions anddelay transitions . Edge transitions are the
+result of following an enabled edge in the PTA. As a result,
+the destination location is activated and the clocks in the
+reset set are set to zero. The cost of the transition is given
+by thecost of theedge.
+More formally, we have (l,v)→p(l′,v′)if there is an edge
+efromltol′, such that the guard of eevaluates to true in
+the source state (l,v),v′is derived from vby resetting all
+clocks in the reset set of e, andp=P(e)is the cost of the
+edge.
+Delay transitions are the result of the passage of time
+and do not cause a change of location. A delay is only
+valid if the invariant of the active location is satisﬁed by a ll
+intermediate states. The cost of a delay transition is given
+by the product of the length of the delay and the cost rate of
+theactive location.
+More formally, we have (l,v)δ→p(l,v′)ifp=δ·P(l),v′
+is derived from vby incrementing all clocks by δand the
+invariantof lissatisﬁedby (l,v),(l,v′)andallintermediary
+states.
+Finally, the initial state is s0= (l0,v0), where l0is
+the initial location, and v0evaluates to zero for all clocks.
+For networks of timed automata we use vectors of locations
+and the cost rate of a vector is the sum of cost rates in
+locations.
+
+--- Page 3 ---
+Figure 2: Screen shot of the U PPAALCORAsimulator forthetask graph scheduling problem of Figure 1.
+OptimalScheduling
+We now turn to the deﬁnition of the optimal reachability
+problem for PTA and provide a brief and intuitive overview
+of UPPAALCORA’s branch and bound algorithm for cost-
+optimal reachability analysis.
+Cost-optimal reachability is the problem of ﬁnding the
+minimum cost of reaching a given goal location. More for-
+mally, an execution of a PTA is a path in the priced transi-
+tion system deﬁned by the PTA, i.e., α=s0a1→p1s1a2→p2
+s2···an→pnsn. The cost, cost(α), of execution αis the
+sumofallthecostsalongtheexecution. Theminimumcost,
+mincost (s)of reaching a state sis the inﬁmum of the costs
+of all ﬁnite executions from s0tos. Given a PTA with lo-
+cation l, thecost-optimal reachability problem is to ﬁnd the
+largest cost ksuch that k≤mincost ((l,v))for all clock
+valuations v.
+Since clocks are deﬁned over the non-negative reals, the
+priced transition system generated by a PTA can be un-
+countablyinﬁnite,thusanenumerativeapproachtothecost -
+optimalreachabilityproblemisinfeasible. Instead,webu ild
+upon the work done for timed automata by using priced
+symbolic states . Priced symbolic states provide symbolic
+representations of possibly inﬁnite sets of actual states a nd
+their association with costs. The idea is that during explo-
+ration, the inﬁmum cost along a symbolic path (a path of
+symbolic states) is stored in the symbolic states itself. If
+the same state is reached with different costs along differ-COST:=∞
+PASSED:=∅
+WAITING:={S0}
+whileWAITING/ne}ationslash=∅do
+selectS∈WAITING//based on branching strategy
+C←mincost (S)
+ifPASSED≤/domSandC+remain (S)<COSTthen
+PASSED←PASSED∪{S}
+ifS∈GOALthen
+COST←C
+else
+WAITING← {S′|S′∈WAITINGorS→S′}
+returnCOST
+Figure 3: branch and bound algorithm.
+
+--- Page 4 ---
+ent paths, the symbolic states can be compared, discarding
+the more expensive state. Analogous to timed automata,
+the priced symbolic states we encounter for PTA are rep-
+resentable by simple constraint systems over clock differ-
+ences(oftenreferedtoasaclock-zoneinthetimedautomata
+literature). The cost is given by an afﬁne plane over the
+clock-zone. For a formal description of priced symbolic
+states and priced zones we refer to (Larsen et al.2001;
+Rasmussen, Larsen, & Subramani 2004).
+In UPPAALCORA, cost-optimal reachability analysis is
+performed using a standard branch and bound algorithm.
+Branchingisbasedonvarioussearchstrategiesimplemente d
+in UPPAALCORAwhich, currently, are breadth-ﬁrst, ordi-
+nary, random, or best depth-ﬁrst with or without random
+restart, best-ﬁrst, and user supplied heuristics. The latt er
+enables the user to annotate locations of the model with a
+special variable called heurand the search can be ordered
+according to either largest or smallest heurvalue. Bound-
+ingisbasedonauser-supplied,lower-boundestimateofthe
+remaining cost toreach thegoal from each location.
+The algorithm depicted in Figure 3 is the cost-optimal
+reachability algorithm used by U PPAALCORA. It main-
+tainsa P ASSED-listofelementsthathavebeenexploredand
+a WAITING-list of elements that need to be explored and is
+instantiated with the initial symbolic state S0. The variable
+COSTholds the currently best known cost of reaching the
+goal location; initially it is inﬁnite. The algorithm itera tes
+until no more states need to be explored. Inside the while-
+loop we select and remove a state, S, from W AITINGbased
+on the branching strategy. If Sis dominated2by another
+state that has already been explored or it is not possible to
+reach the goal with a lower cost than C OST, we skip this
+state. Otherwise, we add Sto PASSEDand ifSis a goal
+locationweupdatethebestknowncosttothebestcostin S.
+If not, we add all successors of Sto WAITINGand continue
+tothenext iteration.
+Modeling
+As mentioned earlier, one of the main strengths of using
+pricedtimedautomataforspecifyingandanalyzingschedul -
+ingproblemsisthesimplicityofthemodelingaspect. Inthi s
+section, we show how to model generic scheduling prob-
+lems, provide experimental results, and describe two indus -
+trialcase studies.
+Scheduling problems often consist of a set of passive ob-
+jects, called resources, and a set of active objects, called
+tasks. The resources are passive in the sense that they
+provide a service that tasks can utilize. Traditionally, th e
+scheduling problem is to complete the tasks as fast as pos-
+sible using the available resources under some constraints ,
+e.g. limited availability of the resource, no two tasks can,
+simultaneously, use the same resource, etc. The models we
+provideinthissectionareallcostextensionsoftheclassi cal
+scheduling problem.
+2A state, S′, dominates another state, S, ifS′contains at least
+the same actual states as S, all of which have been reached with a
+lower cost.InUse
+c <= busyIdle
+c == busydone! start?
+Done Using Init
+done? start!
+busy = x
+a) b)Synchronization
+Guard
+InvariantVariable update
+Figure 4: a) Resource template with clock c. b) Task tem-
+plate.
+Agenericresourcemodel(seeFigure4a)isatwo-location
+cyclic process with a single local clock, c. The two loca-
+tions indicate whether the resource is IdleorInUse. The
+resource moves from IdletoInUse, when a task initiates a
+synchronization over the channel startand in the process,
+cis reset. The resource will maintain InUseuntil the clock
+reachessomeusagetime, busy,ittheninitiatessynchroniza-
+tionover thechannel done.
+Agenerictaskmodel(seeFigure4b)isanacyclicprocess
+progressing from an initial location, Init, to a ﬁnal location
+Done, indicating that the task is complete. Intermediate lo-
+cationsdescribeacquiringresourcesandreleasingthem,i .e.
+thetaskwilltransittostate Usingbyinitiatingsynchroniza-
+tion over a startchannel and setting the busyvariable of
+the resource. The task will remain here until the resource
+initiatessynchronization using the donechannel.
+Tosolvetheschedulingproblem,weposethereachability
+question of whether we can reach a state in which all tasks
+are in the location Done. In the following three sections we
+presentsomeclassicalschedulingproblems,allofwhichar e
+slightmodiﬁcations ofthe generic templates.
+Job Shop Scheduling
+Problem: We are given a number of machines (resources)
+and a number jobs (tasks) with corresponding recipes. A
+recipe for a job dictates the subset of machines that the job
+should be processed by, the order in which the processing
+should happen, and the duration of each processing step.
+Now, the scheduling problem is to assign to each job
+a starting time for every required machine such that no
+machine isoccupied by twojobs at thesame time.
+Cost:Themodelcanbeextendedwithcostsbyassigningto
+each machine anidling cost and aoperation cost.
+Modeling: Figure 5a depicts a job and a machine. The
+model of the machine is identical to the resource template,
+except that both locations have been extended with cost
+rates. The job model is a “serial” composition of the
+task template, i.e. the job serially requests the machines
+describedbytherecipe,inthiscasemachines0,1,and2for
+7, 5, and 15 timeunits,respectively.
+Task Graph Scheduling
+Problem: This problem isdescribed inSection .
+Cost:We assign to each processor an energy consumption
+
+--- Page 5 ---
+rate while idle and while executing. Now, the overall
+objectiveistoﬁndtheschedulethatminimizesthetotalcos t
+whilerespecting aglobal (ortaskindividual) deadline.
+Modeling: The models for a task and a processor are
+depictedinFigure2. Again,theprocessormodelisanexact
+instance of the resource template with added cost rates.
+Tasks1and2areexactinstancesofthetasktemplate,while
+task 3 is not. The reason is that tasks 1 and 2 can only
+execute on one processor each, while task 3 can execute
+on both, thus, task 3 is an extension of the task template
+with a nondeterministic choice between the processors.
+Furthermore, the edges leaving the initial state have been
+extended with a guard specifying the dependencies of the
+task graph, i.e. task 3 requires tasks 1 and 2 to be ﬁnished,
+f[1]&&f[2].
+Aircraft Landing
+Problem: Given a number of aircrafts (tasks) with desig-
+nated type and landing time window, assign a landing time
+and runway (resource) to each aircraft such that the aircraf t
+lands within the designated time window while respecting
+a minimum wake turbulence separation delay between
+aircraftsof various types landing on thesame runway.
+Cost:The cost extended problem associates with each
+aircraft an additional target landing time corresponding
+to approaching the runway at cruise speed. Now, if an
+aircraft is assigned a landing time earlier than the target
+landing time, a cost per time unit is incurred, correspondin g
+to powering up the engines. Similarly, if an aircraft is
+assigned a later landing time than the target landing time a
+cost per time unit is added corresponding to increased fuel
+consumption while circlingabove the airport.
+Modeling: Figure 5b depicts a runway that can handle
+aircraftsoftypesB747andA420,andanaircraftwithtarget
+landing time 153, type A420 and time window [129,559].
+Unlike the other models, the runway model has only a
+single location in its cycle indicating both that the resour ce
+isIdleAndInUse . A single location is used since the
+duration that a runway is occupied depends solely on the
+types of consecutively landing aircrafts. Thus, the runway
+maintains a clock per aircraft type holding the time since
+the latest landing of an aircraft of the given type and access
+to the runway is controlled by guards on the edges. The
+nondeterminism of the aircraft model does not distinguish
+between the runway to use, but whether to land early
+([129,153]) or late ([153,559]). Choosing to land early, th e
+aircraft model moves to the OnTime location and must
+remain here until the target landing time while incurring
+a cost rate per time unit for landing early, similarly, the
+aircraft can choose to land late and move to Delayed may
+remain there until the latest landing time while paying a
+cost ratefor landing late.
+PTAversusMILP
+We only provide experimental results for the aircraft land-
+ing problem comparing the PTA approach to that of MILP.
+For performance results of the job shop and task graphRWPlanes 101520 20 20 3044
+Types 222 2 2 42
+1MILP(s) 0.45.22.7220.4 922.0 33.110.6
+MC(s) 0.85.62.820.9 49.9 0.62.2
+Factor 2.01.081.04 10.5 18.5 55.248.1
+MILP(s) 0.61.83.81919.9 11510.4 1568.1 0.2
+2MC(s) 2.79.63.9138.5 187.1 6.00.9
+Factor 4.55.31.02 13.9 61.5261.3 4.5
+3MILP(s) 0.10.10.22299.2 1655.3 0.2N/A
+MC(s) 0.20.30.71765.6 1294.9 0.6
+Factor 2.03.03.51.30 1.28 3.0
+4MILP(s) N/AN/AN/A 0.2 0.2N/AN/A
+MC(s) 3.3 0.7
+Factor 16.5 3.5
+Figure6: Computationalresultfortheaircraftlandingpro b-
+lem using PTAand MILPon comparable machines.
+scheduling problems, we refer to (Behrmann et al.2001b;
+Rasmussen, Larsen, & Subramani 2004; Abdeddaim, Ker-
+baa, & Maler 2003).
+Figure 6 displays experimental results for various in-
+stancesoftheaircraftlandingproblemusingMILPandPTA.
+The results for MILP have been taken from (Beasley et al.
+2000)andtheresultsforPTAhavebeenexecutedonacom-
+parable computer. Factors in bold indicate the performance
+differenceinfavorofPTAandsimilarlyforitalicsandMILP .
+The experiments clearly indicate that PTA is a competi-
+tive approach to solving scheduling problems and for one
+non-trivial instance it is even more than a factor 250 faster
+than the MILP approach. However, the required computa-
+tiontimeofthePTAapproach growsexponentially withthe
+numberofaddedrunways(andthusclocks)whilenosimilar
+statement can be made for the MILP approach. Thus, PTA
+is a promising method for solving scheduling problems, but
+furtherexperimentsneedtobeconductedbeforesayingany-
+thing moreconclusive.
+IndustrialCaseStudy: SteelProduction
+Problem: Proving schedulability of an industrial plant via
+reachability analysis of a timed automaton model was ﬁrst
+applied to the SIDMAR steel plant, which was included as
+a case study of the Esprit-LTR Project 26270 VHS (Veriﬁ-
+cation of Hybrid Systems). The plant consists of ﬁve pro-
+cessingmachines placedalongtwotracksandacastingma-
+chinewheretheﬁnishedsteelsleavesthesystem. Thetracks
+and machines are connected via two overhead cranes. Each
+quantityofrawironentersthesysteminaladleanddepend-
+ingonthedesiredﬁnalsteelqualityundergoestreatmentsi n
+the different machines for different durations. The planni ng
+problem consists in controlling the movement of the ladles
+ofsteel between thedifferent machines, taking thetopolog y
+(e.g. conveyor belts and overhang cranes) into considera-
+tion.
+Performance: A schedule for three ladles was produced
+in (Fehnker 1999) for a slightly simpliﬁed model using U P-
+PAAL. In (Hune, Larsen, & Pettersson 2001) schedules for
+upto60ladleswereproducedalsousingU PPAAL. However,
+in order to do this, additional constraints were included th at
+reducethesizeofthestate-spacedramatically,butalsopr une
+possibly sensible behavior. A similar reduced model was
+used by Stobbe (Stobbe 2000) using constraint program-
+
+--- Page 6 ---
+a) Job: Machine:
+Done
+UsingM2
+Done1 UsingM1 Done0UsingM0Init
+done[2]?
+start[2]!busy[2] = 15
+done[1]? start[1]!busy[1] = 5done[0]?start[0]!
+busy[0] = 7
+InUsec <= busy[1]
+&& cost' == 6Idle
+cost' == 2
+c == busy[1]done[1]!start[1]?
+c = 0
+b) Aircraft: Runway:
+Approachingtime <= 153
+Delayedtime <= 559 &&
+cost' == 10OnTimetime <= 153 && 
+cost' == 10
+Donetime == 153
+time == 153land[A420]!time >= 129
+land[A420] ! Temp
+IdleAndInUseland[B747] ?
+c[0] = 0land[A420] ?
+c[1] = 0
+c[0]>=wait[B747][B747] &&
+c[1] >= wait[A420][B747]
+land[B747] ?
+c[0] = 0c[0] >=wait[B747][A420] &&
+c[1] >= wait[A420][A420]
+land[A420] ?
+c[1] = 0
+Figure 5: Priced timedautomata models fortwoclassical sch eduling problems.
+ming to schedule 30 ladles. All these works only consider
+ladles with the same quality of steel. In (Behrmann et al.
+2001b), using a search order based on priorities, a schedule
+for ten ladles with varying qualities of steels is computed
+within 60 seconds cpu-time on a Pentium II 300MHz. The
+initial solution found is improved by 5% within the time
+limit. Allowing the search to go on for longer, models with
+more ladles can be handled.
+IndustrialCaseStudy: Lacquer Production
+Problem:The problem was provided by an industrial part-
+ner of the European AMETIST project as a variation on job
+shopscheduling. Thetaskistoschedulelacquerproduction .
+Lacquer is produced according to a recipe involving the use
+ofvariousresources,possiblyconcurrently,seeFigure7. An
+orderconsistsofarecipe,aquantity,anearlieststartingdate
+and a delivery date. The problem is then toassign resources
+to the order such that the constraints of the recipes and of
+the orders are met. Additional constraints are provided by
+the resources, as they might require cleaning when switch-
+ing from one type of lacquer to another, or might require
+manual labor and thus are unavailable during the night or in
+weekends.
+Cost:Thecostmodelissimilartothatoftheaircraftland-
+ing problem. Orders ﬁnished on the delivery date do not in-
+curanycosts(exceptregularproductioncostswhicharenot
+modeledastheseareﬁxed). Ordersﬁnishinglatearesubject
+todelay costs and orders ﬁnishing too early are subject to
+storage costs . Cleaning resources might generate additional
+costs.
+Modeling: Resources are modeled using the resource
+d o s e s p i n n e rl a bf i l l i n g s t a t i o n
+d i s p e r g i n g l i n e
+d i s p e r s e rw
+a i ta r b i t r a r y ,i f n o t s p e c i f i e ds y n c h r o n i z e
+m
+i x i n g v e s s e l u n i
+[ 0 , 4 ][ 2 , 4 ]
+1 1 .
+0 25 . 1 87 . 3 523 . 9 525 . 6 9
+[6
+,6
+]48 . 9 8
+26 .
+4 4
+Figure 7: A lacquer recipe. Each bar represents the use of
+aresource. Horizontallinesindicatesynchronizationpoi nts.
+Timing constraints for how long resources are used or sep-
+aration times between the use of resources can be provided
+either as aﬁxed timeor timewindow.
+
+--- Page 7 ---
+template. Resources requiring cleaning are extended with
+additional information to keep track of the last type of lac-
+quer produced on the resource. Cleaning costs are typically
+a ﬁxed amount and are added to the cost when cleaning is
+performed. Ordersaremodeledsimilarlytotasksinthetask
+graph scheduling problem, except that multiple resources
+may be acquired simultaneously. Storage and delay costs
+are modeled similarly to costs in the aircraft landing prob-
+lem.
+Other Optimization Problems
+At present U PPAALCORAsupports cost-optimal location-
+reachability for PTAs. However, a number of other opti-
+mization problems are planned to be included in future re-
+leases.
+For several planning problems the objective is to repeat
+a treatment or process indeﬁnitely and to do so in a cost-
+optimal manner. Now let α=s0a1→p1s1a2→p2s2···an→pn
+sn···be an inﬁnite execution of a given PTA, let cn(tn)
+denote the accumulated cost (time) after nsteps (i.e. cn=/summationtextn
+i=1pi). Then the limit of cn/tnwhenn→∞describes
+the cost per time of αin the long run and is the cost of α.
+The optimization problem is to determine the (value of the)
+optimal such inﬁnite execution α∗. In (Bouyer, Brinksma,
+& Larsen 2004) this problem has been shown decidable for
+PTA using an extension of the so-called region-technique.
+Though this technique nicely demonstrates decidability of
+the problem (and many other decision problems for timed
+automata) it does not provide a practical implementation,
+which is still to be identiﬁed. However a method for de-
+termining approximate optimal inﬁnite schedules have been
+identiﬁed and applied tothesynthesis ofso-called Dynamic
+Voltages Scaling scheduling strategies.
+Optimization problems may involve multiplecost vari-
+ables (e.g. money, energy, pollution, etc.). Currently U P-
+PAALCORAis only capable of optimizing with respect to
+single costs. However, for scheduling problems with multi-
+ple costs, there might well be several optimal solutions due
+to “negative” dependencies between costs: minimizing one
+cost-variable (e.g. money) might maximize others (e.g. pol -
+lution). In (Larsen & Rasmussen 2005) an extension of the
+pricedzonetechnologyforPTAhasbeenextendedtomulti-
+price TA allowing efﬁcient synthesis of solutions optimal
+with respect to a chosen primarycost-variable but subject
+to user-speciﬁed upper bounds on the remaining secondary
+cost-variables.
+Finally, scheduling problems may involve uncertainties
+due to certain actions being under the control of an adver-
+sary. In this case the (optimal) scheduling problem is a
+game-theoreticproblemconsistingofdeterminingawinnin g
+and optimal strategy for how to respond to any action cho-
+sen by this adversary. In (Bouyer et al.2004a) the prob-
+lem of synthesizing optimal, winning strategies for priced
+timed games has been shown to be computable under cer-
+tain non-zenoness assumptions. However, the problem is
+notsolvableusingzone-basedtechnology,butneedsgenera l
+polyhedral support in order to represent the optimal strate -
+gies (see (Bouyer et al.2004b) for a methodology usingHYTECH).
+References
+Abdeddaim, Y.; Kerbaa, A.; and Maler, O. 2003.
+Task graph scheduling using timed automata. Proc. of
+IPDPS’03 .
+Alur, R., and Dill, D. 1994. A theory of timed automata.
+Theoretical Computer Science 126(2):183–235.
+Alur,R.;LaTorre,S.;andPappas,G. 2001. Optimalpaths
+in weighted timed automata. Lecture Notes in Computer
+Science2034:pp. 49–62.
+AMETIST. 2005. Advanced methods in timed systems
+http://ametist.cs.utwente.nl .
+Beasley, J. E.; Krishnamoorthy, M.; Sharaiha, Y. M.; and
+Abramson, D. 2000. Scheduling aircraft landings - the
+staticcase. Transportation Science 34(2):pp. 180–197.
+Behrmann, G.; Fehnker, A.; Hune, T.; Larsen, K.; Petters-
+son, P.; Romijn, J.; and Vaandrager, F. 2001a. Minimum-
+cost reachability for priced timed automata. Lecture Notes
+inComputer Science 2034:pp. 147+.
+Behrmann, G.; Fehnker, A.; Hune, T.; Larsen, K.; Petters-
+son, P.; and Romijn, J. 2001b. Efﬁcient guiding towards
+cost-optimality in Uppaal. In Proc. of TACAS’01 , num-
+ber 2031 in Lecture Notes in Computer Science, 174–188.
+Springer–Verlag.
+Behrmann, G.; David, A.; and Larsen, K. 2004. A tutorial
+on Uppaal. In Formal Methods for the Design of Real-
+Time Systems , number 3185 in Lecture Notes in Computer
+Science, 200–236. Springer Verlag.
+Bouyer, P.; Cassez, F.; Fleury, E.; and Larsen, K. 2004a.
+Optimalstrategiesinpricedtimedgameautomata. In Proc.
+ofFSTTCS’04 ,volume3328of LectureNotesinComputer
+Science, 148–160. Springer–Verlag.
+Bouyer, P.; Cassez, F.; Fleury, E.; and Larsen, K. 2004b.
+Synthesis of optimal strategies using HyTech. In Proc.
+GDV’04, Electronic Notes in Theoretical Computer Sci-
+ence. Elsevier Science Publishers. To appear.
+Bouyer, P.; Brinksma, E.; and Larsen, K. 2004. Staying
+alive as cheaply as possible. In Proc. of HSCC’04 , vol-
+ume2993of LectureNotesinComputerScience ,203–218.
+Springer–Verlag.
+Bozga, M.; Daws, C.; Maler, O.; Olivero, A.; Tripakis, S.;
+and Yovine, S. 1998. Kronos: A model-checking tool for
+real-timesystems. In Proc.ofCAV’98 ,volume1427,546–
+550. Springer-Verlag.
+Fehnker, A. 1999. Scheduling a steel plant with timed
+automata. In Proc. of RTCSA ’99. , 280. IEEE Computer
+Society.
+Hune, T.; Larsen, K.; and Pettersson, P. 2001. Guided
+synthesis of control programs using Uppaal. Nordic J. of
+Computing 8(1):43–64.
+IF. 2005. http://www-verimag.imag.fr/
+˜async/IF .
+
+--- Page 8 ---
+Larsen, K., and Rasmussen, J. 2005. Optimal conditional
+reachabilityformulti-pricedtimedautomata. Toappearin
+proceedings of FOSSACS’05 .
+Larsen, K.; Behrmann, G.; Brinksma, E.; Fehnker, A.;
+Hune, T.; Pettersson, P.; and Romijn, J. 2001. As
+cheap as possible: Efﬁcient cost-optimal reachability for
+pricedtimedautomata. LectureNotesinComputerScience
+2102:pp. 493+.
+Larsen, K.; Pettersson, P.; and Yi, W. 1997. Uppaal in
+a nutshell. Int. Journal on Software Tools for Technology
+Transfer1(1-2):134–152.
+Rasmussen, J.; Larsen, K.; and Subramani, K. 2004.
+Resource-optimalschedulingusingpricedtimedautomata.
+InProc. of TACAS’04 , volume 2988 of Lecture Notes in
+Computer Science , pp. 220–235. Springer Verlag.
+Stobbe, M. 2000. Results on scheduling the sidmar steel
+plant using constraint programming. Internal report.
+UPPAAL CORA. 2005. http://www.cs.aau.dk/
+˜behrmann/cora .
+UPPAAL. 2005. http://www.uppaal.com .
+VHS. 2005. Veriﬁcation of hybrid systems http://
+www-verimag.imag.fr/VHS/ .

@@ -80,9 +80,9 @@
 1. `🧱` 核心算法/数据结构
    - `UPPAAL + timed automata + DBM/zone/federation/difference bound matrix/symbolic state/unification sharing/dynamic extrapolation/timed I/O automata/bounded DBM/clock-state construction`
 2. `⚡` 改进与扩展
-   - `UPPAAL + symmetry reduction/guided synthesis/priced/cost-optimal/timed games/Tiga/statistical model checking/distributed SMC/stochastic hybrid systems/stochastic hybrid games/compact strategies/SOS/importance splitting/randomized reachability/randomized refinement/MCTS/disjoint activity/urgent partial order reduction/GPU acceleration/Coshy`
+   - `UPPAAL + symmetry reduction/guided synthesis/priced/cost-optimal/priced timed games/discount-optimality/CORA/timed games/Tiga/game-based testing/statistical model checking/distributed SMC/Control-SMC/stochastic hybrid systems/stochastic hybrid games/compact strategies/SOS/importance splitting/randomized reachability/randomized refinement/MCTS/disjoint activity/urgent partial order reduction/GPU acceleration/Coshy/TATL/EADG/vertex merge/expansion abstraction`
 3. `🛠️` 工程/工具链
-   - `UPPAAL + architecture/implementation/tutorial/online testing/TRON/T-Uppaal/relativized ioco/timed trace inclusion/test generation/ECDAR/compositional verification/UPPAAL PORT/component-based/local time/Buchi/mutation-based testing`
+   - `UPPAAL + architecture/implementation/tutorial/online testing/TRON/T-Uppaal/relativized ioco/timed trace inclusion/test generation/ECDAR/compositional verification/UPPAAL PORT/component-based/local time/Buchi/mutation-based testing/fault localisation/diabolic completion/Yggdrasil`
 
 如果命中条目明显以案例验证为主，默认只记录线索并转入 [uppaal_apps/README.md](../uppaal_apps/README.md)，不要继续往本技术文库扩张。
 
@@ -99,24 +99,27 @@
 
 | 作者 | 当前关联条目 | 角色判断 | 主要贡献方向 | 推荐联用分支词 |
 |---|---|---|---|---|
-| `Kim Guldstrand Larsen` | `lpw95`、`hendriks04`、`behrmann07`、`david13`、`muniz24`、`brorholt25` | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / Tiga / SMC / Stratego / TRON / symmetry reduction / ECDAR / modern extensions` | `importance splitting/TRON/Coshy/UPPAAL 5/GPU-SMC` |
-| `Alexandre David` | `behrmann02`、`david10-*`、`bulychev11`、`david12-*`、`david14`、`david15-*` | 中后期扩展主线整合者 | `architecture / ECDAR environment / Tiga / SMC / distributed SMC / expected cost / Stratego / TIOA / SHS` | `priced/strategy/game/statistical/ECDAR` |
-| `Marius Mikučionis` / `Marius Mikucionis` | `larsen04-*`、`david12-shs`、`david15-*`、`muniz20`、`muniz24`、`brorholt25` | `TRON -> SMC -> POR/GPU -> Coshy` 桥接作者 | `online testing / statistical model checking / urgent POR / GPU-SMC / strategy synthesis / hybrid shielding` | `TRON/online testing/SMC/POR/GPU/Coshy` |
-| `Ulrik Nyman` | `david10-*`、`nyman10`、`nyman17`、`kiviriga20`、`kiviriga21`、`jensen22` | `ECDAR / timed-spec / testing / randomized analysis` 主线组织者 | `specification theory / refinement / mutation-based testing / compositional verification / randomized analysis / planning` | `ECDAR/Buchi/testing/randomized/MCTS` |
+| `Kim Guldstrand Larsen` | `lpw95`、`bouyer04`、`behrmann07`、`bulychev12-smc`、`muniz24`、`jensen25` | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / priced games / Tiga / SMC / TRON / ECDAR / modern abstractions` | `importance splitting/TRON/TATL/Coshy/UPPAAL 5/GPU-SMC` |
+| `Alexandre David` | `david08`、`david10-*`、`bulychev12-smc`、`david12-*`、`david14-*`、`david15-*` | 中后期扩展主线整合者 | `game-based testing / architecture / ECDAR / SMC / strategy evaluation / TIOA / SHS` | `priced/strategy/game/testing/statistical/ECDAR` |
+| `Marius Mikučionis` / `Marius Mikucionis` | `larsen04-*`、`bulychev12-smc`、`david15-*`、`muniz20`、`muniz24`、`brorholt25` | `TRON -> SMC -> POR/GPU -> Coshy` 桥接作者 | `online testing / statistical model checking / urgent POR / GPU-SMC / strategy synthesis / hybrid shielding` | `TRON/online testing/SMC/POR/GPU/Coshy` |
+| `Ulrik Nyman` | `david10-*`、`nyman10`、`nyman17`、`gundersen18`、`kiviriga20`、`kiviriga21`、`jensen22` | `ECDAR / timed-spec / testing / randomized analysis` 主线组织者 | `specification theory / refinement / mutation-based testing / fault localisation / compositional verification / randomized analysis / planning` | `ECDAR/Buchi/testing/fault localisation/randomized/MCTS` |
 | `Axel Legay` | `david10-*`、`david11-*`、`david12-*`、`david13`、`david14`、`goorden23` | `SMC + specification theory` 桥接作者 | `statistical model checking / priced models / timed I/O specification / optimization / SHS` | `statistical/specification theory/expected cost` |
 | `Andrzej Wąsowski` | `david10-*`、`david12-ecdar`、`david13`、`goorden23`、`brorholt25` | `ECDAR` 规范理论与新近扩展连接者 | `timed I/O specification / quotient / compositional verification / Coshy 协作线` | `ECDAR/quotient/Coshy` |
 | `Peter Gjøl Jensen` | `david14`、`jensen23`、`muniz24`、`brorholt25` | `optimization -> abstraction / GPU-SMC -> hybrid synthesis` 桥接作者 | `expected cost / dynamic extrapolation / GPU-SMC / compact shields` | `abstraction/GPU/Coshy` |
-| `Brian Nielsen` | `larsen04-*`、`hessel08`、`nyman17` | `TRON / online testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / mutation-based testing` | `TRON/online testing/mutation-based testing` |
+| `Brian Nielsen` | `hessel04`、`larsen04-*`、`david08`、`hessel08`、`nyman17` | `TRON / adaptive testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / game-based testing / mutation-based testing` | `TRON/online testing/game-based testing/mutation-based testing` |
+| `Anders Hessel` | `hessel04`、`hessel08` | `time-optimal / survey-style testing` 分支作者 | `offline test generation / time-optimal testing / testing survey` | `time-optimal testing/test-case generation` |
 | `Marco Muñiz` | `muniz12`、`muniz20`、`muniz24` | `结构感知压缩 -> urgent POR -> GPU-SMC` 分支作者 | `disjoint activity / urgent partial order reduction / GPU-SMC` | `disjoint activity/partial order reduction/GPU-SMC` |
+| `Uli Fahrenberg` | `fahrenberg09` | infinite-run priced optimization 分支作者 | `discount-optimality / infinite runs / corner-point abstraction` | `priced timed automata/discount-optimal infinite runs` |
 | `John Håkansson` / `Jan Carlson` | `hakansson08` | `UPPAAL PORT` 组件建模分支作者 | `component-based design / PORT / local time / SaveCCM` | `PORT/component-based/local time` |
 | `Martijn Hendriks` / `Peter Niebert` / `Frits Vaandrager` | `hendriks04` | `symmetry reduction` 分支关键作者 | `scalarset / state swaps / canonical representative / symmetry reduction` | `symmetry reduction/scalarset/canonical representative` |
 | `Thomas Hune` | `amnell01`、`hune01` | 早期 `guided synthesis` 线作者 | `guided synthesis / control programs / early tool planning` | `guided synthesis/control` |
 | `Sean Sedwards` | `david12-shs` | `SHS / SMC` 分支补强作者 | `stochastic hybrid systems / simulation semantics / statistical analysis` | `stochastic hybrid systems/SMC` |
 | `Pranav Ashok` / `Jan Křetínský` / `Adrien Le Coënt` | `ashok19-sos` | `compact strategies / hybrid MDP` 分支作者群 | `safe-optimal-small strategies / stochastic hybrid games / hybrid MDP` | `SOS/compact strategies/stochastic hybrid games` |
 | `Andrej Kiviriga` | `kiviriga20`、`kiviriga21`、`jensen22` | `randomized analysis / planning` 新近主线作者 | `randomized refinement / randomized reachability / MCTS` | `randomized reachability/refinement/MCTS` |
-| `Nicolaj Ø. Jensen` | `jensen23` | `modern XTA abstraction` 新近作者 | `dynamic extrapolation / extended timed automata / static analysis` | `dynamic extrapolation/XTA` |
-| `Didier Lime` | `cassez05`、`behrmann07`、`david14` | `timed games -> Tiga -> optimization` 分支协作者 | `timed games / controller synthesis / cost analysis` | `timed games/Tiga/cost` |
-| `Patricia Bouyer` / `Radek Pelánek` | `bblp04` | zone abstraction 外推分支关键合作者 | `lower-upper bound extrapolation / zone abstraction` | `abstraction/extrapolation` |
+| `Nicolaj Ø. Jensen` | `jensen23`、`jensen25` | `modern XTA abstraction -> timed ATL` 新近作者 | `dynamic extrapolation / extended timed automata / TATL / EADG / abstractions` | `dynamic extrapolation/TATL/EADG` |
+| `Didier Lime` | `cassez05`、`behrmann07`、`david14`、`jensen25` | `timed games -> Tiga -> optimization -> TATL` 分支协作者 | `timed games / controller synthesis / cost analysis / timed ATL` | `timed games/Tiga/TATL` |
+| `Florian Lorber` / `Christian Ovesen` / `E. J. Njor` | `gundersen18`、`njor20` | `ECDAR -> UPPAAL-native conformance testing` 工程分支作者群 | `fault localisation / conformance testing / diabolic completion / Yggdrasil` | `conformance testing/Ecdar/diabolic completion/Yggdrasil` |
+| `Patricia Bouyer` / `Radek Pelánek` | `bblp04`、`bouyer04` | zone abstraction 与 priced timed games 外推分支关键合作者 | `lower-upper bound extrapolation / zone abstraction / priced timed games` | `abstraction/priced timed games/extrapolation` |
 | `Rajeev Alur` / `David Dill` / `David L. Dill` | `ad90`、`dill89` | `UPPAAL` 理论前史奠基者 | `timed automata semantics / dense-time verification / clock constraints` | `timed automata/history` |
 
 执行时还应遵守以下约束：
@@ -212,7 +215,7 @@
 4. 这类父路径必须补 `README.md`，说明根目录材料与 `paper-*` 子目录的关系、推荐阅读顺序，以及哪些子目录最值得优先进入。
 5. 这些 `paper-*` 子目录当前默认视为父条目的辅助阅读单元，不单独计入 [SUMMARY.md](./SUMMARY.md) 顶层论文数；若未来要升级为独立正式条目，再单独补 `bibtex.bib` 并在总账中单列。
 6. 不要把外部本地绝对路径写进仓库文档；如果需要说明来源，只描述为“既有外部文库/历史材料池”等抽象来源。
-7. 当前 **55** 个顶层条目已经全部补齐首轮 `desc.md`；因此后续新增顶层条目时，默认完成标准就是 `paper.pdf + paper_content.txt + bibtex.bib + desc.md` 四件套同时齐全。`paper-*` 子目录仍按父条目的辅助阅读单元处理，只有在升级为独立正式条目时才单独补 `bibtex.bib` 与 `desc.md`。
+7. 当前 **65** 个顶层条目已经全部补齐首轮 `desc.md`；因此后续新增顶层条目时，默认完成标准就是 `paper.pdf + paper_content.txt + bibtex.bib + desc.md` 四件套同时齐全。`paper-*` 子目录仍按父条目的辅助阅读单元处理，只有在升级为独立正式条目时才单独补 `bibtex.bib` 与 `desc.md`。
 
 ## 5. 内容整理策略
 

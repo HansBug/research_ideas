@@ -75,7 +75,7 @@
 
 ## 5. 官方入口索引
 
-以下链接已按 `2026-03-29` 核对，后续整理 `UPPAAL` 理论与技术文库时应优先从这些官方入口反向追踪资料、源码、教程和案例。
+以下链接已按 `2026-03-30` 核对，后续整理 `UPPAAL` 理论与技术文库时应优先从这些官方入口反向追踪资料、源码、教程和案例。
 
 官网与文档入口：
 
@@ -138,21 +138,21 @@
 
 ## 6. 现有收录论文的作者关联主线
 
-人物检索簇的起点不是官网 team 页面，而是当前文库 **55 个已收录顶层条目** 的 `bibtex.bib` 作者统计。官方 team / org 只用于交叉核验源码、案例和工具入口，不直接决定“核心人员”名单。
+人物检索簇的起点不是官网 team 页面，而是当前文库 **65 个已收录顶层条目** 的 `bibtex.bib` 作者统计。官方 team / org 只用于交叉核验源码、案例和工具入口，不直接决定“核心人员”名单。
 
 ### 6.1 当前已形成稳定主线的作者
 
-这里的“角色判断”不是按官网头衔写的，而是根据当前 `55` 个顶层条目里作者跨越了哪些技术分支、是否出现在关键转折论文上、以及是否贯穿多个年代综合判断出来的。
+这里的“角色判断”不是按官网头衔写的，而是根据当前 `65` 个顶层条目里作者跨越了哪些技术分支、是否出现在关键转折论文上、以及是否贯穿多个年代综合判断出来的。
 
 | 作者 | 当前收录篇数 | 角色判断 | 主要贡献方向 | 代表关联条目 | 后续优先扩张方向 |
 |---|---:|---|---|---|---|
-| `Kim Guldstrand Larsen` | 44 | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / Tiga / SMC / Stratego / TRON / symmetry reduction / ECDAR / modern extensions` | `lpw95`、`hendriks04`、`behrmann07`、`david13`、`muniz24`、`brorholt25` | `UPPAAL + importance splitting/UPPAAL 5/Coshy/GPU-SMC` |
-| `Alexandre David` | 24 | 中后期扩展主线整合者 | `architecture / ECDAR environment / Tiga / SMC / distributed SMC / expected cost / Stratego / TIOA / SHS` | `behrmann02`、`david10-*`、`bulychev11`、`david12-*`、`david14`、`david15-*` | `Alexandre David + UPPAAL + SMC/ECDAR/game` |
-| `Axel Legay` | 14 | `SMC + specification theory` 桥接作者 | `statistical model checking / priced models / timed I/O specification / optimization / SHS / distributed SMC` | `david10-*`、`bulychev11`、`david11-*`、`nyman10`、`david14`、`goorden23` | `Axel Legay + UPPAAL + statistical/specification theory` |
-| `Gerd Behrmann` | 12 | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / symmetry-aware engine / UPPAAL 4.0 / evolution survey` | `amnell01`、`behrmann02-*`、`behrmann03`、`hendriks04`、`behrmann06`、`behrmann11` | `Gerd Behrmann + UPPAAL + architecture/engine/history` |
-| `Marius Mikučionis` / `Marius Mikucionis` | 12 | `TRON -> SMC -> POR/GPU -> Coshy` 纵向桥接作者 | `online testing / statistical model checking / urgent POR / GPU-SMC / strategy synthesis / hybrid shielding` | `larsen04-*`、`david12-shs`、`david15-*`、`muniz20`、`muniz24`、`brorholt25` | `Marius Mikučionis + UPPAAL + TRON/SMC/POR/GPU/Coshy` |
-| `Paul Pettersson` | 12 | `DBM / engine / component-modeling / testing` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities / PORT / TRON` | `lpw95`、`llpy97`、`hakansson08`、`hessel08`、`dhlp06`、`behrmann11` | `Paul Pettersson + UPPAAL + DBM/PORT/testing` |
-| `Ulrik Nyman` | 11 | `ECDAR / timed-spec / testing / randomized analysis` 主线组织者 | `timed I/O automata / Büchi timed specifications / mutation-based testing / compositional verification / randomized analysis / planning` | `david10-*`、`nyman10`、`nyman17`、`kiviriga20`、`jensen22`、`goorden23` | `Ulrik Nyman + UPPAAL + ECDAR/testing/randomized` |
+| `Kim Guldstrand Larsen` | 52 | `UPPAAL` 总主线牵引者 | `symbolic verification / DBM / priced games / Tiga / SMC / TRON / ECDAR / modern abstractions` | `lpw95`、`bouyer04`、`behrmann07`、`bulychev12-smc`、`muniz24`、`jensen25` | `UPPAAL + importance splitting/UPPAAL 5/TATL/Coshy/GPU-SMC` |
+| `Alexandre David` | 27 | 中后期扩展主线整合者 | `architecture / game-based testing / ECDAR / SMC / strategy evaluation / TIOA / SHS` | `behrmann02`、`david08`、`david10-*`、`bulychev12-smc`、`david14-*`、`david15-*` | `Alexandre David + UPPAAL + SMC/ECDAR/game/testing` |
+| `Axel Legay` | 15 | `SMC + specification theory` 桥接作者 | `statistical model checking / priced models / timed I/O specification / optimization / SHS / distributed SMC` | `david10-*`、`bulychev11`、`bulychev12-smc`、`david11-*`、`nyman10`、`goorden23` | `Axel Legay + UPPAAL + statistical/specification theory` |
+| `Gerd Behrmann` | 13 | 工程架构与工具演进主线作者 | `architecture / implementation / CDD-abstraction / symmetry-aware engine / CORA / UPPAAL 4.0 / evolution survey` | `amnell01`、`behrmann02-*`、`behrmann03`、`behrmann05`、`behrmann06`、`behrmann11` | `Gerd Behrmann + UPPAAL + architecture/CORA/engine/history` |
+| `Marius Mikučionis` / `Marius Mikucionis` | 13 | `TRON -> SMC -> POR/GPU -> Coshy` 纵向桥接作者 | `online testing / statistical model checking / urgent POR / GPU-SMC / strategy synthesis / hybrid shielding` | `larsen04-*`、`bulychev12-smc`、`david15-*`、`muniz20`、`muniz24`、`brorholt25` | `Marius Mikučionis + UPPAAL + TRON/SMC/POR/GPU/Coshy` |
+| `Paul Pettersson` | 13 | `DBM / engine / component-modeling / testing` 工程连接者 | `compact DBM / state-space reduction / implementation / priorities / PORT / TRON / testing` | `lpw95`、`llpy97`、`hessel04`、`hakansson08`、`hessel08`、`dhlp06` | `Paul Pettersson + UPPAAL + DBM/PORT/testing` |
+| `Ulrik Nyman` | 12 | `ECDAR / timed-spec / testing / randomized analysis` 主线组织者 | `timed I/O automata / Büchi timed specifications / mutation-based testing / fault localisation / compositional verification / randomized analysis / planning` | `david10-*`、`nyman10`、`nyman17`、`gundersen18`、`kiviriga20`、`jensen22` | `Ulrik Nyman + UPPAAL + ECDAR/testing/randomized` |
 | `Wang Yi` | 10 | 早期语义与算法骨架作者 | `timed automata semantics / symbolic algorithms / engine foundations / DBM` | `lpw95`、`llpy97`、`amnell01`、`by04`、`behrmann02`、`behrmann06` | `Wang Yi + UPPAAL + semantics/engine/history` |
 | `Andrzej Wąsowski` | 8 | `ECDAR` 规范理论与新近扩展连接者 | `timed I/O specification / quotient / compositional verification / liveness contracts / Coshy 协作线` | `david10-*`、`nyman10`、`david12-ecdar`、`david13`、`goorden23`、`brorholt25` | `Andrzej Wąsowski + UPPAAL + ECDAR/Coshy` |
 | `Peter Gjøl Jensen` | 4 | `optimization -> abstraction / GPU-SMC -> hybrid synthesis` 桥接作者 | `expected cost / dynamic extrapolation / GPU-SMC / compact shields` | `david14`、`jensen23`、`muniz24`、`brorholt25` | `Peter Gjøl Jensen + UPPAAL + abstraction/GPU/Coshy` |
@@ -161,20 +161,23 @@
 
 | 作者 / 别名 | 当前关联条目 | 角色判断 | 主要贡献方向 | 检索使用方式 |
 |---|---|---|---|---|
-| `Brian Nielsen` | `larsen04-*`、`hessel08`、`nyman17` | `TRON / online testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / mutation-based testing` | 与 `UPPAAL + TRON/online testing/mutation-based testing` 联用 |
+| `Brian Nielsen` | `hessel04`、`larsen04-*`、`david08`、`hessel08`、`nyman17` | `TRON / adaptive testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / game-based testing / mutation-based testing` | 与 `UPPAAL + TRON/online testing/game-based testing/mutation-based testing` 联用 |
+| `Anders Hessel` | `hessel04`、`hessel08` | `time-optimal / survey-style testing` 分支作者 | `offline test generation / time-optimal testing / testing survey` | 与 `UPPAAL + time-optimal testing/test-case generation` 联用 |
 | `Marco Muñiz` | `muniz12`、`muniz20`、`muniz24` | `结构感知压缩 -> urgent POR -> GPU-SMC` 分支作者 | `disjoint activity / urgent partial order reduction / GPU-SMC` | 与 `UPPAAL + disjoint activity/partial order reduction/GPU-SMC` 联用 |
+| `Uli Fahrenberg` | `fahrenberg09` | infinite-run priced optimization 分支作者 | `discount-optimality / infinite runs / corner-point abstraction` | 与 `UPPAAL + priced timed automata/discount-optimal infinite runs` 联用 |
 | `John Håkansson` / `Jan Carlson` | `hakansson08` | `UPPAAL PORT / component-based design` 分支作者 | `component-based design / local time / PORT / SaveCCM` | 与 `UPPAAL PORT/component-based/local time/SaveCCM` 联用 |
 | `Martijn Hendriks` / `Peter Niebert` / `Frits Vaandrager` | `hendriks04` | `symmetry reduction` 分支关键作者 | `scalarset / state swaps / canonical representative / symmetry reduction` | 与 `UPPAAL + symmetry reduction/scalarset/canonical representative` 联用 |
 | `Thomas Hune` | `amnell01`、`hune01` | 早期 `guided synthesis` 线作者 | `guided synthesis / control programs / early tool planning` | 与 `UPPAAL + guided synthesis/control` 联用 |
 | `Sean Sedwards` | `david12-shs` | `SHS / SMC` 分支补强作者 | `stochastic hybrid systems / simulation semantics / statistical analysis` | 与 `UPPAAL + stochastic hybrid systems/SMC` 联用 |
 | `Pranav Ashok` / `Jan Křetínský` / `Adrien Le Coënt` / `Jakob Haahr Taankvist` / `Maximilian Weininger` | `ashok19-sos` | `compact strategies / hybrid MDP` 分支作者群 | `safe-optimal-small strategies / stochastic hybrid games / hybrid MDP` | 与 `UPPAAL + SOS/compact strategies/stochastic hybrid games` 联用 |
 | `Andrej Kiviriga` | `kiviriga20`、`kiviriga21`、`jensen22` | `randomized analysis / planning` 新近主线作者 | `randomized refinement / randomized reachability / MCTS` | 与 `UPPAAL + randomized reachability/refinement/MCTS` 联用 |
-| `Nicolaj Ø. Jensen` | `jensen23` | `modern XTA abstraction` 新近作者 | `dynamic extrapolation / extended timed automata / static analysis` | 与 `UPPAAL + dynamic extrapolation/XTA` 联用 |
+| `Nicolaj Ø. Jensen` | `jensen23`、`jensen25` | `modern XTA abstraction -> timed ATL` 新近作者 | `dynamic extrapolation / extended timed automata / TATL / EADG / abstractions` | 与 `UPPAAL + dynamic extrapolation/TATL/EADG` 联用 |
 | `Martijn A. Goorden` | `goorden23` | `TIOA` 规范理论补完作者 | `complete specification theory / ECDAR` | 与 `UPPAAL + timed I/O automata/specification theory` 联用 |
 | `Asger Horn Brorholt` | `brorholt25` | `Coshy` 新近作者 | `automatic shield synthesis / hybrid systems / compact shields` | 与 `UPPAAL + Coshy/hybrid shield synthesis` 联用 |
-| `Didier Lime` | `cassez05`、`behrmann07`、`david14` | `timed games -> Tiga -> optimization` 分支协作者 | `timed games / controller synthesis / cost analysis` | 与 `UPPAAL + timed games/Tiga/cost` 联用 |
+| `Didier Lime` | `cassez05`、`behrmann07`、`david14`、`jensen25` | `timed games -> Tiga -> optimization -> TATL` 分支协作者 | `timed games / controller synthesis / cost analysis / timed ATL` | 与 `UPPAAL + timed games/Tiga/TATL` 联用 |
+| `Florian Lorber` / `Christian Ovesen` / `E. J. Njor` | `gundersen18`、`njor20` | `ECDAR -> UPPAAL-native conformance testing` 工程分支作者群 | `fault localisation / conformance testing / diabolic completion / Yggdrasil` | 与 `UPPAAL + conformance testing/Ecdar/diabolic completion/Yggdrasil` 联用 |
 | `Johan Bengtsson` | `bengtsson02`、`behrmann02-secrets`、`by04` | `DBM` 数据结构专题化奠基作者 | `clocks / DBMs / states / DBM internals / implementation detail` | 与 `UPPAAL + DBM/implementation` 联用 |
-| `Patricia Bouyer` / `Radek Pelánek` | `bblp04` | zone abstraction 外推分支关键外部合作者 | `lower-upper bound extrapolation / zone abstraction` | 与 `UPPAAL + abstraction/extrapolation` 联用 |
+| `Patricia Bouyer` / `Radek Pelánek` | `bblp04`、`bouyer04` | zone abstraction 与 priced timed games 外推分支关键合作者 | `lower-upper bound extrapolation / zone abstraction / priced timed games` | 与 `UPPAAL + abstraction/priced timed games/extrapolation` 联用 |
 | `Rajeev Alur` | `ad90` | 理论前史奠基者 | `timed automata semantics` | 只在明确追踪 `UPPAAL` 理论源头时纳入检索 |
 | `David Dill` / `David L. Dill` | `ad90`、`dill89` | dense-time verification 前史奠基者 | `timing assumptions / clock constraints / symbolic verification` | 只在明确追踪 `UPPAAL` 技术前史时纳入检索 |
 
@@ -190,11 +193,11 @@
 
 ### 6.3 作者年代与持续性观察
 
-当前文库里的正式顶层条目现在已经覆盖 `1990-2025`。这一轮新增后，文库已经不再只是 `cost-optimality -> architecture -> Tiga -> SMC -> Stratego -> modern extensions` 这条单线，而是把 `symmetry reduction`、`UPPAAL PORT`、`ECDAR environment / Büchi timed specs / mutation-based testing`、`distributed SMC`、`disjoint activity -> urgent POR -> bounded DBM reconstruction -> GPU-SMC` 这些此前断开的分支也接了进来。按 `2026-03-29` 对官方站点、官方 GitHub org、`ECDAR` 站点与公开论文线的核验结果，至少可以确认：
+当前文库里的正式顶层条目现在已经覆盖 `1990-2025`。这一轮新增后，文库已经不再只是 `cost-optimality -> architecture -> Tiga -> SMC -> Stratego -> modern extensions` 这条单线，而是把 `time-optimal testing / priced timed games / CORA scheduling / game-based adaptive testing / discount-optimal infinite runs / UPPAAL-SMC formalization / strategy evaluation / ECDAR fault localisation / UPPAAL-native conformance testing / TATL + EADG + abstraction` 这些此前断开的分支也接了进来。按 `2026-03-30` 对官方站点、官方 GitHub org、`ECDAR` 站点与公开论文线的核验结果，至少可以确认：
 
 1. 官方 changelog 仍记录到 `2023-06-21` 的 `UPPAAL 5.0.0`、`2023-12-11` 的 `UPPAAL 5.1.0-beta5` 和 `2025-07-04` 的 `UPPAAL 5.1.0-b5-COSHY`。
 2. 官方 GitHub org 中 `UDBM`、`docs.uppaal.org`、`utap`、`uppaal-libs` 等仓库在 `2025-2026` 仍有更新。
-3. 当前文库已经直接覆盖到 `2025` 的 `Uppaal Coshy` 与 `GPU-SMC`；但 `2016-2018` 仍偏空，`importance splitting`、更系统的 `UPPAAL 5` 技术论文、若干现代搜索/抽象优化线仍未补齐。
+3. 当前文库已经直接覆盖到 `2025` 的 `Uppaal Coshy`、`GPU-SMC` 与 `TATL` 新算法；但 `2016-2018` 仍偏空，`importance splitting`、更系统的 `UPPAAL 5` 技术论文、若干现代搜索/抽象优化线仍未补齐。
 
 因此，后续维护时不能再把现有作者简单看成“早期史料作者名单”，而要区分：
 
@@ -275,7 +278,7 @@ AI 在开始具体工作前，推荐阅读顺序为：
 2. 若没有现成正文提取物，则必须优先使用 `tools/pdf_extractor.py` 基于 `paper.pdf` 生成 `paper_content.txt`。
 3. 若原始条目本身带有稳定的 `paper-*` 子论文拆分路径，应一并搬入，并为父目录补 `README.md` 说明父子关系和推荐阅读顺序。
 4. 这类 `paper-*` 子目录当前默认视为父条目的辅助阅读单元，不单独计入 [SUMMARY.md](./SUMMARY.md) 的顶层论文数；若后续要把某个子论文提升为独立正式条目，再为其单独补 `bibtex.bib` 并单独入账。
-5. 当前 **55** 个顶层条目已经全部补齐首轮 `desc.md`。后续新增顶层条目时，默认应在同一轮内同步补齐 `desc.md`；对 `paper-*` 子目录则继续以父目录 `README.md` 与父级 `desc.md` 为主，只有在该子论文要升级为独立正式条目时，才单独补 `bibtex.bib` 并单独写自己的 `desc.md`。
+5. 当前 **65** 个顶层条目已经全部补齐首轮 `desc.md`。后续新增顶层条目时，默认应在同一轮内同步补齐 `desc.md`；对 `paper-*` 子目录则继续以父目录 `README.md` 与父级 `desc.md` 为主，只有在该子论文要升级为独立正式条目时，才单独补 `bibtex.bib` 并单独写自己的 `desc.md`。
 
 ## 9. 材料状态口径
 

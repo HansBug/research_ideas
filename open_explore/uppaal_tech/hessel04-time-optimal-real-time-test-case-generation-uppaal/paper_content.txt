@@ -1,0 +1,910 @@
+--- Page 1 ---
+Time-optimalReal-Time TestCaseGeneration
+using U PPAAL
+AndersHessel
+/BD,Kim G.Larsen
+/BE, BrianNielsen
+/BE, PaulPettersson
+/BD, andArneSkou
+/BE/BDDepartment ofInformation Technology
+Uppsala University
+P.O.Box 337
+SE-751 05 Uppsala, Sweden/CUhessel,paupet /CV@it.uu.se/BEDepartment of Computer Science
+Aalborg University
+Fredrik Bajersvej 7E
+DK-9220 Aalborg, Denmark/CUkgl,bnielsen,ask /CV@cs.auc.dk
+Abstract. Testing is the primary software validation technique used by industry
+today,butremainsadhoc,errorprone,andveryexpensive.Apromisingimprove-
+ment is to automatically generate test cases from formal models of the system
+under test.
+We demonstrate how to automatically generate real-time conformance test cases
+from timed automata speciﬁcations. Speciﬁcally we demonstrate how to efﬁ-
+cientlygenerate real-timetestcaseswith optimalexecutiontimei.etestcasesthat
+arethefastestpossibletoexecute.Ourtechniqueallowstimeoptimaltestcasesto
+begeneratedusingmanuallyformulatedtestpurposes orgeneratedautomatically
+from various coverage criteriaof the model.
+1 Introduction
+Testing is the executionof the system undertest in a controlledenvironmentfollowing
+a prescribed procedure with the goal of measuring one or more quality characteristics
+of a product, such as functionality or performance. Testing is the primary softwarevalidation technique used by industry today. However, despite the importance and the
+manyresourcesandman-hoursinvestedbyindustry(about30%to50%ofdevelopment
+effort),testingremainsquiteadhocanderrorprone.
+We focus on conformance testing i.e., checking by means of execution whether the
+behavior of some black box implementation conforms to that of its speciﬁcation, and
+moreover doing this within minimum time. A promising approach to improving the
+effectiveness of testing is to base test generation on an abstract formal model of the
+systemundertest(SUT)anduseatestgenerationtoolto(automaticallyoruserguided)
+generate and execute test cases. Model based test generation has been under scientiﬁcstudy for some time, and practically applicable test tools are emerging [4,16,18,10].
+However,little is still knownin thecontextofreal-timesystems.
+
+--- Page 2 ---
+An important principal problem in generating real-time test cases is to compute when
+to stimulate the system and expect response, and to compute the associated correctverdict.This usually requires (symbolic)analysis of the modelwhich in turn may lead
+to the state explosion problem. Another problem is how to select a very limited set of
+test cases to be executed from the extreme large number (usually inﬁnitely many) of
+potentialones.
+This paper demonstrates how it is possible to generate time-optimal test cases and test
+suites, i.e.test cases andsuites thatare guaranteedto takethe least possibletime toex-
+ecute. The required behavior is speciﬁed using a deterministic and output urgent class
+of U
+PPAALstyle timed automata. The U PPAALmodel checking tool implements a set
+of efﬁcient data-structures and algorithms for symbolic reachability analysis of timedautomata. We then use the fastest diagnostic trace facility of the U
+PPAALtool to gen-
+erate time optimal test sequences. Test cases can either be selected through manually
+formulatedtestpurposesorautomaticallyfromthreenaturalcoveragecriteria—suchastransitionorlocationcoverage–ofthetimedautomatamodel.
+Time optimal test suites are interesting for several reasons. First, reducing the total
+execution time of a test suite allows more behavior to be tested in the (limited) time
+allocatedto testing. Second,it is generallydesirablethat regressiontesting can be exe-cutedasquicklyaspossibletoimprovetheturnaroundtimebetweensoftwarerevisions.
+Third, it is essential for product instance testing that a thorough test can be performed
+withouttestingbecomingthebottleneck,i.e.,thetestsuitecanbeappliedtoallproducts
+coming of an assembly line. Finally, in the context of testing of real-time systems, we
+hypothesizethat the fastest test case that drives the SUT to some state, also has a highlikelihoodofdetectingerrors,becausethisisastressfulsituationfortheSUTtohandle.
+The rest of the paper is organized as follows: Section 2 discusses related work, and
+Section 3 introduces our framework for testing real-time systems based on a testable
+subclass of timed automata. Section 4 and 5 describe how to encode test purposes and
+testcriteria,andreportexperimentalresultsrespectively.Section6concludesthepaper.
+2 Related Work
+Relatively few proposals exist that deal explicitly and systematically with testing real-time properties[11,9,6,17,8,5,7,14,15]. In[5,8,17] test sequencesare generatedfromatimedautomata(TA)byapplyingvariationsofﬁnitestatemachine(FSM)checkingse-
+quencetechniques(seeeg.[13])toadiscretizationofthestatespace.Experienceshows
+thatthisapproachsuffersseriouslyfromthestateexplosionproblemandresultinglargenumberoftestsequences.Theworkin[9]and[11]also usecheckingsequences,butis
+basedondifferentstructuresandstate veriﬁcationmethods.Both assumedeterminism,
+butnotoutputurgency.Todistinguishsequencesthatcanalwaysbeexecutedtocomple-
+tion independenton output timing and sequences that may be executed to completion,
+[9] deﬁnes may- and must-traceability of transition sequences in a TA. The unique IOsequence (UIOv) method is then applied to a FSM derived from the TA by simply re-
+moving the clock conditions on transitions. The sequences are then checked for their
+
+--- Page 3 ---
+may- and must-traceability,and the procedureis re-iterated when necessary. This may
+result inmanyiterationsandin incompletetest-suites. Theworkin [11] assumes a fur-ther restricted TA model where all transitions with the same observable action resets
+the same set of clocks. The TA is ﬁrst translated into a (larger) alternative automaton
+where clock constraints are represented as set-timer and expire-timerevents. Based on
+this, thegeneralizedWp methodis usedtocomputecheckingsequences.
+In most FSM based approaches, tests are selectedbased on a fault-model identifying
+implementation faults that is desired to be (or can be) detected during testing. Little
+or no evidence is given to support that the real-time fault models correspond to faults
+that occur frequently in practice. Another problem is the required assumptions about
+the numberofstates in the SUT,whichin generalis difﬁcultto estimate.The coverageapproach guarantees that the test suite is derived systematically and that it provides a
+certain level of thoroughness,which is important in industrial practice. It is important
+to stress that this is a practically founded heuristic test selection technique. Similarly,
+when time optimal sequences are generated,this is also a level of test selection, where
+only the fastest to execute are selected. Our goal is notfull fault coverage that will in
+principleguaranteethat theSUTis correctifit passes all generatedtests.
+A different approach to test generation and selection is [6] where a manually stated
+test purposeis used to deﬁne the desired sequencesto be observedon the SUT. A syn-
+chronous product of the test purpose and TA model is ﬁrst formed and used to extract
+a symbolic test sequence with timing constraints that reach a goal state of the test pur-
+pose. This symbolic trace can be interpreted at execution time to give a ﬁnal verdict.
+This workdoes not address test suite optimizationor time optimality,does not addresstestgenerationwithoutanexplicittest purpose,anddoesnotappeartobeimplemented
+in a tool. [15] proposes a fully automatic method for generation of real-time test se-
+quences from a subclass of TA called event-recording automata which restricts howclocks are reset. The techniqueis based onsymbolic analysis andcoverageof a coarse
+equivalenceclass partitioningofthe state space.
+Our work is based on existing efﬁcient and well proven symbolic analysis techniques
+ofTA,andunlikeothersaddressestimeoptimaltesting.Mostotherworkonoptimizingtest suites, e.g [1,19,10], focus on minimizing the length of the test suite which is not
+directly linked to the execution time because some events take longer to produce or
+real-time constraints are ignored. Others have used (untimed) model-checkingtools toproducetest suites forvariousmodelcoveragecriteriae.g.,[10].
+The main contributionsof the paper are 1) application of time and cost optimal reach-
+ability analysis algorithms to the context of time-optimal test case generation ,2 )a n
+automatic technique to generate time optimal covering test suites for three important
+coverage criteria, 3) through creative use of the diagnostic trace facility of U
+PPAAL,
+atest generation tool exists that is based on efﬁcient and well-proven algorithms, and
+ﬁnally4)weprovide experimentalevidence inthattheproposedtechniquehaspractical
+merits.
+
+--- Page 4 ---
+3 Timed Automata and Testing
+We will assume that both the system undertest (SUT) and the environmentin which it
+operatesare modeledas TA.
+3.1 Timed Automata
+Let /CGbe a set of non-negative real-valued variables called clocks, and /BT/CR/D8 /BP /C1 /CJ/C7/CJ /CU /AS /CVa set of input actions /C1and output-actions /C7, (denoted /CP /BRand /CP /AX), and the
+non-synchronizing action (denoted /AS). Let /BZ /B4 /CG /B5denote the set of guardson clocks
+being conjunctions of simple constraints of the form /DC/BA /BB/CR, and let /CD /B4 /CG /B5denote the
+set ofupdatesof clocks correspondingto sequences of statements of the form /DC /BM/BP /CR,
+where /DC /BE /CG, /CR /BE /C6, and /BA /BB /BE/CU /AK /BN/BO /BN /BP /BN /AL/CV3.Atimedautomaton (TA)over /B4 /BT/CR/D8/BN /CG /B5
+is a tuple /B4 /C4/BN /CO/BC
+/BN/C1 /BN/BX /B5, where /C4is a set of locations, /CO/BC
+/BE /C4is an initial location,/C1 /BM /C4 /AX/BZ /B4 /CG /B5assigns invariants to locations, and /BXis a set of edges such that /BX /AI/C4 /A2/BZ /B4 /CG /B5 /A2 /BT/CR/D8 /A2/CD /B4 /CG /B5 /A2 /C4.We write /CO
+/CV /BN/AB/BN/D9/A0 /A0 /A0 /A0 /AX /CO
+/BCiff /B4 /CO/BN /CV /BN /AB/BN /D9/BN /CO
+/BC/B5 /BE /BX.
+The semantics of a TA is deﬁned in terms of a timed transition system over states of
+the form /D4 /BP/B4 /CO/BN /AR /B5, where /COis a location and /AR /BE /CA
+/CG/AL /BCis a clock valuation satisfying
+the invariant of /CO. Intuitively, there are two kinds of transitions: delay transitions and
+discrete transitions. In delay transitions, /B4 /CO/BN /AR /B5
+/CS/A0 /AX /B4 /CO/BN /AR /B7 /CS /B5, the values of all clocks
+of the automatonare incremented with the amount of the delay, /CS. Discrete transitions/B4 /CO/BN /AR /B5
+/AB/A0 /AX /B4 /CO
+/BC/BN/AR
+/BC/B5correspondtoexecutionofedges /B4 /CO/BN /CV /BN /AB/BN /D9/BN /CO
+/BC/B5forwhichtheguard /CV
+is satisﬁed by /AR. The clock valuation /AR
+/BCof the target state is obtained by modifying /AR
+according to updates /D9. We write /D4
+/AD/A0 /AXas a short for /BL /D4
+/BC/BM/D4
+/AD/A0 /AX /D4
+/BC/BN/AD /BE /BT/CR/D8 /CJ /CA/AL /BC.A
+timedtraceis a sequenceofalternatingtimedelaysandactionsin /BT/CR/D8.
+AnetworkofTA /BT/BD
+/CZ /A1/A1/A1 /CZ /BT/D2over /B4 /BT/CR/D8/BN /CG /B5is deﬁnedas theparallelcompositionof/D2TA over /B4 /BT/CR/D8/BN /CG /B5.Semantically,anetworkagaindescribesatimedtransitionsystem
+obtained from those of the components by requiring synchrony on delay transitions
+and requiring discrete transitions to synchronize on complementary actions (i.e. /CP /BRis
+complementaryto /CP /AX).
+3.2 U PPAALandTime OptimalReachabilityAnalysis
+UPPAALisaveriﬁcationtoolforaTAbasedmodelinglanguage.Besidesdenseclocks,
+the tool supports both simple and complexdata types like boundedintegers and arraysas well as synchronizationvia sharedvariablesandactions.Thespeciﬁcationlanguage
+supportssafety,liveness,deadlock,andresponseproperties.
+To produce test sequences, we shall make use of U
+PPAAL’s ability to generate diag-
+nostic traces witnessing a submitted safety property.Currently U PPAALsupports three
+3Tosimplifythepresentation intherestofthepaper, werestricttoguards withnon-strictlower
+bounds on clocks.
+
+--- Page 5 ---
+options for diagnostic trace generation: some trace leading to the goal state, the short-
+est trace with the minimum number of transitions, and fastest trace with the shortest
+accumulatedtimedelay.Theunderlyingalgorithmusedforﬁndingtime-optimaltraces
+is a variation of the A
+/A3-algorithm[2,12]. Hence, to improveperformanceit is possible
+to supply a heuristic function estimating the remaining cost from any state to the goal
+state.
+Throughoutthepaperweuse U PPAALsyntaxtoillustrateTA,andtheﬁguresaredirect
+exportsfrom U PPAAL. Initial locations are markedusing a doublecircle. Edges are by
+conventionlabeledby the triple: guard,action,and assignmentin that order.The inter-
+nal /AS-action is indicated by an absent action-label. Committed locations are indicated
+by a location with an encircled “C”. A committed location must be left immediatelyas the next transition taken by the system. Finally, bold-faced clock conditions placed
+underlocationsare locationinvariants.
+3.3 Deterministic,Input Enabled and OutputUrgentTA
+Toensuretimeoptimaltestability,thefollowingsemanticrestrictionsturnouttobesuf-
+ﬁcient. Following similar restrictions as in [17], we deﬁne the notion of deterministic,
+input enabled and output urgent TA, DIEOU-TA, by restricting the underlying timed
+transitionsystem deﬁnedbytheTA as follows:
+1.Determinism. Two transitions with the same label leads to the same state, i.e., for
+every semantic state/D4 /BP/B4 /CO/BN /AR /B5and action /AD /BE /BT/CR/D8 /CJ/CU /CA/AL /BC
+/CV, whenever /D4
+/AD/A0 /AX /D4
+/BC
+and /D4
+/AD/A0 /AX /D4
+/BC/BCthen /D4
+/BC/BP /D4
+/BC/BC.
+2.(Weak)inputenabled. Atanytimeanyinputactionisenabled,i.e.,whenever /D4
+/CS/A0 /AX
+forsomedelay /CS /BE /CA/AL /BCthen /BK /CP /BE/C1 /BM/D4
+/CP/A0 /AX.
+3.IsolatedOutputs .Ifanoutput(or /AS)isenabledthennootherinputoroutputtransi-
+tionisenabled,i.e., /BK /AB /BE/C7 /CJ /CU /AS /CV /BM /BK /AC /BE/C7 /CJ /C1 /CJ /CU /AS /CVwhenever /D4
+/AB/A0 /AXand /D4
+/AC/A0 /AX
+then /AB /BP /AC.
+4.Output urgency. When an output (or /AS) is enabled, it will occur immediately, i.e.,
+whenever /D4
+/AB/A0 /AX /BN/AB /BE/C7 /CJ /CU /AS /CVthen /D4 /BI
+/CS/A0 /AX /BN/CS /BE /CA/AL /BC.
+System under
+testEnvironmenti?
+o!
+Fig.1.TestSpeciﬁcation
+
+--- Page 6 ---
+We assume that the test speciﬁcation is given as a closed network of TA that can be
+partitioned into one subnetwork modeling the behavior of the SUT, and one modelingthebehaviorofitsenvironment(ENV),seeFigure1.OftentheSUToperatesinspeciﬁc
+environments, and it is only necessary to establish correctness under the (modeled)
+environment assumptions; otherwise the environment model can be replaced with a
+completelyunconstrainedonethatallows allpossibleinteractionsequences.
+WeassumethatthetestercantaketheplaceoftheenvironmentandcontroltheSUTvia
+a distinguished set observable input and output actions. For the SUT to be testable the
+subnetworkmodelingitshouldbe controllable inthesensethatitshouldbepossiblefor
+an environmentto drive the subnetwork model through all of its syntactical parts (e.g.
+transitionsandlocations).WethereforeassumethattheSUTspeciﬁcationisaDIEOU-TA, and that the SUT can be modeled by some unknownDIEOU-TA (this assumption
+is commonlyreferedto as the testing hypothesis).The environmentmodelneed not be
+a DIEOU-TA.
+OFFDIM BRIGHTx<Tsw
+touch?x:=0x>=Tswtouch?x:=0
+x>=Tswtouch?x:=0x<Tswtouch?x:=0
+x>=Tidletouch?x:=0x:=0x<Tidle
+touch?off!
+bright!off!
+dim!bright!
+dim!
+Fig.2.Light Controller
+WeusethesimplelightswitchcontrollerinFigure2toillustratetheconcepts.Theuser
+interactswiththecontrollerbytouchingatouchsensitivepad.Thelighthasthreeinten-
+sity levels: OFF,DIMMED,andBRIGHT.Dependingonthe timingbetweensuccessive
+touches (recorded by the clock /DC), the controller toggles the light levels. For example,
+indimmedstate, ifa secondtouchis madequickly(beforethe switchingtime /CC/D7/DB
+/BP/BG
+time units) afterthe touchthat causedthe controllerto enterdimmedstate (fromeither
+offorbrightstate),thecontrollerincreasestheleveltobright.Conversely,ifthesecond
+touchhappensafterthe switchingtime, thecontrollerswitchesthe lightoff.Ifthe light
+controller has been in off state for a long time (longer than or equal to /CC/CX/CS /D0/CT
+/BP/BE /BC), it
+shouldreactivateuponatouchbygoingdirectlytobrightlevel.Weleaveittothereader
+toverifyforherselfthat theconditionsofDIEOU-TAaremetbythemodelgiven.
+
+--- Page 7 ---
+touch!
+z:=0
+touch!z>=Treact
+z:=0off?
+dim?
+bright?touch!
+z:=0,
+t:=t+1z<Tpause,z>=Treact,t<2
+touch!
+z:=0,
+t:=t+1z>=Tpause
+touch!
+t:=1,
+z:=0
+off? bright?
+dim?/B4 /CP /B5 /B4 /CQ /B5
+Fig.3.Two possible environment models for the simple light switch
+TheenvironmentmodelshowninFigure3 /B4 /CP /B5modelsausercapableofperformingany
+sequenceof touch actions. When the constant /CC/D6 /CT /CP/CR/D8is set to zero he is arbitrarilyfast.
+A more realistic user is onlycapable of producingtouches with a limited rate; this canbe modeledsetting/CC/D6 /CT /CP/CR/D8to a non-zerovalue.Figure 3 /B4 /CQ /B5models a differentuser able
+to make two quick successive touches (counted by integer variable t), but which then
+is requiredtopauseforsometime (toavoidcramp),e.g., /CC/D4 /CP/D9/D7/CT
+/BP/BH.
+3.4 FromDiagnosticTracestoTest Cases
+Let /BTbe the TA network model of the SUT together with its intended environment
+ENV. A diagnostic trace produced by U PPAALfor a given reachability question on /BT
+demonstrates the sequence of moves to be made by each of the system components
+and the required clock constraints needed to reach the targeted location. A (concrete)
+diagnostictracewill havetheform:/B4 /CB/BC
+/BN/BX/BC
+/B5
+/AD/BC/A0 /AX /B4 /CB/BD
+/BN/BX/BD
+/B5
+/AD/BD/A0 /AX /B4 /CB/BE
+/BN/BX/BE
+/B5
+/AD/BE/A0 /AX/A1 /A1 /A1 /B4 /CB/D2
+/BN/BX/D2
+/B5
+where /CB/CX
+/BN/BX/CXarestates oftheSUTandENV,respectively,and /AD/CXareeithertime-delays
+orsynchronization(orinternal)actions.Thelattermaybefurtherpartitionedintopurely
+SUTorENVtransitions(henceinvisiblefortheotherpart)orsynchronizingtransitions
+betweenthe SUTandtheENV(henceobservableforbothparties).
+ForDIEOU-TAa testsequence isanalternatingsequenceofconcretedelayactionsand
+observableactions.Fromthediagnostictraceabovea testsequence , /AL,maybeobtained
+simply by projecting the trace to the ENV-component, while removing invisible tran-
+sitions, and summing adjacent delay actions. Finally, a test caseto be executed on the
+realSUT implementationmaybeobtainedfrom /ALbythe additionof verdicts.
+Addingtheverdictsrequiresomecommentsonthechosencorrectnessrelationbetween
+the speciﬁcation and SUT. In this paper we require timed trace inclusion, i.e. that the
+timedtracesoftheimplementationareincludedinthespeciﬁcation.Thusafteranyinputsequence, the implementationis allowed to produce an output only if the speciﬁcation
+is also able to produce that output. Similarly, the implementation may delay (thereby
+
+--- Page 8 ---
+staying silent) only if the speciﬁcation also may delay. The test sequences produced
+by our techniques are derived from diagnostic traces, and are thus guaranteed to beincludedinthespeciﬁcation.
+To clarify the construction we may model the test case itself as a TA/BT/ALfor the test
+sequence /AL.Locationsin /BT/ALarelabeledusingtwodistinguishedlabels, /D4/CP/D7/D7and /CU/CP/CX/D0.
+Theexecutionofatestcaseisnowformalizedasaparallelcompositionofthetestcaseautomaton/BT/ALandSUT /BT/CB./CB /D4/CP/D7/D7/CT/D7 /BT/AL
+/CX/AB /BT/AL
+/CZ /BT/CB
+/BI/AW /CU/CP/CX/D0/BT/ALis constructed such that a complete execution terminates in a /CU/CP/CX/D0state if the SUT
+cannotperform /ALand such that it terminates in a /D4/CP/D7/D7state if the SUT can executeall
+actionsof /AL. Theconstructionis illustratedinFigure4.
+FAIL
+x<=0
+FAILx<=delay
+PASSFAILi_0!x:=0
+x==delay
+x:=0o_0?o_1?
+o_n?x<delay
+o_0?
+Fig.4.Testcase automaton forthe sequence /CX/BC
+/AX /A1 /CS/CT/D0/CP/DD /A1 /D3/BC
+/BR
+4 Test Generation
+4.1 SinglePurpose Test Generation
+A commonapproachto the generationof test cases is to ﬁrst manually formulatea set
+of informal test purposes and then to formalize these such that the model can be used
+togenerateoneormoretestcasesforeachtest purpose.Atestpurposeisaspeciﬁctestobjective(orproperty)thatthe testerwouldliketoobserveontheSUT.
+Because we use the diagnostic trace facility of a model-checker based on reachabil-
+ity analysis, the test purpose must be formulated as a property that can be checked by
+
+--- Page 9 ---
+reachabilityanalysisofthecombinedENVandSUTmodel.Weproposedifferenttech-
+niques for this. Sometimes the test purpose can be directly transformed into a simplelocation reachability check.In other cases it may require decorationof the model with
+auxiliary ﬂag variables. Another technique is to replace the environmentmodel with a
+morerestrictedonethatmatchesthebehaviorofthetest purposeonly.
+TP1:Checkthatthelightcanbecomebright.
+TP2:Checkthatthelightswitches offafterthreesuccessivetouches.
+TP1canbeformulatedasasimplereachabilityproperty: E<> LightController.
+bright (i.e. eventually in some future the lightController automata enters location
+bright).
+Generating the shortestdiagnostic trace results in the test sequence:/BE/BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1/CQ/D6/CX/CV/CW/D8 /BR. However,the fastest sequence satisfying the purpose is /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1/BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR.
+TP2can be formalized using the restricted environment model4in Figure 5 with the
+property E<> tpEnv.goal . The fastest test sequence is /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BC /A1/D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR.
+goal
+touch!
+z:=0z<Tsw
+touch!z>=Treact,
+z<Tsw
+z:=0z>=Treact,
+z<Tsw
+touch!
+z:=0off?bright?dim?off? bright? off?dim? bright?dim?
+Fig.5.TestEnvironment for TP2
+4.2 CoverageBasedTest Generation
+Often the tester is interested in creating a test suite that ensures that the speciﬁcation
+or implementationis covered in a certain way. This ensures that a certain level of sys-
+temacy and thoroughness has been achieved in the test generation process. Here we
+4It is possible to use U PPAAL’s committed location feature to compose the test purpose and
+environment modelinacompositional way.Spacelimitationsprevents usfromelaborating onthis approach.
+
+--- Page 10 ---
+explain how test sequences with guaranteed coverage of the SUT model can be com-
+putedusingreachabilityanalysis,effectivelygivingautomatedtoolsupport.Inthenextsubsection,weshowhowtogeneralizethetechniquetogeneratesetsoftest sequences.
+A large suite of coverage criteria have been proposed in the literature, such as state-
+ment, transition, and deﬁnition-usecoverage,each with its own merits and application
+domain.We explainhowtoapplysomeoftheseto TAmodels.
+EdgeCoverage: Atestsequencesatisﬁesthe edge-cove ragecriterionif,whenexecuted
+onthemodel,ittraverseseveryedgeoftheselectedTA-components.Edgecoveragecan
+beformulatedasareachabilitypropertyinthefollowingway:addanauxiliaryvariable/CT/CXof type boolean (initially false) for each edge to be covered (typically realized as a
+bit array in U PPAAL), and add to the assignments of each edge /CXan assignment /CT/CX
+/BM/BP/D8/D6/D9/CT; a test suite can be generated by formulating a reachability property requiring
+that all /CT/CXvariables are true: E<>( /CT/BC== /D8/D6/D9/CTand /CT/BD== /D8/D6/D9/CT /BM/BM/BM /CT/D2== /D8/D6/D9/CT).
+The auxiliary variables are needed to enable formulation of the coverage criterion as
+a reachability property using the U PPAALproperty speciﬁcation language which is a
+restrictedsubsetofCTL.
+ThelightswitchinFigure2requiresabit-arrayof12elements(oneperedge).Whenthe
+environmentcantoucharbitrarilyfastthegeneratedfastestedgecoveringtestsequence
+has the accumulated execution time 28. The solution (there might be more traces with
+thesame fastest executiontime)generatedby U PPAALis:
+EC: /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR /A1 /BE/BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1/CQ/D6/CX/CV/CW/D8 /BR /A1 /BG /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BG /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR.
+Location Coverage: A test sequence satisﬁes the location-cove ragecriterion if, when
+executedon the model,it visits everylocationof the selected TA-components.To gen-
+erate test sequences with location coverage, we introduce an auxiliary variable /D7/CXof
+type boolean (initially false for all locations except the initial) for each location /CO/CXto
+be covered. For every edge with destination /CO/CX: /CO
+/BC
+/CV/BN /CP /BN /D9/A0 /A0 /A0 /A0 /AX /CO/CXadd to the assignments /D9/D7/CX
+/BM/BP /D8/D6/D9/CT;the reachabilitypropertywill thenrequireall /D7/CXvariablesto betrue.
+Deﬁnition-UsePairCoverage: Thedeﬁnition-usepaircriterionisadata-ﬂowcoverage
+technique where the idea is to cover paths in which a variable is deﬁned(i.e. appears
+in the left-hand side of an assignment) and later is used(i.e. appears in a guard or the
+right-handside of an assignment).Due to space-limitation,we restrict the presentation
+toclocks,whichcanbe usedinguardsonly.
+We use /B4 /DA/BN/CT/CS
+/BN/CT/D9
+/B5to denote a deﬁnition-use pair (DU-pair) for variable /DAif /CT/CSis an
+edge where /DAis deﬁned and /CT/D9is an edge where /DAis used. A DU-pair /B4 /DA/BN/CT/CS
+/BN/CT/D9
+/B5is
+valid if /CT/D9is reachablefrom /CT/CSand /DAis not redeﬁnedin the path from /CT/CSto /CT/D9. A test
+sequence covers /B4 /DA/BN/CT/CS
+/BN/CT/D9
+/B5iff (at least) once in the sequence, there is a valid DU-pair/B4 /DA/BN/CT/CS
+/BN/CT/D9
+/B5. A test sequence satisﬁes the (all-uses) DU-pair coveragecriterion of /DAif it
+coversall validDU-pairsof /DA.
+To generatetest sequenceswith deﬁnition-usepaircoverage,we assumethat the edges
+ofamodelareenumerated,sothat /CT/CXisthenumberofedge /CX.Weintroduceanauxiliary
+data-variable /DA/CS(initially /CU/CP/D0/D7/CT /B5withvaluedomain /CU /CU/CP/D0/D7/CT /CV/CJ /CU /BD /BM/BM/BM /CY /BX /CY/CVtokeeptrack
+
+--- Page 11 ---
+of the edge at which variable /DAwas last deﬁned, and a two-dimensionalboolean array/CS/D9of size /CY /BX /CY/A2 /CY /BX /CY(initially /CU/CP/D0/D7/CT) to store the covered pairs. For each edge /CT/CXat
+which /DAis deﬁned we add /DA/CS
+/BM/BP /CT/CX, and for each edge /CT/CYat which /DAis used we add
+the conditional assignment /CX/CU /B4 /DA/CS
+/BI/BP /CU/CP/D0/D7/CT /B5 /D8/CW/CT/D2 /CS/D9 /CJ /DA/CS
+/BN/CT/CY
+/CL /BM/BP /D8/D6/D9/CT. Note that if /DAis
+bothusedanddeﬁnedonthesameedge,thearrayassignmentmustbemadebeforethe
+assignmentof /DA/CS.
+Thereachabilitypropertywillthenrequireall /CS/D9 /CJ /CX/BN /CY /CLrepresentingvalidDU-pairstobe
+trueforthe(all-uses)DU-paircriterion.NotethatatestsequencesatisfyingtheDU-pair
+criterion for several variables can be generated using the same encoding,but extended
+withoneauxiliaryvariableandarrayforeachcoveredvariable.
+4.3 Test Suite Generation
+Often a single covering test sequence cannot be obtained for a given test purpose or
+criterion (e.g. due to dead-ends in the model). To solve this problem, we allow for the
+model (and SUT) to be resetto its initial state, and to continue the test after the reset
+to cover the remaining parts. The generated test will then be interpreted as a test suite
+consisting of a set of test sequences separated by resets (assumed to be implemented
+correctlyintheSUT).
+To introduce resets in the model, we shall allow the user to designate some locations
+as being reset-able. Obviously, performing a reset may take some time /CC/D6that must
+be taken into consideration when generating time optimal test sequences. Reset-able
+locationscanbe encodedinto themodelbyaddingreset transitionsleadingbacktothe
+initial location. Let /DC/D6be an additional clock used for reset purposes, and let /CObe a
+reset-ablelocation.Tworeset-edgesandanewlocation /CO
+/BCmustthenbeaddedfrom /COto
+theinitial location /CO/BC,i.e.,/CO
+/D6 /CT/D7/CT/D8 /AX /BN/DC/D6
+/BM/BP/BC/A0 /A0 /A0 /A0 /A0 /A0 /A0 /A0 /AX /CO
+/BC/B4 /DC/D6
+/AK /CC/D6
+/B5
+/DC/D6
+/BP/BP /CC/D6
+/BN/AS /BN/D9/BC/A0 /A0 /A0 /A0 /A0 /A0 /A0 /A0 /A0 /AX /CO/BC
+Here /D9/BCare the assignment needed to reset clocks and other variables in the model
+(excludingauxiliaryvariablesencodingtestpurposeorcoveragecriteria5).Ifmorethan
+one component is present in either the SUT-model or environment model, the reset-action must be communicated atomically to all of them. This can be done using the
+committed location feature of U
+PPAAL. Further note that it may be possible to obtain
+faster(covering)testsuites,ifmorereset-ablelocationsareadded,obviouslydependingonthetimerequiredtoperformthereset, atthe expenseofincreasedmodelsize.
+4.4 EnvironmentBehavior
+A potential problem of the techniques presented above is that the generated test se-
+quences may be non-realizable, in that they may require the environment of SUT to
+5In the encoding ofDU-pair coverage, the variables /DA/CSshould be setto /CU/CP/D0/D7/CTat resets.
+
+--- Page 12 ---
+operate inﬁnitely fast. In general, it is only necessary to establish correctness of SUT
+under the (modeled) environment assumptions. Therefore assumptions about the en-vironment can be modeled explicitly and will then be taken into account during test
+sequence generation. In the following, we demonstrate how different environment as-
+sumptionsaffectthegeneratedtest sequences.
+Consideran environmentwherethe usertakes at least 2 time units betweeneachtouch
+action; such an environmentcan be obtainedby setting the constant/CC/D6 /CT /CP/CR/D8to 2 in Fig-
+ure3(a).Thefastest test sequencesbecome:
+TP1: /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR
+TP2: /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR.
+Also reexamine the test suite ECgenerated by edge coverage, and compare with the
+oneofexecutiontime32generatedwhen /CC/D6 /CT /CP/CR/D8equals2:
+EC’: /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BG /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR /A1 /BE/BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BG /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1/CS/CX/D1 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR.
+When the environmentis changedto the pausing user (can perform2 successive quick
+touches after which he is required to pause for some time: reaction time 2, pausing
+time 5), the fastest sequence has executiontime 33, and follows a completelydifferent
+strategy,thatensuresthatoneoftheadditionalwaitingtimes /CC/D4 /CP/D9/D7/CTisoverlappedwith
+a positionwherethetesterneededto waitanyway.
+EC”: /BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BH /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CS/CX/D1 /BR /A1 /BG /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1/D3/AB /BR /A1 /BE/BC /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /CQ/D6/CX/CV/CW/D8 /BR /A1 /BE /A1 /D8/D3/D9/CR/CW /AX /A1 /BC /A1 /D3/AB /BR.
+5 Experiments
+In the previoussection we presentedtechniquesto compute time optimal coveringtest
+suites. In the following we show empirically that the performance of our technique is
+sufﬁcient for practically relevant examples, and to indicate how heuristic search meth-ods can be used to computeoptimalor near optimal test cases fromverylargemodels.
+We are concernedwith both the execution time of the generated test sequence, and the
+timeandmemoryusedto generateit.
+5.1 The Touch Sensitive Switch
+Most of the experiments reported here are based on a model of a touch sensitive light
+switch (TSS). It has/C5/CP/DClevels of brightness (0 corresponds to off). The lamp is op-
+erated by touching its wire, i.e. the wire can be grasped and released. The behavior of
+the controller can be expressed as follows: If the light is on, then a single grasp and
+release of the wire, will switch off the light. If the light is off, then a single grasp andrelease will switch on the light at the previousbrightness level. Continuous holding of
+thewireincreasesthebrightness(resp.decreases)ifitwaspreviouslydecreasing(resp.
+
+--- Page 13 ---
+x<=epsilon
+x<=deltagrasp?
+x:=0release?
+release?touch!
+x==epsilon
+starthold!x==deltarelease?endhold!on==0
+touch?
+L:=OL,
+on:=1on==1
+touch?
+OL:=L,
+L:=0,on:=0/B4 /CQ /B5
+z<=Wait
+release!
+z:=0grasp!
+z:=0/B4 /CP /B5 /B4 /CR /B5
+Fig.6.Interface Automaton /B4 /CP /B5,Switch Automaton /B4 /CQ /B5,and User Automaton /B4 /CR /B5.
+increasing). Once the maximum (resp. minimum) level is reached the brightness level
+decrease(resp.increase).
+In reality a user can only perform two actions on the wire: graspandrelease ,
+and the time-separation between the two events is translated into either nothing (if theseparation is very short), touchif it is short, and into a starthold andendhold
+pair if the separation is long. In the U
+PPAAL-model this translation is done by the in-
+terface component, shown in Figure 6 /B4 /CP /B5. The dimmer component shown in Figure 7
+reacts to starthold andendhold actions with a dimming effect. When changing
+the brightness level /C4, it is assumed that some maximum time ( /BW/CT/D0/CP/DD) will elapse be-
+tween two levels. Theswitch componentshownin Figure6 /B4 /CQ /B5reacts to touchevents
+by switching the light on to the previous light level /C7/C4, or off. The user is modeledin
+Figure6 /B4 /CR /B5.
+We vary the modelin two ways. First, the user may be patientorimpatient .The impa-
+tientuserinsistsonrequiringinteractionatleastevery /CF/CP/CX/D8 /BP/BD /BHtimeunitscontrolled
+bytheinvariantinuser–thismakesitharderfortheusertochangetheintensitybecause
+he”givesup”theholdafterjustincreasingthelightonelevel.Thisinvariantisremovedin the patient user. Secondly, we vary the number of light levels from/C5/CP/DC /BP/BD /BCand
+up.
+Table8showstheoptimalexecutiontimes(intimeunits)fortestsuites generatedfrom
+different coverage criteria of the TSS, or selected subsets of components thereof, andthe length(numberof transitions)ofthe generatedtest suite. We noticethat the patient
+userresults inshorterandfastertraces inourexperiments.
+
+--- Page 14 ---
+x<=delayx<=delay
+endhold? starthold?
+OL:=L,x:=0,on:=1L<Max,
+x==delay
+L:=L+1,
+x:=0L>0,x==delay
+L:=L-1,
+x:=0starthold?
+L:=OL,
+x:=0,on:=1 endhold? L==Max,x==delay
+L==0,x==delay
+Fig.7.Dimmer Automaton
+Table 8.Optimal execution time and suite length for various coverage criteria
+Impatient
+ Patient
+Coverage
+ Execution
+ Suite
+Execution
+ Suite
+Criterion
+ time
+length
+ time
+length
+Location Dimmer
+ 20
+12
+ 20
+12
+Location Dimmer, Switch, Interface
+ 25
+17
+ 25
+17
+EdgeDimmer
+ 253
+176
+ 53
+38
+EdgeInterface
+ 15
+14
+ 15
+14
+EdgeDimmer, Switch, Interface
+ 263
+188
+ 63
+50
+EdgeInterface+Location Dimmer
+ 25
+19
+ 25
+19
+Def-Use/D3/D2
+ 40
+34
+ 40
+34
+Def-Use/C7/C4
+ 45
+34
+ 45
+34
+5.2 SystemSize and EnvironmentBehavior
+To see how our technique scales, we increase the number of light levels in the TSS
+model. The result, listed in Table 9, shows that the particular example scales well: ex-
+ecutiontime (in time units), generationtime, and memoryusage for the impatient user
+increaseessentiallylinearlywiththenumberoflight-levels.Thisisnotsurprisingasthe
+systemsizeisvariedbyadjustingacounter,andnotthenumberofparallelcomponents.
+It is more interesting to compare the patient and impatient user. Consider the system
+with 50 light levels. The optimal execution time for the impatient user is high (1183
+time units), the reason being that the light level is increased only by one before he
+gives up, and starts the hold action again. Obtaining coveragetherefore requires manyinteractions(traceoflength828).Incontrast,theoptimalexecutiontimeforthepatient
+user is 183time units (andthe trace lengthis 130).If we comparethe generationtime,
+
+--- Page 15 ---
+Table9.Cost of obtaining edge coverage of the TSSwithincreasing light levels
+Impatient
+ Patient
+Execution
+ Generation
+ Memory
+ Execution
+ Generation
+ Memory
+Levels
+ time
+time(s)
+usage (MB)
+ time
+time (s)
+usage(MB)
+10
+ 263
+ 2.06
+ 9.1
+ 63
+ 3.19
+ 10.1
+20
+ 493
+ 3.68
+ 11.4
+ 93
+12.40
+ 20.1
+30
+ 723
+ 5.29
+ 12.6
+ 123
+ 28.17
+ 40.4
+50
+ 1183
+ 8.59
+ 17.4
+ 183
+ 78.30
+ 86.9
+100
+ 2333
+ 16.76
+ 28.0
+ 333
+339.52
+ 314.9
+200
+ 4633
+ 34.45
+ 44.3
+ 633
+1494.35
+ 1233.8
+400
+ 9233
+ 66.03
+ 77.1
+ N/A
+ /BQ7000
+ /BQ4180.6
+Table 10. Results for thePhilips audio protocol
+Coverage
+ Execution
+ Generation
+ Memory
+Criterion
+ time( /AMs)
+time (s)
+usage (KB)
+EdgeSender
+ 212350
+ 2.2
+ 9416
+EdgeReceiver
+ 18981
+ 1.2
+ 4984
+EdgeSender,Bus,Receiver
+ 114227
+ 129.0
+ 331408
+it can be seen that it is much cheaper to compute the (very long) optimal solution for
+theimpatientuserthanto computethe (short)optimalsolutionforthepatientuser.
+Although this is surprising, there is a potential general explanation for this. The pa-
+tient user environmentposes no restrictions on the solution, and the test generator hascomplete freedom to ﬁnd the optimal solution. This means that test generator has to
+evaluateallpossiblebehaviorsofthisliberalenvironment.Theimpatientuserisamore
+restricted environment, thus containing less possible behaviors. Therefore, searching
+themoreliberalenvironmenttakeslongerbutalso producesfastersolutions.
+There are two lessons to be learned. First, the relevance of an accurate model of the
+environment assumptions. Secondly, the use of the environment model to control test
+generation: restrict the environment to handle larger systems, but at the cost of more
+expensivesolutions.
+We have also created a DIEOU-TA version of the Philips audio control protocol [3]
+frequently studied in the context of model checking. The system consists of a sender
+andareceivercommunicatingoverasharedbus.Thesenderinputsasequenceofbitsto
+be transmitted, Manchester encodes them, and transmits them as high and low voltage
+onthebus.Further,itchecksforcollisionsbycheckingthatthebusisindeedlowwhenit is itself sending a low signal. The receiver is triggered by low-to-high transitions on
+thebus,anddecodesthebits basedonthisinformation.
+
+--- Page 16 ---
+Table 11. Costof edge coverage of TSS( /C5/CP/DC /BP /BF/BC) using different search orders
+FirstSolution
+ Optimal Solution
+Search
+ Execution
+ Generation
+ Memory
+ Generation
+ Memory
+order
+ time
+time (s)
+usage (MB)
+ time
+usage (MB)
+BF
+ 123
+ 27.91
+ 40.8
+ N/A
+ N/A
+DF
+ 791
+ 0.15
+ 4.9
+ N/A
+ N/A
+C
+BF
+ 123
+ 30.44
+ 42.6
+ 31.31
+ 43.3
+C
+DF
+ 791
+ 0.15
+ 6.5
+248.64
+ 127.0
+C
+BF
+R
+ 123
+ 30.70
+ 42.6
+ 30.87
+ 42.9
+C
+DF
+R
+ 791
+ 0.15
+ 6.4
+ 21.62
+ 32.1
+C
+MC
+ 123
+ 25.87
+ 39.3
+ 26.19
+ 39.5
+C
+MC
+R
+123
+ 3.23
+ 13.0
+ 3.32
+ 13.1
+Table 10 summarizes the results. The ﬁrst row contains results for the protocol tested
+with an environment consisting of a bus that may spontaneously go high to emulate
+a collision, and a sender buffer producing any legal input-bit sequence. The second
+row shows results for a receiver tested in an environment consisting of a bus, and a
+bufferto holdthe receivedbits. The thirdrow is the results forthe receivertested in an
+environment consisting of a sender component with sender buffer, a bus, and receiverbuffer. Thus the last row represents a rather large system. In all cases the time optimal
+coveringtest sequencecouldbecomputedin reasonabletime.
+5.3 Search-orderand Guiding
+U
+PPAALallows the state space to be traversed in several different orders with differ-
+ent performancecharacteristics w.r.t. executiontime of the generatedtest suite and the
+size of the system that can be handled. In particular, the /BT
+/A3algorithm has potential
+signiﬁcant impact. We here demonstratehow it can be employedfor test generationtoefﬁcientlycomputeedgecoveragein theTSS model.
+The measured numbers are listed in Table 11. BF (DF) denotes breadth-ﬁrst (depth-
+ﬁrst) search order. The optimal execution time remains identical at 123 time units for
+all search orders. We note that using depth-ﬁrst search during time optimal analysis(C
+DF) UPPAALproduces (many) solutions quickly, but consumes long time to ulti-
+mately ﬁnd the optimal one. During time optimal reachability analysis U PPAAL(sym-
+bolically)computesforeachreachedstatethetime /BVaccumulatedsofar.Let /BV/CVbethe
+fastest timetoa goalstate foundsofar.Whenanotherstateis foundduringexploration
+with an accumulated time /BV /AL /BV/CVfurther exploration from that state is unnecessary,
+and the search can be pruned. Minimum accumulated time-ﬁrst (MC) explores states
+ordered by their minimum accumulated time. To increase the efﬁciency further, it is
+possible to providea safe estimate of the time that remains /CAfrom a givenstate to the
+goal state. Pruning can then be performedwhen a state is foundwith /BV /B7 /CA /AL /BV/CV.I n
+Table11a searchordercombinedwith aremainingestimateis sufﬁxedbyan“
+ R”.
+
+--- Page 17 ---
+It is easy to see in the dimmer componentthat the most time consumingedge to reach
+is the edge with guard /C4 /BP /C5/CP/DC. As estimate of remaining time, we use /B4 /C5/CP/DC /A0/C4 /B5 /A2 /CS/CT/D0/CP/DDif level /C5/CP/DC /BP /C4has not been reached, and 0 otherwise. Intuitively, the
+remaining time equals at least the number of light levels from /C5/CP/DCvalue times the
+time to increase the light one level ( /CS/CT/D0/CP/DD). This formula has the feature that it can
+prunesearchesthatturnsbackto lowerlightlevels.
+Compared to /BV
+ /BU/BYminimum accumulated time ﬁrst search ( /BV
+ /C5/BV) offers slightly
+improvedgeneration time and memory usage. However,enabling remaining time esti-
+mate combined with this search order ( /BV
+ /C5/BV
+ /CA) has a dramatic positive effect, and
+outperformsanyoftheotherevaluatedsearchorders.
+6 Conclusions and Future Work
+Inthispaper,wehavepresentedanewtechniqueforgeneratingtimedtestsequencesfor
+a restricted class of timed automata. It is able to generate time optimal test sequencesfrom either a single test purpose or a coverage criterion using the time optimal reach-
+ability feature of U
+PPAAL. Though a number of examples we have demonstrated how
+our technique works and performs. We conclude that it can generate practically rele-vanttestsequencesforpracticallyrelevantsizedsystems.However,wehavealsofound
+a numberofareaswhereourtechniquecanbeimproved.
+The DIEOU-TA modelis quite restrictive,and a generalizationwill beneﬁt many real-
+timesystems.Weareworkingonlooseningtheoutputurgencyrequirement.Itmayalsobeinterestingto formulatecoveragecriteriathatconsidersclockconstraints.
+Adding the required annotations for various coverage criteria by hand, and manually
+formulating the associated reachability property is tedious and error prone. We are
+working on a tool that performs these tasks automatically. Finally, we have found thatthe bit-vector annotations for tracking coverage and remaining time estimates may in-
+creasethestatespacesigniﬁcantly,andconsequentlyalsogenerationtimeandmemory.
+The extra bits does not inﬂuence model behavior, and should therefore be treated dif-
+ferentlyin the veriﬁcationengine.We are workingon techniquesthat ignorethese bits
+whenpossible,andthattakes advantageofthemtoprunestates with“less” coverage.
+References
+1. AlfredV.Aho,AntonT.Dahbura,DavidLee,andM. ¨UmitUyar.AnOptimizationTechnique
+for Protocol Conformance Test Generation Based on UIO Sequences and Rural ChinesePostman Tours. IEEETransactions on Communications , 39(11):1604–1615, 1991.
+2. Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim G. Larsen, Paul Pettersson, and Judi
+Romijn. Efﬁcient Guiding Towards Cost-Optimality in U
+PPAAL. In T. Margaria and W. Yi,
+editors,Proc. of TACAS 2001 , number 2031 in Lecture Notes in Computer Science, pages
+174–188. Springer–Verlag,2001.
+3. D.Bosscher,I.Polak,andF.Vaandrager. VeriﬁcationofanAudio-ControlProtocol. In Proc.
+ofFormalTechniquesinReal-TimeandFault-TolerantSystems ,number863inLectureNotes
+in Computer Science, 1994.
+
+--- Page 18 ---
+4. Marius Bozga, Jean-Claude Fernandez, Lucian Ghirvu, Claude Jard, Thierry J´ eron, Alain
+Kerbrat,PierreMorel,andLaurentMounier. VeriﬁcationandTestGenerationfortheSSCOP
+Protocol. Science ofComputer Programming , 36(1):27–52, 2000.
+5. Rachel Cardell-Oliver. Conformance Testing of Real-Time Systems with Timed Automata.
+Formal Aspects of Computing , 12(5):350–371, 2000.
+6. R. Castanet, Ousmane Kon´ e, and Patrice Laurenc ¸ot. On The Fly Test Generation for Real-
+Time Protocols. In International Conference in Computer Communications and Networks ,
+Lafayette, Lousiana, USA,October 12-15 1998. IEEEComputer Society Press.
+7. Duncan Clarke and Insup Lee. Automatic Test Generation for the Analysis of a Real-Time
+System:CaseStudy. In 3rdIEEEReal-TimeTechnologyandApplicationsSymposium ,1997.
+8. Abdeslam En-Nouaary, Rachida Dssouli, Ferhat Khendek, and A. Elqortobi. Timed Test
+Cases Generation Based on State Characterization Technique. In 19th IEEEReal-TimeSys-
+tems Symposium (RTSS’98) ,pages 220–229, December 2–4 1998.
+9. Teruo Higashino, Akio Nakata, Kenichi Taniguchi, and Ana R. Cavalli. Generating Test
+Cases for a Timed I/O Automaton Model. In Gyula Csopaki, Sarolta Dibuz, and Katalin
+Tarnay, editors, Testing of Communicating Systems: Method and Applications, IFIP TC6
+12thInternational Workshop on Testing Communicating Systems (IWTCS), September 1-3,
+1999, Budapest, Hungary , volume 147 of IFIP Conference Proceedings , pages 197–214.
+Kluwer,1999.
+10. Hyoung Seok Hong, Insup Lee, Oleg Sokolsky, and Hasan Ural. A Temporal Logic Based
+Theory of Test Coverage and Generation. In J.-P. Katoen and P. Stevens, editors, TACAS
+2002, pages 327–341. Kluwer Academic Publishers, April2002.
+11. Ahmed Khoumsi. A method for testing the conformance of real-time systems. In Werner
+Damm and Ernst-R¨ udinger Olderog, editors, IEEE International Symposium on Formal
+Techniques in Real-Time and Fault-Tolerant Systems. (FTRTFT , volume 2469 of LNCS.
+Sprnger-Verlag,september 2002.
+12. KimG.Larsen,GerdBehrmann,EdBrinksma,AnsgarFehnker,ThomasHune,PaulPetters-
+son, and Judi Romijn. As cheap as possible: Efﬁcient cost-optimal reachability for priced
+timed automat. In G. Berry, H. Comon, and A. Finkel, editors, Proc. of CAV 2001 , number
+2102 in Lecture Notes in Computer Science, pages 493–505. Springer–Verlag,2001.
+13. David Lee and Mihalis Yannakakis. Principles and Methods of Testing Finite State
+Machines—A Survey. Proceedings of the IEEE ,84(8):1090–1123, august 1996.
+14. Dino Mandrioli, Sandro Morasca, and Angelo Morzenti. Generating Test Cases for
+Real-Time Systems from Logic Speciﬁcations. ACM Transactions on Computer Systems ,
+13(4):365–398, 1995.
+15. Brian Nielsen and Arne Skou. Automated Test Generation from Timed Automata. Interna-
+tional Journal on Software Tools for Technology Transfer (STTT) , 4, 2002. Digital Object
+Identiﬁer (DOI)10.1007/s10009-002-0094-1. To Appear.
+16. Jan Peleska. Hardware/Software Integration Testing for the new Airbus Aircraft Families.
+InA.WolisI.Schieferdecker,H.Knig,editor, TestingofCommunicatingSystemsXIV.Appli-
+cation to Internet Technologies and Services , pages 335–351. Kluwer Academic Publishers,
+2002.
+17. J. Springintveld, F. Vaandrager, and P.R. D’Argenio. Testing Timed Automata. Theoretical
+Computer Science , 254(1-2):225–257, March 2001.
+18. J. Tretmans and A. Belinfante. Automatic testing with formal methods. In EuroSTAR’99:/BJ
+/D8/CWEuropean Int. Conference on Software Testing, Analysis & Review , Barcelona, Spain,
+November 8–12, 1999. EuroStar Conferences, Galway, Ireland.
+19. M.¨Umit Uyar, Marius A. Fecko, Adarsphal S. Sethi, and Paul D. Amar. Testing Protocols
+Modeled as FSMswith Timing Parameters. Computer Networks: The International Journal
+of Computer and Telecommunication Networking , 31(18):1967–1998, 1999.

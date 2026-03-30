@@ -1,0 +1,629 @@
+--- Page 1 ---
+Verication and Performance Evaluation of
+Timed Game Strategies?
+Alexandre David1, Huixing Fang2, Kim G. Larsen1, and Zhengkui Zhang1
+1Department of Computer Science, Aalborg University, Denmark
+fadavid,kgl,zhzhang g@cs.aau.dk
+2Software Engineering Institute, East China Normal University, China
+wxfang@sei.ecnu.edu.cn
+Abstract. Control synthesis techniques, based on timed games, derive
+strategies to ensure a given control objective, e.g., time-bounded reach-
+ability. Model checking veries correctness properties of systems. Sta-
+tistical model checking can be used to analyse performance aspects of
+systems, e.g., energy consumption. In this work, we propose to combine
+these three techniques. In particular, given a strategy synthesized for a
+timed game and a given control objective, we want to make a deeper
+examination of the consequences of adopting this strategy. Firstly, we
+want to apply model checking to the timed game under the synthesized
+strategy in order to verify additional correctness properties. Secondly, we
+want to apply statistical model checking to evaluate various performance
+aspects of the synthesized strategy. For this, the underlying timed game
+is extended with relevant price and stochastic information. We rst ex-
+plain the principle of translating a strategy produced by Uppaal-tiga
+into a timed automaton, thus enabling the deeper examination. However,
+our main contribution is a new extension of Uppaal that automatically
+synthesizes a strategy of a timed game for a given control objective, then
+veries and evaluates this strategy with respect to additional properties.
+We demonstrate the usefulness of this new branch of Uppaal using two
+case-studies.
+1 Introduction
+Model checking (MC) of real-time systems [12] has been researched for over 20
+years. Mature tools such as Uppaal [3] and Kronos [5] have been applied to
+numerous industrial case studies. Nowadays, more interesting formal methods
+for real-time systems are inspired by or derived from model-checking. Two re-
+markable ones are controller synthesis and statistical model checking. Controller
+synthesis techniques [6], based on games, derive strategies to ensure some given
+objective while handling uncertainties of the environment. Statistical model-
+checking (SMC) [14], based on statistical analysis of simulations, is used to anal-
+yse reliability and performance aspects of systems, e.g., energy consumption.
+?This work has been supported by Danish National Research Foundation { Center
+for Foundations of Cyber-Physical Systems, a Sino-Danish research center.
+
+--- Page 2 ---
+In the Uppaal toolbox, ecient implementations of these new techniques are
+found in the branches Uppaal-tiga [2] and Uppaal-smc [9].
+We believe the three techniques can complement each other. Given a timed
+game and a control objective, controller synthesis will generate a strategy if
+the game is controllable. The strategy may ensure hard timing guarantees for a
+controller to win the game. We aim at verifying additional correctness properties
+by applying MC to the timed game under this strategy. Similarly, SMC should
+allow to infer more rened performance consequences (cost, energy consumption
+etc) of the synthesized strategy. For this, we extend the underlying timed game
+with prices and stochastic semantics.
+There have been a few previous attempts to combine modelling, synthesis,
+verication and performance evaluation in a single paradigm. In [7] Franck et al.
+presented a tool chain { Uppaal-tiga for synthesis, PHAVer for verication,
+Simulink for simulation { to solve the energy consumption and wear control
+problem of an industrial oil pump case-study. In [10] Uppaal-tiga was combined
+with Matlab andSimulink to achieve synthesis, simulation and executable
+code generation for the climate controller of a pig stable. These tool chains are
+not integrated inside one tool and require translations to let the dierent tools
+interact.
+As the rst contribution in this paper, we propose the principle of trans-
+lating a synthesized strategy, as obtained from Uppaal-tiga , into a controller
+timed automaton. One can build a closed system using the controller and do
+model-checking in Uppaal or statistical model-checking in Uppaal-smc . The
+second contribution is an extension of the semantics and algorithms of MC and
+SMC to use a synthesized strategy when exploring the state space (for MC) or
+generating random runs (for SMC). The third contribution is an implementation
+of this extension based on Uppaal referred here as Control-SMC, which allows
+users to synthesize a timed game strategy then verify and evaluate this strategy
+automatically. It is worth noting that Uppaal-tiga may not guarantee that the
+synthesized strategy is time optimal and here we are interested in evaluating a
+given strategy w.r.t. a number of dierent cost measures.
+The rest of the paper is organized as follows. Section 2 denes timed games
+and strategies. Section 3 provides the stochastic semantics of SMC. Section 4
+describes the translation of a strategy to a timed automaton. Section 5 presents
+the extended SMC semantics and implementation of Control-SMC. Section 6
+gives the experiment results on two case-studies using Control-SMC. The paper
+concludes with the future work in Section 7.
+2 Timed Game
+This section recalls the basic theory of timed game and controller synthesis.
+Controller synthesis aims at solving the following problem: Given a system S
+and an objective , synthesize a controller Csuch thatCcan supervise Sto
+satisfy(C(S)j=) regardless how the environment behaves. The problem can
+be formulated as a two-player game between the controller and the environment.
+
+--- Page 3 ---
+2.1 Timed Game Automata
+LetX=fx;y;:::gbe a nite set of clocks. We dene B(X) as the set of clock
+constraints over Xgenerated by grammar: g;g 1;g2::=x./njxy./njg1^g2,
+wherex;y2Xare clocks,n2Nand./2f;<;=;>;g.
+Denition 1. ATimed Automaton (TA) [1] is a 6-tupleA= (L;` 0;X;;E;
+Inv)where:Lis a nite set of locations, `02Lis the initial location, Xis a
+nite set of non-negative real-valued clocks, is a nite set of actions, E
+LB(X)2XLis a nite set of edges, Inv :L!B(X)sets an invariant
+for each location.
+Denition 2. The semantics of a timed automaton Ais a Timed Transition
+System (TTS) SA= (Q;Q 0;;!)where:Q=f(`;v)j(`;v)2LRX
+0and
+vj=Inv(`)gare states, Q0= (`0;0)is the initial state, is the nite set of
+actions,!Q([R0)Qis the transition relation dened separately for
+actiona2and delayd2R0as:
+(i)(`;v)a! (`0;v0)if there is an edge (`g;;r!`0)2Esuch thatvj=g,
+v0=v[r7!0]andv0j=Inv(`0),
+(ii)(`;v)d!(`0;v+d)such thatvj=Inv(`)andv+dj=Inv(`).
+A timed game automaton is an extension of a timed automaton whose actions
+are partitioned into controllable actions for the controller and uncontrollable
+actions for the environment. Besides discrete actions, each player can decide to
+wait in the current location. As soon as one player decides to play one of his
+available actions, time will stop elapsing and the action will be taken.
+Denition 3. ATimed Game Automaton (TGA) [13] is a 7-tupleG= (L;` 0;X;
+c;u;E;Inv)where:cis the nite set of controllable actions, uis the -
+nite set of uncontrollable actions, canduare disjoint, and (L;` 0;X;c[
+u;E;Inv)is a timed automaton.
+LetSGbe the timed transition system of G. ArunofGcan be expressed in
+SGas a sequence of alternative delay and action transitions: =q0d1!q0
+0a1!
+q1d2!q0
+1a2!dn!q0
+n1an!qn, whereai2c[u,di2R0,qiis state
+(`i;vi), andq0
+iis reached from qiafter delay di+1.ExecGdenotes the set of runs
+ofGand Execf
+Gdenotes the set of its nite runs.
+Denition 4. Given a timed game automaton Gand a set of states KL
+RX
+0, the control objective can be: (i) a reachability control problem if we
+wantGsupervised by a strategy to reach Keventually, or (ii) a safety control
+problem if we wantGsupervised by a strategy to avoid Kconstantly.
+We can dene a run 2ExecGaswinning in terms of its control objective.
+For a reachability game, is winning if9k0;(`k;vk)2K. For a safety game,
+is winning if8k0;(`k;vk)62K.
+
+--- Page 4 ---
+Denition 5. Astrategy for a controller in the timed game Gis a mapping
+s:Execf
+G!c[fgsatisfying the following conditions: given a nite run 
+ending in state q=last(), ifs() =a2c, then there must exist a transition
+qa!q0inSG, or ifs() =,being the delay action, then there must exist a
+positive delay d2R>0such thatqd!q0inSG.
+When a strategy only depends on the current state of the game, that is
+8;02ExecG;last() =last(0) impliess() =s(0), it is called a positional or
+memoryless strategy. The strategies for reachability and safety games, as the
+ones handled by Uppaal-tiga , are memoryless.
+The analysis of TA and TGA is based on the exploration of a nite symbolic
+reachability graph , where the nodes are symbolic states . A symbolic state Sis a
+pair (`;Z), where`2L, andZ=fvjvj=gz;gz2B(X)gis azone [12], which
+is normally eciently represented and stored in memory as dierence bound
+matrices (DBM) [4]. Uppaal-tiga uses ecient on-the-y algorithms [6] that
+manipulate zones to solve timed games. The winning strategy ^ sproduced by
+Uppaal-tiga is also represented using zones. More precisely, for each location
+`, ^sgives a nite set of pairs as ^ s(`) =f(Z1;a1);:::; (Zn;an)g, whereai2
+c[fg;Zi\Zj=;ifi6=j.
+2.2 A Running Example
+Fig. 1 [6] shows a timed game automaton named Main which has one clock xand
+two types of edges: controllable (solid) and uncontrollable (dashed). The control
+objective is to nd a strategy that can supervise Main to reach goal , regardless of
+the environment's behavior. The object is expressed as control: A<> Main.goal .
+The game is controllable, and Uppaal-tiga provides a strategy as shown in
+Fig. 2 if running the command line version of Uppaal-tiga {verifytga with
+the option -w0. The strategy is a list of (zone, action) pairs indexed by locations.
+Fig. 1. TGA MainState: ( Main.L1 )
+While you are in (10<=Main.x && Main.x<20), wait.
+When you are in (20<=Main.x), take transition
+Main.L1->Main.goal { x >= 20, tau, 1 }
+State: ( Main.L3 )
+While you are in (Main.x<10), wait.
+When you are in (Main.x==10), take transition
+Main.L3->Main.L1 { x <= 10, tau, 1 }
+State: ( Main.L0 )
+When you are in (Main.x==10), take transition
+Main.L0->Main.L1 { x <= 10, tau, 1 }
+While you are in (Main.x<10), wait.
+State: ( Main.L2 )
+When you are in (Main.x<=10), take transition
+Main.L2->Main.L3 { 1, tau, 1 }
+State: ( Main.goal )
+While you are in true, wait.
+Fig. 2. A Strategy for Main
+
+--- Page 5 ---
+For example when Main is at L1, the action is to wait if 10 x<20, or to take
+the action to reach goal ifx20.
+3 Stochastic Priced Timed Automata
+In this section, we briey recall the denition of priced timed automata and
+stochastic semantics of SMC. We borrow the denitions from [8].
+3.1 Priced Timed Automata
+Priced timed automata are a generalization of timed automata where clocks
+may have dierent rates in dierent locations. We note by R(`) :X!Nthe
+rate vector assigning a rate to each clock of Xat location `. Forv2RX
+0
+andd2R0, we write v+R(`)dto denote the clock valuation dened by
+(v+R(`)d)(x) =v(x) +R(`)(x)dfor anyx2X.
+Denition 6. APriced Timed Automaton (PTA) is a tupleP= (L;` 0;X;;E;
+R;I)where: (i)Lis a nite set of locations, (ii) `02Lis the initial location,
+(iii)Xis a nite set of clocks, (iv) =i]ois a nite set of actions parti-
+tioned into inputs ( i) and outputs ( o), (v)ELB(X)2XLis a
+nite set of edges, (vi) R:L!NXassigns a rate vector to each location, and
+(vii)I:L!B(X)assigns an invariant to each location.
+3.2 Stochastic Semantics
+Consider a closed network of PTAs A= (P1j:::jPn) with a state space St=
+St1Stn. For a concrete global state q= (q1;:::;qn)2Standa1a2:::ak2
+we denote by (q;a 1a2:::ak) the set of all maximal runs from qwith a prex
+t1a1t2a2:::tkakfor somet1;:::;t 22R0, that is, runs where the i'th action ai
+has been output by the component Pc(ai). We give the probability for getting
+such sets of runs as:
+PA((q;a 1a2:::ak)) =Z
+t0c
+q(t)Y
+j6=cZ
+>tj
+q()d
+c
+qt(a1)PA
+((qt)a1;a2:::an)
+dt
+wherec=c(ai) is the index of component taking a1,c
+qis the delay density
+function for component cto choose a delay tiatq, andc
+qtis the output probability
+function for component cto choose an action aiafterqis delayed by t. The above
+nested integral reects that the stochastic semantics of the network is dened
+based on race among components. All components are independent in giving
+their delays which are decided by the given delay density functions. The player
+component who oers the minimum delay is the winner of the race, and takes the
+turn to make a transition and (probabilistically) choosing the action to output.
+
+--- Page 6 ---
+PTAP2 PTAP1Fig. 3. A Tiny ExampleFig. 3 gives the intuition of the SMC se-
+mantics. Two PTAs P1andP2race to reach
+locations A or B. If P1enters A, it blocks P2
+to enter B, and vice versa. Furthermore, ei-
+ther PTA can delay uniformly within the in-
+variants from its initial state before ring its
+output transition. We can use the SMC se-
+mantics to calculate the probability for P1to
+enter location A within 2 time units as:
+P((q0;a)) =Z1
+x=01Z2
+y=x1
+2dy
+dx=1
+2Z1
+x=0(2x)dx=3
+4
+whereq0is the initial state of the network of P1andP2, and the delay density
+functions for P1andP2atq0are 1 and1
+2respectively. P1can reach A only if it
+takes its transition before P2.
+4 Translating Strategies to Timed Automata
+In this section, we provide a systematic way to translate a synthesized strategy
+of a timed gameGproduced by Uppaal-tiga into a controller timed automaton
+C. Once the controller is built, we can verify additional correctness properties
+or evaluate performance aspects of the closed system C(G) inUppaal .
+4.1 The Method
+We recall from Section 2.1 that strategies have the form ^ s(`) =f(Z1;a1);:::; (Zn;
+an)g. Given a concrete state q= (`;v), one can lookup which action aito take
+by nding Zisuch thatv2Zi. Fig. 4 illustrates how to translate the strat-
+egy from a location `with the schematic zone representation (left) into a basic
+C CCCˆs(ℓ) ={(Z1, a1),(Z2, a2),(Z3, λ),(Z4, λ)}, ℓ∈L
+u?Z2
+Z4Z3ℓSWa2!a1!
+Z1CS1
+CS2
+CS3
+CS4Initu?
+|¯Z4|¯Z4∩Z1
+¯Z4∩Z2
+xZ4Z2Z3
+Z1y
+¯Z4∩Z2
+¯Z4∩Z1
+Fig. 4. Translating the Strategy
+
+--- Page 7 ---
+controller TA (right). The complete controller TA is obtained by repeating the
+same translation procedure for all locations and connecting all resulting basic
+controller TAs to the same initial state. The symbol \C" inside states indicates
+committed states. Time does not elapse in committed states, and the outgoing
+transitions are taken atomically. We use Zto denote the closure of the zone Z.
+The small controller TA on the right is constructed as follows. For a given
+discrete state ( `) (location only), a transition from Init to a switch state SWis
+added with a guard encoding `. From there we add transitions guarded by Zi
+for each (Zi;ai) entry of ^s(`) to a choice state CSi. Then, we have tree basic
+cases: Either (1) aiis a controllable action, (2) aiis an unbounded delay, or (3)
+it is a bounded delay. In case (1), the controller takes aiimmediately with the
+synchronization ai! (e.g. from CS1andCS2in Fig. 4). In case (2) corresponding
+toai=, the controller stays idle waiting for a move from the environment
+with the synchronization u?. Finally, case (3) is similar to case (2) except for the
+upper bound on the delay (encoded with an invariant) and additional transitions
+to go back to SWwhenever the upper bound is reached and a controllable action
+is enabled.
+4.2 The Running Example
+We translate the strategy in Fig. 2 into a controller TA C. Before translating,
+we need to synchronize CandGso thatCcan observe the state of Gand control
+it. To observe the locations, we assign unique IDs and use global ags for each
+component to keep track of the current active location. Then we rename the
+local clocks to be global to make them visible. To monitor every uncontrollable
+transition inG, we use a unique channel uand the synchronizations u! inGand
+u? inC. Similarly, to control G, controllable actions aiuse the corresponding
+channel synchronizations ai! inCandai? inG.
+In Fig. 5, we dene location IDs for Main.L0 {Main.L4 andMain.goal from 0
+to 5. Then we use the global location ag locto keep track of the current location
+ofMain , and the global clock xto replace the local one, then the broadcast
+channelsu1;u2;a1 {a4 to synchronize Main and its controller TA MyCon in Fig.
+6. In MyCon , by testing locon the predened location IDs, transitions from Init
+lead to the switch states L0{L3andL5, which correspond to the strategies at
+locations Main.L0 {Main.L3 and Main.goal . Choice states M00,M10,M20and
+M30depict case (1) in Fig. 4. Accept corresponds to case (2). M01,M11andM31
+match case (3).
+We also add price and a delay distribution to Main for performance evaluation
+in SMC. This essentially turns Main into a priced timed automaton. We use
+an integer sto count the number of transitions to reach goal , and a clock e
+to measure the energy consumption to reach goal . The rate of the clock eis
+specied at all locations as e0==n;n2Nexcept at L4because L4is not
+reachable under the strategy. e0is stopped at goal by setting to 0. Besides, an
+exponential rate of 3 is dened for the delay density function at L1. Now a closed
+system can be made from Main andMyCon . We can verify correctness properties
+and evaluate performance aspects of this strategy as shown in Table 1.
+
+--- Page 8 ---
+Fig. 5. Decorated TGA Main
+ Fig. 6. Controller TA MyCon
+Table 1. MC & SMC Experiments of the Running Example
+# Queries Results
+MC1A<> Main.goal Yes
+2A<> Main.goal and time<=20 No
+SMC3Pr[<=30] (<> Main.goal) [0.902606,1]
+4E[<=30;200] (max: Main.s) 3.05
+5E[<=30;200] (max: Main.e) 27.5137
+Fig. 7. Distribution on Time to Reach goalExperiment 1 veries the orig-
+inal control objective that is sat-
+ised ( Yes) for sure. Experiment
+2 veries if the strategy ensures
+Main to reach goal within 20
+time units, where time is a global
+clock. The result is not satised
+(No). We evaluate reachability of
+goal within 30 time units under
+the strategy in experiment 3. The
+probability is [0.902606,1] with
+confidence 0.95 if the probability
+uncertainty factor is 0.05. Be-
+sides, several kinds of statistical
+plots can be generated by Uppaal-smc such as probability distribution, prob-
+ability density distribution, cumulative probability distribution, and frequency
+histogram. Fig. 7 shows the cumulative probability distribution of 36 runs. The
+curve shows that over 55% of runs reach goal between 20.0 and 22.6 time units,
+and almost 90% runs can reach goal within 29.1 time units. The last two exper-
+iments report the expected number of steps and energy consumption to reach
+goal for 200 simulated runs within 30 time units.
+
+--- Page 9 ---
+5 MC and SMC under Strategies
+Control-SMC is a new extension of Uppaal . It automatically synthesizes a strat-
+egy of a timed game, keeps the strategy in memory, then veries and evaluates
+the strategy on a number of SMC properties. We extended the semantics and
+algorithms of MC and SMC to apply the synthesized strategy when exploring
+the state space (for MC) and generating random runs (for SMC).
+5.1 Extended Stochastic Semantics
+LetA= (P1j:::jPn) be a network of priced timed automata modelling an
+environment to be controlled. That is Amay be seen as a timed game with global
+state space St=St1Stn, and with sets canduof controllable and
+uncontrollable actions, respectively. Now assume that { using Uppaal-tiga {
+we have synthesized a strategy s:St!(Rc)[fgforAensuring some
+desired reachability or safety objective. That is s(q) = (d;a) indicates that the
+strategysin stateqproposes to perform controllable action aafter a delay of d;
+s(q) =indicates that the strategy will delay indenitely until the environment
+has performed an uncontrollable action. Now we may view the extended network:
+Ae= (P1j:::jPnjAs)
+as a closed stochastic network over u[c, where the components P1;:::;Pn
+have been given delay density functions 1;:::;nand output probability func-
+tions1;:::;n. NowAsis a one-state component implementing the strategy
+s. That isshas delay density function s
+q=d, whens(q) = (d;a) anddis
+the Dirac delta function with probability mass concentrated at time-point d3.
+Moreover the output probability function s
+qforsis given by:
+s
+q(b) =8
+>><
+>>:1 ;s(q) = (0;a);a=b
+0 ;s(q) = (0;a);a6=b
+?;s(q) = (d;a);d> 0
+?;s(q) =
+In this way Aemay be subject to statistical model checking provided. We ex-
+tend the capability of Uppaal-smc to generate random runs for networks of
+environment components extended with control strategies.
+5.2 Implementation
+Fig. 8 shows the work-ow of Control-SMC. The Uppaal-tiga engine receives
+the timed game model Gand the control objective . It synthesizes a strategy
+that is kept in memory if Gis controllable. The strategy can be printed out with
+the option -w0. If the option -Xis used then subsequent MC or SMC queries
+3which should formally be treated as the limit of a sequence of delay density functions
+with decreasing, non-zero support around d.
+
+--- Page 10 ---
+iare checked under this strategy. For the purpose of evaluating performance,
+the modelGcan be extended with costs to G0. These costs are modeled with
+clocks that must be declared as hybrid clock . They are ignored for the purpose
+of symbolic model-checking (synthesis or MC) and taken into account for SMC.
+Furthermore, oating-point variables can be used in the same way. These addi-
+tional variables may not be active for the purpose of controlling the behavior.
+Uppaal-tigaUppaal-smcUppaal / G
+φResult
+StrategyG′ρi
+Strategy
+Fig. 8. Workow of Control-SMC
+The exploration under a given strategy is similar to standard MC or SMC
+when considering uncontrollable transitions since they are played by an oppo-
+nent. The opponent is stochastic for the purpose of SMC and when doing MC, all
+possible successors are tried. However, only the controllable transitions allowed
+by the strategy are allowed. In addition, delay is constrained by the delays of
+the strategy, e.g., if a controllable transition is to be taken after 5 time units,
+Uppaal will not delay more. For SMC, this is resolved naturally through the
+semantics with a race between components. For the symbolic exploration, the
+strategy species how much delay is allowed and this constrains the standard
+delay operation. Furthermore, we have to add the upper border of bounded de-
+lays to enable following transitions. More precisely Uppaal-tiga maintains a
+partition so we could have the case to wait while in x2[0;5[ and take a tran-
+sition atx= 5, butx= 5 is then unreachable. Therefor we have to wait while
+x2[0;5]. Finally, when an action follows a delay it has an urgent semantics,
+i.e., the states in which such an action is enabled are not allowed to delay.
+5.3 The Running Example
+We demonstrates how to use Control-SMC on the running example described in
+Section 2.2 and 4.2 without the need to translate the strategy. We add prices
+and stochastic information directly on the TGA Main as shown in Fig. 9. The
+clocks used for cost are declared as hybrid clock (e.g.e), while counters for
+SMC evaluation are declared as double (e.g.s).
+Fig. 10 shows the query le we use here. A control query that expresses the
+control objective starts on the rst line with a list of MC and SMC queries on
+
+--- Page 11 ---
+Fig. 9. TGA Main with Pricescontrol: A<> Main.goal
+A<> Main.goal
+A<> Main.goal and time<=20
+Pr[<=30] (<> Main.goal)
+E[<=30;200] (max: Main.s)
+E[<=30;200] (max: Main.e)
+Fig. 10. Combined Query File
+the following lines. For now, Control-SMC is available only from the command
+line checker verifytga and is enabled with the option -X. Given the model as
+in Fig. 9 and the query le as in Fig. 10 as inputs, it rst synthesizes a strategy
+for the control query, then processes the rest MC and SMC queries in a batch
+fashion, and gives the same results as in Table 1 in Section 4.2.
+6 Experiments Results
+We show the experiments of two case-studies by rst using the Control-SMC
+method of Section 5, then using the strategy translation method in Section 4 as
+a cross-check. The two methods gave the same results for MC and SMC queries.
+We also measured the execution time of the queries for both methods, because
+we want to know the runtime benet of applying a strategy in time and memory
+compared with using a translated controller from a strategy. All models in the
+experiments are available on our SMC web-page4.
+6.1 Case Study 1: Jobshop
+The Jobshop problem is about scheduling a set of machines for a set of jobs,
+where each job needs to use those machines in a particular order for a particular
+time limit. This case-study involves two professors Kim and Jan who want to
+read a single piece of four-section newspaper. Each person has his own preferred
+order on sections, and can spend dierent times on dierent sections. The con-
+trol objective, which is expressed as control: A<> Kim.Done and Jan.Done and
+time<=80 , is to nd a scheduling strategy that guarantees both people nish
+reading within 80 time units. Uppaal-tiga nds such a strategy. The full ex-
+planation about this model can be found on web-page of examples [11]. The
+model is down-sized for the purpose of the manual conversion to a controller
+automaton.
+4Section Control-SMC at http://people.cs.aau.dk/ ~adavid/smc/cases.html
+
+--- Page 12 ---
+Fig. 11. Job Template with Prices
+Table 2. MC & SMC Experiments of Jobshop
+# Queries Results T (CS) T (M)
+MC1A[] Jan.Done imply Kim.Done Yes - -
+2E<> Kim.Done and Jan.Done and time<=45 Yes - -
+3E<> Kim.Done and Jan.Done and time<=44 No - -
+SMC4Pr[<=80] (<> Kim.Done and Jan.Done) 176.5s 148.3s
+5E[time<=80 ; 2000000] (max: Kim.wt) 5.40221 62.1s 132.5s
+6E[time<=80 ; 2000000] (max: Kim.rt) 22.7469 61.7s 138.7s
+7E[time<=80 ; 2000000] (max: Jan.wt) 11.5652 60.9s 136.8s
+8E[time<=80 ; 2000000] (max: Jan.rt) 47.3951 62.1s 138.8s
+1in [0.999998,1] with confidence 0.95.
+Fig. 11 shows the TGA template with prices for each person for Control-
+SMC. The availability of four sections are maintained by four global boolean
+variables. During the initialization of Kim and Jan, the references to the boolean
+variables are assigned to sec1 {sec4 according to each person's preferred order
+of reading. The strategy tells a person when to acquire a section (controllable,
+solid edge), while a person can release a section at any time within a time
+bound (uncontrollable, dashed edge). We add respectively three stop-watches5
+wt;rt andtto measure the accumulated time on waiting, reading and nishing
+the newspaper respectively.
+We obtain the same results when checking the MC and SMC queries in
+Control-SMC and Uppaal . Thus in Table 2 we use the single column Result to
+show the MC results ( Yesfor satised or Nofor not satised), and SMC results
+(probabilities or evaluations). The T (CS) column shows the execution time of
+a query in seconds by Control-SMC, while the T (M) column shows that by
+using a manually translated controller. We do not compare the runtime of MC
+queries because the size of this model is not big enough to make the runtime
+distinguishable. But we compare the runtime of SMC queries, because we can
+let the SMC engine to generate a large number of runs to make the runtime
+dierence noticeable.
+Experiment 1 shows that Kim always nishes reading before Jan. We get the
+shortest time (= 45 time units) for both to nish from experiments 2 and 3.
+5Stop-watches are clocks whose rates are reset to zero.
+
+--- Page 13 ---
+Experiment 4 measures the probability for Kim and Jan to nish reading within
+80 time units if the probability uncertainty = 0:000001.
+Fig. 12. Distribution on Time to Finish Read-
+ing for Both PeopleInUppaal-smc we can get
+the plot of probability distribu-
+tion of this query as shown in Fig.
+12. The plot gives the mean value
+of around 59 time units. The re-
+maining SMC experiments show
+the expected time for Kim and
+Jan to wait and read the news-
+paper individually. The strategy
+biases Kim because Kim waits
+less than Jan. The runtime ex-
+periments of SMC queries were
+carried out on a PC with Intel
+i7-2640M CPU @ 2.80GHz, 8GB
+main memory and Ubuntu 12.04
+x8664 with the upcoming version
+0.18 of Uppaal-tiga . Experiment 4 set = 0:000001 to force the SMC engine
+to generate a large number of runs (1844438 runs). In experiments 5 { 8, we
+set the number of runs to 2000000. We can conclude that applying a strategy
+in memory improves the performance of SMC engine inside Control-SMC by
+a factor of two. This is due to the strategy look-up in a hash table instead of
+simulating it within the model.
+6.2 Case Study 2: Train-Gate
+Fig. 13. Train Template with PricesTrain-Gate is a classical case-study for
+real-time model checking. It is distributed
+with Uppaal with an detailed expla-
+nation in [3]. Fig. 13 shows the game
+version of it with prices and stochastic
+extensions. The control objective, which
+is expressed as control: A[] forall (i :
+idt) forall (j : id t) Train(i).Cross
+and Train(j).Cross imply i == j , is nd-
+ing a strategy to guarantee the exclusive
+access to Cross by two trains. If neces-
+sary, the strategy should stop a train at
+Appr in time (x10) by the control-
+lable solid edge to Stop , otherwise the
+train goes to Cross directly by the un-
+controllable dashed edge. The train can
+resume at Stop by the other controllable
+solid edge to Start . The exponential rate ((1+id):N*N) appears at Safe for spec-
+ifying the delay density function. A counter ncrrecords the throughput at Cross .
+
+--- Page 14 ---
+Table 3. MC & SMC Experiments of Train-Gate
+# QueriesResultT (CS) T (M)Syn Que
+MC 1E<> Train(0).Cross && Train(1).Start Yes No - -
+SMC2Pr[<=100] (<> Train(0).Cross) 1145.9s 88.5s
+3E[<=100 ; 1000000] (max: ncr) 8.0665 5.8065 72.3s 173.3s
+4E[<=100 ; 1000000] (max: Train(0).eng) 124.938 88.402 69.3s 169.5s
+1in [0.999998,1] with confidence 0.95.
+A hybrid clock emeasures the energy consumption of a train. The interesting
+point of this case-study is that we compare the behavior and performance of
+the synthesized strategy with the manually programmed queue-based controller
+available in the train-gate example provided in the distribution of Uppaal .
+Table 3 shows the comparative experiments of the synthesized strategy Syn
+and the queue-based controller Que. Experiment 1 shows Synallows Train(1)
+to approach Cross while Train(0) is still crossing. This is forbidden by Que.
+Experiment 2 measures the probability for Train(0) to reach Cross within 100
+time units with the probability uncertainty = 0:000001. Experiment 3 shows
+that Syngives a bigger throughput from Que, because Synallows dierent trains
+to approach Cross concurrently as witnessed by experiment 1. Experiment 4
+gives the expected energy consumption for Train(0) . We compare the execution
+time of SMC queries in seconds by Control-SMC in the T (CS) column with that
+using a manually translated controller in the T (M) column. In experiment 2,
+we set= 0:000001 to force the SMC engine to generate a large number of runs
+(1844438 runs). In experiments 3 and 4, we set the number of runs to 1000000.
+We can conclude that applying a strategy in memory improves the performance
+of SMC engine inside Control-SMC by a factor of two.
+7 Future Work
+The future work are in three directions. Our rst goal is to merge Uppaal and
+Uppaal-tiga , which will enable Control-SMC from the graphical interface with
+all its capabilities, in particular the plot composer. Next, we aim to make the
+clocks for measuring prices in Control-SMC to become real hybrid as in Uppaal-
+smc. The clock rates can be oating-point, negative, or in the form of ordinary
+dierential equations (ODE). The third direction is exploring more potential
+use of the synthesized strategy in memory. We can try to rene or optimize the
+strategy using machine learning methods.
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theor. Comput. Sci. 126(2),
+183{235 (1994)
+
+--- Page 15 ---
+2. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+Uppaal-tiga: Time for playing games! In: Damm, W., Hermanns, H. (eds.) CAV.
+Lecture Notes in Computer Science, vol. 4590, pp. 121{125. Springer (2007)
+3. Behrmann, G., David, A., Larsen, K.G.: A tutorial on uppaal. In: Bernardo, M.,
+Corradini, F. (eds.) SFM. Lecture Notes in Computer Science, vol. 3185, pp. 200{
+236. Springer (2004)
+4. Bengtsson, J., Yi, W.: Timed automata: Semantics, algorithms and tools. In: Desel,
+J., Reisig, W., Rozenberg, G. (eds.) Lectures on Concurrency and Petri Nets.
+Lecture Notes in Computer Science, vol. 3098, pp. 87{124. Springer (2003)
+5. Bozga, M., Daws, C., Maler, O., Olivero, A., Tripakis, S., Yovine, S.: Kronos: A
+model-checking tool for real-time systems. In: Hu, A.J., Vardi, M.Y. (eds.) CAV.
+Lecture Notes in Computer Science, vol. 1427, pp. 546{550. Springer (1998)
+6. Cassez, F., David, A., Fleury, E., Larsen, K.G., Lime, D.: Ecient on-the-y algo-
+rithms for the analysis of timed games. In: Abadi, M., de Alfaro, L. (eds.) CON-
+CUR. Lecture Notes in Computer Science, vol. 3653, pp. 66{80. Springer (2005)
+7. Cassez, F., Jessen, J.J., Larsen, K.G., Raskin, J.F., Reynier, P.A.: Automatic syn-
+thesis of robust and optimal controllers - an industrial case study. In: Majumdar,
+R., Tabuada, P. (eds.) HSCC. Lecture Notes in Computer Science, vol. 5469, pp.
+90{104. Springer (2009)
+8. David, A., Larsen, K.G., Legay, A., Mikucionis, M., Poulsen, D.B., van Vliet,
+J., Wang, Z.: Stochastic semantics and statistical model checking for networks of
+priced timed automata. CoRR abs/1106.3961 (2011)
+9. David, A., Larsen, K.G., Legay, A., Mikucionis, M., Wang, Z.: Time for statistical
+model checking of real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)
+CAV. Lecture Notes in Computer Science, vol. 6806, pp. 349{355. Springer (2011)
+10. Jessen, J.J., Rasmussen, J.I., Larsen, K.G., David, A.: Guided controller synthesis
+for climate controller using uppaal tiga. In: Raskin, J.F., Thiagarajan, P.S. (eds.)
+FORMATS. Lecture Notes in Computer Science, vol. 4763, pp. 227{240. Springer
+(2007)
+11. Larsen, K.G.: Quantitative model checking exercise. http://people.cs.aau.dk/
+~kgl/QMC2010/exercises/ (2010), 28. Job Shop Scheduling
+12. Larsen, K.G., Pettersson, P., Yi, W.: Model-checking for real-time systems. In:
+Reichel, H. (ed.) FCT. Lecture Notes in Computer Science, vol. 965, pp. 62{88.
+Springer (1995)
+13. Maler, O., Pnueli, A., Sifakis, J.: On the synthesis of discrete controllers for timed
+systems (an extended abstract). In: STACS. pp. 229{242 (1995)
+14. Younes, H.L.S.: Planning and verication for stochastic processes with asyn-
+chronous events. In: McGuinness, D.L., Ferguson, G. (eds.) AAAI. pp. 1001{1002.
+AAAI Press / The MIT Press (2004)

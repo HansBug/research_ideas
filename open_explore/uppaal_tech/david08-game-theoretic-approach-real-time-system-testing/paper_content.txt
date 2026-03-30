@@ -1,0 +1,547 @@
+--- Page 1 ---
+A Game-Theoretic Approach to Real-Time System Testing
+Alexandre David, Kim G. Larsen, Shuhao Li, Brian Nielsen
+Center for Embedded Software Systems (CISS)
+Aalborg University
+DK-9220 Aalborg, Denmark
+fadavid, kgl, li, bnielsen g@cs.aau.dk
+Abstract
+This paper presents a game-theoretic approach to the
+testing of uncontrollable real-time systems. By modelling
+the systems with Timed I/O Game Automata and specify-
+ing the test purposes as Timed CTL formulas, we employ
+a recently developed timed game solver UPPAAL-TIGA to
+synthesize winning strategies, and then use these strategies
+to conduct conformance testing of the systems. The test-
+ing process is proved to be sound and complete with respect
+to the given test purposes. Case study and preliminary ex-
+perimental results indicate that this is a viable approach to
+real-time system testing.
+1. Introduction
+Model-based conformance testing of real-time systems
+has attracted increasing research interests in recent years.
+A large proportion of these work employ Timed Automata
+(TA) or its variants to model the systems. Among them
+some make the assumptions that the system TA model is
+output-urgent and has isolated outputs [14][7]. “Output ur-
+gency” means that if the system can produce an output, then
+it should produce that output immediately. “Isolated out-
+put” means that at any moment in time if the system can
+produce an output, then it cannot accept inputs and cannot
+produce a different output. These assumptions on TA con-
+tribute to the testability property [14]. However, in many
+cases they are unnecessarily strong.
+In this paper we aim to relax these two assumptions and
+present a test method for uncontrollable real-time systems,
+i.e., systems with uncontrollable outputs and timing uncer-
+tainty of outputs. By “uncontrollable outputs” we mean that
+at a certain time point, it is the system under test that deter-
+mines whether or which one of the several possible outputs
+will occur. By “timing uncertainty of outputs” we mean
+that the system under test can produce an output during a
+certain time interval rather than only at a ﬁxed time point.The beneﬁts of allowing uncontrollable outputs and timing
+uncertainty of outputs in the system models include:
+²It allows the implementors some freedom;
+²The tester is usually concerned only with the high-level
+requirements rather than the implementation details;
+²Modelling with uncontrollable outputs and timing un-
+certainty of outputs is more succinct and natural.
+Systems with uncontrollable outputs and timing uncer-
+tainty of outputs may be modelled by Timed Game Au-
+tomata (TGA), which is a variant of TA with their actions
+partitioned into controllable ones and uncontrollable ones.
+A play of the timed game between the plant (modelling the
+system) and the controller (modelling the environment) is a
+run of the TGA towards a speciﬁed test purpose, say, “loca-
+tionIUT.Bright can always be eventually reached”. We
+have already implemented a timed game solver UPPAAL-
+TIGA, which can check whether a speciﬁed Timed CTL test
+purpose can be satisﬁed by a TGA, and if so, it can syn-
+thesize a winning strategy. Since a winning strategy is a
+step-by-step guidance towards the goal states which satisfy
+the test purpose, it can be viewed as a test case. This opens
+up the possibility of generating tests for uncontrollable real-
+time systems.
+Related work. There are much work on model-based
+conformance black-box testing of real-time systems based
+on TA or Timed Transition Systems [14][7][11][4] [9][8].
+For the sake of testability, some of them assume that the TA
+are controllable in the sense that it should be possible for an
+environment to drive a TA through all of its transitions [14].
+This in turn requires that the TA have output-urgency and
+isolated outputs. In this paper, both of these two require-
+ments are cancelled.
+Testing as a game problem for untimed systems has been
+studied in [15]. Dense-time control problem based on timed
+game automaton has been investigated and solved in [13].
+As part of the UPPAAL toolbox, UPPAAL-TIGA [2][3] can
+synthesize winning strategies for TGA models and user-
+speciﬁed test purposes using a real on-the-ﬂy algorithm
+
+--- Page 2 ---
+[5][12]. Thanks to a complete re-implementation of the
+ﬁrst prototype [5], there has been a dramatic performance
+improvement over the past two years.
+2. Test Setup
+2.1. The timed control problem
+In a timed control problem, the control program (or
+“controller”) actively offers inputs to and passively observes
+outputs from the plant at appropriate time (or time periods),
+as shown in Fig. 1. For a given control objective we can
+possibly synthesize a control strategy, guided by which the
+control program ensures that the plant will be operating in
+a desired manner and thus fulﬁlling the control objective.
+Pl ant Control  ProgranS tra te g y
+output
+i nputgui dance
+Figure 1. The timed control problem.
+2.2. Timed I/O Game Automaton
+LetXbe a ﬁnite set of real-valued clocks, then C(X) is
+the set of constraints generated by the grammar:
+'::=x»kjx¡y»kj'^'
+where k2Z; x; y2Xand» 2 f <;·;=;¸; >g:
+Deﬁnition 1 (Timed Automaton [1]). A timed automaton
+(TA) is a tuple S= (L; l0; Act; X; E; Inv )where Lis a
+ﬁnite set of locations, l02Lis the initial location, Actis
+the set of actions, Xis a ﬁnite set of real-valued clocks,
+EµL£C(X)£Act£2X£Lis a ﬁnite set of transitions,
+Inv:L! C(X)associates to each location its invariant.
+To characterize the uncontrollability of some actions, we
+adopt the notion of Timed Game Automaton [13].
+Deﬁnition 2 (Timed Game Automaton ). A timed game
+automaton (TGA) is a timed automaton with its set of ac-
+tions Actpartitioned into controllable ones (Actc)and un-
+controllable ones (Actu).
+In this paper we further reﬁne the above deﬁnition by
+assuming all output actions Actoutto be uncontrollable and
+all input actions Actinto be controllable.
+Deﬁnition 3 (Timed I/O Game Automaton ). A timed I/O
+game automaton (TIOGA) is a timed game automaton with
+its set of actions Act partitioned into input actions Actin
+and output actions Actoutsuch that Actin=Actcand
+Actout=Actu.In a TIOGA, the controllable actions model the inputs
+from the controller (or the tester in the testing architecture)
+to the plant, and the uncontrollable actions model the out-
+puts from the plant to the controller (or the tester). A run
+of the TIOGA involves a sequence of tester-chosen stimuli
+and plant-produced reactions. Therefore it can be viewed
+as a timed I/O game where the tester acts as a player and
+the plant acts as the opponent. Since sometimes the oppo-
+nent may choose not to produce any output by just staying
+quiescent, the game is not a strictly alternating sequence of
+inputs and outputs.
+touch? bright!dim!dim!off!touch?
+touch? touch?touch?
+dim!touch?
+touch?touch?
+touch?bright! off!touch?touch?
+dim!touch?Off DimBright
+Tp<=2Tp<=2 Tp<=2
+Tp<=2L2 L3L6
+L5L1 L4 x=0,
+Tp=0x<Tidle
+x=0,
+Tp=0x>=Tswx<Tsw
+x=0,
+Tp=0x=0,
+Tp=0
+x=0, 
+Tp=0
+x=0,
+Tp=0
+Tp<=2x>=Tidlex>=Tidle
+x<TidleTidle = 20
+Tsw = 4
+Tp<=2
+Figure 2. TIOGA of the light S.
+dim?
+bright?touch!off?touch!Init
+Workz=0
+z=0Treact = 1
+z>=Treact
+Figure 3. TA of the user E.
+This paper uses the simple Smart Light problem [7] as
+a running example. Fig. 2 is a TIOGA of the light (the
+“plant”), where solid lines represent transitions of control-
+lable actions and dotted lines represent transitions of un-
+controllable actions. Fig. 3 is the TA of the user or the
+“environment” of the light (the “controller”). The user in-
+teracts with the light by touching a touch-sensitive pad. In
+Fig. 2, there are three brightness levels for the light: Off,
+Dim orBright . The light is initially in location Off. As-
+sume that our goal is to reach location Bright . If the light
+has been in location Off for a long time (“ x¸Tidle ” in
+Fig. 2), then it is supposed to reactivate upon a touch ? and
+go to location L5, and then either to produce output bright !
+and go directly to location Bright in 2 time units, or to
+produce output dim! and go to location Dim in 2 time units,
+or even not to produce any output and remain in L5dur-
+2
+
+--- Page 3 ---
+ing that period. The user does not know whether or which
+output will be produced. This is the so-called output uncon-
+trollability . If the output is ever produced, the user cannot
+anticipate the exact time of output. This is the so-called
+timing uncertainty of outputs .
+We use Timed I/O Transition System (TIOTS) as the
+underlying semantics model of TIOGA and TA.
+Deﬁnition 4 (Timed I/O Transition System ). A
+timed I/O transition system (TIOTS) is a tuple
+(S; s0; Act in; Act out;!), where Sis a set of states, s02S
+is the initial state, and !2S£(Actin[Actout[R¸0)£S
+is a transition relation satisfying the following sanity
+constraints:
+²time determinism :(sd¡!s0)^(sd¡!s00))(s0=s00),
+²time additivity :(sd1¡!s0)^(s0d2¡!s00))(sd1+d2¡!s00),
+where R¸0is the set of non-negative real numbers,
+s; s0; s002S, and d; d1; d22R¸0.
+Lets2Sand®2(Act[R¸0). We write s®¡! if
+9s02S:s®¡!s0. This notation can be extended to strings
+of observable actions and time delays as usual.
+We deﬁne the following characteristics of TIOTS:
+²A TIOTS has isolated output if8s2S:8®2
+Actout:8¯2Act:(((s®¡!)^(s¯¡!)))(®=¯)),
+²A TIOTS is output-urgent if8s2S:8®2
+Actout:(s®¡!)) 8d2R>0:(s½½d¡!).
+The semantics of a TA or a TIOGA
+(L; l0; Act; X; E; Inv )is deﬁned as a TIOTS
+(S; s0; Act in; Act out;!), where SµL£RXis the set of
+semantic states of location and clock vector, s0= (l0;0)is
+the initial state, and !µS£(Actin[Actout[R¸0)£S
+satisﬁes both the sanity constraints and the following
+constraints:
+²time transition: (l; u)d¡! (l; u+d)if8d02
+[0; d]:((u+d0)j=Inv(l)),
+²action transition: (l; u)a¡! (l0; u0)if9e=
+(l; a; g; r; l0)2E:((uj=g)^(u0= [r!0]u)^(u0j=
+Inv(l0))).
+A run of the TIOGA is characterized by a timed trace.
+Anobservable timed trace ¾2(Act[R¸0)¤is of the form
+¾=d1a1d2a2: : : a kdk+1. We deﬁne the set of observable
+timed traces of state sas:
+TTr(s) =f¾2(Act[R¸0)¤js¾¡!g:
+For a state sand a timed trace ¾,(sAfter ¾)is the set of
+states that can be reached after ¾:
+sAfter ¾=fs0js¾¡!s0g:
+The set of (immediately) observable outputs or delays at
+statesis deﬁned as:
+Out(s) =fa2(Actout[R¸0)jsa¡!g:The above two deﬁnitions can both be extended to sets of
+states as usual.
+Arunof a TIOGA (L; l0; Act; X; E; Inv )is a timed
+trace (i.e., a sequence of alternating time and action tran-
+sitions) in its TIOTS (S; s0; Act in; Act out;!). We use
+Runs (s;S)to denote the set of all runs of Sthat start from
+states2S. Speciﬁcally, Runs (S)denotes the set of all
+runs of Sthat start from s0. If¾is a ﬁnite run, we use
+last(¾)to denote the last state of ¾.
+In this paper, we assume the system models (the “plant”)
+have the following characteristics:
+²determinism,
+²strong input-enabledness,
+²non-output-urgency (thus timing uncertainty of out-
+puts is allowed), and
+²non-isolated-output (thus uncontrollable outputs are
+allowed).
+A TIOGA which has uncontrollable outputs and timing
+uncertainty is called an uncontrollable TIOGA. Likewise,
+its corresponding TIOTS is called an uncontrollable TIOTS.
+Moreover, we can deﬁne the parallel composition of sev-
+eral TIOTS’s in the usual manner.
+2.3. Timed I/O conformance relation
+To decide whether the behavior of the implementation
+under test (IMP) conforms to that of the system speciﬁca-
+tion (SPEC), we use the Timed Input-Output Conformance
+relation.
+Deﬁnition 5 (Timed Input-Output Conformance rela-
+tion,tioco [9]). Let i; s2Sbe two states of a TIOTS.
+Thetimed input-output conformance relation tioco between
+iandsis deﬁned as:
+itioco siff8¾2TTr(s):(Out(iAfter ¾)µ
+Out(sAfter ¾)):
+Assume that the behavior of the IMP can be modelled by
+a TIOTS I. Assumed the initial state of Iisi0, and the
+initial semantic state of the speciﬁcation TIOTS Siss0. If
+i0tioco s0, we say that Iis a correct implementation of S,
+denoted Itioco TIOTS (S).
+LetSbe input-enabled with states i; s2S. The confor-
+mance relation tioco can also be characterized in terms of
+timed trace inclusion as follows:
+itioco siffTTr(i)µTTr(s):
+2.4. Test purpose
+This paper aims to conduct targeted rather than compre-
+hensive testing of whether an IMP conforms to a SPEC.
+This means that we should have in mind a test purpose. In
+3
+
+--- Page 4 ---
+this paper, we use annotated Timed CTL formulas to spec-
+ify test purposes, e.g., control: A hiIUT.Bright ,
+wherecontrol means it is a test purpose for a timed
+game. The formula says that whatever uncontrollable out-
+puts the IMP may produce according to the SPEC model,
+we can always be guided to offer inputs or to delay such
+that we can reach the goal location IUT.Bright .
+2.5. Test hypotheses
+For the purpose of proving the soundness and complete-
+ness properties of our test method, we assume that the sys-
+tem implementation IMP can be modelled by a TIOTS and
+it has the same sets of input actions Actinand output ac-
+tionsActoutas the SPEC. Furthermore, the IMP is assumed
+to be controllable, i.e., it has the characteristics of isolated
+outputs and output urgency. This is reasonable since IMP is
+usually more deterministic than SPEC.
+3. Testing with winning strategies
+3.1. The testing framework
+The framework of testing with winning strategies is il-
+lustrated in Fig. 4. The inputs to UPPAAL-TIGA are the
+TIOGA model of the plant, the TA model of its environ-
+ment, and the test purpose in a formula of an extended sub-
+set of the TCTL logic. The output from UPPAAL-TIGA
+is a winning strategy. With the SPEC models, the winning
+strategy and the black-box implementation IMP we can do
+testing and produce the test verdict pass orfail.
+Figure 4. Testing with winning strategies.
+3.2. Generating winning strategy
+The key idea of our test method is to use a winning strat-
+egy as a test case. A test purpose for a reachability control
+problem is that given a TIOGA S= (L; l0; Act; X; E; Inv )
+and a set of goal states KµL£RXof its corresponding
+TIOTS, we should ﬁnd a winning strategy fsuch that Ssu-
+pervised by fcan reach some states in K. Obviously, the
+test purpose determines K.
+We view the reachability control problem (S; K)as a
+game problem. A ﬁnite or inﬁnite run of S¾=s0®0¡!s1®1¡!: : :®n¡!sn+1iswinning if9k¸0:(sk2K).
+The set of all winning runs in Sstarting from state sis de-
+noted by WinRuns (s;S; K). Winning runs in the underly-
+ing TIOTS are deﬁned similarly.
+A strategy fis a function that during the course of the
+timed game constantly gives information as to what the
+player should do in order to win the game [13]. At a given
+state of the run, the player can be guided either to do a
+particular controllable action (i.e., to offer an input to the
+plant), or to do nothing at this point in time and just wait
+(denoted by “ ¸”).
+Deﬁnition 6 (State-Based Strategy ). Let
+S= ( L; l0; Act; X; E; Inv )be a TIOGA, and let
+(S; s0; Act in; Act out;!)be the TIOTS of S. A state-
+based strategy foverSis a partial function from Sto
+Actc[ f¸g.
+Deﬁnition 7 (Supervised Run ). Let S =
+(L; l0; Act; X; E; Inv )be a TIOGA and fa state-
+based strategy over S. Let sbe a state in the TIOTS
+ofS. The f-supervised runs ofSfrom sis a subset
+SupRuns (s; f)µRuns (s;S)deﬁned inductively as:
+²s2SupRuns (s; f),
+²¾0= (¾e¡! s0)2SupRuns (s; f)if¾2
+SupRuns (s; f),¾02Runs (s;S)and one of the fol-
+lowing three conditions holds:
+–e2Actu,
+–e2Actcande=f(last(¾)),
+–e2R¸0and8e02[0; e):9s002
+S:((last(¾)e0
+¡!s00)^(f(s00) =¸)),
+²¾2SupRuns (s; f)if¾is an inﬁnite run whose ﬁnite
+preﬁxes are all included in SupRuns (s; f).
+For a reachability game with KµL£RX, amaximal
+run¾is either an inﬁnite run, or a ﬁnite run such that either
+last(¾)2K, or(last(¾)=2K)^((last(¾)®¡!))(®=
+0)). We denote the set of all maximal runs from state sas
+MaxRuns (s).
+Let¾=s0®0¡! s1®1¡! : : :®n¡! sn+1
+be a run of TIOGA S, and Kbe a set of goal
+states. If ¾is a maximal run, then ¾islosing if
+80·k·minfindex (last(¾));1g:(sk=2K).
+Deﬁnition 8 (Winning Strategy ). Let S =
+(L; l0; Act; X; E; Inv )be a TIOGA and fa state-
+based strategy over S. Let sbe a state in the
+TIOTS of S. We say fiswinning from state sif
+MaxRuns (s)\SupRuns (s; f)µWinRuns (s;S; K). If
+fis winning from s0, then fis called a winning strategy
+forS.
+A strategy being winning means that if the controller acts
+strictly according to what the strategy suggests, then what-
+4
+
+--- Page 5 ---
+ever responses the plant might make, the controller will for
+sure be winning.
+Fig. 5 shows a state-based winning strategy for the
+TIOGA in Fig. 2 and test purpose control: A hi
+IUT.Bright . It is automatically generated by UPPAAL-
+TIGA.
+Note that there may exist more than one winning strat-
+egy for the same TIOGA and test purpose. We use
+Strategy (S; ')to denote the set of all winning strategies
+for TIOGA Sand test purpose '.
+Figure 5. An example winning strategy.
+3.3. Test execution
+Deﬁnition 9 (Test Execution ). Let SPECS be the set of
+system speciﬁcations, Fbe the set of winning strategies,
+andIMPS be the set of system implementations. A test
+execution is deﬁned as a function:
+T:SPECS £F£IMPS ! fpass;failg:
+The basic idea of test execution is to incrementally build
+a test run by constantly consulting the winning strategy and
+the SPEC model, as shown in Algorithm 3.1. If an occurred
+output is prohibited according to tioco , we report fail, oth-
+erwise after reaching a goal state we report pass .
+3.4. Soundness and completeness
+In conformance testing, the soundness property says that
+if there exists a failing test run, then the implementation
+does not conform to the speciﬁcation.
+Theorem 10 (Soundness ). LetS=(L; l0; Act; X; E; Inv )
+be a TIOGA speciﬁcation with Act =Actin[
+Actout,TIOTS (S) be its corresponding TIOTS, I=Algorithm 3.1 TestExec (S,I,K,f)
+Input : TIOGA speciﬁcation S, system implementation I,
+set of goal states K, and state-based winning strategy f;
+Output : test verdict pass orfail, and test run ¾;
+Algorithm :
+1:¾:=hi; /* the test run is initially an empty trace */
+2:while (¾ =2WinRuns (s0;S; K))do/*s0: init state*/
+3: casef(last(¾))of
+4: “input i”:
+5: senditoI;
+6: ¾:=¾¢i;
+7: “delay d”:
+8: ifoutput ooccurs at d0·dthen
+9: ¾:=¾¢d0;
+10: ifo =2Out(s0After ¾)then
+11: return (fail);
+12: else
+13: ¾:=¾¢o;
+14: else
+15: ¾:=¾¢d;
+16: endcase
+17:endwhile
+18:return (pass ).
+(I; i0; Act in; Act out;!)be a TIOTS implementation,
+andfbe a winning strategy for S, then (9¾2
+(SupRuns (i0; f)\MaxRuns (i0)): ¾ is losing ))(I
+»»»tioco TIOTS (S)).
+In conformance testing, the completeness property
+says that if an implementation does not conform to a
+speciﬁcation, then there exists a failing test run. In this
+paper, because we are conducting targeted testing with a
+test purpose, given a test purpose 'that is satisﬁed by the
+speciﬁcation, if the implementation does not conform to
+the speciﬁcation w.r.t. ', we will be able to ﬁnd a failing
+run. Hence the following theorem of partial completeness.
+Theorem 11 (Partial Completeness ). Let S=
+(L; l0; Act; X; E; Inv )be a TIOGA speciﬁcation with
+Act=Actin[Actout,TIOTS (S) be its corresponding
+TIOTS, I=(I; i0; Act in; Act out;!)be a TIOTS imple-
+mentation, and 'be a test purpose such that TIOTS (S)
+j=', then (I»»»tioco TIOTS (S))w:r:t: ' ) 9 f2
+Strategy (S; '):9¾(SupRuns (i0; f)\MaxRuns (i0)):(¾
+is failing).
+Proof details can be found in [6].
+4. Case study
+In this section we consider a simple Leader Election Pro-
+tocol (LEP) [10] (more details in [6]), which is essentially
+a distributed consensus algorithm with timing constraints.
+5
+
+--- Page 6 ---
+Table 1. Strategy generation for LEP protocol.
+Time (s) Memory (MB)
+n=3 4 5 6 7 8 n=3 4 5 6 7 8
+TP1 0.03 0.14 0.7 3.1 11.1 33.5 0.1 4 9 28 85 242
+TP2 0.81 2.13 8.4 67.1 452.0 / 11.2 33 88 462 2977 /
+TP3 0.89 2.79 25.9 73.2 453.8 / 11.9 40 289 578 3015 /
+The idea is to elect the node with the lowest address as the
+leader by using message passing.
+We model the problem as two parts: one TIOGA for an
+arbitrary node as the plant, and two TA for its simulated
+chaotic environment including all the other nodes and a
+buffer with certain capacity as the controller. The TIOGA
+has uncontrollable actions in the sense that in the plant node
+atimeout ! event can be produced at any point of a time
+frame after the node has been waiting for a certain period of
+time without receiving any “useful” messages.
+We deﬁned the following test purposes:
+²TP1:control: A hi(IUT.betterInfo ==
+1) and IUT.forward
+²TP2: control: A hiforall (i:
+BufferId) (inUse[i] == 1)
+²TP3: control: A hiforall (i:
+BufferId) (inUse[i] == 1) and
+IUT.idle
+All the above three test purposes are checked to be true
+by using UPPAAL-TIGA. We carried out the strategy gen-
+eration experiments on an application server with dual-core
+2.4GHz CPU, 4096MB RAM and Suse Linux Enterprise
+Desktop. Table 1 presents the performance results for these
+test purposes with different protocol parameter settings.
+The time and memory columns represent the time over-
+heads and the memory consumptions for generating win-
+ning strategies for the test purposes, respectively. Each sub-
+column corresponds to one parameter conﬁguration, where
+nmeans that there are nnodes in the protocol, and there
+is a message buffer of size n, and the maximum distance
+between any two nodes is limited to (n¡1).
+As can be seen from Table 1, winning strategy generation
+for the LEP protocol with up to 7 nodes takes less than 8
+minutes and the memory consumption is not well beyond
+out expectation considering the complexity of the problem.
+5. Conclusions and future work
+We examine the problem of conformance black-box test-
+ing of uncontrollable real-time systems using a game-
+theoretic approach. We model the systems with timed I/O
+game automata and specify the test purposes with TCTL
+formulas. With the help of a recently developed timed gamesolver, we can do testing based on winning strategies. Ex-
+perimental results of the Leader Election Protocol indicate
+that this approach is viable and computationally feasible.
+This opens up a new possibility for testing TA-modelled
+timed systems with timing uncertainty of outputs and un-
+controllable outputs, which are previously thought of as
+somewhat under-speciﬁed.
+Future work include: 1) generalizing state-based strat-
+egy to history-based strategy; 2) building a fully automated
+strategy-based testing environment, of which a big concern
+is efﬁcient strategy representation; 3) evaluating strategy-
+based test effectiveness in terms of e.g. fault detecting ca-
+pability; 4) if there does not exist a winning strategy, we
+hope to make a small “retreat” by doing cooperative test-
+ing; 5) strategy-based testing with partial observability.
+References
+[1]R. Alur and D. L. Dill. A theory of timed automata. Theo-
+retical Computer Science , 126(2):183–235, 1994.
+[2]G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G.
+Larsen, and D. Lime. Uppaal-tiga: Time for playing games!
+InCAV 2007 , pages 121–125, 2007.
+[3]G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G.
+Larsen, and D. Lime. UPPAAL TIGA User-manual . Aal-
+borg University, July 2007.
+[4]L. B. Briones and E. Brinksma. A test generation framework
+for quiescent real-time systems. In FATES 2004 , pages 64–
+78, 2004.
+[5]F. Cassez, A. David, E. Fleury, K. G. Larsen, and D. Lime.
+Efﬁcient on-the-ﬂy algorithms for the analysis of timed
+games. In CONCUR 2005 , pages 66–80, 2005.
+[6]A. David, K. G. Larsen, S. Li, and B. Nielsen. A game-
+theoretic approach to real-time system testing. Technical
+report, Aalborg University, November 2007.
+[7]A. Hessel, K. G. Larsen, B. Nielsen, P. Pettersson, and
+A. Skou. Time-optimal realtime test case generation using
+uppaal. In FATES 2003 , pages 114–130, 2003.
+[8]C. Jard and T. J ´eron.TGV: theory, principles and algorithms.
+STTT , 7(4):297–315, 2005.
+[9]M. Krichen and S. Tripakis. Black-box conformance testing
+for real-time systems. In SPIN 2004 , pages 109–126, 2004.
+[10] L. Lamport. Real-time model checking is really simple. In
+CHARME 2005 , pages 162–175, 2005.
+[11] K. G. Larsen, M. Mikucionis, and B. Nielsen. Online testing
+of real-time systems using uppaal. In FATES 2004 , pages
+123–137, 2004.
+[12] X. Liu and S. A. Smolka. Simple linear-time algorithms for
+minimal ﬁxed points. In ICALP 1998 , pages 53–66, 1998.
+[13] O. Maler, A. Pnueli, and J. Sifakis. On the synthesis of dis-
+crete controllers for timed systems. In STACS 1995 , pages
+229–242, 1995.
+[14] J. Springintveld, F. Vaandrager, and P. R. D’Argenio. Test-
+ing timed automata. Theoretical Computer Science , 254(1-
+2):225–257, 2001.
+[15] M. Yannakakis. Testing, optimizaton, and games. In ICALP
+2004 , pages 28–45, 2004.
+6

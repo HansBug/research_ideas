@@ -1,0 +1,560 @@
+--- Page 1 ---
+Aalborg Universitet
+Effortless Fault Localisation
+Conformance Testing of Real-Time Systems in Ecdar
+Gundersen, Tobias R.; Lorber, Florian; Nyman, Ulrik; Ovesen, Christian
+Published in:
+Electronic Proceedings in Theoretical Computer Science
+DOI (link to publication from Publisher):
+10.4204/EPTCS.277.11
+Creative Commons License
+CC BY 4.0
+Publication date:
+2018
+Document Version
+Publisher's PDF, also known as Version of record
+Link to publication from Aalborg University
+Citation for published version (APA):
+Gundersen, T. R., Lorber, F., Nyman, U., & Ovesen, C. (2018). Effortless Fault Localisation: Conformance
+Testing of Real-Time Systems in Ecdar. Electronic Proceedings in Theoretical Computer Science, 277, 147-160.
+https://doi.org/10.4204/EPTCS.277.11
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: March 30, 2026
+
+--- Page 2 ---
+A. Orlandini, M. Zimmermann (Eds.): 9th Symposium on
+Games, Automata, Logics and Formal Veriﬁcation (GandALFŠ18)
+EPTCS ??, 2018, pp. 1–14, doi:10.4204/EPTCS.??.??cT.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen
+This work is licensed under the
+Creative Commons Attribution License.Effortless Fault Localisation:
+Conformance Testing of Real-Time Systems in Ecdar
+Tobias R. Gundersen Florian Lorber Ulrik Nyman Christian Ovesen
+Aalborg University, Denmark Aalborg University, Denmark
+gundersen.tobias@gmail.com florber@cs.aau.dk ulrik@cs.aau.dk ovesen.chr@gmail.com
+Model checking of real-time systems has evolved throughout the years. Recently, the model checker
+Ecdar, using timed I/O automata, was used to perform compositional veriﬁcation. However, in order
+to fully integrate model checking of real-time systems into industrial development, we need a pro-
+ductive and reliable way to test if such a system conforms to its corresponding model. Hence, we
+present an extension of Ecdar that integrates conformance testing into a new IDE that now features
+modelling, veriﬁcation, and testing. The new tool uses model-based mutation testing, requiring only
+the model and the system under test, to locate faults and to prove the absence of certain types of
+faults. It supports testing using either real-time or simulated time. It parallelises test-case genera-
+tion and test execution to provide a signiﬁcant speed-up. We also introduce new mutation operators
+that improve the ability to detect and locate faults. Finally, we conduct a case study with 140 faulty
+systems, where Ecdar detects all faults.
+1 Introduction
+It is essential to ensure the correctness of safety-critical systems. Model checking can prove the cor-
+rectness of a design. However, a correct design does not ensure the correctness of its implementation.
+We could test this correctness by writing unit tests by hand. However, this is time-consuming and error-
+prone, as we would manually derive them from the requirements of the System Under Test (SUT).
+Instead, we can test if the SUT conforms to the model proven to be correct. Model checkers for real-
+time systems focus on timing aspects, which are essential for safety-critical real-time systems. When
+testing based on a timed model, the tests will focus on timed aspects as well.
+One model-based testing technique is Model-Based Mutation Testing (MBMT). It has already been
+applied to Timed Automata (TA) with simulated time [3, 14]. Larsen et al. [14] use the model checker
+Ecdar [6] to perform unbounded conformance checks, to provide a signiﬁcant speed-up compared to [3],
+and to enable adaptive test-cases, which produce fewer inconclusive test verdicts.
+The main contributions of this paper are (1) an extension of Ecdar that integrates conformance testing
+of real-time systems, using only the model and the SUT, into the tool; (2) automatic fault localisation
+through the introduction of primarily failed test-cases; and (3) support for testing using either real-time
+or simulated time.
+Other contributions are parallelisation of test-case generation and test execution to provide a signiﬁ-
+cant speed-up and the introduction of new mutation operators that improve the ability to detect and locate
+faults.
+The rest of the paper is structured as follows: First, in Section 2 we discuss related work. In Section 3
+we present preliminaries, including the deﬁnition of Timed I/O Automata (TIOA) and the workﬂow of
+MBMT. In Section 4 we discuss the integration of MBMT into Ecdar. In Section 5 we present a case
+study of our extension. In Section 6 we showcase the extension. Finally, in Section 7 we conclude the
+paper and outline ideas for future work.
+
+--- Page 3 ---
+2 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+2 Related Work
+MBMT has already been applied to probabilistic ﬁnite state machines [11] and UML state machines
+[1]. These approaches mainly focus on testing functional behaviour. Aichernig et al. [3] propose to use
+MBMT for TA and presents the tool MoMuT::TA1that implements test-case generation.
+Larsen et al. [14] propose to use Ecdar to perform unbounded conformance checks, to provide a sig-
+niﬁcant speed-up compared to [3], and to enable adaptive test-cases, which produce fewer inconclusive
+test verdicts.
+Lorber et al. [15] propose an approach to combine MBMT and Timed Computation Tree Logic
+(TCTL) properties used for veriﬁcation; from a set of generated mutants, they check if the mutants satisfy
+the properties. For each violation, they use the counterexample as a test-case. This way, the approach
+only model checks individual properties rather than performing a potentially more time-consuming full
+conformance check. Also, the approach generates fewer test-cases, which takes less time to execute, and
+the test-cases focus on the safety-critical properties derived from the requirements of the system.
+Devroey et al. [8] propose another way to reduce generation and testing time. They propose to
+encode each mutant as a product in a software product line; instead of generating individual mutants, they
+propose to generate a single featured mutant model that – when conﬁgured – can represent any mutant.
+This way, the mutants can share execution, allowing for testing in a single run. While the approach is for
+assessing the quality of an existing test suite, it could also be applied for test-case generation.
+There exist tools for model-based testing using TA. The tool U PPAAL TRON [9] can conduct confor-
+mance tests on systems in real-time and thus can be applied to physical systems. It uses an environment
+TA to decide which inputs and delays to trigger and detects whether the SUT produces allowed out-
+puts. A tester can easily construct a simple, permissive environment, but at the cost of simply triggering
+random inputs and delays. Otherwise, they can construct environment models that steer the execution
+towards critical areas.
+The tool CO XER [10] generates test-cases based on TA and TCTL. A tester can reuse the TCTL
+properties used for verifying the test model. The tester also needs to specify monitoring automata that
+describe coverage criteria.
+The tool U PPAAL Yggdrasil [13] is similar to CO XER. It generates test-cases based on TA, TCTL
+properties, and random search.
+Contrary to these three tools, the presented Ecdar extension uses a fault-based approach that can
+prove the absence of certain types of faults. Furthermore, it generates test-cases only based on a test
+model. Thus, an Ecdar tester need only provide the test model and the SUT; they do not need to perform
+the time-consuming and error-prone tasks of constructing environment models, TCTL properties, or
+monitoring automata.
+3 Preliminaries
+In this section we deﬁne TIOA, their underlying transition systems, determinism, input-enabledness, and
+reﬁnement. Finally, we describe the workﬂow of MBMT.
+1https://momut.org/
+
+--- Page 4 ---
+T.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen 3
+Figure 1: An Ecdar TIOA Retailer for a ﬁsh retailer.
+3.1 Timed I/O Automata
+A TIOA [7] is a syntactical, ﬁnite representation of a timed system. It is a tuple (Q,q0,C,V,S,E,I),
+where:
+ Q is a ﬁnite set of locations.
+q02Q is the initial location.
+ Cis a ﬁnite set of clocks used to represent time.
+ V is a ﬁnite set of integer variables local to the automata. Each variable v2Vhas lower and upper
+bounds vmin,vmax2Zand an initial value v02[vmin,vmax].
+Sis a ﬁnite set of observable actions partitioned into inputs ( Si) and outputs ( So).
+ Eis a ﬁnite set of edges of the form e= (q,g,s,R,u,q0), where:
+–q,q02Q are the source and target locations, respectively.
+–g(theguard ) is a conjunctionV
+b2Beb, i.e. Beis the set of basic constraints of the guard of
+edge e. Each basic constraint bis of the form xc, where x2C[V ,2f <,,=,6=,,>g,
+andc2Z. The guard must be satisﬁed when executing the edge.
+–s2Sis the observable action.
+–RCis the set of clocks to reset.
+–u:V!Zis an update of some of the variables. For each such variable v,u(v)2[vmin,vmax].
+ I :Q!U (C)is a set of invariants for some of the locations. We write U(C)for the set of
+constraints overCof the form xc, where x2C,2f <,g, and c2N. An invariant must be
+satisﬁed when entering and while in the respective location.
+Contrary to [7], our deﬁnition of TIOA includes local variables, since the Ecdar engine supports them.
+Figure 1 illustrates the TIOA for which Q=fL0,L1g,q0=L0,C=fxg,V=ffreeg,free0=freemin=0,
+freemax=1,Si=fcoin?g,So=fgarnish !,tuna!g,E=f(L0,x<3^f ree=1,garnish !, / 0,f(f ree,0)g,
+L0),(L0,x>4,coin?,fxg,f(f ree,1)g,L1),(L1,true,garnish !, / 0, / 0, L0),(L1,x>1,tuna!, / 0, / 0, L0)g, and
+I=f(L1,x4)g.
+We denote byAthe set of all TIOA. We denote by Eithe input edgesfe= (q,g,s,R,u,q0)je2
+E^s2Sig, and byEothe output edgesfe= (q,g,s,R,u,q0)je2E^ s2Sog.
+3.2 Timed I/O Transition Systems
+A Timed I/O Transition System (TIOTS) [7] Sis the semantic representation induced by a TIOA A,
+written S= [[A]]sem. It is a tuple (St,s0,S,!)where:
+Stis a set of states.
+
+--- Page 5 ---
+4 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+s02Stis the initial state.
+Sis a ﬁnite set of observable actions partitioned into inputs ( Si) and outputs ( So).
+ ! St(S[R0)Stis a transition relation.
+We write sa !s0instead of (s,a,s0)2!. We write sa !for9s0:sa !s0. We use i?,o!, and dto range
+over inputs, outputs, and delays ( R0), respectively.
+Determinism: A TIOTS is deterministic iff8s,s0,s002St:8s2S:ss !s0^ss !s00=)s0=s00. That
+is, whenever the transition system can perform an action, there is always only one transition to take with
+that action. As an example, the transition system of Retailer in Figure 1 is deterministic.
+Input-Enableness: A TIOTS is input-enabled , iff8s2St:8i?2Si:si? !. That is, it can always accept
+any of its deﬁned inputs. As an example, the transition system of Retailer in Figure 1 does not accept a
+coin? inL1, and thus it is not input-enabled.
+We can use angelic completion [17] to transform an automaton to one with an input-enabled tran-
+sition system: For each input, it receives new self-loops for each state that did not accept that input. It
+corresponds to ignoring those inputs.
+Alternatively, we can use demonic completion [4] to transform an automaton to one with an input-
+enabled transition system: Instead of self-loops, it has new edges leading to a universal location . In a
+universal location, every possible behaviour deﬁned by the automata is enabled. That is, it can continu-
+ously both delay indeﬁnitely and perform every action S.
+3.3 Reﬁnement
+Reﬁnement [7] compares the behaviour of two deterministic, input-enabled transition systems. A TIOTS
+T= (StT,t0,S,!T)reﬁnes a TIOTS S= (StS,s0,S,!S), written TS, iff there exists a binary relation
+RStTStScontaining (t0,s0)such that for each pair of states (t,s)2Rwe have:
+ 8s02StS:8i?2Si:si? !Ss0=)9 t02StT:ti? !Tt0^(t0,s0)2R.
+ 8t02StT:8o!2So:to! !Tt0=)9 s02StS:so! !Ss0^(t0,s0)2R.
+ 8t02StT:8d2R0:td !Tt0=)9 s02StS:sd !Ts0^(t0,s0)2R.
+TSrepresents that Thas less behaviour than or equal behaviour to S. A TIOA A1reﬁnes another
+TIOA A2, written A1A2, iff[[A1]]sem[[A2]]sem. That is, there is a corresponding reﬁnement between
+their underlying TIOTSs.
+3.4 Model-Based Mutation Testing
+In MBMT we construct a test suite based on mutants of a test model. Firstly, based on requirements of a
+system, we develop the SUT and a test model that it should conform to (see Figure 2a). We then mutate
+the test model according to some selected mutation operators. An operator represents certain ways of
+changing the model, e.g. changing the source location of an arbitrary edge to an arbitrary location. A
+mutant is the result of a single application of an operator and represents a potential fault.
+For each mutant, we check if it conforms to the test model (see Figure 2b). If it does, it does not
+introduce any observable faults. Thus, we discard it. Otherwise, the conformance check provides a
+counterexample, i.e. a way to potentially reveal the fault. We use the counterexample as a test-case by
+applying it on the SUT. A test passes iff the SUT is shown to behave according to the test model and not
+according to the mutant.
+
+--- Page 6 ---
+T.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen 5
+(a) Activity to create an SUT, a test model, and mutants.
+ (b) Activity to generate and execute a test-case.
+Figure 2: UML 2.5 [16] activity diagrams of MBMT.
+Assuming determinism, for all passing test-cases, MBMT guarantees that the faults represented by
+their corresponding mutants do not exist in the SUT. A failed test-case is an aid for debugging as pre-
+sented in [2]; a failed test-case can show the location and type of the fault and provides a way to reproduce
+it.
+Adaptiveness Test-cases can be more or less adaptive. A non-adaptive test-case only covers a trace
+with its counterexample; if the test model has multiple choices of delaying and outputting, a non-adaptive
+test-case can only handle one of the choices. If the SUT performs an unexpected, allowed delay or output,
+we assign it the inconclusive verdict.
+Anadaptive test-case can handle various choices made by the SUT and steer the execution towards
+the fault represented by the mutant.
+4 Integration
+We divide testing with Ecdar into three steps: Mutation, test-case generation, and test execution. In this
+section, we discuss each of these steps and then discuss performance.
+4.1 Mutation
+A mutation operator is a function M:A! 2A. We use the following mutation operators deﬁned by
+Aichernig et al. [3]:
+Msreplaces the source location of an edge with another location.
+Mtreplaces the target location of an edge with another location.
+Moreplaces the action of an edge with a (different) output .
+
+--- Page 7 ---
+6 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+(a) Mutant inMi(Retailer ). The action of an edge
+from L1 to L0 is changed from output garnish ! to
+input coin?.
+(b) Mutant inMvu(Retailer ). The variable update
+of the edge from L0 toL1 is changed from (f ree,1)
+to(f ree,0).
+Figure 3: Two mutants of the Retailer TIOA on Figure 1.
+Minvloosens a constraint in an invariant by 1 time unit (e.g. x<=2 would be loosened to x<=3). We
+do not tighten invariants, as this would result in a conformance.
+Mslchanges the target location of an edge to a new sink location . Sink locations accept but ignore all
+inputs.
+Mcinverts a clock reset on an edge; if the clock was originally reset, the reset is removed, otherwise a
+reset is added.
+We deﬁne the following new mutation operators. In the deﬁnition of the operators, we mutate a TIOA
+S= (Q,q0,C,V,S,E,I):
+Mireplaces the action of an edge with a (different) input . This createsjEij(jSij1) +jEojjSijmu-
+tants. Aichernig et al. [3] only replaces actions with outputs (the operator Mo). A TIOA M2
+Mi(S)iffM= (Q,q0,C,V,S,(Enf eSg)[feMg,I), such that eS= (q,g,sS,R,u,q0)2E,eM=
+(q,g,sM,R,u,q0),sM2Si, and sS6=sM. An example of such a mutant is given is Figure 3a.
+Mgcadds or subtracts 1 to or from a guard constant . This creates 2 åe2EjBejmutants. A TIOA M2
+Mgc(S)iffM= (Q,q0,C,V,S,(Enf eSg)[feMg,I), such that eS= (q,gS,s,R,u,q0)2E,eM=
+(q,gM,s,R,u,q0),gS=V
+i2I(xiicS
+i),gM=V
+i2I(xiicM
+i),9i02I:cS
+i01=cM
+i0, and8i2Infi0g:cS
+i=
+cM
+i.
+Mgocchanges a guard operator with a clock as its left side. This creates up to 2 åe2EjBe,Cjmutants,
+where Be,C=fb2Bejb=xc^x2Cg . Time is continuous. Thus, in practice we expect that for all
+clock valuations vwe have that8c2Z:v<c() vc^v>c() vc^v6=c. For this reason,
+we only mutate with and>. With reduced number of guard operators, we reduce generation and
+test execution time. Mgocoverlaps with two mutation operators in [3]: mcgthat in a single mutation
+changes all operators in a guard to one among f<,,=,,>g, and mngthat negates a guard. Since
+a mutation is a simple syntactic change [12], we combine these two operators into Mgocthat only
+changes a single operator. A TIOA M2M goc(S)iffM= (Q,q0,C,V,S,(EnfeSg)[feMg,I), such
+thateS= (q,gS,s,R,u,q0)2E,eM= (q,gM,s,R,u,q0),gS=V
+i2I(xiS
+ici),gM=V
+i2I(xiM
+ici),
+9i02I:xi02C^M
+i02f ,>gnfS
+i0g, and8i2Infi0g:S
+i=M
+i.
+Mgovchanges a guard operator with a variable as its left side. This creates 5 åe2EjBe,Vjmutants, where
+Be,V=fb2Bejb=xc^x2Vg . A TIOA M2M gov(S)iffM= (Q,q0,C,V,S,(Enf eSg)[
+feMg,I), such that eS= (q,gS,s,R,u,q0)2E,eM= (q,gM,s,R,u,q0),gS=V
+i2I(xiS
+ici),gM=V
+i2I(xiM
+ici),9i02I:xi02V^M
+i02f<,,=,6=,,>gnS
+i0, and8i2Infi0g:S
+i=M
+i.
+
+--- Page 8 ---
+T.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen 7
+Mvuassigns a value to a local variable in an update property. If the variable is already being as-
+signed in this property, the mutating assignment overrides the existing one. If the existing and
+mutating assignment values are equal, the corresponding mutant is not created. This creates up
+tojEjåv2V(vmaxvmin+1)mutants. A TIOA M2M vu(S)iffM= (Q,q0,C,V,S,(Enf eSg)[
+feMg,I), such that eS= (q,g,s,R,uS,q0)2E,eM= (q,g,s,R,uM,q0),9v02V:uM(v0)6=uS(v0)_
+(v0=2dom(uS)^v02dom(uM)), and8v2Vnf v0g:uM(v) =uS(v)_(v=2dom(uS)^v=2dom(uM)).
+An example of such a mutant is given is Figure 3b.
+The deﬁnition of mutation operators is simpliﬁed compared to the Ecdar implementation for better
+understanding. For instance, the implementation can also handle more complex constraints, e.g. con-
+straints with addition, subtraction, and mixed use of constants, clocks, and variables on either side. Also,
+it does not mutate certain locations and edges. For instance, it is sometimes inappropriate to mutate the
+universal location and its outgoing edges.
+4.2 Test-Case Generation
+We use the approach presented in [14] to perform conformance checks. That is, we use the Ecdar engine
+to determine if the mutant reﬁnes the test model. Since reﬁnement assumes determinism, we discard
+non-deterministic models.
+Reﬁnement also assumes input-enabledness. However, we do not want to force the modeller to make
+the test model input-enabled. Rather, the behaviour missing in order to be input-enabled is not relevant
+for the SUT and thus should not be tested for.
+Instead, we apply demonic completion on the test model and angelic completion on the mutants like
+the approach presented in [14]. This way, traces leading to missing behaviour will transition the test
+model into the universal location. Everything reﬁnes the universal location. Thus, mutants resulting in
+such traces will not yield a counterexample for the reﬁnement.
+The Ecdar engine solves a reﬁnement check as a timed game. To check if TS, the goal of the
+game is to ﬁnd a strategy for revealing the non-reﬁnement T6Sby triggering delays and inputs, and
+observing outputs. In the case of a non-reﬁnement, the Ecdar engine produces a strategy. A strategy can
+handle various choices made by the SUT and can steer the execution towards the goal. Thus, it provides
+us with an adaptive test-case.
+4.3 Test Execution
+We develop a test driver that executes the generated test-cases on an SUT. The test driver implementation
+is inspired by the algorithm presented by Larsen et al. [14].
+The test driver communicates with the SUT over its standard I/O streams. We treat the SUT as a
+black box where the inputs and outputs we send and receive are the same as those represented in the test
+model. The driver can test systems using either real-time or simulated time. Using real-time, we can test
+physical systems. However, using real-time is often signiﬁcantly slower because it may need to perform
+physical delays. When simulating time, rather than physically delaying the test, the test driver computes
+and sends to the SUT how long the SUT is allowed to simulate delay without interruptions through an
+input, and the SUT answers how long it actually simulated.
+If the SUT terminates while testing, we treat it as a sink location. This allows us to ﬁnish a test if the
+program terminates.
+
+--- Page 9 ---
+8 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+Test model
+3 7
+Mutant3 Continue Primary fail
+7 Pass Other fail
+Table 1: What action to take based on whether the test model and the mutant can ( 3) or cannot ( 7)
+simulate a delay or an output produced by the SUT.
+Rules A strategy consists of delay, input, and output rules, all with disjoint conditions. The test driver
+checks which rule in the strategy is satisﬁed for the current states of the test model and the mutant.
+If the satisﬁed rule is an input rule , we send an input to the SUT. For a delay rule the test driver
+performs a delay until the rule is no longer satisﬁed or the SUT has produced an output. The test driver
+cannot force the SUT to perform an output. It instead must wait for the SUT to produce one. Thus, we
+treat an output rule as a delay rule.
+Aborting A location with no invariant but with outgoing output edges with fully permissive guards
+implies that the SUT can wait forever before outputting. This behaviour causes output rules to suggest
+that we wait indeﬁnitely until the SUT (hopefully) outputs. To avoid this, we introduce a maximum wait
+time; if this is exceeded, we abort the current test.
+If the SUT avoids the states needed to determine the existence of a fault by looping among the same
+set of states, the strategy will suggest that we loop indeﬁnitely among the same set of rules. To avoid
+this, we enforce a bound. Whenever we change the current rule, we increment a step value. If the value
+exceeds the bound, we abort the current test.
+Verdicts As described in Section 3.4 a test can pass, fail or be inconclusive. We simulate the actions
+of the SUT on the test model and the mutant to determine if the current test passes or fails according to
+Table 1. A test passes iff the test model can simulate a delay or an output, but the mutant cannot.
+A test fails iff the test model cannot simulate a delay or an output. If a test fails, we simulate the
+failing action on the mutant. If the mutant can perform it, then we have found a fault that is recognised by
+the mutant. This mutant is especially helpful for locating the fault. We call these types of fails primary
+fails.
+A test is inconclusive, if there are no applicable rules for the current states of the models or if we
+abort the test.
+4.4 Performance
+Generation is a computationally heavy task for which the CPU is the bottleneck. However, we call the
+Ecdar engine through its command-line interface, which causes delays, making the CPU underutilised.
+To speed up generation, we generate multiple test-cases in parallel, making Ecdar able to fully utilise the
+CPU.
+Executing a test is not necessarily a computationally heavy task for the test device. Thus, we could
+speed up testing by generating and executing tests in a pipeline manner. However, we want a consistent
+and realistic test environment. Running computationally heavy tasks in the background while testing will
+slow down the test driver, which can cause false positive verdicts (e.g. if the SUT would have outputted
+too early). Thus, we test only after we have generated all test-cases.
+
+--- Page 10 ---
+T.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen 9
+Figure 4: An Ecdar TIOA Alarm for a car alarm system.
+Some systems allow running multiple concurrent instances of them without problems. For this rea-
+son, Ecdar allows running multiple concurrent instances of the SUT, which speeds up test execution.
+This is especially useful for real-time testing, as the test driver might wait a long time for the SUT to
+output. By default, we run only one concurrent instance. We leave it up to the user to set a low enough
+limit on the maximum number of concurrent instances.
+5 Case Study
+We implement a modiﬁed version of the car alarm system from [14] to be used as a case study for the
+purpose of evaluating Ecdar. The system represents a car alarm that is armed and triggered if someone
+opens a door without unlocking the car ﬁrst. If triggered, it can be disarmed or – if left alone – it
+disarms itself after a set duration. As we have deﬁned mutation operators that handle variables, we add a
+shutdown variable. Furthermore, we make the model robust with regards to time constraints in order to
+support testing using real-time. The model of the modiﬁed system can be seen on Figure 4.
+
+--- Page 11 ---
+10 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+M # Set 1 Set 2 Set 3 Set 4 Set 5
+Ms 203
+Mt 333
+Mo 143
+Minv 7
+Msl 26
+Mc 7
+Mi 30
+Mgc 10
+Mgoc 8
+Mgov 4
+Mvu 1
+Total 772
+Table 2: Results of testing the faulty systems. We denote by # the number of generated test-cases. For
+each combination of operator and faulty system we denote if the corresponding tests resolved in at least
+one primary fail ( ). Otherwise, we denote if they resolved in at least one other fail ( ). Each PIT
+operator creates a set of faulty systems that we divide with vertical lines ( ).
+Ecdar detected faults in our initial implementation. We used Ecdar to locate and ﬁx the faults. For
+this case study, we use the ﬁnal version of the implementation. It has no faults according to Ecdar.
+We perform our tests on a Windows 10 Pro v. 1803 computer with an AMD Ryzen 7 1690 CPU and
+two Kingston HyperX SH103S3/120G SSDs in Raid 0. We mutate using all Ecdar mutation operators.
+We deﬁne 1 time unit as 1 s, the number of concurrent SUT instances as 5, the maximum wait time as
+420 time units, and the step bound as 40 (see Section 6).
+It took 0.61 s to generate all 1173 mutants and 30 s to generate all 772 test-cases. A test execution
+using real-time took 3 h 52 m, while an execution using simulated time took 26 s, which is a signiﬁcant
+speed-up.
+To evaluate our integration of Ecdar we use the mutation testing tool PIT2to generate variations of
+the car alarm system. We used all mutation operators from PIT and mutated the CarAlarm class (see
+Section 6) to generate 278 systems.
+We use the Ecdar extension to test the systems generated with PIT. In order to speed up test execution,
+we test using simulated time. Ecdar reports no fails for 47 of the systems. Through inspection of these
+systems, we found that they are all equivalent to the original car alarm system. Another 91 systems
+crashed while testing. When an SUT crashes, Ecdar provides the stack trace, which allows developers to
+locate the fault. However, it does not provide us with an output with which we can determine the verdict.
+This leaves us with 140 failing systems that do not crash. We denote these as faulty systems . The results
+from testing the faulty systems can be seen in Table 2.
+We observe that every faulty system has a failed test-case. This shows that Ecdar detected all the
+generated faults . In three systems (e.g. number 4 in set 1) MgcandMgovare the only ones that could
+detect the fault. These operators are new and deﬁned in this paper. This shows that the new operators
+improve the ability to detect faults.
+As mentioned in Section 4.2 Ecdar includes primary fails. For three systems (e.g. number 5 in set
+1)Mgocis the only one to achieve a primary fail. This operator is new and deﬁned in this paper. This
+2http://pitest.org/ - version 1.3.2
+
+--- Page 12 ---
+T.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen 11
+Figure 5: A screenshot of the Ecdar UI overlayed with numbered circles.
+shows that the new operators improve the ability to locate faults.
+Two faulty systems (e.g. number 8 in set 1) have no primary fails. Both change an output to one not
+deﬁned in the test model. In order to generate primarily failed test-cases for such faults, their mutants
+would have to guess these non-deﬁned outputs. As there is an inﬁnite number of non-deﬁned outputs, it
+is in practice impossible to guarantee a primary fail for every such fault.
+6 User Interface
+The Ecdar extension is implemented as a program that works as an IDE. Figure 5 shows a screenshot of
+Ecdar, where:
+1from the menu bar, we can create new documents and change options;
+2from the project pane, we can manage the declarations of the system, the TIOA, and the test plans;
+3on the canvas, we can edit TIOA. For instance, the TIOA in Figures 1 and 4 are modelled this way;
+4on the query pane, we can use the Ecdar engine to verify TCTL properties; and
+5on the error pane, errors and warnings automatically appear.
+From the menu bar 1, we can create a new test plan. In order to test, we simply need to choose our
+test model, select the path to our SUT or a program interfacing it, and (if testing using real-time) deﬁne
+what 1 time unit in the model corresponds to in real-time (see Figure 6a). The current version of Ecdar
+only works with an SUT that is a JAR ﬁle or interfaced by one.
+Testers can adjust a test plan by changing:
+
+--- Page 13 ---
+12 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+(a) A test plan.
+ (b) Results of a failed test run.
+Figure 6: Partial screenshots of an Ecdar UI.
+what mutation operators to test with,
+whether to test using simulated time,
+the maximum number of concurrent threads used for generation,
+the maximum number of concurrent instances of the SUT,
+the maximum wait time, and
+the step bound.
+For each executed test-case, Ecdar displays a description of the mutant, the id of the test-case, the
+verdict, reason for the verdict, and the trace performed by the SUT (see Figure 6b). The tester should
+use this information to locate faults.
+Ecdar supports retesting selected test-cases without redoing mutation or test-case generation. It can
+also export mutants for custom use. The extension and sample projects (including the car alarm pre-
+sented in Section 5) are licensed under MIT3and are available at http://ulrik.blog.aau.dk/ecdar/
+ecdar-2-2/ .
+3https://opensource.org/licenses/MIT
+
+--- Page 14 ---
+T.R. Gundersen, F. Lorber, U. Nyman & C. Ovesen 13
+7 Conclusion
+In this paper, we present an extension of Ecdar that integrates conformance testing into the tool in order to
+improve productiveness and reliability. It uses Model-Based Mutation Testing (MBMT) that – contrary
+to similar approaches – is fault-based, proving the absence of certain types of faults. It also generates
+test-cases solely based on the test model. Thus, the tester does not need to provide any other constructs
+unlike what is required for some other methods.
+Ecdar mutates the test model through 11 mutation operators and uses the Ecdar engine to generate
+strategies that we use for test-case generation. The tool then executes the test-cases using either real-time
+or simulated time. Testing using real-time enables testing of physical systems. Testing using simulated
+time allows for a signiﬁcant speed-up. To further speed up testing, we parallelise test-case generation
+and test execution.
+Ecdar is an open-source IDE using the Ecdar engine. It can model Timed I/O Automata (TIOA),
+verify them, and test a system based on a TIOA.
+We conduct a case study using the independent mutation testing tool PIT to generate 140 faulty
+systems. Testing with Ecdar detected all faults . We introduce new mutation operators that improve the
+ability to detect and locate faults.
+Future Work Ecdar can combine models with conjunction, composition, and quotient. It does, how-
+ever, only support testing of one uncombined model at a time. This makes it tedious to test integrated
+systems and makes it unusable for integration testing. Future work could include support for testing
+integrated systems. The challenge is to simulate combined automata. We could take inspiration from
+UPPAAL TRON [9], as it solves a similar problem; it does not know the state of the System Under Test
+(SUT), so it keeps track of multiple potential states. When testing integrated systems, we could check
+reﬁnements using compositional veriﬁcation [5] in order to speed up test-case generation.
+We presented in Section 5 a small case study to demonstrate MBMT with Ecdar. However, future
+work could include an industrial case study.
+Ecdar only supports testing using ﬁrst-order mutants. Future work could include using higher-order
+mutants to detect faults not detectable by ﬁrst-order mutants. Future work could also include reducing
+generation and execution time. An approach is to prioritise test-cases so that we only generate and
+execute test-cases with a higher probability of detecting a fault. Alternatively, Lorber et al. [15] and
+Devroey et al. [8] propose other approaches for speeding up, as presented in Section 2.
+Finally, future work could include adding a command-line interface to test with Ecdar. We can, for
+instance, use this to conformance test during continuous integration.
+References
+[1] B.K. Aichernig, H. Brandl, E. Jöbstl, W. Krenn, R. Schlick & S. Tiran (2015): Killing Strategies for Model-
+based Mutation Testing .Softw. Test. Verif. Reliab. 25(8), pp. 716–748, doi:10.1002/stvr.1522.
+[2] B.K. Aichernig, K. Hörmaier & F. Lorber (2014): Debugging with Timed Automata Mutations . In A. Bon-
+davalli & F. Di Giandomenico, editors: Computer Safety, Reliability, and Security , Springer International
+Publishing, Cham, pp. 49–64, doi:10.1007/978-3-319-10506-2_4.
+[3] B.K. Aichernig, F. Lorber & D. Ni ˇckovi ´c (2013): Time for Mutants — Model-Based Mutation Testing with
+Timed Automata . In M. Veanes & L. Viganò, editors: Tests and Proofs , Springer Berlin Heidelberg, Berlin,
+Heidelberg, pp. 20–38, doi:10.1007/978-3-642-38916-0_2.
+
+--- Page 15 ---
+14 Effortless Fault Localisation: Conformance Testing of Real-Time Systems in Ecdar
+[4] M. van der Bijl, A. Rensink & J. Tretmans (2004): Compositional Testing with ioco . In A. Petrenko &
+A. Ulrich, editors: Formal Approaches to Software Testing , Springer Berlin Heidelberg, Berlin, Heidelberg,
+pp. 86–100, doi:10.1007/978-3-540-24617-6_7.
+[5] A. David, K.G. Larsen, A. Legay, M.H. Møller, U. Nyman, A.P. Ravn, A. Skou & A. W ˛ asowski (2012):
+Compositional veriﬁcation of real-time systems using Ecdar .International Journal on Software Tools for
+Technology Transfer 14(6), pp. 703–720, doi:10.1007/s10009-012-0237-y.
+[6] A. David, K.G. Larsen, A. Legay, U. Nyman & A. W ˛ asowski (2010): ECDAR: An Environment for Composi-
+tional Design and Analysis of Real Time Systems . In A. Bouajjani & W. Chin, editors: Automated Technology
+for Veriﬁcation and Analysis , Springer Berlin Heidelberg, Berlin, Heidelberg, pp. 365–370, doi:10.1007/978-
+3-642-15643-4_29.
+[7] A. David, K.G. Larsen, A. Legay, U. Nyman & A. Wasowski (2010): Timed I/O Automata: A Com-
+plete Speciﬁcation Theory for Real-time Systems . In: Proceedings of the 13th ACM International Con-
+ference on Hybrid Systems: Computation and Control , HSCC ’10, ACM, New York, NY , USA, pp. 91–100,
+doi:10.1145/1755952.1755967.
+[8] X. Devroey, G. Perrouin, M. Papadakis, A. Legay, P. Schobbens & P. Heymans (2016): Featured Model-
+based Mutation Analysis . In: Proceedings of the 38th International Conference on Software Engineering ,
+ICSE ’16, ACM, New York, NY , USA, pp. 655–666, doi:10.1145/2884781.2884821.
+[9] A. Hessel, K.G. Larsen, M. Mikucionis, B. Nielsen, P. Pettersson & A. Skou (2008): Testing Real-Time
+Systems Using UPPAAL , pp. 77–117. Springer Berlin Heidelberg, Berlin, Heidelberg, doi:10.1007/978-3-
+540-78917-8_3.
+[10] A. Hessel & P. Pettersson (2007): Cover-a test-case generation tool for timed systems . Available at http:
+//hessel.nu/CoVer/ .
+[11] R.M. Hierons & M.G. Merayo (2007): Mutation Testing from Probabilistic Finite State Machines . In: Test-
+ing: Academic and Industrial Conference Practice and Research Techniques - MUTATION (TAICPART-
+MUTATION 2007) , pp. 141–150, doi:10.1109/TAIC.PART.2007.20.
+[12] Y . Jia & M. Harman (2011): An Analysis and Survey of the Development of Mutation Testing .IEEE Trans-
+actions on Software Engineering 37(5), pp. 649–678, doi:10.1109/TSE.2010.62.
+[13] J.H. Kim, K.G. Larsen, B. Nielsen, M. Miku ˇcionis & P. Olsen (2015): Formal Analysis and Testing of Real-
+Time Automotive Systems Using UPPAAL Tools . In M. Núñez & M. Güdemann, editors: Formal Methods
+for Industrial Critical Systems , Springer International Publishing, Cham, pp. 47–61, doi:10.1007/978-3-319-
+19458-5_4.
+[14] K.G. Larsen, F. Lorber, B. Nielsen & U.M. Nyman (2017): Mutation-Based Test-Case Generation with
+Ecdar . In: 2017 IEEE International Conference on Software Testing, Veriﬁcation and Validation Workshops
+(ICSTW) , pp. 319–328, doi:10.1109/ICSTW.2017.60.
+[15] F. Lorber, K.G. Larsen & B. Nielsen (2018): Model-Based Mutation Testing of Real-Time Systems via Model
+Checking . In: 2018 IEEE International Conference on Software Testing, Veriﬁcation and Validation Work-
+shops (ICSTW) , pp. 59–68, doi:10.1109/ICSTW.2018.00029.
+[16] Object Management Group (2015): OMG Uniﬁed Modeling Language .http://www.omg.org/spec/UML/
+2.5/PDF .
+[17] J. Tretmans (2008): Model Based Testing with Labelled Transition Systems , pp. 1–38. Springer Berlin Hei-
+delberg, Berlin, Heidelberg, doi:10.1007/978-3-540-78917-8_1.

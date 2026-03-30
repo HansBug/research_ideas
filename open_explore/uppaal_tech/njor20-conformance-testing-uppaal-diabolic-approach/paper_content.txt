@@ -1,0 +1,844 @@
+--- Page 1 ---
+Conformance Testing in UPPAAL:
+A diabolic approach
+E. J. Njor
+Dept. of Computer Science
+Aalborg University
+Aalborg, Denmark
+enjor16@student.aau.dkF. Lorber
+Dept. of Computer Science
+Aalborg University
+Aalborg, Denmark
+ﬂorber@cs.aau.dkN. I. Schmidt
+Dept. of Computer Science
+Aalborg University
+Aalborg, Denmark
+nschmi16@student.aau.dkS. R. Petersen
+Dept. of Computer Science
+Aalborg University
+Aalborg, Denmark
+srpe16@student.aau.dk
+Abstract —Model-based mutation testing is a fault-based
+method in the model-based testing area of research. It has
+been applied to several modeling formalisms, including timed
+automata. We propose a model transformation termed “diabolic
+completion” that allows for conformance testing directly in the
+UPPAAL tool. We have also developed a system to automate most
+of the process, which include taking a model, and performing
+diabolic completion, with the additions of allowing creation of
+mutants, conformance checking using the UPPAAL veriﬁcation
+engine, and test case generation. We then set up a case study
+using a car alarm system model, which has been used several
+times in this area of research, and compare the efﬁciency with two
+existing tools, Ecdar 2.2 and MoMuT::TA, observing a signiﬁcant
+speedup.
+I. I NTRODUCTION
+The importance of correct systems cannot be understated,
+especially in the case of safety-critical systems, such as
+for instance air trafﬁc control systems. The current industry so-
+lution to deal with correctness is to thoroughly test the system.
+This testing is usually conducted by a tester, with a best effort
+“ad-hoc” approach, to the point where the tester believes the
+system to be correct. The tester, however, can unfortunately
+miss major bugs, which can have fatal consequences.
+To get around having a manual tester, the concept of model-
+based testing has been proposed. In model-based testing,
+one creates a mathematical model of the system, called the
+speciﬁcation, which can then be used to generate test cases
+for the System Under Test (SUT) [7]. Several approaches to
+this have been proposed, ranging from manual testing using
+the model, up to structural coverage tests [23]. In this paper we
+look into a fault-based approach called Model-Based Mutation
+Testing (MBMT) where a speciﬁcation is mutated to create
+potentially faulty models, called mutants . Then the mutants are
+checked for conformance to the original model. If a mutant
+does not conform to the model, this shows that the mutant
+contains an observable fault and produces a counter example.
+Using this counter example, a test case can be generated for
+an SUT of the speciﬁcation, based on the introduced fault.
+In current society, software systems are reaching new heights
+in complexity and importance. This results in the need for
+better and more practical testing methods, which MBMT tries
+to address. What makes MBMT an appropriate method for
+combating this, is the systematically testing of a SUT, givingbetter coverage of certain faults determined by the mutation
+operators, and the semi-automation of the testing process,
+which results in it being cheaper than manual or exhaustive
+testing techniques [17] [20].
+One important aspect of many safety-critical systems is the
+need to adhere to real-time speciﬁc requirements. In such
+systems, it is not only important that a system needs to provide
+a speciﬁc output in certain situations, but also that the output
+is given at a speciﬁc point in time, or before some deadline
+expires. One formalism for specifying such speciﬁcations are
+timed automata [5], which are extended ﬁnite state machines
+that use variables called clocks to measure time.
+Complete systems for creating mutations and generating test
+cases for timed automata are at the time of writing, to the
+writers knowledge, limited to Ecdar 2.2 and MoMuT::TA. In
+this paper we propose a method to do conformance testing
+and test case generation using the veriﬁcation engine of
+UPPAAL [16], a widely used and very efﬁcient model-checker
+for timed automata. We then do an evaluation of this method
+on a car alarm system, and compare the results with the two
+previous tools.
+The remainder of the paper is structured as follows. First, in
+Section II we will provide preliminaries on timed automata and
+model-based mutation testing. Then, in Section III we discuss
+related work. Next, in Section IV, we will show how to apply
+model-based mutation testing using UPPAAL. In Section V
+and Section VI we will give details on our implementation and
+demonstrate results of our approach, comparing to previous
+techniques. Finally, in Section VII and Section VIII we will
+provide conclusions and an outlook on future work.
+II. PRELIMINARIES
+A. UPPAAL Timed automata
+Timed automata, originally described in Alur et al. [5],
+are an extension of ﬁnite state machines that include real-
+valued clocks that keep track of the time passed, which can
+be reset along transitions and used in constraints in locations
+and transitions. The time domain used for the clocks is R+.
+The reasoning for introducing this extension at the time,
+was to be able to more accurately model physical processes
+compared to other possible models, such as: ﬁnite automata
+[21], non-deterministic Büchi automata [6], deterministic and
+
+--- Page 2 ---
+nondeterministic Muller automata [19], etc. These types of
+automata are all examples of methods that have abstracted
+away time. This can cause problems in time sensitive systems.
+Deﬁnition 1. The set of possible guards (C)over the
+set of clocks Cis deﬁned by the abstract syntax: ::=c
+njcdnj^, givenc;d2C, andn2N.1
+Deﬁnition 2. The UPPAAL version of a timed automata,
+which is partially derived from Aceto et al. [1], is a tuple
+A= (;L;l 0;I;C;E ), where:
+ =  I[Ois a ﬁnite, non-empty set of symbols,
+either speciﬁed as input or output on the form ?2Ior
+!2Orespectively, given is in the language alphabet.
+Lis a ﬁnite, non-empty set of locations.
+l02Lis the initial location.
+I:L!(C)assigns invariants to locations.
+Cis a ﬁnite set of real valued clocks.
+ELL(C)Cis a ﬁnite set of transitions. A
+transitione= (l;l0;;a; )is a transition from location l
+tol0, given the guard is satisﬁed, with the input/output
+a, and clock resets .
+Deﬁnition 3. A timed trace is a sequence
+of pairs of time delays and actions, denoted as
+[ (t1;a1);(t2;a2);:::;(tk;ak) ]jti2R+; ai2, for
+some positive integer i, givenik. A timed trace can
+be applied to a model M, denoted by M(), in which case
+for each (ti;ai)2an action of the timed trace is applied
+to the model after its respective time delay. At the end of
+a timed trace we end up in a state (l;C), denoted by
+M() = (l;C)jl2L, whereCis a set of clocks and their
+values, and lis the location we end up in.
+We only consider deterministic timed automata as input
+models to our approach, meaning that at no point in time will
+there be two transitions with the same label leaving a state.
+In addition we do not consider timed automata with silent
+transitions, i.e., transitions without an input or output label.
+Example. To show an example of a timed UPPAAL automa-
+ton, we use the speciﬁcation of a vending machine, shown in
+Figure 1. Its formal deﬁnition is:
+ =fbtnc?;btnt ?;coffee !;tea!g
+L=fS1;S2;S3g
+l0=S1
+I(S1) =true;
+I(S2) =true;
+I(S3) =true
+C=fxg
+E=f(S1;S2;x> 2;btnc ?;fx:= 0g);
+f(S1;S3;x> 2;btnt ?;fx:= 0g);
+f(S2;S1;x< 3;coffee !;fg);
+f(S3;S1;x< 3;tea!;fg)g
+B. Model-Based Mutation Testing
+Model-Based Mutation Testing (MBMT) is a subﬁeld of
+the model-based testing techniques. The approach relies on an
+1UPPAAL allows for variables, which are treated as natural numbers.S2 S1 S3x>2; btnc ?; x:= 0x>2; btnt ?; x:= 0
+x<3; coffee ! x<3; tea!
+Fig. 1: Running example of a coffee vending machine.
+assumed to be correct speciﬁcation, which is used to generate
+tests for a possibly malfunctioning SUT. MBMT utilizes a
+fault-based approach, where it generates new models using
+mutations based on the speciﬁcation of the SUT. A mutant is
+an altered version of the speciﬁcation it is based of, with one or
+more changes introduced. The changes are made with mutation
+operators, where an effectively inﬁnite amount of operators are
+possible. Some of the operators for timed automata introduced
+in Aichernig et al. [3], are as follows:
+Change action: The action on a transition is changed.
+Change target: A transitions target location is changed.
+Change source: A transitions source location is changed.
+Change guard: The guard on a transition is changed.
+The purpose of the mutation operators is to introduce common
+mistakes typically found in the SUTs.
+After this, typically model completion tools are applied
+on the mutant and speciﬁcation to make them input-enabled.
+Then, we check for conformance between each mutant and
+the speciﬁcation. In real-time systems, the timed input-output
+conformance tioco [13] is generally used as the conformance
+relation. An implementation Iconforms to a speciﬁcation S
+with respect to tioco, iff for all traces through the speciﬁcation,
+the outputs of Iare a subset of the outputs of S, where
+the passage of time is considered an output as well. Thus,
+Imust never show additional output behavior, or delay longer
+thanS. Assuming that the mutant does not conform to the
+speciﬁcation, i.e., it shows new incorrect output behaviour, the
+conformance check will produce a counter example, which
+is a trace through the mutant that is not possible in the
+speciﬁcation. Finally, these traces can be transformed into test
+cases and executed on the SUT to see whether it conforms to
+the speciﬁcation or to one of the mutants.
+III. R ELATED WORK
+MBMT has already been applied to many types of models,
+including: probabilistic ﬁnite state machines [11], UML state
+machines [2] and Timed Automata, in MoMuT::TA [4], Ecdar
+2.2 [9], [14] and, without an actual conformance check, in UP-
+PAAL [18]. Aichernig et al. [4] were the ﬁrst to apply model-
+based mutation testing to timed automata. They introduced the
+mutation operators and used the SMT-solver Z3 in their tool
+MoMuT::TA to perform a bounded tioco conformance check.
+Due to the boundedness of the approach, large systems with
+long traces would either not be completely explored, or need
+more time for the conformance check.
+Larsen et al. [14] used the mutants created by MoMuT::TA
+to perform reﬁnement checks with the tool Ecdar, producing
+adaptive test strategies instead of linear test cases. Later,
+
+--- Page 3 ---
+Gundersen et al. [9], [14] developed and used the tool Ecdar
+2.2, which supports mutation, test-case generation and test-
+case execution from within the tool.
+Lorber et al. [18] proposed to use the properties of a spec-
+iﬁcation to test whether mutants still fulﬁll these properties,
+instead of performing a complete conformance check. This
+reduces the computation time required and generates less test
+cases than the usual approaches, which are faster to execute.
+Godskesen et al. [8] proposed a fault-based method using
+a connectivity fault model. They also use a kill state (in a
+seperate observer automaton) to identify the killing of mutants,
+and reachability queries to get the trace. Contrary to our
+approach, they test for errors that lie in the communication
+between the SUT and the environment, instead of in the SUT.
+Krenn et al. [12] elevated the MBMT approach, by showing
+how to expand a trace gotten from a single mutated timed
+automaton into a trace of a network of timed automata,
+enabling the fault-based veriﬁcation of composed systems.
+General testing approaches using timed automata include
+the following: Larsen et al. [15] proposed to conduct con-
+formance testing using online black box testing between a
+speciﬁcation and an implementation, and Hessel et al. [10]
+conducted ofﬂine testing using an observer automata and an
+observer language to specify coverage criteria. This lead to the
+creation of UPPAAL TRON and UPPAAL CoVer, respectively.
+The proposed approach aims to use the UPPAAL veriﬁca-
+tion engine to achieve testing for conformance between mu-
+tants and their speciﬁcation, which means we will, like Ecdar
+2.2, achieve unbounded conformance testing, as opposed to
+MoMuT::TA that is bounded. The approach will provide more
+generality, as complete UPPAAL models can be supported,
+while previous approaches excluded certain elements such
+as C-like code or urgent/committed locations that are sup-
+ported by UPPAAL, and, using the highly optimized UPPAAL
+eninge, be faster than previous approaches.
+IV. M ODEL -BASED MUTATION TESTING IN UPPAAL
+In this section, we introduce our approach to perform
+MBMT directly in UPPAAL. The main idea behind this
+is to create the mutants and the speciﬁcation as separate
+communicating timed automata, and have UPPAAL explore
+them in parallel. For that, the speciﬁcation needs to undergo
+a transformation, which we named "diabolic completion". It
+works by adding a new location, which from this point forward
+we will refer to as the "kill state". The goal is to create the
+state and the transitions leading there in a way, such that it can
+only be reached if the mutant performs an output that cannot be
+taken by the speciﬁcation. This reduces the conformance check
+to a reachability check for that location. The next subsection
+will expand on the different steps needed to utilize this
+transformation in the complete test-case generation method.
+The workﬂow consists of the following steps:
+Create mutants
+Make the speciﬁcation input enabled
+For each mutant
+–Make the mutant input enabled–Perform diabolic completion
+–Perform the reachability analysis
+–Generate test cases
+A. Mutation.
+The creation of the mutants follows the mutation operators
+proposed by Aichernig et al. [3]. However, even though the
+theory supports the full set of operators, as of now we only
+implemented the operators “change action”, “change source”
+and “change target”. We are only using ﬁrst-order mutants, that
+is, each mutant only contains one introduced fault. An example
+of a ”change action” mutation can be seen in Figure 2a.
+B. Making models input enabled.
+In the second step, model completion is performed to
+make the models ready for conformance checking. Speciﬁcally
+demonic and angelic completion (see Deﬁntion 6-7 ) are
+applied to the speciﬁcation and mutants, respectively, to make
+them input-enabled. The idea behind demonic completion
+on the speciﬁcation is to support underspeciﬁcation, i.e., the
+implementation is allowed to react to more inputs than initially
+speciﬁed, but such an input would leave the speciﬁed area and
+from then on all behaviour is valid. The angelic completion
+of the mutants ensures that the mutants cannot block any
+input, but simply neglect any input that is not speciﬁed in
+their model. We need four deﬁnitions to formally deﬁne the
+completions.
+Deﬁnition 4. We deﬁne a function we call the inverse
+location input function f:in:X!Ythat maps a location
+to a set of inputs, containing all the inputs not speciﬁed in
+any of the transitions that start from the given location. The
+domain ofXis therefore L, andYisP(I). The concrete
+function maps x!I0, which is done given I0= II, and
+whereI=S
+e2Ejp1(e)=x; p 4(e)2Ip4(e).pi(e)is used to denote
+thei-th projection of the tuple e, that is, in this case the label
+of the edge.
+Deﬁnition 5. We deﬁne the inverse guard function f:guard :
+X!Ythat maps a guard to the negated version of the guard ,
+where the domains of XandYis(C). The concrete function
+mapsx!A0, givenxis built using the abstract syntax in
+Deﬁnition 1 .A0is deﬁned as A0=l0
+1_l0
+2_:::_l0
+k, for all
+ik, wherekis the number of simple constraints linx2.
+For anlwherel=ab, for some natural number b, and
+whereais built using the abstract syntax a::=cjcd,l0
+iis
+built in one of 5 ways:
+l0
+i=fabgjli=fa>bg
+l0
+i=fa<bgjli=fabg
+l0
+i=fa>bgjli=fabg
+l0
+i=fabgjli=fa<bg
+l0
+i=fa<b_a>bgjli=fa=bg
+Deﬁnition 6. We deﬁne a function we call the action resolve
+functionfresolve :X!Ythat maps a tuple x=fE;l;l0;ag,
+2Note that guards in timed automata do not allow for disjunction. The
+implementation will split these transitions into multiple transitions.
+
+--- Page 4 ---
+which contains a set of transitions, a start location, an end
+location and an action, to a new set of transitions, containing
+all the transitions from Eand a new one with action a,
+going from the start location lto the end location l0, with
+a guard that ensures that it can only be taken, as long as
+the invariant allows it, and no other transitions with the same
+action and start location have a guard that allows traversal at
+the same time. The concrete function maps x!E0, where
+E0=E[enew, givenEact6=;, whereEact=S
+e2Ejp4(e)=ae.
+The new transition enew= (l;l0;g;a;;), where the guard g=
+f:guard (e1)^f:guard (e2)^:::^f:guard (ek)^f:guard (I(l)),
+8ei2Eact.
+1) Angelic completion: Angelic completion [22] is when a
+model is made input-enabled by creating self-loops on every
+location, making them partially reﬂexive, allowing them to
+take all possible inputs in every possible location.
+Angelic completion is applied to the mutants, as real time
+systems are not considered to block unexpected input, but
+rather to ignore input if given at an unexpected time. An
+example of the angelic completion can be seen in Figure 2b.
+In this example shows that it would not make sense to change
+state if an unexpected input is given while it is making coffee,
+but rather continue making coffee until it is done.
+Deﬁnition 7. Now we deﬁne angelic completion based on
+the previously deﬁned functions, where we start by adding
+transitions to each location for inputs that are generally
+available in the location but disabled at certain times, E0=
+E[fresolve (E;p 1(e);p1(e);p4(e)), which is done8e2E.
+Then we add for each location the remaining transitions for
+inputs that are not enabled at all, E00=E0[(l;l;;;ain;;),
+which is done for all ain2f:in(l), for alll2L.
+2) Demonic completion: Demonic completion [22], like
+angelic, concerns itself with making a model input-enabled.
+Demonic completion achieves this by creating a sink location,
+with transitions leading there from every location for every
+input unspeciﬁed for that location. I.e., these transitions are
+taken if we observe an unexpected input, which makes us
+leave the speciﬁed behaviour. The sink location itself accepts
+all input or output, making it completely reﬂexive.
+Demonic completion is applied on the speciﬁcation itself,
+because it should allow for implementations to expand on the
+features of the speciﬁcation. It is a very real possibility that
+only a small part of a system is modelled (e.g., the safety-
+critical parts are modelled) and the implementation contains
+more functionality than the speciﬁcation. In the case that an
+unspeciﬁed input is given, the behavior is unpredictable, but
+should still be accepted. An example of demonic completion
+can be found in Figure 2c. Should a new functionality be
+added (such an additional button to create hot chocolate), then
+that intuitively shouldn’t fail the speciﬁcation, which did not
+specify what happens if hot chocolate is requested.
+Deﬁnition 8. Now we deﬁne demonic completion, on the
+previous deﬁned functions, where we start with adding a new
+sink location, i.e., L0=L[lsink. We then make that location
+both input and output enabled, by adding the transition E0=E[(lsink;lsink;;;I[O;;). Now we will, like in angelic
+completion, add all transitions for guarded input transitions
+in each location E00=E0[fresolve (E0;p1(e);lsink;p4(e)),
+which is done8e2E. We then add the remaining transitions
+E000=E00[(s;lsink;;;ain;;), which is done for all aI2
+f:in(l)and8l2L.
+C. Diabolic Completion
+Diabolic completion works by adding a new location, the
+"kill state". Once this state is reached, the mutant has been
+killed, meaning the mutant does not conform to the speciﬁca-
+tion. The state is reached if the mutant gives any unexpected
+output (either an output not available in the current location,
+or an output that comes at a wrong point of time), which does
+not match an already existing transition of the current location
+in the speciﬁcation. An example of diabolic completion can
+be found in Figure 2d. The transition with the action error!
+symbolizes every output that is not accepted in the source
+location, and, for instance, the transition with the action coffee!
+fromS2toS4and the guard x3covers the case where an
+output arises while the guard of the correct transition was not
+satisﬁed. After applying this transformation and creating the
+kill state, we can perform a reachability check on the parallel
+product of the speciﬁcation and the mutant to ﬁnd a case where
+the mutant can perform an output that leads the speciﬁcation
+to the kill state.
+1) Algorithm and mathematical deﬁnition: The algorithm
+for diabolic completion is shown in listing 1.
+Listing 1: Algorithm for diabolic completion.
+1INPUT: A tuple M = ( ,L,l0,I,C,E),
+2representing a UPPAAL model.
+3OUTPUT: A tuple H = ( ,L,l0,I,C,E),
+4representing a UPPAAL model
+5after diabolic completion.
+6Diabolic _Completion(M){
+7 tuple H = M
+8/*Adding kill state */
+9 H.S = H.S[kill _state
+10/*Transitions added from each s to kill _s*/
+11 foreach l in M.L{
+12 set temp _actions = O
+13 foreach e in M.E{
+14 if(e.l == l && e.a is an output){
+15 if(e.!= NULL && e.a 2temp _action){
+16 H.E = resolve(H.E, e.l, kill _s, e.a)
+17 }
+18 temp _actions= e.a
+19 }
+20 }
+21 foreach a in temp _actions{
+22 H.E = H.E[(l, kill _s, NULL, a, NULL)
+23 }
+24 }
+25 return H
+26}
+
+--- Page 5 ---
+S2 S1 S3x>2; coffee !; x:= 0x>2; btnt ?; x:= 0
+x<3; coffee ! x<3; tea!
+(a) Mutated vending machineS2 S1 S3x>2; btnc ?; x:= 0x>2; btnt ?; x:= 0
+x<3; coffee ! x<3; tea!
+error ? error ? error ?x2;btnc ?;btnt ?
+(b) Angelic completion
+S2 S1 S3
+S4x>2; btnc ?; x:= 0x>2; btnt ?; x:= 0
+x<3; coffee ! x<3; tea!
+error ?x2;
+btnc?;
+btnt?error ?error ?
+I[O
+(c) Demonic completionS2 S1 S3
+S4x>2;btnc ?;x:= 0x>2;btnt ?;x:= 0
+x<3;coffee ! x<3;tea!
+error !error !error !
+x>= 3; coffee ! x>= 3; tea!
+(d) Diabolic completion
+Fig. 2: UPPAAL timed automata that show a mutation and angelic, demonic and diabolic completion of the vending machine.
+The red color indicates the changed parts. In the timed automaton, the error ?labels are used to show a set of inputs. The set
+error ? =  Ip3(e)j8e2E^p1(e) =p1(eerror ?), and,error ! =  Op3(e)j8e2E^p1(e) =p1(eerror !)
+The algorithm starts of by taking a tuple representing the
+model as input (see section II-A), where it ﬁrst adds the new
+kill state seen in Line 9. After that, it traverses all locations,
+and for each location it creates a set of all output actions
+(Line 12) to check which ones were processed already. Then,
+for each outgoing transition of the current location that is
+an output (Line 14) and has not yet been processed, the
+resolve() function (Line 16) is applied. This function is deﬁned
+mathematically in Deﬁnition 6 , and creates a transition to the
+kill state with a negation of the guard of all transitions with the
+current source location and action. Next the algorithm removes
+the current action from the set of actions that still needs to
+be processed (Line 18). Finally, for each action left in the
+temporary variable, a transition is created from the current
+location to the kill state, with the given action and an empty
+guard, seen in Line 22.
+Deﬁnition 10. We deﬁne a function we call the inverse
+location output function f:out:X!Ythat maps a location
+to a set of outputs, containing all the outputs not used in any of
+the transitions starting from the given location. The domain of
+Xis thereforeL, and the domain of YisP(O). The concrete
+function isx!O0, which is done given O0= OO, and
+whereO=S
+e2Ejp1(e)=x; p 4(e)2Op4(e).
+Deﬁnition 11. We deﬁne the process of diabolic completion,
+using the functions previously deﬁned, by adding a kill state,
+i.e.,L0=L[kill. Then we add the output transitions for
+outputs that are generally available in a location but disabled
+at certain times, E0=E[fresolve (E;p 1(e);kill;p 4(e)),
+which is done for all e2E. And ﬁnally we add all
+the remaining transitions for outputs that are not enabled
+at all,E00=E[(l;kill;;;aout;;), which is done for allaout2f:out(l), which in turn is also done for all l2L.
+D. Detecting non-conformance
+After applying all the described transformations, detecting
+non-conformance basically is reduced to a reachability-check
+on the kill state. To do that, the speciﬁcation and a mutant
+need to be explored in parallel, so that each action one
+takes is also taken on the other model. Thus, the reachability
+check on the kill state in the speciﬁcation is performed on
+the parallel product of the the speciﬁcation and a mutant.
+Assume a speciﬁcation S, that was made input-enabled by
+demonic completion and a mutant M, turned input enabled
+via angelic completion. By applying diabolic completion to the
+speciﬁcation we received S0. Then we can build a network of
+communicating timed automata, consisting of the speciﬁcation
+after demonic and diabolic completion S0, and the mutant that
+has undergone angelic completion M. If the kill location is
+reachable in that network, this shows that the mutant did not
+conform to the speciﬁcation, and the other way around.
+Theorem 1:82M:S0() = (kill;C )$2M^62
+S, whereCis a set of clock valuations.
+Proof 1: We intend to show that the left side of the statement
+is equivalent to the right side, and therefore have to split the
+proof into two parts:
+1)82M:S0() = (kill;C )!2M^62S
+2)82M:2M^62S!S0() = (kill;C )
+We intend to prove the 1) part of the proof ﬁrst, and will
+do so using proof by contradiction. Therefore our new negated
+assumption would be:
+92M:S0() = (kill;C )^62M_2S
+This we can reduce, as 62Mwill never be true, considering
+
+--- Page 6 ---
+that we are looking for 92M. The reduced expression
+would be:92M:S0() = (kill;C )^2S
+RememberS0is the model S, but where S0had diabolic
+completion performed on it, which added a new location kill,
+and transitions to reach it. This means that there cannot exist
+a trace where both S0() = (kill;C ), and2Sis true, since
+the step from location l0that leads to killwould be an output
+action not accepted by any transitions in the corresponding
+locationlinS. This is therefore a contradiction, proving 1)
+to be a true statement.
+We now intend to prove the 2) part of the proof, and
+will again do so by contradiction. As such our new negated
+assumption would be: 92M:2M^62S^
+S0() = (kill;C ). Again, we eliminate 2M, and receive:
+92M:62S^S0() = (kill;C )
+RememberSis input-enabled, meaning it at all times can
+take any input, and should it reach the state (sink;C ), then any
+input and output would be accepted. Therefore, for a 62S,
+we would need some output step (ti;ai)2:p2((ti;ai))2
+O, so that62S. Also remember that diabolic completion,
+makes a model output-enabled, meaning that every output in
+either was present in Sor leads to the kill state. Thus, such
+a step (ti;ai)cannot exist. This is therefore a contradiction,
+proving 2) to be a true statement, ﬁnishing our proof.
+E. Generating Test Cases
+The conformance testing of the previous section can either
+result in showing non-conformance or conformance between
+the speciﬁcation and the mutant. In the case that non-
+conformance is shown, we say that the mutant has been killed .
+This also means that the mutant has introduced a fault into the
+system that is being modeled. The trace that discovered the
+fault in the mutant can be extracted from UPPAAL, and a test
+case can be generated for the SUT, that tests the actions that
+leads the mutant to its fault. Thus we have created a test that
+shows whether or not the fault introduced by the mutant is
+present in the SUT.
+V. I MPLEMENTATION
+We have created an implementation for automatic diabolic
+completion of a model provided as input, and with the possibil-
+ity of going through the whole MBMT process of generating
+mutants, checking conformance with the speciﬁcation, and
+test case generation based on the mutants. This was accom-
+plished employing our transformation on the speciﬁcation, and
+interfacing with UPPAAL to make use of their veriﬁcation
+engine. This was done using the library written in Java, made
+publicly available by the creators of UPPAAL. In the following
+sections, we will go into detail with how the theory is linked
+to the implementation.
+A. From theory to implementation
+InDeﬁnition 6. the function fresolve is deﬁned, which cre-
+ates a new transition to the kill state, based on each outgoing
+transition with the same action as the one given to it. The
+guard created for the new transition is combined based on allthe inverted guards of these transitions with the same action.
+Since UPPAAL does not allow for the use of disjunction in its
+guards, a problem occurs when conjunctions are negated. For
+the case of the guard only containing one or more disjunctions,
+we simply split the guard into multiple edges, whereas if the
+guard contain both one or more conjunctions and disjunctions
+combined, it gets a bit more complicated. The way we avoid
+this problem, in our system, is by the transformation we will
+refer to as the “chain transformation”. An example of the
+resulting model after applying chain transformation on Figure
+3a can be seen in Figure 3b. What happens is that a location
+is created for each conjunction in the guard, and for each
+of the sides of a disjunction a transition is created to reach
+the location / leave it towards the target location. The way it
+should be understood is that each added location represents a
+single conjunction, and the transitions between the locations
+represents the logical expressions on all sides of disjunctions
+between two conjunctions. Such a transformation does not
+result in an equivalent automaton. However, it preserves reach-
+ability of the location behind the transformation, which in our
+case is the sink location.
+In UPPAAL it is possible to create a network of models
+that communicate with each other using the deﬁned input
+and output channels. Since we make use of the UPPAAL
+veriﬁcation engine to test if a mutant conforms to a speciﬁca-
+tion, we have to make sure the mutant and speciﬁcation can
+communicate. The way we achieve this, is by transforming
+all of the mutants by ﬂipping all the input channels to
+output channels, and all the output channels to input channels.
+The resulting set of transitions after this transformation is:
+E0= (Ee)[(p1(e);p2(e);p3(e);fio(p4(e));p5(e))8e2E,
+where the function fioused is a function that maps from
+X!Y, whereX;YI[O. The concrete function
+mapsx!!, which is done for all x, wherex=?. It also
+mapsx!?, which is done for all x, wherex=!. An
+example of this transformation can be seen done on ﬁgure 1,
+and the result in ﬁgure 3c.
+B. System execution
+First, the mutants are generated, where every possible
+mutant is created based on the mutation operators: “change
+source”, “change target”, and “change action to output action”.
+Then some preprocessing is done on the speciﬁcation to set
+up for the other stages. Speciﬁcally the system goes through
+every location of the model, where for each location that has
+an invariant, the invariant is removed and combined with every
+guard of the outgoing edges, that is, if we have a guard gand
+an invariant i, the resulting guard g0would beg0=g^i.
+Then, angelic completion is applied on all mutants, and
+demonic- and diabolic-completion is done on the speciﬁcation.
+At this point it is possible that the speciﬁcation model has tran-
+sitions containing disjunctions that UPPAAL does not allow,
+and, as mentioned, we use the chain transformation explained
+in section V-A, to remove them from the speciﬁcation. Finally,
+we ﬂip the outputs of each mutant, to allow for the possibility
+of communication between the mutant and speciﬁcation.
+
+--- Page 7 ---
+S1 S2(x<5_x>10)^(y<7_y>14); a!
+(a) Before chain tranformationS1 C S2x<5
+x>10y<7;a!
+y>14;a!
+(b) After chain transformation
+S2 S1 S3x>2; btnc !;x:= 0x>2; btnt !;x:= 0
+x<3; coffee ? x<3; tea?
+(c) Flip of input/output
+Fig. 3: Timed UPPAAL automata showing an example of a transition containing both conjunction and disjunction and the
+results of applying the chain transformation on it. It also show an example of ﬂipping the output to input, and input to output,
+based on the vending machine model shown in ﬁgure 1. Everything colored red are to be understood as the changes to the
+model, and Cinside a location as it being commited (no time may pass while in this location).
+At this point in the execution, the conformance testing of
+the mutants is possible using the UPPAAL veriﬁcation engine.
+This is done by checking for whether it is possible for the
+speciﬁcation to reach the kill state, using reachability queries.
+This is done by making the query E<> Spec.KillState , where
+"Spec" is the template, using the integrated query language
+made for veriﬁcation in UPPAAL. Assuming reaching the
+killstate was possible, UPPAAL outputs the shortest trace to
+reaching the killstate.
+C. Test-case generation
+UPPAAL contains the test-case generation feature Yg-
+gdrasil. This feature allows to add test code to transitions
+and locations. This test code can be of any form, but one
+simple way to do it is to call functions in input transitions,
+and check via assert statements for output transitions. For the
+coffee machine example that might be "ButtonPressed();" for
+the button transition, and "assert(coffee);" for the coffee output
+transitions. In addition, one can specify preﬁx and postﬁx code
+to ensure that the ﬁle contains everything you need to run
+the test case. The trace provided by UPPAAL is then used
+to generate test cases for the SUT, by combining all the test
+code of the transitions traversed in the trace, where the test
+code should be written into the transitions in the initial model.
+The system creates a ﬁle for each of the test cases generated,
+which can then be imported as tests into the SUT.
+However, this test code only contains the positive transi-
+tions, and no code for the ﬁnal transition that leads to the
+killstate. If one sticks to the pattern of only using assert
+statements in the output transitions test code, one could simply
+add a negation for that step. However, since we wanted to keep
+our program general, this was not done in our program. This
+means that the test code for the ﬁnal transition needs to be
+manually added, while we only add the label of the transition
+in the ﬁle to indicate which transition led to the sinkstate.
+VI. C ASE STUDY
+We conducted a case study, analysing the the execution
+time for the entire execution process of creating mutants,Program Time
+Our Program 00:02:43
+Ecdar 2.2 00:03:16
+MoMuT::TA 00:43:45
+TABLE I: Runtime for Ecdar 2.2, MoMuT::TA and our system.
+doing conformance testing, and the test output. This was done
+on Ecdar 2.2, MoMuT::TA and our system, using the same
+car alarm system previously used in Aichernig et al. [4] and
+Gundersen et al. [9].
+A. Test setup
+The test was setup on a computer with the operating system
+Windows 10 Enterprise, a Intel Core i7-5600U CPU and 8GB
+of DDR3 RAM. We limited the operators in both tools to:
+“change source”, “change target”, and “change action to output
+action”.
+The output our system gives is in a plain text format, con-
+taining generated unit tests as explained in section V, whereas
+MoMuT::TA gives a trace showing the non-conformance,
+which the user has to parse to use.
+B. Results
+Using the setup outlined in the earlier, we ran both systems
+on the car alarm system. The results are shown in table I.
+It is clear that both Ecdar and our tool were signiﬁcantly
+faster than MoMuT::TA on the given case study. However,
+the case study does not contain any of the elements where
+the SMT-solving used by MoMuT::TA has an advantage. In
+any model using data variables or parameters, MoMuT::TA
+might compare a lot better. Hence, before testing several
+different studies, these results are not conclusive. In addi-
+tion, MoMuT::TA has, at the current time, more mutation
+operators implemented, and provides limited support for non-
+determinism. We were also faster than Ecdar, though to a way
+lesser degree. The speedup gained was most likely based on
+the fact that we only need to perform a reachability check
+instead of the full conformance check.
+
+--- Page 8 ---
+VII. C ONCLUSION
+We have proposed a method for achieving conformance
+testing directly in UPPAAL. This has been made possible
+using the model transformation we have termed “diabolic
+completion”, and using the already optimized veriﬁcation
+engine in UPPAAL to determine whether or not there is
+conformance between a speciﬁcation and its mutant(s).
+We have made an implementation in Java, using the library
+made available by the creators of UPPAAL. The implementa-
+tion is able to automatically do the model transformation of
+diabolic completion, based on a model written in the same
+format as the ones used in UPPAAL. It is also able to do
+mutant creation using the mutation operators we have im-
+plemented: Change source, change target, and change action.
+The ﬁnal functionality implemented is the automatic test case
+generation, collecting the test code along the witness trace
+using the Yggdrasil feature of UPPAAL.
+We ended up comparing the performance of the mutation
+generation and conformance testing between Ecdar 2.2, Mo-
+MuT::TA and our system. This was all done using the same
+mutation operators, to ensure a fair comparison. The results
+show a signiﬁcant speedup.
+In addition, our approach provides more generality, as all
+UPPAAL features are allowed in the model. However, the
+mutation operators currently do not focus on these features.
+VIII. F UTURE WORK
+One limitation of our implementation is that it can only
+take a single model, also known as a template in UPPAAL, as
+input. This has the implication that integrated systems cannot
+be tested in our system. Therefore being able to do this, would
+open up for more complex systems to be tested using our
+implementation
+Currently our system only supports single order mutants
+with one fault per mutant. There are both advantages and dis-
+advantages to single order compared to higher order mutants..
+The implementation of the option to use higher order mutants
+would increase the ﬂexibility of our system.
+We also believe there would be value in exploring new
+mutation operators affecting all of UPPAALs features, and
+conducting an empirical evaluation of mutation operators, to
+determine which ones would be best at discovering faults in
+general, or speciﬁc types of faults, in the SUT. We believe
+this could increase the ﬂexibility of MBMT as a whole, and
+help users understand what mutation operators to choose for
+certain types of systems they want tested.
+REFERENCES
+[1] Luca Aceto, Anna Ingólfsdóttir, Kim Guldstrand Larsen, and Jiri Srba.
+Reactive systems: modelling, speciﬁcation and veriﬁcation . cambridge
+university press, 2007.
+[2] Bernhard K. Aichernig, Harald Brandl, Elisabeth Jöbstl, Willibald
+Krenn, Rupert Schlick, and Stefan Tiran. Killing strategies for model-
+based mutation testing. Software Testing, Veriﬁcation and Reliability ,
+25(8):716–748, 2015.
+[3] Bernhard K. Aichernig, Florian Lorber, and Dejan Ni ˇckovi ´c. Time
+for mutants — model-based mutation testing with timed automata. In
+Margus Veanes and Luca Viganò, editors, Tests and Proofs , pages 20–38,
+Berlin, Heidelberg, 2013. Springer Berlin Heidelberg.[4] Bernhard K. Aichernig, Florian Lorber, and Dejan Ni ˇckovi ´c. Time for
+mutants — model-based mutation testing with timed automata. In Tests
+and Proofs , pages 20–38. Springer Berlin Heidelberg, 2013.
+[5] Rajeev Alur and David L Dill. A theory of timed automata. Theoretical
+computer science , 126(2):183–235, 1994.
+[6] J. Richard Büchi. On a Decision Method in Restricted Second Order
+Arithmetic , pages 425–435. Springer New York, New York, NY , 1990.
+[7] S. R. Dalal, A. Jain, N. Karunanithi, J. M. Leaton, C. M. Lott, G. C.
+Patton, and B. M. Horowitz. Model-based testing in practice. In Pro-
+ceedings of the 1999 International Conference on Software Engineering
+(IEEE Cat. No.99CB37002) , pages 285–294, May 1999.
+[8] Jens Chr. Godskesen, Brian Nielsen, and Arne Skou. Connectivity
+testing through model-checking. In David de Frutos-Escrig and Manuel
+Núñez, editors, Formal Techniques for Networked and Distributed Sys-
+tems – FORTE 2004 , pages 167–184, Berlin, Heidelberg, 2004. Springer
+Berlin Heidelberg.
+[9] Tobias R. Gundersen, Florian Lorber, Ulrik Nyman, and Christian
+Ovesen. Effortless fault localisation: Conformance testing of real-time
+systems in ecdar. In Andrea Orlandini and Martin Zimmermann, editors,
+Proceedings Ninth International Symposium on Games, Automata, Log-
+ics, and Formal Veriﬁcation, Saarbrücken, Germany, 26-28th September
+2018, volume 277 of Electronic Proceedings in Theoretical Computer
+Science , pages 147–160. Open Publishing Association, 2018.
+[10] Anders Hessel, Kim G. Larsen, Marius Mikucionis, Brian Nielsen, Paul
+Pettersson, and Arne Skou. Testing Real-Time Systems Using UPPAAL ,
+pages 77–117. Springer Berlin Heidelberg, Berlin, Heidelberg, 2008.
+[11] R. M. Hierons and M. G. Merayo. Mutation testing from probabilistic
+ﬁnite state machines. In Testing: Academic and Industrial Confer-
+ence Practice and Research Techniques - MUTATION (TAICPART-
+MUTATION 2007) , pages 141–150, Sep. 2007.
+[12] Willibald Krenn, Dejan Nickovic, and Loredana Tec. Incremental lan-
+guage inclusion checking for networks of timed automata. In Víctor A.
+Braberman and Laurent Fribourg, editors, Formal Modeling and Analysis
+of Timed Systems - 11th International Conference, FORMATS 2013,
+Buenos Aires, Argentina, August 29-31, 2013. Proceedings , volume 8053
+ofLecture Notes in Computer Science , pages 152–167. Springer, 2013.
+[13] Moez Krichen and Stavros Tripakis. Conformance testing for real-time
+systems. Formal Methods in System Design , 34(3):238–304, Jun 2009.
+[14] K. G. Larsen, F. Lorber, B. Nielsen, and U. M. Nyman. Mutation-based
+test-case generation with ecdar. In 2017 IEEE International Conference
+on Software Testing, Veriﬁcation and Validation Workshops (ICSTW) ,
+pages 319–328, March 2017.
+[15] Kim G. Larsen, Marius Mikucionis, and Brian Nielsen. Online testing of
+real-time systems using uppaal. In Jens Grabowski and Brian Nielsen,
+editors, Formal Approaches to Software Testing , pages 79–94, Berlin,
+Heidelberg, 2005. Springer Berlin Heidelberg.
+[16] Kim G. Larsen, Paul Pettersson, and Wang Yi. Uppaal in a nutshell.
+Int. J. Softw. Tools Technol. Transf. , 1(1-2):134–152, December 1997.
+[17] F. Lorber, K. G. Larsen, and B. Nielsen. Model-based mutation testing
+of real-time systems via model checking. In 2018 IEEE International
+Conference on Software Testing, Veriﬁcation and Validation Workshops
+(ICSTW) , pages 59–68, April 2018.
+[18] F. Lorber, K. G. Larsen, and B. Nielsen. Model-based mutation testing
+of real-time systems via model checking. In 2018 IEEE International
+Conference on Software Testing, Veriﬁcation and Validation Workshops
+(ICSTW) , pages 59–68, April 2018.
+[19] David E. Muller. Inﬁnite sequences and ﬁnite machines. In Proceedings
+of the 1963 Proceedings of the Fourth Annual Symposium on Switching
+Circuit Theory and Logical Design , SWCT ’63, pages 3–16, Washing-
+ton, DC, USA, 1963. IEEE Computer Society.
+[20] M. Papadakis and N. Malevris. An empirical evaluation of the ﬁrst and
+second order mutation testing strategies. In 2010 Third International
+Conference on Software Testing, Veriﬁcation, and Validation Workshops ,
+pages 90–99, April 2010.
+[21] Michael Sipser. Introduction to the theory of computation. SIGACT
+News , 27(1):29–37, March 1996.
+[22] Jan Tretmans. Model Based Testing with Labelled Transition Systems ,
+pages 1–38. Springer Berlin Heidelberg, Berlin, Heidelberg, 2008.
+[23] Mark Utting, Alexander Pretschner, and Bruno Legeard. A taxonomy of
+model-based testing approaches. Softw. Test. Verif. Reliab. , 22(5):297–
+312, August 2012.
