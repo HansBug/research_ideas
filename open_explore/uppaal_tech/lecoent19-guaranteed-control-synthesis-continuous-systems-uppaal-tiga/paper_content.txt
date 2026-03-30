@@ -1,0 +1,918 @@
+--- Page 1 ---
+HAL Id: hal-02076824
+https://hal.science/hal-02076824v1
+Preprint submitted on 22 Mar 2019
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Guaranteed control synthesis for continuous systems in
+Uppaal Tiga
+Kim G. Larsen, Adrien Le Coënt, Marius Mikučionis, Jakob Haahr Taankvist
+To cite this version:
+Kim G. Larsen, Adrien Le Coënt, Marius Mikučionis, Jakob Haahr Taankvist. Guaranteed control synthesis
+for continuous systems in Uppaal Tiga. 2019. ⟨hal-02076824⟩
+
+--- Page 2 ---
+Guaranteed control synthesis for continuous systems in
+Uppaal Tiga
+Kim Guldstrand Larsen1, Adrien Le Co ent1, Marius Miku cionis1, and Jakob Haahr Taankvist1
+Department of Computer Science, Aalborg University,
+Selma Lagerl ofs Vej 300, 9220 Aalborg st, Denmark
+fkgl,adrien,marius,jht g@cs.aau.dk
+Abstract. We present a method for synthesising control strategies for continuous dynami-
+cal systems. We use Uppaal Tiga for the synthesis in combination with a set-based Euler
+method for guaranteeing that the synthesis is safe. We present both a general method and a
+method which provides tighter bounds for monotone systems. As a case-study, we synthesize
+a guaranteed safe strategy for a simplied adaptive cruise control application. We show that
+the guaranteed strategy is only slightly more conservative than the strategy generated in the
+original adaptive cruise control paper which uses a discrete non guaranteed strategy. Also,
+we show how reinforcement learning may be used to obtain optimal sub-strategies.
+Keywords: Continuous systems Euler methodControl synthesis Timed games.
+1 Introduction
+The goal of this work is to introduce a new approach for the synthesis of correct-by-construction con-
+trol strategies for continuous-time sampled switched systems, based on the synthesis tool Uppaal
+Tiga [2]. Sampled switched systems constitute a sub-class of hybrid systems, and the synthesis
+problem for such systems is still an important issue, particularly when considering safety critical
+systems. The model of sampled switched systems has been used in various domains, such as power
+electronics [9], green housing [17, 25], automotive industry [30, 23]. The approach we develop is
+motivated by a cruise control application introduced in [18]. In a few words, the objective of the
+case-study is to compute a controller choosing the acceleration of a car (through the throttle and
+brake), in order to avoid hitting the car in front of it. Obviously, one does not control the front car,
+and such a system can easily be modelled as a two-player game. Furthermore, an accurate modelling
+of the dynamics of the cars should be done with dierential equations. Our main goal is to ensure
+safety properties for the controlled system, e.g., that the distance between the cars stays above a
+given limit. The system can actually be formulated as a continuous-time switched system, how-
+ever, the diculty comes from uncontrollable components, which prevents us from using standard
+switched control synthesis methods.
+Control synthesis for switched systems has been extensively studied in the past years. One
+of the current major approaches is symbolic methods, which basically aim at representing the
+continuous and innite state-space of the system with a nite number of symbols, e.g.discrete
+points [11, 29], sets of states [21], etc. This type of approaches is particularly adapted for safety
+critical systems, since it exhaustively ensures that an interest set is safe. However, dealing with
+uncontrollable components in this setting is particularly dicult. One could cite robust approaches
+[12], distributed computations [22], or contract-based design [31], but they usually consider the
+
+--- Page 3 ---
+2 K. G. Larsen et al.
+adversary as a bounded perturbation. In the case of the cruise control case-study, considering the
+front car as a bounded perturbation would be overly conservative, the reachability computations
+would lead to extremely pessimistic sets, and thus inapplicable controllers. Moreover, the state-
+space to be considered in the cruise control example is too large to be handled by most symbolic
+methods, using a discretisation or tiling based approach would be computationally infeasible.
+The model of timed automata and games is particularly well suited for modelling the behaviour of
+the car. The tool Uppaal Tiga allows to compute strategies for such systems, but for computability
+reasons, requires integers in the guards of the models. Thereby, the dynamics of the system should be
+described using only integers. A naive way of doing so is to discretise the system, for example with a
+numerical scheme, properly scaled or approximated so that the discrete approximation is described
+with integers. This is the approach which was used in [18]. The problem of this approach is that the
+properties are guaranteed only at discrete times, which compromises the safety of the controlled
+system. This is illustrated in Figure 1, in which the true continuous distance can be compared to
+the integer approximation used in [18]. We clearly observe that the continuous distance between
+the cars goes below the integer approximation between two time steps. The safety property is not
+guaranteed in this case, since the cars could hit each other between two time steps.
+Fig. 1: The problem of using a discrete approximation for the dynamics as in [18]: the continuous
+distance ( rDistance ) can go below the integer approximation ( distance ) between the time steps.
+We present an approach based on the synthesis tool Uppaal Tiga , which allows to compute
+guaranteed safe strategies for timed game models of continuous dynamical systems. By merging safe
+reachability computations based on guaranteed numerical schemes, with state-of-the-art verication
+of timed automata and games, we extend the eld of application of both continuous reachability
+computations, and timed game verication tools. The guaranteed solution of ordinary dierential
+equations have been widely studied in the last decades. The main approaches rely on interval
+arithmetic, in the framework of Taylor series in [26, 27], and Runge-Kutta schemes in [4, 10, 3].
+In this paper, we choose to use a guaranteed Euler method, introduced in [20], because of its
+
+--- Page 4 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 3
+simplicity of implementation which allows its use directly in Uppaal Tiga , without using any
+external libraries.
+The principle of our approach is the following: instead of using a standard scheme or discretisa-
+tion for computing successor states in the timed game model, we use a guaranteed set-based Euler
+scheme. Since we use a set-based approach, we need to use lower and upper over-approximations,
+this allows us to keep the continuous state in a convex set. The set-based approach is implemented
+in functions which take integers as inputs, and return integers, thus ensuring that we keep the decid-
+ability results of the verication tool. Since set-based methods usually lead to growing sets within
+time, we develop a renement method for monotone systems in order to keep a tight approximation
+during long simulations. We then demonstrate the usability of the method by further exploring the
+safe strategies computed. In our case, we use a learning method implemented in the tool Uppaal
+Stratego [7] to optimise the controller while keeping the strategy safe.
+The paper is divided as follows. In Section 2, we present the synthesis tool Uppaal Tiga , its
+underlying limitations, and the gap to be lled in order to synthesize safety controllers for continous-
+time switched systems. We present a set-based reachability method for continuous systems based
+on the Euler method in Section 3. In Section 4, we combine the latter to functions that can be
+handled by the Uppaal framework, maintaining the associated decidability results and ensuring
+safety for the continuous system. We propose a renement method for monotone systems in Section
+5, allowing to tighten the reachability approximations. We further exploit the safe strategies in
+Section 6, in which we optimise the strategy with a learning algorithm. We conclude in Section 7.
+Problem statement
+We are interested in continuous-time switched systems described by the set of nonlinear ordinary
+dierential equations:
+_x=fj(x); (1)
+wherex2Rnis the state of the system, and j2Uis the mode of the system. The nite set
+U=f1;:::;Ngis the set of switching modes of the system. The functions fj:Rn !Rn, with
+j2U, are the vector elds describing the dynamics of each mode jof the system. The system can
+be in only one mode at a time. We focus on sampled switched systems: given a sampling period
+ >0, switchings will occur periodically at times , 2, . . .
+Fort2[0;), we denote by j(t;x0) the state reached by the system at time tfrom the initial
+conditionx0at timet0= 0 and under mode j2U. A controller is a function C:R+ !U,
+constant on the intervals [ k;(k+ 1)] withk2N, which associates to any time t2R+a switched
+modej2U. Given a controller C, we denote by C(t;x0) the state reached by the system at time
+t2R+from the initial condition x0and under controller C, i.e. the active mode at time t0tis
+C(t0). One should include the initial time t0= 0 in the notation: j(t;t0;x0), but in the remainder
+of this paper, we omit it for the sake of simplicity.
+We focus on synthesizing controllers for the class of system introduced, and we aim at ensuring
+safety properties. The safety properties we consider is dened as follows.
+Denition 1. Consider a switched system of the form (1). Consider a safety set S= [smin
+1;smax
+1]
+ [smin
+n;smax
+n]given as a box of Rn. Given a controller C, system (1)is said to be safe with
+respect toSif, for any initial condition x02Sand for all time t2R+, we have:
+C(t;x0)2S:
+
+--- Page 5 ---
+4 K. G. Larsen et al.
+Case study
+To illustrate our approach, we consider a cruise control application introduced in [18]. Two cars
+Egoand Front are driving on a road shown in Figure 2. We are capable of controlling Egobut not
+Front . Both cars can drive a maximum of 20 m/s forward and a maximum of 10 m/s backwards.
+The cars have three dierent possible accelerations: -2m/s2, 0 m/s2and 2m/s2, between which they
+can switch instantly. For the cars to be safe, there should be a distance of at least 5 m between
+them. Any distance less than 5 m between the cars is considered unsafe. Ego's sensors can detect
+the position of Front only within 200 meters. If the distance between the cars is more than 200
+meters, then Front is considered to be far away .Front can reenter the scope of Ego's sensor with
+arbitrary velocity as it desires, as long as the velocity is smaller or equal to that of Ego.
+Fig. 2: Distance, velocity and acceleration between two cars [18].
+In this example, the aim is to synthesize a strategy for controllable car Egosuch that it always
+stays far enough from uncontrollable car Front . The continuous dynamics of the resulting system
+is as follows:
+_vf=af (2)
+_ve=ae (3)
+_d=vf ve (4)
+whereafandaecan take the values  2, 0, and 2, resulting in an 8-mode switched system of the
+form (1). The safety set to consider is thus S= [ 10;20][ 10;20][5;200]. We suppose that the
+switching period of the system is = 1. Note that the dynamics of this system is linear, therefore,
+given a controller C, we can analytically compute the exact trajectory of the system.
+2 From continuous switched systems to stochastic priced timed games
+2.1 Modeling of the system
+We model the system as a timed game in Uppaal Tiga , later, in Section 6 we annotate the model
+with continuous behaviour and probabilities in Uppaal Stratego [7] to be able to do performance
+optimisation. The system has two players, Egoand Front , with two dierent behaviors. We use an
+already existing model for these players, and we refer the reader to [18] for more information on
+this model. We see the two players in Figures 4 and 5. We see that these two do not do anything
+except when they get a synchronisation call chooseEgo respectively chooseFront . In Figure 3 we
+see a system component which waits one time unit and then sends the two signals. The fact that
+the controller only makes choices once every time unit means the system is a switched system as
+dened above.
+
+--- Page 6 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 5
+Fig. 3: Model of the system component.
+Fig. 4: Model of Ego.
+Fig. 5: Model of Front .
+
+--- Page 7 ---
+6 K. G. Larsen et al.
+In Figure 3 we see that once every time unit we call updateDiscrete() . This function can
+be seen in Appendix A. A remaining question is the computation of function updateDiscrete() ,
+which, given the current state of system (1) at time t, returns the successor state at time t+.
+Using a proper scaling of the system, we can approximate system (1) by a discrete-time discrete-
+state system, where the state and time is described with integers. The approximate discrete system
+can be written
+x(t+) =Fj(x(t)); (5)
+wherex2Nnis the state, t2N(with= 1) andFj(x(t)) =x(t) +R
+0fj(x(t))dt.
+2.2 Synthesis using Uppaal Tiga
+As shown above, we model the system using only integers, and as shown in Figure 1 this is not
+always safe as the continuous trajectory is not taken into account between discrete points. In
+Section 3 we introduce a method for calculating a tube in the state space, which we can guarantee
+the system will stay in. In the Uppaal model we update the updateDiscrete() (see Appendix A)
+function to do the computation of this tube. We add the bounds of the tube to the state space
+in the form of arrays (vectors) containing the lower and upper guaranteed integer approximations.
+The function internally uses doubles. Generally, if real numbered variables (which are not clocks)
+are used, synthesis of strategies in timed games is undecidable. However, the doubles are only used
+in the calculation of the transition and the result of the function is integers1. This means the state
+space only contains integers, and as the model guarantees bounds on these integers the synthesis is
+possible.
+As we now have guaranteed lower and upper bounds for the continuous state, we can ask Uppaal
+Tiga to synthesize a strategy which ensures that the guaranteed lower and upper bounds always
+stay in the safety set S. It is clear that this is a conservative approach and if the guaranteed bounds
+are not reasonably tight, it might not be possible to synthesize a strategy. We will see in Section 5
+how to tighten these bounds and in Section 6 we will explore the generated strategy using Uppaal
+Stratego .
+3 Reachability tubes using the Euler method
+3.1 Lipschitz and one-sided Lipschitz condition
+We make the following hypothesis:
+(H0) For all j2U,fjis a locally Lipschitz continuous map on S:
+We recall the denition of locally Lipschitz:
+Denition 2. A function f:ARn !Rmislocally Lipschitz atx02Aif there exist constants
+>0andM > 0such that
+kx x0k<!kf(x) f(x0)kMkx x0k
+1The method described actually calculates a box which is specied using reals, we then round these to
+obtain integers to make it possible to do the synthesis.
+
+--- Page 8 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 7
+As in [13], we make the assumption that the vector eld fjis such that the solutions of the
+dierential equation (1) are dened, e.g. by assuming that the support of the vector eld fjis
+compact.
+We denote by Ta compact overapproximation of the image by jofSfor 0tandj2U,
+i.e.Tis such that
+Tfj(t;x0)jj2U;0t;x 02Sg:
+The existence of Tis guaranteed by assumption ( H0) and the compactness of S. We know fur-
+thermore by ( H0), Denition 2 and the compactness of the support of fjthat, for all j2U, there
+exists a constant Lj>0 such that:
+kfj(y) fj(x)kLjky xk 8x;y2S: (6)
+Let us dene Cjfor allj2U:
+Cj= sup
+x2SLjkfj(x)kfor allj2U: (7)
+We make the additional hypothesis that the mappings fjareone-sided Lipschitz (OSL) [8].
+Formally:
+(H1) For all j2U, there exists a constant j2Rsuch that
+hfj(y) fj(x);y xijky xk28x;y2T; (8)
+whereh;idenotes the scalar product of two vectors of Rn. Constant j2Ris called one-sided
+Lipschitz (OSL) constant, and can also be found in the literature as Dahlquist's constant [32]. Note
+that in practice, hypotheses H0 and H1 are not strong. Hypothesis H0 just ensures the existence of
+solutions for the system, and constants Ljandjcan always be found if the state of the system
+stays in a compact set (e.g. the set T).
+Computation of constants j,LjandCjIn the general case, computation of constants Lj,Cj,j
+(j2U) can be realised with constrained optimisation algorithms such as the \sqp" algorithm of
+Octave, applied on the following optimisation problems:
+{ConstantLj:
+Lj= max
+x;y2S; x6=ykfj(y) fj(x)k
+ky xk
+{ConstantCj:
+Cj= max
+x2SLjkfj(x)k
+{Constantj:
+j= max
+x;y2T; x6=yhfj(y) fj(x);y xi
+ky xk2
+We could point out that such algorithms do not guarantee that an underapproximation of the
+constants is computed. However, some works have been done for computing over and under approx-
+imation of Lipschitz constants in [28], and could be used here. This approach can be extended to
+the OSL constant. Yet, for linear systems, constants Lj,Cj,j(j2U) can be computed exactly,
+such as in [19], and we use this approach for the cruise control example.
+
+--- Page 9 ---
+8 K. G. Larsen et al.
+3.2 Euler approximate solutions
+Having dened OSL conditions, we now present the method introduced in [20], allowing to compute
+reachability sets and tubes, relying on the Euler method. The introduction of OSL conditions actu-
+ally allows to establish a new global error bound, permitting the computation of overapproximation
+of reachability sets and tubes, precise enough to be used for control synthesis. In the remainder
+of this section, we consider, without loss of generality, that t0= 0, and omit its notation in the
+trajectoryj.
+Given an initial point ~ x02Sand a mode j2U, we dene the following \linear approximate
+solution" ~j(t; ~x0) forton [0;] by:
+~j(t; ~x0) = ~x0+tfj(~x0): (9)
+Note that formula (9) is nothing else but the explicit forward Euler scheme with \time step" t. It is
+thus a consistent approximation of order 1 in tof the exact trajectory of (1) under the hypothesis
+~x0=x0.
+We dene the closed ball of center x2Rnand radius r > 0, denoted B(x;r), as the set
+fx02Rnjkx0 xkrg.
+Given a positive real , we now dene the expression j(t) which, as we will see in Theorem 1,
+represents (an upper bound on) the error associated to ~j(t; ~x0) (i.e.k~j(t; ~x0) j(t;x0)k).
+Denition 3. Let us consider a switched system verifying hypotheses (H0) and (H1), associated to
+constantsj,LjandCjfor each mode j2U, such that equations (6),(7)and(8)hold. Letbe
+a positive constant. We dene, for all 0t, functionj(;t)as follows:
+{ifj<0:
+j(;t) = 
+2ejt+C2
+j
+2
+j 
+t2+2t
+j+2
+2
+j 
+1 ejt!! 1
+2
+{ifj= 0 :
+j(;t) = 
+2et+C2
+j( t2 2t+ 2(et 1))1
+2
+{ifj>0 :
+j(;t) = 
+2e3jt+C2
+j
+32
+j 
+ t2 2t
+3j+2
+92
+j 
+e3jt 1!! 1
+2
+Note thatj(;t) =fort= 0.
+Theorem 1. Given a sampled switched system satisfying (H0-H1), consider a point ~x0and a pos-
+itive real. We have, for all x02B(~x0;),t2[0;]andj2U:
+j(t;x0)2B(~j(t; ~x0);j(;t)).
+See proof in [20]
+Remark 1. In Theorem 1, we have supposed that the step size hused in Euler's method was equal
+to the sampling period of the switching system. Actually, in order to have better approximations,
+it is sometimes convenient to consider a uniform subdivision of [0 ;] and apply the Euler's method
+for a time step hequal to e.g. h=
+k, wherek2Nis the number of sub-steps used in the interval
+[0;].
+
+--- Page 10 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 9
+Corollary 1. Given a sampled switched system satisfying (H0-H1), consider a point ~x02S, a real
+>0and a mode j2Usuch that:
+1.B(~x0;)S,
+2.B(~j(; ~x0);j(;))S, and
+3.@2j(;t)
+@t2>0for allt2[0;].
+Then we have, for all x02B(~x0;)andt2[0;]:j(t;x0)2S.
+Proof. By items 1 and 2, B(~j(t; ~x0);j(;t))Sfort= 0 andt=. Sincej(;) is convex
+on [0;] by item 3, and Sis convex, we have B(~j(t; ~x0);j(;t))Sfor allt2[0;]. It follows
+from Theorem 1 that j(t;x0)2B(~j(t; ~x0);j(;t))Sfor all 0t.
+Note that condition 3 of Corollary 1 on the convexity of j(;) on [0;] can be established again
+using an optimisation function. Since we have an exact expression for j(), its second derivative
+(w.r.t. time) can be computed using a computer algebra software. Using an optimisation algorithm
+then allows to verify that its minimum is positive. Nevertheless, we believe that the convexity of
+j(;) with respect to time could be shown analytically. For the remainder of this paper, we state
+this condition as a hypothesis:
+(H2) For all j2U,>0,@2j(;t)
+@t2>0 for allt2[0;]:
+4 Guaranteed synthesis using the Euler method
+Before stating the main result of this section, let us extend the denitions of the oor and ceiling
+functions to the n-dimensional setting as follows:
+Denition 4. Letx= (x1;:::;xn)>2Rn. The oor function maps a vector x2Rnto a vector
+ofZn, denoted bybxc, with the following coecients:
+bxc= (maxfm2Zjmx1g;:::; maxfm2Zjmxng)>(10)
+Similarly, the ceiling function maps a vector x2Rnto a vector of Zn, denoted bydxe, with the
+following coecients:
+dxe= (minfm2Zjmx1g;:::; minfm2Zjxnmg)>(11)
+In the following, we denote by 1the vector of Rnwhich coecients are all one. We also consider
+the ordering of Rnwith the relation dened as follows, for two vectors x= (x1;:::;xn)>2Rn
+andy= (y1;:::;yn)>2Rn:
+xyif and only if xiyi8i= 1;:::;n: (12)
+We now introduce the main functions allowing to compute safe approximations of the state of the
+continuous system using integers:
+
+--- Page 11 ---
+10 K. G. Larsen et al.
+Denition 5. Letj2Ube the active mode for the time interval [t;t+]. Consider a given initial
+conditionx02Sand initial radius 0>0, leth==k be the step size of the Euler method, kthus
+being the number of time steps used for the interval. For i2f0;:::;kg, we dene the sequence of
+radiuses of the Euler method as follows:
+j
+0=0 (13)
+j
+i+1=j(j
+i;h) (14)
+Similarly, we dene the sequence of points computed by the Euler method as:
+xj
+0=x0 (15)
+xj
+i+1=~j(h;xj
+i) =xj
+i+hfj(xj
+i) (16)
+We dene the integer under-approximation function Hk
+j(x0;0)over time time interval [t;t+]
+as follows:
+Hk
+j(x0;0) = min
+i2f0;:::;k +1gbxj
+i j
+i1c (17)
+We dene the low integer successor state function hk
+j(x0;0)as follows:
+hk
+j(x0;0) =bxj
+k+1 j
+k+11c (18)
+Similarly, we dene the integer over-approximation function Gk
+j(x0;0)over time time interval
+[t;t+]as follows:
+Gk
+j(x0;0) = max
+i2f0;:::;k +1gdxj
+i+j
+i1e (19)
+We dene the high integer successor state function gk
+j(x0;0)as follows:
+gk
+j(x0;0) =dxj
+k+1+j
+k+11e (20)
+Theorem 2. Suppose that system (1)satises (H0), (H1), (H2). Consider a given initial condition
+x02Sand initial radius 0>0, leth==k be the step size of the Euler method, kthus being
+the number of time steps used for the interval. Functions HandGreturn safe integer under and
+over-approximations of the continuous state of system (1)on the time interval [t;t+], for initial
+conditions in ball B(x0;0)at timet.I.e., for any initial condition x2B(x0;0)Sat initial
+timet, for all mode j2Uand anyk2N>0, we have:
+Hk
+j(x0;0)2S^Gk
+j(x0;0)2S)j(t0;x)2S8t02[t;t+]: (21)
+IfHk
+j(x0;0)2S^Gk
+j(x0;0)2Sholds, we furthermore have:
+Hk
+j(x0;0)j(t0;x)Gk
+j(x0;0);8t02[t;t+]: (22)
+Proof. The proof relies on Corollary 1. Because of the convexity with respect to time of function
+(;), it is sucient to verify that a reachability tube stays inside safety set Sonly by verifying
+that ballsB(xi
+0;i
+0) belong to Sat each discrete instant t+i
+kwithi= 0;:::;k + 1. Functions H
+andGreturn integer vectors which bound the Euler tubes on the whole time interval [ t;t+], thus
+containing all the possible trajectories issued from B(x0;0).
+
+--- Page 12 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 11
+Theorem 2 allows to compute under and over-approximations of the minimum and maximum
+integer visited by the system on a given time-interval. If it allows to ensure safety properties, one
+also needs an accurate way of computing the successor state. The following corollary gives a general
+way to compute this successor state:
+Corollary 2. Suppose that system (1)satises (H0), (H1) and (H2). Consider a given initial
+conditionx02Sand initial radius 0>0, leth==k be the step size of the Euler method,
+kthus being the number of time steps used for the interval. We have, for any initial condition
+x2B(x0;0)Sat initial time t, for all mode j2Uand anyk2N>0:
+Hk
+j(x0;0)2S^Gk
+j(x0;0)2S)hk
+j(x0;0)j(t+;x)gk
+j(x0;0) (23)
+The main result allowing to compute safety controllers is the following:
+Theorem 3. Consider system (1)satisfying (H0), (H1) and (H2), and an initial condition x02S
+at time 0.
+{Ifx0is an integer, let x0
+0=x0
+{Ohterwise, let x0
+0=bx0c+dx0e
+2
+Leth==kbe the step size of the Euler method with k2N>0. Given a controller C, let us compute
+iteratively two sequences of integer states as follows:
+ymin
+0=bx0
+0catt= 0
+ymax
+0=dx0
+0eatt= 0
+and
+ymin
+i+1=hk
+C(i)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)att= (i+ 1)
+ymax
+i+1=gk
+C(i)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)att= (i+ 1)
+If controller Cveries, for all t=iwithi2N:
+Hk
+C(t)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)2S^Gk
+C(t)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)2S; (24)
+then system (1)is safe with respect to S.
+Proof. The main idea of Theorem 3 is that we compute two sequences of integers which bound the
+continuous trajectory at discrete times, and functions HandGguarantee the correctness between
+discrete times. Corollary 1 guarantees that the sequences ymin
+iandymax
+ido bound the continuous
+trajectory, since they are built as the bounds of the Euler tubes, but made wider using only integers.
+Theorem 2 then ensures that HandGbound the continuous trajectory between the time steps. If,
+for a controller C, they return values always belonging to S, we know that the controlled continuous
+trajectory stays inside S.
+
+--- Page 13 ---
+12 K. G. Larsen et al.
+Note that functions HandGtake integers as inputs (the sequences ymin
+iandymax
+i), and return
+integers. Thus, functions HandGcan be implemented in Uppaal and used for computing guards
+in the time automata models, and the decidability results still hold, which ensures the termination
+of the computations. Due to the lack of space, we do not present how the strategy synthesis engine
+ofUppaal Tiga works, and we refer the reader to [2]. In a nutshell, one has to exhaustively
+explore all the possible transitions, and eliminate the controllable actions leading to unsafe states.
+With the above theorem, we eliminate a transition as soon as (24) does not hold. Theorem 3
+thus gives a general way of computing safety controllers for any system satisfying (H0)-(H1)-(H2),
+which are weak hypotheses. However, the accuracy of the Euler method can lack on some systems,
+particularly when looking far in the future, which leads us to the development of the renement
+technique presented in the following section.
+5 Renement for monotone systems
+The monotonicity property has been widely used in symbolic methods and control synthesis [25, 1].
+The monotonicity property can be expressed using an ordering of the state, of the input, or of a
+perturbation. In our case, we only need to consider the state ordering, or, more precisely, that each
+mode of the switched system is monotone with respect to the state. The monotonicity property is
+then expressed as follows:
+Denition 6 (Monotonicity). System (1)is monotone with respect to ordering if the following
+implication holds for all j2U:
+x0x0
+0)8t>0;j(t;x0)j(t;x0
+0) (25)
+We refer the reader to [25, 24, 16] for more information on monotone control systems and applications
+of the monotonicity property. If system (1) is monotone, we can rene Theorem 3 by computing
+more accurate sequences of integer points as follows:
+Corollary 3. Consider system (1)satisfying (H0), (H1), (H2) and the monotonicity property.
+Consider an initial condition x02Sat time 0.
+{Ifx0is an integer, let x0
+0=x0
+{Ohterwise, let x0
+0=bx0c+dx0e
+2
+Leth==kbe the step size of the Euler method with k2N>0. Given a controller C, let us compute
+iteratively two sequences of integer states as follows:
+ymin
+0=bx0
+0catt= 0
+ymax
+0=dx0
+0eatt= 0
+and
+ymin
+i+1=bC(i)(;ymin
+i)catt= (i+ 1)
+ymax
+i+1=dC(i)(;ymax
+i)eatt= (i+ 1)
+
+--- Page 14 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 13
+If controller Cveries, for all t=iwithi2N:
+Hk
+C(t)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)2S^Gk
+C(t)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)2S; (26)
+then system (1)is safe with respect to S.
+Proof. Let us consider a controller C. We rst show by induction on i2Nthat for any initial
+conditionx02Swe have:ymin
+iC(i;x0)ymax
+i. This is trivially true for i= 0 (bx0
+0cx0
+dx0
+0e). If this is true for i2N, then, from the monotonicity hypothesis with respect to ordering ,
+we have:
+C(i)(;ymin
+i)C(i)(;C(i;x0))C(i)(;ymax
+i)
+i.e.:
+bC(i)(;ymin
+i)cC((i+ 1);x0)dC(i)(;ymax
+i)e
+ymin
+i+1C((i+ 1);x0)ymax
+i+1
+which proves the induction. Thus, at every discrete time t=i, we have:
+C(i;x0)2B(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2):
+This allows us to apply Theorem 2 on each interval [ i;(i+1)]: under hypotheses (H0), (H1), (H2),
+for any step size h==kof the Euler method, if controller Cveries, for all t=iwithi2N:
+Hk
+C(t)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)2S^Gk
+C(t)(ymax
+i+ymin
+i
+2;ymax
+i ymin
+i
+2)2S; (27)
+then any (continuous) trajectory issued from B(ymax
+i +ymin
+i
+2;ymax
+i ymin
+i
+2) is safe with respect to S
+in the time interval [ i;(i+ 1)]. SinceC(i;x0) does belong to B(ymax
+i +ymin
+i
+2;ymax
+i ymin
+i
+2), we
+conclude that C(t;x0)2Sfor allt2[i;(i+ 1)], which is true for all i2N.
+Corollary 3 uses the fact that we can use tighter integer bounds than those used in Theorem 3
+when computing the integer sequences. Indeed, in Theorem 3, the sequences ymin
+iandymax
+i are
+computed from the Euler tubes, which are quite pessimistic approximations of the trajectories. The
+sequences computed here do bound the trajectories of the continuous system at discrete instants
+because of the monotonicity property, but are this time computed from the exact solution.
+Note that Corollary 3 requires the computation of the exact solution C(;). If the system
+considered is subject to a linear dynamics, such as the cruise control example, the exact solution
+can be computed analytically. In other cases, an accurate numerical method can be used, such as
+a Runge-Kutta integration scheme with appropriate (ne) time-stepping. One could think about
+computing functions HandGusing a similar ne-stepped numerical method, but it would require
+much more tests for each simulation step, or some numerically expensive optimisation methods,
+making it irrelevant in terms of computation times.
+A simulation of a safe strategy computed with the renement method2is given in Figure 6. We
+observe a good accuracy of the integer bounds, the induced controller is thus not overly conservative.
+2In order to obtain a monotone system from the cruise control model, simply right (3) as  _ve= aein
+order to have an addition in (4) which will indeed verify the monotonicity hypothesis.
+
+--- Page 15 ---
+14 K. G. Larsen et al.
+It illustrates that the renement method keeps the approximations very close to the exact solution.
+Note that without the renement method, it is be possible to obtain such accurate results if the
+OSL constants are negative. Indeed, when an OSL constant is negative, it is possible to choose
+a time step small enough to make the radius of the approximations decrease. This is due to the
+fact that a system with negative OSL constant presents trajectories getting exponentially closer
+together within time, and this behaviour can be captured with a time step small enough [19].
+Fig. 6: Simulation of the real distance (red) and the guaranteed lower and integer distance (green
+and blue respectively) within time, using the renement procedure.
+6 Exploration of the Guaranteed Safe Strategy
+We showed above how we can compute a guaranteed safe strategy for our system. We can now
+useUppaal Stratego to explore this new strategy and compare it with the discrete strategy
+computed in [18].
+6.1 Model checking under the new guarenteed strategy
+Using Uppaal 's model checker [5] we can explore which distances are possible at dierent relative
+velocities between the two cars, in Figure 7 we see a plot of the dierent minimum possible distances
+of the two cars at dierent relative velocities, one for the strategy computed in [18] and one for the
+guaranteed safe strategy. We see that the two strategies are very similar, but the guaranteed safe
+strategy is slightly more conservative than the old non-safe strategy.
+6.2 Optimisation
+Uppaal Stratego also enables us to optimise the safe strategies using a learning algorithm, with
+the aim of minimising a given cost ( e.g.fuel consumption, relative distance between the cars).
+In a given state, the safe strategy enables dierent (safe) transitions for Egos, but some of them
+
+--- Page 16 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 15
+ 0 20 40 60 80 100 120 140
+-20 -10  0  10  20  30inﬁmum: distance
+v=(velocityFront - velocityEgo)model
+Quadratic regression
+Qubic regression
+(a) Strategy computed in [18]. Figure from [18].
+ 0 20 40 60 80 100 120 140
+-20 -10  0  10  20  30inﬁmum: distance
+v=(velocityFront - velocityEgo)model
+Quadratic regression
+Qubic regression (b) Safe and guaranteed strategy.
+Fig. 7: Smallest achievable distance under the (guaranteed) safe strategy as a function of the relative
+velocity of the two cars.
+might lead to a better cost. Reinforcement-learning techniques are used to create a sequence of
+safe strategies converging to an optimal one (minimising the cost). Despite the lack of theoretical
+guarantees on the speed of convergence to optimum, a near-optimal strategy is typically obtained
+after a few iterations. We refer the reader to [7, 6] for more information on the tool and the learning
+techniques used. This learning algorithm supports the use of continuous information. To use this
+algorithm we annotate the model with the continuous information using dierential equations as
+seen in Figure 8.
+Fig. 8: The monitor component denes a set of dierential equation over real variables, these vari-
+ables can then be used by the learning algorithm.
+The learning algorithm also requires us to annotate the choices of Front with probabilities, in
+this case we assume that Front always chooses the acceleration and any other choice from a uniform
+distribution.
+The measure we wish to optimise is the accumulated distance, we use the continuous variable D
+dened using the dierential equation D' == rDistance , as seen Figure 8. Our goal is to minimize
+this measure, which means to minimize the distance between the two cars. Clearly, just minimising
+the distance between the cars would lead to the cars crashing, so what we do is to constrain
+Egos allowed actions to only those which are safe according to the strategy computed above. In
+Figure 9 we see ten simulations under respectively the optimised strategy from [18] and the optimised
+guaranteed safe strategy. Again, we see that the guaranteed strategy is slightly more conservative
+as it was not possible for the learning algorithm to optimise as well as it did in [18].
+
+--- Page 17 ---
+16 K. G. Larsen et al.
+(a) Optimised strategy computed in [18]. Figure
+from [18].
+(b) Optimised safe and guaranteed strategy.
+Fig. 9: Distance over time for 10 simulations under the two dierent optimised strategies.
+7 Conclusion
+In this paper, we presented a guaranteed approach for the synthesis of control strategies for
+continuous-time sampled switched systems. Our approach relies on the tool Uppaal Tiga , which
+eld of application can be extended with the use of guaranteed numerical schemes. This approach is
+made eective by enforcing the numerical scheme to bound the continuous trajectory using integers.
+We developed a renement method for monotonic systems which allows to use a guaranteed Euler
+scheme even when the error grows rapidly.
+We illustrated that once a safe strategy in computed, the strategy can be rened with further
+developments such as optimisation using learning algorithms. This showed that the safe strategy
+is, as expected, more conservative than the approach previously used, but does not over-constrain
+the system, leaving room for further optimisations. The safe strategies we compute thus constitute
+a sound basis for more specic computations.
+We plan on testing this approach on more case studies, and implementing all the presented
+methods in the core of Uppaal 's analytical methods, which does not currently support continuous
+dynamical systems. In this work, we did not explore time dependent specications, for example with
+a moving safety set, or an obstacle to avoid, but this approach could handle this kind of specications
+thanks to the timed game framework. This is a noticeable improvement from standard symbolic
+control synthesis methods which should be explored.
+Another issue which could be raised is the synchronisation of the players. In a real cruise control
+application, we cannot guarantee that the two players choose their acceleration at the same time.
+We plan on developing a time robust Euler scheme, which would guarantee that if the switch does
+not occur simultaneously, safety is still ensured. Note that this issue has already been studied in
+the literature in dierent frameworks, an interested reader might refer to [14, 15].
+Acknowledgements
+This work is supported by the LASSO project nanced by an ERC adv. grant; the DiCyPS project
+funded by Innovation Fund Denmark; and the Eurostars project Reachi.
+
+--- Page 18 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 17
+References
+1. David Angeli and Eduardo D Sontag. Monotone control systems. IEEE Transactions on automatic
+control , 48(10):1684{1698, 2003.
+2. Gerd Behrmann, Agnes Cougnard, Alexandre David, Emmanuel Fleury, Kim G Larsen, and Didier
+Lime. Uppaal-tiga: Time for playing games! In International Conference on Computer Aided Verica-
+tion, pages 121{125. Springer, 2007.
+3. Olivier Bouissou, Alexandre Chapoutot, and Adel Djoudi. Enclosing temporal evolution of dynamical
+systems using numerical methods. In NASA Formal Methods , number 7871 in LNCS, pages 108{123.
+Springer, 2013.
+4. Olivier Bouissou and Matthieu Martel. GRKLib: a Guaranteed Runge Kutta Library. In Scientic
+Computing, Computer Arithmetic and Validated Numerics , 2006.
+5. Alexandre David, Huixing Fang, Kim Guldstrand Larsen, and Zhengkui Zhang. Verication and per-
+formance evaluation of timed game strategies. In International Conference on Formal Modeling and
+Analysis of Timed Systems , pages 100{114. Springer, 2014.
+6. Alexandre David, Peter G. Jensen, Kim Guldstrand Larsen, Axel Legay, Didier Lime, Mathias Grund
+Srensen, and Jakob H. Taankvist. On time with minimal expected cost! In ATVA 2014 , 2014.
+7. Alexandre David, Peter Gjl Jensen, Kim Guldstrand Larsen, Marius Miku cionis, and Jakob Haahr
+Taankvist. Uppaal stratego. In Christel Baier and Cesare Tinelli, editors, Tools and Algorithms for
+the Construction and Analysis of Systems , pages 206{211, Berlin, Heidelberg, 2015. Springer Berlin
+Heidelberg.
+8. Tzanko Donchev and Elza Farkhi. Stability and euler approximation of one-sided lipschitz dierential
+inclusions. SIAM J. Control Optim. , 36(2):780{796, 1998.
+9. Laurent Fribourg and Romain Soulat. Control of Switching Systems by Invariance Analysis: Applcation
+to Power Electronics . John Wiley & Sons, 2013.
+10. Karol Gajda, Ma lgorzata Jankowska, Andrzej Marciniak, and Barbara Szyszka. A survey of interval
+Runge{Kutta and multistep methods for solving the initial value problem. In Parallel Processing and
+Applied Mathematics , volume 4967 of LNCS , pages 1361{1371. Springer Berlin Heidelberg, 2008.
+11. Antoine Girard. Controller synthesis for safety and reachability via approximate bisimulation. Auto-
+matica , 48(5):947{953, 2012.
+12. Antoine Girard and Samuel Martin. Synthesis for constrained nonlinear systems using hybridization
+and robust controllers on simplices. IEEE Transactions on Automatic Control , 57(4):1046{1051, 2012.
+13. Antoine Girard, Giordano Pola, and Paulo Tabuada. Approximately bisimilar symbolic models for
+incrementally stable switched systems. IEEE Transactions on Automatic Control , 55(1):116{126, 2010.
+14. Zohra Kader, Antoine Girard, and Adnane Saoud. Symbolic models for incrementally stable switched
+systems with aperiodic time sampling? 2018.
+15. Kengo Kido, Sean Sedwards, and Ichiro Hasuo. Bounding errors due to switching delays in incrementally
+stable switched systems. IFAC-PapersOnLine , 51(16):247{252, 2018.
+16. Eric S Kim, Murat Arcak, and Sanjit A Seshia. Symbolic control design for monotone systems with
+directed specications. Automatica , 83:10{19, 2017.
+17. Kim G Larsen, Marius Miku cionis, Marco Muniz, Ji r  Srba, and Jakob Haahr Taankvist. Online and
+compositional learning of controllers with application to oor heating. In International Conference on
+Tools and Algorithms for the Construction and Analysis of Systems , pages 244{259. Springer, 2016.
+18. Kim Guldstrand Larsen, Marius Miku cionis, and Jakob Haahr Taankvist. Safe and optimal adaptive
+cruise control. In Correct System Design , pages 260{277. Springer, 2015.
+19. Adrien Le Co ent. Guaranteed control synthesis for switched space-time dynamical systems . Theses,
+Universit e Paris Saclay, October 2017.
+20. Adrien Le Co ent, Florian De Vuyst, Ludovic Chamoin, and Laurent Fribourg. Control synthesis of
+nonlinear sampled switched systems using euler's method. In Erika Abrah am and Sergiy Bogomolov,
+editors, Proceedings 3rd International Workshop on Symbolic and Numerical Methods for Reachabil-
+ity Analysis, Uppsala, Sweden, 22nd April 2017, volume 247 of Electronic Proceedings in Theoretical
+Computer Science , pages 18{33. Open Publishing Association, 2017.
+
+--- Page 19 ---
+18 K. G. Larsen et al.
+21. Adrien Le Co ent, Julien Alexandre dit Sandretto, Alexandre Chapoutot, and Laurent Fribourg. An
+improved algorithm for the control synthesis of nonlinear sampled switched systems. Formal Methods
+in System Design , pages 1{21, 2017.
+22. Adrien Le Co ent, Laurent Fribourg, Nicolas Markey, Florian De Vuyst, and Ludovic Chamoin. Com-
+positional synthesis of state-dependent switching control. Theoretical Computer Science , 2018.
+23. Hai Lin and Panos J Antsaklis. Stability and stabilizability of switched linear systems: a survey of
+recent results. IEEE Transactions on Automatic control , 54(2):308{322, 2009.
+24. Pierre-Jean Meyer, Antoine Girard, and Emmanuel Witrant. Safety control with performance guar-
+antees of cooperative systems using compositional abstractions. IFAC-PapersOnLine , 48(27):317{322,
+2015.
+25. Pierre-Jean Meyer, Antoine Girard, and Emmanuel Witrant. Robust controlled invariance for monotone
+systems: application to ventilation regulation in buildings. Automatica , 70:14{20, 2016.
+26. Ramon Moore. Interval Analysis . Prentice Hall, 1966.
+27. Nedialko S. Nedialkov, Kenneth Jackson R., and Georges F. Corliss. Validated solutions of initial value
+problems for ordinary dierential equations. Appl. Math. and Comp. , 105(1):21 { 68, 1999.
+28. J anos D Pint er. Global optimization in action: continuous and Lipschitz optimization: algorithms,
+implementations and applications , volume 6. Springer Science & Business Media, 2013.
+29. Matthias Rungger and Majid Zamani. Scots: A tool for the synthesis of symbolic controllers. In
+Proceedings of the 19th International Conference on Hybrid Systems: Computation and Control , pages
+99{104. ACM, 2016.
+30. Adnane Saoud, Antoine Girard, and Laurent Fribourg. Contract based design of symbolic controllers for
+vehicle platooning. In Proceedings of the 21st International Conference on Hybrid Systems: Computation
+and Control (part of CPS Week) , pages 277{278. ACM, 2018.
+31. Adnane Saoud, Antoine Girard, and Laurent Fribourg. On the composition of discrete and continuous-
+time assume-guarantee contracts for invariance. 2018.
+32. Gustaf S oderlind. On nonlinear dierence and dierential equations. BIT Numerical Mathematics ,
+24(4):667{680, 1984.
+
+--- Page 20 ---
+Guaranteed control synthesis for continuous systems in Uppaal Tiga 19
+AUppaal functions
+void updateDiscrete ( ) f
+velo cityEgo gua evol [ 0 ] = v elocity Ego gua evol [ 0 ] + accelerationEgo ;
+velo cityEgo gua evol [ 1 ] = v elocity Ego gua evol [ 1 ] + accelerationEgo ;
+v e l o c i t y F r o n t g u a e v o l [ 0 ] = v e l o c i t y F r o n t g u a e v o l [ 0 ] + a c c e l e r a t i o n F r o n t
+;
+v e l o c i t y F r o n t g u a e v o l [ 1 ] = v e l o c i t y F r o n t g u a e v o l [ 1 ] + a c c e l e r a t i o n F r o n t
+;
+i f ( d i s t a n c e g u a e v o l [ 0 ] >maxSensorDistance ) f
+d i s t a n c e g u a e v o l [ 0 ] = maxSensorDistance + 1 ;
+d i s t a n c e g u a e v o l [ 1 ] = maxSensorDistance + 1 ;
+ge l s ef
+e u l e r D i s c r e t e ( ) ;
+d i s t a n c e g u a e v o l [ 0 ] = d i s t a n c e g u a e v o l [ 0 ] + ( v e l o c i t y F r o n t g u a e v o l
+[ 0 ] - a c c e l e r a t i o n F r o n t ) - ( velo cityEgo gua evol [ 0 ] - accelerationEgo ) + (
+a c c e l e r a t i o n F r o n t - accelerationEgo ) /2;
+d i s t a n c e g u a e v o l [ 1 ] = d i s t a n c e g u a e v o l [ 1 ] + ( v e l o c i t y F r o n t g u a e v o l
+[ 0 ] - a c c e l e r a t i o n F r o n t ) - ( velo cityEgo gua evol [ 0 ] - accelerationEgo ) + (
+a c c e l e r a t i o n F r o n t - accelerationEgo ) /2;
+i f ( d i s t a n c e g u a e v o l [ 1 ] >maxSensorDistance ) f
+d i s t a n c e g u a e v o l [ 1 ] = maxSensorDistance + 1 ;
+g
+g
+g
+Listing 1.1: The function updating the discrete variables.
+void e u l e r D i s c r e t e ( ) f
+// double velEgo , velFront ,
+double dist , velEgo , velFront , d e lt a ;
+double memdist min , memdist max , memVF min, memVF max, memVE min,
+memVE max;
+i n t i ;
+d i s t = ( d i s t a n c e g u a e v o l [0]+ d i s t a n c e g u a e v o l [ 1 ] ) /2;
+velFront = ( v e l o c i t y F r o n t g u a e v o l [0]+ v e l o c i t y F r o n t g u a e v o l [ 1 ] ) /2;
+velEgo = ( vel ocityEg o gua evol [0]+ velo cityEgo gua evol [ 1 ] ) /2;
+d el t a = s q r t ( ( d i s t a n c e g u a e v o l [ 1 ] - d i s t a n c e g u a e v o l [ 0 ] )(
+d i s t a n c e g u a e v o l [ 1 ] - d i s t a n c e g u a e v o l [ 0 ] ) /4 + ( v e l o c i t y F r o n t g u a e v o l
+[ 1 ] - v e l o c i t y F r o n t g u a e v o l [ 0 ] )( v e l o c i t y F r o n t g u a e v o l [ 1 ] -
+v e l o c i t y F r o n t g u a e v o l [ 0 ] ) /4 + ( velocit yEgo gua evol [ 1 ] -
+velo cityEgo gua evol [ 0 ] )( veloci tyEgo gua evol [ 1 ] - velo cityEgo gua evol
+[ 0 ] ) /4) ;
+
+--- Page 21 ---
+20 K. G. Larsen et al.
+memdist min = d i s t - d el t a ;
+memdist max = d i s t + d e lt a ;
+memVF min = velFront - d el t a ;
+memVF max = velFront + d e lt a ;
+memVE min = velEgo - d e lt a ;
+memVE max = velEgo + de l ta ;
+f o r ( i =0; i <=e u l e r s u b s t e p ; i++)f
+d i s t = d i s t + tau ( velFront - velEgo ) ;
+velEgo = velEgo + tau accelerationEgo ;
+velFront = velFront + tau a c c e l e r a t i o n F r o n t ;
+d el t a = delta mode ( delta , find mode ( accelerationFront , accelerationEgo )
+) ;
+memdist min = mini ( memdist min , dist - d e lt a ) ;
+memdist max = maxi ( memdist max , d i s t+d el t a ) ;
+memVF min = mini (memVF min, velFront - d el t a ) ;
+memVF max = maxi (memVF max, velFront+de l ta ) ;
+memVE min = mini (memVE min, velEgo - de l ta ) ;
+memVE max = maxi (memVE max, velEgo+d e lt a ) ;
+g
+d i s t a n c e g u a e v o l [ 0 ] = f l o o r ( dist - d e lt a ) ;
+d i s t a n c e g u a e v o l [ 1 ] = c e i l ( d i s t+d el t a ) ;
+v e l o c i t y F r o n t g u a e v o l [ 0 ] = f l o o r ( velFront - de l ta ) ;
+v e l o c i t y F r o n t g u a e v o l [ 1 ] = c e i l ( velFront+d e lt a ) ;
+velo cityEgo gua evol [ 0 ] = f l o o r ( velEgo - de l ta ) ;
+velo cityEgo gua evol [ 1 ] = c e i l ( velEgo+de l ta ) ;
+distance gua [ 0 ] = f l o o r ( memdist min ) ;
+distance gua [ 1 ] = c e i l ( memdist max ) ;
+velocityFront gua [ 0 ] = f l o o r (memVF min) ;
+velocityFront gua [ 1 ] = c e i l (memVF max) ;
+velocityEgo gua [ 0 ] = f l o o r (memVE min) ;
+velocityEgo gua [ 1 ] = c e i l (memVE max) ;
+g
+Listing 1.2: The function using the Euler method and returning the lowest integer part visited by
+the continuous system.
