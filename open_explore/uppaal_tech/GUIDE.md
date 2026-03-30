@@ -95,6 +95,22 @@
 3. 再用官方 team / org / docs 只做补证，核验其是否仍有对应工具线、源码或文档入口。
 4. 不允许反过来先抓 homepage team，再把人名硬塞进检索关键词簇。
 
+关于“核心作者”与“作者链接”，还必须额外遵守以下硬约束：
+
+1. “核心作者”不是固定名单；只要某作者在当前文库中同时满足“出现频次明显提高 + 覆盖关键转折条目或稳定技术分支 + 能对后续检索持续提供高收益”，就应视情况补入核心作者主线，或至少先补入作者表。
+2. 如果某作者原本只在分支作者表中，但后续已经跨越多个年份、多个分支、多个关键节点反复出现，维护时应主动考虑把他从“补充线索”提升到“核心作者主线”，而不是长期停留在旧位置不调整。
+3. 作者表中的名字默认必须挂到**学术主页**，优先级为：个人学术主页 > 学校/研究机构正式人员页 > 学校研究门户页。
+4. 只有在确实找不到可核验的学术主页或机构学术人员页时，才允许临时回退到 `DBLP / ORCID / Google Scholar / OpenReview profile` 这类学术资料页；并且后续一旦找到更合适的主页，应优先替换。
+5. 不能把普通搜索结果页、社交媒体主页、与论文作者身份无直接对应证据的个人站点，直接当作作者主页挂到表里。
+6. “确保确实是他”不是主观判断，至少要做下面两类交叉核验中的一类：
+   - 主页上的机构、研究方向、论文列表、合作作者，与当前文库收录论文中的作者身份能对应上。
+   - 主页或机构页能直接看到该作者参与过 `UPPAAL / ECDAR / Tiga / SMC / TRON` 等相关项目、论文或团队信息。
+7. 如果作者重名或主页信息不足，默认不要强挂链接；应暂时使用可确认的机构学术页或学术资料页，并在后续维护中继续核验。
+8. 更新作者表时，不只要补名字和链接，还要同步判断其是否需要进入：
+   - [README.md](./README.md) 的作者主线说明。
+   - [SUMMARY.md](./SUMMARY.md) 的核心作者主线或分支协作者表。
+9. 每轮补作者后，应回看当前作者表是否仍遗漏“论文列表里高频出现但尚未入表”的作者；如果有，默认本轮就补，而不是留到后面。
+
 当前文库中，后续应优先沿下表继续扩张：
 
 | 作者 | 当前关联条目 | 角色判断 | 主要贡献方向 | 推荐联用分支词 |
@@ -107,6 +123,7 @@
 | [Andrzej Wąsowski](https://www.itu.dk/~wasowski/) | `david10-*`、`david12-ecdar`、`david13`、`goorden23`、`brorholt25` | `ECDAR` 规范理论与新近扩展连接者 | `timed I/O specification / quotient / compositional verification / Coshy 协作线` | `ECDAR/quotient/Coshy` |
 | [Peter Gjøl Jensen](https://vbn.aau.dk/en/persons/pgj/) | `david14`、`bogomolov15`、`cassez17`、`nyman17-fmu`、`jensen23`、`muniz24` | `optimization -> co-simulation / WCET -> abstraction / GPU-SMC -> hybrid synthesis` 桥接作者 | `expected cost / FMI-FMU co-simulation / WCET / dynamic extrapolation / GPU-SMC / compact shields` | `abstraction/GPU/Coshy/WCET/FMI-FMU` |
 | [Brian Nielsen](https://homes.cs.aau.dk/~bnielsen/) | `hessel04`、`larsen04-*`、`david08`、`hessel08`、`nyman17` | `TRON / adaptive testing / mutation testing` 分支关键协作者 | `model-based testing / timed trace inclusion / relativized ioco / game-based testing / mutation-based testing` | `TRON/online testing/game-based testing/mutation-based testing` |
+| [Arne Skou](https://homes.cs.aau.dk/~ask/) | `hessel04`、`hessel08`、`david12-ecdar` | `testing / conformance / compositional verification` 分支关键协作者 | `real-time testing / conformance / compositional verification / ECDAR` | `testing/conformance/compositional verification` |
 | [Anders Hessel](https://hessel.tech/) | `hessel04`、`hessel08` | `time-optimal / survey-style testing` 分支作者 | `offline test generation / time-optimal testing / testing survey` | `time-optimal testing/test-case generation` |
 | [Marco Muñiz](https://homes.cs.aau.dk/~muniz/) | `muniz12`、`muniz20`、`muniz24` | `结构感知压缩 -> urgent POR -> GPU-SMC` 分支作者 | `disjoint activity / urgent partial order reduction / GPU-SMC` | `disjoint activity/partial order reduction/GPU-SMC` |
 | [Uli Fahrenberg](https://dblp.org/pid/89/5538) | `fahrenberg09` | infinite-run priced optimization 分支作者 | `discount-optimality / infinite runs / corner-point abstraction` | `priced timed automata/discount-optimal infinite runs` |
@@ -114,10 +131,15 @@
 | [Martijn Hendriks](https://dblp.org/pid/h/MartijnHendriks) / [Peter Niebert](https://dblp.org/pid/n/PeterNiebert) / [Frits Vaandrager](https://fvaan.nl/) | `hendriks04` | `symmetry reduction` 分支关键作者 | `scalarset / state swaps / canonical representative / symmetry reduction` | `symmetry reduction/scalarset/canonical representative` |
 | [Thomas Hune](https://dblp.org/search/author?q=Thomas%20Hune) | `amnell01`、`hune01` | 早期 `guided synthesis` 线作者 | `guided synthesis / control programs / early tool planning` | `guided synthesis/control` |
 | [Sean Sedwards](https://dblp.org/pid/26/5698) | `david12-shs` | `SHS / SMC` 分支补强作者 | `stochastic hybrid systems / simulation semantics / statistical analysis` | `stochastic hybrid systems/SMC` |
+| [Danny Bøgsted Poulsen](https://vbn.aau.dk/en/persons/dannybpoulsen/) | `bulychev12-smc`、`david11-*`、`david12-shs`、`david15-smc-tutorial` | `UPPAAL-SMC` 工程化与教程化高频协作者 | `statistical model checking / stochastic semantics / distributed SMC / tutorialization` | `SMC/stochastic semantics/distributed/tutorial` |
+| [Peter Bulychev](https://dblp.org/search/author?q=Peter%20Bulychev) | `bulychev11`、`bulychev12-*` | 早期 `UPPAAL-SMC` 核心扩展作者 | `distributed parametric SMC / priced timed automata / early SMC implementation` | `distributed statistical model checking/priced timed automata` |
+| [Zheng Wang](https://www.hipeac.net/~wangzheng/) | `bulychev12-smc`、`david11-*` | `UPPAAL-SMC` 性能与语义补强作者 | `stochastic semantics / priced timed automata / performance-oriented SMC` | `stochastic semantics/priced timed automata/SMC` |
 | [Pranav Ashok](https://dblp.org/pid/200/8227) / [Jan Křetínský](https://www7.in.tum.de/~kretinsk/) / [Adrien Le Coënt](https://dblp.org/pid/172/2815) | `ashok19-sos`、`lecoent19-tiga` | `compact strategies / continuous control synthesis` 分支作者群 | `safe-optimal-small strategies / stochastic hybrid games / hybrid MDP / guaranteed control synthesis` | `SOS/compact strategies/stochastic hybrid games/continuous systems/Tiga` |
 | [Andrej Kiviriga](https://dblp.org/search/author?q=Andrej%20Kiviriga) | `kiviriga20`、`kiviriga21`、`jensen22` | `randomized analysis / planning` 新近主线作者 | `randomized refinement / randomized reachability / MCTS` | `randomized reachability/refinement/MCTS` |
 | [Nicolaj Ø. Jensen](https://vbn.aau.dk/en/persons/noje/) | `jensen23`、`jensen25` | `modern XTA abstraction -> timed ATL` 新近作者 | `dynamic extrapolation / extended timed automata / TATL / EADG / abstractions` | `dynamic extrapolation/TATL/EADG` |
 | [Didier Lime](https://dblp.org/pid/94/6720) | `cassez05`、`behrmann07`、`david14`、`jensen25` | `timed games -> Tiga -> optimization -> TATL` 分支协作者 | `timed games / controller synthesis / cost analysis / timed ATL` | `timed games/Tiga/TATL` |
+| [Franck Cassez](https://franck44.github.io/publications/) | `bouyer04`、`cassez05`、`cassez17` | `priced timed games -> WCET` 分支作者 | `priced timed games / timed games / WCET / binary-program analysis` | `timed games/priced timed games/WCET` |
+| [Emmanuel Fleury](https://dblp.org/search/author?q=Emmanuel%20Fleury) | `bouyer04`、`cassez05`、`behrmann07` | `priced timed games -> Tiga` 分支协作者 | `priced timed games / timed games / controller synthesis` | `timed games/priced timed games/controller synthesis` |
 | [Florian Lorber](https://dblp.org/pid/117/5464.html) / [Christian Ovesen](https://dblp.org/search/author?q=Christian%20Ovesen) / [E. J. Njor](https://people.compute.dtu.dk/emjn/) | `gundersen18`、`njor20` | `ECDAR -> UPPAAL-native conformance testing` 工程分支作者群 | `fault localisation / conformance testing / diabolic completion / Yggdrasil` | `conformance testing/Ecdar/diabolic completion/Yggdrasil` |
 | [Patricia Bouyer](https://www.lmf.cnrs.fr/Annuaire/Patricia.Bouyer/) / [Radek Pelánek](https://www.fi.muni.cz/~xpelanek/) | `bblp04`、`bouyer04` | zone abstraction 与 priced timed games 外推分支关键合作者 | `lower-upper bound extrapolation / zone abstraction / priced timed games` | `abstraction/priced timed games/extrapolation` |
 | [Rajeev Alur](https://www.cis.upenn.edu/~alur/) / [David Dill](https://theory.stanford.edu/~dill/) / [David L. Dill](https://theory.stanford.edu/~dill/) | `ad90`、`dill89` | `UPPAAL` 理论前史奠基者 | `timed automata semantics / dense-time verification / clock constraints` | `timed automata/history` |
@@ -139,6 +161,7 @@
    - 继续沿该作者线扩张的检索价值推断
 8. 作者角色判断必须先根据当前已收录论文里的共著关系、跨分支覆盖和关键转折条目来写，再参考官方入口做补证；不允许只按 team 页面职位或主页简介臆测。
 9. 如果当前文库明显偏早期，而官方工具线或 DBLP 已显示 `2010s/2020s` 仍有后续工作，必须把“年代缺口”明确写回 [SUMMARY.md](./SUMMARY.md)，不能默认文库已经代表完整演进脉络。
+10. 若本轮新增作者链接仍有少量 `DBLP` 等回退页，必须把它们视为“待替换项”，后续继续优先搜索其可核验学术主页，而不是默认现状已完成。
 
 ### 2.3 官方入口与实现可得性核验
 
