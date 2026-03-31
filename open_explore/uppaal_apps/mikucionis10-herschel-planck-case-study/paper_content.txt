@@ -1,0 +1,769 @@
+--- Page 1 ---
+Schedulability Analysis Using Uppaal:
+Herschel-Planck Case Study
+Marius Mikuˇ cionis1, Kim Guldstrand Larsen1, Jacob Illum Rasmussen1,
+Brian Nielsen1, Arne Skou1, Steen Ulrik Palm2, Jan Storbank Pedersen2, and
+Poul Hougaard2
+1Aalborg University, 9220 Aalborg Øst, Denmark,
+{marius | kgl | illum | bnielsen | ask }@cs.aau.dk
+2Terma A/S, 2730 Herlev, Denmark,
+{sup | jnp | poh }@terma.com
+Abstract. We propose a modeling framework for performing schedula-
+bility analysis by using Uppaal real-time model-checker [2]. The frame-
+work is inspired by a case study where schedulability analysi s of a satel-
+lite system is performed. The framework assumes a single CPU h ardware
+where a ﬁxed priority preemptive scheduler is used in a combin ation with
+two resource sharing protocols and in addition voluntary ta sk suspension
+is considered. The contributions include the modeling fram ework, its ap-
+plication on an industrial case study and a comparison of res ults with
+classical response time analysis.
+Keywords: schedulabilityanalysis,timedautomata,stop-watchautom ata,
+model-checking, veriﬁcation
+1 Introduction
+The goal of schedulability analysis is to check whether all t asks ﬁnish before
+their deadline. Traditional approaches like [5] provide ge neric frameworks which
+assume worst case scenario where worst case execution time a nd blocking times
+are estimated and then worst case response times are calcula ted and compared
+w.r.t. deadlines. Often, such conservative scenarios are n ever realized and thus
+negative results from such analysis are often too pessimist ic. The idea of our
+method is to base the schedulability analysis on a system mod el with more de-
+tails, takingintoaccount speciﬁcsofindividual tasks.In particular this willallow
+a safe but far less pessimistic schedulability analysis to b e settled using real-time
+model checking. Moreover, the model-based approach provid es a self-contained
+visual representation of the system with formal, non-ambig uous interpretation,
+simulation and other possibilities for veriﬁcation and val idation.
+Our model-based approach is motivated by and carried out on e xample ap-
+plications in a case study of Herschel-Planck satellite sys tem. Compared with
+classical response time analysis our model-based approach is found to uniformly
+provide less pessimistic response time estimates and allow to conclude schedu-
+lability of all tasks, in contrast to negative results obtai ned from the classical
+approach.
+
+--- Page 2 ---
+2
+Related Work. During the last years, timed automata modelling and analy-
+sis of multitasking applications running under real-time o perating systems has
+received substantial research eﬀort. Here the goals are mul tiple: to obtain less
+pessimistic worst-case response time analysis compared wi th classical methods
+for single-processor systems or to relax the constraints be of period task arrival
+times of classical scheduling theory to task arrival patter ns that can be described
+using timed automata.
+In [13] it is shown how a multitasking application running un der a real-time
+operating system compliant with an OSEK/VDX standard can be modelled by
+timed automata. Use of this methodology is demonstrated on a n automated
+gearbox case study and the worst-case response times obtain ed from model-
+checking is compared with those provided by classical sched ulability analysis
+showing that the model-checking approach provides less pes simistic results due
+to a more detailed model and exhaustive state-space explora tion.
+Timestool[1]canbeusedtoanalysesingleprocessorsystem s,howeveritsup-
+portsonlyhighestlockerprotocol(simpliﬁedprioritycei lingprotocol)[8].Anap-
+proach of [4] provides Java code transformation into Uppaal [2] timed-automata
+for schedulability analysis. Similarly, we use the model-c hecking framework pro-
+vided by Uppaal, where the modelling language is extended with stop-watche s
+and C-like code structures allows to express preemption, su spension and mixed
+resource sharing using two diﬀerent protocols, in a more int uitive way without
+a need for more complex model transformations or workaround s.
+Aframeworkfrom[7]providesagenericsetoftasksandresou rcesthatcanbe
+instantiated with concrete parameters (speciﬁc oﬀsets, re lease times, deadlines,
+dependencies, periods) and processor resources together w ith their scheduling
+policies (i.e., preemption vs. non-preemption, earliest d eadline ﬁrst, ﬁxed prior-
+ity, ﬁrst-in-ﬁrst-out). The instantiated system can then b e analysed for schedu-
+lability in a precise manner as all the concrete information is taken into account.
+This means that the framework will be able to verify schedula bility of some
+systems that would otherwise be declared “non-schedulable ” by other methods.
+Although the framework is general to cover multi-processor systems it does not
+tackle passive resource sharing protocols like priority ce iling or inheritance.
+The remainder of the paper is organised as follows: in the nex t Section 2
+we provide a brief overview of the Herschel-Planck satellit e mission, its software
+setup and the response time analysis already carried out by T erma. Section 3
+describes our model-based methodology for solving the sche dulability problem,
+Section 4 presents the results of our method and compares it t o traditional
+response time analysis. Finally, Section 5 discusses concl usions and future work.
+2 The Herschel-Planck Mission
+The Herschel-Planck mission consists of two satellites: He rschel and Planck. The
+satellites have diﬀerent scientiﬁc objectives and thus the sensor and actuator
+conﬁgurations diﬀer, but both satellites share the same com putational architec-
+
+--- Page 3 ---
+3
+ture. The architecture consists of a single processor, real -time operating system
+(RTEMS), basic software layer (BSW) and application softwa re (ASW).
+Terma A/S has performed an extended worst case response time analysis
+described in [5] by analysing [11] and [12] resulting in [10] (we provide the nec-
+essary details of those documents in this paper). The goal of the study is to
+show that ASW tasks and BSW tasks are schedulable on a single p rocessor with
+no deadline violations. The framework uses preemptive ﬁxed priority scheduler
+and a mixture of priority ceiling and priority inheritance p rotocols for resource
+sharing and extended deadlines (beyond period). In additio n, some tasks need
+to interact with external hardware and eﬀectively suspend t heir execution for
+a speciﬁed time. Due to suspension, this single-processor s ystem has some ele-
+ments of multi-processor systems since parts of activities are executed elsewhere
+and the classical worst case response analysis (applicable to single-processor sys-
+tems) is pushed into extreme. One of the results of [10] is tha t one task may
+miss its deadline on Herschel (and thus the system is not sche dulable) but this
+violation has never been observed in neither stress testing nor deployment.
+The system is required to be schedulable in four instances: H erschel in nom-
+inal and event modes and Planck in nominal and event modes. Th e processor
+consumption should be less than 45% for Herschel and less tha n 50% for Planck.
+In response time analysis, in order to prove schedulability it is enough to
+calculate worst case response times (WCRT) for every task an d compare it with
+its deadline: if for every task the WCRT does not exceed the co rrespond deadline
+the system is schedulable.
+Figure 1 shows the work-ﬂow performed by Terma A/S: the deadl ine require-
+ments are obtained from ASW and BSW documentation, worst cas e execution
+times (WCET) of BSW are obtained from BSW documentation [12] and ASW
+timings are obtained from time measurements. The tasks are c arefully picked
+and timings aggregated (documented in [10]) and processed b y the proprietary
+Terma tool Schedule which performs worst case response time analysis as de-
+scribed in [5] and the outcome is processor utilisation and w orst case response
+times (WCRT) for each task. The system is schedulable when fo r every task i
+WCRT iis less than its Deadline i, i.e. the task always ﬁnishes before its deadline.
+We use the index ias a global task identiﬁer.
+We provide only the formulas used in response time analysis a nd refer to [5]
+for details on how this analysis works. The important proper ty of the analysis
+is that it always takes conservative estimates of blocking t imes even though the
+actual blocking may not appear, thus resulting in too pessim istic response times.
+WCRT iis calculated by recursive formula for task computation win dowsw(q)
+which may overlap with another task release (due to deadline extending past
+period), where qis the number of window starting with 0, hp(i) is a set of tasks
+with higher priority than i. Then the longest window is taken as WCRT:
+wn+1
+i(q) =Blocking i+(q+1)WCET i+/summationdisplay
+j∈hp(i)/ceilingleftBigwn
+i(q)
+Period j/ceilingrightBig
+WCET j
+Responsei(q) =wn
+i(q)−qPeriod i
+
+--- Page 4 ---
+4
+Blocking_i
+Deadline_iWCET_iOffset_iPeriod_iASW:
+Blocking_i
+Deadline_iWCET_iOffset_iPeriod_iBSW:Response
+Time
+AnalysisWCRT_i
+Utilization_iWorst CaseSimulation
+measurements
+& calculations
+Documentation
+BSW STSB [12]
+Fig.1: Work-ﬂow of schedulability analysis [10].
+WCRT i=max
+qResponsei(q)
+Blocking idenotes the blocking time when task iis waiting for a shared re-
+source being occupied by a lower priority task. Blocking tim es calculation is
+speciﬁc to the resource sharing protocol used. BSW tasks use priority inheri-
+tance protocol and thus their blocking times are calculated using the following
+equation:
+Blocking i=R/summationdisplay
+r=1usage(r,i)WCET CriticalSection (r)
+ASW tasks use priority ceiling protocol and therefore their blocking times are:
+Blocking i=Rmax
+r=1usage(r,i)WCET CriticalSection (r)
+The matrix usage(r,i) captures how resource ris used by the tasks: usage(r,i) =
+1 ifris used by at least one task with a priority less than task iand at least one
+task with a priority greater than or equal to task i, otherwise usage(r,i) = 0.
+Some BSW tasks are periodic and some sporadic, but we simplif y the model
+byconsideringallBSWtasksasperiodic.ASWtasksarestart edbyperiodictask
+MainCycle . In order to obtain more precise results, [10] splits the ana lysis into
+0-20ms and 20-250ms windows, distinguishes two operating m odes and analyse
+six cases in total separately. However, one case shows up as n ot schedulable
+anyway and application of our framework improves this resul t by showing that
+all tasks ﬁnish within their deadlines.
+Resource Usage by Tasks. Some tasks require shared resources and those are
+protected by semaphore locking to ensure exclusive usage. S ometimes tasks use
+resources repeatedly (locking and unlocking several times ). When the resource
+semaphore is locked, a task may suspend its execution by call ing hardware ser-
+vices and waiting for the hardware to ﬁnish thus temporarily releasing the pro-
+cessor for other tasks. The processor may be released multip le times during one
+
+--- Page 5 ---
+5
+semaphore lock. In response time analysis, the processor ut ilisation is computed
+by dividing a sum of worst case execution times by duration of analysed time
+window.
+3 Model-Based Schedulability Methodology
+This section explains the principles and concepts used thro ughout the modelling
+framework and then describes the modelling templates in det ail.
+The main idea is to translate schedulability analysis probl em into a reach-
+ability problem for timed automata and use the real-time mod el-checker Up-
+paalto ﬁnd worst case blocking and response times, processor uti lisation and
+to check whether all the deadlines are met. In our modelling f ramework clocks
+and stopwatches control task release patterns, track task e xecution progress,
+check response time against deadline bound and thus all the c omputations are
+performed by model-checker according to the model, in contr ast to carefully
+customised speciﬁc formula.
+The framework consists of the following process models: ﬁxe d priority pre-
+emptive CPU scheduler, a number of task models and one proces s for ensuring
+globalinvariants.Weprovideseveraltemplatesfortaskmo dels:forperiodictasks
+and for tasks with dependencies, all of which are parameteri sed with concrete
+program control ﬂow and may be customised to a particular res ource sharing
+protocol. Our approach takes the same task descriptions as [ 10] and produces
+results which are more optimistic and provides the proof tha t all the tasks will
+actually ﬁnish before the deadline.
+We use stopwatches to track task progress and stop the task pr ogress dur-
+ing preemption. In Uppaal, the stopwatch support is implemented through a
+concept of derivative over clock, where the derivative can b e either 1 (valuation
+progresses with a rate of 1 as regular clocks) or 0 (valuation is not allowed to
+progress – the clock is stopped). Syntactically stop-watch expressions appear in
+invariant expressions in a form of x′==c, wherexis declared of type clock
+andcis an integer expression which evaluates to either 0 or 1. The reachabil-
+ity analysis of stopwatch automata is implemented as an over -approximation in
+Uppaal, but the approximation still suﬃces for safety properties l ike checking
+if a deadline can ever be violated.
+The following outlines the main modelling ingredients:
+–One template for the CPU scheduler.
+–One template for “idle” task to keep track of CPU usage times.
+–One template for all BSW tasks, where resources are locked ba sed on priority
+inheritance protocol.
+–One template for MainCycle ASW task, which is released periodically, starts
+other ASW tasks and locks resources based on priority ceilin g protocol.
+–One template for all other ASW tasks, which is released by syn chronisations,
+and locks resources based on priority ceiling protocol.
+–Task specialisation is performed during process instantia tion by providing
+individual list of operations encoded into ﬂowarray of structures.
+
+--- Page 6 ---
+6
+–Eachtask(eitherASWorBSW)usesthefollowingclocksandda tavariables:
+•Task and its clocks are parameterised by identiﬁer id.
+•Execution time is modelled by a stopwatch job[id] which is reset when
+the task is started and stopped by a global invariant when the task is
+not being run on the processor. A worst case execution time (W CET)
+guard ensures that task cannot ﬁnish before WCET elapses. To ensure
+progress, the clock job[id] is constrained by an invariant of WCETso
+that the task releases the processor as soon as it has ﬁnished computing.
+•A local clock xcontrols when the task is released and is reset upon task
+is released. The task then moves to an error state if xis greater than its
+deadline.
+•A local clock subcontrols progress and execution of individual opera-
+tions.
+•A local integer icis an operation counter.
+•Worstcaseresponsetimefortask idismodelledbyastopwatch WCRT[id]
+which is reset when the task is started and is allowed to progr ess only
+when the task is ready (global invariant WCRT[id]′==ready[id] en-
+sures that). In addition WCRT[id] is reset when the task is ﬁnished in
+order to allow model checker to apply active clock reduction to speed
+up analysis as the value of this clock is no longer used. The wo rst case
+response time is estimated as maximum value of WCRT[id].
+•Anerrorlocation is reachable and errorvariable is set to trueif there
+is a possibility to ﬁnish after deadline.
+Further we explain the most important model templates, whil e the complete
+model is available for download at http://www.cs.aau.dk/ ~marius/Terma/ .
+3.1 Processor Scheduler
+Figure 2a shows the model of CPU scheduler. In the beginning S cheduler ini-
+tialises the system (computes the current task priorities b y computing default
+prioritybasedon idandstartsthetaskswithzerooﬀset)andinlocation Running
+waits for tasks to become ready or current task to release the CPU resource.
+When some task becomes ready, it adds itself to the taskqueue and signals on
+enqueue channel, thus moving Scheduler to location Schedule . From location
+Schedule , the Scheduler compares the priority of a current task cprio[ctask]
+with highest priority in the queue cprio[taskqueue[0]] and either returns to
+Running (nothing to reschedule) or preempts the current task ctask, puts it into
+taskqueue and schedules the highest priority task from taskqueue .
+The processor is released by a signal release[CPU R], in which case the
+Scheduler pulls the highest priority task from taskqueue and optionally notiﬁes
+itwithbroadcastsynchronisationonchannel schedule (thesendingisperformed
+always in non-blocking way as receivers may ignore broadcas t synchronisations).
+Thetaskqueue always contains at least one ready task: IdleTask. Figure 2b
+shows how IdleTaskreacts to Scheduler events and computes the CPU usage time
+with stopwatch usedTime , the total CPU load is then calculated asusedTime
+globalTime.
+
+--- Page 7 ---
+7
+add(taskqueue,ctask),
+runs[ctask]=0,
+ctask=poll(taskqueue)main()
+runs[ctask]=1
+runs[ctask]=0,
+ctask=poll(taskqueue)enqueue?release[CPU_R]?
+preempt[ctask]!schedule[ctask]!initialize!
+Running
+Schedulecprio[ctask]>=
+cprio[taskqueue[0]]
+Preempttaskqueue[0]>0 &&
+cprio[ctask]<
+cprio[taskqueue[0]]
+(a) Template for CPU scheduler.usedTime´'==0CPUUsed CPUIdleschedule[0]?
+preempt[0]?
+idleTime´'==0
+(b) Idle task model.
+Fig.2: Models for CPU scheduler and the simplest task.
+3.2 Tasks Templates
+Figure3showstheparameterswhichdescribeeachperiodict ask:periodduration
+showing how often the task is started, oﬀset showing how far i nto the cycle the
+task is started (released), deadline is measured from the in stance when task is
+started and worst case execution time within deadline.
+WCETDeadline
+Offsetrelease
+WCRT
+Periodtime
+Fig.3: Periodic task execution parameters.
+Figure 4 shows a template used by MainCycle which is started periodically.
+At ﬁrstMainCycle waits for Offsettime to elapse and moves to location Idleby
+setting the clock xtoPeriod. Then the process is forced to leave Idlelocation
+immediately, to signal other ASW tasks, add itself to the rea dy task queue
+and arrive to location WaitForCPU . WhenMainCycle receives notiﬁcation from
+scheduler it moves to location GotCPUand starts processing commands from the
+ﬂowarray. There are four types of commands:
+1. LOCK is executed from location tryLock where the process attempts to
+acquire the resource. It blocks if the resource is not availa ble and retries
+by adding itself to the processor queue again when resource i s released. It
+continues to location Nextby locking the resource if the resource is available.
+2. UNLOCK simply releases the resource and moves on to locati onNext. The
+implementation of locking and unlocking is shown in Listing 1.2.
+
+--- Page 8 ---
+8
+UNLOCK==flow[ic].cmd
+avail(flow[ic].res) runs[id] &&
+END!=flow[ic].cmd &&
+x<=Deadlinex>Deadline
+COMPUTE==
+flow[ic].cmdstarting
+!avail(flow[ic].res)runs[id] &&
+job[id]>=WCET &&
+x<=Deadline
+LOCK==
+flow[ic].cmdFinishingx==Period x==Offset
+x>Deadlinex>Deadline
+runs[id] &&
+sub==flow[ic].delaySUSPEND==
+flow[ic].cmdx>Deadline
+sub==flow[ic].delayruns[id] &&
+END==flow[ic].cmd &&
+x<=Deadlinex>Deadline
+schedule[id]?enqueue!
+schedule[id]?
+release[CPU_R]!
+enqueue!release[CPU_R]!
+release[flow[ic].res]! release[CPU_R]!release[flow[ic].res]?
+Suspended
+ComputingErrorWaitForCPU2 WaitForCPUStartASW!
+GotCPUIdle
+NexttryLockBlockedenqueue!
+blocked[id]=1ic=0, job[id]=0,
+WCRT[id]=0, ready[id]=0
+lockCeil(flow[ic].res, id),
+ic++, sub=0blocked[id]=0add(taskqueue, id),
+x=0, job[id]=0,
+WCRT[id]=0, ready[id]=1
+error=1
+error=1
+add(taskqueue, id),
+susp[id]=false,
+ic++, sub=0susp[id]=true,
+sub=0error=1x=Period
+unlockCeil(flow[ic].res, id),
+ic++, sub=0error=1
+ic++, sub=0sub=0add(taskqueue, id)
+error=0x<=Period
+sub'==runs[id]
+&& sub<=0x<=Offset
+sub'==runs[id] &&
+sub<=flow[ic].delayjob[id]<=WCET
+sub<=
+flow[ic].delay
+Fig.4:MainCycle task: periodically starts ASW functions.
+3. SUSPEND releases the processor for speciﬁed amount of tim e, adds itself to
+the queue and moves to location Next. The task progress clock job[id] is not
+increasing but the response measurement clock WCRT[id] is.
+4. COMPUTE makes the task stay in location Computing for at least the spec-
+iﬁed duration of pure running time, i.e. the clock subis stopped whenever
+the task is preempted and runs[id] is set to 0. Once the required amount of
+CPU time is consumed, the process moves on to location Next.
+From location Next, the process is forced by runs[id] invariant to continue with
+the next operation: if it is not the END and it is running, then it moves back to
+GotCPUto process next operation, and it moves to Finishing if it’s the END. In
+Finishing location the process consumed CPU for the remaining time so t hat
+complete WCET is exhausted and then it moves back to Idle. From locations
+NextandFinishing the outgoing edges are constrained to check whether the
+deadline has been reached since the last task release (when xwas set to 0), and
+edges force the process into Errorlocation if x >Deadline .
+TheﬂowforMainCycle is very simple: it computes for its WCET while keep-
+ing a lock on SgmR. A more sophisticated example of ﬂow is in Listing 1.1. We
+do not know the exact times the resources are locked and the po ints in time are
+chosen arbitrarily, thus it may not necessarily lead to wors t-case blocking timed
+for higher priority tasks.
+The template for BSW tasks is almost the same as MainCycle , except that
+1) BSW tasks do not have to start other ASW tasks and thus from Idlethey
+go directly to WaitForCPU with enqueueing edge, 2) instead of ceiling protocol
+(lockCeil andunlockCeil ) it uses inheritance ( lockInhandunlockInh ) and 3) it
+boosts the owners priority by calling boostPrio (ﬂow[ic].res,id) on the edge from
+
+--- Page 9 ---
+9
+tryLock toBlocked. BSW tasks have their own local clock x, whileMainCycle
+shares its xwith other ASW tasks.
+Other ASW tasks are started by MainCycle , thus instead of broadcast shout
+synchronisationon StartASW channeltheyhavereceivesynchronisationon StartASW .
+Also, they share the same clock xwithMainCycle , because response time is mea-
+sured from the same 20 msoﬀset (as in [10], so that the results are comparable).
+Figure 1 shows the description of PrimaryF from [10] as an example that we
+usedtocreate ﬂowstructure.Thisparticulardescriptionconsistsofsixact ivities.
+Table 1: The description of PrimaryF task from [10] inputs.
+Primary Functions
+- Data processing 20577/2521
+Icb_R(LNS: 2, LCS: 1200, LC: 1600, MaxLC: 800)
+- Guidance 3440/0
+- Attitude determination 3751/1777
+Sgm_R(LNS: 5, LCS: 121, LC: 1218, MaxLC: 236)
+- PerformExtraChecks 42/0
+- SCM controller 3479/2096
+PmReq_R(LNS: 4, LCS: 1650, LC: 3300, MaxLC: 3300)
+- Command RWL 2752/85
+Each activity is described by two numbers (CPU time / BSW serv ice time, BSW
+service time is included in CPU time, thus is not used in our mo del), followed by
+resource usage pattern if any. The resource usage is describ ed by the following
+parameters:
+LNS – total number of times the CPU has been released while the resource was
+locked (task suspension count).
+LCS – total time the CPU has been released while the resource w as locked
+(task suspension duration).
+LC – total time the resource has been locked.
+MaxLC – the longest time the resource has been locked.
+From this description we use only LCS and LC, where we assume t hat LC-
+LCS is the CPU busy time while the resource is locked. Listing 1.1 shows an
+example of detailed control ﬂow structure for PrimaryF task, where the numbers
+mean the time duration and comments relate each step to an ite m in Table 1.
+Listing 1.2 shows functions for priority inheritance and pr iority ceiling protocols,
+which use ownerandcprioto track current resource owner and task priority.
+Listing 1.1: Operation ﬂow for PrimaryF task.☎
+1constASWFlow t PFf ={// Primary Functions:
+2 {LOCK, Icb R, 0}, // 0)−−−−− Data processing
+3 {COMPUTE, CPU R, 1600 −1200},// 1) computing with Icb R
+4 {SUSPEND, CPU R, 1200 },// 2) suspended with Icb R
+5 {UNLOCK, Icb R, 0}, // 3)
+6 {COMPUTE, CPU R, 20577 −(1600−1200)},// 4) computing without Icb R
+7 {COMPUTE, CPU R, 3440 },// 5)−−−−− Guidance
+8 {LOCK, Sgm R, 0}, // 6)−−−−− Attitude determination
+9 {COMPUTE, CPU R, 1218 −121},// 7) computing with Sgm R
+
+--- Page 10 ---
+10
+10 {SUSPEND, CPU R, 121},// 8) suspended with Sgm R
+11 {UNLOCK, Sgm R, 0}, // 9)
+12 {COMPUTE, CPU R, 3751 −(1218−121)},//10) computing without Sgm R
+13 {COMPUTE, CPU R, 42},//11)−−−−− Perform extra checks
+14 {LOCK, PmReq R,0}, //12)−−−−− SCM controller
+15 {COMPUTE, CPU R, 3300 −1650},//13) computing with PmReq R
+16 {SUSPEND, CPU R, 1650 },//14) suspended with PmReq R
+17 {UNLOCK, PmReq R, 0},//15)
+18 {COMPUTE, CPU R, 3479 −(3300−1650)},//16) computing without PmReq R
+19 {COMPUTE, CPU R, 2752 },//17)−−−−− Command RWL
+20 FIN, FIN, FIN, FIN, FIN, FIN, FIN, FIN, FIN, FIN, FIN // ﬁll the array
+21};✝ ✆
+Listing 1.2: Resource locking based on two diﬀerent protoco ls.☎
+1/∗∗Check if the resource is available: ∗/
+2boolavail(resid t res){return (owner[res]==0); }
+3/∗∗Lock the resource based on priority ceiling protocol: ∗/
+4voidlockCeil(resid t res, taskid t task) {
+5 owner[res] = task; // mark resource occupied by task
+6 cprio[task] = ceiling[res ]; // assume the priority of resource
+7}
+8/∗∗Unlock the resource based on priority ceiling protocol: ∗/
+9voidunlockCeil(resid t res, taskid t task){
+10 owner[res] = 0; // mark resource as released
+11 cprio[task] = def prio(task); // return to default priority
+12}
+13/∗∗Boost the priority of resource owner based on priority inheritance protocol: ∗/
+14voidboostPrio(resid t res, taskid t task) {
+15 if(cprio[owner[res]] <= defprio(task)) {
+16 cprio[owner[res]] = def prio(task)+1;
+17 sort(taskqueue);
+18 }
+19}
+20/∗∗Lock the resource based on priority inheritance protocol: ∗/
+21voidlockInh(resid t res, taskid t task) {
+22 owner[res] = task; // mark resource occupied by task
+23}
+24/∗∗Unlock the resource based on priority inheritance protocol: ∗/
+25voidunlockInh(resid t res, taskid t task) {
+26 owner[res] = 0; // mark resource as released
+27 cprio[task] = def prio(task); // return to default priority
+28}✝ ✆
+3.3 System Model Instantiation
+Listing1.3showshowtasksareinstantiated.Listing1.4sh owssystemdeclaration
+using priorities which help enforce the speciﬁed prioritie s in veriﬁcation. The
+resulting model is deterministic, thus the expected state s pace shape is narrow
+(single sequence of steps) but potentially very deep.
+Initialexperimentsshowedthatinfactthestatespaceisso deepthat Uppaal
+exhausts the memory in a few minutes by storing most of the sta te space just
+to check for loops and ensure the veriﬁcation termination. T o address this issue
+a sweep-line method [6] is used. The basic idea behind sweep- line method is to
+store only those passed states which have the greatest progr ess measure and
+purge the rest, thus eﬀectively releasing and reusing most o f the memory.
+Listing 1.3: Task instantiation.☎
+1// taskid,Oﬀset,Period, ﬂow, WCET, Deadline
+2RTEMS RTC = BSW(1, 0, 10000, WCET f, 13, 1000);
+
+--- Page 11 ---
+11
+3AswSync SyncPulselsr=BSW(2, 0,250000, WCET f, 70, 1000);
+4HkSamplerIsr = BSW(3,62500,125000, WCET f, 70, 1000);
+5SwCyc CycStartIsr= BSW(4, 0,250000, WCET f, 20, 1000);
+6SwCyc CycEndIsr= BSW(5,200000,250000, WCET f, 100, 1000);
+7Rt1553 Isr = BSW(6, 0, 15625, WCET f, 70, 1000);
+8Bc1553 Isr = BSW(7, 0, 20000, WCET f, 70, 1000);
+9SpwIsr = BSW(8, 0, 39000, WCET f, 70, 2000);
+10ObdhIsr = BSW(9, 0,250000, WCET f, 70, 2000);
+11RtSdbP1 = BSW(10, 0, 15625, WCET f, 150, 15625);
+12RtSdbP2 = BSW(11, 0,125000, WCET f, 400, 15625);
+13RtSdbP3 = BSW(12, 0,250000, WCET f, 170, 15625);
+14// #13 is reserved for ASW resource priority ceiling
+15FdirEvents =ASWspor(14,20000,250000, WCET f, 5000, 230220);
+16NominalEvents 1=ASWspor(15,20000,250000, WCET f, 720, 230220);
+17mainCycle = MainCycle(16,20000,250000, 400, 230220, ASWc lock);
+18HkSampler P2 = BSW(17,62500,125000, WCET f, 500, 62500);
+19HkSampler P1 = BSW(18,62500,250000, WCET f, 6000, 62500);
+20AcbP = BSW(19,200000,250000,WCET f, 6000, 50540);
+21IoCycP = BSW(20,200000,250000,WCET f, 3000, 50540);
+22 //ASW: id, start, ﬁnish, ﬂow, WCET, Deadline
+23primaryF = ASW(21,StartASW,Done, PF f, 34050, 59600, ASWclock);
+24rCSControlF= ASW(22,StartASW,Done, RCS f, 4070, 239600, ASWclock);
+25ObtP = BSW(23, 0,1000000,Obt f, 1100, 100000);
+26HkP = BSW(24, 0,250000, WCET f, 2750, 250000);
+27StsMon P = BSW(25,62500,250000,StsMon f,3300, 125000);
+28TmGen P = BSW(26, 0,250000, WCET f, 4860, 250000);
+29SgmP = BSW(27, 0,250000, Sgm f, 4020, 250000);
+30TcRouter P = BSW(28, 0,250000, WCET f, 500, 250000);
+31CmdP = BSW(29, 0,250000, Cmd f, 14000, 250000);
+32NominalEvents 2= BSW(30,20000,250000, WCET f, 1780, 230220);
+33secondF 1 = ASW(31,StartASW, Done, SF1 f, 20960, 189600, ASWclock);
+34secondF 2 = ASW(32,StartASW, Done, SF2 f, 39690, 230220, ASWclock);
+35BkgndP = BSW(33, 0,250000, WCET f, 200, 250000);✝ ✆
+Periodicmodels—liketheonesforschedulability—donothave inherentprogress
+measure, so we propose to create an artiﬁcial one based on how many cycles the
+systemhasexecutedsofar,andthenresetittozeroonceitre achesapre-speciﬁed
+limit. In fact, such drops in progress measure are tolerated by generalised sweep-
+line method [9], which is also implemented in Uppaal. The progress measure
+is based on the variable cycledeﬁned on line 8 in Listing 1.4, incremented by
+guarded loops in Globalprocess (Fig. 5) after each 250ms and is reset together
+with all the global clocks to zero once the CYCLELIMIT is reac hed. The process
+Globalalso takes care of global invariants on job[i] andWCRT[i] stopwatches of
+each task i.
+Listing 1.4: System declaration using Uppaal priorities.☎
+1system Scheduler, Bkgnd P<secondF 2<secondF 1<NominalEvents 2<CmdP<
+2 TcRouter P<SgmP<TmGen P<StsMon P<HkP<ObtP<rCSControlF <
+3 primaryF <IoCycP<AcbP<HkSampler P1<HkSampler P2<
+4 mainCycle <NominalEvents 1<FdirEvents <RtSdbP3<RtSdbP2<RtSdbP1
+<ObdhIsr<
+5 SpwIsr<Bc1553 Isr<Rt1553 Isr<SwCyc CycEndIsr <SwCyc CycStartIsr <
+6 HkSamplerIsr <AswSync SyncPulselsr <
+7 RTEMS RTC, IdleTask, Global;
+8progress {cycle;}✝ ✆
+Further, we explore some values of CYCLELIMIT in order to min imise the
+veriﬁcationresources.Wepostulatethatagoodheuristics istoexploreatleastto
+a hyper-period (least common multiple of periods) of all the periodic processes
+before reseting the cycle counter. There are the following d iﬀerent periods in
+the system: 125000, 15625, 20000, 39000, 250000 and 1000000 µs, therefore a
+
+--- Page 12 ---
+12
+cycle=0, globalTime=0,
+usedTime=0, idleTime=0,
+WCRT[0]=0cycle++Done?
+globalTime==cycle*CYCLE 
+&& cycle<CYCLELIMITglobalTime==cycle*CYCLE 
+&& cycle==CYCLELIMIT
+globalTime<=cycle*CYCLE &&
+forall(i: taskid_t) job[i]'==runs[i] &&
+forall(i: taskid_t) WCRT[i]'==ready[i]
+Fig.5:Globalprocess enforce invariants on stopwatches and cyclic progr ess.
+potential hyper-period is 39000000 µs, or 156 cycles of 250ms each, but it can be
+much larger due to non-trivial resource sharing and task int eraction.
+3.4 Veriﬁcation Queries
+The following is a list of queries used to check schedulabili ty properties:
+–Check if the system is schedulable (the error state is not rea chable):
+E<> error
+–Checkifanytaskcanbeblockedatall: E<> exists(i:taskid t) blocked[i]
+–Find the total worst CPU usage: sup: usedTime, idleTime
+–Findtheworstcaseresponsetimes: sup: WCRT[0], WCRT[1], ... WCRT[33]
+–Find worst case blocking times, where B[i] is a stopwatch growing when task
+iis blocked: sup: B[0], B[1], B[2], ... B[33]
+Asup-query explores the entire reachable state space and comput es the maxi-
+mum(supremum)valueofanargumentexpression,whichisuse fulforcomputing
+several bounds at once. However, in such queries, Uppaal treats the speciﬁed
+clocks as active, therefore the exploration can be signiﬁca ntly slower when the
+clock list is large. Therefore, we create a separate model to estimate blocking
+times instead WCRT by purging expressions with WCRT[id] and adding B[id]
+reset statements on edges from tryLock toBlocked in order to save half of
+expensive stopwatches.
+4 Results
+The results of our model-based framework consist of three pa rts: visualisation
+of a schedule in Gantt chart, worst case response times estim ates and CPU
+utilisation estimation with veriﬁcation benchmarking bas ed on cycle limit.
+Visualisation. A Gantt chart can be used to visualise a trace of the system, th us
+providingarichpictureforinspection.Forexample,inthe generatedchart,itcan
+be seen that CmdPis blocked more than 5 times during the ﬁrst cycle, while
+blocking times for PrimaryF andStsMonPare signiﬁcantly long only starting
+from the second cycle. Listing 1.5 shows a chart declaration accepted by Uppaal
+TIGA[3] which assigns colours for each line ( Tfor task lines, Rfor resource
+lines) based on the state (ready, running, blocked or suspen ded; locked and used,
+locked and preempted or locked and suspended respectively) .
+
+--- Page 13 ---
+13
+Listing 1.5: Speciﬁcation for Gantt chart.☎
+1gantt{
+2T(i:taskid t):
+3 (ready[i] && !runs[i]) −>1,// green: ready
+4 (ready[i] && runs[i]) −>2,// blue: running
+5 (blocked[i]) −>0, // red: blocked
+6 susp[i] −>9; // cyan: suspended
+7R(i: resid t):
+8 (owner[i] >0 && runs[owner[i]]) −>2,// blue: locked and actively used
+9 (owner[i] >0 && !runs[owner[i]] && !susp[owner[i]]) −>1,// green: locked, preempted
+10 (owner[i] >0 && susp[owner[i]]) −>9;// cyan: locked and suspended
+11}✝ ✆
+Veriﬁcation and CPU Load Estimates. Uppaal takes about 2min (112s) to
+verify that the system is schedulable and about 3 times as muc h to ﬁnd WCRT
+on a Linux laptop PC with Intel Core 2 Duo 2.2GHz processor.
+In [10] CPU utilisation for 20-250ms window is estimated as 6 2.4%, and our
+estimate for entire worst case cycle is 63 .65% which is slightly larger, possibly
+due to the fact that it also includes the consumption during 0 -20ms window.
+Table 2 shows Uppaal veriﬁcation resources used for estimating WCRT and
+CPU utilisation for various cycle limits. The instances whe re cycle limit is a
+divisor or a multiple of a hyper-period (156) are in bold. Not ice that for such
+cycle limits the veriﬁcation resources are orders of magnit ude lower, and there is
+nearly perfect linear correlation between cycle limit and r esource usage in both
+sub-sequences when evaluated separately (both coeﬃcients are≥0.993).
+Table 2: Veriﬁcation resources and CPU utilisation estimat es.
+cycle Uppaal resources Herschel CPU utilization
+limitCPU, s Mem, KB States, # Idle,µsUsed,µsGlobal, µsSum,µsUsed, %
+1465.2 60288 173456 91225 160015 250000 251240 0.640060
+2470.1 59536 174234 182380 318790 500000 501170 0.637580
+3461.0 58656 175228 273535 477705 750000 751240 0.636940
+4474.5 58792 176266 363590 636480 1000000 1000070 0.636480
+6474.6 58796 178432 545900 955270 1500000 1501170 0.636847
+8912.3 58856 352365 727110 1272960 2000000 2000070 0.636480
+13507.7 58796 186091 1181855 2069385 3250000 3251240 0.636734
+161759.0 58728 704551 1454220 2545850 4000000 4000070 0.636463
+26541.9 58112 200364 2363640 4137530 6500000 6501170 0.636543
+323484.0 75520 1408943 2908370 5091700 8000000 8000070 0.636463
+39583.5 74568 214657 3545425 6205745 9750000 9751170 0.636487
+647030.0 91776 2817704 5816740 10183330 16000000 16000070 0.636458
+78652.2 74768 257582 7089680 12411420 19500000 19501100 0.636483
+12814149.4 141448 5635227 11633480 20366590 32000000 32000070 0.636456
+156789.4 91204 343402 14178260 24821740 39000000 39000000 0.636455
+25623219.4 224440 11270279 23266890 40733180 64000000 64000070 0.636456
+3121824.6 124892 686788 28356520 49643480 78000000 78000000 0.636455
+51249202.2 390428 22540388 46533780 81466290 128000000 128000070 0.636455
+6243734.7 207728 1373560 56713040 99286960 156000000 156000000 0.636455
+Herschel CPU utilisation estimate does not improve much, th erefore we con-
+clude that individual cycles are very similar. The sum of idl e and used times is
+slightly larger than global supremum meaning that some cycl es are only slightly
+more stressed than others.
+Worst Case Response Times. Table 3 shows the response timed from Uppaal
+analysis in comparison to response time analysis by Terma. F or most of BSW
+tasks (1-12,17-18) resource patterns are not available and thusUppaal could
+
+--- Page 14 ---
+14
+not determine their blocking times. Blocking times by Terma also include the
+suspension times related to locking of resources. We note th at in all cases the
+WCRT estimates provided by Uppaal are smaller (hence less pessimistic) than
+those originally obtained [10]. In particular, we note that the taskPrimaryF (task
+21) is found to be schedulable using model-checking in contr ast to the original
+negative result obtained by Terma.
+Table3:Speciﬁcation,blockingandworstcaseresponsetim esofindividualtasks.
+Speciﬁcation WCRT
+IDTask Period WCET Deadline Terma 0% 5% 10%
+1RTEMS RTC 10.000 0.013 1.000 0.050 0.013 0.013 0.013
+2AswSync SyncPulseIsr 250.000 0.070 1.000 0.120 0.083 0.083 0.083
+3HkSamplerIsr 125.000 0.070 1.000 0.120 0.070 0.070 0.070
+4SwCyc CycStartIsr 250.000 0.200 1.000 0.320 0.103 0.103 0.103
+5SwCyc CycEndIsr 250.000 0.100 1.000 0.220 0.113 0.113 0.113
+6Rt1553 Isr 15.625 0.070 1.000 0.290 0.173 0.173 0.173
+7Bc1553 Isr 20.000 0.070 1.000 0.360 0.243 0.243 0.243
+8SpwIsr 39.000 0.070 2.000 0.430 0.313 0.313 0.313
+9ObdhIsr 250.000 0.070 2.000 0.500 0.383 0.383 0.383
+10RtSdbP1 15.625 0.150 15.625 4.330 0.533 0.533 0.533
+11RtSdbP2 125.000 0.400 15.625 4.870 0.933 0.933 0.933
+12RtSdbP3 250.000 0.170 15.625 5.110 1.103 1.103 1.103
+14FdirEvents 250.000 5.000 230.220 7.180 5.553 5.553 5.553
+15NominalEvents 1250.000 0.720 230.220 7.900 6.273 6.273 6.273
+16MainCycle 250.000 0.400 230.220 8.370 6.273 6.273 6.273
+17HkSampler P2 125.000 0.500 62.500 11.960 5.380 7.350 8.153
+18HkSampler P1 250.000 6.000 62.500 18.460 11.615 13.653 14.153
+19AcbP 250.000 6.000 50.000 24.680 6.473 6.473 6.473
+20IoCycP 250.000 3.000 50.000 27.820 9.473 9.473 9.473
+21PrimaryF 250.000 34.050 59.600 65.47 54.115 56.382 58.586
+22RCSControlF 250.000 4.070 239.600 76.040 53.994 56.943 58.095
+23ObtP 1000.000 1.100 100.000 74.720 2.503 2.513 2.523
+24HkP 250.000 2.750 250.000 6.800 4.953 4.963 4.973
+25StsMon P 250.000 3.300 125.000 85.050 17.863 27.935 28.086
+26TmGen P 250.000 4.860 250.000 77.650 9.813 9.823 9.833
+27SgmP 250.000 4.020 250.000 18.680 14.796 14.880 14.973
+28TcRouter P 250.000 0.500 250.000 19.310 11.896 11.906 14.442
+29CmdP 250.000 14.000 250.000 114.920 94.346 99.607 101.563
+30NominalEvents 2250.000 1.780 230.220 102.760 65.177 69.612 72.235
+31SecondaryF 1 250.000 20.960 189.600 141.550 110.666 114.921 122.140
+32SecondaryF 2 250.000 39.690 230.220 204.050 154.556 162.177 165.103
+33BkgndP 250.000 0.200 250.000 154.090 15.046 139.712 147.160
+5 Discussion
+We have shown how the Uppaal model-checker can be applied for schedulability
+analysis of a system with single CPU, ﬁxed priorities preemp tive scheduler, mix-
+ture of periodic tasks and tasks with dependencies, and mixe d resource sharing
+protocols. Worst case response times (WCRT), blocking time s and CPU utilisa-
+tion are estimated by model-checker according to the system model structure.
+Modelling patterns use stopwatches in a simple and intuitiv e way. A break-
+through in veriﬁcation scalability for large systems (more than 30 tasks) is
+achieved by employing sweep-line method. Even better contr ol over veriﬁcation
+resources can be achieved by carefully designing progress m easure.
+The task templates are demonstrated to be generic through ma ny instanti-
+ations with arbitrary computation sequences and specialis ed for particular re-
+source sharing. The framework is modular and extensible to a ccommodate a
+
+--- Page 15 ---
+15
+diﬀerent scheduler and control ﬂow can be expanded with addi tional instruc-
+tions if some task algorithm is even more complicated. In add ition,Uppaal
+toolkit allows easy visualisation of the schedule in Gantt c hart and the system
+behaviour can be examined in both symbolic and concrete simu lators.
+The case study results include a self-contained non-ambigu ous model which
+formalises many assumptions described in [10] in human lang uage. The veriﬁca-
+tion results demonstrate that the timing estimates correla te with ﬁgures from
+the response time analysis [10]. The worst case response tim e ofPrimaryF is in-
+deed very close to deadline, but overall all estimates by Uppaal are lower (more
+optimistic) and they all ( WCRT 21in particular) are below deadlines, whereas
+the response time analysis found that PrimaryF may not ﬁnish before deadline
+and does not provide any more insight on how the deadline is vi olated or whether
+such behaviour is realizable.
+References
+1. Amnell, T., Fersman, E., Mokrushin, L., Pettersson, P., Yi , W.: TIMES – a tool for
+modelling and implementation of embedded systems. In: TACAS ’02: Proceedings
+of the 8th International Conference on Tools and Algorithms for the Construction
+and Analysis of Systems. pp. 460–464. Springer-Verlag, Londo n, UK (2002)
+2. Behrmann, G., David, A., Larsen, K.: A tutorial on Uppaal. Lec ture Notes in
+Computer Science pp. 200–236 (2004)
+3. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K. G., Lime, D.:
+Uppaal-tiga : Time for playing games! In: Proceedings of the 19th Internat ional
+Conference on Computer Aided Veriﬁcation. pp. 121–125. No. 4590 in LNCS,
+Springer (2007)
+4. Bøgholm, T., Kragh-Hansen, H., Olsen, P., Thomsen, B., Lars en, K.G.: Model-
+based schedulability analysis of safety critical hard real- time java programs. In:
+Bollella, G., Locke, C.D. (eds.) JTRES. ACM International Con ference Proceeding
+Series, vol. 343, pp. 106–114. ACM (2008)
+5. Burns, A.: Preemptive priority based scheduling: An appr opriate engineering ap-
+proach. In: Principles of Real-Time Systems. pp. 225–248. Pr entice Hall (1994)
+6. Christensen, S., Kristensen, L., Mailund, T.: A Sweep-Lin e method for state space
+exploration. In: Tools and Algorithms for the Construction a nd Analysis of Sys-
+tems, pp. 450–464 (2001)
+7. David, A., Illum, J., Larsen, K.G., Skou, A.: Model-Based Desi gn for Embedded
+Systems, chap. Model-Based Framework for Schedulability An alysis Using UP-
+PAAL 4.1, pp. 93–119. CRC Press (2010)
+8. Fersman, E.: A generic approach to schedulability analysi s of real-time systems.
+Acta Universitatis Upsaliensis (2003)
+9. Kristensen,L.,Mailund,T.:AgeneralisedSweep-Linemet hodforsafetyproperties.
+In: FME 2002:Formal Methods—Getting IT Right, pp. 215–229 (2 002)
+10. Palm, S.: Herschel-Planck ACC ASW: sizing, timing and sch edulability analysis.
+Tech. rep., Terma A/S (2006)
+11. Terma A/S: Herschel-Planck ACMS ACC ASW requirements spe ciﬁcation. Tech.
+rep., Terma A/S (Issue 4/0)
+12. Terma A/S: Software timing and sizing budgets. Tech. rep ., Terma A/S (Issue 9)
+13. Waszniowski, L., Hanz´ alek, Z.: Formal veriﬁcation of mul titasking applications
+based on timed automata model. Real-Time Systems 38(1), 39–6 5 (2008)

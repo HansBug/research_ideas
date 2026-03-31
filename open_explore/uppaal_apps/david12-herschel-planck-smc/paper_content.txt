@@ -1,0 +1,724 @@
+--- Page 1 ---
+Schedulability of Herschel-Planck Revisited
+Using Statistical Model Checking⋆
+Alexandre David1, Kim G. Larsen1, Axel Legay2, Marius Mikuˇ cionis1
+1Computer Science, Aalborg University, Denmark
+2INRIA/IRISA, Rennes Cedex, France
+Abstract. Schedulability analysis is a main concern for several embed-
+ded applications due to their safety-critical nature. The cl assical method
+of response time analysis provides an eﬃcient technique used in indus-
+trial practice. However, the method is based on conservativ e assump-
+tions related to execution and blocking times of tasks. Conseque ntly,
+the method may falsely declare deadline violations that will never oc-
+cur during execution. This paper is a continuation of previous work of
+the authors in applying extended timed automata model checking (using
+the tool UPPAAL) to obtain more exact schedulability analysis , here in
+the presence of non-deterministic computation times of tas ks given by
+intervals [BCET,WCET]. Considering computation intervals makes the
+schedulability of the resulting task model undecidable. Our contribution
+is to propose a combination of model checking techniques to obt ain some
+guarantee on the (un)schedulability of the model even in the presence of
+undecidability.
+Two methods are considered: symbolic model checking and stati stical
+model checking. Symbolic model checking allows to conclude sch edula-
+bility – i.e. absence of deadline violations – for varying size s of BCET.
+However, the symbolic model checking technique is over-approxi mating
+fortheconsideredtaskmodelandcanthereforenotbeusedfo rdisproving
+schedulability. As a remedy, we show how statistical model c hecking
+may be used to generate concrete counter examples witnessing non-
+schedulability. In addition, we apply statistical model ch ecking to obtain
+more informative performance analysis – e.g. expected respon se times –
+when the system isschedulable.
+The methods are demonstrated on a complex satellite softwar e system
+yielding new insights useful for the company.
+1 Introduction
+Embedded systems involve the monitoring and control of comp lex physical pro-
+cesses using applications running on dedicated execution p latforms in a resource
+constrained manner in terms of for example memory, processi ng power, band-
+width, energy consumption, as well as timing behavior.
+⋆Work partially supported by VKR Centre of Excellence MT-LAB, t he Sino-Danish
+basic research center IDEA4CPS, the regional CREATIVE proj ect ESTASE, and
+the EU projects DANSE and DALI.
+
+--- Page 2 ---
+Viewing the application as a collection of (interdependent tasks) various
+scheduling principles may be applied to coordinate the exec ution of tasks in
+order to ensure orderly and eﬃcient usage of resources. Base d on the physical
+process to be controlled, timing deadlines may be required f or the individual
+tasks as well as the overall system. The challenge of schedul ability analysis is
+now concerned with guaranteeing that the applied schedulin g principle(s) ensure
+that the timing deadlines are met.
+The classical method of response time analysis [JP86,Bur94 ] provides an eﬃ-
+cient means for schedulability analysis used in industrial practice: by calculating
+safe upper bounds on the worst case response times (WCRT) of t asks (as solu-
+tions to simple recursive equations) schedulability may be concluded by a simple
+comparison with the deadlines of tasks. However, classical response time analysis
+is only applicable to restricted types of task-sets (e.g. pe riodic arrival patterns),
+and only applicable to applications executing on single pro cessors. Moreover, the
+method is based on conservative assumptions related to exec ution and blocking
+times of tasks [BHK99]. Consequently, the method may falsel y declare deadline
+violations that will never occur during execution.
+Processalgebraicapproaches[BACC+98,SLC06]haveresultedinmanymeth-
+ods for speciﬁcation and schedulability analysis of real-t ime systems. Timed au-
+tomata frameworks are also combined with other tools [BHK+04,BHM09] for
+schedulability and schedule assessment in realistic setti ngs.
+In this paper, we continue our eﬀort in applying real-time mo del checking
+using the tool Uppaal to obtain more exact schedulability analysis for a wider
+class of systems, e.g. task-sets with complex and interdepe ndent arrival patterns
+of task, multiprocessor platforms, etc [DILS10]. In partic ular, we revisit the
+industrial case study of the Herschel-Planck [MLR+10] satellite system. The
+control software of this system – developed by the Danish com pany Terma A/S
+– consists of 32 tasks executing on a single processor system with preemptive
+scheduling, and with access to shared resources managed by a combination of
+priority inheritance and priority ceiling protocols. Unfo rtunately, though falling
+into the class of systems covered by the classical response t ime analysis, this
+method fails to conclude schedulability for the Herschel-P lanck application.
+In our previous work [MLR+10], we “successfully” concluded schedulability
+of the Herschel-Planck application using a more exact analy sis based on the
+timed automata modeling framework for schedulability prob lems of [DILS10]
+and the tool Uppaal. However, the analysis in [MLR+10] is based on the strong
+assumption , that each task has a given and speciﬁc execution time (ET). C learly
+this is an unrealistic assumption. In reality, it can only be guaranteed that the
+executiontimefor(eachexecutionof)task iisinsomeinterval[BCET i,WCET i].
+Inparticular,classicalresponsetimeanalysisaimsatgua ranteeingschedulability
+for intervals [0,WCET i], though unfortunately inconclusive for the Herschel-
+Planck control software. On the other hand the guarantee of s chedulability in
+[MLR+10] only applies to (unrealistic) singleton intervals [WCE Ti,WCET i].
+Both works consider systems with preemptive scheduling and our timed au-
+tomata models are using stop-watches. In addition this work deals with non-
+2
+
+--- Page 3 ---
+f=BCET
+WCET: 0-71% 72-86% 87-90% 90-100%
+Symbolic MC: maybe maybe n/a Safe
+Statistical MC: Unsafe maybe maybe maybe
+Table 1: Summary of schedulability of Herschel-Planck conc luded using symbolic
+and statistical model checking.
+deterministic computation times as well as dependencies be tween task due to re-
+sources,thus schedulability of the resulting task model is undecidable [FKPY07].
+Our solution will be to consider a combination of well-known model check-
+ing techniques to obtain some guarantee on schedulability e ven in the pres-
+ence of undecidability. Concretely, we revisit the schedul ability problem for
+the Herschel-Planck software, with execution time interva ls of the general form
+[BCET i,WCET i], with BCET i≤WCET i. Two model checking methods of Up-
+paalare applied for the schedulability analysis: classical (zo ne-based) symbolic
+model checking (MC) and statistical model checking (SMC). T he core idea of
+SMC[LDB10,YS06,SVA04,KZH+09] is to randomly generate simulations of the
+system and verify whether they satisfy a given property. The results are then
+used by statistical algorithms in order to compute among oth ers an estimate of
+the probability for the system to satisfy the property. Such estimate is correct
+up to some conﬁdence that can be parameterized by the user. Se veral SMC al-
+gorithms that exploit a stochastic semantics for timed auto mata have recently
+been implemented in Uppaal [DLL+11a,DLL+11b,BDL+12].
+Symbolic MC allows to conclude schedulability – i.e. absenc e of deadline vio-
+lations – for varying sizes of BCET, though with the size of th e (symbolic) state-
+space and the overall veriﬁcation time increasing signiﬁca ntly with an increase in
+the size of the intervals [BCET i,WCET i]. Moreover, the symbolic MC technique
+is over-approximate due to the presence of stop-watches nee ded to encode pre-
+emption. Thus, symbolic MC can not be used for disproving schedulability. As a
+remedy, we show how statistical MC may be used to generate con crete counter
+examples witnessing non-schedulability. The new results o btained for Herschel-
+Planck are rather interesting as can be seen from the summary Table 1: when
+BCET
+WCET≥90% symbolic MC conﬁrms schedulability, whereas statistic al MC dis-
+proved schedulability forBCET
+WCET≤71%. ForBCET
+WCET∈(71%,90%) both methods
+are inconclusive either due to the over-approximation indu ced by the symbolic
+approach or to a burden in computation time. In addition, we a pply statistical
+MC to obtain more informative performance analysis, e.g. ex pected response
+times when the system is schedulable as well as estimation of the probability of
+deadline violation when the system is not schedulable.
+2 Modeling
+This section introduces the modeling framework that will be used through the
+rest of the paper. We start by presenting the generic feature s of the framework
+3
+
+--- Page 4 ---
+through a running example. Then, we brieﬂy indicate the key a dditions in mod-
+eling the Herschel-Planck application, leaving details to be found in [MLR+10].
+We consider a Running Example , that builds on instances from a library of
+three types of processes represented with timed automata te mplates in Uppaal:
+(1) preemptive CPU scheduler, (2) resource schedulers that can use either pri-
+ority inheritance, or priority ceiling protocols, and (3) p eriodically schedulable
+tasks. In what follows, we use broadcast channels in entire m odel which means
+that the sender cannot be blocked and the receiver can ignore it if it is not ready
+to receive it. Derivative notation like x’==especiﬁes whether the stop-watch x
+is running, where eis an expression evaluating to either 0or1. By default all
+clocks are considered running, i.e. the derivative is 1.
+For simplicity, we assume periodic tasks arriving with peri odPeriod[id] ,
+with initial oﬀset Offset[id] , requesting a resource R[id], executing for at
+least best case execution time BCET[id] and at most worst case execution time
+WCET[id] and hopefully ﬁnishing before the deadline Deadline[id] , whereid
+is a task identiﬁer. The wall-clock time duration between ta sk arrival and ﬁn-
+ishing is called response time, it includes the CPU executio n time as well as any
+preemption or blocking time.
+Figure 1a shows the Uppaal declaration of the above mentioned param-
+eters for three tasks (number of tasks is encoded with consta ntNRTASK) and
+one resource (number of resources is encoded with constant NRRES). Thetaskt
+type declaration says that task identiﬁers are integers ran ging from 1 to NRTASK.
+Similarly the resttype declares resource identiﬁer range from 1 to NRRES.
+Parameters Period,Offset,WCET,BCET,Deadline andRare represented with
+integer arrays, one element per each task. Figure 1b shows a s imple periodic task
+template which starts in Starting location, waits for the initial oﬀset to elapse
+and then moves to Idlelocation. The task arrival is marked by a transition
+to aReadylocation which signals the CPU scheduler that it is ready for execu-
+tion. Then location Computing corresponds to busy computing while holding the
+resource and Release is about releasing the resources and ﬁnishing. The period-
+icity of a task is controlled by constraints on a local clock p: the task can move
+fromIdletoReadyonly when p==Period[id] and then pis reset to zero to
+mark the beginning of a new period. Upon arrival to Ready, other clocks are also
+reset to zero: cstarts counting the execution time, rmeasures response time and
+uxis used to force the task progress. The invariant on location Readysays that
+the task execution clock cdoes not progress ( c’==0) and it cannot stay longer
+than zero time units ( ux<=0) unless it is not running ( ux’==runs[id] ). The
+task also cannot progress to location Computing unless the CPU is assigned to it
+(runs[id] becomes true). When the CPU is assigned, the task will be forc ed to
+urgently request a resource and move on to Computing , where the computation
+time (valuation of c) increases only when it is marked as running ( runs[id] is
+true). The task can stay in Computing for at most worst case execution time
+(c<=WCET[id] ), cannot leave before best case execution time ( c>=BCET[id] ),
+but can be preempted by setting runs[id] to0. If the resource is not granted
+then the resource scheduler is responsible for blocking the task from using the
+4
+
+--- Page 5 ---
+☎
+constintNRTASK = 3; // # of tasks
+constintNRRES = 1; // # of resources
+typedef int [1, NRTASK] task t;
+typedef int [1, NRRES] res t;
+constintf=80;// fraction of WCET, in %
+intPeriod[task t] = {100, 100, 100 };
+intOﬀset[task t] = {20, 0, 10 };
+intWCET[task t] ={15, 25, 40 };
+intBCET[task t] = {WCET[1] /B6f/100,
+WCET[1] /B6f/100, WCET[1] /B6f/100};
+intDeadline[task t] ={20, 40, 70 };
+rest R[task t] = {1, 1, 1 };
+intP[taskt] ={3, 2, 1 };// priorities
+boolruns[task t] ={0, 0, 0 };
+boolerror = false;// global variable✝ ✆
+(a) Task parameters.error=1p=Period[id]
+ux=0, c=0c=0, r=0
+p=0, c=0, r=0, ux=0runs[id] &&
+p<=Deadline[id]
+runs[id] &&
+c>=BCET[id] &&
+p<=Deadline[id]error=1p==Period[id]
+error=1p>Deadline[id]
+ReleaseStarting
+ComputingErrorc'==0 &&
+ux'==runs[id] 
+&& ux<=0
+ux'==runs[id]
+&& ux<=0p<=Offset[id] &&
+c'==0 && r'==0
+Ready
+c'==runs[id] &&
+c<=WCET[id]p<=Period[id] &&
+c'==0 &&
+r'==0Idle p==Offset[id]
+request[CPU][id]!release[CPU][id]!
+release[R[id]][id]!runs[id]
+p>Deadline[id]p>Deadline[id]
+request[R[id]][id]!
+(b) Task template.
+Fig.1: Task parameter declaration and its stop-watch autom aton template.
+CPU. If the deadline is not violated ( p<=Deadline[id] ) then the task can move
+on toRelease and similarly complete to Idle. Notice that task competes for
+resources in locations Ready,Computing andRelease and it will move to Error
+location if the deadline is exceeded ( p>Deadline[id] ).
+The CPU scheduler is equipped with a task queue qsorted by task priori-
+tiesP[t], wheretis a task identiﬁer and taskvariable holding the currently
+running task identiﬁer. Function front(q) always returns the highest priority
+task identiﬁer in the qqueue. Figure 2a shows a CPU template which alternates
+betweenFreeandOccupied locations.
+When a request[CPU][t] arrives, the requesting task tis put into the
+queue and the CPU is being rescheduled. This is done either by immediate
+grant[CPU][task] and marking that the task is running runs[task]=true , or
+via preemption of the currently running task of lower priori ty, or simply return-
+ing toOccupied if the highest priority task in the queue is not higher than
+currently running. When a release[CPU][t] arrives, the requesting task tis
+de-queued, marked as not running ( runs[t]=false ), and the CPU is granted
+to the next highest priority task in the queue (if the queue is not empty). We
+useUppaal committed locations (encircled with C) for uninterrupted (atomic)
+transitions, thus FreeandOccupied are the only locations where the time can
+pass. In addition, the scheduler is equipped with usagestop-watch: usageis
+stopped by invariant usage’==0 at location Freeand is running with default
+rate of1in location Occupied , hence its valuation computes the CPU usage.
+A resource scheduler shown in Fig. 2b is equipped with its own waiting queue
+w. It operates in a similar way as CPU scheduler, that is by alte rnating between
+5
+
+--- Page 6 ---
+runs[task]=trueruns[task]=false,
+task=front(q)
+enqueue(q, t)task=0
+runs[t]=false,
+dequeue(q, t)task=front(q)request[CPU][t]?
+enqueue(q,t),
+task=front(q)usage'==0
+t:task_tP[front(q)]>P[task]
+t:task_tt:task_t
+release[CPU][t]?Free
+Occupied
+P[front(q)]<=P[task]empty(q)
+!empty(q)
+request[CPU][t]?grant[CPU][task]!preempt[task]!
+(a) Preemptive CPU scheduler.request[CPU][front(w)]!
+release[id][t]?
+request[id][t]?
+tid=t,
+enqueue(w, tid),
+boostP(id, tid) release[CPU][tid]!enqueue(w,t),
+task=front(w),
+lockInh(id, task)
+unlockInh(id, t),
+dequeue(w, t)Unblock
+BlockOccupiedrequest[id][t]?
+runs[tid]!empty(w)empty(w)Free
+t:task_t
+t:task_ttask=front(w),
+lockInh(id, task)t:task_t
+(b) Resource using priority inheritance.
+Fig.2: Schedulers for active and passive resources.
+FreeandOccupied . The main diﬀerence is that a resource cannot be preempted
+once it is locked. The locking operations follow the priorit y inheritance protocol
+implemented in functions lockInh(res,task) ,unlockInh(res,task) . Opera-
+tionboostP(res,task) raises the priority of the resource resowner to higher
+level than the requesting task. Figure 3 shows the listing of Uppaal code im-
+plementing the priority inheritance protocol.
+☎
+/ /B6/B6Boost the priority of resource owner based on priority inheritance protocol: /B6/
+voidboostP(res t res, task t task) {
+if(P[owner[res]] <= defaultP(task)) {
+P[owner[res]] = defaultP(task)+1;
+sort(q); // sorts the queue by descending priorities
+}
+}
+/ /B6/B6Lock the resource based on priority inheritance protocol: /B6/
+voidlockInh(res t res, task t task) {
+owner[res] = task; // mark the resource as occupied by the task
+}
+/ /B6/B6Unlock the resource based on priority inheritance protocol: /B6/
+voidunlockInh(res t res, task t task) {
+owner[res] = 0; // mark the resource as released
+P[task] = defaultP(task); // return to default priority
+}✝ ✆
+Fig.3: Data and function declarations
+Similarly to priority inheritance scheduler, we can also mo del priority ceiling
+protocol by suitable modiﬁcation of the locking functions.
+Herschel. In this paper, we will also consider a large, industrial case study:
+the schedulability analysis of the control software of the H erschel satellite. This
+case study, which will seriously challenge the capabilitie s ofUppaal, uses the
+6
+
+--- Page 7 ---
+Table 2: Summary of schedulability of the Running Example example concluded
+usingsymbolicandstatisticalMCforvaryingsizesofcompu tationtimeintervals.
+f=BCET
+WCET0-79% 80-83% 84-100%
+Symbolic MC: maybe maybe Safe
+Statistical MC: Unsafe maybe maybe
+same basic stop-watch modeling principles as in the Running Example described
+above. The Herschel model consists of 32 tasks sharing 6 reso urces using two
+protocols (priority inheritance and priority ceiling). Am ong these tasks, 24 are
+periodic3, while 8 are triggered in a sequence. Additionally, tasks us e multiple
+resources in a sequence, thus the sequence between IdleandRelease of ac-
+quiring and releasing resources is more reﬁned. As an optimi zation, the resource
+sharing and blocking is built into tasks to alleviate the nee d for task queues. We
+refer the reader to [MLR+10] for more details.
+3 Symbolic Safety Analysis
+In this section we apply the classical zone-based symbolic r eachability engine of
+Uppaal to verify schedulability. As we are considering systems wit h preemptive
+scheduling our models will be using stop-watches. With the a ddition of having
+non-deterministic computation times – i.e. computation intervals – as well as
+dependencies between task due to resources, schedulabilit y of the resulting task
+model is undecidable as a consequence of the results of [FKPY 07]. In this case,
+the analysis provided by Uppaal is over-approximate, guaranteeing that safety
+properties established are valid properties of the system b ut leaving reachability
+properties to be possibly spurious.
+Running Example AsdetailedinSection2,ourrunningexampleconsistsofthr ee
+tasks with WCET times being 15 ,25,40, deadlines 20 ,40,70 and with one single
+resource shared by the three tasks. In Table 2 the result of ap plying symbolic
+MC with respect to the safety property
+A[] !error
+is given. Here erroris a Boolean being set whenever a task misses its deadline
+(see Figure 1b). Thus this property expresses absence of dea dline violations
+(i.e. schedulability), and is conﬁrmed (within 0 .06s) for computation intervals
+[f·WCET,WCET] with f≥84%. For f <84%, the over-approximate analysis
+ofUppaal returns symbolic counter-example traces indicating possi ble deadline
+violations for task T(1). However, these may be spurious.
+In addition to schedulability, we may obtain upper bounds on the WCRTs
+of the three tasks by posing the the query
+3In actual system 16 of them are sporadic, but we model them as pe riodic to limit
+non-determinism.
+7
+
+--- Page 8 ---
+sup: T(1).r, T(2).r, T(3).r
+whereT(i).ris a stopwatch running whenever the task T(i)is not idle. Again
+the results fall in two classes: for computation intervals [ f·WCET,WCET] with
+f≥84% the WCRTs are 20 ,40,70 and for f <84% the WCRTs are 55 ,40,70,
+again indicating the possibility of deadline violation for taskT(1).
+Finally, using an additional stopwatch usage, which is only stopped when the
+CPU is free (and reset for each 2000 time-units) the query sup: usage returns
+the value 1600, providing 80% (= 1600 /2000) as an upper bound of the CPU
+utilization.
+Herschel. Applying in a similar manner symbolic MC to the Herschel case se-
+riously challenges the engine of Uppaal, due to the the explosion in the size
+symbolic state-space with the increase of the size of the com putation time in-
+tervals. In fact, to avoid the analysis to run out of memory we have applied the
+so-called sweep-line method.
+Table 3 provides a summary of the eﬀort spent in verifying the model. We
+started veriﬁcation with model-time limited instances to g et an impression of
+resources need to verify the model and once we gained enough c onﬁdence we
+increased the limit, thus the results are sorted by the model -time limit. The
+deterministic case of f= 100% is relatively cheap and even unlimited case is
+veriﬁable within three hours. Important insight here is tha t the veriﬁcation time
+correlates linearly with the limit and the unlimited case se ems to correlate with
+156cycleswhichistheleastcommonmultipleofalltaskperi ods.Sogivenenough
+time we managed to verify down to f= 90% where the resource consumption
+is increased drastically to more than 6 days. Finally, the mo del-checker indicate
+a (possibly spurious) deadline violation for the case f= 86% after a little bit
+more than 4 days.
+Table 3: Veriﬁcation statistics for diﬀerent task executio n time windows and
+explorationlimits:thepercentagedenotesdiﬀerencebetw eenWCETandBCET,
+limit is in terms of 250ms cycles ( ∞stands for no limit, i.e. full exploration),
+memory in MB, time in hours:minutes:seconds.
+limit f= 100% f= 95% f= 90% f= 86%
+cyclestates mem time states mem time states mem time states mem time
+10.001 51.2 1.47 0.5 83.0 15:03 1.5 124.1 1:22:43 3.3 186.9 6:39:47
+20.003 53.7 2.45 0.8 96.8 27:00 2.4 139.7 2:09:15 5.3 198.7 9:14:59
+40.005 54.5 4.62 1.5 97.2 48:02 4.4 138.3 3:48:40 9.2 274.6 14:12:57
+80.010 54.7 8.48 2.8 97.8 1:28:45 9.1 156.5 8:38:42 18.2 364.6 28:35:32
+160.020 55.3 16.11 5.4 112.0 2:45:52 17.8 176.0 16:42:05 35.4 520.4 44:06:57
+∞0.196 58.8 2:39.64 52.7 553.9 27:05:07 181.9 1682.2 147:23:25 pos.unsafe 99:07:56
+Since symbolic MC proves that f= 90% case is safe, we also computed
+WCRT upper bounds. Table 4 compares the Uppaal bounds on WCRTs with
+the bounds from classical response time analysis performed by Terma A/S. In
+particular Terma A/S found that PrimaryF task (#21) might violate its deadline
+even though this violation has never been observed neither i n simulations nor in
+8
+
+--- Page 9 ---
+system deployment, whereas the bound provided by Uppaal is still within the
+deadline, thus (re)conﬁrming schedulability.
+Table 4: Speciﬁcation and worst-case response-times of ind ividual tasks.
+Speciﬁcation WCRT
+IDTask Period WCET Deadline Termaf= 100% f= 95%f= 90%
+1RTEMS RTC 10.000 0.013 1.000 0.050 0.013 0.013 0.013
+2AswSync SyncPulseIsr 250.000 0.070 1.000 0.120 0.083 0.083 0.083
+3HkSamplerIsr 125.000 0.070 1.000 0.120 0.070 0.070 0.070
+4SwCyc CycStartIsr 250.000 0.200 1.000 0.320 0.103 0.103 0.103
+5SwCyc CycEndIsr 250.000 0.100 1.000 0.220 0.113 0.113 0.113
+6Rt1553 Isr 15.625 0.070 1.000 0.290 0.173 0.173 0.173
+7Bc1553 Isr 20.000 0.070 1.000 0.360 0.243 0.243 0.243
+8SpwIsr 39.000 0.070 2.000 0.430 0.313 0.313 0.313
+9ObdhIsr 250.000 0.070 2.000 0.500 0.383 0.383 0.383
+10RtSdbP1 15.625 0.150 15.625 4.330 0.533 0.533 0.533
+11RtSdbP2 125.000 0.400 15.625 4.870 0.933 0.933 0.933
+12RtSdbP3 250.000 0.170 15.625 5.110 1.103 1.103 1.103
+13(no task, this ID is reserved for priority ceiling)
+14FdirEvents 250.000 5.000 230.220 7.180 5.553 5.553 5.553
+15NominalEvents 1250.000 0.720 230.220 7.900 6.273 6.273 6.273
+16MainCycle 250.000 0.400 230.220 8.370 6.273 6.273 6.273
+17HkSampler P2 125.000 0.500 62.500 11.960 5.380 7.350 8.153
+18HkSampler P1 250.000 6.000 62.500 18.460 11.615 13.653 14.153
+19AcbP 250.000 6.000 50.000 24.680 6.473 6.473 6.473
+20IoCycP 250.000 3.000 50.000 27.820 9.473 9.473 9.473
+21PrimaryF 250.000 34.050 59.600 65.47 54.115 56.382 58.586
+22RCSControlF 250.000 4.070 239.600 76.040 53.994 56.943 58.095
+23ObtP 1000.000 1.100 100.000 74.720 2.503 2.513 2.523
+24HkP 250.000 2.750 250.000 6.800 4.953 4.963 4.973
+25StsMon P 250.000 3.300 125.000 85.050 17.863 27.935 28.086
+26TmGen P 250.000 4.860 250.000 77.650 9.813 9.823 9.833
+27SgmP 250.000 4.020 250.000 18.680 14.796 14.880 14.973
+28TcRouter P 250.000 0.500 250.000 19.310 11.896 11.906 14.442
+29CmdP 250.000 14.000 250.000 114.920 94.346 99.607 101.563
+30NominalEvents 2250.000 1.780 230.220 102.760 65.177 69.612 72.235
+31SecondaryF 1 250.000 20.960 189.600 141.550 110.666 114.921 122.140
+32SecondaryF 2 250.000 39.690 230.220 204.050 154.556 162.177 165.103
+33BkgndP 250.000 0.200 250.000 154.090 15.046 139.712 147.160
+4 Statistical Analysis
+In the previous section, we observed that symbolic MC can be u sed to conclude
+schedulability, but not to disprove it. This is reﬂected in t he ﬁrst line of Table 1
+wherethereisawiderangeofvaluesof fforwhichsymbolicMCcannotconclude
+due to the potential presence of spurious counterexamples. In this section, we
+introduce SMC, a technique that we consider here to be the dua l of symbolic
+MC. Namely, SMC can be used to disprove schedulability, but n ot to conclude
+it.
+Concretelly, SMC is a simulation-based approach whose core objective is to
+estimate the probability for a system to satisfy a property b y simulating and
+observing some of its executions, and then apply statistica l algorithms to obtain
+9
+
+--- Page 10 ---
+the result. SMC is parameterized by two parameters: a conﬁdence interval size
+on the estimate of the probability and a conﬁdence level on the probability that
+the answer returns by methodology is correct. In terms of sch edulability, SMC
+will thus be useful to generate concrete counterexample but cannot be used to
+conclude schedulability.
+SeveralSMCalgorithmshaverecentlybeenimplementedin Uppaal [DLL+11b].
+In this section, we will show how this implementation can be u sed not only to
+prove schedulability, but also to observe and reason on the e xecution of tasks.
+The latter will be done by exploiting the simulation engine a nd various informa-
+tions displayed by the GUI of the tool.
+SMC relies on the assumption that the dynamic of the system is entirely
+stochastic. In [DLL+11a,DLL+11b], we have proposed a reﬁned stochastic se-
+mantic for timed automata that associates probability dist ributions to both the
+time-delays spend in a given state as well as to the transitio n between states. In
+this semantics timed automata components repeatedly race a gainst each other,
+i.e. they independently and stochastically decide on their own how much to de-
+lay before outputting, with the “winner” being the componen t that chooses the
+minimum delay. Our stochastic schedulability model exploi ts the semantic of
+[DLL+11a,DLL+11b] as it assumes the execution time of the task to be picked
+uniformly in the interval [ f·WCET i,WCET i].
+In the rest of this section, we shall see how the SMC approach c an be used
+to generate a witness traces when concluding that the system is not schedulable
+with a probability greater than 0. We will also illustrate ho w the SMC engine
+ofUppaal can evaluate the probability to reach a state violating a dea dline.
+Finally, and not to be underestimated, we will show how the GU I of theUppaal
+tool can be exploited to give quantitative feedback to the us er on, e.g., blocking
+time, CPU usage, distribution of response time.
+Running Example. Table 5 shows the query used to evaluate the probability
+of violating a deadline for runs bounded by 200 time units and the results for
+diﬀerent values of f. We check only for cases when the symbolic model-checker
+reports that deadlines maybe violated to generate a witness with SMC. The
+SMC technique gives results with certain levels of conﬁdenc e and precision, i.e.,
+the actual result is an interval. However, if the lower bound is strictly positive, it
+guarantees that the checker did ﬁnd witnesses. The case f= 80% is interesting
+because it seems to be a spurious result from the symbolic mod el-checker. In
+fact we can do hypothesis testing to get a more precise result more cheaply. The
+model-checker accepts the hypothesis Pr[<=200](<> error) <= 0.00001 with
+1% signiﬁcance level in 25s. As summarized in line 2 of Table 1 SMC allow to
+conclude unschedulability for f≤79%.
+Table 5: Probability of error estimation with 1% level of sig niﬁcance.
+f 50% 70% 79% 80%
+Pr[<=200](<> error) [0.847,0.858] [0.604,0.615] [0.301,0.312] [0,0.005]
+10
+
+--- Page 11 ---
+Wecanvisualizetraces(andinspectwitnessesofdeadlinev iolation)byasking
+the checker to generate random simulation runs and visualiz e the value of a
+collection of expressions as a function time in a Gantt chart . In addition, we can
+ﬁlter these runs and only retain some that reach some state, h ere the error state.
+This is done with the following query producing the plot in Fi g. 4b:
+simulate 1000 [<=300] {
+(T(1).Ready+T(1).Computing+T(1).Release+runs[1]-2*T(1).Error)+6,
+(T(2).Ready+T(2).Computing+T(2).Release+runs[2]-2*T(1).Error)+3,
+(T(3).Ready+T(3).Computing+T(3).Release+runs[3]-2*T(1).Error)+0
+} :1: error
+If the ﬁltering (“ :1:error ”) is omitted, the plot contains all the runs, and for
+clarityjustasingleofthemisdisplayedinFig.4a.Asaresu lttheplotencodesthe
+T3T2T1
+timevalue
+02.04.06.08.0
+0 34 68102 136 170 204 238 272 306
+(a) Normal run using f= 80.
+T3T2T1
+timevalue
+02.04.06.08.0
+0 26 52 78104 130 156 182 208 234
+(b) Failed run using f= 79.
+Fig.4: Visualization of runs as a Gantt chart. The chart show s an encoding of
+the state with diﬀerent weights corresponding to steps of di ﬀerent heights.
+task states (idle, ready, running or error) in the level of th e curve. For example,
+Figure 4a shows that T2becomes ready and running starting from 0 time. At 10
+taskT3becomes ready, but is not running. Then at 20 task T1becomes ready
+and becomes running by preempting T2but then it immediately gives up the
+running status (due to resource blocking) and resumes by pre emption when T2
+releases the resource. At this point T2is not ﬁnished yet and will be able to
+ﬁnish only when T1ﬁnishes and releases the CPU, hence there is a small spike
+just before going to idle state. The lowest priority task T3has a chance to run
+and ﬁnish only when both T1andT2are done. Figure 4b is interpreted similarly,
+where the task T1violates its deadline because T3managed to get the resource
+beforeT1and thus T1was blocked from ﬁnishing.
+11
+
+--- Page 12 ---
+More insight on the behavior of the tasks is gained by estimat ing expected
+response times using the queries:
+E[<=200; 50000] (max: T(1).r)
+E[<=200; 50000] (max: T(2).r)
+E[<=200; 50000] (max: T(3).r)
+The result is the response time averages respectively: 16.9 6, 36.96 and 63.65 time
+units. In addition tool provides the probability densities shown in Figures 5. The
+plots show the eﬀect of priority inversion on the higher prio rity tasks that may
+be delayed by the lower priority task.
+max: Task[1].rprobability density00.0120.0240.036
+0 10 20304050
+(a) Task T1.max: Task[2].rprobability density00.0200.0400.060
+0 8 16243240
+(b) Task T2.max: Task[3].rprobability density00.0110.0220.033
+0 13 26395265
+(c) Task T3.
+Fig.5: Response time distributions for the diﬀerent tasks w henf= 0.
+Theresponseof T1goesbeyondthedeadlinefor f= 0%,thusweevaluatethe
+shapes of response time distributions for various fvalues in Fig. 6. Surprisingly
+there is a sharp contrast between f= 79% (unsafe for sure) and f= 80% which
+does not seem to exhibit the error and responds within 20 time units. This
+worst response time is more optimistic than the case f= 83% from symbolic
+analysis, which suggests that the symbolic analysis most pr obably is not exact
+forf∈[80,83]. Figure 6a is an intermediate result between f= 0% (Fig. 5a)
+andf= 79% where the two seemingly normal “hills” are wide enough t o meet
+each other, thus Fig. 5a is the result of two “hills”: one from safe responses and
+the other slipped beyond a safety threshold but they are over lapping so tightly
+that this fact is hardly evident in Fig. 5a.
+max: Task[1].rprobability density00.0160.0320.048
+8 19 304152
+(a)f= 50% (not safe).max: Task[1].rprobability density00.050.100.15
+11 19 27354351
+(b)f= 79% (not safe).max: Task[1].rprobability density00.090.180.27
+12.3 16.1 19.9
+(c)f= 80% (seem OK).
+Fig.6: Response time distributions for Task T1using various fratios.
+Herschel. We generalize this methodology to our more complex Herschel case-
+study to conﬁrm deadline violations and to study performanc e.
+12
+
+--- Page 13 ---
+Table 6: Results of Herschel statistical model-checking.
+Limit f SMC parameters Total Error traces Earliest Error Veriﬁcation
+cycles % α ε traces, # # Probability cycle oﬀset time
+1 0 0.0100 0.005 105967 1928 0.018194 0 79600.0 1:58:06
+1 50 0.0100 0.005 105967 753 0.007106 0 79600.0 2:00:52
+1 60 0.0100 0.005 105967 13 0.000123 0 79778.3 2:01:18
+1 62 0.0005 0.002 1036757 34 0.000033 0 79616.4 19:52:22
+160 63 0.0100 0.05 1060 177 0.166981 0 81531.6 2:47:03
+160 64 0.0100 0.05 1060 118 0.111321 1 79803.0 2:55:13
+160 65 0.0500 0.05 738 57 0.077236 3 79648.0 2:06:55
+160 66 0.0100 0.05 1060 60 0.056604 2 82504.0 2:62:44
+160 67 0.0100 0.05 1060 26 0.024528 1 79789.0 2:64:20
+160 68 0.0100 0.05 1060 3 0.002830 67 81000.0 2:67:08
+640 69 0.0100 0.05 1060 8 0.007547 114 80000.0 12:23:00
+640 70 0.0100 0.05 1060 3 0.002830 6 88070.0 12:30:49
+1280 71 0.0100 0.05 1060 2 0.001887 458 80000.0 25:19:35
+Table 6 shows the results when we vary the execution time to be in the
+interval [ f·WCET,WCET]. The table shows the probabilities in function of
+this factor fand statistical parameters α(1−αis the conﬁdence level) and
+εthe size of the conﬁdence interval of the probability. Askin g for more precise
+results yields more traces at the cost of time. At ﬁrst we limi ted the search to
+just one cycle of 250ms, but then at the point of f= 62% the errors are rarely
+found even with high conﬁdence and many runs. Then we increas ed the limit
+which increased our chances of ﬁnding the errors, we were luc ky to ﬁnd some
+errors as early as in the ﬁrst cycle. Most of the errors are fou nd quite early (cases
+wheref <68), but for smaller time-windows it is much harder to ﬁnd and the
+few found ones are quite far in the run. Eventually the search took more than a
+day to ﬁnd only a few error instances for f= 71%, hence we stopped here.
+max: WCRT[21]count
+040080012001600
+5.106E4 5.282E4
+Fig.7: Response times.Similarly to Fig. 5, response times for the most
+stressed task PrimaryF are estimated by generat-
+ing 2000 probabilistic runs limited to 156 cycles
+for the safe case of f= 90%. The vast majority
+(1787) of instances responded before 51093.3 and
+the rest is distributed about evenly (see Fig. 7).
+The worst found response time was of 52851.2
+which is signiﬁcantly lower than bound of 58586.0
+found by symbolic MC in Table 4. The computa-
+tion for this model took 17.6 hours.
+Fig. 8a shows an overview chart of all 32 tasks during the ﬁrst 85ms. Each
+task can be identiﬁed by its base level 3*ID, thus PrimaryF with ID=21 is at
+63.PrimaryF starts with an oﬀset of 20ms and it has to ﬁnish before a deadli ne
+of 59.6ms. Under safe conditions of f= 90%PrimaryF ﬁnishes before 70500 µs
+(Fig. 8a) but with f= 50% it fails at 79828 .3µs(Fig. 8b).
+5 Conclusion
+In this paper, we have applied both symbolic MC and statistic al MC to schedu-
+lability analysis. In particular, we have demonstrated tha t the complementary
+13
+
+--- Page 14 ---
+timevalue
+0102030405060708090100
+0 1.2E4 2.4E4 3.6E4 4.8E4 6E4 7.2E4 8.4E4
+(a) A successful run with f= 90 (PrimaryF at level 63).
+T14T15T16T21T22T30
+timevalue
+03691215
+0 1.1E4 2.2E4 3.3E4 4.4E4 5.5E4 6.6E4 7.7E4
+(b) Selected processes of a simulation run with f= 50%, where PrimaryF (taskT21at
+level 9) violates a deadline.
+Fig.8: The ﬁrst 85ms of Herschel model simulation runs.
+qualities of the two methods allow to conclusively conﬁrm as well as disprove
+schedulability for a wide range of cases. This is an impressi ve result as the prob-
+lem is known to be undecidable. In addition we have illustrat ed how the user
+can beneﬁt from the Uppaal features in plotting, observing and reasoning about
+task executions, and hence improving the modeling process. We also believe that
+the combination of symbolic MC and statistical MC will prove highly useful in
+analyzing systems with mixed critically, i.e. systems cont aining tasks with hard
+timing constraints as well as soft, where the timing constra ints are permitted to
+be violated occasionally.
+References
+BACC+98. Hanene Ben-Abdallah, Jin-Young Choi, Duncan Clarke, You ng Si Kim,
+Insup Lee, and Hong-Liang Xie. A process algebraic approach to the
+schedulability analysis of real-time systems. Real-Time Systems , 15:189–
+219, 1998. 10.1023/A:1008047130023.
+BDL+12. Peter E. Bulychev, Alexandre David, Kim Guldstrand Larsen, Axel Legay,
+Marius Mikuˇ cionis, and Danny Bøgsted Poulsen. Checking and d istribut-
+14
+
+--- Page 15 ---
+ing statistical model checking. In NASA Formal Methods , volume 7226 of
+Lecture Notes in Computer Science , pages 449–463. Springer, 2012.
+BHK99. Steven Bradley, William Henderson, and David Kendall. Us ing timed au-
+tomata for response time analysis of distributed real-time s ystems. In Sys-
+tems ,” in 24th IFAC/IFIP Workshop on Real-Time Programming W RTP
+99, pages 143–148, 1999.
+BHK+04. H.C. Bohnenkamp, H. Hermanns, R. Klaren, A. Mader, and Y.S . Usenko.
+Synthesis and stochastic assessment of schedules for lacquer production. In
+Quantitative Evaluation of Systems, 2004. QEST 2004. Procee dings. First
+International Conference on the , pages 28 – 37, sept. 2004.
+BHM09. Aske Brekling, Michael R. Hansen, and Jan Madsen. Moves – a framework
+for modelling and verifying embedded systems. In Microelectronics (ICM),
+2009 International Conference on , pages 149–152, dec. 2009.
+Bur94. Alan Burns. Principles of Real-Time Systems , chapter Preemptive prior-
+ity based scheduling: An appropriate engineering approach , page 225–248.
+Prentice Hall, 1994.
+DILS10. Alexandre David, Jacob Illum, Kim G. Larsen, and Arne Skou . Model-
+based design for embedded systems. In Gabriela Nicolescu and P ieter J.
+Mosterman, editors, Model-Based Design for Embedded Systems , chapter
+Model-Based Framework for Schedulability Analysis Using UP PAAL 4.1,
+pages 93–119. CRC Press, 2010.
+DLL+11a. Alexandre David, Kim G. Larsen, Axel Legay, Marius Mikuˇ cioni s,
+Danny Bøgsted Poulsen, Jonas Van Vliet, and Zheng Wang. Stati stical
+model checking for networks of priced timed automata. In FORMATS ,
+LNCS, pages 80–96. Springer, 2011.
+DLL+11b. Alexandre David, Kim G. Larsen, Axel Legay, Zheng Wang, and Ma rius
+Mikuˇ cionis. Time for real statistical model-checking: Stat istical model-
+checking for real-time systems. In CAV, LNCS. Springer, 2011.
+FKPY07. Elena Fersman, Pavel Krcal, Paul Pettersson, and Wang Yi. Task au-
+tomata: Schedulability, decidability and undecidability .Information and
+Computation , 205(8):1149 – 1172, 2007.
+JP86. Mathai Joseph and Paritosh K. Pandya. Finding response ti mes in a real-
+time system. Comput. J. , 29(5):390–395, 1986.
+KZH+09. J-Pieter Katoen, I. S. Zapreev, E. Moritz Hahn, H. Hermanns, and D. N.
+Jansen. The ins and outs of the probabilistic model checker MR MC. In
+Proc. of 6th Int. Conference on the Quantitative Evaluation o f Systems
+(QEST), pages 167–176. IEEE Computer Society, 2009.
+LDB10. Axel Legay, Benoˆ ıt Delahaye, and Saddek Bensalem. St atistical model
+checking: An overview. In RV, volume 6418 of Lecture Notes in Computer
+Science, pages 122–135. Springer, 2010.
+MLR+10. MariusMikuˇ cionis,KimGuldstrandLarsen,JacobIllumRasm ussen,Brian
+Nielsen, Arne Skou, Steen Ulrik Palm, Jan Storbank Pedersen, and Poul
+Hougaard. Schedulability analysis using uppaal: Herschel- planck case
+study. In Tiziana Margaria, editor, ISoLA 2010 – 4th International Sym-
+posium On Leveraging Applications of Formal Methods, Veriﬁc ation and
+Validation , volume Lecture Notes in Computer Science. Springer, Octobe r
+2010.
+SLC06. Oleg Sokolsky, Insup Lee, and Duncan Clarke. Schedulab ility analysis of
+aadl models. In Parallel and Distributed Processing Symposium, 2006.
+IPDPS 2006. 20th International , page 8 pp., april 2006.
+15
+
+--- Page 16 ---
+SVA04. Koushik Sen, Mahesh Viswanathan, and Gul Agha. Statist ical model
+checking of black-box probabilistic systems. In CAV, LNCS 3114, pages
+202–215. Springer, 2004.
+YS06. H˚ akan L. S. Younes and Reid G. Simmons. Statistical pro babilistic
+model checking with a focus on time-bounded properties. Inf. Comput. ,
+204(9):1368–1409, 2006.
+16

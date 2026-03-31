@@ -1,0 +1,965 @@
+--- Page 1 ---
+Modelling and Verication of Web Services
+Business Activity Protocol
+Anders P. Ravn, Ji r  Srba?, and Saleem Vighio??
+Department of Computer Science, Aalborg University,
+Selma Lagerl ofs Vej 300, DK-9220 Aalborg East, Denmark.
+fapr,srba,vighio g@cs.aau.dk
+Abstract. WS-Business Activity specication denes two coordination
+protocols in order to ensure a consistent agreement on the outcome of
+long-running distributed applications. We use the model checker Uppaal
+to analyse the Business Agreement with Coordination Completion pro-
+tocol type. Our analyses show that the protocol, as described in the stan-
+dard specication, violates correct operation by reaching invalid states
+for all underlying communication media except for the perfect FIFO.
+Based on this result, we propose changes to the protocol. A further in-
+vestigation of the modied protocol suggests that messages should be
+received in the same order as they are sent so that a correct protocol
+behaviour is preserved. Another important property of communication
+protocols is that all parties always reach their nal states. Based on
+the verication with dierent communication models, we prove that our
+enhanced protocol satises this property for asynchronous, unreliable,
+order-preserving communication whereas the original protocol does not.
+1 Introduction
+Numerous protocols from the web services protocol stack [9] are currently in
+active development in order to support communication schemes that guarantee
+consistent and reliable executions of distributed transactions. As applications
+depend on the correctness of these protocols, guarantees about their functionality
+should be given prior to the protocols being put into industrial use. However,
+design and implementation of these protocols is an error-prone process, partly
+because of the lack of details provided in their standards [7, 17]. Therefore, formal
+approaches provide a valuable supplement during the discussion and clarication
+phases of protocol standards. The advantage of formal methods is that automatic
+tools like Uppaal [3] and TLC [7] can be applied to analyse protocol behaviours
+and verify general correctness criteria.
+In this paper we consider the WS-Coordination framework [12] which, among
+others, includes the WS-Atomic Transaction (WS-AT) [10] and WS-Business
+?The author is partially supported by the Ministry of Education of Czech Republic,
+grant no. MSM 0021622419.
+??The author is supported by Quaid-e-Awam University of Engineering, Science, and
+Technology, Nawabshah, Pakistan, and partially by the Nordunet3 project COSoDIS.
+
+--- Page 2 ---
+2 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+Activity (WS-BA) [11] standards. The WS-AT specication provides protocols
+used for simple short-lived activities, whereas WS-BA provides protocols used for
+long-lived business activities. The WS-AT protocol has recently been in focus in
+the formal methods community and its correctness has been veried using both
+the TLC model checker [7] where the protocol was formalized in the TLA+[8]
+language as well as using the Uppaal tool and networks of communicating timed
+automata [15]. In [15], we discussed the key aspects of the two approaches,
+including the characteristics of the specication languages, the performances of
+the tools, and the robustness of the specications with respect to extensions.
+In the present work we analyse the WS-BA standard which (to the best of our
+knowledge) has not yet been automatically veried in the literature. It consists
+of two coordination protocols: Business Agreement with Participant Completion
+(BAwPC) and Business Agreement with Coordinator Completion (BAwCC).
+We focus on BAwCC in our analysis. It is more complex in its behaviour and
+has a larger number of states, transitions and messages than BAwPC. We de-
+velop several Uppaal [3] models related to the WS-BA protocols based on the
+state-tables provided in the standard specication (see [11] or the appendix for
+the complete tables). We use with advantage the C-like constructs available in
+Uppaal and the model of the BAwCC protocol contains more than 600 lines of
+C code. Our tool supported analysis unexpectedly reveals several problems. The
+safety property, that the protocol never enters an invalid state, is checked for
+a range of communication mechanisms. The main result is that the property is
+violated by all considered communication mechanisms but perfect FIFO (queue).
+Based on a detailed analysis of the error traces produced by Uppaal , we
+suggest xes to the protocol. Moreover, in contrast to [7, 15], we do not limit our
+analyses to only one type of asynchronous communication policy where messages
+can be reordered, lost and duplicated, but study dierent communication mech-
+anisms (see e.g. [1]). This fact appears crucial as even the xed protocol behaves
+correctly only for some types of communication media, whereas for others it still
+violates the correctness criteria.
+Another important property of web services applications is that they should
+terminate in consistent end states, irrelevant of the actual behaviour of the other
+participating parties [6]. This kind of property is usually called liveness and
+for most nontrivial protocols it cannot be established without some fairness
+assumptions, such that if a particular transition is innitely often enabled then
+it is also executed. In our setting we use a more engineering-like approach by
+introducing tire-outs (delays before an alternative action is chosen, essentially
+the \execution delay" of ATP [13]) on the resubmission of messages, as this is
+a likely way this situation is handled in practice. Uppaal enables us to specify
+the timing information in a simple and elegant way and our verication results
+show that under suitable timing constraints used for tire-outs, we can guarantee
+the termination property for the xed protocol, at least for the communication
+policies where the protocol is correct.
+The rest of the paper is organized as follows. In Section 2, we give an overview
+of the web services business activity protocol and discuss dierent types of com-
+
+--- Page 3 ---
+Modelling and Verication of Web Services Business Activity Protocol 3
+munication policies. Section 3 introduces the Uppaal modeling approach used
+in the case study. Properties of the original and the xed protocols are dis-
+cussed in Sections 4 and 5. Section 6 describes the termination property and its
+verication. Finally, Section 7 gives a summary and suggestions for the future
+research. The appendix contains a full overview of the state-transition tables of
+the original and modied BAwCC protocol.
+2 WS-Business Activity Protocol
+WS-Business Activity (WS-BA) [11] and WS-Atomic Transaction (WS-AT) [10]
+both built on top of WS-Coordination specication [12] form the Web Ser-
+vices Transaction Framework (WSTF). WS-Coordination describes an extensible
+framework for coordinating transactional web services. It enables an application
+service to create a context needed to propagate an activity to other services and
+to register for coordination protocols. These coordination protocols are described
+in WS-AT and WS-BA specications. WS-AT provides protocols based on the
+ACID (atomicity, consistency, isolation, durability) principle [5] for simple short-
+lived activities, whereas WS-BA provides protocols used for long-lived business
+activities with relaxation of ACID properties.
+WS-BA [11] describes two coordination types: AtomicOutcome and Mixed-
+Outcome. In AtomicOutcome the coordinator directs all participants to the same
+outcome, i.e. either to close or to cancel/compensate. In MixedOutcome some
+participants may be directed to close and others to cancel/compensate. Each of
+these coordination types can be used in two coordination protocols: WS-Business
+Agreement with Participant Completion (BAwPC) and WS-Business Agreement
+with Coordination Completion (BAwCC) that we shall focus on. A participant
+registers for one these two protocols, which are managed by the coordinator of
+the activity.
+2.1 Business Agreement with Coordination Completion
+A state-transition diagram for BAwCC is shown in Figure 1. Note that the gure
+depicts a combined view and the concrete coordinator and participant states are
+abstracted away. The complete transition tables are listed in the appendix.
+A participant registered for this protocol is informed by its coordinator that
+it has received all requests to perform its work and no more work will be re-
+quired. In this version of the protocol the coordinator decides when an activity
+is terminated, so completion notication comes from the coordinator: It sends
+aComplete message to the participant to inform it that it will not receive any
+new requests within the current business activity and it is time to complete the
+processing. The Complete message is followed by the Completed message by the
+participant, provided it can successfully nish its work. This protocol also in-
+troduces a new Completing state between Active andCompleted states. Once the
+coordinator reaches the Completed state, it can reply with either a Close or a
+Compensate message. A Close message informs the participant that the activity
+
+--- Page 4 ---
+4 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+Active Completing Completed Closing Ended
+Compensating
+Failing
+CancelingExitingNotCompleting
+Complete Completed Close ClosedExit
+ExitCannotComplete
+CannotCompleteExitedNotCompleted
+Exit
+Compensate
+FailCompensated
+Failed
+Fail
+CanceledFailFail
+CancelCancel
+Coordinator generated Participant generated
+Fig. 1. Business Agreement with Coordinator Completion
+has completed successfully. A participant then sends a Closed notication and
+forgets about the activity. Upon receipt of a Closed notication the coordinator
+knows that the participant has successfully completed its work and forgets about
+the participant's state.
+ACompensate message, on the other hand, instructs the participant to undo
+the completed work and to restore the recorded data to its initial state. A partic-
+ipant in response can either send a Compensated or a Failnotication. The Com-
+pensated message informs the coordinator that the participant has successfully
+compensated its work for the business activity, the participant then forgets about
+the activity and the coordinator forgets about the participant. Upon receipt of
+aFailmessage, the coordinator knows that the participant has encountered a
+problem and has failed during processing of the activity. The coordinator then
+replies with a Failed message and forgets about the state of the participant. The
+participant in turn also forgets about the activity. A participant can also send
+CannotComplete orExitmessages while being in Active , orCompleting states. A
+CannotComplete notication informs the coordinator that the participant can
+not successfully complete its work and any pending work will be discarded and
+completed work will be canceled. The coordinator replies with a NotCompleted
+message and forgets about the state of the participant. The participant also
+
+--- Page 5 ---
+Modelling and Verication of Web Services Business Activity Protocol 5
+forgets about the activity in turn. In case of an Exitmessage the coordinator
+knows that the participant will no longer engage in the business activity and
+the pending work will be discarded and any work performed will be canceled.
+The coordinator will reply with the Exited message and will forget about the
+participant. The participant will also forget about the activity. In Active and
+Completing states the coordinator can end a transaction by sending a Cancel
+message. A participant can either reply with a Canceled or a Failnotication. A
+Canceled message informs the coordinator that the work has been successfully
+canceled and then the participant forgets about the activity.
+2.2 Communication Policies
+FIFOBAGSTUTT-FIFO
+LOSSY-FIFOSET
+Fig. 2. Communication mediaThe WS-BA specication is not explicit about
+the concrete type of communication medium
+for exchanging messages apart from implicitly
+expecting that the communication is asyn-
+chronous. In [7] the authors (two of them were
+designers of the specication) studied WS-AT
+and agreed that one should consider asyn-
+chronous communication where messages can
+be lost, duplicated and reordered. Indeed, the
+WS-AT protocol was proved correct in this
+setting. It seems natural to adopt the same
+communication assumptions also for WS-BA,
+however, as we show later on, the BAwCC
+protocol is not correct under such a liberal
+communication policy. We therefore consider
+a hierarchy of ve dierent communication
+policies for asynchronous message passing in our study.
+{Unreliable Unordered Asynchronous Communication. In this type of asyn-
+chronous communication the messages may arrive in dierent order than
+they were sent and the communication medium is assumed to be unreliable
+as messages can be lost and duplicated. It corresponds well with the ele-
+mentary UDP protocol of TCP/IP. As argued in [7], this kind of policy is
+conveniently implemented as a pool of messages mathematically represented
+by a set. Adding more messages of the same sort to a set has no additional
+eect and as our correctness property is a safety property, lossiness is im-
+plicitly included by the fact that protocol participants are not in any way
+forced to read messages contained in the pool (see [7, 15] for further discus-
+sion on this issue). In the rest of the paper we call this kind of communication
+implementation SET.
+{Reliable Unordered Asynchronous Communication. This kind of communi-
+cation still does not preserve the order of messages but it is a completely
+reliable medium where a message can only be received as many times as it
+was sent. Therefore we have to keep track of the number of messages of the
+
+--- Page 6 ---
+6 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+same type currently in transit. We can model this communication medium
+as a multiset (also called a bag) of messages. We refer to this particular
+implementation of the communication medium as BAG.
+{Reliable Ordered Asynchronous Communication. This type of communica-
+tion channel represents the perfect communication medium where messages
+are delivered according to the FIFO (rst in, rst out) policy and they can be
+neither duplicated nor lost. The problem with this medium is that for most
+nontrivial protocols there is no bound on the size of the communication
+buer storing the queue of messages in transit (thanks to the asynchronous
+nature of the communication) and automatic verication of protocols using
+this communication policy is often impossible due to the innite state-space
+of possible protocol congurations. We refer to this communication as FIFO .
+It is essentially implemented by the FTP protocol of TCP/IP.
+{Lossy Ordered Asynchronous Communication. Here we assume an order pre-
+serving communication policy like in FIFO but messages can now be also lost
+before their delivery. The problem with unbounded size of this communica-
+tion channel remains for most of interesting protocols. We call this policy
+LOSSY-FIFO .
+{Stuttering Ordered Asynchronous Communication. In order to overcome the
+innite state-space problem mentioned in the FIFO and LOSSY-FIFO com-
+munication policies, we introduce an abstraction that ignores stuttering, i.e.
+repetition of the same message inside of an ordered sequence of messages.
+We can also consider it as a lossy and duplicating medium which, how-
+ever, preserves the order among dierent types of messages. In practice this
+means that if a message is sent and the communication buer contains the
+same message as the most recently sent one, then the message will be ig-
+nored. Symmetrically, if a message is read from the buer, it can be read as
+many times as required providing it is of the same type. This means that
+the communication buer can remain nite even if the protocol includes re-
+transmission of messages, as e.g. both protocols from WS-BA specication
+do. We call this communication type STUTT-FIFO .
+Figure 2 shows the relationship among the dierent communication media.
+The arrows indicate the inclusions (in the sense of possible behaviours) of the
+presented media. Hence any protocol execution with the FIFO communication
+policy is possible also in any other communication type above it. This means
+that if we can introduce the validity of any safety property for e.g. the SET
+medium, this result will hold also for any other medium below it and nding an
+error trace in the protocol with e.g. the FIFO medium implies the presence of
+such a trace also in any other medium above it.
+While the communication policies SET,BAG,FIFO andLOSSY-FIFO are well
+studied, the STUTT-FIFO communication we introduce in this paper is nonstan-
+dard and not implemented in any of industrial applications that we are aware
+of. Although, as remarked above, FTP will work this way if the application level
+avoids retransmission of data. The main reason why we consider this kind of
+communication is that it allows us to validate the protocols in question while
+
+--- Page 7 ---
+Modelling and Verication of Web Services Business Activity Protocol 7
+preserving the niteness of the state-space. Hence we can establish safety guaran-
+tees also for the FIFO andLOSSY-FIFO communication policies, which would be
+otherwise impossible as the size of such channels is not bounded in our setting.
+3 Formal Modelling of BAwCC in UPPAAL
+The WS-BA standard [11] provides a high-level description of the WSwCC pro-
+tocol. It is essentially a collection of protocol behaviours described in English
+accompanied by diagrams like the graph shown in Figure 1 and state-transition
+tables for the parties involved in the protocol. See Figure 3 a) for a fragment of
+such a table and the appendix for a complete collection of the tables.
+Figure 3 a) describes how the transaction coordinator, being in its internal
+state Closing , handles the message Complete arriving from the participant. It
+will simply resend to the participant the message Close and remain in the state
+Closing . The table also describes that while being in the state Closing , the co-
+ordinator does not expect to receive the message CannotCompensate from the
+participant, and should this happen, it will enter an invalid state.
+TheUppaal implementation of this behaviour is given in Figure 3 b). The
+syntax should be readable even without any prior knowledge of the tool, but
+we refer the interested reader to [3] for a thorough introduction to Uppaal .
+The code in the gure rst lists the names of constants that represent messages
+sent from the transaction coordinator to the participant and vice versa. Then it
+denes two functions Send MsgandReceive Msgthat take care of sending and
+receiving of messages via the bit-vectors msgTC and msgP . The code is shown
+only for the simplest SET implementation. For BAG,FIFO ,LOSSY-FIFO and
+STUTT-FIFO the code is more complex but implemented in a standard way.
+The only complication is that the data structures representing these four types
+of communication are in general unbounded, so to ensure automatic verication
+we introduce a constant upper bound on the buer size and we register a buer
+overow in a boolean variable called overflow .
+The transitions described in the state tables are then implemented in the
+expected way as shown by the two examples in Figure 3 b). The nal timed
+automata model then consists of a process for the coordinator with two locations
+(normal execution and invalid state) and a similar process for the participant
+running in parallel with the coordinator process. All data management (states,
+buer content, etc.) is performed via C-like data structures, as this is an ecient
+and manageable way to handle this relatively large model. In total the C part
+of the implementation contains more than 600 nonempty lines of code. The
+complete Uppaal model can be downloaded at [14].
+4 Analysis of BAwCC
+As already noted, WS-BA relaxes the ACID principles and allows for a mixed
+outcome of a transaction. Therefore, we cannot expect that all parties of the
+protocol agree on the outcome, as it was the case for WS-AT protocols [7, 15].
+
+--- Page 8 ---
+8 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+a) WS-BA (BAwCC):
+Coordinator View for Inbound Events (received messages).
+Inbound EventsStates
+. . . Closing . . .Exiting . . .
+......... . . .......
+Complete . . . resend Close . . . . . . . . .
+goto Closing
+......... . . .......
+CannotComplete . . .goto Invalid-State . . . . . . . . .
+c) Uppaal encoding with SETCommunication (simplied):
+Send Msg() and Receive Msg() functions for the coordinator.
+typedef int[0,6] MsgsTC; typedef int[0,6] MsgsP;
+const MsgsTC CANCEL TC = 0; const MsgsP EXIT P = 0;
+const MsgsTC COMPLETE TC = 1; const MsgsP COMPLETED P = 1;
+const MsgsTC CLOSE TC = 2; const MsgsP FAIL P = 2;
+const MsgsTC COMPENSATE TC =3; const MsgsP CANNOT COMPLETE P = 3;
+const MsgsTC FAILED TC = 4; const MsgsP CANCELED P = 4;
+const MsgsTC EXITED TC = 5; const MsgsP CLOSED P = 5;
+const MsgsTC NOT COMPLETED TC = 6; const MsgsP COMPENSATED P = 6;
+bool msgTC[MsgsTC]; bool msgP[MsgsP];
+void Send Msg(MsgsTC s)f bool Receive Msg(MsgP r)f
+msgTC[s] = true; g return msgP[r]; g
+Behaviour of transaction coordinator upon the receipt of the message Complete is
+modelled by a loop transition with the following guard and update (action).
+bool guard()f
+return Receive Msg(COMPLETE P) && stTC == TC CLOSING;g
+void action()fSend Msg(CLOSE TC); stTC = TC CLOSING;g
+Behaviour of transaction coordinator upon the receipt of the message CannotCom-
+plete is modelled by a transition to a new error-state called INVALID with the fol-
+lowing guard and with no update.
+bool guard()f
+return Receive Msg(CANNOT COMPLETE P) && stTC == TC CLOSING;g
+Fig. 3. Implementation of selected WS-BA rules in Uppaal
+Instead, we focus on the analysis of the actual state-transition tables w.r.t. reach-
+ability of invalid states. Invalid states appear in the tables both for inbound and
+outbound messages. The meaning of these states is not clearly stated in WS-
+
+--- Page 9 ---
+Modelling and Verication of Web Services Business Activity Protocol 9
+Coordinator
+ActiveCancel
+Canceling-ActiveMedium
+CancelParticipant
+Active
+CancelingCanceled
+EndedCompensated
+EndedCompensated
+INVALID
+Fig. 4. Error trace in BAwCC leading to an invalid state
+BA specication but we contacted the designers via their discussion forum and
+received (citing [16]):
+\For outbound events, an Invalid State cell means that this is not
+a valid state for the event to be produced. ... For inbound events, an
+Invalid State cell means that the current state is not a valid state for the
+inbound message. For example, for Participants in BusinessAgreement-
+WithCoordinationCompletion (table B.3) the Canceling state is not a
+valid state for receiving a Close message. There are no circumstances
+where a Participant in this state should ever receive a Close message,
+indicating an implementation error in the Coordinator which sent the
+message. This is a protocol violation ..."
+This means that in the tables for outbound events, messages that lead to
+invalid states are never sent (and hence omitted in the Uppaal model) and for
+inbound events the possibility to enter an invalid state is a protocol violation.
+This requirement is easily formulated in the Uppaal query language (a subset
+of TCTL) as follows.
+E<> (tc.INVALID || par.INVALID) && !overflow
+This is a safety property asking whether there is a protocol execution in which
+either the transaction coordinator (process called tc) or the participant (process
+called par) enters the state INVALID while at the same time there was no buer
+overow. We have checked this property for all ve communication policies we
+consider and the property surprisingly turned out to be true for all of them except
+forFIFO . The tool automatically generated an error trace, seen in Figure 4.
+It is easy to see that this trace is executable both for LOSSY-FIFO and BAG
+communication (and hence also for any other above them in the hierarchy in
+Figure 2). The main point in this trace is that the message Canceled that is sent
+
+--- Page 10 ---
+10 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+by the participant is either lost (possible in LOSSY-FIFO ) or reordered with the
+message Compensated (possible in BAG).
+It is also clear that this error trace cannot be executed in the perfect FIFO
+communication policy. For FIFO we were able to verify that the protocol is correct
+for up to six messages in transit (three from coordinator to participant and three
+in the opposite direction). As perfect FIFO communication is known to have the
+full Turing power [4], there is no hope to establish the correctness of the protocol
+with unbounded FIFO communication in a fully automatic way.
+Another interesting question we can ask about the protocol is whether the
+communication medium is bounded for BAwCC or not. This can be done by
+asking the following Uppaal query.
+E<> overflow
+Verication results show that all communication media except for SET can al-
+ways reach a buer overow for any given buer size that we were able to verify
+(up to 20 messages in transit). This is a good indication that the communica-
+tion buer is indeed unbounded and a simple (manual) inspection of the protocol
+conrms this fact.
+5 Enhanced BAwCC
+Given the verication results in the previous section, we found the BAwCC
+protocol not completely satisfactory as even a simple relaxation of the perfect
+communication policy results in incorrect behaviour. Taking into account that
+the protocols in WS-AT avoided invalid states even under the most general SET
+communication, we shall further analyze the protocol and suggest an improve-
+ment.
+The error trace in Figure 4 hints at the source of problems. Once a participant
+reaches the Ended state, it it instructed to forget all state information and just
+send the last message by which the transition to the Ended state was activated.
+The problem is that there are three dierent reasons for reaching the Ended
+state, but BAwCC allows for the retransmission of all three messages at the same
+time, whenever the participant is in the state Ended . As seen in Figure 4, the
+participant after receiving the message Cancel correctly answers with the message
+Canceled , but then sends the message Compensated . This causes confusion on the
+coordinator side. A similar problem can occur in a symmetric way.
+In our proposed x to the BAwCC protocol, we introduce three additional
+end states, both for the participant as well as for the coordinator, in order to
+avoid the confusion. The complete state tables of the enhanced protocol are given
+in the appendix. We modelled and veried the enhanced protocol in Uppaal and
+the results are as follows.
+Under the STUTT-FIFO communication, the medium is bounded with no
+overow, so all verication results are conclusive. We also established that there
+is no execution of the modied protocol that leads to an invalid state. As this is
+
+--- Page 11 ---
+Modelling and Verication of Web Services Business Activity Protocol 11
+Coordinator
+ActiveComplete
+Completing
+Cancel
+Canceling-CompletingMedium
+CancelParticipant
+Active
+Canceling
+Canceled
+Ended-CanceledComplete
+Fail
+Ended-Canceled
+Fail
+Failing-Canceling
+Canceled
+INVALID
+Fig. 5. Error trace in enhanced BAwCC leading to an invalid state
+a safety property, the positive result holds automatically also for LOSSY-FIFO
+andFIFO .
+However, when considering the media BAG andSET representing a commu-
+nication where messages can be reordered, the tool still returns error traces like
+the one depicted in Figure 5. This problem is more inherent to the protocol
+design and the reason for the confusion is the fact that the messages Canceled
+andFailsent be the participant are delivered in the opposite order.
+To conclude, our enhanced protocol, unlike the original one, is immune to
+lossiness and duplication of messages (stuttering) as long as their order is pre-
+served. Making the protocol robust w.r.t. reordering of messages would, in our
+opinion, require a substantial and nontrivial redesign of the BAwCC protocol.
+6 Termination under Fairness
+In this section we shall turn our attention to another important property of
+distributed protocols, namely the termination property. Termination means that
+as long as the communication parties follow the protocol, any concrete execution
+will always bring them to their end states. In Uppaal this property for our
+protocol can be formulated as follows.
+
+--- Page 12 ---
+12 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+A<> stTC == TC ENDED && stP == P ENDED
+The semantics is that in any maximal computation of the protocol, we will
+eventually reach a situation where the states of the transaction coordinator as
+well as the participant are TCENDED and PENDED , respectively. Termination is
+hence a liveness property.
+It is clear that the original BAwCC fails to satisfy termination as we can
+reach invalid states from which there is no further continuation. This is true for
+all types of communication, except for FIFO , where on the other hand we cannot
+prove termination due to the unboundedness of the medium. We shall there-
+for focus on our enhanced BAwCC protocol and the communication medium
+STUTT-FIFO where the protocol is correct and the medium bounded. A positive
+result will imply termination also for LOSSY-FIFO andFIFO .
+A quick query about termination in Uppaal shows that it fails the property
+and the tool returns error traces that reveal the reason: there is no bound on
+the number of retransmissions of messages and this can create innite process
+executions where the same message is retransmitted over and over. This is to
+be expected for any nontrivial protocol and in theory the issue is handled by
+imposing an additional assumption on fairness of the protocol execution. This
+can for example mean that we require that whenever during an innite execution
+some action is innitely often enabled then it has to be also executed. Such
+assumptions will guarantee that there is a progress in the protocol execution
+and are well studied in the theory (see e.g. [2]).
+The complication is that fairness concerns innite executions and is therefore
+dicult to implement in concrete applications. Software engineers would typi-
+cally use only a limited number of retransmissions within a xed time interval
+and give up resending messages after a certain time has passed.
+So far, we have used Uppaal only for verication of discrete systems, but
+the tool allows us to specify also timed automata models and supports their
+automatic verication. By introducing the timing aspects into the protocol be-
+haviour, we will be able to argue about fairness properties like termination.
+We model the retransmission feature using tire-outs. A tire-out imposes a
+progress in the model and as already outlined in the introduction it is essentially
+the \execution delay" of ATP [13]. In our model we introduce two clocks xand
+ylocal both for the coordinator and the participant. We also assume two global
+constants MIN-DELAY and TIRE-OUT , representing the minimal possible delay
+between two retransmissions and a tire-out time after which the protocol will not
+attempt to retransmit the message any more. Figure 6 shows the implementation
+of this feature in the protocol model. We already explained that the rules of the
+protocol are modelled using loops in Uppaal automata and the discrete data
+are handled using guards and updates (not shown in the illustration). In the
+gure we can separate all transitions into two categories: progress transitions
+and retransmission transitions. Retransmission transitions retransmit a message
+and remain in the same state, while progress transitions change the state of
+the participant or the coordinator. The clock xrepresents the time delay since
+the last progress transition occurred (it is reset to 0 by any progress transition)
+
+--- Page 13 ---
+Modelling and Verication of Web Services Business Activity Protocol 13
+xTIRE-OUTx:=0
+PyMIN-DELAY andxTIRE-OUT
+y:=0R
+Fig. 6. Tire-outs modelling; P is a progress transition, R is a retransmission transition
+and clock yrepresents the time elapsed since the last retransmission. These two
+clocks restrict the behaviour of the retransmission transitions so that they are
+enabled only if at least the minimal delay has passed since last retransmission
+and the clock xhas not exceeded the tire-out limit. The presence of the invariant
+xTIRE-OUT then ensures a progress.
+Using the tire-out modeling as described above we were able to automatically
+verify that the enhanced BAwCC protocol with the STUTT-FIFO communication
+policy satises the termination property for suitable constants MIN-DELAY and
+TIRE-OUT where, for example, the minimal delay is set to one time unit and
+the tire-out deadline to 30 time units. By changing the two constants we can
+experiment with dierent timing options while making (automatically) sure that
+the termination property is preserved.
+7 Conclusion and Future Work
+We provided a formal Uppaal model of the Business Agreement with Coordina-
+tor Completion (BAwCC) protocol from the WS-BA specication. The model is
+based on the state-transition tables provided in the specication. We also intro-
+duced several ways to model the communication medium, starting with perfect
+FIFO channels and ending up with lossy, duplicating and orderless medium. We
+have veried that the protocol may enter invalid states for all communication
+policies apart from the FIFO. For FIFO we veried that no invalid states are
+reachable for up to six messages in transit (three in each direction), however, this
+is not a guarantee that the protocol is correct for any size of the FIFO buer.
+Based on the analysis of the protocol in Uppaal , we suggested an enhanced
+protocol which distinguishes among three dierent ways of entering the ended
+states. This protocol is correct also for all imperfect media based on FIFO but
+may still reach invalid states if more liberal communication is assumed. By in-
+troducing timing constraints (tire-outs) to the protocol behaviour, we were also
+able to verify the termination property for imperfect FIFO communication. Fig-
+ure 7 gives the summary of the results for all ve communication policies and the
+original and enhanced protocols. Correctness stands for the absence of invalid
+states in protocol executions, boundedness describes whether the communica-
+
+--- Page 14 ---
+14 Anders P. Ravn, Ji r  Srba, and Saleem Vighio
+BAwCA Protocol
+Buer Type Properties Original Enhanced
+SETCorrectness No No
+Boundedness Yes Yes
+Termination No No
+BAGCorrectness No No
+Boundedness No No
+Termination No No
+STUTT-FIFOCorrectness No Yes
+Boundedness No Yes
+Termination No Yes
+LOSSY-FIFOCorrectness No Yes
+Boundedness No No
+Termination No Yes
+FIFOCorrectness Yes? Yes
+Boundedness No No
+Termination Yes? Yes
+Fig. 7. Overview of verication results for BAwCC and enhanced BAwCC
+tion channels have bounded size and termination guarantees that during any
+protocol behaviour, all parties eventually reach their nal (ended) states.
+To conclude, the BAwCC protocol seems correct for the perfect FIFO com-
+munication as provided e.g. by the FTP of TCP/IP. We assume that the protocol
+was also mainly tested in this setting and hence the tests did not discover any
+problematic behaviour. On the other hand, the protocol contains a number of
+message retransmissions, which would not be necessary for the perfect medium.
+This signals that the designers planned to extend the applicability of the proto-
+col also to frameworks with unreliable communication but as we demonstrated,
+some xes have to be applied to the protocol in order to guarantee the correct op-
+eration also in this case. In any case, WS-BA specication is not explicit about
+the assumptions on the communication medium, but this should be perhaps
+considered for the future design of protocols.
+Finally, the manual creation of UPPAAL models for WS-BA protocols was
+a long and time demanding process and in our future work we will try to auto-
+mate the process of creating timed automata templates directly from the state-
+transition tables. For widely used, standardized protocols, this is probably not
+going to nd defects. Yet, in concrete implementations some optimizations and
+specializations may be included, and here a tool support may assist in validating
+the eect of presumably small innocent changes.
+
+--- Page 15 ---
+Modelling and Verication of Web Services Business Activity Protocol 15
+Acknowledgement. The authors are grateful to the anonymous reviewers for their
+comments on the perspective of this work.
+References
+1. Y. Afek, H. Attiya, A. Fekete, M. Fischer, N. Lynch, Y. Mansour, Dai-Wei.
+Wang, and L. Zuck. Reliable communication over unreliable channels. J. ACM ,
+41(6):1267{1297, 1994.
+2. K.R. Apt, N. Francez, and S. Katz. Appraising fairness in languages for distributed
+programming. Distributed Computing , 2:226{241, 1988.
+3. G. Behrmann, A. David, and K.G. Larsen. A tutorial on UPPAAL. In Pro-
+ceedings of the 4th International School on Formal Methods for the Design of
+Computer, Communication, and Software Systems (SFM-RT'04) , number 3185 in
+LNCS, pages 200{236. Springer-Verlag, 2004.
+4. D. Brand and P. Zaropulo. On communicating nite-state machines. Journal of
+the ACM , 30(2):323{342, 1983.
+5. J. Gray and A. Reuter. Transaction Processing: Concepts and Techniques . Morgan
+Kaufmann, 1993.
+6. Paul Greeneld, Dean Kuo, Surya Nepal, and Alan Fekete. Consistency for web
+services applications. In VLDB '05: Proceedings of the 31st international conference
+on Very large data bases , pages 1199{1203. VLDB Endowment, 2005.
+7. J.E. Johnson, D. E. Langworthy, L. Lamport, and F. H. Vogt. Formal specication
+of a web services protocol. Journal of Logic and Algebraic Programming , 70(1):34{
+52, 2007.
+8. L. Lamport. Specifying Systems . Addison-Wesley, 2003.
+9. B. Mathew, M. Juric, and P. Sarang. Business Process Execution Language for
+Web Services 2nd Edition . Packt Publishing, 2006.
+10. E. Newcomer and I. Robinson (chairs). Web services atomic transaction (WS-
+atomic transaction) version 1.2, 2009. http://docs.oasis-open.org/ws-tx/wstx-
+wsat-1.2-spec.html.
+11. E. Newcomer and I. Robinson (chairs). Web services business activity (WS-
+businessactivity) version 1.2, 2009. http://docs.oasis-open.org/ws-tx/wstx-wsba-
+1.2-spec-os/wstx-wsba-1.2-spec-os.html.
+12. E. Newcomer and I. Robinson (chairs). Web services coordination (WS-
+coordination) version 1.2, 2009. http://docs.oasis-open.org/ws-tx/wstx-wscoor-
+1.2-spec-os/wstx-wscoor-1.2-spec-os.html.
+13. X. Nicollin and J. Sifakis. The algebra of timed processes, ATP: Theory and
+application. Information and Computation , 114(1):131{178, 1994.
+14. A.P. Ravn, J. Srba, and S. Vighio. UPPAAL model of the WS-BA protocol.
+Available in the UPPAAL example section at http://www.uppaal.org.
+15. A.P. Ravn, J. Srba, and S. Vighio. A formal analysis of the web services atomic
+transaction protocol with uppaal. In Proceedings of the 4th International Sympo-
+sium On Leveraging Applications of Formal Methods, Verication and Validation
+(ISOLA'10) , volume 6416 of LNCS , pages 579{593. Springer-Verlag, 2010.
+16. I. Robinson. Answer in WS-BA discussion forum, July 14th, 2010.
+http://markmail.org/message/wriewgkboaaxw66z.
+17. F. H. Vogt, S. Zambrovski, B. Gruschko, P. Furniss, and A. Green. Implementing
+web service protocols in SOA: WS-coordination and WS-businessactivity. In Pro-
+ceedings of the Seventh IEEE International Conference on E-Commerce Technology
+Workshops(CECW'05) , pages 21{28. IEEE Computer Society, 2005.
+
+--- Page 16 ---
+16 Anders P. Ravn, Ji r  Srba, and Saleem VighioBusinessAgreementWithCoordinationCompletion protocol
+(Participant View)
+Inbound States
+Events Active Canceling Completing Completed Closing Compensating Failing Failing NotCompleting Exiting Ended
+(Active, (Compesating)
+Canceling,
+Completing)
+Cancel Canceling Ignore Canceling Resend Ignore Ignore Resend Ignore Resend Resend Send
+Completed Fail CannotComplete Exit Canceled
+Canceling Closing Compensating Failing-
+Completed Failing-* Compensating NotCompleting Exiting Ended
+Complete Completing Ignore Ignore Resend Ignore Ignore Resend Ignore Resend Resend Send
+Completed Fail CannotComplete Exit Fail
+Canceling Completing Closing Compensating Failing-
+Completed Failing-* Compensating NotCompleting Exiting Ended
+Close Invalid Invalid Invalid Closing Ignore Invalid Invalid Invalid Invalid Invalid Send
+State State State State State State State State Closed
+Closing
+Active Canceling Completing Compensating Failing-* Failing- NotCompleting Exiting Ended
+Compensating
+Compensate Invalid Invalid Invalid Compensating Invalid Ignore Invalid Resend Invalid Invalid Send
+State State State State State Fail State State Compensated
+Compensating
+Active Canceling Completing Closing Failing-* Failing- NotCompleting Exiting Ended
+Compensating
+Failed Invalid Invalid Invalid Invalid Invalid Invalid Forget Forget Invalid Invalid Ignore
+State State State State State State State State
+Ended Ended Ended
+Active Canceling Completing Completed Closing Compensating NotCompleting Exiting
+Exited Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Ignore
+State State State State State State State State State
+Ended Ended
+Active Canceling Completing Completed Closing Compensating Failing-* Failing- NotCompleting
+Compensating
+NotCompleted Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Ignore
+State State State State State State State State State
+Ended Ended
+Active Canceling Completing Completed Closing Compensating Failing-* Failing- Exiting
+Compensating
+
+--- Page 17 ---
+Modelling and Verication of Web Services Business Activity Protocol 17
+BusinessAgreementWithCoordinationCompletion protocol
+(Participant View)
+Outbound States
+Events Active Canceling Completing Completed Closing Compensating Failing NotCompleting Exiting Ended
+(Active, Canceling,
+Completing, Comp-
+ensating)
+Exit Exiting Invalid Exiting Invalid Invalid Invalid Invalid Invalid Exiting Invalid
+State State State State State State State
+Canceling Completed Closing Compensating Failing-* NotCompleting Ended
+Completed Invalid Invalid Completed Completed Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State
+Active Canceling Closing Compensating Failing-* NotCompleting Exiting Ended
+Fail Failing- Failing- Failing- Invalid Invalid Failing- Failing-* Invalid Invalid Invalid
+Active Canceling Completing State State Compensating State State State
+Completed Closing NotCompleting Exiting Ended
+CannotComplete NotCompleting Invalid NotCompleting Invalid Invalid Invalid Invalid NotCompleting Invalid Invalid
+State State State State State State State
+Canceling Completed Closing Compensating Failing-* Exiting Ended
+Canceled Invalid Forget Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State
+Ended Ended
+Active Completing Completed Closing Compensating Failing-* NotComleting Exiting
+Closed Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid
+State State State State State State State State
+Ended Ended
+Active Canceling Completing Completed Compensating Failing-* NotComleting Exiting
+Compensated Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid
+State State State State State State State State
+Ended Ended
+Active Canceling Completing Completed Closing Failing-* NotCompleting Exiting
+
+--- Page 18 ---
+18 Anders P. Ravn, Ji r  Srba, and Saleem VighioBusinessAgreementWithCoordinationCompletion protocol
+(Coordinator View)
+Inbound States
+Events Active Canceling Canceling Completing Completed Closing Compensating Failing Failing NotCompleting Exiting Ended
+(Active) (Completing) (Active, (Compesating)
+Canceling,
+Completing)
+Exit Exiting Exiting Exiting Exiting Invalid Invalid Invalid Invalid Invalid Invalid Ignore Resend
+State State State State State State Exited
+Exiting
+Completed Closing Compensating Failing-* Failing- NotCompleting Ended
+Compensating
+Completed Invalid Invalid Completed Completed Ignore Resend Resend Invalid Ignore Invalid Invalid Ignore
+State State Close Compensate State State State
+Completed Failing-
+Active Canceling- Closing Compensating Failing-* Compensating NotCompleting Exiting Ended
+Active
+Fail Failing- Failing- Failing- Failing- Invalid Invalid Failing- Ignore Ignore Invalid Invalid Resend
+Active Canceling Canceling Completing State State Compensating State State Failed
+Failing-* Failing-
+Completed Closing Compensating NotCompleting Exiting Ended
+CannotCo- NotCompleting NotCompleting NotCompleting NotCompleting Invalid Invalid Invalid Invalid Invalid Ignore Invalid Resend
+mplete State State State State State State NotCompleted
+NotCompleting
+Completed Closing Compensating Failing-* Failing- Exiting Ended
+Compensating
+Canceled Invalid Forget Forget Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Ignore
+State State State State State State State State State
+Ended Ended Ended
+Active Completing Completed Closing Compensating Failing-* Failing- NotCompleting Exiting
+Compensating
+Closed Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Invalid Ignore
+State State State State State State State State State State
+Ended Ended
+Active Canceling- Canceling- Completing Completed Compensating Failing-* Failing- NotCompleting Exiting
+Active Completing Compensating
+Compensa- Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Ignore
+ted State State State State State State State State State State
+Ended Ended
+Active Canceling- Canceling- Completing Completed Closing Failing-* Failing- NotCompleting Exiting
+Active Completing Compensating
+
+--- Page 19 ---
+Modelling and Verication of Web Services Business Activity Protocol 19BusinessAgreementWithCoordinationCompletion protocol
+(Coordinator View)
+Outbound States
+Events Active Canceling Completing Completed Closing Compensating Failing NotCompleting Exiting Ended
+(Active,) (Active, Canceling,
+(Completing) Completing, Comp-
+ensating)
+Cancel Canceling- Canceling-* Canceling- Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+Active Completing State State State State State State State
+Completed Closing Compensating Failing-* NotCompleting Exiting Ended
+Complete Completing Invalid Completing Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State
+Canceling-* Completed Closing Compensating Failing-* NotCompleting Exiting Ended
+Close Invalid Invalid Invalid Closing Closing Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State
+Active Canceling-* Completing Compensating Failing-* NotCompleting Exiting Ended
+Compensate Invalid Invalid Invalid Compensating Invalid Compensating Invalid Invalid Invalid Invalid
+State State State State State State State State
+Active Canceling-* Completing Closing Failing-* NotCompleting Exiting Ended
+Failed Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid
+State State State State State State State State
+Ended Ended
+Active Canceling-* Completing Completed Closing Compensating NotComleting Exiting
+Exited Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget
+State State State State State State State State
+Ended Ended
+Active Canceling-* Completing Completed Closing Compensating Failing-* NotComleting
+NotCompleted Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid
+State State State State State State State State
+Ended Ended
+Active Canceling-* Completing Completed Closing Compensating Failing-* Exiting
+
+--- Page 20 ---
+20 Anders P. Ravn, Ji r  Srba, and Saleem VighioEnhanced BusinessAgreementWithCoordinationCompletion protocol
+(Participant View)
+Inbound States
+Events Active Canceling Completing Completed Closing Compensating Failing Failing NotCompleting Exiting Ended- Ended- Ended- Ended
+(Active, (Compesating) Canceled Closed Compensated
+Canceling,
+Completing)
+Cancel Canceling Ignore Canceling Resend Ignore Ignore Resend Ignore Resend Resend Send Ignore Ignore Ignore
+Completed Fail CannotComplete Exit Canceled
+Canceling Closing Compensating Failing- Ended- Ended- Ended
+Completed Failing-* Compensating NotCompleting Exiting Ended- Closed Compensated
+Canceled
+Complete Completing Ignore Ignore Resend Ignore Ignore Resend Ignore Resend Resend Send Send Send Ignore
+Completed Fail CannotComplete Exit Fail Fail Fail
+Canceling Completing Closing Compensating Failing- Ended
+Completed Failing-* Compensating NotCompleting Exiting Ended- Ended- Ended-
+Canceled Closed Compensated
+Close Invalid Invalid Invalid Closing Ignore Invalid Invalid Invalid Invalid Invalid Ignore Send Ignore Ignore
+State State State State State State State State Closed
+Closing Ended- Ended- Ended
+Active Canceling Completing Compensating Failing-* Failing- NotCompleting Exiting Canceled Ended- Compensated
+Compensating Closed
+Compensate Invalid Invalid Invalid Compensating Invalid Ignore Invalid Resend Invalid Invalid Ignore Ignore Send Ignore
+State State State State State Fail State State Compensated
+Compensating Ended- Ended- Ended
+Active Canceling Completing Closing Failing-* Failing- NotCompleting Exiting Canceled Closed Ended-
+Compensating Compensated
+Failed Invalid Invalid Invalid Invalid Invalid Invalid Forget Forget Invalid Invalid Ignore Ignore Ignore Ignore
+State State State State State State State State
+Ended Ended Ended- Ended- Ended- Ended
+Active Canceling Completing Completed Closing Compensating NotCompleting Exiting Canceled Closed Compensated
+Exited Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Ignore Ignore Ignore Ignore
+State State State State State State State State Invalid
+Ended Ended- Ended- Ended- Ended
+Active Canceling Completing Completed Closing Compensating Failing-* Failing- NotCompleting Canceled Closed Compensated
+Compensating
+NotCompleted Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Ignore Ignore Ignore Ignore
+State State State State State State State State State
+Ended Ended- Ended- Ended- Ended
+Active Canceling Completing Completed Closing Compensating Failing-* Failing- Exiting Canceled Closed Compensated
+Compensating
+
+--- Page 21 ---
+Modelling and Verication of Web Services Business Activity Protocol 21Enhanced BusinessAgreementWithCoordinationCompletion protocol
+(Participant View)
+Outbound States
+Events Active Canceling Completing Completed Closing Compensating Failing NotCompleting Exiting Ended- Ended- Ended- Ended
+(Active, Canceling, Canceled Closed Compensated
+Completing, Comp-
+ensating)
+Exit Exiting Invalid Exiting Invalid Invalid Invalid Invalid Invalid Exiting Invalid Invalid Invalid Invalid
+State State State State State State State State State State
+Canceling Completed Closing Compensating Failing-* NotCompleting Ended- Ended- Ended- Ended
+Canceled Closed Compensated
+Completed Invalid Invalid Completed Completed Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State State State State
+Active Canceling Closing Compensating Failing-* NotCompleting Exiting Ended- Ended- Ended- Ended
+Canceled Closed Compensated
+Fail Failing- Failing- Failing Invalid Invalid Failing- Failing-* Invalid Invalid Invalid Invalid Invalid Invalid
+Active Canceling Completing State State Compensating State State State State State State
+Completed Closing NotCompleting Exiting Ended- Ended- Ended- Ended
+Canceled Closed Compensated
+CannotCo- NotComp- Invalid NotCompleting Invalid Invalid Invalid Invalid NotCompleting Invalid Invalid Invalid Invalid Invalid
+mplete leting State State State State State State State State State State
+Canceling Completed Closing Compensating Failing-* Exiting Ended- Ended- Ended- Ended
+Canceled Closed Compensated
+Canceled Invalid Forget Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State State State State
+Ended- Ended-
+Active Canceled Completing Completed Closing Compensating Failing-* NotComleting Exiting Canceled Ended- Ended- Ended
+Closed Compensated
+Closed Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State State State State
+Ended- Ended-
+Active Canceling Completing Completed Closed Compensating Failing-* NotComleting Exiting Ended- Closed Ended- Ended
+Canceled Compensated
+Compens- Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Invalid Invalid
+ated State State State State State State State State State State State
+Ended- Ended-
+Active Canceling Completing Completed Closing Compensated Failing-* NotCompleting Exiting Ended- Ended- Compensated Ended
+Canceled Closed
+
+--- Page 22 ---
+22 Anders P. Ravn, Ji r  Srba, and Saleem VighioEnhanced BusinessAgreementWithCoordinationCompletion protocol
+(Coordinator View)
+Inbound States
+Events Active Canceling Canceling Completing Completed Closing Compensating Failing Failing NotComp- Exiting Ended- Ended- EndedNot- Ended
+(Active) (Completing) (Active, (Compesa- leting Failed Exited Completed
+Canceling, ting)
+Completing)
+Exit Exiting Exiting Exiting Exiting Invalid Invalid Invalid Invalid Invalid Invalid Ignore Ignore Resend Ignore Ignore
+State State State State State State Exited
+Exiting Ended- Ended- Ended
+Completed Closing Compensating Failing-* Failing- NotComp- Failed Ended- NotCompleted
+Compensating leting Exited
+Completed Invalid Invalid Completed Completed Ignore Resend Resend Invalid Ignore Invalid Invalid Ignore Ignore Ignore Ignore
+State State Close Compensate State State State
+Completed Failing- Ended- Ended- Ended- Ended
+Active Canceling- Closing Compensating Failing-* Compensating NotComp- Exiting Failed Exited NotCompleted
+Active leting
+Fail Failing- Failing- Failing- Failing- Invalid Invalid Failing- Ignore Ignore Invalid Invalid Resend Ignore Ignore Ignore
+Active Canceling Canceling Completing State State Compensating State State Failed
+Failing-* Failing- Ended- Ended- Ended
+Completed Closing Compensating NotComp- Exiting Ended- Exited NotCompleted
+leting Failed
+CannotCom- NotCom- NotCom- NotComp- NotComp- Invalid Invalid Invalid Invalid Invalid Ignore Invalid Ignore Ignore Resend Ignore
+plete pleting pleting pleting pleting State State State State State State NotCompleted
+NotComp- Ended- Ended- Ended
+Completed Closing Compensating Failing-* Failing- pleting Exiting Failed Exited Ended-
+Compensating NotCompleted
+Canceled Invalid Forget Forget Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Ignore Ignore Ignore Ignore
+State State State State State State State State State
+Ended Ended Ended- Ended- Ended- Ended
+Active Completing Completed Closing Compensating Failing-* Failing- NotComp- Exiting Failed Exited NotCompleted
+Compensating pleting
+Closed Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Invalid Ignore Ignore Ignore Ignore
+State State State State State State State State State State
+Ended Ended- Ended- Ended- Ended
+Active Canceling- Canceling- Completing Completed Compensating Failing-* Failing- NotComp- Exiting Failed Exited NotCompleted
+Active Completing Compensating pleting
+Compensated Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Ignore Ignore Ignore Ignore
+State State State State State State State State State State
+Ended Ended- Ended- Ended- Ended
+Active Canceling- Canceling- Completing Completed Closing Failing-* Failing- NotComp- Exiting Failed Exited NotCompleted
+Active Completing Compensating pleting
+
+--- Page 23 ---
+Modelling and Verication of Web Services Business Activity Protocol 23Enhanced BusinessAgreementWithCoordinationCompletion protocol
+(Coordinator View)
+Outbound States
+Events Active Canceling Completing Completed Closing Compensating Failing NotCompleting Exiting Ended- Ended- EndedNot- Ended
+(Active,) (Active, Canceling, Failed Exited Completed
+(Completing) Completing, Comp-
+ensating)
+Cancel Canceling- Canceling-* Canceling- Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+Active Completing State State State State State State State State State State
+Completed Closing Compensating Failing-* NotCompleting Exiting Ended- Ended- Ended- Ended
+Failed Exited NotCompleted
+Complete Completing Invalid Completing Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State State State State
+Canceling-* Completed Closing Compensating Failing-* NotCompleting Exiting Ended- Ended- Ended- Ended
+Failed Exited NotCompleted
+Close Invalid Invalid Invalid Closing Closing Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State State State State
+Active Canceling-* Completing Compensating Failing-* NotCompleting Exiting Ended- Ended- Ended- Ended
+Failed Exited NotCompleted
+Compens- Invalid Invalid Invalid Compensating Invalid Compensating Invalid Invalid Invalid Invalid Invalid Invalid Invalid
+ate State State State State State State State State State State State
+Active Canceling-* Completing Closing Failing-* NotCompleting Exiting Ended- Ended- Ended- Ended
+Failed Exited NotCompleted
+Failed Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid Invalid
+State State State State State State State State State State State
+Ended- Ended-
+Active Canceling-* Completing Completed Closing Compensating Failed NotComleting Exiting Failed Ended- Ended- Ended
+Exited NotCompleted
+Exited Invalid Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid
+State State State State State State State State State State State
+Ended- Ended-
+Active Canceling-* Completing Completed Closing Compensating Failing-* NotComleting Exited Ended- Exited Ended- Ended
+Failed NotCompleted
+NotComp- Invalid Invalid Invalid Invalid Invalid Invalid Invalid Forget Invalid Invalid Invalid Invalid
+leted State State State State State State State State State State State
+Ended- Ended-
+Active Canceling-* Completing Completed Closing Compensating Failing-* NotCompleted Exiting Ended- Ended- NotCompleted Ended
+Failed Exited

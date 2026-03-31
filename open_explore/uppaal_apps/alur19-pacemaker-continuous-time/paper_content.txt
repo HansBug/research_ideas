@@ -1,0 +1,1116 @@
+--- Page 1 ---
+Continuous-time Models for System Design and
+Analysis
+Rajeev Alur1, Mirco Giacobbe2, Thomas A. Henzinger2, Kim G. Larsen3, and
+Marius Miku cionis3
+1Department of Computer and Information Science, University of Pennsylvania
+2Institute of Science and Technology Austria
+3Department of Computer Science, Aalborg University
+Abstract. In this paper, we illustrate the ingredients of the state-of-the-
+art in model-based approach for formal design and verication of cyber-
+physical systems. To capture the interaction between a discrete controller
+and its continuously evolving environment, we use the formal models of
+timed and hybrid automata. We explain the steps in modeling and ver-
+ication in the tools Uppaal andSpaceEx using a case study based
+on a dual chamber implantable pacemaker monitoring human heart. We
+show how to design a model as a composition of components, how to
+construct models at varying levels of details, how to establish that one
+model is an abstraction of another, how to specify correctness require-
+ments using temporal logic, and how to verify that a model satises a
+logical requirement.
+1 Introduction
+Acyber-physical system consists of computing devices communicating with one
+another and interacting with the physical world via sensors and actuators. In-
+creasingly, such systems are everywhere, from smart buildings to medical devices
+to autonomous cars. Model-based design oers a promising approach for assist-
+ing developers to build cyber-physical systems in a systematic manner [27, 19,
+2]. In this methodology, a designer rst constructs a model, with mathematically
+precise semantics, of the system under design, and performs extensive analysis
+with respect to correctness requirements before generating the implementation
+from the model.
+Models of cyber-physical systems need to capture both the controller |
+the system under design, and the plant | the environment with continuously
+evolving physical activities in which the system operates. This typically means
+a combination of block diagrams, state machines, and dierential equations.
+Furthermore, we need to dene models formally , that is, in a mathematically
+precise manner. The formal semantics allows us to answer questions such as,
+\what are the possible behaviors of a component" and \what does it mean to
+compose two components" rigorously, and forms the basis for analysis tools. In
+this article we do not attempt a survey of the rich literature on formal models
+
+--- Page 2 ---
+and analysis tools for cyber-physical systems, but aim to give an introduction
+to the subject using a case study (see [14] for some recent surveys).
+Medical devices oer an ideal test-bed for exploring the applications of for-
+mal methods in system design due to their safety-critical nature, which demands
+higher levels of reliability and rapidly growing complexity due to increased au-
+tonomous operation [28]. We use a dual chamber implantable pacemaker to illus-
+trate the process of model construction and verication [31, 23, 29, 11]. The rst
+step in modeling is to choose a modeling formalism depending on what aspects
+of the system a designer wants to focus on. The control algorithm of the pace-
+maker is best modeled as a composition of timed automata [5], while the relevant
+features of the heart can be described as a network of hybrid automata [4]. We
+introduce these two formal models using the modeling tools Uppaal [26, 9] and
+SpaceEx [18], respectively.
+To check that the design works correctly as intended, the designer rst needs
+to express the requirements capturing correctness in a mathematically precise
+manner. We explain two common ways of formalizing requirements using the
+pacemaker case study. The automata-based approach corresponds to designing
+amonitor that observes the input/output behavior of the system and enters
+an error state if an undesirable pattern is detected [30]. The temporal-logic-
+based approach corresponds to writing down a formula in a specialized formal
+logic|TCTL (Timed Computation Tree Logic) in our case [3], which captures
+the desired correctness requirement. A model checker is then tasked with the
+job of automatically checking that the system model satises the requirement,
+and produce feedback in the form of a counterexample if this is not the case [13].
+Model checkers for continuous-time systems need to symbolically explore the
+innitely many reachable states of the model. While symbolic algorithms have
+been developed for both timed and hybrid automata, the existing technology is
+more scalable for timed automata [8]. Hence, we construct a timed-automaton-
+based model of the heart by suppressing many details of the hybrid model, and
+show how the model checker Uppaal can then be used to verify requirements
+of the pacemaker.
+Since we created a simplied heart model for the purpose of verifying re-
+quirements of the pacemaker, we are faced with a new analysis problem, namely,
+establishing a rigorous relationship between the two versions of the heart mod-
+els. Showing that one model is a renement orabstraction of another model is
+another key step in model-based design, and is essential if we want to infer prop-
+erties of the more complex model based on the analysis of the simpler one [12,
+7].
+Related work. In this paper, we use a dual chamber implantable pacemaker to
+illustrate the modeling of control software and the physical world it interacts
+with. Analyzing the behavior of the heart using formal methods was rst pro-
+posed in [31], and our modeling of a heart cell is based on the HH model with
+linear dierential equations from that paper. The modeling and model checking
+of the control algorithm within a pacemaker rst appears in [23], and we use
+the pacemaker model as well as abstracted heart model from that paper for our
+
+--- Page 3 ---
+case study. Note that there has been considerable research on formal modeling
+and verication of the pacemaker. For instance, [11] develops a more precise
+Simulink model of the heart cell from [31] with non-linear dierential equa-
+tions, and [29] describes a translator from Uppaal toSimulink /StateFlow
+for this purpose.
+Organization of the paper. We begin with an overview of the heart and pace-
+maker models in Sec. 2. Then, in Sec. 3, we use SpaceEx to construct an
+abstraction of the heart, and, in Sec. 4, we use Uppaal to verify the whole
+heart-pacemaker system. We conclude with future challenges in Sec. 5.
+2 The Pacemaker Case Study
+The human heart is an excellent example of a naturally occurring timed sys-
+tem. It spontaneously generates electrical impulses that organize the sequence
+of muscle contractions during each heart beat. The underlying timing pattern
+of these impulses is key to the proper functioning of the heart. The implantable
+cardiac pacemaker is a rhythm management device that monitors these patterns
+and corrects them via external means when needed.
+Controlled by the nervous system, a specialized tissue, called the sinoatrial
+node, at the top of the right atrium periodically generates electrical pulses. These
+pulses cause both atria to contract, forcing blood into the ventricles. The electri-
+cal conduction gets delayed at the atrioventricular node , allowing the ventricles
+to ll fully, but then spreads rapidly across the ventricular muscles, resulting in
+their coordinated contraction, which pumps the blood out of the heart.
+A common heart disease, called bradycardia , is due to failures in either im-
+pulse generation or impulse propagation and results in slow heart rate, leading
+to insucient pumping of blood. Bradycardia can be treated by an implantable
+pacemaker that monitors the heart rate and delivers timely external electrical
+pulses to maintain an appropriate heart rate as well as atrio-ventricular coordi-
+nation. Such a pacemaker usually has two leads xed on the wall of the right
+atrium and the right ventricle. Activation of local tissue is sensed by these leads,
+and these sensing events act as inputs to the pacemaker. If these sensed events
+do not occur in a timely manner, then the pacemaker responds by producing
+pacing events that trigger electrical stimuli to the heart.
+Figure 1 shows the pacemaker controller connected to a heart by two leads
+(black lines) attached to the walls of the right atrium and the right ventricle
+(blue area) from the inside. The sinoatrial pulses are propagated through the
+neural cells (blue lines), which can both be measured and stimulated by the
+pacemaker.
+A modern pacemaker responds to a variety of heart conditions and can op-
+erate in dierent modes. We focus on two modes DDD andVDI and switching
+between them. In the mode DDD , the pacemaker is pacing both the atrium
+and the ventricle, both chambers are being sensed, and the pacemaker software
+responds to sensing by both activating and inhibiting further pacing, while in
+
+--- Page 4 ---
+Node
+Right Atrium
+Right VentricleSinoatrial (SA)PacemakerFig. 1: A heart connected to a pacemaker.
+the mode VDI, the pacemaker paces only the ventricle, senses both chambers,
+and sensing causes inhibition of pacing.
+2.1 Hybrid automata: Modeling the Heart
+To analyze the functionality of the pacemaker at design time, we need a model
+that captures how a human heart generates the sensory events. We can view the
+heart tissue as a network of cardiac cells, where the electric wave propagates
+along neighbouring cells assuring coordinated contraction. At the cellular level,
+the electrical signal is a change in the potential across the cell membrane, and is
+caused by the ow of ions, such as sodium and potassium, between the inside and
+outside of the cell. Mathematical modeling of the ionic processes corresponding
+to cell excitation has been studied extensively in computational systems biology.
+Typically, such a model is described using nonlinear dierential equations, and
+consists of multiple continuous state variables corresponding to quantities such
+as voltage and ion concentrations and a large number of parameters.
+A rst step in modeling is to decide what level of detail is appropriate for
+the analysis task. For the purpose of this case study, we use the model proposed
+by [31], which is derived from the well-accepted Hodgkin-Huxley (HH) model
+of cell excitation. It is based on the observation that change in voltage with
+time that describes the cell excitation upon stimulation can be clearly separated
+in distinct phases, namely, upstroke, repolarization and resting, such that in
+each phase the dynamics can be captured by linear dierential equations. This
+behavior can then be described using hybrid automata.
+Hybrid automata oer a formal model for systems that exhibit both discrete
+and continuous behavior, such as the combination of heart cells (continuous
+behavior) and a pacemaker (discrete behavior). Continuous state change can
+be described by guarded dierential equations, while discrete state change can
+be specied by guarded dierence equations. The guard (or \invariant") of a
+dierential equation is a state predicate that species the condition under which
+the dierential equation is active; the guard of a dierence equation is a state
+
+--- Page 5 ---
+predicate that species the condition under which the dierence equation is
+enabled. Formally, a hybrid automaton is a graph whose vertices (or \modes")
+are annotated with sets of guarded dierential equations, and whose edges (or
+\mode transitions") are annotated with sets of guarded dierence equations [20].
+A behavior of a hybrid automaton is a sequence of trajectory segments, where
+each trajectory segment satises one of the mode equations and its invariant for
+the duration of the segment, the last state of a segment satises one of the guards
+of a transition equation, and together with the rst state of the subsequent
+segment, it satises the transition equation. Since from any initial state, there
+may be several mode equations and transition equations to choose from, a hybrid
+automaton can have many dierent behaviors (\nondeterminism"). Two or more
+hybrid automata can be composed by using, in addition, synchronization labels
+on the transitions.
+Figure 2 shows the hybrid automaton describing the behavior of a heart
+cell. It has two variables vxandvyfor voltages over cell membrane, four modes
+resting ,stimulus ,upstroke , and repolarization , and ve synchronization
+labels in0,in1,out0 ,out1 , and get. The dierence vx vymodels the trans-
+membrane voltage potential of the cell, the labels in1and in0model rising
+and falling edges of an input stimulus, and out1 and out0 of an output stim-
+ulus, respectively. The label getindicates a spike peak of the cell voltage. The
+parameters ax,ay,ist,by,cx,cy,dx,dy,VR,VT, andVOare constants and
+are dened according to the specic cell instance. Initially, the cell is in resting
+mode andvxandvyhave any values that satisfy the invariant of resting , which
+is 0vx vyVR. Afterwards, the values of vxandvycontinuously evolve
+according to the dierential equation of resting which is given by _ vx=axvx
+and _vy=ayvy. The parameters axandayare such that ax<ay<0 therefore
+the voltage drops when in resting , and the continuous evolution progresses as
+long as the variables satisfy the invariant 0 vx vyVR. At any time, the
+_vx=axvx
+_vy=ayvy
+0vx vyVT_vx=ist
+_vy=byvy
+0vx vyVT
+_vx=cxvx
+_vy=cyvy
+VTvx vyVO_vx=dxvx
+_vy=dyvy
+VRvx vyVOin1
+in0
+out1vx vyVT out0vx vyVR
+get
+vx vyVOresting stimulus
+upstroke repolarizationin0 in1
+in1,in0 in1,in0
+Fig. 2: Hybrid automaton for the Hodgkin-Huxley model of a heart cell.
+
+--- Page 6 ---
+automaton can either take a transition labelled by in0and stay in resting or a
+transition labelled by in1and switch to stimulus . Instimulus , the dynamics is
+governed by the ow _ vx=istand _vy=byvyfor the parameters by<0<istand
+satises the invariant 0 vx vyVT, thus making the voltage rise up to VT.
+As long as the values satisfy the invariant 0 vx vyVTthe automaton can
+either execute the transition labelled with in1and stay in stimulus or take in0
+and switch back to resting , while as soon as the variable values satisfy the guard
+vx vyVTit can take out1 and switch to upstroke . The trajectory of the
+potential continues to progress in this manner, namely it evolves continuously
+in modes and discontinuously on transitions. In the remaining modes upstroke
+andrepolarization the parameters are such that cx>cy>0>dy>dx. As a
+result, we show in Fig. 3 a sample trajectory demonstrating how invariants and
+guards relate to the automaton modes.
+RVTV restingupstrokeOV
+restingrepolarization
+stimulus
+Fig. 3: Heart cell electrical potentials and modes (locations) over time.
+The model of the whole heart consists of a composition of cells, which syn-
+chronize according to their output and input stimuli. Figure 4 shows such an
+example. The cells are organized in a linear fashion, where the labels out1 and
+out0 of a cells synchronize with the input labels in1and in0of the next cell.
+At the top of the network, we have the sinoatrial (SA) node, which is the cell
+that takes through in1and in0the input stimulus of the whole heart, which
+can come from its natural pacing or from the actuator of the pacemaker. The
+output labels out1 and out0 of the SA node then trigger the input labels of a
+second cell. The output of the second cell triggers the input of a third, and so on,
+creating a chain of stimuli. The whole chain can be seen as divided in two main
+groups, namely atrium and ventricle. The output of the cell at the boundary of
+the atrium then produces the output of the whole atrium, which is connected to
+the cell at the top of the ventricle, which is called atrioventricular (AV) node.
+The AV node may take the pacing coming from the atrium or from the second
+actuator of the pacemaker.
+We obtain the desired synchronization by a proper renaming of the labels. In
+the case of Fig. 4, we use the labels ch0[i] ,ch1[i] , and get[i] , for a sequence
+of distinct cell indexes i. We rename each getwith get[i] and each out0 and
+out1 with ch0[i] andch1[i] , using same two labels for in0andin1of the next
+
+--- Page 7 ---
+SA node
+Atrium cell 1
+Atrium cell 2
+AV node
+Ventricle cell 1in1 in0
+out1 out0get
+in1 in0
+out1 out0get
+in1 in0
+out1 out0get
+in1 in0
+out1 out0get
+in1 in0
+out1 out0getch1[0] ch0[0]
+ch1[1] ch0[1]
+ch1[2] ch0[2]
+ch1[3] ch0[3]get[0]
+get[1]
+get[2]
+get[3]
+get[4]
+Fig. 4: Interface of a composition of heart cells.
+cell. The dynamics of the hybrid automata composition consists of their parallel
+dynamics except mode transitions with common labels, which can be executed
+only synchronously. Figure 5 shows such an example, for the case of two cells.
+Similarly as before, we enforce the synchronization of the output labels out1 and
+out0 of rst cell with the input labels in1andin0of the second though the labels
+ch1andch0. In fact, compositions of hybrid automata synchronize on the labels
+that are common between the two automata. In fact, for the same reason, we
+rename the event getwith getA in the rst and getB in the second, so to avoid
+synchronization on get. The result goes as follows. Initially, both automata are in
+their initial modes resting , where each of them follow the respective continuous
+dynamics, until either or them take any of the enabled transition in1orin0.
+Note that, even though the transitions labelled by ch1andch0could be taken
+by the second automaton, they cannot be taken in the composition with the rst.
+This is because ch1and ch0are in the common alphabet of the two automata
+but the rst automaton cannot take them. Nevertheless, the transitions of in1
+andin0, which can be taken by the rst automaton, are only in its alphabet and
+therefore can be taken by the composition. The transition labelled by in0makes
+both automata stay in resting , while in1makes the rst switch to stimulus .
+After the latter switch, the composition can take in1and in0as before, but,
+in addition, can also take the common transition labelled by ch1. Upon ch1the
+two automata switch simultaneously to respectively upstroke and stimulus ,
+
+--- Page 8 ---
+in1
+in0
+ch1
+getAch0in0 in1
+in1,in0 in1,in0ch1
+ch0
+out1
+getBout0ch0 ch1
+ch1,ch0 ch1,ch0in1
+in0
+ch1
+getAch0in0 in1
+in1,in0 in1,in0ch1
+ch0
+out1
+getBout0ch0 ch1
+ch1,ch0 ch1,ch0
+in1
+in0
+ch1
+getAch0in0 in1
+in1,in0 in1,in0ch1
+ch0
+out1
+getBout0ch0 ch1
+ch1,ch0 ch1,ch0in1
+in0
+ch1
+getAch0in0 in1
+in1,in0 in1,in0ch1
+ch0
+out1
+getBout0ch0 ch1
+ch1,ch0 ch1,ch0in1
+in0
+ch1
+getAch0in0 in1
+in1,in0 in1,in0
+Fig. 5: Some congurations of a composition of two heart cells, where the events
+out1 and out0 of the left and in1and in0of the right cell are renamed to
+resp. ch1and ch0and getto resp getA and getB . The active modes in each
+conguration of two cells are depicted by the black circles. The eect of an
+enabled transition is shown as a transition between congurations.
+modeling the rst cell sending a stimulus to the second cell. The the rest of the
+dynamics continues similarly and so does the the composition of more than two
+hybrid automata. In fact, the composition of two hybrid automata can be seen as
+a single hybrid automaton itself, which in its turn can be composed with another
+automaton, and so on, making a composition of arbitrarily many automata.
+Hybrid automata can be classied according to the generality of their guards,
+dierential equations, and dierence equations. The more restrictive these equa-
+tions are, the more feasible the analysis of the resulting behaviors. Assume that
+x is a state vector. A hybrid automaton has piece-wise ane dynamics if all
+mode invariants and transition guards have the form x2U, all mode equations
+have the form _ x=Ax+vwithv2V, and all transition equations have the form
+x0=Bx+wwithw2W, for matrices AandB, and polyhedra U,V, andW.
+The hybrid automaton has piece-wise constant dynamics ifA= 0. It is a timed
+automaton ifA= 0 andV= 1. In a timed automaton, all state components
+always advance at the rate of time; they represent \clocks".
+2.2 Timed automata: Modeling the Pacemaker
+The pacemaker monitors the pattern of events emitted by the heart and corrects
+them via external means when needed. The pacemaker itself is composed of a
+number of components, each of which is essentially a simple state-machine pro-
+ducing output events triggered by timing constraints. This makes the formalism
+of timed automata ideal for the description of these components.
+Figure 6 shows the architecture block diagram of the entire model. The pace-
+maker senses the voltage peaks of one cell from the atrium and one cell of the
+
+--- Page 9 ---
+Atrium
+VentricleAget
+VactAact APacingSA Node
+AP
+LRI
+AVI VPacing
+VPPVARP
+VRP
+URI clkVSBeatPHeartInterval Counter
+Duration
+ASAS,ARFast,Slow
+du_enddu_beginDDD,VDI
+VS
+VgetAget
+PacemakerFig. 6: Overview of the modeled processes: red arrows indicate pacing inputs to
+the heart and blue arrows are the monitored output events from the heart.
+ventricle through the events Aget andVget (which are renaming of the respec-
+tive getlabels), and controls the heart by sending stimuli to the SA node and
+the VA node though the labels APand VP. In particular, upon the occurrence
+ofAPthe timed automaton AP-to-A generates a pulse by sending an event i1
+to the SA node and after some xed time sending i0indicating the end of the
+stimulus pulse. Similarly, VPtriggers VP-to-V which in its turn stimulates the
+VA node. The events APandVPare generated by the internals of the pacemaker,
+which we introduce in this section.
+Fig. 7: Ventricular refrac-
+tory period ( VRP).To rst informally explain the formalism of
+timed automata and how they are modelled in the
+toolUppaal , we will use the VRPprocess shown in
+Fig. 7. Uppaal timed automaton consists of loca-
+tions and edges modeling its discrete states and dis-
+crete transitions respectively. Locations and edges
+have labels. For example, process VRPhas an initial
+location with a circle Oinscribed, which has a name
+label Idle. The location VRPhas an invariant label
+t<=TVRP meaning that the automaton may stay in
+VRPonly while the clock tvalue is less or equal to the value of the TVRP constant.
+Process VRPmay stay in location Idle for arbitrary amount of time because there
+is no invariant forcing it to move, it also listens for synchronizations over chan-
+nels Vget andVP. The reception over channel Vget transitions it to inter , while
+the reception over VPswitches it directly to location VRPand reset the clock
+
+--- Page 10 ---
+t. The location inter hasCinscribed to denote that it is committed and the
+automaton's progress cannot be interrupted neither by the time delay nor any
+other process, therefore it has to move immediately by taking an edge transition
+to location VRPwhich is labeled with synchronization VS!and update t=0mean-
+ing that it emits a message on channel VSand resets the clock tso the time is
+counted from zero in location VRPup to the bound of TVRP. Then process VRP
+may move from location VRPback to Idle but only when the guard t>=TVRP is
+satised, i.e. only after spending at least the amount TVRP of time in location
+VRP. As a result, the state of a timed automaton consists of its location and vari-
+able values, and there are two kinds of transitions between states: delay (when
+clock values increase while satisfying the current invariant) and edge-transitions
+when clock values satisfy the guards, synchronize, update the value and satisfy
+the target location invariant.
+In addition to theoretical denition of timed automata Uppaal implements
+a number of practical extensions which make the modeling task easier and more
+succinct:
+Integer variables. Apart from constants, most programming and modeling
+languages use variable value manipulations. Likewise Uppaal allows bounded
+integer variables to be used and combined with clock constraints. On one
+hand, the value of an integer variable becomes an integral part of the state
+of the system. On the other hand, the integer variable value can be used
+as a constant in clock constraints because the integer variable value may
+change only upon edge-transitions between the timed automata states. An
+example of such integer use is demonstrated by TPVARP in Fig. 8d, where the
+bound t<=TPVARP is changed by transition from PVARP toIdle. Interestingly,
+the bounded integer variables do not increase the theoretical expressiveness
+of timed automata, therefore all theoretical results still apply. For example,
+we have compressed the representation of Counter and Duration in Fig. 8g
+and 8f by encoding the fast? andslow? counting into local integer variables
+i(originally [23] enumerated into a number of distinct locations).
+Input-output synchronization. In contrast to non-directed multi-label syn-
+chronizations in SpaceEx hybrid automata, the synchronizations between
+Uppaal processes are directed in the sense that one process is sending with
+exclamation mark (e.g. VS!) and the receiving process is listening with ques-
+tion mark ( VS?respectively). By default, channel synchronizations are hand-
+shake, meaning that both sender and receiver must mutually agree for the
+transition to take place. Handshake synchronizations happen only in pairs
+of processes, i.e. only two processes may participate in the synchronization
+at a time, and all possible pairs are considered non-deterministically when
+multiple receivers are available.
+Broadcast synchronization. In addition Uppaal supports broadcast syn-
+chronization where one sender may synchronize with multiple receivers. In
+contrast to handshake synchronization, the broadcast synchronization is non-
+blocking in a sense that the sender is not required to wait for any receivers
+and only the ready receivers participate in the synchronization. While the
+
+--- Page 11 ---
+broadcast synchronization can be emulated by adding receiving self-loops in
+locations where the process does not implement the reception part, but in
+practice it is more succinct way of modeling, allows partial order reduction
+and verication is more ecient as the tool does not need to consider the
+extra edges. All the synchronizations in the pacemaker study use broadcast
+channels because non-blocking behavior is closer to how the independent
+processes communicate and it is easier to include additional processes with-
+out modifying the original behavior, which is useful in adding extra monitors
+for diagnostics and verication.
+Urgency. Sometimes the modeled process needs to execute several transitions
+without delaying in the locations between. We call such locations urgent and
+draw a letter Uinside to mark that time cannot progress in them.
+Atomicity. The process in urgent location may still be interrupted by a transi-
+tion in another process even though the time is not allowed to pass. Uppaal
+implements a committed location with Cinscribed in case an uninterrupted
+(\atomic") sequence of transitions is needed. Committed locations are use-
+ful in connecting multiple channel synchronizations at the same time which
+would be very cumbersome to model otherwise.
+We have reconstructed the pacemaker model from [23] shown in Fig. 8. The
+overview block diagram of the processes is shown in Fig. 6 where the heart is
+represented by SA Node cell, two atrium and two ventricle cells. The cells can
+be stimulated by ch1and ch0channels synchronizations denoting the start
+and ending of the stimulus. The heart can be self-stimulating by a SA Node cell
+or by a pacemaker by a signal over channel AP(Atrium Pulse). Normally the
+atrium cells relay the signal to ventricle cells, but if the stimulus is too weak (or
+too short), then the ventricle is stimulated by the pacemaker over VP(Ventricle
+Pulse) channel. The pacemaker monitors the activity of the atrium and ventricle
+by receiving from the signals over the corresponding channels Aget andVget. All
+channels used in Fig. 8 are of broadcast type, meaning that one sending event
+can be sensed by zero or more receivers at once and the sending process is not
+blocked by the absence of receivers.
+Low Rate Interval (LRI, Fig.8a) maintains the minimum heart rate by
+providing pulses to the heart ( AP!in DDD mode and VP!in VDI mode) if there
+was no signal from atrium ( AS?) after the last ventricle pulse for longer than
+TLRI TAVI time interval. The time interval is measured by the clock twhich is
+reset after the last ventricle pulse (by sensing either VS?orVP?). The LRI also
+monitors the mode switching by reacting to inputs VDI? and DDD? and starts
+pacing the ventricle ( VP!) instead of atrium ( AP!).
+Atrioventricular Interval (AVI, Fig. 8c) maintains the maximum interval
+between the atrium and ventricle activation by issuing ventricle pacing VP!if no
+ventricular event received VS?within TAVI time after the last atrial event ( AS?
+orAP?). The interval is measured by the clock clkshared with Upper Rate
+Interval (URI, Fig. 8b) which prevents pacing the ventricle too fast by resetting
+clkupon ventricular event ( VS?orVP?).
+
+--- Page 12 ---
+(a) Low Rate Interval ( LRI).
+ (b) Upper rate interval ( URI).
+(c) Atrioventricular Interval
+(AVI).
+ (d) Postventricular atrial refractory period ( PVARP ).
+(e)Interval .
+ (f)Duration (compressed).
+(g)Counter (compressed).
+Fig. 8: Timed automata model of the pacemaker.
+
+--- Page 13 ---
+Postventricular Atrial Refractory Period (PVARP , Fig. 8d) converts
+atrium events A_act? and Aget? into sensed event AS!and lters the sensed
+noise during the blanking period ( t<=PVAB ) after the ventricular event followed
+by a refractory period ( t<=PVARP ). The blocked events are converted to ABlock!
+and AR!for advanced diagnostics.
+Ventricular Refractory Period (VRP, Fig.7) similarly translates the ven-
+tricle peak events over Vget? into sensed events over VS!and lters out by not
+re-transmitting for a time interval t<=TVRP after the last event.
+We use the same set of constants as in the original publication [23]: TAVI
+=150, TLRI=1000, TPVARP=100, TVRP=150, TURI=400, TPVAB=50 .
+3 Relating and Combining Models
+Hybrid automata can be numerically simulated, or formally analyzed. While
+simulation generates one behavior at a time, formal analysis can answer questions
+about all possible behaviors of a hybrid automaton. The most basic behavioral
+analysis question about a hybrid automaton is the reachability question. The
+bounded reachability question asks, given two state sets S and T, and a time
+bound t, if there is a behavior from a state in S to a state in T of total duration
+no more than t. The unbounded reachability question asks, given two sets S and
+T, if there is a behavior of any duration from a state in S to a state in T. In
+general, both the bounded and unbounded reachability questions are formally
+undecidable even for hybrid automata with piece-wise constant dynamics [22].
+However, methods and tools have been developed for solving many interesting
+instances of these problems [21, 18]. Moreover, both questions can always be
+answered algorithmically for the special case of timed automata [6].
+Unfortunately, the heart-pacemaker model is not a timed automaton, as heart
+cells fall in the class of hybrid automata with piece-wise ane dynamics, and
+so does their composition with the pacemaker. On the other hand, if each cell
+model was a timed automaton, the whole system would be a timed automaton,
+and therefore the verication answer solvable. Can we model each cell with timed
+automata, so that by verifying the resulting system we verify the original system
+too? To this aim, we exploit the notion of abstraction : if the timed automaton
+abstracts the original cell model, then any negative answer for the reachability
+question in the abstract composed system implies the same negative answer
+in the original composed system. In the following, we construct such a timed
+automaton, we explain its relation with the original hybrid automaton, and
+we demonstrate how to use SpaceEx to mechanically prove that the former
+abstracts the latter.
+3.1 A timed abstraction of the heart cell model
+We construct a timed automaton Awith the same discrete structure of the heart
+cell model in Fig. 2 and one clock variable. In the abstract model, the clock is
+reset upon entering each mode, and the transition guards out of a mode are
+
+--- Page 14 ---
+chosen based on the duration of time spent in that mode. Figure 9 shows such
+construction. The clock variable is tand the times Tout1,Tout0, andTgetbound
+in1
+t0= 0
+in0
+tTout1
+t0= 0 out1tTout1
+t0= 0
+get
+tTget
+t0= 0out0tTout0
+t0= 0resting stimulus
+upstroke repolarizationin0
+in1,in0
+tTout0in1
+tTout1
+in1,in0
+tTget
+Fig. 9: A timed abstraction of the hybrid automaton in Fig. 2.
+respectively the duration before the occurrence of the symbols out1 ,out0 , and
+get.
+The abstraction has been constructed manually, by making the following
+observations about the original model in Fig. 2. Initially the cell is in resting
+mode, where vx vydrops towards 0, therefore the invariant 0 vx vyVT
+is always satised. As a consequence, in1and in0can occur at any time: the
+rst makes a switch to stimulus and the second moves the automaton back to
+resting . In stimulus the automaton is also driven by the dierence vx vy
+which may lead to upstroke . The time bound Tout1models the largest time
+wherevx vyhitsVTand satises the guard for out1 , i.e.,vx vyVT. The
+symbol out1 may occur any time before Tout1, as well as in1andin0which may
+happen as long as the invariant 0 vx vyVTofstimulus is satised. Upon
+the occurrence of out1 the value of vx vyis exactlyVT, the process switches to
+upstroke in which it stays until the value of vx vyhits exactly VO, whose time
+is modeled by VO. Similarly, upon getthe process switches to repolarization
+and stays until it takes out0 whenvx vyhitsVR, which must happen no later
+thanTout0time.
+Whether the timed automaton in Fig. 9 is an abstraction of the heart cell
+model in Fig. 2 requires us to rst rigorously dene what we mean by abstraction,
+namely, what are the features of the original system that are to be conserved
+by the abstract system. Second, we need to instantiate the parameters Tout0,
+Tout1, andTgetand prove that the so obtained timed automaton abstracts the
+original hybrid automaton. We discuss these points in Sections 3.2 and 3.3. For
+the time being, the construction of the timed abstraction relies on the intuition
+and the expertise of the designer. In this phase, the only formal requirement is
+that the timed automaton needs to deterministic , so that in the next phase we
+can construct its complement. A timed automaton is deterministic if at every
+
+--- Page 15 ---
+mode every pair of transitions with common symbol have disjoint guards [6].
+The timed abstraction of Fig. 9 is deterministic simply because at every mode
+each symbol has at most one switch.
+3.2 The timed language of hybrid automata
+A hybrid automaton Aabstracts a hybrid automaton Bwhen all observable
+behaviors of the latter are also observable behaviors of the former. The observ-
+able behaviors are the features of the system dynamics that we need to observe
+in order to decide whether a specication is satised. The more detailed the
+observable behaviors, the harder is constructing an abstraction, but the more
+sophisticated are the properties that we can verify. For verifying properties such
+as Tachycardia, Bradycardia, and so on, we want to observe sequences of labels
+=01:::with the exact times =01:::at which each of these events
+has occurred. Each of such pairs of sequences ( ;) is called a timed word.
+For instance, the word that repeats the pattern in1;out1;get;out0 is a timed
+word when coupled with the times of staying respectively in modes resting ,
+stimulus ,upstroke , and repolarization , repeatedly. The set of all the timed
+words of the hybrid automaton His called its timed languageLH.
+Abstraction with respect to timed languages can be phrased as timed lan-
+guage inclusion, that is to say that the timed automaton Aabstracts the hybrid
+automaton HifLHLA. Alternatively, one can prove that AabstractsHby
+saying that there does not exist a timed word of Hthat is not a timed word
+ofA. This is indeed a reachability question for the composition of Hwith the
+complement of A, which can be tackled by SpaceEx . To this aim, we rst con-
+struct the complement automaton for A, i.e., the timed automaton for which
+all timed words from language LAend up in accepting mode (corresponding
+to modes in the original automaton) and any other word end up hitting some
+auxiliary rejecting mode. Then, we use SpaceEx to search for any timed word
+ofHthat is rejected by the complement automaton of A, namely a word of their
+composition that hits a rejecting mode of the latter. If no such word is found,
+then we can conclude that AabstractsH.
+The timed abstraction Ais deterministic. To complement a deterministic
+timed automaton we need rst to add dummy transitions so to make the automa-
+ton accept any timed word (on the same alphabet =fin0;in1;out0;out1;getg),
+yet remaining deterministic. Figure 10 shows the result. From mode resting
+only in1andin0can be received, therefore we add a dummy transition, i.e., a
+transition to a dummy mode, which receives any other symbol, i.e., out1 ,out0 ,
+and get. From stimulus ,in1,in0, and out1 can be received and can be re-
+ceived as long as tTout1, therefore we add a dummy transition with guard
+t > T out1that receives such events, so as to ensure all guards of transitions
+with common symbol to be disjoint and maintain the automaton deterministic.
+The symbols out0 and getcannot be received at all from stimulus , therefore
+we add a dummy transition with unconstrained guard. Similarly, we make the
+same construction on modes upstroke and repolarization . Finally, one can
+observe that every trajectory that ends in any dummy mode corresponds to a
+
+--- Page 16 ---
+in1
+t0= 0
+in0
+tTout1
+t0= 0out1tTout1
+t0= 0
+get
+tTget
+t0= 0out0tTout0
+t0= 0r1
+r2 r3r0
+t>T out1in1,in0,out1out0,get
+t>T getin1,in0,getout1,out0
+t>T out0in1,in0,out0out1,getout1,out0,get 
+ in0
+in1,in0
+tTout0in1
+tTout1
+in1,in0
+tTget
+Fig. 10: Complement of the timed abstraction in Fig. 9.
+timed word that is not in LA. The dummy modes are those that recognise the
+complement language, thus we mark them as rejecting modes.
+In summary, we formulate the question of whether the timed abstraction in
+Fig. 9 abstracts the heart cell model in Fig. 2 by asking SpaceEx whether the
+composition of the heart cell model in Fig. 2 with the complement automaton in
+Fig. 10 can reach any of the rejecting modes. The result is a reachability question
+on hybrid automata with ane dynamics.
+3.3 Verifying the Abstraction using SpaceEx
+SpaceEx is a modeling framework for the composition of hybrid automata that
+collects several reachability analysis techniques, which are called scenarios . We
+can divide the currently available scenarios in three main categories: simulation
+based, support function based, and the polyhedra based scenarios. The simula-
+tion based scenario (whose SpaceEx keyword is simu ) generates time-bounded
+sample trajectories, and can be used to reject an abstraction, but not to verify
+one. The support function (which comes in SpaceEx with the two variants supp
+andstc) and the polyhedra based (keyword phaver ) scenarios perform reacha-
+bility analysis by generating sequences of polyhedra that over-approximate the
+whole space of reachable states and both are possibly suitable for verifying an
+abstraction. In fact, when they answer that all rejecting modes are unreachable,
+then the rejecting modes are actually unreachable, and the abstraction is proven.
+The converse is not necessarily true and, moreover, termination is not guaranteed
+either. For this reason, successfully concluding an abstraction proof requires sev-
+eral trial and error attempts in tuning the parameters and the multiple heuristic
+options of SpaceEx .
+
+--- Page 17 ---
+We use the polyhedral based scenario which is also know as the PHAVer
+scenario. The PHAVer scenario over-approximates the continuous ow of every
+mode by piece-wise constant dierential inclusions [17]. In other words, it turns
+ane dynamics of the form _ x=Ax+vwithv2Vinto dierential inclusions of
+the form _x2U, whereUis a set the contains all values that the derivative _ xcan
+possibly take. Both such transformation and the symbolic reachability analysis
+on the so obtained hybrid automaton are then done by quantier elimination,
+e.g., by the Fourier Motzkin algorithm [4].
+The main challenge is then to choose the time bounds Tout1,Tout0, andTget.
+Indeed, if we let vxandvytake arbitrary negative values it is impossible to nd
+nite bounds, therefore we add the extra invariant vx;vy0 to all modes of
+the heart cell. Then, we proceed as follows. First, we set all constraints of the
+heart cell model from the original article [31] (except for ist, which isn't specied
+there). Second, we decide a value for istand third, we search for tight enough
+axaybycxcydxdyVRVTVO
+-0.98 -0.16 -0.16 15 1.4 -0.98 -0.16 10 10 83
+Table 1: Parameters taken from [31] for the heart cell model.
+values forTout1,Tout0, andTgetuntilSpaceEx concludes that all rejecting modes
+are unreachable. Table 2 shows a few attempts to prove reachability of any of
+the rejecting modes r0,r1,r2, orr4. The parameters were chosen manually, and
+Table 2: Attempts of proving that the timed automaton of Fig. 9 abstracts the
+hybrid automaton of Fig. 2. The answer indicates the reachable rejecting modes
+of the complement automaton of Fig. 5 (None indicates a successful proof).
+istTout1Tout0TgetAnswer
+10 1 1 1 r3
+10 1 1 10 None
+10 0.1 0.1 1 r1,r2,r3
+10 1 0.5 10 None
+10 1 0.5 7.5 NoneistTout1TgetTout0Answer
+1 1 0.5 7.5 r1
+1 10 0.5 7.5 None
+100 10 0.5 7.5 None
+100 0.01 0.5 7.5 r1
+100 0.1 0.5 7.5 None
+SpaceEx converged on each of these proofs in less than a second.
+3.4 Abstraction Renement
+An abstraction captures specic aspects of the original model while it may ignore
+others, and in some cases, an abstraction may be too coarse for proving a prop-
+erty. For instance, the timed automaton of Fig. 9 captures the upper bounds of
+
+--- Page 18 ---
+the transition times for the labels out1 ,out0 , and get, while it ignores the lower
+bounds. Without a lower bound for the duration of an output stimulus, proper-
+ties such as the ecient propagation of a signal through cells (see Sec. 4.3) cannot
+be proven. In fact, often an abstraction requires to be adapted to the property
+of interest. This is usually done incrementally, by adding a few important details
+at a time, through a process of abstraction renement . In the following, we show
+how to rene our abstraction by exploiting the compositionality of hybrid and
+timed automata.
+The timed automaton of Fig. 11 captures the requirement that output stim-
+ulus of a heart cell should last at least time Tstim. As previously, we compute its
+out1
+t0
+lb= 0
+out0
+tlbTstimin0,in1 in1,in0,get
+Fig. 11: Abstraction for the lower bound between out1 andout0 .
+complement, and we use SpaceEx to prove that for certain parameters of the
+heart cell model, certain lower bounds are satised (see Tab. 3), so obtaining
+a second abstraction for the original heart cell. We use the new abstraction B
+to rene the previous abstraction Aby composing them together, obtaining the
+timed automaton in Fig. 12, which is an abstraction of the original system too.
+Table 3 shows the proven parameters. In particular, for the original model (pa-
+Table 3: Proven parameters for upper and lower bounds abstractions (Fig. 9 and
+11) w.r.t. dierent versions of a heart cell.
+axaybycxcydxdyVRVTVOVmaxistTout1TgetTout0Tstim
+-0.98 -0.16 -0.16 15 1.4 -0.98 -0.16 10 10 83 110 1 0.5 7.5 0
+-0.98 -0.16 -0.16 15 1.4 -0.98 -0.16 5 10 83 100 10 1 0.5 7.5 0.86
+-0.98 -0.16 -0.16 15 1.4 -0.83 -0.16 5 10 83 100 10 1 0.5 19 1.001
+rameters from Tab. 1, rst line in Tab. 3) we could not prove any lower bound,
+unless we reduced VRand additionally specied a global invariant for which
+xandycannot be greater than a maximum voltage Vmax. For instance, with
+Vmax= 100 andVR= 5, we have a lower bound of 0 :86. Indeed, the lower bound
+for the stimulus length depends on Vmax,VRand the coecient dx, e.g., with
+dx= 0:83 we have Tstim= 1:001.
+
+--- Page 19 ---
+In summary, we constructed time abstractions for a heart cell and we for-
+mally proved that they indeed abstract its timed language. The abstraction
+question turns out to be a reachability question on a heart cell composed with
+the complement of its timed abstraction, which is a rather small system. We
+employ SpaceEx on such a small problem, so we can modify the whole heart-
+pacemaker model by substituting each cell with an abstraction or a composition
+of them. The whole model is now a timed automaton, which can be veried by
+Uppaal .
+4 Verifying Temporal Requirements
+Several behavioural properties of (composite) timed and hybrid automata mod-
+els may be expressed as simple reachability properties. This is already illustrated
+previously in Section 3.2, where we saw that language inclusion between the \ex-
+act" hybrid automaton model Hof a heart cell and a proposed timed automaton
+abstraction Acould be stated as a simple reachability property of rejecting lo-
+cations in a product between Hand the complement of A. However, it may
+often be more convenient to express desired properties of a timed or hybrid au-
+tomaton directly as formulas of temporal logic, thus permitting properties to be
+combined using boolean connectives. In fact the whole spectrum of temporal-
+logic has been extended to the setting of timed labelled transition systems, with
+model checking suitably extended to timed automata, see e.g. [10]. In this section
+we demonstrate how timed automata verication using Uppaal may be used in
+establishing key properties of the pace-maker.
+4.1 Timed Automaton of a Heart Cell in Uppaal
+Figure 12 shows the Uppaal version of the heart cell timed automaton abstract
+model of Fig. 9. The locations in the timed automaton match their correspond-
+ing modes in the hybrid automaton and the timings are taken from Table 3 and
+converted into microseconds as shown in Fig. 12b. Note that Tstim was deter-
+mined as a minimum delay between out1! and out0! events, therefore we use
+an extra clock t_lbto enforce this constraint. This lower bound on the repolar-
+ization time turned out to be important to ensure a successful signal handover
+as veried in Section 4.3.
+4.2 Requirement Specications
+The model checker Uppaal supports verication of requirements expressed within
+a fragment of Timed Computation Tree Logic (TCTL). Among TCTL properties
+we consider here the following:
+{ A', which is satised if any reachable state satises '(Invariance ),
+{ AT', which is satised if any state reachable within Ttime-units satises
+(Time-bounded Invariance ),
+
+--- Page 20 ---
+(a)Uppaal timed automaton.const int Tget = 500;
+const int Tout1 = 1000;
+// Without lower bounds:
+const int Tout0 = 7500;
+const int Tstim = 0;
+// With lower bound:
+const int Tout0 = 19000;
+const int Tstim = 1001;
+(b) Parameters.
+Fig. 12: Abstract model of a heart cell.
+{ A', which is satised if on any path the properties 'is (eventually) satis-
+ed at some point ( Eventual ),
+{ AT'which is satised if on any path the property 'is satised within
+Ttime-units'(Time-Bounded Eventual ),
+{' T , which requires than whenever a state is reached satisfying ', then
+any path from this state must eventually satisfy  { and within a total of T
+time-units. Logically, the (time-bounded) leads-to property is equivalent to
+A(')AT ) (Time-Bounded Leads-to ).
+For deterministic timed labelled transition systems, it may easily be shown that
+all of the above properties { as they all quantify universally over execution
+sequences out of a state { are preserved by language inclusion. Thus, if LHLA
+andAhas been veried to satisfy a TCTL property 'of the above type, then
+it may readily be concluded that the \exact" model Halso satises '.
+Moreover, as demonstrated in [1] all of the above properties may be expressed
+directly as a reachability property | i.e. invariance properties | of the given
+timed automaton composed with a monitor corresponding to the property.
+4.3 Healthy Heart Requirements
+Figure 13 shows the state evolution of 10 heart cell timed automata connected
+in series. In the beginning all cells are in resting (red bar), then the rst cell is
+stimulated and moves to stimulus (yellow bar). After a short while the rst cell
+stimulates the second one and moves to upstroke (green bar), then it moves to
+repolarization (blue bar) and back to resting (red bar). The second cell then
+stimulates the third and so on.
+A healthy heart should propagate the signal all the way from SA node to
+atrium and then ventricle. This requirement can be formulated as the following
+leads-to property:
+A(ch1[0]!!Ach1[N]! )
+
+--- Page 21 ---
+gantt {
+C(i:id _t):
+cells(i).resting  >red,
+cells(i).stimulus  >yellow,
+cells(i).upstroke  >green,
+cells(i).repolarization  >blue;
+}
+(a) Gantt chart declaration.
+ (b) With lower bounds.
+ (c) Without.
+Fig. 13: Gantt chart of state evolution of 10 cell automata from Fig. 12.
+which says that for every stimuli of the rst cell ( ch1[0]! ) we should eventually
+observe the signal at the end of the chain ( ch1[N]! ), where Nis the number of
+cells.Uppaal veries that this property holds when Tstim >Tout1 , i.e. the lower
+bound of being in repolarization is greater than the time spent in stimulus ,
+and the signal propagates successfully just like in the Gantt chart in Fig. 13b.
+It takes 0.2s to verify an instance of four cells, 6.8s for ve and 28min for six,
+which shows signs of the state space explosion in terms of the number of processes
+due to non-deterministic behavior. Interestingly the property is not satised if
+the cell stays in repolarization longer than in stimulus , i.e. Tstim >Tout1 ,
+because the signaling cell may go from upstroke torepolarization , stop the
+stimulus and bring the next cell back to resting , thus disrupting the signal.
+One such particular scenario is visualized in Fig. 13c: the stimulus ofcell
+(2)is interrupted by cell(1) by a quick move back to resting before cell
+(2)reaches upstroke , hence cell(3) stays in resting and the signal is lost.
+We conclude that the relation between maximum delay in stimulus and total
+delay in upstroke and repolarization is crucial for correct signal propagation
+through heart cell network.
+In addition to checking the signal propagation we can also estimate the min-
+imum and maximum delay time between the start and end of the signal by using
+the duration monitor automaton and queries shown in Fig. 14. The inmum
+and supremum queries instruct Uppaal to record the minimum and maximum
+values of clock twhen the automaton in the corresponding locations Minand
+Max. Note that the automaton always stays in location Maxin between the from!
+andtill! events, therefore the supremum of tcorresponds to the time duration
+between those events. And the automaton visits Minwhen thas its maximum
+value, therefore the inmum of tinMincorresponds to the shortest observed
+duration between events.
+In case of our chain of heart cell timed automata { using the above pattern
+{ the duration between ch1[0]! and ch1[N]! is found to be bounded by the
+interval of [0 ;N]ms, whereNis the number of cells in series. Due to congru-
+
+--- Page 22 ---
+(a)MDuration .inf{MDuration.Min}: MDuration.t
+sup{MDuration.Max}: MDuration.t
+(b) Queries for inmum and supremum.
+Fig. 14: Estimating the delay between from! and till! events.
+ence properties of abstraction, this bound is guaranteed to be valid also for the
+composition of hybrid heart cells in Fig. 5.
+4.4 Abstraction of Cell Composition
+Once we have estimated the duration of a signal travel through the chain of cells,
+we can model the entire chain as one automaton re-transmitting the signal with
+a delay. By replacing a chain of cells with one process we reduce the verication
+eort signicantly without losing the precision. We model the atrium and the
+ventricle as separate processes representing a sequence of individual heart cells.
+Figure 15a shows a healthy atrium which relays its activation signal to the
+recipient (ventricle and pacemaker) by delaying 150ms. We model an atrium
+which may loose a signal by taking an extra transition without notifying the
+recipient in Fig 15a to reect abnormal behavior. The ventricle part of the heart
+is modeled likewise. The sinoatrial node is responsible for triggering the heart
+beating process and is modelled in Fig. 15b. In principle, healthy SANode may
+beat with interval of 500-2000ms (30-120bpm), but a faulty one may beat more
+or less frequently or stop beating altogether, thus we do not put any constraints
+to allow all possible (healthy and faulty) behavior to allow a pacemaker to do
+its job, there the verication will cover all possible scenarios (failure may occur
+at any time, in SANode, atrium or ventricle). The result is a sequence of signals:
+the SANode stimulates atrium and atrium stimulates ventricle, but atrium and
+ventricle may also be stimulated by a pacemaker, thus we also add a pacing
+process which multiplexes the pacing events ( AtrioP and VentriP ) with heart
+events ( BeatP andAget) into atrium ( Aact) and ventricle ( Vact) stimuli as shown
+in Fig. 15c.
+4.5 Pacemaker Requirements
+The pacemaker is required not to issue ventricle pace events ( VP!) for at least
+TURI time units since the last ventricle pulse ( VP!) or the ventricle sense ( VS!)
+events. This requirement can be formulated into the following TCTL property:
+A((VS!_VP!)!ATURI:VP!)
+
+--- Page 23 ---
+(a) Atrium.
+ (b)SANode .
+ (c) Pacing.
+Fig. 15: Abstract heart model.
+This property expresses that the action VP!may only occur after a time-
+separation of at least TURI time-units from a previous VP!ofVS!action. Dually,
+the requirement that the interval between two ventricular events (either VP!or
+VS!) should be less than TLRI can be expressed as the following property:
+(VS!_VP!) TLRI(VS!_VP!)
+which says that the actions VP!and VS!must occur with at most a time-
+separation of TLRI time-units.
+Uppaal implements TCTL referring to system states rather than synchro-
+nization events, therefore the above properties are converted into the event-
+monitoring automata (Fig. 16a and Fig. 16b respectively) and the requirements
+are reformulated in terms of monitoring automata locations and clock values.
+The monitor transitions are labeled with VP?and VS?synchronizing with the
+corresponding events VP!and VS!, and the local clocks tare reset accordingly,
+so that the value of the local clock tin locations interval and two_acorre-
+sponds to the time duration between two successive events. The property then
+veries that the duration is within bounds U.t>=TURI and L.t<=TLRI .
+The model with abstracted heart cell chain had too large state space to
+verify due too many non-deterministic processes in the heart. Interestingly the
+unrestricted \random" heart model (as described in [23]) takes much less re-
+sources as it does not need to remember the complex heart state. We used a
+heart model with arbitrary rate (0 ;1) which may beat at any time or not at
+all. Such heart captures all possible heart behaviors and hence verication pro-
+vides a much stronger safety guarantee than with the more realistic and detailed
+A[](U.interval imply U.t >=TURI)
+(a) Monitor for upper rate limit.
+A[](L.two _a imply L.t <=TLRI)
+(b) Monitor for lower rate limit.
+Fig. 16: Automata and queries for timed properties from [23].
+
+--- Page 24 ---
+Table 4: Resources used by Uppaal to verify properties from Fig. 16.
+Pacemaker URL LRL
+model time memory result time memory result
+Basic DDD 0.01s 5.37MB OK 0.01s 5.37MB OK
+DDD-VDI 129.57s 248.26MB OK 148.58s 267.78MB Not OK
+heart model. Table 4 shows that the basic DDD pacemaker model is simple
+enough that it hardly takes any time to verify (0.01s, 5.37MB). The DDD-VDI
+pacemaker includes counters and thus the behavior is much more complicated
+leading to more verication eort (129.57s, 248.26MB). We found that the lower
+rate limit property does not hold with TLRI bound on more complex DDD-VDI
+pacemaker (the result is \Not OK"), but the basic DDD satises the lower rate
+limit with twice as large 1500 bound, meaning that the pacemaker may delay
+longer before pacing, but the bound is still reasonable (one pulse per 1.5s).
+5 Future Directions and Challenges
+As illustrated by the case study presented in this paper, model-based design
+and verication is a promising approach to the development of cyber-physical
+systems in a principled manner, and the foundations of this methodology lie in
+cross-fertilization of ideas from mathematical modeling and algorithmic analy-
+sis. As systems keep getting more and more complex, and society increasingly
+relies upon the internet of things, advances in tools for designing such systems
+are crucial to ensuing the safe and reliable operation of systems. This calls for
+continued research in core areas of formal methods such as identication of an-
+alyzable design abstractions, analysis techniques, and scalability of tools. We
+conclude this paper by highlighting some directions for future research.
+Scalability: Given the computational intractability of the computational prob-
+lems in formal verication, developing tools that can analyze real-world sys-
+tems will always remain a challenge. The experience with tools such as Uppaal
+demonstrates that small steps in advancing the scalability collectively contribute
+towards impressive results over the long haul. For the verication of hybrid sys-
+tems, tools based on robustness analysis oer promising opportunities [16, 15].
+Robust analysis means that results obtained should not be too sensitive with
+respect to the actual quantities (timing, voltages, energy, etc.) used in the under-
+lying model. Eorts on identifying metrics that will ensure continuity of various
+behavioral properties are currently being researched for a number of quantitative
+modeling formalisms. As illustrated in Section 3, abstraction is an eective way
+of reducing the complexity of a system, and developing techniques for construct-
+ing abstractions automatically remains a challenge.
+Quantitative analysis: Traditionally, models and techniques used for estab-
+lishing correctness and for evaluating performance have been disjoint. In our
+
+--- Page 25 ---
+pacemaker case study, beyond functional correctness of the control algorithm,
+we are also interested in estimating, for instance, the average energy used by the
+pacemaker. A promising new direction in formal methods research these days is
+the development of probabilistic models, with associated tools for quantitative
+evaluation of system performance along with correctness (see [24]).
+Applications: Given the scalability challenges, formal methods for the design
+and analysis of cyber-physical systems are not yet widely applicable. Thus, iden-
+tifying application domains and problems where the current techniques and tools
+can be applied eectively is itself a challenge that requires an understanding of
+formal methods as well as the application domains. As our example of pace-
+maker suggests, medical cyber-physical systems is a promising domain, and other
+interesting recent case studies include an infusion pump and an articial pan-
+creas [28]. Another promising domain of application is ensuring the safety of
+controllers used in autonomous vehicles [25].
+Data-driven models: As our case study illustrates, a key step is the construc-
+tion of the heart model. Mathematical models of physical systems are hard to
+obtain, but increasingly, due to the rapid proliferation of sensors, lots of data is
+available. This leads to a new research question: given the pacemaker algorithm
+and the property that we want to verify, can we construct a patient-specic model
+of the heart derived from the sensory data obtained from a patient? Deriving
+models suitable for formal analysis from data is a challenging, and relatively
+unexplored, research area.
+References
+1. L. Aceto, P. Bouyer, A. Burgue~ no, and K. G. Larsen. The power of reachability
+testing for timed automata. In V. Arvind and S. Ramanujam, editors, Foundations
+of Software Technology and Theoretical Computer Science: 18th Conference, Chen-
+nai, India, December 17-19, 1998. Proceedings , pages 245{256, Berlin, Heidelberg,
+1998. Springer Berlin Heidelberg.
+2. R. Alur. Principles of Cyber-Physical Systems . MIT Press, 2015.
+3. R. Alur, C. Courcoubetis, and D. Dill. Model-checking in dense real-time. Infor-
+mation and Computation , 104(1):2{34, 1993.
+4. R. Alur, C. Courcoubetis, N. Halbwachs, T. Henzinger, P.-H. Ho, X. Nicollin,
+A. Olivero, J. Sifakis, and S. Yovine. The algorithmic analysis of hybrid systems.
+Theoretical Computer Science , 138:3{34, 1995.
+5. R. Alur and D. Dill. A theory of timed automata. Theoretical Computer Science ,
+126:183{235, 1994.
+6. R. Alur and D. L. Dill. A theory of timed automata. Theor. Comput. Sci. ,
+126(2):183{235, 1994.
+7. R. Alur, T. Henzinger, G. Laerriere, and G. Pappas. Discrete abstractions of
+hybrid systems. Proceedings of the IEEE , 88(7):971{984, 2000.
+8. G. Behrmann, A. David, K. Larsen, P. Pettersson, and W. Yi. Developing uppaal
+over 15 years. Software { Practice and Experience , 41(2):133{142, 2011.
+9. G. Behrmann, A. David, and K. G. Larsen. A tutorial on uppaal. In M. Bernardo
+and F. Corradini, editors, Formal Methods for the Design of Real-Time Systems:
+
+--- Page 26 ---
+International School on Formal Methods for the Design of Computer, Communi-
+cation, and Software Systems, Bertinora, Italy, September 13-18, 2004, Revised
+Lectures , pages 200{236, Berlin, Heidelberg, 2004. Springer Berlin Heidelberg.
+10. P. Bouyer, U. Fahrenberg, K. G. Larsen, N. Markey, J. Ouaknine, and J. Worrell.
+Model checking real-time systems. In E. Clarke, T. Henzinger, and H. Veith,
+editors, Handbook of Model Checking . Springer, 2017. To appear.
+11. T. Chen, M. Diciolla, M. Kwiatkowska, and A. Mereacre. Quantitative verication
+of implantable cardiac pacemakers over hybrid heart models. Information and
+Computation , 236:87 { 101, 2014. Special Issue on Hybrid Systems and Biology.
+12. E. Clarke, O. Grumberg, and D. Long. Model checking and abstraction. In Proc.
+19th ACM Symposium on Principles of Programming Languages , pages 343{354,
+1992.
+13. E. Clarke, O. Grumberg, and D. Peled. Model Checking . MIT Press, 2000.
+14. P. Derler, E. A. Lee, and A. L. Sangiovanni-Vincentelli. Modeling cyber-physical
+systems. Proceedings of the IEEE , 100(1):13{28, 2012.
+15. P. S. Duggirala, C. Fan, S. Mitra, and M. Viswanathan. Meeting a powertrain veri-
+cation challenge. In Computer Aided Verication - 27th International Conference ,
+LNCS 9206, pages 536{543. Springer, 2015.
+16. G. E. Fainekos, S. Sankaranarayanan, K. Ueda, and H. Yazarel. Verication of
+automotive control applications using s-taliro. In IEEE American Control Confer-
+ence, pages 3567{3572, 2012.
+17. G. Frehse. Phaver: Algorithmic verication of hybrid systems past hytech. In
+International workshop on hybrid systems: computation and control , pages 258{
+273. Springer, 2005.
+18. G. Frehse, C. Le Guernic, A. Donz e, S. Cotton, R. Ray, O. Lebeltel, R. Ripado,
+A. Girard, T. Dang, and O. Maler. SpaceEx: Scalable verication of hybrid systems.
+InProc. 23rd International Conference on Computer Aided Verication (CAV) ,
+LNCS 6806, pages 379{395. Springer, 2011.
+19. T. Henzinger and J. Sifakis. The embedded systems design challenge. In FM 2006:
+14th International Symposium on Formal Methods , LNCS 4085, pages 1{15, 2006.
+20. T. A. Henzinger. The theory of hybrid automata. In Verication of Digital and
+Hybrid Systems , pages 265{292. Springer, 2000.
+21. T. A. Henzinger, P.-H. Ho, and H. Wong-Toi. Hytech: A model checker for hybrid
+systems. In International Conference on Computer Aided Verication , pages 460{
+463. Springer, 1997.
+22. T. A. Henzinger, P. W. Kopke, A. Puri, and P. Varaiya. What's decidable about
+hybrid automata? Journal of Computer and System Sciences , 57(1):94 { 124, 1998.
+23. Z. Jiang, M. Pajic, S. Moarref, R. Alur, and R. Mangharam. Modeling and ver-
+ication of a dual chamber implantable pacemaker. In Tools and Algorithms for
+the Construction and Analysis of Systems - 18th International Conference , LNCS
+7214, pages 188{203. Springer, 2012.
+24. M. Kwiatkowska. Quantitative verication: models, techniques, and tools. In Proc.
+ACM SIGSOFT Symp. on Foundations of Software Engineering , pages 449{458,
+2007.
+25. K. G. Larsen, M. Miku cionis, and J. H. Taankvist. Safe and optimal adaptive
+cruise control. In R. Meyer, A. Platzer, and H. Wehrheim, editors, Correct System
+Design: Symposium in Honor of Ernst-R udiger Olderog on the Occasion of His 60th
+Birthday, Oldenburg, Germany, September 8-9, 2015, Proceedings , pages 260{277,
+Cham, 2015. Springer International Publishing.
+26. K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a Nutshell. Int. Journal on
+Software Tools for Technology Transfer , 1(1{2):134{152, Oct. 1997.
+
+--- Page 27 ---
+27. E. A. Lee. What's ahead for embedded software. IEEE Computer , pages 18{26,
+2000.
+28. I. Lee, O. Sokolsky, S. Chen, J. Hatcli, E. Jee, B. Kim, A. King, M. Mullen-
+Fortino, S. Park, A. Roederer, and K. Venkatasubramanian. Challenges and re-
+search directions in medical cyber-physical systems. Proceedings of the IEEE ,
+100(1):75{90, 2012.
+29. M. Pajic, Z. Jiang, I. Lee, O. Sokolsky, and R. Mangharam. Safety-critical medical
+device development using the upp2sf model translation tool. ACM Trans. Embed.
+Comput. Syst. , 13(4s):127:1{127:26, Apr. 2014.
+30. M. Vardi and P. Wolper. Reasoning about innite computations. Information and
+Computation , 115(1):1{37, 1994.
+31. P. Ye, E. Entcheva, R. Grosu, and S. A. Smolka. Ecient modeling of excitable
+cells using hybrid automata. In Proceedings of Computational Methods in System
+Biology , pages 216{227, 2005.
