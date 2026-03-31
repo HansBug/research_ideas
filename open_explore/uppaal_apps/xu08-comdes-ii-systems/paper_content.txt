@@ -1,0 +1,623 @@
+--- Page 1 ---
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+University of Southern Denmark
+Verification of COMDES-II Systems Using UPPAAL with Model Transformation
+Xu, Ke; Pettersson, Paul; Sierszecki, Krzysztof; Angelov, Christo K.
+Published in: 
+Proceedings of the 14th IEEE International Conference on Embedded and Real-Time Computing Systems and
+Applications RTCSA'2008
+Publication date: 
+2008
+Document version: 
+Final published version
+Citation for pulished version (APA): 
+Xu, K., Pettersson, P., Sierszecki, K., & Angelov, C. K. (2008). Verification of COMDES-II Systems Using
+UPPAAL with Model Transformation. In Proceedings of the 14th IEEE International Conference on Embedded 
+and Real-Time Computing Systems and Applications RTCSA'2008 IEEE Computer Society Press. 
+Go to publication entry in University of Southern Denmark's Research Portal
+Terms of use
+This work is brought to you by the University of Southern Denmark.
+Unless otherwise specified it has been shared according to the terms for self-archiving.
+If no other license is stated, these terms apply:
+            • You may download this work for personal use only.
+            • You may not further distribute the material or use it for any profit-making activity or commercial gain
+            • You may freely distribute the URL identifying this open access version
+If you believe that this document breaches copyright please contact us providing details and we will investigate your claim.
+Please direct all enquiries to puresupport@bib.sdu.dk
+Download date: 31. Mar. 2026
+
+--- Page 2 ---
+V eriﬁcation of COMDES-II Systems Using UPPAAL with Model Transformation∗
+Xu Ke†, Paul Pettersson‡, Krzysztof Sierszecki†,Christo Angelov†
+†Mads Clausen Institute for Product Innovation, University of Southern Denmark
+Alsion 2, 6400 Soenderborg, Denmark
+{xuke, ksi, angelov}@mci.sdu.dk
+‡School of Innovation, Design and Engineering, Mälardalen University
+Högskoleplan 1, Box 883, 72123, Västerås, Sweden
+paul.pettersson@mdh.se
+Abstract
+COMDES-II is a component-based software framework
+intended for model-integrated development of embedded
+control systems with hard real-time constraints. It pro-
+vides various kinds of component models to address critical
+domain-speciﬁc issues, such as real-time concurrency andcommunication in a timed multitasking environment, modalcontinuous operation combining reactive control behaviorwith continuous data processing, etc., by following the prin-
+ciple of separation-of-concerns. In the paper we present a
+transformational approach to the formal veriﬁcation of bothtiming and reactive behaviors of COMDES-II systems using
+UPPAAL, based on a semantic anchoring methodology. Theproposed approach adopts UPPAAL timed automata as thesemantic units, to which different behavioral concerns of
+COMDES-II are anchored, such that a COMDES-II system
+can be precisely speciﬁed in UPPAAL, and veriﬁed against
+a set of desired requirements with the preservation of systemoriginal operation semantics.
+1. Introduction
+Recently emerging concepts and techniques, such
+asmodel-integrated development (MID) and component-
+based design (CBD) have considerable implications for the
+efﬁcient development of reliable embedded software sys-tems [1]. On one hand, MID advocates a domain-speciﬁcmodel-driven approach to facilitate the development of em-bedded software, by equipping developers with a domain-
+speciﬁc modeling language (DSML) embodying the mod-
+eling concepts, constraints and assumptions of applicationdomains. On the other hand, CBD can be regarded as one
+of the most suitable design paradigms for MID, due to the
+considerable beneﬁts brought by reusability of components
+and higher-level of abstraction. Moreover, from a software
+engineering point of view, CBD is also an effective way tobridge the gap between conceptual system design models
+∗This work was partially supported by the Swedish Foundation for
+Strategic Research via the strategic research centre PROGRESS.and concrete system implementations [2], provided that an
+automatic code generation technique has been developed.
+COMDES-II is a component-based software framework
+adopting MID as the methodological basis to develop dis-tributed control systems with hard real-time constraints[3, 4]. In order to achieve this objective, COMDES-II pro-vides various kinds of component models to address crucialdomain-speciﬁc issues, such as system concurrency, real-time operation, sequential control behavior combined withcontinuous data processing, etc., by following a separation-
+of-concerns approach [4]. A meta-modeling process for-
+mally deﬁnes the syntax and static semantics of frameworkcomponent models [1], however, speciﬁcation and veriﬁca-tion of composed component behavior are still a challeng-ing problem.
+Semantic anchoring [1, 5] is a promising approach to
+the transformational speciﬁcation and veriﬁcation of sys-tem dynamic behavior, by relying on semantic units (such
+as ﬁnite state machines, timed automata etc.) with well-
+deﬁned operational semantics and tool support. Brieﬂy, the
+elements and their relationships in a DSML can be equiva-lently transformed onto their counterparts in an executablesemantic unit with well-deﬁned behavior. The resultingmodel can be subsequently validated and veriﬁed using sup-
+porting toolsets, while preserving the original system opera-
+tional semantics. This transformation process from original
+DSML to the corresponding semantic unit is referred to assemantic anchoring , as shown in Figure 1.
+We choose timed automata in UPP AAL as the seman-
+tic unit, and this paper presents the concrete process of de-
+veloping such a transformational approach to specify and
+verify the behavior of COMDES-II systems via semanticanchoring. The structure of the paper follows a logical se-
+quence: Section 2 and Section 3 provide an overview of
+COMDES-II component models and timed automata in UP-
+P AAL respectively, which would give a general perspectiveon semantic gaps between the two kinds of systems. Sec-tion 4 describes in details how the semantic differences arebridged via an extensive model transformation process in
+all behavioral aspects. Finally, the concluding section sum-
+marizes the features of our work and their implications.
+
+--- Page 3 ---
+Figure 1. Semantic anchoring of CODMES-II
+Contribution . This paper describes a research effort
+as a continuation of the work which has been presentedin [4]. The main contribution is that we propose a trans-formational approach that supports the efﬁcient veriﬁcationofschedulability and reactive functionality for preemptive
+timed multitasking systems (which is the primary behav-
+ioral semantics of COMDES-II) by using UPP AAL. Theextensive semantic-preserving model transformation per-formed at the meta-level guarantees that predictable systemoperation and deterministic task sequential behavior – asdeﬁned in COMDES-II – are precisely captured in trans-formed UPP AAL models, resulting in much reduced veri-ﬁcation state space and minimized occurrence of spuriouscounter-examples.
+2. System Modeling in COMDES-II
+As a component-based design framework intended for
+real-time control systems, COMDES-II takes into account
+both the architectural and behavioral characteristics of thetargeted domain during a system development process.
+With respect to architecture, COMDES-II employs a hi-
+erarchical model to specify a system structure: at the sys-
+tem level a control application is conceived as a network of
+communicating actors that interact transparently with each
+other by exchanging labeled state messages ( signals ), fol-
+lowing a producer-consumer communication protocol. Ac-tors are active components, which are composed of multi-ple I/O drivers and a single actor task . The I/O drivers are
+responsible for acquiring or generating signals from/to net-work or physical units, while the actor task processes theinput signals to perform the required functionality whichis speciﬁed by a composition of different function block
+instances . Function block instances are instantiations ofreusable and reconﬁgurable function block types , which can
+be categorized into four function block kinds (meta-types):
+basic, composite, modal as well as state machine functionblocks. A detailed description of the COMDES-II systems
+architecture and function block models is out of the scope
+of this paper and we refer the interested readers to [3, 4].
+In another aspect, COMDES-II system behavior is of
+particular interest to our model transformation and analysiseffort. In COMDES-II, a separation-of-concerns approachis extensively applied to help clearly model different be-havioral concerns, such that scheduling, timing and func-tional behaviors are separated from each other. Speciﬁcally,scheduling and real-time issues are speciﬁed with respectto actors, while functional behavior can be modeled by thecomposition of various kinds of function block instancescontained within actor tasks.
+The scheduling policy of real-time operation of actors
+follows a ﬁxed-priority timed multitasking (TM) model of
+computation [6], in which actors are activated by either pe-
+riodic or aperiodic events, and execute preemptively accord-
+ing to their assigned priorities with non-blocking read-do-
+write semantics, as follows:
+•Upon activation, input drivers of the activated actor
+will be invoked ( read ) in logically zero time to ac-
+quire all input signals which are latched throughout thewhole actor execution.
+•The activated actor task will process ( do) exactly once
+the input data as long as it becomes the highest prioritytask among all released/preempted tasks in the proces-sor. The input signals provide all the information foran actor task to determine its current state and the as-sociated computation results.
+•The computed control results will then be buffered into
+output drivers that can be atomically executed to gener-
+ate ( write ) output signals when the corresponding actor
+deadline expires. If the deadline of an actor is not spec-
+iﬁed (i.e. deadline = 0), the actor output drivers will be
+immediately executed when the actor task ﬁnishes its
+execution.
+This non-blocking operation pattern is accomplished via a
+time-triggered scheduler that controls the timed I/O activi-
+ties and split-phase execution of actor tasks and drivers over
+discrete-time (see Figure 2), resulting in a stepwise progressof actor execution time represented as multiples of a basictiming unit (i.e. the period of scheduler activation). Split-phase execution provides for predictable actor operation inthe sense that the output signals of a speciﬁc actor are madeavailable to other actors at its explicitly speciﬁed deadlineinstant, as long as all actor tasks are schedulable.
+The four kinds of function blocks (FBs) deﬁned in
+COMDES-II are pure functional components implementingconcrete computation or control algorithms to fulﬁll differ-ent kinds of functionalities for host actors, as summarizedin Table 1.
+In particular, basic and composite FBs are used to model
+the data-ﬂow computation process executing in a single
+
+--- Page 4 ---
+Figure 2. Split-phase execution of actors under
+timed multitasking
+mode of operation, while state machine FBs (SMFBs) and
+modal FBs (MFBs) are jointly used to specify the systemreactive behavior (control-ﬂow) combined with modal data-ﬂow computations, as shown in Figure 3. In the latter com-putation model, a modal FB has a number of operation
+modes (states) and each mode contains a function block di-agram (data-ﬂow process) representing the control action tobe performed. The selection of executing state is decided
+by the currently active state information provided from the
+supervisory state machine FB, whereas the enabledness of
+executing state is determined by the state_updated value,
+i.e. the control action should only be performed when astate transition has actually taken place in the correspond-ing supervisory state machine FB. Since the system reactivebehavior is particularly of our analysis interest, we will in-troduce the state machine FB in more detail and refer the in-terested readers to [4] for more information about the otherkinds of FBs.
+Table 1. Functionalities of function blocks
+Functionalities Function blocks 
+Continuous control behavior 
+(data-flow )Basic FBs and composite FBs 
+Reactive control behavior 
+(control-flow )State machine FBs 
+Hybrid control behavior 
+(modal continuous control )Composition of state machine 
+FBs and modal FBs 
+A COMDES-II state machine FB Fis deﬁned as a tuple:
+F<h> =(I,O,M,f )
+where:
+•Iis a ﬁnite set of binary event/guard input signals
+{i1,i2,...,i n|i:Boolean }that will be used by the
+internal state machine to determine its current state
+Figure 3. Interaction between a state machine FB
+(SMFB) and a modal FB (MFB)
+•O is a ﬁnite set of output signals containing ex-
+actly two elements: {state, state _updated |state :
+Integer,state _updated :Boolean }. Here, state
+represents the currently active state of F, and
+state _updated is set to true if a state transition has
+happened, otherwise it is set to false . These two out-
+put signals are used to supervise the execution of cor-
+responding modal FBs, as shown in Figure 3
+•M is a signal-driven state machine model [4] specify-
+ing the internal state machine: M =(S,s 0,T), where:
+–Sis a ﬁnite set of states
+–s0represents the initial state, s0∈S
+–T is a ﬁnite set of transitions denoted as
+s−→ (e,g,o )s/primeands, s/prime∈S, where estands
+for an event signal, gdenotes a guard deﬁned
+in terms of input signals, ois the transition or-
+der starting from 1to indicate the importance of
+transitions. Transitions are effected by transitiontriggers that are deﬁned as event-guard combi-
+nations. When multiple triggers associated with
+outgoing transitions from a state sare simulta-
+neously evaluated as true, transition orders canbe used to ﬁre the most important state transitionthat deterministically leads to a current state s
+/prime,
+which is an appealing property to safety-critical
+control systems
+•fis a function interpreting the control logics speciﬁed
+by the internal state machine of Fto fuﬁll the desig-
+nated sequential control behavior
+•h:Boolean is an attribute of Findicating if the state
+machine is historic or not
+For a better understanding, an example of a state ma-
+chine FB called SMFB_1 is shown in Figure 4, whose in-
+ternal structure conforms to the deﬁnition given above. The
+SMFB_1 contains three binary event inputs e1,e2and e3,
+a signal-driven state machine model, and exactly two out-puts: state and state_updated . The internal state machine
+includes two states s1(initial state) and s2, three state transi-
+tions that are labeled by events and transition orders. Whenthe host actor is activated and then SMFB_1 is executed,
+its internal state machine will parse the binary input eventsignals, determine current state and then update the two out-
+puts accordingly.
+
+--- Page 5 ---
+s1
+initialState
+s2
+e3
+e1
+state_updated
+e2
+state1[]
+1e3[]2e2[]
+1
+e1[]
+SMFB_1 
+Figure 4. An example state machine FB SMFB_1
+3. Timed automata in UPPAAL
+The theory of timed automata has proven to be useful
+for speciﬁcation and veriﬁcation of real-time systems. In
+this section we brieﬂy review the basic deﬁnitions needed
+in this paper. We refer the reader to [7] for a more thorough
+description of the timed automata used in the UPP AAL tool
+[8].
+Assume a ﬁnite set of real-valued variables Cstanding
+for clocks, and a ﬁnite set of actions Act . LetB(C)denote
+the set of Boolean combinations of clock constraints of the
+formx∼norx−y∼n, where x, y∈Candnis a
+natural number. Syntactically, a timed automaton Ais a
+tuple<N , l 0,E,I > where: Nis a ﬁnite set of locations,
+l0∈Nis the initial location, E∈N×B(C)×Act×2C×N
+is the set of edges, and I:N→B(C)assigns invariant
+clock constraints to locations.
+The semantics of a timed automaton is a timed transition
+system with states of the form <l , u> , where l∈Nand
+uis a clock assignment assigning all clocks in Cto a non-
+negative real-number. Transitions are deﬁned by the tworules:
+•(discrete transitions) <l , u> −→
+a<l/prime,u/prime>if<
+l,g, a,r,l/prime>∈E,u∈g,u/prime=[r/mapsto→ 0]uand
+u/prime∈I(l/prime)
+•(delay transitions) <l , u> −→d<l , u ⊕d> ifu∈
+I(l)and (u⊕d)∈I(l)for a non-negative real number
+d
+where u⊕ddenotes the clock assignment which maps each
+clock xinCto the value u(x)+d, and [r/mapsto→ 0]uis the
+clock assignment uwith each clock in rto be zero.
+A network of automata is a ﬁnite set of automata pro-
+cesses composed in parallel with a CCS-like parallel com-
+position operator [9]. For a network of processes with the
+timed automata A1,...,A nthe intuitive meaning is similar
+to the CCS parallel composition of A1,...,A nwith all ac-
+tions being restricted, that is, (A1|...|An)\Act . Thus, an
+edge labeled with action amust synchronize with an edge
+labeled with an action complementary to a, whereas edges
+with the silent τaction are internal, so they do not synchro-
+nize. In UPP AAL ’ ?’ and ’ !’ are used to represent comple-mentary actions, so a?anda!are considered complemen-
+tary and can synchronize. The silent τaction is represented
+in UPP AAL by no synchronization action (i.e., an edge withan empty synchronization action).
+Finally, we note that the ﬂavor of timed automata used
+in the UPP AAL tool is extended with data variables with
+ﬁnite domains, including Booleans and ﬁnite domain Inte-
+gers, as well as records and (multidimensional) arrays of
+data variables, action channels, and clocks. In UPP AAL
+it is also possible to declare functions deﬁned in a C-likeprogramming language that can be sequentially composedwith the resets rof edges. The programming language al-
+lows for branching with if/then/else statements, for,while
+and do/while loops, and a return statement. We refer read-
+ers to the online help available on the UPP AAL homepage
+1
+for more information about this feature.
+4. Transformation from COMDES-II to UP-
+PAAL
+The discussion made in the previous two sections has
+shown that processes and timed automata in UPP AAL may
+act as the basic architectural elements, to which actors and
+state machine FBs in COMDES-II can be anchored. How-
+ever, the scheduling policy of actors and the operational se-mantics of state machine FBs differ from their counterpartsin UPP AAL in all aspects, as listed in Table 2, which re-quires an extensive model transformation be performed at
+the meta-level to bridge the semantic gaps between the two
+languages. In Section 4.1 and Section 4.2 we will show how
+these gaps are bridged individually – by following a separa-
+tion of behavioral concerns approach.
+Table 2. Behavioral differences between
+COMDES-II and UPPAAL
+Behavioral 
+aspects COMDES-II UPPAAL 
+ConcurrencyFixed-priority preemptive 
+scheduling of actors with non-blocking read-do-write 
+semantics Interleaving 
+parallelism of 
+timed automata 
+processes 
+Time Execution of timed I/O 
+activities over discrete 
+real-time Continuous 
+model-time 
+Reactive 
+behavior State machine FB as 
+introduced in Section 2 Timed automata 
+as introduced in Section 3 
+4.1. Transformation of concurrency and time
+The preemptive timed multitasking (TM) scheduling
+policy of actors in COMDES-II is principally different fromthe interleaving parallelism of UPP AAL processes as de-
+1The UPP AAL home page is located at www.uppaal.com.
+
+--- Page 6 ---
+ﬁned in CCS. The key factor to overcome concurrency and
+timing differences between the two kinds of systems is to
+identify how to model the discrete-time scheduler that con-
+trols the actor execution status in UPP AAL. In order toachieve this objective, the following four modeling proce-
+dures should be accomplished successively:
+•Finding out a way to model actors and represent their
+execution information
+•Modeling actor interaction following a state message
+producer-consumer communication protocol
+•Establishing a method to manage the non-blocking
+read-do-write concurrency of actors, which execute
+preemptively in a discrete real-time domain
+•Modeling the discrete-time scheduler based on the pre-
+vious three steps
+Our solutions will be presented step-by-step in the follow-
+ing subsections.
+4.1.1. Modeling actors in UPPAAL. The COMDES-II actor
+model has been brieﬂy introduced in Section 2, from whichwe can see that the read (input drivers), do(actor task) and
+write (output drivers) actions of a speciﬁc actor are per-
+formed in an ordered sequence within split timing phases
+(see Figure 2). Hence, from a temporal point of view, it isnatural to separately model these three kinds of actor be-haviors using different software artifacts, so that they canbe easily controlled by the time-triggered scheduler.
+In UPP AAL, actor tasks are speciﬁed by the corre-
+sponding task control blocks containing all the informationneeded for scheduling task execution, as deﬁned below:
+typedef struct {
+int[0,4] status;meta int period;meta int executionTime;meta int deadline;meta int mode;bool modeUpdated;int timeSinceReleased;int computationTimer;
+} TTask;
+In which status is a bounded-value integer ([0, 4]) de-
+noting the execution status of a given task. A task could be
+inREADY (0),ACTIVE (1),COMPUTED (2),FINISHED
+(3) or ERROR (4) status which are determined and up-
+dated by the system scheduler. For a better understand-ing, Figure 5 conceptually illustrates the status transition
+graph of a speciﬁc task over discrete-time, whose concrete
+meaning and determination strategy will be subsequently
+explained in Section 4.1.3. The three integers period ,
+executionTime anddeadline represent the execu-
+tion period, worst-case execution time and deadline of aspeciﬁc task, and their values remain unchanged during sys-tem execution. Therefore they are declared as meta integers
+whose values are used for task execution and scheduling,but are not recorded in the veriﬁcation state space. An-
+other meta integer – mode – indicates the currently ac-
+tive state (mode) of the task state machine (e.g. prod-uct_ready, pre_processing, etc.), and the Boolean variablemodeUpdated is used to denote if a state transition has
+happened or not in the current cycle of execution. These
+two variables encode the interaction between a state ma-chine FB and a modal FB, and are used by output drivers tocontrol the generation of output signals associated with thecurrent state at the task deadline instant, if a state transitionhas taken place.
+5($'<
+$&7,9(
+&20387('),1,6+('
+(5525WDVNBLVBUHOHDVHG
+WLPH6LQFH5HOHDVHG 
+FRPSXWDWLRQ7LPHU H[HFXWLRQ7LPH
+UHDGBLQSXWV
+FRPSXWDWLRQ7LPHU!		
+WLPH6LQFH5HOHDVHG GHDGOLQH
+FRPSXWDWLRQ7LPHU!		
+WLPH6LQFH5HOHDVHG!GHDGOLQHFRPSXWDWLRQ7LPHU  		
+WLPH6LQFH5HOHDVHG GHDGOLQH
+WDVNBVWDWHBWUDQVLWLRQB
+ILQLVKHGWLPH6LQFH5HOHDVHG  GHDGOLQH__
+GHDGOLQH  
+JHQHUDWHBRXWSXWV
+Figure 5. Status transition graph of actor tasks
+The integer timeSinceReleased represents the
+discrete-time that has elapsed since a speciﬁc task is re-
+leased: upon release of the given task, this variable is re-set (see Figure 5), and is subsequently incremented eachtime the scheduler is executed. The integer variablecomputationTimer is a timer used to record the time
+left for a task computation. This variable is set to the valueofexecutionTime when a task is released (see Fig-
+ure 5), and count down if the task is the highest-priorityACTIVE task each time the scheduler is executed. The
+value of this timer is used to determine the task status, as
+well as for schedulability analysis. A detailed explanationis given in Section 4.1.3.
+The task control block TTask can be instantiated into an
+array of tasks to specify their execution and scheduling in-
+formation, and the array index (starting from 1) corresponds
+to the priority of each task: the higher index, the higher pri-ority.
+Actor I/O drivers will be implemented within two
+functions in UPP AAL: taskInputDrivers(int
+taskID) andtaskOutputDrivers(int taskID) .
+These two functions are application-dependent, and
+when a speciﬁc actor iis released or its dead-
+line expires, they ( taskInputDrivers(i) and
+taskOutputDrivers(i) ) will be invoked and exe-
+cuted atomically to exchange information with other actors,
+as described in the next section.
+4.1.2. Modeling actor interaction in UPPAAL. Communica-
+tion between actors in COMDES-II follows a producer-
+
+--- Page 7 ---
+consumer protocol with signal-based non-blocking seman-
+tics. Signals are labeled state messages containing process
+data, while in UPP AAL a hand-shaking interaction mech-
+anism is adopted to primarily synchronize the actions be-tween automata processes as deﬁned in CCS parallelism,
+and no data is exchanged between processes.
+A natural way for solving this problem is to model
+the COMDES-II communication mechanism in UPP AALthrough shared variables and data structures. Informationbetween processes is exchanged by updating and readingfrom these global resources, where the data race problem isresolved by the following COMDES-II semantics:
+•When multiple actors are released, or their deadlines
+expire simultaneously, the corresponding I/O functions
+will be invoked and executed sequentially according to
+the order of actor priorities
+•If the deadline of actor iexpires at the same in-
+stant as actor jis released ( i/negationslash=j), then the
+output action taskOutputDrivers(i) of actor
+iwill be executed by preceding the input action
+taskInputDrivers(j) of actor j, regardless the
+order of iandj. This rule guarantees that the actor j
+can always use the latest data as computed by actor i,
+if the interaction ( i−→j) happens
+4.1.3. Modeling actor concurrency in UPPAAL. In order to
+guarantee the correctness of temporal behavior of concur-rently executing system actors, we need to properly handlethe discrete real-time of COMDES-II systems in UPP AAL,
+which in principle executes with continuous model-time .
+The real-time is the physical time elapsing autonomously
+in continuum in a constant manner
+2, which can not be inter-
+rupted, frozen, or conserved for future use. Speciﬁcally,
+the real-time in COMDES-II is discretized as piece-wise
+points over continuum, whereby a piece is a basic timing
+unit equal to the execution period of the scheduler. Com-bining this timing policy with the timed multitasking modelof computation implemented in COMDES-II, time is sep-arated from functionality and speciﬁed with respect to ac-
+tors as multiples of the basic timing unit: when the real-
+time reaches the activation time-stamp of an actor, the inputdrivers of the actor will be invoked with an assumption of
+zero logical execution time; when the real-time is equal to
+the deadline time-stamp of an actor, the output drivers of
+the actor will be executed to deliver output signals, logically
+in zero time too. Between these two time-stamps, there isno time information related to the actor’s functionality. Un-der these assumptions, the temporal behavior of schedulableCOMDES-II actors concerns only the timed I/O activities
+that are performed at precisely speciﬁed real-time stamps,
+which are of course denoted as multiples of the basic tim-
+ing unit over continuum.
+On the other hand, UPP AAL systems evolve with contin-
+uous model-time. The model-time is a kind of machine timehaving a polynomial relationship with the CPU oscillationspeed, i.e. the model-time may elapse in continuum only
+2Here we only consider the Newtonian notion of the physical time.when CPU oscillates. Within the closure of the physicalworld, the model-time does not proceed constantly: it maysuffer from interrupts, preemptions from other computation
+processes, or it may feature frozen semantics (i.e. computa-tion is carried on while time stops progressing). However,
+within the closure of the model world itself, the model-time
+indeed proceeds constantly: no matter how much real-timehas actually elapsed, the time in model elapses with a con-stant pace anyhow. Aditionally, in UPP AAL clocks evolvesynchronously in the real-value domain, but they can onlycapture the timing points at integer instants over continuum,which constitute conceptual ticks of clocks in the UPP AAL
+tool.
+As a result, it is natural to map the basic timing unit in
+COMDES-II onto the conceptual tick of UPP AAL clocks,
+such that the temporal behavior of COMDES-II systems
+represented as multiples of the basic timing unit can be pre-cisely speciﬁed in UPP AAL as multiples of the clock tick,since one time unit in COMDES-II is semantically equiva-lent to one (conceptual) clock tick in UPP AAL.
+Based on this semantics, we model the COMDES-II ac-
+tor concurrency in UPP AAL by adopting the following ab-stractions and assumptions.
+Figure 6. Actor concurrency in UPPAAL
+An actor task may be conceptually in READY ,ACTIVE ,
+COMPUTED andFINISHED status if the actor is schedu-
+lable, as illustrated in Figure 6, otherwise the actor task
+will be in ERROR status (see Figure 5). Here, READY
+means that a task is ready for activation, and ACTIVE de-
+notes that a task has been released, but not completed itscomputation yet. In a system it is always the highest-
+priority ACTIVE task to be running, whereby the cor-
+responding task computationTimer is decremented
+with each invocation period of the scheduler. When the
+computationTimer of a speciﬁc ACTIVE task reduces
+to zero before its deadline, the task status will be set as
+COMPUTED , meaning that the computation effort has com-
+pleted and the actor state transition may take place instan-taneously, which is followed by the FINISHED status. The
+FINISHED status indicates that a particular task computa-
+tion and control activities have already ﬁnished, such that
+the output signals are available for generation, when the as-
+
+--- Page 8 ---
+sociated deadline expires. If the computationTimer of
+anACTIVE task is greater than zero (the task has not ﬁn-
+ished its computation) when its deadline comes, the task
+will be switched into the ERROR status (see Figure 5).
+Manipulation of actor task execution status can be ac-
+complished by invoking a number of scheduling primitives
+implemented in UPP AAL, including release() ,run() ,
+finish() ,outputAction() andinputAction() .
+These primitives mimic their counterparts in COMDES-II,
+whose design philosophies are conceptually illustrated in
+Figure 6, and the implementations are referred to [10].
+4.1.4. Modeling the discrete-time scheduler in UPPAAL. The
+approach to modeling COMDES-II actor concurrency us-
+ing C-like programs in UPP AAL largely eases the effort to
+model the discrete-time scheduler, which is represented asa timed automaton shown in Figure 7.
+task_runs <= SCHEDULER_PERIOD!task_state_transition &&
+s == SCHEDULER_PERIOD
+OIRActions(), s = 0
+Figure 7. Discrete-time scheduler in UPPAAL
+The scheduler contains only one location called
+task_run , and one edge guarded by Boolean condi-
+tions of !task_state_transition && s ==
+SCHEDULER_PERIOD , in which:
+•sis a clock variable that evolves autonomously in
+continuous time, whose value is conﬁned by theSCHEDULER_PERIOD as an invariant condition spec-
+iﬁed in the task_run location
+•SCHEDULER_PERIOD is an integer constant denot-
+ing the execution period of the scheduler, which iscalculated as the greatest common divisor (GCD)
+of the non-zero period ,executionTime and
+deadline of all actor tasks
+•task_state_transition is a global Boolean
+variable used to resolve the transitions race problem,which may happen when both scheduler state transi-tion and a task state transition can be ﬁred simulta-neously. The task_state_transition variable
+is set to true by aCOMPUTED task to precede the
+state transition of the scheduler, and will be reset af-
+ter the task state transition is FINISHED , such that
+the disabled scheduler execution is enabled again. In
+this way, non-deterministic concurrent state transitions
+are equivalently converted into deterministic sequen-
+tial steps that execute logically in zero time, resulting
+in considerably reduced state space of veriﬁcation
+Two actions will be performed when the scheduler state
+transition takes place: OIRActions() ands=0 .
+Speciﬁcally, OIRActions() is a function invoking the
+outputAction() ,intputAction() andrun()
+primitives to execute the corresponding scheduling func-
+tionality in a sequential order. And s=0 resets the valueof the clock, so that it is ready to count the time for the next
+cycle of scheduler execution.
+4.2. Transformation of functionality
+In COMDES-II the functional behavior of a system is
+described as a composition of different kinds of functionblocks (FBs), which are intrinsically independent of thescheduling and timing issues speciﬁed at the actor level.Hence, system functionality can be directly transformed viaequivalent FB models, regardless of the concurrency andtiming information.
+We model the COMDES-II basic, composite and modal
+FBs as functions handling integer variables or data struc-tures in the transformed UPP AAL models. In partic-ular, the basic and/or composite FBs preprocessing theevent/guard signals for a state machine FB can be imple-mented as UPP AAL functions, which are invoked in thetaskInputDrivers(int taskID) primitive when
+the host actor is activated. The modal FBs may be treated
+in a similar way but the corresponding functions will be
+executed in the taskOutputDrivers(int taskID)
+primitive when the host actor deadline expires. To this end,
+the state and state_updated input variables required by a
+modal FB (see Figure 3) can be obtained from the mode
+andmodeUpdated entries of the task control block in-
+stance indexed by taskID .
+On the other hand, system reactive behavior speciﬁed
+by state machine FBs can be transformed into equivalenttimed automata in UPP AAL without timing annotations,
+since time is not involved in the functionality. An example
+automaton is given in Figure 8, whose semantics is equiv-
+alent to the
+SMFB_1 state machine FB shown in Figure 4.
+The model contains also two locations s1and s2, and a num-
+ber of edges tagged with guards and update actions.
+VV
+H		
+WDVN>@VWDWXV  &20387('
+ILQLVKIDOVHH		
+WDVN>@VWDWXV  &20387('
+ILQLVKWUXHH		H		
+WDVN>@VWDWXV  &20387('
+ILQLVKIDOVHH		H		
+WDVN>@VWDWXV  &20387('
+ILQLVKWUXH
+H		
+WDVN>@VWDWXV  &20387('
+ILQLVKWUXH
+Figure 8. An UPPAAL automaton for SMFB_1
+A guard basically consists of two parts: one is the
+application-speciﬁc event, e.g. e1in the edge from s1to
+s2. The other one is a condition expression justifying if the
+status of the host actor task is COMPUTED or not, as ex-
+plained in Section 4.1.3. For instance, the condition expres-
+siontask[1].status == COMPUTED is labeled in all
+edges, in which task[] is an array of instances of the task
+control block, and 1indicates the task priority. Once a tran-
+sition has taken place, the finish() primitive will be in-
+voked to update the mode andmodeUpdated entries as-
+sociated with the corresponding task, and then change the
+
+--- Page 9 ---
+task status to FINISHED (see Figure 6).
+In COMDES-II, all state transitions of a state machine
+FB are ordered, such that a higher-order transition froma source state will preempt a lower-order transition fromthe same source state, if both of them can be ﬁred. Thisorder(priority)-based precedence can also be realized viamutually exclusive transition triggers, whereby the explicitorders become unnecessary. Speciﬁcally, the trigger of alower-order transition should be complemented with thenegation of all higher-order transition triggers, meaning thatthe lower-order transition can only be ﬁred when its trig-ger is present while all higher-order transition triggers areabsent. This mechanism of imposing preemption on statetransitions is adopted in the UPP AAL model of state ma-chine FBs, as exempliﬁed in Figure 8.
+The presented model transformation method has been
+practically validated via a Turntable Control System case
+study [11, 12], which was ﬁrst designed in COMDES-II,
+and subsequently transformed into UPP AAL for veriﬁcation
+against a set of system requirements. The veriﬁcation re-
+sults are promising in the sense that not only the system be-haves as expected, but also the veriﬁcation process of eachproperty requires a modest amount of resources. For ex-ample, the system schedulability can be checked against a
+temporal logic property expressed as:
+A[] forall(i : int[1,TASKS_NUM])
+task[i].status != ERROR ,
+which means that along all possible execution traces ( A)
+and in all reachable states ( []) any task can not be in an
+ERROR status, where TASKS_NUM represents the number
+of actor tasks (6 in this case) in the UPP AAL model. The
+checking was performed within 7s on a computer having
+2.0 GHz Core Duo CPUs and 2 GBytes RAM, with 18220
+Kbytes of memory footprint. A full description of the veri-ﬁcation effort of the Turntable Control System in UPP AALis referred to [10].
+5. Conclusion
+The paper has investigated a transformational ap-
+proach to the formal veriﬁcation of dynamic behavior ofCOMDES-II systems using UPP AAL. The main contribu-tion of this paper lies in the fact that the proposed approachallows for precise analysis of schedulability and reactive be-
+havior of timed multitasking systems, in the context of se-
+quential control applications operating in the discrete real-time domain.
+The adopted methodology of semantic anchoring pro-
+vides a theoretical foundation for the model transforma-tion that equivalently anchors the behavioral semantics of
+COMDES-II onto UPP AAL timed automata at the meta-
+level. The developed model transformation technique has
+been used to verify a practical case study designed inCOMDES-II – the Turntable Control System – against alist of desired system requirements. The veriﬁcation resultsdemonstrate that the transformed system can be effectively
+analyzed with a complete preservation of the original sys-
+tem semantics.References
+[1] Chen, J. Sztipanovits and S. Neema, “Toward a semantic
+anchoring infrastructure for domain-speciﬁc modeling lan-guages,” in Proceedings of the 5th ACM international con-
+ference on Embedded software , Jersey City, NJ, USA, 2005.
+[2] J. Reekie and E. A. Lee, “Lightweight Component Models
+for Embedded Systems,” U.C. Berkeley, CA 94720, USA,Technical Memorandum UCB/ERL M02/30, October 30,2002.
+[3] C. Angelov, Xu Ke and K. Sierszecki, “A Component-
+Based Framework for Distributed Control Systems,” in Proc.
+of the 32nd EUROMICRO Conference on Software Engi-neering and Advanced Applications (SEAA 2006) , Cavtat-
+Dubrovnik, Croatia, August, 2006.
+[4] Xu Ke, K. Sierszecki, C. Angelov, “COMDES-II: A
+Component-Based Framework for Generative Development
+of Distributed Real-Time Control Systems,” in Proc. of the
+13th IEEE International Conference on Embedded and Real-Time Computing Systems and Applications , Daegu, S.Korea,
+2007.
+[5] A. Narayanan and G. Karsai, “Using Semantic Anchoring to
+V erify Behavior Preservation in Graph Transformations,” inProceedings of the Second International Workshop on Graphand Model Transformation , Brighton, UK, 2006.
+[6] C. Angelov and J. Berthing, “Distributed Timed Multitask-
+ing: a Model of Computation for Hard Real-Time Dis-tributed Systems,” in Proc. of the 5th IFIP Working Con-
+ference on Distributed and Parallel Embedded SystemsDIPES’06 , Braga, Portugal, Oct. 2006.
+[7] G. Behrmann, A. David, and Kim G. Larsen, “A Tutorial on
+UPP AAL,” in Proc. of the 4th International School on F or-
+mal Methods for the Design of Computer , Communication,and Software Systems . LNCS 3185.
+[8] Kim G. Larsen, Paul Pettersson and Wang Yi, “Uppaal in a
+Nutshell,” Springer International Journal of Software Tools
+for Technology Transfer , vol. 1+2, 1997.
+[9] Robin Milner, Communication and Concurrency . Prentice
+Hall, 1989, ISBN 0-13-114984-9.
+[10] Xu Ke, P . Pettersson, K. Sierszecki and C. Angelov, “V er-
+iﬁcation of COMDES-II Systems Using UPP AAL withModel Transformation,” Mads Clausen Intitute, Universityof Southern Denmark, Soenderborg, Denmark, Technical re-port, Oct. 2007.
+[11] Bos, V ., Kleijn, J.J.T., “Automatic veriﬁcation of a manufac-
+turing system,” Robotics and Computer Integrated Manufac-
+turing , vol. 17, pp. 185–198, 2001.
+[12] Bortnik, E., Trcka, N., Wijsc, A.J., Luttik, B., van de Mortel-
+Fronczak, J.M., Baeten, J.C.M., Fokkink, W .J., Rooda, J.E.,“Analyzing a gamma Model of a Turntable System usingSpin, CADP and Uppaal,” Journal of Logic and Algebraic
+Programming , vol. 65, pp. 51–104, 2005.

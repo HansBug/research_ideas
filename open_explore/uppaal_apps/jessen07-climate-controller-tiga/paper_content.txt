@@ -1,0 +1,820 @@
+--- Page 1 ---
+Guided Controller Synthesis for Climate
+Controller Using Uppaal Tiga
+Jan J. Jessen1, Jacob I. Rasmussen2,K i mG .L a r s e n2, and Alexandre David2
+1Automation and Control, Aalborg University, Denmark
+jjj@control.aau.dk
+2Department of Computer Science, Aalborg University, Denmark
+illum@cs.aau.dk
+Abstract. We present a complete tool chain for automatic controller
+synthesis using Uppaal Tiga and Simulink. The tool chain is explored
+using an industrial case study for climate control in a pig stable. The
+problem is modeled as a game, and we use Uppaal Tiga to automatically
+synthesize safe strategies that are transformed for input to Simulink,
+which is used to run simulations on the controller and generate code
+that can be executed in an actual pig stable provided by industrial part-
+ner Skov A/S. The model allows for guiding the synthesis process and
+generate diﬀerent strategies that are compared through simulations.
+1 Introduction
+Inevitable parts in a traditional control design cycle are modelling, simulations
+and synthesis. Modelling often results in non-linear continuous models needing
+linearization and/or model order reduction in order to be applicable for control,
+while simulation can implement both original and linearized models. For control
+synthesis standard linear controllers are veriﬁed by design, but the control engi-
+neer still needs to perform the step of tra nslating a mathematical description of
+the controller into an executable application that can be run on an embedded
+platform. Additionally, in the setting of hybrid models controller synthesis itself
+is a highly non-trivial task.
+In this paper, we present a prototype for model-based framework for optimal
+control using the recently devel oped controller synthesis tool Uppaal Tiga [3,2]
+in combination with Simulink [10] and Real-Time Workshop [12] providing a
+complete tool chain for modeling, synthesis, simulation and automatic generation
+of production code (see Fig. 1). The framework requires that two models of the
+control problem are provided: An abst ract model in terms of a timed game and
+a complete, dynamic model in terms of a (non-linear) hybrid system. Given
+the abstract (timed game) model together with logically formulated control and
+guiding objectives, Uppaal Tiga automatically synthe sizes a strategy which
+is directly compiled into an S-function1representation of the controller. Now
+1S-function is a term used in Simulink for executable content that can be embedded
+into Simulink components. S-functions support multiple languages such as C and
+Matlab.
+J.-F. Raskin and P.S. Thiagarajan (Eds.): FORMATS 2007, LNCS 4763, pp. 227–240, 2007.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2007
+
+--- Page 2 ---
+228 J.J. Jessen et al.
+using Simulink together with the concrete (dynamic) model, simulation results
+for additional quantitative aspects of the synthesized controller can be obtained.
+Alternatively, given interface code for the speciﬁc actuators and sensors, Real-
+Time Workshop allows for the generation of production code implementing the
+synthesized controller. The glue used to tie Uppaal Tiga together with Simulink
+has been hand-coded for the purpose of this paper. For an of the shelf tool chain,
+this glue need to be implemented into Uppaal Tiga making S-functions an
+output format.
+UPPAAL
+TIGAAbstract
+model
+Control and
+guiding obj.StrategyParser SimulinkNonlinear
+hybrid model
+Quantitative
+measuresSimulink
+results
+Simulink
+RTWExecutable
+Interface
+codeS-function
+Fig.1. Illustration of tool chain for model based control
+The framework is presented through an industrial case study carried out in
+collaboration with the company Skov A/S specializing in climate control systems
+used for modern intensive animal production. For such systems it is of extreme
+importance that the climate control work properly, since a failure can result in
+the death of entire batches of animals and in turn loss of revenue for the farmer.
+In this context a properly functioning control system should additionally provide
+a comfortable environment for the animals.
+In [9,8], a dynamic model for a pig stable that is both nonlinear and hybrid and
+a veriﬁed stable temperature controller has been presented. The control design
+of said papers is unique and does not apply standard control design techniques.
+We show in this paper that our framework allows for automatic generation of
+the controller presented in [9,8], and moreover that our framework makes it
+straight forward to obtain and implement extended controllers, e.g. by including
+humidity control. For a thorough discussion of the control engineering issues
+with controller synthesis for the climate controller, we refer to [9,8].
+The model of the climate controller is constructed in an ad-hoc manner and
+the paper does not provide methodology for abstracting non-linear hybrid mod-
+els to timed automata models. The model serves two diﬀerent purposes, namely,
+to illustrate the tool chain for deriving production code from models and provide
+the area of automatic controller synthesis of real-time systems with an indus-
+trial scale case study. Furthermore, the constructed model does not include clock
+
+--- Page 3 ---
+Guided Controller Synthesis for Climate Controller Using Uppaal Tiga 229
+variables, hence, it does not need the features timed games. However, the cli-
+mate problem needs a real-time controller and other models using clocks could
+be constructed, and for that we reason present the work in terms of timed au-
+tomata. Also, the advanced modelling features of Uppaal Tiga (e.g. functions
+and selections) make it an attractive choice for modelling games, even if these
+do not use clock variables.
+In Section 2 we describe a dynamic, zone- based climate model for the evolution
+of temperature in a pig stable. In Section 3 we brieﬂy describe Uppaal Tiga
+together with the notions of timed game, co ntrol objective and strategies. Section
+4 is the main section giving a detailed description of how the climate controller is
+modelled and synthesized with Uppaal Tiga . Numerical results are presented
+in Section 5, and conclusi ons are given in Section 6.
+2 Climate Model
+...... Zone 1 Zone 2 Zone N
+Fig.2. NzonesIn this section, we introduce the dynamic climate
+model describing the evolution of temperature in
+a pig stable. The presented model is zone based,
+a concept where the pig stable is divided into
+distinct climatic zones, and where the zones in-
+teract by exchanging air ﬂow. The idea is illus-
+trated in Fig. 2 where a stable is partitioned into Nsubareas, and where the
+zones exchange air ﬂow.
+Though it would be relevant to model temperature, humidity, CO2 and am-
+monia concentration we initially limit ourselves to modeling only temperature,
+in order to illustrate the zone concept. It would though be easy to include
+the disregarded climate parameters since the mixing dynamics are, roughly,
+identical.
+Assumption 1. Climatic interdependence between zones is assumed solely
+through internal air ﬂow.
+Zonei−1 ZoneiZonei+1
+Qin
+iQfan
+i
+[Qi,i+1]+
+[Qi,i+1]−[Qi−1,i]+
+[Qi−1,i]−
+Fig.3. Illustration of ﬂows for zone iWith assumption 1 we thus neglect
+radiation and diﬀusion etc. between
+zones, claiming they are negligible
+compared to the eﬀect from having in-
+ternal air ﬂow. Besides internal air ﬂow
+a zone interact with the ambient en-
+vironment by activating a ventilator
+in an exhaust pipe and consequently
+opening a screen to let fresh air into
+the building. Air ﬂowing from outside
+into the ithzone is denoted Qin
+i[m3/s],
+from inside to outside Qfan
+i[m3/s]. Air
+ﬂowing from zone itoi+ 1 is denoted
+
+--- Page 4 ---
+230 J.J. Jessen et al.
+Qi,i+1[m3/s] (air ﬂow is deﬁned positive from a lower index to a higher index).
+A stationary ﬂow balance for each zone iis found:
+Qi−1,i+Qin
+i=Qi,i+1+Qfan
+i (1)
+where by deﬁnition Q0,1=QN,N+1=0 .
+The ﬂow balance is illustrated in Fig. 3 using the following deﬁnitions: [ x]+/defines
+max(0 ,x), [x]−/definesmin(0 ,x). In accordance with [4,1] and taking into account
+the ﬂows leaving/entering the ithzone, the following model for temperature
+evolution is easily obtained.
+dTi
+dtVi=TambQin
+i−TiQfan
+i+[Qi−1,i]+Ti−1−[Qi−1,i]−Ti
+−[Qi,i+1]+Ti+[Qi,i+1]−Ti+1+ut
+i+Wt
+i
+ρaircair(2)
+where Vi[m3] is the zone volume, Tamb[ ˚ C] is the ambient temperature, Qin
+i,
+Qfan
+iis the inﬂow and outﬂow respectively. cair[J/(kg ˚ C)] is the speciﬁc heat
+capacity of air, ρair[kg/m3]i st h ea i rd e n s i t y . ut
+i[J/s] is the controlled heating
+andWt
+i[J/s] is heat production from the pigs. For the actuator signals maximum
+values exists Qfan
+i∈[0,Qfan,M
+i],Qin
+i∈[0,Qin,M
+i],ut
+i∈[0,ut,M
+i]. The disturbance
+is not known but bounded Wt
+i∈[Wt,m
+i,Wt,M
+i].
+In [9] a temperature controller for th e model in (2) is presented. The pre-
+sented controller is a multi-zone controller, i.e., it consists of Nindividual (yet
+identical) controllers. The controller is event-based, and only changes its control
+action when certain boundaries are met or a neighboring zone changes its control
+action. The controller in [9] is designed to solve a two player game theoretic prob-
+lem following [7] at each time a state has changed or a change in coordinating
+variables take place. Each controller maintains a set of coordinating variables δi
+that holds information about the controllers willingness to exchange air ﬂow with
+the neighboring zones, and only if two neighboring zones agree to the exchange,
+air will ﬂow between the zones. The game theoretic view of the control problem
+for an arbitrary zone enables the same generated controller to be implemented
+in all zones of a N-zone stable. The correctness of this is explicitly proved in [9].
+The control actions available to controller is the heating ut
+i, opening of the
+inlets Qin
+iand turning on the ventilators Qin
+i. The controller has two “modes”
+heating up and cooling down, and an initial mode set to either one. We remark
+speciﬁcally that opening of the inlet is not enough to force air into the zone. This
+being a physical system air has to be removed either by operating the ventilator
+or by having a neighboring zone extract air. The controller operation in zone iis
+as follows: When heating up ventilation is closed and heating is turned on. If in
+addition a neighbor zone has warmer air than in the current zone, the controller
+will inform the neighboring zone’s controller that it would like to receive the
+warmer air. Only if the two zones agree to exchange air will the controller in
+zoneiturn on its ventilation fan extracting warm air from one of the neighbor
+zones. When cooling down, the heating is turned oﬀ, the inlets opened and
+
+--- Page 5 ---
+Guided Controller Synthesis for Climate Controller Using Uppaal Tiga 231
+CriticalLowHigh
+1<=x && x<=2h1?
+x=03<=x && x<=4
+x=0h1? x=0
+CriticalLowHigh
+1<=y && y<=2h2?
+y=03<=y && y<=4
+y=0h2? y=0
+z>=1h1!
+z=0
+z>=1 h2! z=0T1 T2C
+Fig.4. Two Tank Temperature Control Problem
+the ventilation fan is turned on. The controller will in addition inform the two
+neighbor zones, that it would like to “give away” air thus forcing more fresh air
+into the zone.
+3 Timed Games, Control Objectives and Strategies
+Uppaal Tiga is a tool for solving control problems modeled as (networks of)
+timed game automata [3]. As an example consider the control problem in Fig. 4,
+where a central controller Cis to maintain the temperature of two tanks, T1and
+T2above some critical minimum level, say 5˚ C. Each tank is modelled as a timed
+game automaton with location High indicating that the temperature in the tank
+is between 80 ˚ C and 100 ˚ C. Similarly, the Lowlocations indicate a temperature
+between 10 ˚ C and 15 ˚ C and the Critical locations that temperature is below
+5˚ C. The controller Chas the possibility for heating either tank thus lifting (or
+maintaining) its temperature to the Highlevel; the act of heating is modelled as
+synchronizations on the channels h1andh2. The guards z≥1o nt h ec l o c k zof
+the controller enforces that heating actions of Care seperated by at least 1 time-
+unit. The dashed edges in the two tanks represent uncontrollable transitions for
+lowering the temperature (from High toLowand from LowtoCritical )i na
+tank in case no heating action of the controller has taken place for a certain time
+period; e.g. the guard 3 ≤x∧x≤4 indicates that the temperature in T1may
+drop from HightoLowat any moment between 3 and 4 time-units since the last
+heating of the tank.
+Control purposes are formulated as “ control:P ”, wherePis a TCTL formula
+specifying either a safety property, ( A[]ϕ) or a liveness property ( A<>ϕ). Given
+a control purpose, “ control: P ”, the search engine of Uppaal Tiga will pro-
+vide a strategy (if any such exists) for the controller under which the behaviour
+of the model will satisfy P. Here a strategy is a function that in any given state
+of the game informs the controller what to do either in terms of “performing a
+controllable action” or to “delay”. In our tank example of Fig. 4 the control pur-
+pose may be formulated as “ control:A[]not( T1.Criticalor T2.Critical) ”.
+Endeed there is a strategy guaranteeing the safety property involved (i.e., the
+Critical temperature level is avoided in both tanks). In the case when the two
+
+--- Page 6 ---
+232 J.J. Jessen et al.
+tanks are both having a Lowtemperature level the strategy provided by Uppaal
+Tiga requests the controller to heat T2whenever (2 <y∧1<z∧y≤x)∨((2<
+x∧1<z)∧(y<1∨x<y)). In case (2 <y∧1<z∧x<1) the strategy
+suggest to heat T1. Interestingly, it may be shown (as discovered by Uppaal
+Tiga), that for slower controllers (e.g. replacing the guards z≥1b yz≥2) no
+strategy exists which will ensure our control purpose.
+Uppaal Tiga is integrated in the Uppaal 4.0 framework permitting the use
+of discrete (shared or global) variables over simple or structured types (arrays
+and recods) including user-deﬁned types. Functions can be declared using C-like
+syntax and used in guards and update statements. Edges have an additional
+select statement as a shorthand notation for all edges that satisfy the statement.
+4 Modelling
+In this section, we give a detailed descr iption of the adhoc method in which the
+climate controller has been modelled in Uppaal Tiga . We divide the description
+into a model section and a property section with guiding. Note that some of the
+Uppaal Tiga code snipplets could be given a mathematical description; we have
+chosen the code in order to allow for the p recise reconstrut ion of our method.
+4.1 The Models
+The compound model consists of three kinds of automata, the neighbor au-
+tomaton, an auxilliary automaton, and controller automaton. Each of these are
+described in turn in the following.
+Neighbor Automaton. The neighbor model is an automaton with just uncon-
+trollable transitions that can change the observable variables of the neighboring
+zone. The template for the neighbor automaton is depicted in Fig. 5 and is in-
+stantiated with a parameter idwhich can take the values 0 and 1 to indicate
+the left and right neighbor.
+state_changed!temp[id] = !temp[id],
+check_hotness_integrity()
+c : choice_t
+state_changed!
+n[id] = c
+Fig.5. Neighbor Au-
+tomatonEach neighbor has a variable temp that discretizes
+the temperature information of the neighbor to either
+HOTTER orCOLDER than the control zone. Furthermore,
+there is a variable nthat holds the values of the inter-
+action variables of the neighbor. The variable n,w h i c h
+can take any of the values WANT,HAVE andNEITHER
+(encoded as the type choice
+t), is used to indicate
+whether the neighbor wants air ﬂow from the control
+zone, wants to deliver air ﬂow to the control zone, or
+does not want to exchange air ﬂow with the control
+zone.
+To switch the temperature of a neighbo ring zone, the environment can take
+the uncontrollable transition at the top of Fig. 5. The call to the fucntion
+check
+hotness
+ integrity() on the transition is explained below. The bottom
+
+--- Page 7 ---
+Guided Controller Synthesis for Climate Controller Using Uppaal Tiga 233
+transition uses special Uppaal Tiga syntax for select statem ents. This is short-
+hand notation for the three cases where ctakes on any of the values of choice
+t,
+i.e., the environment can set the control variables of the neighbor to any kind of
+desired interaction. Whenever the environment changes an observable variable
+it synchronizes over the channel state
+changed with the controller, to allow the
+controller to change the control strateg y. This way we keep a strictly alternat-
+ing game where the controller reacts every time an observable variable changes
+value.
+temp[0] == temp[1]
+state_changed!hottest = !hottest
+state_changed!objective = !objective
+Fig.6. Auxiliary Au-
+tomatonAuxiliary Automaton. To manage the other observ-
+able variables, we introduce an auxiliary automaton
+that allows the environment to change these variables.
+The auxiliary automaton is depicted in Fig. 6.
+The ﬁnal two observable variables that can change
+are, ﬁrst, the variable objective which determine
+whether the control zone should HEATUP orCOOLDOWN
+(bottom transition of the automaton). The second vari-
+able is a result of the discretization of the temperature
+information. The control zone needs information about
+which neighbor has hotter air. This is encoded using
+the Boolean observable variable hottest where value 0 indicates the left neigh-
+bor is hotter and vice versa for value 1. The environment can change the value of
+hottest on the top transition only when eith er both zones are either colder or
+hotter, otherwise the value can become inconsistent with the temperatures of the
+neighbors. The function call check
+hotness
+ integrity is used by the neighbor
+automaton whenever the temperature changes to guarantee that hottest is left
+in a consistent state.
+InitDecide
+Decided
+reset_variables()c0 : choice_t, c1 : choice_t, 
+heat : intbool_t, in : intbool_t,
+out : intbool_t
+flow_balance(c0,c1,in,out)
+c[0] = c0,
+c[1] = c1,
+heater = heat,
+inlet = in,
+outlet = out,
+temp_derivative = 
+   compute_temperature(c0,c1,in,out,heat),
+obj_val = obj_func(c0,c1,in,out,heat)state_changed?
+Fig.7. Controller AutomatonController Automaton.
+The controller automaton syn-
+chronizes with the auxil-
+iary automaton and neighbor
+automata over the channel
+state
+changed whenever an
+observable variable changes
+values. Upon synchronization,
+the controller enters the com-
+mitted state Decide and the
+setting of the control variables
+is determined on the transi-
+tion exiting Decide . The controller automaton is depicted in Fig. 7
+The controller automaton determines the value of ﬁve control variables: Two
+variables for the interaction with the neighbors ( c[0]andc[1]) and one vari-
+able for each of the heater ,inlet andoutlet (the latter three are all Boolean
+variables). The selection statement on the transition from Decide toDecided
+guarantees that all possible settings are considered. The guard statement
+
+--- Page 8 ---
+234 J.J. Jessen et al.
+flow
+balance guarantees that no inconsistent control state wrt. air ﬂow is con-
+s i d e r e d ,i . e . ,w h e n e v e ra i ri sﬂ o w i n go u to faz o n e ,a i ri sﬂ o w i n gi n t ot h ez o n e( s e e
+Algorithm 1) and vice versa. After updating the control variables the combined
+impact of the control variables and the observable variables on the temperature
+of the control zone is computed using the function compute
+ temperature .W e
+refer toobj
+funclater, when we talk about guiding.
+Upon entering the committed location Decided the transition back to Initis
+taken immediately which resets all the co ntrol variables. This is merely a step to
+minimize the state space since, as we shal l see, the eﬀect of the control decision
+is only important in Decided .
+Algorithm 1. Procedure to guarantee that the ﬂow balance is satisﬁed.
+procflow
+balance(c0,c1,in,out) : bool
+1:bool o = out || (n[0]==WANT && c0==HAVE) || (n[1]==WANT && c1==HAVE)
+2:bool i = in || (n[0]==HAVE && c0==WANT) || (n[1]==HAVE && c1==WANT)
+3:returno= =i
+Discretization of the Temperature Derivative. Since the model is dis-
+cretized such that the controller doe s not know the exact temperature of the
+neighboring zones, this needs to be r eﬂected in the computed temperature
+derivative.
+Heater:
+ 5
+Inlet:
+ -7
+Hotter neighbor
+- hottest:
+ 2
+-c o l d e s t :
+ 1
+Colder neighbor
+- hottest:
+ 1
+-c o l d e s t :
+ 2
+We choose to let the diﬀerent control parameters con-
+tribute to the temperature derivative according to the ta-
+ble to the right. The values for the airﬂows correspond to
+opening the outlet fan and getting air only from the spe-
+ciﬁc source. Given that the fan capacities are ﬁxed, getting
+air from multiple sources will share the capacity. E.g., get-
+ting air from both (hotter) neighbors would yield a con-
+tribution of 1 from the hottest and 0.5 from the coldest,
+resulting in a total contribution of 1.5. Furthermore, having multiple sources of
+outﬂow increases the inﬂow contribution proportionally, e.g., allowing the inlet
+to give a total contribution of -21 by opening the outlet and providing air for
+both neighbors.
+Computing the Temperature Derivative. As we saw above, the fans have a
+ﬁxed capacity that might be shared among the diﬀerent sources of outﬂow. Since
+this can result in a non-integral contribution and Uppaal Tiga only handles
+integers, we need to multiply these contributions with an apropriate factor to
+guarantee integral values. Since a single source of outﬂow can be shared among
+up to three sources of inﬂow, we choose a constant OUT
+CONTRIBUTION=6 to
+denote the available contribution per outﬂow source as this can be integrally
+shared among the potential inﬂow sources. This has the added eﬀect that we
+need to multiply the heater contribution by six as well, to keep the proportions.
+The function for computing the temperature derivative is listed in Algo-
+rithm 2. Lines 1 and 2 compute the contributors to air ﬂow in and out of the
+
+--- Page 9 ---
+Guided Controller Synthesis for Climate Controller Using Uppaal Tiga 235
+zone. For outﬂow, this, in order, corresponds to 1) is the outlet open, 2) is air
+ﬂowing from the control zone to the left zone, and 3) similarly for the right zone.
+The computation is analogous for air ﬂowing into the control zone.
+The value of ampcomputed in line 3 is the contribution for each inﬂow given
+the total outﬂow. Now, the return statement computes the total eﬀect of the
+control decision by using the table above and the ampliﬁer for each inﬂow con-
+tribution. Note that the heat contribution is also ampliﬁed to keep the the pro-
+portions deﬁned above.
+The ﬁnal two negative parts of the contribution are used to indicate that giving
+air away cools the zone. These are used as incentives to let the controller oﬀer air
+when it wants to cool. The reason is that when the controller is used in all zones
+we can imagine the situation when one zone needs to cool and a neighbor want
+the air to heat up. In the control situation when neither are interacting, one
+of the zones need to intiate the cooperation, and this is accomplished with the
+given incentives. Note that these values are negligible in the overall contribution.
+Algorithm 2. Algorithm for computing the temperature derivative.
+proccompute
+ temperature(c0,c1,in,out,heat) : int
+1:int outflow = out + (c0==HAVE && n[0]==WANT)+(c1==HAVE && n[1]==WANT)
+2:int inflow = in + (c0==WANT && n[0]==HAVE)+(c1==WANT && n[1]==HAVE)
+3:int amp = (outflow * OUT
+ CONTRIBUTION) / inflow
+4:return OUT
+CONTRIBUTION*5*heat
++ amp*(c0==WANT && n[0]==HAVE ? (temp[0]? (!hottest? 2:1) : ( hottest? -2:-1)) : 0)
++ amp*(c1==WANT && n[1]==HAVE ? (temp[1]? ( hottest? 2:1) : (!hottest? -2:-1)) : 0)
++ amp*(in ? -7 : 0)
+- (c0==HAVE) - (c1==HAVE)
+4.2 The Property
+In order to synthesize the controller, we need to specify the property that the
+resulting controller should synthesize. An immediate choice would be2:
+φ≡control : A[] Controller.Decided imply (objective ? 1 : -1)*temp
+ derivative > 0 (3)
+In other words, invariantly whenever the controller enters Decided ,t h ev a l u e
+oftemp
+derivative should be greater than zero w hen heating is the objective
+and less than zero when the objective is cooling. However, this property would
+be satisﬁed by the simple controller that never interacts with the neighbors and
+turn on the heater when the objective is heating and opens the inlet and outlet
+when the objective is cooling.
+Guiding. With the property above we can determine whether we can satisfy
+the main objective or not. Now, we deﬁne an objective function called obj
+func
+that will guide the controller synthesis process while also satisfying the property
+2Recall that we switched the sign of the temperature derivative when the objective
+is to cool down.
+
+--- Page 10 ---
+236 J.J. Jessen et al.
+above3. Given an appropriate objective function, the following property can be
+used to guide the contro ller synthesis process4:
+φ≡control : A[] ZC.Decided imply forall (c0 : choice
+ t) forall (c1 : choice
+ t)
+forall (in : intbool
+ t) forall (out : intbool
+ t) forall (heat : intbool
+ t)
+flow
+balance(c0,c1,in,out) imply obj
+ val >= obj
+ func(c0,c1,in,out,heat)
+In plain words, the property states that it should hold invariantly that when-
+ever the controller makes a decision and enters the location Decided ,t h e nf o r
+all other possible controller choices that satisfy the ﬂow balance, the computed
+objective function is smaller or equal to the choice made. In short, the controller
+always chooses a conﬁguration of the control variables that maximizes obj
+func
+among all valid choices.
+The simplest objective function is to use compute
+ temperature , but to com-
+pensate for the sign depending of the objective as (3) above. This guiding proc-
+cess will produce a controller that maximizes (minimizes) the temperature deriv-
+ative for every control decision. An alternate strategy is to deﬁne the objective
+function over some sort of energy consumption by, e.g., penelizing turning on
+the heater or fan, thus, optimizing towards energy optimality.
+4.3 Controlling Humidity
+As mentioned in [9], the climate controller should, ideally, be extended with
+the ability to control the humidity in the stable as well. However, the approach
+outlined in [9] makes this extension a tedious strategy, since the increase in
+oberservable variables creates exponentially more conﬁgurations.
+Changing our model to accommodate for humidity as well, requires a slight
+modiﬁcation to the models along the lines of how the temperature was modelled.
+Furthermore, the objective function need s to represent the eﬀect of temperature
+and humidity with a simple value. Note, that neither the controller automaton
+nor the property changes, as the set of controllable variables remains unchanged.
+To discretize the humidity readings of the neighboring zones, analogously to
+the temperature representation, we introduce a Boolean humid variable for each
+zone and a morehumid variable to determine which of the neighbors have air with
+the highest humidity. Obviously, there are constraints on consistent variable
+assignments for the three variables in the same way as for the temperature
+variables.
+To incorporate the variables in the model, we need an extra uncontrollable
+transition in the neighbor automaton, that can change the value of the respective
+humid variable. This is followed by a consistency check on the morehumid vari-
+able. Moreover, we add two extra uncontrollable transitions to the auxiliary au-
+tomaton, one to change the more
+humid variable, and one to change the objective
+3To satisfy both properties we use conjunction, but do not include the conjuction to
+simplify properties.
+4Note we use guiding in the sense that the function determines which of a number of
+valid controllers to choose, but the synthesis process itself is not guided in order to
+ﬁnd controllers.
+
+--- Page 11 ---
+Guided Controller Synthesis for Climate Controller Using Uppaal Tiga 237
+with respect to humidity which is encoded in the variable decrease
+ humidity .
+These are all the changes needed to the automata.
+We incorporate humidity information in the objective function in a similar
+fashion the temperature model with the exception that humidity only has an
+upper limit, so the objective is either to decrease the humidity or ignore the
+humidity. Thus, when decrease
+ humidity has value false, the humidity con-
+tributes nothing to the objective function. Otherwise, the contribution is given
+as in Algorithm 3 where a postive value indicates a decrease in humidity. In the
+algorithm, ampis computed as for the temperature contribution. The positive
+contributions are from opening the inlet (contribution of 5) and getting less hu-
+mid air (contribution of 2 for the least humid air and 1 for the most humid).
+Receiving more humid air from a neighbori ng zones contributes negatively. Fi-
+nally, we encourage a zone to interact, if a neighboring zone has less humid air,
+even if the zone does not want to interact (ﬁrst two parts of the sum).
+Algorithm 3. Humidity contribution to the objective function
+1:return (!humid[0] && c0 == WANT ? 1 : 0) + (!humid[1] && c1 == WANT ? 1 : 0)
++ amp*(c0==WANT && n[0]==HAVE ? (humid[0] ? (!morehumid?-2:-1):( morehumid?2:1)) :0)
++ amp*(c1==WANT && n[1]==HAVE ? (humid[1] ? ( morehumid?-2:-1):(!morehumid?2:1)) :0)
++ amp*(5*in)
+The objective function is constructed w ith a weight parameter between the
+temperature derivative and the humidity parameter with changing the sign of
+the temperature as above. The weighin g can be altered to generate diﬀerent
+controllers, which later can be compared in some appropriate fashion as discussed
+in Section 5.
+5R e s u l t s
+In this section, we present some numerical results where the controller generated
+byUppaal Tiga has been simulated in Simulink using realistic values for the
+model (2).
+The Tool Chain. According to Fig. 1, to generate production code for the
+climate controller of the pig stable, we need to transform the output format
+ofUppaal Tiga to input for Simulink. Simulink allows input of so-called S-
+functions which are user provided C-code that can be used within the Simulink
+model. We have build a script which takes Uppaal Tiga strategies as input
+and delivers S-functions as output. The Simulink model with the S-function
+can be used to either run simulations of the pig stable, or generate Comedi
+compliant production code through Real-Time Workshop. The code generation
+is realized through a Comedi library for Simulink [5]. Code generation with Real-
+Time Workshop allows for a multitude of targets, thus, the speciﬁc target of this
+application in unimportant.
+
+--- Page 12 ---
+238 J.J. Jessen et al.
+Numerical Results. We have synthesized two types of controllers using the
+models described above. One controlling only the temperature, and one control-
+ling both temperature and humidity. In the ﬁrst experiment, we synthesized a
+controller for temperature only as explained in Section 4. Due to limited space,
+we choose not to include the graphs for the experiments, as the synthesized con-
+troller is identical to that of, [9,8]. As in [9,8], the controller behaves well under
+simulation and keeps the zone temperatures within the given bounds.
+/0/0/1/1
+/0/1
+/0/1
+/0/0
+/1/1
+/0/1/0/0
+/1/1Fan1
+Fan2
+Fan3
+Heat1
+Heat2
+Heat3
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1
+ 0% 20% 40% 60% 80% 100%
+75/2550/5045/5540/6035/6530/7025/7515/85
+Fig.8. Active time for heaters and fans for di ﬀerent controllers. The number (x/y)
+indicate an objective function using x percent temerature contribution and y percent
+humidity contribution.
+In order to illustrate the guiding speciﬁcation in Uppaal Tiga an u m b e ro f
+diﬀerent controllers are simulated in Simulink. A weight is put on the objec-
+tive function guiding towards temperature or humidity control. The simulation
+scenario is as follows: The stable is partitioned into 3 zones, and the thermal
+boundary is set to [18 20] and for humidity [9 10] for all three zones. The initial
+conditions are set to T1= 19, T2=1 8a n d T3= 17, H1=H2=H3= 11. All the
+conducted experiments stear the state to the deﬁned boundaries in ﬁnite time,
+but initially some states are steared away from the boundary. In order to quan-
+tify and compare the diﬀerent controllers the total time when the heat or fan are
+on is recorded. The result is illustrated in Fig. 8. The results show, that the con-
+trollers can be divided up into two catagories, one from 0% to 40% temperature
+guided, and one from 45% to 100%. The controllers in the latter category use
+less heat and fan capacity than the controllers in the former catagory, indicating
+that the former are preferred controlle rs. However, Fig. 9 shows how the temper-
+ature and humidity are controlled for controllers in both catagories. As it can be
+seen, the controller with more heat and fan activation (25/75) reaches a stable
+state faster than the controller with less activity of heaters and fans.5Thus, the
+5Simulation results for all controllers can be found at the project website, [11].
+
+--- Page 13 ---
+Guided Controller Synthesis for Climate Controller Using Uppaal Tiga 239
+0 1000 2000 3000 40001717.51818.51919.52020.5Temperature
+0 1000 2000 3000 40009.29.49.69.81010.210.410.610.81111.2Humidity
+  
+Z1
+Z2
+Z3
+(a) 75/250 1000 2000 3000 4000131415161718192021Temperature
+0 1000 2000 3000 40008.899.29.49.69.81010.210.410.610.8Humidity
+  
+Z1
+Z2
+Z3
+(b) 25/75
+Fig.9. Simulation results for temperature and humidity when guiding towards a) 75%
+temperature and 25% humidity and b) vice versa
+choice between the controllers is not immediately clear, but the quatiﬁcations
+can be used by the control engin eers to make an informed choice.
+Note that we have not tested the code in the actual pig stable. However,
+for the temperature controller we can rely on the results provided in [6], the
+the generated controller is identical to that of [9,8]. These results show that
+the controller does not have identical quantitative properties to the simulation,
+though, the qualitative properties are identical. I.e. the experiments show that
+the temperature oscillates as in the simulation, however, the temperature in
+the real stable under/overshoots the limits. This is mainly caused by the fact
+that the zones are not thermically isolated in the sense that air will interchange
+between zones, even when the zones do not what to interchange air.
+For the humidity controller we do not have any experimental data to rely on,
+but this will be investigated in the future.
+6 Conclusions and Future Work
+In this paper, we have presented a complete tool chain for automatic con-
+troller synthesis from timed game automata models to production code. For the
+livestock production case study, the controller synthesis process has enabled,
+through guiding, to synthesize an identical controller do that of [9,8]. The con-
+troller in [9,8] was synthesized in a tedious manual way, which indicates the
+importance of a simple automated process. Note that the notion of time was not
+necessary in modelling our controller, however, we choose Uppaal Tiga because
+the tool was available and one the only ones of it’s kind.
+Furthermore, the model was easily extended to include humidity, which was
+left as a matter to explore in [9,8], but never pursued due to the heavy time re-
+quirement of the added exponential comp lexity. With an appropriately deﬁned
+weighted objective function, Uppaal Tiga was used to synthesize a controller
+
+--- Page 14 ---
+240 J.J. Jessen et al.
+capable of regulating temperature as well as humidity in a matter of seconds. A
+number of controllers were synthesized with variying weights between tempera-
+ture and humidity, and all were able to reach stable temperature and humidity
+conditions in Simulink simulations. Simulink was further used to track the heat
+and fan activity for the diﬀerent controllers, in order to allow for comparison of
+diﬀerent controllers. This can be a very eﬀ ective strategy for diﬀerentiating con-
+trollers and choosing an appropriate one among a number of controllers satisfying
+the conditions. As future work, we want to continue conducting experiments in
+the real life pig stable provided by Skov A/S in order to evaluate the diﬀerent
+controllers capacity of controlling temperature as well as humidity in a real life
+setting.
+References
+1. Arvanitis, K.G., Soldatos, A.G., Daskalov, P.I., Pasgianos, G.D., Sigrimis, N.A.:
+Nonlinear robust temperature-humidity control in livestock buidings. Submitted
+to Biosystems Engineering (2003)
+2. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, D., Lime, K.G.: Uppaal
+tiga: Time for playing games. In: proc. of Computer Aided Veriﬁcation (CAV’07)
+(to appear, 2007)
+3. Uppaal Tiga Homepage (2006), http://www.cs.aau.dk/∼adavid/tiga
+4. Janssens, K., Van Brecht, A., Zerihun Desta, T., Boonen, C., Berckmans, D.: Mod-
+eling the internal dynamics of energy and mass transfer in an imperfectly mixed
+ventilated airspace. Indoor Air 14, 146–153 (2004)
+5. Jessen, J.J., Schiøler, H., Nielsen, J.F.D., Jensen, M.R.: Cots technologies for in-
+tegrating development environment, remote monitoring and control of livestock
+stable climate. In: Proceedings 2006 IEEE International Conference on Systems,
+Man, and Cybernetics (2006)
+6. Jessen, J.J.: Embedded Controller Design for Pig Stable Ventilation Systems. PhD
+thesis, Automation and Control, Department of Electronic Systems, Aalborg Uni-
+versity (2007)
+7. Lygeros, J., Tomlin, C., Sastry, S.: Controllers for reachability speciﬁcations for
+hybrid systems. Automatica 35, 349–370 (1999)
+8. De Persis, C., Jessen, J.J., Izadi-Zamanabadi, R., Schioler, H.: A distributed control
+algorithm for internal ﬂow management in a multi-zone climate unit. International
+Journal of Control. Accepted for publication (to appear)
+9. De Persis, C., Jessen, J.J., Izadi-Zamanabadi, R., Schioler, H.: Internal ﬂow man-
+agement in a multi-zone climate control unit. In: Invited paper in the session Net-
+worked Control Systems 2006 CCA/CACSD/ISIC (2006)
+10. SIMULINK (2007), http://www.mathworks.com/products/simulink/
+11. Project Web (January 2007), http://www.cs.aau.dk/∼illum/automatic
+ control/
+12. Real-Time Workshop (2007), http://www.mathworks.com/products/rtw/

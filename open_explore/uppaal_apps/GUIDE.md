@@ -71,6 +71,7 @@
 | 🦠 | 公共健康与疫情策略 | 传染病传播、追踪策略、公共卫生决策支持等 |
 | 🔋 | 能源与采能计算 | 采能系统、电池 sizing、能量迁移计算等 |
 | 🎓 | 教育与考试流程 | 电子考试、教学流程与教育规则系统等 |
+| 🤖 | 机器人与自主系统 | LEGO 机电平台、RoboCup、多智能体机器人与自主决策等 |
 
 每篇论文默认只给一个 `次轴场景`。若现实场景确有跨域性：
 
@@ -125,7 +126,7 @@
 3. 变体驱动
    - `UPPAAL SMC/Tiga/CORA/Stratego/ECDAR + case study/industrial/application`
 4. 场景驱动
-   - `UPPAAL + automotive/railway/avionics/medical/manufacturing/network protocol`
+   - `UPPAAL + automotive/railway/avionics/medical/manufacturing/network protocol/robotics/robocup/lego`
 5. 官方入口反推
    - 先看 [uppaal_tech/README.md](../uppaal_tech/README.md) 中的官网、案例页与作者主线，再反向追具体应用论文。
 

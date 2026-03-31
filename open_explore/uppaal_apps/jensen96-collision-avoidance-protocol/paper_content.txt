@@ -1,0 +1,839 @@
+--- Page 1 ---
+BRICSRS-96-24 Jensenetal.: ModellingandAnalysisofaCollisionAvoidanceProtocolBRICS
+BasicResearchin ComputerScience
+ModellingandAnalysisof
+aCollisionAvoidanceProtocol
+using SPIN andUPPAAL
+HenrikEjersboJensen
+KimG.Larsen
+ArneSkou
+BRICSReportSeries RS-96-24
+ISSN0909-0878 July 1996
+
+--- Page 2 ---
+Copyright c/circlecopyrt1996, BRICS, DepartmentofComputer Science
+Universityof Aarhus. Allrightsreserved.
+Reproductionof allor partof thiswork
+ispermittedforeducationalor researchuse
+onconditionthatthiscopyrightnoticeisincludedin anycopy.
+See back inner page for a list of recent publications in the BRICS
+ReportSeries. Copiesmaybe obtainedby contacting:
+BRICS
+Departmentof ComputerScience
+UniversityofAarhusNy Munkegade, building540DK- 8000Aarhus C
+Denmark
+Telephone:+4589423360
+Telefax: +458942 3255
+Internet: BRICS@brics.dk
+BRICS publications are in general accessible through WWW and
+anonymousFTP:
+http://www.brics.dk/ftp ftp.brics.dk (cd pub/BRICS)
+
+--- Page 3 ---
+Modelling and Analysis of a Collision
+Avoidance Protocol using SPIN and
+UPPAAL
+Henrik Ejersbo Jensen Kim G. Larsen Arne Skou
+BRICS, Aalborg University, Denmark, E-mail: fejersbo,kgl,askg@iesd.auc.dk.
+Abstract
+This paper compares the tools SPIN and UPPAAL by modelling and
+verifying a Collision Avoidance Protocol for an Ethernet{like medium.
+We nd that SPIN is well suited for modelling the untimed aspects of the
+protocol processes and for expressing the relevant (untimed) properties.However, the modelling of the media becomes ackward due to the lackof broadcast communication in the PROMELA language. On the otherhand we nd it easy to model the timed aspects using the UPPAAL tool.
+Especially, the notion of committed locations supports the modelling of
+broadcast communication. However, the property language of UPPAALlacks some expessivity for verication of bounded liveness properties, andwe indicate how timed testing automata may be constructed for such prop-erties, inspired by the (untimed) checking automata of SPIN.
+1 Motivation
+During the last few years, the SPIN tool [Hol91] has attracted much interest
+from university people teaching formal methods and from industrial developers.
+Its merits include a simple yet powerful design language based on asynchronous
+channels, as well as an expressive logic for property verication. However, until
+recently [TC96], it has not been possible to apply SPIN to verication of real
+time systems.
+In this paper we compare the existing (untimed) SPIN with a recent real
+time tool, UPPAAL, which is based on timed automata specications. This is
+done through application of the tools on a small protocol1for collision avoidance
+on an Ethernet-like broadcast medium. The untimed properties are veried
+on a PROMELA model and the real time properties are veried on a timed
+automata model.
+BasicResearch in Computer Science, Centre of the Danish National Research Foundation.
+1Our example is inspired by a recent paper by Karsisto and Valmari [KV96]
+
+--- Page 4 ---
+1 Motivation 2
+1.1 The Example
+We assume that a number of stations are connected on an Ethernet-like medium,
+see Figure 1, that is, the basic protocol is of type CSMA/CD. On top of this
+basic protocol, we want to design a protocol without collisions2, that is, we want
+to guarantee a lower bound on the transmission delay of a buer - assuming that
+the medium does not loose or corrupt data and also assuming that the stations
+function properly3. The basic (obvious) idea of the protocol is to introduce a
+dedicated master station, which in turn asks the other stations if they want to
+transmit data to another station. However, the master has to take into account
+the possible buer delays within the receiving stations. Hence, we want the
+protocol to enjoy the following properties:
+Master Slave 1 Slave 2 Slave 3User 1 User 2 User 3
+Ethernet
+Figure 1: The Ethernet
+Collision cannot occur.
+The transmitted data eventually reach their destination.
+Data which are received, have been transmitted by a sender.
+Assuming error-free transmission, there is a known upper bound on the
+transmission delay.
+Assuming that we know the buer delays introduced by the medium and the
+slave stations, it should not be dicult to make an reasonable estimate of the
+upper bound by hand | assuming that the master makes enquiries according to
+a round-robin strategy. However, if we want to exploit the potential p arallelism,
+it might very well be that one can nd a more intrinsic strategy, which decreases
+the upper bound. Hence we would like to check for the following additional
+property:
+Does there exist a slave schedule with an upper bound being smaller than
+the sum of the individual slave delays?
+2Applicable for e.g. real time plants.
+3Well known classical protocols exist to handle these error cases.
+
+--- Page 5 ---
+2 Modelling and Verication in SPIN 3
+1.2 Paper Organization
+In section 2 we present a PROMELA model for the protocol, and we verify
+the above untimed properties. In section 3 we introduce UPPAAL and present
+the protocol model | applying the notion of committed locations to modelbroadcast. We verify the remaining timed properties and we indicate how
+one may extend UPPAAL with a more expressive logic than the existing one.
+Finally, in section 4, we sum up and compare the two tools on dierent aspects.
+2 Modelling and Verication in SPIN
+In this section we describe the modelling and verication of the Collision Avoid-ance Protocol using the design language PROMELA [Hol91] and the validation
+tool SPIN [Hol91, Hol]. We rst present the PROMELA design and we then
+discuss the verication of this. The interesting verications include verifying
+that no collisions occur and that data is delivered correctly between users.
+2.1 The PROMELA design
+Our basic modelling of the protocol consists of four slave processes and onemaster process. Master and slaves communicate using an independent process
+which models the communication medium (the Ethernet). The need for an
+independent process to model the medium is inﬂuenced by the need to model
+the mediums broadcast behaviour and the fact that we want the medium to be
+able to ’detect’ collisions. The medium is modelled to be erroneous in the sense
+that it can loose messages, and to model the fact that slaves can loose messages
+independently, loss is modelled explicitly in the slaves. Finally the above model
+exists in a ’testing environment’ consisting of one user process per slave. Slavesask their user processes for data when they are enquired from the master, and
+in response user processes can either send data or indicate that they are not
+interested in sending anything. In this case the enquiry moves on to the next
+slave in round{robin fashion.
+Message Format. All inter process communications are modelled by mes-
+sage passing on channels. Four dierent types of channels are used, each of zero
+capacity implying rendez-vous communication, see Figure 2. As we have used
+an independent process to model the medium, it is quite natural to model the
+communication between the master and the medium and between the slaves and
+the medium as synchronous. Messages from master and slaves to the medium
+are communicated on the channel to_medium , and messages from the medium
+are broadcasted using the channels from_medium[N] whereNindicates the num-
+ber of slaves plus one (the master). Messages between slaves and their users
+are communicated on channels in[N] andout[N] .
+All messages passing the medium are formatted using three elds indicating
+the sender, the receiver and the type of data sent. The master’s id is 0 and
+the slaves are numbered from 1 to N−1. Data types include ENQindicating an
+
+--- Page 6 ---
+2 Modelling and Verication in SPIN 4
+enquiry from the master, and numbers in the range 0 to N−1 modelling data
+sent between users.
+chan to_medium = [0] of {byte, byte, byte}
+/* channel to the medium : {sender, receiver, data} */
+chan from_medium[N] = [0] of {byte, byte, byte}
+/* channels from medium to each of master and slaves */
+chan in[N] = [0] of {byte, byte}
+/* channels between user and slave parts */
+chan out[N] = [0] of {byte}
+/* channels between user and slave parts */
+Figure 2: Message Channel Formats
+The Master. The master process, see Figure 3, passes enquiries round to
+slaves in round{robin fashion. Having sent an enquiry the master waits until
+it receives data and then it sends an enquiry to the next slave. If messages
+are lost the master will wait until ’silence’ is detected and then it will send
+the next enquiry. Detecting silence is modelled by the timeout statement of
+SPIN which by default blocks until nothing in the full system is executable and
+then it becomes executable itself. Actually the master always wait for timeout
+before sending the next enquiry. This is because the silence of the system either
+is due to message loss as described above, or that a message has been correctlydelivered at all slaves and at the master. In the later situation all processes will
+be listening for data i.e. no statements are executable besides timeout .
+proctype master()
+{
+byte sender;
+byte receiver;
+byte data;byte next;
+next=1;
+to_medium!0,next,ENQ; /* enquiring the first slave */
+do
+:: from_medium[0]?sender,receiver,data
+:: timeout -> next=next%(N-1)+1;to_medium!0,next,ENQ
+od
+}
+Figure 3: The Master
+
+--- Page 7 ---
+2 Modelling and Verication in SPIN 5
+The Medium. As mentioned we use an independent process to model the
+behaviour of the communication medium; the Ethernet. The fundamental prop-
+erty of the medium is that it broadcasts messages to all processes connected to
+the medium. In PROMELA there exists no broadcast primitive, so we model
+this explicitly using an approach where the medium, when receiving data from
+either the master or a slave, sends this data to all other processes connected
+to the medium in turn. Of course we would like this sequence of events tobe atomic, but although PROMELA features an atomic primitive to ensure
+atomicity on a sequence of statements, this can not be used in our situation, as
+in general no blocking statements are allowed in atomic enclosings. The atom-
+icity requirement says that no processes connected to the medium may start
+sending before the broadcast sequence of the medium is done. We model this
+by not allowing the medium to listen before the end of the broadcast. How-
+ever, communications between users and slaves are allowed to interleave the
+broadcast.
+The medium process itself can not loose messages (ignore them). This is
+because we want the possibility of the individual slaves to loose messages and
+therefore loss is modelled explicitly in the slaves.
+The part of the medium code at the accept_collision label, see Figure 4,
+is for verication and will be discussed further in section 2.2.
+The Slaves. The slave processes listens for messages at the medium, and
+whenever a message is communicated the slaves either ignores it (loss) or reads
+it. In the later case the slaves now determine what type of message is received
+and whether this message is addressed to them or not. If the message contains
+data (not enquiry) addressed to the slave, the slave sends the data along to its
+user. If the message is an enquiry from the master, the enquired slave asks its
+user whether it is interested in sending messages or not. In the former case the
+slave passes the messages on to the medium. See Figure 5.
+The Users. The nal part of the PROMELA design consists of the envi-
+ronment of the protocol, namely the user processes communicating with the
+slaves. The users can be seen as a sort of an testing environment for verifying
+the protocol, and further commenting will be given in section 2.2.
+During the development of the above design we used the simulation facility
+of the validation tool SPIN to support early fault detection. Especially the
+message sequence chart (MSC) facility was very supportive in examining the
+communication pattern of our design.
+2.2 Verication in SPIN
+Using the simulation facilities of SPIN gives a rst co ndence in the c orrect
+behaviour of the design, as we can ’run’ the protocol and see that there exists
+behaviours of our model that meet our expectations. Running the simulations
+we can for instance see, that there is a possibility that messages get lost and
+that the master in these situations sends on the enquiry to the next slave.
+
+--- Page 8 ---
+2 Modelling and Verication in SPIN 6
+proctype medium()
+{
+byte sender;
+byte receiver;
+byte data;byte i;
+do
+:: to_medium?sender,receiver,data ->
+i=0;
+if
+:: (1) -> do
+:: i<=N-1 ->
+if
+:: i==sender -> skip
+:: i!=sender -> from_medium[i]!sender,receiver,datafi;
+i=i+1
+:: i>N-1 -> breakod
+:: to_medium?sender,receiver,data -> goto accept_collision
+fi
+od;
+accept_collision: do
+:: (1) -> skip
+od /* collision detected */
+}
+Figure 4: The Medium
+Fortunately, we can also see that messages (data) can be sent correctly from
+user to user.
+The main aim of the designed protocol is to avoid collisions in the medium,
+so we want to verify this property. Furthermore, we want to verify that when
+data is sent between users { and not lost { then receiving users will actually getthe data that is addressed to them. That is, messages can not get miss{directed
+in the medium.
+Verifying that collisions are avoided is done by forcing the medium to enter
+an acceptance cycle if co llisions occur, see Figure 4. The medium process will
+enter the acceptance cycle labelled accept_collision ifmedium can participate
+in two consecutive synchronizations on channel to_medium . By consecutive we
+mean with no broadcast delivery in between the receivings. Using SPIN to
+perform a full state space search including partial order reductions veries that
+no acceptance cycles exist in the design.
+Verifying that messages are correctly delivered to user processes is done
+using the testing environment consisting of the user processes. On request
+from their slaves users either indicate that they are not interested in sending
+data, or they send along data to their ’successor’ which is simply interpreted as
+
+--- Page 9 ---
+3 Modelling and Verication in UPPAAL 7
+proctype slave(byte id)
+{
+byte sender;
+byte receiver;byte data;
+byte ny_receiver;
+byte ny_data;
+do
+:: from_medium[id]?sender,receiver,data ->
+if
+:: data!=ENQ ->
+if:: receiver==id -> out[id]!data
+:: receiver!=id -> skip
+fi
+:: data==ENQ && receiver==id ->
+in[id]?ny_receiver,ny_data;
+to_medium!id,ny_receiver,ny_data
+:: data==ENQ && receiver!=id -> skip
+fi
+:: from_medium[id]?sender,receiver,data /* message loss */od
+}
+Figure 5: The Slaves
+the user with process id one greater than the sending user. To guarantee that a
+correct unique receiving can be veried, the data send to the successor will be
+the id of the successor. Unique user id’s are passed to user and slave processes
+on instantiation. Now, the user processes are forced into an acceptance cycle
+if they receive data from their slaves that do not correspond to the user id. See
+Figure 6. Using SPIN we verify that no acceptance cycles of the above nature
+exists.
+3 Modelling and Verication in UPPAAL
+The main purpose of the Collision Avoidance Protocol is to ensure an upperbound on the user communication delay in the Ethernet by avoiding collisions.
+In this above context it is obviously interesting to include timing in the de-
+sign and to verify timing properties of the protocol. The PROMELA/SPIN
+framework does not yet allow the modelling of quantitative time.
+In this section we describe the modelling and verication of the Collision
+Avoidance Protocol including real{time using the verication tool UPPAAL.
+We consider the process of transforming our PROMELA design to UPPAAL
+format. First, we introduce the UPPAAL tool and underlying model. Then, we
+
+--- Page 10 ---
+3 Modelling and Verication in UPPAAL 8
+proctype user(byte id; chan cin,cout)
+{
+byte data;
+do
+:: cout?data ->
+if:: data!=id -> goto accept_wrong_data
+:: data==id -> skip
+fi
+:: cin!0,0 /* not interested */
+:: cin!(id%(N-1)+1),(id%(N-1)+1)
+od;
+accept_wrong_data:
+do
+:: (1) -> skip /* wrong data received */
+od
+}
+Figure 6: The Users
+consider the design of the timed protocol and nally we consider the verication
+of timing properties.
+3.1 The UPPAAL tool
+UPPAAL is a tool suite for automatic verication of safety and bounded live-ness properties of real-time systems modeled as networks of timed automata
+extended with data variables [YPD94, LPY95a, BLL
++95], developed during
+the past two years. In this section, we summarize the main features of UP-
+PAAL, applications to various case{studies and provide pointer to the theoret-
+ical foundation.
+UPPAAL consists of a graphical user interface based on Autograph, that
+allows system descriptions to be dened graphically and a model-checker that
+combines on-the-ﬂy verication with a symbolic technique reducing the veri-
+cation problem to that of solving simple constraint systems [YPD94, LPY95a].
+The current version of UPPAAL is able to check for invariant and reachabil-
+ity properties, in particular whether certain combinations of control-nodes of
+timed automata and constrains on variables are reachable from an initial con-
+guration. Bounded liveness properties can be checked by reasoning about the
+system in the context of a testing automata. In order to facilitate debugging,
+the model-checker will report a diagnostic trace in case the verication proce-
+dure terminates with a negative answer [LPY95b].
+The current version of UPPAAL is implemented in C++. An overview of
+UPPAAL is shown in Figure 7, and contains the following:
+
+--- Page 11 ---
+3 Modelling and Verication in UPPAAL 9
+.q.atg.ta
+``no''``yes''
+diagnostic
+tracesearch
+engineverifyta
+atg2ta
+hs2tacheckta
+trace
+generatorconstraint
+solvers
+Figure 7: Overview of Uppaal
+atg2ta A compiler from the graphical representation ( .atg ) of a network of
+timed automata, to the textual representation in UPPAAL ( .ta).
+hs2ta A lter that automatically transforms linear hybrid automata where the
+speed of clocks is given by an interval into timed automata [OSY94], thus
+extending the class of systems that can be analyzed by Uppaal .
+checkta Given a textual representation (in the .ta-format) of a network of
+timed automata, checkta performs a number of simple but in practice
+useful syntactical checks.
+verifyta A model-checker that combines on-the-ﬂy verication with constraint
+solving techniques [YPD94, LPY95a].
+During the past year, we have applied UPPAAL to a number of case-studies.
+To meet requirements arising from the case studies, the UPPAAL model and
+model{checker have been further extended with a number of new features:
+Committed Locations. UPPAAL adopts hand-shaking synchronization be-
+tween components in a network. A very recent case-study on the verication
+of Philips Audio Control Protocol with bus-collisions [BGK+96] shows that we
+need to further extend the UPPAAL model with committed locations to model
+behaviors such as atomic broadcasting in real-time systems. The notion of com-
+mitted locations is introduced in [BGK+96]. Our experiences with UPPAAL
+show that the notion of committed locations implemented in UPPAAL is not
+only useful in modeling real-time systems but also yields signicant reductions
+in time- and space-usages in verifying such systems.
+Urgent Actions. In order to model progress properties UPPAAL uses a
+notion of maximal delay that requires discrete transitions to be taken within
+a certain time bound. However, in some examples, e.g. the Manufacturing
+Plant [DY95], synchronization on certain channels should happen immediately.For this reason the UPPAAL model was extended with urgent channels ,o n
+which processes should synchronize whenever possible [BLL
++95]. The notion
+
+--- Page 12 ---
+3 Modelling and Verication in UPPAAL 10
+of urgent channels (also known as urgent actions in the literature) has been
+implemented in both HyTech andKronos .
+Diagnostic Traces. Ideally, a model-checker should be able to report diag-
+nostic information whenever the verication of a particular real-time system
+fails. UPPAAL reports such information by generating a diagnostic trace from
+the initial state to a state violating the property. The usefulness of this kind
+of information was shown during the debugging of an early version of Philips
+Audio-Control Protocol [LPY95b].
+UPPAAL has been applied to a number of case-studies and benchmark ex-
+amples, including: several versions of Fischers Protocol [AL93], two version of
+Philips Audio-Control Protocol [BPV94, LPY95b, BGK+96], a Steam Genera-
+tor [Abr95], a Train Gate Controller [HHWT95], a Manufacturing Plant [DY95],
+a Mine-Pump Controller [JBW+96] and a Water Tank [OSY94].
+The growing list of succesfully completed real{size verication case{studies
+and recently initiated collaboration with danish i ndustry makes us believe that
+the UPPAAL is reaching a level of maturity where it can be applied to real
+industrial case{studies.
+3.2 The UPPAAL design
+Having already made the PROMELA protocol design actually made the mod-elling using timed automata a relatively easy task. The time spent on the timed
+automata design has been considerably less than the time spent on the initial
+PROMELA design.
+The fundamental automata design is quite similar to the PROMELA de-
+sign in the sense that the same type of processes are modelled. That is, each
+PROMELA process is matched by a timed automaton in the new design. The
+main dierences in the models, besides the timing, considers the way communi-
+cation between processes take part and the way the broadcasting behaviour of
+the medium is expressed. In the timed automata model used in UPPAAL there
+is no channel primitive and the only means of interaction between automata is
+by pure synchronization of atomic actions. Consequently, we use a combination
+of shared variables and synchronization to simulate the message passing that
+would actually take place in a real system.
+The master. The master process is modelled as the timed automaton de-
+picted in Figure 8
+4. We consider a lossy communication medium and therefore
+the master is equipped with a timer, see Figure 9, to guarantee that new en-
+quiries will be sent in the precense of message loss.
+The master starts by sending to the medium an enquire addressed to the
+rst slave. This is modelled by the initial transition from m0tom1.T h em a s t e r
+sets the shared variable data:=0 on this transition indicating that the message
+is an enquiry. Having sent the enquiry and without further delay, the master
+sets its timer and starts waiting until the message has been broadcasted to all
+4This gure shows the actual input to UPPAAL.
+
+--- Page 13 ---
+3 Modelling and Verication in UPPAAL 11
+slaves, indicated by an empty synchronization with the medium. This ensures
+that the master will not receive its own message.
+Now, the master will either receive data broadcasted by a slave or it will
+timeout, if nothing is received within a certain time limit. In either case the mas-
+ter sends an enquiry along to the next slave indicated by increasing the shared
+variablenext , settingdata:=0 and performing the output action to_medium! .
+reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!reset!set!set!set!set!set!set!set!set!set!set!set!set!set!set!set!set!set!
+from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?
+t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?timeout?
+t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0t:=0empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3
+t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2
+to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!
+next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1
+data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2next<=2
+t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2t==2
+to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!
+next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1next:=next+1
+data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0t==0
+to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!
+next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1next:=1
+data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0data:=0
+m4m4m4m4m4m4m4m4m4m4m4m4m4m4m4m4m4m1m1m1m1m1m1m1m1m1m1m1m1m1m1m1m1m1
+m3m3m3m3m3m3m3m3m3m3m3m3m3m3m3m3m3m2m2m2m2m2m2m2m2m2m2m2m2m2m2m2m2m2
+m5m5m5m5m5m5m5m5m5m5m5m5m5m5m5m5m5m0m0m0m0m0m0m0m0m0m0m0m0m0m0m0m0m0
+mastermastermastermastermastermastermastermastermastermastermastermastermastermastermastermastermaster
+Figure 8: The Master with Timer
+reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?reset?ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3ti==3
+timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!timeout!
+set?set?set?set?set?set?set?set?set?set?set?set?set?set?set?set?set?
+ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0ti:=0t1t1t1t1t1t1t1t1t1t1t1t1t1t1t1t1t1 t0t0t0t0t0t0t0t0t0t0t0t0t0t0t0t0t0
+timertimertimertimertimertimertimertimertimertimertimertimertimertimertimertimertimer
+Figure 9: The Timer
+The Medium. As mentioned the basic means of interaction between timed
+automata is by binary synchronization. No basic broadcasting primitive exists,
+but the notion of committed locations, see section 3.1, can be used to model
+the broadcasting in a simple way. Having received a message by synchronizing
+on the input action to_medium? , the medium delays the message for one time
+unit and then it starts broadcasting, see Figure 10. The broadcast consistsof synchronizing in turn with each of the not{sending processes connected to
+the medium. Atomicity of the synchronization sequence is ensured by labelling
+each node that participates in the synchronization sequence as committed. This
+guarantees that no actions can interleave the broadcast.
+
+--- Page 14 ---
+3 Modelling and Verication in UPPAAL 12
+The node labelled colwill be entered upon collisions in the medium, and
+it serves the same verication purpose as the accept_collision state in the
+PROMELA model, see Figure 4.
+to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?
+mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0mdelay:=0
+mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1mdelay<=1
+to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?to_medium?mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1mdelay==1
+from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium! from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!from_medium!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!empty!
+me0me0me0me0me0me0me0me0me0me0me0me0me0me0me0me0me0me1me1me1me1me1me1me1me1me1me1me1me1me1me1me1me1me1 c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2c:me2 c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3c:me3
+colcolcolcolcolcolcolcolcolcolcolcolcolcolcolcolcolc:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4c:me4
+mediummediummediummediummediummediummediummediummediummediummediummediummediummediummediummediummedium
+Figure 10: The Medium
+The Slaves. In the UPPAAL model we need to model each slave as a unique
+timed automaton. In Figure 11 one of the almost identical slaves is depicted.
+The slaves synchronize with the medium on input action from_medium? and
+either they loose messages or they receive correctly, in which case they nowdetermine what type of data is sent and to whom. Depending on the outcome,
+slaves either return to their initial state, sends data along to their users or asks
+their users for data to be send. In the last two situations the slaves will delay
+some amount of time and during this period they will not be able to detect
+messages sent to them. This is modelled as the ’ignoring’ from_medium? input
+actions at the nodes s1_2 ands1_4 of Figure 11.
+empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?empty?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?
+c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0c1:=0
+c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0
+data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0
+next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2next==2c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0
+data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2data==2
+c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0
+data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3data==3c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0
+data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0
+next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3next==3
+c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0
+data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1data==1
+out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!out_1!c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0c1==0
+data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0data==0
+next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1next==1c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2
+c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2
+from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2c1<=2
+from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?from_medium?c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2c1==2
+to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!to_medium!
+c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1c1==1
+in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?in_1?s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_5s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0s1_0
+s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1s1_1
+s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2s1_2 s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_4s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3s1_3
+slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1slave_1
+Figure 11: A Slave
+
+--- Page 15 ---
+3 Modelling and Verication in UPPAAL 13
+The Users. As for the slaves we need to model each user process as a unique
+timed automaton. In Figure 12 the user automaton of the slave in Figure 11
+is depicted. Users are always ready to either responding to enquiries from
+their slaves or receiving data sent from other users. Responding to enquiries
+is done by sending data to another user. The committed locations in the user
+automaton are for verication purposes and will be explained in section 3.3.
+send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1!send_1! recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!recv_1!
+in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!
+data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3data:=3in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!in_1!
+data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2data:=2out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?out_1?c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2c:u1_2 c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1c:u1_1 u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0u1_0
+user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1user_1
+Figure 12: A User
+3.3 Verication in UPPAAL
+The primary correctness criteria that we want to verify for the protocol design
+explained in section 3.2 is that no collisions will ever occur. As the mediumdelays messages for one time unit, two messages sent to the medium within one
+time unit or less will eventually collide and this scenario will force the medium
+automaton in Figure 10 in the node col. What we need to verify is that it
+holds invariantly, that the protocol can not reach a state where the medium
+automaton is in state col. Stated as a property in the logic of UPPAAL this
+becomes:
+82(not medium :col)
+The satisfaction of the above formula is dependent upon the actual timeout
+limit in the timer. UPPAAL succesfully veries the property if we consider aperfect medium, i.e. not lossy. But when an erroneous medium is introduced
+as in section 3.2 the timeout limit inﬂuences the possib ility of collisions. If a
+timeout occurs to soon, the master interprets this as a situation where data
+is lost and all slaves are waiting for messages. But obviously this need not be
+the case as a slave can actually be in the process of enquiring its user. If this
+happens the slave will try to send data from its user and the master will try
+to send a new enquiry. If these two messages arrive at the medium within the
+one time unit delay of the medium, they will collide. We discover by repeated
+verication attempts that timeout limits greater than or equal to 3 will ensure
+that no collisions can occur. Also we verify that for a timeout limit of 2, a
+collision actually can occur, and the diagnostic trace facility of UPPAAL givesus a possible trace leading to collision.
+Assuming a perfect medium (not lossy) and assuming that data is sent from
+users in round{robin fashion (all user are interested) we want to verify that the
+
+--- Page 16 ---
+3 Modelling and Verication in UPPAAL 14
+user{to{user communication delay is bounded by some constant. Also, we want
+to verify an upper bound on the delay between users sending data. This actually
+implies a bound on the delay between enquiries from the master, as all users are
+interested in sending. The above properties are examples of bounded liveness
+properties which can not be expressed directly in the logical property language
+of UPPAAL. To express the properties we introduce a seperate test automaton
+that probes the user processes in the protocol design. The test automatonwill be designed to enter a ’bad node’ if it tests an unwanted behaviour of the
+protocol. This approach is quite analogous to the never{claims used in the
+PROMELA language.
+The test automaton for the properties described above is depicted in Fig-
+ure 13. The automaton probes the sending and receiving of data in the user
+processes by synchronizing on actions send_1 andrecv_1 (for user 1), see Fig-
+ure 12. When a message is sent the test clock sis started and if the data
+sent is not received within a certain time limit, the test automaton is forced in
+the state bad1 . Similarly, if a new sending is not performed within a certain
+time from the last receiving, the bad state bad2 can be entered. The property
+veried using UPPAAL is:
+82not(check
+1:bad1 or check 1:bad2 )
+s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5
+send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0
+recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0
+s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0
+recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?recv_2?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4
+recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?recv_1?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0
+recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?recv_3?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4s>=4send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?send_3?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5
+send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?send_2?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5s>=5bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2bad2
+ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0
+bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1bad1ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5ch5 ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1
+ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3ch3 ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch4ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2
+check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1check_1
+Figure 13: Bounded liveness test automaton
+Using a similar approach as above we verify that there exists a ro und{trip
+time bound for the protocol. We use the test automaton of Figure 14 to verify
+that there exists a round{trip, modelled as user 1 having performed two sends,
+within a certain time bound. We verify:
+93(check2:ch2 and s18)
+Also we verify that the following does not hold:
+93(check2:ch2 and s17)
+
+--- Page 17 ---
+3 Modelling and Verication in UPPAAL 15
+send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?send_1?
+s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0s:=0
+ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch2ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch1ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0ch0
+check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2check_2
+Figure 14: The round{trip time test automaton
+That is, there exists no (initial) round{trip time of less than 18 time units.
+As indicated on Figure 8 the master waits for two time units before sending
+out a new enquiry. This time limit guarantees that all slaves have nished their
+internal buissness and will be ready to receive data. I.e. messages will not be lost
+because of slave not ready to receive. To increase the round{trip performance
+of the protocol we could consider to let master send out new enquiries without
+delaying at all. Obviously this would require redesigning the enquiring strategyof the master s.t. it will not send enquiries to slaves having just received data
+from other users. We believe that a new strategy for the master beneting from
+the parallelism in the slaves, will be possible, but we have not considered the
+actual design. However, we have veried that changing the waiting time in the
+master to zero, will allow for faster round{trip times. Obviously changing only
+the waiting time of the master does not guarantee that messages will not be
+lost, but it gives a clue as to how the enquiring strategy can be optimized.
+3.4 Test Automata Generation
+In the previous section we veried a number of bounded liveness propertiesby establishing reachability properties in the context of a testing automata.
+To allow the testing automata to ’observe’ the system via communication, the
+system was in most cases extended with suitable probe actions.
+Similar to SPIN’s ability to generate never{claims directly from Linear Tem-
+poral Logic properties, it is possible to derive testing automata automaticallyfrom logical properties of the Safety and Bounded Liveness Logic introduced
+and studied in [LPY95a, LPY95b]. Here we indicate the automatic derivation
+of testing automata for a somewhat simpler logic STL (Simple Timed Logic)
+derived from the logic TML introduced in [HLY92].
+The properties of STL is given by the following abstract syntax, where a
+ranges over actions and Nover natural numbers (extended with 1):
+’::= ttjjINV’jhai
+nj[a]n’j’1^’2
+
+--- Page 18 ---
+4 Comparison of SPIN and UPPAAL 16
+The properties of STL are interpreted with respect to the behaviours (i.e.
+timed transition systems) of (networks of) timed automata.
+The properties of STL are interpreted with respect to the behaviours (i.e.
+timed transition systems) of (networks of) timed automata. The interpretation
+of the propositional part is standard, and INV ’requires as expected that any
+reachable state of the timed automata must satisfy the property ’. The time{
+quantied action modality haindescribes informally that the system must be
+able to perform an a{action no later than (the observer has experienced) a delay
+ofn5. Similarly, [ a]n’requires that any a{transition occurring before a delay
+ofnmust lead to a new state satisfying ’.W ew r i t e A1j:::jAnj=’,w h e na
+network of timed automata, A1j:::jAnsatises an STL formula ’.
+Now, for any STL formula we may construct a testing timed automata T’
+with a designated location l’such that
+l’isunreachable in ( T’jA1j:::jAn)
+if and only if
+(A1j:::jAn)j=’
+Thus model{checking STL properties may be reduced to deciding reach-
+ability questions. The testing automata T’is dened by the structure of ’and
+given in Figure 15.
+In section 3.3 we essentially wanted to check that a sender can not send
+messages too frequently: at least 18 time units between two consecutive send’s
+must elapse. The following property:
+INV([send 1]1[send 1]n) (1)
+expresses precisely that at least ntime units must elapse between two con-
+secutivesend 1actions. Using the constructions described above we obtain the
+testing timed automata of Figure 16. That is we may check for the property (1)
+by checking for reachability of location lwhen the testing automata is combined
+with the system under consideration. The testing automata that was used in
+the actual verication was a slight simplication of the one that is obtained by
+the general construction.
+4 Comparison of SPIN and UPPAAL
+In this section we summarize our experiences with the two tools SPIN andUPPAAL based on our experience from the case study concerning the Collision
+Avoidance Protocol for an Ethernet.
+Considering the design phase, the basic structure of the design was very
+easily obtained in the UPPAAL model because this was the last design made
+and the PROMELA/SPIN model was of great benet as a structural basis for
+our UPPAAL model.
+5The observer experiencing a delay of nmeans that the system may perform a sequence of
+delay steps intermixed with internal computations such that the delay steps accumulate to a
+total ofn.
+
+--- Page 19 ---
+4 Comparison of SPIN and UPPAAL 17
+(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)(f)T2T2T2T2T2T2T2T2T2T2T2T2T2T2T2T2T2 T1T1T1T1T1T1T1T1T1T1T1T1T1T1T1T1T1
+(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)(e)TTTTTTTTTTTTTTTTT(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b)(b) (c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c)(c) (a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)(a)
+a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,... a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...a,b,...x<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=N
+aaaaaaaaaaaaaaaaax:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0
+badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbad badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbad
+badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbad
+x<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=N
+aaaaaaaaaaaaaaaaax>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx>Nx:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0
+badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbad
+Figure 15: Generation of Testing Timed Automata: The respective test au-
+tomata implements the following formulas: (a)tt,(b),(c)hain,
+(d)[a]n’,(e)’1^’2and(f)INV’. In the gure, Tindicates
+the testing automaton for ’.T1andT2indicates the automata for
+’1and’2respectively.
+
+--- Page 20 ---
+4 Comparison of SPIN and UPPAAL 18
+badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=Nx<=N
+s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1s1
+x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0x:=0
+Figure 16: Test Automata for the property of (1)
+In the PROMELA design phase we made extensive use of the simulation
+facilities of SPIN, especially the Message Sequence Charts. Within short time
+a ’running’ prototype was designed and at an early stage faults were detected
+without having the full design at hand. In contrast UPPAAL does not yet
+allow for simulations and consequently, the UPPAAL design has to be more
+fully developed before the verication can be applied which delays the tool
+support in the design phase.
+Considering the design languages, the obvious distinction is the possibility
+of modelling real{time systems in UPPAAL. In the case study it is shown that
+interesting bounded liveness properties can be expressed and veried in UP-PAAL. Another benecial feature of UPPAAL is the possibility of committed
+locations which makes possible a quite natural modelling of the broadcast be-
+haviour needed in the case study. In contrast PROMELA can not apply the
+atomicity construct on sequences of send- and receive statements as these might
+be blocking.
+Considering the verication phase, the kind of properties expressible in the
+property language of UPPAAL are restricted to invariance and possibility prop-
+erties. Other properties as e.g. the bounded liveness properties of our case
+study needs to be expressed as separate test automata probing the design. In
+section 3.4 we present ideas on how to extend the property language and au-
+tomatically generate the test automata. This is already possible in SPIN fortransforming LTL properties to never automata.
+The committed locations of UPPAAL make it possible to design non real-
+izable systems. In particular systems that may enter completely blocked states
+(in the sense that neither actions nor time delays are possible) can be described.
+Obviously, we would like the possibility of checking whether the global design
+suers such unrealizable properties or not.
+Both SPIN and UPPAAL oers diagnostic information upon negative veri-
+cation results. SPIN oers the possibility of examine an error scenario using
+
+--- Page 21 ---
+References 19
+the MSC’s and UPPAAL oers a textual sample error trace leading to the
+unwanted state. By performing breadth rst reachability analysis UPPAAL
+makes available a shortest error trace, whereas this is not guaranteed in SPIN
+as the reachability is performed depth rst.
+References
+[Abr95] J.-R. Abrial. Steam-boiler control specication problem. Interna-
+tional Seminar on Methods for Semantics and Specication , June
+1995.
+[AL93] Martin Abadi and Leslie Lamport. An Old-Fashioned Recipe for
+Real Time. Lecture Notes in Computer Science , 600, 1993.
+[BGK+96] Johan Bengtsson, David Grioen, K  are Kristoersen, Kim G. Lar-
+sen, Fredrik Larsson, Paul Pettersson, and Wang Yi. Verication of
+an Audio Protocol with Bus Collision Using Uppaal . Accepted for
+presentation at the 8 thInt. Conf. on Computer Aided Verication,
+1996.
+[BLL+95] Johan Bengtsson, Kim G. Larsen, Fredrik Larsson, Paul Pettersson,
+and Wang Yi. Uppaal | a Tool Suite for Automatic Verication
+of Real{Time Systems. In P r o c .o ft h e4 thDIMACS Workshop
+on Verication and Control of Hybrid Systems , Lecture Notes in
+Computer Science, October 1995.
+[BPV94] D. Bosscher, I. Polak, and F. Vaandrager. Verication of an Audio-
+Control Protocol. In Proc. of FTRTFT’94 , volume 863 of Lecture
+N o t e si nC o m p u t e rS c i e n c e , 1994.
+[DY95] C. Daws and S. Yovine. Two examples of verication of multirate
+timed automata with Kronos .I n P r o c .o ft h e1 6 thIEEE Real-
+Time Systems Symposium , pages 66{75, December 1995.
+[HHWT95] Thomas A. Henzinger, Pei-Hsin Ho, and Howard Wong-Toi. A
+Users Guide to HyTech . Technical report, Department of Com-
+puter Science, Cornell University, 1995.
+[HLY92] U. Holmer, K.G. Larsen, and W. Yi. Decidability of bisimulation
+equivalence between regular timed processes. In Proc. of CAV’91 ,
+volume 575 of Lecture Notes in Computer Science, Springer Verlag ,
+Berlin, 1992.
+[Hol] Gerard J. Holzmann. Basic Spin Manual . AT&T Bell Laboratories,
+Murray Hill, New Jersey.
+[Hol91] Gerard J. Holzmann. Design and Validation of Computer Protocols .
+Prentice Hall, 1991.
+
+--- Page 22 ---
+References 20
+[JBW+96] Mathai Joseph, Alan Burns, Andy Welling, Krithi Ramamritham,
+Jozef Hooman, Steve Schneider, Zhiming Liu, and Henk Schepers.
+Real-time Systems Specication, Verication and Analysis .P r e n -
+tice Hall, 1996.
+[KV96] K. Karsisto and A. Valmari. Verication-driven development of a
+collision avoidance protocol for the ethernet. FTRTFT96 , 1996.
+[LPY95a] Kim G. Larsen, Paul Pettersson, and Wang Yi. Compositional and
+Symbolic Model-Checking of Real-Time Systems. In P r o c .o ft h e
+16thIEEE Real-Time Systems Symposium , pages 76{87, December
+1995.
+[LPY95b] Kim G. Larsen, Paul Pettersson, and Wang Yi. Diagnostic Model-
+Checking for Real-Time Systems. In P r o c .o ft h e4 thDIMACS
+Workshop on Verication and Control of Hybrid Systems , Lecture
+Notes in Computer Science, October 1995.
+[OSY94] A. Olivero, J. Sifakis, and S. Yovine. Using Abstractions for the
+Verication of Linear Hybrids Systems. In P r o c .o fC A V ’ 9 4 ,v o l u m e
+818 of Lecture Notes in Computer Science , 1994.
+[TC96] Stavros Tripakis and Costas Courcoubetis. Extending promela and
+spin for real-time. In Tools and Algorithms for the Construction and
+Analysis of Systems, Second International Workshop, TACAS ’96 ,
+volume 1055 of Lecture Notes in Computer Science , pages 329{348,
+1996.
+[YPD94] Wang Yi, Paul Pettersson, and Mats Daniels. Automatic Verica-
+tion of Real-Time Communicating Systems By Constraint-Solving.
+InP r o c .o ft h e7 thInternational Conference on Formal Description
+Techniques , 1994.
+
+--- Page 23 ---
+RecentPublicationsin theBRICS ReportSeries
+RS-96-24 HenrikEjersboJensen,KimG.Larsen,and Arne Skou.
+Modellingand Analysis of a CollisionAvoidanceProtocol
+using SPIN and UPPAAL . July1996. 20 pp.
+RS-96-23 Luca Aceto, Wan J. Fokkink, and Anna Ing ´olfsd´ottir.A
+Menagerie of Non-Finitely Based Process Semantics overBPA
+: From Ready Simulation Semantics to Completed
+Tracs. July1996. 38 pp.
+RS-96-22 Luca Aceto and Wan J. Fokkink. An Equational Axiom-
+atizationforMulti-ExitIteration . June 1996. 30 pp.
+RS-96-21 Dany Breslauer, Tao Jiang, and Zhigen Jiang. Rotation
+of PeriodicStrings andShort Superstrings . June1996. 14
+pp.
+RS-96-20 Olivier Danvy and Julia L. Lawall. Back to Direct Style
+II:First-ClassContinuations .June1996.36pp.Aprelim-
+inary version of this paper appeared in the proceedings
+of the 1992 ACM Conference on Lisp and Functional
+Programming, William Clinger, editor, LISP Pointers,Vol. V, No. 1, pages 299–310, San Francisco, California,June 1992.ACM Press.
+RS-96-19 John Hatcliff and Olivier Danvy. Thunks and the -
+Calculus. June 1996. 22 pp. To appear in Journal of
+FunctionalProgramming .
+RS-96-18 Thomas Troels Hildebrandt and Vladimiro Sassone.
+Comparing Transition Systems with Independence and
+Asynchronous Transition Systems . June 1996. 14 pp. To
+appear in Montanari and Sassone, editors, Concurrency
+Theory: 7thInternationalConference ,CONCUR'96Pro-
+ceedings,LNCS1119,1996.
+RS-96-17 Olivier Danvy, Karoline Malmkjær, and Jens Palsberg.
+Eta-Expansion Does The Trick (Revised Version) .M a y
+1996. 29 pp. To appear in ACM Transactions on Pro-
+grammingLanguagesandSystems(TOPLAS) .
+RS-96-16 Lisbeth Fajstrup and Martin Raußen. Detecting Dead-
+locksin Concurrent Systems . May 1996. 10 pp.
