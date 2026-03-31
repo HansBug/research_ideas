@@ -31,36 +31,36 @@
 
 - 题目或摘要直接写清被验证系统名、验证任务词和 `case study`
 - 正文明确说明系统组成、验证边界、性质簇和结果，而不是只写“应用了 `UPPAAL`”
-- `2010` 年后，安全关键嵌入式/医疗/工业安全方向的命中率明显提高
-- 官方模型仓库、历史 case-study 页和公开数据集页仍是高价值反向入口
+- `2020` 年后，`UPPAAL Stratego / SMC` 与“具名应用场景 + 量化结果”联动出现得更频繁
+- 官方模型仓库、作者 `GitHub/Zenodo`、公开数据页仍是高价值反向入口
 
 ### 已观察到的低命中特征
 
 - 教程、综述或方法展示文，没有稳定具体系统边界
-- 只讲 optimization/testing/scheduling，却没有清晰验证问题和查询
+- 只讲 optimization/testing/scheduling，却没有清晰验证问题、查询或验证边界
 - 只搜泛 timed automata 或泛 industry 词，没有具名系统名或性质词
 - 历史案例页常能找到论文，但很多旧工件链接已经失效
 
 ### 检索倾向调整
 
-- 当前高价值方向已扩展到：航天调度、医疗设备、工业 PLC、无线路由、SCADA 安全与服务事务协议
+- 当前高价值方向已扩展到：`Stratego` 铁路/交通控制、`SMC` 能量/疫情场景、医疗设备与网络协议、业务流程系统
 - 只要用户没有明确豁免，正式入账时仍默认同步补齐 `desc.md`
 - 公开性继续单独维护为“案例/模型/数据公开性清单”，不再回退到 `详度/实现`
-- 对 `2010-2020` 条目，优先选择能把“系统是什么、验证哪一层、规模多大、材料能否拿到”讲清楚的论文
+- 对 `2020` 年后条目，优先选择能把“系统是什么、验证哪一层、规模多大、材料能否拿到”讲清楚的论文
 
 ## 当前收录统计
 
 | 统计项 | 数值 | 年份信息 |
 |---|---:|---|
-| 已收录顶层条目 | 20 | 覆盖 `1996-2019` |
-| 本轮新增条目 | 10 | 本轮新增均位于 `2010-2019` |
-| 其中已补 `desc.md` | 20 | `1996-2019` 均已完成整理 |
-| 当前 `🟢 直接可用` | 16 | 主体已扩展到协议、控制器、医疗与工业安全案例 |
-| 当前 `🟡 可整理` | 4 | 主要是材料较薄或更偏框架展示的案例 |
+| 已收录顶层条目 | 30 | 覆盖 `1996-2024` |
+| 本轮新增条目 | 10 | 本轮新增均位于 `2020-2024` |
+| 其中已补 `desc.md` | 30 | `1996-2024` 均已完成整理 |
+| 当前 `🟢 直接可用` | 23 | 主体已扩展到协议、控制器、医疗、交通、公共健康与业务流程案例 |
+| 当前 `🟡 可整理` | 7 | 主要是框架展示型、材料偏薄或验证边界偏窄的案例 |
 | 当前 `⏳ 尚未提取` | 0 | 无 |
-| 公开性分布 | `🟢 4 / 🟠 13 / 🔒 3` | 公开模型/数据仍然稀缺，但已出现可直接获取案例 |
+| 公开性分布 | `🟢 10 / 🟠 17 / 🔒 3` | 新增批次里可直接复跑的公开案例明显增多，但整体仍以论文重建为主 |
 | 最早年份 | 1996 | 首批收录始于经典协议冲突案例 |
-| 最晚年份 | 2019 | 已扩展到 pacemaker 与 SCADA 安全案例 |
+| 最晚年份 | 2024 | 已扩展到电子考试流程与可信设计案例 |
 | 当前失败/阻塞记录 | 2 | 记录见“失败与阻塞记录” |
 
 ## 按年份分布统计
@@ -78,16 +78,21 @@
 | 2012 | 2 | 2 | 覆盖 `UPPAAL SMC` 调度与 AODV 路由协议 |
 | 2013 | 1 | 1 | 健康监测驾驶辅助系统框架案例 |
 | 2019 | 2 | 2 | 扩展到 pacemaker 与 SCADA 攻击检测 |
+| 2020 | 3 | 3 | 扩展到疫情流体模型、moving block 铁路与 WSN 攻击分析 |
+| 2021 | 4 | 4 | 覆盖能量驱动计算、`5G` 切片、`TSN` 与城市交通灯控制 |
+| 2022 | 1 | 1 | 扩展到在线针导航与医疗避障控制 |
+| 2023 | 1 | 1 | 扩展到机械呼吸机控制验证 |
+| 2024 | 1 | 1 | 扩展到电子考试流程可信设计 |
 
 ## 应用分类口径
 
 | 一级领域 | 说明 | 当前正式条目数 |
 |---|---|---:|
-| 🛰️ 协议与通信系统 | 网络协议、通信协议、分布式交互等 | 5 |
-| 🎛️ 控制器与嵌入式系统 | 控制逻辑、嵌入式控制器、实时控制软件等 | 8 |
+| 🛰️ 协议与通信系统 | 网络协议、通信协议、分布式交互等 | 7 |
+| 🎛️ 控制器与嵌入式系统 | 控制逻辑、嵌入式控制器、实时控制软件等 | 11 |
 | 🏭 工业系统与 `CPS` | 制造、工业控制、混合系统、工程案例等 | 3 |
-| 🚦 交通、调度与资源系统 | 交通控制、调度、实时资源系统等 | 0 |
-| 🧩 软件、架构与组件系统 | 软件组件、并发软件、软件架构等 | 4 |
+| 🚦 交通、调度与资源系统 | 交通控制、调度、实时资源系统等 | 2 |
+| 🧩 软件、架构与组件系统 | 软件组件、并发软件、软件架构等 | 7 |
 
 说明：
 
@@ -161,6 +166,16 @@
 | 🎛️ | 2013 | `gruhn13` | Design and Verification of a Health-Monitoring Driver Assistance System | 驾驶辅助, 健康监测, 服务化网络 | 面向心脏病高风险驾驶员的健康监测驾驶辅助系统 | 多源传感、动态入网/离网、应急制动、分层验证 | ECG、呼吸带、相机、控制器、紧急制动系统、便携脉搏计等 `8` 类部件 | `UPPAAL` | 控制器时间/功能验证与动态网络分层验证 | 时序约束、功能正确性、通信可达性 | 🟡 | 提出医疗驾驶辅助系统的分层验证框架，其中控制器部分由 `UPPAAL` 承担。 | [paper](./gruhn13-health-monitoring-driver-assistance/) |
 | 🎛️ | 2019 | `alur19` | Continuous-Time Models for System Design and Analysis | pacemaker, hybrid automata, 医疗 `CPS` | 双腔植入式心脏起搏器及其心脏环境模型 | `DDD/VDI` 模式、离散控制器 + 连续心脏、抽象证明 | `8` 个 pacemaker 过程 + `5` 个心脏抽象部件；基础 `DDD` 与 `DDD-VDI` 两种配置 | `UPPAAL` | 上/下速率限制与心跳传播要求验证 | 安全、时序约束、监视器性质 | 🟢 | 先用 `SpaceEx` 证明心脏抽象，再在 `UPPAAL` 中验证 pacemaker 的上下速率限制。 | [paper](./alur19-pacemaker-continuous-time/) |
 | 🏭 | 2019 | `martinelli19` | Timed Automata Networks for SCADA Attacks Real-Time Mitigation | SCADA, 攻击检测, 燃气管网 | SCADA 燃气管网日志驱动的攻击检测模型 | 日志转自动机、双特征同步、`DoS/MI` 攻击公式 | `269,228` 条测量；`100 ms` 窗口生成 `2,692` 个模型；`1346` 正常 + `1346` 攻击 | `UPPAAL` | 攻击模式可达性判定与检测评估 | 可达性、时序模式、工业安全 | 🟢 | 把 SCADA 日志转成 timed automata 网络，并用 `UPPAAL` 公式检测 `DoS` 与恶意注入攻击。 | [paper](./martinelli19-scada-attack-mitigation/) |
+| 🚦 | 2020 | `basile20` | Strategy Synthesis for Autonomous Driving in a Moving Block Railway System with Uppaal Stratego | railway, moving block, autonomous driving, strategy synthesis | ERTMS Level 3 moving block 信号与自主驾驶抽象系统 | 单列车/单 `RBC`、随机通信延迟、`MA` 安全边界 | `1` train + `1` `RBC` + `1` `OBU` + `1` `LU`；默认 `ma=5`、`arrive=20` | `UPPAAL Stratego` | 安全驾驶策略合成与到达时间优化 | 安全、可达性、统计性质、定量优化 | 🟢 | 用 `Stratego` 合成永不越 `MA` 的驾驶策略，并在安全前提下优化到达时间。 | [paper](./basile20-moving-block-railway-driving/) |
+| 🛰️ | 2020 | `bernardeschi20` | Analysis of Security Attacks in Wireless Sensor Networks: From UPPAAL to Castalia | WSN, flooding, drop/tamper, Castalia | 无线传感器网络应用层 flooding 协议 | 源节点 + 中继节点、链路冗余、单次攻击注入 | `1` source + `4` relay；攻击在随机时刻执行 `1` 次 | `UPPAAL` | 协议正确转发与攻击影响分析 | 安全、可达性、攻击场景正确性 | 🟡 | 先在 `UPPAAL` 证明 flooding 性质，再自动转到 Castalia 分析 drop/tamper 攻击后果。 | [paper](./bernardeschi20-wsn-security-castalia/) |
+| 🧩 | 2020 | `jensen20` | Fluid Model-Checking in UPPAAL for Covid-19 | Covid-19, SEIHR, fluid model checking, contact tracing | 丹麦 `Covid-19` SEIHR 疫情与场景模型 | 多抽象层级、隔离阶段/家庭作息/超级传播/追踪 app | `10,000` 人基础模型；`30+9,970` fluid；哥本哈根+`5` 场所+`3` 成员；`1,000` 人 tracing | `UPPAAL SMC` | 住院容量、暴露概率、超级传播与追踪策略评估 | 统计性质、概率估计、容量界 | 🟢 | 用 `UPPAAL SMC` 在群体和个体双层场景中分析疫情传播、暴露风险与接触追踪效果。 | [paper](./jensen20-covid19-fluid-model-checking/) |
+| 🎛️ | 2021 | `gamatie21` | Modeling and Analysis for Energy-Driven Computing using Statistical Model-Checking | energy harvesting, energy-neutrality, batteries, distributed systems | 带采能与能量迁移的分布式实时计算系统 | 任务/资源/太阳能板/电池/控制器联动，支持节点间能量共享 | `11` 个任务、`5` 个基础节点，扩展到 `6/8` 节点；`2` 天 Girona 场景 | `UPPAAL SMC` | deadline/energy-neutrality 验证与电池 sizing | 统计性质、deadline 安全、资源定量 | 🟢 | 用 `UPPAAL SMC` 评估最小电池容量，并说明能量共享可显著降低总储能需求。 | [paper](./gamatie21-energy-driven-computing/) |
+| 🛰️ | 2021 | `guo21` | A Formal Method for Evaluating the Performance of TSN Traffic Shapers using UPPAAL | TSN, TAS, preemption, latency | `TSN` 交换节点中的流量整形器 | `ST/BE` 双类流量、window automata、抢占机制对比 | `100 Mbps`；`ST 128B/200μs`、`BE 256B/125μs`；`TAS` 周期 `500μs` | `UPPAAL` | shaping 规则与低时延性质验证 | 安全、活性、时延、可达性 | 🟢 | 证明不带抢占的 `TAS/PS` 难以满足低时延要求，而抢占能同时改善时延和利用率。 | [paper](./guo21-tsn-traffic-shapers/) |
+| 🧩 | 2021 | `kunnappilly21` | From UML Modeling to UPPAAL Model Checking of 5G Dynamic Service Orchestration | 5G slicing, UML, service orchestration, VNF | `5G` 动态服务编排与 network slicing 场景 | 共享 `VNF`、动态请求、`UML` 到 `UPPAAL` 的自动翻译 | `3` 个 health `UE` + `2` 个 video `UE`；`4` hosts；health `v1-v2`、video `v1-v3-v4-v5` | `UPPAAL` | SLA/时延与最终服务性验证 | 可达性、leads-to、不变式 | 🟡 | 把 `UML` 状态图翻译成 `UPPAAL` 模型，验证关键切片请求的时限与最终服务性。 | [paper](./kunnappilly21-5g-service-orchestration/) |
+| 🚦 | 2021 | `thamilselvam21` | Scalable Coordinated Intelligent Traffic Light Controller for Heterogeneous Traffic Scenarios Using UPPAAL Stratego | traffic lights, hierarchical control, Stratego, heterogeneous traffic | Ahmedabad `23` 路口交通灯协调系统 | `ILTAN + ALTAN` 双层控制、`4` 类车辆、`SUMO` 在线闭环 | `23` 个交叉口、`4` 相位、`1200s` 仿真、`4` 类车辆 | `UPPAAL Stratego` | 相位控制综合与延迟/排放评估 | 定量优化、吞吐、排放、延迟 | 🟢 | 在城市级路网中合成双层交通灯策略，显著降低等待时间与排放。 | [paper](./thamilselvam21-traffic-light-controller/) |
+| 🎛️ | 2022 | `lehmann22` | Modeling R^3 Needle Steering in Uppaal | needle steering, medical CPS, obstacle avoidance, online strategy synthesis | 软组织中的 steerable needle 在线导航系统 | `TR/CR/DR` 区域建模、在线重综合、`R^3 -> Z^3` 抽象 | `5` 类环境；虚拟针 `50` 次/设置、真实针 `5-7` 次/设置；`120s` 超时 | `UPPAAL Stratego` | 安全到靶与在线重规划验证 | 安全、可达性、性能 | 🟢 | 用 `Stratego` 进行针导航在线策略综合，在真实针实验中保持 `0%` 关键区命中。 | [paper](./lehmann22-r3-needle-steering/) |
+| 🎛️ | 2023 | `cuartas23` | Formal Verification of a Mechanical Ventilator using UPPAAL | ventilator, medical device, valve control, flow | 机械呼吸机控制架构 | `Setup/Control/Injector/ExpValve` 四自动机、简化流体模型、符号 + `SMC` 混合验证 | `4` 个 automata；流量 `10-50 L/min`；`FiO2 10-100%`；时序 `100-300 cs` | `UPPAAL` | 阀门协调、时序与流量行为验证 | 安全、可达性、统计性质、定量分析 | 🟢 | 验证呼吸机控制与阀门互锁逻辑，并用模型分析更优采样周期。 | [paper](./cuartas23-mechanical-ventilator/) |
+| 🧩 | 2024 | `zhou24` | Ensuring Reliability in Electronic Examinations Through UPPAAL-Based Trustworthy Design | electronic examination, workflow, cheating detection, trustworthy design | 电子考试流程系统 | 四角色协作、操作队列、答案相似度防作弊 | 示例为 `2` 名考生、`3` 道题、`12` 条性质；`MaxT=1000` | `UPPAAL` | 流程可靠性与规则一致性验证 | 安全、完整性、活性、防作弊 | 🟡 | 用 `UPPAAL` 模型检查电子考试中的注册、提交、阅卷、通知与作弊检测规则。 | [paper](./zhou24-electronic-examinations/) |
 
 ## 案例/模型/数据公开性清单
 
@@ -186,14 +201,24 @@
 | [gruhn13](./gruhn13-health-monitoring-driver-assistance/desc.md) | 🟡 | 健康监测驾驶辅助系统验证框架 | 医疗车载 `CPS` 案例 | 论文框架描述 | 🟠 | [DOI](https://doi.org/10.4108/icst.pervasivehealth.2013.252091) | 无公开 `UPPAAL` 模型、`π`-演算规范或案例数据 |
 | [alur19](./alur19-pacemaker-continuous-time/desc.md) | 🟢 | pacemaker `UPPAAL` 模型 | 医疗设备案例（官方模型仓库） | 论文 + 官方 `uppaal-models` 仓库 | 🟢 | [pacemaker.xml](https://github.com/DEIS-Tools/uppaal-models/blob/main/CaseStudies/Pacemaker2019/pacemaker.xml) | 当前可直接获取模型文件，适合复跑与二次分析 |
 | [martinelli19](./martinelli19-scada-attack-mitigation/desc.md) | 🟢 | SCADA 燃气管网日志数据集 + 攻击公式 | 工业安全数据案例 | UAH ICS 公开数据集 + 论文公式构造 | 🟢 | [数据集页面](https://sites.google.com/a/uah.edu/tommy-morris-uah/ics-data-sets)；[Raw Data Gas Pipeline](http://www.ece.uah.edu/~thm0009/icsdatasets/gas_final.arff)；[数据缺陷报告](http://www.ece.uah.edu/~thm0009/icsdatasets/MSU_SCADA_Final_Report.pdf) | 数据可直接获取，但源页已明确说明该批数据存在已知缺陷 |
+| [basile20](./basile20-moving-block-railway-driving/desc.md) | 🟢 | moving block 铁路 `Stratego` 模型与实验 | 铁路控制案例（作者仓库） | 论文 + 作者 `GitHub` 仓库 | 🟢 | [FORTE2020 仓库](https://github.com/davidebasile/FORTE2020) | 当前可直接获取模型与实验脚本，是较少见的公开 `Stratego` 铁路案例 |
+| [bernardeschi20](./bernardeschi20-wsn-security-castalia/desc.md) | 🟡 | WSN flooding 协议模型与 `UPPAAL->Castalia` 原型 | 协议案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.5220/0009380508150824)；[论文 PDF](https://www.scitepress.org/Papers/2020/93805/93805.pdf) | 论文公开，但无稳定模型仓库或桥接脚本下载入口 |
+| [jensen20](./jensen20-covid19-fluid-model-checking/desc.md) | 🟢 | `Covid-19` 流体/随机/追踪模型 | 公共健康场景（官方模型仓库） | 论文 + 官方 `uppaal-models` 仓库 | 🟢 | [Covid-19 模型目录](https://github.com/DEIS-Tools/uppaal-models/tree/main/CaseStudies/Covid-19) | 当前可直接获取疫情场景模型，是少数公开的 `UPPAAL SMC` 公共健康案例 |
+| [gamatie21](./gamatie21-energy-driven-computing/desc.md) | 🟢 | energy-driven computing 模型模板 | 采能计算案例（官方模型仓库） | 论文 + 官方 `uppaal-models` 仓库 | 🟢 | [EnergyNeutrality 目录](https://github.com/DEIS-Tools/uppaal-models/tree/main/CaseStudies/EnergyNeutrality) | 可直接获取能量中和案例模型，适合复跑电池 sizing 流程 |
+| [guo21](./guo21-tsn-traffic-shapers/desc.md) | 🟢 | `TSN` shaper 形式模型 | 协议/网络案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.1109/LCN52139.2021.9524955)；[论文 PDF](https://zhehou.github.io/papers/A-Formal-Method-for-Evaluating-the-Performance-of-TSN-Traffic-Shapers-using-UPPAAL.pdf) | 论文与参数公开，但未提供独立模型工件 |
+| [kunnappilly21](./kunnappilly21-5g-service-orchestration/desc.md) | 🟡 | `5G-SO` `UML`/`UPPAAL` 模式与 `G5` 工作流 | 架构建模案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.1145/3459960.3459965)；[论文 PDF](https://www.es.mdu.se/pdf_publications/6189.pdf) | 自动验证思路公开，但未确认稳定仓库或工具下载入口 |
+| [thamilselvam21](./thamilselvam21-traffic-light-controller/desc.md) | 🟢 | `SUMO + Stratego` 交通灯协同控制源码 | 城市交通案例（作者仓库） | 论文 + 作者 `GitHub` 仓库 | 🟢 | [GitHub 仓库](https://github.com/ThamilselvamB/Intelligent-Traffic-Light-Controller-using-Uppaal-Stratego) | 可直接获取城市交通灯控制代码与仿真脚本 |
+| [lehmann22](./lehmann22-r3-needle-steering/desc.md) | 🟢 | 三维针导航 `Uppaal` 模型细节 | 医疗导航案例 | 论文附录与正文重建 | 🟠 | [DOI](https://doi.org/10.4204/EPTCS.355.4)；[arXiv PDF](https://arxiv.org/pdf/2203.09884) | 正文和附录给出大量模型细节，但未提供独立仓库 |
+| [cuartas23](./cuartas23-mechanical-ventilator/desc.md) | 🟢 | 呼吸机 `ventilator.xml` 与 `SCADE` 模型 | 医疗设备案例（作者仓库） | 论文 + `ventynet` 仓库 | 🟢 | [ventilator.xml](https://github.com/ventynet/ventynet/blob/master/ventilator.xml)；[ventynet-SCADE](https://github.com/ventynet/ventynet-SCADE) | 当前可直接获取 `UPPAAL` 模型文件与相关原型材料 |
+| [zhou24](./zhou24-electronic-examinations/desc.md) | 🟡 | 电子考试 `UPPAAL` 模型 | 业务流程案例（GitHub + Zenodo） | 论文 + 作者仓库 + 归档 | 🟢 | [GitHub 仓库](https://github.com/TURTING-BO/An-Electronic-Examination-Model-Based-on-UPPAAL)；[Zenodo](https://doi.org/10.5281/zenodo.12787513) | 模型可直接获取，是当前文库里公开度最高的业务流程类案例之一 |
 
 ## 初步归类与当前观察
 
-1. 文库扩展到 `2019` 后，`UPPAAL` 应用主线已不再局限于早期协议和控制器，而是明显延伸到航天调度、医疗设备、工业安全和日志驱动检测。
-2. `2010` 年后的高质量条目更强调“被验证系统是哪一层边界”，不少论文只验证子机制、抽象环境或日志模型，不能含糊写成“验证了整个系统”。
-3. 当前真正可直接复用的公开材料仍然不多，主要集中在官方 `uppaal-models` 仓库和公开数据集页，而不是论文附录本身。
-4. 控制器与嵌入式系统类条目已成为当前最大簇，说明后续继续向调度、医疗控制和工业嵌入式扩库会更贴近博士研究主线。
-5. SCADA、driver assistance 这类案例提醒后续整理时要明确区分“验证控制逻辑”“验证网络结构”“验证日志模式”三种不同对象。
+1. 文库扩展到 `2024` 后，`UPPAAL` 应用主线已从早期协议/控制器进一步延伸到疫情策略评估、`5G` 服务编排、`TSN`、城市交通灯、针导航、呼吸机和电子考试流程。
+2. `2020` 年后的代表性案例里，`UPPAAL Stratego` 与 `UPPAAL SMC` 的占比明显提高，说明“策略综合/统计分析 + 具体应用对象”的组合已成为新主线。
+3. 新批次里真正可直接获取的工件明显增多，主要来自作者 `GitHub/Zenodo` 与官方 `uppaal-models` 仓库，而非历史 benchmark 页面。
+4. 新条目再次证明必须明确写清“验证的是哪一层”：例如有的论文验证控制策略，有的只验证协议层，有的只验证日志模式或业务流程规则。
+5. 医疗设备/交通控制/资源系统仍然最贴近博士研究主线，但业务流程与公共健康案例也提供了“多角色规则如何转成状态机性质”的额外启发。
 
 ## 更新日志
 
@@ -205,6 +230,7 @@
 | 2026-03-31 | 首批纳入 `10` 篇 `2010` 年及以前的 `UPPAAL` 应用论文，补齐每篇的 `paper.pdf + paper_content.txt + bibtex.bib` | 基于官网 `Case Studies` 与 `Documentation` 反向筛查 `20+` 个候选，优先选择 PDF 可稳定获取且验证主线清晰的协议、控制器、工业和软件案例 | 建立 `1996-2010` 的早期应用主线骨架 |
 | 2026-03-31 | 为首批 `10` 篇论文全部补齐 `desc.md`，并把总账字段改为“被验证系统 / 系统特点 / 系统规模 + 公开性清单” | 取消 `详度/实现` 两列，改为维护单篇 `desc.md`、统一论文表和“案例/模型/数据公开性清单”；同时把“默认必须写 `desc.md`”落进 [README.md](./README.md) 与 [GUIDE.md](./GUIDE.md) | 让 `uppaal_apps/` 的维护方式对齐 `baselines` 的公开性思路，并固定今后入账口径 |
 | 2026-03-31 | 新增 `10` 篇 `2010-2019` 应用论文，覆盖 RapidIO、卫星调度、工业 PLC、`WS-BA`、医疗设备、AODV、SCADA 安全等方向，并全部补齐 `desc.md` | 继续按“系统边界明确 + 性质清晰 + 规模可描述 + 公开性可追溯”的口径扩库，同时核验可公开模型/数据链接是否当前可访问 | 把文库上界从 `2010` 推进到 `2019`，并补上少量当前可直接获取的模型/数据案例 |
+| 2026-03-31 | 新增 `10` 篇 `2020-2024` 应用论文，覆盖疫情流体模型、moving block 铁路、WSN 安全、能量驱动计算、`5G` 切片、`TSN`、城市交通灯、针导航、机械呼吸机与电子考试，并全部补齐 `desc.md` | 优先选择系统边界、性质簇、规模与公开性都能写清的后 `2020` 案例，同时补核 `GitHub/Zenodo` 或官方模型仓库链接 | 把文库时间上界推进到 `2024`，并建立 `Stratego/SMC` 后期应用主线 |
 
 ## 失败与阻塞记录
 

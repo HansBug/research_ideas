@@ -1,0 +1,1310 @@
+--- Page 1 ---
+From UML Modeling to UPPAAL Model checking of 5G Dynamic
+Service Orchestration
+Ashalatha Kunnappilly
+Mälardalen University
+Västerås, Sweden
+ashalatha.kunnappilly@mdh.sePeter Backeman
+Mälardalen University
+Västerås, Sweden
+peter.backeman@mdh.seCristina Seceleanu
+Mälardalen University
+Västerås, Sweden
+cristina.seceleanu@mdh.se
+ABSTRACT
+The new 5G technology has the ability to create logical communica-
+tion networks, called network slices, which are specifically carved
+to serve particular application domains. Due to the mix of appli-
+cations criticality, it becomes crucial to verify if the applications’
+service level agreements are met, especially for the mission-critical
+scenarios, before the system is up and running. In this paper, we
+propose a novel framework for modeling and verifying 5G orches-
+tration of dynamic services, which considers simultaneous access of
+network slices, admission of new requests to slices, virtual network
+function scheduling, and routing. Due to the dynamic nature of
+the problem such verification becomes a challenging issue. By com-
+bining the benefits of modeling in user-friendly UML, with model
+checking using UPPAAL, our framework helps to address the issue
+by enabling both modeling and formal verification at design stage.
+We demonstrate our approach on a case study that involves: (i) a
+mission-critical 5G-assisted robot surgery e-health application, ac-
+complished by using a health slice that is simultaneously accessed
+by various health professionals using a 5G-enabled camera, and
+(ii) a less critical video streaming application using a video slice,
+accessed via various 5G-enabled mobile phones, within the same
+area as the robotic application. By employing our approach, one
+can verify that the critical health application meets its timeliness
+requirements, but also that all slices are eventually served in the
+system.
+KEYWORDS
+5G, Service Orchestration, Network Slicing, UML, Model Checking
+ACM Reference Format:
+Ashalatha Kunnappilly, Peter Backeman, and Cristina Seceleanu. 2021. From
+UML Modeling to UPPAAL Model checking of 5G Dynamic Service Orches-
+tration. In 7th Conference on the Engineering of Computer Based Systems
+(ECBS 2021), May 26–27, 2021, Novi Sad, Serbia. ACM, New York, NY, USA,
+10 pages. https://doi.org/10.1145/3459960.3459965
+1 INTRODUCTION
+The fifth generation of wireless technology, 5G, has the potential
+to support a variety of applications with different requirements, be
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than ACM
+must be honored. Abstracting with credit is permitted. To copy otherwise, or republish,
+to post on servers or to redistribute to lists, requires prior specific permission and/or a
+fee. Request permissions from permissions@acm.org.
+ECBS 2021, May 26–27, 2021, Novi Sad, Serbia
+©2021 Association for Computing Machinery.
+ACM ISBN 978-1-4503-9057-6/21/05. . . $15.00
+https://doi.org/10.1145/3459960.3459965they low latency, high bandwidth or increased number of connec-
+tions. This is ensured via its ability to create end-to-end network
+slices , tailored to support respective application requirements [ 13].
+A 5G network slice is composed of several virtual network functions
+(VNFs) that are chained in order to meet the application’s function-
+ality. Most often, VNFs have constraints on CPU, RAM, storage,
+which need to be met by the servers that host them. In addition,
+servers are connected via links, hence chaining VNFs incurs ad-
+ditional resource overhead in terms of link bandwidth and delay.
+Adding to the complexity, VNFs can be shared between slices that
+are requested simultaneously by various 5G user equipment. To
+analyze if a 5G network slice instance can effectively serve its appli-
+cations, one needs to ensure that the respective VNFs are allocated,
+scheduled, and routed according to the current network scenario.
+This is referred to as dynamic 5G service orchestration . For in-
+stance, when applications of different criticality share the same
+network resources one needs to ensure that all slices, especially the
+mission-critical ones, facilitate meeting application requirements.
+Although much research has been devoted to solving the 5G ser-
+vice orchestration problem by providing optimal VNF allocation and
+routing schemes [ 12,17], there is a lack of endeavors that provide
+modeling and formal verification frameworks that can analyze such
+schemes early in the design stage, to provide guarantees of the in-
+tended system behavior. In this paper, we propose such a modeling
+and formal analysis frameworkwhich combines user-friendly UML-
+based modeling [ 8] with mathematical assurance via exhaustive
+model checking in UPPAAL [ 11]. This work builds on our previous
+results [ 10], the so-called UML5G-SO framework, that allows one
+to model and analyze VNF allocation and routing, assuming static
+worst-case scenarios. In this paper, we augment the UML5G-SO
+framework to support dynamic system behavior stemming from
+dynamic slice requests from different user equipment (UE), as well
+as scheduling, link utilization, etc.Our contribution includes the
+following: (i) extending the UML5G-SO profile with stereotypes
+to model UE and the controllers for handling and monitoring the
+dynamic requests, (ii) defining the behavioral view of a system built
+based on our profile in terms of restricted UML statechart patterns
+(see 5.3), (iii) defining pattern-based timed automata semantics
+for the restricted statechart patterns, to be able to model-check
+UML5G-SO behaviors with UPPAAL [ 11], and (iv) implementing
+tool support for the automatic generation of UPPAAL models from
+restricted state charts. To demonstrate our approach, we consider a
+case study of simultaneous access of shared network resources by
+two applications of different criticality.
+The rest of the paper is organized as follows. Sec. 2 details the
+problem statement and our case study. In Sec. 3, we overview the
+preliminaries of UML 2.0 modeling, timed automata and UPPAAL
+
+--- Page 2 ---
+ECBS 2021, May 26–27, 2021, Novi Sad, Serbia Kunnappilly et al.
+model checker. Our methodology is explained in Sec. 4. In Sec. 5,
+we present our extended UML5G-SO profile in UML 2.0 allowing
+UML modeling of dynamic service orchestration in 5G systems.
+Sec. 6 presents the formal semantics of the UML model in terms
+of UPPAAL timed automata. Thereafter, in Sec. 7, we present our
+G5tool that allows the automated verification of system require-
+ments, as well as the verification results using the UPPAAL model
+checker applied on the case study, followed by a brief discussion of
+the gained insights. We compare our contribution to related work
+in Sec. 8, before providing the concluding remarks and directions
+of future work, in Sec. 9.
+2 PROBLEM DESCRIPTION
+This paper aims at providing a modeling and formal analysis frame-
+work for the dynamic 5G service orchestration problem. Concretely,
+the framework allows a 5G engineer to model an existing service
+orchestration solution (that is, VNF allocation and routing) of a
+network slice, and formally verify if the solution meets its applica-
+tion requirements, under various dynamic behaviors assumed as
+follows:
+•Dynamic network load: We produce a dynamic network load
+by using a set of 5G user equipment (UE) that can request a
+network slice at any point of time.
+•Dynamic VNF scheduling: We assume that every host exe-
+cutes VNFs (when required) according to a given scheduling
+policy. The execution time of a VNF is within its best-case
+and worst-case execution time bounds.
+•Dynamic link utilization: Instead of assuming that link band-
+width is always reserved for a particular slice, we cater for
+its dynamic usage, that is, consumption of the respective
+link bandwidth when used, followed by a subsequent release
+after its use.
+Consider an example of an overlay network consisting of virtual
+machines (hosts) deployed on edge/cloud servers. We assume that
+this overlay network is powered by 5G, which supports a variety
+of applications via end-to-end network slices. A slice consists of
+a number of virtual network functions (VNFs) interconnected via
+a VNF Forwarding Graph (VNFFG), assumed a sequence – VNF
+Forwarding Sequence – in this paper. A virtual network function
+(VNF) is defined as a software implementation of a network func-
+tion, which can be easily deployed on virtual resources such as
+virtual machines [ 12]. We also assume that the hosts communicate
+via virtual links, which incurs overheads in terms of bandwidth
+capacity and latency. In order for the overlay network to serve vari-
+ous applications of different requirements, the network slices’ VNFs
+need to: (i) be allocated on hosts, respecting the latter’s processing,
+memory, and storage capabilities, and (ii) be routed such that the
+respective VNF chaining is achieved. In our previous work [ 10],
+we have already proposed a UML profile called UML5G-SO, and
+associated static OCL-based analysis of 5G service orchestration
+solutions, that is, checking whether a given VNF allocation and
+routing of a slice at a particular point of time meets the application’s
+Quality of Service (QoS) requirements. However, our analysis has
+considered only static worst-case scenarios, that is, we assume that
+the system is serving the maximum number of user requests under
+a maximum load. This is not realistic if one considers the actualvarying network load that requires utilizing hosts and links in a
+dynamic manner.
+We assume that each slice has a certain allocation and routing
+defined (or generated) when the system starts its operation. Our
+aim is to analyze if the given allocation and routing can meet the
+application’s QoS, considering dynamic behaviors as described
+above.
+To address this, we provide a modeling and formal verification
+framework that combines UML-based modeling and UPPAAL model
+checking to analyze 5G-SO systems. To begin with, we present a
+case study that we model and verify within our framework.
+2.1 Case study
+As a running example, we consider two applications, namely a robot-
+assisted surgery application, and a video-streaming application,
+accessing a health slice and a video slice, respectively, within the
+same small cell (i.e., bandwidth resources are consumed from the
+same cell tower). The applications access their respective slices
+via their 5G user equipment (UE). In our case study, a 5G camera
+accesses an instance of the health slice , and a mobile phone accesses
+an instance of the video slice . We consider that health slices have a
+higher priority over video slices.
+We assume that we have three UE accessing the health slice
+and two UE accessing the video slice simultaneously, via their slice
+instances. The case study is depicted in Fig. 1. The slice instances are
+made of their respective VNF instances. For example, health-slice
+instances consist of VNF sequence v1-v2, where v1 is an instance
+of VNF A and v2 is an instance of VNF B. Similarly, a video-slice
+instance is a VNF sequence v1-v3-v4-v5, where v1, v3, v4, v5 are of
+category VNF A, VNF B, VNF C, and VNF B, respectively (the slices
+share some VNFs). The overlay network comprises four virtual
+hosts onto which the VNFs are allocated. For instance, as shown in
+Fig. 1, we consider that v1 and v3 are allocated to Host 1. The hosts
+are connected via virtual links as shown in Fig. 1 (e.g., Host 1 and
+Host 2 are connected via L1). However, not all hosts have a one-to-
+one link connectivity established, for instance, there is no direct
+link between Host 1 and Host 3. Hence, any routing scheme that
+needs to travel from Host1 to Host3 must use the path consisting
+of links <L1, L2>, or the alternative path <L4, L3>.
+For the robotic surgery application established via the health
+slice, low latency and high bandwidth requirements are of great
+concern. In comparison, the video streaming application using the
+video slice has high bandwidth requirements, but not so critical la-
+tency constraints. Some of the application requirements that would
+be interesting to verify are listed below:
+Req1 : For all possible scenarios, the end-to-end latency require-
+ments of the health/video slices are met, respectively.
+Req2 : For all possible scenarios, the end-to-end bandwidth require-
+ments of the health/video slices are met, respectively.
+Req3 : All the instantiated slices in the system are eventually served.
+3 PRELIMINARIES
+In this section, we introduce the types of UML diagrams that we
+use in this paper, as well as briefly overview timed automata and
+the UPPAAL model checker.
+
+--- Page 3 ---
+From UML Modeling to UPPAAL Model checking of 5G Dynamic Service Orchestration ECBS 2021, May 26–27, 2021, Novi Sad, Serbia
+Figure 1: Case study
+3.1 UML
+The Unified Modeling Language (UML) [ 8] is a modeling language
+that helps a designer to express structural and behavioral artifacts
+of complex systems. In order to capture the essentials of a 5G-
+SO system, we have to specify its structure and behavior, which
+we accomplish using our UML5G-SO profile. A profile diagram is
+one of the simplest ways by which one can extend existing UML
+models, by defining stereotypes, tagged values andconstraints for
+capturing domain-specific concepts. For a deeper understanding of
+UML profiles, we refer the reader to relevant literature [8, 9].
+In order to model 5G case studies using a UML profile, one should
+be able to represent both structural and behavioral views of the
+specific scenarios of the case study, using the profile. In this work,
+we use UML class diagrams andobject diagrams to represent the
+system’s structure, and UML statecharts to represents the system’s
+behavior. While the former are quite straightforward, we will pro-
+vide a brief explanation of statecharts as they are central to this
+work.
+UML Statecharts .UML statecharts (or UML state-machine dia-
+grams) depict behavior via states andtransitions between states..
+While each state simply has a name, a transition includes a trigger ,
+aguard , and an action . The triggers are usually events , and the
+response actions become the effects on the transitions. The guard
+is a Boolean expression that has to evaluate to true in order for
+the transition to be fired. The UML syntax for a state transition is
+Ev(parameters)[G]/A. In this paper, we chose UML statecharts for
+their effectiveness of capturing the behavior of individual classes
+(identified as our system’s components) by states, transitions, and
+transition triggers.
+In our work, we consider only two kinds of UML events, time events
+andcall events [8]. We define a time event ( Tm) via the keyword
+“after”, followed by an expression that encodes the time value. We
+model call events ( Cl) as synchronization events that are unicast
+Sa
+Sb
+rcvTrigger(vnfId)
+after(execTime)
+S1
+rcvUEreq(Slice)/QueueVNF(), 
+sendTrigger(vnfId)
+||Figure 2: Parallel Composition of UML Statecharts
+to other statecharts. The unicast communication offers handshake
+synchronization between two statecharts, and is blocking, that is,
+the synchronization takes place only if both sender and receiver are
+ready to traverse their edges [ 20]. In addition, we consider that stat-
+echarts can be composed in parallel, by defining their interactions
+viaClevents [20].
+Example 3.1. In Figure 2, we show an example of two statecharts
+that synchronize when executing in parallel. The initial one is the
+controller statechart that has a state S1 waiting for a user equip-
+ment (UE) request. On receiving the call event, rcvU EReq(Slice), it
+queues the respective VNFs to be executed in the host, and generates
+another call event (action), sendTriддer(vnf Id), which is unicast
+to the host statechart. In state Sa, the host statechart is ready to syn-
+chronize and receives the event rcvTriддer(vnf Id), moving to state
+Sb, where it executes the respective VNF and moves back to state
+Sa, when triggered via a time event, modeled by af ter(execTime).
+3.2 Timed Automata and UPPAAL
+A Timed Automaton (TA), as used in the model-checker UPPAAL
+[11], is defined as a tuple, ⟨L,l0,V,C,A,E,I⟩, where: Lis the set
+of finite locations, l0is the initial location, Vis the set of data
+variables, Cis the set of clocks ,A=Σ∪τis the set of actions ,
+where Σis the finite set of synchronizing actions (c!denotes the
+send action, and c?the receiving action) partitioned into inputs
+and outputs, Σ=Σi∪Σo, andτ<Σdenotes internal or empty
+
+--- Page 4 ---
+ECBS 2021, May 26–27, 2021, Novi Sad, Serbia Kunnappilly et al.
+actions without synchronization, E⊆L×B(C,V)×A×2C×Lis
+the set of edges , where B(C,V)is the set of guards over CandV,
+that is, conjunctive formulas of clock constraints ( B(C)), of the form
+x▷ ◁norx−y▷ ◁n, where x,y∈C,n∈N,▷ ◁∈{<,≤,=,≥, >},
+and non-clock constraints over V(B(V)), and I:L−→Bdc(C)is a
+function that assigns invariants to locations, where Bdc(C)⊆B(C)
+is the set of downward-closed clock constraints with ▷ ◁∈{<,≤,=}.
+Invariants bound the time that can be spent in locations, hence
+ensuring progress of TA’s execution. An edge from location lto
+location l′is denoted by lд,a,r−−−−→ l, whereдis the guard of the edge,
+ais an update action, and ris the clock reset set, that is, the clocks
+that are set to 0 over the edge. A location can be marked as urgent
+(marked with an U) orcommitted (marked with a C) indicating that
+the time cannot progress in such locations. The latter is a more
+restrictive, indicating that the next edge to be traversed needs to
+start from a committed location.
+The semantics of TA is a labeled transition system . The states
+of the labeled transition system are pairs (l,u), where l∈Lis the
+current location, and u∈RC
+≥0is the clock valuation in location l.
+The initial state is denoted by (l0,u0), where ∀x∈C,u0(x)=0. Let
+u⊨дdenote the clock value uthat satisfies guard д. We use u+d
+to denote the time elapse where all the clock values have increased
+byd, ford∈R≥0. There are two kinds of transitions:
+(i)Delay transitions :<l,u>d− →<l,u+d>ifu⊨I(l)and
+(u+d′)⊨I(l), for 0≤d′≤d, and
+(ii)Action transitions: <l,u>a− →<l′,u′>iflд,a,r−−−−→ l′,a∈
+Σ,u⊨д, clock valuation u′in the target state(l′,u′)is derived from
+uby resetting all clocks in the reset set rof the edge, such that
+u′⊨I(l′).
+UPPAAL .The UPPAAL model checker provides exhaustive model-
+checking of TA models like the ones overviewed before. A real-time
+system can be modeled as a network of TA (NTA) composed via
+the parallel composition operator (“ ||”), which allows an individual
+automaton to carry out internal actions, while pairs of automata can
+perform handshake synchronization. The locations of all automata,
+together with the clock valuations, define the state of an NTA. The
+properties to be verified by model checking on the resulting NTA
+are specified in a decidable subset of (Timed) Computation Tree
+Logic ((T)CTL) [ 5], and checked by the UPPAAL model checker.
+UPPAAL supports verification of liveness and safety properties [ 11].
+The queries that we verify in this paper are of the form: i) Reacha-
+bility :E^pmeans that there exists a path where pis satisfied by at
+least one state of the path, and (ii) Leads to :p⇝q, which means
+that whenever pholds, qmust hold thereafter, (iii) Invariance ,
+A□p, stating that p should be true in all reachable states for all
+paths.
+4 MODELING AND VERIFICATION
+FRAMEWORK
+In this section, we introduce our proposed framework for modeling
+and formal analysis of dynamic 5G SO systems. First, we employ our
+UML5G-SO profile to model the structure and behavior of various
+5G-specific case-study scenarios, using UML diagrams, after which
+we formally verify the latter using the UPPAAL model checker.
+Our framework has two benefits: (1) a practitioner can use the
+UML5G-SO 
+Profile
+(1) 
+Create 
+structural 
+system 
+represenation 
+(Class 
+Diagram)
+(3) 
+Create 
+behavioural 
+representation 
+(Statecharts)  
+ 
+(4) 
+Create 
+UPPAAL 
+TA 
+templates 
+(2) 
+Instantiate 
+class 
+diagram 
+using 
+USE 
+tool 
+(Object 
+Diagram)
+Verify 
+a 
+particular 
+SO 
+solution
+(5) 
+Create 
+TA 
+network 
+by 
+instantiating 
+the 
+UPPAAL 
+TA 
+templates
+(G^5 
+tool)
+(7)Model 
+checking
+Requirements 
+in 
+Natural 
+Language
+5G 
+case 
+study
+(6) 
+Translate 
+to 
+TCTL 
+formulas
+(8) 
+Verification 
+Results
+not 
+satisfactory
+satisafctory
+All 
+configurations 
+verified?
+Yes
+No
+EndFigure 3: Proposed Methodology
+industrially-accepted UML tool to model the system without any
+underlying knowledge of the formal TA modeling in UPPAAL, and
+(2) the verification results obtained by employing UPPAAL provide
+guarantees to the 5G SO model behavior.
+The methodology is illustrated in Fig. 3. Given a case study and its
+requirements in natural language, we first employ our UML5G-SO
+profile and create a class-diagram-based structural representation
+of the case study scenarios. Some of the classes in the class diagram,
+referred to as active classes, have behavior modeled by UML state-
+charts. Next, to facilitate modeling, we define statechart patterns
+and assign semantics to them in terms of UPPAAL TA, hence creat-
+ing the corresponding UPPAAL TA templates that support creating
+the formal model counterpart. Last, we formalize the requirements
+of the case study as TCTL queries (see Sec. ??, Sec. 6). To verify
+a particular 5G SO system, we first instantiate the class diagram,
+yielding an object diagram, to create a run-time representation of
+the system, for example by using a UML tool such as USE (UML
+Specification Environment) [ 2]. Second, we instantiate the TA tem-
+plates for each active object in the object diagram. Third, we employ
+model checking, using UPPAAL, against the corresponding TCTL
+queries. We also provide a tool, G5, which can execute the second
+and third step automatically (see Sec. 7.1).
+If the requirements are met, we can verify another 5G SO solution,
+until all the different configurations (VNF allocations and routing)
+are verified. If some requirement is not met, we need to alter our
+model and repeat the steps until the former behaves in the intended
+manner.
+5 UML MODELING OF DYNAMIC 5G SERVICE
+ORCHESTRATION
+In order to exemplify how the UML5G-SO profile can be used for
+modeling 5G-specific scenarios, we detail the modeling of our case
+study.
+5.1 The Enhanced UML5G-SO Profile
+The enhanced version of the UML5G-SO profile is shown in Fig. 4
+(changes highlighted with colors and in bold). We define three
+
+--- Page 5 ---
+From UML Modeling to UPPAAL Model checking of 5G Dynamic Service Orchestration ECBS 2021, May 26–27, 2021, Novi Sad, Serbia
+1
+1..*
+1
+0..*
+vnfAllocation
+0..*
+0..*
+linkEnd
+0..*
+1
+pathEnd
+0..*
+1
+pathStart
+0..*
+1
+linkStart
+0..*
+1
+<<stereotype>>
+Host
++ 
+cpuRes 
+: 
+Int
++ 
+storageRes 
+: 
+Int
++ 
+capabilities 
+: 
+Set(VNF) 
++ 
+mectHost 
+: 
+Bool
+<<stereotype>>
+VNFForwardingGraph
++edge: 
+Set(Edges)
+<<datatype>>
+QoS
++ 
+latency 
+: 
+Int
++ 
+bandwidth 
+: 
+Int
+Path
++ 
+links 
+: 
+Seq(Link)
+<<stereotype>>
+Link
++ 
+latency 
+: 
+Int
++ 
+banwidth: 
+Int
+<<stereotype>>
+VNF
+ 
++cpuReq 
+: 
+Int
++ 
+storageReq 
+: 
+Int
++ 
+bcet 
+: 
+Int
++ 
+wcet: 
+int
++ 
+mecVNF 
+: 
+Bool
++ 
+prio: 
+Int
+RoutingScheme
+<<stereotype>>
+5GNetworkSlice
++priority: 
+Int
++req: 
+QoS
+1
+0..*
+Nodes
+<<stereotype>>
+VNFForwardingSequence
++ 
+vnfs 
+: 
+Seq(VNF)
++ 
+bandwidthReq 
+: 
+Seq(Int)
+<<Metaclass>> 
+Component
+<<Metaclass>> 
+Class
+<<Metaclass>> 
+Class
+1
+1
+<<datatype>>
+Edge
++ 
+start: 
+VNF
++ 
+end: 
+VNF
+Nodes 
+and 
+Edges 
+form 
+the 
+sequence 
+contained 
+in 
+'vnfs'
+<<Metaclass>> 
+Component
+subscribed
+0..*
+0..*
+<<stereotype>>
+UserEquipment
++actTime: 
+Int
+<<stereotype>>
+Host
++ 
+cpuRes 
+: 
+Int
++ 
+storageRes 
+: 
+Int
++ 
+capabilities 
+: 
+Set(VNF) 
++ 
+mectHost 
+: 
+Bool
+<<stereotype>>
+RequestHandler
+maxReqHandlers:
+int
+ 
+controls
+0..*
+0..*
+managesReq
+0..*
+0..*
+triggers
+0..*
+0..*
+<<stereotype>>
+Monitor
+maxMonitors: 
+int 
+0..*
+0..*
+monitors
+Figure 4: The UML5G-SO Profile (Extended Version)
+stereotypes as follows: (i) UserEquipment , extending UML Meta-
+class::Component , models 5G user equipment (UE). The stereotype
+has an attribute to specify its activation time (assumed periodic);
+(ii)Request Handler , extending UML Metaclass::Component , takes
+care of parallel UE requests and allows VNFs to be routed according
+to their graph V N FForwardin дSequence ; (iii) Monitor , extending
+UML Metaclass::Class , monitors various served requests, and is used
+to establish if the latter meet their requirements or not. We also
+replace the execution time attribute of the previous VNF stereotype
+with two attributes specifying best-case (BCET) and worst-case
+execution time (WCET), respectively.
+5.2 Case-study Modeling with Class Diagrams
+The class diagram description of our case study is shown in Fig
+5. We apply the stereotypes and add attributes and functions (as
+highlighted in Fig. 5), accordingly. We do not add these at the profile
+level as we acknowledge that our view of defining the system
+behavior is not the sole way of describing it.
+We model two categories of 5G UE, namely, a 5GCamera , and
+aMobilePhone , which access the HospitalSlice andVideoSlice ,
+respectively. The user equipment classes contain the attributes
+ueId ,sIdandmaxReq , which are integer values that allow to specify
+the UE’s id, the id of the slice it accesses, and the maximum number
+of requests that limits the usage of the slice by the equipment. The
+user equipment is also associated with an action of generating the
+slice request event, evSliceReq , each time the UE gets activated peri-
+odically, with a period specified by its activation time actTime . Sim-
+ilarly, the VideoSlice andHospitalSlice classes are defined by ap-
+plying the 5GNetworkSlice stereotype and adding an attribute forthe id. We also apply stereotypes on ReqControl ,MonitorReq and
+V M. The ReqControl class is supplemented with an attribute for its
+id, and a set of functions: initialise(),queueV N F(),consumeBW(),
+releaseBW(), and calcLDelay(). When a UE requests a slice, the
+initialise()function initializes its V N FFSEq and its routing scheme
+(Note: we assume that all VNFs are allocated). The ReqControl
+also takes care of queuing the respective VNFs to their hosts via
+thequeueV N F()function. In order to consider the VNF dependen-
+cies arising from the respective V N FFSeq of a slice, we model the
+queue function such that only the VNFs that are ready to be ex-
+ecuted at a point in time get queued at the corresponding host.
+The functions consumeBW(),releaseBW(),calcLDelay()consume
+the link bandwidth while routing through it, release it after its us-
+age, and calculate the respective delays in routing across the links,
+respectively. The V M class has one attribute (id) and two functions,
+scheduleV N F()anddequeueV N F(). The former function encodes
+the scheduling algorithm, and dequeueV N F()is responsible for de-
+queuing the VNF that is next to be executed. Once the class diagram
+description of our system is formulated, we encode the behavior
+of each active class by using a restricted form of UML statecharts.
+The classes that possess behavior are marked with a circle in Fig. 5.
+5.3 Restricted Statechart-based Behavioral
+Description of our 5G-SO System
+In this section, we discuss the behavioral description of our system
+using UML statecharts restricted to fit our needs. We define the
+restricted form of statecharts, as follows:
+Definition 5.1. Arestricted statechart (RSC) is a UML statechart
+obeying the following restrictions:
+
+--- Page 6 ---
+ECBS 2021, May 26–27, 2021, Novi Sad, Serbia Kunnappilly et al.
+<<Host>>
+VM
++hostId: 
+Int
+scheduleVNF()
+dequeueVNF()
+<<RequestHandler>>
+ReqControl
++rcId: 
+Int
+initialise()
+queueVNF()
+consumeBW()
+releaseBW()
+calcLDelay()
+<<Link>>
+VirtualLink
++ 
+latency 
+: 
+Int
++ 
+banwidth: 
+Int
+Path
++ 
+links 
+: 
+Seq(Link)
+RoutingScheme
+<<
+VNF
+>>
+VNFA
++ 
+vnfId: 
+Int
++
+ 
+bcet 
+: 
+Int
++ 
+wcet: 
+int
++prio: 
+Int
+<<VNFForwardingSequence>>
+VNFFSeq
+<<5GNetworkSlice>>
+VideoSlice
++ 
+sId:Int
++priority: 
+Int
++req: 
+QoS
+<<5GNetworkSlice>>
+HospitalSlice
++ 
+sId: 
+Int
++priority: 
+Int
++req:QoS
+<<
+VNF
+>>
+VNFB
++ 
+vnfId: 
+Int
++
+ 
+bcet 
+: 
+Int
++ 
+wcet: 
+Int
++prio: 
+Int
+has
+has
+VnfAllocation
+triggers
+pathEnd
+pathStart
+controls
+managesReq
+linkStart
+linkEnd
+managesReq
+<<Monitor>>
+MonitorReq
++mId: 
+Int
+monitors
+<<UserEquipment>>
+MobilePhone
++ueId: 
+Int
++sliceId:Int
++actTime: 
+Int
++maxReq: 
+Int
+<<UserEquipment>>
+5GCamera
++ueId: 
+Int
++sliceId:Int
++actTime: 
+Int
++maxReq: 
+Int
+<<
+VNF
+>>
+VNFC
++ 
+vnfId: 
+Int
++
+ 
+bcet 
+: 
+Int
++ 
+wcet: 
+Int
++prio: 
+Int
+Figure 5: Class diagram representation of our case study (It inherits all relations and multiplicities in the profile)
+•All states are simple (without any hierarchies), and without
+any associated execution history.
+•The states can either be the usual simple states of UML
+statecharts, hereby called “active” states, or pseudostates
+that represent the initial and final states, only.
+•The transitions follow the usual UML syntax,
+Ev(parameters)[G]/A, where Ev(parameters)are either UML
+call events or time events, (Section 3), Gare Boolean condi-
+tions evaluated over system variables, and Ainclude variable
+assignments and other user-defined functions.
+The transitions are triggered via call or time events, or as soon as
+the guards evaluate to true. Moreover, the transitions from psue-
+dostates to active states or vice-versa are considered instantaneous
+if there are no specific events or guards triggering them. Different
+statecharts synchronize via unicast or broadcast synchronizations.
+The synchronization is defined via a parallel composition of the in-
+dependent restricted statecharts. In addition, the statecharts follow
+the run-to-completion execution semantics [ 6], that is, a statechart
+completes processing each event before it can start processing the
+next one. The statecharts in Fig. 6 are examples of restricted state-
+charts, as they obey all restrictions in Def. 5.11
+5.3.1 Parallel Composition of RSC(para). A 5G system comprises
+a number of interacting components, each behaviorally defined by
+an RSCpattern. Hence, to evaluate how a system is executed, we
+must compose in parallel the involved RSCpatterns. Given a system
+consisting of nRSC(para), we denote their parallel composition by:
+RSC 1(para 1)||RSC 2(para 2)||. . .||RSCn(paran)
+1The restricted statecharts in Fig. 6, namely UE, RC, VM, MO, correspond to the active
+classes UserEquipment, ReqControl, VM, MonitorReq, respectively.The synchronization between the various statecharts is modeled via
+the call events of the form EvName(parameter)between a generat-
+ing and a triggered component. A component can take a transition
+generating an event if and only if there is another component that
+can trigger a transition by the same event.
+Example 5.2. The UML statechart-based behavioral model of our
+5G-SOS is defined as the parallel composition of the component
+RSC(para)of our system, and is represented as follows:
+5GSOS U ML =RSC U E 1||. . .||RSC U En||RSC M01||. . .||RSC M0n||RSC RC 1||
+. . .||RSC RCn||RSC V M 1||. . .||RSC V Mn
+(1)
+where RSCU E1...RSCU En are the respective instantiations of
+RSCU E(para)forU E1...U En in the system. Similarly, we define
+instantiations of RSC MO(para),RSC RC(para)andRSCV M(para),
+representing the UML statechart patterns defined for the active
+classes corresponding to UserEquipment, MonitorReq, ReqControl,
+and VirtualMachine, respectively.
+An example of synchronization is shown in Fig. 6, where the
+RSCU Egenerates the call event evSliceReq(sliceId)that is unicast
+toRSC MOthat synchronizes with RSCU Evia parameter sliceId .
+6 FORMAL SEMANTICS OF RSC PATTERNS
+In order to formally verify properties of a 5G-SO system, we need to
+assign formal semantics to the RSC model of component behavior,
+corresponding to RSC informal semantics. We define the formal
+semantics in terms of TA that behave according to the timed transi-
+tion semantics overviewed in Sec. 3.2. For each restricted statechart
+pattern (see Sec. ??), we have a corresponding TA pattern. The
+resulting semantics of the system is defined as the network of all
+TA obtained by instantiating the corresponding TA patterns.
+
+--- Page 7 ---
+From UML Modeling to UPPAAL Model checking of 5G Dynamic Service Orchestration ECBS 2021, May 26–27, 2021, Novi Sad, Serbia
+VM
+(hostId)
+Idle 
+Execute
+[QueueNonEmpty]/
+schedule(), 
+dequeue(),
+t=random(BCET,WCET)
+WaitforVNFExecution
+WaitForLinkDelay
+evVNFExeDone/checkRoute()
+after(lDelay)/
+releaseBW(), 
+evQueue(
+vnfId
+)
+CheckLinkAvailability
+[IslinkBWavailable] 
+/consumeBW(); 
+calcLdelay();
+[IsAllSiceVNFExecuted 
+]
+      
+after(t)
+/evVNFExeDone
+RC
+ 
+(
+rcId
+)
+Idle
+evReq(
+mId
+)/initialise(), 
+evQueue(
+vnfId
+)
+after(
+actTime
+)[nReq<=
+maxReq
+]/
+evSliceReq(
+sliceId
+),nReq++
+SendReq
+UE(
+ueId
+,
+sliceId
+,
+maxReq
+,
+actTime
+)
+Idle
+evSliceReq(
+sliceId
+)/
+evReq(
+mId
+)
+Wait
+after(deadline)
+Fail
+MO(
+mId
+)
+evQueue(
+vnfId
+)/queue(
+vnfId
+)
+Idle
+[nReq<=
+maxReq
+]/
+evSliceReq(
+sliceId
+),nReq++
+[nReq>
+maxReq
+]
+Figure 6: Restricted statechart representation of the case study specific behavior
+Function Purpose
+initialise() Initializes the slice VNFSeq, VNF allocation and routing, upon receiving a particular slice request from the UE
+queue(VNFId) Queues the VNF that are ready to be executed into the message queue of the VM where is it allocated
+schedule() Sorts the VNFs in the queue according to priorities of the VNFs such that the head of the queue has the highest priority
+dequeue() Removes the vnf that is executed from the message queue
+calcLdelay() Calculates the sum of delays over all the links involved a particular path between consecutive vnfs in VNFSeq
+consumeBW() The required bandwidth of a slice is consumed from the available link bandwidth
+releaseBW() Once the slice has finished utilizing a link, the respective link bandwidth is released
+Table 1: User-defined functions
+after(
+5
+)[nReq<=
+1000
+]/
+evSliceReq(
+1
+),nReq++
+SendReq
+5GCamera
+(
+1
+, 
+1
+,
+1000
+,
+5
+)
+Idle
+[nReq<=
+1000
+]/
+evSliceReq(
+1
+),nReq++
+[nReq>
+1000]
+Figure 7: Example of an instantiated RSCU E
+UPPAAL TA pattern. Using the definition of RSC(para)in Sec. ??,
+and the definition of TA (see Sec. 3.2), we define a semantic encoding
+of the RSC(para)components, respectively, in terms of TA(para).
+Like RSC(para), aTA(para)is also defined as a reusable TA struc-
+ture, for reccurring behavior, as follows:
+TA(para)=⟨Lp,l0p,Vp,Cp,Ap,Ep,Ip⟩:para ,
+where:
+•para refers to the list of parameters that get instantiated
+with values when the pattern is used,
+•Lp=nÐ
+i=1{Lai}∪nÐ
+i=1{Lci}∪nÐ
+i=1{Lei}where Laicorrespond
+toSainRSC(para),Lciis the set of committed locations
+introduced to handle the simultaneous synchronizations in-
+volving the trigger ( evt) and effect actions ( evд) occurringin a transition, Leiis the set of error locations introduced to
+capture the errors of message queue being full, not enough
+request controllers or monitors to handle the request, and
+deadline violation,
+•l0p=Idle,
+•Vpis the set of variables defined in the corresponding
+RSC(para), and other local variables that are used to model
+the parameter passing (by making a local copy of the param-
+eter passed), and other variables if needed to define the error
+conditions that lead to Lei,
+•Cpis the set of clock variables that measure the time elapsed
+for the corresponding Evt,
+•Apis defined as Async∪Aass∪Audf, where Asynccorre-
+sponds to the synchronizing events in Evcand other urgent
+synchronizations ( execute ?) defined to trigger a transition
+as soon as the guard evaluates to true, Aassrefers to the ac-
+tions involving assignment of variables and updates of clocks,
+Audfis the set of user-defined functions in RSC(para),
+•Ep=Ee∪Ea, where Eerefers to the set of edges defined by
+− →inRSC(para), populated with LinRSC(para)and other
+guards defined over the clock variables along the transitions
+
+--- Page 8 ---
+ECBS 2021, May 26–27, 2021, Novi Sad, Serbia Kunnappilly et al.
+enabled with Evt;Eaare the additional edges defined to
+connect ( LaiandLci)2and ( LaiandLei)3,
+•Ipis defined over the Laithat generates Evt.
+As an example, we present the TA pattern, TAU E(para), depicted in
+Fig. 8, which corresponds to RSCU E(para).TAU E(para)is defined
+as follows:
+T AU E(ueId ,sId,maxReq ,actT)=⟨Lue,l0ue,Vue,Cue,Aue,Eue,Iue⟩:
+(ueId ,sId,maxReq ,actT),
+where:
+•Lue={Idle,Start ,Select ,NoFreeMonitor ,NoFreeContr},
+•l0ue=Idle,
+•Vue={ueId ,sId,maxReq ,actT ,nReq ,reqSId ,avContrs ,
+avMonitors}, where ueId represents the id of the UE, and
+sIdrepresents the id of the slice it requests, maxReq is the
+maximum number of slice requests that a UE can make,
+nReq keeps track of the number of UE requests, ReqSId is a
+variable that copies the sIdto reflect the passing of sliceId
+parameter in RSCU E,avContrs , and avMonitors , to capture
+errors if there are not enough controllers or monitors to
+handle the requests, respectively,
+•Cue={x}is the clock that models the activation time,
+•Aue={req?,execute ?}∪{ reqSId =sId,nReq + +,x=0},
+where Acomprises the set of synchronization channels as-
+sociated with generating a slice request ( req!), and synchro-
+nizing over an urgent channel, ( execute ?) the corresponding
+variable assignments, and reset actions on clock x,
+•Eue={Idleexecute ?,nReq <=maxReq ,x=0−−−−−−−−−−−−−−−−−−−−−−−−−−−−→ Start ,Start
+x==actT−−−−−−−−→ Select ,SelectavContrs ==0−−−−−−−−−−−−→ NoFreeContr ;
+SelectavMonitors ==0−−−−−−−−−−−−−−−→ NoFreeMonitor ;Select
+req !,(avContrs >0&&avMonitors >0),nReq ++,reqSId =sId,x=0−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−→
+Idle},
+•Iue:Start− →(x<=actT)
+Following a similar approach, we generate TAV M(para),
+TARC(para),andTAMO(para)patterns corresponding to their RSC
+counterparts, respectively.
+The instantiation of TA(para)assigns the parameters in para
+with actual values. Using “ p=v” to denote the assignment of
+parameter pwith value v, we define the instantiated pattern as:
+T AI i(para)::=⟨Lpi,L0pi,Vpi,Cpi,Api,Epi,Ipi⟩:(p1=v1,p2=v2, ...)
+(2)
+Example 6.1. Consider the TAU Epattern, introduced above. An
+example of a parameter assignment is:
+para =(ueID =1,sId=1,maxReq =1000 ,actT =5)
+Parallel Composition of TA(para). Given a system consisting of n
+TA(para), that is, TA 1(para 1),TA 2(para 2), . . . , TAn(paran), their
+parallel composition is denoted as:
+NTA =TA 1(para 1)||TA 2(para 2)||...||TAn(paran)
+2If both the trigger and effect actions occur simultaneously in a transition, the latter
+will be transformed to two edges with a committed location in between, in which the
+former is synchronized with the trigger action and the latter is synchronized with the
+effect action.
+3The edge connecting LawithLeis decorated with guards that evaluate to true when
+meeting the error conditions.Example 6.2. Assuming that we have ninstantiations of each TA
+pattern in our model, our 5G−SOS NT A is defined as a network of
+timed automata composed via parallel composition of its constituent
+TA models and represented as:
+5G−SOS NT A =TAU E1||. . .||TAU En||TAMO 1||. . .||TAMOn||
+TARC1||. . .||TARCn||TAV M 1||. . .||TAV Mn
+(3)
+7 EXPERIMENTAL EVALUATION
+In this section, we present an experimental evaluation of our profile.
+We begin by describing the tool support developed to allow for the
+automated verification of the requirements presented in Sec. 2 over
+the instantiated systems of our case study (in the form of object
+diagrams), followed by a short summary of our evaluation.
+7.1 G5
+As a proof-of-concept of how employing our profile allows for
+automatic verification of object diagrams, we provide a tool, called
+G5, which facilitates verifying the assertion that all deadlines are
+met in a specific 5G-SO system. The tool is implemented in Python
+and takes as input an object diagram, specified in the soil -format
+(of the USE tool [ 2]) and verifies automatically that for all possible
+scenarios all deadline requirements of slices are met. The overall
+workflow is described in Algorithm 1.
+Input : Object diagram of 5G system
+Output: Success if all deadlines are met
+Instantiate TA template for each active object in system;
+Create UPPAAL model with all templates;
+Generate queries for UPPAAL model;
+Use UPPAAL to check queries;
+ifErrorQueueFull state can be reached then
+Fail with "Queues too short"
+else if NoFreeContr state can be reached then
+Fail with "Not Enough Controllers"
+else if Deadline query failed then
+Fail with "Deadline violated"
+else
+Success
+Algorithm 1: Workflow of the G5tool
+7.2 Verification Results
+We exemplify the verification approach introduced previously, for
+our case study described in Sec. 2, and verify whether application
+requirements shown in Sec. 2 are met. We begin by instantiating
+our TA patterns to model our case study. To model the user equip-
+ment, we instantiate the TAU E(para)pattern to TAU E(1,1,5,5),
+TAU E(2,1,10,3),TAU E(3,1,10,100),TAU E(4,2,3,2)and
+TAU E(5,2,5,100), of which the first three correspond to instances
+of5GCamera , and the rest to 5GMobile . We also instantiate the
+TAV M(para)pattern to simulate our overlay network with four
+VMs, namely TAV M(1),TAV M(2),TAV M(3),TAV M(4). In order to
+verify the model, we assume that the network has enough request
+controllers and monitors to handle the requests from independent
+
+--- Page 9 ---
+From UML Modeling to UPPAAL Model checking of 5G Dynamic Service Orchestration ECBS 2021, May 26–27, 2021, Novi Sad, Serbia
+Figure 8: UPPAAL TA pattern for UE: TAU E
+Req. Query Result Time (s) Mem. (kB)
+R1 E^RC1.rq sat 0.001 7288
+RC1.rq⇝
+RC1.rqComplete sat 14094 3761180
+R2 A□not MO1 .Fail sat 12499 7920432
+R3 E^RC4.rq sat 0.001 7288
+E^RC4.rqComplete sat 0.408 29388
+Table 2: UPPAAL Verification Results
+UE. However, having many such controllers and monitors is com-
+putationally expensive, hence we consider only five instances of
+each, hoping that they suffice.
+We verify the generated model against the formalized require-
+ments, using the UPPAAL model checker version 4.1.194. The
+verification PC has an Intel Core i7, 2,6 GHz processor and 16 GB
+2400 MHz DDR4 memory. The verification results are tabulated in
+Table 2. Note that the bandwidth requirement is automatically met
+upon satisfaction of the latency requirement, since we construct
+the models in such a way that a UE can complete its request only
+if the necessary bandwidth is available. We also check if all slice
+requests are eventually served, that is, query R3 (corresponding to
+Req3 in Sec. 2). We also add error locations to capture queues being
+full, and insufficient request controllers or monitors available (e.g.,
+see Fig. 8). In case the verification fails, the mechanism allows for
+detecting if the model has reached any of the error locations.
+From Table 2, one can see that the time taken for exhaustive
+verification of certain queries is not promising, hence we acknowl-
+edge that exhaustive model checking may not always be the best
+solution at hand to verify big complex systems like a 5G-SOS, as it
+suffers from state-space explosion. However, if one is able to model
+and verify some critical part of the network and functionalities, it
+provides guarantees over all possible system behaviors.
+8 RELATED WORK
+Substantial work within the field of 5G service orchestration is
+aimed at providing optimal VNF placement algorithms and routing
+schemes [ 1,3,7,16]. There is also interesting work that looks into
+scheduling of VNFs [ 4], and slice chain reconfiguration [ 14]. How-
+ever, not much effort has been invested in modeling and formal
+analysis of such systems, which in turn would verify if a given VNF
+placement, resource allocation, and routing meets the application
+requirements. Nevertheless, there exists interesting work that con-
+siders the description of VNFs and VNF chaining in isolation, to
+analyze if application requirements are met, for instance, the Gym
+4https://www.it.uu.se/research/group/darts/uppaal/download.shtmlframework [ 21] and the work by Peuster and Karl [ 19]. In contrast
+to our work, these approaches model VNFs and their chaining at a
+low level, without considering a system perspective, or 5G-specific
+scenarios. Spinoso et al. [ 22] employ SMT solvers (e.g., Z3), to verify
+VNFs and VNF chains against safety and reachability properties.
+Although the approach is promising, the framework is strictly for-
+mal, lacking the bridge to industrially-accepted modeling languages
+such as UML. In addition, the authors do not consider the service-
+orchestration problem and the QoS requirements that we study in
+this paper. In another interesting work [ 15], Luque-Schempp et al.
+investigate the use of various formal methods in the context of a 5G
+network, focusing on Software Defined Networking and Network
+Function Virtualization modeling and verification via selected for-
+mal tools like theorem provers, model checkers, and SMT solvers,
+at different level of network abstraction, without considering 5G
+service orchestration. Unlike our approach, the framework does
+not employ modeling techniques other than those of the formal
+tools, which makes it less appealing to practitioners.
+The use of UML to model 5G service orchestration is not inves-
+tigated much in the literature. One recent work [ 18] models 5G
+network slices, namely, resource driven, service driven, deployment
+driven, using different UML diagrams. However the modeling is
+not backed by formal analysis like the one presented in this paper.
+9 CONCLUSIONS AND FUTURE WORK
+In this paper, we have proposed a framework to model and analyze
+dynamic 5G service orchestration systems. Our solution combines
+the features of user-friendly UML modeling with formal analysis us-
+ing the UPPAAL model checker, and provides one with automated
+support to model and formally verify the structure and behavior of
+dynamic 5G SOS systems. Using our tool support requires knowl-
+edge of UML as well as the UML5G profile, but no experience with
+timed automata or model checking . This shows the power of complex
+automatic reasoning tools when provided to a UML user.
+In our current model, we have considered only system dynamic
+behavior arising from simultaneous user requests, VNF sharing,
+variable link and server utilization, etc. In the future, we would
+like to consider other factors like host failures, which entails VNF
+reallocation or rerouting of network traffic through an alternative
+path. Another interesting direction for future work is to introduce
+an automatic translation from (any) restricted state chart to a timed
+automaton, allowing the specification of behavior to be changed at
+the UML level.
+ACKNOWLEDGMENTS
+This work is supported by the EU Celtic Plus/Vinnova project,
+Health5G - Future eHealth powered by 5G, which is gratefully
+acknowledged.
+REFERENCES
+[1][n.d.]. D4.1. Definition of service orchestration and federation algorithms, ser-
+vice monitoring algorithms. http://5g-transformer.eu/index.php/deliverables/.
+Accessed: 2020-07-24.
+[2][n.d.]. USE: UML-based Specification Environment. https://sourceforge.net/
+projects/useocl/. Accessed: 2020-07-24.
+[3]Satyam Agarwal, Francesco Malandrino, Carla-Fabiana Chiasserini, and Swades
+De. 2018. Joint VNF placement and CPU allocation in 5G. In IEEE INFOCOM
+2018-IEEE Conference on Computer Communications . IEEE, 1943–1951.
+
+--- Page 10 ---
+ECBS 2021, May 26–27, 2021, Novi Sad, Serbia Kunnappilly et al.
+[4]Hyame Assem Alameddine, Long Qu, and Chadi Assi. 2017. Scheduling service
+function chains for ultra-low latency network services. In 2017 13th International
+Conference on Network and Service Management (CNSM) . IEEE, 1–9.
+[5]Rajeev Alur, Costas Courcoubetis, and David Dill. 1990. Model-checking for
+real-time systems. In Logic in Computer Science, 1990. LICS’90, Proceedings., Fifth
+Annual IEEE Symposium . IEEE, 414–425.
+[6]Egon Börger, Alessandra Cavarra, and Elvinia Riccobene. 2000. Modeling the
+dynamics of UML state machines. In International Workshop on Abstract State
+Machines . Springer, 223–241.
+[7]Vinod Kumar Choyi, Ayman Abdel-Hamid, Yogendra Shah, Samir Ferdi, and
+Alec Brusilovsky. 2016. Network slice selection, assignment and routing within
+5G networks. In 2016 IEEE Conference on Standards for Communications and
+Networking (CSCN) . IEEE, 1–7.
+[8]Bruce Powel Douglass. 2004. Real time UML: advances in the UML for real-time
+systems . Addison-Wesley Professional.
+[9]Sébastien Gérard and Bran Selic. 2008. The uml–marte standardized profile. IFAC
+Proceedings Volumes 41, 2 (2008), 6909–6913.
+[10] Ashalatha Kunnappilly, Peter Backeman, and Cristina Seceleanu. 2020. UML-
+based Modeling and Analysis of 5G Service Orchestration. (2020).
+[11] Kim G Larsen, Paul Pettersson, and Wang Yi. 1997. UPPAAL in a nutshell.
+International journal on software tools for technology transfer 1, 1-2 (1997), 134–
+152.
+[12] Aris Leivadeas, George Kesidis, Mohamed Ibnkahla, and Ioannis Lambadaris.
+2019. VNF Placement Optimization at the Edge and Cloud. Future Internet 11, 3
+(2019). https://doi.org/10.3390/fi11030069
+[13] X. Li, M. Samaka, H. A. Chan, D. Bhamare, L. Gupta, C. Guo, and R. Jain. 2017.
+Network Slicing for 5G: Challenges and Opportunities. IEEE Internet Computing
+21, 5 (2017), 20–27. https://doi.org/10.1109/MIC.2017.3481355[14] Yicen Liu, Hao Lu, Xi Li, and Donghao Zhao. 2019. An approach for service
+function chain reconfiguration in network function virtualization architectures.
+IEEE Access 7 (2019), 147224–147237.
+[15] Francisco Luque-Schempp, Pedro Merino-Gómez, Laura Panizo, et al .2019. How
+formal methods can contribute to 5g networks. In From Software Engineering to
+Formal Methods and Tools, and Back . Springer, 548–571.
+[16] Tahira Mahboob, Young Rok Jung, and Min Young Chung. 2020. Dynamic vnf
+placement to manage user traffic flow in software-defined wireless networks.
+Journal of Network and Systems Management (2020), 1–21.
+[17] Guido Marchetto, Riccardo Sisto, Fulvio Valenza, and Jalolliddin Yusupov. 2019.
+A framework for verification-oriented user-friendly network function modeling.
+IEEE Access 7 (2019), 99349–99359.
+[18] A. Papageorgiou, A. Fernández-Fernández, S. Siddiqui, and G. Carrozzo. 2020. On
+5G network slice modelling: Service-, resource-, or deployment-driven? Computer
+Communications 149 (2020), 232–240.
+[19] Manuel Peuster and Holger Karl. 2016. Understand your chains: Towards per-
+formance profile-based network service management. In 2016 Fifth European
+Workshop on Software-Defined Networks (EWSDN) . IEEE, 7–12.
+[20] Marcelo A Ramos, Paulo C Masiero, Rosangela AD Penteado, and Rosana TV
+Braga. 2015. Extending statecharts to model system interactions. Journal of
+Software Engineering Research and Development 3, 1 (2015), 1–25.
+[21] Raphael Vicente Rosa, Claudio Bertoldo, and Christian Esteve Rothenberg. 2017.
+Take your vnf to the gym: A testing framework for automated nfv performance
+benchmarking. IEEE Communications Magazine 55, 9 (2017), 110–117.
+[22] Serena Spinoso, Matteo Virgilio, Wolfgang John, Antonio Manzalini, Guido
+Marchetto, and Riccardo Sisto. 2015. Formal verification of virtual network
+function graphs in an sp-devops context. In European Conference on Service-
+Oriented and Cloud Computing . Springer, 253–262.

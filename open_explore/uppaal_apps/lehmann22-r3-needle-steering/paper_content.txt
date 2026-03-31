@@ -1,0 +1,1088 @@
+--- Page 1 ---
+Clemens Dubslaff and Bas Luttik (Eds.):
+Models for Formal Analysis of Real Systems (MARS 2022)
+EPTCS 355, 2022, pp. 40–59, doi:10.4204/EPTCS.355.4© S. Lehmann et al.
+This work is licensed under the
+Creative Commons Attribution License.Modeling R3Needle Steering in Uppaal
+Sascha Lehmann1Antje Rogalla1Maximilian Neidhardt2
+Anton Reinecke1Alexander Schlaefer2Sibylle Schupp1
+1Institute for Software Systems2Institute of Medical Technology and Intelligent Systems
+Hamburg University of Technology, Hamburg, Germany *
+fs.lehmann, antje.rogalla, maximilian.neidhardt, anton.reinecke, schlaefer, schupp g@tuhh.de
+Medical cyber-physical systems are safety-critical, and as such, require ongoing veriﬁcation of their
+correct behavior, as system failure during run time may cause severe (or even fatal) personal dam-
+age. However, creating a veriﬁable model often conﬂicts with other application requirements, most
+notably regarding data precision and model accuracy, as efﬁcient model checking promotes discrete
+data (over continuous) and abstract models to reduce the state space. In this paper, we approach the
+task of medical needle steering in soft tissue around potential obstacles. We design a veriﬁable model
+of needle motion (implemented in Uppaal Stratego) and a framework embedding the model for online
+needle steering. We mitigate the conﬂict by imposing boundedness on both the data types, reducing
+fromR3toZ3when needed, and the motion and environment models, reducing the set of allowed
+local actions and global paths. In experiments, we successfully apply the static model alone, as well
+as the dynamic framework in scenarios with varying environment complexity and both a virtual and
+real needle setting, where up to 100% of targets were reached depending on the scenario and needle.
+1 Introduction
+Medical needle steering describes the task of steering ﬂexible and beveled needles in soft tissue towards a
+target e.g., for a biopsy or brachytherapy, while avoiding critical tissue layers and organs. The underlying
+problem is thus the safe navigation of a controllable entity through a (partially known and uncontrollable)
+environment in R3. The following requirements arise for a model intended to approach this underlying
+problem:
+Safety: To avoid severe or even fatal damage to a patient by piercing critical tissue or organs, the
+system needs to behave safely at any time.
+Veriﬁability: To ensure safety by proving that no critical state is ever reached, the model needs to be
+formally veriﬁable.
+Model Accuracy: To relate the model to the underlying system, a suitable modeling of the R3space,
+needle motion, and environments is required which reﬂect all characteristics that could threaten safety.
+Precision: To limit the deviation of the model and real system, sufﬁcient precision is required in terms
+of data measurement and data storing in digital systems, which enforce a discretization of data that is
+naturally continuous in reality.
+Performance: To use a model in medical cyber-physical systems, real-time performance of adapting
+and checking the model is required locally for each system step (as system and model would drift apart
+otherwise), and furthermore, the desired global result should be reached in suitable time (as medical
+interventions cannot take arbitrary amounts of time).
+*This study was partially funded by the TUHH i3lab initiative (T-LP-E01-WTM-1801-02), DFG SCHU 2479, and DFG
+SCHL 1844/6-1.
+
+--- Page 2 ---
+S. Lehmann et al. 41
+While some requirements are compatible and interdependent (e.g., safety and veriﬁability), others clearly
+contradict each other. In particular, model accuracy and precision for R3spaces conﬂict with perfor-
+mance requirements, as realistic and physically accurate modeling with high precision data usually leads
+to strongly growing state spaces and calculation times, which in turn need to be bounded to meet con-
+straints of the real system (e.g., feasible durations of surgeries, anesthesia, breath holding, etc. for
+medical applications). Furthermore, veriﬁability conﬂicts with model accuracy and precision, as model
+checkers naturally require abstractions from the continuous R3domain of the underlying real system (or
+its ﬁne-grained discretization in Z3imposed by limited sensor resolution) to discrete data types supported
+by the checker. The key aspect for such models is thus to ﬁnd a suitable balance between these require-
+ments to make the model both veriﬁable in reasonable time and relatable to the real system. Only then,
+one can guarantee safety both locally (via model checking of a static system snapshot) and globally (via
+system adaptions whenever safety might become threatened) for a dynamic system like needle steering.
+In this paper, we design a model and framework that can be used for the task of online needle steering.
+Based on matrix and vector calculations of circle motions, the model implements a geometric model in
+R3space, which was shown to be sufﬁciently approximating for needle motion in literature [26]. In
+particular, we make the following contributions:
+1. We provide a base model of needle steering as timed automaton in Uppaal, which adheres to the
+aforementioned requirements of safety, veriﬁability, accuracy, precision, and performance to an
+extent that allows online R3needle steering.
+2. We cover design decisions for model simpliﬁcations regarding the data domain, entities, and ac-
+tions, which impose different degrees of boundedness to the data types and motion model.
+3. We provide a framework which the model is embedded into for online strategy synthesis (OSS) on
+top of Uppaal.
+4. We perform experiments on multiple environment settings with both a virtual and a real needle to
+show applicability and requirement compliance in practice.
+The paper and model build on and extend our previous work on needle steering and OSS. In “Synthe-
+sizing Strategies for Needle Steering in Gelatin Phantoms” [23], we provided a basic model for matching
+ofR2-projected needle traces against a R2motion model via ofﬂine strategy synthesis. In the current pa-
+per, we extend the model to R3motion to fully reﬂect the real-world use case of needle steering, which
+all the more raises the question for sufﬁciently precise domain modeling to support formal veriﬁcation
+in reasonable time. Furthermore, we elevate the use case from ofﬂine matching to online navigation by
+embedding the model into the OSS framework to react to environmental uncertainties and the fact that
+tissue in reality is inhomogeneous and has anatomic obstacles. “Online Strategy Synthesis for Safe and
+Optimized Control of Steerable Needles” [19] introduces the concept of OSS, but does not cover the
+speciﬁcs of the underlying model and modeling decisions, which are subject to the current paper.
+The paper is structured as follows: We present preliminaries on strategy synthesis in Sec. 2. Then,
+we introduce the Uppaal model of needle steering in Sec. 3 and explain the OSS framework and the
+embedding of the Uppaal model in Sec. 4. Afterwards, we perform experiments with both a virtual and
+a real needle in Sec. 5. Finally, we describe the related work in Sec. 6 and conclude our work in Sec. 7.
+2 Preliminaries
+Needle Steering Placing long and thin biopsy needles in deep tissue structures is a common medical
+intervention. To increase the accuracy in reaching a desired target the physician directs the needle with
+
+--- Page 3 ---
+42 Modeling 3D Needle Steering
+(a) The experiment setup
+ (b) The bent needle inside a gelatin phantom
+Figure 1: The experiment setup for needle steering. (a) shows the setup with stepper motor (left), needle
+guide (center), and gelatin phantom (right). (b) shows the trajectory of a needle moved through a gelatin
+phantom without rotations.
+image guidance, retracting and re-orientating the needle axis multiple times during insertions if needed.
+This leads to increased trauma and interventions longer than necessary. The objective of automated
+needle steering thus is twofold: to move the needle as closely and directly as possible to the deformable
+target, and to bypass nerves or any other anatomic obstacles along that path. The system setup using
+gelatin phantoms as tissue, as it is common in robotic tissue simulations, is shown in Fig. 1.
+Moving needles with robotic guidance through tissue in a controlled way is no trivial task. The po-
+sition of the needle depends not only on its velocity and force, and the exact shape of its tip, but also
+on parameters that are unknown, e.g., the (in-)homogeneity of the surrounding tissue and its elasticity.
+Inhomogeneity can, for example, result in abrupt needle movements and subsequent overshoots; elastic-
+ity determines the forces needed. Moreover, in brachytherapy or anesthesia clinical targets are often not
+located directly under the skin and cannot be reached with stiff needles but require ﬂexible needles with
+bevel tips. Yet ﬂexible needles complicate the computation of needle movements further since the force
+between tissue and needle tip can now result in small side-wards movements. Altogether, the needle-
+tissue interaction is hard to deﬁne and predict, and presents to date the major challenge in automating the
+process of needle steering.
+Environment Setting The environment is a R3space, and interpreted as a set of regions: Target regions
+(TR) represent the sections where we want to navigate to, critical regions (CR) model unsafe regions
+which we want to circumvent (e.g., organs), and detection regions (DR) model the surrounding of CRs in
+which we can detect a nearing CR (e.g., by measuring increasing force). Furthermore, unknown regions
+(UR) model sections which were not discovered yet, and safe regions (SR) represent all sections that are
+guaranteed safe, including both TRs and DRs. See [19] for further details on the region interpretation.
+Uppaal Stratego TheUppaal Stratego tool [9] is an integrated tool suite for generation and optimiza-
+tion of strategies. It combines the statistical functionalities of Uppaal SMC [10] with the strategy synthe-
+sis capabilities of Uppaal Tiga [4], and uses stochastic priced timed games as base model formalism. In
+
+--- Page 4 ---
+S. Lehmann et al. 43
+(a) Decision Maker / User
+(b) Controlled Device / Needle
+(c) Environment / Tissue
+ (d) State Checker
+Figure 2: The Uppaal model components
+particular, the tool guarantees to generate a provably correct and complete winning strategy (whenever
+one exists) for a controllable entity in a two-player game against an uncontrollable environment. We use
+the tool for the ofﬂine strategy synthesis step inside the OSS framework.
+3 The Needle Steering Model
+3.1 Components
+The three main component types in the Uppaal model are concrete entity models , abstract process models ,
+and the underlying C code declaration . The model components are shown in Fig. 2.
+Three entity models exist in total: The Decision Maker (Fig. 2a) represents the clinical expert, who
+initiates actions of the device. The Controlled Device (Fig. 2b) represents the needle, which receives
+instructions from the user and performs the actions accordingly. The Environment (Fig. 2c) represents
+the tissue, which may react to changing needle states, or adapt due to external inﬂuences over time.
+Furthermore, one process model exists: The State Checker (Fig. 2d) performs checks on each
+model state to ensure validity of the current trace, and “discards” the trace (by leading to a deadlock
+state) as soon as validity is violated or the target is reached.
+3.2 Execution Flow
+The overall execution ﬂow of the model is as follows: The User initializes the system ( initialize() )
+and initiates a check of the initial system state ( do_check! ). The State Checker then traverses the
+
+--- Page 5 ---
+44 Modeling 3D Needle Steering
+locations Check _Path _Valid ,Check _TR_Reached ,Check _TR_Reachable , and Check _CR_Reached
+where the four functions check _path _valid() ,check _TR_reached() ,check _TR_reachable() , and
+check _CR_reached() check whether the current needle path is valid, the current TR is reached or at
+least still reachable, or any CR is currently reached, respectively. In case that a TR is reached, the
+system switches to the next TR ( curr _TR_index++ ). If either a path is determined as invalid, the ﬁ-
+nal TR is reached, the current TR is not reachable anymore, or a CR is reached, the path is success-
+fully classiﬁed and needs no further evaluation, so that the State Checker switches to Path _Invalid ,
+Final _TR_Reached ,TR_Unreachable , orUR_Reached , respectively, and the User switches to End;
+these states are intended as deadlocks.
+If the State Checker is successfully traversed, the User provides an instruction for the Needle
+on the Idle -> Perform _Action edge, which is either a rotation ( do_rotate! ) or a push motion
+(do_push! ). The instruction then enables the Needle , which performs the corresponding action via
+rotate _deg() orstep() , which might include particular time delays (e.g., ti <= dt andti >= dt
+inPush ) or auxiliary logging routines (e.g., log_push _action() andlog_rotation _action() on
+Idle -> Rotate ).
+Once the action step is successfully executed, the do_tissue _action! call enables the Tissue
+model, which may then react to the action of the controllable entity. In Fig. 2c, the simplest form of tissue
+model is shown, which performs no further reaction, i.e., keeps the CRs and TRs static; uncontrollable
+actions, such as stochastical or periodical movement CRs and TRs, can then be added to this model
+depending on the speciﬁcs of the tissue. Finally, the Tissue model calls finished _tissue _action!
+to signalize to the User that the reaction has ﬁnished, and the User starts the next cycle of state checking,
+instruction, action.
+3.3 C Code Declaration and Queries
+The introduced network of automata implements the integration of components, the synchronization
+between individual submodels, and the overall ﬂow and timing of actions and reactions. The underlying
+code used by these models is deﬁned in the Uppaal C code declaration section. The complete C code
+declaration can be found in appendix A, and provides the following:
+• The data representation of all entities , which includes the position, rotation and velocity of the
+needle, as well as the positions and sizes of regions (i.e., DRs, CRs, TRs).
+• The mathematical structures such as matrices and vectors in Z3required for geometric calcula-
+tions.
+• The algebraic operations inR3on the aforementioned structures, such as products of matrices and
+vectors, vector normalizations, and magnitude calculations.
+• The motion model functions , such as motion circle calculation, step, and rotate.
+• The state checking functions for TR reaching and reachability, CR reaching, and path validity.
+Given the complete model, we deﬁne the following two queries:
+E<> Checker.Final TRReached (1)
+strategy ReachFinalTR = control: A<> Checker.Final TRReached (2)
+Query 1 allows checking whether a path exists that leads to the ﬁnal TR, and generates a correspond-
+ing model trace for review in the Uppaal simulator if conﬁgured accordingly. Query 2 synthesizes a
+
+--- Page 6 ---
+S. Lehmann et al. 45
+strategy over all possible paths towards the ﬁnal TR; from this strategy, we can extract the set of suitable
+instruction plans for needle motion. The later query is frequently called by the framework deﬁned in
+Sec. 4 during the ofﬂine strategy synthesis step.
+3.4 Simpliﬁcations
+To use the model for motion plan generation and safety guarantees in our application, it needs to conform
+with the requirements and conﬂicts introduced in Sec. 1. In fact, modeling in R3and allowing any
+possible motion in that space easily leads to state explosion problems, which would inhibit veriﬁability
+even if a veriﬁer supported R3data. However, simple modeling in turn often conﬂicts with precision and
+accuracy criteria. To reduce the state space and balance the requirements to an extent suitable for the
+needle steering application, we implement 3 types of simpliﬁcations, which impose certain degress of
+boundedness: value restrictions, motion restrictions, and environment restrictions.
+As value restrictions, we implement a partial discretization of data, i.e., all data is scaled by a factor
+_S_and cast to int for storage, and only cast to double for intermediate calculations. That way, all
+states relevant for model checking consist only of bounded data. Furthermore, we discretize time with
+a ﬁxed step size dtper action step, which can be increased to improve performance at the expense of
+precision.
+As motion restrictions, we limit the type and extent of needle motion. The rotate motion only al-
+lows a rotation by 90, 180, or 270, and we set a maximum number of allowed rotations as well as
+a lower bound of push motion distance required between two consecutive rotations. Apart from these
+restrictions, the otherwise arbitrary choice of rotation points still allows navigating to most (if not all)
+physically feasible regions, and we will see in Sec. 5 that the target regions are usually reachable un-
+der these abstractions. Furthermore, a pullmotion is not explicitly implemented in the model, as such
+motion only becomes relevant in the OSS workﬂow (see Sec. 4), and would lead to an inﬁnite state
+space otherwise, as the model could loop ( push ,pull) inﬁnitely often. The check _path _valid() and
+check _TR_reachable() functions limit the state space further by omitting paths that lead to physically
+impossible needle trajectories or will not be able to reach a TR in the future, respectively.
+Finally, as environment restrictions, we limit the complexity of entities and reactions. In the current
+model iteration, all regions (DRs, CRs, TRs) are modelled as simple spheres, and the regions remain
+static over time, i.e., will not move due to unpredictable patient movements or breathing.
+4 The Online Strategy Synthesis Framework
+The model designed in Sec. 3 allows ofﬂine veriﬁcation and strategy synthesis in a static manner, i.e.,
+based on a particular snapshot of the real system. The environment of a real system is usually not fully
+known though. For example, the concrete characteristics of the needle motion circle is initially unknown
+if needle and tissue cannot be fully characterized a-priori, and we typically do not know whether critical
+regions exist or where they are situated. Furthermore, measurements of the real system (e.g., position
+and force data) may reveal that the needle deviates from the prediction or is about to become unsafe due
+to increasing forces, or that initially calculated motion circles do not ﬁt observations at a latter stage.
+The Uppaal model alone would then not sufﬁce to react to environment changes or dynamically obtained
+system knowledge. Fortunately, the model can be leveraged from ofﬂine to online by embedding it into a
+framework that dynamically updates the model with new knowledge, and triggers system adaptions and
+strategy resynthesis as needed.
+
+--- Page 7 ---
+46 Modeling 3D Needle Steering
+idle startmodel = default, t= 0
+ready
+target not
+reachable
+execute
+motion plan
+real-time
+matching
+target
+reached
+abort
+motion plan
+push forward xmm
+/ motion circle
+model = initialized
+uppaal strategy synthesis
+/ uppaal synthesis outputuppaal synthesis output
+== no motion plan:
+stop OSS / -
+uppaal synthesis output ==
+motion plan:
+start execution / -
+t≤dt:
+t = dt / pushed∨rotated
+t=t+dtt== dt:
+match observation data
+/ match output
+t= 0
+match output == no adjustment required:
+continue / -match output ==
+target reached:
+stop OSS / -match output == needle deviates ∨
+match output == CR detected:
+stop execution
+/ motion plan adjustment requiredpull back ymm / -
+model = updated
+Figure 3: The OSS workﬂow (grey states covered by ofﬂine synthesis, blue states added by framework)
+In the following, we distinguish between 3 types of knowledge: actual, a-priori, and dynamically
+learned knowledge. The actual knowledge comprises all knowledge obtainable from the system, and is
+guaranteed to be correct. The a-priori knowledge is usually a subset of actual knowledge, but may also
+include knowledge that is assumed to be correct beforehand, but turns out to be wrong during the exper-
+iment. For needle steering, such a-priori knowledge can be partial knowledge about CRs, and the default
+value of the motion circle radius. The dynamically learned knowledge ﬁnally contains all knowledge
+that was not known in advance, but is discovered and learned on-the-ﬂy during the experiment. Such
+knowledge is always an assumption, as it is based on the interpretation of observed data. Examples are
+the detected DRs and CRs, the current position and force data of the needle, and the needle motion circle
+derived from the observed position data.
+The model alone would only lead to correct results if we had access to the full actual knowledge,
+and if the system continues to behave exactly like the model. Such idealized conditions are rarely given,
+as the tissue is usually inhomogenous and patient-speciﬁc, and the needle motion is only approximately
+circular. Thus, the framework adds the following functionality on top of the Uppaal model:
+• real-time data acquisition for model updates
+• pull-back motion to retreat from discovered CRs (cf. Sec. 3.4)
+• determination of the actual motion circle (both initially and after each system adaption)
+4.1 Workﬂow
+The workﬂow of the framework is shown in Fig. 3 and covered in [19], so that we will only summarize the
+important steps: First, the needle is pushed slightly, and the measured position data is used to obtain an
+initial motion circle. The model is updated accordingly, and an initial strategy to the target is calculated
+by Uppaal Stratego, from which the framework derives a concrete motion plan. This motion plan is
+executed parallel to ongoing measurements of the real system, until the target is reached, or the acquired
+knowledge contradicts the current assumptions (e.g., the needle deviates, or force exceeds given bounds).
+In the later case, the plan is aborted, and the needle is readjusted, followed by the recalculation of the
+
+--- Page 8 ---
+S. Lehmann et al. 47
+motion circle, strategy, and motion plan, and execution of the latter. If no strategy can be obtained
+even after all possible readjustments (i.e., when the needle has been pulled back to the start), the user is
+informed accordingly.
+4.2 Simpliﬁcations
+Simpliﬁcations, similar to the ones on model level (cf. Sec. 3.4), are required on framework level to meet
+the application requirements and deal with their conﬂicts. While the model simpliﬁcations were mostly
+concerned with veriﬁability, accuracy, and precision requirements, the framework simpliﬁcation mostly
+targets performance aspects and the weakening of safety checks whenever allowed during the process.
+We again distinguish between value, motion, and environment restrictions. As value restrictions, we
+only consider measured data points at a particular time resolution, i.e., use one data point every ntime
+units and discard the rest. As motion restrictions, we always readjust the needle by a ﬁxed pull and push
+distance, and do not calculate dynamic readjustment distances based on the assumed sizes of detected
+CRs. Finally, as environment restrictions, we perform no checks for deviation or CRs during pull-back
+motions. We argue that neither deviation can be exceeded nor CRs can be reached at that moment, as the
+pull-back motion only follows the formerly pierced path, and the presence of the needle prevents CRs to
+move into these positions, respectively.
+Recalling the limited allowed number of nrotations, which we introduced as a simpliﬁcation inside
+the model to reduce the state space, we note that this limit is applied only on model level, so that at each
+strategy resynthesis step, another nrotations are allowed.
+5 Experiments
+In this section, we perform a series of experiments for the Uppaal model (to show its suitability for
+matching of ofﬂine measured data) as well as for the OSS framework (to show its suitability for naviga-
+tion based on online measured data). We investigate experimentally to which extent the model accuracy
+as well as the precision of the framework and model allow reaching TRs in simple and complex envi-
+ronments, and whether the performance is sufﬁcient for a potential future use in real medical practice.
+Furthermore, we check whether the experiments support the claim for global safety, i.e., that timely
+readjustments based on deviation and force measurements ensure that CRs are indeed never reached.
+For the online experiments, we use two types of needle: a virtual and a real needle. The virtual needle
+implements the same motion model as the Uppaal model. Naturally, the virtual needle traces would never
+deviate from predicted traces, as all measurable data would be exactly known at any point. However, to
+unify the handling of measured data of both the virtual and real needle, we apply the approximative
+ﬁtting step of the motion circle in the virtual case as well, which then also serves as a source of artiﬁcial
+deviation. The real needle has a ﬂexible metal shaft with a custom tip that is made from epoxy resin and
+beveled at an angle of approx. 45. The needle as well as the overall setup of the real experiment are
+shown in Fig. 1. In that setting, gelatin phantoms imitate the base characteristics of real homogeneous
+tissue. Compared to the virtual needle, the real needle traces can highly deviate from the predictions on
+a global scale, so that adjustments due to deviation are more likely in that case.
+Furthermore, we use ﬁve types of environment settings, which are shown in Fig. 4. Fig. 4a contains
+no CRs, so that reaching a TR is only affected by potential needle deviation. Fig. 4b and Fig. 4c contain
+a single CR with small and big radius, respectively. Fig. 4d contains multiple CRs placed on the surface
+of the TR, and in Fig. 4e, the CRs form a tunnel towards the TR instead.
+
+--- Page 9 ---
+48 Modeling 3D Needle Steering
+(a) No CR
+ (b) Small Mid CR
+ (c) Large Mid CR
+(d) Surface CRs
+ (e) Tunnel CRs
+Figure 4: The environments for the online experiments (Experiment 2 and 3), each with a single TR
+(green) and one or more CRs (red). The dot (blue) marks the starting point.
+We conduct three types of experiments: In Experiment 1 , we apply the Uppaal model to the data
+sets also used in [23] in R2(extended to R3with z=0). For that purpose, we measure the deviation be-
+tween the measured reference traces and the set of matched simulation traces, which are determined via
+ofﬂine synthesis of strategies leading through targets placed on the reference trace. In Experiment 2 , we
+apply the OSS framework to the aforementioned environments and a virtual needle setup (with 50 runs
+per setup), and in Experiment 3 , we apply the subset of environments of Experiment 2 with full initial
+knowledge to a real needle setup (with smaller sets of 5  7 runs per setup for demonstration). Note that
+while the needle and tissue phantoms are real in Experiment 3, the TRs and CRs are still placed virtually
+at this point. Furthermore, we abort the individual experiment runs after 120 s. In terms of measures, re-
+call the requirements of safety, accuracy, precision, and performance introduced in the beginning. Safety
+is easily measured via the number of pierced CRs, and potential performance problems are measured
+by tracking the local strategy synthesis times and global experiment execution times. Precision prob-
+lems which signiﬁcantly affect the veriﬁcation results of the model would result in increased numbers
+of false positives (i.e., a critical path is determined as safe) and false negatives (i.e., existing safe paths
+are undetected). False positives and negatives would then lead to a high number of readjustments and
+strategy resynthesis in an online setting; false negatives would furthermore lead to a lower number of TR
+reachings. Note that no exact reference model in the continuous domain exists which we could compare
+performance, accuracy, and precision against, as such model would not be checkable directly. Therefore,
+we measure the consequences (i.e., readjustment and fewer TR reachings) as indicator for impacts on
+those requirements instead.
+
+--- Page 10 ---
+S. Lehmann et al. 49
+Trace Deviation [mm] Trace Deviation [mm] Trace Deviation [mm]
+NoRot1(0:53;1:35;2:04)NoRot2(0:92;1:72;2:35)NoRot3(1:05;1:58;2:00)
+One Rot1(1:10;1:60;2:46)One Rot2(1:02;1:32;2:92)One Rot3(0:69;1:74;4:24)
+Two Rot1(0:99;1:62;1:93)Two Rot2(0:56;1:60;3:23)Two Rot3(1:09;1:57;2:23)
+Bad 1 (1:68;2:60;4:36)Bad 2 (1:60;1:78;1:93)
+Table 1: The deviation (min, avg, max) between measured reference traces [23] and matched simulation
+traces determined via ofﬂine strategy synthesis.
+Evaluation and Discussion
+For the experiments, we used an Ubuntu 20.04 LTS system with AMD Ryzen 7 2700X CPU and 16GB
+RAM, and version 4.1.20-7 ofUppaal Stratego . The results of Experiment 1 are shown in Tab. 1. All
+normal and erroneous needle traces were covered by the model with average deviations in 1 :32mm 
+1:74mmand 1 :78mm 2:60mm, respectively. We notice that, while being comparable to the results of
+the reference work with deviations up to a few millimeters, the deviation in parts exceeds the reference
+values; we assume the reason to be that the initial needle orientation was determined by another synthesis
+step on the model itself in [23], while we used the more approximative circle ﬁtting approach.
+From the results of Experiment 2 shown in Tab. 2, we see that the needle always reached the TR
+directly in the NoCRscenario without readjustments. Furthermore, we see that in all cases of known CRs,
+the TR is either reached directly (see readjustment counts between 0 and 1 and reached TR percentage
+of 100% in Small MidCR,Surface CRs, and Tunnel CRs), or the model instantly detected that the
+CRs block every possible way to the TR (TR reach of 0% in Large MidCR). In contrast, the TR was
+directly reached only rarely in the case of unknown CRs (mostly in Small MidCR). Instead, most runs
+required a sequence of readjustments (between 1 and 3) before either the TR was reached (most cases
+ofSurface CRs andTunnel CRs) or the learned CRs blocked all ways to the TR ( Large MidCR),
+independent of whether there were actual CRs to block the way. The average execution times of all
+virtual experiment setups lie between 5 :18sand 88 :03s, and in rare cases of Surface CRs, the timeout
+threshold of 120 swas reached.
+Finally, the results of Experiment 3 are shown in Tab. 3. We see clear differences to the results
+obtained with the virtual needle: Using the real needle, the TR reaching rates decrease to percentages
+between 0% (in Tunnel CRs) and 66 :67% (in NoCR). Furthermore, a higher number of readjustments
+ScenarioCRs TR CRAdjustmentsMotion Synthesis Overall
+Known Reach Hit Plans Time [s] Time [s]
+NoCR - 100 :00% 0 :00% (0;0:00;0) 232 (7:53;7:60;8:00) (18:26;24:94;34:16)
+Small Mid CR All 100 :00% 0 :00% (0;0:00;0) 150 (6:83;6:92;7:16) (19:05;23:42;31:51)
+Small Mid CR None 100 :00% 0 :00% (0;0:00;0) 150 (6:63;6:71;6:96) (18:84;23:82;33:30)
+Large Mid CR All 0 :00% 0 :00% (0;0:00;0) 0 (0:03;0:04;0:05) ( 5:17;5:18;5:20)
+Large Mid CR None 0 :00% 0 :00% (1;1:00;1) 150 (0:04;3:39;6:86) (19:97;20:15;20:43)
+Surface CRs All 100 :00% 0 :00% (0;0:06;1) 27 (0:10;5:67;6:96) (20:22;27:44;115 :02)
+Surface CRs None 40 :00% 0 :00% (0;0:65;3) 93 (0:04;2:41;6:17) (19:30;88:03;120 :00)
+Tunnel CRs All 100 :00% 0 :00% (0;0:16;1) 166 (0:09;1:85;2:31) (13:91;17:51;38:42)
+Tunnel CRs None 94 :00% 0 :00% (0;0:83;3) 525 (0:04;4:94;9:38) (20:72;34:23;110 :51)
+Table 2: Experiment results for the virtual needle (with (min, avg, max) data for counts and times).
+
+--- Page 11 ---
+50 Modeling 3D Needle Steering
+ScenarioCRs TR CRAdjustmentsMotion Synthesis Overall
+Known Reach Hit Plans Time [s] Time [s]
+NoCR - 66 :67% 0 :00% (1;6:00;13) 469 (0:05;1:14;7:87) (34:16;99:30;120 :00)
+Small Mid CR All 40 :00% 0 :00% (1;1:20;2) 346 (0:06;2:38;9:53) (22:97;42:62;61:12)
+Large Mid CR All 0 :00% 0 :00% (0;0:00;0) 0 (0:04;0:06;0:09) ( 6:70;6:79;6:95)
+Surface CRs All 57 :14% 0 :00% (1;2:86;7) 267 (0:08;3:09;12:28) (38:18;89:25;120 :00)
+Tunnel CRs All 0 :00% 0 :00% (0;1:33;2) 317 (0:07;2:45;10:49) (6:85;61:06;120 :00)
+Table 3: Experiment results for the real needle (with (min, avg, max) data for counts and times).
+were required (up to 13 in one case of NoCR), and thus, the average overall execution time was higher
+(e.g., 61 :06sforTunnel CRs in contrast to 17 :51sfor the virtual needle counterpart). Yet, the CR hit
+percentage of 0% shows that we can still prevent unsafe situations.
+The results of Experiment 3 are inferior to those of Experiment 2 for a number of reasons: The needle
+only approximately moves in circular paths, so that the likewise approximatively ﬁtted motion circle
+may highly deviate from the actual path. Also, the needle is deﬂected by formerly cut paths at times,
+especially after readjustment steps. Additionally, the data acquisition process affects the results. While
+the virtual needle data is exact, the real needle data depends on the type and calibration of the needle and
+measurement setup; move and rotate instruction may not be executed exactly, and as pointed out in [19],
+air bubbles in gelatin and surface reﬂections may inﬂuence the optical measuring system. However, it is
+noteworthy that even in some cases of bad local data and ﬁtting results, the TR is still reached, and in all
+cases, the experiment aborts with empty strategies before reaching a potentially critical state.
+6 Related Work
+Floating-point applications exist that have been successfully veriﬁed (e.g., water distribution systems
+[21] [11] and biological kinase networks [25]) but most veriﬁcation tools are restricted to discrete values.
+Attempts to extend and generalize model checking by real variables were made in the past [13]; however,
+decidability is often limited [5] [22], only reached via abstractions [6], or not given at all for particular
+hybrid model types [15]. For our model, we investigate in which parts and at which points during
+checking the continuous system state can be described by discrete variables (to enable integer model
+checking) while keeping the model sufﬁciently accurate and precise.
+Ofﬂine timed games [1] have been successfully applied to, e.g., railway, cruise, and trafﬁc light
+control problems [12][17][3] or power management [8]. These ofﬂine timed games assume complete
+knowledge of the behavior of a system and its environment, but few works exist that relax the requirement
+of complete information. Bacci et al. investigate the partially observable oil-pump control problem and
+deal with imprecise knowledge of energy rates by assigning imprecisions to updates of edges to the
+energy-timed automata [2]. Another approach to solve controller synthesis under partial observability is
+the template-based controller synthesis by Finkenbeiner and Peter, where automatic abstract reﬁnement
+reduces incrementally the set of valuation of parameters until only safe states are reachable [14]. Cassez
+at al. [7] permit the situation where a controller strategy is generated based on (incomplete) observations
+but assume the strategy to be stuttering-invariant. While most of timed games are ofﬂine approaches, in
+[18] Larsen at al. present a compositional online synthesis approach to control the ﬂoor heating system in
+a house for a short period. Similar to our approach the ﬂoor heating system model is periodically updated
+with real-time sensor data of room and outside temperatures. However, the approach assumes complete
+knowledge of the process, which we do not. In the needle steering application, we cannot ignore safety-
+
+--- Page 12 ---
+S. Lehmann et al. 51
+critical incomplete environmental information, namely that tissue, in reality, is inhomogeneous and has
+anatomic obstacles, which we are not allowed to puncture and also can only detect during the insertion.
+In terms of medical technology, the use of ﬂexible needles presents a particular research challenge:
+To drive ﬂexible needles to a soft tissue target, the needle-tissue interaction needs to be known. First
+approaches include nonholonomic models to estimate the needle trajectory in homogeneous tissue [26],
+but they do not include tissue movement due to insertion forces. Hence, FEM modelings with linear
+elastic tissue have been developed [16]. Yet, ofﬂine simulations of needle-tissue interaction, solely based
+on clinical image data, are of limited use when applied to a real clinical needle insertion as the image
+data does not provide details of the mechanical properties of the respective tissues. A few adaptive
+online models are now available that include uncertainties from tissue inhomogeneities, needle buckling,
+or slip-stick-movement during needle insertion. Those adaptive models can be applied in data-driven
+methods [24] or with real-time sensoring [20]. Still, neither method can provide any formal guarantees.
+7 Conclusion and Future Work
+In this paper, we designed a model and framework for online needle steering based on veriﬁable safety
+guarantees. As the main task, we had to ﬁnd proper trade-offs for the opposing requirements imposed by
+both the medical application and the model checker. The experiment results have shown that the chosen
+set of simpliﬁcations indeed allows for safely navigating through the environment in both the virtual and
+real setting.
+Still, we plan to enhance the results in three ways: First, switching to a non-optical measuring sys-
+tem (e.g., ultrasound measurements) would allow mitigation of the negative impacts of gelatin phantom
+characteristics, and would enable the step towards application in real tissue. Second, different needle
+types with varying elasticity can be used to further approach circular motions, and different needle ve-
+locities and tip sharpening might help dealing with the guiding inﬂuence of formerly cut paths. Third,
+the geometric model can be replaced with a more physically accurate one. Depending on the concrete
+use case, one may implement additional motion restrictions to either simultaneously relax some of the
+current restrictions (e.g., the limited number of allowed rotation per synthesis phase), or implement a
+more dynamic environment model of heterogeneous tissue with moving CRs and TRs. Finally, we note
+that the underlying OSS framework can be applied to other navigation tasks beyond needle steering.
+References
+[1] Eugene Asarin, Oded Maler, Amir Pnueli & Joseph Sifakis (1998): Controller Synthesis for Timed Automata .
+IFAC Proceedings V olumes 31(18), pp. 447–452, doi:10.1016/S1474-6670(17)42032-5.
+[2] Giovanni Bacci, Patricia Bouyer, Uli Fahrenberg, Kim G Larsen, Nicolas Markey & Pierre-Alain Reynier
+(2020): Optimal and robust controller synthesis using energy timed automata with uncertainty .Formal
+Aspects of Computing , pp. 1–23, doi:10.1007/s00165-020-00521-4.
+[3] Davide Basile, Maurice H ter Beek & Axel Legay (2020): Strategy Synthesis for Autonomous Driving in a
+Moving Block Railway System with Uppaal Stratego . In: International Conference on Formal Techniques for
+Distributed Objects, Components, and Systems , pp. 3–21, doi:10.1007/978-3-030-50086-3 1.
+[4] Gerd Behrmann, Agn `es Cougnard, Alexandre David, Emmanuel Fleury, Kim G. Larsen & Didier Lime
+(2007): UPPAAL-Tiga: Time for Playing Games! In: Computer Aided Veriﬁcation , pp. 121–125,
+doi:10.1007/978-3-540-73368-3 14.
+
+--- Page 13 ---
+52 Modeling 3D Needle Steering
+[5] Ahmed Bouajjani, Rachid Echahed & Riadh Robbana (1995): On the automatic veriﬁcation of systems
+with continuous variables and unbounded discrete data structures . In: Hybrid Systems II , pp. 64–85,
+doi:10.1007/3-540-60472-3 4.
+[6] Angelo Brillout, Daniel Kroening & Thomas Wahl (2009): Mixed abstractions for ﬂoating-point arithmetic .
+In:2009 Formal Methods in Computer-Aided Design , pp. 69–76, doi:10.1109/fmcad.2009.5351141.
+[7] Franck Cassez, Alexandre David, Kim G Larsen, Didier Lime & Jean-Franc ¸ois Raskin (2007): Timed control
+with observation based and stuttering invariant strategies . In: International Symposium on Automated
+Technology for Veriﬁcation and Analysis , pp. 192–206, doi:10.1007/978-3-540-75596-8 15.
+[8] S. Dai, M. Hong & B. Guo (2017): Synthesizing power management strategies for wireless sen-
+sor networks with Uppaal-Stratego .International Journal of Distributed Sensor Networks 13(4),
+doi:10.1177/1550147717700900.
+[9] Alexandre David, Peter Gjøl Jensen, Kim Guldstrand Larsen, Marius Miku ˇcionis & Jakob Haahr Taankvist
+(2015): Uppaal Stratego . In: Tools and Algorithms for the Construction and Analysis of Systems , pp. 206–
+211, doi:10.1007/978-3-662-46681-0 16.
+[10] Alexandre David, Kim G. Larsen, Axel Legay, Marius Miku ˇcionis & Danny Bøgsted Poulsen (2015): Up-
+paal SMC tutorial .International Journal on Software Tools for Technology Transfer 17(4), pp. 397–415,
+doi:10.1007/s10009-014-0361-y.
+[11] James Dougherty, Ron Kohavi & Mehran Sahami (1995): Supervised and Unsupervised Discretization of
+Continuous Features . In: Machine Learning Proceedings 1995 , pp. 194–202, doi:10.1016/b978-1-55860-
+377-6.50032-3.
+[12] Andreas Berre Eriksen, Chao Huang, Jan Kildebogaard, Harry Lahrmann, Kim G. Larsen, Marco Muniz &
+Jakob Haahr Taankvist (2017): Uppaal Stratego for Intelligent Trafﬁc Lights . In: Proceedings of the 12th
+ITS European Congress .
+[13] Franc ¸ois Fages & Aur ´elien Rizk (2009): From Model-Checking to Temporal Logic Constraint Solving . In:
+Principles and Practice of Constraint Programming (CP 2009) , pp. 319–334, doi:10.1007/978-3-642-04244-
+726.
+[14] Bernd Finkbeiner & Hans-J ¨org Peter (2012): Template-based controller synthesis for timed systems . In:
+International Conference on Tools and Algorithms for the Construction and Analysis of Systems , pp. 392–
+406, doi:10.1007/978-3-642-28756-5 27.
+[15] Thomas A. Henzinger, Peter W. Kopke, Anuj Puri & Pravin Varaiya (1998): What’s Decidable about Hybrid
+Automata? Journal of Computer and System Sciences 57(1), pp. 94–124, doi:10.1006/jcss.1998.1581.
+[16] Mohamed Gouse Jushiddi, John J. E. Mulvihill, Drahomir Chovan, Aladin Mani, Camelia Shana-
+han, Christophe Silien, Syed Ansar Md Tofail & Peter Tiernan (2019): Simulation of biopsy bevel-
+tipped needle insertion into soft-gel . Computers in Biology and Medicine 111, pp. 103–337,
+doi:10.1016/j.compbiomed.2019.103337.
+[17] S.L. Karra, K.G. Larsen, F. Lorber & J. Srba (2019): Safe and Time-Optimal Control for Railway Games .
+Lecture Notes in Computer Science 11495 LNCS, pp. 106–122, doi:10.1007/978-3-030-18744-6 7.
+[18] Kim G. Larsen, Marius Miku ˇcionis, Marco Mu ˜niz, Ji ˇr´ı Srba & Jakob Haahr Taankvist (2016): Online and
+Compositional Learning of Controllers with Application to Floor Heating . In: Tools and Algorithms for the
+Construction and Analysis of Systems , pp. 244–259, doi:10.1007/978-3-662-49674-9 14.
+[19] Sascha Lehmann, Antje Rogalla, Maximilian Neidhardt, Alexander Schlaefer & Sibylle Schupp (2021): On-
+line Strategy Synthesis for Safe and Optimized Control of Steerable Needles . In: Proceedings of the Third
+Workshop on Formal Methods for Autonomous Systems , 348, pp. 128–135, doi:10.4204/EPTCS.348.9.
+[20] Thomas Lehmann, Ronald Sloboda, Nawaid Usmani & Mahdi Tavakoli (2018): Model-Based Needle Steer-
+ing in Soft Tissue via Lateral Needle Actuation .IEEE Robotics and Automation Letters 3(4), pp. 3930–3936,
+doi:10.1109/lra.2018.2858001.
+
+--- Page 14 ---
+S. Lehmann et al. 53
+[21] Francesco Mercaldo, Fabio Martinelli & Antonella Santone (2019): Real-Time SCADA Attack Detection by
+Means of Formal Methods . In: IEEE 28th International Conference on Enabling Technologies: Infrastructure
+for Collaborative Enterprises , pp. 231–236, doi:10.1109/WETICE.2019.00057.
+[22] Joseph S. Miller (2000): Decidability and Complexity Results for Timed Automata and Semi-linear Hybrid
+Automata . In: Hybrid Systems: Computation and Control , pp. 296–310, doi:10.1007/3-540-46430-1 26.
+[23] Antje Rogalla, Sascha Lehmann, Maximilian Neidhardt, Johanna Sprenger, Marcel Bengs, Alexander Schlae-
+fer & Sibylle Schupp (2020): Synthesizing Strategies for Needle Steering in Gelatin Phantoms .Electronic
+Proceedings in Theoretical Computer Science 316, pp. 261–274, doi:10.4204/eptcs.316.10.
+[24] Carlos Rossa, Thomas Lehmann, Ron Sloboda, Nawaid Usmani & Mahdi Tavakoli (2017): A Data-Driven
+Soft Sensor for Needle Deﬂection in Heterogeneous Tissue using Just-in-Time Modelling .Medical & Biolog-
+ical Engineering & Computing 55(8), pp. 1401–1414, doi:10.1007/s11517-016-1599-1.
+[25] Stefano Schivo & Rom Langerak (2017): Discretization of Continuous Dynamical Systems Using UPPAAL .
+In:ModelEd, TestEd, TrustEd: Essays Dedicated to Ed Brinksma on the Occasion of His 60th Birthday , pp.
+297–315, doi:10.1007/978-3-319-68270-9 15.
+[26] Robert J. Webster, Jin Seob Kim, Noah J. Cowan, Gregory S. Chirikjian & Allison M. Okamura (2006):
+Nonholonomic Modeling of Needle Steering .International Journal of Robotics Research 25(5-6), pp. 509–
+525, doi:10.1177/0278364906065388.
+A C Code Declaration of the Uppaal Model
+The following code section presents the complete C code declaration of the Uppaal needle steering
+model:
+typedef int [ -(1 < <31) ,(1 < <31) -1] int32_t ; // int32_t : A 32 - bit integer data type .
+const int32_t INT32_MIN = -2147483648; // INT32_MIN : The minimum value of the 32 - bit integer range .
+const int32_t INT32_MAX = 2147483647; // INT32_MAX : The maximum value of the 32 - bit integer range .
+const int _SI_ = 1000; // _SI_ : The scale factor between integer and double domain (as integer ).
+const double PI = 3.14159265358979312; // PI: The ( rounded ) value of pi .
+int dt = 2; // dt: The simulation time delta .
+/* ************************************************
+************ General Helper Functions ************
+************************************************ */
+/**
+* @brief Determines the maximum of two given values .
+* @param v1 The first value .
+* @param v2 The second value .
+*/
+int32_t max ( int32_t v1 , int32_t v2) {
+return (v1 > v2 ? v1 : v2 );
+}
+/**
+* @brief Determines the minimum of two given values .
+* @param v1 The first value .
+* @param v2 The second value .
+*/
+int32_t min ( int32_t v1 , int32_t v2) {
+return (v1 < v2 ? v1 : v2 );
+}
+/* ****************************************************
+******************** System Model ********************
+**************************************************** */
+/* ***************
+* Actions ( ACT ) *
+*************** */
+const int32_t MIN_PROG_BETWEEN_ROTS = 2* _SI_ ; // MIN_PROG_BETWEEN_ROTS : The required needle progress between rotations .
+const int MAX_ROT_COUNT = 2; // MAX_ROT_COUNT : The maximum allowed number of rotations .
+const int PUSH_ACTION = 0; // PUSH_ACTION : The ID of a push action .
+const int ROLL_ROTATE_ACTION = 1; // ROLL_ROTATE_ACTION : The ID of a roll rotate action .
+const int MAX_ACT_COUNT = 10; // MAX_ACT_COUNT : The maximum allowed number of actions .
+const int ACT_PROG = 0; // ACT_PROG : The index of the needle progress inside an action tuple .
+
+--- Page 15 ---
+54 Modeling 3D Needle Steering
+const int ACT_TYPE = 1; // ACT_TYPE : The index of the action type inside an action tuple .
+const int ACT_VAL = 2; // ACT_VAL : The index of the action value inside an action tuple .
+int32_t actions [ MAX_ACT_COUNT ][3]; // Tuples ( progress , action_type , action_value ).
+int32_t curr_ACT_index = 0; // curr_ACT_index : The current action index .
+int ROT_counter = 0; // ROT_counter : A counter for the number of rotations .
+int prev_ROT_index = -1; // prev_ROT_index : The index of the most previous rotation action .
+const int ANGLE_COUNT = 3; // ANGLE_COUNT : The count of different angles for rotation actions .
+int allowed_rot_angles [ ANGLE_COUNT ] = { // allowed_rot_angles : The set of allowed rotation angle .
+90, 180 , 270
+};
+int sel_rot_angle = 0; // sel_rot_angle : The currently selected rotation angle .
+/* ************************
+* Detection Regions ( DR) *
+************************ */
+const int32_t DR_COUNT = 1; // DR_COUNT : The number of detection regions in the system .
+const bool HAS_DETECTION_REGIONS = true ; // HAS_DETECTION_REGIONS : Indicator for whether the system has any DRs .
+const bool TREAT_DR_AS_CR = true ; // TREAT_DR_AS_CR : Indicator for whether DRs should be handle similar to
+// CRs , i.e., paths that reach DRs are discarded as well .
+int32_t DR_center [ DR_COUNT ][3] = { // DR_center : The center points of the spherical DRs .
+{0, -25* _SI_ , 0}
+};
+int32_t DR_radius [ DR_COUNT ] = { 5* _SI_ }; // DR_radius : The radii of the spherical DRs .
+/* ***********************
+* Critical Regions (CR) *
+*********************** */
+const int32_t CR_COUNT = 1; // CR_COUNT : The number of critical regions in the system .
+const bool HAS_CRITICAL_REGIONS = true ; // HAS_CRITICAL_REGIONS : Indicator for whether the system has any CRs .
+int32_t CR_center [ CR_COUNT ][3] = { // CR_center : The center points of the spherical CRs .
+{0, -25* _SI_ , 0}
+};
+int32_t CR_radius [ CR_COUNT ] = { 2* _SI_ }; // CR_radius : The radii of the spherical CRs .
+/* *********************
+* Target Regions (TR) *
+********************* */
+const int32_t TR_COUNT = 1; // TR_COUNT : The number of target regions in the system .
+int32_t TR_center [ TR_COUNT ][3] = { // TR_center : The center points of the spherical TRs .
+{0, -50* _SI_ , 0}
+};
+int32_t TR_radius [ TR_COUNT ] = { 10* _SI_ }; // TR_radius : The radii of the spherical TRs .
+int32_t curr_TR_index = 0; // curr_TR_index : The index of the currently considered TR.
+/* ****************************************************
+******************** Needle Model ********************
+**************************************************** */
+/* ****************************
+* Needle Parameters and Data *
+**************************** */
+int32_t needle_progress = 0; // needle_progress : The current progress of the needle [mm ].
+int32_t tip_pos [3] = {0* _SI_ , 0* _SI_ , 0* _SI_ }; // tip_pos : The current position of the needle tip [mm ].
+int32_t needle_vel = 1 * _SI_ ; // needle_vel : The velocity of the needle [mm/s].
+int32_t tip_roll = 0 * _SI_ ; // tip_roll : The current roll angle of the needle tip .
+/** Motion Circle * */
+int32_t motion_circle_center [3] = { // motion_circle_center : The center of the current motion circle .
+0* _SI_ , 0* _SI_ , 0* _SI_
+};
+int32_t motion_circle_r = 30 * _SI_ ; // motion_circle_r : The radius of the current motion circle .
+int32_t motion_circle_yaw = 0 * _SI_ ; // motion_circle_yaw : The current tip yaw around the motion circle .
+/** Vectors * */
+const int GLOBAL_X_VEC = 0; // GLOBAL_X_VEC : The ID of the x - axis of the global coordinate system .
+const int GLOBAL_Y_VEC = 1; // GLOBAL_Y_VEC : The ID of the y - axis of the global coordinate system .
+const int GLOBAL_Z_VEC = 2; // GLOBAL_Z_VEC : The ID of the z - axis of the global coordinate system .
+const int TIP_X_VEC = 3; // TIP_X_VEC : The ID of the x- axis of the local coordinate system of the needle tip .
+// -> pointing in needle motion direction .
+const int TIP_Y_VEC = 4; // TIP_X_VEC : The ID of the y- axis of the local coordinate system of the needle tip .
+// -> pointing towards rotation circle center .
+const int TIP_Z_VEC = 5; // TIP_X_VEC : The ID of the z- axis of the local coordinate system of the needle tip .
+// -> normal of rotation circle .
+const int TEMP_VEC_1 = 6; // TEMP_VEC_1 : A vector for intermediate calculation results .
+const int TEMP_VEC_2 = 7; // TEMP_VEC_2 : A vector for intermediate calculation results .
+const int VECTOR_COUNT = 8;
+int32_t vectors [ VECTOR_COUNT ][3] = {
+{1* _SI_ , 0, 0}, // GLOBAL_X_VEC
+{0, 1* _SI_ , 0}, // GLOBAL_Y_VEC
+{0, 0, 1* _SI_ }, // GLOBAL_Z_VEC
+{0, 0, 0}, // TIP_X_VEC
+
+--- Page 16 ---
+S. Lehmann et al. 55
+{0, 0, 0}, // TIP_Y_VEC
+{0, 0, 0}, // TIP_Z_VEC
+{0, 0, 0}, // TEMP_VEC_1
+{0, 0, 0} // TEMP_VEC_2
+};
+/** Matrices **/
+const int ID_MAT = 0; // ID_MAT : The identity matrix .
+const int TIP_BASE_ROT_MAT = 1; // TIP_BASE_ROT_MAT : Represents needle rotation after last " motion -> rotation ".
+const int TIP_CIRCLE_ROT_MAT = 2; // TIP_CIRCLE_ROT_MAT : Reprents the rotation caused by the circular motion .
+const int TIP_ACTION_ROT_MAT = 3; // TIP_ACTION_ROT_MAT : Reprents the rotation caused by a needle roll action .
+const int TIP_ROT_MAT = 4; // TIP_ROT_MAT : Represents the current rotation of the needle tip .
+const int TEMP_MAT_1 = 5; // TEMP_MAT_1 : A matrix for intermediate calculation results .
+const int MATRIX_COUNT = 6;
+int32_t matrices [ MATRIX_COUNT ][3][3] = {
+{{1* _SI_ , 0, 0}, {0, 1* _SI_ , 0}, {0, 0, 1* _SI_ }}, // ID_MAT
+{{0 , 1* _SI_ , 0}, { -1* _SI_ , 0, 0}, {0, 0, 1* _SI_ }}, // TIP_BASE_ROT_MAT
+{{1* _SI_ , 0, 0}, {0, 1* _SI_ , 0}, {0, 0, 1* _SI_ }}, // TIP_CIRCLE_ROT_MAT
+{{1* _SI_ , 0, 0}, {0, 1* _SI_ , 0}, {0, 0, 1* _SI_ }}, // TIP_ACTION_ROT_MAT
+{{1* _SI_ , 0, 0}, {0, 1* _SI_ , 0}, {0, 0, 1* _SI_ }}, // TIP_ROT_MAT
+{{0 , 0, 0}, {0, 0, 0}, {0, 0, 0}} // TEMP_MAT_1
+};
+/* ***************************
+* Vector / matrix functions *
+*************************** */
+/**
+* @brief Calculates the dot product of two matrices .
+* @param in_mat_1 The index of the first input matrix .
+* @param in_mat_2 The index of the second input matrix .
+* @param out_mat The index of the resulting matrix .
+*/
+void matrix_matrix_dot ( int in_mat_1 , int in_mat_2 , int out_mat ) {
+int i,j,k;
+int32_t entry_sum ;
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+for (i =0; i <3; i++) {
+for (j =0; j <3; j++) {
+entry_sum = 0;
+for (k =0; k <3; k++) {
+entry_sum += fint ((( matrices [ in_mat_1 ][i][k]/ _S_) * ( matrices [ in_mat_2 ][k][j]/ _S_ ))* _S_ );
+}
+matrices [ out_mat ][i][j] = entry_sum ;
+}
+}
+}
+/**
+* @brief Calculates the dot product of a matrix and a vector .
+* @param in_mat The index of the input matrix .
+* @param in_vec The index of the input vector .
+* @param out_vec The index of the resulting vector .
+*/
+void matrix_vector_dot ( int in_mat , int in_vec , int out_vec ) {
+int i,k;
+int32_t entry_sum ;
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+for (i =0; i <3; i++) {
+entry_sum = 0;
+for (k =0; k <3; k++) {
+entry_sum += fint ((( matrices [ in_mat ][i][k]/ _S_ ) * ( vectors [ in_vec ][k]/ _S_ ))* _S_ );
+}
+vectors [ out_vec ][i] = entry_sum ;
+}
+}
+/**
+* @brief Copies a vector to another vector .
+* @param in_vec The index of the source vector .
+* @param out_vec The index of the target vector .
+*/
+void copy_vector ( int in_vec , int out_vec ) {
+int i;
+for (i =0; i <3; i++) {
+vectors [ out_vec ][i] = vectors [ in_vec ][i];
+}
+}
+/**
+* @brief Copies a matrix to another matrix .
+* @param in_mat The index of the source matrix .
+* @param out_mat The index of the target matrix .
+*/
+void copy_matrix ( int in_mat , int out_mat ) {
+
+--- Page 17 ---
+56 Modeling 3D Needle Steering
+int i,j;
+for (i =0; i <3; i++) {
+for (j =0; j <3; j++) {
+matrices [ out_mat ][i][j] = matrices [ in_mat ][i][j];
+}
+}
+}
+/**
+* @brief Get the magnitude of a given vector .
+* @param in_vec The index of the vector .
+*/
+int32_t get_magnitude ( int in_vec ) {
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+int32_t res = fint (( sqrt ( pow ( vectors [ in_vec ][0]/ _S_ , 2) +
+pow ( vectors [ in_vec ][1]/ _S_ , 2) +
+pow ( vectors [ in_vec ][2]/ _S_ , 2)))* _S_ );
+return res;
+}
+/**
+* @brief Normalizes a given vector .
+* @param in_vec The index of the vector .
+*/
+void normalize_vector ( int in_vec ) {
+int i;
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+int32_t magnitude = get_magnitude ( in_vec );
+if ( magnitude == 0) {
+return ;
+}
+for (i =0; i <3; i++) {
+vectors [ in_vec ][i] = fint ((( vectors [ in_vec ][i]/ _S_) / ( magnitude / _S_ )) * _S_ );
+}
+}
+/**
+* @brief Generates a rotation matrix based on an axis vector and an angle .
+* @param axis The index of the axis vector .
+* @param theta The angle .
+* @param out_mat The index of the resulting matrix .
+*/
+void generate_rotation_matrix_from_axis_and_angle ( int axis , int32_t theta , int out_mat ) {
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+matrices [ out_mat ][0][0] = fint (( cos ( theta / _S_ ) + pow ( vectors [ axis ][0]/ _S_ ,2) * (1 - cos ( theta / _S_ )))* _S_ );
+matrices [ out_mat ][0][1] = fint ((( vectors [ axis ][0]/ _S_ ) * ( vectors [ axis ][1]/ _S_ ) *
+(1 - cos ( theta / _S_ )) - ( vectors [ axis ][2]/ _S_ ) * sin ( theta / _S_ ))* _S_ );
+matrices [ out_mat ][0][2] = fint ((( vectors [ axis ][0]/ _S_ ) * ( vectors [ axis ][2]/ _S_ ) *
+(1 - cos ( theta / _S_ )) + ( vectors [ axis ][1]/ _S_ ) * sin ( theta / _S_ ))* _S_ );
+matrices [ out_mat ][1][0] = fint ((( vectors [ axis ][1]/ _S_ ) * ( vectors [ axis ][0]/ _S_ ) *
+(1 - cos ( theta / _S_ )) + ( vectors [ axis ][2]/ _S_ ) * sin ( theta / _S_ ))* _S_ );
+matrices [ out_mat ][1][1] = fint (( cos ( theta / _S_ ) + pow ( vectors [ axis ][1]/ _S_ ,2) * (1 - cos ( theta / _S_ )))* _S_ );
+matrices [ out_mat ][1][2] = fint ((( vectors [ axis ][1]/ _S_ ) * ( vectors [ axis ][2]/ _S_ ) *
+(1 - cos ( theta / _S_ )) - ( vectors [ axis ][0]/ _S_ ) * sin ( theta / _S_ ))* _S_ );
+matrices [ out_mat ][2][0] = fint ((( vectors [ axis ][2]/ _S_ ) * ( vectors [ axis ][0]/ _S_ ) *
+(1 - cos ( theta / _S_ )) - ( vectors [ axis ][1]/ _S_ ) * sin ( theta / _S_ ))* _S_ );
+matrices [ out_mat ][2][1] = fint ((( vectors [ axis ][2]/ _S_ ) * ( vectors [ axis ][1]/ _S_ ) *
+(1 - cos ( theta / _S_ )) + ( vectors [ axis ][0]/ _S_ ) * sin ( theta / _S_ ))* _S_ );
+matrices [ out_mat ][2][2] = fint (( cos ( theta / _S_ ) + pow ( vectors [ axis ][2]/ _S_ ,2) * (1 - cos ( theta / _S_ )))* _S_ );
+}
+/* *********************
+* Simulator functions *
+********************* */
+/**
+* @brief Updates the tip rotation matrix ( composed from base , circle , and action rotation ).
+*/
+void update_tip_rotation_matrix () {
+matrix_matrix_dot ( TIP_CIRCLE_ROT_MAT , TIP_BASE_ROT_MAT , TEMP_MAT_1 );
+matrix_matrix_dot ( TIP_ACTION_ROT_MAT , TEMP_MAT_1 , TIP_ROT_MAT );
+}
+/**
+* @brief Updates the action rotation matrix (e.g., when an action was performed ).
+*/
+void update_action_rotation_matrix () {
+generate_rotation_matrix_from_axis_and_angle ( TIP_X_VEC , tip_roll , TIP_ACTION_ROT_MAT );
+}
+/**
+* @brief Updates the circle rotation matrix (i.e., when the needle was further moved along the rotation circle ).
+*/
+void update_circle_rotation_matrix () {
+matrix_vector_dot ( TIP_BASE_ROT_MAT , GLOBAL_Y_VEC , TEMP_VEC_1 );
+normalize_vector ( TEMP_VEC_1 );
+
+--- Page 18 ---
+S. Lehmann et al. 57
+generate_rotation_matrix_from_axis_and_angle ( TEMP_VEC_1 , motion_circle_yaw , TIP_CIRCLE_ROT_MAT );
+}
+/**
+* @brief Reset the remaining matrices ( circle and action rotation ) and the rotation circle yaw
+* after base rotation update .
+*/
+void reset_data_after_base_rotation_update () {
+copy_matrix ( ID_MAT , TIP_CIRCLE_ROT_MAT );
+copy_matrix ( ID_MAT , TIP_ACTION_ROT_MAT );
+motion_circle_yaw = 0;
+}
+/**
+* @brief Updates the tip base rotation matrix ( composed from base , circle , and action rotation ).
+The current , concrete tip rotation matrix becomes the new base rotation matrix then .
+All other matrices ( circle and action rotation ) and the rotation circle yaw are reset afterwards .
+*/
+void update_base_rotation_matrix () {
+update_tip_rotation_matrix ();
+copy_matrix ( TIP_ROT_MAT , TIP_BASE_ROT_MAT );
+reset_data_after_base_rotation_update ();
+}
+/**
+* @brief Updates the local coordinate system of the needle .
+* The x- axis points in needle direction , the y- axis towards the current rotation circle center .
+*/
+void update_needle_coordinate_system () {
+matrix_vector_dot ( TIP_ROT_MAT , GLOBAL_X_VEC , TIP_X_VEC );
+normalize_vector ( TIP_X_VEC );
+matrix_vector_dot ( TIP_ROT_MAT , GLOBAL_Y_VEC , TIP_Y_VEC );
+normalize_vector ( TIP_Y_VEC );
+matrix_vector_dot ( TIP_ROT_MAT , GLOBAL_Z_VEC , TIP_Z_VEC );
+normalize_vector ( TIP_Z_VEC );
+}
+/**
+* @brief Updates the rotation circle center (e.g., when the needle roll angle changes ).
+*/
+void update_circle_center () {
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+update_tip_rotation_matrix ();
+update_needle_coordinate_system ();
+motion_circle_center [0] = fint (( tip_pos [0]/ _S_ - (( motion_circle_r / _S_ ) * ( vectors [ TIP_Z_VEC ][0]/ _S_ ))) * _S_ );
+motion_circle_center [1] = fint (( tip_pos [1]/ _S_ - (( motion_circle_r / _S_ ) * ( vectors [ TIP_Z_VEC ][1]/ _S_ ))) * _S_ );
+motion_circle_center [2] = fint (( tip_pos [2]/ _S_ - (( motion_circle_r / _S_ ) * ( vectors [ TIP_Z_VEC ][2]/ _S_ ))) * _S_ );
+}
+/**
+* @brief Updates the position of the needle tip .
+*/
+void update_tip_pos () {
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+update_circle_rotation_matrix ();
+// Calculate rotated vector from circle center to new tip position
+matrix_vector_dot ( TIP_BASE_ROT_MAT , GLOBAL_Z_VEC , TEMP_VEC_1 );
+matrix_vector_dot ( TIP_CIRCLE_ROT_MAT , TEMP_VEC_1 , TEMP_VEC_2 );
+// Calculate new tip position
+tip_pos [0] = fint (( motion_circle_center [0]/ _S_ + ( vectors [ TEMP_VEC_2 ][0]/ _S_ ) * ( motion_circle_r /_S_ )) * _S_ );
+tip_pos [1] = fint (( motion_circle_center [1]/ _S_ + ( vectors [ TEMP_VEC_2 ][1]/ _S_ ) * ( motion_circle_r /_S_ )) * _S_ );
+tip_pos [2] = fint (( motion_circle_center [2]/ _S_ + ( vectors [ TEMP_VEC_2 ][2]/ _S_ ) * ( motion_circle_r /_S_ )) * _S_ );
+update_tip_rotation_matrix ();
+update_needle_coordinate_system ();
+}
+/**
+* @brief Rotates the needle by a given roll angle specified in radians
+(e.g., rotate_rad ( fint (0.5* PI* _SI_ )) for a 90 degree rotation ).
+*/
+void rotate_rad ( int32_t angle ) {
+tip_roll = angle ;
+update_action_rotation_matrix ();
+update_circle_center ();
+// Update tip base rotation matrix by previous base rotation , circle rotation , and action rotation
+update_base_rotation_matrix ();
+ROT_counter ++;
+}
+/**
+
+--- Page 19 ---
+58 Modeling 3D Needle Steering
+* @brief Rotates the needle by a given roll angle specified in degrees
+(e.g., rotate_deg (90) for a 90 degree rotation ).
+*/
+void rotate_deg ( int32_t angle ) {
+rotate_rad ( fint ((( angle /180.0) * PI * _SI_ )));
+}
+/**
+* @brief Performs a single simulation step .
+*/
+void step () {
+int32_t needle_pos_delta , tip_yaw_delta ;
+double _S_ = _SI_ *1.0; // _S_ : The scale factor (as double value ).
+needle_pos_delta = fint ((( needle_vel /_S_) * dt) * _S_ );
+tip_yaw_delta = fint ((( needle_pos_delta / _S_) / ( motion_circle_r / _S_ )) * _S_ );
+needle_progress += needle_pos_delta ;
+motion_circle_yaw += tip_yaw_delta ;
+update_tip_pos ();
+}
+/**
+* @brief Initializes the needle .
+*/
+void initialize () {
+update_circle_center ();
+}
+/* ************************************************
+******************** TA Model ********************
+************************************************ */
+/** Clocks **/
+clock t = 0.0; // t: The global system clock .
+/** Communication Channels **/
+/* Workflow */
+broadcast chan do_tissue_action ; // do_tissue_action : The channel for notifying the Tissue that needle action
+// step is finished to start Tissue reaction .
+broadcast chan finished_tissue_action ; // finished_tissue_action : The channel for notifying the User that Tissue
+// reaction has finished .
+broadcast chan do_check ; // do_check : The channel for notifying the State Checker that a new state is
+// available for validity / reaching checks .
+broadcast chan finished_check ; // finished_check : The channel for notifying the User that the State Checker
+// finished the validity / reaching checks .
+/* User / Needle */
+broadcast chan do_push ; // do_push : The channel for notifying the Needle that a push motion should be executed .
+broadcast chan do_rotate ; // do_rotate : The channel for notifying the Needle that a rotate motion should be executed .
+/* Checker */
+broadcast chan terminate ; // terminate : The channel for notifying the User that the current path should be discarded .
+/* ******************
+* Logger functions *
+****************** */
+/**
+* @brief Logs the current push action .
+*/
+void log_push_action () {
+actions [ curr_ACT_index ][ ACT_PROG ] = curr_ACT_index ==0 ? 0 : actions [ curr_ACT_index -1][ ACT_PROG ];
+actions [ curr_ACT_index ][ ACT_TYPE ] = PUSH_ACTION ;
+actions [ curr_ACT_index ][ ACT_VAL ] = needle_progress - actions [ curr_ACT_index ][ ACT_PROG ];
+curr_ACT_index ++;
+}
+/**
+* @brief Logs the current rotation action .
+*/
+void log_rotation_action () {
+actions [ curr_ACT_index ][ ACT_PROG ] = needle_progress ;
+actions [ curr_ACT_index ][ ACT_TYPE ] = ROLL_ROTATE_ACTION ;
+actions [ curr_ACT_index ][ ACT_VAL ] = sel_rot_angle ;
+prev_ROT_index = curr_ACT_index ;
+curr_ACT_index ++;
+}
+/* *****************************
+* Guard / Invariant functions *
+***************************** */
+/**
+* @brief Checks if the needle tip entered any critical region .
+*/
+bool CR_reached = false ;
+bool check_CR_reached () {
+
+--- Page 20 ---
+S. Lehmann et al. 59
+int32_t tip_center_dist , tip_region_dist ;
+int i;
+double _S_ = _SI_ *1.0;
+CR_reached = false ;
+if (! HAS_CRITICAL_REGIONS && ! HAS_DETECTION_REGIONS ) {
+CR_reached = false ;
+return CR_reached ;
+}
+for (i =0; i< CR_COUNT ; i ++) {
+tip_center_dist = fint ( sqrt (
+pow ( CR_center [i ][0]/ _S_ - tip_pos [0]/ _S_ ,2) +
+pow ( CR_center [i ][1]/ _S_ - tip_pos [1]/ _S_ ,2) +
+pow ( CR_center [i ][2]/ _S_ - tip_pos [2]/ _S_ ,2))* _S_ );
+tip_region_dist = tip_center_dist - CR_radius [i];
+if ( tip_region_dist <= 0) {
+CR_reached = true ;
+return CR_reached ;
+}
+}
+if ( TREAT_DR_AS_CR ) {
+if (! HAS_DETECTION_REGIONS ) {
+CR_reached = false ;
+return CR_reached ;
+}
+for (i =0; i< DR_COUNT ; i ++) {
+tip_center_dist = fint ( sqrt (
+pow ( DR_center [i ][0]/ _S_ - tip_pos [0]/ _S_ ,2) +
+pow ( DR_center [i ][1]/ _S_ - tip_pos [1]/ _S_ ,2) +
+pow ( DR_center [i ][2]/ _S_ - tip_pos [2]/ _S_ ,2))* _S_ );
+tip_region_dist = tip_center_dist - DR_radius [i];
+if ( tip_region_dist <= 0) {
+CR_reached = true ;
+return CR_reached ;
+}
+}
+}
+return CR_reached ;
+}
+/**
+* @brief Checks if the needle tip lies within a defined target region .
+*/
+bool TR_reached = false ;
+bool check_specific_TR_reached ( int TR_index ) {
+double tip_center_dist , tip_region_dist ;
+TR_reached = false ;
+tip_center_dist = sqrt ( pow ( TR_center [ TR_index ][0] - tip_pos [0] ,2) +
+pow ( TR_center [ TR_index ][1] - tip_pos [1] ,2) +
+pow ( TR_center [ TR_index ][2] - tip_pos [2] ,2));
+tip_region_dist = tip_center_dist - TR_radius [ TR_index ];
+if ( tip_region_dist <= 0) {
+TR_reached = true ;
+}
+return TR_reached ;
+}
+bool check_TR_reached () {
+return check_specific_TR_reached ( curr_TR_index );
+}
+/**
+* @brief Checks if the needle tip can still reach the target region .
+*/
+bool TR_reachable = false ;
+bool check_specific_TR_reachable ( int TR_index ) {
+TR_reachable = ( tip_pos [1] >= ( TR_center [ TR_index ][1] - TR_radius [ TR_index ]));
+return TR_reachable ;
+}
+bool check_TR_reachable () {
+return check_specific_TR_reachable ( curr_TR_index );
+}
+/**
+* @brief Checks if the current needle path is still valid
+(i.e., if the needle moves in a valid direction ).
+*/
+bool path_valid = false ;
+bool check_path_valid () {
+bool is_negative_y_motion = vectors [ TIP_X_VEC ][1] <= 0;
+path_valid = is_negative_y_motion ;
+return path_valid ;
+}
