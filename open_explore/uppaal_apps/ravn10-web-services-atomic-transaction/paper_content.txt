@@ -1,0 +1,625 @@
+--- Page 1 ---
+A Formal Analysis of the Web Services
+Atomic Transaction Protocol with UPPAAL
+Anders P. Ravn, Ji r  Srba?, and Saleem Vighio??
+Department of Computer Science, Aalborg University,
+Selma Lagerl ofs Vej 300, DK-9220 Aalborg East, Denmark.
+fapr,srba,vighio g@cs.aau.dk
+Abstract. We present a formal analysis of the Web Services Atomic
+Transaction (WS-AT) protocol. WS-AT is a part of the WS-Coordination
+framework and describes an algorithm for reaching agreement on the out-
+come of a distributed transaction. The protocol is modelled and veried
+using the model checker Uppaal . Our model is based on an already
+available formalization using the mathematical language TLA+where
+the protocol was veried using the model checker TLC. We discuss the
+key aspects of these two approaches, including the characteristics of the
+specication languages, the performances of the tools, and the robustness
+of the specications with respect to extensions.
+1 Introduction
+Web Services (WS) are distributed applications that interoperate across hetero-
+geneous networks and provide services that are hosted and executed on remote
+systems. Web services infrastructures employ one or more layers of a web service
+protocol stack (see e.g. [8]), containing various standardization initiatives on as-
+pects which need to be implemented and described in web services environments.
+Many protocols in the stack use the SOAP [15] conventions and are currently at
+various adoption stages, ranging from approved standards to proposals.
+Several protocols for web services require transactional support in order to
+preserve consistency. A classical transaction terminates with two possible out-
+comes: committed oraborted . In the committed case, the outcome is made per-
+sistent and visible outside the transaction, whereas in the aborted case, all the
+actions taken during the transaction are cancelled. Standards for supporting
+transactions among web services include the WS-Coordination framework [9]
+developed by BEA Systems, IBM and Microsoft. Web Services Atomic Trans-
+action (WS-AT) is a part of this framework. This specication denes three
+coordination protocols that are used by distributed applications which require
+consistent agreements on the outcome of short-lived distributed activities.
+?The author is partially supported by the Ministry of Education of The Czech Re-
+public, project 1M0545 | Institute for Theoretical Computer Science.
+??The author is supported by Quaid-e-Awam University of Engineering, Science, and
+Technology, Nawabshah, Pakistan.
+
+--- Page 2 ---
+Web services protocols are in general nontrivial and their correctness is not
+obvious. Therefore we model WS-AT as a network of abstract state machines
+communicating via shared variables and, beside some other properties, verify its
+correctness using the model checker Uppaal [1]. Verication of communication
+protocols is in general not a new topic (see e.g. [3]) but WS-AT was formally
+specied only recently, and analysed in [4] using the language TLA+[5] and its
+model checker TLC [7]. The TLA+formalization of the protocol remained very
+useful for the creation of our Uppaal model. In fact, we have transferred the
+state transition tables specied in TLA+into our Uppaal model so that we can
+make a fair comparison of the two specication languages.
+We compare the TLA+model with our abstract state machine model with
+respect to several criteria. First of all, we consider the performance of the veri-
+cation tools TLC and Uppaal . We were able to verify the protocol for up to
+ve participants but the verication in Uppaal was signicantly faster. Then
+we discuss the foundations of the two approaches as TLA+is based on a formal
+mathematical language while Uppaal automata rely on imperative program-
+ming constructs and transition graphs. We mention the expressiveness of these
+formalisms and consider the robustness of the models with respect to a wider
+applicability in other protocols with a particular focus on measuring the quality
+of service. In conclusion, the two formalization languages complement each other
+and we discuss a combination of these approaches for future applications in the
+specication and analysis of web services protocols.
+The rest of the paper is organized as follows. In Section 2, we give an overview
+of the web services atomic transaction protocol. Section 3 discusses the TLA+
+modelling approach. A Uppaal model of the protocol is presented in Section 4.
+Model properties and verication results are discussed in Section 5. Finally,
+Section 6 provides a detailed comparison and discusses ideas for future work.
+2 Overview of WS-Atomic Transaction Protocol
+WS-Coordination [9] is a specication framework for the description of protocols
+that coordinate the actions of applications in a distributed environment. WS-
+Atomic Transaction [10] (or WS-AT for short) is a part of this framework that
+denes an atomic transaction coordination type based on the well-known ACID
+(Atomicity, Consistency, Isolation, Durability) principle [2]. WS-AT denes three
+specic agreement coordination protocols: Completion, Volatile two-phase com-
+mit, and Durable two-phase commit. The goal of the protocols is to reach an
+agreement between a protocol initiator and a number of protocol participants
+on whether the transaction should be committed or aborted. It is following the
+\all or nothing" policy with no compensation mechanism. All communication
+between the initiator and the participants is established via a transaction coor-
+dinator. See Figure 1 for the parties involved in the protocol and their commu-
+nication.
+The completion protocol is a simple communication scheme between the ini-
+tiator and the coordinator. It is essentially used by the initiator to ask the
+
+--- Page 3 ---
+Initiator CoordinatorParticipant 1
+Participant 2
+Participant 3
+...
+Participant n
+Completion Protocol Two-Phase Commit Protocol
+volatile or durable
+Fig. 1. WS-AT communication scheme
+coordinator to try to commit or abort the transaction. The other two protocols
+are both based on the two-phase commit (2PC) protocol (see Figure 2) which
+coordinates registered participants in reaching their commit or abort decisions.
+First, coordinator invites the registered participants to prepare for committing
+the transaction, on which a participant can either vote for abort and termi-
+nate, or answer that it is either prepared to commit or is read-only (meaning
+that the participant's commit does not require any further action). The sec-
+ond phase of the protocol handles the actual commit, provided that the rst
+phase was successful. In the volatile variant of 2PC protocol, the specication
+describes the communication between the coordinator and participants man-
+aging volatile resources (like a cache register). The durable variant deals with
+the coordinator-participant conversation for participants managing durable re-
+sources (like a database register). The WS-AT protocol combines the two pro-
+tocols into a new three-phase (i) prepare volatile, (ii) prepare durable and (iii)
+commit protocol. Moreover it allows the participants to register for the protocol
+at any time before the prepare phase of their respective category is completed;
+thus as an example, durable participants can still register while the registration
+of volatile participants is already closed.
+3 Formalization and Modelling of the Protocol
+The WS-AT standard [10] provides a high-level description of the protocol. It is a
+collection of protocol behaviours described in English accompanied by diagrams
+like the two-phase commit state transition graph presented in Figure 2 and
+state tables for the parties involved in the protocol, see part a) in Figure 3.
+Unfortunately, there is no generally accepted method for formally specifying WS
+protocols and, as documented in [4], the WS-AT description is not suciently
+precise for a direct formalization. For example, the roles in the protocol are not
+
+--- Page 4 ---
+Active Preparing Prepared Committing EndedAborting
+Prepare Prepared Commit CommittedRollback
+Rollback
+RollbackAborted
+ReadOnly orAbortedReadOnly orAborted
+Coordinator generated Participant generated
+Fig. 2. Two-phase commit state transition graph
+suciently separated from each other, which causes confusion in the protocol
+description as well as in the state tables. The description is silent also about
+what kind of communication between the parties in the protocol is assumed, as
+well as what data the coordinator stores about each participant.
+Let us take a look at Figure 3 a) describing how the transaction coordina-
+tor handles the message Prepared arriving from some participant. The WS-AT
+description says that if the coordinator is in the state Preparing and receives
+the message Prepared , then it should register the vote and change its state to
+Prepared . How this rule should be interpreted when another participant sends
+itsPrepared message is not explicitly formulated and the WS-AT description
+says only that a coordinator with multiple participants can be understood as a
+collection of independent coordinator state machines, each with its own state.
+Furthermore, the state tables do not describe the details of how and when the
+decision about commit or abort is made.
+The WS-AT description can be formalized using the TLA+language as shown
+in Figure 3 b) taken from [4]. TLA+[5] is a formal mathematical language for
+specifying high-level descriptions of distributed systems. The language is very
+expressive; it uses predicate logic with rst order quantication, which allows for
+expressing the protocol behaviour in a rather elegant way. There are no built-in
+constructs for protocol primitives like message passing, but they can be encoded
+using the mathematical formalism, for example as sets in case of the message
+passing. The TLA+expression in Figure 3 b) describes that if there is a message
+mof the type Prepared in the set msgs containing all messages sent so far, and
+the transaction coordinator is in the state preparingVolatile and the sender of the
+message is registered as volatile , or the coordinator is in preparingDurable and the
+
+--- Page 5 ---
+a) WS-AT:
+The coordinator accepts the message Prepared . Upon receipt of this notication, the
+coordinator knows the participant is prepared and votes to commit the transaction.
+Inbound EventsStates
+. . . Preparing Prepared . . .
+...............
+Prepared . . .Record vote; goto Prepared . . . . . .
+...............
+b) TLA+:
+9m2msgs :m:type = \Prepared "
+^Case
+_ ^ tcData :st= \preparingVolatile "
+^tcData :reg[m:src] = \ volatile "
+_ ^ tcData :st= \preparingDurable "
+^tcData :reg[m:src] = \ durable "
+ !
+^tcData0= [tcData Except ! .reg[m.src] = \ prepared "]
+^Unchanged msgs
+u t
+...
+c) Uppaal Timed Automata:
+An edge in the coordinator automaton with the construct select parId:
+Participant , guard guard9(parId) and update action9(parId) , where
+bool guard9(Participant parId) f
+if ((msgSrc[parId][PREPARED] == true) &&
+((tcData.st == TC PREPARING VOLATILE && tcData.reg[parId] == TC VOLATILE)
+jj
+(tcData.st == TC PREPARING DURABLE && tcData.reg[parId] == TC DURABLE)))
+return true;
+return false;
+g
+void action9(Participant parId) f
+tcData.reg[parId] = TC PREPARED;
+g
+Fig. 3. Specication of a selected WS-AT transition in TLA+andUppaal
+sender is registered as durable , then the coordinator will note that this particular
+participant is now prepared to commit the transaction. In TLA+it is necessary
+to explicitly assert that this rule does not change the current set of messages.
+This is given by the clause \Unchanged msgs".
+
+--- Page 6 ---
+During the formalization of WS-AT in TLA+, the authors in [4] had to make
+a few design decisions. First of all, it was agreed that the completion protocol be-
+tween the initiator and the coordinator is modelled via internal communication
+as one single process. The 2PC protocol is modelled via unreliable asynchronous
+message passing, where the messages can be reordered, lost or duplicated. In-
+ternal timing events like \expires times out" in the state tables are modelled
+via nondeterminism, which provides a safe over-approximation of the behaviour
+but disallows the verication of any time-dependent properties. The full TLA+
+model is described in [4] and its correctness has been veried using the TLC
+model checker [7] for up to four protocol participants. In [4, 7], it is concluded
+that the formalization of the protocol was nontrivial and a discussion with de-
+signers involved in the formulation of WS-AT was necessary, because the WS-AT
+denition employs informal descriptions being imprecise, ambiguous and often
+fail to consider unusual cases.
+The authors in [4] support their choice of TLA+as modelling language by
+the argument that there is a place in the specication where one process depends
+on the internal state of another process, and that this can be hard to model in
+some languages designed expressly for distributed systems.
+In the section to follow, we explain an alternative way to model the WS-AT
+protocol with a network of state machines as provided by the model checker
+Uppaal [12, 1] (see Figure 3 part c) for an example of Uppaal syntax) and
+compare the advantages and disadvantages of both approaches. We also explain
+how the diculty with rules that depend on internal states of other processes
+can be solved in our approach via the use of global variables and a special form
+of process templates.
+4 The UPPAAL Model
+In this section we provide the details about our Uppaal model of WS-AT proto-
+col.Uppaal [12] is a tool for modelling, simulation and verication of networks
+of timed automata. The language allows to describe communicating abstract
+state machines with handshake synchronization and communication via shared
+variables. It provides a powerful C-like syntax for describing guards and updates
+on transitions. Uppaal allows also real time clocks. However, this feature is not
+used in the present model. We refer the reader to [1] for a thorough introduction
+to the Uppaal modelling language.
+The protocol model in Uppaal consists of a process that models the initia-
+tor together with the transaction coordinator (TC for short) and a participant
+template that can be instantiated to as many participant processes as we want
+to consider.
+4.1 Global Declarations
+Global variable declarations of the protocol model contain the set of states for
+the initiator, for TC, and for the participants. We also dene a set of registration
+
+--- Page 7 ---
+types and outcomes for TC and the participants. Finally, we model the set of
+messages sent between TC and participants as a bit-vector.
+The protocol model consists of nparticipants. A type Participant identies
+a participant using the indices among 0, 1, . . . , n 1.
+const int NO OFPARTICIPANTS = n;
+typedef int[0,NO OFPARTICIPANTS-1] Participant;
+Initiator and TC related declarations. The initiator's state is stored in the vari-
+able iState which may contain one of the following values.
+iState2 fIACTIVE, I COMMITTED, I ABORTED, I COMPLETINGg
+The information about TC is stored in the variable tcData . It is dened as a
+variable of the record type DataTC .
+typedef struct fStateTC st; RegTC reg[Participant];
+ResTC res;gDataTC;
+DataTC tcData;
+The record type DataTC contains three components.
+{A variable stof type StateTC represents all possible control states of TC.
+st2 fTCACTIVE, TC PREPARING VOLATILE, TC PREPARING DURABLE,
+TCABORTING, TC COMMITTING, TC ENDEDg
+{The array reg[Participant] is dened as RegTC type and stores the regis-
+tration state (known to the TC) for each participant parId .
+reg[parId]2 fTCUNREGISTERED, TC VOLATILE, TC DURABLE,
+TCPREPARED, TC READ ONLY, TC COMMITTEDg
+{Finally, a variable resof type ResTC represents the outcome of the protocol.
+res2 fTCCOMMITTED RES, TC ABORTED RESg
+Participants' related declarations. The array pData[Participant] represents
+the data maintained by each participant and is declared as DataP record type.
+typedef struct fStateP st; RegP reg; ResP res; gDataP;
+DataP pData[Participant];
+The record type DataP contains three components.
+{A variable stof type StateP represents the control states of a participant.
+st2 fPUNREGISTERED, P PREPARED, P REGISTERING, P ACTIVE,
+PPREPARING, P ENDEDg
+{A variable regof type RegP records the registration status of a participant.
+reg2 fPVOLATILE, P DURABLEg
+{Finally, resof type ResP represents the outcome of the protocol as recorded
+by the given participant.
+res2 fPREAD ONLY, P COMMITTED, P ABORTEDg
+
+--- Page 8 ---
+Fig. 4. Initiator-Coordinator process
+4.2 Messages
+Following the TLA+model, we decided to model the completion protocol be-
+tween the initiator and the TC by a direct communication. For the commu-
+nication between TC and participants, we adopted the model of asynchronous
+message passing where messages can be reordered, duplicated or lost. Unlike in
+TLA+, we model messages as two dimensional Boolean arrays. There are two
+types of messages, either sent by the TC to a concrete participant or sent by a
+participant to the TC.
+{The array msgDest[Participant][MsgsTC] stores messages of type MsgsTC
+sent from the TC to a participant where MsgsTC =fREGISTER RESPONSE,
+PREPARE, COMMIT, ROLLBACK g.Given a participant parId and a message
+msgof type MsgsTC , the array element msgDest[parId][msg] has the value
+true if and only if the TC has already sent the message msgto the participant
+parId .
+{The array msgSrc[Participant][MsgsP] represents messages of type MsgsP
+sent from a participant to TC where MsgsP =fPREPARED, READ ONLY,
+COMMITTED, ABORTED, REGISTER VOLATILE, REGISTER DURABLEg.As be-
+fore, if a participant parId has already sent a message msgto the TC, then
+msgSrc[parId][msg] has the value true, otherwise it is false.
+This representation ensures that duplicate messages are ignored, and that the
+arrival order of messages is ignored as well.
+
+--- Page 9 ---
+4.3 Initiator-Coordinator Process
+The model for the Initiator-Coordinator process is shown in Figure 4. The exe-
+cution starts in the location START from which the protocol is set to its initial
+values by the function initial() . After this initial phase, the model has just
+one location which is urgent (no time elapse is allowed). Each of the transitions
+in the model has a guard and an update, both modelled as a function in C-like
+code. Due to the space limitation we present here in detail only rule 9, as already
+displayed in Figure 3 c). The rule has a select statement parId: Participant
+which is a convenient Uppaal abbreviation for a set of transitions where the
+parId variable is instantiated to all possible participant identities (as dened by
+the type Participant ).
+Referring to Figure 3 c), the boolean function guard9(parId) has a param-
+eter parId . The function checks if the TC has already received a prepared mes-
+sage from the selected participant by the test (msgSrc[parId][PREPARED] ==
+true) . It also checks if the TC is currently in the preparing volatile phase of the
+protocol (tcData.st == TC PREPARING VOLATILE) and the registration state
+for the participant that the TC has recorded is volatile (tcData.reg[parId] ==
+TCVOLATILE) . The guard is satised also if the current TC's state is preparing
+durable (tcData.st == TC PREPARING DURABLE) and TC's recorded registra-
+tion state of the participant is durable (tcData.reg[parId] == TC DURABLE) .
+If one of these conditions is satised then the guard returns true, otherwise it
+returns false.
+If the guard guard9(parId) is true then the transition can be executed and
+the function action9(parId) is called for the selected participant. The call
+ofaction9(parId) simply sets the TC's registration state for the participant
+parId to prepared (tcData.reg[parId] = TC PREPARED) .
+The reader may observe that some rules in Figure 4 do not have any se-
+lect statements, others select a parId , and a few select the registration type of
+messages regMsgType as well. The full Uppaal model is available as [11].
+4.4 Participant Process
+The template for the participants has a similar shape as the initiator-coordinator
+template. The nal Uppaal model contains one copy of this template for each
+participant in the network. Like the initiator-coordinator process, the participant
+process also starts in the location START and performs the initialization rst.
+The participant model then consists of loop-transitions with guards and updates
+(actions) numbered from 14 to 22. Consult [11] for the complete model.
+Following the TLA+specication, we encoded into the rules the behaviour
+of each participant. An example of such a rule is a situation when the partic-
+ipant identied as idreceives a rollback message from the TC. As long as the
+participant is in one of the four prescribed states (dened in the code to follow),
+it will be able to read this message and end the transaction with the aborted
+outcome and conrm this by sending a message to the TC.
+
+--- Page 10 ---
+Consistency ,
+^(iState = \committed ")
+) _ ^ tcData :st= \ended "
+^tcData :res= \committed "
+^ 8 p2Participant :
+_pData [p]:st= \unregistered "
+_ ^ pData [p]:st= \ended "
+^pData [p]:res=f\?" , \committed "g
+_ ^ tcData :st= \committing "
+^ 8 p2Participant :
+_pData [p]:st=f\unregistered " , \prepared "g
+_ ^ pData [p]:st= \ended "
+^pData [p]:res=f\?" , \committed "g
+^ 8 p2Participant :
+^pData [p]:st= \ended "
+^pData [p]:res= \committed "
+) ^ iState = \committed "
+^ _ ^ tcData :st= \ended "
+^tcData :res= \committed "
+^iState = \committed "
+_tcData :st= \committing "
+^ 8 pp2Participant :
+_pData [pp]:st=f\unregistered " , \prepared "g
+_ ^ pData [pp]:st= \ended "
+^pData [pp]:res=f\?" , \committed "g
+Fig. 5. Consistency Property in TLA+
+bool guard22() f
+return 
+msgDest[id][ROLLBACK] == true &&
+(pData[id].st == P REGISTERING || pData[id].st == P ACTIVE ||
+pData[id].st == P PREPARING || pData[id].st == P PREPARED)
+g
+void action22() f
+pData[id].st = P ENDED; pData[id].res = P ABORTED;
+msgSrc[id][ABORTED] = true;
+g
+The other participant rules follow a similar pattern.
+5 Model Properties and Verication Results
+We discuss now the properties of the Uppaal WS-AT model we described in
+the previous section and compare its verication results with those of the TLC
+model checker.
+
+--- Page 11 ---
+5.1 Model Properties
+Consistency: The main correctness requirement is that the participants to-
+gether with the initiator unanimously agree to commit or abort the transaction.
+This property is called consistency in [4], and its formulation in TLA+can be
+seen in Figure 5. Consistency is a safety property, and it is expressed by an
+invariant assertion. It states that the protocol is never in an inconsistent con-
+guration where one process thinks that the transaction is committed while
+another process claims that it was aborted. There are two separate conjuncts
+in the invariant, one asserting what should be true if the initiator reached the
+decision to commit, and the other one asserting what is true if a participant has
+reached the commit decision.
+We veried the same consistency property given in [4] by reformulating it to
+theUppaal syntax. The Uppaal expression for checking consistency is given
+as the function Consistency() in Figure 6. The query is then formulated in
+Uppaal 's CTL logic as AConsistency() which checks whether on all com-
+putations every state satises the consistency invariant. It is no surprise that
+the WS-AT protocol satises this property as it is a rather standard protocol
+and it was recently veried using the model checker TLC [4], resulting in some
+modications and improvements in the ocial specication.
+Rules Usage: The next question one can ask is whether all rules implemented
+in the Uppaal model are actually necessary, in other words if for any given rule
+there is some execution where the rule is actually used.
+For this purpose we introduce an observer , which is a function added to the
+update of every transition in our model which simply records the number of the
+rule that was executed.
+typedef int[1,22] Rules; bool flag[Rules];
+void observer(int x) f flag[x] = true; g
+As we numbered all the rules in our models (see e.g. Figure 4) it is now easy to
+add the calls observer(1) , . . . , observer(22) to the updates of the transitions
+representing the rules 1 to 22, respectively. Now in order to verify whether for
+example the rule 9 is ever used, we ask Uppaal the query Eflag[9] . In this
+way we veried (again as expected) that all rules specied in the protocol are
+actually used at some execution.
+5.2 Performance Results
+We measured the time needed for the verication of the consistency property,
+which is the most time demanding one as it searches the whole state-space.
+The tests were performed on a iMac 27in, 4 GB 1067 MHZ RAM, 3.06 GHz
+Intel Core 2 Duo and Leopard Snow operating system. We used Uppaal 4.1.2
+and TLA Toolbox version 1.1.0, both with the default settings. The results are
+shown below along with the results obtained using the TLC model checker for
+the protocol description given in [4]. Execution times are rounded up to seconds
+and we also report on the number of explored states.
+
+--- Page 12 ---
+bool Consistency() {
+return InitiatorCommittedOK() && ParticipantCommittedOK();
+}
+bool InitiatorCommittedOK() {
+return iState != I_COMMITTED ||
+( tcData.st == TC_ENDED && tcData.res == TC_COMMITTED_RES &&
+AllParticipantsCommitted() ) ||
+( tcData.st == TC_COMMITTING && AllParticipantsCommitting() );
+}
+bool AllParticipantsCommitted() {
+for (p=0; p<NO_OF_PARTICIPANTS; p++)
+if (!(pData[p].st == P_UNREGISTERED || (pData[p].st == P_ENDED &&
+(pData[p].res == P_READ_ONLY || pData[p].res == P_COMMITTED))))
+return false;
+return true;
+}
+bool AllParticipantsCommitting() {
+for (p=0; p<NO_OF_PARTICIPANTS; p++)
+if (!((pData[p].st == P_UNREGISTERED || pData[p].st == P_PREPARED) ||
+(pData[p].st == P_ENDED &&
+(pData[p].res == P_READ_ONLY || pData[p].res == P_COMMITTED))))
+return false;
+return true;
+}
+bool ParticipantCommittedOK() {
+for (p=0; p<NO_OF_PARTICIPANTS; p++)
+if (pData[p].st == P_ENDED && pData[p].res == P_COMMITTED) {
+if ( !InitCoorCommittedOrCommiting() || !AllParticipantsCommitting() )
+return false;
+}
+return true;
+}
+bool InitCoorCommittedOrCommiting() {
+return iState == I_COMMITTED &&
+( (tcData.st == TC_ENDED && tcData.res == TC_COMMITTED_RES) ||
+tcData.st == TC_COMMITTING);
+}
+Fig. 6. Consistency property in UPPAAL
+Performance Results for Checking Consistency
+Number of TLC UPPAAL
+participants Time States Time States
+1 1s 132 1s 143
+2 1s 2 082 1s 2 621
+3 6s 32 244 2s 50 537
+4 1m 49s 504 306 33s 1 014 497
+5 40m 37s 8 000 412 14m 36s 21 100 793
+
+--- Page 13 ---
+Tool TLC UPPAAL
+specication
+languageTLA+ timed automata network
+with shared variables
+necessary user's
+backgroundmathematical programming
+expressiveness of
+spec. languagevery expressive, innite
+sets, relations, quantiers,
+co-inductive approachrestricted, communicating
+state machines, C-like (but
+nite) data-structures,
+inductive approach
+model checker
+characteristicsrestricted to bounded do-
+mains, exhaustive searchveries the full specication
+language (with time)
+modelling/veri-
+cation speedfast modelling, slower veri-
+cationslower modelling, faster ver-
+ication
+verication of
+time/cost featuresmanual encoding necessary
+but no verication supportstraightforward modelling
+and state-of-the-art verica-
+tion support
+parameterized
+reasoningmodelling yes,
+verication nomodelling yes,
+verication no
+Fig. 7. Comparison of the model checkers TLC and Uppaal
+Comparison of the verication results indicates that Uppaal is more ecient
+than the model checker TLC in terms of execution time, even though it actually
+explores more states. Beyond ve participants, it is almost certain that Uppaal
+will run out of RAM (and start swapping) and TLC may take a very long time
+(probably days). However, we have not tried to optimize the Uppaal model
+in any way yet and we believe that related tools, like for example Uppaal
+CoVer [14], may signicantly improve its performance.
+6 Comparison and Conclusion
+We conclude by discussing the key aspects of the two approaches presented for
+formalization and verication of WS protocols. A summary table is in Figure 7.
+Perhaps the main dierence is that TLC can analyse (a subset of) the TLA+
+language which is based on mathematical reasoning: rst order logic and a sim-
+ple set theory. Reading of TLA+specications requires training, but the authors
+claim that it is about as dicult as learning a new programming language [4].
+TheUppaal model of WS-AT may look more familiar to engineers even with-
+out any prior training in concurrency theory. The model in fact uses only a
+limited set of Uppaal primitives. For example no synchronization between pro-
+cesses is employed as all message passing is asynchronous and modelled using
+
+--- Page 14 ---
+shared variables. The rules of the protocol are encoded in a C-like programming
+language.
+Yet,Uppaal requires a lower-level encoding of some protocol fragments like
+message passing. Messages in Uppaal are encoded as bit-vectors, while TLA+
+oers an elegant and easy to read set notation. This necessarily implies a more
+verbose encoding of message passing in Uppaal , but also allows for more control
+and a possible optimization of the performance. We have not looked in detail
+into the code optimization yet, but it seems that e.g. the Uppaal CoVer tool [14]
+may bring a further improvement in the verication performance.
+We note that while in TLA+specication of WS-AT we can count up to 33
+rules used in the model, the Uppaal code implements only 22 rules. While still
+modelling the protocol at exactly the same level of abstraction, the reason is that
+in the TLA+language one has to explicitly assert what variables an execution of
+a rule leaves unchanged. This is due to the co-inductive approach used in TLA+
+and user that thinks in imperative programming terms may nd it confusing.
+AsUppaal uses an inductive approach (what is not described in the rules, is
+not allowed), we eliminate the need to consider rules that have no eect on the
+protocol behaviour.
+Another point we shall discuss is the possibility to extend the approaches with
+quantitative analysis. The quality of service has recently become an important
+aspect and one may wish to explicitly model for example time and cost attributes
+of a protocol. Already the WS-AT specication mentions the time aspects, cit-
+ing [10]: \A coordination context may have an Expires attribute. This attribute
+species the earliest point in time at which a transaction may be terminated
+solely due to its length of operation." Both in TLA+andUppaal specications
+the time-outs are currently modelled using a nondeterministic choice, which on
+one hand provides a safe over-approximation of the behaviour, but on the other
+hand does not allow us to ask time related queries. While time features can be
+specied in both formalisms, TLC does not provide any verication support for
+it. The analysis of time aspects in Uppaal is straightforward, as Uppaal is a
+state-of-the-art tool for continuous time modelling and (automatic) verication.
+Moreover, the Uppaal related tool Uppaal Cora [13] for cost-optimal reacha-
+bility will allow an easy addition of cost features for analysis and verication of
+a variety of quality of service questions. For further discussion on this topic the
+reader may consult also [6].
+To sum up, it is possible to verify the consistency of the WS-AT for up to
+ve participants both in TLC and Uppaal . The main problem in the process is
+actually the understanding of the WS-AT specication which, in its textual form,
+is incomplete and imprecise. The authors in [4] relied during the formalization
+phase on two experts that participated in designing the WS-AT protocol. Our
+modelling task was easier because TLA+is a fully formal language and we could
+nd all the answers about the behaviour of the protocol in their specication.
+We can roughly conclude that TLA+is a more suitable language for higher-level
+specication of WS protocols because of it succinctness and exibility. On the
+other hand, any protocol that is described in Uppaal timed automata framework
+
+--- Page 15 ---
+can be also veried, which is not the case for the TLC model checker. The
+experimental results also show that the Uppaal engine is noticeably faster than
+TLC and hence more suitable for complex protocols. For further applicability in
+automatic verication Uppaal provides readily available extensions with time
+and cost, features that can be encoded in TLA+specications but not necessarily
+veriable in TLC nor any presently available tool.
+The formalization of WS-AT shows the need for introducing a standard for
+the description of WS protocols. The current practice is insucient and the
+standardized protocols can be ambiguous and incomplete. In our future work,
+we plan to investigate a higher-level language that would share some of the ad-
+vantages of TLA+as specication formalism, while being more targeted directly
+towards WS protocols, easily understandable by software engineers, and allowing
+an automatic translation to verication tools such as Uppaal .
+Acknowledgments. We would like to thank Kaustuv Chaudhuri, Leslie Lamport
+and Stephan Merz for answering our questions related to TLC.
+References
+[1] G. Behrmann, A. David, and K.G. Larsen. A tutorial on UPPAAL. In Proceedings
+of SFM-RT'04 , volume 3185 of LNCS , pages 200{236. Springer-Verlag, 2004.
+[2] J. Gray and A. Reuter. Transaction Processing: Concepts and Techniques . Morgan
+Kaufmann, 1993.
+[3] G.J. Holzmann. Design and Validation of Computer Protocols . Prentice-Hall,
+Inc., Upper Saddle River, NJ, USA, 1991.
+[4] J.E. Johnson, D. E. Langworthy, L. Lamport, and F. H. Vogt. Formal specication
+of a web services protocol. Journal of Logic and Algebraic Programming , 70(1):34{
+52, 2007.
+[5] L. Lamport. Specifying Systems . Addison-Wesley, 2003.
+[6] L. Lamport. Real-time model checking is really simple. In Proceedings of
+CHARME'05 , volume 3725 of LNCS , pages 162{175. Springer, 2005.
+[7] L. Lamport and Y. Yu. TLC | the TLA+ model checker, 2003.
+http://research.microsoft.com/en-us/um/people/lamport/tla/tlc.html.
+[8] B. Mathew, M. Juric, and P. Sarang. Business Process Execution Language for
+Web Services 2nd Edition . Packt Publishing, 2006.
+[9] E. Newcomer and I. Robinson (chairs). Web services coordination (WS-
+coordination) version 1.1, 2007. http://docs.oasis-open.org/ws-tx/wstx-wscoor-
+1.1-spec-os/wstx-wscoor-1.1-spec-os.html.
+[10] E. Newcomer and I. Robinson (chairs). Web services atomic transaction (WS-
+atomic transaction) version 1.2, 2009. http://docs.oasis-open.org/ws-tx/wstx-
+wsat-1.2-spec.html.
+[11] A.P. Ravn, J. Srba, and S. Vighio. UPPAAL model of the WS-AT protocol.
+Available in the UPPAAL example section at http://www.uppaal.com/.
+[12] UPPAAL. http://www.uppaal.com.
+[13] UPPAAL CORA. http://www.cs.aau.dk/ behrmann/cora/.
+[14] UPPAAL CoVer. http://www.hessel.nu/CoVer/.
+[15] W3C. SOAP version 1.2 part 0: Primer (second edition), 2007. W3C Recommen-
+dation.

@@ -1,0 +1,914 @@
+--- Page 1 ---
+Veriﬁcation of Timeliness QoS Properties
+in Multimedia Systems
+Behzad Bordbar1and Kozo Okano2
+1University of Birmingham
+B.Bordbar@cs.bham.ac.uk
+2Osaka University
+okano@ist.osaka-u.ac.jp
+Abstract. One of the main challenges of the design of object-based Dis-
+tributed Multimedia Systems is to addr ess the performance related issues
+such as the Quality of Service (QoS). The speciﬁcation of QoS is a cru-
+cial part of architectural object-based methods such as Open Distributed
+Processing (ODP). In the ODP, a QoS property assigned to an object ismodelled via two clauses of required andprovided QoS statements, which
+specify the level of QoS required/provided by an object from/to its envi-ronment, respectively. An over-demanding QoS statement can be beyondthe physical limitation of the system and might result in inconsistencies.
+In particular, to produce a correct design, it is crucial to study the eﬀect
+of QoS statements of components on the overall behaviour of the systemin earlier stages of the design.
+This paper develops a theory for the veriﬁcation of Timeliness QoS prop-
+erties such as Jitter, Throughput and Latency. The approach adopted is
+b a s e do nt h ei d e ao f Test Automata . We shall present a formal deﬁni-
+tion of Timeliness QoS properties, which is used for the creation of Test
+Automata. Such Test Automata, which we shall refer to as QoS Timed
+Automata , can be used to verify the corresponding QoS Timeliness prop-
+erty. The method is illustrated by the veriﬁcation of Throughput in a
+Video Player systems via the model checker UPPAAL.
+Keywords: QoS, Network of Timed Automata, Real-time System, Ver-
+iﬁcation, Model checker UPPAAL
+1 Introduction
+Since modern Distributed Multimedia sy stems are object-based, functional be-
+haviour of such systems is encapsulated within multiple components. Quality of
+Service (QoS) properties, which can be s een as a set of contracts on the system,
+are end-to-end issues, i.e. a QoS requirement is related to the systems as a whole.
+As a result, a major challenge of the integration of QoS in the design process
+of object-based dist ributed systems is to specify suit able QoS characteristics for
+each component of the system such that ; if the QoS characteristics of compo-
+nents are satisﬁed, then the QoS requirement of the whole system is satisﬁed. Inparticular, it is important to ensure that under the speciﬁcation of the functional
+behaviour of the system the QoS is achievable.
+J.S. Dong and J. Woodcock (Eds.): ICFEM 2003, LNCS 2885, pp. 523–540, 2003.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2003
+
+--- Page 2 ---
+524 Behzad Bordbar and Kozo Okano
+The current paper builds on earlier works [1,11,12], which present a method
+of speciﬁcation of QoS in ODP [21] design of Distributed Multimedia Systems.Our aim is to present a method of veriﬁcation of Timeliness QoS statements
+such a Jitter, Throughput and Latency, which are boolean functions on the set
+of sequences of time of occurrence of events. The adopted approach is based
+on the idea of Test Automata [2–4,16]. Assume that the functional behaviour
+of the system is modelled via (a network of) Timed Automata [5,9] A.S t a r t -
+ing from a Timeliness property φrelated to the time of occurrence of exter-
+nal event e
+1,...,e Kof A,we shall present a network of Timed Automata
+QTA(φ, e 1,...,e K),called QoS Timed Automata, which will be used to ver-
+ify the property φon A.The QoS Timed Automata is such that Asatisﬁes
+the property φif and only if QTA(φ, e 1,...,e K)||Adoes not reach to a global
+state with a coordinate failure ,w h e r et h el o c a t i o n failure ofQTA(φ, e 1,...,e K)
+represents the violation of φ. In practice, using QTA transfers the problem of
+verifying a QoS statement of a distributed system into a reachability analysis ina network of Timed Automata, which can be carried out via model checkers. In
+this paper, we shall use UPPAAL [6,9], which has been successfully applied to
+the veriﬁcation of real-time systems [8,14,18].
+The paper is organised as follows. Sectio n 2 presents a brief introduction to
+Timed Automata and UPPAAL. Section 3, presents a formal deﬁnition for QoS
+Timeliness properties and QoS Timed Automata (QTA). Theorem 1, the main
+result of the paper, proves that a QTA is a Test Automata [2–4,16]. Section 4
+applies our approach to the veriﬁcation of throughput in an example of a VideoPlayer system. Section 5 presents a proof for Theorem 1. The ﬁnal two sections
+discuss some related works and draw a conclusion.
+2 Timed Automata with Data Variables and UPPAAL
+In this section, we shall review a variation of Timed Automata model proposed by
+Alur and Dill [5], which is used in UPPAAL [6, 9,16,17], a tool for the veriﬁcationof behavioural properties of real-time systems.
+Consider a set of Completed Actions , denoted by CA, which specify inter-
+nal actions of a component of the system modelled via Timed Automata. In
+the UPPAAL model, Timed Automata (components) communicate via simple
+CCS [20] style point-to-point communication. As a result, consider a set of Half
+Actions ,HA={x?,x!|x∈CA}.L e t Adenotes the set of allactions of the
+system consist of all half actions and complete actions, i.e. A=HA∪CA.
+x∈CA.Underlying actions are deﬁned via the function ↓:A→ Adeﬁned by
+↓(x!) =↓(x?) =↓(x)=xfor all x∈CA.If there is no fear of confusion, we shall
+sometimes drop parentheses and write ↓x!,↓x?o r↓x.Moreover, for A⊂A,
+↓A={↓y|y∈A}.
+Suppose that Cis a set of clock variables, with values in R
+≥0and Dis a
+set of data variables, with integer values. Let c(C∪D) denotes the conjunction
+of boolean expressions over atomic formulae of the form x∼qorx−y∼q
+ori∼n,w h e r e x, y∈C,i∈D,qis a rational number, n∈N={0,1,...}a
+
+--- Page 3 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 525
+natural number and ∼∈ {≤ ,≥,=,<,> }.In what follows the term variable refers
+to both data and clock variables.
+Avaluation (variable assignment )i sam a p v:c(C∪D)→ R≥0∪N,which
+assigns to each clock a non-negative real-number and to a data variable a natural
+number. For a valuation v,ad e l a y d∈R≥0,which is denoted by v+d,is deﬁned
+as (v+d)(x)=v(x)+d,ifxis a clock and ( v+d)(i)=v(i),ifiis a data variable.
+In other words, all clocks operate with the same speed and data variables aretime-insensitive. If A/negationslash=∅is a set of variables, i.e. A⊂ C∪D,the set of
+valuations on Ais denoted by V(A).For nonempty sets of variables A, Band
+valuations v
+1∈V(A)a n d v2∈V(B)i fv1(x)=v2(x) for all x∈A∩B,we
+deﬁne v1∪v2∈V(A∪B)b yv1∪v2(x)=v1(x)i fx∈Aandv1∪v2(y)=v2(y)
+ify∈B.
+The value of clock or data variable can be reset. A reset statement is of the
+formx:=e,w h e r e xi sac l o c ko rad a t av a r i a b l ea n d eis an expression. In the
+current version of UPPAAL, for a clock, emust be a natural number, and for
+ad a t av a r i a b l e , emust be in the form of cy+c/prime,w h e r e candc/primeare constant
+integer and yis a data variable. A set of reset statements is called a reset-set or
+resetif each variable is assigned at most once. The result of applying a reset r
+to a valuation vis denoted by the valuation r(v).If a variable xis such that no
+assignment of rchanges its value then v(x)=r(v)(x).Let Rdenotes the set of
+all resets. If r1,r2∈R,thenr1∪r2∈R,ifr1∪r2assigns at most one value to
+each variable. A Timed Automaton Ais a 6-tuple ( L,l 0,T,I,C,D,A ) such that
+–Lis a ﬁnite set of locations andl0∈Lis a designated location called the
+initial location.
+–C⊂C,D⊂DandA⊂Aare ﬁnite sets of clock variables, data variables
+and actions, respectively.
+–T⊂L×A×c(C∪D)×R×Lis a transition relation. An element of Tis of
+the form of ( l1,a ,g,r ,l 2),where l1,l2∈Lare locations of Timed Automaton,
+a∈Ais an action, g∈c(C∪D) is called a guard,a n dr∈Ris a set of reset
+statement. We sometimes write l1e,g,r−→l2to depict that Aevolves from a
+location l1to a new location l2,if the guard gis evaluated true, the action
+ais performed and clocks and data variables are reset according to r.
+–I:L→c(C∪D) is a function that assigns to each location an invariant .
+Intuitively, a timed automata can stay in a location while its invariants are
+satisﬁed. The default invariant for a location is true(x≥0).
+For each Timed Automaton A,we shall write Location (A),Clock (A),
+Data(A)a n d Act(A)t od e n o t et h es e to f locations ,clocks,data variables and
+actions ofA, respectively.
+The semantics of Timed Automata can be interpreted over transition sys-
+tems, i.e. triple ( S, s 0,⇒),where
+–S⊂L×Vis the set of states, i.e. each state is a pair ( l,v), where lis a
+location and vis a valuation
+–s0∈Sis aninitial state ,a n d
+–⇒⊂S×(Act(A)∪R≥0)×Sis atransition relation .
+
+--- Page 4 ---
+526 Behzad Bordbar and Kozo Okano
+A transitions can be either a discrete transitions ,e . g .( s1,e,s 2), where e∈
+Act(A)o ra time transitions ,e.g.(s1,d ,s 2), where d∈R>0and denotes the
+passage of dtime units. Transitions are written: s1e⇒s2ands1d⇒s2, respec-
+tively, and are deﬁned according of the following inference rules:
+l1e,g,r−→l/prime
+1,g(v)
+(l1,v)e⇒(l2,r(v))∀d/prime≤dI(l)(v+d/prime)
+(l,v)d⇒(l,v+d)
+A direct results of the above deﬁnition is the Time Additivity Axiom [23].
+Time Additivity Axiom: For every s1,s2∈Sandd1,d2∈R≥0,s 1d1+d2⇒s2
+if and only if there is a state s3such that s1d1⇒s3ands3d2⇒s2.
+To model concurrency and synchronisation between Timed Automaton, CCS
+[20] style parallel composition operators are introduced, which synchronise over
+half actions. Suppose that A1,..., Anare Timed Automata, the parallel compo-
+sition A:= A1||A2|| · · · || Anis referred to as a network of Timed Automata
+[6,9,16,17]. The semantics of a network of Timed Automata can be expressed
+via a transition system ( S, s 0,⇒).A state s∈Sis of the form s=( l,v)
+where l=(l1,...,l n),in which each liis location of Aiandvis a valuation
+on∪i(Clock (Ai)∪Data(Ai)).s0=( l0,v0)i st h e initial location ,w h e r e l0is the
+vector of initial location of the components and v0is the a valuation compatible
+with the initial valuation of the components, i.e. u0|Clock (Ai)∪Data (Ai)is the
+initial valuation of the i-th component.
+Let for a vector of location l=(l1,...,l n),l[l/primei/li] denotes the vector of
+location created by replacing liwithl/primei,then ⇒is deﬁned via the following
+inference rules:
+–For a completed action awhich belongs to a component Ai,i.e.a∈Act(Ai)∩
+CA,(l,v)a⇒(l[l/primei/li],ri(v)),iflia,g i,ri−→l/primeiandgi(v)1
+–Suppose that x!a n d x? are half actions of Aiand Ajwhere i/negationslash=j.(l,v)x⇒
+(l[l/primei/li,l/primej/lj],ri∪rj(v)),iflix!,gi,ri−→l/primei,ljx?,gj,rj−→l/primej,gi(v),gj(v)a n dri∪rj∈
+R.
+–Ford∈R≥0,(l,v)d⇒(l,v+d),ifI(li)(v+d/prime) for all i,and all d/prime≤d.
+Presence of urgent channels and committed locations may overrule the above
+transitions as follows. In a state where two components may synchronise of anurgent channel, no further delay is allowed. If in a state, one of the components
+is in a location labelled as being committed, no delay is allowed to occur and
+any discrete transition mustinvoke. In this paper, we shall not use any urgent
+action or committed state.
+Assume that Ais a network of Timed Automata. A runσofAis a ﬁ-
+nite/inﬁnite sequence of transitions of the form s
+0λ1⇒s1λ2⇒s2···where s0is
+the initial state and λi∈Act( A)∪R≥0.For each state sjof the run σ,deﬁne
+1Note that giis a function deﬁned on valuations of the a component timed automata
+Ai.As a result, gi(v) is an abbreviation for gi(v|Clock (Ai)∪Data (Ai)).
+
+--- Page 5 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 527
+TimeStamp (σ, sj)=/summationtextj−1
+i=1{λi|λi∈R≥0}. Similarly, for an action λjdeﬁne
+TimeStamp (σ, λj): =TimeStamp (σ, sj),which denotes the time of occurrence
+ofλj.We shall denote the set of all runs of AwithRun(A).Assume that σ1and
+σ2∈Run(A)a r es u c ht h a t σ1:=s1
+0λ1⇒s1
+1λ2⇒s1
+2···andσ2:=s2
+0µ1⇒s2
+1µ2⇒s2
+2···.
+We say σ1andσ2areidentical if they have the same length, i.e. either both
+are inﬁnite length or both have the same length, and for each i, s1
+i=s2
+iand
+λi=µi.However, by Time Additivity Axiom, two runs σ1:=s01
+2⇒s11
+2⇒s2
+andσ2:=s01⇒s2, although not identical, are equal. In this paper, two runs are
+calledequal, if they are equal up to Time Additivity Axiom, i.e. applying Time
+Additivity Axiom to one of them results in an identical run with the other. If l
+is a location of A,we say a run σ∈Run(A)meets the location l,if there is a
+statesi=(l,v)i nσ.
+3 Veriﬁcation of QoS Timeliness Properties
+Assume that eis an action of the system, a Timeliness property for eis deﬁned
+to be a property related to the time of occurrence of e[10]. For example, if
+the action emarks the dispatch of frames from a communication channel, the
+throughput of 25 frames per sec. can be seen as a property of the time sequence{t
+1,t2,...}o ft h et i m eo ft h eo c c u r r e n c eo f esuch that
+∀n|tn+25−tn|<1000, (1)
+where time is measured in msec.
+In general, the sequence of time of occurrence of events are ﬁnite or inﬁnite
+sequences of non-decreasing, n on-negative real numbers.
+Deﬁnition 1. Forn∈N,l e tΓn={{ti}n
+i=1|0≤t1≤t2≤···≤ tn}.
+LetΓ=/uniontext∞
+n=1Γn∪ {∅},w h e r e ∅is the empty set.
+Suppose that Ais a a network of Timed Automata and σ=s0λ1⇒ ···λn⇒
+sn···is a ﬁnite/inﬁnite run of A,where for each i,siis a state and λi∈
+act(A)∪R≥0.
+Deﬁnition 2. For each action e∈Act(A),ifeis an event occurring as {λi},
+let Time (σ, e, n )denotes the time of n-th occurrence of ein the run σ,i.e.
+Time(σ, e, n )=TimeStamp (σ, sj)=/summationtextj−1
+i=1{λi|λi∈R≥0}.L e tt h es e q u e n c e
+Time(σ, e): ={Time(σ, e, n )|n∈N}.
+Clearly, for each run σand each action e∈A,Time(σ, e)∈Γ.I np a r t i c u l a r ,
+ifedoes not appear in σ,t h e n Time(σ, e)=∅(∈Γ) is the empty sequence. Now,
+we shall present a formal deﬁnition of Timeliness properties as boolean functionson the set of time sequences.
+Deﬁnition 3. A Timeliness property of degree K≥1,i saf u n c t i o n φ:Γ
+K−→
+{T,F},w h e r e ΓK=K/bracehtipdownleft
+ /bracehtipupright/bracehtipupleft
+ /bracehtipdownright
+Γ×Γ×···× Γ.
+
+--- Page 6 ---
+528 Behzad Bordbar and Kozo Okano
+Example 1. The throughput of 25 frames per sec. for ecan be expressed via the
+Timeliness property φof degree 1, deﬁned by
+φ(t)=/braceleftbigg
+T ∀n|tn+25−tn|<1000
+F otherwise.
+As a result, throughput is a Timeliness property of degree 1 .It can be seen
+QoS statements such as various types of Jitter [13] are Timeliness properties of
+degree 1, whereas latency is a Timelines s property of degree 2. In general, it
+seems that, any property related to the relative time of occurrence of Kevents
+can be evaluated via a Timelines s property function of degree K. Assume that the
+functional behaviour of system is modelled via a network of Timed Automata.
+For a property to satisfy, it must satisfy for all runs of the network of Timed
+Automata.
+Deﬁnition 4. Assume that Bis a Timed Automaton such that e1,...,e K∈
+Act(B). Suppose that φis a Timeliness property of the degree K.Bsatisﬁes φ
+fore1,...,e Kiﬀ for each run σofB,φ(Time( σ, e 1),...,Time( σ, eK)) =T.I n
+this case, we say σsatisﬁes φ.
+The main focus of this paper is on Timeliness properties which express QoS
+statements. The outline of our approach is as follows. We start from a Timelinessstatement φand create a network of Timed Automata such that all its runs that
+do not meet a state called failure ,s a t i s f y φ.Moreover, all runs of the network
+of Timed Automata that meetfailure violate φ.This ensures that the network
+of Timed Automata fully represents the property φ.
+Deﬁnition 5. Assume that φis a Timeliness properties of degree Kexpress-
+ing a QoS statement on the set of actions e
+1,e2,...,e K.AQoS Timed Au-
+tomaton corresponding to φande1,...,e Kis a network of Timed Automaton
+A=QTA(φ, e 1,e2,...,e K)such that
+1.Acontains a distinct location failure ;
+2. for each run σofA,i fσdoes not meet a failure state, i.e. a vector of
+locations with at least one co-ordinate failure ,σsatisﬁes φ.
+3. for sequences, t1,t2,.... tK∈Γthat satisfy φ,t h e r ei sar u n σofAsuch
+that
+(a)σdoes not meet failure ;a n d
+(b) for each iTime( σ, ei)=ti;
+4. for ﬁnite sequences t1,t2,...,tK∈Γ,ifφdoes not satisfy t1,t2,...,tK,t h e n
+there is a ﬁnite run σofAsuch that σends in failure andti=T i m e ( σ, ei).
+It poses as a question that which Timeliness properties correspond to QoS
+Timed Automata (QTA). Since Timeliness properties are boolean functions on
+ΓK, the cardinality of the set of Timeliness properties is ≥22ℵ0. Notice, the
+cardinality of ΓKis the same as the cardinality of Γ,w h i c hi s ≥2ℵ0.T h ec a r d i -
+nality of the set of timed automata is 2ℵ0the majority of Timeliness properties
+are not in correspondence with any QTA. The question of characterisation of
+
+--- Page 7 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 529
+all timeliness properties which can be translated to QTA is highly nontrivial.
+[2–4] adapts a Temporal logic approach to characterise all properties which aretestable via timed automata. However, considering that the Timed Automata
+model of [2–4] does not include data variables, further research is required to
+characterise all Timeliness properties corresponding to QTA.
+A Timeliness property φdeals with the time of occurrence of external events
+e
+1,...e K.Since actions are atomic, two consecutive external actions in a run σ
+have identical Timestamps. As a result, the order of occurrence of such events
+has no eﬀect on “ σsatisﬁes φ,”w h e n φis of degree ≥2,i.e. the property φ
+can not diﬀerentiate between two runs wh ich are identical except the order of
+consecutive actions with the same Timestamp. Consequently, it is important for
+a QTA to include all permutations of such actions.
+Deﬁnition 6. Suppose that Ais a QTA corresponding to a Timeliness property
+φand events e1,...e K.Ais called a Complete QTA if for each run σ:=s0λ1⇒
+s1λ2⇒s2···λn⇒snofAwith consecutive actions λi,λi+1∈Act(A)∩{e1,...e K},
+the run σ/prime:=s0λ1⇒s1λ2⇒s2···siλi+1⇒s/primeλi⇒si+1···λn⇒sn,which is created from
+changing the order of occurrence of λiandλi+1,is also a run of A.
+The next theorem which is the main result of the paper, uses parallel compo-
+sition of a QTA and the network of Timed Automata representing the functional
+behaviour of the system to verify Timelin ess properties. In eﬀect, the next the-
+orem states that each QTA is a Test Automata [2–4].
+Theorem 1. Assume that Bis a network of Timed Automaton such that
+e1,...,e K∈Act(B). Suppose that φis a Timeliness property of the degree K,
+for which a complete QTA Aexists. Bsatisﬁes φfore1,...,e Kif and only if
+no run of A/prime||B/primemeet the state failure ,w h e r e A/prime=QTA(φ, e 1,e2,...,e K)
+[e1?/e1,...,e K?/eK]and B/prime=B[e1!/e1,...e K!/eK],created from Aand B,
+respectively, by replacing e1,...,e Kwith half actions.
+Proof: See section 5.
+4 Veriﬁcation of QoS for a Video Player System
+In this section, we shall apply our results to veriﬁcation of Timeliness QoS state-
+ments on a model of a Video Player system. Fig. 1 depicts a process oriented
+view of a Video Player system. The system consists of four components Video
+Source, Buﬀer, Decoder andQoS Controller that can be explained as follows.
+Video Source: models the application that produces streams of video packets.
+The dispatch of each video packet is abstracted as the emission of a signal packet! .
+Fig. 2 depicts the behaviour of the Video Source as a Timed Automaton, which
+dispatches packet! signals with the periods T0.T h ev a r i a b l e RP,which models
+the rate of the creation of the packets, is used by the QoS controller.
+Buﬀer: (in Fig. 3) receives packet? signals and emits o
+packet ! signals in periods
+ofT0.T h en u m b e ro f packet ? in the buﬀer is denoted by c.Ifcis equal to L,
+
+--- Page 8 ---
+530 Behzad Bordbar and Kozo Okano
+Fig. 1. A Process Oriented View of the Video Player System.
+the length of the buﬀer, the buﬀer is full and the next signal causes an overﬂow
+of the buﬀer, which results an Exception being thrown. One of the objectives of
+the design of functional behaviour is to avoid an overﬂow of the buﬀer.
+Decoder: (in Fig. 5) is used to convert arriving packets into video frames. For
+the purpose of simplicity, we assume that each frame consists of a single packet.
+On creation of a frame a half action frame! is emitted, which can be used to
+synchronise with the display driver. It takes at most T1unit of time and at
+leastT0unit time to generate a frame from an arriving packet. The Decoder
+also generates drop! signals, which mark failure of generation of a frame. The
+emission of a drop! signal is controlled by two local variables randp,a n da
+global variable P. The value of variable Prepresents the drop rate ratio. For
+example for the drop rate of1
+5,the value of Pis equal to ﬁve, which denotes that
+one out of ﬁve frames are dropped. In this case the Timed Automaton createsonedrop! in every ﬁve output signals.
+The value of a global variable R
+c, which shows the current rate of performance
+of Decoder, is incremented to mark the creation of a frame. The value is also
+periodically reset by QoS controller.
+QoS Controller: (in Fig. 4) controls the drop rate Pof the Decoder .T os y n -
+thesise the controller, within each unittime, the current rate of the system
+performance RpandRcare compared. If Rp−Rc>θ 0,t h ev a l u eo f Pis incre-
+mented. If Rc−Rp>θ 1,t h ev a l u eo f Pis decremented. θ0andθ1are constant
+threshold values.
+One of the outputs of the above Video Player example is a signal frame!
+representing the creation of a single frame. This signal is used to synchronise the
+Video Player with a display drive. For a display drive to present a high quality
+pictures, it is required that signals frame! are dispatched with a suitable through-
+put. In general, the QoS characteristic throughput of an event eis referred to as
+a lower bound or an upper bound time on the number of occurrences of the event
+e[10]. For the rest of the current section, we shall demonstrate our approach by
+an example of veriﬁcation of the QoS Throughput. Formally, a Throughput of
+k∈N\{0}within T0andT1unit of time ( T0<T) is deﬁned by
+∀nT 0≤τ(e?,n+K)−τ(e?,n)≤T, (2)
+
+--- Page 9 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 531
+s0
+t <= Tt == T
+packet !
+t:=0, 
+R_p := R_p + 1packet !
+t:=0
+Fig. 2. Video Source represented in TA.s0 s1
+t <= T0Inter
+packet ?
+c := c +1c < Lpacket ?c := c + 1
+c > 0, t == T0o_packet !c := c - 1, t := 0c == L, t == T0
+packet ?
+Fig. 3. RBuﬀ represented in TA.
+s0
+t <= unitR_p - R_c > threshold0, 
+t == unit
+t := 0, 
+R_c := 0, R_p := 0,
+P := P - 1
+R_p - R_c <= threshold0,R_c - R_p <= threshold1,
+t == unit
+t := 0, R_c := 0, R_p := 0
+R_c - R_p > threshold1,
+t == unit
+t := 0, 
+R_c := 0, R_p := 0,
+P := P + 1
+Fig. 4. QoS controller represented in TA.s0 s1
+t <= T0o_packet ?
+t := 0r == P, p == 0drop !r := 0
+r < P, p == 0drop !r:= r + 1, p := p + 1
+r < Pframe !R_c := R_c + 1,
+r := r + 1
+r == P, p > 0
+frame !R_c := R_c + 1,
+r := 0, p := 0
+Fig. 5. Decoder represented in TA.
+where τ(e?,n) denotes the time of the n-th occurrence of the event e?i nt h e
+system.
+Example 1 expresses the throughput of 25 frames per sec. as a Timeliness
+property. Similarly, the general form of throughput, equation (2), can be written
+as a Timeliness property of degree 1. Our next aim is to present a QTA A
+corresponding to throughput that satisﬁes the deﬁnition 5. The ﬁrst requirement
+is that all runs of Ashould be such that the time for the occurrence of esatisﬁes
+the equation 2. A solution is to create kclocks t0,t1,...,t k−1and use each clock
+tito measure the time diﬀerence between the j-th and i+k-th occurrence of e,
+in a periodic form.
+Fig. 6 represents a Timed Automata t hat checks if two consecutive occur-
+rences of a signal e?a r ew i t h i n T0andT1units of each other. In order to check the
+Throughput, we require kparallel composition copies of the Timed Automata of
+Fig. 6. Each such copy of the Timed Automata of Fig. 6 has an index, denoted
+byi, which acts as an identiﬁer . There is a global variable c, which determines
+which copy can ﬁre an action e?. For example, in location active ,i fc==i
+ande? occurs within the period of [ T0,T], a transition ﬁres which sets the value
+
+--- Page 10 ---
+532 Behzad Bordbar and Kozo Okano
+sleep active failure
+c == i
+e ?t := 0,
+c := c + Kt >= T0, t <= T, c == i
+e ?t := 0, c := c + K
+t > T
+t < T0, c == i
+e ?
+Fig. 6. QTA to measure time diﬀerence between corresponding events e.
+sleep active failure
+c == 0
+e ?t0 := 0,
+c := c + 1t0 >= 0, t0 <= T, c == 0
+e ?t0 := 0, c := c + 1
+t0 > T
+t0 < 0, c == 0
+e ?
+sleep active failure
+c == 1e ?t1 := 0,
+c := c + 1t1 >= 0, t1 <= T, c == 1
+e ?t1 := 0, c := c + 1
+t1 > T
+t1 < 0, c == 1
+e ?
+sleep active failure
+c == 2e ?t2 := 0,
+c := c - 2t2 >= 0, t2 <= T, c == 2
+e ?t2 := 0, c := c - 2
+t2 > T
+t2 < 0, c == 2
+e ?
+Fig. 7. QTA for the Throughput with K=3 .
+ofctoc+K. This means that, if the condition T0≤t≤Tis satisﬁed, only
+the copy of the Timed Automata of Fig. 6 with the index i+Kcan ﬁre. For
+example, the QTA for the Throughput of at least K=3w i t h i n Lunit of time,
+i.e.,∀n0≤τ(e,n+2 )−τ(e?,n)≤Tcan be modelled via the network of
+T i m e dA u t o m a t ad e p i c t e di nF i g .7 .
+The QTA of Fig. 7 works as follows. At ﬁrst the value of the counter c
+is 0, therefore, if an action e? occurs, then the Left Hand Side (LHS) Timed
+Automata changes its location to active , because condition c== 0 holds. Thus,
+LHS Timed Automata in crements counter cby 1 resetting its own clock t0.A t
+this moment, if another action e? occurs, then the Timed Automata in the middle
+changes its location due to active . It also increments the counter cby 1. Finally,
+the Right Hand Side Timed Automata changes its location on arriving the third
+action e?, because condition c== 2 holds. At this point, since c:=c−2, the
+value of ci ss e tt o0 .N o w ,i ft h ef o u r t ha c t i o n eoccurs within the period [0 ,T],
+LHS Timed Automata again ﬁres and cis again incremented from 0 to 1.
+It can easily be seen that the network of Timed Automata of Fig. 7 satisﬁes
+the deﬁnition 5 and hence is the QTA for the throughput.
+The rest of the current section demonst rates our method for the veriﬁcation
+of Throughput of frame? signals in the Video Player system. In what follows, we
+have used UPPAAL (ver. 3.2.13) on SUN WS (Ultra SPARC Memory:4G) with
+the parameters speciﬁed in Table 1.
+One of the requirements of the design is to ensure that the Buﬀer never
+overﬂows, i.e. the location Inter of the Buﬀer of Fig. 3 is not reachable. This
+has been veriﬁed checking the deadlock-freeness of the model.
+
+--- Page 11 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 533
+Table 1. Video Player Parameters.
+sub-system
+ parameter
+ value
+ details
+Video Source
+ T0
+ 40
+period of emission of packets
+Decoder
+ T0
+ 30
+Lower bound of time to generate a frame
+Decoder
+ T1
+ 40
+Upper bound of time to generate a frame
+Decoder
+ P
+ 5
+The initial value of the drop-rate of the frames
+Qos Controller
+ unit
+ 1000
+period of control
+Qos Controller
+ θ0,θ1
+ 5
+Control Thresholds
+Buﬀer
+ T0
+ 40
+ﬁxed period for the dispatch of packets
+Buﬀer
+ L
+ 5
+length of the Buﬀer
+Table 2. Result of the Veriﬁcation of Throughput.
+Number of
+ Duration time
+ Result of veriﬁcation
+ CPU time
+frame ? signals
+ (sec.)
+1
+ 130
+ valid
+ 15
+1
+ 129
+ not valid
+2
+ 170
+ valid
+ 30
+2
+ 169
+ not valid
+3
+ 210
+ valid
+ 120
+3
+ 209
+ not valid
+5
+ 250
+ valid
+ 60
+5
+ 249
+ not valid
+6
+ 290
+ valid
+ 100
+6
+ 289
+ not valid
+7
+ 330
+ valid
+ 600
+7
+ 329
+ not valid
+Checking the Throughput of Kframe? signals per Tmsec. is straight forward.
+We only need to include Kparallel composition copies of the Timed Automata
+of Fig. 6 and check for deadlock-freeness. Since, we have already veriﬁed that
+the buﬀer will not overﬂow, the only lik ely deadlock can occur from reaching a
+global state with a coordinate failure . But, how can we calculate KandT?
+In general, estimating the Throughput of a given system is non-trivial. Here,
+we can see that the system produces at most Kframe? signals every T= 130+
+(K−1)×40 msec. To see, this noticing that the system has a drop rate of
+one in ﬁve, we need to look for the worst possible delay between frame? signals.
+The worst scenario happ ens when two consecutive o
+packet s are dropped. For
+example, consider the case that the 3-rd frame? signal is created in the possible
+time, i.e. 30 msec. after the arrival of the corresponding buﬀered packet. The
+5-th and 6-th frame ? signals are dropped and the 7-th is created at the latest
+possible time, i.e. 40 msec. after the arrival of the corresponding buﬀered packet.In this case, the time diﬀerence between the 4-th and 7-th frame? is equal to
+130 = 3 ×40 + 10 .
+
+--- Page 12 ---
+534 Behzad Bordbar and Kozo Okano
+Table 2 depicts the result of the veriﬁcation. It can be seen that Throughput
+of 1 frames in 130 msec., 2 frames in 170 msec., ...are veriﬁed, while the
+Throughput of 1 frames in 129 msec., 2 frames in 169 msec., ...are not valid.
+We have also included the CPU time for each experiment, which indicates an
+exponential increase in time. As a resul t, there is a clear sco pe in the research
+for ﬁnding faster method of veriﬁcation of QoS Timeliness properties.
+Of course UPPAAL itself is not a system development tool. However, in the
+early stages of the system design, it can be a strong tool for detecting time
+related design errors in the speciﬁcation. For example, often choosing a wrong
+value for a constant or using <instead of ≤may creates a dead-lock. Such system
+errors can be easily detected using UPPAAL. When the designer developes an
+implementation as an executable code o r a hardware logic design, it is hard to
+detect such errors.
+5 Proof of Theorem 1
+The aim of this section is to present a proof of the Theorem 1. Our ﬁrst result
+establishes the relationship between runs of the parallel composition of two net-
+works of Timed Automata with runs of each component. The idea is to project
+each run of the parallel composition to a run of the components. We shall start
+with the deﬁnition of a projection map.
+Deﬁnition 7. Suppose that Aand Bare two network of Timed Automata that
+share actions e1,e2,...,e K.LetπA:Act(A||B)∪R≥0−→Act(A)∪R≥0
+πA(λ)=
+
+λλ ∈R≥0
+0 λ∈Act(B)\Act(A)
+λλ ∈Act(A)\Act(B)
+↓λλ ∈Act(A)∩Act(B).
+It can be seen that the projection function πAmaps all actions λ/negationslash∈Act(A)
+to 0. This can be interpreted by cons idering that the occurrence of such λhas
+no eﬀect on the dynamics of Aand takes zero-time. The projection map πBcan
+be deﬁned similarly.
+Ifs=( l,v)i sas t a t eo f A||B, then the vector of location lconsists of
+coordinates representing locations in both Aand B. Also, the valuation is a
+map on the set of clock variables and data variables belonging to both Aand
+B.
+Deﬁnition 8. Suppose that s=( l,v)is a state of A||B, deﬁne pr A(s),
+called the projection of the state sto A,a sap a i r (lA,v A)such that lAis
+the restriction of lto the set of coordinates of locations in AandvAis the
+restriction of vto the clocks and data variables in A.
+The next lemma states that th ep r o j e c t i o no fe a c hr u no f A||BtoAis a
+run of A. Assume that Aand Bare networks of Timed Automata with shared
+actions {e1,e2,...,e K}.
+
+--- Page 13 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 535
+Lemma 1. Ifσ:=s0λ1⇒s1λ2⇒···λn⇒sn···is a ﬁnite/inﬁnite of A||B,t h e n
+pr A(s0)πA(λ1)⇒pr A(s1)πA(λ2)⇒ ···πA(λn)⇒pr A(sn)···, which we shall denote
+withproj(σ,A),is a run of A/prime=A[↓e1/e1,...,↓eK/eK]created from Aby
+replacing each half action with its complete form.
+Proof. The proof is by induction on n. We must show that if snλn+1⇒sn+1then
+pr A(sn)πA(λn+1)⇒ pr A(sn+1). Let sn=( ln,vn)a n d sn+1=( ln+1,vn+1).
+Case 1: λn+1∈R≥0,i st r i v i a l .A s snλn+1⇒sn+1implies that for each coordinate
+liof the vector of locations ln,I(li)(v+d/prime) for all d/prime≤λn+1. This is true specially
+for the coordinates liofA.
+Case 2: λn+1∈Act(B)\Act(A) i.e.λn+1is an internal action of Band occur-
+rence of λn+1has no eﬀect on A. Consequently, none of the locations, valuation
+of clocks or data variable of Ais changed i. e. pr A(sn)=pr A(sn+1)a n dw e
+can write pr A(sn)0⇒pr A(sn+1).
+Case 3: λn+1∈Act(A)\Act(B), then there is a location li∈Location (A)
+such that liλn+1,gi,ri−→ l/prime
+i.A sar e s u l t , ln+1=l[l/prime
+i/li],vn+1=r(vn), and gi(v)=
+gi(v|Clock (Ai)∪Data (Ai)),pr A(sn)λi⇒pr A(sn+1).
+Case 4: ↓λn+1∈↓Act(A)∩↓Act(B). In this case, λn+1is a shared action and
+there is an en(1≤n≤K), such that λn+1=↓en. For example, lien?,gi,ri−→ l/prime
+iand
+lien!,gj,rj−→ l/prime
+iinAand B, respectively. Moreover, gi(vn),gj(vn)a n d ri∪rj∈R.
+As a result, replacing en?w i t h ↓en(=↓λn),w eh a v e lien?,gi,ri−→ l/prime
+i,gi(vn),ri∈R.
+Hence, pr A(sn)λi⇒pr A(sn+1). 2
+The converse of the above lemma is not valid. In other word, it is not possible
+to start with anytwo runs σ1∈Aandσ2∈Bandmerge them to create a run of
+the parallel composition. For σ1andσ2to synchronise, one of the requirements
+is that the order of the occurrence of the shared actions to be identical.
+Deﬁnition 9. Assume that Aand Bare two networks of Timed Automata
+with shared actions e1,...,e K. Assume that σ1andσ2are ﬁnite runs of Aand
+B, respectively. σ1andσ2are called Shared Action Compatible if the order of
+the occurrence of shared actions in them are identical. i.e. if {µ1
+1,µ12,...,µ1n}
+and if {µ2
+1,µ22,...,µ2m}are ordered sequences of shared actions in σ1andσ2,
+respectively, then n=mand for each i, µ1
+iandµ2
+iare half actions of the same
+complete action, i.e. . ↓µ1
+i=↓µ2
+i.
+The following Lemma studies a special case under which it is possible to
+merge a run σ1ofAand a run σ2ofB.Forσ1andσ2t om e r g ei n t oar u no f
+the the parallel composition A||B,they must have the same time sequences ,
+for the corresponding shared actions andthe order of the occurrence of shared
+actions with equal Timestamps must be identical.
+
+--- Page 14 ---
+536 Behzad Bordbar and Kozo Okano
+Lemma 2. Assume that Aand Bare network of Timed Automata with shared
+actions e1,e2,...e K. Assume that Aand Bhave no shared clocks or data vari-
+ables. Suppose that σ1andσ2are ﬁnite runs of Aand Bthat
+1.σ1andσ2areShared Action Compatible and;
+2. for each i,Time(σ1,ei)=Time(σ2,ei),
+then there is σ∈Run(A||B)such that proj(σ,A)=σ1andproj(σ,B)=σ2.
+Sketch of the Proof: suppose that σ1=s1
+0α1⇒s1
+1α2⇒···αN⇒s1
+Nandσ2=s2
+0β1⇒
+s2
+1β2⇒···βM⇒s2
+M,w h e r ef o re a c h i,αi∈Act(A)∪R≥0andβi∈Act(B)∪R≥0.
+Let us assume that Timestamp( σ1,S1
+N)≤Timestamp ( σ2,S2
+M); the symmet-
+r i cc a s eo fT i m e s t a m p ( σ1,S1
+N)≥Timestamp ( σ2,S2
+M) can be treated similarly.
+Also, without any loss of generality, we can assume that the set of all Times-tamps of all states σ
+1and the Timestamps of the states of σ2that occurs before
+the Timestamp of the last state of σ1are identical, i.e.
+{Timestamp (σ1,s1
+j)|0≤j≤N}={Timestamp (σ2,s2
+j)|
+Timestamp (σ2,s2
+j) ≤Timestamp (σ1,s1
+N)}.(3)
+The above can be achieved by using Time Additive Axiom to modify a run and
+adding extra states. The proof of the lemma is by induction, we shall use the
+following notations in the rest of the proof:
+–for 0≤p≤N,l e tσ1,p:=s1
+0α1⇒s1
+1α2⇒···αp⇒s1
+p,
+–for 0≤q≤M,l e tσ2,q:=s2
+0β1⇒s2
+1β2⇒···βq⇒s2
+q,
+–also assume that for 0 ≤n,σn:=s0λ1⇒s1λ2⇒ ···λn⇒sndonates a run of
+A||B.
+Since the induction base is trivial, we only need to prove the following claim,
+which implies the induction step.
+CLAIM: forp+q<M +N,i fproj(σn,A)=σ1,pandproj(σn,B)=σ2,q,t h e r e
+isσn+1∈Run(A||B) such that proj(σn+1,A)=σ1,p/primeandproj(σn+1,B)=
+σ2,q/prime,w h e r e p≤p/prime≤N, q≤q/prime≤Mandp+q<p/prime+q/prime.
+Proof of the CLAIM: The proof of above claim involves a number of cases.
+Lets1
+p=( l1,v1),s2
+q=( l2,v2)a n d sn=( l,v), where lconsists of coordinates of
+l1and l2andv=v1∪v2.
+Case I: αp+1=0o r βq+1= 0 is trivial. For example if αp+1=0t h e n s1
+p=s1
+q+1.
+In this case, the sequence σn+1=s0λ1⇒s1λ2⇒ ···λn⇒snαp+1⇒sn+1is such that
+proj(σn+1,A)=σ1,p+1andproj(σn+1,B)=σ2,q.W es e et h a t p/prime=p+1a n d
+q/prime=q+1.
+Case II: αp+1andβq+1are both nonnegative real numbers. Using equation 3
+we can show that αp+1=βq+1=d.N o w ,i f σn+1:=s0λ1⇒s1λ2⇒ ···λn⇒snd⇒
+sn+1,we can see that proj(σn+1,A)=σ1,p+1andproj(σn+1,B)=σ2,q+1.
+Consequently, p/prime=p+1a n d q/prime=q+1.
+
+--- Page 15 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 537
+Case III: One of αp+1orβq+1is a completed action. For example, if αp+1
+is a completed action and enabled under sn,αp+1is enabled under s1
+p. Hence,
+ifσn+1:=s0λ1⇒s1λ2⇒ ···λn⇒snαp+1⇒sn+1thenproj(σn+1,A)=σ1,p+1and
+proj(σn+1,B)=σ2,q.I nt h i sc a s e , p/prime=p+1a n d q/prime=q.
+Case IV: Bothαp+1andβq+1are half actions. By the Shared Action Compati-
+bility, αp+1andβq+1are half actions of the same actions, i.e.,t h e r ei s isuch that
+↓αp+1=↓βq+1=eifor 1 ≤i≤K.T h e nl e t σn+1:=s0λ1⇒s1λ2⇒ ···λn⇒snei⇒
+sn+1.W ec a ns e et h a t proj(σn+1,A)=σ1,p+1andproj(σn+1,B)=σ2,q+1.
+Notice that p/prime=p+1a n d q/prime=q+1 .
+Case V: One of αp+1orβq+1is a half action and other is in R≥0.L e tαp+1∈HA
+andβq+1∈R≥0. By the Shared Action Compatibility, there is r>q+1, such that
+βrandαp+1are half actions of the same actions, i.e.,↓αp+1=↓βr=ei.T h i s
+implies that βq+1=0 ,s i n c e βq+1≤Timestamp( σ2,s2
+r−1)−Timestamp( σ1,s1
+p)=
+0. Using case I, there is nothing to prove. 2
+We shall end this section with the proof of Theorem 1.
+Proof of Theorem 1 ⇒: We shall prove by contradiction. Suppose that B
+satisﬁes the property φbut there is a run σofA/prime||B/primeending in failure .
+Then by Lemma 1σA=proj(σ,A)i sar u no f Aending in a failure state of
+A,i.e. a state of Awith a failure coordinate. As a result, φ(Time( σA,e1),...,
+Time( σA,eK)) =F.N o w ,c o n s i d e r σB=proj(σ,B) which is a run of B.Since,
+Time( σA,ei)= T i m e ( σB,ei), for each i,
+φ(Time(σB/prime,e1),...,Tim e (σB/prime,eK)) =F. Consequently, by deﬁnition 5, σB
+does not satisfy φ,which is a contradiction.
+Conversely: The proof of this case is also by contradiction. Assume that no run
+of the parallel composition meets any failure state, but Bdoes not satisfy φ.
+Then there is a run σ2ofBsuch that φ(Time( σ2,e1),...,Time( σ2,eK)) =F.
+Suppose that t1=T i m e ( σ2,e1),..., tK=T i m e ( σ2,eK). Since φ(t1,...,tK)=
+Fby Deﬁnition 5. There is a ﬁnite run σ1ofAsuch that σ1ends in failure
+andt1=T i m e ( σ1,e1),...,tK=T i m e ( σ1,eK). Moreover, since Ais a Complete
+QTA, σ1c a nb ec h o s e ns u c ht h a t σ1andσ2are Shared Action Compatible.
+Now, using σ1,σ2and Lemma 2, we can conclude that there is a run of A/prime||B/prime
+ending in failure . This is a contradiction. 2
+6 Related Works
+Formal speciﬁcation of QoS in a distributed system via modelling languages such
+as Uniﬁed Modelling Language (UML) is an active area of research [22,7,15,1,
+11,12]. In particular, the idea of specifying the QoS requirements as contracts[19] on the behaviour of the system is proposed [15] as a part of Model Driven Ar-
+chitecture, the new initiative by the Object Management Group ( www.omg.org ).
+However, the current research mainly deals with the issue of verifying of QoS
+property via Test Automata. The question that, which properties can be anal-
+ysed by Test Automata is discussed in details in [2–4]. In particular, [3] presentsa property language, called SBLL which is suitable for expressing safety and
+liveness properties of the real-time systems. SBLL is a testable language, in the
+
+--- Page 16 ---
+Fig. 8. QTA for checking Throughput of Koccurrence of e?i nTunit of time.
+sense that [4] presents an algorithm for the translation of SBLL formulae to Test
+Automata. SBLL has the following grammar:
+φ::=ﬀ|φ1∧φ2|g∨φ|∀∀φ|[a]φ|/angbracketlefta/angbracketrighttt(a∈U)|xin
+φ|X|max(X,φ),
+where ﬀandttstand for falseandtrue, respectively. gis a guard expression on
+the clocks, xin
+φstands for resetting a clock xbefore evaluating φ,m a x ( X,φ)
+is the maximal ﬁxed point solution on Xinφ,Uis a set of urgent actions and
+∀∀φstands for φholdsforever .
+The following formula represents the Throughput as an SBLL formula
+φ=t1in
+[e?](t1≥T∨(t2in
+[e?]t1≥T∨t2≥T∨(···(t1≥T∨···tK−1≥T
+∨tK−1in
+[e?](φ/prime/prime))···)))
+φ/prime(X)=
+t1≥T∨t1(i n
+[e?](t2≥T∨t2in
+[e?](···tK−1≥T∨tK−1in
+[e?](X)···)))
+φ/prime/prime=m a x ( X,φ/prime).
+Fig. 8 depicts the Test Automaton for the Throughput for K=3 ,c r e a t e dv i a
+the algorithm [4], in which all redundant transitions are omitted. Fig. 7 depicts
+the equivalent QTA created earlier. It can be seen that the QTA of Fig. 7 has
+the advantage of being scalable , i.e. the Test Automaton for the throughput of
+Ksignals e?i nTunits of time can be created from the parallel composition of
+Kcopies of the QTA of Fig. 6. The reason behind scalability of our model is
+that, unlike SBLL, our model of Timed Automata includes data variables. There
+is a clear scope for research to extended the SBLL to include data variables. In
+particular, since L∀s, an extension of SBLL, completely characterises testable
+properties [2–4], an extension of SBLL to include data variables will enable to
+characterize the Timeliness p roperties which are testable.538 Behzad Bordbar and Kozo Okano
+failuret1 := 0
+e ?
+e ?
+e ?
+e ?
+t1 := 0t1 > T
+t1 > T, t2 > T
+t1 > T, t2 > T, t3 > Te ?
+t2 := 0e ?
+t3 := 0
+t1 > Tt2 > Tt3 > T
+
+--- Page 17 ---
+Veriﬁcation of Timeliness QoS Properties in Multimedia Systems 539
+7C o n c l u s i o n
+This paper presents a formal approach to the veriﬁcation of Timeliness QoS
+properties, such as Throughput, Jitter and Latency, in object-based models ofDistributed Multimedia Systems. For each Timeliness property φ,we deﬁne a
+QoS Timed Automata (QTA) such that all its runs that do not meet a failure
+location, satisfy φ.Moreover, all runs of the QTA that meet a failure location
+violate φ. The main result of the paper proves that a QTA is a Test Automata,
+i.e. it can be used to verify the property φover a network of Timed Automata
+via parallel composition. We have demonstrated our approach by the veriﬁcation
+of Throughput in a Video Player system.
+References
+1. D. H. Akehurst, B. Bordbar, J. Derrick, and a. g. waters: design support for dis-
+tributed systems: dse4ds in J. Finney, M. Haahr, and A. Montressor, editors, pro-
+ceedings of the 7th Cabernet Radicals Workshop, October 2002.
+2. L. Ageto, P. Bouyer, A. Burgue˜ n oa n dK .G .L a r s e n : The Power of Reachability
+Testing for Timed Automata , In Proceedings of 18th Conference of Fundamental
+of Software Technology and Theoretical Computer Science (FST and TCS ’98),LNCS 1530 pp.245–256, 1998.
+3. L. Ageto, P. Bouyer, A. Burgue˜ n oa n dK .G .L a r s e n : Model-Checking via Reach-
+ability Testing for Timed Automata , In Proceedings 4th Conference of Tools and
+Algorithms for Construction and Analysis of Systems (TACAS ’98), LNCS 1384
+pp.263–280, 1998.
+4. L. Ageto, P. Bouyer, A. Burgue˜ n oa n dK .G .L a r s e n : The Power of Reachability
+Testing for Timed Automata , available from
+http://www.lsv.ens-cachan.fr/Publis/publis-y3-2003.php ,
+to appear in Theoretical Computer Science.
+5. R. Alur and D.L. Dill: A Theory for Timed Automata , In Theoretical Computer
+Science 125pp.183–235, 1994.
+6. T. Amnell, G. Behmann, J. Bengtsson, P. R. D’Argenio, A. David, A. Fehnker, T.
+Hune, B. Jeannet, K. G. Larsen, O. M¨ oller, P. Pettersson, C. Weise and W. Yi:
+UPPAAL—Now, Next and Future In proceedings of Modelling and Veriﬁcation of
+Parallel Processes (MOVEP2k), LNCS 2067 pp.100–125, 2001.
+7. J. Øyvind Aagedal and E. F. Ecklund Jr. Modelling QoS: Towards a UML Proﬁle
+UML 2002, pp. 275–289, 2003.
+8. J. Bengtsson, W. O. D. Griﬃoen, K.J. Kristoﬀersen, K. G. Larsen, F. Larsson, P.
+Pettersson and W. Yi: Veriﬁcation of an Audio Protocol with Bus Collision Using
+UPPAAL , In Proceedings of the 8th International Conference on Computer-Aided
+Veriﬁcation, LNCS 1102 pp.244–256, 1996.
+9. J. Bengtsson, K. G. Larsen, F. Larsson, P. Pettersson and W. Yi: UPPAAL, a Tool
+suite for automatic veriﬁcation of real-time systems In Proceedings of Workshop
+on Hybrid Systems III: Veriﬁcation and Control, LNCS 1066 pp.232–243, 1995.
+10. G. Blair, J.-B. Stefani: Open Distributed Processing and Multimedia Addison-
+Wesley, Boston, MA, 1997.
+11. B. Bordbar, J. Derrick, and A. G. Waters: A UML approach to the design of open
+distributed systems In Chris George and Huaikou Miao, editors, Formal Methods
+and Software Engineering, LNCS 2495 pp.561–572, 2002.
+
+--- Page 18 ---
+540 Behzad Bordbar and Kozo Okano
+12. B. Bordbar, J. Derrick, and A. G. Waters: Using UML to specify QoS constraints
+in ODP Computer network and ISDN systems 40pp.279–304 2002.
+13. H. Bowman, G. Faconti, and M. Massink: Speciﬁcation and veriﬁcation of media
+constraints using UPPAAL , In Proceedings of Design, Speciﬁcation and Veriﬁca-
+tion of Interactive Systems ’98, Markopoulos and P. Johnos, editors, pp. 261–277
+Springer, 1998.
+14. K. Havelund, A. Skou, K. G. Larsen and K. Lund: Formal Modelling and Anal-
+ysis of an Audio/Video Protocol: An Industrial Case Study Using UPPAAL In
+Proceedings of the 18th IEEE Real-Time Systems Symposium, pp.2–13, 1997.
+15. J.-M. J´ ez´equel Model-driven engineering with contracts, patterns, and aspects In
+Tutorial Program of AOSD 2003: 2nd International Conference on Aspect-Oriented
+Software Development, ACM-IEEE, March 2003.
+16. K. G. Larsen, Paul Pettersson and W. Yi: UPPAAL in a Nutshell , In Springer
+International Journal of Software Tools for Technology Transfer 1(1+2) 1997.
+17. M. Lindahl, Paul Pettersson and W. Yi: Formal Design and Analysis of a Gear
+Controller , In Springer International Journal of Software Tools for Technology
+Transfer, volume 3, issue 3, pp. 353-368, 2001.
+18. H. L¨ onn and P. Pettersson: Formal Veriﬁcation of a TDMA Protocol Start-Up
+Mechanism , In Proceedings of 1997 IEEE Paciﬁc Rim International Symposium
+on Fault-Tolerant Systems, pp.235–242, 1997.
+19. Stephane Lorcy, Noel Plouzeau, and Jean-Marc J´ ez´equel Reifying quality of service
+contracts for distributed software , In 26th Conference on Technology of Object-
+Oriented Systems (TOOLS USA’98), August 1998
+20. R. Milner, Communication and concurrency , Prentice Hall, Upper Saddle River,
+NJ, 1989.
+21.ITU Recommendation X.901-904 ISO/IEC 10746 1-4 . Open Distributed Process-
+ing Reference Model - Parts 1-4, July, 1995.
+22. R. Staehli, F. Eliassen, J. Øyvind Aagedal and G. S. Blair Quality of Service Se-
+mantics for Component-Based Systems The 1st International Workshop on Mid-
+dleware for Grid Computing, pp. 153-157, 2003.
+23. W. Yi, Real-Time Behaviour of Asynchronous Agents , In Proceeding of 1st Int.
+Conf. Theory of Concurrency (CONCUR90), LNCS 458, pp. 502-520, 1990.
