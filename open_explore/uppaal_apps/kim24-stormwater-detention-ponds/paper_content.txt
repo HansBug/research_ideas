@@ -1,0 +1,760 @@
+--- Page 1 ---
+Aalborg Universitet
+Controlling Stormwater Detention Ponds under Partial Observability
+Kim, Esther Hahyeon; Goorden, Martijn; Larsen, Kim Guldstrand; Nielsen, Thomas Dyhre
+Published in:
+Journal of Logical and Algebraic Methods in Programming
+DOI (link to publication from Publisher):
+10.1016/j.jlamp.2024.100979
+Creative Commons License
+CC BY 4.0
+Publication date:
+2024
+Document Version
+Publisher's PDF, also known as Version of record
+Link to publication from Aalborg University
+Citation for published version (APA):
+Kim, E. H., Goorden, M., Larsen, K. G., & Nielsen, T. D. (2024). Controlling Stormwater Detention Ponds under
+Partial Observability. Journal of Logical and Algebraic Methods in Programming, 141, 1-19. Article 100979.
+https://doi.org/10.1016/j.jlamp.2024.100979
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 2 ---
+J. Log. Algebraic Methods Program. 141 (2024) 100979
+Available online 21 May 2024
+2352-2208/© 2024 The Authors. Published by Elsevier Inc. This is an open access article under the CC BY license
+(http://creativecommons.org/licenses/by/4.0/ ).
+Contentslistsavailableat ScienceDirect
+Journal  of Logical  and  Algebraic  Methods  in 
+Programming
+journal  homepage:  www.elsevier.com/locate/jlamp
+Controlling  stormwater  detention  ponds  under  partial  
+observability
+EstherH.Kim∗, MartijnA.Goorden,  KimG.Larsen,  ThomasD.Nielsen
+Department  of Computer  Science,  Aalborg  University,  Aalborg  Øst, 9220, Denmark
+A R T I C L E I N F O A B S T R A C T
+Keywords:
+Control  synthesis
+Partial observability
+Uppaal stratego
+Hybrid Markov  decision  process
+Gaussian  noise
+Continuous  systemsStormwater  detention  ponds play an important  role in urban water management  for collecting  
+and conveying  rainfall  runoﬀ from urban catchment  areas to nearby  streams.  Their purpose  is not 
+only to avoid ﬂooding  but also to reduce  stream  erosion  and degradation  caused  by the direct 
+discharge  of pollutants  to the stream.  We model the problem  of controlling  the discharge  rate of 
+water from the ponds as a partially  observable  hybrid  Markov  decision  process  and subsequently  
+use UPPAALSTRATEGOfor synthesizing  safe and near optimal  control  strategies.  The generated  
+strategies  are based on noisy sensor measurements  of the water height in the pond, hence the 
+underlying  system  is only partially  observable.  We present  results analyzing  how sensitive  the 
+synthesized  strategies  are with respect  to the accuracy  of the measurement  sensors  in both oﬄine 
+and online settings.  These types of analyses  not only provide  insight  into the robustness  of the 
+generated  strategies,  but they can also be used for deciding  on which measurement  sensors  to 
+use, thereby  balancing  sensor cost and accuracy.
+1. Introduction
+In urban water management,  stormwater  detention  ponds  play a crucial  role by collecting  and directing  rainfall  runoﬀ  from 
+catchment  areas to nearby  streams [1]. Their objective  extends  beyond  preventing  ﬂooding;  it also includes  mitigating  stream  
+erosion  and degradation  resulting  from the direct discharge  of pollutants  into the stream[2].
+Standard  solutions  for managing  stormwater  detention  ponds  employ  static controllers  to regulate  the discharge  of water [3]. 
+These types of controllers  fail to exploit  the full potential  of the water system  as demonstrated  in [4], where  formal  methods  are 
+used to synthesize  safe and optimal  control  strategies  using UPPAALSTRATEGO[5]. For synthesizing  control  strategies,  [4]m o d e l s  
+the water system  as a hybrid  Markov  decision  process  (HMDP),  based on which  reinforcement  learning  is used to ﬁnd a strategy  that 
+minimizes  a cost function  balancing  the consequences  of discharging  pollutants  to the stream  (optimality)  with the consequences  of 
+pond overﬂows  (safety).
+The control  strategies  synthesized  in[4]rely on full observability  of the system,  including  the actual  water height  in the pond. 
+In real-world  settings,  water measurements  are based on noisy and potentially  faulty sensors  leading  to incomplete  and partial  
+observability.  In this paper,  we extend  the results  in [4]b y modeling  the stormwater  detention  pond, covering  also catchment  
+areas and weather  forecasts,  as a partially  observable  hybrid  Markov  decision  process,  where  sensors  and sensor  noise are explicitly  
+represented.  We compare  the synthesized  strategies  with those produced  by [4]a n d we present  analyses  of how sensitive  the 
+* Corresponding  author.
+E-mail address:hki@cs.aau.dk (E.H.Kim).
+https://doi.org/10.1016/j.jlamp.2024.100979
+Received  4 May 2023; Received  in revised  form 10 May 2024; Accepted  14 May 2024
+
+--- Page 3 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+2E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 1.AstormwaterdetentionpondinVilhelmsborgskovnearAarhus,Denmark.
+synthesized  strategies  are with respect  to diﬀerent  types of sensor  noise. These analyses  not only provide  insight  into the robustness  
+of the control  strategies,  but can also be used for designing  new physical  sensor  systems,  where  one typically  needs to ﬁnd an 
+appropriate  balance  between  the cost and accuracy  of the sensors.
+This paper is an extended  version  of the conference  paper[6]with  the following  additions.  First, we include  a formal  deﬁnition  of 
+the mathematical  modeling  framework  HMDP,  accompanied  by a full model  speciﬁcation  of the stormwater  detention  pond as well 
+as its relevant  subsystems,  such as the surrounding  urban catchment  area and the weather  forecast.  Second,  we conduct  analyses  
+and experiments  on generating  control  strategies  for the detention  pond under conditions  of partial  observability,  utilizing  only 
+water level measurements  through  noisy sensors.  Third,  by utilizing  the STOMPC  framework  [7], where UPPAALSTRATEGOand 
+EPA-SWMM[ 8](a domain-speciﬁc  simulator)  are combined,  we expand  our analysis  to include  an online  Model  Predictive  Control  
+(MPC)  setting.
+This paper is structured  as follows.  In Section2, we give an introduction  to stormwater  detention  ponds  and urban water man-
+agement,  and in Section3we introduce  the mathematical  framework  used for modeling  such systems.  In Section4we describe  the 
+control  problem  and the system  model,  which  form the basis for the oﬄine  and online  experimental  results  discussed  and analyzed  
+in Section5. Finally,  in Section6, we conclude  the paper with discussions  and further  research  challenges.
+2. Stormwater  detention  ponds
+In urban water management,  a stormwater  detention  pond is a specially  designed  basin or pond for collecting  rainwater  from 
+urban areas, such as streets  and parking  lots, before  discharging  the water into streams  (see Fig.1). Stormwater  detention  ponds  
+primarily  aim to regulate  and oversee  the discharge  of stormwater  runoﬀ  into downstream  water bodies.  By temporarily  retaining  
+the runoﬀ  of urban catchment,  detention  ponds  aid in the elimination  of pollutants  from the stormwater  runoﬀ,  leading  to an 
+improvement  in water quality  prior to its discharge  into the nearby  stream.  Moreover,  the detention  ponds  facilitate  a gradual  
+drainage  process,  which  helps diminish  the runoﬀ’s  peak ﬂow rate and prevent  downstream  erosion  and ﬂooding.
+In the event of heavy  rainfall,  if the volume  of water entering  the detention  pond from the urban area exceeds  its holding  capacity,  
+it will cause the pond to overﬂow.  This can subsequently  result in ﬂooding  downstream.  By monitoring  the water level in the pond, 
+sensors  can help control  the water ﬂow and prevent  ﬂooding  in advance.  For this reason,  industries  install  sensors  at the site to 
+monitor  and control  their manufacturing  processes.  These sensors  can measure  various  parameters  such as temperature,  pressure,  
+pH, and water level[9].
+Sensor  imperfection  encompasses  any deviation  from optimal  sensor  performance,  which  may include  measurement  errors or 
+inaccuracies.  Noise is one of the most common  types of sensor  imperfection,  resulting  from random  signal ﬂuctuations  caused  by 
+sources  like thermal  changes  or electrical  interference.  These ﬂuctuations  may challenge  obtaining  precise  signal measurements[ 10,
+11]. Sensor  imperfections  can impact  control  strategies  because  precise  sensor  measurements  are essential  for determining  a system’s  
+condition  and the most appropriate  control  decisions  in a given situation.  As a result,  sensor  imperfections  can lead to suboptimal  or 
+hazardous  control  decisions,  which  can have signiﬁcant  consequences  in safety-critical  ﬁelds.
+An example  of a stormwater  detention  pond with a sensor  installed  is schematically  illustrated  in Fig.2. Rainwater  is collected  
+from an urban area, which  is a geographic  region  characterized  by a high population  density  and human-made  infrastructures  such 
+as buildings,  roads,  transportation  networks,  and other urban amenities.  The rain subsequently  enters  the pond through  inlet 𝑄in
+before  being diverted  to a nearby  stream  through  an oriﬁce  that can be used to control  the discharge  rate 𝑄out. The water level in 
+the pond is denoted  by 𝑤, and if it reaches  the maximum  water level, denoted  by 𝑊, it will trigger  an emergency  overﬂow  from the 
+pond. The pond is equipped  with a sensor  providing  noisy measurements  𝑤obsof the water level, which  can be used to control  the 
+oriﬁce  size.
+When deﬁning  or synthesizing  a control  strategy  for the oriﬁce,  the main objective  is to prevent  overﬂow,  while at the same time 
+allowing  for sedimentation  of pollutant  particles  from the urban runoﬀ  before  discharging  the water into the stream.
+
+--- Page 4 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+3E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 2.Schematicillustrationofawaterpond.Theactualwaterheightismeasuredbya(noisy)sensor.Theoriginalillustrationisin[ 4].
+3. Preliminaries
+3.1. Hybrid  Markov  decision  process
+We model  a control  problem  of stormwater  detention  pond using a hybrid  Markov  decision  process  (HMDP)  in which  the (uncon-
+trollable)  state of the environment  changes  probabilistically[ 12,13].
+Deﬁnition  1. A hybrid  Markov  decision  process  is a tuple (𝐶, 𝑈, 𝑋, 𝐹, 𝛿), where:
+1. The  controller  𝐶is a ﬁnite set of (controllable)  modes  𝐶={𝑐1, … , 𝑐𝑘}.
+2. The  uncontrollable  environment  𝑈is a ﬁnite set of (uncontrollable)  modes  𝑈={𝑢1, … , 𝑢𝑙}.
+3.𝑋is a ﬁnite set of continuous  (real-valued)  variables  𝑋={𝑥1, … , 𝑥𝑛}.
+4.∀𝑚 ∈𝐶×𝑈, function  𝐹𝑚∶ℝ>0×ℝ𝑋→ℝ𝑋describes  the ﬂow-function,  which  is the evolution  of the continuous  variables  over 
+time in the mode 𝑚.
+5.𝛿is a family  of probability  functions  𝛿𝛾∶ℝ≥0×𝑈→[0, 1], where  𝛾=(𝑐, 𝑢, 𝒙) ∈(𝐶×𝑈×ℝ𝑋) =ℂis a conﬁguration  and vector  
+𝒙is a state of the continuous  variables  𝑋. More precisely,  𝛿𝛾(𝜏, 𝑢′)is the probability  that in the global  conﬁguration  𝛾=(𝑐, 𝑢, 𝒙), 
+𝑢will change  to 𝑢′after a time delay 𝜏.
+As detailed  in Section4, for our particular  domain  the oriﬁce  setting  of the stormwater  detention  pond is represented  by the con-
+troller  𝐶, which  can be changed  periodically.  The duration  and the intensity  of the rain events  will be modeled  by the uncontrollable  
+environment  variable  𝑈, and the ﬂow function  𝐹will model  the evolution  of the water in the pond as captured  by the real-valued  
+state variables  𝑋. The Markov  property  is implicitly  included  in Deﬁnition1, where  the progression  of the system’s  state in the 
+composite  mode is solely inﬂuenced  by the present  global  conﬁguration  𝛾=(𝑐, 𝑢, 𝒙)and is independent  of the preceding  sequence  of 
+events.  The stochastic  nature  of the weather  is represented  by the probability  function  𝛿and, in the rest of the paper,  the controller  is 
+only allowed  to change  mode at a ﬁxed frequency  (corresponding  to period  𝑃∈ℝ≥0), say, every one hour. The general  deﬁnition  of 
+an HMDP  allows  for the modeling  of time as a state variable,  and time can be included  among  the continuous  (real-valued)  variables  
+𝑋presented  in Deﬁnition1.3.
+A runfor an HMDP  is a sequence  𝜋of conﬁgurations  and relative  time-delays:
+𝜋=𝛾0∶∶𝜏1∶∶𝛾1∶∶𝜏2∶∶𝛾2∶∶⋯, (1)
+where  𝛾𝑖=(𝑐𝑖, 𝑢𝑖, 𝒙𝑖) ∈ℂ, 𝜏𝑖∈ℝ, and for all 𝑖either
+•t h e environment  𝑢𝑖changes  to a new state 𝑢𝑖+1in 𝛾𝑖+1, where  𝑐𝑖+1=𝑐𝑖and 𝛿𝛾𝑖(𝜏𝑖+1, 𝑢𝑖+1) >0or
+•t h e controller  changes  to a new mode 𝑐𝑖+1in 𝛾𝑖+1at the end of a period,  i.e., ∑
+𝑗≤𝑖+1𝜏𝑗=𝑛 ⋅𝑃, for some 𝑛, and 𝑢𝑖=𝑢𝑖+1.
+•𝜏𝑖can be any real value and it does not need to be discretized  in any manner.
+3.2. HMDP  strategies
+A strategyfor an HMDP  is a function  𝜎∶ℂ →2𝐶that given the current  conﬁguration  𝛾=(𝑐, 𝑢, 𝒙)returns  a set of controllable  
+modes.  A strategy  is said to be deterministic if only one control  mode is returned  for each conﬁguration  𝛾∈ℂ. Otherwise,  the strategy  
+is non-deterministic .
+For a given strategy  𝜎, the HMDP  deﬁnes  a stochastic  process  denoted   ↾𝜎. A run of an HMDP  under strategy  𝜎is run 
+where  the control  modes  change  at a ﬁxed frequency  (corresponding  to period  𝑃∈ℝ≥0) according  to 𝜎. Formally,  if the controller  
+switches  to a new mode 𝑐𝑖+1at the end of a period,  it must hold that 𝑐𝑖+1∈𝜎(𝑐𝑖, 𝑢𝑖, 𝐹(𝑐𝑖,𝑢𝑖)(𝜏𝑖+1, 𝒙𝑖)).
+For an objective  function  𝑓∶ℂ →ℝ, we evaluate  the quality  of a strategy  𝜎in terms of the expected  value of 𝑓over the space of 
+runs of  ↾𝜎starting  in conﬁguration  𝛾0and with time horizon  𝐻∈ℝ≥0: 𝔼,𝛾
+𝜎,𝐻(𝑓). In this paper,  we deﬁne  𝑓to be an accumulative  
+reward  (cost) function,  i.e., 𝑓=∫𝐻
+0𝑟(𝑡)d𝑡, where  𝑟(𝑡)is the reward  at time 𝑡, so 𝑟(𝑡)needs to be integrable  over the interval  [0, 𝐻]. 
+An optimal  strategy𝜎optis a strategy  that maximizes  (or minimizes)  𝔼,𝛾
+𝜎,𝐻(𝑓). For the control  problem  modeled  of our domain,  we 
+will deﬁne  an objective  function  balancing  sedimentation  and overﬂow  as captured  by conﬁgurations  ℂin Section4.6.
+
+--- Page 5 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+4E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 3.Schematicillustrationsofasimpliﬁeddecisiontreeforrepresentingcontrolstrategies.
+Fig. 4.Modeloftheweatherforecast.
+3.3. UPPAALSTRATEGO
+For synthesizing  a strategy  for controlling  the discharge  amount  of water (𝑄out) from the pond, we rely on the toolUPPAALSTRAT-
+EGO[5].UPPAALSTRATEGOprovides  methods  for synthesizing  safe and near-optimal  strategies  for hybrid  Markov  Decision  Processes  
+(MDP),  including  both timed automata  and continuous-space  MDPs.  For synthesizing  a strategy, U PPAALSTRATEGOrelies on rein-
+forcement  learning  techniques  optimizing  a speciﬁc  optimization  objective.  For synthesizing  control  strategies  for continuous-space  
+MDPs,  the tool uses the methods  from[14,15]to partition  a continuous  state-space  into a discrete  one.
+Using a tool based on formal  methods  provides  us the advantage  of having  a modeling  language  with formal  semantics.  This 
+eases the modeling  step. Furthermore, U PPAALSTRATEGOallows  for synthesizing  a guaranteed  safe shield  used for reinforcement  
+learning[16]as well as statistical  model  checking  of the controlled  HMDP.
+The strategies  obtained  by UPPAALSTRATEGO, as documented  in[12], can be visualized  as decision  trees, as exempliﬁed  in the 
+left-hand  side of Fig.3. When 𝑤 ≤162, the optimal  control  decision  is to open the controller  to the minimum  size. If 𝑤 >162, 
+the control  decision  depends  on the variable  𝑡. If 𝑡 ≥270, the optimal  control  decision  is to set the controller  to maximum  size. 
+Conversely,  if 𝑤 ≤190, the optimal  control  decision  is to set the controller  to the medium  size. If 𝑤 >190, the optimal  control  
+decision  is to set the controller  to the maximum  size. The right-hand  side of Fig.3shows  the state-space  partitioning  of the decision  
+tree with decision  variables  𝑡and 𝑤, which  are observed  by the system.  Using the parameter  𝑡on the x-axis and 𝑤on the y-axis,  one 
+can quickly  gain an overview  of the decisions  without  going through  the decision  tree.
+4. Stormwater  detention  ponds:  system  model
+The main (safety)  objective  of the pond controller  is to prevent  the pond from overﬂowing,  which  can have adverse  aﬀects  on 
+both the surrounding  environment  and infrastructure.  The secondary  (optimization)  objective  is to sediment  and ﬁlter out urban 
+particles  collected  in the pond in order to prevent  contamination  of the water environment  in the stream.  The longer  the water 
+stays in the pond before  being discharged,  the higher  the degree  of sedimentation  of water pollutants,  resulting  in a reduction  of 
+discharged  pollutants.
+The water level in a stormwater  detention  pond, which  is our system’s  control  target,  is primarily  inﬂuenced  by the amount  of 
+rainwater  that falls in the surrounding  urban area and ﬂows across  the ground  surface,  known  as the urban catchment.  We therefore  
+require  a rain and urban catchment  model  to determine  the inﬂow  to the pond. The pond’s  controller  manages  the outﬂow  by 
+adjusting  the oriﬁce  size that carries  water out from the pond to the nearby  stream.  The system  model  therefore  consists  of multiple  
+subsystem  components,  which  are described  in the following  sections.
+4.1. Rain fall model
+Fig.4illustrates  the rain model  proposed  in[4]. The model  generates  an uncontrollable  input rainto the system  that can also be 
+seen as a weather  forecast  used during  the learning  process;  the model  1) provides  bounds  on the duration  of dry and rainy periods,  
+and 2) incorporates  uncertainty  in the intensity  of the rainfall.  To represent  uncontrollable  transitions,  where  uncontrollable  variables  
+
+--- Page 6 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+5E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 5.Modeloftheoriﬁcecontrollerforthepond,whichcanchangemodesperiodically,regulatingthewaterdischargefromthepond.
+𝑢 ∈𝑈are selected,  we use dotted  lines, e.g., for indicating  the transition  between DryandRaining. The clock dtracks  the current  
+time duration  and resets when the state changes.  The duration  of the dry and raining  intervals  are chosen  uniformly  at random  
+within  the speciﬁed  bounds, dryL,dryU,rainLandrainU. When transitioning  from theDryto theRainingstate during  a speciﬁc  
+period  represented  by 𝑖, the rain intensity,  denoted  as rain∈ℝ, is selected  uniformly  at random  within  the range of rain[𝑖] ⋅(1 −𝜖)
+to rain[𝑖] ⋅(1 +𝜖), where  𝜖=0.1serves  as the uncertainty  factor.  The rain intensity  is assumed  to remain  constant  throughout  the 
+period.  For the experiments,  the duration  and intensity  of the rain events  are based on historical  rain data obtained  from the Danish  
+Meteorological  Institute  (DMI).
+4.2. Urban  catchment  model
+We use the one-layer  linear reservoir  model  (the surface  storage  of the simpliﬁed  ‘Nedbør  Afstrømnings  Model’  (NAM)) [17]to 
+describe  the dynamics  of the water in the urban catchment  area. In our model,  we assume  a uniform  distribution  of water across  the 
+entire urban catchment  area. We account  for the dynamics  of water volume  𝑆over time 𝑡using Equation(2), where  𝑘denotes  the 
+surface  reaction  factor.
+d𝑆
+d𝑡=𝑟𝑎𝑖𝑛−k𝑆. (2)
+From Equation (2)w e see that changes  in the water volume  𝑆stored  in the urban catchment  area depends  on the diﬀerence  
+between  the amount  of rainfall  in the area and the water dissipating  from it (determined  by the water volume  and the surface  
+reaction  factor 𝑘).
+4.3. Model of the stormwater  detention  pond
+The diﬀerential  equation  in Equation(3)characterizes  the change  in water volume  𝑉over time 𝑡in the pond. This volume  change  
+is determined  by the diﬀerence  in the inﬂow  𝑄inand outﬂow  𝑄outof the pond. In our system  model,  we assume  that only the urban 
+catchment  area provides  inﬂow  into the pond, denoted  as 𝑄in, and disregard  other potentially  contributing  sources  such as rainwater  
+and melted  snow that might enter directly  into the pond[18]. The outﬂow  𝑄outof the pond changes  according  to the dimensions  of 
+the opening  and the gravitational  pull exerted  by the water level within  the pond.
+d𝑉
+d𝑡=⎧
+⎪
+⎨
+⎪⎩0 if(𝑤=0)∧𝑄out≥𝑄in,
+0 if(𝑤=𝑊)∧𝑄in≥𝑄out,
+𝑄in−𝑄outelse(3)
+The ﬁrst boundary  case in Equation(3)occurs  when the outﬂow  is greater  than the inﬂow,  and the water level is zero (represent-
+ing an empty  pond).  The second  case describes  an overﬂow  situation  during  which  the inﬂow  is greater  than the outﬂow,  and the 
+water level is at the maximum  level. Hence  no additional  water can accumulate  in the pond.
+4.4. Controller  model
+Fig.5shows  the model  of the controller.  The pond’s  opening  size 𝑗can be changed  periodically  to control  the outﬂow  of the 
+pond. The controller  monitors  the current  duration  of the control  period  using a locally  operating  clock t, which  resets periodically  
+to 0. While in theWaitinglocation,  the controller  waits for 𝑃time units before  repeating  this process  on an hourly  basis. Due to 
+physical  constraints  of the available  outﬂow  control  devices  for stormwater  ponds,  the controller  is only able to choose  from a set 
+of 𝐶control  modes  (where  𝐶is typically  1, for static control,  or a low number).  Location Choosingis labeled  as an urgent  location  
+(indicated  with U) in which  time cannot  progress.  Hence,  a controller  is forced  to make a control  decision  periodically.  To represent  
+controllable  transitions,  where  controllable  modes  𝑐∈𝐶are selected,  we use solid lines, e.g., for the transition  from Choosingto
+Waiting.
+4.5. Sensor  model
+The water level in the pond is measured  at every period  𝑃using a sensor  that provides  a noisy signal of the actual  water level in 
+the pond. Speciﬁcally,  we assume  an additive  noise model[9]:
+𝑤𝑜𝑏𝑠(𝑡)=𝑤(𝑡)+noise(𝑡), (4)
+
+--- Page 7 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+6E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 6.Modelofasensorprovidingnoisymeasurementsofthewaterlevel.ThesensormeasurementsareupdatedeveryperiodP.
+Fig. 7.Model of noisy sensor that retains the most recently  recorded  measurements  in memory.  Similar to the standard  sensor (see Fig.6), the sensor measurements  
+are updated  every period 𝑝.
+where  the noise is Gaussian  distributed  with mean 0and standard  deviation  𝜎, i.e., noise∼(0, 𝜎2). To avoid confusion  in the 
+remainder  of the paper,  𝜎always  refers to the standard  deviation  of the noise, while a strategy  is always  accompanied  with a 
+subscript,  like 𝜎opt. Fig.6shows  the sensor  model  capturing  the relationship  between  the actual  water level 𝑤and the observed  
+water level 𝑤obs. The constraint  on the arrow  from SensorOntoSensorRead indicates  that this transition  occurs  periodically  when 
+𝑡reaches  𝑃. On the other hand, the arrow  from SensorRead toSensorOnrepresents  the observed  value 𝑤𝑜𝑏𝑠as deﬁned  by the 
+additive  noise model  above.
+4.5.1. Memory  equipped  sensors
+Sensors  are becoming  more advanced  and there exist several  types of sensors  that possess  memory  or data storage  capabili-
+ties[19]. One example  is data logger  sensors,  which  are capable  of recording  and storing  information  over a speciﬁc  period.  These 
+types of sensors  are frequently  employed  in environmental  monitoring  applications  to keep track of factors  such as humidity,  pres-
+sure, and water levels.  In addition  to the utilization  of memory  in conjunction  with sensors,  there have been recent  eﬀorts  to optimize  
+sensor  memory  management,  as evidenced  by studies  such as[20], which  explore  the use of lossless  memory  to improve  eﬃciency.
+The past recordings  stored  in such sensors  may provide  more ﬁne-grained  insight  into the true state of the system  being modeled,  
+hence also proving  an opportunity  for improved  control  synthesis.  We extend  the sensor  model  introduced  above  with a memory  
+component  operating  as a ﬁxed-size  FIFO queue  (implemented  with the function  memory(𝑤obs)in Fig.7). During  synthesis,  the 
+controller  has access  to all 𝑁stored  values.
+4.6. Objective  function
+The objective  of the control  problem  is to prevent  overﬂow  from the stormwater  detention  pond, while simultaneously  ensuring  
+that pollutants  from the urban runoﬀ  area are maximally  sedimented  instead  of being discharged  into the stream.
+We model  these two conﬂicting  objectives  using a cost function  𝑐deﬁned  by the diﬀerential  equation:
+d𝑐
+d𝑡=𝛼×(𝑤
+𝑊)𝛽
+⏟⏞⏞⏞⏟⏞⏞⏞⏟
+Part1:overﬂow+(
+1−𝑤
+𝑊)
+⏟⏞⏞⏟⏞⏞⏟
+Part2:sedimentation. (5)
+Equation(5)represents  the cost function  𝑐, which  incorporates  components  to penalize  both pond overﬂow  (Part 1) and water 
+accumulation  in the pond based on sedimentation  levels (Part 2). Speciﬁcally,  in Part 1 of Equation(5), we gradually  apply a stronger  
+penalty  as the water level approaches  𝑊by exponent  𝛽, rather  than applying  a ﬁxed penalty  when surpassing  𝑊. Therefore,  when 
+the water level 𝑤is signiﬁcantly  below  𝑊, Part 2 (Sedimentation)  is dominating,  but as the water level gets closer to 𝑊, the 
+penalization  for overﬂow  (Part 1) is progressively  strengthened.  The balance  between  Part 1 and 2 can be tuned by coeﬃcient  𝛼.
+The formulation  of the control  problem  can now be deﬁned  as synthesizing  an optimal  strategy  𝜎𝑜𝑝𝑡that minimizes  the expected  
+cost:
+𝜎𝑜𝑝𝑡=argmin 𝔼,𝛾
+𝜎𝑜𝑏𝑠,𝐻(𝑐). (6)
+The toolUPPAALSTRATEGOis used for strategy  synthesis,  relying  on sampling-based  approximations  for estimating  the expectations  
+together  with reinforcement  learning-based  methods[12].
+5. Experimental  results:  sensor-based  control  synthesis
+For the model  presented  in Section4, the overall  goal is to synthesize  a control  strategy  that minimizes  the expected  cost as 
+deﬁned  by the cost function  in Equation(5). Speciﬁcally,  we analyze  the eﬀect of synthesizing  controllers  under partial  observability  
+of the system,  while also considering  the eﬀect of
+
+--- Page 8 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+7E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 8.Comparisonoftheobservedwaterlevel( 𝑤𝑜𝑏𝑠)andtherealwaterlevel( 𝑤)accordingtothelevelsofnoise.
+Table 1
+The weather  forecast  used for learning  in the experiments.
+State Lowerbound Upperbound Rainintensity
+[min] [min] [cm/min]
+Dry 15 25 0Raining 25 35
+0.05973± 𝜖
+Dry 230 270 0
+Raining 5 15 0.01578± 𝜖
+Dry ∞∞ 0
+•v a r y i n g  sensor  quality  as encoded  by the sensor  noise,
+• having  more elaborate  sensors  with memory  banks containing  previous  water measurements,  and
+• having  multiple  low-quality  controllers  as replacement  for a single high quality  controller.
+The initial  analyses  are conducted  in an oﬀ-line  setting  that is afterward  extended  to an online  model  predictive  control  sce-
+nario. The experiments  are reproducible  using the code package  available  online[21]. This package  comprises  both the model  and 
+accompanying  scripts.
+5.1. Experimental  setup
+The size of the oriﬁce  of the pond has three diﬀerent  discrete  settings  that can be set by the controller:  1/7, 4/7, and 7/7 of 
+the fully opened  size. For performing  oﬀ-line  control  synthesis  we consider  a 6-hour  prediction  period,  where  the control  setting  for 
+the oriﬁce  can be changed  every hour. The strategies  are synthesized  under partial  observability  of the system:  the only information  
+available  is the sensor  readings  and the system  time. In our experiment,  sensor  noise is represented  by 𝜎, and as this value increases,  
+the noise aﬀecting  the observed  water level (𝑤𝑜𝑏𝑠) also increases.  As can be seen in Fig.8, 𝜎=5and 𝜎=2 0applied  𝑤𝑜𝑏𝑠are 
+presented,  and it is observable  that the noise increases  with the increasing  value of 𝜎.
+We utilize  a weather  forecast  incorporating  two major rainfall  events  for the synthesis  of learning  controllers,  as detailed  in 
+Table1. This weather  forecast  is generated  using the system  model  (Fig.4) and its values  are derived  from historical  rain data 
+obtained  from the Danish  Meteorological  Institute  (DMI).  To model  the inherent  uncertainty  in the weather  forecast,  we introduced  
+a random  variability  of up to 10% in the rain intensity  while the duration  of the events  was chosen  uniformly  at random  based on 
+upper and lower duration  bounds.  For example,  the duration  of the ﬁrst rainfall  event is randomly  selected  within  a range of 25 to 
+35 minutes,  featuring  a rain intensity  of 0.05973  ±𝜖[cm/min].  The second  rainfall  event’s  duration  can range from 5 to 15 minutes,  
+with a rain intensity  of 0.01578  +𝜖[cm/min].
+For the controller  syntheses,  the objective  function  used for our learning  is based on Equation (5)i n Section4.6. Determining  
+appropriate  values  for the weights  𝛼and 𝛽depends  on expert  judgment  and may involve  some trial and error. In our study,  we 
+value safety more than sedimentation  and based on preliminary  experiments  we set 𝛼=1000. Our experiments  for deciding  proper  
+exponents  𝛽were conducted  for exponents  ranging  from 10 to 100; the eﬀect of varying  𝛽is illustrated  in Fig.9for diﬀerent  values  
+of 𝛽. Our objective  was to determine  the value of 𝛽at which  the cost begins  to increase  signiﬁcantly  as 𝑤approaches  𝑊while at the 
+same time the cost of overﬂow  should  remain  at a low value when 𝑤 ≪𝑊. We selected  𝛽=70for our objective  function  because,  
+with 𝛽=70, the cost starts to gradually  increase  above  0.001once the water level 𝑤exceeds  183 cm.
+We set the learning  budget  in UPPAALSTRATEGOsuch that 140,000  total runs were generated,  while for evaluation  purposes,  
+only 28,000  runs were conducted,  which  represent  20% of the total runs. All experiments  were run on an AMD Ryzen  7 5700x  with 
+33 GB RAM.
+
+--- Page 9 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+8E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 9.Thepartialcost 𝑤∕𝑊withdiﬀerentexponents 𝛽,where𝑊is200cm.
+Table 2
+Cost and overﬂow  duration  results based on synthesized  con-
+trol strategies  for varying  levels of sensor noise. For compar-
+ison, results are also included  for a randomizedcontroller  as 
+well as three static controllers.
+Cost[-] Overﬂow[min]
+Nonoise 731.54 ±0.04 ≈0
+𝜎=5.0732.48±0.04 ≈0
+𝜎=10.0732.55±0.06 ≈0
+𝜎=15.0734.93±0.25 ≈0
+𝜎=20.0737.21±0.04 ≈0
+𝜎=100.0737.72±0.05 ≈0
+Random 23,888.10 ±1982.71 2.23 ±0.55
+Static-max 748.26 ±0.04 ≈0
+Static-med 11,881.70 ±0.23 ≈0
+Static-min 202,313.0 ±75.93 53.10 ±0.06
+5.2. Control  synthesis  with diﬀerent  sensor types
+The synthesized  control  strategies  are based on noisy sensor  readings  of the water level of the pond. Below  we analyze  the eﬀect 
+of the quality  of the sensor  on the synthesized  strategy.  In particular,  we consider  sensors  where  the sensor  noise can be modeled  by 
+an additive  Gaussian  distributed  noise component  with zero mean and standard  deviations  5, 10, 15, and 20(see Equation(4)). For 
+reference,  we also include  results  for a noiseless  sensor  (i.e., corresponding  to the perfect  observation  of the water level) as well as 
+an (almost)  uninformative  sensor  encoded  with a noise component  with a standard  deviation  of 100. In addition,  for baselines  we 
+include  results  for a fully randomized  control  strategy  (denoted  random), where  the control  options  are selected  uniformly  at random  
+as well as three static control  strategies  where  the oriﬁce  size is ﬁxed at the smallest  (static-min), medium  (static-med), or largest  value 
+(static-max), respectively.  A fully open oriﬁce  represents  a stable choice  for overﬂow  prevention,  but does not serve the purpose  of 
+sedimentation.  On the other hand, the static controller  always  selecting  the least open option  keeps the water level in the pond high 
+and thus prioritizes  sedimentation,  but with a higher  risk of overﬂow.
+5.2.1. Quantitative  results
+The noise levels for the sensor  were selected  in order to analyze  how the quality  of a sensor  aﬀects  the synthesized  strategies  as 
+well as the results  obtained  from applying  these strategies.  Table2summarizes  the quantitative  results  of the analysis  in terms of 
+overﬂow  duration  (measured  in minutes)  and the cost of the synthesized  strategy  (averaged  over 10 runs), with the latter reﬂecting  
+both the degree  of overﬂow  and sedimentation  time (see Equation(5)). From the table, we see that the cost increases  monotonically  
+with increasing  sensor  noise, but that the learned  strategies  consistently  outperforms  all static controllers,  irrespectively  of the quality  
+of the sensor.  Furthermore,  even with noisy sensors,  overﬂow  can be avoided  when an optimal  strategy  is applied,  whereas  overﬂow  
+occurs  for ≈2.2minutes  when using a random  controller  and for ≈53.1minutes  when only the smallest-sized  oriﬁce  is applied.
+5.2.2. Qualitative  results
+In Fig.10we compare  the control  settings  of the synthesized  strategies  for a ﬁxed weather  scenario  but with diﬀerent  levels of 
+sensor  noise. The experiments  were conducted  ten times for the same level of sensor  noise. Figs.10a show the result of applying  the 
+synthesized  strategy  using a noiseless  sensor.  While the water level is decreasing,  the synthesized  controller  recognizes  that there is 
+little or no risk of overﬂow  and therefore  sets the oriﬁce  size to its medium  setting  in order to ensure  a high sedimentation  rate. In 
+comparison,  the strategies  synthesized  using noisy sensors,  as illustrated  in Figs.10b -10f, exhibit  more cautious  control  behaviors  
+by generally  having  larger water discharge  rates reﬂecting  the amount  of sensor  noise.
+
+--- Page 10 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+9E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 10.Water level (𝑤) and oriﬁce size (opening  rate (%) based on the synthesized  controller  for diﬀerent  levels of noisy sensors (each experiment  is repeated  10 
+times).
+In Figs.10d and 10e, we see learned  strategies  produce  diﬀerent  control  settings  for the simulations  due to the uncertainty  in 
+the sensor  readings.  The strategy  synthesized  by the uninformative  sensor  (Fig.10f) does not exhibit  such variability  over the runs. 
+This is because  the synthesized  strategy  recognizes  that the sensor  provides  little information  about the water level and therefore  
+conditions  the synthesized  control  strategy  on the system  time only (eﬀectively  ignoring  the sensor  readings).  This learned  strategies  
+are illustrated  in Fig.11as decision  trees and in Fig.12using state space partition’s;  the learned  strategies  are based on a high-
+quality  sensor  (noise  𝜎=5), two medium-quality  sensors  (noise  𝜎=10and 𝜎=20), and an uninformative  sensor  (noise  𝜎=100). 
+We also see that the strategy  based on the high-quality  sensor  exhibits  some apparent  inconsistencies  in the control  settings  for the 
+time interval  [208, 228]. We hypothesize  that this is partly  a consequence  of the underlying  reinforcement  learning  algorithm  not 
+being able to suﬃciently  explore  certain  parts of the state space.  Similar  times of apparent  inconsistencies  are also seen in the other 
+strategies  being synthesized.  Results  of an additional  oﬄine  experiment  are included  in AppendixA.
+
+--- Page 11 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+10E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Table 3
+The weather  scenario  utilized  for evalua-
+tion. Unlike the weather  forecast  used for 
+learning  (see Table1), the duration  of Dry 
+and Raining  conditions  remains  constant  in 
+this evaluation  and uncertainty  in rainfall 
+intensity  is also not considered.
+State Duration Rainintensity
+[min] [cm/min]
+Dry 20 0Raining 30 0.05973Dry 250 0Raining 10 0.01578Dry 50 0
+Fig. 11.Decision  tree representations  of the strategies  synthesized  based on a high-quality  sensor (a: 𝜎=5), two medium  quality sensors (b: 𝜎=10) and (c: 𝜎=20), 
+and an uninformative  sensor (d: 𝜎=100).
+5.3. Online  synthesis  using model predictive  control
+All previous  experimental  results  are in the setting  of oﬄine  control  synthesis,  which  uses an algorithm  that takes a mathematical  
+model  of the system  and a set of performance  objectives  as inputs  to compute  a control  policy.  The generated  control  policies  are used 
+
+--- Page 12 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+11E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 12.State-space  partitions  of the strategies  synthesized  based on a high quality sensor (a: 𝜎=5), two medium  quality sensors (b: 𝜎=10) and (c: 𝜎=20), and an 
+uninformative  sensor (d: 𝜎=100).
+over the full time-horizon.  If the system  exhibits  a cyclic behavior,  one can use the synthesized  controller  for inﬁnite-time  horizons.  
+This approach  is often used when the system’s  dynamics  and controller  objectives  are well-understood  and well-deﬁned.  Examples  
+of such applications  include  manufacturing,  robotics,  and process  control[22].
+Furthermore,  online  synthesis  techniques,  such as model  predictive  control  (MPC),  actively  generate  control  policies  in real-time.  
+This is achieved  by utilizing  continuously  updated  sensor  readings [23]. The distinct  advantage  of MPC lies in its ability  to adapt:  
+the control  strategies  are not static but are revised  in response  to changes  in the system  or its environment.  This dynamic  adaptation  
+enables  the control  strategies  to be eﬀective  even under new or changing  conditions.  Such approaches  are particularly  beneﬁcial  
+in scenarios  where  the system’s  dynamics  are unpredictable  or subject  to variation,  or when the objectives  of the controller  evolve  
+over time[24]. In online  synthesis,  modeling  inaccuracies  have a diminished  impact  on the outcome.  The reason  is that the model  
+directing  the controller  synthesis  undergoes  regular  re-calibrations  to accurately  represent  the current  state of the system.  This feature  
+is particularly  pertinent  in the context  of our experiment,  which  involves  online  control.  In online  control  synthesis,  the optimization  
+time horizon  denotes  the duration  within  which  control  decisions  are formulated,  representing  the period  during  which  the system  
+state is observed.  Generally,  this horizon  is deﬁned  as a speciﬁc  𝐻relative  to the current  moment.
+Our system  includes  uncontrollable  environmental  components  (e.g., theraincomponent),  so we are extending  our oﬄine  vali-
+dated model  based on HMDP  to online  synthesis.  As a substitute  for learning  the complete  strategy  𝜎𝐻
+optwith signiﬁcant  computational  
+resources,  we utilized U PPAALSTRATEGOperiodically  to conduct  online  strategy  synthesis  for the stormwater  detention  ponds  but 
+now using an optimization  time horizon  ℎ <𝐻.
+For online  control,  we use the U.S. Environmental  Protection  Agency  Stormwater  Management  Model  (EPA-SWMM)[ 8]to simu-
+late the real world.  EPA-SWMM  is an open-source  physics-based  dynamic  rainfall-runoﬀ  model  that has been used for decades  in the 
+urban stormwater  management  community.  EPA-SWMM  can precisely  trace the dynamics  of ﬂow conditions  (e.g. stream  ﬂow and 
+stormwater  detention  pond water level).  We use pySWMM[25]for the interfacing  of EPA-SWMM  with Python.  Finally,  we combine  
+pySWMM  with UPPAALSTRATEGOusing the STOMPC  framework [ 7], which  facilitates  the setup of model-predictive  control  using
+UPPAALSTRATEGOand an external  simulator.
+In the experiments  of online  control,  we synthesized  strategies  considering  an optimization  time horizon  of ℎ =12hours,  which  
+results  in the following  query forUPPAALSTRATEGO.
+strategy S = minE (cost) [ <=12*H] {} - >{sensor _w, t}: <>(t==12 *H)
+Note that Hin the UPPAALSTRATEGOmodel  represents  1 hour, not to confuse  with 𝐻, which  represents  the synthesis  horizon  for 
+oﬄine  control.  At each step in the MPC scheme,  a weather  forecast  was generated  for the optimization  time horizon  ℎusing historical  
+data.
+5.3.1. Qualitative  results
+Fig.13shows  the simulation  results  of online  controller  synthesis.  The left side shows  the results  of all learned  strategies,  ranging  
+from having  no noise on the sensor  readings  to the sensor  noise with a standard  deviation  of 100. The right side shows  the results  of 
+several  static controllers  (and the no-noise  learned  controller  as a reference).  While the online  control  simulations  have run for the 
+full period  of September  5 to 23, 2019, Fig.13only shows  the 7-day interval  during  which  heavy  rain was falling.  This shows  how 
+each strategy  deals with the heavy  rain as well as the couple  of days after it.
+As can be observed  from the left side of Fig.13, all learned  strategies  are able to prevent  overﬂow  of the pond (the capacity  of 
+the pond is 𝑊=200cm), regardless  of the level of sensor  noise. This result is consistent  with the results  from oﬄine  control  from 
+the previously  described  events,  so that eﬀect carries  over to the online  control  scenario.  The results  also show that there is a clear 
+distinction  after the heavy  rain between  sensors  without  noise and those with noise. The model  without  any sensor  noise keeps the 
+
+--- Page 13 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+12E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 13.Online synthesis  results with 12h optimization  time horizon.  The left ﬁgure shows the result of applying  the learned  strategies  and for comparison,  the right 
+ﬁgure shows the results using static and random  controllers.
+stormwater  longer  in the detention  pond, hence optimizing  the pollutant  sedimentation.  All noisy sensors  empty  the pond quicker  
+than the sensor  without  noise. Unfortunately,  there is no clear distinction  between  the diﬀerent  levels of noise. This could mean that 
+the learned  strategies  are somehow  robust  against  noise on the sensor  readings.
+The right side of Fig.13eﬀectively  shows  the extremes  within  which  any learned  strategy  lies. A controller  that always  opens 
+the oriﬁce  fully has a maximum  water level that is approximately  0.4 m below  the capacity  water level 𝑊. On the other hand, 
+a controller  that always  opens the oriﬁce  minimally  results  in an uninterrupted  overﬂow  duration  of more than 2 days, which  is 
+deﬁnitely  undesirable  and unacceptable.
+Model-predictive  control  is often praised  for its robustness  against  model  uncertainties[ 24]. The results  in Fig.13demonstrate  
+the robustness  as well. One can see that the heaviest  rainfall  occurs  around  the 𝑡 =24h, while there is a signiﬁcant  delay of several  
+hours before  the stormwater  is actually  entering  the pond. While the diﬀerential  equation(2)induces  some delay between  the rainfall  
+and the inﬂow  to the pond, the modeled  delay is much less than the simulated  delay by EPA-SWMM.  Even though  the delays  do not 
+match,  repeatedly  relearning  a strategy  creates  robustness  against  modeling  imprecisions.
+In the next experiment,  we changed  the control  horizon  to ℎ =6. All other parameters  of the system  and the experiment  remained  
+unchanged.  Fig.14shows  the results  for the case of no noise on the sensor  readings  (left) and for the case of a noisy sensor  with 
+standard  deviation  of 5 (right).  The results  of the sensors  with higher  noise levels are similar  to the ones with the noise level of 
+𝜎=5. First, in both cases, the learned  controllers  are still able to prevent  overﬂow.  This indicates  that a control  horizon  of ℎ =6h is 
+suﬃciently  large enough  to observe  the incoming  rain on time. Observing  the start of the raise of the water level more closely,  one 
+might see that the curves  with the shorter  control  horizon  start to go up earlier  and then drop down before  matching  the curve for 
+ℎ =12h. The drop happens  precisely  at the moment  a potential  overﬂow  could happen  within  the short horizon  of ℎ =6h. From 
+that point on, reinforcement  learning  starts to adjust  the oriﬁce  settings  to let more water out of the stormwater  detention  pond.
+The second  observation  is that the learned  strategy  for the case with no noise remains  surprisingly  almost  unchanged.  So shorten-
+ing the control  horizon  did not aﬀect the learned  strategy.  Having  a shorter  control  horizon  in practice  is beneﬁcial:  as the calculation  
+of each new strategy  requires  less computational  eﬀort with shorter  control  horizons,  synthesizing  a controller  could then actually  
+be implemented  in embedded  systems  with limited  hardware.
+
+--- Page 14 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+13E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Fig. 14.Onlinesynthesisresultswith12hand6hhorizonunder(left)nonoiseincludedobservation(right)partialobservationwithnoise( 𝜎=5).
+Finally,  shortening  the control  horizon  did signiﬁcantly  eﬀect strategies  learned  for sensors  with noise (see the right plot in 
+Fig.14). The learned  strategies  keep the water lever higher  once the heavy  rain has passed  by and no potential  overﬂow  is possible.  
+The reason  why a shorter  control  horizon  gets more optimal  results  could be explained  by the fact that reinforcement  learning  is 
+used. Having  a shorter  control  horizon  means  that shorter  traces are generated  from the model  that feed the reinforcement  learning  
+algorithm.  And shorter  traces mean less variability  in the traces is possible.  Consider  the number  of possible  control  strategies.  For a 
+6 h control  horizon,  there are 36possible  control  strategies,  signiﬁcantly  less than 312possible  control  strategies  for a control  horizon  
+of 12 h. This eﬀect is subsequently  ampliﬁed  by the stochastic  weather  forecast  andthe noisy sensors  in the model.  So, having  less 
+variability  in the possible  traces increases  the probability  that reinforcement  learning  learns  the (near)  optimal  strategy.  This could 
+be the eﬀect we are observing  for the noisy sensors.
+5.4. Control  synthesis  using memory-equipped  sensors
+In the following  two sections  we describe  experiments  covering  two ideas on how to potentially  improve  the performance  of 
+controllers  equipped  with unreliable  sensors.  The ﬁrst idea, described  in this section,  is about adding  memory  to the controller,  while 
+the second  idea, described  in Section5.5, concerns  using multiple  sensors  instead  of a single one.
+Sensors  capable  of retaining  recorded  data or information  pertaining  to a speciﬁc  period  of time can be highly  advantageous,  not 
+only in situations  where  real-time  data transmission  is not feasible  or practical,  but also as an approximation  of the entire state of 
+the partially  observed  system[10].
+In this section,  we considered  sensors  equipped  with a limited  amount  of memory  for storing  previously  recorded  sensor  values.  
+For the analysis,  we rely on theSensorMemory model  (see Section4.5.1) that reads data every 2 minutes  and stores the last 10 
+sensor  readings,  making  them available  for subsequent  control  strategy  synthesis.  The additional  memory  of the sensor  will serve as 
+a more ﬁne-grained  approximation  of theentire  state of the partially  observed  system,  thereby  providing  a basis for improving  the 
+strategies  being synthesized.
+
+--- Page 15 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+14E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Table 4
+Cost analysis  based on synthesized  control 
+strategy  under diﬀerent  levels of partial ob-
+servation  with memory.
+Cost [-]
+No noise 731.143±0.039
+Gaussian Noise
+𝜇=0,𝜎=5.0 732.056±0.044
+𝜇=0,𝜎=10.0732.191±0.086
+𝜇=0,𝜎=15.0734.747±0.099
+𝜇=0,𝜎=20.0734.832±0.105
+𝜇=0,𝜎=100.0736.506±4.651
+Fig. 15.Simulationresultsforanoiselesssensorwithsensormemory(left)andanoisysensor( 𝜎=5)withsensormemory(right).
+5.4.1. Quantitative  results
+Table4shows  the results  for the synthesized  strategies  using sensors  with the same noise levels,  conﬁgurations  and baselines  as 
+previously  employed,  except  now have included  memory  into the sensor  model.  At ﬁrst glance,  the results  seems  reasonable,  as the 
+expected  cost of each synthesized  strategy  grows  monotonically  with the noise level. But the intended  eﬀect,  i.e., an improvement  on 
+the synthesized  control  strategy,  is absent.  When one compares  the costs for the diﬀerent  strategies  with those reported  in Table2, 
+barely  any improvement  can be observed.  For example,  for the sensor  with noise 𝜎=10, the cost value decreases  from 732.55 ±0.06to 
+732.191 ±0.086. While this is statistically  signiﬁcant  using the conﬁdence  intervals,  the improvement  is nonexistent  from a practical  
+point of view.
+5.4.2. Qualitative  results
+The results  of applying  a memory  window  of size ten to a noiseless  observation  during  a synthesis  process  are depicted  in Fig.15. 
+(While  the ﬁgure only shows  the result for a noiseless  sensor  and a noisy sensor  with 𝜎=5, the conclusion  also holds for the 
+experiments  with higher  noise levels.)  By comparing  the controller’s  decisions  in Fig.15a to those in Fig.10a, we can see that 
+both controllers  make very similar  decisions.  Speciﬁcally,  Fig.15(a) with memory  applied  does not fully open the oriﬁce  size at 
+300 ≤𝑡 ≤360, thereby  allowing  for slightly  more sedimentation.
+The synthesized  strategy  under the observation  condition  with noise for 𝜎=5is depicted  in Fig.15(b). Compared  to the obser-
+vation  in Fig.15(a) without  noise, inconsistent  controller  action  can be observed  at 120 ≤𝑡 ≤180, which  shows  that the ability  to 
+detect  a decrease  in water level appears  weaker.  On the other hand, comparing  the results  to Fig.10b, a controller  with memory  
+seems  to prefer  a high oriﬁce  setting  followed  by a medium  oriﬁce  setting,  while a controller  without  memory  prefers  a high oriﬁce  
+setting  followed  by a low setting  followed  by a high setting.  While the synthesized  controllers  are diﬀerent,  the reported  costs in 
+Tables2and4suggest  that they have very similar  accumulated  sedimentation  costs.
+This leads us to conclude  that adding  sensor  memory  does not have a signiﬁcant  (and expected)  improvement  on the performance  
+of the synthesized  controllers.
+5.5. Synthesis  using observations  of multiple  sensors
+As the detection  accuracy  of a sensor  increases,  the cost of the sensor  also tends to increase.  This poses a challenge  in various  
+industrial  scenarios  where  a decision  must be made between  procuring  a limited  number  of high-precision  yet costly sensors  or a 
+larger quantity  of low-cost  yet imprecise  ones. Consequently,  sensor  optimization  becomes  a critical  aspect  to consider.
+
+--- Page 16 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+15E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Table 5
+The cost comparison  of the optimal  strategy  synthesis  with ob-
+servation  under independently  operated  sensors and a single 
+sensor.
+sensor𝜎=20.0 Cost [-] Overﬂow [min]
+singlesensor 737.210 ±0.040 ≈0
+twosensors 733.322 ±0.047 ≈0
+foursensors 732.611 ±0.139 ≈0
+sixsensors 732.258 ±0.129 ≈0
+eightsensors 731.057 ±0.055 ≈0
+In this regard,  there have been studies  on methods  to enhance  sensor  performance  by utilizing  multiple  sensors [26]. Utilizing  
+this method  makes  it possible  to ﬁll in missing  data points.  Multiple  sensors  can be used to compensate  for each other’s  errors or 
+limitations  to improve  the overall  accuracy  of observation[ 27].
+We synthesized  optimal  strategies  under diﬀerent  conﬁgurations  of sensors.  Our hypothesis  is that synthesis  with multiple  in-
+dependent  sensors  will produce  better performance  than synthesis  of a single sensor  observation.  We implemented  the experiment  
+of this hypothesis  using Gaussian  noise 𝜎=20, and the result is shown  in Table5. The results  show that 1) multiple  sensors  (all 
+𝜎=20) show better performance  than that of single sensor  with the same noise level and 2) each time adding  an additional  sensor  
+increases  the performance,  but the eﬀect diminishes  with the number  of sensors.  The results  demonstrate  that the expected  cost of 
+the synthesized  strategy  using four low-quality  sensors  can result in a cost that closely  approximates  that of a single sensor  with 
+𝜎=10, while using six sensors  can result in a cost that closely  approximates  that of a single sensor  with 𝜎=5. With these results,  we 
+can conclude  that our hypothesis  is correct.
+6. Conclusion  and future  challenges
+We introduce  a method  for synthesizing  near-optimal  control  strategies  for stormwater  detention  ponds,  where  the system  state is 
+only partially  observed  through  noisy water level sensors.  The synthesized  control  strategies  adjusts  the oriﬁce  size of the stormwater  
+detention  pond to control  the outﬂow  volume.  We model  the system  as a hybrid  Markov  decision  process  and synthesize  control  
+strategies  based on reinforcement  learning  as implemented  in the tool UPPAALSTRATEGO. We conducted  several  experiments  for 
+analyzing  the eﬀect of generating  control  strategies under  diﬀerent  levels of partial  observability.  One experiment  conﬁrms  that 
+including  noise in the observations  during  synthesis  increases  the optimization  cost of the synthesized  strategy.  On the other hand, 
+online  control  results  demonstrate  that noisy sensors  only aﬀect the performance  minimally.  To cope with noisy observations,  we 
+performed  experiments  with memory  equipped  sensors  as well as settings  involving  multiple  sensors.  While having  a sensor  with 
+memory  did not improve  the synthesis  performance,  deploying  multiple  low quality  sensors  can achieve  similar  results  as a single 
+high-quality  sensor.
+For future  research,  we intend  to develop  safety-guaranteed  and near-optimal  strategies  with the tool UPPAALSTRATEGO. By 
+employing  the state space partitioning  method  outlined  in[28]or the abstraction  method  from[29], we could construct  a guaranteed  
+safe shield  that ensures  the satisfaction  of the safety property  𝜑. This involves  calculating  a collection  of safe regions  alongside  the 
+most permissive  safety strategy  𝜎𝜑. Building  on this foundation,  our objective  could then be to synthesize  an optimal  strategy  𝜎𝑜𝑝𝑡
+within  a shielded  state space in our current  case study of a stormwater  detention  pond.
+CRediT  authorship  contribution  statement
+Esther H.  Kim:Writing  – review  & editing,  Writing  – original  draft, Visualization,  Methodology,  Investigation. Martijn A.  
+Goorden:Writing  – review  & editing,  Writing  – original  draft, Supervision,  Conceptualization. Kim G.  Larsen:Writing  – review  
+& editing,  Supervision,  Conceptualization. Thomas D.  Nielsen:Writing  – review  & editing,  Writing  – original  draft, Supervision,  
+Conceptualization.
+Declaration  of competing  interest
+The authors  declare  the following  ﬁnancial  interests/personal  relationships  which  may be considered  as potential  competing  
+interests:  Esther  Hahyeon  Kim reports  ﬁnancial  support  was provided  by Digital  Research  Centre  Denmark  (DIREC).  Martijn  Angelo  
+Goorden  reports  ﬁnancial  support  was provided  by Digital  Research  Centre  Denmark  (DIREC).
+Declaration  of generative  AI and AI-assisted  technologies  in the writing  process
+During  the preparation  of this work, the authors  used ChatGPT-3.5  to rephrase  selected  parts of the text. After using this tool/ser-
+vice, the authors  reviewed  and edited  the content  as needed  and took full responsibility  for the publication’s  content.
+
+--- Page 17 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+16E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Acknowledgements
+This research  is funded  by the Digital  Research  Centre  Denmark  (DIREC),  Innovation  Fund Denmark.
+Appendix A.  Additional  experimental  results
+This appendix  contains  additional  experimental  results  for the learning  of oﬄine  controllers.  TablesA.6andA.7show the new 
+weather  scenario,  where  the diﬀerence  with the one in Section5.2is highlighted  in bold font.
+TableA.8shows  the new quantitative  results,  while Figs.A.16, A.17, and A.18show the simulation  plots, learned  decision  trees, 
+and learned  state-space  partition’s,  respectively.
+Fig. A.16.Behaviorofwater(w)andoriﬁce(openingrate(%)basedonthesynthesizedc ontrollerwithdiﬀerentlevelsofnoisysensors(eachrepeated10times).
+
+--- Page 18 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+17E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Table A.6
+The weather  forecast  used for learning  in the additional  experi-
+ments. The diﬀerence  compared  to the original  weather  scenario  
+in Table1is highlighted  in bold font.
+State Lowerbound Upperbound Rainintensity
+[min] [min] [cm/min]
+Dry 15 25 0Raining 25 35
+0.05973± 𝜖
+Dry 230 270 0
+Raining 5 15 𝟎.𝟎𝟏𝟔𝟕𝟖±𝝐
+Dry ∞∞ 0
+Fig. A.17.Decision  tree representations  of the synthesized  strategies  based on a high-quality  sensor (a: 𝜎=5), two medium  quality sensors (b: 𝜎=10) and (c: 𝜎=20), 
+and an uninformative  sensor (d: 𝜎=100).
+
+--- Page 19 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+18E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+Table A.7
+The weather  scenario  utilized  for evaluation.  The diﬀerence  com-
+pared to the original  weather  scenario  in Table3is highlighted  
+in bold font.
+State Lowerbound Upperbound Rainintensity
+[min] [min] [cm/min]
+Dry 20 20 0Raining 30 30 0.05973Dry 250 250 0Raining 10 10 0.01678
+Dry 50 50 0
+Table A.8New experimental  results that outline the cost and duration  
+of overﬂow  for a range of learned  control strategies  for var-
+ious degrees  of sensor noise. For comparison,  the table also 
+includes  results for a randomized  controller  and three static 
+controllers.
+SensorNoise Cost[-] Overﬂow[min]
+Nonoise 732.38 ±0.04 ≈0
+𝜎=5.0735.70±0.04 ≈0
+𝜎=10.0739.40±0.11 ≈0
+𝜎=15.0742.64±0.04 ≈0
+𝜎=20.0746.43±0.13 ≈0
+𝜎=100.0748.03±0.04 ≈0
+Random 23,581.8 ±2087.26 1.86 ±0.51
+Static-max 748.03 ±0.04 ≈0
+Static-med 12,136.4 ±0.24 ≈0
+Static-min 202,427.0 ±53.45 53.35 ±0.05
+Fig. A.18.State-based  partitioning  of the synthesized  strategies  based on a no noise included  (a: 𝜎=0), high quality sensor (b: 𝜎=5), three medium  quality sensors 
+(c: 𝜎=10), (d: 𝜎=15), (e: 𝜎=20), and an uninformative  sensor (f: 𝜎=100).
+
+--- Page 20 ---
+Journal of Logical and Algebraic Methods in Programming 141 (2024) 100979
+19E.H.Kim,M.A.Goorden,K.G.Larsenetal.
+References
+[1] G. Tixier, M. Lafont, L. Grapentine,  Q. Rochfort,  J. Marsalek,  Ecological  risk assessment  of urban stormwater  ponds: literature  review and proposal  of a new 
+conceptual  approach  providing  ecological  quality goals and the associated  bioassassment  tools, J. Ecol. Indic. 11 (2011) 1497–1506,  https://doi  .org /10 .1016 /j .
+ecolind .2011 .03 .027.
+[2] C.J.  Walsh, A.H. Roy, J.W. Feminella,  P.D. Cottingham,  P.M. Groﬀman,  R.P. Morgan,  The urban stream syndrome:  current knowledge  and the search for a cure, 
+J. North Am. Benthol.  Soc. 24 (2005) 706–723,  https://doi  .org /10 .1899 /04 -028 .1.
+[3] J.T.  Mobley,  T.B. Culver, Design of outlet control structures  for ecological  detention  ponds, J. Water Resour.  Plan. Manag.  140 (2014) 250–257,  https://
+doi .org /10 .1061 /(ASCE  )WR .1943 -5452 .0000266.
+[4] M.A.  Goorden,  K.G. Larsen, J.E. Nielsen,  T.D. Nielsen,  M.R. Rasmussen,  J. Srba, Learning  safe and optimal  control strategies  for storm water detention  ponds, 
+IFAC-PapersOnLine  54 (2021) 13–18, https://doi  .org /10 .1016 /j .ifacol .2021 .08 .467.
+[5]A. David, P.G. Jensen,  K.G. Larsen, M. Mikuˇcionis, J.H. Taankvist,  Uppaal Stratego,  in: International  Conference  on Tools and Algorithms  for the Construction  
+and Analysis  of Systems,  Springer,  2015, pp.206–211.
+[6]E.H. Kim, K.G. Larsen, M.A. Goorden,  T.D. Nielsen,  Controlling  stormwater  detention  ponds under partial observability,  in: NWPT: 33rd Nordic Workshop  on 
+Programming  Theory,  2022, pp.1–3.
+[7]M.A. Goorden,  P.G. Jensen,  K.G. Larsen, M. Samusev,  J. Srba, G. Zhao, STOMPC:  stochastic  model-predictive  control with uppaal stratego,  in: International  
+Conference  on Automated  Technology  for Veriﬁcation  and Analysis,  Springer,  2022, pp.327–333.
+[8]W.C. Huber, L.A. Rossman,  R.E. Dickinson,  EPA stormwater  management  model, Watershed  Mod. 338 (2005) 359.
+[9] K. Jerath, S. Brennan,  C. Lagoa, Bridging  the gap between  sensor noise modeling  and sensor characterization,  Measurement  116 (2018) 350–366,  https://
+doi .org /10 .1016 /j .measurement  .2017 .09 .012.
+[10]M.C. Hill, C.R. Tiedeman,  Eﬀective  Groundwater  Model Calibration:  with Analysis  of Data, Sensitivities,  Predictions,  and Uncertainty,  John Wiley & Sons, 2006.
+[11] A.F.  Torres-Rua,  A.M. Ticlavilca,  W.R. Walker,  M. McKee, Machine  learning  approaches  for error correction  of hydraulic  simulation  models for canal ﬂow 
+schemes,  J. Irrig. Drain. Eng. 138 (2012) 999–1010,  https://doi  .org /10 .1061 /(ASCE  )IR .1943 -4774 .0000489.
+[12]P. Ashok, J. Kˇretínsk`y, K.G. Larsen, A. Le Coënt, J.H. Taankvist,  M. Weininger,  SOS: safe, optimal  and small strategies  for hybrid Markov  decision  processes,  
+in: Quantitative  Evaluation  of Systems:  16th International  Conference,  QEST 2019, Proceedings  16, Glasgow,  UK, September  10–12, 2019, Springer,  2019, 
+pp.147–164.
+[13]K.G. Larsen, M. Mikuˇcionis, M. Muniz, J. Srba, J.H. Taankvist,  Online and compositional  learning  of controllers  with application  to ﬂoor heating,  in: International  
+Conference  on Tools and Algorithms  for the Construction  and Analysis  of Systems,  Springer,  2016, pp.244–259.
+[14]M. Jaeger, P.G. Jensen,  K. Guldstrand  Larsen, A. Legay, S. Sedwards,  J.H. Taankvist,  Teaching  Stratego  to play ball: optimal  synthesis  for continuous  space 
+MDPs, in: Automated  Technology  for Veriﬁcation  and Analysis:  17th International  Symposium,  ATVA 2019, Proceedings  17, Taipei, Taiwan,  October  28–31, 
+2019, Springer,  2019, pp.81–97.
+[15]M. Jaeger, G. Bacci, G. Bacci, K.G. Larsen, P.G. Jensen,  Approximating  Euclidean  by imprecise  Markov  decision  processes,  in: Leveraging  Applications  of 
+Formal Methods,  Veriﬁcation  and Validation:  Veriﬁcation  Principles:  9th International  Symposium  on Leveraging  Applications  of Formal Methods,  ISoLA 2020, 
+Proceedings,  Part i 9, Rhodes,  Greece,  October  20–30, 2020, Springer,  2020, pp.275–289.
+[16]K.G. Larsen, A. Le Coënt, M. Mikuˇcionis, J.H. Taankvist,  Guaranteed  control synthesis  for continuous  systems  in Uppaal Tiga, in: Cyber Physical  Systems.  
+Model-Based  Design, Springer,  2019, pp.113–133.
+[17] S.A.  Nielsen,  E. Hansen,  Numerical  simulation  of the rainfall-runoﬀ  process on a daily basis, Hydrol.  Res. 4 (1973) 171–190,  https://doi  .org /10 .2166 /nh .1973 .
+0013.
+[18]A.T.H. Thomsen,  T.B. Moeslund,  G. Jensen,  J.E. Nielsen,  M.L. Pedersen,  M.R. Rasmussen,  Controlling  the hydraulic  impact of discharge  from storm water 
+detention  ponds into streams,  in: International  Conference  on Urban Drainage,  IWA/IAHR,  2017, pp.821–824.
+[19]C.D. Okwudibe,  B. Akinloye,  Design and simulation  of temperature  data logger, Am. J. Eng. Res. 6 (2017) 14–19.
+[20]F. Hadiatna,  H. Hindersah,  D. Yolanda,  M.A. Triawan,  Design and implementation  of data logger using lossless data compression  method  for Internet  of things, 
+in: International  Conference  on System Engineering  and Technology,  IEEE, 2016, pp.105–108.
+[21]E.H. Kim, Reproducibility  Code Package  in Zenodo  – Controlling  Stormwater  Detention  Ponds Under Partial Observability,  2023.
+[22]P. Praveena,  D. Rakita, B. Mutlu, M. Gleicher,  User-guided  oﬄine synthesis  of robot arm motion from 6-DOF paths, in: International  Conference  on Robotics  and 
+Automation,  IEEE, 2019, pp.8825–8831.
+[23]E.F. Camacho,  C.B. Alba, Model Predictive  Control,  Springer  Science  & Business  Media, 2013.
+[24] C.E.  García, D.M. Prett, M. Morari,  Model predictive  control:  theory and practice  – a survey, Automatica  25 (1989) 335–348,  https://doi  .org /10 .1016 /0005 -
+1098(89  )90002 -2.
+[25] B.E.  McDonnell,  K. Ratliﬀ, M.E. Tryby, J.J.X. Wu, A. Mullapudi,  PySWMM:  the Python interface  to stormwater  management  model (SWMM),  J. Open Sour. 
+Softw. 5 (2020) 2292, https://doi  .org /10 .21105 /joss .02292.
+[26] X.  Wang, R. Hoseinnezhad,  A.K. Gostar, T. Rathnayake,  B. Xu, A. Bab-Hadiashar,  Multi-sensor  control for multi-object  Bayes ﬁlters, Signal Process.  142 (2018) 
+260–270,  https://doi  .org /10 .1016 /j .sigpro .2017 .07 .031.
+[27] Y.  Li, W. Zhang, X. Ji, C. Ren, J. Wu, Research  on lane a compensation  method  based on multi-sensor  fusion, Sensors  19 (2019) 1584, https://doi  .org /10 .3390 /
+s19071584.
+[28]A.H. Brorholt,  P.G. Jensen,  K.G. Larsen, F. Lorber, C. Schilling,  Shielded  reinforcement  learning  for hybrid systems,  in: International  Conference  on Bridging  the 
+Gap Between  AI and Reality,  Springer,  2023, pp.33–54.
+[29]M.A. Goorden,  K.G. Larsen, J.E. Nielsen,  T.D. Nielsen,  W. Qian, M.R. Rasmussen,  G. Zhao, Guaranteed  safe controller  synthesis  for switched  systems  using 
+analytical  solutions,  in: IEEE Conference  on Control  Technology  and Applications  (CCTA),  2023, pp.784–790.

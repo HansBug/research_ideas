@@ -1,0 +1,501 @@
+--- Page 1 ---
+V erication of m ultiple mo dels of a safet y-critical
+motor con troller in railw a y systems
+José Pro ença1[0000−0003−0971−8919], Sina Borrami2[0000−0003−1737−6509], Jorge
+Sanc hez de No v a2, Da vid P ereira1[0000−0002−7561−6649], and Giann Spilere
+Nandi1[0000−0002−3206−0599]
+1CISTER, P olytec hnic Institute of P orto, P ortugal
+{pro,drp,giann}@isep.ipp.pt
+2Alstom SA
+{sina.borrami,jorge.sanchez-de-nova}@alstomgroup.com
+Abstract. Motor con trollers, suc h as the ones used in signalling sys-
+tems, include critical em b edded soft w are. Alstom is a compan y that pro-
+duces suc h em b edded systems, whic h m ust follo w complex certication
+pro cesses that require formal mo delling and analysis. The formal analy-
+sis of these real-time systems ha v e to balance b et w een including enough
+details to b e useful and abstracting a w a y enough details to b e v eriable.
+This pap er describ es our w ork in the con text of the Europ ean V ALU3S
+pro ject to in tegrate the analysis of suc h systems with the Uppaal mo del
+c hec k er during the dev elopmen t cycle, in v olving b oth dev elop ers from
+Alstom and academic partners. W e use sp ecial Excel tables to cong-
+ure the underlying Uppaal mo dels and requiremen ts, bridging these t w o
+stak eholders. W e follo w Soft w are Pro duct Line Engineering principles,
+e.g., allo wing features to b e turned on and o and p erio dicities to b e
+c hanged, and v erify dieren t prop erties for eac h of suc h conguration.
+W e automate the instan tiation and v erication in Uppaal of a set of
+selected congurations via an op en-source protot yp e to ol named Upp ex .
+Keyw ords: V erication, V ariabilit y , Railw a y , Real-Time Automata
+1 In tro duction
+In railw a y systems, motor con trollers pla y a crucial and safet y-critical role in
+p oin t switc h mac hines. Guaran teeing its correct design and dev elopmen t is a
+c hallenging but essen tial task to a v oid catastrophic acciden ts that could cause
+sev ere damage to the en vironmen t and prop ert y , or ev en result in the loss of h u-
+man liv es. Most state of the art approac hes address this safet y concerns using for-
+mal mo delling and v erication, including abstract in terpretation [15] and Ev en t
+B [1,7], to enforce compliance with certication pro cesses and railw a y-sp ecic
+safet y standards, suc h as EN-50126 [10], EN-50128 [11], and EN-50129 [12]. In
+these systems, safet y means that faults are detected with v ery high probabilit y ,
+leading to a fallbac k state.
+The design of motor con trollers is usually p erformed b y m ultidisciplinary
+teams comp osed of exp erts in hardw are, em b edded soft w are, and v erication.
+
+--- Page 2 ---
+2 J. Pro ença, S. Borrami, J.S. No v a, D. P ereira, and G.S. Nandi
+Guaran teeing that all stak eholders with dieren t bac kgrounds ha v e the same un-
+derstanding of the critical asp ects of the system dev elopmen t can b e c hallenging.
+W e mo del the b eha viour of a railw a y motor con troller using the Uppaal mo del
+c hec k er [8], in the con text of the Europ ean pro ject V ALU3S ( https://valu3s.eu ).
+This pap er rep orts on ho w w e in tegrate and automate the formal v erication of
+this con troller during its dev elopmen t b y the rail man ufacturer Alstom, while
+impro ving the trade-o b et w een ne-grained details in the formal mo dels and
+its v eriabilit y , and ecien tly in v olving all team mem b ers in this pro cess.
+Our use-case uses a con troller with soft w are comp onen ts that in teract with a
+dash b oard and a circuit b oard (Fig. 1). In termediate comp onen ts are used to p oll
+the circuit, to add and v erify CR C error co des, etc. W e compiled a set of safet y
+requiremen ts for the con troller's soft w are to b e v eried using mo del c hec king.
+Ho w ev er, when trying to build a net w ork of automata to mo del the con troller
+with enough details to co v er all requiremen ts, w e concluded that it generated a
+state-space to o large to b e feasible when mo del-c hec king. F or example, the re-
+quiremen t the c ontr ol ler c omp onent should take less than 100ms to send a given
+c ommand to the cir cuit should not need to consider all com binations of states
+in v olving the sending of messages to the dash b oard. Similarly , the requiremen t
+if the c ontr ol ler c omp onent r e c eives an err or message it should go to a fal lb ack
+state and the dashb o ar d should b e informe d within 100ms should not need to
+consider the mec hanisms to in teract with the circuit.
+This lead to a family of formal mo dels with dieren t parameters and lev els
+of detail, eac h targetting dieren t requiremen ts. This lead us to 3 c hallenges:
+C1: main tain the mo del , to k ept it up-to-date with the system under dev el-
+opmen t; C2: manage v ariabilit y , as to o man y mo dels with commonalities are
+needed; and C3: impro v e the collab oration b et w een dev elop ers and mo d-
+ellers of the formal sp ecications.
+Our approac h uses a high-lev el represen tation of the congurations of the
+family of formal mo dels for real-time systems. This represen tation consists of
+Microsoft Excel spreadsheets with parameters and requiremen ts to b e used in
+the formal mo dels, read b y our protot yp e to ol Upp ex that automatically gener-
+ates and v eries the full family of mo dels and requiremen ts. These spreadsheets
+include, for example, the time-b ounds of certain comp onen ts, the size of buers,
+and the initial v alues of certain v ariables. F urthermore, these v alues v ary ac-
+cording to the set of activ e fe atur es ; for example, b y activ ating a feature named
+SelfT esting , a v ariable named TSelfTest is set to 200, otherwise it is set to 0. A
+sp ecial table compiles a set of c ongur ations , eac h listing its activ e features. F or
+example, a giv en conguration could activ ate SelfT esting , deactiv ate unrelated
+monitoring features, and activ ate its asso ciated requiremen ts.
+Organisation of the pap er. Section 2 describ es the motor con troller use-case
+and its requiremen ts, formalised in Section 3 using the Uppaal mo del c hec k er.
+Section 4 describ es ho w w e congure and v erify man y v ariations of a Uppaal
+mo del. Section 5 summarises what w e ha v e learned during this pro cess and the
+plans for future dev elopmen ts, and Section 6 concludes this pap er.
+
+--- Page 3 ---
+V erication of m ultiple mo dels of a safet y-critical motor con troller 3
+Dashb oa rd
+ Controller
+ Circuitcommands commands
+status status
+Fig. 1. Arc hitecture of the motor con troller system under v erication
+2 Use-case: Motor con troller
+Our running use-case consists of a motor con troller, or controller for short, run-
+ning in a resource constrain t device with a Real Time OS. This con troller is
+connected b oth to a ph ysical circuit and to a dashb oa rd , as depicted in Fig. 1.
+The circuit includes a DC motor that is b eing con trolled, receiv es simple com-
+mands from the controller to turn left, turn righ t, or to stop, and sends bac k a
+status rep ort, including the information of whether the limit of a rotation has
+b een reac hed or if a problem has b een found. The dashb oa rd sends instructions
+to the controller , including commands to b e sen t to the circuit , whic h in turn
+informs the dash b oard of in ternal state up dates.
+W e fo cus on the b eha viour of the soft w are part of the controller , and on its
+formal v erication via mo del-c hec king of timed-b eha viour. This is complemen-
+tary to other analysis and tests p erformed b y other stak eholders in v olv ed in the
+same use-case, e.g., to inject faults in hardw are and to generate batc hes of tests
+with enough co v erage. W e exp ect our underlying formalizations and to ols to also
+b enet, directly or after repurp osed, the other stak eholders in this use-case.
+This pap er includes b eha vioural details only of the core controller comp onen t,
+and the full Uppaal mo dels are not publicly a v ailable since they are in tellectual
+prop ert y of Alstom.3W e b eliev e that these descriptions, supp orted b y our op en-
+source protot yp e to ol, are ric h enough to con v ey our approac h and its b enets.
+Safet y-critical b eha viour Hazard analysis for the controller has b een p er-
+formed to justify the desired criticalit y lev els. This analysis guided the arc hitec-
+ture of the soft w are comp onen ts deplo y ed on the controller b oard. Most comp o-
+nen ts are replicated and executed in t w o div ersied pro cessing units a v ailable in
+the selected b oard, to detect when their b eha viour div erges. Also, CR C co des
+are applied to incoming and outgoing pac k ages to ensure message consistency .
+The replicated comp onen ts are: a core c ontr ol ler , a monitor to c hec k if the
+state of the con trollers are consisten t, a de c o der to compare incoming messages
+against their CR C error co de and against the messages from the neigh b our de-
+co der, a buer to store messages to b e sen t to the dashb oa rd , an enc o der to add
+CR C co des to messages to b e sen t to the dashb oa rd , and a r e ader of messages
+receiv ed from the circuit . Non-replicated comp onen ts are: a sche duler to start
+run time self-tests, a sim ulator of the dashb oa rd , a sim ulator of the circuit , and a
+fault-injecto r to cause some comp onen ts to fail. The sim ulators exist only on the
+3These can b e made a v ailable to the review ers if needed.
+
+--- Page 4 ---
+4 J. Pro ença, S. Borrami, J.S. No v a, D. P ereira, and G.S. Nandi
+Check
+HWIdle
+Self
+T estReadyLeft
+RightF all-
+backall-oksta rtleft
+righterro rerro r
+erro r
+reseterro r
+stop
+stop
+Fig. 2. General b eha viour of the controller comp onen t
+formal mo dels, to mimic the en vironmen t, while capturing the minim um infor-
+mation required to p erform formal analysis, represen ted as predened sequences
+of messages to b e sen t.
+The b eha viour of the core con troller task is depicted in Fig. 2. The con troller
+p erforms some initialisation in Check-HW , tests the in teraction with the circuit
+in Self-T est , and can trigger the rotation of the motor to the left or to the righ t.
+A t an y momen t, it can receiv e an error and go to a F all-back state.
+P arameterised requiremen ts F ollo wing the hazard analysis, w e compiled a
+set of requiremen ts to b e v eried using mo del c hec king based on Uppaal. The
+most relev an t ones are listed in T able 1. Requiremen ts follo w some syn tactic
+structure to tigh ten the gap b et w een formal and informal requiremen ts, fol-
+lo wing the EARS approac h [17]. F or example, the 3rd requiremen t reads  In
+Conf 3 , when controller 1 fails the controller 2 shal l go to a fal lb ack state within
+100ms. Congurations sp ecify the parameters of the mo del when v alidating the
+requiremen t. This co v ers b oth general parameters of the system, suc h as the
+time to deco de messages and the frequency of op eration of monitors, and the
+scenario consisting of the messages sen t b y the dashb oa rd , b y the circuit , and b y
+the fault-injecto r . In our example Conf 3 denes a scenario where the dash b oard
+sends a start and a left command after 20ms and 100ms, resp ectiv ely , and the
+fault-injecto r causes controller 1 to fail after 120ms.
+T able 1. Some functional and non-functional requiremen ts for the motor con troller
+Cong. State T rigger Comp. Exp ected
+Conf 1controller 1 is
+readydeco der receiv es a
+left commandcontroller 1send a left
+command within 100ms
+Conf 2monito r 1 or
+reader 1 failcontroller 2go to a fallbac k
+state within 100ms
+Conf 3controller 1
+failscontroller 2go to a fallbac k
+state within 100ms
+Conf 4controller 1 receiv es
+an error messagecontroller 1send immediately a stop
+command to the circuit
+Conf 4controller 1 receiv es
+an error messageenco der 1notify the dashb oa rd
+within 100ms
+Conf 5dashb oa rd can
+send messagesfull system nev er get stuc kIn
+while
+when
+the
+shall
+
+--- Page 5 ---
+V erication of m ultiple mo dels of a safet y-critical motor con troller 5
+When formalising requiremen ts (c.f. T able 1) using the temp oral logic sup-
+p orted b y Uppaal, the notions of state , c omp onent , and exp e cte d observation
+follo w ed in a relativ ely straigh tforw ard manner. Sp ecifying the triggers often re-
+quired man ually enric hing the mo del with new v ariables, since the logic do es not
+express ev en ts. Sp ecifying c ongur ations w ere the most complex op erations, and
+the core c hallenge addressed b y this pap er and our protot yp e to ol. T raditionally
+for eac h conguration a new mo del w ould ha v e to b e sp ecied, ne-tuning v alues
+of v ariables spread throughout the mo del, often deactiv ating some comp onen ts
+to simplify the mo del-c hec king of more complex prop erties. Main taining a col-
+lection of suc h mo dels, in a con text where neither the system sp ecication nor
+the full set of requiremen ts are xed, quic kly b ecomes infeasible. W e pro vide
+supp ort to sp ecify all congurations and prop erties in a single Excel le, and to
+automatically use these with a single annotated Uppaal mo del.
+3 F ormal sp ecication in Uppaal
+Uppaal [8] is a w ell-kno wn mo del-c hec k er for real-time systems, successfully used
+in man y industrial applications and in the con text of em b edded systems [5].
+Systems are sp ecied as a set of timed-automata that in teract b oth b y using
+sync hronisation on actions and b y using shared v ariables. In a n utshell, eac h
+timed-automaton is a state mac hine whose edges are lab elled b y a guard and an
+up date o v er shared v ariables, and b y an optional action name used to sync hronise
+with neigh b our automata. Sp ecial v ariables named clo c ks capture the time that
+has passed since they w ere last reset, and are incremen ted automatically b y the
+rules that guide the automata ev olution.
+The top ology of the timed automata net w ork used in the sp ecication of our
+use-case is depicted in Fig. 3, one for eac h task men tioned in Section 2. This
+top ology is built iterativ ely b y b oth dev elop ers and formal mo dellers, during the
+dev elopmen t of the system. Eac h no de depicts the timed-automaton of a com-
+p onen t, and arro ws depict in teractions b et w een no des: denote sync hronous
+in teractions that blo c k un til b oth automata can trigger the asso ciated action;
+and denote sync hronous in teractions that do not blo c k the sender  the
+former requires the receiv er to b e alw a ys ready and the latter discards data if the
+receiv er is not ready; and denotes async hronous comm unication b y atomic
+writes and reads to a shared v ariable.
+The dashb oa rd , circuit , and fault-injecto r comp onen ts are parameterised b y
+a scenario, i.e., a sequence of actions with timestamps. The dashb oa rd sends
+commands to the enco der s, the circuit sends rep orts to the reader s describing if
+there are errors and if the motor reac hed a limit, and the fault-injecto r sends
+messages that cause some comp onen ts to go to a fault y state with no b eha viour.
+F urthermore, the circuit rep orts errors for a predened time-windo w during the
+self-test phase, and the con trollers v alidate that an error is indeed rep orted.
+The b eha viour of the comp onen ts in v olv ed is expressed using Uppaal's notion
+of timed automata. W e depict the automata of the con troller's b eha viour in
+
+--- Page 6 ---
+6 J. Pro ença, S. Borrami, J.S. No v a, D. P ereira, and G.S. Nandi
+Buer 1 Monito r 1 Controller 1 Reader 1
+Buer 2 Monito r 2 Controller 2 Reader 2Dashb oa rd
+Simulato rCircuit
+Simulato rSelf-T est Scheduler
+Enco der 1
+Enco der 2Deco der 1
+Deco der 2
+F ault Injecto rfail failfailw a rn w a rn,up ddo self-test
+to
+erro rw a rn,up d
+w a rn up d
+actionw a rn
+actionerro r
+commandrep o rt
+up d up derro rlimit
+Fig. 3. T op ology of the net w ork of comm unicating timed-automata of the use-case
+Fig. 4. All the 5 states of Fig. 2 app ear in this automata, extended with extra
+details. The arro ws p oin ting to and from the Controller s in Fig. 3 app ear in this
+diagram either as c hannels in the lab els, represen ted b y names prexed with
+` ?' or ` !', or as shared v ariables suc h as limit , whic h is read to detect if the
+motor reac hed its target p osition. The non-blo c king b eha viour of the erro r and
+fail c hannels is captured b y including an extra transition lab elled b y this c hannel
+in ev ery no de where time can pass.
+Uppaal supp orts imp erativ e co de using a C-lik e language inside a global
+Decla rations blo c k, accessible b y all automata in the net w ork. These v ariables and
+functions can b e used b y the expressions in the timed-automata. F or example,
+the concrete actions (e.g., goLeft ), time-b ounds ((e.g., TLeft[id][max] )), shared
+v ariables (e.g., limit ), and c hannel names (e.g., action ) are declared in this blo c k.
+4 P arameterisation and v erication with Upp ex
+In order to cop e with the m ultiple congurations of Uppaal's mo dels, w e dev el-
+op ed Upp ex to pro vide a mec hanism based on annotations to customise man y
+asp ects, including c hannels, shared v ariables, data t yp es, time-b ounds, and re-
+quiremen ts. Upp ex is an op en-source to ol that uses the w orko w depicted in
+Fig. 5: it reads b oth an Excel le with the congurations and an Uppaal le
+with annotations, and it creates a new Uppaal mo del for eac h conguration
+found. Either one of the new mo dels is used to replace the original Uppaal le,
+or they are v eried b y Uppaal and a rep ort is pro duced. Upp ex is dev elop ed
+in Scala, uses the Apac he POI libraries for Microsoft do cumen ts [13], and is
+a v ailable at https://cister-labs.github.io/uppex .
+4.1 Annotating Uppaal mo dels
+Declarations in the input Uppaal mo del are annotated with sp ecial blo c ks starting with
+// @Name , whic h act as ho oks that Upp ex uses to inject and up date the v alues that
+congure the mo del. XML blo c ks from  <Name>  un til  </Name>  also act as ho oks for
+annotations, whic h w e use to inject and up date the prop erties b eing v eried in the
+<queries> blo c k. W e call these @-annotations and xml-annotations , resp ectiv ely .
+
+--- Page 7 ---
+V erication of m ultiple mo dels of a safet y-critical motor con troller 7
+Fig. 4. Sp ecication in Uppaal of the a con trollers' timed-automata with iden tier id
+Uppex
+C3C2C1
+Apply a conguration
+V erify 1 conguration
+V erify all congurations
+Fig. 5. Upp ex w orko w: up dating and v erifying mo dels based on conguration tables
+Eac h annotation can b e dened in the Excel le in a sheet named with the same
+name (c.f. Fig. 6). The rst line of these sheets describ e the pattern used to pro duce
+co de that will b e injected for eac h line of the table, follo w ed b y a table with a he ader
+of names in ro w 2 and their v alues b elo w. E.g., in the @TimeBounds table (Fig. 6), ro w 4
+injects the line  const int TCheck[Ids][Intrv] = {{4,4},{6,6}};...  to the Uppaal
+co de in the corresp onding blo c k. The rst column acts as unique iden tier: if m ultiple
+lines are found, the last one prev ails. The column named Features asso ciates feature
+names that m ust b e active , otherwise the line is discarded. In our example, when the
+feature SelfTesting is activ e the v ariable for SelfTest is set to 200, otherwise it is set
+to 0. The <queries> table on the top-left of Fig. 6 depicts some of the requiremen ts
+from T able 1.
+4.2 V erifying m ultiple congurations
+Using Upp ex it is p ossible to sp ecify a list of c ongur ations , eac h regarded as a set of
+features that can b e activ e or not. These feature selection guides whic h ro ws from
+
+--- Page 8 ---
+8 J. Pro ença, S. Borrami, J.S. No v a, D. P ereira, and G.S. Nandi
+Fig. 6. Sp ecial Excel tables: @-annotation, xml-annotation, and congurations
+annotation should b e included. The list of congurations is sp ecied in an Excel
+sheet named @Configurations , suc h as the one in the b ottom of Fig. 6. In this ex-
+ample the conguration SelfTest includes the features ReadCircuit ,SelfTesting ,
+and StartWithSelfTest , among others, and not the feature SyncMon norHeartbeats .
+Hence, when selecting the SelfTest conguration, the SelfTesting will b e activ e, trig-
+gering the last ro w visible in the @TimeBounds table to b e used to dene the SelfTest
+v ariable. When selecting instead the conguration JustHeartBeat , the SelfTesting
+feature will not b e activ e, th us the previous ro w will b e used instead. Similarly , the
+selected features will also inuence whic h queries will b e used during v erication.
+Upp ex can b e used as a command line to ol to mo dify the annotated blo c ks of an
+Uppaal mo del according to a giv en conguration, or to v erify one or all congurations.
+F or example, the command  java -jar uppex.jar -runAll motorController.xlsx 
+will v erify all congurations in the giv en Excel le using the Uppaal mo del with the
+same name, pro ducing a rep ort suc h as the one in T able 2. This rep ort states that
+3 prop erties of conguration SelfTest passed and the v erication timed-out while
+v erifying the 4th prop ert y . This prop ert y w ould pass using a slighly larger timeout
+when calling Upp ex. W e write ellipsis ` . . . ' to omit parts of the rep ort. Congurations
+Monitor and JustHeartBeat also passed and failed some prop erties.
+T able 2. Rep ort pro duced when v erifying all prop erties and all congurations
+> Reading Uppaal file ’motorController.xml’
+--Verifying ’SelfTest’--
+[OK] @SelfTest: the Controller1 shall be able to
+start the self-tests.
+[OK] @ChkSelfTest1: when Self-test ends, the Reader
+shall have received some error.
+[OK] @ChckDeadlock: while Dashboard can send
+messages, the full system shall not deadlock.
+| Time-out. Missing 1 properties.
+| Failed on property:
+| "@SelfTest, StartWithSelfTest: the Controller1
+shall be able to end the self-tests."--Verifying ’Monitor’--
+[OK] @SyncMon: the Monitor1 shall be able
+to send a warning.
+[OK] @ChkB0NeverOverflows: the Buffer1
+shall never overflow.
+...
+--Verifying ’JustHeartBeat’--
+[OK] @ChkDecoding: the Decoder1 shall be
+able to send a warning.
+[FAIL] @ChkB0NeverOverflows: the Buffer1
+shall never overflow.
+...
+
+--- Page 9 ---
+V erication of m ultiple mo dels of a safet y-critical motor con troller 9
+5 Lessons learned and future w ork
+During the dev elopmen t of the motor con troller system at Alstom in collab oration with
+ISEP and other academic partners, w e iterated o v er core design arc hitectural decisions
+and agreed up on dieren t sync hronisation mec hanisms. Using the mo del-c hec king ca-
+pabilities of Uppaal, w e v eried dieren t prop erties, including the p ossibilit y of sending
+w arnings, of buer o v ero ws, and of reac hing deadlo c ks (or timelo c ks). These mo dels
+are useful b oth to predict p ossible problems and b ottlenec ks, and to b e used in certi-
+cation pro cesses. Our conguration-driv en approac h using Excel spreadsheets emerged
+as a solution to the gro wth in complexit y of the underlying formal mo dels, whic h t ypi-
+cally m ust remain simple in order to b e useful. W e w ere able to nd time-b ounds that
+satisfy our requiremen ts, e.g., the p erio dicit y at whic h monitors and deco ders c hec k
+consistency , or the p erio dicit y at whic h rep orts should b e p olled from the circuit, under
+dieren t scenarios sim ulated b y the dashb oa rd .
+Upp ex adds a negligible o v erhead o v er the mo del-c hec king pro cess, in v olving the
+parsing of the conguration tables and the Uppaal le, and the writing of an up dated
+set of Uppaal les. In our use-case w e use the 16 automata from Fig. 1 in a le with
+∼ 1.7K lines excluding queries. Our tables curren tly include around 25 requiremen ts,
+15 congurations, and 135 dieren t en tries (including scenarios, time parameters, data
+c hannels, and data constructors). In v oking Ja v a to pro duce a concrete instance tak es
+less than 5s in our 1.4 GHz Quad-Core In tel Core i5 mac hine.
+Related w ork The v erication of complex em b edded systems has b een in v estigated,
+e.g., b y Basten et al. [3] who generate Uppaal mo dels (and P etri net mo dels) using a
+mo del-driv en approac h with the Octopus to olset, fo cusing on design-space exploration
+and sc hedule optimisation. Gario et al. [14] and Dureja and Rozier [9] pro vide an
+exhaustiv e analysis of a large air trac con trol, in a join t eort with NASA team of
+engineers, using 3 concrete mo dels sp ecied in the OCRA arc hitectural language with
+SMV comp onen t mo dels. They v alidate the 3 mo dels using a com bination of dieren t
+tec hniques based on the prop ert y at hand, and analyse dep endencies among prop erties
+to a v oid the v erication of unnecessary queries. In con trast to these approac hes, Upp ex
+allo ws the man ual denition and ne-tuning of mo dels in the host mo del-c hec k er instead
+of using generated mo dels, and pro vides mec hanisms to con trol the v ariabilit y of the
+mo dels in a w a y that can b e p erceiv ed b y b oth to ol- and formal-dev elop ers.
+The v ariabilit y in Upp ex is giv en as a set of tables that inject co de in the annotated
+sp ecications, but it is not reasoned up on. Other approac hes, suc h as the formal frame-
+w ork b y Kim et al. [16] in the con text of em b edded systems, can b e used to analyse
+v alid congurations based on feature mo dels [4].
+F uture w ork W e are pursuing the follo wing t w o directions of w ork.
+1. V alid congurations. Curren tly one can sp ecify an y com bination of features,
+sometimes leading to incorrect congurations b ecause of missing dep endencies or in-
+compatibilities. These restrictions can b e captured b y a set of constrain ts, usually
+taking the form of a F eature Mo del [4] in the con text of Soft w are Pro duct Lines. One
+could, for example, mak e the feature StartWithSelfTest dep enden t on SelfTesting ,
+marking an y conguration with only the rst one as in v alid. F ollo wing existing w ork in
+this comm unit y , w e could further exploit these v alidit y constrain ts o v er features, e.g.,
+b y considering all congurations that satisfy these constrain ts, or to aim at nding the
+
+--- Page 10 ---
+10 J. Pro ença, S. Borrami, J.S. No v a, D. P ereira, and G.S. Nandi
+b est conguration using some cost function. In the con text of this w ork, the prop erties
+v alidated b y Uppaal could also pla y a role in the v alidit y of a conguration.
+2. Other bac k ends. Our w ork targets Uppaal mo dels using a fron tend for dev elop-
+ers based on Excel spreadsheets. Ho w ev er, these tables can also b e used with dieren t
+bac k ends b esides Uppaal. F or example, to generate conguration les used in the imple-
+men tation, or to use a dieren t mo del-c hec k er for v erication, suc h as Imitator [2] for
+real-time systems, whic h supp orts the optimisation of some parameters, or mCRL2 [6]
+that supp orts a temp oral logic o v er ev en ts and can handle v ery large state-spaces. W e
+are also w orking on an in termediate domain sp ecic language that can generate Uppaal
+mo dels, among other analysis, with a b etter supp ort to reason o v er the arc hitectural
+top ology , suc h as the one in Fig. 3, whic h emerges only implicitly in Uppaal.
+Uppaal is free to use only for non-commercial purp oses. It is curren tly b eing used b y
+academic partners, and our use-case is not b eing commercialised and is represen tativ e
+of other ongoing pro jects. This w ork ma y lead to the adoption of Uppaal in commercial
+pro jects of Alstom, or to a dieren t bac k end supp orted b y Upp ex.
+6 Conclusions
+This pap er presen ts our approac h to formalise the timed-b eha viour in Uppaal of a motor
+con troller system, under dev elopmen t b y the Alstom railw a y compan y , in the con text of
+the V ALU3S Europ ean pro ject. W e use parameterised conguration tables that adapt
+a core Uppaal mo del, facilitating the customisation of the mo del so it can b etter suit
+dieren t requiremen ts. This pap er also describ es ho w w e in tegrated the usage of mo del-
+c hec king within the dev elopmen t cycle of a safet y-critical system, in v olving stak eholders
+with dieren t bac kground, relying on in telligible tables and arc hitectural top ologies.
+W e pro duced a protot yp e op en-source to ol Upp ex to automatise the extraction of
+parameters and adaptation of the formal mo dels, and to v erify man y congurations on
+a single run. In the future w e plan to further exploit the v alidit y of congurations and
+to exp erimen t with dieren t bac k ends.
+A c kno wledgmen ts. This w ork w as partially supp orted b y National F unds through
+F CT/MCTES (P ortuguese F oundation for Science and T ec hnology), within the CIS-
+TER Researc h Unit (UIDP/UIDB/04234/2020); also b y the Norte P ortugal Regional
+Op erational Programme (NOR TE 2020) under the P ortugal 2020 P artnership Agree-
+men t, through the Europ ean Regional Dev elopmen t F und (ERDF) and also b y na-
+tional funds through the F CT, within pro ject NOR TE-01-0145-FEDER-028550 (RE-
+ASSURE); also b y COMPETE 2020 under the PT2020 P artnership Agreemen t, through
+ERDF, and b y national funds through the F CT, within pro ject POCI-01-0145-FEDER-
+029946 (DaVinci); also b y F CT within pro ject ECSEL/0016/2019 and from the EC-
+SEL Join t Undertaking (JU) under gran t agreemen t No 876852 (V ALU3S). The JU
+receiv es supp ort from the Europ ean Union's Horizon 2020 researc h and inno v ation
+programme and Austria, Czec h Republic, German y , Ireland, Italy , P ortugal, Spain,
+Sw eden, T urk ey .
+References
+1. Rob ert Ab o and Lauren t V oisin. F ormal implemen tation of data v alidation for
+railw a y safet y-related systems with o v ado. In Stev e Counsell and Man uel Núñez,
+editors, SEFM , pages 221236. Springer, 2014.
+
+--- Page 11 ---
+V erication of m ultiple mo dels of a safet y-critical motor con troller 11
+2. Étienne André. IMIT A TOR 3: Syn thesis of timing parameters b ey ond decidabilit y .
+In Alexandra Silv a and K. Rustan M. Leino, editors, CA V 2021 , v olume 12759 of
+LNCS , pages 552565. Springer, 2021.
+3. T w an Basten, Emiel v an Ben th um, Marc Geilen, Martijn Hendriks, F red Houb en,
+Georgeta Igna, F rans Rec k ers, Sebastian de Smet, Lou J. Somers, and Egb ert
+T eeselink. Mo del-driv en design-space exploration for em b edded systems: The o c-
+topus to olset. In Tiziana Margaria and Bernhard Steen, editors, ISoLA 2010 ,
+v olume 6415 of LNCS , pages 90105. Springer, 2010.
+4. Da vid Bena vides, Sergio Segura, and An tonio Ruiz Cortés. Automated analysis of
+feature mo dels 20 y ears later: A literature review. Inf. Syst. , 35(6):615636, 2010.
+5. Timoth y Bourk e and Arcot So wm y a. Automatically transforming and relating
+Uppaal mo dels of em b edded systems. In Luca de Alfaro and Jens P alsb erg, editors,
+EMSOFT 2008 , pages 5968. A CM, 2008.
+6. Ola v Bun te, Jan F riso Gro ote, Jero en J. A. Keiren, Maurice La v eaux, Thomas
+Neele, Erik P . de Vink, Wieger W esselink, An ton Wijs, and Tim A. C. Willemse.
+The mCRL2 to olset for analysing concurren t systems - impro v emen ts in expressiv-
+it y and usabilit y . In T omás V o jnar and Lijun Zhang, editors, T A CAS 2019 , v olume
+11428 of LNCS , pages 2139. Springer, 2019.
+7. Mathieu Comptier, Mic hael Leusc hel, Luis-F ernando Mejia, Julien Molinero P erez,
+and Mareik e Mutz. Prop ert y-based mo delling and v alidation of a CBTC zone
+con troller in ev en t-b. In Simon Collart Dutilleul, Thierry Lecom te, and Alexan-
+der B. Romano vsky , editors, RSSR ail 2019 , v olume 11495 of LNCS , pages 202212.
+Springer, 2019.
+8. Alexandre Da vid, Kim G. Larsen, Axel Lega y , Marius Miku£ionis, and Dann y Bøg-
+sted P oulsen. Uppaal SMC tutorial. STTT , 17(4):397415, Aug 2015.
+9. Rohit Dureja and Kristin Y v onne Rozier. More scalable L TL mo del c hec king via
+disco v ering design-space dep endencies ( d3). In Dirk Bey er and Mariek e Huisman,
+editors, T A CAS 2018 , v olume 10805 of LNCS , pages 309327. Springer, 2018.
+10. Railw a y Applications. The Sp ecication and Demonstration of Reliabilit y , A v ail-
+abilit y , Main tainabilit y and Safet y (RAMS). Generic RAMS Pro cess. Standard
+(N), CENELEC, Dec. 2017.
+11. Railw a y applications. Comm unication, signalling and pro cessing systems - Soft w are
+for railw a y con trol and protection systems. Standard (N), CENELEC, Jul. 2020.
+12. Railw a y applications. Comm unication, signalling and pro cessing systems. Safet y
+related electronic systems for signalling. Standard (N), CENELEC, No v. 2018.
+13. Apac he Soft w are F oundation. Apac he POI - the Ja v a API for Microsoft do cumen ts.
+https://poi.apache.org , 2021. A ccessed: 2021-11-30.
+14. Marco Gario, Alessandro Cimatti, Cristian Mattarei, Stefano T onetta, and
+Kristin Y v onne Rozier. Mo del c hec king at scale: Automated air trac con trol
+design space exploration. In Sw arat Chaudh uri and Azadeh F arzan, editors, CA V
+2016 , v olume 9780 of LNCS , pages 322. Springer, 2016.
+15. Daniel Kästner and Christian F erdinand. Applying abstract in terpretation to v erify
+EN-50128 soft w are safet y requiremen ts. In Thierry Lecom te, Ralf Pinger, and
+Alexander Romano vsky , editors, RSSR ail 2016 , pages 191202. Springer, 2016.
+16. Jin Hyun Kim, Axel Lega y , Louis-Marie T raonouez, Mathieu A c her, and Sungw on
+Kang. A formal mo deling and analysis framew ork for soft w are pro duct line of
+preemptiv e real-time systems. In Sasc ha Osso wski, editor, SA C 2016 , pages 1562
+1565. A CM, 2016.
+17. Alistair Ma vin, Philip Wilkinson, A drian Harw o o d, and Mark No v ak. Easy ap-
+proac h to requiremen ts syn tax (EARS). In RE 2009 , pages 317322. IEEE Com-
+puter So ciet y , 2009.

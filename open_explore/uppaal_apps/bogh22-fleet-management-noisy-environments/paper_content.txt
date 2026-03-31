@@ -1,0 +1,937 @@
+--- Page 1 ---
+Distributed Fleet Management in Noisy Environments
+via Model-Predictive Control
+Simon Bøgh1, Peter Gjøl Jensen2, Martin Kristjansen2, Kim Guldstrand Larsen2, Ulrik Nyman2
+1Aalborg University, Department of Materials & Production, Fibigerstræde 16, 9220 Aalborg Øst, Denmark
+2Aalborg University, Department of Computer Science, Selma Lagerløfs Vej 300, 9220 Aalborg Øst, Denmark
+sb@mp.aau.dk,{pgj,mk,kgl,ulrik}@cs.aau.dk
+Abstract
+We consider dynamic route planning for a ﬂeet of Au-
+tonomous Mobile Robots (AMRs) doing fetch and carry tasks
+on a shared factory ﬂoor. In this paper, we propose Stochastic
+Work Graphs (SWG) as a formalism for capturing the seman-
+tics of such distributed and uncertain planning problems. We
+encode SWGs in the form of a Euclidean Markov Decision
+Process (EMDP) in the tool U PPAAL STRATEGO , which em-
+ploys Q-Learning to synthesize near-optimal plans. Further-
+more, we deploy the tool in an online and distributed fashion
+to facilitate scalable, rapid replanning. While executing their
+current plan, each AMR generates a new plan incorporat-
+ing updated information about the other AMRs positions and
+plans. We propose a two-layer Model Predictive Controller-
+structure (waypoint and station planning), each individually
+solved by the Q-learning-based solver. We demonstrate our
+approach using ARGoS3 large-scale robot simulation, where
+we simulate the AMR movement and observe an up to 27.5%
+improvement in makespan over a greedy approach to plan-
+ning. To do so, we have implemented the full software stack,
+translating observations into SWGs and solving those with
+our proposed method. In addition, we construct a benchmark
+platform for comparing planning techniques on a reasonably
+realistic physical simulation and provide this under the MIT
+open-source license.
+1 Introduction
+In modern industrial production, robots are increasingly
+working in close collaboration with humans in shared
+workspaces. In recent years, agents such as automated
+guided vehicles (AGV) and autonomous mobile robots
+(AMR), among other approaches, have enabled increased
+ﬂexibility in manufacturing environments. AMR and AGV
+systems have thus become paramount to modern production
+paradigms where increased ﬂexibility in logistics applica-
+tions are enabled through such technologies (Fazlollahtabar
+and Saidi-Mehrabad 2015). Nonetheless, ﬂeet management
+is still a signiﬁcant challenge to solve and is highly de-
+pendent on the particular problem. For example, the ﬂeet
+manager might need to allocate tasks, plan around resource
+availability, malfunctioning agents, and avoid blocking each
+other on paths or at stations.
+Copyright © 2022, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.In Multi-Agent Pickup and Delivery (Salzman and Stern
+2021), a set of agents must complete tasks where they must
+pick up an item to be placed at certain delivery stations. Such
+methods can be done effectively and quickly if the agents
+only have one job each. Even if there is a stream of tasks, it
+can be solved in an online fashion (Ma et al. 2017), but the
+agent only needs to pick up items from a single location be-
+fore delivering. We consider agents that must visit multiple
+stations before delivering the collected items.
+In this paper, we consider complex planning of pickup and
+delivery when the environment contains stochastic timing
+information stemming from, e.g., noise in the location sys-
+tem, other sensors, or through collaboration with humans.
+We deﬁne in Section 3 the Stochastic Work Graph (SWG),
+its associated global scheduling problem, and the seman-
+tics as deﬁned on a Euclidean Markov Decision Process
+(EMDP). Later in Sections 4 and 5, we divide the global
+(and intractable) problem into a two-level planning method-
+ology, where we, on an abstract level, plan the sequence
+in which to visit stations, and afterward the exact paths to
+travel in the near future. The planning architecture is a dual
+Model-Predictive Control (MPC) approach, with each MPC
+problem solved by online Q-learning, using the tool U P-
+PAAL STRATEGO (David et al. 2015). The Q-learning-based
+solver synthesizes near-optimal plans for visiting stations
+and waypoints. We consider a complex planning scenario
+in Section 7 for concept evaluation that entails 10, 15, and
+20 AMRs doing pickup and delivery tasks. Our simulation
+architecture is based on the ARGoS3 framework (Pinciroli
+et al. 2012) which simulates the physics of the AMRs. We
+demonstrate that our approach can learn policies that out-
+perform a greedy approach by up to 27.5% on average. A
+secondary contribution of the paper is the developed simu-
+lation platform. It is released as open-source under the MIT
+license and can be used to compare different planning ap-
+proaches against each other.
+Motivational Case
+As a motivational case, we consider a setup inspired by
+a world-leading industrial company with many custom or-
+ders apart from their primary production. Humans currently
+hand-pick a series of components to fulﬁll a single order
+with no restrictions on the collection sequence. They are
+self-managed and rely on intuition to avoid congestion at
+Proceedings of the Thirty-Second International Conference on Automated Planning and Scheduling (ICAPS 2022)
+565
+
+--- Page 2 ---
+shelves with items in high demand. When all the items have
+been picked up, they must be delivered to a delivery station.
+2 Related Work
+Optimal ﬂeet management, and herein task planning and
+replanning, is a fundamental challenge in multi-AMR sys-
+tems. In recent years, artiﬁcial intelligence methodologies
+have become prevalent in robotics research. We propose a
+combined learning and Model-Predictive Control (MPC) ap-
+proach to the challenge.
+The problem of planning multiple agents’ paths through a
+system has been investigated as the Multi-Agent Path Find-
+ing (MAPF) problem (Salzman and Stern 2021). In MAPF,
+a set of agents must travel from a source to a destination
+where one-shot algorithms can compute such routes. On-
+line (or lifelong) MAPF computes for a time window as the
+agents execute a stream of tasks (Ma et al. 2017). Exten-
+sions include Target Assignment and Path Finding (TAPF),
+in which the authors investigate the optimal assignment of
+tasks, and Multi-Agent Pickup Delivery (MAPD) (Li et al.
+2020), where a task includes a location where to deliver
+an item. Others have attempted to combine reinforcement
+learning with MAPF approaches, such as (Ling, Gupta, and
+Kumar 2020) who divide the graph into zones and include
+aspects of uncertainty. Common for them all is that ei-
+ther each agent needs to visit just one location, or the se-
+quence is ﬁxed. In our research, we investigate how a task
+consisting of multiple locations followed by a delivery sta-
+tion can be visited, which is inspired by Fetch and Carry
+operations (Bøgh et al. 2014; Staal et al. 2020). In such
+applications, the agent can visit multiple locations before
+delivering. MAPF problems are in general formulated us-
+ing discrete, unit time for movement and work, but (H ¨onig
+et al. 2016, 2019) investigate time-varying and simulate with
+higher-order dynamics. First, they deﬁned MAPF-POST: a
+process for post-processing a calculated MAPF plan. The
+plan is updated to include kinematic constraints and deﬁne
+dependencies between the different steps in the plan, but the
+constraints are single intervals, such as the minimum and
+maximum duration of traveling along an edge. The beneﬁt
+of this new plan is that it allows for better mapping to the
+execution of the robots. Later, they present the idea of post-
+processing in an online setting, where they also deﬁne work
+astime units and not just a single unit, but their implemen-
+tation is not made available.
+Recent research has proposed a Deep Q-Network-based
+approach to dispatch/navigation plans to serve randomly and
+constantly incoming orders and reduce time consumption for
+AGVs (Liu et al. 2021). Ridesharing platforms share many
+of the same challenges to ﬂeet management in industrial
+AMR scenarios, e.g., how waiting time is reduced through
+proactive dispatching strategies. Reinforcement Learning
+has been applied to optimize dispatching strategies specif-
+ically, hence learning policies under uncertainty in the envi-
+ronment (Oda and Joe-Wong 2018). In this paper, we con-
+sider a stream of incoming orders, each comprising a set
+of items to collect from a factory ﬂoor. We assume that a
+simple global algorithm solves the allocation of AMRs to
+orders. The aim is to reduce the total completion time ofthe order queue. We differ from (Liu et al. 2021; Oda and
+Joe-Wong 2018) both in the method applied and by con-
+sidering plans where multiple points have to be visited, re-
+sulting in more choices for each individual AMR. In par-
+ticular, we leverage recent advances in near-optimal synthe-
+sis for Priced Timed Markov Decision Processes using U P-
+PAAL STRATEGO (Jaeger et al. 2019). Our method automat-
+ically incorporates rapid replanning, something we believe
+will lead to faster response time to rare and unpredictable
+events, situations that require special care when applying
+Neural Network-based approaches (De Bruin et al. 2015;
+Schiøler et al. 2018). We apply the tool U PPAAL STRATEGO
+in the setting of MPC - a combination which has recently
+seen encouraging performance in various domains (Larsen
+et al. 2016; Eriksen et al. 2019; Goorden et al. 2021).
+As the ﬂeet of agents grows into large-scale systems, the
+ﬂeet management problem becomes increasingly challeng-
+ing. Trafﬁc congestion and transportation efﬁciency become
+essential factors, which have been investigated through
+multi-agent deep reinforcement learning methods (Lin et al.
+2018). To combat scalability issues, we enable each AMR
+to optimize its plan while taking the current plans of the
+other AMRs into account. This allows the individual AMRs
+to adapt locally to (temporal) congestion. An alternative ap-
+proach is taken by (Gu et al. 2020), who rely on a centralized
+computation of navigation plans, which leads to scalability
+issues.
+3 Problem Description
+In our setting, a group of AMRs is expected to complete a
+(multi-)set of tasks, where each task consists of a set of pick-
+up stations to visit prior to delivering the collected items at a
+delivery station. The goal of the AMRs is to complete the
+collection of tasks as fast as possible in a given environ-
+ment and under the assumption that an AMR can work on
+at most one task at any given time and that tasks are non-
+preemptable.
+In order to capture the underlying properties of the en-
+vironment the AMRs operate in, we abstract the real-world
+into a Stochastic Work Graph.
+Deﬁnition 1 (Stochastic Work Graph) A stochastic work-
+graphG= (V;E; )is an undirected graph where:
+•Vis a set of vertices,
+•E⊆V×Vis a set of edges,
+• :V∪E→(R≥0→R≥0)denotes a stochastic dis-
+tribution over the work time at vertices or travel time for
+edges s.t. 1 =/integraltext∞
+0(l)(x)dxfor anyl∈V∪E.
+Notice here that the distributions capture the uncertainty
+in the environment as such to capture, e.g., human operators
+of a work-station or expected interference from the environ-
+ment (or other AMRs). The maps that we operate on are not
+required to be well-formed infrastructures as deﬁned in ( ˇC´ap
+et al. 2015) implying that AMRs can block routes while per-
+forming work.
+Given an SWG, we can capture the entirety of the prob-
+lem as a Scheduling Problem for SWG, formally deﬁned as
+follows.
+566
+
+--- Page 3 ---
+Deﬁnition 2 (Scheduling Problem for SWG) An SPSWG
+S= (R;I;T;G)withG= (V;E; )s.t.
+•Ris a set of names of AMRs,
+•I:R→Vis the initial AMR placement,
+•T ⊆}(V)is the (multi-)set of tasks, each being a set of
+vertices to be visited, and
+•Gis an SWG.
+The goal is to have the AMRs complete the set of tasks with
+the shortest makespan possible.
+We will, for simplicity henceforth, assume w.log. that Tis a
+set. Note that the tasks consist of a setof vertices an AMR
+must visit prior to completing its task, i.e., the sequence of
+the vertices is not given a priori. We can now deﬁne the ab-
+stract state of an AMR as follows.
+Deﬁnition 3 (State of an AMR) Let
+ = (V∪E)×B×
+R≥0×}(V)be the set of all states, then the (`;b;x;t )∈
+is the state of an AMR s.t.
+•`∈(V∪E)is the location,
+•b∈B={tt;}indicates activity (such as working),
+•x∈R≥0is the progress of the current operation (move-
+ment along an edge, or operation at a station), and
+•t∈}(V)is the remaining set of locations to visit.
+As a shorthand, we let (r)∈
+denote the state of the
+AMRrin the global AMR state vector . We further write
+[(`;b;c; )=r]to update the state of r∈R.
+Given the states of all AMRs and the SWG G, we
+need an encoding that speciﬁes the behavior and progres-
+sion of task execution. The semantics of such a system can
+be aptly given as a Euclidean Markov Decision Process
+(EMDP) (Jaeger et al. 2019, 2020) which we shall brieﬂy
+recall:
+Deﬁnition 4 (Euclidean Markov Decision Process) An
+Euclidean Markov Decision Process (EMDP) is deﬁned as
+a tupleM= (S;Act;sinit;T;C;G), where
+•S⊆RKis aK-bounded and closed subset of an eu-
+clidean space,
+•Actis the set of actions,
+•sinitis the initial state,
+•T:S×Act→(S→R≥0)is the transition function that
+yields a density function T(s;a)overSfor each state s
+and actiona,
+•C:S×Act×S→R≥0is the cost functions over state-
+action-state triples, and
+•G⊆Sis the set of goal states.
+A beneﬁt of EMDP is the generation and execution of
+strategies under such models, but we can also evaluate (or
+estimate) the cost of strategies. Given an EMDP and a strat-
+egy:S→(Act→[0;1]), we can deﬁne the expected
+cost of such a strategy as follows.
+Deﬁnition 5 (Expected cost of a strategy) LetGbe a set
+of goal-states and let be a strategy. The expected cost of
+reachingGstarting in a state s–EM
+(C;s)– is the solution
+to the following system of equations1:
+1We shall assume that the equation system has a solution for the
+considered MDP and a goal set under any strategy.EM
+(G;s) =/summationdisplay
+a∈Act(s)(a)·
+/integraldisplay
+t∈ST(s;a)(t)·/parenleftbig
+C(s;a;t ) +EM
+(G;t)/parenrightbig
+dt
+whens/negationslash∈GandEM
+(G;s) = 0 whens∈G.
+In our case, we want to reduce the makespan of complet-
+ing a task, such that a strategy’s cost will be its expected time
+to complete the tasks. This leads to the optimization problem
+for EMDPs, which asks to ﬁnd a strategy s.t.EM
+(C;sinit)
+is minimized, which will be the makespan in the case of SP-
+SWGs. We now encode the semantics of our SPSWG as an
+EMDP:
+Deﬁnition 6 (SPSWG as EMDP) Given a SPSWG S=
+(R;I;T;G)withG= (V;E; ), the induced EMDP M=
+(S;Act;sinit;T;C;G), is given by
+•S= 
+R×Tis the global state consisting of the mapping
+of AMR names to AMR states and the remaining tasks,
+•Actis the set of actions,
+•s0= (;T)s.t.(r) = (I(r);;0;∅)for allr∈R,
+•T:S×Act*(S→R≥0)is a partial transition
+function for the next state density function,
+•C:S×Act×S→R≥0is the cost function, and
+•G={(;∅)∈S|for allr∈Rwe have (`;b;x;∅) =
+(r)}.
+Thus, in goal states G, there are no more tasks left in the
+task setT, and all AMRs have completed their assigned
+tasks. We further deﬁne the set of actions Actas:
+Act={assignr;|r∈R;∈T}∪
+{mover;e|r∈R;e∈E}∪
+{workr;v|r∈R;v∈V}∪
+{}
+where the four actions are assignment of a task to an AMR,
+an AMR moving on an edge or working at a vertex, and an
+abstract delay .
+Now we can deﬁne the cost and transition functions com-
+pleting the EMDP semantics of Deﬁnition 6. We denote a
+transition as follows.
+(;T)− →d;D(/prime;T/prime)
+Here, is the state of the AMRs, Tis the task set, ∈Act
+is an action, dis the concrete amount of time elapsed, which
+also denotes the cost, and Dis the density of the transition.
+As the delay is the cost, assigning tasks, starting work, or
+initiating movement does not carry any direct cost and is
+seen as instantaneous. Also, their effects are deterministic,
+reﬂected by density 1.
+Let us ﬁrst deﬁne the transition-relation for the assign ,
+work , and move operations.
+(;T)assignr;−−−−−−→ 0;1(/prime;T/prime)if(r) = (v;;c;∅)and
+∈T and
+T/prime=T\{}and
+/prime= [(v;;c;)=r]
+567
+
+--- Page 4 ---
+(;T)workr;v−−−−−→ 0;1(/prime;T)if(r) = (v;;c;)and
+v∈and
+∀r/prime∈Rit holds that
+(v;tt;c/prime;/prime)/negationslash= (r/prime)and
+/prime= [(v;tt;0;)=r]
+(;T)mover;e−−−−−→ 0;1(/prime;T)if(r) = (v;;c;)and
+e= (v;v/prime)and
+/prime= [(e;tt;0;)=r]
+For clariﬁcation, we make the following notes: for assign ,
+an inactive AMR rhaving completed its (previous) task may
+be assigned a new task; for work , an inactive AMR rmay
+start working at its current location vertex and will have its
+clock reset. Note, no other AMR r/primemust be active and oc-
+cupyingvwhen work is initiated at v. Finally, an inactive
+AMRrmay start to move along any edge from its current
+location vertex.
+Before deﬁning the transition for the delay action , we
+deﬁne two short-hand notations for conditional density and
+probability. Let d;∈R≥0and letD:R≥0→R≥0be
+a density. Then D(d|)denotes the conditional density
+of delaying additionally dassuming a delay of at least ,
+deﬁned as follows.
+D(d|) =D(+d)/integraltext∞
+t=D(t)dt(1)
+This allows us to deﬁne the D(≥d|)shorthand, de-
+noting the probability of delaying additionally dassuming a
+delay of at least :
+D(≥d|) =/integraldisplay∞
+t=dD(t|)dt (2)
+Before deﬁning the delay ( ) transition, we ﬁrst deﬁne the
+set of active AMRs in a given state .
+Active ={r∈R|(r) = (`;tt;c;)}
+In short, Active denotes the set of AMRs engaged in ei-
+ther working at a vertex or moving along an edge of the
+work graph. Given , an active AMR r∈Active with
+(`;tt;v;c) = (r), we can now deﬁne the density that r
+will be the ﬁrst active AMR to complete its activity and will
+do so after a delay of d:
+Dr;d;=
+(w)(d|c)·/productdisplay
+r0∈Active and
+r/negationslash=r0;(`0;b0;c0;`0)=(r0)(w/prime)(≥d|c/prime)
+Note, that (w)(d|c)is the density of rcompleting after
+additionally dtime-units given that chas already elapsed,
+and that the large product/producttext:::is the probability that all
+other active AMRs r/primewillnotcomplete their activity before
+additionally dtime units.Now, ﬁnally, we may deﬁne the delay transition com-
+pleting active AMRs either working at vertices v∈Vor
+moving along edges (v;v/prime)∈Eof the underlying SWG:
+(;T)− →d;Dr;d;(/prime;T)where
+a) if(v;tt;c;) = (r)s.t.v∈Vthen
+/prime(r/prime) =
+
+(r/prime) ifr/prime/negationslash∈Active 
+(v;;0;\{v}) ifr/prime=r
+(w/prime;tt;c/prime+d;/prime)with
+(w/prime;tt;c/prime;/prime) = (r/prime)otherwise
+b) if((v;v/prime);tt;c;t) = (r)s.t.(v;v/prime)∈Ethen
+/prime(r/prime) =
+
+(r/prime) ifr/prime/negationslash∈Active 
+(v/prime;;0;) ifr/prime=r
+(w/prime;tt;c/prime+d;/prime)with
+(w/prime;tt;c/prime;/prime) = (r/prime)otherwise
+Again, the intuition behind the delay transition is that the
+AMRris the ﬁrst of all active AMRs that complete current
+work (case a)) or travel (case b)).
+Now we have completed the deﬁnition of the EMDP that
+models our scheduling problem, where tasks need to be as-
+signed to AMRs that subsequently must visit the set of loca-
+tions of the tasks. However, the deﬁnition of the semantics
+of SPSGW comes with openness in the choice as to which
+order the vertices of a task should be visited. In particular,
+no restrictions are given as to which is the last station. To
+better match our motivational case, we enforce that AMRs
+visit a delivery station after having visited all other stations
+in its task. To enforce a pick-up-and-delivery semantics, we
+introduce a set of delivery vertices as a subset ⊆Vof the
+vertices of the underlying SWG.
+Deﬁnition 7 (Pick-up and Delivery Problem (PDP))
+Let SPSWG S= (R;I;T;G)withG= (V;E; ). Now
+given a set of delivery stations ⊆V, the induced EMDP
+M= (S;Act;sinit;T;C;G)from Deﬁnition 6 is modiﬁed
+as follows:
+•for eacht∈T,|t∩|≥1, i.e. each task has at least one
+delivery station, and
+•if(;T)workr;v−−−−−→ 0;1(/prime;T)andv∈then
+–for(r) = (v;b;c; )we have⊆implying that
+only delivery stations are left, and
+•we modify (;T)− →d;D (/prime;T/prime)s.t. if (r) =
+(v;tt;c;)with⊆andv∈, then
+–/prime(r) = (v;;0;∅), implying that any delivery sta-
+tionvof the task will sufﬁce to complete it.
+The objective remains to minimize the expected makespan of
+all tasks.
+Both Deﬁnitions 6 and 7 deﬁnes a global scheduling prob-
+lem: how to assign tasks, where to move AMRs in the en-
+vironment, and when and where to initiate work. In our
+work, we leave optimal task assignments to future work and,
+therefore, we assume a simple, deterministic allocation of
+tasks in the experiments. This leaves us with the planning
+568
+
+--- Page 5 ---
+of the movement of AMR – but conjecture that global plan-
+ning is still infeasible, we thus focus on local (distributed),
+near-future planning. We do so to avoid an explosion in
+computation-time with a growing ﬂeet of AMRs where the
+global optimization problem, even for the fully controllable
+setting, can be shown to be NP-complete (Garey, Johnson,
+and Sethi 1976), implying an exponential growth in running-
+time assuming P/negationslash=NP. We also note that the problem ap-
+pears even less tractable, possibly undecidable in the face of
+stochastic behavior (Kempf, Bozga, and Maler 2013; Geer-
+aerts, Guha, and Raskin 2018). This leads us to select an
+approach based on near-optimal plans obtained with ma-
+chine learning techniques but also in dividing the problem
+into smaller parts.
+To overcome the state space explosion, we plan dis-
+tributed for the individual AMRs, using two levels of ab-
+straction: station planning for learning the sequence to visit
+stations in and waypoint planning for ﬁnding the path to the
+next station to visit. First, we develop the theoretical foun-
+dation for local planning and, second, we deﬁne two-level
+planning.
+4 Local, Near-Future Re-Planning
+The size of the state space to search correlated with the num-
+ber of choices. One disadvantage of the global scheduling
+problem is that several AMRs make choices simultaneously,
+implying a large branching factor. If the goal is to reduce the
+total makespan of a set of tasks, the effects of early choices
+might be important but hard to learn. We, therefore, reduce
+the problem to just minimizing the makespan of the cur-
+rently assigned tasks, recomputing the plans whenever one
+task is completed. However, this approach will still not scale
+well with increasing numbers of AMRs. We remedy this by
+planning locally, implying that each AMR plans its own ac-
+tions given the current plans of the others, thus distributing
+the planning process. To do so, we need a notion of partial
+strategies as a plan is only learned for a subset of the actions
+available in the EMDP. Intuitively, we desire to partition the
+strategy synthesis s.t. each individual AMR is responsible
+for its own actions. We, therefore, introduce partial strate-
+gies and the partial synthesis problem.
+We let:S→(Act/prime→[0;1])deﬁne be a partial
+strategy for Act/prime⊆Act and denote by Act=Act/primethe
+supporting set of actions Act/primeof. Given a set of par-
+tial strategies P={1;:::;n}, we say that Pis well-
+formed if Acti∩Actj={}for all 1≤i;j≤n. If
+Act=/uniontext
+1≤i≤nActiwe say thatPis complete.
+We say that a full strategy conforms to a well-formed
+set of partial strategies Piff for alls∈Sand/negationslash=we
+have the following.
+P(s)() =1
+|P|/summationdisplay
+∈P(s)()
+We letP(s)()be deﬁned in a similar manner only if P
+is complete.
+This intuitively implies that a uniform strategy resolves
+any conﬂicting choice between partial strategies, and a“residual” probability is available for the missing, partial
+strategy. We can thus deﬁne the Partial Synthesis Problem.
+Deﬁnition 8 (Partial Synthesis) Given an EMDP M=
+(S;Act;sinit;T;C;G)and an incomplete and well-formed
+set of partial strategies P={1;:::;n}compute a full
+strategyPconforming to Ps.t.EM
+P(sinit)is minimized.
+We denote by =P\Pthe partial strategy s.t. P=
+P∪{}. Intuitively this denotes the constructed partial strat-
+egys.t. ifis joint with P, it yields the found full strategy
+for the partial synthesis problem P.
+We can now partition the action-space of our SPSWG as
+follows; we let Actr={workr;v∈Act|v∈V}∪
+{mover;e∈Act|e∈E}∪{}be the action-partitions
+of AMRs with r∈Rand let Actassign ={assignr;t∈
+Act|∈ T;r∈R}∪{}be the action-partition of
+the global task scheduler. Given assumptions of the be-
+haviour on e.g. the scheduler assignand a set of AMRs
+{r1;:::;rn}=R\{r}, we can ﬁnd the optimal partial
+strategyrwhen assuming P={assign
+;1;:::;n}.
+5 Two-Level Planning
+To further reduce the complexity of the optimization prob-
+lem, for a given task ∈T , we separate the optimization
+of each AMR into two parts: 1) deciding on the order of
+visiting vertices in (station plan), and 2) deciding on the
+exact path between the current position and the next task in
+(waypoint plan).
+Vertices in a graph can be partitioned into two types: sta-
+tions we conduct work at (V ) or vertices (waypoints) that
+are there to help AMRs navigate around obstacles such as
+corners (V !). The waypoints are not locations where AMRs
+work but are needed if the graph represents coordinates in a
+factory setting. For a given SWG G= (V;E; ), we thus
+letV∪V!=V.
+We here re-use the framework for optimization on SP-
+SWG and deﬁne two projections of an SPSWG S=
+(R;I;T;G)intoSandS!as the station and waypoint
+projection, respectively. This assumes a partition of Vof
+the underlying graph G= (V;E; )intoVandV!, and
+furthermore, a deﬁnition of delivery stations ⊆V. For
+simplicity we assume that for all ∈T we have⊆V
+and thatI(r)∈Vfor allr∈R.
+Deﬁnition 9 (Waypoint SPSWG) Given an SPSWG S=
+(R;I;T;G)withG= (V;E; )the graphS!=
+(R;I;{v};G)is the corresponding waypoint SPSWG to
+reach a vertice v∈V.
+The station graph is more involved and abstracts away de-
+tails about speciﬁc intermediate waypoints. To do so, we ab-
+stract away the probability distributions over the traversal
+times of the edges and abstract away potential congestion
+problems. This allows us to generate a new graph-based on
+all-pairs shortest paths between any stations in S. We there-
+fore introduce an abstraction over the edge-distribution to
+single-points, to allow for a shortest-path computation using
+Dijkstras algorithm and let (1⊕2)(t) =/integraltextt
+=01()·
+2(t−)ddenote the convolution of the distributions 1
+569
+
+--- Page 6 ---
+and2. Then, we abstract away the points between the sta-
+tions by deﬁning an Waypoint Abstracted SWG as follows.
+Deﬁnition 10 (Waypoint Abstracted SWG) Let
+G= (V;E; )be a SWG and let Sbe a set of sta-
+tions, then G= (V/prime;E/prime;/prime)is the induced waypoint
+abstracted graph where
+•V/prime=S,
+•E/prime={(v1;vn)∈V/prime|if there exists a path v1;:::;vnin
+Gs.t.vi/negationslash∈V/primefor1<i<n , and
+•/prime:V/prime∪E/prime→(R≥0→R≥0)s.t.
+–forv∈V/prime, then /prime(v) = (v), and
+–for(v1;vn)∈E/primethen ((v1;vn))(t) =
+⊕1≤i≤n−1((vi;vi+1))(t)wherev1;:::;vnis the
+shortest path in Gwherevi=∈V/primefor all 1< i < n
+and using the expectation of each edge-distribution as
+weight (/integraltext∞
+t=0(t)tdt).
+This allows us to deﬁne the station SPSWG as follows.
+Deﬁnition 11 (Station SPSWG) Given an SPSWG S=
+(R;I;T;G)withG= (V;E; ), thenS!= (R;I;T;G)
+is the station SPSWG where the underlying SWG is replaced
+by the waypoint abstracted equivalent.
+For convenience, we will denote these two abstractions
+directly on a given SPSWG Sand simply write !(S;v)and
+(S)for the waypoint and the station SPSWG respectively,
+which naturally yields the EMDPs M!andM, respec-
+tively. We now have the needed constructions to formally
+introduce our distributed planning algorithm in Algorithm 1.
+However, for simplicity, we shall make some simplifying as-
+sumptions:
+• a global, ﬁrst-come-ﬁrst-serve, deterministic planner
+assign– leaving the optimization of this for future work,
+• initially AMRs have the strategy (s)() = 1 for anys,
+• the full task-list of the global planner is hidden, and
+• the global state is observable and has the projections
+and!into the station and waypoint EMDPs, re-
+spectively.
+6 Uppaal Stratego
+The tool U PPAAL STRATEGO is a solver for Stochastic
+Priced Timed Games (SPTG) (David et al. 2015), a formal-
+ism which facilitates a natural encoding of the SPSWG prob-
+lem. In particular, such SPTG (under certain restrictions) can
+have their semantics given as EMDPs (Jaeger et al. 2019).
+Optimization of SPTG is known to be undecidable as
+it is undecidable even for the untimed fragment (Brihaye,
+Bruy `ere, and Raskin 2005). U PPAAL STRATEGO therefore
+repeatedly samples episodes from the system and utilizes Q-
+learning converge to a near-optimal solution. What is par-
+ticular for the Q-learning method employed by U PPAAL
+STRATEGO is its ability to conduct partition/reﬁnement of
+the observed state variables (Jaeger et al. 2019). This al-
+lows the tool to generalize the observations onto sets of
+states, thereby extending the applicability of the Q-learning
+methods to the continuous domain – which is required to
+learn near-optimal plans for EMDPs. Examples of U PPAAL
+STRATEGO models for the station and waypoint plans are
+provided in the supplementary material.Algorithm 1: Distributed Planning Algorithm
+Data: The id of the AMR r∈Rand the SPSWG
+S= (R;I;∅;G)withG= (V;E; )
+1Pr={assign;:::}is the initial strategies, excluding
+one forr;
+2while /*loop forever*/ do
+3 Receive a task from coordinator (according to
+assign);
+4 while/negationslash=∅do
+5 Receive updates to Pfrom other AMRs;
+6 Make an observation projected into ;
+7 Assume w.log. that /prime((T;))() = 1 for
+all/prime∈P;
+8 Compute
+Pfor(S)starting in state 
+with(r)updated with task t;
+9 Letvbe the vertex picked by 
+Pin;
+10 Send
+P\Pto other AMRs;
+11 while (r)/negationslash= (v;b;c; )for any values of
+b;c; do
+12 Receive updates to Pfrom other AMRs;
+13 Make an observation projected onto
+!;
+14 Assume w.log. that /prime((T;))() = 1
+for all/prime∈P;
+15 Compute!
+Pfor!(S;v)starting in state
+!;
+16 Send!
+P\Pto other AMRs;
+17 Letwbe the vertex picked by !
+Pin!;
+18 Send coordinates of wto low-level
+navigation controls;
+19 end
+20 Execute work at v;
+21←\{v};
+22 end
+23end
+7 Experimental Setup & Results
+To evaluate the proposed methods, we have implemented
+a simulation architecture based on the ARGoS3 frame-
+work (Pinciroli et al. 2012), which simulates a physical en-
+vironment and offers the choice between a 3D visualization
+and no visualization.2For our results, the simulator has no
+stochastic behavior but contains complex behavior, such as
+collision avoidance and the bug-tangent algorithm for low-
+level navigation. We thus use the stochastic nature of our
+model to capture these imprecisions when translating obser-
+vations in the simulation into the SPSWG instances. The ex-
+perimental setup also ensures determinism of the simulation;
+if the planners produce the same plans in two different exe-
+cutions, the execution will be identical. Due to the stochas-
+tic nature of U PPAAL STRATEGO , different executions may
+lead to different plans, leading to different simulations. The
+map used in all experiments is shown in Fig. 6.
+2https://doi.org/10.5281/zenodo.6385690 contains the code, the
+experiment data, and example Uppaal Models.
+570
+
+--- Page 7 ---
+Figure 1: Uniform, 1000 episode budget.
+ Figure 2: Uniform, 5000 episode budget.
+Figure 3: Triangular, 1000 episode budget.
+ Figure 4: Triangular, 5000 episode budget.
+Figure 5: CPU time spent for synthesizing a single way-
+point (W) or station (S) plan with a 1000 episode budget.
+The experiments use two queues of 200 tasks, where all
+tasks’ size is determined by uniformly sampling between 2
+and 4 work stations plus 1 delivery station, and the AMR
+needs to work for 30-time units in all the locations. We then
+sample the speciﬁc nstations to visit using either a uniform
+or a triangular distribution for the station allocation. When
+using the triangular distribution, we sample station iwith
+the probability2i
+k(k+1)to be part of the task, assuming k
+workstations indexed from 1 to k. The triangular distribu-
+tion represents situations where certain items are requested
+more often. We use the same queue of 200 tasks in the sim-
+ulations for all experiments. The task allocator assigns tasks
+according to a queue and allocates AMRs in a ﬁrst-come-
+ﬁrst-serve manner.
+For comparison, we use two greedy approaches for the
+station and waypoint planning. The greedy station plan al-
+ways moves towards the nearest working station relative to
+Figure 6: Factory map used in the experiments, contain-
+ing four static obstacles, 20 workstations (), 16 waypoints
+(/circlecopyrt), and two drop-off stations (/triangle). 20 AMRs are placed in
+two groups to the left.
+the current position in its current task. For the greedy way-
+point planning, we use Dijkstra’s Shortest Path algorithm,
+where the shortest path is based on edges’ euclidean dis-
+tances. Both greedy planners are deterministic. Our baseline
+for comparison will then be an AMR planner that uses the
+greedy station planner and greedy waypoint planner. For a
+ﬁxed queue of tasks, this yields a deterministic simulation.
+571
+
+--- Page 8 ---
+We compare the approaches by the total completion time,
+makespan, for all tasks. In an experiment, all the AMRs on
+the map will have the same combination of planners, such
+as U PPAAL STRATEGO -based station planning and greedy
+waypoint planner. We study changes to four parameters: 1)
+the planner conﬁguration, 2) the simulation budget for U P-
+PAAL STRATEGO , 3) the number of AMRs on the map, and
+4) the generated task queues. We experiment with ﬂeets of
+10, 15, and 20 AMRs and study all four waypoint and station
+planners combinations. If one of the planning levels uses
+UPPAAL STRATEGO , we repeat the experiment 100 times
+to assess the stability, as the planner is stochastic in na-
+ture. As a simpliﬁcation, the communicated strategies are
+not provided in full but simpliﬁed to only the most likely
+sequence in which the stations or waypoints will be visited.
+The makespans of these experiments will be compared to the
+fully greedy planner, such that we report a relative improve-
+ment of the planning conﬁguration.
+It is important to note that the logical time of the simu-
+lation is paused whenever a plan is generated, emulating an
+inﬁnitely fast computer. This implies that the AMR gets a
+plan instantly, seen from the point of view of the simulator,
+which allows us to evaluate the effectiveness of the synthe-
+sized plans directly. Nonetheless, we will discuss the impli-
+cations of computation times. We ran the experiments on an
+AMD EPYC 7642 running Ubuntu 20.04 with hyperthread-
+ing and frequency-scaling disabled.
+Relative Makespan of Conﬁgurations
+First, we evaluate experiments by their effect on the rela-
+tive makespan. In Figs. 1 to 4, the box plots are grouped
+by the number of AMRs in the given simulation. Each
+group contains simulations for greedy station planning
+and U PPAAL STRATEGO waypoint planning (GSUW),
+UPPAAL STRATEGO station planning, and greedy way-
+point planning (USGW), and U PPAAL STRATEGO sta-
+tion planning and U PPAAL STRATEGO waypoint planning
+(USUW). The y-axis values are the simulations’ logi-
+cal completion time relative to the fully greedy approach
+with the same number of AMRs. The value reported is
+simulated completion time=baseline, which give us the rel-
+ative makespan.
+Common for all experiments, we observe that the ﬂeet
+of size 10 experiences the smallest reduction of makespan
+while a ﬂeet of 20 AMRs results in a much more signiﬁ-
+cant improvement. The median improvement of USUW and
+USGW is at least 25% better than our baseline. With a task
+queue generated under a triangular distribution, the median
+even has a 27.5% reduction in the makespan.
+We observe that GSUW’s median performs worse for any
+ﬂeet size under any generated task queue. There can be two
+causes for this: 1) the generated station plan makes it hard
+to generate a good waypoint plan that also deviates from
+the greedy approach, and 2) the chosen representation is not
+well-formed for the waypoint planning. We leave it to future
+work to further investigate this hypothesis.
+The last aspect is that the increase of U PPAAL STRAT -
+EGO’s budget only has a minor increase or even a decrease
+on the relative makespan. An example is that USGW’s me-dian decreases slightly from 25.0% to 24.8%, even though
+the budget is ﬁve times larger. It is possible that a budget of
+1000 and 5000 would converge to the same median.
+Computation Time
+The CPU time spent by U PPAAL STRATEGO on synthesiz-
+ing the individual waypoint or station plan for an episode
+budget of 1000 is shown in Fig. 5. We observe that the
+CPU time for waypoint planning grows signiﬁcantly faster
+than the CPU time spent for station planning. This is detri-
+mental to the USUW andGSUW approaches that rely on
+the frequent replanning using the U PPAAL STRATEGO way-
+point planner. We also note that the best performing com-
+bination (USGW) utilizes the greedy waypoint planner and
+thus avoids this particular runtime overhead. However, the
+USGW planner still needs to compute the station plans.
+Waypoint plans are computed at every node in the graph,
+but the CPU time makes neither USUW norGSUW feasi-
+ble in a real environment. Having computation times about
+10 seconds means that an AMR would need to stop at the
+waypoint while computing, thus blocking other AMRs.
+On the contrary, we see USGW as a feasible candidate
+for deployment. We anticipate that station plans can be
+computed simultaneously as background computation while
+working at a station if the AMR can guess a global state,
+i.e., 10 seconds from now. This strategy does not extend
+to the waypoint planning as no movement idle-time can
+be expected between two adjacent waypoints, and the non-
+movement of an AMR could block other AMRs.
+8 Conclusion
+In this paper, we studied the problem of dynamic route plan-
+ning for a ﬂeet of Autonomous Mobile Robots (AMRs) per-
+forming pickup and delivery tasks in the stochastic environ-
+ment in which AMRs must visit several stations before de-
+livery. This captures some real-world challenges that are not
+handled by traditional MAPF and MAPD approaches. We
+formalize the problem as a Scheduling Problem for Stochas-
+tic Work Graphs (SPSWG).
+We demonstrate how such planning problems can
+be translated into Euclidean Markov Decision Processes
+(EMDPs) and (approximately) solved by the tool U PPAAL
+STRATEGO . To achieve scalability, we propose a distributed
+architecture and further subdivide the planning problem into
+two parts: 1) the sequence of workstations to visit, and 2) the
+sequence of waypoints to visit between two workstations.
+To establish a baseline, we introduce two na ¨ıve planners
+(one for each sub-planning problem) based on shortest path
+algorithms and the Nearest Neighbor approach, which we
+outperform with up to to 27.5%. Lastly, we argue for the
+feasibility of deploying our method with the USGW conﬁg-
+uration by studying the computation time.
+We leave for further work the study of this approach in the
+context of periodic human interference (e.g. by humans co-
+inhabiting the working area of the AMRs). We also propose
+as further work the study of our approach in the context of
+battery-limitations, where charging cycles must be included
+as part of the planning.
+572
+
+--- Page 9 ---
+Acknowledgments
+The work was partly funded by Independent Research Fund
+Denmark under grant number DFF-7017-00348, the Villum
+Investigator Grant S4OS held by Kim G. Larsen, and by the
+Danish national research center DIREC (www.direc.dk). We
+also thank Napalys Kli ˇcius for assisting with the develop-
+ment of the Argos3 to Uppaal bindings.
+References
+Brihaye, T.; Bruy `ere, V .; and Raskin, J.-F. 2005. On Op-
+timal Timed Strategies. In Pettersson, P.; and Yi, W., eds.,
+FORMATS, 49–64. Springer.
+Bøgh, S.; Schou, C.; R ¨uhr, T.; Kogan, Y .; D ¨omel, A.;
+Brucker, M.; Eberst, C.; Tornese, R.; Sprunk, C.; Tipaldi,
+G. D.; et al. 2014. Integration and assessment of multiple
+mobile manipulators in a real-world industrial production
+facility. In ISR/Robotik, 1–8. VDE.
+ˇC´ap, M.; Nov ´ak, P.; Kleiner, A.; and Seleck `y, M. 2015. Pri-
+oritized planning algorithms for trajectory coordination of
+multiple mobile robots. IEEE transactions on automation
+science and engineering, 12(3): 835–849.
+David, A.; Jensen, P. G.; Larsen, K. G.; Miku ˇcionis, M.; and
+Taankvist, J. H. 2015. Uppaal Stratego. In Baier, C.; and
+Tinelli, C., eds., TACAS, 206–211. Springer.
+De Bruin, T.; Kober, J.; Tuyls, K.; and Babu ˇska, R. 2015.
+The importance of experience replay database composition
+in deep reinforcement learning. In Deep reinforcement
+learning workshop, NIPS.
+Eriksen, A. B.; Lahrmann, H.; Larsen, K. G.; and Taankvist,
+J. H. 2019. Controlling Signalized Intersections using Ma-
+chine Learning. Transportation Research Procedia, 48:
+987–997. WCTR.
+Fazlollahtabar, H.; and Saidi-Mehrabad, M. 2015. Method-
+ologies to optimize automated guided vehicle scheduling
+and routing problems: a review study. Journal of Intelligent
+& Robotic Systems, 77(3): 525–545.
+Garey, M. R.; Johnson, D. S.; and Sethi, R. 1976. The Com-
+plexity of Flowshop and Jobshop Scheduling. Mathematics
+of Operations Research, 1(2): 117–129.
+Geeraerts, G.; Guha, S.; and Raskin, J.-F. 2018. Safe and
+Optimal Scheduling for Hard and Soft Tasks. In Ganguly, S.;
+and Pandya, P., eds., FSTTCS, LIPIcs, 36:1–36:22. Schloss
+Dagstuhl–Leibniz-Zentrum fuer Informatik.
+Goorden, M. A.; Larsen, K. G.; Nielsen, J. E.; Nielsen, T. D.;
+Rasmussen, M. R.; and Srba, J. 2021. Learning Safe and Op-
+timal Control Strategies for Storm Water Detention Ponds.
+In Jungers, R. M.; Ozay, N.; and Abate, A., eds., ADHS,
+IFAC-PapersOnLine, 13–18. Elsevier.
+Gu, R.; Enoiu, E.; Seceleanu, C.; and Lundqvist, K. 2020.
+Probabilistic Mission Planning and Analysis for Multi-agent
+Systems. In Margaria, T.; and Steffen, B., eds., ISoLA, 350–
+367. Springer.
+H¨onig, W.; Kiesel, S.; Tinka, A.; Durham, J. W.; and Aya-
+nian, N. 2019. Persistent and robust execution of MAPF
+schedules in warehouses. IEEE Robotics and Automation
+Letters, 1125–1131.H¨onig, W.; Kumar, T. S.; Cohen, L.; Ma, H.; Xu, H.; Aya-
+nian, N.; and Koenig, S. 2016. Multi-agent path ﬁnding with
+kinematic constraints. In ICAPS, 477–485.
+Jaeger, M.; Bacci, G.; Bacci, G.; Larsen, K. G.; and Jensen,
+P. G. 2020. Approximating Euclidean by Imprecise Markov
+Decision Processes. In Margaria, T.; and Steffen, B., eds.,
+ISoLA, 275–289. Springer.
+Jaeger, M.; Jensen, P. G.; Larsen, K. G.; Legay, A.; Sed-
+wards, S.; and Taankvist, J. H. 2019. Teaching stratego to
+play ball: Optimal synthesis for continuous space MDPs. In
+ATVA, 81–97. Springer.
+Kempf, J.-F.; Bozga, M.; and Maler, O. 2013. As Soon as
+Probable: Optimal Scheduling under Stochastic Uncertainty.
+In Piterman, N.; and Smolka, S. A., eds., TACAS, 385–400.
+Springer.
+Larsen, K. G.; Miku ˇcionis, M.; Mu ˜niz, M.; Srba, J.; and
+Taankvist, J. H. 2016. Online and Compositional Learn-
+ing of Controllers with Application to Floor Heating. In
+Chechik, M.; and Raskin, J.-F., eds., TACAS, 244–259.
+Springer.
+Li, J.; Tinka, A.; Kiesel, S.; Durham, J. W.; Kumar, T. S.;
+and Koenig, S. 2020. Lifelong Multi-Agent Path Finding in
+Large-Scale Warehouses. In AAMAS, 1898–1900.
+Lin, K.; Zhao, R.; Xu, Z.; and Zhou, J. 2018. Efﬁcient large-
+scale ﬂeet management via multi-agent deep reinforcement
+learning. In ACM SIGKDD, 1774–1783.
+Ling, J.; Gupta, T.; and Kumar, A. 2020. Reinforcement
+Learning for Zone Based Multiagent Pathﬁnding under Un-
+certainty. In ICAPS, 551–559.
+Liu, H.; Hyodo, A.; Akai, A.; Sakaniwa, H.; and Suzuki,
+S. 2021. Action-limited, Multimodal Deep Q Learning for
+AGV Fleet Route Planning. In CCEAI, 57–62.
+Ma, H.; Li, J.; Kumar, T.; and Koenig, S. 2017. Life-
+long multi-agent path ﬁnding for online pickup and delivery
+tasks. arXiv preprint arXiv:1705.10868.
+Oda, T.; and Joe-Wong, C. 2018. Movi: A model-free
+approach to dynamic ﬂeet management. In IEEE INFO-
+COM 2018-IEEE Conference on Computer Communica-
+tions, 2708–2716. IEEE.
+Pinciroli, C.; Trianni, V .; O’Grady, R.; Pini, G.; Brutschy,
+A.; Brambilla, M.; Mathews, N.; Ferrante, E.; Di Caro, G.;
+Ducatelle, F.; Birattari, M.; Gambardella, L. M.; and Dorigo,
+M. 2012. ARGoS: a Modular, Parallel, Multi-Engine Sim-
+ulator for Multi-Robot Systems. Swarm Intelligence, 271–
+295.
+Salzman, O.; and Stern, R. 2021. Research challenges and
+opportunities in multi-agent path ﬁnding and multi-agent
+pickup and delivery problems. In AAMAS, 1711–1715.
+Schiøler, H.; Totu, L.; Dimon, J.; Larsen, K. G.; and
+Taankvist, J. H. 2018. Time Optimal Robust Fleet Manage-
+ment of Micro UA V Through Timed Games Formulation. In
+IEEE CCTA, 146–152. IEEE.
+Staal, A. S.; Salvatierra, C. G.; Albertsen, D. D.; Mahendran,
+M.; Ravichandran, R.; Thomsen, R. F.; Hansen, E. B.; and
+Bøgh, S. 2020. Towards a Collaborative Omnidirectional
+Mobile Robot in a Smart Cyber-Physical Environment. Pro-
+cedia Manufacturing, 193–200.
+573
