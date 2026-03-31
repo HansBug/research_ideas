@@ -1,0 +1,669 @@
+--- Page 1 ---
+Formal Veriﬁcation of Safety & Security
+Related Timing Constraints for a
+Cooperative Automotive System
+Li Huang1and Eun-Young Kang2(B)
+1School of Data and Computer Science, Sun Yat-Sen University, Guangzhou, China
+huangl223@mail2.sysu.edu.cn
+2The Maersk Mc-Kinney Moller Institute, University of Southern Denmark,
+Odense, Denmark
+eyk@mmmi.sdu.dk
+Abstract. Modeling and analysis of timing constraints is crucial in real-
+time automotive systems. Modern vehicles are interconnected through
+wireless networks which creates vulnerabilities to external maliciousattacks. Violations of cyber-security can cause safety related accidents
+and serious damages. To identify the potential impacts of security related
+threats on safety properties of interconnected automotive systems, thispaper presents analysis techniques that support veriﬁcation and valida-
+tion (V&V) of safety & security (S/S) related timing constraints on those
+systems: Probabilistic extension of S/S timing constraints are speciﬁedin Pr Ccsl (probabilistic extension of clock constraint speciﬁcation lan-
+guage) and the semantics of the extended constraints are translated into
+veriﬁable Uppaal models with stochastic semantics for formal veriﬁca-
+tion. A set of mapping rules are proposed to facilitate the translation. An
+automatic translation tool, namely ProTL, is implemented based on themapping rules. Formal veriﬁcation are performed on the S/S timing con-
+straints using Uppaal-SMC under diﬀerent attack scenarios. Our app-
+roach is demonstrated on a cooperative automotive system case study.
+Keywords: Automotive system
+·Safety and security ·PrCcsl·
+Uppaal-SMC
+1 Introduction
+Model based development (MBD) is rigorously applied in automotive systems in
+which the software controllers interact with physical environments. The contin-uous time behaviors of those systems often rely on complex dynamics as well as
+on stochastic behaviors. Formal veriﬁcation and validation (V&V) technologies
+are indispensable and highly recommended for development of safe and reliableautomotive systems [ 11,12]. Conventional V&V, i.e., testing and model checking
+have limitations in terms of assessing the reliability of hybrid systems due to both
+stochastic and non-linear dynamical features. To ensure the reliability of safety
+c/circlecopyrtThe Author(s) 2019
+R. H¨ ahnle and W. van der Aalst (Eds.): FASE 2019, LNCS 11424, pp. 210–227, 2019.
+https://doi.org/10.1007/978-3-030-16722-6 _12
+
+--- Page 2 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 211
+critical hybrid dynamic systems, statistical model checking (SMC) techniques
+have been proposed [ 7,8,19]. These techniques for fully stochastic models vali-
+date probabilistic performance properties of given deterministic (or stochastic)
+controllers in given stochastic environments.
+Modern vehicles are being equipped with communication devices and inter-
+connected with each other through wireless networks. Vehicular Ad Hoc Net-
+works ( V anet )[28] are the technologies of wireless networks that establish com-
+munication among vehicles and roadside units (RSU). Nevertheless vehicularcommunication contributes to the safety and eﬃciency of traﬃc, it introduces
+vulnerabilities to vehicles. Transmitted information can be corrupted or modiﬁed
+by attackers, resulting in serious safety consequences (e.g., rear-end collision).Analysis of the potential impacts of cyber-security violations on safety proper-
+ties is crucial in automotive systems. However, traditional automotive system
+design often addresses the correctness of safety properties without consideration
+of security breaches. There is still a lack of techniques that enable an integrated
+analysis of safety & security (S/S) properties. Moreover, message transmissioninV anet that pertains to S/S requires restrictions by time deadlines [ 10]. In
+this paper, we focus on S/S related timing constraints and propose analysis tech-
+niques that support formal veriﬁcation on interconnected automotive systems.
+East-adl [9,22] is an architectural description language for modeling of
+automotive systems. The latest release of East-adl has adopted the time
+model proposed in Timing Augmented Description Language ( Tadl2 )[5], which
+expresses and composes basic timing constraints, i.e., repetition rates, end-to-end
+delays. Tadl2 specializes the time model of MARTE , the UML proﬁle for Mod-
+eling and Analysis of Real-Time and Embedded systems [ 30].MARTE provides
+Ccsl, a Clock Constraint Speciﬁcation Language, that supports speciﬁcation of
+both logical and dense timing constraints, as well as functional causality con-
+straints [ 16,23]. A probabilistic extension of Ccsl, called Pr Ccsl [14], has been
+proposed to formally specify timing constraints associated with stochastic prop-
+erties in weakly-hard real-time systems [ 4], i.e., a bounded number of constraints
+violations would not lead to system failures when the results of the violations
+are negligible.
+In this paper, we present a formal analysis of S/S related timing constraints
+for interconnected automotive systems at the design level: 1. To identify vulner-
+abilities of automotive systems under malicious attacks, we adopt and modify
+the behavioral model of a cooperative automotive system (CAS) [ 13]i n Uppaal-
+SMC by adding it with the models of an RSU-aided ( Raise ) communication
+protocol in V anet and malicious attacks. The modiﬁcation results in a reﬁned
+behavioral model of the system, i.e., more details in terms of vehicular commu-nication and security breaches are depicted; 2. Probabilistic extension of S/S
+timing constraints are speciﬁed in Pr Ccsl and the semantics of the extended
+constraints are translated into veriﬁable models with stochastic semantics forformal veriﬁcation; 3. A set of mapping rules are proposed to facilitate the
+translation, based on which an automatic translation tool ProTL is implemented;
+
+--- Page 3 ---
+212 L. Huang and E.-Y. Kang
+4. Formal veriﬁcation is performed on the S/S timing constraints using Uppaal-
+SMC under diﬀerent attack scenarios.
+The paper is organized as follows: Sect. 2presents an overview of Pr Ccsl and
+Uppaal-SMC . CAS is introduced as a running example in Sect. 3. Section 4.1
+presents the Uppaal-SMC model of CAS complemented with model of Raise
+protocol and three types of attacks. S/S related timing constraints are speciﬁed
+in Pr Ccsl and translated into veriﬁable Uppaal-SMC models in Sect. 5.T h e
+applicability of our approach is demonstrated by performing veriﬁcation on CAScase study in Sect. 6. Sections 7and8present related works and conclusion.
+2 Preliminary
+In our framework, S/S related timing constraints are speciﬁed in Pr Ccsl.
+Uppaal-SMC is employed to perform formal veriﬁcation on the timing
+constraints.
+2.1 Probabilistic Extension of Clock Constraint Speciﬁcation
+Language (PrCCSL)
+PrCcsl [14] is a probabilistic extension of Ccsl [3,23] for formal speciﬁcation
+of timing constraints associated with stochastic behaviors. In Pr Ccsl,ac l o c k
+represents a sequence of (possibly inﬁnite) instants. An event is a clock and
+the occurrences of an event correspond to a set of ticks of the clock. Pr Ccsl
+provides two types of clock constraints, i.e., expressions and relations ,t os p e c i f y
+the progression/occurrences of clocks. An expression derives new clocks from the
+already deﬁned clocks [ 3]. Let c1,c2∈C,ITE(if-then-else) expression , denoted
+asβ?c1:c2, deﬁnes a new clock that behaves either as c1o ra s c2 according
+to the value of the boolean variable/formula β.DelayFor (denoted ref(d)/squiggleright
+base) results in a new clock by delaying the reference clock reffordticks (or d
+time units) of a baseclock. FilterBy (c/definesbase/triangledownsldu(v)) builds a new clock cby
+ﬁltering the instants of a baseclock according to a binary word w=u(v) , where
+uis the preﬁx and vis the period .“(v)” denotes the inﬁnite repetition of v. This
+expression results in a clock cthat∀k∈N+,i ft h e kthbit in wis 1, then at
+thekthtick of base,cticks.
+Arelation limits the occurrences among diﬀerent events, which are deﬁned
+based on runand history .A runcorresponds to an execution of the system
+model where the clocks tick/progress. The history of a clock crepresents the
+number of times the clock chas ticked prior to the current step.
+Deﬁnition 1 (Run). ArunRconsists of a ﬁnite set of consecutive steps where
+a set of clocks tick at each step i. The set of clocks ticking at step iis denoted as
+R(i), i.e., for all i,0/lessorequalslanti/lessorequalslantn,R(i)∈R,w h e r e nis the number of steps of R.
+Deﬁnition 2 (History). The history of clock cin a run Ris a function: Hc
+R:
+N→ N.Hc
+R(i)indicates the number of times the clock chas ticked prior to step
+iin run R, which is initialized as 0 at step 0. It is deﬁned as: (1) Hc
+R(0) = 0 ;
+
+--- Page 4 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 213
+(2)∀i∈N+,c/∈R(i)=⇒Hc
+R(i+1 )= Hc
+R(i);( 3 )∀i∈N+,c∈R(i)=⇒
+Hc
+R(i+1 )= Hc
+R(i)+1 .
+A probabilistic relation in Pr Ccsl is satisﬁed if and only if the probability of
+the relation constraint being satisﬁed is greater than or equal to the probability
+threshold p∈[0,1]. Given kruns={R1,...,R k}, the probabilistic subclock ,
+coincidence ,exclusion and precedence in Pr Ccsl are deﬁned as follows:
+Probabilistic Subclock: c1⊆pc2⇐⇒Pr[c1⊆c2]/greaterorequalslantp, where Pr[c1⊆c2] =
+1
+kk/summationtext
+j=1{Rj|=c1⊆c2}, representing the ratio of runsthat satisﬁes the relation
+out of k runs.A runRjsatisﬁes the subclock relation between c1a n d c2 “if
+c1 ticks, c2 must tick” holds at every step iinRj, s.t., ( Rj|=c1⊆c2)⇐⇒(∀i
+0/lessorequalslanti/lessorequalslantn, c1∈R(i)=⇒c2∈R(i)). “Rj|=c1⊆c2” returns 1 if Rjsatisﬁes
+c1⊆c2, otherwise it returns 0.
+Probabilistic Coincidence: c1≡pc2⇐⇒Pr[c1≡c2]/greaterorequalslantp, where Pr[c1≡c2] =
+1
+kk/summationtext
+j=1{Rj|=c1≡c2}, which represents the ratio of runsthat satisﬁes the
+coincidence relation out of k runs.Arun,Rjsatisﬁes the coincidence relation on
+c1a n d c2 if the assertion holds: ∀i,0/lessorequalslanti/lessorequalslantn,(c1∈R(i)=⇒c2∈R(i))∧(c2∈
+R(i)=⇒c1∈R(i)). In other words, the satisfaction of coincidence relation is
+established when the two conditions “if c1 ticks, c2 must tick” and “if c2 ticks,
+c1 must tick” hold at every step.
+Probabilistic Exclusion: c1#pc2⇐⇒Pr[c1#c2]/greaterorequalslantp, where Pr[c1#c2] =
+1
+kk/summationtext
+j=1{Rj|=c1#c2}, indicating the ratio of runsthat satisﬁes the exclusion
+relation out of k runs.Arun,Rj, satisﬁes the exclusion relation on c1a n d c2i f
+∀i,0/lessorequalslanti/lessorequalslantn,(c1∈R(i)=⇒c2/∈R(i))∧(c2∈R(i)=⇒c1/∈R(i)), i.e., for
+every step, if c1 ticks, c2 must not tick and vice versa.
+Probabilistic Precedence: c1≺pc2⇐⇒Pr[c1≺c2]/greaterorequalslantp, where Pr[c1≺c2] =
+1
+kk/summationtext
+j=1{Rj|=c1≺c2}, which denotes the ratio of runsthat satisﬁes the precedence
+relation out of k runs.ArunRjsatisﬁes the precedence relation if the condition
+∀i,0/lessorequalslanti/lessorequalslantn,(Hc1
+R(i)/greaterorequalslantHc2
+R(i)) and ( Hc2
+R(i)=Hc1
+R(i)) =⇒(c2/∈R(i)) hold,
+i.e., the history of c1 is greater than or equal to the history of c2, and c2 must
+not tick when the history of the two clocks are equal.
+2.2 UPPAAL-SMC
+UPPAAL-SMC [ 31] performs the probabilistic analysis of properties by monitor-
+ing simulations of the complex hybrid system in a given stochastic environment
+and using results from the statistics to determine whether the system satisﬁes
+the property with some degree of conﬁdence. Uppaal-SMC provides a number
+of queries related to the stochastic interpretation of Timed Automata (STA)
+
+--- Page 5 ---
+214 L. Huang and E.-Y. Kang
+[8] and they are as follows, where Nandbound indicate the number of sim-
+ulations to be performed and the time bound on the simulations respectively:1.Probability Estimation estimates the probability of a requirement property
+φbeing satisﬁed for a given STA model within the time bound: Pr[bound ]φ;
+2.Hypothesis Testing checks if the probability of φis satisﬁed within a certain
+probability P
+0:Pr[bound ]φ≥P0;3 . Simulations :Uppaal-SMC runs multiple
+simulations on the STA model and the k(state-based) properties/expressions
+φ1,...,φ kare monitored and visualized along the simulations: simulate N [≤
+bound ]{φ1,...,φ k}.
+3 Running Example
+A cooperative automotive system (CAS) [ 13] is adopted to illustrate our
+approaches. CAS includes distributed and coordinated sensing, control, and actu-
+ation over three vehicles (denoted as vi, where i∈{0,1,2}) which are running
+in the same lane. As shown in Fig. 1, a lead vehicle ( v0) runs automatically by
+recognizing traﬃc signs on the road. The following vehicle must set its desired
+velocity identical to that of its immediate preceding vehicle. Vehicles shouldmaintain suﬃcient braking distance to avoid rear-end collision while remaining
+close enough to guarantee communication quality. Vehicle movement relies on
+availability of environmental information, e.g., traﬃc signs, obstacles, etc. Theposition of v
+iis represented by Cartesian coordinate ( xi,y i), where xiandyiare
+distances measured from the vehicle to the two ﬁxed perpendicular lines, i.e.,
+x-axis and y-axis, respectively.
+Fig. 1. Overview of Cooperative Automotive System
+The cooperative driving of CAS requires prompt and secure information
+transmission among vehicles. We adopt a roadside unit aided ( Raise )[33] com-
+munication protocol in V anet to achieve the data transmission. Each vehicle
+periodically broadcasts its own position and velocity to its immediate following
+vehicle through wireless connection. The authentication of the identities of each
+vehicle and veriﬁcation of messages sent by the vehicles is performed by RSU.For further details of Raise , refer to Sect. 4.1. The following S/S properties on
+CAS are considered:
+R1. The follower vehicle should not overtake its leading vehicle when the vehiclesrun at a positive direction of x-axis.
+R2. When the lead vehicle detects a stop sign, all the three vehicles must stop
+within a given time, e.g., 2000 ms.
+
+--- Page 6 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 215
+R3. If the distance between a vehicle and its preceding vehicle is less than mini-
+mum safety distance, the vehicle should decelerate within a certain time (200 ms).R4. If the distance between a vehicle and its preceding vehicle is greater than
+the maximum safety distance (e.g., 100 m), the vehicle should accelerate within
+a certain time, e.g., 300 ms.R5. When the lead vehicle starts to turn left (or turn right), the two follower
+vehicles should ﬁnish turning and run in the same lane within a given time.
+R6. Authenticity: If a vehicle receives a message, its preceding vehicle must havesent a corresponding message before, i.e., the protocol should be resistant to
+message spooﬁng attack.
+R7. Secrecy: Symmetric keys of vehicles should be kept conﬁdential to attackers.R8. Integrity: The content of messages must not be modiﬁed during transmission,
+i.e., the protocol should be resistant to message falsiﬁcation attack.
+R9. Freshness: The vehicles should not accept an “obsolete” message, namely, the
+diﬀerence between the current time and the timestamp of the accepted message
+should be less than the predeﬁned time threshold.R10. The symmetric key agreement (i.e., mutual authentication) process between
+RSU and three vehicles should be completed within a certain time, e.g., 600 ms.
+R11. A vehicle should send messages to its subsequent vehicle periodically witha period 200 ms and a jitter 100 ms.
+Among the above S/S requirements, R1–R5 are safety [ 20] properties, which
+specify that the system should not cause undesirable results on its environmentand aim at protecting human lives, health and assets from being damaged. R6-
+R11 are security properties, which refer to the inability of the environment to
+aﬀect the system in an undesirable way and aim to guarantee the conﬁdential-ity and integrity of transmitted information. The interdependencies among those
+S/S properties are conditional dependencies [ 17], i.e., violations of security prop-
+erties can lead to the violations on safety properties. The events associated withthose S/S properties can be interpreted as logical clocks in Pr Ccsl, which pro-
+vides a way to express S/S properties in the logical time manner [ 16]. Therefore,
+S/S properties can be interpreted as logical timing constraints, i.e., the temporal
+and causality clock relations in Pr Ccsl.
+The methodology for analysis of S/S related timing constraints in this paper
+can be generalized in Fig. 2. First, on the basis of the existing behavioral model
+of CAS described in [ 13], we enhance the CAS model by augmenting (paral-
+lelly composing) it with models of Raise protocol and malicious attacks, result-
+ing in a reﬁned CAS model regarding vehicular communication characteristics
+and security-related adversary interference. Second, we specify S/S timing con-
+straints (R1–R11) in Pr Ccsl and translate the Pr Ccsl speciﬁcations into corre-
+sponding STA and probabilistic queries. Finally, we combine the model of CAS
+and the STA of Pr Ccsl speciﬁcations, and perform formal veriﬁcation based on
+the combined model using Uppaal-SMC .
+
+--- Page 7 ---
+216 L. Huang and E.-Y. Kang
+Fig. 2. Methodology for analysis of S/S timing constraints
+4 Modeling and Reﬁnement of CAS in UPPAAL-SMC
+The behaviors of CAS are modeled as a network of stochastic timed automata
+(NSTA) in Uppaal-SMC described in [ 13]. In this section, we reﬁne the CAS
+model by adding it with the models of Raise protocol and security attacks.
+4.1 Modeling of RAISE Protocol in UPPAAL-SMC
+We present a simpliﬁed version of Raise protocol [ 33] and its Uppaal-SMC
+model. The original Raise protocol is modiﬁed to facilitate the communica-
+tion mechanism of CAS, i.e., each follower vehicle receives messages from its
+immediate preceding vehicle and RSU. Furthermore, timing constraints are alsoappended to restrict the time duration of each step (e.g., encryption and decryp-
+tion) during communication process. There are two phases in Raise protocol,
+i.e., symmetric key agreement and information transmission .
+1.Symmetric key agreement (SKA) is performed to obtain symmetric key k
+i
+for guaranteeing security of communication and generates pseudo identities ID i
+of vehicles for covering their real identities. The shared symmetric key between
+RSU andviiski=gab, where g,a,bare three positive random numbers. As
+s h o w ni nF i g . 3,Encry (msg,k )(Decry (msg,k )) denotes the encryption (decryp-
+tion) of message msgwith key k, where kcan be either a public key or symmetric
+key.Sign(msg,k ) generates signature of msgwith a private key k.W eu s e PK i
+to denote the public key of viandSK ito represent the corresponding private
+key. “ ||” is the concatenation operation on messages.
+Initially, virandomly picks ganda(step 1), encrypts “ g||a” and sends the
+encrypted result ( mi)t oRSU (step 2). Upon receiving mi,RSU decrypts the
+message (step 3). It then generates bandID i, signs and sends the signed message
+(rm i)t ovi(step 4 and 5). viveriﬁes the rm i’s signature (step 6) and sends back
+the signature of g||a||b||ID i(step 7). Finally, RSU veriﬁes the signature si(step
+8). If all the steps are completed correctly, the key agreement process succeeds.
+Fig. 3. Symmetric key agreement in Raise
+
+--- Page 8 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 217
+2.Information transmission (IT) initiates after the SKA is completed. The
+traﬃc information (i.e, brake, direction, position and speed) of viis integrated
+into a message msg i=brake i||direction i||xi||yi||speed i. As presented in Fig. 4,
+initially, vigenerates the message authentication code (MAC) of msg iwith the
+symmetric key ki(generated in SKA). Then, viconcatenates the MAC code with
+Fig. 4. Information transmission in Raise
+msg iand sends it to RSU andvi+1(step 1). Upon receiving vm i,vi+1checks
+the freshness of the message (step 2), i.e., if the time interval between the currenttime and the time when vm
+iis sent is greater than the predeﬁned threshold,
+vi+1drops vm i. At the same time, RSU checks the authenticity of vm i(step
+3). If mac iis correct, RSU computes the hash code hiof message msg i(step
+4). Afterwards, it encrypts hiand sends the encrypted result hm itovi+1(step
+5).vi+1decrypts hm iand get the hash code h(step 6). Furthermore, to ensure
+the consistency of the message, vi+1itself also computes the hash code of msg i
+(step 7). It then veriﬁes whether the hash code calculated by itself is the same
+as the decrypted hash code and decides to accept or reject msg i(step 8).
+To model Raise inUppaal-SMC , interactions among vehicles and RSU (i.e.,
+sending/receiving messages) are modeled by synchronization channels [31]a n d
+global variables. The cryptographic operations in Raise refer to public and pri-
+vate key encryption and decryption, i.e., a message encrypted by public key can
+be decrypted using the corresponding private key, and vice versa. The automaton
+ofcryptographic device [6] is adopted to model the encryption and decryption.
+Figure 5presents the STA capturing behaviors of vehicle viand RSU in SKA.
+startEn (resp. startDe )a n d ﬁnDe (resp. ﬁnEn) are channels for indicating the
+starting and ﬁnishing of encryption (resp. decryption). The encryption/decryp-tion result is denoted en
+res/deres. In the STA, names of locations indicate the
+corresponding steps pictured in Fig. 3.
+IT phase from v0tov1is established with the help of RSU, modeled as the
+STA shown in Fig. 6(the transmission from v1tov2can be modeled similarly).
+The behaviors of v0(sender), v1(receiver) and RSU in the IT phase are modeled
+inITv0,ITv1andITRSUSTA, respectively.
+The SKA (or IT) succeeds if each step of the SKA (IT) is completed correctly
+within a given time interval, modeled by invariant “t ≤d” (the value of dvaries
+in diﬀerent steps). If timeout occurs (i.e., “t ≥d”), faillocation will be activated
+and the procedure is restarted from the initial step.
+
+--- Page 9 ---
+218 L. Huang and E.-Y. Kang
+Fig. 5. Uppaal-SMC model of SKA
+Fig. 6. Uppaal-SMC model of IT
+4.2 Modeling of Attacks in UPPAAL-SMC
+We present the modeling of three types of attacks commonly used in the secu-
+rity analysis, i.e., message falsiﬁcation, message replaying and message spooﬁng
+attacks [ 2]. The models of attacks are illustrated in Fig. 7, where the lsparame-
+ter ( ls∈[0,100]) serves as an indicator of level of adversarial strength while qc
+(qc∈[0,100]) is an indicator of the adversarial channel quality.
+Message Falsiﬁcation Attack (MFA) aims to falsify messages transmitted
+fromvitovi+1, which is modeled as MFASTA in Fig. 7. As described earlier, in
+Raise , RSU veriﬁes the authenticity of messages by checking the correctness of
+the MAC code of messages. To deceive the RSU on the validity of the modiﬁed
+message and avoid exposing itself to RSU, MFA attempts to obtain the symmet-ric key and utilizes the key to compute the MAC code of the falsiﬁed message. At
+s1state, MFAeavesdrops on rm
+i(generated at step 5 in Fig. 3), which contains
+the information for symmetric key generation (i.e., g,a,b). It tries to decrypt rm i
+when receiving it via sendrm [i]?. The probability that the decryption can suc-
+ceed is ls%, modeled by probabilistic choices [ 31] (dashed edges) with probability
+weight asls
+100and100−ls
+100. If the decryption succeeds, MFA obtains the symmet-
+ric key of vibased on the decrypted result ( getKey (deres)). Finally, it modiﬁes
+the content of message using the key, and tries to send the modiﬁed message to
+vi+1(sendvm [i]!). The probability that the message can be sent successfully is
+
+--- Page 10 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 219
+(100-qc)%. In our setting, MFA modiﬁes the speed iﬁeld in the message into a
+random value in [100, 120], and changes the direction as direction i=4 ,w h i c h
+indicates that the viis running at the positive direction on y-axis.
+Fig. 7. STA of attacks
+Message Replaying Attack (MRA) targets to replay obsolete messages that
+contain old information. The MRASTA represents an MRA that replays messages
+sent by vi. Upon capturing a message (via sendvm [i]?), MRA stores the message
+(m = vm[i] ) and tries to replay it at a later time (i.e., after 10s). The probability
+that the attacker can replay the message successfully is (100- qc)%.
+Message Spooﬁng Attack (MSA) impersonates a vehicle ( vi) in order to
+inject fraudulent information into its subsequent vehicle ( vi+1). Similar to MFA,
+MSASTA ﬁrst obtains the symmetric key of viby detecting and decrypting
+rm i. It then fabricates a new message whose content is “ brake i=0, speed i=
+0,d i r e c t i o n i=4,x i=0,y i= 10” (denoted “ encode(i) ”) and tries to send
+the message to vi+1(sendvm [i]!), with the probability of the message being sent
+successfully as (100- qc)%.
+5 Representation of S/S Related Timing Constraints
+in UPPAAL-SMC
+To enable the formal veriﬁcation of S/S related timing constraints (given in
+Sect.3), we ﬁrst investigate how to specify those constraints in Pr Ccsl. Then,
+translation from Pr Ccsl speciﬁcations of the constraints into veriﬁable STA is
+demonstrated. Furthermore, a tool ProTL that supports the automatic trans-
+formation based on the proposed translation rules is introduced.
+5.1 Speciﬁcations of S/S Related Timing Constraints in PrCCSL
+The speciﬁcations of R1–R11 are presented in Table 1, where acis a clock that
+always ticks while ncrepresents a clock that never ticks. R1 is speciﬁed as an
+exclusion relation between xdir(the event that the vehicles are running at the
+positive direction of x-axis) and ovtake (the event that the position of follower v1
+on x-axis is greater than that of leader v0). Similarly, R7 and R9 can be speciﬁed
+asexclusion relations .
+In the speciﬁcation of R2, stopD is a clock generated by delaying stopSign
+(the event that the leader vehicle detects a stop sign) for 2000 ms. vstop refers
+
+--- Page 11 ---
+220 L. Huang and E.-Y. Kang
+Table 1. PrCCSL speciﬁcations of R1–R11
+Req PrCCSL Speciﬁcation
+R1 xdir/definesdir=1?ac:nc,ovtake /definesx1≥x0?ac:nc,xdir#0.95ovtake
+R2 stopSign /definessign=5?signRec :nc,stopD /definesstopSign (2000) /squigglerightms,
+vstop /precedesequal0.95stopD
+R3 vU nsaf eDe /definesvUnsafe (200) /squigglerightms,vDec ≺0.95vU nsaf eDe
+R4 vF arDisDe /definesvF arDis (300) /squigglerightms,startAcc ≺0.95vF arDisDe
+R5 v0Tu r n D e /definesv0Tu r n (3000) /squigglerightms,fi n Tu rn /precedesequal0.95v0Tu r n D e
+R6 msgRec ⊆0.95msgSent
+R7 leakK #0.95ac
+R8 validMsg /definesrMsg =sM sg ?msgRec :nc,msgRec ≡0.95validMsg
+R9 oldM sg /definestime−ts > thre ?msgAcpt :nc,msgAcpt #0.95oldM sg
+R10 startSKADe /definesstartSKA (600) /squigglerightms,fi n SKA ≺0.95startSKADe
+R11 fc lk/definesmsgSent /triangledownsld01(1), sentDe 1/definesmsgSent (100) /squigglerightms,
+sentDe 2/definesmsgSent (300) /squigglerightms,sentDe 1/precedesequal0.95fc lk,
+fc lk/precedesequal0.95sentDe 2
+to the event that three vehicles are completely stopped, which should occur no
+later than stopD . Hence, R2 is expressed as a causality relation between vstop
+and stopD . R3–R5 can be speciﬁed in a similar manner.
+R6 (authenticity) is expressed as a subclock relation between msgRec and
+msgSent , where msgRec (msgSent ) represents the event that a message is
+received (sent) by the follower (leader) vehicle. R8 is speciﬁed as a coincidence
+relation between msgRec and validMsg , where validMsg is a clock that ticks
+with msgRec when the received message rMsg is identical with the sent message
+sMsg (i.e., rMsg == sMsg ). For R10, startSKA (ﬁnSKA ) represents the starting
+(completion) of SKA. startSKADe is a clock constructed by delaying startSKA
+for 600 ms. R10 delimits that ﬁnSKA must occur before startSKADe . R11 states
+that two consecutive occurrences of msgSent must has a interval of [ period −
+jitter, period + jitter ]ms (i.e., [100, 300] ms). In the speciﬁcation of R11, fclkis
+a clock generated by ﬁltering out the 1sttick of msgSent .sentDe1 and sentDe2
+are two clocks generated by delaying msgSent for 100 ms and 300 ms. R11 can
+be interpreted as: ∀i∈N+,t h eithtick of fclkshould occur later than the ith
+tick of sentDe1 but prior to the ithtick of sentDe2 .
+5.2 Translation of PrCCSL into STA
+We present how the S/S related timing constraints speciﬁed in Pr Ccsl can
+be transformed into STA and probabilistic queries in Uppaal-SMC .W eﬁ r s t
+describe how clock tick and history (introduced in Sect. 2) can be represented in
+Uppaal-SMC . Using the mapping, we then demonstrate that expressions and
+relations in Pr Ccsl can be translated into STA and queries.
+
+--- Page 12 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 221
+In the earlier work [ 14], the semantics of Pr Ccsl operators are translated into
+STA based on discrete time, i.e., the continuous physical time is discretized intoa set of equalized steps. As a result, two clock instants are still considered coinci-
+dent even if they are one time step apart. To alleviate this restriction and enable
+the representation of Pr Ccsl that pertains to continuous real-time semantics,
+the mapping patterns are reﬁned: two clock instants are coinstantaneous only if
+the time diﬀerence between them is insigniﬁcant, i.e., the time diﬀerence between
+them is less than a positive inﬁnitesimal value e, e.g., e= 0.000001.
+Fig. 8. HistoryIn Pr Ccsl, a logical clock represents an event and the
+instants of the clock correspond to the occurrences of the
+event. A logical clock cis represented as a synchronization
+channel c!i n Uppaal-SMC . The history of cis modeled
+as the STA shown in Fig. 8: whenever coccurs ( c?), the
+value of its history is increased by 1 (i.e., h++).
+Based on the mapping patterns of tick and history, the Pr Ccsl expressions
+(including ITE,DelayFor and filterBy ), as well as relations (including subclock ,
+coincidence ,exclusion and precedence ), can be represented as STA and queries
+shown in Fig. 9.
+The STA of expressions trigger the ticks of the new clock (denoted res!)
+based on the occurrences of existed clocks. To represent relations , observer STA
+that capture the semantics of standard subclock ,coincidence ,exclusion and
+precedence relations are constructed. Each observer STA contains a “ fail”l o c a -
+tion (see Fig. 9), which indicates the violation of the corresponding relation .
+Recall the deﬁnition of Pr Ccsl in Sect. 2, the probability of a relation being
+satisﬁed is interpreted as a ratio of runs that satisﬁes the relation among all
+runs. It is speciﬁed as Hypothesis Testing queries in Uppaal-SMC ,H0:m
+k/greaterorequalslantp
+against H1:m
+k<p, where mis the number of runs satisfying the given relation
+out of all kruns. As a result, the probabilistic relations are interpreted as the
+query (see Fig. 9):Pr[bound ]([ ]¬STA.fail )≥p, which means that the proba-
+bility of the “ fail” location of the observer STA never being reached should be
+greater than or equal to p. The STA of expressions and relations are composed to
+the system NSTA in parallel. Then, the probabilistic analysis is performed over
+the composite NSTA that enables us to verify the S/S related timing constraintsover the entire system using Uppaal-SMC .
+Tool support: Manual translation of Pr Ccsl speciﬁcations into Uppaal mod-
+els for veriﬁcation can be time-consuming and error-prone. To improve the accu-racy and eﬃciency of translation, we implement a tool ProTL (Probabilistic-
+Ccsl TransLator) [ 26] that provides a push-button transformation from Pr Ccsl
+speciﬁcations into corresponding STA & queries. Furthermore, veriﬁcation andsimulation support is provided in ProTL by employing the Uppaal-SMC as the
+backend analysis engine. ProTL encompasses the following features: (1) An edi-
+tor for editing Pr Ccsl speciﬁcation of requirements (stored as “.txt” ﬁles); (2)
+Automated transformation of Pr Ccsl speciﬁcations into Uppaal-SMC STA;
+(3) Integration of the STA and the system behavioral model (imported by users);(4) A conﬁguration palette for setting parameters (e.g., time bound of simula-
+
+--- Page 13 ---
+222 L. Huang and E.-Y. Kang
+Fig. 9. STA of Pr Ccsl operators
+tion, number of simulations) used for veriﬁcation and simulation; (5) Automatic
+generation of probabilistic queries (introduced in Sect. 2) based on user-speciﬁed
+parameters; (6) Capability of performing veriﬁcation and simulation on Pr Ccsl
+speciﬁcations against the integrated model and generated queries.
+The GUI of ProTL is implemented by applying the Python package TKIN-
+TER [ 27]. The implementation of Translator is achieved by the ANother Tool
+for Language Recognition (ANTLR) [ 24], a parser generator that can constructs
+lexical parsers for a language by analyzing user-deﬁned syntax of the language.
+We speciﬁed the syntax of Pr Ccsl in Backus-Naur Form (BNF) and apply
+ANTLR to generate a parser that can analyze and recognize encodings in the
+format of Pr Ccsl.T h e parser reads the Pr Ccsl speciﬁcations and generates
+abstract syntax trees (AST), i.e., an intermediate form that has tree structures.
+
+--- Page 14 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 223
+By traversing AST, the information (i.e., operators and parameters) of Pr Ccsl
+can be extracted and utilized for generation of corresponding STA.
+6 Experiment
+To identify vulnerabilities of system to external malicious attackers, we combinethe reﬁned CAS system model (including the models of Raise protocol) with
+models of three diﬀerent attackers. Formal veriﬁcation on S/S related timing
+constraints (R1–R11) for the combined model is performed by Uppaal-SMC .
+The combined CAS model contains the stochastic behaviors in terms of theunpredictable environments (e.g., the traﬃc signs are randomly recognized by the
+leader vehicle of CAS and the probability of each sign type occurring is equally
+set as 16.7%), as well as the indeterministic behaviors modeled by weightedprobability choices in the STA of attacks (see Fig. 7). In our setting, lsandqc
+are conﬁgured as 10 and 90, respectively. To estimate the probability of an attack
+being launched on CAS successfully, Probability Estimation query is applied to
+check the probability that the “ attack ” location in each attack STA is reachable
+from the system NSTA. The time bound of the veriﬁcation is set as 10000.The probability of message falsiﬁcation, message replaying and message spooﬁng
+attack being successfully completed by the corresponding attacker is within the
+range of [0.109, 0.209], [0.563, 0.663] and [0.143, 0.243], respectively.
+In our experiments, S/S related timing constraints are speciﬁed in Pr Ccsl
+and transformed into STA using ProTL. Each constraint is speciﬁed as a Pr Ccsl
+relation (as described in Sect. 5.1) whose probability threshold is 95%. The veriﬁ-
+cation results are demonstrated in Table 2, in which “√” denotes the correspond-
+ing requirement is satisﬁed while “ ×” indicates the violation of the requirement:
+Under the message replaying attack, all the S/S timing constraints are estab-lished as valid with 95% level of conﬁdence. In the message falsiﬁcation attack,
+the secrecy and integrity properties (R7 and R8), as well as three safety proper-
+ties (R3–R5), are violated. The MSA damages the authenticity (R6) and secrecy(R7) of communication, and leads to the violations of four safety properties, i.e.,
+R1 and R3–R5.
+Table 2. Veriﬁcation results of timing constraints under diﬀerent attacks
+Attacks R1R2R3R4R5R6R7R8R9R10R11Average Time Mem (Mb)
+Message Falsiﬁcation√√×××√××√√√40.20 57.94
+Message Replaying√√√√√√√√√√√68.33 61.49
+Message Spooﬁng ×√×××××√√√√58.11 40.23
+The experiment results indicate the severity of impacts on safety and security
+caused by the demonstrated attacks on CAS: No requirement is violated under
+MRA scenario while the MSA causes the violations of most safety properties.
+
+--- Page 15 ---
+224 L. Huang and E.-Y. Kang
+When CAS is attached with the STA of MSA or MFA, the secrecy of symmetric
+key is violated. With the obtained symmetric key, MSA can masquerade messageas legitimate vehicles and MFA is able to tamper the content of messages without
+being detected, leading to the violations of authenticity (R6) and integrity (R7)
+respectively. To explore how the malicious attackers can inﬂuence the safety ofsystem, we conduct simulation by using Simulations queries. The simulation
+results in Fig. 10illustrate how an MSA drives the system to undesirable states.
+(a) R1 (b) R4
+Fig. 10. Simulation results of R1 and R4: (a) At Time =2345, the attack occurs (indi-
+cated by the rising edge of the red line). MSA sends the fabricated position information
+ofV0toV1(the value of recxbecomes 0), which tricks V1to think that the distance
+between V0and V1exceeds the maximum limit. V1keeps increasing its speed ( speed1)
+and thus leading to the collision (indicated by x0== x1)a t Time =3815, which vio-
+lates R1. (b) When an attack takes place at Time =2496 (indicated by the rising edge
+of the blue line), V1receives the message from the attacker and is deluded into believing
+that the speed of V0is 0. Therefore, V1keeps decreasing its speed even if the distance
+between V0and V1becomes greater than 100 m, which violates R4. (Color ﬁgure online)
+7 Related Work
+Formal veriﬁcation of (non)-functional properties of automotive systems con-
+taining stochastic behaviors were investigated in several works [ 13–15]. In these
+works, systems are by default resilient to security threats and the safety prop-
+erties are analyzed under no malicious attack scenarios, which is inadequate for
+design of automotive systems interconnected via wireless communications. Com-bined analysis of safety and security (S/S) properties for interconnected cyber
+physical systems have been addressed in earlier works [ 1,21,29], which are how-
+ever, limited to theoretical frameworks and high-level descriptions of S/S prop-erties without the support for formal veriﬁcation. Pedroza et al. [ 25]p r o p o s e d
+a SysML based environment called AVATAR for the formal veriﬁcation of S/S
+properties, which enables assessment of the impacts of cyber-security threats on
+
+--- Page 16 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 225
+functional safety. Wardell et al. [ 32] proposed an approach for identifying secu-
+rity vulnerabilities of industrial control systems by modeling malicious attacks asPROMELA models amenable to formal veriﬁcation. However, those approaches
+lack precise probabilistic annotations specifying stochastic properties regarding
+to S/S aspects. Kumar et al. [ 18] introduced the attack-fault trees formalism for
+descriptions of attack scenarios and conducted formal analysis by using Uppaal-
+SMC to obtain quantitative estimation on impacts of system failures or security
+threats. On the other hand, our work is based on the probabilistic extension ofS/S related timing constraints with the focus on probabilistic veriﬁcation of the
+extended constraints.
+8 Conclusion
+This paper presents a model-based approach for probabilistic formal analysis of
+safety and security (S/S) related timing constraints for interconnected automo-tive system in East-adl at the early design phase. The behavioral model of
+automotive system in Uppaal-SMC is reﬁned by adding the models of vehic-
+ular communication protocol and malicious attacks, which facilitates to exploitthe impacts of adversary environment on S/S of the system. Timing constraints
+are speciﬁed in Pr Ccsl and translated into stochastic timed automata (STA)
+amenable to formal veriﬁcation using Uppaal-SMC . A set of translation rules
+from Pr Ccsl to STA, as well as the corresponding tool support for automating
+the translation are provided. We demonstrate our approach by performing formalveriﬁcation on a cooperative automotive system (CAS) case study. Although, we
+have shown the one-to-one mapping patterns from a subset of Pr Ccsl operators
+to STA for conducting formal veriﬁcation on timing constraints using Uppaal-
+SMC, as ongoing work, systematic and formal translation techniques covering a
+full set of Pr Ccsl constraints are further studied. Furthermore, new features
+of ProTL with respect to analysis of Uppaal-SMC models involving wider
+range of variable/query types (e.g., urgent channels ,bounded integers ) are further
+developed.
+Acknowledgment. This work is supported by the EASY project funded by NSFC,
+a collaborative research between Sun Yat-Sen University and University of Southern
+Denmark.
+References
+1. Abdo, H., Kaouk, M., Flaus, J.M., Masse, F.: A safety/security risk analysis app-
+roach of industrial control systems: a cyber bowtie-combining new version of attacktree with bowtie analysis. Comput. Secur. 72, 175–195 (2018)
+2. Amoozadeh, M., et al.: Security vulnerabilities of connected vehicle streams and
+their impact on cooperative driving. IEEE Commun. Mag. 53(6), 126–132 (2015)
+3. Andr´ e, C.: Syntax and semantics of the clock constraint speciﬁcation language
+(CCSL). Ph.D. thesis, Inria (2009)
+
+--- Page 17 ---
+226 L. Huang and E.-Y. Kang
+4. Bernat, G., Burns, A., Llamosi, A.: Weakly hard real-time systems. Trans. Comput.
+50(4), 308–321 (2001)
+5. Blom, H., et al.: TIMMO-2-USE timing model, tools, algorithms, languages,
+methodology, use cases. Technical report, TIMMO-2-USE (2012)
+6. Corin, R., Etalle, S., Hartel, P.H., Mader, A.: Timed model checking of security pro-
+tocols. In: ACM Workshop on Formal Methods in Security Engineering (FMSE),
+pp. 23–32. ACM (2004)
+7. David, A., et al.: Statistical model checking for stochastic hybrid systems. In:
+Hybrid Systems and Biology (HSB), pp. 122–136. EPTCS (2012)
+8. David, A., Larsen, K.G., Legay, A., Mikuˇ cionis, M., Poulsen, D.B.: UPPAAL-SMC
+tutorial. Int. J. Softw. Tools Technol. Transf. 17(4), 397–415 (2015)
+9. EAST-ADL: EAST-ADL speciﬁcation v2.1.9. Technical report, MAENAD (2011).
+https://www.maenad.eu/public/EAST-ADL-Speciﬁcation M2.1.9.1.pdf
+10. Engoulou, R.G., Bella¨ ıche, M., Pierre, S., Quintero, A.: VANET security surveys.
+Comput. Commun. 44, 1–13 (2014)
+11. IEC 61508: Functional safety of electrical electronic programmable electronic safety
+related systems (2010)
+12. ISO 26262–6: Road vehicles functional safety part 6. Product development at the
+software level (2011)
+13. Kang, E.Y., Huang, L., Mu, D.: Formal veriﬁcation of energy and timed require-
+ments for a cooperative automotive system. In: ACM/SIGAPP Symposium On
+Applied Computing (SAC), pp. 1492–1499. ACM (2018)
+14. Kang, E.-Y., Mu, D., Huang, L.: Probabilistic veriﬁcation of timing constraints in
+automotive systems using UPPAAL-SMC. In: Furia, C.A., Winter, K. (eds.) IFM2018. LNCS, vol. 11023, pp. 236–254. Springer, Cham (2018). https://doi.org/10.
+1007/978-3-319-98938-9
+14
+15. Kang, E.Y., Mu, D., Huang, L., Lan, Q.: Veriﬁcation and validation of a cyber-
+physical system in the automotive domain. In: IEEE International Conference on
+Software Quality, Reliability and Security Companion (QRS), pp. 326–333. IEEE(2017)
+16. Khan, A.M., Mallet, F., Rashid, M.: Combining SysML and MARTE/CCSL to
+model complex electronic systems. In: Information Systems Engineering (ICISE),
+pp. 12–17. IEEE (2016)
+17. Kriaa, S., Pietre-Cambacedes, L., Bouissou, M., Halgand, Y.: A survey of
+approaches combining safety and security for industrial control systems. Reliab.
+Eng. Syst. Saf. 139, 156–178 (2015)
+18. Kumar, R., Stoelinga, M.: Quantitative security and safety analysis with attack-
+fault trees. In: High Assurance Systems Engineering (HASE), pp. 25–32. IEEE(2017)
+19. Legay, A., Viswanathan, M.: Statistical model checking: challenges and perspec-
+tives. Int. J. Softw. Tools Technol. Transf. 17(4), 369–376 (2015)
+20. Line, M.B., Nordland, O., Røstad, L., Tøndel, I.A.: Safety vs. Security. In: Inter-
+national Conference on Probabilistic Safety Assessment and Management (PSAM)
+(2006)
+21. Macher, G., H¨ oller, A., Sporer, H., Armengaud, E., Kreiner, C.: A combined safety-
+hazards and security-threat analysis method for automotive systems. In: Koorn-
+neef, F., van Gulijk, C. (eds.) SAFECOMP 2015. LNCS, vol. 9338, pp. 237–250.Springer, Cham (2015). https://doi.org/10.1007/978-3-319-24249-1
+21
+22. MAENAD (2011). http://www.maenad.eu/
+23. Mallet, F., De Simone, R.: Correctness issues on MARTE/CCSL constraints. Sci.
+Comput. Program. 106, 78–92 (2015)
+
+--- Page 18 ---
+Formal Veriﬁcation of Safety & Security Related Timing Constraints 227
+24. Parr, T.: The deﬁnitive ANTLR 4 reference. Pragmatic Bookshelf (2013)
+25. Pedroza, G., Apvrille, L., Knorreck, D.: Avatar: a SysML environment for the
+formal veriﬁcation of safety and security properties. In: New Technologies of Dis-tributed Systems (NOTERE), pp. 1–10. IEEE (2011)
+26. ProTL. https://sites.google.com/view/protl
+27. Tkinter: Python interface to Tcl/Tk. https://docs.python.org/3/library/tkinter.
+html
+28. Raya, M., Hubaux, J.P.: Securing vehicular Ad Hoc networks. J. Comput. Secur.
+15(1), 39–68 (2007)
+29. Sabaliauskaite, G., Mathur, A.P.: Aligning cyber-physical system safety and secu-
+rity. In: Cardin, M.A., Krob, D., Lui, P., Tan, Y., Wood, K. (eds.) Complex SystemsDesign & Management Asia, pp. 41–53. Springer, Cham (2015). https://doi.org/
+10.1007/978-3-319-12544-2
+4
+30. Speciﬁcation, O.: UML proﬁle for MARTE: modeling and analysis of real-time
+embedded systems. Technical report, Object Management Group (2011)
+31. UPPAAL-SMC. http://people.cs.aau.dk/ ∼adavid/smc/
+32. Wardell, D.C., Mills, R.F., Peterson, G.L., Oxley, M.E.: A method for revealing and
+addressing security vulnerabilities in cyber-physical systems by modeling malicious
+agent interactions with formal veriﬁcation. Proc. Comput. Sci. 95, 24–31 (2016)
+33. Zhang, C., Lin, X., Lu, R., Ho, P.H., Shen, X.: An eﬃcient message authentication
+scheme for vehicular communications. IEEE Trans. Veh. Technol. 57(6), 3357–3368
+(2008)
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter’s
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter’s Creative Commons license and your intendeduse is not permitted by statutory regulation or exceeds the permitted use, you will
+need to obtain permission directly from the copyright holder.

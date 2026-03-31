@@ -1,0 +1,803 @@
+--- Page 1 ---
+Formal Veriﬁcation of ROS-based Robotic
+Applications using Timed-Automata
+Raju Halder
+HASLab, INESC TEC, Portugal &
+Indian Institute of Technology Patna, India
+halder@iitp.ac.inJosé Proença Nuno Macedo André Santos
+HASLab, INESC TEC &
+Universidade do Minho, Braga, Portugal
+{jose.proenca,nfmmacedo}@di.uminho.pt
+contact.andre.santos@gmail.com
+ABSTRACT
+Robotic technologies are continuously transforming the do-
+mestic and the industrial environments. Recently the Robotic
+Operating System (ROS), an open source middleware frame-
+work, has been widely adopted both by industry and academia,
+becoming the de facto standard for developing robot applica-
+tions. Guaranteeing the correct behaviour of robotic systems
+is, however, challenging due to their potential for parame-
+terization and heterogeneity. Although dierent approaches
+exist, focusing on concrete domain spaces for specic scenar-
+ios, no general approach to reason about ROS systems has
+yet arisen. This paper proposes an approach to model and
+verify ROS systems using real time properties, focusing on
+one of the main features of ROS, the communication between
+nodes. It takes low-level parameters into account, such as
+queue sizes and timeouts, and uses timed automata as the
+modelling language. The physical robot Kobuki is used as
+a complex case study, over which properties are automat-
+ically veried using the UPPAAL model checker, enabling
+the identication of problematic parameter combinations.
+1. INTRODUCTION
+Robotic technologies have dramatically transformed our
+world by bringing countless benets to many sectors, includ-
+ing the domestic environment, industrial production sec-
+tors, health-care and military activities, leading to an in-
+creasingly closer human interaction, where failures can have
+catastrophic consequences. In this context, verifying the
+correction of a robot's software controllers is an additional
+burden imposed on the developers, which are often oblivious
+of software engineering best practices.
+In recent years the Robot Operating System (ROS) [9] has
+gained attention both in industry and academia, and has be-
+come the de facto standard for the development of robotic
+applications. ROS is an open source middleware framework
+that provides common robot-specic services and libraries,
+such as component communication, hardware abstraction,
+and low-level device control. The fundamental components
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+Copyright 200X ACM X-XXXXX-XX-X/XX/XX ...$10.00.in ROS-based applications are nodes (or processes) that
+communicate through a publisher-subscriber paradigm, where
+messages are organized into named topics. A node (e.g, a
+sensor) shares information by publishing messages on the
+appropriate topic, while nodes that want to receive informa-
+tion (e.g., an actuator) subscribe to the relevant topics. A
+special node, dubbed ROS master, ensures that publishers
+and subscribers nd each other in order to establish peer-
+to-peer communications.
+ROS gives a lot of exibility to developers. They can
+choose from a set of popular programming languages, and
+customise core libraries to modify architectural parameters
+such as incoming and outgoing queue sizes, maximum time
+to wait for incoming messages, and rate of publishing. Con-
+sequently there is no complete solution to formally analyse
+and verify ROS programs, and dierent approaches have
+been proposed. These include the use of model checkers,
+static analysis techniques, proof assistants, and runtime mon-
+itors [11, 12, 1, 2, 8, 10]. Andr e et al. [10] provide an attempt
+to give a global view over code quality of ROS applications
+by combining existing tools that apply code quality metrics
+and test against code standards.
+This work presents a generic approach to verify real-time
+properties of ROS-based applications, with special focus on
+node communication. ROS applications are modelled using
+timed automata [6], and properties are veried using model
+checking { more specically the UPPAAL model checker [5].
+Our approach is illustrated via a small example, where two
+publishers communicate with a subscriber, and a more com-
+plex example that models the controllers of the physical
+robot Kobuki1. Using our approach we are able to identify
+problematic combinations of conguration parameters, such
+as queue sizes and timeouts, and possible problems with the
+existing code used by Kobuki.
+To summarize, our main contributions in this paper are:
+Formalisation of concrete ROS-based applications, vary-
+ing the values of architectural parameters;
+Use of the UPPAAL model checker to implement and
+verify ROS-based applications;
+Application of our proposed approach to the ROS-
+based Kobuki robot as a case study, describing the
+construction of a timed model from the sourcecode and
+the verication of safety and liveness properties.
+This paper is structured as follows. Section 2 describes
+related approaches. Section 3 recalls timed automata and a
+1http://kobuki.yujinrobot.com/
+
+--- Page 2 ---
+logic to specify timed properties. Section 4 describes how to
+model and verify ROS applications using timed automata.
+Section 5 illustrates our approach using the more complex
+Kobuki case study. Finally, Section 6 concludes this paper.
+2. RELATED WORK
+Je Huang et al. [8] proposed ROSRV, a runtime verica-
+tion framework for safety and security properties of ROS-
+based applications. ROSRV provides a specication lan-
+guage to express safety properties, and automatically gen-
+erates ROS nodes that monitor said properties during ex-
+ecution. Recently, Adam et al. [1] introduced Declarative
+Robot Safety (DeRoS), a Domain-Specic Language, to ex-
+press functional safety properties for mobile robots. The
+idea is similar to ROSRV, in that it also produces nodes that
+monitor these properties during runtime. However, both ap-
+proaches are limited in terms of expressiveness, and both
+incur some overhead due to monitor activity.
+Cowley and Taylor [7] proposed a static verication of
+robot behaviour using dependent type theory and linear
+logic embedding in Coq. More recently, Anand and Knepper
+[2] presented ROSCoq, a Coq framework for developing cer-
+tied systems in ROS by extending the LoE framework, to
+enable holistic reasoning about the cyber-physical behaviour
+of robotic systems. The use of CoRN's theory of construc-
+tive real analysis enables the framework to accurately reason
+about computations with real numbers. Nonetheless, even
+correct-by-construction code produced by Coq is prone to
+aws in ROS-specic architectural constraints.
+Webster et al. [12] proposed a formal verication approach
+of industrial robotic programs using the SPIN model checker,
+addressing only three properties { deadlocks, collisions, and
+kill-switch violations. The proposal does not involve any
+kind of ROS-specic architectural properties. The authors
+use SPIN to formally verify the ROS-based autonomous
+robotic assistant \Care-O-bot" [11]. The proposal is very
+specic to that particular robot, and is aligned only towards
+the verication of high-level decision making rules.
+3. PRELIMINARIES: TIMED AUTOMATA
+Timed automata [6, 3, 4] is one of the most widely used
+formal models to specify and verify real-time systems. A
+timed automaton consists basically of a nite automaton ex-
+tended with a set of real-valued variables modelling clocks.
+Transitions are labelled by constraints dened on clock vari-
+ables (called clock-constraints) to restrict the behaviour of
+an automaton. All clocks of an automaton are initialized to
+zero when the system is started, and increase synchronously
+whenever time evolves. Individual clocks may be reset to
+zero when certain transitions are taken.
+This section starts by formalising timed automata, fol-
+lowed by a brief explanation on how to verify systems mod-
+elled with timed automata using temporal logics.
+3.1 Specifying Timed Automata
+Timed automata are labelled transition systems enriched
+with constraints over so-called clocks . A clock is a special
+variable capturing the time passed since it was last reset.
+Definition 1 (Clock Constraint). A clock constraint
+gover a set of clocks Cgiven by the grammar g::=truej
+xnjx ynjg^g, wheren2N,x;y2Cand
+2f>;>;=;<;6g.Init S
+cS20Wait
+cS10
+send !
+ack?
+cS:=0Init RTransmit
+cR20send ?
+cR:=0
+
+cR15
+ack!
+Figure 1: Network of two timed automata, modeling
+a sender (left) and a receiver (right).
+Definition 2 (Timed Automata). A timed automa-
+ton is a tuplehL;l0;;C;T; InviwhereLis a nite set of
+locations,`02Lis the initial location, is a nite alphabet
+of actions,Cis a set of clocks, TLCC(C)2CL
+is the set of transitions, CC(C)denotes the set of all clock
+constraints over C, and Inv :L!CC(C)assigns invari-
+ants to locations.
+Intuitively, a connector in a location `can evolve either
+by (1) letting time pass, i.e., by incrementing all its clocks
+without breaking the invariant Inv(`), or by (2) taking a
+transition ( `;g;a;C;`0) if the conditions gand Inv(`0) hold,
+going to the location `0and setting the clocks in Cto zero.
+The actions in the alphabet  are used to synchronise with
+other automata. More precisely, two automata with a shared
+actiona2 are only allow to take a transition labelled with
+awhen the other automata can also take a transition with a.
+A set of automata running in parallel, synchronising actions
+and evolving their clocks simultaneously, is called a network
+of timed automata . We follow the convention that action
+synchronisation can only occur in pairs, and we use their
+notation a! and a? to mean that performing a! triggers a? to
+be performed [5]. Furthermore, we omit clock constraints,
+actions, and reset sets from the labels whenever they are
+true, irrelevant, and ;, respectively. This is illustrated in
+the example below with a network of two timed automata.
+Example 1.We depict in Figure 1 a network of two sim-
+ple timed automata. Colours are used to distinguish the dif-
+ferent elements: node invariants, guards, actions, and clock
+resetting. We use angle brackets hito denote guards on
+edges, and double-lines to denote initial states.
+Initially both the sender Sand the channel Care in their
+left locations, and their clocks cSandcRare set to 0. Then
+Scan wait at most 20 time units until it can re send !and
+go to the Wait state, making Rto take the send ?transition.
+The clock c Ris reset in the process, and the automata can
+now wait at most 20 time units until the ack !and ack ?ac-
+tions can be taken. The guards in the labels produce a delay
+of at least 10 and 15 time units when taking a transition,
+when in the left and the right locations, respectively.
+UPPAAL extensions. To ease the encoding of ROS
+systems, we rely on some UPPAAL extensions: (1) commit-
+ted states , (2) internal variables , and (3) parametric actions .
+Committed states are special states with a time invariant
+that does not allow time to pass, and with higher priority
+than any other (non-committed) state. Internal variables
+are variables assigned to each automata, which are bounded
+and can be both read in the guards (together with the clock
+constraints) and updated via an update statement , i.e., after
+the transition is taken, together with the reset of the clocks.
+Finally, actions can have parameters and variables, i.e., it
+
+--- Page 3 ---
+is possible to write the action send(42)! to send a value 42,
+and send(x)? to bound a received value to the variable x.
+The formal semantics of these extensions is omitted for
+simplicity, but can be found in the literature (e.g., [6, 4]).
+3.2 Verifying Timed Automata with UPPAAL
+UPPAAL [5] is a model-checker toolbox based on the
+theory of timed automata which performs forward analy-
+sis with extrapolation. It provides some extra features, such
+as bounded integer variables and broadcast channels. This
+section presents a temporal logic named Timed Computation
+Tree Logic (TCTL) [5, 3], used by UPPAAL as a query lan-
+guage to describe desired properties of (networks of) timed
+automata. This query language consists of path formulas ,
+which in turn use more dedicated state formulas  . State
+formulas are dened over automata locations and clocks.
+Definition 3 (TCTL formulas). A TCTL formula 
+is given by the grammar below.
+::=93 j83 j92 j82 j 1! 2
+ ::=A:`jgj: j 1_ 2j 1^ 2j 1) 2
+A:` represents the location `in the automaton A,gis a
+clock constraint, and :,_,^and)represent the usual
+logical negation, disjunction, conjunction, and implication.
+The temporal operators 9,8,3, and2describe the range of
+states for which the state formulas  must hold, and  1!
+ 2is a shorthand for 82( 1)83 2)(which cannot be
+written in our syntax), read  1leads to 2.
+We make precise the meaning of the temporal operators
+using the timed automata in Figure 1 as a running example.
+93 means that there must exist a sequence of transitions
+such that, at some point,  holds. For example, 93S:Init S)
+(cS>19) means that the clock cScan become higher than
+19 while in location Init SinS.
+-83 means that for every sequences of transitions, at
+some point  can hold. For example, 83cR>19 means
+that, at any given point of the execution, one can nd a
+future state where cRis higher than 19.
+-92 means that there must exist a sequence of transitions
+such that always holds. For example, 92(cS= 11))
+S:Wait means that there exist a sequence of transition where
+the clockcSis 11 while the automaton Sis in Wait location.
+-82 means that for every sequences of transitions,  must
+hold in every intermediate state. For example, 82(cS
+0^cS40) means that the clock cSwill always be within
+0 and 40 in the automaton Sat any point of executions.
+- 1! 2(i.e.,82( 1) 83 2)) denotes that when-
+ever 1holds then  2must eventually hold. For example,
+S:Wait!R:Transmit means that, once S:Wait is reached,
+R:Transmit will always be reachable.
+4. VERIFYING ROS APPLICATIONS
+This section describes how to model and verify ROS-based
+applications with time constraints, using as a running exam-
+ple a publisher-subscriber implementation. We start by ex-
+ploring how to extract key parameters from the source code
+of ROS applications (Subection 4.1), which are then used to
+formally model them as a network of timed automata (Sub-
+section 4.2). UPPAAL is then used to reason and to verify
+properties about such applications (Subsection 4.3).Code Snippet 1: A Subscriber Node
+void chatterCallback(const
+std_msgs::String::ConstPtr msg) {
+//... do some work ...
+}
+int main(int argc, char **argv) {
+ros::init(argc, argv, "listener");
+ros::NodeHandle n;
+ros::Subscriber sub =
+n.subscribe<std _msgs::String>("chatter",
+1000, chatterCallback);
+ros::Rate loop _rate(10);
+while (ros::ok()) {
+//... do some work ...
+ros::spinOnce();
+loop _rate.sleep();
+}
+return 0;
+}
+4.1 Code Analysis of a ROS Application
+The fundamental components in ROS-based applications
+include nodes (or processes), transmission channels (ortop-
+ics), and messages . Nodes communicate via a publisher-
+subscriber message passing mechanism: a publisher can send
+a message to a given channel , and every subscriber of that
+channel will receive the message. Publisher nodes send mes-
+sages to a channel by adding them into the channel's queue,
+which are subsequently dequeued and added to the sub-
+scribers' queue. Observe that the same channel can be used
+by multiple publishers and subscribers [9].
+An example of a subscriber node in ROS is depicted in
+Code Snippet 1. Observe that the node subscribes the chan-
+nelchatter of the message type std_msgs::String , with a
+queue-size of 1000. By invoking ros::spinOnce in a regular
+interval (the loop _rate object is set to 10 in this exam-
+ple), the node processes incoming messages in the queue by
+executing the callback function chatterCallback .
+Observe that the rate at which ROS can empty a publish-
+ing queue depends on the time taken to actually transmit the
+messages to subscribers, and is largely out of our control. In
+contrast, the speed with which ROS empties a subscribing
+queue depends on how quickly it processes callbacks. Thus,
+the application developer is responsible for setting reason-
+able publisher and subscriber queue sizes to avoid overows.
+When a queue is full, new upcoming messages will replace
+the oldest ones. Note that one can reduce the likelihood
+of a subscriber queue overowing by (1) ensuring that call-
+backs, via ros::spin orros::spinOnce , are frequent, and (2)
+reducing the amount of time consumed by each callback.
+The static analysis phase, currently not automated, re-
+quires the extraction of ROS code parameters that aect
+the desired properties of ROS-based robotic applications,
+including the publisher's publishing rate, the subscriber's
+\spin" rate to process callbacks, the time to transmit mes-
+sages over channels, and the time to process callbacks.
+4.2 ROS Applications as Timed Automata
+Consider a ROS application with three processes, pub-
+lishersP1andP2and subscriber P3for a channel Ch1(Fig-
+ure 2). The notation Qi!jdenotes a queue associated with
+
+--- Page 4 ---
+P1
+P2Q1!1
+Q2!1Ch1
+Q3 1 CBQ!callAvailable() P3publish 1(msg)
+publish 2(msg)getFront (Q1!1;x)
+getFront (Q2!1;x)
+addRear (x;Q3 1)
+spinOnce
+Figure 2: Simple ROS publisher-subscriber scenario.
+thepublisherPiand the channel Chj, andQi ja queue as-
+sociated with the subscriberPiand the channel Chj. This
+ROS publisher-subscriber mechanism is modelled in Fig-
+ure 3 as timed automata. Dierent values of the parameters
+PubTime ,SubTime ,Tmin ,Tmax ,CBmin , and CBmax yield
+dierent variations of the automata.
+PublishersP1andP2are uniquely identied with idas a
+parameter (Figure 3(a)), and send messages every PubTime
+time-units. The subscriber invokes ros::spinOnce to pro-
+cess callbacks every SubTime time-units (Figure 3(b)), and
+the transmission of messages over the channel takes between
+Tmin and Tmax time-units (Figure 3(e)). Variable CBavail
+represents the number of queued callback invocations, and
+is shared by the automata in Figures 3(d) and 3(f). The
+replaceOld () method of Q3 1replaces the oldest message in
+the queue by the upcoming message when the queue is full.
+When ros::spinOnce is invoked the method callAvailable()
+is called on the callback queue CBQ, which processes all call-
+backs currently in the queue. The processing of callbacks
+takes between CBmin and CBmax time-units. Observe that
+we model the callAvailable() method without a timeout
+parameter in ros::CallbackQueue (Figure 3(f)).
+4.3 Veriﬁcation in UPPAAL
+The corresponding implementation of the models in UP-
+PAAL is presented in Appendix A. Varying queue sizes and
+time constraints, we verify the following properties about the
+associated queues (\ whether no path leads to an overow of
+the queue ") using the UPPAAL model checker:
+Pr1:82:Q1!1.Overow
+Pr2:82:Q2!1.Overow
+Pr3:82:Q3 1.Overow
+Using UPPAAL it is possible to experiment dierent com-
+binations of values of parameters and investigate which ones
+validate these desired properties. The parameters dene the
+three queue sizes, the transmission time, the processing call-
+back time, the publishing time-gap, and the spin time-gap.
+For example, using the assignment Q1!1=Q2!1=Q3 1
+= 5, Tmin = 3, Tmax = 4,P1:PubTime = 8,P2:PubTime =
+7, andP3:SubTime = 15, none of the three properties hold.
+By using instead P2:PubTime = 8 andP3:SubTime = 18
+the properties Pr1andPr2hold, and all property hold if we
+lower the value of P3:SubTime to 17.
+5. CASE STUDY: KOBUKI ROBOT
+Kobuki is a ROS open source robotic application23devel-
+oped by Yujin Robotics (Korean rm) and Willow Garage
+2http://wiki.ros.org/kobuki
+3https://github.com/yujinrobot/kobuki(from USA) for research and educational purposes.
+5.1 Kobuki Source Code Analysis
+Kobuki is integrated with various sensors, velocity con-
+trollers, a command multiplexer, and a high precision mo-
+tor. The schematic diagram of its ROS-based architecture
+is depicted in Figure 4. Our analysis focuses on the Safety-
+Controller , which identies obstacles and tries to move the
+robot to a safer position, and the Multiplexer , which manages
+movement messages that arrive from dierent controllers.
+The SafetyController-Update node subscribes the events/
+wheel drop,events/bumper and events/cli channels, to re-
+ceive messages from the wheel-drop, bumper and cli sen-
+sors, respectively. Published messages are enqueued into
+the corresponding subscriber queues ( QWheel ,QBumper ,
+and QCli , respectively). These queues are inspected at
+a given rate by invoking the callAvailable() method, process-
+ing the sensor messages and updating shared boolean state
+variables capturing, e.g., if the left wheel is dropped. Based
+on these shared variables, the SafetyController-Publisher node
+publishes at a xed rate command-velocity ( CmdVel ) mes-
+sages to a channel subscribed by the Multiplexer node, such
+as \stop" when wheel-drop events occurs or \move back" if
+the bumper is pressed or a cli detected. In turn, Multiplexer
+combines these messages with messages from other nodes
+that control the robot, like a RandomWalker node, giving
+higher priority to messages from the safety controller.
+5.2 Timed Modeling of the Safety Controller
+This section formally species the SafetyController-Up-
+date component. SafetyController-Publisher can be mod-
+elled as a traditional publisher, as depicted in Section 4.2.
+The upper half of the architecture from Figure 4 is mod-
+elled by the automata in Figure 5. Figure 5(a) models any
+of the three sensors ( Wheel-Drop ,Bumper , or Cli ) and
+their position ( Left,Center , orRight )). Its time constraint
+ensures that sensors wait at least 1 time unit before pub-
+lishing a new message. Figure 5(b) models any of the sub-
+scriber queues assigned to the safety controller. The variable
+CBavail , shared with the automaton in Figure 5(d), captures
+the amount of received messages, which will trigger the ad-
+dition of callbacks to the callback queue.
+The SafetyController-Update node (Figure 5(c)) is a sub-
+scriber that processes incoming sensor messages by invok-
+ingros::spinOnce and updates the state accordingly. This
+is done by periodically calling callAvailable() (Figure 5(d)),
+which processes all callbacks in the callback queue. The for-
+mer periodically calls ros::spinOnce based on the spinRate
+parameter. Observe that callAvailable() is parameterised by
+aTimeOut parameter that controls how long to wait for a
+callback to be available before returning. In ROS 0.10 the
+default timeout is 0.1 seconds, whereas in ROS 0.11 it is 0
+seconds. A complete implementation of the SafetyController-
+Update is included in Appendix B for reviewing purposes.
+UPPAAL Verication of SafetyController-Update.
+Using the timed automata models in Figure 5 it is possi-
+ble to experiment with dierent parameters and queue sizes
+and verify if desired properties are valid. The results of such
+experiments can be found in Table 1, using the properties
+PrW,PrB, and PrC.One can conclude, for example, that no
+sensor will overow its queue when all queues have size 12,
+the spin rate of the safety controller and the timeout for the
+callAvailable are 1, and the callback time is between 1 and 2.
+
+--- Page 5 ---
+PidInit
+tPubTime
+t=PubTimepublish id(msg)!,t:=0
+
+(a) Publishers Pid(id= 1;2)P3Init
+tSubTime
+t=SubTimespinOnce !,t:=0
+
+(b) Subscriber P3
+Init Overow
+
+Qid!1=full
+publish id(msg)?
+replaceOld (Qid!1;msg)getFront (Qid!1;x)?
+dequeue (Qid!1;x)
+
+Qid!1=full
+publish id(msg)?
+replaceOld (Qid!1;msg)
+Qid!16=empty
+getFront (Qid!1;x)?
+dequeue (Qid!1;x)
+
+Qid!16=full
+publish id(msg)?
+enqueue (Qid!1;msg)
+(c) Publisher Queues Qid!1(id= 1;2)Init Overow
+
+Q3 1=full
+addRear (x;Q3 1)?
+replaceOld (Q3 1;x)getMsgs (Q3 1)?
+dequeueAllMsgs (Q3 1)
+
+Q3 1=full
+addRear (x;Q3 1)?
+replaceOld (Q3 1;x)getMsgs (Q3 1)?
+dequeueAllMsgs (Q3 1)
+
+Q3 16=full
+addRear (x;Q3 1)?
+enqueue (Q3 1;x),CBavail ++
+(d) Subscriber Queue Q3 1
+Ch1 InitTransmit
+tTmin8id2[1;2] :getFront (Qid!1;x)!
+t:=0
+
+tTmax
+addRear (x;Q3 1)!
+(e) Channel Ch1InitCBProcess
+tCBminStart
+spinOnce?
+CBavail1
+getMsgs (Q3 1)!
+CBavail :=0;t:=0
+
+tCBmax
+CBavail =0
+(f) Callback queue CBQ!callAvailable()
+Figure 3: Formal timed modelling of a ROS publisher-subscriber message passing scenario.
+Queue sizes of
+safety controllerSpin time-gap of
+safety controllercallAvailable()
+timeoutCallback
+timeProperties
+QWheel QBumper QCli spinRate TimeOut CBmin CBmax PrWPrBPrC
+10 10 1012 1 2X 7 7
+4 1 2X 7 7
+2 2 1 2X 7 7
+3 2 1 2 7 7 7
+12 12 121 11 2XXX
+4 5 7 7 7
+3 2 1 2X 7 7
+6 2 1 2 7 7 7
+Table 1: Queue-Overow w.r.t. various dependable parameters in the module SafetyController-Update .
+5.3 Finding problems in Kobuki
+In addition to the above safety properties pertaining to
+queue overow, this section identies some desirable, con-
+text specic, properties of the Kobuki system. Uusing the
+UPPAAL model checker, we will show that the safety con-
+troller node may lose (important) information from the sen-
+sors in the presence of overows (Subsection 5.3.1), and that
+in some scenarios, messages from the RandomWalker never
+reach the Kobuki engine (Subsection 5.3.2).
+5.3.1 Lost Sensor Messages
+The models in Figure 5 feature the timing constraints and
+queue sizes but do not encode the particular behaviour of the
+Kobuki nodes, like the message processing or the update of
+the internal state. This subsection shows that a sensor|we
+will use the left wheel sensor|may fail to trigger the desired
+change in the state variables of the safety controller. Forthis, we enhance the model for the wheel sensor by replacing
+the one in Figure 5(a) by an equivalent one that alternates
+between onand ostates. Assuming the safety controller
+state variable wheel leftdropped represents if the wheel is
+dropped, the desired property can be formulated as follows.
+Wheel Left:on&SafetyController-Update :spinLoc!
+wheel leftdropped (Sensor-Property )
+This formula asserts that, whenever the left wheel is dropped
+and the safety controller invokes ros::spinOnce , the event
+will eventually be reected in the corresponding safety con-
+troller's state variable wheel leftdropped .
+The property validity depends on whether the subscriber
+queue QWheel may or not overow. If QWheel can overow,
+the property will not be satised, since the Wheel Left.on
+sensor message may be replaced by other sensor message
+due to queue-overow. Otherwise the property holds, which
+
+--- Page 6 ---
+Figure 4: Schematic diagram of ROS-based Kobuki architecture
+Init
+t1
+sensorMsg (Type;Position )!
+t:=0
+(a) Automaton of a sensor.Init Overow
+
+isFull () = true
+sensorMsg (Type;Position )?
+replaceOld (Type;Position )getMsgs ?
+dequeueAllMsgs ()
+
+isFull () = true
+sensorMsg (Type;Position )?
+replaceOld (Type;Position )getMsgs ?
+dequeueAllMsgs ()
+
+isFull () = false
+sensorMsg (Type;Position )?
+enqueue (Type;Position );CBavail ++
+(b) Automaton of the safety controller's subscriber queue.
+Init
+tspinRatespinLoc
+C 
+t=spinRate
+spinOnce !t:=0
+(c) SafetyController-Update
+(Cdenotes committed state ).InitCBproc
+t1CBmax
+Startwait
+t2TimeOut
+spinOnce ?
+CBavail >0
+getMsgs !
+t1:=0;CBavail :=0
+
+t1CBmin
+
+CBavail =0
+t2:=0
+CBavail >0
+getMsgs !
+t1:=0;CBavail :=0
+
+t2TimeOut
+(d)callAvailable (ros::WallDuration TimeOut) method to pro-
+cess all callbacks in the callback queue of the safety controller.
+Figure 5: Formal Timed Modeling of the module SafetyController-Update
+means the safety controller will always react to the messages
+from the left wheel sensor. This example shows the impor-
+tance of correctly setting the parameters to ensure queues do
+not overow in our Kobuki case study, and the advantages
+of formally verifying which parameters can be used.
+5.3.2 Lost Messages From RandomWalker
+Kobuki supports multiple nodes to control the movementof the robot by simply sending command velocity messages
+to the Multiplexer , which is responsible to sort and lter out
+messages based on their priority. In our example there is
+one such node, the RandomWalker . Thus, the Multiplexer
+subscribes two topics, from the safety controller and from
+the random walker nodes, and sets a timer used by the call-
+backs cmdVelCallback() and timerCallback() .
+The cmdVelCallback() and timerCallback() callbacks are
+
+--- Page 7 ---
+InitPassMsg Start
+spinOnce ?
+active (i) :=true
+allowed =VACANT orallowed =ior
+Priority (i)> Priority (allowed )
+Pass (i)!
+allowed =i
+resetTimer (i)!
+
+allowed6=VACANT orallowed6=ior
+Priority (i)Priority (allowed )
+resetTimer (i)!Init
+tTimeOut (i)
+t=TimeOut (i) &allowed =i
+allowed :=VACANT ;active (i) :=false;t:=0
+
+t=TimeOut (i) & allowed6=i
+active (i) :=false ,t:=0resetTimer (i)?
+t:=0
+Figure 6: Timed Model of cmdVelCallback() (left) and timerCallback() (right) from the Multiplexer .
+formalised as timed automata in Figure 6 { the automata for
+the remaining subscriber and publisher queues of the Multi-
+plexer can be dened as in previous sections. The cmdVel-
+Callback() , when processing a value from the ithsubscribed
+topic, acts as follows. It resets and starts the timer associ-
+ated to the ithtopic { this timer will trigger timerCallback()
+at a xed rate. It assigns active (i) to true, indicating the
+ithtopic is active. It publishes the value if one of 3 condi-
+tions are met: if there is no other active topic (i.e. allowed
+=VACANT ), or if the topic is already in an allowed state (i.e.
+allowed =i), or if the topic has higher priority than the cur-
+rently allowed topic (i.e. priority (i)> priority (allowed )).
+The callback timerCallback() for theithtopic, based on a
+timeout, sets active (i) to false and sets allowed toVACANT
+when this is the currently allowed topic.
+We now formulate a desired property for the Multiplexer
+(specied in UPPAAL in Appendix C), stating that the Ran-
+domWalker can send messages to the engine.
+93Random cmdVelCallback :PassMsg (MUX-Property )
+Here Random cmdVelCallback is the cmdVelCallback() au-
+tomata that analyses messages from the random walker.
+By experimenting with dierent parameters, we observe
+that the model does not satisfy this property for higher pub-
+lishing rates, higher priority of SafetyController-Publisher and
+higher values of TimeOut(i) . This means that CmdVel mes-
+sages from the RandomWalker component may never reach
+the Kobuki base-motor if messages from the (higher priority)
+safety controller are published frequently enough.
+6. CONCLUSIONS
+This paper proposes a generic approach to model-check
+real-time properties of ROS-based applications using timed
+automata, with special focus on the communication between
+nodes. This approach allows to verify safety and liveness
+properties of complex ROS-based robots that could be in-
+uenced by various architectural parameters, such as queue
+sizes and internal timeouts. We use the UPPAAL model
+checker to model ROS applications and to verify real-time
+properties, and illustrate our approach by analysing the source
+code of a popular physical robot Kobuki. This model is then
+used to guide the search for parameters that can validate
+some desired properties of Kobuki, such as not losing sen-
+sor messages nor ignoring movement instructions. Without
+our model, and relying only on physical experimentations,
+these parameters would be very dicult, time consuming,
+or infeasible to nd.Acknowledgments
+This research is partially supported by the the ERDF COM-
+PETE 2020 Programme, and by the Portuguese funding
+agency, FCT, within project POCI-01-0145-FEDER-016826
+and the personal grant SFRH/BPD/91908/2012.
+7. REFERENCES
+[1] S. Adam, M. Larsen, K. Jensen, and U. P. Schultz.
+Towards rule-based dynamic safety monitoring for
+mobile robots. In SIMPAR , volume 8810 of LNCS ,
+pages 207{218. Springer, 2014.
+[2] A. Anand and R. A. Knepper. ROSCoq: Robots
+powered by constructive reals. In ITP, volume 9236 of
+LNCS , pages 34{50. Springer, 2015.
+[3] C. Baier and J. Katoen. Principles of Model Checking .
+MIT Press, 2008.
+[4] R. Barbuti and L. Tesei. Timed automata with urgent
+transitions. Acta Informatica , 40(5):317{347, 2004.
+[5] G. Behrmann, A. David, and K. G. Larsen. A tutorial
+on Uppaal. In SFM , volume 3185 of LNCS , pages
+200{236. Springer, 2004.
+[6] J. Bengtsson and W. Yi. Timed automata: Semantics,
+algorithms and tools. In Lectures on Concurrency and
+Petri Nets , volume 3098 of LNCS , pages 87{124.
+Springer, 2003.
+[7] A. Cowley and C. J. Taylor. Towards language-based
+verication of robot behaviors. In IROS , pages
+4776{4782. IEEE, 2011.
+[8] J. Huang, C. Erdogan, Y. Zhang, B. M. Moore,
+Q. Luo, A. Sundaresan, and G. Rosu. ROSRV:
+runtime verication for robots. In RV, volume 8734 of
+LNCS , pages 247{254. Springer, 2014.
+[9] M. Quigley, K. Conley, B. P. Gerkey, J. Faust,
+T. Foote, J. Leibs, R. Wheeler, and A. Y. Ng. ROS:
+an open-source robot operating system. In ICRA
+Workshop on Open Source Software , 2009.
+[10] A. Santos, N. Macedo, A. Cunha, and C. Louren co. A
+framework for quality assessment of ROS repositories.
+InIROS , pages 4491{4496. IEEE, 2016.
+[11] M. Webster, C. Dixon, M. Fisher, M. Salem,
+J. Saunders, K. L. Koay, K. Dautenhahn, and
+J. Saez-Pons. Toward reliable autonomous robotic
+assistants through formal verication: A case study.
+IEEE Trans. Human-Machine Systems , 46(2):186{196,
+2016.
+[12] M. Weimann, S. Bedenk, C. Buckl, and A. Knoll.
+Model checking industrial robot systems. In SPIN ,
+volume 6823 of LNCS , pages 161{176. Springer, 2011.
+
+--- Page 8 ---
+APPENDIX
+A. THE PUBLISH-SUBSCRIBER IN UPPAAL
+The UPPAAL automata corresponding to the timed au-
+tomata in Figure 3 are depicted in Figure 7.
+B. THE SAFETYCONTROLLER-UPDATE IN
+UPPAAL
+The Uppaal implementation of the timed model of the
+module SafetyController-Update is shown in Figure 8. Ob-
+serve that variables SIZE and MsgCount represent the size
+of the subscriber queue and the number of messages cur-
+rently present in the queue, to capture the queue's fullness
+and emptiness conditions.
+C. THE MULTIPLEXER MODULE IN UP-
+PAAL
+The timed model of the module Multiplexer is implemented
+in Uppaal and is shown in Figure 9.
+
+--- Page 9 ---
+(a) Publishers \ Pid" (id=
+1;2)
+(b) Subscriber \ P3"
+(c) Publisher Queues \ Qid!1"
+ (d) Subscriber Queue \ Q3 1"
+(e) Channel \ Ch1"
+ (f)callAvailable() to process callbacks in Callback
+Queue CBQ
+Figure 7: Implementation of the Timed Model of Figure 3 in UPPAAL.
+
+--- Page 10 ---
+(a) Template for Sensors
+ (b)SafetyController-Update :
+safety controller which up-
+dates internal state.
+(c) Template for safety controller's Subscriber Queues QWheel, QBumper,
+and QCli .
+(d) \ callAvailable (ros::WallDuration TimeOut) " method to pro-
+cess all callbacks currently in the Callback Queue for Safety-
+Controller.
+Figure 8: Implementation of the module SafetyController-Update using Uppaal Model Checker
+
+--- Page 11 ---
+(a) Template for
+SafetyController-Publisher
+and RandomWalker who
+publish Command Velocity
+Messages
+(b)Multiplexer node
+(c) Template for Subscriber Queues which are subscribed
+byMultiplexer
+(d) Template for Callback cmd-
+VelCallback() for two subscriptions
+(denoted Safety cmdVelCallback and
+Random cmdVelCallback resp.)
+(e) Template for Callback timer-
+Callback() for two subscriptions
+(denoted Safety timerCallback
+and Random timerCallback
+resp.)
+Figure 9: Uppaal Model for the module Multiplexer

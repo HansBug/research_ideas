@@ -1,0 +1,1376 @@
+--- Page 1 ---
+International Journal on Software Tools for Technology Transfer (2025) 27:313–332
+https://doi.org/10.1007/s10009-025-00802-4
+GENERAL
+Special Issue: FMICS 2023
+Pattern-based veriﬁcation of ROS 2 applications using
+UPPAAL
+Lukas Dust1·Rong Gu1·Cristina Seceleanu1·Mikael Ekström1·Saad Mubeen1
+Accepted: 3 April 2025 / Published online: 23 April 2025
+© The Author(s) 2025
+Abstract
+This paper proposes an approach to pattern-based modeling and Uppaal-based veriﬁcation for ROS 2 applications. The
+proposed veriﬁcation focuses on callback execution latencies and buﬀer overﬂow. We propose formal model templates to
+model the execution of ROS 2 system components, created using a pattern-based approach. The model templates simplify the
+formal modeling of an ROS 2 application. Using Uppaal, we model in Uppaal timed automata, allowing the description of
+computation chains of ROS 2-based applications. Our focus is on execution behavior, including two versions of the mainline
+single-threaded executor of ROS 2. System traces generated using the formal models are validated in multiple experiments.
+Furthermore, we compare two approaches to modeling the execution of nodes that are typically the core units of computation
+of ROS 2. The ﬁrst approach is a holistic approach to model ROS 2 applications, including communication and execution
+in computation chains. The second is an approach for individual nodes only, at a higher abstraction level. Additionally, we
+show the application of the veriﬁcation by model checking in two ROS 2 system scenarios where we compare generated
+model traces to actual system executions. Overall, through formal modeling and veriﬁcation, we showcase the potential for
+uncovering errors in the execution of distributed robotic systems.
+Keywords Robot operating system 2 ·Pattern-based modeling ·Model checking ·Uppaal
+1 Introduction
+Robotic systems frequently carry signiﬁcant safety implica-
+tions and, therefore, have stringent timing constraints. Their
+computational processes are commonly distributed across
+various actors and communication networks. As these sys-
+tems are composed of distributed elements, ensuring the
+correctness of system design and implementation presents
+an enormous challenge for robotics developers.The open-source middleware Robot Operating System
+(ROS) [ 16] has been introduced in an attempt to standardize
+the design of distributed robotic systems, focusing on rapid
+prototyping of robotic applications. Following the emerg-
+ing needs for robotics, ROS 2 [ 15] has been released to
+update ROS by adding a real-time capable communication
+approach. As ROS 2 tackles modern needs, the support for
+ROS will end in 2025 [ 13]. While both versions of ROS
+are widely used in academia and industry [ 2], users of ROS
+have to update their systems to ROS 2. Analytical meth-
+ods and interfaces for ROS have been created and are well
+understood, but ROS 2 theoretical analysis and interfacing
+tools still need to catch up. Moreover, the potential problems
+arising from transitioning between ROS and ROS 2, includ-
+ing changes in execution behavior, have not been thoroughly
+examined. Existing methods of response-time analysis of
+processing chains [ 6,8] and end-to-end timing analysis [ 19]
+require manual and intensive computation that varies from
+system to system. The complexity brought by many system
+conﬁguration options, such as communication buﬀer sizes,
+complicates analyzing these systems. Hence, automated tool
+support is essential./LetterL. Dust
+lukas.dust@mdu.se
+R. Gu
+rong.gu@mdu.se
+C. Seceleanu
+cristina.seceleanu@mdu.se
+M. Ekström
+mikael.ekstrom@mdu.se
+S. Mubeen
+saad.mubeen@mdu.se
+1Mälardalen University, Västerås, Sweden
+Springer
+
+--- Page 2 ---
+314 L. Dust et al.
+The multiple versions of ROS 2 [ 14] and a lack of docu-
+mentation bring more obstacles to the analysis of ROS 2 sys-tems. An example of a problem with constant evolution andneed for documentation is the existence of various schedulingmechanisms, which are conducted by executors . An executor
+conducts the scheduling of time or data-triggered functions
+(aka, callbacks ) inside main components of an ROS 2 system,
+namely nodes . The executor underwent an update, reﬂecting
+a semantic change between ROS 2 versions, speciﬁcally from
+executor version one (ExV1) in Dashing to executor version
+two (ExV2) in Eloquent [6]. Consequently, diﬀerent schedul-
+ing behavior can be observed depending on the version usedin the implementation. Changes in scheduling have been dis-
+covered, but not suﬃciently regarded in the documentation.
+In other words, the execution of callbacks may exhibit un-expected behavior such as buﬀer overﬂow, causing instance
+misses and unexpected latency of callbacks. Speciﬁcally, in-
+stance misses mean that instances of callback execution are
+skipped and thus never appear in the system execution. Thelatency of callbacks describes the time from the release of acallback until the end of its execution.
+The lack of analytical methods and tools makes the trial-
+and-error approach dominant in the veriﬁcation and testingof robotic systems [ 17]. In contrast, formal methods, such as
+model checking [5], can provide rigorous analysis of systems.
+With model checking, exhaustive veriﬁcation of a system
+model against its requirement speciﬁcation is made possi-ble by automatically exploring the state space of the systemmodel. Nevertheless, model checking requires formal mod-
+els of systems, which are complicated to create, especially
+for complex and distributed systems, like ROS 2-based ones.
+Previously, we have proposed an approach to simplify the
+process of formally modeling ROS 2 nodes [ 10]. Our solu-
+tion relies on a pattern-based veriﬁcation of input buﬀer sizes
+and callback latency for ROS 2 nodes. We have employed
+Timed automata (TA) [ 3] as the formal modeling language,
+and Uppaal [ 12] as the model checker. To ease model-
+ing of ROS 2 nodes, we have implemented TA templates
+for ROS 2 executors and callbacks, which can be initial-
+ized with parameters only, upon reuse, without modifyingthe TA templates. We demonstrate the applicability of ourapproach in an experimental evaluation. Bugs in our bench-
+mark ROS 2 system can be found both in the experiments
+and our model-checking approach. Furthermore, we showthat the model-checking approach can reveal potential errorsof system design that are not detected during a long period
+of experiments, which shows the advantage of our approach
+against the trial-and-error methods.
+However, our model-checking approach is strictly lim-
+ited to modeling nodes individually. This paper presents im-
+provements to the TA templates, as well as proposes new TA
+templates that enable veriﬁcation of multiple executors andholistic ROS 2 applications. Speciﬁcally, we adapt the TAtemplates of callbacks and their executor such that callbacks
+can be assigned to speciﬁc executors now. Furthermore, inour previous work, communication has been abstracted as re-
+lease times of callbacks and timers, whereas in this paper, we
+create TA templates for the modeling of communication be-
+tween callbacks, making modeling more realistic and provid-
+ing grounds for a more in-depth veriﬁcation. In particular, we
+design TA templates for communication channels, and adapt
+callback templates to employ them for communication. Ad-
+ditionally, the templates of the communication channels now
+include a model of output buﬀers of ROS 2 nodes, whose
+sizes can be veriﬁed. We propose general improvements to
+our previous TA templates, such as adding new parameters
+for oﬀsets of time-triggered callbacks. Furthermore, an im-
+proved handling of time in the executor templates allows a
+reduction of the state space when model checking, which de-
+creases the veriﬁcation time. The improvements also allow
+for specifying diﬀerent prioritization of system components,
+which can be used for modeling various assumptions of thesystem under veriﬁcation. Furthermore, the new approach
+can generate counterexamples as traces that reveal the crit-
+ical system execution paths, which we have not shown in
+the previous approach (e.g., for longest latency). Our evalu-
+ation in this paper compares the model-checking approaches
+in our previous paper [ 10] with the new approach that sup-
+ports verifying holistic systems. We validate the models ex-
+perimentally by showing that observed systems behavior in
+experiments can be exhibited using our model-checking ap-
+proach. Furthermore, we show how diﬀerent assumptions
+can lead to the detection of potential system errors that can
+serve as warnings to developers.
+To summarize, in this paper, we answer the following
+research questions.
+RQ1: Given the two versions ExV1 and
+ExV2 of single-threaded executors in ROS 2, how to ensure
+the correctness of a design of ROS 2-based systems with
+respect to the behavior of timer callbacks, callback latency,and the sizes of input buﬀers of callbacks? RQ2: What are
+the patterns for modeling ROS 2 systems, which can be
+reused in veriﬁcation? RQ3: Can model checking mirror
+the behavior of ROS 2 systems, as shown in experiments,
+but also reveal potential errors that are not discovered via
+experimental evaluation? RQ4: How does the approach of
+modeling an application holistically diﬀer from the approach
+of modeling callbacks individually?
+This work is an extension of our previous conference pa-
+per [10] published in the Formal Methods for Industrial Crit-
+ical Systems, FMICS 2023, with the following new contri-
+butions:
+•We improve the TA templates by adding parameters, such
+as oﬀset, to the time-triggered callbacks and time handling
+to reduce the state space generated by model checking.
+Springer
+
+--- Page 3 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 315
+•We adapt the TA templates to assign callbacks to speciﬁc
+executors, allowing veriﬁcation of multiple executors si-
+multaneously. Hence, veriﬁcation of a ROS 2 system canbe done holistically.
+•We add the ability to model communication in a ROS 2
+system, achieved by adding TA templates for modeling
+ROS 2 communication channels and data-triggered call-backs. Furthermore, we give callback templates the abilityto utilize the communication channels to simulate datasending.
+•We include model checking of output buﬀer sizes of call-
+backs, besides those of input buﬀers, and merge variablesof the previous TA templates.
+•We evaluate and compare the previous approaches of mod-
+eling nodes individually to the new approach of modeling
+an ROS 2 system holistically.
+The remainder of the paper is structured as follows. Sec-
+tion2presents the concepts of ROS 2, TA, and Uppaal.
+In Sect. 3, we present the feature abstractions, which the
+model templates are based on. In Sect. 4, we introduce the
+new model templates, followed by a demonstration of the
+application of veriﬁcation and modeling in Sect. 5. We eval-
+uate the proposed model templates on various examples, inSect. 6. Based on the results, we show the answers to the re-
+search questions, in Sect. 7. In Sect. 8,w eg i v ea no v e r v i e w
+of the related work before concluding the paper with ﬁnal
+remarks in Sect. 9.
+2 Background
+This section overviews the preliminaries for the rest of the
+paper, by recalling the main concepts of ROS 2 ﬁrst, includ-
+ing the internal scheduling mechanism, followed by a briefdescription of Timed Automata and Uppaal.
+2.1 ROS 2
+ROS 2 is an open-source software development kit forrobotics applications. The purpose of ROS 2 is to oﬀer astandard software platform to developers across industries,
+being updated continuously, as various stable distributions.
+ROS 2 system model Conceptually, the software of an
+ROS 2-based system relies on a graph of connected end-
+points, called nodes , which are communicating with each
+other by sending and receiving messages. An example ofsuch a system is given in Fig. 1, where two nodes, represented
+by green ellipses, communicate with each other over deﬁned
+communication channels of ROS 2. The main patterns of
+communication are publisher–subscriber andservice–client
+communication. The publisher–subscriber pattern is a one-Fig. 1 Schematic example of an ROS 2 system containing two nodes
+communicating with each other (Color ﬁgure online)
+to-many communication model, where a node ( publisher )
+sends messages to a speciﬁc communication channel called
+topic. Other nodes ( subscribers ) receive those messages by
+subscribing to the same topic. The publisher and the sub-
+scriber do not need to know each other’s identity, location, or
+existence. They only need to agree on the name and the format
+of the topic. This allows for loose coupling and high ﬂexibil-ity. The event of incoming data in the receiving node triggers
+a subscription-speciﬁc function called subscription callback .
+In Fig. 1, there are four topics represented by the red boxes
+(Control, H, M, L ).Node 0 publishes data while Node 1
+receives the data, depicted by the direction of the arrows.
+Hence, Node 0 contains the publishers and Node 1 contains
+the subscriptions. Note that for simplicity the functions (call-backs) are not shown. The second pattern of communication
+is the service–client communication. This kind of commu-
+nication is a request–response communication model, where
+a node ( client ) sends a request to another node ( service ) and
+waits for a response. The client and the service need to know
+each other’s name and the format of the request and response
+messages. They also need to establish a connection beforeexchanging data. This allows for synchronous and reliable
+communication.
+In Fig. 1, service–client channels are marked in blue. In
+the given example, a directed request is sent from the re-
+questing node ( Node 0 ) to the receiving node ( Node 1 ).
+Consequently, a service callback starts executing in Node 1 .
+In response to the service callback ,aclient callback on ar-
+rival in the requesting Node 0 is triggered. Every registered
+access to a communication channel where data is received
+(Subscriber, Service, Client) has an individual FIFO input
+buﬀer, whose size is conﬁgurable. Besides communication,
+there is another method of triggering callbacks in ROS 2, via
+the system timers , denoted in yellow in Fig. 1. Timers deﬁne
+time-triggered callbacks , which access data in the node or
+receive data from an external interface. Timers can be conﬁg-
+ured as periodic or sporadic, in the latter case timer callbacks
+Springer
+
+--- Page 4 ---
+316 L. Dust et al.
+being triggered several times sporadically (i.e., when given
+a set of wall times).
+ROS 2 scheduling and execution The execution of
+ROS 2 relies on a host operating system that assigns re-
+sources to each node that executes the ROS 2 internal sched-
+uler module, called the executor . The executor’s task is to
+schedule the execution order of callbacks in a node, each of
+them being one of the four types of callbacks (subscriber,
+service, client, timer) mentioned above. The ROS 2 executor
+stores all timers, subscriptions, clients, and services of all
+registered nodes, updating their state during the schedule. Acallback function can be seen as a recurrent task and each
+execution of a callback function is a task instance (or job).
+The default executor operates on a single thread in the host
+operating system. The scheduling performed by the executor
+is non-preemptive, meaning that a callback cannot interrupt
+an other callback’s execution. Furthermore, the scheduling
+is set-based and polling-point-based, meaning that when the
+executor is idle, a set ( ready set ) with one instance of
+each released callback at the given point in time ( polling
+point ) is created. The following scheduling decisions are
+then made based on the callbacks contained in the set. Af-
+ter each execution, the executed callback is removed from
+the ready set. The next ready set is created after each call-
+back in the previous ready set has been executed once and
+the executor is idle. While ROS 2 has evolved, the executor
+has changed so that there exist two versions of the execu-
+tor (ExV1 [ 8] and ExV2 [ 6]). In ExV1, timer callbacks are
+excluded from the ready set. Hence, expired timers are con-sidered for scheduling in each scheduling instance, while the
+other types of callback are only considered for scheduling
+if they are included in the ready set. In ExV2, timers are
+included in the ready set. Hence, only timers expired before
+the polling point are considered for scheduling until the set
+has been emptied and the next polling point occurs.
+2.2 Timed automata and UPPAAL
+Since our formal veriﬁcation relies on the Timed Automata(TA) language, in this subsection, we recall the formal deﬁni-
+tions of TA and its semantics, respectively, and we overview
+brieﬂy the TA-based model checker Uppaal that we em-
+ploy in this paper. For more details, the reader is referred to
+the relevant literature [ 3,12].
+Deﬁnition 1 ([ 3])
+A Timed Automaton (TA) is a tuple
+A=<𝐿,𝑙
+0,𝐶,Σ,𝐸,𝐼𝑛𝑣>, (1)
+where𝐿is a ﬁnite set of locations, 𝑙0is the initial location,
+𝐶is a ﬁnite set of nonnegative real-valued variables calledclocks ,Σis a ﬁnite set of actions, 𝐸⊆𝐿×B(𝐶)×Σ×2𝐶×𝐿
+is a ﬁnite set of edges, where B(𝐶)is the set of guards over𝐶,
+that is, conjunctive formulas of constraints of the form 𝑐1⊲⊳ 𝑛
+or𝑐1−𝑐2⊲⊳ 𝑛, where𝑐1,𝑐2∈𝐶,𝑛∈N,⊲⊳∈{<,≤,=,≥,>},
+2𝐶is a set of clocks in 𝐶that are reset on the edge, and
+𝐼𝑛𝑣:𝐿→B(𝐶)is a partial function assigning invariants to
+locations.
+Deﬁnition 2
+Let<𝐿,𝑙 0,𝐶,Σ,𝐸,𝐼𝑛𝑣> be a TA. Its semantics is deﬁned
+as alabeled transition system <𝑆,𝑠 0,→>, where𝑆∈𝐿×R𝐶
+is a set of states denoted as (𝑙,𝑢)where𝑙means the location
+and𝑢means the evaluation of clocks in 𝐶,𝑠0=(𝑙0,𝑢0)is
+the initial state, and →⊆𝑆×(R≥0∪Σ)×𝑆such that:
+1. (delay transition) (𝑙,𝑢)𝑑→(𝑙,𝑢⊕𝑑), where𝑑∈R≥0, and
+𝑢⊕𝑑increases the value of clocks in 𝐶by𝑑such that
+∀𝑑/prime≤𝑑,𝑢⊕𝑑/prime|=𝐼𝑛𝑣(𝑙)meaning that 𝐼𝑛𝑣(𝑙)is true when
+the evaluation of clocks is 𝑢⊕𝑑/prime, and
+2. (action transition) (𝑙,𝑢)𝑎→(𝑙/prime,𝑢/prime), if there exists 𝑒=
+(𝑙,𝑔,𝑎,𝑟,𝑙/prime)∈𝐸such that 𝑢∈𝑔,𝑢/prime=[𝑟↦→0]𝑢is a new
+evaluation of clocks that resets 𝑐∈𝑟and keeps 𝑐∈𝐶\𝑟
+unchanged, and 𝑢/prime|=𝐼𝑛𝑣(𝑙/prime).
+Uppaal [ 12] is a tool that supports modeling, simula-
+tion, and model checking of an extension of TA ( UTA). In
+Uppaal, UTA are modeled as templates (see Fig. 2) that
+can be instantiated. UTA extends TA with data variables,synchronization channels, urgent and committed locations,etc. Variables and clocks can be set to certain values bythe updates along the edges. In Uppaal, an update canbe a comma-separated list of expressions, or a C-code stylefunction that is implemented in the declaration of UTA. UTAlocations can be marked as urgent (denoted by encircled “u”)
+orcommitted (denoted by encircled “c”), indicating that time
+cannot progress in such locations. Committed locations are
+more restrictive, we explain it later. UTA can be composed in
+parallel as a network of UTA (NUTA) over a common set of
+clocks and actions [ 12]. In this paper, we model the commu-
+nication between UTA via synchronization channels (e.g., a!
+and a? in Fig. 2) with rendezvous semantics: a sender (a!)
+synchronizes with a receiver (a?), provided that the sendingand receiving edges are enabled, that is, their guards are sat-isﬁed. Committed locations require that the next edge to betraversed must start from a committed location in a NUTA.When multiple committed locations are ready to traverse,these transitions happen in a nondeterministic order, whichmeans all possible orders need to be explored in an exhaus-
+tive model checking.
+Figure 2depicts an example of an NUTA in Uppaal,
+where blue circles are locations that are connected by di-
+rectional edges . Double-circled locations are the initial lo-
+cations (e.g.,L0).L3is an urgent location, whereas L4is
+Springer
+
+--- Page 5 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 317
+Fig. 2 An example of UTA templates in Uppaal (Color ﬁgure online)
+a committed location. On the edges, there are assignments
+resetting clocks (e.g., c1:=0 ) and updating data variables
+(e.g.,v1:=para1 ), guards (e.g.,c1>=10 ), and synchroniza-
+tion channels (e.g., a!anda?). At locationL1,a ni n v a r i -
+antc1<=15 regulates that clock c1must never exceed 15
+time units. In Uppaal, templates of UTA can have param-
+eters (e.g.,para1 in TA1) that are assigned values when the
+UTA are instantiated. The Uppaal model checker supports
+the veriﬁcation of queries written in a decidable subset of
+(Timed) Computation Tree Logic ((T)CTL) [ 12]. The syn-
+tax of a (T)CTL formula consists of quantiﬁers over paths
+and path-speciﬁc temporal operators. There are two types of
+path quantiﬁers: the universal “A” meaning “for all paths”,and the existential “E” denoting “there exists a path.” We
+are interested in one path-speciﬁc temporal operator, that is,
+“Always” ([]) temporal operator. The Uppaal queries that
+we verify in this paper are of the form: (i) invariance :A[]
+pmeans that for all paths, for all states in each path, pis
+satisﬁed, and (ii) supremum evaluation :sup{con}:list
+evaluates the supremum of the expressions in the list only
+when the condition (i.e., con)i strue.
+3 Feature selection and system abstraction
+In this section, we present our modeling approach with the
+selected features and the conducted abstractions. We start thissection by deﬁning the ROS 2 system elements and their ab-
+stract representation for our formal models. While abstract-
+ing the systems, we focus on components and parametersneeded to simulate and verify systems regarding callback la-
+tency, blocking, and input buﬀer overﬂow. Furthermore, we
+select features so that the models can be adapted in futurework to verify more features.
+ROS 2 systems consist of distributed nodes that com-
+municate with each other through diﬀerent communicationchannels. This system structure requires many system com-
+ponents and parameter settings, such as buﬀer sizes and qual-
+ity of service for communication. When modeling a systemfor formal veriﬁcation of selected properties, irrelevant com-
+ponents, and parameters can be removed, while other com-
+ponents can be simpliﬁed as abstract elements in the formalmodel.
+Throughout this paper, we consider two approaches to
+modeling ROS 2 systems. The ﬁrst models individual nodeswhile second approach involves modeling a system from a
+holistic perspective, including nodes, communication, andcomputation chains.
+3.1 Veriﬁcation goals
+We have two veriﬁcation goals, and thus select two features
+of ROS 2 systems, namely input buﬀer sizes andcallback
+latency . The rest of the section introduces the veriﬁcation
+goals and shows how to select features to model the system
+accordingly.
+Callback latency Per deﬁnition, the latency of a callback
+is the maximum time from the release of a callback to the
+completion of the execution of the same callback instance.
+Hence, to simulate the callback latency, execution behavior
+needs to be modeled. Nevertheless, abstraction may be made
+to simplify the created models.
+Buﬀer size and instance misses This paper proposes
+a way of verifying suﬃcient buﬀer sizes for ROS 2 call-
+backs. The input buﬀer in ROS 2 nodes stores incoming
+data instances, while the output buﬀer stores outgoing data.
+As a QoS parameter, buﬀer sizes are conﬁgurable for data-
+triggered callbacks that the user conﬁgures. A buﬀer over-
+ﬂow for any callback will lead to an instance miss, which
+can be critical. Hence, it is crucial to detect buﬀer overﬂows
+and select a suﬃcient buﬀer size. Especially timer callbacks
+are more likely to experience buﬀer overﬂow, due to their
+buﬀer size being one. In an older version of the executor
+(i.e., ExV1), timers are always prioritized, whereas in later
+versions (ExV2), timers can be blocked as low-priority call-
+backs, because they are only considered for execution when
+all callbacks in the previous ready set have been executed
+once. Therefore, the detection of buﬀer overﬂows, as in ourmodel, is desirable.
+3.2 ROS 2 components and abstractions
+Given the stated veriﬁcation goals, in the following, we
+present the ROS 2 components and their abstractions in the
+formal model.
+The ﬁrst ROS 2 component of a node inﬂuencing the ex-
+ecution is the executor . An executor is an ROS 2 internal
+scheduler and exists in every node. To simulate the execution
+of an ROS 2 system, we model the ROS 2 executor contained
+in each node. In this paper, we focus on the execution of main-
+line single-threaded executors, where two versions exist. We
+design the models such that simple switching between these
+two versions is possible by providing one model template for
+each version accordingly. The modularity of synchronized
+templates leaves future possibilities to extend the models
+Springer
+
+--- Page 6 ---
+318 L. Dust et al.
+with templates for multithreaded executors, which is outside
+the scope of this paper.
+As the execution of a speciﬁc callback depends on all other
+callbacks scheduled by the same executor, they also need tobe included in the formal model. To determine the execu-tion order of callbacks, an executor needs to know whichcallbacks have been released, and which are waiting to bereleased. Therefore, the callback models need to representthe release events and their time points. Other parametersthat inﬂuence the execution, such as execution time and pri-orities of callbacks, need to be included as parameters of theUTA template of callbacks as well. Furthermore, the callbacktemplates are designed to work with each executor model.
+Since there are four types of callbacks in ROS 2, in our
+models, we want to ﬁnd patterns and abstractions so thatall callbacks can be modeled based on the same templates.Generally, each callback is released on a deﬁned event. Suchevents are either the arrival of data or a signal from a systemtimer. Depending on the chosen approach, the communica-tion channels, may be modeled using two diﬀerent represen-tations.
+In our holistic approach, the arrival of data is modeled
+as a communication channel ﬁlling the input buﬀer, whichtriggers the execution of a data-triggered callback template.In the individual-node approach, the communication chan-nels are abstracted away and modeled as arrays storing thereleasing time points, which are used to ﬁll the input buﬀersat the deﬁned times. Accordingly, the callbacks are modeledeither as sporadic or periodic. In both approaches, timersare modeled as sporadic or periodic callbacks with an inputbuﬀer size of one. The input buﬀer utilization is modeled inthe callback templates, while the output buﬀer utilization ismodeled in the communication channel template.
+Allowing veriﬁcation of buﬀer sizes, we need model com-
+ponents representing the input and output buﬀer. In the caseof the selected veriﬁcation, the actual data stores are optional,but the utilization and arrival times of the messages are not.Hence, the buﬀers can be abstracted as a counter togetherwith an array of release times for simplicity. When data isreceived, the buﬀer’s utilization is increased, and a callbackis released. Depending on the policy, at the beginning of theexecution of the appropriate callback, the oldest data pointin the buﬀer is read and then removed, and the utilizationcounter is decreased. The variable showing the utilizationallows running queries to check for speciﬁc utilization andoverﬂow during all execution scenarios.
+Besides the data-triggered callbacks, there are time-
+triggered callbacks. Their behavior is equivalent to a buﬀersize of one. In this way, time-triggered callbacks can use thesame callback template as the data-triggered callbacks.3.2.1 Modeling publisher–subscriber communication
+Modeling publisher–subscriber communication involves at
+least one publishing, one subscribing node, and the commu-
+nication channel itself. An example of a system containing
+two publishing and one subscribing node to one topic can be
+found in Fig. 3. In the ﬁrst step, we explain how to model the
+communication between Node0 andNode1 , before show-
+ing the addition of more publishers and subscriptions. In the
+given scenario, Node0 consists of one periodic timer, that
+publishes data to the topic TopicH . On the other hand, there
+is a subscription callback in Node1 , subscribing to the topic.
+When modeling the sending node, ﬁrst we need to instantiate
+an executor, using an executor template. Next, we can initial-
+ize the timer callback using the periodic callback template
+and link it to the executor with the according id. To model
+the topic, we use the Topic Template. Modeling Node1 ,w e
+initialize a second executor with the Executor Template and
+the subscription callback with the Data Callback Template,
+linked to the executor. The sending of the data from the
+timer can be modeled by using synchronization between thetopic and the callback template. The reception of the data
+is modeled using synchronization between the topic and the
+subscription callback.
+Now, we are adding a new publishing node to the sys-
+tem ( Node0 ).Node0 consists of two periodic timers, each
+publishing to topic TopicH . First, the executor is modeled
+using the Executor Template. The timers are modeled using
+the periodic callback template and referenced to the execu-
+tor. Even though the timers are publishing to the same topic
+as the timer in Node0 , we need to create a new topic in-
+stance by using the Topic Template. This is due to the fact
+that the Topic Template contains the output buﬀer, which is
+individual to each node. Hence, the two timers in the samenode can synchronize to the same topic instance by using
+the samesender_id . Two topic instances still can represent
+the same Topic, when they share the same receiver id. That
+means that if topic templates initiate the forwarding of data,
+the same callbacks are synchronized and will be triggered.
+When modeling multiple subscriptions to the same topic,
+each subscriber needs to refer to the subscription ID of the
+related topic and will be triggered by message transmission.
+In comparison to modeling multiple publishers with multiple
+topic instances, there is no need for a new topic instance for
+a new subscriber. This is due to the message transition to thesubscription callback using a broadcast synchronization to
+all callbacks that use the same receiver.
+3.2.2 Modeling of service–client communication
+In this paragraph, we give a simple example of service-client
+communication. In ROS 2 systems, service–client commu-
+nication uses a directed request–response communication
+Springer
+
+--- Page 7 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 319
+Fig. 3 Example of a publisher and subscriber node (Color ﬁgure online)
+Fig. 4 Example of a model of a service and client communication between nodes (Color ﬁgure online)
+pattern. An example can be found in Fig. 4. To trigger the ex-
+ecution of a service, a directed request is sent from a callbackin the node that contains the client callback. In the given sce-nario, a periodic timer in Node0 triggers a service request,
+where the service function is executed in Node1 . Upon ﬁn-
+ishing the service, a response is sent back to Node0 ,t r i g -
+gering a client callback. To model the presented scenario,we can model Node0 by initializing an executor using the
+executor template. Next, we create a periodic callback repre-senting the timer by utilizing the periodic callback template,assigned to the executor. Furthermore, the client callback is
+created using the data callback template. Next, we model
+Node1 by creating another executor and the service call-
+back. To model the service client communication, we needtwo topic template instances. The ﬁrst is used to receive themessage from the timer callback and forward it to the ser-
+vice callback. The second topic instance is used to receive the
+message from the service callback and forward it to the clientcallback. Note, that with the current models, the modelingof one service to multiple clients is not possible due to the
+static sender and receiver synchronization in the topic UTA.
+Hence it is not possible to dynamically direct the messages
+and all connected clients would receive a response. Dynamic
+connection to topics is needed to answer the request to the
+correct callback. This is left to future work.
+3.2.3 Modeling of a processing chain
+After showing how to model communication, we give a sim-ple example of a processing chain in this section. An example
+of a minimalistic processing chain can be found in Fig. 5.
+The following scenario is considered for modeling: Node 0
+consists of one periodic timer that executes every second and
+publishes data to a topic Topic1. In Node1 , a subscription
+to Topic1 triggers a callback that executes and publishes a
+message in Topic2. Additionally, there is a periodic timer
+inNode1 .I nNode0 , a subscription callback is triggered on
+messages in Topic2. The templates with the holistic and in-
+Springer
+
+--- Page 8 ---
+320 L. Dust et al.
+Fig. 5 Example of a processing chain (Color ﬁgure online)
+dividual approaches can simulate the execution of callbacks
+in the Nodes. The approach of modeling the example is ex-
+plained in the following paragraphs.
+Holistic approach To model the scenario holistically, we
+can utilize the templates as shown with the blue circles in
+Fig.5.
+Individual approach Individual nodes can be extracted
+from the system and veriﬁed individually by utilizing the
+periodic and sporadic callback templates with the executor.
+Nevertheless, a more extensive system analysis is needed, as
+the release times of the callbacks need to be known as input
+parameters. While these parameters are simple to obtain for
+timers, message ﬂow analysis needs to be conducted man-
+ually for data-triggered callbacks, such as subscriptions, to
+determine the release times of the corresponding callbacks in
+the node. As an example, the subscription callback in Node0
+can be modeled using a sporadic callback template instead
+of the data callback template.
+Now, instead of modeling the communication, the release
+times of the subscription callback are taken as input param-
+eters to the model template. These must be determined by
+analyzing the execution of Node1 ’s publishing to Topic1. As
+the timer in Node 2 interferes with the publishing callback,
+even that must be considered when creating the release time
+array.
+4 Modeling of ROS 2 component templates
+in UPPAAL
+After explaining the abstractions that we introduce for our
+formal models, we present the created model templates inthis section. As mentioned before, Uppaal is used as a
+formal modeling and veriﬁcation tool throughout this paper.
+A template-based modeling approach is chosen to allow asimple conﬁguration of the models to verify ROS 2-based
+applications. As detailed in the previous sections, with the
+chosen abstractions and feature representation, there are two
+approaches to modeling ROS 2 applications. One approach
+is the holistic approach, where message passing is simulated,and the execution of nodes can be analyzed over processing
+chains. The other one is the individual-node approach, where
+communication is abstracted so that individual nodes can beveriﬁed simultaneously. In this section, we present and ex-
+plain our proposed UTA templates needed for each approach,
+respectively. Generally, both approaches can be implemented
+using three diﬀerent templates for callbacks, namely sporadic
+callback, periodic callback, and data-triggered callback.
+4.1 Modeling of callbacks
+In this work, we propose three diﬀerent UTA templatesto model callbacks, namely Data Callback, Sporadic
+Callback, Periodic Callback . While each template al-
+lows the modeling of all types of ROS 2 callbacks, they dif-
+fer in the approach to modeling callback releases. A Data
+Callback template release is triggered by another UTA
+modeling the data communication. In contrast, Sporadic
+Callback andPeriodic Callback releases are modeled
+with speciﬁed release times.
+First of all, we create a framework with the needed input
+parameters for each callback. The declaration and parame-
+ters is shown in Listing 1. The following parameters are in
+common for the three templates. The parameter idis used
+to diﬀerentiate between callbacks of the same type, which
+is deﬁned by the type , which is eitherSubscription,
+Springer
+
+--- Page 9 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 321
+Service, Client, or Timer . In addition, all callback
+templates contain the parameter exec_time to deﬁne the
+length of the execution and the executorID assigning a
+callback to an executor.
+Listing 1 Formal declaration of callbacks
+PeriodicCallback(id, exec_time, period, type,
+offset, BufferSize, publishers, publish_time[
+MAXPUB], publish_id[MAXPUB], executorID)
+SporadicCallback(id, exec_time, length, releases[
+MAXX], type, BufferSize, publishers,
+publish_time[MAXPUB], publish_id[MAXPUB],
+executorID)
+DataCallback(id, exec_time, topicID, type,
+BufferSize, publishers, publish_time[MAXPUB],
+publish_id[MAXPUB], executorID)
+To publish data into the communication channels,
+each callback template contains the parameters publish-
+ers, stating to how many channels the callback is pub-
+lishing. The parameters publish_time[MAXPUB] , and
+publish_id[MAXPUB] are arrays of a deﬁned size stating
+at what time during execution the callback is publishing andto what communication channel.
+As previously mentioned, the callbacks diﬀer in their re-
+lease. Hence, the parameters deﬁning the release are diﬀer-
+ing. The periodic callback takes the period and anoffset
+which delays the ﬁrs release as an input. The wall time call-back takes thelength deﬁning how many releases are mod-
+eled and,releases[MAXX] , an array of deﬁned size stat-
+ing the absolute release times. The data callback takes thetopicID to the triggering communication channel as an in-
+put.
+Besides the modeled release mechanism, the internal logic
+of a callback model follows the same general structure. A
+simpliﬁed overview of the general structure of the callbacktemplates is presented in Fig. 6. Note that the UTA presented
+in Fig. 6is a generalization and only partially shows guards,
+updates, as well as invariants and parameters of the created
+UTA templates.
+1
+Each callback has four diﬀerent components, shown with
+blue boxes in Fig. 6. These are theWaiting ,Released ,
+InReadySet andExecution components. Each callback
+starts in theWaiting component, where the callback is not
+ready for scheduling, as it is waiting for a releasing event.When such an event occurs, the callback is Released , mean-
+ing it is ready to be polled into the ready set by the executor.
+Generally, an executor only considers callbacks included in
+such a ready set for scheduling. The polling is modeled with
+1The complete model is online: https://sites.google.com/view/
+pbvros2nodes .
+Fig. 6 UTA template overview representing callbacks (Color ﬁgure
+online)
+a broadcast channel poll , synchronizing the callback with
+the executor, leading to the InReadySet location. Here, the
+callback is waiting to be scheduled for execution. A call-back being scheduled by the executor is modeled by the edge
+fromInReadySet toStartExecution , where the execu-
+tion component of the UTA template starts.
+The execution component contains three labeled locations
+for tracing and veriﬁcation, i.e., StartExecution at the
+start of the execution, Executing during execution, and
+ExecutionFinished at the end of the execution. During
+an execution, a self-loop edge triggers data to be sent after a
+deﬁned time. That must be possible for all callbacks using the
+holistic approach to trigger the communication channel tem-plates to simulate data sending. On location Executing and
+its outgoing edge to ExecutionFinished , there is an invari-
+ant and a guard, respectively, forcing the callback model to
+stay at locationExecuting for the deﬁned execution time.
+This models the duration of the callback execution. When
+an execution is ﬁnished, the UTA goes back to locations
+Waiting orReleased , depending on the number of un-
+handled releases. As the callback type is essential for theexecution order of callbacks, it is passed as an input parame-
+ter. To allow identiﬁcation of the callbacks, each callback of
+the same type in the same executor needs to have a uniqueid. In an ROS 2 system, the priority of a callback is deter-
+mined by the registration time, where the earliest registered
+callback has the highest priority. In our model, we use theid(Listing 1) parameter to set the priority. The callback
+withid0 has the highest priority, representing the ﬁrst ini-
+tialized callback of each type. Furthermore, as a system can
+contain multiple nodes with executors, each callback mustbe assigned to an executor by referencing the corresponding
+executorID .T h eexecutorID is passed as a parameter to
+the template, but for simplicity reasons not shown in Fig. 6.
+Springer
+
+--- Page 10 ---
+322 L. Dust et al.
+One of the model’s purposes is to verify buﬀer overﬂows,
+so the UTA contains a variable called buﬀerUtil .T h ev a r i -
+able represents the number of release instances contained inthe buﬀer. Together with a parameter representing the buﬀersize, those parameters are suﬃcient to model the input buﬀerof a callback. In case of a new release, we verify if the re-lease leads to a buﬀer overﬂow by checking if buﬀerUtil
+exceeds the buﬀer size. A designated boolean variable Over-
+ﬂowindicates if a buﬀer overﬂow has occurred. The variable
+is false by default and switched to true when an overﬂowoccurs. When no overﬂow occurs, a new release instance is
+stored by increasing the variable buﬀerUtil . Given the im-
+plemented mechanics, Overﬂow can be used as a property to
+verify buﬀer overﬂow, while buﬀerUtil can be used to check
+the maximal buﬀer utilization.
+Every location has a self-loop edge triggering the re-
+lease mechanism, which might happen at each location ofthe callback. In Fig. 6, such release loops are marked with
+red
+statements. The release edges are guarded by
+the next release time for releases modeled by release times orthe synchronized channel from the topic for releases modeledby communication in the holistic approach. When utilizingthe
+edge, the described buﬀer mechanism is used
+to store the new release. Furthermore, a timer speciﬁc to the
+instance in the ReleaseTimers array is reset. The timer can
+later be used to determine how much time has elapsed sincethe release of the callback. This is used to verify the callbacklatency.
+4.2 Modeling of communication channels
+Communication in ROS 2 is organized over the so-calledcommunication channels. These are either ROS 2 topics or
+services . The task of the channels is to transfer data from
+a sender to all receivers connected to the topic. In services,
+the request is directed where the client node sends a request,which will be executed in the server node and then sends aresponse that triggers a function in the client node.
+In this paper, we assume the assignment of publishers
+and subscribers, as well as services and clients, to be staticand conducted before runtime. Hence the mechanics of bothtypes of communication can be generalized, and only oneUTA template is needed to allow modeling of both kinds ofcommunication.
+Listing 2shows the declaration of the topic template with
+the deﬁned input parameters. The parameter sender_id al-
+lows synchronization to a sending callback using the sameid to initialize data transfer. The parameter receiver_id
+allows the template to synchronize to a callback to simulatedata reception. The parameters delay andmax_jitter are
+used to simulate delays and communication jitters. Finally,the parameterbufferSize deﬁnes the output buﬀer size of
+the communication channel.Listing 2 Formal Declaration of a communication channel
+Topic(receiver_id, sender_id, delay, max_jitter,
+bufferSize)
+The created UTA template for communication channels
+can be found in Fig. 7. Initially, the communication channel
+is in location idle, where it is waiting for communication
+to be initiated. The initiation of communication is mod-
+eled with a receiving synchronized channel, identiﬁed with a
+sender_id . Hence, the channel can be triggered from mul-
+tiple edges in diﬀerent nodes that use the same sender_id .
+The output buﬀer is modeled as a counter ( bufferUtil )
+and a constant stating the size. The sending of data from a
+callback triggers a function ( bufferUpdate ) that updates
+the output buﬀer via a synchronized channel. In the function
+bufferUpdate , it is ﬁrst checked if the buﬀer is full. If no
+overﬂow occurs, the value of the variable bufferUtil is
+increased by one. Next, when sending is initiated, two loca-
+tions are used to simulate the communication delay and the
+maximum jitter. In this model, the communication delay is a
+constant, where the transmission of data is delayed for a ﬁxed
+amount of time, modeled by the invariance and the guard onthe leaving edge. The maximum jitter is a time interval de-
+scribing a random delay to the transmission, modeled by the
+invariant in the location, but no guard on the leaving edge.
+When the delay and jitter are ﬁnished, the message is passed
+to the receiving callbacks. This is modeled by a broadcastchannel initialized from the topic template, identiﬁed by the
+receiver ID . This allows multiple receivers to enable a
+synchronization with the same topic, by enabling the syn-
+chronized transition using the receiver ID. Additionally, the
+element is removed from the output buﬀer. After the sending,the UTA either moves to location Idle, when no data is in
+the buﬀer or restarts a transmission when data is left in the
+buﬀer.
+4.3 Modeling of the executor
+The executor is the last type of UTA template needed to
+model an ROS 2 system. The executor, as ROS 2’s internal
+scheduling algorithm, determines in what order the released
+callbacks are executed. Generally, each node consists of at
+least one executor, and callbacks are assigned by the conﬁg-uration by the developer. As shown in the previous sections,
+with ExV1 and ExV2, two versions of the single-threaded
+executor exist, dependent on the chosen ROS 2 distributions.
+The signiﬁcant diﬀerence between the executor versions is
+the polling of timer callbacks, which is done continuouslyin ExV1 and only on deﬁned polling points in ExV2. In
+this section, we present our approach to modeling the ex-
+ecutor versions as UTA templates that can be instantiated
+with model parameters for an ROS 2 system simulation. In
+Listing 3we show the deﬁnition of the two templates of the
+Springer
+
+--- Page 11 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 323
+Fig. 7 UTA template overview
+representing communication
+channels (Color ﬁgure online)
+executor with their input parameters. In our implementation,
+the executor requires two parameters. Idassigns a unique
+id to the executor to synchronize to the callback templates.
+Hence, multiple executors can be initialized in the system
+while still being able to identify and assign callbacks to thecorresponding executor. Theoretically, it is possible to sim-
+ulate executors of diﬀerent types in the same system. The
+parameterStopTime is used to allow state space reduction
+while verifying a system. The parameter is used to cause a
+deadlock after the deﬁned elapsed system time. We allow theexploration of the whole state space, by using any negative
+value.
+Listing 3 Formal Declaration of an executor
+ExecutorV1(id, StopTime)
+ExecutorV2(id, StopTime)
+Both versions of the executor algorithm have two distinctive
+phases. The ﬁrst phase is the idle phase presented in Fig. 8
+and is similar to both executor versions. The second phase,
+the execution phase, diﬀers from ExV1 (Fig. 9(a)) to ExV2
+(Fig. 9(b)).
+Initially, the executor waits in its Idle location until at
+least one callback is released. The release of a callback uti-
+lizes a synchronized channel, identiﬁed with the executor ID
+(unique to each executor) to initiate the polling in the ex-ecutor. In Fig. 8it can be seen that two diﬀerent edges with
+guards lead to two diﬀerent polling locations. The diﬀer-
+ence is the simulation parameter StopTime . The parameter
+is implemented to allow veriﬁcation in a given time inter-
+val (StopTime >0) or inﬁnite time ( StopTime <0). When
+selecting a deﬁned interval, the model is forced into a dead-
+lock by an invariance in the following Poll location when the
+deﬁned stop time elapsed.
+When reaching the idle location, the polling sequence is
+started. During the polling, synchronized channels are usedto poll for released callbacks of any type. This sequence
+is conducted using committed locations so as not to inter-
+rupt the polling once it is started. Global variables track the
+number of released callbacks and their types. The counter
+for released callbacks of every type ( rs_tim ,rs_sub ,rs_srv ,
+rs_cli ) is increased once the polling channels trigger a tran-
+sition inside a callback. If no callback is released after the
+polling, and all the sets are zero, the executor will move tothe waiting state again until at least one callback has been
+triggered. In case a callback has been released by the polling
+and at least one set is greater than zero, the executor model
+continues with the execution phase that is shown in Fig. 9(a)
+for ExV1 and Fig. 9(b) for ExV2.
+During the execution phase of both versions of the ex-
+ecutor, the execution order is determined, and the callbackscontained in the released sets are executed one at a time. In
+ROS 2 systems, Timer callbacks have the highest priority
+and are executed ﬁrst. Subscribers, services, and clients fol-
+low them in descending order. Our model’s execution phase
+starts with the location FetchTimer . If a timer is contained
+in the ready set rs_tim , the execution of the timer callback
+will be initialized. If multiple timers are available, that with
+the highest priority is executed ﬁrst. The execution is initi-
+ated by the synchronized channel ExecStart leading to the
+ExecuteTimer location. The location will be held until the
+execution time of the callback elapses and the synchronized
+transitionExecDone is triggered by the callback. Then, the
+ready set is decreased as the execution is ﬁnished. The proce-
+dure is followed for all timer callbacks in the ready set before
+continuing with the subscribers, services, and clients. The
+diﬀerence between ExV1 and ExV2 is that in ExV1, once
+the execution of any callback has been ﬁnished, a polling
+sequence is conducted for timers only. If any timer has been
+released during that polling instance, the executor will goback to theFetchTimer location and execute the timer be-
+fore continuing with callbacks of other types.
+5 Application of pattern-based veriﬁcation
+After creating the UTA templates, this section explains howthey can be used to model an ROS 2 application and how to
+apply Uppaal queries to verify callback latency and buﬀer
+sizes.
+5.1 System composition
+When modeling a system, the templates presented in Sect. 4
+are used to compose the formal model.
+Templates are instantiated in the systems deﬁnition and
+ﬁlled with the required parameters. Listing 4shows the in-
+stantiation of the example of a publisher–subscription com-
+munication given in Sect. 3.2.1 using the holistic approach.
+Springer
+
+--- Page 12 ---
+324 L. Dust et al.
+Fig. 8 UTA template extract showing the polling of callbacks in the executor (Color ﬁgure online)
+Fig. 9 Execution component of the executor UTA templates (Color ﬁgure online)
+Listing 4 Example of an Uppaal system declaration for a publisher–
+subscriber communication
+const int StopTime = -1;
+TopicH = Topic(0,0,0,0,10);
+Node0 = ExecutorV2(0, StopTime);
+const int sequence1[MAXPUB]={0,0,0,0,0,0,0,0,0,0};
+Timer = PeriodicCallback(0, 5, 10, TIMER, 13, 1,
+1, sequence1, sequence1, 0);
+Node1 = ExecutorV1(1, StopTime);
+H = DataCallback(0, 5, 0, SUBSCRIBER, 10, 0,
+emptyArrayPub, emptyArrayPub, 1);
+system Node0, Node1, H, Timer, TopicH;
+First, the simulation time is deﬁned as a parameter de-
+scribing for what time the system should be veriﬁed. The
+value−1 stands for whole-state space exploration. Next, the
+topic is initialized using the parameters shown before. Next,
+the node executors are initialized with individual IDs and thesimulation time. Next, one periodic callback is initialized for
+the timer in Node0 , and a data callback for the subscription
+callback in Node1 . Note that sequence1 stands for the time
+the callback publishes its message during execution. Finally,
+the system is composed of the created components.Further examples for the service–client communication in
+Sect. 3.2.2 and the processing chain in Sect. 3.2.3 using the
+holistic and individual approach can be found in the appendix
+(Listings 5–7).
+5.1.1 Simulation and veriﬁcation
+In this section, we show how to use the model to simulate
+and verify the execution of ROS 2-based applications. Inthe ﬁrst step, the Uppaal simulator can either manuallyselect enables transitions to generate possible system tracesor randomly iterate through possible execution. Besides thecurrent locations of the used automata, system variables, and
+their values can be seen at any time. By utilizing the inbuilt
+Uppaal veriﬁer, exhaustive model checking on the UTA
+model can be performed. In this paper, we focus on verifyingthe input and output buﬀer overﬂow, such as the callback la-tency. Each callback contains a variable Overflow , initially
+false and set to true when an overﬂow occurs. Therefore,
+the absence of a buﬀer overﬂow can be veriﬁed by checking
+that for all states in every possible path ( A[]), the variable
+Overflow in a selected callback cbor topictpisfalse .
+Springer
+
+--- Page 13 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 325
+Examples of such queries can be found in Eq. ( 2), where XX
+either has to be replaced with the callback or the topic. A
+buﬀer overﬂow is always equivalent to an instance missedby a callback; hence, this query veriﬁes missing callback
+instances.
+A[] XX.Overflow==false (2)
+When the stated invariance does not hold, a buﬀer overﬂow
+is detected and a counterexample with a simulation trace canbe generated, ending with the invariance not being valid.
+The trace with the internal variables can then be analyzed.
+Depending on the Uppaal setting, either the fastest, thelongest, or a random trace can be generated. When the prop-
+erty of an absence of a buﬀer overﬂow is veriﬁed, a second
+query can be used to determine the maximum utilization ofthe buﬀer. This can be done by simply checking the supre-mum of the variable bufferUtil for a callbackcbor a topic
+tp,a ss h o w ni nE q .( 3). XX needs to replaced with either the
+callback or the topic. This value can be used to determineparameters for buﬀer size suﬃcient to hold all incoming andoutgoing releases for the given system parameters.
+sup:XX.bufferUtil (3)
+As the latency is deﬁned as the maximum time from the
+release of an instance to the end of the execution of the sameinstance, we need to know the release time and the end of the
+execution of any callback instance. Therefore, we included
+an array of timers and counters that keep track of the releasetimes of each callback instance The end of the execution ismarked by a location called ExecutionFinished .U s i n ga
+location-speciﬁc supremum evaluation for a callback cbat
+the locationExecutionFinished f o rat i m e rr e s e ta tt h e
+release of the callback instance, the longest callback latencycan be determined as follows:
+sup{cb.ExecutionFinished}:cb.relTim[cb.relcnt-1] (4)
+To generate an example trace containing the maximum la-
+tency for the selected callback, Eq. ( 5) can be used with XX
+being the determined latency. The query checks if, in any of
+the possible paths in any state, the execution of the callback
+is ﬁnished and the latency clock has the speciﬁc value. Ifsatisﬁed, the trace can be generated automatically.
+E<> cb.ExecutionFinished and cb.relTim[cb.relcnt-1]==XX (5)
+6 Evaluation
+In this section, we evaluate the model templates and their ap-
+plication to simulate and verify ROS 2-based applications.
+Therefore, we compare the veriﬁcation results with a realROS 2 execution on two scenarios of message passing be-
+tween two nodes in two scenarios. The ﬁrst scenario (SC1)
+focuses on sporadic callbacks and message passing. With thesecond scenario (SC2), we demonstrate buﬀer overﬂow us-
+ing a combination of sporadic and periodic execution. In both
+these scenarios we use two diﬀerent approaches, namely In-
+dividual andHolistic , as described under each scenario. The
+ROS 2 execution traces of actual executions are created by
+running the test system on a single computer using Docker
+to create a controlled environment. We conduct the experi-ments in ROS 2 Dashing (the last distribution that contains
+ExV1), Eloquent (the ﬁrst distribution that contains ExV2),
+andHumble (the latest long-time stable distribution that con-
+tains ExV2). A trace is created with each callback, recordingthe start and end of execution in the ROS 2 log.
+After evaluating the correctness of our models with real
+ROS 2 examples, with a third scenario (SC3), we give asimple example of a message passing between two nodesthat is used to demonstrate the veriﬁcation of output buﬀer
+overﬂow and the eﬀects of delays and message jitters. As this
+is hard to show in a real system with current analysis tools,we only show the application using our models.
+6.1 Scenario 1 (SC1): sporadic callbacks
+In this scenario, one node utilizes sporadic timers to sendmessage sequences over diﬀerent communication channelsto a second node, the execution of which is of interest in thisevaluation. The scenario is taken from a previous evaluation
+of the scheduling algorithm by Casini et al. [ 8]. Communi-
+cation channels are named after the priorities of the receiv-ing callback in Node1. Therefore, topics are called H, M, L
+(High, Medium, Low) and services SH, SM, and SL (Service
+High, Service Medium, Service Low). To make the execution
+times of the callbacks deterministic and to simplify evalu-ation, we implement a function that runs for 500 ms. This
+function is called from each callback in Node1 . Additional
+time overhead through variable instantiation and the func-tion call within the callback is negligible compared to the500 ms execution time of the function. In addition to the data
+callbacks in Node1, there are four timer callbacks. Except for
+the timer callbacks with a static buﬀer size of one, all inputand output buﬀer sizes are set to 10. Two message sequences(S0andS1) are transmitted from Node0 to Node1: S0is re-
+leased after 0 seconds and consists of data being sent in the
+following communication channels: <L; M; H; SH; SL; L;
+M; H; SH; SL >;S1is released after 1.5 seconds and triggers
+data sending in the channels <𝑆𝑀 ;𝑆𝑀;𝐻>. Additionally
+to the message sequences, the timers T0 and T1 release after0.2 seconds, while T2 and T3 release after 2.3 seconds. Atrace of an observed execution of the scenario with ExV1 and
+ExV2 in a ROS 2 system can be found in Fig. 10.I nE x V 1
+(upper trace), timers are scheduled immediately after their
+Springer
+
+--- Page 14 ---
+326 L. Dust et al.
+Fig. 10 Execution diagram of Node1 executing SC1 on diﬀerent ROS
+2 distributions. Sequence releases are marked in blue and releases of
+timers in red (Color ﬁgure online)
+release, and the execution of the current callback is ﬁnished.
+In ExV2 (bottom trace), timers are scheduled after executing
+all remaining callbacks in the ready set.
+6.1.1 Modeling and veriﬁcation of the system
+In this section, we present how the system in this scenariois modeled via two types of approaches, i.e., the individual
+approach and the holistic approach. Then, we present howmodel checking is employed to verify the models as well as
+the veriﬁcation result.
+Individual Approach . Using the individual approach for
+modeling the execution of Node1, communication is ab-
+stracted to release times, which can be obtained by analyzing
+the communication. For example, it can be determined that
+callback H is released twice at time 0 and once at 1.5 seconds.
+After manually obtaining the release times, all callbacks inNode1 are modeled using the sporadic callback templates.
+Furthermore, all callbacks are linked to the same executor
+model, as they are executed in the same node. We set thesimulation time parameter to −1 to simulate the scenario
+until the end.
+Holistic Approach . In the holistic approach, we include
+the communication between the Nodes. As we are inter-
+ested in the execution of Node1, we can still make some ab-
+stractions (such as removing the client callback in Node0).
+However, we set up Node0 with an executor and two timer
+callbacks. The timer callbacks release messages through dif-ferent communication channels. Therefore, we must use the
+topic templates to create one model for each communica-
+tion channel. We model the timers to release the callbacksin Node0 with an execution time of 0 and the message send
+time after 0 seconds. This abstraction is to model the scenarioTable 1 Determined Latencies using Eq. ( 4) SC1 for the individual
+approach (UI) and the holistic approach (UH)
+ExV1 ExV2
+Callback Real UI UH Real UI UH
+T0 0.8 0.8 0.8 2.8 2.8 2.8
+T1 1.3 1.3 1.3 3.3 3.3 3.3
+T2 0.7 0.7 0.7 1.7 1.7 1.7
+T3 1.2 1.2 1.2 2.2 2.2 2.2
+H 6.5 6.5 6.5 6.5 6.5 6.5
+M 5.5 5.5 5.5 5.5 5.5 5.5L 6.0 6.0 6.0 6.0 6.0 6.0
+SH 6.5 6.5 6.5 6.5 6.5 6.5
+SM 7.0 7.0 7.0 7.0 7.0 7.0
+SL 7.5 7.5 7.5 7.5 7.5 7.5
+accurately, assuming that messages have arrived at time 0.
+Now, we model Node1 with an individual executor and the
+data-triggered callback templates, with one instance for each
+data-triggered callback linked to the communication chan-nel. Furthermore, we instantiate the timers using the sporadiccallback templates.
+Veriﬁcation of Latency and Buﬀer Overﬂow . We model
+the system with all messages being received and, accordingto callbacks, being released at time 0 before the executorstarts to schedule the callbacks. We model this by giving the
+executor the lowest priority in the system. Now, we employ
+Uppaal to perform model checking against the queries in
+the form of Query ( 2) for checking the possible eventual
+buﬀer overﬂow. Further, we calculate the callback latenciesby running queries in the form of Query ( 4). In this scenario,
+the buﬀer sizes are set to 10, so that there should be no buﬀeroverﬂow. We use the created model to verify the property foreach communication channel’s input and output buﬀers.
+Table 1shows the observed results for the maximum la-
+tency. It can be seen that both approaches show the samemaximum latencies as observed in the real system execution.
+Naturally, the checking of the Holistic Approach takes
+longer (up to 7.3 seconds for the holistic approach comparedto 0.5 seconds for one query in the individual approach) dueto the system complexity.
+6.1.2 System simulation and trace analysis
+Next, we use the symbolic simulator in Uppaal to generaterandom traces of the model. We verify the correctness of themodels by comparing the simulated execution traces with theobserved ones. We can also conﬁrm that the traces match theexecution.
+Springer
+
+--- Page 15 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 327
+Fig. 11 Execution diagram of Node1 executing SC2 on diﬀerent ROS
+2 distributions. Sequence releases are marked in blue and releases of
+timers in red (Color ﬁgure online)
+6.2 Scenario 2 (SC2): periodic callbacks and
+input buﬀer overﬂow
+In SC2, we create a system similar to SC1 with just one
+change: Node1 contains only one instead of four timerstogether with the service and subscription callbacks. Thetimer is set to be released periodically every 1.3 seconds.
+Four message sequences ( S0, S1, S2, S3 ) are sent from
+Node1 to Node 2: S0is released after 0 seconds, triggering
+<𝐻;𝑀;𝐿;𝑆𝐻;𝑆𝑀;𝑆𝐿> ;S1is released after 3.2 seconds
+and triggers <𝐻;𝑀;𝐿>;S2is released after 4.5 seconds
+and triggers <𝑆𝐻 ;𝑆𝑀 > ;S3is released after 6.3 seconds
+and triggers <𝐻> . A resulting execution trace in a real ROS
+2 system with ExV1 and ExV2 can be found in Fig. 11.I n
+ExV2, it can be seen that timer T0only executes four times,
+even though it is released six times. This is caused by aninput buﬀer overﬂow as a result of a block of the callbackthat spans more than one period. In ExV1, T0is executed for
+each release when a buﬀer overﬂow occurs.
+6.2.1 Modeling of the system
+We model the given scenario utilizing the created UTA tem-
+plates. We create models for both the individual and the
+holistic approach.
+During a ﬁrst veriﬁcation round, we assume that all mes-
+sages are being received and the corresponding callbacks arereleased at 0 seconds before the executor schedules the call-backs (A1). We model this by giving the executor the lowest
+priority in the system.
+In a second veriﬁcation round, we assume that messages
+must not be received before the scheduling of the executorTable 2 Determined Latencies using Query ( 4) in SC2 with the indi-
+vidual approach (UI), the holistic approach (UH) for the two assump-
+tions (A1,A2)
+at 0 seconds (A1). Hence, all system components have the
+same priority.
+Individual Approach . To model the behavior of callbacks
+in Node1, we use sporadic callbacks for all callbacks trig-
+gered by messages. We initialize the release times to whenthe data will arrive in the node. The timer is modeled as
+a periodic timer released every 1.3 seconds, with an oﬀset
+of 1.3 seconds, as it is not released at time 0. We link all
+callbacks to one instance of an executor.
+Holistic Approach . Following the holistic approach, we
+implement the ﬁrst node by creating four timers that send the
+sequences once they are executed. The timer callbacks re-lease the messages according to the scenario through the dif-
+ferent communication channels. Therefore, we use the topic
+templates to create one model for each communication chan-
+nel. Besides using one periodic timer with a period of 1.3
+seconds in Node1, the conﬁguration is similar to SC1.
+Veriﬁcation of Latency and Buﬀer Overﬂow . In the ﬁrst
+step, we use Uppaal to check for buﬀer overﬂow in all
+callbacks in both approaches for both scenarios. Using the
+Uppaal queries in the form of Query ( 2), we detect a buﬀer
+overﬂow in ExV2 with both approaches and assumptions.
+That veriﬁcation result corresponds to the actual execution.
+Now, we use Uppaal to calculate the maximum latency bychecking queries in the form of Query ( 4). The results are
+in Table 2. Naturally, the checking of the Holistic Approach
+takes longer (up to 1.5 seconds for A1 and 66 seconds for A2
+using the holistic approach compared to 0.2 seconds for A1
+and 1.5 seconds for A2 using the individual approach) due tothe system complexity. The results show that in ExV1, with
+A1, both approaches detect a longer maximum latency for
+T0 than the observed execution trace (red). Furthermore, the
+holistic approach determines even higher latency for SH and
+SM (red). For ExV2, no deviation can be seen with A1. Using
+A2, both approaches (holistic and individual) detect higher
+latencies for almost all callbacks (blue). The deviations andtheir causes are analyzed further in the following section.
+6.2.2 System simulation and trace analysis
+To analyze the determined diﬀerences, we use the veriﬁerto generate system traces that we can compare and analyze
+Springer
+
+--- Page 16 ---
+328 L. Dust et al.
+Table 3 Traces for the diﬀerent scenarios using Query ( 5)( C o l o r
+ﬁgure online)
+using Query ( 5). Generally, the observed execution shows
+only one possible execution path, as it is only one execution.
+Other paths may show up in a real scenario after repeatedexecution. Nevertheless, if the models are exhaustive, allpossible traces of an observed execution should be able tobe observed in the possible traces generated by the model.Therefore, in the ﬁrst step, we validate the faithfulness ofour formal models by checking if the observed trace from
+the observed execution can be generated using the models,
+which we can conﬁrm.
+Next, we use the Uppaal veriﬁer to generate system
+traces of the cases where the higher latencies are deter-mined as the observed execution. In the following Table 3,
+we present the execution order from an observed executioncompared with the execution order from sample traces forthe higher latencies determined by the models.
+The explanation for the diﬀerence in the observed latency
+and the maximum latency determined by the individual andthe holistic approach is as follows: The order of executionof the last instance of callback SHandT0can vary. That
+variation is caused by the release of a callback and thesimultaneous polling of an executor. The execution orderis nondeterministic and depends on which path the model
+takes ﬁrst, meaning that the execution order might change.
+The experiment in the observed execution only demonstratesone of the possible paths. The model-checking is exhaus-tive, so the model detects additional paths that are possiblebased on the conﬁguration. This highlights the usefulnessof the model checking. Nevertheless, the same settings inthe models should be able to generate the same results. Thediﬀerences between the Individual and Holistic approaches
+in A1 are based on the following assumption: at time 0,
+the corresponding messages should be received before theexecutor schedules, and we set the executor to the lowestpriority. This means that when messages are released at aspeciﬁc time point, the callback is released before the ex-ecutor performs any actions like polling or scheduling. Theindividual approach always takes precedence when multiple
+events occur simultaneously: messages are being transferred
+ﬁrst, and callbacks are released before the executor executes.However, this is only valid for the initialization in the holis-tic approach. Hence, in a later phase, the message passingTable 4 Results using Query ( 2), and Query ( 4)i nS C 3
+BuﬀerSize 3 2
+Delay 0 1 0 0 1 0
+Max Jitter 0 0 1 0 0 1
+Possible Overﬂow No No No Yes Yes Yes
+Max Latency 15 13 15 15 9 15
+is simulated through a callback sending and a callback re-
+ceiving, which are actions dependent on diﬀerent executors.Depending on which executor is modeled to execute ﬁrst,the assumption that messages are being sent and receivedﬁrst is no longer valid after the initial stage of the veriﬁca-tion. Consequently, this overapproximation can identify evenmore potential system faults.
+With assumption 2, we observe that even the individual
+approach, without prioritization of the executors, can gen-
+erate the same approximation of the system execution pathsas the holistic approach. By analyzing the obtained resultsand traces further, we conclude that the generated paths forthe maximum latencies are theoretically possible, and there-fore, the determined latencies are achievable. Furthermore,the errors discovered by model checking are potential errors(which might appear sometime) in the system, as Uppaalchecks all possible model executions that might not manifestin the observed ROS 2 traces. However, they could manifest(hence, be observed) under the right conditions.
+6.3 Scenario 3 (SC3): output buﬀer overﬂow
+With SC3, we show the application of modeling and ver-
+iﬁcation communication delay and latency and an output
+buﬀer overﬂow. As with the current interfacing applicationsof ROS 2, it is not possible to create a controlled environmentto make this repeatedly observable in an actual execution; weonly focus on a theoretical scenario. In our UTA templates,the output buﬀer is included in the topic template. Hence, wecan only run veriﬁcation using the holistic approach that in-cludes the topic template and a data triggered callback UTA.In this scenario, we implement one callback that is releasedonce and instantly sends three data points to a topic. In theﬁrst iteration, we set the topic’s output buﬀer size to 3 be-fore setting it to 2 in the second iteration. For each iteration,we ﬁrst simulate with zero jitter and zero delay, then with a
+delay of 1 and no jitter, and then with a jitter of 1 and no
+delay. The veriﬁcation outcomes can be found in Table 4.
+The diﬀerence between the delay and the jitter is that thedelay applies to all instances of communication, while thejitter is between zero and the selected number. The importantﬁnding is that with a buﬀer size of 2 and a delay of 1, themaximum latency is actually reduced compared to the buﬀersize of 3 with a delay of 1. That might lead to the conclusion
+Springer
+
+--- Page 17 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 329
+that a buﬀer size of 2 might actually be better. Nevertheless,
+in the given case, the lower latency can only be observed
+when a buﬀer overﬂow occurs. The overﬂow leads to one
+less execution of the callback. If the callback would have
+been executed, a higher latency would have been observed.
+Therefore, it is important to check both, buﬀer overﬂow and
+the latency when adapting the buﬀer size.
+7 Answers to the research questions
+In this section we address the research questions based onour implementation and experimental evaluation.
+RQ1: Given the two versions ExV1 and ExV2 of single-
+threaded executors in ROS 2, how can we ensure the cor-
+rectness of a design of ROS 2-based systems concerning the
+behavior of timer callbacks, callback latency, and the sizes
+of input buﬀers of callbacks?
+Answer: In this paper, we apply pattern-based veriﬁcation
+to verify the correctness of ROS 2 applications. We create
+formal model templates of ROS 2 components that can be
+composed of system models. Then, model checking can be
+performed on the created models to verify callback latency
+and buﬀer sizes.
+RQ2: What are the patterns for modeling ROS 2 systems
+that can be reused in veriﬁcation?
+Answer: Our created model templates allow two veriﬁ-
+cation approaches with diﬀerent levels of abstraction. In the
+ﬁrst, nodes are modeled individually. The execution of other
+nodes and communication is replaced by release time pa-
+rameters that represent the arrival time of data. In the givenapproach, every callback can be modeled as a sporadic call-
+back with deﬁned release times or periodic callbacks with
+deﬁned periods. While timer callbacks have a static buﬀer
+size of one, the buﬀer size for the other types of callbacks
+is conﬁgurable. In the second approach, systems are mod-
+eled holistically. Callbacks and their communication chan-
+nels are modeled as system components. Nevertheless, onlythe events of message passing are of interest, not the trans-
+mitted data. In this approach, even the modeling of output
+buﬀers is possible as abstract message transport is simu-
+lated. In both approaches, other execution-relevant parame-
+ters, such as buﬀer sizes, execution times, and types of ROS
+2 callbacks, are passed as arguments to the created templates.
+The actual data communicated over the network and the exe-cution logic of the callbacks are not relevant to the identiﬁed
+veriﬁcation goal. Hence, buﬀers can be modeled as counters.
+Diﬀerent templates can be used to model the semantics of the
+ROS 2 mainline executor versions, all of which work with
+the created callback templates. We validate the determinedpatterns by comparing the simulation traces of the model to
+the actual system execution.RQ3: Can model checking ﬁnd the errors of ROS 2 sys-
+tems which are shown in experiments, but also reveal poten-
+tial errors that are not discovered via experimental evalua-tion?
+Answer: In our experimental evaluation, we compared
+veriﬁcation results to observed system execution. First, we
+ensured that all observed traces in reality were contained inthe set of traces from the models. Hence, we could verify thatthe models could ﬁnd the presented errors in the scenario.
+Furthermore, with both created modeling approaches, it was
+possible to determine traces that lead to higher latency thanthe initially observed one. We manually analyzed those tracesto conﬁrm that these traces are theoretically possible in a
+real system. As they lead to a higher latency, they might be
+seen as potential system errors. Therefore, we can conﬁrmthat model checking can ﬁnd potential errors in an ROS 2application that might not be discovered in experiments.
+RQ4: How does the approach of modeling an application
+holistically diﬀer from the approach of modeling callbacksindividually?
+Answer: Modeling a system with the individual node ap-
+proach requires extensive analysis and understanding of the
+system. Especially in processing chains, the execution of pre-vious nodes needs to be understood to determine the releasetimes of the callbacks in the node under evaluation. Further-
+more, eﬀects such as communication jitters are more com-
+plicated to model, and output buﬀers are excluded. Neverthe-less, executing the veriﬁcation computation takes less timeand resources, as the state space is minimal. When modeling
+a system with a holistic approach, more eﬀort is required.
+More components must be included in the model, increas-ing the state space. Hence, the computation time increasesdrastically for complex systems. Both methods obtained the
+same critical paths and latencies in the experiments without
+the system execution assumptions. With assumptions, theholistic approach detected more critical paths.
+8 Related work
+The ROS 2 scheduling problems that we are studying in thispaper have been identiﬁed within the real-time systems com-munity, as follows. Blass et al. [ 6] assume the executor model
+that includes timers as part of the ready set, and carry out
+the response time analysis for callbacks in a node, using thesingle-threaded executor and reservation-based scheduling.Investigating the same problem, Tang et al. [ 18]u s et h ee x -
+ecutor model with timers excluded from the ready set instead.
+Both works are pivotal for the research presented in this pa-per, and the experiments conducted illustrate the diﬀerencesin the revised executor model, consistently.
+Even though callback latency veriﬁcation resembles
+WCET analysis, the former in ROS 2 extends WCET analysis
+Springer
+
+--- Page 18 ---
+330 L. Dust et al.
+to distributed systems with complex internode communica-
+tion and diverse scheduling behaviors. While WCET typ-
+ically assumes predictable task preemption and execution,ROS 2 introduces unique challenges due to the following:
+(i) callback execution often depends on asynchronous mes-
+sage passing and scheduling policies, making direct reuseof WCET techniques challenging, (ii) ROS 2’s executor in-troduces additional complexity. For example, diﬀerent ver-
+sions of ROS 2 executors (e.g., ExV1, ExV2) exhibit dis-
+tinct polling and scheduling mechanisms that directly impactcallback latencies, and (iii) unlike traditional WCET analy-
+sis, ROS 2 systems must consider buﬀer sizes and potential
+overﬂows, particularly for time-triggered callbacks, as high-lighted in our work.
+The existing related work that uses Uppaal for WCET
+analysis [ 1,9] reduces to computing the longest path (time-
+wise) in a network of timed automata and does not accountfor ROS 2-speciﬁc features such as dynamic executors, topic-
+based communication, or data-driven callbacks. In compar-
+ison, our work addresses the mentioned challenges, usingmodular TA templates for modeling ROS 2 nodes, their in-teractions, and timing behaviors. These templates facilitate
+the analysis of callback latencies and buﬀer overﬂows, as
+described in Sects. 3and4of our paper.
+The formal veriﬁcation of both the communication and
+computational aspects of ROS 2 has garnered considerable
+attention lately. Halder et al. [ 11] present a methodology
+aiming to model and validate ROS 2 communication amongnodes using Uppaal. In their approach, akin to ours, they
+incorporate low-level parameters like queue sizes and time-
+outs into their TA models to verify queue overﬂow. However,their methodology lacks the consideration of callback latency
+veriﬁcation and does not encompass the two models of ROS 2
+single-threaded executors. Furthermore, their work does notinclude the validation of formal models, a step which we un-dertake in our research through the utilization of simulation
+experiment results.
+Carvalho et al. [ 7] introduce a model-checking technique
+aimed at verifying system-wide safety properties in message-
+passing architectures. This approach is rooted in formalizing
+ROS launch conﬁgurations and the loosely deﬁned behav-iors of individual nodes, utilizing an Alloy extension namedElectrum and its Analyzer. Electrum models are automati-
+cally generated from conﬁgurations obtained via continuous
+integration and speciﬁcations provided by domain experts.Their methodology emphasizes high-level architectural ver-
+iﬁcation of message passing. In contrast, our research delves
+into lower-level model checking, speciﬁcally examining thescheduling of single-threaded executors under two distincttimer semantics observed in various ROS 2 distributions.
+Webster et al. [ 20] propose a formal veriﬁcation methodol-
+ogy for industrial robotic programs utilizing the SPIN modelchecker. Their focus lies in behavioral reﬁnement and veri-
+fying selected robot requirements. Although their solution is
+applied to an existing personal robotic system, it is not ROS-speciﬁc and primarily targets the veriﬁcation of high-leveldecision-making rules.
+Anand and Knepper [ 4] present ROSCoq, a Coq frame-
+work tailored for the development of certiﬁed systems inROS. This framework leverages CoRN’s theory of construc-tive real analysis to address computations involving real num-
+bers. Their methodology follows a “correct-by-construction”
+approach, diﬀering from ours but oﬀering complementaryperspectives. However, our focus lies in verifying diversetimer scheduling mechanisms present in ROS 2 distributions,
+an aspect not covered in their work.
+9 Conclusion and future work
+In this paper, we utilize pattern-based veriﬁcation to ensurethe correctness of ROS 2-based applications using Uppaal.
+In our approach, formal speciﬁcation serves as the foundationfor analyzing ROS 2 systems, ensuring precision and elimi-nating ambiguity. Our work extends formal speciﬁcation by
+creating reusable TA templates for various components of
+ROS 2 systems, including: (i) callback execution, (ii) execu-tor behavior (single-threaded, ExV1 and ExV2 versions),and (iii) communication mechanisms (topics and services).
+These templates enable modular and systematic modeling,
+reducing the complexity and eﬀort required to model newROS 2 systems. Model checking is employed in our approachto exhaustively explore the state space of an ROS 2 applica-
+tion model to ensure compliance with speciﬁed properties,
+such as: a) Callback Latency: Model checking ensures thatcallback latencies remain within acceptable limits by veri-fying the time elapsed between callback release and com-
+pletion; b) Buﬀer Overﬂows: The tool checks for scenarios
+where input or output buﬀer overﬂows might occur, poten-tially leading to missed callback instances or loss of data; andc) Deadlocks and Scheduling Issues: Model checking identi-
+ﬁes issues like deadlocks in callback execution or scheduling
+anomalies caused by nonpreemptive executors.
+Therefore, we create UTA templates that can be initial-
+ized with parameters composed of system models. The sys-
+tem models can be used to generate system traces and to
+execute veriﬁcation queries to ensure the correctness of sys-tem design regarding buﬀer sizes and callback latency. Thecreated templates allow two approaches to veriﬁcation. In
+the ﬁrst, nodes are modeled individually, while in the second
+approach, the system is modeled holistically. While the ﬁrstapproach requires more initial eﬀort in system analysis, it isfaster in executing veriﬁcation queries. The second approach
+requires more eﬀort in modeling actions but less knowledge
+of ROS 2 and the system. Two versions of the mainline
+Springer
+
+--- Page 19 ---
+Pattern-based veriﬁcation of ROS 2 applications using UPPAAL 331
+single-threaded executor are included in the models. In our
+experimental evaluation, we show veriﬁcation’s usefulnessand that veriﬁcation can ﬁnd potential system errors that
+might be overlooked in experiments. System traces leading
+to such system errors can be created automatically and used
+to analyze the issues. The created models only include the
+ROS 2 internal execution, assuming 100% availability of theexecuting thread. The detected system errors remain possible
+when the computation reservation is decreased. Neverthe-
+less, new system errors might exist that are not covered by
+our models. The models allow future improvements and re-
+ﬁnements to verify other properties, such as data age. In ourcurrent work, we are leveraging Uppaal, which supports a
+subset of CTL. Within the given subset of CTL, an exten-
+sion towards liveness properties would be desirable and is
+left to future work. It is also very important to conduct more
+evaluation on scalability of the approach. When scaling to
+many nodes in a network, the veriﬁcation might get com-
+plex fast. Hence, state space reduction and optimization aredesired. Also, other approaches using diﬀerent formal veri-
+ﬁcation tools and formal modeling languages are of interest
+for extending the work.
+Furthermore, ROS 2 also supports multithreaded execu-
+tors, which can be implemented as alternative executor tem-plates in future versions. Additionally, the created approach
+to modeling communication channels can be improved by
+modeling dynamic connections under runtime for a bet-
+ter model of service–client communication. More extensive
+analysis on formal semantics of ROS 2, the level of over-approximation of the created models and formal proof of
+bisimulation is desirable for additional future work. Over-
+all, the veriﬁcation and modeling approach proposed in
+this paper is a ﬁrst step toward pattern-based veriﬁcation
+of ROS 2-based applications and distributed robotic sys-
+tems.
+Appendix: System model declarations in
+UPPAAL
+Listing 5 Example of a Uppaal system declaration for a service
+client communication
+const int StopTime = -1;
+Request = Topic(0,0,0,0,10);
+Response = Topic(1,1,0,0,10);Node0 = ExecutorV2(0, StopTime);
+const int sequence1[MAXPUB]={0,0,0,0,0,0,0,0,0,0};
+Timer = PeriodicCallback(0, 5, 10, TIMER, 10, 1,
+1, sequence1, sequence1, 0);
+Client = DataCallback(0, 5, 1, CLIENT, 10, 0,
+emptyArrayPub, emptyArrayPub, 0);
+Node1 = ExecutorV1(1, StopTime);const int publishTimes[MAXPUB
+]={5,0,0,0,0,0,0,0,0,0};
+const int publisherIds[MAXPUB
+]={1,0,0,0,0,0,0,0,0,0};
+Service = DataCallback(0, 5, 0, SERVICE, 10, 1,
+publishTimes, publisherIds, 1);
+system Node0, Node1, Service, Timer, Client,
+Request, Response;
+Listing 6 Example of a Uppaal system declaration for a processing
+chain (holistic approach)
+const int StopTime = -1;
+Msg1 = Topic(0,0,0,0,10);
+Msg2 = Topic(1,1,0,0,10);
+const int publishTimes[MAXPUB
+]={5,0,0,0,0,0,0,0,0,0};
+Node0 = ExecutorV2(0, StopTime);
+const int N0PublisherIds[MAXPUB
+]={0,0,0,0,0,0,0,0,0,0};
+Timer = PeriodicCallback(0, 5, 10, TIMER, 0, 1, 1,
+publishTimes, N0PublisherIds, 0);
+Node1 = ExecutorV1(1, StopTime);
+const int N1PublisherIds[MAXPUB
+]={1,0,0,0,0,0,0,0,0,0};
+PubSub = DataCallback(0, 5, 0, SUBSCRIBER, 10, 1,
+publishTimes, N1PublisherIds, 1);
+Timer2 = PeriodicCallback(0, 5, 15, TIMER, 5, 1,
+0, publishTimes, N1PublisherIds, 1);
+Node2 = ExecutorV1(2, StopTime);
+const int N2PublisherIds[MAXPUB
+]={0,0,0,0,0,0,0,0,0,0};
+Sub = DataCallback(0, 5, 0, SUBSCRIBER, 10, 0,
+publishTimes, N2PublisherIds, 2);
+system Node0, Node1, Node2, Timer, Timer2, PubSub,
+Sub, Msg1, Msg2;
+Listing 7 Example of a Uppaal system declaration for a node in a
+processing chain (individual node approach)
+const int StopTime = 50;
+const int releases[MAXX
+]={15,20,30,45,0,0,0,0,0,0};
+ExecV1 = ExecutorV1(0,StopTime);
+Sub = SporadicCallback(0, 5, 4, releases,
+SUBSCRIBER,10, 0, emptyArrayPub, emptyArrayPub
+,0 ) ;
+system ExecV1, Sub;
+Acknowledgements This work has been supported by the Swedish
+Knowledge Foundation via the proﬁle DPAC – Dependable Platformfor Autonomous Systems and Control, grant nr: 20150022, the synergy
+ACICS – Assured Cloud Platforms for Industrial Cyber-Physical Sys-
+tems, grant nr. 20190038, and SEINE – Automatic Self-conﬁgurationof Industrial Networks, grant nr: 20220230, and by the Swedish Gov-
+ernmental Agency for Innovation Systems (VINNOVA) via the INTER-
+CONNECT, PROVIDENT, and FLEXATION projects.
+Springer
+
+--- Page 20 ---
+332 L. Dust et al.
+Funding information Open access funding provided by Mälardalen
+University.
+Open Access This article is licensed under a Creative Commons At-
+tribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, as longas you give appropriate credit to the original author(s) and the source,provide a link to the Creative Commons licence, and indicate if changeswere made. The images or other third party material in this article areincluded in the article’s Creative Commons licence, unless indicatedotherwise in a credit line to the material. If material is not included inthe article’s Creative Commons licence and your intended use is notpermitted by statutory regulation or exceeds the permitted use, you willneed to obtain permission directly from the copyright holder. To view acopy of this licence, visit http://creativecommons.org/licenses/by/4.0/ .
+References
+1. Al-Bataineh, O., Reynolds, M., French, T.: Accelerating worst case
+execution time analysis of timed automata models with cyclic be-
+haviour. Form. Asp. Comput. 27, 917–949 (2015)
+2. Albonico, M., Dordevic, M., Hamer, E., Malavolta, I.: Software
+engineering research on the robot operating system: a systematic
+mapping study. J. Syst. Softw. 197, Article ID 111574 (2023).
+https://doi.org/10.1016/j.jss.2022.111574
+3. Alur, R., Dill, D.L.: A theory of timed automata. Theor. Comput.
+Sci.126(1994)
+4. Anand, A., Knepper, R.: Roscoq: robots powered by constructive
+reals. In: Urban, C., Zhang, X. (eds.) Interactive Theorem Proving,
+pp. 34–50. Springer, Cham (2015)
+5. Baier, C., Katoen, J.P.: Principles of Model Checking. MIT Press,
+Cambridge (2008)
+6. Blaß, T., Casini, D., Bozhko, S., Brandenburg, B.B.: A ROS
+2 response-time analysis exploiting starvation freedom and
+execution-time variance. In: IEEE Real-Time Systems Symposium,pp. 41–53. IEEE Press, New York (2021)
+7. Carvalho, R., Cunha, A., Macedo, N., Santos, A.: Veriﬁcation
+of system-wide safety properties of ROS applications. In: 2020IEEE/RSJ International Conference on Intelligent Robots and Sys-tems (IROS) (2020)
+8. Casini, D., Blaß, T., Lütkebohle, I., Brandenburg, B.: Response-
+time analysis of ROS 2 processing chains under reservation-basedscheduling. In: 31st Euromicro Conference on Real-Time Systems,
+pp. 1–23 (2019)
+9. Dalsgaard, A., Olesen, M., Toft, M., Hansen, R., Larsen, K.:
+METAMOC: modular execution time analysis using model check-
+ing. In: Proceedings of the 10th International Workshop on Worst-
+Case Execution-Time Analysis (WCET2010) (2010)
+10. Dust, L., Gu, R., Seceleanu, C., Ekström, M., Mubeen, S.: Pattern-
+based veriﬁcation of ROS 2 nodes using UPPAAL. In: FMICS
+2023 – International Conference on Formal Methods for IndustrialCritical Systems (2023)
+11. Halder, R., Proença, J., Macedo, N., Santos, A.: Formal veriﬁcation
+of ROS-based robotic applications using timed-automata. In: 2017IEEE/ACM 5th International FME Workshop on Formal Methods
+in Software Engineering (FormaliSE), pp. 44–50 (2017)
+12. Hendriks, M., Yi, W., Petterson, P., Hakansson, J., Larsen, K.,
+David, A., Behrmann, G.: UPPAAL 4.0. In: Third Interna-
+tional Conference on the Quantitative Evaluation of Systems –
+(QEST’06) (2006)
+13. OpenRobotics: Ros: Distributions (2023). http://wiki.ros.org/
+Distributions
+14. OpenRobotics: Ros 2: Distributions (2023). https://docs.ros.org/
+en/humble/Releases
+15. OpenRobotics: Ros 2: Documentation (2023). https://docs.ros.org/
+en/humble
+16. Quigley, M., Conley, K., Gerkey, B., Faust, J., Foote, T., Leibs, J.,
+Wheeler, R., Ng, A.Y., et al.: ROS: an open-source robot operatingsystem. In: ICRA Workshop on Open Source Software, vol. 3,
+pp. 5. Kobe, Japan (2009)
+17. Rajkumar, R., Lee, I., Sha, L., Stankovic, J.: Cyber-physical sys-
+tems: the next computing revolution. In: Proceedings of the 47th
+Design Automation Conference, pp. 731–736 (2010)
+18. Tang, Y., Feng, Z., Guan, N., Jiang, X., Lv, M., Deng, Q., Yi,
+W.: Response time analysis and priority assignment of processing
+chains on ROS2 executors. In: IEEE Real-Time Systems Sympo-
+sium, pp. 231–243 (2020)
+19. Teper, H., Günzel, M., Ueter, N., von der Brüggen, G., Chen, J.J.:
+End-to-end timing analysis in ROS 2. In: 2022 IEEE Real-Time
+Systems Symposium (RTSS), pp. 53–65 (2022)
+20. Webster, M., Dixon, C., Fisher, M., Salem, M., Saunders, J., Koay,
+K.L., Dautenhahn, K., Saez-Pons, J.: Toward reliable autonomous
+robotic assistants through formal veriﬁcation: a case study. IEEETrans. Human-Mach. Syst. 46(2), 186–196 (2016)
+Publisher’s note Springer Nature remains neutral with regard to ju-
+risdictional claims in published maps and institutional aﬃliations.
+Springer

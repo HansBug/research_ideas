@@ -1,0 +1,1201 @@
+--- Page 1 ---
+Verifying ROS-based Applications Using Timed
+and Stochastic Timed Automata
+Peter Backeman and Cristina Seceleanu
+Mälardalen University, Västerås, Sweden
+{peter.backeman, cristina.seceleanu}@mdu.se
+Abstract. Robotic systems often operate under real-time constraints,
+requiring timely responses to sensor inputs. Early consideration of such
+requirements during design is advantageous. The Robot Operating Sys-
+tem (ROS) provides a mature framework for system setup and communi-
+cation, with ROS 2 offering real-time capabilities. However, determining
+the maximum reaction time within a ROS-based application is intricate
+due to complex variable processing and scheduling, especially with pe-
+riodic and event-triggered tasks. In this paper, we propose a model of
+ROS-based designs with timed automata semantics, facilitating exhaus-
+tive real-time model checking of system behavior. We extend this model
+to stochastic timed automata, thus incorporating non-deterministic ex-
+ecution time and probabilistic loads, employing statistical model check-
+ing for scalability and accuracy. We compare against previous work to
+confirm the validity of our approach, and show its applicability on a
+real-world robotic system example.
+1 Introduction
+This paper is dedicated to Professor Marjan Sirjani, to honor her impactful con-
+tributions to the field of formal methods, which have advanced the reliability and
+correctness of complex systems profoundly, including robotic systems. Marjan’s
+work embodies a vision where robotic systems not only meet functional require-
+ments, but also achieve high standards of dependability, addressing the nuanced
+interplay of concurrency, real-time constraints, and emergent behaviors [19].
+According to this vision, we also consider robotic systems to be subject to
+real-time constraints that should be obeyed, for example, a system might be
+required to react to a certain sensor input within a time bound (e.g., door open-
+ing when the light sensor is activated). Ensuring such requirements already at
+early design stages is beneficial and can be done through formal methods. Model
+checking is an approach that can help establish both liveness and safety proper-
+ties subject to timing constraints, by employing timed automata as the modeling
+formalism [4]. When designing a robotic system there are many aspects to take
+into consideration, e.g., computation and communication issues must be decided
+upon and addressed. To address this, one can use a pre-existing solution that
+already solves many challenges; the Robot Operating System (ROS) provides
+
+--- Page 2 ---
+such a framework for setting up nodes and their communication. However, es-
+tablishing properties of a ROS-based application, e.g., finding an upper bound
+for the maximum reaction time, is complex as it is affected by the run-time of
+the involved tasks, respectively, and how the latter are scheduled.
+Previous work has helped to establish bounds on reaction times in ROS,
+through simulation [18]. However, such an approach is hard to extend with non-
+deterministic behavior, as it is based on simulating one scenario at a time. For
+example, while task run-time is usually limited by a worst-case execution time
+(WCET), in practice a task can finish early (and tasks finishing earlier than
+their WCET can counter-intuitively result in a longer reaction time). Using a
+model-checking approach, it is possible to investigate multiple traces simulta-
+neously (i.e., corresponding to different task execution times), thus enabling
+efficient checking of properties in non-deterministic systems. With this in mind,
+we address the following research question: How can model checking help ana-
+lyze end-to-end reaction times in ROS-based applications with non-deterministic
+properties?
+In this paper, we present a model of ROS-based designs and assign semantics
+to allow model checking with respect to real-time behavior to help establish
+such properties, in particular on end-to-end reaction time bounds. We assign
+semantics in the form of timed automata (TA) [2] templates, yielding a precise
+definition of the underlying behavior of ROS scheduling. We begin with basic
+semantics and validate it against previous work [18], after which we extend the
+semantics with non-deterministic execution times and probabilistic loads. For
+scalability and richness of modeling purposes, we employ the statistical model
+checking (SMC) [13] technique, where properties are guaranteed to a specific
+degreeofconfidence.WemodelandchecksystemsinthispaperviatheUPPAAL
+SMC [12] tool. In sum, we present the following contributions:
+–Introduction of a pattern-based TA semantics of ROS designs, covering both
+deterministic and probabilistic running times and loads.
+–Validationofourbasesemanticsagainstprevioussimulation-basedworkthat
+uses analytic real-time scheduling theory.
+–Application of UPPAAL/UPPAAL SMC to find maximum reaction times in
+an industrial example, demonstrating the approach.1
+The paper is structured as follows: after the preliminaries in Section 2, we
+present our formalization of ROS-based application behavior in Section 3, fol-
+lowed by our TA semantics in Section 4 and its validation in Section 5. After-
+wards, we extend the semantics in several directions in Section 6, and demon-
+strate with an industrial example in Section 7. Finally, related work and compar-
+ison to our approach are presented in Section 8, and our conclusions in Section 9.
+1Source code is available at: https://github.com/ptrbman/ros2-modeling/
+2
+
+--- Page 3 ---
+2 Preliminaries
+In this section, we briefly present scheduling of, and communication between,
+tasks in the robot operating system and summarize timed automata and UP-
+PAAL as used in this work.
+2.1 Robot Operating System
+The Robot Operating System (ROS) is intended to provide developers with
+a set of open-source software frameworks, libraries, and tools to create appli-
+cations for robots. The platform offers services for a heterogeneous computer
+cluster, such as hardware abstraction, device control, implementation of func-
+tionalities, message-passing between processes, and package management [16].
+The operating system’s version ROS 1 underwent a major revision and became
+ROS 2 [15], bringing many improvements, most notably the Data Distribution
+Service (DDS) support. DDS acts as middleware for inter-node communication,
+using the quality-of-service profile to provide real-time communication, scalabil-
+ity, performance enhancement, and security benefits not found native in ROS 1.
+The ROS 2 platform has already been used in designing the communication
+architecture of collaborative and intelligent automation systems [10], or of self-
+driving cars that require safe and reliable real-time behavior [17]. Most such
+robotic systems are subject to real-time constraints that, if not met, might re-
+sult in issues of various severity degrees, from the application failing to perform
+correctly to a lowered performance of the overall system. Verifying if such un-
+desired issues occur in a ROS-based robotic system, already at a design level, is
+very desirable. To achieve this, the basic, high-level communication and compu-
+tation paradigms of ROS need to be given formal semantics, to be amenable to
+analysis, e.g., via model checking. In this paper, we consider a ROS architecture
+to consist of nodesandtopics. Communication is done through two paradigms,
+publish/subscribe and local variables. Whenever a node wishes to communicate
+data, it can publishit onto a topic, or writeit to a local variable. A node can
+read data either through receiving it from a subscribed topic, or readingit from
+a local variable.
+Scheduling A node is a component that has one or more tasks(i.e., callbacks)
+that can be scheduled for execution. When a task is scheduled, a jobis instanti-
+ated and added to the scheduling queue. When a job has finished, it can publish
+its value to a topic, or store it locally on the node. The ROS scheduling works
+as follows: at each polling point , i.e., beginning of a processing window , it picks
+one job from each task (which has queued job) and schedules them according to
+priority (with timers always having higher priority than subscribers). Next, each
+of the tasks are executed in order, and afterwards a new polling point is reached.
+If at any polling point, there are no jobs queued, then the scheduler idles until
+a task becomes scheduled. The process is illustrated in Fig. 1. In this paper we
+consider a ROS system with only one host, that is, all nodes are processed on
+the same CPU.
+3
+
+--- Page 4 ---
+Idling Picking jobs Executing
+Queue
+Empty?New jobNew
+Processing
+Window
+DoneNo
+Yes
+Fig.1: Scheduler in ROS.
+Reaction Time In this paper, we are interested in the reaction time of a
+ROS application. By this, we mean the time that passes between a job (e.g.,
+corresponding to a sensor read) being released (i.e., when the job is instantiated)
+andthereactionofthesystem’sactuator(i.e.,whentheactuatorjobisexecuted).
+We wish to establish an upper bound, that is, to find the maximum reaction time
+from a particular sensor being able to observe some data, until the actuator
+finishes executing, according to the scheduling policy described above.
+2.2 Timed Automata and UPPAAL
+Formal Syntax . A Timed Automaton (TA), as used in the model-checker UP-
+PAAL [12], is defined as a tuple, ⟨L, l0, C, A, V, E, I ⟩, where Lis the set of finite
+locations, l0is the initial location, Vis the set of data variables, Cis the set of
+clocks,A=Σ∪τis the set of actions, where Σis the finite set of synchroniz-
+ing actions (c!denotes the send action, and c?the receiving action) partitioned
+into inputs and outputs, Σ=Σi∪Σo, and τ /∈Σdenotes internal or empty
+actions without synchronization, E⊆L×B(C, V)×A×2C×Lis the set
+ofedges, where B(C, V)is the set of guardsover CandV, that is, conjunc-
+tive formulas of clock constraints ( B(C)), of the form x ▷ ◁ norx−y ▷ ◁ n,
+where x, y∈C,n∈N,▷ ◁∈ {<,≤,=,≥, >}, and non-clock constraints over
+V(B(V)), and I:L−→Bdc(C)is a function that assigns invariants to lo-
+cations, where Bdc(C)⊆B(C)is the set of downward-closed clock constraints
+with ▷ ◁∈ {<,≤,=}.
+Invariantsboundthetimethatcanbespentinlocations,ensuringtheprogress
+ofTA’sexecution.Anedgefromlocation ltolocation l′isdenotedby la,g,r,u− − − − → l′,
+where ais an action, gis the guard of the edge, ris the clock reset set, that is,
+the clocks that are set to 0over the edge, and uis a data variable update action.
+Initially, all clocks are set to 0, and the update action assigns 0to one or more
+variables. A location can be marked as urgentorcommitted , indicating that time
+4
+
+--- Page 5 ---
+cannot progress in such locations. The latter is more restrictive, indicating that
+the next edge to be traversed needs to start from a committed location.
+Example. For illustration purposes, in Figure 2, we show a simple TA model
+of a lamp 2(a), and its user 2(b). The lamp has three locations: off,low, and
+bright. If the user presses a button, modeled by the synchronization variable
+press!, then the lamp is turned on, that is, the lamp TA synchronizes with the
+user TA via press?, and changes location from offtolow. If the user presses the
+button again, the lamp is turned off, and the lamp TA moves back to location
+off. However, if the user is fast and presses the button twice, rapidly, the lamp
+is turned on and becomes bright, modeled by the lamp TA moving to location
+bright. The user can press the button arbitrarily at any time or not press the
+button at all. The clock yof the lamp is used to detect if the user is fast, via
+the guard (y <5)over the edge between locations lowandbright, or slow, via
+the guard (y >= 5)over the edge between locations lowandoff.
+to specify properties to be checked, is a subset of TCTL (time dc o m p u t a t i o nt r e e
+logic) [39,3]. In this section we present the modelling and t he query languages
+ofUppaal and we give an intuitive explanation of time in timed automat a.
+2.1 The Modelling Language
+Networks of Timed Automata At i m e da u t o m a t o ni saﬁ n i t e - s t a t em a c h i n e
+extended with clock variables. It uses a dense-time model wh ere a clock variable
+evaluates to a real number. All the clocks progress synchron ously. In Uppaal ,
+as y s t e mi sm o d e l l e da san e t w o r ko fs e v e r a ls u c ht i m e da u t o m a ta in parallel.
+The model is further extended with bounded discrete variabl es that are part of
+the state. These variables are used as in programming langua ges: They are read,
+written, and are subject to common arithmetic operations. A state of the system
+is deﬁned by the locations of all automata, the clock values, and the values of the
+discrete variables. Every automaton may ﬁre an edge (someti mes misleadingly
+called a transition) separately or synchronise with anothe ra u t o m a t o n1,w h i c h
+leads to a new state.
+Figure 1(a) shows a timed automaton modelling a simple lamp. The lamp
+has three locations: off,low,a n d bright .I ft h eu s e rp r e s s e sab u t t o n ,i . e . ,
+synchronises with press? ,t h e nt h el a m pi st u r n e do n .I ft h eu s e rp r e s s e st h e
+button again, the lamp is turned oﬀ. However, if the user is fa st and rapidly
+presses the button twice, the lamp is turned on and becomes br ight. The user
+model is shown in Fig. 1(b). The user can press the button rand omly at any time
+or even not press the button at all. The clock yof the lamp is used to detect if
+the user was fast ( y<5) or slow ( y>=5 ) .
+off low brightpress?
+y:=0
+y>=5
+press?press?y<5
+press?‚‚‚‚‚idle
+press!
+(a) Lamp. (b) User.
+Fig. 1. The simple lamp example.
+We give the basic deﬁnitions of the syntax and semantics for t he basic timed
+automata. In the following we will skip the richer ﬂavour of t imed automata
+supported in Uppaal ,i . e . ,w i t hi n t e g e rv a r i a b l e sa n dt h ee x t e n s i o n so fu r g e n t
+and committed locations. For additional information, plea se refer to the help
+1or several automata in case of broadcast synchronisation, a nother extension of timed
+automata in Uppaal .
+2
+(a) Lamp
+to specify properties to be checked, is a subset of TCTL (time dc o m p u t a t i o nt r e e
+logic) [39,3]. In this section we present the modelling and t he query languages
+ofUppaal and we give an intuitive explanation of time in timed automat a.
+2.1 The Modelling Language
+Networks of Timed Automata At i m e da u t o m a t o ni saﬁ n i t e - s t a t em a c h i n e
+extended with clock variables. It uses a dense-time model wh ere a clock variable
+evaluates to a real number. All the clocks progress synchron ously. In Uppaal ,
+as y s t e mi sm o d e l l e da san e t w o r ko fs e v e r a ls u c ht i m e da u t o m a ta in parallel.
+The model is further extended with bounded discrete variabl es that are part of
+the state. These variables are used as in programming langua ges: They are read,
+written, and are subject to common arithmetic operations. A state of the system
+is deﬁned by the locations of all automata, the clock values, and the values of the
+discrete variables. Every automaton may ﬁre an edge (someti mes misleadingly
+called a transition) separately or synchronise with anothe ra u t o m a t o n1,w h i c h
+leads to a new state.
+Figure 1(a) shows a timed automaton modelling a simple lamp. The lamp
+has three locations: off,low,a n d bright .I ft h eu s e rp r e s s e sab u t t o n ,i . e . ,
+synchronises with press? ,t h e nt h el a m pi st u r n e do n .I ft h eu s e rp r e s s e st h e
+button again, the lamp is turned oﬀ. However, if the user is fa st and rapidly
+presses the button twice, the lamp is turned on and becomes br ight. The user
+model is shown in Fig. 1(b). The user can press the button rand omly at any time
+or even not press the button at all. The clock yof the lamp is used to detect if
+the user was fast ( y<5) or slow ( y>=5 ) .
+off low brightpress?
+y:=0
+y>=5
+press?press?y<5
+press?‚‚‚‚‚idle
+press!
+(a) Lamp. (b) User.
+Fig. 1. The simple lamp example.
+We give the basic deﬁnitions of the syntax and semantics for t he basic timed
+automata. In the following we will skip the richer ﬂavour of t imed automata
+supported in Uppaal ,i . e . ,w i t hi n t e g e rv a r i a b l e sa n dt h ee x t e n s i o n so fu r g e n t
+and committed locations. For additional information, plea se refer to the help
+1or several automata in case of broadcast synchronisation, a nother extension of timed
+automata in Uppaal .
+2 (b) User
+Fig.2: A Simple TA model of a lamp and its user
+Operational Semantics . The semantics of TA [5] is defined as a labeled tran-
+sition system . The states of the labeled transition system are pairs (l, u), where
+l∈Lis the current location, and uis the clock valuation in location l. The
+initial state is denoted by (l0, u0), where all clocks are initialized to 0: ∀x∈
+C, u 0(x) = 0. Let u⊨gdenote the clock value uthat satisfies guard g. We use
+u+dto denote the time elapse where all the clock values have increased by d,
+ford∈R≥0. There are two kinds of transitions:
+(i)Delay transitions :< l, u >d− →< l, u +d >ifu⊨I(l)and(u+d′)⊨I(l),
+for0≤d′≤d, and
+(ii)Action transitions: < l, u >a− →< l′, u′>iflg,a,r− − − → l′, a∈Σ, u⊨g, clock
+valuation u′in the target state (l′, u′)is derived from uby resetting all clocks
+in the reset set rof the edge, such that u′⊨I(l′).
+A real-time system can be modeled as a network of TA (NTA) composed via
+the parallel composition operator (“ ||”), which allows an individual automaton
+to carry out internal actions, while pairs of automata can perform handshake
+synchronization. The locations of all automata, together with the clock valua-
+tions, define the state of an NTA. The requirements (queries in UPPAAL) to
+5
+
+--- Page 6 ---
+be verified by model checking on the resulting NTA are specified in a decidable
+subset of (Timed) Computation Tree Logic ((T)CTL), and checked by the UP-
+PAAL model checker. In this paper, we verify (T)CTL queries of the following
+kinds ( pis a state property):
+–Reachability: E♢p- The requirement evaluates to true if there exists a path
+where peventually holds.
+–Invariance: A□p- The requirement evaluates to true if (and only if) every
+reachable state satisfies p, in other words, for all paths palways holds.
+UPPAAL is also capable of handling statistical model checking (SMC) [13],
+where simulations are used to extract information of the system. In UPPAAL
+SMC, automata have a stochastic interpretation based on: (i) the probabilistic
+choices between multiple enabled transitions (uniform distribution by default,
+marked with weighted probabilities otherwise2), and (ii) the non-deterministic
+time delays that can be refined based on probability distributions, either uniform
+distributions for time-bounded delays, or user-defined exponential distributions
+for unbounded delays. SMC has the downside of not providing full guarantees of
+results,butallowshandlingmodelsofmuchlargersizes,aswellasincludingprob-
+abilistic aspects of the system. UPPAAL SMC uses a probabilistic extension of
+weighted metric temporal logic (WMTL) [6] to provide qualitative analysis, that
+is,hypothesis testing , andprobability comparison , as well as quantitative anal-
+ysis, byprobability evaluation : calculate the probability Pr[<=bound ](⋆x≤Cϕ)
+to reach a state ϕwithin time cost x≤Cfor some network of stochastic timed
+automata, where ⋆stands for either future(♢) orglobally(□) temporal opera-
+tor, and [<=bound ]denotes the time bound of the executions. In this paper, we
+focus on probability evaluation only.
+3 Formalization of ROS-based Systems
+In this section, we provide a formalization of constrained ROS-based systems. In
+this work, we model communication via publish/subscribe for inter-node com-
+munication and read/write for intra/node communication and the scheduling of
+tasks on nodes. We assume that each node can be subscribed to zero or more
+nodes,readfrom zero or one variable, publishto zero or one topic, and writeto
+zero or one variable. We define three kinds of nodes: timer nodes, subscription
+nodes and data-generator nodes. A timer node is triggered at periodic intervals
+and then schedules a task to publish or write its result. A subscription node has a
+specialtriggering subscription , and schedules a task to publish or write its result
+whenever data is published onto the triggering topic. Finally, a data-generator
+node is a timer node that has no subscriptions or reads from any variable. For
+simplicity, we assume that there is only one publishing node per topic.
+2We annotate edge guards with ?probto denote that the edge weight is prob
+6
+
+--- Page 7 ---
+3.1 Nodes
+We define a set of nodes N, a set of topics Tand a set of global variables V. The
+set of global variables includes a special variable, pd, which is the most recently
+published data. We define each kind of node separately, as follows.
+Definition 1. Atimer node is defined as: tn=TMR (p, d,wcet, S, St, t, rv, wv ),
+where:
+–p∈N+is the period,
+–d∈Nis the delay,
+–wcet∈Nis the WCET of the main task,
+–S={s1, . . . , s n}, si∈ T, are the non-triggering subscribed topics,
+–St={st1, . . . , st n}, sti∈N, are the WCET of subscription tasks,
+–t∈ Tis the result-topic,
+–rv∈ V, is the read-variable,
+–wv∈ Vis the write-variable.
+Intuitively, a timer node is activated each pperiod, with the first activation
+after a delay of d, (i.e., the second activation is at p+d, third at 2p+d, etc.),
+creating a job of the main task. The node subscribes to the topics Sand uses
+the data from the variable rv. Whenever a message is received on topic si, a job
+is created to process the retrieved value, with WCET sti, writing its result to
+variable V(tni).
+Definition 2. Asubscribernode isdefined as: sn=SUB(s,wcet, S, St, t, rv, wv ),
+where:
+–s∈ T, s̸∈S, is the triggering topic,
+–wcet∈Nis the WCET of the main task,
+–S={s1, . . . , s n}, si∈ T, are the non-triggering subscribed topics,
+–St={st1, . . . , st n}, sti∈N, are the WCET of subscriptions tasks,
+–t∈ Tis the result-topic,
+–rv∈ V, is the read-variable,
+–wv∈ Vis the write-variable.
+A subscriber node works like a timer node, except that it is triggered when-
+ever a message is published on the triggering topic s, instead.
+Definition 3. Adata-generatornode isdefined as: dn=DGEN (p, d,wcet, t, wv ),
+where:
+–p∈N, is the period,
+–d∈Nis the delay,
+–wcet∈Nis the WCET of the main task,
+–t∈ Tis the result-topic,
+–wv∈ Vis the write-variable.
+A data-generator works as a timer except that it has no subscriptions or
+read-variable.
+7
+
+--- Page 8 ---
+Example 1. ConsiderthesmallsysteminFig.3withfournodes.Onesensornode
+publishesdatatoafilternode,whichinturnpublishesdatatotheactuatornode.
+There is also an additional sensor node that publishes directly to the actuator.
+We are interested in measuring the reaction time from the second sensor node
+to the actuator, that is, to monitor data published by the second sensor and
+measure the time until it is processed by the actuator. Each component can be
+formalized (for particular values of WCET, etc.) as:
+–first sensor, a data-generator node:
+s1=DGEN (200,0,50,T(s1),V(s1)),
+–second sensor, a data-generator node:
+s2=DGEN (200,50,30,T(s2),V(s2)),
+–filter, a subscriber node:
+f=SUB(T(s1),30,∅,∅,T(f),pd,V(f)),
+–actuator, a subscriber node:
+a=SUB(T(f),10,{T(s2)},{10},T(a),V(a1),V(a)).
+Note that the read-variable for the actuator is V(a1), indicating that the value
+to be used in published data is equal to the value retrieved from the subscription
+to the second sensor.
+Sensor 1
+Sensor 2Filter
+ActuatorPublish
+PublishPublish
+Fig.3: Small ROS network
+3.2 Tasks
+Each node contains one or more tasks. All nodes have a main task that is re-
+sponsible for combining all data, compute and publish/write the output. Addi-
+tionally, every node has for each non-triggering subscription a task responsible
+for retrieving the published data, process it, and store it in a local variable. All
+tasks have an assigned WCET. Let τndenote the main task of node nandτi
+nto
+refer to the subscription task for subscribed topic siof node n. For convenience,
+we introduce a unique topic and variable for each task τdenoted by T(τ)and
+V(τ), respectively.
+Example 2. The system presented in the previous example contains four nodes.
+The sensors and filter nodes contain only one main task each: τs1, τs2triggered
+by timers and τftriggered by a subscription. The actuator node has one main
+taskτatriggered by the filter node, and one subscription task τ1
+atriggered by
+the second sensor node.
+8
+
+--- Page 9 ---
+3.3 Job chains
+To define the notion of reaction time precisely, we first present the notion of task
+chain, and (forward) job chains, respectively.
+Definition 4. Atask chain T={τ1, . . . , τ n}is a sequence of tasks such that:
+–the task τ1is the main task of a data-generator, and
+–∀τi∈[τ1, . . . , τ n−1]either:
+•τistores its result in V(τi)andτi+1reads from V(τi), or
+•τipublishes its result to T(τi)andτi+1subscribes to T(τi).
+Definition 5. A(forward) job chain J={j1, . . . j n}is a sequence of jobs such
+that for a task chain T:
+–∀ji∈J, jiis an instance of τi.
+–∀i∈[j1, . . . , j n−1]either:
+•ji+1is the unique earliest job of τi+1that reads the result from ji, or
+•ji+1is the unique earliest job of τi+1that receives the result from ji
+(through subscription).
+Letrelease (τ)andend(τ)represent the release-time and end-time of the task
+τ, respectively, where release (τ),end(τ)∈N.
+Definition 6. For a job chain J={j1, . . . , j n}, thereaction time rt(J) =
+end(jn)−release (j1).
+Example 3. ConsideragainthesmallexamplenetworkinFigure3,nowexecuted
+(according to semantics in next section) with scheduling as presented in Sec-
+tion2.1.TheresultingtraceisshowninFigure4.Thejobchain J={τs2, τ1
+a, , τa}
+has a reaction time of 80.
+0102030405060708090100110120130τs1τs2τs2τ1
+aτa
+Fig.4: Schedule for small ROS network example. Processing windows are sepa-
+rated by red dashed lines. An orange upwards arrow indicates the release of a
+job, a black upwards arrow the start of a job, and downwards indicates the end
+of a job. The blue line traces the reaction time.
+Inthispaper,wefocusonthecasewherethereisonlyonehost(i.e.,executor),
+on which all functions are executed, and we further assume that there are no
+cycles in the dependencies between nodes. Then we can define the maximum
+reaction time for a given ROS system:
+9
+
+--- Page 10 ---
+Definition 7. We define the maximum reaction time for a task-chain Tas
+max j∈J(rt(j)), where Jis the set of all job-chain instances of T.
+We acknowledge that for an over-utilized system, no finite maximum reaction
+time may exist, but for a non-over-utilized system, the maximum reaction time
+will be finite.
+4 TA Semantics for ROS
+In this section, we present a formalization of ROS semantics in UPPAAL timed
+automata. As we focus on analyzing the end-to-end maximum reaction time , we
+do not model how data is processed, but rather the age of data. In particular, we
+instantiate with a particular task chain Tin mind, such that the resulting system
+considersthereactiontimeof T.WeintroduceTAtemplatesthatareinstantiated
+depending on the nodes of the ROS application, and the task chain that should
+be monitored. We begin by introducing the global variables and functions used,
+followed by each TA template. Finally, we describe how a particular system is
+instantiated. For simplicity, we assume that each task always publishes to its
+dedicated topic, and writes to its dedicated variable.
+4.1 Constants, Variables, Functions and Channels
+Table 1 shows a set of constants, variables, functions and channels. Some con-
+stants are used for easier reading, while some have a semantic impact. In par-
+ticular, BUF_SIZE andMONITORS must be set sufficiently large. In the remainder
+of this paper we assume that this is the case. Note that PRIO[C],WCET[C] must
+also be initialized with proper values.
+4.2 TA Templates
+Thesemanticsaregivenastemplate-basedinstantiation,i.e,.foreachnodeinthe
+ROS system, we introduce an UPPAAL TA, based on the templates given in this
+section. Furthermore, each TA is given a unique ID. Since we are interested only
+in the reaction time of data processed in the task chain Tunder analysis, we can
+ignore all other data values (however me must remember to trigger subscription
+tasks). Thus, every task only needs to consider the received or read values from
+the previous task of the task chain.
+Subscriber. A subscriber, sn=SUB(s, wcet, S, St, t, rv, wv ), is represented by
+an instantiated Subscriber TA template using three parameters: task_id,sand
+data_source. A suitable task_idis chosen, and while the triggering subscription
+sis initialized to the counter-part in sn, the data_sourceis set to rv. The
+subscriber waits for a message to be published to sand then queues a job to
+publish the result, based on data from data_source, to the task_idtopic (as we
+assume each task publishes to its own topic). The template is shown in Figure 5.
+Moreover, for each subscribed topic si∈S, the Subscriber TA template
+is additionally instantiated using a suitable task_id,s=si, and data_source
+equal to pd.
+10
+
+--- Page 11 ---
+Constant Description
+EMPTY Value for representing empty data.
+MONITORS Number of parallel monitors.
+FIRST_PAYLOAD Represents the value of the first monitored package.
+MIN_PAYLOAD Minimum value of payloads (to reduce state space).
+MONITOR_FREE /MONITOR_SENT Status value of a free/busy monitor.
+BUF_SIZE Buffer size of queues.
+PRIO[C] Priority of each task.
+WCET[C] WCET of each task.
+deterministic_host If true, jobs always takes wcetto execute.
+Variables Description
+PAYLOAD value of next payload value to be sent.
+LAST_PAYLOAD value of last sent payload.
+next_monitor (nm)Index of next free monitor.
+last_monitor (lm)Index of oldest busy monitor.
+published_data (pd)Value of last published data.
+monitor_status[MONITORS] Status of monitors.
+monitor_payload[MONITORS] Payload monitored.
+QUEUES[C][BUF_SIZE] Job queues (one for each task).
+QUEUES_COUNT[C] Number of jobs in each queue.
+JOBS[C][2] ID and data of scheduled jobs.
+JOBS_COUNT Number of scheduled jobs.
+DATA[C] Unique variable for each task.
+Function Description
+waiting_jobs Returns the number of jobs waiting for the host.
+queue_job Add a job to the host queue.
+dequeue Dequeue the first job from the host queue.
+schedule Sort all jobs in the host waiting list by priority.
+take_jobs Take (up to) one job of each task.
+next_job_idx Get the index (i.e., task id) of next job.
+get_data Get data for a specific task.
+relevant_payload True if just published data is monitored.
+assign_monitor Assign next free monitor to current package.
+free_monitor Free all finished monitors.
+Channel Description
+new_job Announce the (possible) scheduling of new job.
+start_monitor Signal to start monitoring next data.
+publish[C] Unique topic for each task.
+Table 1: Constants, variables, functions and channels of the model
+L={l}, ℓ 0=l, C =∅, A={s?}, V={vpublished _data}, I=∅,
+E={ls?,∅,∅,queue _job(id,vdata_source )
+− − − − − − − − − − − − − − − − − − − − − → l}
+Fig.5: Template of a Subscriber
+11
+
+--- Page 12 ---
+Timer. A timer node tn=TMR (p, d, wcet, S, St, t, rv, wv )is represented by
+an instantiated Timer TA template using four parameters: task_id,p,d, and
+data_source. A suitable task_idis chosen, and while the period pand delay d
+are initialized to the counter-part in tn,data_sourceis set to rv. The clock is
+initialized as x=p−d, to ensure that the first activation happens after d. The
+timer is activated each period p. If two or more timers are activated at the same
+time instant, one of them will use the active synchronization new_job!and all
+others will follow using new_job?, ensuring that all jobs are added at the same
+time point. The template is shown in Figure 6.
+In the same vein as for the subscriber node, for each subscribed topic an
+additional Subscriber TA template is instantiated.
+L={l}, ℓ 0=l, C ={x}, A={new_job!,new_job?},
+V=∅, I={l7→x≤p},
+E={lwaitnew_job!,x=p,x,queue _job(id,data _source )− − − − − − − − − − − − − − − − − − − − − − − − − − − − → lwait,
+lwaitnew_job?,x=p,x,queue _job(id,data _source )− − − − − − − − − − − − − − − − − − − − − − − − − − − − → lwait}
+Fig.6: Template of a Timer
+Data-Generator. Thetemplateforadata-generator, dn=DGEN (p, d, wcet, t, wv ),
+isrepresentedbyaninstantiationoftheData-GeneratorTAtemplateusingthree
+parameters: task_id,p, and d. A suitable task_idis chosen, and the period p
+and delay dare initialized to their counter-part in tn. The clock is initialized as
+x=p−d, to ensure that the first activation occurs after d. The data-generator
+is responsible for generating a value each period p, then queuing a job of type
+τdn. The template is shown in Figure 7. In addition, location lfireis marked
+committed.
+Monitored Data-Generator : A monitored data-generator is identical to a data-
+generator with the difference that the edge from lfiretolwaitis replaced by:
+lfirestart_monitor!,∅,x,queue _job(id,PAYLOAD )− − − − − − − − − − − − − − − − − − − − − − − − − − − − − − → lwait
+Intuitively, this means that when a monitored data-generator publishes data,
+a monitor is requested to be started and a payload value is queued. The first
+task of the task chain Tshould be instantiated as this.
+Host.A host is the most complicated template, but has no parameters. The
+host awaits waiting jobs, and when the latter are present, it picks (up to) one
+of each task, and schedules them according to their respective priority (through
+theschedule function, called by the take jobsfunction). It then simulates the
+execution of each job with reading, storing and publishing data accordingly. The
+host sends a message on the corresponding node-specific topic when it finishes
+12
+
+--- Page 13 ---
+L={lwait, lfire}, ℓ 0=lwait, C ={x}, A={new_job!,new_job?},
+V=∅, I ={lwait7→x≤p},
+E={lwaitnew_job!,x=p,∅,∅− − − − − − − − − − − → lfire,
+lwaitnew_job?,x=p,∅,∅− − − − − − − − − − − → lfire,
+lfireτ,∅,x,queue _job(id,EMPTY )− − − − − − − − − − − − − − − − − − → lwait}
+Fig.7: Template of a Data-Generator
+executing a job with the resulting data written to the associated variable. The
+template is shown in Figure 8. In addition, locations lcheck, lnextandldoneare
+marked urgent, and lloopis marked committed.
+L={lidle, lcheck, lnext, lexec, ldone, lloop}, ℓ0=lidle, C={x},
+A={new_job!,new_job?} ∪ {T (n)!∀n∈ N)}}, V={idx,job,data},
+I={lexec7→x≤WCET [job]},
+E={lidlenew_job?,∅,∅,∅− − − − − − − − − − → lcheck, lcheckτ,¬waiting _jobs(),∅,∅− − − − − − − − − − − − − → lidle,
+lcheckτ,waiting _jobs(),∅,take_jobs()− − − − − − − − − − − − − − − − − − − → lnext,
+lnextτ,∅,x,idx:=next_job_idx(),job:=JOBS [idx][0],data:=get_data(JOBS [idx][1])− − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − → lexec,
+lexecτ,deterministic_host ∧x=WCET [job],∅,DATA [job]=data;pd=data− − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − → ldone,
+lexecτ,¬deterministic_host ∧WCET [job]
+2≤x≤WCET [job],∅,DATA [job]=data;pd=data− − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − − → ldone,
+ldonepublish [job]!,∅,∅,∅− − − − − − − − − − − → lloop, lloopτ,JOBS _COUNT >0,∅,∅− − − − − − − − − − − − − − − → lnext,
+lloopnew_job!,JOBS _COUNT =0,∅,∅− − − − − − − − − − − − − − − − − − − − → lcheck}
+Fig.8: Template of a Host
+Monitor. Amonitorisinstantiatedwithtwoparameters: actuator,thelasttask
+of the task chain, and the period pof the first task if the chain. The monitor
+waits for a data-generator to start monitoring and assigns a free monitor (setting
+the clock to pto allow for worst-case analysis). The location lmeasureis reached
+whenever the monitored actuator publishes data, so queries can be over this
+location to check worst-case reaction times. For compatibility with the validation
+case, we allow for a second parameter p, which can be set to the period of the
+data-generator of the first task in the chain. This allows the measured reaction-
+time to include the worst-case delay from an external event occurring (instead
+of its measuring). The template is shown in Figure 9. In this model, location
+lmeasureis marked committed.
+13
+
+--- Page 14 ---
+L={li, lmeasure }, ℓ0=li, C={x1, . . . , x MONITORS },
+A={start_monitor?T(actuator )?, V=∅, I=∅,
+E={listart_monitor?,∅,∅,xnm=p;assign _monitor ()− − − − − − − − − − − − − − − − − − − − − − − − − − − − → li,
+liT(actuator )?,relevant _payload (),∅,∅− − − − − − − − − − − − − − − − − − − − − − → lmeasure , lmeasureτ,∅,∅,free_monitors ()− − − − − − − − − − − − − → li}
+Fig.9: Template of a Monitor
+4.3 Instantiation
+For a given ROS-based design, each component is instantiated with the corre-
+sponding template using suitable values for the parameters. In addition, each
+component is also given a global integer id (from zero and up), and the global
+constants PRIOand WCETare set accordingly. The first data-generator node of
+the task chain Tis instantiated as a monitored data-generator, while remaining
+data-generator nodes are instantiated as regular data-generators. The resulting
+TAnetworkwillbedeterministicinthesensethattheclockvaluesinthemonitor
+automaton will always be the same whenever they are measured at the measure
+location.
+Example 4. We instantiate the ROS-based application of Ex. 3 according to the
+above formula, and obtain five TA: a Data-Generator for Sensor 1 ( task_id=
+0, p= 150 , d= 0),aSubscriberforFilter( task_id= 1, s=T(0),data_source =
+pd), a Monitored Data-Generator for Sensor 2 ( task_id= 2, p= 150 , d= 50),
+two Subscribers for the Actuator (( task_id= 2, s=T(1),data_source =pd)
+and(task_id= 3, s=T(1),data_source =pd)), a Monitor ( actuator = 0, p=
+0), and a Host.
+4.4 Queries
+Given an instantiated ROS-based application, we can establish an upper bound
+on the maximum reaction time for T, using the following TCTL query:
+A□monitor .measure →monitor .x[last_monitor ]≤t
+Intuitively, this query checks that reaction times are lesser than t, i.e., that tis
+an upper bound. This bound is not guaranteed to be tight. We can find a tight
+bound by using the following query to check if reaction time can exceed t:
+E⋄monitor .measure ∧monitor .x[last_monitor ]≥t
+In order to find an upper bound, the above query is used with t= 0. When
+UPPAAL finds a greater bound t′, the query is checked once again with the new
+bound t′. This process is repeated until UPPAAL states that no greater value
+exists, establishing the final value of tto be the upper bound. Furthermore,
+UPPAAL allows the extraction of a trace for a given bound.
+14
+
+--- Page 15 ---
+Example 5. If we use UPPAAL to query for an upper bound for Example 1, we
+can the extract trace in Figure 4. This shows that the figure indeed demonstrates
+(an instance of) the worst case.
+5 Validation
+Tovalidateoursemantics,wehaveimplementedthecase-studyROSsystemfrom
+literature[18],whereTeperet.al.provideasimulation-basedmeasurementofthe
+maximum end-to-end reaction time. It is a system that consists of: (i) sensors
+with filters, representing processing of data, (ii) a fusion node, which merges
+data, and (iii) an actuator at the end of the processing chain. The network is
+depicted in Figure 10. The case-study varies the type of the fusion node and
+the actuator node. Both nodes can either be subscription-based or timer-based,
+resulting in four combinations, respectively.
+For a specific case (Fusion subscription/Actuator timer), each node is for-
+malized as shown in Table 2 (we do not show the other three cases). Note that
+in our formalization, we must pick a specific task-chain to observe, in this case
+from Sensor 1 to the Actuator (it can be changed by changing the read-variable
+of the Fusion node).
+In Table 3 the computed maximum reaction times are shown for both the
+simulation-based measurement of Teper et. al. and the model checking-based
+computation from UPPAAL. Note that we only consider the under-utilized case
+presented in related work [18]. For the over-utilized system we have different
+results, as the solution from Teper et. al. throws away messages when buffers
+are overflown. The results show that our semantics seems to agree with the one
+presented by Teper et. al. (at least on the four cases tested).
+Component Formal object
+Sensor 1 s1=DGEN (420,0,10,T(s1),V(s1)
+Sensor 2 s2=DGEN (420,0,20,T(s2),V(s2)
+Filter 1 f1=SUB(T(s1),10,∅,∅,T(f1),pd,V(f1)
+Filter 2 f2=SUB(T(s2),20,∅,∅,T(f2),pd,V(f2))
+Fusion fs=SUB(T(f1),30,{T({∈)},{30},T(fs),pd,V(fs)
+Filter 3 f3=SUB(T(fs),30,∅,∅,T(f3),pd,V(f3)
+Actuator a=TMR (840,0,30,{T(f3)},{30},T(a),V(a1),V(a))
+Table 2: Formalized validation case
+15
+
+--- Page 16 ---
+Sensor 1 Filter 1
+Sensor 2 Filter 2Fusion Filter 3 Actuator
+Component Parameter ValueComponent Parameter Value
+Sensor 1 WCET 10 Sensor 1 period 420
+Sensor 2 WCET 20 Sensor 2 period 420
+Filter 1 WCET 10 Filter 2 WCET 20
+Fusion Sub1 WCET 30 Fusion Sub2 WCET 30
+Filter 3 WCET 30
+Actuator WCET 30 Actuator period 840
+Actuator Sub1 WCET 30
+Fig.10: Case-study system and parameter values for subscriber/timer-scenario
+from literature [18]. Fusion Sub1 is the triggering subscription task of the fusion
+node, whereas Fusion Sub2 is the first non-triggering subscription task of the
+Fusion node.
+CaseFusion Actuator Simulation (ms) Model-Checking (ms)
+1Subscriber Subscriber 540 540
+2Subscriber Timer 1320 1320
+3Timer Subscriber 1470 1470
+4Timer Timer 2490 2490
+Table 3: Comparison of the simulation approach [18] and (our) model-checking
+approach. Results indicate the computed maximum end-to-end reaction time in
+milliseconds.
+6 Modeling Non-Determinism
+In this section, we extend our semantics to capture non-determinism: we allow
+tasks to execute in less than their worst-case execution time, respectively, and
+data-generators to generate data with a certain probability only.
+6.1 Non-deterministic Execution Time
+Inthebasesemantics,thehostwouldalwaysexecutejobsforthedurationoftheir
+respective WCET. However, in general, a job’s execution time tis constrained
+byBCET ≤t≤WCET, where BCET is the best-case execution time. In this
+extended semantics, we modify the host accordingly, by changing the guard as
+16
+
+--- Page 17 ---
+follows: x=WCET [job]is replaced by BCET [job]≤x∧x≤WCET [job]. Note
+that this requires the introduction of a BCET-constant for each task.3
+Example 6. We revisit the small system introduced in Ex. 1. If we allow for
+non-deterministic running times (that is, a job’s running time is in the interval
+[wcet
+2,wcet]), the maximum reaction time is actually increased, demonstrated by
+the trace in Fig. 11. The reaction time depicted in the graph is 280−50 = 230 ,
+greater than 80, the original bound when only worst-case execution times are
+considered. The reason for the increase in reaction time is due to the filter task
+being triggered before the second sensor is scheduled (which cannot happen if
+the first sensor task executes according to its WCET).
+5060708090100110120130140150160170180190200210220230240250260270280τs1τs2τs2τ1
+aτa
+Fig.11: Schedule for small ROS-based system example with non-deterministic
+reaction times. Processing windows are separated by red dashed lines. An orange
+upward arrow indicates the release of a job, a black upward arrow the start of a
+job, and a black downward one indicates the end of a job. The blue line traces
+the reaction time.
+6.2 Probabilistic Data-Generator
+Thesensor,as presentedinSection4,wouldalwaysreadanew valueeach period.
+However, we now introduce a probabilistic data-generator which only generates
+a value each periodwith a probability p. In other words, for each period p, there
+is aprobchance that a new value is generated and thus a job scheduled, in the
+other cases nothing happens. If prob= 100, the behavior is identical to a regular
+data-generator. The probabilistic data-generator is shown in Figure. 12. Also,
+location lchooseandlfireare marked committed.
+Monitored Probabilistic Data-generator is identical to the probabilistic data-
+generator with the difference that the edge from lfiretolwaitis replaced by:
+lfirestart_monitor!,∅,∅,queue _job(id,PAYLOAD )− − − − − − − − − − − − − − − − − − − − − − − − − − − − − − → lwait
+3We assume for convenience that in this paper BCET [job] =WCET [job]/2.
+17
+
+--- Page 18 ---
+L={lwait, lchoose , lfire}, ℓ 0=lwait, C ={x}, A={new_job!,new_job?},
+V={∅}, I={lwait7→x≤p},
+E={lwaitnew_job!,x=p,x,∅− − − − − − − − − − − → lchoose , lwaitnew_job?,x=p,x,∅− − − − − − − − − − − − → lchoose ,
+lchooseτ,?prob,x,∅− − − − − − − → lfire, lchooseτ,?100−prob,x,∅− − − − − − − − − − → lwait,
+lfireτ,∅,∅,queue _job(id,EMPTY )− − − − − − − − − − − − − − − − − − → lwait}
+Fig.12: Template of a Probabilistic Data-Generator
+6.3 Statistical Model Checking
+When a probabilistic model is chosen, it might no longer be interesting to es-
+tablish maximum upper bounds, as in many cases these will be the same as for
+the non-probabilistic case (i.e., the worst case with maximum load). However,
+the worst case could be very rare, and thus acceptable. Using statistical model
+checking (SMC) it is possible to find an upper bound which is only violated with
+a certain (low) chance. For example, the following UPPAAL SMC query yields
+the probability that the reaction time is observed to be more than twithin u
+time-steps:
+Pr[≤u] (⋄((monitor .measure ∧monitor .x[last_monitor ]≥t)))
+The answer to such a query can be p≤0.05with 95 % CI. This means that the
+probability that the bound of tis violated within uis less than 5 %, and that
+if we would redo the test, the probability that we would yield the same answer
+is 95 %. Depending on the application these probabilities could be sufficiently
+tight to be acceptable.
+7 Industrial Example: Camera-Guided Robots
+In this section, we present an example inspired from an industrial use case. To
+assistinproduction,afactoryusesautonomoustransportrobotstotransfertools
+and parts as necessary. The robots are guided by a central control system that
+observes the environment through cameras. The cameras are equipped with a
+local processor that ensures that pictures are only sent if they changed since last
+time, that is, if the image is static no data is sent. During production humans
+can walk around in the same areas as the autonomous robots, and it is important
+that a collision is avoided by stopping the robot if someone would walk in front
+of it. Hence, it is crucial to ensure a low maximum reaction time from observing
+an obstacle through a camera, to sending a stop signal to the robot.
+We model each camera as a separate data-generator, each being forwarded to
+aseparateobjectdetection,modeledasasubscriber.Allobjectdetectionisfused
+in the fusion timer node. Finally, the managing and actuation is a subscriber
+node. The resulting ROS design is shown in Figure 13.
+18
+
+--- Page 19 ---
+Camera 1Object
+detection 1
+...
+Camera nObject
+detection nFusion Managing/Actuation
+Fig.13: Industrial example modeled as a ROS Design
+We consider configurations with a various amount of cameras and instantiate
+the suitable templates in accordance with Section 4 with parameters and con-
+stant values shown in Table 4. Since cameras might not have new information to
+send, we model them using probabilistic data-generators. For simplicity, we let
+all cameras have the same probability of being activated at each instant, and we
+consider different combinations of number of cameras and the probability that
+a camera will be activated (load). All experiments are run on a 11th Gen i5 @
+2.40 GHz with 16.0 GB of RAM. Run-times are presented for each query and
+can be seen to mostly be around one second or less.
+Component Parameter Value Component Parameter Value
+Camera WCET 20 Camera period 1000
+Object Detection WCET 50 Fusion sub WCET 10
+Fusion Timer WCET 90 Fusion Timer period 500
+Managing/Actuation WCET 50
+Table 4: Parameter values for the case-study system
+We use the queries from Section 6.3, to establish if within 10,000 time steps
+there is less than a five percent chance of the reaction time exceeding 850 with
+a 95 % confidence interval. The results for the different scenarios are shown in
+Table 5. From the table, we can see that having more than five cameras already
+risks overloading the system in such a way as to violate a deadline of 850 time
+units. Note that since we do not distinguish the cameras from each other, the
+probabilities that we estimate are for the deadline violation of one camera. Since
+in most cases, for more than six cameras the deadline requirement is violated,
+in the following, we only consider cases from one to six cameras. The results in
+Table 5 are from the perspective on the data from the first camera, and when
+monitoring other cameras the results remain the same.
+Next, we consider what happens if we extend the time period tenfold. Thus
+we consider a period of 100,000 time steps and with same reaction time (850),
+chance (5%) and confidence interval (95%). The results can be seen in Table 6.
+As expected, the acceptable loads are reduced, since running the system longer
+increases the chances of bad scenarios to occur: now only two cameras are safe
+19
+
+--- Page 20 ---
+#CamsLoad≤850Time#CamsLoad≤850Time#CamsLoad≤850Time
+125%Yes0.18225%Yes0.19325%Yes0.20
+150%Yes0.16250%Yes0.19350%Yes0.21
+175%Yes0.18275%Yes0.20375%Yes0.23
+1100%Yes0.172100%Yes0.233100%Yes0.25
+425%Yes0.22525%Yes0.22625%Yes0.23
+450%Yes0.23550%Yes0.24650%No0.18
+475%Yes0.23575%Yes0.27675%No0.13
+4100%Yes0.295100%Yes0.316100%No0.13
+#CamsLoad≤850Time#CamsLoad≤850Time#CamsLoad≤850Time
+725%Yes0.29825%Yes0.34925%No0.30
+750%No0.14850%No0.13950%No0.14
+775%No0.12875%No0.14975%No0.12
+7100%No0.138100%No0.129100%No0.14
+1025%No0.221125%No0.191225%No0.15
+1050%No0.131150%No0.141250%No0.13
+1075%No0.141175%No0.141275%No0.14
+10100%No0.1211100%No0.1312100%No0.14
+Table 5: Results from industrial example. A Yes in column ≤850means that
+there is less than 5 % chance that the system violates the deadline (within the
+first 10000 time steps) under that configuration.
+under a 75 % load, and three for a 50 % load. Moreover, the fact that the analysis
+time is roughly five times longer is also noteworthy.
+#CamsLoad≤850Time#CamsLoad≤850Time#CamsLoad≤850Time
+125%Yes0.68225%Yes0.82325%Yes0.93
+150%Yes0.77250%Yes0.95350%Yes1.15
+175%Yes0.81275%Yes1.09375%No1.38
+1100%Yes0.912100%No1.203100%No1.55
+425%Yes1.05525%No1.22625%No3.04
+450%No1.31550%No1.58650%No0.19
+475%No1.59575%No1.85675%No0.14
+4100%No1.835100%No2.196100%No0.13
+Table6:Usecasemonitoring1,withtimer-basedfusion(periodof500)analyzing
+100000 time steps.
+We can also use modeling to explore alternatives. As an example, we change
+the fusion node from a timer-based node to a subscription-based one, trigger-
+ing whenever the first camera produces data (remember, a subscription node is
+triggered by only one topic), with a WCET of 90. Now there is a substantial
+difference between the end-to-end reaction times from different cameras. Since
+the first camera triggers the fusion, its reaction time will be very short. However,
+20
+
+--- Page 21 ---
+if we look at camera three, the performance is very poor, as shown in Table 7,
+indicating that not even a scenario with two cameras is safe. If the load is 100 %,
+the scenario issafe, since that boils down to a timer-based fusion with a period
+equal to the period of the first camera.
+#CamsLoad≤850Time#CamsLoad≤850Time#CamsLoad≤850Time
+125%n/a0.00225%No0.11325%No0.13
+150%n/a0.00250%No0.12350%No0.11
+175%n/a0.00275%No0.11375%No0.11
+1100%n/a0.002100%Yes0.183100%Yes0.21
+425%No0.11525%No0.11625%No0.12
+450%No0.12550%No0.13650%No0.12
+475%No0.14575%No0.14675%No0.12
+4100%Yes0.235100%Yes0.286100%Yes0.30
+Table 7: Use case monitoring 2, with subscription-based fusion analyzing 10000
+time steps.
+Another point that can be investigated regards answering the question: Can
+increasing/decreasing the period of the fusion node improve the performance
+of the system? In Table 8, we observe the results (when monitoring the first
+camera) with fusion periods 250 and 750. It can be seen that both alternatives,
+in comparison to a fusion time of 500, are performing worse, with only four and
+cameras being safe for the shorter period and none for the longer period.
+Further investigations can be made by additional queries with different con-
+fidence intervals, limits on guarantees, etc., to help in gathering insights of the
+system model, and allow for experimentation with different parameters, aiming
+to help eliminate poor design choices.
+8 Related Work
+TheclosesttoourworkistheTA-basedapproach,proposedbyHalderet.al.[11],
+which models and verifies safety and liveness properties of ROS applications, fo-
+cusing on the communication between nodes, and considering queue sizes and
+internal timeouts. While the work is carried out at a lower level of abstraction
+than ours, the authors consider only a publish-subscribe scenario and do not
+propose methods to enable both end-to-end reaction time verification in deter-
+ministic settings, as well as stochastic analysis of reaction time under probabilis-
+tic loads. Dust et. al. [9] propose a pattern-based modeling and UPPAAL-based
+verification of latencies and buffer overflow in distributed robotic systems, in-
+cluding all versions of the single-threaded executor in ROS 2, yet the authors
+do not consider processing chains in their verification, focusing on the node
+behavior only. Lin et. al. [14] propose formal models for the real-time publish-
+subscribe protocol using UPPAAL and analyze the protocol’s behavior by sim-
+21
+
+--- Page 22 ---
+#CamsLoad≤850Time#CamsLoad≤850Time#CamsLoad≤850Time
+125%Yes0.22225%Yes0.24325%Yes0.33
+150%Yes0.22250%Yes0.25350%Yes0.29
+175%Yes0.26275%Yes0.28375%Yes0.31
+1100%Yes0.302100%Yes0.283100%Yes0.32
+425%Yes0.26525%Yes0.32625%No1.32
+450%Yes0.29550%No0.16650%No0.12
+475%Yes0.32575%No0.13675%No0.11
+4100%Yes0.355100%No0.116100%No0.12
+#CamsLoad≤850Time#CamsLoad≤850Time#CamsLoad≤850Time
+125%No0.11225%No0.12325%No0.12
+150%No0.12250%No0.11350%No0.12
+175%No0.10275%No0.11375%No0.11
+1100%No0.102100%No0.113100%No0.12
+425%No0.11525%No0.12625%No0.12
+450%No0.11550%No0.11650%No0.13
+475%No0.11575%No0.12675%No0.10
+4100%No0.115100%No0.116100%No0.12
+Table 8: Use case monitoring 1, with timer-based fusion period of 250 (above)
+and 750 (below) analysing 10000 time steps.
+ulation in Simulink/Stateflow, however the authors do not validate the formal
+models against the simulation results, as we show in this paper.
+Carvalho et al. [7] introduce a model-checking technique for verifying system-
+wide safety properties in message-passing systems, employing an Alloy extension
+called Electrum, and its Analyzer. Their approach emphasizes high-level archi-
+tectural verification of message passing, while our work focuses on timing prop-
+erties verification. Webster et al. [20] propose a formal verification method for
+industrial robotic programs using the SPIN model checker, with an emphasis on
+behavioral refinement and the verification of selected robot requirements.
+The Coq-based verification of ROS implementations has been the focus of
+several works, out of which that of Cowley and Taylor verifies robotic behaviour
+using linear logic embedding in Coq [8], and that of Anand and Knepper pro-
+poses ROSCoq, a framework for developing certified Coq programs for robots,
+where subsystems communicate using messages [3]. Neither of these works fo-
+cuses on verifying end-to-end reaction time of job chains, the authors analyzing
+implementation levels instead.
+The work of Hong et al. [19] can be seen as complementary to our work, as it
+bridges the Timed Rebeca [1] model of a realistic multiple autonomous mobile
+robots system and its generated ROS 2 demo code, showing the match between
+the model and the program. Our work does not focus on ROS 2 code generation,
+hence on such semantic bridge, but on modeling and analyzing formally the main
+communication concepts of ROS 2, both in a deterministic and a probabilistic
+context.
+22
+
+--- Page 23 ---
+9 Conclusions and Future Work
+In this paper, we have presented a formalization of ROS semantics in UPPAAL
+timed automata. To establish its validity, we ensure equal behavior with previous
+work available in the literature, with respect to the application’s timeliness.
+Afterwards,wehaveextendeditwithnon-determinism,byallowingvariablerun-
+time of tasks, as well as probabilistic data generation, by employing stochastic
+timed automata. To demonstrate the usability of the approach, we demonstrate
+how the UPPAAL tool can be used with regular and statistical model checking,
+respectively, to establish upper bounds of end-to-end timing properties of ROS 2
+applications.
+Acknowledgements. We acknowledge the support of the Swedish Knowledge
+Foundation via the synergy ACICS – Assured Cloud Platforms for Industrial
+Cyber-Physical Systems, grant nr. 20190038, and via the profile DPAC - De-
+pendable Platform for Autonomous Systems and Control, grant nr. 20150022.
+References
+1. Luca Aceto, Matteo Cimini, Anna Ingólfsdóttir, Arni Hermann Reynisson,
+Steinar Hugi Sigurdarson, and Marjan Sirjani. Modelling and Simulation of Asyn-
+chronous Real-Time Systems using Timed Rebeca. In Proceedings 10th Inter-
+national Workshop on the Foundations of Coordination Languages and Software
+Architectures, FOCLASA 2011 , volume 58 of EPTCS, pages 1–19, 2011.
+2. Rajeev Alur. Timed automata. In Nicolas Halbwachs and Doron Peled, editors,
+Computer Aided Verification , pages 8–22, Berlin, Heidelberg, 1999. Springer Berlin
+Heidelberg.
+3. Abhishek Anand and Ross Knepper. ROSCoq: Robots Powered by Constructive
+Reals. In Interactive Theorem Proving , pages 34–50, Cham, 2015. Springer Inter-
+national Publishing.
+4. Christel Baier and Joost-Pieter Katoen. Principles of Model Checking (Represen-
+tation and Mind Series) . The MIT Press, 2008.
+5. Johan Bengtsson and Wang Yi. Timed Automata: Semantics, Algorithms and
+Tools, pages 87–124. Springer Berlin Heidelberg, 2004.
+6. P. Bulychev, A. David, K.G. Larsen, A. Legay, G. Li, and D.B. Poulsen. Rewrite-
+based Statistical Model Checking of WMTL. In Runtime Verification Conference
+(RV 2012) , pages 260–275. Springer, 2012.
+7. Renato Carvalho, Alcino Cunha, Nuno Macedo, and André Santos. Verification of
+system-wide safety properties of ros applications. In 2020 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) , 2020.
+8. Anthony Cowley and Camillo J. Taylor. Towards language-based verification of
+robotbehaviors. In 2011 IEEE/RSJ International Conference on Intelligent Robots
+and Systems , pages 4776–4782, 2011.
+9. Lukas Dust, Rong Gu, Cristina Seceleanu, Mikael Ekström, and Saad Mubeen.
+Pattern-based verification of ROS 2 nodes using uppaal. In Formal Methods for
+Industrial Critical Systems (FMICS) , pages 57–75. Springer Cham, 2023.
+10. Endre Erős, Martin Dahl, Kristofer Bengtsson, Atieh Hanna, and Petter Falk-
+man. A ROS2 based communication architecture for control in collaborative and
+23
+
+--- Page 24 ---
+intelligent automation systems. Procedia Manufacturing , 38:349–357, 2019. 29th
+International Conference on Flexible Automation and Intelligent Manufacturing
+(FAIM 2019), June 24-28, 2019, Limerick, Ireland.
+11. Raju Halder, José Proença, Nuno Macedo, and André Santos. Formal Verification
+of ROS-Based Robotic Applications Using Timed-Automata. In 2017 IEEE/ACM
+5th International FME Workshop on Formal Methods in Software Engineering
+(FormaliSE) , pages 44–50, 2017.
+12. Kim G Larsen, Paul Pettersson, and Wang Yi. UPPAAL in a nutshell. Interna-
+tional journal on software tools for technology transfer , 1(1-2):134–152, 1997.
+13. Axel Legay, Anna Lukina, Louis Marie Traonouez, Junxing Yang, Scott A. Smolka,
+and Radu Grosu. Statistical model checking. In Bernhard Steffen and Gerhard
+Woeginger, editors, Computing and Software Science: State of the Art and Per-
+spectives, pages 478–504. Springer International Publishing, Cham, 2019.
+14. Qian-Qian Lin, Shu-Ling Wang, Bo-Hua Zhan, and Bin Gu. Modelling and Verifi-
+cationofReal-TimePublishandSubscribeProtocolUsingUppaalandSimulink/S-
+tateflow. Journal of Computer Science and Technology , 35:1324–1342, 2020.
+15. Steven Macenski, Tully Foote, Brian Gerkey, Chris Lalancette, and William
+Woodall. Robot Operating System 2: Design, architecture, and uses in the wild.
+Science Robotics , 7(66), 2022.
+16. MorganQuigley,KenConley,BrianGerkey,JoshFaust,TullyFoote,JeremyLeibs,
+Rob Wheeler, Andrew Y Ng, et al. ROS: an open-source Robot Operating System.
+InICRA workshop on open source software , volume 3, page 5. Kobe, Japan, 2009.
+17. Michael Reke, Daniel Peter, Joschua Schulte-Tigges, Stefan Schiffer, Alexander
+Ferrein, Thomas Walter, and Dominik Matheis. A Self-Driving Car Architecture
+in ROS2. In 2020 Int. SAUPEC/RobMech/PRASA Conference , pages 1–6, 2020.
+18. Harun Teper, Mario Günzel, Niklas Ueter, Georg von der Brüggen, and Jian-Jia
+Chen. End-To-End Timing Analysis in ROS2. In 2022 IEEE Real-Time Systems
+Symposium (RTSS) , pages 53–65, 2022.
+19. Hiep Hong Trinh, Marjan Sirjani, Fereidoun Moradi, Antonio Cicchetti, and Fed-
+erico Ciccozzi. Combining model-based development and formal verification of a
+complex ROS2 multi-robots system using Timed Rebeca. In International Work-
+shop on Reliability Engineering Methods for Autonomous Robots – REMARO 2024 ,
+June 2024.
+20. MattWebster,ClareDixon,MichaelFisher,MahaSalem,JoeSaunders,KhengLee
+Koay, Kerstin Dautenhahn, and Joan Saez-Pons. Toward Reliable Autonomous
+Robotic Assistants Through Formal Verification: A Case Study. IEEE Trans. on
+Human-Machine Systems , 46(2):186–196, 2016.
+24
+
+--- Page 25 ---
+A UPPAAL Functions
+1bool waiting_jobs () {
+2int i ;
+3for ( i=0; i<C; i++) {
+4 if (QUEUES_COUNT[ i ] > 0) return true ;
+5}
+6return false ;
+7}
+8
+9void queue_job( int task , int data) {
+10QUEUES[ task ][QUEUES_COUNT[ task ]] = data ;
+11QUEUES_COUNT[ task ] += 1;
+12}
+13
+14
+15// Right −most job first , i .e. , greatest priority first
+16void schedule () {
+17 int i , j , tmp_id, tmp_data;
+18
+19// Sort first by id
+20 for ( i=0; i<JOBS_COUNT; i++) {
+21 for ( j=0; j<JOBS_COUNT −1; j++) {
+22 if (PRIO[JOBS[ j ][0]] > PRIO[JOBS[ j +1][0]]) {
+23 tmp_id = JOBS[ j ][0];
+24 tmp_data = JOBS[ j ][1];
+25 JOBS[ j ][0] = JOBS[ j +1][0];
+26 JOBS[ j ][1] = JOBS[ j +1][1];
+27 JOBS[ j +1][0] = tmp_id;
+28 JOBS[ j +1][1] = tmp_data;
+29 }
+30 }
+31}
+32}
+33
+34int dequeue( int task) {
+35 int i , tmp;
+36 assert (QUEUES_COUNT[ task ] > 0) ;
+37tmp = QUEUES[ task ][0];
+38 for ( i=0; i<BUF_SIZE −1; i++)
+39 QUEUES[ task ][ i ] = QUEUES[ task ][ i +1];
+40QUEUES[ task ][BUF_SIZE −1] = 0;
+41QUEUES_COUNT[ task ] −= 1;
+42 return tmp;
+43}
+44
+45void take_jobs() {
+46 int i , j ;
+47
+
+--- Page 26 ---
+48 assert (JOBS_COUNT == 0) ; // Host jobs should be zero
+here
+49 for ( i=0; i<C; i++) {
+50 if (QUEUES_COUNT[ i ] > 0) {
+51 j = dequeue( i ) ;
+52 JOBS[JOBS_COUNT][0] = i ;
+53 JOBS[JOBS_COUNT][1] = j ;
+54 JOBS_COUNT += 1;
+55 }
+56}
+57 schedule () ;
+58}
+59
+60int next_job_idx() {
+61JOBS_COUNT −−;
+62 return JOBS_COUNT;
+63}
+64
+65// If value is negative , we don ’t pick from queue , but from
+node
+66int get_data( int value) {
+67 if (value < 0) {
+68 return value ;
+69} else {
+70 return DATA[ value ]; // Do we need to remove read
+values?
+71}
+72}
+73
+74void assign_monitor() {
+75 if (lm == −1) {
+76 lm = nm;
+77}
+78 monitor_status [nm] = MONITOR_SENT;
+79 monitor_payload[nm] = PAYLOAD;
+80PAYLOAD = PAYLOAD −1;
+81 if (PAYLOAD < MIN_PAYLOAD) {
+82 PAYLOAD = FIRST_PAYLOAD;
+83}
+84nm = (nm + 1) % MONITORS;
+85}
+86
+87
+88// True if payload is monitored ( i .e. , not empty or already
+seen)
+89bool relevant_payload( int payload) {
+90 int i = 0;
+91 if (payload == EMPTY)
+92 return false ;
+93 for ( i = 0; i < MONITORS; i++) {
+
+--- Page 27 ---
+94 if (monitor_payload[ i ] == payload)
+95 return true ;
+96}
+97
+98 return false ;
+99}
+100
+101
+102
+103
+104// When freeing up, we free up all monitors incl . those whose
+data got thrown away.
+105void free_monitors () {
+106 int i ;
+107 // We could get an old value , in that case it is not in
+the monitored payloads
+108 bool old_value = true ;
+109 for ( i = 0; i < MONITORS; i++) {
+110 if (monitor_payload[ i ] == pd)
+111 old_value = false ;
+112 }
+113
+114 // If it is an old value , we can just ignore it as it has
+already been seen once
+115 if (old_value)
+116 return ;
+117
+118 // Free previously used monitors
+119 while (monitor_payload[lm] != pd) {
+120 monitor_status [lm] = MONITOR_FREE;
+121 monitor_payload[lm] = EMPTY;
+122 lm = (lm + 1) % MONITORS;
+123 }
+124
+125 // Also free the one just handled .
+126 monitor_status [lm] = MONITOR_FREE;
+127 LAST_PAYLOAD = monitor_payload[lm];
+128 monitor_payload[lm] = EMPTY;
+129 lm = (lm + 1) % MONITORS;
+130}
+
+--- Page 28 ---
+B Graphical Representation of UPPAAL TA
+Fig.14: UPPAAL figure of data-generator.
+Fig.15: UPPAAL figure of monitored data-generator.
+Fig.16: UPPAAL graphical representation of subscriber.
+
+--- Page 29 ---
+Fig.17: UPPAAL graphical representation of Monitor.
+Fig.18: Template for monitored probabilistic data-generator.
+Fig.19: Template for timer.
+
+--- Page 30 ---
+Fig.20: Template for host.
+Fig.21: Template for probabilistic data-generator.
