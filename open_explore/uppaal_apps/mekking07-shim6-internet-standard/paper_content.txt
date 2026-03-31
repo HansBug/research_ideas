@@ -1,0 +1,230 @@
+--- Page 1 ---
+ 
+ 
+ 
+Formalizing SHIM6, a Proposed Internet Standard in UPPAAL
+Mekking, Matthijs; Wijngaards, Wouter; Vaandrager, Frits; Schouten, Theo
+2007, Article in monograph or in proceedings (VVSS 2007 (Verification and Validation of Software
+Systems) Symposium)
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Version of the following full text: Publisher’s version
+Downloaded from: https://hdl.handle.net/2066/34748
+Download date: 2026-03-31
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Note:
+To cite this publication please use the final published version (if applicable).
+
+--- Page 2 ---
+Results
+•Revealed incorrectness upon receiving pay-
+load inI2-SENTorI2BIS-SENT.
+•Revealedpossibledeadlockwithoptionalre-
+transmitting I2 /I2bis messages.
+•Clariﬁed confusion about responder nonce.
+Revealed several other ambiguities, omis-
+sions and inconsistencies.
+Acknowledged bySHIM6draft authors.
+Will be incorporated innewIETF proposal.Future Work
+UPPAAL:
+Improvemodel toverify on scale.
+Add failure detection and exploration.
+Extend UPPAAL veriﬁer language.
+Indicate model statespace.
+SHIM6:
+Implementations.
+Add HBAand CGA,ContextForking.
+INTEROPtest.
+Trafﬁc engineering issues.Further Information
+SHIM6:
+http://www.shim6.org
+http://tools.ietf.org/wg/shim6/
+http://www.ietf.org/html.charters/shim6-charter.htm l
+UPPAAL:
+http://www.uppaal.com
+MasterThesis (Approx. May 2007):
+http://www.ita.cs.ru.nl/publications/papers/fvaan/S HIM6/UPPAAL
+Anintegratedtoolenvironmentformodelling,validationa ndveriﬁca-
+tion of real-time systems modelled as networks of timed auto mata,
+extended withdata types.
+Properties:
+A[] not deadlock
+exists(h1:HostType) exists(h2:HostType)
+(h1 != h2 and heuristics[h1][h2]) -->
+forall(h3:HostType) forall(h4:HostType)
+(h3 != h4 imply Context(h3, h4).established)send != NO_SHIM and
+p.shim6.type == I2bis
+answer!
+reply_I2bis(send, p)n:NonceType
+n != nonce_nil and
+send != NO_SHIM and 
+p.shim6.type == I1
+answer!
+reply_I1(send, p, n)send != NO_SHIM and
+p.shim6.type == I2
+answer!
+reply_I2(send, p)n:NonceType
+n != nonce_nil and
+send != NO_SHIM and
+p.shim6.type == PAYLOAD
+answer!
+reply_payload(send, p, n)send == NO_SHIM
+no_answer!goto != NOWHERE
+update[i][peer][goto]!goto == NOWHERE
+ipv6 : IPv6Type
+UseIP[ipv6] == i
+receive[ipv6]?
+contextlookup()
+assign_ip()delivering
+z <= 4
+failed[buff.src][buff.dest]no_answer?
+answer?
+buff = pnot failed[buff.src][buff.dest]
+receive[buff.dest]!
+p = buff
+sendto?
+buff = p, 
+z = 0dest:HostType
+dest != i and 
+not heuristics[i][dest] and
+ctx_state[i][dest] == IDLE
+heuristics[i][dest] = truedest : HostType
+dest != i and
+map2Lp(dest)
+sendto!
+send_payload(dest)failed
+y <= to
+i2bissent
+y <= I2BIS_TIMEOUTestablished
+ctx_clock[i][peer] 
+   <= TEARDOWN_TIMEOUT
+i2sent
+y <= I2_TIMEOUTi1sent
+y <= I1_TIMEOUTidleupdate[i][peer][ESTABLISHED]?
+allocate_ctx(nonce_nil), 
+establish_ctx(p.shim6.type), 
+ctx_clock[i][peer] = 0update[i][peer][ESTABLISHED]?
+allocate_ctx(nonce_nil), 
+establish_ctx(p.shim6.type), 
+ctx_clock[i][peer] = 0
+n:NonceType
+n != nonce_nilupdate[i][peer][I2BISSENT]?
+recover_ctx(n), 
+y = 0, 
+tries = 0ctx_clock[i][peer] >= TEARDOWN_TIMEOUT
+teardown_ctx()
+n:NonceType
+n != nonce_nil and
+tries > I2BIS_RETRIES_MAX and
+y >= I2BIS_TIMEOUT
+fallback_ctx(n), 
+y = 0, 
+tries = 0tries <= I2BIS_RETRIES_MAX and
+y >= I2BIS_TIMEOUT
+sendto!
+send_i2bis(),
+y = 0,
+tries++tries > 0
+update[i][peer][ESTABLISHED]?
+establish_ctx(p.shim6.type),
+ctx_clock[i][peer] = 0tries > 0
+update[i][peer][ESTABLISHED]?
+establish_ctx(p.shim6.type),
+ctx_clock[i][peer] = 0 n:NonceType
+n != nonce_nil and
+tries > I2_RETRIES_MAX and
+y >= I2_TIMEOUT
+fallback_ctx(n),
+y = 0, 
+tries = 0ctx_clock[i][peer] >= to
+ctx_ULIDl[i][peer] = ipv6_nil,
+ctx_ULIDp[i][peer] = ipv6_nil,
+to = 0
+tries > 0
+update[i][peer][NOSUPPORT]?
+fail_ctx(NOSUPPORT), 
+y  = 0,
+to = ICMP_HOLDDOWN_TIME
+tries > I1_RETRIES_MAX and
+y >= I1_TIMEOUT
+fail_ctx(EFAILED),
+y = 0, 
+to = NO_R1_HOLDDOWN_TIME
+tries > 0
+update[i][peer][ESTABLISHED]?
+establish_ctx(p.shim6.type),
+ctx_clock[i][peer] = 0
+tries <= I2_RETRIES_MAX and
+y >= I2_TIMEOUT
+sendto!
+send_i2(),
+y = 0,
+tries++n:NonceType
+n != nonce_nil and
+tries > 0
+update[i][peer][I2SENT]?
+update_ctx(n),
+y = I2_TIMEOUT, 
+tries = 0tries <= I1_RETRIES_MAX and
+y >= I1_TIMEOUT
+sendto!
+send_i1(),
+y = 0, 
+tries++n:NonceType
+heuristics[i][peer] and
+n != nonce_nil
+urg!
+allocate_ctx(n),
+y = I1_TIMEOUT,
+tries = 0Background
+Multihoming
+•A technique to increase the reliability of a
+network connection.
+•Features redundancy, load sharing, perfor-
+mance and policy.
+•Currentmultihomingpractices(IPv4)impose
+athreaton address and routing scalability.
+•SHIM6 is a proposal by the IETF to provide
+multihoming thatsolvethese issues.
+•Noformalmethodshavebeenappliedtothe
+draftspeciﬁcation.
+Aim; improve the quality of the speciﬁcation
+byapplying formalmethods.HowSHIM6works
+IP roles SHIM6 splits the two semantics of
+an IP address ( end point identiﬁer andloca-
+torrole).
+Initial contact Normal data communication
+between end point identiﬁers, no SHIM6
+needed.
+Context Establishment Communication to
+exchange multihoming information.
+Datacommunication remains normal.
+Failure detection Messages are transmitted
+to detecta link failure.
+Locator pair exploration In case of a link
+failure, a new locator needs to be selected.
+Locators are mapped back at the host to theendpointidentiﬁer. Transportsessionremains
+stable. Communication resumes with SHIM6
+data packets that provide mapping informa-
+tion.
+Formalizationand VeriﬁcationFORMALIZINGSHIM6
+AN IETFPROPOSEDINTERNETSTANDARDIN UPPAAL
+MatthijsMekking1,2,WouterWijngaards1,Frits Vaandrager2, Theo Schouten2
+1Foundation NLnet Labs
+2Institutefor Computing andInformation Sciences, Radboud U niversity Nijmegen
+matthijs@nlnetlabs.nl
+wmekking@science.ru.nl

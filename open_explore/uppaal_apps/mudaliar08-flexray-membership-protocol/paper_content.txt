@@ -1,0 +1,1226 @@
+--- Page 1 ---
+  
+VERIFICATION OF FLEXRAY MEMBERSHIP PROTOCOL USING U PPAAL 
+ 
+ 
+by 
+ 
+ 
+ 
+VINODKUMAR SEKAR MUDALIAR 
+ 
+ 
+ 
+B.E., University of Pune, India, 2004 
+ 
+ 
+ 
+A THESIS 
+ 
+ 
+submitted in partial fulfillment of the requirement s for the degree 
+ 
+ 
+ MASTER OF SCIENCE 
+ 
+ 
+Department of Computing and Information Sciences 
+College of Engineering 
+ 
+ 
+ 
+ 
+KANSAS STATE UNIVERSITY 
+Manhattan, Kansas 
+ 
+ 
+2008 
+ 
+Approved by: 
+ 
+Major Professor 
+Dr. Mitchell Neilsen 
+
+--- Page 2 ---
+  
+Abstract 
+Safety-critical systems embedded in avionics and au tomotive systems are becoming 
+increasing complex. Components with different requi rements typically share a common 
+distributed platform for communication. To accommod ate varied requirements, many of these 
+distributed real-time systems use FlexRay communica tion network. FlexRay supports both time-
+triggered and event-triggered communications. In su ch systems, it is vital to establish a 
+consistent view of all the associated processes to handle fault-tolerance. This task can be 
+accomplished through the use of a Process Group Mem bership Protocol. This protocol must 
+provide a high level of assurance that it operates correctly. In this thesis, we provide for the 
+verification of one such protocol using Model Check ing. Through this verification, we found that 
+the protocol may remove nodes from the group of ope rational nodes in the communicating 
+network at a fast rate. This may lead to exhaustion  of the system resources by the protocol, 
+hampering system performance. We determine allowabl e rates of failure that do not hamper 
+system performance. 
+ 
+
+--- Page 3 ---
+ iii  Table of Contents 
+List of Figures.................................... ................................................... ......................................... vi 
+List of Tables ..................................... ................................................... ........................................ vii 
+Acknowledgements................................... ................................................... ................................viii 
+CHAPTER 1 - Introduction ........................... ................................................... .............................. 1 
+1.1 Why FlexRay? ................................... ................................................... ................................ 1 
+1.2 Safety Critical Systems........................ ................................................... .............................. 2 
+1.3 Thesis Goals................................... ................................................... .................................... 3 
+CHAPTER 2 - Background ............................. ................................................... ............................ 4 
+2.1 Fault Tolerance ................................ ................................................... .................................. 4 
+2.1.1Redundancy.................................... ................................................... .............................. 4 
+2.1.1.1 Information Redundancy ..................... ................................................... ................ 4 
+2.1.1.2 Software Redundancy ........................ ................................................... .................. 4 
+2.1.1.3 Hardware Redundancy........................ ................................................... ................. 4 
+2.1.1.4 Time Redundancy ............................ ................................................... .................... 5 
+2.1.2 Reliability.................................. ................................................... .................................. 5 
+2.2 System Model ................................... ................................................... ................................. 5 
+2.3 Fault Model.................................... ................................................... .................................... 6 
+2.4 FlexRay........................................ ................................................... ...................................... 8 
+2.4.1 Overview..................................... ................................................... ................................ 8 
+Communication cycle ................................ ................................................... .......................... 9 
+2.4.1.1 Static Segment ............................. ................................................... ...................... 10 
+2.4.1.2 Dynamic Segment............................ ................................................... .................. 10 
+2.4.1.3 Network Idle Time.......................... ................................................... ................... 11 
+2.4.2 Timing Hierarchy............................. ................................................... ......................... 11 
+2.4.3 Clock Synchronization........................ ................................................... ...................... 12 
+2.5 UPPAAL......................................... ................................................... ................................. 12 
+2.5.1 Timed Automata ............................... ................................................... ........................ 13 
+2.5.2 UPPAAL Query Language ........................ ................................................... ............... 13 
+
+--- Page 4 ---
+ iv  2.5.2.1 State Formulae ............................. ................................................... ...................... 14 
+2.5.2.2 Reachability Properties .................... ................................................... .................. 14 
+2.5.2.3 Safety Properties .......................... ................................................... ...................... 15 
+2.5.2.4 Liveness Properties ........................ ................................................... .................... 15 
+CHAPTER 3 - Membership Protocol .................... ................................................... .................... 16 
+3.1 Overview:...................................... ................................................... ................................... 16 
+3.2 HeartBeat Message .............................. ................................................... ............................ 17 
+3.3 Protocol....................................... ................................................... ..................................... 18 
+3.3.1Basic Protocol ................................ ................................................... ............................ 19 
+Failure Detection.................................. ................................................... .......................... 19 
+Membership Communication........................... ................................................... .............. 19 
+Membership Decision ................................ ................................................... .................... 20 
+3.3.2 Process Integration.......................... ................................................... .......................... 21 
+3.3.3 Event Triggered Scheduling ................... ................................................... .................. 22 
+3.3.4 Decision Function ............................ ................................................... ......................... 22 
+CHAPTER 4 - Verification Model ..................... ................................................... ....................... 24 
+4.1 Model Layout................................... ................................................... ................................ 24 
+4.2 Bus ............................................ ................................................... ....................................... 25 
+4.3 Global Clock................................... ................................................... ................................. 26 
+4.4 DTask.......................................... ................................................... ..................................... 27 
+4.5 Node........................................... ................................................... ...................................... 28 
+4.6 Scheduler ...................................... ................................................... ................................... 31 
+CHAPTER 5 - Verification of Model.................. ................................................... ...................... 34 
+5.2 Liveness Property .............................. ................................................... .............................. 35 
+CHAPTER 6 - Analysis............................... ................................................... .............................. 36 
+6.1 Response Time.................................. ................................................... ............................... 36 
+6.2 Failure Rate................................... ................................................... ................................... 37 
+6.3 Node Failures.................................. ................................................... ................................. 38 
+6.4 Verification Results ........................... ................................................... .............................. 39 
+CHAPTER 7 - Conclusion............................. ................................................... ............................ 41 
+7.1 Conclusion ..................................... ................................................... .................................. 41 
+
+--- Page 5 ---
+ v 7.2 Future Work.................................... ................................................... ................................. 41 
+References......................................... ................................................... ......................................... 42 
+
+--- Page 6 ---
+ vi   
+List of Figures 
+Figure  1.1 [12] Snapshot of in-car E/E Systems............ ................................................... .............. 2 
+Figure  2.1 Hybrid Fault Space (a) symmetric communication (b) asymmetric communication.... 7 
+Figure  2.2 [5] Topologies used in FlexRay ................. ................................................... ................ 9 
+Figure  2.3[9] Different Segments making up a communication  cycle ........................................... 9 
+Figure  2.4 [10] Time Hierarchy in FlexRay Controller...... ................................................... ....... 11 
+Figure  2.5 [11] Path Formulae Supported in UPPAAL......... ................................................... .... 14 
+Figure  3.1 Heartbeat Message.............................. ................................................... ...................... 17 
+Figure  3.2 Membership Protocol in FlexRay Cycle ........... ................................................... ....... 18 
+Figure  3.3 Communication Cycle in Conjunction with the pha ses of the protocol...................... 19 
+Figure  4.1 Bus Model in the System........................ ................................................... .................. 26 
+Figure  4.2 Global Clock................................... ................................................... .......................... 26 
+Figure  4.3 Processes in Member State...................... ................................................... ................. 27 
+Figure  4.4 Processes in NotMember State................... ................................................... .............. 28 
+Figure  4.5  Static Segment................................ ................................................... ......................... 29 
+Figure  4.6  Dynamic Segment in Node....................... ................................................... ............... 30 
+Figure  4.7  Network Idle State in Node .................... ................................................... ................. 31 
+Figure  4.8  Scheduler ..................................... ................................................... ............................ 32 
+Figure  5.1 Agreement Automata............................. ................................................... ................... 35 
+Figure  6.1 Absolute Response time ......................... ................................................... .................. 36 
+Figure  6.2 Relative Response time ......................... ................................................... ................... 37 
+Figure  6.3 Failure Rate for Different number of Nodes ..... ................................................... ....... 38 
+Figure  6.4 Verification Time .............................. ................................................... ....................... 39 
+Figure  6.5  Memory Required for Verification.............. ................................................... ............ 40 
+
+--- Page 7 ---
+ vii   
+List of Tables 
+Table  5.1 Verification Properties........................ ................................................... ....................... 34 
+
+--- Page 8 ---
+ viii   
+Acknowledgements 
+This work is a product of dedication, hard-work and  devotion of mine, but these alone 
+would have fallen short if not for the support, gui dance, inspiration and advice of many others. 
+I am immeasurably indebted to my advisor, Dr. Mitch ell L. Neilsen, for being a constant 
+source of knowledge, insight, encouragement and sup port over the past two years. His 
+intellectual contribution to this work, both direct ly and indirectly, has been invaluable to my 
+progress with it. I wish to thank him for allowing me the discretion of walking into his office 
+anytime that I had a question, and for giving me th e opportunity to pursue my research under his 
+guidance. He kept me going in my work in more ways than I can mention. His contribution to 
+the clarity, notations and conciseness of this docu ment is immense and I wish to thank him for 
+the time and the effort that he has invested.  
+I wish to thank Dr. Gurdip Singh and Dr. Daniel And resen for taking time out of their 
+busy schedule and serving on my thesis committee. T heir individual contribution towards my 
+academic development has been immense and their kin dness, expertise and lively enthusiasm 
+have made studying enjoyable. 
+ I would also like to thank my friends who have bee n a constant source of encouragement 
+and support. And last, but definitely not the least , I would like to thank my family without whom 
+I would have fallen astoundingly short of pursuing something so ambitious. 
+
+--- Page 9 ---
+ 1 CHAPTER 1 - Introduction 
+In recent years, vehicles have been loaded with ele ctronics which have increasingly 
+defined the driving experience. Beginning with engi ne management and car audio, electronics 
+have now penetrated all major systems in the vehicl e, ranging from power train, body and 
+chassis to driver-assistance systems and active and  passive safety systems. A major concern with 
+all of these electronics is safety. Vehicles are mo re prone to digress from their normal operation, 
+in the event of sudden change, in how they operate.  This is the reason why safety critical 
+applications in automotive domains demand high reli ability. In most applications, reliability is 
+addressed by using fault-tolerant protocols. An exa mple would be a process group membership 
+protocol for FlexRay [1], which takes advantage of FlexRay’s dual scheduling ability. 
+It may be observed that fault-tolerant distributed protocols are very subtle and informal 
+arguments of correctness are prone to error. Such a rguments are clearly insufficient for safety-
+critical applications which require a high level of  assurance in their operation. Ideally, 
+mathematical proofs, either manual or automatic, fo r correctness of protocol should be provided. 
+An alternative formal method is model checking of t he protocol. In this thesis we envisage to 
+formally prove the correctness of a membership prot ocol for FlexRay using model checking. 
+ 
+1.1 Why FlexRay? 
+The first step towards use of electronics in the ca r was by introducing digitally controlled 
+combustion engines with fuel injection and digitall y controlled anti-lock brake systems (ABS). A 
+lot of functionalities such as traction control (TC S), electronic stability control (ESP), and brake 
+assistant (BA) helped having close synergy between mechanics and electronics. This yielded 
+several benefits which included better fuel economy , and better vehicle performance in normal 
+and adverse conditions.   
+Electronic and computer-based features continue to proliferate automotive industry, 
+leading to widespread use of embedded real-time con trol networks. This is evident from Figure 
+1.1, which gives a snapshot of present electronics systems and architectures in cars.  
+ 
+
+--- Page 10 ---
+ 2  
+Figure  1.1 [12] Snapshot of in-car E/E Systems 
+ 
+ 
+To gain additional performance means giving up mech anical linkages between driver and 
+vehicle. The car industry has started using X-by-wi re control. X-by-wire control will help make 
+the car lighter.  
+Critical to X-by-wire designs are the safety compon ents of software, hardware, and in 
+particular, computer networks that coordinate vehic le functions. This new technology requires 
+more bandwidth for the communication [2]. The avera ge bandwidth needed for engine and 
+chassis control is estimated to reach 1500 kb/s in 2008 as opposed to 765 kb/s in 2004 and 122 
+kb/s in 1994. The CAN protocol commonly used in the  automotive industry, may soon be 
+replaced by FlexRay, another protocol which provide s the system advantages of higher 
+bandwidth and support for both event-triggered (as CAN) and time-triggered communication. 
+ 
+1.2 Safety Critical Systems 
+A system is safety-critical if a failure of the sys tem leads to consequences that are 
+determined to be unacceptable. Thus, a system on wh ich we depend for our well being is safety-
+critical. For example if the brake for one wheel of  a car fails, it may cause the car to go out of 
+control. Thus, the braking system is definitely a s afety critical system. 
+Safety critical systems are called safety-related s ystems in the literature in the field. Neil 
+Storey defines Safety related systems in his book ‘ Safety Critical Computer System’: 
+A safety related system is one by which the safety of equipment or plant is assured. 
+ 
+
+--- Page 11 ---
+ 3 Though a system may claim to be safe, it is necessa ry to prove that the system is safe. To 
+believe that a system is going to be used in the re al world, we need a proof of a safe and correct 
+system behavior.  Systems cannot be absolutely safe , but the safety level of a system must be 
+sufficiently high for a specific task it’s supposed  to perform.  
+In the car example, when the brake for one wheel of  a car fails the other brakes needs to 
+be aware of this as soon as possible. They may then  be able to compensate for the loss of one 
+brake and stop the car almost as safely as with all  brakes fully functioning. 
+We can foretell the systems behavior when it is pre dictable. Hence, predictability is one 
+of the most desired properties for safety related s ystems. 
+ 
+ 
+1.3 Thesis Goals 
+The project creates a UPPAAL model that closely mat ches a real-life FlexRay 
+communication in vehicles. We then extend the model  to support fault-tolerance in the FlexRay 
+protocol. The model will then be used to verify the  protocol using model checking. It will be 
+further used for verifying of industrial systems – in this case, embedded controllers with timing 
+aspects. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 12 ---
+ 4 CHAPTER 2 - Background 
+2.1 Fault Tolerance 
+The objective of the use of fault tolerance is to d esign a system in such a way that faults 
+do not result in system failure. It is not possible  to prepare for all contingencies; hence designing 
+a system which is 100% safe is impossible. The aim of a fault tolerant system is to provide 
+maximal sustained system dependability to make the system “safe enough”.  
+Today, the vehicles encompass more and more devices  on board, which increase the 
+chances of failure in the distributed system. The f ailures can grow arbitrarily large as number of 
+components increase, hence we require the system to  enter a state of graceful degradation. In this 
+state the system will continues function in a decre ased capacity when one or more components 
+fail. 
+Use of fault tolerance varies between one applicati on and another. It improves reliability, 
+dependability and safety. 
+ 
+2.1.1Redundancy 
+Fault tolerance is achieved by using some form of r edundancy. Redundancy may be 
+implemented on many levels such as software redunda ncy, hardware redundancy, time 
+(temporal) redundancy or information redundancy [2] . 
+2.1.1.1 Information Redundancy 
+       In a system containing information redundanc y supplementary information in      
+addition to that needed by the system in absence of  faults is used. Examples of information 
+redundancy include parity bits or CRC checksums. 
+2.1.1.2 Software Redundancy 
+      Using software in addition to that required t o implement a system in the absence of 
+faults. Examples of these are membership algorithms . 
+2.1.1.3 Hardware Redundancy 
+       Using hardware in addition to what is requir ed to implement a system in the absent 
+of faults. Examples of this are airplane onboard co mputers. 
+
+--- Page 13 ---
+ 5 2.1.1.4 Time Redundancy 
+         Using time in addition to what is required  to implement a system in the absence of 
+faults. Example of this are recalculating a result multiple number of times and then using 
+majority voting to obtain the final result. 
+ 
+Many early fault tolerant systems duplicate hardwar e in such a way that if one module 
+failed the rest of the system would still function normally. One example is a TMR (Triple 
+Modular Redundancy) system where there are identica l modules which produce the same output. 
+A voting procedure was used to detect faulty units.   
+ 
+2.1.2 Reliability 
+When talking about safety related systems different  terms such as reliability and 
+availability are examples of topics. A safety criti cal system such as a brake-by-wire system in a 
+car must be reliable. Storey defines reliability as  “The probability of a component, or system, 
+functioning correctly over a given period of time u nder a given set of operating conditions” [3]. 
+One common definition is to denote reliability over  time by R (t) and define it for a given 
+number N of identical components that start operati ng at the same time as: 
+ 
+                                    R (t) = n (t)/N  
+where n (t) is the number of components still opera ting correctly at time t. For a system 
+consisting of different sets of redundant component s one may use reliability models such as 
+reliability diagrams to find the reliability of the  entire system. The configuration of the system 
+components, their individual reliability and the nu mber of redundant units will all greatly 
+influence the reliability, cost and performance of the system. When designing a dependable 
+system this adds considerable complexity to finding  the optimum configuration. 
+ 
+2.2 System Model 
+We consider a distributed system framework, compris ed of a completely connected 
+network of (N) nodes that supports both time-trigge red and event- triggered communication. We 
+consider the system communication model as: 
+
+--- Page 14 ---
+ 6 A1. A path exists from each node to all other nodes  (i.e., a completely connected 
+network). A node issues a single message which is b roadcast through its associated 
+communication link. 
+A2. A non-faulty node can identify the sender of an  incoming message, and can detect 
+the discrepancy in an expected message. A faulty li nk can abrupt the message delivery but 
+cannot correct an erroneous message. 
+A3. All processors execute different amounts of wor kload and determine the output value 
+Vi through the use of a voting function.                                                           
+A4. Node and link faults are considered indistingui shable: Links are considered as simple 
+memory less interfaces between nodes. 
+ 
+A processor consists of one incoming link and one o utgoing link. The incoming and 
+outgoing links, broadcast message to receivers and receive message from other processors 
+respectively. The protocol is non authenticated mes sage passing; where the communication is 
+organized into periodically repeated cycles of equa l length. They contain a static and dynamic 
+segment and network idle time. In addition, every m essage is checked for errors; thus, it is 
+difficult for a malicious node to forge as a differ ent processor. We assume that the processor 
+supports clock synchronization. 
+2.3 Fault Model 
+ 
+System failures are assumed to be due to inconsiste nt decisions or computations across 
+the system. Thus, it is necessary to identify fault y nodes and prevent system failure in the 
+presence of a specific number of faults. Fault mode ls need to cover a range of fault types. Thus, 
+flexibility in fault model helps in incorporating r ealistic system environment. 
+In [1], distinguishes failure into asymmetric and s ymmetric. Symmetric failures are 
+perceived by all non-faulty nodes which occur due c ontent failure in messages, process crashes 
+in the system. For example a node receives a messag e which fails to match its checksum, then 
+that node is considered to be faulty and removed fr om the membership group. An asymmetric 
+failure causes the node to obtain an inconsistent v iew of the membership state. This occurs when 
+a subset of nodes in the system receive message inc orrectly. 
+
+--- Page 15 ---
+ 7  
+The Hybrid Fault-Effects Model presented in [6, 7] is based on fault-detection 
+mechanisms built in at the node level and on nodes exchanging their local opinion with other 
+nodes in the system. Classification in HFM begins w ith the examination of fault states created by 
+the dispersal of information. As shown in fig 2.1 g eneral cases are possible when a node 
+transmits information in the network. (a) all recei vers obtain the same information i.e., mess_j 
+(symmetric dispersal), or (b) receivers obtain diff erent information i.e., mess_j and mess_j’ 
+(asymmetric dispersal). 
+ 
+Figure  2.1 Hybrid Fault Space (a) symmetric communication (b) asymmetric 
+communication 
+ 
+ 
+The second aspect of the HFM is based on propagatio n effects of a faulty source. If an 
+individual node is sufficient to detect the error, it is classified as a benign fault since the fault-
+effect is locally detectable. On the other hand, th ere are situations that require multiple nodes to 
+exchange their syndrome information with each other  in order to provide accurate diagnosis, i.e., 
+globally detectable. For these cases, the values in  a message appear to be plausible locally at a node_j 
+
+--- Page 16 ---
+ 8 node; however, they can only be verified with a mul tiple exchange of information. After the 
+exchange is completed, the plausible value may be d etermined to be value-faulty. 
+We need to ensure that distributed nodes or process es arrive at the same decisions and 
+computational results in the presence of arbitrary faults. Thus, Byzantine [8] agreement 
+algorithms are implemented. 
+2.4 FlexRay 
+We need a communication system that handles applica tions limited by the bit rate of 
+CAN. A system that offers redundancy in developing solutions which sends same messages 
+several times or by providing two  separate channel s transmitting the same data. The system 
+should be able to serve all future electronic funct ions in motor vehicles. In order to attain these 
+objectives, a FlexRay consortium with it original m embers BMW, Daimler-Chrysler, Philips and 
+Motorola was formed. The cooperation between some c ar manufacturers and electronics 
+manufacturers resulted into a communication system called FlexRay. It is a system for advanced 
+automotive control applications. The Consortium has  grown to include some of the automotive 
+industry’s largest and most influential players, in cluding Bosch, General Motors, and VW among 
+others [4]. 
+2.4.1 Overview 
+FlexRay is a network protocol based on TDMA scheme.  The access to the medium is 
+predetermined with time slots which structurally el iminates any possibility of message collision. 
+It supports both time-triggered and event-triggered  communication. The maximum bandwidth in 
+FlexRay network is 10 Mbit/s. The two basic topolog ies used in FlexRay are the bus topology 
+and the star topology. These topologies can be comb ined to form hybrid topologies over one or 
+two channels. The support for dual channels improve s fault tolerance in FlexRay protocol. 
+Safety-Critical systems can use a second channel in  order to transmit a redundant copy of the 
+data on the first channel. It may setup to use eith er only one channel or two channels 
+simultaneously when sending data. The minimum numbe r of nodes in a FlexRay network is 2, 
+and the maximum number of connected nodes is 64. 
+ 
+
+--- Page 17 ---
+ 9 Figure  2.2 [5] Topologies used in FlexRay 
+ 
+ 
+Communication cycle 
+Communication in FlexRay takes place through repeti tive communication cycles, each 
+cycle consists of a static segment, a dynamic segme nt, an optional symbol window and finally a 
+phase in which the network is in idle mode, called network idle time (NIT) 
+ 
+Figure  2.3[9] Different Segments making up a communication  cycle 
+ 
+ 
+
+--- Page 18 ---
+ 10  2.4.1.1 Static Segment 
+The part of the communication cycle in which access  to the medium is monitored and 
+controlled by a static time division multiple acces s principle is called the static segment in the 
+FlexRay protocol. The static segment consists of a configurable number of slots, each slot 
+containing room for the same amount of data. Messag es are broadcasted to every other node in 
+the network.  When there is a need for communicatio n which cannot be completed in one slot, 
+the node is assigned several slots which give it a larger static piece of communication. It is also 
+possible for a node to only listen to a channel by not being assigned to any slot at all. The slots 
+that are not assigned to any node and the slots ass igned to broken nodes will be silent. The static 
+segment provides deterministic communication which defines the semantics of status messages 
+and manages distributed systems. 
+2.4.1.2 Dynamic Segment 
+The dynamic segment is used to send event-triggered  messages. This part of the 
+communication cycle consists of mini slots which co ntrols and monitors the access to the 
+medium. This is also known as flexible time divisio n multiple access (FTDMA).   The dynamic 
+segment is divided into minislots such that each sl ot has a unique frame id. Each mini-slot will 
+be extended to a full-size dynamic slot when the no de assigned to the current mini-slot has a 
+message to transmit.  
+A minislot counter is used to provide collision avo idance in the dynamic segment. 
+During a cycle the minislot counter value increases  with a short time interval between ticks. A 
+dynamic message is then sent when its frame id is e qual to the current value of the minislot 
+counter. When there is nothing to be sent in the dy namic segment of a cycle, then the minislots 
+have same length. When a message is sent in the dyn amic segment the duration of the minislot 
+expands until the end of the message transmission.  For example, in figure 2.2 the message F2 is 
+being sent on channel two during most of the dynami c segment of that cycle. The message E2 
+can not be transmitted until the transmission of F2  has completed. In this way collision voidance 
+is implemented in the dynamic segment. Two dynamic messages can never attempt to transmit at 
+the same time on the same channel. This is the case  because each message has a unique Frame 
+ID. During the transmission of a message the value of the minislot counter is unchanged. 
+ 
+
+--- Page 19 ---
+ 11  2.4.1.3 Network Idle Time 
+It is time at the end of each cycle. This phase is used for performing implementation 
+specific related tasks NIT is used synchronization of timing in the protocol.  
+ 
+2.4.2 Timing Hierarchy 
+ 
+Time in a FlexRay node is represented by cycles, ma croticks and microticks. The highest 
+level, the communication cycle level, defines the c ommunication cycle. A cycle builds on an 
+integer number of macroticks. A macrotick is compos ed of an integer number of microticks. A 
+microtick is a multiple of the clock tick of an osc illator in the communication controller. Since 
+the tick length of oscillators in different communi cation controllers vary slightly, this has the 
+signification that the length of a microtick is con troller specific i.e. it may vary between different  
+communication controllers. 
+ 
+Figure  2.4 [10] Time Hierarchy in FlexRay Controller 
+ 
+ 
+The FlexRay controller measures time on a local as well as global time basis. The local 
+time in a node is defined as the time determined by  using the node’s internal clock. The global 
+time of a cluster is defined as the commonly agreed  upon view of the passage of time inside a 
+cluster. A global time is periodically determined t hrough the exchange of messages, and the local 
+time in each node is subsequently adjusted to match  the global time. 
+
+--- Page 20 ---
+ 12   
+ 
+ 
+2.4.3 Clock Synchronization 
+ 
+It is essential that the local time in the various nodes in a FlexRay network remains 
+synchronized. Therefore the difference between loca l time in a node and the global time must not 
+differ by any large amount. Any node straying too m uch from the local time too long is 
+disconnected from the network. The time synchroniza tion is done by the sending of a reference 
+message in the static segment. The message is sent by the pre-selected synchronization nodes 
+(nodes that have the sync bit in the header set). 
+ 
+2.5 UPPAAL 
+ 
+UPPAAL [11] is an open source tool for simulation a nd verification of real-time and 
+embedded systems modeled as real-time components. I t is jointly developed by the Uppsala 
+University and Aalborg University. 
+It has a Java interface with verification engine wr itten in C++. This tool helps verify 
+systems that can be modeled as networks of timed au tomata extended with integer variables, 
+structured data types, and channel synchronization.  It also supports graphical modeling of 
+internal component behavior as Uppaal timed automat a, and hierarchical composition of 
+components. We can also use the simulator to explor e the dynamical behavior of components, 
+and can be used to call the model-checker of Uppaal  PORT to verify properties expressed in a 
+subset of timed CTL.  
+UPPAAL has undergone several changes since it conce ption in 1995, most versions 
+consisting of additions to their earlier counterpar ts. Some of the additions include, experiments 
+and improvements include data structures, partial o rder reduction, symmetry reduction, a 
+distributed version of Uppaal, guided and minimal c ost reachability, work on UML Statecharts, 
+acceleration techniques and new data structures and  memory reductions. 
+
+--- Page 21 ---
+ 13  Uppaal consists of three main parts: a description language, a simulator and a model-
+checker. The description language is a non-determin istic command language which serves as a 
+modeling or design language to describe system beha vior as networks of automata. The 
+simulator is a validation tool which enables examin ation of possible dynamic executions of a 
+system during early design stages. It provides an i nexpensive means for fault detection prior to 
+verification by the model-checker. The model-checke r is used to check invariant and reachability 
+properties by exploring the state-space of a system . 
+The model-checking in UPPAL is based on the theory of Timed Automata and its 
+modeling language. The query language of UPPAAL whi ch is a subset of CTL (computation tree 
+logic) [3, 35] is used to specify the properties to  be checked. 
+ 
+2.5.1 Timed Automata 
+A timed automaton is a finite-state machine with cl ock variables. A system is modeled as 
+a network of several such timed automata in paralle l, with bounded discrete variables that are 
+part of the state. These discrete variables can rea d, write and are subject to common arithmetic 
+operation as in any programming language. A state o f the system is defined by the locations of 
+all automata, the clock constraints, and the values  of the discrete variables. 
+ 
+2.5.2 UPPAAL Query Language 
+The model checker is used to verify the automata wi th respect to the given requirement 
+specifications. The requirement specification is ex pressed in a formally well-defined and 
+machine readable language. UPPAAL uses a simplified  version of CTL for requirement 
+specification for the model checker. State formulae  are described as individual states, whereas 
+path formulae quantify over paths or traces of the model. Path formulae can be further classified 
+into reachability, safety and liveness. 
+We will describe each of the different path formula e supported by Uppaal. 
+
+--- Page 22 ---
+ 14  Figure  2.5 [11] Path Formulae Supported in UPPAAL 
+ 
+ 
+2.5.2.1 State Formulae 
+A state formula is an expression which is evaluated  for a state without looking at the 
+behavior of the model. For example consider the exp ression, a = 10. This expression could be 
+applicable for a state X of the automaton, that is true in a state whenever a equals 10. The syntax 
+of state formulae is a superset of that of guards. 
+2.5.2.2 Reachability Properties 
+A reachable property is a property that can eventua lly hold true. A reachability property 
+checks if a given state formula, possibly can be sa tisfied by any reachable state. They are often 
+used in designing a model to perform sanity checks.  A reachability property will not guarantee 
+the correctness of the protocol but only validate t he basic behavior of the model. 
+A special case would be the state formulae for a de adlock. The formula simply consists of 
+the keyword deadlock and is satisfied for all deadl ock states. 
+ 
+ 
+ 
+
+--- Page 23 ---
+ 15  2.5.2.3 Safety Properties 
+Safety properties are properties which are required  to hold at all times i.e. they are 
+invariants. An example of a safety property would b e the operating temperature of a nuclear 
+plant which is always (invariantly) required to be under a certain threshold. In Uppaal these 
+properties are formulated positively, e.g., somethi ng good is invariantly true. 
+2.5.2.4 Liveness Properties 
+Liveness property is a property which will hold tru e within a certain time bound. An 
+example of a liveness property would be any message  that has been sent should eventually be 
+received, in any model of a communication protocol.  
+  
+ 
+
+--- Page 24 ---
+ 16  CHAPTER 3 - Membership Protocol 
+This section gives a detailed description of the me mbership protocol that has been 
+modeled in this thesis. The membership protocol und er consideration for distributed real-time 
+systems supports both time-triggered and event trig gered communication. The protocol consists 
+of the algorithms  that are described below. 
+3.1 Overview: 
+The membership protocol under consideration was pro posed by Carl Bergenhem and 
+Johan Karlsson in their article “A process Group me mbership Service for Active Safety Systems 
+using TT/ET Communication Scheduling". In this thes is, this protocol has been modeled in 
+Uppaal and verified. 
+A membership protocol is a membership service based  on the idea that each node in the 
+network creates its own view of the status of all o ther nodes in the network, i.e. which nodes are 
+operational and which are not. A common view is for med based on the individual views of each 
+of the nodes.  
+A common view is obtained by conducting a majority voting (poling), with a variety of 
+random messaging by any/all nodes in the communicat ion network. FlexRay being a time 
+triggered protocol, each node in the network decide s onto the absence/presence of a particular 
+message on the network. This allows the protocol to  decide whether a node is operational or not 
+in the network. Thus when applied to a distributed real-time system, the protocol allows a group 
+of operating real time processes to establish a "co nsistent" view of the operational status of the 
+network. The protocol is developed to be applied to  any application domain, but has been 
+developed taking into consideration automotive acti ve safety systems. A membership protocol 
+would provide invaluable support for implementing f ault tolerance and graceful degradation. 
+ 
+ 
+
+--- Page 25 ---
+ 17  3.2 HeartBeat Message 
+Figure  3.1 Heartbeat Message 
+ 
+An important function of the membership protocol is  the failure detection. The 
+membership protocol should be able to detect the fa ilure of a process which does not respond as 
+expected. The FlexRay protocol, being a time trigge red protocol simplifies this process, each 
+node on the network decides whether a node is opera tional in the network. Each process is 
+associated with a specific static slot in which it sends a message via the run time environment, a 
+message once during each cycle. This message is als o known as the heartbeat message. Each 
+message in these static slots has a specification o f timing for each node. Any deviation from the 
+specified timing implies failure of the associated process, which is noticed in the run time 
+environments of the nodes. 
+Conversely, each slot in has a fixed association wi th a process / node. A failure detection 
+scheme is based on the presence of the "heartbeat" message as well as a contained status flag. 
+The presence of the heartbeat message with the stat us flag on, implies that the associated process 
+is correct and indirectly the run - time environmen t of the hosting node. It may also be noted that 
+a node can be associated with several processes. Th us there can be several heartbeat messages 
+associated with a node during each cycle. It may al so be noted that a heartbeat message can be 
+lost or corrupted during transmission. This only le ads to faulty conclusion, indicating that the 
+associated process is faulty. 
+The heartbeat message may also contain a data paylo ad from the process, apart from the 
+failure detection associated with it. This data pay load may be consumed by the receiving process 
+to perform its task. Each heartbeat message has 3 s tatus flags associated with it, which are used 
+for failure detection and the data payload carried by it from any communicating process to a 
+receiving process. Each flag can be set or reset by  the run - time environment .The flags are: 
+heartbeat status (HB flag), join - request flag (J - flag), membership status flag (MR flag), see Fig 
+3.1.The HB flag is associated with the process of f ault detection of the process in the 
+
+--- Page 26 ---
+ 18  communication network. The HB flag encodes one of t he following states, concerning the 
+corresponding process:  dead, beating, signaled fai lure report. The status of the HB - flag when 
+set to "beating", indicates that the sender members hip service considers corresponding process to 
+be a member. The HB flag when set to dead signifies  that the associated process is not a member 
+of the communication network. When the HB flag is s et to signal failed report, it indicates that 
+the payload of the message contains a failure repor t instead of the expected data from the sending 
+process. A failure report is generated by the run -  time environment, which may contain detailed 
+information about the failure of one or many proces s. 
+ 
+3.3 Protocol 
+The protocol operation is divided into three phases  that take place during different parts 
+of a FlexRay cycle. The protocol proposed by [1] su pport nodes with multiple processes. 
+Figure  3.2 Membership Protocol in FlexRay Cycle 
+ 
+The basic function of the protocol is to form an op inion about the presence and the status 
+of heartbeat messages. Each active node in the comm unication network broadcasts its opinion at 
+the end of each communication cycle. Thus each acti ve node in the network has complete 
+information about the opinion of all the other node s in the network. Thus each node can make a 
+decision about the status of processes during the p revious cycle. The local opinion of an active 
+node may differ due to asymmetric failures .It may be noted that local opinions are inconsistent 
+with the majority opinion .So asymmetric failures a re manifested as content failures from the 
+affected nodes. The most important function of the protocol is to differentiate between an 
+asymmetric failure and failure at the receiver or t he sender in the network. 
+The protocol is executed by each node in the commun ication network. When processing 
+is completed by the protocol, the membership view i s available at each node. It may be noted 
+
+--- Page 27 ---
+ 19  that the protocol messages must be send in each cyc le, where each message may or may not be in 
+a static slot, thus facilitating the absence of a e vent triggered communication scheme. Also, local 
+opinions need to be exchanged between the nodes, in  case of change in the system. In the event, 
+that no local opinion needs to be exchanged, more n etwork capacity is available for other event 
+triggered messages to be sent on the network. The p rotocol tolerates failures as long as at-least a 
+majority of nodes are active during two cycles. 
+3.3.1Basic Protocol 
+The operation of the protocol is divided into 3 pha ses: failure detection, membership 
+communication, membership decision. Figure 3.3 show s the phases of the protocol. 
+ 
+Figure  3.3 Communication Cycle in Conjunction with the pha ses of the protocol 
+ 
+Failure Detection 
+Heartbeat messages are observed on all active nodes  during the failure detection phase. 
+The local opinion comprises of an incoming heartbea t message in combination with a heartbeat 
+status flag (HB flag). 
+The local opinion concerning a process can be a  'm ember', which implies that the 
+heartbeat message was received correctly and the HB  flag is set to 'beating' while 'nonmember', 
+which implies that the heartbeat message was receiv ed correctly but the HB flag is set to 'dead' or 
+the heartbeat is corrupt (content failure) or the s lot is silent (silent failure).  
+ 
+Membership Communication 
+The nodes in the network will perform the membershi p communication phase during the 
+dynamic communication segment of the cycle. During every cycle, protocol messages, consisting 
+
+--- Page 28 ---
+ 20  of the local opinions are broadcast during the memb ership communication phase in the network. 
+Protocol message are allocated priorities, to get p recedence over other messages, in every cycle. 
+Each node will form what is called an opinion matri x, which is assembled from the received 
+local opinions in the protocol messages. Each row w ill contain the opinion from a particular node 
+while columns will contain all nodes opinion concer ning a particular process. This allows all 
+nodes will have had an opportunity to send their op inions, at the end of the dynamic segment. If 
+there are no failures during the cycle, then the op inion matrix will be fully populated with 
+opinions from all the nodes. If there any other eve nt triggered message in the cycle, they will 
+follow the protocol messages. The dynamic segment i s assumed to consist of a minimum of N 
+dynamic slots, each for every node. 
+ 
+Membership Decision 
+A candidate membership view is obtained by applying  the majority voting decision 
+function to the opinion matrix, in the membership d ecision phase. Any process from the 
+membership group, hosted by nodes which failed to s end messages or have send messages which 
+differ from the result of the decision function are  removed from the candidate view. Thus the 
+membership candidate view is further processed to b e made available to distributed tasks in the 
+system. Any node which no longer hosts a process in  the membership group or any node which 
+leads to the decision function giving an undefined outcome for any process is deactivated. Thus 
+the possible status of any process is: member or no n-member. 
+ 
+During the operation of the protocol, it is possibl e for a node to signal failure. The node 
+which receives the failure signal uses it to modify  the membership view bypassing the 
+membership protocol. If the current cycle is affect ed by further failures, the protocol is executed 
+as usual. Thus the signaled failure mode enables st atus of the membership view of the system to 
+be reached faster and incurring less overhead by us ing the protocol itself. 
+  
+The correctness of the protocol is decided primaril y by the fact that half the nodes in the 
+communication network are active during two cycles of the protocol. Each active node send local 
+its local opinion and the decision function masks a ny faulty opinions (including content failure 
+and silent failure).Thus two cycles of membership p rocessing are required to correctly handle 
+
+--- Page 29 ---
+ 21  content failures, depending the instance at which f ailure occurs during the cycle .The faulty node 
+must intelligently detect a failure has occurred an d cease membership operation by listening to 
+the opinions of other nodes during the two cycles. The active nodes receive a confirmation as to 
+the failure suffered by the faulty node. A consiste nt membership status is reached after the two 
+worst cycles after the last failure. 
+3.3.2 Process Integration 
+The basic protocol is modified to allow integration  of excluded processes and reactivation 
+of deactivated nodes. The reactivation of a node is  indirect, since a node is reactivated when the 
+associated process is re-integrated into the networ k . The heartbeat message sent in the static slot 
+during the failure detection phase is appended with  the join request flag. When the run time 
+environment allows an excluded process to integrate  m the J flag in the heartbeat message is set. 
+At this instant, the HB flag is set to 'dead', indi cating that process is not yet considered to be a 
+member. If a node is reactivated, its membership vi ew is reset, such that all processes in the 
+system are members. This is followed by failure det ection and the re-activated node builds its 
+local opinion, participating in the membership comm unication and decision phases as if an active 
+node and the corresponding process as a member. 
+The opinion from an active node with a re-integrati ng process is considered as 'non-
+faulty', on par with the local opinion of other act ive nodes, since its opinion is now in accordance 
+with the other active nodes. However, this opinion is not considered by the decision function of 
+the other active nodes. Its opinion is instead chec ked so that at least the same processes are 
+members, compared to the result of the decision fun ction in the correct nodes. It the opinion is 
+not checked, the reactivating node has suffered fai lure during re-integration. The node is 
+deactivated and the membership of the processes is removed from the correct nodes. If no such 
+failure occurs then the re-integrating process will  rest the J flag and set the HB flag to beating in 
+the next cycle, indicating that the process is cons idered to be a member and the hosting node is 
+active. 
+Each node also sends an upper bound on the number o f active nodes, in addition to its 
+local opinion. This helps a reactivating node to co rrectly perform the decision function, though it 
+is reactivated into a system of active and inactive  nodes, thereby receiving fewer opinions. The 
+upper bound on the number of active nodes is activa ted at the end of the membership decision 
+
+--- Page 30 ---
+ 22  phase, when the number of active nodes in the syste m is known appropriately. It may be need 
+that the delay from the join request to potential a cceptance in the members group is at worst two 
+cycles. 
+3.3.3 Event Triggered Scheduling 
+When a change of status occurs i.e. when a heartbea t message is missed or in the event of 
+a re-integration attempt, this step is to perform t he membership communication and decision 
+phases .A node may use the membership request flag,  in addition to the heartbeat message to 
+communicate to the other active nodes in the system , whether it will perform membership 
+communication or membership decision in the next cy cle. When a change is detected in the 
+system or a node receives a heartbeat message with the MR flag set, the node will set it own MR 
+flag to signal to the other nodes. Thus the correct  nodes perform membership communication 
+and decision phases. This may occur if a failure af fects the last heartbeat message in the cycle. 
+The remaining nodes detect the failure in the next node and the membership phase will be 
+performed .The membership phases are executed in th e same cycle as would be performed in the 
+event of change in the membership status. This allo ws handling of failures from the previous 
+cycle in the membership phase. 
+A node must also keep track of the "generation numb er of the membership group, 
+included together with the protocol messages sent i n the membership communication. The local 
+generation number is incremented, for every members hip phase performed .Thus it may be noted 
+that the generation number of all the nodes must be  the same during normal operation. If a node 
+receives an opinion with a generation number higher  than its own, it will deactivate itself. 
+Similarly, if a node receives an opinion with a gen eration number lower than its own, then the 
+opinion from the node is disregarded in forming the  opinion matrix. 
+3.3.4 Decision Function 
+A decision function returns a consistent decision o f the status of a process based on the 
+local opinions of active nodes in the system. Each process in the system can have a differently 
+configured decision function  
+A decision function is based on two operands, a vec tor containing local opinions from all 
+the active nodes in the system concerning a specifi c process and the threshold value 'u' of the 
+number of active nodes in the system. The vector wi ll contain the status of the process, as 
+
+--- Page 31 ---
+ 23  determined by all the active nodes in the system. E ach opinion in the vector may or may not be a 
+member in the system. The threshold value sets the required number of opinions to set up an 
+opinion matrix, since a majority [u/2] can be deter mined and the outcome of the opinion matrix 
+be defined.  The decision function returns the opin ion that at least [u/2] nodes have about a 
+process; i.e., member or non member. A lost opinion  message indicates a missing local opinion 
+from an active node (or fewer number of active node s as compared t the threshold value 'u') or 
+the outcome is undefined. The protocol then deactiv ates the node associated with the missing 
+local opinion. If the number of active and inactive  nodes is equal, the outcome is prioritized 
+according to non-member and member nodes. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ 
+
+--- Page 32 ---
+ 24  CHAPTER 4 - Verification Model 
+In this model we focus on the operation of membersh ip service for the FlexRay Protocol. 
+We assume that the clocks are synchronized in this model. 
+4.1 Model Layout 
+The model consists of five components, each with it s own template: GlobalClock, Node, 
+Scheduler, DTask and Bus. Each node needs an instan tiation of the Node and DTask template. 
+The latter handles processes that run on the node. The former represents the runtime environment 
+microprocessor and handles everything else, like co mmunication with the bus and sending data 
+to the bus. 
+In the model, for every process running in the node  we instantiate DTask template 
+specifying its id, slot number and node (where it i s being executed). A process can have 
+membership status: member or not member, initially the membership status of all processes is 
+member. Each DTask i.e. process can only communicat e with its own Node and each Node only 
+with its own DTask, not with other DTasks. 
+ 
+The Bus template needs to be instantiated only once , as there is just one Bus to connect 
+all Nodes in the system. This automaton transfers m essages from and to the nodes. The 
+GlobalClock automaton is only instantiated once as well. It makes sure the model’s cycle 
+completion is known to all automatons. 
+ 
+The FlexRay protocol consists of Static and Dynamic  segments followed by Network Idle 
+time; similarly the Node’s behavior is modeled in U ppaal. The Scheduler keeps track of time and 
+slot counter for Static and Dynamic segments. The N ode’s runtime environment communicates 
+with its respective processes and sends the data on  the bus when it is scheduled to send during 
+the static segment. Node informs the process about its membership status after every 
+membership communication phase. 
+ 
+In the model, we allow a predefined number ‘Slots’ for the static segment and the 
+dynamic segment. This is done by manipulating varia bles ‘gStSlots’ and ‘gMinSlots’. Each static 
+
+--- Page 33 ---
+ 25  and dynamic slot has predefined time assigned to it . The Scheduler automaton increases the 
+static slot counter by one, whenever the clock reac hes the predefined slot time. Scheduler 
+changes its state from Static or Dynamic, whenever clock time reaches ‘gStSlots’ or ‘gMinSlots’. 
+Then the slot counter is reset to 0 and the procedu re starts anew.  
+Since we have assumed that the clock is synchronize d, the slot counter is global for this 
+model. ‘vSlotCounter’ for Static Segment and ‘dvSlo tCounter’ for Dynamic Segment are the slot 
+counters for each segment. It is assumed that Dynam ic Segment schedules all the nodes for 
+membership communication. 
+ 
+Here is an example system definition using three 4 nodes and 5 processes: 
+ 
+ system Process, N1, N2,N3,N4,c1,d1,d2,d3,d4,d5,b1, a; 
+ 
+And the matching process assignments: 
+ 
+N1 = Node (1, 7, 1); 
+N2= Node (2, 6, 2); 
+N3= Node (4, 6, 3); 
+N4= Node (3, 6, 4); 
+ 
+d1 = DTask (1, 1, 1); 
+d2 = DTask (2, 2, 2); 
+d3 = DTask (3, 3, 1); 
+d4 = DTask (4, 4, 3); 
+d5 = DTask (5, 5, 4); 
+4.2 Bus 
+First we take a brief look at the Bus. Throughout t his model the Bus is treated as a 
+medium, in which a node can put a message and from which the other nodes can then take that 
+message out again. The bus uses two synchronization  channels, ‘bmessage’ and ‘message’. 
+Several global variables are used for reading from and writing to the bus. Five of them input data 
+
+--- Page 34 ---
+ 26  into the bus: ‘pID’, ‘Hb’, ’JR’, ’M_R’, ’NodeID’. T his sets the message the bus will send. 
+‘NodeID’ should be the sending node’s id. ‘Hb’, ’JR ’, ’M_R’ are the node’s heartbeat status. 
+‘pID’ is process ID sending the message along with its heartbeat. 
+Figure 4.1 shows the automaton of bus. Channel ‘bme ssage’ is used for receiving 
+message from the nodes which is the broadcasted to other nodes in the system. 
+Figure  4.1 Bus Model in the System 
+ 
+ 
+ 
+4.3 Global Clock 
+The automaton synchronizes with other automaton usi ng the channel ‘startup’, which 
+initializes all the system. GlobalClock indicates t hat a round of communication is finished after 
+every ‘CommCycle’ time and synchronizes with channe l ‘finround’ to let other automaton know 
+that a round of communication is over. 
+Figure  4.2 Global Clock 
+ 
+ 
+
+--- Page 35 ---
+ 27   
+4.4 DTask 
+The DTask template has number of parameters to sepa rate any number dtasks; i.e., 
+processes. They are: ‘Pid’, ’Pslot’ and ‘Node’. 
+‘Pid’ is the process id specific to the process and  is used to indicate process which is 
+sending the data on the bus. ‘Pslot’ is the slot nu mber in which the process is scheduled to send 
+data. ‘Node’ is the Node ID in which the process is  running and is used for sending data to Node 
+automaton using synchronization channel ‘Tmessage [ Node]’. 
+ 
+Figure  4.3 Processes in Member State 
+ 
+As shown in figure 4.3. initially Dtask automaton i s at ‘Member’ state, since all processes 
+are members of the membership group. Whenever there  is change in slot, current slot is checked 
+with ‘Pslot’ to check if it can send data now. When  ‘Pslot’ is equal to the current slot in the 
+system, process sends data to the run time environm ent through Tmessage channel. 
+DTask automaton makes a transition to ‘NotMember’ s tate, when the Node automaton 
+synchronizes through the channel ‘status_change [No de]’. When the DTask is in ‘NotMember’ 
+state and scheduled to send data on bus. It sends a  join message request using the ‘Jmessage 
+[Node]’ channel, see fig 4.4. 
+
+--- Page 36 ---
+ 28  Figure  4.4 Processes in NotMember State 
+ 
+4.5 Node 
+The Node template has a number of parameters to all ow a number of nodes to operate in 
+the system. These parameters are:  dSlotId, time, N ode 
+‘Node’ ties this Node to a specific Node automaton and is used to share data between a 
+Node and its processes. No other automata should ac cess that data, although it would technically 
+be possible to do that in UPPAAL.  
+
+--- Page 37 ---
+ 29  Figure  4.5  Static Segment 
+ 
+As shown in fig 4.5, ‘startup’ is the synchronizati on channel to initiate a Node. Once start 
+up is completed, a node is in Static Segment state from there it can take three transitions. First, 
+when the slot counter is increased, slot which is s cheduled to send data on the bus. This happens 
+through synchronization of ‘change’ channel. Afterw ard the Node automaton checks if the 
+current slot of the system scheduled is equal to th e slot number in which it is supposed to send. If 
+the current slot in not equal to its slot number it  returns to its previous state – StaticSegment. 
+ 
+The second transition is taken by synchronizing wit h the ‘message’ channel, through 
+which the node receives data sent by other nodes. T he third transition is taken when the node 
+synchronizes with ‘transition_st’ to go to dynamic segment. 
+The Scheduler automaton will regularly update the s lotcounter variable, as we will see in 
+the next section. 
+
+--- Page 38 ---
+ 30  Once the Node verifies that it is scheduled to send  data on the bus, it moves to 
+‘SendMessage’ state. During its transition to ‘Send Message’ state, Node indicates to the process 
+which is scheduled to send data which we have expla ined in previous section. 
+The Node automaton receives either a message with h eart beat or a message with a join 
+request using synchronization channels ‘Tmessage [N ode]’ and Jmessage [Node] respectively. 
+Once the Node receives message from the process (DT ask), it processes the message to be sent 
+on the network. The runtime environment checks for the current view of the process and updates 
+the status flags accordingly. The message is then s ent on the bus using the synchronization 
+channel ‘bmessage’. 
+ 
+Figure  4.6  Dynamic Segment in Node 
+ 
+ 
+Now we will talk about the ‘DynamicSegment’ state w here the Node takes the transition 
+after ‘gdStaticSlot’ time. The opinion matrix is fi rst initialized to empty. In this state the 
+automaton can take three transitions. First, if the re is change in dynamic slot which is scheduled 
+to send data on the bus. This happens through synch ronization of the ‘change’ Channel. 
+Afterward the Node automaton checks if the current dynamic slot of the system scheduled is 
+
+--- Page 39 ---
+ 31  equal to the slot number in which it is supposed to  send. If the current slot in not equal to its slot  
+number it returns to its previous state –DynamicSeg ment. 
+The second transition is taken by synchronizing wit h the ‘message’ channel, through 
+which the node receives data sent by other nodes. T he opinions sent by other nodes in system are 
+recorded in the opinion matrix. The third transitio n is taken when the node synchronizes to go to 
+Network Idle state. 
+In the State dynamic, the Node send its opinion on the bus when membership 
+communication request has been placed by another no de or when the node has detected a change 
+in its opinion during the StaticSegment state or Fa ilure detection phase.  
+Once it has sent its opinion it informs the schedul er automaton that it has finished 
+sending on the bus through the finished synchroniza tion channel. 
+ 
+Figure  4.7  Network Idle State in Node 
+ 
+ 
+During the Network Idle Time, the Node performs mem bership decision function. Once 
+the new view of the processes in the system is upda ted, all nodes update the status of the process. 
+As shown in fig 4.7, array Slots contains the Pid o f all processes running on Node. For 
+each process in the node, we check if there is chan ge in opinion about the process. If yes then the 
+process is assigned status NotMember by synchronizi ng with channel “status_change”. 
+ 
+4.6 Scheduler 
+
+--- Page 40 ---
+ 32  Figure  4.8  Scheduler 
+ 
+The Scheduler automaton, shown in fig 4.8, is respo nsible for maintaining slot counter 
+for Static and Dynamic Segments. 
+On Startup, the slot counter for Static Segment ‘vS lotCounter’ is initialized to 1. The 
+scheduler increments the slots counter after every ‘gdStaticSlot’ time. When the slot number is 
+changed, all the nodes know about it through the sy nchronization channel ‘channel’. When the 
+‘vSlotCounter’ reaches the maximum number of Static  slots to be scheduled in Static segment, it 
+transition to ‘Dynamic’ state and the nodes also tr ansition to Dynamic Segment. This is done 
+through the synchronization channel ‘transition_st’ . 
+ 
+In ‘Dynamic’ state, the scheduler automaton keeps t rack of the dynamic mini slots and 
+the dynamic slot. A Dynamic Slot is made up of dyna mic mini slots. The Scheduler increments 
+the mini slots counter after every ‘gdMiniSlot’ tim e. When the Node automaton synchronizes 
+with channel ‘finished’, indicating that it has fin ished using the bus, the Dynamic slot counter 
+‘dvSlotCounter’ in CheckFinish() is incremented. Th is change in Dynamic slot counter is 
+informed to the Nodes using the channel ‘change’. 
+
+--- Page 41 ---
+ 33  Once the maximum number of mini slot is reached it transitions to NIT state. The 
+Scheduler automaton stays in NIT state until it syn chronizes with channel ‘finround’ with Global 
+Clock. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 42 ---
+ 34  CHAPTER 5 - Verification of Model 
+The model that we have constructed is checked by ce rtain number of behavioral 
+properties. Behavioral properties extract the speci fication of the system. We need to see that the 
+model respect the same behavioral constraints as it s specifications. The list of such properties is 
+given in table. 
+Table  5.1  Verification Properties 
+Properties Verified 
+A[] not deadlock 
+The system must have a cyclic infinite behavior, an d never be deadlock  Yes 
+E<> N1.State ==-1 
+In normal execution (without fault), state must never be equal to -1 No 
+A [] not (N1.SendMessage and (N2. SendMessage or N3 . SendMessage or N4. 
+SendMessage)) 
+Only one node can be in SendMessage state at the sa me time Yes 
+E<> d2.NotMember 
+In an environment with faults, verify that Process 2 can be removed from the group 
+by protocol. 
+ Yes 
+E<> JR = 1 and d2.Member 
+A join request can never be made when the process i s member of the group. Yes 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 43 ---
+ 35  5.2 Liveness Property 
+We use an Automaton ‘Agreement’ to check the livene ss property of the model. In this 
+we maintain an observer view on the membership of e ach node; hence we use this if the 
+membership view of all the nodes is same as the obs erver view. We check: 
+c1.Static --> a.Agree () 
+Our model satisfies this property. 
+The automaton for checking the property is show in figure 5.1 
+Figure  5.1 Agreement Automata 
+ 
+The code for Agree is as follows 
+bool Agree () { 
+   int i, j; 
+   bool status; 
+   status = true; 
+   for (j =0; j<ND; j++) { 
+ for (i=0; i<N; i++) { 
+   if (oView.proc[i]! = aView[j].proc[i]) 
+    status = false; 
+  } 
+ } 
+ 
+    return status; 
+} 
+
+--- Page 44 ---
+ 36  CHAPTER 6 - Analysis 
+The performance of the membership protocols was mea sured using fault injection 
+techniques. We did a test to perform the response t ime on nodes. A test was performed to check 
+the amount of failure the protocol can handle for d ifferent number of nodes over period of time. 
+6.1 Response Time 
+Figure 6.1 shows how the response time follows the cycle time. The test includes three 
+test cases, best case, median case and worst case. The best case is measured by injecting a fault 
+in message slot 6, the last sent static message. Th e median case is injected in slot 4 and the worst 
+case is injected in slot 1. Figure 6.2 illustrates how the response time changes relatively to the 
+cycle time by showing how many percent of the cycle  time it took for the protocol to detect a 
+change in the cluster. 
+Figure  6.1 Absolute Response time 
+ 
+
+--- Page 45 ---
+ 37   
+Figure  6.2 Relative Response time 
+ 
+6.2 Failure Rate 
+We conducted test where there is a fault in the sys tem in every cycle. This fault is an 
+asymmetric fault caused by a process in Node ‘N4’. The message sent by the node is detected to 
+be corrupt by one node in the system. The message c ould be corrupted due to disturbances in the 
+network. The node changes its opinion about the pro cess and signals for a membership 
+communication phase to other nodes. After membershi p communication phase node which 
+reported suspicion about the process is ruled out t o be faulty and removed from the group. Thus 
+the processes which are running on the node are als o not a member of the group. 
+ 
+
+--- Page 46 ---
+ 38  Figure  6.3 Failure Rate for Different number of Nodes 
+Failure Rate 
+0246810 12 
+1 2 3 4 5 6 7 8 9 10 
+No of Cycle No of Process Alive Nodes 4 
+Nodes 5 
+Nodes 6 
+Nodes 7 
+Nodes 8 
+ 
+ 
+In the above test, we have considered 10 processes running on different number of nodes. 
+The processes are not distributed uniformly among t he nodes in the system. We can see that a 
+system with 8 nodes would handle the faults optimal ly, but our main aim is to reduce to number 
+of nodes in the system. From figure 6.3 we can see that a system with 5 nodes tries to match the 
+performance that we have with 8 nodes. Thus for a s ystem with 10 processes it will be more cost 
+effective to have 5 nodes. Hence we can have a syst em with N > 3a + 2s, where ‘a’ is 
+asymmetric faults and‘s’ is symmetric faults. In cl assic Byzantine models, N > 3t, where t is the 
+number of faults in the system.  
+ 
+6.3 Node Failures 
+From Section 6.2 we can see that Nodes that have si ngle opinion differing from other 
+nodes is removed from the group. This causes the pr ocesses running on the node to be out of the 
+group. This causes overhead on the system for reint egration of the processes. We can avoid this 
+situation by providing an alternative approach whil e making decision. If there is a Node having a 
+result differing from other nodes in the system, we  need to find how many such results differ. If 
+
+--- Page 47 ---
+ 39  the count is more than u/2 then we should remove th e node from the group. If it is less than u/2 it 
+should be kept in the group. The node should correc t its View about the process according to the 
+opinions of other nodes. 
+ 
+6.4 Verification Results 
+ 
+ 
+Figure  6.4 Verification Time 
+Time to Verify 
+05000 10000 15000 20000 25000 30000 
+4 5 6 7
+No of  Nodes Time Series1 
+ 
+ 
+
+--- Page 48 ---
+ 40  Figure  6.5  Memory Required for Verification  
+Memory Required for Verification 
+0200000 400000 600000 800000 1000000 1200000 1400000 1600000 1800000 2000000 
+4 5 6 7
+No of Nodes Memory Size in Bytes Memory 
+ 
+We verified the Agreement property for configuratio ns with four, five, six and seven 
+nodes. Figure 6.4 shows the time taken in checking the property presented in section 5.2. For the 
+case of 7 nodes, it leads to exhaustion of memory r esources. The figure 6.5 clearly show that the 
+state space size increases exponentially with the n umber of nodes in the system. 
+Nevertheless, to be able to check the membership pr otocol for 6 nodes gives us a high 
+confidence level in its correctness, because with 6  nodes we are able to generate rather subtle 
+fault scenarios, such as the masked faults, that ar ise with the simultaneous fault of two nodes, 
+which may be either members of the group or attempt ing to join. Although checking the 
+correctness of the membership protocol for 8 nodes would provide an even higher confidence, 
+because with that many nodes we could consider scen arios with 3 simultaneous faults. 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 49 ---
+ 41  CHAPTER 7 - Conclusion 
+7.1 Conclusion 
+In this thesis we have examined an existing members hip protocol for a FlexRay system. 
+The protocol was modeled on UPPAAL to check for the  correctness of the protocol, using 
+properties to check if the model meets all requirem ents. The results obtained show that the 
+membership protocol satisfies its specification for  configurations of up to 6 nodes, providing us 
+further assurance on its correctness. We believe th at the abstraction applied to this model is not 
+far from the actual membership protocol.  
+ 
+7.2 Future Work 
+The future work need to be done is to compare the m odel with the TTA validation model 
+[13]. We will be able to determine how both TTP and  FlexRay work with their membership 
+protocol.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 50 ---
+ 42  References 
+[1] Carl Bergenhem, Johan Karlsson “A Process Group  Membership Service for Active 
+Safety Systems using TT/ET Communication Scheduling ”, Presented at 13 th  IEEE International 
+Symposium on Pacific Rim Dependable Computing,Vol. 00, pp 282-289, Dec 2007. 
+[2] M. Ayoubi, T. Demmeler, H. Leffler, and P. K¨oh n, “X-by-wire functionality, 
+performance and infrastructure”, Presented at the C onvergence Conf. 2004, Detroit, MI . 
+[3] Neil Storey, Safety-Critical Computer Systems, Addison Wesley Longman, 1996 
+[4] FlexRay – http://www.flexray.com   
+[5] Fujitsu – 
+http://www.fujitsu.com/global/services/microelectro nics/technical/flexray/index_p11.html  
+[6] N. Suri et l.,”Reliability Modeling of Large Fa ult-Tolerant Systems”, Proc. FTCS-22, 
+pp. 212-220, 1992. 
+[7] N.Suri, C.Waler, and M.Hugue, “Advances in Ultr a-Dependable Distributed 
+Systems”, IEEE CS Pres, 1995. 
+[8] L.Lamport and P.M. Melliar-Smith, “Synchronizin g Clocks in the Presence of 
+Faults”, J. ACM, vol 32, no. 1, pp. 52-78, Jan 1985 . 
+[9] http://www.ixxat.com/introduction_flexray_en.ht ml 
+[10] FlexRay Protocol Specification v2.1, Dec 2005.  
+[11] Gerd Behrmann, Alexandre David, and Kim Larsen , “A Tutorial on UPPAAL”, Nov 
+17 2004. 
+[12] Günter Reichart, “FlexRay Enabler for Future A utomotive System Architectures”, 
+Mar 2005. 
+[13] Karen Godary, Isabelle Auge-Blum, Anne Mignott e, “Temporal bounds for TTA: 
+Validation”, DIPES, pp 73-82, 2004. 
+  
+  

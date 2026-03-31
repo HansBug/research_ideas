@@ -1,0 +1,990 @@
+--- Page 1 ---
+ 
+Model-based system analysis using Chi and UPPAAL : an
+industrial case study
+Citation for published version (APA): 
+Braspenning, N. C. W. M., Bortnik, E. M., Mortel - Fronczak, van de, J. M., & Rooda, J. E. (2006). Model-based 
+system analysis using Chi and UPPAAL : an industrial case study . (SE report; Vol. 2006-07). Technische 
+Universiteit Eindhoven.
+Document status and date: 
+Published: 01/01/2006
+Document Version: 
+Publisher’s PDF, also known as Version of Record (includes final page, issue and volume numbers)
+Please check the document version of this publication: 
+• A submitted manuscript is the version of the article upon submission and before peer-review. There can be
+important differences between the submitted version and the official published version of record. People
+interested in the research are advised to contact the author for the final version of the publication, or visit the
+DOI to the publisher's website.
+• The final author version and the galley proof are versions of the publication after peer review.
+• The final published version features the final layout of the paper including the volume, issue and page
+numbers.
+Link to publication
+General rights 
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            • Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            • You may not further distribute the material or use it for any profit-making activity or commercial gain
+            • You may freely distribute the URL identifying the publication in the public portal.
+If the publication is distributed under the terms of Article 25fa of the Dutch Copyright Act, indicated by the “Taverne” license above, please
+follow below link for the End User Agreement:
+www.tue.nl/taverne
+Take down policy 
+If you believe that this document breaches copyright please contact us at:
+openaccess@tue.nl
+providing details and we will investigate your claim.
+Download date: 31. Mar. 2026
+
+--- Page 2 ---
+Systems Engineering Group
+Department of MechanicalEngineering
+Eindhoven University ofTechnology
+POBox513
+5600 MB Eindhoven
+TheNetherlands
+http://se.wtb.tue.nl/
+SEReport: Nr.2006-07
+Model-based system analysis
+using χand UPPAAL:an
+industrial casestudy
+N.C.W.M. Braspenning,E.M.Bortnik,
+J.M.van deMortel-Fronczak,J.E.Rooda
+ISSN:1872-1567
+SE Report: Nr. 2006-07
+Eindhoven, November2006
+SE Reportsare availablevia http://se.wtb.tue.nl/sereports
+
+--- Page 4 ---
+Abstract
+Newmethods and techniques are needed to reduce the integration and test eﬀort (lead time,
+costs, resources) in the development of high-tech multi-disciplinary system s. To facilitate
+thiseﬀortreduction,amethodcalledmodel-basedintegrationandtestin gisbeingdeveloped.
+Themethodallowstointegrateformalexecutablemodelsofsystemcomp onentsthatarenot
+yet physically realized with available realizations of other compon ents. The combination of
+models and realizations is then used for early analysis of the integra ted system by means of
+validation, veriﬁcation, and testing. The analysis enables early d etection and prevention of
+problems that would otherwise occur during real integration, resulting in a signiﬁcant re-
+ductionofeﬀortinvestedintherealintegrationandtestingphases. Thi spaperillustratesthe
+application of the method to a realistic industrial case study, focusing on veri ﬁcation of the
+modelsobtained. Weshowhowasystemmodelhasbeendevelopedformode l-basedintegra-
+tion and testing in the timed process algebra χ(Chi), and how certain behavioral properties
+ofthis model havebeen veriﬁed bytheU PPAALmodel checker.
+
+--- Page 5 ---
+1 Introduction
+High-tech multi-disciplinary systems like wafer scanners, electronic microscopes and high-
+speed printers are becoming more complex every day. Growing system com plexity also in-
+creasestheeﬀort(intermsofleadtime,cost,resources) neededforthe,so-call ed,integration
+and testing phases . During these phases, the system is integrated by combining component
+realizations and, subsequently, tested against the system requireme nts. Existing industrial
+practice shows that the main eﬀort of system development is shifting from the design and
+implementation phases to the system integration and testing phases [ 1]. Furthermore, ﬁnd-
+ingandﬁxingproblemsduringintegrationandtestingcanbeupto100 timesmoreexpensive
+than ﬁnding andﬁxing theproblems during therequirements and de sign phases[2].
+Literature reports wealth of research proposing a model-based way of working to counter
+the increase of development eﬀort, like requirements modeling [3], mod el-based design [4],
+model-based code generation [5], hardware-software co-simulation [6], and model-based test-
+ing [7]. In most cases, however, these model-based techniques are inv estigated in isolation,
+and little work is reported on combining these techniques into an overa ll method. Although
+model-based systems engineering [8] and OMG’s model-driven arc hitecture [9] (for software
+only systems) are such overall model-based methods, these methods are ma inly focusing on
+the requirements, design, and implementation phases, rather than on t he integration and
+test phases. Furthermore, literature barely mentions realistic indus trial applications of such
+methods, at least notforhigh-tech multi-disciplinarysystems.
+Our research within the T ANGRAM project [10] focusses on a method of model-based integra-
+tion and testing (MBI&T), introduced in [11]. In this method, formal executable models of
+system components (e.g. software, mechanics, electronics) that are not yet re alized are inte-
+grated with available realizations of other components, establishin g amodel-based integrated
+system. Such a model-based integrated system can be established much earli er compared to
+a real integrated system, and it can eﬀectively be used for early model -based system analysis
+and system testing, which has three main advantages. First, the f act that it is earlier means
+that the integration and test eﬀort is distributed over a wider time frame. This reduces the
+eﬀort to be invested during the real integration and testing phases. Secondly, it allows earlier
+and thus cheaper detection and prevention of problems that would otherw ise occur during
+real integration. Early problem detection and prevention also reduces t he corresponding di-
+agnostic and ﬁx eﬀort and increases the quality of the system at an earli er stage. Finally, the
+use of formal models enables the application of powerful model-based anal ysis techniques,
+likesimulationandveriﬁcation. Theseanalysistechniqueshelptoimp rovetheinsightinthe
+system’s behavior fortheengineers, resulting in better system quality as well.
+ThispaperillustratestheapplicationoftheMBI&Tmethodtothedev elopmentofapartofa
+realistic industrial system, namely theASML [12] waferscanner.
+In the case study, a system is formally speciﬁed by means of a process algebr aic language χ
+(Chi) [13]. The χlanguage is supported by a toolset that allows simulation of the obtained
+χmodel, e.g. for the analysis of system performance and exceptional beha vior handling.
+The formal semantics of χenable functional analysis of χmodels, e.g. veriﬁcation of the
+correctness of a system model. Combining performance analysis and functional analysis in
+χenvironmentistheobjectiveoftheTIPS Yproject[14]. Asapartofthisproject,atranslation
+scheme[15]from χtoUPPAALtimedautomata[16,17]hasbeendevelopedandintegratedinto
+theχtoolset, allowing veriﬁcation of the translated models by U PPAALmodel checker. The
+UPPAALtoolhasbeenusedinanumberofindustrialcasestudies. Thecompleteovervie wcan
+be found in [18]. Mostly, the case studies concerned verifying real-time con trollers [19] and
+communicationprotocols[20,21]. In[22]theproblemofsynthesizingproducti onschedules
+and control programs for the mock-up of the batch production plant was addressed . In [23]
+thethroughput ofan ASML waferscanner wasanalyzed withU PPAAL.
+The case study described in this paper focuses on veriﬁcation of system propertie s such as
+deadlockfreeness,liveness,safety,andtemporalpropertiesusingthe χtoUPPAALtranslation
+scheme and U PPAALmodel checker. The goal of the case study and this paper is threefold.
+WeshowthepotentialoftheproposedMBI&T method(in whichtheveriﬁca tion techniques
+2
+
+--- Page 6 ---
+areused)toreducetheintegrationandtesteﬀortofindustrialsystems. W einvestigatetheap-
+plicability,scalability,andusabilityofthe χtoolsetasintegratedtoolsupportforallaspectsof
+theMBI&Tmethod,particularlyfocusingontheimplementationofthe χtoUPPAALtransla-
+tion scheme. Finally, we investigate the applicability and the adv antages of using veriﬁcation
+techniques forindustrial systems.
+The structure of the paper is as follows. Section 2 describes the MBI&T method in general
+with the focus on the use of veriﬁcation within the method. Section 3 introduces th e indus-
+trial case study to which the MBI&T method has been applied. The activi ties that have been
+performed in the case study are described in Section 4 (modeling and simulation with χ)
+and Section 5 (translation to and veriﬁcation with U PPAAL). Although model-based and real
+systemtestingarenotthefocusofthispaper,Section6givesashortsummar yofthesesteps.
+Finally, theconclusionsare drawn and discussed in Section 7.
+2 Model-basedintegrationandtestingmethod
+In current industrial practice, the system development process is subdivid ed into multiple
+concurrentcomponentdevelopmentprocesses. Subsequently,theresultingcomponents (e.g.
+mechanics, electronics, software) are integrated intothesystem.
+The development process of a system Sthat consists of ncomponents C1..n(we denote a
+set {A1,...,A i,...,A n} byA1..n) starts with the system requirements Rand system design D.
+After that each component is developed. The development process of a comp onentCicon-
+sists of three phases: requirements deﬁnition, design, and realization. Each of these phases
+results in a diﬀerent representation form of the component, namely the req uirements Ri,
+the design Di, and the realization Zi. The realization of system Sis the result of the inte-
+gration {Z1..n}Iof realizations Z1..nby means of the infrastructure I. Here, infrastructure I
+contains everything that is needed to connect the components in order to let them perform
+the system’s function, e.g., nuts and bolts (mechanical infrastructure), cable s (electronic in-
+frastructure), communication network(softwareinfrastructure).
+Fig. 1 shows a graphical representation of the development process of syst emS. The de-
+velopment phases are depicted by arrows and diﬀerent representa tion forms of systems and
+componentsaredepictedbyboxes. Forsimplicity,theﬁgureshowsa‘sequenti al’development
+process, however in practice the development process will have an increme ntal and iterative
+nature. This involves multiple versions of the requirements, designs, and realizations, and
+feedback loops from certain phases to earlier phases, e.g. from the re alization phase back to
+thedesign phase.
+designR DR1
+Rndefine
+definedesign
+designD1
+DnZ1
+Znrealize
+realizeintegrate
+integratedefine
+infrastructure  I
+Figure 1: Current system development process
+In this way of working, only two types of system level analysis can be app lied. On the one
+hand,theconsistencybetweenrequirementsanddesignsonthecomponentl evelandonthe
+system level can be checked, i.e. R1..nversusRandD1..nversusD, which usually boils down
+to reviewing lots of documents. On the other hand, the integrated syst em realization { Z1..n}I
+can be tested against the system requirements R, which requires that all components are
+3 Model-basedintegrationandtestingmethod
+
+--- Page 7 ---
+realizedandintegrated. Thisrequirementmeansthatifprobl emsoccurandneedtobeﬁxed
+during the integration and test phases, the eﬀort invested in these p hases increases and on-
+timeshipmentofthesystemisdirectlythreatened. Ifintegrationpr oblemscouldbedetected
+and prevented at an earlier stage of development, the eﬀort inves ted in the integration and
+test phases would be reduced and valuable test time would be saved. As a re sult, the system
+could be shipped earlier (which is critical in the lithography industry), or the saved test time
+couldbe used tofurtherincrease thesystem quality.
+In [11], we introduced the MBI&T method to reduce the integration and te st eﬀort. This
+method takes the design documentation of the components Cias a starting point and rep-
+resents them by formal executable models Mi(Fig. 2). The requirements documentation is
+used to formulate the properties of the system and components. An infrastructure Iis used
+that allows the integration of models M1..nand realizations Z1..n, such that all possible com-
+binations of models and realizations can be integrated. As an exampl e, assume that n= 2,
+i.e. the depicted components C1andCn=C2are the only components of the system. Then
+Fig.2shows,correspondingtothedepictedintegration‘switches’,the model-basedintegrated
+system {M1,Z2}I. In the MBI&T method, the infrastructure can be, for example, paralle l
+composition(toconnectcomponentmodels)orspeciﬁcsoftware/hardwareinfrastructure (to
+connect models and realizations). Note that in this paper, we do not focus on the integration
+of models and realizations. Also, we do not discuss the corresponding speciﬁcation and im-
+plementationissuesofinfrastructure I,whichispartofourcurrentworkandwillbereported
+in thefuture.
+designR DR1
+Rndefine
+definedesign
+designD1
+DnM1
+Znmodel
+realizedefine
+MnmodelZ1
+infrastructure  Iintegrate
+realize
+integrate
+Figure 2: System development process in theMBI&T method
+Inprinciple,theMBI&Tmethodallowstheuseofdiﬀerentspeciﬁcationl anguagesandtools,
+aslongastheyaresuitableformodeling,analysis,andtestingofthecon sideredaspectsofthe
+consideredcomponents. Inthepresentedcasestudy,allcomponentsofthesystema remod-
+eled in the process algebraic language χ[24, 25]. The χlanguage is intended for modeling,
+simulation, veriﬁcation, and real-time control of discrete-event, continuous or combi ned, so-
+calledhybrid,systems,suchasmanufacturingsystems. Thetoolset[26]all owsmodelingand
+simulation of χmodels, as well as their translation to diﬀerent formalisms. The χlanguage
+andsimulatorhavebeensuccessfullyappliedtoalargenumberofindustrial cases,suchasin-
+tegratedcircuitmanufacturingplants,processindustryplants,andmachine controlsystems
+[27, 28]. Recentlythe χtoolsetwasextended with thetranslatortoU PPAAL.
+When all components of a system have been modeled as χprocesses, the integrated system
+modelM1..ncan be obtained by parallel composition of the χprocesses, ( M1/bardbl.../bardblMn),
+where theparallelcomposition models theinfrastructure I.
+For the analysis of the integrated system model { M1..n}I, several model-based techniques can
+be applied. For instance, the χsimulator can be used to simulate speciﬁc behavior scenarios
+4
+
+--- Page 8 ---
+of the system. The simulation results, then, can be compared with the intend ed system
+designDand requirements R.
+Due to the complexity of the industrial systems, which often involve both high-level paral-
+lelism and non-deterministic behavior, simulation can only show that a sy stem model might
+have correct behavior. To prove the correctness of a system model in genera l, veriﬁcation can
+beused. Oneofthemostpopularveriﬁcationtechniquesismodelchecking ,whichallowsto
+prove automatically the validity of a given property (derived from the sy stem requirements R
+andsystem design D), foragiven modelof asystem.
+Thetranslatorfrom χtoUPPAALenablesautomatictranslationof χmodelstoU PPAALtimed
+automata, which can subsequently be veriﬁed using the U PPAALmodel checker. Model
+checking of χmodels with U PPAALis themain topicofthis paper.
+Withsimulationandveriﬁcation,itcanbedeterminedwhetherthesyst emmodelisacorrect
+representation of the intended system design and whether it satisﬁes ce rtain properties. If
+thisisthecase,andcertaincomponentrealizationsbecomeavailable, themodelsofthecom-
+ponents can be used for both model-based component testing and for model-base d system
+testing.
+Model-basedcomponenttestinginvolvesautomatictestingoftherealiza tionofacomponent,
+Zi, against a model of that component, Mi. Using techniques and tools from model-based
+testing research [7], test cases are automatically generated from the model and automatically
+executed on the realization. Model-based component testing using χmodels and the model-
+based testing toolT ORX[29]has been reported in previous work[11].
+While model-based component testing focuses on single components, model-based sy stem
+testingfocuseson integrated modelsandrealizations. Here,theavailablerealizationsandthe
+modelsarecoupledviaanappropriateinfrastructure I,usingspeciﬁcsoftwareandhardware
+tooling. The resulting model-based integrated system, e.g. { M1,Z2}Iforn= 2, is tested on
+system level using test cases derived from the system requirements Rand the system de-
+signD. Since this does not require that all component realizations are avai lable, and since
+models are usually available earlier than realizations, model-based system testing enables
+earlierdetectionandpreventionofproblemswhencomparedtorealsyst emtesting. Further-
+more, models allow easier testing of exceptional behavior, because the mod el behavior can
+easily be adapted to create exceptional conditions, for example, a broken component. These
+advantagesofmodel-basedsystemtestingbothcontributetoareductionoft heeﬀortinvested
+during real integration and testing.
+The case study described in the following section illustrates the application of the MBI&T
+method toan industrial system.
+3 Casestudy: ASMLEUVmachine
+To show proof of concept and to evaluate the MBI&T method, particularly focusin g on the
+veriﬁcation of χmodels using U PPAAL, the method was applied to a part of an ASML wafer
+scanner [12]. In an ASML wafer scanner, laser light transfers a lithog raphic image onto the
+surface of a silicon waferwith nanometer accuracy. The laser light passes thr ough an optical
+system that scales down the pattern image before it is projected onto t he wafer. Currently,
+a new type of wafer scanner is under development within ASML, which use s extreme ultra
+violet(EUV)lightforexposingwafers. Oneofthemostimportanttechn icalchallengesinthe
+development of this lithography system is the need for strict vacuum condi tions, since EUV
+lightis is absorbed bynearlyallmaterials, includingair.
+Inthecasestudypresentedinthispaper,thefocusisontheinteractionbe tweenthevacuum
+system component Cvthat controls the vacuum conditions and the source component Cs
+that generates the EUV light. These components need close cooperation to pro vide correct
+vacuum conditions and correct EUV light properties at all times. Since the int ernal states
+of these components are interdependent (e.g. the source may only be active und er certain
+vacuum conditions to avoid machine damage), some combinations of component state s are
+notallowedand shouldbeprevented.
+5 Casestudy: ASMLEUVmachine
+
+--- Page 9 ---
+Fig.3showsthecomponentsandinterfacesinvolvedinthecasestudy. Toe xchangeinforma-
+tion about their internal states, the vacuum system Cvand the source Csare connected by
+an interface consisting offourlatches1, three latchesfrom vacuumsystem to sourceand one
+latchfromsource tovacuumsystem:
+• ‘vented’: whenactive, this latchindicates that thevacuumsystem i s vented.
+• ‘pre-vacuum’: whenactive,thislatchindicatesthatthevacuumcondition saresuﬃcient
+toactivatethesource, howevernot suﬃcient forexposure.
+• ‘exposure’: when active, this latch indicates that the vacuum conditions a re right for
+exposure.
+• ‘active’: when active, this latch indicates that the source is active and that the vacuum
+system is not allowedtogo tothe vented state(to avoid machined amage).
+Besidesthelatchinterfacewiththesource,thevacuumsystemhasanothe rinterfacetocom-
+municate with the environment Ce, e.g. a control component or a vacuum system operator.
+The environment can request the vacuum system to go to either the vacuum or the vented
+state by sending a ‘request’ message. After handling a request, the vacuum system notiﬁes
+theenvironment bysending a‘reply’ message.
+vacuum system
+Cvsource
+Cspre-vacuumvented
+exposure
+activerequest
+replyenvironment
+Ce
+Figure 3: Components andinterfaces involvedin the casestudy
+The behavior of the integrated system under nominal conditions is depi cted in message se-
+quence chart (Fig. 4). Initially, the vacuum system is vented (accordingly , the ‘vented’ latch
+is active) and the source is inactive. When the vacuum system receives a reque st from the
+environment to go to the vacuum state it deactivates the ‘vented’ la tch and starts the vacuum
+pumps. Thesourceobservesthatthe‘vented’latchisinactiveandexecutes someinitialprepa-
+ration steps. While pumping down, the vacuum system measures the vacuum condi tions.
+Whenthevacuumconditionsaresuﬃcienttoactivatethesource(thepre-vacuumconditi ons
+are reached), the vacuum system activates the ‘pre-vacuum’ latch. When t he source observes
+thissignal,itﬁrstactivatesthe‘active’latch,andsubsequentlyperf ormsthenecessaryactions
+toreachtheactivestate. Afterfurtherpumpingdown,whentheva cuumconditionsareright
+for exposure, the vacuum system activates the ‘exposure’ latch. Then, via th e ‘reply’ interface
+the vacuum system notiﬁes the environment that it is in the vacuum state . After the source
+observes the active ‘exposure’ latch, it goes to the exposure state and bot h components are
+ready for exposure. For the other way around, going from vacuum/exposure conditi ons to
+vented/inactive conditions, asimilar, reversed sequenceis speciﬁed.
+The nominal sequence described above does not cover preemption. The env ironment can
+interrupt the sequence at any time by a new request, and the vacuum system sh ould handle
+these interrupts. For instance, the vacuum system operator decides to go ba ck to the vented
+state, while the vacuum system is performing the vacuum sequence (i.e. goin g from vented
+tovacuumasdescribedabove),thevacuumsystemshouldimmediatelyinterr uptthevacuum
+sequence andstart withthe venting sequenceto go tothevented state .
+Finally, errors can be raised by the source if, for instance, an unexpecte d communication
+event occurs. The severity of an error is indicated by error levels. Depend ing on the severity
+1Latch: electronic circuit with inputs ‘set’ and ‘reset’ that i s capable of storing one bit of information, i.e., a high
+or alow voltage
+6
+
+--- Page 10 ---
+pre-vacuum = 1vacuum
+systemsource
+request: go to vacuum
+exposure = 1p
+u
+m
+p
+d
+o
+w
+nvented = 0
+p
+r
+e
+p
+a
+c
+t
+i
+v
+a
+t
+e
+e
+x
+pactive = 1environment
+reply: OKstate = vented state = inactive
+state = vacuumstate = prepared
+state = active
+state = exposurestate = pre-vacuum
+Figure 4: Nominal system behavior forthevacuumsequence
+of an error, the source might need to perform certain actions to avoid furthe r problems. For
+example, the source should leave the expose state but remain active for a low level error,
+howeverit shouldgo totheinactivestate as soon aspossiblein thecaseofa hi gh levelerror.
+Themost important requirements to thesystem are:
+1. The actions and communications in the vacuum and venting sequences are execute d
+in correct order.
+2. The behavior of the system can be interrupted at any time, and these interrupts are
+handled correctly.
+3. Thesource does notraise unnecessary errors, i.e. notduring nominal beha vior.
+4. The source may not be active while the vacuum system is vented in order to prevent
+machine damage.
+5. The duration of the vacuum and venting sequences is at most 6 hours and 1 hour,
+respectively.
+Usingtheobtaineddesigndocumentationofthecomponentsasastartingpoint, theMBI&T
+method wasappliedaccording to thefollowingsteps, corresponding to F ig. 5:
+Step1:Modeling of the system components as χprocesses Me,Mv, andMs, based on the
+ASML design documents De,Dv,andDs.
+Step2:Model-basedanalysisoftheintegratedsystemmodel{ Me,Mv,Ms}I,modeledas( Me/bardbl
+Mv/bardblMs):
+a. Simulation using the χsimulator, i.e. analyzing certain scenarios derived from R
+andDof{Me,Mv,Ms}Iandcomparing theresulting behavioragainst RandD.
+7 Casestudy: ASMLEUVmachine
+
+--- Page 11 ---
+b. VeriﬁcationusingtheU PPAALmodelchecker,i.e. translatingthe χsystemmodel
+to UPPAALtimed automata and verifying all traces of { Me,Mv,Ms}Iagainst prop-
+erties derived from RandD.
+Step3:As soon as the realization of a component becomes available (in the case study, t his
+wasthesourcerealization Zs):
+a. Model-basedcomponenttestingofthecomponent’srealizationwithresp ecttoits
+model,i.e. Zswithrespectto Ms,usingautomaticmodel-basedtestingtechniques
+andtools,e.g. T ORX.
+b. Replacing the model of the source Msby the source realization Zsusing an in-
+frastructure Ithat enables the integration of Zswith the models MeandMv. This
+results in themodel-based integrated system { Me,Mv,Zs}I.
+c. Model-basedsystemtestingof{ Me,Mv,Zs}Iusingtestcasesderivedfrom RandD.
+Step4:Afterallmodelshavebeensubstitutedbyrealizations: testingofthecomp letesystem
+realization { Ze,Zv,Zs}Iby executing test cases derived from RandD. Note that only
+this step is performed in thecurrent system development process as we ll.
+designR DRe
+Rvdesign
+designDe
+DvMe
+Zvmodel
+realizedefineMvmodelZe
+infrastructure  Iintegrate
+realize
+integrate
+RsdesignDs
+ZsrealizeMsmodel
+integrate   definedefine
+define
+Figure 5: MBI&T method appliedtothecasestudy
+Inthispaper,weparticularlyfocusontheapplicationofsteps1,2a,and 2b. Furthermore,we
+give a summary of the application of steps 3b and 3c and the eﬀects of apply ing the MBI&T
+methodontherealintegrationandtestinginstep4. Applicationofste p3awasnotperformed
+inthecasestudy,althoughasimilarcasestudyinvolvingmodel-basedcomponen ttestinghas
+been performed andreported in [11].
+4 Modelingandsimulationwith χ
+As mentioned in Section 2, a system development process will be more increm ental and
+iterative in nature than it is depicted in Fig. 5. This was also expe rienced in the case study,
+especially during the modeling (step 1) and simulation (step 2a) activitie s described in this
+section.
+8
+
+--- Page 12 ---
+Step1: Modelingthecomponentsin χ
+The informal design documentation was taken as a starting point for model ing the vacuum
+system and the source as χprocesses. The system level design documentation (correspond-
+ingtoD)describedtheinterfacesbetweenthevacuumsystemandsourceasshowninF ig.3.
+Thedesigndocumentationforthesourcecomponent, Ds,wasrathercompleteandcontained
+a good overview of the behavior in the form of a state diagram including most of the possi-
+bleactionsandcommunications. However,thedesigndocumentationofthevacuumsys tem
+component, Dv, only described the internal actions for the vacuum and venting sequences,
+and did not contain information about the communication with the source. It becam e clear
+that the designers of the vacuum system were not yet fully aware of the com munication be-
+haviorbetweentheircomponentandthesourcecomponent. Ingeneral,thede signdocumen-
+tation for both components described the nominal behavior only and hardly mentioned the
+handlingofexceptionalbehavior,andalsotheactiondurationswerenotcom pletelyspeciﬁed.
+During our modeling activities, we obtained the missing information about the component
+designs by combining knowledge of both components and by discussion with the engineers
+involved. For example, the speciﬁcations of the communication of the vacuum syste m that
+wasmissingin Dvcouldbederivedfromthesystemandsourcedesigndocuments DandDs.
+Theresultingdesignspeciﬁcationswerevalidatedfortheircorrectnessbyd iscussionwiththe
+designers ofthevacuumsystem and source.
+We experienced that in most cases, the issues that arose during the modelin g activities in
+fact indicated unknown or incomplete design issues, like missing states, obsol ete states, and
+errors in the communication sequence. By incremental modeling, intermed iate simulation,
+discussion,anddesignreview,thesystemspeciﬁcationwasfurthercorrecteda ndcompleted,
+whichalsohelpedtheengineers toobtain abetter system overvie w.
+Thereweresomeremainingmodelinganddesignissues,forwhichnosolutionw asavailable
+orforwhichthecorrespondingbehaviorwasnotknownatall,evenbyt heengineersinvolved.
+According to the engineers, the system behavior concerning these remai ning issues was not
+important because it would never be experienced in the real system. Th erefore, the behavior
+concerningtheseissueshasbeenabstractedinthemodelbyputtinganexpli citindicationof
+‘undeﬁned behavior’. In step 2b of the case study, it will be veriﬁed w hether this undeﬁned
+behavior indeed can neverbeexperienced.
+The next paragraphs describe how the source Cs, the vacuum system Cv, and the environ-
+mentCewere modeled as χprocesses. Fig. 6 shows the process layout of the system model,
+which is based on the system design layout from Fig. 3. In the ﬁgure, the environment is
+modeled as a single sequential process Me, the vacuum system Mvis modeled as a parallel
+composition of the processes ( v1/bardblv2/bardblv3), and the source Msis modeled as the parallel
+composition of the processes ( s1/bardbls2/bardbls3/bardbls4). The arrows depict the channels that model
+the communication between processes of diﬀerent components, and the bold lines d epict
+variables thatare shared betweenprocesses ofonecomponent.
+pre-vacuumvented
+exposure
+activerequest
+replyv2v1s3Me
+vacuum systems1s4s2
+v3
+source environmentMv Ms
+Figure 6: Process layout ofthe χsystem model
+As an example of a χprocess, Fig. 7 shows a part of the source model Ms. For simplicity, the
+declaration and initialization of the variables are omitted and only a p art of the core process
+s1 is shown. The processes s2,s3, ands4 model the interaction with the vacuum system via
+9 Modelingandsimulationwith χ
+
+--- Page 13 ---
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22Ms= ( ∗(src_state= 1 →...
+[]src_state= 2 →...
+[]src_state= 3 →skip
+; ( error= 5 →skip; ∆60;manual:= true
+[]error= 4 →manual:= true
+[]error < 4→skip
+;newvalue →newvalue := false
+; ( vnt →error:= 5
+[] ¬vnt ∧pre ∧exp →src_state:= 4
+[] ¬vnt ∧¬pre ∧exp →undefined := true
+[] ¬vnt ∧pre ∧¬exp →skip
+[] ¬vnt ∧¬pre ∧¬exp →∆60
+;src_state:= 2
+;active!!false
+)
+)
+[]src_state= 4 →...
+)
+/bardbl ∗ (vented??vnt;newvalue := true)
+/bardbl ∗ (pre_vacuum??pre;newvalue := true)
+/bardbl ∗ (expose??exp;newvalue := true)
+)
+Figure 7: Part ofthesource model Msinχ
+the latches ‘vented’, ‘pre-vacuum’, and ‘exposure’, respectively. In Fig. 7,s1 is shown on lines
+1-18, and s2,s3,s4are shownon lines 19, 20, 21, respectively.
+The core process s1 speciﬁes the internal behavior of the source. The state of process s1 is
+modeled by the variable src_state, which can take on the value 1 (inactive), 2 (prepared), 3
+(active) or 4 (exposure). The variable erroris used to model an error; error= 0 means that
+there is no error, the values 1 ,2,3,4,5 indicate diﬀerent error levels. The boolean variables
+vnt,pre,exp indicatethestatesofthecorrespondinglatches. Whenthevacuumsystemse nds
+asignalviaalatchchannel,thenewvalueisassignedtothecorrespond ingvariable vnt,preor
+expintheprocesses s2,s3,ands4,respectively. Thevariable newvalue indicatesthatthestateof
+somelatchwaschanged. Finally,thevariables manualandundefined indicatethatthesource
+has reached a state whereit is in manual modeorforwhichthebehav ior is undeﬁned.
+The core process repetitively checks its state and performs the correspond ing actions. As an
+exampleletusconsiderthecaseifthesourceisinitsactivestate,whichis thepartof s1shown
+in Fig. 7. In this case the guard src_state= 3 is true and the process makes an undelayable
+internal action (skip). After that the process checks if there is an err or and, depending on
+the severity of the error, it takes certain actions to prevent further p roblems. If error= 5,
+the source performs a delay for 60 time units ( ∆60) and then switches to manual mode
+(manual:= true). Thedelayof60timeunitsmodelsthetimewhichisneededtoproce ssthe
+error. Iferror= 4, thesourceimmediately switchesto manualmode.
+If there is no severe error ( error <4), the source process performs an internal action (skip).
+Subsequently, it checks if any of the latch values has been changed, i ndicated by the variable
+newvalue. Ifnewvalue is true, it is reset to false without a delay and the process continues. If
+thenewvalue guard is false, the process waits until it becomes true (i.e. until a new value is
+received via oneofthelatches).
+Subsequently, thecurrent states of allfourlatches arechecked. If vnt= true(vacuumsystem
+is vented), the variable erroris set to the highest error level 5, since the source is still in its
+active state. Otherwise, if preandexpare true, the state of the source is switched to 4, the
+exposure state. If preis false and expis true, the behavior is undeﬁned, undefined := true. If
+preis true and expis false, the process performs an internal action skip and remains in th e
+active state. If both preandexpare false, the process delays for 60 time units, modeling the
+tasks needed to go back to the prepared state ( src_state:= 2). After that the source process s1
+deactivatesthe‘active’latchchannelto v3ofthevacuumsystem. Thisismodeledbysending
+thevaluefalsevia thechannel active(active!!false).
+10
+
+--- Page 14 ---
+Thevacuumsystemcomponent Cvismodeledasa χprocessMv,andconsistsofthreeparallel
+processes (Fig. 6). The process v1 is the core process and describes the internal behavior of
+thevacuumsystem, similartoprocess s1 ofMs.
+Theprocess v2modelstheinteractionwiththeenvironment. Receivingrequestsfrom theen-
+vironment is modeled by communication actions along the channel request. Upon receiving
+a new request, v2 decides which actions should be performed, e.g. start a new sequence or
+interrupt the current sequence. Accordingly, v2 changes the corresponding variables shared
+withv1.
+Theprocess v3modelstheinteractionwiththesourceviathe‘active’latch. Itreceive ssignals
+from the source via the channel activeand changes its state correspondingly. Similar to the
+sourcemodel Ms,the stateofthe latchis modeled bythevariableshared with v1.
+Theenvironmentcomponent Ceismodeledasa χprocessMe. Itcansendarequesttochange
+thestateofthevacuumsystemviathechannel request,andreceiveareplyviathechannel reply
+(Fig. 6). For the analysis in the next steps of the case study we model the e nvironment Meas
+a generic environment that can be conﬁgured to send requests and receiv e replies at certain
+points in time, depending on the analysis technique. For simulation and t esting, speciﬁc
+scenarios with speciﬁc delays between the requests will be used, while f or veriﬁcation, all
+scenarios (with anypossibledelay)willbeanalyzed.
+Finally, the system model { Me,Mv,Ms}Iis modeled in χas the parallel composition of the
+component processes: ( Me/bardblMv/bardblMs). The parallel composition synchronizes the compo-
+nents on time andon communication.
+Step2a: Simulationoftheintegratedsystemmodel
+Inthisstep,thegoalistoinspectthebehavioroftheintegratedv acuumsystem-sourcemodel
+bymeans of simulation.
+The simulation experiments require diﬀerent scenarios to analyze diﬀ erent aspects of the
+system. A good source for possible scenarios is the intended system behavior spe ciﬁed in
+the system requirements and design documentation, RandD. Unfortunately, in the case
+study only one scenario could directly be derived from the documentation. This sce nario
+corresponds tothenominal behavior ofthesystem.
+From ASML testing experience, it is known that analyzing only the nominal behavior is not
+suﬃcient. In most cases, it is the exceptional behavior which gives the prob lems, since this
+behavior is less documented and thus less clear when compared to the nomin al behavior.
+Therefore, it is veryimportant to analyzetheexceptional behavi or assoon as possible.
+In this case study, the exceptional behavior of the system is also poorly docume nted. No
+simulation scenarios could be directly derived from the documentation. However , based on
+our system overview obtained by modeling the components, and by discussion wit h the in-
+volved engineers, four additional scenarios for exceptional behavior anal ysis have been de-
+rived. These scenarios cover the behavior of the system when the vacuum an d venting se-
+quences are interrupted at certain pointsin time.
+Besidesincompletedocumentation,thereisanotherproblemwiththea nalysisofexceptional
+behavior in the current way of working. Since only realizations can be used for system anal-
+ysis, it may be diﬃcult or expensive to create the non-nominal circumstance s that are neces-
+sarytoanalyzetheexceptionalbehavior,forexample,abrokencompone nt. SincetheMBI&T
+methodusesmodelsforsystemanalysis,creatingthesenon-nominalcircumsta ncesismuch
+easierand cheaper.
+In the case study, we used speciﬁc conﬁgurations of the environment model Meto analyze
+theintegratedsystembehaviorfortheﬁvescenariosmentionedabove ,onewithnominaland
+fourwithexceptionalbehavior. Thesimulationresultswerevisualizedbyme ansofanimated
+automata,message sequence charts,and Ganttcharts.
+Thesimulationresultsrevealedonesituationwithincorrectbehavior. Thissitua tionsurpris-
+ingly also occurred in the nominal behavior scenario. The incorrect behavi or occurs during
+the venting sequence, in which the vacuum system ﬁrst deactivates the ‘e xposure’ and ‘pre-
+vacuum’ latches. According to its design, the source should ﬁrst observe the deactiv ated ‘ex-
+posure’ latch and perform some actions before observing the deactivated ‘pre -vacuum’ latch.
+11 Modelingandsimulationwith χ
+
+--- Page 15 ---
+However, since the vacuum system has been designed to deactivate both l atches at the same
+time, the source can also receive the deactivated ‘pre-vacuum’ latch during t he actions it per-
+forms to reach the prepared state, or even before receiving the de activated ‘exposure’ latch.
+In both cases, the source raises an error and switches to manual mode, which i s certainly
+not acceptable for nominal behavior. Further diagnosis showed that th is incorrect behavior
+indeedwasanintegrationproblembetweenthevacuumsystemandthesource ,whichcould
+now besolvedearlyin the design phase.
+5 TranslationtoandveriﬁcationwithU PPAAL
+During simulation (validation) some problems were discovered and solved. Th at increases
+theconﬁdence,butdoesnotprovethecorrectnessofthemodel. Tocheckwhe therthemodel
+behaves correctly in all possible scenarios and to gain more knowledge ab out the system, it
+has tobeveriﬁed. This corresponds tostep 2b oftheMBI&T method.
+Step2b: Veriﬁcationofthe χsystemmodelusingU PPAAL
+UPPAALisatoolformodeling,simulation,andveriﬁcation. Asystem, modeledasan etwork
+of UPPAALtimed automata, can be simulated by U PPAALsimulator and veriﬁed by U PPAAL
+model checker. To be able to verify χmodels in U PPAAL, the translation scheme from the
+process algebraic language χto UPPAALtimed automata has been formally deﬁned and the
+proofs of its correctness have been given [30]. The translation scheme is deﬁ ned for a subset
+ofχandconsistsofall χmodels,speciﬁedasparallelcompositionofoneoremoresequential
+processes. The translatable subset of χhas been deﬁned according to the following require-
+ments:
+• Make the translation as simple as possible. For this reason, a minimal subse t ofχ
+was translated. For instance, in χboth undelayable ( h!!en) and delayable ( h!en) send
+process terms are deﬁned. Delayable send is a syntactic extension, whi ch is formally
+deﬁned as [ h!!en]. Replacing h!enwith [h!!en] does not change behavior of the model
+but makes it translatable. While performing this case study, we also wa nted to check if
+thedeﬁned subset is expressive enough.
+• Makethetranslationasgeneralaspossible. Forinstance,wecouldnotde ﬁneageneral
+translation of the guard operator, but there are many speciﬁc cases, for which guarded
+processtermscanbetranslated. Welimitourselvestoguardedskip,multi- assignment,
+send and receive.
+• Make the translated U PPAALmodels as readable as possible. For example, nested par-
+allel composition can be translated as alternative composition of all possible tran si-
+tions [24],but it wouldmake resulting automataless readable.
+The translation scheme from χto UPPAALhas been implemented and integrated into the χ
+toolset,enablingautomatic translation of χmodels to U PPAALtimed automata [26].
+Makingthe χmodeltranslatable
+Since the original model was created without considering its translation to UPPAAL, it uses
+some constructs, for which translation is not deﬁned, such as modeling scope operator , pro-
+cess instantiation, delayable send and receive, nested parallelism , and guarded delay. That
+means thatthe model hastobe transformed tomake it translatable.
+The modeling scope operator is a syntactic extension, which is used to declar e a scope, con-
+sistingoflocalvariable,channels,etc. AlthoughinU PPAALthereareglobalandlocalscopes,
+they are not deﬁned formally, and so the modeling scope operator cannot be translated. The
+same holds for the process instantiation. To remove these operators from th eχmodel, all
+thevariableshavebeenliftedtotheglobalscopeandgivenuniquen ames. Afterthatthelocal
+scopeoperators andthe process instantiations can besafelyremoved.
+12
+
+--- Page 16 ---
+Alldelayablesendandreceive processterms ( h!en,h?xn)havebeen replaced bytheirdeﬁni-
+tions ([h!!en],[h??xn]). Thebehavior ofthemodel is not changed.
+In the original model guarded delays have been used in following constr uct:b→a[]
+¬b→∆d, wherea∈{skip,xn:=en}. It can be shown that this process term is bisimilar
+tob→a[]∆d, in away,similar totheproofs ofthe χproperties in [24].
+Thevacuumsystemprocesscontainsaconstructoftheform p1;(p2;p3/bardblp4);p5. Sincenested
+parallelism is not allowed, this part of the model has to be re-wr itten. Here, the process p2
+changes a value of a variable x. As soon as it happens, the process p4should perform an
+undelayable action and terminate. The analysis of the system has show n that this particular
+casecanbe alsomodeled without usageofthenested paralleloperatoras p1;p2;p4;p3;p5.
+The case study has shown that the translatable subset of χshould be extended with the
+translation of modeling scope operator and process instantiation. Since it is no t possible to
+make a general translation of nested parallelism, guarded delay and real-valued delays, these
+constructs have to be avoided while creating a model for veriﬁcation, otherw ise they have to
+transformed manually.
+After transforming the original χmodel, the corresponding translatable model has been
+translated automaticallytoU PPAALautomata.
+Fig.8showsthegeneratedU PPAALautomataforthesource,whichcorrespondstothepartial
+χsourcemodel MsofFig. 7.
+VeriﬁcationofthegeneratedU PPAALmodel
+Thefollowingproperties oftheresulting U PPAALmodel havebeen veriﬁed:
+(1) Deadlock freeness: A[]deadlockimplyenv.end , whereenv.enddenotes the location of
+the environment automatonthat indicates successfultermination.
+(2) Livelock freeness: A<>env.end. The system model is created in such way that the
+vacuum system and the source components get requests from the environment com-
+ponent;whenallrequestsareprocessedandconﬁrmationisreceived,thee nvironment
+process terminates. Based on this we can state that if the environment automaton
+reaches its end state, there is no livelockin thesystem.
+(3) No undeﬁned behavior: A[] undeﬁned == 0 . While modeling we discovered that in
+some particular situations the system behavior was unknown, since it can never occur.
+Thesesituationsweremodeledbyassigninganon-zerovaluetothevariab leundeﬁned
+(Fig. 7, line10).
+(4) No errors: A[] error == 0 , whereerroris the variable indicating the error severity level
+of thesource( error>0),or theabsenceof anerror ( error==0 ).
+(5) Vacuum system may not be vented while source is active to avoid machine d amage:
+A[] not (vnt and act) , where the variables vntandactindicate the vented state of the
+vacuumsystem andtheactivestate ofthesource, respectively.
+(6) The duration of the vacuum and vacuum sequences is at most 6 hours and 1 hour,
+respectively: A[]vacuumimplyclk ≤21600andA[]ventingimplyclk ≤3600,wherethe
+variables vacuumandventedindicatewhichsequenceisbeingperformed,and clkisa
+clockvariableused to determine theduration oftheperformed sequence(in seconds).
+ThetranslatedmodelhasbeenveriﬁedinU PPAALusingthefollowingoptions: generationof
+the fastest trace, breadth ﬁrst search order, conservative space optimiz ation, and state space
+representation uses minimal constraint systems. The biggest number of st ates (20510) was
+explored whileverifying theﬁrst property.
+During veriﬁcation of properties 1 and 2, two design errors have been found . Both errors
+are causing deadlock and concern non-determinism in the interleaving of the main process
+and the interrupt handling process of the vacuum system (v1 and v2 in Fig. 6, respectively).
+The way to handle this non-determinism in general has not been sp eciﬁed in the design
+13 TranslationtoandveriﬁcationwithU PPAAL
+
+--- Page 17 ---
+S8
+cA0<=60S10
+trueS16
+trueS28
+trueS32
+trueS36
+cA0<=60
+S38
+trueS43
+true
+cA0= =60manu al = 1newvalue == 1
+dumm y!
+newvalue = 0,
+cA0 = 0src_stat e = 2
+active!
+active0= 0
+vnt == 1
+dumm y!
+error = 5
+vnt == 0 && pre == 1 && e xp == 1
+dumm y!
+src_stat e = 4vnt == 0 && pre == 0 && e xp == 1
+dumm y!
+undeﬁne d = 1
+vnt == 0 && pre == 1 && e xp == 0
+dumm y!cA0= =60
+(error  == 5)dumm y!
+cA0 = 0error == 4
+dumm y!
+manu al = 1error < 4
+dumm y!src_stat e == 1
+dumm y!
+src_stat e == 2
+dumm y!
+src_stat e == 3
+dumm y!src_stat e == 4
+dumm y!
+s1
+s2S46
+trueS47
+truevente d?
+vnt= vented0
+newvalue = 1 s3S51
+trueS52
+truepre_vacuum?
+pre=pre_vacuum0
+newvalue = 1 s4S56
+trueS57
+trueexpose?
+exp=expose0
+newvalue = 1.........
+Figure 8: Generated U PPAALautomata forthesource
+documentation, and model veriﬁcation has indicated this design incomplet eness. After in-
+forming the involved engineers, an alternative design for the inte rrupt handling process has
+been proposed.
+This alternative design has also been applied to the χmodel (and subsequently translated
+to UPPAAL). Besides this general issue, another deadlock occurred in the speciﬁc situa tion
+wheretheinterruptrequestwassentexactlyatthestartofthesequen ce. Again,thisindicated
+anincompletenessinthedesigndocumentation,whichdidnotmentionthe assumptionthat
+aninterruptcouldonlyoccurafterthestartofasequence. Withthealterna tivedesignforthe
+interrupt handling process, and after restricting the test environme nt such that interrupts
+can onlyoccurafterthestart ofa sequence, themodel satisﬁes bothproperties 1and2.
+Property 3 is satisﬁed by the model, indicating that the engineers wer e correct when they
+claimedthattheundeﬁnedbehaviorpartswouldneverbereached. Ve riﬁcationofproperty4
+detected the same design error as found by simulation (incorrect behavior in t he venting
+sequence, resulting in an error level larger than zero). Finally, two mi nor errors have been
+discovered by veriﬁcation of property 4 and 5, one modeling mistake and on e mistake in the
+manual transformation fromtheoriginal χmodel tothetranslatable χmodel.
+To verify the property 6, a method similar to the decoration method descri bed in [19] was
+used. We added the boolean variables vacuumandventedto indicate which sequence is
+14
+
+--- Page 18 ---
+being performed and a clock clkto determine the duration of a sequence. Whenever the
+environment sends a request to the vacuum system to start a sequence, the corresponding
+variableissettotrueandthe clkisreset. Whenthesequenceisﬁnished,thevacuumsystem
+sends a reply back to the environment and both variables are set t o false. No new edges,
+locations, invariants or guards were added. It can be shown that the beha vior of the system
+was not changed. The properties A[] vacuum imply clk ≤21600andA[] venting imply clk ≤
+3600are bothsatisﬁed.
+Alldesignerrorsfoundwithsimulationandveriﬁcationhavebeendiscussedwi ththeASML
+engineers, and subsequently ﬁxes have been applied to the design and , correspondingly, to
+the model in order to avoid these errors. The ﬁxed model has been veriﬁ ed again and now
+all properties as described above are satisﬁed by the model. For the ﬁxe d model the biggest
+number of states (9961) was explored while verifying the ﬁrst prop erty. The diﬀerence in
+statespacesizebetweentheoriginalmodel(20510states)andtheﬁxe dmodel(9961states)is
+partiallycausedbytheﬁxesappliedtothemodel,andpartiallybym akinguseofanimproved
+versionofU PPAAL. UPPAAL3.6betawasusedfortheoriginalmodel,andU PPAAL4.0.2was
+used forthe ﬁxed model.
+Theveriﬁcationresultsoftheﬁxedmodelgiveenoughconﬁdencethatthemode lisacorrect
+representation ofthe system design, making it suitableformodel-based system testing.
+6 Model-basedandrealsystemtesting(summary)
+Although model-based system testing and real system testing are not t he focus of this paper,
+this section gives a summary ofthese steps ofthecasestudy.
+The model of the vacuum system was integrated with the realization of th e source using an
+appropriate infrastructure, including a software/hardware adapter th at translates communi-
+cation actions in the models into electronic signals for the source realization a nd vice versa.
+For model-based system testing, the same environment model and scenari os as in the sim-
+ulation step were used, however now the scenarios and models were execute d in real-time
+(using a real-time χsimulator), since the source realization, by deﬁnition, is also running in
+real-time. With this setup, early system testing was performed 20 we eks before real integra-
+tion,in aless stressful and much cheaperperiod ofthedevelopment process.
+Similar to the simulation step of the case study, creating non-nominal circums tances was
+easy in a model environment compared to a realization environment. In a ddition, setting
+upandswitchingbetweendiﬀerenttestcasescanbeperformedalmostin stantlywhenusing
+models. Real system testing experience shows that this can take up to m ore than half of the
+total test time due to, for example, long setup times of the system and initi alization errors in
+parts of the system that are not involved in the tests (which would be ab stracted away in the
+system model). As a result, the tests performed took half a day of test time com pared to an
+estimated fourdaysof testing during thereal integration and test ph ases.
+Severalintegrationproblemsinthesourcerealizationwerediscovered . Themodelsimproved
+the diagnosis of the errors, which appeared to be caused by implementa tion errors in the
+source. Theseerrorswouldhavecausedseveraldaysofveryexpensivedowntim eintheclean
+roomwhentheywouldbediscoveredduringrealsystemtesting. Finally ,noadditionalerrors
+inthesourcerealizationwerefound(andnoﬁxingwasnecessary)duringrea lsystemtesting,
+atleast not forthe aspectsthat wereanalyzed and tested usingtheM BI&T method.
+These results clearly show that early model-based system testing using χmodels that have
+beenveriﬁedwithU PPAALhassavedsigniﬁcantintegrationandtestingtimeandcostsinthe
+casestudy.
+7 Conclusions
+The goal of the case study and this paper was threefold: (1) to show the po tential of the
+proposed MBI&T method (in which the veriﬁcation techniques are used) to r educe the in-
+15 Conclusions
+
+--- Page 19 ---
+tegration and test eﬀort of industrial systems; (2) to investigate the a pplicability, scalability,
+andusabilityofthe χtoolsetasintegratedtoolsupportforallaspectsoftheMBI&Tmethod,
+particularlyfocusingonthetranslatorfrom χtoUPPAAL;(3)toshowtheapplicabilityandthe
+advantages of usingveriﬁcation techniques forreal-size industrial sys tems.
+Application of the MBI&T method (and veriﬁcation as its part) in the case study has shown
+many advantages. First, the modeling activities helped to clarify, correct, and complete the
+design documentation. By simulation and veriﬁcation, a number of design and in tegration
+errors were detected and ﬁxed earlier and cheaper when compared t o current system devel-
+opment. Finally, a part of the model was integrated with a realize d component to enable
+early, fast, and cheap model-based system testing. Again, multiple errors in realization were
+detected and ﬁxed. This clearly shows the applicability and value of the MBI&T method for
+industrial system development.
+In total, ﬁve errors have been found by simulation and veriﬁcation of the sy stem model.
+Three of these errors were design errors; only one of them has been discove red by means
+of simulation. The other two design errors, discovered by veriﬁcation only, b oth concern the
+non-deterministicbehaviorofparallelprocesses. Thisisdiﬃcult,ifno timpossible,tounder-
+stand and to analyze by simulation or reviewing the design documentation . This illustrates
+that veriﬁcation should be used for designing real industrial systems, whic h often involve
+both high-levelparallelismandnon-deterministic behavior.
+The other two errors were modeling errors introduced in the modeling an d model trans-
+formation step. To prevent model transformation errors, the translation sche me from χto
+UPPAALshould be extended with the scope operator and process instantiation. With t hese
+extensions, the translation scheme is well suited for translating most χmodels. Unfortu-
+nately, the guarded delay and nested parallelism cannot be transl ated in the general case and
+these constructs should be avoided while modeling; otherwise they have to b e transformed
+manually.
+Theχtoolset,extendedwiththeU PPAALtranslator,issuitableforallactivitiesoftheMBI&T
+method: modeling, simulation, veriﬁcation, component testing, and integ rated system test-
+ing. Thesystemaspectsthatweremodeledinthecasestudy(supervisorymach inecontrolin
+software, interrupt behavior, electronic communication) can easilybemodele d in χ.
+Although the state space explosion remains being the main obstacle in v eriﬁcation of the
+real-size industrial systems, the performed case study shows that continued research work
+and tools improvements allow to use model checking in wider applicati on area. The fact
+that the state space of our system is rather small indicates that the χtoolset and the U P-
+PAALmodel checker are well suited for modeling and analysis of similar size or even more
+complex industrial systems. Our current work on the MBI&T method concentrates on the
+integration and testing of models and realizations, in particular on the b ehavior relation of
+theimplemented infrastructure Iand theparalleloperatorin the system model).
+16
+
+--- Page 20 ---
+Acknowledgements
+ThisworkhasbeencarriedoutaspartoftheT ANGRAM projectundertheresponsibilityofthe
+Embedded Systems Institute, partially supported by the Netherland s Ministry of Economic
+Aﬀairs under grant TSIT2026, and as part of the TIPS Yproject, supported by the Dutch Or-
+ganization for Scientiﬁc Research (NWO), project number 612.064.205. T he authors would
+like to thank the engineers of the ASML EUV group for their support in t he case study, Ton
+Geubbels for his modeling and veriﬁcation activities in the case study, and Esmée Bertens
+forhereﬀortintransformingthe χmodeltomakeitsuitablefortranslationtoU PPAAL. Fur-
+thermore,wewouldliketothankallT ANGRAM andTIPS Yprojectmembersfortheirvaluable
+comments andfruitfuldiscussions.
+17
+
+--- Page 21 ---
+18 Acknowledgements
+
+--- Page 22 ---
+Bibliography
+[1] L. Bratthall, P. Runeson, K. Ädelsward, W. Eriksson, A survey of lead- time challenges in
+the development and evolution of distributed real-time systems, Informa tion and Soft-
+wareTechnology 42(13) (2000) 947–958.
+[2] B. Boehm, V. Basili, Software defect reduction top 10 list, IEEE Compute r 34 (1) (2001)
+135–137.
+[3] M.Broy,O.Slotosch,Fromrequirementstovalidatedembedded systems,in: Embedded
+Software: First International Workshop, EMSOFT 2001, Tahoe City, CA, USA, Springer-
+Verlag,2001, pp.51–65.
+[4] X.Liu,J.Liu,J.Eker,E.A.Lee,Heterogeneousmodelinganddesi gnofcontrolsystems,
+in: Software-Enabled Control: Information Technology for Dynamical Sys tems, Wiley-
+IEEE Press, 2003, Ch.7, pp.105–122.
+[5] F. J. Budinsky, M. A. Finnie, J. M. Vlissides, P. S. Yu, Automatic code g eneration from
+design patterns,IBMSystems Journal35(2) (1996) 151–171.
+[6] J. A. Rowson, Hardware/software co-simulation, in: DAC ’94: Proceedin gs of the 31st
+annualconference on Design automation,ACM Press, 1994, pp.439–440.
+[7] E. Brinksma, J. Tretmans, Testing transition systems: An annotated bibliography, in:
+MOVEP 2000 – Modelling and Veriﬁcation of Parallel Processes, Vol. 2067 of Lecture
+Notesin Computer Science, Springer-Verlag, 2001, pp.187–195.
+[8] I.Ogren,Onprinciplesformodel-basedsystemsengineering, SystemsEngineering3(1)
+(2000) 38–49.
+[9] A.Kleppe,W.Bast,J.Warmer,MDAExplained: TheModelDriv enArchitecture: Practice
+and Promise, 1st Edition, Addison-Wesley Professional, 2003.
+[10] TANGRAMProject, Website, http://www.esi.nl/tangram.
+[11] N. C. W. M. Braspenning, J. M. van de Mortel-Fronczak, J. E. Rood a, A Model-based In-
+tegration and Testing Method to Reduce System Development Eﬀort, in: P roceedings of
+the 2nd workshop on Model-Based Testing (MBT2006), Electronic Notes in Th eoretical
+Computer Science 164 (4)(2006) 13–28.
+[12] ASML, Website, http://www.asml.com.
+[13] D. A. van Beek, K. L. Man, M. A. Reniers, J. E. Rooda, R. R. H. Schi ﬀelers, Syntax and
+consistent equation semantics of hybrid Chi, Journal of Logic and Algebraic Program-
+ming 68 (1-2) (2006) 129–210.
+[14] TIPSyProject, Website, http://homepages.cwi.nl/ ∼wijs/TIPSy.
+[15] E. M. Bortnik, D. A. van Beek, J. M. van de Mortel-Fronczak, J. E . Rooda, Veriﬁcation
+of timed Chi models using U PPAAL, in: ICINCO 2005, Proceedings of the Second In-
+ternationalConferenceonInformaticsinControl,AutomationandRobotics,Barce lona,
+Spain,September 14-17, INSTICCPress, 2005, pp.486–492.
+[16] G. Behrmann, A. David, K. G. Larsen, A tutorial on U PPAAL, in: Formal Methods for
+the Design of Real-Time Systems: 4th International School on Formal Me thods for the
+DesignofComputer,Communication,andSoftwareSystems,SFM-RT2004,no. 3185in
+LNCS,Springer-Verlag, 2004, pp.200–236.
+[17] J.Bengtsson,W.Yi,Timedautomata: Semantics,algorithmsandtools, in: LectureNotes
+on Concurrency and Petri Nets,no. 3098 in LNCS,Springer-Verlag, 2004 .
+[18] UPPAAL,Website, http://www.uppaal.com.
+19
+
+--- Page 23 ---
+[19] M. Lindahl, P. Pettersson, W. Yi, Formal Design and Analysis of a G earbox Controller,
+Springer International Journal of Software Tools for Technology Transfer (STTT) 3 (3)
+(2001) 353–368.
+[20] J.Bengtsson,W.O.D.Griﬃoen,K.J.Kristoﬀersen, K.G.Larsen,F .Larsson,P.Petters-
+son, W. Yi, Automated analysis of an audio control protocol using UPPAAL, Journal of
+Logicand Algebraic Programming 52–53 (2002) 163–181.
+[21] A. David, W. Yi, Modelling and analysis of a commercial ﬁeld bus p rotocol, in: Proceed-
+ings of the 12th Euromicro Conference on Real Time Systems, IEEE Compute r Society,
+2000, pp.165–172.
+[22] T. Hune, K. G. Larsen, P. Pettersson, Guided Synthesis of Control Progr ams Using U P-
+PAAL, in: Proceedings of the IEEE ICDCS International Workshop on Distribute d Sys-
+tems Veriﬁcation and Validation,IEEE Computer SocietyPress, 2000, pp.E 15–E22.
+[23] M. Hendriks, B. van den Nieuwelaar, F. Vaandrager, Model ch ecker aided design of a
+controller for a wafer scanner, International Journal on Software Tools for Tec hnology
+Transfer (STTT) - Special Section on Quantitative Analysis of Real-time Em bedded Sys-
+tems (2006) 1–15.
+[24] K. L. Man, R. R. H. Schiﬀelers, Formal speciﬁcation and analysis of hy brid systems,
+Ph.D.thesis, Eindhoven University ofTechnology (2006).
+[25] D. A. van Beek, K. L. Man, M. A. Reniers, J. E. Rooda, R. R. H. Schi ﬀelers, Syntax
+and semantics of timed Chi, Tech. Rep. 05-09, Eindhoven University of Technology,
+Department of ComputerScience (2005).
+[26] Systems Engineering Group, Eindhoven University of Technolog y, Chi language and
+toolswebsite, http://se.wtb.tue.nl/sewiki/chi/start.
+[27] D. A. van Beek, A. van der Ham, J. E. Rooda, Modelling and control of process indus-
+try batch production systems, in: 15th Triennial World Congress of the Inte rnational
+Federation of Automatic Control, Barcelona,Spain, CD-ROM, 2002.
+[28] J. M. van de Mortel-Fronczak, J. Vervoort, J. E. Rooda, Simulation-b ased design of ma-
+chine control systems, in: Proceedings of the 15th European Simulation Multicon fer-
+ence, June6-9, Prague, Czech Republic,2001.
+[29] J. Tretmans, E. Brinksma, TorX : Automated model based testing, in : 1st European
+Conference on Model-Driven SoftwareEngineering, 2003.
+[30] E. M. Bortnik, J. M. van de Mortel-Fronczak, J. E. Rooda, Verifyi ng Chi models in U P-
+PAAL,toappearin Systems Engineering Report(2006).
+20 Bibliography
