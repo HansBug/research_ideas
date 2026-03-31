@@ -1,0 +1,1660 @@
+--- Page 1 ---
+Qianqian Lin, Shuling Wang, Bohua Zhan, Bin Gu. Modelling and Verication of the RTPS Protocol Using UPPAAL
+and Simulink/Stateow. JOURNAL OF COMPUTER SCIENCE AND TECHNOLOGY 33(1): 1{27 July 2020. DOI
+10.1007/s11390-015-0000-0
+Modelling and Verication of the Real-Time Publish and Subscribe
+Protocol using UPPAAL and Simulink/Stateow
+Qianqian Lin1, Shuling Wang1;, Member, CCF, Bohua Zhan1;, Member, CCF, and Bin Gu2;
+, Member, CCF
+1State Key Laboratory of Computer Science, Institute of Software, Chinese Academy of Sciences, Beijing 100190, China
+2Beijing Institute of Control Engineering, Beijing 100081, China
+E-mail: linqq@ios.ac.cn; wangsl@ios.ac.cn; bzhan@ios.ac.cn; gubinbj@sina.com
+Received April 11, 2020; revised September 10, 2020.
+Abstract Real-Time Publish and Subscribe (RTPS) protocol is a protocol for implementing message exchange over an
+unreliable transport in the Data Distribution Service (DDS). Formal modelling and verication of the protocol provide
+stronger guarantees of its correctness and eciency than testing alone. In this paper, we build formal models for the RTPS
+protocol using Uppaal and Simulink/Stateow. Modelling using Simulink/Stateow allows analyzing the protocol through
+simulation, as well as generating executable code. Modelling using Uppaal allows us to verify properties of the model stated
+in TCTL (Timed Computation Tree Logic), as well as estimating its performance using statistical model checking. We
+further describe a procedure for translation from Stateow to timed automata, where a subset of major features in Stateow
+is supported, and prove the soundness statement that the Stateow model is a renement of the translated timed automata
+model. As a consequence, any property in a certain fragment of TCTL that we have veried for the timed automata model
+inUppaal is preserved for the original Stateow model.
+Keywords Real-Time Publish and Subscribe (RTPS), modelling, verication, UPPAAL, Simulink/Stateow
+1 Introduction
+Data Distribution Service (DDS) [1] is a portable
+middleware technology which provides an interface of
+information transmission among applications and op-
+erating systems. Adopting the Publish/Subscribe ar-
+chitecture, DDS takes data as the center, and provides
+rich QoS (quality of service) strategy to realize data
+management and data sharing in the whole network
+[2]. It is widely used in aerospace and national defense
+elds requiring high performance, predictability and ef-
+fective use of resources. The Real-Time Publish andSubscribe (RTPS) protocol [3, 4] has been standard-
+ized by the OMG (Object Management Group) as an
+interoperability protocol implemented using DDS. The
+protocol species requirements that any implementa-
+tion must satisfy in order to be interoperable with each
+other. These include the structure of entities involved
+in the conversation network, format for messages and
+how they are exchanged, and a mechanism for discover-
+ing other participants. The protocol allows exibility in
+the implementation, including the choice of best-eort
+or reliable communication, and how much state to keep
+at the endpoints.
+Regular Paper
+This work was partially supported by the National Natural Science Foundation of China under Grant Nos. 61625206, 61972385 and
+61732001, and by Chinese Academy of Sciences Pioneer Hundred Talents Program under grant No. Y9RC585036.
+Corresponding Author
+©Institute of Computing Technology, Chinese Academy of Sciences & Springer Nature Singapore Pte Ltd. 2020
+
+--- Page 2 ---
+2 J. Comput. Sci. & Technol., January 2018, Vol., No.
+In this paper, we build formal models for the RTP-
+S protocol using Simulink/Stateow and Uppaal . The
+models describe detailed behaviors specied by the pro-
+tocol, including its real-time and probabilistic aspects.
+To avoid making the model overly complex, some as-
+pects of the protocol are not considered, as described
+in detail in the body of the paper. Such modelling al-
+lows the protocol to be analyzed by simulation, as well
+as rigorous verication using model checking. It also al-
+lows automatic code generation to implementations of
+the protocol. This provides stronger guarantees for the
+correctness and eciency of the protocol than testing
+alone.
+Simulink/Stateow1is a de-facto standard in mod-
+elling, analysis, and design of embedded systems. It
+provides a strong numerical simulation engine. Mean-
+while, the built-in Simulink Coder supports C/C++
+code generation from Simulink/Stateow models. How-
+ever, due to the incomplete coverage of numerical sim-
+ulation, the correctness of the models cannot be fully
+guaranteed. Uppaal [5, 6] is an integrated tool en-
+vironment for modelling, validation and verication of
+real-time systems modelled as networks of timed au-
+tomata (TA). It allows model checking of specications
+written in Timed Computation Tree Logic (TCTL), as
+well as statistical model checking of specications in
+Metric Interval Temporal Logic (MITL).
+We will take full advantage of both Simulink/State-
+ow and Uppaal . First, we model the RTPS protocol
+as Stateow charts and analyze its behavior using simu-
+lation. Second, we provide a translation from Stateow
+models to Uppaal timed automata, and prove formally
+that the original Stateow model is a renement of the
+translated TA model. Thus, any property in a certain
+fragment of TCTL that holds for the TA model must
+also hold for the original Stateow model. Third, weverify using Uppaal the correctness of the TA model
+according to the RTPS specication. As a consequence,
+the original Stateow model is also veried. We also
+estimate the performance of the TA model using statis-
+tical model checking. Finally, we generate C code from
+the Stateow model using Simulink Coder. The execu-
+tion of the generated code agrees with the simulation
+and the description of the protocol.
+Using the above approach, we verify several impor-
+tant properties of the RTPS protocol. They include:
+the writers and readers send and receive data in a con-
+sistent and sequential way; and the heartbeat and ac-
+knowledgement mechanisms work correctly to ensure
+reliable communication. Moreover, using statistical
+model checking, we determine the quantitative prop-
+erties of the protocol. In particular, we estimate the
+probability of nishing the transmission of some xed
+input data within a certain time limit, as a function
+of the communication failure rate, as well as various
+delay times in the model. This shows the potential of
+the formal model to provide guidance on the tuning of
+parameters when deploying an implementation.
+After presenting the related work in Section 2, the
+rest of the paper is organized as follows. In Section 3 we
+review some preliminaries, including the RTPS proto-
+col, Simulink/Stateow, and Uppaal . In Section 4 we
+describe the model of the RTPS protocol as Stateow
+charts. In Section 5, we present the procedure to trans-
+late Stateow charts to timed automata and formally
+prove the soundness of the translation. In Section 6 we
+verify various properties of the protocol using (statisti-
+cal) model checking. Finally, we conclude the paper in
+Section 7 with a discussion of future work.
+1https://ww2.mathworks.cn/products/simulink.html.
+
+--- Page 3 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 3
+2 Related Work
+Analysis and verication of many aspects of DDS
+have been explored in [7, 8, 9], including real-time per-
+formance, security of DDS-based middleware, and so
+on. Alaerjan et al. [10] dened the missing functional
+behavior in the DDS dynamic model and the semantics
+of the new behavior using Object Constraint Language
+(OCL) [11]. The work by Liu et al. [12] mainly focused
+on DDS in ROS2 to verify its security, activity and
+priority. Yin et al. [13] modelled and veried the com-
+munication dependability of the reliable StatefulWriter
+module in RTPS using Communicating Sequential Pro-
+cesses (CSP) [14, 15] and the model checker Process
+Analysis Toolkit (PAT). It is based on a description of
+data transmission to a single reader without data loss.
+In contrast, our work considers the reliability of trans-
+mission when data loss is allowed, as well as sending
+data to multiple readers. We also model the history
+cache in the writer and the reader separately. Finally,
+our approach supports the automatic generation of C
+code, and through statistical model checking, the deter-
+mination of the inuence of timing parameters on the
+model performance.
+Translations from Stateow (subsets) to Uppaal
+have been addressed previously [16, 17]. Compared
+with our work, they consider more advanced features
+of Stateow, such as supertransition, event stack and
+execution interruption mechanism. The resulting TAs
+are quite complex, making them expensive to verify in
+Uppaal . For example, each Stateow state is translat-
+ed to four cooperative parallel automata in [16]. More-
+over, no formal guarantee is provided for the correctness
+of the translation. As a result, whether the properties
+proved for the TA is preserved for the Stateow model is
+not ensured. In this paper, we consider a more limited
+subset of Stateow that is sucient for modelling andanalyzing real-time systems such as the RTPS proto-
+col. This results in simpler translated TA models that
+can be veried easily in Uppaal . We further prove for-
+mally the correctness of the translation based on the
+simulation of transition semantics. The semantics of
+Stateow or its translation to other formal languages
+have also been studied in [18, 19, 20, 21].
+3 Preliminaries
+3.1 RTPS Protocol
+The RTPS (Real-Time Publish and Subscribe) pro-
+tocol species a mechanism for transmitting data be-
+tween endpoints on top of the DDS wire protocol. Its
+real-time aspect comes from allowing delays at various
+stages of data transmission, with tunable constraints on
+those delays. It also has a probabilistic aspect as it al-
+lows unreliable communication channels, with a mech-
+anism for maintaining reliable data transmission over
+such channels. We will take all these behaviors into
+consideration in the modelling and verication.
+The protocol consists of two parts: the Platform
+Independent Model (PIM) and the Platform Specif-
+ic Models. The PIM species requirements that are
+unrelated to the platform used for transmitting data.
+It consists of four modules describing dierent aspect-
+s of the protocol. The structure module describes the
+structure of RTPS entities and the relationships among
+them. The entities include domain, participants, end-
+points (readers and writers), and the history cache. The
+message module describes the format of messages and
+their logical interpretation. The behavior module spec-
+ies valid sequences of message exchanges between en-
+tities. This is the part that we will mainly focus on in
+this paper. The discovery module species how RTPS
+endpoints are congured and paired with each other.
+The behavior module includes several reference im-
+plementations, allowing choices along two main dimen-
+
+--- Page 4 ---
+4 J. Comput. Sci. & Technol., January 2018, Vol., No.
+sions: whether the communication is best-eort or reli-
+able, and what states the readers and writers maintain
+about the available messages. We focus on the most
+complex (and interesting) combination: reliable com-
+munication while maintaining state about all available
+messages. Following the protocol document, we call the
+modelled entities Reliable StatefulWriter and Reliable
+StatefulReader.
+Fig.1. High-level overview of the message exchange according to
+the RTPS protocol.
+Fig. 1 gives a high-level overview of how messages
+are exchanged according to the RTPS protocol. Each
+DDS Writer and each DDS Reader are paired with an
+RTPS Writer and RTPS Reader, respectively. Each
+RTPS Writer and each RTPS Reader contain a Histo-
+ryCache, which maintains a number of CacheChange
+objects. The RTPS Writer and the RTPS Reader al-
+so maintain state recording the status of each available
+message (sent, received, acknowledged, etc.). The aim
+is to transfer data from the DDS Writer (publisher) to
+the DDS Reader (subscriber). The transfer consists of
+several steps.
+1. For each new message, the DDS Writer adds the
+message as a CacheChange to the HistoryCache
+of its associated RTPS Writer.
+2. When there are unsent CacheChanges in the His-toryCache, the RTPS Writer attempts to send
+them to each of the matched readers. Note the
+messages may be lost as we do not assume the
+communication channel is completely reliable.
+3. The RTPS Writer expects each reader to acknowl-
+edge receipt of the messages. As long as there
+are messages that are unacknowledged, it sends
+heartbeat messages at regular intervals to each of
+the readers.
+4. The RTPS Reader, on receiving a data message,
+updates its HistoryCache. On receiving a heart-
+beat message, it may respond by acknowledging
+receipt of messages or signal that some of the mes-
+sages are not received, using an acknack message.
+5. The RTPS Writer, on receiving a response from
+the reader signalling that some messages are not
+received, re-sends the relevant messages. This
+continues until all messages are acknowledged.
+6. Finally, the DDS Reader requests messages from
+its associated RTPS Reader, reading from its His-
+toryCache.
+The RTPS protocol species a period for heartbeat-
+s and allows delayed responses to heartbeats and ac-
+knowledgements. In the implementation, the end-user
+can tune these timing characteristics according to ap-
+plication requirements, deployment conguration and
+underlying transports. Some of the tunable parameters
+are listed in Table 1.
+The above behaviors will be modelled in Section 4,
+including the timing properties and the possible failures
+of the communication channel. On the other hand, to
+avoid making the model overly complex, the following
+aspects of the RTPS protocol are not considered in this
+paper: sending data by dividing into several fragments,
+
+--- Page 5 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 5
+Table 1 . Tuning parameters in the RTPS protocol
+Parameter Scope Meaning
+heartbeatPeriod RTPS Writer The period for the RTPS Writer to repeatedly announce the availability of
+data by sending a heartbeat message.
+nackResponseDelay RTPS Writer The delay for the RTPS Writer to respond to a request for data from a
+negative acknowledgment.
+heartbeatResponseDelay RTPS Reader The delay for the RTPS Reader to send a positive or negative acknowledgment.
+and heartbeat/acknowledgement protocol for data frag-
+ments; relaying of messages, and the associated pro-
+tocol for specifying source, destination, and reply ad-
+dresses in a message; protocol for discovering new par-
+ticipants, as specied in the discovery module; behavior
+specic to the platform used, as given in Platform Spe-
+cic Models.
+3.2 Simulink/Stateow
+Simulink is an environment for model-based devel-
+opment of embedded systems. It provides a rich set
+of xed-step and variable-step solvers for simulating
+system models. Moreover, Simulink supports the gen-
+eration of executable C/C++ code using the built-in
+Simulink Coder. Therefore, after a Simulink model is
+built, we can analyze its behavior by simulation rst,
+and then use Simulink Coder to produce C/C++ code,
+whose execution should have the same behavior as sim-
+ulations of the model.
+Stateow is a toolbox of Simulink, adding facilities
+for modelling and simulating reactive systems in the for-
+m of statecharts. It can be dened as Simulink blocks,
+fed with Simulink inputs and producing Simulink out-
+puts. A Stateow chart is composed of transitions, s-
+tates and junctions. Each transition is labelled with
+E[C]fcActg=tAct, whereEis an event, Cis the con-
+dition, cAct the condition action, and tAct the transi-
+tion action. The event Etriggers the transition to take
+place, provided that the condition Cis true, the action
+cAct will be executed immediately, while tAct will be
+executed when a valid transition path reaching a targetstate is completed. A state is labelled by three optional
+types of actions: entry action, during action, and ex-
+it action. Directed event broadcasting is supported by
+Stateow, which has the form send( e;S), where event
+eis broadcast to state Sand its substates. Stateow
+supports construction of ow charts using connective
+junctions and transitions, which can be used between
+states to specify decision logics in transition networks.
+Stateow charts are organized as hierarchical dia-
+grams: Or diagram, for which the states are mutually
+exclusive and only one state becomes active at a time,
+and And diagram, for which the states are parallel and
+all of them become active simultaneously. Although
+Stateow allows multiple transitions originating from
+a state, as well as multiple parallel states in an And
+diagram, its behavior is deterministic, by assigning d-
+ierent priorities to transitions and states. The State-
+ow charts are activated by triggering events from the
+outside Simulink diagram, or at specied rates corre-
+sponding to the sample times. We make use of the
+second case in the modelling in this paper.
+3.3 UPPAAL
+Uppaal is a toolbox for modelling and analysis of
+real-time systems, modelled as networks of timed au-
+tomata (TA) [22].
+Formally, a timed automaton is a tuple
+(L;l0;C;A;E;I ), whereLis a set of locations, l02L
+the initial location, Cthe set of clocks, Athe
+set of actions, co-actions and the internal -action,
+ELAB(C)2CLthe set of edges between
+
+--- Page 6 ---
+6 J. Comput. Sci. & Technol., January 2018, Vol., No.
+locations with an action, a guard and a set of clocks
+to be reset, and I:L!B(C) assigns invariants to
+locations. The semantics can be dened as a labelled
+transition system hS;s0;!i, whereSLRCis
+the set of states, s0= (l0;u0) is the initial state, and
+!S(R0[A)Sis the transition relation such
+that
+•(l;u)d !(l;u+d) if8d0: 0d0d)u+d02
+I(l);
+•(l;u)a !(l0;u0) if there exists e= (l;a;g;r;l0)2E
+such thatu2g;u0= [r7!0]uandu02I(l0),
+which correspond to time progress and action execu-
+tion, respectively.
+InUppaal , the TAs synchronise with each other us-
+ing channels which carry no data values. Asynchronous
+communication is provided by broadcast channels. The
+sender of a broadcast channel is never blocked, and the
+message can be received by 0, 1, or multiple receivers.
+Committed and urgent locations are supported, which
+must be exited without passage of time. Finally, more
+general predicates involving shared variables are per-
+mitted as guards of transitions.
+Uppaal uses a simplied version of TCTL [23] to
+express requirement specications. It also supports s-
+tatistical model checking (SMC) [9, 24] in the Uppaal
+SMC extension. Uppaal SMC avoids the construction
+of the full state space, thus avoiding the state explo-
+sion problem. It checks properties by performing a cer-
+tain number of simulation runs and then uses statistical
+techniques to estimate the probability that each prop-
+erty is satised. The use of SMC introduces certain re-
+strictions on the timed automata, for example allowing
+only broadcast synchronisations. The language used to
+express properties to be checked by SMC is an extension
+of metric interval temporal logic (MITL) [9, 25]. Gener-
+al queries are in the form Pr[(clock|step num|void)<= bound] , representing the probability that  is sat-
+ised before the clock or step number reaches the given
+bound.
+4 Modelling and Simulation Using Stateow
+In this section, we describe the modelling and sim-
+ulation of the RTPS protocol using Stateow. We con-
+sider the case with one RTPS Writer and two matched
+RTPS Readers. The model consists of three kinds of
+charts: Channel models a communication channel with
+possible message loss; RTPS Writer models a Reliable
+StatefulWriter; and RTPS Reader models a Reliable
+StatefulReader.
+4.1 Messages
+There are three kinds of messages in our model:
+MSG data,MSG heartbeat and MSG acknack . For each
+kind of messages, we dene in Stateow a multi-
+dimensional array storing the transmitted messages.
+The arrays corresponding to the three kinds of messages
+arebuer data,buer heartbeat , and buer acknack ,
+respectively. When a message needs to be sent, the S-
+tateow model triggers a corresponding event, and at
+the same time modies the buer associated to that
+kind of message.
+Data message MSG datarepresents data-change sen-
+t from writers to readers, as well as gap information
+to notify that certain sequence numbers of data are no
+longer relevant. The structure of MSG datais as follows:
+MSG data= (WriterId;ReaderId;WriterSN;Data )
+The elds WriterId and ReaderId identify the sender
+and the receiver of the data-change respectively.
+WriterSN is a sequence number that uniquely identies
+the change. Data represents the data to be transmitted.
+We choose to represent data and gap messages u-
+niformly as MSG data, with gap messages indicated by
+
+--- Page 7 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 7
+setting1 to eld Data , and data messages assumed
+to be non-negative numbers. This is a simplication
+compared with the original protocol, where gaps form
+a separate kind of messages and may indicate a whole
+range of sequence numbers to be no longer relevant.
+Heartbeat message The heartbeat and liveliness
+mechanisms are implemented using MSG heartbeat mes-
+sages. The structure of MSG heartbeat is as follows:
+MSG heartbeat = (WriterId;ReaderId;FinalFlag;
+LivelinessFlag ;FirstSN;LastSN )
+The eld FinalFlag indicates whether the reader is re-
+quired to respond to the heartbeat message. The eld
+LivelinessFlag indicates whether the DDS DataWriter
+associated with the RTPS Writer has manually asserted
+its liveliness. The FirstSN and LastSN elds identify
+the rst (lowest) sequence number and the last (high-
+est) sequence number that are available in the writer.
+The functions setFinal Flag(),setLiveliness Flag()
+and setheartbeatSN () are used to update information
+according to the current status of the RTPS Writer
+while the function getheartbeat () reads the relevant in-
+formation from the array buer heartbeat on behalf of
+the RTPS Reader.
+Acknack message To implement the acknowledge-
+ment mechanism, MSG acknack is used to communicate
+the state of an RTPS Reader to an RTPS Writer, in-
+forming both positive and negative acknowledgments.
+The structure of the message is as follows:
+MSG acknack = (WriterId;ReaderId;
+AckNum;NackNum )
+AckNum is the last sequence number the reader has re-
+ceived continuously and NackNum is the last sequence
+number that is available (as indicated through heart-
+beat messages) but still missing in the reader. Here
+we make some simplications to the original acknackmechanism, where the set of missing sequence num-
+bers is described by a sequence of bits. On the RTP-
+S Writer side, every time the writer receives the mes-
+sage, getacknack () is used to get information includ-
+ingAckNum and NackNum from the message. On the
+RTPS Reader side, the message is built using the func-
+tion setacknack ().
+4.2 Channels
+The Stateow chart Channel models the possibili-
+ty of losing a message in the communication channel,
+as well as a time delay when (successfully) sending a
+message. Fig. 2 shows the chart for the case of send-
+ing data messages from the writer to two readers. The
+locations tryand next represent the waiting state and
+the state after attempting to send to the rst reader,
+respectively. On receiving the event TRY indicating
+an attempt to send a message, the function channel ()
+is used to determine whether the message is lost. It
+returns 1 with probability PassingRate , and 0 other-
+wise. If the message is not lost, the SUCCESS event is
+sent to the corresponding RTPS Reader after delaying
+a random amount of time, as computed by the func-
+tion delay (), which returns a value uniformly between
+0 and MaximumTransmissionDelay . The delay behav-
+ior is modelled in Stateow using the after operator.
+There is one Channel ichart for each sequence num-
+beriin order to achieve concurrency when sending mes-
+sages.
+
+--- Page 8 ---
+8 J. Comput. Sci. & Technol., January 2018, Vol., No.
+Fig.2. Stateow model of channel for sending data.
+Similarly, we can model the possibility of losing
+heartbeat or acknack messages using a channel mod-
+el. Fig. 3 shows the case for heartbeat. It rst re-
+ceives the HEARTBEAT message from the writer, but
+only with probability computed by channel (), the mes-
+sage HEARTBEAT2 is successfully sent to the reader,
+after delaying a random amount of time as computed
+bydelay ().
+Fig.3. Stateow model of channel for sending heartbeat.
+4.3 RTPS Writer
+As shown in Fig. 4, the behavior of the reliable S-
+tatefulWriter is described by an AND diagram consist-
+ing of two charts: Writer send and Writer repair .
+The Writer send chart handles sending data for the
+rst time. It consists of three states: announcing ,idle
+and pushing . Here pushing indicates the writer is in
+the process of sending data, announcing indicates the
+writer has nished sending the available data, and isperiodically sending HEARTBEAT events, idleindicates
+that positive acknowledgements for all messages are re-
+ceived, hence the writer is idle. From the announcing
+state, the transition to pushing is triggered by the guard
+condition [ acked all() == false && empty () == false],
+indicating that there are some changes, represented by
+the array unsent , in the RTPS Writer HistoryCache
+that have not been sent to the RTPS Reader. The
+transition from announcing toidleis triggered by the
+guard condition [ acked all() == true], indicating that
+all changes are received and acknowledged by the read-
+er and there are no new available changes in the RTPS
+Writer HistoryCache. Once [ acked all() == false] hold-
+s, the writer will return to the announcing state. On the
+pushing state, every time the condition [ cansend ==
+true] is satised, the unsent CacheChanges are sen-
+t by the TRY event in the order of sequence num-
+ber and the values of buer data are updated by the
+function setmessage (). The function select channel ()
+is used to choose the channel used to send messages
+by their sequence numbers. The transition from push-
+ingtoannouncing is triggered by the guard condition
+[empty () == true] indicating that all changes in the
+RTPS Writer HistoryCache have been sent to the RTP-
+S Reader. Note that this does not mean all changes
+have been received, only that there has been an attempt
+made to send all of them.
+The Writer repair chart handles re-sending data af-
+ter negative acknowledgements. It consists of three s-
+tates: waiting ,must repair and repairing . Here waiting
+is the default state, must repair indicates that a neg-
+ative acknowledgement is received, and data must be
+re-sent after some delay, repairing indicates the writ-
+er is in the process of re-sending data. The state
+enis an internal state of must repair for correct mod-
+elling of timing constraints. On both the waiting and
+enstate, there is a self-loop transition, triggered by
+
+--- Page 9 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 9
+Fig.4. Stateow model of RTPS writer.
+the reception of ACKNACK2 from the RTPS Reader,
+and as a consequence, the Writer will update the lo-
+cal variables acked num and request num by the infor-
+mation in buer acknack . Once the guard condition
+[request num>acked num] is satised indicating that
+there are changes that have been requested by the RTP-
+S Reader, it enters the must repair state from the wait-
+ingstate. The transition from must repair torepairing
+is triggered by the ring of a timer indicating that a
+duration of nackResponseDelay has elapsed since the
+state must repair was entered. On the repairing state,
+the writer will send the requested changes in the Writ-
+er's HistoryCache and update the values in buer data
+in the order of sequence number from the next of the
+acked num torequest num as long as [ cansend ==
+true] is satised. If the repair action is completed, the
+guard condition [ repair num>request num] is satis-
+ed and it returns to the waiting state.4.4 RTPS Reader
+As shown in Fig. 5, the behavior of the Reliable S-
+tatefulReader is described by an AND diagram consist-
+ing of two charts: Reader receive andReader response .
+The Reader receive chart has only one state ready
+for receiving messages from the RTPS Writer. Once
+the event SUCCESS arrives, the sequence number of the
+data/gap message is read by the Reader's HistoryCache
+from buer data, and received num and missing num
+are recomputed. If the event HEARTBEAT2 arrives, the
+variable missing num is updated.
+The Reader response chart handles sending of ack-
+nack messages. It consists of three states: waiting ,
+must send ackand may send ack. The waiting state is
+the initial state and the transition to other states is
+triggered by the reception of a HEARTBEAT2 event.
+The middle junction determines whether must send ack
+(indicating that acknack message should be sent in all
+
+--- Page 10 ---
+10 J. Comput. Sci. & Technol., January 2018, Vol., No.
+Fig.5. Stateow model of RTPS reader.
+cases) or may send ack(indicating that acknack mes-
+sage should be sent only if some messages are missing)
+should be entered. There are three dierent cases orig-
+inating from the middle junction. If the FinalFlag in
+buer heartbeat is not set, then it enters must send ack.
+Otherwise, if the FinalFlag is set, and if the Liveliness-
+Flag in the buer heartbeat is also set (indicating that
+the DDS DataWriter associated with the RTPS Writer
+of the message has manually asserted its liveliness using
+the appropriate DDS operation), it returns to the wait-
+ingstate. The state may send ackis entered when the
+FinalFlag is set and the LivelinessFlag is not set. On
+the state must send ack, the Reader must send ACK-
+NACK to the Writer after a delay dened by nackRe-
+sponseDelay . When the transition executes, the ack-
+nack message is updated by setting received num and
+missing num in the setacknack function, and the state
+waiting is entered. On the state may send ack, the tran-
+sition to must send ackstate is triggered by the guard
+condition [ missing num>received num], and the tran-
+sition to waiting state is triggered by the guard condi-tion [ missing numreceived num] indicating that all
+available changes in the RTPS Writer are already re-
+ceived.
+4.5 Implementation and Simulation
+The entire Stateow model for the RTPS protocol is
+composed of the above components. Note there is one
+copy of the RTPS Writer diagram and RTPS Reader
+diagram presented in Fig. 4 and Fig. 5 for each writer
+and reader, respectively, and one copy of channel di-
+agram for each sequence number of data messages, as
+well as for the heartbeat and acknack messages.
+For simulation, we consider the model including
+one RTPS Writer and two RTPS Readers. The
+list of data changes to be transmitted is stored in
+the array cachechanges , APublisher sends data from
+cachechanges to the RTPS Writer at random time in-
+tervals by writing to the Writer's HistoryCache (WHC).
+Once the RTPS Writer receives the data, it sends the
+data to the matched RTPS Readers through the dier-
+ent channels. The RTPS Readers write received data
+
+--- Page 11 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 11
+to their respective Reader's HistoryCache (RHC). If a
+data is initially available but becomes irrelevant later,
+a gap message represented by 1 in the Data eld will
+be re-transmitted.
+Table 2. Parameter setting
+Parameter Value
+heartbeatPeriod 10 (s)
+nackResponseDelay 10 (s)
+heartbeatResponseDelay 5 (s)
+PassingRate 0.5
+MaximumTransmissionDelay 3 (s)
+One simulation result is shown in Fig. 6. The
+simulation duration is set to 200 sec and the array
+cachechanges representing data to be transmitted is
+set to [100;200;300;400;500]. Other parameters of the
+model are set as in Table 2. From the simulation result-
+s, it can be seen that the two readers received data at
+dierent times, meaning that data is re-transmitted in
+case of loss. Finally, the RTPS Writer has received the
+Acked complete signal indicating that the transmission
+of all available data has completed.
+Finally, we use Simulink Coder to export C code
+from the Stateow model. The result of execution of
+the exported program is in agreement with that of the
+above simulation.
+Fig.6. Results of simulation. (a) WHC; (b) RHC 1; (c) RHC 2;
+(d) Acked complete signal. The lines in WHC indicate when
+each message is rst sent to the Readers. The lines in RHC 1
+and RHC 2 indicate when each message is rst received by each
+Reader. The line in Acked complete signal indicates the time
+when all messages are acknowledged by all readers.
+5 Translation: From Stateow Subset to TA in
+UPPAAL
+In Section 4, we built the Stateow model for the
+RTPS protocol and analyzed its behavior by simula-
+tion. In order to verify its correctness according to the
+RTPS specication, we will rst translate the Stateow
+model to an Uppaal TA model, and then verify the
+translated TA model by model checking. We will prove
+the soundness of the translation that the original State-
+ow model is a renement of the translated TA model.
+As stated in Proposition 2 later, this implies that all
+properties in the universal fragment of untimed TCTL
+that hold for the TA model also hold for the Stateow
+model.
+Stateow provides many complex features for mod-
+elling systems, some of which do not have correspon-
+dences in Uppaal . In this work, we consider the trans-
+lation of a limited subset of features, that is adequate
+for modelling real-time reactive systems such as the
+
+--- Page 12 ---
+12 J. Comput. Sci. & Technol., January 2018, Vol., No.
+RTPS protocol. Supported features include hierarchical
+states, junctions, transitions, actions including direct-
+ed event broadcasting, and conditions including those
+expressed in temporal logic. More advanced features
+of Stateow, such as supertransitions (transitions that
+cross multiple layers between states), early return logic
+and the event interrupt, are not considered. Especially,
+the execution of non-supertransitions will not cause the
+change of context. This makes both the translation and
+the translated TA much simpler, compared with [22], in
+which a Stateow state with attached actions is trans-
+lated to four cooperative parallel TAs.
+Before presenting the translation rules, we introduce
+some auxiliary functions. Given a state S, we dene
+enS;durS;exSto represent the entry, during and exit
+actions attached to Srespectively. Given a junction J,
+we dene isTer (J) to indicate whether Jis a terminal
+junction. Given a state or junction Sand transition
+with priority k, we dene cond(S;k) and target (S;k)
+to be the condition and target of the transition respec-
+tively. During the execution, we maintain the following
+variables for a state or junction S:source (S) is the
+source of the previous executed transition that lead-
+s to junction S,sourceSta (S) is the nearest source s-
+tate (not junction) in the previous transition path that
+leads to junction S,entry (S) with default value 0 rep-
+resents whether the entry action of state Sis executed,
+andclock (S) with default value 0 records the activation
+time of state S. We also introduce ACT to record the
+transition actions accumulated during the execution of
+a transition path, with initial value skip.
+5.1 Translating Stateow Charts
+Both states and junctions exist in a Stateow chart,
+so there are four cases for a transition: state to state, s-
+tate to junction, junction to state, and junction to junc-
+tion. We give the translation to TA for each case below.We rst assume that the conditions of all outgoing tran-
+sitions from a state or junction are disjoint, then this
+assumption is loosened at Section 5.1.4.
+5.1.1 Translating a State
+For a state S, assume there is an outgoing transi-
+tion to a state S0, labelled by ( ev;c;ca;ta ), whereev
+is the triggering event, cthe condition, cathe condi-
+tion action, and tathe transition action. In the trans-
+lation, we map Sto location UandS0to location
+U0. The TA transition from UtoU0is dened with
+eventev(the event translation is explained in detail
+in the next part), guard c^entry (S), and an action
+listca;exS; (ACT ;ta);clock (S0) = 0;enS0;entry (S0) =
+1;ACT =skip. Here entry (S0) becomes true after the
+entry action of S0executes. The action list means that,
+when a state-to-state transition is enabled, the condi-
+tion action will execute immediately, then the exit ac-
+tion ofSexecutes, followed by the accumulated tran-
+sition actions, and nally the target state is activated
+and the entry action of the target state executes. When
+entering a new state, the transition action ACT is reset
+toskip.
+FromUtoUitself, we rst add a transition to
+execute the entry action, with guard :entry (S) and
+action enS;entry (S) = 1, and then we add another
+transition to execute the during action, with guard
+entry (S)^:(cond(S;1)_:::_cond(S;n)) and action
+durS;clock (S) =clock (S) + 1. It means that all of the
+outgoing transitions of Sfailed to execute, and the dur-
+ing action executes, the activation time of Sincreases
+by 1. The substates of S(if there is any) will be exe-
+cuted, which will be handled below.
+If the transition is to a junction J, the translation
+is very similar to the rst case, except that, the ac-
+tion list from UtoU0will be changed to ca;ACT =
+(ACT ;ta);source (U0) =U;sourceSta (U0) =U, i.e, the
+
+--- Page 13 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 13
+transition path is still not complete, the source state is
+not exiting, and the transition actions will continue to
+be accumulated. The source of the transition and the
+source state leading to this junction are updated.
+If there is no decomposition inside S, by applying
+the above translation process for each outgoing transi-
+tion ofS, a TA is obtained for state S. If there is decom-
+positionCinsideS, we rst introduce a boolean vari-
+able during (S) with default value 0 to indicate whether
+the during action is executed or not, and add guard
+:during (S) and action during (S) = 1 to the during
+transition from UtoU, and then we perform the fol-
+lowing translation process:
+1. Build the TA for the decomposition C, denoted
+byUC; meanwhile, denote the TA for the parent
+stateSbyUS.
+2. Add a location ItoUS, and add a transition from
+UtoI, with event in!, condition:(cond(S;1)_
+_ cond(S;n))^during (S) indicating that the
+execution will go to the inside chart Cafter the
+during action executes; meanwhile, add a back
+transition from ItoU. This means, the execu-
+tion can always go back to the parent state, but it
+only makes sense when there is enabled outgoing
+transition for it;
+3. For the outgoing transitions of Ucorresponding
+to the original ones of Stateow, add event out!
+to each of them. As a result, when some outgoing
+transition is enabled, the event out! will broadcast
+to the inside chart Cto transfer the execution
+back toS;
+4. Add a location OtoUC, and add a transition to
+each initial location of UC, with event in? and
+action during (S) = 0. The reception of in? will
+transfer the execution from outside to inside. Foreach location ofUC, add a transition to Owith
+eventout?, whose reception will transfer the ex-
+ecution from inside to outside. Notice that the
+occurrence of out! guarantees that some outgoing
+transition of Sis enabled.
+IfShas decomposition, then the entry and exit ac-
+tions need to be extended to include the decomposition,
+we omit the details here. In the following, for any s-
+tateS,SdedenotesSand its decomposition, and exSde
+andenSdethe sequence of exit actions of Sdein the re-
+verse order of entering the decomposition and the entry
+actions in the order of entering the decomposition.
+By following the above translation process, we can
+obtain the TA for a state with decomposition inside.
+5.1.2 Translating a Junction
+For a junction J, assume there is an outgoing
+transition to a state S0. Similar to the previous
+case, assume the transition is labelled by ( ev;c;ca;ta ),
+and there are noutgoing transitions from J. In
+the translation, we map Jto location UandS0to
+locationU0. The TA transitions are dened sim-
+ilarly to the rst case, except that: from Uto
+U0, the guard is simply c, and the action list is
+changed to be ca;exsourceSta(J) ; (ACT ;ta);clock (S0) =
+0;enS0;entry (S0) = 1; ACT =skip, meaning that the
+source state of current complete transition path will ex-
+it. Moreover, we add a back transition from Uto its
+previous location source(U) , with guard:(cond(J;1)_
+_ cond(J;n))^:isTer (J). It means that if Jis not
+terminal, and all of the outgoing transitions of Jfail to
+execute, the execution backtracks to the previous state
+(or junction). If Jis a terminal junction, then the ex-
+ecution will terminate at J. The two transitions from
+UtoUare not needed anymore for the junction case.
+If the transition is to a junction J0, the trans-
+lated TA is dened similarly to the third case,
+
+--- Page 14 ---
+14 J. Comput. Sci. & Technol., January 2018, Vol., No.
+except that from UtoU0, the action list is
+changed to be ca;ACT = (ACT ;ta);source (U0) =
+U;sourceSta (U0) =sourceSta (U).
+5.1.3 Translating Conditions, Actions and Events
+Above we dene the translation of states and tran-
+sitions for the four cases respectively. In most cases,
+the conditions and actions of Stateow can be translat-
+ed to Uppaal TA conditions and actions directly. In
+particular, for the temporal logic conditions of State-
+ow, there are two types: event-based and absolute-
+time based. We can express them in TA by introducing
+an extra counter to record the times that an event has
+taken, or a clock to record the time that has passed.
+For example, after (T;sec ) can be dened in TA by in-
+troducing a new clock variable as follows: for the source
+state, we introduce a new clock tand initialize it to be
+0, then the transition with the condition after (T;sec ) is
+guarded by tT, and meanwhile, we add the invariant
+tTfor the source location.
+For the directed event broadcast send( e;S), we rep-
+resent it by a channel array e[id1::idk]! in TA, where idj
+for 1jkare related indexes; in correspondence,
+for the receiving event eof Stateow, it is represented
+bye[id1::idk]? in TA.
+Stateow allows probabilistic behavior in actions,
+e.g, through function channel () in the chart Channel
+(see Section 4.2). These can be expressed by probabilis-
+tic transitions in TA. As an example, Fig. 7 gives the
+TA model of Channel , in which both the event broad-
+cast and the probabilistic behavior are involved.
+Fig.7. The timed automata translated from channel.
+5.1.4 Translating States with Non-disjoint Transitions
+The above translation preserves the priority order
+of the outgoing transitions of Stateow states, but un-
+der the assumption that the transitions have disjoint
+conditions. We loosen this restriction here. Instead
+of representing events of Stateow by event broadcast-
+ing in TA, we represent them by predicates. First of
+all, for each event e, a boolean global variable gveis
+introduced to represent whether it is available. Then
+the transitions are modied as follows. Take the rst
+transition case as an example, assume it has priority
+numberk, and there are noutgoing transitions from
+stateS, then obviously kn.
+•If the transition from StoS0has no triggering
+event (evis empty), then the guard from Uto
+U0is changed to c^entry (S)^:((cond(S;1)^
+eventP (S;1))__ (cond(S;k1)^eventP (S;k
+1))), where eventP (S;i) denotes the boolean vari-
+able corresponding to the event of transition i(if
+it exists, otherwise true by default). For each
+transition with priority iless thank,cond(S;i)^
+eventP (S;i) denes the overall premise for it to
+occur. The guard indicates that all transitions
+with higher priority are not enabled. The action
+list is same as before, if Sis not sending an event.
+
+--- Page 15 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 15
+•IfSis sending an event e, then dene the tran-
+sition from UtoU0with the same condition as
+above, but the action list of the previous one
+added bygve= 1 to make eavailable, and add
+another transition from U0toU0with guard gve
+and action gve= 0 to make event eunavailable.
+•IfSis receiving event, i.e. evis not empty, change
+the guard from UtoU0to bec^entry (S)^gvev^
+:((cond(S;1)^eventP (S;1))__ (cond(S;k
+1)^eventP (S;k1))), and the action list is the
+same as before.
+•FromUtoUitself, change the guard of the
+transition for executing the during action to be
+:((cond(S;1)^eventP (S;1))__ (cond(S;n)^
+eventP (S;n))).
+•From a non-terminal junction to its source, the
+condition is strengthened in the same way.
+Through this way of strengthening the guard for each
+outgoing transition, all transitions from locations of TA
+become disjoint, thus the priority order of transitions
+in the original Stateow chart is preserved.
+Example 1 In order to understand the translation
+process, we select the module Writer repair in Fig. 4
+for an illustration. It should be noticed that the outgo-
+ing transitions for the states are disjoint. Fig. 8 gives
+the translated TA for Writer repair . First, we repre-
+sent the four states waiting ,must repair ,repairing and
+enby four corresponding locations. As state enis an
+internal state of state must repair , it is translated to
+a separate TA. Locations inside and iniare added re-
+spectively to coordinate the execution between the two
+TAs.
+The location must repair broadcast events in! and
+out! in the transitions to locations inside and repairingrespectively. On the other hand, in the TA of state en,
+there is a transition from location initoen, with trig-
+gering event in?, and from enback to ini, there is a back
+transition with triggering event out?. For both waiting
+andenstates, the self-loop transitions are triggered by
+event ACKNACK2 . It is represented by the broadcast
+channel ACKNACK2 [wid][ackid]? in the TA model,
+indicating the writer denoted by widis waiting for re-
+ceiving event from the reader denoted by ackid. Sim-
+ilarly, at the repairing state, select channel () plays the
+role of selecting the transmission channel and sending
+TRY event, which is represented by the broadcast chan-
+nelTRY [wid][repairnum[id]]! in the TA model.
+5.2 Soundness of the Translation
+Now we consider the soundness of the translation
+in the sense that the original Stateow model is a re-
+nement of the translated TA model. We rst give
+the semantics of the Stateow subset that is considered
+in the translation. Then we present the statement of
+the soundness theorem. The theorem is proved using
+a simulation-based argument. The semantics of State-
+ow dened below is a formalization of a subset of the
+informal specication given in the document2.
+Semantics of a Stateow subset First of all, we
+dene the semantics of Stateow states, which is a set
+of transition rules. Each conguration is ( S;v), whereS
+is a state or a junction, and vis a valuation which maps
+variables to their respective values. We use the same
+functions and symbols for states or junctions dened at
+the beginning of this section. The variables we record in
+vinclude the variables occurring in the Stateow mod-
+el, and the following auxiliary variables or arrays: gve,
+during (S),source (S),sourceSta (S),ACT , and clock (S)
+(same meaning as above). Given a state S, we dene
+2Stateow User's Guide, 2016. http://www.mathworks.com/help/pdf doc/stateow.
+
+--- Page 16 ---
+16 J. Comput. Sci. & Technol., January 2018, Vol., No.
+Fig.8. The TA Translated from Writer repair
+trans (S;i) to represent the ith outgoing transition of S.
+Given a valuation vand an action a, we use exec(a;v)
+to represent the resulting valuation after executing a
+from v. In particular, when ais a sending event, vsets
+gveto 1.
+In the following, Sdenotes a state or junction, and
+it hasn0 outgoing transitions.
+(1) (S;v)e !(t;v0), if there exists h > 0 such
+that trans (S;h) = (e;c;ca;ta ) with target t,
+v2c,:(v2(cond(S;1)^eventP (S;1))__
+(cond(S;h1)^eventP (S;h1))) (the transitions
+with higher priority than hare disabled), gveis
+1,tis a junction, and v0=exec(ca;v)[ACT7!
+(v(ACT );tc);source (t)7!S;sourceSta (t)7!A],
+whereAisSifSis a state, otherwise sourceSta (S)
+if it is a junction. Notice that ecan be empty.
+This rule denes the case when the transition is
+enabled and executed, leading to a junction. As
+a result, the condition action executes, the tran-
+sition action is put into the tail of ACT .
+(2) (S;v) !(S;v0), if there exists event esuch that
+v(gve) = 1, and v0=v[gve7!0]. The event is
+disabled after it broadcasts to the chart.
+(3) (S;v)e ! (t;v0), if there exists h > 0such that the conditions same to (1) case
+hold, except for that, tis a state, and
+v0=exec(ca;exAde;ACT ;ta;entde;v)[ACT7!
+skip; clock (Ade)7!0], whereAisSifSis a s-
+tate, otherwise sourceSta (S) if it is a junction.
+The clocks recording the activation times of the
+source state Aand its decomposition are reset to
+0.
+This rule denes the case that a valid transition
+to a target state is performed, with the exit of the
+source state and all its active substates and the
+entry of the target state and its substates. The
+transition actions accumulated will be executed.
+For the new active state t, the transition action
+list is initialized to empty. The source state Ade
+and all the decomposition, and the junctions a-
+long the path become inactive, and in correspon-
+dence,tand its decomposition become active.
+(4) (S;v)1 ! (S;v0), if:(v2(cond(S;1)^
+eventP (S;1))__ (cond(S;n)^eventP (S;n))),
+v(during (S)) is 0,Sis a state, and v0=
+exec(dur; v)[during (S)7! 1;clock (S)7!
+clock (S) + 1].
+This rule indicates that, when there is no enabled
+
+--- Page 17 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 17
+transition for a state S, then the during action
+ofSwill execute instead. Every time the dur-
+ing action is executed, the clock for recording the
+activation time of Swill be increased by 1.
+(5) (S;v) !(C;v[during (S)7!0]), if:(v2
+(cond(S;1)^eventP (S;1))__ (cond(S;n)^
+eventP (S;n))) and v(during (S)) is 1, and Cis the
+outmost decomposition of S.
+This rule indicates that, after the during action
+ofSexecutes, the inside chart of Scontinues to
+execute. Notice that Cmay be an And diagram,
+whose transition rules are dened recursively be-
+low.
+(6) (S;v) !(source (S);v), if:(v2(cond(S;1)^
+eventP (S;1))__ (cond(S;n)^eventP (S;n))),
+andSis a non-terminal junction.
+This rule indicates that, when there is no enabled
+transition for a non-terminal junction, then it will
+trace back to the previous state or junction. The
+un-tested transitions of the previous one will be
+executed. This can be guaranteed by introducing
+a boolean variable for each transition leading to
+a junction to indicate whether it is tested or not.
+We omit this detail for simplicity.
+(7) (S1;S2;v) !(S0
+1;S0
+2;v0), if there exist ( S1;v)e !
+(S0
+1;v1) and (S2;v) !(S0
+2;v2) !(S0
+2;v3) such
+that v0=v1]v3,v2(gve) = 1 and v3=v2[gve7!
+0].
+This rule denes the synchronization behavior
+based on directed event broadcasting. When a
+state (i.e,S2) issues an event, it will broadcast to
+a state which is ready to receive this event. Nor-
+mally the two states are parallel, and the variables
+are disjoint. The nal state v0is the disjoint union
+ofv1and v3.Based on the above transition rules for executing s-
+tates, the semantics of a given Stateow chart Dcan be
+dened. If it is an And diagram, written as [ S1;;Sn],
+the conguration denes parallel states ( S1;;Sn).
+The rst rule denes the initialization, where all the
+parallel states and their decompositions are entered:
+(S1;;Sn;v0) !(S1;;Sn;v0
+0)
+where v0
+0=exec(enS1de;;enSnde;v0). The second
+rule denes the execution of states within one sample
+time:
+(S1;;Sn;v) !(p0
+1;;p0
+n;vn)
+if there exist the transition paths for all Si's:
+(S1;v) !(p1;v1);;(Sn;vn1) !(pn;vn)
+wherepihas three cases: a state as a consequence of
+the rst execution of the transition rule (3), or a ter-
+minal junction, or still Siwhich has no other available
+transitions to take except for time progress. For the
+second case, p0
+iispi(staying at the terminal junction),
+while for other cases, p0
+iis the corresponding outmost
+active ancestor state. Notice that the entry actions of
+allSi's are executed in a priority order. The same is
+true for the execution of these states.
+The case for an Or diagram is similar to executing
+a state, we omit the detail here.
+Until now, the semantics of a Stateow chart D
+can be dened as a transition system ( Q; !;Q0;V),
+whereQ= (S1S n)V is the set of cong-
+urations for executing D,Sithe set of states of Si,
+Q0=f(S1;;Sn;v0)gis the initial conguration. V
+is the set of variables of D, andVthe set of valuations
+that map variables in Vto their values. For each given
+conguration q, letq:val denote the valuation function
+of the conguration q.
+
+--- Page 18 ---
+18 J. Comput. Sci. & Technol., January 2018, Vol., No.
+Soundness Below we state the soundness of the
+translation as a renement relation between the two
+transition systems. Let Q1;Q2be two sets of cong-
+urations, and !1, !2,V1;V2the transition relation-
+s and the variables for Q1andQ2respectively, and
+V=V2\V1. Letq:valjVdenote the projection of the
+valuation of qto the variable set V.
+Denition 1 (Simulation) LetTi= (Qi; !i;Q0
+i;Vi)
+fori= 1;2be two transition systems. A relation
+BQ1Q2is a simulation relation from T1toT2,
+i for all (q1;q2)2B, we have (1) q1:valjV=q2:valjV,
+and (2) for any q1 !1q0
+1, there exists a transition
+q2 !2q0
+2such that (q0
+1;q0
+2)2B.
+We say that T1is a renement of T2, writtenT1
+T2, if there exists a simulation relation from T1toT2
+according to the above denition.
+Theorem 1 (Soundness of the translation) .LetDbe
+a Stateow chart, and Ube the TA obtained from Dby
+applying our translation. Assume Ti= (Qi; !i;Q0
+i;Vi)
+fori= 1;2are the transition systems of DandU, with
+the same initial valuation for variables in V1\V2. Then
+there exists a simulation relation B Q1Q2such
+that, for any q0
+12Q0
+1, there exists q0
+22Q0
+2satisfying
+(q0
+1;q0
+2)2B.
+The proof is by explicitly constructing a simulation
+relation betweenDandU, which means for each transi-
+tion inD, nd a corresponding transition in Uresulting
+in equivalent evaluations over common variables. The
+details are given in the appendix.
+5.3 Preservation of Properties
+According to the semantics of Stateow, we obtain
+the following fact.
+Proposition 1. LetDbe a Stateow chart. As-
+sume its transition system is T= (Q; !;Q0;V), then if
+Dcontains no terminal junction, the transition relation !is total, i.e. for every conguration C2Q, there is
+C02Qsuch that (C;C0)2 ! is enabled.
+The requirement that the transition relation  !is
+total is necessary for the preservation of properties. It
+ensures that a path of a Stateow chart corresponds to
+a full path of the translated TA, and not a proper prex
+of the path. The proof is given in the appendix.
+Based on the above fact and Theorem 1, we can
+further get the following result.
+Proposition 2. Let'be a property in the uni-
+versal fragment of untimed TCTL and Dis a Stateow
+chart without terminal junction. If all variables occur-
+ring in'are inV, thenT2satises'impliesT1satis-
+es'. HereD;T1;T2;Vare as dened in Theorem 1.
+This is a direct result of the preservation theorem
+of the classical abstraction renement framework [26].
+Discussion Above we prove the preservation of prop-
+erties in the general renement framework, i.e. provid-
+ed two transition systems satisfy the renement rela-
+tion, the concrete model has a total transition relation,
+and the property is in the universal fragment, then the
+property proved for the abstract model is preserved for
+the concrete model. But in fact, the TA translated
+from the Stateow model according to our translation
+process satisfy stronger property than renement: each
+transition of the TA corresponds to some one step ex-
+ecution of the original Stateow model. They are not
+equivalent only because the TA does not keep the prior-
+ity order of the execution of parallel states of the State-
+ow model. However, in most cases, parallel states do
+not share variables in Stateow, e.g. the model for the
+RTPS protocol in this paper. Therefore, more proper-
+ties other than the universal fragment of the TCTL are
+preserved for the Stateow model. We will leave the
+formal justication of these for future work.
+
+--- Page 19 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 19
+6 Verication in Uppaal
+Using the above translation method, we transform
+the whole Stateow model of the RTPS protocol into
+Uppaal timed automata. Fig. 8 shows the result for
+one module as an illustration. In this section, we de-
+scribe the verication and performance estimation of
+the model in Uppaal .
+First, we verify that the TA model is deadlock-free
+using the TCTL formula A[] not deadlock . Since
+this formula is not in the universal fragment of TCTL,
+it does not automatically carry over to the Stateow
+model. All TCTL properties shown below are in the
+universal fragment of untimed TCTL, and hence by
+Proposition 2 also hold for the Stateow model.
+Consistency and sequentiality A writer must send
+out data samples in the order they were added to its
+HistoryCache and the readers will get the messages in
+the same order of the sequence number in their Histo-
+ryCache.
+•Changes in the writer's HistoryCache are even-
+tually added from the matched DDS Writer in
+order.
+A<> forall (sq: sq_t )
+WHC [sq ]== cachechanges [sq]
+•Once the RTPS Writer receives acknowledgemen-
+t for all messages, the data is consistent between
+the writer and the matched readers, and the order
+of the data is the same as in the DDS Writer.
+A[] forall (id: rid_t ) ( forall (sq:
+sq_t )
+acked_num [id ]== sq
+imply WHC [sq ]== cachechanges [sq]
+and RHC [id ][ sq ]== cachechanges [sq
+])
+Heartbeat and acknowledgement mechanism A
+writer must periodically inform each matching reader ofthe availability of data samples by sending a HEART-
+BEAT message.
+•When the transmission is not complete, the RTP-
+S Writer always sends HEARTBEAT messages
+with a period of Heartbeat Period . The function
+acked all() is used to indicate the acknowledged
+information from all matched Readers and identi-
+fy whether the transfer is complete. The variable
+sendFlag is used to record the sending of HEART-
+BEAT andxis the periodic clock. sendFlag == 1
+means the HEARTBEAT message is sending at
+that time, otherwise sendFlag == 0.
+Writer_send ( WriterId ).x>
+Heartbeat_Period
+and ! acked_all ()
+--> Writer_send ( WriterId ).
+sendFlag ==1
+•When receiving an ACKNACK message indicating
+a reader is missing some data samples, the writer
+must enter the must repair state to eventually re-
+spond by sending the missing data samples. Here
+the variable ackFlag identies the signal to be re-
+paired sent by the readers.
+A<> Writer_repair ( WriterId ).
+ackFlag ==1
+and ! acked_all ()
+imply Writer_repair ( WriterId ).
+must_repair
+•Upon receiving a HEARTBEAT message with nal
+ag not set, the reader must enter must send ack
+state to eventually respond with an ACKNACK
+message. Here hFlag indicates that the reader
+received the HEARTBEAT message.
+A<> Reader_response ( ReaderId ).
+hFlag ==1
+and buffer_heartbeat [ WriterId ].
+finalFlag == NO_SET
+imply Reader_response ( ReaderId ).
+must_send_ack
+•After receiving a HEARTBEAT while a sample
+is missing, the reader must enter must send ack
+
+--- Page 20 ---
+20 J. Comput. Sci. & Technol., January 2018, Vol., No.
+Fig.9. Verication results.
+state to eventually respond with an ACKNACK
+message. The function hasmissing sample () is
+used to judge whether some data is missing at
+present.
+A<> Reader_response ( ReaderId ).
+hFlag ==1
+and has_missing_sample ( ReaderId )
+imply Reader_response ( ReaderId ).
+must_send_ack
+•Therefore, the acknowledgement mechanism
+guarantees that once the acknowledged number
+equals the last sequence number sent to matched
+readers, all changes in the readers' HistoryCache
+are the same as in writer's HistoryCache, that is,
+A[] forall (sq: sq_t )
+is_acked_by_all (sq)
+imply
+forall (id: rid_t ) RHC [id ][ sq ]== WHC
+[sq]
+A[] acked_all () imply
+forall (id: rid_t ) RHC [id ]==
+cachechanges
+where the functions isacked byall() and
+acked all() are used to indicate the acknowledged
+information from all matched Readers.
+The verication results for all of the above proper-
+ties are shown in Fig. 9, in which green circles indicate
+that the corresponding property is proved to hold for
+the TA model.
+Statistical Model Checking (SMC) is concerned with
+running a sucient number of simulations of a stochas-
+tic system model to obtain statistical evidence witha predened level of condence of the property to be
+checked. This oers advantages over probabilistic mod-
+el checking as it does not need to traverse the whole s-
+tate space of the system, and so scales up to more com-
+plex systems and properties. In our case, we perform
+the query Pr[<=300;1000] (<> acked all()) , which
+estimates the probability that the given input data can
+be successfully transmitted and the acknowledgemen-
+t signals are received by the function acked all() in a
+xed amount of time (300s). Each query is performed
+with 1000 runs. Starting from the choice of parameters
+of the model in Section 4.5, we perform experiments
+with variations of dierent parameters one at a time.
+Fig.10. The probability for dierent passing rates with 95% con-
+dence interval.
+First, we perform the simulation with dierent pass-
+ing rates in Channel ranging from 0 to 1. The relation-
+ship between passing rate and the probability that the
+query holds is shown in Fig. 10. Uppaal SMC reports
+the probability interval with 95% condence. It is clear
+
+--- Page 21 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 21
+that the probability of successful transmission within
+the time bound increases as the passing rate increases.
+When the passing rate exceeds 0.8, data transmission
+is almost guaranteed to complete.
+Next, we test the eect of dierent timing parame-
+ters on the transmission eciency of the model. In par-
+ticular, we consider the inuence of timing parameters
+nackResponseDelay andheartbeatResponseDelay on the
+model when the channel quality ( PassingRate = 0:7)
+and heartbeat period ( heartbeatPeriod = 10) are xed.
+Other model settings also remain the same. As shown
+in Fig. 11, dierent timing parameter settings lead to
+dierent probability that the query holds. Fig. 11(a)
+shows the probabilities when heartbeatResponseDelay
+changes from 0 to 40 with nackResponseDelay set to 5,
+10 and 20 respectively. Fig. 11(b) shows the probabili-
+ties when nackResponseDelay changes from 0 to 40 with
+heartbeatResponseDelay set to 5, 10 and 20 respectively.
+It can be seen that smaller delay leads to more ecient
+data transmission in the formal model. On the other
+hand, a small delay may cause network congestion in
+actual deployment of the system, so we should choose
+the appropriate timing parameter to improve the model
+without seriously aecting the transmission eciency.
+Note that we do not consider probability in the re-
+nements, hence these quantitative properties cannot
+be automatically transferred to the Stateow model.
+However, from the discussion of Section 5.3, plus the
+analysis of the concrete Stateow model, we infer that
+both the deadlock freedom property and the quantita-
+tive properties also hold for the Stateow model. But
+the formal guarantee is not given here.
+7 Conclusions
+This paper presents formal models of the RTP-
+S (Real-Time Publish and Subscribe) protocol using
+Simulink/Stateow and Uppaal . The Simulink/State-ow model is used for simulation and code generation.
+We check that the results of the simulation are as ex-
+pected from the specication, and agree with the be-
+havior of the generated code. The Uppaal model is
+used to verify the important properties of the protocol
+by model checking. Statistical model checking in Up-
+paal is used to estimate the performance of the model
+as a function of dierent choices of parameters. The
+translation rules from Simulink/Stateow to timed au-
+tomata are dened and the soundness of the translation
+(stated as a renement relation) is proved. Our work
+builds a complete framework of modelling, simulation
+and verication of the RTPS protocol.
+Currently, we only handle limited aspects of the
+RTPS protocol. Possible future extensions include tak-
+ing into consideration of message fragments and the dis-
+covery module. This will make the model more com-
+plex, likely beyond the model-checking capabilities of
+Uppaal . Hence, verifying properties of the extended
+model will be a major challenge. Finally, translation
+from Simulink/Stateow to timed automata is current-
+ly manual. The next step is to implement an automat-
+ic translation tool, and add other advanced features of
+Simulink/Stateow.
+References
+[1] Andres F, Boulos J. DDS: the data delivery service.
+InIFIP World Conference on IT Tools. , January
+1996, pp.487-494.
+[2] Hugues J, Pautet L, Kordon F. A Framework for
+DRE middleware, an Application to DDS. In Proc.
+Ninth IEEE International Symposium on Objec-
+t and Component-Oriented Real-Time Distributed
+Computing , May 2006, pp.224-231.
+[3] Al-Madani B. RTPS Middleware for Real-Time
+Distributed Industrial Vision Systems. In Proc.
+
+--- Page 22 ---
+22 J. Comput. Sci. & Technol., January 2018, Vol., No.
+(a)
+ (b)
+Fig.11. The average probability with 95 % condence. (a) heartbeatResponseDelay with nackResponseDelay set to 5, 10 and 20
+respectively; (b) nackResponseDelay with heartbeatResponseDelay set to 5, 10 and 20 respectively.
+Embedded and Real-Time Computing Systems and
+Applications Conference , September 2005, pp.361-
+364.
+[4] Al-Madani B, Al-Saeedi M, Al-Roubaiey A. S-
+calable Wireless Video Streaming over Real-Time
+Publish Subscribe Protocol (RTPS). In Proc. 17th
+IEEE/ACM International Symposium on Dis-
+tributed Simulation and Real Time Applications ,
+October 2013, pp. 221-230.
+[5] Behrmann G, David A, Larsen K G. A Tutorial
+on UPPAAL. In Proc. of Formal Methods for the
+Design of Real-Time Systems, LNCS 3185 , 2004,
+pp. 200-236.
+[6] David A, Larsen K G, Legay A, Mikucionis M,
+Poulsen D B. UPPAAL SMC tutorial. Internation-
+al Journal on Software Tools for Technology Trans-
+fer, 2015, 17(4): 397-415.
+[7] Beckman K, Reininger J. Adaptation of the DDS
+security standard for resource-constrained sensor
+networks. In International Symposium on Indus-
+trial Embedded Systems , June 2018, pp.1-4.[8] Youssef T A, Hariri M E, Elsayed A T, Mohammed
+O A. A dds based energy management framework
+for small microgrid operation and control. IEEE
+Trans. Industrial Informatics , 2018, 14(3):958-968.
+[9] Perez H, Gutierrez J J. Modelling the QoS pa-
+rameters of DDS for event driven real-time appli-
+cations. Journal of Systems and Software , 2015,
+104(6):126-140.
+[10] Alaerjan A, Kim D, Kafaf D A. Modeling func-
+tional behaviors of DDS. In Proc. of IEEE Smart-
+World , 2017, pp.1-7.
+[11] Anneke K. Object Constraint Language: Meta-
+modeling Semantics. In UML 2 Semantics and Ap-
+plications. , 2009, pp.163-178.
+[12] Liu Y, Guan Y, Li X, Wang R, Zhang J. Formal
+analysis and verication of DDS in ROS2. In Proc.
+of International Conference on Formal Method-
+s and Models for System Design , October 2018,
+pp.62-66.
+[13] Yin J, Zhu H, Fei W, Xu Q, Wu R. Formalization
+and Verication of RTPS StatefulWriter Module
+
+--- Page 23 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 23
+Using CSP. In Proc. of International Conference
+on Software Engineering and Knowledge Engineer-
+ing, July 2019, pp.147-198.
+[14] Brookes S D, Hoare C A R, Roscoe A W. A theory
+of communicating sequential processes. Journal of
+the ACM , 1984, 31(3):560-599.
+[15] Hoare C A R. Communicating Sequential Process-
+es. Prentice-Hall, 1985.
+[16] Yang Y, Jiang Y, Gu M, Sun J. Verifying simulink
+stateow model: timed automata approach. In
+Proc. of IEEE/ACM International Conference on
+Automated Software Engineering , 2016, pp.852-
+857.
+[17] Kang E, Ke L, Hua M, Wang Y. Verifying Au-
+tomotive Systems in EAST-ADL/Stateow Using
+UPPAAL. In Proc. of Software Engineering Con-
+ference, IEEE , 2016, pp.143-150.
+[18] Hamon G, Rushby J. An operational semantics for
+Stateow. International Journal on Software Tools
+for Technology Transfer , 2007, 9(5-6):447-456.
+[19] Tiwari A. Formal semantics and analysis methods
+for Simulink/Stateow models. Technical Report,
+SRI International. http://citeseerx.ist.psu.
+edu/viewdoc/summary?doi=10.1.1.1.3492 ,
+Mar. 2002.
+[20] Zou L, Zhan N, Wang S, Franzle M. Formal veri-
+cation of Simulink/Stateow diagrams. In Proc. of
+Automated Technology for Verication and Analy-
+sis, LNCS vol. 9346, Springer , 2015, pp.464-481.
+[21] Chen C, Sun J, Liu Y. Formal modeling and valida-
+tion of Stateow diagrams. International Journal
+on Software Tools for Technology Transfer , 2012,
+14(6):653-671.[22] Rajeev A, David L D. A Theory of Timed
+Automata. Theoretical Computer Science , 1994,
+126(2):183-235.
+[23] Berhmann G, David A, Larsen K G, Pettersson P,
+Yi W. Developing UPPAAL over 15 years. Soft-
+ware - practice and Experience , 2011, 41(2):133-
+142.
+[24] Younes H L S, Kwiatkowska M, Normaln G, Park-
+er D. Numerical vs. statistical probabilistic model
+checking. International Journal on Software Tools
+for Technology Transfer , 2007, 15(11):1427-1434.
+[25] Georgios E F, George J P. Robust Sampling for
+MITL Specications. In Proc. of Formal Modeling
+and Analysis of Timed Systems , Oct. 2007, pp.147-
+162.
+[26] Grumberg O, Long D E. Model checking and mod-
+ular verication. ACM Transactions on Program-
+ming Languages and Systems , 1994, 16(3):843-871.
+First Author [Qianqian Lin]
+Qianqian Lin received her Bachelor's
+degree in Electrical and Information
+Engineering from University of
+Science and Technology in China
+in 2017. She is currently a master
+student at Institute of Software,
+Chinese Academy of Sciences. Her
+research interests are modelling and
+simulation of embedded systems.
+
+--- Page 24 ---
+24 J. Comput. Sci. & Technol., January 2018, Vol., No.
+Second Author [Shuling
+Wang] Shuling Wang received her
+Bachelor's degree in Mathematics
+from Lanzhou University in 2003,
+and Ph.D. degree in Computer Sci-
+ence from Peking University in 2008.
+She worked as a postdoc at United
+Nations University - International
+Institute for Software Technology from 2008 to 2010, and
+at Institute of Software, Chinese Academy of Sciences
+from 2010 to 2012. Since 2017, she is an associate research
+professor at Institute of Software, Chinese Academy
+of Sciences. Her research interests are formal methods
+related to embedded systems, including formal modelling,
+verication, and code generation.
+Third Author [Bohua Zhan]
+Bohua Zhan received his Bachelor's
+degree in Mathematics from Mas-
+sachusetts Institute of Technology in
+2010, and Doctorate in Mathematics
+from Princeton University in 2014.
+He worked as a postdoc at Mas-
+sachusetts Institute of Technology
+from 2014 to 2017, and at Technical
+University of Munich from 2017 to 2018. Since 2018, he
+is an associate research professor at Institute of Software,
+Chinese Academy of Sciences. His research interests are
+formal methods, in particular interactive theorem proving
+and cyber-physical systems.
+Fourth Author [Bin Gu] Bin
+Gu received his Master's degree in
+1994 and Ph.D. degree in 2020 from
+Harbin Institute of Technology and
+Northwest Polytechnical Univer-
+sity respectively. He is currently
+a professor at Beijing Institute of
+Control Engineering. His research
+interests are embedded systems and
+dependable softwares.
+Appendix
+In the appendix, we rst present the more complete semantics of TA, then the proof of the soundness of the
+translation from Stateow to TA.
+8 Semantics of TA
+Formally, a timed automaton is a tuple ( L;l0;C;A;E;I ), whereLis a set of locations, l02Lthe initial location,
+Cthe set of clocks, Athe set of actions, co-actions and the internal -action,ELAB(C)2CLthe
+set of edges between locations with an action, a guard and a set of clocks to be reset, and I:L!B(C) assigns
+invariants to locations. The semantics can be dened as a labelled transition system hS;s0;!i, whereSLRC
+is the set of states, s0= (l0;u0) is the initial state, and !S(R0[A)Sis the transition relation such that
+•(l;u)d !(l;u+d) if8d0: 0d0d)u+d02I(l),
+•(l;u)a !(l0;u0) if there exists e= (l;a;g;r;l0)2E s:t: u2g;u0= [r7!0]uandu02I(l0),
+where ford2R0,u+dmaps each clock xinCto the value u(x) +d, and [r7!0]udenotes the clock valuation
+which maps each clock in rto 0 and agrees with uoverCnr.
+
+--- Page 25 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 25
+The TAs can be composed into a network of timed automata over a common set of clocks and actions, consisting
+ofnTAsAi= (Li;li
+0;C;A;Ei;Ii);1in. Let l0= (l0
+1;:::;l0
+n) be the initial location vector. The semantics is
+dened as a transition system hS0;s0;!i, whereS0= (L1Ln)RCis the set of states, s0
+0= (l0;u0) is the
+initial state, and !S0S0is the transition relation dened by:
+•(l;u)d !(l;u+d), if8d0:0d0)u+d02I(l),
+•(l;u)a !(l[l0
+i=li];u0), if there exists ligr!l0
+is:t: u2g;u0= [r7!0]uandu02I(l[l0
+i=li]),
+•(l;u)a !(l[l0
+i=li;l0
+j=lj];u0) if there exist lic?giri!l0
+iandlic!gjrj!l0
+i, s.t.u2(gi^gj);u0= [ri[rj7!0]uand
+u02I(l[l0
+i=li;l0
+j=lj]).
+9 Soundness proof
+Theorem 1 (Soundness of translation) LetDbe a Stateow chart and Ube the TA obtained from Daccording
+to our translation. Assume (Qi; !i;Q0
+i;Vi)fori= 1;2are the transition systems of DandU, with the same initial
+valuation for variables in V1\V2. Then there exists a simulation relation BQ1Q2such that, for any q0
+12Q0
+1,
+there exists q0
+22Q0
+2satisfying (q0
+1;q0
+2)2B.
+Proof According to the translation given in Section 5.1, for each state vector ( S1;;Sn) inD, there is a location
+vector (U1;;Un) dened inU(each denoted by USiin the following). We use qito represent state vectors in the
+following. We construct the simulation relation BbetweenDandUas follows. First of all, add fq0
+1;Uq0
+1gwhere
+q0
+12Q0
+1, in factq0
+1= (S1;;S2;v0) for some initial v0. Obviously, Uq0
+12Q0
+2.
+Consider the initialization transition of D, i.e. ([S1;;Sn];v0) !([S1;;Sn];v0
+0) where v0
+0=
+exec(enS1de;;enSnde;v0). For ease of presentation, below we will use enS1andexS1to represent enS1deand
+exS1deresp., i.e. the entry and exit actions are always referring to the ones of a state and its decomposition.
+According to our translation, in the translated TA U, for eachUSi, there is a transition
+USi:entry (Si);enSi;entry (Si)=1! USi
+enabled, as in the beginning, entry (Si) is 0. By taking the one-step transitions of all corresponding USifor alli,
+we get the resulting location vector and the valuation. The resulting state and location vector are still the same as
+initial ones, and the valuations also satisfy the requirement, since parallel states do not write the same variables.
+Thus the resulting congurations are still in B.
+Now consider the more complex transition that corresponds to the execution of states within one sample time
+step. For some state Samong the parallel states, if ( S;v) !(p;v0), there are four cases (the following assume a
+general setting that the Stateow states have non-disjoint transitions and have decomposition inside. The simpler
+case can be proved easily).
+•Ifpis a state by taking transition (3), there exists h>0 such that trans (S;h) = (e;c;ca;ta ) with target p,
+v2c,:(v2(cond(S;1)^eventP (S;1))__ (cond(S;h1)^eventP (S;h1))) (the transitions with higher
+
+--- Page 26 ---
+26 J. Comput. Sci. & Technol., January 2018, Vol., No.
+priority than hare disabled), gveis 1, and v0=exec(ca;exA;ACT ;ta;enp;v)[ACT7!skip; clock (A)7!0],
+whereAisSifSis a state, otherwise sourceSta (S) if it is a junction. In the translated TA, there is a
+corresponding transition
+USc^entry (S)^gve^:((cond (S;1)^eventP (S;1))__ (cond (S;k1)^eventP (S;k1)));ca;exA;(ACT ;ta);enp;entry (p)=1;ACT =skip! Up:
+Obviously, the resulting valuations are equal over the common variables as they execute the same actions.
+Thus the targets are in B.
+•Ifpis a state without available outgoing transitions, then before reaching p,Stried all its outgoing transitions,
+execute the during transitions and its decomposition (if there is any). We prove that for each transition of
+S, there is a corresponding transition of US.
+If the transition (1) executes, there exists h > 0 such that trans (S;h) = (e;c;ca;ta ) with target t,v2c,
+:(v2(cond(S;1)^eventP (S;1))__ (cond(S;h1)^eventP (S;h1))) (the transitions with higher
+priority< h are disabled), gveis 1,tis a junction, and v0=exec(ca;v)[ACT7!(v(ACT );tc);source (t)7!
+S;sourceSta (t)7!A], whereAisSifSis a state, otherwise sourceSta (S) if it is a junction. In the translated
+TA, there is a corresponding transition:
+USc^entry (S)^gve^:((cond (S;1)^eventP (S;1))__ (cond (S;h1)^eventP (S;h1)));!
+ca;ACT =(ACT ;ta);source (Ut)=US;sourceSta (Ut)=sourceSta (US)! Ut:
+Obviously, the resulting valuations are equal over the common variables.
+If transition (2) executes, in the translated TA, there is a corresponding transition
+USgve;gve=0!US:
+The transition (3) will not happen for the case when the nal state pis a state without available outgoing
+transitions.
+If transition (4) executes, in the translated TA, there is a corresponding transition:
+US:during (S)^:((cond (S;1)^eventP (S;1))__ (cond (S;n)^eventP (S;n)));durS;during (S)=1;clock (S)=clock (S)+1! US:
+If transition (5) executes, i.e. ( S;v) !(C;v[during (S)7!0]), if:(v2(cond(S;1)^eventP (S;1))__
+(cond(S;n)^eventP (S;n))) and v(during (S)) is 1, and Cis the outmost decomposition of S. In the translated
+TA, there is a corresponding transition:
+(US;O):((cond (S;1)^eventP (S;1))__ (cond (S;n)^eventP (S;n)))^during (S);during (S)=0! (I;UC)
+where
+USin!;:((cond (S;1)^eventP (S;1))__ (cond (S;n)^eventP (S;n)))^during (S)! I;Oin?;during (S)=0! UC
+
+--- Page 27 ---
+Qianqian Lin et al. : Modelling and Verication of RTPS Protocol 27
+hold. By hiding IandU, the transition is consistent with the Stateow transition.
+If transition (6) executes, in the translated TA, there is a corresponding transition:
+US:isTer (J)^:((cond (S;1)^eventP (S;1))__ (cond (S;n)^eventP (S;n)))! source (US):
+If transition (7) executes, then rst by induction, there are corresponding transitions ( US1;w)gve! (US0
+1;w1)
+and (US2;w)gve=1! (US0
+2;w2)gve;gve=0! (US0
+2;w3). Then according to the semantics of TA, we have
+(US1;US2;w) !(US0
+1;US0
+2;w0) such that w0=w1]w3. The disjoint case with event broadcasting can
+be proved easily.
+All the above cases produce equivalent valuations over common variables.
+For the case when pis a state without available outgoing transitions, the control will go back to the outmost
+source state as dened in the second transition rule for Stateow chart. This is also achieved using the out!
+andout? between the source state and its decomposition inside in our translation.
+•Ifpis a terminal junction, the execution process is part of the above case, and the proof is similar. If pis
+recursively a state vector, the case holds by structural induction.
+From the above proof, starting from the states in the simulation set, for each one-step transition (including the
+transitions within one sample time step) of Stateow, there is a corresponding transition of the translated TA such
+that the targets of the two transitions still satisfy the simulation relation. The proof of this theorem is completed.
+10 Proof of Proposition 1
+Given a Stateow chart Dand its transition system T= (Q; !;Q0;V), we need to prove that, for every
+conguration CofT, there exists a successor C0such thatC !C0.
+First of all, the initial set Q0is not empty. Furthermore, for each conguration C, it is a tuple of the form
+(S1;S2;;Sn;v), then we need to prove that for each Si, there is a possible transition path starting from a
+corresponding state, to reach a next state. Notice that, according to the semantics presented in Section 5.2, the
+disjunction of the transitions for each state or junction in Tconstitutes a total set. We show the case for a state
+S. The rules (1)-(5) dene the dierent cases for execution of S. If there is an enabled transition from Sto
+another state or junction, then the transitions in (1) or (3) is taken. Otherwise, the condition of transition (4) or
+(5) must be true and taken, depending on whether the during action is executed or not. For the special case that
+the during action is not explicitly dened, the transition (4) performs a time progress on the activation clock of
+current state (this is not considered as deadlock, and this time progress is explicitly preserved in the corresponding
+TA model). The transition (2) is enabled after an event occurs. The case for junction is dierent as dened in
+transition (6). But the fact also holds for it under the condition that no terminal junction exists. From the fact
+that the disjunction of transitions constitutes a total set, we can conclude that the transition relation  !is total
+directly.

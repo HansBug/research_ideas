@@ -1,0 +1,623 @@
+--- Page 1 ---
+Simon Bliudze and Saddek Bensalem (Eds):
+Methods and Tools for Rigorous System Design (MeTRiD 2018)
+EPTCS 272, 2018, pp. 39–51, doi:10.4204/EPTCS.272.4c/circlecopyrtP. Han, Z. Zhai B. Nielsen & U. Nyman
+This work is licensed under the
+Creative Commons Attribution License.A Compositional Approach for Schedulability Analysis of
+Distributed Avionics Systems
+Pujie Han Zhengjun Zhai
+School of Computer Science and Engineering
+Northwestern Polytechnical University
+Xi’an, China
+{hanpujie,zhaizjun }@mail.nwpu.edu.cnBrian Nielsen Ulrik Nyman
+Department of Computer Science
+Aalborg University
+Aalborg, Denmark
+{bnielsen,ulrik }@cs.aau.dk
+This work presents a compositional approach for schedulabi lity analysis of Distributed Integrated
+Modular Avionics (DIMA) systems that consist of spatially d istributed ARINC-653 modules con-
+nected by a uniﬁed AFDX network. We model a DIMA system as a set of stopwatch automata in
+UPPAAL to verify its schedulability by model checking. However, di rect model checking is infeasi-
+ble due to the large state space. Therefore, we introduce the compositional analysis that checks each
+partition including its communication environment indivi dually. Based on a notion of message inter-
+faces, a number of message sender automata are built to model the environment for a partition. We
+deﬁne a timed selection simulation relation, which support s the construction of composite message
+interfaces. By using assume-guarantee reasoning, we ensur e that each task meets the deadline and
+that communication constraints are also fulﬁlled globally . The approach is applied to the analysis of
+a concrete DIMA system.
+1 Introduction
+The architecture of Distributed Integrated Modular Avioni cs (DIMA) has been successfully applied to
+the aviation industry. A DIMA system installs standardized computer modules in spatially distributed
+locations[19] that are connected by a uniﬁed bus system[3] s uch as an AFDX network. Avionics ap-
+plications residing on the modules run in ARINC-653[1] comp liant operating systems. The generic
+distributed structure of DIMA signiﬁcantly improves perfo rmance and availability as well as reduces
+development and maintenance costs, while it also dramatica lly increases the complexity of schedulabil-
+ity analysis. A schedulable DIMA system should fulﬁl not onl y the temporal requirements of real-time
+tasks in each ARINC-653 module but also communication const raints among the distributed nodes. As
+a result, the system integrators need to consider both compu tation and communication when analyzing
+the schedulability of DIMA architecture.
+Currently, model checking approaches have been increasing ly developed in the schedulability anal-
+ysis of complex real-time systems. However, we found no stud ies that analyzed the schedulability of
+distributed avionics systems as a whole including the netwo rk by model checking. The related research
+isolates computation modules from their underlying networ k, thereby considering these nodes as inde-
+pendent hierarchical scheduling systems or investigating the network in isolation, which possibly leads to
+pessimistic results. There have been works using model-che cking to analyze the temporal behavior of in-
+dividual avionics modules in various formal models such as C oloured Petri Nets (CPN)[10], preemptive
+Time Petri Nets (pTPN)[5], Timed Automata (TA)[2], and Stop Watch Automata (SWA)[16, 8], and ver-
+ify schedulability properties via state space exploration . Unfortunately, when being applied to concrete
+avionics systems, all of them suffer from an inevitable prob lem of state space explosion. For hierarchi-
+cal scheduling systems, some studies[6, 18, 4] exploit the i nherent temporal isolation of ARINC-653
+
+--- Page 2 ---
+40 A Compositional Approach for Schedulability Analysis of Di stributed Avionics Systems
+partitions[1] and analyze each partition separately, but t hey ignore the behavior of the underlying net-
+work or the interactions among partitions. Thus these metho ds are not applicable to DIMA environments
+in which multiple distributed ARINC-653 partitions commun icate through a shared network to perform
+an avionics function together.
+In this paper, we present a compositional approach for sched ulability analysis of DIMA systems that
+are modeled as U PPAAL SWA, i.e. the TA extended with stopwatches. Compared with th e clocks in
+TA, stopwatches can be blocked and resumed at any location an d thus are effective in modeling task
+preemption. We decompose the system in such a way that we can c heck each ARINC-653 partition
+including a model of its communication environment individually and t hen assemble the local results
+together to derive conclusions about the schedulability of an entire system. Thereby, we verify a number
+of smaller, simpler, abstract systems rather than directly verifying a larger, more complex, concrete
+system including the details about all the partitions and th e network. The main contributions of this
+paper are summarized as follows:
+•A compositional approach performs assume-guarantee reasoning[12] to reduce the com plexity of
+symbolic model-checking in the schedulability analysis of DIMA systems.
+•An abstraction relation , timed selection simulation relation, allows users to crea te a set of abstract
+models that collectively describe the external behavior of a concrete model, thereby simplifying
+the abstraction in assume-guarantee reasoning.
+•A notion of message interfaces decouples the communication dependencies between partiti ons.
+By composing any partition with its related message interfa ces and verifying safety properties of
+the composition, we can conclude that these properties are s till preserved at the global level.
+The rest of the paper is organized as follows. Section 2 gives the necessary formal notions. The
+UPPAAL modeling of DIMA systems is presented in section 3. Section 4 gives the concept of timed
+selection simulation and its properties. In section 5, we de tail the compositional analysis approach.
+Section 6 shows an experiment on a concrete DIMA system, and s ection 7 ﬁnally concludes.
+2 Preliminaries
+In this section, we present formal deﬁnitions including SWA with an input/output extension and its
+semantic object Timed I/O Transition Systems(TIOTSs)[9].
+Suppose that Cis a ﬁnite set of clocks and Vis a ﬁnite set of integer variables. A valuation u (x)with
+x∈C∪Vdenotes a mapping from CtoR≥0and from VtoN. Let LC(C,V)be the set of linear constraints.
+Aguard g∈LC(C,V)is a linear constraint which is deﬁned as a ﬁnite conjunction of atomic formulae in
+the form of c∼n,c−c′∼norv∼nwith c,c′∈C,v∈V,n∈N, and∼∈{>,<,=}. Given any valuation
+u, we change the values of clocks and integer variables using a nupdate operation r(u)∈2Rin the form
+ofc=0 or v=nwhere c∈C,v∈Vandn∈N, and Ris the set of all possible update operations. In
+addition, we deﬁne an action setΣ. All the actions can be subsumed under two sets of unicast act ions Σu
+and broadcast actions Σb. By contrast, τ/∈Σdenotes an internal action and Στ=Σ∪{τ}.
+Deﬁnition 1 (Stopwatch Automaton[7]) .A stopwatch automaton is a tuple /a\}bracketle{tLoc,l0,C,V,E,Σ,Inv,drv/a\}bracketri}ht
+where Loc is a ﬁnite set of locations, l 0∈Loc is the initial location, C is a ﬁnite set of clocks, V is a ﬁn ite
+set of integer variables, E ⊆Loc×LC(C,V)×Στ×2R×Loc is a set of edges, Σ=I⊕O is a ﬁnite set of
+actions divided into inputs(I) and outputs(O), Inv is a mapp ing Loc→LC(C,V), and drv is a mapping
+Loc×C→{0,1}.
+
+--- Page 3 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 41
+From a syntactic viewpoint, SWA belongs to the class of TA ext ended with drv, which can prevent
+part of the clocks from changing in speciﬁed locations seman tically. We now shift the focus to the
+semantic object TIOTS of SWA.
+In a TIOTS, there are two types of transitions: delay and acti on transitions. We use the set D=
+{ε(d)|d∈R≥0}to denote the delay, and refer to the 0-delay ε(0)as0.
+Deﬁnition 2 (Timed I/O Transition System) .A timed I/O transition system is a tuple T=/a\}bracketle{tS,s0,Σ,→/a\}bracketri}ht
+where S is an inﬁnite set of states, s 0is the initial state, Σ=I⊕O is a ﬁnite set of actions divided into
+inputs(I) and outputs(O), I ∩O⊆Σu, and→⊆ S×Στ∪D×S is a transition relation. sa− →s′represents
+(s,a,s′)∈→, which has the properties of time determinism, time reﬂexiv ity, and time additivity[9].
+For any SWA, a state is deﬁned as a pair /a\}bracketle{tl,u/a\}bracketri}htwhere lis a location and uis a valuation over clocks
+and integer variables. On the basis of TIOTSs, the operation al semantics of SWA is deﬁned as follows.
+Deﬁnition 3. The operational semantics of a stopwatch automaton A =/a\}bracketle{tLoc,l0,C,V,E,Σ,Inv,drv/a\}bracketri}htis a
+timed I/O transition system TA=/a\}bracketle{tS,s0,Σ,→/a\}bracketri}htwhere S is the set of states of A, s 0=/a\}bracketle{tl0,u0/a\}bracketri}htis the initial
+state of A, Σis the same set of actions as A, and →is the transition relation deﬁned by
+• /a\}bracketle{tl,u/a\}bracketri}hta− →/a\}bracketle{tl′,u′/a\}bracketri}htiff∃/a\}bracketle{tl,g,a,r,l′/a\}bracketri}ht∈E(u|=g∧u′=r(u)∧u′|=Inv(l′))
+• /a\}bracketle{tl,u/a\}bracketri}htε(d)− − →/a\}bracketle{t l′,u′/a\}bracketri}htiff l=l′∧(∀v∈V u′(v)=u(v))∧(∀c∈C(drv(l,c) =0⇒u′(c)=u(c)))∧
+(∀c∈C(drv(l,c) =1⇒u′(c)=u(c)+d))∧u′|=Inv(l′).
+For any transition sa− →s′, two symbols a? and a! denote the action abelonging to input Iand output
+Orespectively. Given a∈Σ,sa− →iff∃s′∈S, s.t. sa− →s′.τ− →∗or0= =⇒denotes the reﬂexive and transitive
+closure ofτ− →.sε(d)= =⇒s′iffsε(d)− − → s′, or∃s1,s2,..., sn∈S, s.t. sα0− →s1α1− →s2α2− → ···αn−1−− → snαn− →s′and
+∀i∈{0,..., n}, s.t. αi=τorαi∈Dandd=∑{di|αi=ε(di)}.
+The deﬁnition of parallel composition /bardblof TIOTSs is similar to that in [9]. Given two TIOTSs
+Ti=/a\}bracketle{tSi,si,0,Σi,→i/a\}bracketri}ht,i∈{1,2}, they are compatible iff they satisfy the following conditions:
+•(Unique output) O 1∩O2=∅.
+•(Deterministic-pair unicast) I 1∩I2∩Σu=∅.
+Note that broadcast actions in the composition of TIOTSs are input-enabled :∀s∈Si∀a∈Ii∩Σbsa− →.
+Deﬁnition 4 (Parallel Composition) .Suppose two timed I/O transition systems T1=/a\}bracketle{tS1,s1,0,Σ1,→1/a\}bracketri}ht
+andT2=/a\}bracketle{tS2,s2,0,Σ2,→2/a\}bracketri}htare compatible. The parallel composition T1||T2is the timed I/O transition
+system/a\}bracketle{tS,s0,Σ,→/a\}bracketri}htwhere S=S1×S2, s0=/a\}bracketle{ts1,0,s2,0/a\}bracketri}ht,Σ=I1||2⊕O1||2, I1||2= (I1\(O2∩Σb))∪(I2\
+(O1∩Σb)), O1||2=O1∪O2, and→is the largest relation generated by the following rules:
+•INDEP-L:s1a− →s′
+1a∈{τ}∪Σ1\Σ2
+/a\}bracketle{ts1,s2/a\}bracketri}hta− →/a\}bracketle{ts′
+1,s2/a\}bracketri}htINDEP-R:s2a− →s′
+2a∈{τ}∪Σ2\Σ1
+/a\}bracketle{ts1,s2/a\}bracketri}hta− →/a\}bracketle{ts1,s′
+2/a\}bracketri}ht
+•DELAY:s1ε(d)− − → s′
+1s2ε(d)− − → s′
+2d∈R≥0
+/a\}bracketle{ts1,s2/a\}bracketri}htε(d)− − →/a\}bracketle{t s′
+1,s′
+2/a\}bracketri}ht
+•SYNC-IN:s1a− →s′
+1s2a− →s′
+2a∈I1||2
+/a\}bracketle{ts1,s2/a\}bracketri}hta− →/a\}bracketle{ts′
+1,s′
+2/a\}bracketri}ht
+•SYNC-BIO:s1a− →s′
+1s2a− →s′
+2a∈(I1∩O2)∪(O1∩I2)∩Σb
+/a\}bracketle{ts1,s2/a\}bracketri}hta− →/a\}bracketle{ts′
+1,s′
+2/a\}bracketri}ht
+
+--- Page 4 ---
+42 A Compositional Approach for Schedulability Analysis of Di stributed Avionics Systems
+•SYNC-UIO:s1a− →s′
+1s2a− →s′
+2a∈I1||2∩O1||2
+/a\}bracketle{ts1,s2/a\}bracketri}htτ− →/a\}bracketle{ts′
+1,s′
+2/a\}bracketri}ht.
+We use Ωto denote the set of TA and SWA in our modeling framework. For a nyA,B∈Ω, we deﬁne
+the composite model C=A/bardblBiff their TIOTSs satisfy TC=TA||TB.
+3 Avionics System Modeling
+We focus on a generic DIMA architecture including a set of ARI NC-653 modules connected by an
+AFDX network, as shown in Fig.1. There is a three-layer struc ture in the DIMA system that consists of
+scheduling, task, and communication layers.
+End System 1
+Partition 4 Partition 5
+Partition 1
+Tasks Partition 2
+Tasks Partition 3
+Tasks Partitioned OS 
+Port 
+End System 2 End System 3
+Partitioned OS Partitioned OS Port Port 
+Port Port Port Port VL 1 VL 2 VL 3Core Module 1
+Core Module 2 Core Module 3
+AFDX 
+Network 
+Figure 1: An Example of DIMA systemsThe scheduling layer is deﬁned as the scheduling fa-
+cilities for generic computation resources of a DIMA sys-
+tem, where standardized computer modules execute concur-
+rent application tasks in partitioned operating systems. I n
+this operating system, partitions are scheduled by a Time
+Division Multiplexing (TDM) scheduler and each partition
+also has its local scheduling policy, preemptive Fixed Pri-
+ority (FP), to manage the internal tasks[1]. The schedul-
+ing layer is modeled as two TA templates PartitionSupply
+andTaskScheduler in U PPAAL1. ThePartitionSupply de-
+picted in Fig.2 provides the service of TDM partitioning for
+a particular partition pid. TheTaskScheduler implement-
+ing FP scheduling allocates processor time to the task layer
+only when the partition is active.
+Thetask layer contains all the application tasks execut-
+ing avionics functions. A task is regarded as the smallest
+scheduling unit, each of which runs concurrently with other
+tasks in the same partition. The execution of a task is mod-
+elled as a sequence of commands that are either computing
+for a duration, locking/unlocking a resource, or sending/r e-
+ceiving a message. We consider two task types: periodic tasks andsporadic tasks . A periodic task has
+a ﬁxed release period, while a sporadic task is characterize d by a minimum separation between consec-
+utive jobs. The task layer is instantiated from two SWA templ atesPeriodicTask andSporadicTask in
+UPPAAL . Since the tasks in a partition are scheduled by a task schedu ler, we use a set of binary channels
+as scheduling actions to communicate between task models an dTaskScheduler .
+Thecommunication layer carries out inter-partition communication over a common AF DX network.
+The AFDX protocol stack realized by an End System(ES) interf aces with the task layer through ARINC-
+653 ports. Based on the AFDX protocol structure, the communi cation layer is further divided into
+UDP/IP layer and Virtual Link layer, where a Virtual Link (VL ) ensures an upper bound on end-to-end
+delay. In U PPAAL , the UDP/IP layer is divided into two TA templates IPTx andIPRx , which calculate
+the latency of the UDP/IP layer in a transmitting ES and a rece iving ES respectively. Similarly, two TA
+templates VLinkTx andVLinkRx model the delay of a VL in opposite directions.
+From a global view of the system, its schedulability is also a ffected by the communication layer.
+According to the ARINC-653 standard[1], there are two types of ARINC-653 ports, sampling ports
+1Models available at http://eptcs.web.cse.unsw.edu.au/paper.cgi?MARSVPT2 018:2
+
+--- Page 5 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 43
+Figure 2: The U PPAAL Template of an ARINC-653 Partition Scheduler
+and queuing ports. A sampling port can accommodate at most a s ingle message that remains until it is
+overwritten by a new message. A refresh period is deﬁned for e ach sampling port. This attribute provides
+a speciﬁed arrival rate of messages, regardless of the rate o f receiving requests from tasks. In contrast, a
+queuing port is allowed to buffer multiple messages in a mess age queue with a ﬁxed capacity. However,
+the operating system is not responsible for handling overﬂo w from the message queue.
+In this paper, we verify the following three typical schedul ability properties:
+•All the tasks meet their deadlines in each partition.
+•The refresh period of any sampling port is guaranteed.
+•The overﬂow from any queuing ports must be avoided.
+The schedulability of an avionics system is described and ve riﬁed as a safety property of the above
+TA/SWA models. We add a set Erroferror locations to the templates. Once schedulability is violated,
+the related model will lead itself to one of the error locatio ns immediately. Thus, the schedulability is
+replaced with this safety property ϕ:
+A[]¬(/logicalordisplay
+loc∈Errloc), (1)
+which belongs to a simpliﬁed subset of TCTL used in U PPAAL .
+However, since the veriﬁcation algorithm inside U PPAAL for SWA introduces a slight over-appr-
+oximation[7]2, UPPAAL may sometimes give the veriﬁcation result “Maybe satisﬁed” or “May not be
+satisﬁed”. To further reﬁne the result in this case we manual ly analyse the possible counter example using
+UPPAAL ’s concrete simulator to determine if the system is unschedu lable. Alternatively, the statistical
+model-checking (SMC) engine could be invoked to attempt an a utomatic falsiﬁcation. In our experiences,
+the result only appears when the system is on the very borderl ine of being schedulable.
+4 Timed Selection Simulation
+We propose a notion of timed selection simulation relation t o support assume-guarantee reasoning. Com-
+pared with some other abstraction relations like timed simu lation[15] and timed ready simulation[14],
+timed selection simulation only abstracts a selected subse t of actions from the concrete model. Applying
+timed selection simulation to the abstraction of a concrete system, one can pay attention to part of the
+system, individually model the behavior of each component, and thereby obtain a composite abstract
+model rather than a monolithic one.
+Considering the semantic object TAof an automaton A∈Ω, we denote the error states ofTAby the
+setE={/a\}bracketle{tl,u/a\}bracketri}ht|l∈Err}where Erris the error-location set of A. Thus, for any TIOTS T=/a\}bracketle{tS,s0,Σ,→/a\}bracketri}ht,
+2Exact reachability for SWA with more than 3 stopwatches is kn own to be undecidable[7].
+
+--- Page 6 ---
+44 A Compositional Approach for Schedulability Analysis of Di stributed Avionics Systems
+its error states are deﬁned as a set E⊆S, and the following function g:S→ {true,false}indicates
+whether a state s∈Shas violated schedulability properties:
+g(s)=/braceleftbiggtrue ifs∈E
+false ifs/\e}atio\slash∈E.(2)
+Given two compatible TIOTSs Ti,i∈{1,2}with the error-state set Ei, their composition T1/bardblT2has the
+error-state set ET1/bardblT2={/a\}bracketle{ts1,s2/a\}bracketri}ht|s1∈E1∨s2∈E2}and the function g(/a\}bracketle{ts1,s2/a\}bracketri}ht)=g(s1)∨g(s2).
+Based on the function g(s), the formal deﬁnition of timed selection simulation is give n as follows.
+Deﬁnition 5 (Timed Selection Simulation) .LetT1=/a\}bracketle{tS1,s1,0,Σ1,→1/a\}bracketri}htandT2=/a\}bracketle{tS2,s2,0,Σ2,→2/a\}bracketri}htbe two
+timed I/O transition systems with Σ2⊆Σ1. Let R be a relation from S 1to S 2. We call R a timed selection
+simulation from T1toT2, written T1/precedesequalT2via R, provided (s1,0,s2,0)∈R and for all (s1,s2)∈R,
+g(s1)=g(s2)and
+1. if s 1a?− →s′
+1for some s′
+1∈S1, a∈Σ2, then∃s′
+2∈S2such that s 2a?= =⇒s′
+2and(s′
+1,s′
+2)∈R
+2. if s 1a!− →s′
+1for some s′
+1∈S1, a∈Σ2, then∃s′
+2∈S2such that s 2a!= =⇒s′
+2and(s′
+1,s′
+2)∈R
+3. if s 1a− →s′
+1for some s′
+1∈S1, a∈(Σ1\Σ2)∪{τ}, then∃s′
+2∈S2such that s 20= =⇒s′
+2and(s′
+1,s′
+2)∈R
+4. if s 1ε(d)− − → s′
+1for some s′
+1∈S1, d>0, then∃s′
+2∈S2such that s 2ε(d)= =⇒s′
+2and(s′
+1,s′
+2)∈R.
+Deﬁnition 6. Let A i,i∈{1,2}be stopwatch automata. We say that A 1/precedesequalA2, if and only if their corre-
+sponding timed I/O transition systems Tisatisfy T1/precedesequalT2.
+We now give some necessary properties of timed selection sim ulation.
+Theorem 1. Timed selection simulation /precedesequalis a preorder.
+For any automaton A∈Ω, by construction, the reachability of its error locations i s equivalent to
+that of the error states in the corresponding TIOTS TA. Hence the following theorem shows that timed
+selection simulation can preserve the satisfaction of the s afety properties in the form of Eq.(1).
+Theorem 2 (Property preservation) .LetTi,i∈{1,2}be timed I/O transition systems and Eibe the set
+of error states of Ti. Given a safety property ϕ:¬reach(Ei)that any error states are not reachable, if
+T1/precedesequalT2andT2|=ϕ, thenT1|=ϕ.
+Theorem 3 (Abstraction compositionality) .LetTi,i∈{1,2,3}be timed I/O transition systems. If T1/precedesequal
+T2,T1/precedesequalT3, andT2andT3are compatible, then T1/precedesequalT2/bardblT3.
+Theorem 4 (Compositionality) .LetTi=/a\}bracketle{tSi,si,0,Σi,→i/a\}bracketri}ht, i∈{1,2,3,4}be timed I/O transition systems.
+Suppose T1/bardblT3andT2/bardblT4are the parallel compositions of compatible timed I/O trans ition systems. If
+(1)T1/precedesequalT2,T3/precedesequalT4, and(2)O1∩I4⊆Σ2⊆Σb,I2∩O3⊆Σ4⊆Σb, thenT1/bardblT3/precedesequalT2/bardblT4.
+5 Compositional Analysis
+We apply assume-guarantee reasoning to the schedulability analysis, and describe the schedulability
+goal as a safety property ϕ(Eq.(1)). As shown in Fig.3, our compositional analysis is c omprised of the
+following four steps:
+1.Decomposition: The system is ﬁrst decomposed into a set of communicating par titions modeled
+by TA and SWA. The global property ϕis also divided into several local properties, each of which
+belongs to one partition.
+
+--- Page 7 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 45
+P1 P2 Pn
+φ1
+φ …
+…System Model 
+Abstraction Assumption Abstraction Assumption Abstraction Assumption 
+φ2 φnMessage  Interfaces Decomposition 
+Deduction Model checking Model checking Model checking 1
+2
+3
+4
+Figure 3: Compositional Analysis Procedure
+2.Construction of message interfaces: We deﬁne message interfaces as the assumption and abstrac-
+tion of the communication environment for each partition. I n general, the templates of message
+interfaces should be built manually by the engineers.
+3.Model checking: The local properties under the assumptions and the abstract ion relations are
+veriﬁed by model checking.
+4.Deduction: From the assume-guarantee rules, we ﬁnally derive the globa l property by combining
+all the local results.
+The procedure can be performed automatically except for the ﬁrst construction of message interfaces.
+We assume that a task never blocks while communicating with o ther partitions, which is commonly
+used in avionics systems[11, 6]. Otherwise a loop of communi cation dependency will cause circular
+reasoning, because the assumptions of a partition might be b ased on its own state recursively.
+5.1 Decomposition
+Assume that there are nconstituent partitions in a system. Let Pi,i∈{1,2,..., n}be the SWA composite
+model of a partition. Let Err ibe the error-location set of Pi. The safety property ϕi:A[]¬(/logicalortext
+loc∈Err iloc)
+denotes the schedulability of Pi. The global property ϕis therefore written as ϕ1∧ϕ2∧···∧ ϕn, and the
+goal of our schedulability analysis is expressed as the veri ﬁcation problem:
+P1/bardblP2/bardbl···/bardbl Pn|=ϕ (3)
+that can be further divided into nsatisfaction relations:
+P1/bardblP2/bardbl···/bardbl Pn|=ϕi,i∈{1,2,..., n}. (4)
+Since the error-location set Err iis only allowed to be manipulated by Pi, we check each partition
+model Piindependently for the corresponding local property ϕiinstead of the original veriﬁcation prob-
+lem with a large and complex system. However, the communicat ion environment of Pi, which denotes the
+behavior that Pireceives messages from other partitions, may affect the sat isfaction of the schedulability
+property ϕi. Hence when performing the veriﬁcation for partition Pi, one needs to give the assumptions
+of its communication environment and veriﬁes the local prop ertyϕiunder these assumptions.
+
+--- Page 8 ---
+46 A Compositional Approach for Schedulability Analysis of Di stributed Avionics Systems
+Figure 4: An Example of a Message Interface
+5.2 Construction of message interfaces
+A set of TA models is created to describe the message-sending behavior of a partition. Each of the TA is
+called a message interface of this partition and associated with a particular message t ype. Suppose there
+are a number of messages sent from partition Pjto another partition Piand their corresponding message
+interfaces make up a composite TA model Ai,j. When we analyze Piin the compositional way, it should
+be safe for Ai,jto replace Pj. Hence, we say that a message interface of Pjis an abstraction ofPj.
+Our abstraction of the message delivery between a partition and its underlying network is modelled
+using broadcast synchronization. A broadcast action repre sents a speciﬁc message types. Let Σi=Ii⊕Oi
+be the action set of a composite model for any partition Pi. An action ak∈Ii∩Σb(resp. ak∈Oi∩Σb)
+denotes that Pireceives(resp. sends) messages with the type msg kfrom(resp. to) other partition(s). The
+symbol j⊲irepresents the condition that there exists a partition Pjsending messages to Pivia an action
+setOj⇀i⊆Ii∩Oj.
+Deﬁnition 7 (Message Interface) .Let O ibe the output action set of a stopwatch automaton P i∈Ω. For
+any output action a k∈Oi∩Σb, the timed automaton Ak
+iwith an action set Σk
+i=Ok
+i={ak}is a message
+interface of P iif and only if there exists a timed selection simulation rela tion/precedesequalonΩsuch that
+Pi/precedesequalAk
+i. (5)
+We build the templates of message interfaces in accordance w ith the characteristics of message-
+sending actions. In practice, the structure of an interface can be designed straightforwardly from the task
+speciﬁcation. The template in Fig.4 shows a message interfa ce that sends messages periodically via the
+action array pmsg . Then we make an automatized binary search for the interface ’s parameters such as
+offset in the template and meanwhile check the satisfaction of time d selection simulation relation.
+The message interfaces can serve as the assumptions of the co mmunication environment of a parti-
+tion. The composition Ai,jof the message interfaces Ak
+jfor all ak∈Oj⇀iprovides Piwith a “complete”
+abstraction of Pj, which models the behavior of all the output actions from PjtoPi. According to the
+abstraction compositionality (Theorem 3) of the preorder /precedesequal, we have
+Pj/precedesequalAi,j. (6)
+Considering all the partitions except Piin the system, we describe the communication environment of Pi
+as the composite model/vextenddouble/vextenddoublen
+j=1,j/\e}atio\slash=iAi,j.
+5.3 Model checking
+In the third step, the local property ϕiofPiunder assumption/vextenddouble/vextenddoublen
+j=1,j/\e}atio\slash=iAi,jcan be veriﬁed by model
+checking. We denote these nsubproblems by
+Pi/bardbl(/vextenddouble/vextenddouble/vextenddoublen
+j=1,j/\e}atio\slash=iAi,j)|=ϕii∈{1,2,..., n}. (7)
+
+--- Page 9 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 47
+Normally, Ai,jin Eq.(7) has a much smaller model size than its correspondin g partition model Pjin
+Eq.(4). Thus, the compositional approach allows us to verif y a simpler abstract partition model instead
+of a complex concrete system model including the details abo ut all the partitions.
+In addition, we capture the computation time of each task as a n interval between a best-case and
+worst-case execution time. When analyzing the schedulabil ity of a partition, the model-checker explores
+all scheduling decisions that can be made in such an interval , and hence also examines possible cases of
+scheduling timing anomalies[17].
+5.4 Deduction
+We derive the global property ϕby combining nlocal results in the last step. For any schedulable
+system, each property ϕishould be concluded from the satisfaction of Eq.(7) under as sumptions and
+all the abstraction relations of Eq.(6). According to the co mpositionality (Theorem 4) and property
+preservation (Theorem 2) of timed selection simulation, we have the following assume-guarantee rule:
+/logicalanddisplay
+{j|j⊲i}Pj/precedesequalAi,j
+Pi/bardbl(/vextenddouble/vextenddouble/vextenddoublen
+j=1,j/\e}atio\slash=iAi,j)|=ϕi
+P1/bardblP2/bardbl···/bardbl Pn|=ϕi(8)
+Note that this assume-guarantee rule only provides a sufﬁci ent schedulability condition, for abstract
+message interfaces might slightly over-approximate the ex ternal behavior of a partition.
+A simpliﬁed DIMA system exempliﬁes the reasoning procedure . In the example, the system model
+is decomposed into three partitions Pi,i∈ {1,2,3}. We divide the global property ϕinto three local
+properties ϕi,i∈{1,2,3}. Accordingly, the goal of the veriﬁcation problem is to chec k
+P1/bardblP2/bardblP3|=ϕ1∧ϕ2∧ϕ3. (9)
+From Eq.(4), this problem can be replaced with three subprob lems:
+P1/bardblP2/bardblP3|=ϕi,i∈{1,2,3}. (10)
+Without loss of generality, we take the veriﬁcation of ϕ1for example to show how the model-
+checking and deduction are carried out in the following step s.
+Assume that P2sends P1two types of messages, msg 1andmsg 2, via two actions a1anda2respec-
+tively, and P3sends P1only a msg 3with action a3. We create one message interface Ak
+j,j∈{2,3}(like
+Eq.(5)) for each message type msg k(k∈{1,2,3})received by P1in the system. The abstraction relations
+from Eq.(5) can be expressed as
+P2/precedesequalA1
+2,P2/precedesequalA2
+2,P3/precedesequalA3
+3. (11)
+From abstraction compositionality of the preorder /precedesequal, we can obtain
+P2/precedesequalA1
+2/bardblA2
+2,P3/precedesequalA3
+3. (12)
+Then, from reﬂexivity and compositionality of the preorder /precedesequal, the composite model of the system satis-
+ﬁes
+P1/bardblP2/bardblP3/precedesequalP1/bardblA1
+2/bardblA2
+2/bardblA3
+3. (13)
+Note that when we apply the compositionality to checking a pa rtition Pi, any output actions sent to Pi
+will never be removed in abstraction relations (Eq.(12)), w hich satisﬁes the condition (2) of theorem 4.
+
+--- Page 10 ---
+48 A Compositional Approach for Schedulability Analysis of Di stributed Avionics Systems
+With Eq.(13), we have from property preservation of the abst raction relation /precedesequalthatif
+P1/bardblA1
+2/bardblA2
+2/bardblA3
+3|=ϕ1,then (14)
+P1/bardblP2/bardblP3|=ϕ1. (15)
+Since Eq.(15) covering all three partitions in the system ha s a higher complexity than Eq.(14), the
+techniques of model checking can be adopted to verify the sim pler problem Eq.(14) instead of the original
+goal Eq.(15). The same steps will be repeated for local prope rties ϕ2andϕ3.
+Consequently, we conclude all the local results of (10) acco rding to the reasoning process from
+Eq.(11) to Eq.(15). When we analyze the partition P1and its communication environment, the local
+result of Eq.(15) can be deduced from Eq.(11) and Eq.(14) in t he following assume-guarantee rule.
+P2/precedesequalA1
+2∧P2/precedesequalA2
+2∧P3/precedesequalA3
+3
+P1/bardblA1
+2/bardblA2
+2/bardblA3
+3|=ϕ1
+P1/bardblP2/bardblP3|=ϕ1(16)
+The local results are then combined to constitute the global result of Eq.(9).
+6 Case Study
+In this section, we applies the compositional approach to an avionics system which combines the work-
+load of [6] and the AFDX conﬁguration of [13]. The workload co nsists of 5 partitions, and further divided
+into 18 periodic tasks and 4 sporadic tasks. Considering the inter-partition messages in the workload, we
+assign each message type Msg i,i={1,2,3,4}a separate VL with the same subscript. The messages of
+Msg 1andMsg 2are handled at the refresh period 50 msin sampling ports. Msg 3andMsg 4are conﬁgured
+to operate in queuing ports, each of which can accommodate a m aximum of one message.
+As shown in Fig.5, we consider the distributed architecture that comprises 3 ARINC-653 modules
+connected by an AFDX network. The module M1accommodates P1andP2, the module M2executes P3
+andP5, and the partition P4is allocated to M3. There are 4 VLs V1-V4connecting 3 ESs across 2 switches
+S1andS2in the AFDX network. The arrows above VLs’ names indicate the direction of message ﬂow.
+P1P2
+P3
+P4P5ES 1M1
+ES 2M2
+ES 3M3V1
+V2
+V3
+V4V1V2V3
+V4
+V1V1V2V3
+V4S1 S2P1P2
+P3
+P4P5M1
+M2
+M3
+0 5 10 15 20 25 Major Time Frame 
+Time / ms 
+Figure 5: The Distributed Avionics Deployment and Partitio n Schedules (Times in Milliseconds)
+The avionics system equips each of its processor cores with a partition schedule. Assume the mod-
+ules in the experiment to be single-processor platforms. Fi g.5 gives the partition schedules, which ﬁx
+a common major time frame Tm fat 25 msand allocate 5 msto each partition within every Tm f. All the
+partition schedules are enabled at the same initial instant . The scheduling conﬁguration keeps the tem-
+poral order of the partitions in [6]. Hence the partition sch edules contain ﬁve disjoint windows /a\}bracketle{tP1,0,5/a\}bracketri}ht,
+
+--- Page 11 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 49
+/a\}bracketle{tP2,5,5/a\}bracketri}ht,/a\}bracketle{tP3,10,5/a\}bracketri}ht,/a\}bracketle{tP4,15,5/a\}bracketri}ht, and/a\}bracketle{tP5,20,5/a\}bracketri}ht, where the second parameter is the offset from the start of
+Tm fand last the duration.
+We analyze the schedulability of this avionics system follo wing the procedure in section 5:
+(1)Decomposition: The system is ﬁrst decomposed into ﬁve sets of SWA template in stances cor-
+responding to ﬁve partitions. The schedulability of any par tition Pi,i={1,2,3,4,5}is described as the
+UPPAAL query qi:
+A[] not perror[i] , (17)
+where the boolean variable perror[i] should be assigned to True once any error locations are reached
+inPi. When analyzing the schedulability of Pi, we only instantiate the set of SWA template instances
+ofPiinto U PPAAL processes. This set contains two scheduler models coming fr omPartitionSupply
+andTaskScheduler , all thePeriodicTask andSporadicTask models in Pi, and the communication layer
+models from which Pireceives messages.
+(2)Construction of message interfaces: The message interfaces are constructed from the template
+depicted in Fig.4, for all the messages originate in periodi c tasks. There are four unknown parameters
+period ,initOffset ,offset , andjitter in the template. Initially, the parameters of a message inte rface
+are set to the same values as these of the source task. Then we e mploy a binary search to heuristically
+reﬁneoffset andjitter , meanwhile guaranteeing timed selection simulation relat ion exists.
+(3)Model checking: The schedulability of ﬁve partitions is checked individual ly. After combining
+the models of Piand its message interfaces, we verify the property qiby model checking in U PPAAL .
+The veriﬁcation was repeated for each partition to evaluate the schedulability of a complete system.
+The experiment was executed on the U PPAAL 4.1.19 64-bit version and an Intel Core i7-5600U laptop
+processor.
+(4)Deduction: According to the assume-guarantee rule described in Eq.(8) , we conclude the schedu-
+lability of the complete system from the results of the veriﬁ cation of ﬁve partitions.
+Results of the Analysis
+The result in Table 1 shows that each partition is separately schedulable (The results “Yes” of Case 1)
+except the partition P3(The result “No”). From a global view, we cannot conclude dir ectly that the system
+is non-schedulable, because the compositional approach de scribed in section 5 only provides a sufﬁcient
+condition for schedulability. Nevertheless, we ﬁnd a count er-example by simulation in U PPAAL , and
+thus it can be concluded that the current system is not schedu lable. The counter-example shows that P3
+violates the constraint of the refresh period of Msg 2due to network latency.
+Considering the effect of network latency on the scheduling conﬁguration, we updated the partition
+schedules by performing a swap of time slots between P1andP2. The modiﬁed partition schedules pro-
+vide ﬁve windows /a\}bracketle{tP1,5,5/a\}bracketri}ht,/a\}bracketle{tP2,0,5/a\}bracketri}ht,/a\}bracketle{tP3,10,5/a\}bracketri}ht,/a\}bracketle{tP4,15,5/a\}bracketri}ht, and/a\}bracketle{tP5,20,5/a\}bracketri}ht. The compositional analysis
+of the updated system was executed again. The result (Case 2 i n Table 1) shows that all the partitions of
+the updated system are individually schedulable. Thus, the updated system ﬁnally achieves the schedu-
+lability at the global level.
+Table 1 also shows the performance in terms of execution time and memory usage. In both cases,
+the partition P3contains more instantiated models (19 processes) than the o ther four partitions. As a
+result, model-checking runs evidently slower and requires more memory than the others. Nevertheless,
+the compositional analysis could be performed on ordinary c omputers within an acceptable time.
+Compared with the compositional way, global analysis based on the same U PPAAL models would
+require 51 processes including all the 22 task models, whose state space is much more complex than
+the others. This causes U PPAAL to run out of memory within a few minutes, and thus makes the gl obal
+
+--- Page 12 ---
+50 A Compositional Approach for Schedulability Analysis of Di stributed Avionics Systems
+Table 1: The Experiment Results (Result), Execution Time (T ime/sec.) and Memory Usage (Mem/MB)
+No.Case 1 Case 2
+Result Time Mem Result Time Mem
+P1 Yes 7.46 146 Yes 6.07 105
+P2 Yes 0.95 46 Yes 1.10 52
+P3 No 42.94 664 Yes 256.48 3041
+P4 Yes 0.69 43 Yes 0.68 43
+P5 Yes 19.41 509 Yes 128.56 2041
+analysis infeasible. In contrast, the compositional appro ach only requires at most 5 task models when
+we perform model checking, offering effective state space r eduction.
+7 Conclusion
+In this paper, we present a compositional approach for sched ulability analysis of DIMA systems, which
+are modeled as a set of stopwatch automata in U PPAAL , describing schedulability as safety properties
+of models. We check each ARINC-653 partition including its c ommunication environment individually,
+thereby reducing the complexity of model-checking. The tec hniques presented in this paper are appli-
+cable to the design of DIMA scheduling systems. We have appli ed the compositional approach to a
+concrete DIMA system. As future work, we plan to develop a mod el-based approach to the automatic
+optimization and generation of the partition schedules of a DIMA system.
+References
+[1] AEEC (2010): Avionics application software standard interface: part 1 - required services . ARINC Speciﬁ-
+cation 653P1-3, Aeronautical Radio Inc.
+[2] Tobias Amnell, Elena Fersman, Leonid Mokrushin, Paul Pe ttersson & Wang Yi: TIMES: a tool for
+schedulability analysis and code generation of real-time s ystems . In: FORMATS 2003 , doi:10.1007/
+978-3-540-40903-8_6 .
+[3] Bj¨ orn Annigh¨ ofer & Frank Thielecke (2014): A systems architecting framework for distributed integrat ed
+modular avionics . DGLR, doi: 10.1007/s13272-015-0156-1 .
+[4] Jalil Boudjadar, Kim Guldstrand Larsen, Jin Hyun Kim & Ul rik Nyman: Compositional schedulability anal-
+ysis of an avionics system using UPPAAL . In: AASE 2014 .
+[5] Laura Carnevali, Giuseppe Lipari, Alessandro Pinzuti & Enrico Vicario: A formal approach to design and
+veriﬁcation of two-level hierarchical scheduling systems . In: RST 2011 , doi:10.1007/BF00360340 .
+[6] Laura Carnevali, Alessandro Pinzuti & Enrico Vicario (2 013): Compositional veriﬁcation for hierarchical
+scheduling of real-time systems .IEEE Transactions on Software Engineering 39(5), pp. 638–657, doi: 10.
+1109/TSE.2012.54 .
+[7] Franck Cassez & Kim Larsen: The impressive power of stopwatches . In: CONCUR 2000 , doi:10.1007/
+3-540-44618-4_12 .
+[8] Franco Cicirelli, Angelo Furfaro, Libero Nigro & France sco Pupo: Development of a schedulability analysis
+framework based on pTPN and UPPAAL with stopwatches . In: DSRA 2012 , doi:10.1109/DS-RT.2012.
+16.
+
+--- Page 13 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 51
+[9] Alexandre David, Kim G Larsen, Axel Legay, Ulrik Nyman & A ndrzej Wasowski: Timed I/O automata: a
+complete speciﬁcation theory for real-time systems . In: HSCC 2010 , doi:10.1145/1755952.1755967 .
+[10] RB Dodd (2006): Coloured petri net modelling of a generic avionics mission c omputer . Technical Report,
+DTIC.
+[11] Arvind Easwaran, Insup Lee, Oleg Sokolsky & Steve Vesta l:A compositional scheduling framework for
+digital avionics systems . In: RTCSA 2009 , doi:10.1109/RTCSA.2009.46 .
+[12] Orna Grumberg & David Long (1994): Model checking and modular veriﬁcation .Toplas 16(3), pp. 843–871,
+doi:10.1145/177492.177725 .
+[13] J Javier Guti´ errez, J Carlos Palencia & Michael Gonz´ a lez Harbour (2014): Holistic schedulability analysis for
+multipacket messages in AFDX networks .Real-Time Systems 50(2), doi: 10.1007/s11241-013-9192-2 .
+[14] Henrik Jensen (1999): Abstraction-based veriﬁcation of distributed systems . Ph.D. thesis, Aalborg university.
+[15] Henrik Jensen, Kim Larsen & Arne Skou: Scaling up UPPAAL . In: FTRFS 2000 , doi:10.1007/
+3-540-45352-0_4 .
+[16] Marius Mikuˇ cionis, Kim Larsen, Jacob Rasmussen, Bria n Nielsen, Arne Skou, Steen Palm, Jan Pedersen
+& Poul Hougaard: Schedulability analysis using UPPAAL: Herschel-Planck ca se study . In: ISoLA 2010 ,
+doi:10.1007/978-3-642-16561-0_21 .
+[17] Jan Reineke, Bj¨ orn Wachter & Stefan Thesing et al.: A deﬁnition and classiﬁcation of timing anomalies . In:
+WCET 2006 .
+[18] Youcheng Sun, Giuseppe Lipari, Romain Soulat, Laurent Fribourg & Nicolas Markey: Component-based
+analysis of hierarchical scheduling using linear hybrid au tomata . In: RTCSA 2014 , doi:10.1109/RTCSA.
+2014.6910502 .
+[19] Guoqing Wang & Qingfan Gu: Research on distributed integrated modular avionics syste m architecture
+design and implementation . In: DASC 2013 , doi:10.1109/dasc.2013.6712647 .

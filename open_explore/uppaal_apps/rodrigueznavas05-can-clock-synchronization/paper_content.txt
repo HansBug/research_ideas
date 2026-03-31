@@ -1,0 +1,748 @@
+--- Page 1 ---
+Using UPPAAL to Model and Verify
+a Clock Synchronization Protocol
+for the Controller Area Network
+Guillermo Rodr ´ıguez-Navas, Juli ´an Proenza
+Systems, Robotics and Vision Group
+Departament de Matem `atiques i Inform `atica
+Universitat de les Illes Balears, Spain
+E-mail: guillermo.rodriguez-navas@uib.es, julian.proenza@uib.esHans Hansson
+MRTC
+Department of Computer Science and Electronics
+M¨alardalen University, Sweden
+E-mail: hans.hansson@mdh.se
+Abstract — A reported liability of the Controller Area Network
+protocol is that it does not provide a clock synchronization
+service. Therefore, whenever a CAN-based distributed embedded
+system requires its nodes to have a common time base, clock
+synchronization has to be implemented by means of an externalmechanism. In a previous work, we proposed a fault-tolerantand high-precision clock synchronization protocol for CAN. Thispaper shows the ﬁrst steps towards the formal veri ﬁcation of this
+protocol. In particular, it presents a formal model that has beenbuilt with the UPPAAL model checker and discusses how clockdrift and clock correction can be modeled with this tool.
+I. I NTRODUCTION
+The Controller Area Network (CAN) ﬁeld bus [1] is
+nowadays extensively used for the implementation of dis-
+tributed embedded systems. In fact, although it was initially
+designed for in-vehicle communications, it has been adoptedin a broad range of applications, such as factory automation,
+medical equipment and building automation, among others.
+One reported liability of the Controller Area Network protocolis its lack of a clock synchronization service [2]. Due to this,
+this service is usually implemented by means of an external
+mechanism, typically a software application executed by the
+nodes.
+The existence of a system-wide synchronized clock is fre-
+quently assumed when designing distributed applications, and
+hence mechanisms are designed which rely on this assumption.
+For these mechanisms to work properly it is very important
+to guarantee that the clock synchronization service is reliableenough. In a previous work, some of the authors proposed
+a solution for clock synchronization in CAN networks [3],
+which is intended to provide the system with a clock of goodprecision despite the occurrence of a wide range of channel
+and nodes’ faults.
+This paper presents the ﬁrst steps towards the formal
+veriﬁcation of this protocol by means of model checking [4].
+The UPPAAL model checker [5] has been chosen for thisveriﬁcation as it has been successfully used to verify other
+real-time communication protocols, e.g. in [6], [7]. In partic-
+ular, this paper includes a thorough description of the formal
+model that has been built to specify our clock synchronizationprotocol. An additional contribution of this work is to show
+how clocks of variable drift can be modeled with UPPAAL.
+To the authors’ best knowledge, this has not been describedbefore.
+The rest of the paper is organized as follows. Section II
+introduces the basic features of the UPPAAL model checker.In Section III, the system model is presented and discussed,whereas the fault model is presented in Section IV. Section V
+is devoted to describing the main characteristics of our clock
+synchronization protocol. Section VI focuses on the descrip-tion of the veri ﬁcation model, paying special attention to the
+mechanisms that we have proposed to model clock drift andclock correction. Finally, Section VII summarizes the paper
+and gives some insight for further improvement.
+II. UPPAAL
+BACKGROUND
+UPPAAL is a model checker that allows de ﬁnition of the
+system behavior by means of a network of timed automata.
+Atimed automaton is a ﬁnite state machine extended with
+clock variables, which are used to measure time progress. The
+theory of timed automata allows clocks to be evaluated to a
+real number, but UPPAAL restricts those evaluations to integernumbers.
+An UPPAAL timed automaton is made up of a number
+oflocations and a number of transitions (also known as
+edges ) between them. A transition usually causes an update
+of the system’s variables. In particular, as a consequence of
+a transition, integer and boolean variables can be assigned a
+new value, whereas clock variables can only be restarted.
+Synchronous actions (i.e. actions that are simultaneously
+performed by several automata) can be modeled by means of
+synchronous channels . Such transitions lead to a new state
+of the system in which the involved automata may all have
+stepped into a new location. A transition (either synchronous
+or not) is enabled as long as its corresponding guard condition
+holds. Guard conditions can use integer, boolean and clockvariables, yet with some restrictions.
+There is a particular kind of locations, the so-called commit-
+ted locations , which help to model atomic actions. These loca-
+0-7803-9402-X/05/$20.00 © 2005 IEEE
+
+--- Page 2 ---
+CAN node
+Local
+oscillatorProcessor
+Virtual clock
+CAN controllerClock synch’n
+algorithmApplication
+CAN interface
+Tx medium
+Fig. 1. Structure of a CAN node
+tions are always left immediately and can interleave only with
+other commited locations. Additionally, UPPAAL incorporates
+three mechanisms to model urgency, namely invariants ,urgent
+channels and urgent locations , making it possible to force
+certain transitions to be ﬁred as soon as they are enabled.
+Whenever these mechanisms are not used, a transition may
+take place at an undetermined instant.
+A fundamental characteristic of a network of timed au-
+tomata is that clocks progress at the same rate. Nevertheless, in
+this work some techniques have been developed which allow
+us to model clocks of different rates as well. These techniques
+are described in Section VI.
+III. S YSTEM MODEL
+This paper addresses the problem of clock synchronization
+in CAN-based distributed embedded systems. Such systems
+are composed by a number of so-called CAN nodes, whichexecute a coordinated function and use a broadcast network
+to exchange messages. In this work it is also assumed that the
+CAN nodes require a common time base in order to carry out
+such coordinated function.
+A. Node structure
+The structure of a CAN node is depicted in Figure 1. The
+CAN node is made up of two basic elements: a processor ,
+which executes both the application software and the clocksynchronization algorithm and a CAN controller , which pro-
+vides the processor with the CAN communication capabilities.
+The processor and the CAN controller communicate throughthe so-called CAN interface .
+Note that the processor is clocked by a local oscillator.
+This local oscillator is used to measure time, by means of
+a software counter which simply acts as a frequency divider.
+This software-implemented counter is called the virtual clock .
+In order to guarantee that the virtual clocks of the various
+CAN nodes do not drift apart, each node executes a clock
+synchronization algorithm. The function of this algorithm isto compare the value of the local virtual clock with a valid
+reference and, if needed, make the appropriate corrections tothe virtual clock. The valid reference is obtained through the
+CAN network.
+B. CAN interface
+The interface of the CAN controller includes four primi-
+tives to handle message transmission and reception, namely
+Tx.request ,Tx.con ﬁrm,Rx.indication andAbort.request . The
+ﬁrst three primitives are supported by any commercial CAN
+controller. The last primitive is not part of the CAN standard
+but it is supported by many available CAN controllers [8].
+The actual implementation of each primitive may vary from
+one CAN controller to another, but their function and required
+parameters are the following:
+TheTx.request(msg id, msg data) primitive is used by the
+processor to request the transmission of message msg id.
+This transmission may not take place immediately as it
+depends on the channel conditions.
+The Tx.con ﬁrm(msg id)primitive is used by the CAN
+controller to indicate that message msg id, whose trans-
+mission was previously requested, has been actuallytransmitted.
+TheRx.indication(msg id, msg data) primitive is used by
+the CAN controller to indicate that message msg idhas
+been received.
+TheAbort.request(msg id)primitive allows the processor
+to request the CAN controller to abort the transmission of
+the message msg id(whose transmission was requested
+previously by the processor itself). It is important toremark that when a message transmission has started it
+cannot be aborted.
+C. Relevant properties of the CAN controller
+The clock synchronization algorithm that is presented in this
+paper relies on a number of properties that are to be provided
+by the CAN controller:
+(i)Prioritized medium access . The CAN protocol speci ﬁ-
+cation de ﬁnes a distributed bitwise algorithm to arbitrate
+the bus access. It guarantees that, whenever two or more
+nodes attempt to simultaneously send a frame, the node
+that succeeds is the one that sends the frame with the
+highest priority (i.e. the lowest identi ﬁer).
+(ii)Bounded response time . Thanks to the priority-based
+access to the medium, and as long as there is a bounded
+number of channel errors, the worst-case response time
+of a CAN message is bounded and can be calculated [9],[10].
+(iii) Inconsistent broadcast . In a CAN network, any trans-
+mitted message is expected to be received by all of thenon-faulty nodes in the system. However, it has been
+reported that certain fault scenarios exist in which this
+property does not hold [11], [12]. The consequencesof these scenarios can be either inconsistent message
+omissions or inconsistent message duplicates, as de ﬁned
+in [11].
+(iv) Start of frame signaling . Our solution for clock syn-
+chronization requires the CAN controller to be able to
+
+--- Page 3 ---
+signal the ﬁrst bit (the Start of Frame bit) of any frame
+so the virtual clock can be accurately sampled at that
+precise instant. Similar mechanisms have been suggestedin the literature [13], [14] to improve the precision of
+the clock synchronization.
+(v)On-the- ﬂy message timestamp . The CAN controller
+must be able to overwrite the data ﬁeld of a frame while
+it is being transmitted. In this way, the data ﬁeld of a
+frame can convey a timestamp that indicates the value
+that the virtual clock of the transmitter exhibited when
+theStart of Frame bit of such frame was signaled.
+It is important to remark that Properties (i) to (iii) are part
+of the standard CAN speci ﬁcation and thus they are supported
+by commercial CAN controllers. The mechanisms to provideProperties (iv) and (v) can be implemented with the help
+of programmable logic devices (PLDs). As explained in [3],
+we have used a Field-Programmable Gate Array (FPGA) to
+implement a modi ﬁed CAN controller which ful ﬁlls both
+properties.
+IV . F
+AULT MODEL
+The system may suffer from three types of faults: software
+faults, physical faults of the nodes and physical faults of the
+channel. Due to the simplicity of our clock synchronizationprotocol, software faults are not included in the fault model.
+Concerning physical faults of the nodes, the fault model
+includes arbitrary faults that can be either transient or perma-
+nent. However, an important assumption is that there is at leastone non-faulty node in the system which can provide a clock
+of good quality.
+Permanent physical faults of the channel, such as bus parti-
+tion or stuck-at-dominant, are not included in the fault model.
+These faults can be addressed independently, for instance asproposed in [15].
+Regarding transient channel faults, our fault model only
+includes those channel faults that lead to frame errors de-
+tectable by the error-detection mechanisms of CAN, since the
+probability of having a channel fault which is not detected bythe CAN controllers is very low and can be neglected [16].
+It is also assumed that the number of channel faults within
+a given time interval is bounded. In this way, it is possible
+to assume a bounded response time for every CAN message.
+Moreover, although our fault model includes channel faults
+that can lead to inconsistent frame receptions, the probability
+of such faults is low enough so as to assume that only abounded number of consecutive resynchronization rounds can
+be affected by these faults.
+V. P
+ROTOCOL DESCRIPTION
+In this section the basics of our proposal for clock synchro-
+nization in CAN networks are described.
+A. Protocol basics
+Our protocol adopts a master/slave approach, as there is
+one node (the master) that imposes its time view to the rest
+of nodes of the system (the slaves). The master is assumed tobe synchronized to an external time source which supplies the
+desired accuracy. The master’s time view is spread throughout
+the network by means of a speci ﬁc message: the Time Message
+(TM), which the master periodically broadcasts.
+The aim of the Time Message is twofold. On the one hand,
+the master uses it to indicate the resynchronization event,
+which is the sample point of the Start of Frame bit of this
+particular message. On the grounds of Property (iv), everyslave samples its virtual clock at this instant and keeps the
+value in a variable called lt
+ref. On the other hand, thanks to
+Property (v), the TM’s data ﬁeld contains the timestamp that
+the master took precisely at that instant, so each slave reads
+the TM and keeps the master’s timestamp in a variable called
+rtref.
+In this way, after reception of the TM each slave compares
+its virtual clock to the master’s one and makes the required
+corrections. In particular, two corrections are carried out.
+One aims at correcting the offset error , which is calculated
+according to Equation 1, whereas the other aims at correcting
+thedrift error , which is caused by the rate difference between
+the local virtual clock and the remote virtual clock, as shownin Equation 2.
+offset
+error =rtref−ltref (1)
+drift error =localrate
+remote rate=ltref−rtrefprev
+rtref−rtrefprev(2)
+These corrections are not performed instantly, but they
+are progressively carried out [3]. This is often called clock
+amortization and is more advisable than instant corrections
+because it does not cause time leaps. Both offset correction
+and drift correction are never perfectly performed, since thereis always some residual error caused by small system latencies
+or by the imprecision of the arithmetical operations. However,
+in our system the residual error of the offset correction is
+small, mainly because of Property (iv), and can be neglected.
+In contrast, the drift error (though being small) causes clocksto drift apart as time passes by, so it may have greater
+effect on the clock synchronization protocol and cannot be
+neglected. The residual drift error is denoted γ
+min hereafter.
+The maximum drift error between any pair of slaves that have
+synchronized to the same master is 2×γmin.
+The instant at which the master attempts to transmit the
+TM is called the release time . Even though the release time is
+periodical, the instant at which the TM is actually broadcastmay vary depending on the network conditions. For instance,
+channel errors may cause frame retransmissions and therefore
+a signi ﬁcant delay.
+Despite its simplicity, our protocol has several advantages.
+Thanks to the master/slave approach it is not expensive interms of bandwidth consumption nor processor utilization. Due
+to this, and in contrast to solutions previously suggested [17],
+it adapts very well to the asymmetric nature of many dis-tributed embedded systems, where nodes with bad quality
+clocks as well as scarce processing capabilities may exist. A
+
+--- Page 4 ---
+master/slave approach has been also adopted by the IEEE 1588
+standard for clock synchronization in distributed systems [18].
+B. Master replication
+The main drawback of adopting a master/slave scheme is
+that the master represents a single point of failure since any
+failure of this node might cause a failure of the whole clocksynchronization service. In our proposal, this single point of
+failure is eliminated by means of master replication . Basically,
+a number of master replicas or backup masters are de ﬁned,
+which supervise the so-called active master so one of them
+can take over in case this master is faulty.
+In order to simplify the management of the master repli-
+cation, the failure semantics of the masters (either active or
+backup) has been restricted to crash failure semantics , which
+means that upon a physical fault the node becomes silent.
+This failure semantics can be enforced by means of internal
+duplication and comparison, as explained in [3].
+Owing to the restricted failure semantics of the masters,
+the faulty master detection and replacement mechanism isimplemented by just de ﬁning the release time of the backup
+masters a short time after the release time of the active master.
+This short delay is different at each backup master, and is
+greater for those backup masters with lower priority. In this
+way, if the active master was faulty and did not broadcast itsTM, the system would recover a short time later, as soon as
+the next backup master succeeded in broadcasting its own TM.
+This prioritized mechanism for master replacement implicitlyassumes that masters’ clocks are synchronized to a given
+precision Π. In particular, letting Γbe the separation between
+master iand master i+1, it assumes that Π≤
+Γ
+2.
+Since channel conditions can delay the transmission of a
+TM, it is possible for one or more backup masters to reachtheir release time even if the active master is not actually
+faulty. Due to this, the TM identi ﬁers are assigned in such
+a way that in case more than one masters attempt to send theTM simultaneously, the TM with highest priority is always
+broadcast ﬁrst. After reception of a higher priority TM, each
+lower priority master requests its own CAN controller to abortthe TM transmission. Nevertheless, the abort operation has
+some latency and it is not likely to be performed before the
+corresponding CAN controller starts the transmission of the
+following TM.
+This implies that it is possible to receive two TMs from
+different masters within the same resynchronization round.
+In case of a consistent broadcast this fact would not be aproblem because nodes only resynchronize to the ﬁrst TM they
+receive. But in case of an inconsistent broadcast this might
+cause some nodes to resynchronize to a master whereas therest resynchronize to another one. The consequences of these
+inconsistency scenarios are further explained in Section V-C
+A drawback of enforcing crash failure semantics in the
+masters by means of internal duplication and comparison
+is that any transient fault turns into a permanent failure ofthe master, and this may cause fast redundancy attrition .
+This problem could be overcome by providing the masterswith some internal check and recovery mechanisms, and by
+designing a proper policy for master reintegration. This issue
+has not been addressed in this work, but it seems that asuitable policy would be to allow any just-recovered master
+to reintegrate ﬁrstly as a slave (a sort of passive mode) and
+then, after a few correct resynchronization rounds, allow it toact again as a backup master.
+C. Scenarios of inconsistent clock resynchronization
+As it was stated in Section IV, certain channel faults may
+cause inconsistent omissions or inconsistent duplicates of the
+TM. Inconsistent TM duplicates do not have any impact on
+the clock precision because they do not cause any inconsistentresynchronization. In contrast, inconsistent omissions of the
+TM can have a negative impact on the clock synchronization,
+particularly when TMs from two different masters are broad-
+cast. These potential inconsistency scenarios and their effect
+on the clock parameters are explained next:
+A backup master may not receive the TM sent by the
+active master nor any other TM of higher priority than
+its own. In such a case, the master would not correct itsoffset error with respect to the active master’s clock. If the
+drift error of this backup master after the last successful
+resynchronization was γthen the accumulated offset error
+would be at most equal to γtimes the elapsed time since
+that resynchronization. The drift error would be neither
+corrected, but the effect would not be too important sinceclock drift tend to change smoothly and therefore, for a
+time short enough, the drift error can be considered as
+being constant.
+A set of slaves may not receive the TM sent by the
+active master nor any other subsequent TM within one
+resynchronization round. The effect on the clock wouldbe exactly the same as in the previous case as neither the
+offset error nor the drift error would be corrected.
+A set of nodes (including backup masters and slaves)may not receive the TM sent by the active master but
+do receive a subsequent TM from a backup master. Insuch a case, these nodes correct their clock according
+to that backup master, and notaccording to the active
+master. Due to this, they actually ”inherit” both the offseterror and the drift error of this backup master, which
+might be even greater than the errors these nodes had
+before resynchronization. Moreover, the drift error ofthese nodes may increase due to the residual drift error.
+For instance, if γis the drift error (w.r.t. the active
+master) of the backup master that transmitted the secondTM, then after resynchronization the drift error of the
+resynchronizing nodes may be γ+γ
+min.
+D. Protocol implementation
+Figure 2 shows the clock synchronization algorithm as
+implemented by a generic master i. Every master (either active
+or backup) executes the same procedure, the only differencebeing the value of the release time. A Master can be in one
+of four states: Idle1, Queue, Abort and Idle2.
+
+--- Page 5 ---
+Idle1 Queue
+Idle2 AbortRx.indication && 
+(msg_id < i)/
+Correct_clock
+Tx.confirm/Rx.indication && 
+(msg_id < i)/
+Correct_clockvc == release_time/
+Tx.request
+vc == end_round_time/ /Abort.request
+Fig. 2. Master i’sﬁnite state machine
+Idle1 is the state at the beginning of the resynchronization
+round. In this state only two events may happen: either a
+TM is received or the release time is reached. If a TM is
+received and it has higher priority than the master itself (a
+Rx.indication is received with ( msgid < i )) then master i
+performs the corresponding clock correction and steps into
+state Idle2. Idle2 represents the state at the end of the resyn-
+chronization round, when the master has already corrected itsclock. While being in state Idle2, any other message reception
+is ignored.
+Whenever master iis in state Idle1 and the release
+time
+is reached (i.e. vc==release time ), the master requests
+the transmission of its TM ( Tx.request ) and steps into state
+Queue. This means that master iis a candidate to become the
+active master. In state Queue only two events may happen:
+either the TM is successfully transmitted or a TM is received.If master isends its TM (primitive Tx.confirm ) before
+receiving any TM of higher priority then it considers itself
+as being the master of highest priority and steps into state
+Idle2 without performing any clock correction. In contrast,
+if master ireceives a TM of higher priority ( Rx.indication
+with ( msg
+id < i )) then it corrects its clock and moves to
+state Abort.
+In state Abort, master iperforms a request to abort the
+queued TM (primitive Abort.request ) and proceeds into
+state Idle2 regardless of the result of the abort operation.As soon as the end
+round time time mark is reached (i.e.
+vc==endround time ), Master isteps into state Idle1 and
+a new resynchronization round is started. The value of theend
+round time time mark is the same for all of the nodes.
+The implementation of the slaves is not shown because it
+is very simple, and can moreover be derived easily from the
+master’s state machine. Slaves only have two states (Idle1 and
+Idle2) and the two transitions between them that appear in
+Figure 2.
+VI. UPPAAL VERIFICATION MODEL
+This section describes the veri ﬁcation model that has been
+built in order to model our clock synchronization protocol.
+First, we discuss the techniques we have developed to model
+variable clock drift in UPPAAL. After that, an overview ofthe veri ﬁcation model is provided. Finally, and due to space
+limitations, only the main features of this model are discussed.A more detailed description of the model features can be found
+in [19].
+A. How to model variable clock drift in UPPAAL
+In order to understand the technique for modeling clock drift
+that has been used in this work it is necessary to examine
+the effects of having unsynchronized clocks in a distributed
+system. Imagine a set of nodes, in which every node isprovided with a virtual clock and has to trigger an action when
+this virtual clock reaches the instant t0. These actions will
+be triggered simultaneously only in the ideal case of havingperfectly synchronized clocks. In a realistic case, with clocks
+of slightly different rates, each node triggers the action at a
+different instant, i.e. those nodes with faster clocks trigger theaction sooner than those with slower clocks. Moreover, this
+temporal uncertainty on the time-triggered actions is the only
+effect of having unsynchronized clocks. Note that temporaluncertainty is proportional to t0since, in the absence of clock
+resynchronization, clocks tend to drift apart as time passes by.
+Although it is impossible to determine the exact drift of
+a speci ﬁc clock, it is possible to bound, up to a certain
+probability, the maximum drift that a clock may exhibit
+1.
+From this information, the earliest and the latest possible
+time of an event occurrence can be deduced. Using these
+extreme occurrence times the possible clock drifts can in
+UPPAAL be modeled as a time interval. This is illustrated
+in Figure 3, in which the transition from location L1 to
+location L2 can only happen if clock xis within the interval
+[t0−epsilon,t 0+epsilon ].
+By giving the appropriate values to epsilon it is possible
+to model clock drifts, as the following example illustrates.
+Imagine that two automata (Master and Slave) exist which
+behave like the automaton in Figure 3, and that have restarted
+their local clocks xsimultaneously. Master’s clock is assumed
+to be the time reference whereas Slave’s clock has a drift error
+equal to the residual drift error γmin. Therefore, at instant
+t0the value of epsilon in the Slave automaton is equal to
+t0×γminwhereas the value of epsilon in the Master is 0,a s
+it does not drift with respect to itself.
+Assuming these values, it can be deduced that automaton
+Slave may ﬁre its transition from L1 to L2 within a time
+interval that is centered at t0and has a length equal to
+2×t0×γmin. Since the transition from L1 to L2 is used to
+restart each local clock x, the consequence of this uncertainty
+is that the offset difference between Master’s clock and Slave’s
+clock (when both Master and Slave are in location L2) variesin the range [−t0×γ
+min,t0×γmin].
+This mechanism can be adapted to our model because there
+are only two time-triggered actions, the broadcast of the TMand the end of the round, and both are periodical. Therefore, it
+is possible to determine a priori when they are going to take
+place, and hence, epsilon can be calculated as long as the drift
+error ( γ) of each clock is known. Since the value of γchanges
+1In our system, this assumption is also enforced by the duplication with
+comparison structure of the masters as long as two clocks are used
+
+--- Page 6 ---
+L1
+x <= t0 + epsilonL2 x >= t0 - epsilon
+x:= 0
+Fig. 3. Example of automaton
+according to the resynchronization actions that are performed,
+it has to be calculated after every resynchronization in the way
+that is described in Section VI-C.
+It is important to remark that by modeling clock drift in
+this manner, not only the extreme drift values are considered,
+but also all of the intermediate drifts. This represents a great
+advantage in front of simulation techniques, in which only aﬁnite set of drifts can be evaluated. A similar approach, yet
+not applied to clock drift, has been proposed to model hybrid
+systems with timed automata [20].
+B. Model overview
+The model presented in this paper does not include any
+automaton to model the slaves’ behavior. This means that only
+clock resynchronization among masters can be veri ﬁed. This
+is due to the fact that it was decided that masters’ behavior hadto be addressed ﬁrst as it is the most complex part of the clock
+synchronization protocol. Once masters’ resynchronization has
+been modeled and veri ﬁed, it seems that slaves can be easily
+incorporated into the model. In fact, and according to what is
+said in Section V-D, the slave automaton is a subset of the
+master’s one.
+Our clock synchronization model includes the following
+automata:
+One Master automaton (Figure 4) for each master in the
+system. This automaton models the clock resynchroniza-
+tion protocol itself.
+One Clkctrlautomaton (Figure 5) for each master in the
+system. This automaton helps to model clocks of variable
+drift.
+One Chan ctrlautomaton (Figure 6), which models part
+of the CAN communication.
+One Round ctrl automaton (Figure 7), which is used
+mainly to restart the system variables at the end of each
+resynchronization round.
+The automaton in Figure 4 is actually a simpli ﬁed model
+of the Master automaton since, for the sake of clarity, the
+following features have been deliberately omitted: inconsistent
+reception of messages, the possibility of having TMs whosetransmission is not timely aborted, and master crash. The way
+to add all of these features to our model is described in [19].
+Notice that the simpli ﬁed Master automaton includes a
+location for each of the states that appear in Figure 2, though
+a number of additional locations have been incorporated in
+order to model the interaction with the rest of the system.
+Our model includes Nmasters. Each master is given a
+unique identi ﬁermy
+idin the range [0,N−1]. The identi ﬁer is
+used to indicate the priority of the master and therefore the pri-ority of the TM it broadcasts. A lower identi ﬁer means higher
+priority, which is the usual convention in CAN networks.
+Furthermore, each master is provided with its own virtual
+clock. This is modeled with an array of clocks vcof size N,
+such that vc[myid]refers to the virtual clock of the myid-
+est master. The array vcis a global variable, so every master
+can read the virtual clock of any other master. This is very
+useful in order to model clock correction.
+The model also includes a number of constants and variables
+that are related to the clock correction procedure. On the one
+hand, the array of integers gamma , which has size N, keeps
+the current drift error of each master ( γ). This drift error is
+measured with respect to the active master, so gamma [myid]
+equals to 0 only if Master myidis the current active master.
+The value of gamma [myid]is calculated right after every
+clock correction, and is always an integer multiple of γmin
+(constant gamma min in the model). Due to this, and in
+order to reduce the memory requirements of the model, onlythe integer value is kept. On the other hand, the constant
+gamma
+step represents the effect that a drift equal to γmin
+causes after R1+delta time units. It is calculated as follows:
+gamma step=(R1+delta)×gamma min,s oi th a sa
+different value for each master.
+C. Main model features
+These are the main features our model includes.
+1) Uncertainty of the release time: As said in Section V-B,
+each master has a different release time, which depends on themaster’s priority. In the model, each Master automaton uses a
+local integer variable delta to represent its delay with respect
+to the release time of Master 0. The release time of Master0i sR1time units after the end of the last resynchronization
+round, so every master reaches its release time when its virtual
+clock measures R1+delta time units.
+However, due to the drift with respect to the active mas-
+ter’s clock, the release time of a master can occur within
+a time interval, whose length depends on the current drifterror. As shown in Figure 4, this time interval is centered
+atR1+delta[my
+id]and its boundaries are proportional
+togamma [myid], which represents the drift error between
+clockvc[myid]and the active master’s virtual clock after the
+last resynchronization. The constant gamma step is propor-
+tional to R1+delta[myid]and models the fact that time
+uncertainty increases for larger time values.
+Since the value of gamma [myid]is calculated in each
+resynchronization round, the boundaries of the release timeinterval may change in every round, depending on the actions
+performed by the nodes. This is a very important property of
+the model as it allows us to study how the resynchronizationactions affect the node’s clock drift and vice versa. The way
+of calculating the value of gamma [my
+id]is explained later
+on in this section.
+2) Prioritized medium access: This property is modeled by
+means of a global integer variable called msgid. This variable
+indicates the identi ﬁer of the highest priority TM among all
+the TMs that are waiting for transmission. A msgidvalue
+
+--- Page 7 ---
+Idle1vc[my_id] <= R1 + delta
++ gamma[my_id]*gamma_stepQueue
+Idle2Aux1
+Idle3
+my_aux_clk <= R1Abort
+Aux3vc[my_id] >= R1 + delta
+- gamma[my_id]*gamma_step
+msg_id:= my_id <? msg_id
+vc[my_id]:= 0,
+num_clk++my_aux_clk >= R1my_id > msg_id
+tx_msg?ref_clock:= recv_id,
+(time_ref == N)?(new_gamma[my_id]:= min_gamma):(new_gamma[my_id]:= min_gamma+ gamma[ref_clock]+ gamma[time_ref])my_id > msg_id
+tx_msg?ref_clock:= recv_id,
+(time_ref == N)?(new_gamma[my_id]:= min_gamma):(new_gamma[my_id]:= min_gamma+ gamma[ref_clock]+ gamma[time_ref])
+recv_id:= 0,(time_ref == N)?(time_ref:= my_id):(time_ref:= time_ref)tx_msg?
+(time_ref == N)?
+(new_gamma[my_id]:= 0):(new_gamma[my_id]:= gamma[my_id]+ gamma[time_ref])my_id == msg_id
+end_round[ref_clock]?
+my_aux_clk:= 0,
+ref_clock:= my_id
+Fig. 4. Simpli ﬁed Master automaton
+vc[clock_id] <= R2
++ gamma[clock_id]*gamma_step
+vc[clock_id] >= R2 - gamma[clock_id]*gamma_step
+end_round[clock_id]!
+all_end_round?
+Fig. 5. Clk ctrl automaton
+no_pending_tx
+pending_txx <= WCRTmsg_id < N
+x:= 0aux_chan!tx_msg!
+x:= 0,
+recv_id:= msg_id,msg_id:= N
+Fig. 6. Chan ctrl automaton
+num_clk == N
+all_end_round!num_clk:= 0,
+eomission:= not (eomission and reg_omission),reg_omission:= false,gamma[0]:= new_gamma[0], gamma[1]:= new_gamma[1],gamma[2]:= new_gamma[2],new_gamma[0]:= 0, new_gamma[1]:= 0,new_gamma[2]:= 0,time_ref:= N
+Fig. 7. Round ctrl automatonequal to N means that no message is waiting for transmission
+(the bus is idle).
+Whenever a master wants to broadcast its TM (transition
+from Idle1 to Queue), it checks the current value of msgid,
+and only if its own identi ﬁer (local integer variable myid)i s
+lower than msgidthen it overwrites msgidwith its identi ﬁer
+(the C-like assignment msgid:=myid <?msgidmodels
+this behavior). In this way, if a master of higher priority hadpreviously requested a TM transmission then the master could
+not overwrite the variable msg
+id, which in fact would be
+equivalent to losing the arbitration.
+3) Clock correction: The set of Clk ctrl automata are
+intended to signal the end of the round, as seen by the
+various masters in the system. Every Clk ctrl automaton is
+identi ﬁed by its own clock id, so Clk ctrl automaton indi-
+cates the end of the round as measured by the virtual clock
+of Master clock id. This is signaled through the broadcast
+channel endround [clock id]. This event can occur within a
+time interval the length of which depends on both the drift of
+Master clock id(kept in gamma [clock id]) and the variable
+gamma step[clock id].
+Moreover, every Master automaton is provided with a
+local integer variable called refclock , which is used in
+the following way to model clock correction. Whenever one
+master resynchronizes to a received TM, the master makesref
+clock :=recvid. After that, this master does not use its
+own clock to measure the end of the round, but the virtual
+clock of the master to which it has resynchronized. This ismodeled with the broadcast channel end
+round [refclock].
+Thanks to this, all of the masters that resynchronized to the
+active master leave location Idle2 simultaneously. In contrast,and due to what was explained above about the Clk
+ctrl
+automaton, those masters that resynchronized to a different
+master may leave location Idle2 sooner or later than the activemaster.
+When leaving location Idle2, each master resets a local
+
+--- Page 8 ---
+clockauxclock . As soon as this clock reaches R1 time units,
+the local virtual clock of the master (vc[myid])is reset. In
+this way, the offset error is corrected only in those mastersthat resynchronized to the active master, whereas the rest of
+masters keep their offset for the next resynchronization round.
+Note that this is coherent to what is explained in Section V-C.
+The new drift error of each master is calculated whenever
+one of the transitions leading to Idle2 that imply clock correc-tion is taken. It is calculated taking into account whether the
+master resynchronizes to the active master (which is kwown
+thanks to variable time
+ref) or not. The new drift value is
+kept by the variable newgamma [myid]until the end of the
+round. At the end of the resynchronization round, automaton
+Round ctrl assigns the value of newgamma togamma ,s o
+the new drift error can be taken into account for the next
+resynchronization round.
+VII. C ONCLUSIONS AND FUTURE WORK
+In a previous work, we have proposed a solution for clock
+synchronization over CAN. This paper describes the ﬁrst
+steps towards the formal veri ﬁcation of this solution with
+the UPPAAL model checker. UPPAAL is very well suited
+for the formal veri ﬁcation of real-time systems as it includes
+the notion of time. However, this tool is based on the timedautomata theory, which assumes already synchronized clocks,
+and is thereby usually applied to systems with this kind of
+clocks. Nevertheless, we have shown that UPPAAL can beused also to model systems with clocks of variable drift. This
+has been a signi ﬁcant contribution of this work.
+Moreover, our veri ﬁcation model includes a number of
+common characteristics of the CAN communication, such as
+arbitration, bounded response time and broadcast. We believethat the artifacts presented in this paper to model these features
+with UPPAAL might help researchers that aim at formally
+verifying their own CAN-based protocols. Even though someof these artifacts are not thoroughly described in this paper, a
+more detailed description can be found in [19].
+Our veri ﬁcation model has been successfully used to verify
+certain properties of our clock synchronization protocol. In
+particular, some results concerning the correctness of thefaulty master detection and replacement mechanism have been
+obtained, but they have not been presented in this paper as
+they are still preliminary. From this experience, we believethat our UPPAAL model is an excellent starting point so as to
+understand the complex relationship that there exists between
+the fault conditions and the best achievable clock precision.
+A few additional features could still be included into the
+model. One of them is to allow an unbounded number ofchannel errors within a resynchronization round. In this way,
+it would be possible to study the effect of large error bursts
+on the clock service. Furthermore, a similar model could bedesigned in which the on-the- ﬂy timestamping is not assumed
+for the CAN controllers. This would require the transmission
+of two messages: one to indicate the resynchronization instantand another one to carry the timestamp of such event. Al-
+though eliminating this requirement would make our solutionmuch more generic, it is not clear how inconsistent omissions
+may affect the achievable precision.
+A
+CKNOWLEDGEMENT
+This work has been partially supported by the Spanish
+MCYT grant DPI2001-2311-C03-02, which is partially funded
+by the European Union FEDER programme.
+REFERENCES
+[1] ISO, “ISO11898. Road vehicles - Interchange of digital information -
+Controller area network (CAN) for high-speed communication,” 1993.
+[2] M. T ¨orngren, “A perspective to the Design of Distributed Real-time
+Control Applications based on CAN,” Proceedings of 2nd International
+CAN Conference, London-Heathrow, United Kingdom , 1995.
+[3] G. Rodr ´ıguez-Navas, J. Bosch, and J. Proenza, “Hardware Design of a
+High-precision and Fault-tolerant Clock Subsystem for CAN Networks,”Proceedings of the 5th IFAC International Conference on FieldbusSystems and their Applications (FeT 2003), Aveiro, Portugal , 2003.
+[4] E. M. Clarke, O. Grumberg, and D. A. Peled, Model Checking . Cam-
+bridge, Massachusetts: The MIT Press, 2001.
+[5] G. Behrmann, A. David, and K. G. Larsen, “A tutorial on
+UPPAAL ,” in
+Formal Methods for the Design of Real-Time Systems: 4th International
+School on Formal Methods for the Design of Computer, Communication,and Software Systems, SFM-RT 2004 , ser. LNCS, M. Bernardo and
+F. Corradini, Eds., no. 3185. Springer–Verlag, September 2004, pp.
+200–236.
+[6] H.L ¨onn and P. Pettersson, “Formal Veri ﬁcation of a TDMA Protocol
+Startup Mechanism,” in Proceedings of the
+Paciﬁc Rim Int. Symposium
+on Fault-Tolerant Systems , 1997, pp. 235–242.
+[7] A. David and W. Yi, “Modelling and analysis of a commercial ﬁeld bus
+protocol,” Proceedings of the 12th Euromicro Conference on Real Time
+Systems , pp. 165–172, 2000.
+[8] K. Etschberger, Controller Area Network . Weingarten: IXXAT Press,
+2001.
+[9] K. Tindell, A. Burns, and A. J. Wellings, “Calculating controller area
+network (CAN) message response time,” Control Engineering Practice ,
+vol. 3(8), pp. 1163–1169, 1995.
+[10] I. Broster, A. Burns, and G. Rodr ´ıguez-Navas, “Probabilistic analysis of
+CAN with faults,” Proceedings of the 23rd Real-time Systems Sympo-
+sium, 2002.
+[11] J. Ru ﬁno, P. Ver ´ıssimo, G. Arroz, C. Almeida, and L. Rodrigues, “Fault-
+tolerant broadcasts in CAN,” Digest of papers, The 28th IEEE Inter-
+national Symposium on Fault-Tolerant Computing, Munich, Germany ,
+1998.
+[12] J. Proenza and J. Miro-Julia, “MajorCAN: A modi ﬁcation to the Con-
+troller Area Network to achieve Atomic Broadcast,” IEEE Int. Workshop
+on Group Communication and Computations. Taipei, Taiwan , 2000.
+[13] K. Turski, “A global time system for CAN,” Proceedings of the 1st
+International CAN Conference, Mainz, Germany , 1994.
+[14] T. F ¨uhrer, B. M ¨uller, W. Dieterle, F. Hartwich, R. Hugel, M. Walther, and
+R. B. GmbH, “Time Triggered Communication on CAN,” Proceedings
+of the 7th Int. CAN Conference, Amsterdam, The Netherlands , 2000.
+[15] J. Ru ﬁno, P. Ver ´ıssimo, and G. Arroz, “A Columbus’ egg idea for CAN
+media redundancy,” Digest of Papers, The 29th International Symposium
+on Fault-Tolerant Computing Systems , 1999.
+[16] J. Charzinski, “Performance of the error detection mechanisms in CAN,”
+Proceedings of the First International CAN Conference (ICC94),Mainz,Germany , 1994.
+[17] L. Rodrigues, M. Guimaraes, and J. Ru ﬁno, “Fault-tolerant Clock
+Synchronization in CAN,” Proceedings of the 19th IEEE Real-Time
+Systems Symposium, Madrid, Spain , 1998.
+[18] IEEE-1588, Standard for a Precision Clock Synchronization Protocol for
+Networked Measurement and Control Systems . IEEE Instrumentation
+and Measurement Society, 2002.
+[19] G. Rodr ´ıguez-Navas, J. Proenza, and H. Hansson, “An UPPAAL Model
+for Formal Veri ﬁcation of Clock Synchronization over CAN,” Universitat
+de les Illes Balears, Tech. Rep. A-2-2005, 2005.
+[20] A. Olivero, J. Sifakis, and S. Yovine, “Using abstractions for the veri ﬁca-
+tion of linear hybrid systems,” in Proceedings of the 6th Int. Conference
+on Computer Aided Veri ﬁcation , ser. LNCS, no. 818. Springer–Verlag,
+June 1994.

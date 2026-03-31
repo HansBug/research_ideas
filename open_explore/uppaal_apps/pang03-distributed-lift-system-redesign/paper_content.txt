@@ -1,0 +1,922 @@
+--- Page 1 ---
+Analyzing theRedesign ofaDistributed
+LiftSystem inUPPAAL?
+JunPang1,BartKarstens1andWanFokkink1;2
+1CWI,DepartmentofSoftwareEngineering,
+P.O.Box94079,1090GBAmsterdam,TheNetherlands,
+fpangjun,bart,wan g@cwi.nl
+2VrijeUniversiteitAmsterdam,DepartmentofComputerScience,
+DeBoelelaan1081a,1081HVAmsterdam,TheNetherlands, wanf@cs.vu.nl
+Abstract.Anexistingdistributedliftsystemwasanalyzedusingthe
+processalgebraiclanguage¹CRL[7].Fourproblemswerefound,three
+ofwhichwerealsofoundindependentlybythedevelopersinthetesting
+phase.Theysolvedtheseproblemsinanadhocmanner,becausethe
+causesoftheproblemswereunclear.Theanalysisin[7]revealedthe
+reasonsforthoseproblems,andproposedsolutions.
+Inthispaper,wecheckedthedevelopers'solutionsusingUppaal.We
+showthatthesolutionsofthedevelopersdonotsolvetheseproblems
+completely,whileare¯nedversionofoursolutionproposedin[7]does.
+1Introduction
+Asiswellknown,distributedalgorithmsformamajoraspectofsystemde-
+sign.Verifyingthecorrectnessoftheprotocolsthatregulatethebehaviorofdis-
+tributedsystemsisusuallyaformidabletask,asevensimplebehaviorsbecome
+wildlycomplicatedwhentheyarecarriedoutinparallel.Formalveri¯cationis
+asuitableapproachtocheckwhetherasystemmeetsitsrequirements.
+Inaformalmodelofareal-lifesystem,detailsirrelevanttotherequirements
+underscrutinycanbeabstractedaway.Withtheformalmodelathand,oneis
+abletoreasonaboutthesysteminasystematicandautomaticway,usingfor
+exampleamodelcheckeroratheoremprover.Thisformalreasoningcandetect
+errorsandsuggestwaysinwhichthesystemcanbeimprovedoroptimized.A
+modelisnevercompletelyequaltotheoriginalsystem,becauseitdescribesthe
+systematacertainlevelofabstraction.Thismeansthatwecanneverbehundred
+percentsurethatthesystemiscorrectwithrespecttothecheckedrequirements.
+Toachievemorecon¯dencewiththeveri¯edsystem,themodelcanbere¯ned
+byaddingmoredetails.Inthispaper,wereportsomeexperiencerelatedtothis
+topicbyanalyzingtheredesignofadistributedliftsystem.
+Thisliftsystemisusedinreallifeforliftinglorries,railwaycarriages,buses
+etc.Asystemconsistsofanumberoflifts:eachwheelissupportedbyonelift
+?ThisresearchispartlysupportedbytheDutchTechnologyFoundationSTWunder
+theprojectCES5008:Improvingthequalityofembeddedsystemsusingformaldesign
+andsystematictesting.
+
+--- Page 2 ---
+andeachlifthasitsownmicrocontroller.Thissystemhasbeendesignedand
+implementedbyasmallDutchcompany(forcommercialreasonswearenotat
+libertytorevealthecompanyname).Aspecialprotocolhasbeendevelopedto
+lettheliftsoperatesynchronously.Whentestingtheirimplementationthede-
+velopersfoundthreeproblems,butthecausesoftwoofthemwereunclear.They
+solvedtheseproblemsinanadhocmanner.Inordertoexplainthereasonsand
+tomakesuretherearenomoreerrors,theliftsystemwasspeci¯edandveri¯ed
+in¹CRL[8]anditstoolset[5]inclosecooperationwiththedevelopers.The
+threeproblemsthatwerefoundbythedeveloperswerealsofoundinthe¹CRL
+model.Thisindicatedthatthespeci¯cationisactuallyclosetotheimplementa-
+tion.Anothernewproblemwasfoundinthemodel,whichisindeedpresentin
+thesystem.Thecausesfortheproblemsweredetected,andsolutionswerepro-
+posedandincludedinthe¹CRLspeci¯cation.Themodi¯ed¹CRLspeci¯cation
+wasshowntosatisfyalltherequirementsbymodelchecking.However,thishap-
+penedindependentlyofthedevelopers,whodecidednottowaitfortheresults
+oftheformalanalysisandtoredesigntheirimplementationbasedontheirown
+solutions.Todistinguishbetweenthetwoliftsystemsinthispaper,wecallthe
+¯rstliftsystem`originaldesign'andtheonewiththesolutionsofthedevelopers
+`redesign'.
+Thedevelopersexperiencedanewproblemintheredesign.Againthereason
+wasunclear.Sincetheerrortracesdisplayedaregularpatternintime,thedevel-
+opersthoughtmodelingexacttimingmightrevealthereasonforthisproblem.
+Inthe¹CRLspeci¯cation,timeisabstractedaway.Wecouldextendthe¹CRL
+modelwithexacttiminginformation,butthereisnoautomatedveri¯cation
+toolsetfortimedprocessalgebras.ThereforeitwasdecidedtouseUppaal[11],
+whichisatoolsetforvalidationandmodelcheckingofrealtimesystems.
+TheUppaalmodeloftheredesignisachievedinseveralsteps.Firstthe
+¹CRLmodelistranslatedintoUppaal.ThentheUppaalmodelisre¯nedto
+moveitclosertotherealsystem;eachliftissplitintotwocomponents,where
+onecomponentcommunicateswiththeotherliftsandtheothercomponentcan
+receiveinputfromtheenvironment.Thedevelopers'solutionsfortheaforemen-
+tionedproblemsareadopted.Afterdiscussionswiththedevelopers,exacttiming
+informationisadded.TherequirementsfortheliftsystemareformulatedinUp-
+paal,usingitsrequirementspeci¯cationlanguageandtestautomata,andmodel
+checked.UsingthegraphicsimulationtoolinUppaal,wedetectthereasonfor
+thenewproblem,whichthedevelopersencounteredintheredesign.Wepropose
+anewsolution,whichisbasedonthesolutionthatwasalreadyputforwardin
+[7].TheUppaalmodelwiththenewsolutionsatis¯esalltherequirements.
+Thedevelopersacknowledgethee±ciencyandusefulnessofformalveri¯-
+cationfortheirredesign.Oursolutionwillbeimplementedinthenewrelease
+oftheliftsystem;theyarenowmorecon¯dentinthecorrectfunctioningof
+theredesignedliftsystem.Thedevelopersstressthatformalmethodsshouldbe
+appliedintheearlydesignphasestosavetestinge®ortandcost.
+
+--- Page 3 ---
+2Theliftsystem
+2.1Layoutoftheliftsystem
+Theliftsystemconsistsofanarbitrarynumberoflifts.Eachliftsupportsone
+wheelofavehicle.Di®erentliftsystemsmayhaveadi®erentnumberoflifts,
+butthishasnoin°uenceontheanalysis,sincethisnetworkshouldoperatein
+thesamewayregardlesshowmanyliftsareconnected.
+Everylifthasitsownbuttons.Threebuttonsaretakenintoaccountinthe
+model:up,downandsetref.Ifanupordownbuttononacertainliftis
+pressed,allliftsinthesystemshouldmoveupordown.Pressingasetref
+buttononaliftistheonlywayarunofthesystemcanstart.
+Themovementofaliftsystemiscontrolledbymeansofamicrocontroller.
+Eachlifthasitsownmicrocontroller,calledstation.Thestationscanadoptfour
+di®erentstates: startup,standby,upanddown.Thestateofaliftcanchange
+intwoways:whenabuttonontheliftispressed,orbyreceivingamessagefrom
+thenetwork.
+Intheliftsystem,thedata¯eldofthemessagestransferredoverthebus
+cancontaintwopiecesofinformation:thepositionofthesenderstation,and
+thetypeofthemessage.Therearetwotypesofmessages: syncmessagesand
+statemessages.Statemessagesbroadcastthestateofthesendingstationtothe
+otherstations. syncmessagesinitiatephysicalmovement.Inresponsetoasync
+message,eachstationwillimmediatelytransferitsstatetothemotorofthelift,
+whichcausesmovement.Ifthestationisinup,theliftwillmoveupa¯xed
+distance;ifitisindown,theliftwillmovedown.
+Allthestationsareconnectedtoacan(ControllerAreaNetwork)bus[6].
+Thecanbusisasimple,low-cost,multi-masterserialbuswitherrordetection
+capabilities.Thebustransmitsmessagestothestations.Wheneverastation
+wantstosendamessage,itissaidtoclaimthebus.Stationscanreceivemessages
+atanymoment,butwhenastationwantstosendamessageithastowaituntil
+itisitsturntousethebus.Inthecanbus,allstationscanclaimthebusateach
+cycleandseveralstationscanclaimthebussimultaneously.Anon-destructiv e
+arbitrationmechanismisusedtodeterminewhichstationmaysenditsmessage.
+Theresultingusageofthebusisordered,andthestationstake¯xedturnsto
+sendtheirmessages.Toachievethisorderlyusageofthebus,beforetherealuse
+oftheliftsystemwecall`normaloperation',astart-upphasehasbeendesigned.
+Inthisphaseeachstation¯ndsoutitspositioninthenetworkandthetotal
+numberofliftsinthenetwork.Wheneachstationhasbeenassignedaunique
+position,avirtualtokencanpassamongthestationsinthesameordercycle
+aftercycle.Astationknowswhetheritisitsturntousethebusbychecking
+thepositionofthesenderstationinthereceivedmessage.Theorderlyusage
+ofthebusduringnormaloperationplaysacrucialroleintheanalysisofthe
+requirementsandintheproblemstheliftsystemfaces.
+Controlofthelift:Start-upThestart-upphasehastwofunctions.Firstit
+assignsauniquepositiontoeachliftinthenetwork.Thispositionworksasan
+
+--- Page 4 ---
+identity.Wheneachlifthasgotitsownposition,anorderlyusageofthebusis
+possible.Toassurethatallliftsmovesimultaneouslyinthesamedirection,the
+stationinitiatingacertainmovementmustverifywhetherallstationsareinthe
+appropriatestatebeforeitsendsthesyncmessage.Inordertodothis,each
+stationmustknowhowmanystationsthereareinthenetwork.
+Thereisarelaybetweeneverypairofadjacentstationsandeachrelayis
+controlledbythestationatitsleftside.Whenthesystemisswitchedonallthe
+relaysareopen.
+D
+A BC
+abc
+dD
+A BC
+adc
+b
+12 3
+4
+Fig.1.Stateoftherelaysbefore(left)andafter(right)initialization
+Thestart-upphaseisinitializedbythestationwherethesetrefbutton
+ispressed.Thisstationwillbehavedi®erentlyfromtheotherstationsinthe
+network.Itwillactasfollows(chronologicalorder):
+1.itstoresthatithasposition1,
+2.itadoptsthestartupstate,
+3.itclosesitsrelay,
+4.itbroadcastsastartupmessage,
+5.itopensitsrelay,
+6.itwaitsforastartupmessage,
+7.itstoresthepositionofthesenderofthatmessageasthenumberofstations
+inthenetwork,
+8.itadoptsthestandbystate,
+9.itbroadcaststhisstate.
+Theotherstationsreceiveastartupmessagefromanotherstation.The¯rst
+timeastationreceivesastartupmessage,itwillactasfollows:
+1.itadds1tothepositionofthesenderofthatmessageandstoresthisasits
+ownposition,
+2.itstoresitsownpositionasthenumberofstationsinthenetwork,
+3.itadoptsthestartupstate,
+
+--- Page 5 ---
+4.itclosesitsrelay,
+5.itsendsastartupmessage,
+6.{ifitreceivesanother startupmessage,itstoresthepositionofthe
+senderofthatmessageasthenumberofstationsinthenetwork,
+{ifitreceivesastandbymessage,itadoptsthestandbystate(ifthe
+stationhasposition2itwillinadditioninitiatenormaloperationby
+broadcastingitsstate).
+AssumethatintheleftpartofFig.1,thesetrefbuttonofstationBis
+pressed.Theendresultisthatallstationsareconnectedinthemannerpictured
+intherightpartofFig.1.Allstationsknowtheirpositionandallstationsknow
+thattherearefourliftsinthenetwork.Moreexplanationaboutthestart-up
+phasecanbefoundin[7].
+Controlofthelift:Normal OperationWhenthestart-upphaseis¯nished,
+allthestationsareinstandby.Duringthenormaloperationphase,the¯rst
+stationbroadcastsitsstate,thenthenextstationbroadcastsitsstateandso
+on,untilthelaststationhasbroadcastitsstate,afterwhichthe¯rststation
+startsagain.Thestateofaliftischangedifitsupordownbuttonispressed.
+Thestationwherethishappensiscalledanactivestation.Theactivestation
+willsendanupordownmessage,accordingtothebuttonthatwaspressed
+atthestation.Passivestationschangetheirstateaccordingtothemessages
+theyreceive,andwhenitistheirturntousethebustheybroadcastamessage
+accordingtotheirstate.Thesemessagesarereceivedbyalltheotherstations,
+andtheactivestationistheonlyonethatwillcountthem.Whenitcounts
+enoughstatemessages,theactivestationwillsendasyncmessage,afterwhich
+alltheliftsmove.Theorderedsendingofmessagesmakessurethattheactive
+stationcountsnomorethanonemessagefromeachstation.Incontrasttothe
+passivestations,thestateoftheactivestationcanonlychangeifthepressed
+buttonisreleasedagain.Inthatcaseitsstatechangestostandbyandthe
+stationbecomespassiveagain.Moredetailsaboutthisphase,includingwhat
+happenswhentwoupordownbuttonsatdi®erentliftsarepressedatthesame
+time,willbediscussedinSection3.
+2.2Requiremen ts
+Thedesiredbehaviorofthesystemisformulatedin¯verequirementsithasto
+ful¯ll.Theserequirementsarelistedbelow:
+1.Deadlockfreeness:Thesystemneverendsupinastatewhereitcannot
+performanyaction.
+2.LivenessI:Itisalwayspossibleforthesystemtogettoastateinwhich
+pressing upordownwillyieldtheappropriateresponse.
+3.LivenessII:Ifexactlyoneuporexactlyonedownbuttonispressedand
+notreleased,thenalltheliftswilleventuallymoveupordown.
+
+--- Page 6 ---
+4.SafetyI:Ifoneoftheliftsmoves,alltheotherliftsshouldsimultaneously
+moveinthesamedirection.
+5.SafetyII:Iftheliftsmove,anappropriatebuttonwaspressed.Theliftswill
+notmoveifnoonehaspressedanupordownbutton.
+Thetwolivenessrequirementsmakesurethatbuttonscanalwaysbepressed
+andinresponsetheliftswillalwaysmove.Thetwosafetyrequirementsmake
+surethatthesystemwillmoveproperly.InSection3,wepresentfourproblems
+intheoriginalliftsystem.Iftheliftsystemsatis¯esthe¯verequirementsabove,
+thosefourproblemsareguaranteedtoberesolved.
+3UPPAALmodeloftheredesign
+Uppaal[11]isatoolsetforvalidationandmodelcheckingofrealtimesystems,
+whicharemodeledasnetworksoftimedautomata[2]extendedwithglobal
+sharedvariables.Itconsistsofanumberoftoolsincludingagraphiceditorfor
+systemdescription,asimulatorandamodelchecker.TheideaoftheUppaal
+toolsetistomodelasystemusingtimedautomata,simulateitandthenverify
+propertiesofthesystem.Duringthedesignphase,thegraphicsimulatorisused
+intensivelytovalidatethedynamicbehaviorofeachdesignsketch,inparticular
+forfaultdetection,andlateronfordebuggingthegenerateddiagnostictraces.
+Theveri¯ermainlychecksforinvariantsandreachabilityproperties.Itdoesso
+byexploringthestatespaceofasystemusing`onthe°y'searchingtechniques.
+Itusessymbolictechniquestoreducetheveri¯cationofmodallogicformulas
+tosolvingsimplereachabilityconstraints.Somenotablerecentcasestudieswith
+Uppaalare[9,12,3].
+TheUppaalmodelpresentedinthissectionistheresultofafewsteps.
+Firstthe¹CRLmodeloftheoriginaldesignistranslatedintoUppaal.This
+modelisthenchangedintoarepresentationoftheredesignbyaddingthede-
+velopers'solutionstotheproblems,thatwerefoundintheoriginaldesign.The
+Uppaalmodeloftheredesignisalsomorespeci¯c,sinceinteractionsbetween
+theenvironmentandtheliftsystemareaddedthatwereabstractedawayinthe
+¹CRLmodeloftheoriginaldesign.Furthermore,themodelisextendedwith
+exacttiminginformation.Withrespecttotheexplanationoftheoriginaldesign
+inSection2,theredesigncanbeviewedasare¯nementofthe¹CRLmodel.
+However,thedesiredbehavioroftheliftisbasicallythesameasexplainedin
+Section2.Theredesignshouldthereforemeetthesamerequirementsasthe
+originaldesign.
+TheUppaalmodelcontainsfourcomponents.Theyareautomata: Station,
+Bus,Interfac eandTimer.InUppaal,anautomatoncanbeinstantiatedan
+arbitrarynumberoftimes.AsexplainedinSection2,theliftsystemconsistsof
+onebusandanarbitrarynumberoflifts.Theautomaton Busmodelsthecan
+bus.Foreachliftinthesystem,wecreatetwoautomata: StationandInterfac e.
+Theautomaton Stationmodelsthemicrocontroller.Inautomaton Interfac e,the
+pressingandreleasingofbuttonsontheliftismodeled.Theautomaton Timeris
+usedtomodeltimedelay.Inthissectionwewillwalkthroughthemodel.Dueto
+
+--- Page 7 ---
+spacelimitation,picturesoftheseautomataarepresentedwithonlysuper¯cial
+explanation.Detailedinformationcanbefoundin[10].
+3.1Transforming the¹CRLmodel
+Theoriginalliftsystemhasbeenanalyzedin¹CRL[8],whichcombinesthe
+processalgebraACP[4]withequationalabstractdatatypes.Toanalyzethe
+redesignofthissystem,¯rstwetransformthe¹CRLmodelintoUppaal.In
+thissection,wediscusssomemodelchoicesthathavebeenmade.
+ValuepassingThe¹CRLspeci¯cationofaprocessisconstructedfromaction
+names,recursionvariablesandprocessalgebraicoperators.Actionsandrecur-
+sionvariablescarryzeroormoredataparameters.Parallelcompositionpkq
+interleavestheactionsofprocessespandq;moreover,actionsfrompandq
+mayalsosynchronizetoacommunicationaction,whenthisisexplicitlyallowed
+byaprede¯nedcommunicationfunction.Twoactionscanonlysynchronizeif
+theyoccuratthesametime,andiftheirdataparametersaresemanticallythe
+same,whichmeansthatcommunicationcanbeusedtorepresentdatatransfer
+fromoneprocesstoanother.Thecommunicationfunctionwasusedheavilyin
+the¹CRLspeci¯cationin[7]tomodelthecommunicationsbetweenthebusand
+stations.HoweverinUppaal,datatransfer(orvaluepassing)betweenprocesses
+(orautomata)cannotbemodeledinthisway.
+left2
+rightbroadcastingleftbroadcastinginitial
+right42 right41left6
+right5 right3left5
+right2left4
+left12 deliverright1
+left11left3closerelay? openrelay?
+lifttobus?
+sender:=tobesender,
+tobesender:=0,
+messagestate:=tobemessagestate,
+tobemessagestate:=0,
+messageposition:=tobemessageposition,
+tobemessageposition:=0
+closedrelay[sender]==0closedrelay[sender]==1
+relaypointer:=sender
+sender>1sender==1
+relaypointer:=N
+relaypointer := sender-1closedrelay[relaypointer]==0
+closedrelay[relaypointer]==1relaypointer==0, 
+sender>1relaypointer==0,
+sender==1
+relaypointer>0relaypointer<N
+relaypointer:=relaypointer+1relaypointer==N
+relaypointer:=1relaypointer==senderrelaypointer==sender
+closedrelay[relaypointer]==1
+receiver:=relaypointerbustolift!
+relaypointer:=relaypointer-1receiver:=(relaypointer==N? 1: relaypointer+1)
+bustolift!relaypointer!=senderrelaypointer!=sender
+closedrelay[relaypointer]==0
+Fig.2.Theautomaton Bus
+Wede¯netwochannelsbetweenthebusandstations: bustoliftandliftto-
+bus,anddeclareseveralglobalvariablesfordatatransferwhencommunication
+happens.Whenastationwantstosendamessagetothebus,ithastoinstan-
+tiatethevaluesforsomeglobalvariablesinthemessage,forinstancethestate
+
+--- Page 8 ---
+andthesender'sposition.Whencommunicationtakesplace,thevaluesofthose
+globalvariablesaresavedtothevariablesusedbythebus.Aftercommunica-
+tion,thoseglobalvariablesareprovidedwithdefaultvalues.Inasimilarfashion,
+messagesaresentfromthebustostations.Detailedinformationcanbefound
+intheautomata StationandBus(seeFig.2,Fig.4andFig.5).
+Messages broadcasting In¹CRL,summationP
+d:Dp(d)providesthepossibly
+in¯nitechoiceoveradatatypeD.Inthe¹CRLspeci¯cationofthebus,when
+thebusgetsamessagefromastation,itcancomputethesetofstationswhocan
+getthismessageviaclosedrelays.Thenthebuscanchooseonestationfromthe
+setnondeterministically ,andsenditthemessage.Bythisway,wecanmodelthe
+broadcastingofamessage.InUppaal,thesummationoperatorisabsent.We
+setakindof¯xorderforthebustobroadcastamessage.Therelaycontrolled
+byastationismodeledasa°ag.Whentherelayisclosed,the°agissetto1;
+otherwiseitis0.Whenabusbroadcastsamessage,itstartstocheckthe°ag
+atthepositionofthemessagesender.Ifthe°agis1,itsendsamessagetothe
+stationconnectedbythisrelay,andcontinuestocheckthe°agofthisstation.
+Assoonasitreachesa°agwithvalue0,itcontinuesatthestationprecedingthe
+messagesender.Ifthe°agatthisstationis1,themessageissenttothestation,
+andthebuscontinuestocheckthe°agattheprecedingstation.Thisprocedure
+movesonuntilthebusreachesanother°agwithvalue0.Recallthatinboth
+phasesoftheliftsystem,thereisatleastoneopenrelay,whichguaranteesthat
+thebroadcastingprocedureterminates.Intheautomaton Bus(seeFig.2),when
+abusgetsamessageatthe`initial'node,itstartsbroadcastingthemessagefrom
+theleftpartofthepicture,thencontinuesattherightpart,and¯nallygoesback
+tothe`initial'node.
+OneSETREF button pressedIn[7],thesecondproblemoftheoriginal
+designwasfoundduringthestart-upphase.Itoccursifthesetrefbuttons
+attwoliftsarepressed.Theresultoftheproblemisthatafterthestart-up
+phasetherewillbetwoliftsystemsinsteadofone.Thesituationmayleadto
+theviolationofalltherequirements.Giventhechosenbusitseemsimpossible
+tosolvethisproblemsatisfactorily.Thedeveloperschosetoemphasizeinthe
+manualthatitisimportanttomakesurethatinthestart-upphasethesetref
+buttonofonlyoneliftispressed.Wealsotakethisassumptionintoouranalysis
+oftheredesign.
+IntheUppaalmodelitisimpossibletopressanother setrefbuttonaf-
+teroneispressed.Weuseguardsontransitionstoblockpressingofsetref
+buttonsafteronesetrefbuttonhasbeenpressed.Intheautomaton Inter-
+face(seeFig.3),avariable onesetr efisusedasaguardonbothtransitions
+fromtheinitialstate.Initiallythevariableiszero,sooneInterfac ecantake
+thetransitionwiththeguard`onesetref==0', ifthesetrefbuttononthelift
+ispressed.Thevariable onesetr efisnowsetto1.Inordertoleavetheirinitial
+state,theotherInterfac eautomatahavetotaketheothertransitionwiththe
+
+--- Page 9 ---
+inDowninUP
+onlyonesetrefinSBY
+onesetref==0
+setref!
+onesetref:=1,
+buttonstate[myid]:=Standbypressed[myid]<2,
+cyclecounter[myid]<CYCLES,
+buttonstate[myid]==Standby
+buttonstate[myid]:=Up,
+pressed[myid]:=pressed[myid]+1
+pressed[myid]<2,
+cyclecounter[myid]<CYCLES,
+buttonstate[myid]==Standby
+buttonstate[myid]:=Down,
+pressed[myid]:=pressed[myid]+1released[myid]<2,
+cyclecounter[myid]<CYCLES,
+buttonstate[myid]==Up
+buttonstate[myid]:=Standby,
+released[myid]:=released[myid]+1
+released[myid]<2,
+cyclecounter[myid]<CYCLES,
+buttonstate[myid]==Down
+buttonstate[myid]:=Standby,
+released[myid]:=released[myid]+1cyclecounter[myid]==CYCLES
+mainloop!
+pressed[myid]:=1, 
+released[myid]:=0
+cyclecounter[myid]==CYCLES
+mainloop!
+pressed[myid]:=1, 
+released[myid]:=0cyclecounter[myid]==CYCLES
+mainloop!
+pressed[myid]:=0, 
+released[myid]:=0
+onesetref>0
+buttonstate[myid]:=Standby
+Fig.3.Theautomaton Interface
+guard`onesetref>0'.Thereforeitissimplymadeimpossibletopressmorethan
+onesetrefbuttoninourUppaalmodel.
+3.2Adding thesolutions
+Intheautomaton Station,thetwophasesoftheliftsystemasexplainedin
+Section2areclearlydistinguishable.
+Start-upUntilallthestationshavereachedthenode`normaloperation',itis
+inthestart-upphase.Themainroleofthestart-upphaseisto¯ndoutwhich
+positionalifthasinthenetworkandhowmanyliftsthereareinthenetwork.The
+variables positionandnumberareassignedtoeachlifttostorethisinformation.
+ThestationwherethesetrefbuttonispressedwillmoveclockwiseinFig.4
+fromthe`initial'node.Itgetsposition1,closesitsrelay,andsendsastartup
+messagetothebus.Afterthatitopensitsrelayandwaitsforastartupmessage.
+Whenitgetsthestartupmessage,itadoptsthevalueofthevariable number
+inthismessage;thiswayitgetstoknowhowmanyliftsthereareinthesystem.
+Then,itsendsastandbymessageandreachesthe`normaloperation'node.The
+otherstationswillmoveanti-clockwiseinFig.4fromthe`initial'node.They
+¯rstgetastartupmessage,increasethesenderofthemessagebyone,andsave
+itastheirownposition.Theyclosetheirownrelayandsendastartupmessage.
+ThereisasmallloopinFig.4,toindicatethatthestationskeepgetting startup
+messagesandchangingtheknowledgeofthenumberofliftsinthesystem.In
+theend,theywillgetastandbymessage,andendupinthe`normaloperation'
+node.Whenallthestationshavereachedthe`normaloperation'node,allthe
+stationsarestandby.Theyallhaveauniquevalueforposition,andthevalue
+ofnumberofalltheliftsisequaltothetotalnumberofliftsinthenetwork.
+Sometimedelaysareaddedintothestart-upphasetosolveoneproblem
+foundduringtesting.ThetiminginformationwillbediscussedinSection3.3.
+
+--- Page 10 ---
+position2
+whatpositionbroadcaststartupmesx<=29closereceivestartupmes
+x<=24
+receivestartupmes2 x<=1inital
+relayopened
+x<=30
+sendstandbymessageinitialisewaitforturn
+endofSTwaittoopen
+x<=25sendstartupmes relayclosed
+x<=24setrefpressed
+waitforbusmes
+normaloperationsetref?
+x == 24
+tobesender:=myid, 
+tobemessagestate:=Startup,
+position[myid]:=1,
+currentstate[myid]:=Startup,
+number[myid]:=1,
+tobemessageposition:=1lifttobus!
+myid==receiver
+bustolift?myid==receiver
+bustolift?
+x:=0
+messagestate==Startup, 
+tobemessagestate==0
+number[myid]:=messageposition,
+currentstate[myid]:= Standby,
+tobesender := myid,
+tobemessagestate:=Standby,
+tobemessageposition:=position[myid],
+cyclecounter[myid]:=0,
+Echo[myid]:=0,Can[myid]:=0,Fcha[myid]:=0
+lifttobus!messagestate==Startup, tobemessagestate==0, x==24
+position[myid]:=messageposition+1,
+number[myid]:=messageposition+1,
+currentstate[myid]:=Startup,
+tobesender:=myid,
+tobemessagestate:=Startup,
+tobemessageposition:=number[myid]
+closerelay!
+closedrelay[myid]:=1
+myid==receiver, 
+messagestate==Standby
+bustolift?
+currentstate[myid]:=Standby,
+lastsender[myid]:=
+(messageposition==number[myid]? 0:messageposition),
+cyclecounter[myid]:=0,
+Echo[myid]:=0,Can[myid]:=0,Fcha[myid]:=0tobemessagestate==0
+tobesender:=myid,
+tobemessagestate:=Standby,
+tobemessageposition:=position[myid]
+myid==receiver, 
+messagestate==Startup
+bustolift?
+number[myid]:=messageposition,
+x:=0x==30
+position[myid]>=2, x==29
+lifttobus!
+x:=0(lastsender[myid]+1)==position[myid]closerelay!
+closedrelay[myid]:=1, 
+x:=0x==25
+openrelay!
+closedrelay[myid]:=0
+x==1
+x:=0(lastsender[myid]+1)!=position[myid]
+Fig.4.Theautomaton Station:Start-upphase
+Normal operationAtnode`normaloperation',astationentersthenormal
+operationphase,whichisdepictedinFig.5.Inthenormaloperationphase,
+adistinctionismadebetweentwoloopswhichastationcanperform.Oneis
+the`mainloop',whichtakesplaceatthenode`normaloperation'inFig.5;and
+theotheronewewillcall`internalloop',whichistheotherpartofFig.5.The
+di®erencebetweenthemainloopandtheinternalloopcanbestatedasfollows:
+inamainloopthestationreceivesstatemessagesfromitsInterfac eandcan
+changeitsstateaccordingly,andinaninternalloopthestationexchangesstate
+messageswithBusandchangesitsstateaccordingly.
+Themainloopisashortloopinwhichtheautomaton Stationsynchronizes
+withitsInterfac e.Executingthemainloopistheonlywaythestationcanget
+informationaboutwhichbuttononthelift(ifany)ispressedorreleased.This
+mainlooptakesplaceaftera¯xednumberofinternalloops,whichismodeled
+asaconstantCYCLESintheUppaalmodel.Andacountercyclecounteris
+usedtorecordthenumberofinternalloopsthathavehappenedafterthelast
+mainloop.When`cyclecounter==CYCLES', themainlooptakesplaceandcy-
+clecounterisresetto0.Ifthestationdetectsadi®erencebetweenitscurrent
+state(modeledbyvariable currentstate)andthestateoftheInterfac e(modeled
+byvariable buttonstate),thestationmaychangeitsstateandadopttheone
+fromtheInterfac e.Themainloopisalsopartoftheoriginaldesign,butitwas
+abstractedawayinthe¹CRLmodelin[7].IntheUppaalmodeloftheredesign
+
+--- Page 11 ---
+itcouldnotbeleftout,becauseaswewillseethesolutionsfromthedevelopers
+interactinacriticalwaywiththemainloop.
+Inaninternalloop,astationcandoseveralthings.Firstastationcanget
+messagesfromthebus.Second,astationcansendamessagetotheothersta-
+tions,ifitgetstheturntousethebus.Third,theactivestationcancountstate
+messagesandinitiateamovementofthewholesystem.Inthatcasetheactive
+stationwillenterthenode`activemovement',whiletheotherstationsgetasync
+messageandenterthenode`passivemovement'.Avariable moveisassociated
+toeachstationtoindicatethedirectionofthecurrentmovement.
+startmoving
+activemovementpassivemovementnormaloperation decidevalues
+S5
+gobacktonormalS4
+countenoughS3S2 S1
+wait2
+wait1getmessage
+sendingsyncmessendingstatemesmyturnwaitforbus2
+waitforbus1endofST
+myid==receiver,
+messagestate==Sync
+bustolift?
+move[myid]:=currentstate[myid]
+t10!
+move[myid]:=0myid==receiver,
+messagestate<Sync,
+cyclecounter[myid]<CYCLES
+bustolift?
+lastsender[myid]:=(messageposition==number[myid]?
+0:messageposition),
+cyclecounter[myid]:=cyclecounter[myid]+1
+counter[myid]!=1counter[myid]==1
+tobemessagestate==0
+tobesender:=myid,
+tobemessagestate:=Sync,
+tobemessageposition:=position[myid]
+move[myid]:=currentstate[myid]tobemessagestate==0
+tobesender:=myid,
+tobemessagestate:=currentstate[myid],
+tobemessageposition:=position[myid],
+counter[myid]:=number[myid]
+move[myid]:=0CAN[myid]==0,cyclecounter[myid]==CYCLES
+mainloop?
+counter[myid]:=(currentstate[myid]!=buttonstate[myid]?
+number[myid]:counter[myid]),
+ECHO[myid]:=(currentstate[myid]!=buttonstate[myid]?1:ECHO[myid]),
+FCHA[myid]:=(currentstate[myid]!=buttonstate[myid]?1:FCHA[myid]),
+currentstate[myid]:=buttonstate[myid],
+cyclecounter[myid]:=0CAN[myid]==1,cyclecounter[myid]==CYCLES
+mainloop?
+cyclecounter[myid]:=0
+CAN[myid]==1,
+currentstate[myid]!=StandbyECHO[myid]==0
+currentstate[myid]==Standby
+messagestate!=StandbyCAN[myid]==0,
+currentstate[myid]!=Standby
+counter[myid]:=(messagestate!=currentstate[myid]?
+counter[myid]:counter[myid]-1)CAN[myid]:=(currentstate[myid]==Standby?CAN[myid]:1),
+currentstate[myid]:=messagestate
+ECHO[myid]==1
+messagestate==Standby
+CAN[myid]:=0,FCHA[myid]:=0,
+ECHO[myid]:=(lastsender[myid]+1
+==position[myid]?0:ECHO[myid])
+currentstate[myid]:=
+(ECHO[myid]==1?currentstate[myid]:messagestate),
+CAN[myid]:=(ECHO[myid]==1?currentstate[myid]:1)t10!
+(lastsender[myid]+1)==position[myid](lastsender[myid]+1)!=position[myid]
+lifttobus! t10! t15!t20!lifttobus!t10!
+Fig.5.Theautomaton Station:Normaloperation
+FlagsProblemthreeandfourfoundin[7]occurinthenormaloperationphase.
+Thethirdproblemhappenswhenanupordownbuttonispressedandreleased
+ataninappropriate moment.Theliftsystemwillendupinthesituationthat
+allstationsareinupordownstate,butthereisnoactivestation.Thismeans
+thatalltheliftswillremaininthatstateuntilthesystemisshutdown.This
+problemviolatespropertyLivenessIIinSection2.2.Thereasonforthisproblem
+isthatintheoriginalsystemastationbecomespassiveassoonasthepressed
+buttononthisliftisreleased.Thisproblemwasdiscoveredbythedevelopers
+whentestingthesystem,andtheysolveditbymeansof°ags.
+Thefourthproblemoccurswhentwoupordownbuttonsondi®erentliftsare
+pressedatthesametimeandoneofthemisreleasedataninappropriatemoment.
+Asaresult,someliftswillmove,andonelift(wherethebuttonisreleased)
+remainsatthesameheight.ThisviolatespropertySafetyIinSection2.2.The
+reasonforthisproblemisthatastationbecomesactiveassoonasabuttonon
+
+--- Page 12 ---
+thisliftispressed.Thisproblemwasunknowntothedevelopersandfoundits
+wayintothe¯nalimplementationoftheoriginalsystem.Thedetaileddescription
+ofeachproblemcanbefoundin[7].Weproposedtosolvethisproblemby
+allowingastationtodecidetobeactiveorpassiveonlywhenitisitsturntouse
+thebus.Inthispaper,wefocusonthesolutionsfromthedevelopers,andexplain
+howtheyfailtosolvetheproblemsinSection4.Furthermore,inSection5we
+re¯neoursolutionfrom[7],andshowthatitdoessolvetheproblems.
+Thedevelopersattemptedtosolvethethirdproblemwith°ags.Whenthey
+aresettheirvalueis1,andwhentheyareresettheirvalueis0.The°agsserveas
+blocks:theycanpreventstatechangeswhentheyareset.Twotypeof°agsare
+usedintheredesign,i.e.Can,Echo.Everystationhasitsown°ags.Initiallyall
+°agsare0.TheCan°agissetwhenastationreceivesastatemessagefromthe
+bus.Anexceptionisthestandbymessage.Ifastationreceivesthismessage,the
+oppositehappens:Canisreset,butonlywhenthecurrentstateofthestationis
+alsostandby;otherwise Canisleftunchanged.Theideaofthedeveloperswas
+tousetheCan°agtoblockstatechangesbythemainloop.IfCanisset,the
+mainloopcannotchangethestateofthestation.InFig.5,wehavetwomain
+loopswithdi®erentguards.Oneis`CAN==1',andtheother`CAN==0'.If
+`CAN==0'themainloopistaken.Thecurrentstateofthestationiscompared
+withtheInterfac e.InFig.3,Interfac ecancommunicatewithStationwhenitis
+inthenodes`inUp'(theupbuttonispressed),`inDown'(thedownbuttonis
+pressed)or`inSby'(nobuttonispressed).If`CAN==1',somecounterssuchas
+cyclecounterarereset,butnothingelsehappens.
+TheEcho°agcanonlybesetviathemainloopwithguard`CAN==0'.
+Whenthestationdetectsadi®erencebetweenitscurrentstateandthestate
+ofthebutton, Echoisset.When Echoisset,thestateofthestationcannot
+changebymessagesitreceivesfromthebus.LikeCan,Echocanonlybereset
+whenthestateofthestationisstandbyandastandbymessageisreceived
+fromthebus.ButforEcho,thereisanextrarequirementthathastobeful¯lled
+beforeitcanbereset:ithastobethestation'sturntousethebus.
+3.3Adding timing information
+ThetimemodelinUppaaliscontinuousordense.Clocksareusedtocapture
+timeinUppaal.Theycanbeassociatedwithatransitionoranode.Ina
+transition,clockvariablescanberesetorusedasaguard.Inanode,clock
+variablescanbeusedasaholduptolettheprocessstayinthatnodefora
+certainamountoftime.Suchnodesaresaidtobelabeledwithaninvariant.
+Thewaywemodeledthetimeinformationoftheliftsystemisin°uencedby
+thedevelopers'solutiontosolveoneproblemfoundinthestart-upphase.Itis
+alsoin°uencedbythefactthatduringnormaloperationthestationstake¯xed
+turnstousethebus.Duringthestart-upphasethereisnosuchorder.This
+di®erencehasledtoadi®erenttreatmentofthetiminginformationinthetwo
+phases.We¯rstdiscussthestart-upphaseandthennormaloperation.
+
+--- Page 13 ---
+Start-upThe¯rstproblemfoundin[7]occursinthestart-upphase.Ithasto
+dowiththere-openingoftherelaybetweenthe¯rstandsecondliftatthewrong
+moment.ConsiderFig.1inSection2again.Thesetrefbuttonispressedon
+stationB,whichclosesitsrelayandsendsastartupmessagetostationC.
+IfstationCsendsastartupmessagebeforetherelaybetweenstationBand
+stationCisopened,thismessageisreceivedbystationB,whichdrawsthe
+incorrectconclusionthatthereareonlytwoliftsinthenetwork.
+ThesolutiontothisproblemistoletstationC(oringeneralthestationwith
+position2)waituntiltherelaybetweenthe¯rststationandthesecondstation
+isopened,beforesendingthestartupmessage.Thedevelopersaddeddelaysto
+theoriginaldesigntomakesurethishappens.
+Intheredesign,duringthestart-upphase,alocalclock`x'isassignedtoeach
+station.Thelocalclockisresetwhenastationgetsastartupmessage,ora
+setrefbuttonispressed.Thisisusedtocapturethemomentwhenthestations
+jointhenetwork.Receivingamessagefromthebusorsendingamessagetothe
+buscosts1millisecond.Theopeningandclosingofarelaycost5milliseconds.
+Thereisadelayof24millisecondsbeforesendingastartupmessage.Thisis
+allthetiminginformationinthestart-upphase.
+Normal operationDuringnormaloperation,thelocalclocksusedduringthe
+start-upphasearenotusedanymore.Insteadweuseoneglobal.Wecreatean
+extraautomaton TimerdepictedinFig.6.
+n15 k<=15n5
+k<=5
+backn10 k<=10start
+go
+k<=0
+n20
+k<=20t5?t10? t15?t20?
+k==5k==10k==15
+k==20k:=0endofST==N
+k:=0
+Fig.6.Theautomaton Timer
+Transitionsnormallydon'ttaketimeinUppaal,butthisdoeshappeninthe
+liftsystem.Eachmainloopconsumes1millisecond.Aftereachmainloop,the
+stationwaits0.5millisecondtogetmessagesfromthebus.Duringtheinternal
+loop,thereceivingandsendingmessagestake1millisecond.Beforesendinga
+syncmessage,stationsdelay1.5milliseconds.Beforesendingastatemessage,
+stationsdelay2milliseconds.Thisisallthetiminginformationinthenormal
+operationphase.WeuseTimertoexpresstimeconsumptionbytransitions;this
+
+--- Page 14 ---
+ideaisborrowedfrom[9].Theguard`endofST==N' makessurethattheTimer
+isonlyusedinnormaloperation,whereNisthenumberofliftsinthesystem.In
+node`go',timeisconstrainedtonotprogressatall.Thismeansthatinorderfor
+timetoprogress,oneoftheedges`tn?'mustbetaken;wheren2f5;10;15;20g
+expressestheamounttimeofdelay.Theseedgesthenleadtonodeswheretime
+canprogresswiththecorrespondingnumberoftimeunits,whereaftercontrol
+returnsimmediatelytothe`go'node.
+Concluding,thefourproblemsintheoriginalsystemare:
+1.Therelaybetweenthe¯rstandsecondliftisre-openedatthewrongmoment;
+2.Thesetrefbuttonsattwoliftsarepressedinthestart-upphase;
+3.Anupordownbuttonispressedandreleasedataninappropriatemoment;
+4.Twoupordownbuttonsatdi®erentliftsarepressedatthesametime,and
+oneisreleasedataninappropriatemoment.
+4Analysis oftheredesign
+Sincetheredesigndoesnotchangethedesiredexternalbehavioroflifts,the
+UppaalmodeloftheredesignshouldsatisfyalltherequirementsinSection2.2.
+WeformulatethoserequirementsintheUppaalrequirementspeci¯cationlan-
+guage,andverifythem,sometimeswiththehelpoftestautomata,tocheck
+whethertheredesignsolvesproblems3and4.Wedonotgivethede¯nitionand
+explanationoftheUppaalrequirementspeci¯cationlanguage[11];weexpect
+thattheformulasinthissectioncanbeunderstoodwithoutdi±culties.
+4.1Expressing therequiremen ts
+We¯rstcheckdeadlockfreeness.ThiscanbetranslatedintotheUppaalre-
+quirementspeci¯cationlanguagedirectly:
+{A[]notdeadlock
+Theredesignsatis¯esthisproperty,whichindicatesthatthesolutionfromthe
+developerssolvesthe¯rstproblemfoundin[7].Intheimplementationofthelift
+system,thedelayforeachstartupmessageis24milliseconds.IntheUppaal
+model,adelayof6millisecondsforeachstartupmessageisalreadyenoughto
+solvethisproblem.
+LivenessIsaysthatbuttonsonaliftcanbepressedandreleasedwhenever
+theuserwants,andthatthesystemwillrespondtothis.Afterimplementingthe
+mainloopintheUppaalmodel,itisalwayspossibletopressorreleasebuttons.
+Sofortheredesign,LivenessIbecomestrivial.
+LivenessIIsaysthatifanupordownbuttonispressedandnotreleased
+andnootherbuttonispressed,allliftswillmove.IntheUppaalrequirement
+speci¯cationlanguage,itisimpossibletoexpressthisproperty.Fortunately,
+accordingto[1],wecantransformthispropertyintoatestautomaton,inwhich
+anapproachisdevelopedtomodel-checkingoftimedautomataviareachability
+
+--- Page 15 ---
+testing.Theideaistocreatea`bad'stateinthetestautomatonandletthe
+veri¯ercheckwhetherthesystemcanreachthisstate.Ifitdoes,thesystem
+violatesacertainproperty.
+Thetestautomatonmayneedsomeextra`decorations'fortheveri¯cation
+purpose.Inprinciple,withthetestautomatonwecanexpressallscenarioswe
+wanttocheck.Asthiswouldleadtoapossiblyin¯nitestatespace,somescenarios
+whicharenotinterestingcanbeabstractedaway.Forexample,intheliftsystem,
+thebuttonscanbepressedandreleasedmanytimes.Weconsideronlythose
+scenarioswhereabuttonononeliftispressedandreleasedatmostonce.The
+automatonfortheLivenessIIrequirementisdepictedinFig.7.
+initial wait2badwait1wait3
+endofST==Nvisitmovement<N, 
+enoughcycles==NCYCLEpress?
+visitmovement:=0, 
+enoughtcycles:=0
+nomore<NOMORE release? nomore:=nomore+1nomore<NOMORE
+press?release?
+nomore:=nomore+1
+Fig.7.ThetestautomatonforLivenessII
+WeaddnewsynchronizationsbetweentheInterfac eautomataandthetest
+automatonviapressandreleasechannels,tomodelthenumberofpressingand
+releasingactions.Inthetestautomatononlyonepressingandreleasingper
+liftcantakeplace. nomor eisavariablethatisusedtoblockmorepressing
+andreleasingactions.Thistestautomatonisusedtoexpressthatifabutton
+ispressedandnotreleasedanymore,aftersomeperiodoftime(modeledby
+variable enoughcycles)alltheliftswillmove.Wenowcheckwhetherthetest
+automatoncanreachthenode`bad'.Ifthetestautomatonreachesthenode
+`bad',itmeansthatnotalltheliftshavemovedandthesystemviolatesproperty
+LivenessII.
+{A[]nottestautomaton.bad
+Testautomataarealsousedtomodelandchecktheothertwosafetyprop-
+erties.
+WithLivenessII,wecouldcheckthatifonebuttonispressed,allthelifts
+reachtheir`activemovement'or`passivemovement'nodewithinacertainamount
+oftime.Whatwedonotcheckiswhethertheymoveinthesamedirection.Safety
+Idemandsthatwheneveraliftmoves,alltheotherliftsmovesimultaneously
+inthesamedirection.ThecorrespondingtestautomatonisdepictedinFig.8.
+Thistestautomatonwaitsforonelifttoreachthe`activemovement'node,which
+isdetectedbyasynchronizationonchannel`go?'betweenStationandthistest
+automaton.Thetestautomatonthencheckswhethertheotherliftsmoveinthe
+
+--- Page 16 ---
+initial wait
+badgo?
+enoughcycles:=0visitmovement!=N,
+enoughcycles==NCYLES
+Fig.8.ThetestautomatonforSafetyI
+samedirection(modeledbyguard`visitmovement!=N')withinacertainamount
+oftime(modeledby`enoughcycles==NCYCLES').
+SafetyIIstatesthattherewillbenomovementwhennobuttonhasbeen
+pressed.ThecorrespondingtestautomatonisdepictedinFig.9.Thevariable
+initial wait
+badnoupdown==0
+visitmovement>=1
+Fig.9.ThetestautomatonforSafetyII
+noupdown(meaningnoupordownbuttonpressed)isusedtoblockallpressings
+ofbuttonsintheInterfac es.Nowwecancheckwhetheritisstillpossibleforthe
+liftstoreachmovementnodes(modeledby`visitmovement¸0').
+Theredesignsatis¯esrequirementSafetyII,andviolatesrequirementsLive-
+nessIIandSafetyI.Wewilldiscussthediagnostictracesandthereasonsinthe
+nextsection.
+4.2Problems
+Thedevelopersinvented°agstosolvethethirdproblemfoundin[7].These
+°agsseemtosolvetheerrorscenariodescribedin[7].Butduringthetesting
+phase,thedevelopersencounteredanewerror;againthecauseforthiserror
+wasnotcleartothem.WehavebuiltaUppaalmodel(seeSection3)forthe
+redesignandcheckedit.LivenessIIturnsouttobeviolated.We¯rstinvestigate
+thediagnostictracegeneratedbythemodelcheckerinUppaal,andthengive
+thereasonwhythesolutionfromthedevelopersfails.Thegenerateddiagnostic
+tracecontains256transitions;weusedthegraphicsimulationtoolinUppaal
+toanalyzeit.
+Initiallyallthe°agsare0.Whenanupbuttonispressedononestation(A),
+EchowillbesetandthestateofstationAwillchangetoup.StationAsendsan
+upmessage.TheotherstationswillsettheCan°agandchangetheirstateto
+
+--- Page 17 ---
+up.Supposethebuttonisreleasedagain.The°agofstationAdoesnotchange,
+butitsstatewillchangetostandby(seethemainloopinFig.5).StationAwill
+sendastandbymessagewhichtheotherswilladopt.Whentheyhaveadopted
+thisstate,andiftheyreceiveanother standbymessage,theCan°agsofthe
+otherstationswillbereset.AfterashortwhileallCan°agsinthenetwork
+are0,EchoofstationAis1,andallthestatesofthestationsarestandby.
+Supposenowthatanupbuttonofanotherstation(B)ispressed.StationB
+willsendanupmessage.StationAwillreceivethisbutcannotchangeitsstate
+because Echoisset.WhenitisstationA'sturntousethebusitwilltherefore
+sendastandbymessage.StationBwillreceivethisstandbymessage,andit
+willnotcountenough upmessages.Thewholecountingprocedurehastostart
+overagain.StationBwillsendanupmessage.Theotherstationswilladopt
+thisstateandsendaupmessage.ButwhenitisstationA'sturn,againsince
+Echoisset,itwillsendastandbymessageandstationBwillagainnotcount
+enough upmessages.ItisclearthattheEchoofstationAshouldberesetto
+getoutofthissituation,butthatcanonlyhappenwhenthestateofthestation
+isstandby,astandbymessageisreceived,anditisthisstation'sturntouse
+thebus.ForstationAthisneverhappens.Asaresult,thewholesystemwill
+nevermove,evenwhenanupbuttonispressed.
+Thetestautomatondetectsthisproblem.Eventhoughthesolutionofthe
+developershassomevirtue,theyseemnottohavetakenintoaccountthatthe
+mainreasonforthethirdproblemliesinthefactthattheactivestationimmedi-
+atelychangesitsstatetostandbyafterabuttonisreleased.Theirsolutionwas
+directedtoblockstatechangestotheactivestationafteritsstatehaschanged
+tostandby.Thisisnottheheartoftheproblemandthereforetheproblem
+remainsintheredesign.
+Thefourthproblemfoundin[7]isalsostillintheredesign.Theredesign
+violatesSafetyIproperty.Thereasonresembleswhatisalreadyexplainedin
+[7].Thisisnotverysurprising,sincethefourthproblemwasunknowntothe
+developersatthetimeoftheredesign.
+5Anewsolution
+Inthissection,were¯nethesolutionproposedin[7]insuchawaythatit
+correspondswithUppaalandresembletothesolutionfromthedevelopers.
+Thekeypointwhyoursolutiondi®ersfromthe°agsaddedintotheredesignis
+thatoursolutioncreatesalinkbetweenthestatechangeofastationandthe
+turnofthestationtousethebus.Thisideawasalreadymentionedinthe¹CRL
+model[7],butitwasnotfurtherspeci¯ed.Withthemoreexactmodelofthe
+redesign,includingthemainloop,andusingtheideaofthe°agsthedevelopers
+cameupwith,nowweworkouttheideaindetail.
+Thenew°agsarecalled ChangeandActive.Theyareassignedtoeach
+station. CanandEchoarenolongerapartofthenewsolution.WhenActiveis
+1,thecorrespondingstationisactive;otherwise,thestationispassive.Change
+ofastationissetwhenthereisabuttonpressedorreleasedatthisstation
+
+--- Page 18 ---
+(throughthemainloop).ThisisusedtorememberthattheActive°agat
+thisstationmustchangefromactivetopassive,orviceversa.Onlywhenthe
+stationgetsitsturntousethebus,thischangewillactuallyhappen.Ifone
+stationwantstobecomeactive,ithastomakesurethattherearenoother
+activestationsinthesystem,bycheckingwhetherthestateofthemessagefrom
+thebusisstandby.IftheChangeofastationisset,thisstationdoesnot
+changeitsstateuntilitisitsturntousethebustomakeadecision. Change
+isresettogetherwithasettingorresettingofActive.
+Changingthenew°agshasnoe®ectontheautomata Interfac e,Busand
+Timer.Theyareexactlythesameasintheredesign.Onlytheautomaton Station
+hasundergonecrucialchanges.WewillnotexplainthenewStationautomaton
+indetail,moreinformationcanbefoundin[10].Allrequirementshavebeen
+checkedsuccessfullyonthemodelwiththisnewsolution.Inparticular,problem
+threeandfourareresolved.
+6Concluding remarks
+Inthispaper,wehavereportedanindustrialcasestudyonapplyingformal
+techniquesforthedesignandanalysisofadistributedsystemforliftingtrucks.
+Ourworkcanbeconsideredasonepieceofevidencethatformalveri¯cation
+techniquesarematureenoughtobeappliedinindustrialprojects.
+Theliftsystemhasbeenanalyzedintheprocessalgebraiclanguage¹CRL
+[7].Fourproblemswerefound.Threeofthemwerealsofoundbythedevelopers
+duringthetestingphase.Theyproposedsolutionsandmadearedesign.Butthey
+facedanewproblem.TheredesignwasthenmodeledinUppaal.Theanalysis
+inSection4hasproducedsomeinterestingresults.The¯rstisthattheredesign
+doesnotsatisfyalltherequirements.Second,theredesigndoesnotsolveall
+theproblemswiththeoriginaldesign.Onlyoneproblemissolvedbyadding
+timedelays.Thethirdproblem,forwhichthose°agsweredeveloped,andthe
+fourthproblemarenotsolved.Third,oursolutionin[7]wasre¯ned,andwillbe
+implementedinthenewreleaseoftheliftsystem.
+SincemoredetailsoftheliftsystemaretakenintoaccountintheUppaal
+model,thestatespaceoftheredesignincreasesdramatically.In[7],wecouldan-
+alyzethe¹CRLmodelwithupto¯velifts.Withthecurrentversionofthe¹CRL
+toolset,wecangetuptosevenliftsonaclusteratCWI,owingtoadistributed
+statespacegenerationalgorithm.FortheUppaalmodeloftheredesign,we
+couldonlymanagetheanalysisforsystemswiththreelifts.Therequirements
+werecheckedona1.4GHzAMDAlthlonTMProcessorwith512Mbmemory.
+Acknow ledgmentsWethankthedevelopersoftheliftsystemsfortheircollabo-
+rationandfruitfuldiscussions.Wethanktheanonymousrefereesfortheiruseful
+comments.
+
+--- Page 19 ---
+References
+1.L.Aceto,A.BurguenoandK.G.Larsen.Modelcheckingviareachabilitytesting
+fortimedautomata.InProceedingsof4thInternational ConferenceonToolsand
+Algorithms forConstruction andAnalysisofSystems,LNCS1384,pp.263-280.
+Springer-Verlag,1998.
+2.R.AlurandD.L.Dill.Atheoryoftimedautomata. TheoreticalComputer Science,
+126(2):183{235, 1994.
+3.J.Bengtsson,W.O.D.Gri±oen,K.J.Kristo®ersen,K.G.Larsen,F.Larsson,P.
+Pettersson,andY.Wang.Automatedanalysisofanaudiocontrolprotocolusing
+UPPAAL.JournalofLogicandAlgebraicProgramming,52-53:163{181, 2002.
+4.J.A.BergstraandJ.W.Klop.Processalgebraforsynchronouscommunication.
+Information andComputation,60:109{137,1984.
+5.S.C.C.Blom,W.J.Fokkink,J.F.Groote,I.A.vanLangevelde,B.Lisser,andJ.C.
+vandePol.¹CRL:Atoolsetforanalysingalgebraicspeci¯cations.InProceedings
+of13thConferenceonComputer AidedVeri¯cation,LNCS2102,pp.250{254.
+Springer,2001.
+6.RobertBoschGmbh,Postfach300240,D-70442Stuttgart,Germany.CANSpec-
+i¯cation.Version2.0,1991.
+7.J.F.Groote,J.Pang,andA.G.Wouters.Analysisofadistributedsystemfor
+liftingtrucks.JournalofLogicandAlgebraicProgramming,55(1/2):21{56, 2003.
+8.J.F.GrooteandA.Ponse.Thesyntaxandsemanticsof¹CRL.AlgebraofCom-
+municatingProcesses'94,WorkshopsinComputingSeries,pages26{62.Springer-
+Verlag,1995.
+9.K.Havelund,K.G.LarsenandA.Skou.Formalveri¯cationofapowercontroller
+usingthereal-timemodelcheckerUPPAAL.InProceedingsof5thInternational
+AMASTWorkshop onFormalMethodsforReal-TimeandProbabilisticSystems,
+LNCS1601,pp.277-298.Springer-Verlag,1999.
+10.B.Karstens. Formalveri¯cationoftheredesignofadistributedliftsystemusing
+UPPAAL.Masterthesis,UtrechtUniversity,2003.Availableathttp://www.cwi.
+nl/~pangjun/research/liftredesign.ps
+11.K.G.Larsen,P.Pettersson,andY.Wang.UPPAALinanutshell.International
+JournalonSoftwareToolsforTechnologyTransfer,1(1{2):134{152, 1997.
+12.M.Lindahl,P.Pettersson,andY.Wang.Formaldesignandanalysisofagearcon-
+troller.International JournalonSoftwareToolsforTechnologyTransfer,3(3):353{
+368,2001.
