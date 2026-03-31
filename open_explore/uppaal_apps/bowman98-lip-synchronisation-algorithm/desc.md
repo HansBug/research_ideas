@@ -11,7 +11,8 @@
 - 发表：FMICS 1998 Workshop 扩展版
 - DOI：原文 `bibtex.bib` 未给出
 - 链接：[论文 PDF](https://uppaal.org/texts/bfklm-fimcs98.pdf)
-- 应用领域：🧩 软件、架构与组件系统
+- 主轴分类：⏱️ 调度、资源与性能分析
+- 次轴场景：🎵 多媒体与消费电子
 - 被验证系统：分布式多媒体系统中的 lip synchronization 算法
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：原文未提供公开模型仓库或独立工件包。

@@ -11,7 +11,8 @@
 - 发表：BRICS Report Series，Vol.6 No.8，1999
 - DOI：`10.7146/BRICS.V6I8.20065`
 - 链接：[DOI](https://doi.org/10.7146/BRICS.V6I8.20065)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🎵 多媒体与消费电子
 - 被验证系统：音视频组件中的 power-down / power-up 控制系统
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：官方 [UPPAAL Benchmarks](https://uppaal.org/benchmarks/) 仍保留 `bopdp` / `bopdpFIXED` 历史条目说明，但当前公开下载直链已失效；原文未给新的仓库入口。

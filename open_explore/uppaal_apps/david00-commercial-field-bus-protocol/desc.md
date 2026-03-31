@@ -11,7 +11,8 @@
 - 发表：ECRTS 2000，pp.165-172，IEEE Computer Society
 - DOI：`10.1109/EMRTS.2000.854004`
 - 链接：[DOI](https://doi.org/10.1109/EMRTS.2000.854004)
-- 应用领域：🏭 工业系统与 `CPS`
+- 主轴分类：🛰️ 协议与通信机制
+- 次轴场景：🏭 工业与基础设施
 - 被验证系统：ABB AF100 商业现场总线协议的 bus coupler / data link layer
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：原文未提供公开模型仓库或脚本链接。

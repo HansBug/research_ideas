@@ -11,7 +11,8 @@
 - 发表：IEEE Pacific Rim International Symposium on Fault-Tolerant Systems 1997，pp.235-242
 - DOI：原文 `bibtex.bib` 未给出
 - 链接：[论文 PDF](https://uppaal.org/texts/lp-prfts97.pdf)
-- 应用领域：🛰️ 协议与通信系统
+- 主轴分类：🛰️ 协议与通信机制
+- 次轴场景：🌐 网络与分布式服务
 - 被验证系统：DACAPO 协议的 `TDMA` 启动同步机制
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：原文未提供公开模型仓库或独立下载包。

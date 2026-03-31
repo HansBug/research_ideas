@@ -11,7 +11,8 @@
 - 发表：PeerJ Computer Science 2024
 - DOI：`10.7717/peerj-cs.2377`
 - 链接：[DOI](https://doi.org/10.7717/peerj-cs.2377)
-- 应用领域：🧩 软件、架构与组件系统
+- 主轴分类：🧩 软件服务与业务流程
+- 次轴场景：🎓 教育与考试流程
 - 被验证系统：电子考试流程与角色协作系统
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：论文公开了 [GitHub 仓库](https://github.com/TURTING-BO/An-Electronic-Examination-Model-Based-on-UPPAAL) 和 [Zenodo 归档](https://doi.org/10.5281/zenodo.12787513)。

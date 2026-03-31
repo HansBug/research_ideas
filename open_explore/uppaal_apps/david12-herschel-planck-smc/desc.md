@@ -11,7 +11,8 @@
 - 发表：ISoLA 2012，pp.293-307，Springer
 - DOI：`10.1007/978-3-642-34032-1_28`
 - 链接：[DOI](https://doi.org/10.1007/978-3-642-34032-1_28)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：⏱️ 调度、资源与性能分析
+- 次轴场景：🚀 航天
 - 被验证系统：Herschel-Planck 卫星单处理器控制软件任务集（带执行时间区间）
 - UPPAAL线：`UPPAAL SMC`
 - 代码/模型/仓库获取方式：官方模型仓库公开了 [Herschel-SMC2.xml](https://github.com/DEIS-Tools/uppaal-models/blob/main/CaseStudies/HerschelPlanck2012/Herschel-SMC2.xml) 等模型文件。

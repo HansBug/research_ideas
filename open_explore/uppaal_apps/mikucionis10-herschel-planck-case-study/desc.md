@@ -11,7 +11,8 @@
 - 发表：ISoLA 2010，pp.175-190，Springer
 - DOI：`10.1007/978-3-642-16561-0_21`
 - 链接：[DOI](https://doi.org/10.1007/978-3-642-16561-0_21)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：⏱️ 调度、资源与性能分析
+- 次轴场景：🚀 航天
 - 被验证系统：Herschel-Planck 卫星单处理器控制软件任务集
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：官方模型仓库公开了 [HerschelPlanck2010](https://github.com/DEIS-Tools/uppaal-models/tree/main/CaseStudies/HerschelPlanck2010) 目录及 `HerschelEvents2.xml` 等模型。

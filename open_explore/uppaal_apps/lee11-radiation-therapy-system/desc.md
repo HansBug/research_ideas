@@ -11,7 +11,8 @@
 - 发表：ISPA Workshops 2011，pp.50-54，IEEE
 - DOI：`10.1109/ISPAW.2011.19`
 - 链接：[DOI](https://doi.org/10.1109/ISPAW.2011.19)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🏥 医疗与健康
 - 被验证系统：带呼吸补偿的放疗定位/跟踪控制系统
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：可通过 [作者公开 PDF](http://www.kevin-lee.co.uk/work/research/KLMKrilaviciusEtAl_ISPA2011.pdf) 获取正文；原文未提供独立模型仓库。

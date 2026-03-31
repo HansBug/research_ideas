@@ -11,7 +11,8 @@
 - 发表：TACAS 2011，pp.357-371，Springer
 - DOI：`10.1007/978-3-642-19835-9_32`
 - 链接：[DOI](https://doi.org/10.1007/978-3-642-19835-9_32)
-- 应用领域：🧩 软件、架构与组件系统
+- 主轴分类：🛰️ 协议与通信机制
+- 次轴场景：🌐 网络与分布式服务
 - 被验证系统：WS-Business Activity 中的 BAwCC 协议
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：论文 PDF 可通过 [UPPAAL texts](https://uppaal.org/texts/rsv-tacas11.pdf) 获取；官网历史模型压缩包 `rsv-tacas11.zip` 当前返回 `404`。

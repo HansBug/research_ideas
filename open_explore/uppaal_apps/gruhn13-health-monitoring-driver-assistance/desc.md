@@ -11,7 +11,8 @@
 - 发表：ICTs for Improving Patients Rehabilitation Research Techniques 2013，IEEE
 - DOI：`10.4108/icst.pervasivehealth.2013.252091`
 - 链接：[DOI](https://doi.org/10.4108/icst.pervasivehealth.2013.252091)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🚦 交通、车载与铁路
 - 被验证系统：面向心脏病高风险驾驶员的健康监测驾驶辅助系统
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：原文可通过 [DOI](https://doi.org/10.4108/icst.pervasivehealth.2013.252091) 获取；未提供公开 `UPPAAL` 模型或证明脚本仓库。

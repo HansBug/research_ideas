@@ -11,7 +11,8 @@
 - 发表：COMSNETS 2021
 - DOI：`10.1109/COMSNETS51098.2021.9352946`
 - 链接：[DOI](https://doi.org/10.1109/COMSNETS51098.2021.9352946)
-- 应用领域：🚦 交通、调度与资源系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🚦 交通、车载与铁路
 - 被验证系统：大城市多路口异构交通灯协调控制系统
 - UPPAAL线：`UPPAAL Stratego`
 - 代码/模型/仓库获取方式：作者公开了 [Intelligent Traffic Light Controller using Uppaal Stratego](https://github.com/ThamilselvamB/Intelligent-Traffic-Light-Controller-using-Uppaal-Stratego)。

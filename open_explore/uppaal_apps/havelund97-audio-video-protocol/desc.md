@@ -11,7 +11,8 @@
 - 发表：RTSS 1997，pp.2-13，IEEE Computer Society
 - DOI：`10.1109/REAL.1997.641264`
 - 链接：[DOI](https://doi.org/10.1109/REAL.1997.641264)
-- 应用领域：🛰️ 协议与通信系统
+- 主轴分类：🛰️ 协议与通信机制
+- 次轴场景：🎵 多媒体与消费电子
 - 被验证系统：Bang & Olufsen 音视频设备控制协议
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：可通过 [UPPAAL Case Studies](https://uppaal.org/casestudies/) 找到该经典案例入口，但原文未给当前可直接下载的独立模型包。

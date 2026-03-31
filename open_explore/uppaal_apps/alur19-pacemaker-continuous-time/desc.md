@@ -11,7 +11,8 @@
 - 发表：Computing and Software Science, 2019, pp.452-477，Springer
 - DOI：`10.1007/978-3-319-91908-9_22`
 - 链接：[DOI](https://doi.org/10.1007/978-3-319-91908-9_22)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🏥 医疗与健康
 - 被验证系统：双腔植入式心脏起搏器及其心脏环境模型
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：官方模型仓库公开了 [pacemaker.xml](https://github.com/DEIS-Tools/uppaal-models/blob/main/CaseStudies/Pacemaker2019/pacemaker.xml)。

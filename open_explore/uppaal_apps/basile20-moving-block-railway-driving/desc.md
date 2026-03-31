@@ -11,7 +11,8 @@
 - 发表：FORTE 2020, LNCS 12136，Springer
 - DOI：`10.1007/978-3-030-50086-3_1`
 - 链接：[DOI](https://doi.org/10.1007/978-3-030-50086-3_1)
-- 应用领域：🚦 交通、调度与资源系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🚦 交通、车载与铁路
 - 被验证系统：ERTMS Level 3 moving block 铁路信号与自主驾驶抽象系统
 - UPPAAL线：`UPPAAL Stratego`
 - 代码/模型/仓库获取方式：作者公开了 [FORTE2020 仓库](https://github.com/davidebasile/FORTE2020)。

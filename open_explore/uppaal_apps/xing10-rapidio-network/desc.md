@@ -11,7 +11,8 @@
 - 发表：ISoLA 2010，pp.160-174，Springer
 - DOI：`10.1007/978-3-642-16561-0_20`
 - 链接：[DOI](https://doi.org/10.1007/978-3-642-16561-0_20)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：⏱️ 调度、资源与性能分析
+- 次轴场景：🏭 工业与基础设施
 - 被验证系统：基于 RapidIO 的多处理器运动控制平台互连网络
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：原文 PDF 可通过 [UTwente 仓储镜像](https://ris.utwente.nl/ws/portalfiles/portal/5301883/uppaal_in_practice_ISOLA2010.pdf) 获取；原文未提供独立公开模型包。

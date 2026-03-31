@@ -11,7 +11,8 @@
 - 发表：DATE 2021
 - DOI：`10.23919/DATE51398.2021.9474224`
 - 链接：[DOI](https://doi.org/10.23919/DATE51398.2021.9474224)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：⏱️ 调度、资源与性能分析
+- 次轴场景：🔋 能源与采能计算
 - 被验证系统：带太阳能采集、缓冲电池和节点间能量迁移的分布式实时计算系统
 - UPPAAL线：`UPPAAL SMC`
 - 代码/模型/仓库获取方式：作者说明模板已收录于 `Uppaal Model Repository`，当前可通过 [EnergyNeutrality 目录](https://github.com/DEIS-Tools/uppaal-models/tree/main/CaseStudies/EnergyNeutrality) 获取。

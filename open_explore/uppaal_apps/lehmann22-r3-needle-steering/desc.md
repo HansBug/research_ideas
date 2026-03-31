@@ -11,7 +11,8 @@
 - 发表：MARS 2022, EPTCS 355
 - DOI：`10.4204/EPTCS.355.4`
 - 链接：[DOI](https://doi.org/10.4204/EPTCS.355.4)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🏥 医疗与健康
 - 被验证系统：软组织内 steerable needle 的在线导航与避障控制系统
 - UPPAAL线：`UPPAAL Stratego`
 - 代码/模型/仓库获取方式：原文未提供独立公开仓库，但附录公开了核心 `Uppaal` C declaration 与模型细节。

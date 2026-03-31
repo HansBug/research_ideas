@@ -11,7 +11,8 @@
 - 发表：FTSCS 2023
 - DOI：`10.1145/3623503.3623536`
 - 链接：[DOI](https://doi.org/10.1145/3623503.3623536)
-- 应用领域：🎛️ 控制器与嵌入式系统
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🏥 医疗与健康
 - 被验证系统：机械呼吸机的配置、混气、吸气、呼气与阀门控制逻辑
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：论文明确给出 [ventilator.xml](https://github.com/ventynet/ventynet/blob/master/ventilator.xml)；另有 [ventynet-SCADE](https://github.com/ventynet/ventynet-SCADE)。

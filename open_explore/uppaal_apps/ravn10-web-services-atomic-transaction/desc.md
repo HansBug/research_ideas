@@ -11,7 +11,8 @@
 - 发表：ISoLA 2010，pp.579-593，Springer
 - DOI：`10.1007/978-3-642-16558-0_47`
 - 链接：[DOI](https://doi.org/10.1007/978-3-642-16558-0_47)
-- 应用领域：🧩 软件、架构与组件系统
+- 主轴分类：🛰️ 协议与通信机制
+- 次轴场景：🌐 网络与分布式服务
 - 被验证系统：WS-Atomic Transaction（WS-AT）分布式事务协议
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：官方 [UPPAAL Case Studies](https://uppaal.org/casestudies/) 仍保留该案例页面，并提到历史模型压缩包 `rvs10.zip`，但当前公开链接已失效。

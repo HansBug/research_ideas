@@ -11,7 +11,8 @@
 - 发表：IEEE Transactions on Automation Science and Engineering, 2010, 7(4): 921-932
 - DOI：`10.1109/TASE.2010.2050199`
 - 链接：[DOI](https://doi.org/10.1109/TASE.2010.2050199)
-- 应用领域：🏭 工业系统与 `CPS`
+- 主轴分类：🎛️ 控制器与设备控制
+- 次轴场景：🏭 工业与基础设施
 - 被验证系统：Bosch MSS 平台 station 2 的多任务 PLC 控制程序
 - UPPAAL线：`UPPAAL`
 - 代码/模型/仓库获取方式：可通过 [HAL 版本](https://hal.science/hal-00527736) 获取论文正文；原文未提供独立公开模型文件。

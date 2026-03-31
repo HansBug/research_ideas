@@ -11,7 +11,8 @@
 - 发表：ISoLA 2020, LNCS，Springer
 - DOI：`10.1007/978-3-030-61362-4_22`
 - 链接：[DOI](https://doi.org/10.1007/978-3-030-61362-4_22)
-- 应用领域：🧩 公共健康与策略评估系统
+- 主轴分类：📊 场景行为与监测分析
+- 次轴场景：🦠 公共健康与疫情策略
 - 被验证系统：丹麦 `Covid-19` 疫情传播与若干具体接触场景的 SEIHR 模型
 - UPPAAL线：`UPPAAL SMC`
 - 代码/模型/仓库获取方式：官方 `uppaal-models` 仓库公开了 [Covid-19 case study](https://github.com/DEIS-Tools/uppaal-models/tree/main/CaseStudies/Covid-19)。
