@@ -1,0 +1,1418 @@
+--- Page 1 ---
+BRICS RS-00-37 Hune etal.: GuidedSynthesis ofControl Programsfora Batch Plantusing U PPAALBRICS
+Basic ResearchinComputer Science
+Guided Synthesis of Control Programs for
+aBatch Plant using U PPAAL
+Thomas S. Hune
+KimG.Larsen
+PaulPettersson
+BRICSReport Series RS-00-37
+ISSN 0909-0878 December 2000
+
+--- Page 2 ---
+Copyright c/circlecopyrt2000, Thomas S. Hune&KimG. Larsen&Paul
+Pettersson.
+BRICS, Department of Computer Science
+University of Aarhus. All rightsreserved.
+Reproduction ofallorpart ofthis work
+is permitted foreducational orresearch use
+on conditionthat thiscopyright noticeis
+included in any copy.
+SeebackinnerpageforalistofrecentBRICSReportSeriespublications.
+Copiesmay be obtained by contacting:
+BRICS
+Department of Computer Science
+Universityof Aarhus
+NyMunkegade, building 540DK–8000Aarhus CDenmark
+Telephone:+45 89423360
+Telefax: +45 89423255
+Internet: BRICS@brics.dk
+BRICS publications are in general accessible through the World Wide
+Weband anonymous FTP through these URLs:
+http://www.brics.dk
+ftp://ftp.brics.dkThis document insubdirectory RS/00/37/
+
+--- Page 3 ---
+Guided Synthesis of Control Programs
+for a Batch Plant using Uppaal?
+Thomas Hune1,K i mG .L a r s e n2, and Paul Pettersson3
+1BRICSy, University of Arhus, Denmark,
+Email: baris@brics.dk
+2BRICSy, University of Aalborg, Denmark,
+Email: kgl@cs.auc.dk
+3Department of Computer Systems, Information Technology,
+Uppsala University, E-mail: paupet@docs.uu.se .
+Abstract. In this paper we address the problem of scheduling and syn-
+thesizing distributed control programs for a batch production plant. We
+use a timed automata model of the batch plant and the verication tool
+Uppaal to solve the scheduling problem.
+In modeling the plant, we aim at a level of abstraction which is su-
+ciently accurate in order that synthesis of control programs from gener-ated timed traces is possible. Consequently, the models quickly become
+too detailed and complicated for immediate automatic synthesis. In fact,
+only models of plants producing two batches can be analyzed directly! Toovercome this problem, we present a general method allowing the user to
+guide the model-checker according to heuristically chosen strategies .T h e
+guidance is specied by augmenting the model with additional guidancevariables and by decorating transitions with extra guards on these. Ap-
+plying this method have made synthesis of control programs feasible for
+a plant producing as many as 60 batches.
+The synthesized control programs have been executed in a physical plant.
+Besides proving useful in validating the plant model and in nding somemodeling errors, we view this nal step as the ultimate litmus test of our
+methodology's ability to generate executable (and executing) code from
+basic plant models.
+1 Introduction
+In this paper we suggest a solution to the problem of synthesizing and
+verifying valid scheduling control programs for resource allocation,
+?This work is partially supported by the European Community Esprit-LTR Project
+26270 VHS (Verication of Hybrid systems).
+yBasic Research InComputer Science, Centre of the Danish National Research
+Foundation.
+
+--- Page 4 ---
+based on a batch plant of SIDMAR [BS99,Feh99], which is a case
+study of the VHS project1. We model the plant in a network of timed
+automata, with the dierent components of the plant (e.g. batches,recipes, casting machine, cranes, etc.) constituting the individual
+timed automata. The scheduling problem is formulated as a time-
+bounded reachability question allowing us to apply the real-time
+model-checking tool Uppaal [LPY95,LPY97] to derive a schedule.
+An overview of the methodology is shown in Figure 1.
+Uppaal oers a trace with actions of the model and timing infor-
+mation of the actions. The remaining eort required in transform-ing such a model trace into an executable control program depends
+heavily on the accuracy of the model with respect to the control
+programming language and the physical properties of the plant. In
+the Uppaal model given in [Feh99], movement along tracks and on
+the cranes was assumed to be instantaneous. Making a schedule con-taining timing information from a trace like that is very hard, and
+sometimes it is not possible at all. However, given a suciently high
+level of accuracy of the plant model, a schedule can be obtained from
+a trace by projection, and synthesis of the control program from a
+schedule amounts to textual substitution. Unfortunately model suit-able for such program synthesis becomes very detailed as all the
+necessary information about the plant, such as the timing bounds
+and the physical constraints for movements of loads, cranes etc, havebe to specied. As an immediate drawback, synthesizing schedules
+for several batches quickly becomes infeasible. Even for the more
+abstract models presented in [Feh99] this problem was also encoun-
+tered.
+To deal with this (unavoidable) problem we introduce a method,
+allowing the user to guide the model-checking according to certain
+chosen strategies . Each strategy will contribute with a reduction of
+the search-space, but in contrast to fully automatic reduction meth-
+ods like partial order reduction [BJLY98] it is up to the user to’guarantee’ preservation of schedulability. However, if a schedule is
+identied via the guided search, the schedule is indeed a valid one for
+the original model. Since we are not interested in optimal schedulesthis is sucient.
+1See the web site http://www-verimag.imag.fr//VHS/main.html .
+2
+
+--- Page 5 ---
+Plant ModelSIDMAR Plant
+ScheduleLEGO Plant
+Guided Plant Model
+Control Programdesired realized
+Fig. 1. Overview of methodology.
+To be able to run the generated control programs in a physical plant,
+we consider a LEGO MINDSTORMS plant, instead of the orig-
+inal plant of SIDMAR. We have used the plant to successfully runsynthesized control programs and by doing so increased our con-
+dence in the plant model. We view this nal, scientically rather
+simple, step as the ultimate litmus test of our methodology’s abil-ity to generate executable (and executing) code from rather natural
+plant models.
+The SIDMAR plant has been studied by several other researchers.
+Our timed automata model is based on the model in [Feh99], which
+is similar to ours but more abstract in the sense that some infor-
+mation, such as delays for the moving of batches, is not included.A Petri net model of the plant is presented in [BS99]. In [Sto00],
+constraint programming techniques are used to generate schedules
+of the SIDMAR plant for up to 30 batches. This result is achieved
+by reducing the size of the plant model using techniques similar to
+the guiding techniques presented in this paper. Other work apply-ing the model of timed automata and Uppaal to analyze and solve
+planning problems of batch plants include [KLPW99] in which an
+experimental batch plant is studied.
+The rest of this paper is organized as follows: In the next two sections
+we describe the scheduling problem and how it has been modeled in
+3
+
+--- Page 6 ---
+Uppaal . In Section 4 and 5 we present the guiding techniques and
+evaluate their eect on the plant model. In Section 6 we describe
+experiments with the LEGO plant and how programs are synthe-
+sized for the plant. Section 7 concludes the paper. Finally, timed
+automata descriptions of four plant components are enclosed in the
+appendix.
+2 The Scheduling Problem
+Our plant is based on a part of the SIDMAR steel production plantlocated at Gent in Belgium. We will consider the part of the plant
+between the blast furnace and the continuous casting machine where
+molten pig iron is converted into steel of dierent qualities. Theprocess is started when pig iron being poured into ladles by one of
+two converter vessels. The iron is transported in the ladles while
+it is being processed. By treatments in dierent machines the ironis converted into steel and nally casted in the casting machine.
+Depending on the machines used and how long the treatment in
+the machines last, dierent qualities of steel are produced. When
+the steel in a ladle has been casted the empty ladle must be moved
+to a storage place. From here the ladles are cleaned and reused.However, this is not part of our model, where ladles are stored at
+the storage place but not reused. The physical components of the
+process are: two converter vessels where molten iron is poured intoladles, ve machines, tracks connecting these, two cranes running on
+one overhead track, a buer place, a storage place for empty ladles,
+and one casting machine. The layout of the plant can be seen in
+Figure 2.
+Machines number one and four are of the same type and so are
+machines number two and ve. Each crane can only hold one ladle
+and they cannot overtake each other. On each track and in each
+machine there is room for at most one ladle. This means that the
+ladles cannot overtake each other without using one of the cranes.
+The steel must sustain a minimum temperature during the process.
+This gives an upper bound on the time a batch is allowed to spend
+in the plant from it is poured and until it is casted. Casting takes a
+4
+
+--- Page 7 ---
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+continuous
+machinecastingplacestorage
+holdingplaceconvertor
+vessel #2machine#1
+track#2machine#2 machine#3overhead
+cranes
+machine#4 machine#5track#1
+crane#2crane#1
+bufferconvertor
+vessel #1
+Fig. 2. Layout of the plant.
+xed time and must be continuous. Therefore a new ladle lled with
+steel must be waiting in the holding place of the casting machine
+when casting of a ladle has nished.
+Steel of dierent qualities can be produced depending on which types
+of machines are visited and for how long. For each batch this is
+specied by a recipe. The problem to be solved can now be stated
+as:
+Given an ordered list of recipes, if possible synthesize a control
+program for the plant such that steel specied by the recipes are
+produced in the right order and within a given time.
+The major part of solving this problem is nding a schedule for theproduction if one exists. A schedule for the plant denes which actiontakes place in the plant e.g. moving of batches and cranes, and when
+the actions take place.
+3 Scheduling with Timed Automata
+Finding a schedule for producing an ordered list of steel qualities isthe main part of the problem. It can be solved in a number of ways.
+5
+
+--- Page 8 ---
+S0
+x<=4S1x<=5,
+y<=3S2P: Q:x>=1, j<50 y:=0, j:=j+2
+x:=0, y:=0            a!i<10
+i:=i+1a?
+Fig. 3. A Network of Timed Automata.
+Here we chose to model the plant using timed automata [AD94]
+and use the verication tool Uppaal [LPY95,LPY97] to solve the
+scheduling problem2. The use of timed automata for modeling the
+plant allows the scheduling problem to be reformulated as a reacha-
+bility problem which can be solved by Uppaal . A discussion of this
+approach to scheduling can be found in [Feh99].
+The modeling language in Uppaal is networks of timed automata
+extended with data variables [LPY97]. To meet requirements fromvarious case-studies the language has been further extended with the
+notion of committed locations [BGK
++96], urgent synchronization ac-
+tions [LPY97], and data structures such as arrays of data-variables
+etc. In this section we give a brief informal description of the mod-
+eling language of Uppaal . For a detailed description we refer the
+reader to [LPY97].
+3.1 Networks of Timed Automata
+Consider the network of timed automata Pand Qs h o w ni nF i g -
+ure 3.1. Automaton Phas two control locations S0andS1,t w o
+real-valued clocks xand y,a n dad a t av a r i a b l e j.Astate of the
+automaton is of the form ( l; s; t; k ), where lis a control location, s
+andtare non-negative reals giving the value of the two clocks xand
+y,a n d kis a natural number giving value to the data variable j.
+A control location is labelled with a condition (the location invari-ant) on the clock values that must be satised for states involving
+this location. Assuming that the automaton starts to operate in the
+2See the web site http://www.uppaal.com/ for more information about Uppaal .
+6
+
+--- Page 9 ---
+state ( S0;0;0;0), it may stay in location S0as long as the invari-
+antx4o fS0is satised. During this time the values of the
+clocks increase synchronously. Thus from the initial state, all statesof the form ( S0;t ;t ;0), where t4, are reachable. The edges of a
+timed automaton may be decorated with a condition (guard) on the
+clocks and the data variable values that must be satised in order for
+the edge to be enabled. Thus, only for the states ( S0;t ;t ;k ), where
+1t4a n d k<5 0 ,i st h ee d g ef r o m S0toS1enabled. Addition-
+ally, edges may be labelled with assignments and synchronization
+labels. An assignment may reset the value of the clocks and update
+the data variables. For example, when following the edge from S0to
+S1the clock yis reset to 0 and the data variable jis incremented
+by 2, leading to states of the form ( S1;t ;0;2), where 1 t4. The
+synchronization label is used to establish synchronization between
+automata. For example the transition from S1toS0of automaton
+Pis labeled with a!, requiring the transition to be synchronized with
+the transition of automaton Qoering the complementary action a?.
+In general, a timed automaton is a nite-state automata extended
+with a nite collection Cof real-valued clocks ranged over by x;y
+etc. and a nite set of data variables Dranged over by i;jetc. We
+useB(C) ranged over by gto stand for the set of formulas that can
+be an atomic constraint of the form: xnorx−ynforx;y2C,
+2f<;;=;>gandnbeing a natural number, or a conjunction
+of such formulas. Similarly, we use B(D) to stand for the set of data-
+variable constraints that are the conjunctive formulas of ijor
+ik,w h e r e 2f <;;=;6=;;>gandkis an integer number. To
+denote the set of formulas that are conjunctions of clock constraints
+and a data-variable constraints we use B(C;D) (ranged over by g).
+The elements of B(C;D) are called constraints orguards .
+An assignment in Uppaal is a sequence of operations of the form
+x:=0, or i:=Expr,w h e r e xis a clock, iis a data variable, and Expr
+is an integer expression, e.g. 2 (i−j)+3 (where ji sad a t av a r i a b l e ) .
+We shall use Rto denote the set of assignments. Furthermore, we
+useActto denote a nite set of actions ranged over by a,a?,a!,b?,
+b!,e t c .
+7
+
+--- Page 10 ---
+Denition 1 (Timed Automata). A timed automaton Aover
+clocks Cand data variables Dis a tuple hN;l 0;−!;Iiwhere Nis
+a nite set of (control-)locations, l0is the initial location, −! 
+NB(C;D)A ctR  Ncorresponds to the set of edges and
+nally, I:N7! B(C)assigns invariants to locations. In the case,
+hl;g;a;r;l0i2 − ! ,w ew r i t e lg;a;r−!l0. ut
+To formalize the semantics we use variable assignments. A variable
+assignment is a mapping which maps the clocks Cto the non-negative
+reals and the data variables Dto integers. A semantical stateof an
+automaton Ais now a tuple ( l;u), where lis a location of Aand
+uis a an assignment for CandD, and the semantics of Ais given
+by a transition system with the following two types of transitions
+(corresponding to delay-transitions and action-transitions):
+{(l;u)−!(l;ud)i fI(l)(u)a n d I(l)(ud)
+{(l;u)−!(l0;u0)i ft h e r ee x i s t gandrsuch that lg;a;r−!l0,g(u),
+u0=r[u], and I(l0)(u0)
+where dis a non-negative real number, uddenotes the assignment
+which maps each clock xinCto the value u(x)+dand leaves each
+data variable iwith the unchanged value u(i), and r[u] denotes the
+result of updating the clocks Cand the data-variables in Daccording
+tor2R.
+Finally, we brieﬂy introduce the notion of networks of timed au-
+tomata [YPD94,LPY95]. A network is a nite set of automata com-
+posed in parallel with a CCS-like parallel composition operator [Mil89].
+For a network with the timed automata A1;:::;A nthe intuitive
+meaning is similar to the CCS parallel composition of A1; :::; A nwith
+allactions being restricted, that is, ( A1j:::jAn)nA ct.T h u sa ne d g e
+labelled with action amustsynchronize with an edge labelled with
+an action complementary to a, and edges with the silent action are
+internal, so they do not synchronize. In Uppaal ’?’ and ’!’ are used
+to represent complementary actions, so a?and a!are considered
+complementary and can synchronize.
+8
+
+--- Page 11 ---
+3.2 Analysis
+Given a network of timed automata and a set of states, Uppaal can
+analyze whether or not one of the states is reachable from the initial
+state of the network. If the answer is positive, Uppaal produces
+a trace with action- and delays-transitions leading from the initial
+state to one of the specied states.
+For the model of the plant, which will be presented in the follow-
+ing, a trace denes a schedule for the plant since it species what
+happens in the plant (the synchronization actions) and when (the
+delays). From a schedule a working program controlling the plant
+may be generated. The level of detail in the trace (and therefore inthe schedule) inﬂuences the work needed to generate the program.
+In [Feh99] the traces generated did not include time for the moving
+of batches, making the generation of executable programs from the
+schedules hard. To minimize the eort needed during the transla-
+tion, we produce traces with detailed and precise information abouttiming of all actions in the plant.
+3.3 A Model for Scheduling the Plant
+An instance of the problem is given by a list of qualities of steel
+(or recipes) and a maximal production time. A model of a prob-
+lem instance consists of: for each recipe one automaton representingthe recipe and one automaton representing the movement of the
+batch; one automaton for each of the two cranes; one automaton
+testing that the recipes nish in the correct order; one automatonfor making some actions synchronizing; and one automaton modeling
+the casting machine. Figure 4 shows the synchronizations between
+the dierent automata. The batch automata communicate with each
+other through two shared arrays and the two cranes also share an
+array. These arrays will be described in more detail later.
+The most complex of the automata is the one modeling the possible
+behaviors of a batch (see Figure 16 of the appendix
+3)4. The batch
+3Unless stated otherwise, guided versions of the automata are shown since these have
+been used for most of the experiments.
+4Pictures of all the automata and the LEGO plant can be found at the web site
+http://www.brics.dk/~baris/CaseStudy/ .
+9
+
+--- Page 12 ---
+Recipe 3
+Recipe n
+TesterBatch 1Controller Crane A Crane BMachineCasting
+Recipe 2Recipe 1Batch 2
+Batch 3
+Batch n
+Fig. 4. Synchronization between the automata of a model.
+automaton reﬂects the topology of the plant (shown in Figure 2) as
+well as the physical constraints on the movements of a batch. Ba-
+sically, there is one location for each position of the plant a batchcan be located at. A position is either a machine, a track segment,
+the storage place, the casting machine, or a position on the overhead
+track. Positions on the overhead track are over one of the two tracks,the storage place, the casting machine, or in between any of these. A
+batch automaton has a clock named xassociated to it which is used
+to measure the time spend on moving along a track. The time spend
+is the worst case time measured in the physical plant which is given
+by the constant bmove . Shared among all the batch automata in a
+model are the two binary arrays posIandposII , which are used for
+storing which positions are occupied on the two tracks. These are
+used to ensure that each position is occupied by at most one batch
+at a time. Figure 5 shows the part of the unguided batch automaton
+modeling the position named i2, between machines number one and
+two on track one. Moving a batch between positions in the model
+is done in two steps. First a transition is taken to an intermediate
+10
+
+--- Page 13 ---
+i1a
+x<=bmovei2 i2ax<=bmove
+k1i1aa
+x<=bmovei2aax<=bmove
+c1downi1
+x==bmove,
+posI[4]==0
+posI[4]:=1,
+posI[3]:=0posI[5]==0
+posI[5]:=1,
+posI[4]:=0,x:=0b2right?
+cAIup!posI[3]==0
+posI[3]:=1,
+posI[4]:=0,x:=0b2left?x==bmove,
+posI[4]==0
+posI[4]:=1,
+posI[5]:=0
+cIdown_end?cBIup!posI[3]==0
+posI[3]:=1,
+posI[2]:=0,x:=0m1right?x==bmove,
+posI[2]==0
+posI[2]:=0,
+posI[3]:=0
+Fig. 5. Part of the unguided batch automaton.
+p o s i t i o n ,e . g .f r o m i2toi1aa. A batch can only start to move to
+a position if this position is free, which in this case is ensured by
+checking the array posI using the guard posI[3]= =0 .T a k i n g t h e
+transition resets the clock xand updates which positions are occu-
+pied by the assignment posI[3] := 1 ;posI[4] := 0. The batch can
+stay in the intermediate position at most bmove time units because
+of the invariant xbmove in the location. However, it cannot leave
+the location before bmove time units have passed because of the
+guard x==bmove on the transition leaving the intermediate loca-
+tion. This means that moving a batch along a track is modeled astaking exactly bmove time units. A batch can also move when it is
+carried by a crane. The time spend during such moving is measured
+by the crane automaton.
+Each batch has a recipe associated to it (a recipe using machine type
+one and two is shown in Figure 6). The recipe denes which machines
+should be visited, in which order, and for how long. It also measures
+the overall time the batch has spend in the plant. A recipe has two
+clocks associated to it. One, tot, is reset as the batch starts in the
+plant and measures the overall time spend in the plant by the batch.
+The other clock, t, is used for measuring the time of the dierent
+11
+
+--- Page 14 ---
+gotoT1tot<=rtotalby3
+onT1t<=mtreat, tot<=rtotalby2
+gotoT2tot<=rtotal
+onT2t<=mtreat, tot<=rtotal
+rend
+tot<=rtotal cast castedtot<=rtotal
+terminussetoff
+dumpedidle
+onT1stillt:=0M1on!
+t:=0, nextbatch:=nextbatch+1M2on!
+t==mtreat
+next:=finM2off!
+try? quality1!tot<=rtotal
+done?tot:=0go?
+dump!nextbatch==(number-1)
+next := (posI[0]+posI[1]+posI[2]+
+   posI[3]+posI[4]+posI[5]<=   posII[0]+posII[1]+posII[2]+   posII[3]+posII[4]+posII[5]+   posII[6] ? m1 : m4 )
+t:=0
+M4on!
+t:=0, nextbatch:=nextbatch+1
+M5on!
+t==mtreat
+next:=finM5off!t==mtreat
+M1off!
+next := (posI[0]+posI[1]+posI[2]+
+   posI[3]+posI[4]+posI[5]+(next==m1 ? -2 : 0 )<   posII[0]+posII[1]+posII[2]+   posII[3]+posII[4]+posII[5]+   posII[6]+(next==m4 ? -2 : 0 ) ? m2 : m5 )t==mtreat
+M4off!
+Fig. 6. An example recipe automaton.
+treatments the batch goes through. When a batch is located at a
+machine of the right type according to the recipe, the batch and the
+recipe can synchronize to start the machine. This resets the clockmeasuring the time of treatments. When the specied time for the
+treatment has passed the recipe and the batch synchronize to turn
+the machine o. When the treatments are completed and the batchis ready to be casted the recipe synchronizes with the test automaton
+to ensure that the production order is kept. Here it is also checked
+that the batch has not spend too much time in the plant.
+As mentioned the positions of a crane are over the two tracks, over
+the storage place, over the casting machine and in between these. An
+automaton modeling a crane has two locations for each of these po-
+sitions, one modeling the crane being empty and one modeling thecrane carrying a batch. The automaton modeling the upper crane
+which is only moving between the two tracks is shown in Figure 7
+(the automaton modeling the other crane can be seen in Figure 14
+of the appendix.) A crane picking up a batch is modeled by the
+two automata synchronizing. Similarly when a crane moves or sets abatch down. Each crane automaton has one clock which is used for
+measuring time when the crane is moving. The movement of a crane
+12
+
+--- Page 15 ---
+c0empc0full
+c1empc1c0emp
+x<=cdelayc1c0fullx<=cdelay
+c1full
+c2empc2c1empx<=cdelayc2c1fullx<=cdelay
+c2fullc1c0aemp
+x<=cdelay
+c2c1aemp
+x<=cdelayc1c0afull
+x<=cdelay
+c2c1afull
+x<=cdelayc1up
+x<=cup
+c1down
+x<=cup
+c2upx<=cup
+c2downx<=cupcpos[1]==0,
+creq1==1
+cpos[1]:=1,
+cpos[2]:=0,x:=0moveAup?x==cdelay,
+cpos[0]==0cpos[0]:=1,
+cpos[1]:=0,creq1:=0
+x==cdelay,cpos[0]==0cpos[0]:=1,
+cpos[1]:=0
+evom10?
+cpos[1]==0cpos[1]:=1,
+cpos[2]:=0,x:=0
+move10?
+cpos[3]==0,
+posI[4]+creq1>=1
+cpos[3]:=1,
+cpos[4]:=0,x:=0moveAup?x==cdelay,
+cpos[2]==0cpos[2]:=1,
+cpos[3]:=0,creq1:=0x==cdelay,cpos[2]==0cpos[2]:=1,
+cpos[3]:=0
+evom21?
+cpos[3]==0cpos[3]:=1,
+cpos[4]:=0,x:=0
+moveA21?cpos[1]==0,
+cpos[2]==0,posI[4]==1
+cpos[1]:=1,
+cpos[0]:=0,x:=0moveAdown?
+x==cdelay,
+cpos[2]==0
+cpos[2]:=1,
+cpos[1]:=0
+cpos[3]==0,cpos[4]==0,posII[4]==1
+cpos[3]:=1,
+cpos[2]:=0,x:=0,creq2:=1moveAdown?
+x==cdelay,
+cpos[4]==0
+cpos[4]:=1,
+cpos[3]:=0,creq2:=0cpos[1]==0
+cpos[1]:=1,
+cpos[0]:=0,x:=0move01?
+x==cdelay,
+cpos[2]==0
+cpos[2]:=1,
+cpos[1]:=0evom01?
+cpos[3]==0
+cpos[3]:=1,
+cpos[2]:=0,x:=0,creq2:=1moveA12?
+x==cdelay,
+cpos[4]==0
+cpos[4]:=1,
+cpos[3]:=0,creq2:=0evom12?posI[4]==0 x:=0, 
+posI[4]:=1cAIdown_start?
+x==cup
+cIdown_end!x:=0cAIup?x==cup
+posI[4]:=0
+creq1!=1 x:=0cAIIup?
+x==cup posII[4]:=0
+posII[4]==0
+x:=0, 
+posII[4]:=1cAIIdown_start?
+x==cupcIIdown_end!
+Fig. 7. The upper crane.
+between two positions is modeled like movement between two posi-
+tions in the batch automaton with an intermediate location where
+the time for the movement passes. The two crane automata share abinary array like the batch automata for storing which positions are
+occupied
+The test automaton synchronizes with a recipe automaton just be-
+fore the recipe allows the batch to enter the casting machine. This
+ensures that the order of the production as stated in the problemdescription is kept (Figure 15 in the appendix shows a test automa-
+ton).
+There is also one automaton which has no inﬂuence on the overall
+behavior of the model (shown in Figure 8). However, since we willuse the traces obtained from the model for generating schedules, it
+is important that the all actions of the plant aecting the schedule
+13
+
+--- Page 16 ---
+runnot_run
+b3right!b3left!
+b4left!
+b4right!b2right!b2left!b1right!b1left!
+b5left!
+b5right!m1right!
+m2right!
+m4right!
+m1left!
+m2left!
+m3left!
+m4left!
+m5left!
+moveAup!
+moveAdown!
+moveBup!
+moveBdown!caststart!cpos[2]:=1,
+cpos[4]:=1,nextbatch:=1
+Fig. 8. The automaton ensuring synchronization.
+appear directly in the trace. Some of these actions are internal ac-
+tions in the batch automaton and will therefore not appear in the
+generated traces. An example is the movements of a batch on the
+belts. The purpose of this automaton is to synchronize with the in-ternal actions (modied to external actions) to make them appear
+in the traces.
+Finally there is an automaton modeling the casting machine (see
+Figure 13 of the appendix). It synchronizes with a batch to start the
+casting. After a specic time when the batch has been casted, the
+casting machine and the batch should synchronize again to let the
+batch leave the casting machine. Then the casting machine is readyto synchronize with the next batch which must be waiting, unless
+the production has nished.
+4 Guiding Timed Automata
+The timed automata described in the previous section models thesteel production plant at a high level of accuracy. The details in
+the model are needed to allow generation of schedules from modeltraces by projection, and to allow generation of control programs
+from schedules by textual substitution. However, the fact that the
+14
+
+--- Page 17 ---
+i1a
+x<=bmovei2 i2ax<=bmove
+k1i1aa
+x<=bmovei2aax<=bmove
+c1downi1
+x==bmove,
+posI[4]==0
+posI[4]:=1,
+posI[3]:=0posI[5]==0,next>m1,next<m4
+posI[5]:=1,
+posI[4]:=0,x:=0b2right?
+next>m3
+cAIup!posI[3]==0,
+next==m1
+posI[3]:=1,
+posI[4]:=0,x:=0b2left?x==bmove,
+posI[4]==0
+posI[4]:=1,
+posI[5]:=0
+cIdown_end?next>m3
+cBIup!posI[3]==0,
+next!=m1
+posI[3]:=1,
+posI[2]:=0,x:=0m1right?x==bmove,
+posI[2]==0
+posI[2]:=0,
+posI[3]:=0
+Fig. 9. Guided part of the batch automaton.
+model is detailed and consisting of a many parallel timed automata
+with several clocks is also a serious problem, as the model is too
+big and complicated for automatic analysis. In fact, nding traces ofa plant model with just a few batches is infeasible in practice (see
+Section 5). The limiting factor is the amount of time and memory
+consumed during the analysis to (symbolically) explore and store the
+reachable state-space of the analyzed model. To solve this problem
+we introduce a way of user directed guiding of a state-space explo-
+ration algorithm according to a number of certain chosen strategies .
+4.1 Guiding
+The overall idea of guiding an automata model is to let the user im-
+plement reduction strategies by augmenting the automata with a set
+of additional clocks, data variables, constraints and assignments
+5.
+Each strategy will contribute to the reduction of the state-space by
+constraining the behavior of the model. However, in contrast to auto-matic state-space reduction techniques, the guiding technique trust
+the user to preserve schedulability of the plant model.
+5The technique of adding guiding variables presented in this paper is reminiscent of
+the notion of history and prophesy variables used in traditional program verication,
+as in the work of Abadi and Lamport [AL91].
+15
+
+--- Page 18 ---
+Assume a network of timed automata over clocks Cand data vari-
+ables D. The automata are guided by introducing a set of new
+clocks CGand integer variables DG.W ec a l l CG[D Gguiding vari-
+ables. A guide is implemented by conjuncting new constraints from
+B(CG[C;DG[D) to the existing guards of the automata, new clock
+constraints from B(CG[C) to the location invariants, and adding
+new assignments of variables in CG[D Gto the resets. Thus, the
+guides may test the values of all the clocks and the data variables inthe transition guards and the location invariants of the automata. A
+guide may also assign the guiding variables in the reset sets. How-
+ever, the original clocks and data variables of the timed automata(i.e.C[D ) should not be assigned. This ensures the essential prop-
+erty that a trace generated from a guided network of timed automata
+indeed is a valid trace of the original network of timed automata. In
+the plant model this means that the schedules generated from the
+guided plant model is guaranteed to also be valid in the originalplant model.
+4.2 Implemented Strategies
+We have used guiding to implement a number of strategies in the
+plant model. In the following we describe the strategies abstractly, in
+terms of the physical plant, and give some detailed examples of how
+the guides are introduced in the plant model. We emphasize thatmany of the strategies are heuristics and most of them could in fact
+reduce the number of valid schedules of the plant model. However,
+this is not a problem as long as it is still possible to generate valid
+schedules from the model (as we are not concerned with nding
+optimal schedules).
+The implemented strategies are based on the general observation
+that the plant model described in the previous section models all
+possible behaviors of the plant. This also includes several behaviorsthat should not (or are unlikely to) appear in a valid schedule. The
+implemented strategies aim at reducing these ‘unwanted’ behaviors.
+Strategy 1: Ordering of Batches. When the scheduling problem
+is stated the production order of the steel qualities is given. One
+16
+
+--- Page 19 ---
+strategy is to use this order when starting new batches in the plant.
+According to the engineers at SIDMAR the same strategy is used
+there.
+To implement the strategy we introduce the new guiding variable
+nextbatch in the recipe automaton associated to each batch, to
+control which batch is allowed to start next. A recipe automaton
+is shown in Figure 6. The guard nextbatch==(number-1) on the
+rst transition of the automaton, where number is a unique con-
+stant number associated to each recipe, implements the guide. Theguide ensures that the recipe starts the batch when the value of
+nextbatch is equal to number-1 . The recipe automaton increments
+thenextbatch variable on a transition from location goT2 toonT2
+(see also Strategy 2 below) to allow the next batch to start.
+Strategy 2: Delaying of Batches. Related to the rst strategy
+is the starting time of batches. Since there is an upper bound on
+the time a batch is allowed to spend in the plant, all batches should
+not be started at the same time. Therefore, we prevent a batch from
+starting based on the progress of the batch just before it. If too muchtime passes before the batch undergoes the treatments in the recipe,
+the time bound will also be violated. Based on the progress in theh
+recipe we can check whether it is still possible for the batch to reachthe casting machine in time.
+The strategy is implemented in the recipe automata by delaying the
+update of the nextbatch variable. In the recipe1 automaton shown
+in Figure 6 the nextbatch guiding variable is incremented on the
+transition from location goT2 toonT2 instead of immediately after
+the test on the rst transition. This prevents the next batch to start
+before the batch has been treated by two machines. To make sure
+that it is still possible for the batch to reach the casting machine intime, invariants over the clock totare added to some of the locations
+of the recipe.
+Strategy 3: Global Routing of Batches. To make the movement
+of the batches more deterministic we choose a target for where thebatches should move to next. The recipe of each batch chooses a
+target for the batch which is the machine the batch should visit
+17
+
+--- Page 20 ---
+next. When there is a choice of machines the recipe will chose the
+machine on the track with fewest batches present.
+We introduce a new guiding variable named nextfor each batch to
+realize this strategy. The value of next species where the batch
+should go next, based on the next machine treatment specied in
+its recipe. For example the choice of the rst machine (there is a
+machine of this type on each track, so there is a choice here) is
+implemented by a guiding expression on the rst transition of the
+recipe automaton:
+if(track1track2)then next:=m1else next:=m4
+where track1 is the number of batches present on track one and
+track2 the number of batches on track two. In the recipe automaton
+in Figure 6 the value of track1a n d track2 are computed as the sum
+of active bits in the bit vectors posIandposII respectively (recall
+from the previous section that posIand posII are used to ensure
+mutex on the positions of the two production tracks).
+Strategy 4: Local Routing of Batches. The possible movements
+of the batches are further reduced by a strategy deciding how a batchshould move between two given position. The implemented strategy
+selects the only direct route between two positions.
+To implement the strategy in the plant model we use the guiding
+variable next. A guard constraining the value of next is added to
+all transitions of the batch automata leaving a location modeling a
+physical position in the plant. Figure 9 shows a part of the guided
+batch automaton corresponding to the partial original automaton
+shown in Figure 5. Machine one is the only machine located to the
+left of position i2on track 1. Therefore, the guides require the next
+variable to have value m1(representing machine 1) to move in the left
+direction. This is ensured by the guard next==m1on the transition
+from location i2toi1aa. The transitions from location i2tok1
+represents the batch being picked up by one of the cranes. When
+this is the case the next destination of the batch should not be amachine on track one (i.e. not machine 1, 2, or 3) therefore nextis
+required to be greater than m3.
+18
+
+--- Page 21 ---
+Strategy 5: Moving of Cranes. When a crane is carrying a batch
+it always follows the strategy of the batch. If a crane is empty, the
+strategy is to move only when something is ready to be picked up orif it is blocking the other crane. To allow a crane to move when it is
+blocking the other crane we enable the two cranes to communicate.
+Guiding guards in the crane automata testing bits in posIandposII
+ensure that the cranes move towards the pick up positions on the
+tracks only when a batch is waiting to be picked up (see e.g. the
+transition from location c2emp toc2c1emp in Figure 14 of the
+Appendix). To allow an empty crane to move in other situations the
+guiding variables creq1 and creq2 are introduced. Guards testing
+their value are introduced on some transitions to allow the crane to
+move from certain positions in a specied directions when the vari-
+ables are non-zero. The variables are typically assigned by the othercrane to indicate that it is moving towards a (possibly) occupied
+position that must be empty. For example, in the craneB automaton
+shown in Figure 14 the variable creq1 is assigned on the transitions
+from location c2emp toc1emp to allow crane 1 to leave crane posi-
+tion 1 (modeled by the locations c1emp ,c1up,c1down ,a n dc1full
+in the craneB automaton).
+Other Strategies. It is possible to imagine other strategies and
+other experiments that would be interesting. However, the strategies
+presented here have been very eective as shown by the results in thenext section. Using the approach to guiding presented here allows for
+easy adding and changing of guides. This is important since guides
+are based on heuristics so experimenting is sometimes needed fornding good strategies.
+5 Experimental Results
+The plant models described in the previous sections have been ana-
+lyzed in the validation and verication tool Uppaal [LPY95,LPY97].
+In this section we present the results of the analysis for three versionsof the model, with varying number of guides and batches. In partic-
+ular, we present the measured time and space needed by Uppaal to
+19
+
+--- Page 22 ---
+perform the analysis. Comparing the requirements for the dierent
+models allows us to evaluate the benets of the presented guiding
+techniques. To evaluate the eect of adding guides, we use the stan-dard UNIX programs timeand topto measure the CPU time and
+the memory consumed by Uppaal when generating a trace from the
+two models.
+The three analyzed models are: the original plant model without the
+guides described in Section 3, the plant model with all guides added
+described in Section 4, and a model with all guides added except the
+once using the nextbatch variable described in Section 4.
+Uppaal oers a number of options to control the internal veri-
+cation algorithm applied in the tool [LPY97]. When analyzing theplant models we have used the compact data-structure for con-
+straints [LLPY97], the control-structure reduction [LLPY97], and a
+recently implemented version of the (in-)active clock reduction [DT98].
+In addition we experiment with using breadth-rst (BFS), depth-rst
+search strategy (DFS), or depth-rst search in combination with bit-state hashing (BSH) [Hol91]
+6.
+All Guides Some Guides No Guides
+#BFS DFS BSH BFS DFS BSH BFS DFS BSH
+secMBsecMBsecMBsecMBsecMBsecMBsecMBsecMBsecMB
+10.10.90.10.90.10.90.10.90.10.90.10.93.26.10.82.23.93.3
+218.436.40.11.00.11.1 --2.14.47.81.2--19.536.1 --
+3--3.26.53.41.4 --72.492.19013.4------
+4--4.08.24.61.8 ------------
+5--5.010.2 5.52.2 ------------
+10--13.325.316.1 9.3 ------------
+15--31.651.248.122.2 ------------
+20--61.889.633246.1 ------------
+25--10414487.283.3 ------------
+30--166216124.2 136 ------------
+35--209250 --------------
+Table 1. Time and space requirements for generating schedules.
+6The bit-state hashing technique generates a sub set of the reachable state-space. A
+feasible schedule found with this technique is therefore guaranteed to also be feasible
+in the original plant model.
+20
+
+--- Page 23 ---
+Table 1 shows the time (in seconds) and space (in MB) consumed
+byUppaal version 3.0.127when generating schedules from the
+three models. The numbers in the leftmost column corresponds tothe number of batches in the model (and in the generated schedule).
+We use the marker \-" to indicate that the corresponding execution
+requires more than 256MB of memory, more than two hours of ex-
+ecution time, or that a suitable hash table size has not been found.
+When applying the hash table technique, we have used table sizesfrom 1048577 to 33554441 bits. The reported results corresponds to
+the most suitable hash table sizes found.
+As can be seen in Table 1, the use of guides signicantly increases the
+size of models that can be analyzed. In the guided model, schedules
+can be generated for 35 batches using 250 MB in 3.5 minutes, whereas
+no schedule can be generated for three batches (or more) when noguides are used. We also observe that adding some guides improves
+the situation by enabling analysis of systems with three batches.
+It can also be observed that the bit-state hashing technique does not
+allow analysis of larger models in this experiment, even though it
+performs well space-wise on most models. We experienced that nd-
+ing suitable hash table sizes is very tedious for large system models.The largest system analyzed in the experiment is therefore a guided
+model using depth-rst search strategy but without the bit-state
+hashing technique.
+We have also installed Uppaal on a Sun Ultra machine equipped
+with 1024MB of memory. On this machine, a schedule for 60 batches
+can be generated from the guided model in 2 257 seconds.
+6 Synthesis of Control Programs
+We did not expect to be able to run the generated control programsin the original plant of SIDMAR. Therefore we have used a LEGO 
+plant (see Figure 10) to run the synthesized programs in. This allows
+for experimenting with the plant to validate the model and it also
+7The tool was installed on a Linux Redhat 5.2 machine equipped with a Pentium III
+processor and 256MB of memory.
+21
+
+--- Page 24 ---
+Fig. 10. The LEGO plant.
+makes it easy to nd answers to a number of questions about the
+plant (e.g. measuring time bounds).
+The plant consists of a number of distributed units, each controlled
+locally by one RCX [LEG98] brick. There are three types of units
+used in the plant: a crane, a machine with a track segment, and
+the casting machine. For the cranes there is an overhead track. The
+interface to the units consists of a set of commands like MoveTrack-
+Right,TurnOnMachine ,a n dLiftBatch . Commands are send to the
+local units by one central controller which is running the synthesized
+program. Ideally, one would want the local controllers to give feed-
+back to the central controller when actions have nished or when an
+error occurs. However, since the communication between the RCX 
+bricks is slow and unreliable especially if more than one brick tries
+to send at one time, the only feedback from the local controllers are
+acknowledgements of commands received from the global controller.
+This has big inﬂuences on how the generated programs. There are
+no loops or branches in the control of the plant, only to implementcommunication between the RCX bricks are loops and branches
+used.
+22
+
+--- Page 25 ---
+As a result of the model checking in Uppaal a trace containing in-
+formation about synchronizations between automata and delays is
+obtained. Some of the synchronizations in the model, like the recipesynchronizing with the test automaton, are not relevant for the gen-
+erated schedule. To get a schedule for the plant we project the trace
+to the actions relevant for the plant. Given some numbering of tracks
+and machines, part of a schedule looks like in Figure 11. There is a
+one-to-one correspondence between a schedule of this kind and thecommands of the synthesized central control program. Each line with
+aDelay action is translated into a delay in the control program (in
+RCXcode there is a Waitinstruction doing this). For the rest of
+the lines only the second part is used, which denes what unit the
+command should be send to and what the command is. For example
+in the line Load1.Track2Right , the part Track2Right is translated
+t oac o m m a n d MoveTrackRight and sent to the local controller of
+track two.
+... Delay(5)
+Load1.Track1Right Crane1.Move1Left
+Delay(10) Delay(5)Load1.Machine1On Load1.Machine2On
+Load2.Track5Right Delay(1)
+Delay(4) Crane1.Move1LeftCrane1.Move1Left Delay(6)
+Delay(6) Crane1.Move1Left
+Load1.Machine1Off Delay(3)Load1.Track2Right Load1.Machine2Off
+Crane1.Pickup1 ...
+Fig. 11. Part of a generated schedule.
+The projection and the translation have been implemented using the
+pattern scanning and processing language gawk.S i n c et h eR C X 
+language does not oer reliable communication primitives, each line
+in the schedule is translated into a code segment implementing such
+communication. Figure 12 shows a part of a synthesized control pro-
+gram. The language does not support functions or procedures there-fore the code implementing the communication has to be in-lined for
+each instruction send to a local unit.
+23
+
+--- Page 26 ---
+''''moveAup();
+''''Crane A - Move UP
+PB.PlaySystemSound 1PB.SendPBMessage 2, 99 ' Move up, on C1
+PB.SetVar 1, 15, 0 'Wait for ack
+PB.While 0, 1, 3, 2, 99
+PB.Wait 2, 20
+PB.SetVar 1, 15, 0 'Read the message
+PB.ClearPBMessagePB.SumVar 2, 2, 1
+PB.If 0, 2, 2, 2, 20 'If looped 20 times
+PB.PlaySystemSound 1PB.SendPBMessage 2, 99 'Then Send message,
+again same as sendig 0
+PB.SetVar 2, 2, 0
+PB.EndIf
+PB.EndWhile
+''''Delay 12
+PB.Wait 2, 1200
+Fig. 12. Part of a synthesized program.
+The synthesized programs have been executed in the plant. This was
+mainly intended as validation of the Uppaal model of the plant.
+During the validation we found three errors in the model: the crane
+started to move horizontally too early when an empty ladle was
+picked up from the casting machine, causing the crane to collidewith the casting machine and accidently drop the lifted ladle, so
+here a delay was missing in the model; when two cranes were located
+at positions next to each other and started to move in the same
+direction they could collide because the crane ’in front’ was started
+last; in systems with only one batch the casting machine did notturn correctly. These problems were corrected in the model and new
+control programs were synthesized.
+At one point during the experiments with the plant the batteries
+running the crane started to wear out. This meant that the initial
+timing information obtained from the plant was inaccurate because
+the cranes were moving slower. At this point having the complete
+process from generating traces to synthesizing control programs fullyautomated proved especially useful. New times for the moving of
+the cranes were measured and put into the model. Since scheduling
+24
+
+--- Page 27 ---
+still was possible, new programs were quickly synthesized and were
+running in the plant as expected.
+Performing the experiments also validate the implementation of the
+translation from schedules to programs and here no problems were
+found. Our condence in the correctness of the model has been sig-
+nicantly increased by conducting these experiments.
+7 Conclusion
+In this paper, we have used timed automata and the verication tool
+Uppaal to synthesize control programs for a batch production plant.
+To deal with the unavoidable complexity of a plant model suitablyaccurate for program synthesis, we suggest and apply a general ap-
+proach of guiding a model according to certain strategies. With this
+technique, we have been able to synthesize schedules for as many as
+60 batches on a machine with 1024 MB of memory. Applying bit-
+state hashing the space consumption may be decreased even further.
+Based on traces from the model checking tool Uppaal , schedules are
+generated. From theses schedules, control programs are synthesized
+and later executed in a physical plant. During execution a few mod-eling errors were detected. After correcting the model, new schedules
+were generated and correct programs were synthesized and executed
+in the plant.
+The presented method for guiding model-checking has proved very
+successful in signicantly increasing the size of models which can
+be analyzed. The largest model we analyze consists of 125 timed au-tomata and a total of 183 clocks. The notion of guides allows the user
+to add heuristics for controlling the behavior of the plant, and we
+believe that the approach is applicable and useful for model check-
+ing in general and reachability checking in particular. The validation
+of the model by running the synthesized programs also proved use-ful: having access to the (a) physical plant during the design of the
+model, allowed a number of questions to be readily answered.
+Based on the traces generated from the Uppaal model other types of
+control programs can be synthesized. Here it would be especially in-
+teresting to study how more communication between the distributed
+25
+
+--- Page 28 ---
+controllers can be used, e.g. for generating more optimal programs,
+and for detecting run-time errors. The guides added here decrease
+the size of the state-space. However, most of the strategies presentedhere could also be realized by changing the search order to rst search
+the states which are most likely to lead to a goal state. This would
+not delete possible solutions, which would be particular useful if one
+were searching for optimal schedules. Searching for optimal sched-
+ules, a notion of cost should be added to the model. Here an obviouschoice would be the time passed.
+Acknowledgements: The authors wish to thank Ansgar Fehnker
+and K are Jelling Kristoersen for fruitful discussions and many use-
+ful suggestions.
+References
+[AD94] R. Alur and D. Dill. Automata for Modelling Real-Time Systems. Theo-
+retical Computer Science , 126(2):183{236, April 1994.
+[AL91] Martin Abadi and Leslie Lamport. The existence of renement mappings.
+Theoretical Computer Science , 82:253{284, 1991.
+[BGK+96] Johan Bengtsson, W.O. David Grioen, K are J. Kristoersen, Kim G.
+Larsen, Fredrik Larsson, Paul Pettersson, and Wang Yi. Verication of
+an Audio Protocol with Bus Collision Using Uppaal . In Rajeev Alur and
+Thomas A. Henzinger, editors, Proc. of the 8th Int. Conf. on Computer
+Aided Verication , number 1102 in Lecture Notes in Computer Science,
+pages 244{256. Springer{Verlag, July 1996.
+[BJLY98] Johan Bengtsson, Bengt Jonsson, Johan Lilius, and Wang Yi. Partial Order
+Reductions for Timed Systems. In Proc. of CONCUR '98: Concurrency
+Theory , 1998.
+[BS99] Rene Boel and Geert Stremersch. VHS Case Study 5: Timed Petri net model
+of steel plant at SIDMAR. Technical report, SYSTeMS Group, Universiteit
+Gent, Technologiepark-Zwijnaarde 9, B-9052 Ghent, Belgium, 1999.
+[DT98] Conrado Daws and Stavros Tripakis. Model checking of real-time reach-
+ability properties using abstractions. In Bernard Steen, editor, Proc. of
+the 4thWorkshop on Tools and Algorithms for the Construction and Anal-
+ysis of Systems , number 1384 in Lecture Notes in Computer Science, pages
+313{329. Springer{Verlag, 1998.
+[Feh99] Ansgar Fehnker. Scheduling a steel plant with timed automata. In Pro-
+ceedings of the 6th International Conference on Real-Time Computing Sys-tems and Applications (RTCSA99) , pages 280{286. IEEE Computer Soci-
+ety, 1999.
+[Hol91] Gerard Holzmann. The Design and Validation of Computer Protocols .P r e n -
+tice Hall, 1991.
+26
+
+--- Page 29 ---
+[KLPW99] K. Kristoersen, K. Larsen, P. Pettersson, and C. Weise. VHS Case Study 1
+- Experimental Batch Plant using UPPAAL. BRICS, University of Aalborg,
+Denmark, May 1999.
+[LEG98] LEGO. Software developers kit , November 1998. See
+http://www.legomindstorms.com/ .
+[LLPY97] Fredrik Larsson, Kim G. Larsen, Paul Pettersson, and Wang Yi. Ecient
+Verication of Real-Time Systems: Compact Data Structures and State-Space Reduction. In P r o c .o ft h e 18thIEEE Real-Time Systems Sympo-
+sium, pages 14{24. IEEE Computer Society Press, December 1997.
+[LPY95] Kim G. Larsen, Paul Pettersson, and Wang Yi. Compositional and Sym-
+bolic Model-Checking of Real-Time Systems. In P r o c .o ft h e1 6 thIEEE
+Real-Time Systems Symposium , pages 76{87. IEEE Computer Society
+Press, December 1995.
+[LPY97] Kim G. Larsen, Paul Pettersson, and Wang Yi. Uppaal in a Nutshell.
+Int. Journal on Software Tools for Technology Transfer , 1(1{2):134{152,
+October 1997.
+[Mil89] R. Milner. Communication and Concurrency . Prentice Hall, Englewood
+Clis, 1989.
+[Sto00] M. Stobbe. Results on scheduling the sidmar steel plant using constraint
+programming. Internal report, 2000.
+[YPD94] Wang Yi, Paul Pettersson, and Mats Daniels. Automatic Verication
+of Real-Time Communicating Systems By Constraint-Solving. In DieterHogrefe and Stefan Leue, editors, Proc. of the 7 thInt. Conf. on Formal
+Description Techniques , pages 223{238. North{Holland, 1994.
+Appendix
+emptyemptyfullempty
+x<=casttotalfullempty2
+x<=casttotal
+emptyfullfullfull
+x<=casttotalturning
+x<=castturn
+fullfull2
+x<=casttotal
+turning2gofinish?
+x==casttotal
+x:=0nrut!x==casttotalx:=0nrut!
+outcast?
+incast?incast?x==castturn
+turn!
+x>=castturn outcast?x:=0turn!
+caststart?
+Fig. 13. The casting machine.
+27
+
+--- Page 30 ---
+c1emp c1full
+c2empc2c1emp
+tCB<=cdelayc2c1full
+tCB<=cdelay
+c2full
+c3empc3c2emp
+tCB<=cdelayc3c2full
+tCB<=cdelay
+c3full
+c4empc4c3emp
+tCB<=cdelayc4c3full
+tCB<=cdelay
+c4full
+c5empc5c4emp
+tCB<=cdelayc5c4full
+tCB<=cdelay
+c5fullc2c1aemp
+tCB<=cdelay
+c3c2aemp
+tCB<=cdelay
+c4c3aemp
+tCB<=cdelay
+c5c4aemp
+tCB<=cdelayc2c1afull
+tCB<=cdelay
+c3c2afull
+tCB<=cdelay
+c4c3afull
+tCB<=cdelay
+c5c4afull
+tCB<=cdelayc2up
+tCB<=cup
+c2down
+tCB<=cupc1uptCB<=cup
+c1down
+tCB<=cup
+c3up
+tCB<=cup
+c3downtCB<=cup
+c4up
+tCB<=cup
+c4down
+tCB<=cup
+c5uptCB<=cup
+c5down
+tCB<=cupcpos[3]==0, cpos[2]==0,
+posI[4]==1
+cpos[3]:=1,
+cpos[4]:=0,tCB:=0,creq1:=1moveBup?tCB==cdelay,
+cpos[2]==0
+cpos[2]:=1,
+cpos[3]:=0,creq1:=0tCB==cdelay,cpos[2]==0
+cpos[2]:=1,
+cpos[3]:=0,creq1:=0evom21?
+cpos[3]==0
+cpos[3]:=1,
+cpos[4]:=0,tCB:=0,creq1:=1moveB21?
+cpos[5]==0
+cpos[5]:=1,
+cpos[6]:=0,tCB:=0,creq1:=1moveBup?tCB==cdelay,
+cpos[4]==0
+cpos[4]:=1,
+cpos[5]:=0tCB==cdelay,cpos[4]==0
+cpos[4]:=1,
+cpos[5]:=0evom32?
+cpos[5]==0
+cpos[5]:=1,
+cpos[6]:=0,tCB:=0move32?
+cpos[7]+creq2==0
+cpos[7]:=1,
+cpos[8]:=0,tCB:=0moveBup?tCB==cdelay,
+cpos[6]==0
+cpos[6]:=1,
+cpos[7]:=0tCB==cdelay,cpos[6]==0
+cpos[6]:=1,
+cpos[7]:=0evom43?
+cpos[7]==0
+cpos[7]:=1,
+cpos[8]:=0,tCB:=0move43?
+cpos[9]==0
+cpos[9]:=1,
+cpos[10]:=0,tCB:=0moveBup?tCB==cdelay,
+cpos[8]==0
+cpos[8]:=1,
+cpos[9]:=0tCB==cdelay,cpos[8]==0
+cpos[8]:=1,
+cpos[9]:=0evom54?
+cpos[9]==0
+cpos[9]:=1,
+cpos[10]:=0,tCB:=0move54?cpos[3]==0,
+cpos[4]==0,posII[4]==1
+cpos[3]:=1,
+cpos[2]:=0,tCB:=0moveBdown?
+tCB==cdelay,
+cpos[4]==0
+cpos[4]:=1,
+cpos[3]:=0
+cpos[5]==0,creq2==1
+cpos[5]:=1,
+cpos[4]:=0,tCB:=0moveBdown?
+tCB==cdelay,
+cpos[6]==0
+cpos[6]:=1,
+cpos[5]:=0
+cpos[7]==0,creq2==2
+cpos[7]:=1,
+cpos[6]:=0,tCB:=0moveBdown?
+tCB==cdelay,
+cpos[8]==0
+cpos[8]:=1,
+cpos[7]:=0
+cpos[9]==0,creq2==2
+cpos[9]:=1,
+cpos[8]:=0,tCB:=0moveBdown?
+tCB==cdelay,
+cpos[10]==0
+cpos[10]:=1,
+cpos[9]:=0cpos[3]==0
+cpos[3]:=1,
+cpos[2]:=0,tCB:=0moveB12?
+tCB==cdelay,
+cpos[4]==0
+cpos[4]:=1,
+cpos[3]:=0evom12?
+cpos[5]==0
+cpos[5]:=1,
+cpos[4]:=0,tCB:=0move23?
+tCB==cdelay,
+cpos[6]==0
+cpos[6]:=1,
+cpos[5]:=0evom23?
+cpos[7]==0
+cpos[7]:=1,
+cpos[6]:=0,tCB:=0move34?
+tCB==cdelay,
+cpos[8]==0
+cpos[8]:=1,
+cpos[7]:=0evom34?
+cpos[9]==0
+cpos[9]:=1,
+cpos[8]:=0,tCB:=0move45?
+tCB==cdelay,
+cpos[10]==0
+cpos[10]:=1,
+cpos[9]:=0evom45?tCB:=0
+cBIIup?tCB==cup
+posII[4]:=0
+posII[4]==0 tCB:=0, 
+posII[4]:=1cBIIdown_start?
+tCB==cupcIIdown_end!tCB:=0cBIup?tCB==cup
+posI[4]:=0
+posI[4]==0 tCB:=0, 
+posI[4]:=1cBIdown_start?
+tCB==cup cIdown_end!
+tCB:=0cIIIup? tCB==cup
+tCB==cup cIIIdown?
+creq2!=2tCB:=0cIVup?tCB==cup
+tCB:=0 cIVdown_start? tCB==cup
+cIVdown_end!
+tCB:=0
+cVup?
+tCB:=0cVdown_start? tCB==cupcVdown_end!
+Fig. 14. The lower crane.
+28
+
+--- Page 31 ---
+final t1 t2 t3 terminusfinish! quality1? quality2? quality1?
+Fig. 15. A test automaton for producing three batches.
+III2
+waiting
+V3castV5k5 V6 casti0 i0a
+tRB1<=bmovei1 i1a
+tRB1<=bmovei2 i2a
+tRB1<=bmovei3 i3a
+tRB1<=bmovei4 i4a
+tRB1<=bmovei5
+ii0
+ii0a
+tRB1<=bmove
+ii1
+ii1a
+tRB1<=bmove
+ii2
+ii2a
+tRB1<=bmove
+ii3k0
+k1k1k0
+k2k2k1
+k3k3k2
+k4k4k3
+k4sink
+k5k5V3b
+k5k4machine1 machine2 machine3
+machine4
+machine5p1
+p2
+sinksource
+x1i0aatRB1<=bmovei1aa
+tRB1<=bmove i2aatRB1<=bmove
+i3aatRB1<=bmove
+i4aatRB1<=bmove
+ii0aa
+tRB1<=bmove
+ii1aa
+tRB1<=bmove
+ii2aa
+tRB1<=bmovec2downc1down
+c4down
+c5downpreii0
+tRB1<=bmovepreI0
+tRB1<=bmove
+park>0 park:=park-1cIIIup!
+next:=emp doneB1! outcast! creq2:=0 cVup!posI[1]==0
+posI[1]:=1,
+posI[0]:=0,tRB1:=0b1right? tRB1==bmove,
+posI[2]==0
+posI[2]:=1,
+posI[1]:=0posI[3]==0,next!=m1
+posI[3]:=1,
+posI[2]:=0,tRB1:=0m1right?M1on?
+tRB1==bmove,
+posI[4]==0
+posI[4]:=1,
+posI[3]:=0posI[5]==0,next>m1,next<m4
+posI[5]:=1,
+posI[4]:=0,tRB1:=0b2right?
+next>m3
+cAIup!tRB1==bmove next==m3
+tRB1:=0m2right?M2on?
+tRB1==bmove next==m3
+tRB1:=0b3right?tRB1==bmoveM3on?
+tRB1==bmove,
+posII[0]==0posII[0]:=1,
+posII[1]:=0
+posII[1]==0,next==NAposII[1]:=1,
+posII[2]:=0,tRB1:=0
+m4left?
+M4on?
+tRB1==bmove,
+posII[2]==0posII[2]:=1,
+posII[3]:=0
+posII[3]==0,next==m4posII[3]:=1,
+posII[4]:=0,tRB1:=0
+b5left?
+tRB1==bmove,
+posII[4]==0posII[4]:=1,
+posII[5]:=0
+posII[5]==0,next!=m5posII[5]:=1,
+posII[6]:=0,tRB1:=0
+m5left?
+M5on?move01!next==NA move10!
+next>m3
+moveA12!evom10!
+evom01!
+next<=m3moveA21!
+next==fin
+move23!next<=m3evom21!
+next>m3
+evom12!
+park<buf_size park:=park+1cIIIdown!next==NA
+move32!
+next==fin
+move34!next==NA
+evom32!
+next==fin
+evom23!
+next==NA
+move43!
+dumpB1?
+next==fin
+move45!next==NAevom43!
+next==fin
+evom34!
+next==emp
+move54!
+next!=empincast!tryB1!next==emp
+evom54!
+next==fin
+evom45!M1off? M2off? M3off?
+M4off?
+M5off?next==m1,
+posI[0]==0posI[0]:=1
+goB1!
+next==m4,
+posII[0]==0
+posII[0]:=1goB1!
+next!=m4,
+next!=m5,next!=fincAIIup!tRB1==bmove,
+posI[0]==0
+posI[0]:=1,
+posI[1]:=0posI[1]==0,next==NA
+posI[1]:=1,
+posI[2]:=0,tRB1:=0m1left?
+tRB1==bmove,
+posI[2]==0
+posI[2]:=1,
+posI[3]:=0posI[3]==0,next==m1
+posI[3]:=1,
+posI[4]:=0,tRB1:=0b2left?tRB1==bmove,
+posI[4]==0
+posI[4]:=1,
+posI[5]:=0next!=m2,next!=m3
+tRB1:=0m2left?
+tRB1==bmovenext!=m3
+tRB1:=0b3left?tRB1==bmovenext!=m3
+tRB1:=0m3left?
+posII[1]==0
+posII[1]:=1,
+posII[0]:=0,tRB1:=0b4right?
+tRB1==bmove,
+posII[2]==0
+posII[2]:=1,
+posII[1]:=0
+posII[3]==0,next!=m4
+posII[3]:=1,
+posII[2]:=0,tRB1:=0m4right?
+tRB1==bmove,
+posII[4]==0
+posII[4]:=1,
+posII[3]:=0
+posII[5]==0,next==m5
+posII[5]:=1,
+posII[4]:=0,tRB1:=0b5right?
+tRB1==bmove,
+posII[6]==0
+posII[6]:=1,
+posII[5]:=0
+turn?
+creq2:=2 nrut?next>m3
+cAIIdown_start!
+cIIdown_end?next<=m3cAIdown_start!cIdown_end?
+cIVdown_start! cIVdown_end?
+cVdown_start! cVdown_end?next>m3,next!=fin
+cBIIdown_start!
+next!=m4,
+next!=m5cBIIup!next<=m3cBIdown_start!
+next>m3
+moveB12!
+next<=m3moveB21!next>m3
+cBIup!
+tRB1:=0b4right?
+tRB1==bmovetRB1:=0
+b1right?tRB1==bmove
+Fig. 16. The batch automaton.
+29
+
+--- Page 32 ---
+RecentBRICS ReportSeriesPublications
+RS-00-37 ThomasS.Hune,KimG.Larsen, andPaulPettersson. Guided
+Synthesis of Control Programs for a Batch Plant using UP-
+PAAL. December 2000. 29 pp. Appears in Hsiung, editor,
+International Workshop in Distributed Systems Validation and
+Veriﬁcation. Held in conjunction with 20th IEEE International
+Conference on Distributed Computing Systems (ICDCS ’2000) ,
+DSVV ’00 Proceedings, 2000.
+RS-00-36 Rasmus Pagh. Dispersing Hash Functions . December 2000.
+18 pp. Preliminary version appeared in Rolim, editor, 4th.
+International Workshop on Randomization and ApproximationTechniques in Computer Science , RANDOM ’00, Proceedings
+inInformatics 8,2000,pages 53–67.
+RS-00-35 Olivier Danvy and Lasse R. Nielsen. CPS Transformation of
+Beta-Redexes . December 2000. 12 pp.
+RS-00-34 OlivierDanvyandMortenRhiger. ASimpleTakeonTypedAb-
+stractSyntaxinHaskell-likeLanguages . December2000. 25pp.
+To appear in FifthInternationalSymposiumonFunctional and
+LogicProgramming ,FLOPS’01 Proceedings, LNCS, 2001.
+RS-00-33 Olivier Danvy and Lasse R. Nielsen. A Higher-Order Colon
+Translation . December 2000. 17 pp. To appear in Fifth In-
+ternational Symposiumon Functional and LogicProgramming ,
+FLOPS’01 Proceedings, LNCS, 2001.
+RS-00-32 John C. Reynolds. The Meaning of Types — From Intrinsic to
+ExtrinsicSemantics . December 2000. 35 pp.
+RS-00-31 Bernd Grobauer and Julia L. Lawall. Partial Evaluation of
+PatternMatchinginStrings,revisited . November 2000. 48pp.
+RS-00-30 Ivan B. Damg ˚ard and Maciej Koprowski. Practical Thresh-
+old RSA Signatures Without a Trusted Dealer . November 2000.
+14 pp.
+RS-00-29 Luigi Santocanale. The Alternation Hierarchy for the Theory
+of-lattices. November 2000. 44 pp. Extended abstract ap-
+pears in Abstracts from the International Summer Conference
+inCategoryTheory , CT2000,Como, Italy,July16–22,2000.

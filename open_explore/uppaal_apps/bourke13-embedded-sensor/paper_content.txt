@@ -1,0 +1,1618 @@
+--- Page 1 ---
+HAL Id: hal-00909062
+https://inria.hal.science/hal-00909062v1
+Submitted on 26 Nov 2013
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Analyzing an Embedded Sensor with Timed Automata in
+Uppaal
+Timothy Bourke, Arcot Sowmya
+To cite this version:
+Timothy Bourke, Arcot Sowmya. Analyzing an Embedded Sensor with Timed Automata in Up-
+paal. ACM Transactions on Embedded Computing Systems (TECS), 2013, 13 (3), pp.44-1–44-26.
+⟨10.1145/2539036.2539040⟩. ⟨hal-00909062⟩
+
+--- Page 2 ---
+0
+AnalyzinganEmbeddedSensorwith TimedAutomata in Uppaal
+TIMOTHYBOURKE , INRIA and École normale supérieure
+ARCOT SOWMYA , University of NSW
+An infrared sensor is modeled and analyzed in Uppaal. The sensor typiﬁes th e sort of component that
+engineers regularly integrate into larger systems by writing interface h ardware and software.
+In all, three main models are developed. For the ﬁrst, the timing diagra m of the sensor is interpreted and
+modeledasatimedsafetyautomaton.Thismodelservesasaspeciﬁcat ionforthecompletesystem.Asecond
+model that emphasizes the separate roles of driver and sensor is then de veloped. It is validated against the
+timing diagram model using an existing construction that permits the ver iﬁcation of timed trace inclusion,
+for certain models, by reachability analysis (i.e., model checking). A transmission correctness property is
+also stated by means of an auxiliary automaton and shown to be satisﬁed by t he model.
+A third model is created from an assembly language driver program, usin g a direct translation from
+the instruction set of a processor with simple timing behavior. This model is va lidated against the driver
+component of the second timing diagram model using the timed trace inc lusion validation technique. The
+approach and its limitations offer insight into the nature and challenge s of programming in real time.
+Categories and Subject Descriptors: C.3 [ Special-purpose and Application-based Systems ]: Real-time
+and embedded systems; D.2.4 [ Software Engineering ]: Software/Program Veriﬁcation— Model checking ;
+Validation ;Formal methods ; F.3.1 [Logics and Meanings of Programs ]: Specifying and Verifying and
+Reasoning about Programs— Mechanical veriﬁcation ;Speciﬁcation techniques
+General Terms: Design, Documentation, Veriﬁcation
+Additional Key Words and Phrases: Timed automata, Uppaal, Timing diag rams, Timed trace inclusion
+ACM Reference Format:
+Bourke, T., Sowmya, A. 2012. Analyzing an embedded sensor with Timed Au tomata in Uppaal ACM Trans.
+Embedd. Comput. Syst. 0, 0, Article 0 ( 2012), 25 pages.
+DOI=10.1145/0000000.0000000 http://doi.acm.org/10.1145/00 00000.0000000
+1. INTRODUCTION
+Integrating specialized components is fundamental to many embedded engineering
+projects. The behavior of these components is often speciﬁe d in informal timing di-
+agrams which are interpreted by engineers during the design of interface hardware
+and software. This article presents the modeling and analys is of one such component
+and its interface: an infrared sensor and its assembly langu age driver. The interest is
+in applying timed safety automata [Henzinger et al. 1994] an d reachability analysis
+in Uppaal [Larsen et al. 1997] to a concrete example from prac tice, as opposed to an
+abstract algorithm or protocol. The example itself is novel and treated in detail.
+Thesensorisasmall-scalecasestudy:itsspeciﬁcationshe ethasonlyfourpagesand
+a driver can be written in about twenty lines of assembly lang uage. It suits the intent
+The work described was performed while the ﬁrst author was a student at UNSW and NICTA.
+Author’s addresses: T. Bourke, Département d’Informatique, Éco le normale supérieure, Paris; A. Sowmya,
+School of Computer Science and Engineering, University of NSW, Syd ney.
+Permission to make digital or hard copies of part or all of this work for pe rsonal or classroom use is granted
+without fee provided that copies are not made or distributed for proﬁ t or commercial advantage and that
+copies show this notice on the ﬁrst page or initial screen of a display along wit h the full citation. Copyrights
+for components of this work owned by others than ACM must be honore d. Abstracting with credit is per-
+mitted. To copy otherwise, to republish, to post on servers, to redistribu te to lists, or to use any component
+of this work in other works requires prior speciﬁc permission and/or a fee. Permissions may be requested
+from Publications Dept., ACM, Inc., 2 Penn Plaza, Suite 701, New York, NY 10121-0701 USA, fax +1 (212)
+869-0481, or permissions@acm.org.
+© 2012 ACM 1539-9087/2012/-ART0 $10.00
+DOI 10.1145/0000000.0000000 http://doi.acm.org/10.1145/0 000000.0000000
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 3 ---
+0:2 T. BourkeandA. Sowmya
+oftreatinganexampletakenfrompracticeratherthanoneco ntrivedoradjustedtoex-
+hibitpointsoftheoreticalinterest.Thesensorandthetim ingdiagraminitsdatasheet
+are effectively treated as artifacts of intrinsic interest to be observed ‘in the wild’. This
+is a reasonable view, even though both are man-made, for two r easons. First, because
+the idea, initially anyway, is to observe, rather than to cha nge, practice. And, second,
+because engineers must often work from speciﬁcations and ex periment alone without
+recourse to component designers. The choice of a single, sma ll, and arbitrary example,
+however, certainly limits generalization: some character istics of the device may be id-
+iosyncratic, and other interesting characteristics are ce rtainly not represented. At the
+very least, the case study is a data point to be added to the set of existing examples.
+Quantitative time is integral to understanding and directi ng the sensor. Mostly be-
+cause its timing diagram prescribes a way for two asynchrono us components to com-
+municate with minimal interconnections: two wires in fact. Both the description of
+these timing constraints and the way they may be met by implem entations are ex-
+amined. Although the meaning of most signal changes depends more on protocol state
+thanonprecisetimeofoccurrence,anopen-loopversionoft hedriverisalsoconsidered;
+its operation relies on the passage of time rather than the re ceipt of events.
+The sensor and its timing diagram are described in §2. A caref ul interpretation of
+the timing diagram, and the timed automaton model that resul ts are presented in §3.
+The timed automaton model is then reﬁned into a split model of cooperating timed
+automata where the separate roles and the interaction of the sensor and driver are
+emphasized. This model is presented in §4, which also contai ns a description of two
+analyzes in Uppaal. In the ﬁrst, a testing automaton is const ructed from the origi-
+nal timing diagram model and analyzed together with the spli t model to show timed
+trace inclusion. In the second, a transmission correctness property is formulated and
+veriﬁed by reachability analysis. The driver component of t he split model serves as
+a speciﬁcation in §5, where an assembly language driver is mo deled and validated
+against the speciﬁcation via timed trace inclusion testing . The article concludes in §6
+with a discussion of the results and some suggestions for ext ending the research.
+2. THESHARP GP2D02RANGE SENSOR
+The Sharp GP2D02 range sensor exempliﬁes the sort of compone nt which engineers
+integrate into embedded systems. The sensor is an electro-o ptical component that ex-
+ploits physical principles to produce results that are usef ul within a larger system.
+The choice of investigating the GP2D02 is somewhat arbitrar y. Signiﬁcantly, how-
+ever, the device speciﬁcation is relatively simple, includ es timing constraints, and
+mixesevent-driven responses withsampling.Anawareness o ftheexample’s strengths
+andweaknessescouldguidefutureexperiments.Thephiloso phyistoexaminerealistic
+examples for opportunities where they may be better underst ood or developed, rather
+than to choose examples which suit a particular development approach.
+2.1. Overview
+The sensor, refer Figure 1a, is a small ( 14×29×14mm) box. Visible features include
+two mounting slots, an infrared light emitting diode, a lens that covers a detecting
+surface, and four electrical terminals: voltage, ground, i nput (vin), and output ( vout).
+The sensor measures the distance to an object by emitting inf rared beams from the
+diode which are then reﬂected by the object. The distance is e stimated by measuring
+the position of the reﬂected beams along the detecting surfa ce. Measurement cycles
+are triggered and 8-bit distance estimates read from the out put terminal by providing
+a suitable signal on the input terminal. This signal and othe r details are described in
+a data sheet [Sharp Corporation 1997]. The behavioral descr iptions are informal and
+subject to interpretation against a background of engineer ing practice.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 4 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:3
+(a) Physical appearancetiming diagram
+driver sensor
+voutvin
+(b) Utilization
+Fig. 1: The GP2D02 Sensor.
+70ms or more0.2ms or less
+1ms or more1.5 ms or more 1.5ms or more
+Po wer
+OFFVin
+Vout
+MSB LSB LSB
+Fig. 2: The sensor timing diagram [Sharp Corporation 1997].
+In applications, a sensor is connected to another device, he re termed the driver, as
+shown in Figure 1b. The driver controls the signal level on vin, and the sensor con-
+trols the level on vout. Three interrelated models of this system are presented in t his
+article. The ﬁrst, in §3, describes the combined protocol—th e causal relations and tim-
+ing constraints between voltage levels and voltage level ch anges on the two wires—as
+represented by a timing diagram.The sensor is treated as a bl ack box that guarantees
+the stated behaviors on voutprovided the driver conforms to the expected behaviors
+onvin. The individual roles of driver and sensor are emphasized in the second model,
+presented in §4. The third model, presented in §5, concerns a driver implementation.
+2.2. TimingDiagram
+ThesensortimingdiagramisreproducedinFigure2.Thisﬁgu reiscopieddirectlyfrom
+the sensor data sheet (with one minor change: the lower signa l, here named vout, is
+referredtoas outputintheoriginal).Theuppersignal vinspeciﬁestheinputsequences
+that may be applied to the unit. The lower signal voutspeciﬁes the expected response.
+The ﬁrst falling edge on vintriggers a range reading which may take at most 70ms.
+A series of pulses are then applied to clock data out of the sen sor, and, ﬁnally, at least
+1.5msmust elapse before either repeating or terminating the proc ess.
+The choice between stopping and continuing is the only point where control be-
+haviors, as opposed to timing or data valuations, branch. Bo th possible scenarios are
+shown at right in the diagram; in each a pulse on vinis labeled with 1.5ms or more .
+The ﬁrst pulse on vinis interpreted as triggering a new range reading. The second , la-
+beled with Power OFF , is interpreted as the decision to switch the sensor off. Bet ween
+these alternatives, each signal line is broken by a dashed ho rizontal section. Clearly,
+representing branching in a timing diagram is awkward.
+There are four dashed vertical lines between the two signal w aveforms. These seem
+to indicate synchronizing events, from left: commencing a r ange reading, triggering
+a change in voutfor the most signiﬁcant bit (MSB), similarly for the least sig niﬁcant
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 5 ---
+0:4 T. BourkeandA. Sowmya
+bit(LSB),andreturningtoalow voutlevelafteranunspeciﬁed,thoughbounded,delay.
+There is a ﬁfth vertical line that does not reach the lower wav eform. Its meaning is
+difﬁcult to decipher, it seems to imply that voutwill become high again within 1.5ms.
+The diagram indicates that vinshould remain constant for at least 70msafter the
+falling transition that triggers a range reading, during wh ich time the voutsignal
+will change. Some implementations [Griebling 1999; Ramsey 2001] ignore the timing
+constraint and act instead as soon as voutbecomes high—this possibility is modeled.
+The crossed boxes on the voutsignal, between most and least signiﬁcant bits, indi-
+cate data non-determinism. The signal value, either high or low, depends on the range
+reading and must typically be sampled since there will not ne cessarily be a detectable
+event.Foraccuratesampling,itisnecessarytoknowbounds onwhen,relativetoother
+signal events, the voutlevel will be stable. The timing diagram could be more explic it,
+but it seems that changes in voutare usually triggered by falling transitions on vin.
+The exact behavior, however, of voutafter the least-signiﬁcant bit has been sampled is
+not clear. If the last bit is zero, voutmust return to the high level before 1.5mselapses.
+If it is one, it seems that voutmust go to a low level ﬁrst before returning to a high
+level. An engineer could clarify such unclear details, shou ld they prove important, by
+running experiments with an instance of the device. This is a n effective approach, but,
+at least in principle, such observed behaviors may change be tween different versions
+of the speciﬁed device. It is assumed that a rising vintransition after the last sample
+triggers voutto fall if necessary and then rise again.
+According to the diagram, the sensor requires at least 1.5msbetween the end of one
+complete range reading and the beginning of the next. During this period there is a
+rising transition on voutwhich could indicate that the sensor is ready to make another
+reading before the whole 1.5mshas elapsed. The speciﬁcation is not clear.
+The70ms or more and1.5ms or more constraints are readily justiﬁable: it takes
+time for the device to make measurements and to recover; less so the0.2ms or less
+constraint.Ratherthanseekamotive,theconstraintswill simplybeacceptedasgiven.
+Also,ratherthaninterpret 0.2msorless asaconstraintforalltheotherpositivepulses
+and perhaps also the negative pulses , it is assumed to pertain only to the ﬁrst.
+The pulses, though, must deﬁnitely have some minimum value, as suggested by the
+1ms or more constraint. The minimum width of a positive pulse will be rep resented by
+minmark, and that of a negative pulse by minspace . The1ms or more constraint is not
+otherwise further interpreted. The values of minmark andminspace will depend on the
+sensor’s (unspeciﬁed) internal electronics and propertie s of the interconnection (such
+as wire capacitance). They are assumed to be equal to zero fro m now on.
+Althoughnot perfect, thetimingdiagram isadequate forint erfacingwiththesensor
+once its ambiguities have been resolved. Converting such an informal description into
+a precise notation quickly reveals what is clear and what is n ot.
+3. TIMINGDIAGRAM MODEL
+In this section, a timed automaton model of the timing diagra m is described. The sen-
+sor timing diagram is ordinarily read as the speciﬁcation fo r a device driver—a circuit
+or program for triggering the sensor and extracting a readin g. But it could also be
+taken as a template for creating different types of compatib le sensors. In either case,
+one would classify events and constraints within the diagra m from the perspective of
+onesideortheother,asinputsoroutputs,orasassumptions orguarantees.Inthissec-
+tionsensorisnotdistinguishedfromdriver.Thefocusisin steadonthetimingdiagram
+as an artifact in itself. It is modeled as a timed automaton, t hus providing a precise
+interpretation. Alternative modeling choices and possibl e variations are discussed.
+There are ﬁve subsections. In §3.1, some beneﬁts of producin g such a formal model
+and some of the philosophies that guide its creation are disc ussed. The choice of al-
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 6 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:5
+phabet for the model is described in §3.2. A detailed descrip tion of the timing diagram
+modelispresentedin§3.3.Livenessrequirementsarediscu ssedin§3.4.Lastly,in§3.5,
+some limitations of the case study are listed.
+3.1. Rationaleandguidingphilosophy
+Timing diagrams are usually understood through convention , culture, and practical
+experimentation rather than in formal terms, despite sever al proposed formalisms.1
+Thereareatleastthreereasonsformodelingatimingdiagra minaformalframework:
+(1) Detailed questions are asked of the speciﬁcation. Its me aning is clariﬁed and
+ambiguities or omissions may be discovered and noted.
+(2) A formal speciﬁcation deﬁnes a notion of correctness aga inst which other arti-
+facts, such as sensor and driver implementations, may be val idated.
+(3) Toolsforvalidatingandtransformingsometypesofmode lsexist,synthesisbeing
+a special case of transformation into an executable form.
+Implementation in a speciﬁc programming language is effect ively a translation to
+a formal, or at least semi-formal, notation. There are, howe ver, important differences.
+While implementation also requires attention to technical details, certain language
+featuresmaybehavedifferentlyacrosscompilersandplatf orms.Signiﬁcantly,properly
+expressing timing details may be difﬁcult. A program is, at b est, a single reference im-
+plementation , it cannot usually reﬂect the full range of permitted behavi ors. Further-
+more, there may be confusion between which features of the pr ogram are properties of
+the object under consideration and which are necessitated b y the chosen language.
+The key difference between a model and an implementation is o ne of abstraction.
+Modelswillusuallyignoredetailsessentialtoimplementat ions,andconversely,imple-
+mentations will typically be too constraining to act as mode ls for all purposes. When
+specifyingtiming,andotherbehaviors,itisparticularly desirabletoignoredistracting
+implementation details.2Ideally though, the models and implementations of a system
+are interrelated in a precise manner.
+The timing diagram, Figure 2, deﬁnes a partial ordering and r elative timing con-
+straints on a set of events. The aim is to capture precisely th is information, and no
+more, in a timed automaton model. Justiﬁcation will be offer ed for all compromises.
+3.2. Choosinganalphabet
+The transitions from one signal level to another are of most i mportance in this partic-
+ular timing diagram. They are the main events that the model m ust address.
+Thevinandvoutsignals can be described in terms of edgesandlevels. Edges are
+characterized by direction of change, rising or falling; id eally they are instantaneous
+with a deﬁnite time of occurrence. Levels are characterized by a state, high or low,
+that persists over an interval between two edges. The sensor timing diagram depicts
+ideal signal edges. Other timing diagrams acknowledge the n on-instantaneous nature
+of edges by using vertical lines with a slight slant.
+There are at least three different ways to associate events w ith transitions. The ﬁrst
+associates a distinct event with every change in the value of a signal, and each event
+hasauniquelabel:forexample, e1,e2,...,en.Suchdetailistediousand,forthetiming
+diagrammodel,unnecessary.Thesecondwayassociatesanac tionwitheachsignal,for
+example vinandvout. Different occurrences of the actions are distinguished by relative
+orderofoccurrence.Thethirdwayissimilar,itassociates twoactionswitheachsignal:
+1Bourke [2009, Appendix F] presents the model in a formal timing diag ram notation and cites related work.
+2Although, conversely, most real-time programming is characterized by careful attention to such detail.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 7 ---
+0:6 T. BourkeandA. Sowmya70ms or more0.2ms or less
+1ms or more1.5 ms or more 1.5ms or more
+Po wer
+OFF
+Vin
+s7
+s0 s2x<700
+s1x<700
+s6s3s8
+s5s4x<=2
+s10 s11 s9x < 15sample! b > 0 &&y > minspacevinH!y = 0
+w==1voutL!
+w=0vinL!x=0 voutL! voutH!
+w==1 && y<=maxtrans&& !changedvoutL!w=0, changed = true w==0 && y<=maxtrans&& !changedvoutH!w=1, changed = truevinH! x=0y > minmark vinL!
+y=0, b=b-1, changed = false
+y>maxtrans sample!b>0 &&y > minspace
+vinH! y=0
+vinL! x=0, y=0, b=7,w=1,
+changed=falsex>=15 vinL! x=0
+x>=15powerOff! b==0 && x >= 10 && y > minspace vinH!
+x=0, y=0w==0voutH!
+w=1
+Vout
+MSB LSB LSB//1unit =0.1ms
+const int maxtrans;
+const int minmark;
+// maxtrans ≤minmark
+const int minspace;
+clockx, y;
+int[0 ,7] b = 0;
+int[0 ,1] w = 1;
+boolchanged = true;
+Fig. 3: The timing diagram model (compared to the timing diag ram, in gray).
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 8 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:7
+s2 s0
+vinLvoutL!
+(a) composites2 s0
+vinL! voutL!voutL! vinL!
+(b) interleaveds1 s2 s0
+voutL! vinL!
+(c) causals1x <= max
+s2 s0 x >= min
+voutL! vinL!
+x = 0
+(d) bounded causal
+Fig. 4: Some alternatives for modeling two related events.
+oneforarisingtransitiononthesignal,theotherforafall ingtransition.Thisextrade-
+tail is not absolutely necessary, since rising and falling a ctions must alternate strictly,
+but it clariﬁes the relationship between the model and the ti ming diagram, making
+both easier to think about and to describe. This third choice is thus adopted. Transi-
+tions labeled vinLandvinHcorrespond to falling and rising transitions, respectivel y, on
+vin. Likewise for voutLandvoutHonvout.
+The rising and falling transitions on vinandvoutare explicit in the timing diagram,
+but the diagram also constrains two other events: powering o ff and sampling.
+ApowerOﬀ action is introduced to represent the act of turning the sens or off.
+The timing diagram is not explicit about when the level on voutcan be sampled,
+even though it is an important feature of the protocol. The ti ming diagram model will
+be more precise: a sampleaction is introduced to represent instants when readings
+can be accurately taken from the voutline. This new action is controversial since it
+is not explicit in the timing diagram. But, arguably, it woul d be inferred by engineers
+anyway, and should perhaps have been included.
+3.3. An explanationof themodel
+The model in Figure 3 is the result of many gradual reﬁnements . It is thought to be an
+accurate interpretation of the timing diagram of Figure 2, w hich is reproduced in gray
+to aid comparison.3
+The model is expressed as an Uppaal (4.0.13) timed automaton so that its relation-
+ships with other models can be veriﬁed automatically. As a co nsequence, transitions
+must be labeled as inputs or outputs despite the neutral stan ce taken on the issue.
+They have all been made outputs, simply because this makes va lidation in §4.2 eas-
+ier. The model is to be interpreted as an open system, one that deﬁnes a set of timed
+sequences of allowed actions, rather than as part of a closed system that can only act
+when another component is willing to synchronize.
+In a valid Uppaal model all timing constants must be integers : in the model, one
+unit of time is equivalent to 0.1msin the timing diagram.
+There are three main phases in the timing diagram protocol: t he initial triggering of
+arangereading(§3.3.1),transferringtheresultingvalue bit-by-bit(§3.3.2),andﬁnally
+deciding whether to power off or to repeat the process (§3.3. 3).
+3.3.1. Initial triggering. A range reading cycle is triggered from the initial location ,s0,
+byafallingtransitionon vin:vinL.Accordingtothetimingdiagram voutLoccurssimul-
+taneously. But, conceptually, vinLcausesvoutL. There are at least four ways to model
+the relationship between the two events:
+(1) Asingleeventcomposedoftwoothers: vinL·voutL.Suchacompositeeventresults
+from the synchronization of two components, but in this sett ing the event would later
+be decomposed into separate actions of the driver and sensor . There are two obvious
+expressions in Uppaal. The one shown in Figure 4a is direct bu t makes decomposition
+clumsy.TheoneshowninFigure4btriestocapturethecommut ativityandatomicityof
+3A small improvement could perhaps be made. The model could be adjust ed to allow termination without
+taking any range-readings by adding an extra transition from s0tos11labeled with powerOﬀ .
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 9 ---
+0:8 T. BourkeandA. Sowmya
+the event combination operator, though atomicity is not gua ranteed by the committed
+locations,4marked , in models where other such locations occur concurrently.
+(2) One event after the other, capturing the causal dependen cy but not the implied
+synchronization, as in Figure 4c. This choice is adopted for the timing diagram model.
+(3) One event following the other but with a clock reset on ent ry,x= 0, and an
+invariant on the middle location, x≤max, to express necessity of occurrence; as in Fig-
+ure 4d. When maxis 0, the events are simultaneous but ordered, as for the micro steps
+of state-diagram languages, or the delta steps of discrete-event languages. Adding a
+lower bound, x≥min, gives a model that more accurately reﬂects physical realit y.
+The70msormore constraintisgivenbetweeninitial vinLandvinHevents,butcausal
+dependencies between vinLandvoutL, andvoutLandvoutH, andvoutHandvinHeffec-
+tively also constrain the intermediate voutLandvoutHevents. The ﬁrst of the causal
+dependencies has just been discussed. The second arises bec ause signal levels must
+alternate. The third is less explicit, it is divined from som e extra knowledge of the sen-
+sor,which,whenithasmadeareading,raisestheoutputsign al.Thusbothlocations s1
+ands2have an invariant label x <700, which guarantees the occurrence of voutLand
+voutHbefore70mspasses. Strict compliance with the timing diagram would req uire an
+x≥700guard onthe vinHtransitionbetween s3ands4.Themodel variesonthispoint:
+the driver may proceed as soon as voutHis detected—as earlier discussed.
+ThevinHevent must be followed by vinLwithin0.2ms or less . This constraint is
+modeled by resetting xwhen the former event occurs and adding an x≤2invariant to
+s4. ThevinLtransition sets the clocks xandy, and the variables b,w, andchanged:
+x records the time elapsed since the start of transmission of t he last MSB.
+y records the time elapsed since the last change of vin
+b counts down eight transmitted bits through locations s5,s6,s7, ands8,
+w tracksvoutto ensure strict alternation of voutLandvoutHevents,
+changed ensures that at most one output event occurs for each sampled bit.
+3.3.2. Data transfer. A transmission cycle begins after a falling edge on vin,vinL,
+prompts the sensor to transmit the next bit of the range readi ng. Both the initial vinL,
+froms4, and the looping vinL, froms8, lead to s5.
+The level of voutis only allowed to change while s5is active and within maxtrans
+of the triggering vinL. The self-loops on s5express possible changes on vout; they are
+discussed in more detail later. The timing constraint is mea sured by the clock ywhich
+is reset, within the loop, whenever there is a change on vin. The constant maxtrans
+combines an assumption on the maximum time the sensor will ta ke to change the
+voutlevel after being triggered by vinL, and the time required to transmit any change
+through the wiring and interface electronics. It is not expl icit in the timing diagram
+but the sampling period is not well deﬁned without it.
+Froms5, the driver must sample the voutlevel and then return vinto a high level.
+Both actions, sampleandvinH, must happen after the maxtrans delay and before the
+nextvinL. They are causally-independent for all but the LSB, that is w hileb>0.
+Such relationships are naturally modeled with parallelism ; but expressing nested par-
+allelism in Uppaal is awkward and requires additional synch ronizations. Since there
+are only two actions all of their possible interleavings can be explicitly modeled: the
+paths5–s6–s8samples ﬁrst and then raises vin, and the path s5–s7–s8raisesvinﬁrst
+and then samples. But such an approach quickly becomes unten able as the number
+of mutually-independent actions increases. For the case of the LSB, when b= 0, only
+4Transitions from committed locations have priority over those from no n-committed locations and delays.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 10 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:9
+one of the interleavings is allowed. The sampleaction occurs ﬁrst because it is assumed
+thatvinHsignals to the sensor that sampling is complete.
+The alternation of vinLandvinHactions within the transmission loop gives alter-
+nating negative and positive pulses on vin. Both types of pulse have a minimum
+width:minspace for the negative pulses and minmark for the positive ones. This is
+expressed in the timed automaton by guard expressions on clo cky. The timing dia-
+gram is not explicit about minimum pulse widths. It states on ly that the eight neg-
+ative pulses and seven positive pulses that comprise each cy cle must take 1ms or
+more. Rather than assume minmark =minspace = 1/15ms, the model is validated with
+minmark =minspace = 0; the most permissive choice. The 1ms or more lower bound is
+enforced separately by the x >10guard on the vinHtransition leaving the loop.
+The model assumes that maxtrans ≤minspace , but rather than add an extra clause
+(... && y > maxtrans ) to the guards on edges s5–s7ands6–s8, this constraint on
+the constants is stated outside the model. Setting minmark = 0thus implies that
+maxtrans = 0. An alternative approach would be to duplicate the voutLandvoutHself-
+loops on s7and add the guard y > maxtrans to the transition between s7ands8; but it
+seems less natural to allow the driver to act before the senso r value has stabilized.
+In the timing diagram, Figure 2, there are several crossed bo xes in the voutsignal
+between MSB and LSB annotations. They represent data non-det erminism; the sig-
+nal may change or remain constant from one bit to the next depe nding on the value
+being transmitted. The crossed boxes thus abstract over 28possible data signals, not
+distinguishing variations in timing. There are at least ﬁve ways to model them:
+(1) By not modeling them explicitly. This results in a simple r model because there
+are fewer transitions and the behavior of voutafter the LSB is easier to model. Whilst
+sufﬁcient, from the driver’s perspective, to only specify w hen sampling may occur, the
+timing diagram model tries to avoid bias toward either role.
+(2) By marking the event with a changelabel, thereby ignoring the speciﬁc value.
+This, however, would complicate later veriﬁcations of data transmission. It is also mis-
+leading because the level of voutwill not change if adjacent bits are identical.
+(3) By non-deterministic choice between both possible tran sitions. This technique
+reﬁnes the changeaction into two different actions: rising and falling trans itions. It is
+moreinthespiritofthetimingdiagram,asapartiallyorder edsetoftransitionevents,
+but it incorrectly infers that an update of the output level i s always observable, which
+depends, rather, on the values of adjacent bits in a data read ing.
+(4) By modeling both types of transition, but also including the level of voutin the
+automaton state. This treats the observability of events mo re accurately—no event
+occurs if the level does not change—and also facilitates the v eriﬁcation of data trans-
+mission (§4.3). This technique was chosen for the timing dia gram model of Figure 3.
+Variable wencodes the level status and variable changed ensures that at most one
+event occurs per data bit. In principle, one could write an ev ent-triggered driver that
+responds to the presence or absence, in a given period, of tra nsitions on vout.
+(5) By modeling the possibility that voutmay change several times before settling,
+withinmaxtrans units, to a constant value. This approach [Vaandrager and de Groot
+2006] is closer to physical reality where a signal may, after a change in level, oscillate
+unpredictably before stabilizing. In this situation a driv er triggered by events, rather
+than one that samples the signal level, is impractical. The t iming diagram model can
+be adjusted to use this technique by removing all references to thechanged variable.
+After eight transmission cycles, when bis zero, a transition leaves the loop from s6
+onvinH. If the last voutlevel was high (the least signiﬁcant bit (LSB) was one; w= 1),
+it must now be set to a low level via a voutLevent. The timing diagram is not precise
+about when this event occurs, but it must precede the voutHevent, which in turn must
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 11 ---
+0:10 T. BourkeandA. Sowmya
+precede the vinHevent that exits the sampling loop within 1.5ms. Thus both the voutL
+self-loop on s9and the voutHtransition to s10are constrained by the invariant x <15.
+3.3.3. Power off or repeat. After triggering a range reading and receiving the result,
+there is a choice of terminating, the powerOﬀ action to s11, or of requesting another
+reading, the vinLaction back to s1. Neither can happen until the sensor is ready. The
+timing diagram demands that the choice be made 1.5ms or more after the vinHevent
+that ends sampling. This constraint is expressed in the mode l byx≥15guards on
+transitions from s10. An alternative is to interpret a voutHwithin this period as an
+indication that the sensor is ready; as when waiting for comp letion of a range reading.
+3.4. Livenessand progress
+The location invariants in the timing diagram model specify when actions are neces-
+sary; or equivalently, when unbounded delay is forbidden. W here there is no invariant
+theprotocolmaystopcompletely.The vinL,vinH,sample,andpowerOﬀ actionsfrom s0,s3,
+s6,s7,s8, ands10need never occur. Similarly for s5wherevoutLandvoutHmay possibly,
+butneednot,occurwithinboundedtime,and s11whereunboundeddelayismandatory.
+The timing diagram contains bounded liveness guarantees on all sensor responses.
+These upper timing bounds are modeled as location invariant s, ons1,s2, ands4, or
+as transition guards, on the loops at s5. The sensor must always respond to the driver
+withinaﬁxedperiodoftime.Atime-boundedresponsefromth edriverisonlyexpected
+ats4—and even this 0.2ms or less constraint is somewhat dubious.
+It is sometimes useful to specify the necessity of progress w ithout stating an explicit
+time bound. Such abstract liveness properties can be expres sed via an acceptance cri-
+terion, like Büchi or Muller conditions, and a subset of accep ting states. Using Büchi
+conditions, various liveness constraints could be added to the timing diagram model:
+—Require complete protocol cycles : make both s10ands11accepting and add a
+τ-transition5self-loop to s11. Range reading cycles must then run to completion—
+reading taken and transmitted—once a triggering vinLhas occurred. Cycles may be
+triggered continually forever, or a ﬁnite number of times un tilpowerOﬀ occurs.
+—Allow a ﬁnite number of complete readings without mandating powerOﬀ : make
+s0,s10, ands11accepting and add τ-transition self-loops to all three. Cycles must then
+run to completion once triggered, but neither endless cycle s nor eventual powerOﬀ are
+required: nothing need occur initially or between readings .
+There are a few ways of stating in Uppaal that a model does not d elay indeﬁnitely:
+by giving a speciﬁc upper bound in a location safety invarian t or equivalently using an
+urgent location, committed location, or urgent channels, t hough these are less appro-
+priate in an open model since their behavior in composition i s awkward. But Uppaal
+cannot model abstract liveness requirements.
+3.5. Limitations
+At least seven factors limit generalizations from this exam ple:
+(1) The timing diagram represents communications between a driver and sensor
+where the former is essentially master and interaction is li mited. In particular, it is
+possible for the driver to operate without any direct feedba ck from the sensor.
+(2) Althoughthecommunicationsinvolvetwocomponentsrun ningconcurrently,the
+protocol is essentially sequential. That is, neither compo nent performs many indepen-
+dent actions between synchronizations with the other.
+5Such transitions are not labeled with an action and thus cannot synchro nize with other transitions.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 12 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:11
+(3) There is almost no branching in the control structure. In particular, when one
+component waits for the other, it always expects a speciﬁc si gnal—its actions do not
+depend on which signal occurs, they are only delayed until th e awaited signal.
+(4) The driver and sensor essentially form a closed system. T hat the environment
+affects transmitted infrared beams has no bearing on the des ign.
+(5) Data values do not signiﬁcantly affect the behavior of ei ther component.
+(6) Timing constraints are stated solely between driver eve nts, but never between
+sensor and driver events, or between two sensor events, and a lthough there are some-
+times implications for sensor events no constraints are sta ted directly. The constraints
+do not overlap, nor do they depend on the particular values of earlier delays.
+(7) Component behavior does not depend on the measured lengt h of delays.
+Limitations 5 and 7 could be overcome, but only by considerin g an unusual driver that
+would detect event occurrence and absence rather than sampl e signal levels.
+4. DRIVER/SENSORSPLITMODEL
+While the individual roles of driver and sensor were largely ignored in the timing
+diagram model they are the focus of §4.1, where a split model , which effectively adds
+behavioraldetailtothestructuraldiagramofFigure1b,is presented.Therelationship
+of this model to the timing diagram model is shown in §4.2. Bes ides corroborating the
+timing diagram model, there are two other advantages to cons tructing the split model.
+The ﬁrst, discussed in §4.3, is that it can be used to verify a t ransmission correctness
+property. The second is explored in the following section, w here the driver component
+of the split model becomes a speciﬁcation for an assembly lan guage implementation.
+4.1. Thesplit model
+Theﬁrststepinderivingdriverandsensorcomponentsfromt hetimingdiagrammodel
+is to decide which actions each will control as outputs: An ac tion is an output at a com-
+ponent if its occurrence is determined by that component. An action is an input at
+a component if its occurrence may inﬂuence that component’s behavior. Actions vinL
+andvinHare sensor inputs and driver outputs, and actions voutLandvoutHare sensor
+outputs and driver inputs. These assignments reﬂect both th e reality of connections
+between driver and sensor and a desired division of responsi bility. The events sample
+andpowerOﬀ are slightly different since they do not inﬂuence the behavi or of the sen-
+sor: they are driver outputs but not sensor inputs.
+Intheinterpretation ofthetimingdiagram, in§3,thesenso ronlysynchronizes with
+the driver at the triggering vinL, at thevinLfor reading each bit, and at vinHafter the
+LSB. These synchronizations are inferred from background k nowledge about the sen-
+sor,althoughmuchisalreadydeterminedbythepredominant lysequentialbehaviorof
+the protocol and the strict alternation of falling and risin g transitions on a signal. The
+driver, on the other hand, need not synchronize at all with th e sensor since the timing
+guarantees make open-loop control possible. Alternativel y, it may synchronize on the
+voutHthat indicates a completed reading. Both possibilities wil l be modeled.
+4.1.1. Construction of the model. In the split model, the driver alone is supposed to be
+solely responsible for determining when events on vinoccur, and similarly for the sen-
+soronvout:outputactionsmaynotbeconstrainedbyothercomponents. Therearetwo
+ways to model this in Uppaal: either with handshake communic ation and the addition
+of input-enabling self-loops or with broadcast communicat ion.
+Rather than directly declaring allowed actions, Uppaal mod els contain channel dec-
+larations, each of which implies a speciﬁc pair of input and o utput actions. Commu-
+nication on standard channels (declared with chan) requires the participation of two
+processes: an output action from a component is blocked when no other component
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 13 ---
+0:12 T. BourkeandA. Sowmya
+d1d
+d1ed6
+d0d5d2d7
+d4d3x<=2
+d8
+d9vinL!
+x = 0x>=15 vinL! x = 0
+x>=700 vinH! x = 0
+voutH?sample! b>0 &&
+y>minspace
+vinH!
+y = 0
+vinL!
+x = 0vinH! x = 0y>minmark vinL!
+y = 0, b = b - 1
+y>maxtrans sample!b>0 &&
+y>minspace
+vinH! y = 0
+vinL!
+x = 0,
+y = 0,
+b = 7x>=15 vinL! x = 0
+x>=15
+powerOff!b==0 && x>=10
+&& y>minspacevinH!
+x = 0, y = 0
+DRIVER
+i0 i2x<700
+i1x<700i5
+i4
+x<=maxtransi3
+i6x<15b==0
+vinH?
+x = 0
+wire==1
+voutL!
+wire = 0vinL?
+x = 0voutL! voutH!wire==1
+voutL! wire = 0
+wire==0
+voutH! wire = 1b>0 vinL?
+x = 0, b = b - 1
+vinL?
+x = 0, b = 7,
+wire = 1
+wire==0 voutH! wire = 1
+SENSOR// driver
+clockx, y;
+int[0 ,7] b = 0;// sensor
+clockx;
+boolchanged = true;
+int[0 ,7] b = 0;
+int[0 ,1] wire = 1;
+// global
+broadcast chan vinL , vinH;
+broadcast chan powerOff , sample;
+broadcast chan voutL , voutH;
+Fig. 5: The split model of the sensor timing diagram.
+is willing to accept it by performing the corresponding inpu t action. Ensuring input-
+enabledness with such channels is possible but requires com plicating models with ad-
+ditional transitions; an approach that is brieﬂy discussed in §4.1.3.
+Uppaal also allows broadcast channels (declared with broadcast chan ), where an
+output action may always occur and will be synchronized with a single, corresponding
+input action in each process where any such action is enabled . When using broadcast
+channels, no additional effort is required to ensure input- enabledness. A split model
+based on broadcast communication is shown in Figure 5. The mo del comprises two
+components in parallel:
+DRIVER /bardblSENSOR .
+The driver model was derived from the timing diagram model. A ll transitions on
+voutLwere removed, as were all but the ﬁrst on voutH, which was made an input. The
+variables wireandchanged were removed, as were the x <700location invariants,
+and the initial sequence was duplicated through d1dwith a new x≥700guard.
+The sensor model was derived in a similar way. All transition s onvinHbut the one
+tos9, whose guard was changed, were removed. All transitions on sampleandpowerOﬀ
+were removed. The variable wwas renamed to wireto avoid confusion. The variable
+changed wasremoved;itseffectisrepresentedinthesensorcontrol structurebystates
+i4(changed = 0) andi5(changed = 1). ThevoutLandvoutHself-loops on s5become
+transitions between the two states, and a τ-transition is added for the case where
+there is no change. The purpose of clock xis changed, it appears in invariants on i4
+andi6that force the model to meet protocol timing assumptions.
+4.1.2. Behaviorofthemodel. The driver initiates a range-reading from d0by emitting a
+vinLoutput,onwhichthesensorsynchronizesfrom i0.Thedrivernon-deterministically
+enterseither d1d,whereitwaitsfor 70msormore beforecontinuing,or d1e,whereitcan
+continue as soon as the sensor emits voutH. A similar arrangement exists from d8. The
+choice could be modeled using τ-transitions, a committed location, and an extra state
+whichwouldavoidduplicatingthe vinLtransitions.Butsuchamodelwouldcomplicate
+timetrace inclusiontesting,where τ-transitionsare forbidden. Itcan be argued thatit
+is unreasonable to allow the driver to choose a different beh avior at each iteration; the
+advantage of this model is that it can be specialized to one ty pe of driver or the other
+by removing transitions.
+Intheoriginalmodel,undertheassumptionthatthesensorw illrespondto vinLwith
+voutHwithin70ms, the trace fragments accepted by the top path ( d0/d8)–d1d–d3are also
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 14 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:13
+accepted by the bottom path ( d0/d8)–d1e–d2–d3. But both paths are included to make
+the driver model self-contained when used in isolation from the sensor model and to
+makeimplementationchoicesexplicit.Furthermore, eithe rbranch ofthechoicecanbe
+eliminated to produce a more speciﬁc speciﬁcation.
+The driver sampling loop d4–(d5/d6)–d7–(d4/d8) is taken directly from the timing di-
+agram model. The sensor sampling loop is simpler. After rece iving avinLinput, the
+sensor acts within maxtrans units to transition between i4andi5, either signaling a
+level change by synchronizing on voutLorvoutH, depending on the local variable wire,
+or by not signaling any change, but instead changing state wi th aτ-transition.
+Location invariants are present at d3,i1,i2,i4, andi6. From each of these locations,
+there is at least one outgoing transition labeled with an out put action. This is oblig-
+atory in the split model because otherwise one component cou ld inﬂuence the behav-
+ior of another by ‘stopping’ time, either indeﬁnitely, givi ng a Zeno trace, or until an
+awaited input action is forced to occur.
+Finally, the driver component has, from d8, the choice of delaying indeﬁnitely, trig-
+gering another range reading, or powering the sensor off.
+4.1.3. Alternative model with standard channels. Bourke [2009, Figures 4.20 and 4.21]
+shows that it is also possible to build a split model using han dshake actions. Basically,
+the automata of Figure 5 are made input-enabled by augmentin g them with extra
+loops—for voutL?,voutH?inDRIVER and forvinL?andvinH?inSENSOR —for every lo-
+cation and valuation (using guards) where such actions are n ot possible. An additional
+process is added to ensure that sampleandpowerOﬀ outputs are never refused. All of
+the veriﬁcations described in the remaining sections can be adapted for this model.
+While it can be argued that handshake communications are eas ier to think about
+than broadcast communications, since only two processes ar e ever involved in any
+synchronization, this is less convincing for models that in volve two, or at most three,
+automata. Moreover, in this case there are no real obstacles t o applying the testing
+construction for timed trace inclusion, which is usually on ly deﬁned for handshake
+channels. All of the self-loop transitions needed when usin g handshake channels are
+annoying to maintain and distracting. Such problems only be come worse in a model as
+the number of inputs and processes increase.
+4.2. Verifyingimplementation
+Both the split model and the timing diagram model are propose d as formalizations
+of the reading and transmission protocol. It is possible to s how that the split model
+implements, in a precise sense, the protocol described by th e timing diagram model.
+4.2.1. The choice of relation. There are many ways to relate transition systems in gen-
+eralandtimedautomatainparticular.Theapproachinthisa rticlefollowsthatofKay-
+nar et al. [2006] in adopting timed trace inclusion.
+Timed trace inclusion is a relatively simple notion of imple mentation. One timed
+automaton implements another timed automaton if the set of a ll timed traces of the
+former are a subset of the set of all timed traces of the latter —any safety properties
+proved of a speciﬁcation model are immediately also true of i ts implementations. To
+claim that the split model implements the timing diagram mod el is to claim that any
+timed trace of the split model is also a valid timed trace of th e timing diagram model.
+There are, however, some technicalities, which are discuss ed soon, because the split
+model is a network of timed automata rather than a single time d automaton.
+Although timed trace inclusion is undecidable in general [A lur and Dill 1994],
+when the speciﬁcation model is deterministic, which also ef fectively means free of
+τ-transitions, there are constructions for deciding it via r eachability analysis in Up-
+paal [Jensen et al. 2000; Stoelinga 2002]. The basic idea is o utlined in §4.2.2.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 15 ---
+0:14 T. BourkeandA. Sowmya
+Whiletimedtraceinclusionallowssafetypropertiestobei nferred,deadlockandlive-
+ness are ignored. This fact is less limiting for timed models than for untimed models,
+because bounded liveness, the necessity of action within a ﬁ xed ﬁnite time, is a safety
+property. But this caveat must, nevertheless, be kept in min d. The separate veriﬁca-
+tion of liveness and deadlock properties, including timed d eadlock, is sufﬁcient for the
+models of this article, since their branching structures ar e relatively uncomplicated.
+Timed trace inclusion is an asymmetric relation. Using it to verify that the split
+model implements the timing diagram model only shows that th e former never ex-
+ceeds the behaviors permitted by the latter. Showing the sam e relation in the other
+direction would imply the stronger relation of timed trace e quivalence of the models,
+in particular, that no valid behaviors are excluded from the split model. The models
+would be interchangeable modulo the limitations of timed tr ace equivalence. But, the
+testing construction used in this article only applies to si ngle automata, not networks
+of automata. In recent work [Bourke et al. 2011], a technique based on timed games
+andimplementeddirectlyinthemodel-checkingengine,has beenappliedtoverifythat
+the timing diagram model implements an adjusted version of t he split model. But the
+present approach, using an unmodiﬁed model-checker, still has advantages in terms
+of transparency and relative simplicity, and working in one direction is sufﬁcient to
+verify a driver implementation against the timing diagram.
+4.2.2. Veriﬁcation. The procedure for testing timed trace inclusion6within a speciﬁca-
+tion, namely the timing diagram, has two steps: transformin g the speciﬁcation into a
+testing automaton, then performing reachability analysis of the result in parallel with
+the implementation automaton, that is, with the split model .
+Several changes are necessary to transform a speciﬁcation a utomaton into a test-
+ing automaton. A new location, called Err, is added. Inputs are made outputs and vice
+versa. Then from each location new transitions to Errare added for every action that
+cannot occur from that location. Input and output actions ar e considered as distinct
+even when on the same channel. Whether an action can occur or n ot may depend on
+the values of clocks and variables, so the guards of outgoing transitions must be con-
+sidered. Furthermore, each location invariant is replaced by aτ-transition to Errthat
+has the negated invariant as a guard. The result is a testing a utomaton that can ‘ob-
+serve’ another automaton by running in parallel with it and s ynchronizing on each
+of its actions, hence the inversion of action directions, an d decide, based on location,
+clocks, and state variables, whether an action is allowed, i n which case observation
+continues, or forbidden, in which case a transition to the Errstate is taken. Should the
+observed automaton fail to act in sufﬁcient time, thus viola ting a location invariant of
+the original speciﬁcation, a τ-transition to Errwill become enabled. The Errstate will
+not be reachable if the timed traces of the observed automato n are a subset of those
+of the speciﬁcation automaton, since each action of the form er will synchronize with
+a valid action of the testing automaton created from the latt er. Reachability analy-
+sis, in Uppaal, can determine whether Erris reachable and hence whether two timed
+automata are related by timed trace inclusion. A formal desc ription of the testing con-
+struction is given by Stoelinga [2002, §A.1.5]. A tool that p erforms the transformation
+automaticallyforaclassofUppaalmodelsispresentedbyBo urkeandSowmya[2008].
+The result of applying the testing transformation to the tim ing diagram model is
+shown at the top of Figure 6 (in addition, all actions have bee n preﬁxed with a ‘ T’ and
+all output transitions have been removed; the rationale and justiﬁcation follow below).
+The original structure persists in the nodes and transition s with black lines, although
+6Technically, the procedure veriﬁes a timed simulation relation, but time d trace inclusion can then be in-
+ferred because it is a coarser relation [Lynch and Vaandrager 1996] .
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 16 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:15
+x>=700 x>=700 x>2x>=15TvinH?TvinL?
+TvoutH?TvoutL?
+TpowerOff?
+TvinH?
+TvoutH?
+TvoutL?
+TpowerOff?
+Tsample?x<700 TvinH?
+x<700 TvinL?
+x<700 TvoutL?
+x<700 TpowerOff?
+x<700 Tsample?x<700 TvinH?
+x<700 TvinL?
+x<700 TvoutH?
+x<700 TpowerOff?
+x<700 Tsample? b!=0 && b<=0 TvinH?b!=0 && y<=minspace TvinH?
+x<10 && b<=0 TvinH?x<10 && y<=minspace TvinH?
+y<=minspace && b<=0 TvinH?y<=minspace TvinH?
+TvinL?
+TvoutH?TvoutL?
+TpowerOff?
+Tsample?TvinL?
+TvoutH?
+TvoutL?
+TpowerOff?
+Tsample?TvinH?y<=minmark TvinL?
+TvoutH?TvoutL?
+TpowerOff?
+Tsample?
+b<=0 TvinH?y<=minspace TvinH?
+TvinL?
+w!=0 TvoutH?y>maxtrans TvoutH?changed TvoutH?w!=1 TvoutL?y>maxtrans TvoutL?
+changed TvoutL?
+TpowerOff?
+y<=maxtrans Tsample?x<=2 TvinH?
+x<=2 TvoutH?x<=2 TvoutL?
+x<=2 TpowerOff?
+x<=2 Tsample?TvinH?
+x<15 TvinL?
+TvoutH?TvoutL?
+x<15 TpowerOff?
+Tsample?TvinH?
+TvinL?
+TvoutH?TvoutL?
+TpowerOff?
+Tsample?x<15 TvinH?
+x<15 TvinL?
+x<15 && w!=0 TvoutH?x<15 && w!=1 TvoutL?
+x<15 TpowerOff?
+x<15 Tsample?Tsample?b>0 &&y>minspace
+TvinH?y = 0
+w==1 && x<15
+TvoutL?
+w = 0TvinL?
+x = 0x<700TvoutL? x<700TvoutH?
+w==1 &&y<=maxtrans&& !changedTvoutL?w = 0,changed = true w==0 &&y<=maxtrans&& !changedTvoutH?w = 1,changed = trueTvinH?x = 0y>minmark TvinL?y = 0, b = b - 1, changed = false
+y>maxtrans Tsample?b>0 &&y>minspaceTvinH?y = 0
+x<=2TvinL?x = 0, y = 0, b = 7, w = 1,changed = falsex>=15 TvinL? x = 0
+x>=15TpowerOff? b==0 && x>=10 && y>minspace TvinH?
+x = 0, y = 0w==0 && x<15TvoutH? w = 1Errs7
+s0 s2 s1s6s3s8
+s5s4 s10 s11 s9
+GP2D02 TEST(13 locations.
+98 transitions:
+17 black, 81 gray.)veriﬁcation: 327 states (< 1s).
+d1d
+d1ed6
+d0d5d2d7
+d4d3x<=2
+d8
+d9vinL!x = 0x>=15 vinL! x = 0
+x>=700 vinH! x = 0
+voutH?sample! b>0 &&y>minspacevinH!y = 0
+vinL!x = 0 vinH! x = 0y>minmark vinL!
+y = 0, b = b - 1
+y>maxtrans sample!b>0 &&y>minspace
+vinH! y = 0
+vinL!x = 0,y = 0,b = 7x>=15 vinL! x = 0
+x>=15powerOff!b==0 && x>=10&& y>minspacevinH!x = 0, y = 0
+DRIVERi0 i2x<700
+i1x<700i5
+i4x<=maxtransi3
+i6x<15b==0vinH?x = 0
+wire==1
+voutL!wire = 0vinL?x = 0 voutL! voutH!wire==1voutL! wire = 0
+wire==0voutH! wire = 1b>0 vinL?
+x = 0, b = b - 1
+vinL?x = 0, b = 7,wire = 1
+wire==0 voutH! wire = 1
+SENSORTpowerOff!
+powerOff?
+Tsample!
+sample?
+TvoutH!voutH?
+TvoutL!voutL?TvinH!vinH?TvinL!vinL?
+TBCAST// gp2d02_test
+clockx, y;
+boolchanged = true;
+int[0 ,7] b = 0;
+int[0 ,1] w = 1;// global
+chanTvinL , TvinH, TvoutL , TvoutH;
+broadcast chan vinL , vinH , powerOff , sample;
+broadcast chan voutL , voutH;
+// driver
+clockx, y;
+int[0 ,7] b = 0;
+// sensor
+clockx;
+boolchanged = true;
+int[0 ,7] b = 0;
+int[0 ,1] wire = 1;
+Fig. 6: Timed trace inclusion testing of the split model
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 17 ---
+0:16 T. BourkeandA. Sowmya
+speciﬁcation
+model
+≤
+implementation
+model
+(a) Normal scenariotiming
+diagram
+model
+≤
+driver
+modelsensor
+model
+(b) The split model
+Fig. 7: Deviation from the usual veriﬁcation of timed trace i nclusion.
+the actions are now inputs rather than outputs. The new state ,Err, is the hub of a nest
+of new gray transitions from each of the other locations. Whi le individual transitions
+are not legible, the general structure is clear. Guards, whe re present, and actions on
+the error transitions are tabulated above and to the left, re spectively right, of source
+locations s7ands8andbelowtheothers.Forinstance,theonlyactionpermitte dfroms0
+in the original automaton is vinL!, so in the testing automaton vinL?leads to s1, and all
+other actions lead to Err; none of them have guards. The situation is similar from s1,
+but since there is a location invariant x <700in the diagram model, a τ-transition
+with guard x≥700, shown as an expression with no associated action, is added t o
+the testing automaton, and the guards of the other transitio ns are augmented with
+the invariant to ensure determinism. The guards on the error transitions are more
+complicated at s5. For instance, vinH?is legal only when b>0, similarly, sample?is
+forbidden when y≤maxtrans .
+The standard testing technique is intended for comparing on e timed automaton to
+another, see Figure 7a, but in the present case the implement ation model is a network
+of timed automata whose interactions are to be veriﬁed, see F igure 7b. The two ap-
+proaches differ from each other in their interpretation of a model as a set of timed
+traces. The differences have ramiﬁcations for verifying ti med trace inclusion.
+In the normal testing scenario, each automaton, be it speciﬁ cation or implementa-
+tion,isgivenan openinterpretationwhereanyinputoroutputactionmayoccurat any
+time. They are assigned maximal sets of timed traces that sub sume their behaviors in
+any composition. A normal testing automaton is always ready to synchronize on any
+input or output action, it effectively explores all possibl e behaviors of its environment.
+In the split model, by contrast, there are two interacting au tomata, DRIVER and
+SENSOR . An advantage of using broadcast channels is that the output actions per-
+formedbyeitherofthecomponentsarestillobservableexte rnallyeveniftheyalsosyn-
+chronize with an input action of the other component (wherea s successful handshake
+communications would become τ-transitions). Any unsynchronized input actions re-
+main possible, but they are not supposed to be triggered from outside since they are
+explicitly controlled by one or other of the components.
+A testing automaton must normally include both input and out put actions. This is
+problematic for broadcast outputs because their occurrenc e says nothing about the be-
+havior of the component being tested. Fortunately, they can simply be dropped from
+the testing automaton in Figure 6 since the split model effec tively only performs out-
+put actions. Broadcast inputs would work perfectly, since t hey observe interactions in
+thesplitmodelwithoutinﬂuencingthem,butforaslighttec hnicality:Uppaaldoesnot
+currently allow clocks in guards on transitions that synchr onize with input actions on
+broadcast channels (so called ‘broadcast receivers’). For this reason only, the testing
+automaton must synchronize on handshake input actions, hen ce the ‘T’ preﬁxes, that
+are triggered by the new automaton TBCAST that unconditionally accepts the original
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 18 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:17
+d1d
+d1e dTd6
+d0d5d2d7
+d4d3x<=2
+d8
+d9vinL!
+x = 0x>=15 vinL! x = 0
+done!x>=700 vinH! x = 0
+voutH?sample!
+Dbyte[b] = wireb>0 &&
+y>minspace
+vinH!
+y = 0
+vinL!
+x = 0vinH! x = 0y>minmark vinL!
+y = 0, b = b - 1
+y>maxtrans sample!
+Dbyte[b] = wireb>0 &&
+y>minspace
+vinH! y = 0
+vinL!
+x = 0,
+y = 0,
+b = 7x>=15 vinL! x = 0
+x>=15
+powerOff!b==0 && x>=10
+&& y>minspacevinH!
+x = 0,
+y = 0
+DRIVER′
+iTx<700
+i0 i2x<700
+i1x<700i5
+i4
+x<=maxtransi3
+i6x<15measure!b==0
+vinH?
+x = 0wire==Sbyte[b]
+wire==1
+voutL!
+wire = 0vinL?
+x = 0voutL! voutH!wire==1 && Sbyte[b]==0
+voutL! wire = 0
+wire==0 && Sbyte[b]==1
+voutH! wire = 1b>0 vinL?
+x = 0, b = b - 1
+vinL?
+x = 0, b = 7,
+wire = 1
+wire==0 voutH! wire = 1
+SENSOR′BadReadT1 T0measure?done?
+Sbyte==Dbytedone?Sbyte!=Dbytedone?
+v : int[0,BITRANGE]measure?
+tobits(Sbyte, v)
+TESTER// driver
+clockx, y;
+int[0 ,7] b = 0;
+// global
+broadcast chan vinL , vinH;
+broadcast chan powerOff , sample;
+broadcast chan voutL , voutH;// sensor
+clockx;
+boolchanged = true;
+int[0 ,7] b = 0;
+int[0 ,1] wire = 1;
+voidtobits ( bool& ar[NBITS] , intv)
+{
+inti ;
+intmask = 1;
+for( i = 0; i < NBITS; ++i ) {
+ar[ i ] = v & mask;
+mask< <=1;
+}
+}// global
+chanmeasure, done;
+const int NBITS = 8;
+const int BITRANGE = 255;
+boolDbyte[NBITS];
+boolSbyte[NBITS]; veriﬁcation: 851713states (< 10s)
+Fig. 8: Models for validating transmission correctness.
+broadcast outputs and ‘forwards’ them to their handshake co unterparts. The commit-
+ted locations in TBCAST ensure that an action like vinL!is immediately followed by its
+counterpart TvinL!, and thus that this modiﬁcation is sound.7
+The Uppaal model for verifying timed trace inclusion of the s plit model against the
+timing diagram model is shown in Figure 6. It is a composition :
+DRIVER /bardblTBCAST /bardblSENSOR /bardblGP2D02 TEST.
+Reachability analysis in Uppaal veriﬁes that A✷(¬GP2D02 TEST.Err), that is, the error
+location is not reachable. This indicates that the split mod el of Figure 5 correctly im-
+plements the timing diagram model of Figure 3.
+4.3. Verifyingtransmissioncorrectness
+The driver and sensor components of the split model interact to request and perform
+range-readings, and then to transfer the resulting value bi t-by-bit through repeated
+signaling and sampling over the vinandvoutwires. In the previous section, it was
+establishedthatthesplitmodelimplementsthetimingdiag rammodel.Inthissection,
+the correctness of data transmission is veriﬁed by augmenti ng the split model with
+extra details, which do not affect the protocol, expressing the transmission property as
+a separate automaton, and, ﬁnally, performing reachabilit y analysis in Uppaal.
+The model for verifying transmission correctness is shown i n Figure 8:
+DRIVER′/bardblSENSOR′/bardblTESTER .
+An array Sbyte[8] is added at the sensor component to store the bits from the mos t
+recent range-reading. The choice at i4between changing the voutlevel or leaving it
+stable is no longer non-deterministic, but depends on the bi t value to be sent, that
+is onSbyte[b] wherebis successively decremented by the transmission loop. An ar -
+rayDbyte[8] is added at the driver component to store the bits sampled fro m the
+voutline. The value on the shared wirevariable, previously used only to restrict level
+changesinthesensorcomponent,iscopiedinto Dbyte[b] whenasampleactionoccurs.8
+7Note that no two committed locations can ever be active simultaneously.
+8Note that the b variables are local to the components and hence dist inct.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 19 ---
+0:18 T. BourkeandA. Sowmya
+The value of Sbytemust be set when a reading occurs and compared with that
+ofDbytewhen a transmission is complete. The TESTER automaton performs these
+tasks. But, importantly, the sensor itself decides when a re ading has been made and,
+likewise, the driver decides when data has been received. Th ese judgments are part
+of the interaction. New transitions are thus added to both co mponent models. In the
+sensor model, a transition labeled measure!is added between locations iTandi2. The
+new location iThas an invariant to preserve the timing properties of the pro tocol. In
+the driver model, a transition labeled with done!is added between d5andd8. The al-
+tered model has a different timed trace set to the original, b ut the protocol remains
+fundamentally unchanged: dropping measure!anddone!actions from every timed trace
+recovers the original set. The actions could also have been r enamed into τs to give a
+set that would be equivalent to the original modulo τ-transitions.
+TheTESTER component synchronizes on the measure anddoneevents. It assigns a
+value to Sbytewhen the former occurs and compares it with the value in Dbytewhen
+the latter occurs, entering BadRead if there is a discrepancy. A measureordoneaction
+at the wrong time also causes TESTER to enterBadRead . All possible assignments
+toSByteare tested using a selection binding to non-deterministica lly choose a value
+in the range [0,28), before the tobitsfunction converts it into eight separate bits. The
+same idea could be modeled using eight separate one-bit sele ction bindings, which
+would obviate the need for a conversion function but also mak e parametrization, over
+the number of bits to transmit, impossible. Reachability an alysis in Uppaal veriﬁes
+thatA✷(¬TESTER .BadRead )and hence transmission correctness.
+Range readings are correctly transmitted in the split model . Unfortunately, this fact
+cannot be inferred of the timing diagram model because timed trace inclusion has only
+been veriﬁed in one direction. The ability to make such infer ences would be another
+advantage of showing timed trace equivalence.
+5. ASSEMBLYLANGUAGE IMPLEMENTATION
+The timing diagram typically serves as a speciﬁcation for wr iting drivers to integrate
+the sensor’s functionality into larger designs. In §5.1, an implementation in assembly
+language is described and then, in §5.2, it is modeled using t imed automata. In §5.3,
+themodelisshowntobeanimplementationofthedrivercompo nentofthesplitmodel.
+The timing diagram, split, and program models can thus be rel ated by two timed trace
+inclusions: DRIVER /bardblSENSOR ≤TIMEDIAG andMCS51≤DRIVER. The limitations of
+the assembly program model and the veriﬁcation are discusse d in §5.4.
+5.1. MCS51 Program
+A driver for the infrared sensor, implemented in MCS51 [Intel Corporation 1994] as-
+sembly language, is presented in Figure 9a. It was adapted fr om a version written for
+a 68HC12 microcontroller [Griebling 1999]. The MCS51 archit ecture (8051) is older
+technology, but it is relatively simple, well-understood, and typical for the application
+domain of low-level embedded controllers. Crucially, its i nstruction timing is simple
+andpredictable.9Instructioncyclecountscanbeaddedtogetherwithouthavi ngtocon-
+siderpipelining,cacheeffects,andothersimilarmechani sms.Whilethischaracteristic
+simpliﬁes the timed automaton model of the next section, it a lso limits generalization.
+In any case, the aim is to examine how timed behavior is realiz ed by the program, not
+to propose a general methodology for verifying assembly lan guage programs.
+The assembly program is called as a subroutine which interac ts with the sensor and
+returns a range reading in the accumulator register. It func tions as follows.
+9Several manufacturers provide microcontrollers that faithfully p reserve both the register behavior and the
+cycles per instruction of the 8051 instruction set; even though the pe riod of a cycle may vary.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 20 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:19
+1VINEQUP1.0
+2VOUTEQUP1.1
+3W100USEQU50
+4
+5RREAD: PUSHIE
+6 CLREA
+7 CLRVIN
+8 NOP
+9 NOP
+10 JBVOUT,*
+11 JNBVOUT,*
+12 MOVR0, #8
+13LOOP: SETBVIN
+14 MOVR1, #W100US
+15 DJNZR1,*
+16 CLRVIN
+17 MOVR1, #W100US
+18 DJNZR1,*
+19 MOVVOUT, C
+20 RLCA
+21 DJNZR0, LOOP
+22 SETBVIN
+23 POPIE
+24 RET
+(a) MCS51 programMCS51
+s17 x<=2 * Ps0 x<=2 * P
+s1 x<=P
+s2 x<=P
+s3 x<=P
+s4 x<=P
+s5 x<=2 * P
+s6 x<=2 * P
+s7 x<=P
+s8 x<=P
+s9 x<=P
+s10 x<=2 * P
+s11 x<=P
+s12 x<=P
+s13 x<=2 * P
+s14 x<=P
+s15 x<=P
+s16 x<=2 * P
+s18 x<=2 * P
+s19 x<=2 * P
+s20x>=1500
+x = 0x>=P
+vinH!
+x = 0R0!=1 && x>=2 * P
+R0 -= 1, x = 0R1!=1 && x>=2 * P
+R1 -= 1, x = 0R1!=1 && x>=2 * P
+R1 -= 1, x = 0latch==0 && x>=2 * P
+x = 0latch==1 && x>=2 * P
+x = 0x>=2 * P
+x = 0
+x>=P
+x = 0
+x>=P
+vinL!
+x = 0
+x>=P
+x = 0
+x>=P
+x = 0
+latch==0 && x>=2 * P
+x = 0
+latch==1 && x>=2 * P
+x = 0
+x>=P
+R0 = 8, x = 0
+x>=P
+vinH!
+x = 0
+x>=P
+R1 = W100US, x = 0
+R1==1 && x>=2 * P
+R1 -= 1, x = 0
+x>=P
+vinL!
+x = 0
+x>=P
+R1 = W100US, x = 0
+R1==1 && x>=2 * P
+R1 -= 1, x = 0
+x>=P
+sample!
+x = 0
+x>=P
+x = 0
+R0==1 && x>=2 * P
+R0 -= 1, x = 0
+x>=2 * P
+x = 0
+x>=2 * P
+x = 0POLL
+voutH?
+latch = 1voutL?
+latch = 0//1unit =0.001ms
+const int P = 1;
+const int W100US = 50;
+const int minspace = 0;
+const int minmark = 0;
+const int maxtrans = 0;
+clockx;
+int[0 ,1] latch = 1;
+int[0,255] R0 = 0;
+int[0,255] R1 = 0;
+(b) Timed automata model
+Fig. 9: Assembly language driver implementation.
+Lines 1–3. These are assembler directives that declare constants. The ﬁrst two asso-
+ciate the vinandvoutsignals with the two lowest pins of I/O port 0. The third deﬁne s
+a constant W100USfor the number of iterations required to delay for 100 micros econds
+later in the program. The value depends on the number of cycle s taken by certain
+decrement and jump instructions and the clock frequency of t he target platform.
+Lines 5–6 and line 23. The code is intended to execute without interruption on the
+target device, so it begins by pushing the Interrupt Enable ( IE) register onto the stack
+and then disabling all interrupts by clearing the Enable All (EA) bit ﬂag. Interrupt
+handling is restored, prior to returning from the subroutin e, by popping the original
+valueoftheIEregisterwhichcontains theEAbit.Disabling interrupts greatlysimpli-
+ﬁes modeling and reasoning about program timing, but, again , limits generalization.
+Lines 7–9. Line 7 sets the vinsignal to low. The following two NOP,no operation ,
+instructions cause a brief delay before the status of voutis checked. They have no
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 21 ---
+0:20 T. BourkeandA. Sowmya
+other effect. Pausing inthis way between Input/Output (IO) actions is characteristic of
+assembly language programming and signiﬁcant with respect to timing behavior.
+Lines 10–11. The instruction at line 10 either jumps back to itself if vouthas a high
+value—the assembler replaces the asterisk witha relative of fset—orotherwise contin-
+uestothenextinstruction.Itcontinuouslypollsthesigna lstateuntilthedesiredvalue
+is observed. The next line is similar, it waits for a rising tr ansition on voutby jumping
+back to itself while the signal value is low. The two instruct ions together await the
+occurrence of two events in sequence: voutL–voutH.
+Lines12–13andline21. Lines12–21implementaloopforreceivingareadingbit-by-
+bit.TheR0registeristhecounter,itisinitializedto8atline12.Lin e13islabeled LOOP,
+so that the instruction at line 21 can jump back to it—the DJNZ,Decrement and Jump
+if Not Zero , instruction decrements the given register by one, then jum ps to another
+location if the new value is not zero, and otherwise continue s to the next instruction.
+The instruction on line 13 sets vinhigh, causing a rising transition: vinH.
+Lines14–15. Betweentherisingtransitionon vinandasubsequentfallingtransition
+there is a delay of approximately 100 microseconds, which is implemented by counting
+downfromthe W100USvalueintheR1register.Thedelayisequaltotheamountofti me
+it takes to execute the DJNZinstruction multiplied by the initial value of the counter
+register. Such loops, with no internal statements, serve to delay program execution.
+Lines 16–18. These lines set vinto low, giving a vinLaction, and then delay for an-
+other 100 microseconds.
+Lines 19–20. Together, these lines sample the level of voutinto the received range
+reading. The former copies the bit named VOUTinto the carry ﬂag. The latter shifts the
+contents of the accumulator to the left and sets its LSB to the carry ﬂag value.
+Lines 22–24. Finally the driver sets vinhigh, restores the interrupt enable register,
+and returns to the calling program.
+5.2. Programmodel
+Theassemblylanguageprogramismodeledasthecomposition oftwotimedautomata:
+MCS51/bardblPOLL. The model is presented in Figure 9b.
+Since only integer timing constants are allowed in Uppaal, t he timing diagram and
+split model assumed a scale of one unit of model time to 0.1msof real time. It turns out
+that even older microcontrollers, like those of the MCS51 fam ily, are much faster and
+thusrequireasmallertimescale:oneunitofmodeltimeinth eprogrammodelisequiv-
+alent to 0.001msof real time. The number was chosen for a device clocked at 12MH z
+with a machine cycle every 12 clock periods and running at one cycle per microsec-
+ond [Intel Corporation 1994, p. 1-18]. For the driver model t o serve as a speciﬁcation,
+all of its constants must be multiplied by 100.
+The program model is based on a direct translation from the so urce program. The
+translation effectively gives a semantics for programs wri tten in the MCS51 instruc-
+tion set in terms of timed automata. Close structural simila rity between the source
+program and its model is important because results obtained for the latter are in-
+ferred of the former. In other words, that the model is a faith ful formalization of the
+program is determined solely by informal argument: the larg er the gap between them
+the greater the risk of an error. A location snin the model of Figure 9b corresponds to
+the instruction at line n−5in the program of Figure 9a.
+It takes a ﬁxed number of cycles to execute each MCS51 instruct ion. These delays
+and the propulsion of execution are expressed in the model by transition guards and
+location invariants. The constant Pis the length of a single execution cycle. It varies
+acrossMCS51implementationsandoscillatorfrequencies.T hemapping,though,from
+instructions to the number of execution cycles is ﬁxed for th e instruction set [Intel
+Corporation 1994, Table 10]—the informal semantics thus des cribe not only how in-
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 22 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:21
+structions transform microcontroller states but also how l ong those transformations
+take, at least nominally. Lower and upper bounds on instruct ion execution times are
+expressed as inequalities between the clock x, which is reset on every transition, and
+integer multiples of P. For instance, the /angbracketleftPUSHIE/angbracketrightinstruction takes two cycles to exe-
+cute, thus the invariant at location s0isx≤2∗P, which forces progress, and the guard
+on the outgoing transition is x≥2∗P, which expresses the execution time.
+5.2.1. Modeling time. According to the translation, instructions begin and end at pre-
+cisemultiplesof P.Whilethissimpliﬁcationisadequateforpresentpurposes ,sincethe
+timing constants in the program model are an order of magnitu de smaller than those
+in the timing diagram model, it ignores two potentially impo rtant aspects: oscillator
+inaccuracies and processor states within machine cycles.
+No oscillator is perfect. At the very least such ‘clocks’ dri ft with respect to one an-
+other and against an ideal notion of real time. Such inaccura cies can be important in
+certain applications, and, more fundamentally, their exis tence makes the decision to
+conﬂate processor time and real time in the program model dou btful. They could be
+incorporated into the program model by increasing the resol ution of model time and
+widening invariants, for instance to x≤P +ǫ, and guards, x≥P−ǫ. In this way,
+the (still idealized) behavior of the execution platform wo uld be encoded in the pro-
+gram semantics, and any approximations, even just ǫ= 0, would be clearly stated.
+Rather than blend the different aspects of platform and prog ram so implicitly, execu-
+tion platforms could be modeled separately and composed wit h program models; the
+models are then not only individually reusable, but each is a lso likely more compre-
+hensible, the intricacies of their interrelationships bei ng left to the mechanics of the
+modeling language. In one approach [Vaandrager and de Groot 2006], the cycle clock
+is modeled as a separate automaton that emits a tickaction at intervals. The disad-
+vantage, compared to simply widening the invariants, is tha t synchronizing with tick
+on each instruction transition makes it awkward in Uppaal to also synchronize with
+other actions, as occurs for inputs and outputs in the progra m model.
+Aside from oscillator inaccuracies, the program model also abstracts from the de-
+tailed timing behavior of an MCS51 device [Intel Corporation 1994, pp. 1-17–1-20].
+Each oscillator period corresponds to a phase, two phases make a state, and six states
+make amachine cycle . Instructions are fetched and executed at speciﬁc phases wi thin
+a cycle. Signiﬁcantly, values are written or sampled from po rts in speciﬁc phases [Intel
+Corporation 1994, pp. 3-33–3-35]. While many applications depend on the time taken
+to execute individual instructions, it is doubtful whether the correctness of a system
+should further depend on the ﬁner timing details within a cyc le. But such judgments
+are perhaps best made by engineers for each speciﬁc applicat ion.
+5.2.2. Featuresofthemodel. The program model contains several other interesting fea-
+tures: input events, output events, loops for delaying, and assumptions on how fre-
+quently range-readings are requested.
+The program treats voutas an input line: Sometimes it reacts to changes in the
+signal level. Sometimes it samples the signal level. It woul d not be accurate to label
+transitions that represent instructions with voutL?orvoutH?actions because their oc-
+currence is restricted to particular instants of time, wher eas not only may events of
+both types occur at any time, but, for the model to be input-en abled, they must be al-
+lowed to occur at any time. Instead, a separate automaton POLLis introduced. It effec-
+tively models the hardware latches of the IO port connected t ovout. It is always ready
+to synchronize with voutL?, setting a variable latchto zero, and voutH!, setting latch
+to one. The assembler instructions that poll vout, for either a high level /angbracketleftJBVOUT,*/angbracketright
+or low level /angbracketleftJNBVOUT,*/angbracketright, are modeled as loops, at s5ands6respectively, that poll the
+latchvariable within the timing constraints of instruction exec ution. The assembly
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 23 ---
+0:22 T. BourkeandA. Sowmya
+x>200
+TvinH?TvinL?
+TpowerOff?
+Tsample?TvinH?TvinL?
+TpowerOff?
+TvinH?
+TpowerOff?
+Tsample? b!=0 && b<=0 TvinH?
+b!=0 && y<=minspace * 100 TvinH?x<1000 && b<=0 TvinH?
+x<1000 && y<=minspace * 100 TvinH?y<=minspace * 100 && b<=0 TvinH?y<=minspace * 100 TvinH?TvinL?
+TpowerOff?
+Tsample?TvinL?
+TpowerOff?
+Tsample?TvinH?y<=minmark * 100 TvinL?
+TpowerOff?
+Tsample?
+b<=0 TvinH?y<=minspace * 100 TvinH?TvinL?
+TpowerOff?
+y<=maxtrans * 100 Tsample?x<=200 TvinH?
+x<=200 TpowerOff?
+x<=200 Tsample?TvinH?x<1500 TvinL?
+x<1500 TpowerOff?
+Tsample?
+TvinH?TvinL?
+TpowerOff?
+Tsample?x>=1500 TvinL? x = 0
+voutH?Tsample?b>0 &&
+y>minspace * 100
+TvinH? y = 0
+TvinL?
+x = 0TvinH? x = 0y>minmark * 100 TvinL? y = 0, b = b - 1
+y>maxtrans * 100
+Tsample?b>0 &&
+y>minspace * 100
+TvinH? y = 0
+x<=200
+TvinL?
+x = 0,
+y = 0,
+b = 7x>=1500
+TpowerOff?b==0 && x>=1000
+&& y>minspace * 100TvinH?
+x = 0, y = 0Err
+d1ed6
+d0d5d2d7
+d4 d3 d8
+d9DRIVER test
+voutH!
+voutL!SENSOR anyTpowerOff!
+powerOff?
+Tsample!
+sample?TvinH!vinH?TvinL!vinL?
+TBCAST′
+veriﬁcation: 1803states(< 1s)
+Fig. 10: Timed trace inclusion tester for DRIVER evt.
+program waits for a rising transition on voutby ﬁrst blocking until the latched value
+is zero and then polling again until it is one.
+Outputactions,ontheotherhand,arejustiﬁablyconstrain edbytheprogrammodel.
+Thus, and due to the assumption that outputs are never refuse d, the transitions for
+certain instructions can simply be labeled with output acti ons:/angbracketleftSETBVIN/angbracketrightbecomes
+vinH!,/angbracketleftCLRVIN/angbracketrightbecomes vinL!, and/angbracketleftMOVVOUT, C /angbracketrightbecomes sample!.
+The loops at s9/s10ands12/s13cause the program to pause between changes to vin.
+The register R1is ﬁrst initialized and then decremented until it reaches ze ro, which
+accumulates individual 2∗Pdelays giving a total delay of W100US∗2∗P. The loops do
+not change the microcontroller state in any signiﬁcant way, but yet they cannot be
+removed without changing the observable behavior of the mod el. This is in contrast to
+programming language semantics where such instructions co uld be shown equivalent
+to an instruction that does nothing, for instance to skipor/angbracketleftNOP/angbracketright.
+The guard on the last transition from s20back tos0,x≥1500, expresses a required
+minimumdelaybetweencallstothesubroutine.Asthereisno locationinvarianton s20,
+themodelallowsanyﬁnitenon-zeronumber,orevenaninﬁnit enumber,ofrepetitions.
+5.3. Verifyingthe programmodel
+Notonlydoesmodelingtheprogramofferinsightintotheass emblyprogram,execution
+platform, and instruction set semantics, but the model itse lf can be validated against
+the timing diagram and checked for other desired properties .
+Thedrivercomponentofthesplitmodelismodiﬁedtoserveas aspeciﬁcationforthe
+program model: all of the constants are multiplied by 100, to account for the increased
+resolution of model time, and the top path through d1dis removed to make the model
+deterministic. Determinism is required by the timed trace i nclusion testing construc-
+tion. Since the assembler program does not wait for 70msor more after requesting
+a range reading but rather begins clocking data in response t o an initial voutL, the
+unused possibility is simply removed from the model. This is sound for timed trace
+inclusion because it reduces the set of timed traces of the sp eciﬁcation.
+A testing automaton for the driver speciﬁcation is derived b y slightly extending the
+approach of §4.2.2: an automaton is built using the standard technique, all output
+transitions to the Errlocation are removed, and all input actions are preﬁxed with ‘T’,
+see Figure 10. This automaton must run in parallel with TBCAST′to work around
+the Uppaal limitation on clock guards in broadcast receiver s. Additionally, since the
+driver is open to the inputs voutL?andvoutH?, the tester must include corresponding
+outputs. This explains the addition of SENSOR any, which effectively adds self-loops for
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 24 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:23
+the two actions to all states of the tester except d1ewhich has a self-loop on voutL!,
+and a transition elsewhere on voutH!. This modiﬁcation is justiﬁed because the driver
+must be input-enabled for these outputs. It only works becau se, in this case, there is
+no clock guard on the transition between d1eandd2; were this not so a TvoutH!action
+and explicit self-loops would be required.
+The relation between the driver speciﬁcation and program mo dels can be veriﬁed by
+model checking the property: A✷(¬DRIVER test.Err)on:
+MCS51/bardblPOLL/bardblDRIVER test/bardblTBCAST′/bardblSENSOR any.
+Uppaal quickly shows that the property holds, and thus that t he timed traces of the
+program model are included in those of the driver model. But w hat about the original
+timing diagram? Importantly, it is the composition of drive r and sensor models that
+was veriﬁed against the timing diagram: there is a possibili ty that the driver model
+has behaviors which violate the timing diagram model, but wh ich do not occur in com-
+position with the sensor model. The veriﬁcation thus shows o nly that the program
+model iscorrect against thetimingdiagram model, and byinf erence theassemblypro-
+gram against the speciﬁcation, provided that it is used with a correct sensor, namely
+onewhosetimedtracesareasubsetofthoseofthesensorcomp onentofthesplitmodel.
+Timed trace inclusion gives no guarantees about liveness, a nd such properties must
+be checked separately. Both deadlock freedom, A✷(¬deadlock ), and that the routine
+has the possibility of running to completion, E✸(MCS51.s20), hold when the program
+model is placed in parallel with the sensor component with sc aled constants:
+MCS51/bardblPOLL/bardblDRIVER evt/bardblSENSOR ×100.
+The property that the routine always completes once called, MCS51.s0❀MCS51.s20,
+does not hold: from i1the sensor can perform a voutL!andvoutH!before the program
+starts polling at s5, which does not violate DRIVER because nothing forces a vinH!from
+d2. Lower bounds on the sensor actions are needed.
+5.4. Limitations
+Thechoiceofsucharelativelysimpleexecutionplatformre strictsthenumberofissues
+that must be addressed and simpliﬁes both the approach and ex position. But it also
+means sidestepping the most difﬁcult aspects of timing on mo dern processors, where
+executionpathsandcachecontentsmustbeconsidered.Moreo ver,themodelitselfdoes
+not capture all the timing intricacies of the MCS51, and the qu estion of when such
+complexities can be ignored completely, or distilled to mor e abstract principles, and
+whether they must ever be modeled in complete detail merits f urther consideration.
+Another limitation of the approach is that it ignores interr upts and the concomi-
+tant timing complexity. For instance, delays in the program are implemented by busy
+waiting rather than with timers. Furthermore, the possibil ity of being interrupted by
+othereventsorconcurrentprocessesisnotconsidered.Whi leinterruptsareavoidedin
+someapproachestoembeddeddesign,theyarewidelyusedinp racticeasalightweight
+means of scheduling, and as a way to reduce latencies and impr ove timing accuracy.
+The need for so much timing accuracy is indeed questionable, since the program
+turns out to be two orders of magnitude faster than the timing constraints in the tim-
+ing diagram. The challenge is to create delays rather than to meet deadlines, which
+underscores the importance of programming with time but neg lects an important as-
+pect of programming embedded systems.
+Lastly, just as the sensor is usually just a single component of a system, so is its
+driver just a single routine in a program. The issue of compos ing different routines,
+each with their own timing behaviors and constraints deserv es more attention.
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 25 ---
+0:24 T. BourkeandA. Sowmya
+6. DISCUSSION
+The case study and its limitations. The detailed case study presented in this article
+is a concrete example of an application of rigorous modeling and analysis methods to
+a realistic, if small-scale, embedded component. It expose s the peculiarities of one spe-
+ciﬁc problem, but also offers more general insights into the application domain. While
+the example suffers several limitations, the limitations a re interesting in themselves
+and could help to guide and evaluate future case studies. It i s challenging, however, to
+extract general insights from the study of arbitrary exampl es; some peculiarities may
+be truly idiosyncratic to a particular example. On the other hand, the design and im-
+plementation of embedded systems are characterized by unco nventional devices and
+ﬁne detail—research that ignores too many asperities risks i rrelevance.
+While no pretense is made of proposing a general methodology , this article does con-
+tribute a speciﬁc example to the growing collection of appli ed real-time veriﬁcations,
+and it seems reasonable to make ﬁve general observations. Fi rst, time is integral to
+some behavioral speciﬁcations and not simply a nonfunction al requirement for later
+design stages. Second, while timing constraints can rule ou t sequential behaviors, as
+exempliﬁed in the correctness argument for Fischer’s Proto col [Abadi and Lamport
+1994, §3.4], this is not their only purpose. Third, timing be havior is not just about
+meeting deadlines; determining precisely when an action oc curs is also important and
+some commands are only given for their effect on timing. Four th, timing behavior
+arises from an interaction of programming language semanti cs and platform char-
+acteristics; creating models from the latter involves choo sing abstractions that are
+suitable for the application at hand. Last, even a simple tim ing diagram can express
+quite complex relations between events and present difﬁcul ties of interpretation.
+The speciﬁcation models. It would be difﬁcult to argue that the model of Figure 3 is
+easier to read than the timing diagram on which it is based, bu t it is certainly more
+precise. The advantages of informality in timing diagrams m ust be balanced against
+the need for accuracy during implementation and analysis. W hile timing diagram lan-
+guages are not considered in this article, it is clear that th e modeling process involves
+more than simple transcription: careful analysis, interpr etation, and the occasional
+assumption may be necessary. Indeed, rather than clutter ti ming diagrams with the
+additional constraints needed for precise formalization, it may be better to start with
+a detailed formalism, like timed automata, and then to gener ate, according to manual
+instructions, sets of timing diagram ‘traces’ to serve as do cumentation.
+While timed trace inclusion of the split model in the timing d iagram model was
+veriﬁed, the inverse relation was not. Using an approach bas ed on timed games and a
+newmodel-checkingalgorithm,Bourkeetal.[2011]present analteredsplitmodeland
+show full timed trace equivalence between it and the timing d iagram model. The use
+of explicit testing automata nevertheless remains a simple and traceable alternative.
+Real-time programming. The assembly language modeling and veriﬁcation exhib-
+ited in this article is unlikely to scale. Verifying assembl y language programs of real-
+istic size requires speciﬁc abstractions and techniques ev en when real-time behavior
+is ignored [Schlich 2008]. Furthermore, the approach does n ot address interrupts, the
+inclusion of driver routines in larger systems, or sophisti cated execution platforms.
+It may be interesting to try to program the driver using diffe rent approaches, with
+two requirements: that programs are veriﬁed against the tim ing diagram model, and
+that programs can be faithfully executed against a real sens or. The adjective ‘faith-
+fully’ implies an uncompromising relation between the veri ﬁed object and a running
+system! Proposals should be evaluated on the compromise mad e between adequately
+precise timing behavior and the interrelated issues of abst raction and portability. ‘Ab-
+straction’essentiallymeanscomparingthetextofaprogra mwiththebehavioritseeks
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.
+
+--- Page 26 ---
+Analyzingan EmbeddedSensorwith Timed Automatain Uppaal 0:25
+to express, and ‘portability’ relates to the ability to reus e the expressed solution whilst
+maintaining the timing behavior, at least within the constr aints of the original spec-
+iﬁcation. The proposed assembly program can be executed and veriﬁed, and it has
+precise timing behavior but it is neither very abstract, sin ce the desired behavior is
+really only expressed as a side-effect of a nest of implement ation-speciﬁc detail, nor is
+it especially portable, since it speciﬁes a very rigid trace of the timing diagram—the
+ﬂexibility allowed by the problem constraints cannot be fur ther exploited.
+ACKNOWLEDGMENTS
+Severaliterationsofthemodelof§3werepresentedat‘timedauto matateas’atNICTAduringwhichAnsgar
+Fehnker, Peter Gammie, and Rob van Glabbeek asked insightful questions and made helpful suggestions.
+Therestoftheworkinthispaperwasshapedduringapleasantafternoo natRadboudUniversityin2006
+where Frits Vaandrager proposed both the approach used in §4.3 to t est transmission correctness, and the
+timed trace inclusion testing technique applied in §§4.2 and 5.3.
+We thank the reviewers for their valuable recommendations and comm ents.
+REFERENCES
+ABADI, M.ANDLAMPORT , L. 1994. An old-fashioned recipe for real time. ACM Transactions on Program-
+ming Languages and Systems (TOPLAS) 16, 5, 1543–1571.
+ALUR, R.ANDDILL, D. L. 1994.Atheoryoftimedautomata. TheoreticalComputerScience126, 2,183–235.
+BOURKE, T. 2009.Modellingandprogrammingembeddedcontrollerswithtimedau tomataandsynchronous
+languages. Ph.D. thesis, University of New South Wales, Sydney, Aust ralia.
+BOURKE, T., D AVID, A., L ARSEN, K. G., L EGAY, A., L IME, D., N YMAN, U.,ANDW˛ ASOWSKI , A. 2011.
+New results on timed speciﬁcations. In Recent Trends in Algebraic Development Techniques, 20th Int .
+Workshop, WADT 2010 (Revised Selected Papers) , T. Mossakowski and H.-J. Kreowski, Eds. Lecture
+Notes in Computer Science Series, vol. 7137. Springer-Verlag, Sch loss Etelsen, Germany, 175–192.
+BOURKE, T.ANDSOWMYA, A. 2008. Automatically transforming and relating Uppaal models of e mbedded
+systems. In Proceedings of the 8th ACM Int. Conference on Embedded Softwa re (EMSOFT’08) . ACM
+Press, Atlanta, Georgia USA, 59–68.
+GRIEBLING , E. T. 1999. GP2D02 assembly language driver for 68HC12B32 microcont roller.http://home.
+earthlink.net/~tdickens/68hc11/code/sharpirhc12.asm .
+HENZINGER , T. A., N ICOLLIN , X., SIFAKIS, J.,ANDYOVINE, S. 1994.Symbolicmodelcheckingforreal-time
+systems. Information and Computation 111, 2, 192–244.
+INTELCORPORATION . 1994. MCS®51 microcontroller family user’s manual.
+JENSEN, H. E., L ARSEN, K. G., ANDSKOU, A. 2000. Scaling up Uppaal: Automatic veriﬁcation of real-time
+systems using compositionality and abstraction. In Proceedings of the 6th Int. Symposium on Formal
+TechniquesforReal-TimeandFault-Tolerance(FTRTFT’00) ,M.Joseph,Ed.LectureNotesinComputer
+Science Series, vol. 1926. Springer-Verlag, Pune, India, 19–30.
+KAYNAR, D. K., L YNCH, N., SEGALA, R.,ANDVAANDRAGER , F. 2006. The Theory of Timed I/O Automata .
+Synthesis Lectures on Computer Science. Morgan & Claypool Publisher s, San Rafael, CA, USA.
+LARSEN, K. G., P ETTERSSON , P.,ANDWANG, Y. 1997. Uppaal in a nutshell. Int. Journal of Software Tools
+for Technology Transfer 1, 1–2, 134–152.
+LYNCH, N.ANDVAANDRAGER , F. 1996. Forward and backward simulations. Part II: Timing-based sy stems.
+Information and Computation 128, 1, 1–25.
+RAMSEY, A. 2001. Interfacing the GP2D02 to a Microchip PIC. Encoder: The Ne wsletter of the Seattle
+Robotics Society.
+SCHLICH, B. 2008. Model checking of software for microcontrollers. Ph.D. t hesis, RWTH Aachen University,
+Aachen, Germany.
+SHARPCORPORATION . 1997. GP2D02: Compact, high sensitive distance measuring sensor.
+STOELINGA , M. I. 2002.Aleajactaest:Veriﬁcationofprobabilistic,real-timeand parametricsystems.Ph.D.
+thesis, Katholieke Universiteit Nijmegen, The Netherlands.
+VAANDRAGER , F.AND DE GROOT, A. 2006. Analysis of a biphase mark protocol with Uppaal and PVS.
+Formal Aspects of Computing 18, 4, 433–458.
+Received May 2011; revised December 2011; accepted April20 12
+ACM Transactions on Embedded Computing Systems, Vol. 0, No. 0, Article 0, Publication date: 2012.

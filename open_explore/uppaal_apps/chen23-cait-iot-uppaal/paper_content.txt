@@ -1,0 +1,1299 @@
+--- Page 1 ---
+IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+1507
+PAPER
+IoT Modeling and Veriﬁcation: From the CaIT Calculus to
+UPPAAL
+Ningning CHENya),Nonmember and Huibiao ZHUyb),Member
+SUMMARY With the support of emerging technologies such as 5G,
+machine learning, edge computing and Industry 4.0, the Internet of Things
+(IoT) continues to evolve and promote the construction of future networks.
+Existing work on IoT mainly focuses on its practical applications, but there
+is little research on modeling the interactions among components in IoT
+systems and verifying the correctness of the network deployment. There-
+fore, the Calculus of the Internet of Things (CaIT) has previously been
+proposed to formally model and reason about IoT systems. In this paper,
+the CaIT calculus is extended by introducing broadcast communications.
+For modeling convenience, we provide explicit operations to model node
+mobility as well as the interactions between sensors (or actuators) with the
+environment. To support the use of UPPAAL to verify the temporal prop-
+erties of IoT networks described by the CaIT calculus, we establish a rela-
+tionship between timed automata and the CaIT calculus. Using UPPAAL,
+we verify six temporal properties of a simple “smart home” example, in-
+cluding Boiler On Manually, Boiler O ﬀAutomatically, Boiler On Auto-
+matically, Lights On, Lights Mutually, and Windows Simultaneously. The
+veriﬁcation results show that the “smart home” can work properly.
+key words: IoT, CaIT calculus, timed automata, UPPAAL
+1. Introduction
+The emergence of the Internet of Things (IoT) shifts the de-
+velopment focus of the Mobile Internet from networks of
+“end users” to networks of “objects”, where “objects” can
+autonomously interact for a common goal. The “things”
+contained in IoT systems can be RFID tags (identifying
+objects), sensors (capturing the changes in the environ-
+ment), and actuators (providing information to the environ-
+ment). Recently, IoT has been gradually combined with
+other technologies such as cloud computing [1], artiﬁcial in-
+telligence [2], vehicle networks [3], etc. Relevant research
+results have been applied in many ﬁelds, including envi-
+ronmental monitoring, health care, smart environment, and
+Manuscript received December 16, 2022.
+Manuscript revised April 18, 2023.
+Manuscript publicized June 2, 2023.
+yThe authors are with the Shanghai Key Laboratory of Trust-
+worthy Computing, East China Normal University, Shanghai,
+China.
+This work was partially supported by the National
+Key Research and Development Program of China (No.
+2022YFB3305102), the National Natural Science Foundation of
+China (Grant Nos. 62032024), the “Digital Silk Road” Shanghai
+International Joint Lab of Trustworthy Intelligent Software (No.
+22510750100), Shanghai Trusted Industry Internet Software Col-
+laborative Innovation Center, and the Dean’s Fund of Shanghai
+Key Laboratory of Trustworthy Computing (East China Normal
+University).
+a) E-mail: nnchen@stu.ecnu.edu.cn
+b) E-mail: hbzhu@sei.ecnu.edu.cn (Corresponding author)
+DOI: 10.1587 /transinf.2022EDP7223transportation. However, as IoT systems become more and
+more complex, their quality and reliability are di ﬃcult to
+guarantee, development costs are getting higher and higher,
+and new security issues are constantly emerging. Fortu-
+nately, the use of formal methods in the design and devel-
+opment of IoT systems can e ﬀectively alleviate the above
+problems.
+Both model-checking techniques and process algebras
+are powerful tools for formal researches. Krishna et al.
+adopted Business Process Model Notation (BPMN) to ex-
+press the underlying IEC 61499 speciﬁcation [4]and de-
+veloped an IoT Composer tool to support the develop-
+ment of IoT applications [5]. All of these studies apply
+model-checking approaches for veriﬁcation, i.e., systems
+are checked against formulas given in temporal logic [6].
+Diﬀerently, process algebras focus on taking (higher-level)
+system descriptions as speciﬁcations for (more detailed)
+system speciﬁcations, which are useful for modeling a pro-
+gramming abstraction that concentrates, especially for chal-
+lenges in developing distributed and concurrent systems [7].
+Both model-checking approaches and process algebras have
+their strengths and can be mutually beneﬁcial. Process al-
+gebras are more abstract and expressive, which can provide
+a complete and accurate formal speciﬁcation of systems [8].
+For instance, the equivalence and reﬁnement relations em-
+ployed in process algebras are compositional. Hence, one
+(smaller, more analyzable) equivalent system can be sub-
+stituted for another (larger, more complex) one, improving
+the eﬃciency of model-checking [7]. Using model-checking
+techniques, especially various tools, it is possible to mecha-
+nize the systems described by a process calculus and further
+verify their properties. Thus, some studies combine model-
+checking techniques with process algebras [9],[10]. Jack-
+son translated Timed CSP processes into time automata to
+verify the logical properties of CSP processes using timed
+automata techniques [9]. Ouaknine et al. have proved
+the equivalence between Timed CSP and closed timed au-
+tomata [10]. Inspired by these works, we adopt process al-
+gebras and model-checking techniques together to explore
+IoT systems.
+Some works have been done to model and verify IoT
+systems from the perspective of process calculi. Lanese
+et al. proposed the ﬁrst calculus for IoT systems, called
+IoT-calculus, to capture the interactions between sensors,
+actuators, and computer processes to provide services for
+“end users” [11]. To express a discrete notion of time and
+verify the temporal properties of IoT systems, Lanotte et
+Copyright c⃝2023 The Institute of Electronics, Information and Communication Engineers
+
+--- Page 2 ---
+1508IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+al. presented the CaIT calculus with the reduction seman-
+tics and a labeled transition system [12]. Furthermore, the
+CaIT calculus is equipped with a standard notion of labelled
+bisimilarity, which provides a coinductive characterisation
+of the contextual equivalence [12]. The notion of labeled
+bisimilarity can facilitate the usage of model-checking tech-
+niques [7]. However, both IoT-calculus and the CaIT calcu-
+lus only support point-to-point communications, not broad-
+cast communications which are common in IoT systems.
+Thus, we enrich the CaIT calculus with broadcast primi-
+tives.
+In recent years, a signiﬁcant amount of work has been
+achieved in formal modeling and analyzing broadcast be-
+havior from the views of process algebras. The Calculus for
+Broadcasting Systems (CBS) [13]is the ﬁrst calculus to take
+broadcast as the communication primitive. b-calculus [14]
+extends -calculus by introducing a broadcast paradigm.
+However, they only focus on global communication, i.e., al-
+lowing all nodes to receive broadcast messages at the same
+time, which makes the information vulnerable to eavesdrop-
+ping by attackers. Thus, we refer to process calculi for local
+broadcast (such as CBS #,CWS , and w-calculus) to further
+limit the transmission area of broadcast messages [15]–[17].
+Consequently, our calculus requires that only adjacent nodes
+in IoT systems listening to the corresponding channel can
+receive the broadcast.
+The CaIT calculus is a fully abstract semantic theory,
+proposed to specify and reason on IoT applications [12].
+Using the CaIT calculus, various IoT systems can be de-
+scribed as similar abstract models, which is much clearer
+and more concise than describing them by directly applying
+model checking techniques [7],[12]. Furthermore, the CaIT
+calculus can support the future exploration of the relation-
+ship between IoT systems and has been used to explore the
+equivalence between IoT systems [12]. Whereas, analyzing
+the relationships between multiple IoT systems directly us-
+ing model checking techniques is much more complicated.
+However, there are currently no tools that support the veri-
+ﬁcation and analysis of IoT systems modeled by the CaIT
+calculus. To further use tools to mechanize the IoT sys-
+tems modeled by the CaIT calculus and explore their tempo-
+ral properties, we establish a relationship between the CaIT
+calculus and timed automata. Guided by this relationship,
+we construct a series of timed automata for the CaIT cal-
+culus, involving basic commands (or statements) and par-
+allel compositions. Numerous tools can mechanize these
+automata, among which UPPAAL supports an intuitive and
+understandable graphical representation and is widely used
+to explore channel communications.
+The main contributions of this paper include the fol-
+lowing three aspects:
+The CaIT calculus is extended by applying broadcast
+communications as well as adding explicit operations
+for describing node mobility and interactions between
+sensors (or actuators) with the environment.
+We build the relationship between the CaIT calculusand timed automata, involving each basic command (or
+statement) and the parallel composition. We implement
+all of these automata in UPPAAL, and further explore
+the networks of timed automata.
+Based on this relationship, an example “smart home”
+is modeled. Using UPPAAL, we verify its six temporal
+properties.
+The rest of this paper is organized as follows. Sec-
+tion 2 introduces the CaIT calculus and presents a simple
+“smart home”. Section 3 describes the relationship be-
+tween the CaIT calculus and timed automata. Section 4
+gives a brief introduction to UPPAAL and the implemen-
+tation of the CaIT calculus in UPPAAL, which allows us to
+achieve the “smart home” and verify some temporal proper-
+ties. Conclusion and future work are given in Sect. 5.
+2. The CaIT Calculus
+2.1 Syntax
+The original CaIT calculus [12] for IoT only uses point-to-
+point communications. Here, we extend the original CaIT
+with broadcast communications. In addition, we add ex-
+plicit processes for formalizing node mobility, and the in-
+teractions between sensors (or actuators) with the environ-
+ment. But for simplicity, we still use the name the CaIT
+calculus here. The syntax is shown in Table 1, where the ex-
+tensions are in bold. It has a three-level structure: the upper
+level shows processes, the middle one illustrates the body
+of a node, and the lower level describes networks. Now, we
+show the details of the CaIT calculus from the three levels.
+Table 1 The syntax of the CaIT calculus
+Process
+P;Q ::= nil Termination
+jskip Skip
+jP∥Q Parallel Composition
+jP⊓Q Nondeterministic Choice
+j[b]P,Q Conditional
+j!⟨v2⟩bc;P Broadcast Output
+j;P Intra-node Action
+j ⌊ ;P⌋Q Action with Timeout
+jX Process Variable
+jf ix XP Recursion
+ ::=  Delay
+j@h Querying Location
+js?y Sensor Reading
+ja!v Actuator Writing
+ ::= c!⟨v1⟩ Point-to-Point Output
+jc?(x1) Point-to-Point Input
+j?(x2)bcBroadcast Input
+jmovek Migration
+Body
+B;B1 ::= B∥B1 Parallel Composition
+jP Process
+j(s v3);B Sensor
+j(a!v4);B Actuator
+Network
+N;M ::= 0 Empty Network
+jM∥N Parallel Composition
+j(vc′)M Channel Restriction
+j n[ ▷ ◁B]u
+lNode
+
+--- Page 3 ---
+CHEN and ZHU: IOT MODELING AND VERIFICATION: FROM THE CAIT CALCULUS TO UPPAAL
+1509
+Process Level:
+(1)nilmeans that this process terminates.
+(2)skipdoes nothing and has no e ﬀect.
+(3)P∥Qis the parallel composition of processes.
+(4)P⊓Qis the nondeterministic choice.
+(5) [b]P,Qrepresents the conditional choice, where b
+has the form w=w′, and wand w′are expressions. If
+Boolean expression bis true (that is, wis equal to w′), pro-
+cess Pexecutes; otherwise, process Qworks.
+(6) !⟨v2⟩bc;Pdenotes that a node sends value v2via
+broadcast channel bc, and then Pruns, where v2can the
+value of a variable, a constant or the value constructed from
+values and functions. When describing actual IoT scenarios,
+values can be any speciﬁc data type, such as integer, charac-
+ter, generic, boolean, etc. After sending out v2, only nodes
+within the communication range of bcand listening to bc
+can receive it.
+(7);Prepresents intra-node actions, where 2f;
+@h;s?y;a!vg:;Pdenotes that after waiting for one time
+unit, process Pworks. @ h;Pqueries the current physi-
+cal location of the node in which this process is running.
+The physical location information is available for the subse-
+quent process P.s?y;Preads a value from sensor s.a!v;P
+writes the value vinto the actuator a. Especially, a!v;Pand
+(s v3);Bcan update  , e.g., the value of actuator acan be
+changed to be vdue to the execution of a!v;P.
+(8)⌊;P⌋Qindicates that some actions execute with
+timeouts, where 2fc!⟨v1⟩;c?(x1);?(x2)bc;move kg. For
+commands⌊c!⟨v1⟩;P⌋Qand⌊c?(x1);P⌋Q, if processes can
+communicate within one time unit via point-to-point chan-
+nelc, then process Pcarries out. Otherwise, Qgains con-
+trol after waiting for one time unit. Similarly, we deﬁne
+⌊?(x2)bc;P⌋Qto show that if this process can receive a value
+via broadcast channel bcbefore one time unit, the subse-
+quent behavior is like P. Otherwise, after one time unit,
+Qperforms. Next, we give the details of the migration
+process⌊move k;P⌋Q. After delaying one time unit, if the
+node can move to the destination kfrom the current location,
+⌊move k;P⌋Qexecutes and the following process Pruns at
+the new location k; otherwise, Qstarts to work at its original
+location. Consequently, the CaIT calculus allows one node
+to move with the migration process to obtain its desired data.
+;Pmeans that Pwill start if and only if is complete.
+(9)Xrepresents the process variable.
+(10) ﬁx XPis the guarded recursion, which is sim-
+ilar to the recursion construction proposed by Hoare (i.e.,
+X:AF(X))[18], except that ﬁx XPtakes time into ac-
+count.
+Body Level:
+(1)B∥B1stands for the parallel composition.
+(2) Process Pdenotes the ongoing computations.
+(3) (s v3);Bmodels a sensor whose name is s, and
+its current value is v3. A node can read a particular piece of
+information from the environment using a sensor and then
+make it available to the remaining node body B.
+(4) (a!v4);Billustrates the behavior of an actuator a,
+representing that a node can provide a value v4to the en-vironment through this actuator. To ensure that nodes ex-
+change information with the environment in time, we sup-
+pose that ( s v3) and ( a!v4) are both instantaneous ac-
+tions.
+Network Level:
+(1) 0 denotes an empty network.
+(2)M∥Nis the parallel composition of networks.
+(3) (vc′)Mshows that channel c′is private for the net-
+work M.
+(4) n[ ▷ ◁B]u
+lrepresents a network node, where nis the
+node ID, and Bis the node body. The physical interface is
+represented by  , which maps the names of sensors and ac-
+tuators to values. For security aims, each  is private for a
+node. In other words, given a node n[ ▷ ◁B]u
+l, sensors in  
+can be read only by node n. Similarly, the values of actu-
+ators in  can be modiﬁed only by this node. lrecords the
+current location of node n.u2fs;mgis deﬁned to distin-
+guish stationary nodes (formed by u=s) and mobile nodes
+(denoted by u=m).
+2.2 The Operational Semantics of the CaIT Calculus
+Here, we present the operational semantics for our exten-
+sions in Table 2. To deﬁne the rules precisely, we give
+the following three kinds of transitions, which also cover
+the original CaIT calculus (see [12] for the corresponding
+rules).
+Process: P  !Q;where 2f;c!⟨v⟩;c?(v);move k;!⟨v⟩bc;
+?(v)bc; g.
+Body: B  !B′;where 2fs v3;a!v4g[.
+Network: M&  !N, with &2f; ;!⟨v⟩bc@n;?(v)bc@n;
+c!⟨v⟩@n;c?(v)@n;(s v3)@n;(a!v4)@ng.
+Now, we give the explanations for the rules which have
+been listed in Table 2.
+Rule ( BSenP ) denotes sending messages via the broadcast
+channel bc. After that, process Pexecutes.
+Rule ( BRecP ) describes receiving messages via bcbefore
+one time unit, then the process switches to P.
+Rule ( MoveP ) represents the execution of the migration
+action. After that, this process behaves as process P.
+Rule ( SensorB ) shows that after sensing information from
+the environment through a sensor, the remaining node body
+Bexecutes. Similarly, rule ( ActuatorB ) describes providing
+information to the environment with an actuator.
+Rule ( BSenN ) models that after the node nbroadcasts
+messages via bc, it switches to the remaining node body B′.
+Rule ( BRecN ) can be explained similarly.
+Rule ( BCom ) describes broadcast communications as lim-
+ited by the communication range, that is, two networks can
+communicate successfully only if the distance between them
+is within the communication range used by them.
+Rules ( ResB ) and ( Res) display the e ﬀect of closing the
+scope of a broadcast channel. In other words, a restricted
+channel cannot occur in a transition label.
+Rule ( Move ) describes that a node nmoves to its destina-
+tionksuccessfully from location lif the distance between l
+
+--- Page 4 ---
+1510IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+Table 2 The operational semantics of CaIT calculus
+Process:
+(BSenP) 
+!⟨v⟩bc;P!⟨v⟩bc
+    ! P(BRecP) 
+⌊?(x)bc;P⌋Q?(v)bc
+    ! P[v=x](MoveP) 
+⌊movek;P⌋Qmovek     ! P
+Body:
+(SensorB) 
+(s v3);Bs v3    ! B(ActuatorB) 
+(a!v4);Ba!v4    ! B
+Network:
+(BSenN)B!⟨v⟩bc
+    ! B′
+n[ ▷ ◁B]u
+l!⟨v⟩bc@n       ! n[ ▷ ◁B′]u
+l(BRecN)B?(v)bc
+    ! B′
+n[ ▷ ◁B]u
+l?(v)bc@n       ! n[ ▷ ◁B′]u
+l
+(BCom)M!⟨v⟩bc@m       ! M′;N?(v)bc@n       ! N′;Dis(n;m)Rng(bc)
+M∥N!⟨v⟩bc@m       ! M′∥N′(ResB)M&  !M′; &<f!⟨v⟩bc@n;?(v)bc@ng
+(vbc)M&  !(vbc)M′
+(Move)B  !B′;n[ ▷ ◁B]m
+l↛;Dis(k;l);B′movek ! B′′
+n[ ▷ ◁B]m
+l  !n[ ▷ ◁B′′]m
+k(Res)M!⟨v⟩bc@n       ! M′
+(vbc)M  !(vbc)M′
+(Sensor1) (s),v3; v32dom(s);Bs v3    ! B′; ′::=  [v3= (s)]
+n[ ▷ ◁B]u
+l(s v3)@n        ! n[ ′▷ ◁B′]u
+l(Sensor2)I(s)=v3;Bs v3    ! B′
+n[ ▷ ◁B]u
+l  !n[ ▷ ◁B′]u
+l
+(Actuator)v4=  (a);Ba!v4    ! B′
+n[ ▷ ◁B]u
+l(a!v4)@n        ! n[ ▷ ◁B′]u
+l
+Fig. 1 Smart home inspired by [12]
+andkis less than or equal to a given value .
+Rules ( Sensor1 ) and ( Sensor2 ) describe the sensing infor-
+mation v3using a sensor s, distinguishing whether the value
+of the sensor is changed or not.
+Rule ( Actuator ) provides information to the environment.
+2.3 Smart Home
+In this subsection, we give a simple “smart home”, as shown
+in Fig. 1. Compared with the previous work [12], we add
+some processes to illustrate node mobility and broadcast
+communications. Especially, the application of broadcast
+communication allows users to control multiple devices si-
+multaneously by sending only one command. The whole
+system is the parallel composition of the smart home Home
+and the smart phone Phone .
+The house is composed of an entrance and a lounge
+which are separated by a patio, where loc=fentrance ;patio ;
+loungeg. In the entrance and the lounge, each one has a
+light (actuator light j) managed by their light manager pro-
+cesses LMng j, where j2f1;2g. In the lounge, there are two
+windows (actuator win i) controlled by their window man-
+ager process WMng i, where i2f1;2g. In the patio, there
+is a boiler (actuator boiler ) governed by the boiler man-
+ager process BMng .Phone is a mobile node containing four
+processes: the migrating process Move , the boiler control
+process BCtrl , the light control process LCtrl and the win-
+dow control process WCtrl . There are also some sensors toTable 3 Smart home
+System Modeling:
+Sys=d fHome∥Phone
+Home =d fl1∥l2∥l3
+l1=d fn1[ 1▷ ◁light 1∥LMng 1]s
+entrance
+l2=d fn2[ B▷ ◁temp∥boiler∥BMng ]s
+patio
+l3=d fn3[ 2▷ ◁win1∥win2∥light 2∥LMng 2∥WMng 1∥WMng 2]s
+lounge
+Phone =d fnp[ P▷ ◁bsensor∥wsensor∥PhoneP ]m
+l12loc
+Actuator and Sensor Modeling:
+temp =d f(temp temperature )
+boiler =d f(boiler! B(boiler ))
+light j=d f(light j! j(light j));for j2f1;2g:
+win i=d f(wini! 2(wini));for i2f1;2g:
+bsensor =d f(bsensor mode )
+wsensor =d f(wsensor command )
+Process Modeling:
+PhonP =d fMove∥BCtrl∥LCtrl∥WCtrl
+Move =d fﬁx X@(h1); [h1=entrance ]⌊move patio ;X⌋X,
+[h1=lounge ]⌊move patio ;X⌋X,
+⌊move lounge ;X⌋X⊓⌊move entrance ;X⌋X
+BCtrl =d fﬁx Xbsensor ?z;⌊b!⟨z⟩;;X⌋X
+LCtrl =d fﬁx X@(h2); [h2=entrance ]⌊c1!⟨on⟩;;X⌋X,
+[h2=lounge ]⌊c2!⟨on⟩;;X⌋X,;X
+WCtrl =d fﬁx Xwsensor ?m; !⟨on⟩w;;X
+BMng =d fﬁx X⌊b?(x1); [x1=man]boiler !on;;Manual ,TCtrl⌋TCtrl
+Manual =d fﬁx Yb?(y); [y=auto]X,;Y
+TCtrl =d ftemp?te; [te< ]boiler !on;;X,boiler !oﬀ;;X
+LMng j=d fﬁx X⌊cj?(x2);light j!on;;X⌋light j!oﬀ;X
+WMng i=d fﬁx X⌊?(x3)w;wini!on;;X⌋wini!oﬀ;X
+support the operation of “smart home”, including bsensor ,
+wsensor , and temp.
+Based on the CaIT calculus, the detailed description
+of “smart home” is shown in Table 3. We suppose that the
+transmission range of each channel is inﬁnite. The trajec-
+tory of Phone is illustrated by process Move . Users set the
+mode of the boiler with the phone touchscreen button (sen-
+sorbsensor ). When Phone senses these commands, it for-
+wards them to BMng via point-to-point channel b. Once
+
+--- Page 5 ---
+CHEN and ZHU: IOT MODELING AND VERIFICATION: FROM THE CAIT CALCULUS TO UPPAAL
+1511
+the boiler is set to manual mode, the boiler will be turned
+on within one time unit. If it is in automatic mode, the
+boiler will be adjusted within one time unit according to
+the current physical temperature obtained by sensor temp.
+When Phone is located at entrance orlounge ,LCtrl obtains
+its current location information and sends commands to the
+light manager process at the current location. Then the cor-
+responding light manager process turns on its light. User
+governs windows using the phone touchscreen button (sen-
+sorwsensor ). Via broadcast channel w,WCtrl can control
+WMng 1andWMng 2to open or close two windows simulta-
+neously.
+3. From the CaIT Calculus to Timed Automata
+CaIT is a timed process calculus with a discrete notion of
+time, as it provides a special timing action to synchro-
+nize global time, and equips some actions (e.g., communi-
+cations) with timeouts to control their execution [12]. Thus,
+CaIT can be mapped into timed automata. Inspired by
+the work [9],[10],[19]–[21], we explore the transformation
+from the CaIT calculus to timed automata, which enables us
+to use UPPAAL to verify some properties of IoT networks
+described by the CaIT calculus.
+3.1 Overview of Timed Automata
+We now present the basic deﬁnitions of the syntax and se-
+mantics for a timed automaton [20]–[22]. We ﬁrst give some
+notations. Cis the set of clocks, each of which is a real
+value variable. A clock constraint is a conjunctive formula
+of atomic constraints of the form x⩽szorx y⩽sz, where
+x;y2C;z2R(real number set) and ⩽s2f<;;=;; >g. The
+set of clock constraints is B(C).is the set of actions (or
+alphabet).
+Deﬁnition 1. (Timed Automata (TA)) A timed automaton
+is a tuple A=⟨L;l0;E;I⟩, where
+Lis the set of locations.
+l02Lis the initial location.
+ELB(C)2CLis the set of edges, where
+each edge describes the transition between two loca-
+tions with a guard, an action, and a set of clocks to be
+reset.
+I:L!B(C), which assigns invariants to locations.
+We now introduce more details of edges (i.e., EL
+B(C)2CL), where an edge can be described as
+⟨l; g;a; w;l′⟩.
+(1)lg;a;w !l′is a shorthand notation for ⟨l; g;a; w;l′⟩, which
+simulates the transition from location lto location l′.
+Here, g2B(C) is a guard, a2is an action, and
+wCis the set of clocks that need to be reset to 0.
+(2)When this transition happens, only clocks in ware reset
+to 0, and other clocks in Cnwagree with u, that is,
+[w7!0]u. Similarly, [ w1[w27!0]uresets all clocks
+inw1andw2.We now deﬁne clock valuations, each of which is a
+function u:C!R+from the set of clocks to the non-
+negative reals. Some notations about clock valuations are as
+follows.
+(1)R+Cis the set of all clock valuation functions. u0(x)=
+0 initializes all clocks in C, where xstands for any
+clock in C.
+(2)u+dmaps each clock xinCto the value u(x)+d, where
+d2R+is a non-negative real.
+(3)uj=gmeans that the clock values assigned by usatisfy
+the guard g. Similarly, uj=I(l) denotes that usatisﬁes
+the invariants of location l.
+Deﬁnition 2. (Semantics of TA) Let⟨L;l0;E;I⟩be a timed
+automaton, with the clock set Cand the action set . Its se-
+mantics is deﬁned as a labelled transition system ⟨S;s0;⇝⟩,
+where
+SLR+Cis the set of states. The state of this au-
+tomaton is ( l;u), meaning that its current location and
+the current clock valuation are landu, respectively.
+s0=(l0;u0) is the initial state.
+⇝SfR+[gSis the transition relation such that
+–Delay Transition:
+⟨l;u⟩d⇝⟨l;u+d⟩,
+if8d′2[0;d] :u+d′j=I(l), where d;d′2R+.
+–Action Transition:
+⟨l;u⟩a⇝⟨l′;u′⟩,
+if there exists an edge lg;a;w   ! l′,uj=g,
+u′=[w7!0]u, and u′j=I(l′).
+3.2 The Semantics of Timed Automata Networks
+A timed automaton network is a parallel composition of sev-
+eral timed automata, with a common clock set Cand a com-
+mon action set . If a timed automaton network contains n
+timed automata, it can be described as A1∥A2∥∥ An, where
+Ai=<Li;l0
+i;Ei;Ii>, 1in, and i;n2N+(positive
+integers set). Compared with the traditional operational se-
+mantics of a network of timed automata [23], we discuss not
+only the rules for point-to-point communications, but also
+the rules for broadcast communications and channel restric-
+tion.
+Before giving the semantics of a network of timed au-
+tomata, we give the following notations.
+l=(l1;;ln) is a location vector, where liis the ith
+element of l, fori2N+.
+I(l)=∧n
+i=1Ii(li) integrates all invariants functions into
+a common function over location vectors.
+l[l′
+i=li] replaces the ith element lioflwith l′
+i.
+lNis the location vector for the time automata network
+built for the IoT network N.
+Deﬁnition 3. (Semantics of a network of Timed Au-
+tomata) Let a network of ntimed automata be A1∥∥ An,
+
+--- Page 6 ---
+1512IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+where Ai=<Li;l0
+i;Ei;Ii>, 1in, and i;n2N+. Its se-
+mantics is deﬁned as a labelled transition system ⟨S;s0;⇝⟩,
+where
+S(L1 Ln)R+Cis the set of states. Let ⟨l;u⟩
+be a state of the network of timed automata.
+s0=(l0;u0) is the initial state, where l0=(l0
+1;;l0
+n).
+⇝SfR+[gSis the transition relation, such that
+1.Delay:
+⟨l;u⟩d⇝⟨l;(u+d)⟩,
+if8d′2[0;d] : (u+d′)j=I(l), where d;d′2R+.
+2.Pointt Communication:
+⟨l;u⟩⇝⟨l′;u′⟩,
+if there exists ljgj;c!;wj     ! l′
+j, and ligi;c?;wi     ! l′
+i(j,i), such
+that
+(1)uj=(gj^gi) means that usatisﬁes the guards of
+two edges.
+(2)Dis(nj;ni)Rng(c) holds. cis a point-to-point
+channel, and Rng(c)>0.
+(3)l′=l[l′
+j=lj;l′
+i=li]:
+(4)u′=[wj[wi7!0]uandu′j=I(l′).
+Dis(nj;ni)Rng(c) denotes that the distance between
+two nodes (i.e., njandni) is within the transmission
+range of channel c, where ljandliare the current lo-
+cation of the automata of njandni, respectively. j,i
+means that this is an inter-node communication. If the
+communication occurs in a node, it can be addressed
+by the  action rule (left column, page 6).
+3.Broadcast Communication:
+⟨l;u⟩!bc
+⇝⟨l′;u′⟩,
+if there exists an edge ljgj;!bc;wj      ! l′
+j
+andmedges likgik;?bc;wik       ! l′
+ikfor 1kmand
+k;ik;m2N+(j,ik), such that
+(1)li1;li2;;limare ordered according to the automata
+ordering A1;;An.
+(2)uj=(gj^∧m
+k=1gik) means that usatisﬁes the guards
+of edges lj;li1;li2;;lim.
+(3)∧m
+k=1Dis(nj;nik)Rng(bc) holds. bcis a broadcast
+channel, and Rng(bc)>0.
+(4)l′=l[l′
+j=lj;l′
+i1=li1;;l′
+im=lim].
+(5)u′=[(wj[(∪m
+k=1wik))7!0]uandu′j=I(l′).
+According to b-calculus [14], broadcast sending is
+never blocked. In other words, the output action exe-
+cutes as usual even if no receiver is within the commu-
+nication range of bc. Therefore, we give the following
+Broadcast Output rule to describe the case at which
+only the broadcast output action occurs.
+4.Broadcast Output: ⟨l;u⟩!bc
+⇝⟨l′;u′⟩,
+if there only exists ljgj;!bc;wj      ! l′
+j(Rng(bc)>0) but no
+edges describing the matching input actions, such that
+(1)uj=gj.
+(2)l′=l[l′
+j=lj].(3)u′=[wj7!0]uandu′j=I(l′).
+5. action:⟨l;u⟩⇝⟨l[l′
+j=lj];u′⟩,
+if there exists ljgj;;w j       ! l′
+j,uj=gj,u′=[wj7!0]uand
+u′j=I(l[l′
+j=lj]).
+6.Channel Restriction: ⟨(vc′)lN;u⟩⇝⟨(vc′)lN′;u′⟩,
+if there exists ljgj;!c′=c′!;wj        ! l′
+j(Rng(c′)>0;nj2N) ,
+such that
+(1)uj=gj.
+(2)lN′=lN[l′
+j=lj].
+(3)u′=[wj7!0]uandu′j=I(l′).
+where ljis the current location of the automaton built
+for node nj, and nj2Nmeans that njbelongs to N.
+Referring to the works [24]–[26], (vc′)Nbinds the
+broadcast channel c′to network N. As shown in Fig. 2,
+the output action occurring on c′(i.e., !c′) is replaced by
+the silent action (i.e., ) when it exceeds N. As a result,
+the information transmitted on c′is invisible to nodes
+outside N, thus ensuring the communication security.
+Structural Congruence:
+⟨lM;uM⟩∥⟨lN;uN⟩⟨[lM;lN];uM[uN⟩
+Here,⟨lM;uM⟩and⟨lN;uN⟩are the current states of the
+automata networks built for IoT networks MandN, respec-
+tively. [ lM;lN] combines location vectors lMandlN. And
+uM[uNintegrates clock valuations uManduN.
+3.3 Relating Basic Commands to Timed Automata
+For a component m[ ▷ ◁B]u
+lof a CaIT network, we construct
+a timed automaton, shown by A=⟨L;l0;E;I⟩with a clock
+x. Initially, L=fm0g,l0=m0,E=∅andI=∅. As
+mentioned in Sect. 2, the node body Bcan be a process Por
+some commands about sensors and actuators. The locations
+of the automaton are labeled using the node ID in which the
+node body Bis running, and an index is starting from 0, to
+identify the locations in the automaton uniquely. Thus, m0
+indicates that we model a node body running in a node m.
+Depending on the structure of B, components L;EandIcan
+be updated.
+We assume that all the following components are exe-
+cuted in the node m. When they start running, the current
+L=fm0;;mig, where i0. For the sake of brevity,
+we only give deﬁnitions of timed automata associated with
+some representative commands here. Others are similar.
+1.ForP=⌊c!⟨v⟩;P1⌋P2, we have
+Fig. 2 Channel restriction ( vc′)N
+
+--- Page 7 ---
+CHEN and ZHU: IOT MODELING AND VERIFICATION: FROM THE CAIT CALCULUS TO UPPAAL
+1513
+L=L[fmi+1;mi+2g;
+Locations mi+1andmi+2are added to L. They respec-
+tively describe the two executions of process P, leading
+to either process P1or process P2.
+E=E[f⟨l;x<1;c!;x=0;mi+1⟩g
+[f⟨l;x==1; ;x=0;mi+2⟩g;
+Ifi>0, it means that this automaton already has
+some edges, and Pis lunched from a process Q, such
+asQ=⌊c1!⟨v⟩;P⌋Q1. In other words, Pis led by an
+action that has been modeled by an edge linking the
+last component mfofQ. Then l=mfholds, denoting
+thatPstarts from mf.
+Otherwise, l=m0holds, meaning that Pbegins from
+the initial location of the automaton.
+The ﬁrst new edge ⟨l;x<1;c!;x=0;mi+1⟩shows that
+if this point-to-point output action occurs within one
+time unit, this process terminates, and then P1gains
+the control. Another edge ⟨l;x==1; ;x=0;mi+2⟩
+denotes that this action cannot happen before one time
+unit. This process gives up, and P2works continually.
+I(l)=fx<=1g:
+This invariant ensures that the point-to-point output
+action executes within one time unit.
+2.ForP=⌊c?(x1);P1⌋P2, we have
+L=L[fmi+1;mi+2g;
+We add locations mi+1andmi+2into L, which cor-
+respond to the two situations of process P, leading to
+either process P1or process P2.
+E=E[f⟨l;x<1;c?;fx=0;x1=vg;mi+1⟩g
+[f⟨l;x==1; ;x=0;mi+2⟩g;
+Ifi>0, applying a similar reasoning process as for
+the point-to-point output action, l=mfholds.
+Otherwise, lism0.
+The ﬁrst edge describes the case in which the point-
+to-point input action occurs before one time unit, and
+process P1executes continually. Otherwise, the second
+edge represents that this communication cannot happen
+within one time unit, and the next process is P2. To
+use the assignment x1=von the edge with c?, we
+suppose that channel ccan only be used at most once
+for output actions in the transformed CaIT networks
+at any time. This requirement reﬂects somehow the
+global asynchronicity in the distributed environment,
+which has been explored in a large number of related
+process calculi.
+I(l)=fx<=1g:
+3.ForP=!⟨v2⟩bc;P1, we have
+L=L[fmi+1g;
+Only location mi+1is added into L, denoting its exe-
+cution. Then the control is passed to P1.
+E=E[f⟨l;x==0;!bc;x=0;mi+1⟩g;
+IfPis lunched from another process, that is i>0,
+it holds that l=mfby adopting a similar argument
+proposed in the point-to-point output action. In order to
+distinguish from point-to-point, we use the symbol !bc
+to stand for an output action occurring on the broadcastchannel bc.
+Otherwise, l=m0.
+I(l)=fx<=0g:
+We give this invariant to ensure that this process is
+executed immediately.
+4.ForP=⌊?(x2)bc;P1⌋P2, we have
+L=L[fmi+1;mi+2g;
+We add mi+1andmi+2intoL, leading to either process
+P1or process P2.
+E=E[⟨l;x<1;?bc;fx=0;x2=vg;mi+1⟩g
+[f⟨l;x==1; ;x=0;mi+2⟩g;
+If the execution of Pis launched from another pro-
+cess, with a similar argument as for the point-to-point
+output action, we can obtain l=mf.
+Otherwise, lis equal to m0.
+The ﬁrst edge describes that this broadcast input pro-
+cess happens within one time unit, then P1works after
+that. If not, this process is modeled by another edge,
+leading to P2. To support the application of the as-
+signment x2=vand ?bcin the edge, at any time, we
+similarly require that the broadcast channel bccan be
+applied at most once for output actions.
+I(l)=fx<=1g:
+5.ForP=⌊movek;P1⌋P2, we gain
+L=L[fmi+1;mi+2g;
+mi+1andmi+2are added to L.mi+1andmi+2indi-
+cate its two executions respectively, leading to either
+process P1or process P2.
+E=E[f⟨l;x==1^Dis(loc;k); ;x=0;mi+1⟩g
+[f⟨l;x==1^Dis(loc;k)> ; ; x=0;mi+2⟩g;
+If there is a process that launches P, with the similar
+argument as for the point-to-point output action, it is
+clear that l=mf.
+Otherwise, l=m0.
+We construct two edges to model its two executions.
+After one time unit, according to its current physical
+location loc, the destination location kand its moving
+rate , this migration process can judge whether kis
+reachable. Using the ﬁrst edge, we describe that the
+process Pcan move to ksuccessfully. After one time
+unit, the following process P1starts to execute at new
+location k. The second one denotes that the destination
+is unreachable. The next process P2obtains the control
+at its original location after waiting for one time unit.
+I(l)=fx<=1g:
+6.ForP=s?y;P1, we have
+L=L[fmi+1g;
+E=E[f⟨l;x==0; ;fx=0; y=  (s)g;mi+1⟩g;
+Ifi>0, it holds that l=mf.
+Otherwise, l=m0.
+I(l)=fx<=0g:
+7.ForB=(s v3);B1, we have
+L=L[fmi+1;mi+2g;
+New locations mi+1andmi+2are added into L, repre-
+senting its two executions.
+
+--- Page 8 ---
+1514IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+E=E[f⟨l;x==0^ (s),v3; ;fx=0; (s)=
+v3g;mi+1⟩g[f⟨ l;x==0^ (s)==v3; ;x=0;mi+2⟩g;
+Ifi>0, we obtain l=mfwith a similar reasoning
+process for point-to-point output action.
+Otherwise, l=m0.
+The ﬁrst edge encodes that the newly obtained value v3
+immediately replaces the value of s. If its value is al-
+ready v3, we don’t need to change it, shown by another
+edge.
+I(l)=fx<=0g:
+8.ForP=nilorP=skip, we have
+L;EandIkeep unchanged, and the automaton stops
+executing.
+9.ForP=f ix XP1, we have
+Lkeeps the same.
+E=E[f⟨l;x==0; ;x=0;m0⟩g;
+Ifi>0, using the similar argument constructed for
+the point-to-point output action, l=mfholds.
+Otherwise, l=m0.
+When this recursion action is executed, the automaton
+immediately returns to its initial node m0.
+I(l)=fx<=0g:
+3.4 Relating Parallel Composition to Timed Automata
+In this subsection, we construct timed automata for the par-
+allel composition, denoted by P1∥P2∥∥ Pn, where n>1.
+We assume that none of these processes has the parallel
+composition operator at its topmost level. As shown in
+Fig. 3, the parallel composition automaton has three layers:
+In the top layer, process Pis waiting for execution in
+automaton A1. Broadcast channel bpis used to start all
+parallel processes in Psimultaneously.
+In the second layer, there are two parts. In the ﬁrst
+one, once the broadcast output action ! ⟨v⟩bpoccurs,
+only P1is kept in the original automaton A1for ex-
+ecution. Meanwhile, all broadcast input actions take
+place immediately, starting to build new automata for
+the processes following them. Thus, in the other part,
+there is a process automaton, which can be instantiated
+as a new process automaton for the speciﬁc process
+based on the process ID obtained from the top layer.
+For example, if it is triggered by ?( xi)bp, then it can
+construct a process automaton Aifor process Pi, where
+i2f2;3;;ng:When we implement these process au-
+tomata in UPPAAL, we creatively construct a table for
+each speciﬁc process to store their process bodies.
+In the third layer, there are a series of automata corre-
+sponding to basic commands, which have been con-
+structed in Sect. 3.3. Each process automaton exe-
+cutes its process body by calling the corresponding au-
+tomata of basic commands according to the command
+ID recorded in its table. Execution results are returned
+from the bottom layer to the second one to guide the
+execution of the remaining.
+Fig. 3 The structure of parallel composition automaton
+10.ForP=!⟨v⟩bp;P1∥?(x2)bp;P2∥∥ ?(xn)bp;Pn,n>1,
+we can have
+L=L[fmi+1g;
+If process Pis running in a node m, and there are al-
+ready some locations in L(named as m0;;mi), then
+addmi+1intoLto denote the execution of ! ⟨v⟩bp, lead-
+ing to P1.
+E=E[f⟨l; ;!bp;x=0;mi+1⟩g;
+If the index i>0, we can have l=mfsimilarly.
+Otherwise, l=m0.
+The new edge models the execution of this broadcast
+output action, leading to P1. For each of the other pro-
+cesses Pjandj>1, we build a new automaton, formed
+byAj=⟨lj;nj0;Ej;Ij⟩, where lj=fm0;m1g;nj0=
+m0;Ej=f⟨m0; ;?bp;x=0;m1⟩gandIj(m0)=∅. Using
+the deﬁnition of Pj, these automata can be constructed.
+I(l)=fx<=0g:
+3.5 Networks of Timed Automata
+A network of timed automata is the parallel composition of
+a series of automata, formed by A1∥A2∥∥ An, where n>1.
+None of these automata has a parallel combination operator
+at its topmost level [23]. We assume that this network is
+running in the automaton A=⟨L;l0;E;I⟩. Initially, L=fl0g,
+l0=l0,E=∅andI=∅.
+11.ForA=!⟨v⟩b;A1∥?(x2)b;A2∥∥ ?(xn)b;An,n>1, we
+can have
+L=L[fl1g;
+l1is added into L, leading to the execution of the
+automaton A1.
+E=E[f⟨l; ;!b;x=0;l1⟩g;
+l=l0.
+The edgef⟨l; ;!b;x=0;l1⟩gmodels the execution of
+this broadcast output action, leading to A1. For each
+of other automata Ajand j>1, we build a new au-
+tomaton, formed by Aj=⟨lj;nj0;Ej;Ij⟩, where lj=
+fl0;l1g;nj0=l0;Ej=f⟨l0; ;?b;x=0;l1⟩gandIj(l0)=∅.
+These automata can be built recursively.
+I(l)=fx<=0g:
+
+--- Page 9 ---
+CHEN and ZHU: IOT MODELING AND VERIFICATION: FROM THE CAIT CALCULUS TO UPPAAL
+1515
+3.6 Channel Restriction
+As mentioned before, ( vc′)Mdenotes that channel c′is pri-
+vate for the network M. Thus, output actions that take place
+onc′are invisible to nodes outside the network M. Based
+on the above, we can obtain the automata of M, simply de-
+noted as A1=⟨L;l0;E;I⟩. To further get the automata A2
+of (vc′)M, we give the following process to replace output
+actions occurring on c′with .
+A2=d fRes(A1;c′);
+where, Res(<L;l0;E;I>;c)=d f8e2Ee=Check (e;c′)
+Check (<l; g;a; w;l′>;c′)=d f {
+<l; g; ; w; l′>; i fOutput (a)^Chan (a)=c′:
+<l; g;a; w;l′>;other wise:
+3.7 Simulation
+We now show how a CaIT network Nis simulated by its
+associated timed automaton ANin state⟨lN;uN⟩. We de-
+ﬁne a binary simulation relation R[27],[28] based on the
+operational semantics of CaIT calculus (see Sect. 2.2 and
+Appendix A) and the semantics of timed automata (see
+Sects. 3.1 and 3.2).
+Deﬁnition 4. A simulation is deﬁned as a binary relation R
+over CaIT networks and the timed automata, satisfying that
+if whenever NR(AN;⟨lN;uN⟩),
+ifN !N′, then there exists a timed automata AN′and
+a state⟨lN′;uN′⟩, such that⟨lN;uN⟩d⇝⟨lN′;uN′⟩and
+N′R(AN′;⟨lN′;uN′⟩), where uN′=(uN+d) and d=1.
+ifN!bc
+  !N′, then there exists a timed automata AN′and
+a state⟨lN′;uN′⟩, such that⟨lN;uN⟩!bc
+⇝⟨lN′;uN′⟩and
+N′R(AN′;⟨lN′;uN′⟩).
+ifNa2&^a<f!bc;g          ! N′, then there exists a timed automata
+AN′and a state⟨lN′;uN′⟩, such that⟨lN;uN⟩⇝⟨lN′;uN′⟩
+andN′R(AN′;⟨lN′;uN′⟩).
+where &is the action label set of CaIT networks (right
+column, page 3). □
+We use the notation⩽sto denote the largest simulation
+relation, i.e.,⩽s=∪fR:Ris a simulationg.
+In a CaIT network N, all nodes wait together for one
+time unit when no (instantaneous) action is possible, as de-
+scribed by the TimeParN rule (see Appendix A). In its asso-
+ciated timed automaton AN, all clocks are synchronously in-
+creased by one time unit in a continuous approach when no
+edge can be taken, which is supported by the timed automata
+theory [21],[23]. The simulation relations established for
+instantaneous actions are similar.
+Deﬁnition 5. A CaIT network is well-formed if each of its
+channels can only be used to output actions at most once at
+any time, i.e., it satisﬁes the description of the global asyn-
+chrony of distributed systems in many process calculi.
+Theorem 1. Given a well-formed CaIT network N, there ex-
+ists a timed automaton ANsatisfying N⩽s(AN;⟨lN;uN⟩).
+Proof :Based on structural induction, we now prove this the-
+orem by taking the parallel composition as an example. Webuilt the relation:
+|=f(M∥N;(AM∥AN;⟨[lM;lN];uM[uN⟩)) :
+M⩽s(AM;⟨lM;uM⟩) and N⩽s(AN;⟨lN;uN⟩)g.
+We next show that |is a simulation by analyzing the
+execution of case M∥N ! ˆM.
+We assume that there exists a transition M∥N ! ˆM,
+which can be derived from the following two cases.
+(1)This transition can be derived using the PCom rule
+(in Appendix A) with ˆM=M′∥N′, if Mc!⟨v⟩@m ! M′,
+Nc?(x)@n ! N′,Dis(m;n)Rng(c), and cis a point-
+to-point channel. Due to M⩽s(AM;⟨lM;uM⟩) and
+N⩽s(AN;⟨lN;uN⟩), there exist edges lmgm;c!;wm      !
+l′
+mand lngn;c?;wn        ! l′
+n, where Dis(m;n)Rng(c),
+uMj=gm, and uNj=gn. Using Point-to-Point
+Communication rule of timed automata (right column,
+page 5), we can have ⟨[lM;lN];uM[uN⟩⇝⟨[lM′;lN′];uM′
+[uN′⟩with ( ˆM;(AM′∥AN′;⟨[lM′;lN′];uM′[uN′⟩))2|, where
+uM′=[wm7!0]uM;uN′=[wn7!0]uN,lM′=lM[l′
+m=lm], and
+lN′=lN[l′
+n=ln]. The symmetric case in which Nsends a mes-
+sage to Mvia a point-to-point channel is similar.
+(2)This transition can also be derived by the ParN rule
+(in Appendix A) with ˆM=M′∥N, where M ! M′. As
+M⩽s(AM;⟨lM;uM⟩) and N⩽s(AN;⟨lN;uN⟩), the proof is
+similar.
+ForM∥Na ! ˆM, where a2fc!⟨v⟩@m;c?(x)@m;!⟨v⟩bc@m;
+?(x)bc@m;(s v3)@m; ;(a!v4)@m;(move k)@mg, the
+proofs analyses are similar. □
+This theorem indicates the correctness of our transfor-
+mation from a CaIT network to its associated timed automa-
+ton. Based on the reliable simulation relation, we can use
+UPPAAL to verify some properties of the IoT systems mod-
+eled by the CaIT calculus. If a property is valid for some
+IoT systems veriﬁed by applying UPPAAL, it is also valid
+for the models built for these IoT systems using the CaIT
+calculus.
+4. Implementing CaIT in UPPAAL
+In this section, we ﬁrst give a brief introduction to UPPAAL.
+We then present the implementation of the CaIT calculus in
+UPPAAL, which allows us to further accomplish the “smart
+home” and verify its six temporal properties.
+4.1 Overview of UPPAAL
+UPPAAL is an integrated tool based on constraint-solving
+and on-the-ﬂy techniques, which can be used to model, sim-
+ulate, and verify real-time systems [29]. It is particularly
+suitable for formally analyzing systems with limited con-
+trol structures, clocks, communication through channels,
+or shared variables [30]. As mentioned previously, CaIT
+is a timed process calculus with a discrete notion of time,
+which has been transformed into timed automata. Thus, UP-
+PAAL is perfect for implementing the transformation be-
+tween CaIT and timed automata as a tool based on timed
+
+--- Page 10 ---
+1516IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+automata. UPPAAL has three main parts: a description lan-
+guage, a model-checker, and a simulator.
+Description Language:
+By deﬁning templates with a set of parameters that can
+be any type, UPPAAL can model a real-time system as a
+network of timed automata. Taking a timed automaton as a
+directed graph, locations are its vertices connected by edges.
+Locations. There are three types of locations: initial loca-
+tions, urgent locations, and committed locations.
+(1)Initial Locations: Each template has one and only
+one initial location, which is described as a double circle.
+(2)Urgent Locations: Urgent locations prohibit time
+pass, and an urgent location is described as a U in a circle.
+(3)Committed Locations: Similarly, committed loca-
+tions also freeze time, and a committed location is repre-
+sented as a C in a circle. Once a template reaches a commit-
+ted location, then the following transition must have an out-
+going edge of at least one of the committed locations [31].
+Edge. Edges are noted with four types of labels: selec-
+tions, guards, synchronizations, and updates.
+(1)Selections: A selection label can bind a speciﬁc
+identiﬁer to a random value belonging to a given type.
+(2)Guards: A guard expresses conditions on the values
+of clocks and integer variables that must be satisﬁed before
+the edge can be taken [31].
+(3)Synchronizations: The synchronization label is
+used to synchronize channel communication, which can be
+c! (outputting) or c? (inputting), where cstands for a chan-
+nel.
+(4)Updates: The update label is a comma-separated
+list of expressions, where these expressions only involve
+clocks, integer variables, and constants, and just assign inte-
+ger values to clocks [22].
+Model-checker:
+By exploring the whole reachable state space, the
+model-checker can verify the reachability, safety, and live-
+ness properties of a system. In UPPAAL, these properties
+are speciﬁed in a subset of Computational Tree Logic (CTL)
+[22].
+Simulator:
+During the early design (or modeling) stages, the simu-
+lator allows users to examine the possible dynamic behavior
+of a system in an interactive and graphic style.
+4.2 The Implementation of CaIT in UPPAAL
+By applying UPPAAL, all automata mentioned in Sect. 3
+have been implemented [32]. Here, we take the broadcast
+input automaton (right column, page 7) as an example to
+show the implementation details of an automaton, as shown
+in Fig. 4. Other automata have been implemented simi-
+larly [32]. In Fig. 4, arrays X,prolist ,proread , and broc
+store process data, process bodies, the position of the next
+instruction to be executed by each process, and broadcast
+channels, respectively. Now, we will give the details.
+This automaton is triggered once it receives signals
+from a process automaton via channel tr[3]. Mean-
+Fig. 4 The broadcast input automaton
+while, its clock xis reset (i.e., x=0), and it knows
+the process ID idthat calls it and the channel broc[cid]
+that it will use. Then it goes to location l.
+If it receives a value brcv within one time unit (i.e., x<
+1 marked in green), it switches to EndSuc (i.e., mi+1),
+and the process chooses the ﬁrst branch (i.e., process
+P1).
+Otherwise, when x==1 (marked in green) holds, it
+converts to location EndFail (i.e., mi+2), meaning that
+the process chooses the alternative branch (i.e., process
+P2).
+Finally, it needs to send a signal via channel endtr [3]
+to tell the process automaton (see Sect. 3.4) that this
+action is complete.
+4.3 Veriﬁcation of Smart Home Using UPPAAL
+Based on the automata of the CaIT calculus implemented
+in UPPAAL, we automatically simulate the example “smart
+home” and verify its six temporal properties.
+4.3.1 Properties Veriﬁcation
+UPPAAL uses formulas A<>,A[ ], and E<>to check live-
+ness properties, safety properties, and reachability proper-
+ties, respectively [22],[31].
+A<> ϕ is true, indicating that all paths eventually
+reach a state satisfying the given predicate ϕ.
+A[ ]ϕis true, meaning that ϕis satisﬁed for all reachable
+states in all paths. Further, A[ ]notϕis true, showing
+thatϕis always unsatisﬁed for all reachable states in all
+paths.
+E<> ϕ is true if and only if there exists one reachable
+state satisfying ϕ.
+Property 1: Boiler On Manually (Liveness Property)
+A<>BroadcastInput3 :EndSuc &&model ==1
+imply globclock <1&&boiler ==1
+This property denotes that if the boiler is in manual mode,
+
+--- Page 11 ---
+CHEN and ZHU: IOT MODELING AND VERIFICATION: FROM THE CAIT CALCULUS TO UPPAAL
+1517
+it should be switched on within one time unit. globclock is
+a global clock, which is added to our UPPAAL models to
+check whether actions occur within the given time units.
+Property 2: Boiler O ﬀAutomatically(Liveness Property)
+A<>temp :EndSuc &&model ==0&&
+tempeature >=threshold
+imply globclock <1&&boiler ==0
+If the boiler is in automatic mode and the current tem-
+perature is higher than or equal to a given threshold, it
+should be switched o ﬀwithin one time unit.
+Property 3: Boiler On Automatically(Liveness Property)
+A<>temp :EndSuc &&model ==0&&
+tempeature <threshold
+imply globclock <1&&boiler ==1
+This property shows that the boiler should be switched
+on within one time unit, once it is in automatic mode and
+the current temperature is lower than a given threshold.
+Property 4: Lights On (Reachability Property)
+E<>LightMng1 :light==1
+E<>LightMng2 :light==1
+The ﬁrst formula shows that light 1can be turned on.
+The second one is deﬁned for light 2similarly.
+Property 5: Lights Mutually (Safety Property)
+A[ ]not(LightMng1 :light==1&&
+LightMng2 :light==1)
+This property means that this system cannot turn on the
+lights of two rooms at the same time.
+Property 6: Windows Simultaneously
+(Reachability Property)
+E<>Window1 :window ==1&&
+Window2 :window ==1
+E<>Window1 :window ==0&&
+Window2 :window ==0
+This property ensures that this system can open or close
+two windows simultaneously.
+4.3.2 Veriﬁcation Results
+As shown in Fig. 5, all properties are satisﬁed:
+Property 1 is valid. It represents that the boiler can
+be switched on within one time unit, once it is set to
+manual mode.
+Property 2 andProperty 3 are both satisﬁed, that is,
+if the boiler is in automatic mode, it can be precisely
+turned on or turned o ﬀwithin one time unit according
+to the current temperature.
+Property 4 is valid. It means that both light 1andlight 2
+can be turned on.
+Property 5 is satisﬁed, indicating that two lights can-
+not be turned on at the same time.
+Fig. 5 Veriﬁcation results
+Property 6 is valid. It shows that two windows can be
+opened or closed simultaneously.
+5. Conclusion and Future Work
+In this paper, we enriched the CaIT calculus by introducing
+broadcast communications and adding explicit processes to
+model node mobility, the interactions between sensors (or
+actuators) with the environment. In order to adopt UPPAAL
+to explore the temporal properties of IoT networks described
+by the CaIT calculus, we have built a relationship between
+the CaIT calculus and timed automata. Then we gave a sim-
+ple “smart home” to show the application of this relation-
+ship. By applying UPPAAL, we have veriﬁed six temporal
+properties of the “smart home”. The veriﬁcation results in-
+dicate that the “smart home” can operate properly.
+In the future, we will further improve our transforma-
+tion performance, make it more automatic, and implement it
+using tools based on discrete time models. Further, we will
+try to apply it to more complex physical scenes and explore
+more interesting properties, such as the equivalence and re-
+ﬁnement relations between IoT systems. In addition, many
+studies have successfully implemented the conversion be-
+tween automata and ﬁxed-point logic [33],[34], which will
+enable us to explore ﬁxed-point operators more deeply. Fi-
+nally, our calculus will be combined with Quality Calculus
+to support communications with quality predicates [35]. As
+a result, our calculus can capture features of IoT systems
+(e.g., the node mobility, and behaviours of sensors and ac-
+tuators), and ensure that components work normally even
+when communication becomes unreliable.
+References
+[1]V. Araujo, K. Mitra, S. Saguna, and C. Åhlund, “Performance eval-
+uation of FIWARE: A cloud-based IoT platform for smart cities,” J.
+Parallel Distributed Comput., vol.132, pp.250–261, Oct. 2019.
+[2]F. Alshehri and G. Muhammad, “A comprehensive survey of the In-
+ternet of Things (IoT) and AI-based smart healthcare,” IEEE Access,
+vol.9, pp.3660–3678, 2021.
+[3]I.U. Din, B. Ahmad, A. Almogren, H.N. Almajed, I. Mohiuddin,
+and J.J.P.C. Rodrigues, “Left-right-front caching strategy for vehic-
+ular networks in ICN-based Internet of Things,” IEEE Access, vol.9,
+
+--- Page 12 ---
+1518IEICE TRANS. INF. & SYST., VOL.E106–D, NO.9 SEPTEMBER 2023
+pp.595–605, 2021.
+[4]A. Krishna and G. Sala ¨un, “Business process models for analysis of
+industrial IoT applications,” IoT ’21: 11th International Conference
+on the Internet of Things, pp.102–109, ACM, 2021.
+[5]A. Krishna, M. Le Pallec, R. Mateescu, L. Noirie, and G. Sala ¨un,
+“IoT Composer: Composition and deployment of IoT applications,”
+2019 IEEE /ACM 41st International Conference on Software En-
+gineering: Companion Proceedings (ICSE-Companion), pp.19–22,
+2019.
+[6]R. Cleaveland, A.W. Roscoe, and S.A. Smolka, “Process algebra and
+model checking,” in Handbook of Model Checking, pp.1149–1195,
+Springer, 2018.
+[7]J.A. Bergstra, A. Ponse, and S.A. Smolka, eds., Handbook of Pro-
+cess Algebra, North-Holland /Elsevier, 2001.
+[8]A. Fehnker, R. van Glabbeek, P. H ¨ofner, A. McIver, M. Portmann,
+and W.L. Tan, “Automated analysis of aodv using uppaal,” TACAS,
+pp.173–187, Springer, 2012.
+[9]D.M. Jackson, Logical veriﬁcation of reactive software systems,
+Ph.D. thesis, University of Oxford, UK, 1992.
+[10] J. Ouaknine and J. Worrell, “Timed CSP =closed timed epsilon-
+automata,” Nord. J. Comput., vol.10, no.2, pp.99–133, 2003.
+[11] I. Lanese, L. Bedogni, and M.D. Felice, “Internet of things: a pro-
+cess calculus approach,” Proc. 28th Annual ACM Symposium on
+Applied Computing, pp.1339–1346, ACM, March 2013.
+[12] R. Lanotte and M. Merro, “A semantic theory of the Internet of
+Things,” Inf. Comput., vol.259, no.1, pp.72–101, April 2018.
+[13] K.V.S. Prasad, “A calculus of broadcasting systems,” Sci. Comput.
+Program., vol.25, no.2-3, pp.285–327, Dec. 1995.
+[14] C. Ene and T. Muntean, “A broadcast-based calculus for commu-
+nicating systems,” Proceedings 15th International Parallel and Dis-
+tributed Processing Symposium. IPDPS 2001, pp.1516–1525, 2001.
+[15] S. Nanz and C. Hankin, “A framework for security analysis of
+mobile wireless networks,” Theor. Comput. Sci., vol.367, no.1-2,
+pp.203–227, Nov. 2006.
+[16] I. Lanese and D. Sangiorgi, “An operational semantics for a cal-
+culus for wireless systems,” Theor. Comput. Sci., vol.411, no.19,
+pp.1928–1948, April 2010.
+[17] A. Singh, C.R. Ramakrishnan, and S.A. Smolka, “A process calculus
+for mobile ad hoc networks,” Sci. Comput. Program., vol.75, no.6,
+pp.440–469, June 2010.
+[18] C.A.R. Hoare, Communicating Sequential Processes, Prentice-Hall,
+1985.
+[19] B. Aman and G. Ciobanu, “Real-time migration properties of rTiMo
+veriﬁed in Uppaal,” Software Engineering and Formal Methods -
+11th International Conference, SEFM 2013, pp.31–45, Springer,
+2013.
+[20] S. Cattani and M.Z. Kwiatkowska, “A reﬁnement-based process al-
+gebra for timed automata,” Formal Aspects Comput., vol.17, no.2,
+pp.138–159, Aug. 2005.
+[21] R. Alur and D.L. Dill, “A theory of timed automata,” Theor. Comput.
+Sci., vol.126, no.2, pp.183–235, April 1994.
+[22] G. Behrmann, A. David, and K.G. Larsen, “A tutorial on Uppaal,”
+SFM-RT 2004, Lect. Notes Comput. Sci., vol.3185, pp.200–236,
+Springer, 2004.
+[23] J. Bengtsson and W. Yi, “Timed automata: Semantics, algorithms
+and tools,” ACPN 2003, Lect. Notes Comput. Sci., vol.3098, pp.87–
+124, Springer, 2003.
+[24] R. Milner, J. Parrow, and D. Walker, “A calculus of mobile pro-
+cesses, I,” Inf. Comput., vol.100, no.1, pp.1–40, Sept. 1992.
+[25] M. Abadi and A.D. Gordon, “A calculus for cryptographic protocols:
+The spi calculus,” Inf. Comput., vol.148, no.1, pp.1–70, Jan. 1999.
+[26] M. Abadi, B. Blanchet, and C. Fournet, “The applied pi calculus:
+Mobile values, new names, and secure communication,” J. ACM,
+vol.65, no.1, pp.1:1–1:41, Oct. 2018.
+[27] J. Baeten, T. Basten, and M. Reniers, Process Algebra: Equational
+Theories of Communicating Processes, 07 2014.
+[28] J. He, “Process simulation and reﬁnement,” Formal Aspects Com-put., vol.1, no.3, pp.229–241, March 1989.
+[29] T.A. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine, “Symbolic
+model checking for real-time systems,” Inf. Comput., vol.111, no.2,
+pp.193–244, June 1994.
+[30] S. Liu and N. Yoshiura, “Model checking of TTCAN protocol us-
+ing UPPAAL,” Computational Science and Its Applications - ICCSA
+2018, Lect. Notes Comput. Sci., vol.10963, pp.550–564, Springer,
+July 2018.
+[31] K.G. Larsen, P. Pettersson, and W. Yi, “UPPAAL in a nutshell,” Int.
+J. Softw. Tools Technol. Transf., vol.1, no.1-2, pp.134–152, Feb.
+1997.
+[32] https: //github.com /Cnn-c /UPPAAL-and-CaIT.
+[33] Y. Venema, “Automata and ﬁxed point logics for coalgebras,” CMCS
+2004, Electron. Notes Theor. Comput. Sci., vol.106, pp.355–375,
+Elsevier, Dec. 2004.
+[34] Y. Venema, “Automata and ﬁxed point logic: A coalgebraic perspec-
+tive,” Inf. Comput., vol.204, no.4, pp.637–678, April 2006.
+[35] H.R. Nielson, F. Nielson, and R. Vigo, “A calculus for qual-
+ity,” FACS 2012, Lect. Notes Comput. Sci., vol.7684, pp.188–204,
+Springer, 2012.
+Appendix: Operational Semantics of the Original
+CaIT
+Here, we list two transition rules of the original CaIT calcu-
+lus (see [12]for complete semantics rules), which have been
+used in the proof of Theorem 1.
+(PCom )Mc!⟨v⟩@m ! M′;Nc?(v)@n ! N′;Dis(n;m)Rng(c)
+M∥N !M′∥N′
+(ParN )Mv !M′; v,
+M∥Nv !M′∥N
+(TimeParN )M !M′;N !N′M∥N&↛
+M∥N !M′∥N′
+Ningning Chen is currently a Ph.D. can-
+didate in Shanghai Key Laboratory of Trustwor-
+thy Computing, East China Normal University,
+Shanghai. Her research interests contain Hoare
+logic, formal methods, process algebra and IoT.
+Huibiao Zhu is currently a professor in
+East China Normal University. He earned his
+Ph.D. degree in formal methods from London
+South Bank University, London, in 2005. Dur-
+ing these years, he has studied various semantics
+and their linking theories for Verilog, SystemC,
+web services and probability system. He was the
+Chinese PI of the Sino-Danish Basic Research
+Center IDEA4CPS.
