@@ -1,0 +1,1002 @@
+--- Page 1 ---
+The STATEMATE Semantics of
+Statecharts
+DAVID HAREL
+The Weizmann Institute of ScienceandAMNON NAAMADi-Logix, Inc.
+We describe the semantics of statecharts as implemented in the STATEMATE system. This
+was the first executable semantics defined for the language and has been in use for almost adecade. In terms of the controversy around whether changes made in a given step should takeeffect in the current step or in the next one, this semantics adopts the latter approach.
+Categories and Subject Descriptors: D.2 [ Software ]: Software Engineering; F.3.2 [ Logics
+and Meanings of Programs ]: Semantics of Programming Languages
+General Terms: LanguagesAdditional Key Words and Phrases: Behavioral modeling, reactive system, semantics, state-
+chart, STATEMATE
+1. INTRODUCTION
+The article that introduced the language of statecharts [Harel 1987]
+presented only a brief discussion of how its semantics could be defined. Arigorous semantics was first defined for the language in Harel et al. [1987].Since then, many variants of statecharts have been proposed in theliterature, and several papers include definitions of semantics too. Someexamples are Huizing and de Roever [1991], Huizing et al. [1988], KestenandPnueli[1992],Levesonetal.[1995],Maraninchi[1992],andPnueliandShalev [1991]. A recent survey [von der Beek 1994] discusses nearly 20variants.
+This work is a revised version of “The Semantics of Statecharts,” Technical Report, i-Logix,
+Inc., 1989 and 1991. D. Harel’s work was supported by a grant from the Israel Academy ofSciences.Authors’ addresses: D. Harel, The Weizmann Institute of Science, Rehovot, Israel; email:harel@wisdom.weizmann.ac.il; A. Naamad, i-Logix, Inc., Andover, MA 01810; email:amnon@ilogix.com.Permission to make digital/hard copy of part or all of this work for personal or classroom useis granted without fee provided that the copies are not made or distributed for profit orcommercial advantage, the copyright notice, the title of the publication, and its date appear,and notice is given that copying is by permission of the ACM, Inc. To copy otherwise, torepublish, to post on servers, or to redistribute to lists, requires prior specific permissionand/or a fee.© 1996 ACM 1049-331X/96/1000–0293 $03.50
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996, Pages 293–333.
+
+--- Page 2 ---
+Subtleissuesarisewhenonetriestodefineasemanticsforthelanguage,
+and there is no consensus on the “right” way to go about the task. Sincestatecharts were intended from the start to be used by real engineers inspecifyingrealsystems,oneofthecentralconsiderationsindecidinguponausefulsemanticsisclarityandsimplicity.Auserneednotseethedetailsofthe mathematical definition, but he or she must be able to understand howit works in a relatively intuitive way.
+This article describes the semantics of the language of statecharts as
+implemented in the STATEMATE
+1system [Harel et al. 1990; Harel and
+Politi 1996]. The initial version of this semantics was developed by a teamabout 10 years ago. With the added experience of the users of the system ithas since been extended and modified. This executable semantics has beenin operation in driving the simulation, dynamic tests, and code generationtools of STATEMATE since 1987, and a technical report describing it hasbeen available from i-Logix, Inc. since 1989. We have now decided to reviseand publish the report so as to make it more widely accessible, to alleviatesome of the confusion about the “official” semantics of the language, and tocounter a number of incorrect comments made in the literature about theway statecharts have been implemented. For example, the survey [von derBeek 1994] does not mention the STATEMATE implementation of state-charts or the semantics adopted for it at all, although this semantics isdifferent from the ones surveyed therein (and was developed earlier thanall of them except for Harel et al. [1987]). As another example, Leveson etal. [1995] describe a case that exhibits an unacceptable kind of behavior ina statechart, which they say is what the “semantics of statecharts” leads to(pp. 695–697). Unfortunately, they base their discussion of statechartsemantics on one of the many semantics proposed by various authors (thatofPnueliandShalev[1991])andgivethereadertheimpressionthatthisisthe official semantics of the language.
+Being an unofficial language, statecharts clearly have no official seman-
+tics,andresearchersarefreetoproposesemanticsastheyseefit.However,the only implemented and working semantics for statecharts has for manyyears been the one described here, and it does not in any way exhibit thekind of behavior described in the example and surrounding text in Levesonet al. [1995].
+2In fact, our semantics is quite similar to the approach
+suggested (seven years later, we might add) in Leveson et al. [1995] itself,although almost a dozen years ago we contemplated building STATEMATEwith a semantics close to that of Harel et al. [1987] and Pnueli and Shalev[1991]. The main difference, which served as the central topic of our oftenheated deliberations, was whether changes that occur in a given step (suchas generated events or updates to the values of data items) should takeeffect in the current step or in the next one. The semantics we finally
+1The current version of STATEMATE, available from i-Logix, Inc., has been termed STATE-
+MATE MAGNUM.
+2ThesepartsofLevesonetal.[1995]havemanagedtoalarmsomeusersofSTATEMATE,who
+feared that their models were dangerously erroneous.294 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 3 ---
+adopted, in contrast to those of Harel et al. [1987] and Pnueli and Shalev
+[1991], takes the latter approach. In Appendix A we address the compari-son of our semantics with others, and especially relate to the issues spelledout in von der Beek [1994].
+The main consideration behind the definition and selection of the seman-
+tics described here is that STATEMATE is a commercial tool, designed forthe specification and design of real-life complex systems, coming from avariety of disciplines. As such, the semantics has to be rich enough tosupport different styles of modeling, yet it should be simple and intuitive.It must also be technically straightforward enough to enable fast simula-tion of models and to generate useful hardware and software code out ofthesemodels.ItisnoteworthythatVHDL,theIEEEstandardlanguageforthe description of hardware, which evolved around the time the semanticsof statecharts as described here was defined, adopted the same approach,i.e., that changes carried out in a given step (or “delta” in the VHDLnomenclature) can be sensed only in the following one.
+Despite all of this, we make no qualitative claims about this semantics
+(and,asanysemanticistknows,anomalousexamplescanbeconstructedforalmost any semantics proposed for a concurrent language), except that itrepresents the way the language has been implemented in STATEMATE.
+Due to the somewhat different goals and usage of STATEMATE’s analy-
+sis tools (simulation and dynamic tests) on the one hand and its generatedcode on the other, in some extreme cases there may be slight differencesbetween the behaviors entailed by these tools. These include the treatmentof nondeterminism, racing, and states without enabled default transitions.In all such cases, the analysis tools issue a warning message. More detailsare provided later.
+The article concentrates mainly on notions that are special to state-
+charts, such as the hierarchy of states, orthogonality, and history connec-tors. There are a number of issues that are not unique to statecharts yetare not widely available in other formalisms either, and thus they may benew to STATEMATE users. Some of these, such as generic charts, multi-value logic (MVL), and queues, are treated in detail in i-Logix documents,and we do not describe them here. We do describe one of these in AppendixB, namely, combinational assignments. Also, Appendix C discusses thepriority of transitions, which is in the process of undergoing a change incoming versions of STATEMATE.
+2. THE BASICS
+The STATEMATE set of languages is used for modeling reactive systems
+[Harel and Pnueli 1985] based on the structured analysis paradigm. It isdescribed in more detail in Harel et al. [1990] and Harel and Politi [1996].The backbone of the system model is an activity-chart , which is a
+hierarchical data-flow diagram, and in which the functional capabilities ofthe system are captured by activities and the data elements and signals
+that can flow between them. The semantics of this functional description isThe STATEMATE Semantics of Statecharts •295
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 4 ---
+dynamically noncommitting, in that it asserts that activities canbe active,
+that information canflow, and so on, but it does not specify what will
+happen, or when or why. These behavioral aspects are specified in state-charts—sometimes called control activities —potentially one for each
+activity in the activity-chart. An activity’s statechart controls the dynamicsof subactivities and their data-flow, including the ability to activate anddeactivate activities, to cause data to be written, modified, and read, tosend signals, and to sense when such things have happened, thus affectingsubsequent behavior. Figure 1 shows the structure of a simple hierarchy ofactivities in a STATEMATE model. The A-boxes are activities, and therounded S-boxes are their control activities, which, as mentioned, arespecified using statecharts.
+The precise way in which statecharts describe behavior and thus control
+the behavior of the entire setup of activities and data over time is at theheart of the system model, which is why defining the semantics of state-charts is so crucial. In operational terms, STATEMATE’s simulation, codegeneration, and dynamic tests tools all execute the model, either explicitlyor implicitly, based on that very semantics.
+A full definition of the allowed syntax of statecharts in STATEMATE is
+beyond the scope of this article. We refer the reader to a short description
+Figure 1.296 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 5 ---
+in Harel et al. [1990] and a full one in Harel and Politi [1996]. Here are
+some brief reminders.
+There are three types of states in a statechart: OR- states, AND-states,
+andbasic states . OR-states have substates that are related to each other
+by “exclusive-or,” and AND-states have orthogonal components that arerelated by “and.” Basic states are those at the bottom of the state hierar-chy, i.e., those that have no substates. The state at the highest level, i.e.,the one with no parent state, is called the root.
+The general syntax of an expression labeling a transition in a statechart
+is “e[c]/d,” where eis theeventthat triggers the transition; cis a
+condition that guards the transition from being taken unless it is true
+wheneoccurs; and ais anactionthat is carried out if and when the
+transition is taken. All of these are optional.
+There are several special events, conditions, and actions that relate to a
+STATEMATEmodel’sotherentities,suchasactivities,dataitems,orotherstates. For example, acan be the special action start(P) (abbreviated
+st!(P)) that causes the activity Pto start. Similarly, rather than being
+simplyanexternal,primitiveevent, emightbethespecialevent entered(S)
+(abbreviated en(S)) that occurs (and hence causes the transition to take
+place) when state Sis entered. Many of these are not mentioned explicitly
+in this article, as we concentrate on the statecharts themselves.
+Events are closed under the Boolean operations or,and, andnot, and so
+are conditions. The expression e[c] above is interpreted as “ e and c.”
+Besides allowing actions to appear along transitions, they can also
+appear associated with the entrance to or exit from a state (any state, onanylevel).Actionsassociatedwiththeentrancetoastate Sareexecutedin
+the step in which Sis entered, as if they appear on the transition leading
+intoS. Similarly, actions associated with the exit from Sare executed in
+the step in which Sis exited, as if they appear on the transition exiting
+fromS. (On the other end, the events en(S) andex(S) are sensed one step
+afterSwas entered or exited, respectively.)
+In addition, each state can be associated with static reactions (SRs),
+which are of the same format as a transition label, namely, e[c]/a, and are
+to be carried out (whenever enabled) as long as the system is in (and is notexiting) the state in question. Semantically, each SR in state Scan be
+regarded as a transition in a virtual substate of Sthat is orthogonal to its
+ordinarysubstatesandtotheotherSRsof S.Forexample,Figures2(a)and
+2(b) depict the same behavior.
+An activity can be linked directly to a state S, by specifying it to take
+placethroughout S orwithin S. The semantics of “activity Ais active
+throughoutstate S” isthatAstartsbeingactiveuponentering Sandstops
+upon leaving it. The semantics of “activity Ais active within state S”i s
+thatAmay be active when the system is in S; it entails stopping AwhenS
+is exited.
+An action acan be scheduled for dtime units later on by carrying out a
+new action of the form schedule(a,d) (abbreviated sc!(a,d)). Similarly,
+the special event timeout(e,d) (abbreviated tm(e,d)) occurs dtime unitsThe STATEMATE Semantics of Statecharts •297
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 6 ---
+after the most recent occurrence of the event e. The way these are
+calculated is discussed in Sections 8 and 9.
+The behavior of a system described in STATEMATE is a set of possible
+runs, each representing the responses of the system to a sequence of
+external stimuli generated by its environment. A run consists of a series ofdetailed snapshots of the system’s situation; such a snapshot is called astatus. The first in the sequence is the initial status, and each subsequent
+one is obtained from its predecessor by executing a step(see Figure 3). As
+we shall see, defining a step precisely, with all its ramifications andside-effects, is what the semantics is all about.
+Astatuscontainsinformationaboutactivestatesandactivities,valuesof
+data-items and conditions, generated events and scheduled actions, andsome information regarding the system’s history (its past behavior). At thebeginningofeachstep,theenvironmentsuppliesthesystemunderdescrip-tion with external stimuli. These, together with changes that occurred inthe system during and since the previous step, trigger transitions betweenstatesandstaticreactionswithinstates.Asaresult,thesystemmovesintoa new status. Some states are exited, and some are entered; values ofconditions and data-items are modified; new events are generated; activi-ties are started and stopped, and so on.
+Someofthegeneralprincipleswehaveadoptedindefiningthesemantics
+are the following:
+(1) Reactions to external and internal events, and changes that occur in a
+step, can be sensed only after completion of the step.
+(2) Events “live” for the duration of one step only, the one following that in
+which they occur, and are not “remembered” in subsequent steps.
+(3) Calculations in one step are based on the situation at the beginning of
+the step (e.g., which states the system was in, which activities wereactive, and the values of conditions and data-items at that time.)
+(4) A maximal subset of nonconflicting transitions and SRs is always
+executed.Werefertothisasthe“greedinessproperty”ofthesemantics.
+The execution of a step takes zero time. The time interval between the
+executions of two consecutive steps is not part of the step semantics.
+Figure 2.298 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 7 ---
+Rather, it depends on the execution environment and the time model, over
+which users of the tool have a significant degree of control. This isdiscussed in Section 9. It is important to note, however, that STATEMATEsupports time models in which several steps may execute at the same pointin time. An event generated in step nat timetmay be sensed in step n1
+1 only. Moreover, this occurrence of the event is not sensed in steps thatfollow step n11, even if those steps also execute at time t.
+In general, it is quite straightforward to define the effect of a step
+involving a single statechart transition, or several nonconflicting transi-tions in separate orthogonal components. However, there are less trivialsituations. For example, when several transitions are enabled, some ofthem may be conflicting and thus unable to participate together in thesame step. Also, when a transition arrow crosses the boundaries of nestedstates, one has to accurately define the states that have been exited bytakingthetransitionandthosethatareentered.Themaintechnicalgoalofthis article is to describe the way the general case is treated. We haveorganizedthedefinitionincrementally,startingwiththesimplestandmostobvious cases and complicating things as we go along.
+3. BASIC SYSTEM REACTION
+Aconfiguration is a maximal set of states that the system can be in
+simultaneously. More precisely, given a root state R, a configuration
+(relative to R) is a set of states Cobeying the following rules:
+—CcontainsR.
+—IfCcontains a state Aof type OR, it must also contain exactly one of A’s
+substates.
+—IfCcontains a state Aof type AND, it must also contain all of A’s
+substates.
+—The only states in Care those that are required by the above rules.
+It follows that configurations are “closed upwards”; that is, when the
+system is in any state A, it must also be in A’s parent state (unless, of
+course,Ais the root, in which case it has no parent). In fact, to uniquely
+determine a configuration it is sufficient to know its basic states. Conse-quently, we use the term basic configuration to refer to a maximal set of
+basic states that the system can be in simultaneously, or in other words,thesetofbasicstatesinalegalconfiguration.Toillustrate,considerFigure4. In it, { B1,C1,D1} is a basic configuration, and its full configuration
+contains also B,C,D,A, andS(the root). { B1,C1} is not maximal and
+hence is not a basic configuration. { B1,B2,C1,D1} is not a legal
+configuration, because the system cannot be simultaneously in the two
+Figure 3.The STATEMATE Semantics of Statecharts •299
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 8 ---
+offspring of the OR-state B.{E} is a basic configuration, and its full
+configuration is the set { E,S}.
+In a step, the system will typically carry out operations of four types:
+transitions, static reactions, actions performed when entering a state, andactions performed when exiting a state. In this section we discuss thesimplest kind of step, involving a single transition in an ordinary, un-adorned statechart. Consider Figure 5, and assume that the system is instateAand that event evhas just occurred.
+3The response of the system
+will be as follows:
+—The transition t1 becomes enabled because the system is in t1’s source
+state and because its trigger (the event ev) is generated. Hence, t1i s
+taken, meaning that the system will exit state A, enter state B, and
+execute action act.
+—The special events exited(A) andentered(B) are generated (and will be
+sensed in the following step).
+—The special condition in(A) becomes false, and the condition in(B)
+becomes true.
+—The actions specified to take place upon exiting state Aare executed.
+—The actions specified to take place upon entering state Bare executed.
+—All the SRs of state Sthat are enabled, that is, whose trigger is true, are
+executed. (This is because the system was in state Sbefore the step and
+did not exit Sduring the step.)
+—All activities that were specified as being active withinorthroughout
+stateAare deactivated, while those defined as being active throughout
+stateB(but not necessarily those defined as being active within B) are
+activated.
+3In the figures we often write names for transitions, such as t1 in Figure 5. These are not
+parts of the STATEMATE syntax and are added just to help in the exposition. Also, shadedstatesinthefiguresservetorepresentthebasicconfigurationthesystemisinatthemoment.
+Figure 4.300 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 9 ---
+As a consequence of the direct changes listed above, other events might
+very well be generated, and other conditions might change their value. Forexample,ifthespecialevent fs(in(A)) (ortr(in(B))) appearssomewherein
+the model, it will be generated as a result of executing t1, since it occurs
+whenever the condition in ( A) becomes false. Also, if an activity Pis
+activated, then the event started(P) occurs, and the condition active(P)
+becomes true.
+As mentioned in the introduction, all these changes are sensed only in
+the following steps. For example, the fact that state Ais exited indeed
+generates the event exited(A), but any static reaction in Sthat is to be
+triggered by that event will be executed only in the next step. The sameapplies to all generated events and changes in conditions and data-items.Amongotherthings,thismeansthatthesystemcannotenterandthenexita given state in the same step. (Interestingly, it is possible, by a self-looping transition, to exitand then reentera state in one step.)
+As an example, suppose that in Figure 5 the action actis defined as
+X;5X11;Y;5Xp5;ifX55thenact1elseact2end if
+The value of Xused in evaluating the arithmetic expression Xp5 and the
+Boolean expression X55 is the value Xhad at the beginning of the step
+(before it was incremented). If the value of Xat the beginning of the step
+was 4, then act2 (and not act1) is executed. Thus, the semicolon in an
+action (whether appearing along a transition or within a static reaction)signifies more of “do this too” rather than “and then do,” meaning thatactions are to be executed as if in parallel.
+When two or more actions executing in the same step call for changing
+thevalueofacommondata-item,wecannotpredicttheoutcome.Thus,twocorrect implementations of the same semantics may yield different results.In such cases, we say that we have a racing condition . The example
+above illustrates a less acute type of racing, which according to STATE-MATE’s semantics cannot affect the behavior: one action changes, andothers use the value of Xin the same step. Since the change occurs only at
+the end of the step there is no issue of unpredictability or differences inbehavior, but this situation should be detected too, since the modeler’sintention might have been different from the outcome. Both types of racingare detected and reported by STATEMATE’s simulation and dynamic teststools. Racing is discussed in more detail later.
+Figure 5.The STATEMATE Semantics of Statecharts •301
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 10 ---
+4. COMPOUND TRANSITIONS
+Executionofastepmustalwaysleadthesystemtoalegalconfiguration.In
+particular, a statechart cannot be “stuck” during execution at a connector(with the exception of a termination connector). Similarly, a statechartcannot be in a nonbasic state without the ability to enter the appropriatesubstates. With this in mind, the actual transition between configurationsthat is taken in a step is often more complicated than that of Figure 5. Itmay consist of a number of separate transitions appearing in differentorthogonal state components, and each of these may consist of a number oflinkedtransition segments , which are the labeled arrows that connect
+states and connectors of various kinds.
+This section illustrates the way transition segments are combined to
+form full transitions. It uses a number of different kinds of compoundtransitions. The first of these is a basic compound transition (CT),
+whichisamaximalchainoftransitionsegments,linkedbyconnectors,thatare executable simultaneously as a single transition. The trigger of a CT istaken to be the conjunction of the triggers of its constituent segments, andits action is the concatenation of the actions thereof.
+The connectors that enable transition segments to be combined to form a
+CT come in two forms: AND and OR.
+Thejointandforkare AND-connectors (see Figures 9 and 10). The
+transition segments connected to an AND-connector will all participate inthe same CT. In other words, if Tis the set of transition segments leading
+to or emanating from an AND-connector C, then any CT that contains a
+segment from Tmust contain all the segments of T.
+Thecondition ,selection , andjunction are OR-connectors (e.g., see
+Figures 7 and 31). Given an OR-connector C, letT1 andT2 be the sets of
+transitionsegmentsleadingtoandemanatingfrom C,respectively.AnyCT
+that contains a segment from T1øT2 must contain exactly one segment
+fromT1 and one from T2.
+4
+TherearetwotypesofbasicCTs:an initialCT isaCTwhosesourceisa
+state, and a continuation CT is a CT whose source is a default or history
+connector. The targets of both types of basic CTs are states or history ortermination connectors. A full CTis a combination of one initial CT and
+possibly several continuation CTs, which, when executed, lead the systemto a full basic configuration. In many cases, like the one depicted in Figure6(b), a full CT consists of only one basic transition. As the followingexamples show, the execution of a basic CT does not guarantee that thesystem will end up in a legal configuration. Therefore, a full CT is thecentral concept we have to work with.
+4Another type of OR-connector is the diagram connector. Diagram connectors help reduce the
+clutter of arrows in the chart. Semantically, the best way to view diagram connectors is as ifall the ones with the same label are actually a single OR-connector that happens to appear inseveral locations.302 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 11 ---
+—The transition t1 in Figure 6(a) cannot be executed without also execut-
+ingt2. Thus the set { t1,t2} is a CT (actually, it is a full CT) whose
+source isAand whose target is B. Its trigger is ev1&ev2, and its action
+isact1;act2. Thus Figure 6(a) is equivalent to Figure 6(b).
+—InFigure7therearetwoCTs:{ t1,t2} and{t1,t3},andtheyarealsofull
+CTs. (We have left out the triggers and conditions here.)
+—In Figure 8, t1 is an initial CT that must be accompanied by t2 to form a
+full CT.
+—Since the transitions t1,t2, andt3 in Figure 9 must be executed
+together, { t1,t2,t3} (but none of its subsets) is a CT. Note that this CT
+has two targets, whereas that of Figure 10 has two sources. A CT canthus have several sources and several targets, and we may refer to itssource set and target set.
+—Figure 11(a) depicts a more complex situation. In it, t1 andt2 must be
+executed together, and to lead to a full configuration they must beaccompanied by t5 and by either t3o rt4. What we have are one initial
+CT, {t1,t2}, and two continuation CTs, { t5,t3} and {t5,t4}, which form
+two full CTs, { t1,t2,t5,t3} and {t1,t2,t5,t4}.
+Figure 11 exhibits one of the very few situations in which STATE-
+MATE’s simulation tool behaves differently from the generated code.Consider a case in which the system is in state S, andev1 andev2 are
+generated, but both C3 andC4 are false. According to the semantics,
+Figures 11(a) and 11(b) are identical, and the simulation tool willtherefore stay in S. It will, however, notify the user that it could not
+reachbasicstatesafteraninitialCTwasenabled.Thismessageservestowarn the user that the generated code may behave differently from thesimulation and that a potentially undesired (probably unintentional)behavior was discovered. As to the generated code, it will execute theinitial CT, and only after reaching Wwill it discover that it cannot enter
+basic states; and at this point it will not “roll back” to S. It is theoreti-
+cally feasible to generate code that would roll back under these circum-stances, but we could not find an efficient way to do so. This issue seemsto require more research.
+—In Figure 12, the initial CT { t1,t2,t3} must by accompanied by the two
+continuation CTs t4 andt5 in order to become a full CT.
+The rest of the article concentrates on full CTs.
+Figure 6.The STATEMATE Semantics of Statecharts •303
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 12 ---
+5. DEALING WITH HISTORY
+Statecharts feature two kinds of history connectors: H and H*. Here is the
+basic algorithm for interpreting history. Suppose we are executing a CT t1
+whose target is a history connector hof stateS. (Note that the graphical
+syntax of statecharts requires the connector to reside in some state’s area,so thatScannot be an AND-state, which has no area of its own.)
+ifShas history
+then ifhis an H connector
+then letS9be the substate of Swhich the system was in when most
+recently in S;t1 is treated as if its target is S9.
+else (his an H* connector)
+letS9be the basic configuration relative to Swhich the system was in
+when it was most recently in S.t1 is treated as if its targets are all the
+states inS9.
+else (the system was never in S,o rS’s history was erased by a clear-history
+action since it was last in S)
+t1 is treated as if its target is S; however, if there are transitions
+emanating from h, then these have priority higher then those emanating
+from the default connector of S.
+As an example, consider Figure 13, in which t1 is to be taken. If the
+system was in B1 when it was most recently in B, then we have the
+following: t1 is treated as if its target state was B1, and the full transition
+taken is { t1,t2}; whereas if the system was most recently in B2 the target
+state oft1 is taken to be B2, and the full transition taken is { t1,t3}. If the
+system was never previously in B,o ri fB’s history was cleared since the
+Figure 7.
+Figure 8.304 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 13 ---
+system was last in B, thent1 is treated as if its target is B, and the full
+transition taken is { t1,t4,t2}. In this last case t4 is taken, in contrast to
+thecasewhere B1 isenteredbyvirtueof B’shistory,andhenceanyactions
+associated with t4 are executed.
+Figure 9.
+Figure 10.
+Figure 11.The STATEMATE Semantics of Statecharts •305
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 14 ---
+The actions that erase the history of a state are history-clear (S), which
+applies to the history of Sitself, and deep-clear (S), which has the same
+effect but applies to Sand all of its descendant states too. A new entrance
+toS(and in the case of deep-clear the entrance to any descendent too)
+causes a new item of history information to be registered for subsequententrances, capturing the substate of Spresently entered.
+5
+5Thetypeofclearactionthatistakenhasnothingtodowiththetypeofhistoryconnectorthat
+is being cleared. When the history of state Sis cleared by either action it applies to both the
+ordinary history connector H and the deep-history connector H*.
+Figure 12.
+Figure 13.306 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 15 ---
+Here is a more complicated situation, illustrating the priority given to
+transitions that emanate from history connectors. Consider Figure 14, andassumethesystemisinstate A,thatevent eisgenerated,andthatstate B
+hasnohistory.Upontheexecutionof t1,transition t2 getspriorityover B’s
+default entrance t3 and is executed. However, if C1 is false, the default t3
+is attempted, which will succeed if C2 is true. However, if C2 is also false,
+it would appear that we are in a loop. STATEMATE will detect this, andboth the simulation and generated code will issue an appropriate message.
+A nice way of illustrating the fact that values of elements are changed
+only at the conclusion of a step is the following. Suppose that in the samestep we enter a history connector drawn in state Sand perform an action
+that clears the history of S, as in Figure 15 ( hc! abbreviates history-clear ).
+Do we first clear the history of S(and then, lacking history, enter the
+defaultsubstateof S,whichinFigure15is A),ordowefirstenter Sviaits
+history and only then clear the history? The answer is the latter. Recall,however, that once we have entered Swe do not leave it again in the same
+step. This has the curious effect of making redundant the subsequentclearing of S’s history, since this most recent entrance to Swill register as
+its history even if the clearing is not performed.
+6. THE SCOPE OF TRANSITIONS
+LetusnowbealittlemorepreciseabouthowfullCTsareassembled.Afull
+CT is really a collection of transitions, some of which are linked in ahead-to-tail fashion by the rules governing the different connectors. If theresult of these attachments contains an internal loop (i.e., one fromconnectortoconnector—notaloopfromsourcestatebacktothesamestate,which is allowed, of course), the compound transition is illegal.
+The maximality requirement on these attachments implies that the
+source of the full CT contains states only (no connectors), and its targetcontains basic states and termination connectors only. Otherwise thestatechart is incomplete, since it presumably lacks one or more defaultarrows.FortheCTtobelegal,everytwostatesinthesourceandeverytwostates in the target must be mutually orthogonal (so that both the source
+Figure 14.The STATEMATE Semantics of Statecharts •307
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 16 ---
+andthetargetcanbepartsoflegalbasicconfigurations).Infact,thetarget
+set must be maximal: if it contains a descendant of a component of anAND-state, then it contains descendants of all of its other components too.A CT is said to be enabled in a step if at the beginning of the step the
+system is in all the states of its source set and if its trigger (i.e., theconjunction of all its components’ triggers) is true. We should mention thatempty triggers always evaluate to true.
+As a simple example, consider Figure 16. If at the beginning of the step
+the system was in state A, and events eandfwere generated during the
+previous step, t1 becomes enabled, but t2 does not. The reason is that
+although t2’s trigger fwas true at the beginning of the step, and its source
+stateBis entered during the step, the system was not in t2’s source state
+at the beginning of the step. As explained earlier, unless event foccurs
+again while the system is actually in B, the transition t2 will not be taken
+even in the next step, since the previous occurrence of fis lost.
+In taking a transition from the source to the target, the CT will often
+pass through different levels of the statechart hierarchy. The questionarises as to which nonbasic states are exited and entered in the process oftaking a transition. This is important for several reasons, one of which isthe set of actions that may be called for when exiting and entering states.For example, when executing t1 in Figure 17, do we exit and then reenter
+stateA? When executing t4 in Figure 18, do we exit and then reenter state
+V? When executing t6 in Figure 19 do we exit and then reenter state U?
+To answer these and similar questions we introduce the concept of the
+scope of a compound transition.
+6Thescopeo faC T tris the lowest
+OR-state in the hierarchy of states that is a proper common ancestor of allthe sources and targets of tr, including nonbasic states that are explicit
+sources or targets of transition arrows appearing in tr. History connectors
+that are targets of such arrows are represented by the states in which they
+6In the previous reports related to this semantics (in particular, in the 1989 document “The
+Semantics of Statecharts”), we used the lowest common ancestor (LCA) instead of scope.
+Figure 15.308 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 17 ---
+areactuallydrawn.Whenthetransition tristaken,allproperdescendants
+of its scope in which the system resided at the beginning of the step areexited,
+7and all proper descendants of that scope in which the system will
+reside as a result of executing trare entered. Thus, the scope is the lowest
+state in which the system stays without exiting and reentering whentaking the transition.
+InFigure17,forexample,thescopeof t1i sS(andnotA,whichisoftype
+AND), and taking it implies exiting states B2,B,A,C, and either C1o r
+C2, depending on which one of them the system was in at the beginning of
+the step, and entering states A,B,B1,C,C2. StateSis not exited. It is
+noteworthy that this would be the case even if t1’s arrow would have been
+7Clearly, the system is in the transition’s scope, and perhaps in other states too, before the
+step starts.
+Figure 16.
+Figure 17.
+Figure 18.The STATEMATE Semantics of Statecharts •309
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 18 ---
+drawn as exiting S’s contour. S, and not S’s parent, would have still been
+t1’s scope. The notion of scope does not depend on the way the arrow itself
+is drawn, but on its sources and targets only.
+In Figure 18, the scope of t4i sU, and taking it implies exiting states W
+andVand entering states VandW, butUis not exited.
+Finally, in Figure 19 the scope of t6i sW(since the history connector is
+represented by U), and taking it implies exiting and entering U. This
+might appear to be somewhat counterintuitive, since an arrow drawnentirelywithinastatecancausethatstatetobeexited.However,againtheway the arrow is drawn is unimportant, and the semantics in this case is aresult of the special nature of history connectors, which must always beentered from outside the state.
+A full CT with scope Salways exits a legal configuration relative to one
+substate of S, and enters a legal configuration relative to potentially (but
+not necessarily) another substate of S.
+7. CONFLICTING TRANSITIONS
+We say that two CTs are in conflictif there is some common state that
+would be exited if any one of them were to be taken. In Figure 20, forexample, t1 andt2 are in conflict because they would each imply exiting
+stateA.Also,t4 isinconflictwithallof t1,t2,andt3,sinceifandwhen t4
+is taken, the system must have been in Uand thus also in one of its
+substates. It follows that t1 andt4, for example, cannot both be taken in
+the same step.
+The semantics treats these two kinds of conflicts differently. In the first
+case,ifthetriggersofboth t1 andt2 areenabledatthebeginningofastep,
+the system is faced with nondeterminism , since there is no reason to
+prefer one of them over the other. The situation is different when t1 andt4
+are enabled in the same step. Here t4 has priority over t1 (and over t2 and
+t3), and there is no nondeterminism. Currently, priorities between transi-
+tions are determined outside-in, as we now describe, but this priorityscheme is being revised for future versions of STATEMATE; see AppendixC.
+Lettxandtybe two conflicting transitions, and let SxandSybe their
+scopes, respectively. Since the two transitions are in conflict, there must be
+Figure 19.310 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 19 ---
+a common state in their source sets, which implies that their scopes cannot
+be orthogonal or exclusive. Unless they are equal, one of the two scopesmust be an ancestor of the other in the state hierarchy. Accordingly,priority is given to the transition whose scope is higher in the hierarchy. IfSx5Sy, neither one of txandtyhas priority over the other, and
+nondeterminism occurs. In Figure 21, for example, the scope of t1 andt2i s
+A; the scope of t3i sV; and the scope of t4i sU. Thust1 andt2 have the
+same priority, and t3 has higher priority than t1o rt2. On the other hand,
+t4 is not in conflict with any of t1,t2, andt3.
+In general, nondeterminism occurs when two or more conflicting CTs
+with the same priority are enabled in the same step, and no otherconflicting CT with higher priority is enabled. In such a case, differentsteps are possible, which can lead to different statuses. Of course, at mostone of these steps can be taken in any particular run.
+8Here is how the
+various STATEMATE tools deal with nondeterminism that arises duringan execution. With the simulation tool STATEMATE waits for one of thepossibilities to be selected. The selection can be carried out interactively bythe user, or by specifying a selection criterion at the start. The dynamicteststoolwilltryoutallthedifferentpossibilitiesinanexhaustivefashion.The code synthesized by the software code generator will select the firstpossibility it finds that is enabled and will proceed to execute it. Thehardware code generated behaves similarly, but the user also has theoption of asking that the code detect and report nondeterministic situa-tions.
+We should say a word about static reactions (SRs). As explained earlier,
+an enabled static reaction defined in state Sis executed if the system was
+inSatthebeginningofthestep,but SwasnotexitedbyanyCTduringthe
+step. In the present context, we might say that an SR defined in state Sis
+inconflictwithalltheCTsthatexit SoroneofS’sancestors.Furthermore,
+8Note that nondeterminism will occur even if both transitions lead to the same target state,
+since it is not only the resulting states that count; the two transitions might involve differentactions.
+Figure 20.The STATEMATE Semantics of Statecharts •311
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 20 ---
+CTs have higher priority than SRs, since if a state Sis exited as a result of
+someCT,itsSRsarenotexecuted.Notethatif Sisexitedandreenteredin
+the same step, its SRs will not be executed in that step.
+8. THE BASIC STEP ALGORITHM
+In this section we present a schematic description of the algorithm that
+executes a single step. It lies at the heart of all the dynamic analysis toolsof STATEMATE.
+The Inputs
+(1)The status of the system, which includes:
+—a list of states in which the system currently resides;—a list of activities that are currently active;—current values of conditions and data-items;—a list of events that were generated internally in the previous step;—a list of scheduled actions and their time for execution;—a list of timeout events and their time for occurrence;—relevant information on the history of states;
+(2)The current time (see the discussion of time later).(3)A list of external changes presented by the environment since the last
+step. These may include, for example, events that have occurred andchanges in the values of conditions and data-items.
+Comment. A scheduled action appears in the list as a pair ( a,next-a),
+whereaappeared in an action expression of the form sc(a,d) that has
+already been carried out, and next-ais the time at which the scheduled ais
+to be executed. Similarly, a timeout event Eof the form tm(e,d) appears
+Figure 21.312 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 21 ---
+as a pair ( E,next-E), wherenext-Eis the time for the next generation of
+the timeout event Eitself.
+The Output
+—A new system status.
+The AlgorithmStage1:Step Preparation
+(a) Add the external events to the list of internally generated events.
+(b) Execute all the actions implied by the external changes. This includes
+changing the values of data-items, conditions, and activities, but notstates.
+(c) For each pair ( a,next-a) in the list of scheduled actions, do the
+following:
+ifnext-a #current-time
+then carry out aand remove ( a,next-a) from the list.
+(d) For each pair ( E,next-E) in the timeout event list, with E5tm(e,d),
+do the following:
+ifeis generated
+then setnext-E ;5current-time 1d;
+else ifnext-E #current-time then
+generateEand setnext-E ;5`.
+Comments
+(i) The order of execution at this stage is important. Timeouts are
+evaluated last because we want to guarantee that E5tm(e,d)
+cannot occur at the same step in which eoccurs.
+(ii) As a result of executing stage 1, the system status may change. This
+potentially includes data-items, conditions, activities, and newevents. In the rest of the algorithm, the new status is used.
+(iii) Logically we could use equality (i.e., 5) for time comparison (and not
+#), but in practice, because of floating-point inaccuracies, and be-
+cause in real life steps do take time, we use #.
+(iv) It is important to note that if the delay dis an expression (i.e., not a
+constant) then it is evaluated with the values its operands have whenthetriggeringevent eisgenerated.Inthissense,theinterpretationof
+tm(e,d) is not “eoccurred last dtime units ago,” but rather it should
+beviewedasanoperation,which,whenever eoccurs,isrecordedtobe
+carried out in the future.
+Stage 2: Compute the Contents of the Step. (At this stage, we mark the
+CTs and SRs to be executed.)
+(a) Compute the set of enabled CTs.
+(b) Remove from this set all the CTs that are in conflict with an enabledThe STATEMATE Semantics of Statecharts •313
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 22 ---
+CT of higher priority.
+(c) Split the set of enabled CTs into maximal nonconflicting sets.
+(Comment: AsetofCTsisnonconflictingifnotwoCTsinthesetarein
+conflict. Being maximal means that each enabled CT not included inthesetisinconflictwithatleastoneCTthatisincludedintheset.Anexample of nonconflicting sets is given below.)
+(d) For each set of CTs, compute the set of enabled SRs defined in states
+that are currently active and are not being exited by any of the CTs inthe set.
+(e) If there are no enabled CTs or SRs
+then the step is emptyelse if stage (c) above resulted in a single set
+then this set constitutes the stepelse (i.e., stage (c) produced more than one set) we have nondeter-
+minism, and any one of the sets can be chosen as the step.
+(Comment: The simulation tool informs the user that nondeterminism
+was detected and will let him or her select the set to be executed. Thegenerated code will select a set arbitrarily and upon specific requestwill also issue a message that nondeterminism was encountered.)
+Stage3:ExecutetheCTsandSRs. LetENbethesetofenabledCTsand
+SRs computed in stage 2.
+(a) For each SR X in EN, execute the action associated with X.
+(b) For each CT X in EN, let SxandSnbe the sets of states exited and
+entered by X, respectively;
+update the history of all the parents of states in Sx;
+delete the states in Sxfrom the list of states in which the system
+resides;
+execute the actions associated with exiting the states in Sx;
+execute the actions of X;
+execute the actions associated with entering the states in Sn;
+add to the list of states in which the system resides all states in Sn.
+Notes and Comments
+(i) Figure 22 contains an example of nonconflicting sets (see item (c) in
+stage 2 of the algorithm). In it the various srdenote static reactions
+associated with the corresponding states. Assume that the system is inthe configuration represented by the shaded basic states and that allthe transitions and static reactions are enabled. Now, t3 has higher
+prioritythan t1 andt2;t4 andt6 havehigherprioritythan t5;andthe
+three transitions in the right-hand component have the same priority.Thus, in the left-hand component t3 will be taken, which implies that
+sr1 will be carried out in this step but not sr4. In the middle
+component t4o rt6 will be taken, and sr2 will be carried out; and in
+the right-hand component one of the three transitions will be taken,andsr3 will be carried out. More compactly, the maximal nonconflict-314 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 23 ---
+ing sets are as follows, which means that there are six steps that can
+be taken:
+$t3,t4,t7,sr1,sr2,sr3%
+$t3,t4,t8,sr1,sr2,sr3%
+$t3,t4,t9,sr1,sr2,sr3%
+$t3,t6,t7,sr1,sr2,sr3%
+$t3,t6,t8,sr1,sr2,sr3%
+$t3,t6,t9,sr1,sr2,sr3%
+(ii) In order to implement the semantics of a step, assignments are
+carried out in two stages. The first creates a list of pairs, each one ofthe form ^element, new-value &. Such a pair specifies that the element
+is to be assigned to the new-value at the end of the step. Thisguarantees that during the execution of the step the old values ofelements are used, and thus the system is insensitive, as much aspossible,totheorderinwhichactionsareexecuted.(Forexample,thesemantics does not specify the order in which the CTs and SRs areexecuted in stage 7, nor does it specify the order in which the actionsof a given CT or SR are executed.) Now, only after this first stage hasbeen completed for all the actions executing in the current step, thesecond stage starts, in which the elements are assigned their newvalues.
+When an element is assigned a new value more than once during a
+step, the last assignment is the one that counts. In such cases, whichwe refer to as write-write racing , the order of action execution can
+affect the results of the step. STATEMATE’s simulation and dynamictests tools are able to detect these cases. In Section 10 we discussracing detection in more detail.
+(iii) Actions performed on activities may cause chain reactions. When an
+activity is stopped or suspended, all its subactivities are stopped orsuspended too. An activity that has not been endowed with a control-ling statechart has default rules for its subactivities: when it isstarted, all its subactivities are started too, and when all its subac-
+Figure 22.The STATEMATE Semantics of Statecharts •315
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 24 ---
+tivities have stopped, the parent activity is stopped too. All these
+reactions are executed in the same step. An activity with control canactivate its subactivities only following the step in which it wasactivated itself.
+(iv) All the events generated in a step are collected in a new list of
+generated events, which is used as one of the inputs to the next step.The current list of events (containing those generated in the previousstep) is used in step 7 to evaluate actions that have the form
+when ^event &then...else...end when
+(v) An action athat is scheduled for later on in a scheduled action
+expression of the form sc(a,d) is not executed in stage 7. Rather, it
+is added to the list of scheduled actions as the pair ( a,d1
+current-time ).
+(vi) A termination connector is treated as a basic state, whose parent
+state is the one in which it is drawn. Upon entering a terminationconnector, however, no more steps are executed. For example, ifeventeoccurs in Figure 23, the termination connector will be
+entered, and no more steps will be executed, even if foccurs later.
+Moreover, if the statechart in question serves as the controlactivity of activity P, then when execution enters a termination
+connector therein, activity Pis stopped (at the end of the step), and
+the event sp(P) is generated.
+9. TWO MODELS OF TIME
+So far we have discussed the semantics of a single step and have skirted
+issues involving sequences of steps. One particularly important issue isthat of time and its relationship to steps: when is the internal clockadvanced relative to the execution of steps, and how long do steps take interms of the clock?
+STATEMATE supports two models of timing: synchronous and asynchro-
+nous. The synchronous time model assumes that the system executes a
+single step every time unit, reacting to all the external changes that occurin the one time unit that elapsed since the completion of the previous step.Theasynchronoustimemodel assumesthatthesystemreactswhenever
+Figure 23.316 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 25 ---
+an external change occurs, allowing for several external changes to occur
+simultaneously and, most importantly, allowing several steps to take placewithin a single point in time. Such a collection of steps is sometimes calledasuperstep .Inbothmodels,theveryexecutionofastepmaybeviewedas
+taking zero time as far as the environment is concerned, since during theexecution of the step itself no external changes have any effect, and it is asif time stops for the duration of the execution.
+While the basic algorithm for a step given in the previous section is
+implemented in STATEMATE’s simulation and dynamic tests tools, and inits various code generators, each of these executes a step under somewhatdifferent circumstances, and the way the two models of time are reflectedin the execution differs slightly among them. We shall concentrate on theway time is treated in the simulation tool and then briefly discuss itstreatment in the other tools.
+The synchronous time model fits systems that are highly synchronous.
+Assuming that the previous step was executed at time t, issuing a GO
+command during a STATEMATE simulation works as follows:
+execute all external changes reported since completion of the previous step;
+increment the clock by one time-unit;execute all timeout events and scheduled actions whose due time falls inside
+(t,t11] (that is, the interval that excludes tbut includes t11);
+execute one step.
+The asynchronous time model (which we might call the greedy model) fits
+most kinds of asynchronous systems. In this time model, since the execu-tion of steps does not advance the internal time of the simulation, thesimulator’s operator or environment must do so explicitly. There areseveral different GO commands that let the user control the advance oftime during simulation.
+The most important GO command is GO-REPEAT, which works as
+follows:
+execute all external changes reported since completion of the previous step;
+execute all timeout events and scheduled actions whose time is due (up to and
+including the current time);
+repeatedly execute one step until the system is in a stable state (i.e., there are
+no generated events and no enabled CTs or SRs).
+NotethatGO-REPEATdoesnotincrementtheinternalclock,sothatmany
+steps may be executed at the same point in time. The repeat loop in theabove description is thus a superstep, namely, the series of steps that areexecuted in the course of a single GO-REPEAT command at the same pointin time without external changes occurring between the constituent steps.
+A GO-REPEAT command may result in an infinite loop. Suspected
+infinite loops are detected by the simulation tool. As an example, considerFigure 24, and assume that the conditions C1,C2, andC3 are false and
+that event ewas generated by the environment. The GO-REPEAT com-
+mand will cause the following four steps to be executed:The STATEMATE Semantics of Statecharts •317
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 26 ---
+(1) transition t1 is taken, leading to the basic configuration { A2,B1,D1},
+makingC1 true and generating f;
+(2) transitions t3 andt4 are taken, leading to the basic configuration { A2,
+B2,D2}, and making C2 true;
+(3) transition t2 is taken, leading to the basic configuration { A3,B2,D2},
+andmaking C3 true.Notethat t5 isnottakenbecauseevent fis“alive”
+only during step (2); in step (3) it no longer exists.
+(4)t6 is taken, leading to the basic configuration { W}.
+The GO-ADVANCE command is designed to be used in conjunction with
+GO-REPEAT, to advance the clock. Before doing so, however, it must payall “debts” that are due before the time planned for the advance. Supposethat the current time is tand that the command GO-ADVANCE nis used
+to advance the time to t1n. Here is what happens:
+execute all external changes reported since the completion of the previous step;
+sett9;5t1n;
+repeat the following until t5t9:
+execute all timeout events and scheduled actions whose time is due (up to
+and including the current time t);
+execute GO-REPEAT;sett0to be the time of the closest scheduled action or timeout event;
+settto the smaller of t9ort0.
+The GO-REPEAT and GO-ADVANCE commands suffice to implement
+thegreedyasynchronoustimemodel.However,thefollowingadditionalGOcommands make life a little easier:
+—GO-STEP: Executes one step without advancing the time. This com-
+mand enables easier debugging of the model.
+Figure 24.318 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 27 ---
+—GO-NEXT: Advances the clock to the time of the next timeout event or
+scheduled action without carrying out a step. Before the time is actuallyadvanced, all the steps that can be executed are executed.
+—GO-EXTENDED: A combination of GO-NEXT and GO-REPEAT, which
+is intended to execute the next superstep that really does something. Itworks as follows:
+execute all external changes reported since the completion of the previous step;
+if there are generated events or if there are enabled CTs or SRs
+then execute a superstepelse advance the clock to the time of the next timeout event or scheduled
+action;
+execute the scheduled actions and timeout events whose time is due;execute a superstep.
+This completes our discussion of the treatment of time in the simulation
+tool of STATEMATE. In the dynamic tests tool, external changes aresensed only once every fixed period of time in both time models, but theuser has the option of injecting external changes between steps of asuperstep too.
+STATEMATE’s hardware code generators let the user select between two
+code styles, each compatible with a different time model. The RTL code
+stylemeans generation of VHDL or Verilog code in which the mechanism
+that determines when a step should execute is sensitive to one event only:the rising or falling edge of a clock. This is similar to STATEMATE’ssynchronous mode. On the other hand, HDL code generated with thebehavioral code style reacts to any change in the inputs the moment
+they occur. This is identical to STATEMATE’s asynchronous mode.
+The software code generators generate one style of code; however, two
+different schedulers are provided that support different time models. Oneof them uses the CPU clock time. This has the effect that steps, andtherefore supersteps, take more than zero time. As in the simulation,external changes are sensed only at the start of a step. Since steps takemore than zero time, however, external changes, timeout events, andscheduled actions may occur before the system has stabilized. In otherwords,thesynchronyhypothesis(seeBerryandGonthier[1992]andPnueliand Shalev [1991]) is not preserved. This also means that with the CPUclock time model, the equivalent of STATEMATE’s simulator’s GO-RE-PEAT, is not supported.
+Another scheduler uses a simulated clock. The simulated clock advances
+only after the system is in a stable status. External changes, timeoutevents, and scheduled actions occur only when the system is stable. Thesimulated clock time model guarantees a behavior which is identical toSTATEMATE’s asynchronous mode.The STATEMATE Semantics of Statecharts •319
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 28 ---
+10. RACING CONDITIONS
+Racingconditionsarisewhenthevalueofanelementismodifiedmorethan
+once or is both modified and used at a single point in time. Now, since ourapproach in the greedy model is that multiple steps can be executed at(what appears to be) the same point in time, racing problems can arise notonly within a step, but also between transitions or actions that areexecutedindifferentsteps.Thusracingmustbecheckedwithinsupersteps,not only within single steps, and we must take into account causalitydependenciesbetweenthetransitionsthatarecarriedoutindifferentstepswithin a single superstep.
+For example, suppose a transition labeled “ e/f;X;55” is executed in
+some step, enabling another transition in the same superstep labeled“f/X;56.” Here, although Xis modified more than once at the same
+point in time, there is no racing problem, since the second transitionnecessarily comes after the first. Thus, while the steps in a superstep areexecuted in zero time, they are considered to be executed in order.
+Let us be a little more precise about how racing is defined. In each step
+and superstep several transitions may be enabled. The enabled transitionsare viewed as executing in some implementation-sensitive order. However,this order must be consistent with the enabling order, in the sense thateach transition is to be executed after the ones that enabled it. A racesituation is one in which, had we executed the enabled transitions in adifferent order (yet a legal one according to the above criteria), we mighthave obtained different results in one or more of the data-items or condi-tions.
+Consider Figure 25. When event eoccurs, the semantics prescribes that
+transition t1 will be taken in the first step, t2 andt3 in the second step,
+andt4 in the third step. Consequently, Xwill attain the value 5 in the
+second step, and Ywill attain 6 in the third step. However, notice that the
+Figure 25.320 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 29 ---
+only constraints on the ordering of these transitions are that t1 must come
+beforet2 andt3, and that t3 must come before t4. It is only the greediness
+of our semantics that causes t2 andt3 to be taken in the same step. There
+is actually nothing wrong with a semantics that would postpone taking t2
+untilafterboth t3 andt4 aretaken(intwoconsecutivesteps),butthismay
+resultinadifferentvaluein Y.CaseslikethiswillalsocauseSTATEMATE
+to report a racing condition.
+11. MULTIPLE STATECHARTS
+The semantics as described applies in all its aspects to several statecharts
+running simultaneously, which in STATEMATE occurs when they repre-sent activities that happen to be active concurrently.
+Multiple active statecharts are treated basically as orthogonal compo-
+nentsatthehighestlevelofasinglestatechart,exceptthatwhenoneofthestatecharts becomes nonactive (by entering a termination connector, orwhen the activity it controls is stopped) the other charts continue to beactive. When an activity is restarted, the statechart controlling it isreactivated by reentering its default configuration.
+Consider, for example, the two charts of Figure 26. They are treated
+essentially as the single chart of Figure 27. Notice that entering a termina-tion connector in the original chart is just like entering the special idlestate in the corresponding orthogonal component of the new chart. Thespecialstartevents leading out of these idle states depict the events that
+cause the original statechart to start, such as started(activity) for the
+activity that is controlled by the statechart in question.
+In the asynchronous time model, the steps in multiple statecharts are
+carried out in synchronization, just as they would have if they wererepresented as orthogonal components of one big statechart. Thus, what isreallyhappeningisthatthegreedinesspropertyappliesatthesystemleveltoo, meaning that not only are all enabled transitions in a single chartexecutedsimultaneously,butsoarethoseinallofthecharts,andthereforeall the transitions in the entire system are executed simultaneously. In thesynchronous time model, on the other hand, each chart may have its ownclock, telling it when to execute a step. And since each of these may be
+Figure 26.The STATEMATE Semantics of Statecharts •321
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 30 ---
+specified to have a different time unit (i.e., a different clock rate), what is
+happening here is that within a chart all the orthogonal componentsremainsynchronized,buteachchartissynchronizedwithitsownclockandnot necessarily with the other charts. In both time models, the time unitsused for evaluating time expressions (in timeout events and scheduledactions) may be defined differently for each chart. Thus, for example, if twoactionsschedule(a,n) andschedule(b,n) are executed in the same step in
+the statecharts AandBof Figure 26, respectively, actions aandbmight
+notbecarriedoutatthesametime,sincethetimeunitsforevaluationin A
+andBcould have been defined differently.
+APPENDIX
+A. COMPARISON WITH OTHER WORK
+This appendix is devoted to issues regarding the comparison of our seman-
+tics with other proposed semantics for statecharts.
+We have already mentioned the fundamental question as to whether
+changes that occur in a given step (e.g., generated events and valueupdates) take effect in the current step or in the next one. Our semanticsadopts the latter, and this is in contrast to the semantics of Harel et al.[1987] and Pnueli and Shalev [1991]. We shall thus say no more aboutthese two papers.
+The most natural candidate for comparison is the RSML language of
+Leveson et al. [1995], for various reasons. First, it was some of thecomments in Leveson et al. [1995] that prompted us to publish the presentarticle; second, as in our case, the semantics of Leveson et al. [1995] isclaimed to be supported by a tool; third, despite a difference of aroundseven years in the conception of the two semantics, most of the underlying
+Figure 27.322 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 31 ---
+principles of the two are very similar, such as the fact that changes take
+place in the next step.
+The main differences between the two approaches are syntactical. For
+example, RSML does not support the history connector; it features directedcommunication over channels instead of broadcast communication; it al-lows AND/OR tables for entering condition expressions; it does not supportdisjunctions of trigger events, and more.
+Although there appear to be no significant differences in the dynamic
+semantics, we use different terms. Our steps are RSML’s microsteps, andour supersteps are RSML’s steps. For us, a step is the basic atomicoperation, whereas a superstep is something that STATEMATE users cancompose in commands to the simulator and as an option for the generatedcode. From the description in Leveson et al. [1995], it appears that theirstep (our superstep) is the basic atomic operation. One of the reasons thatitissomewhatdifficulttotalkmorepreciselyaboutthesemanticsofRSMLis that many issues that we discuss at length are ignored in Leveson et al.[1995], such as how CTs are built, which are the legal configurations, etc.
+We now turn to the survey in von der Beek [1994]. It lists 19 issues
+relevant to proposals for the semantics of statecharts.
+9Since the imple-
+mented semantics of statecharts as described in this article and its 1989precursor are not mentioned in von der Beek [1994] at all, and since these19 issues are used in von der Beek [1994] to catalog other publishedsemantics, we feel that the best thing for us here is to comment on how ourapproach deals with each of these issues. In the following, we list each ofthe issues by number and title (similar to von der Beek [1994]), give aone-sentence explanation thereof (often adapted from the phrasing in vonder Beek [1994]), followed by a short discussion of the way our languageanditssemanticsrelatestoit.Weleavetothereaderthetaskofconsultingvon der Beek [1994] for a more detailed explanation of, and motivation for,the issues themselves. We should mention, however, that (i) some of themare questions about which features the language supports (note that theapproachessurveyedinvonderBeek[1994]haveavaryingsyntaxtoo)and(ii) the semantic aspects of most of them are relevant only to supersteps.
+1.Perfect-SynchronyHypothesis. Theperfect-synchronyhypothesisas-
+serts that external events are responsed to immediately.
+The STATEMATE semantics supports two time models: the asynchro-
+nousandthesynchronous.Intheasynchronousmodel,thesystemreactsinzero time the instant it is presented with an external change. Moreover,when the system reaction is stretched over several steps, with one eventtriggering another, all these steps execute in zero time. Therefore, underthis time model, the perfect-synchrony hypothesis holds.
+In the synchronous time model, the system reacts whenever it detects an
+occurrence of one special event (usually the edge of a clock cycle). Hence, it
+9They are referred to in von der Beek [1994] as “problems” with the way statecharts are
+described in Harel [1987].The STATEMATE Semantics of Statecharts •323
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 32 ---
+is possible that nonzero time passes between the instant in which an
+external event occurs and the time the system reacts to it. In this model, ifthe reaction requires several steps, each step executes only when thespecial event is sensed. Hence, the time it takes to react depends on thenumber of steps needed to complete the system’s reaction, and the hypoth-esis does not hold.
+2.Self-Triggering, Causality. Self-triggering involves events that are
+executed based on their own actions and are not caused by an externalevent; causality means that each transition taken was caused (perhapsindirectly) by an external event.
+This is not really an issue in our semantics, because internal events are
+sensed only in the step following the one in which they were generated.Thus, in a rather trivial sense one might say that STATEMATE respectscausality.
+3.Negated Trigger Event. A negated event is one that models the
+nonoccurrence of an ordinary event.
+Our approach supports negated trigger events, which are allowed by the
+syntax and are covered by the semantics. STATEMATE’s simulator sup-portstheminfull.Astothecodegenerator,experienceshowsthatvirtuallynone of its users were employing negated events unless they were AND-edwith positive events. For this reason, the code generator was set up so thatits default mode supports negated trigger events only when AND-ed withpositive events. Thus, for example, not Eis not supported; F and not E is
+supported; and F or not E is not supported. This expedites the execution of
+the generated code by about 20%. However, a nondefault scheduler isavailable to the user, which supports general negated trigger events.
+4.Effect of Transition Executing is Contradictory to Its Cause. An
+example of this is an event triggering an action that is essentially itsnegation.
+This is not an issue in our approach, since the effect of a trigger event is
+sensed only in the following step. In particular, STATEMATE has noproblem with a transition labeled not E/E.
+5.InterlevelTransition. Atransitioncrossingtheborderlinesofstates.
+STATEMATE supports these transitions in full.
+6.State Reference. This is the ability to refer to the states of an
+orthogonal component in deciding whether a transition is to be taken.
+STATEMATE supports this in full. In some cases, the main output of a
+statechart is the set of states it is in. The hardware language codegenerators also support adding states to the output ports.
+7.Compositional Semantics, Self-Termination. Compositional seman-
+tics defines the meaning of a construct based on the meanings of itsconstituentconstructs;byself-termination,vonderBeek[1994]meansthatstratified transitions are used to replace interlevel ones, to aid in makingsemantics compositional.324 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 33 ---
+Our semantics is not defined in a compositional manner. In fact, neither
+is the syntax, which allows interlevel transitions.
+8.Operational versus Denotational Semantics. Our semantics is oper-
+ational.
+9.Instantaneous State. A state that can be entered and exited simul-
+taneously (e.g., with an action generated upon entrance that also causesthe state to be exited).
+In our semantics instantaneous states are prohibited in a step. However,
+the assertion in von der Beek [1994], to the effect that this implies that “atone instant of time several transitions may only be executed if they residein parallel components” is inaccurate, since in the asynchronous timemodel several steps may execute at the same instant of time.
+10.Durability of Events. This issue concerns the question of whether
+an event is available for more than “an instant of time.”
+In our semantics, an event is sensed only in the step following the one in
+which it was generated. Even when multiple steps execute at the sameinstance of time, an event generated in step nis sensed only in step n11.
+11.Parallel Execution of Transitions. This issue concerns the question
+of whether transitions allowed to execute simultaneously must reside indifferent orthogonal components.
+In our approach, only transitions whose scopes are mutually orthogonal
+can execute in one step.
+12.Transition Refinement. This issue concerns the difference between
+asingletransitionanditsrefinementintoasequenceoftransitions(duringa top-down development process, for example), where the latter might takelonger than the former.
+In the asynchronous time model of our semantics this is not a problem,
+since several steps may execute at the same instance of time, and therefinement will be equivalent to the refined transition. In the synchronoustime model, however, the difference does exist.
+13.Multiple Entering or Exiting of an Instantaneous State. This con-
+cerns the possibility of an infinite loop caused by the repeated entering andexiting of an instantaneous state.
+Withinonestepofoursemanticsthisisnotanissue,sinceinstantaneous
+states are not supported (see issue number 9). However, this could happenwithin a superstep.
+14.Infinite Sequence of Transition Executions at an Instant of Time.
+Similar to number 13.
+15.Determinism. This is concerned with whether a statechart’s behav-
+ior can exhibit nondeterministic choices.
+One can model nondeterministic behavior in our statecharts. STATE-
+MATE’s code generators treat it as underspecification or “don’t care,” andthe distinction is up to the user.The STATEMATE Semantics of Statecharts •325
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 34 ---
+16.Priorities for Transition Execution. This feature provides a way for
+the model to determine which transition from among a set of conflictingtransitions that exhibits nondeterminism is to be executed.
+In the current versions of STATEMATE, priorities of transitions are
+determined by the scope of the transition. The priority scheme that will beimplementedinfutureversionsofSTATEMATEisbasedonthetransition’ssource and is described in Appendix C.
+17.PreemptiveversusNonpreemptiveInterrupt. Apreemptiveinterrupt
+is a high-level transition that prevents taking transitions on lower, encap-sulated levels.
+STATEMATE supports preemptive interrupts with priorities given to
+higher-level transitions. (The priority concept relevant to this issue isinsensitive to the difference between the new and old versions of prioritiesin STATEMATE that are discussed in Appendix C.)
+18.Distinguishing Internal from External Events. This concerns the
+question of whether there is a difference in sensing internal versus exter-nal events in the microsteps that make up a macrostep, with relevance tothe possibility of satisfying the synchrony hypothesis.
+In our semantics, internal events are indeed sensed within a superstep,
+but externally generated ones are not.
+19.Time Specification, Timeout Event, Timed Transition. These con-
+cern the issue of when time actually progresses and whether there issupport for timeout events and timed transitions (the latter are transitionsbounded in time from below and/or from above).
+In our semantics, time can advance only when the system is in a stable
+status, meaning that no transitions can execute without an occurrence ofan external event. Our statecharts support timeout events but not timedtransitions.
+If there were a column for our semantics in the table given in von der
+Beek [1994, p. 145], it would read as follows:
+g,1,1,2,1,1,1,1,1,1,C,2,1,2,t,d,1,1,2,1,1,2,1,1,2,d
+B. COMBINATIONAL ASSIGNMENTS
+Combinational assignments (CAs) are supported by both the software
+and hardware versions of STATEMATE. They are not associated withstates, transitions, or activities, but with an entire chart. They can beviewed as a continuous implementation of a function, i.e., a function that iscomputed automatically immediately after a change in any one of itsparameters. The syntax of a CA is similar to that of a regular kind ofassignment and may also contain when-else clauses.
+This appendix concentrates on specifying when and how CAs are exe-
+cuted. A CA is executed immediately following a change in one of theoperands of its assigned expression (i.e., the right-hand side of the assign-326 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 35 ---
+ment). Put another way, during any step in which an operand is changed,
+either externally or internally, all the relevant CAs are executed. FormodelsthatcontainCAs,thestepalgorithmofSection8ismodifiedsothatfollowing stag e 3 a new stage is carried out in which the CAs are executed.
+This is done in phases, so that in each phase, all the CAs whose operandshave changed are executed. First, the right-hand-side expressions of all theparticipating CAs are evaluated, and then the assignments are carried outsimultaneously, in such a way that if an element Xis changed by some CA
+in phasen, butXis an operand of some other CA, then the new value of X
+is available only in phase n11.
+Loops in the definition of CAs are legal, which implies the possibility of
+infinite loops. For example, consider the following two CAs:
+A;55whenB53else10
+B;53whenA.5else4
+HereAandBwill never stabilize. This is an error in the specification,
+and STATEMATE’s analysis tools will detect the infinite loop at run time.
+Ifanelement Xchangesitsvalueseveraltimeswithinonestep,butends
+up with the original value after all the phases of executing the CAs areover, it is as though its value never changed, and in particular, the eventchanged(X) (abbreviated ch(X)) is not generated. For example, consider
+the following two CAs:
+X;5A1B
+A;5A1
+Suppose that at the beginning of the step the values were A155,A5
+5,B55,X510. Now suppose that during the execution of a transition,
+A1 changed to 3, and Bchanged to 7. The values of the elements will be
+modified as follows: in phase 1, Xbecomes 12, and Abecomes 3; and in
+phase 2, Xreturns to its old value of 10. The event ch(X) will not be
+generated.
+This semantics is implemented in all STATEMATE tools, with one
+exception. When generating code for hardware (in VHDL or Verilog) wehave decided to implement the STATEMATE CAs as CAs in the targethardware language. When generating hardware code, the user has a choiceof generating behavioral-style code or RTL-style (register transfer level)code. For our purposes, behavioral style is asynchronous, and RTL style issynchronous. Here is the difference: each phase in the execution of CAstakes some “delta,” which in hardware description languages is like a stepthat takes no time. In RTL style, several deltas can be added after theexecution of the “real” step (before the next clock signal arrives) so thatindeed all phases of the CAs are executed as part of the step. On the otherhand, in the behavioral style, transitions can execute the moment they areThe STATEMATE Semantics of Statecharts •327
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 36 ---
+enabled. Since we could not find an elegant way to postpone transition
+executionuntilalltheCAshavecompleted,inthebehavioralstyleCAscanbe carried out in the same step as the transitions that follow the step thatchanged their operands. Thus, if we have a transition that changes thevalueofX,andaCAoftheform Y;5X,thenifXchangesvalueinstep n,
+thenYwill change value in step n11, when some other transition might
+be taken.
+C. PRIORITY OF TRANSITIONS
+Two aspects are relevant to the determination of the priority of transitions
+in STATEMATE. The structural priority (SP) of a compound transition
+and thepriority numbers (PN) associated with transition segments.
+Structural priority is the main criterion for determining the overall
+priority of a transition. If transition t1 has higher SP than t2 thent1 has
+an overall priority higher than t2. SP is defined for initial CTs only. It is
+determined by a particular state associated with the CT, which we call itsstructural priority determinant . The higher the determinant of a CT in
+the hierarchy of states, the higher its SP. The determinant of a CT isdetermined by its sources and targets. In the current versions of STATE-MATE,thedeterminantofaninitialCT trisdefinedtobeitsscope.(Recall
+that the scope of tris the lowest OR-state in the hierarchy of states that is
+a proper ancestor of all the sources and targets of tr.) In future versions of
+STATEMATE, the determinant will be based primarily on the explicitsource(s) of tr. Let the source set of trbe denoted by Rand its scope by S.
+The structural priority determinant of tris defined as follows:
+letstbe a state in R(stmust be a proper descendant of S);
+letLbe the set of all states that are both proper ancestors of stand proper
+descendants of S(Lmay be empty);
+if there are no AND-states in L
+then (Rmust be a singleton) the determinant of trisst
+else the determinant of tris the highest-level AND-state in L
+Consider, for example, Figure 28. The current versions of STATEMATE
+Figure 28.328 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 37 ---
+givet1 andt3 thesamepriority,higherthanthatof t2,whereasthefuture
+versions will give t1 andt2 the same priority, lower than that of t3. In
+Figure 29, the determinant of t1i sA—the highest-level AND-state that is
+exited by t1—and the determinant of t2i sC. Thus, although t1 andt2
+have the same source, t1 will have higher priority than t2 in the future
+versions too.
+The reason the determinant of t1i sAis the following: t1 andt3 are in
+conflict and therefore cannot be executed in the same step. If we were toleavethedeterminantof t1t ob eC,therewouldbenowaytospecifywhich
+oft1o rt3 hashigherpriority.Inaddition,theorthogonalcomponentsofan
+AND-state would no longer be truly orthogonal, since each one has toexaminewhatishappeninginsidetheotherone.Andmostimportantly,thegenerated code would become very inefficient.
+Note that this definition suffices, because transitions whose determi-
+nants are neither identical nor mutually ancestoral are never in conflict, sothat, indeed, the higher the determinant of a CT in the state hierarchy, thehigher its SP.
+Themainreasonforthechangebeingmadeinthedefinitionofpriorityis
+that the new one is more intuitive; it seems to be preferred among mostSTATEMATE users. Also, with the new definition one can endow a transi-tion with a higher SP without changing its meaning. In Figure 30, forexample, t1 andt2 are equivalent under the current semantics, but the
+new semantics gives t1 higher priority than t2, although their behavior is
+the same.
+Thepriority number (PN) is an integer one can affix to transition
+segments. The priority of a transition segment is compared with theprioritiesofothersegmentswiththesamesource(stateorconnector)orthesameprioritydeterminant.Let Xbeacompoundtransitioncomposedofthe
+transition segments X1,...,Xnin order. Thus, Xi’s source is X(i21)’s
+Figure 29.The STATEMATE Semantics of Statecharts •329
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 38 ---
+target,for i52,...,n.Similarly,let YbeaCTcomposedof Y1,...,Ym
+in order. Suppose now that the structural priority determinants of XandY
+are the same, so that we have to compare their priorities according to theirPNs. Here is the comparison procedure:
+i;51
+whileXi5Yidoi5i11
+(iis now the index of the first different pair of segments)
+if PN(Xi).PN(Yi)
+then return “ Xhas higher priority than Y”
+else if PN( Xi),PN(Yi)
+then return “ Yhas higher priority than X”
+else return “ XandYhave the same priority”
+As an example, consider Figure 31, in which the priority numbers are
+parenthesized.TheCTleadingtostate T1 hashigherprioritythantheCTs
+leading to T2,T3, andT4 and has the same priority as the CTs leading to
+T5 andT6. The table below summarizes the priority relationships between
+the CTs (represented by their target states):
+T2T3T4T5T6
+T1...55
+T2 ..55
+T3 555
+T4 55
+T5 ,
+Interestingly, the priority relationship, as we define it, is not transitive.
+For example, while the pairs ( T5,T1) and (T1,T6) have equal priorities,
+that ofT6 is greater than that of T5. This does not pose any problem,
+however: whenever several transitions with the same determinant areenabled, those whose priority is not maximal are not candidates forexecution. In other words, if a CT Xis enabled, and there is another
+enabled CT Ywith greater priority than X’s, thenXwill not be a candidate
+Figure 30.330 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 39 ---
+for execution. If in Figure 31 all the transitions are enabled, there are
+actually two possible steps: those leading to T1andT6.
+When a CT contains segments connected by joint or fork connectors, it is
+notalwayspossibletoarrangetheminlinearorder,withone’stargetbeingthe next one’s source. In such cases, we view each combination of segmentsincident to the connector—some incoming and some outgoing—as a singlevirtual segment. The properties of the virtual segment are defined, usingthose of its constituent (actual or virtual) segments, as follows:
+—its priority is the maximum of those of the constituent segments;
+—its source set consists of the sources of those of the constituent segments,
+excluding the fork/joint connector;
+—its target set consists of the targets of those of the constituent segments,
+excluding the fork/joint connector.
+If necessary, this definition is carried out recursively, until all the fork
+and joint connectors have been removed. Only then can the actual andvirtual segments be linearly ordered. The CT depicted in Figure 32, forexample, will be regarded as having three segments: one consisting of t1,
+t2,t3,t4, andt5, one consisting of t6, and one consisting of t7,t8, andt9.
+ACKNOWLEDGMENTS
+Thebasicconceptsofthesemanticsdescribedhereweredevelopedbetween
+1984 and 1986 during lengthy sessions and deliberations by a group ofpeople that included, besides ourselves, Amir Pnueli, Michal Politi,Jeanette Schmidt, and Rivi Sherman. This article would not have beenpossible without them. We also wish to thank other members of theSTATEMATE development team, who contributed to the updating andrevision of the semantics over the years. These include Moshe Cohen, EranGery, Aharon Shtull-Trauring, and Mark Trakhtenbrot. Special thanks to
+Figure 31.The STATEMATE Semantics of Statecharts •331
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 40 ---
+Amir Pnueli, Jim Armstrong, Philip Brookes, Nick Cropper, Paul Urban,
+and the reviewers, for comments on a previous version.
+REFERENCES
+BERRY,G .ANDGONTHIER, G. 1992. The Esterel synchronous programming language: De-
+sign, semantics, implementation. Sci. Comput. Program. 19, 87–152.
+HAREL, D. 1987. Statecharts: A visual formalism for complex systems. Sci. Comput. Pro-
+gram. 8, 231–274. Preliminary version available as Tech. Rep. CS84-05, The Weizmann
+Inst. of Science, Rehovot, Israel. Feb. 1984.
+HAREL,D .ANDPNUELI, A. 1985. On the development of reactive systems. In Logics and
+Models of Concurrent Systems, K.R. Apt, Ed. NATO ASI Series, vol. F-13. Springer-Verlag,
+New York, 477–498.
+HAREL,D .ANDPOLITI, M. 1996. Modeling Reactive Systems with Statecharts: The STATE-
+MATEApproach. Tobepublished.PreliminaryversionavailableasTech.Rep.,i-Logix,Inc.,
+Andover, Mass. Titled “The Languages of STATEMATE.”
+HAREL, D., LACHOVER, H., NAAMAD, A., PNUELI, A., POLITI, M., SHERMAN, R., SHTULL-TRAURING,
+A.,ANDTRAKHTENBROT , M. 1990. STATEMATE: A working environment for the develop-
+ment of complex reactive systems. IEEE Trans. Softw. Eng. 16, 403–414. Preliminary
+version appeared in Proceedings of the 10th International Conference on Software Engineer-
+ing.IEEE Press, New York, 1988, pp. 396–406.
+HAREL, D., PNUELI, A., SCHMIDT,J .P . , ANDSHERMAN, R. 1987. On the formal semantics of
+statecharts.In Proceedingsofthe2ndIEEESymposiumonLogicinComputerScience. IEEE
+Press, New York, 54–64.
+HUIZING,C .AND DEROEVER, W. P. 1991. Introduction to design choices in the semantics of
+statecharts. Inf. Process Lett. 37, 205–313.
+HUIZING,C.,GERTH,R.,AND DEROEVER,W.P. 1988. Modelingstatechartsbehaviorinafully
+abstract way. In Proceedings of the Colloquium on Trees in Algebra and Programming.
+Lecture Notes in Computer Science, vol. 299. Springer-Verlag, New York, 271–294.
+KESTEN,Y .ANDPNUELI, A. 1992. Timed and hybrid statecharts and their textual represen-
+tation. In Formal Techniques in Real-Time and Fault-Tolerant Systems, J. Vytopil, Ed.
+Lecture Notes in Computer Science, vol. 571. Springer-Verlag, Berlin, 591–619.
+LEVESON,N .G . ,H EIMDAHL,M .P .E . ,H ILDRETH, H.,ANDREESE, J. D. 1995. Requirements
+specification for process-control systems. IEEE Trans. Softw. Eng. 20, 684–707.
+MARANINCHI , F. 1992. Operational and compositional semantics of asynchronous automaton
+compositions. In Proceedings of CONCUR ’92. Lecture Notes in Computer Science, vol. 630.
+Springer-Verlag, Berlin, 550–564.
+Figure 32.332 •David Harel and Amnon Naamad
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.
+
+--- Page 41 ---
+PNUELI,A .ANDSHALEV, M. 1991. What is in a step: On the semantics of statecharts. In
+Proceedings of the Symposium on Theoretical Aspects of Computer Software. Lecture Notes
+in Computer Science, vol. 526. Springer-Verlag, Berlin, 244–264.
+VON DER BEEK, M. 1994. A comparison of statechart variants. In Formal Techniques in
+Real-Time and Fault-Tolerant Systems, L. de Roever and J. Vytopil, Eds. Lecture Notes in
+Computer Science, vol. 863. Springer-Verlag, New York, 128–148.
+Received November 1995; revised February 1996; accepted July 1996The STATEMATE Semantics of Statecharts •333
+ACM Transactions on Software Engineering and Methodology, Vol. 5, No. 4, October 1996.

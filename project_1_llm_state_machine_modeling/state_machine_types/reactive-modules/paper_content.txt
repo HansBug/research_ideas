@@ -1,0 +1,1289 @@
+--- Page 1 ---
+Formal Methods in System Design 15, 7–48 (1999)
+c°1999 Kluwer Academic Publishers. Manufactured in The Netherlands.
+Reactive Modules⁄
+RAJEEV ALUR alur@cis.upenn.edu
+University of Pennsylvania and Bell Laboratories, Department of Computer and Information Science,Philadelphia, PA 19104
+THOMAS A. HENZINGER tah@eecs.berkeley.edu
+University of California at Berkeley, Department of Electrical Engineering and Computer Sciences, Berkeley,CA 94720-1770
+Abstract. We present a formal model for concurrent systems. The model represents synchronous and asyn-
+chronous components in a uniform framework that supports compositional (assume-guarantee) and hierarchical(stepwise-reﬁnement)designandveriﬁcation. Whilesynchronousmodelsarebasedonanotionofatomiccompu-tationstep,andasynchronousmodelsremovethatnotionbyintroducingstuttering,ourmodelisbasedonaﬂexiblenotion of what constitutes a computation step: by applying an abstraction operator to a system, arbitrarily manyconsecutive steps can be collapsed into a single step. The abstraction operator, which may turn an asynchronoussystem into a synchronous one, allows us to describe systems at various levels of temporal detail. For describingsystems at various levels of spatial detail, we use a hiding operator that may turn a synchronous system intoan asynchronous one. We illustrate the model with diverse examples from synchronous circuits, asynchronousshared-memory programs, and synchronous message-passing protocols.
+Keywords: modeling of reactive systems, formal veriﬁcation, compositionality, concurrency modeling,
+synchrony and asynchrony, assume-guarantee reasoning, temporal abstraction
+1. Introduction
+We introduce a new formal model for reactive computation. Our target application is
+hardware-softwarecodesignandveriﬁcation. Thisapplicationrequires(1)anabilitytode-scribeandcomposemoduleswithdifferentsynchronyassumptions,(2)anabilitytodescribeand compose modules at different levels of abstraction, and (3) an ability to decomposeveriﬁcation tasks into subtasks of lower complexity. Our model formalizes heterogeneoussystemsthatarebuiltfromsynchronousandasynchronoushardwareandsoftwarecompo-nents, and provides assume-guarantee and abstraction principles for reasoning about suchsystems. The salient features of our model are scalability along both the space and time
+axes, and interdeﬁnability of synchronous and asynchronous behavior.
+Scalability. Scalability along the space axis means that spatial implementation details
+of a module, such as internal variables and wires, can be hidden from outside observers.Scalabilityalongthetimeaxismeansthattemporalimplementationdetails,suchasinternalcomputation steps and delays, can be hidden from outside observers.
+⁄A preliminary version of this paper appeared in the Proceedings of the 11th IEEE Symposium on Logic in
+Computer Science (LICS), pp. 207–218, 1996.
+
+--- Page 2 ---
+8 ALUR AND HENZINGER
+Example. A64-bitaddercanbeimplementedeitherbyusingtwo32-bitaddersinparallel,
+or by using a single 32-bit adder twice for each 64-bit addition, ﬁrst for the lower-orderbits and then for the higher-order bits. The ﬁrst implementation decomposes the 64-bitadder spatially, by splitting it into two components; the second implementation decom-posesthe64-bitaddertemporally,bysplittingeachcomputationstepintotwomicro-steps.Both implementations are presented in Section 5. More generally, spatial scaling providescomponentsatdifferentlevelsofdetail,suchasgates,ALUs,andprocessors;andtemporalscaling provides computation steps at different levels of detail, such as gate operations,arithmetic operations, and processor instructions.
+While spatial scalability is a standard feature of concurrency models, the concept of
+temporal scalability is inspired by the notion of multiform time in synchronous program-ming languages [14], and by the notion of action reﬁnement in process algebras [26]. Inveriﬁcation, temporal scaling is usually performed in an informal, manual manner underthe umbrella buzzword of “abstraction.” We introduce temporal scaling as a modelingprimitive, called next, that supports the formal construction and the automatic analysis of
+temporal abstractions. If Pis a module, and xis an output variable of P, then the more
+abstract module QD.nextxforP/combines as many computation steps of Pinto a
+single computation step of Qas are required to change the output x. For example, if Pis
+a gate-level description of a processor, and the toggling of xsignals the completion of an
+instruction, then Qis an instruction-level description of the processor.
+Interdeﬁnability. Infullysynchronousbehavior,concurrentmodulesproceedinlock-step
+andrespondtomutualinputsbysimultaneousoutputs. Infullyasynchronousbehavior,con-currentmodulesproceedbyinterleavingandrespondtoinputsbyeventualoutputs. Interde-ﬁnabilitymeansthatafterhidingspatialinformation,acollectionofsynchronousmodulescan appear asynchronous to outside observers; and after hiding temporal information, acollection of asynchronous modules can appear synchronous.
+Example. Consider a transducer that accepts integers as input and computes the corre-
+spondingsquaresasoutput. Atanabstractlevel,thetransducermayproceedsynchronously,in discrete rounds, accepting one integer per round and computing one square per round;or it may proceed asynchronously, accepting a stream of integers and computing an arbi-trarilydelayedstreamofsquares. The(a)synchronyoftheabstracttransducer,however,isindependentofwhetheraconcreteimplementationofthetransduceremployssynchronousmodulesorasynchronousmodulesorboth. Forexample,adistributedasynchronoustrans-ducer can be implemented using synchronous communication on hidden channels; and asynchronoustransducercanbeimplementedusingdelay-insensitivecircuitrywhoseinter-nal computation steps and delays are hidden.
+Overview. The paper deﬁnes the formalism of reactive modules. Deﬁnitions are usually
+preceded by motivating thoughts, and succeeded by illustrative examples as well as pro-perties that ensure the soundness of the deﬁnitions. The bulk of the paper discusses safetyaspects of reactive modules. Fair reactive modules are deﬁned in Section 7.
+
+--- Page 3 ---
+REACTIVE MODULES 9
+2. Deﬁnition of reactive modules
+A discrete reactive system is a collection of variables that, over time, change their values
+in a sequence of rounds. We model discrete reactive systems that may interact with eachother by mathematical objects that are called reactive modules (ormodules, for short).
+Variablesvs.events. Amodule Phasaﬁnitesetoftypedvariables,denoted X
+P.Astateof
+Pisavaluationforthevariablesin XP. Events,suchasclockticks,aremodeledbytoggling
+boolean variables. For example, the event that is represented by the boolean variable tick
+occurswheneverthemoduleproceedsfromastate stoastatetsuchthat s[tick]6Dt[tick].1
+System vs. environment. The module Prepresents a system that interacts with an envi-
+ronment. Someofthevariablesin XPareupdatedbythesystem,andtheothervariablesin
+XPare updated by the environment. Hence, the set XPis partitioned into two sets: the set
+ctrXPofcontrolled variables , and the set extlXPofexternal variables .
+States vs. observations. Not all controlled variables of the module Pare visible to the
+environment. Hence, the set ctrXPis partitioned further into two sets: the set privXPof
+privatevariables ,andtheset intfXPofinterfacevariables .Theinterfacevariablesandthe
+external variables are visible to the environment, and therefore called observable . The set
+of observable variables of Pis denoted obsXP.A nobservation ofPis a valuation for the
+variables in obsXP. The various classes of module variables and their relationships are
+summarizedinTable1.Thedistinctionbetweenprivate,interface,andexternalvariablesissimilartothedistinctionbetweeninternal,output,andinputeventsintheformalismofI/Oautomata [21].
+Asynchrony vs. synchrony. During the execution of the module Pthe variables in X
+P
+changetheirvaluesinasequenceofrounds. Variousmodelsofreactivityproposedifferent
+ways in which the variables are updated in a single round.
+Pure asynchrony (interleaving [10, 17, 20, 22]): Either the system performs an update, or
+the environment performs an update. Interleaving models usually distinguish only be-tweenprivatevariables,whichcanbeupdatedbythesystemalone,andsharedvariables,which can be updated by both the system and the environment. This is a natural stylefor modeling asynchronous communication via a shared memory.
+Table 1. Module variables.
+privXPintfXPextlXP
+ctrXP
+obsXP
+XP
+
+--- Page 4 ---
+10 ALUR AND HENZINGER
+Observable asynchrony (I/Oautomata[21]): Eitherthesystemupdatesthecontrolledvari-
+ables,ortheenvironmentupdatestheexternalvariablesandthesystemupdatestheprivatevariablesinresponse. Thisisanaturalstyleformodelingasynchronouscommunicationvia events or messages.
+Atomic synchrony (Mealy machines [18, 23]; C
+SPrendezvous [16, 24]): The system and
+the environment simultaneously update variables in an interdependent fashion. This isa natural style for modeling synchronous communication via events or messages.
+Nonatomic synchrony (synchronous programming languages [7–9, 14]): Each round
+(macro-step) consists of several subrounds (micro-steps), and the system and the en-vironmenttaketurnsinexecutingmicro-stepstoupdatevariables. Thisisanaturalstyleformodelingwhenacomputationofarbitrarydurationcanbesynchronizedwithasingleevent.
+The ﬁrst two options lead to nonblocking communication, as the system puts no con-
+straintsonwhattheenvironmentcando,noronthespeedatwhichtheenvironmentperformsitsupdates.Nonblockingcommunicationsupportscompositionalreasoningwithrespecttoa trace semantics. However, the inherently asynchronous nature of the communicationin these two options render them unsatisfactory for modeling intrinsically synchronoussystemssuchashardware. Thethirdoptionleadstothepossibilityofdeadlocksincommu-nication, and the fourth option may lead to the possibility of nonterminating computationwithinasingleround. Bothprospectsraisedifﬁcultiesforachievingacompositionaltracesemantics.
+Weusethepowerofnonatomicsynchrony,butrestrictittoensurenonblockingcommu-
+nication. First, each variable is updated in exactly one subround of each round. Second,thecontrolledvariablesofamodulearepartitionedintogroupscalled atoms,andthevari-
+ables within a group are updated simultaneously, in the same subround. Third, the atomsare partially ordered. If atom Aprecedes atom Bin the partial order, then in each round,
+theA-subround must precede the B-subround, and the updated values of the variables
+controlled by Bmay depend on the updated values of the variables controlled by A.
+Ourapproachisrelatedtorecentcompilersforsynchronouslanguages,suchasE
+STEREL
+[8],whichperformcompile-timesafetycheckstorejectprogramsthatmayleadatrun-timetononterminatingcomputationswitharound. However,whileE
+STERELisaprogramming
+language for reactive systems, reactive modules is a modeling language. This has led usto many choices different from synchronous languages. For example, reactive modulessupport both explicit state and nondeterminism, which is convenient for describing high-level or incomplete designs, and can be used for modeling asynchronous processes thatproceed at independent speeds. The envisioned scenario is the one in which a variety ofdifferent programming languages are translated into reactive modules, and veriﬁcation isthen performed on the resulting modules.
+Latchedvs.updatedvalues. Ineachround,everyvariable xhastwovalues. Thevalueof
+xatthebeginningoftheroundiscalledthe latchedvalue ,andthevalueof xattheendofthe
+roundiscalledthe updatedvalue . Weuseunprimedsymbols,suchas x,torefertolatched
+values,andprimedsymbols,suchas x
+0,torefertothecorrespondingupdatedvalues. Given
+a setXof unprimed symbols, we write X0for the set of corresponding primed symbols.
+
+--- Page 5 ---
+REACTIVE MODULES 11
+Initialvs.updateactions. Themodule Pproceedsinasequenceofrounds.Theﬁrstround
+isaninitializationround ,duringwhichthevariablesin XPareinitialized.Eachsubsequent
+round is an update round , during which the variables in XPare updated. The initialization
+and updating of variables are speciﬁed by actions. Given two sets XandYof variables,
+anactionfromXtoYis a binary relation between the valuations for Xand the valuations
+forY. The actionﬁfromXtoYisexecutable if for every valuation sforX, the number
+of valuations tforYwith.s;t/2ﬁis nonzero and ﬁnite. Executable actions are enabled
+in all states and ensure ﬁnitely branching nondeterminism.
+Atoms vs. modules. The controlled variables of a module Pare partitioned into atoms;
+that is, every controlled variable of Pis controlled by one and only one atom of P. The
+initialization round and all update rounds consist of several subrounds, one for the envi-ronment and one for each atom. For each atom A, in theA-subround of the initialization
+round, all variables controlled by Aare initialized simultaneously, as deﬁned by an initial
+action. In the A-subround of each update round, all variables controlled by Aare updated
+simultaneously, as deﬁned by an update action.
+Deﬁnition 1 [Atom]. LetXbe a ﬁnite set of typed variables. An X-atom A consists of
+a declaration and a body. The atom declaration consists of a set ctrX
+AµXofcontrolled
+variables, a setreadX AµXofread variables , and a set waitXAµXnctrXAofawaited
+variables. The atom body consists of an executable initial action Init AfromwaitX0
+Ato
+ctrX0
+Aand an executable update action UpdateAfromreadX A[waitX0
+AtoctrX0
+A.
+In the initialization round, the initial action of the atom Aassigns initial values to the
+controlled variables as a nondeterministic function of the initial values of the awaitedvariables. In each update round, the update action of Aassigns updated values to the
+controlledvariablesasanondeterministicfunctionofthelatchedvaluesofthereadvariablesandtheupdatedvaluesoftheawaitedvariables. Hence,ineachround,the A-subroundcan
+takeplaceonlyafterallawaitedvariableshavealreadybeenupdated. Thevariable y awaits
+the variable x, writteny´
+Ax,i fy2ctrXAandx2waitXA. Now, we can deﬁne reactive
+modules.
+Deﬁnition 2 [Module]. A.reactive/module P consists of a declaration and a body. The
+module declaration is a ﬁnite set XPof typed variables that is partitioned as shown in
+Table1. Themodulebodyisaset APofXP-atomssuchthat(1) .S
+A2APctrXA/DctrXP;
+(2) for all atoms AandBinAP,ctrXA\ctrXBD;; and (3) the transitive closure
+´PD.S
+A2AP´A/Cis asymmetric.
+The ﬁrst two conditions ensure that the atoms of Pcontrol precisely the variables in
+ctrXP, and that each variable in ctrXPis controlled by precisely one atom. The third
+condition ensures that the await dependencies among the variables in XPare acyclic. A
+linear order A0;:::;Ak¡1of the atoms inAPisconsistent if for all 0•i<j<k, the
+awaitedvariablesof Aiaredisjointfromthecontrolledvariablesof Aj. Theasymmetryof
+´Pensures that there exists a consistent order of the atoms in AP.
+
+--- Page 6 ---
+12 ALUR AND HENZINGER
+Module execution. When executing the module P, in each round, ﬁrst the external vari-
+ables are assigned arbitrary values of the correct types, and then the atoms in APare
+executed in an arbitrary consistent order A0;:::;Ak¡1. Speciﬁcally, in the initialization
+round,aftertheexternalvariableshavebeeninitialized,theinitialactionof A0isfollowed
+by the initial action of A1etc.; and in each update round, after the external variables have
+been updated, the update action of A0is followed by the update action of A1etc. In this
+manner, all awaited values are available when they are needed during the execution, andthuseveryroundcanbecompletedin kC1subrounds—onesubroundfortheenvironment
+followedbyonesubroundforeachatom. Moreover,allnondeterminisminthecompletionofaroundiscausedbythenondeterminismoftheenvironmentandbythenondeterminismof individual atoms, not by the order of the atoms.
+3. Examples of reactive modules
+Thesyntaxweuseforspecifyingmoduleswillbecomprehensibleonceafewconventions
+are explained. Variable declarations are indicated by keywords such as awaits, for the
+awaited variables of an atom, or private, for the private variables of a module. The initial
+and update actions of atoms are speciﬁed by the keywords initandupdate, followed by
+nondeterministic guarded commands. The combined keyword init update indicates that
+the guarded command that follows speciﬁes both the initial and update actions. If severalguardsofaguardedcommandaretrue,thenoneofthecorrespondingassignmentsischosennondeterministically;ifnoneoftheguardsaretrue,thenallcontrolledvariablesobtaintheirdefault values. In the initialization round, the default initial value of a variable is chosennondeterministically(thisislegalonlyifthevariablehasﬁnitetype). Ineachupdateround,thedefaultupdatedvalueofavariableisequaltothelatchedvalueofthevariable(i.e.,thevalue of the variable stays unchanged). The default values are also invoked if a controlledvariable does not appear on the left-hand side of an assignment, or if the initial commandis omitted altogether.
+3.1. Synchronous circuits
+Synchronous circuits are built from logic gates and memory cells that are driven by a
+sequence of clock ticks. Each logic gate computes a boolean value once per clock cycle,and each memory cell stores a boolean value from one clock cycle to the next. We modeleach logic gate and each memory cell as a reactive module so that every update roundrepresentsaclockcycle. Allsequentialcircuitscanbeconstructedfromthebuildingblocksshown in ﬁgure 1.
+The module Notmodels a synchronous
+NOTgate, which takes a boolean input and
+produces a boolean output. The input is modeled as an external variable, in, because it is
+modiﬁedbytheenvironmentandvisibletothegate.Theoutputismodeledasaninterfacevariable, out, because it is modiﬁed by the gate and visible to the environment. In the
+initializationround,the
+NOTgatewaitsfortheinputvaluetobeinitializedbeforecomputing
+the initial output value, by negating the initial input value. In each update round, the NOT
+
+--- Page 7 ---
+REACTIVE MODULES 13
+Figure 1. Synchronous NOTgate,ANDgate, and latch.
+gate waits for the input value to be updated before computing the next output value, by
+negating the updated input value.
+The module Andmodels a synchronous ANDgate that produces the boolean output out
+as a function of the two boolean inputs in1andin2. In each round, the interface variable
+outisinitializedorupdatedafterbothexternalvariables in1andin2havebeeninitializedor
+updated.
+The synchronous latch Latchtakes the two boolean inputs setandreset, produces the
+booleanoutput out,andmaintainstheprivatebit state.Ineachupdateround,thelatchcopies
+itsstatetotheinterfacevariable out,withoutwaitingfortheupdatedvaluesoftheexternal
+
+--- Page 8 ---
+14 ALUR AND HENZINGER
+variables. In a later subround, after both external variables have been updated, the latch
+updates its state: if both updated external variables are low, then statestays unchanged; if
+onlysetis high, then stategoes to 1; if only resetis high, then stategoes to 0; if both are
+high,then stategoestoanarbitraryvalue. Intheinitializationround,theoutputofthelatch
+isarbitrary,andthestateofthelatchisinitializedafterbothinputshavebeeninitialized. Ifboth inputs are initially low, then the initial state of the latch is arbitrary, but equal to theinitial output.
+History-freevariablesinveriﬁcation. Givenamodule P,avariable xofPishistory-free
+ifxis not read by any atom of P. Then, the update commands of Pcan refer only to the
+updated value x
+0and not to the latched value x. In synchronous circuits, all variables that
+represent wires are history-free. Speciﬁcally, all variables of ﬁgure 1 except for the latchstate,state, are history-free. In each round, the possible updated values of a history-free
+variablexdependonlyonthelatchedvaluesofvariablesthatarenothistory-free,andonthe
+updated values of variables other than x. In this way, history-free variables are analogous
+to the combinational variables of hardware description languages, the selection variablesof C
+OSPAN[18], and the pointwise functions of dataﬂow languages. Hence, during the
+veriﬁcationofamodulebyexplicitsearchthroughthestatespace,thevaluesofhistory-freevariablescanbeomittedfromthesearchstack. Similarly,duringthesymbolicveriﬁcationofamodule,thehistory-freevariablescanbeeliminatedusingexistentialquantiﬁcationineach image-computation step.
+3.2. Asynchronous shared-memory programs
+Asanexampleofaconcurrentprogramconsistingofprocessesthatcommunicatethrough
+read-sharedvariables,weconsideramutual-exclusionprotocol,whichensuresthatnotwoprocesses simultaneously access a common resource. The modules P
+1andP2of ﬁgure 2
+modelthetwoprocessesofPeterson’ssolutiontothemutual-exclusionproblemforsharedvariables. Each process P
+ihas a program counter pciand a ﬂag xi, both of which can be
+observedbytheotherprocess. Theprogramcounterindicateswhetheraprocessisoutsideitscriticalsection( pc
+iDoutCS),requestingthecriticalsection( pciDreqCS),oroccupyingthe
+criticalsection( pciDinCS). Ineachupdateround,aprocesslooksatthelatchedvaluesof
+allvariablesand,nondeterministically,eitherupdatesitscontrolledvariablesorsleeps(i.e.,leaves the controlled variables unchanged), without waiting to see what the other processdoes. Notethateachprocessmaysleepforarbitrarilymanyrounds: nondeterminismisusedto ensure that there is no relationship between the execution speeds of the two processes.
+Interleaving. Unlike in interleaving models, both processes may modify their variables
+in the same round. While Peterson’s protocol ensures mutual exclusion even under theseweaker conditions, if one were to insist on the interleaving assumption, one would add athird module that, in each update round, nondeterministically schedules either or none ofthe two processes. The modeling of interleaving by a scheduler module introduces onlyhistory-free variables, and thus, does not increase the search space during veriﬁcation.Alternatively, one could describe the complete protocol as a single module containing a
+
+--- Page 9 ---
+REACTIVE MODULES 15
+Figure 2. Asynchronous mutual-exclusion protocol.
+singleatomwhoseupdateactionistheunionoftheupdateactionsoftheatomsofﬁgure2.
+The guarded command that speciﬁes a union of actions consists simply of the union ofall guarded assignments of the individual actions. This style of describing asynchronousprograms as an unstructured collection of guarded assignments is pursued in formalismssuch as U
+NITY[10] and M URØ[12].
+Write-shared variables. The original formulation of Peterson’s protocol uses a single
+write-sharedbooleanvariable x,whosevaluealwayscorrespondstothevalueofthepred-
+icatex1Dx2in our formulation. If one were to insist on modeling xas a write-shared
+variable, one would add a third module with the interface variable xand awaited external
+variables such as Pisetsxto0, which is a boolean interface variable of the ith process
+that indicates when the process wants to set xto 0. Since all of these variables with the
+exception of xare history-free, the modeling does not increase the search space during
+veriﬁcation. This style of describing write-shared memory makes explicit what happenswhen several processes write simultaneously to the same location.
+
+--- Page 10 ---
+16 ALUR AND HENZINGER
+Figure 3. Synchronous message-passing protocol.
+3.3. Synchronous message-passing protocols
+The modules SenderandReceiver of ﬁgure 3 communicate via events in order to transmit
+a stream of messages. We write x:Eto declare xto be a boolean variable that is used
+for modeling events. To issue an event represented by x, we write x!, which stands for the
+assignment x0:D:x. Tocheckifaneventrepresentedby xispresent,wewrite x?,which
+stands for the predicate x06Dx.
+Theprivatevariable pcofthesenderindicatesifitisproducingamessage( pcDproduce),
+orattemptingtosendamessage( pcDsend). Theprivatevariable pcofthereceiverindicates
+ifitiswaitingtoreceiveamessage( pcDreceive),orconsumingamessage( pcDconsume).
+Messagesareproducedbytheatom AProd,whichrequiresanunknownnumberofrounds
+
+--- Page 11 ---
+REACTIVE MODULES 17
+to produce a message. Once a message is produced, the event donePis issued, and the
+message is shown as msgP(the actual value of message is chosen nondeterministically
+from the ﬁnite type M). Once a message has been produced, the sender is ready to send
+themessage,and pcisupdated. Whenreadytosendamessage,thesendersleepsuntilthe
+receiverbecomesreadytoreceive,andwhenreadytoreceiveamessage,thereceiversleepsuntil the sender transmits a message.
+The synchronization of both agents is achieved by two-way handshaking in three sub-
+roundswithinasingleupdateround.Theﬁrstsubroundbelongstothereceiver.Ifthereceiveris ready to receive a message, it issues the interface event readyto signal its readiness to
+thesender.Thesecondsubroundbelongstothesender.Ifthesenderseestheexternaleventreadyandisreadytosendamessage,itissuestheinterfaceevent transmittosignalatrans-
+mission. The third subround belongs to the receiver. If the receiver sees the external eventtransmit,itcopiesthemessagefromtheexternalvariable msg
+Stotheprivatevariable msgR.
+Thesendergoesontowaitfortheproductionofanothermessage,andthereceivergoesontoconsume msg
+R. Messagesareconsumedbytheatom ACons,whichrequiresanunknown
+numberofroundstoconsumeamessage. Onceamessageisconsumed,theevent doneCis
+issued,theconsumedmessageisshownas msgC,andthereceiverwaitstoreceiveanother
+message.
+Event variables in veriﬁcation. Like history-free variables, event variables are also used
+only for interaction within a round, and their actual values at the beginning of a round areimmaterial. In a sense, the values of event variables behave like labels on the transitionsof a state-transition graph, unlike the values of other variables, which behave like labelson the states. Consequently, during explicit veriﬁcation, the values of event variables canbe omitted from the search stack, and during symbolic veriﬁcation, event variables can beeliminated using existential quantiﬁcation.
+4. Semantics of reactive modules
+The execution of a module results in a trace of observations. Reactive modules are related
+viaatracesemantics: roughlyspeaking,onemodule implements (orreﬁnes)anothermodule
+ifallpossibletracesoftheformer,moredetailedmodulearealsopossibletracesofthelatter,more abstract module.
+4.1. The trace language of a module
+LetPbe a reactive module. As indicated earlier, a state of Pis a valuation for the set X
+P
+of module variables. We write 6Pfor the set of states of P.
+Astatesofthemodule Pisinitialifitcanbeobtainedbyexecutingallinitialactionsof
+Pinaconsistentorder: foreachatom A2AP,.s0[waitX0
+A];s0[ctrX0
+A]/2InitA.2Wewrite
+InitPfor the set of initial states of the module P. The set InitPis nonempty. In fact, for
+every valuation sefor the external variables of P, there is a nonzero but ﬁnite number of
+initial states swiths[extlXP]Dse. This is because all initial actions are executable.
+
+--- Page 12 ---
+18 ALUR AND HENZINGER
+For two states sandtofP, the state tis asuccessor ofs, writtens!Pt,i ftcan be
+obtained from sby executing all update actions of Pin a consistent order: for each atom
+A2AP,.s[readX A][t0[waitX0
+A];t0[ctrX0
+A]/2UpdateA. Thebinaryrelation !Poverthe
+statespace6Piscalledthe transitionrelation ofthemodule P. Thetransitionrelation !P
+is serial (i.e., every state has at least one successor). In fact, for every state sofP, and for
+every valuation tefor the external variables of P, there is a nonzero and ﬁnite number of
+statestwiths!Ptandt[extlXP]Dte. Thisisbecauseallupdateactionsareexecutable. In
+otherwords,amoduledoesnotconstrainthebehavioroftheexternalvariablesandinteractswith its environment in a nonblocking way.
+In this way, the module Pdeﬁnes a state-transition graph with the state space 6
+P, the
+initial states InitP, and the transition relation !P. The initialized paths of this graph are
+called the trajectories of the module: a trajectory ofPis a ﬁnite sequence s0;:::;sn
+of states of Psuch that (1) the ﬁrst state s0is initial and (2) for all 0 •i<n, the state
+siC1is a successor of si. A statesofPisreachable if there is a trajectory of Pwhose last
+stateiss.IfNsDs0;:::;snisatrajectoryof P,thenthecorrespondingsequence Ns[obsXP]D
+s0[obsXP];:::;sn[obsXP]ofobservationsiscalleda traceofP.Thus,atracerecordsthe
+sequenceofobservationsthatmayresultfromexecutingthemoduleforﬁnitelymanysteps.Thetrace language of the module P, denoted L
+P, is the set of traces of P. By deﬁnition,
+every preﬁx of a trajectory is also a trajectory, and hence, every preﬁx of a trace is also atrace. Since the set of initial states is nonempty, and the transition relation is serial, everytrajectory of a module, and hence also every trace, can be extended.
+Proposition1. Foreverymodule P ;thetracelanguage L
+Pispreﬁx-closedandcontains
+traces of arbitrary length.
+It follows that a module cannot deadlock. In modeling, therefore, a deadlock situation
+must be represented by a special state with a single outgoing transition back to itself.
+4.2. The implementation preorder between modules
+Thesemanticsofthemodule Pconsistsofthetracelanguage LP,aswellasallinformation
+thatisnecessaryfordescribingthepossibleinteractionsof Pwiththeenvironment: theset
+intfXPofinterfacevariables,theset extlXPofexternalvariables,andtheawaitdependen-
+cies´P\.intfXP£obsXP/between interface variables and observable variables (there
+cannot be any await dependencies between external variables and other variables).
+Deﬁnition3 [Implementation ]. Themodule P implements themodule Q,writtenP„Q,
+ifthefollowingconditionsaremet: (1)everyinterfacevariableof Qisaninterfacevariable
+ofP;(2)everyexternalvariableof Qisanobservablevariableof P;(3)forallobservable
+variables xofQandallinterfacevariables yofQ,ify´Qx,theny´Px;and(4)ifNsisa
+trace ofP, then the projection Ns[obsXQ] is a trace of Q.
+The ﬁrst three conditions ensure that the compatibility constraints imposed by Pon
+its environment are at least as strong as those imposed by Q. The fourth condition is
+
+--- Page 13 ---
+REACTIVE MODULES 19
+conventional trace containment. Intuitively, if P„Q, then the module Pisas detailed as
+themodule Q: theimplementation Phaspossiblymoreinterfaceandexternalvariablesthan
+the speciﬁcation Q; some external variables of Qmay be interface variables of P, and
+thusaremoreconstrainedin P;theimplementation Phaspossiblymoreawaitdependencies
+among its observable variables than the speciﬁcation Q; andPhas possibly fewer traces
+thanQ, and thus more constraints on its execution. It is easy to check that every module
+Pimplementsitself,andthatifamodule Pimplementsanothermodule Q,which,inturn,
+implements a third module R, thenPalso implements R.
+Proposition 2. The implementation relation „is a preorder on modules .i.e.;reﬂexive
+and transitive /.
+We write P»DQifPimplements QandQimplements P. It follows that»Dis an
+equivalence relation on modules. The meaningof a module Pis the»D-equivalence class
+ofP.
+4.3. Special classes of atoms and modules
+Combinational vs. sequential atoms. An atom Aiscombinational if it has (1) no read
+variables and (2) identical initial and update actions: readX AD;, andInitADUpdateA.
+In each update round, the updated values of the controlled variables of a combinationalatom depend only on the updated values of other variables, and not on any latched values.Furthermore,acombinationalatomcannotdistinguishbetweentheinitializationroundandlater rounds. If an atom is not combinational, then it is called sequential . For example, in
+ﬁgure 1, the atoms of the modules NotandAndand the atom that controls the variable
+stateof the module Latchare combinational; the atom that controls the variable outof
+Latchissequential. Notethatacombinationalatommaycontrolsomevariablesthatarenot
+history-free,andanatommaybesequentialdespitecontrollingonlyhistory-freevariables.The two cases apply to the two atoms of the module Latch.
+For further illustration of the difference between combinational and sequential atoms,
+consider the following example. Given two variables xandyof the same type, we want x
+to duplicate the behavior of y. The combinational atom
+ACombCopy: atomxawaitsy
+init update
+[]true!x
+0:Dy0
+copiesyintoxwithoutdelay,andensuresthatboth xandyhavethesamevalueattheend
+of each round. The sequential atom
+ASeqCopy: atomxreadsy
+update
+[]true!x0:Dy
+
+--- Page 14 ---
+20 ALUR AND HENZINGER
+copiesyintoxwith a delay of one round. In each update round, xis assigned the value
+ofyatthebeginningoftheround(theinitialcommandisirrelevantforthepurposesofthis
+example).
+Lazy vs. eager atoms. An atom sleepsin an update round if the values of all controlled
+variables stay unchanged. An X-atomAislazyif it may sleep in every update round: for
+all valuations sandtforX,.s[readX A][t0[waitX0
+A];s0[ctrX0
+A]/2UpdateA. A sufﬁcient
+syntactic condition for laziness is the presence of the guarded assignment “ true!”i n
+the update command, which leaves the values of all controlled variables unchanged. Forexample,theatomsofthemodules P
+1andP2fromﬁgure2arelazy. Typically,lazyatoms
+arenondeterministicandsequential,withallcontrolledvariablesbeingreadinordertokeeptheir values unchanged.
+If an atom is not lazy, then it is called eager. Both atoms ACombCopy and ASeqCopy
+areeager. Intheﬁrstcase,allupdatesof xfollowimmediately,withinthesameround,the
+correspondingupdatesof y;inthesecondcase,theupdatesof xaredelayedbyexactlyone
+round. By contrast, the lazy atom
+ALazyCopy: atomxreadsxawaitsy
+init update
+[]true!x
+0:Dy0
+[]true!
+copiesyintoxatarbitrarytimes. Ineachupdateround,eitherthevalueof xstaysunchanged,
+or it is set to the updated value of y. Consequently, some values of ymay not be copied
+intox.
+Event-drivenvs.round-drivenatoms. Ineachupdateround,anatomcannoticechanges
+in the values of awaited variables. If an awaited variable is also read, then the atom candirectlycomparethelatchedvaluewiththeupdatedvalue. Ifanawaitedvariableisnotread,then the atom can remember the latched value from the previous round, by storing it in acontrolled variable, and still compare the latched value with the updated value. Therefore,each change in the value of an awaited variable is an observable event. An X-atomAis
+event-driven ifitmaysleepineveryupdateroundinwhichnoobservableeventoccurs;that
+is, the atom may sleep whenever the values of all awaited variables stay unchanged: forallvaluations sforX,.s[readX
+A][s0[waitX0
+A];s0[ctrX0
+A]/2UpdateA. Whiletheprogress
+of a lazy atom cannot be enforced at all, the progress of an event-driven atom Acan be
+enforcedbyotheratomsthatmodifyawaitedvariables. However,theprogressofanevent-drivenatomcannotbeenforcedsolelybytheexpirationofrounds. Hence,ifanatomisnotevent-driven, then it is called round-driven .
+A sufﬁcient syntactic condition for being event-driven is the presence of a conjunct of
+theformx?ineachguardoftheupdatecommand. Second,everylazyatomisevent-driven.
+Forexample,allatomsofthemodules SenderandReceiverfromﬁgure3areevent-driven.
+Third,everycombinationalatomisevent-driven. Thisisbecauseiftheawaitedvariablesdonotchangeinanupdateround,thenthecombinationalatommaycomputethesamevaluesfor the controlled variables as in the previous round. For example, while the sequential
+
+--- Page 15 ---
+REACTIVE MODULES 21
+atomASeqCopyisround-driven,thebehaviorofthecombinationalatom ACombCopycan
+be alternatively deﬁned by the atom
+AEventCopy: atomxreadsx;yawaitsy
+init
+[]true!x0:Dy0
+update
+[]y06Dy!x0:Dy0
+becausethevalueof xneedstobemodiﬁedonlywhenthevalueof ychanges.Thisexplicitly
+event-driven speciﬁcation of immediate copying, however, reads both xandy, and is no
+longercombinational( yisreadtocheckifthevalueof ychanges,and xisreadtokeepthe
+value ofxunchanged).
+Asynchronous vs. synchronous modules. A module stuttersin an update round if the
+valuesofallinterfacevariablesstayunchanged. Asynchronousmodulesaredeﬁnedsothatthey may stutter in every update round.
+Deﬁnition4 [Asynchrony ]. Amodule Pisasynchronous ifallinterfacevariablesof Pare
+controlled by lazy atoms. Otherwise, Pis asynchronous module.
+Itfollowsthattheenvironmentcannotenforcetheobservableprogressofanasynchronous
+module. While an asynchronous module can privately record all changes in the values ofexternalvariables,allupdatesofinterfacevariablesproceedataspeedthatisindependentoftheenvironmentspeed. Forexample,themodules P
+1andP2fromﬁgure2areasynchronous.
+Round-insensitivevs.round-sensitivemodules. Amodule sleepsinanupdateroundifthe
+valuesofallcontrolledvariablesstayunchanged,andtheenvironment stuttersinanupdate
+round if the values of all external variables stay unchanged. Round-insensitive modulesaredeﬁnedsothattheymaysleepineveryupdateroundinwhichtheenvironmentstutters.
+Deﬁnition5 [Round-insensitivity ]. Amodule Pisround-insensitive ifallatomsof Pare
+event-driven. Otherwise, Pis around-sensitive module.
+It follows that the trace language of a round-insensitive module Pis closed under the
+insertionofstuttersteps: if a
+0;:::;anisatraceof P,thensoaretheobservationsequences
+a0;:::;ai;ai;:::;anforall0•i•n. Forexample,themodules SenderandReceiverfrom
+ﬁgure 3 are round-insensitive.
+Asynchrony and round-insensitivity are independent: a module may be synchronous
+andround-sensitive,asynchronousandround-sensitive,synchronousandround-insensitive,or asynchronous and round-insensitive. The difference between asynchrony and round-insensitivity is illustrated by the three counters shown in ﬁgure 4. While the environmentcannot enforce observable progress of an asynchronous module, it can enforce obser-vable progress of a round-insensitive module by modifying external variables. A round-insensitivemodule,ontheotherhand,cannotcountrounds,butonlychangesinthevalues
+
+--- Page 16 ---
+22 ALUR AND HENZINGER
+Figure 4. Three counters.
+ofexternalvariables.Inourexample,theround-sensitivesynchronouscounter RoundCount
+is incremented in each round, the round-insensitive synchronous counter EventCount is
+incremented with every occurrence of the external event tick, and the round-insensitive
+asynchronous counter AsyncCount is incremented nondeterministically.
+5. Spatial operations on reactive modules
+We create complex modules from simple modules using the three spatial operations of
+variable renaming, parallel composition, and variable hiding, and the two temporal opera-tions of round abstraction and triggering. Spatial operations manipulate the variables of amodule,leavingtheunderlyingnotionofroundﬁxed;temporaloperationsmanipulatewhathappensduringaround,leavingthevariablesﬁxed. Wediscussthethreespatialoperationsin this section, and the two temporal operations in the next.
+
+--- Page 17 ---
+REACTIVE MODULES 23
+All ﬁve operations fon modules are compositional in the sense that the equivalence
+relation»Dis a congruence with respect to f: for all modules PandQ,i fP„Q, then
+f.P/„f.Q/. Thus, if we prove that module Pis»D-equivalent to module Q, thenPcan
+besubstitutedfor Qineverycontextwithoutaffectingthemeaningofthecomplexmodule.
+Furthermore, in order to prove that f.P/implements f.Q/, it sufﬁces to prove that P
+implements Q. Inthisway,reasoningaboutcomplexmodulescanbereducedtoreasoning
+about simpler submodules.
+5.1. Variable renaming
+The renaming operation is useful for creating different instances of a module, and for
+avoiding name conﬂicts. Let Pbe a module, and let xandybe two variables of the same
+typesuchthat yisnotinXP. Thenthemodule P[x:Dy]resultsfrom Pbyrenaming xtoy.
+Henceforth,wheneverwewrite P[x:Dy],weassumethat xandyhavethesametype,and
+thatyisnotamodulevariableof P. Wemakeliberaluseofnotationsuchas P[x;y:Dy;x]
+forP[x:Dz][y:Dx][z:Dy]. We furthermore assume that for any two modules, a private
+variable of one module is not a module variable of the other module. This can always beachieved by renaming private variables, which does not change the meaning of a module.It is obvious that the renaming operation is compositional: for all modules PandQ,i f
+P„Q, thenP[x:Dy]„Q[x:Dy].
+5.2. Parallel composition
+The composition operation combines two modules into a single module whose behavior
+captures the interaction between the two component modules. The two modules Pand
+Qarecompatible if (1) the interface variables of PandQare disjoint, and (2) the await
+dependenciesamongtheobservablevariablesof PandQareacyclic—thatis,thetransitive
+closure.´
+P[´Q/Cis asymmetric. It follows that if PandRare compatible modules,
+andP„Q, thenQandRare also compatible.
+Deﬁnition6 [Composition ]. IfPandQaretwocompatiblemodules,thenthe composition
+PkQis the module with the set privXPkQDprivXP[privXQof private variables, the set
+intfXPkQDintfXP[intfXQof interface variables, the set extlXPkQD.extlXP[extlXQ/n
+intfXPkQof external variables, and the set APkQDAP[AQof atoms.
+Itiseasytocheckthatfortwocompatiblemodules PandQ,thecomposition PkQisagain
+amodule. Thecomposition PkQisasynchronousiffboth PandQareasynchronous,and
+PkQis round-insensitive iff both PandQare round-insensitive. Henceforth, whenever
+we write PkQ, we assume that the modules PandQare compatible. The composition
+operationonmodulesiscommutativeandassociative. WethereforeomitparentheseswhenwritingPkQkR.
+Parallelcompositionbehaveslikelanguageintersection.Thisiscapturedbythefollowing
+proposition,whichassertsthatthetracesofacompoundmodulearecompletelydetermined
+
+--- Page 18 ---
+24 ALUR AND HENZINGER
+by the traces of the component modules. In particular, if PandQhave identical observa-
+tions, then LPkQDLP\LQ.
+Proposition 3. Let P and Q be two compatible modules ;and letNa be a ﬁnite sequence
+ofobservationsofthecompoundmodule P kQ. Then;Na belongstothelanguage L PkQiff
+the projectionNa[obsXP]belongs to L Pand the projectionNa[obsXQ]belongs to L Q.
+Itfollowsthat,uptoprojection,thetracelanguageofacompoundmoduleisasubsetof
+the trace language of each component. Hence, the composition of two modules creates amodule that is equally or more detailed than its components. This is captured by the ﬁrstpartofthefollowingproposition. Thesecondpartassertsthatthecompositionoperationiscompositional.
+Proposition 4. Let P;Q;and R be three modules such that P and R are compatible.
+Then.1/PkR„P;and.2/P„Q implies PkR„QkR.
+Proof:Part(1)followsfromProposition3. Forpart(2),considertwomodules PandQ
+such that P„Q, and a module Rthat is compatible with P. ThenRis also compatible
+withQ. The deﬁnition of implementation has four conditions. The ﬁrst three conditions
+are immediate. The fourth condition is trace containment. Let Nabe a trace of PkR.B y
+Proposition 3, the projection Na[obsX
+P] is a trace of P, and the projection Na[obsXR]i sa
+traceofR. SinceP„Q,theprojectionNa[obsXQ]isatraceof Q. AgainbyProposition3,
+the projectionNa[obsXQkR] is a trace of QkR. 2
+Itfollowsthat,inordertoprovethatacomplexcompoundmodule P1kP2(withalarge
+state space) implements a simpler compound module Q1kQ2(with a small state space),
+it sufﬁces to prove (1) P1implements Q1and (2)P2implements Q2. We call this the
+compositionalproofrule forreactivemodules. Itisvalid,becauseparallelcompositionand
+implementationbehavelikelanguageintersectionandlanguagecontainment,respectively.
+Assume-guaranteereasoning. Whilethecompositionalproofruledecomposestheveri-
+ﬁcation task of proving implementation between compound modules into subtasks, it maynot always be applicable. In particular, P
+1may not implement Q1for all environments,
+but only if the environment behaves like P2, and vice versa. For such cases, an assume-
+guaranteeproofruleisneeded[2,4,13,25]. The assume-guaranteeproofrule forreactive
+modulesassertsthatinordertoprovethat P1kP2implements Q1kQ2,itsufﬁcestoprove
+(1)P1kQ2implements Q1, and (2) Q1kP2implements Q2. Both proof obligations (1)
+and (2) typically involve smaller state spaces than the original proof obligation, becausethe complex compound module P
+1kP2usually has the largest state space involved. The
+assume-guaranteeproofruleiscircular;unlikethecompositionalproofrule,itdoesnotsim-plyfollowfromthefactthatparallelcompositionandimplementationbehavelikelanguageintersection and language containment. Rather the proof of the validity of the assume-guarantee proof rule proceeds by induction on the length of traces. For this, it is crucialthat every trace of a module can be extended.
+
+--- Page 19 ---
+REACTIVE MODULES 25
+Proposition 5. Let P1and P2be two compatible modules ;and let Q 1and Q 2be two
+compatiblemodulessuchthateveryexternalvariableof Q 1kQ2isanobservablevariable
+of P1kP2.I fP1kQ2„Q1and Q1kP2„Q2;then P1kP2„Q1kQ2.
+Proof:Considerfourmodules P1,P2,Q1,andQ2suchthat(1) P1andP2arecompatible,
+(2)Q1andQ2are compatible, (3) every external variable of Q1kQ2is an observable
+variable of P1kP2, (4)P1kQ2„Q1, and (5) Q1kP2„Q2. We wish to establish that
+P1kP2„Q1kQ2. The deﬁnition of implementation has four conditions. Let us consider
+these four proof obligations one by one.
+Condition 1. every interface variable of Q1kQ2is an interface variable of P1kP2. Let
+xbe an interface variable of Q1kQ2. Without loss of generality, assume that xis an
+interfacevariableof Q1.Assumption(4)impliesthat xisaninterfacevariableof P1kQ2.
+Assumption (2) implies that xis not an interface variable of Q2. It follows, from the
+deﬁnition of parallel composition, that xis an interface variable of P1, and hence, of
+P1kP2.
+Condition 2. every external variable of Q1kQ2is an observable variable of P1kP2. This
+is assumption (3).
+Condition 3. for all observable variables xofQ1kQ2and all interface variables yof
+Q1kQ2,i fy´Q1kQ2x, theny´P1kP2x. We show the stronger claim that for interface
+variables z1;:::;ziofP1kP2,interfacevariables y1;:::;yjofP1kP2orQ1kQ2,and
+observable variables xofQ1kQ2,i f
+yDz1´P1kP2¢¢¢zi´P1kP2y1´R1¢¢¢yj´Rjx;
+whereRl2fP1;P2;Q1;Q2gforall1•l•j,theny´P1kP2x. Condition(3)thenfollows
+from the special case that iD0, and hence, yDy1.
+Intheclaim,sincetherelation ´P1kP2isacyclicbyassumption(1),thevariables z1;:::;zi
+areallpairwisedistinct. Therefore0 •i•n,wherenisthenumberofinterfacevariablesof
+P1kP2.Weprovetheclaimbydecreasinginductionon i: consider i2f0;:::;ng,assumeas
+inductionhypothesisthat i<nimpliestheclaimholdsfor iC1,andshowtheclaimfor i.If
+jD0,theny´P1kP2xbythetransitivityof´P1kP2.I fj‚1,thentherearefourpossibilities
+forR1.IfR12fP1;P2g,theny1isaninterfacevariableof P1kP2. Theacyclicityof´P1kP2
+implies that i<n, and the claim follows by induction hypothesis (choose ziC1Dy1). If
+R1DQ1,theny1isaninterfacevariableof Q1,and,therefore,byassumption(2),itisnotan
+interfacevariableof Q2. Sincey1´Q1y2,fromassumption(4)itfollowsthat y1´P1kQ2y2.
+Sincey1is not an interface variable of Q2, it is an interface variable of P1, and therefore
+y1´P1u1´R0
+1¢¢¢uk´R0
+ky2,forinterfacevariables u1;:::;ukofP1kQ2,andR0
+l2fP1;Q2g
+for all 1•l•k. Again, the acyclicity of ´P1kP2implies that i<n, and the claim follows
+by induction hypothesis (choose ziC1Dy1). The ﬁnal case, R1DQ2, is symmetric to the
+previous case.
+Condition 4. ifNais a trace of P1kP2, then the projection of Nato the observable variables
+ofQ1kQ2is a trace of Q1kQ2. In the following, for simplicity we omit the explicit
+
+--- Page 20 ---
+26 ALUR AND HENZINGER
+use of projections. For example, if Xis a superset of obsXPandNais a sequence of
+valuationsfor X,whenwerefertoNaasatraceof P,whatwemeanisthattheprojection
+Na[obsXP] is a trace of P.
+We need to deﬁne some additional concepts. Given a module P, a setXof variables
+isawait-closed forPif for all observable variables xandyofP,i fy´Pxandy2X,
+thenx2X. For an await-closed set X, the pair.Na;b/consisting of a trace NaofPand a
+valuation bforXis anX-partial trace ofPif there exists an observation cofPsuch that
+(1)c[X\obsXP]Db[obsXP],and(2)Nacisatraceof P. Thus,partialtracesareobtained
+by executing several complete rounds followed by a partial round, in which only some oftheatomsareexecuted. Thefollowingfactsaboutpartialtracesfollowfromthedeﬁnitions.
+(A) IfP„QandXis an await-closed set of variables for P, thenXis an await-closed
+setofvariablesfor Q.I fP„Qand.Na;b/isanX-partialtraceof P,then.Na;b/isan
+X-partial trace of Q. Thus, trace containment is equivalent to containment of partial
+traces.
+(B) The partial traces of a compound module are determined by the partial traces of the
+component modules: for every await-closed set XforPkQ, every sequenceNaof
+observationsof PkQ,andeveryvaluation bforX,thepair.Na;b/isanX-partialtrace
+ofPkQi f fi ti sa n X-partial trace of both PandQ.
+(C) If.Na;b/is anX-partial trace of P, andcis a valuation for a set Yof variables of P,
+which is disjoint from both XandintfX
+P, then.Na;b[c/is an.X[Y/-partial trace
+ofP. This property is due the nonblocking nature of modules.
+LetX1;:::;Xmbe a partition of obsXP1kP2into disjoint subsets such that (1) each Xi
+eithercontainsonlyexternalvariablesof P1kP2,orcontainsonlyinterfacevariablesof P1,
+orcontainsonlyinterfacevariablesof P2,and(2)if y´P1kP2xandy2Xi,thenx2Xjfor
+somej<i. DeﬁneY0D;,andforall0•i<m,deﬁneYiC1DYi[Xi. Eachset Yiisawait-
+closed for P1kP2. For all 0•i•m, letLibe the set of Yi-partial traces of P1kP2, and
+letLDS
+0•i•mLi. We deﬁne the following order <on the partial traces in L: fori<m,
+if.Na;b/2Liand.Na;c/2LiC1andc[Yi]Db, then.Na;b/<.Na;c/; foriDm,i f.Na;b/2Li,
+then.Na;b/<.Nab;;/. Clearly, the order <is well-founded. We prove by well-founded
+induction with respect to <that for all 0•i•m, every partial trace in Liis aYi-partial
+trace ofQ1kQ2. Then, the case iD0 implies that every trace of P1kP2is also a trace of
+Q1kQ2.
+Consider.Na;;/inL0.I fNais the empty trace, then .Na;;/is a trace of all modules.
+Otherwise,NaDNbcfor some observation sequence Nband observation cofP1kP2. Then
+.Nb;c/is aYm-partial trace of P1kP2, and.Nb;c/<.Na;;/. By induction hypothesis, .Nb;c/
+is aYm-partial trace of Q1kQ2, and hence,.Na;;/is aY0-partial trace of Q1kQ2.
+Consider.Na;b/inLiC1for some 0•i<m. LetcDb[Yi]. Then.Na;c/is aYi-partial
+traceofP1kP2,and.Na;c/<.Na;b/. Byinductionhypothesis, .Na;c/isaYi-partialtraceof
+Q1kQ2. By fact (B) about partial traces, .Na;c/is aYi-partial trace of both Q1andQ2.
+Consider YiC1DYi[Xi. Without loss of generality, assume that Xicontains no interface
+variables of P2, and hence, by assumptions (2) and (5), no interface variables of Q2.B y
+fact (C) about partial traces, the Yi-partial trace .Na;c/ofQ2can be extended with any
+
+--- Page 21 ---
+REACTIVE MODULES 27
+valuation for Xi. In particular, .Na;b/is aYiC1-partial trace of Q2. Since.Na;b/2LiC1,
+by fact (B) about partial traces, .Na;b/is aYiC1-partial trace of P1, and therefore also of
+P1kQ2. From assumption (4) and fact (A) about partial traces, it follows that .Na;b/is a
+YiC1-partialtraceof Q1. Hencebyfact(B)aboutpartialtraces, .Na;b/isaYiC1-partialtrace
+ofQ1kQ2. 2
+5.3. Variable hiding
+The hiding of interface variables allows us to construct module abstractions of varying
+degrees of detail. For instance, after composing two modules, it may be appropriate toconvert some interface variables to private variables, so that they are used only for theinteraction of the component modules, and are no longer visible to the environment of thecompound module.
+Deﬁnition7 [Hiding]. Givenamodule Pandaninterfacevariable xofP,byhiding xin
+Pwe obtain the module hidexinP, which has the set privX
+P[fxgof private variables,
+the setintfXPnfxgof interface variables, the set extlXPof external variables, and the set
+APof atoms.
+Henceforth, whenever we write hidexinP, we assume that xis an interface variable
+ofP. We write hidex1;x2inPshort for the module hidex1in.hidex2inP/, which
+is identical to the module hidex2in.hidex1inP/. The hiding of a variable creates in
+a module that is equally or less detailed, and the hiding operation is compositional. Bothfacts are stated in the following proposition.
+Proposition 6. For all modules P and Q ;and every interface variable x of Q ;we have
+.1/Q„.hidexinQ/;and.2/if P„Q;then.hidexinP/„.hidexinQ/.
+From synchrony to asynchrony. Hiding preserves asynchrony, round-sensitivity, and
+round-insensitivity, but not synchrony. Hence, hiding is useful for constructing asyn-chronous modules from synchronous modules. Consider, for example, an asynchronousmoduleClockthat nondeterministically issues the interface event tick:
+moduleClock
+interface tick:E
+atomtickreadstick
+update
+[]true!tick!
+[]true!
+Then, given the synchronous counter EventCount from ﬁgure 4, we can implement the
+asynchronous counter AsyncCount using hiding:
+AsyncCount»Dhidetickin.EventCountkClock/
+
+--- Page 22 ---
+28 ALUR AND HENZINGER
+Figure 5. Asynchronous message-passing speciﬁcation.
+For a more elaborate example, recall the synchronous message-passing protocol from
+ﬁgure 3:
+moduleSendRecDSenderkReceiver
+After hiding the communication events, so that only the streams of produced messages
+(msgP)andconsumedmessages( msgC)remainvisible,weobtainanasynchronousmodule:
+moduleSendRecImplDhideready;transmit;msgSinSendRec
+The module SendRecImpl implements the asynchronous module SendRecSpec of ﬁgure 5,
+which contains a single lazy atom:
+SendRecImpl„SendRecSpec
+The module SendRecSpec speciﬁes the class of sliding-window protocols with window
+size 2: the stream of consumed messages results from delaying the stream of producedmessages such that at any point, at most two produced messages have not yet been con-sumed. If,asinitially, pcDcons
+ahead,thenthelatestproducedmessagehasalreadybeen
+consumed, so the consumer waits and the producer works on producing the next message;ifpcDin
+sync, then the consumer works on consuming the latest produced message, and
+theproducerworksonproducingthenextmessage;if pcDprodahead,thenthepreviously
+produced message, which is stored in msgW, has not yet been consumed, so the consumer
+works on that message and the producer, constrained by the window size 2, waits. WhileSendRecImpl implements the sliding-window speciﬁcation using synchronous handshak-
+ing, alternatively, SendRecSpec could be implemented by sender and receiver processes
+that communicate via asynchronous handshaking.
+
+--- Page 23 ---
+REACTIVE MODULES 29
+Figure 6. Two deﬁnitions of a synchronous ORgate.
+5.4. Spatial scaling
+The three operations of renaming, composition, and hiding allow us to construct a space
+hierarchy of modules. We illustrate this on the example of synchronous circuits.
+Figure6showstwomoduledeﬁnitionsforasynchronous ORgate. Themodule BehavOr
+speciﬁestheinput-outputbehaviorofan ORgatesimilartothedeﬁnitionofthesynchronous
+ANDgate from ﬁgure 1. The module StructOr builds an ORgate from an ANDgate and
+threeinverters. First,werenamethevariablesofthemodulesfromﬁgure1thatdeﬁnesyn-chronous
+ANDandNOTgatesinordertocreatethreeinstancesofa NOTgateandconnect,for
+example,theoutputofthe ANDgatewiththeinputofthethird NOTgate.Second,wecom-
+pose the four modules representing the ANDgate and the three NOTgates. Third, we hide
+thevariablesthatrepresentinternalwires,forexample,thewire z3thatconnectstheoutput
+oftheANDgatewiththeinputofthethird NOTgate. Itiseasytocheckthatthetwomodules
+BehavOr andStructOrare»D-equivalent; in particular, they have the same traces.
+Using the deﬁnitions of synchronous gates and latches from ﬁgure 1, and the three
+operations of renaming, composition, and hiding, we can build sequential circuits whoseclock cycles correspond to rounds. As an example, we design a three-bit binary counter.The counter takes two boolean inputs, represented by the external variables startandinc,
+for starting and incrementing the counter. The counter value ranges from 0 to 7, and isrepresented by three bits. We do not make any assumption about the initial counter value.Astartcommandresetsthecountervalueto0andoverridesanyincrementcommandthatisissued in the same round. An increment command increases the counter value by 1. If thecounter value is 7, the increment command changes the counter value to 0. In each round,thecounterissuesitsvalueasoutput—thelowbitontheinterfacevariable out
+0,themiddle
+bit on the interface variable out1, and the high bit on the interface variable out2.
+
+--- Page 24 ---
+30 ALUR AND HENZINGER
+Figure 7. Block diagram for a three-bit binary counter.
+Figure 7 shows a possible design of the three-bit counter from three one-bit counters.
+This design is deﬁned by the module Sync3BitCounter of ﬁgure 8 (for clarity, we some-
+times annotate both component and compound modules with the names of the observablevariables). Note that carry
+0waits for both startandinc, thatcarry1waits for carry0, and
+thatcarry2waits for carry1. It follows that all three bits of the counter are updated within
+a single round.
+Combinational loops. By identifying each clock cycle with a round, we cannot model
+combinationalloops,whichwouldresultincyclicawaitdependencies. ConsiderthemoduleUselessTransLatch fromﬁgure9,whichmodelsatransparentlatch: ineachroundinwhich
+thecontrolinput clkistrue,thedatainput iniswithoutdelaypropagatedtotheoutput out;
+andineachroundinwhichtheinput clkisfalse,theoutput outstaysunchanged.Themodule
+IllegalLoop composestwotransparentlatches. Sinceineachround,thecontrolinputsofthe
+
+--- Page 25 ---
+REACTIVE MODULES 31
+Figure 8. Three-bit binary counter.
+Figure 9. Naive model of a transparent latch.
+twolatchesarecomplementary,alldatadependenciescanberesolveddynamically,during
+execution. Our deﬁnition of await dependencies, however, is static, and therefore value-independent. Hence, IllegalLoop isnotalegalmodule: latch
+1´latch2andlatch2´latch1.
+Inthenextsection,wewillpresentalegalmodelforthiscircuit. Wewilluseseveralroundsto model a single clock cycle, and then collapse these rounds into a single round.
+
+--- Page 26 ---
+32 ALUR AND HENZINGER
+6. Temporal operations on reactive modules
+Eachmoduledeﬁneswhathappensduringaround. Thenotionofroundisglobal: whentwo
+modulesarecomposed,theroundsofbothcomponentmodulesaretakentooverlapperfectlyintime,nonebeingshorterorlongerthantheother. Throughouttheoperationsofrenaming,composition, and hiding, the notion of round stays unchanged: a complex module has thesame round as each of its submodules. Sometimes it is convenient, however, to changethe notion of what constitutes a round. For example, what happens during a round of acomplex module may best be deﬁned by what happens during several consecutive roundsof a submodule. For this purpose, we introduce the operations of round abstraction andtriggering.
+6.1. Round abstraction
+Inordertoreducethecomplexityofasystem,itisoftenusefultocombineseveralconsecu-
+tiveroundsintoasingle,moreabstractround. Thiscanbedonebyapplyingtheabstractionoperatornext. Intuitively, given a subset Yof the interface variables of a module P, the
+modulenextYforPcollapses consecutive rounds of Puntil one of the variables in Y
+changes its value. This is similar to the notion of sampling simulation for a complex sys-tem: we want to observe the behavior of the module Ponly at those instances when the
+value of some of the variables in Ychanges. As we compress several rounds into one, it
+isassumedthatanexternalvariablethatisreadstaysunchangedinall,exceptpossiblythelast,rounds,andanexternalvariablethatisawaitedstaysunchangedinall,exceptpossiblythe ﬁrst, rounds.
+LetPbe a module, and let YµintfX
+Pbe a subset of its interface variables. For two
+statessandtofP,thestate tisaY-successor ofsifthereexistsaﬁnitesequence s0;:::;sn
+of states of Psuch that the following three conditions are met:
+1.s0Ds; for all 0•i<n, the state siC1is a successor of si; andsnDt.
+2. For all 0<i<n,w eh a v e si[Y]Ds0[Y]; andsn[Y]6Ds0[Y].
+3. For every external variable xofP, if some atom of Preadsx, then for all 0 <i<n,
+we havesi[x]Ds0[x]; and if some atom of Pawaitsx, then for all 0 <i<n,w eh a v e
+si[x]Dsn[x].
+Around marker for the module Pis a (nonempty) set Yof interface variables of Psuch
+thatforeveryreachablestate sofP,andeveryvaluation tefortheexternalvariablesof P,
+there is a nonzero and ﬁnite number of Y-successors tofswitht[extlXP]Dte.I fYis a
+roundmarkerfor P,thenfromanyreachablestate,nomatterhowtheenvironmentupdates
+the external variables, the update actions of Pcan be iterated in a way that leads to the
+modiﬁcationofaninterfacevariablein Y. Foraﬁnite-state moduleP,allofwhosevariables
+range over ﬁnite types, it can be checked automatically if Yis a round marker for P,b y
+model checking a CTL formula of the form 829U.
+
+--- Page 27 ---
+REACTIVE MODULES 33
+Figure 10 . Round abstraction.
+Deﬁnition 8 [Abstraction ]. Given a module P,i fYis a round marker for P, then the
+abstraction nextYforPisthemodulewiththesamedeclarationas Pandasingleatom, AY
+P.
+Theatom AY
+Phastheset ctrXPofcontrolledvariables,theset readXPD.S
+A2APreadX A/
+of read variables, and the set waitXPD.S
+A2APwaitXA/\extlXPof awaited variables.
+The initial action of AY
+Pcontains all pairs of the form .s0[waitX0
+P];s0[ctrX0
+P]/, wheresis
+an initial state of P. The update action of AY
+Pcontains all pairs of the form .s[readX P][
+t0[waitX0
+P],t0[ctrX0
+P]/, wheretis aY-successor of s.
+As an example, consider the two modules shown in ﬁgure 10. The private variable
+countof the module Pis initially 0. As long as the latched value of the external variable
+xis true, the variable countis incremented modulo 10. The interface event yis issued
+whenever countis incremented from 9 to 0. The interface event zis issued whenever x
+is false. The setfy;zgis a round marker for P: every state with xDtrue(andcountDi)
+has afyg-successor with xDtrue(andcountD0) and afyg-successor with xDfalse(and
+countD0);andeverystatewith xDfalse(andcountDi)hasafzg-successorwith xDtrue
+(andcountDi)andafzg-successorwith xDfalse(andcountDi).Bycontrast,neither fyg
+
+--- Page 28 ---
+34 ALUR AND HENZINGER
+norfzgare round markers for P, because the initial state with xDtrue(andcountD0)
+does not have afzg-successor, and the initial state with xDfalse(andcountD0) does not
+have afyg-successor. The abstraction nextfy;zgforPis»D-equivalent to the module Q:
+whenever xis true,Qissues the interface event y, and whenever xis false,Qissues the
+interface event z.
+It is easy to check that if Yis a round marker for a module P, then the abstraction
+nextYforPisagainamodule. Henceforth,wheneverwewrite nextYforP,weassume
+thatYisaroundmarkerfor P. Iftheset intfXPofallinterfacevariablesisaroundmarker
+forP,thenthemodule nextintfXPforPiscalledthe stutterreduction ofP,anddenoted
+nextP. Ineachupdateround,thestutterreduction nextPiteratestheupdateactionsof P
+until some interface variable changes.
+We now show that the abstraction operation is compositional. For this purpose, we
+need to strengthen the deﬁnition of the implementation relation slightly. The module P
+environment-faithfully implements the module Q, writtenP„eQ,i fP„Qand for every
+externalvariable xofQ,(A)ifxisreadbysomeatomof Q,thenxisanexternalvariableof P
+thatisreadbysomeatomof P,and(B)if xisawaitedbysomeatomof Q,thenxisanexternal
+variable of Pthat is awaited by some atom of P. Environment-faithful implementations
+cannot constrain external variables by turning them into interface variables.
+Proposition 7. Let P and Q be two modules ;and let Y be a round marker for both P
+and Q. Then P„eQ implies.nextYforP/„.nextYforQ/.
+Proof:Consider two modules P0D.nextYforP/andQ0D.nextYforQ/. Assume
+thatP„Q,andassumeconditions(A)and(B)ofthedeﬁnitionfortheenvironment-faithful
+implementation of QbyP. We prove that P0„Q0. The deﬁnition of implementation has
+four conditions. The ﬁrst two conditions are immediate. For the third condition, consideranobservablevariable xofQ
+0andaninterfacevariable yofQ0,supposethat y´Q0x,and
+show that y´P0x. Sincey´Q0x, andQ0has a single atom, xis an external variable of
+(Q0and)Qthatisawaitedbysomeatomof Q. Fromassumption(B),itfollowsthat xisan
+external variable of P(andP0) that is awaited by some atom of P. SinceP„Q, andyis
+aninterfacevariableof( Q0and)Q,itisalsoaninterfacevariableof P(andP0). Therefore
+y´P0x.
+The fourth condition is trace containment. Let Nabe a trace of P0, and consider the
+trajectoryNsDs0;:::;snwithNs[obsXP0]DNa. Then, for all 0•i<n, the state siC1is a
+Y-successor of siaccording to P. Hence, by the deﬁnition of the nextoperator, we can
+introduceaﬁnitesequenceofstatesbetweeneachpairofstatesof Nstoobtainatrajectoryof
+Poftheform s0;s00;:::;s0k0;s1;s10;:::;s1k1;s2;:::;sn.Foreachstate sij,thevalueofthe
+round marker Yequalssi[Y], the value of each read external variable xofPequalssi[x],
+and the value of each awaited external variable xofPequalssiC1[x]. Since P„Q,
+there exists a trajectory of Qof the form t0;t00;:::;t0k0;t1;t10;:::;t1k1;t2;:::;tnsuch
+that for all 0•i•n,w eh a v e si[obsXQ]Dti[obsXQ], and for all 0•j•ki,w eh a v e
+sij[obsXQ]Dtij[obsXQ]. From assumptions (A) and (B), it follows that for all 0 •i<n,
+the statetiC1is aY-successor of tiaccording to Q. Hence,t0;:::;tnis a trajectory of Q0.
+Therefore,Nt[obsXQ0]DNs[obsXQ0]DNa[obsXQ0] is a trace of Q0. 2
+
+--- Page 29 ---
+REACTIVE MODULES 35
+Fromasynchronytoround-sensitivesynchrony. Everymoduleoftheform nextYforP
+is synchronous and round-sensitive. Hence, abstraction is useful for constructing round-sensitivesynchronousmodulesfromasynchronousmodules.Forexample,giventheasyn-chronous counter AsyncCount from ﬁgure 4, we can implement the round-sensitive
+synchronous counter RoundCount using abstraction:
+RoundCount»DnextAsyncCount
+Similarly, while the message-passing implementation SendRecImpl from Section 5.3 is
+asynchronous, its stutter reduction
+moduleRedSendRecDnextSendRecImpl
+is synchronous. In each round of RedSendRec , either a message is produced by the atom
+AProd, or a message is consumed by the atom ACons, or both.
+6.2. Temporal scaling
+Thenextoperator changes the notion of what happens during a round, and allows us to
+constructatimehierarchyofmodules. Thiscanagainbeillustratedwithcircuitexamples.In a ﬁrst example, we aggregate several clock cycles into an arithmetic operation; in asecond example, we aggregate several gate operations into a clock cycle.
+Considerthespeciﬁcation Add64ofa64-bitaddershowninﬁgure11. The32-bitadder
+Add32is speciﬁed similarly. We give two implementations of Add64usingAdd32.I fxis
+Figure 11 . Speciﬁcation and parallel implementation of a 64-bit adder.
+
+--- Page 30 ---
+36 ALUR AND HENZINGER
+Figure 12 . Sequential implementation of a 64-bit adder.
+a64-bitword,wewrite x0forthelesssigniﬁcant32bitsand x1forthemoresigniﬁcant32
+bits. Theﬁrstimplementation, ParAdd(ﬁgure11),usestwocopiesof Add32andconnects
+them appropriately. In each round, ParAddadds two 64-bit words by ﬁrst adding the less
+signiﬁcant half-words and then, in a later subround of the same round, adding the moresigniﬁcant half-words. Hence ParAdd„Add64.
+Thesecondimplementation, SeqAdd(ﬁgure12),usesasinglecopyof Add32andembeds
+it in additional circuitry, represented by the module AuxCircuitry . The submodule
+moduleSeqAddSubDAdd32[x;y;z;carry;oﬂ:Da;b;c;u;oﬂ]kAuxCircuitry
+requirestwoconsecutiveupdateroundstocomputea64-bitsum: itaddsthelesssigniﬁcant
+half-words in one round before adding the more signiﬁcant half-words in the subsequentround. The module SeqAddSub has four atoms. In each round, ﬁrst the variable roundis
+
+--- Page 31 ---
+REACTIVE MODULES 37
+Figure 13 . Correct model of a transparent latch.
+set to indicate if the less signiﬁcant ( roundD0) or the more signiﬁcant ( roundD1) half-
+wordsneedtobeadded.Second,thevariables a,b,anduareassignedtheproperinputvalues
+for the 32-bit addition. Third, the 32-bit addition is performed. Fourth, the output valuesof the 32-bit addition are assigned to the variables zand possibly v(intermediate carry),
+and ifroundD1, the event donesignals completion of the 64-bit addition. In SeqAdd, the
+tworoundsofeach64-bitadditionarecollapsed,sothat SeqAdd„Add64. Indeed,allthree
+models of the 64-bit adder are equivalent:
+Add64»DParAdd»DSeqAdd
+Combinational loops revisited. Round abstraction is also useful for modeling systems
+that otherwise cannot be modeled naturally as reactive modules because of the acyclicityrequirement on await dependencies. For example, using round abstraction, we can legallymodelthecircuit IllegalLoop fromﬁgure9usingtheschemeshowninﬁgure13.Unlikethe
+moduleUselessTransLatch , which awaits the data input in, the module UsefulTransLatch
+readsin, and thus delays its propagation to the output by a round. Then, for each constant
+control input clk, the variables of the module
+moduleLegalLoopSubD
+kUsefulTransLatch [in;out;clk:Dlatch
+1;latch2;clk]
+kUsefulTransLatch [in;out;clk:Dlatch2;latch1;notclk]
+kNot[in;out:Dclk;notclk]
+stabilize within a ﬁnite number of rounds—that is, after some ﬁnite number of rounds, the
+variablesof LegalLoopSub remainunchangedifanyadditionalroundsareexecuted(inour
+
+--- Page 32 ---
+38 ALUR AND HENZINGER
+case,asingleroundsufﬁces,butingeneral,thenumberofroundsdependsonthenumberof
+transparentlatchesinthecircuit).Whenthevariablesstabilize,aﬁxpointisreachedforthevalueslatch
+1andlatch2of the transparent latches. This signals the end of a clock cycle.
+Then, the control input clkcan change, and a new ﬁxpoint iteration starts, whose result
+represents the state of the circuit after another clock cycle, etc.
+Hence,wewanttoiteratetheupdateactionsofthemodule LegalLoopSub untiltheinter-
+face variables remain unchanged. This can be achieved by ﬁrst composing LegalLoopSub
+withamodule WatchLegalLoopSub thatwatchestheexecutionof LegalLoopSub andissues
+theevent stableoncetheinterfacevariablesof LegalLoopSub remainunchangedduringan
+updateround. Ingeneral,foranarbitrarymodule P,themonitormodule WatchPisdeﬁned
+as follows:
+moduleWatchP
+externalintfXP
+interface stable:E
+atomstablereadsstable;intfXPawaitsintfXP
+update
+[]intfXPDintfX0
+P!stable!
+Then we collapse rounds of LegalLoopSubkWatchLegalLoopSub until the event stable
+occurs. Letuswrite stabilizePasanabbreviationforthemodule hidestableinnextfstableg
+for.PkWatchP/. The result is the module LegalLoop of ﬁgure 13. Within every context,
+the module LegalLoop properly updates the values of the transparent latches every single
+round.
+Roundabstractioninveriﬁcation. Temporalpropertiesandimplementationrelationsfor
+ﬁnite-state modules can be checked algorithmically, by constructing the state-transitiongraphG
+Pthat underlies a module P. Consider the abstraction QD.nextYforP/. The
+search of GQmay be more efﬁcient than the search of GP, because abstraction may cause
+some variables to become history-free. More importantly, GQtypically has many fewer
+edges than GP, and therefore a smaller reachable state space. For example, in ﬁgure 10,
+in the abstract module nextfy;zgforP, the value of countis 0 in every reachable state.
+WhenGQis searched explicitly, the reachable states of Pnever have to be added to the
+searchstack. Rather,theedgesof GQareconstructedbyasecondarysearchin GP,whichis
+implementedusinganauxiliarystackthatisreleasedoncealledgesfromagivenvertexof
+GQhavebeenfound. Thisreductionofthereachablestatespaceissimilartosynchronous
+programming languages, where only macro-steps, rather than micro-steps, correspond toedges in the state-transition graph [14].
+Also the symbolic veriﬁcation of a system that consists of modules with nextoperators
+canbeperformedefﬁciently. Considerthemodule PD.nextY
+1forP1/k.nextY2forP2/.
+Each single image-computation step for Pcorresponds to iterating the transition relation
+ofP1untilsomevariablein Y1changes,anditerating,independently,thetransitionrelation
+ofP2until some variable in Y2changes. The experiments reported in [5] indicate that this
+scheme can enable the analysis of Pin cases where no analysis of P1kP2is feasible.
+
+--- Page 33 ---
+REACTIVE MODULES 39
+6.3. Triggering
+Hiding allows us to build asynchronous modules from synchronous parts, and round ab-
+straction allows us to build synchronous and round-sensitive modules from asynchronousand/or round-insensitive parts. We now introduce the operator triggerfor building round-
+insensitivemodulesfromround-sensitiveparts. Intuitively,givenasubset Zoftheexternal
+variables of a module P, the module triggerZforPsleeps until some external variable
+inZchanges its value. Then, Pis executed. Thus, in a sense, triggering is dual to round
+abstraction: while the operator nextcollapses several rounds of a module into a single
+round, the operator triggersplits a round into several rounds, in all but one of which the
+module sleeps.
+LetPbeamodule,andlet ZµextlX
+Pbeasubsetofitsexternalvariables. Theset Zis
+aread trigger forPifz2Zfor every external variable zofPthat is read by some atom
+ofP. The set Zis anawait trigger forPifz2Zfor every external variable zofPthat is
+awaited by some atom of P.AtriggerforPis either a read trigger or an await trigger.
+Deﬁnition 9 [Trigger]. Given a module P,i fZis a trigger for P, then the module
+triggerZforPhasthesamedeclarationas Pandasingleatom, BZ
+P. Theatom BZ
+Phastheset
+ctrXPofcontrolledvariables;theset readXZ
+PD.S
+A2APreadX A/[Zofreadvariables,and
+the setwaitXZ
+PD..S
+A2APwaitXA/\extlXP/[Zof awaited variables. The initial action
+ofBZ
+Pcontainsallpairsoftheform .s0[waitX0
+P];s0[ctrX0
+P]/,wheresisaninitialstateof P.
+Theupdateactionof BZ
+Pcontainsallpairsoftheform .s[readX P][t0[waitX0
+P];t0[ctrX0
+P]/,
+whereeither(1) s[Z]Dt[Z]ands[ctrXP]Dt[ctrXP],or(2)s[Z]6Dt[Z]andtisasuccessor
+ofsaccording to P.
+It is easy to check that if Zis a round marker for a module P, then the module
+triggerZforPis again a module. Henceforth, whenever we write triggerZforP,w e
+assumethat Zisasetofvariablesthatcontainsnocontrolledvariablesof P.I fZcontains
+some variables that are not (external) variables of P, then we agree that triggerZforP
+stands for the module triggerZfor.PkQ/, whereQis the trivial module with the set
+ZnextlXPofexternalvariablesandtheemptysetofatoms. Themodule triggerextlXPforP
+is called the event reduction ofP, and denoted triggerP. In each update round, the event
+reduction triggerPexecutesPintheupdateroundsinwhichtheenvironmentchangesthe
+value of some external variable, and sleeps in the update rounds in which the environmentstutters.
+Like the other operations on modules, triggering is compositional.
+Proposition 8. Let P and Q be two modules ;and let Z be a trigger for both P and Q.
+Then P„
+eQ implies.triggerZforP/„.triggerZforQ/.
+Proof:Consider two modules P0D.triggerZforP/andQ0D.triggerZforQ/.
+Assumethat P„Q,andassumeconditions(A)and(B)ofthedeﬁnitionfortheenvironment-
+faithful implementation of QbyP. We prove that P0„Q0. The deﬁnition of implemen-
+tation has four conditions. The ﬁrst two conditions are immediate, and the third conditioncan be shown by an argument similar to the one used in the proof of Proposition 7.
+
+--- Page 34 ---
+40 ALUR AND HENZINGER
+Thefourthconditionistracecontainment. Let Nabeatraceof P0,andconsiderthetrajec-
+toryNswithNs[obsXP0]DNa. ThetrajectoryNshasforms00;:::;s0k0;s10;:::;s1k1;s20;:::;snkn
+suchthatforall0•i<n,weha v e siki[Z]6DsiC1;0[Z],andsiC1;0isasuccessorof sikiac-
+cordingto P,andforall0•i•nand0•j•ki,wehave sij[ctrXP[Z]Dsi0[ctrXP[Z].
+IfZis a read trigger for Q, then by assumption (A), the set Zis also a read trigger for P,
+and therefore s00;s10;:::;sn0is a trajectory of P.I fZis an await trigger for Q, then by
+assumption (B), the set Zis also an await trigger for P, and therefore s0k0;s1k1;:::;snkn
+is a trajectory of P. We pursue only the former case; the latter can be handled simi-
+larly. Since P„Q, there exists a trajectory of Qof the form t00;t10;:::;tn0such that
+for all 0•i•n,w eh a v e si0[obsXQ]Dti0[obsXQ]. LetNtbe a state sequence of the
+formt00;:::;t0k0;t10;:::;t1k1;t20;:::;tnknsuch that for all 0•i•nand 0<j•ki,w e
+havetij[ctrXQ[Z]Dti0[ctrXQ[Z] andtij[extlXQnZ]Dsij[extlXQnZ]. Then, since Z
+is a read trigger for Q, the state sequence Ntis a trajectory of Q0. Therefore,Nt[obsXQ0]D
+Ns[obsXQ0]DNa[obsXQ0] is a trace of Q0. 2
+Fromround-sensitivitytoround-insensitivity. Whiletriggeringpreserves(inspirit)asyn-
+chronyaswellassynchrony,everymoduleoftheform triggerZforPisround-insensitive.
+Hence,triggeringisusefulforconstructinground-insensitivemodulesfromround-sensitivemodules. For example, given the round-sensitive synchronous counter RoundCount from
+ﬁgure 4, we can implement the round-insensitive synchronous counter EventCount using
+triggering:
+EventCount»DtriggerftickgforRoundCount
+This completes our demonstration that all three counters from ﬁgure 4 are interdeﬁnable:
+RoundCount»DnextAsyncCount
+AsyncCount»Dhidetickin.EventCountkClock/
+Reactivemodulesvs.multiformtime. Thetemporaloperators nextandtriggerofreactive
+modules are similar in spirit to the polychronous operators of synchronous programminglanguagessuchasS
+IGNAL[7]andL USTRE[14]. Bothapproachesallowtemporalabstraction
+bymanipulatingwhathappensduringaround. However,thereisakeydifference. Reactivemodules have a global notion of round, and applications of nextandtriggeronly change
+what a module does within a round. In S
+IGNAL, the notion of round (or clock) is local to a
+module(or signal),ispartofitssemantics,andcanbechangedbyapplyingoperatorssuch
+aswhenanddefault. Consequently,theparallelcompositionofreactivemodulesbehaves
+quite differently from the parallel composition in synchronous programming languages.
+7. Fair reactive modules
+Based on the trace semantics of modules from Section 4, we can reason about the safety
+requirementsofmodules. Reasoningaboutlivenessrequirementsdemandsthatweconsider
+
+--- Page 35 ---
+REACTIVE MODULES 41
+inﬁnitebehaviorsofmodules. Then,inordertoruleoutcertaindegenerateinﬁnitebehaviors
+of a module, we add fairness constraints to the module.
+7.1. The inﬁnite traces of a module
+LetPbe a module. An !-trajectory ofPis an inﬁnite sequence s0;s1;s2;:::of states
+such that (1) the ﬁrst state s0is initial and (2) for all i‚0, the state siC1is a successor
+ofsi.I fsDs0;s1;:::is an!-trajectory of P, then the corresponding inﬁnite sequence
+s[obsXP]Ds0[obsXP];s1[obsXP];:::of observations is an !-traceofP. Since all initial
+and update actions of the module Pare executable, the set of !-traces of Pis completely
+determinedbytheset LPofﬁnitetraces,andviceversa. Thispropertyofareactivesystem
+is calledlimit closure ,o rsafety[3].
+Proposition 9. Let P be a module. An inﬁnite sequence a of observations of P is an
+!-trace of P iff every ﬁnite preﬁx of a is a trace of P. A ﬁnite sequence Na of observations
+of P is a trace of P iff Na is a ﬁnite preﬁx of some !-trace of P.
+Proof:Theﬁrstpartofthepropositionfollowsfromtheﬁnitecontrolledbranchingofthe
+transition relation. Consider an inﬁnite sequence aDa0;a1;:::of observations. If ais an
+!-traceofP,then,bydeﬁnition,everyﬁnitepreﬁxof aisatraceof P. Sosupposethatfor
+alli‚0, the ﬁnite sequence NaiDa0;:::;aiis a trace of P; that is, for all i‚0, there is a
+ﬁnitetrajectoryNsiofPwithNsi[obsXP]DNai. Wedeﬁneaforestwhoseverticesarelabeled
+with states of P. For every initial state sofPwiths[obsXP]Da0, there is a root—i.e., a
+level-0 vertex—labeled with s. For every level i‚0, every level- ivertexvlabeled with
+states,andeverysuccessor tofswitht[obsXP]DaiC1,thereisachildof v—i.e.,alevel-
+.iC1/vertex—labeledwith t.Sinceallinitialandupdateactionsof Pareexecutable,the
+forest has a ﬁnite number roots, and every vertex has a ﬁnite number of children. Further-more,foreach i‚0,theﬁnitetrajectory Ns
+iisapathoftheforest.Hencetheforesthasinﬁ-
+nitelymanyvertices,andbyK¨ onig’slemma,theforestcontainsaninﬁnitepath.Thesequ-
+ence of labels along this path is an !-trajectory of P, and the corresponding !-trace isa.
+The second part of the proposition follows from the seriality of the transition relation.
+2
+7.2. Modules with fairness constraints
+Remember that an action ﬁfromXtoYis a binary relation between the valuations for X
+and the valuations for Y. Thus, all subsets ﬂµﬁare also actions from XtoY; they are
+called the subactions ofﬁ.A nupdate choice for an atom Ais a subaction of the update
+actionUpdateA. An update choice need not be executable; that is, an update choice may
+be enabled in some states but not in others. We add fairness constraints to modules bydeclaring a set of weakly-fair update choices and a set of strongly-fair update choices foreach atom.
+Deﬁnition10 [Fairmodules ]. AfairmodulePconsistsofamodule safe.P/togetherwith
+two fairness constraints. The weak-fairness constraint wf
+Pis a function that maps every
+
+--- Page 36 ---
+42 ALUR AND HENZINGER
+atomAofsafe.P/to a ﬁnite set of update choices for A, which are called the weakly-fair
+updatechoicesfor A. Thestrong-fairnessconstraintsfPisafunctionthatmapseveryatom
+Aofsafe.P/toaﬁnitesetofupdatechoicesfor A,whicharecalledthe strongly-fair update
+choices for A.
+For a fair module P, we refer to parts of the underlying module safe.P/—such as
+variables,atoms,etc.—aspartsof P. ThefairmodulePisweaklyfair ifforeveryatom A
+ofP,thesetsfP.A/ofstrongly-fairupdatechoicesisempty. Thefairmodule Pistrivially
+fairif for every atom AofP, both sets wfP.A/andsfP.A/of update choices are empty.
+Thefairnessconstraintsofthefairmodule Pclassifythe!-trajectoriesoftheunderlying
+modulesafe.P/into fair and unfair. Intuitively, a weakly-fair update choice cannot be
+enabledforeverwithoutbeingchosen,andastrongly-fairupdatechoicecannotbeenabledinﬁnitely often without being chosen.
+Consider an update choice ﬁfor the atom A, and an inﬁnite sequence s
+of states.
+The update choice ﬁisenabledat position i‚0o fsif there is a state tsuch that
+.si[readX A][s0
+iC1[waitX0
+A];t0[ctrX0
+A]/2ﬁ.Theupdatechoice ﬁischosenatposition i‚0
+ofsif.si[readX A][s0
+iC1[waitX0
+A];s0
+iC1[ctrX0
+A]/2ﬁ. Thestatesequence sisweaklyfair to
+theupdatechoice ﬁifeitherﬁisnotenabledatinﬁnitelymanypositionsof s,orﬁischosen
+atinﬁnitelymanypositionsof s.Thestatesequence sisstronglyfair totheupdatechoice ﬁ
+if eitherﬁis enabled at only ﬁnitely many positions of s,o rﬁis chosen at inﬁnitely many
+positions of s.Afair trajectory of the fair module Pis an!-trajectory sof the module
+safe.P/such that for every atom AofP, the state sequence sis weakly fair to all update
+choicesin wfP.A/andstronglyfairtoallupdatechoicesin sfP.A/.I fsisafairtrajectory
+ofP,thenthecorrespondinginﬁnitesequence s[obsXP]ofobservationsisa fairtrace ofP.
+Example. Considerthefairmodule Fairshowninﬁgure14. Ineveryupdateround,ifthe
+externalevent xispresent,thenthemoduleissues,nondeterministically,eithertheinterface
+eventyor the interface event z. The update choice ﬁconsists of all pairs .s;t/of states
+such that s[x]6Dt[x] ands[y]6Dt[y], and the update choice ﬂconsists of all pairs .s;t/
+such that s[x]6Dt[x] ands[z]6Dt[z]. The weak-fairness assumption for ﬁensures that in
+everyfairtrace,if,aftersomeround, xispresentineveryround,then yisissuedinﬁnitely
+often. The strong-fairness assumption for ﬂensures that in every fair trace, if xis present
+in inﬁnitely many rounds, then zis issued inﬁnitely often.
+Figure 14 . Weak and strong fairness.
+
+--- Page 37 ---
+REACTIVE MODULES 43
+Thefairnessconstraintsofafairmodulecanbetranslatedinto !-acceptanceconditionson
+theunderlyingstate-transitiongraph—weak-fairnessconstraintsintoB¨ uchiconditions,and
+strong-fairnessconstraintsintoStreettconditions. However,while !-acceptanceconditions
+are usually deﬁned using sets of states, a direct translation of the fairness constraints onmodulesleadsto !-acceptanceconditionsthataredeﬁnedusingsetsoftransitions.Thisis
+becausewhetheranupdatechoiceisenabledorchosenmaydependonboththelatchedandthe updated values of variables.
+Deﬁnition 11 [Fair implementation ]. The fair module Pfairly implements the fair mod-
+uleQ,writtenP„
+FQ,iftheﬁrstthreeconditionsofDeﬁnition3aremet,and(4)if sisa
+fair trace ofP, then the projection s[obsXQ] is a fair trace ofQ.
+Itiseasytocheckthatthefair-implementationrelation „Fisapreorderonfairmodules.
+Machine closure. Every ﬁnite trajectory of a fair module Pcan be extended to a fair
+trajectory ofP. This property of a reactive system is called machine closure [1].
+Proposition10. IfPisafairmodule ;andNa isaﬁnitetraceof P;thenNa isaﬁnitepreﬁx
+of some fair trace of P.
+Itfollowsthatthesetoffairtrajectoriesofafairmoduleisalwaysnonempty. Moreover,in
+veriﬁcation,machineclosureisimportantfortworeasons. First,aswewillseeinthenextsection,machineclosurefacilitatesanassume-guaranteeprincipleforfairimplementation.Second,thefairnessconstraintsofamachine-closedsystemcanbeignoredwhenreasoningaboutsafetyrequirementsofthesystem. Botharebecauseformachine-closedsystems,fairimplementation implies implementation.
+Proposition11. LetPandQbetwofairmodules.Then P„
+FQimpliessafe.P/„safe.Q/.
+IfQis trivially fair ;then safe.P/„safe.Q/impliesP„FQ.
+Proof:Theﬁrstpartofthepropositionfollowsfromthemachineclosureoffairmodules
+(Proposition 10); the second part follows from the limit closure of trivially-fair modules(ﬁrst part of Proposition 9). 2
+Thus,inordertoshowthatafairmodule Pfairlyimplementsatrivially-fairmodule Q,
+which represents a safety requirement of P, it is sufﬁcient and necessary to show that
+safe.P/implements safe.Q/.
+Receptiveness. Proposition 10 can be strengthened: in order to extend a ﬁnite trajectory
+to a fair trajectory, the module does not need the cooperation of the environment. Given afairmoduleP,consideraﬁnitetrajectory s
+0;:::;snoftheunderlyingmodule safe.P/,and
+aninﬁnitesequence te
+nC1;te
+nC2;te
+nC3;:::ofvaluationsfortheexternalvariablesof P. Then,
+thereisafairtrajectory uofPsuchthatforall0•i•n,weha ve uiDsi,andforall i>n,
+wehaveui[extlXP]Dti. Infact,eveninastepwisegamebetweenmoduleandenvironment,
+no matter how the environment plays, the module always has a strategy to produce a fair
+
+--- Page 38 ---
+44 ALUR AND HENZINGER
+trajectory. This property of a reactive system is called receptiveness [11]. In a formalism
+that builds compound systems from atomic systems, in order to prove that all compoundsystemsaremachine-closed,itsufﬁcestoprovethatallatomicsystemsarereceptive. Sincefair modules will be closed under composition—that is, the parallel composition of twofair modules is again a fair module—there is no need to formally deﬁne and establish thereceptiveness of fair modules.
+7.3. Operations on fair modules
+Theoperationsofrenaming,composition,andhidingextendtofairmodulesintheobvious
+way. Forafairmodule P,andtwovariables xandyofthesametypewith y62X
+P,thefair
+moduleP[x:Dy]resultsfromPbyrenaming xtoy. Therequirementofcompatibilityfor
+fairmodulesisthesameasforunfairmodules. Fortwocompatiblefairmodules PandQ,
+safe.PkQ/Dsafe.P/ksafe.Q/, for every atom AofP,w eh a v e wfPkQ.A/DwfP.A/
+andsfPkQ.A/DsfP.A/, and for every atom AofQ,w eh a v e wfPkQ.A/DwfQ.A/and
+sfPkQ.A/DsfQ.A/. For a fair module Pand an interface variable xofP, the fair module
+hidexinPresults by moving xfromintfXPtoprivXP.
+Example. In asynchronous shared-memory programs, progress can be ensured by weak-
+fairnessconstraints.RecallPeterson’ssolutiontothemutual-exclusionproblemfromﬁgure2.Figure 15 adds weak-fairness assumptions to the ﬁrst process of the protocol; the secondfair process is deﬁned similarly, by the weakly-fair module FairP
+2. The weak-fairness as-
+sumptionfor,say,theupdatechoice ﬂensuresthatineveryfairtrace,itcannothappenthat
+theﬁrstprocessremainsinitscriticalsectionforever. Fortheunfairmodule P1kP2,wecan
+provemutualexclusion: ineverytrace,itcannothappenthatbothprocessesaresimultane-ously in their respective critical sections. For the weakly-fair module FairP
+1kFairP2,w e
+can,inaddition,provestarvationfreedom: ineveryfairtrace,ifaprocessrequeststoenterits critical section, then eventually it will be in its critical section (some unfair !-traces do
+not satisfy this requirement).
+Figure 15 . Fair mutual-exclusion protocol.
+
+--- Page 39 ---
+REACTIVE MODULES 45
+The three operations of renaming, composition, and hiding for fair modules are compo-
+sitionalwithrespecttofairimplementation. Forparallelcomposition,thisfollowsfromtheanalogueofProposition3: fortwocompatiblefairmodules PandQ,aninﬁnitesequence
+a
+of observations of the compound module PkQis a fair trace ofPkQiff the projection
+a[obsXP] is a fair trace ofPand the projection a[obsXQ] is a fair trace ofQ.
+Proposition12. LetP;Q;andRbethreefairmodulessuchthat PandRarecompatible.
+Then.1/PkR„FP;and.2/P„FQimpliesPkR„FQkR.
+Proposition 13. For all fair modules PandQ;and every interface variable x of Q;we
+have.1/Q„F.hidexinQ/;and.2/ifP„FQ;then.hidexinP/„F.hidexinQ/.
+Assume-guaranteereasoning. Recalltheassume-guaranteeprincipleforunfairmodules
+from Proposition 5. Suppose that both P1kQ2„FQ1andQ1kP2„FQ2. From this;we
+canconcludethatevery !-traceofsafe.P1/ksafe.P2/isan!-traceofsafe.Q1/ksafe.Q2/.
+However, we cannot conclude that every fair trace of P1kP2is a fair trace ofQ1kQ2.
+Figure 16 shows a counterexample, for the special case that both P1andP2are trivially
+fair: whileP1kQ2guarantees that inﬁnitely often xD1, andQ1kP2guarantees that
+inﬁnitelyoften yD1,themoduleP1kP2guaranteesneither. Thecircularityinthefairness
+constraintsneedstobebroken,whichleadstoasomewhatweakerformofassume-guaranteeprincipleinthepresenceoffairness[4]. Forafairmodule P,letunfair.P/bethetrivially-
+fairmoduleQwithsafe.Q/Dsafe.P/;thatis,unfair.P/isobtainedfromPbydiscarding
+the fairness constraints.
+Proposition14. LetP
+1andP2betwocompatiblefairmodules ;andletQ1andQ2betwo
+compatiblefairmodulessuchthateveryexternalvariableof Q1kQ2isanobservablevari-
+able ofP1kP2.I fP1kQ2„FQ1and unfair.Q1/kP2„FQ2;thenP1kP2„FQ1kQ2.
+Figure 16 . Counterexample to naive assume-guarantee principle for fair modules.
+
+--- Page 40 ---
+46 ALUR AND HENZINGER
+Proof:Consider four fair modules P1,P2,Q1, andQ2such that (1)P1andP2are
+compatible, (2)Q1andQ2are compatible, (3) every external variable of Q1kQ2is an
+observable variable of P1kP2, (4)P1kQ2„FQ1, and (5) unfair.Q1/kP2„FQ2.W e
+wish to establish that P1kP2„FQ1kQ2. From assumptions (4) and (5), by the ﬁrst part
+ofProposition 11itfollowsthat safe.P1/ksafe.Q2/„safe.Q1/andsafe.Q1/ksafe.P2/„
+safe.Q2/. Fromthisandassumptions(1)–(3),bytheassume-guaranteeprincipleforunfair
+modules(Proposition5)itfollowsthat safe.P1/ksafe.P2/„safe.Q1/ksafe.Q2/.Thisim-
+pliestheﬁrstthreeconditionsofthedeﬁnitionoffairimplementation.Henceitremainstobe shown that every fair trace of P
+1kP2is also a fair trace of Q1kQ2(for simplicity, we
+omit the explicit use of projections).
+Letabe a fair trace ofP1kP2, and therefore of both P1andP2. Since every trace
+ofsafe.P1/ksafe.P2/is a trace of safe.Q1/ksafe.Q2/, by the ﬁrst part of Proposition 9
+it follows that ais an!-trace of safe.Q1/ksafe.Q2/, and therefore of safe.Q1/. For a
+trivially-fairmodule R,thefairtracescoincidewiththe !-tracesoftheunderlyingmodule
+safe.R/. Hence,aisafairtraceof unfair.Q1/. Sinceaisalsoafairtraceof P2,itfollows
+thatais a fair trace of unfair.Q1/kP2, and by assumption (5), a fair trace of Q2. Sincea
+is also a fair trace of P1, it follows that ais a fair trace ofP1kQ2, and by assumption (4),
+a fair trace ofQ1. Sinceais a fair trace of both Q1andQ1, we conclude that ais a fair
+trace ofQ1kQ2. 2
+Round abstraction vs. fairness. The abstraction operator nextis closely related to weak
+fairness. For instance, while not all !-traces of the module P1kP2from ﬁgure 2 satisfy
+starvation freedom, all !-traces of the stutter reduction next.P1kP2/do. Indeed, the
+modulenext.P1kP2/satisﬁesthestrongerrequirementof boundedstarvationfreedom: if
+a process requests to enter its critical section, then it will be in its critical section withinfour rounds.
+8. Concluding Remarks
+We have presented a uniﬁed, modular, and hierarchical framework for describing syn-
+chronousandasynchronousreactivecomputation. Theuniformity,modularity,andhierar-chy of reactive modules can be exploited in computer-aided veriﬁcation.
+The efﬁciency of current veriﬁcation tools often depends on the speciﬁc synchrony as-
+sumptionsupportedbytheunderlyingmodel. Forinstance,hardwaredescriptionlanguages(like V
+HDL) assume synchronous progress, and BDD-based model checking is successful
+in this domain. On the other hand, many protocol description languages (like P ROMELA
+[17]) assume asynchronous interleaving, and the most effective veriﬁcation strategy is ex-plicit on-the-ﬂy search with reduction techniques based on partial orders and symmetries.Finally, the veriﬁcation tools for synchronous programming languages (like E
+STEREL[8])
+can afford to construct global state-transition graphs, because much of the complexity ishidden by the fact that a single transition involves several subtransitions between transientstates.
+Whilebothsynchronyandasynchronycanbeforced,inonewayoranother,intomostcon-
+currencymodels,thisoftencomesatthecostofinefﬁcienciesinveriﬁcation. Forexample,
+
+--- Page 41 ---
+REACTIVE MODULES 47
+the use of stutter transitions in synchronous models to represent asynchronous progress
+increasesthenumberoftransitionsexponentiallyoveranasynchronousmodel[19]. Or,theintroductionofsynchronizationpointsintoasynchronousmodelsrestrictstheapplicabilityofefﬁcientsearchmethodsinveriﬁcation[17]. Bycontrast,ouruniformframeworkallowsus to separate intrinsic truths and complexities about veriﬁcation methods from accidentaland model-dependent idiosyncrasies.
+Inaddition,ourframeworksupportsmodularproofprinciples,suchasassume-guarantee
+reasoning, and hierarchical veriﬁcation, based on built-in abstraction operators such asnext. This allows us to decompose a veriﬁcation task into subtasks with smaller state
+spaces. Module-based case studies that exploit assume-guarantee reasoning can be foundin[15];casestudiesthatexpoitroundabstraction,in[5]. Averiﬁcationtool,calledM
+OCHA,
+whosesystemdescriptionlanguageisbasedonreactivemodules,iscurrentlybeingimple-mented [6].
+Acknowledgments
+We thank Albert Benveniste, Bob Kurshan, Ken McMillan, Amir Pnueli, and the VIS
+group at UC Berkeley for fruitful discussions. We also thank the anonymous referees forsuggestingimprovements. AlurwassupportedinpartbytheDARPA/NASAgrantNAG2-1214andHenzingerwassupportedinpartbytheONRYIPawardN00014-95-1-0520,theNSF CAREER award CCR-9501708, the NSF grant CCR-9504469, the DARPA/NASAgrant NAG2-1214, and by the SRC contract 97-DC-324.041.
+Notes
+1. Ifsis a state and xis a variable in the domain of s, we write s[x] for the value assigned by stox.
+2. Givenavaluation sfortheset Xofvariables,andasubset YofX,wewrite s[Y]fortheprojectionof stothe
+variablesin Y.I fsisavaluationforaset Xofunprimedvariables,then s0denotesthevaluationfortheset X0
+of corresponding primed variables such that s0assigns to each variable x0the value s[x]. Given two disjoint
+setsXandYof variables, if sis a valuation for Xandtis a valuation for Y, thens[tdenotes the combined
+valuation for X[Y.
+References
+1. M. Abadi and L. Lamport, “The existence of reﬁnement mappings,” Theoretical Computer Science , Vol. 82,
+pp. 253–284, 1991.
+2. M. Abadi and L. Lamport, “Conjoining speciﬁcations,” ACM Transactions on Programming Languages and
+Systems, Vol. 17, pp. 507–534, 1995.
+3. B. Alpern, A.J. Demers, and F.B. Schneider, “Safety without stuttering,” Information Processing Letters ,
+Vol. 23, pp. 177–180, 1986.
+4. R.AlurandT.A.Henzinger,“Locallivenessforcompositionalmodelingoffairreactivesystems,”in CAV95:
+Computer-aided Veriﬁcation , Lecture Notes in Computer Science 939, Springer-Verlag, pp. 166–179, 1995.
+5. R.Alur,T.A.Henzinger,andS.K.Rajamani,“Symbolicexplorationoftransitionhierarchies,”in TACAS98:
+ToolsandAlgorithmsfortheConstructionandAnalysisofSystems ,LectureNotesinComputerScience1384,
+Springer-Verlag, pp. 330–344, 1998.
+
+--- Page 42 ---
+48 ALUR AND HENZINGER
+6. R. Alur, T.A. Henzinger, F.Y.C. Mang, S. Qadeer, S.K. Rajamani, and S. Tasiran, “M OCHA: Modularity
+in model checking,” in CAV 98: Computer-aided Veriﬁcation , Lecture Notes in Computer Science 1427,
+Springer-Verlag, pp. 521–525, 1998.
+7. A. Benveniste, P. le Guernic, and C. Jacquemot, “Synchronous programming with events and relations: The
+SIGNALlanguage and its semantics,” Science of Computer Programming , Vol. 16, pp. 103–149, 1991.
+8. G. Berry and G. Gonthier, “The synchronous programming language E STEREL: Design, semantics, imple-
+mentation,” Technical Report 842, INRIA, 1988.
+9. G. Berry, S. Ramesh, and R.K. Shyamasundar, “Communicating reactive processes,” in Proceedings of the
+20th Annual Symposium on Principles of Programming Languages , ACM Press, pp. 85–98, 1993.
+10. K.M.ChandyandJ.Misra, ParallelProgramDesign: AFoundation ,Addison-WesleyPublishingCompany,
+1988.
+11. D.L. Dill, Trace Theory for Automatic Hierarchical Veriﬁcation of Speed-independent Circuits , The MIT
+Press, 1989.
+12. D.L. Dill, “The MURØ veriﬁcation system,” in CAV 96: Computer-aided Veriﬁcation , Lecture Notes in
+Computer Science 1102, Springer-Verlag, pp. 390–393, 1996.
+13. O.GrumbergandD.E.Long,“Modelcheckingandmodularveriﬁcation,” ACMTransactionsonProgramming
+Languages and Systems , Vol. 16, pp. 843–871, 1994.
+14. N. Halbwachs, Synchronous Programming of Reactive Systems , Kluwer Academic Publishers, 1993.
+15. T.A.Henzinger,S.Qadeer,andS.K.Rajamani,“Youassume,weguarantee: Methodologyandcasestudies,”
+inCAV98: Computer-aidedVeriﬁcation ,LectureNotesinComputerScience1427,Springer-Verlag,pp.440–
+445, 1998.
+16. C.A.R. Hoare, Communicating Sequential Processes , Prentice-Hall, 1985.
+17. G.J. Holzmann, Design and Validation of Computer Protocols , Prentice-Hall, 1991.
+18. R.P. Kurshan, Computer-aided Veriﬁcation of Coordinating Processes , Princeton University Press, 1994.
+19. R.P.Kurshan,M.Merritt,A.Orda,andS.R.Sachs,“Modelingasynchronywithasynchronousmodel,”in CAV
+95: Computer-aided Veriﬁcation , Lecture Notes in Computer Science 939, Springer-Verlag, pp. 339–352,
+1995.
+20. L.Lamport,“Specifyingconcurrentprogrammodules,” ACMTransactionsonProgrammingLanguagesand
+Systems, Vol. 5, pp. 190–222, 1983.
+21. N.A. Lynch, Distributed Algorithms , Morgan-Kaufmann, 1996.
+22. Z. Manna and A. Pnueli, The Temporal Logic of Reactive and Concurrent Systems: Speciﬁcation , Springer-
+Verlag, 1992.
+23. K.L.McMillan, SymbolicModelChecking: AnApproachtotheState-explosionProblem ,KluwerAcademic
+Publishers, 1993.
+24. R. Milner, Communication and Concurrency , Prentice-Hall, 1989.
+25. E.W. Stark, “A proof technique for rely-guarantee properties,” in FST & TCS 85: Foundations of Software
+Technology and Theoretical Computer Science , Lecture Notes in Computer Science 206, Springer-Verlag,
+pp. 369–391, 1985.
+26. R.J. van Glabbeek, “Comparative concurrency semantics and reﬁnement of actions,” Ph.D. Thesis, Vrije
+Universiteit te Amsterdam, 1990.
