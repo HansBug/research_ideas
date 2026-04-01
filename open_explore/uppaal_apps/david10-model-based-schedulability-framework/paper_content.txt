@@ -1,0 +1,1028 @@
+--- Page 1 ---
+Model-based Framework for Schedulability
+Analysis Using Uppaal 4.1
+Alexandre David Jacob Illum Kim G. Larsen
+Arne Skou
+Center For Embedded Software Systems
+Department of Computer Science
+Aalborg Univeristy
+Denmark
+January 12, 2009
+1 Introduction
+Embedded systems involve the monitoring and control of comp lex physical
+processes using applications running on dedicated executi on platforms in a
+resource constrained manner in terms of for example memory, processing
+power, bandwidth, energy consumption, as well as timing beh avior.
+Viewing the application as a collection of (interdependent tasks) various
+scheduling principles may be applied to coordinate the execution of tasks in
+order to ensure orderly and eﬃcient usage of resources. Base d on the physical
+process to be controlled, timing deadlines may be required f or the individual
+tasks as well as the overall system. The challenge of schedulability analysis
+is now concerned with guaranteeing that the applied schedul ing principle(s)
+ensure that the timining deadlines are met.
+For single processor systems, industrial applied schedula bility analysis
+tools include Sys Corporation, and RapidRMA from TriPaciﬁc based on Rate
+Monotonic Analysis. More recently SymTA/S has emerged as an eﬃcient tool
+for system-level performance and timing analysis based on f ormal scheduling
+analysis techniques and symbolic simulation. These tools b eneﬁt from great
+succes in real-time scheduling theories; results that were developed in the
+1
+
+--- Page 2 ---
+1970ies and the 1980ies, and are now well-established. Howe ver these theories
+and tools have become seriously challenged by the rapid incr ease in the use
+of multi-cores and multiprocessor system-on-chips (MPSoC ).
+To overcome the limitation to single-processor architectu res, applications
+of simulation have been pursued, including – in the case of MP SoC – the
+ARTS framework (based on SystemC) [19, 20], the Daedaleus si mulation
+tool [22] and Design-Trotter [21].
+Though extremely useful for early design exploration by pro viding very
+adequate performance estimates for example memory usage an d energy con-
+sumption as well as options for parallelizations, the use of simulation makes
+the schedulability analysis provided by these tools unreli able: though no
+deadline-violation may be revealed after (even extensive) simulation, there is
+no guarantee that this will never occur in the future. For sys tems with hard
+real-time requirements this is not satisfactory.
+During recent years the use of real-time model checking has b ecome an
+attractive and maturing approach to schedulability analys is providing abso-
+lute guarantees: if after model checking no violations of de adlines have been
+found, then it is guaranteed that no violations will occur du ring execution.
+In this approach, the (multiprocessor) execution platform , the tasks, the in-
+terdependencies between tasks, their execution times, and mapping to the
+platform are modeled as timed automata [3] allowing eﬃcient tools such as
+Uppaal [24] to verify schedulability using model checking.
+The tool TIMES [4] has been pioneering this approach, provid ing a rather
+expressive task-model called time-triggered architectur e (TTA) allowing for
+complex task-arrival patterns, and using the veriﬁtion eng ine ofUppaal to
+verify schedulability. However, so far the tool only suppor ts single-processor
+scheduling and limited dependencies between tasks. Other s chedulability
+frameworks using timed automata as a modeling formalism and Uppaal as
+a backend include [8, 10, 11, 14, 23]. Also, related to schedu lability analysis,
+a number of real-time operating systems (RTOS) have been for malized and
+analysed using Uppaal , [13, 17].
+The MOVES analysis framework [16] presented in a diﬀerent ch apter of
+this book is closely related to the present chapter. Whereas the chapter
+on MOVES reports on the ability to apply Uppaal to verify properties
+and schedulability of embedded systems through a number of ( realistic size)
+examples, we provide in this chapter a detailed – and compare d with [5]
+alternative – account on how to model multiprocessor schedu ling scenarios
+most eﬃciently, by making full use of the modeling formalism ofUppaal .
+2
+
+--- Page 3 ---
+The chapter oﬀers a Uppaal modeling framework (download from [12]), that
+may be instantiated to suit a variety of scheduling scenario s, and that can
+be easily extended. In particular, the framework includes:
+•A rich collection of attributes for tasks, including: oﬀ-se t, best and
+worst case execution times, minimum and maximum interarriv al time,
+deadlines, and task priorities.
+•Task dependencies.
+•Assignment of resources, for example processors or busses, to tasks.
+•Scheduling policies including First-In First-Out (FIFO), Earliest Dead-
+line First (EDF), and Fixed Priority Scheduling (FPS).
+•Possible preemption of resources.
+The combination of task dependencies, execution time uncer tainty and
+preemption makes schedulability of the above framework und ecidable [18].
+However, the recent support for stopwatch automata [9] in Uppaal leads
+to an eﬃcient approximate analysis that has proved adequate on several
+concrete instances as demonstrated in [16].
+The outline of the remainder of the chapter is as follows: In S ection 2, we
+show the formalism of Uppaal by the use of an example. In Section 3, we give
+an introduction to the types of schedulability problems tha t can be analyzed
+using the framework presented in Section 4. Following the fr amework, in
+Section 5 we show how to instantiate the framework for a numbe r of diﬀerent
+schedulability problems by way of an example system. Finall y, we conclude
+the paper in Section 6.
+2 UPPAAL And Its Formalism
+In this section, we provide an introductory description of t heUppaal mod-
+eling language.
+2.1 Modelling Language
+The tool Uppaal is designed for design, simulation, and veriﬁcation of real -
+time systems that can be modeled as networks of timed automat a [2] ex-
+tended with integer variables and richer user-deﬁned data t ypes. A timed
+3
+
+--- Page 4 ---
+automaton is a ﬁnite-state machine extended with clock vari ables. The tool
+uses a dense time model of time so clock variables evaluate to real numbers.
+All the clocks progress synchronously.
+We use in this section the train-gate example (distributed w ith the tool).
+It is a railway system that controls access to a bridge. The br idge has only
+one track and a gate controller ensures that at most one appro aching train
+is granted access to this track. Stopping and restarting a tr ain takes time.
+Figure 1 shows the model of a train in the editor of Uppaal . When a train
+is approaching ( Appr), it can be stopped before 10 time units otherwise it
+is too late and the train must cross the bridge ( Cross ). When it is stopped
+(Stop), it must be restarted ( Start ) before crossing the bridge.
+Figure 1: View of the train template in the editor.
+The timing constraints associated with the locations are invariants . They
+give a bound on how long these locations can be active: A train can stay
+inApprat most 20 time units and then must leave this location. Edges be-
+tween locations have guards ( x<=10 ) to constrain when they can be taken,
+synchronizations ( stop[id]? ) for communication, and updates ( x=0to reset
+the clock x). Automata communicate with each other by means o f chan-
+nels. Here we have an array of channels and every train has its own id. The
+gate automaton selects a train and synchronizes with it with stop[id]! . In
+4
+
+--- Page 5 ---
+Listing 1: Global declarations for the train-gate model.
+1const intN = 6; // Number of trains
+2typedef int [0,N−1] idt;
+3chanappr[N], stop[N], leave [N];
+4urgent chan go[N];
+Uppaal it is possible to declare arrays of clocks or any other type. C han-
+nels can be declared to be urgent to prevent delays if a synchronization is
+possible, or broadcast to achieve broadcast synchronization instead of hand-
+shake. Listing 1 shows the global declaration of the model wi th the channel
+declarations. A constant is declared to size the model to the desired number
+of trains. The train model here is in fact a template for trains. Trains are
+instantiated with a given id. In this case, having in the syst em declaration
+system Gate, Train; will instantiate an automaton for the Gate controller
+and all the possible trains ranging over their missing argum ent types. This is
+theauto-instantiation feature. It is possible to give speciﬁc argument values
+too. The type idtis a user-deﬁned type declared in listing 1. Uppaal
+supports more complex user-deﬁned types such as structures . It is possible
+to combine arrays, structures, bounded integers, channels , and clocks.
+Figure 2 shows the simulator with the Gate automaton. On the m es-
+sage sequence chart the diﬀerent synchronizations between the automata are
+shown. The automaton has two main locations where the bridge is free or
+occupied. When a train is approaching it synchronizes with t he gate and
+with a function call it is queued by the gate. If more trains ar e approaching
+then they are queued and stopped. Queuing followed by stoppi ng is atomic,
+which is modeled by marking the location committed . Such a location forbids
+interleaving with other automata when it is active. A locati on can be marked
+urgent to mean that time cannot delay while it is active. After this, the gate
+dequeues a train and leaves it to cross the bridge. After that it will try to
+dequeue more trains and restart them with go[front()]! . Here a function
+call is used to return the front of the queue. The Gate “picks” a train with
+theselect statement e:idt. This allows the modeller to scale the model
+with the number of trains while still keeping the automaton c ompact. List-
+ing 2 gives the complete local declarations of the Gate autom aton.Uppaal
+supports C-like syntax that allows us to implement a queue he re. One of the
+locations of the gate is marked “C”.
+5
+
+--- Page 6 ---
+Listing 2: Local declarations of the Gate template.
+1idt list [N+1];
+2int[0,N] len;
+3
+4voidenqueue(id t element) // Put an element at the end of the queue
+5{
+6 list [len++] = element;
+7}
+8
+9voiddequeue() // Remove the front element of the queue
+10{
+11 inti = 0;
+12 len−= 1;
+13 while (i<len)
+14 {
+15 list [ i ] = list [ i + 1];
+16 i++;
+17 }
+18 list [ i ] = 0;
+19}
+20
+21idt front () // Returns the front element of the queue
+22{
+23 return list [0];
+24}
+25
+26idt tail () // Returns the last element of the queue
+27{
+28 return list [len −1];
+29}
+6
+
+--- Page 7 ---
+Figure 2: View of a simulation of the train-gate model showin g the gate and
+one train.
+Another feature of the language is the scalar type to deﬁne scalar sets.
+When these sets are used, the model checker takes advantage o f their symme-
+try. Diﬀerent variants of Uppaal exist to other speciﬁc problem domains.
+Uppaal -TIGA, [6, 15], is based on timed game automata and is targete d
+towards code synthesis. Uppaal -CORA, [7, 25] is designed for cost-optimal
+reachability analysis. Uppaal -PRO extends timed automata with probabil-
+ities.
+Further features of Uppaal include meta variables which can be used to
+store value such as regular variables, however, meta variab les are not included
+in the state inclusion check when doing model checking. That is, two states
+are considered identical if all but the meta variables agree . Meta variables
+are declared using the ‘meta’ keyword ( meta int i ).
+Finally, Uppaal (as of version 4.1) supports stopwatches. Stopwatches
+are like clock variables, however, the progress of stopwatc hes can be set to
+either zero or one in automata locations, which is speciﬁed a s an invariant
+(x’==0 for clock x). When analyzing models using stopwatches, Uppaal
+computes a ﬁnite overapproximation of the state space and is , thus, guar-
+anteed to terminate even though the model checking problem f or stopwatch
+7
+
+--- Page 8 ---
+automata is, in general, undecidable. Checking properties such as avoidance
+of deadlocks can be meaningful for stopwatch automata, sinc e if the overap-
+proximation does not have a deadlock then neither will the re al system. In
+Section 4, stopwatches are used to model preemptive schedul ability problems
+usingUppaal .
+2.2 Speciﬁcation Language
+The speciﬁcation language of Uppaal is a subset of timed computation tree
+logic, [1] (TCTL). The following properties are supported: (i)A[]φ, (ii)
+E<> φ , (iii) A<> φ , (iv) E[]φ, and (v)φ−−> ψ, whereφandψare
+state predicates. The safety property (i) speciﬁes that φmust be satisﬁed
+for all states. The reachability property (ii) speciﬁes tha t there exists a path
+on which a state satisﬁes φ. The reachability property (iii) speciﬁes that for
+all path there must be a state that satisﬁes φ. The liveness property (iv)
+speciﬁes that there is a path on which all states satisfy φ. The “leads-to”
+property (v) speciﬁes that whenever a state satisfying φis reached then for
+all subsequent paths a state satisfying ψis reached. In addition, Uppaal
+can check for deadlocks with the property A[] not deadlock .
+3 Schedulability Problems
+At the core of any schedulability problem are the notions of t asks and re-
+sources. Tasks are jobs that require the usage of resources f or a given duration
+after which tasks are considered done/completed. The added constraints to
+this basic setup is what deﬁnes a speciﬁc schedulability pro blem. In this
+section, we deﬁne a range of classical schedulability probl ems.
+3.1 Tasks
+A schedulability problem always consists of a ﬁnite set of ta sks that we
+consistently will refer to as T=t1,t2,...,t n. Each task has a number of
+attributes that we refer to by the following functions:
+•initial offset :T→N
+Time oﬀset for initial release of task.
+8
+
+--- Page 9 ---
+•bcet:T→N≥0
+Best case execution time of task.
+•wcet :T→N≥0
+Worst case execution time of task.
+•minperiod :T→N
+Minimum time between task releases.
+•maxperiod :T→N
+Maximum time between task releases.
+•offset : The time oﬀset into every period, before the task is release d.
+•deadline :T→N≥0
+The number of time units within which a task must ﬁnish execut ion
+after its release. Often, the deadline coincides with the pe riod.
+•priority : Task priority.
+These attributes are subject to the obvious constraints tha tbcet (t)≤
+wcet (t)≤deadline (t)≤minperiod (t)≤maxperiod (t). The periods
+are ignored if the task is non-periodic.
+The interpretation of these attributes is that a given task ticannot exe-
+cute for the ﬁrst offset (ti) time units and should hereafter execute exactly
+once in every period of period (ti) time units. Each such execution has a
+duration in the interval [ bcet (ti),wcet (ti)]. The reason why tasks have a
+duration interval instead of a speciﬁc duration is that task s are often com-
+plex operations that need to be executed and the speciﬁc comp utation of a
+task depends on conditionals, loops, etc. and can vary betwe en invocations.
+Furthermore, for multi-processor scheduling, considerin g only worst-case ex-
+ecution times are not is insuﬃcient as deadline violations c an result from
+certain tasks exhibiting best-case behavior.
+We say that a task tisready (to execute) at time τiﬀ:
+1.τ≥initial offset (t)
+2.thas not executed in the given period dictated by τ.
+3. All other constraints on tare satisﬁed. See 3.2 for a discussion on task
+constraints.
+9
+
+--- Page 10 ---
+3.2 Task Dependencies
+Task execution is often not just constrained by periods, but also by in-
+terdependencies among tasks., for example because one task requires data
+that is computed by other tasks. Such dependencies among a se t of tasks
+T=t1,t2,...,t nare modelled as a directed acyclic graph ( V,E) where tasks
+are nodes (i.e., V=T) and dependencies are directed edges between nodes.
+That is, and edge ( ti,tj)∈Efrom tasktito tasktjindicates that task tj
+cannot begin execution until tihas completed execution.
+3.3 Resources
+Resources are the elements that execute tasks. Each resourc e uses a scheduler
+to determine which task gets executed on a given resource at a ny point in
+time. Resources are limited by only allowing the execution o f a single task
+at any given time.
+Tasks are a priori assigned to resources. For a set of resources R=
+r1,...,r kand a set of tasks T=t1,...,t n, we capture with the function assign
+:T→R.
+In a real-time system, resources function as diﬀerent types of processors,
+communication busses, etc. Combined with task graphs we can use tasks
+and resources to emulate complex systems with such task inte rdependency
+on diﬀerent processors. For example, if we want to model two t askstiandtj
+with dependency ti→tj, but the tasks are executed on diﬀerent processors
+andtjneeds the results of tito be communication across a data bus, we
+introduce an auxiliary task ticthat requires the bus resource and update the
+dependencies to ti→tic→tj. We illustrate this concept in ... ??
+3.3.1 Scheduling Policies
+In order for a resource to determine which task to execute and which tasks
+to hold, a resource applies a certain scheduling policy impl emented in a
+scheduler. Scheduling strategies vary greatly in complexi ty depending on the
+constraints of the schedulability problem. In this section we discuss a subset
+of scheduling policies for which we have included models in o ur scheduling
+framework.
+•First-In First-Out (FIFO) Ready tasks are added to a queue in the
+order they become ready.
+10
+
+--- Page 11 ---
+•Earliest Deadline ﬁrst (EDF) Ready tasks are added to a sorted
+list and executed in the order of earliest deadline.
+•Fixed Priority Scheduling (FPS) Each task is given an extra at-
+tribute, priority , and ready tasks are executed according to the high-
+est priority.
+Schedulers operate in such a manner that resources are never idle while
+there are ready tasks assigned to them. That is, as soon a task has ﬁnished
+execution a new task is set for execution.
+3.3.2 Preemption
+Resources come in two shapes, preemptive and non-preemptiv e. A non-
+preemptive resource means that once a task has been assigned to execute
+on a given resource, that task will run until completion befo re another task
+is assigned to the resource. Preemption means that a task ass igned to a
+resource can be temporarily halted from execution if the sch eduler decides
+to assign another task to the resource. We say that the ﬁrst ta sk has been
+preempted. A preempted task can later resume execution for t he remainder
+of its duration.
+Preemption allows for greater responsiveness to tasks that are close to
+missing their deadline, but that ﬂexibility is on behalf of i ncreased complexity
+of the schedulability analysis. The framework we deﬁne in th e following
+section will include a model for schedulability analysis wi th preemption.
+3.4 Schedulability
+Now, we deﬁne what it means for a system to be schedulable. A sy stem of
+tasks with constraints and resources with scheduling polic ies is said to be
+schedulable if no execution satisfying the constraints of t he system violates
+a deadline.
+4 Framework Model in Uppaal
+In this section, we will describe our Uppaal framework for analyzing the
+scheduling problems deﬁned in Section 3. The framework is co nstructed
+11
+
+--- Page 12 ---
+such that a model of a particular scheduling problem consist s of three diﬀer-
+ent timed automata templates: A generic task template, a gen eric resource
+template, and a scheduling policy model for each applied pol icy. We will
+describe the templates in this order.
+4.1 Modeling Idea
+In order to best explain the framework models, we will provid e an abstract
+scheduling model that will serve as a base for the framework m odels. The
+abstract scheduling model is based on the basic scheduling m odel deﬁned
+in [7].
+a.)Error
+DoneReadyWaiting
+time >= Deadline
+finished[id]?ready[resource]!
+b.)InUse
+x <= UseTimeIdle
+x == UseTimefinished[task]!ready[id]?
+x = 0
+Figure 3: Abstract task and resource models.
+This model, depicted in Figure 3 naturally divides the sched uling problem
+into tasks (Figure 3a) and resources (Figure 3b). Each task a nd resource has
+a unique identiﬁer ( id). Initially tasks are Waiting and when a task is ready
+to execute, this is signaled to the resource, to which the tas k is assigned,
+using the channel ready, indexed with the appropriate resource id (i.e., the
+variable resource ). This moves the task to Ready where it remains until either
+the deadline has passed, in which case the task moves to Error , or it receives
+a signal that execution is complete via the channel ﬁnished indexed with the
+task id, in which case the task moves to Done.
+Resources have two locations IdleandInUse indicating the state of the
+resource. Resources move from Idle toInUse upon a ready signal from a
+task, and return to Idle after the appropriate execution time. Resources
+signal that the task has ﬁnished execution using ﬁnish, indexed with the
+appropriate task.
+With this model, schedulability can be veriﬁed with the foll owing CTL
+query:
+12
+
+--- Page 13 ---
+A[] forall( i : task id ) not Task(i).Error
+That is, is it always the case that on all execution paths no ta sk will ever be
+in theError location?
+This is the base of the framework model introduced in the foll owing sec-
+tions. The added complexity of these models is because of the handling of
+preemption, periods, and diﬀerent scheduling policies. Be fore introducing
+the models, we will introduce some of the basic data structur es used in the
+code.
+4.2 Data Structures
+For each scheduling problem with tasks T=t0,...,t nand resources R=
+r0,...,r kwe deﬁne the following data types for convenience.
+tid: Task ids ranging from 0 to n.
+rid: Resource ids ranging from 0 to k.
+timet: Integer value between zero and the largest period among all tasks.
+Having established the above data types we can move to more co mplex
+data types such as the data structure representing a task, wh ich is called
+tasktand depicted in Listing 3. In other words, the task data struc ture
+holds all task attributes deﬁned in Section 3.1. Note that th e priority is
+given by prias ‘priority’ is a reserved keyword in Uppaal .
+To specify a set of tasks, we create a global array called taskof type taskt
+with one entry per task. The index of the array is the unique ta sk identiﬁer.
+See Section 5 for an example of task instantiation.
+The ﬁnal data structure is buﬀer twhich is the central data structure
+of the resource template. Each resource has a buﬀer that keep s track of
+the tasks ready to execute on a given resource and is sorted ac cording to
+the respective scheduling policy. The buﬀer element is deﬁn ed in Listing 4.
+Resource buﬀers are held in a global array called buﬀer with one index per
+resource.
+The above data structures serve a the foundation of the templ ate models
+deﬁned in the following sections.
+13
+
+--- Page 14 ---
+Listing 3: Task structure
+1typedef struct {
+2timet initial oﬀset ;
+3timet min period;
+4timet max period;
+5timet oﬀset ;
+6timet deadline ;
+7timet bcet;
+8timet wcet;
+9rid resource ;
+10 int pri ;
+11}taskt ;
+Listing 4: Resource buﬀer.
+1typedef struct {
+2int[0,Tasks] length;
+3tid element[Tasks];
+4}buﬀer t ;
+14
+
+--- Page 15 ---
+4.3 Task Template
+The task template serves as a model for both periodic and non- periodic tasks.
+The type of scheduling problem at hand is speciﬁed using the g lobal Boolean
+parameter Periodic . This variable is tested in the task template to guarantee
+that tasks observe correct periodic or non-periodic behavi or.
+ready_task = id
+completed()finished[id]!ready[resource()]!
+time[id] > deadline()time[id] = 0, x = 0,
+new_period()
+x >= BCET()dependencies_met()
+time[id] >= minPeriod()Ready
+PeriodDoneWaitingOffset
+x’ == 0WaitingDepedency
+Error
+DoneInitial
+time[id] == initialOffset()
+x’ == 0 &&
+time[id] <= maxPeriod()x’ == isRunning() &&
+x <= WCET()x’ == 0 &&
+time[id] <= initialOffset()
+x’ == 0 Periodicx’ == 0 &&
+time[id] <= offset()
+!Periodictime[id] == offset()
+Figure 4: Task template. Takes argument idof type tid.
+The task template, depicted in Figure 4, takes a single param eter, namely
+the task id, which is used to index the taskarray. The basic structure of a
+task consists of ﬁve locations named:
+•Initial (initial): The task is waiting for the initial oﬀset time to
+elapse.
+•Waiting : The task is waiting for certain conditions in order to be rea dy
+to execute. This location is actual split into two location r epresenting
+15
+
+--- Page 16 ---
+Listing 5: Function to determine clock rate of the xclock of a given task.
+1int[0,1] isRunning() {return ( buﬀer [ resource ()]. element[0] == id? 1 : 0); }
+whether the task is waiting for the period oﬀset to have elaps ed or
+some other user-deﬁned requirement. We return to the latter later in
+this section.
+•Ready : The task is either executing or waiting to execute in the buﬀ er
+of the respective resource.
+•Error : The task did not manage to complete execution before the
+deadline.
+•Done: The task has successfully completed execution within its d ead-
+line. This location is split into two locations. Which one of the two
+Done locations is used depends on whether the scheduling problem i
+periodic or not. In case the problem is non-periodic the done location
+is ﬁnal, otherwise the done location is a holding location wa iting for
+the next period.
+For every task attribute, we deﬁne a local function to access that at-
+tribute in the global task array. That is, the function resource() returns
+task[id].resource ,BCET() returns task[id].bcet , etc.
+Each task uses two clock variables called timeandx, where timerepresents
+the time since the beginning of the current period, and xrepresents how long
+the task has executed in the current period. The variable xis a local variable
+whereas timeis global and, thus, indexed by the task id. As we are using
+stopwatch automata, note that the progress rate of xis set to zero in all but
+theReady location. In Ready , the rate is determining whether the task is
+currently executing on the given resource. This is checked u sing the local
+function isRunning() deﬁned in Listing 5.
+On the other hand, timeis always running and reset at every period, so
+that when timeexceeds the deadline, the task can move to Error .
+Upon entering Ready , the task updates the variable ready taskwith the
+taskidto indicate which task has signaled to the given resource. Th e resource
+utilizes this id when inserting the task in the queue for exec ution. We return
+to this in Section 4.4.
+16
+
+--- Page 17 ---
+To allow for problem speciﬁc requirements, such as individu al task con-
+straints, the task template includes the following three fu nctions newperiod ,
+dependencies met, and completed . These functions can be used for a va-
+riety of problem speciﬁc purposes, the most obvious of which is the task
+graph dependency deﬁnition. How to model task graphs is illu strated below.
+newperiod is executed on the edges leading into Waiting and used for up-
+dating data structures indicating that the task is beginnin g a new period,
+dependencies metis tested in the guard leading from WaitingDependency to
+Ready , and completed is executed on the edge exiting Ready towards either
+Donelocation.
+4.3.1 Modelling Task Graphs
+To model task graphs using the customizable functions descr ibed above, we
+ﬁrst need a global data structure to hold the task graph itsel f. In Listing 6,
+the task graph is modeled using a square Boolean dependency m atrix where
+entry (i,j) dictates whether task idepends on task j. In the sample, we have
+four taskst0,...,t 3where task 0 depends on task 1 which depends on task 2
+which depends on task 3.
+Furthermore, we a have a Boolean array variable complete that determines
+whether a given task has ﬁnished execution. It is the respons ibility of every
+function to reset the corresponding entry of this array in ev ery period. In
+Listing 6, this is handled in the local task function newperiod . The value of
+complete is set to true when a task ﬁnishes execution in the completed function
+call. Finally, tasks cannot enter the Ready location from WaitingDependency
+until the function dependencies metevaluates to true. This function simply
+iterates the corresponding row of the task graph matrix and a sserts that if
+the task depends on another task, the entry of the complete array for that
+task must be true.
+With these steps, we have successfully modelled a task graph using our
+framework.
+Note that extra care must be taken about specifying task peri ods when
+using task dependencies, as the meaning of a dependency can b ecome unclear
+if the task periods are out of sync. The above handling of task graphs reset
+thecomplete variable on every new period, which is safe if dependent task s
+have the same period, but not necessarily so if the tasks do no t. Thus, a
+good rule of thumb is to only specify task dependencies betwe en tasks that
+have identical periods and no non-determinism on periods.
+17
+
+--- Page 18 ---
+Listing 6: Modelling Task Graphs
+1//Global declaration
+2const boolTaskGraph[Tasks][Tasks] = {
+3{0,1,0,0 },
+4{0,0,1,0 },
+5{0,0,0,1 },
+6{0,0,0,0 }
+7};
+8boolcomplete[Tasks];
+9
+10//Task local declaration
+11voidnewperiod() {
+12complete[id] = false;
+13}
+14
+15booldependencies met() {
+16return forall (j : t id ) TaskGraph[id][ j ] imply complete[j ];
+17}
+18
+19voidcompleted() {
+20complete[id] = true;
+21}
+18
+
+--- Page 19 ---
+4.4 Resource Template
+The resource template described in this section is identica l for both pre-
+emptive and non-preemptive schedulers. The resource model is depicted in
+Figure 5 and the main diﬀerence from this model and the idea de scribed in
+Section 4.1 is that the resource template does not include a c lock. All timing
+is handled solely by the tasks.
+ready[id]?ready[id]?
+finished[front()]?insert_task[policy]!
+inserted?empty()!empty()Idle
+InUseremoveTask()empty()
+!empty()
+insert_at(0,ready_task,id)setParams(ready_task,id,preemptive)
+Figure 5: Resource. Takes arguments idof type rid, preempt of type bool,
+and policy of type policy t.
+A resource takes three input parameters which are the resour ce id ( id),
+a Boolean preempt to indicate whether the resource is preemptive, and a
+scheduling policy of integer type policy t.
+The template has the two main locations IdleandInUse to indicate the
+status of the resource. Idle resources are waiting for tasks to signal that they
+are ready via the ready channel of the resource. Upon receiving such a signal
+from either Idle orInUse , the resource will place the task at the front of
+its buﬀer if the buﬀer is empty. Emptiness is tested with the l ocal function
+empty that reads the length of the respective buﬀer. Inserting a ta sk in the
+buﬀer is done via the global insert atfunction deﬁned in Listing 7 and takes
+as argument a position, a task id, and a resource id. The inser ting procedure
+moves all tasks in the buﬀer from the insert position one posi tion back (lines
+3-5) and then inserts the task at the desired position, and ﬁn ally, updates
+the length of the buﬀer.
+In case there is at least one element in the resource buﬀer alr eady, the
+19
+
+--- Page 20 ---
+Listing 7: Insert a task in the buﬀer of a resource at a given po sition.
+1voidinsert at (int[0,Tasks] pos, t id tid , r id rid) {
+2inti ;
+3for(i = buﬀer[ rid ]. length; i >pos; i−−){
+4 buﬀer [ rid ]. element[i ] = buﬀer[ rid ].element[i −1];
+5}
+6buﬀer [ rid ]. element[pos] = tid;
+7buﬀer [ rid ]. length++;
+8}
+scheduling principle determines where in the buﬀer to place the ready task.
+Each scheduling principle is a separate model that is ‘activ ated’ by synchro-
+nization over the channel insert taskindexed which the scheduling policy.
+The scheduling policy needs information about the task, the resource, and
+whether the resource is preemptive in order to make the decis ion of where to
+place the incoming task in the buﬀer. This information is tra nsferred via the
+setParams function that copies this information to meta variables tha t can
+be read by the scheduler. We return to this in Section 4.5.
+The resource remains in the committed location waiting for t he signal
+inserted indicating that the task has been inserted in the resource bu ﬀer ac-
+cording to scheduling policy. The waiting location is commi tted to guarantee
+that all task insertion processes should take place as an ato mic operation. If
+a scheduling policy does not adhere to this constraint, the s ystem deadlocks.
+Upon inserting the task in the buﬀer according to the schedul ing policy,
+the resource moves to the InUse location. The resource remains there until
+either the running task signals completion of execution thr oughﬁnished or an-
+other task signals that it is ready. In the latter case, the re source repeats the
+insertion process described above. In the former case, the r esource removes
+the task from its buﬀer with the local function removeTask (see Listing 8).
+Depending on whether the resource buﬀer is empty the resourc e returns to
+eitherIdleorInUse .
+The above resource template can be used to model diﬀerent typ es of
+resources and supports an easy manner to implement speciali zed scheduling
+policies with minimal overhead. In the following section we describe how to
+model three types of scheduling policies in our framework.
+20
+
+--- Page 21 ---
+Listing 8: Remove the front task from the resource buﬀer of th e given re-
+source.
+1voidremoveTask() {
+2inti = 0;
+3buﬀer [id ]. length −−;
+4do{
+5 buﬀer [id ]. element[i ] = buﬀer[id ]. element[i+1];
+6 i++;
+7}while (i<buﬀer[id ]. length );
+8buﬀer [id ]. element[ buﬀer [id ]. length] = 0;
+9}
+4.5 Scheduling Policies
+In this section, we describe models for three types of schedu ling policies:
+FIFO, FPS, and EDF. Common to all scheduling principles in ou r framework
+is that the scheduling policy is only called if there is at lea st one element in
+the resource buﬀer already. This precondition is guarantee d by the resource
+template by not calling the scheduling policy when the resou rce buﬀer is
+empty and instead inserting the ready task at the front of the buﬀer.
+The parameters transferred to the scheduling policies via setParams func-
+tion are stored in a struct meta variable called param . This way, the param-
+eters are accessible to the scheduling policies without inc reasing the state
+space as meta variables are ignored for state comparison. Th e parameters
+are availble to the policy via param.task ,param.prempt , and param.resource ,
+respectively.
+4.5.1 First-In First-Out
+First-in ﬁrst-out is the simplest scheduling policy as task s are simply put
+into the resource buﬀer in the order in which they arrive. Thi s implies that
+FIFO scheduling disregards whether the resource is preempt ive or not. The
+model for the FIFO policy is depicted in Figure 6 where insert ion of the task
+is handled on the edge synchronizing on insert task.
+21
+
+--- Page 22 ---
+insert_task[FIFO]?
+insert_at(buffer[param.resource].length,
+	param.task,
+	param.resource)
+inserted!
+Figure 6: FIFO scheduling policy.
+Listing 9: Function for task insertion according tho FPS.
+1void insert taskinbuﬀer () {
+2tid t = param.task;
+3rid r = param.resource;
+4intplace = (param.preempt ? 0 : 1);
+5inti ;
+6while(place <buﬀer[r ]. length &&
+7 task[ buﬀer [r ]. element[place ]]. pri >=task[t].pri) {
+8 place++;
+9}
+10 insert at (place,t,r );
+11}
+4.5.2 Fixed Priority
+The FPS scheduling policy model is similar to that of FIFO in s tructure, ex-
+cept that the task insertion is handled by the function call insert taskinbuﬀer
+(Listing 9) instead of a call to insert task. The function iterates (lines 6-8)
+through the resource buﬀer and compares the priority of the i ncoming task
+with the tasks in the buﬀer and sets a local variable placesuch that the in-
+coming task has lower priority than all tasks in front of it an d higher priority
+than all tasks behind it. In case the incoming task has the low est priority
+of all tasks in the buﬀer, the iteration is terminated by reac hing the end of
+the buﬀer and inserts the task here. Obviously, this method r equires the
+buﬀer to be sorted. However, as the method is used for all inse rtion, except
+the ﬁrst, the buﬀer remains sorted. When the place of inserti on has been
+established, the task is inserted using the insert atfunction call (line 9).
+22
+
+--- Page 23 ---
+Note in Listing 9 that preemption is handled in line 4 where th e ﬁrst
+assumed place of the incoming task is either the ﬁrst buﬀer en try, in case of
+preemption, or the second index, in case of no preemption. Th is code utilizes
+the precondition that the buﬀer has at least one element when the function
+is called.
+4.5.3 Earliest Deadline First
+The two scheduling policies above do not, in principle, need separate models
+as task insertion can be handled by a simple function call. Ho wever, because
+ofUppaal modeling language constraints, scheduling policies such a s EDF
+cannot be handled in our framework as a simple function call, but need to
+implement the insertion as a model. The problem lies in that t o determine
+how far a task, i, is from its deadline, we need to look at the diﬀerence
+between task[i].deadline andtime[i] .Uppaal does not allow such comparison
+in function calls as it requires operations on the clock zone data structure.
+However, Uppaal does allow such comparisons in guard expression and,
+thus, in order to ﬁnd the position of an incoming task in a reso urce buﬀer we
+need to iterate through the buﬀer as model transitions compa ring deadlines
+using guards.
+In order to compare whether an incoming task ihas earlier deadline than
+a buﬀered task j, we need to check the following:
+task[i].deadline-time[i] <task[j].deadline - time[j]
+⇔time[i] -task[i].deadline >time[j] - task[j].deadline
+Note that Uppaal only allows subtraction of constants from clock values
+and not the reverse, hence the rewriting of the expression.
+For convenience, we introduce a number of local variables an d functions
+for the EDF model as deﬁned in Listing 10. These are variables to hold the
+parameters that are transferred from the resource, a functi onreadParameters
+to set the values of the local variables, and function resetVars to reset the
+variables after task insertion to minimize the search space .
+Figure 7 depicts the model for EDF task insertion. Initially , the model
+reads the parameters and sets the initial assumed placevariable of insertion
+according to whether the calling resource is preemptive or n ot (same as for
+FPS). Now, the deadline of the incoming task is compared to th e deadline of
+the task at place. Ifplaceis either past the last element in the buﬀer or the
+incoming task has an earlier deadline than the task at place, the incoming
+23
+
+--- Page 24 ---
+Listing 10: Local variables and function for the EDF schedul ing policy.
+1int[0,Tasks] place;
+2tid tid ;
+3rid rid ;
+4boolpreempt;
+5voidreadParameters() {
+6tid = param.task; rid = param.resource; preempt = param.pre empt;
+7}
+8voidresetVars () {place = tid = rid = 0; }
+task is inserted at this place in the buﬀer with a call to the gl obal function
+insert at. Otherwise, placeis incremented and the deadline check is performed
+again. Note that this is nothing more than a model implementa tion of a
+regular while-loop as used for FPS.
+insert_task[EDF]?
+inserted!readParameters(),
+place = (preempt ? 0 : 1)
+place == buffer[rid].length ||
+time[tid]−task[tid].deadline >
+time[buffer[rid].element[place]] − task[buffer[rid].element[place]].deadlineplace < buffer[rid].length &&
+time[tid]−task[tid].deadline <=
+time[buffer[rid].element[place]] − task[buffer[rid].element[place]].deadline
+insert_at(place,tid,rid)resetVars()place++
+Figure 7: EDF scheduling policy
+This concludes our model framework for schedulability anal ysis and in the
+following section we proceed by showing how to instantiate t he framework
+and formulate schedulability queries.
+24
+
+--- Page 25 ---
+Listing 11: Local variables and function for the EDF schedul ing policy.
+1const boolPeriodic = .. ; // Periodic Scheduling?
+2const intTasks = .. ; // Number of tasks
+3const intProcs = .. ; // Number of resources
+4const intMaxTime = .. ; // Maximum time constant
+5const taskt task[Tasks] = {...};
+Listing 12: Local variables and function for the EDF schedul ing policy.
+1P1 = Resource(0, true/false, EDF/FPS/FIFO );
+2P2 = Resource(1, true/false, EDF/FPS/FIFO );
+3...
+4system Task, P1, P2, ... , Policy EDF, Policy FPS, Policy FIFO;
+5 Framework Instantiation
+In this section, we focus on instantiating our scheduling fr amework for stan-
+dard scheduling problems. Instantiation requires data ent ry in the global
+declaration as well as in the system deﬁnition. The data need ed in the global
+declaration is shown in Listing 11.
+For a particular scheduling problem, the user needs to speci fy whether it
+is a periodic scheduling problem, how many tasks and resourc es there are,
+the maximum time constant for all tasks,1and the task attributes.
+When deﬁning the system, the user needs to specify the proper ties of the
+diﬀerent resources, that is, preemption and scheduling pol icy.
+In Listing 12, we show a sample system declaration with a numb er of
+resources (P1, P2,...). When declaring the actual system wi th the system
+keyword, all deﬁned resources should be included with a sing le copy of each
+used scheduling policy. Note that all tasks are included wit h the single Task
+instantiation. This is because the parameter space of tasks are bound by the
+tidtype, so if no parameter is used, Uppaal instantiates a copy of a task
+for every possible id.
+1Used for Uppaal state footprint reduction.
+25
+
+--- Page 26 ---
+5.1 Schedulability Query
+For any given scheduling problem, the schedulability of che cking whether all
+tasks always meet their respective deadlines can be stated a s in Section 4.1:
+A[] forall ( i : t id ) not Task(i).Error
+In other words: “Does it hold for all paths that no task is ever in the
+Error location?”. Note that Uppaal using stopwatches creates an over-
+approximation of the state space meaning that if the above qu ery is satisﬁ-
+able, it is guaranteed that the system i schedulable under al l circumstances.
+However, if the query is not satisﬁable, this means that a cou nter-example
+has been established in the over-approximation. However, t he system may
+still be schedulable since the counter-example is not neces sary a feasible run
+of the original system.
+5.2 Example Framework Instantiation
+In this section, we provide a sample periodic schedulabilit y problem and
+illustrate how to instantiate our framework for this proble m. Parts of the
+schedulability problem is depicted in Figure 8 (left). It is a simple system
+with four tasks T=t0,...,t 3and two resources P0andP1and with task
+dependencies given as a task graph. As indicated by dashed li nes in the
+ﬁgure, tasks t0andt1are assigned to P0and taskst2andt3are assigned to
+P1.
+t0
+t1P1
+t3t2 t0
+t1t4P1
+t3t2BusP0 P0
+Figure 8: Sample schedulability problem.
+Note that task t3depends on task t0, but the tasks are assigned to diﬀerent
+resources. This is a common scheduling situation and, usual ly, requires the
+26
+
+--- Page 27 ---
+communication of data between resources using a transport m edium such
+as a data bus. The communication of data takes time, but does n ot block
+either of the resources. In our framework, such a scenario ca n be modelled
+as illustrated in Figure8 (right) introducing a new task t4that requires a
+new resource Bus. The task t4is inserted into the task graph such that t4
+depends on t0andt3depends on t4. We assume for the reasons explained
+in Section 3.2 that all tasks have ﬁxed and identical periods . Thus, the
+attributes of t4should be set such that:
+•initial offset (t4) =initial offset (t0)
+•bcet(t4): Speciﬁc to the bus.
+•wcet (t4): Speciﬁc to the bus.
+•minperiod (t4) =minperiod (t0) Given our assumption about iden-
+tical periods, the minimum and maximum periods are equal and the
+same for all tasks.
+•maxperiod (t4) =minperiod (t4)
+•offset (t4) = 0. Oﬀset not needed as task release is determined by
+completion of t0.
+•deadline (t4) =minperiod (t4). Could be tightened with respect to
+the deadline of t3andxcet(t4).
+•priority (t4) = 0. Irrelevant as the bus is a FIFO resource.
+TheBusresource will be modelled as a non-preemptive FIFO resource to
+mimic the behavior of a data bus. Assuming some speciﬁc best- case and
+worst-case execution times, periods, deadlines, etc., the schedulability prob-
+lem described above can be instantiated as show in Listing 13 .
+Note in Listing 13 that the three tasks that depend on other ta sks have
+been given an oﬀset of one. This is for convenience, at it is th e responsibility
+of individual tasks to reset their own entry in complete . Upon start of a
+new period without the oﬀset, task t1could signal ready to the resource
+while reading an old value of complete for taskt0beforet0resets the value.
+Another way to handle this when all dependent tasks have the s ame ﬁxed
+periods would be to let any task reset all values to complete when starting a
+new period. However, there is no general good way of handling this problem
+and it is left to the modeler to prevent unwanted situations.
+27
+
+--- Page 28 ---
+Listing 13: Modelling Task Graphs
+1//Global Declaration
+2const boolPeriodic = true;
+3const intMaxTime = 20;
+4const intTasks = 5; // Number of tasks
+5const intProcs = 3; // Number of resources
+6
+7const taskt task[Tasks] = {
+8{0,20,20,0,20,4,7,0,1 },
+9{0,20,20,1,20,8,12,0,1 },
+10{0,20,20,0,20,10,12,1,1 },
+11{0,20,20,1,20,6,7,1,1 },
+12{0,20,20,1,20,5,5,2,1 }
+13};
+14
+15const boolDepend[Tasks][Tasks] = {// Task graph
+16{0,0,0,0,0 },
+17{1,0,0,0,0 },
+18{0,0,0,0,0 },
+19{0,0,1,0,1 },
+20{1,0,0,0,0 }
+21};
+22
+23//System Declaration
+24P0 = Resource(0, true,FPS);
+25P1 = Resource(1, true,FPS);
+26Bus = Resource(2, false,FIFO);
+27
+28system Task, P0, P1, Bus, Policy FPS, Policy FIFO;
+28
+
+--- Page 29 ---
+6 Conclusion
+We have provided a framework allowing the modeling and analy sis of a variety
+of schedulability scenarios. In particular, our framework supports multi-
+processor systems, rich task models with timing uncertaint ies in arrival- and
+execution- times, possible dependencies, a range of schedu ling policies, and
+possible preemption of resources. The support of approxima te analysis of
+stopwatch automata in Uppaal 4.1 is key to the successful schedulability
+analysis.
+Furthermore, the uncertainty on the periods used in our fram ework could
+be generalized to more general task arrival where a separate process deter-
+mines the arrival of tasks. Such situations can be modeled us ing the structure
+of our framework by letting the starting of periods be dictat ed through chan-
+nel synchronization with the model controlling arrival tim es. Even with such
+liberty, the overapproximation is still ﬁnite and terminat ion is guaranteed.
+The scheduling framework provided in this paper is structur ed such that
+adaptation can be made to accommodate other scheduling poli ces and inter-
+task constraints. The former can be achieved by adding anoth er policy model
+similarly to the three built-in policies FIFO, FPS, and EDF. The latter is
+achieved through the use of the function calls newperiod ,dependencies met,
+andcompleted .
+References
+[1] Rajeev Alur, Costas Courcoubetis, and David Dill. Model -checking for
+real-time systems. In Proc. 5th IEEE Symposium on Logic in Computer
+Science (LICS’90) , pages 414–425. IEEE Computer Society Press, 1990.
+[2] Rajeev Alur and David Dill. Automata for modeling real-t ime systems.
+InProc. 17th International Colloquium on Automata, Language s and
+Programming (ICALP’90) , volume 443 of Lecture Notes in Computer
+Science , pages 322–335. Springer, 1990.
+[3] Rajeev Alur and David Dill. A theory of timed automata. Theoretical
+Computer Science (TCS) , 126(2):183–235, 1994.
+[4] Tobias Amnell, Elena Fersman, Leonid Mokrushin, Paul Pe ttersson, and
+Wang Yi. Times - a tool for modelling and implementation of em -
+bedded systems. In Joost-Pieter Katoen and Perdita Stevens , editors,
+29
+
+--- Page 30 ---
+TACAS , volume 2280 of Lecture Notes in Computer Science , pages 460–
+464. Springer, 2002.
+[5] Jan Madsen Aske Brekling, Michael R Hansen. Models and fo rmal ver-
+iﬁcation of multiprocessor system-on-chips. The journal of Logic and
+Algebraic Programming , 77(1):1–19, 2008.
+[6] Gerd Behrmann, Agnes Cougnard, Alexandre David, Emmanu el Fleury,
+and Didier Larsen, Kim G.and Lime. Uppaal tiga: Time for play ing
+games! In To appear in proc. of Computer Aided Veriﬁcation (CAV’07) ,
+2007.
+[7] Gerd Behrmann, Kim G. Larsen, and Jacob I. Rasmussen. Opt imal
+scheduling using priced timed automata. ACM SIGMETRICS Perform.
+Eval. Rev. , 32(4):34–40, 2005.
+[8] Thomas Bœgholm, Henrik Kragh-Hansen, Petur Olsen, Bent Thomsen,
+and Kim G. Larsen. Model-based schedulability analysis of s afety critical
+hard real-time java programs. In JTRES ’08: Proceedings of the 6th
+international workshop on Java technologies for real-time and embedded
+systems , pages 106–114, New York, NY, USA, 2008. ACM.
+[9] Franck Cassez and Kim Guldstrand Larsen. The impressive power of
+stopwatches. In Catuscia Palamidesi, editor, 11th International Confer-
+ence on Concurrency Theory, (CONCUR’2000) , number 1877 in Lecture
+Notes in Computer Science, pages 138–152, University Park, P.A., USA,
+July 2000. Springer-Verlag.
+[10] Elena Fersman, Leonid Mokrushin, Paul Pettersson, and Wang Yi.
+Schedulability analysis of ﬁxed-priority systems using ti med automata.
+Theor. Comput. Sci. , 354(2):301–317, 2006.
+[11] Elena Fersman, Paul Pettersson, and Wang Yi. Timed auto mata with
+asynchronous processes: schedulability and decidability . InIn Proceed-
+ings of TACAS 2002 , pages 67–82. Springer-Verlag, 2002.
+[12] UPPAAL Scheduling Framework
+.http://www.uppaal.com/SchedulingFramework , Jan. 2009.
+[13] K. Godary, I. Aug´ e-Blum, and A. Mignotte. Sdl and timed petri nets
+versus uppaal for the validation of embedded architecture i n automotive.
+30
+
+--- Page 31 ---
+InForum on speciﬁcation and Design Language (FDL’04) , Lille, France,
+September 2004.
+[14] Nan Guan, Zonghua Gu, Qingxu Deng, Shuaihong Gao, and Gu Yu.
+Exact schedulability analysis for static-priority global multiprocessor
+scheduling using model-checking. In Software Technologies for Embed-
+ded and Ubiquitous Systems , Lecture Notes in Computer Science, pages
+263–272. Springer, 2007.
+[15] Uppaal Tiga Homepage. http://www.cs.aau.dk/ ~adavid/tiga , 2006.
+[16] Aske Brekling Jan Madsen, Michael R. Hansen. A modellin g and anal-
+ysis framework for embedded systems. In this book.
+[17] Jan Krakora and Zdenek Hanzalek. Timed automata approa ch to CAN
+veriﬁcation. INCOM , 2004.
+[18] Pavel Krc´ al and Wang Yi. Decidable and undecidable pro blems in
+schedulability analysis using timed automata. In Kurt Jens en and An-
+dreas Podelski, editors, TACAS , volume 2988 of Lecture Notes in Com-
+puter Science , pages 236–250. Springer, 2004.
+[19] J. Madsen, K. Virk, and M. J. Gonzalez. A systemC-based a bstract
+real-time operating system model for multiprocessor syste m-on-chip. In
+Multiprocessor System-on-Chip . Morgan Kaufmann, 2004.
+[20] S. Mahadevan, M. Storgaard, J. Madsen, and K. M. Virk. Ar ts: A
+system-level framework for modeling MPSoC components and a nalysis
+of their causality. In 13th IEEE International Symposium on Modeling,
+Analysis, and Simulation of Computer and Telecommunicatio n Systems
+(MASCOTS) . IEEE Computer Society, sep 2005.
+[21] Yannick Le Moullec, Jean-Philippe Diguet, Nader Ben Am or, Thierry
+Gourdeaux, and Jean Luc Philippe. Algorithmic-level speci ﬁcation and
+characterization of embedded multimedia applications wit h design trot-
+ter.VLSI Signal Processing , 42(2):185–208, 2006.
+[22] Hristo Nikolov, Mark Thompson, Todor Stefanov, Andy D. Pimentel,
+Simon Polstra, R. Bose, Claudiu Zissulescu, and Ed F. Depret tere.
+Daedalus: toward composable multimedia MPSoC design. In Li mor
+Fix, editor, DAC, pages 574–579. ACM, 2008.
+31
+
+--- Page 32 ---
+[23] H. Sun. Timing constraints validation using uppaal: Sc hedulability anal-
+ysis. In DIPES ’00: Proceedings of the IFIP WG10.3/WG10.4/WG10.5
+International Workshop on Distributed and Parallel Embedd ed Systems ,
+pages 161–172, Deventer, The Netherlands, The Netherlands , 2001.
+Kluwer, B.V.
+[24] UPPAAL. http://www.uppaal.com , Jan. 2005.
+[25] UPPAAL CORA. http://www.cs.aau.dk/ ~behrmann/cora/ , January
+2006.
+32

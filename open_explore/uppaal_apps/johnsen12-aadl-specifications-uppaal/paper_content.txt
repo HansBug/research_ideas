@@ -1,0 +1,909 @@
+--- Page 1 ---
+Automated Veriﬁcation of AADL-Speciﬁcations Using UPPAAL
+Andreas Johnsen, Kristina Lundqvist, Paul Pettersson, Omar Jaradat
+School of Innovation, Design and Engineering
+M¨alardalen University
+V¨aster ˚as, Sweden
+forename.surname@mdh.se
+Abstract —The Architecture Analysis and Design Language
+(AADL) is used to represent architecture design decisions of
+safety-critical and real-time embedded systems. Due to the far-
+reaching effects these decisions have on the development pro-
+cess, an architecture design fault is likely to have a signiﬁcant
+deteriorating impact through the complete process. Automated
+fault avoidance of architecture design decisions therefore has
+the potential to signiﬁcantly reduce the cost of the development
+while increasing the dependability of the end product. To
+provide means for automated fault avoidance when developing
+systems speciﬁed in AADL, a formal veriﬁcation technique
+has been developed to ensure completeness and consistency of
+an AADL speciﬁcation as well as its conformity with the end
+product. The approach requires the semantics of AADL to be
+formalized and implemented. We use the methodology of se-
+mantic anchoring to contribute with a formal and implemented
+semantics of a subset of AADL through a set of transformation
+rules to timed automata constructs. In addition, the veriﬁcation
+technique, including the transformation rules, is validated using
+a case study of a safety-critical fuel-level system developed by
+a major vehicle manufacturer.
+I. I NTRODUCTION
+Safety-critical systems such as real-time embedded sys-
+tems within the domains of avionics and automotive are de-
+veloped under stringent requirements on high dependability.
+Fault avoidance, in addition to fault tolerance, is essential to
+achieve high dependability levels. Fault avoidance represents
+means focused on producing a fault-free system, both by
+proactive methods which prevent faults from being intro-
+duced (known as fault prevention), and by reactive methods
+which remove faults that have been introduced (known as
+fault removal). Although the development of a fault-free
+system seldom is practical, and has to be supported by
+means of retaining dependability even in the presence of
+faults (known as fault tolerance), automated fault avoidance
+is necessary to guarantee dependability within a competitive
+schedule and budget. One of the most critical development
+phases with respect to fault avoidance is the architecture
+design phase where the design decisions needed to achieve
+the required quality attributes, such as dependability and
+performance, are determined. Due to the fact that these
+architecture design decisions have the most far-reaching
+This work was partially supported by the Swedish Research Council
+(VR), and M ¨alardalen Real-Time Research Centre, M ¨alardalen University.effects on the development, and are the most costly to correct
+at a later stage, they are the most critical design decisions
+to evaluate.
+The Architecture Analysis and Design Language
+(AADL) [1] has been developed to provide a formalism
+from which architectures of real-time embedded systems
+can be designed and analyzed. In order to provide
+means for automated fault avoidance when designing
+systems by AADL, a veriﬁcation technique based on
+formal methods has been developed in previous work [2].
+Automated fault avoidance is provided through the
+entire development process by the adaptation of both
+model checking and model-based testing approaches to
+an architectural perspective. Assuming a development
+process where initially a system designed to fulﬁll the
+system requirements is speciﬁed in AADL, and where the
+speciﬁcation is used as a blueprint to guide the subsequent
+development process, the goals of the technique are:
+Goal 1. to ensure completeness and consistency of an
+AADL speciﬁcation through model-checking before the de-
+velopment process progresses, and
+Goal 2. to ensure conformance of the end product with
+respect to its AADL speciﬁcation through model-based
+testing.
+The approach however requires the semantics of AADL
+to be formalized and implemented. The main contributions
+of this paper are a formal and implemented semantics
+of a subset of AADL including features commonly used
+in real-time systems, and a validation of the veriﬁcation
+technique. Formal and implemented semantics is achieved
+through formally deﬁned transformation rules to constructs
+in timed automata – the input language to the U PPAAL
+model checker [3]. The methodology is known as semantic
+anchoring , where the deﬁned transformation rules anchor
+the semantics of AADL to the – formal and implemented –
+semantic domain of timed automata in the U PPAAL environ-
+ment. In addition, a transformation to timed automata allows
+for the use of the U PPAAL model checker to automatically
+perform veriﬁcation of the speciﬁcation through model-
+checking, and veriﬁcation of the implementation through
+model-based conformance testing. It is important to note that
+
+--- Page 2 ---
+the transformation rules also enable simulation of AADL
+speciﬁcations, which provides numerous beneﬁts in the
+development of safety-critical systems, such as improving
+correctness analysis and understandability. The technique
+has been applied on a safety-critical fuel-level estimation
+system developed by a major vehicle manufacturer as an
+initial validation of its applicability and scalability to indus-
+trial systems.
+The rest of this paper presents an overview of AADL and
+the veriﬁcation technique in Section II. The transformation
+rules from AADL to timed automata are presented in Sec-
+tion III. Results of the case study are presented in Section IV,
+followed by related work in Section V and ﬁnally concluding
+remarks in Section VI.
+II. AADL AND THEVERIFICATION TECHNIQUE
+AADL was initially released and published as a Society
+of Automotive Engineers (SAE) Standard AS5506 [1] in
+2004, and a second version (AADLv2) was published in
+2009. It is a textual and graphical language used to model,
+specify and analyze software- and hardware-architectures
+of real-time embedded systems. AADL is based on a
+component-connector paradigm that hierarchically describes
+components, component interfaces and the interactions (con-
+nections) among components. Hence, the language captures
+functional properties of the system, such as input and output
+through component interfaces, as well as structural proper-
+ties through conﬁgurations of components, subcomponents
+and connectors. Furthermore, means to describe quality
+attributes, such as timing and reliability, are also provided.
+AADL deﬁnes component abstractions dividable into three
+groups: application software components (process, thread,
+thread group, data, subprogram and subprogram group),
+execution platform components (memory, bus, virtual bus,
+processor, virtual processor and device) and general com-
+posite components (system and abstract). In this paper, we
+will focus on threads, processes and processors. A thread
+component represents a schedulable and concurrent unit of
+(sequential) execution, a process component represents a
+protected address space (must contain at least one thread
+subcomponent), and a processor component represents hard-
+ware and software responsible for scheduling and executing
+threads.
+AADL speciﬁcations have explicit control-ﬂows and data-
+ﬂows through the architecture as deﬁned in [2]. The ﬂows
+are dependent on how components transfer control and data
+through their interfaces which is described in the standard
+with a precise execution model (dynamic semantics). The
+possible interactions among components are represented
+by four different types of connections: port connections ,
+data access connections ,subprogram calls and parameter
+connections .Port connections represent a transfer of data,
+control or both, depending on the type of interconnectedinterfaces (data port, event port or event data port). Subpro-
+gram calls represent a transfer of control whereas parameter
+connections anddata access connections represent a transfer
+of data.
+The runtime conﬁguration of subcomponents and their
+interactions within a component may change if it is speciﬁed
+with modes . For each mode, it is possible to set the ac-
+tive components and connections, mode-speciﬁc subprogram
+calls and mode-speciﬁc properties. Furthermore, the logical
+execution of thread and subprogram components may be
+modeled by using the Behavioral Annex (BA) [4]. Logical
+execution is modeled through states, state variables and
+transitions operating on a component’s interfaces which
+consequently reﬁnes the interactions with other components.
+The four different types of connections specify the ar-
+chitectural control-ﬂows and data-ﬂows of an AADL spec-
+iﬁcation. These ﬂows may be dependent on mode state
+machines, reﬁned by the BA and constrained by associated
+property annotations where conﬂicts may occur between
+these constructs.
+The objective of the veriﬁcation criteria deﬁned in the
+veriﬁcation technique [2] is, with respect to the semantics
+(semantic rules) of AADL and Goal 1, to ensure consis-
+tency and completeness of and between the AADL ﬂows,
+their reﬁnements and their constraints through the analysis
+ofcontrol-ﬂow reachability ,data-ﬂow reachability and
+concurrency among ﬂows. Consequently, the veriﬁcation
+technique is, with respect to Goal 1, comparable with
+semantic analysis techniques in compilers.
+Control-ﬂow reachability is the property where each
+architectural element in an execution order can reach
+the subsequent element to be executed without conﬂict-
+ing constraints of the control-ﬂow.
+Data-ﬂow reachability is the property where each data
+element can reach its target component, where the data
+is used, from its source component, where the data
+is deﬁned. The data element should reach the target
+component without conﬂicting constraints of the data-
+ﬂow. Analysis of single ﬂows of data or control is not
+enough since there are implicit relations between them
+that may cause deadlocks in the system.
+Concurrency among ﬂows is the property where re-
+lations between ﬂows should not prevent control-ﬂow
+reachability or data-ﬂow reachability, and where the
+system should be free from deadlocks.
+Note that the analysis of ﬂows consider constraints from
+AADL property annotations, such as, the latency of a
+data ﬂow, or the period, execution time and deadline of
+threads. Hence, analysis of control-/data-ﬂow reachability
+and concurrency among ﬂows imply analysis of additional
+aspects, such as timing and schedulability.
+To perform the analysis the control- and data-ﬂow dia-
+grams must be extracted from the AADL speciﬁcation. This
+is done through deﬁned AADL relations which three of them
+
+--- Page 3 ---
+we brieﬂy present here but a complete description and the
+formal deﬁnitions can be found in [2]. In the deﬁnitions
+below, N denotes a component, N.Int denotes an interface
+of a component N, and C denotes a connection. Component
+Internal Relation deﬁnes the (possibly constrained) data or
+control transfer that is generated between two interfaces of
+a component that are connected through a connection or a
+BA (Behavior Annex). Relation bin Figure 1 illustrates the
+deﬁnition, where the BA connection C2internally connects
+N2:Int 1toN2:Int 2.Direct Component to Component
+Relation deﬁnes the (possibly constrained) data or control
+transfer that is generated between two components that are
+directly connected through a connection. Both relation aand
+cillustrate the deﬁnition, where C1connectsN1:Int 1to
+N2:Int 1, andC3connectsN2:Int 2toN3:Int 1.Indirect
+Component to Component Relation deﬁnes the (possibly
+constrained) data or control transfer that is generated be-
+tween two components that are indirectly connected through
+one or several component(s). Relation dillustrates the deﬁ-
+nition, where C1,C2andC3indirectly connect N1:Int 1to
+N3:Int 1. Based on the relations three types of veriﬁcation
+Figure 1. Illustration of relations between three interconnected compo-
+nents. ”*” denotes a BA connection.
+sequences have been deﬁned [2]. A veriﬁcation sequence is
+a sequence of interfaces where each interface has a relation
+to the subsequent interface in the sequence. They describe
+the possible internal, direct and indirect paths of execution
+in control- and data-ﬂow diagrams, that is, the possible
+interactions among interfaces in an AADL speciﬁcation.
+For example, since there exists an indirect relation dfrom
+N1:Int 1toN3:Int 1as shown in Figure 1, there exists an
+indirect path of a sequence on the form Path d=N1:Int 1
+!N2:Int 1!N2:Int 2!N3:Int 1. A path is constrained
+if any member in the sequence is associated with a property
+annotation. For example, assume that relation dexists due to
+an end-to-end data-ﬂow from N1:Int 1toN3:Int 1through
+the interfaces and that the ﬂow is speciﬁed with a latency
+property, path Path dwill be constrained such that the
+time from when data i sent through N1:Int 1until it is
+received through N3:Int 1must not exceed the value of
+the property. In addition, assuming that each component in
+Path dis a thread speciﬁed with Compute Execution Time ,
+Compute Deadline andPriority properties, path Path dwill
+be constrained such that each thread must execute for a
+speciﬁed amount of time before output is generated, each
+thread must generate output before a speciﬁed deadline, and
+the sequence of thread execution must not contradict theirpriorities.
+In order to verify the completeness and consistency of
+an AADL speciﬁcation, all paths must be veriﬁed that they
+fulﬁll their constraints. Or to be more precise, each path must
+be able to be executed according to the semantics (semantic
+rules) of AADL such that each (active) property-value is
+valid in each state of the execution. The AADL speciﬁ-
+cation is consistent if each path is free from contradictory
+behavior, that is, each path does not contradict Control-ﬂow
+reachability, Data-ﬂow reachability and Concurrency among
+ﬂows. The AADL speciﬁcation is complete if each path not
+yielding an end-to-end ﬂow (typically a sensor-to-actuator
+ﬂow) is subsumed in another path.
+End-to-end paths can also be used to generate test cases
+for the implementation to test the conformity with its
+AADL speciﬁcation. The objective of the veriﬁcation criteria
+deﬁned in the veriﬁcation technique [2] is, with respect
+to the semantics (semantic rules) of AADL and Goal 2,
+to ensure conformance of the end product with respect to
+its AADL speciﬁcation. From each end-to-end path, it is
+possible to derive the initial expected state of the system,
+the input needed to stimulate an execution according to
+the expected path, the expected output and the expected
+timing constraints. A step by step description of the complete
+veriﬁcation technique can be found in [2].
+However, the veriﬁcation of paths must be executed in
+accordance to the dynamic semantics (execution model) of
+the language. To perform this in a formal and automated way
+the dynamic semantics of AADL must ﬁrst be formalized
+and implemented (see Section III). We provide a formal and
+implemented semantics of AADL through transformation
+rules (mappings) to timed automata, the input language to
+the U PPAAL model checker.
+III. T RANSFORMATION TO TIMED AUTOMATA
+AADL supports speciﬁcation of real-time and scheduling
+properties such as dispatch protocol, deadline, execution
+time, scheduling policy, period, etc. The AADL execution
+model is described in the AADL standard by terms of thread
+(automata) states, thread dispatching, and thread schedul-
+ing and execution states. It consists of several different
+aspects of a run-time environment, such as synchronous
+interactions, asynchronous interactions, nominal execution,
+recovery execution, etc. The standard deﬁnes a default run-
+time environment with synchronous interactions and pre-
+emptive scheduling where periodic threads interact through
+data ports. Data is available at the input ports at the time
+of a thread’s dispatch, which is followed by computation of
+output data that is transmitted (from out ports) at the time
+of the sending thread’s completion or deadline, to (the in
+ports of) the recipient thread. Port connections can either be
+speciﬁed as immediate or delayed, the former transmits data
+at a thread’s completion whereas the latter transmits data at
+a thread’s deadline.
+
+--- Page 4 ---
+Since these features are commonly used in real-time
+systems, we deﬁne formal semantics for a subset of AADL
+consisting of synchronous interactions with ﬁxed-priority
+preemptive scheduling (non-preemptive scheduling is sub-
+sumed). Formal semantics is deﬁned through transformation
+rules to the U PPAAL modeling language, an extension of
+the timed automata theory. The AADL subset and timed
+automata in U PPAAL are deﬁned as follows, upon which
+the transformation rules are deﬁned.
+Deﬁnition 1. An AADL-speciﬁcation A=hPr;T;Cihas
+a processor component Pr, a set of thread components
+Tand a set of data port connections Cof the form
+Connection ::=Identiﬁer : data port source port reference
+   >>>destination port reference ;jIdentiﬁer : data port
+source port reference   >>>>>> destination port reference ;.
+Lettrange overTandcoverC.
+A threadti=hIdent i;Interf i;SchProp i;MSM i;BM ii
+has an identiﬁer Ident i, a set of in and out data port
+interfaces (features) Interf i=InInterf i[OutInterf i
+of the form Feature :: =Identiﬁer : in data port ;jIdentiﬁer
+: out data port ; , scheduling properties SchProp i=
+hDispatchProtocol i;Period i;Compute Execution
+Time i;Compute Deadline i;Priority iiof the form Prop-
+erty ::=Identiﬁer ===>>>Value , a mode state machine MSM ,
+and a behavioral model BM1. We assume that the value of
+theDispatchProtocol is ”periodic”.
+LetConnect :Interf!Cbe a function which as-
+signs active connections to interfaces. A processor Pr=
+hIdent;TBind;Scheduling Protocolihas an identiﬁer
+Ident , a set of threads bound to it TBindTand a
+scheduling protocol property.
+Deﬁnition 2. A timed automaton TA =
+hL;`o;X;Var;I;Eihas a set of locations L, an initial
+location`02L, a set of real-valued variables Xcalled
+clocks , a set of (bounded) integer-typed variables Var, a
+function assigning invariants to locations I:L!Gand
+a set of edges ELGActUL, whereGis a
+(possibly empty) set of guards which are conjunctions of
+predicates over variables and clock constraints of the form
+xexpr 1c, wherex2X,c2Nandexpr 12f<;;;>g.
+Act=I[O[fgis a set of input (denoted a?) and
+output (denoted a!) synchronization actions and the non-
+synchronization .Uis a (possibly empty) set of updates
+which are sequences of variable-assignments of the form
+v:=expr 2and/or clock resets of the form x:= 0 , where
+v2Var[VarG,x2Xand expr 2is an arithmetic
+expression over integers. We shall use the denotation
+`g;a;u   !`0iffh`;g;a;u;`0i2E.
+Semantically, a TA is deﬁned by a timed transition system
+over states which are pairs of the form h`;i, where
+1Mode state machines and behavioral models are only brieﬂy discussed
+due to space limitations`2L,2RX
++is a clock valuation and j=I(`).
+Progress is either performed through delay transitions
+h`;id  ! h`;diwheredis the result of adding
+the delaydto each clock valuation in , or by discrete
+transitionsh`;ia  !h`0;0iwhere an (instantaneous) edge
+h`;g;a;u;`0i, such thatj=g, is taken from a location `
+to another location `0.
+A network of timed automata NTA =
+hTA;Var G;XG;Chihas a vector of n timed automata
+TA=hTA0;TA 1;:::;TA n 1i, a set of shared (global)
+variablesVarG, a set of shared clocks XG, and a set of
+synchronization channels Ch. The semantics of a NTA is
+deﬁned by a timed transition system such that a state is a
+location vector over all automata and the union of clock
+valuations from all automata where delay transitions are
+synchronized and discrete transitions are synchronous over
+complementary actions (a? complements a!).
+In addition, U PPAAL extends the timed automata the-
+ory with the possibility to declare locations as urgent or
+committed and coding of functions (in UCode, a subset
+of C) callable at transitions. In an urgent location, time is
+not allowed to progress whereas in a committed location,
+time is not allowed to progress and the next transition must
+involve one of its outgoing edges. A timed automata path
+or trace is deﬁned as a sequence of states such that there
+exist transitions from each state in the sequence leading
+to its successor state. Finally, we shall use Id(c),Id(ti),
+Id(Var)etc., to denote the identiﬁer of the respective
+element whereas Val(VarG),Val(Priority i), etc., is used
+to denote its value .
+A. Transformation Rules
+In this section, we ﬁrstly present the formally deﬁned
+transformation rules, and secondly, we describe each trans-
+formation rule informally while applying them to an AADL-
+example presented in Example 1. Due to the complexity of
+the semantics of AADL processor components, the details
+of the corresponding rules are presented in a separate
+subsection, Section III-A1.
+The transformation rules are deﬁned by means of func-
+tions where a transformation is initiated through function
+TA:A!NTA which maps an AADL speciﬁcation Aof
+the formhPr;T;Cito a network of timed automata NTA .
+RuleTA:TA(A) =hTA;Var G;;;Chisuch that
+TA[0]=TPr(Pr)and for 0i <jTj,TA[i+ 1]=
+TT(ti),VarG=fTC(c)jc2CgandChis generated
+as presented in Section III-A1.
+FunctionTPr:Pr!TAmaps a processor component Pr
+of the formhIdent;TBind;Scheduling Protocolito a
+timed automaton TA.
+
+--- Page 5 ---
+RuleTPr:TPr(Pr) =hL;`o;X;Var;I;EiwhereL,
+`o,X,Var,IandEare as deﬁned in Section III-A1.
+FunctionTT:T!TA maps a thread component tiof
+the formhIdent i;Interf i;SchProp i;MSM i;BM iito a
+timed automaton TA.
+RuleTT:TT(ti) =hL;`o;X;Var;I;Eisuch
+thatL=fawaitingdispatch;ready;running g,
+`0=awaitingdispatch ,X=fclg,Var =
+fPeriod;CET;CD;Priorityg[VarIn[VarOut
+whereVal(Period ) =Val(Period i),. . . ,Val(Prior
+ity) =Val(Priority i),VarIn =fTInterf (int)j
+int2InInterf igandVarOut =fTInterf (int)j
+int2OutInterf ig. LetVin andVout range over
+VarIn andVarOut respectively.
+I(awaitingdispatch ) =fcl < =Periodgand
+E=fawaitingdispatchcl>=Period;dispatched [i]!;u1                   !
+ready;readyrun[i]?    !running;runningpreempt [i]?       !
+ready;runningcomplete [i]?;u2          ! awaitingdispatchg
+whereu1=hschinfo[i][0=1=2] :=CET=CD=
+Priority;Vin 0=Id(Connect (Vin 0));Vin 1=Id(C
+onnect (Vin 1));::: ;Vin n=Id(Connect (Vinn));
+cl:= 0iandu2=hId(Connect (Vout 0)) :=
+Vout 0;Id(Connect (Vout 1)) :=Vout 1;::: ;Id (Con
+nect(Vout m)) :=Vout mi.
+FunctionTC:C!VarGmaps an interface connection c
+to a global variable vG.
+RuleTC:TC(c) =vG, such thatId(c) =Id(vG).
+FunctionTInterf :Interf!Var maps a data port
+interfaceintto a (local) variable v.
+RuleTInterf :TInterf (int) =v, such thatId(int) =
+Id(v).
+In the following example we will describe an application
+of the transformation rules with respect to the (incomplete)
+AADL speciﬁcation given in Table I, and under the as-
+sumption that there is a scheduler automaton (described in
+Section III-A1) providing the required thread behavior.
+Example 1. Table I comprises typical constructs in the cho-
+sen subset of AADL. It includes a process component pro-
+cess example.impl with two thread subcomponents thread 1
+andthread 2, which are instances of thread example1.impl
+and thread example2.impl (not shown in the example) re-
+spectively. The process example.impl has two in data ports
+Input 1and Input 2, as shown by its process type pro-
+cess example . These ports are connected to the in dataports of thread example1.impl , as shown by the connection
+declarations of process example.impl . Furthermore, these
+connection declarations do also show that the out data ports
+ofthread example1.impl are connected to the in data ports
+ofthread example2.impl . The execution platform of the
+system has been left out in the example due to limited
+space, however, we assume that the threads are bound to
+a processing unit with a ﬁxed-priority preemptive scheduler.
+We refer to thread example1(.impl) when presenting trans-
+formation to the thread automaton shown in Figure 2. Note
+that the following (informal) description of threads’ behavior
+is traceable to the AADL standard unless it is explicitly
+stated that it is not.
+Table I
+ANAADL EXAMPLE OF A PROCESS COMPONENT WITH TWO THREAD
+SUBCOMPONENTS .
+process process example
+features
+Input 1: in data port int;
+Input 2: in data port int;
+end process example;
+process implementation process example.impl
+subcomponents
+thread 1: thread thread example1.impl;
+thread 2: thread thread example2.impl;
+connections
+Connection 1: data port Input 1 –>
+thread 1.InputPort 1;
+Connection 2: data port Input 2 –>
+thread 1.InputPort 2;
+Connection 3: data port thread 1.OutputPort 1 –>
+thread 2.InputPort 1;
+Connection 4: data port thread 1.OutputPort 2 –>
+thread 2.InputPort 2;
+end process example.impl;
+thread thread example1
+features
+InputPort 1: in data port int;
+InputPort 2: in data port int;
+OutputPort 1: out data port int;
+OutputPort 2: out data port int;
+end thread example1;
+thread implementation thread example1.impl
+properties
+Dispatch Protocol = >Periodic;
+Period = >50ms;
+Compute Execution Time =>5ms..10ms;
+Compute DeadLine = >30ms; – –by default equal to period
+Priority = >1;
+end thread example1.impl;
+...
+In order to transform the given AADL speciﬁcation Rule
+TAis ﬁrst applied. Through the rule, each thread is mapped
+(RuleTT) to an automaton such as in Figure 2. The AADL
+execution model (dynamic semantics) is partly speciﬁed
+in the AADL standard as a hybrid automaton describing
+the different states of an AADL thread from a scheduler’s
+perspective. This hybrid automaton can be reduced to an
+UPPAAL automaton consisting of three locations — awaiting
+
+--- Page 6 ---
+dispatch ,ready andrunning . The automaton describes the
+different states of a thread that are common for all threads,
+and thus form the basis of the transformation rules since any
+AADL thread can be mapped to such an automaton. Each
+thread is initially in the awaiting dispatch location where a
+transit to the ready location depends on the thread’s dispatch
+protocol property. For periodic threads, the occurrence of
+dispatch is entirely dependent on its period in relation
+to a clock. A local clock (cl) is used to keep track of
+dispatches of the particular thread, which is acceptable –
+from a synchronous perspective – since all U PPAAL clocks
+progress synchronously. Input on the input ports is frozen
+and accessible at the time when a thread dispatches and
+enters the ready location. The edge is synchronized with the
+scheduler to notify the dispatch where the thread’s schedul-
+ing properties are made available for the scheduler through
+its Identiﬁer ( i). The scheduling properties are mapped to
+local integer variables CET,CDandPriority , which with
+respect to the thread speciﬁcation are assigned to 10 (worst
+case execution time considered here), 30 and 1 respectively2.
+Input ports of a thread are mapped ( RuleTInterf ) to local
+variables (e.g. InputPort 1) which are assigned at dispatch
+by global variables (e.g. Connection 1) mapped ( RuleTC)
+from the connections the input ports are involved with.
+Arrival of new input is accessible at the next dispatch
+or at speciﬁed input times (requires modiﬁcation of the
+automaton). Threads in the ready location are assigned to
+be executed, by the processor component they are bound
+to, according to a scheduling policy property. Assuming a
+scheduler with ﬁxed priority scheduling policy with preemp-
+tion, the thread with the highest priority is selected to run on
+the processor and thus transits, through synchronization with
+the scheduler, to the running location. No more than one
+thread is allowed to be in a running location simultaneously
+where a running thread can be preempted if a thread with
+higher priority enters the ready location. A thread in the
+running location that completes its execution transits to the
+awaiting dispatch location to repeat its life cycle. Data on a
+thread’s output ports are transmitted through the connections
+at a thread’s completion, that is, if the connections are
+declared as immediate. The connections shown in Table I
+are immediate (represented by ”– >”) and thus map to
+the completion edge in the automaton. Output ports and
+their connections are mapped in the same manner as with
+the input ports. For delayed connections (represented by
+”–>>”), the completion edge has to be extended with an
+intermediate location guarded until the time of the thread’s
+deadline.
+1) The Scheduler Automaton: An AADL processor com-
+ponent is mapped ( RuleTPr) to a scheduler automaton such
+as shown in Figure 4, which provides the required behavior
+2The mechanism of handling scheduling properties of threads is solely
+for representation purposes and is not derived from the AADL standard
+runningreadyawaiting_dispatch
+cl <= Period
+complete[Identifier]?Connection_3 = OutputPort_1,
+Connection_4 = OutputPort_2
+preempt[Identifier]?run[Identifier]?cl >= Period
+dispatched[Identifier]!
+InputPort_1 = Connection_1,
+InputPort_2 = Connection_2,
+sch_info[Identifier][0]=C_E_T,
+sch_info[Identifier][1]=C_D,
+sch_info[Identifier][2]=Priority,
+cl=0Figure 2. The thread automaton.
+of threads bound to a processor. A detailed description of
+its elements can be found in [5]. The automaton includes
+two clocks per thread, lists and functions with corresponding
+variables to handle the thread execution and preemption. The
+reason for having two clocks per thread (sch clocks[i][2] is
+a list of clocks in sets of two, each set referenced by a thread
+identiﬁeri) is that the U PPAAL language does only allow
+reset and comparison of clocks, i.e., clocks cannot be read
+or assigned/set. Because of these constraints, a preempted
+thread’s time of completion can not be obtained solely from
+its execution time. In order to model thread preemption, a
+method considering the execution time of the threads causing
+preemption is used to calculate preempted threads’ time of
+completion.
+The method is illustrated in Figure 3. A,BandCare
+denotations for threads where priority of A < priority
+ofB < priority of C.CAis the execution time of A
+andDAis the deadline for A.cA(sch clocks[i][0]) and
+dA(sch clocks[i][1]) are clocks for A, which are used to
+measure the time of completion and the time of a missed
+deadline respectively. rAis a variable used to summarize
+the time required to complete thread Aand all – during
+the execution of A– dispatched threads with priority higher
+thanA. As shown in the illustration, the time of completion
+for threadAis when the comparison cA=rAevaluates
+to true. In addition to this comparison, dA> D Ashould
+not evaluate to true before or while A’s completion. The
+comparison is used for schedulability analysis where an
+evaluation to true indicates a missed deadline. Note that we
+are illustrating the method explicitly for thread Athough
+the methodology is applied to each thread. A formal proof
+of the methodology is presented in [6]. Furthermore, the
+behavior of the scheduler assumes immediate switching-
+time of threads. If the processor the threads are bound to
+is speciﬁed with a Thread Swap Execution Time property,
+the scheduler has to be modiﬁed with intermediate locations
+delaying the switching-time according to the speciﬁed prop-
+erty.
+The scheduler is initially in the Empty location, awaiting
+until the occurrence of a dispatch. When dispatch occurs,
+the scheduler transits to the Schedule1 location whereby
+the corresponding thread is added to the ready queue via
+theschprotocol() function and its deadline clock is reset
+(corresponds to dA= 0 in Figure 3). The Schedule1
+
+--- Page 7 ---
+location is a committed repetition of the Empty location,
+allowing several threads to be dispatched (through the edge
+to the same location) simultaneously. Succeeding to all
+simultaneous dispatches, the scheduler synchronizes with the
+ﬁrst thread in the ready queue and transits to the Running
+location through one of two different edges depending on
+which action should be executed. If the number of preempted
+threads is zero, or if the number is more than zero and the
+latest preempted thread is not the ﬁrst in the ready queue ,
+the execution time clock of the thread to be run is reset
+(corresponds to cA= 0). If the number of preempted threads
+are more than zero and the latest preempted thread is the
+ﬁrst thread in the ready queue , the scheduler transits to
+theRunning location without reseting its execution time
+clock since it already has been reset (corresponds to the
+start of execution of Aafter preemption by BandC).
+The scheduler remains in the Running location until the
+BC
+rA= C A+C BrA= C A+C B+C C
+tA
+cA=0 
+dA=0 
+rA=C AcA=r A
+dA>D A?
+Figure 3. Thread execution schema for threads A, B and C, where "
+indicates dispatch and #indicates completion.
+running thread completes its execution, until another thread
+is dispatched, or until the running thread misses its deadline.
+If a running thread completes its execution (corresponds to
+cA=rA), the scheduler transits to the ”anonymous location”
+through one of two different edges. Note that the running
+location is modeled with an invariant in order to force a
+ﬁre of the completion-edge at the time of completion. The
+two edges have guards for execution time where additional
+expressions are used to differentiate between a preempted
+thread and a thread which has not been preempted. If the
+thread has not been preempted, the thread is simply removed
+from the ready queue through the completion() function. A
+preempted thread, on the other hand, is not only removed
+from the ready queue , but also from the preempt stack .
+From the ”anonymous” location, the scheduler transits to the
+Empty orSchedule1 location depending on whether there are
+any dispatched threads left or not.
+If a dispatch occurs when the scheduler is in the Running
+location, an edge is ﬁred to the Schedule2 location, where-
+upon the thread is added to the ready queue and the corre-sponding execution time clock is reset. Two different edges
+are available from the Schedule2 location depending on if the
+recently dispatched thread was scheduled as the ﬁrst thread
+in the ready queue or not. If scheduled as the ﬁrst thread
+in the ready queue , that is, if it preempts the latest running
+thread, the scheduler transits to the Preemption location from
+where the thread is synchronized for execution. Whereby the
+edge from the Schedule2 location to the Preemption location,
+the preempted thread is added to the preempt stack and
+preempted time is added – to all preempted threads – through
+theaddTime() function (corresponds to rA=CA+CBor
+rA=CA+CB+CC). On the other hand, if the recently
+dispatched thread does not cause a preemption, no further
+actions are taken other than adding preempted time – if the
+thread is scheduled prior to currently preempted threads –
+to preempted threads, through the checkTime() function.
+The edge from the Running location to the MissedDead-
+linelocation is modeled for schedulability analysis. Or to be
+more speciﬁc, to provide effective means for checking that
+control ﬂows do not contradict their scheduling constraints.
+If the edge is ﬁred (corresponds to dA> D A), it indicates
+a missed deadline for the currently running thread. Hence,
+all direct, internal and indirect paths can be veriﬁed to be
+consistent with the scheduling properties simply by checking
+if the MissedDeadline location is reachable in the corre-
+sponding timed automata paths. Note that speciﬁed priorities
+of threads may contradict the modeled interactions among
+threads (incorrectly speciﬁed priorities may prevent interac-
+tions to take place although they are modeled), however, the
+mere ability to exercise the U PPAAL model according to the
+path imply consistency with the priorities. Furthermore, note
+that a ﬁre of the edge to the MissedDeadline location yields
+a deadlock in the system due to the design of the model and
+not due to the dynamic semantics of AADL, which has to
+be considered at deadlock analysis.
+IV. C ASE STUDY
+In this section we will present an overview of the results
+from applying the veriﬁcation technique to a safety-critical
+fuel level system developed by a major vehicle manufacturer.
+As in any technique based on a state-space search, the
+practical applicability and scalability is typically limited due
+to the state space explosion problem. For this reason, the
+main goal is to validate that the extensive set of relations
+that must be exercised does not cause a state space explosion
+problem. In this sense, only Goal 1 of the veriﬁcation
+technique is necessary to pursue in the case study.
+The functionality of the Fuel level system is to estimate
+the fuel level in the vehicle tanks and present this level
+on the display located in the dashboard. Additionally, the
+fuel level system must warn the driver if the fuel level is
+below a predeﬁned level. The functionality is deployed on
+two ECUs (Electronic Control Unit), one is responsible for
+estimating the fuel level (called the Estimator ) and the other
+
+--- Page 8 ---
+MissedDeadline
+Preemption Schedule2Running
+sch_clocks[ready_queue[0]][0]<=
+sch_info[ready_queue[0]][0]+preemptedTime()Schedule1 Emptysch_clocks[ready_queue[0]][1]>sch_info[ready_queue[0]][1]((nr_preempted==0) or (nr_preempted>0 and ready_queue[0]!=preempt_stack[nr_preempted-1][0]))
+and sch_clocks[ready_queue[0]][0]>=sch_info[ready_queue[0]][0]
+complete[ready_queue[0]]!completion(ready_queue[0]),
+threads--
+(nr_preempted>0 and preempt_stack[nr_preempted-1][0]
+!=ready_queue[0]) or nr_preempted==0run[ready_queue[0]]!
+sch_clocks[ready_queue[0]][0]=0nr_preempted>0 and preempt_stack[nr_preempted-1][0]
+==ready_queue[0]
+run[ready_queue[0]]!nr_preempted>0 and ready_queue[0]==preempt_stack[nr_preempted-1][0] and 
+sch_clocks[ready_queue[0]][0]>=sch_info[ready_queue[0]][0]+preemptedTime()
+complete[ready_queue[0]]!completion(ready_queue[0]),
+preempt_stack[--nr_preempted][1]=0,
+threads--
+run[ready_queue[0]]!sch_clocks[ready_queue[0]][0]=0
+ready_queue[0]==check_preempt
+preempt[ready_queue[1]]!
+preempt_stack[nr_preempted++][0]=ready_queue[1],
+addTime()ready_queue[0]!=check_preemptcheckTime(check_preempt)i: int[0,N-1]
+dispatched[i]?
+schprotocol(i),
+sch_clocks[i][1]=0,
+threads++,
+check_preempt = ithreads==0
+threads>0
+i: int[0,N-1]dispatched[i]?schprotocol(i),
+sch_clocks[i][1]=0,
+checkTime(i),
+threads++i: int[0,N-1]dispatched[i]?
+schprotocol(i),
+sch_clocks[i][1]=0,
+threads++Figure 4. The scheduler automaton.
+one is responsible for displaying it (called the Presenter ).
+The ECUs are interconnected by a CAN (Controller Area
+Network) bus. The system has one sensor located in the
+fuel tank to sense the fuel volume, and two actuators, a
+fuel level display and a low fuel level lamp, to display the
+corresponding information to the driver.
+As an illustration of the complexity of the system and
+the veriﬁcation process we informally describe the control-
+ﬂow and data-ﬂow related to the Estimator ECU, which
+(graphical) AADL model is shown in Figure 5. The fuel level
+estimation begins with the fuel level sensor which outputs
+a voltage signal to the Estimator ECU. The received signal
+is initially processed by an A/D converter, and then trans-
+formed into the corresponding fuel volume in percentage
+(not shown in the Figure). The Estimator has a software
+layer called Basic Software (B-Software In, B-Software Out)
+modeled as a process subcomponent ” BasicSoftware ”. The
+SoftwareIN receives the converted value and stores it to the
+RTDB (Real Time Data Base). Subsequently, the fuel level
+estimation function (FuelEstimation) reads the converted
+fuel level value from the RTDB , and uses it to estimate
+the fuel level (the complexity of the estimation steps is
+not shown in the example). The result is written to the
+RTDB . The stored result will be read by 1) SoftwareOUT
+which forwards the result to the second ECU ( Presenter )
+via a CAN (Controller Area Network) bus to present the
+fuel level on the vehicle dashboard and 2) the fuel level
+warning function ( FuelLevelWarning ) which evaluates if the
+fuel level is under a predeﬁned value or not, and writes
+the result to the RTDB . The result of the evaluation is read
+by the SoftwareOUT which forwards it to the presenter
+via the CAN bus, to activate the warning lamp if the
+Figure 5. Graphical AADL representation of the Estimator system.
+fuel level is too low. The Estimator has numerous other
+tasks, but they are not involved in the fuel level estimation
+system and therefor abstracted as a single task in the AADL
+speciﬁcation. Each task in the fuel level estimation system
+has speciﬁc properties regarding execution time, deadline
+and priorities.
+The AADL speciﬁcation was transformed according to
+the rules in Section III-A to a timed automata model,
+whereupon the U PPAAL model checker was used to verify
+completeness and consistency. Observer automata [7] and
+auxiliary variables were used to exercise the speciﬁc veriﬁ-
+cation sequences and Time Computation Tree Logic (TCTL)
+queries were used to draw the conclusions. The veriﬁcation
+process showed no sign of excessive use of memory or
+time. As a benchmark, we present the time consumption
+and memory usage for deadlock analysis in a breath-ﬁrst
+
+--- Page 9 ---
+search order. The state exploration was performed on a PC
+with a Intel(R) Core(TM) i7-2670QM (2.2 GHz, 6MB L3
+Cache) processor and a Windows 7 64-bit operating system.
+The time consumption resulted in 2.4s whereas the memory
+usage resulted in 2.2MB.
+V. R ELATED WORK
+Several studies have proposed a formal semantics through
+transformations to constructs in a state-based formalism. A
+mapping of AADL behavioral semantics into Petri Nets is
+presented in [8], where the objective is to verify that the
+system is free from deadlocks and that data communication
+among threads are correct. The methodology does not pre-
+serve any timing constraints of the AADL model due to the
+lack of timing expressiveness of the target language. Yang
+et al. in [9] deﬁne formal semantics of a synchronous subset
+of AADL in both TASM [10] and Timed Transition Systems
+(TTS). A deﬁnition of formal semantics in TTS enables
+proofs of semantic-preservation to be generated during the
+model transformation from AADL to TASM. The notion of
+scheduling protocols is not mentioned, and the semantics is
+restricted to non-preemptive scheduling. In [11], a transla-
+tion to the BIP (Behavior Interaction Priority) language is
+deﬁned in a natural language and enables simulation and
+formal veriﬁcation. The deﬁnition is on a high abstraction
+level and lacks a precise semantics. In [12], a ﬁxed-priority
+scheduling semantics is transformed into TTS through an
+intermediate Fiacre model. The paper does not present any
+translation rules, or a translation algorithm, and solely non-
+preemptive scheduling is considered. A single study [13]
+uses U PPAAL as the formal underpinning for schedulability
+veriﬁcation. However, the translation does not consider pre-
+emptive scheduling or data communication, thus it cannot
+be used for our purpose.
+VI. C ONCLUSION
+Achieving high dependability of real-time embedded sys-
+tems requires effective and efﬁcient fault avoidance tech-
+niques. In this paper, we present an overview of a veriﬁcation
+technique providing means for automated fault avoidance
+when developing systems designed in AADL. Automation
+of the veriﬁcation technique is achieved through a formal
+and implemented semantics of a subset of AADL through
+semantic anchoring. The formal and implemented semantics,
+in addition, enables simulation of AADL speciﬁcations.
+Timed automata constructs in U PPAAL are used as the
+formal underpinning, which semantics is not only formally
+speciﬁed but also implemented. The technique was validated
+against a safety-critical fuel level estimation system where
+the case study showed that the veriﬁcation criteria could be
+met without any excessive use of memory or time.
+REFERENCES
+[1] As-2 Embedded Computing Systems Committee SAE, “Ar-
+chitecture Analysis & Design Language (AADL),” SAE Stan-
+dards noAS5506, November 2004.[2] A. Johnsen, P. Pettersson, and K. Lundqvist, “An
+Architecture-Based Veriﬁcation Technique for AADL Spec-
+iﬁcations,” in Software Architecture , ser. Lecture Notes in
+Computer Science, I. Crnkovic, V . Gruhn, and M. Book, Eds.
+Springer Berlin / Heidelberg, 2011, vol. 6903, pp. 105–113.
+[3] G. Behrmann, R. David, and K. G. Larsen, “A tutorial on
+UPPAAL.” Springer, 2004, pp. 200–236.
+[4] R. B. Franca, J.-P. Bodeveix, M. Filali, J.-F. Rolland,
+D. Chemouil, and D. Thomas, “The AADL behaviour annex
+– experiments and roadmap,” in ICECCS ’07: Proceedings
+of the 12th IEEE International Conference on Engineering
+Complex Computer Systems . Washington, DC, USA: IEEE
+Computer Society, 2007, pp. 377–382.
+[5] A. Johnsen, “Fixed-Priority Preemptive Scheduling Semantics
+of AADL in UPPAAL Timed Automata,” M ¨alardalen Univer-
+sity, Tech. Rep., July 2012.
+[6] E. Fersman, L. Mokrushin, P. Pettersson, and W. Yi, “Schedu-
+lability analysis of ﬁxed-priority systems using timed au-
+tomata,” Theor. Comput. Sci. , vol. 354, pp. 301–317, March
+2006.
+[7] J. Blom, A. Hessel, B. Jonsson, and P. Pettersson, “Specifying
+and Generating Test Cases Using Observer Automata,” in
+Proc. 4 th International Workshop on Formal Approaches to
+Testing of Software 2004 (FATES04), volume 3395 of Lecture
+Notes in Computer Science . SpringerVerlag, 2005, pp. 125–
+139.
+[8] X. Renault, F. Kordon, and J. Hugues, “From AADL Ar-
+chitectural Models to Petri Nets: Checking Model Viabil-
+ity,” in Proceedings of the 2009 IEEE International Sympo-
+sium on Object/Component/Service-Oriented Real-Time Dis-
+tributed Computing , ser. ISORC ’09. Washington, DC, USA:
+IEEE Computer Society, 2009, pp. 313–320.
+[9] Zhibin Yang and Kai Hu and Jean-Paul Bodeveix and Lei
+Pi and Dianfu Ma and Jean-Pierre Talpin, “Two Formal
+Semantics of a Subset of the AADL,” Engineering of Complex
+Computer Systems, IEEE International Conference on , vol. 0,
+pp. 344–349, 2011.
+[10] M. Ouimet, “TASM Language Reference Manual,” Mas-
+sachusetts Institute of Technology, USA, Tech. Rep., 2006.
+[11] M. Y . Chkouri, A. Robert, M. Bozga, and J. Sifakis, “Models
+in software engineering,” M. R. Chaudron, Ed. Berlin,
+Heidelberg: Springer-Verlag, 2009, ch. Translating AADL
+into BIP - Application to the Veriﬁcation of Real-Time
+Systems, pp. 5–19.
+[12] B. Berthomieu, J.-P. Bodeveix, C. Chaudet, S. Zilio, M. Filali,
+and F. Vernadat, “Formal Veriﬁcation of AADL Speciﬁcations
+in the Topcased Environment,” in Proceedings of the 14th
+Ada-Europe International Conference on Reliable Software
+Technologies , ser. Ada-Europe ’09. Berlin, Heidelberg:
+Springer-Verlag, 2009, pp. 207–221.
+[13] Q. Liu, S.-l. Gui, and L. Luo, “Schedulability veriﬁcation of
+AADL model based on UPPAAL,” Computer Applications ,
+vol. 29, no. 7, pp. 1820–1824, 2009.
