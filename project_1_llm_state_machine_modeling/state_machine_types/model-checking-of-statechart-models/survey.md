@@ -45,40 +45,82 @@
 
 对本 collection 最有价值的一点是，原文把“层次状态机为什么难验证”拆成了几个可操作问题：`flattening`、`priority resolution`、`queue/RTC semantics`、`traceability` 与 `modularity`。
 
+把原文提到的主路线逐条展开，可以看到它们其实在解决的是**不同层面的问题**：
+
+| 路线 | 前端对象 | 后端/承载 | 是否保留层次 | 对 priority / queue / RTC 的处理 | traceability | 原文评价 |
+|---|---|---|---|---|---|---|
+| RSML -> `SMV` | `RSML` 变体 | `SMV` | 否，基本扁平化 | 可表达事件、状态、守卫；优先级需额外修改；RSML 本身没有 history | 弱 | 早期可运行路线，但主要适合确定性/安全关键子集 |
+| `STATEMATE` -> modular `SMV` | `STATEMATE` | `SMV` 模块化编码 | 语法上尽量保层次，但内部仍会 flatten | 不处理 inter-level transitions，STATEMATE priority 也难保真 | 弱 | 更模块化，但保层次收益有限，核心难点仍没解决 |
+| `Statecharts/UML` -> `PROMELA/Spin` | `STATEMATE`、`UML` | `PROMELA` + `Spin` | 通常不保原层次，转 Kripke/EHA 再编码 | 对 queue、candidate transitions、RTC 能写得更细 | 中到强，部分工具可回写 | 适合把执行语义做细，但翻译和语义复杂度更高 |
+| `STATEMATE Verification Environment` | `STATEMATE` | `SMI` + `VIS/CUDD` | 面向工业工具链，不强调理论保层次 | 通过 observer 和 pattern 库支持 robustness checks | 强 | 原文里最接近工业级的一条线 |
+| `Esterel` 路线 | `STATEMATE` 确定性片段 | `Esterel` | 一定程度保结构 | 借 `STEP` 信号实现 super-step | 弱 | 更偏代码生成/同步语义，不适合作为通用解 |
+| `HRM` / hierarchy-preserving model checking | `HRM`，不是原生 `Statecharts` | 专用 checker | 是 | 通过 entry/exit point、mode 语义重写层次 | 中 | 提供保层次思路，但对象已偏离原始 statecharts |
+
+把它们放到用户真正关心的几个维度上，比较结果更清楚：
+
+| 维度 | 扁平翻译路线 | 保层次/专用路线 | 对 `project_1` 的含义 |
+|---|---|---|---|
+| 接成熟后端的难度 | 低到中 | 高 | 扁平翻译更容易接成熟工具 |
+| 保留原语义的能力 | 低到中 | 中到高 | 若以后要自动修复，语义保真不能只靠 flatten |
+| inter-level transition 处理 | 难 | 仍难，但更容易显式建模 | 这是层次状态机 profile 必须先固定的点 |
+| traceability | 普遍偏弱，少数工具较好 | 专用环境往往更好 | 验证失败后若想回到原模型，必须优先看 traceability |
+| 工业可扩展性 | 取决于工具链 | 原文认为仅少数路线有工业证据 | 文库不能只收理论路线，还要记住哪条线真在工业上跑过 |
+
 ## 构造方式与表示格式版图
 
 原文对交换格式讨论较弱，但对“状态图如何被承载并送入验证器”有较清楚的脉络。
 
-| 形式主义 | 图形表示 | 文本/DSL | XML/JSON/元模型 | 标准/交换格式 | 说明 |
+| 形式主义/路线 | 前端承载方式 | 后端机器承载 | 是否有统一交换格式 | 语义关键点如何落地 | 原文体现出的主要限制 |
 |---|---|---|---|---|---|
-| Harel Statecharts | 是 | 否 | 原文未系统比较 | 否 | 核心是图形化层次状态图 |
-| STATEMATE statecharts | 是 | 有工具内部表示 | 原文未系统比较 | 否 | 更强调 CASE 工具中的执行语义 |
-| RSML | 是 | 守卫与条件有文本表达 | 原文未系统比较 | 否 | 常作为安全关键变体进入 `SMV` |
-| UML State Machine | 是 | 有动作/守卫文本 | 原文未系统比较 | 未展开 | 作为对象导向 `Statecharts` 变体出现 |
-| 验证后端载体 | 否 | `SMV`、`PROMELA`、`Esterel` | 否 | 否 | 真正可机读的往往是翻译后的验证 DSL，而非原始状态图 |
+| Harel Statecharts | 图形化层次状态图 | 原文不聚焦统一机读承载 | 否 | 依赖对 hierarchy / concurrency / broadcast 的语义解释 | 适合做原始语义参照，不直接等于验证输入 |
+| `STATEMATE` | 图形化 + CASE 工具内部模型 | `STATEMATE` 工具内部语义对象、后续可翻到 `SMV` 等 | 原文未系统比较 | step semantics、外层优先级、history | 工程环境较强，但外部交换标准弱 |
+| `RSML` | 图形化 + 条件/守卫文本 | `SMV` 变量与 `next` 更新编码 | 否 | 通过枚举变量、事件布尔量和启用条件编码 | 主要服务安全关键子集，不代表通用 statecharts |
+| `UML State Machine` | 图形 + 守卫/动作文本 | `PROMELA`/`Spin`、`SMV` 等翻译后语言 | 原文未展开统一格式 | queue/RTC/priority 需额外定义 | 标准自然语言语义不足以直接验证 |
+| 验证后端载体 | 否 | `SMV`、`PROMELA`、`Esterel`、专用层次 checker | 否 | 真正可机读的是翻译后的 DSL 或专用模型 | 交换标准弱，语义 profile 强依赖工具路线 |
 
 可见，这篇 survey 的重点不在统一交换格式，而在说明：经典层次状态机往往必须先失去一部分原貌，才能进入成熟验证基础设施。
 
+| 路线 | 自动生成最需要补齐的信息 | 缺失后会怎样 |
+|---|---|---|
+| `STATEMATE` / `UML` 前端建模 | hierarchy、并发 region、priority、queue/RTC、history | 即使图生成出来，也无法稳定翻译到后端 |
+| `SMV` 扁平路线 | 状态枚举、启用条件、事件生命周期 | 会导致 state explosion 或语义偏差 |
+| `PROMELA/Spin` 路线 | 队列策略、候选迁移选择、atomic RTC step | 会直接影响验证语义与反例解释 |
+| 保层次专用路线 | entry/exit point、mode 语义、模块边界 | 无法真正利用 hierarchy 做缩减 |
+
 ## 基础设施与生态版图
 
-| 形式主义 | 典型工具/平台 | 支持能力 | 生态成熟度 | 备注 |
-|---|---|---|---|---|
-| RSML / Statecharts | `SMV` | `CTL` 模型检验、BDD 符号化搜索 | 中 | 依赖翻译到 `SMV` 后的有限状态模型 |
-| UML State Machine | `SPIN` / `PROMELA`、`vUML` | 事件队列、`RTC` 语义的模型检验 | 中 | 对语义 profile 很敏感 |
-| STATEMATE | `STATEMATE Verification Environment` | 组合验证、抽象、工业案例验证 | 高 | 原文中最接近工业化的一条线 |
-| Statecharts deterministic fragment | `Esterel` 工具链 | 验证与代码生成 | 中 | 只适合确定性片段 |
-| 层次模型检验 | `HRM` / 专用 checker | 尝试直接利用层次结构 | 中 | 语义与经典 statecharts 仍有差异 |
+| 工具/平台 | 主要对象 | 支持能力 | 是否强调 traceability | 成熟度 | 原文中的关键判断 |
+|---|---|---|---|---|---|
+| `SMV` 路线 | `RSML`、`STATEMATE` 扁平/模块化翻译 | `CTL`、BDD 符号搜索 | 弱 | 中 | 易接成熟验证器，但 hierarchy 和 inter-level transitions 容易丢失 |
+| `PROMELA/Spin`、`vUML` | `UML` / `Statecharts` 翻译验证 | 事件队列、`RTC`、死锁/鲁棒性检查 | 中到强 | 中 | 更适合细化执行语义，但 translation 复杂 |
+| `STATEMATE Verification Environment` | `STATEMATE` | observer、抽象、COI reduction、industrial robustness checks | 强 | 高 | 原文里最接近工程级环境 |
+| `Esterel` 工具链 | 确定性 `Statecharts` 片段 | 验证、代码生成 | 弱 | 中 | 更像同步代码路线而非通用层次状态机验证路线 |
+| `HRM` / 专用层次 checker | 保层次模型 | 利用 hierarchy 进行 reachability | 中 | 中 | 提供了“不要 flatten”的方向，但模型已不再是原始 statecharts |
+
+| 比较维度 | `SMV` / `PROMELA` 等翻译路线 | `STATEMATE` 验证环境 / `HRM` 等专用路线 |
+|---|---|---|
+| 复用成熟后端 | 强 | 弱到中 |
+| 对原始 statechart 语义的保真 | 中 | 中到高 |
+| traceability | 普遍不足 | 明显更受重视 |
+| 工业案例支撑 | 少 | `STATEMATE` 线最强 |
 
 原文明确指出，多数工具都还是学术原型；真正比较成熟的是 `STATEMATE` 路线，而保层次的验证路线在语义兼容性上仍有明显缺口。
 
 ## 适用场景与需求映射
 
-| 形式主义 | 适用场景 | 需求前提 | 不适合的情况 |
-|---|---|---|---|
-| Harel Statecharts | 复杂事件驱动反应系统的高层行为建模 | 需要层次、并发、广播通信 | 需要直接进入成熟验证器且不愿承受 flatten 代价 |
-| STATEMATE statecharts | 工业控制/嵌入式设计与前期验证 | 需要接受 `STATEMATE` 语义口径 | 若目标工具链并非 `STATEMATE` 生态 |
-| UML State Machine | 软件设计阶段的对象行为建模与早期验证 | 需要固定 `RTC`、事件队列、优先级等 profile | 仅靠标准自然语言语义而不补形式化约束时 |
-| HRM / 层次验证模型 | 需要尽量保留层次结构进行验证 | 可以接受与原始 statechart 语义的映射/约束 | 原始模型大量 inter-level transition、全局变量耦合强 |
+| 形式主义/路线 | 适用场景 | 需求前提 | 为什么适合 | 不适合的情况 |
+|---|---|---|---|---|
+| Harel Statecharts | 复杂事件驱动反应系统的高层行为建模 | 需要层次、并发、广播通信 | 表达复杂反应行为的可读性最好 | 需要直接进入成熟验证器且不愿承受 flatten 代价 |
+| `STATEMATE` statecharts | 工业控制/嵌入式设计与前期验证 | 需要接受 `STATEMATE` 语义口径和工具链 | 有较强工程环境与验证经验 | 若目标工具链并非 `STATEMATE` 生态 |
+| `UML State Machine` | 软件设计阶段的对象行为建模与早期验证 | 需要固定 `RTC`、事件队列、优先级等 profile | 与工程设计过程衔接最好 | 仅靠标准自然语言语义而不补形式化约束时 |
+| `HRM` / 层次验证模型 | 需要尽量保留层次结构进行验证 | 可以接受与原始 statechart 语义的映射/约束 | 给出“利用 hierarchy 缩减状态空间”的直接思路 | 原始模型大量 inter-level transition、全局变量耦合强 |
+
+| 输入需求里最突出的要素 | 更适合的路线 | 原因 |
+|---|---|---|
+| 重点是可读的层次行为结构 | `Statecharts/UML` 前端 | 表达清晰，适合作为对人交付形态 |
+| 重点是尽快接成熟验证后端 | `SMV` / `PROMELA` 翻译路线 | 后端生态成熟，但要接受 profile 收缩 |
+| 重点是验证后还能回到原模型调试 | `STATEMATE` 工具线、带 traceability 的 `PROMELA` 路线 | 原文明确把 traceability 当成关键工程问题 |
+| 重点是尽量少 flatten | `HRM` 一类保层次路线 | 直接针对 hierarchy 带来的状态爆炸问题 |
 
 ## 对本研究的启发
 

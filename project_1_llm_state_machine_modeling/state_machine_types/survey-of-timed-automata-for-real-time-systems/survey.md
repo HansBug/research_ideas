@@ -43,39 +43,79 @@
 4. 工程轴：可实现性、鲁棒性、sampling、代码生成。
 5. 工具轴：模型检验、控制综合、调度、测试、参数分析、概率分析等用途。
 
-这意味着它既能回答“这个形式主义能不能表达”，也能回答“有没有工具”和“生成出来以后能不能跑”。
+这意味着它既能回答“这个形式主义能不能表达”，也能回答“有没有工具”和“生成出来以后能不能跑”。原文实际上同时在做三层比较：**分析技术**、**变体家族**、**工具用途**；如果不把这三层拆开，survey 的信息密度就会被压扁。
+
+| 分析路线 | 核心对象 | 理论性质 | 实践表现 | 原文结论 |
+|---|---|---|---|---|
+| Region graph | `clock regions` | 奠定可判定性基础，许多经典结果依赖它 | 状态数爆炸，实际很少直接用 | 是理论基石，不是今天最常用的工程实现 |
+| Zone graph | `clock zones` + `DBM` | 保留 reachability 等关键性质 | 实践里明显更紧凑，主流工具普遍采用 | 是现代 timed automata 工具生态的主流基础设施 |
+| Flattening / arithmetic encoding | 将时间问题改写到可判定算术理论 | 能表达部分 region/zone 难表达的问题，如某些二元延迟关系 | 不能覆盖全部常规验证需求 | 适合补充某些特殊性质，而不是取代主流分析路线 |
+
+| 变体家族 | 主要增加的能力 | 理论代价 | 代表用途 | 原文中的位置 |
+|---|---|---|---|---|
+| Classical Timed Automata | clocks、guards、invariants、resets | 基线可判定性最好 | 实时验证基础模型 | 所有后续扩展的出发点 |
+| Parametric Timed Automata | 约束参数化 | 一般情形很快变难；`L/U` 子类较稳 | 平台无关设计、参数综合 | 实际价值非常高的一支 |
+| Richer constraints / updates | 加性约束、乘法、可更新时钟等 | 许多问题转为不可判定 | 提高表达力或简洁性 | 是“表达力与可判定性 tradeoff”的集中展示区 |
+| Priced / Probabilistic / Game variants | 代价、概率、博弈、控制 | 增加分析复杂度，但工具支持逐步成熟 | 最优调度、控制综合、资源分析、随机实时系统 | 体现 timed automata 从验证走向综合与量化分析 |
+| Implementation-oriented variants | sampling、robustness、code synthesis | 需要引入平台和部署假设 | 从模型到实现/代码 | 回答“模型能验”和“系统能跑”之间的裂缝 |
+
+| 工具用途 | 代表工具线 | 主要任务 | 对 `project_1` 的意义 |
+|---|---|---|---|
+| 实时验证 | `UPPAAL`、`Kronos`、`RED`、`VerICS` | reachability、模型检验、仿真 | 是最稳的落点 |
+| 参数分析 | `IMITATOR`、`HyTech`、`TReX` | 参数综合、参数化安全分析 | 非常适合需求到模型自动化的早期设计阶段 |
+| 控制综合/博弈 | `UPPAAL TIGA`、`SynthKro`、`Synthia` | controller synthesis、timed games | 能把模型从“验”推进到“合成” |
+| 量化/资源分析 | `UPPAAL CORA`、`PRISM`、`Fortuna`、`Priced-Timed Maude` | cost/probability analysis | 适合资源、性能与可靠性研究 |
+| 实现/代码生成 | `TIMES`、`SAVE IDE`、`AITARTOS`、`TART` | schedulability、code synthesis、deployment | 直接对应“模型落地”问题 |
 
 ## 构造方式与表示格式版图
 
-| 形式主义 | 图形表示 | 文本/DSL | XML/JSON/元模型 | 标准/交换格式 | 说明 |
+| 形式主义/路线 | 图形表示 | 文本/DSL | 机器可处理承载 | 标准/交换格式 | 原文体现出的关键事实 |
 |---|---|---|---|---|---|
-| Classical Timed Automata | 是 | 依工具而定 | 原文未系统比较统一格式 | 否 | 核心元素是 location、clock、guard、reset、invariant |
-| Parametric Timed Automata | 是 | 依工具而定 | 原文未系统比较统一格式 | 否 | 在 clock constraints 中引入参数 |
-| Priced / Probabilistic / Game variants | 是 | 依工具而定 | 原文未系统比较统一格式 | 否 | 扩展守卫、代价、概率或博弈结构 |
-| Tool-specific carriers | 否 | `UPPAAL`、`Kronos`、`RED`、`HyTech` 等各自输入语言 | 有工具私有格式 | 否 | 原文重工具，不重统一交换标准 |
+| Classical Timed Automata | 是 | 工具 DSL 常见 | locations + clocks + guards + invariants + resets | 无统一标准 | 语义核心很稳定，但交换载体高度工具化 |
+| Parametric Timed Automata | 是 | 参数化约束 DSL | 在 clock constraints 中引入参数 | 无统一标准 | 非常适合早期设计，但承载通常绑定具体工具 |
+| Priced / Probabilistic / Game variants | 是 | 各工具自有扩展 DSL | 在 automaton 上叠加 cost/probability/game 结构 | 无统一标准 | 扩展能力强，但互操作性主要靠工具族谱，不靠通用格式 |
+| Tool-specific carriers | 弱 | `UPPAAL`、`Kronos`、`RED`、`HyTech`、`PRISM` 等输入语言 | 工具私有格式 | 否 | 这条线的强项是分析工具，不是统一交换标准 |
 
 这篇 survey 并不提供一个统一的时间自动机交换格式路线；它更多告诉我们：时间自动机的强项在“分析技术与工具”，而不是“标准化机器交换格式”。
 
+| 路线/子类 | 自动生成最关键的结构化信息 | 为什么这一信息是关键瓶颈 |
+|---|---|---|
+| Classical Timed Automata | 时钟集合、reset 点、guard、invariant | 这是进入 `UPPAAL/Kronos` 类工具的最小充分结构 |
+| Parametric Timed Automata | 参数化时限、参数作用域 | 没有参数边界信息，后续综合空间会失控 |
+| Priced / Probabilistic / Game variants | 代价、概率、控制者角色 | 这些不是“附加注释”，而是直接改变分析问题类型 |
+| Implementation-oriented variants | sampling、clock drift、平台调度假设 | 若缺这些部署假设，验证通过也不等于实现可行 |
+
 ## 基础设施与生态版图
 
-| 形式主义 | 典型工具/平台 | 支持能力 | 生态成熟度 | 备注 |
+| 工具谱系 | 主要对象 | 支持能力 | 生态成熟度 | 原文中的关键观察 |
 |---|---|---|---|---|
-| Timed Automata | `UPPAAL`、`Kronos`、`RED`、`VerICS` | reachability、模型检验、仿真 | 高 | 原文明确指出 `UPPAAL` 系长期最活跃 |
-| Parametric Timed Automata | `IMITATOR`、`HyTech`、`RED`、`TReX` | 参数综合、可达性、参数化安全分析 | 高 | 适合平台/配置空间探索 |
-| Controller / Game variants | `UPPAAL TIGA`、`SynthKro`、`Synthia` | 控制综合、博弈求解 | 中高 | 偏策略生成与调度 |
-| Code synthesis / implementation | `TIMES`、`SAVE IDE`、`TART`、`AITARTOS` | 调度、代码生成、实现验证 | 中 | 原文专门讨论其实现挑战 |
-| Probabilistic / priced variants | `PRISM`、`UPPAAL PRO`、`Fortuna`、`Priced-Timed Maude` | 概率分析、成本分析 | 中高 | 适合量化性能与资源问题 |
+| `UPPAAL`、`Kronos`、`RED`、`VerICS` | Classical / general analysis | reachability、模型检验、仿真 | 高 | 原文明确指出这是最成熟的一层工具生态 |
+| `IMITATOR`、`HyTech`、`TReX` | Parametric Timed Automata | 参数综合、可达性、参数化安全分析 | 高 | 参数线不是边缘分支，而是成熟分析方向 |
+| `UPPAAL TIGA`、`SynthKro`、`Synthia` | Game / controller variants | 控制综合、timed games | 中高 | timed automata 已不止“验证”，还进入 synthesis |
+| `UPPAAL CORA`、`PRISM`、`Fortuna`、`Priced-Timed Maude` | Priced / probabilistic variants | cost/probability analysis | 中高 | 量化分析工具已形成独立分支 |
+| `TIMES`、`SAVE IDE`、`AITARTOS`、`TART` | Implementation-oriented lines | schedulability、代码生成、实现验证 | 中 | 原文专门讨论模型到实现的落地问题 |
 
-原文还观察到，绝大多数研究工具集中在欧洲，尤其是 `UPPAAL` 与 `Verimag` 两大阵营。
+| 比较维度 | 结果 |
+|---|---|
+| 分析底层 | zone-based 技术是主流工程实现基础，region 更多是理论基石 |
+| 地域与维护 | 工具高度集中在欧洲，`UPPAAL` 系是最活跃、维护周期最长的一支 |
 
 ## 适用场景与需求映射
 
-| 形式主义 | 适用场景 | 需求前提 | 不适合的情况 |
-|---|---|---|---|
-| Classical Timed Automata | 实时协议、调度、定时控制、时序安全验证 | 需求可抽成有限位置 + clocks + guards/invariants | 需要连续物理动力学或复杂数据结构时 |
-| Parametric Timed Automata | 早期设计、平台无关建模、参数综合 | 需求中的时限可参数化表达 | 需要强确定实现但参数空间过大时 |
-| Priced / Probabilistic variants | 资源约束、性能评估、随机实时系统 | 除时限外还要表达代价或概率 | 只需基础 reachability 时会引入不必要复杂性 |
-| Implementation-oriented variants | 代码生成、平台映射、执行调度 | 必须处理 clock drift、sampling、非瞬时动作 | 希望直接把抽象模型原封不动部署到平台时 |
+| 形式主义/路线 | 适用场景 | 需求前提 | 为什么适合 | 不适合的情况 |
+|---|---|---|---|---|
+| Classical Timed Automata | 实时协议、调度、定时控制、时序安全验证 | 需求可抽成有限位置 + clocks + guards/invariants | 可判定性和工具成熟度最好 | 需要连续物理动力学或复杂数据结构时 |
+| Parametric Timed Automata | 早期设计、平台无关建模、参数综合 | 需求中的时限可参数化表达 | 能在实现前先探索“哪些参数范围可行” | 需要强确定实现但参数空间过大时 |
+| Priced / Probabilistic variants | 资源约束、性能评估、随机实时系统 | 除时限外还要表达代价或概率 | 能把“时间”与“资源/不确定性”一起纳入分析 | 只需基础 reachability 时会引入不必要复杂性 |
+| Game / controller variants | 需要策略合成、控制器生成 | 需求中存在控制者/环境对抗结构 | 可以直接把验证推进到 synthesis | 只是想做单纯时序安全验证时 |
+| Implementation-oriented variants | 代码生成、平台映射、执行调度 | 必须处理 clock drift、sampling、非瞬时动作 | 回答“模型怎么部署成系统” | 希望直接把抽象模型原封不动部署到平台时 |
+
+| 需求信号 | 更适合的 timed automata 路线 | 原因 |
+|---|---|---|
+| 只有明确时限和重置条件 | Classical Timed Automata | 最小而稳的建模选择 |
+| 时限要延后再定或依平台变化 | Parametric Timed Automata | 可以把“未知但有范围”的时序要求保留下来 |
+| 还要分析成本/功耗/可靠性 | Priced / Probabilistic variants | 经典 timed automata 不足以覆盖这些量化目标 |
+| 最终目标是 controller 或代码 | Game / implementation-oriented routes | 验证只是中间步骤，最终要落地到策略或实现 |
 
 ## 对本研究的启发
 

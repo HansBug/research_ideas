@@ -44,33 +44,75 @@
 
 这篇 survey 的强点在于，它不仅看“有没有论文”，还看“能不能真的用”。
 
+真正需要保留下来的，不只是“直接路线 vs 间接路线”这一层，而是每条路线在**语法覆盖、语义贴近度、工具可用性、反例可追溯性**上的系统差异。
+
+| 比较对象 | 代表承载/代表工作 | 语义贴近 UML 程度 | 语法覆盖情况 | 工具与自动化 | 反例/可追溯性 | 原文给出的主要问题 |
+|---|---|---|---|---|---|---|
+| ASM / OMA 一类翻译路线 | `ASM`、`OMA`、attributed graph | 中高 | 在 translation 路线中覆盖面通常较高，某些工作能覆盖 history、deferred events、entry/exit/do 等复杂语法 | 自动翻译工具很少，更多停留在语义刻画 | 通常不强，很多工作没有完整工具链 | 语义表达灵活，但缺少持续维护的自动化实现 |
+| 面向既有验证器的翻译路线 | `PROMELA/Spin`、`SMV`、Petri nets、`B`、`Uppaal` | 中 | 原文总结为 translation 路线整体覆盖不完整，没有工作超过约 `65%` 语法覆盖，多数低于 `50%` | 可以复用成熟 model checker，是其最大优势 | 经常断在后端形式语言，难映射回 UML 原模型 | translation soundness 难证明，且语义 profile 往往偏离 UML 标准自然语言语义 |
+| 直接操作语义路线 | SOS / inference rules / dedicated semantics | 高 | 原文认为 direct 路线整体覆盖优于 translation 路线，至少两条线接近“近完整 UML 语法” | 可直接驱动专用验证器，但工具数量少 | 理论上最有利于回写到 UML；实践里仍依赖工具实现质量 | 工具稀少、实现门槛高，长期维护性弱于成熟后端生态 |
+| 工具可用性视角 | `hugo/RT`、`AnimUML`、`EMI-UML`、`USMMC` 等 | 不同工具差异大 | 只有少数工具覆盖较宽 UML 子集 | 原文明确指出大多数历史工具已经失联 | 只有极少数工具能把 counterexample 回写到 UML | “能发表”不等于“能长期使用”，这是原文最强烈的负面结论之一 |
+
+| 维度 | translation-based 路线 | direct operational semantics 路线 | 对 `project_1` 的含义 |
+|---|---|---|---|
+| 核心目标 | 尽快接入成熟后端验证器 | 尽量保留 UML 自身语义 | 前者利于复用工具，后者利于维持语义一致性 |
+| 语义来源 | 后端形式语言的既有语义 | 针对 UML 定制的操作语义 | 若要保证“生成的就是 UML”，direct 更自然 |
+| 语法覆盖 | 整体偏碎片化 | 整体更完整 | 若输入需求会落到 history/fork/join/deferred events，translation 更容易缺项 |
+| 工具成熟度 | 借力成熟后端，但前端桥接常是原型 | 专用工具更少 | 若强调今天就能跑，仍要现实地接受“桥接到后端” |
+| 反例回写 | 通常较弱 | 理论上更好，实践受工具限制 | 若后续要做“验证失败后自动修复”，反例可追溯性非常关键 |
+| 长期维护 | 后端稳定，前端桥接易失联 | 更依赖少数维护者 | 需要优先跟踪仍活跃的 `hugo/RT`、`AnimUML`、`EMI-UML` |
+
 ## 构造方式与表示格式版图
 
-| 形式主义 | 图形表示 | 文本/DSL | XML/JSON/元模型 | 标准/交换格式 | 说明 |
+| 对象/路线 | 建模入口 | 机器可处理承载 | 常见交换/输入方式 | 自动生成友好性 | 主要限制 |
 |---|---|---|---|---|---|
-| UML State Machine | 是 | 动作、守卫、事件文本 | 常见承载为 `XMI` | `OMG UML` | 语法丰富但标准语义主要是自然语言 |
-| Translation route | 否 | `PROMELA`、`SMV`、`Uppaal`、`B`、`ASM`、Petri nets 等 | 依目标语言而异 | 否 | 多数验证工作真正依赖这些后端语言 |
-| Direct semantics route | 否 | SOS / inference rules / dedicated semantics | 原文未强调统一机器交换格式 | 否 | 语义更贴近 UML，但工具较少 |
+| UML State Machine 本体 | 图形状态图 + 文本事件/守卫/动作 | `OMG UML` 抽象语法 + 半形式自然语言语义 | 常借助 `XMI` 导出模型结构 | 对工程建模友好，对直接验证不够友好 | 标准语义精度不足，很多关键点仍要靠 profile 补充 |
+| Translation route | 以 UML 图为前端，再映射到后端形式语言 | `PROMELA`、`SMV`、`Uppaal`、`Petri nets`、`ASM/B` 等 | 多数经 `XMI` 或工具内部模型导入 | 对“已有后端复用”友好 | 真正执行和验证的是后端语言，不是 UML 自身 |
+| Direct semantics route | 直接以 UML 抽象语法为对象 | SOS rules、Kripke structure、dedicated semantics engine | 原文未给统一交换标准，通常由专用工具内部承载 | 对语义保真更友好 | 缺少像 `PNML` 这类统一交换格式 |
+| Tool-specific carriers | 建模工具导出的工程模型 | 工具自有 parser / metamodel | `XMI` 最常见，但常带供应商差异 | 对“工具内自动化”友好 | 互操作性受具体工具链约束 |
 
 从构造方式上看，`UML State Machine` 的最大问题不是“画不出来”，而是“标准语义并不天然适合自动验证”。因此大量工作都要先把 UML 变成别的形式。
 
+| 路线 | 是否直接保留 UML 语义对象 | 是否依赖统一标准载体 | 与验证器的衔接方式 | 对自动生成/自动修复的启发 |
+|---|---|---|---|---|
+| 纯 UML 标准语义 | 保留 | 有 `OMG UML`，但语义不够形式化 | 弱 | 只能作为面向人的前端，不适合作为裸验证输入 |
+| `XMI` + translation | 部分保留，随后丢到后端 | 结构层面较强 | 强 | 适合作为“前端 UML -> 中间形式语言”的工程桥梁 |
+| direct operational semantics | 强保留 | 统一交换载体弱 | 中 | 更适合作为 `project_1` 中“精确定义的 UML profile”基础 |
+
 ## 基础设施与生态版图
 
-| 形式主义 | 典型工具/平台 | 支持能力 | 生态成熟度 | 备注 |
-|---|---|---|---|---|
-| UML front-end + external checker | `vUML`、`hugo`、`hugo/RT`、`TABU`、`PROCO` | 翻译到 `Spin`、`SMV`、`Uppaal` 等后端 | 中 | 大多是研究原型 |
-| Dedicated operational tools | `USMMC`、`AnimUML`、`EMI-UML` | 直接按 UML 语义做验证或执行 | 中 | 语义更贴近 UML，但数量少 |
-| Commercial modeling tools | `Papyrus`、`Rhapsody`、`Yakindu` 等 | 图形建模为主 | 高 | 原文认为其形式验证学术基础公开不足 |
+| 工具/路线 | 底层验证引擎 | 支持能力 | 反例是否能回到 UML | 长期可用性 | 原文中的位置 |
+|---|---|---|---|---|---|
+| `vUML` | `Spin` | 死锁与部分健壮性检查 | 是 | 差，历史工具已失联 | UML 早期自动验证线的重要入口 |
+| `hugo` / `hugo/RT` | `Spin` / `Uppaal` | reachability、deadlock、LTL/CTL，`hugo/RT` 覆盖更完整 | `hugo/RT` 可回写 | `hugo/RT` 仍可获取，旧 `hugo` 较差 | translation 路线中最值得继续跟踪的一条 |
+| `USMMC` | standalone | 直接操作语义下的验证 | 只能给翻译后层面的反例，不强回写 | 工具链已弱化 | direct semantics 路线代表 |
+| `AnimUML` | `OBP2` | 动画、验证、sequence diagram 级 counterexample 表达 | 是，且表达更接近 UML | 好，开源且仍维护 | 现代 direct 路线代表 |
+| `EMI-UML` | `OBP2` | 执行、deadlock-freeness 等 | 是 | 好，仍在开发 | direct 路线中较实用的一支 |
+| `UML-B` | `ProB` | 偏 Event-B 方向的验证 | 回写能力有限 | 可获取 | 更接近“桥接到其他形式方法” |
+
+| 比较维度 | translation front-end 工具 | dedicated operational 工具 | 结论 |
+|---|---|---|---|
+| 是否复用成熟后端 | 强 | 弱到中 | translation 工具更容易借现成引擎起步 |
+| 是否贴近 UML 语义 | 中 | 高 | direct 工具更适合作为语义基线 |
+| counterexample 回写 | 普遍偏弱，仅少数工具较好 | 理论更好，现代工具表现更优 | 若关心修复闭环，必须优先看回写能力 |
+| 今天还能否获取 | 大量历史工具失联 | 现代少数工具仍活跃 | 长期维护比“当年是否发论文”更重要 |
 
 原文最有价值的生态观察是：绝大多数学术工具都已经失联，只剩少数仍可获取和维护的项目，如 `hugo/RT`、`AnimUML`、`EMI-UML`。
 
 ## 适用场景与需求映射
 
-| 形式主义 | 适用场景 | 需求前提 | 不适合的情况 |
-|---|---|---|---|
-| UML State Machine 作为前端 | 软件设计、对象行为建模、与工程团队沟通 | 需要图形化、对象导向、工业熟悉度 | 希望直接把标准自然语言语义送入验证器 |
-| Translation-based verification | 希望复用成熟后端验证器 | 可接受把 UML 映射到外部形式语言 | 无法接受语义差异或反例不回写 UML 时 |
-| Direct operational semantics | 希望保留更多 UML 语义细节 | 愿意使用较专门的工具或语义框架 | 需要立即接入广泛成熟生态时 |
+| 对象/路线 | 适用场景 | 需求前提 | 为什么适合 | 不适合的情况 |
+|---|---|---|---|---|
+| UML State Machine 作为前端 | 软件设计、对象行为建模、与工程团队沟通 | 需求天然带对象、事件、层次状态、并发 region 视角 | 图形化强、工业沟通成本低 | 希望直接把标准自然语言语义送入验证器 |
+| Translation-based verification | 希望快速复用 `Spin/SMV/Uppaal` 等成熟后端 | 能接受中间翻译、能固定一个语义 profile | 工具门槛较低，易接现有验证生态 | 无法接受语义差异、反例只停留在后端形式语言时 |
+| Direct operational semantics | 希望保留更多 UML 语义细节并减少 profile 漂移 | 愿意使用专门工具或语义框架 | 更接近“验证的就是 UML 本身” | 需要立即接入广泛成熟生态时 |
+| UML + active tool chain (`hugo/RT`、`AnimUML`、`EMI-UML`) | 想在 UML 路线中兼顾工程可用性与形式验证 | 必须选定具体工具链，而不是只说“支持 UML” | 能把抽象 UML 变成可执行验证资产 | 若团队无法接受工具特定约束或 profile 收缩时 |
+
+| 路线 | 需求中至少要明确的信息 | 若缺失会发生什么 |
+|---|---|---|
+| UML 前端建模 | 状态、事件、守卫、动作、层次结构 | 图能画出来，但无法稳定转成形式语义 |
+| translation 路线 | 还要明确事件队列、优先级、RTC、history/fork/join 语义 | 翻译结果可能因 profile 不同而偏离原意 |
+| direct 路线 | 还要明确更细粒度的执行顺序与语义例外 | 工具难以给出唯一、可复现实义 |
 
 ## 对本研究的启发
 
