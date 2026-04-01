@@ -12,13 +12,13 @@
 
 ## 当前收录统计
 
-- 已收录普通类型论文：**0** 篇
+- 已收录普通类型论文：**19** 篇
 - 已收录综述类论文：**10** 篇
-- 本轮新增论文：**5** 篇
-- 已完成 `desc.md`：**0** 篇
+- 本轮新增论文：**6** 篇
+- 已完成 `desc.md`：**19** 篇
 - 已完成 `survey.md`：**10** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮工作：新增 5 篇 `🧱 模型本体` survey，补入 `Two-Dimensional / Cellular / Tree / Multi-Tape / Weighted Automata` 五条离散 automata 支线
+- 本轮工作：新增 6 篇普通单篇条目，补齐 `EFSM / Tree / Multi-Tape / 2D / Cellular / Weighted`
 
 ## 形式主义主类口径
 
@@ -26,11 +26,11 @@
 
 | Emoji | 主类 | 范围 | 数量 |
 |---|---|---|---:|
-| 🧩 | 经典离散状态机 | `FSM`、`EFSM`、`Statechart`、`UML State Machine`、`SCXML`、`Tree Automata`、`Multi-Tape Automata`、`Two-Dimensional Automata`、`Cellular Automata`、`Weighted Automata` 等 | 7 |
-| ⏱️ | 时间/时钟自动机 | `Timed Automata`、`Timed Statecharts`、`TIOA` 等 | 2 |
-| 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 1 |
-| 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 | 1 |
-| 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 | 0 |
+| 🧩 | 经典离散状态机 | `FSM`、`EFSM`、`Statechart`、`UML State Machine`、`SCXML`、`Tree Automata`、`Multi-Tape Automata`、`Two-Dimensional Automata`、`Cellular Automata`、`Weighted Automata` 等 | 17 |
+| ⏱️ | 时间/时钟自动机 | `Timed Automata`、`Timed Statecharts`、`TIOA` 等 | 4 |
+| 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 2 |
+| 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 | 4 |
+| 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 | 3 |
 | 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 3 |
 
 ## 描述客体口径
@@ -39,13 +39,13 @@
 
 | Emoji | 描述客体 | 含义 | 数量 |
 |---|---|---|---:|
-| 📝 | 序列 / 语言对象 | 主要描述字符串、事件序列、trace、多串关系等离散序列对象 | 0 |
-| 🌳 | 树 / 文档对象 | 主要描述树结构、XML 文档、层次内容或其他树形对象 | 0 |
-| 🖼️ | 网格 / 图案对象 | 主要描述二维 tape、图片、网格或格点对象 | 0 |
-| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 0 |
-| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 0 |
-| 🏭 | 并发过程 / 资源流 | 主要描述并发过程、工作流、token/资源流网络 | 0 |
-| 🌡️ | 物理 / 混成对象 | 主要描述物理装置、连续动力学对象或混成/CPS 对象 | 0 |
+| 📝 | 序列 / 语言对象 | 主要描述字符串、事件序列、trace、多串关系等离散序列对象 | 3 |
+| 🌳 | 树 / 文档对象 | 主要描述树结构、XML 文档、层次内容或其他树形对象 | 1 |
+| 🖼️ | 网格 / 图案对象 | 主要描述二维 tape、图片、网格或格点对象 | 2 |
+| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 5 |
+| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 4 |
+| 🏭 | 并发过程 / 资源流 | 主要描述并发过程、工作流、token/资源流网络 | 3 |
+| 🌡️ | 物理 / 混成对象 | 主要描述物理装置、连续动力学对象或混成/CPS 对象 | 1 |
 
 ## 所属领域口径
 
@@ -53,13 +53,13 @@
 
 | Emoji | 所属领域 | 含义 | 数量 |
 |---|---|---|---:|
-| 🧮 | 形式语言与自动机理论 | 主要是 automata theory、formal language、语义与判定性研究 | 0 |
-| 💻 | 软件建模与程序行为 | 主要面向软件状态、程序行为、反应式软件或模型驱动开发 | 0 |
+| 🧮 | 形式语言与自动机理论 | 主要是 automata theory、formal language、语义与判定性研究 | 5 |
+| 💻 | 软件建模与程序行为 | 主要面向软件状态、程序行为、反应式软件或模型驱动开发 | 5 |
 | 📄 | 文档与数据交换 | 主要面向 XML、schema、文档结构与数据交换 | 0 |
-| ⏱️ | 实时与嵌入式系统 | 主要面向实时、调度、时序约束和嵌入式执行 | 0 |
+| ⏱️ | 实时与嵌入式系统 | 主要面向实时、调度、时序约束和嵌入式执行 | 3 |
 | 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 0 |
-| 🌐 | 协议 / 分布式 / 交互系统 | 主要面向通信协议、服务交互、接口组合与分布式行为 | 0 |
-| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 0 |
+| 🌐 | 协议 / 分布式 / 交互系统 | 主要面向通信协议、服务交互、接口组合与分布式行为 | 4 |
+| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 2 |
 
 ## 状态口径
 
@@ -67,7 +67,7 @@
 
 | Emoji | 含义 | 数量 |
 |---|---|---:|
-| 🟢 | 直接可用 | 9 |
+| 🟢 | 直接可用 | 28 |
 | 🟡 | 可整理 | 1 |
 | ⚪ | 未收获 | 0 |
 | ⏳ | 尚未提取 | 0 |
@@ -107,6 +107,7 @@
 - `survey/review/tutorial` 与具体家族词绑定时命中率高，例如 `timed automata survey`、`formalizing UML state machines survey`
 - 对理论 automata 家族，`family term + survey` 往往能直接命中作者预印本或机构开放仓储，适合先补 `🧱` 再回溯原始文献
 - `standardisation / markup language / PNML / formalizing / tool support` 这类“形式主义 + 基础设施”词簇很适合挖标准化与工具生态论文
+- `recommendation / specification / formal / xmi / schema` 与形式主义名组合时，适合命中 `UML/SCXML` 这类标准与载体文献
 - `cyber-physical systems` 与 `hybrid automata` 联合检索时，更容易命中“建模与验证框架综述”而非单一算法论文
 
 ### 已观察到的低命中特征
@@ -121,7 +122,7 @@
 - 对离散 automata 理论支线，优先补“模型谱系 + 经典判定边界 + 构造载体”三类材料，不把纯形式语言技巧论文直接当扩库主线
 - 后续普通条目优先补“定义/语义 + 标准/交换格式 + 工具链”三类材料，不把应用论文或纯方法论文当扩库主线
 - 对 `Petri Nets` 一类基础设施成熟方向，优先补 `standard / markup language / metamodel / API` 线，而不是只补理论定义
-- `SCXML`、`Interface/Contract Automata` 仍是当前 survey 视角下的空白主线，下一轮应优先补位
+- `SCXML`、`Interface/Contract Automata` 已补基础条目，下一轮应继续补执行器/工具线与更早代表文献
 - 方法路线条目只在能够反向支撑某一形式主义的能力边界或基础设施条件时再跟进
 
 ## 状态机类型论文总表
@@ -134,7 +135,25 @@
 
 | # | 主类 | 客体 | 领域 | 形式主义 | 论文角色 | 标题 | 年份 | 核心功能 | 关键特性 | 构造方式 | 基础设施 | 适用场景 | 需求前提 | 状态 | 目录 |
 |---|---|---|---|---|---|---|---:|---|---|---|---|---|---|---|---|
-| - | - | - | - | - | - | 暂无 | - | - | - | - | - | - | - | - | - |
+| 1 | 🧩 | 📝 | 🧮 | `Finite Automata` | 奠基定义 | Finite Automata and Their Decision Problems | 1959 | 识别有限符号串与串关系 | 有限状态、正则语言、判定性 | 状态集/字母表/迁移/接受条件 | 理论算法成熟，原文无工程标准 | 词法识别、有限记忆协议模式 | 纯离散、有限记忆、无时间数据 | 🟢 | [desc.md](./finite-automata-and-their-decision-problems/desc.md) |
+| 2 | 🧩 | 📝 | 🧮 | `Multi-Tape Automata` | 理论分析 | Closedness Properties and Decision Problems for Finite Multi-Tape Automata | 1976 | 建模多串关系与 `n` 元语言关系 | 多带、端标记敏感、闭包与判定问题 | `n` 带输入 + 有限控制 + 接受集合 | 纯理论模型，无标准格式 | relation language、多路 trace 关系、同步/异步读取基线 | 输入是有限个离散串/trace，且不需数据/时间 | 🟢 | [desc.md](./closedness-properties-and-decision-problems-for-finite-multi-tape-automata/desc.md) |
+| 3 | 🧩 | 🖼️ | 🧮 | `Two-Dimensional Automata` | 能力边界 | On the Capability of Finite Automata in 2 and 3 Dimensional Space | 1978 | 研究有限自动机在二维/三维网格中的搜索能力 | 网格移动、pebbles、二维可搜/三维受限 | 网格单元 + 方向动作 + pebble 标记 + 有限控制 | 理论模型，无工程标准 | picture language、maze search、空间模式基线 | 需求必须显式落在网格邻域与局部观测上 | 🟢 | [desc.md](./on-the-capability-of-finite-automata-in-2-and-3-dimensional-space/desc.md) |
+| 4 | 🧩 | 🖼️ | 🌡️ | `Cellular Automata` | 模型综述 | Cellular Automata | 1983 | 用局部规则刻画格点系统演化 | lattice、同步更新、邻域、四类行为 | 格点 + 邻域 + 规则表/规则号 | 仿真生态强，但无统一交换标准 | 局部相互作用系统、扩散/生长、并行计算 | 系统由大量同构单元组成且规则局部同质 | 🟢 | [desc.md](./cellular-automata/desc.md) |
+| 5 | 🧩 | 🎛️ | 💻 | `Statecharts` | 奠基定义 | Statecharts: A Visual Formalism for Complex Systems | 1987 | 表达复杂反应式系统行为 | 层次、并发、广播事件 | 图形化超状态/并发区/跨层迁移 | 图形工具思路明确，后续生态强 | 复杂反应式控制系统 | 需求存在模式层次与并发子行为 | 🟢 | [desc.md](./statecharts-a-visual-formalism-for-complex-systems/desc.md) |
+| 6 | 🔌 | 🤝 | 🌐 | `I/O Automata` | 模型教程 | An Introduction to Input/Output Automata | 1989 | 建模可组合组件交互 | input-enabled、composition、trace semantics | 动作签名 + 状态 + 迁移 | 理论框架成熟，无标准文件 | 分布式协议、组件交互 | 需显式划分输入/输出边界 | 🟢 | [desc.md](./an-introduction-to-input-output-automata/desc.md) |
+| 7 | 🕸️ | 🏭 | 💻 | `Petri Nets` | 教程综述 | Petri Nets: Properties, Analysis and Applications | 1989 | 建模并发过程与资源流 | token、marking、活性/有界性 | places/transitions/arcs/marking | 分析方法成熟，标准交换后续补 | 工作流、并发资源共享 | 核心在并发同步与资源流 | 🟢 | [desc.md](./petri-nets-properties-analysis-and-applications/desc.md) |
+| 8 | 🧩 | 🎛️ | 🌐 | `Extended Finite State Machine` | 方法佐证 | Method of analysing extended finite-state machine specifications | 1990 | 在 `FSM` 中加入变量、参数和多输出动作 | 状态变量、守卫/动作、队列通信、`Estelle/SDL` | 图形/文本 FDT + `when/from/to/output` + 状态变量 | `Estelle`/`SDL` 生态明确，无统一 JSON/XML | 协议规格、数据驱动控制逻辑、带参数交互 | 需求需显式状态、数据变量和输入输出动作 | 🟢 | [desc.md](./method-of-analysing-extended-finite-state-machine-specifications/desc.md) |
+| 9 | ⏱️ | 🎛️ | ⏱️ | `Timed Automata` | 奠基定义 | A Theory of Timed Automata | 1994 | 表达显式时钟约束实时行为 | 时钟、守卫、复位、不变式 | 位置 + 时钟 + 迁移约束 | region/emptiness 理论成熟，无标准文件 | 实时协议、限时响应系统 | 需求含显式时间边界 | 🟢 | [desc.md](./a-theory-of-timed-automata/desc.md) |
+| 10 | 🌊 | 🌡️ | 🌡️ | `Hybrid Automata` | 理论总结 | The Theory of Hybrid Automata | 1996 | 统一离散模式与连续流 | init/inv/flow/jump 条件 | 控制图 + 连续变量 + 流/跳转条件 | 理论语义强，工具依赖后续子类 | CPS、物理控制系统 | 需求含连续变量与模式切换 | 🟢 | [desc.md](./the-theory-of-hybrid-automata/desc.md) |
+| 11 | 🔌 | 🤝 | 🌐 | `Interface Automata` | 模型提出 | Interface Automata | 2001 | 检查接口兼容与替换性 | compatibility、illegal states、alternating simulation | 输入/输出接口自动机 | 组合与精化语义成熟，无标准格式 | 组件接口匹配、服务组合 | 关注假设/保证式交互 | 🟢 | [desc.md](./interface-automata/desc.md) |
+| 12 | ⏱️ | 🤝 | ⏱️ | `Timed I/O Automata` | 理论专著 | The Theory of Timed I/O Automata | 2005 | 组合实时组件并比较实现关系 | trajectories、receptiveness、simulation | 动作接口 + 时间轨迹 | 理论框架成熟，无标准格式 | 实时组件系统 | 需求同时包含接口与时间演化 | 🟢 | [desc.md](./the-theory-of-timed-input-output-automata/desc.md) |
+| 13 | 🕸️ | 🏭 | 💻 | `Coloured Petri Nets` | 教程讲义 | Coloured Petri Nets | 2005 | 在 Petri 网中引入 typed token 与数据 | colour sets、simulation、state space | 网结构 + 颜色集 + 弧表达式 | 工具生态成熟，交换标准较弱 | 协议与数据驱动并发系统 | 并发 + 显式数据对象 | 🟢 | [desc.md](./coloured-petri-nets/desc.md) |
+| 14 | 🕸️ | 🏭 | ⏱️ | `Time Petri Nets` | 教程讲义 | Time Petri Nets Part II: State Class based methods | 2008 | 在并发网上加入时间区间 | 静态区间、state class graph | P/T 网 + 变迁时间区间 | TINA 线成熟，标准格式较弱 | 实时并发流程与调度 | 并发资源流 + 时间窗口 | 🟢 | [desc.md](./time-petri-nets/desc.md) |
+| 15 | 🧩 | 🌳 | 🧮 | `Tree Automata` | 教程专著 | Tree Automata Techniques and Applications | 2008 | 识别树、项与层次结构语言 | bottom-up、top-down、determinization、decision problems | ranked alphabet + 状态 + 树重写规则 | 理论与算法成熟，XML/hedge 在线路上衔接强 | AST、term rewriting、schema-like structural validation | 输入需显式树/项结构而非平坦事件串 | 🟢 | [desc.md](./tree-automata-techniques-and-applications/desc.md) |
+| 16 | 🧩 | 📝 | 🧮 | `Weighted Automata` | 手册章节 | Weighted Automata Algorithms | 2009 | 在自动机/转导器上附加 semiring 权值 | semiring、path weight、determinization、minimization | 图结构 + label + weight + semiring 运算 | 算法体系成熟，但无统一交换标准 | 概率/代价/评分型字符串与转导建模 | 需求需保留有限状态骨架且每条路径带可组合权值 | 🟢 | [desc.md](./weighted-automata-algorithms/desc.md) |
+| 17 | 🔌 | 🤝 | 🌐 | `Contract Automata` | 模型提出 | Automata for Analysing Service Contracts | 2014 | 分析多方契约匹配与责任 | agreement、weak agreement、liability | 向量动作自动机 + 组合 | 分析方法明确，生态偏研究型 | 服务编排、契约组合 | 多方 request/offer 关系清晰 | 🟢 | [desc.md](./contract-automata/desc.md) |
+| 18 | 🧩 | 🎛️ | 💻 | `SCXML` | 标准规范 | State Chart XML (SCXML): State Machine Notation for Control Abstraction | 2015 | 提供可执行层次状态机 XML 载体 | `state/parallel/history/datamodel/invoke` | SCXML XML 文档 | W3C 规范、Schema、测试套件 | 事件驱动流程与互操作 | 需要标准文本载体 | 🟢 | [desc.md](./scxml-state-machine-notation-for-control-abstraction/desc.md) |
+| 19 | 🧩 | 🎛️ | 💻 | `UML State Machine` | 标准规范 | OMG Unified Modeling Language (OMG UML), Version 2.5.1 | 2017 | 标准化行为/协议状态机元模型 | regions、pseudostates、XMI | 图形建模 + metamodel + XMI | OMG 标准和工具生态成熟 | MDE、跨工具交换 | 需要与 UML 语境集成 | 🟢 | [desc.md](./uml-251-specification/desc.md) |
 
 ## 综述类论文总表
 
@@ -175,41 +194,38 @@
 | 5 | 1968 | 多带自动机表达力与判定性 | one-way multi-tape | Fischer, Rosenberg, `Multitape One-Way Nonwriting Automata` | 连接 one-way 多带机与 relation 识别能力的早期主线 | 优先补单篇 `desc.md` | 🟠 |
 | 6 | 1969 | 细胞自动机理论版图 | 符号动力系统口径 | Hedlund, `Endomorphisms and Automorphisms of Shift Dynamical Systems` | 把 `CA` 放进 shift dynamics 语义框架，是后续可逆性/动力学主线的基准 | 优先补单篇 `desc.md` | 🔴 |
 | 7 | 1972 | 细胞自动机理论版图 | injective / surjective 判定 | Amoroso, Patt, `Decision Procedures for Surjectivity and Injectivity of Parallel Maps for Tessellation Structures` | 一维 `CA` 可判定性主线的经典入口 | 优先补单篇 `desc.md` | 🔴 |
-| 8 | 1977 | 二维自动机理论版图 | 二维有限自动机能力边界 | Blum, Sakoda, `On the Capability of Finite Automata in 2 and 3 Dimensional Space` | 直接支撑二维有限自动机的表达边界与方向受限讨论 | 优先补单篇 `desc.md` | 🟠 |
-| 9 | 1987 | 状态图模型检验路线 | `Statecharts` | David Harel, `Statecharts: A Visual Formalism for Complex Systems` | 层次状态机主线的原始起点，后续 UML/STATEMATE 都要回到它校准 | 优先补单篇 `desc.md` | 🔴 |
-| 10 | 1991 | 细胞自动机理论版图 | 加性守恒量 | Hattori, Takesue, `Additive Conserved Quantities in Discrete-Time Lattice Dynamical Systems` | 守恒量与 number-conserving `CA` 主线的关键入口 | 优先补单篇 `desc.md` | 🟠 |
-| 11 | 1991 | Petri 网标准化与交换格式 | `Time Petri Nets` | Berthomieu, Diaz, `Modeling and Verification of Time Dependent Systems Using Time Petri Nets` | 连接 `Petri Net` 与时间扩展，是后续 Part 3 重要背景 | 优先补单篇 `desc.md` | 🟠 |
-| 12 | 1993 | 混成自动机与 CPS 验证 | 一般 `Hybrid Automata` | Alur et al., `Hybrid Automata: An Algorithmic Approach to the Specification and Verification of Hybrid Systems` | 混成自动机奠基文献 | 优先补单篇 `desc.md` | 🔴 |
-| 13 | 1994 | 时间自动机变体与工具生态 | 经典 `Timed Automata` | Alur, Dill, `A Theory of Timed Automata` | 时间自动机主线的定义基准 | 优先补单篇 `desc.md` | 🔴 |
-| 14 | 1996 | 状态图模型检验路线 | `STATEMATE` 语义 | Harel, Naamad, `The STATEMATE Semantics of Statecharts` | 原始语义口径，对 priority/history/inter-level transition 很关键 | 优先补单篇 `desc.md` | 🔴 |
-| 15 | 1997 | UML 状态机形式化与自动验证 | `UML` 标准起点 | `OMG UML 1.1 specification` | 形式化工作共同的时间边界和标准起点 | 先补标准条目 | 🟡 |
-| 16 | 1998 | 混成自动机与 CPS 验证 | 判定边界 | Henzinger et al., `What's Decidable About Hybrid Automata?` | 混成自动机可判定子类和边界线的关键入口 | 优先补单篇 `desc.md` | 🔴 |
-| 17 | 1999 | UML 状态机形式化与自动验证 | UML + model checking | Lilius, Paltor, `Formalising UML State Machines for Model Checking` | UML 形式化主线的重要早期节点 | 优先补单篇 `desc.md` | 🔴 |
-| 18 | 1999 | 确定性自顶向下树自动机谱系 | `Hedge Automata` / XML | Murata, `Hedge Automata: A Formal Model for XML Schemata` | 连接 unranked tree automata 与 XML schema 生态的关键节点 | 优先补单篇 `desc.md` | 🔴 |
-| 19 | 2000 | 状态图模型检验路线 | 保层次验证 | Alur et al., `Efficient Reachability Analysis of Hierarchic Reactive Machines` | 代表避免完全 flatten 的关键技术路线 | 先找原文并评估是否入库为 `desc.md` | 🟡 |
-| 20 | 2004 | Petri 网标准化与交换格式 | `Petri Net` 标准 Part 1 | `ISO/IEC 15909-1` | 标准化术语、语义和图形记法的核心入口 | 优先补标准条目 | 🔴 |
-| 21 | 2005 | Petri 网标准化与交换格式 | `PNML` / Part 2 概念线 | Ekkart Kindler, `The Petri Net Markup Language and ISO/IEC 15909-2` | 补足 `PNML` 的核心概念、状态和未来方向 | 优先补单篇 `desc.md` | 🔴 |
-| 22 | 2006 | Petri 网标准化与交换格式 | High-level Petri Nets | Jensen, Rozenberg (eds.), `High-Level Petri Nets` | 回补高层网本体与标准化对象之间的理论连接 | 优先补单篇 `desc.md` | 🟠 |
-| 23 | 2007 | 加权逻辑与加权自动机统一视角 | automata-logic 等价 | Droste, Gastin, `Weighted Automata and Weighted Logics` | 词上加权自动机与逻辑等价的标准入口 | 优先补单篇 `desc.md` | 🔴 |
-| 24 | 2009 | 时间自动机变体与工具生态 | 参数化时间自动机 | Etienne Andre, `IMITATOR` tool line | 连接参数综合与需求到模型自动化 | 先补工具/方法条目 | 🟠 |
-| 25 | 2011 | 时间自动机变体与工具生态 | 主流工具线 | Behrmann et al., `A Tutorial on UPPAAL` | 当前最值得优先追踪的时间自动机工具主线 | 优先补工具条目 | 🔴 |
-| 26 | 2012 | 加权逻辑与加权自动机统一视角 | valuation monoid 语义 | Droste, Meinecke, `Weighted Automata and Regular Expressions over Valuation Monoids` | 把平均值、折扣和等非半环语义纳入统一权值模型 | 优先补单篇 `desc.md` | 🟠 |
-| 27 | 2013 | UML 状态机形式化与自动验证 | 直接操作语义 | Liu et al., `USMMC` / corresponding semantics paper | 代表较完整的 UML 直接语义与验证路线 | 优先补单篇 `desc.md` | 🟠 |
-| 28 | 2017 | UML 状态机形式化与自动验证 | 稳定标准语义 | `OMG UML 2.5.1 specification` | 当前更稳的 UML 参考版本，适合对齐 profile | 优先补标准条目 | 🔴 |
-| 29 | 2021 | UML 状态机形式化与自动验证 | 现代工具线 | Jouault et al., `AnimUML` | 代表仍在维护、可实际试用的现代 UML 验证工具 | 先补工具条目 | 🟠 |
+| 8 | 1991 | 细胞自动机理论版图 | 加性守恒量 | Hattori, Takesue, `Additive Conserved Quantities in Discrete-Time Lattice Dynamical Systems` | 守恒量与 number-conserving `CA` 主线的关键入口 | 优先补单篇 `desc.md` | 🟠 |
+| 9 | 1991 | Petri 网标准化与交换格式 | `Time Petri Nets` | Berthomieu, Diaz, `Modeling and Verification of Time Dependent Systems Using Time Petri Nets` | 连接 `Petri Net` 与时间扩展，是后续 Part 3 重要背景 | 优先补单篇 `desc.md` | 🟠 |
+| 10 | 1993 | 混成自动机与 CPS 验证 | 一般 `Hybrid Automata` | Alur et al., `Hybrid Automata: An Algorithmic Approach to the Specification and Verification of Hybrid Systems` | 混成自动机奠基文献 | 优先补单篇 `desc.md` | 🔴 |
+| 11 | 1996 | 状态图模型检验路线 | `STATEMATE` 语义 | Harel, Naamad, `The STATEMATE Semantics of Statecharts` | 原始语义口径，对 priority/history/inter-level transition 很关键 | 优先补单篇 `desc.md` | 🔴 |
+| 12 | 1997 | UML 状态机形式化与自动验证 | `UML` 标准起点 | `OMG UML 1.1 specification` | 形式化工作共同的时间边界和标准起点 | 先补标准条目 | 🟡 |
+| 13 | 1998 | 混成自动机与 CPS 验证 | 判定边界 | Henzinger et al., `What's Decidable About Hybrid Automata?` | 混成自动机可判定子类和边界线的关键入口 | 优先补单篇 `desc.md` | 🔴 |
+| 14 | 1999 | UML 状态机形式化与自动验证 | UML + model checking | Lilius, Paltor, `Formalising UML State Machines for Model Checking` | UML 形式化主线的重要早期节点 | 优先补单篇 `desc.md` | 🔴 |
+| 15 | 1999 | 确定性自顶向下树自动机谱系 | `Hedge Automata` / XML | Murata, `Hedge Automata: A Formal Model for XML Schemata` | 连接 unranked tree automata 与 XML schema 生态的关键节点 | 优先补单篇 `desc.md` | 🔴 |
+| 16 | 2000 | 状态图模型检验路线 | 保层次验证 | Alur et al., `Efficient Reachability Analysis of Hierarchic Reactive Machines` | 代表避免完全 flatten 的关键技术路线 | 先找原文并评估是否入库为 `desc.md` | 🟡 |
+| 17 | 2004 | Petri 网标准化与交换格式 | `Petri Net` 标准 Part 1 | `ISO/IEC 15909-1` | 标准化术语、语义和图形记法的核心入口 | 优先补标准条目 | 🔴 |
+| 18 | 2005 | Petri 网标准化与交换格式 | `PNML` / Part 2 概念线 | Ekkart Kindler, `The Petri Net Markup Language and ISO/IEC 15909-2` | 补足 `PNML` 的核心概念、状态和未来方向 | 优先补单篇 `desc.md` | 🔴 |
+| 19 | 2006 | Petri 网标准化与交换格式 | High-level Petri Nets | Jensen, Rozenberg (eds.), `High-Level Petri Nets` | 回补高层网本体与标准化对象之间的理论连接 | 优先补单篇 `desc.md` | 🟠 |
+| 20 | 2007 | 加权逻辑与加权自动机统一视角 | automata-logic 等价 | Droste, Gastin, `Weighted Automata and Weighted Logics` | 词上加权自动机与逻辑等价的标准入口 | 优先补单篇 `desc.md` | 🔴 |
+| 21 | 2009 | 时间自动机变体与工具生态 | 参数化时间自动机 | Etienne Andre, `IMITATOR` tool line | 连接参数综合与需求到模型自动化 | 先补工具/方法条目 | 🟠 |
+| 22 | 2011 | 时间自动机变体与工具生态 | 主流工具线 | Behrmann et al., `A Tutorial on UPPAAL` | 当前最值得优先追踪的时间自动机工具主线 | 优先补工具条目 | 🔴 |
+| 23 | 2012 | 加权逻辑与加权自动机统一视角 | valuation monoid 语义 | Droste, Meinecke, `Weighted Automata and Regular Expressions over Valuation Monoids` | 把平均值、折扣和等非半环语义纳入统一权值模型 | 优先补单篇 `desc.md` | 🟠 |
+| 24 | 2013 | UML 状态机形式化与自动验证 | 直接操作语义 | Liu et al., `USMMC` / corresponding semantics paper | 代表较完整的 UML 直接语义与验证路线 | 优先补单篇 `desc.md` | 🟠 |
+| 25 | 2021 | UML 状态机形式化与自动验证 | 现代工具线 | Jouault et al., `AnimUML` | 代表仍在维护、可实际试用的现代 UML 验证工具 | 先补工具条目 | 🟠 |
 
 ## 待优先补入方向
 
-1. `Harel Statecharts -> STATEMATE -> UML profile` 这一条层次状态机原始语义线。
-2. `OMG UML 2.5.1 + hugo/RT + AnimUML` 这一条 UML 形式化与现代工具线。
-3. `Alur-Dill Timed Automata + UPPAAL + IMITATOR` 这一条时间自动机基础与工具线。
-4. `Hybrid Automata + What's Decidable About Hybrid Automata? + HyTech/Phaver` 这一条连续动力学验证线。
-5. `ISO/IEC 15909-1/2 + PNML + High-Level Petri Nets` 这一条 Petri 网标准与交换格式线。
-6. `Tree Automata + Hedge Automata + XML schema validation` 这一条层次树结构与 schema 承载线。
-7. `Weighted Automata + valuation monoid/structure` 这一条 quantitative automata 语义线。
-8. `Two-Dimensional / Cellular / Multi-Tape Automata` 已有 survey 入口，下一步应补原始定义与典型判定边界论文。
-9. 仍待补位的 survey 或定义型方向：`SCXML`、`Interface Automata`、`Contract Automata`。
-10. 上述每条主线都优先补“模型本体 + 标准/基础设施”条目；方法路线只作为辅证，不单独扩成主收录方向。
+1. `Harel Statecharts -> STATEMATE semantics -> UML profile` 这一条层次状态机语义细化线。
+2. `Timed Automata + UPPAAL + IMITATOR` 这一条时间自动机基础与工具线。
+3. `I/O Automata + TIOA + Interface/Contract Automata` 这一条接口组合与精化线。
+4. `Hybrid Automata + 1993 origin paper + decidable subclasses` 这一条连续动力学主线。
+5. `Petri Nets + ISO/IEC 15909 + PNML + High-Level/Timed extensions` 这一条网模型标准与扩展线。
+6. `SCXML + processors/runtime/tool support` 这一条可执行载体与运行时线。
+7. `Tree Automata` 已补基础条目，下一轮继续沿 `Hedge Automata + XML schema validation` 回补结构化承载线。
+8. `Weighted Automata` 已补 handbook 级本体条目，下一轮继续回补 `Schutzenberger + weighted logics + valuation monoid` 主线。
+9. `Two-Dimensional / Cellular / Multi-Tape Automata` 已补基础代表条目，下一步回补更早奠基论文与典型判定边界。
+10. `EFSM` 已补方法支撑型条目，下一轮应继续补更纯粹的定义/标准源，如 `SDL / Estelle / 测试主线`。
+11. 上述每条主线都优先补“模型本体 + 标准/基础设施”条目；方法路线只作为辅证，不单独扩成主收录方向。
 
 ## 更新日志
 
@@ -219,6 +235,8 @@
 | 2026-04-01 13:03:21 | 首次收录综述类论文 | 新增 5 篇 `survey.md` 条目并回填综述总表与 follow-up 原始文献表，覆盖 `Statecharts/UML`、`Timed Automata`、`Hybrid Automata`、`Petri Net standardisation/PNML` |
 | 2026-04-01 13:45:03 | 补充图例数量统计口径 | 为“形式主义主类”“状态”“综述对象类型”三张图例表增加右侧数量列，并要求后续随正式总表同步更新 |
 | 2026-04-01 14:43:56 | 新增离散 automata 模型本体综述 | 补入 `Two-Dimensional`、`Cellular`、`Deterministic Top-Down Tree`、`Multi-Tape`、`Weighted Automata` 五篇 `🧱` survey，并同步回填统计、综述总表与 follow-up 文献表 |
+| 2026-04-01 16:08:21 | 首批收录经典普通条目 | 新增 13 篇 `desc.md` 条目，覆盖 `FSM / Statecharts / UML / SCXML / Timed Automata / I-O 系 / Hybrid Automata / Petri 网系`，并同步回填普通论文总表、图例统计与 follow-up 清单 |
+| 2026-04-01 16:28:28 | 补齐离散 automata 普通条目 | 新增 6 篇 `desc.md` 条目，覆盖 `EFSM / Tree / Multi-Tape / 2D / Cellular / Weighted`，并同步回填普通论文总表、图例统计与 follow-up 清单 |
 
 ## 失败与阻塞记录
 
