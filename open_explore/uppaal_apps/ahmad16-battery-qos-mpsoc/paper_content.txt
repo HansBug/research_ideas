@@ -1,0 +1,1018 @@
+--- Page 1 ---
+Model Checking and Evaluating QoS of Batteries in
+MPSoC Dataﬂow Applications via Hybrid Automata
+Waheed Ahmad, Marijn Jongerden, Mari ¨elle Stoelinga, Jaco van de Pol
+University of Twente, The Netherlands
+Email:fw.ahmad, m.r.jongerden, m.i.a.stoelinga, j.c.vandepol g@utwente.nl
+Abstract —System lifetime is a major design constraint for
+battery-powered mobile embedded systems. The increasing gap
+between the energy demand of portable devices and their
+battery capacities is further limiting durability of mobile devices.
+Thus, the guarantees over Quality of Service (QoS) of battery-
+constrained devices under strict battery capacities are of primary
+interest for mobile embedded systems’ manufacturers and stake-
+holders.
+This paper presents a novel approach for deriving QoS of
+applications modelled as synchronous dataﬂow (SDF) graphs.
+We map these applications on heterogeneous multiprocessor plat-
+forms that are partitioned into Voltage and Frequency Islands,
+together with multiple kinetic battery models (KiBaMs). By
+modelling the whole system as hybrid automata, and applying
+model-checking, we evaluate, (1) system lifetime; and (2) mini-
+mum required initial battery capacities to achieve the desired
+application performance. We demonstrate that our approach
+shows a signiﬁcant improvement in terms of scalability, as
+compared to a priced timed automata based KiBaM model. This
+approach also allows early detection of design errors via model
+checking.
+I. I NTRODUCTION
+Mobile computing has experienced a major upswing over
+the last two decades. As a result, applications with increasing
+functionality and complexity are continuously implemented
+on mobile embedded devices such as smart phones, allowing
+these systems to operate independently. However, this trend
+has increased the energy consumption of mobile devices
+manifold. On the other hand, battery energy densities have
+not grown at the same rate over the years, thus leading to
+system lifetime as a major design constraint. In this paper, we
+deﬁne the lifetime as the time one can use the battery before
+it is empty.
+Mobile embedded systems are often powered only by batter-
+ies that may or may not be recharged regularly by an external
+power source. For example, in a military Software Deﬁned
+Radio that is being operated in a desert or on a mountain
+where energy supplies are unreliable, the primary Quality of
+Service (QoS) concern is to determine the system lifetime.
+Similarly, a geostationary satellite with solar panels to charge
+on-board batteries, is recharged at a regular intervals of 12
+hours when facing the sun. However, the satellites have strict
+limitations regarding mass and volume. In this case, the main
+QoS interest is to assess the battery sizes and weight that
+yield the performance criteria. In these cases, the evaluation of
+the QoS of battery-constrained mobile embedded systems has
+emerged as one of the most critical, challenging and essentialconcern for manufacturers, investors and users.
+One can identify three QoS factors, and their relation with
+three different design choices, as given in Table I. First, the
+throughput of a system, deﬁned as a measure of how many
+units of information a system can process in a given amount
+of time, has a direct impact on energy consumption which in
+turn inﬂuences the system lifetime. Secondly, the number of
+processors affects both the system lifetime, and manufacturing
+cost of the overall system. Lastly, the number of batteries
+relates not only to system lifetime and cost, but also to the
+mass and volume of a system. Therefore, this paper takes in
+account aforementioned design alternatives, with respect to
+system lifetime and minimum battery capacities.
+This paper considers a very intuitive battery model termed
+Kinetic Battery Model (KiBaM) [16] as a representation of
+dynamic behaviour of a conventional rechargeable battery,
+see Figure 1. A KiBaM models the total charge in a battery
+as two separate tanks. One tank holds the charge which is
+immediately available to be consumed by the load. The other
+tank holds the charge which is chemically bound. It is because
+a chemical kinetics process is used as its basis, that the model
+is termed kinetic. Experimental studies show that the KiBaM
+provides a good approximation of the system lifetime across
+various battery types [13].
+To reduce the power consumption, different system-level
+power management methods like Dynamic Power Manage-
+ment (switching to low power state) (DPM) [7] and Dy-
+namic V oltage and Frequency Scaling (throttling processor
+frequency) (DVFS) [19] has gained signiﬁcant value and
+success. The concept of voltage-frequency islands (VFIs) [11]
+further allows us to cluster a group of processors in such a
+way that each VFI runs on a common clock frequency/voltage.
+This achieves ﬁne-grained system-level power management. In
+CMOS based processors, voltage/frequency scaling by a factor
+ofscauses the battery current to scale by s3[8]. Thus, the
+system lifetime depends hugely on the battery capacity and
+the level of the load current applied to it.
+If we have multiple batteries in the system, another
+important factor contributing to overall lifetime is the usage
+pattern of the batteries, i.e., how batteries are scheduled. This
+leads to an important research problem of devising a battery-
+aware scheduling mechanism, where given a set of tasks, a
+set of resources to execute the tasks, and a given number of
+batteries, we are able to derive a battery-optimal schedule of
+tasks.
+
+--- Page 2 ---
+Design
+ChoicesQoS
+Factors System
+LifetimeCostVolume
+and Mass
+Required Throughput 3
+Number of Processors 3 3
+Number of Batteries 3 3 3
+TABLE I: Relation between Design Choices and QoS factors
+The charge stored in a battery is represented by a ﬁnite set
+of continuous variables in the KiBaM, making the behaviour
+of KiBaM hybrid. Synthesising optimal battery schedules
+for multiple batteries using existing analysis techniques for
+hybrid systems, is very expensive. Therefore, the state-of-the-
+art method in [14] discretises the KiBaM, and models it as
+priced timed automata (PTA) [6]. Furthermore, for a ﬁxed
+load, this approach deploys the model-checker U PPAAL Cora
+to search the whole state-space, and generating the optimal
+battery schedule. However, this method also does not solve the
+scalability problem. As increasing the initial battery capacities
+leads to searching the bigger state-space, this approach only
+allows to model limited battery capacities. Furthermore, this
+approach discretises the temporal dimension, which limits its
+accuracy.
+We propose an alternative, novel approach based on Hybrid
+Automata (HA) [10]. These extend timed automata [4] (for
+the modelling of time-critical systems and time constraints)
+by continuous variables. HA can be analysed using U PPAAL
+[5], that supports both model-checking and highly scalable
+Monte Carlo simulations. In contrast to discretisation, as done
+in [14], we take into account the continuous variables of
+the KiBaM by modelling it as a hybrid automaton, which
+obviously makes it a more accurate model than PTA-based
+KiBaM. This approach enables us to utilise U PPAAL to employ
+highly scalable technique of Monte Carlo simulations to assess
+various QoS parameters, such as, system lifetime and adequate
+battery capacities. In this paper, we show that our approach
+scales better than the one presented in [14]. Furthermore, we
+also utilise U PPAAL for applying model checking to verify
+various user-deﬁned properties. Thus, as opposed to other
+simulation based tools for hybrid systems, modelling as HA
+and using U PPAAL provides an additional beneﬁt of model
+checking against state-based properties.
+We use Synchronous Dataﬂow (SDF) [15] as a computa-
+tional model. SDF provides a natural representation of real-
+time streaming and digital signal processing applications.
+In this paper, SDF graphs are used to represent software
+applications which are partitioned into tasks, with inter-task
+dependencies and their synchronisation properties.
+Our approach takes four ingredients: (1) a platform model
+that describes the speciﬁcs of the hardware, such as, VFI
+partitions, frequency levels and power usage per processor;
+(2) an SDF graph scheduler that maps the application tasks
+on the platform model in a static-order manner; (3) given
+number of batteries; and (4) a battery scheduler that deﬁnes the
+scheduling scheme of batteries. For given battery capacitiesand timing constraints, we compute system lifetime (SDF
+graph iterations). Similarly, for given application performance
+criteria, we determine the adequate battery capacities. This
+method facilitates system designers to evaluate aforementioned
+QoS factors for different design choices, such as, varying
+number of VFIs, processors, and batteries. Furthermore, this
+method also allows system designers to detect subtle battery
+design errors in early phases via model checking.
+In particular, our main contributions are as follows. (1)
+We utilise hybrid automata to model check and assess QoS
+of multiple KiBaMs for different design alternatives, without
+discretising time. (2) We consider realistic hardware platforms
+equipped with the novel energy management techniques, com-
+pared to the state-of-the-art [20]; (3) We analyse SDF graphs
+as input which are more versatile and allow more realistic
+data-dependencies than acyclic applications [9] [14] [20]; (4)
+We show that our approach allows better scalability than PTA-
+based discretised KiBaM [14]; (5) Our approach allows early
+detection of design errors via model checking.
+Paper organisation. Section II reviews related work. Sec-
+tion III formalises the problem, and translation to HA using
+UPPAAL is illustrated in Section IV. Section V experimen-
+tally evaluates the QoS analysis. Finally, Section VII draws
+conclusions and outlines possible future research.
+II. R ELATED WORK
+An extensive survey paper [13] outlines the broad research
+work on various battery models. The work in [3] applies the
+combination of DVFS and DPM, on VFI-partitioned heteroge-
+neous processors. However, this paper assumes energy source
+to be ideal. We solve this limitation by considering a realistic
+model of batteries.
+The state-of-the-art methods in the realm of battery-aware
+scheduling for multiple batteries, are presented in [14] and [9].
+The approach in [14], in comparison to ours, discretises time.
+This approach helps to ﬁnd optimal battery schedules, but do
+not scale well because of the discretisation. The technique in
+[9] models KiBaMs as hybrid like us, and discretises time
+to search the state-space, leading to the better results than
+the work in [14]. But, due to the fact that the state-space
+grows larger with the number of batteries, the scalability of this
+approach also suffers. We, on the other hand, run Monte Carlo
+simulations, that allows us to avoid the state-space explosion.
+The analysis shows that the scalability of our approach is better
+than the technique in [14].
+A more advanced technique that also utilises hybrid au-
+tomata like us and [9], is presented in [20]. In this paper,
+the KiBaM provides energy to an uniprocessor. Unlike our
+method, this approach discusses a single battery case only.
+Another novel work in [12] extends KiBaMs with random
+initial SoC and load, without discretising time. In this way,
+probabilistic guarantees about the system lifetime can be
+provided. In comparison to our work, this technique is also
+conﬁned to a single KiBaM only. Table II summarises different
+aforementioned KiBaM analysis methods.
+To the best of our knowledge, there are no papers that
+
+--- Page 3 ---
+MethodWithout
+DiscretisationMultiple
+KiBaMs
+[9] [14] 7 3
+[20] 3 7
+[12] 3 7
+Our Method 3 3
+TABLE II: Comparison among different battery analysis methods
+b(t) a(t)
+ki(t)hb ha1 c c
+Fig. 1: Model of a KiBaM
+analyse multiple KiBaMs without discretising time.
+III. S YSTEM MODEL DEFINITION
+We formalise battery model, SDF graphs, and hardware plat-
+form model in subsection III-A, III-B and III-C respectively.
+A. Kinetic Battery Model
+The kinetic battery model (KiBaM) [16] is a mathematical
+characterisation of state of charge of a battery. Key feature
+is that not all energy stored in a battery can be utilised
+at all times. To model this phenomenon, the total charge
+stored in a battery is divided into two “tanks”, the available
+charge and the bound charge , see Figure 1. Only the available
+charge can be consumed immediately by a load at the time-
+dependent rate i, and thereby behaves similar to an ideal
+energy source. The bound charge is converted to available
+charge at a rate proportional to the height difference with the
+proportionality factor being the rate constant k, and is available
+to be consumed. Thus, bound charge replenishes available
+charge , and this effect is termed recovery eect .
+If the widths of the available and bound charge tanks are
+cand1 crespectively, then the tanks are ﬁlled to heights
+haandhb, and the charges in both tanks are a=chaandb=
+(1 c)hbrespectively. Formally, the KiBaM is characterised
+by the following system of differential equations.
+_a(t) = i(t) +k(hb ha) (1)
+_b(t) = k(hb ha) (2)
+The system starts in equilibrium, i.e. ha=hb. With an initial
+capacity of C, the initial conditions are a(0) = cCandb(0) =
+(1 c)C. The battery is considered empty when a=ha= 0,
+as it cannot supply charge any more at the given moment even
+though it may still contain bound charge. The system lifetime
+ends when all batteries are emptied.Deﬁnition 1. AKiBaM systemKS= (B;Cap)consists of a
+ﬁnite set of KiBaMs B=fbat1;:::; batmg, and a function
+Cap:B!R0denoting the initial capacity of each bat2B.
+In our case-studies, we consider batteries having the ca-
+pacity of 1300 mAh, as used in the Samsung Galaxy Fame
+smartphones [1].
+B. SDF Graphs
+Typically, real-time streaming applications execute a set of
+periodic tasks, which consume and produce a ﬁxed amount
+of data. Such applications are naturally modelled as SDF
+graphs [15]: a directed, connected graph in which tasks are
+represented by actors . Actors communicate with each other via
+streams of data elements, represented by tokens . The tokens
+are transported between the actors via edges . The execution
+of an actor is known as an ( actor )ring .
+Deﬁnition 2. AnSDF graph is a tupleG= (A;D; Tok 0;)
+where:Ais a ﬁnite set of actors, DA2N2is a ﬁnite
+set of dependency edges, Tok 0:D!Ndenotes distribution
+of initial tokens in each edge, and the execution time of each
+actor is given by :A!N1.
+Deﬁnition 3. Given an SDF graph G= (A;D; Tok 0;), the
+sets of input andoutput edges of an actora2Aare deﬁned
+respectively as In(a) =f(a0;a;p;q )2Dja02A;p;q2Ng
+andOut(a) =f(a;b;p;q )2Djb2A;p;q2Ng:The con-
+sumption andproduction rate of an edgee= (a;b;p;q )2D
+are deﬁned respectively as CR(e) =qandPR(e) =p:
+Informally, actor acan ﬁre if each input edge (a0;a;p;q )2
+In(a)ofacontains at least qtokens; ﬁring actor aremoves
+qtokens from the input edge (a0;a;p;q ). Firing lasts for (a)
+time units and ends by producing p0tokens on each output
+edges (a;b;p0;q0)2Out(a).
+Example 1. Figure 2 shows the SDF graph of an MPEG-
+4 decoder [18]. The SDF graph contains ﬁve actors
+A=fFD, VLD, IDC, RC, MC g, representing the tasks per-
+formed in MPEG-4 decoding. For example, the frame detector
+(FD) determines the number of macro blocks to decode. To
+decode a single frame, FD must process between 0 and 99
+macroblocks, i.e., x2f0;1;:::; 99gin Figure 2.
+Arrows between the actors depict the edges which hold
+tokens (dots) representing macroblocks. The execution time
+(ms) of the actors is represented by a number inside the actor
+nodes. The numbers near the source and destination of each
+edge are the production and consumption rates respectively.
+To avoid unbounded accumulation of tokens in a certain
+edge, we require SDF graphs to be consistent .
+Deﬁnition 4. Arepetition vector of an SDF graph G=
+(A;D; Tok 0;)is a function :A!N0such that for
+every edge (a;b;p;q )2Dfroma2Atob2A, the
+relationp:(a) =q:(b)exists. An SDF graph is consistent
+iff(a)>0for alla2A.
+Deﬁnition 5. Let us consider an SDF graph G=
+(A;D; Tok 0;)with a repetition vector . An iteration ofG
+is deﬁned as a set of actor ﬁrings such that for each a2A, the
+set contains exactly (a)ﬁrings of actor a. Thus, each actor
+ﬁres according to in an iteration.
+
+--- Page 4 ---
+FD,2 MC,1
+RC,1VLD,1 IDC,1
+1
+1
+1 111 1x11 1
+1
+x1
+x1
+1111x1
+Fig. 2: SDF Graph of an MPEG-4 Decoder
+C. Platform Application Model
+A Platform Application Model (PAM) models a multi-
+processor platform where the application, modelled as SDF
+graph, is mapped on. Our PAM models supports several
+features, including (1) heterogeneity , i.e., actors can run on
+certain type of processors only; (2) a partitioning of the proces-
+sors in voltage and frequency islands ; (3) different frequency
+levels each processor can run on; (4) power consumed by a
+processor in a certain frequency, both when in use and when
+idle; (5) power and time-overhead required to switch between
+frequency levels.
+Deﬁnition 6. Aplatform application model (PAM) is a tuple
+P= (;;F; Iocc;Iidle;Itr;Ttr;act)consisting of
+a ﬁnite set of processors  assuming that
+ =f1;:::;ngis partitioned into disjoint blocks
+1;:::; kof voltage/frequency islands (VFIs),
+a function: !2Aindicating which processors can
+handle which actors,
+a ﬁnite set of discrete frequency levels available to all
+processors denoted by F=ff1;:::;fmg,
+a function Iocc: F!Ndenoting the operating load
+current , if the processor 2is running at a certain
+frequency level f2Fin the working state,
+a function Iidle: F!Ndenoting the idle load
+current , if the processor 2is running at a certain
+frequency level f2Fin the idle state,
+a function Itr: F2!Nexpressing the transition
+load current , if processor 2switches the running
+frequency from f2Fto another frequency f2F,
+a function Ttr: F2!Nexpressing the time
+overhead of switching from one frequency level f2F
+to anotherf2Ffor each processor 2, and
+the valuation act:AF!N1deﬁning the execution
+timeactof each actor a2Amapped on a processor at
+a certain frequency level f2F.
+Example 2. Exynos 4210 is a state-of-the-art processor used
+in high-end platforms such as Samsung Galaxy Note, SII etc,
+and has 5 DVFS levels [17]. Later in Section V, we consider
+Exynos 4210 as an use-case for experimental evaluation.
+Deﬁnition 7. Given an SDF graph G= (A;D; Tok 0;), a
+static-order (SO) schedule is a function : R!(A
+F)[(?F)that assigns to each processor 2over time,
+an ordered list of actors or idle slots to be executed at some
+frequency, where?represents the idle slots.Deﬁnition 8. The throughput for a static-order schedule of
+an SDF graph G= (A;D; Tok 0;)is the average number of
+graph iterations that are executed per time unit, measured over
+a sufﬁciently long period.
+As discussed earlier, in case of more than one battery in the
+system, the batteries are chosen according to some schedule
+or scheduling policy. In most systems, the batteries are used
+sequentially, i.e., only when one battery is empty, the other is
+used [14]. However, as shown in [14], a speciﬁc scheduling
+scheme termed best-of-allachieves better system lifetime
+than other schemes. For the same reason, we consider best-
+of-all in this paper. In this scheduling scheme, after an SDF
+graph iteration ﬁnishes, (i.e., not during the execution of the
+iteration) the battery having the highest available charge is
+selected to provide energy for the next iteration.
+IV. T RANSLATION TO HYBRID AUTOMATA
+A. Hybrid Automata
+Timed automata are a popular and powerful formalism
+to model and analyse real-time systems [4]. TA are state-
+transition diagrams augmented with real-valued clocks, which
+can be used in enabling conditions for transitions and in state
+invariants that enforce deadlines.
+Hybrid automata extend timed automata by continuous
+variables, which we use to model hybrid behaviour of the
+batteries. Let Xbe a ﬁnite set of continuous variables. A
+variable valuation over Xis a mapping :X!R, where R
+is the set of reals. We write RXfor the set of valuations over
+X. Valuations over Xevolve over time according to delay
+functionsF:R0RX!RX, where for a delay dand
+valuation,F(d;)provides the new valuation after a delay
+ofd.
+Deﬁnition 9. Ahybrid automaton His a tuple
+(L;Act;X;E;F; Inv;l0), whereLis a ﬁnite set of locations ;
+Actis a ﬁnite set of actions, co-actions and internal -actions;
+Xis a ﬁnite set of continuous variables; Eis a ﬁnite set of
+edges of the form (l;g;a;';l0), wherelandl0are locations,
+gis a predicate on RX, action label a2Actand'is a binary
+relation on RX;Inv assigns an invariant predicate Inv(l)
+to any location l; for each location l2L,F(l)is a delay
+function; and l02Lis the initial location .
+In particular, HA can be analysed by the tool U PPAAL ,
+where each component of the system is described by an
+automaton whose clocks can evolve with various rates. These
+rates can be speciﬁed with, e.g., ODEs. We utilise U PPAAL
+engine to perform Monte Carlo simulations to estimate QoS,
+and to perform model checking.
+B. Translation to Hybrid Automata
+Our framework consists of separate models of KiBaMs, a
+KiBaM scheduler, an SDF graph scheduler, and the processor
+application model. In this way, we divide the problem of
+evaluating the QoS in terms of power source, tasks and
+resources. In this section, we describe the translation of an
+SDF graph scheduler along with a processor application model
+and KiBaMs to HA using U PPAAL .
+
+--- Page 5 ---
+Gschedj
+Processor jGobs KschedKy
+KobsstartNextIter !
+ringFinished !
+re! end!startNextIter !
+emptied !
+allEmptied !
+Fig. 3: Interactions between HA of different components
+Given an SDF graph G= (A;D; Tok 0;)mapped on a
+processor application model (;;F; Ttr;act)powered by a
+KiBaM systemKS= (B;Cap;Iocc;Iidle;Itr), we generate a
+parallel composition of HA:
+KschedkK1k;:::;kKmkKobskGsched 1k;:::;kGsched nk
+Processor 1k;:::;kProcessor nkGobs
+Here, the automaton Ksched models the scheduling scheme
+of batteries. This paper considers the best-of-all scheduling
+scheme, i.e, after every iteration, the battery with the highest
+available charge is chosen to serve for the next iteration. The
+HAK1;:::;Kmmodel the batteries B=fbat1;:::; batmg.
+The automatonKobskeeps account of the end of system life-
+time by counting the empty batteries. Similarly, the automaton
+Gsched implements the static-order ﬁring of SDF actors on
+the processors. The HA Processor 1;:::; Processor nmodel
+the processors  =f1;:::;ngThe SDF graph observer
+Gobscounts if each processor has ﬁred all its mapped actors,
+according to its static-order schedule. Hence, this automaton
+determines when an iteration is ﬁnished. Note that the resulting
+hybrid automata is trivially extensible in the number of proces-
+sors and batteries. Thus, the translation is, at least, composable
+with regards to the KiBaM system and PAM.
+Figure 3 shows the interactions between the HA of different
+components. The interested readers can see some of the
+UPPAAL models in Appendix. Due to lack of space, we refer
+to [2] for more details on translation and U PPAAL models.
+V. E XPERIMENTAL EVALUATION VIA MPEG-4 D ECODER
+We evaluate QoS factors by means of an example of the
+MPEG-4 decoder in Figure 2. We assume that MPEG-4
+decoder is mapped on Exynos 4210 processors. The processors
+are provided energy by Samsung batteries. In our experiments,
+we usec= 1=6andk= 2:232410 4s 1, as in [14].
+The processors are available with two frequency levels (MHz)
+f2= 1400 andf1= 1032:7[17]. Table III shows the idle and
+operating load currents of all processors at both frequencies.
+We evaluate the system lifetime in terms of completed number
+of video frames, with respect to various design choices dis-
+cussed earlier, i.e., varying (1) frames per second (throughput);
+(2) number of processors; and (3) batteries. For these choices,
+we assess adequate battery capacities. Due to space limitation,
+we present adequate battery capacities only for one battery.
+The SO schedules considered in this section are given in [2].
+A. Varying Frames per Second
+Let us consider that we have 6 Exynos 4120 processors
+ =f1;:::; 6gserved by two batteries B=fbat1;bat2g.
+We consider different SO schedules with varying frames perVoltage(V) Frequency(MHz) I idle(mA) I occ(mA)
+1:2 1400 20 500
+1:00 1032 :7 8 190
+1:2 1400 20 500
+1:00 1032 :7 8 190
+1:2 1400 20 500
+1:00 1032 :7 8 190
+1:2 1400 20 500
+1:00 1032 :7 8 190
+TABLE III: Description of Exynos 4210 Processors
+100 120 140 160 180 2001;6001;8002;000
+Frames per SecondNumber of Video Frames
+Fig. 4: System lifetime against varying fps100 120 140 160 180 200700800
+Frames per SecondBattery Capacity (mAh)
+Fig. 5: Min. required capacity for bat1
+second (fps) constraints. For those SO schedules, Figure 4
+shows the total number of video frames per second completed.
+As we can see from Figure 4, at tighter performance con-
+straints (throughput) when the idle time of processors is not
+sufﬁcient to move to low power state, the batteries are drained
+more rapidly. Thus, we achieve fewer iterations. If we require
+fewer frames per second from an MPEG-4 decoder, then more
+iterations are acquired.
+For the same SO schedules considered earlier, we com-
+pute the minimum battery capacities to complete 1000 video
+frames. The minimum required initial capacity Cap(bat1)for
+the battery bat12Bis shown in Figure 5. It can be seen from
+Figure 5 that if we relax the frames per second constraint, the
+minimum required capacity also decreases.
+Nevertheless, if the video quality is enhanced from 125
+to 200 fps, then the increase in required battery capacity is
+relatively small, equal to 84 mAh. However, the improvement
+in the video quality is considerable. Thus, higher performance
+can also be achieved at the expense of a small increase in the
+battery capacities, leading to high-performance systems with
+less mass and volume. Hence, this method allows us to obtain
+a Pareto front by sweeping throughput constraints, for a ﬁxed
+number of processors and batteries.
+B. Varying Number of Processors
+In this case, we consider two batteries, and different SO
+schedules all of which yield 71 fps. Figure 6 shows the
+total number of video frames completed for varying number
+of processors. As we can see from Figure 6, for the same
+battery capacities, more processors achieve more or equal
+number of frames. The reason is that, if we reduce the number
+of processors, the same amount of work is done on fewer
+processors to attain same throughput, resulting in running on
+higher frequencies most of the time. Therefore, battery charge
+is consumed more rapidly, if the number of processors are
+
+--- Page 6 ---
+2 4 61;4001;6001;8002;000
+Number of ProcessorsNumber of Video Frames
+Fig. 6: System lifetime against varying
+processors2 4 67008009001;000
+Number of ProcessorsBattery Capacity (mAh)
+Fig. 7: Minimum required capacity for
+bat1
+1 2 3 41;0002;0003;0004;000
+Number of BatteriesNumber of Video Frames
+Fig. 8: System lifetime against varying
+batteries1 2 3 44006008001;0001;200
+Number of BatteriesBattery Capacity (mAh)
+Fig. 9: Minimum required capacity for
+bat1
+reduced.
+For the same SO schedules, Figure 7 shows the minimum
+required capacity Cap(bat1)to complete 1000 video frames.
+The results reiterate the earlier conclusions in Figure 6 that,
+to achieve the same throughput, fewer processors carrying out
+the work of same magnitude requires larger battery capacities.
+Hence, using this method, a system designer can estimate
+QoS for different design alternatives. For instance, in our
+running example, one can clearly see that we can achieve
+same throughput for 4 processors, as 5, without requiring extra
+capacities for batteries. Therefore, we may not need more
+processors in our platform, and reach a certain throughput
+with fewer number of processors, and same battery capacities,
+contributing to low-cost embedded systems with reduced mass
+and volume.
+C. Varying Number of Batteries
+Let us assume that we have 6 Exynos 4120 processors. We
+further consider a SO schedule producing 71 fps. For varying
+batteries, Figure 8 and 9 shows the total number of video
+frames completed, and minimum required initial capacity for
+bat12Bto complete 1000 video frames respectively. As it
+can be seen from Figure 8, increasing the number of batteries
+improves the attainable number of frames linearly.
+However, if we analyse the Figure 9, we can see that
+increasing the number of batteries does not reduce the battery
+capacities at a linear rate. Therefore, we can conclude that,
+having fewer batteries with larger capacities is more beneﬁcial
+than higher number of batteries with smaller capacities. This
+achieves low-cost and high-performance systems.Cap (bat1)Cap (bat2) S1 (computation time) S2 (computation time) S3 (computation time)
+PTA-KiBaM HA-KiBaM PTA-KiBaM HA-KiBaM PTA-KiBaM HA-KiBaM
+1.2510 41.2510 40 (520) 0 (28) 0 (200) 0 (46) 0 (2130) 0 (51.4)
+2.510 42.510 40 (510) 0 (55) 1 (41060) 0 (48) Out of Memory 0 (52.7)
+3.7510 43.7510 4Out of Memory 2 (62) 1 (14810) 0 (49) Out of Memory 2 (52.8)
+510 4510 4Out of Memory 4 (64) Out of Memory 2 (49) Out of Memory 4 (54.1)
+TABLE IV: Comparison of two approaches wrt varying battery capacities.
+Batteries HA-KiBaM PTA-KiBaM
+1 1 N/A
+2 4 Out of Memory
+3 6 Out of Memory
+4 8 Out of Memory
+5 9 Out of Memory
+6 12 Out of Memory
+7 14 Out of Memory
+8 16 Out of Memory
+9 17 Out of Memory
+10 20 Out of Memory
+TABLE V: Comparison of two approaches wrt number of batteries.
+D. Comparison with PTA-KiBaM
+In this subsection, we compare the approach presented
+in this paper (HA-KiBaM) with the PTA-based approach
+(PTA-KiBaM) [14]. Let us take the example of an MPEG-
+4 decoder in Figure 2. We assume that there are two batteries
+B=fbat1;bat2gin the system. We consider three arbitrary
+SO schedules. i.e., S1, S2 and S3. It is worth mentioning
+that the work in [14] evaluates the completed number of
+tasks, instead of iterations. However, as iterations are a key
+metric in SDF graphs, we compare both techniques in terms
+of completed number of iterations (video frames per second).
+Columns 3-8 in Table IV show the completed number
+of iterations and computation time (ms), calculated using
+both methods, against different battery capacities (mAh) in
+Columns 1-2. The experiments were run on a dual-core 2.8
+GHz machine with 8 GB RAM. Table IV shows that HA-
+KiBaM achieves the same results as PTA-KiBaM except S2.
+The reason of not producing the same results in S2 is that
+PTA-KiBaM allows to change the active battery during the
+iteration. Whereas, we consider a speciﬁc scheduling scheme,
+where we change the battery after an iteration is ﬁnished.
+However, the biggest advantage of HA-KiBaM is the scale
+of capacities it can handle. As Table IV shows, PTA-KiBaM
+can only handle very small battery capacities that are able
+to ﬁnish not more than one video frame. This makes PTA-
+KiBaM impracticable for modern-day systems, as opposed to
+our method that scales to much larger capacities (see Section
+V). Furthermore, PTA-KiBaM requires considerably longer
+computation time than HA-KiBaM. Please note that zero in
+Table IV means that the battery capacities are not enough,
+even to ﬁnish one iteration (frame per second).
+In addition to the battery capacities, our method also scales
+better to the number of batteries. Table V compares the
+iterations completed for varying number of batteries for both
+methods. For this experiment, we consider SO schedule S3,
+andCap(bat)= 510 4mAh for all bat2B.
+VI. M ODEL CHECKING VIA MPEG-4 D ECODER
+In this section, we demonstrate the analysis of functional
+and temporal properties, using the U PPAAL model checker and
+
+--- Page 7 ---
+its query language. We consider the case-study of an MPEG-4
+decoder mapped on Exynos 4210 processors, and powered by
+a KiBaM system.
+Deadlock
+Checking deadlock freedom is achieved via the U PPAAL
+query (A[] not deadlock). This query allows us to check if a
+certain static-order schedule is deadlock free or not.
+Parallel ﬁrings of actors
+We can check whether any actors can ﬁre in paral-
+lel. For example, actors pandqmapped on the pro-
+cessors0and1respectively, can ﬁre in parallel if
+the query E<>SDFScheduler 0:activeActor ==p and
+SDFScheduler 1:activeActor ==qevaluates to true. In our
+experiment, p=MC andq=RC. As these two actors cannot
+ﬁre in parallel, the answer to this query turns out to be false.
+Same running frequency in a VFI
+We can also check safety properties such as, at a
+given time, all processors belonging to the same VFI
+should not run at the different frequency. For this pur-
+pose, we create a variable named “curr freq”available to
+all processors, that keeps account of current running fre-
+quency of each processor. If we have two processors
+0and1in a same VFI, then we check the query
+A[]Processor 0:curr freq ==Processor 1:curr freq to
+verify this property.
+In the same way, functional correctness of properties related
+to KiBaMs can also be veriﬁed. However, to verify hybrid
+properties, U PPAAL offers statistical model checking instead
+of classical model checking, even though we do not have
+stochastic properties in our system. In the following, we
+demonstrate model checking of functional requirements of
+KiBaMs.
+Fair Scheduling
+We can also verify if only the best battery out
+of all batteries is selected after each iteration. Let us
+assume that we have two batteries, and an integer
+empty count to count empty number of batteries. We run
+the query Pr[<=1500 ](<>bound 1 bound 0>n and
+empty count<2)that determines if difference between the
+bound charge of two batteries does not exceed more than a
+certain amount, and each battery gets a fair chance to recover
+its bound charge. U PPAAL answers that the probability for this
+query to hold is [0,0.0973938] with 0.95 conﬁdence, which
+means that this property is not satisﬁed. In our experiments,
+nis 4.
+Active Number of Batteries
+Similarly, we can also check that no more than one bat-
+tery should be active at any given time. Let us assume
+that we have two batteries, and boolean variables b0active
+and b1active is assigned to each battery respectively, to
+check if that battery is active. To verify this property, we
+use the query Pr[<=1500 ](<>b0active ==true andb1active ==true ). The probability for this property to
+hold is [0,0.0973938] with 0.95 conﬁdence, which means that
+this property is not satisﬁed.
+VII. C ONCLUSIONS
+With the growing gap between the energy demand and bat-
+tery densities, yet compact methods for guaranteeing QoS of
+multiple KiBaMs are needed. We have presented a novel tech-
+nique to predict system lifetime for SDF-modelled streaming
+applications, mapped on the processors equipped with energy
+reduction techniques and powered by multiple batteries. This
+provides us with a best trade-off between the throughput, the
+number of processors and batteries. The batteries are modelled
+as a hybrid system, which has the advantage of being accurate.
+Future research direction is to explore the possibilities of
+battery-aware scheduling. We also plan to analyse preemptive
+scheduling, by having an observer automaton to record the
+elapsed execution time during the execution of an actor.
+ACKNOWLEDGEMENT
+This research is supported by the EU FP7 project SENSA-
+TION (318490). The authors would like to thank reviewers
+for their valuable comments.
+REFERENCES
+[1] Samsung Galaxy Fame Description. http://www.samsung.com/uk/
+consumer/mobile-devices/smartphones/others/GT-S6810PWNBTU.
+[2] W. Ahmad, M. Jongerden, M. Stoelinga, and J. van de Pol. Model check-
+ing and evaluating QoS of batteries in MPSoC dataﬂow applications via
+hybrid automata (extended version). Technical Report TR-CTIT-16-03,
+University of Twente, 2016.
+[3] W. Ahmad, P.K.F. H ¨olzenspies, M.I.A. Stoelinga, and J. van de Pol.
+Green computing: Power optimisation of VFI-based real-time multipro-
+cessor dataﬂow applications. In DSD’15 , pages 271–275, Aug 2015.
+[4] R. Alur and D. L. Dill. A theory of timed automata. Theoretical
+Computer Science , 126:183–235, 1994.
+[5] G. Behrmann, A. David, and K. G. Larsen. A tutorial on UPPAAL . In
+Formal Methods for the Design of Real-Time Systems: 4th International
+School on SFM-RT ’04 , LNCS, pages 200–236. Springer, 2004.
+[6] G. Behrmann, K. G. Larsen, and J. I. Rasmussen. Optimal scheduling
+using priced timed automata. SIGMETRICS Perform. Eval. Rev. ,
+32(4):34–40, Mar. 2005.
+[7] L. Benini, A. Bogliolo, and G. De Micheli. A survey of design tech-
+niques for system-level dynamic power management. IEEE Transactions
+on VLSI Systems , 8(3):299–316, June 2000.
+[8] P. Chowdhury and C. Chakrabarti. Battery aware task scheduling for a
+system-on-a-chip using voltage/clock scaling. In SIPS’02 , pages 201–
+206, Oct 2002.
+[9] M. Fox, D. Long, and D. Magazzeni. Automatic construction of efﬁcient
+multiple battery usage policies. In IJCAI’11 , pages 2620–2625, 2011.
+[10] T. Henzinger. The theory of hybrid automata. In Logic in Computer Sci-
+ence, 1996. LICS ’96. Proceedings., Eleventh Annual IEEE Symposium
+on, pages 278–292, Jul 1996.
+[11] S. Herbert and D. Marculescu. Analysis of dynamic voltage/frequency
+scaling in chip-multiprocessors. In ISLPED’07 , pages 38–43, Aug 2007.
+[12] H. Hermanns, J. Krc ´al, and G. Nies. Recharging probably keeps batteries
+alive. CoRR , abs/1502.07120, 2015.
+[13] M. Jongerden and B. Haverkort. Which battery model to use? Software,
+IET, 3(6):445–457, December 2009.
+[14] M. Jongerden, B. Haverkort, H. Bohnenkamp, and J. Katoen. Maximiz-
+ing system lifetime by battery scheduling. In DSN’09 , June 2009.
+[15] E. A. Lee and D. G. Messerschmitt. Synchronous data ﬂow: Describing
+signal processing algorithm for parallel computation. In COMPCON
+’87, pages 310–315, 1987.
+[16] J. F. Manwell and J. G. McGowan. Lead acid battery storage model for
+hybrid energy systems. Solar Energy , 50(5):399 – 405, 1993.
+
+--- Page 8 ---
+[17] S. Park, J. Park, D. Shin, Y . Wang, Q. Xie, M. Pedram, and N. Chang.
+Accurate modeling of the delay and energy overhead of dynamic voltage
+and frequency scaling in modern microprocessors. TCAD , May 2013.
+[18] B. Theelen, M. C. W. Geilen, T. Basten, J. P. M. V oeten, S. V .
+Gheorghita, and S. Stuijk. A scenario-aware data ﬂow model for
+combined long-run average and worst-case performance analysis. In
+MEMOCODE’06 , pages 185–194, July 2006.
+[19] M. Weiser, B. Welch, A. Demers, and S. Shenker. Scheduling for
+reduced CPU energy. In OSDI’94 . USENIX Association, 1994.
+[20] E. R. Wognsen, R. R. Hansen, and K. G. Larsen. Battery-aware
+scheduling of mixed criticality systems. In ISoLA , pages 208–222, 2014.
+APPENDIX
+Here we show the HA models with respect to the MPEG-4
+decoder example in Figure 2 that is mapped on Exynos 4210
+processors and powered by KiBaMs, in Figure 10.
+a) Hybrid Automaton Ksched .:The hybrid automaton
+Ksched models the best-of-all scheduling scheme for KiBaMs,
+as shown in Figure 10a.
+The automaton Ksched is deﬁned as, Ksched =
+(L;Act;X;E;F; Inv;l0). For each battery baty2B, we
+include a location L=favail batygto indicate which the
+battery is currently active. For B=fbat1;bat2;:::; batmg,
+the initial location is, l0=avail bat1, indicating that the bat-
+terybat1serves ﬁrst. We do not have any clocks and invariants
+inKsched . The HAKsched has one urgent broadcast action,
+i.e.,Act=fstartNextIter ?gto synchronise with Gobswhen
+the current iteration ﬁnishes, so that Ksched can choose the
+best battery for the next iteration. There is no delay function in
+Ksched . The HAKsched contains one continuous variable X=
+favail ygto denote the available in each baty2B, respec-
+tively.Ksched has a variable: active KiBaM idthat determines
+the currently active battery. For B=fbat1;bat2;:::; batmg,
+the initial value of active KiBaM id=1, indicating that the
+battery bat1is the ﬁrst to serve. For each battery bati2B
+andbatk2B, the transition set Ehave following transitions.
+avail batiavail k>=avail i;startNextIter ?;
+active KiBaM id:=k                  ! avail batk
+avail batiavail i>avail k;startNextIter ?;?                       ! avail bati
+avail batkabati>=abatk;startNextIter ?;
+active KiBaM id:=i                  ! avail bati
+avail batkavail k>avail i;startNextIter ?;?                       ! avail batk
+After each iteration ﬁnishes, the action StartNextIter syn-
+chronises with Gobsto start the new iteration. But, before
+the new iteration starts, the battery baty2Bwith the highest
+available charge is determined using the guard conditions. This
+symbolises that only the battery having highest charge is going
+to serve for the next iteration, and all other batteries are going
+to stay idle. For the battery bati2Band batk2B, the
+guard condition availk>=availion the ﬁrst transition is
+checking if the available charge of batk2Bis greater than
+or equal to bati2B. If the guard condition turns out to be
+true, then batk2Bprovides energy for the next iteration.
+Otherwise, the guard condition on the second transition, i.e.,
+availi > availkis satisﬁed, and bati2Bstays as the
+active battery.
+b) Hybrid Automata Ky.:The HAK1;:::;Kmmodel
+the batteries B=fbat1;:::; batmg, according to the de-
+scription in Section III-A. The model of baty2Bis shownin Figure 10b. This automaton informs Kobs, when the battery
+batygets empty.
+For each baty2B, the HAKyis deﬁned as,
+Ky= (Ly;Acty;Xy;Ey;Fy;Invy;l0
+y)whereLy=
+fInitial;Emptiedg, andl0
+y=fInitialg. The automatonKycon-
+tains two continuous variables X=favail baty;bound batyg
+to denote the available and bound charge in baty2B,
+respectively. There is an urgent broadcast action in Ky, i.e,
+Acty=femptied !gto synchronise with Kobs. The automaton
+Kycontains number of variables: a boolean variable onyto
+determine if the battery has available charge left or whether
+it has run out of it; and a variable iyto annotate the load
+current being consumed from baty2B. Initially, we have
+ony=true andiy= 0. The transition set Eyhas only
+transition, given as follows.
+Initialony^avail y==0;emptied !;ony:=false                        ! Emptied
+The above transition synchronises with Kobsover the urgent
+channel emptied !, and is taken if the available charge avail y
+reaches or falls below zero, emphasising that the battery
+baty2Bis empty. As a result of this action, the value of
+onychanges to false.
+The initial location l0
+yuses equations (1) and (2) as a delay
+function. This represents that, as long as baty2Bis non-
+empty, the available and bound charge of Kyevolves according
+to equations (1) and (2) respectively.
+c) Hybrid Automata Gschedj.:The HA Gschedj
+implement the static-order ﬁring of SDF actors on the pro-
+cessors. For this purpose, after Gobsinforms Gschedjthat
+an iterations has started, Gschedjmap actors on Processor j
+according to the SO schedule of that processor. When all
+actors are ﬁred according to the SO schedule on Processor j,
+GschedjinformGobsback, indicating the end of current
+iteration. For a j2, Figure 10c presents the automaton
+Gsched j, with respect to our running example.
+For each j2 ,Gschedjis deﬁned as,
+Gschedj = (Lj;Actj;Xj;Ej;Invj;l0
+j). where
+Lj=fStart;FireActor;EndFiring;totalFirings;Og, and
+l0
+j=fStartg. The HAGschedjcontain three broadcast
+actions, i.e., Actj=fre!;end?;startNextIter ?g. The actions
+reand end are parametrised with processor and action ids,
+and are used to synchronise with Processor j. The action
+StartNextIter synchronises with Gobs. The actions reand
+StartNextIter are the urgent actions. There are no clocks and
+invariants in Gschedj. There are no delay functions and
+continuous variables in Gschedj. The HAGschedjhave
+a number of local variables: activeActor jthat determines
+the active actor currently mapped on the processor j; and
+sjthat determines the index of the active actor in the
+static-ordered list. Initially, activeActor j= 0, and sj= 0.
+The HAGschedjalso contain a parametrised variable
+totalFirePerProc j, that deﬁnes the total number of tasks in
+the SO schedule of the processor j. Since these variables
+are local, we can abbreviate them by activeActor ,sand
+totalFirePerProc respectively. The transition set Ejhas
+following transitions.
+
+--- Page 9 ---
+(a)Ksched modelling battery scheduler
+ (b)Kymodelling baty
+ (c)Gsched jmodelling scheduler for processor j
+(d)Processor jshowing processor model wrt FD
+ (e)Gobsmodelling battery observer
+Fig. 10: HA models for KiBaM, KiBaM Scheduler, SDF Scheduler, Processor, and KiBaM Observer
+The following transition fetches the active actor
+according to the SO schedule for each processor j,
+using the function getReadyActor (j). As a result of this
+transition, the value of sis incremented by 1, which
+means that the next actor in the SO schedule is fetched
+next time.
+Start?;?;activeActor :=getReadyActor (j)^s++                            ! reActor
+The following transition maps the fetched (active) actor,
+on the processor automaton Processor j, using the
+urgent channel re!.
+reActor?;re[j][activeActor ]!;?                 ! endFiring
+In the following transition, the urgent action end?
+synchronises with the processor automaton Processor j.
+As a result, the processor automaton Processor jinforms
+the automaton Gschedjthat the ﬁring of the active
+actor has ﬁnished.
+endFiring?;end[j][activeActor ]?;?                 ! totalFirings
+The following transition checks if the SO schedule of
+a processor jis not fully executed, using the guard
+conditions < totalFirePerProc . If this is the case,
+the following transition is taken, leading to the Start
+location where the next actor in the SO schedule isfetched.
+totalFiringss<totalFirePerProc ;?;?                 ! Start
+If all actors in the SO schedule of a processor j
+are executed as checked by the guard condition
+s==totalfirePerProc on the following transition,
+the urgent channel FiringFinished !synchronises with the
+observer automaton Gobs. In this way, Gschedjinforms
+Gobsthat the processor jhas executed all of the mapped
+actors in the current iteration. The variable sis also reset.
+totalFiringss==totalrePerProc ;
+ringFinished !;s:=0            ! allFired
+The following transition synchronises with the observer
+automatonGobson the urgent channel StartNextIter ?
+to start executing the static-order schedule of the next
+iteration.
+allFired?;startNextIter ?;?              ! Start
+d) Hybrid Automata Processor j.:Likewise, the HA
+Processor 1;:::; Processor nmodel the processors  =
+f1;:::;ng, as shown in Figure 10d. For better visibility,
+Figure 10d shows the HA of Processor j, with respect to one
+actor only, i.e., FD2A.
+For eachj2, we deﬁne HA Processor j=
+
+--- Page 10 ---
+(Lj;Actj;Xj;Ej;Fj;Invj;l0
+j). The initial location is deﬁned
+asl0
+j=fInitialg. For each frequency level fi2F, we include
+both an idle state and an active state running on that frequency
+level. For each a2(j)andF=ff1;:::;fmgsuch that
+f1< f 2< ::: < f l, letLmapping =fIdle f1;:::; Idle ;
+InUse af1;:::; InUse agindicating that the processor
+j2is currently used by the actor a2Ain the
+frequency level fi2F, either in idle or running state.
+Furthermore, for F=ff1;:::;fmgsuch thatf1< f 2<
+::: < fl< fm, we have an location which deﬁnes the
+overhead of switching between the frequencies, such that
+Loverhead =fTrf1f2;Trf2f1;:::; Trfm;Trfmg.
+Thus,Lj=Lmapping[Loverhead . Moreover, for each actor
+a2()and frequency level fi2F,Invj(Idle )1,
+and Invj(InUse a)act(a;fi)enforcing the system to
+stay in InUse afor at most the execution time act(a;fi).
+A processor is in the occupied state only for the time period,
+when an actor is mapped on it. However, the idle time spent by
+a processorj2is not a ﬁxed time interval, and a processor
+j2can stay idle for any ﬁnite period of time. Therefore,
+we divide the idle time spent by a processor j2into slots
+of one time unit, by annotating Invj(Idle )1, Similarly,
+forF=ff1;f2;:::;fmgsuch thatf1<f2<:::<f m, and
+Invj(Trf2f1)Ttr(;f1;f2). Please note that Processor j
+contains exactly one clock xj; since clocks in U PPAAL are
+local, we can abbreviate xjbyx. A separate clock variable
+global observes the overall time progress.
+The action set Actj=fre?;end!gcontains two broadcast
+actions ﬁre? ,end! . The actions ﬁre? andend! inActjare
+parametrised with the processor and action ids, and synchro-
+nise withGsched .
+For each2,a2()andfi2F, the transition set
+Ejcontains two transitions such that:
+Initial?;re[][a]?;fx:=0g^selectBatteryInUseFire ()                                  !
+InUse a, and
+InUse ax=act(a;fi);end[][a]!;
+selectBatteryInUseEnd ()               ! Initial .
+The action re[][a]is enabled in the initial state Initial and
+leads to the location InUse a. Thus, the action re[][a]is
+taken, if the actor a2Ais supposed to “claim” the processor
+2at frequency level fi2Fin the static-order sched-
+ule. The function selectBatteryInUseFire ()consumes the
+charge from the active battery, i.e., Iocc(;fi). As each
+location InUse ahas an invariant Invj(InUse a)
+act(a;fi), the automaton can stay in InUse afor at most
+the execution time of actor a2Aat frequency level fi2F,
+i.e.,act(a;fi). Ifx=act(a;fi), the system has to leave
+InUse aat exactly the execution time of actor a2Aat
+frequency level fi2F, by taking the end[][a]action. For
+each2, andfi2F, the transition set Econtains two
+transitions for handling broadcast such that:
+Initial?;re[][idle fi]?;fx:=0g^selectBatteryIdleFire ()                                    !
+Idle , and
+Idle x=1;end[][idle fi]!;selectBatteryIdleEnd ()                               !
+Initial .The action re[][idle ]is enabled in the initial state Initial
+and leads to the location Idle . Thus, re[][idle ]causes
+the processor 2to go to Idle at frequency level
+fi2F, whenever the processor 2is supposed to
+stay idle at fi2Fin the static-order schedule. As the
+idle slots are divided into time slots of one time unit, each
+location InUse ahas an invariant Invj(InUse a)1,
+the automaton can stay in InUse afor at most 1 time unit.
+The function selectBatteryIdleFire ()consumes the charge
+from the active battery, i.e., Iidle(;fi). Ifx= 1, the system
+has to leave Idle at exactly one time unit, by taking the
+end[][idle ]action.
+ForF=ff1;:::;fl;fmgsuch thatf1<f2<:::<f l<
+fm, andj2, the transition set Ejhas following transitions
+such that:
+Initial?;re[][f1f2]?;fx:=0g^selectBatteryTrFire f1f2()                                     !
+Trf1f2,
+Trf1f2x=Ttr(;f1;f2);end[][f1f2]!;
+selectBatteryTrEnd f1f2()                 ! Initial ,
+Initial?;re[][f2f1]?;fx:=0g^selectBatteryTrFire f2f1()                                     !
+Trf2f1,
+Trf2f1x=Ttr(;f2;f1);end[][f2f1]!;
+selectBatteryTrEnd f2f1()                 ! Initial ,
+...
+Initial?;re[][fm]?;fx:=0g^selectBatteryTrFire fm()                                     !
+Trfm,
+Trfmx=Ttr(;fl;fm);end[][fm]!;
+selectBatteryTrEnd fm()                 ! Initial ,
+Initial?;re[][fm]?;fx:=0g^selectBatteryTrFire fm()                                     !
+Trfm,
+Trfmx=Ttr(;fm;fl);end[][fm]!;
+selectBatteryTrEnd fm()                 ! Initial
+The action re[][fm]causes the processor 2
+to incur the transition overhead, whenever the processor
+2is supposed to change the frequency fl2Fto
+fm2Fin the static-order schedule, using the function
+selectBatteryTrFire fm(), and so on.
+e) Hybrid Automaton Gobs.:The automaton of SDF
+graph observer Gobscounts if each processor has ﬁred its
+all mapped actors in an static-order schedule, observing the
+number of iterations ﬁnished. Figure 10e shows the HA
+model ofGobs. The automaton Gobshas an integer variable
+Tot Iterto count the number of ﬁnished iterations. Initially,
+Tot Iter= 0.
+After modelling the whole system, we run the following
+query, where bound is the time bound on running the simula-
+tion, and Tot Iter is the variable representing the completed
+number of iterations. As a result, we get a plot, by which
+we determine the total number of iterations completed within
+bound time units. We use the same models and query to
+determine the adequate batteries’ capacities.
+simulate 1 [<=bound ]fTot Iterg

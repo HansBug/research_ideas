@@ -1,0 +1,1076 @@
+--- Page 1 ---
+Formal veri ﬁcation of the pub-sub
+blockchain interoperability
+protocol using stochastic timed
+automata
+Md Tauseef Alam*, Raju Halder* and Abyayananda Maiti*
+Department of Computer Science and Engineering, Indian Institute of Technology Patna, Patna, India
+In recent times, the research on blockchain interoperability has gained
+momentum, enabling the entities from different heterogeneous blockchainnetworks to communicate with each other seamlessly. Amid the proliferationof blockchain ventures, for ensuring the correctness of inter-blockchaincommunication protocols, manual checking and testing of all the potentialpitfalls and possible inter-blockchain interactions are rarely possible. To
+ameliorate this, in this paper, we propose a systematic approach to model and
+formally verify the real-time properties of the pub-sub interoperability protocol,with a special focus on message communication through API calls amongpublishers, subscribers, and brokers. In particular, we use stochastic timedautomata for its modeling, and we prove its correctness with respect to anumber of relevant properties using model checking —more speci ﬁcally, the
+UPPAAL-SMC model checker. To the best of our knowledge, this is the ﬁrst
+proposal of its kind to formally verify the blockchain pub-sub interoperability
+protocol using model checking.
+KEYWORDS
+blockchain, chaincode, interoperability, stochastic timed automata, model checking,
+UPPAAL-SMC
+1 Introduction
+Blockchain technology ( Nakamoto, 2008 ) has dramatically gained momentum within a
+decade with its evolutionary transformation from blockchain 1.0 to blockchain 4.0 ( Khan
+et al., 2019 ). We are witnessing its adoption at a large scale in almost every sphere of the cyber
+technical world, ranging from simple (e.g., gaming and education) to critical systems (e.g.,ﬁnance, healthcare, e-governance, and e-commerce) ( Aggarwal et al., 2019 ;Hewa et al.,
+2021 ). However, the lack of interoperability between heterogeneous blockchain systems is
+one of the biggest challenges nowadays. Over the last few years, a number of solutions in thisresearch direction have been proposed in the literature ( Belchior et al., 2021 ). Among them,
+one of the promising solution is the pub-sub interoperability protocol proposed by the LinuxFoundation ( Ghaemi et al., 2021 ), which introduces a blockchain-backed broker/dispatcher
+responsible for message communication among various publishers and subscribers ’
+blockchain systems in the many-to-many setting. This enhances the scalability of theoverall system and makes this solution pro ﬁtable.
+Let us consider a critical scenario where cross-border inter-bank payments and
+settlements occur among multi-stakeholders participating in various supply chains andtrade ﬁnances. This involves an interaction between the stakeholders from differentOPEN ACCESS
+EDITED BY
+Kamel Barkaoui,
+Conservatoire National des Arts etMétiers (CNAM), France
+REVIEWED BY
+Marino Miculan,University of Udine, ItalyLaid Kahloul,
+University of Biskra, Algeria
+*CORRESPONDENCE
+Md Tauseef Alam,
+tauseef_2121cs04@iitp.ac.in
+Raju Halder,
+halder@iitp.ac.in
+Abyayananda Maiti,
+abyaym@iitp.ac.in
+RECEIVED 27 June 2023
+ACCEPTED 23 August 2023
+PUBLISHED 14 September 2023
+CITATION
+Alam MT, Halder R and Maiti A (2023),
+Formal veri ﬁcation of the pub-sub
+blockchain interoperability protocolusing stochastic timed automata.Front. Blockchain 6:1248962.
+doi: 10.3389/fbloc.2023.1248962
+COPYRIGHT
+© 2023 Alam, Halder and Maiti. This is anopen-access article distributed under theterms of the Creative Commons
+Attribution License (CC BY) . The use,
+distribution or reproduction in otherforums is permitted, provided the originalauthor(s) and the copyright owner(s) arecredited and that the original publicationin this journal is cited, in accordance with
+accepted academic practice. No use,
+distribution or reproduction is permittedwhich does not comply with these terms.
+Frontiers in Blockchain frontiersin.org 01TYPE Original Research
+PUBLISHED 14 September 2023
+DOI10.3389/fbloc.2023.1248962
+
+--- Page 2 ---
+heterogeneous blockchain platforms that assimilates the pub-sub
+blockchain interoperability protocol for intercommunication. Toexemplify it, we assume a stakeholder A, who is already registered in
+a central bank digital currency blockchain network Xof a country,
+wishes to join a supply chain network Y. In this case, A’s know your
+customer (KYC) details, which are already veri ﬁed by X, can be used
+to authenticate her in the network Y, allowing her to join Yand to
+perform ﬁnancial trade in Yand payment settlement via X.I ti s
+apparent that, in such situations, any fault in the system (e.g.,message loss due to a smart contract ’s functional error) may lead
+to substantial monetary loss. Thus, there is a dire need to verify therobustness, requirements, and design of such a real-time criticalsystem.
+In the realm of formal veri ﬁcation, model checking ( Clarke
+et al., 1994 ) appears as a promising algorithmic approach to
+r e d u c et h eb u r d e no na ne x p e r t ’si n t e r v e n t i o na n dm a k e si te a s i e r
+to detect and ﬁxb u g si nt h ed e s i g np r o c e s s .G i v e nam o d e l Mand
+a property ϕ,w h e r e Mrepresents a system as a state-transition
+diagram and ϕis expressed in some mathematical logic, the
+model checking algorithm performs an exhaustive case analysison the set of states and determines whether Msatisﬁesϕ,
+i.e.,M⊧ϕ.
+While there have been a number of proposals on formal
+veriﬁcation of various properties con ﬁned to individual
+blockchain platforms, such as Bitcoin protocols ( Chaudhary
+et al., 2015 ;Chaudhary et al., 2020 ;DiGiacomo-Castillo et al.,
+2020 ), Ethereum smart contracts ( Abdellatif and Brousmiche,
+2018 ;Nehai et al., 2018 ;Osterland and Rose, 2020 ), and
+Hyperledger Fabric chaincodes ( Alqahtani et al., 2020 ;Liu et al.,
+2022 ), researchers have not paid attention to formally verifying the
+correctness of the blockchain interoperability protocol as stated in
+Tolmach et al. (2021) . In this paper, we propose a systematic
+approach to model and formally verify the real-time properties ofthe pub-sub interoperability protocol, with a special focus on themessage communication through API calls among publishers,subscribers, and brokers. This is worthwhile to mention that,even though this protocol can be adopted by any decentralizedapplications, we aim to verify only the protocol itself, instead of any
+particular application adopting the protocol. In this direction, we
+build an abstract stochastic timed automata (STA) model from the
+source code of the protocol by extracting relevant informationguided by our properties of interest. In addition to theveriﬁcation of real-time properties, we also provide a probabilistic
+estimation of various functionalities involved in this complexprotocol. To the best of our knowledge, this is the ﬁrst proposal
+of its kind to model and verify the blockchain pub-sub
+interoperability protocol using model checking.
+To summarize, our main contributions in this paper are
+Formalization of blockchain smart contracts (chaincodes) in
+the form of ﬁnite-state transition systems.
+Modeling of the pub-sub interoperability protocol as
+stochastic timed automata, describing its construction fromthe source codes by analyzing and extracting the call graph and
+contextual information.
+Real-time property veri ﬁcation of the pub-sub interoperability
+protocol using the UPPAAL-Statistical Model Checker(UPPAAL-SMC).Development of a proof-of-concept Chaincode Analyzer that
+generates call graphs from JavaScript chaincodes and extractsrelevant contextual information from each function. Theextracted information and the call graph are then used formodeling the system as a network of STA in UPPAAL-SMCusing the drag and drop feature.
+Performance evaluation of the Chaincode Analyzer on a set of
+representative chaincodes collected from the pub-sub protocoland Hyperledger of ﬁcial GitHub repository and probabilistic
+estimation of various functionalities of the protocol by varyingthe throughput of the different publishers and subscribers.
+The rest of the paper is structured as follows: Section 2 gives an
+overview of related work. Section 3 recalls the basic background
+knowledge on timed automaton, stochastic timed automaton, and
+UPPAAL-SMC. Section 4 brieﬂy describes the pub-sub blockchain
+interoperability protocol proposed by the Linux Foundation. Section
+5provides the details of our proposed modeling approach. Section 6
+discusses the details of the proof of concept. Section 7.1 reports the
+performance evaluation of the Chaincode Analyzer . The veri ﬁcation
+results of the protocol with respect to the properties of interest areshown in Section 7.2 .Section 8 presents threats to validity. Finally,
+Section 9 concludes this paper.
+2 Related work
+Although there is no study on blockchain interoperability
+veriﬁcation, there is considerable literature on blockchain and
+smart contract veri ﬁcation. These veri ﬁcations effectively adopt
+the model checking approach. The Bitcoin protocol ’s UPPAAL
+model is illustrated in Chaudhary et al. (2015 ) to probe the
+double-spending attack in a situation with malicious peers. Here,the authors show the probability analysis of the double-spendingattack based on the number of con ﬁrmations. In a similar line, the
+analysis of the double-spending attack based on the hash rate is doneinChaudhary et al. (2020) .Fehnker and Chaudhary (2018)
+simulated a Bitcoin majority attack in UPPAAL and concluded
+that for a share of 20%, the attack will be effective within a few days.
+DiGiacomo-Castillo et al. (2020) used UPPAAL-SMC to investigate
+Bitcoin backbone protocol features that vary as a function ofconcrete parameters in a network where an attacker canundertake sel ﬁsh mining. Similarly, Andrychowicz et al. (2014)
+proposed a framework to model the Bitcoin contracts employingthe timed automata in the UPPAAL. Eijkel and Fehnker (2019)
+modeled the behavior of honest and sel ﬁsh mining pools in
+UPPAAL. It includes network delay but, unlike earlier models in
+the literature, does not presume a single view of the blockchain.
+Abdellatif and Brousmiche (2018) modeled Solidity smart
+contract and blockchain execution protocol along with users ’
+behaviors to analyze the design vulnerabilities of smart contractsusing a statistical model checking tool. A tool chain is developed inOsterland and Rose (2020) for translating Solidity smart contracts to
+generate an automata-based code representation in PROMELA,
+which is veri ﬁed by the SPIN model checker. Similarly, in Bai
+et al. (2018) , smart contracts are modeled in PROMELA, and the
+SPIN model checker is used to ensure that a contract ’s logic is valid.
+InNehai et al. (2018) , the behavior of Ethereum blockchain, smart
+Frontiers in Blockchain frontiersin.org 02Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 3 ---
+TABLE 1 A comparative summary of the existing literature.
+Proposals Problem under
+considerationBlockchain
+platformLanguage under
+considerationProperties under
+veriﬁcationSpeci ﬁcation
+languageTools
+used
+Andrychowicz et al.
+(2014)Bitcoin contracts Bitcoin Bitcoin script Safety properties TCTL UPPAAL
+Chaudhary et al. (2015) Double spending in Bitcoin Bitcoin Bitcoin script Probability of double
+spending based on thedepth of the blockMITL UPPAAL-
+SMC
+Fehnker and
+Chaudhary, (2018)Majority attack analysis and
+optimization proposed byBitcoin UnlimitedBitcoin Unlimited Bitcoin script Time analysis for an attack
+based on con ﬁrmation
+depthMITL UPPAAL-
+SMC
+Abdellatif and
+Brousmiche, (2018)Ethereum smart contracts Ethereum Solidity Safety along with functional
+propertiesPB-LTL BIP-SMC
+Bai et al. (2018) Smart contracts Generic Generic (i) State accessibility LTL SPIN
+(ii) No deadlock(iii) No livelock
+Nehai et al. (2018) Ethereum smart contracts Ethereum Solidity Functional behavioral
+propertiesCTL NuSMV
+Atzei et al. (2018) Bitcoin transactions Bitcoin Bitcoin script (i) Double spending
+transactionsBalzac Balzac
+(ii) Overall value contained
+in blockchain
+Eijkel and Fehnker,
+(2019)Selﬁsh mining in Bitcoin Bitcoin Bitcoin script Effects of sel ﬁsh mining TCTL and MITL UPPAAL-
+SMC
+Mavridou et al. (2019) Ethereum smart contracts Ethereum Solidity (i) Safety N/A BIP and
+NuSMV
+(ii) Liveness
+(iii) Deadlock freedom
+Chaudhary et al. (2020) 51% attack on Bitcoin
+networkBitcoin Bitcoin script Probability of majority
+attack varying hash rateMITL UPPAAL-
+SMC
+DiGiacomo-Castillo
+et al. (2020)Bitcoin backbone protocol Bitcoin Bitcoin script (i) Chain quality MITL UPPAAL-
+SMC
+(ii) Common pre ﬁx
+(iii) Chain growth
+Osterland and Rose,
+(2020)Ethereum smart contracts Ethereum Solidity (i) Assertions LTL SPIN
+(ii) Deadlock detection
+(iii) Liveness properties
+Alqahtani et al. (2020) Chaincodes for supply Hyperledger Fabric Go Behavior correctness and
+functional requirementsLTL NuSMV
+Chain management system
+Zhang et al. (2020) CKB block synchronization Nervos Common
+Knowledge BaseN/A Correctness and
+consistency of the protocolTCTL and MITL UPPAAL-
+SMC
+Gu et al. (2022) Raft and PRaft consensus N/A N/A (i) Single leader (ii) Leader
+completenessTLA+ TLC
+(iii) Single leader
+(iv) Leader completeness
+Bertrand et al. (2022) DBFT Consensus Redbelly
+blockchain systemN/A (i) Safety LTL ByMC
+(ii) Liveness
+Afzaal et al. (2022) Blockchain-based
+crowdsourcingN/A N/A Safety, fault tolerance,
+trusted leader, and trustedvalidator propertiesLTL PAT
+(Continued on following page)
+Frontiers in Blockchain frontiersin.org 03Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 4 ---
+contracts, and the execution framework are captured by the three
+layers of the model, respectively, and the properties of smartcontracts expressed in computation tree logic (CTL) are veri ﬁed
+by using the model checker NuSMV. Alqahtani et al. (2020) used the
+NuSMV model checker to model the Hyperledger Fabric smartcontracts and their interactions with the aim of verifying their
+compliance with the systems ’functional requirements.
+Mavridou et al. (2019) introduced the VeriSolid framework to
+generate the Solidity code from the veri ﬁed transition system-based
+models following the correct-by-design development principle.Bartoletti and Zunino (2019) compared ﬁve formal modeling
+techniques, namely, Balzac, Ivy, Simplicity, UPPAAL, and BitML,for Bitcoin smart contracts based on their expressiveness, usability,and suitability for veri ﬁcation. Atzei et al. (2018) proposed a formal
+model of Bitcoin transactions which is abstract enough to allow for
+formal reasoning of the behavior of Bitcoin transactions. However,as highlighted in Atzei et al. (2018) , there are some differences
+between the modeling of Bitcoin scripting language and theblockchain with respect to the actual ones. This is worthwhile tomention that Palina Tolmach et al. in their survey ( Tolmach et al.,
+2021 ) revealed that reasoning about the functional correctness of
+smart contracts across all domains is frequently done using a
+combination of contract-level models, speci ﬁcations, and model
+checking.
+Gu et al. (2022) used the interactive preserving abstraction (IPA)
+framework to verify the performance of two blockchain consensusprotocols Raft and PRaft with compositional model checking usingTLA + language. The set of properties veri ﬁed are as follows: single
+leader and leader completeness, singleLeader, andleaderCompleteness blockchain. Bertrand et al. (2022) holistically
+veriﬁed the safety and liveness properties of the Democratic
+Byzantine Fault Tolerant consensus used in the RedbellyBlockchain system, a scalable blockchain used in production.Afzaal et al. (2022) presented blockchain-based crowdsourcing
+consensus protocol formal models built using CSP# and veri ﬁed
+using the PAT model checker. Liu et al. (2022) modeled the
+Hyperledger Fabric chaincodes for the port supply chain systemas discrete-time Markov chains and validate the properties in PCTL
+(Probabilistic Computation Tree Logic) using the PRISM model
+checker. The UPPAAL model checker is used in Zhang et al. (2020)and Park et al. (2022) to formally verify the public descending
+auction system (Dutch Auction) and important properties of theCommon Knowledge Base (CKB) block synchronization protocol,respectively. Nam and Kil (2022) proposed the formal veri ﬁcation of
+Solidity smart contracts using the ATL model checker.
+A comparative summary of the existing relevant veri ﬁcation
+approaches with respect to our proposal is shown in Table 1 , where
+MITL stands for metric interval temporal logic, TCTL stands fortimed computation tree logic, PB-LTL stands for probabilisticbounded linear temporal logic, LTL stands for linear temporallogic, PCTL stands for probabilistic computation tree logic, CTLstands for computation tree logic, and ATL stands for alternating-time temporal logic.
+3 Timed automata and stochastic timed
+automata
+Timed automaton ( Bengtsson and Yi, 2004 )i su s e d
+worldwide as a powerful model to specify and verify real-timesystems. It is basically a ﬁnite-state machine (FSM) extended with
+aﬁnite set of real-valued clocks. I nitially, all the clocks of the
+system are set to 0 and increase synchronously as time passes by.
+The individual clocks can be reset to 0 depending upon certaintransitions taken in the system. Here, the transitions are labeledby constraints imposed over clock variables (also known as clock-constraints) to limit the behavior of an automaton. Timedautomaton over a ﬁnite set of atomic propositions is formally
+deﬁned as follows:
+Deﬁnition 1 (Guard). A Guard is a ﬁnite conjunction of expressions of
+the form x ⊕co rx −y⊕c,where x ,y∈X are clocks, c∈Nis a number,
+and⊕∈{≥,>,=,<,≤}
+Deﬁnition 2 (Timed Automaton). A Timed Automaton T is a tuple
+〈L, l
+0,Σ,X ,E ,I〉,where (i) L is a ﬁnite set of locations, (ii) l 0∈L is the
+initial location, (iii) Σ=Σi∪Σois the alphabet of actions partitioned
+into input (Σi)and output (Σo), (iv) X is a ﬁnite set of clocks, and (v) E
+is a ﬁnite set of transitions edge such that
+E⊆L×GRD (X)×Σ×2X×L,where GRD (X)is a guard over
+X, and (vi) I:L→GRD (X)assigns an invariant (which could be
+empty) to each location.TABLE 1 ( Continued ) A comparative summary of the existing literature.
+Proposals Problem under
+considerationBlockchain
+platformLanguage under
+considerationProperties under
+veriﬁcationSpeci ﬁcation
+languageTools
+used
+Liu et al. (2022) Port supply chain Hyperledger Fabric N/A Safety, reliability, and
+reachabilityPCTL PRISM
+Park et al. (2022) Dutch auction trading
+systemN/A N/A Basic principles and
+functional requirementsTCTL UPPAAL
+Nam and Kil, (2022) Ethereum smart contracts Ethereum Solidity Functional behavioral
+propertiesATL MCMAS
+Our Proposal Pub-Sub Interoperability Hyperledger
+FabricJavaScript (i) Reachability TCTL and MITL UPPAAL-
+SMC
+(ii) Liveness
+(iii) Probability estimation
+of message interoperabilitybased properties
+Frontiers in Blockchain frontiersin.org 04Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 5 ---
+Intuitively, a transition in a location ℓcan evolve either by (1)
+delay transition : remaining in the current state by letting time pass,
+i.e., incrementing all clocks, provided the invariant I(ℓ)can
+continuously be satis ﬁed, or (2) action transition : making a
+transition ( ℓ,g,a,C,ℓ′) if the conditions gandI(ℓ′)hold,
+going to the location ℓ′and setting the clocks in Cto 0.
+A stochastic timed automaton (STA) ( Cassandras and
+Lafortune, 1999 ) is a timed automaton which incorporates a
+stochastic clock structure, an initial state cumulative distributionfunction (CDF), and state transition probabilities. The STA isformally de ﬁned as follows.
+Deﬁnition 3 (STA). An STA S
+TAis a tuple 〈ξ,L,Γ,p,p0,G〉,where (i)
+ξis a set of ﬁnite-state transitions (also known as. event set), (ii) L is a
+ﬁnite set of locations (i.e., state space), (iii) Γ(ℓ)is a set of enabled or
+feasible transitions de ﬁned for all ℓ∈L with Γ(ℓ)⊆ξ, (iv) p (ℓ′;ℓ,e′)is
+state transition probability de ﬁned for all ℓ′,ℓ∈L;e′∈ξ, and such
+that for all e ′∉Γ(ℓ),p(ℓ′;ℓ,e′)=0 , (v) p 0(ℓ)is the probability mass
+function P [L0=ℓ],ℓ∈L, of the initial state L 0, and (vi) G ={Gi:i∈ξ}
+is a stochastic clock structure, where G iis a distribution function for
+each event i, describing the random clock sequence.
+A set of STA running simultaneously, using the same set of
+clocks, and communicating via broadcast channels and shared
+variables are called Network of Stochastic Timed Automaton
+(NSTA). The NSTA is supported by the UPPAAL-SMC tool,where the communication is limited to broadcastsynchronization. As UPPAAL-SMC deals with probabilisticproperty veri ﬁcation, this is a design choice by them in order to
+capture a clean semantics of only non-blocked components whichare racing against each other with their corresponding localdistributions. We follow the convention for broadcast
+synchronization action as a! and a?, where these notations mean
+performing a! triggers a? to be performed ( David et al., 2015 ). We
+assume that the NSTAs are input enabled, deterministic , and non-
+zero (i.e., time always diverges). Furthermore, we drop clock
+constraints (if true), actions (if irrelevant), and reset sets (if ϕ)
+from the labels. Let us understand this with an example of a networkof two STAs.
+Figure 1 illustrates a network of two STAs portraying
+communication between a sender and a receiver. When the
+receiver successfully receives a message, it sends anacknowledgement with some probability. Otherwise, it asks thesender to resend the message. We use different colors todistinguish among distinct elements, such as node invariant,
+guards, synchronizations, updates, delay transition rate, anddiscrete transition rate , of the automata. The dotted lines denote
+probabilistic transition. Initially, the sender S and the receiver R bothremain in initial locations Init_s, Init_r, respectively, and theirclocks Cs and Cr are set to 0. The time-delay transition rate 1:
+2 associated with the location Init_s indicates that the non-
+deterministic choices of time-delay transition are chosenaccording to exponential distribution with user-de ﬁned rate 1:2
+(in the absence of invariant). S waits as per the delay rate and thentriggers send! to move to Wait state, thus making R to perform send?and to move to Transmit state. R waits in this state for at most20 time units before it can ﬁre ack! or resend! with a probability of 4/
+5 or 1/5, respectively. S now waits at least 20 time units before
+listening to ﬁred channel and then moves back to the initial position
+by resetting the clock Cs to zero. The guards used for the sender andreceiver induce a delay of 10 and 15 time units, respectively, whiletaking a transition.
+3.1 Property veri ﬁcation using UPPAAL-SMC
+UPPAAL-SMC ( David et al., 2015 ) is an extension to the
+UPPAAL model-checker toolbox, based on the theory of STA foranalysis of probabilistic performance properties. UPPAAL-SMCespouses property representation using the following temporallogics: (a) TCTL for specifying desired properties over the
+network of timed automata and (b) MITL for specifying desired
+properties over the network of STA. Let ϕbe a path formula that uses
+a state formula ψdeﬁned over the clocks and the locations of
+automata. The syntax of TCTL and MITL in BNF is de ﬁned as
+follows.Deﬁnition 4 (TCTL formulas). The temporal logic TCTL is de ﬁned by
+the following grammar:
+ϕ≔∃>ψ|∃□ψ|∀>ψ|∀□ψ|ψ
+1→ψ2
+ψ≔T.s|CC |¬ψ|ψ1∨ψ2|ψ1∧ψ2|ψ10ψ2
+where T.sdenotes state sin the timed automaton T;CCis a clock
+constrain, the operators ¬,∨,∧and0are logical negation, disjunction,
+conjunction, and implies, respectively; the operators ∃(There exists ),∀
+(For all ),□(Globally )a n d>(Future ) are temporal operators describing
+state ’sr a n g ef o rw h i c h ψmust hold; and ψ1→ψ2denotes ψ1leads to ψ2
+deﬁned as ∀□(ψ10∀>ψ2).
+FIGURE 1
+Network of two stochastic timed automata, modeling a sender (A)and a receiver (B).
+Frontiers in Blockchain frontiersin.org 05Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 6 ---
+Deﬁnition 5 (MITL formulas). The temporal logic MITL with
+weighted extension is de ﬁned by the following grammar:
+φ≔AP |¬φ|φ1∧φ2|φ1∨φ2|○φ|φ1kc
+#nφ2
+where APis a conjunction of atomic propositions over the state
+of the STA, and ○is the next state operator. The MITL formula
+φ1kc
+#nφ2is satis ﬁed ifφ1is satis ﬁed until φ2is satis ﬁed in the clock
+time limit of nfor clock c.
+The temporal operators of TCTL can be used to specify
+properties under the following categories ( Pnueli, 1977 ;
+Behrmann et al., 2004 ).
+reachability: This class refers to the properties, which answers
+the question “is it possible to end up in a given state? ”Usually,
+they are expressed using the path formula ∃>φ.
+safety: This class of properties ensures that something bad
+never happens. We express that φshould be true in all
+reachable states with the path formula ∀[]φ.
+liveness: This class of properties ensures something good will
+eventually happen. Usually, these are stated as ∀>φandφ→ψ.
+fairness: It refers to the properties which address the question
+“does, under certain conditions, an event occur repeatedly? ”
+functional correctness: This class refers to the properties that
+answer the query “does the system do what it is supposed
+to do? ”real-time properties: This class refers to the properties
+which acknowledge the question “is the system acting in
+time? ”
+To exemplify, let us express in TCTL two properties of the
+network of STA in Figure 1 :∃>S. Wait0(Cs<20), which states
+that the clock Cs can be less than 20 time units while in location Waitin S. Similarly, the TCTL formula S.Wait −−>R.Transmit represents
+that the location R.Transmit is always reachable if the location
+S.Wait is reached.
+Given a clock xand a bound C, the statistical algorithms in
+UPPAAL-SMC use MITL formulas to answer the following threecategories of queries: (a) probability estimation : it is expressed as
+P
+M(>x#CAP), which answers the following question “what is the
+probability of the network of Stochastic Timed Automata M
+satisfying property AP within Ctime limit? ”(b) hypothesis
+testing : this answers the query “Is the probability PM(>x#CAP)
+of the network of Stochastic Timed Automata Mgreater or lesser
+than a speci ﬁc threshold? ”(c)probability comparison : it addresses
+the question “Is the probability PM(>x#CAP 1)greater than the
+probability PM(>y#DAP 2)?”An example property in MITL is:
+Pr[</equals100](>R.Resend), which estimates the probability that
+receiver R will be requesting to resend the message within 100 time-units.
+FIGURE 2
+Architecture of the protocol and message ﬂow (Ghaemi et al., 2021 ).
+FIGURE 3
+Generic approach for modeling and veri ﬁcation of chaincodes in the pub-sub interoperability protocol.
+Frontiers in Blockchain frontiersin.org 06Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 7 ---
+FIGURE 4
+Call graph of the pub-sub interoperability protocol.
+FIGURE 5Publisher template.
+Frontiers in Blockchain frontiersin.org 07Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 8 ---
+4 Publisher –subscriber-based
+blockchain interoperability protocol
+Given the ever-growing demand to enhance inter-blockchain
+communication, a substantial a mount of research effort has been
+given over the last couple of years. Among them, a notablesolution is proposed by the Linux Foundation, which adopts apublish –subscribe architecture to establish interoperability, as
+depicted in Figure 2 . The interoperability among a number of
+heterogeneous blockchain p latforms, falling under the
+Hyperledger umbrella project ( Foundation, 2015 ), is
+established by implementing a number of chaincodes inJavaScript language with the required functionalities and APIcalls.
+Hyperledger ( Foundation, 2015 ) is an umbrella project with
+multiple platform open-source collaborative efforts anchored by the
+Linux Foundation. Few of the popular projects include Hyperledger
+Fabric, Hyperledger Besu, Hyperledger Aries, and HyperledgerSawtooth, where each focuses on solving distinct classes ofproblems. Among them, Hyperledger Fabric is one of the mostpopular development platforms for distributed ledger solutionsadopted by the business enterprises. The business logic inHyperledger Fabric is encoded using smart contracts, also knownas chaincodes, which support generic programming languages such
+as Java, Go, and JavaScript. Chaincode is a program that initializes
+and oversees the ledger states in a blockchain network with the helpof transactions submitted by applications. In general, a chaincodecan be invoked by end-users either to update or to query the ledgervia a transaction.
+Let us now brie ﬂy manifest the main components of the pub-sub
+interoperability protocol and the ﬂow of information among them as
+follows.
+1.Publisher blockchain: This is the source blockchain that
+participates in the network by implementing an appropriateconnector chaincode to interact with the broker ’s blockchain
+chaincodes. It enrolls as a publisher to the broker ’s connectorchaincode and is responsible for creating and publishing
+messages on as many topics as required.
+2.Subscriber blockchain: This is the destination blockchain that
+participates in the protocol similar to that of the publisher. Itenrolls as a subscriber to the broker ’s connector chaincode and
+receives the messages whenever a publisher updates the topic towhich it is subscribed through the broker ’s topic chaincode.
+3.Broker blockchain: This is the critical component of the
+architecture responsible for establishing the interoperability of
+messages from publishers to subscribers. It has two chaincodes:connector chaincode, which is accountable for maintaining all
+details of the publishers and subscribers in the network, and topic
+chaincode, which is responsible for maintaining the details of thetopics, i.e., their publishers, subscribers, and messages.
+Every blockchain joining the protocol can act as either a
+publisher orsubscriber . Publishers can create nnumber of topics,
+and a single topic can have mnumber of subscribers. This pub-sub
+architecture provides primarily six functionalities to ensure theinteroperability among the heterogeneous blockchain platforms.These functionalities are discussed as follows.
+Register/Enroll: The publisher/subscriber implements the
+appropriate connector chaincode for this functionality and
+then enrolls to the broker network via the broker ’s connector
+chaincode. These are shown in steps (1) and (3) in Figure 2 .
+Create_Topic: The publisher, after getting registered, may
+create a new topic to which a registered subscriber cansubscribe via the broker ’s topics chaincode, as shown in
+step (2).
+Subscribe_to_Topic: The connector chaincode of a registered
+subscriber offers this functionality to subscribe to any new
+topic created by a publisher via the broker blockchain, as
+shown in step (4).
+Update_Topic and Publish_to_Topic: When updates happen
+in the publisher network, the message gets published to thetopic already created by the publisher. The publish-request is
+FIGURE 6
+Subscriber template.
+Frontiers in Blockchain frontiersin.org 08Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 9 ---
+then sent to the broker ’s topics chaincode, which fetches the
+details of the subscribers of the topic from the connectorchaincode. These are depicted in steps (5), (6), and (7).
+Notify: Finally, the broker noti ﬁes all the subscribers of a topic
+about the updated message, which the subscribers update intheir networks as shown in step (8).
+5 Proposed methodology
+There have been considerable research studies dedicated to
+blockchain interoperability in recent years, resulting in theemergence of several protocols. The pub-sub interoperabilityprotocol proposed by the Linux Foundation provides a potential
+solution to establish inter-blockchain communication among
+different blockchain platforms under the umbrella of Hyperledgerprojects. This makes the protocol generic enough to be adopted byvarious decentralized applications (e.g., supply chain, healthcare,trade ﬁnance, and cross-border payments) built on the top of
+Hyperledger platforms, where one can act as a publisher andother can act as a subscriber to establish communication amongthem. In this section, our main objective is to systematically model
+the protocol and to formally verify its real-time properties, instead of
+the properties of any particular application adopting it. Morespeciﬁcally, various decentralized applications which adopt the
+pub-sub interoperability protocol to establish inter-blockchaincommunication among them generally consist of the followingtwo classes of chaincodes: (1) application-speci ﬁc chaincodes,
+which perform application-speci ﬁc tasks and (2) protocol-speci ﬁc
+chaincodes, which perform pub-sub protocol-speci ﬁc tasks. As our
+properties of interest deal with the correctness of only protocol-
+speciﬁc tasks, our veri ﬁcation approach aims at modeling and
+veriﬁcation of protocol-speci ﬁc chaincodes, instead of the
+application-speci ﬁc chaincodes. Figure 3 depicts the overall
+modeling and veri ﬁcation architecture. Observe that, as the
+protocol-speci ﬁc functionalities focus on the message
+communication through API calls among publishers, subscribers,and brokers, they are independent of the application-speci ﬁc
+activities. This makes our proposed approach applicable to any
+protocol-speci ﬁc chaincodes, irrespective of the applications
+adopting the protocol. Let us now explain each of these phases indetail.
+5.1 Formalizing chaincode
+In this subsection, we formally model chaincodes written in
+JavaScript as an FSM. Our theoretical formalization serves as afoundation to model any JavaScript chaincode in the form of a statetransition system guided by the properties of interest and the veri ﬁcation
+thereof. Here, we consider a subset of JavaScript language statements,
+consisting of Identi ﬁers, Types, Supported Statements, Variables, etc., used
+in the chaincode. We portray the chaincode as an FSM according to thefollowing rules ( Mavridou et al., 2019 ).
+1. A function is mapped as a transition where the action associated
+with the transition corresponds to the set of statements in thefunction ’s scope.2. When a transition takes place, the corresponding statements
+representing the action are executed.
+3. A guard is a premise on variables that must be true to allow the
+associated transition.
+Deﬁnition 6 provides a formal de ﬁnition of a chaincode in the form
+of the FSM.
+Deﬁnition 6. A chaincode Cis deﬁned as a tuple C=(S,s
+0,F,Σ,a,
+δ),where (1) S is a ﬁnite set of states which is a subset of valid
+identi ﬁers used in the chaincode; (2) s 0is the initial state ,where s 0∈S;
+(3) F is a set of ﬁnal states ,where F ⊆S; (4) Σis a set of contract ’s typed
+variables de ﬁned as Σ⊂Identi ﬁers×Types; (5) a is an action ,where
+a∈Supported Statements; and (6) δis a transition relation, where for
+each t ∈δ, there exists the following: (i) transition name id ∈
+Identi ﬁers, (ii) source state s from∈S, (iii) destination state s to∈S,
+(iv) arguments arg⊂Σ, (v) transition guard g, (vi) return variables r t
+⊂Σ, and (vii) action a t⊂a.
+This de ﬁnition serves as a basis to model the chaincodes of the
+pub-sub interoperability protocol as an NSTA, in line withDeﬁnition 3.
+5.2 Chaincode analysis
+Chaincodes written in JavaScript consist of a number of
+functions encoding business logic which, when executed, changesthe state of the blockchain. More precisely, as our objective is toprove real-time properties about the successful creation/subscription of topics by publishers/subscribers, seamless messagetransmission between entities, successful registration to broker
+network, etc., the JavaScript chaincode analyzer extracts relevant
+information from the protocol source codes with respect to theseproperties of interest. This includes unique identities of variousentities (e.g., topics, publishers, subscribers, and brokers), built-infunctions changing the blockchain state, context-sensitiveinformation pertaining to various function calls, etc. This allowsthe construction of a call graph by identifying all possible function
+calls among various chaincodes involved in publishers, brokers, and
+subscribers, along with the associated contextual information. This
+provides essential information about the inter-procedural controlﬂow dependencies in the pub-sub protocol. Figure 4 illustrates the
+call graph of the pub-sub interoperability protocol. The functionsresponsible for API calls or facilitating the API calls are representedwith two different colors in the call graph. In particular, theblockchain-speci ﬁc API calls accountable for updating the world
+state and ledger of the network are shown in pink, whereas the API
+calls which are responsible for interoperability are shown in yellow.
+5.3 Modeling of the pub-sub interoperability
+protocol
+To perform model checking of a system, an essential
+requirement is the representation of the system in the form of a
+model. Based on the extracted information by the analyzer, we build
+a model of the protocol in the form of an NSTA using UPPAAL-SMC ’s drag and drop features in a systematic manner by de ﬁning
+the states, transitions, guards, invariants, updates, and
+Frontiers in Blockchain frontiersin.org 09Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 10 ---
+synchronization channels. This guided approach enables us to build
+an abstract model of the protocol re ﬂecting similar behavior as of the
+source code, disregarding the details which are not relevant withrespect to the targeted properties of interest. In this process, we makea number of assumptions, without loss of generality, which considerhardware dependencies, fairness in channel behavior, absence of
+issues stemming from hardware components, etc. Moreover, since
+the Hyperledger blockchain networks are matured, we assume thenetwork to be safe and robust, thus abstracting the block generationprocess and consensus algorithm details in our proposed model.
+Let us discuss the model generation steps in detail. First, based
+on the generated call graph by the analyzer as shown in Figure 4 ,w e
+identify a number of synchronization channels required tocommunicate among STA in the network. In particular, the
+synchronization channels are mapped from the functions
+responsible for external function calls. The locations in theautomata are identi ﬁed during the code analysis phase, which
+corresponds to the state change occurring in the pub-subinteroperability protocol. The state transitions are mapped fromthe call graph by identifying the apt function responsible for the statechange. The global variables infused in the model are extractedduring chaincode analysis to facilitate the data exchange among the
+NSTA. Along with this, the guard ,conditional checks , and updates
+are introduced after analyzing the algorithms used in thechaincodes. Finally, a clock, an important component related totime, is introduced to model the throughput/latency of theblockchain network.
+We consider throughput as a crucial parameter during the
+modeling of the blockchain system. Let t
+xibe the processing time
+of the ithtransaction, tbibe the ithblock commit time in a
+blockchain network, and Nis the total number of transactions
+per block. The throughput (in transaction per second (TPS)) and
+latency (in milliseconds (ms)) of the network are de ﬁned as follows
+(Dreyer et al., 2020 ):
+Throughput /equalsN/slashBigg/summationdisplayN
+itxi, (1)
+Latencyi/equalstxi+tbi.( 2 )
+Every blockchain platform has a speci ﬁc throughput value
+indicating the number of successful TPS. Given the throughputvalue, we calculate the average time (in seconds) taken by eachsuccessful transaction. The clocks in the model keep track of thiscalculated time, which is used as an invariant to re ﬂect the consensus
+occurring in the blockchain network. For example, the publisherblockchain (i.e., Fabric V2) throughput value is 20,000 TPS which
+implies the average time for a successful transaction is
+50 microseconds, which is incorporated in the consensus state of
+the model. In general, the real behavior of the consensus time isreﬂected by latency. However, due to its dependence on hardware,
+network delay, transaction processing fees, miners, etc., we assumethat the block commit time t
+biis negligible in Eq. 2and thus, we use
+only the throughput parameter for modeling the consensus time1asdiscussed previously. After modeling the template, it can be
+transformed into an NSTA.
+The pub-sub-based solution architecture, described in Section 4 ,
+is classi ﬁed into four actors and objects: publisher (creator of
+content), subscriber (consumer of content), broker blockchain(keeping track of publisher and subscriber blockchains), and
+broker topics (keeping track of topics involved in message
+communication). Now, we are in a position to discuss thedetailed speci ﬁcation of these actors, represented in the form of
+STA models, which are veri ﬁed against several properties using the
+UPPAAL-SMC model checker
+2.Figures 5 –8depict various
+templates modeled in UPPAAL-SMC, which are elaborated uponas follows.
+5.3.1 Publisher
+The primary task of a publisher after enrolling to the pub-
+sub interoperability network is to create a new topic andpublish messages over the top ic. Furthermore, a publisher
+can query about topics created by it and whether it hasalready been registered. Accordingly, we identify six unique
+states Init,Query ,QueryTopic ,Registered ,TopicCreated ,a n d
+Published , depicting the functionalities of the publisher.
+Additionally, two states, Consensus1 and Consensus2 ,r eﬂect
+the consensus occurring before a new topic is created andbefore a message is published to the topic, respectively. This isdone in order to show the updates occurring in the world stateand the ledger of the publisher network. Moreover, since therecan be two categories of transactions (i.e., query and submit/
+invoke), we model their behavior differently. We use the
+notion of consensus time only for submit/invoketransactions as it changes the world state and the ledger ofthe blockchain.
+Figure 5 shows the template model of the publisher ’s
+connector chaincode derived from the call graph in Figure 4 .
+From the call graph, synchroni zation channels are identi ﬁed by
+examining the API call functions. For example, createTopic ()
+function in the call graph corresponds to the channel createTopic
+[idt],w h e r e idtis the unique topic id. We append guard, update,
+and invariant over the transitions based on the data extractedthrough the chainc ode analysis. The publisher from the Initstate
+makes a transition to the Query state to know whether it is
+registered on the broker network . The transition is synchronized
+with the broker ’sb l o c k c h a i nm o d e lv i ac h a n n e l s qblockchain and
+qblockchain_ack parameterized with blockchain id. Here, the
+global array variable b_exist represents either enrollment (1)
+or non-enrollment (0) of the publi sher/subscriber blockchains
+w i t hau n i q u ei d .T h el o c a lv a r i a b l e pub_exist copies the value
+from b_exist and thus indicates whether the publisher is
+registered or not.
+To register on the broker network, the publisher makes a
+transition to the Registered state synchronized with the broker
+blockchain model via the channels createBlockchain and
+1 In Hyperledger Fabric, the number of transactions per block is con ﬁgurable
+by con ﬁgtx.yaml ﬁle. 2https://uppaal.org/
+Frontiers in Blockchain frontiersin.org 10Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 11 ---
+registered_ack . For inquiring whether a topic is already created or
+not, the registered publisher makes a transition to the QueryTopic
+state. The transition is synchronized with the broker network viachannels qtopic andqtopic_ack . The local array variable of publisher
+Ptopic keeps track of all the topics created by it. So, the registered
+publisher for creating a new topic on both the local and brokernetworks makes a transition to the TopicCreated state. The
+transition is synchronized with the broker topic model via the
+channel createTopic parameterized with a unique topic id t_id.
+Since the topic information gets updated locally on the publishernetwork along with the broker network, hence intermediateConsensus1 state is introduced at this point.
+Any update in a new topic created by the publisher is noti ﬁed to
+the subscribed subscriber. Therefore, for sending the message to thesubscribers ’network with the help of the broker network, the
+publisher makes a transition to the Published state. The
+transition is synchronized with the broker topic model via
+channel publishToTopic parameterized with the unique topic id
+t_id. Like before, Consensus2 state is also infused here as the
+changes are re ﬂected on the local network. In addition, the global
+array variable topicShared is used as a guard to keep track of all the
+topics created by the publisher. Finally, the clock tdeﬁned for apublisher is compared against the average time per transaction
+PubTmax value computed from the throughput of the publisher
+network.
+5.3.2 Subscriber
+Subscribers primarily perform four functionalities: (a) to query
+w h e t h e ri th a se n r o l l e di nt h ep r o t o c ol, (b) to register itself, (c) to
+subscribe to a topic, and (d) to get noti ﬁed if any updates occur on the
+subscribed topic. Accordingly, we identify four states along with an initialstate. Figure 6 depicts the template model of a subscriber ’s connector
+chaincode with ﬁve unique states Init,Query ,Registered ,Subscribed ,
+and Notiﬁed. Similar to the publisher mo del, the synchronization
+channels in the subscri ber model are identi ﬁed from the call graph of
+the subscriber ’s connector chaincode shown in Figure 4 .
+The purpose of the t ransitions from InittoQuery andRegistered
+s t a t e sa r es a m ea st h a ti nt h ec a s eo ft h ep u b l i s h e rm o d e l .T os u b s c r i b et oa topic which is already created by a publisher, the subscriber makes atransition to the Subscribed state. The subscriber does this with the help
+of the broker network and is synchronized via the channelsubcribeToTopic parameterized with unique topic id t_id. Here, the
+FIGURE 7
+Dispatcher/broker connector template.
+FIGURE 8Dispatcher/broker topic template.
+Frontiers in Blockchain frontiersin.org 11Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 12 ---
+local array variable subscribed keeps a record of all the subscribers for a
+particular topic. Moreover, when the publisher updates the data on atopic, the changes are re ﬂected on the subscribed subscribers with the
+help of the broker network, and thus , to simulate this, the subscriber
+makes a transition to the Notiﬁedstate. The transition is synchronized
+with the broker ’s topic model via the channel updateTopic
+parameterized with a unique topic id t_id.A st h el o c a la r r a y
+variable Stopic stores the new updated information of the topic on
+the subscriber network, we introduce the Consensus state at this point.
+5.3.3 Broker connector
+The broker ’s connector chaincode keeps a record of all the publisher
+and subscriber blockchains participating in the network and facilitatesachieving the interoperability of message communication among them.
+Figure 7 shows the model of the broker ’s connector chaincode. It initially
+s t a y si nt h e Initstate from where it can make a transition to either (a)
+QueryBlockchain to provide information about all the blockchains
+participating in the network either as publishers or subscribers. It issynchronized with publisher and s ubscriber automata via channelsqblockchain and qblockchain_ack parameterized with blockchain id
+idx. Here, the local array variable blockchain stores the data about the
+blockchains enrolled in the protocol, whose value is further copied to theglobal array variable b_exist ,o r( b ) Registered state to register and store
+information of the blockchain whic hi st a k i n gp a r ta sap u b l i s h e ro ra sa
+subscriber, where the broker connect or is synchronized with it via array
+channels createBlockchain and registered_ack parameterized with
+blockchain id. Additionally, the clock t3keeps track of time, which is
+compared against the average time per transaction BrokerTmax value and
+is used as invariant in the Consensus state.
+5.3.4 Broker topic
+As the broker ’s topic automaton primarily performs four
+elemental functionalities, accordingly we identi ﬁed four states
+QueryTopic ,TopicCreated ,Subscribed , and Published along with
+an initial state Init.Figure 8 depicts the template of the broker ’s topic
+chaincode, which keeps a record of all the topics created, subscribed,and updated. Similar to the publisher and subscriber models, thesynchronization channels are identi ﬁed. The broker from the Init
+FIGURE 10
+Probability comparison result.
+FIGURE 9Cost of call graph construction, in terms of Time (A)and in terms of Memory (B).
+Frontiers in Blockchain frontiersin.org 12Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 13 ---
+state makes a transition to the QueryTopic state to inform whether a
+topic is already created or not on the broker network. The transitionis synchronized with the publisher/subscriber via the channels qtopic
+and qtopic_ack parameterized with a unique topic id t_id.
+Subsequently, the local array variable Btopic holds the
+information of the topics created by the publishers and is copied
+to the global array variable topicShared .
+When a publisher creates a new topic , the broker network also stores
+the information of this new topic and thus gets triggered to theTopicCreated state. The edge is synchronized with the publisher via the
+channel createTopic . Since the topic information gets updated locally on the
+broker ’s network along with the publisher network, hence the intermediate
+Consensus2 state is infused. For storing the de tails of a topic subscription by
+a subscriber, the broker makes a transition to the Subscribed state. The
+transition is synchronized with the subscriber model via channel
+subcribeToTopic . The local array variable subscribedB used as update
+over the transition keeps a record of all the subscribers of a particulartopic. The broker automata helps the publisher send messages to thesubscriber networks by making a transition to the Published state. The
+transition is synchronized with the publisher via the channelpublishToTopic and with the subscriber via the channel updateTopic .
+Since the changes are re ﬂected on the local network, therefore
+Consensus3 and Consensus1 states are infused. In addition, the global
+array variable topicShared used as guard over the transition keeps track of
+all the topics created by the publisher. Finally, the clock t2deﬁned for the
+automata is compared against th e average time per transaction
+BrokerTmax value, representing the throu ghput of the broker network.
+In all the aforementioned templates, the delay rate in the absence
+of the location invariant is taken as 1:1 because the delay in theoriginal network is assumed to be uniform. However, one can
+change the rate to exponential distribution depending on the
+information available about the network a priori . The throughput
+values taken in consideration are as follows: (a) 20,000 TPS forHyperledger fabric v2, (b) 3,000 TPS for Hyperledger fabric v1.4,and (c) 3,00 TPS for Hyperledger besu.
+6 Proof of concept
+The generation of a model from chaincodes involves two phases,
+namely, chaincode analysis and STA modeling. To accomplish thechaincode analysis phase, we have developed a proof of conceptwhich generates call graphs of chaincodes written in JavaScript andextracts the relevant contextual information for modeling STA inUPPAAL-SMC ( David et al., 2015 ). Our Chaincode Analyzer is the
+ﬁrst of its kind to generate a call graph from a chaincode written in
+JavaScript. The generated call graph provides insightful information
+on how the procedure exchanges information among them,revealing their relationship in the program. The analysis resultsalso include auxiliary information about the data within eachprocedure and global data shared among procedures.
+Despite having several tools available for generating call graphs
+from the JavaScript code, such as code2 ﬂow (The code2 ﬂow tool, 2021 ),
+JavaScript Explorer callgraph ( The javascript explorer callgraph tool,
+2018), and js-callgraph ( The callgraphjs tool, 2014 ), none of them is
+capable of generating a call grap h from the chaincode written in
+JavaScript. This is due to the added complexity introduced byblockchain-based functionality that is described using specialkeywords in the chaincodes. In gene ral, the existing proposals for
+obtaining call graphs typically builds an Abstract Syntax Tree (AST)using JavaScript compilers like Acron ( Acorn, 2014 )a n dE s p r i m a
+(Esprima, 2015 ) However, these compilers cannot generate an AST
+in the case of chaincodes due to its distinct blockchain-speci ﬁcf e a t u r e s ,
+thereby posing a unique challenge. In contrast, our proposal
+incorporates and implements the proven and traditional algorithm
+proposed by Ryder (1979) for building the call graph. Ryder ’sa l g o r i t h m
+computes a precise call graph under the assumption that all call sites areinvoked. One limitation of the algorithm is its inability to analyzelanguages that allow recursion, but since chaincodes generally avoid
+recursion, the algorithm is perfectly suited to our needs.
+The Chaincode Analyzer performs two main functions. First, it
+generates an AST from the chainco des and allows users to visualize
+them. Second, it generates the call graph from the given AST. We utilize
+t h eG o o g l eC l o s u r eC o m p i l e r( Bolin, 2010 ) to generate the AST in dot
+format. As the generated AST is not powerful enough to extractinformation regarding function calls, we implement Ryder ’s
+algorithm for generating a call gra ph which consists of the following
+two phases: initialization and construction. It contributes signi ﬁcantly in
+three distinct ways. First, the par se of the program builds tables that
+describe the functions and their refe rences. Both the initialization and
+the construction phase search this information once for each node.
+Second, the algorithm inserts edges i nto the graph, which allows visiting
+of nodes in order to update their level s. Finally, it contributes to the
+building of function vector sets for all nodes by reference expansion.The contributions made by the Ryder ’s algorithm are proved to be of
+immense value in generating a call graph of a program, and itseffectiveness is well-established in the ﬁeld of program analysis.
+The output of the Chaincode Analyz er produces a call graph in svg
+format and an AST in dot/pdf format. The source code of the analyzer
+and the obtained results can be found at GitHub
+3.O u rC h a i n c o d e
+Analyzer, which is implemented in Node. js, has dependencies on theGraphviz library ( Ellson et al., 2004 ), Google Closure Compiler ( Bolin,
+2010), and JDK. The Graphviz library is utilized for the visualization of
+the call graph, while the Google Closure Compiler is responsible forgenerating the AST. The output call graph is color-coded forconvenience, with each color carrying a speci ﬁc meaning. Functions
+highlighted in blue denote internal c haincode functions, while orange
+represents calls to external chaincode functions. Lastly, yellow is used tosignify blockchain platform-dependent functions. Furthermore, the callgraph of chaincodes of Hyperledger besu written in Solidity language isobtained using off-the-shelf tool surya ( Surya, 2018 ).
+7 Experimental evaluation
+7.1 Performance analysis of the Chaincode
+Analyzer
+We evaluated our tool on a variety of chaincodes written in the
+JavaScript language using a Windows-based desktop equipped withan Intel Core i7 CPU 3.00 GHz and 8 GB RAM. The benchmarkchaincodes, shown in Table 2 , include the codebase of the pub-sub
+3https://github.com/mdtauseefalam/JavaScriptChaincodeAnalyzer/
+Frontiers in Blockchain frontiersin.org 13Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 14 ---
+interoperability protocol, along with sample chaincodes imported
+from the Hyperledger project ( Foundation, 2015 ). Observe that the
+chaincodes under rows (1) –(4) belong to the pub-sub
+interoperability protocol, while the chaincodes under rows(5)–(10) are few popular chaincodes which are available on the
+GitHub repository of the Hyperledger project. In columns 5 and 6,we report the performance evaluation results of our ChaincodeAnalyzer in terms of the time taken and the memory resources
+utilized to generate the call graph of the benchmark codes. Figures
+9A, B depict the cost of call graph generation in terms of lines of code
+(LoC) v/s time and memory, respectively. This is to observe that,even though call graph generation time and memory usage dependon LoC, there are other factors, such as the number of functionspresent in the contract and the number of function calls, which mayalso in ﬂuence them. For example, memory consumption in case of
+“ERC721Token.js ”is more than that in “ERC20Token.js, ”although
+the LoC of the former one is less than that of the latter one.
+Furthermore, the number of functions in“AssetTransferLedger.js ”(351 LoC) is more than that of
+“ERC20Token.js ”(503 LoC) and “ERC721Token.js ’(464 LoC).
+However, the execution time and memory consumption of“AssetTransferLedger.js ”are signi ﬁcantly lower than those of
+“ERC20Token.js ”and “ERC721Token.js ”. This is due to the
+number of function calls made in the code and the creation of
+edges in the corresponding call graph. Notably, the number of
+function calls in ERC721Token.js, ERC20Token.js, andAssetTransferLedger.js is 90, 73, and 49, respectively.
+7.2 Properties veri ﬁcation results using
+UPPAAL-SMC
+For verifying real-time properties, we simulate all these
+templates in UPPAAL-SMC where (1) the publisher (Fabric V2)is deﬁned as Pub; (2) the broker (Fabric V2) has two chaincodes,
+connector and topics, which are de ﬁned as DispatcherConnectorand DispatcherTopic, respectively; and (3) two subscriber networks
+(Hyperledger Fabric V1.4 and Hyperledger Besu) are de ﬁned as
+SubFabric and SubBesu, respectively. For the properties veri ﬁed as
+follows, we assume that the pub-sub network architecture holdsfairness property (i.e., the channels connecting publisher/subscriberblockchain to broker blockchain are reliable). We consider thefollowing set of properties in TCTL for verifying the functionalrequirements and in MITL for verifying the non-functional
+requirements.
+1.A publisher/subscriber will be able to join the protocol
+eventually . This property is expressed in TCTL as follows:
+(a) publisher joining the broker network: E >Pub.Registered
+imply DispatcherConnector.Registered and (b) subscriberjoining the broker network: E >SubFabric.Registered
+imply DispatcherConnector.Registered
+2.The registered publisher can successfully create a new topic
+eventually . This is expressed as follows: E >
+Pub.TopicCreated. The property in (2) is not enough toconﬁrm whether the topic is created on the broker
+network. So, we consider the following property in (3).
+3.The topic created by the publisher is eventually created on the
+broker ’s network . This is stated as follows: A >
+Pub.TopicCreated imply DispatcherTopic.TopicCreated
+4.Messages published to a topic by the publisher are always
+received by the subscribers eventually . It is represented as
+follows: A >((Pub.Published and SubFabric.Subscribed)
+imply SubFabric.Noti ﬁed)
+5.Creation of duplicate topics by the publisher will eventually lead
+to the creation of duplicate topics by the broker . This is stated in
+TCTL as follows: A >(Pub.Registered and Pub.TopicCreated
+and ( Pub.Ptop_id == 0) and
+(DispatcherTopic.Btop_id == 0 ) imply
+(DispatcherTopic.TopicCreated and
+(DispatcherTopic.Btop_id = = 0)))
+Observe that the properties (1) and (2) represent reachability
+properties, whereas the properties (3), (4), and (5) represent livenessTABLE 2 Performance analysis of the Chaincode Analyzer.
+Sl.
+No.Chaincode LoC Chaincode functions details Call graph
+generationMemory
+usage
+# Internal
+functions# External
+functions# Blockchain-
+dependent
+functions# Total
+functionsTime (in
+milliseconds)(In MB)
+1 broker.js 276 8 3 4 15 51 0.24
+2 pubsub.js 194 4 0 3 7 39 0.113 topics.js 152 5 2 3 10 29 0.12
+4 topics (F1.4).js 119 5 0 3 8 23 0.09
+5 ERC20Token.js 503 16 0 4 20 100 0.776 ERC721Token.js 464 19 0 6 25 104 0.79
+7 AssetTransfer.js 167 8 0 4 12 44 0.14
+8 AssetTransferLedger.js 351 15 0 11 26 54 0.409 Abstore.js 138 5 0 4 9 28 0.10
+10 FabCar.js 145 5 0 3 8 39 0.09
+Frontiers in Blockchain frontiersin.org 14Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 15 ---
+properties. The veri ﬁcation results by UPPAAL-SMC demonstrate
+that the properties in (1) –(5) are satis ﬁed by the aforementioned
+model. These results provide insightful information to the end-usersto decide the adaptability of the protocol in a particular applicationdepending on its interoperability needs. This is to observe that, in
+order to avoid the state explosion issue, we consider ﬁve topics in our
+model, and we verify these properties against all these ﬁve topics.
+However, if one wishes to check a property only for a particulartopic, the corresponding topic id should be used in the TCTLformula
+4. For example, property (3) can be rewritten as follows:
+A>((Pub.TopicCreated and (Ptopic[0]==true))
+imply (DispatcherTopic.TopicCreated and
+(Btopic [0] = = true)))
+Let us now estimate the probabilities of properties within a
+given time span using the following MITL temporal logic:
+6.What is the probability of the topic being created on the
+publisher network within 45 time units? This is
+represented as follows: Pr(>[0,45]
+Pub.TopicCreated) . This property is satis ﬁed
+with the probability of [0.0990515, 0.199051] with 95%
+level of signi ﬁcance in 738 runs.
+7.What is the probability of a topic being created on the
+broker ’s network within 100 time units when it has already
+been created by the publisher? This is expressed as follows:
+Pr[</equals100](> Pub.TopicCreated imply
+DispatcherTopic.TopicCreated) . This
+property gives probabilistic estimation of [0.901855, 1]with 95% level of signi ﬁcance in 29 runs.
+8.What is the probability of the subscribers to receive the
+messages published by the publisher in the time interval of10 to 100 time-units? This is stated as follows:
+Pr(>[10,100] (SubBesu.Subscribed &
+Pub.Published) imply SubBesu.Noti ﬁed).
+This gives an estimate of the probability in the rangeof [0.92019, 1] with 95% level of signi ﬁcance in 738 runs.
+This reveals the fact that the protocol may fail to transmitmessages between a publisher and a subscriber with 8%
+probability when the throughput of the brokerblockchain is relatively higher than that of both thepublisher and subscriber, within a given time range of10–100μs (microseconds). Such information is generally
+valuable for the end-users as they make decisions
+regarding the adoption of the pub-sub protocol inhard real-time decentralized applications. Table 3
+depicts the veri ﬁcation result of this property by
+varying the throughput of the publisher, broker, andsubscriber networks. This is to observe that theprotocol gives a best result when the throughput of thebroker blockchain is comparatively higher than that of
+the publisher and the subscriber.
+9.Is the probability of publishing (by the publisher) a
+message to a topic which gets re ﬂected on the broker
+network equal to the probability of publishing amessage (by the broker) to the associated subscriberswithin 100 time units? which is expressed as follows:
+Pr[</equals100](>(SubFabric.Subscribed and
+Pub.Published) imply Dispatcher
+Topic.Published)
+>/equalsPr[</equals100](>
+DispatcherTopic.Published implySubFabric.Noti ﬁed). This property aims at
+verifying the possibility of message loss within a giventime frame. The veri ﬁcation result of this property yields
+the result shown in Figure 10 , where 0.5 means both the
+probability is the same. Therefore, we conclude that thereis no message loss in the protocol.
+8 Threats to validity
+Let us ﬁrst discuss the threats to external validity in our study,
+which relate to the generalization of our ﬁndings. One major concern
+is that certain assumptions we have made may not hold true in a real-world scenario. Given that Hyperledger blockchain networks are
+mature and established, we have assumed that they are safe and
+secure, thereby abstracting the block generation process andconsensus algorithm in our proposed model. Additionally, tomitigate the state space explosion issue, we have limited ourTABLE 3 Probability estimated for message interoperability between the publisher and subscriber blockchains.
+Sl.no. Property Throughput (TPS) Probability
+estimatedTime in
+seconds
+Publisher Broker Subscriber
+1P r ( <>[10,100] (Sub.Subscribed And Pub.Published) Imply
+Sub.Noti ﬁed)20,000 20,000 300 [0.92019,1] 0.019
+2 10,000 20,000 20,000 [0.898509,0.998509] 0.018
+3 20,000 20,000 20,000 [0.910705,1] 0.017
+4 2,000 10,000 3,000 [0.92561,1] 0.016
+5 2,500 2,000 3,000 [0.160027,0.260027] 0.0156 10,000 2,000 20,000 [0.153252,0.253252] 0.015
+The bold values Represent highlight the cases where the pub-sub interoperability protocol performs the best (i.e. [0.92561,1]) and worst (i.e. [0.1 53252, 0.253252]) within a given time units. The
+values tell the probability of the same.
+4 The variable used in the TCTL formula must be globally declared
+Frontiers in Blockchain frontiersin.org 15Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 16 ---
+experiments to a ﬁxed number of parameters, for instance, the
+number of topics, which may vary for different application scenarios.
+Moreover, we have made a number of assumptions regarding
+the absence of issues stemming from network hardwarecomponents, which may lead to communication delay. Althoughwe consider a uniform network delay in our modeling process, this
+may not be the reality. In addition, our assumption on the fairness of
+the communication channels hinders us to verify the properties inpresence of network failure.
+Considering the aforementioned assumptions, we followed a
+systematic approach for modelin g the protocol to ensure that the
+actual code and the model exhibit the same behavior. Inparticular, we build an abstract STA model from the sourcecode of the protocol by extracting relevant information guided
+by our properties of interest. It is important to note that this
+abstract model may not be suf ﬁcient to verify any new property
+due to the over-approximatio n behavior. In such cases, re ﬁnement
+may be necessary to include property-speci ﬁc information in the
+model. Lastly, it is essential to highlight that our ChaincodeAnalyzer currently faces limitations in handling recursion-based functions smoothly due to the implemented Ryder ’s
+algorithmic constraints.
+We will now delve into the threat to internal validity, which
+refers to the potential experimental bias and errors that may arisedue to our implementation. We acknowledge that the call graphconstruction algorithm ( Ryder, 1979 ) used by our tool was originally
+designed for FORTRAN programs, but we have ensured that itworks seamlessly for JavaScript chaincodes as well, considering theirsimilar function construct. Nevertheless, we must also recognize thatconverting call graphs to STA may require human intervention,
+which may result in model biases.
+9 Conclusion
+In this paper, we have formally modeled the pub-sub-based
+blockchain interoperability protocol in the UPPAAL-SMC modelchecker and veri ﬁed its functional real-time properties. Along with
+this, we have estimated the probabilities of various properties in a
+given time limit and highlighted the cases where the pub-subinteroperability protocol performs the best and worst. Theveriﬁcation results revealed that no message loss takes place
+during inter-blockchain communication and provides an insighton choosing appropriate blockchain networks with suitablethroughput as publishers, brokers, or subscribers, ensuring thehighest utility of the protocol. Observe that, even though the
+model satis ﬁes some of our properties of interest, there are
+certain cases where probability of failure is observed. Forexample, our veri ﬁcation reveals the fact that the protocol may
+fail to transmit messages between a publisher and a subscriber with8% probability when the throughput of the broker blockchain is
+relatively higher than that of both the publisher and subscriber,within a given time range of 10 –100 μs (microseconds). Such
+information is generally valuable for the end-users as they makedecisions regarding the adoption of the pub-sub protocol in hardreal-time decentralized applications. Furthermore, as the access
+control mechanism is yet to be addressed by the protocol and is
+part of their future work, the veri ﬁcation of the security aspects of
+the protocol would be an interesting future scope.
+Data availability statement
+The original contributions presented in the study are included in
+the article/Supplementary Material; further inquiries can be directed
+to the corresponding authors.
+Author contributions
+Conceptualization: MA, RH, and AM; methodology: MA;
+formal analysis: MA and RH; writing —original manuscript: MA;
+writing —review and editing: MA, RH, and AM; supervision: RH and
+AM. All authors contributed to the article and approved thesubmitted version.
+Acknowledgments
+We graciously acknowledge the support of the Prime Minister
+Research Fellowship (PMRF) Award and the SERB Core Research
+Grant (Grant Number: CRG/2022/005794) by the Government ofIndia for carrying out this research.
+Conﬂict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be
+construed as a potential con ﬂict of interest.
+Publisher ’s note
+All claims expressed in this ar t i c l ea r es o l e l yt h o s eo ft h e
+authors and do not necessarily represent those of their af ﬁliated
+organizations, or those of the publisher, the editors, and the
+reviewers. Any product that may be evaluated in this article, orclaim that may be made by its manufacturer, is not guaranteed orendorsed by the publisher.
+References
+Abdellatif, T., and Brousmiche, K.-L. (2018). “Formal veri ﬁcation of smart contracts
+based on users and blockchain behaviors models, ”in2018 9th IFIP international
+conference on new Technologies, mobility and security (NTMS) (IEEE), 1 –5. doi:10.1109/
+NTMS.2018.8328737
+Acorn (2014). Acorn. Available at: https://github.com/acornjs/acorn .Afzaal, H., Imran, M., Janjua, M. U., and Gochhayat, S. P. (2022). Formal modeling
+and veri ﬁcation of a blockchain-based crowdsourcing consensus protocol. IEEE Access
+10, 8163 –8183. doi:10.1109/access.2022.3141982
+Aggarwal, S., Chaudhary, R., Aujla, G. S., Kumar, N., Choo, K.-K. R., and
+Z o m a y a ,A .Y .( 2 0 1 9 ) .B l o c k c h a i nf o rs mart communities: applications,
+Frontiers in Blockchain frontiersin.org 16Alam et al. 10.3389/fbloc.2023.1248962
+
+--- Page 17 ---
+challenges and opportunities. J. Netw. Comput. Appl. 144, 13 –48. doi:10.1016/j.
+jnca.2019.06.018
+A l q a h t a n i ,S . ,H e ,X . ,G a m b l e ,R . ,a n dM a u r i c i o ,P .( 2 0 2 0 ) . “Formal veri ﬁcation of
+functional requirements for smart contract compositions in supply chain managementsystems, ”inProc. Of the 53rd Hawaii international conference on system sciences ,5 2 7 8 –5287.
+Andrychowicz, M., Dziembowski, S., Malinowski, D., and Mazurek, Ł. (2014).
+“Modeling bitcoin contracts by timed automata, ”inInternational conference on
+formal modeling and analysis of timed systems (Springer), 7 –22.
+Atzei, N., Bartoletti, M., Lande, S., and Zunino, R. (2018). “A formal model of bitcoin
+transactions, ”inFinancial cryptography and data security: 22nd international
+conference, FC 2018, nieuwpoort, curaçao, february 26 –march 2, 2018, revised
+selected papers 22 (Springer), 541 –560.
+Bai, X., Cheng, Z., Duan, Z., and Hu, K. (2018). “Formal modeling and veri ﬁcation of
+smart contracts, ”inProceedings of the 2018 7th international conference on software and
+computer applications , 322 –326.
+Bartoletti, M., and Zunino, R. (2019). Formal models of bitcoin contracts: A survey.
+Front. Blockchain 2, 8. doi:10.3389/fbloc.2019.00008
+Behrmann, G., David, A., and Larsen, K. G. (2004). A tutorial on uppaal. Formal
+methods Des. real-time Syst. 3185, 200 –236. doi:10.1007/978-3-540-30080-9_7
+Belchior, R., Vasconcelos, A., Guerreiro, S., and Correia, M. (2021). A survey on
+blockchain interoperability: past, present, and future trends. ACM Comput. Surv.
+(CSUR) 54, 1 –41. doi:10.1145/3471140
+Bengtsson, J., and Yi, W. (2004). Timed automata: Semantics, algorithms and tools .
+Berlin, Heidelberg: Springer Berlin Heidelberg, 87 –124.
+Bertrand, N., Gramoli, V., Konnov, I., Lazic, M., Tholoniat, P., and Widder, J. (2022).
+“Brief announcement: holistic veri ﬁcation of blockchain consensus, ”inProceedings of
+the 2022 ACM symposium on principles of distributed computing , 424 –426.
+Bolin, M. (2010). Closure: The de ﬁnitive guide: Google tools to add power to your
+javascript .O’Reilly Media, Inc.
+Cassandras, C. G., and Lafortune, S. (1999). “
+Stochastic timed automata, ”in
+Introduction to discrete event systems (Springer), 317 –365.
+Chaudhary, K. C., Chand, V., and Fehnker, A. (2020). “Double-spending analysis of
+bitcoin, ”,i nPaciﬁc asia conference on information systems proceedings (association for
+information systems) .
+Chaudhary, K., Fehnker, A., Van De Pol, J., and Stoelinga, M. (2015). Modeling and
+veriﬁcation of the bitcoin protocol .arXiv preprint arXiv:1511.04173 .
+Clarke, E. M., Grumberg, O., and Long, D. E. (1994). Model checking and abstraction.
+ACM Trans. Program. Lang. Syst. 16, 1512 –1542. doi:10.1145/186025.186051
+D a v i d ,A . ,L a r s e n ,K .G . ,L e g a y ,A . ,M i k u čionis, M., and Poulsen, D. B. (2015). Uppaal smc
+tutorial. Int. J. Softw. Tools Technol. Transf. 17, 397 –415. doi:10.1007/s10009-014-0361-y
+DiGiacomo-Castillo, M., Liang, Y., Pal, A., and Mitchell, J. C. (2020). “Model checking
+bitcoin and other proof-of-work consensus protocols, ”in2020 IEEE international
+conference on blockchain (blockchain) (IEEE), 351 –358.
+Dreyer, J., Fischer, M., and Tönjes, R. (2020). “Performance analysis of hyperledger
+fabric 2.0 blockchain platform, ”inProceedings of the workshop on cloud continuum
+services for smart IoT systems ,3 2–38.
+Eijkel, D., and Fehnker, A. (2019). “A distributed blockchain model of sel ﬁsh mining, ”
+inInternational symposium on formal methods (Springer), 350 –361.
+Ellson, J., Gansner, E. R., Koutso ﬁos, E., North, S. C., and Woodhull, G. (2004).
+“Graphviz and dynagraph —Static and dynamic graph drawing tools, ”inGraph drawing
+software ,1 2 7 –148. doi:10.1007/978-3-642-18638-7_6
+Esprima (2015). Esprima. Available at: https://github.com/jquery/esprima .Fehnker, A., and Chaudhary, K. (2018). “Twenty percent and a few days –optimising a
+bitcoin majority attack, ”inNASA formal methods symposium (Springer), 157 –163.
+Foundation, T. L. (2015). Hyperledger foundation. Available at: https://www.
+hyperledger.org/ .
+Ghaemi, S., Rouhani, S., Belchior, R., Cruz, R. S., Khazaei, H., and Musilek, P. (2021).
+A pub-sub architecture to promote blockchain interoperability .arXiv preprint arXiv:
+2101.12331 .
+Gu, X., Cao, W., Zhu, Y., Song, X., Huang, Y., and Ma, X. (2022). Compositional model
+checking of consensus protocols speci ﬁed in tla+ via interaction-preserving abstraction .
+arXiv preprint arXiv:2202.11385 .
+Hewa, T., Ylianttila, M., and Liyanage, M. (2021). Survey on blockchain based smart
+contracts: applications, opportunities and challenges. J. Netw. Comput. Appl. 177,
+102857. doi:10.1016/j.jnca.2020.102857
+Khan, A. G., Zahid, A. H., Hussain, M., Farooq, M., Riaz, U., and Alam, T. M. (2019).
+“A journey of web and blockchain towards the industry 4.0: an overview, ”in
+2019 international conference on innovative computing (ICIC) ,1–7. doi:10.1109/
+ICIC48496.2019.8966700
+Liu, Y., Zhou, Z., Yang, Y., and Ma, Y. (2022). Verifying the smart contracts of the port
+supply chain system based on probabilistic model checking. Systems 10, 19. doi:10.3390/
+systems10010019
+Mavridou, A., Laszka, A., Stachtiari, E., and Dubey, A. (2019). “Verisolid: correct-by-
+design smart contracts for ethereum, ”inInternational conference on ﬁnancial
+cryptography and data security (Springer), 446 –465.
+Nakamoto, S. (2008). Re: bitcoin p2p e-cash paper. Cryptogr. Mail. List .
+Nam, W., and Kil, H. (2022). Formal veri ﬁcation of blockchain smart contracts via atl
+model checking. IEEE Access 10, 8151 –8162. doi:10.1109/access.2022.3143145
+Nehai, Z., Piriou, P.-Y., and Daumas, F. (2018). “Model-checking of smart contracts, ”
+in2018 IEEE international conference on iThings & GreenCom & CPSCom & SmartData
+(IEEE), 980 –987.
+Osterland, T., and Rose, T. (2020). Model checking smart contracts for ethereum.
+Pervasive Mob. Comput. 63, 101129. doi:10.1016/j.pmcj.2020.101129
+Park, W. S., Lee, H., and Choi, J.-Y. (2022). “Formal modeling of smart contract-based
+trading system, ”in2022 24th international conference on advanced communication
+technology (ICACT) (IEEE), 48 –52.
+Pnueli, A. (1977). “The temporal logic of programs, ”in18th annual symposium on
+foundations of computer science (sfcs 1977) (IEEE), 46 –57.
+Ryder, B. (1979). “Constructing the call graph of a program, ”inIEEE transactions on
+software engineering SE-5 , 216 –226. doi:10.1109/TSE.1979.234183
+Surya, the sun god: A solidity inspector (2018). Surya, the sun god: A solidity
+inspector. Available at: https://github.com/ConsenSys/surya .
+The callgraphjs tool (2014). The callgraphjs tool. Available at: https://github.com/
+asgerf/callgraphjs.dart .
+The code2 ﬂow tool (2021). The code2 ﬂow tool. Available at: https://github.com/
+scottrogowski/code2 ﬂow.
+The javascript explorer callgraph tool (2018). The javascript explorer callgraph tool.
+Available at: https://github.com/shrivastava-apurva/Javascript-Explorer —Callgraph .
+Tolmach, P., Li, Y., Lin, S.-W., Liu, Y., and Li, Z. (2021). A survey of smart contract
+formal speci ﬁcation and veri ﬁcation. ACM Comput. Surv. (CSUR) 54, 1 –38. doi:10.
+1145/3464421
+Zhang, Q., Lu, Y., and Sun, M. (2020). “Modeling and veri ﬁcation of the nervos ckb
+block synchronization protocol in uppaal, ”inInternational conference on blockchain
+and trustworthy systems (Springer), 3 –17.
+Frontiers in Blockchain frontiersin.org 17Alam et al. 10.3389/fbloc.2023.1248962
