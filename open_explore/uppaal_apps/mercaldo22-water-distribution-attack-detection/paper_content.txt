@@ -1,0 +1,1105 @@
+--- Page 1 ---
+DOI10.15622/ia.21.2.1
+F. Mercaldo, F. Martinelli, A. Santone
+MODEL CHECKING FOR REAL-TIME ATTACK DETECTION IN
+WATER DISTRIBUTION SYSTEMS
+F. Mercaldo, F. Martinelli, A. Santone Model Checking for Real-Time Attack Detection in
+Water Distribution Systems.
+Abstract. Water distribution systems represent critical infrastructures. These architectures
+arereallycritical,andirregularbehaviourcanbereflectedinhumansafety. Asamatteroffact,
+anattackerobtainingcontrolofsuchanarchitectureisabletoperpetrateaplethoraofdamages,
+both to theinfrastructure and people. In this paper, wepropose an approach to identify irregular
+behaviours focused on water distribution systems. The designed approach considers a formal
+verification environment. The logs retrieved from water distribution systems are parsed into a
+formalmodeland,byexploitingtimedtemporallogic,wecharacterizethebehaviourofawater
+distribution system while an attack is happening. The evaluation, referred to a water distribution
+system,confirmedtheeffectivenessofthedesignedapproachintheidentificationofthreedifferent
+irregular behaviours.
+Keywords: critical infrastructure, SCADA, formal verification environment, formal methods,
+timed automaton, safety, security.
+1. Introduction. Thenetworksofmanycriticalinfrastructuresincoun-
+tries depend strategically on SCADA systems. To provide some examples,
+energygenerationandtransport,gasandoilpipelines,communicationsystems
+andaqueductsarenowlargelymanagedthroughindustrialautomationtechnolo-
+gies. [1]. The acronym SCADA (Supervisory Control And Data Acquisition)
+indicatesacomputersystemforelectronicmonitoringandcontrolofindustrial
+systems. In a nutshell, with the term SCADA, we are referring to a system for
+the critical infrastructure management consisting of computers and networked
+data [2]. Typically, these architectures exploit peripheral devices, for instance,
+programmable logic controller [3]. The attendant is able to control the critical
+architectures through the critical infrastructure management system [4]. Sen-
+sorsandcomputerscooperatewiththeaimtoguaranteetheserviceprovided
+bythecriticalinfrastructure: theproblemisthatsensorsandcomputersexpose
+the critical infrastructure to potential irregular behaviours [5].
+An attack targeting a SCADA system can easily generate significant
+physicaldamage;forthisreasonattackersareincreasinglyinterestedinSCADA
+systems[6]. Forexample,in2003,theDavis-Bessenuclearpowerplantand
+theCSXcompanyintheUSwerevictimsoftheSlammerandSobigworms
+respectively. Another attack, Slammer, caused a denial of service that slowed
+the network down, while Sobig sent spam via email [7]. At the same time,
+theSobigmalware hasinfectedacomputeratCSX headquartersbyblocking
+among other reporting and delivery systems, thus causing train delays [8].
+219
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 2 ---
+SCADA attack can also afflict damages in airplane passengers. In fact,
+in 2004, transport companies, such as British Airways, Railcorp and Delta
+Airlines, were hit by the Sasser worm, which exploited a buffer overflow
+vulnerability to spread to other systems [9]. Some aggressive variants may
+havecausednetworkovercrowding. Theconsequencesweredelaysoftrains
+and planes, in some cases, cancellation of flights [10].
+Another critical infrastructure is represented by the oil companies,
+whichhavebeenattacktargets. Infact,in2009,companiesoperatingintheOil
+&gasandpetrochemicalsectors,suchasExxon,ShellandBP,wereaffectedby
+the Night Dragon malware, distributed using spearphishing technologies. This
+malwareallowedcriminalstotakeremote controlofinfectedcomputers[11].
+Attacks on SCADA systems can also offer to attackers the opportunity
+not only to perpetrate harm to the population, but also to extract sensitive
+information. The case of theStuxnet worm, appeared in 2010; it was a worm
+engaged in espionage and reprogramming of industrial systems at the Natanz
+nuclear plant in Iran. The virus intercepted and modified data within a Pro-
+grammable Logic Controller (PLC). As a consequence, sensible data were
+gathered, and a fifth of Iranian nuclear centrifuges were destroyed [12].
+The most common attacks are aimed at silencing safety warnings or
+alarms, muting attacks. The typical attack scenario is when the verification
+of the pressure inside a joint of a gas pipeline is silenced [13]. Much more
+complex are the attacks that modify the behavior of a SCADA system, for
+example, altering the pressure levels that the system of a pipeline considers
+normal [14].
+Moreover, considering the obsolete architecture of many systems, it is
+possibletosearchthroughspecificscanningtools,systemsexposedontheweb
+knowingly or not.
+Intheidentificationofcyber-attacksincriticalinfrastructurearecur-
+rently exploited features gathered from network protocols: in this context,
+high-level features for cyber-attacks identification are not explored. For these
+reasons,in thispaper, wedesignan approachtoidentifyirregularbehaviours
+targetingSCADAsystems(withparticularregardtowaterdistributionsystems),
+by considering features that we retrieve from a water distribution systems.
+We consider a formal verification environment [15 –18] to check if
+properties are satisfied on the modeled water distribution system. Clearly,
+when apropertyrepresentingan irregularbehaviour isverified, the irregular
+behaviour is in progress on the considered model.
+Thispaperrepresentsanextensionofapreliminarywork[19]presented
+at the 28th International Conference on Enabling Technologies: Infrastructure
+220
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 3 ---
+for Collaborative Enterprises (WETICE). With respect to the paper in [19]
+below, we depict the contributions of this paper:
+– we propose a property to identify the reply irregular behaviour;
+–we extend the experiment to validate better the underflow and the
+overflowproperties presented in [19];
+–we introduce a new property for the identification of a new anomaly,
+i.e., the reply irregular behaviour.
+Theworkproceedsasfollows: thenextsectionpresentsbackgroundcon-
+cepts about model checking timed automata, Section 3 describes the designed
+approach, Section 4 discusses the performed experiment aimed to evaluate the
+approach and,finally, inSection 5conclusions and futureresearch directions
+are drawn.
+2. Background. Inthissection,fundamentalconceptsrelatedtothe
+formal methods technique adopted by the proposed method are provided, i.e.,
+the model checking timed automata.
+The toolchain to apply the model-checking technique is composed of a
+formal model and atemporal logic: both of them are described in this section.
+We consider timed automata, proposed by Alur and Dill [20,21], as
+aformalverificationtechniqueforreal-timesystemsas,forinstance,thewa-
+ter distribution systems. In a nutshell, a timed automaton is composed of a
+classicalfiniteautomatonabletomanageclocks,evolvingcontinuouslyand
+synchronouslywithrespecttoabsolutetime. Eachtransitionofatimedautoma-
+tonislabelledbyaguardorconstraintoverclockvalues,indicatingthetime
+in which the transition can be fired, and a set of clocks to be reset when the
+transition is fired. Each location is constrained by an invariant, which restricts
+the possible values of the clocks for being in the state, which can then enforce
+a transition to be taken [22–24].
+In this paper, we model a sequence of logs gathered from a water
+distributionsystemsasanetworkoftimedautomata,i.e.,afinite-statemachine
+extended with clock variables [21]. The model is extended with bounded
+discretevariablesthatarepartofthestate. Thestateofthesystemisdefined
+by the location of all automata, the clock values and the values of the discrete
+variables. Automatonmayfireanedge(i.e.,performatransition)separatelyor
+synchronise with another automaton with the aim to lead a new state.
+Below we provide the definition of the syntax and semantics for the
+basictimedautomata. Weexploitthefollowingnotation: Cisasetof clocks
+andB(C)isthesetofconjunctionsoversimple conditionsoftheform x ▷ ◁
+corx−y ▷ ◁ c,where x,y∈C,c∈Nand▷ ◁∈ {<,⩽,=,>,⩾}. Atimed
+automaton is a finite directed graph annotated with conditions over and resets
+of non-negative real-valued clocks [21].
+221
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 4 ---
+Definition 1. TimedAutomaton. Atimedautomaton isatuple (L,l0,
+C,A,E,I)where Lis a set of locations, l0∈Lis the initial location, Cis
+thesetofclocks, Aisasetofactions,co-actionsandinternal τ-action, E⊆
+L×A×B(C)×2c×Lis a set of edges between locations with an action, a
+guard and a set of clocks to be reset, and I:L→B(C)assigns invariants to
+locations.
+Inthefollowing,wedefinethesemanticsofatimedautomaton. Aclock
+valuationisafunction u:C→R⩾0fromthesetofclockstothenon-negative
+reals. Let RCbethesetofallclockvaluation. Let u0(x) = 0forall x∈C. We
+willabusethenotationbyconsideringguardsandinvariantsassetsofclock
+valuations, writing u∈I(l)to mean that usatisfies I(l).
+Definition 2. SemanticsofTimedAutomaton. Let = (L, l0, C, A, E, I )
+be a timed automaton. The semantics is defined as a labelled transition system
+⟨S, s 0,→⟩,where S⊆L×RCisthesetofstates, s0= (l0, u0)istheinitial
+state, and →⊆S×(R⩾0∪A)×Sis the transition relation such that:
+•(l, u)d (l, u+d)if∀d′: 0⩽d′⩽d=⇒
+u+d′∈I(l), and
+•(l, u)a (l′, u′)if there exists e= (l, a, g, r, l′)∈E
+s.t. u∈g, u′= [r7→0]u, and u′∈I(l′),
+where for d∈R⩾0,u+dmaps each clock xinCto the value u(x) + d, and
+[r7→0]udenotes the clock valuation which maps each clock in rto 0 and
+agrees with uoverC\r.
+Timed automata are often composed into a network of timed automata
+over a common set of clocks and actions, consisting of ntimed automata i=
+(Li, l0
+i, C, A, E i, Ii),1⩽i⩽n. A location vector is a vector ¯l= (l0
+1, . . . , l0
+n).
+We compose the invariant functions into a common function over location
+vectors I(¯l) =∧iIi(li). Wewrite ¯l[l′
+i/li]todenotethevectorwherethe i-th
+element liof¯lis replaced by l′
+i.
+In the following, we define the semantics of a network of timed au-
+tomata.
+Definition 3. Semantics of a network of Timed Automata: Let = (L,
+l0
+i,C,A,Ei,Ii)be a network of ntimed automata. Let ¯l0= (l0
+1, . . . , l0
+n)
+betheinitiallocationvector. Thesemanticsisdefinedasatransitionsystem
+⟨S, s 0,→⟩,where S= (L 1x . . . xL n)×RCisthesetofstates, s0= (¯l0, u0)
+222
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 5 ---
+is the initial state, and →⊆S×Sis the transition relation defined by:
+•(¯l, u)→(¯l, u+d)if∀d′: 0⩽d′⩽d=⇒
+u+d′∈I(¯l), and
+•(¯l, u)→(¯l[l′
+i/li], u′)if there exists liτgrli
+is.t.
+u∈g, u′= [r7→0]u and u′∈I(l′).
+•(¯l, u)→(¯l[l′
+j/lj, l′
+i/li], u′)if there exists lic?girili
+iand
+ljc!gjrjlj
+js.t.u∈(gi∧gj),
+u′= [ri∪rj7→0]u and u′∈I(l′).
+Modelling languages usually extend timed automata with the following
+additional features:
+–binary synchronisation: channels are declared as chan c. An edge
+labelled with c! synchronises with another labelled c?. A synchronisation pair
+is chosen non-deterministically if several combinations are enabled;
+–broadcast channels: are declared as broadcast chan c. In a broadcast
+synchronisation one sender c! can synchronise with an arbitrary number of
+receivers c?. Any receiver that can synchronise in the current state must do
+so. If there are no receivers, then the sender can still execute the c! action, i.e.
+broadcast sending is never blocking;
+–initialisers: areusedtoinitialiseintegervariablesandarraysofinteger
+variables. For instance, int i:= 2;orint i[3] := {1,2,3}.
+Once defined the formal model, we need to verify the model with
+regard to a requirement specification. Similarly to the model, the requirement
+specificationmust beexpressed ina formallywell-defined language. Several
+suchlogicsexistinthescientificliterature. Inthispaper,weconsidertheTimed
+Computational Temporal Logic (TCTL) [21,25], which extends the classical
+untimed branching-time logic CTL [26] with time constraints on modalities.
+The TCTL syntax is defined by the following grammar:
+ϕ::= a| ¬ϕ|ϕ∨ϕ|EϕUIϕ|AϕUIϕ,
+where a∈AP(we denote with APa set of atomic propositions), and Iis an
+interval of R+with integral bounds.
+There are two possible semantics for TCTL, one which is said con-
+tinuous, and the other one which is more discrete and is said pointwise. We
+consider the second one, i.e., the pointwise semantic (Table 1).
+Where ϱ[π]is the state of ϱat position π, and duration ϱ⩽πis the
+prefix of ϱending at position π, and duration( ϱ⩽π) is the sum of all delays
+along ϱup to position π.
+223
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 6 ---
+Table 1. Timed temporal logic semantics
+(l, u)|=a⇐⇒ a∈(l)
+(l, u)|=a¬ϕ(l, v )⊭ϕ
+(l, u)|=ϕ∨ψ⇐⇒ (l, u)|=ϕ or(l, u)|=ψ
+(l, v)|=EϕUIψ⇐⇒ there is an infinite run ϱ in from (l, u)
+such that ϱ |=ϕUIψ
+(l, u)|=Aϕ U Iψ⇐⇒ any infinite run ϱ in from (l, u)
+is such that ϱ |=ϕUIψ
+ϱ|=ϕUIψ⇐⇒ there exists a position π > 0along ϱ such that
+varrho[π ]|=ψ, for every position 0< π′< π, ϱ[π′]|=ψ,
+andduration (ϱ⩽π)∈I.
+In the pointwise semantics, a position in a run:
+ϱ=s0τ1, e1s1τ2, e2s2. . . sn−1τn, ensn,
+is an integer iand the corresponding state si. In this semantics, formulas
+arecheckedonlyrightafteradiscreteactionhasbeendone. Sometimes,the
+pointwisesemanticsisgivenintermsofactionsandtimedwords,butitdoes
+not change anything.
+AsusuallyinCTL,TCTL: ≡a∨ ¬astandingfortrue, ≡ ¬standing
+for false, the implication ϕ⇝ψ≡(¬ϕ∨ψ), the eventual operator FIϕ≡tt
+UIϕand the global operator GIϕ≡ ¬(FI¬ϕ).
+Formulaecanbeclassifiedinto reachability, safetyandliveness. Figures
+1, 2, 3 and 4 shows examples of different path formulae.
+Reachabilityproperties: theyarelookingifwhetheragivenstatefor-
+mula, φ,possiblycanbesatisfiedbyanyreachablestate. Reachabilityprop-
+erties are often used while designing a model to perform sanity checks. We
+expressthatsomestatesatisfying φshouldbereachableusingthepathformula
+Eφ.
+Safety properties are expressed in the following form: “something bad
+will never happen”. These properties are usually formulated positively, for
+example,somethinggoodisinvariantlytrue. Forinstance,let φastateformula,
+weexpressthat φshouldbetrueinallstatesthatarereachablewiththepath
+formulae A[ ] φ.
+Livenessproperties areofthefollowingform: somethingwilleventu-
+ally happen. Liveness is expressed with the path formula A φmeaning φis
+eventually satisfied. A useful form is the leads to or response property, written
+ψ⇝φwhich is read as whenever ψis satisfied, then eventually φwill be
+satisfied.
+224
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 7 ---
+Fig. 1. A[ ] φ
+Fig. 2. A φ
+Fig. 3. E φ
+ψ
+φ
+φ φ
+Fig. 4. ψ⇝φ
+225
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 8 ---
+Once the model and temporal logic properties are defined, we need
+something enabling us to check whether the timed automata network (i.e., the
+formal model) satisfies the defined properties. To this aim, we consider formal
+verification, a system process exploiting mathematical reasoning to verify
+whether asystem underanalysis (i.e.,the model)satisfies somerequirements
+(i.e., the timed temporal properties).
+Several verification techniques have been proposed in the last years. In
+this paper, we resort to model checking [24,27].
+Inthemodelcheckingtechniquethepropertiesareformulatedintem-
+poral logic: each property is evaluated against the system. The model checker
+acceptsasinputamodelandaproperty,itreturns“true”whetherthesystem
+satisfies the formula and “false” otherwise. The performed check is an ex-
+haustive state space search that is guaranteed to terminate since the model
+isfinite. Inthispaper,weconsiderasmodelcheckerUPPAAL1[22,23,28],
+an integrated tool environment for modeling, validation and verification of
+real-timesystemsmodeledastimedautomatanetworks. Thus,thesyntaxof
+UPPAAL expression is given in Table 2.
+Table 2. Syntax of expressions in BNF
+Expression →ID|NAT
+|Expression′[′Expression′]′
+|′(′Expression′)′
+|Expression′+ +′|′+ +′Expression
+|Expression′− −′|′− −′Expression
+|Expression AssignOp Expression
+|UnaryOp Expression
+|Expression BinaryOp Expression
+|Expression′?′Expression′:′Expression
+|Expression′.′ID
+UnaryOp →′−′|′!′|′not′
+BinaryOp →′<′|′⩽′|′==′|′! =′|′⩾′|′>′
+|′+′|′−′|′∗′|′/′|′%′|′&′
+|′|′|′ˆ′|′≪′|′≫′|′%%′|′∥′
+|′<?′|′>?′|′∧′|′∨′|′⇝′
+AssignOp →′:=′|′+ =′|′−=′|′∗=′|′/=′|′% =′
+|′|=′|′% =′|′ˆ =′|′≪=′|′≫=′
+1http://www.uppaal.org/
+226
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 9 ---
+Expressions are used with the following labels:
+–guard: a particular expression satisfying the following conditions:
+(i)itisside-effectfree;(ii)itevaluatestoaboolean;(iii)onlyclocks,integer
+variables,andconstantsarereferenced(orarraysofthesetypes);(iv)clocks
+and clock differences are only compared to integer expressions; (v) guards
+overclocksareessentiallyconjunctions(disjunctionsareallowedoverinteger
+conditions);
+–synchronisation: a synchronisation label is either on the form
+Expression !or Expression ?or is an empty label. The expression must be
+side-effect free, evaluate to a channel, and only refer to integers, constants and
+channels;
+–assignment : an assignment label is a comma-separated list of expres-
+sionswithaside-effect;expressionsmustonlyrefertoclocks,integervariables,
+andconstantsandonlyassignintegervaluestoclocks. invariant: anexpression
+thatsatisfiesthefollowingconditions: itisaside-effectfree;onlyclock,integer
+variables, and constants are referenced; it is a conjunction of conditions of the
+formx < eorx⩽ewhere xis a clock reference and eevaluates to an integer.
+3. The Designed approach. In the designed approach, we consider
+thecisternlevelgaugingasfeatures. Indetails, ifthewaterdistributionsystem
+is formed by two cisterns, i.e., two features describing the water gauging in
+the two cisterns are considered.
+Thedesignedapproachconsistsoftwomainsteps: the FormalModel
+Creation (Figure 5) and the Formal Model Verification (Figure 8).
+From the water distribution system under analysis and the technical
+report, a technician marks the specific day log as irregular. The features
+gatheredfromthecisternlevelsandthelabeltomarkaspecifictraceas irregular
+are the input for the one day log stored in CSV files, containing the cistern
+gauging for one day at a fixed range time (1 hour).
+TheDiscretisation is aimed to discretise each cistern level feature. The
+numeric values are split into 3 different ranges [29]. Furthermore, each dis-
+cretised feature previously gathered is converted into a timed model. The
+discretisation process is aimed to convert continuous values into discrete ones.
+A plethora of methods were proposed by the research community for numeric
+values discretisation: in our approach, we exploit one discussed by researchers
+in[29]. Theideabehindthismethoddividesthenumericfeaturesintothree
+intervalsbyexploitingtheequal-widthpartitioningthatbasicallydividesthe
+valuesofacertainnumericvalueintothreeequal-sizeintervals. Inourcase,
+thecisternlevelcontinuousvaluesaredividedintooneofthreedifferentclasses
+(Up,Basal, and Low).
+227
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 10 ---
+Fig. 5. Formal model generation
+We compute the interval width in the following way: W= (Max −
+Min)/3, where MaxandMinindicate the maximum and the minimum
+values. The partitioning is applied to all features (i.e., the cisterns). Moreover,
+onceobtainedthediscretevaluesfromthediscretisationprocess,fromeach
+feature is generated a timed automaton (i.e., formal model in Figure 5).
+With the aim to better explain how the timed automaton is built, let
+us consider the following example. In particular, in Table 3 we represent a
+fragment of a discretised feature.
+With the first column (i.e., Timein Table 3) we are referring to the
+interval time (in the fragment 1⩽t⩽6), while with the F1andF2columns,
+we are referring to the two considered features (i.e., the cistern levels). By
+considering the fragment in Table 3, in the t3time interval, the F1reaches
+theUpvalue, while the F2feature reaches the Lowvalue. Once obtained the
+discretised values for the features (i.e., the cistern values), it is possible to
+generate the formal model. In detail, we build a timed automata network: in a
+nutshell, for each discretised feature, we generated an automaton.
+228
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 11 ---
+Table 3. A fragment related to the feature discretisation
+Time F1 F2
+t1Up Up
+t2Up Low
+t3Up Low
+t4Basal Up
+t5Low Basal
+t6Up Basal
+Byconsideringthediscretisedfragment,weshowninTable3thetimed
+automata network that is built in the following way: if the same discrete value
+is repeated in a consecutive time interval, the automaton related to the feature
+underanalysisexhibitsaloop: forinstance,theautomatonbuiltfromthe F1
+discretised feature contains a loop related to the t1,t2andt3time intervals
+(because the Updiscretised values are repeated three times). Moreover, the
+resultingautomatonforthe F2featureshowstwoloops: thefirstloopisrelated
+tothe t2andt3timeintervals(Low istherepeateddiscretevalue),whilethe
+secondloopisrelatedtothe t5andt6timeintervals,andinthislastcasethe
+repeated discrete value is Basal).
+Inordertoexitfromtheloops,aguardisexploited. Differently,with
+regardtotheenteringcondition,aninvariantisconsidered. Moreover,foreach
+automaton, we consider a number of clocks equal to two: the first clock ( x) to
+ensuretheenteringconditionintotheloopandthesecondone( y)toensure
+the exit condition. Moreover, each automaton is responsible for storing the
+count related to the respective Up,BasalandLowvalues.
+Thevaluesforthe Fxautomatonarelabelledwithasubscript x∈ {1,2}
+(weconsidertwofeatures). The schannelpermitstheautomatasynchronisation
+and, for this reason, is not stored locally. The aim of the channels is to ensure
+theautomatanetworkprogression. Thismechanismbasicallyisahand-shaking
+synchronization: two processes take a transition at the same time, the first one
+willhavean s!,whiletheotheran s?,inordertoensurethesynchronization.
+Asamatteroffact,onesenderevent s!isabletosynchronisewithanumberof
+s?receiverevents. Weresorttochannelsinordertoavertincoherencefromthe
+discretisedfeaturevaluesandtheintervaltimes. Forinstance,theautomaton
+relatedtothefirstfeatureisindicatedwith F1anditsvariablesare u1,b1andl1
+respectively for Up,BasalandLowvalues. As a consequence, the automaton
+forthesecondvariableis F1,anditsvariablesare u2,b2andl2,respectively
+forUp,BasalandLowvalues of this second automaton.
+229
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 12 ---
+Figures 6 and 7 indicate the model, respectively, gathered from the F1
+andF2discretisation. Inboththefigures,weindicatewith utheUpvalue,with
+btheBasalvalue, and with ltheLowvalue, all the three values are present in
+Table 3.
+Belowweprovideabriefexplanationaboutthe modelsrepresentedin
+Figures6and7: the F1automatonisiteratingintheloop(node1inFigure6)for
+three-time intervals (i.e., y1<3), while the F2automaton after the increment
+ofthe u1variable(node1inFigure7)isiteratingfortwo-timeintervals(i.e.,
+y2<2). Subsequently,the F1automatondoesnotexhibitanyloops,whilethe
+F2automatonisiteratingfortwo-timeintervalsintheloopinnode3inFigure
+7, and then it continues with the last node.
+1x1⩽1
+2 3 4s!
+y1>3
+u1:= 0
+b1:=b1+ 1
+y1:=b1y1<3
+u1:=u1+ 1
+y1:=u1
+s!
+s!
+b1:= 0
+l1:=l1+ 1
+y1:=l1s!
+l1:= 0
+u1:=u1+ 1
+y1:=u1
+Fig. 6. The F1model
+1 2x2⩽1
+3x2⩽1
+4s?
+u2:=u2+ 1
+y2:=u2y2<2
+u2:= 0
+l2:=l2+ 1
+y2:=l2
+s?
+s?
+y2>2
+l2:= 0
+x2:= 0
+u2:=u2+ 1
+y2:=u2y2<2
+u2:= 0
+b2:=b2+ 1
+y2:=b2
+s?
+y2>2
+b2:= 0
+Fig. 7. The F2model
+230
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 13 ---
+Once generatedthe formalmodel, the Formal ModelVerification step
+(Figure 8) is aimed at checking if the modeled water distribution system is
+violated.
+Fig. 8. Formal model verification
+231
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 14 ---
+TheFormalModelVerification receivesasinputaformalmodel(for-
+malmodel )builtinthepreviousstepandasetofproperties. Thesetoflogic
+properties is checked against the formal model generated (formal verification
+environment ) using the UPPAAL (an acronym based on a combination of
+UPPsala and AALborg universities) formal verification environment2. UP-
+PAAL represents an integrated tool environment for modeling, validation and
+verification of real-time systems modeled as networks of timed automata.
+4. Experimental evaluation. Fromthephysicallayoutpointofview,
+the following generic scenario is considered: the analysed SCADA water dis-
+tributionsystemiscomposedbyagenericwaterdistributionsystemoperator
+where, recently, has introduced a new technology to enable remote data collec-
+tionfromsensorsandremotecontrolofactuators. Afterthetechnologywas
+introduced,anomalouslevelsintwotankswereobserved;forinstance,water
+overflow in one tank occurred. By looking for the causes, experts domain sus-
+pectpotentialcyberattacks. Inparticular,theyconsidersomekindofmalicious
+behaviours [30,31] aimed to activate and deactivate the actuators.
+Thedataset3exploitedintheexperimentationofthedesignedapproach
+contains one-day logs from a water distribution system composed from the
+water levels of the two cisterns (i.e., ct1andct2).
+Wehavehourlygaugingofthewaterunder regularoperatingconditions,
+and when an overflow (OF), anunderflow (UF) or areply(R) irregular
+behaviours targeting, respectively, the ct1andct2cisterns are happening.
+Logsreferredto30daysofgaugingareconsidered: tenmarkedwiththe OF
+irregularbehaviouron ct1,tenwiththe UFirregularbehaviouron ct2andthe
+lasttendayswith reply(R)irregularbehaviouronboththe ct1andct2cisterns
+(irregularbehaviours have happenedeach day),while theremainingten days
+withoutirregularbehaviours[5,32,33]. Foreachdaylogaformalmodelis
+built. In total, we consider 40 days.
+To summarise, in the experiment, we consider 40 days: 30 days related
+toirregularbehavioursand10dayswithlegitimatebehaviours. The30days
+contain the following irregular behaviours: 10 days with overflow attack each
+day,10dayswithunderflowattackeachdayand10dayswithreplyattackeach
+day.
+4.1. The Properties. Table4indicatesthe OF,UFandRirregular
+behaviour identification properties.
+2http://www.uppaal.org/
+3http://www.batadal.net
+232
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 15 ---
+Table 4. Timed temporal logic property for OF,UFandRwater distribution
+irregular behaviour identification
+Eφ , where φ =h1⩾11
+Eχ , where χ =l2⩾9
+Eψ , where ψ =b1⩾12∧b2⩾12
+Eφ∨χ∨ψ
+Theφproperty,referredtothe OFirregularbehaviour,isabletoverify
+if anOFis in progress (i.e., when the ct1level exhibits an upvalue at least
+11 times). The UFirregularbehaviour, describedby the χproperty, isable
+toverifyifan UFisinprogress(i.e.,whenthe ct2levelexhibitsa lowvalue
+at least 9 times). The last property, i.e., ψ(for the Rirregular behaviour
+identification), is aimed to verify if both the ct1and thect2cisterns present
+thesamevalueformorethan12times. Wewanttoverifyifthe φ,theχand
+theψproperties, possibly, can be satisfied by a reachable state. We express
+thatsomestatesatisfying φshouldbereachableusingthepathproperty Eφ.
+Similarconsiderationscanbedoneforthe χandψproperties. Furthermore,
+providethepropertyexpressingthatcanhappenan OF,orUForaRirregular
+behaviours (i.e., Eφ∨χ∨ψ).
+The properties were formulated with the help of domain experts. As a
+matteroffact,thepropertiesareaimedtoexplainthedomainexpertsknowledge.
+Inparticular,thedomainexpertssuggestthatwhether ct1exhibitsforanumber
+oftimesequalorgreaterthan11anincreasingvalue,thisisreflectingofan
+overflow attack in progress, while if ct2exhibits a value that is decreasing for
+a number of times equal or greater than 9, this is reflecting in an underflow
+attack in progress. Withregard to the reply attack, expert domainssuggested
+that whether both ct1andct2are showing basal values for a number of times
+equal or greater than 12 this is symptomatic for this kind of attack in progress.
+4.2. The Experiment. The property verification outcomes are indi-
+cated in Table 5.
+WithLxwemarkthelogofthewatercisternsforasinglelog,where
+L∈{irregular, regular},xidentifies the log under analysis. The dataset
+comprises40-daylog,10exhibitingnormalbehaviour,whiletheremaining30
+areafflictedby OF,UFandRirregularbehaviours. Thecolumn( φ)identifies
+the models verified as true(✓in Table 5) or false(✗in Table 5) to the OF
+233
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 16 ---
+property,whilethecolumn( χ)identifiesthemodelsverifiedas trueorfalseto
+theUFproperty.
+From the formal verification environment output indicated in Ta-
+ble 5 we can state the φand the χare able to identify all the mod-
+els afflicted by the OFirregular behaviour (i.e., irregular1
+o,irregular2
+o,
+irregular3
+o,irregular4
+o,irregular5
+o,irregular6
+o,irregular7
+o,irregular8
+o,
+irregular9
+oandirregular10
+o). The χpropertyisableto identifyallthemod-
+els afflicted by the UFirregular behaviour (i.e., irregular1
+u,irregular2
+u,
+irregular3
+u,irregular4
+u,irregular5
+u,irregular6
+u,irregular7
+u,irregular8
+u,
+irregular9
+uandirregular10
+u). The ψproperty is able to identify all the
+models afflicted by the Rirregular behaviour (i.e., irregular1
+r,irregular2
+r,
+irregular3
+r,irregular4
+r,irregular5
+r,irregular6
+r,irregular7
+r,irregular8
+r,
+irregular9
+randirregular10
+r). Furthermore, all the models without irreg-
+ular behaviour (i.e., regular1,regular2,regular3,regular4,regular5,
+regular6,regular7,regular8,regular9andregular10)aremarkedas false
+byφ,χandψproperties.
+Moreover, we consider four different metrics to evaluate the perfor-
+mance of the proposed approach: Precision, Recall, F-Measure and Accuracy.
+The precision has been computed as the proportion of the observations
+that trulybelongto investigated logs amongall those which were assignedto
+the specific attack. It is the ratio of the number of relevant records retrieved to
+the total number of irrelevant and relevant records retrieved:
+lclPrecision =tp
+tp+fp,
+wheretpindicates the number of true positives (for instance, whether w e are
+evaluating the φformula, this value represents the number of one-day logs
+whose related overflow attack model is correctly labelled as trueby the formal
+verificationenvironment)and fpindicatesthenumberof falsepositives(for
+instance,whetherweareevaluatingthe φformula,thisvaluerepresentsthe
+number of models whose related legitimate model is wrongly labelled as true
+by the formal verification environment).
+234
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 17 ---
+Table 5. Property verification
+ModelPerformances
+φχψ
+irregular1
+o ✓ ✗ ✗
+irregular2
+o ✓ ✗ ✗
+irregular3
+o ✓ ✗ ✗
+irregular4
+o ✓ ✗ ✗
+irregular5
+o ✓ ✗ ✗
+irregular6
+o ✓ ✗ ✗
+irregular7
+o ✓ ✗ ✗
+irregular8
+o ✓ ✗ ✗
+irregular9
+o ✓ ✗ ✗
+irregular10
+o ✓ ✗ ✗
+irregular1
+u ✗ ✓ ✗
+irregular2
+u ✗ ✓ ✗
+irregular3
+u ✗ ✓ ✗
+irregular4
+u ✗ ✓ ✗
+irregular5
+u ✗ ✓ ✗
+irregular6
+u ✗ ✓ ✗
+irregular7
+u ✗ ✓ ✗
+irregular8
+u ✗ ✓ ✗
+irregular9
+u ✗ ✓ ✗
+irregular10
+u ✗ ✓ ✗
+irregular1
+r ✗ ✗ ✓
+irregular2
+r ✗ ✗ ✓
+irregular3
+r ✗ ✗ ✓
+irregular4
+r ✗ ✗ ✓
+irregular5
+r ✗ ✗ ✓
+irregular6
+r ✗ ✗ ✓
+irregular7
+r ✗ ✗ ✓
+irregular8
+r ✗ ✗ ✓
+irregular9
+r ✗ ✗ ✓
+irregular10
+o ✗ ✗ ✓
+regular1✗ ✗ ✗
+regular2✗ ✗ ✗
+regular3✗ ✗ ✗
+regular4✗ ✗ ✗
+regular5✗ ✗ ✗
+regular6✗ ✗ ✗
+regular7✗ ✗ ✗
+regular8✗ ✗ ✗
+regular9✗ ✗ ✗
+regular10✗ ✗ ✗
+235
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 18 ---
+The recall has been computed as the proportion of attacks that were
+assigned to a given class among all the attacks that truly belong to the class. It
+istheratioofthenumberofrelevantrecordsretrievedtothetotalnumberof
+relevant records:
+lclRecall =tp
+tp+fn,
+wheretpindicates the number of true positives and fnindicates the number
+of false negatives (for instance, whether we are evaluating the φformula, this
+value represents the number of one-day log whose related overflow attack
+model is wrongly labelled as falseby the formal verification environment).
+The F-Measure is a measure of a test’s accuracy. This score can be
+interpreted as a weighted average of the precision and recall:
+lclF-Measure =2 ∗Precision ∗Recall
+Precision +Recall,
+wherePrecision andRecallare obtained by following the formulae above
+explained.
+The Accuracy is the fraction of the model correctly identified, and it is
+computed as the sum of true positives and negatives divided all the evaluated
+models:
+lclAccuracy =tp+tn
+tp+fn+fp+tn,
+wheretnindicates the number of true negatives (for instance, whether we are
+evaluating the φformula, this value represents the number of one-day logs
+whose related legitimate model is correctly labelled as falseby the formal
+verification environment).
+By the metrics computation, we reach a value equal to 1for all metrics
+we have considered (i.e., Precision, Recall, F-Measure and Accuracy). This is
+symptomaticthatthedesignedapproachisabletocorrectlyidentifytheseveral
+irregular behaviours we considered in the experiment with no false positive.
+5. Conclusion and future work. The risks of an attack on SCADA
+systems are concrete and real: these are very sensitive objectives given the
+importance of the processes they govern and the impact that a disservice can
+cause on the community. Precisely, because of their structure distributed over
+the territory, hitting a SCADA system can really affect hundreds or thousands
+of other sites or plants, which in turn become unmanageable and therefore
+dangerous. There are countless organizations and goals that move interests in
+carryingoutormakingincreasinglysophisticatedactionsandattackstrategies,
+ranging from fraud and physical to creating disservices.
+236
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 19 ---
+Forthisreason,tomitigatetheirregularbehavioursincriticalinfrastruc-
+ture and, in particular, in SCADA water distribution systems, in this paper, we
+design a timed automata-based approach to identify OF,UFandRirregular
+behaviours on the water distribution system.
+WeproposeformalmodellogsobtainedfromSCADAsystemsinterms
+ofatimedautomatanetworkbyexploitingtheUPPAALformalverification
+environment.
+An accuracy equal to 1 is reached, symptomatic of the effectiveness of
+the proposed approach in attack detection in water distribution systems.
+The proposed method can be adopted for real-time irregular behaviour
+detection in critical systems while the monitored SCADA system is under
+attack. As a matter of fact, in critical contexts, it is of fundamental importance
+to identify a threat when the latter is in progress in order to minimize data and
+put the system in a position to work safely. Moreover, considering that the
+proposed approach exploits formal methods and temporal logic formula, it is
+possibletounderstandthereasonwhyacertainpropertyisresultingfalseusing
+thecounterexample. Althoughtheprincipalaimofthecounterexampleisto
+assistthedesignerinfindingthesourceoftheerrorincomplexsystemsdesign,
+thecounterexamplecanbeexploitedforotherpurposes. Forinstance,inthe
+context of the proposed method can be used to understand how many time
+intervals the property will become true, thus providing a sort of probability of
+riskthatirregularbehaviormayoccur. Thisaspectcanbeofinterestbecauseit
+canbeconsideredtoforecastfutureirregularbehaviours,thustakingmeasures
+before they can possibly take place.
+As future work, we plan to evaluate the proposed of other SCADA
+critical systems (for instance, relating to oil/gas or power management and
+distribution) withthe aim tovalidate the proposedmethod inanothercritical
+environment. Moreover,weplantoevaluatetheproposedmethodwithsystems
+withmuchfasterdynamics(forinstance,powerdistribution/generation),i.e.,
+with significantly larger models.
+References
+1.S.Cheruvu,A.Kumar,N.Smith,andD.M.Wheeler,“Conceptualizingthesecureinternet
+of things,” in Demystifying Internet of Things Security, pp. 1–21, Springer, 2020.
+2.K. Jia, J. Xiao, S. Fan, and G. He, “A mqtt/mqtt-sn-based user energy management
+systemforautomatedresidentialdemandresponse: Formalverificationandcyber-physical
+performance evaluation,” Applied Sciences, vol. 8, no. 7, p. 1035, 2018.
+3.S.A.Boyer,SCADA:supervisorycontrolanddataacquisition.InternationalSocietyof
+Automation, 2009.
+4.B. Miller and D.C. Rowe, “A survey scada of and critical infrastructure incidents.,” RIIT,
+vol. 12, pp. 51–56, 2012.
+5.R. Taormina, S. Galelli, N.O. Tippenhauer, E. Salomons, A. Ostfeld, D.G. Eliades, M.
+Aghashahi, R. Sundararajan, M. Pourahmadi, M.K. Banks, et al., “Battle of the attack
+237
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 20 ---
+detection algorithms: Disclosing cyber attacks on water distribution networks”, Journal
+of Water Resources Planning and Management, vol. 144, no. 8, p. 04018048, 2018.
+6.P.K. Hajoary and K. Akhilesh, “Role of government in tackling cyber security threat,” in
+Smart Technologies, pp. 79–96, Springer, 2020.
+7.R. Meyur, “A bayesian attack tree based approach to assess cyber-physical security of
+power system,” in 2020 IEEE Texas Power and Energy Conference (TPEC), pp. 1–6,
+IEEE, 2020.
+8.I.N.Fovino,A. Carcano,M. Masera,and A.Trombetta, “Anexperimental investigation
+of malware attacks on scada systems,” International Journal of Critical Infrastructure
+Protection, vol. 2, no. 4, pp. 139–145, 2009.
+9.A. Carcano, I.N. Fovino, M. Masera, and A. Trombetta, “Scada malware, a proof of
+concept,” in International Workshop on Critical Information Infrastructures Security, pp.
+211–222, Springer, 2008.
+10.T. Alladi, V.Chamola, and S. Zeadally, “Industrial control systems: Cyberattack trends
+and countermeasures,” Computer Communications, 2020.
+11.F.Daryabar,A.Dehghantanha,N.I.Udzir,S.binShamsuddin,etal.,“Towardssecure
+model for scada systems,” in Proceedings Title: 2012 International Conference on Cyber
+Security, Cyber Warfare and Digital Forensic (CyberSec), pp. 60–64, IEEE, 2012.
+12.T.Wu,J.F.P.Disso,K.Jones,andA.Campos,“Towardsascadaforensicsarchitecture,”in
+1st International Symposium for ICS SCADA Cyber Security Research 2013 (ICS-CSR
+2013) 1, pp. 12–21, 2013.
+13.D. Upadhyay and S. Sampalli, “Scada (supervisory control and data acquisition) systems:
+Vulnerability assessment and security recommendations,” Computers Security, vol. 89,
+p. 101666, 2020.
+14.M. Gaiceanu, M. Stanculescu, P.C. Andrei, V. Solcanu, T. Gaiceanu, and H. Andrei,
+“Intrusiondetectiononicsandscadanetworks,”inRecentDevelopmentsonIndustrial
+Control Systems Resilience, pp. 197–262, Springer, 2020.
+15.M.G. Cimino, N. De Francesco, F. Mercaldo, A. Santone, and G. Vaglini, “Model check-
+ing for malicious family detection and phylogenetic analysis in mobile environment,”
+Computers Security, vol. 90, p. 101691, 2020.
+16.L. Brunese, F. Mercaldo, A. Reginelli, and A. Santone, “Formal methods for prostate
+cancer gleason score and treatment prediction using radiomic biomarkers,” Magnetic
+resonance imaging, vol. 66, pp. 165–175, 2020.
+17.L. Brunese, F. Mercaldo, A. Reginelli, and A. Santone, “An ensemble learning approach
+forbraincancerdetectionexploitingradiomicfeatures,”Computermethodsandprograms
+in biomedicine, vol. 185, p. 105134.
+18.L. Brunese, F. Mercaldo, A. Reginelli, and A. Santone, “Prostate gleason score detection
+and cancer treatment through real-time formal verification,” IEEE Access, vol. 7, pp.
+186236–186246, 2019.
+19.F.Mercaldo,F.Martinelli,andA.Santone,“Real-timescadaattackdetectionbymeansof
+formalmethods,”in2019IEEE28thInternationalConferenceonEnablingTechnologies:
+Infrastructure for Collaborative Enterprises (WETICE), pp. 231–236, IEEE, 2019.
+20.R.AlurandD. Dill,“Automatafor modelingreal-timesystems,”inInternational Collo-
+quium on Automata, Languages, and Programming, pp. 322–335, Springer, 1990.
+21.R. Alur and D.L. Dill, “A theory of timed automata,” Theoretical computer science, vol.
+126, no. 2, pp. 183–235, 1994.
+22.G. Behrmann, K.G. Larsen, O. Moller, A. David, P. Pettersson, and W. Yi, “Uppaal-
+presentandfuture,”inProceedingsofthe40thIEEEConferenceonDecisionandControl
+(Cat. No. 01CH37228), vol. 3, pp. 2881–2886, IEEE, 2001.
+238
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 21 ---
+23.G. Behrmann, A. David, and K.G. Larsen, “A tutorial on uppaal 4.0,”Department of
+computer science, Aalborg university, 2006.
+24.G. Behrmann, A. David, and K.G. Larsen, “A tutorial on uppaal,” in Formal methods for
+the design of real-time systems, pp. 200–236, Springer, 2004.
+25.P. Bouyer, “Model-checking timed temporal logics,” Electronic Notes in Theoretical
+Computer Science, vol. 231, pp. 323–341, 2009.
+26.E.M.Clarke,E.A.Emerson,andA.P.Sistla,“Automaticverificationoffinite-stateconcur-
+rentsystemsusingtemporallogicspecifications,”ACMTransactionsonProgramming
+Languages and Systems (TOPLAS), vol. 8, no. 2, pp. 244–263, 1986.
+27.N.D.Francesco,G.Lettieri,A.Santone,andG.Vaglini,“Heuristicsearchforequivalence
+checking,” Software and System Modeling, vol. 15, no. 2, pp. 513–530, 2016.
+28.H.E.Jensen,K.G.Larsen,andA.Skou,“Scalingupuppaal,”inInternationalSymposium
+on Formal Techniques in Real-Time and Fault-Tolerant Systems, pp. 19–30, Springer,
+2000.
+29.J.Dougherty,R.Kohavi,andM.Sahami,“Supervisedandunsuperviseddiscretization
+of continuousfeatures,” in MachineLearning Proceedings 1995,pp. 194–202, Elsevier,
+1995.
+30.F. Mercaldo and A. Santone, “Deep learning for image-based mobile malware detection,”
+Journal of Computer Virology and Hacking Techniques, pp. 1–15, 2020.
+31.A. De Lorenzo, F. Martinelli, E. Medvet, F. Mercaldo, and A. Santone, “Visualizing the
+outcomeofdynamicanalysisofandroidmalwarewithvizmal,”JournalofInformation
+Security and Applications, vol. 50, p. 102423, 2020.
+32.R. Taormina, S. Galelli, N.O. Tippenhauer, A. Ostfeld, and E. Salomons, “Assessing the
+effectofcyber-physicalattacksonwaterdistributionsystems,”inWorldEnvironmental
+and Water Resources Congress 2016, pp. 436–442, 2016.
+33.E. Salomons and A. Ostfeld, “Simulation of cyber-physical attacks on water distribu-
+tionsystemswithepanet,”inProceedingsoftheSingaporeCyber-SecurityConference
+(SGCRC) 2016: Cyber-Security by Design, vol. 14, p. 123, 2016.
+Mercaldo Francesco —Ph.D.,Researcher,UniversityofMolise. Researchinterests: artificial
+intelligence, mobile computing, Android (operating system), invasive software, security of data,
+biomedical MRI, medical image processing, pattern classification. The number of publications —
+61. francesco.mercaldo@iit.cnr.it; 1, Via Francesco DeSanctis St., 86100, Campobasso, Italy;
+office phone: +3908744041, 171.
+Martinelli Fabio — Ph.D.,Dr.Sci.,Researchdirector,instituteforinformaticsandtelematics,
+National Research Council of Italy. Research interests: formal analysis of network and
+system security, security protocols, secure service, information flow analysis, PKI and trust
+management, access and usage control, web and GRID services, mobile devices, formal analysis
+of concurrent, distributed, mobile systems, program synthesis. The number of publications —
+166. fabio.martinelli@iit.cnr.it; 1, Via Giuseppe Moruzzi St., 56124, Pisa, Italy; office phone:
++390503153425, 443.
+Santone Antonella — Ph.D., Associate professor, Department of engineering, University of
+Molise. Research interests: formal description techniques, temporal logic, concurrent and dis-
+tributed systems modeling, heuristic search, formal methods for systems biology and for security
+engineering. The number of publications — 138. antonella.santone@unimol.it; 1, Via Francesco
+De Sanctis St., 86100, Campobasso, Italy; office phone: +3908744041, 171.
+239
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 22 ---
+DOI 10.15622/ia.21.2.1
+Ф. МЕРКАЛЬДО, Ф. МАРТИНЕЛЛИ, А. САНТОНЕ
+ПРОВЕРКА МОДЕЛИ ДЛЯ ОБНАРУЖЕНИЯ В РЕАЛЬНОМ
+ВРЕМЕНИ АТАК В СИСТЕМАХ РАСПРЕДЕЛЕНИЯ ВОДЫ
+Меркальдо Ф., Мартинелли Ф., Сантоне А. Проверка модели для обнаружения в
+реальном времени атак в системах распределения воды.
+Аннотация. Системы распределения воды представляют собой критическую
+инфраструктуру. Эти архитектуры очень важны, и нестандартное поведение может
+отразиться на безопасности человека. Фактически, злоумышленник, получивший контроль
+над такой архитектурой, может нанести множество повреждений как инфраструктуре, так
+и людям. В этой статье мы предлагаем подход к выявлению нестандартного поведения,
+ориентированного на системы распределения воды. Разработанный подход рассматривает
+формальную среду проверки. Журналы, полученные из систем распределения воды,
+анализируются в формальную модель, и, используя временную логику, мы характеризуем
+поведение системы распределения воды во время атаки. Оценка, относящаяся к системе
+распределения воды, подтвердила эффективность разработанного подхода при выявлении
+трех различных нестандартных режимов работы.
+Ключевые слова: критическая инфраструктура, SCADA, формальная среда верифи-
+кации, формальные методы, таймер, безопасность, охрана.
+Меркальдо Франческо — Ph.D., научный сотрудник, Университет Молизе. Область науч-
+ных интересов: искусственный интеллект, мобильные вычисления, Android (операционная
+система), инвазивное программное обеспечение, безопасность данных, биомедицинская
+МРТ, обработка медицинских изображений, классификация образов. Число научных
+публикаций — 61. francesco.mercaldo@iit.cnr.it; Виа Франческо де Санктис, 1, 86100,
+Кампобассо, Италия; р.т.: +3908744041, 171.
+Мартинелли Фабио — Ph.D., Dr.Sci., директор по исследованиям, институт информатики
+и телематики, Национальный исследовательский совет Италии. Область научных инте-
+ресов: формальный анализ сетевой и системной безопасности, протоколы безопасности,
+безопасный сервис, анализ информационных потоков, PKI и доверительное управление,
+контроль доступа и использования, веб- и GRID-сервисы, мобильные устройства, фор-
+мальный анализ параллельных, распределенных, мобильных систем, программный синтез.
+Число научных публикаций — 166. fabio.martinelli@iit.cnr.it; Виа Джузеппе Моруцци, 1,
+56124, Пиза, Италия; р.т.: +390503153425, 443.
+Сантоне Антонелла — Ph.D., доцент, инженерный факультет, Университет Молизе. Об-
+ласть научных интересов: методы формального описания, темпоральная логика, модели-
+рование параллельных и распределенных систем, эвристический поиск, формальные ме-
+тоды системной биологии и техники безопасности. Число научных публикаций — 138.
+antonella.santone@unimol.it; Виа Франческо де Санктис, 1, 86100, Кампобассо, Италия;
+р.т.: +3908744041, 171.
+240
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+
+--- Page 23 ---
+Литература
+1. S. Cheruvu, A. Kumar, N. Smith, and D.M. Wheeler, “Conceptualizing the secure internet
+of things,” in Demystifying Internet of Things Security, pp. 1–21, Springer, 2020.
+2. K. Jia, J. Xiao, S. Fan, and G. He, “A mqtt/mqtt-sn-based user energy management system
+for automated residential demand response: Formal verification and cyber-physical
+performance evaluation,” Applied Sciences, vol. 8, no. 7, p. 1035, 2018.
+3. S.A. Boyer, SCADA: supervisory control and data acquisition. International Society of
+Automation, 2009.
+4. B. Miller and D.C. Rowe, “A survey scada of and critical infrastructure incidents.,” RIIT,
+vol. 12, pp. 51–56, 2012.
+5. R. Taormina, S. Galelli, N.O. Tippenhauer, E. Salomons, A. Ostfeld, D.G. Eliades, M.
+Aghashahi, R. Sundararajan, M. Pourahmadi, M.K. Banks, et al., “Battle of the attack
+detection algorithms: Disclosing cyber attacks on water distribution networks”, Journal
+of Water Resources Planning and Management, vol. 144, no. 8, p. 04018048, 2018.
+6. P.K. Hajoary and K. Akhilesh, “Role of government in tackling cyber security threat,”
+in Smart Technologies, pp. 79–96, Springer, 2020.
+7. R. Meyur, “A bayesian attack tree based approach to assess cyber-physical security of
+power system,” in 2020 IEEE Texas Power and Energy Conference (TPEC), pp. 1–6,
+IEEE, 2020.
+8. I.N. Fovino, A. Carcano, M. Masera, and A. Trombetta, “An experimental investigation
+of malware attacks on scada systems,” International Journal of Critical Infrastructure
+Protection, vol. 2, no. 4, pp. 139–145, 2009.
+9. A. Carcano, I.N. Fovino, M. Masera, and A. Trombetta, “Scada malware, a proof of
+concept,” in International Workshop on Critical Information Infrastructures Security,
+pp. 211–222, Springer, 2008.
+10. T. Alladi, V. Chamola, and S. Zeadally, “Industrial control systems: Cyberattack trends
+and countermeasures,” Computer Communications, 2020.
+11. F. Daryabar, A. Dehghantanha, N.I. Udzir, S. bin Shamsuddin, et al., “Towards secure
+model for scada systems,” in Proceedings Title: 2012 International Conference on Cyber
+Security, Cyber Warfare and Digital Forensic (CyberSec), pp. 60–64, IEEE, 2012.
+12. T. Wu, J.F.P. Disso, K. Jones, and A. Campos, “Towards a scada forensics architecture,”
+in 1st International Symposium for ICS SCADA Cyber Security Research 2013 (ICS-
+CSR 2013) 1, pp. 12–21, 2013.
+13. D. Upadhyay and S. Sampalli, “Scada (supervisory control and data acquisition) systems:
+Vulnerability assessment and security recommendations,” Computers Security, vol. 89,
+p. 101666, 2020.
+14. M. Gaiceanu, M. Stanculescu, P.C. Andrei, V. Solcanu, T. Gaiceanu, and H. Andrei,
+“Intrusion detection on ics and scada networks,” in Recent Developments on Industrial
+Control Systems Resilience, pp. 197–262, Springer, 2020.
+15. M.G. Cimino, N. De Francesco, F. Mercaldo, A. Santone, and G. Vaglini,
+“Model checking for malicious family detection and phylogenetic analysis in mobile
+environment,” Computers Security, vol. 90, p. 101691, 2020.
+16. L. Brunese, F. Mercaldo, A. Reginelli, and A. Santone, “Formal methods for prostate
+cancer gleason score and treatment prediction using radiomic biomarkers,” Magnetic
+resonance imaging, vol. 66, pp. 165–175, 2020.
+17. L. Brunese, F. Mercaldo, A. Reginelli, and A. Santone, “An ensemble learning
+approach for brain cancer detection exploiting radiomic features,” Computer methods
+and programs in biomedicine, vol. 185, p. 105134.
+241
+_____________________________________________________________________
+Informatics and Automation. 2022. Vol. 21 No. 2. ISSN 2713-3192 (print) 
+ISSN 2713-3206 (online) www.ia.spcras.ru
+INFORMATION SECURITY
+
+--- Page 24 ---
+18. L. Brunese, F. Mercaldo, A. Reginelli, and A. Santone, “Prostate gleason score detection
+and cancer treatment through real-time formal verification,” IEEE Access, vol. 7, pp.
+186236–186246, 2019.
+19. F. Mercaldo, F. Martinelli, and A. Santone, “Real-time scada attack detection by means of
+formal methods,” in 2019 IEEE 28th International Conference on Enabling Technologies:
+Infrastructure for Collaborative Enterprises (WETICE), pp. 231–236, IEEE, 2019.
+20. R. Alur and D. Dill, “Automata for modeling real-time systems,” in International
+Colloquium on Automata, Languages, and Programming, pp. 322–335, Springer, 1990.
+21. R. Alur and D.L. Dill, “A theory of timed automata,” Theoretical computer science, vol.
+126, no. 2, pp. 183–235, 1994.
+22. G. Behrmann, K.G. Larsen, O. Moller, A. David, P. Pettersson, and W. Yi, “Uppaal-
+present and future,” in Proceedings of the 40th IEEE Conference on Decision and Control
+(Cat. No. 01CH37228), vol. 3, pp. 2881–2886, IEEE, 2001.
+23. G. Behrmann, A. David, and K.G. Larsen, “A tutorial on uppaal 4.0,”Department of
+computer science, Aalborg university, 2006.
+24. G. Behrmann, A. David, and K.G. Larsen, “A tutorial on uppaal,” in Formal methods
+for the design of real-time systems, pp. 200–236, Springer, 2004.
+25. P. Bouyer, “Model-checking timed temporal logics,” Electronic Notes in Theoretical
+Computer Science, vol. 231, pp. 323–341, 2009.
+26. E.M. Clarke, E.A. Emerson, and A.P. Sistla, “Automatic verification of finite-
+state concurrent systems using temporal logic specifications,” ACM Transactions on
+Programming Languages and Systems (TOPLAS), vol. 8, no. 2, pp. 244–263, 1986.
+27. N.D. Francesco, G. Lettieri, A. Santone, and G. Vaglini, “Heuristic search for
+equivalence checking,” Software and System Modeling, vol. 15, no. 2, pp. 513–530,
+2016.
+28. H.E. Jensen, K.G. Larsen, and A. Skou, “Scaling up uppaal,” in International Symposium
+on Formal Techniques in Real-Time and Fault-Tolerant Systems, pp. 19–30, Springer,
+2000.
+29. J. Dougherty, R. Kohavi, and M. Sahami, “Supervised and unsupervised discretization
+of continuous features,” in Machine Learning Proceedings 1995, pp. 194–202, Elsevier,
+1995.
+30. F. Mercaldo and A. Santone, “Deep learning for image-based mobile malware detection,”
+Journal of Computer Virology and Hacking Techniques, pp. 1–15, 2020.
+31. A. De Lorenzo, F. Martinelli, E. Medvet, F. Mercaldo, and A. Santone, “Visualizing the
+outcome of dynamic analysis of android malware with vizmal,” Journal of Information
+Security and Applications, vol. 50, p. 102423, 2020.
+32. R. Taormina, S. Galelli, N.O. Tippenhauer, A. Ostfeld, and E. Salomons, “Assessing the
+effect of cyber-physical attacks on water distribution systems,” in World Environmental
+and Water Resources Congress 2016, pp. 436–442, 2016.
+33. E. Salomons and A. Ostfeld, “Simulation of cyber-physical attacks on water distribution
+systems with epanet,” in Proceedings of the Singapore Cyber-Security Conference
+(SGCRC) 2016: Cyber-Security by Design, vol. 14, p. 123, 2016.
+242
+_____________________________________________________________________
+Информатика и автоматизация. 2022. Том 21 № 2. ISSN 2713-3192 (печ.) 
+ISSN 2713-3206 (онлайн) www.ia.spcras.ru
+ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ

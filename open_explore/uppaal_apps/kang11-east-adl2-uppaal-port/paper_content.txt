@@ -1,0 +1,538 @@
+--- Page 1 ---
+Verifyingfunctionalbehaviorsofautomotiveproductsin
+EAST-ADL2 using UPPAAL-PORT
+Eun-Young Kang1 2, Pierre-Yves Schobbens1, and Paul Pettersson2
+1Computer Science Faculty, Universityof Namur, Belgium
+2MDHPROGRESSResearch Centre,V ¨asters ,Sweden
+{eun-young.kang,pierre-yves.schobbens }@fundp.ac.be
+paul.pettersson@mdh.se
+Abstract. Westudytheuseofformalmodelingandveriﬁcationtechniquesatan
+early stage in the development of safety-critical automotive products wh ich are
+originally described in the domain speciﬁc architectural language EAST-A DL2.
+Thisarchitecturallanguageonlyfocusesonthestructuraldeﬁnitionoff unctional
+blocks. However, the behavior inside each functional block is not spec iﬁed and
+thatlimitsformalmodelingandanalysisofsystemsbehaviorsaswellasef ﬁcient
+veriﬁcation of safety properties. In this paper, we tackle this problem by p ropos-
+ing one modeling approach, which formally captures the behavioral exe cution
+inside each functional block and their interactions, and helps to improve the for-
+mal modeling and veriﬁcation capability of EAST-ADL2: the behavior of ea ch
+elementary function of EAST-ADL2 is speciﬁed in UPPAAL Timed Automata.
+The formal syntax and semantics are deﬁned in order to specify the beh avior
+modelinsideEAST-ADL2andtheirinteractions.Acompositionofthefunctio nal
+behaviors is considered a network of Timed Automata that enables us to ve rify
+behaviorsoftheentiresystemusingtheUPPAALmodelchecker.Theme thodhas
+been demonstrated by verifyingthe safetyof theBrake-by-wiresystem design.
+1 Introduction and MainThemes
+EAST-ADL2isanarchitecturedescriptionlanguageforthed evelopmentofautomotive
+embedded systems [1]. Advanced automotive functions [15,6 ] are increasingly depen-
+dent on software and electronics. These automotive embedde d systems are becoming
+progressively complex and critical for the entire vehicle. Model-based development
+(MBD) is a means to manage this complexity and develop embedd ed systems in a way
+that increases safety and quality. The EAST-ADL2 modeling a pproach addresses this
+topic and provides means to integrate the engineering infor mation from documents,
+spreadsheets and legacy tools into one systematic structur e, an EAST-ADL2 system
+model.
+Our aim is to use formal modeling techniques at an early stage in the development
+life cycle of automotive embedded systems, and to use symbol ic simulators and model
+checkers as debugging and veriﬁcation tools to ensure that t he predicted function be-
+haviorsofthemodeledsysteminEAST-ADL2satisfycertainr equirementsundergiven
+assumptions on the environment where thesystem issupposed tooperate.
+EAST-ADL2expressesthestructureandinterconnectionoft hesystem.Systembe-
+havior is deﬁned based on the deﬁnition of a set of elementary functional blocks and
+
+--- Page 2 ---
+their triggers and interfaces. However, the behavioral deﬁ nition inside each elementary
+functional block is not speciﬁed, which limits the automati c translation from EAST-
+ADL2 models to other formal models for efﬁcient veriﬁcation . Instead, the execution
+of each function is described with external behavioral anne xes and legacy tools includ-
+ing general UML tool and domain-speciﬁc tools, e.g., Simuli nk or UML [13]. This
+restricts the construction of a complete system behavior mo del and veriﬁcation of the
+behavior of theentiresystem model withveriﬁcation tools.
+Toachieveourgoalbyimprovingtheaforementionedrestric tion,weproposeafor-
+mal approach which facilitates the veriﬁcation of system fu nction behaviors in EAST-
+ADL2 by using UPPAAL-PORT model-checker [8]: this approach speciﬁes a behavior
+inside of each elementary function (block) in Timed Automat a (TA) and constructs a
+completesystembehaviormodelbytheparallelcomposition oflocalbehaviors.Inpar-
+ticular, we specify the execution of each function behavior in the UPPAAL-PORT TA
+modelandconsider acomposition ofthefunctionbehaviors a sanetworkofTAsothat
+the behaviors of the entire system in EAST-ADL2 can be formal ly deﬁned. Then this
+network TA can beanalyzed and veriﬁed by UPPAAL-PORT model c hecker.
+Thisworkisorganizedasfollows.Section2introducestech nologyandbackground,
+EAST-ALD2 and UPPAAL-PORT toolkit as used in our approach. S ection 3 presents
+ourapproachforverifyingsystembehaviorsinEAST-ADL2by usingUPPAAL-PORT
+model checker: this approach formally captures the behavio r inside each functional
+block and their parallel compositional interactions. Furt hermore, the formal deﬁnition
+enablestransformationofthegivenmodeltomodelsofUPPAA L-PORTtoolformodel
+checking.Insection4,ourmethodisdemonstratedinverify ingthesafetyoftheBrake-
+by-wiresystem design. Wediscuss further workand conclude inSection 5.
+2 Background
+2.1 EAST-ADL2
+The goals of modeling with EAST-ADL2 are to deal with complex ity control and
+improve safety, reliability, cost, and development efﬁcie ncy through MBD. For this,
+EAST-ADL2 structures a system model into multiple abstract ion levels in terms of the
+development lifecycle of automotive embedded systems.
+EAST-ADL2 is an information model, connecting different vi ews of the system.
+Theviews areinﬂuenced bythedifferent engineering tradit ionsand backgrounds. This
+concept allows EAST-ADL2 to handle various types of informa tion including require-
+ments,vehiclefeatures,systemenvironment,application functions,deploymentofsoft-
+ware and hardware resources, behaviors, non-functionalit y properties such as variabil-
+ity, timing constraint, dependability, and V&V related inf ormation. Abstract solution,
+design,andimplementationdetailsarefoundindifferenta bstractionlevelsinthemodel:
+the highest abstraction level, Vehicle(Feature) level , characterizes a vehicle by means
+of features and deﬁnes implementation-independent inform ation such as features and
+requirements.Fig.1depictsanoverviewofthesystemmodel andtheabstractionlevels
+of EAST-ADL2.
+AtAnalysis level , functionality is realized based on the features and requir ements.
+These features and requirements are reﬁned by the decision o f logical design with the
+deﬁnition of logical abstract functions of features and the ir interactions, and require-
+
+--- Page 3 ---
+Fig.1.Thestructureof an EAST-ADL2SystemModel
+ments. The model at this level is used for the analysis of cont rol requirements, tim-
+ing constraints, data consistency between interfaces, haz ard identiﬁcation, etc. Design
+levelcontainsconcretefunctionaldeﬁnitionaccordingtothere alizedlogicaldesign.In
+particular, functional deﬁnition of application software , functional abstraction of hard-
+ware and middleware are presented, as well as hardware archi tecture being captured
+and function-to-hardware allocation being deﬁned. Implementation level , i.e. the soft-
+ware architecture, is represented using the AUTOSAR standa rd and allocates software
+modules to a network of Electronic Control Units (ECUs) acco rding to the AUTOSAR
+standard[2].AsinFig.1,EAST-ADL2extensionsareconstru ctsforrequirements,vari-
+ability,behaviors,dependability,andV&Vactivities,et c.EAST-ADL2isintendedtobe
+an integration framework for functionality deﬁned in diffe rent notations and tools. The
+behavioral deﬁnition therefore relies on the deﬁnition of a set of elementary functions
+that are executed based on the assumption of run-to-complet ion execution (read inputs
+from ports, compute, and write outputs on ports). This is cho sen to enable analysis and
+behavioralcompositionandmakethefunctionexecutionind ependentofbehavioralno-
+tations. Detailsof those issuesareexplained inSection 3.
+2.2 UPPAAL-PORT
+UPPAAL-PORT is a model checking tool for component based mod eling, simulation,
+and veriﬁcation of real-time and embedded systems modeled a s real-time components.
+ItcanbeusedasanEclipseplugintogetherwiththeSAVEinte grateddevelopmentenvi-
+ronment(IDE)[16,17]inordertosupportgraphicalmodelin gofinternalcomponentbe-
+haviorsasanUPPAAL-PORTTAandcompositionofcomponents. Themodelchecker
+of UPPAAL-PORT veriﬁes properties expressed in a subset of t imedcomputational
+tree logic (TCTL). The current input ﬁle format for UPPAAL-PORT is a com ponent
+modeling language, SAVE-CCM [3], which describes the archi tectural framework for
+modeling real time embedded applications with particular e mphasis on automotive do-
+
+--- Page 4 ---
+C2C1(b) SAVECCM Components Model (a) Function Blocks in EAST−ADL2
+F1
+F2A2A
+(d) Target Model
+FC1
+FC2assigned(c) UPPAAL−PORT TAs
+MODEL CHECKINGformalizedaligned
+verified
+Counter Example Counter Example 
+Counter Example NoSATNoSAT
+NoSATverifiedSystem Textual Descriptions
+Functional RequirementsBehavioral Constraints
+Timing ConstraintsRefines Models
+Refines ModelsModifies/Refines Requirements
+SATQuality Requirements
+Fig.2.Methodology Roadmap
+main and safety concerns. In particular, SAVE-CCM is used to create components and
+interconnections among them, and supports run-to-complet ion semantics. We use this
+architectural framework of SAVE-CCM for mapping from funct ional blocks and their
+interconnectors in EAST-ADL2 to components and their inter connections in SAVE-
+CCM respectively.
+For analysis purpose, an UPPAAL-PORT TA model is assigned to each of the
+SAVE-CCM components in order to describe timing and functio nal behaviors of the
+component. Since EAST-ADL2 is intended for use with differe nt behavioral notations,
+UPPAAL-PORT TA is perfectly appropriate to use. This UPPAAL -PORT TA commu-
+nicateswithotheronesthroughportsandthevaluesofthepo rtsdeﬁnedbybindingTA
+variables to the ports of components, and supports synchron ous execution with other
+regular UPPAAL TA models. Thus, by deﬁning local behaviors o f each EAST-ADL2
+function block with UPPAAL-PORT TAs, their synchronous run -to-completion execu-
+tion semantics should make it possible to integrate the cont ained TA into a model rep-
+resenting the complete system. Since EAST-ADL2 also suppor ts requirements, the in-
+variantsandotherlogicalcriteriausedformodelingfunct ionbehaviorswithUPPAAL-
+PORTTAsrefertorequirementsinEAST-ADL2.TheSAVE-CCM/U PPAAL-PORTis
+not an intermediate step. It is the target model we want to bui ld as a long term goal. So
+the behaviors of a given system (functions and their interac tions) will be more effec-
+tively analyzed.
+3 Approach and Proposed Solution
+To achieve our aforementioned goal in section 1, we propose a formal approach which
+facilitates the veriﬁcation of system behaviors in EAST-AD L2 by using UPPAAL-
+PORT model-checker independently of any hardware constrai nts and topology map-
+ping. It mainly focuses on the higher level of functional beh avior of applications at
+Analysislevel intermsofits Featurelevel withthreedistinctphases–architecturaland
+
+--- Page 5 ---
+behavioralmapping,behaviorspeciﬁcation,andveriﬁcati on(modelchecking).Wewill
+discuss thosephases inmoredetail infollowing sections.
+3.1 Architecture and Behavioral Semantics Mapping
+This architectural mapping step, called A2A, is an architec ture-to-architecture repre-
+sentation from (a) to (b) in our methodology roadmap Fig.2. T he EAST-ADL2 model
+architectureframeat Analysislevel inthePapyrusUML(Fig.2-(a))ismappedtoSAVE-
+CCM architecture frame (Fig.2-(b)). However, this stage is not concerned with the ac-
+tual representation ofthe data.
+Thisstageperformsasemanticanchoringbetweenthedomain sofEAST-ADL2and
+that of SAVE-CCM. The purpose of the semantic anchoring is to map concepts from
+EAST-ADL2toSAVE-CCMinawaythatpreservesthesemanticso ftheoriginalmodel
+withoutchangingthestructureofthemodelheavily.Eachel ementary AnalysisFunction
+(AF) has its own logical execution and no internal concurren cy, therefore it maps well
+to a SAVE-CCM component. In this case, there is a convenient a nd obvious mapping
+possibility: we design a system model in SAVE-CCM from the gi ven system at Anal-
+ysis level in EAST-ADL2. We assign one SAVE-CCM component per AF elemen t in
+the EAST-ADL2 system (i.e. BreakController, ABS, etc). The original interconnectors
+and associated ports inEAST-ADL2 are mapped tothe intercon nections between ports
+of SAVE-CCM components respectively and that enables commu nication with other
+componentsaccordingtotheiroriginalAFelement.Oneormo reportsandelementsof
+EAST-ADL2 models may be realized by one port and one componen t of SAVE-CCM
+models, as these may have several signals or data elements pe r interface that are sim-
+pliﬁed(asabstracteddesign)inoneportandonecomponenti nourSAVE-CCMdesign
+model.
+Insideeach AF, thedatatransformationand itsown behavior s aredescribed asTAs
+based on the assumption of synchronous run-to-completion e xecution. There are two
+types of function interactions in EAST-ADL2: either a FlowPort interaction whereby
+a function performs a computation on provided data, or a ClientServer interaction
+whereby the execution of a service is called upon by another f unction. The Flow-
+Portinteractions are matched to the interconnections of SAVE-C CM components. The
+ClientServer interactions are explained by the execution of the TA inside a component
+and itssynchronization withother TAs.
+ThetriggeringofeachAFisdeﬁnedeitherastime-drivenore vent-drivenononeof
+theinputports.Therearetwotypesoffunctionentities,ti me-discretefunctionandtime-
+continuousfunction.Time-discretefunctionisdoneafter acomputationaldelay,i.e.ex-
+ecution time. Time-continuous function deﬁnes the transfe r function from input to out-
+put,andthecomputationrateisinﬁnite.Sincethesemantic ofAFisrun-to-completion,
+thereshouldbenoinﬁnitedelaysinthelocalUPPAAL-TAmode l,thetime-continuous
+functionisnotconcernedinoursemanticanchoringandwede alonlywithtime-discrete
+function. The time-discrete function is invoked either by t ime-triggered in which time
+alone causes execution to start, or event-triggered, which is caused by data arrival or
+calls on the input ports. Those trigger conditions are match ed to those of a clockcom-
+ponent, trigger ports and data type ports inSAVE-CCM, respe ctively.
+
+--- Page 6 ---
+3.2 Behavior Speciﬁcation
+Wehaveshownastraightforwardmappingfromtheinformalse manticsofEAST-ADL2
+to the formal semantics of SAVE-CCM. Since EAST-ADL2 allows the use of different
+behavioral notations, we capitalize on this advantage to sp ecifyFunctionBehavior by
+assigninganUPPAAL-PORTTAmodeltoeachSAVE-CCMcomponen tmappedfrom
+itscorrespondingAF(especially ADLFunctionPrototype )respectingthetriggeringdef-
+inition, and execution time of each AF as well as its requirem ents. This TA model
+encapsulates the ”execution behaviors” of AF and is used for veriﬁcation in terms of
+real-time properties by using UPPAAL-PORT model-checker. Our tooling composes
+such local automata in parallel to a composed TA (network TA) . The purpose of this
+phase is to construct a target model (Fig.2-(d)) by ﬁlling th e architectural frame model
+(Fig.2-(b))withthecorrespondingUPPAAL-PORTTAs(Fig.2 -(c)).Inthiscase,textual
+system description, quality/functional requirements and behavioral/timing constraints
+arereferredtospecify FunctionBehavior inUPPAAL-PORT TAs (Fig.2-(c)).
+We deﬁne an EAST-ADL2 model below. Essentially, this model i s a tuple/a\}bracketle{tN,CE/a\}bracketri}ht,
+whereNis a set of ADLFunctionalPrototypes AFs, and CE⊆N×Nis the set of in-
+terconnectors between AFs. Output variables of one AF may be connected to input
+variables of another AF. The clock component in SAVE-CCM [18 ] is used to deﬁne
+time-triggered activations. It periodically generates th e triggering event to activate the
+component and its connected components in a sequence by send ing a trigger signals
+through the ports. For detailed semantics of the SAVE-CCM la nguage (the subset of
+ProSave), we refer the reader to [18]. These triggering (or d ata) signals arrive at a port
+with a one-place buffer. It is stored in that buffer, and for o ther ports it is forwarded to
+connected ports.
+The behavior Binside an AF, noted /llbracketB/rrbracketAF, is modeled as an UPPAAL-PORT TA
+=/a\}bracketle{tL,l0,lf,VC,VD,E,I/a\}bracketri}ht,whereLisasetoflocations, l0∈Listheinitiallocation, lf∈L
+is the ﬁnal location, such that no edges in Eare leading out from lf, and is used to
+model the termination of an execution of AF. VCandVDis a set of clock and data
+variablesrespectively. Iassignsaninvarianttoeachofthelocations. Eisasetofedges,
+represented as lg,a,u−→l′, wherelis a source location, l′is a destination location, gis a
+guard,aisan action, uisan update.
+The execution of behavior inside FA is determined, (i.e, a SA VE-CCM component
+istriggered) intermsof triggeringvalues, whichcan be gen erated fromtheclock com-
+ponent of SAVE-CCM (named active). When the triggering value is active, the com-
+ponent is triggered via its input trigger port and its input d ata ports are mapped to data
+variables. VDin TA are updated with those variables by read-input-from-ports action,
+noted READ( Pin), (respectively write-output-to-ports , noted WRITE( Pout)), which are
+atomicandurgent(inthesensethattimeisnotallowedtopas swhenacomponentreads
+orwrites).Acomponentisinitially idleafterthereadactionitswitchestoitsexecuting
+locations until its internal computation is done. After the write action, which forwards
+data in variables via interconnections from the output port s, the component becomes
+idleagain and the trigger port is updated to inactive. Formally the behavior of AF is
+deﬁned as follows:
+Deﬁnition 1 (Behavior of AF). The behavior of AnalysisFunction AF is a tuple B=
+/a\}bracketle{tL∪{l⊥},l⊥,l0,lf,VD∪P,VC,E∪{er,ew},I⊥/a\}bracketri}htwhere
+
+--- Page 7 ---
+–l⊥istheidle location.
+–P is the set of ports of the component described as P in∪Pout∪Ptrig, where P inis a
+set of input ports, P outis a set of output ports, P trig⊆Pinis the set of trigger input
+ports.
+–er=l⊥g,r,u−→l0,ifgistriggered,risthe”read-input-from-ports”action ,READ(P in),
+and uupdatesV Dwithinput values (Pin\Ptrig).
+–ew=lfg,w,u−→l⊥,ifgistrue,wisthe”write-outputs-on-ports”action,WRI TE(Pout),
+and uresetsP trigto”inactive”
+–I⊥(l⊥)=true,I⊥=I(l)for l/nequall⊥
+TheTAofacomposition C,TA(C),isdeﬁnedasanetworkoflocalTA.For AFiand
+its corresponding component Ci∈C, the write action in TA( Ci) is extended to update
+theinputports(noted Pin.j)ofatargetcomponent Cj∈Caccordingtointerconnections
+from the out ports of Ci(notedPout.i). An interconnection connects a source port p∈
+Pout.ito a target port p′∈Pin.jwhenever variables in PinofCare enabled in a way that
+ifp′is a trigger port then p′is activated, otherwise p′=p. The edges eof TA(Ci) are
+explained withextended writeactions as follows.
+Deﬁnition 2 (ExtendedWriteActions). Thebehavior BinsideAF i,/llbracketB/rrbracketAFi,isTA(C i)
+=/a\}bracketle{tL, l0,lf,VD,VC,{XWRITE i(e)|e∈E},I/a\}bracketri}htsuch that
+–XWRITE i(lg,a,u−→l′)/defines(lg,w,u−→l′;WRITE(P out.i)),ifa=wandgistriggered(holds).
+Notethat ;isdeﬁned as sequential execution
+–XWRITE i(lg,a,u−→l′)/defineslg,a,u−→l′,for a/nequalw
+The automata TA(C) isthen thenetwork of each TA(C i)forCi∈C.
+An environment is modeled as TAEnvin a similar way. The resulting composition
+isthusdeﬁnedasthenetwork TA(C)×TAEnv,whereanyedgein TAEnvupdatingports
+PinofC,isextendedwithanupdate WRITE(Pout.Env).Thisissimilartotheadaptionof
+theXWRITE action that isused tobuild TA(Ci)inDeﬁnition 2.
+3.3 Veriﬁcation: Model Checking
+The execution of each FunctionBehavior in EAST-ADL2 is speciﬁed by UPPAAL-
+PORT TA in SAVE-CCM and its composition is considered as the n etwork TA: the
+formal semantics of SAVE-CCM used in this paper was given in s ection 3.2. For the
+semantics of the full SAVE-CCM language, we refer the reader to [7]. The entire sys-
+tem (network TA) is considered in terms of a timed transition system [18], then this
+entiresystemisveriﬁedbyUPPAAL-PORTmodel-checker.Qua lityrequirements(e.g,
+timing, safety, deadlock freedom) in terms of functional re quirements (e.g, behavioral
+constrains, timing constraints), see Fig.2-Requirements aspect, are formalized in linear
+time logics based on the UPPAAL logic, which can be veriﬁed ov er the target model
+(Fig.2-(d))by UPPAAL-PORT model checker.
+Inparticular,thequalityrequirementsarederivedfromag ivensystem’stextualde-
+scriptions. One may verify certain delay, reaction and sync hronization constraints (i.e,
+overall behavioral constraints of a system) according to th e quality requirements. For
+example, a plausible reaction constraint is 250 ms. In contr ast, functional requirements
+
+--- Page 8 ---
+Fig.3.TheBWSarchitectural model (actual screenshotfromtheSAVE-CCM modelingtool)
+describe particular constraints of a function such as timin g constraints and trigger ele-
+ments linked to an AF block. They deﬁne the triggering and exe cution time of the AF.
+UPPAAL-PORTmodelcheckerveriﬁesthosetwotypesofrequir ementsassafetyprop-
+erties in a way that (a) if a property is satisﬁed by the target model, then a functional
+requirement linked to an AF is updated to a satisfy relation a nd generic constraints of
+the AF are stored as valid invariants in the V&V structure (VV Outcome linked to the
+explained requirement, VVCase, etc) of the EAST-ADL2 model . (b) If a property is
+violated (depicted as NoSAT arrows in Fig.2) then our UPPAAL -PORT model checker
+returnssomecounterexamplesthatcanhelpanalyststoreﬁn ethebehavioralconstraints
+of the system model or modify generic constraints, and ident ify correct constraints for
+the AF that it concerns. Thus, the models in EAST-ADL2 are upd ated with the timing
+assumptions analysts make as well as theanalysis results.
+4 Current result and Example
+Our approach has been applied and demonstrated on a case stud y, the Break-by-Wire
+System(BWS),fromourindustrialpartnerVOLVO.Ithasbeenﬁ rstmodeledusingPa-
+pyrusUML[11]forEAST-ADL2intheATESST2project [1].Firs t,theBWSPapyrus
+UML model at Analysis level in EAST-ADL2 domain is translated to a SAVE-CCM
+model. This stepisdepicted inFig. 2-(a)and theresultissh own inFig. 3.
+
+--- Page 9 ---
+Fig.4.BWSDeviceSensor TA
+Secondly, FunctionBehaviors arespeciﬁedinUPPAAL-PORTTAsandthenareas-
+signed to components in the SAVE-CCM model in terms of their c orresponding func-
+tion entities in EAST-ADL2. The functional and quality requ irements of the system
+were given as either informal description in ATESST2 projec t case study reports or as
+timing/triggerconstraintsrequiremententitieslinkedt oAFsinEAST-ADL2.Thearchi-
+tecture of the system is represented by SAVE-CCM components ﬁlled with UPPAAL-
+PORT TAs.One of theTAs inthis stepisshown inFig.4.
+Finally, the requirements formalized in UPPAAL logics over the result from the
+secondstepareveriﬁedbymodel-checkingwithsomeassumpt ionswemakeregarding
+timing: there is a data ﬂow from a pedal to a brake actuator. Th e functions are periodic
+and mutually unsynchronized. A perfect clock is assumed in t he sense that it generates
+periodic triggering in order to activate (run) the componen ts with a periodicity of one
+timeunit.Eachfunctionhasitsexecutiontimewhichismode ledwithadelaylocationin
+itsTA.Basedonthoseassumptions,propertiesofsafety,de adlockfreedomandliveness
+areveriﬁed successfully.
+Data ﬂows through ports between function blocks of BWS are sim ulated by using
+the UPPAAL-PORT plug-in for the Eclipse IDE in Fig.5. The dir ection of data ﬂow is
+indicatedbythearrow.Weusethissimulatorinordertotrac eordetectfaultﬂowpaths.
+Thisisfacilitatedbyitsintuitivegraphicalinterfaceth atallowsanalyststostepforward
+and backward along the simulation. Apart from the simulatio n, we have so far veriﬁed
+28propertiesofthesystem.Alistofselectedpropertiesis givenbelowandtheirveriﬁ-
+
+--- Page 10 ---
+cation resultsareestablished as valid:
+\∗Definitionof each component
+C1=Environment
+C2=DeviceSensor
+C3=BCC:Brake calculator and controller
+C4=WheelSpeed
+C5=VehicleSpeed
+C6=ABS:Anti lock Braking System
+C7=Actuator ∗\
+–Deadlock freedom :A[ ]1not deadlock
+–Leads-to property based on the internal variables of function components: eve ry
+timethesystemisinvokedbyitsenvironmentitwilleventua llyexecuteABSwhich
+calculatesthebrakeforceaccordingtothebrakepedalposi tion,wheelspeed,vehi-
+clespeed:
+•(C1.WheelDynamic ∨C1.BrakePedal ∨C1.VehicleDynamic )
+→(C6.mode==ABS∧C6.ForceCtr)
+–Leads-to property based on the values of ports: if the BrakePedal function devi ce
+sendsoutavalueofitspositionthenthevalueshouldberece ivedbytheBrakeCon-
+trollerfunction:
+•(C1.BrakePedal ∧C1.EBPP==1)→(C3.BrakeCtr ∧C3.BCCin==1)
+–Statecorrespondencecheck:oneinternalstateofacompone ntcorrespondstowhat
+is happening in the states of other environment components. The following three
+propertiesdescribethatwhileoneofthefunctioncomponen ts,BCC,WheelSensor,
+VehicleSensor isexecuting, the other twofunction compone nts are not executing:
+•A[]C5.VSensormode =⇒(¬C4.WSensormode ∧ ¬C3.BrakeCal )
+•A[]C4.WSensormode =⇒(¬C3.BrakeCal ∧ ¬C5.VSensormode )
+•A[]C3.BrakeCal =⇒(¬C5.VSensormode ∧ ¬C4.WSensormode )
+–Execution time property: each function component should ex ecute within its given
+localexecutiontime( t=2),0≤clock≤2.Inotherwords,itshouldnotexceedits
+given local execution time:
+•A[]C7.exec=⇒(C7.clock≤2∧C7.clock≥0)
+Since the current version of UPPAAL tool only provides reach ability analysis, we
+ﬁrst veriﬁed a certain delay in an AF component, such as its lo cal execution time, as
+an invariant property. In order to verify bounded response time properties formula of
+the form f1→≤Tf2, meaning if a request (f1) becomes true at a certain time point,
+a response (f2) must be guaranteed to be true within a time bou nd (T), we apply the
+early experiments in [9], which showed how to check such prop erties with a certain
+syntactical manipulation on the system model, to our work ei ther by (1) adding ob-
+server components syntactically to the system model or (2) m aking observer automata
+and synchronizing them with the actual system automata. The n we verify if both ob-
+servers success states can be reached in parallel with the ma in actual system under the
+synchronization constraints.
+1A[ ]P:”Pholds forany reachable conﬁguration” is written A[]inUPPAAL format
+
+--- Page 11 ---
+Fig.5.BWSdata ﬂow simulationtrace usingUPPAAL-PORT
+WeconstructoneobserverTA,illustratedinFig6,whichcon tainsanobserverclock
+constraint(obsClock)asaninvariant.Thisobserverrestr ictsthetimeboundofresponse
+time (MAX TIME). By applying this observer TA in our experiment, we suc cessfully
+evaluate bounded response time properties in a way that the e rror location, which vio-
+latestheboundedtimecondition,isneverreachedfromanyl ocationofthemainactual
+system model. The veriﬁcation resultisgiven below:
+–When the brake pedal mode is activated, the actuator reacts ti mely under its given
+timebound (MAX TIME) as afailsafeagainst seriousaccident. i.e.,
+•A[ ]C1.BrakePedal =⇒(¬ObsTA.error∧C7.Actuator). The property is
+valid. In other words, if the BrakePedal function component is invoked, it
+should not reach the error location of the observer TA, which violates the
+MAXTIME bounded time condition, while the Actuator component i s exe-
+cuting.
+Search order is breadth ﬁrst and uses conservative space opt imization. The state
+spacerepresentationusesdifferenceboundmatrices(DBM) .Verifyingpropertiestakes
+an average of around 2 seconds per veriﬁed property on an Inte l T9600 2.80 GHz pro-
+
+--- Page 12 ---
+error
+run
+obsClock<=MAX_TIMEwaitForAction
+obsClock>MAX_TIME_urgent!
+obsClock=0active1
+_urgent!
+obsClock=0
+Fig.6.Observer TAof bounded responsetime properties
+cessor. The veriﬁcation tool only needs to explore a maximum of 3584 states to verify
+properties such as deadlock freedom.
+5 Related Work
+For safety-driven system development in the automotive dom ain, feature based analy-
+sis is prescribed by ISO standard as the state-of-the art app roach to functional safety.
+However at early stage it is difﬁcult to see function depende ncies that would result in
+updatedfunctionrequirements.Therefore,A.Sandbergeta l.[14]provideoneapproach
+thatperformsiterativeanalysistomanage changes inthesa fetyarchitectureatanalysis
+level and still meet function speciﬁc safety goals derived a t vehicle level. In Compari-
+sontoourwork,theirmainconcernistodeﬁnethesemanticsf orrequirementselection
+in order to ensure correct inclusion of requirements for a fu nction deﬁnition. There is
+no formalmodeling approach tothebehavioral deﬁnition of t helanguage.
+L. Feng et al. [5] bring modeling formalisms to the existing b ehavioral principle of
+the system by transforming EAST-ADL2 behavior model to the S PIN model. Thus the
+requirements on the system design can be veriﬁed by model che cking. In contrast to
+our work, there is no notion for the timing constraints in the behavior model. Indeed,
+formal analysis on the real-time properties of the behavior model is not considered at
+all.
+6 Conclusion and Future work
+In this paper, we studied the use of formal modeling and veriﬁ cation techniques at an
+early stage in the development of safety-critical automoti ve products which are origi-
+nallydescribedintheEAST-ADL2architecturallanguage.Wh ileEAST-ADL2focuses
+on the structural deﬁnition of functional block, we propose a method to formally spec-
+ify behaviors inside each functional block in TAs mainly at Analysis level in terms of
+Feature level in EAST-ADL2, and verify them by using the UPPAAL-PORT model
+checker. The formal syntax and semantics of functional beha viors are deﬁned. A com-
+positionofthosebehaviorsisconsideredasanetworkofTAt hatallowsustoverifythe
+entire system using the UPPAAL-PORT model checker. Moreove r, this paper presents
+
+--- Page 13 ---
+atechniquetoverify boundedresponsetimeproperties byaddingobservercomponents
+or TA syntactically to the system model and synchronize them in parallel with the ac-
+tual system automata. The contribution improves behavior m odeling, veriﬁcation and
+analysis capability of EAST-ADL2, and the result shows the a pplicability of model
+checking in safety-critical automotive products. We start ed from the informal descrip-
+tion of quality and functional requirements in order to mode l the execution behaviors
+ofADLFunctions and manually speciﬁed them in TAs. A possible further work wo uld
+be to deﬁne a formal, real-time semantics of UML diagrams so t hat engineers can use
+thisfamiliarlanguage. They can then be translatedautomat ically toTAs.
+In future works, we plan to extend our work: (1) From tooling p erspective, in Pa-
+pyrus (an Eclipse based tool platform for EAST-ADL2), UML mo deling tools and
+domain-speciﬁc tools, e.g. Simulink, are used as external t ools. They describe the data
+transformationinsideeachAFandexchangeinformationvia Plugins.Thus,anUPPAAL-
+PORT, which is in fact also an Eclipse based Plugin tool, woul d be developed as an
+EAST-ADL2 Plugin and be integrated with other EAST-ADL2 too ls for analysis. The
+analysis invariants and outcome should be recorded in the EA ST-ADL2 structure as
+valid constraints for requirements and V&V. Ideally this pr ocess should be done fully
+automatically. (2) Another future work encludes more elabo rated veriﬁcation of non-
+functional properties, and more reﬁned conﬁgurations of th e generated model. For ex-
+ample, minimizing the use of certain resources, such as CPU, energy, memory, etc,
+while preserving functional correctness, timing requirem ents and other resource con-
+straints. The results presented here are promising steps to wards these goals. (3) Since
+the current UPPAAL tool only provides reachability analysi s, observer TAs were used
+to verifybounded response time properties in this work. In order to extend this restric-
+tion, Memory Event Clocks Temporal Logic (MECTL) formula, c reated in our early
+work [12,10], will be adapted to improve fully decidable rea l-time expressiveness, us-
+ing a tool chain that employs the UPPAAL model checker to veri fy properties on a
+system.
+Furthermore, we plan to study a new design interface theory f or timed-component
+systems[4],consideredasTimedI/Oautomatawithgamesema ntic,thatwouldsupport
+compositional design and veriﬁcation of timed component-b ased embedded systems.
+We will employ an extended UPPAAL-TIGA, which is an engine fo r solving timed
+games inorder tomanipulate thisdesign methodology.
+7 Acknowledgement
+This work was funded by PROGRESS Research Centre at MDH in Swe den, FUNDP
+PRECISE Research Center in Information Systems Engineerin g (CERUNA project)
+Namur University, and Belgian Science Policy (MoVES projec t). We also wish to ac-
+knowledge the participation of collaborator Volvo Technol ogy Corporation from Swe-
+den. Special thanks to Henrik L ¨onn and Lei Feng (Volvo Technology Corporation,
+Gothenburg, Sweden) for theirvaluable feedback.
+References
+1. Advancing Trafﬁc Efﬁciency and Safety through Software Techno logy Phase 2 (European
+project),2010. http://www.atesst.org.
+2. AUTomotive Open SystemArchitecture, 2010. http://www.autosar.org .
+
+--- Page 14 ---
+3. Jan Carlson, John Hkansson, and Paul Pettersson. SaveCCM: An analysable component
+model for real-time systems. In Z. Liu and L. Barbosa, editors, Proceedings of the 2nd
+Workshop on Formal Aspects of Components Software (FACS 2005) , volume 160 of Elec-
+tronicNotesin Theoretical Computer Science , pages 127–140. Elsevier,2006.
+4. AlexandreDavid,KimG.Larsen,AxelLegay,UlrikNyman,andAnd rzejWasowski. Timed
+i/oautomata:acompletespeciﬁcationtheoryforreal-timesystems. In HybridSystems ,pages
+91–100, 2010.
+5. Lei Feng, DeJiu Chen, H. L ¨onn, and M. T ¨orngren. Verifying system behaviors in east-
+adl2 with the SPIN model checker. In IEEE International Conference on Mechatronics and
+Automation ,Xi’an China,August2011.
+6. KlausGrimm. Softwaretechnologyinanautomotivecompany-majorch allenges. Software
+Engineering,International Conference on ,0:498, 2003.
+7. John Hkansson. Design and veriﬁcation of component based real-time systems . PhD thesis,
+UppsalaUniversity, 2009.
+8. JohnHkansson,JanCarlson,AurelienMonot,andPaulPettersson . Component-baseddesign
+and analysis of embedded systems with uppaal port. In Sungdeok Cha, Jin-Young Choi,
+Moonzoo Kim, Insup Lee, and Mahesh Viswanathan, editors, 6th International Symposium
+on Automated Technology for Veriﬁcation and Analysis , pages 252–257. Springer-Verlag,
+October 2008.
+9. Magnus Lindahl, Paul Pettersson, and Wang Yi. Formal design and a nalysis of a gear con-
+troller. In Proceedingsof4thInternationalWorkshoponToolsandAlgorithmsforT heCon-
+struction and Analaysis of Systems , volume 1384 of Electronic Notes in Theoretical Com-
+puter Science , pages 281–297. Springer Verlag, 1998.
+10. James Jerson Ortiz, Axel Legay, and Pierre-Yves Schobbens. Memory event clocks. In
+Proceedings of the 8th international conference on Formal modeling and analysis of timed
+systems,FORMATS’10,pages 198–212, Berlin,Heidelberg, 2010. Springer -Verlag.
+11. Open SourceToolfor Graphical UML2Modeling, 2010. http://www.p apyrusuml.org.
+12. Jean-Franc ¸ois Raskin and Pierre-Yves Schobbens. State clock logic: A decidable real-time
+logic. In Proceedings of the International Workshop on Hybrid and Real-Time Sy stems,
+pages 33–47, London,UK, 1997. Springer-Verlag.
+13. James Rumbaugh and Ivar Jacobson. United Modeling Language User Guide . Addison-
+Wesley, 2nd edition,1998.
+14. Anders Sandberg, DeJiu Chen, Henrik L ¨onn, Rolf Johansson, Lei Feng, Martin T ¨orngren,
+Sandra Torchiaro, Ramin Tavakoli-Kolagari, and Andreas Abele. Mod el-based safety engi-
+neering of interdependent functions in automotive vehicles using east-a dl2. InProceedings
+of the 29th international conference on Computer safety, reliability, and sec urity, SAFE-
+COMP’10,pages 332–346, Berlin,Heidelberg, 2010. Springer-Ver lag.
+15. Alberto Sangiovanni-Vincentelli and Marco Di Natale. Embedded sys tem design for auto-
+motiveapplications. Computer ,40(10):42–51, 2007.
+16. SAVE-IDEproject atsourcenet. http://sourceforge.net/projects/s ave-ide/.
+17. Severine Sentilles, John Hkansson, Paul Pettersson, and Ivica Cr nkovic. SAVE-IDE, an
+integrated development environment for building predictable componen t-based embedded
+systems. In Proceedings of the 23rd IEEE/ACM International Conference on Automa ted
+SoftwareEngineering(ASE2008) , September 2008.
+18. Jagadish Suryadevara, Eun-Young Kang, Cristina Seceleanu, a nd Paul Pettersson. Bridging
+the semantic gap between abstract models of embedded systems. In Lar s Grunske and Ralf
+Reussner,editors, 13thInternationalSymposiumonComponentBasedSoftwareEngineerin g
+(CBSE).Springer LNCS,vol6092, June2010.
