@@ -1,0 +1,502 @@
+--- Page 1 ---
+Model Checking Techniques applied to the design of Web Servi ces
+Gregorio D´ ıaz, M. Emilia Cambronero, Juan J. Pardo ,
+Valent´ ın Valero and Fernando Cuartero
+Department of Computer Science, Univ. of Castilla La Mancha
+EPSA, Avd. Espa˜ na s/n, Albacete, Spain, 02071.
+email: [gregorio,emicp,jpardo,valentin,fernando]@inf o-ab.uclm.es
+May 10, 2007
+Abstract
+In previous work we have presented the generation of WS-CDL a nd WS-BPEL documents.
+In this paper we show the uniﬁcation of both generations. The aim is to generate correct
+WS-BPEL skeleton documents from WS-CDL documents by using t he Timed Automata as an
+intermediary model in order to check the correctness of the g enerated Web Services with Model
+Checking Techniques. The model checker used is UPPAAL, a wel l known tool in theoretical and
+industrial cases that performs the veriﬁcation and validat ion of Timed Automata. Note that
+our interest is focused on Web services where the time constr aints play a critical role.
+1 Introduction
+Web Service technology is a framework, in which the study of d esign errors can become a master
+piece, due to the big amount of money and other resources spen t on it. Recent studies have been
+realized about the acceleration of the increasing of the per cent of gross domestic product that e-
+commerce represents for the world economy. Thus, possible e rrors on the technologies supporting
+this framework could cause a big cost, not just economically , but also sociologically. For instance,
+you can think of an e-stock market, where, due to a design erro r, the system always forces all
+transactions to use the most expensive seller. This situati on can avoid the money saving for
+users of this platform. Then, it is economically feasible th e use of algorithms, methodologies and
+techniques in order to allow system designers to determine w hether designs are free of errors or
+not.
+In Web Services the design phase is the most important phase f or Choreography and Orches-
+tration layers, ﬁgure 1. These layers describe the behavior s of each participant in a Web Service.
+In brief the Choreography describes the general behavior an d the Orchestration describes each
+particular behavior. Thus an important goal is the validati on and Veriﬁcation of these layers in
+order to prove their correctness.
+There is growing consensus that the use of formal methods, de velopment methods based on some
+formalism, could have signiﬁcant beneﬁts in developing E-b usiness systems due to the enhanced
+rigor these methods bring [7, 10]. Furthermore, these forma lisms allow us to reason with the
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 2 ---
+Trasport HTTP,□BEEP,□IIOP,□JMS,□SMTPXML,□EncodingsSOAP
+TrasportDescription WSDLDiscovery UDDIReliable
+Messaging
+ContextTransactions
+CoordinationQuality□of
+ServiceSecurityQuality□of
+Service
+Business□Process□Languages:
+BPEL,□CI,□XPDL,□BPMLBusiness□Collaboration□Language:
+Choreography□Description□Language
+Figure 1: The Stack Protocol for WS.
+constructed models, analysing and verifying some properti es of interest of the described systems.
+One of these formalisms are timed automata [1], which are ver y widely used in model checking [4],
+and there are some well-known tools supporting them, like UP PAAL [9].
+Web services choreography and orchestration layers are the highest layers of the web services
+framework and they have the proper level of abstraction that is necessary due to the veriﬁca-
+tion complexity. Thus, our goal with this work is to generate “correct” web services by applying
+formal techniques. In order to achieve it, we will describe t he translation processes from choreogra-
+phy speciﬁcations written in Web Services Choreography Description Language (WS-CDL) [8] into
+Timed Automata UPPAAL XML format and from Timed Automata int o orchestration speciﬁca-
+tions written in web services business process execution language (WS-BPEL )[2]. However, before
+the translation between Timed Automata and WS-BPEL, we must verify the time restrictions that
+the web service must fulﬁll.
+To illustrate this methodology, we use a particular case stu dy, an airline ticket reservation
+system, whose description contains some time constraints.
+The paper is structured as follows. In Section 2, we describe the main features of WS-CDL and
+WS-BPEL. The translation of WS-CDL documents into Timed Aut omata is presented in Section
+3. In Section 4 we apply the ﬁrst translation to the case study , and the UPPAAL tool is used to
+describe, simulate and analyze the timed automata obtained . The generation of WS-BPEL from
+timed automata is presented in section 5. Finally, the concl usions and future work are presented
+in Section 6.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 3 ---
+Choreography Layer
+WS-CDLOrchestration□Layer
+WS-BPEL
+DIRECTOR
+WS-CDL
+DOCWIND
+WS-BPEL
+DOCPERCUSSION
+WS-BPEL
+DOC
+STRINGS
+WS-BPEL
+DOCORCHESTRA
+Figure 2: WS-CDL and WS-BPEL relationship.
+2 WS-CDL and WS-BPEL Descriptions
+Figure 2 illustrates the relationship between WS-CDL, the c horeography layer and the orchestra-
+tion level (WS-BPEL), taking an orchestra as a metaphor of th is relation. The key document
+is the director score, which corresponds to the WS-CDL docum ent, in which each participant is
+represented as well as the time it enters into action. Furthe rmore, the wind, percussion and strings
+scores correspond to the WS-BPEL documents, which show the b ehaviour of each particular group.
+2.1 WS-CDL Description
+WS-CDL describes interoperable collaborations between pa rties. In order to facilitate these col-
+laborations, services commit themselves to mutual respons ibilities by establishing Relationships.
+Their collaboration takes place in a jointly agreed set of or dering and constraint rules, whereby
+information is exchanged between the parties. The WS-CDL mo del consists of the following entities:
+•Participant Types, Role Types and Relationship Types. Within a Choreography,
+information is always exchanged between parties within or a cross trust boundaries. A Role
+Type enumerates the observable behavior a party exhibits in order to collaborate with other
+parties. A Relationship Type identiﬁes the mutual commitme nts that must be made between
+two parties for them to collaborate successfully. A Partici pant Type is grouping together
+those parts of the observable behavior that must be implemen ted by the same logical entity
+or organization.
+•Information Types, Variables and Tokens. Variables contain information about com-
+monly observable objects in a collaboration. Tokens are ali ases that can be used to reference
+parts of a Variable. Both Variables and Tokens have Types tha t deﬁne the structure of what
+the Variable contains or the Token references.
+•Choreographies deﬁne collaborations between interacting parties:
+– Choreography Life-line expresses the progression of a collaboration. Initially, t he
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 4 ---
+collaboration is established between parties, then work is performed within it and ﬁnally
+it completes either normally or abnormally.
+– Choreography Exception Block speciﬁes what additional interactions should occur
+when a Choreography behaves in an abnormal way.
+– Choreography Finalizer Block describes how to specify additional interactions that
+should occur to modify the eﬀect of an earlier successfully c ompleted Choreography, for
+example to conﬁrm or undo the eﬀect.
+•Channels realize a point of collaboration between parties by specify ing where and how
+information is exchanged.
+•Work Units prescribe the constraints that must be fulﬁlled for making p rogress and thus
+performing actual work within a Choreography.
+•Activities and Ordering Structures. Activities are the lowest level components of the
+Choreography that perform the actual work. Ordering Struct ures combine activities with
+other Ordering Structures in a nested structure to express t he ordering conditions in which
+information within the Choreography is exchanged.
+•Interaction Activity is the basic building block of a Choreography, which results in an
+exchange of information between parties and possible synch ronization of their observable
+information changes and the actual values of the exchanged i nformation.
+•Semantics allow the creation of descriptions that can record the seman tic deﬁnitions of every
+component in the model
+In Figure 3 we can see a detailed piece of the WS-CDL document d escribing our study case.
+It describes part of the relationship between the Airline an d the Travel Agent. The interaction
+determines the time that the reservation is available, name ly, one day.
+2.2 WS-BPEL Description
+The Web Services Orchestration speciﬁcation is aimed at bei ng able to precisely describe the behav-
+ior of any type of party and the collaboration among them, reg ardless of the supporting platform
+or programming model used by the implementation of the hosti ng environment.
+WS-BPEL is an interface description language and describes the observable behavior of a ser-
+vice by deﬁning business processes consisting of stateful l ong-running interactions in which each
+interaction has a beginning, a deﬁned behavior and an end, al l of this being modelled by a ﬂow,
+which consists of a sequence of activities. The behavior con text of each activity is deﬁned by a
+scope, which provides fault handlers, event handlers, comp ensation handlers, a set of data variables
+and correlation sets.
+Let us now see a brief description of these components:
+•Events , describe the ﬂow execution in an event driven manner.
+•Variables , are deﬁned by using WSDL schemes, for internal or external p urposes, and are
+used in the message ﬂow.
+•Correlations , identify processes interacting by means of messages.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 5 ---
+<interaction
+name="reservation&booking" align="true"
+channelVariable="travelAgentAirlineChannel"
+operation="reservation&booking" initiate="true">
+<participate
+relationshipType="TravelAgentAirline"
+fromRole="TravelAgent" toRole="Airline" />
+<exchange name="reservation"
+informationType="reservation" action="request">
+<send variable="tns:reservationOrderID"
+causeException="true" />
+<receive variable="tns:reservationAckID"
+causeException="true" />
+</exchange>
+<timeout time-to-complete="24:00" />
+<record name="bookingTimeout"
+when="timeout" causeException="true" />
+<source variable=
+"AL:getVariable(’tns:resOC’, ’’, ’’)" />
+<target variable=
+"TA:getVariable(’tns:resOC’, ’’, ’’)" />
+</record>
+</interaction>
+Figure 3: Part of WS-CDL especiﬁcation
+/c167/c32Time RestrictionsChoreography Layer
+WS-CDLOrchestration□Layer
+WS-BPEL
+TIMED
+AUTOMAXSLT
+XSLT
+Figure 4: From WS-CDL to WS-BPEL.
+•Fault handling , deﬁnes the behavior when an exception has been thrown.
+•Event handling , deﬁnes the behavior when an event occurs.
+•Activities , represent the basic unit of behavior of a Web Service. In ess ence, WS-BPEL
+describes the behavior of a Web Service in terms of choreogra phed activities.
+3 Translation from WS-CDL to Timed Automata
+Figure 4 depicts the translation processes that we present. In this ﬁgure, we can also see that
+WS-CDL documents are translated into timed automata in a ﬁrs t step and in a second step the
+timed automata latter are translated into WS-BPEL document s. We now present the automatic
+translation from WS-CDL documents into timed automata that we have presented in [6]. For this
+purpose, we must ﬁrst analyze the WS-CDL documents in order t o identify the common points
+shared between them. The ﬁrst stage is to obtain the general s tructure describing the system that
+we are analyzing. In timed automata, this structure is deﬁne d by the so-called System , which
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 6 ---
+consists of the individual processes that must be executed i n parallel. Each one of these processes
+is deﬁned by using a template. Templates are used to describe the diﬀerent behaviors that are
+available in the system.
+Then, for each component of a WS-CDL description we have the f ollowing correspondence in
+timed automata (see Fig. 5 for a schematic presentation of th is correspondence):
+Roles : These are used to describe the behavior of each type of party that we are using in the
+choreography. Thus, this deﬁnition matches with deﬁnition of atemplate in timed automata
+terminology.
+Relation types : These are used to deﬁne the communications between two role s, and the chan-
+nels needed for these communications. In timed automata we j ust need to assign a new
+channel for each one of these channels, which are the paramet ers of the templates that take
+part in the communication.
+Participant types : These deﬁne the diﬀerent parties that participate in the ch oreography. In
+timed automata they are processes participating in the syst em.
+Channel types : A channel is a point of collaboration between parties, toge ther with the spec-
+iﬁcation of how the information is exchanged. As mentioned a bove, channels of WS-CDL
+correspond with channels of timed automata.
+Variables : They are easily translated, as timed automata in UPPAAL sup port variables, which
+are used to represent certain information.
+Now the problem is to deﬁne the behavior of each template. Thi s behavior is deﬁned by using
+the information provided by the ﬂow of choreographies. Chor eographies are sets of workunits or sets
+of activities. Thus, activities and workunits are the basic components of the choreographies, and
+they capture the behavior of each component. Activities can be obtained as result of a composition
+of other activities, by using sequential composition, para llelism and choice. In terms of timed
+automata these operators can be easily translated:
+•The sequential composition of activities is translated by c oncatenating the corresponding
+timed automata.
+•Parallel activities are translated by the cartesian produc t of the corresponding timed au-
+tomata.
+•Choices are translated by adding a node into the automata whi ch is connected with the initial
+nodes of the alternatives.
+Finally, time restrictions are associated in WS-CDL with wo rkunits and interaction activities.
+These time restrictions are introduced in timed automata by means of guards and invariants.
+Therefore, in the case of a workunit of an activity having a ti me restriction we associate a guard
+to the edge that corresponds to the initial point of this work unit in the corresponding timed
+automaton.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 7 ---
+Role = Template
+Relation Type = Channel+
+Participant Type = Process+
+Channel Type = Channel
+Variables = Variables
+Choreography = Choreography+|Activity
+Activity = Work Unit |Sequence |Paralelism |Choice
+Sequence = Activity+
+Paralelism = Activity+
+Choice = Activity+
+Work Unit = State & Guard & Invariant
+where the symbols +, |are BNF notation,
+em and & is used to join information
+Figure 5: Schematic view of the translation.
+4 The veriﬁcation of the Case Study
+Some examples of the use of WS-CDL can be found in [3, 5]. The ca se study that we are going to
+use to illustrate how the translation works is closely linke d to [5], where this particular case study
+was used to illustrate how timed automata can be used for the f ormal veriﬁcation of properties for
+WS-CDL documents.
+This system consists of three participants: a Traveller, a T ravel Agent and an Airline Reservation
+System, whose behavior is as follows:
+A Traveller is planning on taking a trip. Once he has decided t he concrete trip he wants to
+make he submits it to a Travel Agent by means of his local Web Se rvice software ( Order Trip ).
+The Travel Agent selects the best itinerary according to the criteria established by the Traveller.
+For each leg of this itinerary, the Travel Agent asks the Airl ine Reservation System to verify the
+availability of seats ( Verify Seats Availability ).
+Thus, the Traveller has the choice of accepting or rejecting the proposed itinerary, and he can
+also decide not to take the trip at all.
+•In the case where he rejects the proposed itinerary, he may su bmit the modiﬁcations ( Change
+Itinerary ), and wait for a new proposal from the Travel Agent.
+•In the case where he decides not to take the trip, he informs th e Travel Agent ( Cancel
+Itinerary ) and the process ends.
+•In the case where he decides to accept the proposed itinerary (Reserve Tickets ), he will
+provide the Travel Agent with his Credit Card information in order to properly book the
+itinerary.
+Once the Traveller has accepted the proposed itinerary, the Travel Agent connects with the
+Airline Reservation System in order to reserve the seats ( Reserve Seats ). However, it may occur
+that at that moment no seat is available for a particular leg o f the trip, because some time has
+elapsed from the moment in which the availability check was m ade. In that case the Travel Agent
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 8 ---
+x<24check_seats? available_seat!
+reserve_seat?
+reserve_seat_ok!
+x:=0
+x<24
+book_seat?no_available_seat!
+x==24timeout!
+x<24
+cancel_reserve_seat?
+cancel_reserve_seat_ok!book_seat_ok!receive_tickets!
+book_seat_no!reserve_seat_no!
+Figure 6: Timed automata for airline Reservation System.
+is informed by the Airline Reservation System of that situat ion (No seats ), and the Travel Agent
+informs the Traveller that the itinerary is not possible ( Notify of Cancellation ).
+Once the reservation is made the Travel Agent informs the Tra veller ( Seats Reserved ). However,
+this reservation is only valid for a period of one day, which m eans that if a ﬁnal conﬁrmation has
+not been received in that period, the seats are unreserved an d the Travel Agent is informed. Thus,
+the Traveller can now either ﬁnalize the reservation or canc el it. If he conﬁrms the reservation
+(Book Tickets ), the Travel Agent asks the Airline Reservation System to ﬁn ally book the seats
+(Book Seats ).
+4.1 Translation of the Case Study
+Figure 3 presents a detailed piece of the WS-CDL document des cribing the example that we have
+used to obtain the translation into timed automata. Followi ng the guidelines described above we
+have obtained in this case three timed automata: the travele r, the travel agent and the airline
+company. These automata are shown in Figures 6, 7 and 8. Notic e the use of the clock xin the
+timed automaton corresponding to the airline reservation s ystem, which is used to control when
+the reservation expires. This clock is initialized when the action reserved seatis carried out.
+4.2 Simulation and Veriﬁcation
+In the simulation we can check whether the model keeps the sys tem behavior or not. This can
+partially be done by means of simulations. These are made by c hoosing diﬀerent transitions and
+delays along the system evolution. At any moment during the s imulation, you can see the variable
+values and the enabled transitions. Thus, you can choose the transition that you want to execute.
+Nevertheless, you can also select the random execution of tr ansitions, and thus, the system evolves
+by executing transitions and delays which are selected rand omly. We have some other options in
+the Simulator. For example, you can save simulation traces t hat can later be used to recover an
+speciﬁc execution trace. Actually, the simulation is quite ﬂexible at this point, and you can move
+back or forward in the sequence.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 9 ---
+ordertrip!
+available!
+cancel_itinerary?change_itinerary?
+reserve_tickets?
+reserve_seat! reserve_seat_no?
+reserve_seat_ok? timeout?
+notify_timeout!check_seats!available_seat?
+no_available_seat?no_available!
+book_seat!book_seat_ok?receive_statement!
+cancel_reserve_seat!cancel_reserve_seat_ok?accept_cancel!
+book_seat_no?book_ticket?
+cancel_reservation?timeout?no_reservation!
+no_reservation!
+Figure 7: Timed automata for Travel agent web service.
+Startordertrip?available?
+change_itinerary!
+cancel_itinerary!
+reserve_tickets!
+cancel_reservation!book_ticket!
+receive_statement?notify_timeout?
+receive_tickets?
+accept_cancel?no_available?
+no_reservation?no_reservation?
+Figure 8: Timed automata for traveler.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 10 ---
+Then, with respect to our study case, our main goal in the vali dation phase is to check the
+correctness of the message ﬂow and time-outs, taking into ac count the protocol deﬁnition. Having
+made a number of simulations, we have concluded that the syst em design satisﬁes the expected
+behavior in terms of the message ﬂow between the parties.
+Before starting the automatic veriﬁcation, we must establi sh the properties that the model must
+fulﬁll. We have divided these properties into three classes : Safety, Liveness and Deadlocks. These
+properties are speciﬁed by means of a Temporal Logic . The temporal Logic used by UPPAAL is
+described in [9].
+Safety Properties allow us to check if our model satisﬁes some security restric tions. For
+example, if we have two trains that have to cross the same brid ge, a security property is that both
+trains cannot cross the bridge at the same time: ∀/square¬(Train 1.crossing ∧Train 2.crossing ) or
+¬∃♦(Train 1.crossing ∧Train 2.crossing )
+The main Safety properties are:
+•The TravelAgent always sends the itinerary on the traveler’ s demand:
+∀/squareTraveler.Itinerary ⇒ (1)
+TravelAgent.sendItinerary
+•The TravelAgent always changes the itinerary on the travele r’s demand:
+∀/squareTraveler.ChangeItinerary ⇒ (2)
+TravelAgent.PerformChange
+•The TravelAgent always cancel the reservation on the travel er’s demand:
+∀/squareTraveler.CancelReservation → (3)
+(TravelAgent.CancelReservtRcv ∧
+Airline.PerformCancel ∧
+Airline.Clockx < 24)
+•A reservation is only available 24 hours before performing t he booking:
+∀/square(TravelAgent.Booking ∧ (4)
+Airline.ReceiveBoking ∧
+Airline.ClockX < = 24)
+•A Traveler always receive theirs ticket and statement after perform the payment:
+∀/squareTraveler.PaymentPerform → (5)
+(Traveler.Finish ∧Airline.SnddTckt ∧
+TravelAgent.SenddSttment )
+Liveness Properties are used to check that our model can evolve in the right order. Returning
+to the train example, if a train approaches the bridge, some t ime later, the train could cross it.
+Train.approach →Train.crossed
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 11 ---
+Liveness Properties for our model are simple. For example, i f a Traveler sends a trip demand,
+some time later, the TravelAgent will send the itineraries. Translating it into Temporal Logic we
+have:
+Traveler.PlanOrder −→TravelAgent.SendItinerary (6)
+Or for example, if a Traveler makes a booking, within 24 hours after the reservation, the Airline
+performs the booking. Translating it into Temporal Logic we have:
+(Traveler.BookOdr ∧Airline.ClockX < 24)− → (7)
+Airline.PerformBook
+Deadlocks are clear restrictions. We could check if our model is deadlo ck-free:
+∀/square¬Deadlock (8)
+5 Translation from Timed Automata into WS-BPEL
+For each component of timed automata we have the following co rrespondence in WS-BPEL speci-
+ﬁcation:
+Templates and Processes : These are used to describe the behavior of each type of party that
+we are using in the choreography. Thus, this deﬁnition match es with the deﬁnition of a process
+in WS-BPEL terminology.
+Synchronization : These are used to deﬁne the communications between two auto mata tem-
+plates, and the constraints needed for these communication s. In WS-BPEL we just need to
+assign a correlation set for each one of these synchronizati ons.
+Channel : The channel is a point of collaboration between parties, to gether with the speciﬁcation
+of how the information is exchanged. Channels of Timed Autom ata correspond with ports of
+WS-BPEL.
+Variables : These are easily translated, as WS-BPEL supports variable s, which are used to rep-
+resent certain information.
+Now the problem is to deﬁne the behavior of each template. Thi s behavior is deﬁned by
+using the information provided by the ﬂow and synchronizati on between the diﬀerent automata.
+Timed Automata are sets of processes. Thus, processes are th e basic components of the Timed
+Automata, and they capture the behavior of each component. P rocess can be obtained as a result
+of a composition of process activities, by using sequential , choice and parallel operators. In terms
+of timed automata these operators can be easily translated:
+•The sequence of transitions is translated by composing a seq uence of activities.
+•Parallel proceses are translated by the parallel operator w ith the involved processes.
+•Choices are translated by adding activities to a choice oper ator.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 12 ---
+Finally, time restrictions are associated in WS-BPEL with a ctivities and correlations. These
+time restrictions are introduced in timed automata by means of guards and invariants. Therefore,
+in the case of a guard in a loop transition having a time restri ction we generate a workunit that
+involves the activities generated from the target of the loo p transition to the beginning.
+Figure 9 presents a detailed piece of the WS-BPEL document de scribing our example this is
+the mirror image of Figure 3 that has been obtained by applyin g the translations.
+...
+<context>
+<process name ="BookSeats"
+instantiation="other">
+<action name="bookSeats"
+role="tns:travelAgent"
+operation="tns:TAtoAirline/bookSeats">
+</action>
+</process>
+<exception>
+<onMessage>
+<action name="ReservationTimeOut"
+role="tns:TravelAgent"
+operation=
+"tns:TAtoAirline/AcceptCancel">
+<correlate
+correlation="defs:reservationCorrel"/>
+</action>
+<action name="NotifyOfTimeOut"
+role="tns:TravelAgent"
+operation=
+"tns:TAtoTraveller/NotifyofCancel"/>
+<fault code="tns:reservatTimedOut"/>
+</onMessage>
+...
+</exception>
+...
+</context>
+Figure 9: Part of WS-BPEL especiﬁcation
+6 Conclusions and Future Work
+Nowadays, Web Services are becoming a powerful tool for the i mplementation of distributed ap-
+plications over Internet. In many cases these services have associated time restrictions, as we have
+seen in the case study that we have presented here. Therefore , the speciﬁcation and design of Web
+Services can be made by using some well known formalisms, suc h as timed automata, and tools
+supporting them (UPPAAL) in order to verify and validate the system behavior. Consequently, it
+becomes of interest to obtain correct web services speciﬁcations written in WS-CDL and WS-BPEL
+languages by using Timed Automata and Model Checking in orde r to exploit the veriﬁcation capa-
+bilities that they can provide. In this paper we have seen how to exploit these capabilities by using
+translations between them, applied to a particular case stu dy. We are currently implementing these
+translations in a suite tool that uses UPPAAL as the engine fo r simulation and veriﬁcation.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007
+
+--- Page 13 ---
+Our future work addresses the issue of implementing a comple te methodology on the generation
+ofcorrect web services. We will use UML graphical diagrams and require ments engineering in the
+design and analysis of real-time web services respectively , WS-CDL and WS-BPEL as implemen-
+tation languages, and Timed Automata and Model Checking as f ormal techniques.
+References
+[1] R. Alur and D. Dill, Automata for modeling real–time systems , In Proceedings of the
+17th International Colloquium on Automata, Languages and P rogramming, volume 443,
+Editors. Springer–Verlag, 1990.
+[2] Assaf Arkin, Sid Askary, Ben Bloch, et. al., Web Services Business Process Execu-
+tion Language Version 2.0 , Editors. OASIS Open, December 2004. In http://www.oasis-
+open.org/committees/download.php/10347/wsbpel-speci ﬁcation-draft-120204.htm.
+[3] Mario Bravetti, Claudio Guidi, Roberto Lucchi and Gianl uigi Zavattaro , Supporting E-
+commerce system formalization with Choreography Language s, In Proc. of the 20th ACM
+Symposium on Applied Computing (SAC’05), special track on E -Commerce Technologies
+, ACM Press, 2005.
+[4] Edmund M. Clarke and Jr. and Orna Grumberg and Doron A. Pel ed,Model Checking ,
+MIT Press, 1999.
+[5] G. Diaz, J. J. Pardo, M. E. Cambronero, V. Valero and F. Cua rtero, Veriﬁcation of
+Web Services with Timed Autoamata , In proceedings of First International Workshop on
+Automated Speciﬁcation and Veriﬁcation of Web Sites, Valen cia, March 2005.
+[6] G. Diaz, J. J. Pardo, M. E. Cambronero, V. Valero and F. Cua rtero,Automatic Translation
+of WS-CDL Choreographies to Timed Automata , In proceedings of WS-FM, 2005.
+[7] Constance Heitmeyer and Dino Mandrioli. Formal Methods for Real-Time Computing .
+John Wiley & Sons. 1996.
+[8] Nickolas Kavantzas et al. Web Service Choreography Description Language (WSCDL) 1.0 .
+In http://www.w3.org/TR/ws-cdl-10/.
+[9] K. Larsen and P. Pettersson and Wang Yi, Uppaal in a Nutshell , Int. Journal on Software
+Tools for Technology Transfer, Editors. Springer–Verlag v ol.1, 1997.
+[10] Simon Woodman, et al., Speciﬁcation and Veriﬁcation of Composite Web Services , In
+proocedings of The 8th Enterprise Distributed Object Compu ting Conference 2004.
+CLEI ELECTRONIC JOURNAL, VOLUME 10, NUMBER 2, PAPER 2, DECEMBER  2007

@@ -1,0 +1,1482 @@
+--- Page 1 ---
+HAL Id: hal-04108550
+https://hal.science/hal-04108550v1
+Submitted on 11 Jan 2024
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+A framework for modeling and analyzing cyber-physical
+systems using statistical model checking
+Abdel-Latif Alshalalfah, Otmane Ait Mohamed, Samir Ouchani
+To cite this version:
+Abdel-Latif Alshalalfah, Otmane Ait Mohamed, Samir Ouchani. A framework for modeling and ana-
+lyzing cyber-physical systems using statistical model checking. Internet of Things, 2023, 22, pp.100732.
+⟨10.1016/j.iot.2023.100732⟩. ⟨hal-04108550⟩
+
+--- Page 2 ---
+Noname manuscript No.
+(will be inserted by the editor)
+A Framework for Modeling and Analyzing 1
+Cyber-Physical Systems using Statistical Model 2
+Checking 3
+Abdel-Latif Alshalalfah 4
+Otmane Ait Mohamed ·Samir Ouchani 5
+6
+Received: date / Accepted: date 7
+Abstract The trustworthiness of a cyber-physical system is essential for it 8
+to be qualified for utilization in most real-life deployments. This is espe- 9
+cially critical for systems that deal with precious human lives. Although these 10
+safety-critical systems can be investigated using both experimental testing and 11
+model-based verification, accurate models have the potential to permit risk- 12
+free mimicking of the system behavior even in the most extreme scenarios. 13
+To overcome the CPS modelling and design challenges, the INCOSE/OMG 14
+standard System Modeling Language (SysML) is utilized in this work to ac- 15
+curately specify cyber-physical systems. For that, a bounded set of SysML 16
+constructs are defined to precisely capture the semantics of continuous-time 17
+and discrete-time system behaviors. Then, the SysML constructs are substi- 18
+tuted by developing a new algebra, called Enhanced Activity Calculus (EAC). 19
+So, EAC helps construct equivalent priced timed automata models by develop- 20
+ing a new systematic procedure to correctly translate the SysML models into 21
+the statistical model checking tool UPPAAL-SMC inputs. The latter checks 22
+whether the system is correct and safe or not. Moreover, the soundness of the 23
+developed translation mechanism has been proved and its effectiveness has 24
+been shown on a real use case, namely the artificial pancreas. 25
+Keywords System Modeling Language ·Enhanced Activity Calculus · 26
+Cyber-Physical Systems ·Model Transformation ·Model-Based Verification · 27
+Safety-Critical ·Statistical Model Checking ·Priced Timed Automata 28
+A.-L. Alshalalfah
+Department of Electrical & Computer Engineering, Concordia University, Montreal, Canada.
+E-mail: abdellatif.alshalalfah@mail.concordia.ca
+O. Ait Mohamed
+Department of Electrical & Computer Engineering, Concordia University, Montreal, Canada.
+S. Ouchani
+CESI Lineact, Aix-en-Provence, France.
+
+--- Page 3 ---
+2 Alshalalfah et. al.
+Nomenclature 29
+CPS Cyber-Physical Systems 30
+EAC Enhanced Activity Calculus 31
+HA Hybrid Automata 32
+MITL Metric Interval Temporal Logic 33
+ODE Ordinary-Differential Equations 34
+ODESCD ODE of SysML Constraint Diagram 35
+PID Proportional-Integral-Derivative 36
+PTA Priced Timed Automata 37
+SMC Statistical Model Checking 38
+SysML Systems Modeling Language 39
+1 Introduction 40
+Whether human-operated or autonomous, embedded systems are designed to 41
+improve the quality of life for people. From embedded computing to distributed 42
+systems, Cyber-Physical Systems (CPS) refer to computing systems that in- 43
+teract with control and management objects [53]. As technology advances, 44
+CPS is being used in a wide range of applications [30]. With the reduction 45
+in size and cost of hardware, along with accelerating innovation and advance- 46
+ment in sensor and computational technologies, CPS has been able to spread 47
+to all types of applications. Through horizontal expansion, CPS has gained 48
+popularity in all types of application. Also, CPS flourished vertically to find a 49
+foot in more complex and dependable applications From daily applications, 50
+the various success stories have encouraged designers to develop CPS for au- 51
+tonomous control compared to the early systems which required some degree 52
+of human interaction [23, 41]. Nowadays, wireless body area networks are uti- 53
+lized to connect devices that observe the status of the physiological dynamics 54
+[16]. As a result, health conditions can be monitored and treated in a timely 55
+manner. Patients with chronic diseases will particularly benefit from this. For 56
+example, with around half a billion diabetes worldwide [42], an automatic glu- 57
+cose controller is necessary for them to live a normal life while still avoiding 58
+the health complications related to their situation. 59
+In order to get approval certificates from the appropriate authorization 60
+entities, these systems must prove their safety and robustness under all sce- 61
+narios [11]. However, for real-life deployments, only qualified systems must 62
+meet these safety requirements. From the first prototype to the final fabri- 63
+cated product, verifying the safety of CPS is a vital step in the development 64
+process. The system-level analysis provides feedback early in the design pro- 65
+cess, and by identifying safety issues early, time and resources are not wasted 66
+[29]. Additionally, the system-level analysis helps understand CPS limitations 67
+and define the requirements of CPS components for safe operation. Further- 68
+more, CPS can be verified under extreme scenarios that would be impossible 69
+
+--- Page 4 ---
+A Framework for Modeling and Analyzing CPS using SMC 3
+to conduct in real life without taking extraordinary risks by using appropriate 70
+realistic models. 71
+Analyzing systems at the system level is either accomplished through sim- 72
+ulation testing or through formal methods. In the former approach, specific 73
+input scenarios can be used to evaluate CPS behavior. Yet, it does not give 74
+confidence on the state space coverage. On the other hand, formal methods 75
+such as model checking [10] provide exhaustive coverage for the whole state 76
+space. Unfortunately, formal techniques do not scale well for realistic hybrid 77
+systems and suffer from the infamous state space explosion problem [21]. 78
+As a compromise between these two approaches, Statistical Model Check- 79
+ing (SMC) can be used for verification. Although it does not provide exhaustive 80
+coverage for the state space, SMC can be used to introduce statistical guaran- 81
+tees for safety properties with feasible computational resources. In a nutshell, 82
+the following are the main contributions of this work. 83
+–Proposing a novel systematic procedure to capture the semantics of SysML- 84
+based diagrams and to construct its equivalent PTA models for SMC anal- 85
+ysis. 86
+–The effectiveness of the proposed framework to analyze a medical CPS is 87
+demonstrated on an artificial pancreas case study. In particular, the safety 88
+of the system is verified using SMC to evaluate the ability of three control 89
+configurations to mitigate message errors. 90
+Below is an outline of the remainder of the article. The literature review is 91
+presented in Section 2, and then Section 3 demonstrates, through an artificial 92
+pancreas example, the SysML graphical and textual modeling. Afterwards, 93
+Section 4 introduces the new proposed automatic construction of equivalent 94
+Priced Timed Automata (PTA) models and proves the soundness of the de- 95
+veloped approach. Section 5 illustrates the experiments conducted for model 96
+validation and safety verification procedure by an example experiment, and 97
+section 6 concludes the article. 98
+2 Literature Review 99
+With the growing demand for CPS applications, several research works have 100
+investigated the verification and safety analysis problems related generally to 101
+CPS. Based on our surveyed initiatives, we have identified two main categories: 102
+Formal verification andSimulation based approaches. 103
+2.1 Simulation based approaches 104
+Even before the advent of modern computer systems, the term Simulation is 105
+known as the process of designing a model of a real system to conduct exper- 106
+iments [52]. These experiments aim at understanding the system’s behavior 107
+or evaluating a strategy associated with the system. Simulation software tools 108
+
+--- Page 5 ---
+4 Alshalalfah et. al.
+have flourished with the advent and availability of low-cost computational 109
+systems. 110
+Liu et al. [37] have used the open-source toolkit MATSim [55] to inves- 111
+tigate large-scale transportation patterns for shared autonomous vehicles. In 112
+their work, agent-based modelling is applied to estimate mode choices between 113
+human-driven vehicles, shared autonomous vehicles, and public transit. Fol- 114
+lowing a cost function that takes into account, the out-of-pocket, the trip time, 115
+and the waiting time, each driver chooses one of the three options of travel 116
+mode. The analysis is done for different fare levels, demographic settings, and 117
+shared autonomous vehicles availability to give implications on sustainability. 118
+In [32], an assessment of the safety of leader-follower configurations for 119
+autonomous radar semi-trucks is made based on different environmental con- 120
+ditions. The simulation model is developed with the commercial platforms 121
+AmeSim, PreScan, and Matlab-Simulink to study the effect of environmental 122
+conditions on safety margins in semi-truck convoy platooning. The autonomy 123
+in their simulated vehicles is enabled by adopting sensors for radar, global 124
+positioning systems, and short-range inter-vehicle communication. 125
+Instead of fully autonomous vehicles, the work in [5] addressed semi-autonomous 126
+vehicles implementing adaptive cruise control coexisting with regular vehicles 127
+and trucks. The vehicles enter the four-lane highway with a user-predefined 128
+arrival rate in the microscopic Java-based F.A.S.T. traffic simulator. Their 129
+findings show that a high penetration of semi-autonomous vehicles can in- 130
+crease traffic performance, especially under high traffic conditions. 131
+Connected and autonomous vehicles and their impact on road safety are 132
+discussed in [47]. Initially, the simulation software VISSIM is utilized to study 133
+a test-bed that mimics a three-lane motorway with traffic statistics measured 134
+from a real one in England. A lateral and longitudinal control algorithm is then 135
+tested for its ability to reduce traffic conflicts at different market penetration 136
+rates. 137
+From a healthcare perspective, a falsification approach is presented in 138
+[48, 9] to simulate and verify the artificial pancreas controller in a simulation 139
+environment. The S-Taliro tool which applies falsification simulations termi- 140
+nates with either finding a safety violation or failure to find, without the 141
+explicit guarantee that such one does not exist. Instead, the tool uses robust- 142
+ness metric to predict the distance between simulation outcomes and safety 143
+margins. 144
+2.2 Formal based approaches 145
+Unlike the numerical simulation approaches which mimic the behavior of real 146
+systems, formal methods apply analytical reasoning to derive mathematically- 147
+proven properties that characterize the system behavior. These characteristics 148
+are not always attainable, but when achieved they provide guaranteed out- 149
+comes which is an asset that helps verify safety-critical systems. 150
+
+--- Page 6 ---
+A Framework for Modeling and Analyzing CPS using SMC 5
+In [28], piece-wise affine hybrid automata was used to analyze the wind 151
+turbine dynamics in SpaceEx verification platform [20]. Even though Kekatos 152
+et al. reduced some blocks for better scalability, the resulting model contained 153
+around 16 million locations, which would hinder the ability to analyze more 154
+elaborate systems. However, classical hybrid automata (HA) tools and method- 155
+ologies suffer from this limitation [49]. 156
+The problem of formally analyzing a swarm of robots is handled by Schupp 157
+et al. [50]. The cooperative decentralized robots are modeled as a hybrid sys- 158
+tem and investigated by flowpipe analysis where the sets of reachable states 159
+are iteratively over-approximated [19]. Although the work in [50] deals with 160
+a simple model of distributed synchronization, it still causes some scalabil- 161
+ity challenges that are partially encountered by compositional analysis and 162
+optimized transition emulation. 163
+Using a combination of simulations and formal analysis, [46] examines 164
+patient-controlled analgesia’s safety. So, to analyze the resulting CPS, its de- 165
+tailed behavior is modeled in Simulink. Then, to qualify the CPS for model 166
+checking, the continuous dynamics are abstracted away from the system model 167
+and then replaced by simple timing constraints with the target to be analyzed 168
+in UPPAAL model checker [7]. Additionally, UPPAAL is also used in [26] to 169
+verify control algorithms in a dual chamber implantable pacemaker. Mean- 170
+while, a timed automata representation of the heart and the pacemaker are 171
+used to specify the ability of the algorithms to avoid unsafe regions of the state 172
+space. The proposed approach covers the whole state space, yet only the state 173
+space that is modeled. Thus, this excludes certain control and physiological 174
+behaviors that are beyond the expressive power of the modeling language and 175
+the computational feasibility of the verification technique. In fact, these be- 176
+haviors can be skipped in some systems but are essential to correctly analyze 177
+hybrid systems with continuous-time variables. 178
+2.3 Statistical model checking based approach 179
+SMC consists of observing a number of simulation runs or system executions 180
+and using statistical methods to reason about formal properties [35]. 181
+After some preliminary works such as the hypothesis testing of modal prop- 182
+erties in process algebra [33], initial results for SMC had witnessed progress 183
+since 2002 [58] with the corresponding term introduced for the first time in 184
+2004 [51]. Reasoning about reachability problems with SMC algorithms pro- 185
+vides mainly guarantees on the probability error bound. Depending on the type 186
+of reachability expression being dealt with, the error bound can be calculated 187
+by utilizing the appropriate classical mathematics such as Monte Carlo with 188
+Chernoff-Hoeffding error bounds [43, 24] or hypothesis testing using Wald’s 189
+sequential analysis [56]. 190
+Different tools exist that implement SMC algorithms such as PRISM [31], 191
+UPPAAL-SMC [12, 15], BIP [39], and Ymer [57]. Since their inception, SMC 192
+tools have been utilized to study many discrete-time and continuous-time sys- 193
+
+--- Page 7 ---
+6 Alshalalfah et. al.
+tems. To list a few: airplane cabin communication system [6], distributed sen- 194
+sor network [36], energy-aware house heating [13], biological mechanisms of 195
+the genetic oscillator [14], real-time streaming protocol [44], artificial pancreas 196
+[2, 4], anesthesia control [3], and coordinated emergency braking system [1]. 197
+2.4 Model Construction 198
+In order to analyze the system, it is necessary to first convert the specifications 199
+into the modeling language used by the analysis tool. Furthermore, an ade- 200
+quate level of expertise is required to model the system properly when done 201
+manually. Furthermore, formal modeling languages tend to be more error- 202
+prone due to their low readability. Therefore, the need arises to facilitate the 203
+process of constructing formal models by automatically translating high-level 204
+models that incur better readability. 205
+In [28], the system modeled in Simulink is translated into SpaceEx mod- 206
+eling language in four steps. After the Simulink model is modified to comply 207
+with the verification standards, the tool SL2SX [40] is employed to handle the 208
+main translation step and construct a SpaceEx model. Afterwards, composi- 209
+tional syntactic hybridization [27] and validation are conducted to achieve a 210
+model ready to be analyzed. 211
+An approach to transform Simulink models into UPPAAL-SMC is proposed 212
+in [18]. The work is employed on two automotive use cases for brake-by-wire 213
+and an adjustable speed limiter. The Simulink models are first reduced by 214
+the flattening procedure. Then, each block is replaced by an equivalent timed 215
+automaton composed of three locations: start, offset, and operate. Still, their 216
+approach does not implement complex real-valued blocks in UPPAAL-SMC 217
+but addresses them in Simulink instead. 218
+Instead of commercial modeling tools, System Modeling Language (SysML) 219
+[54] can be used to specify CPS. SysML is the defacto standard modeling lan- 220
+guage for systems engineering with rich semantics and expressive power suffi- 221
+cient to describe system structures and behaviors at various levels of abstrac- 222
+tion [25]. Ouchani et al. [45] constructed probabilistic automata by converting 223
+SysML models. The resulting models were incurred to analyze security prop- 224
+erties of the real-time streaming protocol using the probabilistic model checker 225
+PRISM [31]. 226
+Compared to the studied initiatives, the main objective of this work is to 227
+develop a framework that enables efficient modeling and analysis for CPS. The 228
+proposed framework takes system behavior specified using SysML diagrams 229
+as input. The novelty of this proposed work is summarized by the following 230
+contributions. 231
+–Defining a bounded set of SysML constructs that are sufficient to capture 232
+the behaviors of the CPS discrete-time and continuous-time dynamics. 233
+–Defining textual specification language for SysML by extending the seman- 234
+tics initially developed in [17, 45]. 235
+
+--- Page 8 ---
+A Framework for Modeling and Analyzing CPS using SMC 7
+–Proposing a novel systematic procedure to transform the SysML behavioral 236
+specifications into PTA. Compared with the previous works that processed 237
+models specified in the commercial tool Simulink [28, 40, 18] or did not 238
+support modeling physical processes [18, 45], this new proposed approach 239
+defines a systematic procedure to process SysML models for the CPS and 240
+to construct an equivalent PTA model for analysis by supporting more 241
+features and expressive powers to specify physical properties like time,rate 242
+andreal-numbers related measurements . 243
+–The soundness of the proposed approach has been proven and its effective- 244
+ness to analyze CPS is demonstrated on an artificial pancreas system. 245
+3 The Proposed Framework 246
+Fig. 1 provides a brief overview of the proposed framework that runs on the 247
+following steps. 248
+➀The process starts with the initial identification of the CPS to explore the 249
+nature of its application. This step helps specify the system’s requirements 250
+including the safety properties that have to be met. 251
+➁The topology of the system is defined by specifying the functional compo- 252
+nents of the system which are used to create the SysML block definition 253
+diagram. Also, the interactions between the CPS components are used to 254
+define the SysML flow diagram. Integrated CPS are formed from continu- 255
+ous real-time components describing physical processes and discrete-time 256
+components describing cyber processes. 257
+➂By relying on the existing topologies, behavioral models for the physical 258
+components are imported in the form of Ordinary-Differential Equations 259
+(ODE). Similarly, the cyber components of the system are imported from 260
+design specifications in the form of discrete variations. 261
+➃Physical and cyber components are represented using SysML parametric 262
+constraint diagrams and activity diagrams, respectively. 263
+➄To automate further processing, each of the SysML diagrams are written in 264
+textual format. For a constraint diagram describing the physical dynamics, 265
+the representation is done using the proposed syntax named Ordinary- 266
+Differential Equations of SysML Constraint Diagram (ODESCD). For an 267
+activity diagram describing a component’s behavior, the representation is 268
+done using the proposed Enhanced Activity Calculus (EAC). 269
+➅A new systematic algorithm is proposed to convert ODESCD and EAC 270
+blocks into equivalent PTA blocks. The SysML block definition diagram, 271
+describing the system’s structure, specifies the input/output connections 272
+of each PTA block. 273
+➆The various PTA blocks for physical dynamics and component behaviors 274
+are mapped as described by the flow diagram. The parallel composition of 275
+all the PTA blocks form the integrated CPS that is processed. 276
+
+--- Page 9 ---
+8 Alshalalfah et. al.
+Fig. 1: The Proposed Framework Workflow.
+➇The analysis tool UPPAAL-SMC is used to analyze the system and verify 277
+the safety properties. The framework is demonstrated on an artificial pan- 278
+creas system alongside a proposed representation of continuous-time and 279
+discrete-time dynamics. 280
+➈For safety properties that are beyond the expressive power of the query 281
+language in use, dedicated monitor blocks are employed to observe specific 282
+
+--- Page 10 ---
+A Framework for Modeling and Analyzing CPS using SMC 9
+phenomena. An observer block is then added to the system by developing a 283
+behavioral model for that block which is specified using a SysML activity 284
+diagram. The new block is then processed as component of the CPS to 285
+construct an equivalent PTA model. By adding these monitor blocks, more 286
+complex safety properties are simplified and expressed easily in order to 287
+be examined for safely. 288
+3.1 SysML Graphical and Textual Modeling 289
+3.1.1 SysML for continuous-time dynamics 290
+The dynamics of physical processes describe the flow of physical quantities 291
+in the real world. These quantities are represented by real-valued real-time 292
+variables where the derivative of a variable is equivalent to the change on 293
+its associated physical quantity. Therefore, it is common for continuous-time 294
+dynamics to be specified by a system of ODEs. SysML constraint diagrams 295
+can be used to model ODEs. 296
+Notation 1 (ODE of SysML Constraint Diagram (ODESCD)). ODESCD 297
+is defined as a tuple ( X, X0, K, P, R, F, I, O ), where: 298
+–Xis a set of real-time real-valued differentiable variables, 299
+–X0is a set of initial values, 300
+–Kis a set of real-valued equation coefficients, 301
+–Pis a set of constant real-valued parameters, 302
+–Ris a set of real-time real-valued variables, 303
+–F(X, R) is a set of real-valued functions, 304
+–I∈X∪K∪P∪Ris a set of input variables, and 305
+–O∈Xis a set of output variables. 306
+Definition 1 (Semantics of ODESCD). Let ( X, X0, K, P, R, F, I, O ) be
+a ODESCD, its semantics is defined as the dynamics of a physical system
+described by a set of ODEs as follows (in this context a subscript in the form
+ofa1×a2indicates the matrix dimensions).
+X′
+n×1(t) =Kn×n(X, P, R, t )Xn×1+Fn×1(X, R) (1)
+Xn×1(t= 0) = X0
+n×1 (2)
+X′
+n×1= [x1x2. . . x n] is the set of differential variables to be solved, 307
+X0
+n×1= [x0
+1x0
+2. . . x0
+n] is the set of initial values for the differential variables, 308
+Kn×n(X, P, R, t ) is the set of differential equation coefficients which can be 309
+constants or functions of constant parameters, real-time variables or time, P 310
+is the set of additional constant parameters for the equation, Ris the set of 311
+additional real-time variables, Fn×1(X, R) is the additional terms of the ODE, 312
+I∈X∪K∪P∪Ris the set of input variables which can be parameters or 313
+real-time variables, and O∈Xis the set of output variables which is a subset 314
+of the ODE solution. 315
+
+--- Page 11 ---
+10 Alshalalfah et. al.
+In this system, Iis defined to utilize variables and parameters that are 316
+provided as input to the ODESCD definition, and Ois used to export the 317
+desired variables from the solution of ODESCD. 318
+❖ODESCD example: meal glucose absorption model
+Xis a vector representing carbo-hydrate measures in the stomach where
+Qsto1andQsto2are the stomach glucose amounts in solid state and liquid
+state, respectively, and ragis the blood glucose rate of appearance. These
+physical quantities are initially nulled as assigned in X0. Fig. 2 depicts the
+SysML constraints block diagram for meal absorption variations measures.
+X= [Qsto1Qsto2rag]T(3)
+X0= [0 0 0]T(4)
+K
+=
+−kgri 0 0
+kgri−kempt(Qsto1(t) +Qsto2(t), Dmeal) 0
+0f.kabs
+BWkempt(Qsto1(t) +Qsto2(t), Dmeal)−kabs
+
+kempt(Q, D meal) =
+kmin+kmax−kmin
+2(tanh(α(Q−b.Dmeal))−tanh(β(Q−c.Dmeal)) + 2) Dmeal>0
+0 Dmeal= 0
+α=5
+2.Dmeal.(1−b)(5)
+β=5
+2.Dmeal.c(6)
+P={kgri, kabs, f, BW, b, c, k min, kmax} (7)
+R={curMeal, D meal} (8)
+F(X, R) = [curMeal (t) 0 0]T(9)
+I={curMeal, D meal} (10)
+O={rag} (11)
+❖ODESCD example: glucose-insulin dynamics
+Xis a vector representing the various physical quantities for the glucose
+and insulin dynamics all over the body compartments. Isc1andIsc2are the
+insulin levels in the subcutaneous tissues, X1is the insulin in the interstitial
+fluid,{G, G s, Gt}are the glucose levels in the blood, subcutaneous tissues, and
+slowly equilibrating tissues respectively. Ipis the plasma insulin, Ilis the portal
+vein insulin, and Idis the delayed insulin signal. These physical quantities are
+initialized as in the vector X0. Fig. 3 depicts the SysML Constraint Block
+diagrams for Glucose-Insulin variations measures.
+X= [Isc1Isc2X1GsI1IdIlIpG G t]T(12)
+X0= [Isc1ssIsc2ss0GiIbIbIlbIpbGiGti]T(13)
+
+--- Page 12 ---
+A Framework for Modeling and Analyzing CPS using SMC 11
+Fig. 2: SysML Constraint Block for Meal Absorption
+K
+=
+−(kd+ka1) 0 0 0 0 0 0 0 0 0
+kd −ka20 0 0 0 0 0 0 0
+0 0 −p2u0 0 0 0p2u
+VI0 0
+0 0 0 −1
+Ts0 0 0 01
+Ts0
+0 0 0 0 −ki0 0ki
+VI0 0
+0 0 0 0 ki−ki 0 0 0 0
+0 0 0 0 0 0 −(m1+m6.m1
+1−m6) m2 0 0
+ka1 ka20 0 0 0 m1 −(m2+m4) 0 0
+0 0 0 0 0−kp3
+VG0 0 −(kp2+k1)k2
+VG
+0 0 0 0 0 0 0 0 K1.VG−k2
+
+P={Isc1ss, Isc2ss, Gi, Ilb, Ipb, Gtb, Gb, kd, ka1, ka2, p2u, VI, Ib, Ts, ki, VG, m1, m6, m2, m4,
+kp1, kp2, kp3, Fcns, ke1, ke2, k1, k2, Vm0, Vmx, Km0, Kmx}
+(14)
+R={rag, IIR } (15)
+(16)F(X, R) = [IIR , 0,−p2u.Ib,0,0,0,0,0,rag+kp1−Fcns
+VG
+−ke1.max (0, G−ke2
+VG),−(Vm0+Vmx.X1).Gt
+Km0+Kmx.X1+Gt]T
+I={rag, IIR } (17)
+O={Gs, G} (18)
+
+--- Page 13 ---
+12 Alshalalfah et. al.
+Fig. 3: SysML Constraint Block for Glucose-Insulin Dynamics
+3.1.2 SysML for discrete-time dynamics 319
+Discrete-time dynamics are described by SysML activity diagrams. So, in or- 320
+der to precisely describe CPS and capture exactly its underlying semantics, we 321
+develop Enhanced Activity Calculus (EAC) to formally describe SysML activ- 322
+ity diagrams by extending NuAC presented in [17, 45]. These enhancements 323
+include redefining existing nodes as well as proposing new nodes for time- 324
+bounded delay, constraint-bounded delay, and competing events. The list of 325
+the used activity nodes and their textual EAC representation is shown in Table 326
+1. 327
+❖EAC example: artificial pancreas 328
+The artificial pancreas is composed of a sensor (Fig. 4) that periodically mea- 329
+sures the glucose level, sends it over wireless channel (Fig. 5) to the controller. 330
+Then, the controller (Fig. 6) calculates the required amount of insulin, and 331
+the actuator (Fig. 7) applies the control action. Lastly, the SysML activity 332
+diagram describing the meal scenario is shown in Fig. 8. 333
+
+--- Page 14 ---
+A Framework for Modeling and Analyzing CPS using SMC 13
+Table 1: SysML Enhanced Activity Calculus Nodes Syntax.
+SysML TermSysML Activity
+Diagram StructureEAC Syntax
+Activity Initial Node
+ l7→N
+Action Node
+ l:ACT (A)7→N
+Call Procedure
+ l:CALL P(A)7→N
+Send Node
+ l:{S, X}!7→N
+Receive Node
+ l:{S, Xsrc, Xdst}?7→N
+Merge Node
+ l:Mrg7→N
+Guarded Branch
+l:BC(li1: (C=C1)7→N1,
+li2: (C=C2)7→N2, ...)
+Probabilistic Branch
+l:BP(li1: (P=P1)7→N1,
+li2: (P=P2)7→N2, ...)
+Time-Bounded
+Delay Node
+l:DTB(τmin:τmax, C)7→N
+Constraint-Bounded
+Delay Node
+l:DCB(Cter, C)7→N
+Competing Events
+l:Comp Events (N17→N2,
+N37→N4, ...)
+By substituting the SysML nodes with their textual equivalents following
+Table 1, the EAC representation of these activity diagrams is shown below.
+ActSensor =l7→l1:Mrg7→N1
+N1=l2:DTB(Tp,)7→l3:ACT (meas var=phyvar)7→l4:{Set, meas var}!7→l1
+ActChannel lossy =l7→l1:Mrg7→N1
+N1=l2:{Set1, var in, var out}?7→l3:BP(l4: (P=PS)7→N2, l5: (P=PF)7→l6:Mrg7→l1)
+N2=l7:{Set2, var out}!7→l6
+
+--- Page 15 ---
+14 Alshalalfah et. al.
+Fig. 4: SysML Activity Diagram of the Sensor.
+Fig. 5: SysML Activity Diagram of the Lossy Channel.
+ActCtrl =l7→l1:Mrg7→N1
+N1=l2:Comp Events (l3:{Set1, G, G r}?7→N2, l4:DTB(Tp,)7→N3)
+N2=l5:CALL P(IIR=ActCalc IIR(t))7→l6:Mrg7→N4
+N3=l7:CALL P(IIR=ActCalc IIRmissing (t))7→l6
+N4=l8:{Set2, IIR}!7→l1
+ActActuator =l7→l1:Mrg7→l2:{Set, IIR c, IIR r}?7→l3:ACT (IIR=IIR r)7→l1
+
+--- Page 16 ---
+A Framework for Modeling and Analyzing CPS using SMC 15
+Fig. 6: SysML Activity Diagram of the Controller.
+Fig. 7: SysML Activity Diagram of the Actuator.
+Actmeal scenario =l7→l1:Mrg7→l2:DTB(inter meal time, )7→N1
+N1=l3:ACT (curmeal = 1000 ∗meal carbs/meal dur, D meal = (Qsto1+Qsto2)/1000)7→N2
+N2=l4:DTB(meal dur, D meal′==curmeal/ 1000)7→l5:ACT (curmeal = 0)7→l1
+❖CPS architecture and flow for artificial pancreas 334
+The SysML block definition diagram shown in Fig. 9 defines the blocks and 335
+their input/output ports. Also, the mapping of the blocks and the variables 336
+
+--- Page 17 ---
+16 Alshalalfah et. al.
+Fig. 8: SysML Activity Diagram of the Meal Scenario.
+as well as the flow of information among these blocks are defined in the flow 337
+internal block diagram shown in Fig. 10. 338
+Fig. 9: SysML Architectural Block Definition Diagram of the Closed-Loop
+Glucose Control System.
+
+--- Page 18 ---
+A Framework for Modeling and Analyzing CPS using SMC 17
+4 CPS Semantics 339
+The system behavior should be represented in the suitable formality that 340
+matches the language of the analysis tool. To do so, the SysML components are 341
+converted into a network of equivalent PTA models. In the following, the PTA 342
+is defined and the new proposed automated conversion procedure is presented. 343
+Definition 2 (PTA). A PTA for CPS is a tuple ( L, l 0, Llbl, LIP, LOP, E, X, 344
+Vg, INV (X, V AR ), A(Vg), G(X, V g), Set, Pr), where: 345
+–Lis a finite set of locations, 346
+–l0∈Lis the initial location, 347
+–Llblis a set of labels, 348
+–LIPis a finite set of input ports, 349
+–LOPis a finite set of output ports, 350
+–Eis a finite set of edges, 351
+–Xis a finite set of clocks, 352
+–V AR is a finite set of general-type variables, 353
+–INV (X, V g) is a finite set of invariants over PTA clocks Xand variables 354
+Vg,A(Vg) is a finite set of actions on the variables Vg, 355
+–G(X, V g) is a finite set of atomic propositions on PTA clocks Xand vari- 356
+ables Vg,Setis a finite set of synchronization event triggers, and 357
+–Pris a finite set of probabilistic weights. 358
+Definition 3 (Semantics of CPS). Let ( L, l 0, Llbl, LIP, LOP, E, X, V g, 359
+INV (X, V AR ), A(Vg), G(X, V g), Set, Pr) be a PTA for CPS. The semantics 360
+are defined as a hybrid transition system composed of a set of locations L 361
+interconnected by a set of edges Ethrough sets of input ports IPand output 362
+ports OP, where: 363
+–Locations L={l1, l2, . . . , l n1}, where the ithlocation li∈Llabelled 364
+label i∈Llblhaving the invariant constraints invi∈INV and connected to 365
+the input port xipand the output ports Xopis referred as li(label i, inv i, xip, Xop). 366
+–Edges E={e1, e2, . . . , e n2}, where the ithedge running the action a∈A 367
+and triggering the synchronization event set∈Set, and connected to the 368
+output port xopand input port xipis referred as ei={a, set, xop, xip}. 369
+–Input ports LIP={lip1, lip1, . . . , l ipn1}, where the ithinput port lipi∈LIP 370
+sourcing from incoming edges Xetowards the ithlocation li∈Land 371
+applying the action a∈Ais defined as lipi={a, X e, i}. 372
+–Output ports LOP={lop1, lop1, . . . , l opn3}, where the kthoutput port lopk∈ 373
+LOPsourcing from the ithlocation Litowards the jthedge ej, guarded by 374
+the atomic proposition g∈G, triggered by the event trigger set∈Set, and 375
+having the probabilistic weight pr∈Pris defined as lopk={g, set, pr, i, j}. 376
+PTAs traverse sequentially through output ports towards edges, followed 377
+by input ports towards the next location, starting at an initial location denoted 378
+byl0. In the case of the PTA being at location li, the invariant invimust be 379
+satisfied as long as the PTA is at location Li. Similarly, an output port that has 380
+a guard gwith respect to its traversal can only be traversed if this guard ghas 381
+
+--- Page 19 ---
+18 Alshalalfah et. al.
+been satisfied. An output port with an event trigger setis synchronized with 382
+another PTA, so that the output port is only traversed when it is activated by 383
+the corresponding event trigger on the edge of the other PTA. Furthermore, 384
+an output port can be traversed among other output ports in a probabilistic 385
+manner by assigning a probability weight prto each of the possible candidates 386
+for traversal of the output port. 387
+Fig. 10: SysML Flow Internal Block Diagram of the Closed-Loop Glucose
+Control System.
+4.1 Converting SysML into Equivalent PTA 388
+In order to analyze the CPS described in SysML, it is necessary to model the 389
+hybrid system in PTA. So, SysML blocks are translated into equivalent PTA 390
+blocks which are parallel-composed to construct the hybrid system’s global 391
+behavior. The synchronization of actions and the transfer of values are specified 392
+using shared variables. 393
+The template of each PTA is instantiated with its input/output parame- 394
+ters properly defined. The SysML flow internal block diagram (as in Fig. 10) 395
+is consulted to define global variables for the parameters connecting the PTA 396
+components of the system. When instantiating a PTA template, the param- 397
+eters are passed by-reference except for constant parameters that are passed 398
+by-value. Instead, those constants can be defined as local variables in the PTA. 399
+The following rules govern the definition of variables in PTA models. 400
+–Continuous real-valued parameters are defined using clock variables. 401
+
+--- Page 20 ---
+A Framework for Modeling and Analyzing CPS using SMC 19
+–Discrete real-valued parameters are defined using floating point variables. 402
+–An event trigger should be activated whenever a discrete variable is up- 403
+dated, so that the other PTAs are notified about the new update. 404
+–Discrete integer parameters are defined as integer variables and are passed 405
+between PTAs similar to the floating point variables. 406
+–When assigning or initializing a numerical variable, it can be evaluated to 407
+a single value or to a range of values for a uniformly-distributed random 408
+assignment. 409
+❖Converting SysML EAC into PTA 410
+This part presents the detailed procedure for constructing a PTA block that 411
+represents a SysML EAC block. Alongside the description of the conversion 412
+steps, an illustrative example is provided for converting the ActChannel lossy413
+block from EAC into PTA. 414
+–The first step is to merge all the EAC nodes into the main EAC con- 415
+struct. This is done by iterating through the auxiliary constructs ( Nx) and 416
+substituting for them in the main construct as depicted in Fig. 11.
+ActChannel lossy =l7→l1:Mrg7→N1
+N1=l2:{Set1, var in, var out}?7→l3:BP(l4: (P=PS)7→N2,
+l5: (P=PF)7→l6:Mrg7→l1)
+N2=l7:{Set2, var out}!7→l6
+⇓ ⇓ ⇓
+ActChannel lossy =l7→l1:Mrg7→l2:{Set1, var in, var out}?7→l3:BP(l4: (P=PS)7→N2,
+l5: (P=PF)7→l6:Mrg7→l1)
+N2=l7:{Set2, var out}!7→l6
+⇓ ⇓ ⇓
+ActChannel lossy =l7→l1:Mrg7→l2:{Set1, var in, var out}?7→l3:BP(l4: (P=PS)7→
+l7:{Set2, var out}!7→l6, l5: (P=PF)7→l6:Mrg7→l1)
+Fig. 11: EAC Lossy Channel Example - Merging Nodes
+417
+–Connecting the EAC terms so that each arrow is uniquely identified as 418
+presented in Fig. 12. 419
+–Handling branching terms ( BPorComp Events ) and replicating the EAC 420
+construct, so that each branching term has only one path at a time. This 421
+is done by iterating through the branching terms and taking one branch 422
+at a time as shown in Fig. 13. 423
+–Building the PTA skeleton using the procedure described in Algorithm 1. 424
+The resulting skeleton for ActChannel lossy example is shown in Fig. 14. 425
+
+--- Page 21 ---
+20 Alshalalfah et. al.
+⇓ ⇓ ⇓
+ActChannel lossy =l17− →l1:Mrg27− →l2:{Set1, var in, var out}?37− →l3:BP(l4: (P=PS)47− →
+l7:{Set2, var out}!57− →l6, l5: (P=PF)67− →l6:Mrg77− →l1)
+Fig. 12: EAC Lossy Channel Example - Labeling Arrows
+ActChannel lossy =l17− →l1:Mrg27− →l2:{Set1, var in, var out}?37− →l3:BP(l4: (P=PS)47− →
+l7:{Set2, var out}!57− →l6,l5: (P=PF)67− →l6:Mrg77− →l1)
+ActChannel lossy Path 1=l17− →l1:Mrg27− →l2:{Set1, var in, var out}?37− →l4:BPBranch (l4:
+(P=PS)47− →l7:{Set2, var out}!57− →l6)
+⇓ ⇓ ⇓
+ActChannel lossy Path 2=l17− →l1:Mrg27− →l2:{Set1, var in, var out}?37− →l3:BPBranch (l5:
+(P=PF)67− →l6:Mrg77− →l1)
+Fig. 13: EAC Lossy Channel Example - Branches Handling
+–For each location node that has non-empty prev field, insert an input port. 426
+For locations with next field, insert an output port per edge node that is 427
+outgoing from the location. In the following steps, when an EAC term is 428
+linked to an output port, the one that is connected to the location where 429
+the EAC belongs is identified. In case the location is attached to two or 430
+more output ports, the sequence of EAC terms in the path construct is 431
+used to identify the corresponding output port. Moreover, an EAC node 432
+that shows up in more than one path is only converted once at its first 433
+appearance. 434
+–Replacing the following EAC terms with their equivalent PTA terms. 435
+–EAC term lsignifies the location as an initial location. 436
+–DTB(τmin:τmax, C): Declare a clock variable t, Add a reset for the 437
+clock ( t= 0) to the input port action, Add the following constraint 438
+(t≤τmax&&C) to the invariants invof the location, and add the 439
+following ( t≥τmin) to the guard gof the output port. 440
+–{S, X src, Xdst}?: Add the event trigger S? to the respective field setof 441
+the output port, and add the assignment ( Xdst=Xsrc) to the action 442
+of the edge outgoing from the output port. 443
+
+--- Page 22 ---
+A Framework for Modeling and Analyzing CPS using SMC 21
+Algorithm 1 Construction of PTA Skeleton.
+for each: EAC Path
+1:prev Node =∅ ▷The first node of a path has no predecessor.
+for each: EAC Node∈EAC Path
+2:ifEAC Node∈ {Mrg, Comp Events, B P, D(∗),{∗,∗}?,(P=∗)}then
+3: EAC Type =LOCATION
+4:else if EAC Node∈ {7→ , ACT, CALL P,{∗,∗}!}then
+5: EAC Type =EDGE
+6:end if
+7:ifEAC Node processed before then
+8: curNode =PTA Node [EAC Node ] ▷Traverse through the node.
+9: curNode.prev.addMember (prev Node )▷Create a new input port for the node.
+10: prev Node.next.addMember (curNode )▷Create a new output port for the node.
+11:else if EAC Type ==prev Node.type then
+12: curNode.EAC.addMember (EAC Node )▷A compliment for the previous node.
+13:else ▷A node not processed yet.
+14: curNode =create Node (type=EAC Type ) ▷Create the node.
+15: curNode.EAC.addMember (EAC Node ) ▷Traverse through the node.
+16: curNode.prev.addMember (prev Node ) ▷Create an input port.
+17: prev Node.next.addMember (curNode ) ▷Create an output port.
+18:end if
+Node ID= [ type, prev, next, EAC ]
+Node 1= [ LOCATION, ∅, 2, l ]
+Node 2= [ EDGE, 1, 3,17− → ]
+Node 3= [ LOCATION, {2,11}, 4, l 1 ]
+Node 4= [ EDGE, 3, 5,27− → ]
+Node 5= [ LOCATION, 4, 6, l 2 ]
+Node 6= [ EDGE, 5, 7,37− → ]
+Node 7= [ LOCATION, 6,{8,10}, {l3, l4, l5} ]
+Node 8= [ EDGE, 7, 9, {47− →, l7,57− →} ]
+Node 9= [ LOCATION, {8,10}, 11, l 6 ]
+Node 10= [ EDGE, 7, 9,67− → ]
+Node 11= [ EDGE, 9, 3,77− → ]
+Fig. 14: EAC Lossy Channel Example - Building Skeleton.
+
+--- Page 23 ---
+22 Alshalalfah et. al.
+–{S, X}!: Add this event trigger S! to the respective event trigger field 444
+setof the containing edge. 445
+–(P=px): Add the following probabilistic weight to the corresponding 446
+fieldprof the output port. 447
+–ACT (A): Add the action Ato the corresponding field aof the edge. 448
+–CALL P(A): Add the behavior call A() to the action field aof the edge. 449
+The results shown in Fig. 15 are obtained when applying the above rules 450
+on the ActChannel lossy example:
+loc1(label 1, ϕ, ϕ, op 1)
+loc2(label 2, ϕ, ip 2, op2)
+loc3(label 3, ϕ, ip 3, op3)
+loc4(label 4, ϕ, ip 4,{op(4,1), op(4,2)})
+loc5(label 5, ϕ, ip 5, op5)
+ip2(ϕ,{e1, e6}, loc 2)
+ip3(ϕ, e2, loc 3)
+ip4(ϕ, e3, loc 4)
+ip5(ϕ,{e4, e5}, loc 5)
+op1(ϕ, ϕ, ϕ, loc 1, e1)
+op2(ϕ, ϕ, ϕ, loc 2, e2)
+op3(ϕ, Set1?, ϕ, loc 3, e3)
+op(4,1)(ϕ, ϕ, P S, loc 4, e4)
+op(4,2)(ϕ, ϕ, P F, loc 4, e5)
+op5(ϕ, ϕ, ϕ, loc 5, e6)
+e1(ϕ, ϕ, op 1, ip2)
+e2(ϕ, ϕ, op 2, ip3)
+e3(varout=varin, ϕ, op 3, ip4)
+e4(ϕ, Set2!, op(4,1), ip5)
+e5(ϕ, ϕ, op (4,2), ip5)
+e6(ϕ, ϕ, op 5, ip2)
+Fig. 15: EAC Lossy Channel Example - Replacing EAC with PTA Terms.
+451
+–After each EAC receive node, insert a new location between the event 452
+trigger and the signal sampling. Also, a new location is added when an 453
+output port with a probabilistic weight is directly followed by an edge 454
+with an EAC send node. This is done so that the send node is separated 455
+from the output port. When applying this on the ActChannel lossy, the 456
+results look like Fig. 16 457
+
+--- Page 24 ---
+A Framework for Modeling and Analyzing CPS using SMC 23
+loc1(label 1, ϕ, ϕ, op 1)
+loc2(label 2, ϕ, ip 2, op2)
+loc3(label 3, ϕ, ip 3, op3)
+loc4(label 4, ϕ, ip 4,{op(4,1), op(4,2)})
+loc5(label 5, ϕ, ip 5, op5)
+loc6(label 6, ϕ, ip 6, op6)
+loc7(label 7, ϕ, ip 7, op7)
+ip2(ϕ,{e1, e6}, loc 2)
+ip3(ϕ, e2, loc 3)
+ip4(ϕ, e3, loc 4)
+ip5(ϕ,{e8, e5}, loc 5)
+ip6(ϕ, e7, loc 6)
+ip7(ϕ, e4, loc 7)
+op1(ϕ, ϕ, ϕ, loc 1, e1)
+op2(ϕ, ϕ, ϕ, loc 2, e2)
+op3(ϕ, Set1?, ϕ, loc 3,e7)
+op(4,1)(ϕ, ϕ, P S, loc 4,e4)
+op(4,2)(ϕ, ϕ, P F, loc 4, e5)
+op5(ϕ, ϕ, ϕ, loc 5, e6)
+op6(ϕ, ϕ, ϕ, loc 6, e3)
+op7(ϕ, ϕ, ϕ, loc 7, e8)
+e1(ϕ, ϕ, op 1, ip2)
+e2(ϕ, ϕ, op 2, ip3)
+e3(varout=varin, ϕ,op6, ip4)
+e4(ϕ,ϕ ,op(4,1),ip7)
+e5(ϕ, ϕ, op (4,2), ip5)
+e6(ϕ, ϕ, op 5, ip2)
+e7(ϕ, ϕ, op 3, ip6)
+e8(ϕ, Set2!, op7, ip5)
+Fig. 16: EAC Lossy Channel Example - Inserting Locations
+–Divide the locations into transient and regular (time-consuming) locations. 458
+A regular location is identified by having either a guard or an event trigger 459
+on the output port, or by having a non-empty invariant field. For the 460
+ActChannel lossy example, all the locations are transient except location 461
+loc3which has an event trigger on the output port. 462
+
+--- Page 25 ---
+24 Alshalalfah et. al.
+–The rate of all local clocks should be identified on all regular locations. 463
+Therefore, if a clock is not supposed to evolve in a specific regular location, 464
+its evolution rate should be assigned to 0 in the invariants field of that 465
+location. 466
+–When exporting the PTAs into an XML file compatible with UPPAAL- 467
+SMC analyzer, transient locations are specified as urgent locations except 468
+for the following: 469
+–A location which emits output ports with probabilistic weights (location 470
+loc4inActChannel lossy example) is defined as an anchor point (for 471
+syntax compatibility). 472
+–The first location following a receive node (location loc6inActChannel lossy473
+example) should be set to committed for synchronization correctness 474
+(semantic compatibility). 475
+The resulting PTA diagram for the above transformed lossy channel is 476
+depicted in Fig. 17. This PTA initializes at the location loc1. This location 477
+is urgent which means that no time progress and hence the PTA will move 478
+instantly through the output port op1, the edge e1, the input port ip2to the 479
+next location loc2. This location is also an urgent location and hence the PTA 480
+will move through the output port op2, edge e2, and the input port ip2towards 481
+the location loc3. The output port op3is activated by the event trigger Set1? 482
+which is controlled by another PTA (the sensor in this case). Then, this sensor 483
+activates the event trigger Setto send a new measurement (the variable varin) 484
+through the wireless channel. When triggered by the event trigger Set1, the 485
+lossy channel PTA moves through the output port op3, the edge e7, and the 486
+input port ip6towards the committed location loc6. Like the urgent location, 487
+a committed location freezes time but also synchronizes the PTAs so that the 488
+correct sequence of actions takes place. In this PTA, it is required so that the 489
+up-to-date version of the measurement value varinis read. 490
+The PTA moves through op6towards the edge e3where the measurement 491
+is sampled, and then through the input port ip4to the location loc4which is a 492
+probabilistic branching point. Then, the PTA will take a branch depending on 493
+probability weights. At one branch, the message will get lost and so the PTA 494
+takes the output port op(4,2)towards the edge e5and the input port ip5to 495
+reach the location loc5. In the other branch, the measurement is successfully 496
+relayed so the other PTA (the controller in this case) is notified with the event 497
+trigger Set2!, so the PTA moves through op(4,1),e4,ip7to the transient location 498
+loc7towards the output port op7and the edge e8(where Set2! is activated) to 499
+the input port ip5while merging with the other branch in the location loc5. 500
+Finally, the PTA moves via the output port op5and the edge e6through the 501
+input port ip2to merge in the location loc2. 502
+❖modeling ODESCD using PTA 503
+The same rules apply to convert ODESCD into PTA where the ODE variables 504
+Xare defined as clock variables. The PTA is composed of one location where 505
+the rates of the ODE variables Xare assigned using equality constraints in 506
+the invariant field of the main location. If some variables or parameters are 507
+
+--- Page 26 ---
+A Framework for Modeling and Analyzing CPS using SMC 25
+Fig. 17: The Resulting PTA Diagram for the Lossy Channel
+initialized with random values, an additional transient initial location is added 508
+with the variables assigned in the edge connecting the initial location to the 509
+main operational location. 510
+4.2 Soundness 511
+After presenting the semantics of CPS and PTA, we prove the soundness of the 512
+developed framework. First, lets Γ to be a function denoting Algorithm 1. Now, 513
+we prove the soundness of the transformation by showing that Γ guarantees 514
+the integrity of the CPS design, i.e. no added, modified, or excluded behavior. 515
+Thus, an equivalent PTA behavioral model is produced. Then, we show that 516
+the soundness proves the satisfiability preservation of MILT expressions when 517
+applying Γ. 518
+As depicted in Fig. 18, we have to show the nature of the relation R, 519
+that compares both PTAcpsandPTAfconstructed through EAC and PTA 520
+semantics rules respectively, while preserving both behaviours. Indeed, the 521
+relation Rcould be determined by comparing the semantics of each term in 522
+EAC and the semantics of its image obtained by the function Γ. Since the goal 523
+is to guarantee the behaviour integrity of PTAcpsand the resulting PTAf524
+should not differ from PTAcps, Lemma 1 proves that Ris a bisimulation 525
+relation. 526
+Lemma 1 The binary relation R, is a bisimulation, whenever SRˆS, satisfies 527
+the following. 528
+1. If Sα→S′then∃ˆS′such that ˆSα→ˆS′andS′≡RˆS′. 529
+
+--- Page 27 ---
+26 Alshalalfah et. al.
+A C
+PTAcpsPTAf
+PTAcps|=ϕ PTAf|=ϕEACΓ
+RRules
+⇔
+Fig. 18: The Transformation Soundness Schema.
+2. If ˆSα→ˆS′then∃Ssuch that S′α→S′and ˆS′≡RS′. 530
+Proof Let’s consider A∈PTAcpsandB∈PTAfwhere Γ( A) =B. So, by 531
+induction on EAC terms, we prove that Ris a bisimulation binary relation as 532
+follows. 533
+–When A=i− →N, then based on the rule ∃Sα→S′such that S=i↣N 534
+andS′=i↣N, we will have, Γ( A) = Γ( i− →N) =initial to i . Thus, 535
+initial ∧¬iα→ ¬initial ∧i∈Bs. Then, PTAcpsRPTAfwhen A=i− →N. 536
+–For{S, X}!− →N, then X↣N−→ { S, X, X′}!↣N∈PTAcps. Also, 537
+Γ(A) =resource < v > − →Nwhich means resource v∧¬Nprt→ ¬resource v∧ 538
+N∈Bs. So, PTAcpsRPTAf. 539
+–In the case of A=resource ?v− →N, we have resource ?v↣N−→ 540
+resource ?v↣N∈Bsn. Thus, PTAcpsRPTAf. 541
+–IfA=resource !v− →N, we have resource !v↣N−→resource !v↣ 542
+N∈BsnR resourceout v∧ ∃v∧ ¬Nprt→ ¬resourceout v∧N∈Bs. 543
+–By considering A=resource ↑expression − →N, then resource ↑expression ↣N−→ 544
+resource ↑expression ↣N∈Bsn. As a result, we have resource v∧ 545
+¬Nprt→ ¬resource v∧v=newvalue ∧N∈Bs, which means PTAcpsR 546
+PTAf. 547
+–For the decision term A=D(gv1,N1,N2), we differentiate two cases: 548
+1. When ¬gv1|=⊤, we have D(gv1,N1,N2)¬gv1−→D(gv1,N1,N2)∈Bsn549
+by relying on the decision rule. Also, we have: Γ( A) ={on prt ifrom 550
+source to Nprovided gvi=eval(vi) :i∈ {1,2}}. Also, since ¬gv1|=⊤, 551
+we have: D(gv1,N1,N2)¬gv1−→D(gv1,N1,N2)∈Bs. 552
+2. For the other case, when gv1|=⊤, we have shown that D(gv1,N1,N2)≡ 553
+D(¬gv1,N2,N1). Thus, PTAcpsRPTAf. 554
+We have shown that for each EAC term, we have PTAcpsRPTAfin which 555
+result that R, is a bissimulation relation and it is symmetric. 556
+Based on the illustration presented in Fig 18, the transformation’s objec- 557
+tive is to verify functional properties of the generated PTA model and then 558
+
+--- Page 28 ---
+A Framework for Modeling and Analyzing CPS using SMC 27
+infer satisfiability results for the CPS design. Using Lemma 1, Proposition 1 559
+demonstrates how the properties expressed in MITL logic can be satisfied. 560
+Proposition 1 ∀A∈PTAcps, B∈PTAfs.t.Γ(A) =B, we have: ∀ϕ∈ 561
+MITL :PTAf|=ϕ=⇒PTAcps|=ϕ. 562
+Proof By induction on MITL terms, we prove that B|=ϕ=⇒A|=ϕ. 563
+1. First, let’s consider the state formulae ϕ=φ1∧φ2where B|=ϕ. Now, we 564
+show the satisfiability of ϕonAfor the following EAC terms. 565
+–ForA=i− →N, we have i− →Nα→i↣NR initial ∧ ¬iα→ 566
+¬initial ∧i. Ifinitial ∧ ¬i|=φ1∧φ2means initial ∧ ¬i=φ1∧φ2. 567
+Thus, i− →N|=ϕ, and, B|=ϕ 568
+–ForA=resource < v > − →Nwhen¬resource v∧N|=φ1∧φ2, we 569
+have resource < v > ↣N|=φ1∧φ2. Then, B|=ϕ. 570
+–ForA=resource ?v− →N, then B|=ϕ resourcein v∧v=newvalue ∧ 571
+¬Nprt→ ¬resourcein v∧N|=ϕ. Thus, we have resource ?v↣N−→ 572
+resource ?v↣N|=ϕ. Consequently, B|=ϕ. 573
+2. Now, we consider the path formulae P⋊ ⋉p[ψ]. So, since EAC does not sup- 574
+port probabilistic decisions and has only deterministic ones, P≥1[ψ] means 575
+ψelse we consider the case of P≤0[ψ]. Then, we prove by induction on the 576
+path operators that PTAcps|=ϕwhen PTAf|=ϕas follows. 577
+–Forϕ=Nφ,B|=ϕmeans ∃ˆSα→ˆS′∈Bnsuch that ˆS′|=φ. In 578
+addition, since Ris symmetric, then ∃Sα→S′∈Bsuch that: S′|=φ. 579
+–Forϕ=φ1∪tφ2, we have ∃ˆS1α→ ··· →ˆS′
+t⊆Bnsuch that ˆSi:i<t′|=φ1580
+and ˆS2|=φ2. Also,Ris symmetric and ∃S1α→ ··· → S′
+t⊆Bsnwhere 581
+SiRˆSi: 0< i≤t. Thus, B|=ϕ. 582
+Based on the previous proof, we have shown that for each EAC and MITL 583
+term,Ralways preserves the satisfiability of MITL formulae. Consequently, 584
+B|=ϕ=⇒A|=ϕfor all ϕexpressed in MITL when PTAcpsRPTAf. 585
+5 Experimentation 586
+This section shows the effectiveness of the proposed framework by first vali- 587
+dating the transformation algorithm. Then, the proposed approach is used to 588
+demonstrate how the safety of the obtained model can be examined by statis- 589
+tical model checking over a list of selected functional and safety requirements. 590
+5.1 Validation of the Conversion Procedure 591
+In order to demonstrate the correctness of the proposed approach, PTA models 592
+are validated. Properties are specified for each component of the system that 593
+constrain its functional behavior. To evaluate whether the resulting PTA model 594
+meets the behavioral properties, random simulations are conducted and trace 595
+
+--- Page 29 ---
+28 Alshalalfah et. al.
+log analysis is applied to the results. The resulting PTA models are more likely 596
+to be valid representations of the CPS components when all the properties are 597
+satisfied. 598
+By comparing the values of the ODE variables with a mathematical ODE 599
+solver, PTAs representing ODESCD are validated. In the case of the ODE- 600
+SCDs describing meal absorption and glucose-insulin dynamics, multiple sim- 601
+ulations are conducted on 10 virtual patients for 24 hours under various meal 602
+scenarios. The PTAs for these ODESCDs that are constructed using the above 603
+automatic procedure are simulated. 604
+The trace logs of the physical variables are compared against our ODE 605
+solver developed in Matlab and errors are recorded. The absolute errors of 606
+variable samples are divided by the variable root mean square to get the rel- 607
+ative absolute errors. The percentage mean and standard deviation (std) of 608
+these relative absolute errors are depicted in Table 2. It can be noted that 609
+the relative errors are negligible and hence demonstrate the correctness of the 610
+proposed procedure. 611
+Table 2: Meal and Glucose-Insulin Dynamics ODESCD Variables (Results
+Against a Mathematical Solver).
+Variable Identifier Relative Absolute Error {mean+std }
+Qsto1 0.018%±0.007%
+Qsto2 0.027%±0.012%
+rag 0.028%±0.012%
+Isc1 0.166%±0.049%
+Isc2 0.117%±0.039%
+X1 0.219%±0.029%
+Gs 0.164%±0.203%
+I1 0.071%±0.030%
+Id 0.047%±0.027%
+Il 0.118%±0.040%
+Ip 0.118%±0.040%
+G 0.165%±0.200%
+Gs 0.180%±0.209%
+For the case of cyber components which are specified by EAC, the following 612
+steps demonstrate the model validation for this type of PTAs. 613
+–Sensor: The sensor PTA shown in Fig. 19-a has three locations. It periodi- 614
+cally waits in loc3before sampling the subcutaneous glucose measurement 615
+phyvarinto the variable meas var. The edge originating from loc3toloc2616
+synchronizes the sensor with the lossy channel by means of the event trigger 617
+Set. 618
+–A new measurement is sent periodically every Tpminutes: to check on 619
+this property, a new binary flag variable is added to the PTA ( chkpt1in 620
+the sensor PTA shown in the graph of Fig. 19-a). The variable is marked 621
+
+--- Page 30 ---
+A Framework for Modeling and Analyzing CPS using SMC 29
+whenever a measurement is sent. This can be achieved by flipping the 622
+value of the variable in an ACT term at the same edge as the send 623
+term (the edge goes from loc3 toloc2). The variable is monitored on 624
+random simulations and its value should be flipped periodically every 625
+Tpminute. 626
+(a) Sensor PTA
+ (b) Lossy Channel PTA
+Fig. 19: A Part of the Sensor’s PTA Communication Network.
+–Whenever a measurement is sent, its value should be equal to the most 627
+recent sample of the physical variable monitored. Then, the value of 628
+the measurement is examined in particular whenever the binary flag, 629
+defined above, is flipped. 630
+–The mapping of all the variables that are shared with other PTAs 631
+should be validated as well. In particular, the variables ( phyvar,Set, 632
+meas var) in the Sensor PTA are examined against Gsin the glucose- 633
+insulin dynamics PTA and ( Set1,varin) in the ActChannel lossyPTA, 634
+respectively. For a properly mapped system, the values of the variables 635
+in a PTA should be matched to their corresponding ones in all other 636
+PTAs at any time. 637
+–Channel lossy: The PTA shown in Fig. 19-b has seven locations where the 638
+edge from loc3towards loc6synchronizes with the sensor PTA to receive 639
+the measurement value as an input variable varin. Similarly, the edge from 640
+loc7toloc5synchronizes with the controller PTA to send the measurement 641
+value as an output variable varout. 642
+–For every received measurement, the PTA will either successfully relay 643
+the measurement to the controller with probability PSor fail with prob- 644
+
+--- Page 31 ---
+30 Alshalalfah et. al.
+ability PF. To check on this, binary flags are marked (flipped) on the 645
+corresponding edges for success and failure ( chkptSuccess andchkptF 646
+in the graph of Fig. 19-b). These binary flags are monitored for random 647
+simulations over various probabilistic weights. 648
+–A measurement is sent to the controller if and only if the edge with PS649
+probabilistic weight is traversed. This can be checked by examining the 650
+corresponding binary flags. 651
+–Whenever a measurement is sent to the controller ( Set2is activated), 652
+the value of the measurement ( varout) should be equal to the value of 653
+the sample received from the sensor ( varin). 654
+–To validate the mapping of variables, the values of the variables ( Set2, 655
+varout) should be equal to the values of the corresponding variables 656
+in the controller PTA ( Set1,G), respectively. 657
+–Controller: The PTA shown in Fig. 20-a has five locations where the edge 658
+from loc3towards loc5synchronizes with the lossy channel PTA to receive 659
+the glucose measurement value as an input variable G. Similarly, the edge 660
+from loc4toloc2synchronizes with the actuator PTA to send the control 661
+value as an output variable IIR. 662
+(a) The Controller PTA.
+ (b) Actuator PTA
+Fig. 20: A Part of the Artificial Pancreas Control Network.
+–For each measurement delivered ( Set1activated), the PTA will read 663
+the measurement value Gand use it to calculate a new Insulin Infusion 664
+Rate (IIR) using the standard Proportional-Integral-Derivative (PID) 665
+control [4, 34]. This new calculated value of IIRshould be sent to the 666
+actuator by activating the event trigger Set2. 667
+–If the time since the last delivered measurement exceeds the control 668
+period Tp, the value of the variable IIRis zeroed and the event trigger 669
+Set2is activated to command insulin delivery suspension. 670
+
+--- Page 32 ---
+A Framework for Modeling and Analyzing CPS using SMC 31
+–To validate the mapping of variables, the values of the variables ( Set2, 671
+IIR) should be equal to the values of the corresponding variables in 672
+the actuator PTA ( Set,IIR c), respectively. 673
+–Actuator: The PTA shown in Fig. 20-b has four locations where the edge 674
+from loc3towards loc4synchronizes with the controller PTA to receive the 675
+control value as an input variable IIR c. The actuator then modifies the 676
+corresponding physical values in the glucose-insulin dynamics PTA through 677
+the output variable IIR. 678
+–Whenever a new infusion rate value IIR ccontrol command from the 679
+controller PTA is received ( Setactivation), the actuator should update 680
+the value of the physical real-time variable IIR. 681
+–To verify the mapping of variables, the values for the variables IIRin 682
+both PTAs, actuator and glucose-insulin dynamics, should be equal at 683
+all times. 684
+–Meal Scenario: This PTA is used to assign the input variables of the meal 685
+absorption model such as the carbohydrate amounts and the inter-meal 686
+times. 687
+–Each of the variables ( meal carbs ,meal dur,inter meal time) takes 688
+a value ranging between the configured minimum and maximum with 689
+uniform distribution. Based on the histogram of the variables, this can 690
+be validated. 691
+–The PTA should generate the values of the real-time variables ( curmeal , 692
+Dmeal) complying with the right amounts of insulin-carbs, meal dura- 693
+tions, and inter-meal times. 694
+–Validation for the mapping of the variables ( curmeal ,Dmeal,Qsto1, 695
+Qsto2) with their corresponding variables in the meal absorption PTA. 696
+–Meal Absorption & Glucose-Insulin Dynamics: 697
+–The variables of the ODEs for both PTAs are observed and compared 698
+using our ODE simulator. The values for all variables should be identi- 699
+cal to the ones calculated by the mathematical ODE solver developed 700
+in Matlab except for marginal numerical computational errors, e.g. pre- 701
+cision. 702
+5.2 Model Verification 703
+PTAs are constructed for all the CPS components and are exported to a file for 704
+verification and analysis. This file is loaded into UPPAAL-SMC. A network of 705
+PTAs is created by instantiating and parallel-composing the PTA blocks using 706
+the UPPAAL-SMC. The tool performs hypothesis testing on queries specified 707
+by Metric Interval Temporal Logic (MITL). Also, monitor-based verification 708
+[8] could be used to specify more complicated queries using simpler expressions 709
+or for queries that are beyond the expressive power of MITL query language. 710
+To demonstrate the use of the proposed framework to analyze real-life 711
+systems, UPPAAL-SMC is utilized to investigate safety properties of the arti- 712
+ficial pancreas CPS that is supposed to regulate the blood glucose levels using 713
+
+--- Page 33 ---
+32 Alshalalfah et. al.
+a pre-configured closed-loop control strategy. A good control strategy would be 714
+able to satisfy safety properties under normal conditions. Moreover, it would 715
+accommodate disturbances and minimize the side effects of faults. 716
+Using this system, the sensor periodically transmits measurements to the 717
+controller over a wireless channel, but wireless packet transmission failure can 718
+cause measurements to be missing. Missing measurements can be handled 719
+using different control approaches. With the proposed SMC modeling and 720
+analysis, it is possible to evaluate whether each control approach can preserve 721
+safety properties at various error rates. 722
+Whenever the controller receives a measurement, it calculates the required 723
+insulin rate using the standard PID. For a missing measurement, the controller 724
+will behave in one of three ways. 725
+–Sustain: The controller will keep configuring the last valid calculated insulin 726
+rate until a new valid measurement is received. 727
+–Suspend: The controller will stop insulin delivery until a new valid mea- 728
+surement is received. 729
+–Revert: The controller will revert to a low value which is equal to the PID 730
+controller basal insulin rate until a new valid measurement is received. 731
+The analysis is conducted on a database of 10 adult patients publicly acces- 732
+sible [38]. Each patient receives random meals of (20 −50)grams carbohydrates 733
+each. Per patient, the analysis evaluates whether or not the controller satisfies 734
+safety properties for each of the three control configurations: sustain, suspend 735
+or revert. The following two safety properties are defined for analysis. 736
+–SA: At all times, the blood glucose levels should not cross the boundaries 737
+of severe minimum and maximum values of 50 mg/dL and 300 mg/dL , 738
+respectively. 739
+–SB: Whenever the glucose elevates to values higher than the threshold of 740
+180mg/dL , it should restore its value to normal range below this threshold 741
+within a maximum of two and a half hours. 742
+The first safety property SAis straightforward and can be described using 743
+the following MITL query: 744
+Pr[t≤1440] ( [] G >=50 && G <=300 ) ≥0.99 745
+This property specifies that throughout the test duration of one day (1440 746
+minutes) the blood glucose levels should be limited between 50 mg/dL and 747
+300mg/dL with a probability above or equal 99%. On the other side, the 748
+second safety property SBis too elaborate to describe in a query using MITL. 749
+Instead, a monitor PTA is designed to observe the time duration for each 750
+time the glucose level elevates above 180 mg/dL as shown in Fig. 21. Having 751
+this variable ( tg180) assigned, the safety property SBis described using the 752
+following MITL property. 753
+Pr[t≤1440] ( [] tg180<=150 ) ≥0.99 754
+
+--- Page 34 ---
+A Framework for Modeling and Analyzing CPS using SMC 33
+Fig. 21: The Duration of Time Where Glucose Exceeds 180 (mg/dL) {tg180}
+This property is satisfied if and only if a high glucose incidence would 755
+recover to normal range within two and a half hours maximum with at least 756
+99% probability. It should be noted that the monitor PTA is constructed by 757
+creating a SysML activity diagram characterizing its behavior as shown in Fig. 758
+22 and applying the new proposed automatic procedure to convert the EAC 759
+description into a PTA component that is parallel-composed with the other 760
+PTAs in UPPAAL-SMC tool. 761
+ActMonitor =l7→l1:BC(l2: (C=G>180)7→N1, l3: (C=G≤180)7→N2)
+N1=l4:DCB(G<180, G≥180−1&&tg′
+180== 1)
+7→l5:Act(tg180= 0)7→l6:DCB(G>180−1, G≤180)7→l4
+N2=l6
+762
+The percentage of the patients with violations for each safety property 763
+is shown in Fig. 23. No violations exist in the absence of message errors. 764
+When message errors are introduced, the three control configurations result in 765
+varying behaviors. For safety property SA, message errors result in a gradual 766
+increase of violations on sustain andsuspend approaches. However, the revert 767
+approach preserves the safety property SAon all patients with message errors 768
+up to 50%. For safety property SB, the suspend approach fails on timely 769
+recovery of normal glucose levels in the existence of message errors. The other 770
+configurations, sustain andrevert , avoid SBviolations with message errors as 771
+high as 30%. When the error rate exceeds that level, violations start to occur 772
+with the revert approach suffering more violations. 773
+
+--- Page 35 ---
+34 Alshalalfah et. al.
+Fig. 22: SysML Activity Diagram of the Monitor
+5.3 Discussion 774
+To understand the experimental results, the following facts should be noted. 775
+–In the absence of message errors, the three control configurations fall back 776
+to being the same standard PID controller. 777
+–The analyzed artificial pancreas is a single hormone unidirectional con- 778
+troller (as opposed to dual-hormone systems [22]). This implies that it can 779
+deliver more insulin to counteract the excessive glucose levels, but it can 780
+only counteract low glucose levels by suspending the insulin delivery and 781
+waiting for the pre-delivered insulin to get consumed by the physiological 782
+processes inside the body. 783
+Putting this in mind can explain the results on safety property SA(left graph 784
+in Fig. 23), where the sustain approach accidentally delivers excessive insulin 785
+amounts that can cause glucose drops below 50 mg/dL even at low message 786
+error rates. On the contrary, the suspend approach stops insulin delivery and 787
+can make it up by restarting insulin delivery when valid messages are received 788
+again. However, when the message error rate increases, there is a chance that 789
+thesuspend approach might fail to prevent large glucose levels above 300 790
+mg/dL . Instead of completely halting the insulin delivery, the revert continues 791
+delivering small amounts of insulin to make a balance between the two other 792
+approaches and avoid extreme highs and lows of glucose. The same concept 793
+explains the results in the right graph of Fig. 23 where the sustain approach 794
+provides better performance in avoiding long times with glucose levels above 795
+180mg/dL as opposed to the suspend approach which fails to avoid that. 796
+Therevert approach provides performance similar to the sustain approach 797
+
+--- Page 36 ---
+A Framework for Modeling and Analyzing CPS using SMC 35
+except for high message error rates where the violations start to increase when 798
+utilizing the revert approach. 799
+Fig. 23: Results for Safety Properties Violations: SA(left) and SB(right)
+6 Conclusion 800
+In this work, a framework is proposed to formally model and automatically an- 801
+alyze cyber-physical systems using statistical model checking. The framework 802
+takes models specified using SysML modeling language as SysML diagrams. 803
+The latters are then represented in textual format using the proposed enhanced 804
+activity calculus and ordinary-differential equations of SysML constraint dia- 805
+grams. Then, these textual representations of the model components are fed 806
+into a new proposed conversion algorithm that automatically transforms them 807
+into equivalent priced timed automata. Thus, the resulting model is fed into 808
+UPPAAL-SMC statistical model checking tool which parallel-composes all the 809
+system components and verifies the system behaviors. The use of the proposed 810
+framework to verify safety properties is demonstrated on an artificial pancreas 811
+case study. 812
+The proposed framework can be used to verify the safety of cyber-physical 813
+systems and gain insight into their most critical behaviors at an early stage 814
+of the design process, thus saving valuable time and money. Ultimately, it 815
+promotes the integration of real-life problems into model-based analysis and 816
+allows experimenting a variety of scenarios without compromising participant 817
+safety. This is especially crucial when dealing with systems that involve human 818
+life, whether directly as in biomedical systems or indirectly as in automotive 819
+systems. In the near future, we target to improve the framework to cover more 820
+issues, mainly: 821
+–Develop a library of different CPS components and applications. 822
+–Model more cyber-physical systems with a focus on faults and security 823
+threats. 824
+–Before the CPS deployment, we target also to automatically generate the 825
+source code related to the modeled and analyzed CPS. 826
+
+--- Page 37 ---
+36 Alshalalfah et. al.
+–Provide guidance to correct the CPS whenever a property has not been 827
+satisfied. 828
+–Establish a mechanism for defining CPS complex requirements automati- 829
+cally and easily. 830
+References 831
+1. Abdel-Latif Alshalalfah and Otmane Ait Mohamed. System-level mod- 832
+eling and safety analysis of vehicular coordinated emergency braking un- 833
+der degraded wireless connectivity using priced timed automata. In 2020 834
+27th IEEE International Conference on Electronics, Circuits and Systems 835
+(ICECS) , pages 1–4. IEEE, 2020. 836
+2. Abdel-Latif Alshalalfah, Ghaith Bany Hamad, and Otmane Ait Mohamed. 837
+Towards system level security analysis of artificial pancreas via uppaal- 838
+smc. In 2019 IEEE International Symposium on Circuits and Systems 839
+(ISCAS) , pages 1–5. IEEE, 2019. 840
+3. Abdel-Latif Alshalalfah, Ghaith Bany Hamad, and Otmane Ait Mohamed. 841
+System-level analysis of closed-loop anesthesia control under temporal sen- 842
+sor faults via uppaal-smc. In 2020 42nd Annual International Conference 843
+of the IEEE Engineering in Medicine & Biology Society (EMBC) , pages 844
+2508–2511. IEEE, 2020. 845
+4. Abdel-Latif Alshalalfah, Ghaith Bany Hamad, and Otmane Ait Mohamed. 846
+Towards safe and robust closed-loop artificial pancreas using improved pid- 847
+based control strategies. IEEE Transactions on Circuits and Systems I: 848
+Regular Papers , 68(8):3147–3157, 2021. 849
+5. Georges M Arnaout and Jean-Paul Arnaout. Exploring the effects of coop- 850
+erative adaptive cruise control on highway traffic flow using microscopic 851
+traffic simulation. Transportation Planning and Technology , 37(2):186– 852
+199, 2014. 853
+6. Ananda Basu, Saddek Bensalem, Marius Bozga, Benoˆ ıt Delahaye, and 854
+Axel Legay. Statistical abstraction and model-checking of large hetero- 855
+geneous systems. International Journal on Software Tools for Technology 856
+Transfer , 14(1):53–72, 2012. 857
+7. Gerd Behrmann, Alexandre David, and Kim G Larsen. A tutorial on 858
+uppaal. Formal methods for the design of real-time systems , pages 200– 859
+236, 2004. 860
+8. Peter Bulychev, Alexandre David, Kim Guldstrand Larsen, Axel Legay, 861
+Guangyuan Li, Danny Bøgsted Poulsen, and Am´ elie Stainer. Monitor- 862
+based statistical model checking for weighted metric temporal logic. In 863
+International Conference on Logic for Programming Artificial Intelligence 864
+and Reasoning , pages 168–182. Springer, 2012. 865
+9. Fraser Cameron, Georgios Fainekos, David M Maahs, and Sriram Sankara- 866
+narayanan. Towards a verified artificial pancreas: Challenges and solutions 867
+for runtime verification. In Runtime Verification , pages 3–17. Springer, 868
+2015. 869
+
+--- Page 38 ---
+A Framework for Modeling and Analyzing CPS using SMC 37
+10. Edmund M Clarke Jr, Orna Grumberg, Daniel Kroening, Doron Peled, 870
+and Helmut Veith. Model checking . MIT press, 2018. 871
+11. ML Cummings and David Britton. Regulating safety-critical autonomous 872
+systems: past, present, and future perspectives. In Living with robots , 873
+pages 119–140. Elsevier, 2020. 874
+12. Alexandre David, Kim G Larsen, Axel Legay, Marius Mikuˇ cionis, and 875
+Zheng Wang. Time for statistical model checking of real-time systems. In 876
+International Conference on Computer Aided Verification , pages 349–355. 877
+Springer, 2011. 878
+13. Alexandre David, DeHui Du, Kim G Larsen, Marius Mikuˇ cionis, and Arne 879
+Skou. An evaluation framework for energy aware buildings using statistical 880
+model checking. Science China information sciences , 55(12):2694–2707, 881
+2012. 882
+14. Alexandre David, Kim Guldstrand Larsen, Axel Legay, Marius Mikuˇ cionis, 883
+Danny Bøgsted Poulsen, and Sean Sedwards. Runtime verification of bio- 884
+logical systems. In International Symposium On Leveraging Applications 885
+of Formal Methods, Verification and Validation , pages 388–404. Springer, 886
+2012. 887
+15. Alexandre David, Kim G Larsen, Axel Legay, Marius Mikuˇ cionis, and 888
+Danny Bøgsted Poulsen. Uppaal smc tutorial. International journal on 889
+software tools for technology transfer , 17(4):397–415, 2015. 890
+16. Yair Bar David, Tal Geller, Ilai Bistritz, Irad Ben-Gal, Nicholas Bambos, 891
+and Evgeni Khmelnitsky. Wireless body area network control policies for 892
+energy-efficient health monitoring. Sensors , 21(12):4245, 2021. 893
+17. Mourad Debbabi, Fawzi Hassaine, Yosr Jarraya, Andrei Soeanu, and Luay 894
+Alawneh. Verification and validation in systems engineering: assessing 895
+UML/SysML design models . Springer Science & Business Media, 2010. 896
+18. Predrag Filipovikj, Nesredin Mahmud, Raluca Marinescu, Cristina Sece- 897
+leanu, Oscar Ljungkrantz, and Henrik L¨ onn. Simulink to uppaal statistical 898
+model checker: Analyzing automotive industrial systems. In FM 2016: For- 899
+mal Methods: 21st International Symposium, Limassol, Cyprus, November 900
+9-11, 2016, Proceedings 21 , pages 748–756. Springer, 2016. 901
+19. Goran Frehse. An introduction to hybrid automata, numerical simulation 902
+and reachability analysis. In Formal Modeling and Verification of Cyber- 903
+Physical Systems: 1st International Summer School on Methods and Tools 904
+for the Design of Digital Systems, Bremen, Germany, September 2015 , 905
+pages 50–81. Springer, 2015. 906
+20. Goran Frehse, Colas Le Guernic, Alexandre Donz´ e, Scott Cotton, Rajarshi 907
+Ray, Olivier Lebeltel, Rodolfo Ripado, Antoine Girard, Thao Dang, and 908
+Oded Maler. Spaceex: Scalable verification of hybrid systems. In In- 909
+ternational Conference on Computer Aided Verification , pages 379–395. 910
+Springer, 2011. 911
+21. Patrice Godefroid. Partial-order methods for the verification of concurrent 912
+systems: an approach to the state-explosion problem . Springer, 1996. 913
+22. Ahmad Haidar, Laurent Legault, Virginie Messier, Tina Maria Mitre, 914
+Catherine Leroux, and R´ emi Rabasa-Lhoret. Comparison of dual-hormone 915
+
+--- Page 39 ---
+38 Alshalalfah et. al.
+artificial pancreas, single-hormone artificial pancreas, and conventional in- 916
+sulin pump therapy for glycaemic control in patients with type 1 diabetes: 917
+an open-label randomised controlled crossover trial. The lancet Diabetes 918
+& endocrinology , 3(1):17–26, 2015. 919
+23. Jinpei Han, Joseph Davids, Hutan Ashrafian, Ara Darzi, Daniel S El- 920
+son, and Mikael Sodergren. A systematic review of robotic surgery: From 921
+supervised paradigms to fully autonomous robotic approaches. The Inter- 922
+national Journal of Medical Robotics and Computer Assisted Surgery , 18 923
+(2):e2358, 2022. 924
+24. Thomas H´ erault, Richard Lassaigne, Fr´ ed´ eric Magniette, and Sylvain Pey- 925
+ronnet. Approximate probabilistic model checking. In International Work- 926
+shop on Verification, Model Checking, and Abstract Interpretation , pages 927
+73–84. Springer, 2004. 928
+25. Jon Holt and Simon Perry. SysML for systems engineering , volume 7. 929
+IET, 2008. 930
+26. Zhihao Jiang, Miroslav Pajic, Salar Moarref, Rajeev Alur, and Rahul 931
+Mangharam. Modeling and verification of a dual chamber implantable 932
+pacemaker. In International Conference on Tools and Algorithms for the 933
+Construction and Analysis of Systems , pages 188–203. Springer, 2012. 934
+27. Nikolaos Kekatos, Marcelo Forets, and Goran Frehse. Constructing veri- 935
+fication models of nonlinear simulink systems via syntactic hybridization. 936
+In2017 IEEE 56th Annual Conference on Decision and Control (CDC) , 937
+pages 1788–1795. IEEE, 2017. 938
+28. Nikolaos Kekatos, Marcelo Forets, and Goran Frehse. Modeling the wind 939
+turbine benchmark with pwa hybrid automata. EPiC Series in Computing , 940
+48:100–113, 2017. 941
+29. Jun Kit Koong, Gaik Huey Ng, Kamarajan Ramayah, Peng Soon Koh, 942
+and Boon Koon Yoong. Early identification of the critical view of safety in 943
+laparoscopic cholecystectomy using indocyanine green fluorescence cholan- 944
+giography: A randomised controlled study. Asian Journal of Surgery , 44 945
+(3):537–543, 2021. 946
+30. Ray Kurzweil. The law of accelerating returns. In Alan Turing: Life and 947
+legacy of a great thinker , pages 381–416. Springer, 2004. 948
+31. M. Kwiatkowska, G. Norman, and D. Parker. PRISM 4.0: Verification of 949
+probabilistic real-time systems. In G. Gopalakrishnan and S. Qadeer, edi- 950
+tors, Proc. 23rd International Conference on Computer Aided Verification 951
+(CAV’11) , volume 6806 of LNCS , pages 585–591. Springer, 2011. 952
+32. Sridhar Lakshmanan, Yuedong Yan, Stan Baek, and Hesham Alghodhaifi. 953
+Modeling and simulation of leader-follower autonomous vehicles: environ- 954
+ment effects. In Unmanned systems technology XXI , volume 11021, page 955
+110210J. International Society for Optics and Photonics, 2019. 956
+33. Kim G Larsen and Arne Skou. Bisimulation through probabilistic testing. 957
+Information and computation , 94(1):1–28, 1991. 958
+34. Srinivas Laxminarayan, Jaques Reifman, and Garry M Steil. Use of a 959
+food and drug administration-approved type 1 diabetes mellitus simula- 960
+tor to evaluate and optimize a proportional-integral-derivative controller. 961
+
+--- Page 40 ---
+A Framework for Modeling and Analyzing CPS using SMC 39
+Journal of diabetes science and technology , 6(6):1401–1412, 2012. 962
+35. Axel Legay, Anna Lukina, Louis Marie Traonouez, Junxing Yang, Scott A 963
+Smolka, and Radu Grosu. Statistical model checking. In Computing and 964
+Software Science , pages 478–504. Springer, 2019. 965
+36. Alexios Lekidis, Paraskevas Bourgos, Simplice Djoko-Djoko, Marius 966
+Bozga, and Saddek Bensalem. Building distributed sensor network appli- 967
+cations using bip. In 2015 IEEE Sensors Applications Symposium (SAS) , 968
+pages 1–6. IEEE, 2015. 969
+37. Jun Liu, Kara M Kockelman, Patrick M Boesch, and Francesco Ciari. 970
+Tracking a system of shared autonomous vehicles across the austin, texas 971
+network using agent-based simulation. Transportation , 44(6):1261–1278, 972
+2017. 973
+38. Chiara Dalla Man, Francesco Micheletto, Dayu Lv, Marc Breton, Boris 974
+Kovatchev, and Claudio Cobelli. The uva/padova type 1 diabetes simula- 975
+tor: new features. Journal of diabetes science and technology , 8(1):26–34, 976
+2014. 977
+39. Braham Lotfi Mediouni, Ayoub Nouri, Marius Bozga, Mahieddine Della- 978
+bani, Axel Legay, and Saddek Bensalem. SBIP 2.0: Statistical model 979
+checking stochastic real-time systems. In International Symposium on 980
+Automated Technology for Verification and Analysis , pages 536–542. 981
+Springer, 2018. 982
+40. Stefano Minopoli and Goran Frehse. Sl2sx translator: from simulink to 983
+spaceex models. In Proceedings of the 19th International Conference on 984
+Hybrid Systems: Computation and Control , pages 93–98, 2016. 985
+41. Umberto Montanaro, Shilp Dixit, Saber Fallah, Mehrdad Dianati, Alan 986
+Stevens, David Oxtoby, and Alexandros Mouzakitis. Towards connected 987
+autonomous driving: review of use-cases. Vehicle system dynamics , 57(6): 988
+779–814, 2019. 989
+42. Katherine Ogurtsova, JD da Rocha Fernandes, Y Huang, Ute Linnenkamp, 990
+L Guariguata, Nam H Cho, David Cavan, JE Shaw, and LE Makaroff. Idf 991
+diabetes atlas: Global estimates for the prevalence of diabetes for 2015 992
+and 2040. Diabetes research and clinical practice , 128:40–50, 2017. 993
+43. Masashi Okamoto. Some inequalities relating to the partial sum of bino- 994
+mial probabilities. Annals of the institute of Statistical Mathematics , 10 995
+(1):29–35, 1959. 996
+44. Samir Ouchani, Yosr Jarraya, Otmane Ait Mohamed, and Mourad Deb- 997
+babi. Probabilistic attack scenarios to evaluate policies over communica- 998
+tion protocols. J. Softw. , 7(7):1488–1495, 2012. 999
+45. Samir Ouchani, Otmane Ait Mohamed, and Mourad Debbabi. A formal 1000
+verification framework for sysml activity diagrams. Expert Systems with 1001
+Applications , 41(6):2713–2728, 2014. 1002
+46. Miroslav Pajic, Rahul Mangharam, Oleg Sokolsky, David Arney, Julian 1003
+Goldman, and Insup Lee. Model-driven safety analysis of closed-loop 1004
+medical systems. IEEE Transactions on Industrial Informatics , 10(1): 1005
+3–16, 2012. 1006
+
+--- Page 41 ---
+40 Alshalalfah et. al.
+47. Alkis Papadoulis, Mohammed Quddus, and Marianna Imprialou. Evaluat- 1007
+ing the safety impact of connected and autonomous vehicles on motorways. 1008
+Accident Analysis & Prevention , 124:12–22, 2019. 1009
+48. Sriram Sankaranarayanan, Suhas Akshar Kumar, Faye Cameron, B Wayne 1010
+Bequette, Georgios Fainekos, and David M Maahs. Model-based falsifica- 1011
+tion of an artificial pancreas control system. ACM SIGBED Review , 14 1012
+(2):24–33, 2017. 1013
+49. Stefan Schupp, Erika ´Abrah´ am, Xin Chen, Ibtissem Ben Makhlouf, Goran 1014
+Frehse, Sriram Sankaranarayanan, and Stefan Kowalewski. Current chal- 1015
+lenges in the verification of hybrid systems. In International Workshop on 1016
+Design, Modeling, and Evaluation of Cyber Physical Systems , pages 8–24. 1017
+Springer, 2015. 1018
+50. Stefan Schupp, Francesco Leofante, Leander Behr, Erika ´Abrah´ am, and 1019
+Armando Taccella. Robot swarms as hybrid systems: Modelling and veri- 1020
+fication. arXiv preprint arXiv:2207.06758 , 2022. 1021
+51. Koushik Sen, Mahesh Viswanathan, and Gul Agha. Statistical model 1022
+checking of black-box probabilistic systems. In International Conference 1023
+on Computer Aided Verification , pages 202–215. Springer, 2004. 1024
+52. Robert E Shannon. Systems simulation; the art and science. Technical 1025
+report, 1975. 1026
+53. Alyona Skorobogatjko, Andrejs Romanovs, and Nadezhda Kunicina. State 1027
+of the art in the healthcare cyber-physical systems. Information Technol- 1028
+ogy and Management Science , 17(1):126–131, 2014. 1029
+54. OMG Available Specification. Omg systems modeling language (omg 1030
+sysml™), v1. 0, 2007. 1031
+55. Kay W Axhausen, Andreas Horni, and Kai Nagel. The multi-agent trans- 1032
+port simulation MATSim . Ubiquity Press, 2016. 1033
+56. Abraham Wald. Sequential analysis . Courier Corporation, 2004. 1034
+57. Hakan Lorens Samir Younes. Verification and planning for stochastic pro- 1035
+cesses with asynchronous events . Carnegie Mellon University, 2004. 1036
+58. H˚ akan LS Younes and Reid G Simmons. Probabilistic verification of dis- 1037
+crete event systems using acceptance sampling. In International Confer- 1038
+ence on Computer Aided Verification , pages 223–235. Springer, 2002. 1039

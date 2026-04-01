@@ -1,0 +1,807 @@
+--- Page 1 ---
+L. Kovacs, R.Pugliese, and F. Tiezzi (Eds.): Workshop on
+Automated Speciﬁcation and Veriﬁcation of Web Systems
+(WWV 2011)
+EPTCS 61, 2011, pp. 17–33, doi:10.4204/EPTCS.61.2cN. Ibrahim, V . Alagar, M. Mohammad
+This work is licensed under the Creative Commons
+Attribution-Noncommercial-No Derivative Works License.Speciﬁcation and Veriﬁcation of Context-dependent Services
+Naseem Ibrahim, Vangalur Alagar, and Mubarak Mohammad
+Department of Computer Science & Software Engineering
+Concordia University, Montreal, Canada
+fnibrah,alagar,ms mohamg@cse.concordia.ca
+Current approaches for the discovery, speciﬁcation, and provision of services ignore the relationship
+between the service contract and the conditions in which the service can guarantee its contract. More-
+over, they do not use formal methods for specifying services, contracts, and compositions. Without
+a formal basis it is not possible to justify through formal veriﬁcation the correctness conditions for
+service compositions and the satisfaction of contractual obligations in service provisions. We remedy
+this situation in this paper. We present a formal deﬁnition of services with context-dependent con-
+tracts. We deﬁne a composition theory of services with context-dependent contracts taking into con-
+sideration functional, nonfunctional, legal and contextual information. Finally, we present a formal
+veriﬁcation approach that transforms the formal speciﬁcation of service composition into extended
+timed automata that can be veriﬁed using the model checking tool UPPAAL.
+1 Introduction
+In [12] and [11], we introduced a formal framework, called FrSeC , that supports the speciﬁcation, pub-
+lication, discovery, selection, composition and veriﬁcation of services with context-dependent contracts.
+The work reported in this paper is founded on this framework. We provide a formal speciﬁcation of
+services with context-dependent contracts and their compositions. The composition theory of services
+takes into consideration the functional, nonfunctional, legal, and contextual aspects of services. We also
+present a formal veriﬁcation approach that transforms the formal speciﬁcation of service composition
+into UPPAAL [2] timed automata in order to verify service properties using model checking.
+Service-oriented Architecture (SOA) is an emerging view of the future of distributed computing and
+enterprise application development [4]. However, current approaches for the speciﬁcation, publication,
+discovery, selection, and provision of services fall short in important respects. First, the relationship
+between the service contract and the conditions in which the service can guarantee its contract has been
+ignored, however these are necessary in order to associate the context of the service provider and the
+context of the service requester. Second, contextual information [3] is not well represented and not
+rigorously applied in service discovery and service provision. Third, current composition approaches
+compose only service functionality and ignore nonfunctional requirements. Thus, service contracts, and
+context information that are part of services are left out of the composition, and veriﬁcation. Fourth and
+the last, the published approaches do not use formal methods for the speciﬁcation of services, contracts,
+contextual representation and application, and service composition. Without a formal basis it is not
+possible to justify through formal veriﬁcation the correctness conditions for service compositions and the
+satisfaction of contractual obligations in service provisions. The work reported in this paper eliminates
+these shortcomings.
+The basic building unit for SOA-based applications is service . It is normally understood that ser-
+vice is an autonomous and platform-independent software program, having its own distinct functionality
+and a set of capabilities related to this functionality. These capabilities are usually invoked by exter-
+nal consumer programs and are usually expressed via a published service contract . A service contract
+
+--- Page 2 ---
+18 Spec. and Verif. of Context-dependent Services
+ConfiguredService Contract         Context
+ContextRule ContextInfo
+Dimension
+WHAT
+WHY
+WHEN
+WHERE
+WHOLegalissues NonFunctioal Function
+SignaturePrecondition
+PostconditionMethodID
+Parameter
+Complex
+Simple
+  float  char    bool  double    int   short    byte  longSafety
+Security
+ReliabilityAvailability
+OtherNF
+hasA
+is-A1 1
+n 1 n
+n1 1
+n Zero or manyConcept
+1 Exactly oneResultAddress
+PriceProviderTrust1
+1
+n
+11n
+n
+n
+Figure 1: ConﬁguredService
+establishes the terms of engagement with the service, provides technical constraints and requirements,
+and provides any semantic information the service owner wishes to make public [4]. We reckon that a
+Service Provider will package service functionality with non-functional attributes, service contract, and
+context. So, we decided to deal with ConﬁguredServices , which are formalized in Section 2. A Service
+Provider may choose to compose ConﬁguredServices . The composition mechanism itself may be driven
+by the business model of the Service Provider. Keeping this point of view, we discuss in Section 3 a
+formal composition theory of services ( ConﬁguredServices ). Section 4 presents an approach to formally
+verify service properties in service compositions. In Section 5, we brieﬂy, yet critically, compare our
+work with related work. Finally, Section 6 concludes the paper with a summary of ongoing work.
+2ConﬁguredService Deﬁnition
+Services are deﬁned by service providers in a contract ﬁrst approach. That is, the contract is deﬁned
+before the implementation of service [4]. The service provider determines all the possible contracts that
+this service should satisfy. Then, the service provider deﬁnes the ConﬁguredServices that represents
+those contracts. After that, the service provider develops the ImplementedService that implements the
+different ConﬁguredServices that provide the same functionality with different contracts and contexts. A
+ConﬁguredService is to be published in Service Registry and made available for discovery and selection.
+AConﬁguredService is a package in which service functionality, service contract, and service provision
+context are bundled together. The Service Provider publishes the ConﬁguredService elements. The pub-
+lished elements should be sufﬁcient for the discovery and selection of this service. The essential elements
+that make this happen are contract andcontext , as shown in Figure 1. The contract will include function ,
+nonfunctional properties andlegal issues . Trustworthiness features are included in the nonfunctional
+part of the contract and legal issues include business rules and other trade laws within the context.
+Function : AConﬁguredService provides a single function. The function deﬁnition will include
+the function signature ,result ,preconditions andpostconditions . The signature part deﬁnes the
+function identiﬁer , the invocation address , and the parameters of the function. Each parameter
+has an identiﬁer and a type. The result part deﬁnes the returned data of the service function.
+
+--- Page 3 ---
+N. Ibrahim, V. Alagar, M. Mohammad 19
+The preconditions deﬁne the conditions that should be true before the function invocation. The
+postconditions deﬁne the conditions that are guaranteed to be true after the function invocation.
+Nonfunctional properties : AConﬁguredService deﬁnition includes nonfunctional properties that
+it can guarantee. These properties are to be chosen carefully so that they are veriﬁable, and en-
+compass both quality and quantity aspects of service. Trustworthiness andPrice are examples.
+Trust itself is further divided into ConﬁguredService trust andprovider trust . These are explained
+in detail in the next section. ConﬁguredService trust deﬁnes the trustworthiness properties that
+are related to service provision. It includes the features safety ,security ,availability , and reliabil-
+ity[15]. Safety deﬁnes the critical conditions that are guaranteed to be true by Service Providers,
+such as timing conditions. Security is a composite of data integrity and conﬁdentiality. Availability
+can be deﬁned as the extent of readiness for providing correct services. Availability is speciﬁed
+as the maximum accepted time of repair until the service returns back to operate correctly. Relia-
+bility is the quality of continuing to provide correct services despite a failure. It is deﬁned as the
+accepted mean time between failures. Provider trust deﬁnes the trustworthiness properties that are
+related to the Service Provider. It may include recommendations from other clients, and lowest
+prices guarantees. There is no agreed upon deﬁnition for Provider trust. The main issue here is the
+inclusion of veriﬁable information that makes a seller trusted.
+Legal Issues : One of the essential elements of the ConﬁguredService contract is the set of legal
+rules that constrain the contract. Business rules, such as refund conditions ,interest and adminis-
+trative charges , and payment rules , form one part of legal issues. Another part is the set of trade
+laws enforced in the context of service request and delivery. Examples of the later kind are service
+requesters rights ,privacy laws , and censor rules . In the literature [16], no distinction was made
+between legal rules and nonfunctional requirements. We reckon that a clear distinction should
+be made between legal rules and nonfunctional properties. In many situations, if a nonfunctional
+property is ‘a soft’ requirement it may be ignored, however ignoring a legal rule is equivalent to
+‘legal violation’, which might land in legal disputes and even lead to loss of entire business. In
+essence, not enforcing a legal rule prevents the execution of a contract.
+The context part of the ConﬁguredService will include the main parts ConﬁguredService context and
+context rules . The ConﬁguredService context deﬁnes the contextual information of the ConﬁguredSer-
+vice. Context is formally deﬁned in [19] using dimensions andtags along the dimensions. We illustrate
+context speciﬁcation using the three dimensions WHERE ,WHEN andWHO . The dimension WHERE is
+associated with a location, which may be one or more of fPoint ,Region ,Address ,Route ,URI,IPg. The
+dimension WHEN is associated with temporal information, such as time and date. The dimension WHO
+is associated with subject identities, such as the names of Service Providers and Service Requesters.
+We can also use WHO dimension to associate information from job roles. The context rules deﬁne the
+contextual information related to the Service Requester that should be true for the Service Provider to
+guarantee the contract associated with the ConﬁguredService . Rules are deﬁned as constraints in a subset
+ofTimed Computation Tree Logic (TCTL), the logic used in UPPAAL. In practice, constraints can be
+expressed as simple logical expressions within the ﬁrst order predicate logic (FOPL), a subset of TCTL.
+Example 1 This example introduces a simpliﬁed case study [1], restricted to emergency road assistance
+service scenarios for automobiles . A typical scenario is the breakdown of a car on a highway, which
+requests for road-side assistance. The car sends information to the nearest road assistance center, which
+in turn will use the information received to identify the repair shop, tow truck and car rental companies
+in that zone. In this example we identify three ConﬁguredServices , whose detailed deﬁnitions are shown
+in Figure 2.
+
+--- Page 4 ---
+20 Spec. and Verif. of Context-dependent Services
+RepairShop
+TowTruck
+CarRentalFunction
+NonFunctional Legal ContextRule ContextInfo
+Name :ReserveRS
+Pre:CarBroken==T
+Post :HasAppointment==T
+Address : XXX
+Name :ReserveTT
+Pre:RequestTruck==T
+Post :RequestConfi==T
+Address : YYY
+Name :ReserveCR
+Pre:NeedCar==T
+Post :HasCar==T
+Address : ZZZ
+Price = 60$/h
+Price = 100$
+Price = 30$/Daydeposit = 300$
+PriceCondition :
+CarType=
+toyota
+PriceCondition: 
+CarType=
+toyotamembership
+==CAA
+membership
+==CAA
+membership
+==CAAlocation (montreal,
+downtown)
+location (montreal,
+downtown)
+location (montreal,
+downtown)ConfiguredService
+InputParameters :
+CarBroken:bool
+deposit:double
+CarType:string
+failureType:stringResultName : ResultRS
+OutputParameters :
+HasAppointment:bool
+numberOfHours:int
+InputParameters: 
+RequestTruck:bool
+CarType:string
+ResultName:  ResultTT
+OutputParameters :
+RequestConfi:bool
+InputParameters :
+NeedCar:bool
+CarSize:string
+StartDate:date
+EndDate:dateResultName : ResultCR
+OutputParameters :
+HasCar:bool
+ConfNum:string
+Figure 2: Roadside Emergency Services: ConﬁguredServices Description
+2.1 Formal Notation
+We use a model-based approach to formally specify ConﬁguredServices . The models are built from set
+theory and logic. The model is built incrementally, according to the template in Figure 1.
+Deﬁnition of Constraints : A constraint is a logical expression, deﬁned over data parameters and at-
+tributes. Any well-formed formula built by using standard logical operators, quantiﬁers, and temporal
+operators allowed in TCTL [2] is a valid constraint. If Cdenotes the set of all such logical expressions,
+X2Cis a constraint. The following notation is used in our deﬁnition:
+Tdenotes the set of all data types, including abstract data types.
+Dt2Tmeans Dtis a datatype.
+v:Dtdenotes that vis either constant or variable of type Dt.
+Xvis a constraint on v. Ifvis a constant then Xvis true.
+Vqdenotes the set of values of data type q.
+x::Ddenotes a logical expression x2Cdeﬁned over the set of parameters D.
+Deﬁnition of Parameters : A parameter is a 3-tuple, deﬁning a data type, a variable of that type, and
+a constraint on the values assumed by the variable. We denote the set of data parameters as L=fl=
+(Dt;v;Xv)jDt2T;v:Dt;Xv2Cg.
+Deﬁnition of Attributes : An attribute has a name and type, and is used to deﬁne some semantic informa-
+tion associated with the name. As an example, each ConﬁguredService can be given a version number,
+which is deﬁned as an attribute. The set of attributes is a=f(Dt;va)jDt2T;va:Dtg.
+Deﬁnition of Context: A context is formalized as a 2-tuple b=hr;ci, where r2C, built over the
+contextual information c. Context information is formalized using the notation in [19]: Let t:DIM
+!I, where DIM =fX1,X2,...,Xngis a ﬁnite set of dimensions and I=fa1;a2;:::;angis a set of types.
+The function tassociates a dimension to a type. Let t(Xi) =ai,ai2I. We write cas an aggregation of
+ordered pairs ( Xj,vj), where Xj2DIM , and vj2t(Xj).
+Deﬁnition of Contract: A contract is a 3-tuple s=hf;k;li, where the service function f, the set of
+nonfunctional properties kand the set lof legal issues that bind the service contract are deﬁned below.
+Service Function: A service function is a 4-tuple f=hg;i;pr;poi, where gis the function signa-
+ture, iis the function result, pris the precondition, and pois the postcondition. A signature is a
+
+--- Page 5 ---
+N. Ibrahim, V. Alagar, M. Mohammad 21
+3-tuple g=hn;d;ui, where n= (xjx:string )is the function identiﬁcation name, d=fxjx2Lgis
+the set of function parameters and u= (xjx:string )is the function address, the physical address
+on a network that can be used to call a function. For example, it can be an IP address. The result is
+deﬁned as i=hm;qi, where m= (xjx:string )is the result identiﬁcation name and q=fxjx2Lg
+is the set of parameters resulting from executing the ConﬁguredService . The precondition prand
+postcondition poare data constraints. That is, pr=fyjy::z;zLgandpo=fyjy::z;zLg.
+Nonfunctional Property: A nonfunctional property of a ConﬁguredService is a composite property,
+written as a 6-tuple k=hr;e;y;h;p;tri, where ris the safety guarantee, eis the security guar-
+antee, his the availability guarantee, yis the reliability guarantee, pis the service cost and tris a
+measure of the provider trust. The safety guarantee includes time guarantee rtand data guarantee
+rd. We assume that time is a generic type. The time guarantee is deﬁned as rt= (xjx:time ),
+the time the service takes to provide its function. The data guarantee refers to the accuracy of
+data, and is deﬁned as rd=fxjx::z;zLg. Let Hdenote the set of security protocols that the
+Service Provider has followed to guarantee conﬁdentiality and integrity constraints. Then the set
+e=fxjx2Hgdeﬁnes the extent of security binding the service. The reliability guarantee refers to
+the guaranteed maximum time between failures, and is deﬁned as y= (xjx:time ). The availability
+guarantee refers to the guaranteed maximum time for repairs, and is deﬁned as h= (xjx:time ).
+The price is deﬁned as a 3-tuple p=ha;cu;uni, where a= (xjx:N)is the price amount deﬁned as a
+natural number, cu= (yjy:cType )is currency tied to a currency type cType , and un= (zjz:uType )
+is the unit for which pricing is valid. As an example, p= (100;$;hour )denotes the pricing of
+100$/hour. Provider Trust is deﬁned as a 3-tuple tr=hce;pg;rei, where ceis recommendations
+from other clients, pgis lowest prices guarantees and reis recommendations from independent or-
+ganizations. Lowest price guarantee is represented by a ﬂag pg= (aja:Boolean ). It is a Boolean
+that is true when a ConﬁguredService can guarantee its price to be lower than the price of any
+other ConﬁguredService providing the same functionality. Client recommendations and recom-
+mendations from independent organizations can be deﬁned as sets of ordered pairs. In ce=
+f(a;b)ja:CLIENT ;b2fLow;BelowAverage ;Average ;AboveAverage ;Highgg, a pair (a;b)rep-
+resents a client awhose recommendation is b. Likewise, in re=f(a;b)ja:ORGANIZAT ION ;b2
+fLow;BelowAverage ;Average ;AboveAverage ;Highgg, a pair (a;b)represents an organization a
+whose recommendation is b.
+Legal Issues: A legal issue is a rule, expressed as a logical expression in C. A rule may imply
+another, however no two rules can conﬂict. We write l=fyjy2Cgto represent the set of legal
+rules.
+Putting these deﬁnitions together we arrive at a formal deﬁnition for ConﬁguredService .
+Deﬁnition 1 AConﬁguredService is a 4-tuple s =hL;a;b;si, where Lis a set of parameters, ais a
+set of attributes, bis a context, and sis a contract.
+We remark that not all components of kmay be relevant for a service, as shown in many later examples.
+In general, the trust domain, in which ceand pgare deﬁned, must be a complete lattice [20]. This
+property is essential in order to compare trust values of groups and compute minimum (maximum) among
+trust values. For the sake of simplicity, we assume in further discussion that trust values assumed by ce
+andreare whole numbers in the range 1 :::5, where 1 denotes Low and 5 denotes High . This assumption
+will enable us to calculate simple averages, maximum, and minimum of a set of trust values. Example 2
+illustrates the application of the above formal notation to the ConﬁguredService deﬁned in Example 1.
+
+--- Page 6 ---
+22 Spec. and Verif. of Context-dependent Services
+Example 2 Let rs denote the ConﬁguredService for providing a Repair Shop who provides the services
+described in Figure 2. The formal notation of ConﬁguredService rs is s rs=hLrs;ars;brs;srs;i, where
+the tuple components are explained below.
+parameters: Lrs=f(CarBroken ;bool );(deposit ;double );(CarType ;string );(f ailureType ;string );
+(HasAppointment ;bool );(numberO f Hours ;int)g.
+attributes: ars=F.
+context: brs=hrrs;crsi, where r rs=f(membership == caa)gis the context rule and c rs=
+f(Location ;(Montreal ;Canada ))gis the contextual information of the emergency road service
+provider
+contract: srs=hfrs;krs;lrsi, where the elements of the 3-tuple are deﬁned below:
+1. contract functionality speciﬁcation: f rs=hgrs;irs;prrs;porsi
+1.1 function signature: g rs=hnrs;drs;ursi, where
+nrs= (ReserveRS )is the name, d rs=f(CarBroken ;bool );(deposit ;double );
+(CarType ;string );(f ailureType ;string )gare input data parameters, and u rs= (XXX )
+is the address
+1.2 function result: i rs=hmrs;qrsi, where
+mrs= (ResultRS )is the name and the set of output data parameters is
+qrs=f(HasAppointment ;bool );(number O f Hours ;int)g
+1.3 function precondition: pr rs=f(CarBroken ==true)g
+1.4 function postcondition po rs=f(HasAppointm ent ==true)g
+2. contract nonfunctional property speciﬁcation: krs=hprsi, prs=hars;curs;unrsi, where
+ars= (60)is the cost, cu rs= (dollar )is the currency, and un rs= (hour )is the pricing unit
+3. contract legal issue speciﬁcation: l rs=f(deposit =300);(CarType ==toyota )g, where
+the deposit amount is 300and the car type is toyota.
+3 Service Composition
+Although service composition has been considered before by some researchers [4, 18] no speciﬁc method
+has been put forth. In FrSec a service composition may be attempted either at design-time or at execution-
+time. The former, called static composition, is driven by Service Provider’s business goals. The later,
+called dynamic service composition, is driven by user’s demands at service provision contexts. In this
+paper, we focus only on static service composition. We present a few composition constructs, give their
+semantics and suggest a veriﬁable composition theory.
+3.1 Composition Constructs
+Deﬁning a composite service includes deﬁning the execution logic of the participant services. This
+section, inspired by [21], deﬁnes the composition constructs and informally motivates their execution
+logics.
+Sequential composition construct : Given two ConﬁguredServices A andB, the expression
+AB(Figure 3(a)) deﬁnes the sequential composition of AandB. The execution logic of this
+composite service is that ConﬁguredService A is executed ﬁrst, and its output may be used in the
+execution of ConﬁguredService B , in addition to any input that Bmay require. In general, the
+expression A1A2:::Akdenotes the execution of ConﬁguredService A i+1with the result of
+execution of Aias an input, for i=1;:::; k 1, in addition to other input that Ai+1might need.
+
+--- Page 7 ---
+N. Ibrahim, V. Alagar, M. Mohammad 23
+A
+B
+(a)
+A B (b)
+A
+B (c)
+A B (d)
+A B (e)
+E1 E2cTrue False (f)
+Ec
+TrueFalse (g)
+Figure 3: a) Sequential, b) Parallel, c) Priority d) No order, e) Nondeterministic, f) Conditional, and g)
+Iteration Constructs
+Parallel composition construct jj: Given two ConﬁguredServices A andB, the expression AjjB
+(Figure 3(b)) deﬁnes the parallel composition of AandB. The parallel composition AjjBmodels
+the simultaneous executions of ConﬁguredServices A andB. In general, the evaluation of the ex-
+pression A1kA2k:::kAkwill create kservice execution threads, one for each ConﬁguredService .
+The result of this composite service is the merging of their individual results in time order. That
+is, the execution of the composite service ﬁnishes only when all service executions terminate.
+Priority construct : Given two ConﬁguredServices A andB, the expression AB(Figure 3(c))
+deﬁnes that the service execution of Ashould be attempted ﬁrst, and if it succeeds, the service
+Bis to be discarded; otherwise, the execution of service Bshould be attempted. In general, the
+expression requires that the service executions be attempted deterministically in the order speciﬁed
+until the ﬁrst successful execution of service. The meaning of the expression A1:::Akis that
+the service that can be successfully executed is the result of the composition.
+Composition with no order 3: Given two ConﬁguredServices A andB, the expression A3B
+(Figure 3(d)) deﬁnes that services AandBshould be executed by the receiver, however the order
+of their executions is not important. The result of the composition is the set of results produced
+by the executions of the ConﬁguredServices A andB. In general, the expression A13A23:::3Ak
+deﬁnes the composition of services Ai,i=1;kwhen all of them may be executed in no speciﬁc
+order.
+Nondeterministic choice construct o: Given two ConﬁguredServices A andB, the expression AoB
+(Figure 3(e)) deﬁnes the composition in which one of the services is executed nondeterministically.
+In general, A1o:::oAkdenotes the execution of a nondeterministically chosen service from the k
+operands. If the service Aiis the nondeterministic choice, the result from the evaluation of the
+service Aiis the result of evaluating the composition A1o:::oAk. In using this composition it is
+understood that any service Aican be chosen for the intended purpose.
+Conditional choice construct (if-else) .: Given two service expressions E1andE2, the composi-
+tion expression E1.cE2(Figure 3(f)) states that if condition cevaluates to true then expression E1
+is to be chosen for execution, otherwise expression E2should be executed.
+Iteration construct (while) : The composition Ec(Figure 3(g)) states that the service expression
+Eshould be executed as long as cevaluates to true.
+Construct Binding All constructs have the same precedence, and hence a composite service expression
+is evaluated from left to right. To enforce a particular order of evaluations, parenthesis may be used.
+
+--- Page 8 ---
+24 Spec. and Verif. of Context-dependent Services
+Example 3 The execution logic of the composite service (A.c1B)(CjjD)Fc2, shown in Figure 4,
+is obtained by putting together the execution logics from Figure 3.
+AB
+c1 True False
+DC
+F c2
+TrueFalse
+Figure 4: Execution logic of (A.c1B)(CjjD)Fc2
+3.2 Semantics of ConﬁguredService Compositions
+Every Service Provider has a business model. Motivated by the business rules and logic in the model, a
+Service Provider will determine the nature of composition for services. We want to emphasize that the
+meaning of a composition primarily rests on the chosen business goals and rules. Consequently, service
+compositions are very much unlike action compositions based purely on preconditions and postcondi-
+tions. As an example, a Service Provider may form ABbecause service Bcan be provided only after
+service Ahas been provided. That is, service Bcannot be realized without ﬁrst executing service A. This
+is analogous to ‘bootstrapping’ before invoking any other system function in the domain of computing
+services. This implies that the precondition for invoking a system function includes the precondition for
+invoking ‘bootstrapping’, however it might require more conditions to be met. Moreover, the postcondi-
+tion of ‘bootstrapping’ and the postcondition of the system function invoked after that are both observed.
+In some domains, it might happen that the precondition for invoking service Bis exactly the same as
+the postcondition of the ﬁrst service A, and is not observable. Only the postcondition of B, after Bis
+completed, may be observable. Given such subtle scenarios, it is hard to give one ‘ﬁxed’ semantics for
+service compositions. Below we give the semantics for sequential composition. An account of the full
+semantics can be found in [10]. The proposed semantics is appropriate for one kind of business logic, and
+our approach can be used to provide semantics for different business logics. By providing an approach
+to formal semantics for composition constructs we are motivating how a theory of composition can be
+developed.
+Below we let A=hLA;aA;bA;sAi, and B=hLB;aB;bB;sBidenote two ConﬁguredServices , where
+bA=hrA;cAi,bB=hrB;cBi,sA=hfA;kA;lAi,sB=hfB;kB;lBi,fA=hgA;iA;prA;poAi,fB=hgB;iB;prB;
+poBi,gA=hnA;dA;uAi,gB=hnB;dB;uBi,iA=hmA;qAi,iB=hmB;qBi,kA=hrA;eA;yA;hA;pA;trAi,
+andkB=hrB;eB;yB;hB;pB;trBi. For the sake of simplicity we assume that the currency type cType and
+the unit type uType are the same for all services.
+3.2.1 Sequential composition AB
+The sequential composition of the ConﬁguredServices A andBis the tuplehLAB;aAB;bAB;sABi,
+whose components are deﬁned below.
+Parameters :LAB
+
+--- Page 9 ---
+N. Ibrahim, V. Alagar, M. Mohammad 25
+–Input parameters: Linput (AB)=Linput (A)[(Linput (B)nLout put (A)), deﬁned as the union of the
+input parameters of A, and input parameters of Bthat are not output parameters of A.
+–Output parameters: Lout put (AB)=Lout put (A)[Lout put (B), deﬁned as the union of the output
+parameters of AandB.
+Attributes :aAB=aA[aB
+Context : For ConﬁguredServices A the context is bA=hrA;cAi. This means that rAis true in
+context cAin order that Amay be provided. Once the service Ahas been provided, the context and
+rules that are true in that context should be computed. Letting these rules r0
+Aand the context c0
+A, we
+need to merge them with rBandcB,bB=hrB;cBito arrive at bAB. With this rationale, we deﬁne
+bAB=hrAB;cABi,rAB=r0
+A[rB, and cAB=c0
+AtcB, the smallest closure of contexts c0
+Aand
+cB. It is expected that c0
+A@cBholds for most of the applications, because anything outside of cB
+can be ignored. The semantics of context union ( t) and sub-context ( @) and a detailed discussion
+of context calculus can be found in [19].
+Contract :sAB=hfAB;kAB;lABi, where
+1.function :fAB=hgAB;iAB;prAB;poABi,gAB=hnAB;dAB;uABi,iAB=hmAB;
+qABi, where
+gAB:
+nAB =nA_nB naming convention
+dAB =dA[dB combine input data parameters
+uAB =fuA;uBg both function addresses are necessary
+iAB:
+mAB =mA_mB naming convention
+qAB =qA[qB combine output parameters
+prAB=prA[(prBnpoA)ifBrequires more constraints
+prAB=prA ifBdoes not require more constraints
+poAB=poA[poB ifpoAis observable
+poAB=poB ifpoAis not observable
+2.Nonfunctional Properties :kAB=hrAB;eAB;yAB;hAB;pAB;trABiwhere,
+–Safety (timeliness): rAB=rA+rB.
+–Safety (data): rAB=rA[rB.
+–Security: eAB=eA[eB.
+–Availability: hAB=hA+hB.
+–Reliability: yAB=Min(yA;yB).
+–Price: pAB=haAB;cuAB;unABiwhere cuAB=cuA=cuB,unAB=unA=unB,
+and
+aAB=8
+<
+:aA+aBnormal pricing
+maxfaA;aBgpromotional
+minfaA;aBgspecial sale
+–Provider Trust: Let trAB=hceAB;pgAB;reABi. Given a set stof trust values, it
+should be possible to deﬁne avg(st),choose (st),glb(st), and lub(st)which respectively
+computes the average, selects randomly one value, and computes the least and greatest
+values from the set st. Any one of these functions may be used by the Service Provider in
+
+--- Page 10 ---
+26 Spec. and Verif. of Context-dependent Services
+providing ceandre. Each choice has some signiﬁcance. Choosing avgreﬂects ‘unbiased
+views of customers’, choosing choose reﬂects a randomly selected customer opinion,
+choosing glbreﬂects a conservative estimate, and choosing lubreﬂects the optimistic
+opinion of customers. For illustration, we use the function glb. We compute the trust
+sets as
+ceAnB=f(a;b)j(a;b)2ceA;(a;b)=2ceBg recommendation
+given for Aonly
+ceBnA=f(a;b)j(a;b)=2ceA;(a;b)2ceBg recommendation
+given for Bonly
+ceA\B=f(a;b)j(a;b1)2ceA;(a;b2)2ceB;b=glb(b1;b2)grecommendation
+given for AandB
+Similar sets for reare deﬁned. The trust for the composition ABcan be deﬁned for
+different semantics.
+Business Logic: Service A is required for service B . In this situation the expectation
+is that those who bought service Bshould have obtained service A, and hence they
+bought the service AB. That is, the recommendation for Bdominates. With this
+semantics we deﬁne
+ceAB=ceA\B[ceBnA
+reAB=reA\B[reBnA
+Business Logic: Those who bought service A are most likely to buy service B . In
+this situation buying Ais a certainty. Not everyone who bought Amay buy B. That
+is, service recommendation for Adominates. With this semantics we deﬁne
+ceAB=ceA\B[ceAnB
+reAB=reA\B[reAnB
+Business Logic: Both services are packaged together : With this semantics the Ser-
+vice Provider has to collect the sets ceandrefrom clients and organizations for the
+new service.
+In all above situations
+pgAB=pgA^pgB
+3.Legal Issues :lAB=lA[lB, deﬁned as the union of the issues of AandB.
+Example 4 The sequential composition rule is applied to compute rs tt, where the ConﬁguredSer-
+vices rs (repair shop) and tt (tow truck) are deﬁned in Example 1. The formal notation of composite
+ConﬁguredService is srstt=hLrstt;arstt;brstt;srstti, where the tuple components are
+The CoﬁguredService parameters set is Lrstt=f(CarBroken ;bool );(deposit ;double );(CarType ;
+string );(f ailureType ;string );(RequestTruck ;bool );(HasAppointment ;bool );(numberO f Hours ;
+int);(RequestCon f i ;bool )g.
+The ConﬁguredService attribute set is arstt=F.
+The ConﬁguredService context is brstt=hrrstt;crstti, where the context rules are r rstt=
+f(membership ==caa)gand the context information is c rstt=f(Location ;(Montreal ;Canada ))g.
+The ConﬁguredService contract is srstt=hfrstt;krstt;lrstti
+The contract function is f rstt=hgrstt;irstt;prrstt;porstti
+The function signature is g rstt=hnrstt;drstt;urstti, where the name is n rstt= (ReserveRS &T T),
+the address is u rstt= (XXXYYY )and the input parameters are d rstt=f(CarBroken ;bool );(deposit ;
+double );(CarType ;string );(f ailureType ;string );(RequestTruck ;bool )g.
+
+--- Page 11 ---
+N. Ibrahim, V. Alagar, M. Mohammad 27
+The function result is i rstt=hmrstt;qrstti, where the result name is m rstt= (ResultRS &T T)
+and the output parameters are q rstt=f(HasAppointment ;bool );(numberO f Hours ;int);(Request
+Con f i ;bool )g.
+The precondition is pr rstt=f(CarBroken ==true);(RequestTruck ==true)gand the postcon-
+dition is po rstt=f(HasAppointment ==true);(RequestCon f i ==true)g.
+The contract legal issues are l rstt=f(deposit =300);(CarType ==toyota )g.
+The contract nonfunctional properties are krstt=hprstti, where the price is p rstt=harstt;
+curstt;unrstti, the price amount is a rstt= ((60numberO f Hours ) +100), the price currency
+is cu rstt= (dollar )and the price unit is un rstt= (oneTime ).
+4 Formal Veriﬁcation
+A service composition consists of multiple interacting ConﬁguredServices that provide a functionality
+to meet a speciﬁc set of requirements. It is essential to verify that the functional behavior of the ser-
+vice composition meets the requirements of the service requesters while taking into consideration the
+nonfunctional, legal and contextual conditions. Instead of deﬁning a new veriﬁcation tool to verify the
+service composition we follow a transformation approach. In this approach, a formally deﬁned service
+composition can be automatically transformed into a model understood by an available veriﬁcation tool
+that can then be used to perform the formal veriﬁcation. The goal in our research is to use different
+veriﬁcation tools in order to verify a wide range of properties and target different kinds of systems. This
+is because different veriﬁcation tools differ in their requirements and abilities. In this paper, we deﬁne
+the transformation rules to generate a model that can be veriﬁed using UPPAAL [2] model checking tool.
+A full account of UPPAAL language and tool can be found in [2]. In essence, UPPAAL extends
+the deﬁnition of timed automata (TA) with additional features. The features that are relevant to this
+paper are (1) Templates that represent TAs with optional parameters and local variables; (2) Global
+variables and user deﬁned functions , that are introduced in a global declaration section, and shared by
+all templates; (3) Binary synchronization that forces two TAs to have a synchronized transition caused
+by an event; (4) Channel that models an input event (labeled with ?) or an output event (labeled with !)
+in a synchronous transition; (5) Committed Location that models a state where time is not allowed to
+pass, and allowed to have an outgoing edge; (6) Expressions that include Guard expressions involving
+variables and clock variables to restrict transitions, Assignment expressions , which are used to set values
+of clocks and variables, and Invariant expressions , which are deﬁned at locations to specify conditions
+that should be always true; and (7) Edges denoting transitions between locations. An edge speciﬁcation
+consists of the four expressions 1) Select , which assigns a value from a given range to a deﬁned variable,
+2)Guard , an edge is enabled for a location if and only if the guard is evaluated to true, 3) Synchronization ,
+which speciﬁes the synchronization channel and its direction for an edge, and 4) Update , an assignment
+statement that resets variables and clocks to required values. UPPAAL can check safety ,reachability ,
+andliveness properties that are expressed in TCTL [8].
+4.1 Transforming the Service Composition into UPPAAL TA
+This section presents the rules for transforming a service composition into a UPPAAL TA. Let S=
+fs1;:::;sngbe the set of ConﬁguredServices to be composed. Let ¡be the execution ﬂow deﬁning the
+composition, and SC=hS;¡;L;a;b;sibe the resulting composition. Let TA=hL;L0;K;A;E;Iibe the
+
+--- Page 12 ---
+28 Spec. and Verif. of Context-dependent Services
+deﬁnition of a UPPAAL TA, where Lis a set of locations denoting the states, L0is the initial state, Kis
+a set of clocks ,Ais a set of actions that cause transitions between locations, Eis a set of edges , and Iis a
+set of invariants . The transformation rules will construct T=fta1;:::;tang, a set of UPPAAL templates.
+The ﬁrst step is to deﬁne the following in the global declaration section in UPPAAL.
+1. Two channel variables are deﬁned for each si. The ﬁrst represents the request and the second
+represents the response.
+2. A Boolean variable is deﬁned for every precondition and input parameter in SCand assigned
+totrue. These variables are used to verify if preconditions and input parameters exist before
+execution.
+3. A Boolean variable is deﬁned for every postcondition and output parameter in SCand assigned
+tofalse . These variables are used to verify if postconditions and output parameters exist after
+execution.
+4. A typed variable is deﬁned for every parameter in SC. The type can be any simple type, such as
+int, or a structured data type.
+5. The following variables of type double are deﬁned and assigned to 0 for each composition ﬂow:
+PathPrice , which represents the total price of the composition ﬂow.
+PathAvailability , which represents the availability of the composition ﬂow.
+PathReliability , which represents the reliability of the composition ﬂow.
+PathTime , which represents the safety time guarantee of the composition ﬂow.
+6. Boolean variables representing the elements of the legal issues are deﬁned. These variables are
+used in deﬁning the Legal issues as Boolean statements.
+7. A UPPAAL structure that represents the contextual information of the service requester is deﬁned.
+The structure contains dimensions and associated tag values.
+4.1.1 Transformation Rules
+The transformation rules are divided into two sets. The ﬁrst set deﬁnes the rules to transform an indi-
+vidual ConﬁguredService into a TA. The second set deﬁnes the rules to transform the composition ﬂow
+into a TA. Each ConﬁguredService can be mapped to a UPPAAL template in a one to one manner. A
+ConﬁguredService s i=hLi;ai;bi;siiis mapped to a template tai=hLi;L0i;Ki;Ai;Ei;Iii. Following are
+the transformation rules to generate taifor each si.
+1. For each taicreate two locations Li=fl1;l2g, and set the ﬁrst location as the initial state L0i=fl1g.
+2. Create two edges in Ei=fe1;e2gintai, with edge e1directed from l1tol2and edge e2directed
+from l2tol1.
+3. Deﬁne an action for each siand add it to Ai.
+4. Add to edge e1the following expressions:
+(a) Add to guard the condition that all sipreconditions are equal to true.
+(b) Add to guard the condition that all siinput parameters are available.
+(c) Add to guard the condition that the sicontextual rules are satisﬁed.
+(d) Add to guard the condition that the silegal rules are satisﬁed.
+(e) Add to Sync the channel variable corresponding to sirequest and follow it with ?.
+
+--- Page 13 ---
+N. Ibrahim, V. Alagar, M. Mohammad 29
+5. Add to edge e2the following expressions:
+(a) Add to update the statement that assign all sipostconditions variables to true.
+(b) Add to update the statement that assign all sioutput parameters variable to true.
+(c) Add to Sync the channel variable corresponding to siresponses and follow it with !.
+The steps described above generates a TA for each ConﬁguredService . The next step is to generate the
+main TA that maps to the composition execution ﬂow. Before generating this TA, the composition ﬂow
+should be ﬂattened to contain only sequential composition construct . In essence, every composition
+ﬂow can be ﬂattened into a set of sequential composition ﬂows of ConﬁguredServices [10].
+Example 5 The composition (A.c1B)(CjjD)Fc2deﬁned in Example 3 can be ﬂattened into 8
+composition ﬂows, where X cindicates that X is associated with condition c. These are: (1) A c1C`D,
+(2) A c1C`DFc2:::Fc2, (3) A c1D`C, (4) A c1D`CFc2:::Fc2, (5) B:c1C`D,
+(6) B:c1C`DFc2:::Fc2, (7) B:c1D`C, and (8) B:c1D`CFc2:::Fc2.
+The main TA will contain an idle state. For each ﬂattened composition ﬂow, a path of states is created in
+the main TA starting from this idle state according to the following rules.
+1. For each ConﬁguredService create two states. The ﬁrst represents the request for the Conﬁgured-
+Service and the second represents the completion of the execution.
+2. For each ConﬁguredService , if it contains a safety time constraint, create a new clock and add the
+timing constraint as an invariant on the location. Exception: if the sequential construct resulted
+from parallel ﬂattening X`Y, only add the invariant to the state with the highest time constraint
+ofXandY, and make the other state a committed state.
+3. For each ConﬁguredService create two edges. The ﬁrst connects the state representing the previous
+ConﬁguredService in the ﬂow, except for the ﬁrst ConﬁguredService where it connect idle state, to
+the ﬁrst state deﬁned in rule 1. The second connects the ﬁrst state to the second state of rule 1.
+4. If the ConﬁguredService is associated with a condition (conditional choice or iteration condition),
+add this condition as a guard statement on the ﬁrst edge of rule 3.
+5. If the ConﬁguredService has a safety data conditions, add this condition as a guard statement on
+the ﬁrst edge of rule 3.
+6. If the ConﬁguredService has a price, add to the second edge of rule 3 an update statement that adds
+the price to the path price variable.
+7. If the ConﬁguredService has an availability nonfunctional property, add to the second edge of rule
+3 an update statement that adds the availability to the path availability variable.
+8. If the ConﬁguredService has a reliability nonfunctional property, add to the second edge of rule
+3 an update statement that adds the reliability to the path reliability variable. Exception: if the
+sequential construct resulted from parallel ﬂattening, the update statement is only added to the
+edge with the highest reliability time.
+A reasoned justiﬁcation for the transformation steps is given in [10].
+4.2 Veriﬁcation
+Using UPPAAL editor, the ConﬁguredServices and their composition are speciﬁed as UPPAAL templates
+following the automatic transformation rules deﬁned in Section 4.1. UPPAAL veriﬁer can be used to
+verify the following properties.
+
+--- Page 14 ---
+30 Spec. and Verif. of Context-dependent Services
+Context : The context rules are not contradictory, and are met for each ConﬁguredService .
+Functionality : The behavior of the composition is correct with respect to functionality, which
+includes verifying.
+–The preconditions of each participating ConﬁguredService are met before invocation.
+–The input parameters of each participating ConﬁguredService are available before invocation.
+–The composition generates the required postconditions and output parameters.
+Nonfunctional and trustworthiness properties : The behavior of the composition is correct with
+respect to nonfunctional properties, which includes verifying.
+–The composition price is greater than or equal the price of any possible execution ﬂow.
+–The composition safety time constraint is greater than or equal the time constraint of any
+possible execution ﬂow.
+–The composition availability time is greater than or equal to the availability time of any
+possible execution ﬂow.
+–The composition reliability time is greater than or equal to the reliability time of any possible
+execution ﬂow.
+Legal issues : The legal rules are not contradictory, and are met for each ConﬁguredService .
+Example 6 Applying the transformation rules deﬁned above to the service composition RepairShop 
+TowTruckCarRental introduced in Example 1, the composition is transformed into 4 TA’s mapped
+to 4 UPPAAL templates, a template for each ConﬁguredService and a template for the composition
+ﬂow. The TA mapped to the ConﬁguredService RepairShop is ta rs=hLrs;L0rs;Krs;Ars;Ers;Irsi, as seen
+in Figure 5(a), where the tuple components are explained below
+The set of locations is L rs=fidle;RepairShopProcessing gand the initial location is L 0rs=idle.
+The set of clocks is k rs=Fand the set of invariants is I rs=F.
+The set of actions is A rs=fScheduleApt ;AptCon f irmedg.
+The set of edges is E rs=f(idle RepairShopProcessing );(RepairShopProcessing  idle)g.
+The edge connecting ’idle’ to ’RepairShopProcessing’ has the following statements, where ’pa-
+rameterB’ indicates the variable indicating the availability of the parameter ’parameter’:
+–Guard :(RequesterContext.membership==1)&&(CarBroken==true)&&(car
+Type==toyota)&&carTypeB&&failureTypeB .
+–Synchronous :ScheduleApt? .
+The edge connecting RepairShopProcessing toidle has the following statements:
+–Update :HasAppoitment=true,NumOfDaysB=true,Deposit=Deposit +300 .
+–Synchronous :AptConfirmed! .
+The TAs mapped to the ConﬁguredServices TowTruck and CarRental are created in the same manner.
+Figure 6 shows the generated main TA. UPPAAL is used to verify several properties listed below. The
+notations M.i andM.Final_1 are used to denote the initial and ﬁnal states of the TA M.
+The composition does not contain any contradiction and can be executed. If the UPPAAL statement
+E<> M.Fi nal_1 is veriﬁed it implies that it is possible to reach the ﬁnal state of the composition
+ﬂow. Reaching the ﬁnal state indicates that all conditions are met and no contradictions exist.
+
+--- Page 15 ---
+N. Ibrahim, V. Alagar, M. Mohammad 31
+(a)
+ (b)
+ (c)
+Figure 5: a) RepairShop TA, b) TowTruck TA, and c) CarRental TA
+Figure 6: Example 6 Main TA
+The context rules are met. For each context rule an UPPAAL veriﬁcation condition is generated
+and veriﬁed. For example, A[] M.i imply RequesterContext.age>=21 is the condi-
+tion to be veriﬁed to assert that the requester is older than 21. Here, RequesterContext is
+the UPPAAL structure holding the contextual information of the service requester.
+The composition input parameters are deﬁned before executing the composition ﬂow. For example,
+A[] M.i imply failureTypeB is the condition to be veriﬁed in order to assert that the car
+failureType parameter is available before execution. Here, failureTypeB is a Boolean
+variable representing the availability of the parameter failureType .
+The composition output parameters are deﬁned after executing the composition ﬂow. For exam-
+ple,A[] M.i imply !NumOfDaysB is the condition to be veriﬁed in order to assert that the
+number of days needed to ﬁx the car are not known before executing the composition. The state-
+ment A[] M.i imply !NumOfDaysB , if veriﬁed, asserts that the number of days is known
+after executing the composition. The parameter NumOfDaysB is a Boolean variable representing
+the availability of the parameter NumOfDays .
+The preconditions are met before executing the composition and the postconditions are met after.
+For example, A[] M.i imply NeedCar==true will have to be veriﬁed to assert that the
+precondition “NeedCar” is true at the initial state.
+The composition of nonfunctional properties are correct. For example, A[] M.Final_1 imply
+firstPathPrice <= 600 will have to be veriﬁed to assert that the price of the composite
+service is less than 600, where 600 is speciﬁed as the price of the service composition.
+The composition result of the legal rules are correct. For example, A[] M.Final_1 imply
+400>=Deposit will have to be veriﬁed to assert that the deposit is less than 400, if the legal rule
+
+--- Page 16 ---
+32 Spec. and Verif. of Context-dependent Services
+states that “The service requester should deposit 400 before requesting the service composition”.
+5 Related Work
+Many researchers, such as [7], [5], [9], [6] and [17], have investigated the formal models automata,
+Petri-net and process algebra as service models and used a transformation approach to arrive at the for-
+mal models from service descriptions in one of the languages BPEL [14], WS-CDL [22] or Orc [13].
+However, these formal languages can model only the functional behavior of services. Hence, the trans-
+formation approaches practiced so far are restricted to only the functionality in composite services, while
+the nonfunctional, legal and contextual constraints are ignored. As a consequence, the known veriﬁca-
+tion processes cannot be applied to construct composite services in our model. The merit of our work is
+twofold. One is the introduction of a variety of compositions which can be tailored to the semantics of
+a business logic, and the other is the ability to combine functional and nonfunctional behavior together
+with legal and contextual constraints in model checking.
+6 Conclusion
+Our research aims to deﬁne a formal framework for managing and providing service with context-
+depended contracts. As part of this framework, in this paper we have presented an approach for the
+formal speciﬁcation and veriﬁcation of services with context-dependent contract. We presented a for-
+mal deﬁnition and a formal composition theory of ConﬁguredServices . Finally, we presented a formal
+transformation approach to transform service composition into extended timed automata that can be ver-
+iﬁed using UPPAAL tool. Currently, we are working on deﬁning a dynamic composition approach that
+automates the service composition process at execution-time. We are also investigating dynamic recon-
+ﬁguration issues arising out of defaults and dynamic compositions of services. Finally, we are currently
+developing a set of tools that automate the composition and veriﬁcation process.
+References
+[1] Maurice H. ter Beek, Stefania Gnesi, Nora Koch & Franco Mazzanti (2008): Formal veriﬁcation of an
+automotive scenario in service-oriented computing . In: Proceedings of the 30th international conference on
+Software engineering . ICSE ’08, ACM, New York, NY , USA, pp. 613–622, doi:10.1145/1368088.1368173.
+[2] Gerd Behrmann, Alexandre David & Kim Larsen (2004): A Tutorial on UPPAAL . In Marco Bernardo &
+Flavio Corradini, editors: Formal Methods for the Design of Real-Time Systems .Lecture Notes in Computer
+Science 3185, Springer Berlin / Heidelberg, pp. 33–35, doi:10.1007/978-3-540-30080-9 7.
+[3] Anind K. Dey (2001): Understanding and Using Context .Personal Ubiquitous Comput. 5, pp. 4–7,
+doi:10.1007/s007790170019.
+[4] Thomas Erl (2007): SOA Principles of Service Design . Prentice Hall PTR, Upper Saddle River, NJ, USA.
+[5] Jes ´us Arias Fisteus, Luis S ´anchez Fern ´andez & Carlos Delgado Kloos (2005): Applying model checking to
+BPEL4WS business collaborations . In: Proceedings of the 2005 ACM symposium on Applied computing
+(SAC ’05) . ACM, New York, NY , USA, pp. 826–830, doi:10.1145/1066677.1066866.
+[6] Howard Foster, Wolfgang Emmerich, Jeff Kramer, Jeff Magee, David Rosenblum & Sebastian Uchitel
+(2007): Model checking service compositions under resource constraints . In: Proceedings of the ACM
+SIGSOFT symposium on the foundations of software engineering . ACM, New York, NY , USA, pp. 225–234,
+doi:10.1145/1287624.1287657.
+
+--- Page 17 ---
+N. Ibrahim, V. Alagar, M. Mohammad 33
+[7] Xiang Fu, Tevﬁk Bultan & Jianwen Su (2004): Analysis of interacting BPEL web services . In: Proceed-
+ings of the 13th international conference on World Wide Web . ACM, New York, NY , USA, pp. 621–630,
+doi:10.1145/988672.988756.
+[8] Thomas A. Henzinger, Xavier Nicollin, Joseph Sifakis & Sergio Yovine (1994): Symbolic model checking
+for real-time systems .Information and Computation 111, pp. 193–244, doi:10.1006/inco.1994.1045.
+[9] Sebastian Hinz, Karsten Schmidt & Christian Stahl (2005): Transforming BPEL to Petri Nets . In: Proceed-
+ings of the International Conference on Business Process Management (BPM2005), volume 3649 of Lecture
+Notes in Computer Science . Springer-Verlag, pp. 220–235, doi:10.1007/11538394 15.
+[10] Naseem Ibrahim, Vangalur Alagar & Mubarak Mohammad (March 2011): A Formal Approach to Speci-
+ﬁcation and Veriﬁcation of Context-dependent Services. Technical Report ACTS-SOA-11-02, Department
+of Computer Science and Software Engineering, Concordia University, Montreal, Canada. Available at
+http://users.encs.concordia.ca/ ˜n_ibrah/ACTS-SOA-1102.pdf .
+[11] Naseem Ibrahim, Mubarak Mohammad & Vangalur Alagar (2011): An Architecture for Managing and De-
+livering Trustworthy Context-dependent Services . In: the 8th IEEE International Conference on Services
+Computing (SCC2011) . IEEE Computer Society, Washington, DC, USA.
+[12] Naseem Ibrahim, Mubarak Mohammad & Vangalur Alagar (February 2011): Managing Services for Trust-
+worthy Context-dependent Delivery. Technical Report ACTS-SOA-11-01, Department of Computer Science
+and Software Engineering, Concordia University, Montreal, Canada. Available at http://users.encs.
+concordia.ca/ ˜n_ibrah/TR2011-v1.pdf .
+[13] David Kitchin, Adrian Quark, William R. Cook & Jayadev Misra (2009): The Orc Programming Language .
+In David Lee, Ant ´onia Lopes & Arnd Poetzsch-Heffter, editors: Proceedings of FMOODS/FORTE 2009 .
+Lecture Notes in Computer Science 5522, Springer, pp. 1–25, doi:10.1007/978-3-642-02138-1 1.
+[14] Ben Margolis (2007): SOA for the Business Developer: Concepts, BPEL, and SCA . Mc Press.
+[15] Mubarak Mohammad & Vangalur Alagar (2011): A formal approach for the speciﬁcation and veriﬁcation of
+trustworthy component-based systems .J. Syst. Softw. 84, pp. 77–104, doi:10.1016/j.jss.2010.08.048.
+[16] Justin OSullivan (2007): Towards a Precise Understanding of Service Properties . Phd thesis, Queensland
+University of Technology, Brisbane, Australia.
+[17] Mohsen Rouached & Claude Godart (2007): Requirements-driven Veriﬁcation of WSBPEL Processes . In:
+IEEE International Conference on Web Services, ICWS2007 . pp. 354–363, doi:10.1109/ICWS.2007.153.
+[18] Haiyan Sun, Xiaodong Wang, Bin Zhou & Peng Zou1 (2003): Research and Implementation of Dynamic Web
+Services Composition . In Xingming Zhou, Stefan Jhnichen, Ming Xu & Jiannong Cao, editors: Advanced
+Parallel Processing Technologies, 5th InternationalWorkshop, APPT 2003 .Lecture Notes in Computer Sci-
+ence 2834, Springer-Verlag, pp. 457–466, doi:10.1007/978-3-540-39425-9 54.
+[19] Kaiyu Wan (2006): Lucx: Lucid Enriched with Context . Phd thesis, Concordia University, Montreal, Canada.
+[20] Kaiyu Wan & Vasu Alagar (2008): An Intensional Functional Model of Trust . In Yucel Karabulut, John
+Mitchell, Peter Herrmann & Christian Jensen, editors: Trust Management II .IFIP Advances in Information
+and Communication Technology 263, Springer Boston, pp. 69–85, doi:10.1007/978-0-387-09428-1 5.
+[21] Kaiyu Wan, Mubarak Muhammad & Vasu Alagar (2009): A Formal Model of Business Application Integra-
+tion from Web Services . In: Proceedings of the 35th Conference on Current Trends in Theory and Practice
+of Computer Science . SOFSEM ’09, Springer-Verlag, Berlin, Heidelberg, pp. 656–667, doi:10.1007/978-3-
+540-95891-8 58.
+[22] WS-CDL: Web Services Choreography Description Language Version 1.0 . W3C Candidate Recommenda-
+tion. November, 2005. Available at http://www.w3.org/TR/ws-cdl-10/ .

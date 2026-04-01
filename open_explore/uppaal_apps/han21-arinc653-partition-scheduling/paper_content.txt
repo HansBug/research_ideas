@@ -1,0 +1,1495 @@
+--- Page 1 ---
+International Journal on Software Tools for Technology Transfer (2021) 23:721–740
+https://doi.org/10.1007/s10009-020-00597-6
+GENERAL
+Special Issue: MeTRID
+Model-based optimization of ARINC-653 partition scheduling
+Pujie Han1·Zhengjun Zhai1·Brian Nielsen2·Ulrik Nyman2
+Accepted: 1 December 2020 / Published online: 7 February 2021
+© The Author(s) 2021
+Abstract
+The architecture of ARINC-653 partitioned scheduling has been widely applied to avionics systems owing to its robust tem-poral isolation among applications. However, this partitioning mechanism causes the problem of how to optimize the partition
+scheduling of a complex system while guaranteeing its schedulability. In this paper, a model-based optimization approach
+is proposed. We formulate the problem as a parameter sweep application, which searches for the optimal partition schedul-ing parameters with respect to minimum processor occupancy via an evolutionary algorithm. An ARINC-653 partitioned
+scheduling system is modeled as a set of timed automata in the model checker UPPAAL. The optimizer tentatively assigns
+parameter settings to the models and subsequently invokes UPPAAL to verify schedulability as well as evaluate promisingsolutions. The parameter space is explored with an evolutionary algorithm that combines reﬁned genetic operators and the
+self-adaptation of evolution strategies. The experimental results show the applicability of our optimization method.
+Keywords Partitioned scheduling ·Model-based optimization ·Parameter sweep ·Evolutionary algorithm ·Timed automata ·
+UPPAAL
+1 Introduction
+As the performance of embedded processors rapidly increases,there is a growing trend toward integrating multiple real-timeapplications into a partitioned scheduling system in avion-
+ics development. The ARINC 653 standard [ 1] prescribes a
+robust temporal partitioning mechanism for integrated modu-lar avionics (IMA) systems, where a global scheduler assigns
+This work was in part funded by Independent Research Fund
+Denmark under Grant Number DFF-7017-00348, CompositionalV eriﬁcation of Real-time MULTI-CORE SAFETY Critical Systems.
+B Pujie Hanhanpujie@mail.nwpu.edu.cn
+Zhengjun Zhai
+zhaizjun@nwpu.edu.cn
+Brian Nielsen
+bnielsen@cs.aau.dk
+Ulrik Nyman
+ulrik@cs.aau.dk
+1School of Computer Science and Engineering, Northwestern
+Polytechnical University, Xi’an 710072, China
+2Department of Computer Science, Aalborg University, 9220
+Aalborg, Denmarka fraction of processor time to a temporally isolated partition
+that contains a set of concurrent tasks. A local scheduler of
+the partition manages the included tasks. The application of
+partitioned scheduling is effectively able to prevent failurepropagation among partitions. However, it raises the ques-
+tion of how to allocate processor time to partitions in an
+optimal manner while guaranteeing their time requirements.
+In ARINC 653, the time allocation for partitions is exe-
+cuted cyclically according to a static schedule. A schedulable
+system requires sufﬁcient time allocation for all partitions.
+The time requirement of a partition is described as a tuple ofperiodic scheduling parameters /angbracketleftperiod ,budget /angbracketright, which can
+be used for generating the static schedule [ 1]. Given the set
+of speciﬁc real-time applications in the system, these param-eters determine not only the schedulability of the system
+but also its processor occupancy. In this paper, the question
+of resource allocation is interpreted as the optimization ofARINC-653 partition scheduling parameters of a schedula-ble system. The goal is to minimize the processor occupancy
+of the system, thus making it possible to accommodate more
+additional workload of applications [ 33].
+The nature of ARINC-653 partition scheduling is a
+complex nonlinear non-convex parameter optimization prob-
+lem [ 33]. So far, most investigations [ 13,20,21,29,33]h a v e
+123
+
+--- Page 2 ---
+722 P. Han et al.
+been conﬁned to analytical methods, whose rigorous mathe-
+matical models build on the worst-case assumptions of a sim-pliﬁed system. In more complex real-time applications, more
+expressive model-checking (MC) approaches [ 8–11,22,32]
+are extensively being developed to incorporate a great vari-ety of behavioral features including concrete task actions,dependency and communications. They are based on various
+formal models such as preemptive Time Petri Nets (pTPN),
+Linear Hybrid Automata (LHA), and Timed Automata (TA).For each promising scheduling scheme, its schedulability can
+be veriﬁed or falsiﬁed automatically via state space explo-
+ration of the system model.
+However, to identify a globally optimal scheduling con-
+ﬁguration, the entire combinatorial parameter space must
+be explored thoroughly. Each of these combinations leadsto a single model-checking operation which is in itself aPSPACE-complete problem. Therefore, we use Evolutionary
+Algorithm (EA) as a heuristic optimization method, thereby
+avoiding the brute-force search of parameter space.
+The model-based methods are also confronted with the
+state space explosion problem, which makes the exact
+model checking practically infeasible. There have beenseveral promising techniques that attempt to mitigate the
+state space explosion of classical MC. Statistical Model
+Checking (SMC) [ 27] is a simulation-based method that
+runs and monitors a number of simulation processes, pro-viding the statistical results of veriﬁcation with a certain
+degree of conﬁdence. However, SMC cannot provide any
+guarantee of schedulability but quick falsiﬁcation owing toits nature of statistical testing. By contrast, compositional
+approaches [ 24] decompose the system into components,
+check each component separately by classical MC and con-clude system properties at a global level, but might offer
+conservative results due to abstraction of the components.
+Therefore, it is reasonable to combine the global SMC andcompositional MC techniques. Nevertheless, we found nostudies that applied such a combination to the optimiza-
+tion of ARINC-653 partition scheduling. Uppaal [3]i sa
+model-checking toolbox for modeling and verifying real-time systems described as extended TA, which is expressive
+enough to cover features of an IMA system. There are several
+branches in the Uppaal family. The classical Uppaal and
+Uppaal SMC [ 12] provide the implementation of symbolic
+MC and SMC, respectively. In the previous work [ 18], we
+have integrated the global SMC and compositional MC intoaUppaal -based schedulability analysis of IMA systems.
+In this paper, we propose a model-based optimization
+method of ARINC-653 partition scheduling for IMA sys-
+tems. The core idea is to extend the Uppaal TA model of the
+system with a parameter sweep application that searches for
+the optimal schedulable solutions with respect to minimum
+processor occupancy. Our main contributions include:–A model-based optimization method that addresses the
+optimal time allocation of partitioned scheduling sys-tems by performing a heuristic search of the objective
+parameter space of the Uppaal TA model.
+–AUppaal -based modeling and analysis technique that
+supports parameter sweep by quickly falsifying non-schedulable solutions and evaluating schedulable ones.
+An IMA system is modeled as TA models in Uppaal and
+its schedulability constraints are veriﬁed automaticallyvia the integrated method of global SMC and composi-
+tional MC analysis.
+–A generator of ARINC-653 partition schedules that con-
+nects the parameter optimizer and the Uppaal TA models
+of an IMA system to enable the automatic design of IMA
+partition scheduling.
+–An evolutionary algorithm that combines reﬁned genetic
+search operators and the adaptation of evolution strate-
+gies, thereby accelerating the process of ﬁnding optimal
+solutions and meanwhile reducing the risk of prematureconvergence.
+The rest of the paper is organized as follows. Section 2
+gives
+the deﬁnition of the optimization problem. Section 3pro-
+vides a background of the schedulability analysis. Section 4
+introduces the parameter optimization method and brieﬂy
+presents its constituent components. We detail the evolution-
+ary algorithm EA4HS in Sect. 5. The experiments on sample
+systems are shown in Sect. 6. Section 7gives the related work
+and Sect. 8ﬁnally concludes.
+2 Optimization problem description
+In this section, we ﬁrst outline an IMA partitioned scheduling
+system, and then give the deﬁnition of its parameter optimiza-tion problem.
+2.1 System model
+We focus on a two-level partitioned scheduling system where
+partitions are scheduled by a Time Division Multiplexing
+(TDM) global scheduler and each partition also has a localscheduler based on preemptive Fixed Priority (FP) policy tomanage the partition’s internal tasks.
+The system consists of a set of temporal partitions Ω=
+{P
+i|i=1,2,..., n}running on a single processor. The
+TDM global scheduler executes time allocation for parti-
+tions according to a static schedule Scyclically and repeats
+Severy major time frame M[1]. The partition schedule Sis
+comprised of a set of partition time windows: S={Wt|t=
+1,2,...,w }.Wtis a time slot /angbracketleftPt,ot,dt/angbracketrightbelonging to a par-
+tition Pt∈Ω, where otanddtdenote the offset from the start
+ofMand expected duration respectively. The wtime slots
+123
+
+--- Page 3 ---
+Model-based optimization of ARINC-653 partition scheduling 723
+Fig. 1 Hierarchical architecture of partitioned scheduling systems
+are non-overlapping, satisfying that 0 ≤o1<o1+d1<
+o2<o2+d2<···<ow<ow+dw≤M. Partitions are
+activated only during their partition time windows within M.
+Each partition Piaccommodates a set of tasks Γi=
+{τi
+j|j=1,2,..., mi}which are scheduled by the local
+scheduler of Piin accordance with the preemptive FP policy
+and executed only when Piis activated. A task τis repre-
+sented by the tuple /angbracketleftI,T,O,J,D,R,L/angbracketrightwhere Iis initial
+offset, Tis release interval, Ois offset, Jis jitter, D≤Tis
+deadline, Rdenotes task priority, and Ldescribes the behav-
+ior ofτas a sequential list. Each element of Lis an abstract
+instruction /angbracketleftCmd,Res,TBCET,TWCET/angbracketright.Cmd is an oper-
+ation code in the command set {Compute ,Lock,Unlock ,
+Delay,Send,Receive ,End}.Res is an identiﬁer encoding
+one of the resources such as processor time, locks, and mes-sages. T
+BCET andTWCET are execution time in the best case
+and the worst case respectively. In the command set, Compute
+denotes a general computation step, Lock and Unlock han-
+dle locks, Delay allows the task to stop running for a certain
+time, Send andReceive are used for inter-partition commu-
+nications, and End is the symbol of job termination.
+2.2 Schedulability condition
+The schedulability of a partitioned scheduling system can
+also be divided into conditions at the global and the locallevel. Figure 1shows this hierarchical scheduling architec-
+ture.
+At the global level, the schedulability is that the time sup-
+ply of the global scheduler satisﬁes the time requirement ofeach partition. The partition schedule Sdeﬁnes the time sup-
+ply for partitions in the system. According to the ARINC
+653 standard, the time requirement of a partition P
+ican
+be described as a tuple of periodic scheduling parameters
+/angbracketleftpi,bi/angbracketrightwhere piis a partition period and biis the budget
+within pi. Thus, the schedulability condition denotes that
+the budget bican be guaranteed by the partition schedule Sduring each period pi. Compared with the variable-length
+partition schedule, we are more interested in handling theconcise parameter tuple /angbracketleftp
+i,bi/angbracketrightthat is used as an input in
+determining the partition time windows of Pi[1].
+The schedulability at the local level requires all tasks to
+meet their deadlines. The tuple of scheduling parameters/angbracketleftp
+i,bi/angbracketrightindicates the total periodic time requirement of tasks
+inPi. We deﬁne two types of tasks:
+–A periodic task has the kth release time tk∈[I+kT+
+O,I+kT+O+J]where k∈NandTdenotes a ﬁxed
+period. A periodic task meets its deadline iff the task can
+ﬁnish its kth job before the instant (I+kT+D)for any
+k∈N.
+–A sporadic task characterized by a minimum separation
+Tbetween consecutive jobs releases its (k+1)th job
+attk+1∈[tk+T,+∞), and its ﬁrst release is at t0∈
+[I,+∞). A sporadic task complies with its deadline iff
+itskth job can be completed before (tk+D)for any
+k∈N.
+In addition, the ARINC-653 standard allows tasks to per-
+form two types of communication between them: intra- andinter-partition communication. The type of a communication
+operation of a task depends on whether the communicat-
+ing tasks are located in the same partition. The behavior ofresource sharing or message communication incurs the task-
+blocking overheads that could affect the schedulability of
+partitions at the local level. Hence, our model-based methodalso needs to describe the concrete task behavior includingthe (intra- and inter-partition) communication precisely in
+Uppaal models.
+2.3 Optimization problem
+Consider the aforementioned partitioned scheduling system.
+Given a set of partitions Ω={ Pi|i=1,2,..., n}and
+their respective task sets {Γi}, the optimization problem is to
+ﬁ n da2 n-dimensional vector x=(x1,x2,..., x2n)∈R2n
++
+where the parameter tuple /angbracketleftpi,bi/angbracketrightofPicorresponds to the
+elements x2i−1=piand x2i=bi, such that the system
+minimizes the processor occupancy Uwhile guaranteeing
+the schedulability at both the global and local level.
+Suppose each release of partitions needs a context switch.
+The processor occupancy is deﬁned as
+U=n/summationdisplay
+i=1ci·v+bi
+pi, (1)
+where ciis the average number of context switching for Pi
+during each partition period pi, andvis the context-switch
+overhead.
+123
+
+--- Page 4 ---
+724 P. Han et al.
+Fig. 2 Flowchart of schedulability analysis
+Minimizing the processor occupancy of a partitioned
+scheduling system makes it possible to accommodate moreadditional workload of applications. Similar deﬁnitions ofthe processor occupancy function have been proposed and
+applied in previous papers [ 13,33], where it was called “pro-
+cessor utilization” or “system utilization.” We found thesenames counter-intuitive, because we normally chase a higher
+“utilization” but it should be minimized in this problem. Thus
+we renamed it processor occupancy in this paper. Equiv-alently, we also deﬁne the remaining processor utilization
+U
+r=1−Uand ﬁnd the maximum Urinstead.
+3 Background of schedulability analysis
+In this section, we formulate the schedulability constraints
+of the optimization problem on the basis of the model-ing formalism of Uppaal . The behavior of the partitioned
+scheduling system presented in Sect. 2.1is further modeled as
+a set of Uppaal templates. A template is a generalized object
+of TA in Uppaal . The automaton structure of a template con-
+sists of locations and edges. A template may also have local
+variables and functions. The templates can be instantiated asa network of TA model instances Mthat describe a complete
+system. For any scheduling parameter vector x, the schedula-
+bility of its system model is veriﬁed or falsiﬁed according tothe procedure in Fig. 2, where the right is the ﬂowchart of ourmodel-based analysis and the left dashed-line box contains
+the data objects of each process.
+First, an ARINC-653 partition schedule Sis generated
+automatically from the input parameter vector xvia an par-
+tition scheduling algorithm, which guarantees Ssatisﬁes the
+time requirement of x, i.e., schedulability at the global level.
+We refer to xas a valid parameter combination if a partition
+schedule can be generated from x, then the schedulability
+analysis will proceed with the following costly steps. Oth-erwise, it will conclude with the invalidity of x. A partition
+scheduling algorithm is presented in Sect. 4.2.
+Second, the schedulability constraints of the optimization
+problem are expressed and fast falsiﬁed as queries of hypoth-
+esis testing inUppaal SMC. We add a boolean array
+perror
+with the initial value False to TA templates for this purpose.
+Once the schedulability of partition Piis violated, the related
+model will assign the value True toperror[i] immediately.
+Thus, the schedulability constraints for Piare replaced with
+the following query ρi:
+Pr[<= N](<> perror[i]) <= θ,i=1,2,..., n (2)
+where Nis the time bound on the simulations and θis a very
+low probability. Uppaal SMC is invoked to estimate whether
+the system model Msatisﬁes the conjunction of nqueries
+statistically:
+M|/equal1ρ1∧ρ2∧···∧ ρn (3)
+Since Uppaal SMC approximates the answer using simulation-
+based algorithms, we can falsify any nonschedulable solution
+rapidly but identify schedulable ones only with high proba-bility (1 −θ). Note that the probability distributions used in
+such models affect the probabilities of events in the overall
+model. In our case, this is not important as we do not evalu-ate the probability of the events, but only search for a singletrace violating the schedulability. Therefore, all schedulable
+results of SMC testing should be validated by classical MC
+to conﬁrm the schedulability of the corresponding system.
+Finally, in order to alleviate the state-space explosion
+problem of classical MC, we apply our compositional method
+presented in [ 19]t oschedulability validation , which is com-
+prised of the following four steps:
+1.Decomposition The system model Mis ﬁrst decomposed
+into a set of communicating partitions models P
+i,i=
+1,2,..., n. The schedulability property is also divided
+into nTCTL (Timed Computation Tree Logic) safety
+properties ϕi:
+A[] not perror[i] ,i=1,2,..., n, (4)
+each of which belongs to one partition.
+123
+
+--- Page 5 ---
+Model-based optimization of ARINC-653 partition scheduling 725
+Fig. 3 Architecture of parameter sweep optimizer
+2.Construction of message interfaces We deﬁne a message
+interface Aias the assumption of the communication
+environment for each partition Pi.Aicontains a set of TA
+models that mimic the requisite message-sending behav-ior of the other partitions.
+3.Model checking We check each partition model P
+i
+including its environment assumption Aiindividually by
+verifying the local properties ϕi:
+Pi/bardblAi|/equal1ϕi,i=1,2,..., n (5)
+where the operator /bardbldenotes composition of two TA
+models.
+4.Deduction According to the assume-guarantee paradigm,
+we assemble the nlocal results together to derive con-
+clusions about the schedulability of an entire system M.
+The optimization method proposed in the next section
+builds on the above analysis approach, which guarantees the
+schedulability constraints in search of the optimal solutions.
+4 Parameter optimization method
+The parameter optimization method presented in this section
+belongs to a class of random search methods. The optimizer
+searches for the (nearly) optimal schedulable parameters with
+respect to minimum processor occupancy U. Each search
+point in the considered parameter space can be converted
+into a promising ARINC-653 partition schedule. We ﬁnally
+give a Uppaal template framework that describes an IMA
+partitioned scheduling system as a network of TA models.4.1 Parameter sweep optimizer
+The optimizer is structured as a Parameter Sweep Application
+(PSA) that comprises a set of independent “experiments”,each of which is performed by a PSA task with a different
+set of parameters [ 17]. These PSA tasks tentatively explore
+the parameter space of /angbracketleftp
+i,bi/angbracketrightnto ﬁnd promising search
+points.
+For any search point x, the optimizer creates a PSA task
+that carries out the following procedure depicted in Fig. 3:
+(1) A search algorithm ﬁrst offers a promising parameter
+vector xto the PSA task. (2) An ARINC-653 partition sched-
+ule is then generated from the parameter setting of x.( 3 )T h e
+PSA task instantiates the Uppaal modeling framework by
+assigning the partition schedule to the TA models and (4)
+subsequently invokes Uppaal SMC to execute a fast global
+schedulability test. (5) If the TA model goes through theSMC test, it should be validated by Uppaal classic via com-
+positional analysis. (6) The schedulability constraints and
+processor occupancy are evaluated by the objective function.(7) The search algorithm receives feedback on the evalua-
+tion of xto update its candidate solutions and exploration
+direction. (8) Finally, this PSA task ﬁnishes its experimentand waits for the next call from the optimizer. The optimizerwill continue the parameter sweep, based upon the results
+of previous experiments, until the optimization criteria are
+reached. The best scheduling parameter vector of xand its
+partition schedule will be output at the end of the parameter
+sweep.
+Each component of the parameter sweep optimizer copes
+with a speciﬁc issue of the optimization problem.
+123
+
+--- Page 6 ---
+726 P. Han et al.
+Asearch algorithm guides the parameter sweep to select
+search points until an acceptable solution is found. Weconsider that exhaustive search is mostly infeasible and
+derivative information also unavailable for complex sys-
+tems, thus employing an evolutionary algorithm to performa heuristic search of the parameter space. Since there areno communications or data dependencies among PSA tasks,
+we adopt parallel search policies that distribute PSA tasks
+over several computing nodes so as to speed up the param-eter sweep. Section 5details the design of this evolutionary
+algorithm.
+AnARINC-653 schedule generator converts the parame-
+ter vector xinto an ARINC-653 static partition schedule by
+using an ofﬂine scheduling algorithm, which can make all
+scheduling decisions prior to run-time. This generator con-nects the parameter sweep optimizer and the Uppaal TA
+models of an IMA system to enable the automatic design
+of ARINC-653 partition scheduling. Section 4.2 gives an
+implementation of the generator based on the preemptiveFP scheduling policy.
+A Uppaal template framework describes a partitioned
+scheduling system as a network of TA models. SinceUppaal supports arrays and user-deﬁned types, the ARINC-
+653 partition schedule is encoded into a structure array
+partition _windows where each element corresponds to a
+partition time window. The global scheduler modeled as aTA template
+GSexecutes partition scheduling according to
+the array records. When instantiating the templates, a PSA
+task should assign the array of its partition schedule to acopy of the Uppaal model ﬁle. The Uppaal templates are
+presented in Sect. 4.3.
+The schedulability constraints of the optimization prob-
+lem are expressed as three properties: (1) validity of x,( 2 )
+hypotheses of the SMC testing, and (3) TCTL safety prop-
+erties in the MC compositional analysis. For any x,t h e
+schedulability of its corresponding system is veriﬁed or falsi-ﬁed in the form of these properties according to the procedure
+in Sect. 3. The results of this schedulability analysis are trans-
+ferred from the ARINC-653 schedule generator or Uppaal to
+the objective function in the optimizer.
+The objective function of the optimization problem pro-
+vides a quality evaluation for any parameter vector x. Since
+the processor occupancy Uof Eq. ( 1) is only valid for
+schedulable parameter vectors, we deﬁne the objective of
+the evolutionary search as a ﬁtness function, which evaluatesthe remaining processor utilization U
+rof any xon the basis
+of schedulability constraints. The evaluation of xis to update
+the state and search direction of the evolutionary algorithm.
+We give the deﬁnition of this ﬁtness function in Sect. 5.2.Fig. 4 Data ﬂow of an ARINC-653 schedule generator
+4.2 Generation of ARINC-653 partition schedules
+As depicted in Fig. 4, the ARINC-653 schedule generator
+takes input of nscheduling parameter tuples /angbracketleftpi,bi/angbracketright,i=
+1,2,..., nand produces a partition schedule Swith the
+major time frame M. The design of the ofﬂine scheduling
+algorithm should prevent a low-criticality application from
+affecting high-criticality applications. Hence, we adopt the
+preemptive FP scheduling policy to allocate processor timeto partitions. A partition is viewed as a periodic execution
+unit scheduled in a preemptive ﬁxed priority manner prior to
+the running of the system. For any partition P
+i, the execu-
+tion budget bishould be provided during each period pi.W e
+assign a priority ritoPiand use lower numbers for higher
+priorities. In practice, the priority of a partition is commonly
+pre-allocated on the basis of its criticality level. Without lossof generality, We assume that r
+i≤rjiffi≤j.
+Algorithm 1 presents the generation process of an ARINC-
+653 partition schedule. The major time frame Mis deﬁned as
+the least common multiple of all partition periods and calcu-
+lated by the function LCM (line 2). The partition schedule S
+is initialized as a set of two auxiliary time slots /angbracketleftNone,0,0/angbracketright
+and/angbracketleftNone,M,0/angbracketrightthat denote the lower and upper bound of
+partition time windows, respectively (line 3). We allocate
+processor time to partitions from higher priority to lower pri-
+ority, thus avoiding handling partition preemption. For eachpartition, we iteratively ﬁnd gaps between the existing time
+slots in S(line 9) and insert new partition time windows into
+these gaps (line 15).
+Algorithm 1 is able to handle any input parameter com-
+binations and offer precise (non-)schedulability conditions
+(line 10 and 24) at the global level, thereby integrating theparameter sweep optimizer with the Uppaal TA models of
+ARINC-653 partitioned scheduling systems.
+123
+
+--- Page 7 ---
+Model-based optimization of ARINC-653 partition scheduling 727
+4.3 UPPAAL template framework
+In the Uppaal template framework, an IMA partitioned
+scheduling system is modeled as two types of TA: sched-uler models and execution models. The TA template of a
+global scheduler
+GSand a local scheduler LSconstitute the
+scheduler models, which control the execution models byusing a set of channels as scheduling commands. The exe-
+cution models consist of two TA templates
+PeriodicTask
+andSporadicTask describing two types of tasks. We present
+the modeling methods of two major features of partitioned
+scheduling systems1.
+Two-level Hierarchical Scheduling: The two-level sched-
+uler models GSandLSrealize the hierarchical architecture.
+Take the local scheduler LSshown in Fig. 5for example. A
+1A zip ﬁle containing the source code for the optimization and all
+the models can be found at http://people.cs.aau.dk/~ulrik/submissions/
+908233/EA_and_models.zip .Fig. 5 Local scheduler model
+local scheduler belongs to a partition identiﬁed by a tem-
+plate parameter pid.LSreceives notiﬁcation from GSthrough
+two channels enter _partition andexit _partition when
+entering and exiting the partition pid respectively, and uses
+four channels ready ,release ,sched andstop as commands
+to manage the tasks in pid. If there is a task becoming ready
+to run or relinquishing the processor, the task model will
+send its LSaready orrelease command respectively. LS
+maintains a ready queue rqthat keeps all the tasks ready and
+waiting to run, and always allocates the processor to the ﬁrst
+task with the highest priority in rq. If a new task having a
+higher priority than any tasks in rqget ready, LSwill insert
+the task into rq, interrupt the currently running task via stop
+and schedule the new selected task via sched .
+According to whether the current time is inside the parti-
+tion as well as to the number of the tasks in the ready queue,
+we create four major locations NoTask ,Idle ,WaitPartition
+, and Occupied . These four locations cover all situations,
+where the model must be at one of these locations for any
+instant. By contrast, the other locations realize conditional
+branches and atomic action sequences in the model.
+Note that this framework has the capability of adopting
+different local scheduling policies in the system. This can be
+achieved by instantiating a new template of the local sched-
+uler with a different scheduling policy for the partition. Thenew template is only required to conform with the same func-
+tion deﬁnition of the channels as before.
+Task Behavior In the templates
+PeriodicTask and Spo-
+radicTask , we deﬁne a set of abstract instructions to describe
+concrete task behavior. Figure 6shows the main structure of
+the task templates. A clock exeTime measures the process-
+ing time during the execution of an abstract instruction, and
+123
+
+--- Page 8 ---
+728 P. Han et al.
+Fig. 6 Main structure of a task model
+progresses only when the model is at the location Running .
+Once the task is scheduled by LSthrough the channel sched ,
+it will start execution on the processor and move from thelocation
+Ready toReadOp .
+A sequential list of abstract instructions is implemented
+as the structure array op. By using an integer variable pc
+as a program counter, the task can fetch the next abstract
+instruction from op[pc] at the location ReadOp . According
+to the command of this abstract instruction, the task modelperforms a conditional branch and moves from the location
+ReadOp to one of the different locations that represent differ-
+ent operations.
+5 Evolutionary algorithm EA4HS
+Evolutionary algorithms (EA) are an iterative stochastic
+search method inspired by natural selection and based on thecollective learning process within a population of individu-
+als, each of which represents a search point in the solution
+space of a speciﬁc problem [ 2]. The population evolves from
+random initial values toward increasingly better solutions bymeans of three selection ,recombination , and mutation oper-
+ators. The individuals are evaluated and selected according
+to the value of a ﬁtness function . There are several variants of
+EAs such as Genetic Algorithms (GA), Evolution Strategies
+(ES), and Evolutionary Programming (EP), which adopt dis-
+tinctive ﬁtness function, representation of search points, andimplementation of operators.
+In this section, we present an evolutionary algorithm
+EA4HS for solving the parameter optimization of ARINC-
+653 hierarchical scheduling systems. This algorithm com-bines improved operators of the GA and self-adaptation of
+the ES. We ﬁrst give the outline of EA4HS. The designs of
+its ﬁtness function, operators and self-adaptation are thendetailed.
+5.1 Outline of the evolutionary algorithm EA4HS
+The goal of EA4HS is to optimize a set of object parame-
+ters x=(x1,x2,..., xm), i.e., the unknown 2 n-dimensional
+vector xin the optimization problem, regarding an objective
+function Ω:Rm
++→ R. The EA manipulates popula-
+tionsβ(g),g∈ Nof individuals α(g)
+k,k=1,2,..., K
+where gis the number of generations and Kthe size
+of the population. An individual α(g)
+kis represented by a
+tuple/angbracketleftx(g)
+k,s(g)
+k/angbracketrightthat consists of not only object parameters
+x(g)
+k=(x(g)
+k,1,x(g)
+k,2,..., x(g)
+k,m)but also strategy parameters
+s(g)
+k=(σ(g)
+k,1,σ(g)
+k,2,...,σ(g)
+k,m).
+The strategy parameters come from evolution strategies
+to control statistical properties of the genetic operators [ 6].
+These strategy parameters can evolve together with object
+parameters during the evolution process. For any individual
+α(g)
+k, there are 2 nstrategy parameters in s(g)
+kwhere the evo-
+lution of x(g)
+2i−1,kand x(g)
+2i,kwith i∈{1,2,..., n}(i.e. the
+unknown parameters piandbiin the optimization problem)
+is guided by the combination of σ(g)
+2i−1,kandσ(g)
+2i,k.
+Let Ibe the range of individuals. The ﬁtness function
+f:I→ Rrealizes the objective function Ωby map-
+ping each individual to a ﬁtness value. In general, the better
+an individual ﬁts, the higher is the probability of its being
+selected in the next generation. Moreover, the EA adopts themechanism of elitism that many of the ﬁttest individuals are
+123
+
+--- Page 9 ---
+Model-based optimization of ARINC-653 partition scheduling 729
+copied directly to the next generation, and Eis the number
+of elitist individuals in each generation.
+The outline of EA4HS is given in Algorithm 2.
+The object parameters in the ﬁrst population β(0)are
+initialized as a set of independent random numbers froma uniform distribution U(x
+imin,ximax)where the interval
+[ximin,ximax]indicates the search range of the optimal solu-
+tions. By contrast, all the strategy parameters are set touser-deﬁned values at the ﬁrst generation according to thedeﬁnition of the mutation operator of object parameters.
+Then we evaluate the ﬁtness value of each individual in β
+(0)
+(line 3). After initialization we enter and execute the main
+loop of the evolution process until a termination condition is
+satisﬁed (lines 4–19).
+The main loop produces a descendant population β(g+1)
+from the parent population β(g)at any generation g.F i r s t , E
+elitist individuals are copied into the set e(line 5). According
+to the ﬁtness values of β(g), we execute the selection operator
+that chooses (K−E)pairs of parents separately from the
+population β(g)and writes these parental individuals into
+the set β(g)/prime(line 6). Then, the algorithm enters an inner
+loop (lines 7-14) where a new individual is born during eachiteration.
+In this inner loop, reproduction should be repeated until
+a valid object parameter combination is produced or themaximum number R
+max of iterations is reached (lines 8-
+13). Otherwise the new generation would be drowning in
+invalid parameters and starved of information. Based on theselected parental pairs in β
+(g)/prime, the recombination and muta-tion of object parameters are performed (lines 10 and 12),
+generating the object parameter vector x(g+1)
+kof the kth new
+offspring. Meanwhile, the strategy parameters originating
+fromβ(g)also undergo recombination (line 9) and muta-
+tion (line 11) independently to control the mutation operator
+of object parameters that achieves mutative self-adaptation.
+The resulting object parameters x(g+1)
+kand strategy parame-
+ters s(g+1)
+kconstitute a new individual α(g+1)
+k.
+We obtain the descendant population β(g+1)by compos-
+ingEelitist individuals eand(K−E)new offspring {α(g+1)
+k}
+(line 15). The ﬁtness of β(g+1)is evaluated (line 16) to
+update the current optimal scheduling parameters x(line 17).
+Finally, the evolution process returns xas an optimal solution
+(line 20).
+5.2 Definition of the fitness function
+The ﬁtness function provides a measure for any individualα=/angbracketleft x,s/angbracketrightto determine which individuals should have a
+higher probability of being selected to produce the population
+at next generation.
+The motivation for designing this ﬁtness function stems
+from two aspects: First, the ﬁtness value should reﬂect not
+only the goal of processor occupancy but also the potential
+for schedulability satisfaction. Such a ﬁtness function eval-uates the processor occupancy on the basis of assessment of
+the schedulability constraints in such a way that we select
+better individuals without breaching the constraints of theoptimization problem. Second, it is necessary to speed upthe ﬁtness calculation due to a costly model-based schedu-
+lability analysis. An integration of global SMC testing and
+compositional MC veriﬁcation should provide a fast strictassessment of schedulability properties for any individual.
+Accordingly, the ﬁtness function f:I→ Rextracts the
+object parameters x=(x
+1,x2,..., x2n)from their individ-
+ualαand evaluates the ﬁtness value of xin accordance with
+the following principles:
+– Invalid parameter combinations, which cannot generate a
+valid partition schedule, are assigned to the lowest ﬁtness.
+– For any valid parameter vector x, the MC veriﬁcation
+should not be invoked to conﬁrm the strict schedulability
+until the entire system of xis proved statistically schedu-
+lable by the SMC tests.
+– Higher ﬁtness values should be assigned to statistically
+schedulable parameter vectors than non-schedulable
+ones, and to strictly schedulable parameter vectors thanonly statistically schedulable ones.
+– For any valid parameter vector x, if more schedulable
+partitions are found in the SMC tests or MC veriﬁcation,a higher ﬁtness should be assigned to x.
+123
+
+--- Page 10 ---
+730 P. Han et al.
+– For any two valid parameter vectors, if they are equal in
+the number of schedulable partitions, we will assign ahigher ﬁtness to the vector whose schedulable partitions
+occupy less processor time.
+– For any strictly schedulable parameter vector, a lower
+processor occupancy Umeans a higher ﬁtness.
+We deﬁne the ﬁtness function as the following piecewise
+formula:
+f(α)=⎧
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩−ζ/parenleftBig
+1+/summationtext
+n
+i=1g(x2i−1,x2i)/summationtextn
+i=1x2i/parenrightBig
+,γ 1
+−ζ/parenleftBig
+1−1/summationtextn
+i=1(x2i/x2i−1)/parenrightBig
+,γ 2
+0,γ 3
+ζ/parenleftBig
+1+/summationtextn
+i=1ρ(i)(1−x2i
+x2i−1)/parenrightBig
+,γ 4
+ζ/parenleftBig
+n+1
+n/parenleftbig
+1+/summationtextn
+i=1ϕ(i)(1−x2i
+x2i−1)/parenrightbig/parenrightBig
+,γ 5
+ζ/parenleftBig
+1+n+Ur(x)/parenrightBig
+,γ 6(6)
+where the conditions consist of
+–γ1:∃i,x2i−1<x2i
+–γ2:¬γ1∧/summationtextn
+i=1x2i
+x2i−1>1
+–γ3:¬γ1∧¬γ2∧¬valid(x)
+–γ4:valid(x)∧/summationtextn
+i=1ρ(i)<n
+–γ5:valid(x)∧/summationtextn
+i=1ρ(i)=n∧/summationtextn
+i=1ϕ(i)<n
+–γ6:valid(x)∧/summationtextn
+i=1ρ(i)=n∧/summationtextn
+i=1ϕ(i)=n,
+ζis a scale factor, g(p,b)=/braceleftbiggb−p,p<d
+0, p≥dprovides
+the excess budget for the period pand execution bud-
+getb,ρ(i)=/braceleftbigg1,if SMC query ρiis satisﬁed
+0,if SMC query ρiis not satisﬁedreturns
+the results of the SMC schedulability testing, Similarly
+ϕ(i)=/braceleftbigg1,if TCTL property ϕiis satisﬁed
+0,if TCTL property ϕiis not satisﬁedprovides
+the results of the compositional MC schedulability veriﬁ-
+cation, Ur(x)gives the remaining processor utilization, and
+valid(x)fetches the validity of xafter invoking Algorithm 1.
+The condition/summationtextn
+i=1ρ(i)=nand/summationtextn
+i=1ϕ(i)=nimply the
+statistically and strictly schedulability, respectively, for all n
+partitions of the system conclude with positive results.
+There are six cases in the deﬁnition of our ﬁtness function.
+A ss h o w ni nF i g . 7, we allocate different ranges on the number
+axis to these cases.
+The ﬁrst three cases handle invalid parameter combina-
+tions that are indicated by negative or zero ﬁtness values. In
+the ﬁrst case γ1, there exists a partition Piwhose execution
+budget bi=x2iis greater than its period pi=x2i−1.O b v i -
+ously, such a combination does not make sense. Thus, weFig. 7 Allocation of ﬁtness values on the number axis
+compute the normalized sum of all the excess budgets and
+shift it to a low interval [−2ζ,−ζ). The second case γ2, where
+the total utilization ratio/summationtextn
+i=1x2i/x2i−1is greater than 1,
+overspends all available budgets. Similarly, the excess ratio
+is mapped into the interval (−ζ,0). The rest of invalid param-
+eter vectors should be reported by the ARINC-653 schedulegenerator due to the non-schedulability at the global level.
+They are classiﬁed as the third case γ
+3and assigned zero
+ﬁtness. Note that the model-based schedulability testing orveriﬁcation is not required in these invalid cases.
+On the contrary, the ﬁtness of valid object parameters
+is evaluated on the basis of the results of SMC tests and
+MC veriﬁcation. After fast testing the schedulability ofeach partition in Uppaal SMC, we calculate a ﬁtness value
+according to the number of statistically schedulable parti-
+tions n
+s=/summationtextn
+i=1ρ(i). The ﬁtness value is mapped into the
+interval [nsζ,(ns+1)ζ)by adding ζnsand the normalized
+remaining utilization ratio of statistically schedulable parti-
+tionsζ(1−/summationtextn
+i=1ρ(i)x2i/x2i−1)(i.e. case γ4).
+Not until all npartitions go through the SMC tests will
+the costly compositional MC method be invoked to verify the
+schedulability of the system. Once this property is conﬁrmed
+(i.e., case γ6), the ﬁtness function will extend the remaining
+processor utilization Urby an offset (n+1)ζ, thus obtain-
+ing the highest ﬁtness within [(n+1)ζ,( n+2)ζ).I ft h e
+schedulability of the system is falsiﬁed by the MC veriﬁca-tion (i.e. case γ
+5), we will map the sum of the number of
+strict schedulable partitions/summationtextn
+i=1ϕ(i)and their remaining
+utilization ratio (1−/summationtextn
+i=1ϕ(i)x2i/x2i−1)into the interval
+[nζ,(n+1)ζ).
+5.3 Selection operator
+In the evolution process, there is a high probability of pro-
+ducing low-ﬁtness object parameters such as the invalid
+combinations where an execution budget is greater than its
+partition period. Since each generation contains many badand only very few good individuals, we prefer exponential
+ranking selection operator that is able to give higher selec-
+tive pressure, i.e., the tendency to select better individualsfrom a population [ 31], while guaranteeing certain standard
+123
+
+--- Page 11 ---
+Model-based optimization of ARINC-653 partition scheduling 731
+deviation of the ﬁtness distribution of the population after a
+selection operation [ 26].
+Exponential ranking selection is implemented as two
+steps: (1) Kindividuals in a population are ranked in order
+of ﬁtness from worst 1 to best K.( 2 )T h e ith individual is
+selected according to the exponentially weighted probability
+pi=cK−i
+/summationtextK
+j=1cK−j(7)
+where the base of exponent c∈(0,1)is used to control the
+selective pressure of the operator. A smaller cwill lead to a
+higher selective pressure, which means best-ﬁtness individ-uals are more likely to be selected. The selection operationis repeated until (K−E)pairs of individuals are obtained.
+5.4 Recombination operator
+There is a widely accepted design principle that recombina-
+tion operators mainly extract the similarities from selected
+parents [ 5]. In our optimization problem, the similarities
+between individuals originate not only from the independentvalues of partition periods and budgets but from the proces-
+sor usage of each partition. Accordingly, we design a local
+line recombination operator for the EA4HS. For any parti-
+tion P
+i, the recombination operator mixes information from
+parents about the period piand budget biofPi, and extracts
+the similarities in terms of the utilization ratio of bitopi,
+which indicates the processor usage of Pi.
+Let x=(x1,x2,..., xm)and y=(y1,y2,..., ym)be the
+object parameters of two parents. The local line recombina-tion computes an offspring z=(z
+1,z2,..., zm)by
+zj=xj+ξi(yj−xj)j=1,2,..., mi=/floorleftbiggj+1
+2/floorrightbigg
+(8)
+where the weighting ξiis randomly generated by a uniform
+distribution U(−d,1+d)and d∈[0.25,0.5]is the con-
+straint value on the line extension. For any offspring z,t w o
+consecutive parameters pi=z2i−1and bi=z2ibelong-
+ing to one partition share a common factor ξi. In doing so,
+the recombination produces the offspring parameters of eachpartition independently on a common line segment through
+both of the parents.
+We consider three types of genetic information: (1) the
+period p
+i, (2) the budget bi, and (3) the utilization ratio
+bi/piof the ith partition. As depicted in Fig. 8, the off-
+spring zcan be chosen uniformly at random from the line xy,
+where the recombination operator mixes these three types of
+genetic information simultaneously from parents. Obviously,
+all three types of genetic information are kept in the offspringzand similar to those in its parents xand y.
+Fig. 8 An example of recombination and mutation operations
+5.5 Mutation operator
+Compared with recombination, mutation operators do not
+only provide a source of genetic variation but also maintain
+degree of population diversity, whose insufﬁciency is one ofthe major cause of premature convergence [ 30]. However,
+generic mutation operators cannot utilize the correlations
+between the period p
+iand budget biin individuals to acquire
+promising processor usage of partitions, causing the mutantsto be always eliminated after selection in all probability. This
+extremely low survival rate increases the risk of premature
+convergence. Thus, we propose a rotated Gaussian mutation
+operator to help the EA4HS converge to a global optimum
+effectively.
+The mutation operator has two input parameters including
+the set of object parameters z=(z
+1,z2,..., zm)after recom-
+bination and of strategy parameters s=(σ1,σ2,...,σ m)that
+control mutation strength. Each pair of the object param-eters(z
+2i−1,z2i)is mutated as an independent vector ˜zi.
+The mutation operator transforms zinto a new offspring
+z/prime=(z/prime
+1,z/prime
+2,..., z/prime
+m).L e t˜z/prime
+istand for (z/prime
+2i−1,z/prime
+2i).W eh a v e
+˜z/prime
+i=˜zi+Δii=1,2,..., n (9)
+where Δiis a random sample from a bivariate normal distri-
+bution N(μi,/Sigma1i).
+The covariance matrix /Sigma1i∈R2×2can be geometrically
+interpreted as a set of ellipses, each of which is a density
+contour of N(μi,/Sigma1i). Consider the fact that a parent zwith
+valid parameters has a high probability of producing a validoffspring z
+/primeif each of the new utilization ratios z/prime
+2i/z/prime
+2i−1
+is close to the parental z2i/z2i−1. We deﬁne the covariance
+matrix /Sigma1ias the set of ellipses whose major axes are par-
+allel with the lines of equal ratio z2i/z2i−1shown in Fig. 8.
+Thus, N(μi,/Sigma1i)is obtained by rotating a bivariate normal
+distribution N(μi,Di)counterclockwise through an angle
+θi:
+123
+
+--- Page 12 ---
+732 P. Han et al.
+/Sigma1i=RiDiRT
+i (10)
+where Di=diag(σ2i−1,σ2i)derives two strategy parame-
+tersσ2i−1andσ2ifrom s,Ri=/parenleftbiggcosθi−sinθi
+sinθicosθi/parenrightbigg
+is a rotation
+matrix, and
+sinθi=z2i/radicalBig
+z2
+2i−1+z2
+2i,cosθi=z2i−1/radicalBig
+z2
+2i−1+z2
+2i. (11)
+Strategy parameters σ2i−1andσ2iindicate the standard
+deviations of N(μi,/Sigma1i)along the major and minor axes,
+respectively. To perform such an ellipses-parallel mutation,
+we initialize each σ2i−1of the strategy parameters with a
+greater value than σ2i, thereby adapting the mutation distri-
+bution Δi∼N(μi,/Sigma1i)to the ﬁtness landscape.
+The mean μi∈R2of the normal distribution is deﬁned
+as
+μi=/braceleftbigg0, /bardbl˜zi/bardbl2≥2σ2i−1
+2σ2i−1(cosθi,sinθi),/bardbl˜zi/bardbl2<2σ2i−1(12)
+where /bardbl˜zi/bardbl2=/radicalBig
+z2
+2i−1+z2
+2iis the Euclidean norm of the
+vector ˜zi. In most cases, the mean μiis assigned 0and hence
+the mutants z/primewill center around the input parameters z.
+However, the zero mean μi=0may cause the mutations to
+generate a large number of invalid minus parameters, espe-
+cially when the input points ˜ziare close to the origin but their
+mutations receive large standard deviations σ2i−1. Accord-
+ing to the empirical rule in statistics (i.e., 95% of the values
+in a normal distribution lie within two standard deviations ofthe mean), we will add a 2 σ
+2i−1offset along the major axis
+ofN(0,/Sigma1i)to˜ziif the Euclidean norm of ˜ziis less than
+a distance of 2 σ2i−1, effectively reducing the probability of
+producing minus parameters.
+Subsequently, the EA4HS sets strategy parameters adap-
+tively to direct the search during the evolution process.
+5.6 Self-adaptation of strategy parameters
+The strategy parameters are encoded, selected and inherited
+together with the object parameters of individuals. They alsoundergo recombination and mutation operations to control
+the statistical properties of the mutation operator of object
+parameters adaptively.
+Since the considerable ﬂuctuations of strategy param-
+eters normally degrade the performance of EAs [ 6], we
+provide a weighted intermediate recombination operator
+for strategy parameters in order to mitigate these ﬂuctua-tions as well as extract the similarities. The recombinant
+¯sis a weighted average of all the Kvectors s
+(g)
+k=
+(σ(g)
+k,1,σ(g)
+k,2,...,σ(g)
+k,m)of the strategy parameters in a pop-ulation β(g)=/braceleftBig
+α(g)
+1,α(g)
+2,...,α(g)
+K/bracerightBig
+:
+¯s=1
+KK/summationdisplay
+k=1(1−τr)λks(g)
+k(13)
+where τr∈[0,1]is a user-deﬁned learning rate and λkis the
+number of times an individual α(g)
+kappears continuously in
+the elitist set ε. The recombination also assigns ¯sto all the
+individuals in ε.
+Alog-normal operator [ 6] is applied to the mutation
+of strategy parameters, providing the primary source of
+their genetic variation. This log-normal mutation ensurespositiveness of the strategy parameters that serve as stan-
+dard deviation of a normal distribution. The recombinant
+¯s=(¯σ
+1,¯σ2,...,¯σm)mutates into the strategy parameters
+s(g+1)
+k=(σ(g+1)
+k,1,σ(g+1)
+k,2,...,σ(g+1)
+k,m)at next generation by
+σ(g+1)
+k,j=¯σjeτuNj(0,1)(14)
+where τuis also an input learning rate and Nj(0,1)denotes
+a random sample from the standard normal distribution. The
+learning rate τu=1/√mis recommended according to [ 6].
+6 Experiments
+This section presents the experiments on two avionics sys-
+tems to demonstrate the applicability of our optimizationmethod. In the experiments, our parameter sweep method
+shows the capability of converging to a global optimum. We
+also evaluate the performance of search algorithms by com-paring the proposed EA4HS with exhaustive search and twopopular genetic algorithms.
+All the experiments in this section were executed on
+the cluster that consists of four computer nodes with 1 TBmemory. Each node has 64 cores of 4 AMD Opteron 6376
+processors. The schedulability tests and validation were per-
+formed on Uppaal 4.1.19 64-bit version. We assign the
+timebound N=1.0×10
+4time units and the probability
+threshold θ=0.05 for Eq.( 2).
+6.1 Experiment on simple periodic task sets
+We ﬁrst perform the experiments on a simple periodic task
+set taken from [ 13]. The task set comprises two identical par-
+titions with different priorities, thus making their partition
+priority ordering irrelevant. Each partition contains multipleindependent periodic tasks, whose period, deadline and pri-
+ority are encoded into Uppaal declarations. The behavior
+of a task is described as a pure Compute instruction with a
+Worst Case Execution Time (WCET).
+123
+
+--- Page 13 ---
+Model-based optimization of ARINC-653 partition scheduling 733
+Table 1 Task set of Experiment 1 [ 13] (Times in µs)
+PID PR Task
+TID T E D R
+P1 1 Tsk1
+1 160 8 100 1
+Tsk1
+2 240 12 200 2
+Tsk1
+3 320 16 300 3
+Tsk1
+4 480 24 400 4
+P2 2 Tsk2
+1 160 8 100 1
+Tsk2
+2 240 12 200 2
+Tsk2
+3 320 16 300 3
+Tsk2
+4 480 24 400 4
+The task set is shown in Table 1where the column “PID”
+and “TID” identify the partitions and tasks, respectively,
+“PR” gives partition priorities, “T” is task periods, “E” isthe WCET, “D” is deadline, and “R” is task priorities. We
+deﬁne the time unit as a microsecond in the table and the
+context switch overhead as 2 time units.
+Experiment 1
+The parameter optimization of the above avionics workload
+was carried out by three following methods:
+–Exhaustive search An analytical condition for schedu-
+lable parameters is derived from a response time analy-sis [ 13]. This method scans all possible integer combina-
+tions of the partition period through a potential interval
+[4,200]. For each period combination, it uses a binary
+search together with the schedulability condition to ﬁnd
+the minimum execution budget from the highest prior-
+ity to the lowest one. This exhaustive search is able toproduce a global optimal solution, but only applicable tosuch a simple system.
+–Parameter sweep with GAs Two popular GAs, the classic
+and the breeder genetic algorithm [ 25], are ﬁrst applied
+to parameter sweep for comparison. Table 2shows their
+operator combinations and denotes them by “GA 1” and
+“GA 2” respectively. Individuals are binary encoded inboth of the GAs. In GA 1, an exchange of each bit in
+parents takes place with a probability p
+e=0.5, and
+the probability of bit mutation is pu=0.2. In GA 2,Table 3 Optimization result of Experiment 1 (Times in µs)
+Method Solution Occupancy Optimal
+GA 1 (120,26,180,66) 61.67% No
+GA 2 (126,35,126,35) 58.73% No
+EA4HS (160,34,160,34) 45% Yes
+the percentage T% of truncation selection is set to 50%,
+the weighting constraint of intermediate recombination
+isdr=0.5, the standard deviation of Gaussian mutation
+isσu=10, and the mutation probability is pu=0.2.
+–Parameter sweep with EA4HS In the EA4HS, individuals
+are also binary encoded, the base cof exponential ranking
+selection is 0 .8, the value dof local line recombination is
+0.5, and we initialize the strategy parameters σ2i−1=50
+andσ2i=5f o r i∈{1,2}in an individual. We deﬁne
+the learning rates τr=0.7 and τu=1/√
+4=0.5. The
+operator combination is also shown in Table 2.
+Both the GAs and EA4HS adopt the search range [4,200]
+for all partition periods, population size K=64, elitism
+size E=4, and maximum generation G=300. For each
+individual, we calculate its ﬁtness value and store them ina hash table. Once the same individual reappears in the fol-
+lowing generations, the ﬁtness value will be fetched from the
+hash table directly, thus avoiding the costly redundant ﬁtnesscalculation.
+Table 3shows the optimization result of Experiment 1.
+Both the exhaustive search and parameter sweep with theEA4HS reached the same global optimal solution x
+opt=
+(160,34,160,34), which gives a minimum processor occu-
+pancy U=45%. Unfortunately, two GAs only offer two
+local optimal solutions with much higher processor occu-pancy 61 .67% and 58 .73%.
+Figure 9presents the evolution of minimum processor
+occupancy and cumulative processing time of the GAs andEA4HS in Experiment 1. Since duplicate ﬁtness calculation
+is replaced with reading the hash table, the convergence of the
+evolution means a synchronous slowdown in the variation ofminimum processor occupancy and cumulative processing
+time. Obviously, both GA 1 and GA 2 fell into a premature
+convergence on local optimal solutions after 30 generations.
+Table 2 Operator combinations of the EAs
+EA Selection operator Recombination operator Mutation operator
+GA 1 Roulette wheel selection Uniform crossover Bit-ﬂip mutation
+GA 2 Truncation selection Intermediate recombination Gaussian mutationEA4HS Exponential ranking selection Local-line recombination Rotated Gaussian mutation
+123
+
+--- Page 14 ---
+734 P. Han et al.
+Fig. 9 Evolution of minimum processor occupancy and cumulative processing time in Experiment 1
+In contrast, the EA4HS adjusts strategy parameters adap-
+tively to control the average search area of mutation oper-
+ations. When there was a convergence trend during the
+generations of [30,70)and[160,200), the self-adaptation
+of strategy parameters expanded the search areas to improve
+population diversity and subsequently made the search con-
+centrated in smaller areas to ﬁnd better solutions within fewgenerations, thereby leading to a fast decrease in the mini-mum processor occupancy over the subsequent generations
+[100,160)and[270,300)shown in Fig. 9a. The repeated
+adjustments of the EA4HS reduce the risk of premature con-vergence on a local optimal area, producing two “steps” of
+its processing time curve in Fig. 9b.
+Experiment 2
+Considering that the premature convergence may affect the
+result of these two GAs, we continue the comparison exper-
+iment on the same task set but adopt different conﬁgurationfor the EAs to defer their convergence during the evolution.
+Experiment 2 repeats the same procedure for Experiment
+1, using the same search range [4,200], population size
+K=64, elitism size E=4, maximum generation G=300,
+and the following detailed conﬁguration:
+–GA 1 More frequent bit-ﬂip mutation in GA 1 will
+produce new individuals more randomly, thus possiblyraising the degree of population diversity to prevent pre-
+mature convergence. Hence we keep the bit-exchange
+probability p
+e=0.5 but use a double bit-mutation prob-
+ability pu=0.4.
+–GA 2 We increase both the probability and strength of the
+variable mutation to delay the convergence in GA 2, usingthe new standard deviation σ
+u=20 of Gaussian mutationTable 4 Optimization result of Experiment 2 (Times in µs)
+Method Solution Occupancy Optimal
+GA 1 (60,14,120,33) 55.83% No
+GA 2 (120,27,120,26) 47.5% No
+EA4HS (160,34,160,34) 45% Yes
+and its larger mutation probability pu=0.4. We still
+keep the percentage T=50% of truncation selection
+and the weighting constraint dr=0.5 of intermediate
+recombination.
+–EA4HS In the EA4HS, a lower learning rate τrwill slow
+down the convergence by adjusting the average strategyparameters of populations. Hence we invoke the EA4HS
+with a smaller learning rate τ
+r=0.4 and retain the other
+conﬁguration including the base c=0.8 of exponential
+ranking selection, the weighting constraint d=0.5o f
+local line recombination, the learning rate τu=0.5, and
+the initial strategy parameters σ2i−1=50 and σ2i=
+5,i∈{1,2}.
+In Table 4, the results of Experiment 2 show that our
+EA4HS gets accustomed to this new conﬁguration, forthe algorithm acquired the global optimal solution x
+opt=
+(160,34,160,34)with the minimum processor occupancy
+U=45%. Unfortunately, two GAs still deviated from the
+global optima, but they generated better solutions compared
+with their optimization result in Experiment 1.
+Figure 10depicts the evolution of minimum processor
+occupancy and cumulative processing time in Experiment 2.
+Although GA 1 obtained a lower processor occupancy than
+that in Experiment 1, it fell into the premature convergenceagain at around the 30th generation. The new conﬁguration
+123
+
+--- Page 15 ---
+Model-based optimization of ARINC-653 partition scheduling 735
+Fig. 10 Evolution of minimum processor occupancy and cumulative processing time in Experiment 2
+of GA 2 successfully avoided its convergence to ﬁnd more
+better individuals but signiﬁcantly increased the processing
+time from 347 to 2833 min.
+Compared with the conﬁguration of EA4HS in Experi-
+ment 1, a lower learning rate τr=0.4 avoids a sharp drop
+in strategy parameters and frequent adjustments during the
+evolution. Thus the EA4HS generated smoother curves ofminimum processor occupancy (Fig. 10a) and cumulative
+processing time (Fig. 10b) in Experiment 2. The evolution
+had not entered a convergence until it found a nearly optimal
+solution at around the 200th generation, ﬁnally reaching theglobal optimum at the 212nd generation.
+The experiments reveal distinct superiority of our EA4HS
+over the GAs. First, GA 1 is not applicable to this optimiza-tion problem. We ﬁnd the bit-based reproduction of GA 1
+cannot produce more better individuals steadily, making GA
+1 very prone to premature convergence. By contrast, GA2 can overcome the problem of premature convergence byadjusting the mutation conﬁguration. However, GA 2 has a
+low search efﬁciency. In both of the experiments, GA 2 con-
+centrate search on the local optimal area where all the periodsare centered around 120 µs and far from the best 160 µs. For
+this purpose, our EA4HS is provided with new recombina-
+tion and mutation operator which can produce descendantindividuals on the basis of the processor usage of parents.
+Hence, it is more likely to climb up a higher processor occu-
+pancy even if our current individuals are far from the optimalarea.
+6.2 Experiment on a concrete avionics system
+We undertake the third experiment on a much larger andmore complex IMA partitioned scheduling system includ-ing multiple task types, task dependency, and inter-partitioncommunication [ 11,16]. As shown in Table 5, the system
+consists of ﬁve partitions that contain a total of 18 periodic
+tasks and four sporadic tasks. The type of a task depends
+on its release interval. A periodic task has a ﬁxed period,
+whereas a sporadic task satisﬁes a minimum separation
+between consecutive release. The execution of a task is char-
+acterized as a sequence of chunks . Each chunk has a lower
+and upper bound on execution time , a set of potentially
+required resources and message-passing operations. There
+are 3 intra-partition locks, as shown in column mutex , and 4
+inter-partition message types in the task set. The columnsoutput and input indicate transfer direction of messages.
+According to the resources required by chunks, we convert
+each chunk into a subsequence of the abstraction instructionsequence (Receive ,Lock,Compute ,Unlock ,Send,End)in
+the Uppaal execution models. We assume the context switch
+overhead to be 0 .2 milliseconds in the experiment.
+In this IMA system, the features such as task dependency
+and communication render the analytical bounds in [ 13] non-
+applicable. Moreover, the immense parameter space makes
+it impossible to complete a brute-force search for a globaloptimal solution. Hence, Experiment 3 compares the EA4HS
+optimization with the empirical scheduling scheme given in
+[11]. Their detailed conﬁguration is listed as follows:
+–Empirical scheduling In this scheme, all the partitions
+have a unique period p=25 ms, which is the mini-
+mum and a harmonic of task periods. Each partition is
+allocated to a time slot of the same length 5 ms within
+every partition period. We ﬁrst create an ARINC-653 par-tition schedule according to this empirical scheme. The
+common partition period is used as the major time frame
+M=25 ms. Within every M, the ﬁve time slots of the par-
+titions are arranged in order of priority. A context switch
+123
+
+--- Page 16 ---
+736 P. Han et al.
+Table 5 Workload of the
+avionics system [ 11,16](Times
+in milliseconds)No. Task Release Offset Jitter Deadline Priority Execution Chunks
+Time Mutex Output Input
+P1 Tsk1
+1 [25,25] 2 0 25 2 [0.8,1.3] - - -
+[0.1,0.2] - - -
+Tsk1
+2 [50,50] 3 0 50 3 [0.2,0.4] - Msg 1 -
+Tsk1
+3 [50,50] 3 0 50 4 [2.7,4.2] - - -
+Tsk1
+4 [50,50] 0 0 50 5 [0.1,0.2] Mux1
+1--
+Tsk1
+5 [120,∞) 0 0 120 6 [0.6,0.9] - - -
+[0.1,0.2] Mux1
+1--
+P2 Tsk2
+1 [50,50] 0 0.5 50 2 [1.9,3.0] - - -
+Tsk2
+2 [50,50] 2 0 50 3 [0.7,1.1] - Msg 2 -
+Tsk2
+3 [100,100] 0 0 100 4 [0.1,0.2] Mux2
+1--
+Tsk2
+4 [100,∞) 10 0 100 5 [0.8,1.3] - - -
+[0.2,0.3] Mux2
+1--
+P3 Tsk3
+1 [25,25] 0 0.5 25 2 [0.5,0.8] - - Msg 1
+Tsk3
+2 [50,50] 0 0 50 3 [0.7,1.1] - - Msg 2
+Tsk3
+3 [50,50] 0 0 50 4 [1.0,1.6] - - Msg 3
+Tsk3
+4 [100,∞) 11 0 100 5 [0.7,1.0] - - -
+[0.1,0.3] - - -
+P4 Tsk4
+1 [25,25] 3 0.2 25 2 [0.7,1.2] - - -
+Tsk4
+2 [50,50] 5 0 50 3 [1.2,1.9] - Msg 3 Msg 1
+Tsk4
+3 [50,50] 25 0 50 4 [0.1,0.2] - - Msg 4
+Tsk4
+4 [100,100] 11 0 100 5 [0.7,1.1] - - -
+Tsk4
+5 [200,200] 13 0 200 6 [3.7,5.8] - - -
+P5 Tsk5
+1 [50,50] 0 0.3 50 1 [0.7,1.1] - - Msg 1
+Tsk5
+2 [50,50] 2 0 50 2 [1.2,1.9] - Msg 4 Msg 2
+Tsk5
+3 [200,200] 0 0 200 3 [0.4,0.6] - - -
+[0.2,0.3] Mux5
+1--
+Tsk5
+4 [200,∞) 14 0 200 4 [1.4,2.2] - - -
+[0.1,0.2] Mux5
+1--
+overhead 0 .2 ms is inserted into the start of the time slots,
+each of which thus shrinks to the size of 4.8 ms. Subse-quently, we analyze the schedulability of this empirical
+scheme by using the compositional approach given in
+Sect. 3.
+–EA4HS Considering the larger parameter space and
+longer processing time for each generation, we apply a
+new population size K=256, elitism size E=16 and
+maximum generation G=200 but keep the rest of the
+conﬁguration of Experiment 2, which has been proved
+applicable to the simple system with similar quantities
+of time. We set the base of exponential ranking selec-tion c=0.8 and the value of local line recombination
+d=0.5. In the ﬁrst generation, the strategy parame-
+ters of an individual are initialized as σ
+2i−1=50 and
+σ2i=5f o r i∈{1,2,..., 5}. We deﬁne the learning
+ratesτr=0.4 andτu=1/√
+10≈0.3.Table 6presents the optimization results of Experiment
+3. Owing to the much larger unknown parameter space, itis more difﬁcult to ﬁnd a schedulable solution than Experi-
+ment 1 and 2. The empirical scheme even failed to conclude
+with a schedulable solution. In the schedulability analysis,a counterexample generated by Uppaal demonstrates that
+Tsk
+1
+3misses its deadline at the instant t=50.2 ms. Although
+the original 5 ms allocation is sufﬁcient for the execution of
+Tsk1
+3, the additional overhead of context switches makes Tsk1
+3
+go over budget. Moreover, this empirical scheme takes up all
+the processor time, increasing the integration cost of addi-
+tional avionics workload.
+In contrast to the unsatisfactory results of the empiri-
+cal method, our EA4HS acquired a schedulable solution
+x=(25,4.9,25,4.7,25,3.4,25,4.5,50,4.5)with a lower
+processor occupancy 82 .6%. Its schedulability is not only
+tested statistically by Uppaal SMC but also validated rig-
+123
+
+--- Page 17 ---
+Model-based optimization of ARINC-653 partition scheduling 737
+Table 6 Optimization result of
+Experiment 3 (Times in
+milliseconds)Method Solution Schedulability Occupancy Optimal
+Empirical (25,4.8,25,4.8,25,4.8,25,4.8,25,4.8) No 100% No
+EA4HS (25,4.9,25,4.7,25,3.4,25,4.5,50,4.5) Yes 82 .6% Unknown
+Fig. 11 Evolution of best ﬁtness values, processing time and population composition in Experiment 3
+orously by Uppaal classic MC. Even though its global
+optimality cannot be conﬁrmed, engineers can still beneﬁt
+from such schedulable results that have acceptable processoroccupancy.
+Figure 11a illustrates the best ﬁtness value and process-
+ing time of each generation in the EA4HS optimization. Theﬁtness value offers the quality evaluation of any parametercombination regardless of its schedulability. According to
+the deﬁnition of ﬁtness function in Sect. 5.2, the coordinate
+plane can be divided into three areas that correspond to dif-ferent ﬁtness intervals: (1) [0,500)where the generations
+contain no schedulable solution, for all the individuals are
+fast falsiﬁed by SMC. (2) [500,600)where all ﬁve partitions
+of the best individual are proved statistically schedulable by
+SMC but its schedulability is ﬁnally excluded by MC. (3)
+[600,700)where the schedulability of the best individual is
+strictly conﬁrmed by MC.
+As shown in Fig. 11a, there was no schedulable indi-
+vidual in the initial population. During the generations of
+[1,105), the best ﬁtness value and processing time increased
+gradually as more partitions of individuals were proved sta-
+tistically schedulable by SMC. At the 105th generation, we
+found the ﬁrst statistically schedulable individual with theﬁtness value 501 and started the MC compositional analy-
+ses. Although its schedulability was excluded by MC, there
+were a growing number of higher-ﬁtness individuals thatwent through the SMC tests at the following generations.Since most of the MC compositional analyses were much
+more time-consuming than the SMC tests, the average pro-cessing time for each generation rose from around 10 min to
+more than 40 min after 105 generations. Finally, we acquired
+the ﬁrst schedulable individual at the 161st generation andfound the best solution with the lowest processor occupancy
+82.6% at the 179th generation within the cumulative time of
+62 hours.
+Figure 11b shows the composition of populations during
+the evolution. A population consists of the following four
+types of individuals: (1) Invalid individuals that cannot gener-
+ate ARINC-653 schedules. (2) SMC falsiﬁed individuals thatturned out to be non-schedulable in the SMC tests. (3) MC fal-
+siﬁed individuals that were proved statistically schedulable
+by SMC but eliminated in the MC compositional analyses.(4) schedulable individuals.
+The evolution of the population composition demonstrates
+improvements in the efﬁciency of our EA4HS optimization.First, the EA4HS avoids the populations drowning in invalidindividuals via repeated reproduction (lines 8–13 of Alg. 2).
+As shown in Fig. 11b, invalid individuals accounted for a
+quarter of the initial population that was generated randomly,but the EA4HS kept their proportion falling sharply until they
+vanished after the 17th generation. Second, the application of
+SMC fast falsiﬁcation speeds up the optimization. For eachpopulation in Fig. 11b, most of the individuals underwent the
+SMC tests rather than the costly MC compositional analyses.
+Third, the EA4HS adaptively keeps a steady growth in thenumber of higher-ﬁtness individuals but does not concentraterapidly on the localities of dominant solutions, thus reducing
+the risk of premature convergence. In Fig. 11b, the propor-
+123
+
+--- Page 18 ---
+738 P. Han et al.
+tion of schedulable individuals increased gradually until they
+ﬁlled the elitist list. At the following generations, the newly-produced individuals did not converge on a few dominant
+solutions but maintained a degree of population diversity.
+Finally, there was a steady proportion of schedulable indi-viduals in the populations at around the 200th generation.
+7 Related work
+A few approaches to optimizing the partition schedulingof avionics systems have been presented in the literature,applying analytical or formal methods from either a global
+or compositional viewpoint on the hierarchical scheduling
+architecture.
+Compositional analytical methods introducing the abstrac-
+tion and composition of constituent partitions optimize
+each partition locally for the whole system. The authorsof [15,28,29] adopted different resource models to charac-
+terize the time demand and supply of partitions, presented
+the schedulability conditions under EDF (Earliest DeadlineFirst) and RM (Rate Monotonic) policy, and gave utiliza-tion bounds of these resource models. In [ 16], they extended
+this compositional framework into ARINC-653 avionics sys-
+tems, providing a task model to deal with the behaviorslike communication latencies and blocking/preemption over-
+heads within partitions. In [ 23], the authors proposed a
+similar analytical method for applications consisting of peri-odic or sporadic tasks scheduled by FP policy to ﬁnd the
+best scheduling parameter pairs of partitions. To improve
+the runtime performance, Dewan and Fisher [ 14] proposed
+a polynomial-time approximation algorithm for minimizingthe interface bandwidth of sporadic task systems.
+However, the combination of local optimality of each
+partition does not necessarily lead to the globally optimalsolution, because the parameters chosen for one partition
+may affect the choice for other partitions [ 13]. From a global
+viewpoint, Davis and Burns [ 13] formulated the optimiza-
+tion problem as a holistic selection of partition parameters,
+providing a set of search algorithms to ﬁnd the best param-
+eter combination. Nevertheless, the optimal solution canonly be determined by an exhaustive search in the case ofsmall systems. Y oon et al. [ 33] showed the non-convexity of
+multiple partition optimization and solved this nonlinear non-
+convex problem with Geometric Programming (GP). Kim etal. [ 21] formulated a linear programming problem for the
+utilization bound of a schedulable periodic task set sched-
+uled by RM policy in a given ARINC-653 partition. Blikstadet al. [ 7] simpliﬁed the two-level hierarchical scheduling
+into the pre-runtime scheduling of non-overlapping periodic
+tasks, adopting a Mixed Integer Programming (MIP) formu-lation to generate the optimal schedule.Unfortunately, both of the analytical methods introduce a
+certain degree of pessimism due to the oversimpliﬁcation oftheir optimization policies or system models:
+The pessimism of the compositional methods mainly orig-
+inates from the oversimpliﬁcation of optimization policies.The compositional methods employ the “Divide and Con-quer” strategy, ﬁnding the optimal solution for each partition
+independently and assembling all the local results as a com-
+plete solution of the system. For each partition, such solversalways search for its optimal solution on the worst-case
+assumption of the rest of the partitions. This policy reduces
+the complexity of optimization solving but ignores the possi-ble coordination between partitions. Hence the ﬁnal solution
+of an ARINC-653 partitioned system is only the combination
+of local optima and not globally optimal.
+The pessimism of the global optimization methods is intro-
+duced by the oversimpliﬁcation of system models. Since
+the nature of ARINC-653 partition scheduling is a com-
+plex nonlinear non-convex optimization problem [ 33], these
+global methods simplify the system models by linearizing
+the analytical equations of the schedulability constraints and
+formulate it as a classical optimization problem like MIP .This simpliﬁcation leads to a conservative solution of par-
+tition scheduling. The degree of pessimism depends on the
+approximation precision of the simpliﬁed system model.
+By contrast, model-based methods provide rigorous for-
+mal models to describe more concrete behaviors of avionics
+systems in a readable and understandable way.
+Beji et al. [ 4] expressed the constraints of distributed IMA
+architecture as SMT (Satisﬁability Modulo Theory) logic for-
+mulas and used the SMT solver YICES to ﬁnd automatically
+feasible scheduling parameters that minimize the integrationcost. However, modeling a detailed system requires a large
+number of lengthy logic formulas. Their SMT model only
+covering a ﬂat rather than hierarchical structured partitionscheduling system did not give any speciﬁcation of the tasksin partitions.
+Sun et al. [ 32] proposed a component-based schedula-
+bility analysis of hierarchical scheduling systems encodedinto linear hybrid automata, thus enabling the optimization
+of partition parameters. All the integer values of partition
+parameters were exhaustively tested for schedulability tominimize the processor utilization. Obviously, this exhaus-
+tive search is not feasible for a large high-dimensional
+parameter space.
+The authors of [ 8,22] applied Uppaal to the compositional
+optimization of partition parameters. Given a speciﬁc parti-
+tion, they used a lightweight SMC method for a fast design
+exploration of objective parameters, assuring the schedula-bility of the corresponding TA models with a high conﬁdence.
+Once a promising parameter tuple had been found, it could
+be proved schedulable using the costly MC method. Thisapproach mitigating the state-space explosion coped with
+123
+
+--- Page 19 ---
+Model-based optimization of ARINC-653 partition scheduling 739
+each partition up to 6 tasks. However, as remarked above,
+this compositional optimization does not necessarily lead tothe globally optimal solution. Moreover, they also ignored
+concrete task behaviors in the TA models.
+In summary, the analytical methods build on a rigorous
+mathematical deduction under the worst-case assumptionsof a simpliﬁed system, thereby fast solving the optimiza-
+tion problem at a low cost. By contrast, the model-based
+methods are more expressive to describe a concrete avionicssystem but their optimizers face the challenge of the com-
+plexity problem. In this paper, our model-based approach
+adopts a global evolutionary search to explore the objectivesolution space effectively and uses the integrated method
+of simulation-based tests and compositional veriﬁcation to
+make the costly schedulability analysis feasible.
+8 Conclusion
+The model-based method presented in this paper addresses
+the optimization problem of ARINC-653 partition schedul-
+ing in a complex IMA system. We conclude that ourmodel-based approach is applicable to this optimizationproblem, where an IMA system is modeled as a network of
+timed automata in Uppaal . Compared with widely-used ana-
+lytic optimization, the timed automata model of our methodis more expressive to describe complex features of IMA
+systems. We formulate the problem as a global search for
+the optimal partition scheduling parameters that achieve theminimum processor occupancy and meet the schedulabil-
+ity constraints. A parameter sweep optimizer explores the
+solution space via evolutionary algorithm while guarantee-ing the schedulability by model checking. The evolutionaryalgorithm EA4HS is promising for reaching the optimal
+parameters quickly as well as avoids exhaustive exploration
+of the solution space. The combination of global SMC test-ing and compositional model-checking veriﬁcation alleviates
+the state space explosion of classical model checking. The
+experiments demonstrate that our optimizer is able to iden-tify the global optimum solutions for simple task sets and
+ﬁnd acceptable ones effectively for complex systems.
+The design of the model-based parameter sweep also
+introduces limitations into this optimization method. First,the evolutionary search may not reach a global optimal solu-
+tion within a ﬁnite number of generations, especially when
+handling a complex IMA system with a large number of par-titions. However, our method is still capable of producing
+better high-quality candidates than purely empirical schedul-
+ing schemes. Engineers can beneﬁt from the optimizationresults of our method in integrating a set of complex appli-
+cations. Second, the model-based method involves frequent
+time-consuming schedulability analyses, leading to a longprocessing time from a few hours to days. But we believethat such a processing time is negligible in the development
+life cycle of an IMA system. Moreover, we can speed up theoptimization process by running on more powerful clusters.
+As future work, we plan to add more features such as multi-
+core processor support and more local scheduling policiesto the system, further generalizing the proposed method tomore complex ARINC-653 scheduling systems.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+1. AEEC: Avionics application software standard interface: Part 1—
+required services. ARINC speciﬁcation 653P1-4, AeronauticalRadio Inc. (2015)
+2. Bäck, T., Schwefel, H.P .: An overview of evolutionary algorithms
+for parameter optimization. Evol. Comput. 1(1), 1–23 (1993)
+3. Behrmann, G., David, A., Larsen, K.G.: A tutorial on Uppaal. In:
+Formal methods for the design of real-time systems, pp. 200–236.Springer, New Y ork (2004)
+4. Beji, S., Hamadou, S., Gherbi, A., Mullins, J.: Smt-based cost
+optimization approach for the integration of avionic functions inIMA and TTEthernet architectures. In: Proceedings of the 2014IEEE/ACM 18th International Symposium on Distributed Simu-lation and Real Time Applications, pp. 165–174. IEEE ComputerSociety (2014)
+5. Beyer, H.G.: An alternative explanation for the manner in which
+genetic algorithms operate. Biosystems 41(1), 1–15 (1997)
+6. Beyer, H.G., Schwefel, H.P .: Evolution strategies—a comprehen-
+sive introduction. Nat. Comput. 1(1), 3–52 (2002)
+7. Blikstad, M., Karlsson, E., Lööw, T., Rönnberg, E.: An optimisation
+approach for pre-runtime scheduling of tasks and communication
+in an integrated modular avionic system. Optim. Eng. 19(4), 977–
+1004 (2018)
+8. Boudjadar, A., David, A., Kim, J.H., Larsen, K.G., Mikuˇ cionis, M.,
+Nyman, U., Skou, A.: Statistical and exact schedulability analysisof hierarchical scheduling systems. Sci. Comput. Program. 127,
+103–130 (2016)
+9. Boudjadar, J., David, A., Kim, J.H., Larsen, K.G., Nyman, U.,
+Skou, A.: Schedulability and energy efﬁciency for multi-core hier-archical scheduling systems. In: Embedded Real Time Systems andSoftware pp. 1–4 (2014)
+10. Boudjadar, J., Larsen, K.G., Kim, J.H., Nyman, U.: Compositional
+schedulability analysis of an avionics system using UPPAAL. In:AASE 2014
+11. Carnevali, L., Pinzuti, A., Vicario, E.: Compositional veriﬁcation
+for hierarchical scheduling of real-time systems. IEEE Trans. Soft-ware Eng. 39(5), 638–657 (2013)
+123
+
+--- Page 20 ---
+740 P. Han et al.
+12. David, A., Larsen, K.G., Legay, A., Mikuˇ cionis, M., Poulsen, D.B.:
+Uppaal SMC tutorial. Int. J. Softw. Tools Technol. Transfer 17(4),
+397–415 (2015)
+13. Davis, R., Burns, A.: An investigation into server parameter selec-
+tion for hierarchical ﬁxed priority pre-emptive systems. In: 16thInternational Conference on Real-Time and Network Systems(RTNS 2008) (2008)
+14. Dewan, F., Fisher, N.: Approximate bandwidth allocation for ﬁxed-
+priority-scheduled periodic resources. In: 2010 16th IEEE Real-Time and Embedded Technology and Applications Symposium,pp. 247–256. IEEE (2010)
+15. Easwaran, A., Anand, M., Lee, I.: Compositional analysis frame-
+work using EDP resource models. In: 28th IEEE InternationalReal-Time Systems Symposium (RTSS 2007), pp. 129–138. IEEE(2007)
+16. Easwaran, A., Lee, I., Sokolsky, O., V estal, S.: A compositional
+scheduling framework for digital avionics systems. In: ERCSA2009
+17. Freiberg, P .S., Krag, J.M., Villumsen, B.: Distributed parameter
+sweep for Uppaal models. Ph.D. thesis, Aalborg University (2011)
+18. Han, P ., Zhai, Z., Nielsen, B., Nyman, U.: A modeling framework
+for schedulability analysis of distributed avionics systems. In: 3rd
+Workshop on Models for Formal Analysis of Real Systems and 6th
+International Workshop on V eriﬁcation and Program Transforma-tion, MARSVPT 2018, pp. 150–168. EPTCS (2018)
+19. Han, P ., Zhai, Z., Nielsen, B., Nyman, U.M.: A compositional
+approach for schedulability analysis of distributed avionics sys-tems. In: International Workshop on Methods and Tools forRigorous System Design, pp. 39–51 (2018)
+20. Kelly, O.R., Aydin, H., Zhao, B.: On partitioned scheduling of
+ﬁxed-priority mixed-criticality task sets. In: 2011 IEEE 10th Inter-national Conference on Trust, Security and Privacy in Computingand Communications (TrustCom), pp. 1051–1059. IEEE (2011)
+21. Kim, J.E., Abdelzaher, T., Sha, L.: Schedulability bound for inte-
+grated modular avionics partitions. In: Proceedings of the 2015Design, Automation and Test in Europe Conference and Exhibi-tion, pp. 37–42. EDA Consortium (2015)
+22. Kim, J.H., Legay, A., Traonouez, L.M., Boudjadar, A., Nyman, U.,
+Larsen, K.G., Lee, I., Choi, J.Y .: Optimizing the resource require-ments of hierarchical scheduling systems. ACM Sigbed Rev. 13(3),
+41–48 (2016)23. Lipari, G., Bini, E.: A methodology for designing hierarchical
+scheduling systems. J. Embed. Comput. 1(2), 257–269 (2005)
+24. Mendoza, L.E., Capel, M.I., Pérez, M., Benghazi, K.: Com-
+positional model-checking veriﬁcation of critical systems. In:International Conference on Enterprise Information Systems, pp.213–225. Springer, Berlin (2008)
+25. Mühlenbein, H., Schlierkamp-V oosen, D.: Predictive models for
+the breeder genetic algorithm I. Continuous parameter optimiza-tion. Evolut. Comput. 1(1), 25–49 (1993)
+26. Mühlenbein, H., V oigt, H.M.: Gene pool recombination in genetic
+algorithms. In: Meta-Heuristics, pp. 53–62. Springer, Berlin (1996)
+27. Sen, K., Viswanathan, M., Agha, G.: Statistical model checking of
+black-box probabilistic systems. In: CA V , vol. 3114, pp. 202–215.Springer (2004)
+28. Shin, I., Lee, I.: Compositional real-time scheduling framework.
+In: 25th IEEE International on Real-Time Systems Symposium,2004. Proceedings. pp. 57–67. IEEE (2004)
+29. Shin, I., Lee, I.: Compositional real-time scheduling framework
+with periodic model. ACM Transactions on Embedded ComputingSystems (TECS) 7(3), 30 (2008)
+30. Shukla, A., Pandey, H.M., Mehrotra, D.: Comparative review of
+selection techniques in genetic algorithm. In: 2015 International
+Conference on Futuristic Trends on Computational Analysis and
+Knowledge Management (ABLAZE), pp. 515–519. IEEE (2015)
+31. Sumathi, S., Hamsapriya, T., Surekha, P .: Evolutionary Intelli-
+gence: An Introduction to Theory and Applications with Matlab.Springer, New Y ork (2008)
+32. Sun, Y ., Lipari, G., Soulat, R., Fribourg, L., Markey, N.:
+Component-based analysis of hierarchical scheduling using linearhybrid automata. In: ERCSA 2014
+33. Y oon, M.K., Kim, J.E., Bradford, R., Sha, L.: Holistic design
+parameter optimization of multiple periodic resources in hierar-chical scheduling. In: Proceedings of the Conference on Design,Automation and Test in Europe, pp. 1313–1318. EDA Consortium(2013)
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123
