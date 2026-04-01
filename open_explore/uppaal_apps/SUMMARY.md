@@ -22,45 +22,45 @@
 
 ### 当前推荐关键词簇
 
-- `UPPAAL SMC + FCS-MPC/finite-set MPC + VSC/3L-NPC/matrix converter + THD/RMSD/robustness`
-- `UPPAAL Stratego + stormwater detention pond + safe optimal control`
-- `Uppaal Stratego + domestic heat pump + toolchain/online control`
-- `Uppaal Stratego + smart battery + SoC/SoT balancing`
+- `UPPAAL + schedulability analysis + hierarchical/parallel/multicore`
+- `UPPAAL CORA + protocol + energy efficient + OLSR/EE-OLSR`
+- `UPPAAL Stratego + stormwater/floorheating/traffic lights + MPC`
+- `UPPAAL + water level/canal/OT/SCADA + case study`
 
 ### 已观察到的高命中特征
 
-- `UPPAAL SMC` 配具体电力电子对象名与工程指标时命中率很高，如 `VSC`、`3L-NPC`、matrix converter 与 `THD/RMSD/voltage sag`
-- `Uppaal Stratego` 配具体能源/基础设施控制对象名时，能稳定命中真实控制综合案例，如 stormwater、heat pump、smart battery
-- `AAU VBN` 作者页、`/ws/portalfiles/portal/` 直链与 `Zenodo` artefact 是本轮最稳定的论文和工件来源
-- 同一作者群往往能延展出会议版、期刊版和教程版连续条目，但仍需逐篇核对是否属于真实应用案例
+- `工具变体 + 具体系统对象名 + 性质词` 比泛搜 `application` 命中更稳定
+- `AAU VBN`、`pure.tue.nl`、`ris.utwente.nl`、`UMD DRUM`、`J-STAGE` 与校刊下载页是本轮最稳定来源
+- thesis / local-journal / institutional PDF 只要系统对象、性质和结果写得清楚，仍可正式入账
+- 对框架主导或方法主导论文，只有在正文存在明确案例且可写出完整 `desc.md` 时才纳入
 
 ### 已观察到的低命中特征
 
-- 只搜 `UPPAAL + power electronics/energy application` 仍会混入大量方法综述、教程或非应用论文
-- `Uppaal Stratego + battery/navigation/intersection` 这类泛搜如果没有具体系统对象名，常会落到摘要页、benchmark 或闭源项目介绍
-- `AAU` 的部分旧 `/files/` 直链会直接返回 `403`，若不切到 `ws/portalfiles/portal` 路径很容易误判“论文不可得”
-- 只有 DBLP/OpenAlex/IEEE 摘要页、拿不到稳定 PDF 的候选，即使方向正确也不能占正式名额
+- 泛搜 `UPPAAL + application`
+- 只有 DOI/DBLP/OpenAlex 摘要页、拿不到稳定 PDF 的候选
+- `research.utwente.nl`、部分 `MDPI` / Cloudflare 页面与历史镜像经常 `403`
+- 只提工具而不清楚系统对象、性质或结果的论文
 
 ### 检索倾向调整
 
-- 优先采用“工具变体 + 具体对象名 + 工程指标/控制任务 + 行业词”的四段式检索，而不是泛搜 `application`
-- 对 `SMC` 重点追 power-electronics 参数统计认证，对 `Stratego` 重点追基础设施/能源控制与可公开 artefact
-- 命中后先走 `AAU VBN -> portal PDF -> DOI/IEEE -> Zenodo` 的取文链路，以减少 `403` 和镜像死链
-- 正式入账仍要求 `paper.pdf + paper_content.txt + bibtex.bib + desc.md` 四件套同轮完成；若仓库存在中断目录，则必须先接续再扩新检索
+- 继续优先“工具变体 + 具体对象名 + 性质/性能词 + 场景词”
+- 命中后优先找机构镜像、accepted manuscript、thesis 库，再回 DOI 页
+- 框架型论文必须先确认应用边界，再决定是否入库
+- 正式入账仍保持四件套同轮完成，且继续优先接续中断目录
 
 ## 当前收录统计
 
 | 统计项 | 数值 | 年份信息 |
 |---|---:|---|
-| 已收录顶层条目 | 160 | 覆盖 `1996-2026` |
-| 本轮新增条目 | 10 | 本轮补入 `2017-2024` 的 `FCS-MPC` 电力电子、stormwater、住宅热泵与 smart battery 应用案例 |
-| 其中已补 `desc.md` | 160 | 全部正式条目均已完成整理 |
-| 当前 `🟢 直接可用` | 96 | 新增 `3L-NPC`、matrix converter、stormwater、heat-pump toolchain 与 smart battery 等可直接服务比较与复用的案例 |
-| 当前 `🟡 可整理` | 64 | 主要仍是教程型、电力电子 benchmarking 与工件不明的案例，需要按论文细节继续重建 |
+| 已收录顶层条目 | 170 | 覆盖 `1996-2026` |
+| 本轮新增条目 | 10 | 本轮补入 `2004-2026` 的 `OT-CPS` 安全、Panama Canal 并发控制、层次化/并行 schedulability、`EE-OLSR`、`Sigfox` 比较、`STOMPC` 与连续生物系统案例 |
+| 其中已补 `desc.md` | 170 | 全部正式条目均已完成整理 |
+| 当前 `🟢 直接可用` | 97 | 新增 Panama Canal 船闸控制强应用样本，并继续保持控制/交通代表案例为主 |
+| 当前 `🟡 可整理` | 73 | 新增若干框架主导或工具比较型条目，如 `STOMPC`、`OT-CPS` 安全、并行调度和连续系统离散化 |
 | 当前 `⏳ 尚未提取` | 0 | 无 |
-| 公开性分布 | `🟢 36 / 🟠 114 / 🔒 10` | 本轮新增 stormwater、heat-pump toolchain 与 smart battery `3` 个高公开度样本，其余仍以“论文可得但工件不明”为主 |
+| 公开性分布 | `🟢 36 / 🟠 124 / 🔒 10` | 本轮新增 `10` 篇均做到论文可得，但工件层面仍以“可重建、难直接拿模型”为主 |
 | 最早年份 | 1996 | 现已同时覆盖两篇 `1996` 早期协议案例 |
-| 最晚年份 | 2026 | 已扩展到自主 `SoS`、医疗数字孪生与电网边缘传感网络案例 |
+| 最晚年份 | 2026 | 已扩展到自主 `SoS`、医疗数字孪生、电网边缘自组网与随机混合电池包案例 |
 | 当前失败/阻塞记录 | 11 | 记录见“失败与阻塞记录” |
 
 ## 按年份分布统计
@@ -74,8 +74,8 @@
 | 2000 | 2 | 2 | 覆盖 ABB `AF100` field bus 与 `SIDMAR` batch plant 综合案例 |
 | 2002 | 1 | 1 | 补入 experimental chemical batch plant 的 `PLC` control schedule 优化案例 |
 | 2003 | 2 | 2 | 新增分布式 lift 重设计案例，并保留 multimedia `QoS` 主线 |
-| 2004 | 1 | 1 | 新增多机器人运动规划案例，补上 `2004` 年机器人应用空档 |
-| 2005 | 3 | 3 | 新增工业漆料生产调度案例，并保留 workflow 验证与 `CAN` 时钟同步 |
+| 2004 | 2 | 2 | 新增 `UML` 设计验证与机器人原型案例，补齐 `2004` 年软件设计应用样本 |
+| 2005 | 4 | 4 | 新增 Panama Canal 船闸控制硕士论文，并保留工业漆料生产、workflow 与 `CAN` 时钟同步 |
 | 2006 | 5 | 5 | 补入 `RTnet` 分布式实时网络协议与 wafer scanner 工业控制器设计案例，并保留 Zeroconf、`CAN` 主从同步与 BMP 协议 |
 | 2007 | 2 | 2 | 新增 `SHIM6` 协议草案验证，并保留 pig stable 气候控制 `Tiga` 合成案例 |
 | 2008 | 3 | 3 | 新增 `FlexRay` membership 与 `EUV` 工业案例，并保留 COMDES-II turntable 控制系统验证 |
@@ -86,17 +86,17 @@
 | 2013 | 5 | 5 | 扩展到 `gMAC` 时钟同步与 `VANET` 拥塞控制，并保留嵌入式传感器、`ICCP` checker 与健康监测驾驶辅助 |
 | 2014 | 6 | 6 | 新增 `CRM/BPMN` 业务流程验证，并保留 `3` 篇航电/层次化调度、laser tracheotomy 在线 `SMC` 与循线机器人几何验证 |
 | 2015 | 1 | 1 | 新增多处理器实时系统可调度性模板案例 |
-| 2016 | 5 | 5 | 补入 cardiac arrest 临床指导与 Volvo `Simulink -> UPPAAL SMC` 工业汽车案例，并保留铁路维护 `SMC`、Rawalpindi 联锁与数据流能耗控制主线 |
-| 2017 | 10 | 10 | 新增 power-electronics `FCS-MPC` 起点案例，并继续保留铁路 `PLC` recipe book、防空导弹 `SoS`、智能交通灯、UAV 架构、`ROS`、`CAN` database 与 TCP/SCTP 握手主线 |
+| 2016 | 7 | 7 | 补入层次化 schedulability 与 `EE-OLSR` 协议能耗验证，并保留临床指导、Volvo 工业汽车与铁路维护案例 |
+| 2017 | 11 | 11 | 新增连续生物系统离散化案例，并继续保留 `FCS-MPC`、铁路 `PLC`、防空导弹 `SoS`、交通灯、`ROS` 与 TCP/SCTP 主线 |
 | 2018 | 8 | 8 | 新增 `3L-NPC` `FCS-MPC` 案例，并保留 `MQTT/MQTT-SN` 住宅 `UEMS`、`DIMA`、`802.11i`、autonomous wheel loader 与 `NetBill` 主线 |
 | 2019 | 11 | 11 | 新增 `2` 篇 `FCS-MPC` 期刊/教程条目，并继续保留 pacemaker、railway timetable、cooperative automotive timing、`EAST-ADL` 与 `AAL` 等案例 |
 | 2020 | 10 | 10 | 新增 distributed railway interlocking 案例，并继续保留机器人可调度性、投票协议、疫情流体模型、moving block 铁路、两篇医疗 `HRI`、`RTPS`、`WBAN` 与 WSN 攻击分析 |
 | 2021 | 15 | 15 | 新增 stormwater detention ponds 安全控制案例，并继续保留 edge persistence、tramway `APS`、铁路接口、rerouting、能量、`5G`、`CKB` 与交通灯主线 |
-| 2022 | 13 | 13 | 新增 matrix converter `FS-MPC` 案例，并保留端到端热泵控制、热泵灵活性、工厂 `AMR`、无人机实时验证、`RaSTA`、`TcCBTC`、转辙机控制、`ERTMS`、quarry 与针导航主线 |
+| 2022 | 14 | 14 | 新增 `STOMPC` 在线 `MPC` 框架案例，并保留 matrix converter、热泵控制、工厂 `AMR`、`RaSTA`、`TcCBTC`、转辙机控制、`ERTMS`、quarry 与针导航主线 |
 | 2023 | 10 | 10 | 扩展到住宅 heat-pump toolchain、smart battery 与并网 matrix converter，并继续保留 telerehabilitation、`ETCS`、`GNSS`、机械呼吸机、`Sigfox`、`MTIP` 与 smart home `IoT` 案例 |
-| 2024 | 5 | 5 | 新增 power-electronics controller robustness comparison，并保留自主车辆能效运动规划、无人机关键区域访问控制、雨洪调蓄池与电子考试案例 |
-| 2025 | 5 | 5 | 新增 `CAV` 攻击分析与工业驱动故障诊断优化，并保留 `ROS/ROS 2` 与 research reactor 备件优化案例 |
-| 2026 | 4 | 4 | 新增自主施工 `SoS`、医疗数字孪生与电网边缘自组网案例，并保留 `CARE` 运行时验证主线 |
+| 2024 | 6 | 6 | 新增 `Sigfox` 单节点三工具比较，并保留自主车辆能效运动规划、无人机关键区域访问控制、雨洪调蓄池与电子考试案例 |
+| 2025 | 7 | 7 | 新增 `OT-CPS` 安全与 limited-preemptive parallel schedulability，并保留 `ROS/ROS 2`、工业驱动故障诊断与 research reactor 备件优化案例 |
+| 2026 | 5 | 5 | 新增 `Running.Christel` 电池包寿命优化，并保留自主施工 `SoS`、医疗数字孪生与电网边缘自组网案例 |
 
 ## 双轴分类口径
 
@@ -104,26 +104,26 @@
 
 | Emoji | 主轴分类 | 含义 | 当前正式条目数 |
 |---|---|---|---:|
-| 🛰️ | 协议与通信机制 | 论文真正验证的是协议状态机、通信规则、消息协调或转发/同步机制 | 39 |
-| 🎛️ | 控制器与设备控制 | 论文真正验证的是控制器、设备行为、执行逻辑或闭环控制结构 | 57 |
-| ⏱️ | 调度、资源与性能分析 | 论文真正验证的是可调度性、资源竞争、时延、`QoS`、能量或其他性能边界 | 40 |
-| 🧩 | 软件服务与业务流程 | 论文真正验证的是软件服务编排、角色协作、业务流程规则或工作流状态机 | 14 |
-| 📊 | 场景行为与监测分析 | 论文真正验证的是日志模式、群体场景、策略评估或监测判定模型 | 10 |
+| 🛰️ | 协议与通信机制 | 论文真正验证的是协议状态机、通信规则、消息协调或转发/同步机制 | 40 |
+| 🎛️ | 控制器与设备控制 | 论文真正验证的是控制器、设备行为、执行逻辑或闭环控制结构 | 59 |
+| ⏱️ | 调度、资源与性能分析 | 论文真正验证的是可调度性、资源竞争、时延、`QoS`、能量或其他性能边界 | 44 |
+| 🧩 | 软件服务与业务流程 | 论文真正验证的是软件服务编排、角色协作、业务流程规则或工作流状态机 | 15 |
+| 📊 | 场景行为与监测分析 | 论文真正验证的是日志模式、群体场景、策略评估或监测判定模型 | 12 |
 
 ### 次轴场景
 
 | Emoji | 次轴场景 | 含义 | 当前正式条目数 |
 |---|---|---|---:|
-| 🌐 | 网络与分布式服务 | 网络协议、Web 服务、无线网络、`5G` 编排等 | 28 |
+| 🌐 | 网络与分布式服务 | 网络协议、Web 服务、无线网络、`5G` 编排等 | 29 |
 | 🎵 | 多媒体与消费电子 | 音视频协议、多媒体同步、消费电子组件等 | 6 |
-| 🏭 | 工业与基础设施 | 工业自动化、现场总线、`SCADA`、工业网络等 | 29 |
-| 🚦 | 交通、车载与铁路 | 交通灯、铁路、车辆控制、驾驶辅助等 | 42 |
-| 🏥 | 医疗与健康 | 医疗设备、治疗系统、植入式设备、临床导航等 | 14 |
+| 🏭 | 工业与基础设施 | 工业自动化、现场总线、`SCADA`、工业网络等 | 34 |
+| 🚦 | 交通、车载与铁路 | 交通灯、铁路、车辆控制、驾驶辅助等 | 43 |
+| 🏥 | 医疗与健康 | 医疗设备、治疗系统、植入式设备、临床导航等 | 15 |
 | 🚀 | 航空航天与国防 | 卫星、航电、导弹系统、空间任务软件与相关调度等 | 8 |
 | 🦠 | 公共健康与疫情策略 | 传染病传播、接触追踪与公共卫生决策支持 | 1 |
-| 🔋 | 能源与采能计算 | 采能系统、电池 sizing、能量迁移计算等 | 15 |
+| 🔋 | 能源与采能计算 | 采能系统、电池 sizing、能量迁移计算等 | 16 |
 | 🎓 | 教育与考试流程 | 电子考试、教学流程与教育规则系统等 | 1 |
-| 🤖 | 机器人与自主系统 | LEGO 机电平台、RoboCup、多智能体机器人与自主决策等 | 16 |
+| 🤖 | 机器人与自主系统 | LEGO 机电平台、RoboCup、多智能体机器人与自主决策等 | 17 |
 
 说明：
 
@@ -194,9 +194,11 @@
 | ⏱️ | 🏭 | 2002 | `brinksma02` | Verification and optimization of a PLC control schedule | batch plant, `PLC`, control schedule, optimization | 实验化工 batch plant 的 `PLC` 控制与批处理调度 | plant + controller 联合建模，同时搜索持续产出与时间最优 schedule | `P1..P12` `12` 个顺序过程；分析 `1-7` 个初始 batch，`10` 个 batch 周期 | `UPPAAL` | 正确性与最优生产周期验证 | 活性、安全、代价最优性 | 🟢 | 在实验 batch plant 上同时验证 `PLC` 控制正确性和最优 schedule，高负载最优 period 达 `346`。 | [paper](./brinksma02-plc-control-schedule/) |
 | ⏱️ | 🎵 | 2003 | `bordbar03` | Verification of Timeliness QoS Properties in Multimedia Systems | `QoS`, throughput, latency | distributed multimedia video player 示例 | ODP/QoS 契约、QTA/test automata | video player 示例；原文未给统一 benchmark 规模 | `UPPAAL` | Timeliness `QoS` 属性构造与验证 | throughput、jitter、latency | 🟡 | 通过 QTA 把多媒体 `QoS` 属性规约为 `UPPAAL` 可达性问题。 | [paper](./bordbar03-timeliness-qos-multimedia/) |
 | 🎛️ | 🏭 | 2003 | `pang03` | Analyzing the Redesign of a Distributed Lift System in UPPAAL | distributed lift system, `CAN`, startup, synchronous movement | 真实分布式举升系统中的多 lift / station 协同控制 | 启动阶段分配编号、正常阶段轮转广播状态、`sync` 消息触发全体同步运动 | `1` 个 `Bus` + 每个 lift 的 `Station/Interface` + `Timer`；lift 数量参数化 | `UPPAAL` | 死锁、按钮响应活性与同步运动安全验证 | 死锁安全、活性、同步安全 | 🟢 | 用 test automata 证明开发者重设计仍有漏洞，并给出满足五条需求的修复方案。 | [paper](./pang03-distributed-lift-system-redesign/) |
+| 🧩 | 🤖 | 2004 | `diethers04` | Vooduu: Verification of Object-Oriented Designs Using UPPAAL | `UML`, sequence diagrams, statecharts, robot prototype | 机器人原型控制软件的 `UML` 设计模型 | `Poseidon` 插件、时序化 sequence diagrams、observer automata 与自动 query 生成 | 可处理 `6` 个 processes 的中等规模确定性模型；高度非确定示例会爆炸 | `UPPAAL` | `UML` 设计一致性与时序约束验证 | 安全、消息一致性、时序约束 | 🟡 | 把 `UML statecharts/sequence diagrams` 自动翻译到 `UPPAAL`，并在机器人原型控制软件上验证消息与 timing 约束。 | [paper](./diethers04-vooduu-object-oriented-designs/) |
 | 🎛️ | 🤖 | 2004 | `quottrup04` | Multi-Robot Motion Planning: A Timed Automata Approach | multi-robot, motion planning, planar grid, `CTL` | 平面栅格中的多机器人协同运动规划系统 | 环境/障碍/机器人/控制器解耦，通过同步搜索高层可行轨迹 | `3` robots + `3` controllers + `4` obstacles；另有 `2` 机器人迷宫换位案例；性质 `5` 类 | `UPPAAL` | 碰撞避免与目标可达性规划验证 | 安全、活性、有界时间/步数 | 🟢 | 用 timed automata 搜索满足安全和可达性的多机器人高层运动计划，并给出 `10 tu/10 step` 上界。 | [paper](./quottrup04-multi-robot-motion-planning/) |
 | ⏱️ | 🏭 | 2005 | `behrmann05` | Production Scheduling by Reachability Analysis - A Case Study | lacquer production, job-shop scheduling, reachability, cost optimization | Axxom 提供的 lacquer production job-shop 风格生产调度问题 | 三类 recipe、并行资源、工序间最大等待、working-hours 与 cost 统一入模 | `29/73/219` 个订单；`5` 类资源用计数器建模，其余资源用小 automata | `UPPAAL` + `UPPAAL CORA` | 可行 schedule 与成本最优排程验证 | 可达性、deadline、安全、成本优化 | 🟢 | 用 reachability 和 `UPPAAL CORA` 为工业漆料生产案例合成可行且低成本的 schedule。 | [paper](./behrmann05-lacquer-production-scheduling/) |
 | 🧩 | 🌐 | 2005 | `gruhn05` | Using Timed Model Checking for Verifying Workflows | workflow, resource conflict, deadline, `Payment Requests` | 带时间与资源约束的业务工作流规约 | 活动/分支/join、资源占用、deadline 与结构正确性统一建模 | `Payment Requests` 工作流；重点涉及 `r10/r8` 资源与全局时钟 `clock1` | `UPPAAL` | 终止性、资源冲突与整体 deadline 验证 | 活性、安全、有界响应、资源约束 | 🟡 | 把工作流规约翻译为 timed automata，并用反例暴露 `r8` 资源冲突，同时验证流程可在 `30` 个时间单位内完成。 | [paper](./gruhn05-verifying-workflows/) |
+| 🎛️ | 🚦 | 2005 | `poorfarhani05` | Modeling, Validation and Verification of Concurrent Behavior in Canal System Using LTSA and UPPAAL | Panama Canal, locks, gates, valves, concurrency | 巴拿马运河式船闸-闸门-阀门-控制中心协同控制系统 | 多船并发、双向通行、水位联动与控制中心调度并存 | 运河约 `80 km`；两端各 `3` 级锁室；闸室约 `33.53 m × 304.8 m` | `UPPAAL` | 船闸控制 deadlock-free / safety / liveness 验证 | 死锁安全、安全、活性、场景一致性 | 🟢 | 从 scenario 规格出发，把运河通行控制逐步落到 `LTSA + UPPAAL`。 | [paper](./poorfarhani05-canal-system-ltsa-uppaal/) |
 | 🛰️ | 🚦 | 2005 | `rodrigueznavas05` | Using UPPAAL to Model and Verify a Clock Synchronization Protocol for the Controller Area Network | `CAN`, clock synchronization, drift, fault tolerance | 面向 `CAN` 网络的容错时钟同步协议 | 主从同步、优先级仲裁、在线时间戳、显式时钟漂移/校正 | 每个 master 含 `Master` + `Clkctrl`；另有 `Chanctrl`/`Roundctrl`；master 数量参数化 | `UPPAAL` | 同步轮次、漂移校正与故障主节点替换分析 | 时序约束、容错正确性、同步一致性 | 🟡 | 在 `UPPAAL` 中给出可变漂移时钟的建模方案，并据此开始验证 `CAN` 同步协议的关键机制。 | [paper](./rodrigueznavas05-can-clock-synchronization/) |
 | 🛰️ | 🌐 | 2006 | `gebremichael06` | Analysis of the Zeroconf Protocol Using UPPAAL | Zeroconf, RFC 3927, link-local address | RFC 3927 Zeroconf IPv4 链路本地地址配置协议 | 从 RFC 文本逐段建模，保留 probe/announce/defend 关键阶段 | 每个 host 由 `3` 个 timed automata 组成；`3` host 实例可完整探索，并对一般规模给出手工证明 | `UPPAAL` | 地址互斥、死锁与规范歧义验证 | 安全、死锁安全、规范一致性 | 🟢 | 从 RFC 出发建模 Zeroconf，并同时产出 mutual exclusion 证明、歧义清单和公开工件。 | [paper](./gebremichael06-zeroconf-link-local-addresses/) |
 | 🛰️ | 🌐 | 2006 | `hanssen06` | Verifying the Distributed Real-Time Network Protocol RTnet Using Uppaal | `RTnet`, token protocol, fault recovery, real-time network | `RTnet` 分布式实时网络协议的 token 传递、流调度与故障恢复机制 | 广播局域网、动态节点加入退出、实时流调度、控制报文可能丢失 | `4` 节点 stream set；利用率约 `82%/96%`；比较 unicast/broadcast token | `UPPAAL` | 稳定性、唯一发送者与恢复时长验证 | 安全、活性、有界恢复时间 | 🟢 | 对 `RTnet` 的 unicast/broadcast token 两种变体进行形式化分析，说明广播版在故障下更脆弱。 | [paper](./hanssen06-rtnet-protocol/) |
@@ -244,7 +246,9 @@
 | 🎛️ | 🤖 | 2014 | `nakatani14` | 2D Geometric Modeling and Verification of Line Tracing Robot Using UPPAAL Model Checker | line tracing robot, geometric modeling, direction constraints | 带光传感器的 line-tracing robot 及其轨道跟随控制 | `10x10` 离散轨道、位置/朝向状态机、禁区与方向约束 | 轨道数组 `10x10`；核心状态为 `pos_x/pos_y/angle` | `UPPAAL` | 轨道区域与前进方向正确性验证 | 安全、轨迹约束、反例可达性 | 🟡 | 用二维离散几何模型证明窄缺口 `C` 型轨道可行，而 `2` 格缺口会让机器人在 `(9,6)` 离轨。 | [paper](./nakatani14-line-tracing-robot/) |
 | ⏱️ | 🌐 | 2015 | `dai15` | Schedulability Analysis Model for Multiprocessor Real-Time Systems Using UPPAAL | multiprocessor real-time, schedulability, dependency, stopwatch | 带任务依赖和总线通信的多处理器实时任务系统 | 固定处理器划分、依赖矩阵、总线消息、不确定执行时间和抢占 | `4` 个处理器上的 `21` 任务 `GSM` 实例；扩展到 `103` 任务 `GSM+MP3` | `UPPAAL SMC` | deadline、不可调度概率与响应时间/利用率分析 | 安全、统计性质、性能分析 | 🟡 | 把多处理器可调度性模板化到 `UPPAAL`，既能证明 `21` 任务系统可调度，也能用 `SMC` 快速判定 `103` 任务系统不可调度。 | [paper](./dai15-multiprocessor-realtime-schedulability/) |
 | ⏱️ | 🔋 | 2016 | `ahmad16` | Synthesizing Energy-Optimal Controllers for Multiprocessor Dataflow Applications with `Uppaal Stratego` | dataflow, DVFS, DPM, 能耗优化 | `MPEG-4` 数据流应用的多处理器能量控制策略 | throughput 约束下联合调频、关停与任务映射 | `Exynos 4210` 风格平台；目标 `67 fps` / `15 ms`；比较 `1-5` 处理器配置 | `UPPAAL Stratego` | 吞吐约束下的 near-optimal 能耗控制综合 | 定量优化、性能约束、统计比较 | 🟡 | 用 `Stratego` 在满足吞吐的前提下优化能耗，并证明结果与 `CORA` 最优值最多约 `10%` 偏差。 | [paper](./ahmad16-energy-optimal-dataflow-controllers/) |
+| ⏱️ | 🏭 | 2016 | `ahn16` | Hierarchical System Schedulability Analysis Framework Using UPPAAL | hierarchical scheduling, shared resource, virtualization, priority inversion | 带虚拟调度层、共享资源和任务依赖的层次化实时系统 | 全系统统一建模、显式统计 preemption overhead、可加入用户自定义调度策略 | 示例覆盖二层和三层 `HS`；preemption overhead 为 `86.917/139.12 μs` | `UPPAAL` | schedulability、priority inversion 与 budget sufficiency 分析 | 安全、调度性质、资源竞争分析 | 🟡 | 用统一 `UPPAAL` 模型直接找出共享资源和 budget 导致的不可调度反例。 | [paper](./ahn16-hierarchical-schedulability-framework/) |
 | 🎛️ | 🚦 | 2016 | `filipovikj16` | Simulink to UPPAAL Statistical Model Checker: Analyzing Automotive Industrial Systems | `Simulink`, `UPPAAL SMC`, automotive, Brake-by-Wire | Volvo 车辆电子系统中的 `Brake-by-Wire (BBW)` 原型和 `ASL Engine Manager` | 工业 `Simulink` 大模型、保留块执行顺序、离散与连续块混合转换 | `BBW` 原模型 `320` 个 blocks 转为 `174` 个 automata；`ASL-EM` 含 `94` 个 non-virtual blocks | `UPPAAL SMC` | `Simulink` 工业模型的功能与时序需求分析 | 功能安全、有界响应、端到端时延、统计性质 | 🟡 | 通过模式化转换把 Volvo 的 `Simulink` 工业模型送入 `UPPAAL SMC`，完成 `BBW` 与 `ASL-EM` 的功能和时序验证。 | [paper](./filipovikj16-simulink-uppaal-smc-automotive/) |
+| 🛰️ | 🌐 | 2016 | `insani16` | Pemodelan dan Verifikasi Formal Protokol EE-OLSR dengan UPPAAL CORA | `EE-OLSR`, `MANET`, `MPR`, priced timed automata | `MANET` 场景中的 `EE-OLSR` 路由协议 | `MPR` 选择显式纳入能量因素，使用 `LPTA + WCTL` | `6` 组性质；时间界 `2000-7000 ms` | `UPPAAL CORA` | 协议功能与 energy-efficient 性质验证 | 安全、协议正确性、成本/能耗性质 | 🟡 | 验证 `EE-OLSR` 的邻居发现、拓扑发现、路由与能耗性质，并指出节能优势只在实际包传输阶段成立。 | [paper](./insani16-ee-olsr-uppaal-cora/) |
 | 🎛️ | 🚦 | 2016 | `khan16` | On the Real Time Modeling of Interlocking System of Passenger Lines of Rawalpindi Cantt Train Station | interlocking, route conflict, semaphore, point machine | Rawalpindi Cantt 客运股道软件联锁系统 | 真实站场联锁表驱动、冲突进路互斥、点机/信号机 watchdog | `5` passenger lines、`25` signals、`27` points、`18` routes | `UPPAAL` | 进路冲突、点位锁闭与错误处理验证 | 安全、超时正确性、取消进路安全 | 🟢 | 用模块化 timed automata 验证真实车站联锁中的碰撞避免、脱轨避免和取消进路逻辑。 | [paper](./khan16-rawalpindi-interlocking/) |
 | 🧩 | 🏥 | 2016 | `rahmaniheris16` | Model-Driven Design of Clinical Guidance Systems | clinical guidance, cardiac arrest, organ-centric, physician-in-the-loop | 面向 cardiac arrest 的临床指导与 physician interaction 系统 | organ-centric 病理表示、physician-in-the-loop、`Yakindu -> UPPAAL` 双层工作流 | arrhythmia、blood gas imbalance、renal insufficiency `3` 个器官/病理模型 + physician automata | `UPPAAL` | 临床规则、一致性与医生偏离/收敛验证 | 安全、可达性、一致性、人机交互正确性 | 🟡 | 将临床指导规则与 physician 模型联合建模，并用 `CTL` 检查 cardiac arrest 场景下的关键规则。 | [paper](./rahmaniheris16-clinical-guidance-systems/) |
 | 📊 | 🚦 | 2016 | `ruijters16` | Better Railway Engineering Through Statistical Model Checking | railway maintenance, fault maintenance tree, reliability, cost | 铁路绝缘接头和列车气动压缩机的维护/退化/故障场景模型 | 退化、检查、预防/纠正维护与失败成本统一入模 | `EI-joint` 分析覆盖约 `50,000` 个接头；另含 `VIRM` 压缩机案例 | `UPPAAL SMC` | 可靠性、故障频率与长期成本分析 | 统计性质、成本分析、策略比较 | 🟡 | 将 fault maintenance tree 翻译为 priced timed automata，发现铁路绝缘接头每年约 `4` 次巡检已接近成本最优。 | [paper](./ruijters16-railway-smc/) |
@@ -255,8 +259,9 @@
 | 🎛️ | 🚀 | 2017 | `jang17` | Formal Specification and Verification of System of Systems Using `UPPAAL`: A Case Study of a Defensive Missile Systems | defensive missile system, SoS, monitor, interoperability | 以 `MIM-104A Patriot` 为原型抽象的防空导弹系统 `DMS` | `RS/ECS/LS` 多组件协同、人工在环、全局 procedure monitor | `1` 个雷达、`1` 个控制站、`2` 个发射架、`1` 个监视器；`6` 条查询 | `UPPAAL` | SoS 互操作性、控制链与最小执行时间验证 | 安全、有界响应、过程一致性 | 🟡 | 用 monitor 统一约束防空导弹 SoS 的雷达-控制站-发射架流程，并求得 `DMS/ECS` 最小过程时间约 `291/270` clocks。 | [paper](./jang17-defensive-missile-systems/) |
 | 🎛️ | 🚦 | 2017 | `niang17` | Formal Verification for Validation of `PSEEL`'s `PLC` Program | railway `PLC`, recipe book, factory testing, dangerous states | SNCF `PSEEL` 电气安装中的 `PLC` 程序与 recipe book 验证流程 | 工业真实对象、`PLC` 扫描周期、`TON` 定时器、recipe book 场景自动执行 | 包含开关/断路器/`PLC` cycle/定时器与 recipe book 状态机；扫描周期约 `20 ms` | `UPPAAL` | 场景符合性、步骤超时与危险状态可达性验证 | 有界响应、安全、场景覆盖 | 🟢 | 把铁路 `PLC` recipe book 形式化为可执行状态机，能在几十毫秒内遍历测试并定位两处程序错误。 | [paper](./niang17-pseel-plc-validation/) |
 | ⏱️ | 🔋 | 2017 | `novak17compel` | Analytical Performance Verification of FCS-MPC Applied to Power Electronic Converters: A Model Checking Approach | `FCS-MPC`, `2-level VSC`, `THD`, switching frequency | `UPS` 场景下两电平 `VSC` 的 `FCS-MPC` 控制回路 | 随机负载瞬变、参数失配与 `THD/fsw` 折中并存 | `2-level VSC + LC`；`λsw=0/0.1/0.5`；`THD 1.12%-3.38%`、`fsw 18.3-10.2 kHz` | `UPPAAL SMC` | 误差阈值概率与 `THD/fsw` 折中验证 | 统计性质、有界误差、鲁棒性 | 🟡 | 用 `UPPAAL SMC` 把两电平 `VSC` 的 `FCS-MPC` 性能验证转成概率查询，并量化 `THD` 与开关频率折中。 | [paper](./novak17-fcs-mpc-power-electronic-converters/) |
-| 🛰️ | 🌐 | 2017 | `saini17` | Evaluating the Stream Control Transmission Protocol Using Uppaal | TCP, SCTP, SYN flooding | TCP 三次握手与 SCTP 四次握手关联建立机制 | 合法/非法客户端、服务器与 `TCB` 联合建模，显式比较 cookie 机制 | 两个协议都建模合法客户端、非法客户端、服务器和连接状态块；重点覆盖握手阶段 | `UPPAAL` | half-open connection 与资源占用安全验证 | 安全、攻击相关性质、资源占用 | 🟢 | 用对照建模证明 TCP 会留下 half-open connection，而 SCTP 的 cookie 机制能避免资源劫持。 | [paper](./saini17-sctp-uppaal/) |
 | 🎛️ | 🤖 | 2017 | `saddem17` | Decomposing the model-checking of mobile robotics actions on a grid | mobile robotics, grid, decomposition, reachability | 二维网格环境中的移动机器人动作规划与可达性验证 | 路径未知、搜索空间随网格尺寸膨胀，采用 sub-grid decomposition 降低内存 | `4x16` 与 `4x32` 网格；`4x32` 平均查询时间由 `206.1 s` 降到 `12.46 s` | `UPPAAL` | 路径存在性与 decomposition 等价性验证 | 可达性、路径存在性、复杂度控制 | 🟡 | 通过把大网格查询拆成子网格查询，显著降低移动机器人 reachability 验证的时间和内存。 | [paper](./saddem17-mobile-robotics-grid-actions/) |
+| 🛰️ | 🌐 | 2017 | `saini17` | Evaluating the Stream Control Transmission Protocol Using Uppaal | TCP, SCTP, SYN flooding | TCP 三次握手与 SCTP 四次握手关联建立机制 | 合法/非法客户端、服务器与 `TCB` 联合建模，显式比较 cookie 机制 | 两个协议都建模合法客户端、非法客户端、服务器和连接状态块；重点覆盖握手阶段 | `UPPAAL` | half-open connection 与资源占用安全验证 | 安全、攻击相关性质、资源占用 | 🟢 | 用对照建模证明 TCP 会留下 half-open connection，而 SCTP 的 cookie 机制能避免资源劫持。 | [paper](./saini17-sctp-uppaal/) |
+| 📊 | 🏥 | 2017 | `schivo17` | Discretization of Continuous Dynamical Systems Using UPPAAL | `ANIMO`, kinase network, osteoarthritis, discretization | 与骨关节炎相关的软骨细胞激酶信号网络离散模型 | 连续 `ODE` 系统离散为 timed automata，`ANIMO/Cytoscape` 驱动 | `82` 个 automata；优化后 `139.61 s`，近似 `±5%` 版 `63.13 s` | `UPPAAL` | 连续系统 readout 阈值与行为必达性验证 | 可达性、阈值性质、连续系统离散化分析 | 🟡 | 把 `82` 维连续生物系统离散到 `UPPAAL`，并在骨关节炎信号网络上运行 `A<> R77 >= 80`。 | [paper](./schivo17-discretization-continuous-dynamical-systems/) |
 | 🛰️ | 🚦 | 2017 | `wu17` | Modeling and Verification of Cross-Border Temporary Speed Restriction for High Speed Railway Train Control System Based on UPPAAL | `TSRS`, `CTCS`, temporary speed restriction, bounded liveness | `CTCS` 级间转换区中的跨界临时限速信息交换流程 | 双调度站多设备协同、反馈/告警闭环、严格超时要求 | `7` 个核心对象；覆盖发布/撤销/删除流程与 `1 s/2 s/timeout` 约束 | `UPPAAL` | 限速命令交互流程与超时告警验证 | 安全、有界活性、超时告警 | 🟡 | 验证跨界临时限速流程的反馈闭环，并通过未通过性质暴露“无反馈也不告警”的漏洞。 | [paper](./wu17-cross-border-temporary-speed-restriction/) |
 | 🎛️ | 🤖 | 2018 | `gu18` | Formal Verification of an Autonomous Wheel Loader by Model Checking | autonomous wheel loader, quarry, obstacle avoidance, deadline | quarry 作业环境中的 autonomous wheel loader 控制系统 | 重型自主设备、静态/动态障碍共存、vision / control / execution 三单元协作 | 地图含 `10` 个静态障碍 grid points + `1` 个动态障碍；端到端 deadline `2200 ms` | `UPPAAL` | 避障、安全模式切换与任务 deadline 验证 | 安全、有界响应、可达性、deadline | 🟢 | 在 quarry 场景中验证自主轮式装载机的安全避障、故障切换和往返任务时限，最快 witness trace 约 `1620 ms`。 | [paper](./gu18-autonomous-wheel-loader-model-checking/) |
 | ⏱️ | 🚀 | 2018 | `han18mars` | A Modeling Framework for Schedulability Analysis of Distributed Avionics Systems | `DIMA`, `ARINC-653`, `AFDX`, schedulability | 由 `ARINC-653` 模块和 `AFDX` 网络组成的 `DIMA` 航电系统 | 两级调度、sampling/queuing port 约束、计算与通信联合分析 | `5` 个 partitions、`18` 个 periodic + `4` 个 sporadic tasks、`4` 条 `VL` | `UPPAAL SMC` | deadline、sampling port refresh 与 queue overflow 验证 | 安全、统计 falsification、通信时序约束 | 🟢 | 通过 `SMC + MC` 联合分析发现原分区表因 `Msg2` 刷新周期违例不可调度，并用时间片交换修复配置。 | [paper](./han18-dima-schedulability-framework/) |
@@ -283,8 +288,8 @@
 | 🧩 | 🌐 | 2020 | `jamroga20` | Model Checkers Are Cool: How to Model Check Voting Protocols in Uppaal | e-voting, Prêt à Voter, receipt-freeness, coercion | `Prêt à Voter` 电子投票协议 | 多角色协作、知识性质、mix teller 审计与 `OOM` 边界显式可见 | `1-5` 个 voters + coercer / mix tellers / decryption tellers / auditor；`5` voters 已出现 `OOM` | `UPPAAL` | 投票流程与弱 receipt-freeness 验证 | 可达性、知识相关时序性质、审计性质 | 🟡 | 用 `UPPAAL` 建模 `Prêt à Voter` 并通过模型/公式重构近似检查弱 receipt-freeness，同时暴露状态空间边界。 | [paper](./jamroga20-voting-protocols/) |
 | 📊 | 🦠 | 2020 | `jensen20` | Fluid Model-Checking in UPPAAL for Covid-19 | Covid-19, SEIHR, fluid model checking, contact tracing | 丹麦 `Covid-19` SEIHR 疫情与场景模型 | 多抽象层级、隔离阶段/家庭作息/超级传播/追踪 app | `10,000` 人基础模型；`30+9,970` fluid；哥本哈根+`5` 场所+`3` 成员；`1,000` 人 tracing | `UPPAAL SMC` | 住院容量、暴露概率、超级传播与追踪策略评估 | 统计性质、概率估计、容量界 | 🟢 | 用 `UPPAAL SMC` 在群体和个体双层场景中分析疫情传播、暴露风险与接触追踪效果。 | [paper](./jensen20-covid19-fluid-model-checking/) |
 | 🎛️ | 🚦 | 2020 | `laursen20` | Formal Modelling and Verification of a Distributed Railway Interlocking System Using UPPAAL | distributed interlocking, railway, reservation, point locks | 分布式铁路联锁中的 train / control box / point 协同控制算法 | reservation/lock 分布式存储，网络与列车数据参数化，可实例化真实线路 | generic model `3` 个变体，并在 varying-size 网络与真实线路实例上验证 | `UPPAAL` | 无碰撞/脱轨、reservation-lock 一致性与活锁避免验证 | 安全、活性、资源一致性 | 🟢 | 用可重配置模型验证分布式联锁三种变体，并说明 cancel operation 虽更重但更贴近现实需求。 | [paper](./laursen20-distributed-railway-interlocking/) |
-| 📊 | 🏥 | 2020 | `lestingi20smc` | A Model-driven Approach for the Formal Analysis of Human-Robot Interaction Scenarios | human-robot interaction, healthcare, hybrid automata, mission success | 医疗导向服务机器人任务场景 | 人类生理特征、自由意志随机扰动、`6` 种交互模式、自动生成模型 | 多人 + `1` robot + `1` battery 场景；展示 `3` 组实验与成功/失败概率对照 | `UPPAAL SMC` | 任务成功率与 orchestrator 策略评估 | 统计性质、概率成功、fatigue-aware 分析 | 🟡 | 用参数化 `HA+` 场景模型量化 HRI 任务成功率，并据此迭代修改电量和交互策略。 | [paper](./lestingi20-hri-model-driven-analysis/) |
 | 📊 | 🏥 | 2020 | `lestingi20sefm` | Formal Verification of Human-Robot Interaction in Healthcare Scenarios | healthcare HRI, fatigue profile, stochastic hybrid automata | 医疗走廊中的机器人导诊任务 | 将患者疲劳画像显式并入模型，比较不同人群下任务可行性 | `1` robot + `1` patient；`3` 类 fatigue profiles；`300/1000 s` 时间界 | `UPPAAL SMC` | 医疗任务成功概率与疲劳策略验证 | 统计性质、fatigue 安全、任务可达性 | 🟢 | 用 `UPPAAL SMC` 量化不同患者画像下导诊任务的成功概率，并显示重症画像几乎不可完成。 | [paper](./lestingi20-hri-healthcare-scenarios/) |
+| 📊 | 🏥 | 2020 | `lestingi20smc` | A Model-driven Approach for the Formal Analysis of Human-Robot Interaction Scenarios | human-robot interaction, healthcare, hybrid automata, mission success | 医疗导向服务机器人任务场景 | 人类生理特征、自由意志随机扰动、`6` 种交互模式、自动生成模型 | 多人 + `1` robot + `1` battery 场景；展示 `3` 组实验与成功/失败概率对照 | `UPPAAL SMC` | 任务成功率与 orchestrator 策略评估 | 统计性质、概率成功、fatigue-aware 分析 | 🟡 | 用参数化 `HA+` 场景模型量化 HRI 任务成功率，并据此迭代修改电量和交互策略。 | [paper](./lestingi20-hri-model-driven-analysis/) |
 | 🛰️ | 🌐 | 2020 | `lin20` | Modelling and Verification of Real-Time Publish and Subscribe Protocol Using Uppaal and Simulink/Stateflow | `RTPS`, `DDS`, heartbeat, `ACKNACK` | `DDS/RTPS` writer-reader 发布订阅协议 | 双模型（`Stateflow + UPPAAL`）、不可靠信道、cache 一致性与重传机制 | writer + 多 readers + `WHC/RHC`；代表性样本数组 `[100,200,300,400,500]` | `UPPAAL SMC` | 顺序一致性、heartbeat/repair 正确性与限时传输概率评估 | 安全、统计性能、一致性 | 🟢 | 用 `TCTL` 证明 `RTPS` 一致性与确认机制正确，并用 `SMC` 量化通过率和响应延迟对成功传输概率的影响。 | [paper](./lin20-rtps-simulink-stateflow/) |
 | 🛰️ | 🏥 | 2020 | `touijer20` | Scalability Validation of the Posting Access Method through UPPAAL-SMC Model-Checker | `WBAN`, IEEE 802.15.6, posting access method | `IEEE 802.15.6 MAC` 中 hub 侧 posting access method | `poll/post/ack` 交互、随机业务到达、比较 `4/16/64` 节点规模下的伸缩性 | `4/16/64` nodes；`T1/T2/T3=3600/7200/10800`；每组 `10000` 次仿真 | `UPPAAL SMC` | 时隙分配、能耗与吞吐量可扩展性验证 | 统计性能、吞吐、资源消耗 | 🟡 | 用 `UPPAAL SMC` 证明 `WBAN` posting access method 在节点数扩大时仍维持稳定 allocation、energy 与 throughput。 | [paper](./touijer20-posting-access-method/) |
 | 🧩 | 🌐 | 2021 | `bakhshi21` | Using UPPAAL to Verify Recovery in a Fault-tolerant Mechanism Providing Persistent State at the Edge | edge computing, persistent state, `RAFT`, recovery | 边缘/雾容器平台中的有状态应用恢复与复制存储机制 | 存储容器、复制数据结构、应用故障和节点故障双层恢复 | 多个 `App/SC` 自动机 + `Node Failure` 自动机 + replicated arrays | `UPPAAL` | 应用恢复、节点恢复、数据可用性与最终一致性验证 | 安全、活性、一致性 | 🟡 | 验证边缘有状态容器机制在应用和节点故障后仍能恢复执行，并保持复制状态最终一致。 | [paper](./bakhshi21-edge-persistent-state-recovery/) |
@@ -306,6 +311,7 @@
 | 🎛️ | 🚦 | 2022 | `basile22` | Exploring the ERTMS/ETCS full moving block specification: An experience with formal methods | `ERTMS/ETCS`, moving block, `RBC`, formal methods | `ERTMS/ETCS Level 3` full moving block 中的 train/`OBU`/`RBC` 协同控制 | 多列车共享 `RBC`、动态 `MA` 计算、通信延迟与并发共享状态 | 参数化 train/`RBC`/`OBU`/`LU` 模型；重点分析 `1-3` 列车场景 | `UPPAAL SMC` | freshness、message loss、`MA` 正确性与越权风险验证 | 安全、不变式、统计风险分析 | 🟢 | 在多列车 `RBC` 模型中发现 freshness、message-loss 与 `MA` 过期问题，并验证默认参数下约 `1` 分钟 headway 安全。 | [paper](./basile22-ertms-full-moving-block/) |
 | ⏱️ | 🏭 | 2022 | `bogh22` | Distributed Fleet Management in Noisy Environments via Model-Predictive Control | AMR, fleet management, MPC, noisy planning | 工厂共享地面上的 `AMR` 车队取放系统 | 双层 `MPC`、时间噪声、在线分布式重规划与 `Stratego + greedy` 组合比较 | `10/15/20` 台 `AMR`；`20` 个工作站；`16` 个 waypoints；`2` 个 drop-off 站 | `UPPAAL Stratego` | makespan 优化与规划组合比较 | 定量优化、统计比较、在线重规划 | 🟡 | 在工厂车队场景中，双层 `MPC` 方案相对纯贪心最多减少 `27.5%` makespan。 | [paper](./bogh22-fleet-management-noisy-environments/) |
 | ⏱️ | 🤖 | 2022 | `foughali22` | Formal Verification of Real-Time Autonomous Robots: An Interdisciplinary Approach | drone, GenoM3, schedulability, locking | 基于 GenoM3 的自主无人机实时软件 | 多核平台、任务级资源竞争、两步验证与 reader-writer 锁改进 | `8` 个代表性任务；`ODROID-XU3` 四核平台；高优先级任务 `WCRT < 1 ms` | `UPPAAL SMC` | 硬实时可调度性、低优先级无饥饿与锁协议对比验证 | 可调度性、统计性质、资源/锁协议分析 | 🟢 | 证明无人机高优先级任务都在 `1 ms` 内完成，低优先级任务以 `99.8%` 概率无饥饿，且 `R/W LLAB` 进一步把响应界收紧到 `3/4 ms`。 | [paper](./foughali22-realtime-autonomous-robots/) |
+| 🎛️ | 🏭 | 2022 | `goorden22` | STOMPC: Stochastic Model-Predictive Control with Uppaal Stratego | `MPC`, `Stratego`, stormwater, floorheating, traffic lights | 以 `Uppaal Stratego` 为求解引擎的在线 `MPC` 控制闭环 | 周期重规划、外部仿真器耦合、覆盖地暖/调蓄池/交通灯三类案例 | 地暖 `10` 房间；调蓄池 horizon `48 h`；交通灯 `4` 个路口 | `UPPAAL Stratego` | 安全与性能目标驱动的在线控制综合 | 安全、定量优化、在线控制评估 | 🟡 | 用 `STOMPC` 把 `Stratego` 接进在线 `MPC`，并在地暖、雨洪和交通灯三类案例上验证闭环收益。 | [paper](./goorden22-stompc-stratego/) |
 | 🎛️ | 🤖 | 2022 | `gu22` | Verifiable strategy synthesis for multiple autonomous agents: A scalable approach | autonomous agents, mission planning, quarry, reinforcement learning | autonomous quarry 中多代理路径规划与任务调度系统 | timed games + `RL` + post-verification；代理数增大时状态空间急剧膨胀 | 重点比较 `3-6` agents；另有 `2` agents 下 `5/8/10` milestones/tasks 实验 | `UPPAAL Stratego` | mission plan 综合与学习后策略验证 | 安全、有界活性、顺序约束 | 🟡 | 将 `RL` 与模型检查结合到 quarry 多代理 mission planning，把可处理规模从 `5` 个代理推进到 `6` 个。 | [paper](./gu22-multi-agent-strategy-synthesis/) |
 | 🎛️ | 🔋 | 2022 | `hasrat22` | End-to-End Heat-Pump Control Using Continuous Time Stochastic Modelling and Uppaal Stratego | heat pump, building thermal dynamics, CTSM-R, Q-learning | 家庭地暖热泵的端到端控制回路 | 连续时间随机热模型、在线控制综合、舒适与成本双目标 | `150 m²` 四房间住宅；热泵强度 `0..10`；与 bang-bang 控制对比 | `UPPAAL Stratego` | 成本最小化与舒适保持控制综合 | 定量优化、统计比较、舒适/成本权衡 | 🟢 | 在四房间住宅案例中综合热泵控制器，可把供暖成本最多降低约 `33%` 且保持相当舒适度。 | [paper](./hasrat22-end-to-end-heat-pump-control/) |
 | 🎛️ | 🏥 | 2022 | `lehmann22` | Modeling R^3 Needle Steering in Uppaal | needle steering, medical CPS, obstacle avoidance, online strategy synthesis | 软组织中的 steerable needle 在线导航系统 | `TR/CR/DR` 区域建模、在线重综合、`R^3 -> Z^3` 抽象 | `5` 类环境；虚拟针 `50` 次/设置、真实针 `5-7` 次/设置；`120s` 超时 | `UPPAAL Stratego` | 安全到靶与在线重规划验证 | 安全、可达性、性能 | 🟢 | 用 `Stratego` 进行针导航在线策略综合，在真实针实验中保持 `0%` 关键区命中。 | [paper](./lehmann22-r3-needle-steering/) |
@@ -320,25 +326,29 @@
 | 🎛️ | 🏥 | 2023 | `cuartas23` | Formal Verification of a Mechanical Ventilator using UPPAAL | ventilator, medical device, valve control, flow | 机械呼吸机控制架构 | `Setup/Control/Injector/ExpValve` 四自动机、简化流体模型、符号 + `SMC` 混合验证 | `4` 个 automata；流量 `10-50 L/min`；`FiO2 10-100%`；时序 `100-300 cs` | `UPPAAL` | 阀门协调、时序与流量行为验证 | 安全、可达性、统计性质、定量分析 | 🟢 | 验证呼吸机控制与阀门互锁逻辑，并用模型分析更优采样周期。 | [paper](./cuartas23-mechanical-ventilator/) |
 | 🎛️ | 🔋 | 2023 | `hasrat23scico` | A toolchain for domestic heat-pump control using Uppaal Stratego | heat pump, toolchain, `Stratego`, online control, `CTSM-R` | 家用地暖热泵的在线控制工具链 | 模型识别、隐藏状态估计与在线重综合串成闭环 | `150 m²` 四房间住宅；`15 min` 控制步长；成本节省约 `39%/46%/49%` | `UPPAAL Stratego` | 在线控制综合与成本/舒适度对比 | 定量优化、统计比较、舒适/成本权衡 | 🟢 | 把 `CTSM-R` 识别、状态估计和 `Stratego` 在线综合连成工具链，显著优于 bang-bang 与 `WCS`。 | [paper](./hasrat23-domestic-heat-pump-toolchain/) |
 | 🎛️ | 🚦 | 2023 | `himrane23` | Implementation of a Model-Oriented Approach for Supporting Safe Integration of GNSS-Based Virtual Balises in ERTMS/ETCS Level 3 | `GNSS`, virtual balise, `ERTMS/ETCS`, SMC | 基于 `GNSS` 的铁路定位与 virtual balise 配置 | protection level 分布、balise 激活误差、physical/virtual balise 混合布置 | 三组设置给出 `1360/1560/1650 m` 间距与 `14.7/12.8/12%` physical balise 比例 | `UPPAAL SMC` | virtual balise 配置安全性与参数建议分析 | 统计安全、配置综合、误差边界分析 | 🟢 | 在不同 `GNSS` 质量下给出 virtual balise 间距和 physical balise 比例建议，并把 physical balise 数压到约 `15%`。 | [paper](./himrane23-gnss-virtual-balises/) |
-| 🎛️ | 🔋 | 2023 | `kristjansen23iecon` | Dual Balancing of SoC/SoT in Smart Batteries Using Reinforcement Learning in Uppaal Stratego | smart battery, `SoC`, `SoT`, `Stratego`, reinforcement learning | 具备单电芯旁路能力的 smart battery pack 均衡控制器 | `SoC` 与温度双目标互相牵制，需动态决定旁路对象 | `5` 节异质电芯、`50 Ah NMC`、`1C` 放电 `50 min`；`SoC` 不平衡约 `1-4%`、`SoT` 约 `15-20%` | `UPPAAL Stratego` | `SoC/SoT` 双均衡策略综合与基线对比 | 定量优化、统计比较、多目标控制 | 🟢 | 用 `Stratego` 综合 smart battery 双均衡策略，同时显著压低 `SoC` 和温度不平衡时间。 | [paper](./kristjansen23-smart-batteries-stratego/) |
 | 🎛️ | 🚦 | 2023 | `kochan23` | Formal Verification of the European Train Control System (ETCS) for Better Energy Efficiency Using a Timed and Asynchronous Model | `ETCS`, balise telegram, driver confirmation, energy efficiency | `ETCS` 中 balise telegram 确认与司机响应流程 | timed asynchronous、observer 自动机、telegram 堆积会触发无谓制动 | `3` 个 balises + driver / buffer / observer；速度区间 `44–60/60–80/80–100 m/s` | `UPPAAL` | telegram 确认时序与速度区间安全验证 | 安全、有界响应、配置反例分析 | 🟡 | 证明三 balise 场景在 `80–100 m/s` 失效，而额外一条 telegram 甚至会在 `5–44 m/s` 触发紧急制动。 | [paper](./kochan23-etcs-energy-efficiency/) |
-| 🛰️ | 🌐 | 2023 | `rico23` | Verification of a Multi-Connectivity Protocol for Tactile Internet Applications | tactile internet, multi-connectivity, `MTIP`, multipath | `MTIP` 多连接触觉互联网传输协议 | 多子链路、部分可靠传输、重复包与可靠性 trade-off | `1-3` sublinks；正确性 `P1-P4`；性能 `P5/P6`；time bound `100` | `UPPAAL SMC` | 协议正确性与性能权衡验证 | 安全、顺序一致性、统计性能 | 🟢 | 证明 `MTIP` 满足核心正确性，并量化多子链路带来的可靠性提升与重复包代价。 | [paper](./rico23-multiconnectivity-tactile-internet/) |
+| 🎛️ | 🔋 | 2023 | `kristjansen23iecon` | Dual Balancing of SoC/SoT in Smart Batteries Using Reinforcement Learning in Uppaal Stratego | smart battery, `SoC`, `SoT`, `Stratego`, reinforcement learning | 具备单电芯旁路能力的 smart battery pack 均衡控制器 | `SoC` 与温度双目标互相牵制，需动态决定旁路对象 | `5` 节异质电芯、`50 Ah NMC`、`1C` 放电 `50 min`；`SoC` 不平衡约 `1-4%`、`SoT` 约 `15-20%` | `UPPAAL Stratego` | `SoC/SoT` 双均衡策略综合与基线对比 | 定量优化、统计比较、多目标控制 | 🟢 | 用 `Stratego` 综合 smart battery 双均衡策略，同时显著压低 `SoC` 和温度不平衡时间。 | [paper](./kristjansen23-smart-batteries-stratego/) |
 | ⏱️ | 🏭 | 2023 | `muhammad23` | Modelling and Analysis of a Sigfox-Based `IoT` Network Using `UPPAAL SMC` | Sigfox, IoT, battery lifetime, water monitoring | 排水管网水位监测用 `Sigfox` 节点与网络寿命分析模型 | 真实硬件测量校准、部署点难维护、比较多种上传策略 | 代表性电池 `10000 mAh`；寿命从 `202` 天到 `2.71` 年 | `UPPAAL SMC` | 节点寿命评估与能耗瓶颈分析 | 统计性质、资源定量、策略比较 | 🟢 | 用 `UPPAAL SMC` 量化不同传输策略对节点寿命的影响，并发现测量链路最多可占约 `57%` 能耗。 | [paper](./muhammad23-sigfox-iot-network/) |
 | ⏱️ | 🔋 | 2023 | `novak23grid` | Modular Modeling and Statistical Validation for Grid-Connected FS-MPC-Controlled Matrix Converters | grid-connected matrix converter, modular modeling, `RMSD`, switching cycles | 并网 direct matrix converter 的 `FS-MPC` 控制器 | 模块化电网/控制器/扰动组件，覆盖谐波、跌落与预测误差 | `0.3 pu` 跌落时 `RMSD` 约 `4%`；`+50%` 预测误差可使 `RMSD` 增约 `40%`；权重调节可把部分器件循环数降近 `50%` | `UPPAAL SMC` | `RMSD` 与器件开关压力统计验证 | 统计性质、资源/器件利用、鲁棒性 | 🟢 | 通过模块化 `UPPAAL SMC` 建模同时分析并网 matrix converter 的跟踪误差与器件开关压力。 | [paper](./novak23-grid-connected-matrix-converters/) |
+| 🛰️ | 🌐 | 2023 | `rico23` | Verification of a Multi-Connectivity Protocol for Tactile Internet Applications | tactile internet, multi-connectivity, `MTIP`, multipath | `MTIP` 多连接触觉互联网传输协议 | 多子链路、部分可靠传输、重复包与可靠性 trade-off | `1-3` sublinks；正确性 `P1-P4`；性能 `P5/P6`；time bound `100` | `UPPAAL SMC` | 协议正确性与性能权衡验证 | 安全、顺序一致性、统计性能 | 🟢 | 证明 `MTIP` 满足核心正确性，并量化多子链路带来的可靠性提升与重复包代价。 | [paper](./rico23-multiconnectivity-tactile-internet/) |
 | 🎛️ | 🏭 | 2024 | `kim24` | Controlling stormwater detention ponds under partial observability | stormwater, partial observability, sensor noise, HMDP | 雨洪调蓄池出流口控制系统 | 部分可观测、noisy sensor、离线/在线 `MPC` 与多传感器对比 | `12 h` 在线优化时域；`σ=100` 仍近零溢流；多传感器实验扩到 `8` 个 | `UPPAAL Stratego` | 安全近最优出流控制综合与鲁棒性分析 | 安全、定量优化、鲁棒性分析 | 🟢 | 在 noisy sensor 下仍维持近零溢流，并显著优于随机与静态控制器。 | [paper](./kim24-stormwater-detention-ponds/) |
 | 🎛️ | 🤖 | 2024 | `krichen24` | Timed Automata-Based Strategy for Controlling Drone Access to Critical Zones: A UPPAAL Modeling Approach | drone, critical zone, queue control, mutual exclusion | 多无人机进入关键区域时的控制器与缓冲队列机制 | 共享关键区访问必须串行化，重点验证排队、等待与授权逻辑 | `Drone1-Drone6` 多机场景；共 `14` 条性质 | `UPPAAL` | 关键区互斥、排队逻辑与死锁自由验证 | 安全、互斥、死锁安全、队列正确性 | 🟡 | 建模多无人机共享关键区域的排队控制，并验证 `14` 条互斥、队列与 `A[] not deadlock` 性质。 | [paper](./krichen24-drone-critical-zones-control/) |
 | ⏱️ | 🤖 | 2024 | `naeem24` | Energy-Efficient Motion Planning for Autonomous Vehicles Using Uppaal Stratego | motion planning, energy efficiency, priced timed games, CoMOP | quarry/施工环境中自主工程车辆的时间与能量优化运动规划 | 障碍、坡度和电池能耗共同约束路径，时间最优与能量最优可能明显分化 | 纯规划在 `20×20`、`2` 个障碍场景已近 `2 h`；工业案例基于 autonomous quarry | `UPPAAL Stratego` | 时间/能量最优运动计划综合与可扩展性验证 | 可达性、定量优化、性能比较 | 🟢 | 结合 `PTG`、`Stratego` 与 `CoMOP` 扩展自主车辆运动规划，并证明有坡度时最快路径与最省电路径显著不同。 | [paper](./naeem24-energy-efficient-motion-planning/) |
+| ⏱️ | 🏭 | 2024 | `naeem24comp` | Comparative Analysis of Uppaal SMC, ns-3 and MATLAB/Simulink | Sigfox, `DONUT`, battery lifetime, tool comparison | 排水监测场景中的 `Sigfox` 传感节点能耗与寿命模型 | 单节点寿命不受整网显著影响，适合 `Uppaal SMC` 抽象建模与跨工具比较 | `DONUT` 网络 `200+` sensors；节点电池 `10000 mAh`；`Uppaal` 版 `4` automata | `UPPAAL SMC` | 节点能耗/寿命分析与跨工具性能比较 | 统计性质、资源分析、工具比较 | 🟡 | 在同一 `Sigfox` 节点案例上比较三种工具，指出 `Uppaal SMC` 最适合精确时间与概率行为的单节点分析。 | [paper](./naeem24-sigfox-simulator-comparison/) |
 | ⏱️ | 🔋 | 2024 | `novak24pedg` | Application of Statistical Model Checking for Robustness Comparison of Power Electronics Controllers | controller comparison, `FS-MPC`, neural network, linear control, robustness | 两电平 `VSC` `UPS` 场景中的三类控制器比较框架 | 在线性、`FS-MPC` 与 `NN` 控制器间做同环境公平比较 | 负载 `30→60Ω`、`325/700V` 与 `±25%` 参数失配；nominal 下线性 `~9%`、`FS-MPC 2.56-2.83`、`NN 3.31-3.37` | `UPPAAL SMC` | 三类控制器最大 `RMSD` 与训练外鲁棒性比较 | 统计性质、鲁棒性、方案比较 | 🟡 | 在统一随机环境下比较线性、`FS-MPC` 和 `NN` 控制器，显示 `FS-MPC` 对参数失配与训练外条件最稳。 | [paper](./novak24-power-electronics-controllers-robustness/) |
 | 🧩 | 🎓 | 2024 | `zhou24` | Ensuring Reliability in Electronic Examinations Through UPPAAL-Based Trustworthy Design | electronic examination, workflow, cheating detection, trustworthy design | 电子考试流程系统 | 四角色协作、操作队列、答案相似度防作弊 | 示例为 `2` 名考生、`3` 道题、`12` 条性质；`MaxT=1000` | `UPPAAL` | 流程可靠性与规则一致性验证 | 安全、完整性、活性、防作弊 | 🟡 | 用 `UPPAAL` 模型检查电子考试中的注册、提交、阅卷、通知与作弊检测规则。 | [paper](./zhou24-electronic-examinations/) |
 | ⏱️ | 🤖 | 2025 | `backeman25` | Verifying ROS-Based Applications Using Timed and Stochastic Timed Automata | ROS 2, reaction time, stochastic timed automata, industrial robots | 相机引导工业机器人任务链 | probabilistic load、端到端 reaction time、timer/subscription fusion 比较 | cameras + object detection + fusion + actuation；表 4 给出 `Camera/Object Detection/Fusion/Actuation` 参数 | `UPPAAL SMC` | 最大 reaction time 与 deadline 风险分析 | 有界响应、统计性质、性能分析 | 🟢 | 用 timed / stochastic timed automata 量化 camera 数和负载对工业 `ROS` 任务链 `850` deadline 的影响。 | [paper](./backeman25-ros-timed-stochastic/) |
 | 📊 | 🚦 | 2025 | `bernardeschi25` | Statistical Model Checking for the Analysis of Attacks in Connected Autonomous Vehicles | connected autonomous vehicles, platoon attack, `CACC`, `MEC` | 边缘控制的 connected autonomous vehicle platoon 在攻击下的行为 | 物理动力学、网络时延与数据篡改攻击统一建模，关注攻击后短窗安全概率 | `1` 辆 leader + `3` 辆 followers；leader 驾驶模式 `3` 类；攻击在 `t_A=30 s` 注入 | `UPPAAL SMC` | 攻击后间距偏差与安全保持概率分析 | 统计风险、安全、场景行为分析 | 🟡 | 量化数据篡改攻击对 `4` 车 platoon 的影响，用 `10 s` 安全窗口概率查询支撑风险阈值设计。 | [paper](./bernardeschi25-attacks-connected-autonomous-vehicles/) |
 | ⏱️ | 🤖 | 2025 | `dust25` | Pattern-based verification of ROS 2 applications using UPPAAL | ROS 2, executor, callback latency, buffer overflow | `ROS 2` executor / callback 处理链与通信缓冲行为 | pattern-based 模板、`ExV1/ExV2`、holistic / individual 双建模方式 | `SC1-SC3` 三场景；三类 callback 模板 + executor / topic 模板 | `UPPAAL` | callback latency 与输入/输出缓冲溢出验证 | 有界响应、overflow 安全、调度正确性 | 🟢 | 用 pattern-based 模板验证 `ROS 2` callback latency 与缓冲溢出，并指出 `ExV2` 下的 timer instance miss 与“低延迟假象”。 | [paper](./dust25-pattern-based-ros2-applications/) |
+| ⏱️ | 🏭 | 2025 | `hansen25` | Exact Schedulability Analysis for Limited-Preemptive Parallel Applications Using Timed Automata in UPPAAL | parallel `DAG` tasks, schedulability, multicore, limited preemption | 多核平台上受限抢占并行实时任务系统 | 段内非抢占、段间可抢占、以精确分析为 benchmark | 任务数 `4/8/12`、最多 `20` segments、核心 `1/2` | `UPPAAL` | schedulability 与 response-time 精确分析 | 安全、响应时间界、调度性质 | 🟡 | 把并行 `DAG` 任务与调度器统一编码到 `UPPAAL`，为 limited-preemptive 分析提供 ground truth。 | [paper](./hansen25-limited-preemptive-parallel-applications/) |
 | 🎛️ | 🏭 | 2025 | `hasrat25` | Formal Verification and Fault Detection Optimization of Industrial Drive Systems | industrial drive, `STO`, `SFF`, fault detection | Danfoss 工业 `Basic Drive Module (BDM)` 的功能安全与故障诊断架构 | 双冗余 `STO` 通道与诊断块联动，先验证安全逻辑再优化故障覆盖率 | 两条 `STO` 通道，各含 `4` 个功能块；共 `12` 条核心查询 | `UPPAAL Stratego` | 功能/安全性质验证与诊断覆盖率优化 | 安全、有界响应、功能安全、定量优化 | 🟢 | 验证工业驱动安全逻辑后再优化诊断策略，把 `SFF` 从 `48.5%` 提升到 `90.9%`。 | [paper](./hasrat25-industrial-drive-fault-detection/) |
+| 📊 | 🏭 | 2025 | `javed25` | Enhanced Cyber-Physical System Security: A Model Checking Approach Using UPPAAL for OT-Specific Applications | `OT-CPS`, water injection, `HMI`, sensor attack | 自动注水 `OT-CPS` 的传感-控制-显示安全闭环 | 恶意输入模块直接插入 sensor -> controller 通道，重点检查一致性与溢流约束 | `SoftController/Tsensor/Udisplay/SoftCtrlAtkIn` 四模块；阈值 `34/35` | `UPPAAL` | 一致性、安全上界与攻击场景验证 | 安全、不变式、一致性、攻击场景分析 | 🟡 | 用自动注水系统说明 `OT` 攻击模块如何并入 `UPPAAL`，并暴露传感器欺骗导致的溢流风险。 | [paper](./javed25-ot-specific-cps-security/) |
 | ⏱️ | 🏭 | 2025 | `soltani25` | Optimal spare management via statistical model checking: A case study in research reactors | spare management, research reactor, fault tree, cost optimization | 研究反应堆 emergency shutdown system 的备件库存决策 | `fault tree -> SPTGA`，rare events 对最优策略影响显著 | 单组件最优 `6` 个 spares；双组件最优 `6 + 140`；寿命周期 `40` 年 | `UPPAAL Stratego` | 最优备件数、availability 与 downtime 风险分析 | 策略综合、统计成本、rare-event 概率 | 🟢 | 将备件管理转为 `Stratego` 优化问题，并求得单组件 `6` 与双组件 `6+140` 的最优配置。 | [paper](./soltani25-spare-management-research-reactors/) |
 | 🎛️ | 🤖 | 2026 | `ali26` | Safety-Aware Strategy Synthesis for Autonomous System of Systems with UPPAAL | autonomous `SoS`, safety contracts, orchestrator, construction | 自主施工 `SoS` 中 digger/loader/transporter 的安全编排器 | `CS` 层与 `SoS` 层双层建模，显式约束共享堆料区、充电站和低电量运行 | 目标转运 `2000` 单位物料；`6` 条安全合同；统计时域 `3000` | `UPPAAL Stratego` | 安全合同约束下的施工编排策略综合 | 安全、终止性、统计违例概率、定量优化 | 🟡 | 将安全合同嵌入自主施工 `SoS` 编排，并把关键合同违例概率在 `Safe2` 策略下压到 `0`。 | [paper](./ali26-safety-aware-autonomous-sos/) |
 | 🧩 | 🌐 | 2026 | `basile26` | Formal Analysis of the Contract Automata Runtime Environment with Uppaal: Modelling, Verification and Testing | contract automata, middleware, sockets, model-based testing | `CARE` 分布式中间件的 orchestrator/services 运行时交互 | 抽象模型直接连到源码、`Yggdrasil` 测试生成、关注缓冲与超时语义 | orchestrator + 多 services + timeout automata；源码约 `770` 行且与模型可追踪对照 | `UPPAAL` | termination、deadlock、orphan message 与 compatibility 验证 | 安全、活性、模型驱动测试 | 🟢 | 把 `CARE` 从模型检查延伸到 `JUnit` 级测试，并借此发现和修复 non-blocking socket 假设引入的死锁问题。 | [paper](./basile26-contract-automata-runtime-environment/) |
 | 📊 | 🏥 | 2026 | `guindani26` | Automated Detection and Mitigation of Dependability Failures in Healthcare Scenarios through Digital Twins | healthcare digital twin, failure mitigation, `M-GENGAR`, ventilator | 病人-呼吸机-医生 `PDP` 三元组的数字孪生闭环 | 先发现失败场景再综合缓解策略，把数字孪生从监测推进到控制建议 | `8` 个临床场景、`20` 次策略综合；呼吸机 `4` 个可控参数 | `UPPAAL SMC` | 失败场景探索、聚类与缓解策略评估 | 统计性质、场景分析、策略比较 | 🟢 | `M-GENGAR` 自动发现并聚类医疗失败场景，再综合缓解策略，在 `8` 个场景中成功 `7` 个。 | [paper](./guindani26-healthcare-digital-twins/) |
 | 🛰️ | 🔋 | 2026 | `wang26` | Statistical Verification of Medium-Access Parameterization for Power-Grid Edge Ad Hoc Sensor Networks | power grid, IEEE 802.15.4, `CSMA/CA`, Nash equilibrium | 电网边缘传感网络中的 `IEEE 802.15.4 CSMA/CA` 参数配置 | 节点可能自利调参，需同时约束可靠性、能耗、可用性与单边偏离稳定性 | `N=20` 变电站规模场景；要求至少 `90%` 节点在 blackout-recovery 期间在线 | `UPPAAL SMC` | `CSMA/CA` 参数筛选与 `Δ`-relaxed `NE` 统计认证 | 统计性质、资源定量、协议稳定性 | 🟢 | 统计认证电网边缘 `CSMA/CA` 均衡配置，使 utility 提升到 `0.914`、交付率到 `93.2%` 且能耗降至 `149.2 mJ`。 | [paper](./wang26-power-grid-edge-sensor-networks/) |
+| ⏱️ | 🔋 | 2026 | `willemsen26` | Running.Christel: A Stochastic Hybrid Case-Study Optimizing Battery Pack Usage | battery pack, `KiBaM`, stochastic workload, lifetime threshold | `Running.Christel` 纳卫星多电池包切换与寿命优化系统 | 非线性 `KiBaM` + 随机 workload + 学习式切换策略，延续早期 `UPPAAL` 电池调度线 | `2/3/4` 电池；四电池 `[7,8.5,10,12] Wh`；随机场景下 `Pr(L>=56h)` 约 `84%` | `其他 UPPAAL 谱系变体` | 寿命阈值可达性与电池切换策略优化 | 资源寿命、统计性质、策略比较 | 🟡 | 沿着早期 `UPPAAL` 电池调度主线，把电池包优化推进到随机混合模型与四电池案例。 | [paper](./willemsen26-battery-pack-usage/) |
 
 ## 案例/模型/数据公开性清单
 
@@ -359,9 +369,11 @@
 | [brinksma02](./brinksma02-plc-control-schedule/desc.md) | 🟢 | experimental chemical batch plant 的 `PLC` 调度模型 | 工业控制/调度案例 | 论文正文 + `VHS` 实验 plant 描述重建 | 🟠 | [DOI](https://doi.org/10.1007/s10009-002-0079-0)；[公开 PDF](https://ris.utwente.nl/ws/files/6625102/STTT.pdf) | 论文公开，但独立 `UPPAAL`/`Promela` 模型、查询文件和实验参数包未见稳定入口 |
 | [bordbar03](./bordbar03-timeliness-qos-multimedia/desc.md) | 🟡 | video player + QTA 示例 | 方法示例案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.1007/978-3-540-39893-6_30) | 方法公开，但无独立 QTA 工具实现或示例模型包 |
 | [pang03](./pang03-distributed-lift-system-redesign/desc.md) | 🟢 | distributed lift system 协同控制案例 | 工业控制案例 | 论文正文 + 真实工业案例描述重建 | 🟠 | [DOI](https://doi.org/10.1007/978-3-540-39893-6_29)；[公开 PDF](https://www.cs.vu.nl/~wanf/pubs/redesign.pdf) | 论文可得，但未提供独立 `UPPAAL` 模型、查询文件或工业案例资产下载入口 |
+| [diethers04](./diethers04-vooduu-object-oriented-designs/desc.md) | 🟡 | 机器人原型控制软件的 `UML/UPPAAL` 工具链案例 | `UML` 设计验证案例 | `Poseidon` 插件 + 论文正文描述 | 🟠 | [DOI](https://doi.org/10.1007/978-3-540-24730-2_10) | 论文可得，但 `Vooduu` 插件、机器人 `UML` 工程和翻译后的 `UPPAAL` 模型未见稳定公开入口 |
 | [quottrup04](./quottrup04-multi-robot-motion-planning/desc.md) | 🟢 | 多机器人栅格运动规划模型 | 机器人运动案例 | 论文正文 + Aalborg VBN 页面 | 🟠 | [VBN](https://vbn.aau.dk/en/publications/multi-robot-motion-planning-a-timed-automata-approach-2)；[公开 PDF](https://vbn.aau.dk/ws/files/168845/fulltext) | 当前可稳定取得论文 PDF，但未见独立 `UPPAAL` 模型、查询文件或场景包 |
 | [behrmann05](./behrmann05-lacquer-production-scheduling/desc.md) | 🟢 | 工业漆料生产调度案例与 `UPPAAL CORA` cost 模型 | 工业调度案例 | 论文正文 + Axxom case 描述重建 | 🟠 | [DOI](https://doi.org/10.1109/IPDPS.2005.363)；[公开 PDF](https://sws.cs.ru.nl/publications/papers/martijnh/AXXOM/WPDRTS05.pdf) | 论文可得，但未见稳定公开的 `UPPAAL`/`UPPAAL CORA` 模型、查询文件或工业实例包 |
 | [gruhn05](./gruhn05-verifying-workflows/desc.md) | 🟡 | `Payment Requests` 工作流与工作流到 `UPPAAL` 的翻译案例 | 业务流程案例 | 论文正文 + 历史模型地址说明 | 🟠 | [DOI](https://doi.org/10.5220/0002559500750088)；[公开 PDF](https://www.scitepress.org/Papers/2005/25595/25595.pdf) | 论文提到完整模型曾可从 Leipzig 历史地址下载，但当前未见稳定可访问工件 |
+| [poorfarhani05](./poorfarhani05-canal-system-ltsa-uppaal/desc.md) | 🟢 | Panama Canal 场景规格与控制模型 | 交通基础设施控制案例 | 学位论文正文 + 运河运行场景描述 | 🟠 | [UMD DRUM PDF](https://drum.lib.umd.edu/bitstreams/713fe44b-9ba3-4546-af99-5bb3e2be6eed/download) | 论文公开，但未提供独立 `LTSA` / `UPPAAL` 工程、查询文件或运河配置包 |
 | [rodrigueznavas05](./rodrigueznavas05-can-clock-synchronization/desc.md) | 🟡 | `CAN` 时钟同步协议模型 | 车载通信协议案例 | 论文正文 + 协议机制描述重建 | 🟠 | [DOI](https://doi.org/10.1109/ETFA.2005.1612717)；[公开 PDF](https://fileadmin.cs.lth.se/ai/Proceedings/etfa2005/html/articles/CF-002899.pdf) | 论文可公开获取，但未附独立 `UPPAAL` 模型包或稳定工件入口 |
 | [gebremichael06](./gebremichael06-zeroconf-link-local-addresses/desc.md) | 🟢 | Zeroconf 完整模型、抽象模型与查询文件 | 协议案例（作者专题页） | 论文 + 作者专题页工件 | 🟢 | [专题页面](https://sws.cs.ru.nl/publications/papers/fvaan/zeroconf/)；[完整模型](https://sws.cs.ru.nl/publications/papers/fvaan/zeroconf/zeroconffull.xml)；[查询文件](https://sws.cs.ru.nl/publications/papers/fvaan/zeroconf/zeroconf.q) | 论文、模型、抽象版与查询均可直接获取，是高公开度经典协议案例 |
 | [hanssen06](./hanssen06-rtnet-protocol/desc.md) | 🟢 | `RTnet` unicast/broadcast token 协议模型 | 实时网络协议案例 | 论文正文 + 参数表重建 | 🟠 | [DOI](https://doi.org/10.1109/MASCOTS.2006.52)；[公开 PDF](https://ris.utwente.nl/ws/files/5489944/hanssen.pdf) | 论文公开，但未见独立 `UPPAAL` 模型、查询文件或协议实验包公开入口 |
@@ -409,7 +421,9 @@
 | [nakatani14](./nakatani14-line-tracing-robot/desc.md) | 🟡 | 循线机器人二维离散轨道模型 | 机器人运动案例 | 论文正文与轨道数组定义重建 | 🟠 | [Atlantis Press PDF](https://www.atlantis-press.com/article/13628.pdf) | 论文可得，但未提供独立 `UPPAAL` 模型或轨道脚本仓库 |
 | [dai15](./dai15-multiprocessor-realtime-schedulability/desc.md) | 🟡 | 多处理器实时任务系统可调度性模板 | 调度分析案例 | 论文正文 + `GSM/GSM+MP3` 任务集参数重建 | 🟠 | [论文页面](http://www.jos.org.cn/1000-9825/4781.htm)；[PDF](https://www.jos.org.cn/josen/article/pdf/4781) | 论文与网页可公开获取，但未给出 `UPPAAL` 模型、任务配置文件或查询文件下载入口 |
 | [ahmad16](./ahmad16-energy-optimal-dataflow-controllers/desc.md) | 🟡 | `MPEG-4` 数据流能耗控制案例 | 资源优化案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.1007/978-3-319-47166-2_7)；[UTwente PDF](https://ris.utwente.nl/ws/files/515556506/Main.pdf) | 论文公开，但未提供稳定模型仓库或实验脚本 |
+| [ahn16](./ahn16-hierarchical-schedulability-framework/desc.md) | 🟡 | 层次化实时系统 schedulability 模型 | 调度分析框架案例 | 论文正文 + target system 拓扑/参数重建 | 🟠 | [DOI](https://doi.org/10.1587/transinf.2016EDL8003) | 论文公开，但未提供独立 `UPPAAL` 模型、任务集配置或查询文件 |
 | [filipovikj16](./filipovikj16-simulink-uppaal-smc-automotive/desc.md) | 🟡 | Volvo `Simulink` 工业模型转换案例 | 车载工业控制案例 | 论文正文 + 工业 `Simulink` 模型描述 | 🔒 | [DOI](https://doi.org/10.1007/978-3-319-48989-6_46) | 核心 `Simulink` 工程和转换后的 `UPPAAL SMC` 模型来自 Volvo 内部资产，未公开 |
+| [insani16](./insani16-ee-olsr-uppaal-cora/desc.md) | 🟡 | `EE-OLSR` 协议的 `LPTA` 模型 | `MANET` 协议能耗案例 | 论文正文 + `LPTA/WCTL` 结构重建 | 🟠 | [DOI](https://doi.org/10.22146/ijccs.11192) | 论文公开，但未提供独立 `UPPAAL CORA` 模型或查询脚本 |
 | [khan16](./khan16-rawalpindi-interlocking/desc.md) | 🟢 | Rawalpindi 车站联锁模型与联锁表 | 铁路联锁案例 | 开放获取论文正文重建 | 🟠 | [DOI](https://doi.org/10.1186/s40294-016-0028-5) | 论文开放获取且表格充足，但未提供独立 `UPPAAL` 工程、query 文件或机器可读联锁表 |
 | [rahmaniheris16](./rahmaniheris16-clinical-guidance-systems/desc.md) | 🟡 | cardiac arrest 临床 guidance 状态机族 | 临床流程案例 | `Yakindu` 建模 + 论文正文重建 | 🟠 | [DOI](https://doi.org/10.48550/arXiv.1610.06895)；[arXiv PDF](https://arxiv.org/pdf/1610.06895) | 预印本公开，但未给出 `Yakindu` 模型、`UPPAAL` 模型和查询文件的稳定下载入口 |
 | [ruijters16](./ruijters16-railway-smc/desc.md) | 🟡 | 铁路维护 `FMT/PTA` 分析案例 | 铁路维护策略案例 | 论文正文 + ProRail/NedTrain 参数说明 | 🔒 | [DOI](https://doi.org/10.1007/978-3-319-47166-2_10)；[公开 PDF](https://ris.utwente.nl/ws/files/5296254/main.pdf) | 论文公开，但关键案例参数来自铁路企业协作数据，完整模型与原始行业数据未公开 |
@@ -422,6 +436,7 @@
 | [novak17compel](./novak17-fcs-mpc-power-electronic-converters/desc.md) | 🟡 | 两电平 `VSC` `FCS-MPC` 统计验证案例 | 电力电子性能案例 | AAU VBN 接受稿 + DOI 正文重建 | 🟠 | [DOI](https://doi.org/10.1109/COMPEL.2017.8013279) | 论文可得，但未公开独立 `UPPAAL SMC` 模型、`Simulink` 工程或实验脚本 |
 | [saini17](./saini17-sctp-uppaal/desc.md) | 🟢 | TCP/SCTP 握手安全模型 | 协议安全案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.4204/EPTCS.244.1)；[arXiv PDF](https://arxiv.org/pdf/1703.06568) | 论文公开，但未见独立 `UPPAAL` 模型仓库 |
 | [saddem17](./saddem17-mobile-robotics-grid-actions/desc.md) | 🟡 | 二维网格机器人 reachability/decomposition 案例 | 机器人空间规划案例 | 论文正文 + 网格拆分规则重建 | 🟠 | [DOI](https://doi.org/10.1016/j.ifacol.2017.08.1236)；[公开 PDF](https://www.sce.carleton.ca/faculty/wainer/papers/IFAC_2017_VersionFinale.pdf) | 论文公开，但未见独立 `UPPAAL` 模型、测试网格或查询脚本仓库 |
+| [schivo17](./schivo17-discretization-continuous-dynamical-systems/desc.md) | 🟡 | `ANIMO` 生物信号网络离散化案例 | 系统生物学建模案例 | 论文正文 + `ANIMO/Cytoscape` 工具链描述 | 🟠 | [DOI](https://doi.org/10.1007/978-3-319-68270-9_15) | 论文公开，但未给出本文 `82` 维案例的稳定模型下载包 |
 | [wu17](./wu17-cross-border-temporary-speed-restriction/desc.md) | 🟡 | 跨界临时限速 `TSRS` 交互模型 | 铁路信息交换案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.6180/jase.2017.20.1.01)；[PDF](http://jase.tku.edu.tw/articles/jase-201703-20-1-01.pdf) | 论文公开，但未提供独立 `UPPAAL` 模型、查询文件或业务配置包 |
 | [han18mars](./han18-dima-schedulability-framework/desc.md) | 🟢 | `DIMA` 航电系统可调度性框架 | 航电调度案例 | 论文正文 + `ARINC-653/AFDX` 参数表重建 | 🟠 | [DOI](https://doi.org/10.4204/EPTCS.268.5)；[PDF](https://arxiv.org/pdf/1803.11050.pdf) | 论文公开，但脚注中的模型入口并未形成稳定、清晰的公开工件下载链路 |
 | [gu18](./gu18-autonomous-wheel-loader-model-checking/desc.md) | 🟢 | autonomous wheel loader 控制与地图场景 | 自主设备控制案例 | 工业原型描述 + 论文正文 | 🔒 | [DOI](https://doi.org/10.1145/3193992.3194003) | 工业原型、地图工程和 `UPPAAL` 模型未公开 |
@@ -471,6 +486,7 @@
 | [albano22](./albano22-flexoffers-heat-pumps/desc.md) | 🟡 | 住宅热泵 `FlexOffer` 建模案例 | 能源灵活性案例 | 论文正文 + 参数表重建 | 🟠 | [DOI](https://doi.org/10.1186/s42162-022-00223-6) | 论文公开，但未提供独立 `UPPAAL-Stratego` 模型、天气样本或住宅数据包 |
 | [bogh22](./bogh22-fleet-management-noisy-environments/desc.md) | 🟡 | 工厂 `AMR` 车队规划代码与仿真平台 | 工业物流规划案例（Zenodo 工件） | 论文 + `Zenodo` 工件 | 🟢 | [DOI](https://doi.org/10.1609/icaps.v32i1.19843)；[Zenodo 工件](https://doi.org/10.5281/zenodo.6385690) | 工件当前可直接获取，是公开度较高的 `Stratego` 工业物流案例 |
 | [foughali22](./foughali22-realtime-autonomous-robots/desc.md) | 🟢 | 无人机实时验证模板与锁实现仓库 | 机器人实时软件案例（相关仓库公开） | 论文 + `GitLab/GitHub` 相关仓库 | 🟠 | [DOI](https://doi.org/10.3389/frobt.2022.791757)；[HAL 页面](https://hal.science/hal-03624519v2)；[LLAB GitLab](https://gitlab.com/azuepke/llab/)；[UPPAAL-SMC 模板](https://github.com/Mo-F/uppaal-smc-exp) | 相关实现与模板公开，但完整无人机复现实验仍需按论文重建 |
+| [goorden22](./goorden22-stompc-stratego/desc.md) | 🟡 | `STOMPC` 框架与三类在线控制示例 | 在线控制框架案例 | 论文 + `GitHub` / `Zenodo` 工件说明 | 🟠 | [DOI](https://doi.org/10.1007/978-3-031-19992-9_21)；[GitHub](https://github.com/DEIS-Tools/strategoutil)；[Zenodo](https://doi.org/10.5281/zenodo.6519909) | 框架工件可找到，但三类案例的完整 `Stratego` 模型与外部仿真器配置是否齐全仍需按论文重建 |
 | [gu22](./gu22-multi-agent-strategy-synthesis/desc.md) | 🟡 | `MALTA` 多代理 mission-planning 工具链 | 自主系统规划案例 | 论文 + 工具仓库 | 🟠 | [DOI](https://doi.org/10.1007/s10009-022-00657-z)；[MALTA 仓库](https://github.com/rgu01/MALTA) | 工具链可得，但 quarry benchmark 不是独立标准工件包 |
 | [hasrat22](./hasrat22-end-to-end-heat-pump-control/desc.md) | 🟢 | 四房间热泵 `Stratego` 控制工件 | 能源控制案例（Zenodo 工件） | 论文 + `Zenodo` artefact | 🟢 | [DOI](https://doi.org/10.1007/978-3-031-10363-6_24)；[Zenodo 工件](https://doi.org/10.5281/zenodo.6548367) | 工件当前可直接获取，是较少见公开的住宅热泵 `Stratego` 控制案例 |
 | [lehmann22](./lehmann22-r3-needle-steering/desc.md) | 🟢 | 三维针导航 `Uppaal` 模型细节 | 医疗导航案例 | 论文附录与正文重建 | 🟠 | [DOI](https://doi.org/10.4204/EPTCS.355.4)；[arXiv PDF](https://arxiv.org/pdf/2203.09884) | 正文和附录给出大量模型细节，但未提供独立仓库 |
@@ -493,26 +509,30 @@
 | [kim24](./kim24-stormwater-detention-ponds/desc.md) | 🟢 | 雨洪调蓄池控制模型与可复现实验包 | 基础设施控制案例（Zenodo 工件） | 论文 + `Zenodo` 工件 + `SWMM` 工具链 | 🟢 | [DOI](https://doi.org/10.1016/j.jlamp.2024.100979)；[Zenodo 工件](https://doi.org/10.5281/zenodo.10491602) | 工件当前可直接获取，是公开度较高的部分可观测基础设施控制案例 |
 | [krichen24](./krichen24-drone-critical-zones-control/desc.md) | 🟡 | 多无人机关键区访问控制模型 | 无人机控制案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.3390/electronics13132609) | 论文公开，但未提供独立 `UPPAAL` 工程、查询文件或场景包 |
 | [naeem24](./naeem24-energy-efficient-motion-planning/desc.md) | 🟢 | 自主工程车辆 `PTG/CoMOP` 运动规划案例 | 自主系统规划案例 | 论文正文 + 地图/实验配置说明 | 🟠 | [DOI](https://doi.org/10.1007/978-3-031-64626-3_21) | 论文公开，但未提供独立 benchmark、`UPPAAL Stratego` 模型或 `CoMOP` 代码仓库 |
+| [naeem24comp](./naeem24-sigfox-simulator-comparison/desc.md) | 🟡 | `Sigfox` 单节点能耗比较模型 | 工业 `IoT` 节点案例 | 论文正文 + `DONUT` 节点描述重建 | 🟠 | [DOI](https://doi.org/10.1007/978-3-031-49252-5_12) | 论文公开，但未提供独立 `Uppaal SMC` 模型、`ns-3`/`Simulink` 对照工程或测量数据包 |
 | [novak24pedg](./novak24-power-electronics-controllers-robustness/desc.md) | 🟡 | 线性/`FS-MPC`/`NN` 控制器鲁棒性对比案例 | 电力电子 benchmarking 案例 | AAU VBN 接受稿 + DOI 正文重建 | 🟠 | [DOI](https://doi.org/10.1109/PEDG61800.2024.10667463) | 论文可得，但未公开 `UPPAAL SMC` 工程、`NN` 权重或训练数据包 |
 | [zhou24](./zhou24-electronic-examinations/desc.md) | 🟡 | 电子考试 `UPPAAL` 模型 | 业务流程案例（GitHub + Zenodo） | 论文 + 作者仓库 + 归档 | 🟢 | [GitHub 仓库](https://github.com/TURTING-BO/An-Electronic-Examination-Model-Based-on-UPPAAL)；[Zenodo](https://doi.org/10.5281/zenodo.12787513) | 模型可直接获取，是当前文库里公开度最高的业务流程类案例之一 |
 | [backeman25](./backeman25-ros-timed-stochastic/desc.md) | 🟢 | `ROS` reaction-time 模型与工业案例代码 | 机器人性能案例（公开仓库） | 论文 + 作者 `GitHub` 仓库 | 🟢 | [DOI](https://doi.org/10.1007/978-3-031-85134-6_13)；[GitHub 仓库](https://github.com/ptrbman/ros2-modeling/) | 模型代码可直接获取，是高公开度 `ROS` 反应时间案例 |
 | [bernardeschi25](./bernardeschi25-attacks-connected-autonomous-vehicles/desc.md) | 🟡 | `CAV` platoon 攻击分析 hybrid 模型 | 车联网安全分析案例 | 论文正文重建 | 🟠 | [DOI](https://doi.org/10.1109/CNS66487.2025.11194938) | 论文公开，但未提供独立 `UPPAAL-SMC` 模型、攻击脚本或 platoon 数据包 |
 | [dust25](./dust25-pattern-based-ros2-applications/desc.md) | 🟢 | `ROS 2` pattern-based 模板与场景模型 | 机器人中间件案例（完整模型页） | 论文 + 完整模型页面 | 🟢 | [DOI](https://doi.org/10.1007/s10009-025-00802-4)；[完整模型页面](https://sites.google.com/view/pbvros2nodes) | 模型模板可直接访问，是高公开度 `ROS 2` 执行语义案例 |
+| [hansen25](./hansen25-limited-preemptive-parallel-applications/desc.md) | 🟡 | 并行 `DAG` 任务 schedulability 模型 | 实时调度分析案例 | 论文正文 + 随机任务集参数重建 | 🟠 | [DOI](https://doi.org/10.23919/DATE64628.2025.10992936) | 论文公开，但未提供独立 `UPPAAL` 模型、任务生成脚本或查询文件 |
 | [hasrat25](./hasrat25-industrial-drive-fault-detection/desc.md) | 🟢 | Danfoss `BDM` 安全优化模型与仓库 | 工业功能安全案例（公开仓库） | 论文 + 作者 `GitHub` 仓库 | 🟢 | [DOI](https://doi.org/10.1109/ICSRS68021.2025.11422059)；[GitHub 仓库](https://github.com/ImranRiazAAU/BDM_safety_optimization) | 仓库当前可访问，是公开度较高的工业驱动安全诊断优化案例 |
+| [javed25](./javed25-ot-specific-cps-security/desc.md) | 🟡 | 自动注水 `OT-CPS` 安全模型 | 工业 `OT` 安全案例 | 论文正文 + 攻击模块结构重建 | 🟠 | [DOI](https://doi.org/10.52783/jisem.v10i36s.6456) | 论文公开，但未提供独立 `UPPAAL` 模型、攻击脚本或查询文件 |
 | [soltani25](./soltani25-spare-management-research-reactors/desc.md) | 🟢 | research reactor spare-management `SPTGA` 模型与查询 | 工业可靠性案例（Zenodo 工件） | 论文 + `Zenodo` artefact | 🟢 | [DOI](https://doi.org/10.1007/s10009-025-00791-4)；[Zenodo 工件](https://doi.org/10.5281/zenodo.7970835) | 工件当前可直接获取，是少见的 `Stratego` 备件优化公开案例 |
 | [ali26](./ali26-safety-aware-autonomous-sos/desc.md) | 🟡 | 自主施工 `SoS` 安全合同编排案例 | 自主系统编排案例 | 论文正文 + 合同/场景设置重建 | 🟠 | [DOI](https://doi.org/10.1007/978-3-032-02018-5_6) | 论文公开，但未提供独立 `UPPAAL Stratego` 模型、合同文件或场景包 |
 | [basile26](./basile26-contract-automata-runtime-environment/desc.md) | 🟢 | `CARE` 模型、测试与补充材料 | 开源中间件案例（GitHub + Zenodo） | 论文 + `CARE` release + 补充材料 | 🟢 | [DOI](https://doi.org/10.46298/lmcs-22(1:8)2026)；[CARE Release](https://github.com/contractautomataproject/CARE/releases/tag/v1.0.1)；[补充材料](https://doi.org/10.5281/zenodo.14671729) | 模型、源码与测试工件均可获取，是高公开度运行时验证案例 |
 | [guindani26](./guindani26-healthcare-digital-twins/desc.md) | 🟢 | `M-GENGAR/BREATHE` 医疗数字孪生工件 | 医疗数字孪生案例（Zenodo + GitHub） | 论文 + replication package + `BREATHE` 仓库 | 🟢 | [arXiv](https://arxiv.org/abs/2602.21037)；[Zenodo](https://doi.org/10.5281/zenodo.18430307)；[GitHub](https://github.com/GionathaPirola/BREATHE) | replication package 和项目仓库当前可直接获取，是高公开度医疗数字孪生缓解案例 |
 | [wang26](./wang26-power-grid-edge-sensor-networks/desc.md) | 🟢 | 电网边缘 `CSMA/CA` 参数化验证模型 | 电网边缘网络案例 | 论文正文 + 参数表重建 | 🟠 | [arXiv](https://arxiv.org/abs/2602.05510) | 论文公开，但未提供独立 `UPPAAL-SMC` 模型、参数扫描脚本或数据包 |
+| [willemsen26](./willemsen26-battery-pack-usage/desc.md) | 🟡 | `Running.Christel` 电池包寿命优化案例 | 电池寿命优化案例 | 论文正文 + 随机负载/电池参数重建 | 🟠 | [DOI](https://doi.org/10.1007/978-3-031-97439-7_19) | 论文公开，但未提供独立 stochastic hybrid 模型、`RL` 调度器或实验脚本下载包 |
 
 ## 初步归类与当前观察
 
-1. 文库扩展到 `160` 篇后，`1996-2026` 的时间主线继续连续，而且 `UPPAAL SMC` 电力电子应用线与 `Stratego` 能源/基础设施控制线明显加厚。
-2. 本轮新增形成两组稳定小簇：一组是 `FCS-MPC` 在 `2-level VSC`、`3L-NPC` 与 matrix converter 上的连续案例链，另一组是 stormwater、住宅热泵与 smart battery 这类 `Stratego` 控制综合案例。
-3. `UPPAAL SMC + 具体拓扑名 + 工程指标` 的命中率很高，如 `VSC/3L-NPC/matrix converter + THD/RMSD/voltage sag`；而 `Uppaal Stratego + 具体对象名 + toolchain/control/balancing` 则最容易命中真实控制综合论文。
-4. `AAU VBN` 作者页、`/ws/portalfiles/portal/` 直链和 `Zenodo` artefact 是本轮最稳定的来源组合；如果只停留在 DOI 摘要页或旧 `/files/` 直链，误判“论文不可得”的概率很高。
-5. 本轮新增把 `⏱️` 主轴推进到 `40` 篇、`🔋` 次轴推进到 `15` 篇，说明电力电子与能源控制已成为 `UPPAAL` 应用文库中最稳定、最可持续扩张的方向之一。
-6. 公开性结构依旧以 `🟠` 为主，但本轮补入了 stormwater、heat-pump toolchain 与 smart battery `3` 个可直接获取工件的样本，适合后续优先复跑和比较。
+1. 文库扩展到 `170` 篇后，`1996-2026` 的时间主线继续连续，应用面也从电力电子/能源控制进一步扩到 `OT` 安全、交通基础设施控制、协议能耗、实时调度与连续生物系统。
+2. 本轮新增形成几组新小簇：`OT-CPS` 自动注水安全、Panama Canal 船闸控制、层次化/并行 schedulability、`EE-OLSR/Sigfox` 能耗分析，以及 `ANIMO` 驱动的连续系统离散化。
+3. `工具变体 + 具体系统对象名 + 性质词` 仍是最高命中的检索结构；像 `UPPAAL CORA + EE-OLSR`、`UPPAAL + canal/OT water level`、`UPPAAL + parallel schedulability` 这类组合明显优于泛搜 `application`。
+4. `AAU VBN`、`pure.tue.nl`、`ris.utwente.nl`、`UMD DRUM`、`J-STAGE` 与校刊下载页是本轮最稳定来源；如果只停留在 DOI 摘要页、历史镜像或 `403` 页面，基本无法完成正式入账。
+5. 对框架主导或方法主导论文，只有在正文确实存在清晰案例且能完整写出四件套时才应纳入；`STOMPC`、`Vooduu` 和 `Running.Christel` 都必须按这种边界口径显式标成 `🟡`。
+6. 本轮新增把 `⏱️` 主轴推进到 `44` 篇、`🏭` 次轴推进到 `34` 篇、`📊` 主轴推进到 `12` 篇，说明调度/资源分析、工业场景安全与监测型案例正在成为新的稳定扩库面。
 
 ## 更新日志
 
@@ -538,6 +558,7 @@
 | 2026-04-01 15:43:50 | 接续上一轮中断，补齐并正式入账 `10` 篇 `2006-2022` 应用论文，覆盖 `HYDAC` oil pump、wafer scanner、`FlexRay` physical/start-up、Brake-by-Wire/`ASL`、autonomous wheel loader、`EAST-ADL2` 架构验证、ICS credentials、`AAL` 与 water-distribution attack detection，并全部完成四件套 | 先确认当前分支与远端同步，再接续已具备 `paper.pdf + paper_content.txt + bibtex.bib` 的半成品目录，统一补齐 `desc.md` 后一次性回填总表、公开性清单、统计和年份分布 | 把正式入账总量推进到 `140` 篇，并补厚工业控制、车载架构/通信与基础设施安全监测三条应用线 |
 | 2026-04-01 17:20:10 | 接续上一轮中断，通过网络检索新增并正式入账 `10` 篇 `2018-2026` 应用论文，覆盖 `MQTT/MQTT-SN` 用户能源管理、铁路博弈、热泵控制、自主车辆规划、无人机关键区、`CAV` 攻击分析、工业驱动安全、自主施工 `SoS`、医疗数字孪生与电网边缘网络，并全部完成四件套 | 先检查仓库状态并接续已具备 `paper.pdf + paper_content.txt + bibtex.bib` 的半成品目录，统一补齐 `desc.md`，再回填统一总表、公开性清单、年份分布与双轴统计；本轮仍只正式入账可完成四件套的条目 | 把正式入账总量推进到 `150` 篇，并补厚能源控制、自主系统规划/编排与 `UPPAAL SMC` 场景分析主线 |
 | 2026-04-01 18:16:32 | 接续上一轮中断，通过网络检索新增并正式入账 `10` 篇 `2017-2024` 应用论文，覆盖 `FCS-MPC` 电力电子、stormwater、住宅热泵与 smart battery，并全部完成四件套 | 先确认当前分支与远端同步，再接续上轮已拿到论文且已完成 `paper.pdf + paper_content.txt + bibtex.bib + desc.md` 的 `10` 个未入库目录；随后统一回填总表、公开性清单、统计与失败记录 | 把正式入账总量推进到 `160` 篇，并显著补厚 `UPPAAL SMC` 电力电子应用线和 `Stratego` 能源/基础设施控制线 |
+| 2026-04-01 19:40:39 | 接续上一轮中断，通过网络检索新增并正式入账 `10` 篇 `2004-2026` 应用论文，覆盖 `OT-CPS` 安全、Panama Canal 并发控制、层次化/并行 schedulability、`EE-OLSR`、`Sigfox` 节点比较、`STOMPC` 在线控制、连续生物系统离散化与电池包寿命优化，并全部完成四件套 | 先确认当前分支仅残留 `10` 个未入库新目录，再统一补齐 `bibtex.bib + desc.md`；对框架/方法主导但带真实案例的边界条目，在 `desc.md` 和 [SUMMARY.md](./SUMMARY.md) 中显式写清边界，最后一次性回填总表、公开性清单、统计和年份分布 | 把正式入账总量推进到 `170` 篇，并把应用面从电力电子/能源控制扩展到 `OT` 安全、基础设施控制、协议能耗、实时调度与连续生物系统 |
 
 ## 失败与阻塞记录
 
