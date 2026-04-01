@@ -42,9 +42,64 @@ UML 状态机用于描述 classifier、组件、接口或协议在事件驱动�
 2. Protocol State Machines
 3. StateMachine class / Region / Pseudostate / Transition / Trigger 等元模型元素
 
+为了便于形式化理解，可以把 UML 状态机的核心骨架压成：
+
+$$
+U = (R, V, T, \Pi)
+$$
+
+其中：
+
+1. `R` 是 Region 集合。
+2. `V` 是 Vertex 集合，包括 State 和 Pseudostate。
+3. `T` 是 Transition 集合，带 Trigger / Guard / Effect。
+4. `\Pi` 是事件池与 run-to-completion 执行上下文。
+
+### 运行 / 接受 / 转移语义
+
+UML 状态机的运行时状态是 active state configuration：
+
+$$
+C \subseteq V
+$$
+
+而不是单一活动状态。规范明确说明：一个实例在任一时刻恰处于一个活动配置中，并在 stable configuration 之间跳转。其核心执行范式是 run-to-completion：
+
+$$
+(C,\Pi) \xRightarrow{\mathrm{RTC}(e)} (C',\Pi')
+$$
+
+一次 `RTC` step 的含义是：从事件池中分派一个事件 `e`，执行一个 compound transition，直到重新达到 stable configuration。
+
+对某条迁移 `t`，其使能条件可压成：
+
+$$
+\mathrm{enabled}(t,e,C) \iff source(t) \subseteq C \land \mathrm{match}(trigger(t),e) \land guard(t)=true \land \mathrm{validPath}(t,C)
+$$
+
+当正交区域存在时，同一事件可在不同 bottom-level regions 中各触发至多一条迁移；completion events 则优先于事件池中的普通事件分派。
+
 ### 语义边界
 
 UML 状态机比原始 `Statecharts` 更工程化、更对象化，但也更复杂。它适合标准建模和交换，不像 `SCXML` 那样直接面向执行，也不像 `Timed Automata` 那样直接面向实时判定。
+
+### 关键性质与判定边界
+
+UML 规范最关键的性质，是它把状态机嵌入到了 metamodel 和 RTC 语义里，同时保留部分实现自由度。核心约束包括：
+
+$$
+\text{one event dispatched at a time}
+$$
+
+$$
+\text{completion events have priority}
+$$
+
+$$
+\text{at most one transition per bottom-level orthogonal region}
+$$
+
+但规范也明确留下了若干边界：例如事件分派顺序本身未完全固定，正交区域中多个迁移的具体执行顺序也留给实现。这就是为什么 UML 状态机要做形式验证时，通常必须先选择 profile、子集或翻译语义。
 
 ## 关键特性
 
@@ -58,6 +113,16 @@ UML 状态机比原始 `Statecharts` 更工程化、更对象化，但也更复�
 | 时间约束 | 部分支持 | 可借助事件/约束表达，但非显式时钟自动机。 |
 | 连续动态 / 随机性 | 不支持 | 不面向连续动力学。 |
 | 可执行 / 可验证性 | 部分支持 | 规范面向建模与交换，执行/验证依赖外部工具。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 活动配置 | `$C \subseteq V$` | 实例始终处在一个层次/并发配置中。 |
+| RTC step | `$(C,\Pi)\xRightarrow{\mathrm{RTC}(e)}(C',\Pi')$` | UML 状态机按 run-to-completion 处理事件。 |
+| 迁移使能 | `$\mathrm{enabled}(t,e,C)$` | 由 source、trigger、guard 和合法路径共同决定。 |
+| completion 优先级 | `completion \succ pending\ events` | 完成事件先于普通事件分派。 |
+| 正交区域约束 | `$\le 1$ transition / bottom-level region / event` | 并发区允许并行响应，但受 RTC 规则约束。 |
 
 ## 构造方式与承载格式
 

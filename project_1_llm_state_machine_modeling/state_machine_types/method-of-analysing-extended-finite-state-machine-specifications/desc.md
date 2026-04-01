@@ -36,21 +36,128 @@
 
 ### 核心抽象
 
-按论文对 `Estelle/SDL` 风格模型的描述，EFSM 的核心对象可压缩理解为：
+原文没有把 `EFSM` 统一写成一个数学元组；它主要通过 `Estelle/SDL` 的迁移子句、变量和通信语义来展开。为了方便后续分析，这里按论文明确出现的结构做一个**保守整理**：
 
 $$
-M = (S, V, I, O, T)
+M = (S, s_0, V, \Sigma_{ext}^{in}, \Sigma_{ext}^{out}, H, T)
 $$
 
-其中 `S` 是离散状态，`V` 是附加状态变量，`I/O` 是输入输出交互，`T` 是带条件、动作和输出序列的迁移集合。论文特别强调了：
+其中：
 
-1. 状态机可以通过外部输入或 spontaneous transition 触发。
-2. 单条迁移上可以伴随一个或多个输出。
-3. 模块间通信可以通过队列式内部通道完成。
+1. `S` 是 major state 集合，`s_0` 是初始状态。
+2. `V` 是上下文变量、参数和局部数据。
+3. `\Sigma_{ext}^{in}`、`\Sigma_{ext}^{out}` 是外部输入/输出交互集合。
+4. `H` 是内部交互通道集合，论文明确说明这些通道带排队语义。
+5. `T` 是迁移集合。
+
+结合论文对 `Estelle/SDL` 风格迁移的描述，一条迁移可进一步压成：
+
+$$
+\tau = (s, \iota, \gamma, \alpha, \omega, s')
+$$
+
+其中：
+
+1. `\iota \in \Sigma_{ext}^{in} \cup \{h?m \mid h \in H\} \cup \{\epsilon\}` 表示外部输入、内部消息消费或 spontaneous trigger。
+2. `\gamma` 是 `PROVIDED` 子句对应的守卫 / 路径谓词。
+3. `\alpha` 是动作块，对变量赋值、调用局部过程并更新上下文。
+4. `\omega \in (\Sigma_{ext}^{out} \cup \{h!m \mid h \in H\})^*` 是输出序列，论文特别强调单条迁移可含一个或多个输出。
+
+论文后半段的关键操作是把原始 EFSM 通过 symbolic execution 变成只含单一路径的 normal form transition。其本体可进一步记成：
+
+$$
+\tau^{nf} = (s, \iota, \phi, \alpha, \omega, s')
+$$
+
+这里的 `\phi` 是沿该路径累计得到的 path predicate。原文对 `IF`、`CASE`、循环展开、过程内联和 `FROM` 多状态展开的讨论，本质上都是在把“多路径迁移”拆成若干 `NFT`。
+
+### 运行 / 接受 / 转移语义
+
+若把运行时配置写成：
+
+$$
+c = (s, \nu, \kappa)
+$$
+
+其中 `\nu : V \to Val` 是变量赋值，`\kappa` 记录内部通道状态，则一条 normal form transition 的触发条件可保守写成：
+
+$$
+(s, \nu, \kappa) \xrightarrow{\tau^{nf}} (s', \nu', \kappa')
+$$
+
+当且仅当：
+
+1. 当前 major state 为 `s`。
+2. 输入 `\iota` 与外部事件或内部消息匹配，或 `\iota = \epsilon`。
+3. `\nu \models \phi`。
+4. `\nu' = \alpha(\nu)`，并按 `\omega` 更新输出与内部通道。
+
+论文真正有价值的地方，是它给出了内部通信消去后的组合规则。若：
+
+$$
+\tau_1 = (s_1, \iota, \phi_1, \alpha_1, \omega_1 \cdot h!m, s_1')
+$$
+
+$$
+\tau_2 = (s_2, h?x, \phi_2, \alpha_2, \omega_2, s_2')
+$$
+
+则根据原文“把 combiner NFT 的输出参数代入 combinee NFT，并把 combinee 的动作替换到 combiner 输出位置”的描述，可把组合迁移保守整理为：
+
+$$
+\tau_1 \bowtie_h \tau_2 = ((s_1, s_2), \iota, \phi_1 \land \phi_2[x := m], \alpha_1 ; \alpha_2[x := m], \omega_1 \cdot \omega_2, (s_1', s_2'))
+$$
+
+这条公式不是原文逐字给出的元组定义，而是对第 1 步组合规则的符号化压缩；它忠实反映了原文三件事：
+
+1. 内部输出 `h!m` 被对应的内部消费 `h?x` 吸收。
+2. 参数值通过替换进入 `PROVIDED` 与动作。
+3. 组合后得到的迁移在 product EFSM 上运行，并只保留对外可见的行为。
+
+因此，组合后的 product machine / product EFSM 可记为：
+
+$$
+P = M_1 \bowtie M_2,\qquad S_P = S_1 \times S_2
+$$
 
 ### 语义边界
 
-它仍然是离散状态机，不带显式时间语义，也没有层次/并发状态图结构。增强点主要集中在“数据 + 参数 + 动作 + 通信”这几层，因此它比纯 `FSM` 更强，但比 `Statechart`、`Timed Automata` 这类结构化或实时时间模型更窄。
+它仍然是离散状态机，不带显式时间语义，也没有层次状态或连续动力学。原文的动态分析还带有一个非常关键的适用边界：limited reachability 默认只考察“内部队列至多含一条消息”的近似。
+
+$$
+\forall h \in H,\quad |\kappa_h| \le 1
+$$
+
+也就是说，这个 product machine 不是任意 FIFO 语义下的完整全局系统，而是一个为了控制状态空间、服务测试与验证而构造的有限近似。论文自己也明确指出：
+
+1. collision cases 不能被这一近似完整覆盖。
+2. 任意长度内部队列仍需进一步理论扩展。
+3. 因而它比纯 `FSM` 强，但又比真正的异步通信系统全语义更受限。
+
+### 关键性质与判定边界
+
+原文关心的不是语言接受问题，而是“给定一组通信 EFSM 规格，能否在有限近似下发现动态交互错误”。其核心问题可压缩为：
+
+$$
+\text{Reach}_{\le 1}(M_1, M_2): \text{ explore } P = M_1 \bowtie M_2 \text{ under } |\kappa_h| \le 1
+$$
+
+$$
+\text{Deadlock}(c) \equiv Enabled(c) = \emptyset \land c \notin F
+$$
+
+$$
+\text{UnspecRecv}(h,m) \equiv h!m \land \neg \exists \tau \in T:\ consume_h(\tau,m)
+$$
+
+$$
+\text{Overflow}(h) \equiv \exists \pi \text{ cycle with unbounded } emit_h(\pi)
+$$
+
+其中 `Deadlock`、`UnspecRecv` 和 `Overflow` 都是原文显式讨论的错误类型；`blocking receptions` 与 `tempo-blockings` 则属于同一类“内部通信无法按预期继续推进”的动态异常。论文同时明确给出一个判定边界：
+
+1. limited reachability 适合发现大量 self-consistency 问题，但不是完整异步 FIFO 验证。
+2. 当内部队列可能累积多条消息时，分析结论不再由当前 product machine 完整覆盖。
 
 ## 关键特性
 
@@ -64,6 +171,17 @@ $$
 | 时间约束 | 不支持 | 论文未给出显式时钟或时间不变式。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散模型。 |
 | 可执行 / 可验证性 | 支持 | 论文直接围绕 symbolic execution 与 limited reachability 展开。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| Normal form 转换 | `$M \mapsto M^{nf}$` | 通过 symbolic execution 把复合迁移拆成单路径 `NFT`。 |
+| 组合迁移 | `$\tau_1 \bowtie_h \tau_2$` | 消去内部通信并构造 product EFSM。 |
+| 有界 reachability | `$\text{Reach}_{\le 1}(M_1, M_2)$` | 在内部队列长度至多为 `1` 的前提下探索组合行为。 |
+| 死锁检测 | `$\text{Deadlock}(c) \equiv Enabled(c) = \emptyset \land c \notin F$` | 检测非终态全局卡死。 |
+| 未指定接收 | `$\text{UnspecRecv}(h,m) \equiv h!m \land \neg \exists \tau \in T:\ consume_h(\tau,m)$` | 一个模块输出了消息，但另一侧没有匹配消费迁移。 |
+| 信道溢出 / 阻塞风险 | `$\exists \pi \text{ cycle},\ emit_h(\pi) \text{ unbounded}$` | 反复输出到内外通道会引发 overflow、blocking 或 tempo-blocking。 |
 
 ## 构造方式与承载格式
 

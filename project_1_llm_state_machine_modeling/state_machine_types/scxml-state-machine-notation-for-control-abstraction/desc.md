@@ -38,9 +38,77 @@ SCXML 的核心价值不在于重新发明状态机语义，而在于把 Harel �
 
 核心结构由 `<scxml>` 容器、`<state>`、`<parallel>`、`<transition>`、`<initial>`、`<final>`、`<history>` 以及 `Executable Content` 与 `Data Model` 组成。
 
+为了便于分析，可以把一个 SCXML 文档压成：
+
+$$
+X = (S, s_0, T, \eta_0, Q_{ext}, Q_{int})
+$$
+
+其中：
+
+1. `S` 是由 `<state>` / `<parallel>` / `<final>` / `<history>` 构成的状态树。
+2. `s_0` 由 `<scxml>` 的 `initial` 入口决定。
+3. `T` 是由 `<transition>` 元素给出的迁移集合。
+4. `\eta_0` 是初始 datamodel 赋值。
+5. `Q_{ext}`、`Q_{int}` 分别是外部和内部事件队列。
+
+### 运行 / 接受 / 转移语义
+
+SCXML 的运行时状态不是单点，而是一个 legal state configuration：
+
+$$
+C \subseteq S
+$$
+
+规范明确要求：
+
+$$
+C \in \mathrm{Legal}(X)
+$$
+
+其核心约束包括：
+
+1. 恰有一个顶层子状态处于配置中。
+2. 至少有一个 atomic state 处于配置中。
+3. 若某个 compound state 在 `C` 中，则其恰有一个活动子状态在 `C` 中。
+4. 若某个 `<parallel>` 在 `C` 中，则其所有子区域都在 `C` 中。
+
+在事件 `e` 和当前配置 `C` 下，规范定义最优转移集：
+
+$$
+\mathrm{Opt}(C,e)
+$$
+
+它由 descendant-priority 和 document-order 共同决定。一次 microstep 即执行该最优转移集：
+
+$$
+(C,\eta,Q_{int}) \xRightarrow{\mu_e} (C',\eta',Q_{int}')
+$$
+
+而一次 macrostep 是若干 microstep 的闭包，直到内部事件队列为空且无 `NULL` 使能迁移：
+
+$$
+(C,\eta,Q_{int},e) \xRightarrow{\mathrm{macro}} (C^*,\eta^*,\emptyset)
+$$
+
 ### 语义边界
 
 SCXML 仍然是离散事件状态机，不是连续或概率模型。它擅长承载层次状态机、事件处理和外部通信，但其时序能力主要依赖外部事件与定时发送，不等价于显式时钟自动机。
+
+### 关键性质与判定边界
+
+SCXML 最关键的语义性质是 run-to-completion：每个外部事件触发恰好一个 macrostep，期间外部事件不会插入当前处理过程。
+
+$$
+e \in Q_{ext} \Rightarrow \text{one macrostep per external event}
+$$
+
+规范还明确给出两个边界：
+
+1. 优先级由“更深源状态优先，其次文档顺序优先”固定下来。
+2. microstep 必须终止，但 macrostep 允许因内部事件链而不终止。
+
+因此 SCXML 的工程价值不只是 XML 载体，而是它把 `Statecharts` 那种容易歧义的执行细节收束成了可实现的处理算法。
 
 ## 关键特性
 
@@ -54,6 +122,16 @@ SCXML 仍然是离散事件状态机，不是连续或概率模型。它擅长�
 | 时间约束 | 部分支持 | 依赖事件/发送机制，不是显式时钟模型。 |
 | 连续动态 / 随机性 | 不支持 | 无连续流和概率语义。 |
 | 可执行 / 可验证性 | 强支持 | 是为执行环境设计的标准化表示。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 合法配置 | `$C \in \mathrm{Legal}(X)$` | 当前活动状态集必须满足层次/并行一致性。 |
+| 最优转移集 | `$\mathrm{Opt}(C,e)$` | 由优先级与冲突消解决定本步要执行哪些转移。 |
+| microstep | `$(C,\eta,Q_{int}) \xRightarrow{\mu_e} (C',\eta',Q_{int}')$` | 执行一次最优转移集。 |
+| macrostep | `$(C,\eta,Q_{int},e) \xRightarrow{\mathrm{macro}} (C^*,\eta^*,\emptyset)$` | 一个外部事件对应一整轮内部闭包执行。 |
+| run-to-completion | `one external event \Rightarrow one macrostep` | 执行器的核心调度语义。 |
 
 ## 构造方式与承载格式
 

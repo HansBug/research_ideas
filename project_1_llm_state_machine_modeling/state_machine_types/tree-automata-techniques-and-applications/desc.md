@@ -32,7 +32,7 @@
 
 ### 定义对象
 
-树自动机直接面向 ground terms、抽象语法树和一般树结构，而不是普通线性字符串。它的关注点是“哪些树属于某个可识别语言”，以及这类树语言的闭包、最小化和判定问题。
+树自动机直接面向 ground terms、抽象语法树和一般树结构，而不是普通线性字符串。它的关注点是“哪些树属于某个可识别语言”，以及这类树语言的闭包、最小化和判定问题。原书的整个第一章就是围绕 `Recognizable Tree Languages and Finite Tree Automata` 展开，因此它给的是一个标准而完整的树语言识别本体。
 
 ### 核心抽象
 
@@ -50,9 +50,78 @@ $$
 
 的迁移规则。模型通常在树上自底向上运行，把子树归约到状态，再决定整棵树是否接受。
 
+这里的对象层次可以明确拆开：
+
+1. `T(F)`：由 ranked alphabet `F` 生成的 ground terms 集合。
+2. `Q`：用来“标注子树类型”的有限状态集。
+3. `\Delta`：把一棵由若干子树组成的局部树形结构规约成新的状态。
+
+换句话说，树自动机不是沿串顺序读入，而是在树上做局部模式归约。
+
+### 运行 / 接受 / 转移语义
+
+专著显式定义了 move relation `\to_A`。若 `C` 是上下文，且存在规则
+
+$$
+f(q_1(x_1), \ldots, q_n(x_n)) \to q(f(x_1, \ldots, x_n)) \in \Delta
+$$
+
+则有一步规约：
+
+$$
+C[f(q_1(u_1), \ldots, q_n(u_n))] \to_A C[q(f(u_1, \ldots, u_n))]
+$$
+
+其中 `u_1, \ldots, u_n \in T(F)`。
+
+取其自反传递闭包 `\to_A^*` 后，一棵 ground term `t` 被接受当且仅当：
+
+$$
+\exists q \in Q_f,\quad t \to_A^* q(t)
+$$
+
+因此该自动机识别的树语言为：
+
+$$
+L(A) = \{ t \in T(F) \mid \exists q \in Q_f,\ t \to_A^* q(t) \}
+$$
+
+这一定义非常关键，因为后面的 determinization、emptiness、equivalence 都围绕 `L(A)` 展开。
+
 ### 语义边界
 
 与字符串 `Finite Automata` 相比，它把对象从线性串换成树结构；与 `Hedge Automata` 相比，它默认更偏 ranked tree；与 `Statechart` 这类控制模型相比，它的核心是结构语言识别，而不是事件驱动控制逻辑。
+
+### 关键性质与判定边界
+
+这本书的价值之一就在于把树自动机的核心问题系统整理成可直接复用的判定问题：
+
+$$
+\text{Membership}(A, t):\ t \in L(A)\ ?
+$$
+
+$$
+\text{Emptiness}(A):\ L(A) = \emptyset\ ?
+$$
+
+$$
+\text{Finite}(A):\ |L(A)| < \infty\ ?
+$$
+
+$$
+\text{Equiv}(A_1, A_2):\ L(A_1) = L(A_2)\ ?
+$$
+
+$$
+\text{Inter-NonEmpty}(A_1, \ldots, A_n):\ \bigcap_{i=1}^n L(A_i) \neq \emptyset\ ?
+$$
+
+原书给出的典型边界包括：
+
+1. `DFTA` 与 `NFTA` 在可识别树语言上等价。
+2. emptiness 可在线性时间决定。
+3. intersection non-emptiness 是 EXPTIME-complete。
+4. universality / inclusion / equivalence 在 nondeterministic 情况下会明显变难。
 
 ## 关键特性
 
@@ -66,6 +135,17 @@ $$
 | 时间约束 | 不支持 | 原始模型无时间。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散结构模型。 |
 | 可执行 / 可验证性 | 强支持 | 可做 determinization、emptiness、membership、equivalence 等分析。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原书给出的结论 |
+|---|---|---|
+| 接受语义 | `$t \to_A^* q(t),\ q \in Q_f$` | ground term 是否被接受由规约结果决定。 |
+| 识别语言 | `$L(A) = \{t \mid \exists q \in Q_f,\ t \to_A^* q(t)\}$` | 树自动机本体就是 recognizer of tree languages。 |
+| 确定/非确定等价 | `DFTA \equiv NFTA` | 两者在 recognizability 上等价。 |
+| 空语言判定 | `$L(A)=\emptyset$` | 线性时间可判定。 |
+| 交非空 | `$\bigcap_i L(A_i)\neq\emptyset$` | EXPTIME-complete。 |
+| 等价性 | `$L(A_1)=L(A_2)$` | 可判定，非确定情形复杂度更高。 |
 
 ## 构造方式与承载格式
 

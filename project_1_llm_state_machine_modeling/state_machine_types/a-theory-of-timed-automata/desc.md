@@ -44,9 +44,77 @@ $$
 
 其中 `L` 是位置集合，`C` 是时钟集合，`E` 给出带时钟守卫和复位的离散迁移，`I` 给出位置不变式。论文的重要理论手段是 region equivalence 与 untiming construction。
 
+### 运行 / 接受 / 转移语义
+
+时间自动机的运行时状态可写为：
+
+$$
+(l, \nu) \in L \times \mathbb{R}_{\geq 0}^{C}
+$$
+
+其中 `\nu` 是时钟赋值。其语义有两类基本步：
+
+1. 时间流逝：
+
+$$
+(l, \nu) \xrightarrow{d} (l, \nu + d)
+$$
+
+前提是对任意 `0 \leq d' \leq d` 都有：
+
+$$
+\nu + d' \models I(l)
+$$
+
+2. 离散迁移。若 `e = (l, a, \varphi, \lambda, l') \in E`，则：
+
+$$
+(l, \nu) \xrightarrow{a} (l', \nu[\lambda := 0])
+$$
+
+当前提满足：
+
+$$
+\nu \models \varphi \land \nu[\lambda := 0] \models I(l')
+$$
+
+于是时间自动机接受的 timed language 可写为：
+
+$$
+L(A) \subseteq (\Sigma \times \mathbb{R}_{\ge 0})^*
+$$
+
 ### 语义边界
 
 它擅长“有限离散模式 + 有界实时间约束”的系统；但并不直接表达连续微分方程、概率行为或复杂数据变换。超出时钟差约束的更强算术会迅速破坏可判定性。
+
+### 关键性质与判定边界
+
+Alur-Dill 理论的核心在于把无穷时钟赋值空间压成有限 region quotient。若 `M` 是自动机中出现的最大时钟常数，则可定义 region 等价：
+
+$$
+\nu \sim_M \nu'
+$$
+
+并得到有限商结构：
+
+$$
+\mathcal{R}(A) = A / {\sim_M}
+$$
+
+这直接支撑了最重要的判定问题：
+
+$$
+\text{Emptiness}(A):\ L(A) = \emptyset\ ?
+$$
+
+同时，论文还给出 untiming 结论，即 timed language 忽略时间戳后的投影仍对应正则对象：
+
+$$
+\mathrm{Untime}(L(A)) \text{ is regular}
+$$
+
+因此时间自动机的能力边界非常清楚：它通过有限 region 图保留了关键实时可达性，但一旦超出受限时钟约束语法，有限商与判定性就会迅速失效。
 
 ## 关键特性
 
@@ -60,6 +128,16 @@ $$
 | 时间约束 | 强支持 | 时钟、约束、不变式是核心。 |
 | 连续动态 / 随机性 | 不支持 | 只有时钟线性流逝，不含一般连续动力学。 |
 | 可执行 / 可验证性 | 强支持 | emptiness、inclusion、region automaton 等理论完备。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 时间步 | `$(l,\nu)\xrightarrow{d}(l,\nu+d)$` | 时钟按单位速率共同流逝。 |
+| 离散步 | `$(l,\nu)\xrightarrow{a}(l',\nu[\lambda:=0])$` | 受守卫约束并伴随时钟复位。 |
+| region 等价 | `$\nu \sim_M \nu'$` | 将无穷赋值空间压成有限商。 |
+| 空语言判定 | `$L(A)=\emptyset$` | 通过 region graph 做实时可达性分析。 |
+| untiming | `$\mathrm{Untime}(L(A))$ regular` | 实时语言在去时间后回到正则世界。 |
 
 ## 构造方式与承载格式
 

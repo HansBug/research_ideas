@@ -43,14 +43,76 @@
 3. 自动机只能局部观察当前位置或其颜色/障碍信息。
 4. pebble 用来做位置标记、计数器或搜索辅助。
 
-论文的重要结论是：
+把原文模型压成符号化对象，可以写成：
 
-1. 带有限 pebble 的有限自动机可以搜索任意二维阻塞空间。
-2. 没有有限自动机集能够搜索所有有限三维迷宫。
+$$
+\mathcal{A} = (Q, q_0, \Gamma, D, P, \delta)
+$$
+
+其中：
+
+1. `Q` 是有限内部状态集。
+2. `q_0` 是初始状态。
+3. `\Gamma` 是局部可观察符号，例如 land / water、black / white 等。
+4. `D` 是移动方向集合；二维时通常为 `$D_{2D} = \{N, E, S, W\}$`，三维时可扩到 `$D_{3D} = \{N, E, S, W, U, D\}$`。
+5. `P` 是有限 pebble 集合。
+6. `\delta` 根据当前状态、局部观察和 pebble 情况决定下一状态、移动方向和 pebble 操作。
+
+原文的重点不是某个统一标准元组，而是这个“有限状态 + 局部观测 + 有限 pebble + 空间动作”的能力组合。
+
+### 运行 / 接受 / 转移语义
+
+可把系统配置整理为：
+
+$$
+c_t = (q_t, pos_t, \Pi_t)
+$$
+
+其中 `q_t \in Q` 是时刻 `t` 的内部状态，`pos_t` 是当前所在网格单元，`\Pi_t` 是 pebble 放置情况。
+
+若 `G = (V, E)` 表示某个离散空间图，`v_0` 为初始位置，则可达单元集合可记为：
+
+$$
+\mathrm{Acc}(G, v_0) = \{ v \in V \mid v \text{ is reachable from } v_0 \}
+$$
+
+原文讨论的“搜索成功”本质上可以写成：
+
+$$
+\forall v \in \mathrm{Acc}(G, v_0),\ \exists t \ge 0:\ pos_t = v
+$$
+
+也就是说，自动机必须最终访问所有可达单元，而不只是到达某个接受状态。
 
 ### 语义边界
 
 它不是字符串语言识别模型，也不是连续空间机器人控制模型。其核心是“离散网格 + 局部运动 + 有限记忆”下的搜索能力边界。
+
+### 关键性质与判定边界
+
+原文最重要的内容就是几条能力边界，可以直接压成 theorem-style 表述：
+
+$$
+\exists \mathcal{A}_{4P}\ \text{with } |P| = 4,\quad
+\forall G \in \mathcal{M}^{fin}_{2D},\ \mathrm{Search}(\mathcal{A}_{4P}, G)
+$$
+
+表示存在一个带 `4` 个 pebble 的有限自动机，能够搜索任意有限二维 maze。
+
+$$
+\exists \mathcal{A}_{7P}\ \text{with } |P| = 7,\quad
+\forall G \in \mathcal{M}^{conn}_{2D},\ \mathrm{Search}(\mathcal{A}_{7P}, G)
+$$
+
+表示存在一个带 `7` 个 pebble 的有限自动机，能够搜索任意连通二维阻塞空间。
+
+而三维方向上，原文给出的是负结果：
+
+$$
+\forall \mathcal{F}\ \text{finite collection of finite automata},\ \exists G \in \mathcal{M}^{fin}_{3D}:\ \neg \mathrm{Search}(\mathcal{F}, G)
+$$
+
+这正是该论文最核心的模型本体结论：维度从 `2D` 到 `3D` 后，有限自动机的搜索能力发生了质变。
 
 ## 关键特性
 
@@ -64,6 +126,16 @@
 | 时间约束 | 不支持 | 无显式时钟。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散空间。 |
 | 可执行 / 可验证性 | 支持 | 论文直接给出空间搜索算法与不可达能力边界。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文作用 |
+|---|---|---|
+| 搜索目标 | `$\forall v \in \mathrm{Acc}(G,v_0),\ \exists t:\ pos_t=v$` | 把“search all accessible cells”写成可分析条件。 |
+| 二维有限可搜 | `$\exists \mathcal{A}_{4P},\ \forall G \in \mathcal{M}^{fin}_{2D}$` | `4` pebble 足以覆盖有限二维 maze。 |
+| 二维一般可搜 | `$\exists \mathcal{A}_{7P},\ \forall G \in \mathcal{M}^{conn}_{2D}$` | `7` pebble 可提升到一般连通二维阻塞空间。 |
+| 三维负结果 | `$\forall \mathcal{F},\ \exists G \in \mathcal{M}^{fin}_{3D}:\neg\mathrm{Search}(\mathcal{F},G)$` | 有限自动机族无法统一搜索所有有限三维 maze。 |
+| 有限记忆补偿 | `finite control + finite pebbles` | pebble 是补偿有限记忆的核心结构。 |
 
 ## 构造方式与承载格式
 

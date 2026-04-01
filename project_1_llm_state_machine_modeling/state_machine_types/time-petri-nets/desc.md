@@ -44,9 +44,83 @@ $$
 
 其中 `(P,T,Pre,Post,m_0)` 是基础 Petri 网，`Is` 是把每个变迁映射到时间区间的静态区间函数。状态由 `(m, I)` 构成，`m` 是 marking，`I` 是 enabled transitions 上的 firing interval。
 
+### 运行 / 接受 / 转移语义
+
+若静态时间区间写为：
+
+$$
+I_s(t) = [\alpha(t), \beta(t)]
+$$
+
+则运行时状态可写成：
+
+$$
+E = (m, \nu)
+$$
+
+其中 `m` 是 marking，`\nu` 给每个当前使能变迁记录其已等待时间。时间演化满足：
+
+$$
+(m,\nu) \xrightarrow{d} (m,\nu + d)
+$$
+
+当前提是所有已使能变迁都未超过最晚发射时间：
+
+$$
+\forall t \in En(m),\ \nu(t) + d \leq \beta(t)
+$$
+
+若变迁 `t` 在当前 marking 下使能，且其等待时间已经达到最早发射时间，则可 firing：
+
+$$
+\alpha(t) \leq \nu(t) \leq \beta(t)
+$$
+
+$$
+(m,\nu)[t\rangle (m',\nu')
+$$
+
+其中：
+
+$$
+m' = m - Pre(\cdot,t) + Post(\cdot,t)
+$$
+
+而 `\nu'` 会为新使能变迁初始化时钟，并保留持续使能变迁的相对计时。
+
+讲义进一步把连续状态空间压成 state class：
+
+$$
+C = (m, D)
+$$
+
+其中 `D` 是 firing domain / clock constraint system；这就是 state class graph 的节点定义。
+
 ### 语义边界
 
 它比基础 Petri 网多了显式时间，但仍然没有一般连续动力学；时间表现为变迁何时最早/最晚可发生。
+
+### 关键性质与判定边界
+
+state class 方法的关键目标，是用有限抽象保留足够多的实时行为信息。原文反复强调两类性质：
+
+$$
+\text{SCG}_{trace}
+$$
+
+用于 preserving markings and traces，而更弱的抽象只保留 markings：
+
+$$
+\text{SCG}_{mark}
+$$
+
+这直接关系到可判定问题的范围。例如讲义明确指出，状态类方法可支撑：
+
+$$
+\text{k-Bounded}(TPN),\qquad \text{ReachMarking}(m_f)
+$$
+
+而在更强扩展中，某些 state / marking reachability 会重新失去可判定性。也就是说，TPN 的关键边界不只是“加了时间”，而是“状态类抽象到底保留多少实时语义”。
 
 ## 关键特性
 
@@ -60,6 +134,16 @@ $$
 | 时间约束 | 强支持 | earliest/latest firing times 是核心。 |
 | 连续动态 / 随机性 | 不支持 | 无连续微分；随机非本讲义重点。 |
 | 可执行 / 可验证性 | 强支持 | state class graph、trace/state preserving 抽象是重点。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 时间步 | `$(m,\nu)\xrightarrow{d}(m,\nu+d)$` | 时间在固定 marking 下流逝。 |
+| firing 约束 | `$\alpha(t)\leq \nu(t)\leq \beta(t)$` | 变迁只能在最早/最晚窗口内发生。 |
+| 状态类 | `$C=(m,D)$` | 用 clock domain 压缩连续状态空间。 |
+| trace preserving 抽象 | `$\mathrm{SCG}_{trace}$` | 保留 firing 序列与 LTL 相关性质。 |
+| marking reachability | `$\text{ReachMarking}(m_f)$` | 时间网分析的核心判定问题。 |
 
 ## 构造方式与承载格式
 

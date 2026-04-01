@@ -38,9 +38,87 @@ I/O Automata 的核心思想是把“谁控制动作发生”作为一等概念�
 
 一个 I/O Automaton 由 action signature、states、start states、transition relation 与 fairness partition 构成。最关键的语义约束是 input-enabled：环境输入不能被组件阻塞。
 
+把教程中的核心对象压成标准元组，可写为：
+
+$$
+A = (Q, Q_0, \Sigma^{in}, \Sigma^{out}, \Sigma^{int}, \rightarrow)
+$$
+
+其中动作签名满足：
+
+$$
+\Sigma = \Sigma^{in} \uplus \Sigma^{out} \uplus \Sigma^{int}
+$$
+
+并且必须 input-enabled：
+
+$$
+\forall q \in Q,\ \forall a \in \Sigma^{in},\ \exists q' \in Q,\ q \xrightarrow{a} q'
+$$
+
+### 运行 / 接受 / 转移语义
+
+一个 execution fragment 可写成：
+
+$$
+\alpha = q_0 a_1 q_1 a_2 q_2 \cdots
+$$
+
+满足每一步都有：
+
+$$
+q_i \xrightarrow{a_{i+1}} q_{i+1}
+$$
+
+I/O Automata 的外部行为不是接受语言，而是 trace semantics。若把外部动作集合记为：
+
+$$
+\Sigma^{ext} = \Sigma^{in} \cup \Sigma^{out}
+$$
+
+则执行 `\alpha` 的 trace 定义为：
+
+$$
+\mathrm{trace}(\alpha) = \alpha \upharpoonright \Sigma^{ext}
+$$
+
+自动机的行为语义因此是：
+
+$$
+\mathrm{traces}(A) = \{ \mathrm{trace}(\alpha) \mid \alpha \in \mathrm{Exec}(A) \}
+$$
+
+若 `A_1` 与 `A_2` 相容，则组合后的核心性质是投影可恢复：
+
+$$
+\beta \in \mathrm{traces}(A_1 \parallel A_2) \iff \beta \upharpoonright \Sigma^{ext}_{A_i} \in \mathrm{traces}(A_i),\ i \in \{1,2\}
+$$
+
 ### 语义边界
 
 它是纯离散事件模型，不包含显式实时间钟或连续动力学；但它比普通 `FSM` 更强，因为它内建组件组合、外部行为和实现关系。
+
+### 关键性质与判定边界
+
+I/O Automata 的关键性质不在“接受哪个语言”，而在“是否满足某个外部行为问题”：
+
+$$
+A \models P \iff \mathrm{traces}(A) \subseteq P
+$$
+
+这也自然诱导出实现 / 精化关系：
+
+$$
+A \leq B \iff \mathrm{traces}(A) \subseteq \mathrm{traces}(B)
+$$
+
+组合语义进一步要求这种实现关系是可替换的：
+
+$$
+A_1 \leq A_2 \Rightarrow A_1 \parallel B \leq A_2 \parallel B
+$$
+
+前提是相关动作签名满足相容条件。也就是说，I/O Automata 的能力边界来自“输入不可阻塞 + 组合投影 + trace 包含”，而不是复杂数据或时间构造。
 
 ## 关键特性
 
@@ -54,6 +132,16 @@ I/O Automata 的核心思想是把“谁控制动作发生”作为一等概念�
 | 时间约束 | 不支持 | 原始模型无显式时间。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散。 |
 | 可执行 / 可验证性 | 强支持 | 支持 trace semantics、problem specification、abstraction mapping。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 输入不可阻塞 | `$\forall q,\forall a \in \Sigma^{in},\exists q'.\ q \xrightarrow{a} q'$` | 环境输入永远不能被组件拒绝。 |
+| 执行语义 | `$\alpha = q_0 a_1 q_1 a_2 \cdots$` | 行为由状态与动作交替序列定义。 |
+| Trace 语义 | `$\mathrm{trace}(\alpha)=\alpha\upharpoonright\Sigma^{ext}$` | 对外只观察输入/输出动作。 |
+| 问题满足 | `$A \models P \iff \mathrm{traces}(A)\subseteq P$` | 自动机是否解决某个分布式问题。 |
+| 实现/精化 | `$A \leq B \iff \mathrm{traces}(A)\subseteq \mathrm{traces}(B)$` | 抽象映射与模块替换的基础。 |
 
 ## 构造方式与承载格式
 

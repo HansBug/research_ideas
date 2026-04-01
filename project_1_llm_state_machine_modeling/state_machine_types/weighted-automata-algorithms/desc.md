@@ -32,7 +32,7 @@
 
 ### 定义对象
 
-加权自动机面向的仍然是字符串或输入输出串对，但不再只做布尔接受，而是给每条迁移、每条路径以及每个串赋予可组合的权值。
+加权自动机面向的仍然是字符串或输入输出串对，但不再只做布尔接受，而是给每条迁移、每条路径以及每个串赋予可组合的权值。原文把它放在一个统一的 `weighted transducer / weighted automaton` 框架里处理，因此本体核心不是“某个具体概率模型”，而是“有限状态结构 + semiring 权值语义”。
 
 ### 核心抽象
 
@@ -48,11 +48,90 @@ $$
 T = (\Sigma, \Delta, Q, I, F, E, \lambda, \rho)
 $$
 
-其中迁移和初末状态都可携带权值。文中随后说明 weighted automaton 可视为“输入输出标签相同的 weighted transducer”，因此仍保留有限状态骨架，但把布尔语义提升到了 semiring 语义。
+其中：
+
+1. `\Sigma` 与 `\Delta` 分别是输入/输出字母表。
+2. `Q` 是状态集，`I \subseteq Q`、`F \subseteq Q` 分别是初态和终态集合。
+3. `E \subseteq Q \times (\Sigma \cup \{\epsilon\}) \times (\Delta \cup \{\epsilon\}) \times S \times Q` 是带权迁移多重集。
+4. `\lambda : I \to S`、`\rho : F \to S` 分别给出初始权与终止权。
+
+文中随后说明 weighted automaton 可视为“输入输出标签相同的 weighted transducer”，因此仍保留有限状态骨架，但把布尔语义提升到了 semiring 语义。
+
+若只考虑 acceptor，可压缩为：
+
+$$
+A = (\Sigma, Q, I, F, E, \lambda, \rho)
+$$
+
+其中每条迁移 `e \in E` 仅带一个输入标签和一个权值。
+
+### 运行 / 接受 / 转移语义
+
+给定一条成功路径 `\pi`，其路径权值是沿路径的乘法聚合：
+
+$$
+w[\pi] = \bigotimes_{e \in \pi} w[e]
+$$
+
+对于 weighted transducer，原文定义的语义函数是：
+
+$$
+T(x, y) = \bigoplus_{\pi \in P(I, x, y, F)} \lambda(p[\pi]) \otimes w[\pi] \otimes \rho(n[\pi])
+$$
+
+其中 `P(I,x,y,F)` 是从初态到终态、输入标签为 `x`、输出标签为 `y` 的所有成功路径集合。
+
+对于 weighted automaton，由于输入输出标签相同，语义可写为：
+
+$$
+A(x) = \bigoplus_{\pi \in P(I, x, F)} \lambda(p[\pi]) \otimes w[\pi] \otimes \rho(n[\pi])
+$$
+
+于是：
+
+1. 若 semiring 是 Boolean semiring，就退化成普通布尔接受。
+2. 若是 probability semiring，就变成概率聚合。
+3. 若是 tropical semiring，就变成代价 / 最短路式语义。
+
+原文还把 shortest-distance 统一写成 semiring 框架下的图问题。对某个状态 `q` 到终态集 `F` 的距离，可写为：
+
+$$
+d[q] = \bigoplus_{\pi \in P(q, F)} w[\pi] \otimes \rho(n[\pi])
+$$
+
+这个量后续直接支撑 `weight pushing`、`epsilon-removal` 等算法。
 
 ### 语义边界
 
 相对普通 `Finite Automata`，它多了路径权值和路径间聚合；相对 `Probabilistic Automata`，它更一般，因为 semiring 不限于概率；相对 `Weighted Logics`，它偏自动机和图算法本体。
+
+### 关键性质与判定边界
+
+原文的核心不是单个应用，而是一组围绕 weighted automata 的标准问题：
+
+$$
+\text{Eval}(A, x): \text{ compute } A(x)
+$$
+
+$$
+\text{ShortestDist}(G, s): \text{ compute } d[s, q] \text{ for all } q \in Q
+$$
+
+$$
+\text{Determinize}(A): \text{ construct an equivalent subsequential automaton if possible}
+$$
+
+$$
+\text{Minimize}(A): \text{ reduce a deterministic weighted automaton to a minimal one}
+$$
+
+其中原文给出的一个关键边界是：
+
+$$
+\text{If } A \text{ has the twins property, then } A \text{ is determinizable.}
+$$
+
+对 tropical semiring 上的 trim unambiguous weighted automata，原文进一步给出 twins property 与 determinizability 的等价刻画。也就是说，它不是“所有带权自动机都能 determinize”，可判定条件本身就是模型边界的一部分。
 
 ## 关键特性
 
@@ -66,6 +145,16 @@ $$
 | 时间约束 | 部分支持 | 可表达代价/延迟类权值，但不是显式时钟自动机。 |
 | 连续动态 / 随机性 | 部分支持 | 可承载概率和其他数值权，但不是混成连续语义。 |
 | 可执行 / 可验证性 | 强支持 | shortest-distance、composition、determinization、minimization 是本文核心。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 字符串赋权 | `$A : \Sigma^* \to S$` | 自动机不再输出布尔值，而是输出 semiring 元素。 |
+| 路径聚合 | `$w[\pi_1 \cdots \pi_k] = \bigotimes_i w[\pi_i]$` | 单一路径上的权值通过 `\otimes` 组合。 |
+| 路径间聚合 | `$A(x) = \bigoplus_{\pi} \cdots$` | 多条成功路径通过 `\oplus` 聚合。 |
+| 确定化边界 | `twins property \Rightarrow determinizable` | 不是任意 weighted automaton 都能直接确定化。 |
+| 最小化前提 | `A` deterministic | 原文最小化流程针对确定型加权自动机。 |
 
 ## 构造方式与承载格式
 

@@ -38,9 +38,72 @@ TIOA 把 I/O automata 的组合式组件语义和 timed/hybrid-style trajectorie
 
 TIOA 由离散 transition 和 trajectory 两种状态变化机制组成；外部行为只保留与环境交互有关的动作与时间语义，并以 implementation relationship 比较不同模型。
 
+把 monograph 中的核心对象压成统一元组，可保守写为：
+
+$$
+A = (Q, Q_0, \Sigma^{in}, \Sigma^{out}, \Sigma^{int}, \mathcal{T}, \rightarrow)
+$$
+
+其中：
+
+1. `Q` 是状态集合，`Q_0` 是初始状态集合。
+2. `\Sigma^{in}` / `\Sigma^{out}` / `\Sigma^{int}` 分别是输入、输出和内部动作。
+3. `\mathcal{T}` 是 trajectory 集合。
+4. `\rightarrow` 是离散动作迁移关系。
+
+### 运行 / 接受 / 转移语义
+
+TIOA 的执行片段不是单纯“状态-动作”交替序列，而是轨迹与动作混合序列：
+
+$$
+\alpha = x_0\ \tau_0\ a_1\ x_1\ \tau_1\ a_2\ x_2 \cdots
+$$
+
+其中每个 trajectory `\tau_i` 都满足：
+
+$$
+\tau_i.\mathrm{fstate} = x_i,\qquad \tau_i.\mathrm{lstate} = x_i'
+$$
+
+而动作步满足：
+
+$$
+x_i' \xrightarrow{a_{i+1}} x_{i+1}
+$$
+
+其对外语义仍然是 trace，但这里的 trace 同时保留外部动作与时间轨迹投影。原文对组合给出的关键结果之一是 projection / pasting 定理：
+
+$$
+\mathrm{traces}(A_1 \parallel A_2) = \{ \beta \mid \beta \upharpoonright E_i \in \mathrm{traces}(A_i),\ i \in \{1,2\} \}
+$$
+
+这里 `E_i` 表示第 `i` 个组件的外部动作与轨迹可见部分。
+
 ### 语义边界
 
 它比 `Timed Automata` 更强调组件组合与输入/输出接口，比普通 `I/O Automata` 多了时间轨迹；但它不是面向统一工业标准的交换格式。
+
+### 关键性质与判定边界
+
+TIOA 的关键性质围绕实现、替换和 receptiveness 展开。首先，trace inclusion 仍然定义实现关系：
+
+$$
+A_1 \leq A_2 \iff \mathrm{traces}(A_1) \subseteq \mathrm{traces}(A_2)
+$$
+
+其次，组合具备可替换性：
+
+$$
+A_1 \leq A_2 \Rightarrow A_1 \parallel B \leq A_2 \parallel B
+$$
+
+在原文要求的 comparability、compatibility 以及若干闭包条件下，上式成立。另一方面，paper 还明确指出单纯 I/O feasibility 并不总对组合封闭，因此引入更强的 receptive / progressive 条件。一个核心边界可概括为：
+
+$$
+\text{receptive} \Rightarrow \text{closed under composition}
+$$
+
+这说明 TIOA 的难点不在定义时间，而在于“时间+接口+组合”三者一起出现时，如何保证系统始终能接住环境输入。
 
 ## 关键特性
 
@@ -54,6 +117,16 @@ TIOA 由离散 transition 和 trajectory 两种状态变化机制组成；外部
 | 时间约束 | 强支持 | 轨迹、时间流逝、receptiveness 明确建模。 |
 | 连续动态 / 随机性 | 部分支持 | 可表达轨迹型时间演化，但不是一般概率模型。 |
 | 可执行 / 可验证性 | 强支持 | implementation、simulation、substitutivity 完整。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 混合执行片段 | `$\alpha = x_0\ \tau_0\ a_1\ x_1\ \tau_1 \cdots$` | 行为同时包含时间轨迹与离散动作。 |
+| 轨迹投影 | `$\tau.\mathrm{fstate}, \tau.\mathrm{lstate}$` | 连续时间语义通过 trajectory 进入模型。 |
+| 组合投影 | `$\mathrm{traces}(A_1 \parallel A_2)=\{\beta \mid \beta\upharpoonright E_i \in \mathrm{traces}(A_i)\}$` | 组合后的行为可由分量 trace 粘合恢复。 |
+| 实现关系 | `$A_1 \leq A_2 \iff \mathrm{traces}(A_1)\subseteq \mathrm{traces}(A_2)$` | 行为包含定义替换性。 |
+| receptive 封闭性 | `$\text{receptive} \Rightarrow \text{closed under composition}$` | 引入 receptiveness 的核心动机。 |
 
 ## 构造方式与承载格式
 

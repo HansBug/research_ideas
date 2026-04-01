@@ -38,9 +38,83 @@ CPN 描述的是既有并发控制，又有显式数据对象和资源共享的�
 
 基础网结构不变，但 token 不再是匿名黑点，而是带类型和值的 coloured tokens；弧和变迁可以带表达式、模式匹配和数据操作。
 
+标准 CPN 定义通常可写为：
+
+$$
+CPN = (\Sigma, P, T, A, N, C, G, E, I)
+$$
+
+其中：
+
+1. `\Sigma` 是颜色集与数据类型声明。
+2. `P`、`T`、`A` 分别是库所、变迁与弧。
+3. `N` 给出弧连接关系。
+4. `C : P \to \Sigma` 为每个库所指定 colour set。
+5. `G : T \to Expr` 是 guard。
+6. `E : A \to Expr` 是弧表达式。
+7. `I : P \to Expr` 是初始标识表达式。
+
+一个 marking 不再给每个 place 一个自然数，而是给出一个彩色多重集：
+
+$$
+M(p) \in MS(C(p))
+$$
+
+### 运行 / 接受 / 转移语义
+
+CPN 的 firing 语义依赖绑定 `b`。变迁 `t` 在 marking `M` 下以绑定 `b` 使能，当且仅当：
+
+$$
+G(t)\langle b \rangle = true
+$$
+
+并且对所有输入库所 `p` 都有：
+
+$$
+E(p,t)\langle b \rangle \leq M(p)
+$$
+
+一旦 `(t,b)` 发生，新的 marking `M'` 由输入 token 的消耗与输出 token 的生成共同决定：
+
+$$
+M'(p) = M(p) - E(p,t)\langle b \rangle + E(t,p)\langle b \rangle
+$$
+
+于是可达状态空间仍然是：
+
+$$
+R(CPN, M_0) = \{ M \mid M_0 [\sigma \rangle M \}
+$$
+
+但这里的 `M` 已经是“带类型和值的 token 多重集”。
+
 ### 语义边界
 
 它比基础 `P/T Net` 更适合数据丰富的系统，但也更依赖工具支持和类型系统。
+
+### 关键性质与判定边界
+
+Jensen 讲义里最重要的分析对象仍是 marking graph，不过现在可讨论的是彩色 marking：
+
+$$
+\text{Dead}(M) \equiv \neg \exists (t,b),\ M[(t,b)\rangle
+$$
+
+$$
+\text{Home}(M_h) \equiv \forall M \in R(CPN,M_0),\ M_h \in R(CPN,M)
+$$
+
+原文还特别强调通过对称性压缩状态空间。若 `\approx` 是 marking 等价关系，则可做等价类分析：
+
+$$
+M_1 \approx M_2
+$$
+
+$$
+R(CPN,M_0)/{\approx}
+$$
+
+这表明 CPN 的关键边界不在“能否表达并发”，而在“用数据类型和对称性把巨大状态空间维持在可分析范围内”。
 
 ## 关键特性
 
@@ -54,6 +128,16 @@ CPN 描述的是既有并发控制，又有显式数据对象和资源共享的�
 | 时间约束 | 部分支持 | 讲义指出可扩展到 time。 |
 | 连续动态 / 随机性 | 不支持 | 非连续模型。 |
 | 可执行 / 可验证性 | 强支持 | simulation、state spaces、place invariants 明确。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 彩色标识 | `$M(p) \in MS(C(p))$` | 一个库所保存的是 typed token 多重集。 |
+| 绑定使能 | `$G(t)\langle b\rangle = true \land E(p,t)\langle b\rangle \le M(p)$` | firing 取决于 guard 和变量绑定。 |
+| firing 更新 | `$M'(p)=M(p)-E(p,t)\langle b\rangle + E(t,p)\langle b\rangle$` | 数据化 token game 语义。 |
+| 死标识 | `$\text{Dead}(M)$` | 是否再无任何绑定可触发。 |
+| home marking | `$\text{Home}(M_h)$` | 某个目标标识能否从任意可达标识重新回到。 |
 
 ## 构造方式与承载格式
 

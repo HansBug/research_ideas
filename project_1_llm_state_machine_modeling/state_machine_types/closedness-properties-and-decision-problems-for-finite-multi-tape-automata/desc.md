@@ -32,7 +32,7 @@
 
 ### 定义对象
 
-多带自动机不再识别单个字符串语言，而是识别若干字符串之间的关系，也就是 `n` 元 word relation。
+多带自动机不再识别单个字符串语言，而是识别若干字符串之间的关系，也就是 `n` 元 word relation。论文的出发点非常明确：研究不同类别的 finite multi-tape automata 到底能表示哪些 `n` 元关系，以及这些关系类在闭包和判定问题上有什么边界。
 
 ### 核心抽象
 
@@ -44,9 +44,73 @@ $$
 
 其中 `n` 是 tape 数，`X` 是字母表，`e` 是可选 endmarker，`Z` 是状态集，`z_1` 是初态，`M` 是接受集。核心接受对象是 `X` 上的 `n` 元关系，而不是单串语言。
 
+围绕这一模型，论文还区分了若干表示类，例如：
+
+$$
+\mathcal{R}^{wi}_n,\ \mathcal{R}^{i}_n,\ \mathcal{R}^{d}_n
+$$
+
+分别表示由 weakly initial、initial、deterministic 的 `ND-n-TA` 所能表示的 `n` 元关系类。
+
+### 运行 / 接受 / 转移语义
+
+若不显式写 endmarker，可把一个 `n` 带输入元组写成：
+
+$$
+\mathbf{w} = (w_1, \ldots, w_n) \in (X^*)^n
+$$
+
+它所表示的关系可整理为：
+
+$$
+R(A) = \{ \mathbf{w} \in (X^*)^n \mid \delta(z_1, \mathbf{w}) \cap M \neq \emptyset \}
+$$
+
+若使用 endmarker `e`，论文显式给出的记法可压成：
+
+$$
+R_e(A) = \{ \mathbf{w} \in (X^*)^n \mid \delta(z_1, \mathbf{w} \cdot e^n) \cap M \neq \emptyset \}
+$$
+
+因此，多带自动机的语义不是 `L(A) \subseteq X^*`，而是：
+
+$$
+R(A) \subseteq (X^*)^n
+$$
+
+也就是说，它天然描述的是多串同步/异步读取下的关系语言。
+
 ### 语义边界
 
 相对普通 `Finite Automata`，它把对象从“一个串”扩展为“多个串之间的关系”；相对 `Weighted Automata`，它不是对单路径加权，而是横向扩多带；相对 `Tree/2D Automata`，它仍然停留在线性字符串对象上。
+
+### 关键性质与判定边界
+
+论文围绕的核心问题可以直接写成一组关系级判定问题：
+
+$$
+\text{Universe}(A):\ R(A) = (X^*)^n\ ?
+$$
+
+$$
+\text{Containment}(A, B):\ R(A) \subseteq R(B)\ ?
+$$
+
+$$
+\text{Equivalence}(A, B):\ R(A) = R(B)\ ?
+$$
+
+$$
+\text{Complementability}(A):\ \exists A' \text{ s.t. } R(A') = (X^*)^n \setminus R(A)
+$$
+
+论文的主要贡献不是只给一个 theorem，而是对不同自动机子类分别给出：
+
+1. 哪些关系类在 union / intersection / complement 下闭合。
+2. 哪些经典问题可算法化。
+3. 哪些问题在 nondeterministic 情形下会变得不可解或显著更难。
+
+因此，这篇论文对 `Multi-Tape Automata` 的价值，主要就在于“把模型边界做成一张系统化判定地图”。
 
 ## 关键特性
 
@@ -60,6 +124,16 @@ $$
 | 时间约束 | 不支持 | 无显式时间。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散关系模型。 |
 | 可执行 / 可验证性 | 支持 | 论文核心就是闭包与 universe / equivalence / containment 一类判定问题。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 本文作用 |
+|---|---|---|
+| 关系识别对象 | `$R(A) \subseteq (X^*)^n$` | 把单串语言提升到 `n` 元关系语言。 |
+| 带端标记语义 | `$R_e(A)=\{\mathbf{w}\mid \delta(z_1,\mathbf{w}\cdot e^n)\cap M\neq\emptyset\}$` | 统一讨论 with / without endmarker 两种设定。 |
+| 宇宙问题 | `$R(A)=(X^*)^n$` | 经典判定问题之一。 |
+| 包含 / 等价 | `$R(A)\subseteq R(B)$`, `$R(A)=R(B)$` | 关系语言层面的标准比较问题。 |
+| 关系类分层 | `$\mathcal{R}^{wi}_n,\mathcal{R}^{i}_n,\mathcal{R}^{d}_n$` | 区分 weakly initial / initial / deterministic 子类。 |
 
 ## 构造方式与承载格式
 

@@ -44,9 +44,71 @@ $$
 
 其中 `X` 是实值变量，`V` 是控制模式，`E` 是控制切换，`init`/`inv`/`flow`/`jump` 分别定义初始条件、不变式、流条件和跳转条件。
 
+### 运行 / 接受 / 转移语义
+
+混成自动机的运行时状态可写成：
+
+$$
+(v, \xi) \in V \times \mathbb{R}^{X}
+$$
+
+其中 `v` 是离散控制模式，`\xi` 是连续变量赋值。其演化也分成两类：
+
+1. 连续演化。若轨迹 `\tau : [0,d] \to \mathbb{R}^{X}` 满足：
+
+$$
+\tau(0) = \xi,\qquad \forall t \in [0,d],\ \tau(t) \models inv(v) \land \dot{\tau}(t) \models flow(v)
+$$
+
+则有：
+
+$$
+(v,\xi) \xrightarrow{d} (v,\tau(d))
+$$
+
+2. 离散跳转。若 `e = (v,a,v') \in E`，则：
+
+$$
+(v,\xi) \xrightarrow{a} (v',\xi')
+$$
+
+当前提满足：
+
+$$
+(\xi,\xi') \models jump(e) \land \xi \models inv(v) \land \xi' \models inv(v')
+$$
+
+这也说明 timed automata 只是其中一个特例：若 `flow(v)` 只允许所有变量以单位速率增长且 `jump` 只做时钟复位，就回到了时间自动机。
+
 ### 语义边界
 
 相对 `Timed Automata`，它允许一般连续变量流而非单位速率时钟；因此表达力更强，但可判定性更弱，分析通常必须退回到特定子类。
+
+### 关键性质与判定边界
+
+混成自动机的中心问题仍然是可达性：
+
+$$
+\text{Reach}(H, G):\ \exists \alpha,\ \mathrm{last}(\alpha) \in G\ ?
+$$
+
+但与时间自动机不同，这个问题在一般情形下很快就失去可判定性。因而实际可分析性通常退化为对子类 `\mathcal{C}` 的研究：
+
+$$
+H \in \mathcal{C} \Rightarrow \text{Reach}(H,G) \text{ decidable}
+$$
+
+$$
+H \notin \mathcal{C} \Rightarrow \text{Reach}(H,G) \text{ often undecidable}
+$$
+
+这就是原文反复强调子类和语义分层的原因。它的主要理论价值不只是“定义一个更强模型”，而是给出：
+
+$$
+\text{Timed Automata} \subsetneq \text{Hybrid Automata}
+$$
+
+并据此解释强表达力与弱可判定性之间的张力。
 
 ## 关键特性
 
@@ -60,6 +122,16 @@ $$
 | 时间约束 | 强支持 | 时间通过连续流自然进入。 |
 | 连续动态 / 随机性 | 强支持（连续） | 核心就是连续流条件；随机性不是原文重点。 |
 | 可执行 / 可验证性 | 部分支持 | 理论上可分析，但需依赖可判定子类。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 连续步 | `$(v,\xi)\xrightarrow{d}(v,\tau(d))$` | 在同一 mode 内沿 flow 持续演化。 |
+| 离散跳转 | `$(v,\xi)\xrightarrow{a}(v',\xi')$` | 通过 jump relation 做模式切换。 |
+| 可达性 | `$\text{Reach}(H,G)$` | 混成验证的核心问题。 |
+| 子类可判定性 | `$H\in\mathcal{C}\Rightarrow \text{Reach}$ decidable` | 算法依赖受限子类。 |
+| 与 TA 关系 | `$\text{Timed Automata} \subsetneq \text{Hybrid Automata}$` | TA 是 HA 的受限特例。 |
 
 ## 构造方式与承载格式
 

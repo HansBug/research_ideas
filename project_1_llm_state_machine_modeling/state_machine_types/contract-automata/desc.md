@@ -38,9 +38,79 @@ Contract Automata 把多方服务协作中的 request/offer 匹配过程状态�
 
 一个 contract automaton 是带向量字母表的有限自动机。每个向量分量记录某个参与方此步是 request、offer、match 还是 idle。
 
+可把一个 rank 为 `n` 的 contract automaton 保守写成：
+
+$$
+CA = (Q, q_0, F, T)
+$$
+
+其中迁移关系为：
+
+$$
+T \subseteq Q \times S^n \times Q
+$$
+
+这里 `S^n` 是 `n` 维向量动作字母表；每个分量描述对应参与方在该步的 request、offer、match 或 idle 行为。
+
+### 运行 / 接受 / 转移语义
+
+一条运行写成：
+
+$$
+q_0 \xrightarrow{\vec{a}_1} q_1 \xrightarrow{\vec{a}_2} \cdots \xrightarrow{\vec{a}_m} q_m
+$$
+
+其对应的词为：
+
+$$
+w = \vec{a}_1 \vec{a}_2 \cdots \vec{a}_m \in L(CA)
+$$
+
+原文的关键不是普通接受，而是对词 `w` 是否满足 agreement / weak agreement 的判断。记 `Obs(w)` 为向量动作的可观察投影，则论文给出的 agreement 集合是：
+
+$$
+\mathcal{A} = \{ w \in (S^n)^* \mid Obs(w) \in (O \cup \{\tau\})^* \}
+$$
+
+也就是说，强 agreement 要求接受词中不留下未配对的 request。
+
+弱 agreement 的定义更宽松。原文给出：
+
+$$
+\mathcal{W} = \{ w = \vec{a}_1 \cdots \vec{a}_m \mid \exists f:[1..m]\to[1..m],\ f \text{ 对 requests 全定义且单射，且 } f(i)=j \Rightarrow \vec{a}_i \bowtie \vec{a}_j \}
+$$
+
+它允许 request 和 offer 异步配对，因此：
+
+$$
+\mathcal{A} \subsetneq \mathcal{W}
+$$
+
 ### 语义边界
 
 它适合表达多方契约满足关系和编排责任，不适合表达层次控制、实时约束或连续动态。
+
+### 关键性质与判定边界
+
+围绕上述两个集合，论文把契约分析压成如下问题：
+
+$$
+\text{Safe}(CA) \iff L(CA) \subseteq \mathcal{A}
+$$
+
+$$
+\text{AdmitsAgreement}(CA) \iff L(CA) \cap \mathcal{A} \neq \emptyset
+$$
+
+$$
+\text{WeakSafe}(CA) \iff L(CA) \subseteq \mathcal{W}
+$$
+
+$$
+\text{AdmitsWeakAgreement}(CA) \iff L(CA) \cap \mathcal{W} \neq \emptyset
+$$
+
+在此基础上，论文还讨论 orchestrator / controller 合成，以及导致违反 agreement 的 liable participants。也就是说，Contract Automata 的判定边界不在普通接口相容，而在“多方契约是否能被同步或异步满足，以及谁对失败负责”。
 
 ## 关键特性
 
@@ -54,6 +124,16 @@ Contract Automata 把多方服务协作中的 request/offer 匹配过程状态�
 | 时间约束 | 不支持 | 无显式时间。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散契约行为。 |
 | 可执行 / 可验证性 | 强支持 | agreement、weak agreement、controller/liability 明确。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 向量动作词 | `$w = \vec{a}_1 \cdots \vec{a}_m \in L(CA)$` | 行为由多方同步动作向量组成。 |
+| agreement | `$\mathcal{A} = \{w \mid Obs(w)\in (O \cup \{\tau\})^*\}$` | 所有请求都被同步满足。 |
+| weak agreement | `$\mathcal{W} = \{w \mid \exists f,\ f(i)=j \Rightarrow \vec{a}_i \bowtie \vec{a}_j\}$` | 允许异步 request/offer 配对。 |
+| 安全性 | `$L(CA)\subseteq \mathcal{A}$` 或 `$L(CA)\subseteq \mathcal{W}$` | 组合是否始终守约。 |
+| 可达 agreement | `$L(CA)\cap \mathcal{A}\neq\emptyset$` | 是否存在至少一条可接受协作路径。 |
 
 ## 构造方式与承载格式
 

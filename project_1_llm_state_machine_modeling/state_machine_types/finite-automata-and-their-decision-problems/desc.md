@@ -44,9 +44,65 @@ $$
 
 其中 `Q` 是有限状态集，`\Sigma` 是输入字母表，`\delta` 是迁移关系，`q_0` 是初始状态，`F` 是接受状态集。论文的重要贡献之一是把 nondeterminism、two-way head movement 与 many-tape 统一进同一讨论框架。
 
+### 运行 / 接受 / 转移语义
+
+若采用 Rabin-Scott 论文中的 nondeterministic 口径，则可把迁移写成：
+
+$$
+\delta : Q \times \Sigma \to 2^Q
+$$
+
+其扩展转移函数满足：
+
+$$
+\hat{\delta}(q, \epsilon) = \{q\},\qquad \hat{\delta}(q, aw) = \bigcup_{q' \in \delta(q,a)} \hat{\delta}(q', w)
+$$
+
+于是自动机接受语言为：
+
+$$
+L(A) = \{ w \in \Sigma^* \mid \hat{\delta}(q_0, w) \cap F \neq \emptyset \}
+$$
+
+若转向 many-tape 变体，则接受对象不再是单串，而是若干字符串组成的关系：
+
+$$
+R(A) \subseteq (\Sigma^*)^n
+$$
+
+这也说明原论文的本体重点并不只是单一 `DFA`，而是“有限状态控制能识别的离散语言 / 关系边界”。
+
 ### 语义边界
 
 该模型的本质限制是“只有有限内部状态”，因此它擅长表达正则型语言和有限记忆行为，但不能表达需要无界栈或无界数据记忆的行为。和后来的 `EFSM`、`Statechart` 相比，它没有守卫变量、层次或并发结构。
+
+### 关键性质与判定边界
+
+Rabin-Scott 论文最关键的结论之一，就是 nondeterminism 不会提升有限自动机对单串语言的表达能力：
+
+$$
+\mathcal{L}(\text{NFA}) = \mathcal{L}(\text{DFA}) = \mathrm{REG}
+$$
+
+围绕这一点，论文系统研究了一批基础判定问题：
+
+$$
+\text{Emptiness}(A):\ L(A) = \emptyset\ ?
+$$
+
+$$
+\text{Finiteness}(A):\ |L(A)| < \infty\ ?
+$$
+
+$$
+\text{Equiv}(A_1, A_2):\ L(A_1) = L(A_2)\ ?
+$$
+
+$$
+\text{Contain}(A_1, A_2):\ L(A_1) \subseteq L(A_2)\ ?
+$$
+
+其历史意义在于：后续更复杂状态机的“表达力增强”，往往都能通过与这里的 `REG` 基线比较来判断到底新加了什么结构。
 
 ## 关键特性
 
@@ -60,6 +116,16 @@ $$
 | 时间约束 | 不支持 | 没有时钟和延迟语义。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散、非混成。 |
 | 可执行 / 可验证性 | 支持 | 可做 emptiness、equivalence、containment 一类判定分析。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 扩展转移 | `$\hat{\delta}(q, aw) = \bigcup_{q' \in \delta(q,a)} \hat{\delta}(q', w)$` | 用于定义 nondeterministic 接受语义。 |
+| 接受语言 | `$L(A) = \{w \mid \hat{\delta}(q_0,w)\cap F \neq \emptyset\}$` | 单带有限自动机识别的核心对象。 |
+| 表达力等价 | `$\mathcal{L}(\mathrm{NFA}) = \mathcal{L}(\mathrm{DFA})$` | nondeterminism 不提升正则语言表达力。 |
+| 空语言判定 | `$L(A)=\emptyset$` | 后续自动机判定问题的标准起点。 |
+| 包含/等价 | `$L(A_1)\subseteq L(A_2)$`、`$L(A_1)=L(A_2)$` | 建立自动机比较与最小化分析基线。 |
 
 ## 构造方式与承载格式
 

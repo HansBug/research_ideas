@@ -44,9 +44,71 @@ $$
 
 其中 `P` 是 places，`T` 是 transitions，`A`/`W` 描述弧与权重，`M_0` 是初始标识。标识 `M` 给出每个库所中的 token 数量。
 
+### 运行 / 接受 / 转移语义
+
+把 marking 看成向量：
+
+$$
+M : P \to \mathbb{N}
+$$
+
+则变迁 `t \in T` 在 marking `M` 下可激发，当且仅当：
+
+$$
+\forall p \in P,\ M(p) \geq Pre(p,t)
+$$
+
+记作：
+
+$$
+M[t\rangle
+$$
+
+一旦 `t` 发生，新的 marking 为：
+
+$$
+M' = M - Pre(\cdot,t) + Post(\cdot,t)
+$$
+
+记作：
+
+$$
+M[t\rangle M'
+$$
+
+于是可达标识集写成：
+
+$$
+R(N, M_0) = \{ M \mid M_0 [\sigma \rangle M \text{ for some firing sequence } \sigma \in T^* \}
+$$
+
+这条 token-game 语义就是 Petri 网全部分析能力的基础。
+
 ### 语义边界
 
 它天然强于平坦状态机的并发表示，但不以层次 UI 模式或对象化接口为核心。若需要复杂数据或时间，通常要进入高层网、着色网或时间网扩展。
+
+### 关键性质与判定边界
+
+Murata 教程最核心的性质整理就是围绕 marking 和 firing sequence 展开：
+
+$$
+\text{Reach}(N, M):\ M \in R(N, M_0)\ ?
+$$
+
+$$
+\text{Bounded}(N):\ \exists k,\ \forall M \in R(N, M_0),\ \forall p \in P,\ M(p) \leq k
+$$
+
+$$
+\text{Live}(N):\ \forall t \in T,\ \forall M \in R(N, M_0),\ \exists M' \in R(N, M),\ M'[t\rangle
+$$
+
+$$
+\text{Deadlock}(M):\ \neg \exists t \in T,\ M[t\rangle
+$$
+
+这些性质的意义在于：Petri 网把“并发正确性”转换成对可达 marking 图和结构不变量的分析，而不是对单线程控制路径的分析。
 
 ## 关键特性
 
@@ -60,6 +122,16 @@ $$
 | 时间约束 | 不直接支持 | 基础 P/T 网无显式时间。 |
 | 连续动态 / 随机性 | 部分支持 | 基础模型无连续，但论文讨论 stochastic nets 扩展。 |
 | 可执行 / 可验证性 | 强支持 | 可达性、活性、有界性、结构分析成熟。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 使能条件 | `$\forall p,\ M(p)\geq Pre(p,t)$` | 变迁何时可发生。 |
+| firing 语义 | `$M[t\rangle M' \iff M' = M-Pre(\cdot,t)+Post(\cdot,t)$` | token game 的核心更新规则。 |
+| 可达集 | `$R(N,M_0)$` | 所有后续行为分析的基础。 |
+| 有界性 | `$\exists k,\forall M\in R(N,M_0),\forall p,\ M(p)\leq k$` | 资源是否会无界增长。 |
+| 活性 | `$\forall t,\forall M\in R,\exists M'\in R(N,M),\ M'[t\rangle$` | 变迁是否会永久饿死。 |
 
 ## 构造方式与承载格式
 

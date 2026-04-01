@@ -38,9 +38,61 @@ Interface Automata 把接口看成“对环境输入的假设 + 自身输出保�
 
 接口自动机以状态和带方向的动作构成。与普通 I/O 模型不同，它把某些环境行为视为假设，并通过 compatibility 检查找出组合后的非法状态。
 
+可把其核心对象写成：
+
+$$
+A = (Q, q_0, \Sigma^{I}, \Sigma^{O}, \Sigma^{H}, \delta)
+$$
+
+其中：
+
+$$
+\Sigma = \Sigma^{I} \uplus \Sigma^{O} \uplus \Sigma^{H}
+$$
+
+`Q` 是接口状态集，`\Sigma^{I}` / `\Sigma^{O}` / `\Sigma^{H}` 分别是输入、输出和内部动作，`\delta \subseteq Q \times \Sigma \times Q` 是迁移关系。
+
+### 运行 / 接受 / 转移语义
+
+运行时配置是接口状态，步语义为：
+
+$$
+q \xrightarrow{a} q' \iff (q,a,q') \in \delta
+$$
+
+对两个接口自动机 `A` 与 `B`，若共享动作满足一方输出对应另一方输入，则可构造组合：
+
+$$
+A \parallel B
+$$
+
+共享动作在组合中同步，非共享动作独立前进。Interface Automata 的关键不是普通 trace，而是“组合后是否进入 illegal states”。可把非法状态集保守写为：
+
+$$
+\mathrm{Illegal}(A,B) = \{(p,q) \mid \exists a,\ a \in \Sigma_A^{O} \cap \Sigma_B^{I},\ p \xrightarrow{a} \land q \not\xrightarrow{a}\} \cup sym
+$$
+
+其中 `sym` 表示交换 `A/B` 后得到的对称情形。它刻画的正是“某一方准备输出，而另一方并未准备接受”的接口冲突。
+
 ### 语义边界
 
 它强调接口协作和组件替换，而不是复杂内部数据或连续物理过程。其核心不是“系统本体怎么运行”，而是“两个接口能否安全协同”。
+
+### 关键性质与判定边界
+
+于是接口兼容性的核心判定就是：
+
+$$
+\text{Compat}(A,B) \iff \mathrm{Reach}(A \parallel B) \cap \mathrm{Illegal}(A,B) = \emptyset
+$$
+
+而 refinement / substitutivity 则通过 alternating simulation 表达。若记该关系为 `\preceq_{alt}`，则其关键目标是：
+
+$$
+A_1 \preceq_{alt} A_2 \Rightarrow A_1 \parallel B \preceq_{alt} A_2 \parallel B
+$$
+
+前提是相关组合均定义良好。也就是说，Interface Automata 的边界不在“表达内部算法”，而在于它只分析接口协作是否可接受，以及某个组件是否可被更精化的接口替换。
 
 ## 关键特性
 
@@ -54,6 +106,16 @@ Interface Automata 把接口看成“对环境输入的假设 + 自身输出保�
 | 时间约束 | 不支持 | 无显式时间。 |
 | 连续动态 / 随机性 | 不支持 | 纯离散接口行为。 |
 | 可执行 / 可验证性 | 强支持 | alternating simulation 与 refinement 明确。 |
+
+### 形式化问题与性质
+
+| 问题 / 性质 | 形式化写法 | 原文意义 |
+|---|---|---|
+| 单步接口迁移 | `$q \xrightarrow{a} q'$` | 接口在动作驱动下变更状态。 |
+| 组合 | `$A \parallel B$` | 共享输入/输出动作同步执行。 |
+| 非法状态 | `$\mathrm{Illegal}(A,B)$` | 输出无法被对方接受的冲突状态。 |
+| 兼容性 | `$\mathrm{Reach}(A \parallel B)\cap \mathrm{Illegal}(A,B)=\emptyset$` | 两接口能否安全协同。 |
+| 交替模拟 | `$A_1 \preceq_{alt} A_2$` | 接口精化与可替换性的基础。 |
 
 ## 构造方式与承载格式
 
