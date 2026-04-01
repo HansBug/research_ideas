@@ -42,11 +42,28 @@ $$
 (S, \oplus, \otimes, 0, 1)
 $$
 
+这一定义中的符号逐项解释如下：
+
+1. `S` 是权值所在的集合。
+2. `\oplus` 是路径间聚合运算。
+3. `\otimes` 是单条路径内部的组合运算。
+4. `0` 是 `\oplus` 的单位元。
+5. `1` 是 `\otimes` 的单位元。
+
 再定义 weighted transducer：
 
 $$
 T = (\Sigma, \Delta, Q, I, F, E, \lambda, \rho)
 $$
+
+这个加权换能器元组中的符号逐项解释如下：
+
+1. `\Sigma` 与 `\Delta` 分别是输入和输出字母表。
+2. `Q` 是状态集。
+3. `I \subseteq Q`、`F \subseteq Q` 分别是初态和终态集合。
+4. `E` 是带输入标签、输出标签和权值的迁移多重集。
+5. `\lambda` 是初始权函数。
+6. `\rho` 是终止权函数。
 
 其中：
 
@@ -64,6 +81,16 @@ A = (\Sigma, Q, I, F, E, \lambda, \rho)
 $$
 
 其中每条迁移 `e \in E` 仅带一个输入标签和一个权值。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“给每条字符串分配最短代价”。设自动机读入字符串 `ab`：
+
+1. 读到 `a` 的迁移代价是 `2`。
+2. 读到 `b` 的迁移代价是 `3`。
+3. 若存在多条可行路径，就用 semiring 的 `\oplus` 选出总代价最优或把概率加总。
+
+通俗解释是：`Weighted Automata` 就是在普通状态机的每条边上再贴一个数值标签。这个数值可以是概率、代价、分数、权重或置信度；模型不再只回答“接不接受”，还会回答“以多大代价/概率/分数接受”。
 
 ### 运行 / 接受 / 转移语义
 
@@ -101,6 +128,19 @@ $$
 
 这个量后续直接支撑 `weight pushing`、`epsilon-removal` 等算法。
 
+上述加权语义中的符号逐项解释如下：
+
+1. `\pi` 是一条成功路径。
+2. `w[\pi]` 是路径 `\pi` 的总权值。
+3. `w[e]` 是单条迁移 `e` 的权值。
+4. `P(I,x,y,F)` 是从某个初态到某个终态、输入为 `x`、输出为 `y` 的全部成功路径集合。
+5. `P(I,x,F)` 是 acceptor 情形下输入为 `x` 的全部成功路径集合。
+6. `p[\pi]` 与 `n[\pi]` 分别表示路径 `\pi` 的起点状态和终点状态。
+7. `\lambda(p[\pi])` 与 `\rho(n[\pi])` 分别是路径起点和终点附带的初始权、终止权。
+8. `T(x,y)` 是 weighted transducer 对输入输出串对 `(x,y)` 赋予的总权值。
+9. `A(x)` 是 weighted automaton 对字符串 `x` 赋予的总权值。
+10. `d[q]` 是从状态 `q` 到任一终态的聚合距离。
+
 ### 语义边界
 
 相对普通 `Finite Automata`，它多了路径权值和路径间聚合；相对 `Probabilistic Automata`，它更一般，因为 semiring 不限于概率；相对 `Weighted Logics`，它偏自动机和图算法本体。
@@ -130,6 +170,14 @@ $$
 $$
 \text{If } A \text{ has the twins property, then } A \text{ is determinizable.}
 $$
+
+这些算法边界中的符号逐项解释如下：
+
+1. `\text{Eval}(A,x)` 表示计算自动机 `A` 在输入 `x` 上的权值。
+2. `\text{ShortestDist}(G,s)` 表示计算图 `G` 中从源点 `s` 出发的 semiring 距离。
+3. `\text{Determinize}(A)` 表示尝试把 `A` 确定化为等价的 subsequential automaton。
+4. `\text{Minimize}(A)` 表示对确定型加权自动机做最小化。
+5. `twins property` 是原文给出的确定化充分条件；在特定 semiring 与歧义条件下还可成为等价条件。
 
 对 tropical semiring 上的 trim unambiguous weighted automata，原文进一步给出 twins property 与 determinizability 的等价刻画。也就是说，它不是“所有带权自动机都能 determinize”，可判定条件本身就是模型边界的一部分。
 

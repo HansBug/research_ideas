@@ -44,13 +44,36 @@ $$
 CA = (Q, q_0, F, T)
 $$
 
+上式中的符号逐项解释如下：
+
+1. `Q` 是有限状态集。
+2. `q_0` 是初始状态。
+3. `F` 是接受状态集合。
+4. `T` 是迁移集合。
+
 其中迁移关系为：
 
 $$
 T \subseteq Q \times S^n \times Q
 $$
 
+这条迁移定义中的符号逐项解释如下：
+
+1. `S^n` 是 `n` 维向量动作字母表。
+2. `n` 是参与方数量，也就是 contract automaton 的 rank。
+3. `Q \times S^n \times Q` 表示每次迁移都由“源状态 + 多方联合动作 + 目标状态”构成。
+
 这里 `S^n` 是 `n` 维向量动作字母表；每个分量描述对应参与方在该步的 request、offer、match 或 idle 行为。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“买方请求商品，卖方提供商品”。设有两个参与方：
+
+1. 买方在某一步发出 `request(book)`。
+2. 卖方在同一步给出 `offer(book)`。
+3. 若这两个动作能够对齐，就形成一次 `match`，系统从“待协商”状态转到“已成交”状态。
+
+通俗解释是：`Contract Automata` 像一张“多方履约对账表”。普通状态机只关心系统自己怎么走；它则关心多个参与方在同一步分别提出什么请求、给出什么承诺，最后这些请求和承诺能不能配成对。
 
 ### 运行 / 接受 / 转移语义
 
@@ -86,6 +109,20 @@ $$
 \mathcal{A} \subsetneq \mathcal{W}
 $$
 
+上述语义公式中的符号逐项解释如下：
+
+1. `\vec{a}_i` 是第 `i` 步的向量动作，记录所有参与方在该步的联合行为。
+2. `w` 是由这些向量动作拼成的行为词。
+3. `L(CA)` 是契约自动机 `CA` 的接受语言。
+4. `Obs(w)` 是把内部细节折叠后的可观察动作投影。
+5. `O` 是可观察 offer 或匹配动作的集合。
+6. `\tau` 表示不可观察或内部同步动作。
+7. `\mathcal{A}` 是强 agreement 语言。
+8. `\mathcal{W}` 是弱 agreement 语言。
+9. `f:[1..m]\to[1..m]` 是把 request 位置映到其匹配 offer 位置的配对函数。
+10. `\bowtie` 表示两个向量动作可匹配。
+11. `\subsetneq` 表示真包含，因此强 agreement 比弱 agreement 更严格。
+
 ### 语义边界
 
 它适合表达多方契约满足关系和编排责任，不适合表达层次控制、实时约束或连续动态。
@@ -109,6 +146,15 @@ $$
 $$
 \text{AdmitsWeakAgreement}(CA) \iff L(CA) \cap \mathcal{W} \neq \emptyset
 $$
+
+这些性质公式中的符号逐项解释如下：
+
+1. `\text{Safe}(CA)` 表示所有可接受行为都满足强 agreement。
+2. `\text{AdmitsAgreement}(CA)` 表示至少存在一条强 agreement 行为。
+3. `\text{WeakSafe}(CA)` 表示所有可接受行为都满足弱 agreement。
+4. `\text{AdmitsWeakAgreement}(CA)` 表示至少存在一条弱 agreement 行为。
+5. `L(CA) \subseteq \mathcal{A}` 和 `L(CA) \subseteq \mathcal{W}` 是“总是守约”的语言包含条件。
+6. `L(CA) \cap \mathcal{A} \neq \emptyset` 与 `L(CA) \cap \mathcal{W} \neq \emptyset` 是“至少有一条可行履约路径”的可达性条件。
 
 在此基础上，论文还讨论 orchestrator / controller 合成，以及导致违反 agreement 的 liable participants。也就是说，Contract Automata 的判定边界不在普通接口相容，而在“多方契约是否能被同步或异步满足，以及谁对失败负责”。
 

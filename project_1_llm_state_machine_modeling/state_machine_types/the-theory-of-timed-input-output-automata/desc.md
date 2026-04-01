@@ -44,12 +44,22 @@ $$
 A = (Q, Q_0, \Sigma^{in}, \Sigma^{out}, \Sigma^{int}, \mathcal{T}, \rightarrow)
 $$
 
-其中：
+上式中的符号逐项解释如下：
 
 1. `Q` 是状态集合，`Q_0` 是初始状态集合。
 2. `\Sigma^{in}` / `\Sigma^{out}` / `\Sigma^{int}` 分别是输入、输出和内部动作。
 3. `\mathcal{T}` 是 trajectory 集合。
 4. `\rightarrow` 是离散动作迁移关系。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“带超时的应答组件”。设系统收到输入 `start?` 后开始计时：
+
+1. 在等待阶段，时间轨迹让局部时钟持续增长。
+2. 当轨迹演化到 `x = 5` 时，系统可输出 `done!`。
+3. 若环境提前给出 `cancel?`，则走另一条离散动作迁移终止当前等待。
+
+通俗解释是：`TIOA` 把系统行为拆成两类东西一起看。离散动作负责“发生了什么交互”，trajectory 负责“这段时间里状态是怎么连续流动的”；因此它比普通 I/O automata 多了显式时间演化，又比经典 timed automata 更强调组件接口和组合。
 
 ### 运行 / 接受 / 转移语义
 
@@ -79,6 +89,18 @@ $$
 
 这里 `E_i` 表示第 `i` 个组件的外部动作与轨迹可见部分。
 
+上述运行与组合语义中的符号逐项解释如下：
+
+1. `\alpha` 是一段混合执行片段。
+2. `x_i` 是某段轨迹开始前的状态，`x_i'` 是该段轨迹结束时的状态。
+3. `\tau_i` 是第 `i` 段 trajectory。
+4. `a_{i+1}` 是轨迹之后发生的离散动作。
+5. `\tau_i.\mathrm{fstate}` 与 `\tau_i.\mathrm{lstate}` 分别是轨迹的起始状态和结束状态。
+6. `\mathrm{traces}(A)` 是自动机 `A` 的外部 trace 集合。
+7. `A_1 \parallel A_2` 表示两个 TIOA 的并行组合。
+8. `\beta` 是组合系统的一条外部行为。
+9. `\beta \upharpoonright E_i` 表示把行为 `\beta` 投影到第 `i` 个分量的外部可见字母表 `E_i` 上。
+
 ### 语义边界
 
 它比 `Timed Automata` 更强调组件组合与输入/输出接口，比普通 `I/O Automata` 多了时间轨迹；但它不是面向统一工业标准的交换格式。
@@ -102,6 +124,15 @@ $$
 $$
 \text{receptive} \Rightarrow \text{closed under composition}
 $$
+
+这些性质公式中的符号逐项解释如下：
+
+1. `A_1 \leq A_2` 表示 `A_1` 是 `A_2` 的一个实现或更精化的替代物。
+2. `\mathrm{traces}(A_1) \subseteq \mathrm{traces}(A_2)` 是对应的 trace inclusion 条件。
+3. `B` 是与待替换组件组合的环境或上下文组件。
+4. `A_1 \parallel B \leq A_2 \parallel B` 表示替换在组合下保持成立。
+5. `receptive` 表示组件始终能接住其接口允许的环境输入。
+6. `closed under composition` 表示这种良性性质在并行组合后仍然保持。
 
 这说明 TIOA 的难点不在定义时间，而在于“时间+接口+组合”三者一起出现时，如何保证系统始终能接住环境输入。
 

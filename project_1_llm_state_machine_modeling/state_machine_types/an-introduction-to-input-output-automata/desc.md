@@ -56,6 +56,21 @@ $$
 \forall q \in Q,\ \forall a \in \Sigma^{in},\ \exists q' \in Q,\ q \xrightarrow{a} q'
 $$
 
+上面公式中的符号逐项解释如下：
+
+1. `Q` 是状态集合。
+2. `Q_0` 是初始状态集合。
+3. `\Sigma^{in}`、`\Sigma^{out}`、`\Sigma^{int}` 分别是输入、输出和内部动作集合。
+4. `\uplus` 表示不交并。
+5. `\rightarrow` 表示动作标记的迁移关系。
+6. `q`、`q'` 是具体状态，`a` 是具体输入动作。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“请求者 + 应答者”。请求者把 `sendReq` 当成输出动作，把 `recvAck` 当成输入动作；应答者正好相反。两者组合后，请求和应答会通过共享动作同步起来。
+
+通俗解释是：`I/O Automata` 像给每个组件贴上“哪些事是我主动做的，哪些事是环境塞给我的”标签。它不是只问状态怎么变，而是先问“谁有权触发这个动作”，所以很适合描述可组合组件。
+
 ### 运行 / 接受 / 转移语义
 
 一个 execution fragment 可写成：
@@ -94,6 +109,16 @@ $$
 \beta \in \mathrm{traces}(A_1 \parallel A_2) \iff \beta \upharpoonright \Sigma^{ext}_{A_i} \in \mathrm{traces}(A_i),\ i \in \{1,2\}
 $$
 
+这些语义公式中的符号逐项解释如下：
+
+1. `\alpha` 是 execution fragment，也就是状态和动作交替构成的运行片段。
+2. `\Sigma^{ext}` 是外部动作集合，等于输入动作与输出动作之并。
+3. `\mathrm{trace}(\alpha)` 是把执行 `\alpha` 投影到外部动作后得到的序列。
+4. `\mathrm{Exec}(A)` 是自动机 `A` 的执行集合。
+5. `A_1 \parallel A_2` 表示两个 I/O 自动机的并行组合。
+6. `\upharpoonright` 表示投影或限制到某个动作集合上。
+7. `\beta` 是组合后的外部行为。
+
 ### 语义边界
 
 它是纯离散事件模型，不包含显式实时间钟或连续动力学；但它比普通 `FSM` 更强，因为它内建组件组合、外部行为和实现关系。
@@ -119,6 +144,13 @@ A_1 \leq A_2 \Rightarrow A_1 \parallel B \leq A_2 \parallel B
 $$
 
 前提是相关动作签名满足相容条件。也就是说，I/O Automata 的能力边界来自“输入不可阻塞 + 组合投影 + trace 包含”，而不是复杂数据或时间构造。
+
+这里的性质公式符号逐项解释如下：
+
+1. `P` 是某个问题或规范所允许的外部行为集合。
+2. `A \models P` 表示自动机 `A` 解决问题 `P`。
+3. `\leq` 表示基于 trace inclusion 的实现或精化关系。
+4. `B` 是上下文组件，用来说明该精化关系具有可替换性。
 
 ## 关键特性
 

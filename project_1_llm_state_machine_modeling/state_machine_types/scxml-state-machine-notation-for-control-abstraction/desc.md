@@ -44,13 +44,23 @@ $$
 X = (S, s_0, T, \eta_0, Q_{ext}, Q_{int})
 $$
 
-其中：
+上式中的符号逐项解释如下：
 
 1. `S` 是由 `<state>` / `<parallel>` / `<final>` / `<history>` 构成的状态树。
 2. `s_0` 由 `<scxml>` 的 `initial` 入口决定。
 3. `T` 是由 `<transition>` 元素给出的迁移集合。
 4. `\eta_0` 是初始 datamodel 赋值。
 5. `Q_{ext}`、`Q_{int}` 分别是外部和内部事件队列。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“门锁状态机”的 SCXML 表达：
+
+1. `<state id="locked">` 中放一条 `<transition event="coin" target="unlocked"/>`。
+2. `<state id="unlocked">` 中放一条 `<transition event="push" target="locked"/>`。
+3. 如果再配一个 `<datamodel>` 变量计数开门次数，就能把简单状态切换和数据更新放在同一份 XML 文档里。
+
+通俗解释是：`SCXML` 相当于把层次状态机写成一份标准化 XML。人脑看的是状态、事件和嵌套关系；机器看的是统一标签、统一算法和统一事件队列，所以它既能表达 `Statechart` 式结构，又能直接交给执行器运行。
 
 ### 运行 / 接受 / 转移语义
 
@@ -91,6 +101,19 @@ $$
 (C,\eta,Q_{int},e) \xRightarrow{\mathrm{macro}} (C^*,\eta^*,\emptyset)
 $$
 
+上述执行语义中的符号逐项解释如下：
+
+1. `C` 是当前活动状态配置。
+2. `\mathrm{Legal}(X)` 是关于文档 `X` 的合法配置集合。
+3. `e` 是当前待处理事件。
+4. `\mathrm{Opt}(C,e)` 是在配置 `C` 下针对事件 `e` 选出的最优转移集。
+5. `\eta` 是当前 datamodel 变量环境。
+6. `Q_{int}` 是内部事件队列。
+7. `\xRightarrow{\mu_e}` 表示一次 microstep。
+8. `\xRightarrow{\mathrm{macro}}` 表示一次 macrostep，也就是若干 microstep 的闭包。
+9. `C^*` 与 `\eta^*` 是 macrostep 结束后的最终配置和最终数据环境。
+10. `\emptyset` 表示内部事件队列被清空。
+
 ### 语义边界
 
 SCXML 仍然是离散事件状态机，不是连续或概率模型。它擅长承载层次状态机、事件处理和外部通信，但其时序能力主要依赖外部事件与定时发送，不等价于显式时钟自动机。
@@ -102,6 +125,12 @@ SCXML 最关键的语义性质是 run-to-completion：每个外部事件触发�
 $$
 e \in Q_{ext} \Rightarrow \text{one macrostep per external event}
 $$
+
+这条 RTC 约束中的符号逐项解释如下：
+
+1. `Q_{ext}` 是外部事件队列。
+2. `e \in Q_{ext}` 表示事件 `e` 来自环境输入。
+3. `one macrostep per external event` 表示每个外部事件都触发且只触发一轮完整的 run-to-completion 处理。
 
 规范还明确给出两个边界：
 

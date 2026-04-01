@@ -48,12 +48,29 @@ $$
 U = (R, V, T, \Pi)
 $$
 
+上式中的符号逐项解释如下：
+
+1. `R` 是 Region 集合。
+2. `V` 是 Vertex 集合，包括 State 和 Pseudostate。
+3. `T` 是 Transition 集合，带 Trigger / Guard / Effect。
+4. `\Pi` 是事件池与 run-to-completion 执行上下文。
+
 其中：
 
 1. `R` 是 Region 集合。
 2. `V` 是 Vertex 集合，包括 State 和 Pseudostate。
 3. `T` 是 Transition 集合，带 Trigger / Guard / Effect。
 4. `\Pi` 是事件池与 run-to-completion 执行上下文。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“闸机”的 UML 状态机：
+
+1. 在状态 `Locked` 上收到事件 `coin` 时，迁移到 `Unlocked`。
+2. 在状态 `Unlocked` 上收到事件 `push` 时，迁移回 `Locked`。
+3. 如果把“报警器”放到另一条 region 里，就能让“主模式”和“并发告警模式”同时存在。
+
+通俗解释是：UML 状态机像面向工程建模的 `Statechart`。它不只是画几个状态和箭头，而是把状态、区域、伪状态、事件池和执行上下文都放进统一元模型里，让工具链能够交换、生成和分析。
 
 ### 运行 / 接受 / 转移语义
 
@@ -79,6 +96,18 @@ $$
 
 当正交区域存在时，同一事件可在不同 bottom-level regions 中各触发至多一条迁移；completion events 则优先于事件池中的普通事件分派。
 
+上述 UML 执行语义中的符号逐项解释如下：
+
+1. `C` 是当前活动配置。
+2. `\Pi` 是事件池和 RTC 执行上下文。
+3. `\xRightarrow{\mathrm{RTC}(e)}` 表示针对事件 `e` 执行一轮 run-to-completion。
+4. `t` 是某条候选迁移。
+5. `source(t)` 是迁移 `t` 的源顶点集合或源路径。
+6. `source(t) \subseteq C` 表示迁移源端当前处于活动配置中。
+7. `\mathrm{match}(trigger(t),e)` 表示事件 `e` 能匹配迁移 `t` 的触发器。
+8. `guard(t)=true` 表示迁移守卫求值为真。
+9. `\mathrm{validPath}(t,C)` 表示该迁移在当前层次/正交配置下具有合法执行路径。
+
 ### 语义边界
 
 UML 状态机比原始 `Statecharts` 更工程化、更对象化，但也更复杂。它适合标准建模和交换，不像 `SCXML` 那样直接面向执行，也不像 `Timed Automata` 那样直接面向实时判定。
@@ -98,6 +127,12 @@ $$
 $$
 \text{at most one transition per bottom-level orthogonal region}
 $$
+
+这些规范边界中的符号逐项解释如下：
+
+1. `one event dispatched at a time` 表示 UML 事件分派默认串行。
+2. `completion events have priority` 表示完成事件优先于普通待处理事件。
+3. `at most one transition per bottom-level orthogonal region` 表示在同一个最底层正交区域内，同一事件最多触发一条迁移。
 
 但规范也明确留下了若干边界：例如事件分派顺序本身未完全固定，正交区域中多个迁移的具体执行顺序也留给实现。这就是为什么 UML 状态机要做形式验证时，通常必须先选择 profile、子集或翻译语义。
 

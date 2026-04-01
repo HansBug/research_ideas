@@ -42,7 +42,25 @@ $$
 (P, T, Pre, Post, m_0, Is)
 $$
 
+上式中的符号逐项解释如下：
+
+1. `P` 是库所集合。
+2. `T` 是变迁集合。
+3. `Pre` 与 `Post` 分别给出输入弧和输出弧权重。
+4. `m_0` 是初始 marking。
+5. `Is` 是把每个变迁映到静态时间区间的函数。
+
 其中 `(P,T,Pre,Post,m_0)` 是基础 Petri 网，`Is` 是把每个变迁映射到时间区间的静态区间函数。状态由 `(m, I)` 构成，`m` 是 marking，`I` 是 enabled transitions 上的 firing interval。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“任务最早 2 秒、最晚 5 秒启动”。设库所 `Ready` 中初始有一个 token，变迁 `Start` 的时间区间是 `[2,5]`：
+
+1. token 一进入 `Ready`，`Start` 就被使能。
+2. 但它不能立刻 firing，必须至少等到 `2` 个时间单位之后。
+3. 若一直等到超过 `5` 个时间单位还没 firing，这个状态就变成非法。
+
+通俗解释是：`Time Petri Net` 还是那张并发资源流网络，只是每个变迁多了一道“时间窗口”。什么时候最早能发生、最晚必须发生，不再靠外部口头说明，而是进了模型语义本身。
 
 ### 运行 / 接受 / 转移语义
 
@@ -96,6 +114,19 @@ $$
 
 其中 `D` 是 firing domain / clock constraint system；这就是 state class graph 的节点定义。
 
+上述时间语义中的符号逐项解释如下：
+
+1. `I_s(t) = [\alpha(t), \beta(t)]` 是变迁 `t` 的静态时间窗口。
+2. `\alpha(t)` 是最早 firing 时间，`\beta(t)` 是最晚 firing 时间。
+3. `E = (m,\nu)` 是运行时状态。
+4. `m` 是当前 marking。
+5. `\nu(t)` 是变迁 `t` 自使能以来已经等待的时间。
+6. `En(m)` 是在 marking `m` 下当前使能的变迁集合。
+7. `(m,\nu) \xrightarrow{d} (m,\nu+d)` 表示时间前进 `d` 个单位而 marking 不变。
+8. `(m,\nu)[t\rangle(m',\nu')` 表示变迁 `t` 在窗口内 firing 后得到新状态。
+9. `m' = m - Pre(\cdot,t) + Post(\cdot,t)` 是 firing 后的 token 更新。
+10. `C = (m,D)` 是一个状态类，其中 `D` 记录该类中允许的时钟约束域。
+
 ### 语义边界
 
 它比基础 Petri 网多了显式时间，但仍然没有一般连续动力学；时间表现为变迁何时最早/最晚可发生。
@@ -119,6 +150,14 @@ $$
 $$
 \text{k-Bounded}(TPN),\qquad \text{ReachMarking}(m_f)
 $$
+
+这些分析对象中的符号逐项解释如下：
+
+1. `\text{SCG}_{trace}` 表示保留 firing 序列与 trace 信息的 state class graph。
+2. `\text{SCG}_{mark}` 表示主要保留 marking 信息的更弱抽象。
+3. `\text{k-Bounded}(TPN)` 是 `TPN` 是否 `k` 有界的判定问题。
+4. `\text{ReachMarking}(m_f)` 是目标 marking `m_f` 是否可达的判定问题。
+5. `m_f` 是待检验的目标标识。
 
 而在更强扩展中，某些 state / marking reachability 会重新失去可判定性。也就是说，TPN 的关键边界不只是“加了时间”，而是“状态类抽象到底保留多少实时语义”。
 

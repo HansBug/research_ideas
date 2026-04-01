@@ -42,7 +42,7 @@ $$
 M = (S, s_0, V, \Sigma_{ext}^{in}, \Sigma_{ext}^{out}, H, T)
 $$
 
-其中：
+上式中的符号逐项解释如下：
 
 1. `S` 是 major state 集合，`s_0` 是初始状态。
 2. `V` 是上下文变量、参数和局部数据。
@@ -70,6 +70,27 @@ $$
 $$
 
 这里的 `\phi` 是沿该路径累计得到的 path predicate。原文对 `IF`、`CASE`、循环展开、过程内联和 `FROM` 多状态展开的讨论，本质上都是在把“多路径迁移”拆成若干 `NFT`。
+
+上述 EFSM 结构公式中的符号逐项解释如下：
+
+1. `\tau` 是一条普通迁移。
+2. `s` 与 `s'` 分别是源 major state 和目标 major state。
+3. `\iota` 是输入触发，可能是外部输入、内部消息消费或 `\epsilon` 自发触发。
+4. `\gamma` 是原始守卫条件。
+5. `\alpha` 是动作块，会更新变量或调用局部过程。
+6. `\omega` 是输出动作序列。
+7. `\tau^{nf}` 是 normal form transition。
+8. `\phi` 是经 symbolic execution 展开后累积得到的路径谓词。
+
+### 一个最小例子与通俗解释
+
+一个最小例子是“带重试计数的握手协议”。设状态有 `Idle` 和 `WaitingAck`，并引入变量 `retry`：
+
+1. 在 `Idle` 收到 `send(req)` 时，输出 `req!`，令 `retry := 0`，转到 `WaitingAck`。
+2. 在 `WaitingAck` 收到 `timeout` 且满足 `retry < 3` 时，执行 `retry := retry + 1`，再次输出 `req!`。
+3. 在 `WaitingAck` 收到 `ack` 时，转回 `Idle`。
+
+通俗解释是：`EFSM` 就是在普通状态机外面再挂一层“变量和动作脚本”。状态负责描述大的控制模式，变量负责记住次数、参数和值，守卫和动作则决定什么时候能走、走的时候顺便改什么数据。
 
 ### 运行 / 接受 / 转移语义
 
@@ -120,6 +141,20 @@ $$
 P = M_1 \bowtie M_2,\qquad S_P = S_1 \times S_2
 $$
 
+上述运行与组合语义中的符号逐项解释如下：
+
+1. `c = (s,\nu,\kappa)` 是运行时配置。
+2. `\nu : V \to Val` 是变量赋值函数。
+3. `\kappa` 记录内部通道或消息队列状态。
+4. `\nu \models \phi` 表示当前变量赋值满足路径谓词 `\phi`。
+5. `\nu' = \alpha(\nu)` 表示动作块 `\alpha` 对变量环境的更新结果。
+6. `h!m` 表示在内部通道 `h` 上发送消息 `m`。
+7. `h?x` 表示在内部通道 `h` 上接收消息并把值绑定到变量 `x`。
+8. `[x := m]` 表示把消息值 `m` 代入变量 `x` 后再计算守卫或动作。
+9. `\tau_1 \bowtie_h \tau_2` 表示沿内部通道 `h` 把两条迁移组合成一条 product 迁移。
+10. `P = M_1 \bowtie M_2` 是两个 EFSM 的组合产物。
+11. `S_P = S_1 \times S_2` 表示组合后状态空间是笛卡尔积。
+
 ### 语义边界
 
 它仍然是离散状态机，不带显式时间语义，也没有层次状态或连续动力学。原文的动态分析还带有一个非常关键的适用边界：limited reachability 默认只考察“内部队列至多含一条消息”的近似。
@@ -153,6 +188,19 @@ $$
 $$
 \text{Overflow}(h) \equiv \exists \pi \text{ cycle with unbounded } emit_h(\pi)
 $$
+
+这些分析问题中的符号逐项解释如下：
+
+1. `\text{Reach}_{\le 1}(M_1, M_2)` 表示在每条内部通道最多保留一条消息的前提下做可达性探索。
+2. `|\kappa_h| \le 1` 是对应的队列近似边界。
+3. `\text{Deadlock}(c)` 表示配置 `c` 中没有任何可使能迁移，且它不是终止配置。
+4. `Enabled(c)` 是配置 `c` 下当前可触发迁移的集合。
+5. `F` 是终止或接受配置集合。
+6. `\text{UnspecRecv}(h,m)` 表示消息 `m` 被发到通道 `h` 上，但不存在匹配消费迁移。
+7. `consume_h(\tau,m)` 表示迁移 `\tau` 能在通道 `h` 上消费消息 `m`。
+8. `\pi` 是某条循环路径。
+9. `emit_h(\pi)` 表示在循环 `\pi` 中向通道 `h` 发消息的行为。
+10. `unbounded` 表示该循环可导致信道内容无限增长。
 
 其中 `Deadlock`、`UnspecRecv` 和 `Overflow` 都是原文显式讨论的错误类型；`blocking receptions` 与 `tempo-blockings` 则属于同一类“内部通信无法按预期继续推进”的动态异常。论文同时明确给出一个判定边界：
 
