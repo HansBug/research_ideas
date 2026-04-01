@@ -22,32 +22,38 @@
 
 ## 形式主义主类口径
 
-| Emoji | 主类 | 范围 |
-|---|---|---|
-| 🧩 | 经典离散状态机 | `FSM`、`EFSM`、`Statechart`、`UML State Machine`、`SCXML` 等 |
-| ⏱️ | 时间/时钟自动机 | `Timed Automata`、`Timed Statecharts`、`TIOA` 等 |
-| 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 |
-| 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 |
-| 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 |
-| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 |
+右侧数量统计当前正式入账条目中涉及该主类的次数：普通论文按 `主类` 计数，综述论文按 `覆盖主类` 中出现的每个 emoji 分别计数。
+
+| Emoji | 主类 | 范围 | 数量 |
+|---|---|---|---:|
+| 🧩 | 经典离散状态机 | `FSM`、`EFSM`、`Statechart`、`UML State Machine`、`SCXML` 等 | 2 |
+| ⏱️ | 时间/时钟自动机 | `Timed Automata`、`Timed Statecharts`、`TIOA` 等 | 2 |
+| 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 1 |
+| 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 | 1 |
+| 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 | 0 |
+| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 2 |
 
 ## 状态口径
 
-| Emoji | 含义 |
-|---|---|
-| 🟢 | 直接可用 |
-| 🟡 | 可整理 |
-| ⚪ | 未收获 |
-| ⏳ | 尚未提取 |
+右侧数量统计当前普通论文总表与综述论文总表中的状态条目总数。
+
+| Emoji | 含义 | 数量 |
+|---|---|---:|
+| 🟢 | 直接可用 | 4 |
+| 🟡 | 可整理 | 1 |
+| ⚪ | 未收获 | 0 |
+| ⏳ | 尚未提取 | 0 |
 
 ## 综述对象类型口径
 
-| Emoji | 对象类型 | 含义 |
-|---|---|---|
-| 🧱 | 模型本体 | 主要综述形式主义本身、语义、变体与边界 |
-| 🛠️ | 方法路线 | 主要综述围绕形式主义的验证、综合、转换、形式化方法 |
-| 🏗️ | 标准/基础设施 | 主要综述标准、交换格式、元模型、API、工具互操作 |
-| 🧪 | 应用/案例 | 主要综述领域应用、案例与工业采用 |
+右侧数量统计当前综述论文总表中的对象类型条目总数。
+
+| Emoji | 对象类型 | 含义 | 数量 |
+|---|---|---|---:|
+| 🧱 | 模型本体 | 主要综述形式主义本身、语义、变体与边界 | 2 |
+| 🛠️ | 方法路线 | 主要综述围绕形式主义的验证、综合、转换、形式化方法 | 2 |
+| 🏗️ | 标准/基础设施 | 主要综述标准、交换格式、元模型、API、工具互操作 | 1 |
+| 🧪 | 应用/案例 | 主要综述领域应用、案例与工业采用 | 0 |
 
 ## 当前收录重心
 
@@ -158,6 +164,7 @@
 |---|---|---|
 | 2026-04-01 11:58:00 | 建立 `state_machine_types/` 文库骨架 | 新增 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)、[DESC_GUIDE.md](./DESC_GUIDE.md)、[SURVEY_GUIDE.md](./SURVEY_GUIDE.md)，并固定普通论文/综述论文双表口径 |
 | 2026-04-01 13:03:21 | 首次收录综述类论文 | 新增 5 篇 `survey.md` 条目并回填综述总表与 follow-up 原始文献表，覆盖 `Statecharts/UML`、`Timed Automata`、`Hybrid Automata`、`Petri Net standardisation/PNML` |
+| 2026-04-01 13:45:03 | 补充图例数量统计口径 | 为“形式主义主类”“状态”“综述对象类型”三张图例表增加右侧数量列，并要求后续随正式总表同步更新 |
 
 ## 失败与阻塞记录
 
