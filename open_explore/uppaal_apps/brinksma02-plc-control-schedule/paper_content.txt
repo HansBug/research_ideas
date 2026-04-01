@@ -1,0 +1,1317 @@
+--- Page 1 ---
+Software Tools for Technology Transfer manuscript No.
+(will be inserted by the editor)
+Veriﬁcation and Optimization of a PLC Control Schedule
+Ed Brinksma1, Angelika Mader2, Ansgar Fehnker2⋆
+1Faculty of Computer Science, University of Twente, e-mail: brinksma@cs.utwente.nl
+2Computer Science Department, University of Nijmegen, e-ma il:{mader,ansgar }@cs.kun.nl
+Abstract. We report on the use of model checking tech-
+niques for both the veriﬁcation of a process control pro-
+gram and the derivation of optimal control schedules.
+Most of this work has been carried out as part of a case
+study for the EU VHS project (Veriﬁcation of Hybrid
+Systems), in which the program for a Programmable
+Logic Controller (PLC) of an experimental chemical plant
+had to be designed and veriﬁed. The original intention
+of our approach was to see how much could be achieved
+here using the standard model checking environment of
+SPIN/Promela. As the symbolic calculations of real-time
+model checkers can be quite expensive it is interesting to
+try and exploit the eﬃciency of established non-real-time
+model checkers like SPIN in those cases where promising
+work-arounds seem to exist. In our case we handled the
+relevant real-time properties of the PLC controller using
+a time-abstraction technique; for the scheduling we im-
+plemented in Promela a so-called variable time advance
+procedure . To compare and interpret the results we car-
+ried out the same case study with the aid of the real-time
+model checker Uppaal , enhanced with facilities for cost-
+guided state space exploration. Both approaches proved
+suﬃciently powerful to verify the design of the controller
+and/or derive (time-)optimal schedules within reason-
+able time and space requirements.
+1 Introduction
+Nowadays, the veriﬁcation of hybrid systems is a pop-
+ular topic in the formal methods community. The pres-
+ence of both discrete and continuous phenomena in such
+⋆The second author is supported by a NWO postdoc grant, the
+third author by an NWO PhD grant, and both are supported by
+the EU LTR project VHS (project nr. 26270).systems poses an inspiring challenge for our speciﬁca-
+tion and modelling techniques, as well as for our analytic
+capacities. This has led to the development of new, ex-
+pressive models, such as timed and hybrid automata [3,
+15], and new veriﬁcation methods, most notably model
+checking techniques involving a symbolic treatment of
+real-time (and hybrid) aspects [10,16,6].
+An important example of hybrid (embedded) systems
+are process control programs, which involve the digi-
+tal control of processing plants, e.g. chemical plants.
+A class of process controllers that are of considerable
+practical importance are those that are implemented us-
+ing Programmable Logic Computers or PLCs. Unfortu-
+nately, both PLCs and their associated programming
+languages have no well-deﬁned formal models, c.q. se-
+mantics, which complicates the design of reliable con-
+trollers and their analysis.
+To assess the capacity of state-of-the-art formal methods
+and tools for the analysis of hybrid systems, the EU re-
+search project VHS (Veriﬁcation of Hybrid Systems) has
+deﬁned a number of case studies. One of these studies
+concerns the design and veriﬁcation of a PLC program
+for an experimental chemical plant.
+In this article we report on the use of the two model
+checkers for the veriﬁcation of a process control program
+for the given plant and the derivation of optimal control
+schedules. It is a companion paper to [12], which concen-
+trates on the correct design of the process controller. The
+original intention of our approach was to see how much
+could be achieved here using the standard model check-
+ing environment of SPIN/Promela [7]. As the symbolic
+calculations of real-time model checkers can be quite ex-
+pensive it is interesting to try and exploit the eﬃciency
+of established non-real-time model checkers like SPIN in
+those cases where promising work-arounds seem to exist.
+In our case we handled the relevant real-time properties
+of the PLC controller using a time-abstraction technique;
+for the scheduling we implemented in Promela a so-called
+
+--- Page 2 ---
+2 Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Co ntrol Schedule
+variable time advance procedure [14]. For this case study
+these techniques proved suﬃcient to verify the design of
+the controller and derive (time-)optimal schedules with
+very reasonable time and space requirements. A ﬁrst re-
+port on our experiences has been published as [5], whose
+ﬁndings are further extended and elaborated in this ar-
+ticle.
+One of the conclusions of our initial experiments as re-
+ported in [5] was that “ . . .it would be useful to be able to
+inﬂuence the search strategy of the model checker more
+directly and guide the search ﬁrst into those parts . . .
+where counterexamples are likely to be found.” Since the
+publication of [5] a new version of the real-time model
+checking tool Uppaal has become available that em-
+ploys a cost-guided evaluation strategy for state-space
+exploration, viz cost-optimal Uppaal [4]. This tool is a
+natural candidate to support the derivation of optimal
+control schedules in a real-time environment. This mo-
+tivated us to carry out the optimisation part of the case
+study again with cost-optimal Uppaal , both as an in-
+teresting exercise in its own right, and to collect data
+to interpret and compare with the results obtained with
+SPIN.
+The rest of this paper is organised as follows: section
+2 gives a description of the batch plant, the nature of
+PLCs and a description of the control program that was
+systematically designed in [12]. Section 3 describes the
+Promela models for the plant and the control process,
+and their use for its formal veriﬁcation and optimiza-
+tion. Section 4 then introduces a cost-optimal Uppaal
+model of the same processes, and presents the optimiza-
+tion results that were obtained using it. Section 5, ﬁnally,
+evaluates the work and presents our conclusions.
+2 Description of the system
+The system of the case study is basically an embedded
+system, consisting of a batch plant and a Programmable
+Logic Controller (PLC), both of which are described in-
+more detail below. The original goal of the case study
+was to write a control program such that the batch plant
+and the PLC with its control program together behave
+as intended. The intended behaviour is in the ﬁrst place
+that always new batches can be produced, and, in the
+second place, optimality of the control schedule.
+2.1 Description of the batch plant
+The batch plant (see Figure 1) of the case study is an
+experimental chemical process plant, originally designed
+for student exercises. We describe its main features be-
+low; a more detailed account can be found in [9].
+It “produces” batches of diluted salt solution from con-
+centrated salt solution (in container B1) and water (in
+container B2). These ingredients are mixed in containerphasei/o
+program
+executionphaseos
+phase
+Fig. 2. A PLC scan cycle
+B3 to obtain the diluted solution, which is subsequently
+transported to container B4 and then further on to B5.
+In container B5 an evaporation process is started. The
+evaporated water goes via a condenser to container B6,
+where it is cooled and pumped back to B2. The remain-
+ing hot, concentrated salt solution in B5 is transported
+to B7, cooled down and then pumped back to B1.
+The controlled batch plant is clearly a hybrid system.
+The discrete element is provided by the control program
+and the (abstract) states of the valves, mixer, heater
+and coolers (open/closed, on/oﬀ). Continuous aspects
+are tank ﬁlling levels, temperatures, and time. The lat-
+ter can be dissected into real-time phenomena of the
+plant on the one hand, such as tank ﬁlling, evapora-
+tion, mixing, heating and cooling times times, and the
+program execution and reaction times (PLC scan cycle
+time), on the other. The controller of the batch plant is
+a nice example of an embedded system : the controlling,
+digital device is part of a larger physical system with a
+particular functionality.
+For the case study we decided to ﬁx the size of a batch:
+the material is either 4.2 l salt solution with a concentra-
+tion of 5 g/l and 2.8 l water or, if mixed, 7 l salt solution
+of 3 g/l concentration. With these batch sizes containers
+B1, B2, B4, B6 and B7 have a capacity of two “units” of
+material, and B3 and B5 of only one “unit”. The plant
+description in [9] gives durations for the transport steps
+from one tank to another. In our (timed) plant model
+we used these durations as our basis, although the ac-
+tual durations might possibly be diﬀerent.1
+2.2 Programmable Logic Controllers
+PLCs are special purpose computers designed for control
+tasks. Their area of application is enormous. Here, we
+brieﬂy emphasize the main characteristics of PLCs in
+comparison to “usual” computers.
+1Note that these durations, given in Table 1, diﬀer from those
+used in [5], which were chosen to be more comparable to the ﬁgu res
+used in [13].
+
+--- Page 3 ---
+Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Con trol Schedule 3
+LIS
+101
+QI
+102LIS
+201
+QI
+202
+LIS
+301QI
+302
+LIS
+401FIS
+801
+LIS
+501QIS
+TI502
+503LIS
+601TIS
+602
+LIS
+701
+TIS
+702
+PIS
+1001PIS
+901B1 B2
+B3
+B4
+K1
+B6 B5
+B7
+P1 P2V2
+V1V3
+V8 V9V7V6 V4
+V5
+V13V11
+V12
+V29
+V14
+V15
+V17V16
+V10
+V18
+V19
+V21 V23V27 V20
+V24V25 V28 V26V22cooling
+watersalt
+cooling
+water
+cooling
+waterHO2
+HO2
+Fig. 1. The P/I-Diagram of the Batch Plant
+B1–B3 B2–B3 B3–B4 B4–B5 heat B5 B5–B7 cool B6 cool B7 B6–B2 B7–B1
+320 240 600 330 1470 260 300 600 240 220
+Table 1. Duration of plant processes in seconds
+The most signiﬁcant diﬀerence is that a program on a
+PLC runs in a permanent loop, the so called scan cy-
+cle(see Figure 2). In each scan cycle the program in
+the PLC is executed once, where the program execution
+may depend on variable values stored in the memory.
+The length of a scan cycle is in the range of milliseconds,
+depending on the length of the program. Furthermore,
+a part of each scan cycle is dedicated to data exchange
+with the environment: a PLC has input points connected
+via an interface with a dedicated input area of its mem-
+ory, and the output area of the memory is connected via
+an interface with the output points of the PLC. On the
+input points the PLC receives data from sensors, on the
+output points the PLC sends data to actuators. Finally,
+there are some activities of the operating system (self
+checks, watchdogs etc.) that take place in a scan cycle.
+The operation system itself is small and stable, which is
+prerequisite for reliable real-time control. PLC programs
+are developed and compiled on PCs in special program-
+ming environments and can be loaded to the PLC.There are diﬀerent domain speciﬁc programming lan-
+guages collected in a standard [8]. In our application
+we used Sequential Function Charts (SFC), a graphical
+language that is related to Petri nets, and the program
+executed in each scan cycle depends on the places that
+are active at that moment. In this sense SFC provides a
+meta-structure and the actual instructions of our appli-
+cation are written in Instruction List (IL), an assembly-
+like language. The PLC languages oﬀer timers as basic
+constructs, which also diﬀers from most of the usual pro-
+gramming languages.
+The scan cycle mechanism makes PLCs suitable for con-
+trol of continuous processes (tight loop control). How-
+ever, it has to be guaranteed that the scan cycle length
+is always below the minimal reaction time that is re-
+quired by the plant to control the entire system. In this
+case study the scan cycle time is a few orders of mag-
+nitude smaller than what the reaction time has to be.
+The execution time of a scan cycle is in the range of a
+few milliseconds. For some applications the timing be-
+
+--- Page 4 ---
+4 Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Co ntrol Schedule
+wait1
+P1Θ1
+result1START
+true
+. . .wait2
+P2Θ2
+result2wait12
+P12Θ8
+result12
+Fig. 3. The control program in Sequential Function Chart
+haviour in this range is relevant, e.g. for machine con-
+trol. For for our chemical plant it is not relevant: it does
+not really matter whether a valve closes 10 ms earlier
+or later. This property is relevant when modelling the
+whole system. Here, we can model the PLC as if exe-
+cuting “time-continuously”, i.e. a scan cycle takes place
+in zero time. In comparison to the PLC the plant is so
+“slow” that it cannot distinguish a real PLC with scan
+cycles form a ideal time-continuous control. For a more
+detailed discussion of modelling PLCs see [11].
+2.3 The control program
+This section gives an informal description the control
+program as we used it in our veriﬁcation and optimisa-
+tion exercises. Its formal derivation and our other, re-
+lated veriﬁcation activities can be found in [12].
+In the plant we can identify a number of basic plant
+processes, such as e.g. the transport of 4.2 l salt solu-
+tion from container B1 to B3. All possible transport pro-
+cesses, the evaporation process and two cooling process
+lead to a number of 12 of such basic processes, which
+run in parallel. The activities of each process are simply
+to open some valves, switch on a mixer, pump or heater,
+and when the process is ﬁnished, close and switch oﬀ
+everything again. Each process starts its activities if its
+activation conditions are fulﬁlled, and is in a wait state
+otherwise. An active process (state) remains active until
+its postconditions are fulﬁlled. Then it goes back into
+its waiting state. This means that we a have so-called
+closed loop control : the criterion to change state is not
+that suﬃcient time has elapsed, but that a particular
+event occurs.
+It is not diﬃcult to recognise this structure in the SFC
+representation of the program given in Figure 3. Control
+starts in the state “START” and (because the transition
+condition is “true”) immediately distributes to the 12
+parallel wait states, waiting for the corresponding acti-
+vation conditions θito become true. In a wait state a pro-
+cess does nothing, i.e. it executes an empty program. If
+the activation condition has become true, control reachescontrol state P i. The program associated with P iis ex-
+ecuted in every scan cycle for as long as control remains
+in Pi. The IL programs belong to P1, . . ., P12 are given
+in Figure 4. The instructions of IL are assembler-like.
+Here, we mainly load the constants true or false into the
+accumulator and write the accumulator value to on of
+the variables, e.g. V i, representing valve number i. The
+action qualiﬁers P1 and P0 (to the left of each program)
+indicate when the corresponding program blochs are ex-
+ecuted. P1-labelled code is only executed in the ﬁrst scan
+cycle after the control location has been reached; P0 in-
+dicates that the instructions are only executed in the last
+scan cycle that the control is at this location, i.e. when
+the postcondition evaluates to true – one last scan cycle
+is executed afterthe postcondition has become true.2
+The main complexity of the program is hidden in the de-
+sign of the activation conditions Θi. We can assume to
+have predicates P i.X for each step P iindicating whether
+control is at the corresponding step or not (these vari-
+ables are available in PLC programs). The conditions to
+start a process (i.e. step) can now be stated informally
+as follows:
+1. The ﬁlling levels of the tanks must allow for, e.g., a
+transport step: the upper tank must contain enough
+material, the lower tank must contain enough space,
+etc. These conditions are encoded in the predicates
+Φiof Figure 6.
+2. We do not want a tank to be involved in two (or
+more) processes at a time. E.g., when transferring
+solution from B4 to B5 there should not be a concur-
+rent transfer from B3 to B4. This requirement can
+be formulated by conditions on valves: when solu-
+tion is transferred from B4 to B5 valve V11 must
+be closed for the duration of the transfer (invariant).
+These requirements induce a conﬂict structure on the
+processes in ﬁgure 5.
+It is required that control is never at two conﬂicting
+processes at the same time. This condition is split
+2There exist more action qualiﬁers, e.g. to express that code
+must be executed at every scan cycle.
+
+--- Page 5 ---
+Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Con trol Schedule 5
+P1: P1LD true
+ST V8
+P0LD false
+ST V8P2: P1LD true
+ST V9
+P0LD false
+ST V9
+P3: P1LD true
+ST V8
+ST Mixer
+P0LD false
+ST V8
+ST MixerP4: P1LD true
+ST V9
+ST Mixer
+P0LD false
+ST V9
+ST Mixer
+P5: P1LD true
+ST V11
+P0LD false
+ST V11P6: P1LD true
+ST V12
+P0LD false
+ST V12
+P7: P1LD true
+ST Heater
+P0LD false
+ST HeaterP8: P1LD true
+ST V15
+P0LD false
+ST V15
+P9: P1LD true
+ST V17
+P0LD false
+ST V17P10: P1LD true
+ST V29
+P0LD false
+ST V29
+P11: P1LD true
+ST V18
+ST V23
+ST V22
+ST V1
+ST V3
+ST Pump1
+P0LD false
+ST V18
+ST V23
+ST V22
+ST V1
+ST V3
+ST Pump1P12: P1LD true
+ST V20
+ST V24
+ST V25
+ST V5
+ST V6
+ST Pump2
+P0LD false
+ST V20
+ST V24
+ST V25
+ST V5
+ST V6
+ST Pump2
+Fig. 4. Instruction List Programs for steps P1. . . ., P12
+into two parts: ﬁrst, control cannot go to a process if a
+conﬂicting process is already active. These conditions
+are encoded in the predicates Ψiof Figure 7. Second,
+when conﬂicting processes could get control at the
+same moment only the one having priority gets it.
+These priorities are ﬁxed, and their priority graph in
+ﬁgure 5 is cycle free. They induce the predicates Θi
+in ﬁgure 8.
+The execution mechanism of PLCs guarantees a syn-
+chronous execution of the parallel steps, in the sense that
+within each scan cycle each program that is attached to
+an active step is executed once. It is this mechanism that
+givess the conditions Θito their intended eﬀect.P11
+P10 P9
+P6
+P8
+P7P12
+P2/P4
+P1/P3
+P5
+Fig. 5. Priority graph of the processes P1, . . ., P12. An arrow in-
+dicates that there is a conﬂict between processes. An arrow p oints
+to the process with priority.
+Φ1:= (B1 = sol42C ∨B1 = sol82C)
+∧B3 = empty
+Φ2:= (B2 = water28C ∨B2 = water56C)
+∧B3 = empty
+Φ3:= (B1 = sol42C ∨B1 = sol82C)
+∧B3 = water28C
+Φ4:= (B2 = water28C ∨B2 = water56C)
+∧B3 = sol42C
+Φ5:= B3 = sol70C
+∧(B4 = empty ∨B4 = sol70C)
+Φ6:= (B4 = sol70C ∨B4 = sol140C)
+∧B5 = empty
+Φ7:= B5 = sol70C ∧(B6 = empty ∨
+B6 = water28C ∨B6 = water28H)
+Φ8:= B5 = sol42H ∧(B7 = empty ∨
+B7 = sol42C ∨B7 = sol42H)
+Φ9:= B7 = sol42H ∨B7 = sol84H
+Φ10:= B6 = water28H ∨B6 = water56H
+Φ11:= (B7 = sol42C ∨B7 = sol84C)
+∧(B1 = empty ∨B1 = sol42C)
+Φ12:= (B6 = water28C ∨B6 = water56C)
+∧(B2 = empty ∨B2 = water28C)
+Fig. 6. The tank ﬁlling conditions
+Ψ1:=Φ1∧ ¬P2.X ∧ ¬P4.X ∧ ¬P5.X ∧ ¬P11.X
+Ψ2:=Φ2∧ ¬P1.X ∧ ¬P3.X ∧ ¬P5. X ∧ ¬P12.X
+Ψ3:=Φ3∧ ¬P2.X ∧ ¬P4.X ∧ ¬P5.X ∧ ¬P11.X
+Ψ4:=Φ4∧ ¬P1.X ∧ ¬P3.X ∧ ¬P5. X ∧ ¬P12.X
+Ψ5:=Φ5∧ ¬P1.X ∧ ¬P2.X ∧ ¬P3.X ∧ ¬P4.X
+∧ ¬P6.X
+Ψ6:=Φ6∧ ¬P5.X ∧ ¬P7.X ∧ ¬P8.X
+Ψ7:=Φ7∧ ¬P6.X ∧ ¬P8.X ∧ ¬P10.X ∧ ¬P12.X
+Ψ8:=Φ8∧ ¬P6.X ∧ ¬P7.X ∧ ¬P9.X ∧ ¬P11.X
+Ψ9:=Φ9∧ ¬P8.X ∧ ¬P11.X
+Ψ10:=Φ10∧ ¬P7.X ∧ ¬P12.X
+Ψ11:=Φ11∧ ¬P1.X ∧ ¬P3.X ∧ ¬P8.X ∧ ¬P9.X
+Ψ12:=Φ12∧ ¬P2.X ∧ ¬P4.X ∧ ¬P7.X ∧ ¬P10.X
+Fig. 7. Activation conditions testing for active conﬂicting pro-
+cesses
+
+--- Page 6 ---
+6 Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Co ntrol Schedule
+Θ7:=Ψ7
+Θ8:=Ψ8∧ ¬Θ7
+Θ6:=Ψ6∧ ¬Θ7∧ ¬Θ8
+Θ5:=Ψ5∧ ¬Θ6
+Θ1:=Ψ1∧ ¬Θ5
+Θ3:=Ψ3∧ ¬Θ5
+Θ2:=Ψ2∧ ¬Θ1∧ ¬Θ3∧ ¬Θ5
+Θ4:=Ψ4∧ ¬Θ1∧ ¬Θ3∧ ¬Θ5
+Θ9:=Ψ9∧ ¬Θ8
+Θ10:=Ψ10∧ ¬Θ7
+Θ11:=Ψ11∧ ¬Θ1∧ ¬Θ3∧ ¬Θ8∧ ¬Θ9
+Θ12:=Ψ12∧ ¬Θ2∧ ¬Θ4∧ ¬Θ7∧ ¬Θ10
+Fig. 8. Predicates evaluating the priority between conﬂicting pro -
+cesses; the evaluation order is relevant
+3 Veriﬁcation and optimization with Spin
+To verify the correctness of the PLC program of Fig-
+ure 3 we made a Promela model of the plant and the
+control program, and used Spin to check that all execu-
+tion sequences of their composition satisfy the property
+that “always eventually batches are produced”. This im-
+plies that under ideal circumstances in which no mate-
+rial is lost through leakage or evaporation, control is such
+that new batches will always be produced. Subsequently,
+we reﬁned the models to ﬁnd more sophisticated varia-
+tions of the control program that are time-optimal, in
+the sense that the average production time of a batch is
+minimal. These optimal scheduling sequences were pro-
+duced as counter-examples to properties stating subop-
+timal behaviour. The details of these exercises are given
+below.
+3.1 Correctness of the PLC program
+Both the plant as described in section 1, and the in-
+formal control program description of section 3 can be
+translated into Promela in a straighforward way, the cru-
+cial part of the modelling exercise being the real-time
+properties of the plant in combination with the PLC ex-
+ecution mechanism given in section 2.2. In this case there
+are two basic principles that allow us to deal with the
+entire system by essentially abstracting away from time
+(see also [11] for a more general account in the context
+of PLCs):
+1. The control program works independently of the time
+that the production steps take. In the model each of
+the production steps S1, . . ., S12 may take some un-
+speciﬁed time: if activated (e.g. by opening a valve) it
+goes into an ‘undeﬁned’ state that it will eventually
+leave to reach the ﬁnal state when the postcondi-
+tion holds. In this way every consistent timing be-
+haviour of the plant is subsumed, including the real
+one. Proving correctness for this general case implies
+correctness of our special case.2. The excution speed of the control program is much
+faster than the tolerance of the plant processes, as
+was already mentioned above. This has two impor-
+tant implications:
+–we can abstract away from the scan cycle time
+and assume that scan cycles are executed instan-
+taneously.
+–we can assume that the plant is scanned continu-
+ously so that state changes are detected without
+(signiﬁcant) delay.
+The model of the combined behaviour of the plant and
+the control program is obtained by putting the mod-
+els of the control process and all the plant processes in
+parallel. Doing this, we must make sure that the contin-
+uous execution of the control program does not cause a
+starvation of the plant processes. This is taken care of
+by allowing only fair executions of our Promela model:
+in each execution no active process may be ignored in-
+deﬁnitely. We must be careful, however, not to lose the
+other important property, viz. that each state change of
+the plant is detected “immediately”. Our model takes
+care of this by forcing a control program execution after
+each potential state change of the plant.
+The Promela model of this case study is too big to be
+part of this paper. The full version can be retrieved from
+[2]. Here we present two excerpts, one of the plant model
+and one of the control program model, to illustrate the
+main features.
+Figure 9 contains the Promela process that models the
+transfer of solution from container B1 to B3. It com-
+bines the behaviours underlying steps P1 and P3. The
+model consists of a do-loop that continuously tries to
+start the transfer of a unit of salt solution from B1 to
+B3. If the right conditions are fulﬁlled control will enter
+the body of the loop, and will mark the beginning of
+the transfer step by instantaneously (using the Promela
+atomic construct) changing the contents of both con-
+tainers to undeﬁned transitional states. At some later
+moment it will execute the second part of the body,
+instantaneously changing the transitional states to the
+corresponding terminal states, marking the end of the
+transfer.3Thecycle variable is a global ﬂag that forces
+the excution of a scan cycle after the execution of each
+atomic step in the plant (ﬂag is raised at the end of each
+such atomic step). After the execution of a scan cycle
+(also modelled as an atomic process, see below) the ﬂag
+is lowered. Each atomic step in the plant is guarded by
+the testcycle==0 .
+The Promela process that models the control program is
+listed in Figure 10. This is a straightforward translation
+3Here, and in other parts of the Promela model we have initiall y
+addedassert statements that express invariants that should hold
+at the corresponding control location ( error being shorthand for
+tt asser(false)). These are used to check for the correctnes s of the
+model in initial simulation and veriﬁcation trials, and are removed
+during the actual veriﬁcation to avoid unneccesary growth o f the
+state space.
+
+--- Page 7 ---
+Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Con trol Schedule 7
+proctype B1toB3()
+{do
+:: atomic {(cycle==0 && B1!=cempty && v8) ->
+if
+:: (B1==sol42C) -> B1=undef1
+:: (B1==sol84C) -> B1=undef2
+:: else -> error
+fi ;
+if
+:: (B3==cempty) -> B3=undef1
+:: (B3==water28C && mix) -> B3=undef2
+:: else -> error
+fi ;
+cycle=1
+};
+assert(v8 && (B3!=undef2 || mix)) ;
+atomic {(cycle==0 && v8) ->
+if
+:: (B1==undef1) -> B1=cempty
+:: (B1==undef2) -> B1=sol42C
+:: else -> error
+fi ;
+if
+:: (B3==undef1) -> B3=sol42C
+:: (B3==undef2 && mix) -> B3=sol70C
+:: else -> error
+fi ;
+cycle=1
+}
+od
+}
+Fig. 9. The Promela model of transfer between B1 and B3
+proctype Control()
+{int i,j ;
+do
+:: atomic {i=1 ; j=1 ;
+do
+:: (i<15) ->
+if
+:: (theta(i,j) && !px[procnr(i)]) -> PB1(i)
+:: (result(i,j) && px[procnr(i)]) -> PB0(i)
+:: else -> skip
+fi ;
+if
+:: (j==1) -> j=2
+:: (j==2) -> j=1 ; i=i+1
+fi
+:: (i==15) -> goto endcycle
+od ;
+endcycle: cycle=0
+}
+od
+}
+Fig. 10. The Promela model of the control process
+of the PLC program of Figure 4. The do loop of Control
+repeatedly executes an atomic scan cycle, in which the
+processes P1, . . .,P12 are scheduled sequentially. To deal
+with the symmetric subcases of each step (i.e. the dis-
+juncts between brackets in Figure 6) the range of the
+main counter is extended and a second loop counter j
+is introduced. Modulo these small adaptations the Θ-
+predicates of Figure 8 are captured by the theta(i,j) ,
+and theresult(i,j) correspond to formalisations of the
+result conditions of the PLC program (the uninstanti-
+ated result ilabels of Figure 3). PB1(i) andPB2(i) cor-
+respond to the code of the P1 part, and the P0 part
+of the PLC program, respectively. The variables px[i]
+correspond to the P i.X activity predicates of the pro-gram mentioned earlier. Note that at the end of each
+scan cycle the global ﬂag cycle is lowered, as required.
+Whereas the assertions in the model served to check on
+our own understanding the model, the main correctness
+requirement that “always eventually a new batch is pro-
+duced” was veriﬁed using the Spin facilities for model
+checking LTL formulas. The requirement was formalized
+as the following LTL property:
+/square ♦(B3 == sol70C) ∧/square ♦(B3 == cempty) (1)
+expressing that the contents of container B3(containing
+the brine solution that is considered the “production”
+of the plant) is inﬁnitely often full and inﬁnitely oftem
+empty4. As these two properties must interleave in each
+linear execution sequence they are equivalent to the de-
+sired requirement.
+Veriﬁcation results. It turned out to be feasible to run
+the model checker sequentially on our model initialised
+with material for 0 up to 8 batches (including the inter-
+mediate diﬀerent possibilities for half batches; 30 runs
+in total). In order to avoid the explosion of the more
+than 8100 possible initial conﬁgurations that are in prin-
+ciple possible, we considered only conﬁgurations ﬁlling
+the plant “from the top”, i.e. ﬁlling tanks in the order
+B1,. . .,B7. The other initializations are reachable from
+these by normal operation of the plant. As satisfaction
+of the property that we checked (see below) for our ini-
+tial conﬁgurations implies its satisfaction for all reach-
+able conﬁgurations, this is suﬃcient. Using simulations
+of our model we satisﬁed ourselves that our model did
+indeed include the required normal operation steps.
+After initial simulations and model checking runs had
+been used to remove small (mainly syntactic) mistakes
+from our model, the model was systematically checked
+for property (1) for the 30 initializations with diﬀer-
+ent batch volumes described above. No errors were re-
+ported, except for initializations with batch volumes 0,
+0.5, 7.5 and 8, as should be the case. The model checking
+was done using Spin version 3.3.7 on a SUN Enterprise
+E3500-server (6 SPARC cpus with 3.0 GB main mem-
+ory). The model checking was run in exhaustive state
+space search mode with fair scheduling. The error states
+reported unreachable in all runs. The shortest runs were
+completed in the order of seconds and consumed in the
+order of 20MB memory; the longest run required in the
+order of 40 minutes and 100MB.
+3.2 Deriving optimal schedules
+The control schedule of Figure 3 that we have shown
+to be correct by the procedure sketched in the previous
+subsection, follows an essentially crude strategy. After
+4the constant cempty was chosen to be diﬀerent from the
+Promela reserved word empty.
+
+--- Page 8 ---
+8 Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Co ntrol Schedule
+each scan cycle it enables allnon-conﬂicting processes in
+the plant whose preconditions it has evaluated to hold
+true. It is not a priori clear that this strategy would also
+lead to a plant operation that is optimal in the sense
+that the average time to produce a batch is minimal.
+To determine optimal schedules for the various batch
+loads of the plant we have reﬁned the models of the
+previous section as follows:
+1. We added a notion of time to the model. To avoid
+an unnecessary blow-up of the state space due to ir-
+relevant points in time, i.e. times at which nothing
+interesting can happen, we have borrowed an idea
+from discrete event simulation, viz. that of variable
+time advance procedures [14].
+2. We reﬁned the plant model using the information
+from Table 1, such that each process in the plant
+will take precisely the amount of time speciﬁed.
+3. We reﬁned the model of the control program such
+that after each scan cycle any subset of the maximal
+set of allowed non-conﬂicting processes determined
+by the original control program can be selected for
+execution.
+The search for optimal schedules was conducted by ﬁnd-
+ing counterexamples to the claim:
+/square(batches <N) (2)
+wherebatches is a global variable that counts the num-
+ber of times that a brine solution is transfer from B3to
+B4. This property is checked for increasing values of Nin
+the context of a given maximal clock value maxtime . The
+assumption is that for maxtime large enough such coun-
+terexamples will display regular scheduling patterns. Be-
+low, we elaborate on each of the above points and the
+search procedure.
+A variable time advance procedure. In real-time discrete
+event systems events have associated clocks that can be
+set by the occurrence of other events. An event occurs
+when its clock expires. Such systems can be simulated
+by calculating at each event occurrence the point in time
+at which the nextevent will occur, and then jumping
+to that point in time. This is known as variable time
+advance .
+We wish to apply this idea to our model because it will
+not litter the global state space with states whose time
+component is uninteresting, in the sense that there is no
+process in the plant that begins or ends. As we can only
+calculate when plant processes will end once they have
+started, we can only use this time advance procedure if
+we assume that processes will always be started when
+others end (or at time 0). It is not diﬃcult to see, how-
+ever, that we will not lose schedules this way that are
+strictly faster then what we can obtain using this pol-
+icy. The informal arguments is as follows: assume that
+a derived scheduling policy can be strictly improved byproctype Advance()
+{int i ; short minstep ;
+do
+:: atomic {(promptcondition) ->
+minstep=maxstep ; i=1 ;
+do
+:: (i<13) ->
+if
+:: (px[i] && ((ptime(i)-time)<minstep)) ->
+minstep=(ptime(i)-time)
+:: else -> skip
+fi ;
+i=i+1
+:: (i==13) -> goto step
+od ;
+step: time=time+minstep
+}
+od
+}
+Fig. 11. The Promela model of the time advance process
+postponing a given event eby some time t. Because we
+are optimising w.r.t. time (and not energy or resource
+utilisation or the like), the more optimal schedule must
+exploit this time to start a conﬂicting process (ending a
+conﬂicting process would have prevented ein the origi-
+nal schedule; any event associated with a non-conﬂicting
+process can be executed anyway). Because this process
+is conﬂicting it must also ﬁnish before eoccurs. We may
+therefore assume that in any optimal schedule eis exe-
+cuted when some process ends.
+The variable time advance procedure is implemented
+by the Promela process Advance given in Figure 11.
+The basic idea of Advance is quite simple: when it be-
+comes active it will calculate the next point in time
+when a plant process will terminate. To do so it uses
+the global array ptime(i) containing the termination
+times of the processes i, whose values are calculated
+as part of the Promela processes modelling the plant,
+and the global time variable time, which is controlled
+byAdvance . The activation of Advance is controlled by
+the predicate promptcondition . This predicate is true
+if and only if all processses that have been enabled by
+the control program have indeed become active and none
+have yet terminated.
+The reﬁned plant model The reﬁned model of the plant
+diﬀers from the original model by adding some simple
+timing information to the plant processes. The (atomic)
+start event of each plant process is used to calculate
+the termination time of that process. The termination
+event of each plant process is then guarded with the
+additionalcondition that the global time timemust equal
+the calculated termination time.
+The reﬁned control model. To allow the new model of
+the control program to enable any subset of the per-
+missable plant process events at any time, we split the
+loop of the original model of Figure 10. The ﬁrst of the
+two loops scans only for termination conditions of plant
+processes and executes the corresponding control frag-
+mentsPB0(i) . Subsequently, any of the conditions Ψi
+
+--- Page 9 ---
+Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Con trol Schedule 9
+load simtime batches states steps period
+1 3476 10 711 94253 380
+2 4968 25 1715 239277 206
+3 4732 25 1652 230236 206
+4 4774 25 1736 241261 206
+5 3947 20 1423 196627 206
+6 4120 20 1459 201685 206
+7 3320 10 1935 2568780 314
+Table 2. Spin schedule measurements
+of Table 7 can be nondeterministically overwritten with
+the value false before the second loop is entered. This
+loop scans the remaining valid preconditions of the plant
+processes of which the corresponding control fragments
+PB1(i) are then executed. All guards in both loops of
+the new version contain tests to monitor the progress
+of time and will stop control if time exceedsmaxtime .
+This will cause the combined plant and control model to
+terminate.
+The reﬁnement as described above causes an exponen-
+tial blow-up of the branching structure of the control
+process, as maximal sets of non-conﬂicting events are re-
+placed by a choice between all their subsets. This leads to
+a corresponding blow-up of the exploration time for the
+state space, even if no new states are reached in this way.
+To control this phenomenon a global system parameter
+cutsis introduced that speciﬁes the maximal number of
+events per branching point that may be postponed when
+enabled.
+Finding optimal schedules. Looking for optimal sched-
+ules we restricted ourselves to the interesting cases in-
+volving initial plant loads of 1 through 7 batches. For
+our initial experiments we ﬁxed maxtime to be 5000
+time units (50,000 s). For each initial load we needed
+two or three runs to determine the maximal number of
+batches for which counterexamples could be produced in
+a very short time (in the order of seconds system time). It
+turned out that all counterexamples produced contained
+schedules that rapidly (i.e. within 700 time units) con-
+verged to a repeating pattern with a ﬁxed duration. None
+of the counterexamples required a cuts value greater
+than 2.
+The best measurements in terms of shortest periods de-
+tected, are collected in Table 2 below. The interpretation
+of the columns is as follows:
+load: indicates the number of batches with which the
+plant initialised,
+simtime: indicates the the duration (in simulated time
+units) of the counterexample traces,
+batches: the number of batches produced in that trace,
+states: the number of states visited to produce the trace,
+steps: the number of atomic steps executed,
+period: period of the periodic behaviour in time units.A ﬁrst analysis of Table 2 shows the state space that
+needs to be searched to produce the counterexamples is
+very small, and could make one suspicious of the qual-
+ity of the results that are obtained. Here, one should
+realise that the state space of the model has been kept
+small by the consequent use of atomic constructs for
+large Promela code chunks, the use of variable time ad-
+vance, and the fact that the reachable part of the plant
+model state space is not so large (e.g. it does not have
+complicated data structures or queues). As they column
+with the atomic step counts indicates the small num-
+ber of states does not make it a trivial model checking
+problem. This is caused by the nondeterministic branch-
+ing that permeates the model, where many alternatives
+must be evaluated before a counterexample is produced.
+Six of measured periods can be easily shown to be opti-
+mal! For a plant with a batch load of 1 this can be read-
+ily checked by hand by moving a single batch through
+the plant and measuring the total duration of the critical
+branches of the path. In the earlier experiments reported
+in [5] (which uses slightly diﬀerent plant process dura-
+tions), we thought that we had made a mistake when
+we measured the same period of for most initial loads of
+the plant. Closer analysis of the schedules, however, re-
+vealed that this is the result of the fact that the plant has
+one process that clearly dominates the time consump-
+tion during the production of batches, viz. the heating
+of container B5(147 time units). Since ﬁlling B5, heating
+it, and emptying B5must be part of every production
+cycle, the average production time of a batch must be
+greater or equal then 33+147+26=206 time units. This
+makes the schedules loads 2 to 6 optimal schedules as
+well.
+The schedule for the load of 7 batches is almost cer-
+tainly optimal. It was found by imposing a very tight
+maxtime upperbound for the production of 10 batches,
+after a more relaxed upperbound had already produced a
+period of 346 time units (cf. Uppaal results below). Fur-
+ther tightening of the upperbound lead to loss of coun-
+terexamples, which means that with a load of 7 batches,
+10 batches cannot be produced within 3320 time units.
+By itself, this does not prove that there is no shorter pe-
+riod, however, as this might require an initial behaviour
+that is less productive than that of the schedule that we
+found.5
+It must be concluded that the plant can be scheduled
+in the overall optimal time of 2060 seconds for all loads,
+except for the extreme loads of 1 and 7. Because of our
+analysis above, these are not only time optimal sched-
+ules, but also resource optimal ones, in the sense that the
+(expensive) heating and distillation equipment B5is in
+continuous use. From the energy perspective, probably
+5The results reported in [5], which used diﬀerent process dur a-
+tions, showed easily produced optimal schedules for loads 1 ,2,3,4
+and 7, with optimal schedules obtained for loads 5 and 6 only a fter
+substantial tightening of upperbounds.
+
+--- Page 10 ---
+10 Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC C ontrol Schedule
+the schedule for load 2 is optimal, as this involves the
+circulation, heating and cooling of the smallest volume.
+4 Optimisation with Uppaal
+4.1 The Uppaal model
+The translation from the plant and control to an Uppaal
+model is quite straightforward, and in many points sim-
+ilar to the philosophy of the Promela model. The main
+diﬀerences between the models are the representation of
+time, naturally, as this is a built-in feature of Uppaal ,
+and the scheduling of the concurrent processes. In the
+Promela model the latter is restricted by fairness condi-
+tions and the use of the cycle ﬂag variable. The Uppaal
+model enforces this by another, more explicit restriction
+that is explained below.
+TheUppaal model is a parallel composition of a plant
+automaton and a control automaton. The plant automa-
+ton is given as a parallel composition of 12 subautomata,
+representing the basic plant processes. Each of these
+plant automata is equipped with a clock that measures
+the duration of the process after it has started. As an
+example, the Uppaal model for the transport of concen-
+trated salt solution from container B1 to container B3
+is given in Figure 12. Location S0 represents the passive
+control state of the process. As soon as the control pro-
+cess has opened and closed the appropriate valves, etc.,
+the process starts. This immediate activation is achieved
+by a synchonisation on the urgent channel urgon. After
+the time has passed by that corresponds to the duration
+of the process, the container volumes are updated de-
+pending on their previous values. After a process ﬁnishes
+the control program is activated twice (by synchronisa-
+tion on the channel compute ), for reasons given below.
+As with Promela, the execution of the control automa-
+ton is modelled based on the assumption that the ex-
+ecution of the PLC control program is instantaneous.
+Technically, this can be implemented using the commit-
+ted location feature of Uppaal . Once they are reached,
+committed locations have to be left without time delay
+or interleaving with other transitions. In our model all
+locations of the control automaton are modelled as com-
+mitted locations, apart from the ﬁrst one that represents
+the waiting state of the control process. Without restric-
+tions, repeated instantaneous execution of the control
+program would lead to Zeno-behaviour. In the Promela
+model such behaviour is prevented by imposing a fairness
+requirement. These are not available in Uppaal . In the
+Uppaal model control execution is restricted to those
+points of time when the conditions in the plant change,
+as these are the only moments when also the control pro-
+cess can change its state. More precisely, it is the case
+that each change in the state of the plant requires two
+control program executions: one to ﬁnish some processprocess P13{
+clock x12;
+state S0, S1{x12<=32}, S2, S3;
+commit S2, S3;
+init S0;
+trans S0 -> S1 {guard Pump1==0, V8==1,
+V9==0, V11==0, Mixer==1;
+sync urgon?;
+assign x12:=0; },
+S1 -> S2 {guard x12==32, B1==1, B3==0;
+assign B1:=0, B3:=2; },
+S1 -> S2 {guard x12==32, B1==2, B3==0;
+assign B1:=1, B3:=2; },
+S1 -> S2 {guard x12==32, B1==1, B3==1;
+assign B1:=0, B3:=3; },
+S1 -> S2 {guard x12==32, B1==2, B3==1;
+assign B1:=1, B3:=3; },
+S2 -> S3 {sync compute!; },
+S3 -> S0 {sync compute!; };
+}
+Fig. 12. TheUppaal model of transfer between B1 and B3
+(close valves etc.), and one to start up new ones. In gen-
+eral, starting up new processes could be delayed for some
+time, but this is not needed. As was already argued for
+the Promela model, no (time-)optimal schedules are lost
+by assuming that new porcesses only start when some
+other process ﬁnishes.
+The control automaton itself consists of two sequential
+parts, again similar to the Promela model. In the ﬁrst
+part the activation conditions for processes are evalu-
+ated, including a nondeterministic choice of a subset of
+the processes that can be activated. As in the Promela
+case, this nondeterministic step is prerequisite for ﬁndin g
+optimal schedules. In the second part the control sets the
+actuator variables for valves, pumps, heater and mixer.
+4.2 Optimal schedules with Cost-Optimal Uppaal
+In [4] Behrmann et al. proposed an extension of Up-
+paal that includes concepts from branch and bound al-
+gorithms to provide generic support for optimal search
+strategies in a real-time context. This extension makes
+it possible to derive optimal solutions for problems that
+can be modelled in terms of so-called Uniformly Priced
+Timed Automata . In this model a cost function increases
+with a ﬁxed rate as time elapses or with a speciﬁed
+amount if a transition is taken. This cost is treated as
+a special clock with extra operations, but such that the
+currently implemented data structures in Uppaal suf-
+ﬁce.
+Among the techniques that were adopted in cost-optimal
+Uppaal are heuristic search orders. Heuristic search or-
+ders are obtained by assigning priorities to symbolic state s.
+The symbolic state is extended with a priority ﬁeld and
+the model checker selects the next state with the high-
+
+--- Page 11 ---
+Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Con trol Schedule 11
+A1 -> A2{assign bonus:=bonus+(T11==1?1:0);},
+A1 -> A2{guard T11==1; assign T11:=0;},
+A2 -> A3{assign bonus:=bonus+(T12==1 ?1:0);},
+A2 -> A3{guard T12==1; assign T12:=0;},
+Fig. 13. Rewarding the selection of enabled processes (selection
+variable is not set to 0, if it was 1 before).
+process P13{
+clock x12;
+state S0, S1{x12<=32}, S2, S3;
+commit S2, S3;
+init S0;
+trans S0 -> S1{guard Pump1==0, V8==1,
+V9==0, V11==0, Mixer==1;
+sync urgon?;
+assign x12:=0, depth:=depth+1; },
+S1 -> S2{guard x12==32, B1==1, B3==0;
+assign B1:=0, B3:=2; },
+S1 -> S2{guard x12==32, B1==2, B3==0;
+assign B1:=1, B3:=2; },
+S1 -> S2{guard x12==32, B1==1, B3==1;
+assign B1:=0, B3:=3; },
+S1 -> S2{guard x12==32, B1==2, B3==1;
+assign B1:=1, B3:=3; },
+S2 -> S3{sync compute!; },
+S3 -> S0{sync compute!; };
+}
+Fig. 14. The depth is increased, if a process starts. With depth
+the heuristic gives preference to depth-ﬁrst search.
+est priority. To change priorities one has to decorate the
+transitions with an assignment to the priority ﬁeld.
+In our cost-optimal Uppaal model of the case study we
+have deﬁned the costto be identical to the time elapsed,
+i.e. the cost rate equals 1, and added the priority vari-
+ableheurthat is calculated according to the expression
+1*bonus+100*depth-cost . The variable bonus is used
+to reward selecting larger rather than smaller subsets of
+enabled process start events, as is shown in Figure 13.
+This heuristic directs the exploration such that the con-
+troller tries ﬁrst to start all permissable plant processes .
+The bonus is made extra rewarding for the selection of
+the evaporation process, which should be in (almost)
+continuous use for an optimal exploitation of the plant
+resources.
+The variable depth is used to reward depth-ﬁrst over
+breadth-ﬁrst search. This, because a good solution for
+the batch plant should show some progress, i.e. it should
+start processes that are necessary to produce a batch.
+Transition S0 -> S1 in ﬁgure 14 models the begin of
+the process P13. We increase the priority if this transi-
+tion is taken to reward the start of P13. Transitions that
+start other processes and transitions of the controller
+that enable processes to start are rewarded similarly.
+Using this heuristic we could produce optimal schedules
+for the batch plant. In contrast to Spin it was not nec-
+essary to give an initial upper bound maxtime . For theheuristic depth ﬁrst
+search search
+load batches simtime states simtime states
+1 10 3476 14063 4178 17547
+2 25 4968 35952 11048 45781
+3 25 4732 34584 10992 45385
+4 25 4774 35344 11288 46181
+5 20 3947 28808 9294 37716
+6 20 4120 29568 9294 37716
+7 10 3320 14377 4418 17957
+Table 3. This table shows the ﬁrst solution found by cost-optimal
+Uppaal , either with heuristic search or depth-ﬁrst.
+experiments we asked Uppaal to produce schedules for
+the same initial load and the same number of batches as
+Spin did. Table 3 gives the results of these experiments.
+For load 1 to 6 Uppaal found with the heuristic an
+initial solution that has the same period and same sim-
+time as the best solution found by Spin. The solution for
+load 7 converges to a schedule with period 346. Depth-
+ﬁrst search ﬁnds for the same problems worse solutions
+and explores more states. Other experiments show that
+depth-ﬁrst search cannot ﬁnd a solution at all if set a
+reasonable bound maxtime on the time as we did for
+Spin.
+Cost-optimal Uppaal oﬀers the option to start back-
+tracking as soon as it ﬁnds an initial solution. It uses
+the cost of this solution to prune states that are more
+expensive. The bound on the cost is lowered each time it
+ﬁnds a better solution. Uppaal was not able to ﬁnd bet-
+ter schedules within reasonable cputime and memory for
+initial loads 1 to 6. For load 7 it was able to ﬁnd a sched-
+ule with simtime 3288. Backtracking yielded a schedule
+that produces the last batch within 314 time units; this
+is the period Spin found for its best schedules. To do so
+Uppaal explores 74240 states, which takes 16.5 seconds
+on a Pentium III 500MHz.
+5 Conclusion
+In this paper we have shown how the Promela/Spin en-
+vironment can be used to verify and optimize control
+schedules for a small-size PLC controlled batch plant.
+The approach in this paper relies quite heavily on the
+structured design of an initial control program that can
+be found in [12], and on the analysis of formal approaches
+to PLCs in [11].
+It is interesting to see that we succeeded in dealing with
+this real-time embedded system using standard Promela
+and Spin. For the veriﬁcation of the initial control pro-
+gram this was due to a property of the plant, viz. that
+we could assume instantaneous and immediate scanning
+of all state changes of the plant. This as a consequence
+of the tolerance of the plant processes for much slower
+reaction times than those realised by the PLC control.
+
+--- Page 12 ---
+12 Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC C ontrol Schedule
+This makes us conclude that this abstraction can be used
+for checking non-timed correctness criteria in all process
+control problems that have this property.
+The original task we set ourselves was just to check the
+correctness of the plant control in the sense that the de-
+signed program would in principle always be capable of
+producing more batches for any reasonable initial load.
+Having achieved that task we wondered how the model
+might be used to also look at the optimality of the sched-
+ules. As we wanted to treat this in terms of small modi-
+ﬁcations of the model only, we added time in the form of
+an explicit time advancing process. This is very close in
+spirit to the real-time Promela/Spin extension DTSpin
+[1]. Given the particular properties of the plant, how-
+ever, viz. that without loss of optimality plant processes
+can be assumed to start when others terminate, we could
+do this by only generating those points in time in which
+plant events could take place. From the schedules that
+we obtained we can conclude that in this case study this
+variable time advance procedure reduced the generated
+state space by approximately a factor of 20.
+Although more experiments are certainly needed, we be-
+lieve that variable time advance procedures can be useful
+for this kind of application. One way to think of them is
+as an explicitly programmed analogon of the notion of
+time regions as in timed automata [3]. Taking advantage
+of speciﬁc properties of systems such as ours an explicit
+approach can sometimes yield better results. On the ba-
+sis of our modiﬁed model we could ﬁnd optimal schedules
+within in interactive modes: up to 5 runs with diﬀerent
+parameter values, each taking between seconds and a few
+minutes of user time on a SUN Enterprise E3500-server
+(most in the seconds range). This is certainly due to
+the particular characteristics of the given plant, with its
+very critical heating process. Also, we have been lucky
+in the sense that the optimal schedules often were found
+in those parts of the search tree that were explored ear-
+lier. Given the small numbers of explored states it might
+seem that the gain by using variable time advance over
+the explicit addition of a clock variable to the model
+(as in DTSpin) is immaterial (going from O(103) states
+to O(104−5). One should keep in mind, however, that
+the number of atomic steps required to produce a coun-
+terexample would also grow by a factor 20, taking it to
+O(106−7), which most likely would interfere with the use
+of the model-checker in an interactive mode to ﬁnd (al-
+most) optimal schedules quickly.
+Since our initial experiments with Promela and Spin
+an implementation of cost-optimal Uppaal has become
+available. We have used this tool to redo the optimisa-
+tion part of the case study and compared it to our Spin
+results. The results obtained with this variant of Uppaal
+did conﬁrm correctness of our results. Compared to Spin,
+cost-optimal Uppaal certainly oﬀers a more convenient
+interface for handling guided state-space explorations.
+For Spin the latter can only be done indirectly by re-
+peated veriﬁcation runs with diﬀerent parameter settingsunder control of the user. In cost-optimal Uppaal the
+user can control everything directly by deﬁning heuris-
+tic cost functions, so that multiple runs are less needed,
+although some additional experimentation is required to
+ﬁne-tune the heuristic used.
+On the basis of the limited experience gained by this
+case study, the situation is best characterised as fol-
+lows. Given the current situation, cost-optimal Uppaal
+is probably the more convenient tool to search for op-
+timal schedules for this knd of application if an Up-
+paal model is available or can be developed. In view
+of the very reasonable performance of Spin using the
+techniques described in this paper, however, developing
+aUppaal model may not pay oﬀ if a good Promela
+model is available, as for this case study. In our case
+such a model was in fact produced because it proved
+much easier to develop a Promela model for the (time-
+abstracted) veriﬁcation of the plant, then to do so with
+Uppaal . Given this situation it can be concluded that
+it would be very interesting to look also into the pos-
+sible extension of Spin with cost-guided state space ex-
+ploration features. This could prove to be a powerful
+combination for the application of Spin to optimisation
+problems.
+Regarding the case study itself: another approach to
+the optimal scheduling for the VHS case study 1 is re-
+ported in [13]. Here the problem is analysed using the
+tools OpenKronos and SMI. It is diﬃcult to compare
+the results of this approach directly with ours, as they
+include also the production of the initial loads into their
+schedules, which we just assume to be present. The more
+general ﬁndings seem to be consistent with ours, how-
+ever. OpenKronos could be used succesfully to produce
+optimal schedules for loads of up to 3 batches before
+falling victim to the state explosion problem. The sym-
+bolic model checker SMI produced results 6 batches and
+more, with a computation time of approximately 17 min-
+utes per batch.
+References
+1. DTSpin homepage.
+http://www.win.tue.nl/~dragan/DTSpin.html .
+2. VHS: Case study 1 sources.
+http://www.cs.kun.nl/~mader/vhs/cs1.html .
+3. R. Alur and D.L. Dill. A theory of timed automata.
+Theoretical Computer Science , (138):183–335, 1994.
+4. Gerd Behrmann, Ansgar Fehnker, Thomas S. Hune,
+Kim G. Larsen, Paul Petterson, and Judi Romijn. Ef-
+ﬁcient Guiding Towards Cost-Optimality in Uppaal .
+In7th International Conference on Tools and Algo-
+rithms for the Construction and Analysis of Systems
+(TACAS’2001) , 2001.
+5. E. Brinksma and A. Mader. Veriﬁcation and opti-
+mization of a PLC control schedule. In Proceedings of
+SPIN2000 , volume 1885 of Lecture Notes in Computer
+Science . Springer, 2000.
+
+--- Page 13 ---
+Ed Brinksma et al.: Veriﬁcation and Optimization of a PLC Con trol Schedule 13
+6. T.A. Henzinger, P.-H. Ho, and H. Wong-Toi. Hytech:
+a model checker for hybrid systems. Software Tools for
+Technology Transfer , (1):110–123, 1997.
+7. G.J. Holzmann. The model cheker spin.IEEE Transac-
+tions on Software Engineering , 23(5):279–295, May 1997.
+8. International Electrotechnical Commission. IEC In-
+ternational Standard 1131-3, Programmable Controllers,
+Part 3, Programming Languages , 1993.
+9. S. Kowalewski. Description of case study CS1 “experi-
+mental batch plant”.
+http://www-verimag.imag.fr/VHS/main.html , July
+1998.
+10. K.G. Larsen, P. Petterson, and W. Yi. Uppaal in a nut-
+shell. Software Tools for Technology Transfer , (1):134–
+153, 1997.
+11. A. Mader. A classiﬁcation of PLC models and appli-
+cations. In R. Boel and G. Stremersch, editors, Discrete
+Event Systems - Analysis and Control . Kluwer Academic
+Publishers, 2000. Proceedings of WODES2000.
+12. A. Mader, E. Brinksma, H. Wupper, and N. Bauer.
+Design of a PLC control program for a batch plant -
+VHS case study 1. Technical Report CSI-R0113, Univer-
+sity of Nijmegen, 2001. accepted for publication in the
+European Journal of Control, http://www.cs.kun.nl/~
+mader/papers.html .
+13. Peter Niebert and Sergio Yovine. Computing op-
+timal operation schemes for multi batch operation
+of chemical plants. VHS deliverable, May 1999.
+http://www-verimag.imag.fr/VHS/main.html .
+14. G.S. Shedler. Regenerative Stochastic Simulation . Aca-
+demic Press, 1993.
+15. F.W. Vaandrager and J.H. van Schuppen. Hybrid Sys-
+tems: Computation and Control , volume 1569 of Lecture
+Notes in Computer Science . Springer-Verlag, 1999.
+16. S. Yovine. Kronos: a veriﬁcation tool for real-time sys-
+tems. Software Tools for Technology Transfer , (1):123–
+134, 1997.

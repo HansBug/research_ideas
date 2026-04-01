@@ -1,0 +1,897 @@
+--- Page 1 ---
+Production Scheduling byReachability Analysis –ACaseStudy∗
+GerdBehrmann
+Aalbor gUniversity,Aalbor g,Denmark
+behrmann@cs.auc.dkEdBrinksma
+University ofTwente, Enschede, TheNetherlands
+H.Brinksma@ewi.utwente.nl
+Martijn Hendriks
+Radboud University,Nijme gen,TheNetherlands
+M.Hendriks@cs.ru.nl
+Angelika Mader
+University ofTwente, Enschede, TheNetherlands
+mader@cs.utwente.nl
+Abstract
+Schedule synthesis based onreachability analysis of
+timed automata hasreceived attention inthelastfewyears.
+Themain strength ofthisapproachisthattheexpressive-
+nessoftimed automata allows –unlikemany classical ap-
+proaches–themodelling ofscheduling problems ofvery
+differentkinds. Furthermor e,themodels arerobustagainst
+changesintheparameter setting andagainst changesin
+theproblem speciﬁcation. Thispaper presents acasestudy
+thatwasprovided byAxxom, anindustrial partner ofthe
+AMETISTproject. Itconsists ofascheduling problem for
+lacquer production, andistreated withthetimed automata
+approach.Anumber ofproblems have tobeaddressed for
+themodelling task: theinformation transfer fromtheindus-
+trialpartner ,thederivation oftimed automaton model for
+thecase study,andtheheuristics thathave tobeadded
+inordertoreduce thesearchspace .Wetrytoisolate the
+generic problems ofmodelling formodel checking,andsug-
+gestsolutions thatarealsoapplicable forother scheduling
+cases. Model checkingexperiments andsolutions aredis-
+cussed.
+KEYWORDS:Scheduling ,model checking,costoptimiza-
+tion,industrial casestudy.
+1.Introduction
+Scheduling theory isawell-established branch ofop-
+erations research, andhasproduced awealth oftheory
+∗Supported bytheEuropean Community Project IST-2001-
+35304 AMETIST(Advanced Methods forTimed Systems),
+http://ametist.cs.utwente.nl/ .andtechniques thatcanbeusedtosolvemanypractical
+problems, suchasreal-time problems inoperating systems,
+distrib utedsystems, process control, etc.[11,12].Despite
+thissuccess, alternati veandcomplementary approaches to
+schedule synthesis based onreachability analysis oftimed
+automata havebeenproposed inthelastfewyears [1,2,6].
+Themain motivation ofthisprevious workistheobser-
+vation thatmanyscheduling problems canverynaturally
+bemodelled withtimed automata. Furthermore, theexpres-
+sivityoftimed automata renders themodels robustagainst
+changes inparameter settings andsmall changes inthe
+problem speciﬁcation. Ithasbeenshownthatthisapproach
+isnotnecessarily inferior toothermethods developed dur-
+ingthelastthreedecades [2].
+Thecasestudy presented inthispaper isoneofthe
+fourindustrial casestudies oftheEuropean ISTproject
+AMETIST,which focusses ontheapplication ofadvanced
+formal methods forthemodelling andanalysis ofcomple x
+distrib utedreal-time systems withdynamic resource alloca-
+tionasoneofitsspecial topics. Theapplication oftimed
+reachability analysis tothisproblem isoneofthemainsub-
+jectsoftheproject. Technical material related tothiscase
+study,anddifferent approaches toitssolution canbere-
+trievedfromtheAMETISTwebsite [4].
+Theremainder ofthispaper isorganized asfollows.The
+principles ofthederivation ofschedules byreachability
+analysis aresketched inSection 2.Section 3contains ade-
+scription ofthecasestudy.Modelling issues andtheuseof
+heuristics arediscussed inSections 4and5.Anextension
+ofthecasestudy deals withacost-optimization problem
+rather thanafeasibility problem andispresented inSection
+6.Theresults ofourmodel-checking experiments arecol-
+lected anddiscussed inSection 7.Section 8evaluates the
+model checking approach tothecasestudy andconcludes
+
+--- Page 2 ---
+thepaper.
+2.Scheduling WithTimedAutomata
+Thesynthesis ofschedules using timed automata canbe
+seenasaspecial caseofcontrol synthesis [10],andwasﬁrst
+introduced by[6],andby[2].Ingeneral, amodel classthat
+provides thepossibility torepresent system eventsaswell
+astiming information issuitable forreal-time control syn-
+thesis. Inthispaper,thetimed automata ofAlurandDill
+areusedformodelling [3].These timed automata extend
+thetraditional model ofﬁniteautomata withreal-valued
+clock variables whose values increase withtherateofthe
+progress oftime.Clock variables canberesettozeroand
+theycanbeusedinguards fordiscrete transitions aswell
+asinguards fortheelapse oftime(thisisusedtoensure
+progress). Ingeneral, timed automata models haveanin-
+ﬁnitestatespace. Theregionautomaton construction, how-
+ever,showsthatthisinﬁnitestatespace canbemapped toan
+automaton withaﬁnitenumber ofequivalence classes (re-
+gions) asstates [3].Finite-state model checking techniques
+canthenbeapplied tothereduced, ﬁniteregionautomaton.
+Anumber ofmodel checkersfortimed automata isavail-
+able,forinstance, KRONOS[13]andUPPAAL[8].
+Schedule synthesis using timed automata worksasfol-
+lows.First, amodel oftheunscheduled system iscon-
+structed. Inourcase, thismodel consists oftheparal-
+lelcomposition ofanumber oftimed automata (each au-
+tomaton models onespeciﬁcjob).Thenon-determinism
+thatispresent intheparallel composition reﬂectstheopen
+scheduling choices. Second, feasibility isformulated asa
+reachability property ,forinstance, “Itispossible thatthe
+production isﬁnished byFriday evening”. Third, themodel
+checkerexhausti velysearches thereachable statespace in
+order tocheck whether theproperty holds. Ifthisisthe
+case,thenthemodel checkercanprovideatracethatproves
+theproperty .Inourexample, thisisatracefromtheini-
+tialstatetoastateinwhich theproduction isﬁnished andit
+isnotlaterthanFriday evening. Theinformation contained
+insuchatracesufﬁcestoextract afeasible schedule, which
+istheﬁnalstepofourapproach.
+Theadvantage ofthisapproach isits(modelling) robust-
+nessagainst changes intheparameter settings andsmall
+changes intheproblem speciﬁcation. Thedisadv antage lies
+inthewell-kno wnstatespace explosion problem: thereach-
+ablestatespace isfartoolargetohandle within apractical
+amount oftimeformanyinteresting cases. Theapproach
+thatisusedinthispaper istoaddheuristics andfeatures of
+schedules thatreduce thereachable statespace toasizethat
+canbesearched moreeasily.Wearguethattheseheuristics
+arequitegeneral andapplicable inmanycases.3.Description oftheCaseStudy
+Thecasestudy deals withofaproblem thatisalmost
+ajob-shop problem [11],extended byparallel useofre-
+sources andadditional timing restrictions between process-
+ingsteps. Lacquers canbeproduced according tooneof
+threerecipes ,forthelacquer types uni,metallic orbronce.
+Arecipe speciﬁestheprocessing steps, theresources needed
+foraprocessing step,processing time, andtiming con-
+straints between processing steps. SeeFigure 1foragraph-
+icaldescription oftherecipes. There isarestricted amount
+ofresources available, suchasmixing vessels, dosespin-
+ners,ﬁllinglines, etc.Theproblem istoschedule anumber
+oflacquer orders.Eachorderisspeciﬁedbyalacquer type
+(i.e.recipe touse),earliest starting time,andaduedate.
+Asmentioned above,theproblem hasalotincommon
+withjob-shop scheduling. Themaindifferences are(i)there
+areadditional timing restrictions between production steps
+(e.g.,theremustbeatmost4hours between theendofthe
+ﬁrstproduction stepandthestartofthesecond production
+stepforunilacquers), and(ii)anorder mustuseresources
+inparallel (everylacquer needs amixing vesselduring its
+production inparallel withotherresources).
+There aretwoadditional features ofthecasestudy that
+needexplanation. First, anavailability factorisassociated
+witheveryresource. Thisfactormodels thefraction ofthe
+timethataresource isavailable duetotheworking hours of
+thepersonnel. E.g.,ifaresource isoperated bypersonnel
+thatworksintwo8hourshifts fromMonday 6amtoFri-
+day10pm(i.e.,16×5hours perweek), thentheavailability
+factorofthatresource equals80
+168.Thisavailablility factoris
+usedtotaketheworking hours constraints intoaccount by
+extending theprocessing times: ifaprocessing stepneeds
+processing timeptandtheresource needed hasanavailabil-
+ityfactor af,thentheprocessing timeisextended topt
+af,
+fortheexample abovethatwouldbept∗168
+80.Theuseof
+theavailability factorisintended forapproximation inlong-
+termscheduling, i.e.thequestion howmanyorders canbe
+donewithin thenexthalfyear.Fordailyscheduling theac-
+tualworking hours havetobemodelled, which issubject
+toanextension ofthecase.Second, aperformance factoris
+associated witheveryresource. Thisfactormodels thefrac-
+tionofthetimethataresource isunavailable duetobreak-
+downsormaintenance. Theperformance factorisusedin
+thesame wayastheavailability factortoextend thepro-
+cessing times.
+Notethatboth,availability factors andperformance fac-
+torsaregivenbythecasestudy provider,aswellasthe
+mechanism toextend processing times. Thequestion to
+whatextentthisapproach isreasonable goesbeyondthispa-
+per,butistreated infurther work.Forthemoment weaccept
+theconditions giventousandwanttoinvestigate whether
+wecancompete withthemethod andtoolsofthecasestudy
+
+--- Page 3 ---
+provider.
+Three different versions ofthecasestudy havebeenex-
+amined:
+Basic casestudy.Theperformance factors areleftout,
+buttheavailability factors areconsidered. Various instances
+(with 29jobs,72jobsand219jobs)havebeenanalyzed to
+check scalability oftheapproach.
+Extended case study.Theperformance factors areleft
+out.Storage anddelay costs areadded toquantify the
+feasability ofschedules. There aretwoinstances: aversion
+withtheavailability factors andaversion inwhich theavail-
+ability factors arereplaced byanexactmodel ofthework-
+inghours constraint. Furthermore, themodel ofsome re-
+sources hasbeenmade more exact(forinstance tomodel
+setuptimes between processing steps).
+Stochastic casestudy.Thiscasestudy concerns theper-
+formance factors andhasbeenaddressed inaseperate pa-
+per([5]),which isverybrieﬂydiscussed inSection 6.
+Section 4explains themodelling withtimed automata of
+thebasic andextended casestudy,andSection 5presents
+someexperimental results fortheseversions. Asmentioned
+above,Section 6summarizes previous workconcerning the
+stochastic casestudy.
+4.Modelling
+4.1.Information Transfer fromIndustry
+Asubstantial amount ofthetimespentonthecasestudy
+wentintothemodelling activities. Themostdifﬁcultpart
+herewastheinformation transfer fromtheindustrial part-
+nertotheacademic partners. Intheﬁrstplace, therewasa
+language problem regarding thedomain speciﬁcinterpreta-
+tionofterminology .Forthispurpose wecompiled anini-
+tialdictionary inwhich relevantterms usedareexplained
+innatural language. Thisdictionary servedasanagreement
+withtheindustrial partner onthemain, basic facts.Addi-
+tionally ,therewasadocumentation problem, regarding the
+(implicit) knowledge thatalwaysexistsbeyondanywrit-
+tenspeciﬁcation. Thisproblem remained evenafteragree-
+ingonthedictionary .Thissuggests that,beyondadictio-
+nary,additional validation ofthebasicfactswouldbedesir-
+able.
+Another difﬁcultywascaused bytheformat thatthein-
+dustrial partner usedfortherecipies, which wasneither
+standard, norintuiti ve.Abetter (from thecomputer science
+perspecti ve,atleast) representation hadtobedevised, re-
+sulting inFigure 1.Thisnewnotation alsohelped todetect
+othergapsinthecasedescription.
+Finally ,theindustrial partner Axxom isnotworking on
+lacquer production, butdevelopstoolsforvaluechain man-
+agement. Thecasedescription theyprovided istosomeex-
+tentthedescription oftheirownmodel oftheoriginal case.
+metallic bronceuni
+mixing vessel metal
+dose spinner
+lab
+lling stationbronce mixer
+dose spinner bronce
+disperging linedisperser
+wait
+arbitrary, 
+if not speci edsynchronizemixing vessel uni[2,4]17.63
+5.18
+7.35
+6.58
+22.04
+[2,4]17.63
+5.18
+7.35
+27.73
+22.04[6,6] 11.755.88
+[0,4]
+[2,4]11.02
+5.18
+7.35
+23.95
+25.69[6,6]
+48.9826.44
+Figure 1.Analternative graphical representa-
+tionforthethree recipes.
+Making ourtimed automata models wefacedtheproblem
+thatwewereremodelling another model, tailored foran-
+other tool,rather thantheoriginal case. Oneexample in
+point aretheoccurrence ofveryhighdelay costs. Inthe
+Axxom tooltheyareneeded tosimulate harddeadlines by
+using(soft) duedates. Intimed automata harddeadlines can
+bemodelled directly .
+4.2.TimedAutomaton Models
+Thelacquer production caseisverysimilar tothejob
+shopscheduling problem, involving justafewadditional
+timing constraints, andthebasic modelling bytimed au-
+tomata roughly follows[2].Each processing stepcanbe
+mapped toasequence ofthreelocations inatimed automa-
+ton(fragment), seeFigure 2,where thetransition between
+theﬁrsttwolocations claims theresource, thesecond loca-
+tionrepresents theprocessing period, andthetransition to
+thelastlocation freestheresource.
+Thesequential andinterlea vedcomposition oftheau-
+tomaton fragments followsthedescriptions andtiming re-
+strictions intherecipes. Foreachrecipe there isatimed
+automaton (template) withfreeparameters forearliest start
+dateandduedate.Fiveresources aremodelled ascounters,
+andtheremaining resources aremodelled assmallautomata
+(since theseresources needtheirownclock). There arealto-
+gether 29(resp. 73and219)instantiations oftherecipe au-
+
+--- Page 4 ---
+resource>0
+resource:=resource-1
+time:=0time<=processing_time
+time==processing_time
+resource:=resource+1
+Figure 2.Asingle processing stepmodelled
+astimed automaton fragment.
+tomata withtheexample datafororders. Theparallel com-
+position oftheinstantiated automata andtheresource au-
+tomata forms thesystem model.
+When looking forfeasible schedules wecheckedthe
+reachability property “allorders (automata representing an
+order) reach theirﬁnalstate”, where aguard inthemodel
+onlyallowedtoentertheﬁnalstateiftheduedatehasnot
+passed already .
+4.3.Modelling Heuristics
+Theheuristics weusedaremoreorlessstandard inoper-
+ations research, andarethusnotspeciﬁcforthiscasestudy.
+Forinstance, the“non-laziness” heuristic asexplained be-
+lowisthesameasconsidering only“active”schedules [11].
+Themodelling ofthese heuristics canbeseenasstandard
+patterns thatcanbere-used forsimilar cases.
+Eachheuristic reduces thesearch space. Wedistinguish
+twokinds ofheuristics. First, there are“nice” heuristics,
+forwhich weknowthatforeachgoodschedule thatwas
+pruned awaythere isaschedule intheremaining search
+space thatisatleastasgood. Second, thereare“cut-and-
+pray” heuristics forwhich thereisnosuchguarantee (i.e.,
+theoptimal schedule maybelost).Belowwedescribe each
+oftheheuristics weused,andshowourmodelling intothe
+timed-automaton framework.
+Non-overtaking .Thisheuristic isapplied within each
+group oforders followingthesame recipe. Itsays,thatan
+order started earlier alsowillgetcritical resources earlier
+thananorderstarted later.Thisheuristics makessense iffor
+everytwoorders itholds thatifthestarttimeoftheﬁrstor-
+derissmaller thanthestarttimeofthesecond order,then
+theendtimeoftheﬁrstorderissmaller thantheendtimeof
+thesecond order.Itiseasytoseethatfortwoorders follow-
+ingthesamerecipe, anon-overtaking schedule canbecon-
+structed fromaschedule withovertaking .Thiscanbedone
+ifateachmoment when aresource isassigned tothelater
+order (overtaking moment), wegiveitinstead totheear-
+lierorder.Thisobviously isalsoa“nice” heuristic, ifthe
+time-spans havethesamelength.
+Technically ,wedivided anorder inphases thatroughly
+reﬂecttheprocessing stepsandthatarenumbered from1
+id==0 or phase[id-1]>=k
+resource>0
+resource:=resource-1
+phase[id]:=phase[id]+1
+time:=0time<=processing_time
+time==processing_time
+resource:=resource+1
+Figure 3.Atimed automaton fragment fortak-
+ingaresour cewithnon-o vertaking.
+upwards.Non-o vertaking wasrealized bycounters keeping
+trackofthephase inwhich anorderis.When aphase (pro-
+cessing step)isentered andaresource istakenthecounter is
+increased. Arestriction forentering aphase isthatthepre-
+vious order hasalready entered thisphase before. Forthis
+purpose wehaveindexedcounters phase[id] ,oneforeach
+orderhavingthenumber id.Note, thatthesequence ofiden-
+tiﬁcation numbers idreﬂectsthesequence ofstarting times
+(andduedates, because themaximal production periods are
+thesame). Theorderwithidentiﬁcation number 0istheﬁrst
+andmayenternewphases without restriction. InFigure 3
+weextended thebasic timed-automaton fragment ofFig-
+ure2bythecounter construction; theoriginal fragment is
+grey,theextensions areblack. There theconstant krepre-
+sentsthekthphase oftheorder.Notealsothatwehavean
+indexedcounter foreachsetoforders followingoneofthe
+threerecipes (i.e.,anorder formetallic lacquer mayover-
+takeanorderforaunilacquer).
+Non-laziness. Inoperations research non-lazy schedules
+arecalled active.Thefollowingbehaviour isexcluded: a
+process needs aresource thatisavailable, butitdoesnot
+taketheresource. Instead, theresource remains unused ,
+noother process takesit.Then, afteraperiod ofwaiting
+theprocess decides totaketheresource. (And weregard
+thiswaiting timeaswasted, which isonlytrueifthereare
+notiming requirements forstarting moments ofsubsequent
+processes.) Thisisa“nice” heuristic.
+Technically ,weextended thebasic timed automaton
+fragment ofFigure 2byanextralocation thatisentered if
+theresource isavailable, butnottakenasdepicted inFigure
+4;again, theoriginal timed automaton fragment isgrey,the
+additional construction fornon-laziness isblack. Thenew
+location canonlybeleft,ifthereisanother ordertaking the
+resource. Ifforprocessing
+ timetheresource hasnotbeen
+taken,adeadlock iscaused, which hastheeffectofback-
+tracking andsearching forothersolutions. Theintuition is,
+thatiftheresource hasnotbeentakenforprocessing
+ time
+theactual ordercould havetakenitwithout being intheway
+foranother order.Notethatweuseurgentcommunication
+onchannel urgentsothatsome transitions aretakenimme-
+diately iftheirguards become true,orpre-empted immedi-
+
+--- Page 5 ---
+resource>0
+urgent!
+resource:=resource-1
+time:=0time<=processing_time
+time==processing_time
+resource:=resource+1time<processing_time
+resource==0
+urgent!resource>0
+time:=0
+Figure 4.Atimed automaton fragment fortak-
+ingaresour cewithnonlaziness.
+atelybyanother enabled transition, ifitexists.Tomakethis
+workanautomaton continuously offering synchronization
+ontheurgentchannel byasimple selﬂoopinitsonlyloca-
+tionispartofthemodel. Intheinitial location oftheau-
+tomaton ofFigure 4,therefore, when aresource becomes
+available itiseither takenimmediately ortheidling stateis
+reached immediately .
+Greediness. Thisisa“cut-and-pray” heuristic. Ifthere
+isaprocess stepthatneeds aresource thatisavailable,
+thentheprocess stepclaims thisresource immediately .By
+thisitexcludes possibly better schedules where some other
+(more important, because closer todeadline) process would
+claim thesameresource shortly later.Note, thatgreediness
+isstronger thannon-laziness, i.e.everygreedy schedule is
+alsoanon-lazy one.
+time<=processing_time
+time==processing_time
+resource:=resource+1resource>0
+urgent!
+resource:=resource-1
+time:=0
+Figure 5.Atimed automaton fragment fortak-
+ingaresour cewithgreediness.
+Themodelling ofgreediness inatimed automaton is
+easy: therequirement isthataresource hastobetakenas
+soonasitisavailable. Thecommunication viaanurgent
+channel forces totakethetransition assoonastheguard
+resour ce>0,istrue.
+Reducing activeorders. When notrestricting thenum-
+berofactiveorders (i.e.theorders thatareprocessed ata
+certain moment), itoftenhappens thatmanyprocesses ﬁght
+forthesameresources, andblock otherresources while theywait.Inourexample thedosespinners (2instances ofthese
+available) havetobeusedbyeachprocess twice, which
+makesthemthemostcritical resource. Restricting theover-
+allnumber ofactiveorders avoidsanalysis ofbehaviourthat
+islikelytobeineffective.Thisheuristic wasverypowerful,
+butbelongs tothe“cut-and-pray” type.
+Technically ,werealized thisheuristics byaglobal vari-
+ablethatisincreased when anorder starts anddecreased
+when anorder isﬁnished. Astartcondition foranorder is
+thatthecounter hasnotreached itsupper bound.
+Increasing theearliest starting timeoforders. Thisis
+averysimple heuristic thatweuseinthemodels thatin-
+clude costs. Ideally ,anorder isﬁnished rightonitsdead-
+line:itthenhasnostorage andnodelay costs. Thus, when
+manyorders areﬁnished tooearly,theirstarting times can
+beincreased toreduce thecosts.
+4.4.Modelling theExtended CaseStudy
+Some constraints havebeenapproximated inthebasic
+casestudy tosimplify theproblem. Inthissection wedis-
+cusstheextension ofthemodel tocopewiththefullcon-
+straints. Webeginwithaninformal explanation ofthese
+constraints.
+First, therearesetup times andcosts. Theﬁllinglines
+mustbecleaned between twoconsecuti veorders ifthose
+orders arenotofthesame type.Thus, additional cleaning
+time(5–20hours) isneeded andthere isacertain cost
+involvedwithcleaning. Modelling thisconstraint poses no
+problems. Instead ofmodelling theﬁllinglinesbyaninte-
+gervariable, theyarenoweachmodelled byanautomaton
+thatkeepstrackofthetypeoftheorder thathaslastbeen
+processed byit.
+Second, therearedelay andstorage costs. Thehappiness
+ofacustomer decreases linearly withthelateness ofhisor-
+der.Thus, eachorderhasadelay cost,which isa“penalty”
+measured ineuros perminute. Similarly ,ifanorder isﬁn-
+ished tooearly,thenithastobestored andthisalsocosts
+acertain amount ofeuros perminute. Intheinitial prob-
+lem,thecostsareapproximated byrequiring thateveryor-
+dermustbeﬁnished before itsdeadline. Amorereﬁnedcost
+model enables ustoprefer anorderthatisﬁveminutes late
+aboveanorderthatisweeks early.UPPAALCORA1isaver-
+sionofUPPAALforcostoptimal reachability analysis inlin-
+early priced timed automata .UPPAALCORAenables usto
+model delay andstorage costsinanatural way[7].Itallows
+therepresentation ofcostsasafﬁnefunctions oftheclock
+variables. Forinstance, Figure 6depicts howdelay costs
+aremodeled. Everyorder hasadelay costfactor(dcf)that
+givesthecostpertimeunit when theorder istoolate.Fur-
+thermore, everyjobwithididhasabitmlate[id] thatis0
+1http://www.cs.aau.dk/˜behrmann/cora/
+
+--- Page 6 ---
+whentheduedateoftheorderhasnotyetpassed, and1oth-
+erwise. Everylocation oftheorderautomaton inwhich the
+orderisnotyetﬁnished thenisequipped withaspeciﬁcation
+ofthetime-deri vativeofthecost:cost’==mlate[id]*dcf .A
+similar strategyisfollowedformodelling thestorage costs.
+resource>0
+resource:=resource-1
+time:=0time<=processing_time
+cost'==mlate[id]*dcf
+time==processing_time
+resource:=resource+1cost'==mlate[id]*dcf cost'==mlate[id]*dcf
+Figure 6.Atimed automaton fragment for
+costs.
+Third, thereistheworking hours constraint. Thelacquer
+production isoverseen bypersonnel thatworksintwoor
+threeshifts, depending onthemachine theyoperate. Fur-
+thermore, theproduction isinterrupted inweekends. Note
+thatthisconstrained isapproximated intheinitial problem
+bytheavailability factor ofmachines. Another complicat-
+ingfactor isthatsome production steps mayonlybein-
+terrupted for12hours. Modelling theworking hours con-
+straint provedtobequiteinvolved.Aseparate automaton
+wasadded thatcomputes theeffective processing timee,
+giventhecurrent timeandthenetprocessing timec.For
+instance, ifthecurrent timeandcaresuchthatthepro-
+cessing mustbeinterrupted, thene=c+B,where B
+equals thelength oftheinterruption. Theadditional automa-
+tonisrather bigandlaborious toproduce, butquitelogical
+instructure.
+5.Model Checking Experiments
+InTable1wecollected models andmodel checking ex-
+periments forthefeasibility analysis. Theresults wereob-
+tained using UPPAAL3.5.3 witha2.6GHz IntelP4Xe-
+ronprocessor and2.5GB ofmemory running Linux kernel
+2.4.22.
+Initial experiments revealed scalability problems inthe
+models andinUPPAAL.Some ofthese problems where
+caused bytheverylargenumber ofclocks usedinthemod-
+els.Theheuristic limiting thenumber ofactivejobsalso
+provides alimitonthenumber ofclocks needed (oneper
+activejobinstead ofoneperjob);andthenon-overtaking
+heuristic providesaneasywayofuniquely assigning shared
+clocks tojobssince thestarting order ofjobsofaparticu-
+lartypeisﬁxed.Thischange reduced thenumber ofclocks
+to3·A+3,where Aisthemaximum number ofactivejobs.
+number ofjobs
+working hours
+heuristics
+max.activeorders
+termination time
+29
+ -
+-
+ -
+ −
+29
+ -
+nl
+ -
+ 0.47
+29
+ -
+nlno
+ -
+ 0.45
+29
+ -
+g
+ -
+ 0.47
+29
+ -
+gno
+-
+ 0.45
+29
+ av
+nl
+ -
+ 11.0
+29
+ av
+nlno
+ -
+ 17.8
+29
+ av
+g
+ -
+ 10.9
+29
+ av
+gno
+-
+ 17.8
+29
+ av
+nlno
+ 4
+ 0.1
+73
+ -
+-
+ -
+ −
+73
+ -
+nl
+ -
+565
+73
+ -
+nlno
+ -
+162
+73
+ -
+nlno
+ 3
+ 0.46
+73
+ -
+nlno
+ 4
+ 1.40
+73
+ -
+g
+ -
+565
+73
+ -
+gno
+-
+162
+73
+ -
+gno
+3
+ 0.47
+73
+ -
+gno
+4
+ 1.42
+73
+ av
+nl
+ -
+ −
+73
+ av
+nlno
+ -
+ −
+73
+ av
+nlno
+ 3
+ −
+73
+ av
+nlno
+ 4
+ 0.40
+73
+ av
+g
+ -
+ −
+73
+ av
+gno
+-
+ −
+73
+ av
+gno
+3
+ −
+73
+ av
+gno
+4
+ 0.40
+73
+ av
+gno
+5
+ 0.74
+219
+ -
+gno
+4
+ 3.46
+Table1.Characteristics ofmodels andex-
+periments. Abbre viations inthe“working
+hours”column are: -:no modelling and
+av:availability factor s.Abbre viations inthe
+“heuristics” column are:g:greed y,nl:non-
+lazy,andno:non-o vertaking. The“-”inthe
+“termination time” column expresses that
+thesearchwasstopped after 10minute.All
+measurements were done using depth- ﬁrst
+search.
+
+
+--- Page 7 ---
+Inparticular ,thesechanges hadahugeeffectontheperfor -
+mance ofthe219jobmodel andonthescalability ofour
+approach.
+Theresults show,thatevenforthecaseof29jobsthe
+useoftheheuristics isessential. Thenon-overtaking heuris-
+ticdoesnotseemtomakemuch ofadifference inthecase
+without availability factors, whereas inthecasewithavail-
+ability factors theperformance getsworse.Thismight beat-
+tributedtothefact,thatalthough non-overtaking reduces the
+search space, wedonotactually search thecomplete search
+space. Thus non-overtaking introduces deadlocks (dueto
+thepruning) which forceUPPAALtobacktrack eventhough
+anyofthese paths might result infeasible schedules. This
+changes whenwegoto73orders. Herenon-overtaking does
+indeed impro vethespeed dramatically .Limitting thenum-
+berofactivejobsincreases thespeed byseveralorders of
+magnitude (partially duethepossibility toreuse clocks).
+Theexperiments alsoshowthatthegoodupper bound for
+thenumber ofactivejobscanvaryindifferent settings and
+canonlybedetermined during experimentation.
+Experiments havebeen performed alsofortheex-
+tended version ofthecasestudy using UPPAALCORA.It
+should benoted thatfortheextended casestudy (dueto
+theintroduction ofstorage anddelay costs) non-laziness,
+non-overtaking, andgreediness arecut-and-pray heuris-
+tics.Three different models ofworking hours wereused:
+Onewithout anyworking hours, onewithavailability fac-
+tors,andonewithanexactmodel. Incaseoftheexact
+working hourmodel, thegreediness heuristic isnotim-
+plementable, butthisisduetoalimitation inUPPAAL
+CORA.Fortheexperiments, arandomised best-depth- ﬁrst
+search witharandomised backtracking algorithm were
+used. Forthemodels withtheexactworking hourmod-
+els,limiting thenumber ofactivejobsiscrucial for
+ﬁnding good schedules. Allother heuristics aretoore-
+striveastheyprune goodsolutions fromthesearch. Forthe
+other twomodels, neither heuristic made much ofadif-
+ference. Forthemodel with theexactworking hour
+models, wefound schedules competiti vewiththose pro-
+vided bytheindustrial partner .Insome cases, weﬁnd
+schedules athalfthecost, although thisrequires run-
+ningUPPAALCORAseveraltimes asthesearch isran-
+domised. Duetotheenormous sizeofthestatespace,
+however,wearenotabletotellwhether thisisthelow-
+estpossible cost.
+6.Stochastic Analysis
+Asexplained earlier ,so-called performance factors are
+usedtoindicate thepercentage oftimethataresource is
+unavailable duetomaintenance andbreak-do wns.Theway
+inwhich theindustrial partner deals withthisinformation
+isthattheprocessing timeoneachresource isextended bythecorresponding factor.E.g.,ifamachine onlyisavailable
+halfofthetime,theprocessing timeforeachprocessing step
+using thisresource isdoubled. Schedules arederivedas-
+suming thattheprocess durations areextended inthisway.
+Thisraised thequestion ontheinterpretation ofthesched-
+ulesderivedwiththeextended processing times. Stochastic
+analysis [5]showedthattheschedules derivedinthisway
+havelesschance toreach theduedatesthanschedules with-
+outextended times. Theinterpretation roughly isasfollows:
+ifwereserv etimeforbreak-do wnwhen aresource isactu-
+allyavailable, thistimeissimply wasted. Later,when the
+resource really breaks down,therewillbetoolittletimeleft
+toreach theduedate.Aconclusion isthatextending pro-
+cessing times maygiveauseful indication howmanyor-
+derscanprobably bedonewithin alongtimeinterval,butit
+doesnothelpfordailyﬁne-tuned scheduling.
+7.Evaluation andConclusion
+Wehaveshownthatfeasible schedules foralacquer
+production casecanbederiveddoing real-time reachabil-
+ityanalysis withthetimed automata model checkerUP-
+PAAL.Wecould treatinstances with29,73inlessthan
+onesecond (giventherightheuristics) and219orders in
+lessthan4seconds. Todealwiththefullsetofconstraints
+oftheoriginal problem wehadtointroduce costsintothe
+model, viz.setup-costs forﬁllingstations, storage costsfor
+orders thatareproduced tooearly,anddelay costsforor-
+dersthataretoolate.Thistransformed theproblem into
+acost-optimization problem, which wastreated using UP-
+PAALCORA,acost-optimal version ofUPPAAL.
+Afurther extension ofthemodel wasneeded todealwith
+theso-called working-hours constraints, which increased
+thesizeandcomple xityofthemodel signiﬁcantly .Yet,also
+forthiscasecompetiti veschedules could bederivedusing
+UPPAALCORA.
+Ontheonehand, itisclearthatthisapplication ofmodel
+checking techniques tothiskindofproduction scheduling is
+not(yet)push-b uttontechnology: toobtain results ourmod-
+elshadtobeconstructed withcare,andtherightheuristics
+hadtobeidentiﬁed.Ontheotherhand, itisresonable toas-
+sume thatmanyproduction scheduling problems havesim-
+ilaringredients andthatmodelling techniques andpatterns
+fortypical plantprocesses andheuristics canbereused. Fur-
+therexperiments havetobecarried outtoidentify auseful
+corecollection ofsuchmodelling patterns.
+Ofcourse, therestillareanumber ofopenissues. One
+important question istheextent towhich ourapproach
+scales up.Acrucial factoristhenumber ofclocks inthe
+model. Welimited thenumber ofclocks to3·A+3,
+where Aisanupper bound foractivejobs.Forourex-
+amples A=3andA=4gavebestresults. Thisbound
+isdetermined bythenumber ofresources. Informally ,for
+
+--- Page 8 ---
+agivensetofresources thereisamaximal number ofor-
+dersthatcanmakeoptimal useof.Havingmoreactiveor-
+dersincreases thenumber ofconﬂictsituations (andthere-
+foredeadlocks andbacktracking inthereachability analy-
+sis).Increasing thenumber ofjobswiththesame amount
+ofresources doesnotincrease thenumber ofclocks. Here,
+moreexperiments areneeded. Currently ,weareworking on
+acaseinvolving sometwothousand orders.
+Theuseoftheperformance andavailability factors leads
+toquestions ofinterpretation. Extending theprocessing
+times bythesefactors canbeusedtoanalyse howmanyor-
+dersshould befeasible onalonger timescale. However,
+thestochastic analysis in[5]hasshownthatusing perfor -
+mance andavailability factors toobtain concrete schedules
+increases theprobability tomissdeadlines. Theuseofper-
+formance andavailability factors thusmakesmodels inher-
+ently approximati ve,anditdoesnotseem veryuseful to
+include ﬁnerinformation about exactworking hours and
+penalties, suchassetup andcleaning costs, intothemodel,
+asisthecasenow.Itisunclear whatmodelling assumptions
+arebestsuitable forthederivationofconcrete short-term
+schedules, where storage costs havetobeminimized and
+delay coststobeavoided. Anideathatwewanttoexplore
+isthatofusing aformofschedule reﬁnement taking rough
+long-term schedules asabasisforobtaining precise sched-
+ulesforconcrete short-term. Atransformation approach to
+scheduling, although inadifferent context,wassuccessfully
+usedinanother casestudy oftheAMETISTproject, viz.the
+Cybernetix case[9].Another ideathatwillbeinvestigated
+isthatofsearching forschedules inreversetime, starting
+fromtheduedatesoforders; validschedules obtained this
+wayavoidstorage anddelay costsbyconstruction.
+Thecasestudy alsoraised anumber ofpragmatic ques-
+tionsconcerning themodelling process. Itturned outtobe
+nontri vialtoobtain allrelevantinformation fromourindus-
+trialpartner .Inspiteofoureffortstocreate adictionary
+andbetter graphical representations, themodels hadtobe
+changed substantially inanadvanced stageoftheproject, as
+initially provided requirements turned outtobeoverspeci-
+ﬁed.Theexperience suggests thatbeyondadictionary ,there
+should havebeensome jointactivitytocertify theinformal
+explanations. Arelated aspect isthattheproblem descrip-
+tionofAXXOMwasstrongly inﬂuenced bythecapabilities
+oftheirownplanning tool.Thisimplies thatinsomeplaces
+wemayhavebeenremodelling theAXXOMmodel, rather
+thanmodelling theoriginal problem.
+Summarizing, wecansaythatourexperience withthe
+AXXOMcasestudy showstheapplication ofmodel check-
+ingtechniques forproduction scheduling isverypromis-
+ing.Still,considerable further workonmodelling methods,
+reusability ofmodelling patterns, identiﬁcation andevalua-
+tionofheuristics, allinthecontextofcasestudies ofgreater
+orders ofmagnitude, isneeded todevelopitintoareadilyapplicable standard technique forscheduling synthesis.
+Ackno wledgement
+Wewouldliketoackno wledge theessential roleplayed
+byDagmar LudewigandSonja Loeschmann ofAXXOM,
+whowere alwayswilling toprovidetheanswers toour
+manyquestions concerning thiscasestudy.
+References
+[1]Y.Abdeddaim, A.Kerba,andO.Maler.Taskgraph schedul-
+ingusing timed automata. In8thInternational Workshop on
+Formal Methods forParallelProgramming: Theory andAp-
+plications (FMPPT A’03),2003.
+[2]Y.Abdedda ¨ımandO.Maler.Job-Shop Scheduling using
+TimedAutomata. In13th Confer ence onComputer Aided
+Veriﬁcation (CAV’01) ,2001.
+[3]R.AlurandD.Dill.Atheory oftimed automata. Theor etical
+Computer Science ,126(138):183–235, 1994.
+[4]European Community Project IST-2001-35304
+AMETIST (Advanced Methods forTimed Systems).
+http://ametist.cs.utwente.nl/ .
+[5]H.C.Bohnenkamp, H.Hermanns, R.Klaren, A.Mader ,and
+Y.S.Usenk o.Synthesis andstochastic assessment ofsched-
+ulesforlacquer production. In1stInt.Conf.onQuantita-
+tiveEvaluation ofSystems (QEST) ,pages 28–37, Enschede,
+TheNetherlands, Sep2004. IEEE Computer Society Press,
+LosAlamitos, California.
+[6]A.Fehnk er.Scheduling aSteelPlantwithTimedAutomata.
+InSixth International Confer ence onReal-T imeComput-
+ingSystems andApplications (RTCSA ’99),pages 280–287.
+IEEE Computer Society Press, 1999.
+[7]K.G.Larsen, G.Behrmann, E.Brinksma, A.Fehnk er,
+T.Hune, P.Pettersson, andJ.Romijn. Ascheap aspossi-
+ble:Efﬁcientcost-optimal reachability forpriced timed au-
+tomata. InG.Berry,H.Comon, andA.Finkel,editors, CAV
+2001,number 2102 inLNCS, pages 493–505. Springer –
+Verlag, 2001.
+[8]K.G.Larsen, P.Pettersson, andW.Yi.UPPAALinanut-
+shell. International Journal onSoftwar eToolsforTechnol-
+ogyTransfer ,1(1/2):134–152, 1997.
+[9]A.Mader .Derivingschedules forasmart cardpersonalisa-
+tionsystem. Technical report TR-CTIT -04-05, Centre for
+Telematics andInformation Technology ,Univ.ofTwente,
+TheNetherlands, Jan2004.
+[10]O.Maler,A.Pnueli, andJ.Sifakis. Onthesynthesis of
+discrete controllers fortimed systems. InProceedings of
+STACS’95 ,volume 900ofLNCS .Springer ,1995.
+[11]M.Pinedo. Scheduling: Theory ,Algorithms andSystems .
+Prentice Hall,2002.
+[12]M.Pinedo andX.Chao. Operations Scheduling withAppli-
+cations inManufacturing Systems .McGra w-Hill, 1999.
+[13]S.Yovine. KRONOS:averiﬁcation toolforreal-time sys-
+tems. International Journal onSoftwar eToolsforTechnol-
+ogyTransfer ,1(1/2):123–133, 1997.
