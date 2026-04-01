@@ -1,0 +1,807 @@
+--- Page 1 ---
+Modelling and Veriﬁcation of
+Timed Robotic Controllers
+Pedro Ribeiro1, Alvaro Miyazawa1, Wei Li2,
+Ana Cavalcanti1, and Jon Timmis2
+1Department of Computer Science, University of York, York, YO10 5GH, UK,
+pedro.ribeiro@york.ac.uk
+2Department of Electronic Engineering, University of York, York, YO10 5DD, UK
+Abstract Designing robotic systems can be very challenging, yet con-
+trollers are often speciﬁed using informal notations with development
+driven primarily by simulations and physical experiments, without rela-
+tion to abstract models of requirements. The ability to perform formal
+analysis and replicate results across diﬀerent robotic platforms is hindered
+by the lack of well-deﬁned formal notations. In this paper we present a
+timed state-machine based formal notation for robotics that is informed
+by current practice. We motivate our work with an example from swarm
+robotics and deﬁne a compositional CSP-based discrete timed semantics
+suitable for reﬁnement. Our results support veriﬁcation and, importantly,
+enable rigorous connection with sound simulations and deployments.
+Keywords: semantics, reﬁnement, process algebra, CSP, robotics
+1 Introduction
+Robotic systems have applications in many real-life scenarios, ranging from
+household cleaning to critical search-and-rescue operations. Assessing their ex-
+pected behaviour is challenging. In spite of that, typically controller software is
+developed in an ad-hoc manner, driven by simulations and physical experiments,
+but without a clear relation with models of requirements and design.
+Standard state-machine notations, without underlying formal semantics, are
+often used [1,2] together with natural language annotations to specify more com-
+plex behaviours, involving aspects such as time and probabilities. State machines
+are often neither presented in an abstract way, nor do they contain precise and
+suﬃcient information to relate the designs to the simulations and deployments. In
+this scenario, the ability to faithfully replicate results, even just across diﬀerent
+simulators, let alone using diﬀerent robotic platforms, is signiﬁcantly hampered.
+In this paper we present a timed semantics for RoboChart [3], a state-machine
+based notation that can be characterised as a UML proﬁle extended with time
+primitives and with a formal semantics. RoboChart provides constructs for cap-
+turing the architectural patterns of typical timed and reactive robotic systems.
+An abstract characterisation of a robot’s operations and events is formalised
+via the notion of a robotic platform that decouples the software and hardware
+
+--- Page 2 ---
+2
+platform from controllers. A controller can encapsulate multiple state-machines,
+and is connected with a particular platform via the notion of a module. This
+enables an abstract and precise approach to the design of robotic systems, where
+high-level concepts can be mapped into low-level constructs of typical executable
+simulations, for example, as we have considered in [3].
+Here we propose a compositional semantics for reﬁnement using Timed CSP
+[4], enriched with deadline constructs from Circus Time [5], a discrete-time pro-
+cess algebra that combines constructs of Z [6], CSP [7], and Timed CSP, besides
+deadline operators. A semantics for the enriched Timed CSP is deﬁned in the
+Unifying Theories of Programming [5,8].
+For RoboChart models that make a modest use of data types, we translate
+the semantics to CSP using a special event tock to mark the time. This version
+of CSP, called tock-CSP [7], is supported by the model checker FDR [9]. We
+use it to validate the design of RoboChart and our semantics, and check timed
+properties of RoboChart models. With tock-CSP, we can give a discrete-time
+model for all constructs of Timed CSP and deadlines.
+The encoding in tock-CSP is mechanised in RoboTool, a graphical editor for
+RoboChart models. Using RoboTool and the automatically generated semantics,
+we have tackled a number of examples, and present here four experiments: two
+chemical detectors [10], an alpha algorithm used in swarm robotics [11], and a
+transporter that works in a swarm to move an object to a goal position [1].
+Our long-term objective is to use our semantics for veriﬁcation by automated
+theorem proving using an Isabelle encoding of Circus Time [12], and prove that
+automatically generated simulations are sound, that is, reﬁne the RoboChart
+models. Translation from Timed CSP with deadlines to Circus Time is not chal-
+lenging, since Circus Time is a richer language.
+In Section 2 we motivate our work by presenting an example of a typical
+timed robotic controller, as used in swarm robotics, and giving an insight into
+related work. In Section 3, we present RoboChart. We discuss in detail the
+RoboChart timed semantics in Section 4. In Section 5 we present veriﬁcation
+results and discuss tool support. Finally, we summarize our contributions and
+provide pointers for future work in Section 6.
+2 Modelling Robotic Controllers
+We now present an example (Section 2.1) and related works (Section 2.2) to
+indicate the need for a specialised timed formal language.
+2.1 Motivating Example
+Our goal is not to propose an entirely novel notation, but to deﬁne a language
+that is akin to that currently adopted by roboticists in their informal approach.
+We present in this section an example, taken from the domain of swarm robotics,
+whose published model is representative of the current practice.
+
+--- Page 3 ---
+3
+S2. Move to 
+ObjectS3. Close In 
+on ObjectS4. Scan 
+and Align
+S5. Push 
+Object
+S7. EvadeS6. Move 
+Around 
+ObjectS1. Search 
+Objectobject 
+is nearalmost 
+contact
+goal 
+is seengoal 
+not seen lost object 
+for > Talost object 
+for > Ta
+lost contact 
+for > Tc<2 neighbour
+for > Tb
+Te
+elapsedTd
+elapsedobject
+is seen
+start
+Figure 1: Transport swarm state machine [1].
+We consider an individual timed reactive controller used in robots of a swarm
+for cooperatively transporting tall objects towards a locally perceived goal [1].
+The robotic platform has a camera that allows it to distinguish objects and the
+goal, and proximity sensors that can be used to estimate the distance to an
+object and to detect other nearby robots.
+In Figure 1 we reproduce the transport swarm controller in [1]. In state S1
+the robot searches for an object and, once it sees one, it transitions to state S2.
+If the object is near, then it transitions to state S3. While in states S2and S3,
+if the object is lost for a certain amount of time Ta, the robot initiates another
+search for the object by transitioning to state S1. When the robot is close enough
+to the object, by transitioning from state S3toS4, it performs an alignment
+procedure and checks whether the goal can be seen. The underlying idea is that
+if the goal is occluded by the object, and the robot is close to the object, then it
+pushes the object towards the goal. While pushing, in state S5, the robot may
+lose contact with the object, in which case after a time threshold of Tcit evades
+the vicinity; or it may lose sight of nearby neighbours, in which case it tries to
+align itself again by transitioning to state S4. The transitions between states S7
+and S1, and S6and S1, are equally timed according to thresholds Teand Td.
+We observe that the state machine in Figure 1 is speciﬁed in natural lan-
+guage and a few aspects are unclear, such as the behaviour and time spent in
+each state, whether timed transitions take place immediately or need to wait
+until the behaviour has completed, and thresholds related to the distances to
+the object. Even when taking into account the implementation details [1], it is
+ultimately unclear whether the controller, as presented, could be independently
+and correctly implemented. In our experience, this is not an uncommon scenario
+in the development of robot applications. We refer, for instance, to [13,14] for
+examples of other applications modelled with similar state machines.
+2.2 Related Work
+According to a recent survey [15], there is increasing interest in domain-speciﬁc
+and model-driven approaches in robotics. We discuss below those closest to ours
+in tackling aspects such as architectural design, time, and veriﬁcation.
+
+--- Page 4 ---
+4
+GenoM[16] provides a component-based approach for designing middleware-
+agnostic robotic controllers. Functional aspects are captured by recording the
+input and output parameters of functions together with their worst-case ex-
+ecution time. Implementations are provided by code fragments, for example,
+using C code. Veriﬁcation of schedulability via model-checking is available using
+Fiacre [16], through the Timed Petri Net model-checker TINA, while deadlocks
+can be checked using BIP. GenoMis primarily an executable language, whereas
+RoboChart is a modelling language catering for diﬀerent levels of abstraction.
+Proof techniques, including model-checking, have also been used to identify
+optimal conﬁgurations of adaptive architectures [17]. Related approaches such as
+CIRCA [18] tackle the problem of meeting real-time constraints given dynamic
+plan generation. Behavioural properties are not the main focus of these works.
+Orccad [19] supports modelling, simulation, and programming, as well as
+veriﬁcation of timed behavioural properties via translation into Esterel and
+Timed Argos. Unlike RoboChart, its support for graphical modelling is limited,
+while the modelling constructs employed are closest to those of our semantics.
+UML has been used for model-based engineering of robotic systems [20].
+The proﬁle RobotML [21] supports design modelling and automatic generation
+of platform-independent code, but veriﬁcation is not considered. On the other
+hand, several formal models of UML state machines exist; some of them use
+CSP [22,23]. However, none of these deal with time modelling.
+UML has a simple notion of time. Its proﬁle UML-MARTE [24] supports
+logical, discrete and continuous time through the notion of clocks. Speciﬁcation
+of time budgets and deadlines, however, is focused on particular instances of
+behaviour via sequence and time diagrams. It is not possible to deﬁne timed
+constraints directly in terms of transitions and states as we require.
+UML-RT [25], an extension to UML, includes the notion of capsules, which
+encapsulate state machines. Communication between capsules is governed by
+protocols. A timing protocol can raise timeouts, but it is not obvious how timed
+constraints, such as deadlines, can be speciﬁed directly on state machines. In [26]
+a semantics is given for a subset of UML-RT without considering time. An ex-
+tension to UML-RT is considered in [27] with semantics given in CSP+T [28],
+an extension of CSP that records the timing of events.
+Timed automata [29] use synchronous continuous-time clocks. Temporal lo-
+gic properties can be checked using the model checker UPPAAL [30]. It is not
+directly comparable to RoboChart, which provides modelling abstractions ca-
+tering for robotic applications and has a semantics for reﬁnement. It is our aim
+to explore a semantics for RoboChart using UPPAAL for property veriﬁcation.
+3 RoboChart: a Formal Notation for Robotics
+A system in RoboChart is characterised by a module that contains a robotic
+platform, associated with one or more controllers. A controller is speciﬁed by one
+or more state-machines. Our focus here is on the state machines, since that is
+where we deﬁne the time properties. The untimed RoboChart semantics deﬁned
+
+--- Page 5 ---
+5
+PrimitiveMetamodel
+ElementDescription
+#C ClockReset Resets clock C.
+since(C) ClockExp Time elapsed since the most recent reset of clock C.
+sinceEntry(S) StateClockExp Time elapsed since state Swas entered.
+A<fdgTimedStatement Deadline on action Ato terminate within dtime units.
+e<fdg Transition Deadline on event eto happen within dtime units.
+Wait(d) Wait Explicit time budget of dtime units.
+Table 1: Timed primitives of RoboChart.
+Statement
+Expression
+State
+TimedStatement
+Wait
+ClockExp
+StateClockExp
+ClockReset
+Clock
+Trigger
+Transition
+[0..1]deadline
+[0..1]deadline[0..1]duration
+Figure 2: Timed metamodel of RoboChart.
+in [31] already describes how CSP models of state machines can be composed
+to deﬁne models for controllers, and how these can be composed to deﬁne a
+complete module and provide a formal model of a robotic system.
+A state-machine includes states and composite states with entry, during
+and exit actions, junctions, and transitions, possibly guarded by expressions.
+The language for actions is well deﬁned to include assignments, operation calls,
+and a primitive to raise events. In Figure 2 we include part of the RoboChart
+metamodel showing constructs related to time, whose syntax is summarized
+in Table 1. The RoboChart Reference Manual [31] gives a complete description.
+We have a notion of Clock (see Figure 2) that allows transitions to be guarded
+by time expressions that deﬁne constraints relative to the occurrence of other
+events via the since(C) (ClockExp in Figure 2) and #C(ClockReset) primit-
+ives, and relative to activation of a state via sinceEntry(S) (StateClockExp). We
+also have primitives to impose a deadline don action A(A<fdg) (TimedState-
+ment), or transition trigger e(e<fdg) (Trigger), and to specify a budget d
+(Wait(d) ) (Wait) for an operation, where dis an Expression.
+Similarly to timed automata, expressions involving clocks are restricted to
+comparing single timed primitives with constant expressions. We, however, allow
+conjunctive as well as disjunctive expressions involving more than one clock.
+To illustrate the RoboChart notation we consider a robot that moves at
+constant speed in a square pattern while avoiding obstacles. The state machine
+is shown in Figure 3, where the annotations T0toT6uniquely identifying the
+transitions are not actually part of RoboChart, but are included to guide the
+later discussion of the semantics in Section 4.
+
+--- Page 6 ---
+6
+Movement
+Turning
+entry send stop <{0};  
+turn(angular)
+MovingForwardentry moveForward(linear)<{0}
+Observing
+Collision
+T0
+T1
+T2
+T3T5
+T6T4
+collisionDetected [since(C)<3]
+stop <{0}[segment==4]/#C; segment = 0[sinceEntry(Turning)==2]/#C
+exit disableCollisionDetection()entry enableCollisionDetection()
+entry avoid(); wait (2)[since(C)==5]/segment=segment+1
+Figure 3: Example of a square trajectory state machine controller.
+When the robot is started, it transitions from the initial state, denoted by
+a black circle, to the state MovingForward , while resetting ( #C) a clock Cand
+assigning 0to the local variable segment . The local declarations are elided in
+Figure 3, but a RoboChart state machine is self-contained, in that it declares
+all the variables, events, and operations that it uses. The local variable segment
+records how many sides of the square have been covered so far; the robot stops
+when it completes the square ( segment == 4 ). This is achieved by sending an
+event stopto the platform and transitioning to the ﬁnal state: a white circle. The
+event stop is given a deadline 0, indicating that it is expected that the robotic
+platform is always ready to accept this event immediately.
+In the composite state MovingForward , the motion is linear, unless an obstacle
+is detected. Linear motion is activated by calling the operation moveForward
+in the entry action with a constant value linear passed as a parameter. This
+operation is annotated with a deadline of 0, since moveForward can typically be
+implemented just as an assignment to a variable whose duration is regarded as
+negligible. Operations may be speciﬁed by other state machines or have their
+implementation provided by the robotic platform.
+Before MovingForward is actually entered, its entry action executes, followed
+by that of its substate Observing , enabling the collision detection capability. Once
+a collision is detected, the event collisionDetected is raised by the robotic plat-
+form: the transition from Observing to the state Collision is then triggered, but
+only if there is enough time ( since(C)<3) before the next turn, executing the
+exit action of Observing and subsequently the avoid operation that performs the
+actual collision avoidance. Here we do not specify this operation, but record its
+budget of 2time units by sequentially composing it with the timed primitive
+wait(2) . In RoboChart time elapses explicitly via budgets, unless a state has
+been entered and no transitions are enabled, or, every enabled transition is as-
+sociated with an external event. Once the collision is resolved, a transition back
+toObserving is taken. Transitions are triggered once the guard is true and the
+associated event is raised, or, if there is no event associated, immediately.
+
+--- Page 7 ---
+7
+vector
+time
+IPusher
+IObjectWatch
+enableObjectWatch()
+disableObjectWatch()
+objectSeen: nat
+IMotionControl
+searchObject()
+moveToObject()
+closeInOnObject()
+pushObject()
+moveAroundObject()
+scanAndAlign()
+evade()
+IWalk
+randomWalk()
+moveTo(p: vector)
+stopMoving()
+scanAndAlign()
+evade()
+IGoalWatch
+enableGoalFinding()
+disableGoalFinding()
+goalSeen
+Pusher
+Searching
+entry enableObjectWatch() <{0}
+during searchObject()
+MovingToObject
+during moveToObject()
+Watch
+ClosingInOnObject
+during closeInOnObject()
+Watch
+Scanning
+entry goalSeen = false; (enableGoalFinding(); enableNeighbourDetection()) <{0}
+during scanAndAlign()
+exit disableGoalFinding() <{0}
+Watch
+Pushing
+during pushObject()
+Watch
+Evading
+entry (disableObjectWatch(); 
+disableNeighbourDetection()) <{0}
+during evade()
+MovingAround
+entry (disableObjectWatch(); 
+disableNeighbourDetection()) <{0}
+during moveAroundObject()
+[newN==0/\neighbours>0]/#N; neighbours = newN
+[distance>0/\since(C)>=TH_Tc]
+[distance==0]
+objectSeen?newD
+[newN>0\/neighbours==0]/neighbours = newN
+[distance<close]
+[newD>0/\distance==0]/#C; distance = newD
+[newN>0\/neighbours==0]/neighbours = newN
+neighbourDetected?newN
+[newD==0\/distance!=0]/distance = newD
+[goalSeen]
+[newN==0/\neighbours>0]/#N; neighbours = newN
+[since(T)>=TH_Ta]
+objectSeen?distance #T
+objectSeen?distance #T
+[sinceEntry(MovingAround)>=TH_Td]
+[since(T)>=TH_Ta]
+[neighbours==0/\since(N)>=TH_Tb]
+objectSeen?newD
+[sinceEntry(Evading)>=TH_Te]
+[not goalSeen]
+neighbourDetected?newN
+[newD>0/\distance==0]/#C; distance = newD
+[newD==0\/distance!=0]/distance = newD
+goalSeen/goalSeen = true
+objectSeen?distance #T
+objectSeen?distance #T
+objectSeen?distance #T
+objectSeen?newD
+[newD>0/\distance==0]/#C; distance = newD
+[newD==0\/distance!=0]/distance = newD
+goalSeen/goalSeen = true
+neighbourDetected?newN
+[newN==0/\neighbours>0]/#N; neighbours = newN
+[newN>0\/neighbours==0]/neighbours = newN
+objectSeen?newD
+[newD>0/\distance==0]/#C; distance = newD
+[newD==0\/distance!=0]/distance = newD
+neighbourDetected?newN
+[newN==0/\neighbours>0]/#N; neighbours = newN
+[newN>0\/neighbours==0]/neighbours = newN
+objectSeen?distance #T
+[since(T)>=TH_Ta]
+[distance<close]
+[since(T)>=TH_Ta]
+[distance==0]
+[goalSeen]
+[not goalSeen]
+[distance>0/\since(C)>=TH_Tc]
+[neighbours==0/\since(N)>=TH_Tb]
+[sinceEntry(Evading)>=TH_Te]
+[sinceEntry(MovingAround)>=TH_Td]
+Figure 4: RoboChart model of the transport swarm state machine.
+The square motion pattern is achieved by limiting the linear motion to 5time
+units before switching to angular motion for 2time units, and then switching
+again to linear motion. Accordingly, we guard the transition from MovingForward
+to the state Turning with the expression since(C) == 5. Upon such a transition,
+the value of segment is incremented. Similarly, the angular motion is limited by
+guarding the transition from Turning toMovingForward using the timed primitive
+sinceEntry(Turning) . Upon this transition, the clock is reset.
+In Figure 4, we also show the RoboChart model for the transport swarm
+controller described in Section 1. We assume that the robotic platform can raise
+events: objectSeen , with a distance value passed as a parameter in response to
+seeing an object at an estimated distance; goalSeen in response to detecting the
+goal; and neighbourDetected , with a number of neighbours passed as a parameter.
+We also assume that the controller needs to enable the platform to receive those
+events, by calling appropriate operations, such as enableObjectWatch .
+Operations likely to be implemented as assignments to variables have been
+annotated with zero deadlines. Overall we have the same structure as the original
+speciﬁcation [1], with the same number of states, but with additional substates.
+This stems from interactions that are not clear in the original model, such as
+the need to keep counting neighbours while in states Pushing andScanning , and
+the need to keep track of the object across multiple states.
+The existing semantics of RoboChart deals with the structure (modules, con-
+trollers, and parallel state machines) of models. That semantics deﬁnes the visible
+behaviour of a module: the order and availability of the events of the platform.
+That semantics, however, ignores all time constructs of a model: clocks, and as-
+sociated statements, waits, and deadlines. We address them in the next section.
+
+--- Page 8 ---
+8
+Movement (State machine )
+setX !v
+getX ?vclockReset ! C 
+Clocks Memorydeadline .TID.on
+deadline .TID.off
+setWc .true
+TID
+TID
+setWc .falseMovingForward
+Transitions During Entry ;
+MovingForward (Composite )enter ?Turn !MFenter !MF!Obs
+entered !MF!Obsentered !Turn !MF
+enter !Obs!Coll
+entered !Obs!Collexit!MF?x
+exited !MF!xInitial
+enter ?x!MF entered !x!MF1
+2
+3
+Observing
+Transitions During Entry ;456 Turning
+Transitions During Entry ;
+Collision
+Transitions During Entry ;
+Figure 5: Semantics Architecture based on Example of Figure 3.
+4 Semantics
+Here, we describe the semantics of RoboChart state machines (Section 4.1) [31].
+We then focus on the semantics of each timed RoboChart construct, namely
+budgets and deadlines (Section 4.2) and clocks (Section 4.3).
+Before deﬁning the semantics, we ﬁrst introduce the required CSP syntax. A
+communication on event e(also known as a channel), optionally parametrised by
+x, is deﬁned as e:x!P, with e?xbeing syntactic sugar for allowing xto range
+over the type of eand introducing xin the scope of P, and with e!vbeing used
+for a speciﬁc value v. Processes can be composed in parallel ( Pj[s]jQ), where s
+is the set of events on which Pand Qrequire agreement, and if sis empty this
+is an interleaving ( PjjjQ). An external choice P2Qoﬀers an initial choice
+between behaving as PorQ, while P4Qbehaves as Pbut can be interrupted
+byQat any time, with the timed version P4dQin addition also interrupting
+Pexactly at dtime units. PAQinitially behaves as Pbut can be interrupted
+by an event in Ato behave as Q. Sequential composition of Pand QisP;Q,
+with SKIP being the unit. Hiding ( Pnh) makes the events in set hinternal to
+P. Finally, the events in a process P[f]can be renamed according to function f.
+4.1 State Machines
+A state machine is given a CSP semantics as the parallel composition of a process
+States , itself the parallel composition of processes that model a state, with a
+process Initial , that models the transition from the initial state. In Figure 5 we
+illustrate the architecture of the CSP semantics of the example from Figure 3.
+A state is modelled by a process Entry , modelling its entry action, sequentially
+composed with During , a model for its during action, that can be interrupted
+by a process Transitions that models the possible outgoing transitions.
+A state machine deﬁnes a sequential and hierarchical control ﬂow. To model
+this ﬂow, there are enter ,entered ,exit, and exited events that model state ac-
+tivation and deactivation, with the associated entry and exit actions. Each event
+takes two parameters: the state that requested the activation or deactivation to
+start, and the target state of the request.
+
+--- Page 9 ---
+9
+A state is modelled in a compositional way, capturing information only about
+itself, irrespective of whether it is inside a state machine or another state. In Fig-
+ure 5, the execution sequence is numbered. For example, the process modelling
+MovingForward oﬀers events enter ?x!MFfor any other state x, including the ini-
+tial state to request it to enter, followed by the process that models its own entry
+action, a request on enter !MF!Obsfor the child Observing to enter, the entry ac-
+tion of Observing , and the acknowledgements entered !MF!Obsandentered !x!MF.
+The process then oﬀers an external choice of events that trigger its transitions.
+Following a transition event, the exitand exited events to request and ac-
+knowledge deactivation are oﬀered. For instance, in our example, following a
+transition triggered from state MovingForward , the process oﬀers to synchronize
+on events exit!MF:S, where Sranges over all state identiﬁers except MFitself,
+as a way of requiring deactivation of either Observing orCollision .
+Each state transition Tis modelled by a process that synchronizes on TID,
+an event that uniquely identiﬁes the transition in the state machine. If an event
+trigger eis associated with the transition, then at the outer level we rename the
+complete state machine process by mapping TIDtoe.
+Variables declared in a state machine are modelled using a process Memory
+that exposes events getand setfor each variable. In our example, Memory is
+parametrised by s, which holds the value of the variable segment , and oﬀers the
+events getSegment andsetSegment in an external choice followed by a recursion.
+Memory (s) =getSegment !s!Memory (s)2setSegment ?y!Memory (y)
+2s== 4 & T3!Memory (s)
+Moreover, it also models transition guards by constraining synchronization on
+transition events ( TID). In our example, the transition from MovingForward to
+the ﬁnal state is guarded, so Memory captures this guard by only oﬀering the
+event T3that uniquely identiﬁes the transition (Figure 3) when segment is4.
+4.2 Budgets and Deadlines
+As mentioned before, RoboChart budgets can be speciﬁed as part of actions.
+using the wait(d) construct. Its semantics is given by Wait t, a Timed CSP
+process that terminates exactly after tunits of time elapse. Deadlines speciﬁed
+on actions are deﬁned using the deadline operator AItofCircus Time , where
+the process Amodelling action Amust terminate within ttime units.
+When a deadline is imposed on a transition trigger, however, it must be
+enforced only when the transition is enabled, that is, the transition’s guard is
+true and the source state has been entered. In our model, we deﬁne a pair of
+events deadline:TID:onand deadline:TID:oﬀfor each transition Twhose trig-
+ger has a deadline. Whenever T’s guard is true, the Memory process oﬀers the
+event deadline:TID:on, and when the guard is false, it oﬀers deadline:TID:oﬀ.
+The Memory process of our example is deﬁned as follows.
+Memory (s) =:::2s== 4 & deadline:T3:on!Memory (s)
+2:(s== 4) & deadline:T3:oﬀ!Memory (s)
+
+--- Page 10 ---
+10
+In addition to the getandsetevents for setting and getting the value of variable
+segment , and the guarded synchronization on T3, the event deadline:T3:onis
+guarded by the expression corresponding to the guard on the transition identiﬁed
+byT3, and the negation of this expression guards the event deadline:T3:oﬀ.
+For each process that models a state where an outgoing transition has a trig-
+ger with a deadline, we then compose in interleaving with the process modelling
+its during action, a Dline iprocess for each deadline dias deﬁned below.
+Dline i=deadline:TID:on!((deadline:TID:oﬀ!SKIP )Idi);Dline i
+Dline iinitially synchronizes on deadline:TID:on, and thereafter must synchronize
+ondeadline:TID:oﬀwithin ditime units, followed by a recursion. The deadline
+is imposed on deadline:TID:oﬀrather than the transition identiﬁer TID. The
+deadline can be satisﬁed either as a result of the transition’s guard no longer
+being true, in which case the process synchronizes on deadline:TID:oﬀ, or as a
+result of the process being interrupted due to some transition out of the source
+state of T, modelled by a process Transitions , being triggered, possibly Tit-
+self. Eﬀectively an enabled deadline on a transition becomes a deadline on the
+external choice between all enabled transitions out of the same state.
+As an example, we show the process Mfor the state MovingForward .
+M=enter ?S!MF!0
+@moveForward ;enter !MF!Obs!
+entered !MF!Obs!entered !S!MF!SKIP ;
+((SKIPjjjDline MF)4Transitions MF)1
+A ;M
+Initially it oﬀers events enter ?S!MF, so that any other state identiﬁed by Smay
+request it to be entered. It then behaves as moveForward , the process that models
+the operation moveForward , and then requests the substate Observation toenter
+by synchronising on enter !MF!Obs, subsequently waiting for an acknowledgement
+viaentered !MF!Obsand then acknowledging its own entry through entered !S!MF.
+Mthen behaves as an interleaving ( jjj) between the process modelling its during
+action, in this case SKIP as there is none, and the process Dline MFthat models
+the deadlines on triggers of every outgoing transition of state MovingForward ,
+while oﬀering for any event in Transitions MF, the process that models every
+outgoing transition from this state, to interrupt the interleaving.
+4.3 Clocks
+As previously mentioned, RoboChart clocks allow conditions to be set relative
+to the time elapsed since a particular clock reset. To model a reset #Con clock
+Cwe introduce an event clockReset:C, where Cis the name of the clock.
+Although clocks could be explicitly modelled in the semantics, for example,
+by adding variables in the Memory process for each clock, this would make the
+model intractable for model-checking as the variables would have an unbounded
+domain. Since we assume clocks can only be compared with constant expressions,
+we adopt a model where a timed expression involving a comparison between
+a constant and constructs since(C) orsinceEntry(S) is encoded by a boolean
+
+--- Page 11 ---
+11
+variable together with an auxiliary CSP process synchronizing with the Memory
+process. For example, a transition with unique identiﬁer T1guarded by the
+expression x = 1_since(C)>= dis encoded in the Memory process as follows.
+Memory (:::;x;wcT1) =:::2setWc T1?wc!Memory (:::;x;wc)
+2(x= 1_wcT1) &T1!Memory (:::;x;wcT1)
+A boolean variable wcT1encodes the timed condition since(C)>=d, with channel
+setWc T1used to set it true orfalse. Synchronizing in parallel with the Memory
+process we introduce a WaitingCondition process WC T1deﬁned below.
+WC T1 =Do(T1)4WC T1reset
+WC T1reset =clockReset:C!setWc T1!false!WC T1body
+WC T1body = (Do(T1)4dsetWc T1!true!Do(T1))4WC T1reset
+This process ensures that while wcT1is being updated the event T1is not oﬀered.
+Initially it is ready to synchronise on T1indeﬁnitely (as deﬁned using the process
+Do(e) =e!Do(e)), but can be interrupted by the event clockReset:Coﬀered in
+the process WC T1reset . Whether T1is actually enabled or not is controlled
+byMemory and not WC T1. So, the availability of T1inWC T1indicates
+only that wcT1is not being updated. If there is a clock reset, WC T1reset sets
+the value of the Memory process variable wcT1tofalse via the synchronization
+setWc T1!false and behaves as WC T1body. This ensures that, when the clock
+is reset, the transition cannot take place, even if the value of the condition is not
+yet updated. Initially this process continuously oﬀers the event T1until exactly
+dunits elapse (4d), after which it sets wcT1totrue via the synchronization
+setWc T1!trueand then continuously oﬀers the event T1. At any point the process
+may be interrupted by WC T1reset due to a clockReset:C.
+The complete semantics of a timed state machine is given by the parallel
+composition of the process modelling the state machine, STM , the Memory
+process and a Clocks process whose deﬁnition is the parallel composition of all
+WaitingCondition processes as deﬁned for each timed condition.
+(((STMj[g[dc]j((Memoryj[w[t]jClocks )nw))nI)[f])fterm gSKIP
+Memory andClocks synchronise on the events in the sets w, containing all setWc
+events, which are then subsequently hidden ( n). They also synchronise on the
+events of the set tof identiﬁers for transitions whose conditions are timed. This
+parallel process synchronises with STM on the events from g, containing the get
+andsetevents for reading and writing the value of state variables and the trans-
+ition identiﬁers, and from dc, containing the deadline andclockReset events. This
+is illustrated by the lines on the top right corner of Figure 5. The set of identiﬁers
+for internal transitions ( I) are hidden (n). Also, as explained, we use a function
+fto rename transition identiﬁers to external events of the platform. Finally if
+the state machine has a ﬁnal state, the process STM can signal termination via
+the event term , which interrupts the process to behave as SKIP .
+Our RoboTool presented next automatically calculates the timed semantics
+of a RoboChart model just described. Instead of Timed CSP, it uses tock-CSP
+for direct use of FDR. The time constructs are encoded as described in [4].
+
+--- Page 12 ---
+12
+5 Tool Support and Model-Checking
+To provide support for designing robotic systems using RoboChart, we have
+developed RoboTool1, an Eclipse plugin that allows speciﬁcations to be input
+using both graphical and textual editors, implemented using the Sirius and
+Xtext2frameworks. RoboTool automatically generates the semantics of Rob-
+oChart models in CSP M, the machine readable version of CSP used by FDR [9].
+FDR includes facilities to translate untimed processes into tock-CSP. For ex-
+ample, the preﬁxing a!Pis translated into an external choice oﬀering tock, the
+event that marks the passage of time, in addition to a:X=a!P2tock!X.
+Other operators are similarly accommodated, while more intricate concepts need
+to be manually speciﬁed using tock-CSP. For example, deadlines are encoded by
+timelocking once a deadline expires, that is, by refusing tock.
+Using the timed semantics of RoboChart we can perform a number of core
+checks using FDR, namely, determinism and divergence freedom. In addition,
+for a given tock-CSP process STM Tmodelling a state machine, and whose set
+of externally observable events is E, we can establish that there are no time-
+locks provided the following reﬁnement is satisﬁed [7]. Since in our model unmet
+deadlines lead to timelocks this is a useful check to identify infeasible deadlines.
+RUN (ftockg)jjjCHAOS (E)vFSTM T(E[ftockg)
+With the above we require that STM T, with every event other than those in
+Eand tock hidden (using the projection operator ), is a reﬁnement ( vF) in
+the failures model of the process RUN (ftockg), that is always oﬀering tock,
+in interleaving (jjj) with the process CHAOS (E)that can perform any event in
+the set Enondeterministically. Zeno freedom, that is, the absence of a behaviour
+where an inﬁnite sequence of events is performed in ﬁnite time, can be ascertained
+by checking that STM T(E[ftockg)is divergence free. Assertions to establish
+all these core properties are also automatically generated by RoboTool.
+Using our semantics we have considered several case studies. We have veriﬁed
+core properties and also deﬁned requirements directly in CSP and tock-CSP. A
+complete account of the experiments can be found in [32].
+Table 2 summarises the results of checking for divergence freedom, a particu-
+larly expensive check in FDR, including state-space complexity ( S=T) in terms
+of number of states ( S) and transitions ( T) visited, compilation time ( CT) and
+veriﬁcation time ( VT). We also include the experimental results obtained with
+the untimed models, deﬁned without using tock, for comparison. Results were
+obtained using FDR version 4.2.0 on a computer with 16GiB of RAM and an
+Intel i5-5287U CPU. Times correspond to an average of 5 runs. For the purpose
+of veriﬁcation, in examples E2,E3and E4the types for reals and integers are
+instantiated in CSP Mas ranging from 0to1, whereas in E1reals are instantiated
+within the range from  90to180due to the speciﬁcation using such values.
+1https://www.cs.york.ac.uk/circus/RoboCalc
+2www.eclipse.org/sirius and www.eclipse.org/xtext
+
+--- Page 13 ---
+13
+ExamplesUntimed Timed
+S/T CTVT S/T CTVT
+E1. Chemical Detector 80/265 0.23s 2.3s 240/861 0.15s 4.58s
+E2. Autonomous Chemical Detector 5/112 2.03s 0.65s 6/72 1.82s 1.99s
+E3. Alpha Algorithm 52/184 0.26s 1.28s 12045/30918 0.66s 1.30s
+E4. Transport Swarm 8/28 1.12s 0.56s 436/1085 2.49s 0.17s
+Table 2: Veriﬁcation results of checking divergence freedom with FDR.
+Our results show that assertions in the failures-divergences model can typic-
+ally be checked within a few seconds. Diligent application of compression func-
+tions signiﬁcantly reduces the time required to compile and verify the assertions.
+We use diamond , which removes silent transitions from the LTS, and wbisim ,
+that reduces the LTS by computing the maximal weak bisimulation.
+To cope with additional variables in the Memory process, typically as the res-
+ult of modelling timed conditions, we have optimized this process. Each variable
+is captured in separate, but parallel, “cell” processes, that synchronize with an
+auxiliary non-parametrised process, modelling the transitions’ conditions, such
+that whenever a variable is changed it introduces in scope the current value of all
+variables. This yields a reduction in the number of possible states. The eﬃciency
+gain is particularly noticeable when a state machine has several variables, or
+timed conditions, which we have also optimized by generating equivalent timed
+expressions only once as a Waiting Condition CSP process.
+As expected, the usage of tock increases the state-space complexity of ex-
+amples compared to their untimed counterparts. The exception here is E2, likely
+due to wbisim that can yield better compression than diamond in some cases.
+We observe that diamond is not permitted by FDR within timed processes.
+6 Conclusion
+RoboChart can be viewed as a UML proﬁle extended with timed primitives
+and a formal semantics. We have used constructs from Circus Time to capture
+budgets and deadlines in a timed semantics for reﬁnement and model checking.
+Support for reﬁnement is essential to our future plans to prove soundness of
+automatically generated simulation and deployment code.
+To optimise model checking, clocks are modelled implicitly, with timed con-
+ditions modelled explicitly. Our use of clocks makes a translation into UPPAL
+feasible, and of interest for further analysis. For example, we have considered
+UPPAAL models of the transport swarm, including a model based on the archi-
+tecture of our semantics and a simpliﬁed version. Both require additional states
+and transitions when compared to RoboChart to achieve a faithful model.
+A semantic model generator has been implemented in RoboTool via transla-
+tion into tock-CSP [7]. We have tackled several examples and veriﬁed whether
+the generated models satisfy expected system requirements, in addition to core
+properties like divergence freedom and zeno freedom. Results suggest an in-
+crease in complexity, but not necessarily in veriﬁcation time, when compared to
+the veriﬁcation of untimed models. The veriﬁcations are tractable given modest
+
+--- Page 14 ---
+14
+data types and diligent use of FDR’s compression functions. For realistic data
+types we do not expect scalability, instead we will consider theorem proving.
+We have a precise account of the timed semantics of RoboChart embedded in
+RoboTool. We will capture this semantics via translation functions that generate
+Circus Time models suitable for use in Isabelle/UTP [12], which supports reas-
+oning about the Circus family of languages via theorem proving. Furthermore,
+to account for the environment and probabilistic behaviour we will ultimately
+consider richer semantics models in the context of the UTP.
+Acknowledgments This work is funded by EPSRC grant EP/M025756/1. No
+new primary data was created during this study.
+References
+1. Chen, J., Gauci, M., Gross, R.: A strategy for transporting tall objects with a
+swarm of miniature mobile robots. In: Robotics and Automation (ICRA), 2013
+IEEE International Conference on. (May 2013) 863–869
+2. Liu, W., Winﬁeld, A.F.T.: Modeling and Optimization of Adaptive Foraging in
+Swarm Robotic Systems. The International Journal of Robotics Research 29(14)
+(2010) 1743–1760
+3. Li, W., Miyazawa, A., Ribeiro, P., Cavalcanti, A.L.C., Woodcock, J.C.P., Timmis,
+J.: From formalised state machines to implementation of robotic controllers. In:
+DARS 2016, Springer-Verlag (2016)
+4. Schneider, S.: Concurrent and real-time systems: the CSP approach. Worldwide
+series in computer science. John Wiley (2000)
+5. Sherif, A., Cavalcanti, A.L.C., He, J., Sampaio, A.C.A.: A process algebraic frame-
+work for speciﬁcation and validation of real-time systems. Formal Aspects of Com-
+puting 22(2) (2010) 153–191
+6. Woodcock, J.C.P., Davies, J.: Using Z—Speciﬁcation, Reﬁnement, and Proof.
+Prentice-Hall (1996)
+7. Roscoe, A.W.: Understanding Concurrent Systems. Texts in Computer Science.
+Springer (2011)
+8. Woodcock, J.C.P.: The miracle of reactive programming. In: Unifying Theories of
+Programming. LNCS, Springer-Verlag (2009) 202–217
+9. Thomas Gibson-Robinson, Philip Armstrong, A.B.A.R.: FDR3 — A Modern Re-
+ﬁnement Checker for CSP. In Ábrahám, E., Havelund, K., eds.: Tools and Al-
+gorithms for the Construction and Analysis of Systems. Volume 8413 of Lecture
+Notes in Computer Science. (2014) 187–201
+10. Hilder, J.A., Owens, N.D.L., Neal, M.J., Hickey, P.J., Cairns, S.N., Kilgour, D.P.A.,
+Timmis, J., Tyrrell, A.M.: Chemical Detection Using the Receptor Density Al-
+gorithm. IEEE Trans. Syst. Man Cybern. C, Appl. Rev. 42(6) (2012) 1730–1741
+11. Dixon, C., Winﬁeld, A.F.T., Fisher, M., Zeng, C.: Towards temporal veriﬁcation
+of swarm robotic systems. Robot. Auton. Syst. 60(11) (2012) 1429–1441
+12. Foster, S., Zeyda, F., Woodcock, J.: Isabelle/UTP: A Mechanised Theory Engin-
+eering Framework. In: UTP 2015. Volume 8963 of LNCS. Springer (2015) 21–41
+13. Nouyan, S., Gross, R., Bonani, M., Mondada, F., Dorigo, M.: Teamwork in Self-
+Organized Robot Colonies. IEEE Transactions on Evolutionary Computation
+13(4) (Aug 2009) 695–711
+
+--- Page 15 ---
+15
+14. Pini, G., Brutschy, A., Scheidler, A., Dorigo, M., Birattari, M.: Task partitioning
+in a robot swarm: Object retrieval as a sequence of subtasks with direct object
+transfer. Artiﬁcial life 20(3) (2014) 291–317
+15. Nordmann, A., Hochgeschwender, N., Wigand, D., Wrede, S.: A survey on domain-
+speciﬁc modeling and languages in Robotics. J Softw Eng Robot 7(1) (2016) 75–99
+16. Foughali, M., Berthomieu, B., Zilio, S.D., Ingrand, F., Mallet, A.: Model Checking
+Real-Time Properties on the Functional Layer of Autonomous Robots. In: Formal
+Methods and Soft. Eng., Springer (2016) 383–399
+17. Fleurey, F., Solberg, A.: A domain speciﬁc modeling language supporting speciﬁc-
+ation, simulation and execution of dynamic adaptive systems. In: Int. Conf. on
+Model Driven Eng. Languages and Systems, Springer-Verlag (2009) 606–621
+18. Musliner, D.J., Durfee, E.H., Shin, K.G.: CIRCA: A cooperative intelligent real-
+time control architecture. IEEE Transactions on Systems, Man, and Cybernetics
+23(6) (1993) 1561–1574
+19. Espiau, B., Kapellos, K., Jourdan, M.: Formal veriﬁcation in robotics: Why and
+how? In: Robotics Research, Springer London (1996) 225–236
+20. Schlegel, C., Hassler, T., Lotz, A., Steck, A.: Robotic software systems: From
+code-driven to model-driven designs. In: Advanced Robotics, 2009. ICAR 2009.
+International Conference on. (June 2009) 1–8
+21. Dhouib, S., Kchir, S., Stinckwich, S., Ziadi, T., Ziane, M. In: RobotML, a Domain-
+Speciﬁc Language to Design, Simulate and Deploy Robotic Applications. Springer
+Berlin Heidelberg, Berlin, Heidelberg (2012) 149–160
+22. Rasch, H., Wehrheim, H.: Checking consistency in UML diagrams: Classes and
+state machines. In: Formal Methods for Open Object-Based Distributed Systems.
+Volume 2884 of LNCS. Springer (2003) 229–243
+23. Davies, J., Crichton, C.: Concurrency and Reﬁnement in the Uniﬁed Modeling
+Language. Formal Aspects of Computing 15(2-3) (2003) 118–145
+24. Selic, B., Grard, S.: Modeling and Analysis of Real-Time and Embedded Systems
+with UML and MARTE: Developing Cyber-Physical Systems. Morgan Kaufmann
+Publishers Inc. (2013)
+25. Selic, B.: Using UML for modeling complex real-time systems. In Mueller, F., Be-
+stavros, A., eds.: Languages, Compilers, and Tools for Embedded Systems. Volume
+1474 of LNCS., Springer (1998) 250–260
+26. Ramos, R., Sampaio, A.C.A., Mota, A.C.: A Semantics for UML-RT Active Classes
+via Mapping into Circus . In: Formal Methods for Open Object-based Distributed
+Systems. Volume 3535 of LNCS. (2005) 99–114
+27. Akhlaki, K.B., Tunon, M.I.C., Terriza, J.A.H., Morales, L.E.M.: A methodological
+approach to the formal speciﬁcation of real-time systems by transformation of
+UML-RT design models. Science of Computer Programming 65(1) (2007) 41–56
+28. Zic, J.J.: Time-constrained Buﬀer Speciﬁcations in CSP + T and Timed CSP.
+ACM Trans. on Programming Languages and Systems 16(6) (1994) 1661–1674
+29. Alur, R., Dill, D.L.: A theory of timed automata. Theoretical Computer Science
+126(2) (1994) 183–235
+30. Bengtsson, J., Larsen, K.G., Larsson, F., Pettersson, P., Yi, W.: Uppaal — a Tool
+Suite for Automatic Veriﬁcation of Real–Time Systems. In: Proc. of Workshop on
+Veriﬁcation and Control of Hybrid Systems III. Number 1066 in LNCS, Springer
+(October 1995) 232–243
+31. Miyazawa, A., et al.: RoboChart Reference Manual. Technical report, University
+of York (2017) http://bit.ly/2plUry4 .
+32. RoboCalc Project: RoboChart Case Studies (2017) www.cs.york.ac.uk/circus/
+RoboCalc/case-studies/ .
