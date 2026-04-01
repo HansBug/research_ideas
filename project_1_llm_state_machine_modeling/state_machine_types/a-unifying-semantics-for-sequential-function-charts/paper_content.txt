@@ -1,0 +1,771 @@
+--- Page 1 ---
+A Unifying Semantics for
+Sequential Function Charts
+Nanette Bauer1, Ralf Huuck2, Ben Lukoschus3, Sebastian Engell4
+1BASF Aktiengesellschaft
+67056 Ludwigshafen, Germany
+nanette.bauer@basf-ag.de
+2National ICT Australia Ltd (NICTA),
+The University of New South Wales, Sydney, Australia
+rhuuck@cse.unsw.edu.au
+3Institute of Computer Science and Applied Mathematics
+University of Kiel, 24098 Kiel, Germany
+bls@informatik.uni-kiel.de
+4Process Control Laboratory (BCI-AST)
+University of Dortmund, 44221 Dortmund, Germany
+s.engell@bci.uni-dortmund.de
+Abstract. Programmable Logic Controllers (PLC) are widely used as
+device controllers for assembly lines, chemical processes , or power plants.
+Sequential Function Charts (SFC) form one of the main progra mming
+languages for PLCs and, therefore, the correctness of the PL C software
+implemented as SFCs is crucial for a safe operation of the con trolled pro-
+cess. A prerequisite for reasoning about program correctne ss is a clear
+understanding of the program semantics. As we show in this wo rk, this
+is currently not the case for SFCs. Although syntactically s peciﬁed in
+the IEC 61131-3 standard, SFCs lack an unambiguous, complet e seman-
+tic description. We point out a number of problems and explai n how
+these lead to diﬀerent interpretations in commercial progr amming envi-
+ronments. To remedy this situation we introduce a parameter ized formal
+semantics for SFCs including many high-level programming f eatures such
+as parallelism, hierarchy, actions and activity manipulat ion. Moreover,
+we show how to extend the semantics to include time, clocks, a nd timed
+actions. The presented semantics is general enough to compr ise diﬀer-
+ent existing interpretations while at the same time being ad justable to
+precisely represent each of them.
+1 Introduction
+Programmable Logic Controllers (PLCs) are widely used for a utomation in pro-
+cess industry, transportation and manufacturing. Their ha rd- and software is
+deﬁned in the standard IEC 61131. Concerning the software di ﬀerent program-
+ming languages are standardized, one of them is Sequential F unction Charts
+(SFC). SFCs are graphical high-level notations for PLC prog rams. They allow
+
+--- Page 2 ---
+the decomposition and structuring of program parts includi ng interesting con-
+cepts like parallelism, activity manipulation and hierarc hy. Moreover, there is the
+notion of time and timers, which allows to test and reason abo ut the amount of
+time a program part has been active and to start program parts after a delay or
+for some limited time only. All these features can, however, again aggravate the
+understanding of SFCs.
+As PLC software often performs safety-relevant functions, its formal analysis
+is crucial, and for this a formal semantics is required. Howe ver, the standard
+only gives an informal description of the semantics of the PL C languages. The
+semantics of SFCs given in IEC 61131-3 is ambiguous and erron eous, and PLC
+programming tool developers interpret the ambiguities pos ed by the standard in
+diﬀerent ways, which results in a variety of diﬀerent tool se mantics. Although
+there exist a few approaches to formalize SFCs [1–3] none of t hem addresses all
+of the concepts which are crucial for SFCs, such as paralleli sm, hierarchy, their
+action concept, and timing aspects, and none of them conside rs tool-speciﬁc
+interpretations.
+To remedy this situation a formal semantic is deﬁned which in cludes all lan-
+guage concepts and furthermore tool-speciﬁc implementati ons. This semantics
+makes formal analysis possible and may also be helpful as a un ifying basis for
+further tool developments.
+The remainder of this work is organized as follows: First we i ntroduce the
+basic concepts of SFCs informally in Sect. 2. In Sect. 3 we sho w ambiguities aris-
+ing from the IEC 61131-3 deﬁnitions for SFCs and deﬁne a forma l syntax and
+semantics for untimed SFCs which considers these ambiguiti es by the introduc-
+tion of adaptable parameters. In Sect. 4 it is shown how this s emantics can be
+augmented to timed aspects. Section 5 shows how the semantic s can be adapted
+to the behavior of diﬀerent tools. The contribution closes w ith conclusions given
+in Sect. 6.
+2 Sequential Function Charts
+2.1 Basic Structure
+Sequential function charts are deﬁned in [4] as elements of a graphical program-
+ming and structuring language for programmable logic contr ollers. The SFC
+deﬁnitions in IEC 61131-3 (in the following referred to as “t he standard”) are
+based on IEC 60848 [5], which deﬁnes the speciﬁcation langua ge Grafcet. Grafcet
+in turn is strongly related to Petri nets [6].
+Basically, SFCs are transition systems consisting of steps (the locations) and
+transitions . For every SFC there exists exactly one initial step . Every transition
+is labeled with an associated transition condition, called guard. Moreover, one
+or more actions may be associated to each step. Actions are again SFCs or
+programs in one of the other programming languages proposed by the standard.
+Since the actions associated to steps can also be SFCs themse lves, a concept of
+hierarchy is provided. An example of a sequential function c hart is depicted in
+Fig. 1.
+
+--- Page 3 ---
+g2guardinitial
+step
+steptransition g1
+g3N
+actionqualifieraction
+nameaction
+blocka1
+P1a2
+Na3
+Fig.1. Elements of SFCs
+Theaction blocks shown in Fig. 1 are a graphical means to associate actions
+to steps. An action block consists of an action qualiﬁer , which can be used to
+specify the activity of the respective action, and the action name . Concerning the
+action qualiﬁers deﬁned in the standard, we focus on those wi thout an associated
+duration of time (considered later in Sect. 4). These are the following:
+qualiﬁer meaning
+N Non-stored
+S Set orStored
+R Reset
+P1 Pulse – rising edge (activation of corresponding step)
+P0 Pulse – falling edge (deactivation of corresponding step)
+Intuitively, the non-stored actions are always active whil e control resides in
+the corresponding step, i.e., as long as it is active. In cont rast the stored actions
+remain active even outside their step of activation until th e corresponding reset
+action is called. The actions with the pulse qualiﬁer are per formed only once
+when entering ( P1) or exiting ( P0) a step.
+An SFC does not necessarily have to be a single sequence of ste ps and transi-
+tions. For SFCs we can identify a number of diﬀerent transiti on types (cf. Fig. 2).
+Transition (1) denotes a simple transition between two steps, (2) describes al-
+ternative branching , i.e., the choice between several transitions, (3) divergence ,
+(4)convergence , and (5) a simultaneity of both of the latter. In this context
+divergence means a parallel branching from one step to a set o f next steps while
+convergence means the synchronization of several steps in p arallel to a single
+one. Furthermore, direct combinations of both as depicted i n (5) are allowed.
+Moreover, the standard refers to transitions like the one gu arded by g3in Fig. 1
+asloops. From our point of view loops as well as alternative branchin g belong
+to the same class, namely (sets of) simple transitions.
+An additional feature of SFCs is to explicitly assign priori ties to alternative
+branches. This means, when ﬁring transitions the one which h as the highest
+
+--- Page 4 ---
+s1
+g1
+s2
+(1)s3
+g3 g2 g4
+s4s5
+(2)s6s7
+g5
+s8s9
+(3)s10 s14
+(4)g6s11s12s13
+s18
+(5)s19g7s15s16s17
+Fig.2. Basic transition types
+priority among the enabled ones will be taken. If there are no priorities given,
+SFC programming tools often implement the implicit rule tha t the transitions
+are ordered “from left to right” in decreasing priority, i.e ., in Fig. 2 the transition
+guarded by g2has priority over those guarded by g3andg4, and the one guarded
+byg3has priority over the one guarded by g4.
+The basic transition types can be combined into more complex transition
+structures like in Fig. 1 and Fig. 3. However, there are vario us combinations
+which do not seem to make sense, e.g., in the SFC shown in Fig. 3 . There we
+have the transition from s4tos1which jumps out of a parallel branch, the
+converging transition from s2tos5, which jumps from one simultaneous branch
+to another, and the transition from s5ands6tos7, which is a convergence of
+simultaneous sequences of two steps which are part of an alte rnative branching
+starting in step s3.
+s1
+g1
+s2
+g2
+-s3 s4
+g3?
+g4 g5
+s5 s6
+g6
+s7
+Fig.3. Unsafe SFC
+
+--- Page 5 ---
+Although the standard forbids to use these kinds of “unsafe” or “unreachable”
+SFCs, it does not give a precise characterization of this phe nomenon. For the
+time being we do not want to pose any explicit restrictions on the SFC syntax.
+Mainly because we want to allow as much freedom as possible an d because
+there are commercial tools available which “support” SFCs w ith these kinds
+of transitions and do simulations on them. Hence, in the foll owing we deﬁne a
+semantics for sequential function charts which can also cop e with such ill-formed
+constructions.
+2.2 Ambiguities
+The standard deﬁnes rules for building an SFC from the aforem entioned basic
+elements and describes how to execute SFCs by giving evoluti on rules similar to
+the ﬁring rules of Petri nets. However, execution is only deﬁ ned on an abstract
+level not taking into account concrete aspects of program ex ecution. As SFC
+is aprogramming language, the exact semantics of execution is of interest and
+it is therefore important to consider the PLC-speciﬁc cycli c execution of SFCs.
+In every scan cycle ﬁrst the current input from the environme nt (i.e., from the
+sensors of a plant such as pressure or temperature sensors) i s read and stored.
+Then the PLC program is executed based on the stored input, i. e., the actions
+of the active steps are executed, which may change the output , and afterwards
+the transitions are taken. At the end of each cycle the output is sent to the
+environment, i.e., to the actuators of a plant such as valves or motors.
+Although the semantics of SFCs on an abstract level seems to b e quite simple,
+the exact semantics on an operational level is sometimes far from obvious. Let
+us have a close look at some key issues.
+How to deal with parallelism? In which order are actions of parallel steps
+executed? Is there any order at all or do we have to cope with no n-determinism?
+As illustrated by the example in Fig. 4 the order of execution makes a diﬀerence
+if the actions read or modify the same variables. Depending o n whether executing
+a1before a2or not, the transition guarded with y= 2 is enabled or not.
+x≤1 y=2s0
+s1Na0
+Na1
+x :=1s2Na2
+y:=2xx :=0, y:=0
+y=0
+Fig.4. In which order are the actions a1anda2executed?
+
+--- Page 6 ---
+The execution order is also not clear if we have more than one a ction associ-
+ated to a step. Are they executed from top to bottom or accordi ng to a diﬀerent
+rule?
+g3g1s0
+s1Sa2
+P0a3
+g2
+P1a1
+NSFC1s10
+s11SFC1:
+Ra2
+Sa3
+g11
+g12a1: y:=x+z
+a2:    x :=x+1
+a3:    z :=1Actions:SFC0:
+Fig.5. How to deal with hierarchy?
+How to deal with hierarchy of SFCs? Fig. 5 shows a top-level SFC SFC 0
+with a second SFC nested in step s1(SFC 1). Has the top-level SFC higher
+priority, that is, are the actions of the top-level SFC execu ted prior to the actions
+of the nested SFC? If we enter s1inSFC 0, does the execution order of actions
+depend on the hierarchy, i.e., do we ﬁrst execute a1and then the actions a2
+anda3ofSFC 1? Can SFC 1reset a2or has the top SFC priority and a2is
+executed? Which step of the nested SFC will be entered if it is called again? For
+instance, if we enter step s1again, do we always activate s10or is there a notion
+of history, and the last active step of SFC 1(which may also be s11) therefore
+gets activated?
+2.3 Possible Answers to Ambiguities
+The standard does not provide any explicit answer to the ques tions posed above.
+For the execution order of actions a comparison of diﬀerent S FC programming
+tools of some major PLC vendors [7] yields that there exist va rious orders on
+actions, e.g., for one tool actions are executed according t o the alphabetic order
+of action names, for another one by user-deﬁned orders, and s o on. However, in
+no case there is non-determinism. This seems to be reasonabl e since PLCs are
+in general deterministic. The semantics deﬁned in the follo wing copes with these
+diﬀerent semantics by introducing a parameter for the order of actions. Another
+parameter is introduced for the order of transitions to reﬂe ct priorities if several
+transitions of an alternative branching are enabled simult aneously.
+
+--- Page 7 ---
+For the questions concerning history one may deduce from the standard that
+actions exist globally within the SFC, that means we have a gl obal execution
+order within the SFC and its nested SFCs. This also means that a reset of an
+action will also eﬀect the action if it is called within a nest ed SFC.
+Furthermore we deﬁne that an SFC action may either have or hav e no history,
+such that it is either possible to always re-enter in the last active step or always
+re-enter in the initial step.
+Finally, there is the question whether it is possible to crea te algebraic loops,
+e.g., is it possible that a nested SFC calls the top-level SFC again with a diﬀerent
+qualiﬁer? In general this is not forbidden, but in our framew ork we assume
+systems without algebraic loops and leave it to the program d esigner to avoid
+these.
+These decisions are the basis for a clear non-ambiguous synt ax and semantics
+of SFCs which is presented next.
+3 Formal Untimed Syntax and Semantics
+3.1 Syntax of SFCs with Actions
+SFCs (or PLC programs in general) have diﬀerent types of vari ables, such as
+input variables, output variables, and local variables. Th e values of the variables
+may belong to diﬀerent data types such as Boolean or integer. The valid variable
+and data types are regulated by the standard IEC 61131-3, alr eady mentioned
+above. We abstract from these diﬀerent variable and data typ es by simply saying
+that a PLC has a set of variables Xwhich may have diﬀerent values. To describe
+the values of all variables we use the notion of a state:
+Deﬁnition 1 (State). Astateis a type-preserving function σassigning a value
+to each variable in X. LetΣbe the set of all states.
+A state (i.e., the values of the variables) can be modiﬁed by state transfor-
+mations. In the standard diﬀerent types of programming languages are deﬁned
+for such state transformations. We abstract from these lang uages by simply say-
+ing that a state transformation is a function that transform s a given state into
+another state. Here state transformations are determinist ic; in non-deterministic
+languages a state is transformed into one of several possibl e successor states.
+Deﬁnition 2 (State transformation). Astate transformation is a function
+f:Σ→Σ. LetFbe the set of all state transformations.
+Each step of an SFC is labeled with a (possibly empty) set of action blocks,
+which are pairs of action names and qualiﬁers. We associate e ither a unique
+state transformation or a call of a nested SFC with an action n ame. Moreover,
+we simply say actions when in fact referring to action names.
+Deﬁnition 3 (Action name, action block). Anaction name is an identiﬁer
+for either a state transformation f∈For an SFC S(deﬁned below). An action
+
+--- Page 8 ---
+block is a pair (a, q)consisting of an action name aand an action qualiﬁer q,
+where q∈ {N,S,R,P0,P1}.
+LetBdenote the set of all action blocks. For any action block b∈Bwe
+denote by bathe projection to the action name and by bqthe projection to the
+qualiﬁer.
+We deﬁne a guard as a Boolean expression reasoning about variables and step
+activities. Syntactically, the activity of step siis expressed by the term si.X.
+Deﬁnition 4 (Guard). Aguard gis a Boolean expression over variables and
+step activities. We denote the set of all guards by G.
+Moreover, we need an order on actions as well as on transition s. These allow
+to determine in which order actions are executed and which tr ansition will be
+taken if several are in conﬂict with each other. In conﬂict me ans that more than
+one alternative transition is enabled. Hence, the order on t ransitions rules out
+any non-determinism. Let SFCbe the set of sequential function charts, which
+are deﬁned next.
+Deﬁnition 5 (SFC). Asequential function chart (SFC) is a 9-tuple S=
+(X, S, A, s 0, T,block,<,≺, h), where
+–Xis a ﬁnite set of variables,
+–Sis a ﬁnite set of steps,
+–Ais a ﬁnite set of actions, which might be SFCs,
+–s0∈Sis the initial step,
+–T⊆(2S\ {∅})×G×(2S\ {∅})is a ﬁnite set of transitions,
+–block :S→2Bis an action labeling function which assigns a set of action
+blocks to each step,
+–<⊆A×Ais an total order on actions, used to deﬁne the order in which
+the active actions are to be executed,
+–≺ ⊆ T×Tis a partial order on transitions, to determine priorities o n
+conﬂicting transitions, and
+–h∈ {0,1}is a parameter which determines whether the SFC is executed w ith
+history ( h= 1) or without ( h= 0).
+We uniquely represent a transition by its set of source steps , its guard and
+its set of target steps.
+When putting a sequential function chart into formal syntax the main task
+is to determine the orders <and≺. As mentioned in Sect. 2.1 these orders are
+in general implementation dependent and should be chosen in a meaningful way
+or according to the respective programming tool.
+For any SFC S, we use XS,SS, . . . , hSto denote the components of S.
+3.2 Semantics of SFCs with Actions
+In this section we provide an operational semantics for SFCs . Let S= (X, S, A,
+s0, T,block,<,≺, h) be an SFC, and let Si= (Xi, Si, Ai, s0,i, Ti,block i,<i,≺i,
+
+--- Page 9 ---
+hi),i= 1, . . . , n , be the SFCs nested recursively inside the steps of S. For
+a global, ﬂat access to the nested structure we distinguish b etween elements
+which are deﬁned globally within the SFC and its nested SFC ac tions (the set
+of variables, the non-SFC actions, and the order on actions <; for a ﬂat access
+we have, e.g., ¯A=A=A1=. . .=An), and elements which are deﬁned for
+each SFC diﬀerently (these are, e.g., the set of steps, the se t of transitions, and
+the order on transitions). For a global access we deﬁne the gl obal set of steps
+¯S=S∪S1∪. . .∪Sn; in the same way we extend the other components which
+diﬀer for each SFC.
+In the following we assume that the SFCs are nested in such a wa y that there
+are no algebraic loops, e.g., there are no conﬂicting circul ar action qualiﬁers for
+action names.
+There are several things we have to keep track of when observi ng executions
+of the SFC S. First, we need information about the current state of S, i.e., the
+values of its variables. Moreover, we have to know in which st eps of Sand its
+sub-SFCs S1, . . ., Sncontrol resides and whose actions are to be performed in a
+cycle.
+It is crucial to distinguish between ready steps andactive steps. Active steps
+are the ones control resides in and their actions will be perf ormed. On the other
+hand, there might be steps where control resides in, but thei r actions will not
+be performed. The reason is, these steps belong to a nested SF CSiwhich is
+currently not activated, i.e., there is no action active whi ch points to Si. Control
+is “waiting” there to resume. We call all steps where control resides in ready
+steps. Hence, each active step is also a ready step, but the convers e does of
+course not hold.
+Moreover, active actions are actions which will potentially be executed in the
+current SFC cycle. This means, unless there is no matching re set action these
+actions will be performed. Stored actions are the ones which have been tagged
+with anSqualiﬁer and potentially keep on being active outside their step of
+activation.
+We store the information about the state and the other inform ation of Sin
+aconﬁguration:
+Deﬁnition 6 (Conﬁguration). Aconﬁguration cofSis a 5-tuple (σ,readyS ,
+activeS ,activeA ,storedA ), where σ∈Σis the state of the variables, readyS ⊆¯S
+is the set of ready steps, activeS ⊆¯Sis the set of active steps, activeA ⊆¯Ais
+the set of active actions, and storedA ⊆¯Ais the set of stored actions, i.e., the
+ones which might remain active outside the step they were cal led. Moreover, let
+Cdenote the set of all conﬁgurations.
+Such a conﬁguration is modiﬁed in the cycles of a PLC. In a cycle the fol-
+lowing sequence of tasks is performed:
+1. Get new input from the environment and store the informati on into state σ.
+2. Execute the set activeA of active actions and update σaccordingly.
+3. Determine the set of next readyS ,activeS ,activeA , andstoredA .
+4. Send the outputs to the environment by extracting the requ ired information
+from the new state σ.
+
+--- Page 10 ---
+We do not specify formally how to interact with the environme nt, but focus
+on items 2 and 3.
+First, we deﬁne executions by means of conﬁguration changes within a cycle.
+In order to do so, we associate a transition system to an SFC an d use the
+following notations: For every transition ( χ, g, χ′) where χandχ′are sets of steps
+letsource (χ, g, χ′) =χdenote the set of all source steps and target (χ, g, χ′) =χ′
+the set of all target steps. We extend these notions to sets of transitions in a
+pointwise fashion.
+A prerequisite for a program evaluation is an interpretatio n of the guards.
+We interpret a guard by the set of conﬁgurations it describes .
+Deﬁnition 7 (Guard interpretation). Given a guard g∈Gand a conﬁgu-
+ration c∈C, we say that “csatisﬁes g”or“gis valid in c”, denoted by c|=g,
+if the expression gevaluates to true under c.
+The semantics of an SFC is based on the transition system desc ribing its
+operational behavior:
+Deﬁnition 8 (Transition System of an SFC). With every SFC S= (X, S,
+A, s0, T,block,<,≺, h)we associate a transition system E(S) = ( C, c0,− →),
+where Cis the set of conﬁgurations, c0∈Cis the initial conﬁguration, and − → ⊆
+C×Cis the transition relation, which is deﬁned by: (σ,readyS ,activeS ,activeA ,
+storedA )− →(σ′,readyS′,activeS′,activeA′,storedA′)if and only if
+1.σ′= (am◦ · · · ◦ a1)(σ), where a1<· · ·<amand{a1, . . ., a m}=activeA \
+SFC,
+2. readyS′= (readyS \source (taken))∪target (taken), where
+(a) enabled ={(χ, g, χ′)∈¯T|χ⊆activeS ∧(σ′,readyS ,activeS ,activeA ,
+storedA )|=g}, and
+(b) taken ={t= (χ, g, χ′)∈enabled | ¬∃t1= (χ1, g1, χ′
+1)∈enabled :χ∩
+χ1/\e}atio\slash=∅ ∧t1¯≺t}, and
+3. activeS′, activeA′and storedA′are computed by
+(α0, β0) :=ϕ(αini,∅,S)
+(α1, β1) :=ϕ(α0, β0,Si1)
+...
+(αk, βk) :=ϕ(αk−1, βk−1,Sik)
+where ϕis deﬁned in Fig. 6, Sis the top-level SFC, the set {Si1, . . . , Sik}=
+storedA ∩SFCcontains the SFCs in storedA, and αiniis the initial mapping
+of stored actions a∈storedA \SFC to {S}and to ∅for all other actions.
+Then, activeS′=βk, activeA′={a∈¯A|αk(a)∩{N,P0,P1} /\e}atio\slash=∅∧R/\e}atio\slash∈αk(a)}
+and storedA′={a∈¯A|S∈αk(a)∧R/\e}atio\slash∈αk(a)}.
+The initial conﬁguration c0= (σ0,readyS0,activeS 0,activeA 0,storedA 0)is
+given by: σ0is the predeﬁned initial state of the variables (Booleans se t to false,
+numerical variables to 0), readyS0= ¯s0, and activeS 0, activeA 0, and storedA 0
+are determined from (α0, β0)like the primed ones above.
+
+--- Page 11 ---
+function ϕ(α, β, Γ )
+(* (I) newsteps are the local ready steps, i.e., the active on es *)
+ifhΓ= 1
+thennewsteps :=SΓ∩readyS′
+elsenewsteps :=SΓ∩¯s0;
+α′:=α;
+β′:=β∪newsteps ;
+(* (II) collect the relevant actions *)
+for all s∈SΓ,b∈block(s):
+α′(ba) :=α′(ba)∪/braceleftBigg{P0}ifbq=P0∧s∈source (taken)
+{P1}ifbq=P1∧s∈target (taken)
+{bq}ifbq∈ {N,S,R} ∧s∈newsteps
+(* (III) go into recursion for every new SFC which is not reset *)
+for all s∈newsteps ,b∈block(s):
+ifba∈SFC∧R/ne}ationslash∈α′(ba)∧α′(ba)/ne}ationslash=∅
+then (α′, β′) :=ϕ(α′, β′, ba);
+return (α′, β′)
+Fig.6. Recursive action labeling collection
+Let us take a detailed look at the deﬁnition above. One transi tion in the
+transition system above corresponds to one PLC cycle. First of all in step 1 of
+Deﬁnition 8 the current active actions are ordered and execu ted accordingly. If
+two active actions access a common variable (e.g., xin Fig. 4), the result may
+depend on the action ordering <.
+In step 2 we determine the new ready steps. These are the old on es plus
+the targets of the taken transitions, but without their sour ce steps. We distin-
+guish taken andenabled transitions as follows: A transition is enabled if it is
+an outgoing transition of an active step and its guard is sati sﬁed by the current
+conﬁguration. A transition tis taken if it additionally has the highest priority
+among its competing ones (transitions t1sharing at least one common source
+step with t), which is expressed by the ¯≺relation.
+In step 3 the new active steps, active actions and stored acti ons are computed
+recursively on the structure of the SFC by the auxiliary func tionϕ. The function
+ϕhas the parameters α,β, and Γ, where αis a mapping from action names to
+sets of qualiﬁers and β⊆¯Sis a set of steps. Calling ϕfor a speciﬁc SFC Γwith
+empty αandβresults in the pair ( α′, β′), where α′contains for every active
+action all the “activated” qualiﬁers of the active actions i nΓand its recursively
+nested SFCs, and β′contains all active steps.
+This is computed as follows: starting on with the top-level o fΓ, we compute
+in (I) newsteps , which is the set of active steps on this level. The function αis
+copied to α′andβ′is the old βconjoined with the new active steps. In (II), α′
+is extended by further qualiﬁers for speciﬁc actions. The in clusion of qualiﬁers
+depends on whether these qualiﬁers become relevant now or no t. The pulse
+qualiﬁers are relevant when taking a transition. The other q ualiﬁers are relevant
+when remaining in the active steps (i.e., newsteps ). Finally, in (III) we go into
+
+--- Page 12 ---
+recursion for every sub-SFC of the current one which has beco me active after
+computing the new active steps and implicitly the new active actions. These are
+the SFCs associated to the new steps which are not reset.
+The recursion of ϕis ﬁnite since we assumed that the nested SFC structure
+does not contain algebraic loops, see Sect. 2.2.
+In step 3 of Deﬁnition 8 ϕis called for the initial set of α, which is just the
+mapping of stored actions to the corresponding qualiﬁer and the empty set for β.
+ϕthen needs to be called again for all kstored SFCs which are in storedA . The
+result of the application of ϕis (αk, βk), where βkcorresponds to the new active
+steps, and activeA′andstoredA′are the projections of αkto the corresponding
+qualiﬁers taking into account any resets.
+An execution sequence of an associated transition system is called run.
+Deﬁnition 9 (Run of E).Arunrover a transition system E= (C, c0,− →)
+is a ﬁnite or inﬁnite sequence /a\}bracketle{tc0, c1, . . ./a\}bracketri}htwithci− →ci+1for all i.
+The operational semantics [ [ S] ] for an SFCs Sis given by the set of runs of
+its associated transitions system E(S).
+3.3 Example
+For the SFC given in Fig. 5 we explain how the semantics works f or crucial issues
+such as actions, where the execution order matters, and hier archy of SFCs.
+Assume the global order on actions is given by a1<a2<a3, and the local
+order on transitions is given by g1≺g2. Let the initial conﬁguration for the SFC
+be (we write functions as sets of pairs):
+σ0={(x,0),(y,0),(z,0)},
+readyS0= ¯s0={s0, s10},
+activeS 0={s0},
+activeA 0={a2}, and
+storedA 0={a2}.
+Furthermore we assume that the action SFC 1has history, i.e., h1= 1. Top-level
+SFCs always have history ( h= 1).
+Assume, g1andg2are not true until we are in cycle number 14, but then
+both guards g1andg2evaluate to true. At this point
+σ={(x,13),(y,0),(z,0)},
+the sets of active steps, ready steps etc. have not changed co mpared to the initial
+conﬁguration. We compute according to step 1 of Deﬁnition 8:
+σ′=a2(σ) ={(x,14),(y,0),(z,0)},
+and according to step 2 of the same deﬁnition:
+readyS′= ({s0, s10} \ {s0})∪ {s1}={s1, s10}.
+
+--- Page 13 ---
+Moreover, enabled ={({s0}, g1,{s1}),({s0}, g2,{s0})}, and since ( {s0}, g1,
+{s1})≺({s0}, g2,{s0}), we have taken ={({s0}, g1,{s1})}. For the computation
+of the new active steps and actions we have to take the nested SFC 1into account
+and recursively determine activeS′,activeA′andstoredA′using the auxiliary
+function ϕ. Because storedA ∩SFC=∅, i.e., there is no stored SFC, we only
+need to compute ϕ(αini,∅,SFC 0) for the top-level SFC which is SFC 0. The
+initial mapping αiniof stored actions is given by
+αini(a1) =∅,
+αini(a2) ={S},
+αini(a3) =∅, and
+αini(SFC 1) =∅.
+First, we determine the active steps of the top-level SFC by
+newsteps ={s0, s1} ∩ {s1, s10}={s1}.
+We set α′=αiniandβ′={s1}. To update α′, all relevant action qualiﬁers are
+collected. This yields
+–α′(a3) ={P0}, since ( a3,P0)q=P0ands0∈source (taken ),
+–α′(a1) ={P1}, since ( a1,P1)q=P1ands1∈target (taken ), and
+–α′(SFC 1) ={N}, since ( SFC 1,N)q∈ {N,S,R}ands1∈newsteps .
+Next, we go into recursion because there is a new SFC, which is not reset,
+i.e.,SFC 1∈SFC,R/∈α′(SFC 1) and α′(SFC 1)/\e}atio\slash=∅. Therefore, we compute
+(α′, β′) :=ϕ(α′, β′,SFC 1). This results in
+newsteps =S1∩readyS′={s10},α′=α, and β′={s1, s10}.
+The update of α′by collecting the relevant actions for all steps of SFC 1
+yields
+–α′(a2) ={S,R}, since ( a2,R)q∈ {N,S,R}ands10∈newsteps and
+–α′(a3) ={P0,S}, since ( a3,S)q∈ {N,S,R}ands10∈newsteps .
+Since there are no new SFCs, the function ϕterminates and returns β0=β′as
+given above and α0=α′with
+α0(a1) ={P1},
+α0(a2) ={S,R},
+α0(a3) ={P0,S}, and
+α0(SFC 1) ={N}.
+Hence, we obtain
+activeS′=β0={s1, s10},activeA′={a1, a3,SFC 1}, and storedA′={a3}.
+Note, if we continue to compute the conﬁguration for the next cycle 15, the
+order on actions is important as more than one action is activ e:
+σ′= (a3◦a1)(σ) ={(x,14),(y,14),(z,1)}.
+In this case a diﬀerent order on a1anda3would lead to a diﬀerent conﬁguration
+where σ′(y) = 15. Furthermore, since we do not reset a3which is set in step s10
+ofSFC 1, the action a3will still be executed even if SFC 1is no longer active.
+
+--- Page 14 ---
+4 Formal Extension to Timed SFCs
+The SFCs presented earlier do not support any time or timing b ehavior. However,
+the standard deﬁnes the notion of time and timers which allow s to test and reason
+about the amount of time a step has been active and to start act ions after a
+delay or for some limited time only. In this section we give an introduction to
+timed SFCs. We explain the main features and how to extend the current SFC
+semantics to timed SFCs.
+4.1 Timed Syntax
+Guards are Boolean expressions over variables, where si.X denotes that step si
+is active and si.T is the time that sihas been active since its last activation.
+In addition to the qualiﬁers presented in Sect. 2.1 there are a number of time
+related qualiﬁers:
+qualiﬁer meaning
+LtLimited execution for time span t
+DtDelayed execution after time span t
+SLtSetLimited execution for time span t
+SDtSetDelayed execution after time span t
+DStDelayed Set execution after time span t
+All these qualiﬁers are followed by some duration and their m eaning is as
+follows: The limited qualiﬁer Lbehaves like the non-stored qualiﬁer Nwith the
+only diﬀerence that the corresponding action becomes at lat est inactive when the
+associated duration has elapsed. Moreover, it is possible t o delay the activation of
+an action for a certain time after the step has become active u sing theDqualiﬁer.
+TheLandDqualiﬁers can be combined with SyieldingDS,SDandSL. An action
+associated with DSwill only be activated if the delay time is reached before the
+step is left, whereas an SDaction always becomes active after the elapsed time,
+independent of the step activity. Similar, an SLaction is (in contrast to L)always
+activated for ttime units. We denote the action labeling function extended by
+the additional qualiﬁers by block∗.
+Although the action qualiﬁer concept is deﬁned using well-u nderstood func-
+tion blocks, the deﬁnitions in the standard still are ambigu ous. For example,
+assume an SFC which calls an SDaction in one step and in the next step calls
+the action again with the SDqualiﬁer but with a diﬀerent delay time. Assume
+that the activity time of the ﬁrst step has been shorter than t he ﬁrst delay time,
+i.e., the action is not yet activated when it is called in the n ext step with a dif-
+ferent delay time. Which delay time now is relevant? These am biguities clearly
+show that there is a need for an SFC semantics which gives answ ers to these
+open questions. Here, we assume that any call of a timed actio n resets the cor-
+responding timer. This means delays or limited actions rest art the moment they
+are called. However, other interpretations are possible.
+
+--- Page 15 ---
+To reason about timed SFCs we introduce the notions of clocks andstop-
+watches .
+Deﬁnition 10 (Stopwatch, Clock). Astopwatch θsis a real valued variable
+that has a dynamical behavior given by either f(θs) =˙θs= 1if the stopwatch is
+running, or f(θs) =˙θs= 0if it is stopped, whereas a clock θacannot be stopped,
+i.e., the dynamical behavior is always f(θa) =˙θa= 1. Both can be reset to zero.
+To describe the values of all stopwatches and clocks we use th e notion of a
+clock evaluation ν, which is a function assigning a value to each stopwatch or
+clock.
+Since guards may reason about the time a step is active or has b een active
+before, each step needs a stopwatch which is reset to zero whe n the step is
+entered, runs when the step is active, and is stopped when the step is deactivated.
+Second, we need stopwatches because we deﬁne that hierarchi cally nested SFCs
+have history, i.e., after deactivation nested SFCs are acti vated in the step they
+have been last. The notion of history includes that the SFCs r emember the values
+of their clocks at the point of deactivation if they are activ ated again.
+Additionally we need a clock for those actions which are asso ciated with an
+SDorSLqualiﬁer, because these actions might be deactivated ( SL) or activated
+(SD) independently from a step activity. Clocks are suﬃcient, b ecause according
+to the standard, guards cannot access the time an action has b een active, and,
+therefore, we do not need to memorize the activity time after the action has
+been deactivated.
+We deﬁne a timed SFC as follows:
+Deﬁnition 11 (Timed SFC). Asequential function chart (SFC) S= (X, Θ,
+S, A, s 0, T,block∗,<,≺, h)consists of:
+–X,S,A,s0,T,<,≺andhas deﬁned for the untimed SFC (Deﬁnition 5),
+–block∗, the extended action labeling function, and
+–a ﬁnite set Θofstopwatches andclocks.
+4.2 Timed Semantics
+The global state of an SFC (including all its nested SFCs) is g iven by the values
+of all its variables, the evaluation of clocks and stopwatch es, the sets of active
+and ready steps and the sets of active and stored actions. In a ddition to stored
+actions we also have to remember stored delayed actions associated to a step with
+anSDqualiﬁer, which potentially need to be activated after the c orresponding
+step has been deactivated, as well as stored limited actions indicated by the
+SLqualiﬁer, which potentially have to be executed for a certai n time after the
+activating step has been deactivated.
+We describe the global state of an SFC Sby a conﬁguration, given by:
+Deﬁnition 12 (Timed Conﬁguration). Aconﬁguration cofSis an 8-tuple
+(σ, ν,readyS ,activeS ,activeA ,storedA ,storedDA ,storedLA ), where
+
+--- Page 16 ---
+–σ,readyS ,activeS ,activeA ,storedA are deﬁned as for the untimed conﬁgura-
+tion (Deﬁnition 6) and
+–νis the evaluation of clocks and stopwatches,
+–storedDA ⊆¯Ais the set of stored delayed actions, and
+–storedLA ⊆¯Ais the set of stored limited actions.
+The timed SFC program executions are again deﬁned by means of conﬁgura-
+tion changes within a cycle. We deﬁne two diﬀerent types of tr ansitions, ca− →tc′
+which describes the changes of the conﬁguration due to the pr ogram execution
+(which is considered to take no time) and and cδ− →tc′which describes the
+change of the conﬁguration due to the elapse of time, this mea ns it describes the
+change of ν.
+A transition ca− →tc′in this transition system is computed by the following
+sequence:
+1. Determine the new state σ′andreadyS′as for the untimed conﬁguration.
+2. Determine activeS′,activeA′,storedA′,storedDA′andstoredLA′. The new
+sets are computed recursively on the structure of the SFC usi ng the auxiliary
+function ϕas deﬁned in Sect. 3.2 but augmented with the handling of the
+timed action qualiﬁers.
+3. Stopwatches and clocks are reset to zero if one of the follo wing conditions
+holds:
+–The stopwatch θsbelongs to a step swhich has been activated in this
+cycle, i.e., s∈activeS′\activeS .
+–The clock θabelongs to an action awhich has been activated “stored
+delayed” in this cycle, i.e., a∈storedDA′\storedDA .
+–The clock θabelongs to an action awhich has been activated “stored
+limited” in this cycle, i.e., a∈storedLA′\storedLA .
+A transition cδ− →tc′in this transition system changes νas follows:
+–ν′(θs) =ν(θs)+δif and only if the stopwatch θsbelongs to a step s∈activeS ,
+i.e., a step which is active, and
+–ν′(θa) =ν(θa) +δfor all clocks θa.
+A timed execution sequence /a\}bracketle{tc0δ0− →tc1a− →tc′
+1, . . .δi− →tci+1a− →tc′
+i+1. . ./a\}bracketri}ht
+is called timed run . Note that the time which elapses between two program
+executions is δi, which is the cycle time of the PLC. In PLCs, the cycle time
+usually is not ﬁxed; some PLCs allow to deﬁne a ﬁxed cycle time or an upper
+time bound. The operational semantics of an SFC Sis given by the set of runs
+of its associated transition system.
+5 Adaption to Tool Semantics
+As already mentioned, the crucial step for adapting the sema ntics to a speciﬁc
+tool semantics is the deﬁnition of the orders on actions <and the order on
+transitions ≺as implemented in the tool.
+
+--- Page 17 ---
+s2s0 S b
+N a1s1
+N z1N a3
+N a1
+Fig.7. Example for the ordering <on actions
+For the example presented in Fig. 7 we show how the order can be adapted to
+diﬀerent orders on actions which we found to be implemented i n diﬀerent SFC
+programming tools of some major PLC vendors, for details see [8]:
+1. Alphabetical order:
+a1<a3<b<z1.
+2. Graphical order, from left to right and top to bottom:
+b<a1<z1<a3<a′
+1.
+As implemented in the tool, the action a1is executed twice, which is not in
+accordance with the standard. It has to be considered also tw ice in the order
+on actions, which can be achieved by introducing two diﬀeren t action names
+a1anda′
+1.
+3. The order is deﬁned by the user, for example:
+z1<a1<a3<b.
+The adaption works similarly for the diﬀerent transition or ders which where
+found to be implemented in programming tools. Consider the e xamples presented
+in Fig. 8. The corresponding orders on transitions are (for t he sake of readability,
+we use tias a placeholder for the transition guarded by giwhen describing the
+order ≺):
+1. No explicit or implicit priorities, SFC (a) in Fig. 8:
+≺=∅.
+If there are no priorities at all, it is recommended to ensure that conﬂict-
+ing transitions are never enabled simultaneously, e.g., by selecting disjoint
+guards.
+2. Priority from left to right, denoted by a ∗-notation (this is deﬁned in the
+standard), SFC (b) in Fig. 8:
+≺={(t1, t12),(t1, t3),(t12, t3)}.
+
+--- Page 18 ---
+3. Priorities explicitly given by the user, SFC (c) in Fig. 8
+≺={(t3, t1),(t3, t12),(t1, t12)}.
+4. The leftmost transition always has priority if it is enabl ed. If it is not en-
+abled, the priority is deﬁned by a transition number which is automatically
+generated by the programming tool. For this example, assume the numbers
+to be as given for SFC (c) in Fig. 8 :
+≺={(t1, t12),(t1, t3),(t3, t12)}.
+g12 g1 g3
+(a)g12 g1 g3
+(b)∗
+g12 g1 g3
+(c)∗2/circlecopyrt 3/circlecopyrt 1/circlecopyrt
+Fig.8. Example for the ordering ≺on transitions
+6 Conclusions
+In this work we presented a number of ambiguities and incompl ete deﬁnitions of
+the IEC 61131-3 standard for the PLC programming and structu ring language
+Sequential Function Charts (SFC). Moreover, we pointed out that these short-
+comings can lead to diﬀerent implementations of the same SFC , which poses a
+potential safety hazard. A formal semantics is a ﬁrst step to avoid such threats.
+We proposed a formal semantics for untimed SFCs and an extens ion of this se-
+mantics to timed SFCs. This semantics covers the particular ities of SFCs such as
+parallelism, hierarchy, actions and activity manipulatio ns. Moreover, the intro-
+duced parameters on actions and transitions gives the seman tics the ﬂexibility
+to adjust precisely to a number of existing interpretations found in PLC pro-
+gramming tools.
+Future work is to develop a simple and “clean” semantics and p ropose it
+for a future edition of the standard to support the portabili ty of SFC programs
+among users of diﬀerent PLC development tools.
+Acknowledgments
+This work was supported by the German Research Council withi n the DFG
+Priority Programme “Integration of Software Speciﬁcation Techniques for Ap-
+plications in Engineering” under grants RO1122/10-2 and EN 152/32-2.
+
+--- Page 19 ---
+National ICT Australia is funded through the Australian Gov ernment’s Back-
+ing Australia’s Ability initiative, in part through the Australian Research Coun-
+cil. Nanette Bauer contributed to this work during her time a t the Process
+Control Group of Prof. Engell, University of Dortmund.
+Finally, we thank the anonymous referees for their comments .
+References
+1. Jiang, J., Holding, D.: The formalisation and analysis of sequential function charts
+using a petri net approach. In: Proceedings of 13th World Con gress of IFAC. (1996)
+513–518
+2. Anderson, S., Tourlas, K.: Design for proof: An approach t o the design of domain-
+speciﬁc languages. Formal Aspects of Computing 10(1998) 452–468
+3. Bornot, S., Huuck, R., Lakhnech, Y., Lukoschus, B.: An abs tract model for sequen-
+tial function charts. In: Discrete Event Systems: Analysis and Control, Proceedings
+of WODES 2000: 5th Workshop on Discrete Event Systems, Ghent , Belgium, Au-
+gust 21–23, 2000. The Kluwer International Series in Engine ering and Computer
+Science (2000) 255–264
+4. International Electrotechnical Commission, Technical Committee No. 65: Pro-
+grammable Controllers – Programming Languages, IEC 61131- 3. second edn. (1998)
+Committee draft.
+5. International Electrotechnical Commission, Technical Committee No. 848: IEC
+60848, Preparation of function charts for control systems. (1992)
+6. David, R., Alla, H.: Petri Nets & Grafcet. Prentice Hall (1 992)
+7. Bauer, N., Treseler, H.: Vergleich der Semantik der Ablau fsprache nach IEC 61131-3
+in unterschiedlichen Programmierwerkzeugen. GMA Kongres s, 2001, Baden-Baden,
+Germany (2001)
+8. Bauer, N.: Formale Analyse von Sequential Function Chart s. PhD thesis, Lehrstuhl
+f¨ ur Anlagensteuerungstechnik, Universit¨ at Dortmund (2 004) Shaker Verlag, Aachen.
