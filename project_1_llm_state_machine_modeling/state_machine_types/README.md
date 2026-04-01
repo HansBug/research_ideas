@@ -19,7 +19,7 @@
 
 因此，这个 collection 是 `project_1` 的“形式主义地图”工作区，重点沉淀：
 
-1. `FSM / EFSM / Statechart / UML State Machine / SCXML`
+1. `FSM / EFSM / Statechart / UML State Machine / SCXML / Tree Automata / Multi-Tape Automata / Two-Dimensional Automata / Cellular Automata / Weighted Automata`
 2. `Timed Automata / Timed Transition Systems / Timed Statecharts`
 3. `Hybrid Automata / Probabilistic or Stochastic Automata`
 4. `Petri Nets / Colored Petri Nets / Timed Petri Nets`
