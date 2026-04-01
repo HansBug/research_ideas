@@ -1,0 +1,1830 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998 927
+Using Abstraction and Model Checking
+to Detect Safety Violations
+in Requirements Specifications
+Constance Heitmeyer, James Kirby, Jr., Bruce Labaw, Myla Archer, and Ramesh Bharadwaj
+Abstract—Exposing inconsistencies can uncover many defects in software specifications. One approach to exposing
+inconsistencies analyzes two redundant specifications, one operational and the other property-based, and reports discrepancies.
+This paper describes a “practical” formal method, based on this approach and the SCR (Software Cost Reduction) tabular notation ,
+that can expose inconsistencies in software requirements specifications. Because users of the method do not need advanced
+mathematical training or theorem proving skills, most software developers should be able to apply the method without extraordin ary
+effort. This paper also describes an application of the method which exposed a safety violation in the contractor-produced soft ware
+requirements specification of a sizable, safety-critical control system. Because the enormous state space of specifications of
+practical software usually renders direct analysis impractical, a common approach is to apply abstraction to the specification.  To
+reduce the state space of the control system specification, two “pushbutton” abstraction methods were applied, one which
+automatically removes irrelevant variables and a second which replaces the large, possibly infinite, type sets of certain varia bles
+with smaller type sets. Analyzing the reduced specification with the model checker Spin uncovered a possible safety violation.Simulation demonstrated that the safety violation was not spurious but an actual defect in the original specification.
+Index Terms —Requirements, specification, abstraction, model checking, formal methods, verification, safety analysis, simulation,
+consistency checking, SCR.
+—————————— F——————————
+1INTRODUCTION
+IVEN  the high frequency of defects in software re-
+quirements specifications [64], the huge cost of cor-
+recting the defects late in development [12], [23], and the
+serious accidents they may cause [52], techniques for the
+early detection and removal of defects from software re-quirements specifications are crucial. Exposing inconsisten-cies can uncover many classes of defects in requirements
+specifications. One technique called consistency checking
+finds inconsistencies between different parts of a specifica-tion or between a specification and a formal model de-
+scribing the information required in the specification [32].
+Examples of such inconsistencies include type errors,missing cases, and circular definitions. Applying a second
+technique called simulation  can detect a different class of
+inconsistencies—inconsistencies between a user’s notion ofthe required system behavior and the system behaviorcaptured by the requirements specification [34], [35].
+A formal requirements method called SCR (Software
+Cost Reduction) is designed to expose such inconsistenciesin requirements specifications. Since its introduction in
+1978, [38], [39], [1], the SCR requirements method has been
+applied successfully to a broad range of critical systems,including avionics systems [57], [24], [58], space systems
+[21], telephone networks [40], and control systems for nu-clear power plants [60]. To support the SCR method, we
+have developed a set of software tools for specifying and
+analyzing software requirements [32], [34], [35], [36]. In ad-dition to a specification editor  for creating and modifying a
+requirements specification and a dependency graph browser  to
+display the dependencies among the variables in the speci-
+fication, the toolset contains tools that expose inconsisten-cies. These include an automated consistency checker , which
+detects type errors, missing cases, circular definitions, and
+other types of application-independent errors, and a simula-
+tor, which allows users to symbolically execute the specifi-
+cation to ensure that it captures their intent.
+In addition to consistency checking and simulation, one
+may apply a third technique to expose inconsistencies. This
+technique compares two different specifications of the re-
+quired behavior, one operational and the other property-
+based, and uses a formal analysis tool, such as a modelchecker, to detect discrepancies between them. The opera-
+tional  (or model-based ) specification describes how the sys-
+tem operates, while the property-based specification de-
+scribes the required system properties [59]. An operational
+specification may represent the system as a state machine,
+whereas a property-based specification usually expresses
+properties as formulas in some logic. To detect inconsisten-
+cies between an operational SCR specification and a prop-
+erty-based specification, we recently integrated the explicit
+state model checker Spin [41], [42] into the SCR toolset [10],
+[9], [11].
+0098-5589/ 98/$10.00 © 1998 IEEE††††††††††††††††
+•C. Heitmeyer, J. Kirby, B. Labaw, M. Archer, and R. Bharadwaj are with the
+Center for High Assurance Computer Systems, Code 5546, U.S. Naval
+Research Laboratory, 4555 Overlook Ave., SW, Washington, DC 20375.
+E-mail: {heitmeyer, kirby, labaw, archer, ramesh}@itd.nrl.navy.mil.
+Manuscript received 15 Sept. 1997; revised 13 Mar. 1998.
+Recommended for acceptance by C. Ghezzi and N. Nuseibeh.For information on obtaining reprints of this article, please send e-mail to:tse@computer.org, and reference IEEECS Log Number 107209.G
+
+--- Page 2 ---
+928 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+1.1 Dual-Language Approach
+The use of two redundant specifications to represent the
+same required behavior is called the dual language approach
+[59]. Among the operational/property-based languagepairs that have been proposed are Modechart and Real-Time Logic [45], Timed Transition Models and Real TimeTemporal Logic [59], and Petri nets coupled with the TRIO
+logic [54]. In the SCR requirements method, the operational
+specification is expressed in tables and the system proper-ties as formulas in first-order logic. Examples of the duallanguage approach in SCR specifications include the A-7requirements document [38], [1], which, in addition to thetabular operational specification, contains properties of thesystem modes, and Kirby’s cruise control specification [47],which contains both a tabular specification of the required
+system operations and a list of required system properties.
+The dual language approach is useful because each
+specification style has advantages: operational specifica-tions are less likely to omit required behavior and are oftenexecutable, whereas property-based specifications are con-cise, abstract, and minimize implementation bias. Anotheradvantage of the dual language approach is that detectinginconsistencies between two different specifications of the
+same behavior is an effective technique for debugging both
+the statements of the required properties and the opera-tional specification. For example, when Dill and his col-leagues used model checking to analyze a hardware designfor several properties of interest, they detected errors bothin the design and in the stated properties [20].
+1.2 A Practical Formal Method
+This paper shows how a “practical” formal method [33],
+based on SCR and the dual language approach, can exposeinconsistencies in specifications of safety-critical software.Although the SCR method has a formal basis, use of themethod does not require advanced mathematical trainingor theorem proving skills, and hence most software devel-opers should be able to apply the method without extraor-dinary effort. The method is supported by a suite of tools,
+carefully integrated to work together. The advantage of a
+suite of tools is that properties shown to hold using one toolmay simplify the analysis performed with a second tool.For example, proving with our consistency checker that aspecification is deterministic can simplify later analysiswith a model checker [11]. Further, as shown below, sometools (e.g., a model checker and a simulator) can be used inconcert to detect inconsistencies.
+A practical method should be supported by analysis
+techniques that can be invoked with the mere push of abutton. One example of a “pushbutton” technique is auto-mated consistency checking [32]. Another possible push-button technique is model checking. A significant problemin model checking software specifications arises, however,because software specifications routinely contain a widerange of variable types (including types with infinite
+ranges, such as real numbers) and little regularity or sym-
+metry. As a result, their state spaces are often enormous—inmany cases, infinite. Hence, before practical software speci-fications can be analyzed with a model checker, the state
+explosion  problem must be addressed—i.e., the size of the
+state space to be analyzed must be reduced.A promising way to reduce state explosion in model
+checking, proposed by Clarke and his colleagues in 1994, is
+to apply abstraction [15]. Currently, two different ap-proaches to constructing abstractions are used in modelchecking. The first approach (and, according to some, themost common [43]) is to develop the abstraction in ad hocways—the correspondence between the abstract model andthe original specification is based on informal, intuitive ar-guments. A second approach is mathematically sound but
+requires user ingenuity to construct the abstraction (see,
+e.g., [15], [27], [28]). This reliance on user ingenuity has ledsome to conclude that, at least in some contexts, the use ofabstraction in model checking is impractical (see, e.g., [44]).
+Our use of abstraction in model checking differs from
+both of these approaches. In contrast to the first approach,ours is guaranteed to be mathematically sound. In contrastto the second, our abstraction methods are practical and
+efficient: they automatically construct a sound and, under
+certain restrictions, complete abstraction without requiringmathematical sophistication on the part of the user. Becauseour abstractions are sound and often complete, they may besafely applied repeatedly, thus compounding the magni-tude of the state space reductions. This can lead to hugestate space reductions.
+1.3 Applying the Method
+To demonstrate our method, this paper describes how its useuncovered a violation of a critical system property in an op-erational specification of a United States military system.Both the property and the operational specification weretaken from a draft software requirements specification (SRS)prepared by a military contractor. The SRS describes the re-quired behavior of a moderately large program supporting aWeapons Control Panel (WCP). Program officials estimate
+that the WCP program will contain on the order of 15K lines
+of source code. Incorrect behavior of the WCP can lead toserious accidents, such as the premature or unintended re-lease of a weapon, serious injury to an operator, or majordamage to a weapon. To prevent behavior that could resultin such accidents, the SRS contains precise prose descriptionsof six properties, including the critical property mentionedabove, that the WCP must satisfy to operate safely.
+To apply the SCR method to the WCP SRS, we first trans-
+lated the SRS into the SCR tabular notation. Then, we appliedthe consistency checker and the dependency graph browser,which automatically exposed numerous errors in the originalcontractor SRS, most of which we were able to correct. Next,we translated the six safety properties into logical formulas.Our initial analysis of the WCP specification suggested thatchecking the validity of these properties would be nontrivial,
+partly because the validity of each property depends on nu-
+merous variable definitions distributed throughout the speci-fication. This fact coupled with the significant complexity ofsome parts of the WCP specification suggested further thatusing inspection to analyze the properties was impractical.Hence, we applied automation—in particular, the Spinmodel checker—which quickly detected an inconsistencybetween the operational SCR specification and one of the
+properties. Executing the scenario returned by Spin in the
+SCR simulator demonstrated a safety violation that coulddamage the weapons system.
+
+--- Page 3 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 929
+Applying the SCR tools to the WCP specification was
+clearly valuable: as noted, the SCR toolset exposed a num-ber of errors, including a serious safety violation, in the
+original contractor SRS. Applying the SCR tools was also
+cost-effective. Translating the SRS to the SCR notation, de-tecting and correcting errors with the automated consis-tency checker, and detecting and validating the safety vio-
+lation required slightly more than one person-week, an ex-
+tremely small effort given the large size and significantcomplexity of the SRS and the fact that the military con-
+tractor developed the SRS with no knowledge  of the SCR
+method and tools.
+1.4 Contributions of the Paper
+In [9], [11], we propose two abstraction methods useful in
+model checking requirements specifications, demonstrate
+the methods on two small examples, and describe how SCRspecifications can be translated into the languages of Spin
+and the symbolic model checker SMV [56]. In [31], we de-
+scribe our experiences in applying formal methods to theWCP specification, e.g., the positive reaction to the cus-
+tomized WCP simulator that we developed and the barriers
+that hindered the transfer of our technology to the govern-ment contractor. This paper gives the details of our ap-
+proach to abstraction and shows how our automatable ab-
+straction methods make model checking software specifi-cations practical. We illustrate our abstraction methods bydescribing our analysis of the SRS for the WCP . This paper
+makes the following contributions:
+•We demonstrate our approach to “pushbutton” model
+checking by showing how automatable abstraction
+methods can be supported in SCR. Our approach to
+abstraction has four important aspects. First, the focusis on properties commonly found in requirementsspecifications—state and transition invariants. Second,
+the abstraction is constructed based on a single prop-
+erty, rather than a collection of properties. Third, twoautomatable abstraction techniques are applied: variable
+restriction , which eliminates variables irrelevant to the
+property of interest from the specification, and the vari-
+able abstraction  technique discussed below. Fourth, our
+approach demonstrates how candidate counterexam-
+ples in the original state machine can be computedfrom counterexamples found in the abstract machine.
+•We introduce a technique for automating an impor-
+tant special case of the variable abstraction  method
+proposed by Clarke et al. [15]. This technique replacesa “detailed” variable in the original specification (that
+is, a variable with a large, sometimes infinite, range of
+values) with a more abstract variable. Our techniqueanalyzes all occurrences of particular detailed vari-
+ables in a concrete SCR specification to determine
+whether abstraction of the variables is possible. If so,the technique derives the appropriate type abstrac-
+tions and transforms the concrete specification into an
+abstract version in which these variables are replacedby abstract variables.
+•We introduce a theoretical framework within which we
+can demonstrate the correctness of a set of abstractions
+constructed automatically and in standard ways fromSCR requirements specifications. While our theory of
+abstraction may be viewed as a specialization of thevery general theory developed by Loiseaux et al. [51],
+our emphasis on particular automatable, computation-
+ally inexpensive abstraction methods and on invariantproperties rather than properties of execution se-quences allows us to prove general correctness proper-
+ties of our abstractions within our simpler framework.
+This emphasis also distinguishes our approach to ab-straction from the approaches of Loiseaux, Clarke,
+Kurshan [50], and others.
+•To demonstrate the utility of the SCR tools, we de-
+scribe their application to the WCP SRS. Applying the
+SCR tools to this large, contractor-produced specifica-
+tion demonstrates how a relatively complete set ofautomated techniques can expose inconsistencies in
+software specifications. While the use of tools such as
+simulators, model checkers, equivalence checkers,and code synthesizers is becoming standard in hard-ware design [48], suites of tools customized to expose
+inconsistencies in software specifications are rare.
+1.5 Summary of the Paper
+Section 2 reviews the formal underpinnings of the SCRmethod for requirements specification and briefly describes
+recent applications of the SCR tools to practical systems. Sec-tion 3 describes the contractor-developed SRS of the WCP ,the translation of the SRS into the SCR tabular notation, and
+the application of the consistency checker and the depend-
+ency graph browser to the WCP specification. Section 4summarizes our theory of abstraction, reviews the two ab-
+straction methods described in [11], and introduces the vari-
+able abstraction technique mentioned above. Section 5 showshow this technique and another abstraction method were
+used to dramatically reduce the state space of the state ma-
+chine model that underlies the original SRS for the WCP . (Be-cause the WCP specification includes numerous real-valuedvariables, the state space of the WCP specification is infinite.)
+Section 5 also describes our use of Spin to detect a safety
+violation in the reduced model and the use of the SCR simu-lator to demonstrate the violation in the complete SCR speci-
+fication. Section 6 discusses several issues, such as the role of
+redundancy in requirements specifications, criteria useful inselecting an analysis technique to detect inconsistencies, and
+how our abstraction methods can be used with methods
+other than SCR. Section 7 describes related work. Finally,Section 8 presents some conclusions.
+2THE SCR REQUIREMENTS METHOD:
+BACKGROUND
+The tabular-based SCR method was formulated in 1978 to
+specify the requirements of the Operational Flight Program(OFP) of the United States Navy’s A-7 aircraft [38], [39].
+During the ‘80s and the early ‘90s, many organizations in
+industry, including Bell Laboratories [40], Grumman [57],
+Ontario Hydro [60], and Lockheed [25], applied the SCR re-
+quirements method to practical systems. The largest applica-
+tion of SCR to date occurred in 1993-1994 when engineers atLockheed used a version of SCR called CoRE [24] to specify
+
+--- Page 4 ---
+930 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+the complete requirements of the OFP of Lockheed’s C-130J
+aircraft [25], a program containing approxim ately 230K lines
+of Ada code [63]. The sizable C- 130J requirements specifica-
+tion, which contains more than 1,000 tables, provides strong
+evidence that the SCR method scales.
+Each of the above applications of SCR had, at most,
+weak tool support. To provide powerful, robust tool sup-
+port customized for the SCR method, we have developed
+the SCR toolset. To provide formal underpinnings for thethe method, we have developed a formal model which de-
+fines the semantics of SCR requirements specifications [37],
+[32]. Below, we review the SCR requirements model andthen briefly describe three pilot projects in which other
+groups used the SCR tools to analyze requirements specifi-
+cations of safety-critical systems. For more details about theSCR model, see [32], [9], [11].
+2.1 SCR Requirements Model
+An SCR requirements specification describes the requiredrelation between the system environment, which is nonde-terministic, and the required system behavior, which is
+usually deterministic [32], [37]. The system environment
+contains monitored quantities , quantities that the system
+monitors, and controlled quantities , quantities that the sys-
+tem controls. The SCR model represents these environ-
+mental quantities as monitored  and controlled variables . The
+environment nondeterministically produces a sequence ofinput events, where an input event  is a change in some
+monitored quantity. The system, represented in the formal
+model as a state machine, begins execution in some initialstate and then responds to each input event in turn by
+changing state and by possibly producing one or more out-
+put events, where an output event  is a change in a controlled
+quantity. In SCR, the system behavior is assumed to be syn-
+chronous (similar to Esterel’s Synchrony Hypothesis [7]):
+the system completely processes one input event beforeprocessing the next input event.
+In SCR, the required system behavior is described by NAT
+and REQ, two relations of the Four Variable Model [61]. NAT
+describes the constraints imposed by physical laws and thesystem environment. REQ describes the required relation
+between the monitored and the controlled variables that the
+system must enforce. To specify REQ concisely, SCR specifi-cations use two types of auxiliary variables, mode classes ,
+whose values are called modes , and terms . In many cases,
+mode classes and terms capture historical information.
+In our requirements model, a system S is represented as
+a 4-tuple, S = (S, S
+0, Em, T ), where S is the set of states, S0 µ
+S is the initial state set, Em is the set of input events, and T is
+the transform describing the allowed state transitions. Inthe initial version of the SCR formal model, the transform T
+is deterministic, i.e., a function that maps an input event
+and the current state to a (unique) new state. Each transi-tion from one state to the next state is called a state transition
+or, alternately, a step. To compute the next state, the trans-
+form T composes smaller functions, called table functions ,
+which are derived from the condition tables, event tables,
+and other tables that comprise an SCR requirements speci-
+fication using the semantics in [32], [37]. These tables de-scribe the values of the dependent variables —the controlledvariables, the mode classes, and the terms. Our formal
+model requires the information in each table to satisfy cer-tain properties. These properties guarantee that each table
+describes a total function.
+The SCR requirements model includes a set RF = {r
+1, r2,
+⁄, rn} containing the names of all state variables (i.e., the
+monitored and dependent variables) in a given specifica-
+tion and a function TY which maps each variable to its set
+of legal values. In the model, a state  s is a function that
+maps each variable in RF to its value; i.e., for all r ¶ RF, s(r)
+¶ TY(r). A condition  is a predicate defined on a system state,
+whereas an event  is a predicate defined on two system
+states that differ in the value of at least one variable. When
+the value of a variable (or a condition) changes from one
+state to the next, we say that an event “occurs.” The nota-tion “
+@T(c),” which denotes an event, is defined by
+@T()cc c=¬ ∧′Δ
+where the unprimed condition c is evaluated in the old (or
+current  state) and the primed condition c is evaluated in the
+new (or next state). (In this paper, an unprimed variable re-
+fers to the variable’s value in the current state, whereas aprimed variable refers to the variable’s value in the next
+state. Analogous notation is also used to distinguish condi-
+tions in the old state from conditions in the new state.) Thenotation “
+@F(c)” is defined by @F(c) = @T(Àc). Informally,
+“@T(c)” means that condition c becomes true, and “ @F(c)”
+means that c becomes false.
+To compute the new state, the transform T uses the values
+of variables in both the old state and the new state. Generally,
+the value of a variable in the new state may “directly” de-
+pend on the values of variables in the old state or the newstate. To define the direct dependency  relation, we define a de-
+pendency set ’, a set of ordered pairs ( x, y), where x, y ¶ RF
+and ( x, y) ¶ ’ iff the value of y in either the old state or new
+state is an argument of the function defining x [11].
+To avoid circular definitions, the direct dependencies of
+given variables on other variables in the same state are re-quired to define a partial order. Because they have no de-pendencies on other variables (they represent inputs from
+the environment), the monitored variables are first in the
+partial order. Because they can depend on any monitoredvariable, term, or mode class, the controlled variables come
+last in the partial order. The mode classes and terms come
+between the monitored and controlled variables in the partialorder. The assumptions that the tables define total functions
+and that the variables in RF are partially ordered guarantee
+that the transform T is a function  (at most one new system
+state is defined) and well-defined  (for each enabled input
+event, at least one new system state is completely defined).
+2.2 Practical Applications of the SCR Tools
+Recently, the practical utility of the SCR tools for detecting
+errors in software specifications has been evaluated in threepilot projects. In one project, researchers at NASA’s IV&Vfacility used the SCR consistency checker to detect severalambiguities and missing assumptions in the prose require-ments specification of software for the International Space
+Station [21], [22]. In another project, engineers at Rockwell-
+Collins used the specification editor, the consistency
+
+--- Page 5 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 931
+checker, and the simulator to detect 24 errors, many of them
+serious, in the requirements specification of an example
+flight guidance system [58]. In a third project, researchers atthe Jet Propulsion Laboratory (JPL) used the SCR consis-tency checker and the simulator to analyze specifications oftwo components of NASA’s Deep Space-1 spacecraft forerrors [53]. These components are designed to reduce thelikelihood that a single fault can lead to total or partial lossof a spacecraft’s functions or mission-critical data.
+3SPECIFYING THE SRS FOR WCP IN SCR
+3.1 The WCP and the Contractor SRS
+Operators of a United States military system use the Weap-ons Control Panel (WCP) to monitor the status and set upthe launch of one or more weapons. The WCP is linked tonumerous subsystems and I/O devices that support thelaunch operation. In particular, it interacts with the LCSLaunch Control System, (LCS) which determines when one
+or more weapons are to be launched and oversees launch
+preparation. Operators use the panel to open and closevalves and doors and to monitor the doors, valves, andother system devices for faults. The panel consists of lights,numeric displays, and switches. The lights display non-numeric sensor information (e.g., a door is open, a subsys-tem has failed) and commands from the LCS (e.g., MakeLauncher Ready). Numeric displays present numeric in-
+formation read from sensors, such as air pressure. Switches
+instruct the WCP software to energize and de-energize so-lenoids, the actuators that open and close doors and valves.
+The contractor-developed SRS of the required behavior of
+WCP is a semiformal document composed of formal de-scriptions, diagrams, and prose. It describes a total of 258variables (108 input variables, 90 output variables, and 60internal variables), listing in tables the names, types, and
+source or destination (device or subsystem) of all system in-
+puts and outputs. In contrast to most other SRSs that wehave reviewed, the SRS for the WCP is highly precise andrelatively complete—it contains a precise description of mostof the information needed in a “build-to” specification. Incontrast to most requirements specifications for practicalsystems, which consist largely of prose, the SRS uses formaldescriptions, in particular, a set of assignment statements,
+1 to
+specify the values of most WCP outputs and internal vari-
+ables. The remaining variables are described more infor-mally. In particular, the Boolean outputs and internal vari-ables that are not defined by assignment statements and allnumeric outputs are described in prose. Also described inprose are four modes of operation (initialization, monitor,operate, and test) and how the values of various outputs andinternal variables differ depending upon the mode (e.g., re-
+lays are disabled in monitor mode). With only a few excep-
+tions, the assignment statements do not refer to modes.
+3.2 Translation of the SRS to SCR
+The existence in the SRS of input, output, and internal vari-ables and of assignment statements to define the outputand internal variables facilitated the translation of the SRSinto the SCR notation. The WCP inputs correspond to SCR
+1. The SRS calls these logic equations . Calling them assignment statements  is
+more accurate.monitored variables, the WCP outputs to SCR controlled
+variables, the WCP internal variables to terms and modes,
+and the WCP assignment statements to SCR tables. Becausemodes were not used systematically in the SRS (as notedabove, most assignment statements ignore the modes), wedecided to follow the lead of the SRS and represent theWCP modes as Boolean terms rather than as SCR modes.Thus, both internal variables and modes in the SRS are rep-resented as terms in the SCR specification, and SCR modes
+are not used.
+To obtain an online specification of the SRS, we elec-
+tronically scanned the variable tables and the assignmentstatements from the SRS into a computer file and used opti-cal character recognition to convert the scanned images totext. To obtain an SCR specification, we edited the text inminor ways (e.g., removed embedded blanks from the vari-able names) and then translated the results into SCR tables,
+inserting traceability links back to the SRS.
+To evaluate the SCR version of the SRS, we first invoked
+the consistency checker, which automatically exposed sometype errors, a few missing cases, and numerous inconsisten-cies in the definitions and uses of variables. Nearly all ofthese errors were traced to errors in the original specification.Due to the extensive formality of the original SRS, the accu-racy of electronic scanning and optical character recognition,
+and our limited manual effort, translating the original con-
+tractor SRS into SCR had apparently introduced few newerrors. We corrected the type errors, some variable name dis-crepancies, and other minor problems in the SCR specifica-tion. We also defined “reasonable” initial values. (Althoughthe SRS generally omitted initial values, some initial valueswere found in another contractor specification.) Because weare not domain experts, we were unable to fix every error
+detected by consistency checking (e.g., some unused and
+undefined variables and a few missing cases). Finally, tomaintain close compatibility between the contractor SRS andthe SCR specification, we avoided making major changes intranslating the original SRS into SCR. Compatibility betweenthe two specifications could be important later in the projectin convincing United States government personnel and thegovernment contractor that problems exposed by our meth-
+ods were actual problems in the SRS, not problems intro-
+duced by our translation into SCR.
+Translating the SRS into SCR and applying our analysis
+tools reduced the total number of variables from 258 to 233.Of the 233 variables, 74 were monitored variables (35Booleans, nine reals, two integers, and 28 enumeratedtypes), 72 were terms (67 Booleans, three reals, and twointegers), and 87 were controlled variables (72 Booleans,
+four reals, and 11 enumerated types). The reduction in the
+number of input and output variables was due partly to theelimination of duplicate variable names. Moreover, in manycases, the original SRS used n Boolean variables to repre-
+sent an input with n possible values. To clarify the WCP
+specification and improve its readability, we modeled eachof these inputs as a single enumerated type variable with n
+values, and in the process eliminated numerous Boolean
+variables. The increase in the number of internal variables
+(represented in SCR as terms) resulted because our earlierinformal analysis had overlooked several internal variablesin the prose portion of the contractor SRS.
+
+--- Page 6 ---
+932 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+Another tool in the toolset, the dependency graph
+browser (DGB), displays a graph whose nodes represent allvariables in an SCR specification and whose edges indicate
+the variable dependencies [35]. Fig. 1 shows the depend-
+ency graph for the complete SCR specification of WCP afterthe above improvements. (Fig. 1 omits the variable namesbecause they are unreadable.) To determine the dependency
+graph, the SCR toolset uses the condition tables and event
+tables to identify the variables on which each term andcontrolled variable depends in both the old and new states.
+The leftmost nodes represent the 74 monitored variables,
+none of which depends upon other variables. The rightmostnodes represent the 87 controlled variables, which can de-
+pend on any other variables. In the middle of the graph are
+nodes representing the 72 terms, each of which can dependon monitored variables and any preceding terms in the
+partial order.
+Fig. 1. Dependency graph for SCR Specification of WCP.
+In addition to displaying the relationship among vari-
+ables, the dependency graph also exposes unused variables,undefined variables, and circular dependencies. (The con-
+sistency checker also exposes such errors.) For example,
+nine unused monitored variables appear in the bottom left-hand corner and one undefined output variable in the bot-
+tom right-hand corner of Fig. 1. These 10 unconnected vari-ables are among the problems we were unable to correct
+without more domain knowledge. In addition to displaying
+the dependency graph, the DGB facilitates user navigationof the specification. By clicking on the node that corre-sponds to a dependent variable, the user can display the
+table describing that variable. The DGB can also be used to
+select and extract parts of the specification for furtheranalysis. Clearly, the enormous size of the dependency
+graph for the WCP limits its usefulness. Using the DGB to
+extract and analyze parts of the WCP specification was,therefore, extremely valuable.
+3.3 Representing the WCP Functions as Tables
+In SCR, each controlled variable and term is described by
+either a condition table or an event table. A condition tabledescribes a variable as a function of other variables in thesame state; an event table describes a variable as a functionof variables in two consecutive states. The value of a vari-able defined by a condition table may or may not dependon history (i.e., previous system behavior): the value of thevariable depends on history if the variable is defined in
+terms of another variable whose value is history-
+dependent. In contrast, the value of a variable defined byan event table is always history-dependent.
+Most assignment statements in the SRS represent the
+value of an output or internal variable as a function of othervariables in the same state. Such assignments are naturallyrepresented in SCR with condition tables. For example, thecondition table in Table 1 represents the following assign-
+ment statement from the SRS:
+cHYDRAULIC_PRESSURE_LOW_INDICATOR :=
+  mLAMP_CHECK=up  or not mHYDRAULIC_OIL_PRESSURE
+This table, which defines an output as a simple function of
+two inputs, states that the controlled variable cHYDRAU-
+LIC_PRESSURE_LOW_INDICATOR  is true if mLAMP_CHECK  is
+up or mHYDRAULIC_OIL_PRESSURE  is false, and false other-
+wise. (In the tables and expressions in this section, the ini-
+tial letter of each variable name indicates the class of thevariable: ‘m’ indicates a monitored variable, ‘c’ a controlled
+variable, and ‘t’ a term.)
+TABLE 1
+C
+ONDITION TABLE DEFINING
+CHYDRAULIC_PRESSURE_LOW_INDICATOR
+
+--- Page 7 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 933
+The remaining assignment statements in the SRS define
+20 Boolean variables called latches . In the SRS, most assign-
+ment statements for a latch x are of the form
+x := (y ´ x) ` z,                                     (1)
+where x is a Boolean variable and y and z are conditions
+(i.e., predicates defined on the system state). Informally, thelatch x becomes true when the expression ( y ` z) becomes
+true, false when z becomes false, and otherwise does not
+change. Because the values of latches are history-dependent, they are represented in SCR as event tables. Theevent table used to represent these latches has the form
+@T(y ` z)@ F(z)
+x := true false
+Based on the semantics of event tables presented in [32] and
+the definitions of the event operators “ @T” and “@F” pre-
+sented in Section 2.1, the latch x is defined by2
+′=′∧′∧¬ ∧
+¬′∧%&K
+’Kxtrue y z y z
+false z z
+xif ( )
+if
+otherwise.
+The other assignment statements for latches are variations
+of the form shown in (1) and can be similarly translated
+into event tables. Two safety engineers familiar with the
+WCP have confirmed our interpretation of latches.
+In the SRS, a specific example of a latch is the internal
+variable tPRESSURE_LATCH , which is defined by the as-
+signment statement
+tPRESSURE_LATCH := tPRESSURE_AUTO
+                     and (mPRESSURE_HOLD  or tPRESSURE_LATCH) .
+Table 2, which represents this assignment statement as an
+event table, states that tPRESSURE_LATCH  is true in the new
+state if either mPRESSURE_HOLD  or tPRESSURE_AUTO  is
+false in the old state and both mPRESSURE_HOLD  and
+tPRESSURE_AUTO  are true in the new state, tPRES-
+SURE_LATCH  is false in the new state if tPRESSURE_AUTO
+becomes false in the new state, and tPRESSURE_LATCH  is
+unchanged otherwise.
+TABLE 2
+EVENT TABLE DEFINING tPRESSURE_LATCH
+2. In any initial state s0 ¶ S0, x, y, and z must satisfy the predicate
+(x ` y ` z) ´ (À x ` À z) ´ (À y ` z).Like the controlled variable defined by Table 1, many
+controlled variables in the SRS (41 out of 87) are simple func-
+tions of the monitored variables which do not depend onhistory and hence are defined by condition tables. Most ofthese 41 variables represent lights on the operator controlpanel. An additional 12 controlled variables are functions ofterms and monitored variables and also do not depend onhistory. These controlled variables, as well as the terms onwhich they depend, are defined by condition tables. The val-
+ues of the remaining 34 controlled variables are all defined in
+terms of previous system behavior. Hence, these variables areeither defined by event tables or are functions of one or moreterms defined by event tables. These 34 controlled variables,the source of most of the complexity in the WCP SRS, repre-sent the states of valves, doors, shutters, and other hardwaredevices involved in preparing the launch of a weapon.
+An SCR specification is designed to describe the required
+behavior without implementation detail. Whether to remove
+implementation detail in the original SRS from the SCRspecification was an issue. In a few cases, we deviatedslightly from the SRS and removed the detail, substituting anequivalent representation with the same externally visiblebehavior. To illustrate these cases, we consider the variable
+cTEST_MODE_INDICATOR , which represents a light on the
+operator control panel. The SRS represents the light as a
+Boolean that depends on a flasher circuit. We decided that
+the required behavior was clearer if the SCR specificationomitted the flasher circuit and therefore represented the lightas an enumerated type with three values—
+off, on, and
+flash —rather than two— off and on. Table 3, the condition
+table which defines cTEST_MODE_INDICATOR , states that the
+light is on when the switch mLAMP_CHECK  is up, off when
+the mLAMP_CHECK  switch is down and the system is not in
+tTEST_MODE , and flash  when the mLAMP_CHECK  switch is
+down and the system is in tTEST_MODE .
+TABLE 3
+CONDITION TABLE DEFINING cTEST_MODE_INDICATOR
+3.4 Representing the WCP Inputs in SCR
+In SCR, the behavior of a monitored variable is represented
+as a simple state machine with a set of possible states (de-
+fined by the “type-of” function TY), a next-state relation,and an initial state set. For example, the monitored variable
+mLAMP_CHECK , which indicates the position of a switch, has
+the set of possible values { up, down }, the next-state relation
+{(down , up), (up, down )}, and the initial value down . Simi-
+larly, the monitored variable mBANK_SWITCH_MODE , which
+indicate s the position of a dial, has the set of possible values
+{off, monitor , operate }, the next-state relation {( off,
+monitor ), (monitor , operate ), (operate , monitor ),
+
+--- Page 8 ---
+934 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+(monitor , off)}, and the initial value off. Note that the
+user cannot rotate the dial directly from off to operate  or
+vice versa.
+Like many other researchers (e.g., [59], [55], [42]), we use
+an interleaving model: If two monitored quantities changesimultaneously, the SCR model represents the changes astwo input events that are processed in sequence in eitherorder. In SCR, interleaving is captured by the One InputAssumption—at each state transition, exactly one moni-
+tored variable changes. In the WCP specification, therefore,
+we assume that, at each transition, either 
+mLAMP_CHECK  or
+mBANK_SWITCH_MODE  or one of the 72 remaining monitored
+variables changes. If mLAMP_CHECK  changes, it can only
+change in one way—from down  to up or vice versa. In con-
+trast, if mBANK_SWITCH_MODE  changes, it may change in
+more than one way; for example, starting in the position
+monitor , it may change to off or to operate .
+3.5 Computing the WCP Transitions in SCR
+Analyzing and simulating SCR specifications requires thatthe semantics of state transitions be defined. As notedabove, the transform T computes the new state from an
+enabled input event and the current state. The current stateand the next-state relations of the monitored variables de-termine which input events are enabled. Once one of theenabled input events is selected, the new state can be com-
+puted from the selected input event, the current state, and
+the functions (derived from the SCR tables) that define thevalues of the dependent variables. To represent these func-tions and the next-state relations of the monitored variables,reference [9] introduced “conditional assignments,” whichare similar to the enumerated assignments of UNITY [14].Below, we give conditional assignments for the dependentvariables described by Tables 2 and 3 and for the next-state
+relation associated with the monitored variable
+mBANK_SWITCH_MODE . We also describe how we use condi-
+tional assignments to compute the next state.
+Each variable ri in an SCR specification is associated with
+a conditional assignment of the form:
+if
+fih
+h
+hgr v
+gr v
+gr vii i
+ii i
+in i inii,,
+,,
+,,:
+:
+:11
+22→=
+→=
+→=M
+Here, the gij, are Boolean expressions (guards) and the vij,
+are expressions that are type compatible with variable ri.
+The gij, and the vij, may refer to both old and new values
+of r variables, provided that the references do not lead tocircular definitions [37], [32].
+The conditional assignment for the term 
+tPRES-
+SURE_LATCH , which can be derived from the event table in
+Table 2 using the semantics in [32], [37] is given by
+if
+u @T(mPRESSURE_HOLD AND tPRESSURE_AUTO)
+-> tPRESSURE_LATCH := true
+u @F(tPRESSURE_AUTO)
+-> tPRESSURE_LATCH := false
+fiSimilarly, the conditional assignment for the controlled
+variable cTEST_MODE_INDICATOR  is derived from the con-
+dition table in Table 3 using the semantics in [32], [37] and
+is given by
+if
+u NOT(mLAMP_CHECK=up OR tTEST_MODE)
+-> cTEST_MODE_INDICATOR := off
+u mLAMP_CHECK=up
+-> cTEST_MODE_INDICATOR := on
+u tTEST_MODE AND NOT(mLAMP_CHECK=up)
+-> cTEST_MODE_INDICATOR := flash
+fi
+As stated in Section 2.1, the information in the SCR tables
+must satisfy the properties described in [32]. For example,
+in a condition table, two properties are required of the con-ditions c
+i in each row: the disjunction of the ci must be true,
+and the pairwise conjunction of the ci must be false. In an
+event table, the pairwise conjunction of the events in eachrow must be false.
+These and other properties required of condition tables
+and event tables guarantee that, at each transition, eitherone guard or no guard of the conditional assignment for adependent variable will be true. The properties given above
+for condition tables guarantee that in the conditional as-
+signment derived from a condition table, exactly one guardwill be true at each transition. Similarly, the property given
+above for event tables and the assumption that events
+which never change the value of the variable defined by theevent table are omitted imply that in the conditional as-
+signment derived from an event table, either one guard or
+no guard will be true at each transition. If one guard is true,then the assignment associated with that guard is selected;
+if no guard is true, then the variable value is left un-
+changed.
+The conditional assignment for the monitored variable
+mBANK_SWITCH_MODE  is given by
+if
+umBANK_SWITCH_MODE=off
+-> mBANK_SWITCH_MODE := monitor
+umBANK_SWITCH_MODE=monitor
+-> mBANK_SWITCH_MODE := operate
+umBANK_SWITCH_MODE=monitor
+-> mBANK_SWITCH_MODE := off
+umBANK_SWITCH_MODE=operate
+-> mBANK_SWITCH_MODE := monitor
+fi
+This conditional assignment states, for example, that starting
+in the current state in the off position, mBANK_SWITCH_MODE
+is enabled to change to monitor  in the next state, whereas
+starting in the current state in the monitor  position,
+mBANK_SWITCH_MODE  is enabled to change to either off or to
+operate  in the next state. Conditional assignments for
+mLAMP_CHECK  and other monitored variables in the WCP
+specification are expressed similarly. (In the case of real-valued variables and other variables with very large typesets, we use an alternate, more compact representation, based
+on a predicate rather than a conditional assignment. See [11]
+for an example.) For each monitored variable, more than oneguard of the corresponding conditional assignment may be
+true at a given transition, and each assignment associated
+with a true guard is enabled.
+
+--- Page 9 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 935
+Because the WCP SRS does not constrain the manner in
+which most monitored variables change at each transition,most WCP monitored variables are enabled to change to
+any other value in their type sets. The disadvantage of this
+approach is that “impossible” transitions may occur. Forexample, often a monitored variable with numerical valuescannot assume a value below some minimum in one state
+and above some maximum in the next state. However, to
+minimize the differences between the original SRS and theSCR specification, we allowed such behavior. This means
+that some property violations detected by model checking
+may be spurious because the changes in monitored vari-ables that produce them are impossible.
+Given a current state and the conditional assignments
+for all input variables, the set of input events that are en-
+abled in the current state can be determined by evaluating
+each guard. Each guard that evaluates to true, along with
+the associated assignment, determines an input event thatis enabled to occur in the next state. Because only a singleinput event can occur at each transition, one of the enabled
+input events is selected nondeterministically by the envi-
+ronment. As noted above, the selected input event and thecurrent state determine a unique new state. The values of
+the monitored variables in the new state are determined
+solely by the input event; the values of the other variablesin the new state (the dependent variables) can be computed
+from the conditional assignments for these variables. The
+partial order of the variables (described in Section 2.1) de-termines the sequence in which the conditional assignmentsare evaluated to compute the new state.
+3.6 Representing the Safety Properties in SCR
+To illustrate the six safety properties in the SRS, we con-sider two of these properties. Property 1 states,
+“Opening the Launcher Vent Valve shall be prevented un-
+less the weapon-to-launcher differential pressure is within
+safe limits. ”
+More specifically, the vent valve shall open only if at least
+one of two transducers reports a value in a “safe region” in
+the new state. Property 2 states,“When the launcher receives the LCS Pressure Hold signal,
+the Pressurize Valve shall shut, and the Pressure VentBlocking Valve shall open .”
+Formal statements of these two properties are given by
+1)@T(
+cVENT_SOLENOID ) ˘
+kMinTRANS  < mTRANS_A  ` mTRANS_A  < kMaxTRANS  ´
+kMinTRANS  < mTRANS_B  ` mTRANS_B  < kMaxTRANS
+and
+2)@T(mPRESSURE_HOLD ) ˘ cPRESSURIZE_SOLENOID  `
+NOT(cPRESSURE_VENT_BLOCKING_SOLENOID ).
+In Property 1, mTRANS_A  and mTRANS_B  represent the two
+transducers, and kMinTRANS  and kMaxTRANS  represent the
+constants 7.7 and 15.3. Translating the prose versions of the
+safety properties into logical formulas required consultation
+with safety engineers familiar with WCP . The property-basedspecification of WCP , which consists of these six safety prop-erties, appears in an Assertion Dictionary, one of several dic-tionaries in an SCR specification. Fig. 2 shows how the twoabove properties appear in the SCR specification of WCP .
+Like the other four properties in the contractor SRS, Prop-
+erties 1 and 2 describe a required relation between the
+monitored and controlled variables, that is, a required con-
+straint on the externally observable WCP behavior. Becauseeach of the six controlled variables that appear in the sixproperties is a function of many terms and monitored vari-ables, evaluating the validity of a property requires theanalysis of execution sequences involving a large number ofterms and environmental variables. For example, checkingthe validity of Property 1 requires the analysis of execution
+sequences involving 55 variables—20 monitored variables, 34
+terms, and one controlled variable. Checking the validity ofthe other five properties requires the analysis of executionsequences containing 18, 40, 41, 53, and 56 variables, respec-tively. Because the number of variables involved in analyzingeach property is so large and because the values of many ofthe relevant variables depend on history, the use of inspec-tion to check the WCP specification (even the SCR version)
+for property violations would be error-prone and extremely
+time-consuming. Clearly, automated analysis, if feasible, is amore cost-effective approach than inspection for detectingproperty violations in the WCP specification.
+Fig. 2. Assertion dictionary showing two WCP properties.
+
+--- Page 10 ---
+936 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+4BUILDING ABSTRACTIONS OF SCR
+SPECIFICATIONS
+The properties analyzed with model checking may be rep-
+resented as logical formulas. In analyzing SCR specifica-tions, we focus on state invariants  (properties of reachable
+states) and transition invariants  (properties of adjacent pairs
+of reachable states) because they are common in specifica-
+tions of practical systems that we have studied, e.g., the A-7OFP [1] and the WCP . All six properties in the WCP SRS,including the two properties listed above, are transitioninvariants. (Also interesting to note is that all properties ofthe TCAS II requirements specification [30] analyzed byAnderson et al. [2], except one designed to expose circulardefinitions,
+3 are state invariants.)
+Numerous techniques have been proposed to combat
+state explosion in model checking (see, e.g., [26]). Onepromising yet relatively unexplored approach uses abstrac-tion. Below, we describe three methods for deriving abstrac-tions from SCR requirements specifications based on theformula to be analyzed. The first two methods were origi-nally proposed in [10] and are further developed in [9], [11].All three methods are practical: None requires significantingenuity on the user’s part, and each can be used to derive asmaller, more abstract specification automatically or semi-automatically. Further, each method systematizes techniquesthat current users of model checkers apply routinely but of-ten in ad hoc ways. The first method always yields a soundand complete abstraction. (The soundness and completenessof abstractions are defined formally in Definition 3 below.)The remaining two methods always yield a sound abstrac-tion and, under certain simple restrictions that frequently
+hold in practice, also produce complete abstractions.
+This section first presents a formal framework for ab-
+straction, taken from [3], which establishes some notationand defines soundness and completeness precisely. Thesection concludes with a detailed description of the threeabstraction methods.
+4.1 Formal Framework for Abstraction
+Presented below is the formal framework within which we
+deduce and describe properties of our abstraction methods.
+First, we define a state machine, state and transition invari-ants, soundness and completeness, and an abstraction map.Then, Theorem 1 establishes sufficient conditions for ab-stractions to be sound or complete.
+D
+EFINITION 1. (State Machine). A state machine is a triple  S =
+(S, Q, r), where:  1) the set  S of states of S is nonempty , 2)
+the initial state predicate Q : [S  Boolean ] of S is true
+for at least one element of  S, and  3) the predicate  r : [S  S
+ Boolean ] describes  the transition relation of S. When  S
+= (S, Q, r) is a state machine, the states that satisfy  Q are
+called the  initial states of S and the pairs of states (s, s)
+that satisfy  r are called the transitions  of S. A state of S is
+reachable if it can be reached by a finite sequence of transi-
+tions from an initial state.  A transition of S is reachable if
+it is a transition from a reachable state .
+3. In contrast to Anderson et al. [2], who use model checking to check for
+circular definitions, the SCR method uses consistency checking [30], a form
+of static analysis. The use of static analysis to detect circularities is possiblebecause SCR’s step semantics is much simpler than the step semantics ofRSML [30], the Statecharts variant used to specify TCAS II.The properties of S of interest to us are either one-state  or
+two-state  properties; these are defined, respectively, by
+predicates on single states or on pairs of states. A one-state
+(respectively, two-state) property is a state invariant  (respec-
+tively, transition invariant ) if it is true for all reachable states
+(respectively, true for all reachable transitions). In SCR ap-plications, the states are represented as mappings from state
+variables to values, and predicates are given by formulas
+over the state variables of one or two states.
+D
+EFINITION 2 (Machine Abstraction and Sound Predicate
+Abstraction). Let S = (S, Q, r) and SA = (SA, QA, rA) be
+state machines .
+1)SA is a (machine) abs traction of S if there is a map  a : S
+ SA, ssAaα, called the  abstraction map, such that  a)
+for all s  in S: Q(s) implies  QA(sA) and b) for all  s, s in S:
+r(s, s) implies  rA(sA, sA). If SA is an abstraction of  S un-
+der a, the map  a : S  SA is a machine homomor-
+phism from S to SA.
+2)If q and qA are one-state  (respectively , two-state ) predi-
+cates for  S and SA and a : S  SA, ssAaα, is a map ,
+then qA is a sound predicate abstraction of q under  a
+if for all  s in S, qA(sA) implies  q(s) (respectively, for all  s,
+~s in S, qA(sA, ~sA) implies  q(s, ~s)).
+DEFINITION 3 (Sound/Complete Abstractions). ( SA, qA) is a
+sound abstraction for (S, q) if whenever  qA is an invari-
+ant for  SA, q is an invariant for  S; (SA, qA) is a complete
+abstraction for (S, q) if it is a sound abstraction and it is
+also a refutation-sound abstraction , i.e., whenever  q is an
+invariant for  S, qA is an invariant for  SA.
+Clearly, any abstraction map a from S to SA defines an
+equivalence relation ¢a on the states of S in which two
+states are equivalent if they have the same image under a.
+We say that a predicate q on the elements of a set S, on
+which there is an equivalence relation ¢, respects  ¢ (and vice
+versa) if and only if the truth of q depends only on the
+equivalence class(es) of its argument(s).
+THEOREM 1 (Soundness and Completeness of Abstractions).
+Suppose  SA = (SA, QA, rA) is an abstraction of  S = (S, Q, r)
+with abstraction map a : S  SA, i.e., a is a machine homo-
+morphism from  S to SA.
+1)If qA is a sound predicate abstraction of q  under  a, then
+(SA, qA) is a sound abstraction for  (S, q).
+2)Suppose that every state  $s ¶ SA reachable in  SA is the
+image under  a of some state  s ¶ S that is reachable in S
+(i.e., $ () ) ss=α . Then, if the predicate  q is a one-state
+predicate  for S that respects  ¢a and the predicate  qA on
+SA is defined by q sA($)=Δ $s ¶ S : a (s) = $s ` q(s), then q
+is a state invariant of  S iff qA is a state invariant of  SA.
+That is,  (SA, qA) is a complete abstraction of (S, q).
+3)Suppose that every reachable transition  ($,$)ss′ of SA is
+the image under  a of a reachable transition (s, s) of S
+(i.e., α α ()$ () $) s s and s s= ′=′. Then, if the predicate  q
+is a two-state predicate  for S that respects  ¢a and the
+
+--- Page 11 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 937
+predicate  qA on SA  SA is defined by  qssA($,$)1 2=Δ $s1, s2
+¶ S : a (s1) = $ () $ (, ) ss s q s s1 2 2 1 2 ∧= ∧α , then q is a
+transition invariant of  S iff qA is a transition invariant
+of SA. That is,  (SA, qA) is a complete abstraction of (S,
+q).
+Based on Definition 3 and Theorem 1, we have estab-
+lished the soundness, and sufficient conditions for com-
+pleteness, of abstractions of SCR specifications obtained by
+three specific methods. These methods include the twomethods originally proposed in [10] and further developed
+in [9], [11] and a new third method introduced below. The
+complete formal exposition of the above framework, in-cluding the proof of Theorem 1 and a detailed discussion of
+the connection between our theoretical results and the three
+abstraction methods, is presented in [3].
+To define the state machine S = (S, Q, r) corresponding to
+an SCR machine represented as a 4-tuple ( S, S
+0, Em, T), we
+define: 1) the initial-state predicate Q on a state s ¶ S such
+that Q(s) is true iff s ¶ S0 and 2) the next-state predicate r on
+pairs of states s, s ¶ S such that r (s, s) is true iff there exists
+an event e ¶ Em enabled in s such that T(e, s) = s. Thus, the
+predicate r is simply a concise and abstract way of ex-
+pressing the transform T without reference to events.
+4.2 Three Abstraction Methods
+The first two abstraction methods use variable restriction :
+they eliminate certain variables and their associated tables(or monitored variable definitions) from the SCR specifica-
+tion. The third abstraction method, developed in this study
+to transform an infinite state space into a finite state space,uses variable abstraction , which replaces a detailed variable
+with a more abstract variable. Thus, the third abstraction
+method applies the method suggested by Clarke et al. [15]to SCR specifications. Our abstraction methods are com-plementary. The first method reduces the state space of the
+model by removing variables irrelevant to the analysis from
+the specification, whereas the two other methods reduce thestate space by either removing detailed variables or by re-
+placing detailed variables with more abstract variables.
+Usually, we apply the first abstraction method first andthen apply the second or third abstraction methods to the
+result. Both the second and third abstraction methods may
+be applied many times, each time to remove one or moredetailed variables (in the case of the second method) or to
+replace detailed variables (in the case of the third method).
+4.3Method 1—Remove Irrelevant Variables
+This simple abstraction method, analogous to a technique
+called “program slicing” which removes irrelevant variables
+in analyzing programs [65], uses the set of variable names
+which occur in the formula being analyzed to remove un-needed variables and their definitions (tables in the case of
+dependent variables) from the analysis. To apply this method
+to an SCR specification S with state variable set RF, we con-
+struct the set 2 µ RF of variables occurring in the formula q.
+Then, we let set 
+2∗ µ RF be the reflexive and transitive clo-
+sure of 2 under the direct dependency relation ’
+The SCR specification of the abstract machine SA with
+the set of variables RFA = 2∗ is obtained by deleting all as-sociated tables (and, in the case of monitored variables, all
+associated definitions) for variables in the set RF - RFA. The
+abstract property qA is syntactically identical to property q,
+but because it is defined over a projection of the domain
+over which q is defined, we call it qA. The abstraction map a
+maps every state s of S to the unique state sA of SA such that
+sA(r) = s(r) for all r ¶ RFA. This abstraction method is always
+sound and complete. In large specifications, applying this
+method can significantly reduce the size of the state spaceto be model checked.
+4.4Method 2—Remove Detailed Monitored Variable
+Suppose that r ¶ RF is a monitored variable which does not
+appear in the formula q, that $rRF∈  depends directly only
+on r, and that $r is the only variable that directly depends on
+r. We define the set of variables of the abstract machine as
+RFA = RF - {r}. That is, we simply remove r from the set of
+variables. In SA, the dependence of $r on r is eliminated by
+treating $r as a monitored variable. The initial state set, the set
+of possible states, and the next-state relation for the newmonitored variable 
+$r—that is, the state machine for $r—can
+be computed from $r’s initial state set, the table defining $r,
+and the state machine for r from S. We can generalize this
+method to eliminate many input variables r1, r2, ⁄, rm from
+RF. This reduction can be performed if $r is the only variable
+that directly depends on r1, r2, ⁄, rm; $r depends directly only
+on r1, r2, ⁄, rm; and none of the variables r1, r2, ⁄, rm appear
+in q. As for Method 1, the abstract property qA for Method 2
+is syntactically identical to property q. The abstraction map a
+for Method 2 is defined exactly as in Method 1.
+Abstractions obtained by this method are always sound.
+A sufficient condition for completeness, which frequently
+holds in practice, is that every two states equivalent under¢
+a must be connected by a finite chain of transitions. For
+example, this condition holds when the value of $r is deter-
+mined by whether r belongs to some particular interval,
+and the next-state relation of r permits r to change from any
+value in any particular interval to any other value in the
+same interval, either in a single step or in incremental steps
+inside the interval. This sufficient condition guarantees thatevery reachable abstract state or transition is the image of a
+reachable concrete state or transition, so that Theorem 1
+applies. For a detailed example which illustrates Method 2,see [9], [11].
+4.5Method 3—Replace Detailed Variable with
+Abstract Variable
+Suppose r ¶ RF is a detailed variable ( r may or may not
+appear in the formula q). Based on q and the details in the
+SCR specification that determine the next-state relation, one
+can partition TY(r), the type set of r, into equivalence
+classes A1, A2, ⁄, AN such that any dependence of q’s value
+and the values of the variables in RF-{r} on the value of r is
+only a dependence on the equivalence class Ai of the value
+of r. Then, an abstract variable $r may be constructed whose
+type set TY($r) is in a one-to-one correspondence with these
+equivalence classes. This correspondence determines a
+function f : TY(r)  TY($r) that maps every element of TY(r)
+to the element of TY($r) corresponding to its equivalence
+class. The function f provides a way to assign a value to the
+
+--- Page 12 ---
+938 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+variable $r in any state s, i.e., s($r) = f(s(r)). The abstract vari-
+able $rcan then be treated as a new state variable, the detailed
+variable r can be eliminated, and $r can be used in place of r.
+The state variable set RFA of SA is (RF - {r}) < {$r}. The
+function f clearly induces an equivalence relation on the
+states of S; the equivalence classes correspond to the states
+of SA. The initial states and transitions in SA are defined to
+be those induced by the initial states and transitions in S,
+thus guaranteeing that SA is an abstraction of S. The ab-
+straction map a for Method 3 maps every state s of S to the
+state of SA corresponding to its equivalence class induced
+by f, i.e., to the unique abstract state sA of SA such that sA(~r)
+= s(~r) for all ~r ¶ RF - {r} and sA($r) = f(s(r)). The equiva-
+lence relation ¢a is the same as that induced by f. The for-
+mula qA is obtained by deriving a formula equivalent to q
+that uses $r in place of r. The guards and the assignments in
+the SCR specification for SA are obtained similarly.
+Given that, by construction, q is constant on every
+equivalence class of ¢a and a is a machine homomorphism,
+it follows that this abstraction method is sound [3]. As with
+Method 2, a sufficient condition for completeness is that
+any state s in an equivalence class be reachable in a finite
+number of steps from any other state ~s in the equivalence
+class. In the classes of systems we model, this condition is
+often satisfied for reasons analogous to those given abovefor Method 2.
+4.5.1 Example
+To illustrate Method 3, we show how equivalence classesare determined for 
+tSELECTED_TRANS , a real-valued inter-
+nal variable in the SRS for WCP . One Boolean variable that
+depends on tSELECTED_TRANS  is the internal variable
+tPRESSURIZING_LATCH . In the dependency graph shown
+in Fig. 3, nodes representing the real-valued variable tSE-
+LECTED_TRANS  and the Boolean variable tPRESSURIZ-
+ING_LATCH  appear in the bottom right-hand corner. The
+dependency on tSELECTED_TRANS  is completely described
+by the following fragment from the conditional assignment
+for tPRESSURIZING_LATCH :
+if
+u ⁄ tSELECTED_TRANS  14.8 ⁄
+ tPRESSURIZING_LATCH := ⁄
+u ⁄ tSELECTED_TRANS  9.2 ⁄
+ tPRESSURIZING_LATCH := ⁄
+:
+u ⁄
+ tPRESSURIZING_LATCH := ⁄
+fi
+Suppose the detailed variable tSELECTED_TRANS  has the
+type set TY(tSELECTED_TRANS ) = [l, u] · 5. (5 denotes the
+real numbers.) Then, we can use the guard fragments, “ tSE-
+LECTED_TRANS   14.8” and “ tSELECTED_TRANS   9.2,” to
+compute a set of fixed subintervals of [ l, u]. The first guard
+partitions [ l, u] into the subintervals [ l, 14.8) and [14.8, u].
+The second guard further partitions the first subinterval [ l,
+14.8) into [ l, 9.2] and (9.2, 14.8). Thus, the set of relevant
+subintervals for the new abstract variable is { K0, K1, K2},where K0 = [l, 9.2], K1 = (9.2, 14.8), and K2 = [14.8, u]. Then,
+rather than reasoning about a value of tSELECTED_TRANS
+in [l, u], an infinite set of real numbers, we can reason about
+an abstract variable tSELECTED_TRANS d , whose value rep-
+resents an arbitrary value from one of three subintervalsthat form a partition of [ l, u].
+This method replaces the value in [ l, u] of the original
+variable 
+tSELECTED_TRANS  with the value in { K0, K1, K2} of
+the abstract variable tSELECTED_TRANS d . We can define a
+function f that maps the value of the variable tSE-
+LECTED_TRANS  to its equivalence class Ki :
+fs rKs K
+Ks K
+Ks K(() )if ,
+if , and
+if .=∈
+∈
+∈%&K
+’K00
+11
+22(tSELECTED_TRANS)
+(tSELECTED_TRANS)
+(tSELECTED_TRANS)
+More generally, f determines a partition on the set of states
+S such that two states s, ~s ¶ S are equivalent if f maps the
+value of tSELECTED_TRANS  in both s and ~s to the same Ki
+and if s and ~s agree on all other variables.
+4.5.2 Uses of the Abstracted Variable
+An important issue is how concrete variables subject to ab-
+straction by Method 3 can be used in guards and assign-
+ment statements in the concrete specification and how theseguards and assignment statements can be transformed into
+guards and assignment statements in the abstract specifica-
+tion. Variables in the concrete specification to which weapply Method 3 may be used only in linear expressions and
+inequalities involving constants and no other variables.
+In an assignment statement, a concrete variable y may be
+used in two possible ways:
+(1) in a copy operation (e.g., x : = y)
+(2) in a comparison with a constant (e.g., x : =  y  14.8)
+In (1), the concrete variable x must also be subject to ab-
+straction, and the type of its abstract version 
+$x must be com-
+patible with the type of the abstract version $y of y; that is,
+TY(x) = TY( y)4 and the partition of TY( y) that yields TY( $y)
+must be a refinement of the partition of TY(x) that yields
+4. The condition TY(x)  =  TY(y), which holds in all cases to which we ap-
+ply Method 3 in the WCP, can be relaxed: TY(x) and TY(y) must simply
+have a common supertype. Of course, this generalization imposes morecomplex conditions on the relationship among partitions of TY(x) and TY(y)
+and the guards on the copy operations.
+Fig. 3. Real-valued variables and variables that depend on them.
+
+--- Page 13 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 939
+TY($x). Given that the elements of TY( $y) and TY($x) are sub-
+sets of TY( y) = TY(x) and given the preceding conditions,
+there is a natural mapping abs: TY( $y)  TY($x) from each
+element in TY( $y) to the (possibly coarser) element of TY( $x)
+that contains it. Then, the assignments in the abstract specifi-cation corresponding to the examples in (1) and (2) become
+($)$:( $)
+($): $ .1
+21 4 8x abs y
+xy=
+=≥d
+In ($), .21 4 8d is the element of TY( $y) that contains the ele-
+ment 14.8 of TY( y). Note that, in this example, we retain the
+comparison “ ” in ($)2. This is valid provided TY()y is an
+ordered set, such as the real numbers or the integers, andTY
+($)y is a partition of TY( y) into intervals with the order-
+ing inherited from that of TY(y). All type abstractions using
+Method 3 in the WCP example satisfy these conditions.
+Comparisons in assignments, such as the example in (2),
+can always be transformed into comparisons in guards. Forexample,
+if
+u     true  x : = y  14.8
+fi
+becomes
+if
+u     y  14.8  x : = true
+u     NOT ( y  14.8)  x : = false
+fi
+If this transformation is not performed, then all compari-
+sons in assignments of form (2) must be taken into account(along with the comparisons of a variable with a constantappearing in guards) in determining how to partition thetype of that variable to obtain the appropriate type abstrac-tion. Assignments of form (1) also have an effect on the
+computation of type abstractions: in particular, the type of
+variable being copied inherits all subdivisions in the parti-tion of the type of the variable being copied to. This inheri-tance must thus be considered in forming the partition intosubintervals for the type of the variable that is copied. Ex-amples of both forms (1) and (2) occur in the assignments inthe WCP specification and are discussed in Section 5.2.
+In guards, concrete variables subject to abstraction can
+appear only in comparisons with a constant. The effect of
+comparisons in guards on the computation of type abstrac-tions has already been discussed in Section 4.5.1. Guardsinvolving abstract variables are transformed in the abstract
+specification in analogy with the transformation (2)  
+($)2.
+5MODEL CHECKING USING ABSTRACTION
+This section shows how we make model checking feasible
+by using two of the abstraction methods, Methods 1 and 3,to construct a reduced WCP specification sufficient formodel checking Property 1 (defined in Section 3.6), whichwe refer to below as the property q. First, Method 1 is ap-
+plied automatically to remove variables irrelevant to thevalidity of q. Then, Method 3 is applied five times in suc-
+cession to eliminate the five real-valued variables in the
+reduced specification produced by Method 1. Although, inapplying Method 3, we manually replaced each real-valuedvariable with an abstract variable, the procedure we de-scribe below for applying Method 3 is clearly automatable.The section concludes by describing how model checkingthe reduced specification with Spin exposed a violation of q,
+how the counterexample produced by Spin was translated
+into a counterexample in the full specification, and how
+running the counterexample through the SCR simulatorvalidated the property violation.
+5.1 Applying Method 1
+To analyze the SCR specification of the WCP for q, we first
+apply Method 1 to form the set 2 ⊆ RF of variables occurring
+in formula q in either the old state or the new state, namely,
+2 = {cVENT_SOLENOID , mTRANS_A , mTRANS_B },
+and the set 2*, the reflexive and transitive closure of 2 un-
+der the direct dependency relation of the SCR specificationfor WCP . We refer to the state machine defined by the SCRspecification as S = (S, Q, r).
+The user can invoke the DGB to automatically compute
+2*. To do so, the user first displays the complete depend-
+ency graph of the WCP (see Fig. 1), identifies the set 2 of
+variables in the formula q by clicking on the corresponding
+entry for q in the Assertion Dictionary, and then requests
+the DGB to select the variables on which the variables in 2
+depend. The DGB responds by displaying the graph shown
+in Fig. 4, which is the subgraph of the graph in Fig. 1 that is
+relevant to the property q. The remaining 55 nodes in this
+subgraph represent the members of 2*. Applying this ab-
+straction method dramatically reduces the state space by
+removing more than 76 percent of the variables in the
+original SCR specification. Using the DGB, the user can
+save the 55 variables, along with their declarations and ta-
+bles, in a new reduced SCR specification. This specification
+defines an abstract SCR machine Σ
+A = (SA, ΘA, ρA) that one
+can use to reason about the property q.
+5.2 Applying Method 3
+A logical next step is to replace real-valued variables in the
+SCR specification of SA with finite-valued variables using
+Method 3. To do so, we first identify the set of real-valued
+variables in the reduced specification. This set contains
+mTRANS_A  and mTRANS_B , which represent the two transduc-
+ers, and three other real-valued terms, tTRANS_A , tTRANS_B ,
+and tSELECTED_TRANS . Then, we identify all variables of
+finite type that directly depend in either the current state or
+the next state on any of the real-valued variables: these finite-
+valued variables are tTRANS_A_FAIL , tTRANS_B_FAIL ,
+tPRESSURIZING_LATCH , and tTRANS_AUTO_SEL_B . The
+graph in Fig. 3 shows all nine variables and their dependen-
+cies. Boxes drawn with solid lines distinguish the five real-
+valued variables from the four finite-valued variables.
+Next, we apply Method 3 three times in succession to re-
+place the three real-valued variables tSELECTED_TRANS ,
+tTRANS_B , and mTRANS_B  (represented by the three leftmost
+nodes in the bottom row of Fig. 3). The approach is to elimi-
+
+--- Page 14 ---
+940 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+nate the real-valued variables from right to left, replacing
+each in turn with a finite-valued variable. The remaining two
+real-valued variables, tTRANS_A  and mTRANS_A , may be re-
+placed by applying Method 3 in an analogous manner.
+Section 4.5.1 describes how two guard fragments that re-
+fer to the real-valued variable tSELECTED_TRANS  were
+used to obtain the abstract variable tSELECTED_TRANS d
+with type set TY(tSELECTED_TRANS d ) = {K0, K1, K2}.
+Clearly, tSELECTED_TRANS d  is a finite-valued variable that
+can be substituted for the real-valued variable
+tSELECTED_TRANS  in reasoning about the property q.
+To replace the real-valued variable tTRANS_B  with a
+finite-valued variable, we consider three finite-valued vari-ables (see Fig. 3) which depend on 
+tTRANS_B :
+tTRANS_B_FAIL , tSELECTED_TRANS d , and
+tTRANS_AUTO_SEL_B . Just as the dependency of the term
+tPRESSURIZING_LATCH  on tSELECTED_TRANS  was used to
+compute the type of tSELECTED_TRANS d , the dependency
+of the first variable tTRANS_B_FAIL  on the real-valued
+variable tTRANS_B  is used to compute an abstract replace-
+ment, tTRANS_Bd , for tTRANS_B . The type set of the sec-
+ond variable, tSELECTED_TRANS d , is used to refine the
+type set of the abstract variable tTRANS_Bd . The third vari-
+able, the Boolean variable tTRANS_AUTO_SEL_B , must be
+handled differently because its value depends on the differ-
+ence between tTRANS_A  and tTRANS_B . Section 5.3 de-
+scribes how we handle this special case which involvesarithmetic. To replace the real-valued variable 
+mTRANS_B
+with a finite-valued variable, we use the newly constructed
+finite-valued variable tTRANS_Bd  and the intervals defined
+by the property q to construct the abstract replacement
+mTRANS_Bd .The first variable on which tTRANS_B  depends,
+tTRANS_B_FAIL , refers to tTRANS_B  in two assignment
+statements, each involving a comparison with a constant.The two comparisons which refer to 
+tTRANS_B  are
+“tTRANS_B  > 21.0” and “ tTRANS_B  < 1.8.” These compari-
+sons determine a partition of the interval [ l, u] into the
+subintervals [ l, 1.8), [1.8, 21.0], and (21.0, u].
+The second variable tSELECTED_TRANS  depends on
+tTRANS_B  via a copy operation. Thus, we must also apply
+the subdivisions in its abstract replacement,
+tSELECTED_TRANS d , to the partition of tTRANS_B . Hence
+the abstract replacement variable tTRANS_Bd  has five rele-
+vant subintervals: [ l, 1.8), [1.8, 9.2], (9.2, 14.8), [14.8, 21.0],
+and (21.0, u].
+Finally, the real-valued variable tTRANS_B  is defined in
+terms of the real-valued monitored variable mTRANS_B
+(see Fig. 3) using a copy operation. Constructing the ab-
+stract replacement variable mTRANS_Bd  for mTRANS_B  re-
+quires two steps. To form the type set of mTRANS_Bd , we
+first apply the five subintervals in the type set of the ab-stract variable 
+tTRANS_Bd . Next, we apply the subdivi-
+sions defined by the two constants that appear in theproperty q, 
+kMinTRANS  = 7.7 and kMaxTRANS  = 15.3. In-
+cluding these subdivisions produces the following seven
+subintervals for the abstract replacement variable
+mTRANS_Bd :  I0 = [l, 1.8), I1 = [1.8, 7.7], I2 = (7.7, 9.2], I3 = (9.2,
+14.8), I4 = [14.8, 15.3), I5 = [15.3, 21.0], and I6 = (21.0, u].
+5.3 A Complication: Arithmetic
+Replacement of a real-valued variable with an enumerated
+type produces a sound and, under certain mild restrictions,complete abstraction as long as only simple comparisonsare made. Such comparisons are of the form x 
+o k, where x is
+Fig. 4. Dependency graph for reduced SCR specification.
+
+--- Page 15 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 941
+a variable, o is a relational operator, and k is a constant. The
+situation becomes more complex when arithmetic is neces-
+sary. Because the Boolean variable tTRANS_AUTO_SEL_B
+depends on the difference  between tTRANS_A  and
+tTRANS_B , our abstract model does not have the desired
+property that all variables in RF _ {tTRANS_B } which de-
+pend on tTRANS_B  depend only on tTRANS_Bd . To handle
+this problem, we observe that it is sound to simply allowthe value of 
+tTRANS_AUTO_SEL_B  to be computed nonde-
+terministically as either true or false in the abstraction. This
+can be refined by restricting the nondeterministic choice of
+the value of tTRANS_AUTO_SEL_B  to its possible values
+when tTRANS_A  ¶ tTRANS_Ad  and tTRANS_B  ¶
+tTRANS_Bd , and further refined by also taking into account
+any conditions depending upon other variables. Because
+tTRANS_AUTO_SEL_B  is Boolean, introduction of some
+nondeterminism into its value does not significantly in-crease the size of the state space. Abstractions using thistechnique will always be sound but may not be complete.
+In such situations, it is necessary to validate any counterex-
+ample using our simulator.
+The appropriate point in the abstraction process at which
+to apply this “nondeterministic variable” technique is after
+applying Method 1, since Method 1 can eliminate some of
+the variables whose definitions involve arithmetic (which
+happened in the WCP example). One question concerns the
+likelihood that, in such situations, a counterexample to an
+abstract property in an abstract specification will corre-
+spond to a counterexample in the concrete specification. In
+the WCP example, inspection of the relevant tables suggests
+that a change in 
+tTRANS_AUTO_SEL_B  affects the truth of
+the property q in only a few cases. Therefore, in the WCP
+example, it is highly likely that, if an abstract counterexam-
+ple is found, a corresponding concrete counterexample can
+be found. In fact, we found abstract counterexamples for
+the WCP example using every version of the nondeter-
+ministic variable technique described above, and in addi-
+tion, found an abstract counterexample for an unsound
+abstraction in which the table for tTRANS_AUTO_SEL_B  was
+translated into a qualitatively similar deterministic version
+in the abstraction. In all cases, the abstract counterexamples
+proved to correspond to concrete ones.
+5.4 Constructing the Abstract Property qA
+Because the original property q refers to the real-valued
+variables mTRANS_A  and mTRANS_B , it is necessary to con-
+struct an abstract version of the property q that refers to the
+abstract variables in the reduced specification rather than
+the real-valued variables mTRANS_A  and mTRANS_B  in the
+original specification. Doing so is straightforward: The ab-
+stract property, which we call qA, can be represented as@T(cVENT_SOLENOID ) ˘
+(I1 < a’ ` a’ < I5) ´ (I1 < b’ ` b’ < I5),
+where a = mTRANS_Ad  and b = mTRANS_Bd  and,  in the nota-
+tion of ($)2 in Section 4.5.2, I1 = [1.8, 7.7] = 77.d = kMinTransd
+and I5 = [15.3, 21.0] = 15.3d = kMaxTransd.
+5.5 Model Checking with Spin
+By applying Methods 1 and 3 as described above, we obtain
+a sound abstraction of the SCR specification of WCP forreasoning about property q. To analyze the reduced SCR
+specification, we invoked the explicit state model checker
+Spin from within our toolset, which automatically trans-
+lated the reduced specification into Promela, the languageof Spin. For complete details and fully worked-out exam-ples of how SCR specifications can be translated into eitherPromela, the language of Spin, or into the language of theSMV model checker, see [9], [11]. Because our tools supporta very limited property language (e.g., no ordered enumer-ated types, no set membership), we represented the ordered
+enumerated types as subranges of integers. Hence, the rep-
+resentation of q
+A that we actually checked was
+@T(cVENT_SOLENOID ) ˘
+                                 (1 < a’ ` a’ < 5) ´ (1 < b’ ` b’ < 5),
+where ′a and ′b are integers in {0, 1, ⁄, 6} rather than ele-
+ments of an enumerated type.
+Running Spin exposed a pair of reachable states that
+violate property q and produced a counterexample, i.e., an
+execution sequence that starts in a valid initial state and,through a sequence of transitions permitted by the next-state relation of the abstract machine, ends in the pair ofstates that violate the property. Fig. 5 shows both the exe-cution sequence consisting of five input events that lead tothe bad pair of states (the top five lines) and the first partsof the final states in the sequence (the final 15 lines). Spin
+required less than 30 seconds to find the violation.
+Fig. 5. Results of running Spin.
+
+--- Page 16 ---
+942 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+5.6 Using the Simulator for Validation
+Using our methods, a counterexample obtained from model
+checking, i.e., a sequence of input events, will be in terms of
+an abstract state machine. We have a standard method for
+translating each input event in the abstract machine to asequence of one or more input events in the concrete ma-
+chine. In the case of an input event involving an abstract
+monitored variable constructed with Method 3, we simplychoose a member of the corresponding equivalence class toobtain a corresponding monitored variable in the concrete
+execution sequence. In the case of an input variable in-
+volving an abstract monitored variable constructed withMethod 2, we may need to translate the abstract input
+event into a sequence of two or more input events in the
+concrete machine.
+If the derived sequence of input events is executable in
+the concrete model, as it is in the WCP example, executing
+the input sequence will produce a sequence of concrete
+states. This sequence of concrete states can be mapped to a
+sequence of abstract states that typically corresponds to the
+abstract counterexample, perhaps with some stuttering
+added. (By stuttering , we mean a sequence of two or more
+concrete states that correspond to one abstract state.)
+In the general case, the sequence of concrete events that
+we derive may not be directly executable, because some of
+the translated input events might not be enabled according
+to the next-state relation for the corresponding input vari-able. A typical example occurs when some numerical input
+quantity takes too large a leap in one of the derived events.
+However, in such cases, this large leap can usually beachieved in several legal small steps, and inserting the extra
+small steps gives us a good candidate for a concrete coun-
+terexample. When our sufficient conditions for complete-ness are satisfied, we can automatically construct a se-
+quence of small concrete steps that can be mapped to a se-
+quence of abstract steps with stuttering. Since by construc-tion (using the notation of Section 4) q(s) ˘ q
+A(sA) for every
+concrete state s, we can be confident that our derived se-
+quence of small steps is indeed a concrete counterexample.
+To evaluate the validity of q in the original SCR specifi-
+cation, we manually translated the sequence of input events
+obtained from Spin (see Fig. 5), which is in terms of the ab-
+stract state machine, to a corresponding sequence of input
+events in the original state machine. In the WCP example,
+the translation is trivial. We simply replace each value of an
+abstract variable with a real number in the corresponding
+interval. Steps 2 and 4 are the two steps in the scenario
+where this translation is required. In each case, we selected
+the value 18.0, which lies in the interval I5 = [15.3, 21.0].
+(The “5” in the abstract scenario refers to interval I5.) Each
+of the remaining three steps involve a monitored variable
+that is the same in both the abstract and the concrete ma-
+chines. Hence, no translation of these steps is necessary.
+Next, we ran this concrete scenario through our simula-
+tor. To check for the property of interest q, we added the
+property to the Assertion Dictionary. Running the scenario
+through our simulator leads to an assertion failure (see the
+bottom of Fig. 6). Clicking on the line reporting the asser-tion failure highlights the first property in the AssertionDictionary shown in Fig. 2, thus validating that the prop-
+erty violation detected by model checking corresponds to a
+property violation in the original specification. Safety engi-
+neers familiar with the WCP have confirmed that this is a
+true safety violation.
+When used in conjunction with model checking, simula-
+tion may be used either to demonstrate  a property violation
+or to evaluate  a candidate violation. In the case of abstrac-
+tions that are complete, simulation may be used to demon-
+strate  a counterexample in the original specification that
+corresponds to a counterexample produced by a model
+checker in analyzing the reduced specification. In the case
+of abstractions for which completeness is not guaranteed,
+simulation is useful for validation , i.e., for testing whether
+an error detected by model checking is an actual error in
+the original specification. In many cases, such as the case of
+WCP , the reduced specification is not guaranteed to be a
+complete abstraction. Hence, some method is needed to
+evaluate the counterexample in the original specification
+to ensure that the property violation is not spurious.
+Moreover, when any part of the abstraction process and
+scenario translation is done by hand, errors can be intro-
+duced, either in developing the reduced model from the
+original specification or in translating a counterexampleproduced by model checking into a scenario in the original
+specification. Clearly, when manual processes are used,
+simulation is effective for ensuring that a suspected viola-
+tion is a true violation in the original specification.
+5.7 More About the Safety Violation
+Applying Spin to the reduced specification described above
+exposed numerous violations of property q. The probability
+of some of these violations occurring in practice is low; for
+example, some occur only when the vent valve sensor fails
+(i.e., in step 3 in Fig. 5, the sensor reports the vent valve is
+open when it is closed) and both transducers fail (i.e., both
+mTRANS_A  and mTRANS_B  have values in interval I0). Other
+scenarios which produce unsafe behavior are more likely.For example, both transducers can report a pressure read-
+ing in a hazardous region (either I
+1 or I5) at the same time
+that the vent valve sensor fails. In all of these cases, the
+WCP specification allows the system to open the valve—
+i.e., to set the value of cVENT_SOLENOID  to true— even
+though doing so is very dangerous.
+The scenario in Fig. 6 contains two seemingly unrealistic
+transitions, i.e., each transducer reports a pressure reading of
+12.0 psi in one state and a reading of 18.0 psi later on, a dif-
+ference of 6 psi. Note that this scenario is a correct abstraction
+of the possible behavior of a continuous system. A change in
+pressure of 6 psi could take place over minutes and in a se-
+ries of steps that do not affect the abstract state. It is also
+worth noting that we selected some values somewhat arbi-
+trarily (i.e., 12.0 as the initial value, 18.0 as the representative
+concrete value of the abstract value I5). We could easily pick
+more realistic concrete values for scenarios, e.g., smaller
+changes in the transducer values from one step to the next.
+What is important is that a wide range of concrete values
+(realistic or unrealistic) violate the safety assertion.
+
+--- Page 17 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 943
+6DISCUSSION
+This section discusses five issues that arose in our study—
+the role of redundancy in specifying requirements, the crite-
+ria for selecting an analysis method, contexts in which
+automatic methods can support the use of abstraction in
+model checking, how automatic abstraction methods com-bined with other methods can reduce the state explosion
+problem, and how our approach to abstraction can be ex-
+tended to methods other than SCR.
+6.1 Role of Redundancy in Requirements
+Specification
+In its original form, the A-7 requirements specification [38]
+was designed to minimize redundancy. For example, the
+required values of each variable under all possible conditions
+were defined in one unique place in the specification. By
+minimizing redundancy, the designers hoped to facilitatelearning about a given aspect of the specification, to facilitate
+changing the specification, and, more generally, to limit op-
+portunities for inconsistency in the specification. As shown
+in this paper, some carefully designed redundancy in re-
+quirement specifications can be valuable. Above, we showed
+that analyzing two redundant specifications of the required
+behavior, one operational and the other property-based, can
+expose inconsistencies, which in turn can expose errors. Like
+us, Atlee and her colleagues have used model checking to
+detect inconsistencies in SCR specifications. Using this ap-
+proach, they have exposed errors in the A-7 requirementsspecification [62], in Kirby’s specification of automobile
+cruise control [6], and in other specifications. In each case,
+they analyzed two redundant specifications of the required
+behavior—one property-based, the other operational.
+6.2 Selecting an Analysis Method
+Among the available techniques for analyzing the consis-tency of a safety property and an operational specification
+are human inspection, model checking, and mechanical
+theorem proving. Software developers choose a particular
+technique based on its relative effectiveness and its relative
+costs. The cost of using a technique depends on two factors:
+the amount of human effort needed to apply the technique
+and any specialized expertise that is needed (e.g., theorem
+proving skills).
+For detecting certain classes of errors, tools are far more
+cost-effective than human inspection. For example, the SCR
+consistency checker needed only a few minutes to automati-
+cally detect numerous errors (17 missing cases and 57 in-
+stances of nondeterminism) in a revised version of the A-7
+requirements document [32]. Systematic inspection of the
+document by two independent review teams had over-
+looked these errors. The existence of so many overlooked
+errors was quite surprising given that the tabular notation
+used in the document was designed to make such errors
+obvious—most of the information needed to detect missing
+cases and nondeterminism was located in a single table.
+Miller reports similar results in the development of a speci-
+fication for a flight guidance system: the SCR tools uncov-
+ered many errors overlooked by inspection [58]. Inspection
+is even less likely to detect violations of safety properties,
+since analyzing safety properties usually involves dozens of
+variable definitions, distributed throughout the specifica-
+tion. Moreover, checking for safety violations is much more
+complex than checking for missing cases or nondetermi-
+nism, since reachability, rather than simply function defini-
+tions, must be analyzed.
+Applying model checking prior to theorem proving is an
+effective way to use the two technologies. Because modelchecking does not require the mathematical sophisticationand human effort that theorem proving currently entails,model checking is relatively inexpensive. Moreover, wheremodel checkers are good for detecting property violations,the treatment of invalid properties by theorem provers is
+often problematic. Hence, even if one’s primary goal is to
+use theorem proving, a good strategy is to weed out simpleerrors with model checking before  one invests the time and
+effort usually required for theorem proving [29].
+Theorem proving is usually most effective after model
+checking. Although model checking may be used to verify
+properties of practical software specifications (i.e., to demon-
+strate that every possible scenario satisfies the properties ofinterest), the enormous size of most of these specifications
+makes model checking more effective for detecting  errors .
+When model checking fails to reveal an error in such specifi-cations or produces many spurious counterexamples because
+the abstraction used was not complete, the user may success-
+fully use theorem proving to establish the property. We have,in fact, done this for a small SCR specification, using the
+proof techniques described in [4]. Moreover, when modelFig. 6. Simulator log showing an assertion failure.
+
+--- Page 18 ---
+944 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+checking fails to expose a violation of a property, theorem
+proving, strengthened with appropriate auxiliary techniques,may do so. As in model checking, abstraction is useful in
+theorem proving. However, in theorem proving, one can rea-
+son about generic values. As a result, abstractions that arenot complete can usually be avoided. Thus, analysis by theo-rem proving is usually exact.
+6.3 Role of Automation in Supporting Abstraction
+Above, we show how standard abstraction methods can beused to reduce the state space of the model analyzed by a
+model checker. We are developing automated methods that
+support the use of our standard abstraction methods in fivedifferent contexts:
+•Based on the property of interest, identify variables to
+be eliminated and variables whose type sets can be
+more abstract
+•Once the relevant variables and the nature of the
+needed abstraction have been determined, construct
+the specification of the abstract state machine
+•Translate the original property q to an abstract prop-
+erty qA
+•In the case of Methods 2 and 3, determine whether
+sufficient conditions for completeness are satisfied
+•Translate the counterexample obtained by model
+checking (if any) into a corresponding scenario in the
+original state machine model
+6.4 Combining Automatic Abstraction Methods with
+Other Methods
+After automatic abstraction methods, such as those de-
+scribed above, are used to produce a reduced state machine
+model, other abstraction methods, such as those describedby Clarke et al. [15] and Graf et al. [27], [28], which use
+mathematical reasoning, perhaps supported by automated
+theorem proving and the automated generation of invari-ants [46], may further reduce the state space. Moreover,once the specification of the state machine model has been
+reduced, various methods for efficient analysis of different
+representations, such as BDDs, or efficient decision proce-dures, such as techniques for deciding Presburger arithme-
+tic formulae and the congruence closure algorithm for han-
+dling uninterpreted function symbols, may be applied tothe reduced model [8]. Eventually, a combination of these
+methods may allow us to verify large software specifica-
+tions, a task that currently is infeasible for many practicalsoftware specifications.
+6.5 Extending Automated Abstraction Beyond SCR
+Two major features of SCR specifications facilitate the sup-port of automated abstraction. Largely the result of goodengineering practice, such features should not be difficult to
+support in notations and tools associated with other soft-
+ware development methods. In particular, software specifi-cations represented in other notations that have these fea-
+tures should easily support automated abstraction meth-
+ods, such as those described above.
+One extremely important feature of high-quality specifi-
+cations is well-formedness; the specifications should be free
+of type errors, circular definitions, missing cases, and un-wanted nondeterminism. Tools, such as our consistency
+checker, should be available that automatically detect andreport such problems to the user so they may be corrected.
+A second important feature of high-quality specifications
+lies in their structure [34], [35]: All information about eachvariable should be localized. For example, in an SCR speci-fication, all information about each variable is in exactly
+two places: a table that describes the function defining the
+variable’s value (or, in the case of a monitored variable, adictionary entry that defines the associated relation) and a
+dictionary entry that provides the variable’s static informa-
+tion (type, initial value, etc.). This facilitates the removal orreplacement of the variable when the abstract machine is
+constructed. For example, removing a dependent variable
+from an SCR specification is easy—the tool simply deletesthe table defining the variable and the variable’s dictionary
+entry. In addition, the dependency graph shows the impact
+of removing a variable.
+7RELATED WORK
+Below, we describe other work in which model checking hasbeen applied to requirements specifications. We also compare
+our use of abstraction in model checking with other ap-
+proaches. While our objective is to develop mathematicallysound abstraction methods that can be applied automaticallyto requirements specifications, the major objective of other
+work on abstraction has been to formulate a theory of ab-
+straction. The most complete treatment is the very generaltheory of abstraction relations formulated by Loiseaux et al.
+[51] and extended with some modifications by Dams et al.
+[19]. Our approach is a special case of the approach in [51] inwhich the abstraction relation is a map.
+7.1 Model Checking Requirements Specifications
+An early application of model checking to SCR require-ments specifications was reported in 1993 by Atlee andGannon, who used the model checker MCB [16] to analyze
+properties of individual mode transition tables taken from
+SCR specifications [6]. Our approach to model checkingSCR requirements specifications is a generalization and
+extension of the approach originally formulated and further
+developed by Atlee and her colleagues [6], [5], [62]. Whilethe techniques of Atlee et al. are designed to analyze prop-
+erties of mode transition tables with Boolean input vari-
+ables, the approach we describe in [9], [11], appropriatelyextended, can be used to analyze properties of a completeSCR specification: The properties analyzed can contain any
+variable in the specification, and variables can range over
+varied domains, such as integer subranges, enumeratedvalues, and infinite subranges of the real numbers.
+In [13], a revision of the 1996 paper by Anderson et al. [2],
+Chan et al. describe the use of SMV to analyze a componentof the Traffic Alert and Collision Avoidance System (TCAS II)
+requirements specification expressed in the Requirements
+State Machine Language (RSML) notation [30]. They defineschemas for translating RSML constructs (such as events,
+input variables, environment assumptions, and the syn-
+chrony hypothesis) into suitable SMV constructs, just as wedo for SCR. However, unlike our translation of SCR specifi-
+
+--- Page 19 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 945
+cations into SMV which is semantics-preserving, the seman-
+tics of the SMV model generated by their translation maydiffer from the semantics of the original RSML specification
+[13, p. 511]. Another important difference between their
+approach and ours is that their translation involved signifi-cant manual effort, such as modifications to SMV and the useof special-purpose macro processors. In contrast, we use both
+Spin and SMV “out of the box.”
+Another significant difference between the two ap-
+proaches lies in the way integer variables and constants are
+handled. The problem is state explosion—since the encod-
+ing in SMV for integer variables (and operations on them)is not optimal, the BDDs blow up, even in specifications
+containing just one or two integer variables. To solve this
+problem, Chan et al. directly encode integer variables asBDD bits and implement addition and comparison at the
+source code level by defining parameterized macros which
+are preprocessed using awk scripts. In contrast, we effec-
+tively avoid the problem by applying our correctness pre-serving abstraction methods to specifications containing
+integer (or real) variables. Because we only model check the
+abstractions, the state spaces of the abstractions in our ex-amples may be orders of magnitude smaller than the state
+spaces Chan et al. analyze.
+7.2 Model Checking and Abstraction
+Work on abstraction, both in the context of model checking
+and on the related topic of error-preserving abstractions
+[66], ultimately derives from the seminal work in 1977 of
+the Cousots on abstract interpretation [18]. Our work onabstraction in model checking is most closely related to
+later work on abstraction, largely theoretical, by Clarke et
+al. [15], Loiseaux et al. [51], Graf and Loiseaux [27], [28],Dams et al. [19], and Kurshan [50]. We note that our first
+two abstraction methods are related to methods proposed
+by Kurshan as early as 1987 [49], [17]. Like ours, Kurshan’smethods, which he calls localization reductions  [48], remove
+parts of the specification irrelevant to the property of inter-
+est. Below, we describe five significant aspects of our ap-
+proach to abstraction that distinguish our approach fromother approaches.
+First, we focus on invariant properties of single states or
+transition state-pairs rather than properties of executionsequences. As stated above, we have found that the most
+common properties in software requirements specifications
+are state and transition invariants. Expressing these prop-erties does not require any of the techniques useful for de-
+scribing execution sequences, such as temporal logics (e.g.,
+CTL and CTL*), the m-calculus, or automata that accept lan-
+guages with infinite words [50].
+Second, the abstractions we apply use variable restric-
+tion, which eliminates certain variables, and variable ab-
+straction, which abstracts the data types of certain vari-
+ables, in specific limited ways that can be automated. Both
+can be viewed as special cases of the data abstractions in-
+troduced by Clarke et al., since variable restriction is
+equivalent to abstracting the data type of each eliminated
+variable to a single value. Both our abstractions and those
+of Clarke et al. are a special case of the more general ab-
+straction relations described by Loiseaux et al. (We notethat, in the examples provided in [51], [28], and [27] all of
+the abstraction relations are in fact maps.) Although our
+abstractions are a proper subset of those considered by
+Clarke et al. [15], we can obtain fairly complex abstractions
+by performing a sequence of our simple abstractions.
+Third, besides restricting attention to simple state and
+transition invariants, we construct the abstraction based on
+a single property. By contrast, in [15], [51], [19], and [50], the
+focus is on abstractions that preserve an entire class of
+properties of execution sequences derived from some set of
+primitive predicates. Focusing on a single simple property
+offers some advantages. For one, the size of the abstract
+model is generally smaller. Further, our concept of a “com-
+plete” abstraction, though analogous to the “exact” ab-
+stractions of Clarke [15] and Kurshan [50] and the “strong
+preservation” of properties by abstractions described by
+Loiseaux et al. [51], is less restrictive. Unlike other authors
+[51], [50], [15], we have established sufficient conditions for
+completeness that do not require the abstraction mapping
+to determine a bisimulation. We often can establish com-
+pleteness for our abstractions using automatic techniques.
+Fourth, because we also focus on certain specific ab-
+straction methods, we are able to automate the choice and
+construction of abstractions, including abstraction of theproperty. In the work of others, the user must typically
+propose the abstraction, or at least the abstraction relation,
+and provide appropriate interpretations of primitive predi-
+cates. At least one author, Graf [27], like us, uses abstrac-
+tions tailored to single properties, but user ingenuity is
+needed to find the abstractions, even when a library of ab-
+stractions and heuristics are used to aid in the search.
+Finally, building and establishing the correctness
+(soundness or completeness) of our abstractions is usually
+automatic and not computationally expensive. As a result,
+our methods do not require the modification of a BDD de-
+scription of the automaton as in [15] nor the processing of
+the state transition graph as in [50]. Rather, building the
+abstraction and establishing correctness are done at the SCR
+specification level.
+8CONCLUSIONS
+This paper showed how we applied our abstraction meth-ods, our model checking approach, and our simulator to
+expose a safety violation in a contractor-produced specifi-
+cation of a safety-critical system, and how the three ab-
+straction methods described in the paper make the analysis
+of requirements specifications practical. An important as-
+pect of our approach is that the contractor-produced speci-
+fication was not developed with the SCR method in mind.That the model underlying the contractor SRS matches the
+model that underlies the SCR method suggests that the SCR
+method is relevant to practical software development.
+Method 1 as well as the construction of the abstract SCR
+machine for Method 1 have been implemented and inte-
+grated into the SCR toolset. Prototype implementations of
+special cases of Methods 2 and 3 have also been developed.
+We are extending our work in several ways:
+
+--- Page 20 ---
+946 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+•We are designing algorithms for Methods 2 and 3 that
+automatically extract the abstraction ΣA and the prop-
+erty qA from the original SCR specification and a
+given property q. We also are investigating the extent
+to which we can automatically check that the condi-tions for completeness are satisfied.
+•We are also developing software that will automati-
+cally translate any counterexample produced by
+model checking the abstraction ΣA into a correspond-
+ing scenario in the original specification.
+Our abstraction methods are mathematically sound
+methods that can dramatically reduce the state space by
+eliminating information irrelevant to the property of inter-est and abstracting away unneeded detail. Our long-termgoal is to combine the power of theorem proving technol-ogy with the ease of use of model checking technology. Amajor problem with current theorem proving technology isthat applying the technology requires mathematical so-phistication and theorem proving skills. The major problem
+with model checking is state explosion. Clearly, theorem
+proving has the potential to dramatically reduce the num-ber of states that a model checker analyzes. Automatictheorem proving methods that can be applied for this pur-pose are therefore worth developing.
+We are also exploring other automated techniques useful
+for analyzing large, complex requirements specifications.One is automatic invariant generation [46]. Another goal of
+our current research is to integrate one or more decision pro-
+cedures into the toolset—we are especially interested in deci-sion procedures that can evaluate logical expressions con-taining numbers and arithmetic. Currently, the analysis ofsuch specifications is problematic, e.g., for the consistencychecker. Finally, we are investigating how to support timeand feedback in the SCR model, how to improve support forhierarchy and modularization in SCR specifications, and
+how to automatically generate correct, efficient source code
+from SCR specifications. Yet to be explored is how SCR speci-fications containing time and feedback can be analyzed effi-ciently using model checking and other analysis techniques.
+To date, our requirements model has provided a solid
+foundation for a suite of analysis tools which can detecterrors automatically and which clearly explain the cause ofthose errors, thereby facilitating error correction. Such an
+approach should lead to the production of high-quality re-
+quirements specifications, which should in turn lead tosoftware that is more likely to perform as required and lesslikely to lead to accidents. Such high-quality specificationsshould also lead to significant reductions in software de-velopment costs.
+ACKNOWLEDGMENTS
+We are extremely grateful to C. Colket, K. Andree, B. Capoc-cia, P . Roach, J. Rainone, and D. Sjoblom, who made us awareof the WCP specification, answered our many questions, andprovided further information about the WCP . Without their
+help, the analyses described in the paper could not have been
+performed. We also appreciate the insights on our abstractionmethods of Neil Immerman of the University of Massachu-setts, whose detailed comments helped us improve our for-mal framework. We also gratefully acknowledge the con-structive comments of Ralph Jeffords and Steve Sims at NRL
+and comments from the anonymous referees on drafts of this
+paper. Finally, we thank Todd Grimm for his substantialcontributions to the construction of the SCR toolset; CarolynGasarch and Cheryl Sarteschi for implementing the first ab-straction method and integrating it into the toolset; and SteveSims for building prototype implementations of the twoother abstraction methods. This research was supported bythe Office of Naval Research and the Space and Naval War-
+fare Command.
+REFERENCES
+[1] T.A. Alspaugh, S.R. Faulk, K. Heninger Britton, R.A. Parker, D.L.
+Parnas, and J.E. Shore. “Software Requirements for the A-7E Air-
+craft,” Technical Report NRL-9194, Naval Research Laboratory,
+Washington, D.C., 1992.
+[2] R.J. Anderson, P . Beame, S. Burns, W. Chan, F. Modugno, D. Not-
+kin, and J.D. Reese, “Model Checking Large Software Specifica-
+tions,” Proc. Fourth ACM SIGSOFT Symp. Foundations of Software
+Eng., Oct. 1996.
+[3] M. Archer and C. Heitmeyer, “The Use of Model Checking and
+Abstraction in Analyzing Requirements Specifications: A Formal
+Foundation,” Technical Report, Naval Research Laboratory,
+Washington, D.C., 1998. Draft.
+[4] M. Archer, C. Heitmeyer, and S. Sims, “TAME: A PVS Interface to
+Simplify Proofs for Automata Models,” Proc. User Interfaces for
+Theorem Provers , Eindhoven, Netherlands, Eindhoven Univ. tech-
+nical report, Eindhoven Univ. of Technology, July 1998.
+[5] J.M. Atlee and M.A. Buckley, “A Logic-Model Semantics for SCR
+Specifications,” Proc. Int’l Symp. Software Testing and Analysis , Jan.
+1996.
+[6] J.M. Atlee and J. Gannon, “State-Based Model Checking of Event-
+Driven System Requirements,” IEEE Trans. Software Eng ., vol. 19,
+no. 1, pp. 24–40, Jan. 1993.
+[7] G. Berry and G. Gonthier, “The Esterel Synchronous Program-
+ming Language: Design, Semantics, Implementation,” Science of
+Computer Programming , vol. 19, 1992.
+[8] R. Bharadwaj, “A Generalized Validity Checker,” technical report,
+Naval Research Laboratory, Washington, D.C., 1996.
+[9] R. Bharadwaj and C. Heitmeyer, “Model Checking Complete
+Requirements Specifications Using Abstraction,” Technical Report
+NRL-7999, Naval Research Laboratory, Washington, D.C., Nov.
+1997.
+[10] R. Bharadwaj and C. Heitmeyer, “Verifying SCR Requirements
+Specifications Using State Exploration,” Proc. First ACM SIGPLAN
+Workshop Automatic Analysis of Software , 1997.
+[11] R. Bharadwaj and C. Heitmeyer, “Model Checking Complete
+Requirements Specifications Using Abstraction,” Automated Soft-
+ware Eng. J. , vol. 6, no. 1, Jan. 1999.
+[12] B.W. Boehm, Software Engineering Economics . Englewood Cliffs,
+N.J.: Prentice Hall, 1981.
+[13] W. Chan, R.J. Anderson, P . Beame, S. Burns, F. Modugno, D. Not-
+kin, and J.D. Reese, “Model Checking Large Software Specifica-
+tions,” IEEE Trans. Software Eng. , vol. 24, no. 7, July 1998.
+[14] K.M. Chandy and J. Misra, Parallel Program Design—A Foundation .
+Addison-Wesley, 1988.
+[15] E. Clarke, O. Grumberg, and D. Long, “Model Checking and Ab-
+straction,” Proc., Principles of Programming Languages  (POPL ), 1994.
+[16] E.M. Clarke, E. Emerson, and A. Sistla, “Automatic Verification of
+Finite State Concurrent Systems Using Temporal Logic Specifica-
+tions,” ACM Trans. Program Language and Systems , vol. 8, no. 2, pp.
+244–263, Apr. 1986.
+[17] E.M. Clarke and R.P . Kurshan, “Computer-Aided Verification,”
+IEEE Spectrum , pp. 61–67, June 1996.
+[18] P . Cousot and R. Cousot, “Abstract Interpretation: A Unified Lat-
+tice Model for Static Analysis of Programs by Construction or
+Approximation of Fixpoints,” Proc. Symp. Principles of Program-
+ming Languages , 1977.
+[19] D. Dams, R. Gerth, and O. Grumberg, “Abstract Interpretation of
+Reactive Systems,” ACM Trans. Program Language and Systems , pp.
+111–149, 1997.
+
+--- Page 21 ---
+HEITMEYER:  USING ABSTRACTION AND MODEL CHECKING TO DETECT SAFETY VIOLATIONS IN REQUIREMENTS SPECIFICATIONS 947
+[20] D.L. Dill, A.J. Drexler, A.J. Hu, and C.H. Yang, “Protocol Verifica-
+tion as a Hardware Design Aid,” Proc. IEEE Int’l Conf. Computer
+Design : VLSI in Computers and Processors , pp. 522–525, 1992.
+[21] S. Easterbrook and J. Callahan, “Formal Methods for Verification
+and Validation of Partial Specifications: A Case Study,” J. Systems
+and Software , 1997.
+[22] S. Easterbrook, R. Lutz, R. Covington, Y. Ampo, and D. Hamilton,
+“Experiences Using Lightweight Formal Methods for Require-
+ments Modeling,” IEEE Trans. Software Eng. , vol. 24, no. 1, Jan.
+1998.
+[23] R. Fairley, Software Eng. Concepts . New York: McGraw-Hill, 1985.
+[24] S.R. Faulk, J. Brackett, P . Ward, and J. Kirby, Jr., “The CoRE
+Method for Real-Time Requirements,” IEEE Software , vol. 9, no. 5,
+pp. 22–33, Sept. 1992.
+[25] S.R. Faulk, L. Finneran, J. Kirby, Jr., S. Shah, and J. Sutton, “Expe-
+rience Applying the CoRE Method to the Lockheed C-130J,” Proc.
+Ninth Ann. Conf. Computer Assurance (COMP ASS‘94 ), pp. 3–8,
+Gaithersburg, Md., June 1994.
+[26] P . Godefroid, “Using Partial Orders to Improve Automatic Verifi-
+cation Methods,” Proc. Second Int’l Workshop Computer-Aided Veri-
+fication , pp. 176–185, 1990.
+[27] S. Graf, “Characterization of a Sequentially Consistent Memory
+and Verification of a Cache Memory by Abstraction,” Proc. Com-
+puter Aided Verification , 1994.
+[28] S. Graf and C. Loiseaux, “A Tool for Symbolic Program Verifica-
+tion and Abstraction,” Proc. Computer Aided Verification , pp. 71–84,
+1993.
+[29] K. Havelund and N. Shankar, “Experiments in Theorem Proving
+and Model Checking for Protocol Verification,” Proc. Formal Meth-
+ods Europe (FME’96 ), pp. 662–681, Lecture Notes in Computer Sci-
+ence 1051, Springer-Verlag, Mar. 1996.
+[30] M.P .E. Heimdahl and N. Leveson, “Completeness and Consis-
+tency in Hierarchical State-Based Requirements,” IEEE Trans.
+Software Eng ., vol. 22, no. 6, pp. 363–377, June 1996.
+[31] C. Heitmeyer, J. Kirby, Jr., and B. Labaw, “Applying the SCR Re-
+quirements Method to a Weapons Control Panel: An Experience
+Report,” Proc. Second ACM Workshop Formal Methods in Software
+Practice (FMSP’98 ), 1998.
+[32] C.L. Heitmeyer, R.D. Jeffords, and B.G. Labaw, “Automated Con-
+sistency Checking of Requirements Specifications,” ACM Trans.
+Software Eng. and Methodology , vol. 5, no. 3, pp. 231–261, July 1996.
+[33] C. Heitmeyer, “On the Need for Practical Formal Methods,” Proc.
+Formal Techniques in Real-Time and Fault-Tolerant Systems
+(FTRTFT‘98 ), Lyngby, Denmark, Sept. 1998.
+[34] C. Heitmeyer, A. Bull, C. Gasarch, and B. Labaw, “SCR*: A Toolset
+for Specifying and Analyzing Requirements,” Proc. 10th Ann.
+Conf. Computer Assurance (COMP ASS‘95 ), pp. 109–122,
+Gaithersburg, Md., June 1995.
+[35] C. Heitmeyer, J. Kirby, Jr., and B. Labaw, “Tools for Formal Speci-
+fication, Verification, and Validation of Requirements,” Proc. 12th
+Ann. Conf. Computer Assurance (COMP ASS’97 ), Gaithersburg, Md.,
+June 1997.
+[36] C. Heitmeyer, J. Kirby, Jr., B. Labaw, and R. Bharadwaj, “SCR*: A
+Toolset for Specifying and Analyzing Software Requirements,”
+Proc. Computer-Aided Verification, 10th Ann. Conf. (CAV’98) , Van-
+couver, Canada, 1998.
+[37] C.L. Heitmeyer, R.D. Jeffords, and B.G. Labaw, “Tools for Ana-
+lyzing SCR-Style Requirements Specifications: A Formal Founda-
+tion,” technical report, Naval Research Laboratory, Washington,
+D.C., 1998. Draft.
+[38] K. Heninger, D.L. Parnas, J.E. Shore, and J.W. Kallander, “Soft-
+ware Requirements for the A-7E Aircraft,” Technical Report 3876,
+Naval Research Laboratory, Washington, D.C., 1978.
+[39] K.L. Heninger, “Specifying Software Requirements for Complex
+Systems: New Techniques and Their Application,” IEEE Trans.
+Software Eng ., vol. 6, no. 1, pp. 2–13, Jan. 1980.
+[40] S.D. Hester, D.L. Parnas, and D.F. Utter, “Using Documentation as
+a Software Design Medium,” Bell System Technical J ., vol. 60, no. 8,
+pp. 1941–1977, Oct. 1981.
+[41] G.J. Holzmann, Design and Validation of Computer Protocols . Pren-
+tice Hall, 1991.
+[42] G.J. Holzmann, “The Model Checker SPIN,” IEEE Trans. Software
+Eng., vol. 23, no. 5, pp. 279–295, May 1997.
+[43] D. Jackson, “Requirements and Model Checking,” minitutorial,
+Third Int’l IEEE Symp. Requirements Eng. , Jan. 1997.[44] D. Jackson, S. Jha, and C.A. Damon, “Faster Checking of Software
+Specifications Using Isomorphs,” Proc., Principles of Programming
+Languages (POPL ), 1994.
+[45] F. Jahanian and A.K. Mok, “Modechart: A Specification Language
+for Real-Time Systems,” IEEE Trans. Software Eng.,  vol. 20, no. 10,
+pp. 879–889, Oct. 1994.
+[46] R. Jeffords and C. Heitmeyer, “Automatic Generation of State
+Invariants from Requirements Specifications,” Proc. Sixth ACM
+SIGSOFT Symp. Foundations of Software Eng. , Nov. 1998.
+[47] J. Kirby, Jr., “Example NRL/SCR Software Requirements for an
+Automobile Cruise Control and Monitoring System,” Technical
+Report TR-87-07, Wang Inst. of Graduate Studies, 1987.
+[48] R.P . Kurshan, “Formal Verification in a Commercial Setting. Proc.
+Design Automation Conf. , June 1997.
+[49] R.P . Kurshan, “Reducibility in Analysis of Coordination,” P .
+Varaiya and A.B. Kurzhanski, eds., Discrete Event Systems: Models
+and Applications , pp. 19–39. New York: Springer-Verlag, 1987.
+[50] R.P . Kurshan, Computer-Aided Verification of Coordinating Processes:
+The Automata-Theoretic Approach . Princeton Univ. Press, 1994.
+[51] C. Loiseaux, S. Graf, J. Sifakis, A. Bouajjani, and S. Bensalem,
+“Property Preserving Abstractions for the Verification of Concur-
+rent Systems,” Formal Methods in System Design , vol. 6, pp. 1–35,
+1995.
+[52] R.R. Lutz, “Targeting Safety-Related Errors During Software Re-
+quirements Analysis,” Proc. First ACM SIGSOFT Symp. Founda-
+tions of Software Eng.,  Los Angeles, Dec. 1993.
+[53] R.R. Lutz and H.-Y. Shaw, “Applying the SCR* Requirements
+Toolset to DS-1 Fault Protection,” Technical Report JPL-D15198,
+Jet Propulsion Laboratory, Pasadena, Calif., Dec. 1997.
+[54] D. Mandrioli, A. Morzenti, M. Pezze, P . SanPietro, and S. Silva, “A
+Petri Net and Logic Approach to the Specification and Analysis of
+Real-Time Systems,” C. Heitmeyer and Dino Mandrioli, eds.,
+Formal Methods for Real-Time Computing, Trends in Software.  Chich-
+ester, England: John Wiley & Sons Ltd, 1996.
+[55] Z. Manna and A. Pnueli, The Temporal Logic of Reactive and Concur-
+rent Systems . Springer-Verlag, 1991.
+[56] K.L. McMillan, Symbolic Model Checkin g. Englewood Cliffs, N.J.:
+Kluwer Academic, 1993.
+[57] S. Meyer and S. White, “Software Requirements Methodology
+and Tool Study for A6-E Technology Transfer,” technical report,
+Grumman Aerospace Corp., Bethpage, New York, July 1983.
+[58] S. Miller, “Specifying the Mode Logic of a Flight Guidance Ssys-
+tem in CoRE and SCR,” Proc. Second ACM Workshop Formal Meth-
+ods in Software Practice (FMSP’98 ), 1998.
+[59] J. Ostroff, “A Visual Toolset for the Design of Real-Time Discrete-
+Event Systems,” IEEE Trans. Control Systems Technology , vol. 5, no.
+3, pp. 320–337, May 1997.
+[60] D.L. Parnas, G.J.K. Asmis, and J. Madey, “Assessment of Safety-
+Critical Software in Nuclear Power Plants,” Nuclear Safety , vol. 32,
+no. 2, pp. 189–198, Apr.-June 1991.
+[61] D.L. Parnas and J. Madey, “Functional Documentation for Com-
+puter Systems,” Science of Computer Programming , vol. 25, no. 1,
+pp. 41–61, Oct. 1995.
+[62] T. Sreemani and J.M. Atlee, “Feasibility of Model Checking Soft-
+ware Requirements,” Proc. 11th Ann. Conf. Computer Assurance
+(COMP ASS‘96 ), Gaithersburg, Md., June 1996.
+[63] J. Sutton, personal communication, Sept.1997.
+[64] U.S. General Accounting Office, “Mission Critical Systems: De-
+fense Attempting to Address Major Software Challenges,” Tech-
+nical Report GAO/IMTEC-93-13, U.S. General Accounting Office,
+Washington, D.C., Dec. 1992.
+[65] M. Weiser, “Program Slicing,” IEEE Trans. Software Eng ., vol. 10,
+no. 4, pp. 352–357, July 1984.
+[66] M. Young, “How to Leave out Details: Error Preserving Abstrac-
+tions of State-Space Models,” Proc. ACM Conf. Software Testing,
+Analysis and Verification , 1988.
+
+--- Page 22 ---
+948 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  24,  NO.  11,  NOVEMBER  1998
+Constance Heitmeyer  holds MA degrees  in
+mathematics and history from the University of
+Michigan. She heads the Software Engineering
+Section of NRL’s Center for High Assurance
+Computer Systems. Before assuming her cur-
+rent position at NRL, she was a visiting scientist
+at the NATO Undersea Research Center in La
+Spezia, Italy. She served in 1996 as program
+co-chair for the 11th Annual COMPASS Confer-
+ence and in 1997 as general chair for the Third
+IEEE Symposium on Requirements Engineering; serves as an associ-
+ate editor for the Journal of Real-Time Computing Systems ; and co-
+edited a book in 1996 entitled Formal Methods for Real-Time Comput-
+ing. Her research interests are in formal methods, requirements, and
+real-time computing.
+James Kirby, Jr.  holds a master of software
+engineering from the Wang Institute of Graduate
+Studies. He is a member of the Software Engi-
+neering Section of NRL’s Center for High As-
+surance Computer Systems. Prior to coming to
+NRL, Kirby was on the technical staff of the
+Software Productivity Consortium and on the
+faculty technical staff at the Wang Institute.
+While at the Software Productivity Consortium,
+he was a developer of CoRE, the Consortium
+Requirements Engineering Method. His re-
+search interests include software requirements and design methods
+and software process.
+Bruce Labaw  holds an MS degree in computer
+science from the University of Maryland. He is a
+member of the Software Engineering Section of
+NRL’s Center for High Assurance Computer
+Systems. He conducts and supervises research
+in software engineering of hard real-time com-
+puter systems and supports the transition of this
+technology to the Navy. He previously worked
+on the NRL Software Cost Reduction project,
+which documented the requirements of the
+Operational Flight Program of the Navy’s A-7
+aircraft. His research interests are in formal methods, real-time com-
+puting, and software requirements.Myla Archer  holds an AM degree in mathe-
+matics from Harvard University and a PhD
+degree in computer science from the Univer-
+sity of Illinois at Urbana-Champaign. She is a
+computer scientist in the Software Engineering
+Section of NRL’s Center for High Assurance
+Computer Systems. Prior to coming to NRL,
+she taught mathematics at Wheaton College in
+Norton, Massachusetts, and served on the
+Computer Science faculty of the University of
+California, Davis. She was general chair of the
+1991 Tutorial and Workshop on the HOL Theorem Proving System
+and Its Applications, and doctoral consortium chair of the Third IEEE
+Symposium on Requirements Engineering in 1997. Her research
+interests include formal methods, verification, requirements, and
+real-time computing.
+Ramesh Bharadwaj  holds the BE, ME, and
+PhD degrees in electrical engineering. He is a
+computer engineer in the Software Engineering
+Section at the Naval Research Laboratory in
+Washington, D.C. He has hands-on experience
+in systems development, having worked in
+industry as a hardware engineer, senior soft-
+ware engineer, and senior systems program-
+mer. He has also spent two years managing
+software development projects. He has held
+research and development positions at the Philips Research Laborato-
+ries in Eindhoven; the Tata Institute of Fundamental Research in Bom-
+bay; Stanford University; and AT&T Bell Laboratories in Murray Hill,
+New Jersey. His research interests include tools and methods for soft-
+ware engineering, model checking, and decision procedures.
