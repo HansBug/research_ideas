@@ -1,0 +1,1072 @@
+--- Page 1 ---
+ModelChecking RSML-eRequirements¤
+YunjaChoi and Mats P.E.Heimdahl
+Departmentof Computer Science and Engineering, Universityof Minnesota
+200 Union Street S.E., 4-192, Minneapolis, MN 55455, USA
+E-mail: fyuchoi,heimdahl g@cs.umn.edu
+Abstract
+Model checking is a promising technique for automated
+veriﬁcationorrefutationofsoftwaresystems. Nevertheless,
+ithasnotbeenusedwidelyinpracticemainlyduetothelack
+ofthesupportingtoolsthatincorporatethemodelchecking
+activityintothedevelopmentprocess. Asapartofourover-
+all method supporting speciﬁcation centered system devel-
+opment, we have implemented a translator between a for-
+mal speciﬁcation language RSML-eand a symbolic model
+checkerNuSMV.
+Our translation and abstraction approach aims at us-
+ability in practice so that model checking can be used as a
+routineprocessduringrequirementanalysiswithoutrequir-
+ing much knowledge about formal methods. Preliminary
+result from applying the system in a commercial setting is
+quite promising. In this paper, we discuss our translation
+and abstraction approach in some depth and illustrate its
+feasibilitywith some preliminaryresults.
+1 Introduction
+Automatedveriﬁcationofsoftwaresystemsusingmodel
+checking techniques has been an active research area for
+quitesometime [1,4,5,14,16]. Althoughmodelchecking
+programsisfeasibleforsmallsizeprogramswithsomelim-
+itations on the program constructs used [4, 14, 16], model
+checking requirement speciﬁcations has seen better suc-
+cess in practice; speciﬁcations are more abstract than pro-
+gramsandthespeciﬁcation languagesdonot typicallycon-
+tainlanguagefeaturescomplicatingmodelchecking,forex-
+ample,threading,recursion,anddynamicmemorymanage-
+ment[2, 9, 16]
+Tosupportaspeciﬁcationcenteredsoftwareengineering
+process, we have deﬁned and built a translator from a fully
+formal speciﬁcation language RSML-e[17, 25] to a sym-
+bolic model checker NuSMV [23]. The translator provides
+¤This work has been partially supported by NASA grant NAG-1-224
+andNASAcontract NCC-01-001.practitioners with a push-button veriﬁcation process once
+the requirements are speciﬁed using RSML-e. In this paper
+we report on our translation approach and discuss the chal-
+lenges we faced with some unique aspects of RSML-e. We
+also discuss some preliminary experiences with using this
+approachon an industrial system.
+Our goal is practical application of formal methods—
+we want practitioners to be able to read and understand the
+formal models, be able to create models with methodolog-
+ical guidance [26], be able to execute the models and use
+themasearlyprototypes[25],andperformformalanalysis,
+allwithoutnecessarilyrequiringdetailedknowledgeoffor-
+mal methods. This quest for simplicity is reﬂected in our
+approachto model checking RSML-especiﬁcations.
+When we started the model checking project, we set the
+following goals: (1) the translation must to the largest ex-
+tentpreservethefullpowerofthesourcelanguageRSML-e,
+(2) the translation must require little user interaction, (3)
+the translation must closely match the structure of RSML-e
+so that counterexamples are easy to interpret without de-
+tailed knowledge of the translation process, and, ﬁnally,
+(4) any abstractions must be fully automated. Although
+much work remains to be done—especially with respect to
+abstraction—preliminary results indicate that we are on a
+promisingtrack to achievingour goals.
+We will ﬁrst discuss our general veriﬁcation framework
+and the languages involved, RSML-eand the speciﬁcation
+langauge for NuSMV. We describe our general translation
+approach in Section 3 and discuss some abstractions nec-
+essary to map an RSML-especiﬁcation to NuSMV. Some
+preliminaryresultsfromourcollaborationwithindustryap-
+pears in Section 5 followed by brief discussion and conclu-
+sion.
+2 Framework
+Figure 1 shows an overview of our veriﬁcation frame-
+work. The user models the required behavior of a system
+in the fully formal and executable speciﬁcation language
+RSML-e. Afterevaluatingthefunctionalityandbehavioral
+
+--- Page 2 ---
+PVS input
+language
+NuSMV input
+languageNimbus
+simulator
+translator
+Property
+SpecificationNuSMV
+Verification
+ResultuserPVSproof strategy
+eRSML Figure1. VeriﬁcationFramework.
+correctness of the speciﬁcation using the NIMBUSsimu-
+lator, users can translate the speciﬁcations to the PVS or
+NuSMV input languages. For model checking the system
+model,usersspecifyrequiredpropertiesinatemporallogic,
+CTLor LTL,and use NuSMV for the analysis.
+To make it easier for the reader to understand our trans-
+lation approach, we provide a short overview of our source
+languageRSML-easwellasthetargetlanguageofNuSMV.
+2.1 RSML-e
+RSML-eis based on the Statecharts like language
+Requirements State Machine Language (RSML) [19].
+RSML-eis different from RSML (and Statecharts) primar-
+ily in that RSML-esupports rigorous speciﬁcations of the
+interfaces between the environment and the control soft-
+ware, and RSML-eis a synchronous data-ﬂow language
+withoutanyinternal broadcast events.
+An RSML-especiﬁcation consists of a collection of in-
+put variables, state variables, input/output interfaces, func-
+tions, macros, and constants; input variables are used to
+record the values observed in the environment, state vari-
+ablesareorganizedinahierarchicalfashionandareusedto
+model various states of the control model, interfaces act as
+communication gateways to the external environment, and
+functions and macros encapsulate computations providing
+increasedreadability and ease of use.
+Figure 2 shows a speciﬁcation fragment of an RSML-e
+speciﬁcationofasimpleAltitudeSwitchSystem;theﬁgure
+shows the deﬁnition of one state variable—the AltitudeSta-
+tus. Figure3showshowthehierarchicalvariableswouldbe
+visualizedin the NIMBUStools1.
+The state variable AltitudeStatus is declared as a child
+state ofPowerStatus and is active only when the variable
+PowerStatus has the value On—this notion of hierarchi-
+calvariablesprovidesthesameabstractionsandstructuring
+mechanismasthe ANDandORstatesinStatecharts[15],but
+thesemantics is much simpler.
+1A pretty printer producing cross referenced and indexed L ATEX docu-
+mentsisavailablein NIMBUS. Nevertheless,forspacereasonswewilluse
+STATE_VARIABLE AltitudeStatus :
+   VALUES : { Unknown, Above, Below, AltitudeBad }
+   PARENT : PowerStatus.On
+   INITIAL_VALUE : UNDEFINED
+   CLASSIFICATION : State
+   EQUALS Unknown IF
+     TABLE
+         ivRese                                                               : T *;
+         PREV_STEP(..AltitudeStatus) = UNDEFINED  : * T;
+      END TABLE
+   EQUALS Below IF
+      TABLE
+         BelowThreshold()      : T ;
+         AltitudeQualityOK()    : T ;
+         ivReset                       : F ;
+      END TABLE
+   EQUALS Above IF
+      TABLE
+         AboveThresholdHyst()  : T ;
+         AltitudeQualityOK()       : T ;
+         ivReset                        : F ;
+      END TABLE
+   EQUALS AltitudeBad IF
+      TABLE
+         AltitudeQualityOK()   : F ;
+         ivReset                    : F ;
+      END TABLE
+END STATE_VARIABLEFigure 2. A piece of RSML-especiﬁcation.
+The conditions under which the state variable changes
+value are deﬁned in the EQUALSclauses in the deﬁnition.
+The tables are adopted from the original RSML notation–
+each column of truth values represents a conjunction of
+the propositions in the leftmost column (a ‘*’ represents a
+“don’tcare”condition). Ifatablecontainsseveralcolumns,
+we take the disjunction of the columns; thus, the table
+is a way of expressing conditions in a disjunctive normal
+form.PREVSTEP(..AltitudeStatus) refers to the previ-
+ous (old) value of AltitudeStatus whileivResetwithout the
+PREVSTEPoperator refers to the current (new) value of
+thevariable.
+In addition to state variables, RSML-eallows an ana-
+lyst to specify how the system interacts with its environ-
+ment;thewayasystemreceivesthevalueofinputvariables
+and signals outputs to its environment can be speciﬁed us-
+ing input and output interface constructs in RSML-e. Fig-
+ure 4 shows an example of interface speciﬁcation for the
+Altitude Switch System; the input receiver AltitudeInter-
+facereceivesandassignsvaluesofinputvariableswhenever
+thereceivehandlercondition (the condition TRUE means
+that a message arrives at the interface) satisﬁes. Otherwise,
+the default handler (the second handler with no name) con-
+dition determines the value of input variables. Similarly,
+output sender FaultDetectionInterface sends out the fault
+message whenever the handler condition satisﬁes (at every
+200msin this case).
+themore compact ASCII representation in this paper.
+
+--- Page 3 ---
+ASW-one-below
+PowerStatus
+On
+AltitudeStatus
+UnknownAbove Below AltitudeBad
+ASWOpModes
+OK Inhibited FailureDetected
+DOI_Intended
+PowerOff PowerOnOffFigure3. A graphical viewof RSML-emodel.
+A few key characteristics of RSML-ethat sets it apart
+fromrelated notations can be summarized as follows:
+TYPE_DEF AltitudeQualityType { Good, Bad } 
+MESSAGE AltInMessage { 
+   a1 IS INTEGER, 
+   alt1q IS AltitudeQualityType} 
+IN_INTERFACE AltitudeInInterface : 
+   MIN_SEP : UNDEFINED 
+   MAX_SEP : UNDEFINED 
+   INPUT_ACTION : RECEIVE(AltInMessage) 
+   RECEIVE_HANDLER : 
+      CONDITION : TRUE 
+      ASSIGNMENT 
+         Altitude := a1, 
+         Altitude_Quality := alt_q 
+      END ASSIGNMENT 
+   END HANDLER 
+  HANDLER 
+     CONDITION: 
+         TABLE 
+              TIME:AltitudeInterface::LAST_IO > 200 MS : T; 
+         END TABLE 
+     ASSIGNMENT 
+        Altitude:=UNDEFINED 
+        Altitude_Quality:=UNDEFINED 
+     END ASSIGNMENT 
+END IN_INTERFACE MESSAGE FaultMessage { 
+   fault IS BOOLEAN 
+} 
+OUT_INTERFACE FaultDetectionInterface : 
+   MIN_SEP : 50 MS 
+   MAX_SEP : 200 MS 
+   OUTPUT_ACTION : SEND(FaultMessage) 
+   HANDLER : 
+      CONDITION : 
+         TABLE 
+            TIME-FaultDetectionInterface::LAST_IO>200MS : T; 
+         END TABLE 
+      ASSIGNMENT 
+         fault := FaultDetectedVariable 
+      END ASSIGNMENT 
+      ACTION : SEND 
+   END HANDLER 
+END OUT_INTERFACE 
+IN_VARIABLE Altitude : INTEGER 
+   INITIAL_VALUE : Undefined 
+   UNITS : ft 
+   EXPECTED_MIN : 0 
+   EXPECTED_MAX : 40000 
+END IN_VARIABLE 
+IN_VARIABLE Altitude_Quality : AltitudeQualityType 
+   INITIAL_VALUE : Undefined 
+END IN_VARIABLE 
+Figure 4. RSML-einterface speciﬁcations
+Support for interface speciﬁcations: RSML-eallows a
+rigorous speciﬁcation of how the model of the controller
+interacts with the environment. This allows an analyst to
+reﬁne a model from a very high-level model relying on
+“ideal” sensors and actuators to a more detailed model
+takingthe idiosyncracies of the hardwareinto account.
+Support of macros and functions: The use of macros and
+functions increases writability, readability, and reusability
+of speciﬁcations. For example, a ﬂight guidance system
+may have a very complex mode logic that requires dozens
+of lengthy condition tables. By encoding each condition
+tablewithamacro,onecannotonlyimprovethereadabilityof the speciﬁcations but also help localize errors and future
+changes.
+Data-ﬂow semantics: RSML-etransitions are purely
+condition-based and free of internal events—as soon as the
+guards in a variable deﬁnition can be evaluated, it will take
+on its new value. The variables are partially ordered based
+onthedatadependencyinducedbytheguardconditions—a
+similar semantics is adopted in the programming lan-
+guage Lustre [13]. Data-ﬂow semantics removes complex
+issues caused by internal events, such as inﬁnite trigger-
+ingeventsoranalysisofmicro-steps[5],fromthelanguage.
+Use ofUndeﬁned values: Startup behavior and behavior in
+the face of sensor failures pose particular challenges when
+specifying control systems—under these circumstances we
+simplydonotknowwhatthestateoftheenvironmentmight
+be. RSML-esupports modelling of this uncertainty by pro-
+viding the concept of Undeﬁnedness . One can explicitly
+specify the initial value of variables at startup to as Unde-
+ﬁned, such as Altitude=UNDEFINED in Figure 4. Also, when a
+parent variable takes on a new value, each child variable of
+theparentvaluethatwasjustchangedarenolongerrelevant
+and must not be used—these child variables are Undeﬁned .
+RSML-esupports for both explicit and implicit Undeﬁned-
+ness.
+2.2 NuSMV
+NuSMV [23] is a symbolic model checker evolved
+from the Carnegie Mellon University (CMU) version of
+SMV[22]. NuSMVprovidesformodellinghierarchicalde-
+scriptions, and for the deﬁnition of reusable components.
+NuSMV supports veriﬁcation of properties expressed in
+both temporal logics CTL(Computational Tree Logic) and
+LTL(LinearTimeLogic).
+The input language of NuSMV is designed to allow the
+descriptionofsynchronousorasynchronousﬁnitestatema-
+chines at various levels of abstraction. The language of
+NuSMV is structured using keywords MODULE, VAR, IVAR,
+DEFINE, ASSIGN, TRANS, INVAR, andSPEC;MODULE repre-
+sents a unit of a reusable component, VARandIVARare for
+variabledeclaration, DEFINEisformacro-likesymbolicrep-
+resentation of expressions, ASSIGNandTRANS2are to spec-
+ify transition relations, INVARis to specify system invari-
+ants, and SPECis to specify system properties in temporal
+logic.
+Figure 5 shows a small NuSMV model. The state vari-
+ables and input variables, which determine the state space,
+are declared under the VARkeyword. Since NuSMV is lim-
+itedtodescribingﬁnitestatemachines,onlyﬁnitedatatypes
+2SinceTRANSstatementsaremoreexpressivebutlessrobustthanAS-
+SIGNstatements [5], we only consider ASSIGN statements in our work.
+
+--- Page 4 ---
+MODULE main
+VAR
+   request : boolean;
+   state : {ready, busy};
+   counter : 0..10;
+   m_check_busy : busy_status(request, state);
+ASSIGN
+   init(state):=ready;
+   next(state):=
+        case
+             (state=ready & request=1)  | (m_check_busy.status=1)  : busy;
+             1                                                                                     :ready;
+        esac;
+   ...
+SPEC
+   AG(request -> AF state=busy)
+MODULE busy_status(request, state)
+VAR
+   status : boolean;
+ASSGIN
+   init(status):= 0;
+   next(status):= (state=busy & next(request)=1);Figure 5. A sample NuSMV program
+are provided, such as Boolean, enumerations, integer sub-
+range,and ﬁxedlength array.
+The initial value (represented by initexpression) and
+the transition relation of a variable (using nextexpression)
+can be speciﬁed by a collection of simultaneous assign-
+ments using the ASSIGNkeyword; all initial-state assign-
+ments are executed simultaneously at system start-up and
+allnext-stateassignmentsareexecutedsimultaneouslyeach
+system cycle. As shown in Figure 5, the next-state transi-
+tion assignment is often deﬁned using a caseexpression.
+NuSMV evaluates and picks the ﬁrst condition satisﬁed.
+Case‘ 1’(representing true)is the defaultcase.
+There must be one MODULE named mainfor each
+system model; modules with other names represent syn-
+chronous/asynchronous sub-processes or reusable compo-
+nentsof the system.
+Temporallogicformulasthatspecifyrequiredproperties
+of the system model are captured using the keyword SPEC.
+In this example, the formula speciﬁes that every time re-
+questis true, then in all possible futures, eventually state
+mustbecome busy.
+The next few sections will discuss how we translate
+RSML-eto NuSMV to take advantage of the powerful
+modelchecking support providedin the NuSMV tools.
+3 TranslationfromRSML-eto NuSMV
+This section is split into two. In the ﬁrst part, we in-
+troduce the basic translation to give the reader a ﬂavor of
+our approach. This translation scheme is quite generic for
+statemachinesofthistypeandissimilartotheoneselected
+in [5] except for few translation choices. The challenges
+faced when translating various RSML-especiﬁc constructs
+arediscussed in the second half.3.1 Basic Translation
+The basic construct in RSML-eis the variable and the
+next-staterelation forthe variable. If we disregardsome is-
+sueswiththetypesinRSML-e(forexample,timetypesand
+thenotionofUndeﬁned)andthecomplexityaddedbyinter-
+faceswiththeenvironment,thebasictranslationtoNuSMV
+isquite straight forward.
+Typesandvariables: RSML-esupportsbasicdatatypes,
+such as boolean, enumerated, integer and real, and user-
+deﬁnedtypesbasedonthebasictypes. SinceNuSMVdoes
+not support user deﬁned types, all reference types are con-
+verted to one of boolean, enumeration, or integer subrange
+types. Input and state variables are translated using the
+NuSMV keyword “VAR” as “VAR identiﬁer name : var type”,
+where the var type can be boolean, enumeration, or inte-
+gersubrange. Forexample,thestatevariable AltitudeStatus
+from Figure 2 and the input variable AltitudeQuality from
+Figure4 will be translated to
+VAR
+AltitudeQuality : fGood, Bad g;
+AltitudeStatus : fUnknown,Above,Below,AltitudeBad g;
+Transitions: RSML-etransition conditions are translated
+to assignment expressions in NuSMV. For example, the
+transition relation deﬁned using the EQUALSexpression in
+the deﬁnition of state variable AltitudeStatus in Figure 2 is
+translatedto
+ASSIGN
+next(AltitudeStatus):=
+case
+AltitudeStatus= Un Deﬁned j
+next(ivReset) : Unknown;
+next(mBelowThreshold.result)&
+next(mAltitudeQualityOk.result)&
+! next(ivReset) : Below;
+next(mAboveThresholdHyst.result)&
+next(mAltitudeQualityOK.result)&
+!next(ivReset) : Above;
+!next(mAltitudeQualityOk.result) &
+!next(ivReset) : AltitudeBad;
+1 : AltitudeStatus;
+esac;
+where m XX.result, such as m BelowThreshold.result,
+is a reference variable of the sub-module deﬁning a macro.
+The translation of macros and dealing with Undeﬁnedness
+willbe described shortly.
+In the RSML-esemantics, an expression with a PREV
+preﬁx indicates the oldvalue of a variable–the values the
+variable had before we started the evaluation of the state
+transition relation and an expression without a PREVpreﬁx
+indicatesthe newvalueofavariableascomputedinthecur-
+rentstep. Weviewtheseexpressionswithandwithout PREV
+
+--- Page 5 ---
+preﬁx correspond to the NuSMV expressions without and
+with thenextpreﬁx, respectively, as shown in Figure 6 (a).
+Inthisinterpretation,wecomputeanewvalueofavariable
+x, i.e., next(x), based on the old values of variables and
+newvaluesof other variablewhich xdependson.
+Another translation approach is possible [5]; in Fig-
+ure 6 (b), the next-state value is computed based on the
+current-state and the previous-state values. In this case,
+a separate variable prev xis declared with the same type
+asxand the transition relation is maintained by assign-
+ingnext(prev x) :=xat each time next(x)is evaluated.
+(pointedby the dashed arrowin the ﬁgure).
+For example, if the value of a variable xis computed
+based on the previous value of xand the value of y, i.e.
+x=f(prev(x); y), our approach translates the transition
+relation to next(x) := f(x; next (y)), whereas the alter-
+native approach translates it to next(x) := f(prev x; y)
+introducing an additional variable prev x. The choice of
+translation approach for PREV expressions is closely re-
+lated to the choice of translation for macros, which will be
+discussedshortly.
+Macros and Functions: Our translation approach trans-
+lateseachmacro/functiontoaNuSMVsub-moduleandde-
+claresonereferencevariableforthesub-moduleinthemain
+module. For a simple example, a macro DOITobeOnde-
+ﬁnedas follows
+MACRODOI TobeOn() :
+TABLE
+@T(..DOI Intended = PowerOn): T;
+inhibitSignal=inhibit : F;
+END TABLE
+ENDMACRO
+willbe translated to
+MODULEDOI TobeOn(DOIIntended)
+VAR
+result : boolean;
+ASSIGN
+init(result):= 0;
+next(result):=! (DOI Intended = PowerOn)&
+(next(DOI Intended)=PowerOn) &
+! (next(inhibitSignal)=inhibit);
+andareferencevariablewillbedeclaredinthemainmodule
+(orthe module which refers to the macro) as follows:
+x 
+next(x) PREV(x) 
+x 
+(a) View of a step  in RSML-e to NuSMV translation RSML-e 
+NuSMV x 
+next(x) PREV(x) 
+(b) Another possible view of a system step x 
+Figure 6. Differentviewsin system stepsMODULEmain
+: : :
+VAR
+DOIIntended: fPowerOn,PowerOff g;
+mDOITobeOn : DOI TobeOn(DOIIntended);
+: : :
+Here, @T(a) is a SCR-style expression that is equiva-
+lent to fnot PREV STEP(a) & a g. The boolean variable
+resultis declared in the sub-module to represent the value
+ofthemacro. NotethatNuSMVdoesnotallowglobalvari-
+ables, and thus, every variable referred from a sub-module
+ispassed as a parameter.
+FunctiondeﬁnitionsinRSML-eistranslatedinasimilar
+way except that the type of the variable resultis the same
+as the function type and the initial value of the function is
+unconstrained. With this very simple translation, the bulk
+of an RSML-especiﬁcation of a proposed system can be
+capturedin NuSMV.
+Themacro/functiontranslationintroducesoneadditional
+variable resultper macro/function which is not desirable
+for model checking. An alternative way to save the number
+ofvariablesaftertranslationistousethe DEFINEdeclaration
+when the macro does not have parameters. DEFINEdeclara-
+tiondoesnotintroduceanyadditionalvariablesbutitcanbe
+used only for simple expressions–conjunctions and/or dis-
+junctions of variables without nextexpressions. In other
+words,DEFINEdeclarationcannotbeusedforanexpression
+containing nextexpressions, and thus, is not usable in our
+case since our translation maps all non-prev expressions to
+NuSMVnextexpressionsto reduce the state space.
+In our preliminary application, a speciﬁcation for a
+ﬂight guidance system contains 115 macros and prev
+expressions for almost every state and input variables (total
+84). Considering that state or input variables can be of
+enumerate or numeric types, 84 additional prevvariables
+can be more costly than 151 additional boolean variables.
+The trade-offs need to be investigated further for better
+managementof the state space.
+3.2 Mapping RSML-especiﬁcconstructs
+RSML-ehassomespeciﬁcconstructs,suchasinterfaces
+andUndeﬁned valuesthat require special attention.
+Translation of Interfaces and Messages: An RSML-e
+model of an embedded system interacts with its environ-
+ment via interfaces by receiving (reading) messages on in-
+put interfaces or by sending (publishing) messages through
+outputinterfaces. The actual inputvaluesare assigned only
+when messages arrive in the input interfaces and the inter-
+facehandlerconditionsaresatisﬁed—thehandlersallowthe
+speciﬁer to handle messages differently depending on the
+
+--- Page 6 ---
+content of the message (for example, if values are out of
+bounds) or the timing of the message (for example, if it ar-
+rived early or late). Output interfaces assign and send out
+messagesonlywhenoutputhandlerconditionsaresatisﬁed.
+InFigure4,anoutputinterface FaultDetectionInterface
+speciﬁesthattheinterfaceshallassignandsendoutthemes-
+sagefaultatevery200ms. Thistypeofspeciﬁcationallows
+theusertocapturethedetailsofthesystem/environmentin-
+teractions. This also allows us to check desired properties
+related to the exchange of information between system and
+environment. For example, a required property can be “the
+system sends out the fault message whenever the fault is
+detectedin the system”.
+RSML-econtains several expressions that are related to
+the interfaces, for example, to check if a message has ar-
+rived at an input interface, to check if an output has been
+sent, and to determine the time since a message was sent.
+Intranslationofinterfacerelatedexpressions,booleanvari-
+ables are declared to represent the action of the interface
+andthe satisfactionof each handler condition.
+FortheFaultDetectionInterface example,abooleanvari-
+ableFaultDetection OSisdeclaredtorepresentthesending
+action, and a boolean variable FaultDetection OSHis de-
+claredto represent the handler condition as follows.
+VAR
+fault: boolean; /* for message ﬁeld */
+FaultDetection OS : boolean; /* output sending ﬂag */
+FaultDetection OSH : boolean; /* for handler ﬂag*/
+The interface does not send out messages in the initial
+state, thus, the initial value of the output sending ﬂag is set
+to false. Initial values for the message and the handler con-
+ditionﬂagsareunconstrainedsincetheinitialvaluesdonot
+affect the sending action once we set the sending ﬂag ini-
+tially.
+Interface action and handler conditions constrain each
+other;ahandlerconditionforaninputinterfaceisevaluated
+based on the interface message arrival event (or absence of
+the message arriving), the action of an output interface is
+determined by the evaluation of its handler conditions. As
+shown below, the next value of the faultvariable is evalu-
+atedwheneverthehandlerconditionissatisﬁedandremains
+the same otherwise. The send action becomes true when-
+ever the handler condition becomes true and becomes false
+otherwise.
+ASSIGN
+init(FaultDetection OS):=0;
+next(fault):=
+case
+next(FaultDetection OSH) : next(FaultDetectedVariable);
+1 : fault;
+esac;
+next(FaultDetection OS):=
+case
+next(FaultDetection OSH): 1;1 : 0;
+esac;
+With this translation, the property “the system sends out
+the fault message whenever the fault is detected in the sys-
+tem” can be speciﬁed in CTL as AG(FaultDetectedVariable
+!FaultDetection OS), which turns out false because of the
+weekhandlercondition;thefaultcanbedetectedwithinthe
+200mstimewindowbuttheinterfacedoesnotsendoutthe
+messageuntil the time threshold reaches.
+Translation for the handler condition FaultDetec-
+tionOSHwill be discussed in the next section along with
+the abstraction for time expressions. Translation for input
+interfaces is similar to output interface and is omitted here
+tosavespace.
+Flattening the hierarchy and Undeﬁnedness: As in
+RSMLandStatecharts,RSML-esupportsthecreationofhi-
+erarchical models. While RSML supports state hierarchies
+by deﬁning super-state and sub-state relations, the hierar-
+chyinRSML-eisspeciﬁedbydeﬁningthevalueofthepar-
+entvariableforeachchildvariable—RSML-emakesnodis-
+tinction between variables and states. In Figure 2, the hier-
+archical relationship between the state variables PowerSta-
+tusandAltitudeStatus is represented by specifying the PAR-
+ENTﬁeld of the AltitudeStatus deﬁnition— AltitudeStatus is
+relevantonly if PowerStatus has the value On.
+In translation, the hierarchy is ﬂattened and each state
+variable is declared as a separate variable regardless of
+whetheritisaparentvariableorachildvariable. Eachchild
+statevariabledeclaration,however,includesaspeciﬁcvalue
+UnDeﬁnedtodesignatethatitmaynotberelevantsinceits
+parentvariabledoes not havethe right value.
+VAR
+PowerStatus: fOn, Off g;
+AltitudeStatus :
+fUnknown,Above,Below,AltitudeBad, Un Deﬁned g;
+The transition relation for the child variable needs to re-
+ﬂect this passive Undeﬁnedness . For each transition con-
+dition, whether its variable has the right value is checked
+ﬁrst; if the parent variable has the wrong value, its child
+variable(s) are always set to UnDeﬁned. If the parent has
+the right value, the child variable is relevant and its transi-
+tion relation will be evaluated normally. When taking Un-
+deﬁnedness intoaccount,thetransitionrelationforthe Alti-
+tudeStatus stateis translated to
+ASSIGN
+next(AltitudeStatus):=
+case
+! (next(PowerStatus)=On) : Un Deﬁned;
+AltitudeStatus= Un Deﬁned j
+next(ivReset) : Unknown;
+next(mBelowThreshold.result)&
+next(mAltitudeQualityOk.result)&
+
+--- Page 7 ---
+! next(ivReset) : Below;
+next(mAboveThresholdHyst.result)&
+next(mAltitudeQualityOK.result)&
+!next(ivReset) : Above;
+!next(mAltitudeQualityOk.result) &
+!next(ivReset) : AltitudeBad;
+1 : AltitudeStatus;
+esac;
+TheUndeﬁned value in RSML-ehas a dual purpose.
+First, as described above, Undeﬁned is used to represent
+state variables that are not relevant because the part of the
+hierarchy where they reside is not active. Second, Unde-
+ﬁnedis used to specify cases when the exact value of a
+system variable simply is unknown, for example, at system
+startup.
+Data type extension is required in translation since the
+Undeﬁned is an intrinsic data value in the RSML-eseman-
+tics. For enumerated variables that require the Undeﬁned
+value,simpletypeextensionisusedtoexplicitlyincludethe
+valueUndeﬁned. Ontheotherhand,the Undeﬁned valueof
+a numeric variable is captured by declaring a separate vari-
+abletodesignatethe Undeﬁnedness ofthevariablesincethe
+integertypeinNuSMVcannotsimplybeextendedwiththe
+Undeﬁned value.
+4 Abstraction
+In the previous section, we presented a simple and di-
+rect translations from RSML-eto NuSMV without intro-
+ducing much abstraction. Our focus was on efﬁcient au-
+tomation and the usability aspect of the translated model;
+direct translation largely preserves the structure of original
+speciﬁcations so that the user can understand the translated
+model with minimum effort, and more importantly, can un-
+derstand the counter examples generated by NuSMV. Nev-
+ertheless,directtranslationisnotalwayspossibleforcertain
+aspects of RSML-e, for example, global time variables and
+numeric variables must be abstracted away since NuSMV
+allowsonly variablesoverﬁnite domains.
+The purpose of abstraction is twofold; (1) to deﬁne
+a semantic preserving translation for those constructs in
+RSML-ethat cannot be directly translated to NuSMV and
+(2)toreducethenumberofstatevariablestoavoidthestate
+space explosion problem. Together with previously pub-
+lished abstraction techniques suggested for software model
+checking [1, 5, 7, 18], our translation adopts three major
+abstractions, two of which are rather speciﬁc to RSML-e
+because of its inclusion of interfaces and time. In the fol-
+lowing paragraphs we will describe time abstraction, inter-
+faces and message abstraction, and abstraction of numeric
+variables.
+Time abstraction: RSML-eviews time as an external
+clock globally visible within a model. Since TIMEis an in-ﬁnitelyincreasingvariablewithundeﬁnedprecision,itmust
+be abstracted away in some way. All RSML-etime expres-
+sions are in terms of absolute time. The time of all events
+of the system’s history are available through the various
+RSML-eTIMEexpressions, such as the time of a message
+arrival or the time of change of the value of a state vari-
+able. For example, the expression TIMErefers the current
+time value and FaultDetectionInterface::LAST IOrepresents
+thelast time an exchangehappened on the interface.
+SinceNuSMVoperatesonﬁnitestatemachineandisnot
+able to handle inﬁnite time, the absolute time is abstracted
+to relative time. In the example of the previous section, the
+guard condition in the handler will be true after the dura-
+tionsincethelastIOexceedsthethresholdof 200ms. Only
+the fact that the duration exceeds the threshold is of impor-
+tance; after time has exceeded the threshold, the length of
+theduration is no longer important.
+TomaptheabsolutetimeinRSML-etotherelativetime
+that can be represented in a model checker, we declare a
+separate timer for each time expression. In our example,
+the time variable tFaultDetection is declared as an integer
+variable between 0 to 201 to represent the TIME - FaultDe-
+tectionInterface::LAST IO>200 MSexpression. The value of
+tFaultDetection issettozeroinitially,increasesbyoneatev-
+erysystemcycle,andremainsthesamewhenitexceedsthe
+threshold. It gets reset to zero after a message is sent out.
+VAR
+tFaultDetection: 0..201;
+ASSIGN
+init(tFaultDetection):=0;
+next(tFaultDetection):=
+case
+/* reset the timer after the message sent out */
+FaultDetection OS : 0;
+/* remain same after exceedingthe threshold */
+tFaultDetection >200: tFaultDetection;
+/* increases by one by default*/
+1 : t FaultDetection+ 1;
+esac;
+The handler condition ﬂag tFaultDetection OSHbe-
+comes true when tFaultDetection is greater than 200;
+next(tFaultDetection OSH):=(next(t FaultDetection) >200).
+Notethatwedonotneedtousethetimegranularityof 1
+msfor the relative timer; depending on the time resolution
+necessaryforveriﬁcation,wecanuse 2,or20forthethresh-
+old by dividing it by factor of 100 or 10. Nevertheless, ab-
+stractionforseveraltimingexpressionshastobedonecare-
+fully to preserve the relative time granularity. For example,
+the two time expressions TIME -InterfaceA::LAST IO>200
+msandTIME - InterfaceB::LAST IO>5 mscan be abstracted
+astInterfaceA >200andtInterfaceB >5but uniformly di-
+viding the threshold values by the factor of 10or100does
+not work in this case. Instead, the abstracted timing thresh-
+oldcanbeobtainedbydividingeachthresholdvaluebythe
+
+--- Page 8 ---
+greatestcommondivisorofallthresholdvaluesinthespeci-
+ﬁcation,i.e., gcd(200,5) =5abstractingthetimeexpressions
+totInterfaceA >40andtInterfaceB >1.
+Abstracting interfaces and messages: Since model
+checking suffers from the state space explosion problem,
+reducing the number of state variables as much as possible
+is crucial for the success of automated translation and veri-
+ﬁcation.
+Support for speciﬁcation of interfaces and messages is
+one major characteristic of RSML-ethat makes rigorous
+speciﬁcationsofsystemlevelinter-componentcommunica-
+tion possible. Nevertheless, many safety properties or es-
+sentialsystemrequirementscanbeveriﬁedregardlessofthe
+interface deﬁnitions. Therefore, we can optionally remove
+the interface and message ﬁeld portion from the translation
+process reducing the number of variables necessary to cap-
+tureamodelinNuSMV.Inaddition,selectivetranslationof
+interfaces and messages can be done by dependency check-
+ingon expressions; an interface and its corresponding mes-
+sages are translated only when an expression in a transition
+condition refers to interface related variables, such as inter-
+facetimers.
+The selective interface translation is different from the
+cone of inﬂuence reduction [8] built into most symbolic
+model checking tools; the cone of inﬂuence reduction re-
+moves all variables that are not relevant to the property in
+question while the selective translation removes redundant
+interfaces that have no effect on the change of state vari-
+ables. For example, suppose an input variable xgets as-
+signedthroughaninputinterface Iviaamessage mandthe
+change of state variable Sis dependent on the value of x.
+Whenapropertyinquestionisrelatedtothevalueof S,the
+cone of inﬂuence reduction will keep all the variables that
+haveadatadependencyrelationwith Sincluding fI; m; x g.
+The selective translation keeps only the input variable xif
+the transition of Sdoes not depend on any interface related
+expressions.
+Numeric variable abstraction: Besides time variables,
+translationofnumericvariablessuchasintegerorrealvari-
+ablesrequiresvarioustypesofabstraction. Variousabstrac-
+tions have been suggested to deal with ﬁnite or inﬁnite nu-
+meric variables [2, 3, 10, 11, 21] mostly with the aid of
+decision support tools such as PVS [24]. Currently, we
+plantohandleintegervariablesusing domainreductionab-
+straction [6], which can be performed during translation in
+conjunctionwithotherexistingabstractiontechniques. Our
+goalistoremoveuserguidancefromtheabstractionprocess
+as well as to remove the large variable domains without af-
+fectingobservablesystem behavior.
+Thedomain reduction abstraction technique reduces a
+large variable domain to a small ﬁnite one. The basic idea
+system model verification counter example generation
+system time memory system time memory user time user time
+FGS model
+version 0.32.3 s 2853.11 s 77 M 76.74 s 39 M 0.44 s
+FGS model
+0.3  (a)0.04 s 25.7  s 10.8 M 13.21 s 10.8 M 0.03 s
+FGS model
+0.3  (b)0.05 s 8.21 s 10.2 M
+290 M10 M 0.04 snumber of
+variables
+150
+150
+  87
+FGS model
+version 0.5339.47 s 0.62 s 55 M 210 (326) 7.51 s 9719.0 s5.35 sFigure7. Sample system usage data.
+istoselectivelychooserepresentativevaluesfromeachdata
+equivalence class as partitioned by the guarding conditions
+over numeric variables. For example, when a system has a
+data variable xover the domain [¡1000;1000]and guard-
+ing conditions x < 10andx > 250, a reduced domain
+f9;11;251gis sufﬁcient to simulate the original system as-
+sumingthat the system is not data sensitive. A detailed dis-
+cussionofthisabstractiontechniqueisbeyondthescopeof
+this report—detailed theoretical support and examples can
+befound in [6].
+5 PreliminaryResults
+We have implemented the translation scheme discussed
+inthispaperinthethe NIMBUStoolsandarecurrentlyeval-
+uatingthescalabilityoftheveriﬁcationapproachaswellas
+itseaseofusebypractitioners. Preliminaryresultsarequite
+promising.
+In collaboration with Rockwell-Collins Advanced Tech-
+nology Center we have modelled and analyzed a collec-
+tionofFlightGuidanceSystems(FGS).TheFGScompares
+measuredposition,speed,andaltitudetothedesiredstateof
+thesystemandgeneratespitchandrollguidancecommands
+to minimize the difference between the measured and de-
+siredstate.
+Rockwell-Collins has developeda collection of progres-
+sively more complex RSML-eFGS models, ranging from
+a simple model (FGS 0.0 – 600 lines of RSML-ewith 21
+macros,and45variablesaftertranslation)toadetailedFGS
+model including numeric variables and timing constraints
+(FGS 0.5 – 3832 lines of RSML-ewith 119 macros and
+functions, and 326 variables after translation)3. The propri-
+etary nature of the models prevent us from discussing de-
+tails at this early stage in the project, but we can provide
+somepreliminaryresultsregardingthescalabilityoftheap-
+proach. AllresultsareobtainedonaLinuxworkstationwith
+800MHzCPUand512Mofmemorywith99.9%CPUus-
+ageduring the veriﬁcation.
+Figure 7 illustrates a sample system usage for veriﬁca-
+tion and counter example generation for FGS models. The
+3These models have been evolved since this paper was ﬁrst written.
+The experiment data is based on the models and the translator as of April
+2002
+
+--- Page 9 ---
+ﬁrst row shows the result for the FGS model 0.3 before ap-
+plying abstraction on numeric variables. The second row
+(row a) shows the result after abstracting numeric variables
+using domain reduction abstraction and the third row (row
+b) is the result after abstracting numeric variables and in-
+terfaces. The last row shows the usage data for veriﬁca-
+tion and counter example generation on FGS model 0.5,
+the largest model we have so far, after application of ab-
+stractions. ThetranslatedmodeloftheFGS0.5withoutab-
+straction includes 326 variables and the system runs out of
+memorywhencheckingpropertiesoverthemodel. Transla-
+tion with abstractions produces a model with 210 variables
+whichis feasible for model checking.
+In the ﬁgure, the second column represents the total
+number of variables in the translated model regardless of
+variable types. System time represents the time used for
+systeminterruptandusertimerepresentsthetotalexecution
+time for the veriﬁcation and counter example generation.
+The cone of inﬂuence reduction built into NuSMV is used
+in all cases. The performance data for the columns marked
+“veriﬁcation” are results from a property that is veriﬁed to
+be true. The data in the columns labelled “counter example
+generation”are from a property that turned out false.
+Note the number of variables remains same before and
+after the abstraction for numeric variables for the FGS ver-
+sion0.3eventhoughtheusagedatashowsalargedifference
+in performance. The difference is unsurprisingly mainly
+due to the abstraction of integer variables with large do-
+mains. The FGS model version 0.3 has 8 integer variables
+(3 of which have inﬁnite domains). Our direct translation
+maps a numeric variable with inﬁnite domain to an inte-
+ger variable with a ﬁnite, but very large, domain, so that
+these models can be model checked. In this case, however,
+the FGS model is data insensitive, i.e., the behavior of the
+model is not affected by speciﬁc data values. Therefore,
+domain abstraction reduces the large domain of the integer
+variablesto a single value.
+Model checking the Flight Guidance Systems written
+in RSML-ehas scaled surprisingly well this far. We ex-
+pected that the high ﬁdelity of our translation would lead
+toNuSMVmodelsthatsimplycouldnotbemodelchecked
+without aggressive abstraction. This has not been the case.
+Currently, model checking the full FGS speciﬁcations is
+feasible by applying domain reduction abstraction and re-
+moval of unneeded interfaces, but the size of the speciﬁ-
+cation is gradually growing as more details are added and
+wewillneedtoincorporatemoreaggressiveabstractionsto
+completethe project.
+In addition, by using assume-guarantee-style modular
+veriﬁcation techniques [12, 20], we can verify portions of
+a speciﬁcation and then combine the results to a statement
+about the speciﬁcation as a whole. Our research group is
+working on adding a module construct to RSML-eto sup-port speciﬁcation reuse. This construct will also enable us
+to support modular veriﬁcation. The goal of our efforts is
+still to include only abstractions that can be invoked with
+minimal user intervention and with limited knowledge of
+the theory behind model checking—we want the analysis
+techniquestobeusablebypractitionersandfullautomation
+is,in our opinion, an absolute must.
+6 Discussion
+Automatictranslationofformalspeciﬁcationsformodel
+checkingpurposesisnotanewidea. Chanetal.[5]focused
+on the feasibility of model checking software requirement
+speciﬁcations and suggested translation rules from RSML
+(thepredecessorlanguagetoRSML-e)toSMV.Heitemeyer
+et al. [18] discuss abstraction as part of the translation and
+veriﬁcation of SCR speciﬁcations. Nevertheless, applica-
+tionofmodelcheckingtoindustrysizedapplicationsisstill
+rare.
+Compared to those previous works, our translation ap-
+proach makes several different choices, such as our treat-
+ment ofprevexpressions and macros, but the simplicity
+of our translation is mainly due to the removal of internal
+eventsfrom the speciﬁcation language.
+Transitions in RSML or Statechart are based on events
+in the form of trig[cond]/acts wheretrigis a trigger event,
+the guarding condition condis a predicate on states and in-
+puts, and actsis a set of action events. One trigger events
+can cause cascading action/trigger events, and thus, an in-
+puteventinonestepcancauseseveral(orpossiblyinﬁnitely
+many)micro-stepsofactionsaccordingtothecascadingac-
+tion/triggerevents.
+Automatic translation of speciﬁcations with internal
+events is more difﬁcult than for data ﬂow models mainly
+due to the potentially complex event propagation. RSML-e
+avoidsthistypeofproblemsbyremovingtheinternalevents
+from the language; yet, the expressive power of RSML-e
+hasbeen sufﬁcientin all projects where it has been used.
+7 Conclusion
+We have implemented a translator to support the practi-
+calapplicationofautomatedveriﬁcationofsoftwarespeciﬁ-
+cations. Theinitialversionofthetranslatormapsthesource
+language (RSML-e) quite closely onto the target langauge
+(NuSMV) with only minor abstractions. In the ﬁrst step
+of the project we wanted to know how well this approach
+would scale without the introduction of aggressive abstrac-
+tions. With few abstractions, the analysis results are very
+accurate—spuriouscounterexamplesarerare—makingthe
+analysisappealing to practitioners.
+We have largely satisﬁed the goals we set at the begin-
+ning of the project; the translation is fully automated and
+
+--- Page 10 ---
+preserves (almost all of) the expressive power of RSML-e,
+thecounterexamplesareeasytointerpretsincethestructure
+of the NuSMV model is very close to the RSML-emodel,
+and the abstractions we have implemented are intuitive and
+easyto invoke.
+Our next step is to anticipate future problems as the size
+of the speciﬁcation grows. We are investigating alterna-
+tive translation approaches, such as different treatment of
+macros,and more aggressiveabstraction techniques.
+Acknowledgements: We would like to thank Steve
+Miller, David Lempia, and Alan Tribble at Rockwell-
+Collins’AdvancedTechnologyCenterforbuildingtheFGS
+modelsandprovidingusfeedbackontheprototypeversions
+ofour translation tools.
+References
+[1]Joanne M. Atlee and John D. Gannon. State-based
+model checking of event-driven system requirements.
+InProceedings of the ACM SIGSOFT ’91 Conference
+on Software for Critical Systems. Software Engineer-
+ing Notes. Volume16 Number 5 ,1991.
+[2]Thomas Ball, Rupak Majumdar, Todd Millstein, and
+Sriam K. Rajamani. Automatic predicate abstraction
+ofcprograms. SIGPLANNotices(ACMSpecialInter-
+est Group on Programming Languages) , 36(5):203–
+213, May 2001.
+[3]Tevﬁk Bultan, Richard A. Gerber, and William Pugh.
+Model-checking concurrent systems with unbounded
+integer variables: Symbolic representations, approxi-
+mations, and experimental results. ACM Transactions
+on Programming Languages and Systems , 21(4):747–
+789, July 1999.
+[4]James C.Corbett. Constructing compact models of
+concurrent java programs. In International Sympo-
+sium on SoftwareTestingand Analysis , March 1998.
+[5]W. Chan, R.J. Anderson, P. Beame, S. Burns, F. Mod-
+ugno, D. Notkin, and J.D. Reese. Model checking
+large software speciﬁcations. IEEE Transactions on
+SoftwareEngineering , 24(7):498–520, July 1998.
+[6]Yunja Choi, Sanjai Rayadurgam, and Mats Heimdahl.
+Automatic abstraction for model checking software
+systemswithinterrelatednumericconstraints. In Pro-
+ceedingsofthe9thACMSIGSOFTSymposiumonthe
+Foundations of Software Engineering (ESEC/FSE-9) ,
+pages 164–174, September 2001.[7]E. M. Clarke, O. Grumberg, and D. E. Long. Model
+checking and abstraction. ACM Transaction on Pro-
+grammingLanguagesandSystems ,16(5):1512–1542,
+September1994.
+[8]Edmund M. Clarke, Orna Grumberg, and Doron
+Peled.ModelChecking . MIT Press, 1999.
+[9]James Corbett, Matthew Dwyer, John Hatcliff, Co-
+rina Pasareanu, Robby, Shawn Laubach, and Hongjun
+Zheng. Bandera: ExtractingFinite-stateModelsfrom
+Java Source Code. In Proc. of the 22nd Int’l Conf. on
+SoftwareEngineering ,pages 439–448, June 2000.
+[10]J. Dingel and T. Filkorn. Model checking for inﬁ-
+nite state systems using data abstraction, assumption-
+commitment style reasoning and theorem proving. In
+ComputerAided Veriﬁcation ,pages 54–69, 1995.
+[11]Susanne Graf and Hassen Saidi. Construction of ab-
+stract state graphs with PVS. In Proceedings of the
+Computer Aided Veriﬁcation(CAV 1997) , pages 72–
+83,1997.
+[12]O. Grumberg and D.E.Long. Model checking and
+modularveriﬁcation. ACMTransactionsonProgram-
+ming Languages and Systems , 16(3):843–871, May
+1994.
+[13]N. Halbwachs, P. Caspi, P. Raymond, and D. Pi-
+laud. The synchronous dataﬂow programming lan-
+guage lustre. Proceedings of the IEEE , 79(9):1305–
+1320,September 1991.
+[14]NicolasHalbwachs,FabienneLagnier,andChirstophe
+Ratel. Programming and verifying real-time systems
+by means of the synchronous data-ﬂow language lus-
+tre.IEEE Transactions on Software Engineering ,
+pages785–793, 1992.
+[15]D. Harel. Statecharts: A visual formalism for com-
+plex systems. Science of Computer Programming ,
+8(3):231–274,June 1987.
+[16]Klaus Havelund and Thomas Pressburger. Model
+checking java programs using java pathﬁnder. In-
+ternational Journal on Software Tools for Technology
+Transfer, pages 366–381, 2000.
+[17]Mats P.E. Heimdahl, Jeffrey M. Thompson, Bar-
+bara J. Czerny, and Duminda Wijesekera. Specify-
+ing and analyzing system level inter-component in-
+terfaces. Technical Report TR 98-030, University of
+Minnesota, Department of Computer Science, Min-
+neapolis,MN, 1998.
+
+--- Page 11 ---
+[18]Constance Heitmeyer, James Kirby Jr., Bruce Labaw,
+Myla Archer, and Ramesh Bharadwaj. Using abstrac-
+tion and model checking to detect safety violations
+in requirements speciﬁcations. IEEE Transactions
+onSoftwareEngineering ,24(11):927–948,November
+1998.
+[19]N.G. Leveson, M.P.E. Heimdahl, H. Hildreth, and
+J.D. Reese. Requirements Speciﬁcation for Process-
+Control Systems. IEEE Transactions on Software En-
+gineering ,20(9):684–706, September 1994.
+[20]Z. Manna, M. Colon, B. Finkbeiner, H. Sipma, and
+T. Uribe. Abstraction and modular veriﬁcation of
+inﬁnite-state reactive systems. In Requirements Tar-
+geting Software and Systems Engineering (RTSE),
+LNCS. Springer Verlag,1998.
+[21]Kedar S. Namjoshi and Robert P. Kurshan. Syntatic
+programtransformationsforautomaticabstraction. In
+12th International Conference, CAV2000 , pages 435–
+449, July 2000.
+[22]Formal Methods - Model Checking. Available at
+http://www-2.cs.cmu.edu/ modelcheck/.
+[23]NuSMV: A New Symbolic Model Checking. Avail-
+able at http://nusmv.irst.itc.it/.
+[24]S.Owre,N.Shankar,andJ.M.Rushby. UserGuidefor
+the PVS Speciﬁcation and Veriﬁcation System . Com-
+puter Science Laboratory; SRI International, Menlo
+Park,CA 94025, beta release edition, March 1993.
+[25]Jeffrey M. Thompson, Mats P.E. Heimdahl, and
+Steven P. Miller. Speciﬁcation based prototyping for
+embedded systems. In Seventh ACM SIGSOFT Sym-
+posium on the Foundations on Software Engineering ,
+number 1687 in LNCS, pages 163–179, September
+1999.
+[26]JeffreyMichaelThompson. StructuringFormalState-
+Based Speciﬁcations for Reuse and the Development
+of Product Families . PhD thesis, University of Min-
+nesota, 2002.

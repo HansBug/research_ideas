@@ -12,13 +12,13 @@
 
 ## 当前收录统计
 
-- 已收录普通类型论文：**34** 篇
+- 已收录普通类型论文：**39** 篇
 - 已收录综述类论文：**10** 篇
 - 本轮新增论文：**5** 篇
-- 已完成 `desc.md`：**34** 篇
+- 已完成 `desc.md`：**39** 篇
 - 已完成 `survey.md`：**10** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮工作：新增 5 篇同步语言/工具语义/工业规程/需求规格条目，覆盖 `STATEMATE / Reactive Modules / SpecTRM-RL / Argos / Grafchart`
+- 本轮工作：新增 5 篇应用/工具链条目，覆盖 `CHARON` 多机器人架构、`Polychronous Mode Automata`、`RSML-e -> NuSMV`、`JGrafchart + DPWS`、`JGrafchart + FMI`
 
 ## 形式主义主类口径
 
@@ -28,10 +28,10 @@
 |---|---|---|---:|
 | 🧩 | 经典离散状态机 | `FSM`、`EFSM`、`Statechart`、`UML State Machine`、`SCXML`、`Tree Automata`、`Multi-Tape Automata`、`Two-Dimensional Automata`、`Cellular Automata`、`Weighted Automata` 等 | 17 |
 | ⏱️ | 时间/时钟自动机 | `Timed Automata`、`Timed Statecharts`、`TIOA` 等 | 4 |
-| 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 2 |
+| 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 3 |
 | 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 | 5 |
 | 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 | 5 |
-| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 15 |
+| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 19 |
 
 ## 描述客体口径
 
@@ -42,10 +42,10 @@
 | 📝 | 序列 / 语言对象 | 主要描述字符串、事件序列、trace、多串关系等离散序列对象 | 3 |
 | 🌳 | 树 / 文档对象 | 主要描述树结构、XML 文档、层次内容或其他树形对象 | 1 |
 | 🖼️ | 网格 / 图案对象 | 主要描述二维 tape、图片、网格或格点对象 | 2 |
-| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 17 |
-| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 6 |
+| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 19 |
+| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 7 |
 | 🏭 | 并发过程 / 资源流 | 主要描述并发过程、工作流、token/资源流网络 | 4 |
-| 🌡️ | 物理 / 混成对象 | 主要描述物理装置、连续动力学对象或混成/CPS 对象 | 1 |
+| 🌡️ | 物理 / 混成对象 | 主要描述物理装置、连续动力学对象或混成/CPS 对象 | 3 |
 
 ## 所属领域口径
 
@@ -56,10 +56,10 @@
 | 🧮 | 形式语言与自动机理论 | 主要是 automata theory、formal language、语义与判定性研究 | 5 |
 | 💻 | 软件建模与程序行为 | 主要面向软件状态、程序行为、反应式软件或模型驱动开发 | 7 |
 | 📄 | 文档与数据交换 | 主要面向 XML、schema、文档结构与数据交换 | 0 |
-| ⏱️ | 实时与嵌入式系统 | 主要面向实时、调度、时序约束和嵌入式执行 | 5 |
-| 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 5 |
+| ⏱️ | 实时与嵌入式系统 | 主要面向实时、调度、时序约束和嵌入式执行 | 7 |
+| 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 6 |
 | 🌐 | 协议 / 分布式 / 交互系统 | 主要面向通信协议、服务交互、接口组合与分布式行为 | 6 |
-| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 6 |
+| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 8 |
 
 ## 状态口径
 
@@ -67,7 +67,7 @@
 
 | Emoji | 含义 | 数量 |
 |---|---|---:|
-| 🟢 | 直接可用 | 43 |
+| 🟢 | 直接可用 | 48 |
 | 🟡 | 可整理 | 1 |
 | ⚪ | 未收获 | 0 |
 | ⏳ | 尚未提取 | 0 |
@@ -88,7 +88,7 @@
 - 后续普通条目优先补**模型本体**与**标准/基础设施**，即定义、语义、构造方式、交换格式、元模型、工具链与标准材料。
 - 方法路线类论文或综述只作为辅助证据使用，前提是它们能说明某一形式主义“能做什么、如何落地、依赖什么基础设施”。
 - 应用/案例导向条目原则上不作为本 collection 的正式扩库方向，除非它同时补出了稳定的模型本体或基础设施证据。
-- 对 `SyncCharts / Argos / STATEMATE / SFC / Stateflow / StateGraph / Grafchart / RSML-SpecTRM` 这类专用模型或执行载体，若能稳定回填“对象、语义、承载方式、工具入口”，可正式入账。
+- 对 `SyncCharts / Argos / STATEMATE / SFC / Stateflow / StateGraph / Grafchart / RSML-SpecTRM / CHARON / Polychrony / RSML-e / JGrafchart + DPWS/FMI` 这类专用模型或执行载体，若能稳定回填“对象、语义、承载方式、工具入口”，可正式入账。
 
 ## 检索关键词簇
 
@@ -101,7 +101,7 @@
 - `hybrid automata / probabilistic automata / stochastic automata / stochastic hybrid automata`
 - `petri net / colored petri net / timed petri net / PNML / hierarchical petri net`
 - `interface automata / I-O automata / contract automata / reactive modules`
-- `communicating finite-state machine / workflow net / reactive modules / synccharts / argos / statemate / stateflow / sequential function chart / stategraph / grafchart / spectrm-rl / rsml`
+- `communicating finite-state machine / workflow net / reactive modules / synccharts / argos / statemate / stateflow / sequential function chart / stategraph / grafchart / spectrm-rl / rsml / rsml-e / charon / polychrony / dpws / fmi`
 - `survey / review / tutorial / taxonomy / mapping study` + 上述形式主义关键词
 
 ### 已观察到的高命中特征
@@ -113,6 +113,7 @@
 - `cyber-physical systems` 与 `hybrid automata` 联合检索时，更容易命中“建模与验证框架综述”而非单一算法论文
 - 精确形式主义名与框架名组合时命中率高，例如 `workflow net`、`synccharts esterel`、`stateflow semantics`、`stategraph modelica`、`argos statecharts`、`statemate semantics`、`grafchart process control`
 - 对需求/规程导向载体，`process control / requirements language / procedural operator support` 与精确语言名组合时命中率高，如 `spectrm-rl`、`rsml`、`grafchart`
+- 精确语言名再叠加基础设施关键词命中率也很高，例如 `charon hybrid systems`、`polychrony mode automata`、`rsml-e nusmv`、`grafchart dpws`、`jgrafchart fmi`
 
 ### 已观察到的低命中特征
 
@@ -122,6 +123,7 @@
 - 只搜 `workflow state machine` 或 `modelica control` 容易漂到厂商教程、业务流程平台或一般应用案例
 - 只搜 `reactive state machine` 容易漂到泛软件工程或教学材料，而不是具体载体论文
 - 只搜 `process control state machine` 容易漂到一般控制案例、PLC 教程或工艺说明，而不是语言/载体论文
+- 只搜 `service-oriented automation` 或 `co-simulation state machine` 容易漂到中间件综述和一般 `FMI` 框架，而不是具体状态机载体
 
 ### 检索倾向调整
 
@@ -132,8 +134,9 @@
 - `SCXML`、`Interface/Contract Automata` 已补基础条目，下一轮应继续补执行器/工具线与更早代表文献
 - 方法路线条目只在能够反向支撑某一形式主义的能力边界或基础设施条件时再跟进
 - 对应用/专用模型，优先用“精确形式主义名 + 框架名 + pdf/tech report/proceedings”检索，避免被泛领域关键词带偏
-- `SyncCharts / SFC / Stateflow / StateGraph / STATEMATE / Grafchart / SpecTRM-RL` 这类工程载体更适合直接搜准确名称，而不适合先走宽泛的 `state machine` 关键词
+- `SyncCharts / SFC / Stateflow / StateGraph / STATEMATE / Grafchart / SpecTRM-RL / CHARON / RSML-e / Polychrony` 这类工程载体更适合直接搜准确名称，而不适合先走宽泛的 `state machine` 关键词
 - `Reactive Modules / Argos` 这类语义与组合框架更适合用精确标题或作者名定点命中，否则容易与泛“module / reactive”关键词发生漂移
+- 对 `DPWS / FMI / NuSMV / GME / Polychrony` 这类基础设施词，必须和精确形式主义名绑定检索，否则很容易被泛工具论文淹没
 
 ## 状态机类型论文总表
 
@@ -164,21 +167,26 @@
 | 17 | 📦 | 🎛️ | ⏱️ | `Argos` | 同步语言 | Argos: an Automaton-Based Synchronous Language | 2001 | 用布尔 Mealy 机构造可组合的同步状态机语言 | local signals、encapsulation、refinement、causality checking | 图形 automata + 局部信号封装 + hierarchy | 同步编译与验证连接明确，无开放标准 | 实时反应式控制与同步控制器 | 需求以离散信号/广播协同为主且接受同步假设 | 🟢 | [desc.md](./argos-an-automaton-based-synchronous-language/desc.md) |
 | 18 | 🔌 | 🤝 | 🌐 | `Interface Automata` | 模型提出 | Interface Automata | 2001 | 检查接口兼容与替换性 | compatibility、illegal states、alternating simulation | 输入/输出接口自动机 | 组合与精化语义成熟，无标准格式 | 组件接口匹配、服务组合 | 关注假设/保证式交互 | 🟢 | [desc.md](./interface-automata/desc.md) |
 | 19 | 📦 | 🎛️ | 🏭 | `Grafchart / JGrafchart` | 图形语言 / 工具载体 | GRAFCHART FOR PROCEDURAL OPERATOR SUPPORT TASKS | 2002 | 用步骤、过程和异常转移支撑工业操作规程与程序处理 | procedure step、exception transition、high-level tokens、animation | Grafchart charts + `G2` rules + `JGrafchart` runtime | Grafchart/JGrafchart 工具明确 | 批处理、operator support、程序规程 | 需求需显式步骤流、过程复用与异常中止 | 🟢 | [desc.md](./grafchart-for-procedural-operator-support-tasks/desc.md) |
-| 20 | 📦 | 🎛️ | 🏭 | `Sequential Function Charts (SFC)` | 工业语义 | A Unifying Semantics for Sequential Function Charts | 2004 | 为 `IEC 61131-3 SFC` 提供统一可参数化 cycle semantics | steps、action qualifiers、parallelism、history、timed extension | steps/transitions + action blocks + priority orders | `PLC` 工具链和 `IEC` 标准明确 | `PLC` 顺控、工业自动化 | 需求可分解为步骤/守卫/动作并按扫描周期执行 | 🟢 | [desc.md](./a-unifying-semantics-for-sequential-function-charts/desc.md) |
-| 21 | 📦 | 🎛️ | 🏭 | `StateGraph` | 工具/库 | StateGraph - A Modelica Library for Hierarchical State Machines | 2005 | 在 Modelica 中提供层次状态机库 | `fire/newActive` 方程、parallel/alternative、composite step | steps/transitions/parallel/composite + Modelica equations | `Modelica.StateGraph` + logical blocks | 监督控制、物理过程联调 | 需求需与 Modelica 模型协同并接受单赋值约束 | 🟢 | [desc.md](./stategraph-a-modelica-library-for-hierarchical-state-machines/desc.md) |
-| 22 | ⏱️ | 🤝 | ⏱️ | `Timed I/O Automata` | 理论专著 | The Theory of Timed I/O Automata | 2005 | 组合实时组件并比较实现关系 | trajectories、receptiveness、simulation | 动作接口 + 时间轨迹 | 理论框架成熟，无标准格式 | 实时组件系统 | 需求同时包含接口与时间演化 | 🟢 | [desc.md](./the-theory-of-timed-input-output-automata/desc.md) |
-| 23 | 🕸️ | 🏭 | 💻 | `Coloured Petri Nets` | 教程讲义 | Coloured Petri Nets | 2005 | 在 Petri 网中引入 typed token 与数据 | colour sets、simulation、state space | 网结构 + 颜色集 + 弧表达式 | 工具生态成熟，交换标准较弱 | 协议与数据驱动并发系统 | 并发 + 显式数据对象 | 🟢 | [desc.md](./coloured-petri-nets/desc.md) |
-| 24 | 📦 | 🎛️ | 🌡️ | `Stateflow` | 形式语义 | An Operational Semantics for Stateflow | 2007 | 把工业 `Stateflow` chart 形式化为顺序化图形状态机语义 | junction、local events、`12 o'clock` ordering、安全子集 | states/junctions/transitions + linearized SOS | `Matlab/Simulink/Stateflow` 生态成熟 | 嵌入式控制器、混成系统离散部分 | 需求最终落到 `Stateflow` 工具链且接受工具优先级 | 🟢 | [desc.md](./an-operational-semantics-for-stateflow/desc.md) |
-| 25 | 🕸️ | 🏭 | ⏱️ | `Time Petri Nets` | 教程讲义 | Time Petri Nets Part II: State Class based methods | 2008 | 在并发网上加入时间区间 | 静态区间、state class graph | P/T 网 + 变迁时间区间 | TINA 线成熟，标准格式较弱 | 实时并发流程与调度 | 并发资源流 + 时间窗口 | 🟢 | [desc.md](./time-petri-nets/desc.md) |
-| 26 | 🧩 | 🌳 | 🧮 | `Tree Automata` | 教程专著 | Tree Automata Techniques and Applications | 2008 | 识别树、项与层次结构语言 | bottom-up、top-down、determinization、decision problems | ranked alphabet + 状态 + 树重写规则 | 理论与算法成熟，XML/hedge 在线路上衔接强 | AST、term rewriting、schema-like structural validation | 输入需显式树/项结构而非平坦事件串 | 🟢 | [desc.md](./tree-automata-techniques-and-applications/desc.md) |
-| 27 | 📦 | 🎛️ | 🏭 | `ModeGraph` | 工具/库 | ModeGraph - A Modelica Library for Embedded Control Based on Mode-Automata | 2008 | 在 Modelica 中实现安全层次状态机与 mode-automata 执行 | single-assignment、delayed transition、preemption、parallel | `Step/Transition/Composite/Parallel` + mode equations | Modelica 工具链明确，需语言扩展，无独立交换标准 | 嵌入式控制、混合控制、工业逻辑 | 需求需安全模式切换并与 Modelica 模型协同 | 🟢 | [desc.md](./modegraph-modelica-library-for-embedded-control-based-on-mode-automata/desc.md) |
-| 28 | 🧩 | 📝 | 🧮 | `Weighted Automata` | 手册章节 | Weighted Automata Algorithms | 2009 | 在自动机/转导器上附加 semiring 权值 | semiring、path weight、determinization、minimization | 图结构 + label + weight + semiring 运算 | 算法体系成熟，但无统一交换标准 | 概率/代价/评分型字符串与转导建模 | 需求需保留有限状态骨架且每条路径带可组合权值 | 🟢 | [desc.md](./weighted-automata-algorithms/desc.md) |
-| 29 | 📦 | 🎛️ | 🌡️ | `Ptolemy II FSM / Modal Models` | 工具教程 | Finite State Machines and Modal Models in Ptolemy II | 2009 | 用状态机控制 refinement 切换并支撑异构执行 | guard/output/set action、mode refinement、microstep、local time | `FSMActor / ModalModel` + `MoML` + compatible directors | Ptolemy II 图形/Java/MoML 生态完整 | 异构嵌入式系统、CPS mode switching | 不同模式需挂不同 refinement 与执行域 | 🟢 | [desc.md](./finite-state-machines-and-modal-models-in-ptolemy-ii/desc.md) |
-| 30 | 📦 | 🎛️ | 🌡️ | `Modelica_StateGraph2` | 形式主义 / 工具库 | A New Formalism for Modeling of Reactive and Hybrid Systems | 2009 | 把 Modelica 状态机扩成安全层次并行 generalized steps | generalized steps、suspend/resume、delay、`NuSMV` verification | `\Gamma = \langle V_c,G,T,g_I \rangle` + ports + interpretation algorithm | `Modelica_StateGraph2` + `NuSMV` | reactive/hybrid systems | 需求含模式切换并需与物理模型联仿 | 🟢 | [desc.md](./a-new-formalism-for-modeling-of-reactive-and-hybrid-systems/desc.md) |
-| 31 | 📦 | 🎛️ | 🌡️ | `Modelica State Machines` | 语言扩展 | State Machines in Modelica | 2012 | 把状态机纳入 Modelica 语言核心 | 13 方程语义、immediate/delayed、reset/synchronize | Modelica blocks + transition equations + clock | Modelica 3.3 语言级支持明确 | 物理系统中的控制逻辑、嵌入式控制 | 状态逻辑需与同 clock 的 Modelica 模型原生集成 | 🟢 | [desc.md](./state-machines-in-modelica/desc.md) |
-| 32 | 🔌 | 🤝 | 🌐 | `Contract Automata` | 模型提出 | Automata for Analysing Service Contracts | 2014 | 分析多方契约匹配与责任 | agreement、weak agreement、liability | 向量动作自动机 + 组合 | 分析方法明确，生态偏研究型 | 服务编排、契约组合 | 多方 request/offer 关系清晰 | 🟢 | [desc.md](./contract-automata/desc.md) |
-| 33 | 🧩 | 🎛️ | 💻 | `SCXML` | 标准规范 | State Chart XML (SCXML): State Machine Notation for Control Abstraction | 2015 | 提供可执行层次状态机 XML 载体 | `state/parallel/history/datamodel/invoke` | SCXML XML 文档 | W3C 规范、Schema、测试套件 | 事件驱动流程与互操作 | 需要标准文本载体 | 🟢 | [desc.md](./scxml-state-machine-notation-for-control-abstraction/desc.md) |
-| 34 | 🧩 | 🎛️ | 💻 | `UML State Machine` | 标准规范 | OMG Unified Modeling Language (OMG UML), Version 2.5.1 | 2017 | 标准化行为/协议状态机元模型 | regions、pseudostates、XMI | 图形建模 + metamodel + XMI | OMG 标准和工具生态成熟 | MDE、跨工具交换 | 需要与 UML 语境集成 | 🟢 | [desc.md](./uml-251-specification/desc.md) |
+| 20 | 🌊 | 🌡️ | 🌡️ | `CHARON` | 应用框架 / 软件架构 | A Framework and Architecture for Multi-Robot Coordination | 2002 | 用 agent+mode 统一多机器人控制、感知与协同 | 层次 agent、mode switching、连续流、共享信息 | `CHARON` 文本 DSL + `diff/alge/inv` + channels | `CHARON` + 多线程对象架构 + robot platform | 多机器人协调、编队、协同感知 | 需求需同时给出离散模式、连续控制和通信结构 | 🟢 | [desc.md](./framework-and-architecture-for-multi-robot-coordination/desc.md) |
+| 21 | 📦 | 🎛️ | ⏱️ | `RSML-e / NuSMV` | 验证工具链 / 翻译框架 | Model Checking RSML-e Requirements | 2002 | 把需求状态机自动翻译到可模型检查符号模型 | 层次状态变量、接口、表格逻辑、自动抽象 | `RSML-e` 规格 + translator + `NuSMV` modules | `Nimbus` + `NuSMV` + `PVS` | 飞控与高保证需求验证 | 需求可整理为有限状态、接口和表格条件 | 🟢 | [desc.md](./model-checking-rsmle-requirements/desc.md) |
+| 22 | 📦 | 🎛️ | 🏭 | `Sequential Function Charts (SFC)` | 工业语义 | A Unifying Semantics for Sequential Function Charts | 2004 | 为 `IEC 61131-3 SFC` 提供统一可参数化 cycle semantics | steps、action qualifiers、parallelism、history、timed extension | steps/transitions + action blocks + priority orders | `PLC` 工具链和 `IEC` 标准明确 | `PLC` 顺控、工业自动化 | 需求可分解为步骤/守卫/动作并按扫描周期执行 | 🟢 | [desc.md](./a-unifying-semantics-for-sequential-function-charts/desc.md) |
+| 23 | 📦 | 🎛️ | 🏭 | `StateGraph` | 工具/库 | StateGraph - A Modelica Library for Hierarchical State Machines | 2005 | 在 Modelica 中提供层次状态机库 | `fire/newActive` 方程、parallel/alternative、composite step | steps/transitions/parallel/composite + Modelica equations | `Modelica.StateGraph` + logical blocks | 监督控制、物理过程联调 | 需求需与 Modelica 模型协同并接受单赋值约束 | 🟢 | [desc.md](./stategraph-a-modelica-library-for-hierarchical-state-machines/desc.md) |
+| 24 | ⏱️ | 🤝 | ⏱️ | `Timed I/O Automata` | 理论专著 | The Theory of Timed I/O Automata | 2005 | 组合实时组件并比较实现关系 | trajectories、receptiveness、simulation | 动作接口 + 时间轨迹 | 理论框架成熟，无标准格式 | 实时组件系统 | 需求同时包含接口与时间演化 | 🟢 | [desc.md](./the-theory-of-timed-input-output-automata/desc.md) |
+| 25 | 🕸️ | 🏭 | 💻 | `Coloured Petri Nets` | 教程讲义 | Coloured Petri Nets | 2005 | 在 Petri 网中引入 typed token 与数据 | colour sets、simulation、state space | 网结构 + 颜色集 + 弧表达式 | 工具生态成熟，交换标准较弱 | 协议与数据驱动并发系统 | 并发 + 显式数据对象 | 🟢 | [desc.md](./coloured-petri-nets/desc.md) |
+| 26 | 📦 | 🎛️ | ⏱️ | `Polychronous Mode Automata` | 多时钟建模构件 | Polychronous Mode Automata | 2006 | 把多时钟数据流与 mode automata 统一到同一建模前端 | 弱/强抢占、多时钟、元模型扩展、Signal 编译 | `GME` metamodel + `Signal` equations + automata | `Polychrony` + `Signal-Meta` + `GME` | 航电与分布式嵌入式系统 | 需求同时含局部时钟、控制模式和数据流 | 🟢 | [desc.md](./polychronous-mode-automata/desc.md) |
+| 27 | 📦 | 🎛️ | 🌡️ | `Stateflow` | 形式语义 | An Operational Semantics for Stateflow | 2007 | 把工业 `Stateflow` chart 形式化为顺序化图形状态机语义 | junction、local events、`12 o'clock` ordering、安全子集 | states/junctions/transitions + linearized SOS | `Matlab/Simulink/Stateflow` 生态成熟 | 嵌入式控制器、混成系统离散部分 | 需求最终落到 `Stateflow` 工具链且接受工具优先级 | 🟢 | [desc.md](./an-operational-semantics-for-stateflow/desc.md) |
+| 28 | 🕸️ | 🏭 | ⏱️ | `Time Petri Nets` | 教程讲义 | Time Petri Nets Part II: State Class based methods | 2008 | 在并发网上加入时间区间 | 静态区间、state class graph | P/T 网 + 变迁时间区间 | TINA 线成熟，标准格式较弱 | 实时并发流程与调度 | 并发资源流 + 时间窗口 | 🟢 | [desc.md](./time-petri-nets/desc.md) |
+| 29 | 🧩 | 🌳 | 🧮 | `Tree Automata` | 教程专著 | Tree Automata Techniques and Applications | 2008 | 识别树、项与层次结构语言 | bottom-up、top-down、determinization、decision problems | ranked alphabet + 状态 + 树重写规则 | 理论与算法成熟，XML/hedge 在线路上衔接强 | AST、term rewriting、schema-like structural validation | 输入需显式树/项结构而非平坦事件串 | 🟢 | [desc.md](./tree-automata-techniques-and-applications/desc.md) |
+| 30 | 📦 | 🎛️ | 🏭 | `ModeGraph` | 工具/库 | ModeGraph - A Modelica Library for Embedded Control Based on Mode-Automata | 2008 | 在 Modelica 中实现安全层次状态机与 mode-automata 执行 | single-assignment、delayed transition、preemption、parallel | `Step/Transition/Composite/Parallel` + mode equations | Modelica 工具链明确，需语言扩展，无独立交换标准 | 嵌入式控制、混合控制、工业逻辑 | 需求需安全模式切换并与 Modelica 模型协同 | 🟢 | [desc.md](./modegraph-modelica-library-for-embedded-control-based-on-mode-automata/desc.md) |
+| 31 | 🧩 | 📝 | 🧮 | `Weighted Automata` | 手册章节 | Weighted Automata Algorithms | 2009 | 在自动机/转导器上附加 semiring 权值 | semiring、path weight、determinization、minimization | 图结构 + label + weight + semiring 运算 | 算法体系成熟，但无统一交换标准 | 概率/代价/评分型字符串与转导建模 | 需求需保留有限状态骨架且每条路径带可组合权值 | 🟢 | [desc.md](./weighted-automata-algorithms/desc.md) |
+| 32 | 📦 | 🎛️ | 🌡️ | `Ptolemy II FSM / Modal Models` | 工具教程 | Finite State Machines and Modal Models in Ptolemy II | 2009 | 用状态机控制 refinement 切换并支撑异构执行 | guard/output/set action、mode refinement、microstep、local time | `FSMActor / ModalModel` + `MoML` + compatible directors | Ptolemy II 图形/Java/MoML 生态完整 | 异构嵌入式系统、CPS mode switching | 不同模式需挂不同 refinement 与执行域 | 🟢 | [desc.md](./finite-state-machines-and-modal-models-in-ptolemy-ii/desc.md) |
+| 33 | 📦 | 🎛️ | 🌡️ | `Modelica_StateGraph2` | 形式主义 / 工具库 | A New Formalism for Modeling of Reactive and Hybrid Systems | 2009 | 把 Modelica 状态机扩成安全层次并行 generalized steps | generalized steps、suspend/resume、delay、`NuSMV` verification | `\Gamma = \langle V_c,G,T,g_I \rangle` + ports + interpretation algorithm | `Modelica_StateGraph2` + `NuSMV` | reactive/hybrid systems | 需求含模式切换并需与物理模型联仿 | 🟢 | [desc.md](./a-new-formalism-for-modeling-of-reactive-and-hybrid-systems/desc.md) |
+| 34 | 📦 | 🎛️ | 🌡️ | `Modelica State Machines` | 语言扩展 | State Machines in Modelica | 2012 | 把状态机纳入 Modelica 语言核心 | 13 方程语义、immediate/delayed、reset/synchronize | Modelica blocks + transition equations + clock | Modelica 3.3 语言级支持明确 | 物理系统中的控制逻辑、嵌入式控制 | 状态逻辑需与同 clock 的 Modelica 模型原生集成 | 🟢 | [desc.md](./state-machines-in-modelica/desc.md) |
+| 35 | 📦 | 🤝 | 🏭 | `Grafchart / JGrafchart + DPWS` | 工具扩展 / 服务编排载体 | Graphical Programming Language Support for Service Oriented Architecture in Automation | 2012 | 把可发现服务设备嵌入图形状态机协调逻辑 | `DPWS Object`、自动重绑、通知事件、方法式调用 | `JGrafchart` 图形模型 + `DPWS/WSDL` 绑定 | `JGrafchart` + `DPWS` discovery + `WSDL` | 服务化车间集成与设备协调 | 设备需以 `DPWS` 服务暴露并允许事件订阅 | 🟢 | [desc.md](./graphical-programming-language-support-for-service-oriented-architecture-in-automation/desc.md) |
+| 36 | 📦 | 🌡️ | 🌡️ | `Grafchart / JGrafchart + FMI` | 工具扩展 / 协同仿真载体 | On Extending JGrafchart with Support for FMI for Co-Simulation | 2014 | 把图形顺控应用接入 `FMI` 协同仿真 | communication step、wrapper/FMU 导出、scan-cycle 对齐 | `JGrafchart` + `FMU`/XML + wrapper/export | `JGrafchart` + `FMI` + `CustomIO/SocketIO` | 控制器与物理模型联合验证 | 控制逻辑需为离散 scan-cycle，plant 可作为 `FMU` | 🟢 | [desc.md](./on-extending-jgrafchart-with-support-for-fmi-for-co-simulation/desc.md) |
+| 37 | 🔌 | 🤝 | 🌐 | `Contract Automata` | 模型提出 | Automata for Analysing Service Contracts | 2014 | 分析多方契约匹配与责任 | agreement、weak agreement、liability | 向量动作自动机 + 组合 | 分析方法明确，生态偏研究型 | 服务编排、契约组合 | 多方 request/offer 关系清晰 | 🟢 | [desc.md](./contract-automata/desc.md) |
+| 38 | 🧩 | 🎛️ | 💻 | `SCXML` | 标准规范 | State Chart XML (SCXML): State Machine Notation for Control Abstraction | 2015 | 提供可执行层次状态机 XML 载体 | `state/parallel/history/datamodel/invoke` | SCXML XML 文档 | W3C 规范、Schema、测试套件 | 事件驱动流程与互操作 | 需要标准文本载体 | 🟢 | [desc.md](./scxml-state-machine-notation-for-control-abstraction/desc.md) |
+| 39 | 🧩 | 🎛️ | 💻 | `UML State Machine` | 标准规范 | OMG Unified Modeling Language (OMG UML), Version 2.5.1 | 2017 | 标准化行为/协议状态机元模型 | regions、pseudostates、XMI | 图形建模 + metamodel + XMI | OMG 标准和工具生态成熟 | MDE、跨工具交换 | 需要与 UML 语境集成 | 🟢 | [desc.md](./uml-251-specification/desc.md) |
 
 ## 综述类论文总表
 
@@ -250,7 +258,7 @@
 9. `Two-Dimensional / Cellular / Multi-Tape Automata` 已补基础代表条目，下一步回补更早奠基论文与典型判定边界。
 10. `EFSM` 已补方法支撑型条目，下一轮应继续补更纯粹的定义/标准源，如 `SDL / Estelle / 测试主线`。
 11. 上述每条主线都优先补“模型本体 + 标准/基础设施”条目；方法路线只作为辅证，不单独扩成主收录方向。
-12. `Reactive Modules / Argos / STATEMATE / Grafchart / SpecTRM-RL` 已补第三批组合框架与专用载体条目，下一轮可沿 `Mocha / Mode-Automata / JGrafchart / SpecTRM tool line / RSML safety analysis` 继续扩展。
+12. `CHARON / Polychrony / RSML-e / JGrafchart` 已补应用与工具桥接条目，下一轮可沿 `CHARON` 本体、`Signal/Polychrony` 工具线、`RSML-e` 工业案例、`JGrafchart` 导出/runtime 继续扩展。
 
 ## 更新日志
 
@@ -265,6 +273,7 @@
 | 2026-04-01 20:16:13 | 补入应用/专用状态机载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `CFSM / WF-net / ModeGraph / Ptolemy modal model / Modelica State Machines`，并同步回填统计、关键词簇、普通论文总表与后续扩展方向 |
 | 2026-04-01 21:00:18 | 扩展同步/工业状态机载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `SyncCharts / SFC / Stateflow / StateGraph / StateGraph2`，并同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 | 2026-04-01 21:45:20 | 扩展同步语义与需求规格载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `STATEMATE / Reactive Modules / SpecTRM-RL / Argos / Grafchart`，并同步回填统计、关键词簇、普通论文总表、follow-up 清单与下一轮扩展方向 |
+| 2026-04-01 22:43:43 | 扩展应用型与工具桥接条目 | 新增 5 篇 `desc.md` 条目，覆盖 `CHARON` 多机器人架构、`Polychronous Mode Automata`、`RSML-e -> NuSMV`、`JGrafchart + DPWS`、`JGrafchart + FMI`，并同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 
 ## 失败与阻塞记录
 
