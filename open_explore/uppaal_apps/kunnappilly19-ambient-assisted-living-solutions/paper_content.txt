@@ -1,0 +1,1756 @@
+--- Page 1 ---
+A Model-Checking-Based Framework For
+Analyzing Ambient Assisted Living Solutions
+Ashalatha Kunnappilly, Raluca Marinescu, Cristina Seceleanu
+M alardalen University, V aster as, Sweden
+(first.last)@mdh.se
+Abstract. Since modern ambient assisted living solutions integrate a
+multitude of assisted-living functionalities, some are safety-critical, it is
+desirable that these systems are analyzed already at their design stage to
+detect possible errors. To achieve this, one needs suitable architectures
+that support the seamless design of the integrated assisted-living func-
+tions, as well as capabilities for the formal modeling and analysis of the
+architecture. In this paper, we attempt to address this need, by proposing
+a generic integrated ambient assisted living system architecture, consist-
+ing of sensors, data-collector, local and cloud processing schemes, and an
+intelligent decision support system, which can be easily extended to suite
+specic architecture categories. Our solution is customizable, therefore,
+we show three instantiations of the generic model, as simple, interme-
+diate and complex conguration, respectively, and show how to analyze
+the rst and third categories by model checking. Our approach starts by
+specifying the architecture, using an architecture description language, in
+our case, the Architecture Analysis and Design Language that can also
+account for the probabilistic behavior of such systems. 69 ecications
+are semantically anchored into a formal model. To enable formal anal-
+ysis, we describe the semantics of the simple and complex categories as
+stochastic timed automata. The former we model check exhaustively with
+UPPAAL, whereas for the latter we employ statistical model checking us-
+ing UPPAAL SMC, the statistical extension of UPPAAL, for scalability
+reasons. Our work paves the way for the development formally-assured
+future ambient assisted living solutions.
+1 Introduction
+Elderly people across the world are oered enhanced care via the Ambient As-
+sisted Living (AAL) solutions that support their independent and low-risk liv-
+ing. In order to facilitate the elderly support eciently and safely, it is often
+required that these solutions integrate various assisted-living functionalities like
+health monitoring, home monitoring, fall detection, robotic platform support,
+communication support, etc. Such integration is extremely benecial in safety-
+critical situations, for instance, the case of a fall event occurring due to low
+pulse, which should trigger sending timely alerts to caregivers, for immediate in-
+tervention or else the life of the elderly can be endangered. This requires timely
+integration of health monitoring (in this case, pulse monitoring) and fall detec-
+tion functionalities. However, in literature, there are only few architectures, that
+
+--- Page 2 ---
+address the concern of multiple-functionality integration in a timely and robust
+manner [32,33]. Due to their critical nature, it is benecial that such behaviors
+(especially those emerging due to multiple functionality integration) are ana-
+lyzed at early stages of development, for instance, at design stage, using formal
+techniques, to provide some formal guarantees of meeting requirements. There
+has been some work in this direction, however, the existing frameworks [15,44]
+are still in infancy and cannot be used to specify the complete AAL system
+architecture including its articial intelligent algorithms, timeliness, reliability,
+and fault-tolerance attributes.
+In this paper, we describe these shortcomings and propose an integrated ar-
+chitecture framework for describing AAL systems and a formal analysis frame-
+work that can be employed at the design stages of development. The integrated
+AAL architecture that we propose supports a range of assisted-living functional-
+ities, like health monitoring, fall detection, reminder services, home monitoring,
+robotic platform support, etc. and follows the design of common AAL frame-
+works, with a variety of sensors, data collector unit, user interfaces, intelligent
+decision support system (DSS) , local and cloud processing, etc. Our archi-
+tecture gives due importance to intelligent decision making by proposing a DSS
+that employs a mix of articial intelligent (AI) techniques, like fuzzy reasoning,
+rule-based reasoning (RBR) and case-based reasoning (CBR) for eectively mod-
+elling the context space and taking the respective actions based on the current
+context. The system architecture and its DSS is designed as a generic model that
+can be customized to t various categories of architectures, of dierent complex-
+ity. In this work, we show three of such instantiations of our generic model, that
+is, i)a minimal conguration that contains two sensors (pulse and fall), one
+user interface (a mobile phone), and a cloud controller with a simple DSS sys-
+tem to handle the events from both the sensors, ii) an intermediate one with
+added sensors for blood pressure monitoring, motion detection and exercise mon-
+itoring and an enhanced cloud DSS, and iii) a complex one comprising wider
+categories of health monitoring and home monitoring sensors, multiple user in-
+terfaces inclusive of robotic telepresence and vocal interactions, and a complex
+DSS system for handling multiple events simultaneously, and possessing both
+local and cloud copies for ensuring fault-tolerance via redundancy. The system
+architecture, its DSS, and instance models are explained in detail in Section 4.
+Our contributions also include a modelling and analysis framework proposed
+for the design-time analysis of complex AAL systems as described earlier. The
+architecture design relies on the Architecture Analysis and Design (AADL) lan-
+guage in which we show the structure and communication between the compo-
+nents of our proposed solution. In AADL, we are able to design the architecture
+together with the functional and error behavior of the constituting components
+(Section 2.1). Once described, the architecture needs to be analyzed formally
+for meeting functional and quality-of-service requirements (end-to-end deadlines,
+fault tolerance, etc.). To enable this, we transform the architecture specications
+to a formal model, in our case, the stochastic timed automata (STA) model, that
+can eectively capture the probabilistic behaviour of AAL components such as
+
+--- Page 3 ---
+random component failures. We demonstrate our formal analysis via two tech-
+niques: a) exhaustive model-checking using the state of art model checker,
+UPPAAL, in case of the minimal architecture conguration (for which exhaustive
+verication scales) and b) statistical model-checking with UPPAAL SMC for
+analyzing the complex model instance [20]. The analysis results are described
+in (Section 7). Although the analysis results are not exact in case of statistical
+model-checking, these simulation-based methods are sometimes the only choice
+for reasoning of such complex cyber-physiscal systems (CPS) [16,35].
+2 Preliminaries
+In this section, we briey overview AADL, and the other formal notations and
+tools used for architecture analysis.
+2.1 The Architecture Analysis and Design Language
+AADL [25] is a textual and graphical language in which one can model and
+analyze a real-time system's hardware and software architecture as hierarchies
+of components at various levels of abstraction. AADL component categories
+likeApplication Software (Process, Data, Subprogram, Thread, and Thread
+Group , etc.), Execution Platform (Device, Bus, Processor, Memory, etc.) and
+System are used to represent the run-time architecture of the system, however
+a more generalized representation is possible by specifying a component type as
+abstract .
+AADL allows possible component interactions via ports/features ,shared data ,
+subprograms , and parameter connections . In AADL, the input/output ports can
+be dened as: event ports ,data ports , and event-data ports . Based on the compo-
+nent interactions, explicit control ows anddata ows can be dened across the
+interfaces of AADL components by specifying the components as ow source ,
+ow path orow sink . The components can also be associated with various prop-
+erties , like the period andexecution time and the dispatch protocol . The dispatch
+protocol species if the component trigger is periodic oraperiodic .
+A component in AADL can be dened by its type and implementation . The
+component type declaration denes the interface of the component (dening the
+component category and its interaction points with other components) and its
+externally observable attributes, whereas the component implementation denes
+its internal structure in terms of its subcomponents and connections between
+them. In this paper, we distinguish the subcomponents that are composed within
+a component in port interfaces in terms of their port interfaces. For instance, a
+data component , has no interfaces dened in terms of input-output ports, how-
+ever it can be dened as a subcomponent of another component. We refer such
+components as Atomic Components. However, if a component is composed of an-
+other component with port interfaces (like device, thread, abstract, etc.), then
+a well-dened component hierarchy is identied and we call such components as
+Composite Components.
+The functional and error behavior of a component are described by the Be-
+havior Annex (BA) [28] and the Error Annex (EA) [22] respectively, which
+
+--- Page 4 ---
+model behaviors as transition systems. The BA state machine interacts with
+the component interface and represents the system behavior. Given nite sets
+of states and state variables, the behavior of a component is dened by a set of
+state transitions of the form sguard; actions         ! s0, wheres,s0arestates ,guard is a
+boolean condition on the values of state variables or presence of events/data in
+the component's input ports, and actions are performed over the transition and
+may update state variables, or generate new outputs. Similarly, the EA mod-
+els the error behavior of a component as transitions between states triggered
+by error events. It is also possible to represent the dierent types of errors, re-
+covery paradigms, probability distribution associated with the error states and
+events, and also specify error ows and propagations within the component, and
+between various components.
+In this paper, we focus on abstract components that allow us to defer from
+the run-time architecture of the system. The need for this generic model stems
+from the fact that in real-world applications like AAL, it is dicult to assign
+run-time semantics to components before the design matures. These generic
+component categories can be parametrized, and can be rened later in the design
+process through the \extends" capability of AADL. AADL allows us to archive
+these components and reuse them. For this, we partition them into two public
+packages in AADL, namely component library and reference architecture [24]. A
+component library creates a repository of component types and implementations
+with simple hierarchy. It can be established via two packages: (i) Interfaces
+Library comprising generic components like sensors, actuators and user-interfaces
+(UI), and (ii) Controller Library that includes the control logic. The Reference
+architecture creates a repository of components of complex hierarchy, e.g. the
+top-level system architecture.
+2.2 Formal Notations and Tools
+The formal analysis technique employed in this paper is model checking. We
+employ two dierent types of model checking in this paper- 1) exhaustive-model
+checking using the state-of-the-art model checker UPPAAL, and 2) statistical
+model-checking, using the statistical extension of UPPAAL model checker, UP-
+PAAL SMC. In the following, we overview the semantics of the input models
+and the mentioned tools.
+2.3 Timed Automata and Stochastic Timed Automata
+A timed automaton (TA) as used in the model checker UPPAAL is a formal
+notation for describing real-time systems [14], and is dened by the following
+tuple:
+TA=hL;l0;A;V;C;E;Ii (1)
+where:Lis a nite set of locations ,l02Lis the initial location ,A=[is a
+set of actions , whereis a nite set of synchronizing actions (c! denotes the send
+action, and c? the receiving action) partitioned into inputs and outputs, =
+i[o, and =2denotes internal or empty actions without synchronization,
+
+--- Page 5 ---
+Vis a set of data variables ,Cis a set of clocks ,ELB(C;V)A2CL
+is the set of edges , whereB(C;V) is the set of guards overCandV, that is,
+conjunctive formulas of clock constraints ( B(C)), of the form x./n orx y./n ,
+wherex;y2C,n2N,./2f<;;=;;>g, and non-clock constraints over V
+(B(V)), andI:L !Bdc(C) is a function that assigns invariants to locations,
+whereBdc(C)B(C) is the set of downward-closed clock constraints with
+./2f<;;=g. The invariants bound the time that can be spent in locations,
+hence ensuring progress of TA's execution. An edge from location lto location l0
+is denoted by lg;a;r   !l, wheregis the guard of the edge, ais an update action,
+andris the clock reset set, that is, the clocks that are set to 0 over the edge.
+A location can be marked as urgent (marked with an U) or committed (marked
+with aC) indicating that the time cannot progress in such locations. The latter
+is a more restrictive, indicating that the next edge to be transversed needs to
+start from a committed location.
+The semantics of TA is a labeled transition system . The states of the labeled
+transition system are pairs ( l;u), wherel2Lis the current location, and u2RC
+0
+is the clock valuation in location l. The initial state is denoted by ( l0;u0), where
+8x2C; u 0(x) = 0. Letugdenote the clock value uthat satises guard g. We
+useu+dto denote the time elapse where all the clock values have increased by
+d, ford2R0. There are two kinds of transitions:
+(i)Delay transitions :< l;u >d  !< l;u +d >ifuI(l) and (u+d0)I(l),
+for 0d0d, and
+(ii)Action transitions: < l;u >a  !< l0;u0>iflg;a;r   !l0;a2;ug, clock
+valuationu0in the target state ( l0;u0) is derived from uby resetting all clocks
+in the reset set rof the edge, such that u0I(l0).
+A stochastic timed automaton (STA) renes TA as follows: (i) probabilis-
+tic choices between multiple enabled transitions, where the output probability
+functionmay be dened by the user, and (ii) probability distributions for
+non-deterministic time delays, where the delay density function is a uniform
+distribution for time-bounded delays or an exponential distribution with user-
+dened rates for cases of unbounded delays. Formally, an STA is dened by the
+tuple:
+STA =hTA;;i (2)
+The delay density function ( ) over delays in R0is either a uniform or an
+exponential distribution depending on whether the time in location lis bounded
+by an invarinat, or is unbounded, respectively. With Elwe denote the disjunction
+of guards gsuch thatlg;o;-   ! -2Efor some output o. Thend(l;v) denotes the
+inmum delay before the output is enabled, d(l;v) =inffd2R0:v+dE(l)g,
+whereasD(l;v) =supfd2R0:v+dI(l)gis the supremum delay. If the
+supremum delay D(l;v)<1, then the delay density function in a given
+statesis the same is a uniform distribution over the interval [ d(l;v);D(l;v)].
+Otherwise, when the upper bound on the delays out of sdoes not exist, s
+is an exponential distribution with a rate P(l), whereP:L!R0is an
+additional distribution rate specied for the automaton. The output probability
+
+--- Page 6 ---
+functionsfor every state s= (l;v)2Sis the uniform distribution over the set
+fo: (l;g;o; -;-)2E^vgg.
+In this paper, we use STA to model our AAL system architecture.
+2.4 UPPAAL and UPPAAL SMC
+UPPAAL model checker provides exhaustive model-checking of timed-automata
+models like the ones overviewed in Section 2.2. A real-time system can be mod-
+eled as a network of TA (NTA) composed via the parallel composition operator
+(\jj"), which allows an individual automaton to carry out internal actions, while
+pairs of automata can perform handshake synchronization. The locations of all
+automata, together with the clock valuations, dene the state of an NTA. The
+properties to be veried by model checking on the resulting NTA are specied
+in a decidable subset of (Timed) Computation Tree Logic ((T)CTL) [13], and
+checked by the UPPAAL model checker. UPPAAL supports verication of live-
+ness and safety properties [34]. The queries that we verify in this paper are of the
+form: i) Reachability :Epmeans that there exists a path where pis satised
+by at least one state of the path, and (ii) Time bounded Leads to :p tq,
+which means that whenever pholds,qmust hold within at most ttime units
+thereafter.
+UPPAAL SMC [20], the extension of UPPAAL for statistical model check-
+ing, provides means to formally analyze stochastic models. A model in UPPAAL
+SMC consists of a network of interacting STA (NSTA) that communicate via
+broadcast channels and shared variables. In a broadcast synchronization one
+senderc! can synchronize with an arbitrary number of receivers c?. In the net-
+work, the automata repeatedly race against each other, that is, they indepen-
+dently and stochastically decide how much to delay before delivering the output,
+and what output to broadcast at that moment, with the \winner" being the
+component that chooses the minimum delay. In addition to the classical queries
+supported by UPPAAL, UPPAAL SMC also uses an extension of weighted met-
+ric temporal logic (WMTL) [19] to provide probability evaluation Pr(xC),
+wherestands for(eventually ) or(always ), which calculates the probability
+thatis satised within cost xC, but also hypothesis testing and prob-
+ability comparison. In this paper, we will analyze only properties of the type
+\probability evaluation".
+3 A Framework for Formal Analysis of AAL Systems:
+Proposed Methodology
+In this section, we present in detail the framework that we propose for mod-
+eling and verication of the AAL system architectures. We consider a generic
+architecture category for AAL systems that supports a variety of assisted liv-
+ing functionalities including health monitoring, home monitoring, fall detection,
+user interactions, and communication with family, caregivers. Accordingly, the
+architecture supports a variety of components like sensors, a data collector unit
+
+--- Page 7 ---
+Fig. 1: Methodology overview.
+to collect the sensor data, local and cloud processing, and intelligent decision
+support. The system architecture and its requirements are explained in detail
+in Section 4. This architecture design and the requirements in natural language
+form the input to our analysis framework. As depicted in Fig. 1, the framework
+is composed of the following steps:
+Step 1 Create an abstract component-based model of the proposed architecture
+in AADL.
+This step focuses on specifying the architecture using an architecture description
+language. In our case, we have chosen AADL due to its rich semantics and suit-
+ability to model real-time embedded systems. In our approach, we demonstrate
+the modeling of AAL systems as abstract components and show how it can be
+extended to suit the specic instantiations (from simpler to more complex con-
+gurations, as shown in Section 4). The system modeling in AADL is presented
+in Section 5.
+Step 2 Dene a semantic encoding of AADL model as an NSTA model.
+Following the AADL modeling, in Step 2, we dene the semantic anchoring of
+the AADL model as NSTA (Section 6). We present the semantic anchoring of
+the generic model and also show the the above-mentioned instantiations of the
+latter to various congurations of increasing complexity. The NSTA model so
+formulated can be further analyzed via exhaustive model checking or statistical
+model-checking, depending upon the technique's ability to cope with the model's
+complexity. For the simple architecture conguration, we use exhaustive verica-
+tion with UPPAAL and for the complex conguration, we use statistical model
+checking, using the tool UPPPAAL SMC.
+In the subsequent step, the functional and non functional requirements of
+the architecture, which are initially specied in natural language are formal-
+ized as Timed Computation Tree Logic (TCTL) or Weighted Metric Temporal
+Logic( WMTL) queries to enable analysis in the NSTA model, using UPPAAL
+or UPPPAAL SMC. Thus, Step 3 is formulated as follows:
+
+--- Page 8 ---
+Step 3 Formalize the system requirements as queries expressed in the input lan-
+guage of the chosen model-checker.
+As the nal step, we verify the queries against the NSTA model of the archi-
+tecture and gather the results (exact for UPPAAL and statistical for UPPAAL
+SMC) leading to Step 4 formulated as below:
+Step 4 Verify the queries in the model checker and gather verication results.
+If the verication results do not meet the requirements, we feedback information
+from the verication (counter example or statistical information) to our design,
+which we modify and iterate steps 1, 2, 3 and 4.
+4 A Generic AAL System Architecture
+In this section, we detail the generic AAL system architecture that we propose.
+In addition, we also present the design of a novel decision support system for
+our system architecture that supports the integration of multiple functionalities
+and provides ecient decision making by combining multiple articial-intelligent
+(AI) techniques as detailed later in this section. Finally, we present three specic
+instantiantions of the generic architecture model that follow the same modeling
+paradigms, yet vary in their degree of complexity with respect to integrated
+functionalities.
+The generic AAL system architecture is presented in Fig.2, and follows the
+architecture of many commercial AAL systems with various sensors, a data col-
+lector, DSS, security and privacy, database (DB) systems, user interfaces (UI),
+and cloud computing support. This architecture can act as a base for the devel-
+opment of many integrated AAL system architectures. We classify the sensors
+in the AAL environment as follows:
+{Wearable sensors that send information as data (W data), e.g., sensors mea-
+suring health parameters like pulse, ECG, etc. They are represented by Sen-
+sorA category in Fig 2;
+{Non-wearable sensors measuring ambient parameters and health parame-
+ters (NW data), e.g., camera sensors, motion sensors, etc., represented by
+Sensor B category;
+{Wearable sensors that detect events (W event), e.g., fall sensors, marked as
+Sensor C category;
+{Non-wearable sensors detecting events (NW event), e.g., re sensors, denoted
+by Sensor D category.
+A particular instantiation of the generic architecture can contain nsensors
+of each category, respectively, n2N. As depicted in Fig.2, the data from the
+sensors are collected by the Data Collector unit, which processes the data by as-
+signing labels and priorities. The Data Collector sends the data to the message
+queue in the Local Controller, where it gets sorted according to its priority such
+
+--- Page 9 ---
+Sensor_A
+(W_data )
+Sensor_B
+(NW_data)
+Sensor_C
+(W_event)
+Sensor_D
+(NW_event)Data 
+PreprocessingUI
+Cloud DBDecision  Support  SystemC 
+o 
+m 
+m 
+u 
+n 
+I 
+c 
+a 
+t 
+I 
+o 
+nData
+CollectorUserMessage Queue
+    Decision 
+   Support System
+Security & 
+   Privacy module
+       Local DBCloudC 
+o 
+m 
+m 
+u 
+n 
+I 
+c 
+a 
+t 
+I 
+o 
+n 
+ C 
+o 
+m 
+m 
+u 
+n 
+I 
+c 
+a 
+t 
+I 
+o 
+n 
+ Local ControllerThird-party UI  
+(Care givers, ﬁreﬁghter , family)  
+Health platforms and services  Fig. 2: The generic AAL system architecture.
+that when the DSS processes the rst element in the queue, it processes the mes-
+sage with the highest priority. Our architecture has both local and cloud-based
+processing in order to ensure fault tolerance with respect to the DSS. The com-
+ponents of the architecture can interact via various communication protocols.
+The crux of our AAL system is the intelligent context-aware DSS , shown
+in Fig.3. The novelty of our architecture stems from the combination of various
+AI algorithms, like rule-based reasoning (RBR), fuzzy logic, and case-based rea-
+soning(CBR) with context reasoning for ecient decision-making, as detailed
+below.
+Fig. 3: The DSS architecture
+Our DSS architecture is inspired by the work of Zhou et al. [46], where the
+authors have proposed a context-aware, CBR-based ambient-intelligence system
+for AAL applications. CBR reasoning works very well in scenarios that are not
+specic and need to adapt accordingly with inputs. For instance, CBR reasoning
+is suited in a clinical decision support system that prescribes medicines/treat-
+ment, where the treatment, prescription and medicine dosage vary depending
+upon individual patients. CBR is an attractive choice due to its reasoning tech-
+nique resembling more of human problem-solving competence, (i.e., trying to
+reason out a new scenario by looking at the similar solved cases in the past and
+
+--- Page 10 ---
+Fig. 4: Internals of the DSS architecture (List of AI techniques)
+adapting them according to the current needs) and less of knowledge engineering,
+however there are many scenarios that are specic and involve domain expertise,
+where RBR can be employed with more eciency and ease. For instance, if a re
+occurs at home, the action to be taken by the system is to notify the reghters,
+which can be easily implemented using \if-then-else" rules rather than via a
+CBR system that needs to compare across all cases using a case-matching algo-
+rithm to retrieve a matching case and act accordingly. Moreover, RBR systems
+using fuzzy logic are very ecient to determine sensor data deviations compared
+to crisp logic. For instance, the normal pulse range of a person is between 60-
+120, and a crisp rule-based-reasoning system (Boolean logic) will classify a pulse
+value of 59.5 or 120.5 as an abnormal range (which in reality is not) and raises
+a pulse- deviation alarm to the caregiver. Using fuzzy logic, a degree of mem-
+bership can be associated to each value, i.e., a pulse value of 59.5 or 120.5 is
+strictly not within abnormal or normal boundaries, rather it is considered 97%
+within normal range and 3% within abnormal range. Thus, by replacing the crisp
+boolean logic with fuzzy logic, a multitude of false pulse deviation alarms can
+be avoided. However, RBR (even fuzzy based) cannot work eciently in many
+other ill-dened scenarios that require adaptability, like that of a clinical deci-
+sion support system or a system that sends personalized recommendations to its
+users.
+The DSS triggers the various AI algorithms based on a change in context
+[46]. The context-modeling (CM) and the usage of dierent AI algorithms are
+depicted in Fig. 4. As indicated, CM module identies the context space based
+on: (i) the personal prole of the user, e.g., gender, age, disease history etc., (ii)
+the activity of daily living (DA) performed by the user, e.g., exercising, sleeping
+etc., (iii) spatio-temporal properties, like time, location of the user, etc., (iv)
+environmental, e.g., temperature, pressure, re, etc., and (v) health parameters,
+for instance, like blood pressure, pulse, etc. Each of these context-space com-
+
+--- Page 11 ---
+Pulse
+monitoring
+sensor
+Fall sensorM 
+o 
+b 
+i 
+l 
+e 
+ 
+Cloud DBDecision  Support  
+ SystemGPRS/  
+GSM  
+User
+Cloud Controller
+Internet
+protocols  Data
+collectorBluetooth
+Bluetooth
+ 
+Third-party UI  
+(caregiver)  Fig. 5: Category 1: A minimal conguration
+ponents can be associated with one of the three properties - sensed, proled or
+predicted .Sensed contexts are those directly derived from sensor values. How-
+ever, predicted contexts correspond to the output resulting from further analysis
+of sensed inputs, e.g., activity-recognition. Proled values are usually descriptive
+and remain unchanged.
+In our DSS, fuzzy reasoning is used for detecting DA [40], and also for de-
+termining sensor-data deviations1. To take decisions in various situations, we
+employ RBR rst, CBR as second paradigm, i.e., upon a change in context, the
+RBR triggers rst and checks if there exists a rule to handle that particular con-
+text, if not, it allows the CBR system to tackle the context based on its learning
+from previous scenarios. Developing an ecient case base, case matching and
+formulating the adaptation rules are the most complex aspects of a CBR sys-
+tem. In our system, each time an RBR outputs a rule, we save it as a case in
+the CBR system with the case-id represented by the DA of the user, the context
+space represented by the case features, and the triggered rulerepresented by the
+solution for a particular case. The KB stores the context, rules, and cases. The
+internal structure of the DSS is represented in Fig.4. An example scenario of the
+DSS reasoning employing dierent AI techniques is presented in detail in Listing
+1.1 of Section 6.2.
+The generic architecture, and its DSS can be instantiated to create a family
+of AAL architectures that follows the same design principles. In this paper, we
+present three such architectures and their DSS instantiations.
+{ Category 1: A minimal conguration - The minimum conguration ar-
+chitecture consists of the following modules: Two sensors (a fall sensor and
+a pulse monitoring sensor), a mobile phone UI, and cloud controller with
+third-party UI and DSS system with a minimum context-space information
+including the health data (pulse and fall) and DA. The simplied DSS em-
+1In order to reduce the complexity of our analysis, we have not explicitly modeled the
+DA detection using fuzzy logic and has often assumed that the user's DA is known
+in various scenarios.
+
+--- Page 12 ---
+ploys only RBR with fuzzy logic as AI techniques. The minimal conguration
+is shown in Fig. 5.
+{ Category 2: An intermediate conguration - This instantiation (see
+Fig. 6) is more complex than the previous one and it contains sensors belong-
+ing to all four types of the generic architecture (health monitoring sensors
+that detect pulse and blood pressure, smart home sensors that detect user
+movements, a wearable fall sensor, and a set of physical exercise monitoring
+sensors), as well as a local controller with inbuilt data collection function-
+ality, which forwards the data to the cloud controller. The cloud controller
+has a DSS with context modeling, fuzzy logic and RBR.
+Phone    Linkwatch  
+    Data
+Collection 
+PCTablet / LaptopSmart Home
+SensorsPhysical Exercise
+SensorSensor Unit
+Health Sensors
+Fall SensorsCAMI GatewayRobotic T elepresence
+Multimodal User Interface
+Voice, Gesture and T ouch comandsMessage Queue
+Health Channel
+Home Monitoring Channel
+User Notiﬁcation Channel
+Decision System Support
+Communication to 3rd Party
+Fall Detection + Alerts  Reminder + Dynamic Program Management
+Intelligent Health AnalysisMySQL DB Cloud
+3rd Party  
+Health Platforms  
+LinkwatchUser Account Setup  Security & PrivacySystem Conﬁguration Service
+BLE
+Physical Exercise
+Analysis Service  
+OpenHab  
+Server
+Z-Wave
+OpenT ele 
+Fig. 6: Category 2: An intermediate conguration
+{ Category 3: A complex conguration - In this category, we present the
+most complex version, the CAMI AAL architecture [33] derived from our
+generic model, and represented in Fig. 7. The latter supports various sen-
+sors (e.g. A multitude of health and home monitoring sensors like the A&D
+UA-651 BLE blood pressure sensor [10], Fibaro temperature and motion
+sensor FGMS-001 [2], Fitbit bracelet [3], Vibby fall detection sensor [11],
+etc.), data collector, local controller (EXYS9200-SNG [1] referred as CAMI
+gateway ), the CAMI cloud , and third party health platforms like Open Tele
+[5] and [4]. There is a set of user interfaces (UI) in CAMI, including robotic
+platforms (TIAGo [9] and Pepper [7]), mobile phone and vocal interface to
+facilitate the interaction with the elderly user. There is also a local backup
+ofDSS in the CAMI gateway apart from the cloud. The communication
+between various modules can employ a variety of communication protocols,
+for instance, Bluetooth, Zigbee, Wi, etc,. The local processor is called the
+CAMI gateway and is responsible for all critical functionalities. The Mes-
+sage Queue is implemented by Rabbit MQ Message Broker [8]. The DSS is
+
+--- Page 13 ---
+complex and employs context modeling, fuzzy logic, RBR and CBR. There
+are also redundant copies of DSS in the local controller and cloud controller.
+Fig. 7: Category 3: A complex conguration: The CAMI AAL System Architec-
+ture [33]
+In the following, we present the modeling and analysis of the simplest architec-
+ture (Category 1), as well as of the most complex one, the CAMI architecture
+(Category 3). We start by describing the use-case scenarios and system require-
+ments of the two architecture instantiations, in the following section.
+4.1 Use Case Scenarios and System Requirements
+AAL systems should assist the elderly users with a variety of health, home-
+related functions, as well as social inclusion ones. Let us assume the following
+critical scenarios where we can employ systems whose architectures conform to
+the ones of Categories 1 and 3 described above, respectively.
+Overall Scenario: Jim is an elderly user living alone in his home. Jim
+suers from chronic cardiac disease, slight memory loss, and falls frequently.
+If Jim uses the AAL system architecture of category 1, the latter should
+assist in fullling the scenarios below:
+{Scenario 1 - Assistance for detecting health parameter deviations: Jim has
+sudden pulse variations, detected by the pulse monitoring sensor, which are
+critical for cardiac patients. If the pulse is low, the DSS alerts the caregiver
+of a low pulse. If the pulse is high and the user is currently exercising (if this
+is the case, a high pulse is considered as normal) and if not, it sends an alert
+to the caregiver.
+{Scenario 2 - Fall detection : Jim falls heavily while exercising, the fall sensors
+detect the fall and the system immediately noties the fall event to the
+caregiver.
+
+--- Page 14 ---
+However, if Jim needs additional functionality support, then he needs to acquire
+the CAMI AAL system (Category 3), which can handle additional scenarios
+besides the already mentioned ones. The fall detection in CAMI is complex, as
+it employs a combination of wearable fall sensor (Vibby) and camera sensor for
+detecting the fall event.
+{Scenario 3 - Home-monitoring functionalities : Jim forgets to switch o the
+cooker after cooking his dinner, which results in a re in the house. The
+re detection sensor of CAMI detects the re and the system alerts the
+reghters of the re incident in Jim's house.
+{Scenario 4 - Combining various functionalities in case of multiple events
+occurring together : Jim is cooking his breakfast. He suddenly feels dizzy
+and falls. The gas-based cooker is still on, and eventually starts a re in
+Jim's house. In this case, the CAMI system detects the simultaneously oc-
+curring events, and alerts the reghter and caregiver of both the events.
+As a result, the reghters and caregivers can immediately start the res-
+cue without waiting for alarm conrmations, avoiding potentially dangerous
+consequences [32]. Further, if there are any health parameter variations de-
+tected for Jim along with the fall (for instance, a low pulse), the fall event
+can be associated with the low pulse, and the caregiver notied accordingly,
+which can help in further diagnosis.
+All these scenarios are safety critical and have to be processed in real time. For
+architecture 1, we consider verifying the following requirements:
+Requirements of the minimal architecture model (Category 1):
+{ R1 Arch1 : If a high pulse is detected by the pulse sensor and the elderly user's
+DA is not exercising, then the DSS sends a notication to caregiver within
+20 s. This requirement relates to Scenario 1.
+{ R2 Arch1 : If a fall is detected by the fall sensor, then the DSS sends a noti-
+cation to caregiver within 20 s. It is associated with Scenario 2.
+Requirements of the CAMI architecture (Category 3):
+For the CAMI architecture, we consider verifying the following functional and
+quality-of-service (QoS) attributes, like fault tolerance and data consistency.
+Such verication is benecial, as the system needs to be prototyped and the
+analysis oers some assessment of the system's dependability.
+{ R1 CAMI : If the re sensor detects a re, then the DSS sends a notication
+to the reghters, within 20 s. This requirement corresponds to Scenario 3.
+{ R2 CAMI : If a fall is detected by the wearable or the camera sensor, then
+the DSS sends a notication to the caregiver, within 20 s. This requirement
+relates to Scenario 2.
+
+--- Page 15 ---
+{ R3 CAMI : If there is a pulse data deviation indicating high pulse, the DA
+is \not exercising", and the user has a disease history of a cardiac patient,
+then the DSS sends a notication to the caregiver, within 20 s. This relates
+to Scenario 1.
+{ R4 CAMI : If re and fall are detected simultaneously by the respective sen-
+sors, then the DSS should detect the presence of the simultaneous events
+and send notications to both the reghters and the caregiver indicating
+the presence of both events, within 20 s. This relates to Scenario 4.
+{ R5 CAMI : The decisions taken by the local DSS are updated in the cloud
+DSS such that they are eventually synchronized. This requirement relates to
+the data-consistency requirement of CAMI.
+{ R6 CAMI : If the local DSS fails, then the cloud DSS eventually becomes ac-
+tive. It corresponds to the fault-tolerance aspect of the CAMI system.
+The overall goal is to analyze the satisfaction of the above requirements by
+the respective architectures. We achieve this by rst specifying the architectures
+in AADL, and then by semantically mapping the specication into a (network of)
+STA (N(STA)) that we model-check with UPPAAL (for architecture category
+1) or statistically model-check with UPPAAL SMC (for CAMI).
+5 System Modeling in AADL
+The generic architecture, depicted in Fig. 2 can be modeled in AADL as a set
+of interacting components. All the components are modeled as abstract , and can
+be easily extended to suit particular run-time representations appropriate for
+specic requirements.
+In order to develop the AADL model, we classify the AADL components as:
+1.Atomic Components (AC) : Components that do not have hierarchy
+in terms of sub-components with port interfaces, but might contain sub-
+components without port interfaces.
+2.Composite Components (CC) : Hierarchical components that contain
+sub-components with and without interfaces. For example, data is a sub-
+component without interface and it can be part of an AC or CC hierarchy.
+The system architecture itself can be considered a CC with other AC or
+CC as its sub-components. In order to encode the complex modeling aspects
+and facilitate the reasoning with functional behavior and errors, we propose a
+modeling format for both AC and CC as dened below.
+
+--- Page 16 ---
+AAL Atomic Components: An AC is dened by its component type, imple-
+mentation, behaviour annex (BA), and error annex (EA). The component type
+denition species its name, category (i.e., \abstract") and interfaces. We can
+also specify particular component properties and ows in the type denitions2.
+The implementation of an AC denes the data sub-components. The AC's BA
+has two states, Waiting and Operational. Waiting represents the initial state
+where the component waits for an input, and Operational represents the state to
+which a component switches upon receiving the input (if it has not failed). The
+AC's EA uses four states to represent failure: Failed Transient ,LReset ,Failed
+Permanent , and Failed ep . The state Failed Transient models transient failures,
+from which a recovery is possible via a reset event. Since reset is modeled as an
+internal event that occurs with respect to a probabilistic distribution, we model
+an additional location LReset to encode a component's reset action upon the
+successful generation of the reset event. Failed Permanent models a permanent
+failure of the RBR, from which the component cannot recover. Failed ep models
+a failure due to error propagation from its predecessor components.
+An example of an AC in the architecture is the RBR component of the CAMI
+DSS. In this paper, we illustrate the RBR for R3 CAMI (Scenario 1), described in
+Section 2.1. The RBR component type, implementation, BA, and EA are shown
+in Listing 1.1. The component type denition species its name, category (i.e.,
+\abstract") and interfaces (Lines 2-15). The RBR component type describes that
+the component gets activated aperiodically, has an execution time of 1 s, and
+illustrates the data ows between the respective input and output ports. The
+implementation denition of RBR (Lines 16-20) denes the data sub-components
+like the fuzzy data output, personal information and daily activity of the user,
+which forms the context-space of Scenario 1.
+In the BA (Lines 22-28), Waiting represents the initial state where the com-
+ponent waits for an input from the pulse sensor. In the Operational state, the
+system monitors the fuzzy logic output to identify any pulse variations. The
+fuzzy reasoning is not shown in Listing 1.1 as it is part of the context-reasoning
+module and not RBR, however we present the underlying reasoning in a nutshell.
+First of all, fuzzy data memberships are assigned to the range of pulse data values
+: Low [40 70], Normal [55 135], and High [110 300], where the numbers represent
+heart beats per minute. The pulse data inputs from the sensor are classied as
+Low, Normal or High. If a high pulse is detected by the RBR, then the user
+context is tracked by checking the elderly's activity of daily living and disease
+history. If the activity is \not exercising" and the user has a cardiac disease his-
+tory, a notication alert is raised and sent to the caregiver. The information is
+2While dening the component properties, we chose to include thread-related proper-
+ties like the Dispatch Protocol, Component Execution Time etc., which later aid us
+in reasoning. All these thread-related properties need to be instantiated by a value
+and hence we chose it to be instantiated with some values specic to our architec-
+ture chosen. If the reader wishes to use the AADL model for a specic architecture
+of choice, we recommend to extend the abstract models and manually update the
+property values under consideration or add/delete properties.
+
+--- Page 17 ---
+encoded as a rule in the BA depicted in Listing 1.1. Upon triggering a particular
+rule, the RBR output is stored in the DB as a case input for CBR, where the
+case-id is represented by daily activity (DA), case features are the context space
+and the case solution is the RBR output (refer Fig. 4 to see the behavior of
+the various AI algorithms). The RBR output is also synchronized with Cloud
+DSS such that the data consistency is maintained. In the EA (Lines 30-49), we
+show the states - Waiting and Failed Transient ,Failed Permanent ,LReset and
+Failed ep plus their transitions based on a TFevent (event that causes tran-
+sient failures), PF(event that causes permanent failure) and reset event. If a TF
+orPFevent occurs when the component starts, the latter moves to the Failed
+Transient state or Failed Permanent state respectively. From Failed Transient ,
+the system can generate a reset event with occurrence probability of 0.9 and
+moves to LReset . If the recovery is successful with the reset event, the system
+moves to Waiting state with probability 0.8, else it moves to Failed Permanent
+with probability 0.2. In this work, we have considered the Waiting state in the
+EA and BA to be similar. For a full description of the RBR model in AADL,
+the user can refer to the Appendix A.
+Listing 1.1: An excerpt from the RBR component in AADL for CAMI
+1   RBR (Component Type +Implementation)    
+2 abstract RBR
+3 f e a t u r e s
+4 input : in event data port ;
+5 output : out event data port ;
+6 flows
+7 F1 : flow path input  >output ;
+8 p r o p e r t i e s
+9 Dispatch Protocol = >Aperiodic ;
+10 property eventgeneration : : AperiodicEventGeneration = >1.0;
+11 property eventgeneration : : D i s t r i b u t i o n= >Exponential ;
+12 p r o p e r t y f a i l u r e r e c o v e r y : : FailureRecoveryRate = >1.0;
+13 p r o p e r t y f a i l u r e r e c o v e r y : : D i s t r i b u t i o n= >Exponential ;
+14 Compute Execution Time =>1s . . 1 s ;
+15 end RBR;
+16 abstract implementation RBR. impl
+17 f u z z y o u t p u l s e : data f u z z i f i e d d a t a p u l s e ;
+18 DA: data ADL;
+19 u p r o f i l e : data user ;
+20 end RBR. impl
+21  BA  
+22 s t a t e s
+23 Waiting : i n i t i a l complete f i n a l s t a t e ;
+24 Operational : s t a t e ;
+25 t r a n s i t i o n s
+26 Waiting [on dispatch input]  >Operational
+27fi f ( fuzzyo pulse=high and DA!= e x e r c i s i n g and u prof =c a r d i a c p a t i e n t )
+28foutput := n o t c a r e g i v e r h i g h p u l s eg
+29  EA  
+30 s t a t e s
+31 Waiting : i n i t i a l s t a t e ;
+32 Failed Transient : s t a t e ;
+33 Failed Permanent : s t a t e ;
+34 LReset : s t a t e ;
+35 Failed ep : s t a t e ;
+36 events
+37 Reset : recover event ;
+38 TF: e r r o r event ;
+39 PF: e r r o r event ;
+40 Transitions
+
+--- Page 18 ---
+41 t1 : Waiting  [PF] >Failed Permanent
+42 t2 : Waiting  [TF] >Failed Transient ;
+43 t3 : Failed Transient [Reset] >fLReset with 0.9 ,
+44 Failed Permanent with 0 . 1 g;
+45 t4 : LReset  [] >fWaiting with 0.8 , Failed Permanent with 0.2 g
+46 p r o p e r t i e s
+47 EMV2: : DurationDistribution = >[ Duration = >1 s . . 2 s ; a p p l i e s to Reset ;
+48 EMV2: : OccurrenceDistribution = >[ProbabilityValue = >0 . 9 ;
+49 D i s t r i b u t i o n = >Fixed ; ] a p p l i e s to Reset ;
+AAL Composite Components: A CC is dened in a similar way as that of AC,
+except that its BA is not explicitly dened (We assume that the behaviour of
+the CC is already encoded by its sub-components). Also, the EA denition of
+CC shows the failure behaviour of its sub-components. In Listing 1.2, we present
+an excerpt of the DSS component, as an example of CC. The component type
+denition (Lines 2-12) is similar to that of an AC, except that we do not de-
+ne explicitly properties like execution time of a CC (it is considered based on
+the execution time of each component, respectively). However, component im-
+plementation (Lines 13-26) shows the prototypes used to dene sub-components
+and connections between them. The EA (Lines 28-39) shows the composite error
+behavior of DSS and shows that the DSS moves to Failed Transient orFailed
+Permanent , if each of its sub-components move to these states, respectively.
+No BA is created for the DSS since the behavior is dened by the BA of the
+sub-components.
+Listing 1.2: An excerpt from the DSS component in AADL for CAMI
+1  DSS Component Type + Implementation   
+2 abstract DSS
+3 f e a t u r e s
+4 input : in event data port ;
+5 d e c i s i o n o u t : out event data port ;
+6 p r o p e r t i e s
+7 Dispatch Protocol = >Aperiodic ;
+8 property eventgeneration : : AperiodicEventGeneration = >10.0;
+9 property eventgeneration : : D i s t r i b u t i o n= >Exponential ;
+10 p r o p e r t y f a i l u r e r e c o v e r y : : FailureRecoveryRate = >1.0;
+11 p r o p e r t y f a i l u r e r e c o v e r y : : D i s t r i b u t i o n= >Exponential ;
+12 end DSS ;
+13 abstract implementation DSS . impl
+14 prototypes
+15 RBR DSS: abstract RBR;
+16 CBR DSS: abstract CBR;
+17 CM DSS: abstract context model ;
+18 subcomponents
+19 RBR: abstract RBR DSS;
+20 CBR: abstract CBR DSS;
+21 CM: abstract CM DSS;
+22 connections
+23 C1 : port input  >CM. input ;
+24 C2 : port CM. output  >RBR. input ;
+25 C3 : port RBR. output  >CBR. input ;
+26 C4 : port CBR. output  >d e c i s i o n o u t ;
+27  DSS EA  
+28 annex EMV2 f∗∗
+29 composite e r r o r behavior
+30 [RBR. Failed Permanent and CBR. Failed Permanent and
+31 CM. Failed Permanent ] >Failed Permanent ;
+32 [RBR. Failed Transient and CBR. Failed Transient and
+33 CM. Failed Transient ] >Failed Transient ;
+
+--- Page 19 ---
+34 [RBR. Operational or CBR. Operational or
+35 CM. Operational]  >Wait ;
+36 EMV2: : OccurrenceDistribution = >[ProbabilityValue = >10;
+37 D i s t r i b u t i o n = >Exponential ; ] a p p l i e s to Failed Permanent ,
+38 Failed Transient , Wait ;
+39 end composite ; ∗ ∗g;
+The assumptions made in the AADL model are: (i) all the system components
+have a reliability of 99.98%, (ii) the sensors have a periodic activation, (iii) all
+the system components interact via ports without any delay of communication,
+and (iv) the output is produced in the Operational state and there is no loss of
+information during transmission.
+6 Semantics of AAL-Relevant AADL Components
+AADL is a \semi-formal" language and in order to formally verify our AAL
+systems specied in AADL, we give formal semantics to AADL components (of
+the type used in this paper) in terms of stochastic timed automata , to be able
+to encode annex behaviors also. First, we provide the tuple denition of AADL
+components (Section 6.1), after which we perform a semantic anchoring of the
+AADL component tuple via a mapping between the elements of the AADL and
+the elements of the STA (Section 6.2).
+6.1 Denition of AADL Components for AAL
+An AADL component that we employ in this paper can be dened as a tuple:
+AADL Comp =hComp type;Comp imp;EA;BAi; (3)
+whereComp typerepresents the component type, and Comp imprepresents the
+component implementation, BAthe behavioral annex specication, and EAthe
+error annex, as follows:
+{Comp typeis dened as a tuple: Comp type =hFeatures;Flow spec;Propi,
+where:
+Features =INp[OUT p, whereINp,OUT prepresent the sets of
+input ports andoutput ports respectively, and INp,OUT p2fdata-
+ports ,event -ports ,event -data-portsg;
+Flow spec=hFlow so;Flow p;Flow sii, whereFlow so,Flow p,Flow sirep-
+resent ow sources, ow paths and ow sinks respectively. Let Fs0:
+Flow so!OUT pbe a function that associates certain OUT ptoFlow so
+withFlow soOUT p,Fp:Flow p!OUT pINpbe a function that
+associates and an input and an output to a ow, and Fsi:Flow si!INp
+be a function that associates certain INptoFlow si, withFlow siINp.
+For instance, in our AAL architecture, we can dene Flow specfor fall
+events by dening the output port of the fall sensor as Flow so, the input
+port of the cloud DSS as Flow si, and the input and output ports of all
+the intermediate components dening the Flow p;
+
+--- Page 20 ---
+Prop is the set of associated properties of the component, like Deployment ,
+Communication ,Timing ,Thread -related properties , etc. [24]. In this
+work, we only consider a subset of Timing ,Thread -related properties ,
+anduser-defined properties , that are represented as follows: Prop =
+fTp;Te;Dispatchprotocol;event gendist;failure recoverydistgwhere
+TpandTerepresent the period and execution-time of the component, re-
+spectively,Tp,Te2Timing properties ,Dispatch protocol 2fP;APg3,
+wherePrepresents a Periodic and APrepresents an Aperiodic protocol,
+andP;AP2Thread -related properties , andeventgendist;failure
+recoverydist2user-defined properties represent the set of user-
+dened properties used for specifying the occurrence distribution of ape-
+riodic events and failure recovery, respectively.
+{Comp impis dened as Comp imp=hSC;P t;Con;MSM;Flow imp;ETFi,
+where:
+SCrepresents the set of sub-components of the system with port inter-
+faces (SCi) and without port interfaces ( SCData), i.e.,SC=SCData[
+SCi;
+Ptdenotes the set of Prototypes used to dene SCviaFp:Pt!
+SCiSCData, a function that associates SCto aPt, respectively;
+Con represents the set of connections. Fcon:Con!Features is a
+function that assigns Features toCon;
+MSM is the mode state machine that is modeled by a tuple, as follows:
+MSM =hMs;!i, whereMsis the set of states, and !MsevMs
+is the transition relation (with evbeing the set of events, such that Fe:
+event -ports!ev,event -ports2Features ). We write se  !s0as short
+for (s;e;s0)2!, wheres;s02Ms, ande2ev. The set of Con is dened
+with respect to MSM , if present;
+Flow impare the ow implementations, represented as Flow imp:SC!
+Flow spec;
+ETF represents the set of end-to-end ows as complete ow paths from
+a startingSCito the nal SCi, respectively.
+{The error annex EAis dened as the tuple: EA=hEows;Ebeh;Epropi,
+where:
+Eowsdenotes the error ows, Eows=hEpp;Err so;Err p;Err sii, where
+Eppdescribes error propagations, and Err so,Err p,Err sirepresents er-
+ror sources, error paths, and error sinks, respectively; Fe1:Err so!
+OUT pis a function that associates certain output ports with error
+sources,Fe2:Err p!(INp;OUT p) is a function that associates in-
+put and output ports via Err p,Fe3:Err si!INpis a function that
+assigns certain input ports as error sinks;
+3The dispatch protocol property of a thread determines when the thread is executed.
+A periodic thread is activated at time intervals of the specied period T; an aperiodic
+thread is activated when an event arrives at a port of the thread.
+
+--- Page 21 ---
+Ebehrepresents error behavior, Ebeh=hEs;!e;Ee;EM Compi, where
+Esrepresents the set of error states, !edenotes an error transition
+relation,!eEsEeEs, withEe, the set of error events. For a
+CC, the error behavior is represented as EM Comp (error-model for a
+CC) with respect to the failure of its SCi. Letseandse0be two error
+states,se,se02Es, and!ethe transition between them due to an error
+eventee2Ee, thenseee ! ese0. We represent initial state as s0e2Es.
+FEpp:Epp!(INp;OUT p) is a function that associates input and
+output ports to error propagations;
+Epropdenotes the error properties. In our work, we focus only on two
+error properties: Duration distribution (Dur dist), and Occurrence dis-
+tribution (Occur dist), which aid in our error analysis, thus Eprop =
+fDur dist;Occur distg.
+{The Behaviour Annex, BAis dened as: BA=hBv;Bs;!bi, whereBv,Bs,
+represent the set of variables, and the states of BA, respectively and !bis
+a BA transition relation. Let sbands0bbe two states of BA,sb;s0b2Bs,
+and!bthe transition between them, !bBsBvSCDataBs, with
+SCData being the set of data subcomponents. We denote by s0b2Bsthe
+initial state of a BA path.
+Formally, we distinguish the Atomic Component from the Composite Com-
+ponent as follows:
+{AC2AADL Comp , whereComp ImplAC =fSCDatag,EAAC6=;, whereEbeh2
+EAAC=fEs;!e;Eeg,BAAC6=;,
+{CC2AADL Comp , whereComp ImplCC =fPt;SC i;SC Data;Con;MSM;
+Flow imp;ETFg,EACC6=;, whereEbeh2EACC=fEM Compg,BACC=
+;. A CC represents the system-level view of the architecture.
+Next, we present an instantiated example of an AC and a CC from the CAMI
+architecture. The RBR component of DSS is an AC and it is dened by its type,
+implementation, BA, and EA (Listing 1.1). In formal semantics, we dene it as
+follows:
+RBR AADL =hComp type RBR;Comp imp RBR;EA RBR;BA RBR;i (4)
+where the elements are dened as follows:
+{Comp type RBR =hFeatures RBR;Flow spec RBR;Prop RBRi, with:
+Features RBR =INp[OUT p, andINp,OUT p2fevent -data-portsg,
+Flow spec RBR =hFlow pi,
+Prop RBR =fTe;APg:
+{Comp imp RBR =hSCDataRBRi
+{EARBR =fErr p;Es;!e;Ee;Dur dist;Occur distg
+{BARBR=fBs;!bg
+
+--- Page 22 ---
+On the other hand, the DSS in our CAMI architecture is a CC, with multiple
+subcomponents and hence it is dened by its type, implementation and EA (no
+BA) as shown in Listing 1.2. Formally, it can be represented as follows:
+DSS AADL =hComp type DSS;Comp imp DSS;EA DSSi (5)
+where the elements are dened as follows:
+{Comp type DSS =fFeatures DSS,Flow spec DSS ,Prop DSSg, where:
+Features DSS=INp[OUT p, andINp,OUT p2fevent -data-portsg,
+Flow spec DSS =hFlow pi,
+Prop DSS=fAPg.
+{Comp imp DSS =fSCDSS,PtDSS,Con DSS,Flow imp DSSg, where:
+SCDSS=fCM;RBR;CBRg,
+PtDSS=fCM;RBR;CBRg,
+Con DSS=fINpDSS!INpCM,OUT pCM!INpRBR ,OUT pRBR!
+INpCBR ,OUT pCBR!OUT pDSSg,
+Flow imp DSS =fCM!Flow p;RBR!Flow p;CBR!Flow pg.
+{EADSS=fEM Compg
+In the next sub-section, we present our semantic encoding of atomic and com-
+posite components, in terms of NSTA.
+6.2 Formal Encoding of AADL Components as NSTA
+Using the denition of AADL components given in Section 6.1, the formal de-
+nition of STA as STA =hL;l0;A;V;C;E;I;; i, and ofNSTA =jjiSTAi(see
+Section 2.2), we dene a semantic encoding of the AADL components, respec-
+tively, in terms of NSTA.
+Denition 1 (Formal Encoding of AC). Any atomic component in AADL,
+dened by: AC=hComp typeAC;Comp implAC;EA AC;BA ACiis encoded as an
+NSTA as follows: AC NSTAAC=ACiSTAjjACaSTA , whereACiSTA is
+the so-called \Interface STA" of AC, which corresponds to Comp typeAC and
+Comp implAC , whereasACaSTA is the \Behavioral STA" that encodes the EA
+and BA of an AC.
+{TheAC iSTA is dened according to a template STA (see Fig. 8) with L2
+fIdle;Op;Fail;start;stop g,l0=Idle,Opcorresponds to the Operational
+state of the RBR, start ,stop represent the locations to initiate the synchro-
+nizations with ACaSTA andE=fIdle !start;start !Op;Op !
+stop;stop !Idle;Op !Fail;Fail !Idleg. This template is annotated
+with the following information:
+V=outport[inport[fPF;TFg[SCData , whereoutport andinport
+represent the set of output and input ports 2fdata -ports ,event -ports ,
+event -data -portsg, respectively, and the Boolean variables, PF;TF , rep-
+resent the error events associated with the transient failure and perma-
+nent failure of AC, plus the variable associated with SCData2Compimp;
+
+--- Page 23 ---
+Declarations:broadcast chanstart_AC, stop_AC, start_Aci, stop_ACi;boolTF_AC=0, PF_AC=0;intin, out, data1, data2;DeclarationsClockx;
+DeclarationsClock x;STA1: Template TASTA2: STA1+PortsSTA3: STA2+Trig.1+Exec.time
+STA4: STA2+Trig.2+Exec.time
+Fig. 8: Step-by-step formulation of ACiSTA
+C=fxgis the set of clocks that models the period and execution time
+of AC;
+A=fstartACi?;startAC!;stopAC!;stopACi!g[fx= 0g, whereAis
+the set of synchronization channels associated with input-output ports 2
+fevent -data -ports ,event -portsg, that is, channels startAC!;stopAC!,
+and the synchronization channels for the interface of the corresponding
+CC, that is, startACi?;stopACi!and the reset actions on x;
+E=fIdlestartACi?^x==Tp             ! start;startstartAC!;x=0         ! Op;
+OpTFAC==1_PFAC==1                 ! Fail;Opx==Te;stopAC!           ! stop;
+stopstopACi!;x=0         ! Idle;FailTFAC==0^PFAC==0                 ! Idle;
+FailTFAC==1^PFAC==1                 ! Failg, whereEis dened by the template
+populated with A and guards that ensure the correctness of transitions.
+I(Idle)=(xTp), if the dispatch protocol associated with AC is peri-
+odic, andI(Op) =xTe, whereTpandTerepresent the period and
+execution-time of AC;
+P(Idle) =1, andP(Fail) =2, whereP(Idle) =1represents the
+occurrence distribution of aperiodic event (if the dispatch protocol asso-
+ciated with AC is aperiodic), and P(Fail) =2represents the probability
+of leaving location Fail ;
+{TheAC aSTA is created in a similar way with:
+L=fWait;Op;TrF;PrF;Fail ep;LReset;L 1;L2g;l0 =Wait , where
+Lcomprises the set of states in EA and BA (Wait, Operational (Op),
+Transient Failure (TrF), Permanent Failure (PrF), Failed due to error
+propagation (Fail ep), and reset location (LReset), plus additional com-
+mitted locations (L1;L2)that ensure that receiving is deterministic in
+UPPAAL SMC;
+
+--- Page 24 ---
+A=fstartAC?;stopAC?g[faction BA,EA ();TF = 0;TFAC= 1;
+PFAC= 1;resetAC= 0;resetAC= 1;errpAC = 0;errpAC =
+1;errp= 1;y= 0g, whereAis composed of the actions dened in BA
+and EA (action BA,EA() ), plus the synchronizations channels to concord
+withACiSTA (startAC?;stopAC?), and the reset of clock y;
+V=fPFAC;TFAC;resetAC;errpACg, whereVconsists of the set
+of error events dened in the EA, that is, PF AC : Permanent Failure of
+AC, TF AC: Transient Failure of AC, reset AC: Reset of AC, err pAC:
+error propagation of AC;
+C=fygis the clock that measures the time elapsed for reset action of a
+particular component;
+E=fWaitstartAC?       !L1;L1TFAC=1;errpAC=1              ! TrF;L 1
+PFAC=1;errpAC=1              ! PrF;L 1  !L2;L2  !Op;OpstopAC?;actionBA()              !
+Wait;TrFresetAC=1;y=0           ! LReset;
+TrFPFAC=1;errpAC=1;resetAC=0                       ! PrF;
+LResetTFRBR =0;errpAC=0;resetAC=0                        ! Wait;
+LResetPFAC=1;errpAC=1;resetAC=0                       ! PrF;
+Waiterrp==1      !Failepg, whereEconsists of the transitions in EA, BA
+and those between L1andL2;
+I(LReset )=(yDur dist(Reset) );
+P(Wait ) =, that is the occurrence-distribution of Wait ;
+L11 !L2,L12 !TrF ,L13 !PrF; where1;2;3, are dened
+according to the occurrence-distribution of the error events. u t
+Denition 2 (Formal Encoding of CC). The formal encoding of a CC de-
+ned by the tuple: CC=hComp typeCC;Comp implCC;EA CCiis also a network
+of two synchronized STA, CCNSTA =CCiSTAjjCCaSTA , whereCCiSTA is the
+\interface" STA of the CC component, and CCaSTA is the \annex" STA that
+encodes the information from the error annex in AADL.
+{TheCC iSTA is dened by formally encoding (Comp typeCC;Comp implCC ), as
+follows:
+L=fWait;FailgnS
+i=1fLiSyncgnS
+i=1fSCig, where L contains one location
+for each sub-component dened by SC, one additional location for each
+sub-component that ensures the correct synchronization, location Fail to
+model the component failure, and Wait to model the initial location;
+Eis dened according to Con. For each connection in Con, we dene 2
+edges,l !LiSync andLiSync !l0, where l, l'2Lare locations cre-
+ated based on the sub-components for which the connections are dened,
+andLiSync2Lis a location created for synchronization;
+V=outport[inport[fPF;TFg[SCData , whereoutport andinport
+represent the set of output and input port variables 2fdata -ports ,event -
+ports ,event -data -portsg, respectively, and the Boolean variables, PF;TF ,
+
+--- Page 25 ---
+represent the error events associated with the transient failure and perma-
+nent failure of CC, plus the variable associated with SCData2Compimp;
+C=fxgifTp6=;;
+Ais dened based on the updates dened by MSM , the updates dened
+byFlow imp, the synchronizations dened by Con, the synchronization
+withCCaSTA ,ACaSTA , and in case Cis not void, we add the clock reset
+of the clock(s) in C;
+I(Wait )=(xTp)ifTp6=;;
+P(l) =, wherel2Landis dened by Prop .
+{CC aSTA is dened as follows:
+L=Es2EA,l0=s0e2Es, whereEsis the set of states of EA;
+E=!e;
+A=fTFCC= 1;TFCC= 0;PFCC= 1g;
+Vis represented by the global variables dened in CCiSTA;
+C=;;
+P(l) =, wherel2Landis dened by Occur dist2Eprop.
+All the other CC elements are transformed based on the encoding EA of AC.
+u t
+Next, we show the rules instantiated on our previously selected AADL com-
+ponents of CAMI, that is, RBR and DSS, as examples of transforming AC and
+CC into corresponding STA. There are also some additional transitions dened
+which are not the direct result of applying the rules, but are needed due to the
+requirements of our modeling tool, UPPAAL SMC.
+TheRBR AADL dened by Eq.(4), is mapped into an NSTA (RBR NSTA ) fol-
+lowing the Denition 1: RBR NSTA =RBR iSTAjjRBR aSTA (Fig. 9), where RBR iSTA
+is the so-called \Interface STA" of RBR which corresponds to Comp type RBR and
+Comp impl RBR , whereasRBR aSTA is the \Annex STA" of RBR that encodes its
+EA and BA.
+{TheRBR iSTA is formally represented as a tuple, where:
+L=fIdle;Start;Op;Fail g,l0 =fIdleg
+A=fstartRBRi ?;startRBR !;stopRBR ?g[fx= 1g
+V=foutport;inport;PFRBR;TFRBRg
+C=fxg
+E=fIdlestartRBRi ?        ! start;startstartRBR !;x=0          ! Op;
+OpTFRBR ==1_PFRBR ==1                   ! Fail;Opx==1;stopRBR !           ! Idle;Fail
+TFRBR ==0^PFRBR ==0                   ! Idle;FailTFRBR ==1^PFRBR ==1                   ! Failg
+I(Op)=(x1)
+P(Idle) = 1,P(Fail) = 1, given by 
+{RBR aSTA is dened in a similar way:
+L=fWait;Op;TrF;PrF;Fail ep;LReset;L 1;L2;LSyncg;fl0 =Waitg
+A=fstartRBR ?;stopRBR ?;stopRBRi !g[frules ();TFRBR =f0;1g,
+PFRBR =f1g,resetRBR =f0;1;g,errpRBR =f0;1g,errp=f1g,y=0g
+V=fPFRBR;TFRBR;reset RBR;errpRBR;err pg
+
+--- Page 26 ---
+(a) Interface STA ( RBR iSTA)
+ (b) Annex STA ( RBR aSTA)
+Fig. 9: The STA for the RBR
+C=fyg
+E=fWaitstartRBR ?        ! L1;L1TFRBR =1;errpRBR =1                 ! TrF;L 1
+PFRBR =1;errpRBR =1                 ! PrF;L 1  !L2;L2  !Op;OpstopRBR ?;rules ()            !
+Lsync;LsyncstopRBRi !       ! Wait;TrFresetRBR =1;y=0            ! LReset;
+TrFPFRBR =1;errpRBR =1;resetRBR =0                          ! PrF;
+LResetTFRBR =0;errpRBR =0;resetRBR =0                          ! Wait;
+LResetPFRBR =1;errpRBR =1;resetRBR =0                          ! PrF;Waiterrp==1      !Failepg
+I(LReset ) =y2
+P(Wait ) = 10, given by 
+L10:9998    !L2,L10:001   !TrF,L10:001   !PrF; assigned by 
+Similarly, the DSS AADL , shown in Listing 1.2, and represented by Eq.(5), is
+mapped into an NSTA: DSS AADL DSS NSTA =DSS iSTAjjDSS aSTA (Fig. 10),
+whereDSS iSTA is the so-called \Interface STA" of DSS, which corresponds to
+Comp type DSS andComp impl DSS , whereasDSS aSTA is the \Annex STA" that
+encodes the EA of CC.
+{The tuple elements of DSS iSTA are as follows:
+L=fWait;CM;RBR;CBR;Fail;L 1Sync;L 2Sync;L 3Sync;L 4Syncg,
+l0 =fWaitg
+A=fstartDSSLC;start CMi !;stopCMi ?;startRBRi !;stopRBRi ?;
+startCBRi !;stopCBRi ?;stopDSSLC !;startDSSCC !g[fiCMin=
+iDSSLCin;iRBRin=iCMout;iCBR in=iRBRout;iDSSLC out
+=iCBRout;iDSSCC in=iDSSLCoutg
+V=fiDSSLCin;iCMin;iRBRin;iCBRin;iDSSCC in;iDSSLC
+out;iCMout;iRBR out;iCBR out;iDSSLC out;PFDSS;TFDSSg
+E=fWaitstartDSSLC ?          ! L1Sync;L 1SyncstartCMi !;iCMin=iDSSLCin                     !
+CM;CMstopCMi ?       !L2Sync;L 2SyncstartRBRi !;iRBRin=iCMout                     ! RBR;
+
+--- Page 27 ---
+(a) Interface STA ( DSS iSTA)
+ (b) Annex STA ( DSS aSTA)
+Fig. 10: The STA for the DSS
+RBRstopRBRi ?        ! L3Sync;L 3SyncstartCBRi !;iCBRin=iRBRout                      ! CBR;
+CBRstopCBRi ?        ! L4Sync;L 4Sync
+stopDSSLC !;iDSSLCout=iCBRout;iDSSCC in=iDSSLCout                                           ! Wait;CM
+(TFDSS =1_PFDSS =1);startDSSCC !                           ! Fail;RBR
+(TFDSS =1_PFDSS =1);startDSSCC !                           ! Fail;CBR
+(TFDSS =1_PFDSS =1);startDSSCC !                           ! Fail;Fail
+(TFDSS ==1_PFDSS ==1)                   ! Fail;Fail(TFDSS ==0^PFDSS ==0)                   ! Waitg
+P(Wait )=10,P(CM)=10,P(RBR )=10,P(CBR )=10,P(Fail)=1
+EACC DSS aSTA
+{DSS aSTA has the following syntactic elements:
+L=fWait;TrF;PrFg,l0 =fWaitg
+A=fTFDSS =f0;1g;PFDSS =f1gg
+V=fTFDSS;TFCM;TFRBR;TFCBR;PFCM;PFRBR;
+PFCBR;PFDSSg
+E=fWaitTFCM==1^TFRBR ==1^TFCBR ==1;TFDSS =1                                    ! TrF;
+WaitPFCM==1^PFRBR ==1^PFCBR ==1;PFDSS =1                                    ! PrF;PrF
+PFDSS ==1         ! PrF;TrFTFCM==0_TFRBR ==0_TFCBR ==0;TFDSS =0                                    !
+Waitg
+P(Wait ) = 10;P(TrF) = 10;P(PrF) = 10
+In addition to the above description, for the reader to have a deeper un-
+derstanding of modeling the AI algorithms in the respective STA, we show an
+excerpt of the variable declarations and functions encoding that we have used to
+describe our DSS AI algorithms in Listing 1.3. We show the context modeling,
+fuzzy reasoning and RBR in the following and also show how the successful RBR
+outputs are stored as cases for CBR.
+In the context modeling , we describe our data structures that we have dened
+for specifying user prole, spatio-temporal properties, activity of daily living of
+
+--- Page 28 ---
+the user, health and ambient data. The context information changes based on
+the sensed data and events. In the fuzzy reasoning module, we show how the
+pulse data of the user is fuzzied into low, normal and high values and the
+corresponding update of the context information. The RBR takes the input from
+the context modeling module and is represented by various if-then-else rules as
+shown. We also demonstrate how the RBR output is stored as a case in the
+case-base of the CBR module.
+Listing 1.3: DSS model in STA in detail
+   Context modeling    
+typedef s t r u c t f
+i n t user name ; //1 Jim
+i n t age ; //Age =65 years
+i n t d i s e a s e h i s t o r y ; //3  Heart d i s e a s e
+gu s e r p r o f i l e ;
+u s e r p r o f i l e up ;
+typedef s t r u c t f
+i n t p o s i t i o n ;
+//1= i n s i d e home , 0  o u t i s i d e home
+gs t e m p o r a l p r o p e r t i e s ;
+typedef s t r u c t f
+i n t pulse ;
+i n t f a l l w ;
+i n t f a l l c ;
+ghealth parameters ;
+typedef i n t uADL; u s e r p r o f i l e p r o f i l e ;
+uADL ADL; //2  e x e r c i s i n g , 1 r e s t i n g
+s t e m p o r a l p r o p e r t i e s s temp ;
+health parameters health ;
+ambient parameters ambient ;
+typedef s t r u c t f
+u s e r p r o f i l e p r o f i l e ;
+uADL ADL;
+s t e m p o r a l p r o p e r t i e s s temp ;
+health parameters health ;
+ambient parameters ambient ;
+gcontext model ;
+   Fuzzy Logic Reasoning    
+void f u z z i f y ()
+f
+i f ( i F I S i n . data val>=55 and i F I S i n . data val<=135)
+fFIS out . health . pulse =2; g
+e l s e i f ( i F I S i n . data val>=40 and i F I S i n . data val<=70)
+fFIS out . health . pulse =1; g
+e l s e i f ( i F I S i n . data val<=300 and i F I S i n . data val>=110)
+fFIS out . health . pulse =3; g
+FIS out . health . pulse=fuzzyout pulse ;
+FIS out . p r o f i l e . user name=upro . p r o f i l e . user name ;
+FIS out . p r o f i l e . age=upro . p r o f i l e . age ;
+FIS out . p r o f i l e . d i s e a s e h i s t o r y=upro . p r o f i l e . d i s e a s e h i s t o r y ;
+FIS out .ADL =upro .ADL;
+FIS out . s temp . p o s i t i o n=upro . s temp . p o s i t i o n ;
+g
+void update contextEU ()
+f
+FIS outsave . ambient . f i r e= EU out . ambient . f i r e ;
+FIS outsave . health . f a l l c= EU out . health . f a l l c ;
+FIS outsave . health . f a l l w= EU out . health . f a l l w ;
+g
+   RBR   
+void r u l e s ()
+i f (( iRBR in . health . f a l l w==1 or iRBR in . health . f a l l c ==1)
+
+--- Page 29 ---
+and iRBR in . ambient . f i r e ==1)
+fr u l e . n o t i f i c a t i o n s c a r e g i v e r =2;
+r u l e . n o t i f i c a t i o n s f i r e f i g h t e r =2; g
+e l s e i f ( iRBR in . health . pulse ==3 and iRBR in .ADL==1
+and iRBR in . p r o f i l e . d i s e a s e h i s t o r y ==3)
+fr u l e . n o t i f i c a t i o n s c a r e g i v e r =1;g
+e l s e i f ( iRBR in . health . pulse==1 and iRBR in .ADL==1
+and iRBR in . p r o f i l e . d i s e a s e h i s t o r y ==3)
+fr u l e . n o t i f i c a t i o n s c a r e g i v e r =3;
+g
+e l s e i f ( iRBR in . ambient . f i r e ==1)
+fr u l e . n o t i f i c a t i o n s f i r e f i g h t e r =1; g
+e l s e i f ( iRBR in . health . f a l l c ==1 or
+iRBR in . health . f a l l w ==1)
+fr u l e . n o t i f i c a t i o n s c a r e g i v e r =7;g
+RBR o . case =upro .ADL;
+RBR o . c a s e f e a t u r e s =iCM out ;
+RBR o . r u l e =r u l e ;
+g
+It should be noted that the CAMI architecture, the semantic encoding of
+its components are restricted to the scope of the verication, and hence the
+components like the Database, UI, Security and Privacy are not encoded as
+STA. The semantic encoding produces a complex NSTA comprising 32 STA,
+out of which 18 STA are produced by encoding the 10 AC of CAMI (4 sensors:
+one for detecting pulse data deviation, two for fall detection and one for re
+detection, data collector, MQ, RBR, CBR, daily activity detection, fuzzy logic)
+and the remaining 12 by encoding 6 CC (Local Processor, Cloud Processor,
+DSS (Local and Cloud), Context modeling in DSS( Local and Cloud) of the
+AADL model of CAMI. On the other hand, the NSTA model of the minimum
+architecture conguration comprises of only 18 STAs and is shown to be scalable
+with exhaustive analysis.
+7 AAL Architecture Verication and Discussion
+In this section, we verify if the minimum conguration architecture, and the
+most complex one, the CAMI architecture introduced in Section 4, satisfy their
+requirements as described in the same section, respectively. We apply exhaustive
+model checking for the rst case and statistical model checking in the second
+case.
+Exhaustive verication of the minimum conguration using UPPAAL.
+The results of the exhaustive verication of the minimum conguration archi-
+tecture using UPPAAL model checker are tabulated in Table 1. To check that
+our system meets its requirements, we employ a monitor STA that monitors
+the sensor values, the respective DSS output, and the corresponding clock. The
+monitor automaton for R1Arch1 is shown in Fig. 11. As described, we start the
+monitoring clock s1when the pulse sensor produces the data, marked by transi-
+tion to L2triggered by the synchronization channel and we stop the clock when
+a decision is produced by the cloud DSS. Similar monitors have been employed
+forR2Arch1 . We have used queries of the form A leads to B for our analysis
+
+--- Page 30 ---
+Fig. 11: The monitor automaton for requirement R1Arch1 .
+Req. Query Result
+R1Arch1(110sdw:data val300and ADL = 1and
+Mpulse:FIS out== 3 and op DC== 1
+and op fuzzy == 1 and op RBR == 1)
+!Mpulse:pulse not== 3 andM pulse:s 120 Pass
+E <> (110sdw:data val300and and ADL = 1
+Mpulse:FIS out== 3 and op DC== 1
+and op fuzzy == 1 and op RBR == 1) Pass
+R2Arch1(sew:fall == 1 and op DC== 1
+and op EU== 1 and op RBR == 1)
+!Mfall:fall not== 7 andM fall:s 120 Pass
+E <> (sew:fall == 1 and op DC== 1
+and op EU== 1 and op RBR == 1) Pass
+Table 1: UPPAAL analysis results for the minimum conguration architecture
+and therefore a pre-check of each corresponding \A", being reachable is rst
+carried out. Moreover, since our model is an STA model where each component
+has associated failure probabilities and failure of a component does not yield the
+intended results during exhaustive verication, we verify the properties consid-
+ering all the components are operational. R1Arch1 requires that if the pulse is
+high and the user is not exercising, then an abnormal pulse alert is raised to the
+caregiver within 20 s. In R2Arch1 , we verify that if the fall sensor detects a fall
+event, then a fall alert is raised to the caregiver within 20 s. The aforementioned
+requirements are safety requirements of the system and it is shown that these
+requirements are met provided all the system components are operational.
+Statistical Verication of the CAMI architecture using UPPAAL SMC.
+In case of CAMI architecture, which is the most complex instantiation of our
+proposed generic architecture, exhaustive verication does not scale and hence
+we chose to verify the CAMI system requirements using UPPAAL SMC [20], the
+statistical extension of UPPAAL model checker to perform probabilistic analysis.
+To verify the functional requirements, we employ monitor STA to monitor the
+sensor values, the respective DSS output and the corresponding clock. For in-
+stance, an example of monitor STA for R1CAMI is given in Fig. 12. As shown, we
+start the monitoring clock s1 when the re sensor produces the data, marked by
+transition to L2 triggered by the synchronization channel and we stop the clock
+
+--- Page 31 ---
+when a decision is produced by local DSS or the cloud DSS. Similar monitors
+are employed for R2CAMI ,R3CAMI ,R4CAMI andR5CAMI .
+Req. Query Result Runs
+R1CAMIPr[<= 1000]([](( Mfire:fire alarm == 1)
+imply (senw:fire == 1 and Mfire:s 1<= 20)))Pr [0.99975,1]
+condence 0.998 3868
+Pr[<= 1000]( <>(Mfire:fire alarm == 1))Pr [0.99975,1]
+condence 0.998 4901
+R2CAMIPr[<= 1000]([](( Mfall:fall not== 7)
+imply ((sew:fall == 1 or sdnw:data val== 1)
+and(Mfall:s 1<= 20))))Pr [0.99975,1]
+condence 0.998 3868
+Pr[<= 1000]( <>(Mfire:fire alarm == 1))Pr [0.99975,1]
+condence 0.998 4901
+R3CAMIPr[<= 1000]([](( Mpulse:pulse not== 3)
+imply (110<=sdw:data val < = 300 and
+Mpulse:FIS out== 3 and ADL == 1 and
+upro:disease history == 3 and Mpulse:s 1<= 20))Pr [0.99975,1]
+condence 0.998 3868
+Pr[<= 1000]( <>(Mpulse:pulse not== 3))Pr [0.99975,1]
+condence 0.998 3868
+R4CAMIPr[<= 1000]([]( Mfirefall:fire not== 2 and
+Mfirefall:fall not== 2 imply
+((sew:fall == 1 or sdnw:data val== 1) and
+senw:fire == 1 and Mfirefall:s 1<= 20))Pr [0.99975,1]
+condence 0.998 3868
+Pr[<= 1000]( <>(Pr[<= 100]( <>(Mfirefall:
+fallnot== 2 and Mfirefall:fire not== 2))Pr [0.99975,1]
+condence 0.998 7905
+R5CAMIPr[<= 1000]([]( Mconsistency:stop imply
+(RBR om==iCBRCC m)))Pr [0.99975,1]
+condence 0.998 3868
+Pr[<= 1000]( <>(Mconsistency:stop ))Pr [0.99975,1]
+condence 0.998 5777
+R6CAMIPr[<= 1000]([]( INT CC:DSSCC imply
+PFDSS == 1))Pr [0.99975,1]
+condence 0.998 3868
+Pr[<= 1000]( <>(INT CC:DSSCC ))Pr [0.01,0.04]
+condence 0.998 2885
+Table 2: UPPAAL SMC Analysis Results of CAMI.
+The verication results are tabulated in Table 1. The CAMI architecture
+model satises all the requirements with probabilities close to 1 with a high
+condence within 4 minutes until a result is returned. As in the other case, since
+most queries contain terms of the form AimplyB , we rst check the reachability
+of A. From the analysis, it follows that the probability of the cloud DSS to get
+activated (( R6CAMI ) is [0.01, 0.04]. This is justied that it becomes active only
+when the local DSS has failed and the failure probability of local DSS is between
+[0.01, 0.04] for a simulation over 1000 time units, which is a safe value to assume
+for safety-critical systems.
+Discussion. The approach presented in this paper paves the way for the de-
+velopment of formally assured future intelligent AAL solutions that integrate
+multiple functionalities. Our approach can be applied at earlier design stages
+
+--- Page 32 ---
+Fig. 12: The monitor automaton for requirement R1CAMI .
+to capture potential errors that can propagate across the development stages,
+which may result in signicant re-engineering costs. Our architecture description
+framework (AADL) has a commercially available tool support, OSATE [6] for
+automated modeling, and provides some preliminary architecture-level analysis.
+It also allows us to model the behavior of the architecture components via be-
+havior annex and encode the probabilities of failures of various components, via
+the error annex. However, AADL also has its limitations of expressing complex
+behaviors of algorithms such as CBR, which we have omitted in this work.
+There are two analysis approaches presented in this paper: (1) using ex-
+haustive model checking (2) using stochastic model checking, both automated
+automated via a commercial tools UPPAAL and UPPAAL SMC. The analysis
+approaches are chosen based on the system complexity. If the architecture model
+is scalable with exhaustive model-checjing, then it can be applied. Although the
+exhautive verication resulst are accurate, one cannot take into account the
+probabilistic behaviour of our systems. In case of complex models that needs
+to be analyzed for stochastic behaviours, the user can opt for simulation-based
+approaches, although it does not yield 100% accuracy. The verication results
+shown in this ppaper are specic to our architecture models dened, however one
+can use the approach to verify any set of requirements for various architecture
+types dened by the generic architectural model dened in this work. In case
+of exhaustive model-checking, the resulst are derived assuming that all compo-
+nents are operational such that we devoid the system of its probabilistic failure
+behaviour. Also, for the case of statiscal model checking, it is worth mentioning
+that the results are derived assuming high reliability of individual architecture
+components and considering specic values for the periods and execution times.
+However, taking into account the wide variety of available sensors and other
+components, we can easily adapt the values to account for requirements of any
+specic architecture.
+In addition, the approach presented in this paper is generic and easily exten-
+sible. Our modeling methodology based on AADL abstract components is easily
+extensible to suit particular run-time representations of the system. The AADL
+semantics as networks of STA is also generic and can be extended to accommo-
+date other AADL properties that we have not accounted for in this work. We
+expect that similar results can be reproduced if the approach followed in this
+paper is used in other instances of integrated AAL solutions.
+
+--- Page 33 ---
+8 Related Work
+In recent years, there has been a lot of work in the area of AAL due to the need of
+supporting an increased elderly population [37]. Moreover, many functionalities
+that need to be tackled by AAL solutions are of a safety-critical nature, e.g.,
+health emergencies like cardiac arrest, fall of the elderly, and home emergencies
+like re at home, etc. [43], therefore work on their modeling and analysis is fully
+justied.
+A study on existing AAL architectures shows that there are certain architec-
+ture types that address the construction of integrative AAL applications, some
+of the common ones being : Multi-Agent System (MAS) [21,30,41], Cloud-based
+[12,26] and Internet-of-Things (IoT) centric [23].
+{ Agent-based architectures: These are the most commonly used architec-
+tures for AAL applications owing to its exibility, autonomy, adaptability,
+better response and service continuity due to its distributed nature . Some
+examples of health care frameworks that relies on a distributed agent archi-
+tecture are [45], [21]. However, the agent based architectures also have some
+drawbacks (i) Restricted communication protocols for agent communication
+and the delay overhead in taking a collective decision and (ii) maintaining
+the consistency of the framework .
+{ Cloud-based AAL solutions: AAL solutions that leverage the potential
+of cloud computing for context modeling, intelligent decision making and use
+it as a data storeAlthough cloud based solutions are scalable, cost-eective,
+reusable, adaptable, and extendable, the sole processing with cloud cannot
+guarantee strict hard real-time properties and the system fails completely in
+the absence of Internet.
+{ IoT architectures: IoT technology is now getting widely getting utilized in
+the led of AAL owing to its technological advancements. The IoT concept of
+communication between smart objects and people and people are widely ex-
+ploited in the eld of AAL, thereby providing connectivity, context-awareness
+and adaptivity. . There are also approaches to integrate the autonomous be-
+havior of agent-based systems with IoT technology [27,36]. Although AAL
+systems based on IoT oer high exibility, adaptability, the system depends
+only on the availability of the Internet for operation; which can lead to a
+complete failure of such systems in places where Internet connectivity is
+meager. Our architecture follows the design paradigms of Cloud-based AAL
+solutions, where the cloud is utilized for intelligent, context-aware decision
+making and as a data store, and is also augmented with local processing
+schemes to guarantee real-time properties. In many situations, cloud ser-
+vices cannot guarantee hard-real time properties and hence we adopted a
+local processing scheme as well in our model, and the cloud is a back-up
+which activates only when the primary has failed.
+The formal assurance of AAL systems has been the focus of some related research
+in the recent years. Parente et al. provide a list of various formal methods that
+can be used for AAL systems [42]. In another interesting work, Rodrigues et
+
+--- Page 34 ---
+al. [44] perform a dependability analysis of AAL architectures using UML and
+PRISM. Other interesting research work uses temporal reasoning [15,39] and
+Markov Decision Processes to formally verify the reliability of AAL systems [38].
+Although these approaches target the formal analysis of AAL systems, most of
+the above work addresses only simple scenarios and are not used to analyze
+complex behaviors resulting from integrating critical AAL functions (e.g. re
+and fall), as well as their decision making. In addition, these approaches do not
+aim to develop an overall framework for the verication of AAL systems, starting
+from an integrated architectural design, their design specications, followed by
+a verication strategy, as proposed in this paper.
+The use of Architecture Description Languages (ADL) to specify AAL designs
+has not been exercised previously, yet this is common when designing automo-
+tive or automation systems. There have also been approaches to formally verify
+AADL designs in other domains. The transformation approach from AADL to
+TA or variants has been already addressed by related work [17,29,31]. Although
+these approaches are automated verication techniques, there is a lack of focus
+on abstract components/patterns with stochastic properties. In addition, these
+approaches also suer from state-space explosion, therefore they might not scale
+well to complex AAL designs. Nevertheless, there is interesting research that
+deals with stochastic properties and statistical model checking for the analysis
+of extended AADL models. One such example is in the work of Bruintjes et al.
+[18], where the authors have used SMC approach for timed reachability anal-
+ysis of extended AADL designs. Although our approach also focuses on linear
+systems, it is dierent from the mentioned work in the fact that we focus on ab-
+stract components, and also introduce BA modeling for capturing the functional
+behavior of our modules, specically for modeling the behavior of intelligent
+DSS. In their work, Bruintjes et al. use the SLIM Language, which is strongly
+based on AADL and is specic to avionics and automotive industry, including
+the error behavior and modes. However, we use the AADL core language with its
+standardized annex sets (EA and BA) for the architecture specication, thereby
+enabling us to represent the functional and error behaviour with the architec-
+ture model. The abstract component based modeling also brings exensiblity and
+reusability to our approach. Moreover, the authors only consider the event oc-
+currences or delay variations using uniform or exponential distributions, wheras
+by employing our user-dened properties, we can also specify other distribu-
+tions. Furthermore, the approach of Bruintjes et al. only deals with evaluation
+of time-bounded queries, however we also evaluate properties like reliability, data
+consistency, etc., along with timeliness. Another interesting work [16], possibly
+carried out in parallel with our work, employs statistical model checking using
+UPPAAL SMC to evaluate the performance of nonlinear hybrid models with
+uncertainty modeled in extended AADL. Although the approach is not specic
+to the AAL domain, it is promising to specify complex CPS systems consider-
+ing uncertainties from physical environment. Unlike our model, the authors use
+Priced Timed Automata (PTA) models. In comparison, our approach considers
+only linear models that evolve continuously (yet the analysis is carried out in
+
+--- Page 35 ---
+discrete time due to sampling of continuous data). In brief, the two approaches
+resemble, yet our approach is all contained in the core language of AADL (as
+dierent from the mentioned work where the authors resort to other annexes
+integrated in OSATE), is tailored to systems that contain AI components, and
+assumes the random failure of various components, which is not considered in
+the related work.
+9 Conclusions and Future Work
+In this paper, we have proposed a generic AAL architecture and its intelligent
+Decision Support System that can tackle a multitude of functionalities by ana-
+lyzing the interdependencies between simultaneously occurring events. We have
+also presented three specic instantiantions of the generic model, following an in-
+creasing order of complexity. In addition, we have also presented a framework for
+modeling and verication of our specic integrated AAL system architectures.
+To provide formal analysis for the AAL systems, we have semantically encoded
+the AADL model as NSTA model. These formal models has been shown to
+be analyzable exhaustively with UPPAAL or statistically with UPPAAL SMC,
+(chosen based on system complexity), to ensure that the required functional be-
+havior is met. Our contribution is generic and paves the way for the development
+of formally assured intelligent AAL system architectures.
+The framework is intended to augment existing AAL solutions with formal
+analysis support and provide analysis prior to implementation. Such an analy-
+sis is crucial in domains such as AAL, which are real-time, safety-critical, and
+require high levels of dependability. Due to the heterogeneity of components
+available in the AAL domain, the component failure probabilities, periods and
+execution times are not chosen w.r.t to any specic components, nevertheless the
+results presented in the paper are promising because the abstract components
+that have been proposed can be rened further.
+In the future, we plan to enhance our DSS model with more rules for RBR
+and full functionality support of CBR and activity recognition, thereby providing
+an extensive analysis of AAL systems behaviors in possible critical scenarios. An-
+other interesting direction to proceed with is providing automated tool support
+for the semantic mapping. We are also currently investigating on a distributed
+version of the integrated architectures for AAL, especially the one that supports
+multiple intelligent agents and its analysis.
+Appendix A: AADL Model of RBR
+1 abstract RBR
+2 f e a t u r e s
+3 input : in event data port ;
+4 output : out event data port ;
+5 flows
+6 F1 : flow path input  >output ;
+7 p r o p e r t i e s
+8 Dispatch Protocol = >Aperiodic ;
+
+--- Page 36 ---
+9 property eventgeneration : : AperiodicEventGeneration = >1.0;
+10 property eventgeneration : : D i s t r i b u t i o n= >Exponential ;
+11 p r o p e r t y f a i l u r e r e c o v e r y : : FailureRecoveryRate = >1.0;
+12 p r o p e r t y f a i l u r e r e c o v e r y : : D i s t r i b u t i o n= >Exponential ;
+13 Compute Execution Time =>1s . . 1 s ;
+14 end RBR;
+15
+16 abstract implementation RBR. impl
+17 subcomponents
+18 AAL event : data System Data model : : events ;
+19 DA: data System Data model : U s e r a c t i v i t y ;
+20 u p r o f i l e : data System Data model : U s e r p r o f i l e ;
+21 fuzzy out1 : data System Data model : : f u z z i f i e d d a t a h e a l t h ;
+22 fuzzy out2 : data system Data model : : f u z z i f i e d d a t a c a m e r a ;
+23 annex EMV2 f∗∗
+24 use types error model ;
+25 use behavior error model : : simple ;
+26 e r r o r propagations
+27 input : in propagation fNoValueg;
+28 output : out propagation fNovalueg;
+29 flows
+30 ef0 : e r r o r path input fNoValueg >outputfNoValueg;
+31 component e r r o r behavior
+32 events
+33 Reset : recover event ;
+34 TF: e r r o r event ;
+35 PF: e r r o r event ;
+36 e r r p : e r r o r event ;
+37 t r a n s i t i o n s
+38 t0 : Operational  [TF] >F a i l e d t r a n s i e n t ;
+39 t1 : F a i l e d t r a n s i e n t [ Reset] >Waiting with 0.8 ,
+40 Failed Permanent with 0 . 2 ;
+41 t2 : Operational  [PF] >Failed Permanent ;
+42 t3 : Operational  [ e r r p] >Failed p ;
+43 t4 : Failed p [ input] >Operational ;
+44 end component ;
+45 p r o p e r t i e s
+46 EMV2: : DurationDistribution = >[ Duration = >1ms . . 2 ms ;
+47 D i s t r i b u t i o n = >Fixed ; ] a p p l i e s to r e s e t ;
+48 EMV2: : OccurrenceDistribution = >[ProbabilityValue = >0 . 2 ;
+49 D i s t r i b u t i o n = >Fixed ; ] a p p l i e s to Failure Transient ;
+50 EMV2: : OccurrenceDistribution = >[ProbabilityValue = >0 . 1 ;
+51 D i s t r i b u t i o n = >Fixed ; ] a p p l i e s to Failure Permanent ;
+52 ∗∗g;
+53 annex b e h a v i o r s p e c i f i c a t i o n f∗∗
+54 s t a t e s
+55 Waiting : i n i t i a l complete f i n a l s t a t e ;
+56 Operational : s t a t e ;
+57 t r a n s i t i o n s
+58 Waiting [on dispatch input]  >Operationalfi f
+59 ( AAL event=" f i r e ")foutput :=" n o t i f i c a t i o n f i r e f i g h t e r f i r e " g
+60 e l s i f ( fuzzy out1 = " Pulse high " and DA!=" e x e r c i s i n g " and
+61 u p r o f i l e ="c a r d i a c p a t i e n t ")
+62foutput := " n o t i f i c a t i o n c a r e g i v e r h i g h p u l s e "g
+63 e l s i f ( AAL event = " f a l l " or fuzzy out2 = " F a l l h i g h ")
+64foutput := " n o t i f i c a t i o n c a r e g i v e r f a l l " g
+65 e l s i f ( fuzzy out1 = " pulse  abnormal low " )
+66foutput := " n o t i f i c a t i o n c a r e g i v e r "g
+67 e l s i f ( AAL event = " f a l l " and fuzzy out2= " F a l l h i g h " and
+68 AAL event=" f i r e " and fuzzy out1= " pulse abnormal low ")
+69foutput := " n o t i f i c a t i o n c a r e g i v e r f a l l , f i r e , pulse low and
+70 n o t i f i c a t i o n f i r e f i g h t e r f a l l , f i r e , pulse  abnormal low"g
+71 end i fg;
+72 ∗∗g;
+73 end RBR. impl ;
+
+--- Page 37 ---
+Acknowledgement
+This work has been supported by the joint EU/Vinnova project grant CAMI,
+AAL-2014-1-087, which is gratefully acknowledged.
+References
+1. CAMI Gateway. https://eclexys.com/wp-content/uploads/2019/01/Exys9200-
+SNG-Brochure.pdf, accessed: 2019-03-16
+2. Fibaro motion sensor. https://manuals.baro.com/content/manuals/en/FGMS-
+001/FGMS-001-EN-T-v2.0.pdf, accessed: 2019-03-16
+3. Fitbit. https://www.tbit.com/se/home, accessed: 2019-03-16
+4. Linkwatch. https://www.linkwatch.se , accessed: 2018-01-15
+5. Opentele. https://www.opentelehealth.com , accessed: 2018-01-15
+6. OSATE|Open Source AADL Test Environment. http://osate.github.io/, ac-
+cessed: 2018-05-15
+7. Pepper robot. https://www.softbankrobotics.com/emea/en/pepper, accessed:
+2019-03-16
+8. Rabbit mq message broker. https://www.rabbitmq.com, accessed: 2019-03-16
+9. Tiago robotic platform. http://tiago.pal-robotics.com, accessed: 2019-03-16
+10. Ua651 bp sensor. http://www.andmedical.com.au/products-service/value-ua-651,
+accessed: 2019-03-16
+11. Vibby fall detection sensors. http://www.vitalbase.co.uk, accessed: 2019-03-16
+12. Ahmed, M.U., Bj orkman, M., Lind en, M.: A generic system-level framework for
+self-serve health monitoring system through internet of things (iot). Studies in
+health technology and informatics 211, 305{307 (2015)
+13. Alur, R., Courcoubetis, C., Dill, D.: Model-checking for real-time systems. In: Logic
+in Computer Science, 1990. LICS'90, Proceedings., Fifth Annual IEEE Symposium
+on e. pp. 414{425. IEEE (1990)
+14. Alur, R., Courcoubetis, C., Dill, D.: Model-checking in dense real-time. Information
+and computation 104(1), 2{34 (1993)
+15. Augusto, J.C., Nugent, C.D.: The use of temporal reasoning and management of
+complex events in smart homes. In: Proceedings of the 16th European Conference
+on Articial Intelligence. pp. 778{782. IOS Press (2004)
+16. Bao, Y., Chen, M., Zhu, Q., Wei, T., Mallet, F., Zhou, T.: Quantitative per-
+formance evaluation of uncertainty-aware hybrid AADL designs using statistical
+model checking. IEEE Transactions on Computer-Aided Design of Integrated Cir-
+cuits and Systems 36(12), 1989{2002 (2017)
+17. Besnard, L., Gautier, T., Le Guernic, P., Guy, C., Talpin, J.P., Larson, B., Borde,
+E.: Formal semantics of behavior specications in the architecture analysis and
+design language standard. In: Cyber-Physical System Design from an Architecture
+Analysis Viewpoint, pp. 53{79. Springer (2017)
+18. Bruintjes, H., Katoen, J.P., Lesens, D.: A statistical approach for timed reachability
+in AADL models. In: Dependable Systems and Networks (DSN), 45th Annual
+IEEE/IFIP International Conference on. pp. 81{88. IEEE (2015)
+19. Bulychev, P.E., David, A., Larsen, K.G., Legay, A., Li, G., Poulsen, D.B.: Rewrite-
+based statistical model checking of wmtl. RV 7687, 260{275 (2012)
+20. David, A., Larsen, K.G., Legay, A., Miku cionis, M., Poulsen, D.B.: Uppaal smc
+tutorial. International Journal on Software Tools for Technology Transfer 17(4),
+397{415 (2015)
+
+--- Page 38 ---
+21. De Paz, J., Rodr guez, S., Bajo, J., Corchado, J., Corchado, E.: Ovacare: A multi-
+agent system for assistance and health care. Knowledge-Based and Intelligent In-
+formation and Engineering Systems pp. 318{327 (2010)
+22. Delange, J., Feiler, P.: Architecture fault modeling with the aadl error-model an-
+nex. In: Software Engineering and Advanced Applications (SEAA), 2014 40th EU-
+ROMICRO Conference on. pp. 361{368. IEEE (2014)
+23. Dohr, A., Modre-Osprian, R., Drobics, M., Hayn, D., Schreier, G.: The internet of
+things for ambient assisted living. ITNG 10, 804{809 (2010)
+24. Feiler, P.H., Gluch, D.P.: Model-based engineering with AADL: an introduction to
+the SAE architecture analysis & design language. Addison-Wesley (2012)
+25. Feiler, P.H., Lewis, B., Vestal, S., Colbert, E.: An overview of the sae architecture
+analysis & design language (aadl) standard: a basis for model-based architecture-
+driven embedded systems engineering. In: Architecture Description Languages, pp.
+3{15. Springer (2005)
+26. Forkan, A., Khalil, I., Tari, Z.: Cocamaal: A cloud-oriented context-aware middle-
+ware in ambient assisted living. Future Generation Computer Systems 35, 114{127
+(2014)
+27. Fortino, G., Guerrieri, A., Russo, W.: Agent-oriented smart objects development.
+In: Computer Supported Cooperative Work in Design (CSCWD), 2012 IEEE 16th
+International Conference on. pp. 907{912. IEEE (2012)
+28. Frana, R., Bodeveix, J.P., Filali, M., Rolland, J.F.: The AADL behaviour annex{
+experiments and roadmap. In: Engineering Complex Computer Systems, 2007. 12th
+IEEE International Conference on. pp. 377{382. IEEE (2007)
+29. Hamdane, M.E., Chaoui, A., Strecker, M.: From AADL to timed automaton-A
+verication approach. International Journal of Software Engineering and Its Ap-
+plications 7(4) (2013)
+30. Isern, D., S anchez, D., Moreno, A.: Agents applied in health care: A review. Inter-
+national journal of medical informatics 79(3), 145{166 (2010)
+31. Johnsen, A., Lundqvist, K., Pettersson, P., Jaradat, O.: Automated verication
+of AADL-specications using UPPAAL. In: High-Assurance Systems Engineering
+(HASE), 2012 IEEE 14th International Symposium on. pp. 130{138. IEEE (2012)
+32. Kunnappilly, A., Seceleanu, C., Lind en, M.: Do we need an integrated framework
+for ambient assisted living? In: Ubiquitous Computing and Ambient Intelligence:
+10th International Conference, UCAmI 2016, San Bartolom e de Tirajana, Gran
+Canaria, Spain, November 29{December 2, 2016, Part II 10. pp. 52{63. Springer
+(2016)
+33. Kunnappilly, A., Sorici, A., Awada, I.A., Mocanu, I., Seceleanu, C., Florea, A.M.:
+A Novel Integrated Architecture for Ambient Assisted Living Systems. In: Com-
+puter Software and Applications Conference (COMPSAC), 2017 IEEE 41st An-
+nual. vol. 1, pp. 465{472. IEEE (2017)
+34. Larsen, K.G., Pettersson, P., Yi, W.: Uppaal in a nutshell. International journal
+on software tools for technology transfer 1(1-2), 134{152 (1997)
+35. Legay, A., Delahaye, B., Bensalem, S.: Statistical model checking: An overview. In:
+International conference on runtime verication. pp. 122{135. Springer (2010)
+36. Leong, P., Lu, L.: Multiagent web for the internet of things. In: Information Science
+and Applications (ICISA), 2014 International Conference on. pp. 1{4. IEEE (2014)
+37. Li, R., Lu, B., McDonald-Maier, K.D.: Cognitive assisted living ambient system:
+A survey. Digital Communications and Networks 1(4), 229{252 (2015)
+38. Liu, Y., Gui, L., Liu, Y.: Mdp-based reliability analysis of an ambient assisted living
+system. In: International Symposium on Formal Methods. pp. 688{702. Springer
+(2014)
+
+--- Page 39 ---
+39. Magherini, T., Fantechi, A., Nugent, C.D., Vicario, E.: Using temporal logic and
+model checking in automated recognition of human activities for ambient-assisted
+living. IEEE Transactions on Human-Machine Systems 43(6), 509{521 (2013)
+40. Medjahed, H., Istrate, D., Boudy, J., Dorizzi, B.: Human activities of daily living
+recognition using fuzzy logic for elderly home monitoring. In: Fuzzy Systems, 2009.
+FUZZ-IEEE 2009. IEEE International Conference on. pp. 2001{2006. IEEE (2009)
+41. Nealon, J., Moreno, A.: Agent-based applications in health care. Applications of
+software agent technology in the health care domain pp. 3{18 (2003)
+42. Parente, G., Nugent, C.D., Hong, X., Donnelly, M.P., Chen, L., Vicario, E.: Formal
+modeling techniques for ambient assisted living. Ageing International 36(2), 192{
+216 (2011)
+43. Rashidi, P., Mihailidis, A.: A survey on ambient-assisted living tools for older
+adults. IEEE journal of biomedical and health informatics 17(3), 579{590 (2013)
+44. Rodrigues, G.N., Alves, V., Silveira, R., Laranjeira, L.A.: Dependability analysis in
+the ambient assisted living domain: An exploratory case study. Journal of Systems
+and Software 85(1), 112{131 (2012)
+45. Tapia, D.I., Rodrguez, S., Corchado, J.M.: A distributed ambient intelligence
+based multi-agent system for alzheimer health care. In: Pervasive Computing, pp.
+181{199. Springer (2009)
+46. Zhou, F., Jiao, J.R., Chen, S., Zhang, D.: A case-driven ambient intelligence system
+for elderly in-home assistance applications. IEEE Transactions on Systems, Man,
+and Cybernetics, Part C (Applications and Reviews) 41(2), 179{189 (2011)

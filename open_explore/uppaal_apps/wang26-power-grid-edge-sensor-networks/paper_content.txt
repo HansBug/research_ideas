@@ -1,0 +1,637 @@
+--- Page 1 ---
+Statistical Verification of Medium-Access
+Parameterization for Power-Grid Edge Ad Hoc
+Sensor Networks
+Haitian Wang∗, Xia Cheng†, Yiren Wang∗, Xinyu Wang∗, Zichen Geng∗, Xian Zhang∗, Yihao Ding∗‡
+∗The University of Western Australia, Crawley, WA 6009, Australia
+†Telstra Group Limited, 242 Exhibition Street, Melbourne, VIC 3000, Australia
+‡Corresponding author: yihao.ding@uwa.edu.au
+Abstract—The widespread deployment of power grid ad hoc
+sensor networks based on IEEE 802.15.4 raises reliability chal-
+lenges when nodes selfishly adapt CSMA/CA parameters to maxi-
+mize individual performance. Such behavior degrades reliability,
+energy efficiency, and compliance with strict grid constraints.
+Existing analytical and simulation approaches often fail to
+rigorously evaluate configurations under asynchronous, event-
+driven, and resource-limited conditions. We develop a verification
+framework that integrates stochastic timed hybrid automata with
+statistical model checking (SMC) with confidence bounds to
+formally assess CSMA/CA parameterizations under grid work-
+loads. By encoding node- and system-level objectives in temporal
+logic and automating protocol screening via large-scale statistical
+evaluation, the method certifies Nash equilibrium strategies that
+remain robust to unilateral deviations. In a substation-scale
+scenario, the certified equilibrium improves utility from 0.862
+to 0.914 and raises the delivery ratio from 89.5% to 93.2% when
+compared with an aggressive tuning baseline. Against a delivery-
+oriented baseline, it reduces mean per-cycle energy from 152.8 mJ
+to 149.2 mJ while maintaining comparable delivery performance.
+Certified configurations satisfy latency, reliability, and energy
+constraints with robustness coefficients above 0.97 and utility
+above 0.91.
+Index Terms—Ad hoc sensor networks, IEEE 802.15.4,
+CSMA/CA, statistical model checking, Nash equilibrium, edge
+computing
+I. INTRODUCTION
+The rapid development of smart grids has driven large-scale
+deployment of IoT sensor networks across all segments of
+electric power systems [1]–[4], enabling real-time monitoring
+and control through dense installations of intelligent edge
+devices such as wireless fault indicators, transformer monitors,
+etc. [5]–[7]. In practice, grid operators, such as the State Grid
+Corporation of China [8], deploy multi-hop ad-hoc wireless
+sensor networks based on the IEEE 802.15.4 standard [9]–
+[11], with communication coordinated by the CSMA/CA pro-
+tocol [12]–[14]. While this architecture achieves decentralized
+operation and flexible connectivity, it also introduces new chal-
+lenges: each node autonomously selects key protocol parame-
+ters, such as backoff, retransmission settings, etc. [15], which
+can incentivize selfish adaptation to optimize local objectives
+[16]. Such behavior undermines sensor network reliability,
+energy efficiency, and fairness, especially in dynamic, event-
+driven power grid environments [17]–[19]. As a result, there
+is a critical need for systematic methods that can rigorously
+evaluate, screen, and certify protocol parameterizations [20],ensuring robust and reliable network operation even in the
+presence of selfish strategies and strict grid-mandated con-
+straints [21].
+The challenge of selfish behavior in distributed sensor
+networks has been examined in areas such as medium ac-
+cess and power control [22]–[24]. Game-theoretic approaches,
+including Nash equilibrium analysis [25], [26], provide in-
+sight into strategic adaptation but usually rely on restrictive
+assumptions such as synchrony, homogeneous nodes, or static
+topologies [27]. These assumptions make them unsuitable
+for the asynchronous, burst-driven, and energy-constrained
+conditions of grid IoT deployments [28], [29]. Simulation-
+based studies relax some of these constraints but often lack
+statistical rigor and formal guarantees, limiting their use for
+certifying protocol robustness in operational environments
+[30], [31]. Consequently, there remains a gap in methods that
+can both capture domain-specific constraints of power grid
+sensor networks and provide statistically sound certification
+of protocol configurations against selfish deviations.
+To address these requirements, we develop a verification
+pipeline for multi-hop IEEE 802.15.4 CSMA/CA param-
+eterization in power-grid edge sensor networks. The core
+is a stochastic timed hybrid automata model that captures
+asynchronous contention, probabilistic retransmissions, and
+per-state energy accounting under grid workloads, including
+periodic reporting and event-triggered alarms. Over this model,
+we formalize node- and network-level objectives using cost-
+bounded temporal properties, and estimate the resulting utili-
+ties via statistical model checking. We then perform automated
+screening over an admissible parameter set and statistically
+certify protocol settings that remain stable against unilateral
+deviations, yielding a grid-constrained∆-relaxed equilibrium
+notion aligned with operational risk tolerance. The evaluation
+shows that the certified configurations satisfy latency, reliabil-
+ity, and energy constraints with tight uncertainty bounds, while
+maintaining robustness coefficients above0.97and utility
+above0.91under the studied substation-scale scenario.
+II. RELATEDWORK
+Research on selfish behavior and access control in dis-
+tributed wireless networks spans analytical game-theoretic
+models and simulation-based evaluations, but both lines fall
+short for power IoT deployments. Game-theoretic analyses ofarXiv:2602.05510v2  [cs.NI]  31 Mar 2026
+
+--- Page 2 ---
+medium access (often via NE) typically impose synchronized
+operation, static topologies, and discrete/slotted channel access
+[23], [32]–[35], which cannot capture the asynchrony, bursty
+traffic, and stochastic energy constraints of real grid sensor
+networks [36]. Moreover, IEEE 802.15.4 CSMA/CA intro-
+duces asynchronous backoff, probabilistic retransmissions, and
+heterogeneous parameter settings across devices, yielding in-
+teractions that are difficult to express in tractable closed forms,
+especially under dynamic duty cycles and event-triggered
+loads [37], [38]. Simulation studies offer flexibility [35], [39],
+yet commonly lack formalized operational objectives and
+statistical guarantees, and they scale poorly when exploring
+high-dimensional parameter spaces [40], [41]. Standard Monte
+Carlo reporting of averages provides limited assurance about
+stability under time-bounded or probabilistic requirements
+[34], [42], and typical simulators seldom integrate domain con-
+straints such as per-node energy budgets, grid-driven sched-
+ules, or mandated availability targets [43], [44]. These limita-
+tions motivate a verification approach that preserves modeling
+fidelity to CSMA/CA dynamics while providing statistically
+grounded certification under grid-specific constraints.
+III. PRELIMINARIES ANDMODELINGAPPROACH
+This section outlines the formal modeling framework that
+underpin our protocol analysis. We introduce the STHA as a
+domain-adapted formalism for capturing the operational dy-
+namics of power grid IoT sensor networks, incorporating both
+protocol-specific and grid-specific constraints. We then present
+the compositional system model, formalize the key objectives
+using CBTL, and articulate the game-theoretic formulation.
+A. Stochastic Timed Hybrid Automata
+To rigorously model the protocol execution, energy con-
+sumption, and event-driven behavior of edge sensor networks
+in smart grids, we propose the STHA framework extended
+from WTA [45], [46]. This domain-specific extension is
+tailored to capture critical operational constraints of field-
+deployed power system sensors. Each sensor node is repre-
+sented by an automaton:
+S= (L, ℓ 0, X, E, R, I, C)(1)
+whereLdenotes the set of discrete locations (e.g., Idle,
+CCA, Backoff, Transmit, Sleep),ℓ 0is the initial state,Xis
+a set of real-valued clocks (such asx bofor backoff,x ccafor
+carrier sensing,x txfor transmission duration),Eis the set
+of transitions with guards and resets,Ris the rate vector
+for clock evolution,Iis the set of location invariants, and
+Cis a vector of cost variables including cumulative energy
+consumption (E tot), duty cycle (η), and retransmission count
+(Nrt).
+Our STHA model incorporates power grid–specific fea-
+tures that are absent from generic automata. First, it ac-
+counts for variable supply voltages and per-mode power draw
+(Ptx, Prx, Pidle, Psleep), enabling accurate energy accounting
+under deployment conditions. Second, it includes explicit
+duty-cycle management with event-driven preemption for gridalarms and regulated reporting intervals (e.g.,T int= 45s or
+grid-adaptive). Third, it models event transitions for grid faults
+or external triggers that enforce system-wide urgent reporting
+and blackout-recovery behavior, consistent with grid reliability
+requirements. The state of each node is(l, v, e), wherel∈L,
+vis the clock valuation, andeencodes cost variable status at
+runtime.
+B. Compositional Network Model and Medium
+The overall system is formalized as a parallel composition
+ofNnode STHAs and a shared wireless medium automaton:
+G(⃗θ) =S 1(θ1)∥ ··· ∥ S N(θN)∥ M(2)
+whereS i(θi)is the STHA for nodeiunder strategy configu-
+rationθ i(e.g., backoff exponents, CCA parameters, maximum
+retransmissions, event response policy), andMmodels con-
+tention, physical interference, and regulatory constraints (e.g.,
+blackout recoveryγ rec, sensor availabilityρ min).
+Transitions and rates may be stochastic, reflecting real-world
+heterogeneity, clock drift, and bursty grid-induced events. The
+medium automaton synchronizes event broadcasts, maintains
+channel state, and coordinates node interactions during grid-
+triggered emergency periods.
+C. Cost-Bounded Temporal Logic for System Objectives
+Performance, correctness, and operational requirements are
+formally expressed using an extended CBTL, generalizing
+standard PWCTL to our scenario [47]. For an individual node
+i, a typical specification is:
+φi:♢ Etot,i≤Elim(xtx,i≤Tmax∧Ssucc,i≥1)(3)
+stating that nodeimust successfully deliver at least one report
+withinT max and not exceed cumulative energyE limin a
+reporting cycle. For coordinated network-level event response:
+ψ:□ 
+Event grid→♢≤Tevt NX
+i=1Ssucc,i≥N req!!
+(4)
+meaning that for any grid event, at leastN reqnodes report
+successfully within or equal toT evt.
+D. Formal Problem Statement: Game and Nash Equilibrium
+under SCMC
+We frame the protocol adaptation and selfishness mitigation
+as a symmetric game overNnodes, each choosing a strategy
+θifrom a finite parameter setP. The utility function for node
+iis:
+Ui(θ1, . . . , θ N) = Pr [G(θ 1, . . . , θ N)|=φ i](5)
+A strategy profileθ∗∈Pis defined as a Nash Equilibrium
+(NE) if, for every nodeiand any alternativeθ′
+i, the utility
+satisfiesU i(θ∗, . . . , θ∗)≥U i(θ′
+i, θ∗
+−i), whereθ∗
+−idenotes the
+strategies of all nodes excepti.
+In practice, we certify an approximate equilibrium notion
+that tolerates residual stochastic uncertainty and modeling
+variability. A symmetric profileθ⋆∈ Pis a∆-relaxed Nash
+equilibrium if, for every nodeiand any deviationθ′
+i∈ P,
+Ui(θ⋆, . . . , θ⋆)≥∆·U i(θ′
+i, θ⋆
+−i),(6)
+
+--- Page 3 ---
+where∆∈(0,1]quantifies robustness against unilateral
+deviations. Values of∆closer to 1 indicate stronger stability.
+Due to scalability limits of exact model checking, we
+utilize the SCMC method to estimate utility values acrossM
+randomized simulation runs:
+ˆUi(⃗θ) =1
+MMX
+j=1I{run j|=φ i},(7)
+whereI{·}is the indicator function (1 if thej-th execution
+satisfiesφ i, 0 otherwise). This Monte Carlo estimator is
+unbiased under independent runs, with asymptotic variance
+ˆUi(1− ˆUi)/M, which we use to report(1−α)confidence
+intervals in the certification stage.
+IV. STATISTICALSCREENING ANDCERTIFICATION OF
+NASHEQUILIBRIUMPROTOCOLCONFIGURATIONS
+To statistically certify protocol configurations robust to
+selfish behavior in power grid IoT sensor networks, we adopt a
+two-stage framework. The method integrates STHA modeling
+with SCMC to assess whether IEEE 802.15.4 CSMA/CA
+parameterizations satisfy∆-relaxed NE under grid-specific
+constraints, including energy budgets, blackout recovery, and
+alarm responsiveness, ensuring certified configurations remain
+practical and resilient.
+A. Stage 1: Utility Matrix Construction & Protocol Screening
+In this stage, we do not enumerate all Nash equilibria, but
+instead focus on performance-driven screening of protocol
+candidates based on their statistical utility and compliance
+with grid-side objectives. LetPdenote the admissible set of
+node protocol configurations, reflecting allowable CSMA/CA
+parameters (e.g., backoff windows[BE min, BE max], CCA
+timing, maximum retry countsNmax
+retry , duty-cycle schedule
+Ωduty, and grid event response modes). For each candidate
+pair(ϑ′, ϑ)∈ P × P, the empirical utility for nodek
+is defined as the proportion of STHA-SCMC executions in
+which nodek, operating under protocolϑ′against(N−1)
+nodes usingϑ, satisfies the grid operational predicateϕ k. In
+our setting,ϕ kencodes timely delivery for periodic status
+reporting and event-triggered alarms, compliance with a per-
+cycle energy budget, and an availability requirement during
+blackout-recovery intervals.
+The screening procedure incrementally evaluates protocol
+pairs and prunes dominated candidates to keep the search
+tractable overP. Specifically, a dominance ratioλ∈(0,1]
+is enforced. If the self-play utility of a configuration falls
+belowλtimes the best observed utility achieved against it,
+the configuration is eliminated. For practical scalability, a
+dominance ratioλ∈[0,1]is enforced: if a configurationϑis
+outperformed by anotherϑ′under grid-relevant metrics (e.g.,
+event latency, cumulative energy), it is eliminated from the
+candidate set.Algorithm 1Protocol Candidate Screening for Grid-Adaptive
+NE
+Require:P: protocol parameter set, ˆUk(·,·): SCMC-based
+grid utility,λ: screening ratio
+1:For allϑ∈ P, estimate ˆUk(ϑ, ϑ)viaM base SCMC runs.
+2:InitializeS remain ← P;S final← ∅
+3:while|S remain |>1do
+4:Select unexplored(ϑ′, ϑ)inP × S remain
+5:Estimate ˆUk(ϑ′, ϑ)byM stepSCMC runs.
+6:if ˆUk(ϑ, ϑ)< λ· ˆUk(ϑ′, ϑ)then
+7:S remain ← S remain \ {ϑ}
+8:else ifAll ˆUk(·, ϑ)evaluated for· ∈ Pthen
+9:S remain ← S remain \ {ϑ};S final← S final∪ {ϑ}
+10:end if
+11:end while
+12:returnarg max ϑ∈Sfinalminϑ′∈PˆUk(ϑ,ϑ)
+ˆUk(ϑ′,ϑ)
+Here, every ˆUk(·,·)is measured by the fraction of SCMC
+runs where the grid-domain CBTL predicate (including alarm
+responsiveness, reporting window, and cumulative energy)
+holds for nodek.
+B. Stage 2: Grid-Constrained NE Statistical Certification
+In the second stage, the objective is not exhaustive equi-
+librium computation, but rather the statistical certification of
+whether a selected candidate protocol remains robust (in the
+sense of∆-relaxed NE) against selfish deviations, under the
+operational environment and grid constraints.
+Upon identifying a protocolϑ⋆, we perform statistical
+validation ofϑ⋆’s robustness as a∆-relaxed NE under grid
+constraints. For every alternativeϑ′∈ P,
+ˆUk(ϑ⋆, ..., ϑ⋆)≥∆· ˆUk(ϑ′, ϑ⋆
+−k)(8)
+where each utility is empirically determined byM certSCMC
+runs with realistic grid-side event schedules, node heterogene-
+ity, and parameter uncertainty.
+Statistical guarantees are established via one-sided confi-
+dence bounds for Bernoulli satisfaction outcomes. For each
+protocol pair, let ˆUkbe the empirical success proportion over
+Mcertindependent executions. We compute a lower confidence
+boundUkforˆUk(ϑ⋆, ϑ⋆)and an upper confidence bound
+UkforˆUk(ϑ′, ϑ⋆)using an exact Clopper-Pearson interval
+[48]. To control family-wise error across deviations, we apply
+a Bonferroni correction with per-comparison levelα grid/|P|.
+The certified robustness coefficient is defined as
+∆grid= min
+ϑ′∈PUk(ϑ⋆, ϑ⋆)
+Uk(ϑ′, ϑ⋆).(9)
+A protocolϑ⋆is reported as grid-robust if∆ gridexceeds a
+target threshold and all operational constraints embedded in
+the CBTL predicates are satisfied under the specified workload
+model.
+C. Scenario-Specific Implementation
+All SCMC executions are parameterized using grid-derived
+schedules (maintenance windows, alarm frequency), device-
+specific energy models, and event injection based on actual
+
+--- Page 4 ---
+TABLE I
+PERFORMANCE OFIEEE 802.15.4 CSMA/CA PROTOCOLPARAMETERIZATIONS INPOWERGRIDIOT SENSORNETWORKS(N= 20). P.S.:
+PARAMETERSET;[BE min, BE max]: BACKOFF EXPONENT RANGE;N RETX: MAX RETRANSMISSIONS; CCA: CLEARCHANNELASSESSMENT DURATION
+(µS); D.C.: DUTYCYCLE(%); ˆU: UTILITY(FRACTION OF SUCCESSFUL RUNS); DELIVERYRATIO(%): STATUS FRAMES DELIVERED WITHIN
+DEADLINES; AVG. ENERGY(mJ): MEAN PER-NODE ENERGY PER CYCLE;∆ GRID: ROBUSTNESS COEFFICIENT UNDER∆-RELAXEDNE. NE: NASH
+EQUILIBRIUM UNDER GRID CONSTRAINTS; OPT:MAXIMAL UTILITY UNDER SYMMETRIC OPERATION.
+P.S.[BE min, BE max]N retx CCA (µs) D.C. (%)Strategy ˆUAvg. Energy (mJ) Delivery Ratio (%)∆ grid
+A [2,4] 2 128 8 NE 0.911±0.003 147.3±2.1 92.7±0.6 0.970
+B [2,5] 2 128 9 NE 0.914±0.002 149.2±2.0 93.2±0.5 0.971
+C [3,5] 3 160 10 Opt 0.943±0.002 149.7±1.8 96.0±0.4 0.973
+D [4,6] 4 192 12 Opt 0.949±0.002 148.6±1.7 97.2±0.4 0.974
+E [2,3] 1 96 7 – 0.862±0.004 142.1±2.6 89.5±0.8 –
+F [2,6] 4 192 12 – 0.924±0.003 152.8±2.2 92.1±0.7 –
+Fig. 1. UPPAAL timed automata model of a sensor node implementing
+the IEEE 802.15.4 CSMA/CA protocol, parameterized for power grid IoT
+scenarios. The model captures the full protocol state space, including channel
+contention, backoff, retransmission, and per-state energy accounting, and
+serves as the core simulation engine for all experimental evaluation and
+statistical screening in this study.
+or synthetic power disturbance traces. The candidate protocol
+setPincludes only those configurations compliant with both
+IEEE 802.15.4 protocol rules and local grid operation guide-
+lines (maximum status frame intervals, minimum online node
+ratios). CBTL predicates are explicitly engineered to measure
+metrics prioritized in grid automation, such as latency to alarm
+broadcast or resilience during repeated blackout cycles.
+V. EXPERIMENTALEVALUATION
+This section empirically evaluates the proposed statisti-
+cal screening and certification framework for IEEE 802.15.4
+CSMA/CA parameter selection in power grid IoT sensor net-
+works. We empirically evaluate whether the two-stage STHA–
+SCMC procedure identifies protocol configurations that satisfy
+grid energy, reliability, and latency constraints while remaining
+robust to selfish deviations.
+A. Simulation Platform and Computational Resources
+All simulations were conducted using an in-house imple-
+mentation of the STHA modeling framework, with protocol
+verification and utility estimation performed via UPPAAL
+SMC version 5.0 [49], [50]. The entire screening and certifica-
+tion process was automated using a Python 3.9 orchestration
+pipeline. Simulations were executed on a compute clusterequipped with dual Intel Xeon Gold 6338 CPUs and 256 GB
+RAM, running Ubuntu Server 22.04 LTS.
+For each protocol configuration,M screen = 10,000simu-
+lation runs were conducted during the screening phase, and
+Mcert= 100,000runs were performed for statistical certifica-
+tion. The total CPU time for the complete evaluation was ap-
+proximately 950 core-hours. All random seeds, configuration
+files, and scripts used to reproduce the reported results will be
+released in an anonymized repository upon acceptance.
+B. Experimental Design and Parameterization
+To evaluate the effectiveness of the proposed statistical
+screening and certification methodology, we conducted a set
+of systematic experiments focusing on the IEEE 802.15.4
+CSMA/CA protocol, under a realistic power grid IoT sensor
+network scenario. The simulation environment was imple-
+mented using the STHA framework, with all parameters re-
+flecting grid operational and regulatory requirements. The un-
+derlying protocol dynamics were captured using a UPPAAL-
+based timed automata model [51], as shown in Fig. 1.
+The network topology comprisesN= 20sensor nodes
+representing intelligent terminal devices deployed within a
+power substation. Each node is modeled as an independent
+STHA instance, and nodes communicate over a shared wire-
+less medium. To reflect realistic operational requirements,
+each node is required to transmit at least one status frame
+within a reporting interval ofT rep= 45seconds. In addition,
+when abnormal grid events occur, nodes must deliver alarm
+messages with an end-to-end delay not exceedingT alarm= 3
+seconds. Energy consumption is constrained by an average
+budget ofE max= 150mJ per reporting cycle, consistent with
+battery and operational lifecycle limits. Furthermore, to ensure
+monitoring coverage during blackout or recovery events, at
+least90%of sensor nodes are required to remain online,
+enforcing a minimum availability threshold ofρ min= 0.9.
+All admissible protocol configurationsPwere generated
+by varying CSMA/CA parameters including backoff expo-
+nents[BE min, BE max]∈ {[2,4],[3,5],[4,6]}, CCA detection
+durations∈ {128,160,192}µs, maximum retransmissions
+Nretx∈ {2,3,4}, and duty-cycle ratios in the range8%to
+12%. Each configuration was verified to comply with both the
+IEEE 802.15.4 protocol and local grid deployment standards.
+
+--- Page 5 ---
+TABLE II
+BASELINE COMPARISON OFCSMA/CAPARAMETERIZATIONS UNDER THE SAME GRID WORKLOAD(N= 20). TYPE LABELS AREBL (HEURISTIC
+BASELINE), NE (CERTIFIEDNASH EQUILIBRIUM UNDER GRID CONSTRAINTS),ANDOPT (UTILITY-MAXIMIZING SYMMETRIC SETTING). UTILITY AND
+DELIVERY RATIO ARE REPORTED AS MEAN±STANDARD ERROR. “BUDGETOK”INDICATES WHETHERAVG. ENERGY IS WITHIN THE150mJ
+PER-CYCLE BUDGET.
+Type Cfg. CSMA/CA parameters Outcomes under grid workload
+[BE min, BE max]N retx CCA (µs) D.C. (%) ˆUDelivery (%) Avg. Energy (mJ) Budget OK∆ grid
+BL E [2,3] 1 96 7 0.862±0.004 89.5±0.8 142.1±2.6 Yes n/a
+BL F [2,6] 4 192 12 0.924±0.003 92.1±0.7 152.8±2.2 No n/a
+NEA[2,4] 2 128 8 0.911±0.003 92.7±0.6 147.3±2.1 Yes 0.970
+NEB[2,5] 2 128 9 0.914±0.002 93.2±0.5 149.2±2.0 Yes 0.971
+OPTC[3,5] 3 160 10 0.943±0.002 96.0±0.4 149.7±1.8 Yes 0.973
+OPTD[4,6] 4 192 12 0.949±0.002 97.2±0.4 148.6±1.7 Yes 0.974
+C. Model calibration and fidelity checks
+The timed-automata model instantiates IEEE 802.15.4
+CSMA/CA primitives using standard-defined timing units and
+protocol transitions, including backoff countdown, CCA, trans-
+mission, ACK waiting, and bounded retransmissions. Energy
+accounting is implemented as a priced extension in which
+each protocol location is associated with a mode-dependent
+power draw and the accumulated cost integrates power over
+time within each reporting cycle [52]. The parameterization
+follows a direct mapping from protocol settings to model
+guards and invariants, such that[BE min, BE max]determines
+the contention window evolution,N retxbounds retransmission
+loops, and the duty-cycle schedule controls sleep and wake
+transitions. We performed sanity checks to verify that increas-
+ing contention windows reduces collision-dominated failures
+under high load, increasing retransmission limits improves
+delivery at the cost of higher energy, and more aggressive
+duty cycling lowers energy while degrading alarm latency.
+These checks ensure that the model preserves the expected
+qualitative behavior of CSMA/CA under contention and en-
+ergy constraints.
+D. Screening and Certification Methodology
+The experimental workflow consists of two stages.Stage 1
+(Screening):For each candidate configurationϑ∈ P, we
+estimate the empirical utility ˆUk(ϑ, ϑ)as the fraction of
+Mscreen = 104STHA–SCMC runs in which nodekdelivers
+at least one status or alarm message within the mandatedT rep
+orT alarm window, does not exceed the cycle energy budget
+Emax, and remains available for at least90%of blackout-
+recovery intervals. Configurations violating any operational
+constraint are discarded, and the remaining candidates are
+further pruned using a dominance-ratio thresholdλ= 0.85.
+Stage 2 (Certification):For each surviving candidate, we
+applied the grid-constrained∆ grid-relaxed NE certification pro-
+cedure described in Section IV , usingM cert= 105simulation
+runs per scenario and significance levelα grid= 0.01. All
+certification experiments included randomized traffic surges,
+event-triggered alarms, and heterogeneous node initializations.
+E. Uncertainty Quantification
+We report standard errors (SE) for all metrics computed
+from the same SCMC runs. For probability-type measures(utility, delivery ratio), the SE isSE=p
+ˆp(1−ˆp)/M, where
+ˆpis the empirical proportion andMthe number of indepen-
+dent executions. For mean-valued metrics (average energy),
+the SE isSE= ˆs/√
+Mwithˆsthe sample standard deviation.
+Unless stated otherwise, two-sided(1−α)confidence intervals
+are reported asˆµ±z 1−α/2 SE.
+F . Baseline comparison
+We include two heuristic baselines that reflect common
+tuning practices under reliability and energy constraints [16],
+[22]. Baseline E adopts an aggressive backoff with a minimal
+retry limit, which reduces channel access delay but increases
+collision risk under contention. Baseline F increases the retry
+allowance to favor delivery success, at the cost of higher
+energy consumption and longer active time.
+As reported in Table II, the certified NE configurationB
+increases utility from 0.862 to 0.914 relative to baseline E,
+corresponding to a 6.0% relative gain, and raises the delivery
+ratio from 89.5% to 93.2%. Compared with baseline F, config-
+urationBreduces the mean per-cycle energy from 152.8 mJ to
+149.2 mJ, a 2.4% relative reduction, while maintaining compa-
+rable delivery performance. The utility-maximizing symmetric
+configurationDachieves the highest utility of 0.949, but it
+requires a larger contention window and a higher duty cycle,
+which increases the protocol aggressiveness in channel access
+and activity scheduling.
+VI. CONCLUSION ANDDISCUSSION
+The proposed framework achieves statistical certification of
+CSMA/CA parameterizations in power grid sensor networks,
+ensuring robustness against selfish adaptations while meet-
+ing reliability, timeliness, and energy constraints. The results
+demonstrate that certified configurations consistently satisfy
+operational requirements, confirming the framework’s suitabil-
+ity for practical deployment in critical infrastructure. Nonethe-
+less, further refinement is required to broaden applicability,
+and incorporating multi-channel interference, heterogeneous
+device models, and spatial topology effects would improve
+fidelity, while resilience to faults and security threats remains
+essential for real-world integration. These directions highlight
+that although the current approach provides a concrete and de-
+ployable solution, continued extensions are necessary to ensure
+comprehensive coverage of diverse deployment environments.
+
+--- Page 6 ---
+ACKNOWLEDGMENT
+This work was supported by the State Grid Corporation
+of China, which provided the operational platform and field-
+deployed equipment used in this study. Both the simulation
+setup and the real-world experimental measurements were
+conducted using the devices and infrastructure of the State
+Grid deployment environment. This work was also supported
+by the University of Western Australia through the Perth
+Modelling Centre and the School of Computer Science and
+Software Engineering. The authors thank Dr. Yihao Ding for
+his guidance and the project team for their collaboration.
+REFERENCES
+[1] M. Y . Mehmoodet al., “Edge computing for iot-enabled smart grid,”
+Security and Communication Networks, 2021.
+[2] A.-R. Kojonsaari and J. Palm, “The development of social science
+research on smart grids: a semi-structured literature review,”Energy
+Sustain. Soc., 2023.
+[3] A. I. Sarwatet al., “Trends and future directions of research for smart
+grid iot sensor networks,” inProc. Int. Symp. Sensor Netw., Syst. Secur.,
+2017.
+[4] S. M. A. A. Abiret al., “Iot-enabled smart energy grid: Applications
+and challenges,”IEEE Access, 2021.
+[5] S. Kirmaniet al., “A survey on iot-enabled smart grids: technologies,
+architectures, applications, and challenges,”Sustainability, 2022.
+[6] A. H. Bagdadeeet al., “Iot based wireless sensor network for power
+quality control in smart grid,”Procedia Comput. Sci., 2020.
+[7] A. Goudarziet al., “A survey on iot-enabled smart grids: emerging,
+applications, challenges, and outlook,”Energies, 2022.
+[8] X. Yanget al., “Construction of integrated network order system of main
+distribution network based on power grid operation control platform,”
+Energy Informatics, 2024.
+[9] IEEE, “IEEE Standard for Low-Rate Wireless Networks,” IEEE Std
+802.15.4-2020 (Revision of IEEE Std 802.15.4-2015), 2020.
+[10] J. Zheng and M. J. Lee, “Will ieee 802.15.4 make ubiquitous networking
+a reality?: A discussion on a potential low power, low bit rate standard,”
+IEEE Communications Magazine, vol. 42, no. 6, pp. 140–146, 2004.
+[11] V . C. Gungor and F. C. Lambert, “A survey on communication networks
+for electric system automation,”Computer Networks, vol. 50, no. 7, pp.
+877–897, 2006.
+[12] Y . Zhaoet al., “The development of regional smart energy systems in
+the world and china: The concepts, practices, and a new perspective,”
+Wiley Interdiscip. Rev. Data Min. Knowl. Discov., 2021.
+[13] S. Pollin, S. C. Ergen, A. Dejongheet al., “Performance analysis
+of slotted carrier sense ieee 802.15.4 medium access layer,”IEEE
+Transactions on Wireless Communications, vol. 7, no. 9, pp. 3359–3371,
+2008.
+[14] P. Park, C. Fischione, and K. H. Johansson, “Adaptive ieee 802.15.4
+protocol for energy efficient, reliable and timely communications,”
+inProceedings of the 9th ACM/IEEE International Conference on
+Information Processing in Sensor Networks (IPSN), Stockholm, Sweden,
+2010, pp. 327–338.
+[15] P. F. C. Barbosaet al., “A multi-protocol energy optimization method
+for an adaptable wireless mac system through machine learning,”Ann.
+Telecommun., 2025.
+[16] Y . Nagaiet al., “Improve IEEE 802.15.4 network reliability by suspend-
+able csma/ca,” inProc. IEEE WCNC. IEEE, 2024.
+[17] F. S. Sadeket al., “Identifying misbehaving greedy nodes in iot
+networks,”Sensors, 2021.
+[18] J. Leiet al., “Reinforcement learning based multi-parameter joint
+optimization in dense multi-hop wireless networks,”Ad Hoc Netw., 2024.
+[19] P. Kyasanur and N. H. Vaidya, “Selfish mac layer misbehavior in
+wireless networks,”IEEE Transactions on Mobile Computing, vol. 4,
+no. 5, pp. 502–516, 2005.
+[20] A. S. Alsafran, M. Alwabari, and M. Al-Bahrani, “Challenges in
+implementing iot for enhanced reliability and effectiveness in smart
+grids: Literature review,”Int. Trans. Electr. Energy Syst., 2025.
+[21] M. Z. Khanet al., “Reliable internet of things: Challenges and future
+trends,”Electronics, 2021.[22] M. Kaddiet al., “Energy-efficient clustering in wireless sensor networks
+using grey wolf optimization and enhanced csma/ca,”Sensors, 2024.
+[23] I. Sammouret al., “Intelligent csma/ca for wi-fi networks,” inProc.
+IEEE IWCMC. IEEE, 2024.
+[24] M. Yanet al., “On selfish behavior in wireless sensor networks: a game
+theoretic case study,” inProc. IEEE ICMTMA, 2011.
+[25] Y . Daiet al., “A survey of graph-based resource management in
+wireless networks—part i: Optimization approaches,”IEEE Trans. Cogn.
+Commun. Netw., 2024.
+[26] N. Zhanget al., “Pbn-csma/ca: A power back-off noma-based csma/ca
+protocol for ad hoc networks,”IEEE Trans. Mobile Comput., 2025.
+[27] A. Garnaev and W. Trappe, “An ALOHA-type network game with trade-
+off between throughput and energy saving,” inProc. IEEE SPAWC, 2024.
+[28] S. Mohamed, “Multi-channel communication in wireless networks,”
+Ph.D. dissertation, 2022.
+[29] K. M. Bataihahet al., “Improving connectivity in urban iot-based
+wireless sensor networks: a nonorthogonal cognitive-based power al-
+location,”IEEE Sensors J., 2023.
+[30] Z. Minget al., “An improved csma/ca protocol anti-jamming method
+based on reinforcement learning,”Electronics, 2023.
+[31] R. Singh and P. R. Kumar, “Adaptive csma for decentralized scheduling
+of multi-hop networks with end-to-end deadline constraints,”IEEE/ACM
+Trans. Netw., 2021.
+[32] F. S. Sadeket al., “Modeling the greedy behavior attack and analyzing
+its impact on iot networks,”Procedia Comput. Sci., 2022.
+[33] A. Boujnoui, “Stochastic game analysis and probabilistic approach
+towards the design of random access mechanisms,” 2022.
+[34] F. D. Tarzjani and B. Krishnamachari, “Computing the saturation
+throughput for heterogeneous p-csma in a general wireless network,”
+arXiv preprint arXiv:2503.09869, 2025.
+[35] S. Saibharathet al., “Selfish users in listen-before-talk co-existence of
+cellular-wi-fi networks: Counteraction methods,” inProc. IEEE WiOpt,
+2023.
+[36] S. B. Sadkhan and M. Ayad, “Game theory role in wireless network
+security—status, challenges and future trends,” inProc. IEEE ICASEA,
+2021.
+[37] Z. Sunet al., “Applications of game theory in vehicular networks: A
+survey,”IEEE Commun. Surveys Tuts., 2021.
+[38] W. Chenet al., “Deep reinforcement learning for internet of things: A
+comprehensive survey,”IEEE Commun. Surveys Tuts., 2021.
+[39] R. Van de Schootet al., “Bayesian statistics and modelling,”Nat. Rev.
+Methods Primers, 2021.
+[40] T. Ismailet al., “Detecting greedy behaviour in tdma-based vanets using
+watchdog and svm,” inProc. IFIP/IEEE PEMWN, 2024.
+[41] M. Liet al., “Gcn-enhanced multi-agent mac protocol for vehicular
+communications,” inProc. IEEE INDIN, 2024.
+[42] J. Tong, L. Fu, and Z. Han, “Throughput enhancement of full-duplex
+csma networks using multiplayer bandits,”IEEE Internet Things J.,
+2021.
+[43] R. R. Sarkar, A. Chakrabarty, and M. Z. Rahman, “Mobile ad-hoc
+networks: A review on routing protocols,”Jahangirnagar Univ. J. Sci.,
+2021.
+[44] Z. G. Al-Mekhlafiet al., “Integrating safety in vanets: a taxonomy and
+systematic review of veins models,”IEEE Access, 2024.
+[45] J. Arcile and ´E. Andr ´e, “Timed automata as a formalism for expressing
+security: A survey on theory and practice,”ACM Comput. Surveys, 2022.
+[46] R. Alur and D. L. Dill, “A theory of timed automata,”Theoretical
+Computer Science, vol. 126, no. 2, pp. 183–235, 1994.
+[47] M. Kwiatkowska, G. Norman, and D. Parker, “Probabilistic model
+checking and autonomy,”Annu. Rev. Control Robot. Auton. Syst., 2022.
+[48] C. J. Clopper and E. S. Pearson, “The use of confidence or fiducial
+limits illustrated in the case of the binomial,”Biometrika, vol. 26, no. 4,
+pp. 404–413, 1934.
+[49] G. Behrmannet al., “Uppaal 4.0,” inProc. QEST, 2006.
+[50] A. David, K. G. Larsen, A. Legay, M. Miku ˇcionis, and D. B. Poulsen,
+“Uppaal smc tutorial,”International Journal on Software Tools for
+Technology Transfer, vol. 17, pp. 397–415, 2015.
+[51] W. Zhouet al., “A comprehensive survey of UPPAAL-assisted formal
+modeling and verification,”Softw. Pract. Exper., 2025.
+[52] K. G. Larsen, J. I. Rasmussenet al., “Optimal conditional reachability
+for multi-priced timed automata,” inProc. FoSSaCS, ser. Lecture Notes
+in Computer Science, vol. 3441. Springer, 2005, pp. 234–249.

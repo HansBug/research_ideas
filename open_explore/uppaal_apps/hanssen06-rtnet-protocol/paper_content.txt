@@ -1,0 +1,1015 @@
+--- Page 1 ---
+Verifying the distributed real-time network protocol RTnet using Uppaal∗
+Ferdy Hanssen, Angelika Mader, Pierre G. Jansen
+Distributed and Embedded Systems group
+Faculty of Electrical Engineering, Mathematics and Computer Science, University of Twente
+PO-Box 217, 7500 AE, Enschede, the Netherlands, FAX: +31 53 489 4590
+E-mail: hanssen@cs.utwente.nl ,a.h.mader@utwente.nl ,p.g.jansen@utwente.nl
+Abstract
+RTnet is a distributed real-time network protocol for
+fully-connected local area networks with a broadcast ca-
+pability. It supports streaming real-time and non-real-
+time trafﬁc and on-the-ﬂy addition and removal of network
+nodes. This paper presents a formal analysis of RTnet us-
+ing the model checker Uppaal. Besides normal protocol be-
+haviour, the analysis focuses on the fault-handling proper-
+ties of RTnet, in particular recovery after packet loss. Both
+qualitative and quantitative properties are presented, to-
+gether with the veriﬁcation results and conclusions about
+the robustness of RTnet.
+1. Introduction
+This paper describes a formal analysis of the RTnet pro-
+tocol [1]. It is a typical example of a protocol to be used
+for streaming data in a distributed environment. These pro-
+tocols support the transfer of multimedia content and re-
+quire timely arrival to avoid disturbances of audio or video
+streams. As a consequence these protocols require real-
+time behaviour.
+The techniques as presented in this paper can be used for
+an extensive number of streaming data protocols, be it over
+the net, for a distributed home environment, or currently
+also for a network on a chip [2]. We will illustrate our
+used technique on basis of the RTnet protocol for which
+we have built a prototype environment, i.e., the hardware,
+distributed system software and some test applications.
+Our RTnet protocol is to be used on fully connected lo-
+cal area networks with a broadcast capability. Its main goal
+lies in the combination of Quality of Service (QoS) and
+ﬂexibility with regard to dynamics in the number of nodes
+and real-time streams. The basic idea of the RTnet protocol
+is quite simple. However, distribution and fault handling
+lead to complexity in the number of possible scenarios that
+make formal analysis a suitable approach to increase con-
+ﬁdence in the correctness of the protocol. We apply model
+∗This work is sponsored by the Netherlands Organisation for Scientiﬁc
+Research (NWO) under grant number 612.060.111, and this work is sup-
+ported by the IBM Equinox programme.checking as an experimental approach [3]: formal analysis
+can only increase trust in the correctness of an implemen-
+tation, but not guarantee its ultimate correctness. We are
+aware of the fact that a formal correctness proof is only
+about a model, and not about the implementation. Also, we
+prove protocols only for a ﬁxed number of nodes, not the
+general case.
+In order to get meaningful results from model checking
+we follow two lines. First, we perform a high number of
+model checking experiments. In the work presented here,
+we did approximately 190000 experiments, each of which
+is determined by the choice of representative values for pa-
+rameters, such as timing parameters, possible package loss,
+and different stream sets. The variation on parameters of
+the model results in 10800 different instances of the pro-
+tocol model. Each instance is veriﬁed against 18 different
+properties, e.g., occurrence of collision, recovery, and re-
+covery duration. Second, the quality of analysis results can
+only be as good as the quality of the models used for anal-
+ysis [4]. A systematic derivation of the model, where as-
+sumptions and design decisions are made explicit makes a
+model more understandable and increases the trust that the
+model indeed reﬂects the protocol implementation. There-
+fore, we clearly state what aspects of the protocol are de-
+scribed in the protocol model.
+For the analysis we used the model checker Uppaal [5].
+There are three reasons for our choice:
+Timed analysis: Uppaal is suitable for veriﬁcation of real-
+time systems that can be modelled as timed automata,
+i.e., non-deterministic processes with a ﬁnite control
+structure and real-valued clocks. These processes may
+communicate through shared variables or a handshake
+synchronization. Typical applications of Uppaal are
+real-time controllers and communication protocols in
+particular where timing aspects are critical [6–10].
+Modelling and analysis support: Uppaal contains a simu-
+lator that is useful during the development of the model.
+The veriﬁer has the possibility to create a diagnostic
+trace, i.e., a sequence of actions leading to a state where
+the property of interest fails. Such a sequence can be re-
+played in the simulator to investigate the scenario lead-
+ing to the failure.
+1
+
+--- Page 2 ---
+A straightforward mapping: RTnet is deﬁned using a de-
+terministic state-transition diagram for every node. The
+class of models that Uppaal can handle, consists of
+timed, non-deterministic automata and conversion of
+the deterministic state-transition diagram of RTnet to
+a Uppaal automaton is relatively straightforward.
+The organization of this paper is as follows. Section 2
+brieﬂy describes the RTnet protocol. The model of RTnet
+and the properties used for analysis are described in sec-
+tions 3and4, respectively. We describe the experiments in
+section 5and their results in section 6. Finally conclusions
+are drawn in section 7.
+2. RTnet
+We brieﬂy describe the distributed RTnet network pro-
+tocol. An extensive description was published earlier [1].
+RTnet can be used in any local area environment where
+a distributed protocol is needed and where QoS support and
+ﬂexibility is required. It is a distributed protocol for use on
+digital networks with real-time requirements. It allows pro-
+cessors connected by a broadcast-capable network to com-
+municate in real-time. The control is distributed and all
+nodes in the network are expected to cooperate for guaran-
+teeing real-time behaviour.
+The protocol requires a fully-connected medium, such
+as a common bus or Ethernet, where every message sent
+can be received directly by all other nodes. It supports both
+real-time and non-real-time communication. Applications
+can reserve a portion of the available bandwidth to transmit
+real-time data, organised in streams. Simultaneously, the
+network can use the remaining bandwidth for best-effort
+trafﬁc. The key idea is that the network is scheduled dy-
+namically, using standard real-time scheduling algorithms
+normally used for task scheduling on a single CPU.
+RTnet is designed to satisfy a set of goals. These are:
+Ability to run on resource-lean devices: it must be imple-
+mentable on devices with few resources.
+QoS guarantees: bandwidth reservations for real-time data
+must be met, existing streams may not be hindered by
+newly added streams.
+Non-real-time trafﬁc: besides periodic real-time trafﬁc our
+network protocol should allow for best-effort trafﬁc,
+which may not affect the deadlines of real-time streams.
+Fault tolerance: the physical layer of a network generally
+does not provide faultless delivery of all packets. Our
+network protocol should recover from network faults
+during token transmissions.
+Plug-and-play: addition and removal of nodes should be
+automatic.
+Can be based on existing hardware and protocols: it must
+be possible to use existing hardware and software.
+We distinguish two kinds of network trafﬁc: real-time
+and non-real-time. Real-time data has precedence overnon-real-time data, which means that non-real-time data is
+sent only when no real-time data is being offered by any
+node. Real-time data is allowed in the form of real-time
+streams. Each stream is characterised by the bandwidth it
+needs and a period. Admission control, based on feasibil-
+ity analysis, is required before admitting a new real-time
+stream to the network. The source node of a stream is then
+periodically granted access to the network for that stream.
+RTnet is based on a timed token on a broadcast capable
+network. In normal operation, the token holder may use
+the network exclusively. The passage of the token through
+the network does not follow a static, predeﬁned path, but
+is scheduled on-the-ﬂy by a dynamic version of a real-time
+scheduler, such as Rate Monotonic (RM), Deadline Mono-
+tonic (DM), or Earliest Deadline First (EDF).
+There are two variants of RTnet. In unicast token RTnet
+the token is sent to a single receiver, in broadcast token RT-
+netthe token is broadcast. The advantage of the broadcast
+version is reduction of packets that have to be sent. But
+unicast token RTnet does not need broadcasts for the basic
+protocol operation, only for on-line node additions. Some
+network architectures have an inherently lower priority for
+broadcast packets than for unicast packets: a disadvantage
+for broadcast token RTnet.
+An important aspect of the token is that it does not fol-
+low a predeﬁned ring of all nodes. The token follows the
+path of nodes with the highest priority to use the network.
+All information necessary to decide which stream has
+the highest priority is present in the token. This enables a
+distributed approach to schedule the streams. All nodes
+are assumed to collaborate on this distributed real-time
+scheduling policy. Such a distributed scheduler needs syn-
+chronized clocks on the various nodes, so all nodes decide
+upon the same stream to have the highest priority.
+Every node follows the state-transition diagram1de-
+picted in ﬁgure 1. For simplicity, this diagram shows only
+the basic transitions and not most error-induced transitions.
+There are basically three roles for the nodes that partici-
+pate in RTnet. A node can be token holder ,monitor , oridle.
+Normally there is one token holder and one monitor. The
+token holder is in charge of the network, and it is the only
+node allowed to transmit data. The monitor is the guardian
+of the token holder, and will come into action only when
+the token is not propagating correctly. In normal operation
+the monitor is always the previous token holder. The roles
+of token holder and monitor are not ﬁxed to speciﬁc nodes,
+all nodes take turns on these roles. The idle role maps di-
+rectly to the Idlestate, the monitor role maps to the Monitor
+state and the Pollstate, and the token holder role maps to
+theAnnounce ,Activate ,Dispatch , and Transmit state. In
+theOff-line state the node does not have any role.
+1Figure 1depicts the unicast token variant, a ﬁgure of the broadcast
+token variant was published in the extensive description of RTnet [1].
+2
+
+--- Page 3 ---
+Monitor TransmitF: send stop_mon,
+send tokenActivate
+Dispatchsend pollH: time out,Idle
+PollOff−line Announce
+E: send keep_mon
+D: THT expired J: receive keep_mon
+L: receive never_got_token or time outC: invalid streamB: valid stream
+G: receive stop_monA: receive token K: receive stop_mon
+R: announce phaseP: start new RTnet
+N: leave RTnetM: join existing RTnet
+Q: announce phase doneLegend:
+ /
+ State/transition used in normal operation
+/
+ State/transition used for node addition and removal
+/
+ State/transition used to deal with fault conditions
+Figure 1. Unicast token RTnet state-transition diagram
+Normal operation
+In normal operation an idle node will, at one point in
+time, receive a token (transition Ain the ﬁgure) and as-
+sume the role of token holder. The token indicates which
+stream is selected to begin data transfer. If that stream is
+a valid stream on that node, it will commence transmission
+(transition B). In the token is also stored for how much time
+the node is allowed to transmit. If the stream is not valid
+(e.g., when the responsible application has terminated the
+stream), the Transmit state is skipped and a new stream is
+selected immediately (transition C).
+When the data transfer is ﬁnished (transition D), the next
+stream is selected. During this computation the node is in
+theDispatch state. If the next stream originates from the
+same node, it informs the monitor of this (transition E). If
+the next stream originates from somewhere else, the mon-
+itor is informed ﬁrst and the token is passed to support the
+next stream (transition F). Then the node assumes the role
+of monitor.
+In the Monitor state the node will simply wait for an ac-
+knowledgement of the token holder that either the token has
+been passed on (this is called a stop monitoring message)
+or that the token holder would like to keep the token for a
+bit longer (this is called a keep monitoring message). If the
+token has been passed on, the node will leave the role of
+monitor and become idle (transition G). In the second case
+it will simply wait for the next acknowledgement. This is
+the entire cycle when nothing goes wrong.Fault handling
+We assume network packets arrive intact or not at all.
+They are not modiﬁed in transit. We assume that nodes
+are fail silent, i.e., when they are down they produce no
+network trafﬁc at all.
+When the acknowledgements to the monitor do not ar-
+rive in time, the monitor assumes something is amiss. The
+time out of the monitor is based on the Token-Holding
+Time (THT) it allocated in the Dispatch state, extended by
+a small margin, called δpoll. The monitor will have to ﬁnd
+out what went wrong and take appropriate action. To do
+this it will ﬁrst observe the network. If there is activity on
+the medium from another node than the one it is monitor-
+ing, it may conclude the token has not been lost, only a
+stop monitoring message was lost. The node can then stop
+monitoring and becomes idle.
+If there is activity from the node it is monitoring, it may
+conclude a keep monitoring message has been lost. Now
+the monitor will have to actively monitor the token holder,
+as it does not know how long it will have to wait until the
+next stop monitoring orkeep monitoring message arrives.
+If there is no network activity, the conclusion is that the
+token is lost. Now the monitor has to determine whether
+the prospected token holder is still alive. To do this it will
+transmit a pollmessage (transition H) and wait a short time
+for an answer in the Pollstate. The length of this short wait
+isδpoll, the same as the margin added to the THT before
+actually sending a pollmessage.
+3
+
+--- Page 4 ---
+If the token holder is alive and has a valid token, it will
+reply with a keep monitoring message, indicating how long
+it wants to keep the token and the monitor will restart its
+time-out timer (transition J). If the token holder is alive, but
+already forwarded the token, it will reply with stop moni-
+toring . The monitor will then become idle (transition K).
+When the monitor receives a reply from the token holder
+that states that a token has never been seen, the monitor
+selects a new stream and a new token will be sent (transi-
+tionL). If the token holder does not respond, the monitor
+will delete it from the list of active nodes, together with
+all streams originating from it, and a new stream will be
+selected for transmission (transition L).
+Dynamic network updates
+Periodically the announce phase of the network is ac-
+tivated. The token holder enters the Announce state (tran-
+sition R): it broadcasts an invitation and waits for replies.
+After a short time the next stream is selected (transition Q).
+Nodes may join a live network in response to an invita-
+tion asking for new participants and leave it (transitions M
+andN). A node that does not receive this invitation within
+a speciﬁed time out may start a new RTnet (transition P).
+3. The Uppaal model
+Timed automata
+Systems are modelled in Uppaal as a parallel composi-
+tion of non-deterministic, timed automata. Time is mod-
+elled using real-valued clocks and time only progresses
+in the locations of the automata: transitions are instanta-
+neous. The guards on transitions between the various loca-
+tions in the automata and the invariants in the various lo-
+cations may contain both integer-valued variables and real-
+valued clocks. Clocks may also be reset to some constant
+in the transitions. Several automata may also synchronize
+on transitions using handshakes. With the use of shared
+variables it is possible to model data transfer between au-
+tomata. Locations may be urgent, which means time is not
+allowed to progress, and committed, which means time is
+not allowed to progress and interleaving is restricted. If
+only one automaton is in a committed location at any one
+time, its transitions are guaranteed to be atomic.
+Properties of systems are checked by the Uppaal model
+checker, which performs an exhaustive search through the
+state space of the system for the validity of these properties.
+It can check for invariant, reachability, and liveness prop-
+erties of the system. The properties are expressed using a
+subset of Timed Computational Tree Logic (TCTL) [11].
+Table 1summarises the forms needed for our properties.Table 1. Uppaal property forms
+Syntax∗Meaning
+∃3p Possibly pholds, i.e., there is a state where p
+holds that is reachable from the initial state.
+∀2p Invariantly pholds.
+p;qWhenever pholds, eventually qwill hold too.
+∗pandqare combinatorial, boolean expressions of automaton
+locations and relational, numeric expressions over constants,
+variables, and clocks
+Modelling the RTnet protocol
+We ﬁrst describe a number of modelling decisions.
+Fragment: we model the basic protocol consisting of the
+normal operation mode and the fault handling mode.
+This corresponds to the lower six states (with respec-
+tive transitions) in ﬁgure 1.Notin the model are the
+announcements (adding new nodes), the off-line phase,
+and also the dynamic addition of streams. Reason for
+that choice were complexity issues.
+Protocol and model variants: the protocol exists in two
+variants: unicast and broadcast token. The differences
+between these two variants do not seem very large on
+a high-level perspective. But the differences in the de-
+tails, especially fault handling, are signiﬁcant enough to
+warrant the use of different models for the two variants.
+Decomposition in automata: there is basically an automa-
+ton for each node, and an automaton for the network.
+For more complex veriﬁcation properties we needed a
+second network automaton to identify speciﬁc states.
+There are two kinds of network communication: con-
+trol packets and stream data packets. Control packet
+transmission is modelled by handshake synchronisa-
+tion, between sending node and network, and another
+one between network and receiving node. The network
+automaton contains a non-deterministic choice whether
+a packet gets lost or not. Stream data packet transmis-
+sion is modelled implicitly by only letting time pass.
+Node automata. The node automaton corresponds directly
+to the protocol state-transition diagram, shown in ﬁgure 1.
+A node is always ready to synchronize on one of its receive
+channels, i.e., in all non-committed locations it accepts an
+RTnet control message. In a real system a node may, at any
+time, receive a control message, due to faults. When this
+message is unexpected a node will disconnect itself from
+RTnet and try to join again later. In the model the node
+automaton will enter an error location upon receipt of an
+unexpected message and not participate in the protocol any
+more, thus modelling the automatic disconnection.
+Data transfer, i.e., network trafﬁc that is application-
+speciﬁc data and not an RTnet control message, is not mod-
+elled explicitly, but it is assumed that data is transferred
+while time passes in the TRANSMIT location. Loss of data
+4
+
+--- Page 5 ---
+packets is not modelled, because the RTnet protocol is not
+concerned with the correctness of application data and not
+designed to be. It is assumed the protocol stack on top
+of RTnet or the application will handle data corruption.
+The main objective of the model is to verify if the proto-
+col works when control messages are lost, because these
+are essential to the proper operation of RTnet.
+Since non-real-time data handling is outside the scope
+of this analysis, it is modelled in a simplistic way. In RT-
+net the token rotates in a Round Robin (RR) fashion among
+the nodes to allow for a fair share of time for each node to
+transmit its non-real-time messages. In the model this RR
+behaviour is not modelled. Instead, if no real-time stream
+is ready to send, a special stream is selected, called the
+best-effort stream . This stream has no source node: if this
+stream is selected the token remains at the node that sent
+the last real-time stream. The token is only forwarded again
+when the next real-time stream becomes ready to send.
+Network automata. The network is essentially modelled
+with a single automaton. This automaton waits for a hand-
+shake synchronization with a sending node. There is a dif-
+ferent handshake channel for each control message type,
+allowing for easy control message identiﬁcation at the re-
+ceiving node and simple differentiation between message
+types in the network automaton, as not all control messages
+have to be handled in the same way.
+After the handshake synchronization with the sending
+node, the network automaton non-deterministically either
+performs a handshake synchronization with the receiving
+node or it waits for a new handshake with a sending node.
+In the latter case the control message is lost. Note that the
+network automaton does not introduce a delay on control
+messages. This is reasonable because the network delay is
+on a time scale one order of magnitude ﬁner than the time
+effects investigated with our model.
+A message will arrive at the receiving node at the same
+time as it left the sending node, but a message is guaran-
+teed to arrive at the receiving node at a later point in the
+sequence of events than it left the sending node. Also note
+that the network automaton will always process only one
+control message type at the same time. In certain conﬁg-
+urations it is possible that multiple pollmessages are pro-
+cessed at the same moment. If more than one pollmessage
+is processed at the same moment, these are, by deﬁnition,
+all lost.
+There are two extended versions of the network automa-
+ton. These are needed for detection of multiple indepen-
+dent, simultaneous control messages that are sent at the
+same time. Such multiple independent, simultaneous con-
+trol messages might, on a real network, collide and cause
+non-deterministic transmission delays or delivery failures.
+The extended network automata detect invalid successions
+of control messages.4. Veriﬁcation properties
+We want to analyse the following aspects of RTnet:
+1)normal operation,
+2)recovery from network failures and recovery time, and
+3)occurrences of simultaneous control messages.
+In total, there are 18 different properties that allow con-
+clusions about the issues above. They are veriﬁed using
+Uppaal for different versions and conﬁgurations of our pro-
+tocol model. Therefore, they have to be expressed in the
+Uppaal property language. In the following we will dis-
+cuss the most important properties.
+Properties to analyse normal operation
+A state of the model is called stable when the following
+conditions are met:
+•at most one node has the role of token holder, call this
+conditionψ1/t/holder;
+•at most one node has the role of monitor, call this con-
+ditionψ1/monitor;
+•no nodes are about to send or have sent a pollmessage,
+call this condition ¬ψext/poll
+ifor every node i;
+•no nodes are off-line, i.e., are in the location ERROR .
+We consider the ﬁrst three stability conditions strong :
+they must always be met. The last stability condition we
+consider weak : a network with one or more off-line nodes
+can be stable and operating correctly, just with fewer nodes.
+Using the deﬁnitions of ψ1/t/holder,ψ1/monitor, and ¬ψext/poll
+i
+the stability condition ψstablecan be constructed for a sys-
+tem with nnodes:
+ψstable=ψ1/t/holder∧ψ1/monitor∧n/logicalanddisplay
+i=1¬ψext/poll
+i∧n/logicalanddisplay
+i=1¬node i.ERROR
+With the condition ψstablethe stability property φstableto
+verify the model with may be constructed:
+φstable=∀2ψstable
+Propertyφstableexpresses that the system is always sta-
+ble. The expected result of this property is true if the pa-
+rameter packet loss is set to zero and false otherwise.
+Other properties whose deﬁnitions will not be shown
+due to space constraints, provide useful insights in the nor-
+mal behaviour of the protocol:
+•deadline misses are checked by the property φdl/miss;
+•φnet/idleexpresses if the best-effort stream is ever used,
+i.e., if there is room for non-real-time trafﬁc;
+•φ1/transmitexpresses that there is at most one node trans-
+mitting, i.e., is in the Transmit state of the protocol;
+•φ1/dispatchexpresses that there is not more than one node
+computing the next stream, i.e., is in the Dispatch state;
+•φ1/monitorexpresses that there is at most one monitor, i.e.,
+at most one node is in the Monitor state of the protocol.
+5
+
+--- Page 6 ---
+Properties to analyse network recovery
+Network failure recovery basically comes down to the
+question if packet loss results in a permanently stable state
+of the system. When a packet is lost, the system may reach
+an unstable state, e.g., because the monitor sent a pollmes-
+sage to some other node to actively recover from a fault,
+and thus the third stability condition is violated.
+Propertyφstabilizeexpresses that an unstable state of the
+system will always lead to a stable state of the system, i.e.,
+if the system will recover from a fault. We expect φstabilize
+to be satisﬁed if at most one packet loss is allowed (for
+the network automaton), and possibly trueotherwise. The
+stabilization property φstabilizeis constructed using ψstable:
+φstabilize=¬ψstable;ψstable
+For satisfaction of the property φstabilizeno node may
+reach the location ERROR . A weaker form of this property,
+called⋆
+φstabilize, allows nodes to reach the location ERROR ,
+i.e., the fourth stability condition has been dropped. With
+this property we want to check, if the protocol, even in
+the case of errors and nodes being off-line, still continues
+working with the remaining nodes.
+Another interesting property is whether there is at most
+one node trying to actively recover from a fault. Prop-
+ertyφ1/pollexpresses whether at most one node is in the
+protocol’s Pollstate. This property is expected to be satis-
+ﬁed with a packet loss of upto one, but may not be satisﬁed
+with higher packet loss.
+Properties to analyse recovery duration
+We deﬁne the recovery duration to be the time between
+a packet loss and the moment of recovery. We determine
+the possible recovery durations by ﬁnding the minimal and
+themaximal duration for a given set of parameters. Details
+are provided in appendix A.
+The maximal duration is estimated to be the sum of the
+estimated largest continuous network usage CLCUof a sin-
+gle stream and one poll delay. For unicast token RTnet we
+expect this estimate to be the largest time needed before the
+recovery procedure is started in the case of single packet
+loss. For broadcast token RTnet a single token loss equals
+the loss of two packets in the unicast token variant, a stop
+monitoring message with a subsequent token message. In
+that case this estimate may be too low and actually is in
+some cases, as we will see in section 6.
+Properties to analyse occurrence of simultaneous
+control messages
+A faulty situation that could occur is when at least two
+nodes send a control message at the same moment. To eval-
+uate if this situation of multiple independent, simultaneousTable 2. Stream set SC(4 nodes, utilization ≈82%)
+Stream ID 0 1 2 3 4 5 6 7
+Source ID 0 1 2 3 0 1 2 2
+Period 3000 3000 3000 3000 2000 500 500 250
+Workload 10 10 10 10 20 100 200 50
+control messages can occur, two properties are needed. The
+ﬁrst property, φsimultaneous
+packets sent, expresses whether this situation
+occurs. This property can only be used in conjunction with
+the extended network automata.
+There is only one asynchronous control message present
+in the RTnet protocol: the pollmessage. Multiple indepen-
+dent, simultaneous control messages should only be caused
+by multiple nodes sending a pollmessage at the same time.
+To evaluate if this is indeed the case, property φtp>1is sat-
+isﬁed if more than one node can be ready to send a poll.
+The results of verifying properties φsimultaneous
+packets sentandφtp>1
+on models using one of the extended network automata
+makes it possible to derive situations where multiple inde-
+pendent, simultaneous control messages are notcaused by
+multiple pollmessages and to determine their causes and
+possible solutions.
+5. Experiments
+We performed model checking runs with Uppaal 3.5.9
+for 10800 different conﬁgurations, and we checked 18
+properties for each conﬁguration. Each conﬁguration is de-
+termined by the following settings and parameters:
+1)Unicast token andbroadcast token variants of RTnet.
+2)There are three network model conﬁgurations that al-
+low for different analysis of situations where packets
+are sent simultaneously. The simple network automa-
+ton cannot detect simultaneously sent packets. Both
+extended network automata can detect these. The dif-
+ference between these two automata is that one takes si-
+multaneous polls into consideration, and one does not.
+The combination of results derived with both extended
+network automata allows us to reason about the pres-
+ence of simultaneous packets that are not both polls.
+3)Stream sets : these sets are aimed at obtaining as many
+different situations in the models as possible with vary-
+ing degrees of complexity. Complexity in this case
+means mostly the difference in stream periods. Usually
+it can be stated that the larger the least common multi-
+ple of the stream periods is, the larger the state space of
+the model will be. We use 10 different stream sets, two
+examples are shown in tables 2and3.
+4)The scheduler works in units of 10time units, which al-
+lows for values of the poll delay both smaller and larger
+than this scheduling granularity. The values for the poll
+delayδpollused in the experiments are 4,5,6,10, and
+50time units. There is always a delay of 2δpollbefore
+6
+
+--- Page 7 ---
+Table 3. Stream set SD(4 nodes, utilization ≈96%)
+Stream ID 0 1 2 3 4 5
+Source ID 0 1 2 0 3 1
+Period 300 400 400 600 600 2400
+Workload 30 70 70 60 240 20
+the monitor will possibly generate a new token. Since
+the scheduling granularity is 10time units, a δpollof
+5time units makes it likely that the generation of a new
+token coincides with a scheduling decision on another
+node. The values 4and6time units are used to deter-
+mine the behaviour of RTnet when using a δpollaround
+this point. A δpollof10time units means the pollmes-
+sage is likely to coincide with the dispatch phase of an-
+other node. The value 50time units is chosen, because
+the current prototype uses this arbitrarily chosen value.
+5)Packet loss is varied between 0and 2packets. Dis-
+abling packet loss is used to check RTnet behaves as it
+should in a normal situation, pollmessages should not
+occur in this case. The loss of one packet is a situa-
+tion RTnet is designed to handle, which means nothing
+must go wrong in this case either. Pollmessages can oc-
+cur, but the ERROR location of a node should never be
+reached. The loss of two or more packets is a situation
+RTnet is not designed to handle with minimal disrup-
+tion. A loss of two packets is used to experiment how
+well RTnet can deal with this situation.
+6)A node may transmit for a shorter duration than allo-
+cated: it releases the token earlier than expected. Non-
+deterministically modelling all possible (earlier) release
+times for a node leads to an instance of the well-known
+state-space explosion problem. A modelling approxi-
+mation is to limit the number of moments when a node
+may use less time to 0,1, and 2. We call this parameter
+early token release . (Additionally, built into the model
+as constants, we allow only two different moments in
+time when a token may be released earlier.)
+7)The situation can occur that two monitoring nodes send
+apollmessage at the same moment. There are two pos-
+sibilities for the resulting situation, depending on the
+technical properties of the network used: either both
+poll messages cause a collision and both are lost, or
+they arrive sequentially. The parameter simultaneous
+polls allows to choose if collisions are possible.
+8)Observation of the network trafﬁc can give useful infor-
+mation to nodes busy with fault handling. In certain sit-
+uations a node holding the token has no data packets to
+send. Other nodes cannot detect that the token-holding
+node is still alive, if it does not send packets. A solu-
+tion here is that a token-holding node sends “still-alive”
+packets periodically. The model parameter best-effort
+data transmission allows to switch on and off the send-
+ing of “still-alive” packets when the token holder hasTable 4. Veriﬁcation results overview with packet loss of 1
+RTnet
+variantφstableφdl/missφnet/idleφ1/transmitφ1/dispatchφ1/monitor
+Unicast
+tokenfalse variesmostly
+truetruemostly
+truefalse
+Broadcast
+tokenfalse variesmostly
+truemostly
+truevaries false
+RTnet
+variantφstabilize⋆
+φstabilizeφ1/pollφtp>1φsimultaneous
+packets sent
+Unicast
+tokentrue true true false varies
+Broadcast
+tokentrue true varies varies varies
+selected the best-effort stream. If a real-time stream is
+selected, a node is assumed to send data packets belong-
+ing to that stream, i.e., a real-time stream is assumed to
+always have data waiting to be sent.
+6. Results
+All results described below are based on veriﬁcations
+by the model checker. For most experiments the model
+checker generated an answer, but a small percentage caused
+the model checker to run out of memory, mainly in the ex-
+periments where more than one packet is lost.
+6.1. Protocol behaviour during normal operation
+All veriﬁcation results for normal operation are in agree-
+ment with the expected results. For each property the re-
+sults are the same, regardless of the choice of settings and
+parameters. An exception is packet loss that is obviously
+set to zero. Only the result of φnet/idleis not the same for
+all settings and parameters: stream sets with a utilization
+of 100% do not have space for non-real-time trafﬁc when
+early token releases are not allowed, and the veriﬁcation
+results conﬁrm this. From this we may conclude that the
+model of the protocol operates properly when no network
+faults occur.
+6.2. Recovery when one packet is lost
+In the case of a single packet loss most veriﬁcation re-
+sults are as expected. An overview of the properties men-
+tioned in section 4is shown in table 4. For each protocol
+variant the results are listed for the most important prop-
+erties. The term “varies” means diverse results, depending
+on the parameters and settings. Results printed in italics are
+the expected results. The anomalies are explained in detail
+in appendix B, we provide a summary here.
+Both unicast and broadcast token RTnet stabilize with-
+out any node going off-line, i.e., reaching the ERROR loca-
+tion. Deadline misses occur in both variants, but they are
+to be expected when control packets may be lost.
+A design ﬂaw was found during the veriﬁcation process.
+Two nodes could reach the Dispatch state at the same time,
+7
+
+--- Page 8 ---
+caused by the wrong reply to a poll message by an idle
+node. The solution is to add more information to the poll
+message so the recipient can map the pollmessage to the
+corresponding token and provide a correct reply.
+The broadcast token variant, however, is less robust than
+the unicast token variant. In broadcast token RTnet it is
+possible that more than one node actually reach the Trans-
+mitstate at the same time. This is caused by a collision
+between two simultaneous pollmessages.
+Simultaneous transmissions of control messages may
+occur in both protocol variants in the presence of network
+faults. One of those control messages is always a poll
+message. These simultaneous transmissions occur less fre-
+quently with unicast token than with broadcast token RT-
+net. The model uses a constant poll delay that is the same
+for all nodes. The chance that simultaneous transmissions
+occur is already small, but it can be made smaller by in-
+troducing a random delay in the poll delay δpoll. Then the
+chance of two simultaneous transmissions occurring is neg-
+ligible, if the random poll delay is combined with a listen
+phase before deciding to send an actual pollmessage.
+6.3. Recovery when more than one packet is lost
+When more than one packet loss is allowed, the results
+deteriorate somewhat. This can be expected. Simultaneous
+control messages occur more frequently then.
+In the absence of early token releases, stabilization al-
+ways occurs, albeit with nodes reaching an error state in
+some of the experiments. When early token releases are
+allowed, the stabilization results are inconclusive, as a con-
+siderable amount of these experiments could not be run due
+to lack of memory in the model checker.
+6.4. Recovery duration
+The maximum recovery durations are different for each
+RTnet variant. The minimum recovery duration is 0time
+units for unicast token RTnet: the delay between a stop
+monitoring message and the subsequent token message.
+For broadcast token RTnet the minimum recovery duration
+is either the poll delay δpollor the scheduling granularity,
+depending on the stream set used.
+The maximum recovery duration for unicast token RT-
+net is exactly the estimated value CLCU+δpollin approxi-
+mately 75% of all cases. In all other cases it is lower, the
+stream set is then the only parameter that inﬂuences this.
+For broadcast token RTnet the maximum recovery du-
+ration is exactly the estimate in approximately 65% of all
+cases. It is lower than the estimate in approximately 30%
+of the cases, and higher in the remaining 5%. The reasons
+for it being higher are twofold.
+All are caused by two polls colliding and then being
+dropped, but the sequence of events after that are differ-
+ent. One sequence of events is due to the time out aftersending a pollmessage without getting a reply. In this case
+the maximum duration is CLCU+2δpoll.
+The other sequence of events is slightly more complex:
+a time out occurs after the disappearance of the simulta-
+neous polls, but both nodes then decide that it is time to
+transmit best-effort trafﬁc. This may only happen when
+early token releases are allowed and best-effort data trans-
+mission is not required. As both tokens are regenerated,
+both nodes do not have to inform a monitor, and no con-
+trol messages are exchanged until some real-time stream
+becomes eligible for transmission. This may cause a very
+long delay before the recovery is completed, as both nodes
+cannot detect each other’s best-effort data transmissions.
+7. Conclusions
+We have analysed the RTnet protocol with the timed au-
+tomaton model checker Uppaal. Variation of parameters
+for timing and data result in 10800 instances of the model,
+that each have been veriﬁed against 18 different properties.
+These properties cover qualitative as well as quantitative
+aspects.
+The model checker and its interface have turned out to
+provide a comfortable environment for modelling and anal-
+ysis. The expressiveness and structure of timed automata
+allows for straightforward modelling of RTnet.
+We experienced as a drawback that Uppaal does not
+quantify probabilities: it analyses allpossible scenarios.
+Having found a scenario leading to an undesired state, there
+is no information about the probability of this scenario.
+We have provided a model that is insightful , therefore
+this gives conﬁdence that the model reﬂects the implemen-
+tation, i.e., it is also truthful . These quality criteria of a
+model, together with the high number of model checking
+experiments, increase our trust that the RTnet protocol be-
+haves as expected.
+Moreover, during analysis a design ﬂaw was detected,
+leading to an improved version of the protocol.
+The veriﬁcation shows that RTnet operates as adver-
+tised in the absence of network faults. Unicast token RTnet
+seems more robust than broadcast token RTnet when net-
+work faults are present. Fault recovery may cause stream
+deadlines to be missed. If this cannot be tolerated, the feasi-
+bility analysis that is done at stream admission time should
+take recovery times into account. We found a good estimate
+for the maximum recovery time for both RTnet variants.
+For better performance RTnet can use early token re-
+leases on network architectures with collision detection.
+But early token releases should be disabled on networks
+without collision detection, as it disturbs fault recovery.
+We have shown that, despite some minor drawbacks, our
+structured and experimental model checking approach, in
+combination with Uppaal, allowed us to create a trustful
+RTnet. We can recommend it for the analysis of other net-
+work protocols with real-time or QoS requirements.
+8
+
+--- Page 9 ---
+References
+[1]F. Hanssen, P. G. Jansen, H. Scholten, and S. Mullen-
+der, “RTnet: a distributed real-time protocol for broadcast-
+capable networks,” in Proc. Joint Int. Conf. on Autonomic
+and Autonomous Systems and Int. Conf. on Networking
+and Services (ICAS/ICNS 2005) . IEEE Computer Society
+Press, Oct. 2005, ISBN 0-7695-2450-8.
+[2]N. Kavaldjiev, G. J. M. Smit, P. G. Jansen, and
+P. T. Wolkotte, “A virtual channel network-on-chip for
+GT and BE trafﬁc,” in Proc. IEEE Computer Society
+Annual Symposium on Emerging VLSI Technologies and
+Architectures (ISVLSI ’06) . IEEE Computer Society Press,
+Mar. 2006, pp. 211–216, ISBN 0-7695-2533-4.
+[3]E. Brinksma, “Veriﬁcation is experimentation!” Int. J. on
+Software Tools for Technology Transfer , vol. 3, no. 2, pp.
+107–111, May 2001.
+[4]E. Brinksma and A. Mader, “On veriﬁcation mod-
+elling of embedded systems,” Centre for Telem-
+atics and Information Technology, University of
+Twente, Enschede, the Netherlands, Tech. Rep. TR-
+CTIT-04-03, Jan. 2004. [Online]. Available: http:
+//www.ub.utwente.nl/webdocs/ctit/1/000000e6.pdf
+[5]K. G. Larsen, P. Pettersson, and W. Yi, “U PPAAL in a nut-
+shell,” Int. J. on Software Tools for Technology Transfer ,
+vol. 1, no. 1–2, pp. 134–152, Dec. 1997.
+[6]P. R. D’Argenio, J.-P. Katoen, T. C. Ruys, and J. Tretmans,
+“The Bounded Retransmission Protocol must be on time!”
+inProc. 3rdInt. Workshop on Tools and Algorithms for
+the Construction and Analysis of Systems (TACAS ’97) ,
+E. Brinksma, Ed., vol. LNCS 1217. Springer-Verlag, Apr.
+1997, pp. 416–431, ISBN 3-540-62790-1.
+[7]A. David and W. Yi, “Modelling and analysis of a commer-
+cial ﬁeld bus protocol,” in Proc. 12thEuromicro Conf. on
+Real-Time Systems . IEEE Computer Society Press, June
+2000, pp. 165–172, ISBN 0-7695-0734-4.
+[8]K. Havelund, A. Skou, K. G. Larsen, and K. Lund, “Formal
+modeling and analysis of an audio/video protocol: An in-
+dustrial case study using U PPAAL ,” inProc. 18thIEEE Real-
+Time Systems Symposium . IEEE Computer Society Press,
+Dec. 1997, pp. 2–13, ISBN 0-8186-8268-X.
+[9]H. E. Jensen, K. G. Larsen, and A. Skou, “Modelling and
+analysis of a collision avoidance protocol using SPIN and
+UPPAAL,” in Proc. 2ndWorkshop on the SPIN Veriﬁcation
+System , vol. DIMACS 32. American Mathematical Society,
+Aug. 1996, pp. 1–20.
+[10] H. L¨onn and P. Pettersson, “Formal veriﬁcation of a TDMA
+protocol start-up mechanism,” in Proc. 1997 Paciﬁc Rim In-
+ternational Symposium on Fault-Tolerant Systems (PRFTS
+’97). IEEE Computer Society Press, Dec. 1997, pp. 235–
+242, ISBN 0-8186-8212-4.
+[11] R. Alur, C. Courcoubetis, and D. L. Dill, “Model-checking
+for probabilistic real-time systems (extended abstract),” in
+Proc. 18thInt. Colloquium on Automata, Languages and
+Programming (ICALP ’91) , J. L. Albert, B. Monien, and
+M. Rodr ´ıguez-Artalejo, Eds., vol. LNCS 510. Springer-
+Verlag, July 1991, pp. 115–126, ISBN 3-540-54233-7.
+Appendix A
+Determining recovery duration
+To determine the recovery time, the model is supplied
+with an additional clock and some ﬂags. Upon packet loss,this clock is reset. The lower and upper bounds for the re-
+covery time then equal this clock’s lower and upper bounds
+when the ﬂags are set properly and the system is stable.
+This approach only works with a single packet loss, as a
+second packet loss will reset the clock, thus losing the in-
+formation about the earlier packet loss. The solution would
+be that the network automaton detecting the (second) pack-
+age loss does not reset the clock, if the system is not stable
+yet. However, stability of the system is a distributed prop-
+erty that the network automaton has no information about
+in the current setting.
+The bounds of the additional clock are determined by
+iteration. Finding the lower bound for the recovery time
+is done by evaluating property φl/bound(t)for all values of t,
+starting at t=0and evaluating increasing values of tuntil
+φl/bound(t)is satisﬁed.
+Similarly the upper bound for the recovery time is found
+by evaluating property φu/bound(t)for all values of t. The
+algorithm used to ﬁnd the upper bound starts at t=CLCU+
+δpoll. Ifφu/bound(t)isfalse for this starting value, φu/bound(t)is
+evaluated for increasing values of tuntilφu/bound(t)istrue,
+because the estimate is too low. Otherwise φu/bound(t)is
+evaluated for decreasing values of tuntilφu/bound(t)isfalse.
+The estimated largest continuous network usage CLCUof a
+single stream is given by:
+CLCU=min/parenleftbigg
+max
+i{Ci},2 min
+i{Ti−Ci}/parenrightbigg
+where Tiis the period of stream iandCiis its workload:
+Ci=(Bi/B)Ti), where Biis the bandwidth required by
+stream iandBis the available bandwidth on the network.
+Appendix B
+Packet loss recovery and simultaneous control messages
+In the case of a single packet loss most veriﬁcation re-
+sults are as expected. An overview is shown in table 4in
+section 6.2. The anomalies are explained below.
+Unicast token RTnet recovery
+Unicast token RTnet produces veriﬁcation results al-
+most as expected. It always stabilizes without throwing out
+nodes. Deadline misses do occur, but they are to be ex-
+pected when some nodes do not receive the token in time
+and the stream set has a high utilization.
+Pollmessage reply. We found the following design ﬂaw.
+There are a few cases where two nodes are in the Dispatch
+state at the same time. This is caused by a wrong reply
+to apollmessage by an idle node. There are two possible
+responses to this poll. An earlier version of RTnet always
+responded with a never got token message. There exists a
+situation where this reply is wrong, resulting in two token
+holders. Veriﬁcations of an earlier version of the model
+9
+
+--- Page 10 ---
+show this problem. Note that a prerequisite for this situa-
+tion to occur is that a node is allowed to use less transmis-
+sion time than allocated and release the token early.
+To ﬁx this problem it is necessary to map a pollmessage
+to the speciﬁc token it is referring to. If the token has al-
+ready been seen, a stop monitoring message can be replied
+to the poll, instead of a never got token message. To do this
+thepollmessage has to be augmented with the stream iden-
+tiﬁer and a counter, to provide the poll to token mapping.
+The current model still allows multiple nodes being in
+theDispatch state because the counter for the poll to to-
+ken mapping is not large enough. The model uses a 1-bit
+counter: enough if the poll delay is not too large with re-
+spect to the scheduling granularity. The property φ1/dispatch
+is false with a packet loss of one only when δpollis50time
+units. If a large δpollis used, or if higher packet loss needs
+to be dealt with, a larger counter is needed.
+Broadcast token RTnet recovery
+The broadcast token variant of RTnet is less robust than
+the unicast token variant. Broadcast token RTnet always
+stabilizes without any node reaching the ERROR location,
+i.e., without throwing out any nodes. But when simultane-
+ous polls and early token releases are allowed, in 40% of
+the experiments more than one node reach the protocol’s
+Dispatch state. In 15% of these experiments more than one
+node actually reach the Transmit state at the same time.
+The reason for more than one node reaching the Trans-
+mitstate is as follows. Two monitors may decide to send a
+poll at the same time, because the poll delay δpollis equal
+for both. When these two simultaneous polls collide and
+are lost, both polling nodes decide a new token is needed at
+the same time, again because of equal poll delays.
+One node ﬁnds it needs to keep the token, while the
+other node forwards its token. When the node that kept
+its regenerated token notices the other token being for-
+warded, there are two possible courses of action for this
+node: (1) stop transmitting, discard the local token and wait
+for a new token or announcement to resume normal opera-
+tion, or (2) send a message to both source and destination
+of the observed token, telling them to discard that token.
+Given that all nodes are equal and it is impossible to dis-
+tinguish which token is the “better one”, the ﬁrst choice is
+made, as it has the least possibilities of network disruption.
+Deadline misses occur in this variant as well, but they
+are expected, just as with unicast token RTnet. With a high
+utilization these cannot be avoided when packets are lost.
+Simultaneous transmissions
+Independent, simultaneous control messages do occur,
+but there is always at least one pollmessage involved. This
+is logical as the pollmessage is the only asynchronous mes-
+sage in RTnet. Although a node that is about to send a pollmessage always listens ﬁrst before deciding a pollmessage
+is necessary, it is always possible that a poll message is
+transmitted at the same moment as some other message.
+The model only describes collisions between simultane-
+ouspollmessages and drops them. The result is that both
+monitors that sent the pollmessages conclude that the in-
+tended poll recipients have failed. Both remove them from
+their local token. As dynamic node additions are not mod-
+elled, the nodes that have been removed from the token will
+remain idle forever. They have no means of detecting they
+are no longer part of the node list in the token. The real RT-
+net lets these nodes rejoin at the next announcement phase.
+The model deals with combinations of a simultaneous
+poll message and some other control message in a serial
+fashion. These situations are invariably caused because the
+monitor that is listening for network trafﬁc, does not ob-
+serve these messages. In many cases the monitoring node
+that will eventually send a pollmessage, is already actively
+observing its token holder. This token holder is transmit-
+ting non-real-time trafﬁc. Because the non-real-time phase
+is not modelled with the token travelling along all nodes
+in a RR fashion, the monitor will keep observing its token
+holder until it tries to transfer the token elsewhere. And
+there are situations that this token transfer is at the same
+moment in time as the next time out of the monitor, result-
+ing in a superﬂuous pollmessage.
+Simultaneous transmissions are more frequent with the
+broadcast token variant than with the unicast token variant.
+But comparing simultaneous transmissions of the broad-
+cast token variant with one packet loss to the unicast token
+variant with a packet loss of two shows that simultaneous
+transmissions occur with a comparable frequency. This can
+be explained by the fact that the complete loss of a broad-
+cast token is equal to the loss of a stop monitoring message
+and its successive token message in unicast token RTnet.
+For the broadcast token variant simultaneous transmis-
+sions are mostly caused by the same reason as they are for
+the unicast token variant. The additional cause is due to
+a second token on the network. As discussed in the sec-
+tion on broadcast token RTnet recovery above, this token
+is observed by the node that is transmitting data, i.e., is in
+theTransmit state. This node will relinquish its token and
+become idle, waiting for the token to arrive or the next an-
+nouncement phase, to rejoin the network if it was deleted
+from the regenerated token.
+The model uses a constant poll delay that is the same
+for all nodes. The chance that simultaneous transmissions
+occur is already small, but it can be made smaller by in-
+troducing a random delay in the poll delay δpoll. Then the
+chance of two simultaneous transmissions occurring is neg-
+ligible, if the random poll delay is combined with a listen
+phase before deciding to send an actual pollmessage.
+10

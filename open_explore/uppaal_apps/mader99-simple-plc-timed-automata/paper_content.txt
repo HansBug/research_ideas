@@ -1,0 +1,1014 @@
+--- Page 1 ---
+TimedAutomaton Models forSimple
+Programmable LogicControllers
+Angelika Mader
+Hanno Wupper
+University ofNijmegen
+Computing Science Institute
+P.O.Box9010, 6500GLNijmegen,
+TheNetherlands
+mader
+ wupper
+ @cs.kun.nl
+Abstract
+Wegivetimed automaton models foraclass ofPro-
+grammable Logic Contr oller (PLC) applications, thatare
+programmed inasimple fragment ofthelanguage Instruc-
+tionLists asdeﬁnedinthestandar dIEC1131-3. Twodif-
+ferentapproaches formodelling timers aresuggested, that
+leadtotwodifferenttimed automaton models. Thepurpose
+ofthiswork istoprovide abasis forveriﬁcation andtesting
+ofreal-time properties ofPLCapplications. Ourwork can
+beseeninbroader context: itisacontribution tomethodi-
+caldevelopment ofprovably correctprograms. Even ifthe
+present PLChardwarewillbesubstituted bye.g.Personal
+Computers, withasimilar operation mode, thedevelopment
+andveriﬁcation method willremain useful.
+1.Introduction
+Programmable Logic Controllers (PLCs) areincreas-
+inglybeing usedforsafety critical applications. Ourgoal
+isveriﬁcation andtesting ofPLCapplications. Wecon-
+sidertiming aspects asanintegral partofcontrol asper-
+formed byPLCs. Timedautomata provide ausfulclassof
+models, ﬁrst,because theyallow tomodel realtime, and
+second because oftheavailability ofmodel checking tools
+[11,10,8,9,4,16].Weintroduce twodifferent models that
+differinthewayoftreating timers. Bothmodels satisfy
+thesamespeciﬁcation fortiming behaviour ,which indicates
+thattheyareinterchangable.
+Supported byaDAAD postdoc grant, andintheframework oftheEu-
+ropean Community Esprit-L TRProject 26270 VHS(Veriﬁcation ofHybrid
+systems)PLCs have evolved from verysimple “Logic Con-
+trollers” thatusedtocontrol physical processes byfeed-
+ingtheinputfromthesensors viaacarefully designed net-
+workofrelays andtimers totheactuators. PLCs are“pro-
+grammable”: theycontain amicroprocessor sothatacom-
+puter program canperform thetaskoftheswitches and
+timers oftheirforefathers. Although modern PLCs cancon-
+tainthesame processor chipasausual desktop computer
+theydifferfrom, say,personal computers inanumber ofas-
+pects.
+Traditionally ,theyareprogrammed bymeans oflan-
+guages andnotations which areunfamiliar tomost
+computer scientists, while, viceversa, many useful
+concepts thatweredeveloped incomputer science are
+unfamiliar totheengineers whoprogram PLCs.
+Real-time behaviour isensured bytheuseofconceptu-
+allyverysimple “timers”. These caneither berealised
+ashardware components orbesimulated bypieces of
+software.
+They havearobust operating system, which ensures
+that“scan cycles” areexecuted again andagain. In
+eachscancycle theactual PLCprogram isexecuted,
+inputis“polled” andtheoutput isupdated oncebefore
+eachprogram execution.
+There aremorecomplex PLCs, which support interrupts and
+multi-tasking. Although some ﬁndthemeasier toprogram,
+theyaremoredifﬁculttoverify.Formany applications these
+“powerful” features arenotstrictly necessary .Therefore we
+willconcentrate onthesimple PLCs characerized above.
+APLCprogram canreadandchange memory ,butitcan-
+notperform anyinputoroutput operations. Justbefore its
+execution starts, thePLChaspolled allsensors andwritten
+theiractual stateintoacertain memory areawhich canbe
+readbytheprogram. Thisareathuscontains a“snapshot”
+oftheenvironment atthemoment ofpolling. Another mem-
+oryareaisusedforoutput: afterthePLCprogram hastermi-
+nated, thePLCwillmapitscontents totheactuators. Within
+aﬁxedamount oftime,thePLCwilltheninitiate thenextcy-
+cle,viz.,polltheinputandstarttheprogram again. ThePLC
+willnotchange memory outside theinputmemory area;so
+theprogram canusememory tomaintain stateinformation
+between twocycles. Awell-formed PLCprogram doesnot
+change theinputmemory area,inorder toensure thatital-
+wayscontains thelatestsnapshot oftheenvironment.
+Awell-formed PLCprogram canbeguaranteed totermi-
+natewithin aﬁxedamount oftime,inordertoensure thatthe
+duration ofthePLC’spolling loophasaﬁxedupper bound.
+Italsohasaﬁxedlower bound, duetothetimethePLC
+needs forthepolling andpossibly some self-checks.
+APLCprogram cansetandcheck timers. Iftimers are
+notrealised byseparate hardware, setting andchecking con-
+
+--- Page 2 ---
+sistsintheexecution ofsmall pieces ofprogram thatsim-
+ulatethetimers’ behaviour .Awell-formed PLCprogram
+executes suchtimer programs during eachcycle andnever
+jumps across them. Onlythentheireffectwillapproximate
+theeffectofhardware timers ascloseastheduration ofone
+cycle.
+Thispaper isacontribution tothedeﬁnition offormal se-
+mantics forPLCprograms withtheemphasis ontimers. Re-
+latedworkhasbeendoneatseveral places. From [22,23,
+6,7,15]ourworkdiffersintheexplicit treatment oftime.
+In[12,13]timeisrepresented byaduration calculus seman-
+tics,which toourmindislessintuitive thananoperational
+semantics. Theworkof[14]canbeconsidered asabasisfor
+thispaper.
+2.Aprogramming language forPLCs
+Theprogramming language wewanttoconsider isafrag-
+mentofInstruction Lists, themostbasic, assembly-like lan-
+guage fromthestandard IEC1131-3 [1].
+Instruction Listsprovide moreconcepts, forexample lo-
+calvariables, function blocks, andbracketed expressions.
+However useful inprogram development, theyarenotcon-
+sidered herebecause theycanbedealtwithbystatic pro-
+gramanalysis andsubstitution.
+Werestrict datatypes toBooleans. Thisisareasonable
+restriction. Many PLCapplications control processes by
+switching onandoffactuators. There isastrong trend to
+move complicated arithmetic operations tootherpartsofthe
+system (e.g.aPC)andnottoperform theminthePLCitself,
+suchthattheydonotconsume toomuch timeandmake scan
+cycles toolong.Withthisrestriction wehopetogetmodels
+thatareofasizestillallowing todomodel checking.
+Let
+ beasetBoolean variables and
+ thesetof
+Boolean expressions over
+ .
+Aprogram
+ isasequence ofinstructions, consecutively
+numbered from
+ to
+ for
+ .Formally ,weconsider
+aprogram tobeafunction, mapping addresses toinstruc-
+tions
+ ,where
+ isthesetof
+instructions. Furthermore, foreachprogram
+ thereisan
+initial valuation ofthevariables
+ .
+Wewilldealwiththefollowing classes ofinstructions,
+where var
+ isaBoolean variable, adr
+ is
+anaddres. Their semantics isgiven inthetimed automaton
+model ofﬁgure1
+assignments: LDvar,STvar,ANDvar,ORvar,
+XORvar,andeachofthese alsowithoption N,and
+Svar,Rvar.
+jumps: JMPadr,JMPC adr,JMPCN adr,
+timer calls: CAL timer [timer .IN:=b, timer.PT:=t]
+where
+ isaBoolean constant and
+atimeconstant.3.TimedAutomaton Models
+Timedautomata areanautomaton-based semantic model
+forreal-time systems. Although thebasicconcepts arevery
+similar various deﬁnitions ofsyntax andsemantics aregiven
+[2,3,17,19,20,21].Weuseavariant oftimed automata that
+isdeﬁnedin[20].
+Deﬁnethesetofvariables tobe
+.ThisisoneBoolean
+variable foreachprogram variable inuse;special variables
+are
+ fortheactual register ,
+and
+ arevectors ofvari-
+ablesthatrepresent theinputandoutput areaofthememory .
+Wewillabbreviate theBoolean constants trueandfalseby
+ttandff,resp..
+Deﬁnition 1Given aprogram
+ asindeﬁnedsection 2,we
+deﬁnethetimed automaton
+ asfollows:
+A location consists of ﬁve components
+IN
+OUT
+,where
+–
+ istt,ifdataaretransported between
+memory andI/O-ports, andffduring thepro-
+gram execution
+–
+ istheprogram counter
+–
+ isthevaluation ofallvariables, thus
+representing thememory .
+–IN
+ isthevector ofvalues attheinput ports,
+–OUT
+ isthevector ofvalues attheoutput
+ports.
+Thereisaset ofinitial states deﬁned
+tt
+ IN
+OUT
+,where
+ istheinitial valua-
+tionofvariables forthisprogram.
+Theclock
+ measur esthecycle length. Itisresetafter
+each program execution.
+Theinvariant
+ holds forlocations, where
+tt.
+istheupper timebound forthei/o-part ofthe
+scancycle.
+Theinvariant
+ holds foreach location.
+ isthe
+upper timebound foreachwhole scancycle. Obviously
+itis
+ .
+Theedges havetobeconstructed along thestructur eof
+asgiven inﬁgure1.Ifnotspeciﬁed,weassume
+.Most edges arelabeled withtheinternal
+action
+ ,indicating thatthsiisinternal tothePLCand
+notobservable fromoutside.
+2
+
+--- Page 3 ---
+(input) IN
+ IN’
+IN
+OUT
+IN’
+ IN’
+ OUT
+(i/o) IN
+ IN’
+tt
+ IN
+OUT
+ff
+ IN
+IN
+(load1)
+ LD
+ff
+ IN
+OUT
+ff
+ IN
+OUT
+(load2)
+ LDN
+ff
+ IN
+OUT
+ff
+ IN
+OUT
+(store1)
+ ST
+ff
+ IN
+OUT
+ff
+ IN
+OUT
+(store2)
+ STN
+ff
+ IN
+OUT
+ff
+ IN
+OUT
+(and1)
+ AND
+ff
+ IN
+OUT
+ff
+ AND
+ IN
+OUT
+(and2)
+ ANDN
+ff
+ IN
+OUT
+ff
+ AND
+ IN
+OUT
+(or1)
+ OR
+ff
+ IN
+OUT
+ff
+ OR
+ IN
+OUT
+(or2)
+ ORN
+ff
+ IN
+OUT
+ff
+ OR
+ IN
+OUT
+(xor1)
+ XOR
+ff
+ IN
+OUT
+ff
+ XOR
+ IN
+OUT
+(xor2)
+ XORN
+ff
+ IN
+OUT
+ff
+ XOR
+ IN
+OUT
+(s)
+ S
+ff
+ IN
+OUT
+ff
+ OR
+ IN
+OUT
+(r)
+ R
+ff
+ IN
+OUT
+ff
+ AND
+ IN
+OUT
+(jump1)
+ JMP
+ff
+ IN
+OUT
+ ff
+ IN
+OUT
+(jump2a)
+ JMPC
+ and
+ ff
+ff
+ IN
+OUT
+ ff
+ IN
+OUT
+(jump2b)
+ JMPC
+ and
+ tt
+ff
+ IN
+OUT
+ ff
+ IN
+OUT
+(jump3a)
+ JMPCN
+ and
+ tt
+ff
+ IN
+OUT
+ ff
+ IN
+OUT
+(jump3b)
+ JMPCN
+ and
+ ff
+ff
+ IN
+OUT
+ff
+ IN
+OUT
+(cycleend)
+ff
+ IN
+OUT
+ tt
+ IN
+OUT
+Figure 1.Transitions ofatimed automaton for
+asimple Instruction Listprogram
+4.Adding Timers
+InPLCprogramming avariety oftimers isusedtoen-
+surereal-time properties ofPLCapplications. Forbrevity
+weshalltreatonlytimers oftypeTONinthispaper; the
+othertypescould betreated similarly .
+TimerTONIN
+PTQ
+ET
+Figure 2.Input INandPT,output QandETof
+atimer TON
+Intuitively ,atimer isablack boxintowhich aBoolean
+inputsignal INisfedandwhich produces aBoolean out-
+putsignal Qandpossibly aninteger output signal ET.There
+isanadditional integer inputPT,thatweconsider hereasa
+constant. What happens ifPTwerechanged while thetimer
+isrunning isnotdeﬁned.
+Thebehaviour oftimerTONisillustrated bythediagram
+inﬁgure3.
+QIN
+timePT PT PTPT ET
+Figure 3.Timer TON:Relation between INand
+outputs QandET
+3
+
+--- Page 4 ---
+Therelation between INandQcanbespeciﬁedformally
+asfollows:
+(*)
+Inotherwords: theoutput signal istruewhenever thein-
+putsignal hasbeentrueatleastduring aperiod oflength PT;
+itbecomes falseassoonastheinputsignal becomes false.
+Toallow theuseoftimers weextend ourpro-
+gramming language bythefollowing instruction:
+CALtimer (timer.IN:=var
+name ,timer.PT:=constant ).
+Sucha’timercall’,updates theresults timer.Qandtimer.ET.
+This’timer call’hastosimulate theeffectoftheafore-
+mentioned black box,which means thatitwillhavetoap-
+proximate speciﬁcation (*)asclosely aspossible. Theex-
+isting approximations, however ,donotsatisfy thespeciﬁca-
+tionofanidealtimer asabove. Reason is,thattimers only
+starttorunresp. update theiroutput, iftheyarecalled and
+theadditional errorwegetisthetimedistance between two
+timercalls(seealsosection 4.3).
+Programs aremuch more ﬂexible thanhardware boxes.
+Toavoid complications, wemustrestrict themtoforbid that
+theydynamically ”change thewiring ofthebox”orchange
+thetiming constant while thetimerisrunning orletthetimer
+”die”.
+Awell-formed PLCprogram ensures thattimercallsare
+always issued withthesame parameters, thatthevariables
+timer.IN,timer.Q,andtimer.ETarenever changed except in
+thecourse ofatimercall,andthatacallisissued during each
+cycle ofthePLC.
+Weshallnowprovide twodifferent ways ofmodelling
+timers forwell-formed PLCprograms. Theﬁrstonecorre-
+sponds tothewaytimers arelikely toberealized bymeans
+offunction blocks [1],i.e.itisoriented towards theveri-
+ﬁcation oftheimplementation ofaPLClanguage. Thesec-
+ondonecorresponds totheintuitive ideaofablackhardware
+box;itissimpler andprobably moreuseful fortheveriﬁca-
+tionofPLCprograms. Itcanbeshown thattheyareinter-
+changeabe inthesense thatforwell-formed PLCprograms
+bothmeetthesamespeciﬁcation. Theﬁrstmodel makes use
+ofintegers andtherefore givesinfactaninﬁniteautomaton.
+Thesecond one,instead, makes useofmoreclocks, andthe
+resulting automaton isaﬁnitetimed automaton.
+4.1.Timersassymbolic function blockcalls
+Timers arestandard function blocks thatarepredeﬁned
+andavailable fortheprogrammer .Howtheyarerealized
+islefttotheproducer ofthePLChardware andtheimple-
+menter oftheprogramming languages. Weexplicitly for-
+mulated afunction block foratimeroftypeTON,inﬁgure
+4inStructured Text(forreadability) andinﬁgure5inIn-
+struction List(forourapplication). Note, thatthisisnotnec-
+essarily thewayhowTONisrealized, butitveryplausible
+thatrealizations maybelikethis.FUNCTION
+ BLOCK TON
+VAR
+INPUT
+IN:BOOL;
+PT:TIME;
+END
+VAR
+VAR
+OUTPUT
+Q:BOOL;
+ET:TIME;
+END
+VAR
+VAR
+IN
+OLD:BOOL :=false;
+T0,T:TIME;
+END
+VAR
+T:=TIME();
+IFNOT IN
+OLD AND IN
+THEN T0:=T;
+END
+IF;
+IFINAND T-T0
+ PT
+THEN ET:=PT;
+ELSIF IN
+THEN ET:=T-T0;
+ELSE ET:=0;
+END
+IF;
+Q:=(ET=PT)AND IN;
+IN
+OLD:=IN;
+END
+FUNCTION
+ BLOCK
+Figure 4.Symbolic function blockforatimer
+oftypeTONinStructured Text
+Formodelling wetreatatimer callasausual function
+block call.Roughly ,afunction block issimilar toafunction,
+butcanpreserve some ofitshistory inlocalvariables that
+arenotinitialized ateachfunction block call.Technically ,a
+timercallissubstituted bythebodyofthefunction block
+ ,
+and(history-less) variables havetobeinitialized correctly .
+Forthiswayofmodelling weneedsomeadditional struc-
+tureinthetimed automaton ofﬁgure1:
+1.Each timer usesaglobal clock. Thefunction block
+TONinﬁgure4isbased onafunction TIME() thathas
+theactual timeasresult. Forthatpurpose weextend the
+timed automaton
+ byasimple timecounter simulat-
+ingaclock tick.
+2.Points oftimehavetobememorized. Forthatpurpose
+weintroduce integers andsomebasicoperations onin-
+tegers, which aresubtraction andcomparison.
+Given aprogram
+ wecreate aprogram
+ .Theset
+Because recursion isnotallowed bythestandard functions andfunc-
+tionblocks arenotmuch morethanmacros.
+4
+
+--- Page 5 ---
+ofvariables
+ for
+ isanextension of
+ for
+.For
+modelling thefunction TIME() weneedaninteger variable
+time .Foreachinstance timer ofatimerwegetthreeaddi-
+tional Booleans andtwointeger variables.
+FUNCTION
+ BLOCK TON
+VAR
+INPUT
+IN:BOOL;
+PT:TIME;
+END
+VAR
+VAR
+OUTPUT
+Q:BOOL;
+ET:TIME;
+END
+VAR
+VAR
+IN
+OLD:BOOL :=false;
+T0,T:TIME;
+END
+VAR
+CAL TIME();
+STT
+LDIN
+OLD
+JMPC further
+LDIN
+JMPCN further
+LDT
+STT0
+further :LDIN
+JMPCN away2
+LDT
+SUB T0
+GTPT
+JMPCN away1
+LDPT
+STET
+JMP away3
+away1 :LDT
+SUB T0
+STET
+JMP away3
+away2 :LD0
+STET
+away3 :LDET
+GEPT
+AND IN
+STQ
+LDIN
+STIN
+OLD
+END
+FUNCTION
+ BLOCK
+Figure 5.Symbolic function blockforatimer
+oftypeTONinInstruction List
+time
+timer.IN,timer.Q,timer.IN
+OLD,
+timer.PT,timer.ET
+timer isaninstance ofTON
+In
+eachtimer call
+ CALtimer
+ issubstituted
+bythebodyoftheinstance timer ofthefunction block TON
+intheInstruction Listversion (seeﬁgure5).Notethatthis
+implies alsoachange ofprogram addresses.
+Deﬁnition 2Given aprogram
+ wedeﬁnetheautomaton
+as
+ indeﬁnition 1withthefollowing extensions:
+Thevaluation function
+ isalsoapplied totimevari-
+ables andweget
+For theinitial locations
+ tt
+ IN
+OUT
+ itis
+ffforeach timer
+timer.name.
+Weneed anadditional clock tick inordertomodel
+thefunction TIME().
+Thetransitions ofﬁgure1areextended bythose inﬁg-
+ure6.Weneedadditional transitions fortheoperations
+ontimevariables andaninterpr etation ofthefunction
+TIME().
+(clock)
+IN
+OUT
+tick
+ tick
+time
+ time
+ IN
+OUT
+(realtime)
+ CALTIME()
+ff
+ IN
+OUT
+ff
+ time
+ IN
+OUT
+(subtraction)
+ SUB
+ff
+ IN
+OUT
+ff
+ IN
+OUT
+(greater1 )
+ GE
+ and
+ time
+ff
+ IN
+OUT
+ff
+ tt
+IN
+OUT
+(greater2 )
+ GE
+ and
+ff
+ IN
+OUT
+ff
+ ff
+IN
+OUT
+Figure 6.
+ asextension of
+ fortimer calls
+5
+
+--- Page 6 ---
+(timer1 )
+CAL
+ timer.IN
+ ff
+timer.PT
+ff
+ IN
+OUT
+CALff
+ timer
+ff
+ timer.Q
+ ff
+IN
+OUT
+(timer2 )
+CAL
+ timer.IN
+ tt
+timer.PT
+ff
+ IN
+OUT
+CALtf
+ timer
+ff
+ timer.Q
+ ff
+IN
+OUT
+(timer3 )
+CAL
+ timer.IN
+ tt
+timer.PT
+ff
+ IN
+OUT
+CALtt
+ timer
+ff
+ timer.Q
+ tt
+IN
+OUT
+Figure 7.
+ asextension of
+ bytimer calls
+4.2.Timersasparallel automata
+Thesecond model fortimers wesuggest istomodel each
+instance timer ofatimerasatimed automaton
+ timerthatruns
+inparallel withanextension
+ oftheautomaton
+ ofsec-
+tion3,andtheautomata synchronize onoperations ontimer
+variables andonthetimer call.Thiswayofmodelling re-
+quires oneextraclock
+ timerforeachinstance ofatimer,but
+nointeger variables areneeded.
+Thetimed automaton
+ timerbelow models thebahaviour
+ofatimeroftypeTON.Here, weabstract awayfromthead-
+ditional output ETthatcontains theaccumulated timesince
+timer start.Asintheprevious section weassume thateach
+instance ofthetimerTONhasanindividual name timer and
+thevariables ofeachinstance arepreﬁxedbythisname, i.e.
+wehavetheBooleans timer.INandtimer.Qandaclock
+ timer.
+Deﬁnition 3Theautomaton
+ timerisdeﬁnedasfollows:
+Thelocations areidle,running andtimeout.
+Initial location isidle.
+Thereisoneclock
+ timerinuse.
+Forlocation running theinvariant
+ timer
+ ,where
+Time isthedelay-time ofthetimer timer as
+speciﬁedintheprogram. Weassume thatforeachtimer
+instance thereisaunique value fortimer.PTwhich is
+usedintheguardoftransition (timeout) inﬁgure8.
+Thetransitions aredescribed inﬁgure8.Thereare
+threevisible actions, onwhich program automaton
+andatimer automaton
+ timershould synchr onize. The
+actions model atimer callwithadditional informa-
+tionencoded: ﬁrst,thevalue oftheinput timer.IN,and
+second, thevalue oftheoutput timer.Q.Forexample,idleCALff
+ timer
+ idle
+idleCALtf
+ timer
+ running
+runningCALff
+ timer
+ idle
+runningCALtf
+ timer
+ running
+running
+ timeout
+timeoutCALff
+ timer
+ idle
+timeoutCALtt
+ timer
+ timeout
+Figure 8.Timed automaton
+ timerforatimer of
+typeTON
+CALtf
+ timer stands foratimer callwithtimer.IN= tt
+asinput andoutput timer.Q=ff.
+Deﬁnition 4Given aprogram
+ wedeﬁnethetimed au-
+tomaton
+ as
+ ofdeﬁnition 1,withthefollowing exten-
+sions:
+Foreach instantiati ontimer ofatimer ofweneed two
+Booleans. Theset
+ ofvariables is:
+timer.IN, timer.Q
+timer isaninstance ofTON
+Fortheinitial valuation wehave
+ timer.IN
+timer.Q
+ ff
+Fortheautomaton
+ achange oftheoutput signal
+timer.Qofatimer signal ofthetimer automaton, which
+is
+Altogether ,thetimed automaton
+ modelling thebe-
+haviour ofaInstruction Listprogram isaparallel compo-
+sition ofautomata below thatsynchronize overtheactions
+ofset
+ :
+Deﬁnition 5Given aprogram
+ wedeﬁnetheautomaton
+as
+def
+timer
+ 1
+ timer
+ m
+wheretimer
+ 1,
+ ,timer
+ maretheinstances
+oftimer TONintheprogram
+ ,and
+.
+4.3.Correctness
+Again, foratimer timer deﬁnedinaprogram
+ weab-
+breviate inputs timer.INandtimer.PTby
+ and
+ ,aswell
+asoutput timer.Qby
+.
+6
+
+--- Page 7 ---
+TheidealtimerTONisspeciﬁedasfollows: itsoutput
+istrueifandonlyiftheinput
+ wastruesinceatleasttime
+(see(*)insection 4).
+AtimerusedinaPLCisnotanidealtimer.Thishastwo
+reasons. Internally ,timer areonlystarted andupdate their
+outputs when theyarecalled. Theadditional errorweget
+hereisthetimedistance thatmaybebetween twotimercalls.
+Externally ,fromtheusers’ pointofview,inputs forthePLC
+thatmaycause atimertostart,reach thePLCwithsomede-
+lay,aswellasthetimeout ofatimer (possibly) causes the
+output porttochange withadelay.Fornow,weconcentrate
+ontheinternal error,andshow thatbothtimer models sat-
+isfythesame speciﬁcation andtherefore canbesubstituted
+byeachother.
+Weneedtworestrictions thatdeﬁnewell-formed pro-
+grams.
+1.Theinput variable INofatimer isassigned onlyat
+timercalls.
+2.Ineachscanthereisatimercall.
+Recall, thatarunofatimed automaton isasequence
+,and
+.
+Weoverload notation andassume thatINandQarebasic
+predicates overstates, i.e.Q(s)
+ IN
+OUT
+ttetc..Furthermore, thepredicate Q(t)istruefor
+arun,ifthereisalocation withtimestamp
+ andastate
+ ,
+where Q(s),i.e.iff
+ .
+Proposition 1Let
+ beawell-formed program. Then for
+each accepting runoftheautomata
+ and
+ itis:
+and
+Fortheproof ofthisproposition seethefullversion ofthe
+article [18].
+5.Conclusion
+Ourinterest istoincrease reliability ofPLCapplications,
+where especially timing aspects seem tobeimportant. In
+order toapply veriﬁcation andtesting techniques, oneﬁrst
+needs formal models. Here, wesuggested twotimed au-
+tomaton models forPLCapplications withprograms ina
+reasonable fragment ofthelanguage Instruction Lists. The
+ﬁrstmodel isclosetothewayhowtimers arerealized inex-
+isting PLCs: byapredeﬁnedfunction block. Themodels
+wegetfromthisapproach usesintegers andtherefore results
+ininﬁniteautomata. Thesecond model triestocapture the
+ideaoftimers andusesclocks instead ofintegers. Thetimed
+automata resulting fromthisapproach areﬁnite.Formally ,theyareequivalent thesense thattheybothsatisfy thesame
+speciﬁcation fortimers. Thisindicates, thattheyareinter-
+changable. More concrete, using theﬁnitemodel formodel
+checking, weknow thatitsbehaviour isthesame asofthe
+othermodel, which iscloser to“reality”.
+Ourfuture workincludes thefollowing:
+Casestudies inmodel checking withe.g.UPPAALand
+KRONOS.
+Extending thetimed automaton semantics toprograms
+written inStructured Text.
+Extending thenotion ofwell-formed programs to
+(classes of)guidlines forprograms thatareeasier to
+verify.
+References
+[1]IECInternational Standar d1131-3, Programmable Con-
+trollers, Part3,Programming Languages ,1993.
+[2]R.Alur,C.Courcoubetis, andD.Dill. Model-checking for
+real-time systems. InProceedings
+ Annual Symposium on
+Logic inComputer Science, Philadelphia, USA, pages 414–
+425.IEEE Computer Society Press, 1990.
+[3]R.AlurandD.Dill.Atheory oftimed automata. Theor etical
+Computer Science ,126:183–235, 1994.
+[4]R.Alur,T.Henzinger ,andP.-H.Ho.Automatic symbolic
+veriﬁcation ofembedded systems. InProceedings ofthe14th
+Annual Real-time Systems Symposium ,pages 2–11.IEEE
+Computer Society Press, 1993.
+[5]R.Alur,T.Henzinger ,andE.Sontag, editors. Hybrid Sys-
+temsIII,volume 1066ofLectur eNotes inComputer Science .
+Springer -Verlag, 1996.
+[6]S.Anderson andK.Tourlas. Diagrams andprogramming
+languages forprogrammable controllers. InProceeding sof
+theFormal Methods EuropeSymposium ,LNCS, pages 1–19.
+Springer -Verlag, 1997.
+[7]S.Anderson andK.Tourlas. Design forproof: Anapproach
+tothedesign ofdomain speciﬁclanguages. Toappear inthe
+proceedings oftheThird FMICS Workshop, May1998.
+[8]J.Bengtsson, W.Grifﬁoen,K.Kristof fersen, K.Larsen,
+F.Larsson, P.Pettersson, andW.Yi.Veriﬁcation ofanau-
+dioprotocol withbuscollision using UPPAAL. InR.Alur
+andT.Henzinger ,editors, Proceedings ofthe8thInter-
+national Confer enceonComputer Aided Veriﬁcation, New
+Brunswick, NJ,USA, volume 1102ofLectur eNotes inCom-
+puter Science ,pages 244–256. Springer -Verlag, July/August
+1996.
+[9]J.Bengtsson, K.Larsen, F.Larsson, P.Pettersson, andW.Yi.
+UPPAAL: atoolsuitefortheautomatic veriﬁcation ofreal-
+timesystems. InAluretal.[5],pages 232–243.
+[10]C.Daws, A.Olivero, S.Tripakis, andS.Yovine. Thetool
+KRONOS.InAluretal.[5],pages 208–219.
+[11]C.Daws andS.Yovine. Twoexamples ofveriﬁcation of
+multirate timed automata with KRONOS.InProceedings
+ofthe16thIEEE Real-T imeSystems Symposium (RTSS’95),
+Pisa,Italy,pages 66–75. IEEEComputer Society Press, Dec.
+1995.
+7
+
+--- Page 8 ---
+[12]H.Dierks. Synthesising controllers fromreal-time speciﬁ-
+cations. InM.Bertran andT.Rus,editors, Transformation-
+Based Reactive Systems Development (ARTS’97) ,volume
+1231ofLectur eNotes inComputer Science ,pages 111–125.
+Springer -Verlag, 1997.
+[13]H.Dierks. Synthesising controllers fromreal-time speciﬁca-
+tions. InProceeding sofTenthInternational Symposium on
+System Synthesis ,pages 126–133. IEEE CSPress, 1997.
+[14]H.Dierks, A.Fehnker ,A.Mader ,andF.Vaandrager .Oper-
+ational andlogical semantics forpolling real-time systems.
+Technical report, University ofNijmegen, 1998.
+[15]M.Heiner andT.Menzel. Apetrinetsemantics forthe
+plclanguage instruction list.InProceedings ofWoDES’98 ,
+pages 161–172. IEEControl, 1998.
+[16]T.Henzinger andP.-H.Ho. HyTech:TheCornell HY-
+bridTECHnology Tool. InU.Engber g,K.Larsen, and
+A.Skou, editors, Proceedings oftheWorkshop onToolsand
+Algorithms fortheConstruction andAnalysis ofSystems,
+Aarhus, Denmark, volume NS-95-2 ofBRICS Notes Series ,
+pages 29–43. Department ofComputer Science, University
+ofAarhus, May1995.
+[17]T.Henzinger ,X.Nicollin, J.Sifakis, andS.Yovine. Sym-
+bolicmodel checking forreal-time systems. Information and
+Computation ,111:193–24 4,1994.
+[18]A.Mader andH.Wupper.Timedautomaton models forsim-
+pleprogrammable logiccontrollers. Technical report, Uni-
+versity ofNijmegen, 1999. toappear .
+[19]O.Maler andA.Pnueli. Timing Analysis ofAsynchronous
+Circuits usingTimedAutomata. InProc.CHARME’95 ,vol-
+ume987ofLectur eNotes inComputer Science ,pages 189–
+205.Springer -Verlag, 1995.
+[20]O.Maler andS.Yovine. Hardware Timing Veriﬁcation using
+Kronos. InProc.7thConf. onComputer -based Systems and
+Softwar eEngineering .IEEE Press, 1996.
+[21]X.Nicollin, J.Sifakis, andS.Yovine. Compiling Real-T ime
+Speciﬁcations intoExtended Automata. IEEE Transactions
+onSoftwar eEngineering ,18(9):794–804, Sept.1992.
+[22]K.Tourlas. Semantic analysis anddesign oflanguages for
+programmable logiccontrollers. Master ’sthesis, Depart-
+ment ofComputer Science, TheUniversity ofEdinbur gh,
+1996.
+[23]K.Tourlas. Anassessemen toftheIEC1131-3 standard on
+languages forprogrammable controllers. InP.Daniel, editor,
+SafeComp’97 ,pages 210–219, 1997.
+8

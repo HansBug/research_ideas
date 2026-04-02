@@ -1,0 +1,489 @@
+--- Page 1 ---
+Aalborg Universitet
+Analytical Performance Verification of FCS-MPC Applied to Power Electronic
+Converters
+A Model Checking Approach
+Novak, Mateja; Dragicevic, Tomislav; Blaabjerg, Frede; Nyman, Ulrik Mathias
+Published in:
+Proceedings of 2017 IEEE 18th Workshop on Control and Modeling for Power Electronics (COMPEL)
+DOI (link to publication from Publisher):
+10.1109/COMPEL.2017.8013279
+Publication date:
+2017
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Novak, M., Dragicevic, T., Blaabjerg, F., & Nyman, U. M. (2017). Analytical Performance Verification of FCS-
+MPC Applied to Power Electronic Converters: A Model Checking Approach. In Proceedings of 2017 IEEE 18th
+Workshop on Control and Modeling for Power Electronics (COMPEL) IEEE Press.
+https://doi.org/10.1109/COMPEL.2017.8013279
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+
+--- Page 2 ---
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 3 ---
+Analytical Performance Veriﬁcation of FCS-MPC
+Applied to Power Electronic Converters:
+A Model Checking Approach
+Mateja Novak, Tomislav Dragicevic, Frede Blaabjerg
+Department of Energy Technology
+Aalborg University
+Aalborg, Denmark
+Email:nov@et.aau.dk, tdr@et.aau.dk, fbl@et.aau.dkUlrik Mathias Nyman
+Department of Computer Science
+Aalborg University
+Aalborg, Denmark
+Email: ulrik@cs.aau.dk
+Abstract —Since the introduction of ﬁnite control set model
+predictive control (FCS-MPC) in power electronics the algorithmhas been missing an important aspect that would speed upits implementation in industry: a simple method to verify the
+algorithm performance. This paper proposes to use a statisticalmodel checking (SMC) method for performance evaluation of
+the algorithm applied to power electronics converters. SMC is
+simple to implement, intuitive and it requires only an operational
+model of the system that can be simulated and checked against
+properties. Device under test for control algorithm application inthis paper is a standard 2-level voltage source converter (VSC)
+with LC output ﬁlter used for uninterruptible power supply
+(UPS) systems. The performance of control algorithm is veriﬁed
+using the UPPAAL SMC toolbox and the behavior is compared tosimulation results obtained from equivalent MA TLAB/Simulink
+model and measurements from experimental set-up. Performance
+results are presented in terms of probabilities with correspondinguncertainties for calculated difference between the referencecapacitor voltage value and the measured output voltage, and asimple moving average value. Algorithm’s performance is tested
+with parameter uncertainties introduced in the model as well.
+I. I NTRODUCTION
+Rapid development of the digital control systems and ex-
+ponential rise of their computing power has led to emergenceof new control algorithm designs such as model predictivecontrol (MPC) in various sectors of the industry [1]. Com-pared to the traditional control algorithms based on linear or
+hysteresis controllers, the MPC concept has an intuitive designmethodology and it suits the non-linear systems. Constraints of
+the system and multiple objectives can simply be implementedbut with the cost of higher calculation time compared to thelinear control. Nevertheless the computing power of today’scommercially available DSP’s is sufﬁcient for execution of
+large number of calculations. Therefore, main obstacle pre-
+venting a wide spread implementation of MPC algorithms to
+power converters is the non-existence of tools for the stability
+and performance evaluation, which is mandatory before anyapplication in industry [1]–[4]. Stability and performance
+evaluation have to prove that below all transients the totalharmonic distortion (THD) factor of the converter current and
+voltage will stay under the maximum allowed values deﬁnedin application standards. Transient system performance should
+also be evaluated to ensure the stability. Well established
+methods for linear system stability and performance evaluationcan not be used and a closed loop stability analysis is typicallyvery complex. Ref. [5] presents an attempt to solve this issue,yet the method remains quite complicated as it is based onnonlinear control theory. The developed method should be
+simple and intuitive like the control design itself so that
+new MPC control algorithms could easily and quickly beveriﬁed for various applications. SMC approach could offerthe needed simplicity and at the same time be a powerfultool to evaluate the behavior of the system. This approachhas been successfully used in various industrial systems e.g.
+sensor networks and communication systems, aeronautic and
+automotive embedded systems to solve problems that arebeyond the scope of classical formal techniques [6]–[8], andthis method is applied in this paper as well.
+UPPAAL SMC toolbox for model checking is appropriate
+for systems that can be modeled as a collection of non-
+deterministic processes with ﬁnite control structure and real-
+valued clocks that can evolve with rates speciﬁed by differ-
+ential equations [9]. It can validate the performance of a de-terministic or stochastic controller in a stochastic environmentand run several consecutive simulations very fast in order toestimate the probability of the speciﬁed event with conﬁdencelevels and its probability distribution. The toolbox allowsthe user to visualize the results in the form of probability
+distributions, evolution of the number of runs with timedbounds and computation of expected values. Some successful
+implementations of SMC with UPPAAL toolbox include ap-
+plications like schedulability analysis and quantitative aspects
+of scheduling systems as well as performance evaluation ofcontroller strategies [6]–[10]. These facts make the UPPAAL
+SMC toolbox a very promising candidate for another ﬁeld
+of implementation - the analytical performance veriﬁcationof FCS-MPC algorithms in power electronics. Using SMC,
+the probability of system state variables staying within certainboundaries during transitional states could easily and quickly
+be assessed.
+
+--- Page 4 ---
+The paper is structured as follows: in ﬁrst section the state-
+space equations of the system model are presented along with
+the control algorithm to be tested. The cost function is deﬁnedand the principle for weighting factor selection is explained.
+Section III gives an insight into the SMC approach and why
+it can be used to perform a performance validation of a FCS-MPC algorithm. In Section IV the FCS-MPC algorithm is ﬁrst
+tested in MATLAB/Simulink simulation and then on an equiv-
+alent experimental set-up. Finally, the algorithm performanceis veriﬁed in UPPAAL SMC for transient load changes using
+UPPAAL SMC’s Veriﬁer toolbox. The results are presentedgraphically and summed up in a table of tested query results. In
+the last section, conclusions are drawn from obtained results.
+II. S
+YSTEM MODEL
+The power converter selected for demonstration of the SMC
+approach is a two-level VSC with LC output ﬁlter used for
+UPS application which is connected to a linear load [11] (seeFig. 1 and Fig. 2). Converter control is based on the following
+ﬁnite control set MPC (FSC-MPC) algorithm:
+1) Measurement of the converter output current i.e. induc-
+tor current ( i
+f), capacitor voltage ( vc) and load current
+(io)
+2) V oltage prediction for the next sampling instant for all
+possible switching states
+3) Cost function evaluation for each prediction4) Selection of the switching vector S
+abcdeﬁning the
+converter output vector ( vi) that minimizes the cost
+function
+5) Application of the selected switching state
+3UHGLFWLYHPRGHO0LQLPL]DWLRQ
+RIWKHFRVW
+IXQFWLRQ
+YFNLINLRN OHYHO96&
+6DEFN
+/2$'
+&I&I&I/I
+/I
+/ID
+E
+F
+YFDEFLRD
+LRE
+LRFLID
+LIE
+LIF
+YFN9'&
+Fig. 1. Simpliﬁed scheme of model predictive control for 2-level VSC
+Eight possible output vectors Vi,i∈[0..7]with the switching
+combinations indicating whether the positive p(VDC)or
+negative n(−VDC)potential is connected to the converter
+phase voltage output Vi(Va0,Vb0,Vc0)are shown in Fig. 2.
+The logic behind the switching vectors Sabc=Sa,Sb,Scis
+the following:
+Sx=/braceleftBigg
+1,if S 1xis on and S 2xis off
+0,if S 1xis off and S 2xis on,x∈a,b,c(1)
+Dynamics of the system can be expressed by two differential
+equations of the converter LC ﬁlter in stationary αβframe,VDCS1a
+S2aaS1b
+S2bbS1c
+S2ccV2(p,p,n)
+V1(p,p,n)
+V6(p,n,p) V5(n,n,p)V4(n,p,p)V3(n,p,n)p
+nV0(p,p,p)
+V7(n,n,n)VB
+VA
+D E
+Fig. 2. (a) two-level VSC and (b) possible voltages generated by the converter
+one for the converter current i.e. ﬁlter current ifαβ and the
+second one for the converter output voltage viαβ:
+ifαβ=Cdvcαβ
+dt+ioαβ (2)
+viαβ=Ldifαβ
+dt+vcαβ (3)
+where:ioαβ andvcαβ are the load current and capacitor
+voltage in stationary αβframe, while C and L correspond
+to ﬁlter capacitance and inductance. Following state-spacerepresentation of the model is obtained using (2) and (3):
+d
+dt⎡
+⎣ifαβ
+vcαβ
+ioαβ⎤
+⎦=⎡
+⎣0−1
+LRload
+1
+C0−1
+CR load
+00 0⎤
+⎦⎡
+⎣ifαβ
+vcαβ
+ioαβ⎤
+⎦+⎡
+⎣1
+L
+0
+0⎤
+⎦viαβ
+(4)
+The primary control objective of the algorithm is voltagecontrol with minimization of switching frequency as secondaryobjective to limit commutation number of power switches.
+Therefore the cost function of the presented system is deﬁned
+as:
+g=(v
+∗
+α−vP
+α)2+(v∗
+β−vP
+β)2+λsw·n2(5)
+wherev∗
+cαandv∗
+cβrepresent the real and imaginary parts of
+reference voltage vector v∗
+c(k)=v∗
+cα+jv∗
+cβ,vP
+cαandvP
+cβthe
+real and imaginary parts of predicted voltage vector vP
+c(k+
+1) =vP
+cα+jvP
+cβ,λswis the weighting factor of secondary
+objective and nis the number of switches that change state
+when the switching state Sx(k),x∈(a,b,c)is applied and it
+is calculated using the following expression:
+n=|Sa(k)−Sa(k−1)|+|Sb(k)−Sb(k−1)|
++|Sc(k)−Sc(k−1)|(6)
+As there are no analytical or numerical methods to determine
+the weighting factors, two performance values are deﬁned:THD factor of the capacitor voltage and average switching
+frequency f
+swavgcalculated as a sum of the switching fre-
+quencies in each phase divided by the number of switches
+during the simulation time interval:
+fswavg=n/summationdisplay
+i=1fswai+fswbi+fswci
+6(7)
+
+--- Page 5 ---
+TABLE I
+CALCULATED PERFORMANCE V ALUES FOR SELECTED WEIGHTING
+FACTORS
+λsw THD fswavg [kHz]
+0 1.12% 18.3
+0.1 1.45% 15.1
+0.2 1.76% 13.2
+0.3 2.24% 12.1
+0.4 2.79% 11.9
+0.5 3.38% 10.2
+wherei∈1,2,nrepresents the number of switches in each
+phase leg. The permitted THD factor for UPS is deﬁned by the
+IEC 62040-3 standard, hence the selected weighting factor forswitching frequency in the cost function should not produce
+a larger THD than deﬁned in the standard [12]. Simulationsin MATLAB/Simulink were performed for different values ofλ
+swto calculate the performance values and the results are
+presented in Table I. The weighting factor λsw= 0.3 was
+chosen to be used for further performance evaluation as it isgiving a good trade-off between the output voltage harmonicdistortion and the average switching frequency. For λ
+sw= 0.3
+the average switching frequency was 5 kHz lower than for λsw
+= 0 but with a cost of 1% higher THD factor of the output
+voltage . In discrete system model, predicted voltage vector
+vP(k+1) is calculated using the measurements of converter
+output current, capacitor voltage and load current. To obtain
+discrete-time model of the system (4), forward Euler method
+was used. Simulations were performed in MATLAB/Simulink
+with the following system parameters: VDC= 300 V , L= 2.4
+mH,C=2 5μF,Ts=2 5μs,Rload =6 0Ω,λsw= 0.3
+andVcref= 100 V . This also corresponds to experimental set-
+up values. Weighting factor value was selected to keep theTHD factor of the UPS output voltage in accordance with
+IEC 62040-3. Control algorithm in experimental set-up alsoincludes a delay compensation as presented in [13].
+III. M
+ODEL CHECKING USING UPPAAL SMC
+SMC can be deﬁned as a series of techniques that monitor
+several runs of the system with respect to some propertyand afterwards use the results from the statistics theory to
+get an overall estimate of the design correctness [9], [14].
+For engineers the technique is easy to understand, to im-plement and to use, particularly for industrial applications.
+The probability distributions that drive the timed behaviorsof the system can be speciﬁed through user interface and the
+estimated probability can be compared to a value or to another
+probability. In other words the system Swill be simulated
+for a ﬁnite number of executions, resulting in a number ofsamples which will be used to test the speciﬁed hypothesise.g. does the property φ=ΔV(system voltage deviation) stay
+under threshold θ= 0.5 % during the transient load change?
+The result of this test will be the probability of satisfaction or
+violation of the speciﬁed property φ[15]. The toolbox support-engine used for the hypothesis testing relies on the results
+coming from the statistics like sequential hypothesis testingor Monte Carlo simulation. Let us illustrate how one of thealgorithms e.g the Monte Carlo algorithm will estimate theprobability γof satisfying property φ[16]. First the user will
+specify the number of random simulations ρ
+1,ρ2...ρN−1,ρN,
+and then probability γwill be estimated as:
+˜γ=1
+NN/summationdisplay
+i=11(ρi|=φ) (8)
+where 1is an indicator function that will return 1 if the
+propertyφis satisﬁed for simulation run ρi, otherwise it will
+return 0. The simulation will stop either when the simulationnumber N or a state violating property φis reached. The
+iteration number N can be determined by Chernoff’s bound
+[17] to obtain a conﬁdence interval. The bound will determine
+the required number of simulations to be performed so that aconﬁdence δwith precision /epsilon1entered by the user are obtained
+for the estimated probability.
+As mentioned in the introduction, the idea behind this paper
+is to use the UPPAAL SMC toolbox to create a model of the
+MPC controller for a 2-level VSC in order to check the algo-rithm performance during transient load changes and parame-
+ter uncertainties. Differential equations presented in the systemmodel (4) specify the evolving rates of clocks i.e systemvoltage and current. The controller has a ﬁnite structure, there
+are eight possible converter output voltage vectors and the one
+selected is the product of the cost minimization function (5).Build model can now be used to make performance analysisfor different FCS-MPC algorithms just by changing the costfunction. In order to check how the secondary objective inthe cost function affects the performance of the model, twoλ
+swvalues were used for result comparison. Model parameters
+were adjusted to ﬁt the MATLAB/Simulink model.
+IV . E V ALUATION AND COMPARISON
+Simulation results obtained from the MATLAB/Simulink
+model were used as a benchmark data to check the behavior
+of the model designed in UPPAAL SMC. The implementedMPC algorithm in Simulink shows good voltage referencetracking performance for linear load as it can be observedin Fig.2. The algorithm was also tested on an experimental
+converter set-up as displayed in Fig. 4 using the MicroLabBoxwith DS1202 PowerPC DualCore 2 GHz processor board and
+DS1302 I/O board from dSpace. Set-up parameters: DC supplyvoltageV
+DC= 300 V , output ﬁlter values L= 2.4 mH, RL=
+50 mΩandC=2 5μF, control algorithm time sample Ts
+=2 5μs, linear load Rload =6 0Ωand capacitor voltage
+reference Vcref = 100 V . Calculation time of the control
+algorithm is approximately 15 μs, and to compensate this
+delay the predictions are calculated one step further ahead and
+applied at the beginning of the next time sampling interval.Fig. 5 and Fig. 6 show the measured capacitor line to line
+voltages for λ
+sw= 0 andλsw= 0.3. It can be observed how
+higher weighting factor for secondary objective resulted withincreased capacitor voltage ripple.
+
+--- Page 6 ---
+        
+7LPHV>V@&DSDFLWRUYROWDJH>9@YFA UHIYFA PHV
+YFB PHV
+YFB UHI
+Fig. 3. Simulated capacitor voltage in stationary αβframe using the Simulink
+model of the VSC
+Fig. 4. Experimental set-up for veriﬁcation of the FSC-MPC algorithm on a
+VSC
+Fig. 5. Capacitor voltage measurements in experimental set-up using λsw=0
+for VSC
+Using the UPPAAL SMC veriﬁer system currents and
+voltages can also be presented graphically as shown in Fig.7. for linear load and cost function (5). By comparing thesimulated capacitor voltage to the controller reference, thetracking ability of the algorithm was again proved to besatisfying, meaning the modeling in UPPAAL was correct,hence the model can be used for analytical performancevalidation during the transient load. Algorithm performancewas assessed through two queries for the time interval of 40ms:
+Fig. 6. Capacitor voltage measurements in experimental set-up using
+λsw= 0.3 for VSC
+        
+7LPH>V@-
+-&DSDFLWRUYROWDJH>9@YFAPHV
+YFBPHV
+YFA UHI
+YFBUHI
+Fig. 7. Reference voltage and measured capacitor voltage in stationary αβ
+frame in the UPPAAL model of the VSC
+diff=(v∗
+cα−vm
+cα)2+(v∗
+cβ−vm
+cβ)2(9)
+wherev∗
+αandv∗
+βrepresent the real and imaginary parts of
+reference voltage vector v∗(k),vm
+αandvm
+βare the values of
+measured capacitor voltage vm
+c(k)=vm
+c=vm
+cα+jvm
+cβand the
+second query was the simple moving average value ( SMA )
+of the difference calculated on n= 10 sample subsets.
+SMA=SMAprev+diffM
+n−diffM−n
+n(10)
+As it can be seen from the queries focus of the performance
+evaluation is on reference tracking ability, i.e. the difference
+between reference and output values is calculated. The load ischanging stochastically during the time interval in UPPAAL
+simulations so that through several runs all possible transients
+can be evaluated in the queries. An example of the loadcurrent waveform during one simulation run is shown in Fig.8. Simulation for every query is ﬁnished when the numberof simulations needed for calculated probability conﬁdencelevelδ= 0.95 is achieved or a state violating the property is
+reached. Some of the tested probabilities with correspondinguncertainty of /epsilon1= 0.05 for transient load with parameter
+uncertainty are shown in Table II. This parameter exampleuncertainty is introduced into the model as a false estimationof the system inductance.
+The queries were tested for λ
+sw= 0 with the capacitor
+voltage as primary objective and λsw= 0.3 with switching
+
+--- Page 7 ---
+TABLE II
+QUERY PROBABILITY RESULTS OBTAINED FROM UPPAAL SMC TOOLBOX VERIFIER
+Query Parameter uncertainty Probability ( λsw=0 ) Probability ( λsw= 0.3) Number of runs
+diff < 8% 0 0.699 - 0.799 0 - 0.097 326/36
+diff < 10% 0 0.902 - 1 0.107 - 0.206 36/217
+diff < 12% 0 0.902 - 1 0.620 - 0.720 36/357
+diff < 15% 0 0.902 - 1 0.902 - 1 36/36
+diff < 12% 30% 0.596 - 0.696 0 - 0.097 369/36
+diff < 15% 30% 0.902 - 1 0.667 - 0.767 36/328
+SMA< 8% 0 0.774 - 0.874 0 - 0.097 238/36
+SMA< 10% 0 0.902 - 1 0 - 0.097 36/36
+SMA< 12% 0 0.902 - 1 0.632 - 0.732 36/351
+SMA< 10% 30% 0.222 - 0.322 0 - 0.097 322/36
+SMA< 12% 30% 0.654 - 0.754 0.013 - 0.11 337/88
+SMA< 15% 30% 0.902 - 1 0.641- 0.741 36/345
+       
+7LPH>V@-
+-/RDGFXUUHQW>$@LRA
+LRB
+
+Fig. 8. Load current under transient load change in the UPPAAL model of
+the VSC
+frequency minimization applied as the secondary objective.
+The last column in the Table II represents the number ofruns that the UPPAAL SMC toolbox performed during query
+processing. If the query probability is close to 0 or 1, the
+number of runs necessary for assessment is low. The secondquerydiff < 10% forλ
+sw= 0 will be presented in
+detail. Number of simulations needed to provide the level of
+uncertainty /epsilon1= 0.05 was 36, during each simulation run the
+load value changed stochastically which results in current like
+shown in Fig. 8, difference and SMA values were calculatedfor each run. An example of the calculated values for one
+run is presented in Fig. 9 and Fig. 10. The ﬁrst transient(t = 0 - 4 ms) which occurs because of the system’s initial
+states were set to 0 was omitted from the calculation. It
+can be observed that the difference is staying below 10%threshold, meaning that the system voltage is always tracking
+the reference even under transient load change and there are
+no signiﬁcant degenerations in the reference tracking.
+As presented in the Table II the system with λ
+sw= 0.3
+showed higher probability to produce larger difference valueduring the transients. The lowest difference guaranteed to have
+Fig. 9. Difference between the reference and capacitor voltage in UPPAAL
+model during one simulation run under transient load change
+Fig. 10. SMA of the reference and capacitor voltage in UPPAAL modelduring one simulation run under transient load change
+a probability close to 1 was 10% for ﬁrst function, which
+means that during the load transients at no time the difference
+
+--- Page 8 ---
+between the reference (100 V) and system voltage will be
+larger than 10 V . Both λswvalues produced a probability
+close to 1 for differences <15%. With the introduction of the
+parameter uncertainty it can be seen that the the probabilityof exceeding the difference threshold for system with λ
+sw
+= 0.3 was 30% lower. It can be deduced that the parameter
+uncertainty has a larger impact on this type of cost function.
+The obtained results are also useful for weighting factor
+selection as the performance degradation/improvement of eachsecondary term in the cost function can easily be evaluated.
+If the calculated SMA value of the system needs for instanceto stay during transients below 12% a lower λ
+swvalue should
+be selected for (5).
+V. C ONCLUSION
+In this paper the performance evaluation of the FSC-MPC
+algorithm for 2-level VSC was done using UPPAAL SMCtoolbox. A conversion from the Simulink system model toUPPAAL model was simple and the process of performanceevaluation was uncomplicated and fast. Created model inthe toolbox proved that the reference tracking error of thedesigned control algorithm will stay below 15% with the
+corresponding probability certainty of 0.95 even with intro-
+duction of the parameter uncertainty under transient load.Cost function with weighting factor λ
+sw= 0.3 presented two
+times higher probability that the difference will be higherthan 12% because the applied switching state was chosennot only to minimize reference error but also to choose thestate with lower number of commutations. Overall, during theperformance evaluation no signiﬁcant degradation of referencetracking was found during transients nor under model param-eter uncertainty. The presented MPC performance validationapproach showed many possibilities for future work with focuson analytical performance evaluation of other MPC algorithmsand converter topologies plus more complex load models.
+Further research will show if the SMC is the new powerful tool
+to solve the problem of performance and stability evaluation
+for MPC algorithms in different types of power converters.
+R
+EFERENCES
+[1] S. Kouro, M. A. Perez, J. Rodriguez, A. M. Llor, and H. A. Young,
+“Model predictive control: MPC’s role in the evolution of power
+electronics,” IEEE Industrial Electronics Magazine , vol. 9, no. 4, pp.
+8–21, Dec 2015.
+[2] S. Vazquez, J. Rodriguez, M. Rivera, L. G. Franquelo, and M. No-
+rambuena, “Model predictive control for power converters and drives:Advances and trends,” IEEE Transactions on Industrial Electronics ,
+vol. 64, no. 2, pp. 935–947, Feb 2017.
+[3] V . Yaramasu and B. Wu, Model Predictive Control of Wind Energy
+Conversion Systems , ser. IEEE Press Series on Power Engineering.
+Wiley, 2016.
+[4] S. Vazquez, J. I. Leon, L. G. Franquelo, J. Rodriguez, H. A. Young,
+A. Marquez, and P. Zanchetta, “Model predictive control: A review
+of its applications in power electronics,” IEEE Industrial Electronics
+Magazine , vol. 8, no. 1, pp. 16–31, March 2014.
+[5] R. P. Aguilera and D. E. Quevedo, “Predictive control of power
+converters: Designs with guaranteed performance,” IEEE Transactions
+on Industrial Informatics , vol. 11, no. 1, pp. 53–63, Feb 2015.
+[6] A. David, K. G. Larsen, A. Legay, and M. Miku ˇcionis, “Schedulability
+of herschel revisited using statistical model checking,” Int. J. Softw. Tools
+Technol. Transf. , vol. 17, no. 2, pp. 187–199, Apr. 2015.[7] A. Boudjadar, A. David, J. Kim, K. Larsen, M. Mikuionis, U. Nyman,
+and A. Skou, “Statistical and exact schedulability analysis of hierarchical
+scheduling systems,” Science of Computer Programming , vol. 127, pp.
+103–130, 5 2016.
+[8] K. G. Larsen, M. Miku ˇcionis, M. Mu ˜niz, J. Srba, and J. H. Taankvist,
+Online and Compositional Learning of Controllers with Application toFloor Heating . Springer Berlin Heidelberg, 2016, pp. 244–259.
+[9] A. David, K. G. Larsen, A. Legay, M. Miku ˘aionis, and D. B. Poulsen,
+“Uppaal SMC tutorial,” Int. J. Softw. Tools Technol. Transf. , vol. 17,
+no. 4, pp. 397–415, Aug. 2015.
+[10] Statistical model-checker - new SMC extension of UPPAAL. [Online].
+Available: http://people.cs.aau.dk/
+∼adavid/smc/
+[11] P. Cortes, G. Ortiz, J. I. Yuz, J. Rodriguez, S. Vazquez, and L. G.
+Franquelo, “Model predictive control of an inverter with output LC ﬁlter
+for UPS applications,” IEEE Transactions on Industrial Electronics ,
+vol. 56, no. 6, pp. 1875–1883, June 2009.
+[12] “IEC standard for uninterruptible power systems (UPS) - part 3: Method
+of specifying the performance and test requirements,” IEC 62040-
+3:2011 , no. 2, pp. 1–214, March 2011.
+[13] J. Rodriguez and P. Cortes, Delay Compensation . John Wiley and Sons,
+Ltd, 2012, pp. 177–189.
+[14] P. Bulychev, A. David, K. Guldstrand Larsen, A. Legay, M. Miku ˇcionis,
+and D. Bøgsted Poulsen, Checking and Distributing Statistical Model
+Checking . Berlin, Heidelberg: Springer Berlin Heidelberg, 2012, pp.
+449–463.
+[15] A. Legay, B. Delahaye, and S. Bensalem, Statistical Model Checking:
+An Overview . Berlin, Heidelberg: Springer Berlin Heidelberg, 2010,
+pp. 122–135.
+[16] Q. Cappart, C. Limbre, P. Schaus, J. Quilbeuf, L. M. Traonouez,
+and A. Legay, “Veriﬁcation of interlocking systems using statistical
+model checking,” in 2017 IEEE 18th International Symposium on High
+Assurance Systems Engineering (HASE) , Jan 2017, pp. 61–68.
+[17] H. Chernoff, “A measure of asymptotic efﬁciency for tests of a hypothe-
+sis based on the sum of observations,” Ann. Math. Statist. , vol. 23, no. 4,
+pp. 493–507, 12 1952.

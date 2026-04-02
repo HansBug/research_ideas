@@ -1,0 +1,682 @@
+--- Page 1 ---
+Aalborg Universitet
+Statistical Model Checking for Finite-Set Model Predictive Control Converters
+A Tutorial on Modeling and Performance Verification
+Novak, Mateja; Nyman, Ulrik; Dragicevic, Tomislav; Blaabjerg, Frede
+Published in:
+I E E E Industrial Electronics Magazine
+DOI (link to publication from Publisher):
+10.1109/MIE.2019.2916232
+Publication date:
+2019
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Novak, M., Nyman, U., Dragicevic, T., & Blaabjerg, F. (2019). Statistical Model Checking for Finite-Set Model
+Predictive Control Converters: A Tutorial on Modeling and Performance Verification. I E E E Industrial
+Electronics Magazine, 13(3), 6-15. Article 8845791. https://doi.org/10.1109/MIE.2019.2916232
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 2 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 1
+Application of Statistical Model Checking
+Methods to Finite-Set-MPC Controlled
+Converters: Modeling and Performance
+Veriﬁcation
+Abstract
+Statistical model checking (SMC) is used as a method for checking the system behavior in all
+possible scenarios and it has been successfully implemented in embedded automotive systems, sensor
+networks, aeronautics and communication systems for solving the problems that were beyond the abilities
+of the traditional formal techniques. Using this method the system is simulated for a ﬁnite number of
+times and afterwards the samples are used for hypothesis testing. We will demonstrate how the area
+of application can also be extended to power electronics systems, particular how this method can be
+used to check the performance of Finite-Set controlled power electronic converters. The performance
+of Finite-Set controlled power electronic converters is usually assessed using multiple simulations or
+experiments. Because only an executable system model is needed to apply the method, SMC is most
+similar to multiple simulations approach. However, it can also provide the reliability of the procedure
+and modeling of the stochastic system components. For example: the load or grid conditions have
+a stochastic behavior and in order to check the transient system behavior they can’t be modeled as
+deterministic components. The veriﬁcation needs to provide the evidence that the control algorithm can
+quickly adjust to the new conditions in the system, provide a fast response and stay within the limits
+prescribed by the standards. Using SMC the probability of the system staying within these limits can be
+assessed. A detailed modeling procedure of the converter system components and design considerations
+are given in the paper. The results interpretation is explained using the UPPAAL SMC toolbox. To
+evaluate the correctness of created model in UPPAAL SMC the behavior of the system during steady
+state conditions is also compared to the equivalent Simulink model and the experimental results, before
+the SMC is performed.
+Index Terms
+Controller performance, DC-AC power conversion, ﬁnite control set, predictive control, power
+electronics, statistical model checking.
+
+--- Page 3 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 2
+I. I NTRODUCTION
+Model checking is a very powerful technique that is used to debug complex system structures
+like embedded controllers, network protocols or hardware components. Any system that has
+states and transitions between states can be analyzed using a model checker. With a model
+checker a series of events that would lead to an error state can quickly be identiﬁed. Therefore,
+the controller code can be redesigned before the implementation and a possible damage can
+be prevented. U PPAAL is one of the integrated tool environments used to model and analyze
+the behavior of the systems. The tool is available for free for non-commercial applications in
+academia [1], [2]. U PPAAL tools are all based on variants of Timed Automata (TA). With a TA,
+a timed behavior of various systems can be modeled and analyzed. However, when traditional
+numerical approaches are used, the size of the problem is exponentially increasing with the
+number of inputs i.e we are facing the problem of state space explosion. In U PPAAL SMC
+this was solved with introduction of the Statistical Model Checking (SMC) and Priced Timed
+Automata (PTAs). SMC is well-known in the ﬁeld of sensor networks, communication protocols,
+aeronautics, embedded automotive systems and biology systems [3]–[12]. Power electronics
+converter systems are a new application area for SMC but nevertheless very promising, as also
+in this area there are some problems that are not solvable using the well-known traditional
+methods [13], [14].
+In this tutorial we will demonstrate how SMC can be used to analyze the performance of
+a Finite-Set MPC controlled converter. MPC is still in the need of ﬁnding the analytical tools
+and methods to improve the design process, verify the performance and the stability [15]–[18].
+Linear controllers can rely on well-known matured methods for optimal design, performance and
+stability veriﬁcation and this is the reason why many power electronics engineers still prefer these
+controllers over the MPC based control algorithms. Performance veriﬁcation methods must prove
+that the control algorithm can handle the disturbances in the system and keep the deviations of the
+controlled variables from the references at a minimum. In recent publications the performance
+of the Finite-Set MPC was mostly assessed by running multiple simulations or experiments
+[19]–[21]. The simulations can be performed in parallel and are in theory less time consuming
+then experiments, however they are missing the reliability of the procedure. Errors could remain
+undetected as there is no guarantee that a ﬁnite number of experiments can cover all possible
+scenarios. On the other hand, if we look into the Finite-Set MPC stability assessment, most
+
+--- Page 4 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 3
+relevant progress was presented by the authors in [22], [23] where Lyapunov stability criteria
+is used to asses the asymptotically stability under speciﬁc constraints. This method still needs
+some further research in order to be applicable to all applications and classes of converters [17].
+In our work we are focusing on the performance veriﬁcation and through the sections of this
+paper we will analyze the case of a stand-alone voltage source converter during transient load
+changes. This paper is a part of the most recent research in applying SMA approach to the power
+electronics systems. The hardest task of the approach is the modeling procedure of the power
+electronics systems so the system will be suitable for use in a SMC software. Because the timed
+automata structures are not usually used in power electronics applications, it is important for
+the reader to understand how he can transfer the behavior of a speciﬁc component like a power
+electronics converter to a timed automaton behavior. Therefore, a lot of attention will be put on
+the detailed analysis of the modeling procedure and design considerations.
+The structure of the paper is as follows. In Section II we will give an introduction to SMC and
+the tools used to perform the analysis. A simple timed automata structure which is used to model
+the system components in the SMC software will be explained. Next section will illustrate how
+using the timed automata structures, the power electronic system can be modeled in U PPAAL .
+In Section V it is explained how performance veriﬁcation using the created U PPAAL model is
+performed. In the end conclusions and future research aspects are given.
+II. S TATISTICAL MODEL CHECKING
+Within computer science, formal methods is a term generally used for analysis methods with
+a solid mathematical underpinning. Formal methods can provide guarantees that a system has
+certain properties. A group of formal methods that are often used to analyze software systems
+is model checking. Model checking suffers from a problem known as state space explosion,
+namely that the size of the state space that needs to be checked grows exponentially with the
+size of the model that is used. In many cases this has prevented classical model checking from
+being used on industrial sized systems.
+Statistical model checking [24] is a technique that tries to solve this problem by applying
+statistical instead of exact analysis of the models in question. Statistical model checking is also
+known as Monte Carlo simulation and is especially well suited for probabilistic and stochastic
+models [25]. Statistical model checking is used in aeronautics and embedded automotive systems,
+
+--- Page 5 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 4
+sensor networks, and communication systems to provide solutions to problems that are beyond
+the abilities of classical formal techniques [4], [5], [26].
+Statistical model checking consists of performing enough independent simulations of the
+behavior of the model in order to gain a statistically valid result that predicts the behavior.
+Statistical model checking does not provide 100% guarantees for the properties of the system.
+On the other hand, the conﬁdence of the results can be increased arbitrarily. If a larger degree of
+certainty is necessary, more experiments can be performed. The number of simulations increases
+linearly with the certainty and sub-linearly in the size of the model. Statistical model checking
+also naturally incorporates discrete and non-linear phenomena in the same model. The fact that
+the certainty of the technique can be scaled also means that it can be used to explore new
+concepts and approaches fast by setting a lower conﬁdence level.
+III. SMC TOOLS
+In this paper we use the tool U PPAAL SMC, but there are other tools which can perform
+Statistical Model Checking. The paper Statistical Model Checking: An Overview [27] from 2010
+provides a good introduction to the area. Landscape of probabilistic tools [25] provides an
+overview of the different types of probabilistic models, but focuses on other numerical methods
+of analyzing such models.
+A relatively new tool, S TORM , from 2016 aims at both high performance and versatility
+[28], [29]. It aims at being a toolbox of reusable modules such that new functionality can be
+implemented quickly. The paper Comparative Analysis of Statistical Model Checking Tools [30]
+provides a thorough comparison of ﬁve different SMC tools with a starting point in their appli-
+cation to systems biology. The tools surveyed in this paper are PLASMA-Lab [31], PRISM [32],
+MC2 [33], MRMC [34] and Ymer [35]. These tools support different probabilistic models. For
+instance PRISM can analyze the following probabilistic models: discrete-time Markov chains
+(DTMCs), continuous-time Markov chains (CTMCs), Markov decision processes (MDPs), proba-
+bilistic automata (PAs) and probabilistic timed automata (PTAs). The modeling formalism of U P-
+PAAL SMC, Stochastic Timed Automata, can express as much as both DTMC and CTMC [36].
+The expressive power of the modeling language of U PPAAL SMC is sufﬁcient to describe
+the types of models needed for this paper, but the main reason for choosing the U PPAAL SMC
+tool suite is the direct collaboration with the research group behind the tool. This enables a
+
+--- Page 6 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 5
+deep understanding of how to use the tool and the potential future optimizations of the tool and
+models.
+A.UPPAAL SMC
+The family of U PPAAL tools are all based on variants of Timed Automata [36]. Timed
+Automata is a mathematical rigorously deﬁned formalism for specifying the timed behavior
+of systems, which is described by example in the following section. A more recent development
+in the analysis of Timed Automata models is the introduction of SMC. These methods allow a
+precise modeling of dynamic aspects of models in the form of a Network of Stochastic Timed
+Automata. For a formal deﬁnition of Networks of Stochastic Timed Automata we refer the reader
+to [36]. U PPAAL SMC is an integrated modeling and veriﬁcation tool which can be used to create
+models consisting of several Stochastic Timed Automata. It contains a graphical editor as well as
+a simulator. It also contains a veriﬁcation part in which one can test statistical hypotheses about
+the current model. Apart from the hypothesis testing it is also possible to obtain many different
+types of graphs describing the behavior of the system. Such graphs are extremely important in
+practice when constructing the system models.
+More information about SMC and U PPAAL SMC can be found in [37].
+B. Timed Automaton Model
+Timed automata were introduced in early 1990s by Raajeev Alur and David Dill [38], and
+were very quickly accepted as a very convenient formalism for modeling and analyzing real-time
+systems. In Fig. 1 a simple TA model in U PPAAL SMC is presented. Three locations can be
+identiﬁed: Init,State 1and State 2.Initis the initial and committed location of the TA, which
+means the transition to the location State 1has the highest priority and the TA will immediately
+make the transition. xis a special type of a variable called clock , whose domain consists of
+non-negative real numbers. When an automaton is waiting in one of the locations and the time
+is passing, then the value of its clocks are increasing. Each time unit models 1 sin the real
+world. All locations are assigned with a value of the Output variable and an invariant x <= 10,
+which deﬁnes the maximum time the TA can stay in this location. The transition edges between
+the locations also have their guards x >= 5deﬁning the minimum time that has to pass before the
+TA can make the transition to the next location. When the transition will occur is not predeﬁned,
+it is random and all clock values between 5<=x<= 10 have an equal probability to trigger the
+
+--- Page 7 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 6
+Fig. 1: Simple Timed Automaton model in U PPAAL SMC.
+transition i.e. we have an uniform distribution for all clock values. U PPAAL SMC also offers the
+ability to use a custom probability function. If not deﬁned differently, the distribution is always
+uniform. Because of the ability to randomly change the location, the simulation runs will have
+a different clock value triggering the transition. In this way we can observe how the system
+behaves under different conditions.
+The processes in U PPAAL SMC can be synchronized through broadcast channels. The edge
+that has the synchronization label e.g. Start !will emit the broadcast on channel Start if the guard
+on the edge is satisﬁed. Afterwards all the edges with the receiving synchronization label Start ?
+will synchronize with the emitting process.
+IV. M ODELING THE SYSTEM IN UPPAAL SMC
+The modeling approach will be presented on a stand-alone standard voltage source converter
+for a UPS application. First the system model is presented to identify the components that
+afterwards need to be modeled in U PPAAL SMC. Afterwards the components are explained in
+more detail. The whole modeling approach in UPPAAL SMC is very modular and can easily
+be adapted to different converter topologies or load types. Every model component can simply
+be exported and imported to other system models as a template.
+A. System model
+In Fig. 2 the following system components can be identiﬁed:
+2-level voltage source converter
+LC output ﬁlter
+Load
+
+--- Page 8 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 7
+Predictive 
+model
+Cost 
+function (4)vc,abc(k), 
+if,abc (k), 
+io,abc(k)
+8Sabc (k)CfCf
+Lf
+Lf
+Lf
+a
+b
+c
+vc,abcioa
+iob
+iocifa
+ifb
+ifc
+vc, abc*(k+1)
+VDC
+Lload
+Lload
+LloadRloadRload
+Rloadvo,abc
+vi,abc
+αβ/abc
+ min(g)8
+CfRL load
+LC filter2-level VSC
+Fig. 2: Simpliﬁed scheme of the system model.
+Measurement system
+Control algorithm
+As mentioned in the previous section; to model the system in U PPAAL SMC we need to describe
+the behavior of this model using Timed Automata. To do that, we ﬁrst need to analyze what
+drives each of the model components. Let’s start ﬁrst from the converter model. It is very easy to
+imagine this component as a TA. The states of this TA are the switching states of the converter.
+For the presented topology this means we have eight switching states, e.g. for a 3L-level Neutral
+Point Clamped converter this will be 27. The next question that needs to be answered is what
+triggers the location changes in this TA? This is of course the control algorithm and in this model
+Finite-Set MPC algorithm is used. The core of the Finite-Set MPC algorithm is a discretized
+system model which is used to predict the future behavior of the system [18], [39]. In this case
+the model is deﬁned through differential equations of the ﬁlter current and the capacitor voltage:
+if(t) =Cfdvc(t)
+dt+io(t) (1)
+vi(t) =Lfdif(t)
+dt+vc(t) (2)
+io(t) = 1
+Rload
+Lloaddio(t)
+dt vc(t)
+(3)
+whereifandioare the inductor and load currents, vcandviare ﬁlter capacitor and
+
+--- Page 9 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 8
+inverter output voltages, LfandCfare ﬁlter inductance and capacitance. Euler forward method
+is used to discretize (1) and (2) as presented in [40]. For every time sample new measurements of
+thevc,ifandioare acquired by the measurement system. Using the discretized equations
+predicted values are calculated for all 8 possible converter switching states. These values and the
+reference values are then used in the cost function. The cost function usually has the form of the
+square of Euclidean distance between the reference signal and the prediction of the controlled
+variable. A good overview of the cost function design depending on the application is presented
+in [15]. For this system, the cost function suggested for the UPS applications in [40] will be
+used:
+g= (v
+c vP
+c)2+ (v
+c vP
+c)2+dgd+swg2
+sw (4)
+gd= (iP
+f io+Cf!v
+c)2+ (iP
+f io Cf!v
+c)2(5)
+gsw=X
+x=a,b,cjSx(k) Sx(k 1)j(6)
+wherev
+candv
+crepresent the real and imaginary parts of the reference voltage vector, vP
+c
+andvP
+cthe real and imaginary parts of the predicted voltage vector, iP
+fandiP
+fthe real and
+imaginary parts of the predicted ﬁlter current vector, ioandiothe real and imaginary parts of
+the measured load current. Weighting factors dandswdeﬁne the secondary objectives. For
+the design of the weighting factors an approach based on artiﬁcial neural networks can be used
+as presented in [41]. Sx(k)is the new potential switching state and Sx(k 1)is the applied
+switching state from the previous switching instant. From the eight converter output vectors the
+one which produced the minimal cost function value is then selected and applied.
+The load used in the system is an inductive load and will have two possible values of the
+resistance i.e. the TA will have two locations: high load and low load. Parameter values, which
+match the experimental UPS set-up are shown in Table I. In the next subsections components
+of the U PPAAL model from Fig. 3 will be explained in detail.
+B. Physical system
+In Section III-B a simple TA model was introduced with a clock x, which was triggering
+the location transitions. If we want to model the converter system it doesn’t make much sense
+to use the time to trigger the transitions, especially if we know that in U PPAAL SMC we can
+
+--- Page 10 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 9
+TABLE I: System parameters.
+Parameter Value
+DC-link voltage ( Vdc) 700 V
+Converter power rating ( P) 18 kV A
+Reference voltage and frequency ( Vref,fref) 400 V , 50 Hz
+Output ﬁlter inductance and capacitance ( Lf,Cf) 2.4mH, 25 F
+Load (Rnom,Lnom) 48 
+, 40 mH
+Sampling time ( Ts) 25 s
+Weighting factors ( d,sw) 0.4, 0.5
+Sampler
+measurements VinVc, If, IoSimulation 
+OutputTick
+Physical System
+Controller
+Fig. 3: Block scheme of the system model in U PPAAL .
+deﬁne the behavior of the clocks trough differential equations. Then why not declare the system
+voltages and currents to be the global clocks in our TA network using the differential equations?
+Fig. 4a shows how this is done in U PPAAL SMC. It is easy to notice that these are the same
+equations as in (1), (2) and (3). The equations are multiplied by the global factor (GF) = 10 6
+so the system will have the same dynamics like an equivalent simulation model with sample
+time ofTS= 1s.
+C. Controller and Tick model
+The Controller model can be observed in Fig. 4d and it is a combination of converter and
+control algorithm component from Fig. 2. We can observe that the values of variables Vinalpha
+
+--- Page 11 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 10
+andVinbeta , which represent the imaginary and real part of the converter voltage, are changing
+depending on the TA location ( v0-v7). The TA has three more locations which are committed:
+Init,right and left. For the TA to transition from the ( v0-v7) to right a synchronization signal tick
+needs to be received from the Tick model Fig. 4e. Tick model is a very simple TA with only one
+location and it generates the synchronization signal tickevery 25s. When the TA reaches the
+location right it will call two functions. The functions are written in C-like imperative language.
+Function calc cost() calculates the cost function values for all converter output voltages like it
+was explained in Section IV-A. The values are forwarded to the minControl which minimizes
+the cost function and selects the next TA location.
+D. Sampler model
+The task of the Sampler model in Fig. 4c is to take measurements of the voltages and currents
+needed for calculating the predictions in the calc cost() function of the Controller model. Every
+25s the task is repeated except for the initial time step which is shorter. This modiﬁcation was
+made to ﬁt the behavior of the TA model to the simulation model in Simulink. By comparing
+the waveforms it was noticed that the Simulink model added an approximately 1 s delay in
+the model.
+E. Load model
+As it can be seen in the Fig. 4b the Load model TA has one local clock variable yand three
+locations: Init,LowLoad and HighLoad . The invariants y < 3000 andy > 2000 transition guards have
+been assigned to the the locations. The transition trigger has a uniform distribution for the clock
+values between 2000< y < 3000 therefore in each simulation run a different clock value will
+trigger the change of the Rload value.
+F . Simulation output
+The last component of the model is Simulation output in Fig. 4f and it is used to calculate
+the diffrence between the reference and measured voltage and the simple moving average of the
+diffrence. The following are calculated in the functions calc diff() androlling average() :
+di= (v
+c vm
+c)2+ (v
+c vm
+c)2(7)
+SMA =SMAprev+diM
+n diM n
+n(8)
+
+--- Page 12 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 11
+(a) Physical system.
+(b) Load.
+(c) Sampler.
+(d) Controller.
+(e) Simulation output.
+(f) Tick.
+Fig. 4: System components in U PPAAL model.
+wherev
+candv
+care the real and imaginary parts of reference voltage vector, vm
+candvm
+care
+the values of measured output voltage, and n= 10 is the number of sample subsets. The TA
+has one local clock variable zwhich is ensuring that the di andSMA are calculated every 1
+s. Two transition edges with different guards can be noticed. Only the left edge is calculating
+thedi andSMA from the z >=SAMPLE START , this modiﬁcation was made to exclude the
+initial transient from the calculation.
+
+--- Page 13 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 12
+10 20 30 40
+Time (ms)-400-2000200400Voltage (V)vavbvc
+(a) Capacitor voltage in U PPAAL SMC model.
+10 20 30 40
+Time (ms)-400-2000200400Voltage (V)vavbvc
+(b) Capacitor voltage in Simulink model.
+(c) Capacitor voltage in experimental set-up.
+0 0.5 1 1.5 2
+Time (s) 10-32468Applied voltage vector nr.Simulink
+Uppaal SMC
+(d) Selected voltage vectors in Simulink and U PPAAL
+model.
+Fig. 5: Design veriﬁcation.
+G. Wind power and PV applications
+The application of the SMA approach can also be extended to other applications which feature
+stochastic components. Energy production from the renewable energy sources like wind power
+plants and photovoltaics (PV) are a typical example of this behavior. For example: the PV
+plant can be an automaton with states that have different solar irradiation values. What in the
+case of UPS application has not been implemented, but mentioned in the Section III-B is that
+there is a possibility to also set the probabilities of the transitions. Therefore, we can put higher
+probabilities for some irradiation values. In a similar way, an automaton for the wind power plant
+can be designed, where different wind speed values can be assigned to the automaton states.
+When we perform the statistical model checking approach with the automaton’s that have the
+stochastic behavior, the SMC software will need to perform several simulation runs and in each
+run we will have a different irradiation or wind proﬁle. Therefore, we would obtain information
+about our system performance also during this different energy production situations.
+
+--- Page 14 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 13
+V. P ERFORMANCE VERIFICATION
+UPPAAL SMC allows the user to visualize the values of variables and clocks in the simulation
+runs and thus give insight to the user as which properties would be interesting to check using the
+model checker. Using this feature we can easily check the behavior of the system like in other
+available simulation software for power electronics. We used this feature to check the design
+by comparing the simulation output in the steady state to the equivalent Simulink model and
+also to the measurements obtained from the experimental set-up. For the complete guide on
+how to use U PPAAL SMC the reader is refereed to [36]. The procedure of modeling the system
+and performing the veriﬁcation has also been illustrated in the ﬂowchart presented in the Fig.6.
+In needs to be noticed that SMC is not a replacement of the traditional simulation methods
+performed in simulation tools like Simulink, moreover it is a speciﬁc tool that is used to check
+the performance of the controllers in the stochastic environments. The modeling procedure in
+Simulink is of course simpler as models of components are available in the Power Sim libraries,
+while when the user ﬁrst starts using the SMC software he needs to model the components from
+zero.
+A. Design veriﬁcation
+The syntax used in U PPAAL SMC to perform the simulation of the model is following:
+simulate N [<=bound] fE1,...EkgwhereN2Nindicates the number of simulation
+runs, bound is the time bound on the simulations and E1,...Ek are expressions that are mon-
+itored during the simulation run and afterwards visualized. For our system the most interesting
+expressions to monitor are following:
+simulate [<=60000] fV_mes_alpha, V_mes_beta, V_ref_alpha(),
+V_ref_beta()g
+simulate [<=60000] fi_mes_load_alpha, i_mes_load_beta g
+simulate [<=60000] fdiff, avgg
+The ﬁrst expression was used to compare the U PPAAL model to the Simulink model and
+experimental set-up. The results can be observed in Fig. 5 As it can be seen the U PPAAL model
+features the same performance as the Simulink model and it is also matching the experimental
+results. Now that the created model has been veriﬁed we can proceed to the query formulations.
+
+--- Page 15 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 14
+Define the parameters of the 
+system and global clock variables
+Error in syntax?
+Check the reported error 
+and modify the model
+ANoYesA
+Do the results 
+represent the desired 
+system behaviour?
+Debug the model to  find the error
+Analyze the resultsYesNoIdentify the discret e states of the TA
+Define the transi tions between the 
+states (set guards  and invariants) 
+and synchronization channels for 
+the TA
+Run the syntax checkDefine the simula tion query in the 
+Verifier and run  the simulation
+Define the hypothesis query 
+and set the confidence level. 
+Start the verifi cation of the 
+query
+Fig. 6: Modeling and veriﬁcation procedure in U PPAAL SMC.
+B. Query formulation
+Using the Veriﬁer tool in U PPAAL SMC we can get an answer to three types of questions
+[42]:
+Probability Estimation - it will give a probability conﬁdence interval for which the property
+in question is true (e.g 0.81-0.91)
+Hypothesis Testing - it will give a 0 or 1 depending if the probability of the property is
+lower or larger than the deﬁned threshold
+Probability Comparison - it will give a 0 or 1 if asked question is false or true
+The concept is the following: each time the system is simulated, it is encoded as a Bernoulli
+random variable that is true if the property in the asked question is satisﬁed or false otherwise.
+
+--- Page 16 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 15
+Afterwards, a statistical algorithm will analyze the observations. For the ﬁrst question an esti-
+mation algorithm that resembles the Monte Carlo simulation is used to give an answer and for
+the second and third question sequential hypothesis testing is used. For our model it is most
+interesting to use the ﬁrst question. However, before starting with the testing we must deﬁne
+probability uncertainty . The lower the value, the higher is the reliability of the procedure
+but on the other hand more simulation runs will be necessary. The number of necessary runs is
+automatically calculated and updated with each simulation run by U PPAAL SMC. The probability
+conﬁdence interval of the di staying below 5% can be estimated using the following query:
+Pr[<= 44000]([] (t<SAMPLE_START kdiff<0.05 *325)
+The same principle is used to check the probability of SMA staying below the deﬁned threshold.
+FS-MPC performance relies on the correct system model so it would also be important to test
+the robustness of the algorithm to parameter uncertainties i.e. overestimations and underestima-
+tions of the model parameters like ﬁlter values.
+C. Result interpretation
+An example of query testing can be seen in Table II. The simulation runs were run with a zero
+parameter uncertainty, with 30% overestimated ﬁlter values and with 30% underestimated ﬁlter
+values. The probability uncertainty was set to 0.05. During the simulations the value of the load
+was stochastically changing from Rload= 48 
+to 100 
+, the value of Lload= 40 mH remained
+constant in this example. Thus, Rload= 48 
+is considerer as a nominal load and Rload= 100 
+corresponds to low loading conditions of the converter. The values in the last column of the table
+represent the number of simulation runs that were performed. A low number of runs indicates a
+high probability of the query being true or false. From the obtained results we can see that the
+control algorithm has good tracking performance with overestimated ﬁlter values, however the
+probability for the di andSMA to stay under the the 5% when underestimated values are used
+is extremely low. Even for 12% it is only around 50%. From this observations we can conclude
+how much the overestimated system values in the predictive model will negatively effect the
+performance during the transient load change. The performance was also evaluated for lower
+voltage reference frequencies. No signiﬁcant degradation of the reference tracking performance
+was noticed for parameter uncertainty 0% and 30%. We can repeat these tests also for different
+values of weighting factors to see how the performance will be effected. For a different topology
+
+--- Page 17 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 16
+TABLE II: Query probability results obtained from U PPAAL SMC toolbox.
+QueryParameter
+uncertaintyProbability Number of runs
+di<5% 0 0.901 - 0.999 54
+di<5% 30% 0.902- 1 36
+di<5% -30% 0 - 0.097 36
+di<12% -30% 0.347 - 0.447 386
+SMA<5% 0 0.902 - 1 36
+SMA<5% 30% 0.902 - 1 36
+SMA<5% -30% 0 - 0.097 36
+SMA<12% -30% 0.377 - 0.476 394
+or application other performance metrics would be interesting to investigate e.g. the neutral point
+balancing in NPC topologies.
+VI. C ONCLUSIONS
+In the paper, it was presented how statistical model checking can be used to test the perfor-
+mance of Finite-Set MPC controlled power electronics converter in the U PPAAL SMC toolbox.
+Due to the nature of the FS-MPC algorithm it is easy to visualize the whole system as a
+network of timed automata, which are used in U PPAAL SMC to model the converter system.
+The system modeling using the time automata is the most difﬁcult part of the approach but due
+to very modular approach of modeling in U PPAAL , it is very easy to adapt the model to different
+converter topologies or load types. The model can be used to test the system performance under
+transients by modeling the components e.g. electric load, as stochastic automaton. By deﬁning
+an expression that will track the difference between the reference and the measured values in a
+system with a stochastic load automaton, the control algorithm response to many different system
+conditions can easily be tested. The whole procedure of testing the hypothesis in U PPAAL SMC
+is straightforward and automatic as the program uses built-in algorithms to calculate the number
+of necessary simulations runs to calculate the probability of the hypothesis being true for a
+user-deﬁned uncertainty.
+
+--- Page 18 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 17
+SMC can not provide a 100% guarantee for the properties of the system, as the higher the
+conﬁdence is set the more simulation samples need to be collected. This is of course time
+consuming as the number of simulations increases linearly with the level of the conﬁdence and
+sub-linearly with the size of the model. Therefore, it is evident that multi-level topologies or
+modular multi-cell converters, which have a high number of possible switching states, i.e a larger
+system size will also have an increased simulation time. An interesting research challenge would
+be to also model a grid-connected model of the converter with a stochastic grid automaton.
+Microgrid systems are also a potential application area, where also the communication links
+between the converters could be modeled. In general, every system that has states and transitions
+between the states is suitable for the SMC approach. One must notice that the procedure in this
+form cannot be used to verify the stability of the control algorithm, but with a further development
+of the procedure this could also be accomplished.
+REFERENCES
+[1] F. Vaandrager, Chapter 1 A First Introduction to Uppaal . Quasimodo Handbook, 2014.
+[2] Statistical model-checker - new SMC extension of UPPAAL. [Online]. Available: http://people.cs.aau.dk/adavid/smc/
+[3] P. Zuliani, A. Platzer, and E. M. Clarke, “Bayesian statistical model checking with application to Simulink/Stateﬂow
+veriﬁcation,” Formal Methods in System Design , vol. 43, no. 2, pp. 338–367, 2013.
+[4] A. Boudjadar, A. David, J. Kim, K. Larsen, M. Mikucionis, U. Nyman, and A. Skou, “Statistical and exact schedulability
+analysis of hierarchical scheduling systems,” Science of Computer Programming , vol. 127, pp. 103–130, 5 2016.
+[5] K. G. Larsen, M. Miku ˇcionis, M. Mu ˜niz, J. Srba, and J. H. Taankvist, Online and Compositional Learning of Controllers
+with Application to Floor Heating . Berlin, Heidelberg: Springer Berlin Heidelberg, 2016, pp. 244–259.
+[6] A. Basu, S. Bensalem, M. Bozga, B. Delahaye, and A. Legay, “Statistical abstraction and model-checking of large
+heterogeneous systems,” International Journal on Software Tools for Technology Transfer , vol. 14, no. 1, pp. 53–72,
+Feb 2012.
+[7] E. Clarke, A. Donz ´e, and A. Legay, “Statistical model checking of mixed-analog circuits with an application to a third
+order   modulator,” in Hardware and Software: Veriﬁcation and Testing , H. Chockler and A. J. Hu, Eds. Berlin,
+Heidelberg: Springer Berlin Heidelberg, 2009, pp. 149–163.
+[8] E. M. Clarke and P. Zuliani, “Statistical model checking for cyber-physical systems,” in Automated Technology for
+Veriﬁcation and Analysis , T. Bultan and P.-A. Hsiung, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 2011, pp.
+1–12.
+[9] J. Martins, A. Platzer, and J. Leite, “Statistical model checking for distributed probabilistic-control hybrid automata with
+smart grid applications,” in Formal Methods and Software Engineering , S. Qin and Z. Qiu, Eds. Berlin, Heidelberg:
+Springer Berlin Heidelberg, 2011, pp. 131–146.
+[10] Q. Cappart, C. Limbr ´ee, P. Schaus, J. Quilbeuf, L. Traonouez, and A. Legay, “Veriﬁcation of interlocking systems using
+statistical model checking,” in 2017 IEEE 18th International Symposium on High Assurance Systems Engineering (HASE) ,
+Jan 2017, pp. 61–68.
+
+--- Page 19 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 18
+[11] J. Strnadel, “Predictability analysis of interruptible systems by statistical model checking,” IEEE Design Test , vol. 35,
+no. 2, pp. 57–63, April 2018.
+[12] T. Mancini, F. Mari, I. Melatti, I. Salvo, E. Tronci, J. K. Gruber, B. Hayes, M. Prodanovic, and L. Elmegaard,
+“Parallel statistical model checking for safety veriﬁcation in smart grids,” in 2018 IEEE International Conference on
+Communications, Control, and Computing Technologies for Smart Grids (SmartGridComm) , Oct 2018, pp. 1–6.
+[13] M. Novak, U. M. Nyman, T. Dragicevic, and F. Blaabjerg, “Analytical design and performance validation of ﬁnite set
+MPC regulated power converters,” IEEE Trans. Ind. Electron. , vol. 66, no. 3, pp. 2004–2014, March 2019.
+[14] ——, “Statistical performance veriﬁcation of FCS-MPC applied to three level neutral point clamped converter,” in 2018
+20th European Conference on Power Electronics and Applications (EPE’18 ECCE Europe) , Sep. 2018, pp. 1–10.
+[15] S. Kouro, M. A. Perez, J. Rodriguez, A. M. Llor, and H. A. Young, “Model predictive control: MPC’s role in the evolution
+of power electronics,” IEEE Ind. Electron. Mag. , vol. 9, no. 4, pp. 8–21, Dec 2015.
+[16] S. Vazquez, J. I. Leon, L. G. Franquelo, J. Rodriguez, H. A. Young, A. Marquez, and P. Zanchetta, “Model predictive
+control: A review of its applications in power electronics,” IEEE Ind. Electron. Mag. , vol. 8, no. 1, pp. 16–31, March
+2014.
+[17] S. Vazquez, J. Rodriguez, M. Rivera, L. G. Franquelo, and M. Norambuena, “Model predictive control for power converters
+and drives: Advances and trends,” IEEE Tran. Ind. Electron. , vol. 64, no. 2, pp. 935–947, Feb 2017.
+[18] V . Yaramasu and B. Wu, Model Predictive Control of Wind Energy Conversion Systems , ser. IEEE Press Series on Power
+Engineering. Wiley, 2017.
+[19] R. N. Fard, H. Nademi, and L. Norum, “Analysis of a modular multilevel inverter under the predicted current control
+based on ﬁnite-control-set strategy,” in Proc. Int. Conf. Elect. Power Energy Convers. Syst , Oct 2013, pp. 1–6.
+[20] J. Rodriguez, J. Pontt, C. A. Silva, P. Correa, P. Lezana, P. Cortes, and U. Ammann, “Predictive current control of a voltage
+source inverter,” IEEE Trans. Ind. Electron. , vol. 54, no. 1, pp. 495–503, Feb 2007.
+[21] H. A. Young, M. A. Perez, J. Rodriguez, and H. Abu-Rub, “Assessing ﬁnite-control-set model predictive control: A
+comparison with a linear current controller in two-level voltage source inverters,” IEEE Ind. Electron. Mag. , vol. 8, no. 1,
+pp. 44–52, March 2014.
+[22] R. P. Aguilera and D. E. Quevedo, “On stability of ﬁnite control set MPC strategy for multicell converters,” in Proc. IEEE
+Int. Conf. Ind. Technol. , March 2010, pp. 1277–1282.
+[23] R. P. Aguilera and D. E. Quevedo, “On stability and performance of ﬁnite control set MPC for power converters,” in Proc.
+Workshop PRECEDE , Oct 2011, pp. 55–62.
+[24] K. G. Larsen and A. Legay, “Statistical model checking: Past, present, and future,” in Leveraging Applications of Formal
+Methods, Veriﬁcation and Validation: Foundational Techniques - 7th International Symposium, ISoLA 2016, Imperial,
+Corfu, Greece, October 10-14, 2016, Proceedings, Part I , 2016, pp. 3–15.
+[25] J. Katoen, “The probabilistic model checking landscape,” in Proceedings of the 31st Annual ACM/IEEE Symposium on
+Logic in Computer Science, LICS ’16, New York, NY, USA, July 5-8, 2016 , 2016, pp. 31–45.
+[26] A. David, K. G. Larsen, A. Legay, and M. Miku ˇcionis, “Schedulability of herschel revisited using statistical model
+checking,” Int. J. Softw. Tools Technol. Transf. , vol. 17, no. 2, pp. 187–199, April 2015.
+[27] A. Legay, B. Delahaye, and S. Bensalem, “Statistical model checking: An overview,” in Runtime Veriﬁcation - First
+International Conference, RV 2010, St. Julians, Malta, November 1-4, 2010. Proceedings , 2010, pp. 122–135.
+[28] C. Dehnert, S. Junges, J. Katoen, and M. V olk, “The probabilistic model checker storm (extended abstract),” CoRR , vol.
+abs/1610.08713, 2016.
+[29] ——, “A storm is coming: A modern probabilistic model checker,” in Computer Aided Veriﬁcation - 29th International
+Conference, CAV 2017, Heidelberg, Germany, July 24-28, 2017, Proceedings, Part II , 2017, pp. 592–600.
+
+--- Page 20 ---
+IEEE INDUSTRIAL ELECTRONICS MAGAZINE 19
+[30] M. E. Bakir, M. Gheorghe, S. Konur, and M. Stannett, “Comparative analysis of statistical model checking tools,” in
+Membrane Computing - 17th International Conference, CMC 2016, Milan, Italy, July 25-29, 2016, Revised Selected
+Papers , 2016, pp. 119–135.
+[31] A. Legay, S. Sedwards, and L. Traonouez, “Plasma lab: A modular statistical model checking platform,” in Leveraging
+Applications of Formal Methods, Veriﬁcation and Validation: Foundational Techniques - 7th International Symposium,
+ISoLA 2016, Imperial, Corfu, Greece, October 10-14, 2016, Proceedings, Part I , 2016, pp. 77–93.
+[32] M. Kwiatkowska, G. Norman, and D. Parker, “PRISM 4.0: Veriﬁcation of probabilistic real-time systems,” in Proc. 23rd
+International Conference on Computer Aided Veriﬁcation (CAV’11) , ser. LNCS, G. Gopalakrishnan and S. Qadeer, Eds.,
+vol. 6806. Springer, 2011, pp. 585–591.
+[33] R. Donaldson and D. Gilbert, “A monte carlo model checker for probabilistic LTL with numerical constraints,” University
+of Glasgow, Department of Computing Science, Tech. Rep., 2008.
+[34] J. Katoen, I. S. Zapreev, E. M. Hahn, H. Hermanns, and D. N. Jansen, “The ins and outs of the probabilistic model checker
+MRMC,” Perform. Eval. , vol. 68, no. 2, pp. 90–104, 2011.
+[35] H. L. S. Younes, “Ymer: A statistical model checker,” in Computer Aided Veriﬁcation, 17th International Conference, CAV
+2005, Edinburgh, Scotland, UK, July 6-10, 2005, Proceedings , 2005, pp. 429–433.
+[36] A. David, K. G. Larsen, A. Legay, M. Miku ˘cionis, and D. B. Poulsen, “Uppaal SMC tutorial,” Int. J. Softw. Tools Technol.
+Transf. , vol. 17, no. 4, pp. 397–415, Aug. 2015.
+[37] K. G. Larsen and A. Legay, On the Power of Statistical Model Checking . Springer International Publishing, 2016, pp.
+843–862.
+[38] R. Alur and D. L. Dill, “A theory of timed automata,” Theoretical Computer Science , vol. 126, pp. 183–235, 1994.
+[39] J. Rodriguez and P. Cortes, Predictive Control of Power Converters and Electrical Drives , ser. Wiley - IEEE. Wiley,
+2012.
+[40] T. Dragicevic, “Model predictive control of power converters for robust and fast operation of AC microgrids,” IEEE Trans.
+Power Electron. , vol. 33, no. 7, pp. 6304–6317, July 2018.
+[41] T. Dragicevic and M. Novak, “Weighting factor design in model predictive control of power electronic converters: An
+artiﬁcial neural network approach,” IEEE Trans. Ind. Electron. , no. Early Access, pp. 1–12, 2018.
+[42] P. Bulychev, A. David, K. Larsen, M. Miku ˇcionis, D. Poulsen, A. Legay, and Z. Wang, “Uppaal-smc: Statistical model
+checking for priced timed automata,” vol. 85. Open Publishing Association, 2012, pp. 1–16.

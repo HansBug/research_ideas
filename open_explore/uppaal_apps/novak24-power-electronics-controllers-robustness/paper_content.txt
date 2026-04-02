@@ -1,0 +1,588 @@
+--- Page 1 ---
+Aalborg Universitet
+Application of Statistical Model Checking for Robustness Comparison of Power
+Electronics Controllers
+Novak, Mateja; Grobelna, Iwona; Nyman, Ulrik; Blaabjerg, Frede
+Published in:
+2024 IEEE 15th International Symposium on Power Electronics for Distributed Generation Systems, PEDG 2024
+DOI (link to publication from Publisher):
+10.1109/PEDG61800.2024.10667463
+Publication date:
+2024
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Novak, M., Grobelna, I., Nyman, U., & Blaabjerg, F. (2024). Application of Statistical Model Checking for
+Robustness Comparison of Power Electronics Controllers. In 2024 IEEE 15th International Symposium on
+Power Electronics for Distributed Generation Systems, PEDG 2024 Article 10667463 IEEE (Institute of Electrical
+and Electronics Engineers). https://doi.org/10.1109/PEDG61800.2024.10667463
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+
+--- Page 2 ---
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 3 ---
+Application of Statistical Model Checking
+for Robustness Comparison
+of Power Electronics Controllers
+Mateja Novak
+AAU Energy
+Aalborg University
+Aalborg, Denmark
+nov@energy.aau.dkIwona Grobelna
+Autom. Control, Electronics and Electr. Eng.
+University of Zielona G ´ora
+Zielona G ´ora, Poland
+i.grobelna@iee.uz.zgora.plUlrik Nyman
+Department of Computer Science
+Aalborg University
+Aalborg, Denmark
+ulrik@cs.aau.dkFrede Blaabjerg
+AAU Energy
+Aalborg University
+Aalborg, Denmark
+fbl@energy.aau.dk
+Abstract —Power electronic-based systems exhibit non-linear
+dynamics requiring simultaneous control of multiple control
+objectives. It is therefore expected that controllers that can cope
+with those nonlinearities will have a better performance than
+controllers requiring system linearization or nesting of the control
+objectives in a cascaded structure. However, the problem remains
+how to quantify their robustness and make a fair comparison
+between different non-linear controllers. The conventional tools
+used for the robustness validation of linear controllers cannot
+directly be applied to different non-linear controllers. Therefore,
+this paper demonstrates an approach based on statistical model
+checking for performing controller comparisons. The perfor-
+mance and robustness of different controllers (linear, model
+predictive, and neural networks-based) were compared in the
+same stochastic environment. Using this approach, a statistical
+estimate can be obtained for how the controller performance will
+be affected under different scenarios.
+Index Terms —Controller, hybrid automata, model predictive
+control, modelling, neural networks, power electronics, robust-
+ness, statistical model checking.
+I. I NTRODUCTION
+Linear controllers like proportional-integral (PI) or propor-
+tional resonant (PR) controllers are the most widely imple-
+mented control solutions in multiple power electronics-based
+systems (PES). Since the technology of these controllers is
+mature, methods for validating their robustness and stability
+are well-defined and extensively researched [1], e.g. root-
+locus, Bode plots and Nyquist stability criteria. In most
+industrial applications these controllers will be taken as go-
+to solutions [2]. However, since PES systems contain non-
+linear dynamics and have multiple control objectives, their
+performance will deteriorate if the non-linearities cannot be di-
+rectly included or their bandwidth is limited due to the cascade
+control structure. On the other hand, non-linear controllers like
+model predictive control (MPC) are suitable for multiple-input
+multiple-output (MIMO) systems with complex nonlinear dy-
+namics and they can provide a fast transient response [3]. Their
+initial limitation in PES was the computational burden, which
+through the increase of processing power in digital signal
+processing (DSP) units is no longer the major limiting factor
+for the implementation [4]. Both direct MPC and indirectMPC have been the focus of researcher for several years,
+to introduce design guidelines and methods to validate the
+robustness and stability [5]–[9]. The performance of model-
+based controllers is highly dependent on the model accuracy,
+thus robustness validation should not only be performed on
+disturbance impacts but also model parameter mismatch.
+MPC-based methods are not the only methods considered
+as an alternative to linear controllers. One of the currently
+extensively researched controllers are based on machine learn-
+ing methods such as feed-forward neural networks (NN) [10],
+[11]. Similar to the direct MPC, NN controllers might also
+suffer from a large computational burden if the network
+structure has several layers of neurons. Nevertheless, in recent
+publications, it was shown that approximating a control law
+of a multistep direct MPC controller does not require a large
+network structure to make the application feasible [12], [13].
+The challenge for NN lies in the quality of the training
+data, which has to adequately represent the possible converter
+operating conditions. Moreover, when a linear controller is
+designed it is possible to directly assess the margins for the
+stable and robust performance, this is not straightforward for
+the NN controllers. Since the explainability of NN is still in
+the research stage [14], NN training performance metrics like
+Root Mean Squared Error (RMSE) do not necessarily lead to
+stable and robust performance once the NN is implemented in
+a PES system. Thus, there is a need for a method that would
+be able to quantify this performance.
+To justify the use of non-linear control methods like MPC or
+NN in industrial PES, it is important to benchmark the method
+against the conventional control methods that are currently
+employed as demonstrated in [15] for motor-drives applica-
+tions. The benchmarking typically includes an experimental
+comparison of steady-state performance and transient response
+in some operating conditions or a simulation study where pa-
+rameters like switching frequency can be swept over a certain
+range to compare the harmonic distortion of the inverter output
+or compare semiconductor losses [15]. However, PES do not
+operate in deterministic operating conditions, typically the load
+is variable as well as the grid conditions. Thus, there remains
+
+--- Page 4 ---
+the question of how operating conditions should be selected
+for comparison and how many iterations are required to obtain
+certainty of the desired performance.
+This paper proposes the application of Statistical Model
+Checking (SMC) for robustness comparison of different linear
+and non-linear controllers in a stochastic environment. The
+modelling formalism used in this formal method is hybrid
+timed automata [16] that allow modelling of both deterministic
+and stochastic system dynamics, thus suitable for PES models.
+In this way, control methods that do not have analytical tools
+for robustness validation can be compared. Moreover, due to
+the presence of stochastic elements in the system and the
+degradation of components that influence the performance
+over time, the deterministic validation of robustness might
+miss potential critical scenarios that could lead to loss of
+system stability [17]. By applying an SMC approach, a sta-
+tistical guarantee of the desired performance can be obtained.
+Herein, a case study is built around three controllers: a linear
+controller, a direct MPC controller, and an NN controller.
+The controllers are evaluated under the same stochastic load
+conditions in numerous simulations using the verification tool
+UPPAAL [16], [18]. Such extensive evaluation is usually not
+feasible in experiments, furthermore, the proposed method is
+faster and does not incur the risk of possible hardware damage.
+The rest of the paper is structured as follows. Section II
+provides some information about the modelling formalism.
+Section III presents the specific models, their structures, ad-
+vantages, and disadvantages. Section IV shows the results
+of performance validation both under stochastic load and
+model parameter mismatch. Finally, Section V summarizes
+and concludes the paper.
+II. M ODELLING FORMALISM
+This paper utilizes the modelling and verification tool
+UPPAAL [18] to model and analyze three different control
+algorithms. U PPAAL is an integrated environment that supports
+modelling, validation, and verification of real-time systems.
+The models are prepared as networks of hybrid timed au-
+tomata, which enables connecting individual components with
+each other. U PPAAL timed automata are a low-level modelling
+formalism in the sense that a lot of decisions are made by
+the engineer implementing the model, such as to what a time
+unit in an automaton model corresponds to in the real-world
+or what the boundary conditions are for the automata system
+making certain state transitions.
+Since 2012 the U PPAAL tool has been extended with
+statistical model checking [16] of hybrid timed automata
+providing statistically valid results predicting system behavior.
+This functionality has great potential as it allows to directly
+evaluate different controllers (in this case: a linear controller,
+an FS-MPC controller, and an NN controller) under the same
+stochastic conditions. The hybrid timed automata models of
+UPPAAL can model both deterministic state-based behavior,
+non-linear behavior based on ordinary differential equations
+(ODEs), and stochastic behavior in the same models. The
+Two-level VSC
+Vdcifa S1
+S2D1
+D2a
+b
+cCdc
+Cf Lf ioa
+vcaLoadFig. 1. Two-level voltage source converter in standalone operation used in
+this study for controller robustness validation.
+TABLE I
+SYSTEM PARAMETERS .
+Parameter Value
+DC link voltage ( Vdc) 700 V
+Filter inductance ( Lf) 2.4 mH
+Filter capacitance ( Cf) 14µF
+Reference voltage ( V∗
+c rms ) 400 V
+Reference freq. ( f∗) 50 Hz
+modelling language also includes a large subset of the C pro-
+gramming language, which made it trivial to port the NN to
+a U PPAAL model.
+Previous papers on performance verification using U PPAAL
+have validated individual controllers [7], [19]. In [20] the
+modelling process has been simplified and interfaces between
+components have been established. That allowed to build
+modular structures, easily adaptable to the particular area of
+application. Additionally, comparison of multiple converters
+or systems has become possible and the performance of the
+systems could be directly confronted. This paper goes one
+step further and evaluates the performance of three controller
+models by running them in parallel with the same physical
+system parameters and stochastic behavior of the load.
+III. C ONTROLLER STRUCTURES
+In this section the structures of three controllers will be
+introduced. These controllers were used to control the PES il-
+lustrated in Fig. 1 with the system parameters given in Table I.
+The system is a simplified version of a load-side converter used
+for standalone systems like uninterruptible power supplies
+(UPS) that typically have to deal with a variable load during
+the day. A two-level voltage source converter (2L-VSC) is
+used for this purpose and it is connected to a variable load
+through an LC filter to provide a low ripple voltage supply.
+A. Linear controller structure
+The linear controller selected for this case study is based
+on the controller proposed in [21] and depicted in Fig. 2. The
+controller structure consists of an inner current control loop
+with a propotional (P) controller, an outer voltage control loop
+with PR controller compensating the 5th and 7th harmonic (1),
+
+--- Page 5 ---
+State feedback 
+decouplingvc αβ vc αβ 
+PR 
+controllervαβ   
+Switching 
+signalsSabc  if αβ P 
+controllerModulator* if αβ *Fig. 2. Block diagram of the control structure using linear controller.
+TABLE II
+LINEAR CONTROLLER PARAMETERS .
+Parameter Value Parameter Value
+kpI 11.3 kpV 0.05
+k1V 31.5 ϕ1 3
+k5V 15 ϕ5 37
+k7V 15 ϕ7 44
+τz 1.8e-4 τp 3.4e-5
+which are typically associated with non-linear loads in UPS
+systems, and a state feedback decoupling path to compensate
+for system delays. The state feedback decoupling in (2) is
+designed as a first-order phase-lead compensator with a low-
+pass filter to reduce the effects of high frequencies and
+noise. The generated voltage reference vα,βis then passed
+to the modulator block to obtain the pulse width modulation
+(PWM) signals for the semiconductor devices. The switching
+frequency is set to 10 kHz. For implementation, the load
+voltage ( vc αβ) and inverter current ( if αβ) measurements are
+required. The design and tuning of the control parameters
+is performed according to the Nyquist criterion. Controller
+parameters are given in Table II. More details on designing
+the presented controller can be found in [21]. An example of
+a simulated run of a load step in a PES system with a linear
+controller is given in Fig. 3 where the voltage drop is visible
+during a load change.
+Gv=kpV+X
+h=1,5,7kiV,hscos(ϕh)−hω1sin(ϕh)
+s2+ (hω1)2)(1)
+Gdec=1 +τzs
+1 +τps·GLPF (2)
+B. FS-MPC controller structure
+The second controller used in this case study is based on
+Finite Set Model Predictive Control (FS-MPC) as proposed
+in [22]. The structure of the FS-MPC controller used herein
+is shown in Fig. 4. The advantage of FS-MPC lies in faster
+transient response due to the use of a single control loop
+but it also comes with a higher computational load due to
+iterative calculations that need to be used to evaluate the
+cost function for the finite set of voltage vectors that the
+converter can produce. Therefore it is necessary to compensate
+for the computational delay using the two-step predictions as
+0.12 0.125 0.13 0.135 0.14 0.145 0.15-400-2000200400
+Load step (30   60 )Fig. 3. Load step change in a PES with a linear controller recorded in the
+UPPAAL simulator.
+Cost function 
+calculation vc αβ vc αβ 
+Predictive 
+modelio αβ if αβ Vx  Sabc  vc αβ 
+if αβ 
+io αβ Cost function 
+minimizationg1-8  Delay 
+compensation
+Switching 
+signals**
+vc αβ P
+P
+Fig. 4. Block diagram of the control structure using FS-MPC controller.
+explained in [23]. The compensated value of load voltage
+(vc αβ), inverter current ( if αβ) together with load current
+(io αβ) (which can be obtained using an observer or a sensor)
+are used in the prediction model to obtain future values:
+d
+dt
+if αβ
+vc αβ
+io αβ
+=
+0−1
+Lf0
+1
+Cf0−1
+Cf
+0 0 0
+
+if αβ
+vc αβ
+io αβ
++
+1
+Lf
+0
+0
+vi αβ
+(3)
+The predictions are compared to the reference values in the
+cost function proposed in [24] for obtaining low distortion load
+voltage in stand-alone converter applications:
+g= (v∗
+cα−vP
+cα)2+ (v∗
+cβ−vP
+cβ)2+λd·gd (4)
+gd= (iP
+fα−iP
+oα+Cfωv∗
+cβ)2+ (iP
+fβ−iP
+oβ−Cfωv∗
+cα)2(5)
+where LfandCfare filter parameters, viis the inverter
+output voltage, ωis the reference frequency, voltages and
+currents annotated withPare calculated predictions at k+ 2,
+while∗defines the extrapolated reference voltage values, and
+parameter λdis the weighting factor and set to value 1.0.
+Compared to the previously introduced linear control, the
+control signals are directly applied to the semiconductor
+switches without the use of a modulator. Thus, to obtain
+a fair comparison, the carrier frequency was adjusted to
+approximately fit the average switching frequency achieved
+on the converter system using the FS-MPC algorithm and NN
+controller. As mentioned in the introduction, model parameter
+mismatch will impact the performance of this controller, an
+example is given in Fig. 5 where 50% model parameter
+mismatch was simulated for a PES model in U PPAAL .
+
+--- Page 6 ---
+0.14 0.145 0.15 0.155 0.16-400-2000200400
+Load step (30   60 )Fig. 5. Load step change in PES with FS-MPC and 50% error in the system
+parameters ( Lf, Cf) recorded in the U PPAAL simulator.
+Pattern Recognition NNData n io αβ 
+Switc
+z-1x8  y7  
+vc αβ vc αβ 
+Data 
+normalizationio αβ if αβ 
+Vx  Switching 
+signalsSabc  
+z-1Pattern Recognition NN...
+...
+...x1  
+x2  
+x8  y1  
+y2  
+y7  *
+Vx  k-1
+Fig. 6. Block diagram of the control structure of NN controller.
+C. NN controller structure
+The structure of the NN controller used in this case study
+is shown in Fig. 6. The controller was trained using the data
+generated by the FS-MPC controller with delay compensation
+presented in Section III-B, thus for operation it requires the
+same set of measurements as the original FS-MPC controller
+plus the information on the previously applied voltage vector.
+Imitating the control law of FS-MPC was defined as a pattern
+recognition problem, where each voltage vector of the inverter
+was defined as one class, with 7 in total. The structure of the
+NN was the following: 8 input neurons, 15 hidden neurons and
+a rectified linear unit (ReLu) activation function, and 7 output
+neurons with sigmoid activation function to obtain the one-
+hot coded optimal voltage vector. Similar to FS-MPC, the
+selected vector is applied for the whole sampling time. The
+adaptive moment estimation (Adam) optimization algorithm
+was used to obtain the parameters of the NN. An example of
+a simulation run performed in U PPAAL SMC with the designed
+NN controller is shown in Fig. 7, where the Vdcwas reduced
+to more than 50% of the value used in the training data and
+the system could not reach the reference voltage.
+IV. P ERFORMANCE VALIDATION
+A load step change was performed in Fig. 8 and Fig. 9
+on an experimental VSC set-up controlled by the FS-MPC
+and NN controllers described in the previous section. It can
+be observed that both controllers quickly respond to the load
+change with a low voltage dip. However, one such test cannot
+give much insight into the overall performance and it will be
+0.12 0.125 0.13 0.135 0.14-200-1000100200
+Load step (30   60 )Fig. 7. Load step change in PES using NN controller with Vdc50% lower
+than in training data recorded in the U PPAAL simulator.
+-0.02 -0.015 -0.01 -0.005 0 0.005 0.01 0.015 0.02-5000500
+-0.02 -0.015 -0.01 -0.005 0 0.005 0.01 0.015 0.02-10010
+Fig. 8. Transient response of FS-MPC controller to load step 60 Ω- 30Ω.
+time-consuming to test different load step scenarios including
+also mismatched parameters. Therefore in this section, mul-
+tiple simulation runs were conducted using SMC, where the
+RMSD (root mean squared difference) between the reference
+and load voltage was calculated ( ∆Vα,∆Vβ). Examples of
+simulation runs are shown in Fig. 3, Fig. 5, and Fig. 7.
+Before performing the performance comparison during load
+transients, the controllers were simulated in a system with
+nominal values and constant load to confirm that their perfor-
+mance is comparable (see Table III). The results for estimation
+of the maximal RMSD value for the three controllers with
+variable load 30 →60Ωfor both nominal conditions and with
+parameter mismatch are presented in Table IV and Fig. 10. The
+-0.02 -0.015 -0.01 -0.005 0 0.005 0.01 0.015 0.02-5000500
+-0.02 -0.015 -0.01 -0.005 0 0.005 0.01 0.015 0.02-10010
+Fig. 9. Transient response of NN controller to load step 60 Ω- 30Ω.
+
+--- Page 7 ---
+TABLE III
+RESULTS FOR RMSD SIMULATION FOR THREE CONTROLLERS IN NOMINAL OPERATION WITH CONSTANT LOAD AND WITHOUT PARAMETER MISMATCH .
+Load (Ω) L error C error Vref ampl. (V) Vdc (V) Linear Controller FS-MPC NN
+30 0 0 325 700 ∆Vα= 3.57 ∆Vα= 2.39 ∆Vα= 3.20
+∆Vβ= 3.41 ∆Vβ= 2.61 ∆Vβ= 3.20
+60 0 0 325 700 ∆Vα= 2.26 ∆Vα= 2.28 ∆Vα= 3.10
+∆Vβ= 2.21 ∆Vβ= 2.47 ∆Vβ= 3.10
+TABLE IV
+RESULTS FOR ESTIMATION OF MAX RMSD FOR THREE CONTROLLERS WITH VARIABLE LOAD 30→60Ω
+(NOMINAL CONDITIONS AND WITH PARAMETER MISMATCH ).
+Load (Ω) L error C error Vref ampl. (V) Vdc (V) Linear Controller FS-MPC NN
+30→60 0 0 325 700 ∆Vα= 9.07 +/- 0.34 ∆Vα= 2.56 +/- 0.11 ∆Vα= 3.31 +/- 0.10
+∆Vβ= 9.50 +/- 0.26 ∆Vβ= 2.83 +/- 0.07 ∆Vβ= 3.37 +/- 0.14
+30→60 0 0 120 700 ∆Vα= 4.03 +/- 0.15 ∆Vα= 1.79 +/- 0.02 ∆Vα= 1.65 +/- 0.02
+∆Vβ= 3.92 +/- 0.14 ∆Vβ= 1.83 +/- 0.02 ∆Vβ= 1.72 +/- 0.02
+30→60 0 0 120 300 ∆Vα= 3.48 +/- 0.13 ∆Vα= 1.12 +/- 0.02 ∆Vα= 6.58 +/- 0.02
+∆Vβ= 3.53 +/- 0.09 ∆Vβ= 1.22 +/- 0.03 ∆Vβ= 6.71 +/- 0.05
+30→60 +25% +25% 325 700 ∆Vα= 9.50 +/- 0.49 ∆Vα= 2.82 +/- 0.12 ∆Vα= 3.69 +/- 0.10
+∆Vβ= 9.47 +/- 0.44 ∆Vβ= 3.23 +/- 0.10 ∆Vβ= 3.55 +/- 0.08
+30→60 -25% -25% 325 700 ∆Vα= 9.59 +/- 0.31 ∆Vα= 3.98 +/- 0.16 ∆Vα= 8.09 +/- 0.18
+∆Vβ= 9.07 +/- 0.33 ∆Vβ= 3.89 +/- 0.10 ∆Vβ= 8.31 +/- 0.23
+verification has been performed with 95% confidence level and
+as a consequence U PPAAL has determined that 30 simulation
+runs are necessary. The verification of a single query (for the
+estimation of one value) lasted less than an hour. Additionally,
+an extended simulation was performed for six sample queries
+(one configuration) to check whether enough samples had been
+taken and the values had converged. The verification lasted 40
+hours, but the obtained results were pretty similar and did not
+exceed in the worst case 5% of value difference.
+As expected, load changes had the highest effect on the
+linear controller reference tracking performance with more
+than 10% voltage error during transients, on the contrary, it
+was not affected by parameter mismatch. What was interesting
+to observe was how the other two controllers performed in
+comparison to the linear controller. Under nominal conditions,
+both FS-MPC and NN controllers had three times lower errors
+in the reference tracking. The results showed that parameter
+mismatch, where the values in the system were smaller than
+the training data used, significantly deteriorated the NN con-
+troller’s performance but not the FS-MPC controller. It was
+also observed for the value of Vdc, which does not vary in the
+training data, that the reference tracking error was over 10%
+of the reference voltage value.
+V. C ONCLUSION
+In this paper, a robustness verification approach for compar-
+ing different controllers has been presented. The verification
+has shown in which conditions certain controllers were under-
+performing and will require parameter re-tuning or in the case
+of NN network which operating condition data needs to beadded to the training. The same approach can likewise be
+applied to compare the controller performance in other PES
+applications and it is not limited only to stochastic loads. Grid
+conditions such as voltage dips, and harmonic pollution can
+also be included as other stochastic factors influencing the
+performance and robustness.
+Future development of the proposed approach will focus on
+incorporating stability validation in an automated SMC test to
+find a set of controller parameters that can provide a stable
+response of PES with stochastic elements that are difficult to
+model in conventional simulation software.
+ACKNOWLEDGMENT
+Part of this work was supported by the Innovation Fund
+Denmark (IFD) through the project of Artificial Intelligence
+for Next-Generation Power Electronics (AI-Power).
+REFERENCES
+[1] Q. Peng, G. Buticchi, N. M. L. Tan, S. Guenter, J. Yang, and P. Wheeler,
+“Modeling techniques and stability analysis tools for grid-connected
+converters,” IEEE Open Jour. of Power Electron. , vol. 3, pp. 450–467,
+2022.
+[2] V . Yaramasu and B. Wu, Model Predictive Control of Wind Energy
+Conversion Systems , ch. 3: Overview of Digital Control Techniques.
+Wiley, 2016.
+[3] P. Cortes, M. P. Kazmierkowski, R. M. Kennel, D. E. Quevedo, and
+J. Rodriguez, “Predictive control in power electronics and drives,” IEEE
+Trans. Ind. Electron. , vol. 55, no. 12, pp. 4312–4324, 2008.
+[4] S. Vazquez, J. I. Leon, L. G. Franquelo, J. Rodriguez, H. A. Young,
+A. Marquez, and P. Zanchetta, “Model predictive control: A review of
+its applications in power electronics,” IEEE Ind. Electron. Mag. , vol. 8,
+no. 1, pp. 16–31, 2014.
+
+--- Page 8 ---
+Fig. 10. Results for estimation of max RMSD ( vc) for three controllers with variable load 30 →60Ω(nominal conditions and with parameter mismatch).
+Configurations:
+C1: L error = 0, C error = 0, Vref ampl. = 325 V , Vdc = 700 V; C4: L error +25%, C error +25%, Vref ampl. = 325 V , Vdc = 700 V;
+C2: L error = 0, C error = 0, Vref ampl. = 120 V , Vdc = 700 V; C5: L error -25%, C error -25%, Vref ampl. = 325 V , Vdc = 700 V .
+C3: L error = 0, C error = 0, Vref ampl. = 120 V , Vdc = 300 V;
+[5] J. S. Costa, A. Lunardi, D. A. Fernandes, and A. J. S. Filho, “Robust
+model predictive control of a renewable energy converter under paramet-
+ric uncertainty conditions,” IEEE Open Jour. of Power Electron. , vol. 5,
+pp. 123–134, 2024.
+[6] P. Karamanakos, E. Liegmann, T. Geyer, and R. Kennel, “Model
+predictive control of power electronic systems: Methods, results, and
+challenges,” IEEE Open Jour. of Ind. Appl. , vol. 1, pp. 95–114, 2020.
+[7] M. Novak, U. M. Nyman, T. Dragicevic, and F. Blaabjerg, “Statistical
+model checking for finite-set model predictive control converters: A
+tutorial on modeling and performance verification,” IEEE Ind. Electron.
+Mag. , vol. 13, no. 3, pp. 6–15, 2019.
+[8] J. Rodriguez and et al., “Latest advances of model predictive control in
+electrical drives—part i: Basic concepts and advanced strategies,” IEEE
+Trans. Power Electron. , vol. 37, no. 4, pp. 3927–3942, 2022.
+[9] G. I. Rivas-Mart ´ınez, J. Rodas, and J. D. Gandoy, “Statistical tools
+to evaluate the performance of current control strategies of power
+converters and drives,” IEEE Trans Instrum. Meas. , vol. 70, pp. 1–11,
+2021.
+[10] S. Zhao, F. Blaabjerg, and H. Wang, “An overview of artificial intelli-
+gence applications for power electronics,” IEEE Trans. Power Electron. ,
+vol. 36, no. 4, pp. 4633–4658, 2021.
+[11] S. Zhang, O. Wallscheid, and M. Porrmann, “Machine learning for the
+control and monitoring of electric machine drives: Advances and trends,”
+IEEE Open J. Ind. Appl. , vol. 4, pp. 188–214, 2023.
+[12] M. Novak and T. Dragicevic, “Supervised imitation learning of finite-
+set model predictive control systems for power electronics,” IEEE Trans.
+Ind. Electron. , vol. 68, no. 2, pp. 1717–1723, 2021.
+[13] I. Hammoud, S. Hentzelt, T. Oehlschlaegel, and R. Kennel, “Long-
+horizon direct model predictive control based on neural networks for
+electrical drives,” in IECON The 46th Annual Conf. of the IEEE
+Industrial Electronics Society , pp. 3057–3064, 2020.
+[14] S. Sahoo, H. Wang, and F. Blaabjerg, “On the explainability of black
+box data-driven controllers for power electronic converters,” in IEEE
+Energy Conversion Congress and Exposition (ECCE) , pp. 1366–1372,
+2021.[15] J. Rodriguez and et al., “Latest advances of model predictive control in
+electrical drives part 2: Applications and benchmarking with classical
+control methods,” IEEE Trans. Power Electron. , vol. 37, no. 5, pp. 5047–
+5061, 2022.
+[16] A. David, K. G. Larsen, A. Legay, M. Mikucionis, and D. B. Poulsen,
+“Uppaal smc tutorial,” Int. J. Softw. Tools Technol. Transf. , vol. 17,
+pp. 397–415, Aug. 2015.
+[17] Y . Song, S. Sahoo, Y . Yang, and F. Blaabjerg, “Stability constraints
+on reliability-oriented control of ac microgrids: Theoretical margin and
+solutions,” IEEE Trans. Power Electron. , vol. 38, no. 8, pp. 9459 – 9468,
+2023.
+[18] G. Behrmann, A. David, and K. G. Larsen, A Tutorial on Uppaal ,
+pp. 200–236. Berlin, Heidelberg: Springer Berlin Heidelberg, 2004.
+[19] M. Novak, I. Grobelna, U. Nyman, P. Szczesniak, and F. Blaabjerg,
+“Statistical performance verification of the fs-mpc algorithm applied to
+the matrix converter,” in 2022 Int. Power Electronics Conf. (IPEC-Himeji
+2022-ECCE Asia) , pp. 76–82, IEEE, 2022.
+[20] M. Novak, I. Grobelna, U. Nyman, P. Szczesniak, and F. Blaabjerg,
+“Modular modelling and statistical validation for grid connected FS-
+MPC controlled matrix converters,” IEEE Trans. Ind. Electron. , vol. 70,
+no. 9, pp. 8613–8623, 2023.
+[21] F. de Bosio, L. A. de Souza Ribeiro, F. D. Freijedo, M. Pastorelli, and
+J. M. Guerrero, “Effect of state feedback coupling and system delays
+on the transient performance of stand-alone vsi with LC output filter,”
+IEEE Trans. Ind. Electron. , vol. 63, no. 8, pp. 4909–4918, 2016.
+[22] P. Cortes, G. Ortiz, J. I. Yuz, J. Rodriguez, S. Vazquez, and L. G.
+Franquelo, “Model predictive control of an inverter with output LC
+filter for UPS applications,” IEEE Trans. Ind. Electron. , vol. 56, no. 6,
+pp. 1875–1883, 2009.
+[23] P. Cortes, J. Rodriguez, C. Silva, and A. Flores, “Delay compensation in
+model predictive current control of a three-phase inverter,” IEEE Trans.
+Ind. Electron. , vol. 59, no. 2, pp. 1323–1325, 2012.
+[24] T. Dragi ˇcevi´c, “Model predictive control of power converters for robust
+and fast operation of ac microgrids,” IEEE Trans. Power Electron. ,
+vol. 33, no. 7, pp. 6304–6317, 2018.

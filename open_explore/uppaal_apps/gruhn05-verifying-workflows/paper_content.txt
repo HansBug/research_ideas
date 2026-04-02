@@ -1,0 +1,568 @@
+--- Page 1 ---
+Using Timed Model Checking for Verifying Workﬂows
+V
+olker Gruhn and Ralf Laue
+Chair ofApplied Telematics / e-Business⋆
+Computer Science Faculty, University of Leipzig, Germany
+Klostergasse 3, 04109 Leipzig, Germany
+Abstract. Thecorrectnessofaworkﬂowspeciﬁcationiscriticalfortheautoma-
+tion of business processes. For this reason, errors in the speciﬁcation should be
+detected and corrected as early as possible- at speciﬁcation time.
+In this paper, we present a validation method for workﬂow speciﬁcations using
+model-checking techniques. A formalized workﬂow speciﬁcation, its properties
+and the correctness requirements are translated into a timed state machine that
+can be analyzed with the U PPAALmodel checker. The main contribution of this
+paper is the use of timed model checking for verifying time-related properties of
+workﬂow speciﬁcations.
+Using only one tool (the model checker) for verifying these different kinds of
+propertiesgivesanadvantageoverusingdifferentspecializedalgorithmsforver-
+ifying different kinds of properties.
+1 Introduction& Related Work
+Inrecentyears,interestinbusinessprocessautomationhasraised.Onereasonforthisis
+that the concept of web services allows integrating web-based applications using open
+standards.
+Developingalargesystemusingwebservicesstartswithspecifyingtheﬂowofcon-
+trol and information between these services - the workﬂow. This task should be done
+by domain experts. Different business process deﬁnition languages have been devel-
+opedforspecifyingworkﬂows,themostimportantonesareBPML,BPEL4WS,XPDL
+and UML2 activity diagrams. An increasing number of software tools abstract from
+the syntax of the business process deﬁnition language, allowing the business process
+analysts who specify the workﬂow to use a graphical notation (for example BPMN).
+It should be possible to eliminate errors (like deadlocks or missed deadline con-
+straints) in a workﬂow speciﬁcation at speciﬁcation time. Model checkers are sophis-
+ticated tools that are able to ﬁnd exactly this kind of errors for a given system. What
+remains to do is to translate the workﬂow speciﬁcation and the requirement we are
+interested in into the input language of a model checker.
+Our paper shows how this ”translation” can be done. Similar approaches were pro-
+posed by several other authors: [1] starts with an informal description of a business
+process. This description is being translated into the input language of the NuSMV
+model checker which can check basic properties like liveness and reachability. [2]
+⋆TheChair of Applied Telematics / e-Businessisendowed by Deutsche Telekom AG
+Gruhn V. and Laue R. (2005).
+Using Timed Model Checking for Verifying Workﬂows.
+InProceedings of the 2nd International Workshop on Computer Supported Activity Coordination , pages 75-88
+DOI: 10.5220/0002559500750088
+Copyright cSciTePress
+
+--- Page 2 ---
+checks various properties of business process speciﬁcatio ns modelled in Testbed, a
+framework for business process reengineering. The busines s process speciﬁcation can
+be deﬁned by business process analysts using the Testbed too l, while the model check-
+ing must be done outside the tool by model checking experts. A follow-up paper [3],
+identiﬁessomepatternsofpropertiesforbusinessprocess speciﬁcations.Queriesabout
+thesepatternsaretransformedautomaticallyintoanLTLfo rmula,allowingpeoplewho
+are not familiar with the details of model checking to test pr operties of the business
+processspeciﬁcationbasedonthesepatterns.[4]translat esbusinessprocessmodelsde-
+ﬁnedintheXPDLlanguageintotheinputlanguageoftheSPINm odelcheckerinorder
+tocheck their properties.
+Inallthesepublications,thepropertiesthancanbechecke dbyamodelchecker,de-
+pendsonlogicalorderbetweenactivities,notontheirtimi ng.Otherthantheseexisting
+approaches, wetake intoaccount time-relatedproperties ( deadlines etc.).
+Wegiveanexampleforcheckingverydifferentworkﬂowprope rties:structuralcor-
+rectness, resource constraints, deadlines and dependence s between different activities.
+In the overview below, we will refer to algorithms that allow to check these different
+classes of properties. The main contribution of this paper i s to exploit only onetool for
+checking the different properties instead of using one algo rithm to check the structural
+correctness,asecondoneforverifyingthedeadlinesandot heronesforreasoningabout
+deadlocks, reachability or resource conﬂicts.
+Scheduling of activities under resource constraints is a we ll-studied problem in op-
+erationsresearch,knownas ResourceConstraintProjectSchedulingProblem (RCPSP).
+The general problem - ﬁnding a feasible schedule for a set of a ctivities such that the
+time for completing the project is minimized - has shown to be NP-hard [5], therefore
+different heuristic algorithms have been suggested for sol ving it [6]. Finding resource
+conﬂicts in a given workﬂow is much easier than solving the RC SP. [7] presents an al-
+gorithm to ﬁnd such conﬂicts. (Our example workﬂow is based o n the example used in
+this paper.) This is done by simply ﬁnding the earliest start ing time and the latest com-
+pletion time of each activity. However, the dependencies be tween the activities are not
+taken into account which leads to many false positives. Our m odel checking approach
+gives a moreaccurate result than[7].
+[8] discusses the use of timed automata for solving the sched uling problem, which
+isalsothekeyideaforourmodel-checkingapproach.[9]has expandedthenetdiagram
+technique PERT toePERT which can be used forworkﬂow speciﬁc ations.
+Structural correctness can be veriﬁed using graph analyzin g techniques [10,11],
+which require the use of special-purpose nontrivial algori thms. Graph analyzing tech-
+niques can also be used for answering ”basic questions” abou t reachability and depen-
+dencebetweenactivities(”Willareceiptbesentforeveryo rder?”,”Isitguaranteedthat
+no receipt can be sent iftheordered item isout of stock?” etc .)
+With our model checking approach, such specialized algorit hms for checking spe-
+cialized requirements (resource constraints, structural correctness etc.) can be substi-
+tutedbyusingonlyonetoolthatcanbeusedforverifyingdif ferentkindsofproperties.76
+
+
+--- Page 3 ---
+2 Deﬁnitions
+2.1 Workﬂow Speciﬁcation
+The Workﬂow Managemant Coalition deﬁnes a workﬂow as the com puterized facilita-
+tionorautomationofabusinessprocess,inwholeorpart[12 ].AWorkﬂowManagement
+System (WfMS) is deﬁned as a system that completely deﬁnes, ma nages and executes
+workﬂows through the execution of software whose order of ex ecution is driven by a
+computer representation of the workﬂow logic.
+In order to be processed by a WfMS, a workﬂow has to be speciﬁed i n a formal
+language that can be executed by computers. This language mu st deﬁne the order of
+activation of activities and theinformation ﬂow between th em.
+Before we give a formal deﬁnition of a workﬂow, we have to intr oduce the basic
+concepts:
+Anactivityis a description of a piece of work that forms one logical step within
+a process[12]. Activities are scheduled by a WfMS. Their exec ution order is speciﬁed
+bytransitions . In the simple case of a (sequential) transition between act ivities, one
+activity completes and the thread of control is passed to ano ther one, which starts. To
+be able to deﬁne more complex business cases, we further need the control structures
+AND-split ,OR-split,AND-join andOR-join, withthe usual semantics [12].1
+Wedeﬁne a workﬂow speciﬁcation as follows:
+Deﬁnition 1 Aworkﬂow speciﬁcation isa4-tuple (N,n0,f,T), where:
+– N is a set of nodes which is deﬁned as the union N=A∪C, where A=
+{a1,... ,a n}is a ﬁnite set of activities and C={c1,... ,c m}is a ﬁnite set of
+control nodes. Each control node is either an AND-split, an O R-split,an AND join
+or an OR-join, which isdenoted bythe type function type:C→ {as,os,aj,oj }.
+– Therearetwodistinguishednodes:Thestartnode n0∈Aandtheendnode f∈A.
+–T⊆(N\ {f})×(N\ {n0})isa setof transitions between the nodes, where:
+If(a∈A)∨(a∈C∧type(a) =as)∨(a∈C∧type(a) =os), then there
+existsoneandonlyonenodebsuchthat (b,a)∈T.(Thesenodeshaveexactlyone
+predecessor.)
+If(a∈A)∨(a∈C∧type(a) =aj)∨(a∈C∧type(a) =oj), then there
+existsoneandonlyonenodebsuchthat (a,b)∈T.(Thesenodeshaveexactlyone
+successor.)
+Theusualsemanticsapply:Theworkﬂowstartsinitsstartno den0.Duringawork-
+ﬂow execution, activities are executed with respect to the t ransitions between them.
+Split nodes allow us to specify concurrency and alternative and join nodes allow us to
+specifysynchronizationbetweenincomingﬂows.Finally,t heworkﬂowexecutionstops
+when theﬁnal node fisreached.
+To illustrate a workﬂow, we use a simple graphical represent ation with these sym-
+bols:
+1ThenameOR-splitin[12]isalittlebitmisleading:XOR-splitwouldbeabetterna me,because
+one andonly one transitionto thenext node isselected.77
+
+
+--- Page 4 ---
+OR Activity 1 AND AND OR
+Activity           Transition  AND−Split   OR−Split    AND−Join       OR−Join
+Signature from
+Manager
+Payment
+RequestORPrepare Check
+for ANZ Bank
+Approvalfrom Finance
+DirectorOR
+Reject
+Requestfor CITIBANKPrepare CheckANDSignature from
+Finance
+Director
+Transfer Funds
+to US−AccountAND
+AND
+CheckIssue
+ANDAccountUpdate
+RequestFilePayment
+ORUS−$A$
+Approved
+RejectedOR
+done
+Fig.1.Sample workﬂow: Payment Requests
+Splitnodeshaveatleasttwooutgoingtransitions(arrows) ,whilejoinnodeshaveat
+least two incoming transitions. Outgoing arrows from an OR- split node can be labeled
+with a short text describing a decision being made in the OR-s plit that leads to the
+selection of one of theoutgoing arrows.
+Figure 1 shows an example workﬂow taken from [10] and [7]. It s hows a business
+process model for expense request payments with an option to differ between payment
+inUS-$ orinAustralian $.
+2.2 Structural Correctness
+While def. 1 deﬁnes the syntax of a workﬂow speciﬁcation, it do es not say anything
+about its semantics. Not every workﬂow speciﬁcation that ca n be constructed using
+deﬁnition 1 makes sense when the semantics for splits and joi ns is considered. An
+exampleisshowninFig.2:Onlyoneoftheactivities2and3wi llbeperformedafterthe
+OR-split, but the following AND-join would wait for both act ivities being completed.
+Even if the end node will be reached anyway via activity 1, it i s very unlikely that this
+is the behavior intended by the person who has speciﬁed the wo rkﬂow. For this reason
+itisreasonable tocall sucha workﬂow speciﬁcation structu rallyincorrect.78
+
+
+--- Page 5 ---
+ORActivity 2
+Activity 3START NODEActivity 1
+AND
+ANDEND NODE
+... (part after
+the AND−join
+omitted)
+Fig.2.Semantically incorrect workﬂow
+We will see later in this paper that structural correctness o f a workﬂow can be de-
+cided with our model checking approach. In fact, this is even possible without much
+reasoning about possible sources of structural conﬂicts. W e just have to take into ac-
+count that the result of structural incorrectness is that ei ther a possible execution exists
+that does not reach the end node or there are still ”uncomplet ed things to do” when the
+end node isreached. This leads us to:
+Deﬁnition 2 Aworkﬂow speciﬁcation w= (N,n0,f,T)isstructurallycorrect if
+– everyworkﬂowexecutionreachestheendnodefafteraﬁnite numberoftransitions.
+– when the end node isreached, all other activities that have been startedbefore are
+completedandtherearenoremainingjoinnodeswaitingfori ncomingtransitions.
+Becauseofthelimitedspaceinthispaper,weomittheformal deﬁnitionof”aworkﬂow
+execution”and”takingatransition”,butitshouldbeintui tivelyclearwhatthosephrases
+stand for with respect to transitions and the semantics of sp lit- and join-nodes2. Def.
+2 simply requires that every sequence of nodes and transitio ns ﬁnally reaches the end
+nodefafteraﬁnitenumberoftransitions,andtherearenore mainingjoinnodeswaiting
+for an incoming ﬂow when the end node is reached. Inﬁnite loop s, AND-joins waiting
+for an incoming ﬂow inﬁnitely long and similar problems must not occur. Sadiq and
+Orlowska [13] have identiﬁed ﬁve types of possible structur al errors in a workﬂow
+speciﬁcation.Forallﬁvetypesoferrors,theworkﬂowspeci ﬁcationwillbeidentiﬁedas
+notbeingcorrectusingdef.2oritisalreadydisallowedbyt herequirementsforunique
+predecessors and successors indef. 1.
+2.3 Timed Workﬂow Speciﬁcations withRessource Constraint s
+Activities can require human, material or machine resource s, for example a director
+who has to sign a bill (human resource), a vehicle to transpor t heavy goods (material
+resource) or write-access toadatabase (machine resource) .
+2The only point that needs some clariﬁcation is that activities after an OR-join shouldnotbe
+activated more than once if more than one incoming ﬂow reaches the OR-jo in. In this point,
+the semantics usedinthis paper differsfromtheone usedin[10]79
+
+
+--- Page 6 ---
+Payment
+RequestOR
+Approvalfrom Finance
+Director
+Reject
+Requestfor CITIBANKPrepare CheckAND
+ORAND
+CheckIssue
+ANDAccountUpdateFile
+Payment
+RequestPrepare Check
+for ANZ BankSignature from
+Manager
+ORSignature from
+Finance
+Director
+AND
+Transfer Funds
+to US−Account{r1, r7}
+{r2, r7}A$
+US−$
+Approved
+Rejected{r1, r3, r7}
+{r6, r10} {r3, r7, r10}{r3, r8}[1,3] [1,2][4,6] [4,8][2,3]
+[1,2]{r1, r3, r7}{r4, r8}[1,2][1,2]
+[2,3]
+doneOR{r5, r8}
+[3,8]
+{r8, r9}[1,2]
+Fig.3.Workﬂow withinformation abouttime andresources
+Often, these resources cannot be shared between different a ctivities: When a work-
+ﬂow isexecuted, only one activity can access aresource excl usively.
+Thisleadsustoanotherpossiblesourceofincorrectworkﬂo wspeciﬁcations:When
+oneactivityneedsaresourcethatisoccupiedexclusivelyb yanotheractivity,thework-
+ﬂow is deadlocked and cannot proceed. In real life, we can for mulate the previous sen-
+tenceevenmorestrictly:Iftheotheractivityoccupiesthe requiredresourceexclusively
+until some deadline is reached , the workﬂow cannot be completed in time and hence
+does not fulﬁll itspurpose.
+Toﬁndoutwhethersuchasituationcanoccur,weneedtoknows omethingaboutthe
+usageofresourcesbytheactivitiesandaboutthedurationo ftheexecutionofactivities.
+Deﬁnition 3 LetR=R1,... R nbeasetofresources,whichcannotbesharedbetween
+different activities. For each activity a∈A, r(a) is the set of resources needed by this
+activity.
+Deﬁnition 4 The minimum time (expressed in some time unit like seconds, h ours or
+days)thatwillbeneededtoexecuteanactivity a∈Aisdenotedbym(a),themaximum
+execution timewillbedenoted by M(a).
+We call a workﬂow speciﬁcation with the information about mi nimum and maxi-
+mum execution time of its activities a timed workﬂow speciﬁcation . This information
+abouttimingisrathersimple,butithasbeenshowntobesufﬁ cientforansweringbasic80
+
+
+--- Page 7 ---
+questions about deadlines and resource conﬂicts (for examp le by applying the Criti-
+cal Path Method [14]). Additional elements like an interrup t construct can be added if
+necessary.
+InFig.3,weaddinformationabouttimingandresourcestoth egraphicalrepresen-
+tation of the sample workﬂow. For each activity a∈A, m(a) and M(a) are given as
+an ordered pair [m(a),M(a)] above the activity box, the set r (a) is given below the box.
+Emptysetsr(a)areomitted.Wehavetakenthisexamplefrom[ 7],withsmallmodiﬁca-
+tions.
+3 ModelCheckingof TimedWorkﬂowSpeciﬁcations
+3.1 The Model Checker UPPAAL
+To verify properties of a workﬂow speciﬁcation, we use the re al-time model checking
+tool UPPAAL[15]. We show how to translate a workﬂow speciﬁcation into a t imed
+automata speciﬁcation that can beprocessed by U PPAAL.
+An UPPAALmodel is a set of timed automata, clocks, channels for handsh ake-
+synchronization, variables and additional elements. Info rmation about the syntax for
+UPPAALmodels can be found in[15].Here wedescribe someelements on ly.
+Each U PPAALmodel is a set of processes (timed automata) which are depict ed as
+states (circles)and transitions(arrows)between them.3
+For each automaton, one state is marked as initial state (two concentric circles). A
+graphic representation of an U PPAALprocess can look likeFig. 4:
+idle logging in transferring data abort connection
+Fig.4.Simple graphic representationof a process in U PPAAL
+States can have the attribute ”committed”, depicted by the l etter C inside the cir-
+cle. If a state is marked as ”committed, no time may pass in thi s state, and it must be
+left immediately (i.e. no interleavings with non-committe d states in other automata are
+allowed).
+Whenatransitionistaken,clockscanbereset.(InFig.5thec locknamed clock1
+will be reset to 0 when the transition from ”idle” to ”logging in” is taken), and global
+orlocalvariablescanbemanipulated.(InFig.5,avariable namedactive ischanged
+whenthetransitionfrom”loggingin”to”transferringdata ”orfrom”abortconnection”
+to”idle” istaken).
+3Note that the meaning of an arrow in the U PPAALmodel is different from the meaning of an
+arrow in the graphical workﬂow representation. Also a circle in the U PPAALmodel does not
+stand for an activity like the rectangle in the graphical workﬂow represen tation does. Instead,
+one UPPAALprocess (depicted bysomearrows and circles) stands foran activity.81
+
+
+--- Page 8 ---
+idle logging in transferring data abort connection
+clock1:=0 active:=1
+active:=0
+Fig.5.clocks, variables and anurgent location
+Synchronization between different processes can take plac e using channels. When
+a transition is taken, a channel can be written into (written aschannelname! ). To
+achieve a handshake-synchronization, the corresponding r eading operation (written as
+channelname? ) can serve as a so-called guard of another transition which c an not
+be taken unless reading from the channel is actually possibl e. If a channel is deﬁned as
+urgent channel, the reading operation must be performed as s oon as possible, i.e. im-
+mediatelyandwithoutadelay.Fig.6showsasynchronizatio nbetweenaserverprocess
+and a client process:
+idle need new data accept upload
+waiting uploadinglisten!
+listen?
+Fig.6.Usingchannels for handshake-synchronization
+Conditions on clocks or variables can also be used as guards f or transitions. This
+means that a transition cannot be taken until some condition (for example an equation
+for some variable) holds. Finally, invariants can be added t o a state. We will use invari-
+ants of the type "clock<=m" which means that the system is not allowed to remain
+inthis statefor more than m timeunits.InFig. 7, the transit ionwillbe taken when the
+clocknamed timeisintheinterval[2,4]andthevalueofthevariable active fulﬁlls
+the equation active == 1 .
+state 1
+time <= 4state 2 time >=2,
+active == 1
+Fig.7.Guards and invariants82
+
+
+--- Page 9 ---
+3.2 Workﬂow Elements in UPPAAL
+Using the elements introduced in the last section, we can deﬁ ne templates for the dif-
+ferentkindsofnodesinaworkﬂowspeciﬁcation(asdeﬁnedin def.1).Urgentchannels
+are usedtomodel the transitionsbetween the nodes.
+Start Node The start node process does nothing else than writing into a c hannel
+letsstart and setting the variable running (which stands for the number of cur-
+rentlyrunning activities) to0:
+letsstart!
+running := 0
+Fig.8.StartNode
+Activity Node The UPPAALprocess for an activity node waits until it becomes acti-
+vated by being able to read from a channel inchannel . When it is activated, it sets
+alocalclockto0andincrementsthevariable resource .Thevariable running (the
+number of currently running activities) is incremented. Af ter staying in the next state
+for at least mintime, but not longer than maxtime, the proces s comes to and end which
+it signalizes by writing to the channel outchannel . When the channel can be read
+by another U PPAALprocess, the variable running (the number of currently running
+activities) isdecremented.
+AND-Split When activated (by the ability to read from inchannel ), the U PPAAL
+process for an AND-split writes repeatedly to the channel outchannel , thus being
+abletoactivatemorethanonefollowingnode.ForAND-split swithtwoincomingﬂows
+as used inour deﬁnition, thishappens twice.
+OR-Split Other than theAND-split,an OR-splitprocess writestothec hannel
+outchannel only once, thus only one following node can be activated by re ading
+from thischannel.
+AND-Join AnAND-joinprocesstriestoreadfromtwochannels, inchannel1 and
+inchannel2 , and proceeds if and only if both of them are readable. (Note t hat it is
+notrequiredthat inchannel1 isreadable beforeinchannel2 .Ifinchannel2
+is the ﬁrst of the two channels being readable, it just ”waits ” and the reading operation
+can be performed after inchannel1 became readable as well.)
+OR-Join An OR-join process tries to read from two channels, inchannel1 and
+inchannel2 . Itproceeds ifitcan read from one of them.83
+
+
+--- Page 10 ---
+working
+processclock <= maxtimefinished processclock >= mintime
+ressource--out_channel!
+running-- in_channel?
+processclock := 0,
+ressource++,
+running++
+Fig.9.Activity Node
+in_channel?
+out_channel!
+Fig.10.AND SplitNode
+in_channel? out_channel!
+Fig.11.ORSplitNode
+in_channel1? in_channel2? out_channel!
+Fig.12.AND JoinNode
+in_channel1?
+in_channel2?out_channel!
+Fig.13.OR JoinNode
+End-node The UPPAALprocess end stands for the end node. This process will reach
+the statusnamed finished at theend ofthe model’s execution.
+finished
+in_channel?
+Fig.14.EndNode84
+
+
+--- Page 11 ---
+working
+processclock <= maxtimefinished clock9 >0 4
+r8--running--a10_channel!
+s6_channel?
+clock9:=0,
+r8++,
+running++
+Fig.15.”IssueCheck” -an instance of theActivity template
+3.3 Translating TimedWorkﬂow Speciﬁcations to UPPAALModels
+Intheprevioussectionwehaveshownhowthegeneralelement sofaworkﬂowspeciﬁ-
+cationcanbeexpressedasU PPAALmodels.To”translate”aspecialworkﬂowspeciﬁca-
+tion into an U PPAALmodel, we make use of U PPAALtemplates. The U PPAALmodels
+of workﬂow nodes given in the last section are regarded as tem plates. This means that
+the names for variables, clocks and channels in the U PPAALmodel are placeholders
+(called parameters in U PPAAL). To deﬁne an instance of an activity, we use this tem-
+plate withparameters asfollows:
+Activity(processclock, mintime, maxtime, resource,
+inchannel, out channel) , where
+– processclock isaplaceholder for alocal clock variable,
+– mintimeand maxtime areplaceholders for numeric constant s,
+– ressource is the placeholder for a name of a single resource (For the sake of sim-
+plicity, we assume that each process uses at most one resourc e from the resource
+setR.Byaddingmoreplaceholders,wecaneasilyexpandourm odeltothegeneral
+case.)
+– inchannel and out channel areplaceholders for urgent channels,
+To instantiate the model for an actual workﬂow activity from the template, the place-
+holders aresubstitutedby actual variables:
+For example, the deﬁnition of the activity ”Issue Check” fro m the example shown
+inFig. 3 can bedone by deﬁning an instance of thetemplate Act ivity as follows:
+IssueCheck := Activity(clock9,4, 6, r8, s6 channel,
+a10channel); (compare Fig.15 with Fig.9). The activity ”File Payment Req uest”
+can be deﬁned as:
+FilePaymentRequest := Activity(clock11,1, 2, r10,
+a10channel, a11 channel); Note that synchronization between the both ac-
+tivities can take place using channel a10channel , which replaces the parameter
+outchannel in the ”Issue Check” activity, but inchannel in the ”File Payment
+Request” activity.
+Instances of control nodes can be built from the template in t he same way. If a
+workﬂowspeciﬁcationisgivenaccordingtodef.1,thetrans lationtotheU PPAALmodel
+can be done automatically . For each node, an instance of an U PPAALtemplate will
+be generated. This means that in general, only one line of cod e will be added to the
+UPPAALmodel for each node in the workﬂow speciﬁcation4. Split nodes with n >2
+4plusdeclarationsofusedvariables,channelsandclocksandtheinform ationaboutthefactthat
+the instantiatedprocess is partof thesystem.85
+
+
+--- Page 12 ---
+outgoing transitions or join nodes with n >2incoming transitions can be transformed
+intoa sequence of n-1split/joinnodes withtwooutgoing/in coming transitions.
+The complete U PPAALmodel of our example workﬂow can be downloaded from
+ebus.informatik.uni-leipzig.de/ ∼laue.
+3.4 Checking the Correctness of Timed Workﬂows
+Having built the U PPAALmodel of the workﬂow, we can use the model checker to
+verify the required properties. The property speciﬁcation language used in U PPAALis
+a subset of Timed Computational Tree Logic (TCTL) ([16].) Pr operties that could be
+checked include:
+”The end node willalways be reached” (part 1of def. 2):
+A<> end.finished
+(The state ”ﬁnished” in the process end will always be reache d). This property can be
+checked tobe trueforour example workﬂow.
+”Whentheendnodeisreached,noactivitiesarewaitingforb eingﬁnished” (part2
+of def. 2):
+A[] end.finished imply running == 0
+Thispropertycanbecheckedtobetrueforourexampleworkﬂo w.(Notethat running
+willnot bedecremented untilthe outgoing channel can be wri tteninto.)
+”There areno resource conﬂicts for resource r10”
+A[] r10<2
+Can be checked to be true. Note that this requires reasoning a bout time: There are
+no resource conﬂicts, because ”Update Account” is always ﬁn ished when the activity
+”File Payment Request” starts. (Using the knowledge that ”U pdate Account” and ”File
+Payment Request” are the only activities that use resource r 10, we will get the same
+veriﬁcation result by checking the property A[] UpdateAccount.working +
+FilePaymentRequest.working <2 . This makes use of the trick that boolean
+values like UpdateAccount.working are converted to number s (0 or 1). We would not
+need thevariables r1,...,r10,which helps toreduce thesta tespace of themodel.)
+”There areno resource conﬂicts for resource r8”
+A[] r8<2
+The model checker does not only ﬁnds out that the property is v iolated, it also gives
+a counterexample: a resource conﬂict between the activitie s ”Signature From Finance
+Director” and ”Transfer Funds toUS-Account”
+”Ifarequest has been rejected, no check willbe issued.”
+RejectRequest.finished --> not IssueCheck.finished
+Can be checked tobe true.
+”The whole process willbe completed inno more than 30timeun its”
+A<> end.finished and clock1<30
+To check this deadline constraint, we use clock1, the local c lock of the ﬁrst activity
+”Payment Request”. It is started at the begin of the whole wor kﬂow. This property can
+be checked to be true. If we replace ”30” by a smaller value, a c ounterexample of a
+process that needs 29 timeunitstocomplete willbe given.86
+
+
+--- Page 13 ---
+3.5 Remarks
+Resource Pools The approach can not only be expanded to multiple resources ( if r(a)
+has more than one element, the model just needs more placehol ders for resources used
+by activities), it can also be used for checking the usage of r esource pools, for example
+adatabasethatallowsupto10parallelconnections.Wewoul dhavetocheckaproperty
+likeresourcecounter<=10 .
+Abstraction The timed workﬂow speciﬁcation can be transformed automati cally into
+an UPPAALmodel which can be used as the input of the model checker. Howe ver, a
+complete translation of the workﬂow speciﬁcation, preserv ing all its properties, does
+notnecessarilyhavetobewhatwereallywant:Toomanydetai lsinthemodelcanlead
+to too many states the model checker has to examine.5Instead of translating a work-
+ﬂow speciﬁcation while preserving all its properties, it ma y be a good idea to do some
+abstraction before by asking which parts of the system are re levant with respect to the
+propertybeingchecked.Ifwecheckforresourceconﬂictsfo rr10intheexamplework-
+ﬂow, information about other resources can be ignored. In fa ct, even only the model
+built from the very last part of the workﬂow (”Issue Check”, ” Update Account” and
+”File Payment Request”) isrelevant. Often, this abstracti on can be done automatically.
+4 Conclusion
+Theuseofonly onetoolforverifyingdifferentkindsofproperties(withorwi thouttim-
+ing information) and the simplicity of translating workﬂow speciﬁcations to U PPAAL
+models arethe mainbeneﬁts fromthe resultspresented inour paper.
+Wehavehighlightedreasoningaboutstructuralcorrectnes sandresourceconstraints,
+but using the given approach, various other properties of wo rkﬂow speciﬁcations can
+becheckedaswell.Thisincludesthepatternsidentiﬁedin[ 3]and[17],includingexis-
+tence,absence,precedenceandresponsepatterns.Inourfu rtherresearch,wewillinves-
+tigate such patterns, including patterns for time-related properties (see [18]). Another
+direction of our work will be to enable the business architec ts who are responsible for
+deﬁningworkﬂowspeciﬁcationstospecifysuchpropertiesw ithoutadeeperknowledge
+inmodel checking or temporal logics.
+References
+1. Koehler,J.,Tirenni,G.,Kumaran,S.: Frombusinessprocessm odeltoconsistentimplemen-
+tation:A casefor formalveriﬁcation methods. In:EDOC.(2002) 96–
+2. Janssen, W., Mateescu, R., Mauw, S., Springintveld, J.: Verifyin g business processes using
+SPIN(1998)
+5Ingeneral,modelswithalargenumberofclocksleadtoastate-spaceexp losionintimedmodel
+checking.Pleasenote,however,thatthisisnotthecaseinourmodel(w hereeachactivityadds
+a clock): When an activity is completed, its clock is not used actively in comp arisons and
+cannot lead tonew states.87
+
+
+--- Page 14 ---
+3. Janssen, W., Mateescu, R., Mauw, S., Fennema, P., van der Sta ppen, P.: Model checking for
+managers. In:5th and6thInternational SPINWorkshops. (1999) 92 –107
+4. Matousek,P.: Veriﬁcation of BusinessProcessModels. PhDthesis ( 2003)
+5. Blazewicz, J., Lenstra, J., Kan, A.R.: Scheduling subject to reso urce constraints. Discrete
+Appl. Math. 5(1983) 11–24
+6. Kolisch,R.,Hartmann,S.: Heuristicalgorithmsforsolvingtheresour ce-constrainedproject
+scheduling problem:Classiﬁcationand computational analysis (1999)
+7. Li, H., Yang, Y., Chen, T.Y.: Resource constraints analysis of wo rkﬂow speciﬁcations. J.
+Syst.Softw. 73(2004) 271–285
+8. Norstr ¨om, C., Wall, A., Yi, W.: Timed automata as task models for event-driven systems.
+In:ProceedingsoftheSixthInternationalConferenceonReal-TimeCo mputingSystemsand
+Applications. (1999) 182
+9. Pozewaunig,H.,Eder,J.,Liebhart,W.: ePERT:ExtendingPERTf orworkﬂowmanagement
+systems. In:FirstEastEuropeanSymposiumonAdvancesinDatabase andInformationSys-
+tems ADBIS.(1997) 217–224
+10. Sadiq, W., Orlowska, M.E.: Analyzing process models using grap h reduction techniques.
+InformationSystems 25(2)(2000) 117–134
+11. Onoda, S., Ikkai, Y., Kobayashi, T., Komoda, N.: Deﬁnition of d eadlock patterns for busi-
+ness processes workﬂow models. In: Proceedings of the 32nd Annu al Hawaii International
+Conference onSystemSciences-Volume 5, IEEEComputer Society(19 99) 5065
+12. Workﬂow Management Coalition: Terminology and glossary. Techn ical report, Workﬂow
+Management Coalition(1999)
+13. Sadiq, W.: On correctness issuesinconceptual modeling of workﬂ ows (1997)
+14. Hillier,F.S., Lieberman, G.J.: Introduction tooperations researc h. Holden-Day, Inc.(1986)
+15. Larsen, K.G., Pettersson, P., Yi, W.: U PPAALin a Nutshell. Int. Journal on Software Tools
+for Technology Transfer 1(1997) 134–152
+16. Henzinger, T.A., Nicollin, X., Sifakis, J., Yovine, S.: Symbolic Mo del Checking for Real-
+TimeSystems. In:7th.SymposiumofLogicsinComputerScience,IEEEC omputerScienty
+Press(1992) 394–406
+17. Dwyer, M.B., Avrunin, G.S., Corbett, J.C.: Property speciﬁca tion patterns for ﬁnite-state
+veriﬁcation. In: FMSP ’98: Proceedings of the second workshop on F ormal methods in
+softwarepractice, ACM Press(1998) 7–15
+18. Gruhn, V., Laue, R.: Patterns for timed property speciﬁcation. In : 3rd Int. Workshop on
+Quantitative Aspects of Programming Languages (QAPL 05), Edinburg h, Scotland, April
+2005, toappear. (2005)88
+

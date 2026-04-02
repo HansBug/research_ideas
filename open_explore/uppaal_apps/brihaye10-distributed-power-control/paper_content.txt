@@ -1,0 +1,917 @@
+--- Page 1 ---
+Hindawi Publishing Corporation
+EURASIP Journal on Wireless Communications and Networking
+Volume 2010, Article ID 861472, 13pages
+doi:10.1155/2010/861472
+Research Article
+Using Model Checking for Analyzing Distributed
+Power Control Problems
+Thomas Brihaye,1Marc Jungers,2, 3Samson Lasaulce,4Nicolas Markey,5and Ghassan Oreiby6
+1Institut de Math ´ematique, Universit ´e de Mons, 7000 Mons, Belgium
+2Centre de Recherche en Automatique de Nancy (CRAN), Nancy Universit ´e, CNRS, 2 Avenue de la For ˆet de Haye,
+54516 Vandoeuvre-les-Nancy, France
+3Syst`emes et Applications des Technologies de l’Information et de l’Energie (SA TIE) CNRS,
+UMR8029- ´Ecole Normale Sup ´erieure de Cachan, ENS Cachan, France
+4Laboratoire des Signaux et Syst `emes, CNRS, Supelec, Paris 11, 91190 Gif-sur-Yvette, France
+5Laboratoire Sp ´eciﬁcation & V ´eriﬁcation, ENS Cachan, 94235 Cachan, France
+6Department of Computer Science, Aalborg University, 9220 Aalborg, Denmark
+Correspondence should be addressed to Samson Lasaulce, lasaulce@lss.supelec.fr
+Received 14 September 2009; Revised 13 January 2010; Accepted 25 March 2010
+Academic Editor: Ping Wang
+Copyright © 2010 Thomas Brihaye et al. This is an open access article distributed under the Creative Commons Attribution
+License, which permits unrestricted use, distribution, and repro duction in any medium, provided the original work is properly
+cited.
+Model checking (MC) is a formal veriﬁcation technique whic h has been known and still knows a resounding success in the
+computer science community. Realizing that the distributed power control (PC) problem can be modeled by a timed gamebetween a given transmitter and its environment, the authors wanted to know whether this approach can be applied to distributed
+PC. It turns out that it can be applied successfully and allows one to analyze realistic scenarios including the case of discrete
+transmit powers and games with incomplete information. The proposed methodology is as follows. We state some objectivesa transmitter-receiver pair would like to reach. The network is modeled by a game where transmitters are considered as timed
+automata interacting with each other. The objectives are then translated into timed alternating-time temporal logic formulae and
+MC is exploited to know whether the desired properties are veriﬁed and determine a winning strategy.
+1. Introduction
+Power control (PC) is recognized as an important technical
+problem in communication networks, especially in wirelessnetworks. With the advent of new communications concepts,such as cognitive radio [ 1] and open spectrum access in
+unlicensed bands (see, e.g., [ 2]), being capable of designing
+PC algorithms in a distributed way has become particu-larly important. When inspecting the literature related todistributed PC, a dominant methodology arises from thevast majority of existing works. The PC problem is generallymodeled by a game where the players are the transmitters, thesets of strategies are the ranges for the transmit powers andthe utility /payo ﬀfunctions of the players can be for example,
+the transmission rate (see, e.g., [ 3–5]) or energy-e ﬃciency
+(see, e.g., [ 6–8]). As the terminals are assumed to be free,selﬁsh and rational decision-makers, one fundamental issue
+is to know whether there is a solution to this conﬂict of
+interests. In the literature of PC games the most used solutionconcept is the Nash equilibrium (NE). An NE correspondsto a game outcome /state e ﬀectively observed when every
+player does the best for itself (rationality assumption), knowsthe others do so (rationality is common knowledge), andhas a complete knowledge of the game played (completeinformation assumption). One of the properties of such astate is that it is stable to a single deviation, that is, if oneplayer deviates from the equilibrium unilaterally, it loosesin terms of utility. Therefore, a generic technical issue thatis treated in works on distributed PC is the existence issuefor an NE, which amounts to proving (mathematically) theexistence of a ﬁxed point (see, e.g., [ 9] for the standard
+approach of distributed power control).
+
+--- Page 2 ---
+2 EURASIP Journal on Wireless Communications and Networking
+In this paper, a di ﬀerent point of view is adopted. The
+main two di ﬀerences between the existing game-theoretic
+works and the work presented here is as follows. First, wemake a di ﬀerent behavioral assumption for the players. Each
+transmitter does not assume that the others do the bestfor themselves but rather that they can form a coalition
+which can do the worst for the considered transmitter; a
+strategy allowing a player to reach its objective under theseconditions is called a winning strategy. For instance, thisworst-case assumption can be very relevant to engineers who
+want to design transmitters that have to reach a certainquality of service independently of the design /strategy of
+the other transmitters /manufacturers /operators. Second, we
+do not want to prove mathematically the existence of anNE or a network state having certain properties. Rather, weformulate the PC problem as a timed game [ 10]b e t w e e n
+the considered pair of nodes and its environment, andprove the existence or nonexistence of such a (winning)strategy by translating the objective into a temporal logicformula [ 11] and exploiting the powerful technique of model
+checking (MC; see, e.g., [ 12]). Although MC is not very
+well-known from the communications community, it is aconcept of paramount importance in the computer sciencecommunity, as witnessed by its inventors winning the ACMTuring Award in 2007. It aims at checking, automaticallyexhaustively and formally (with a computer) if a system(possibly involving several agents) veriﬁes some propertiesexpressed in a given logical language. In our case, MCprovides the answer to whether a certain property can besatisﬁed. Additionally, in the case where it is satisﬁed, the
+model checker is able to compute a winning strategy (a
+PC policy in our case). Our motivation for using modelchecking (computational approach) instead of proving atheorem (analytical approach) is essentially twofold: we donot consider Nash equilibria (and therefore ﬁxed-point solu-tions); our study aims at considering the practical case wheretransmit powers are discrete. Concerning the latter point,note that, as mentioned recently [ 13], the vast majority
+of works on distributed PC assume continuous transmitpowers while in many existing communications systemsit can only be discrete. All results based on compactnessand convexity of the strategy sets of the players are notvalid anymore. In particular, these results include existence,uniqueness, convergence results for pure Nash equilibria innoncooperative PC games. Therefore, the case of discretepowers can become di ﬃcult and even impossible to solve
+analytically.
+This paper is structured as follows. First, we describe the
+network model under investigation and justify the assump-t i o n sm a d e( S e c t i o n 2). Second, we state some properties
+a given transmitter-receiver pair would like to be veriﬁedand present the strategic form of the distributed PC gameviewed from a given transmitter (Section 3). In Section 4,
+we reformulate this game into a timed game by using the
+notion of timed automaton and propose a way of modeling
+the timed game which is compatible with the model checkerused, namely, Uppaal-TiGA [ 14]. In Section 5, we translate
+the desired properties into formulae expressed in a giventemporal logic and use Uppaal-TiGA to know whether thenetwork allows theses properties to be veriﬁed. At last, in
+Section 6concluding remarks and possible extensions are
+provided.
+2. Problem Statement
+Here we present the assumed signal model but it is importantto keep in mind that the proposed approach is not inherent tothe assumed communication model and network topology,and can be directly applied to other models just by changingthe expressions of the di ﬀerent signal-to-interference plus
+noise ratios (SINRs). In this paper, we assume an interferencechannel [ 15]w i t hKtransmitter-receiver pairs (Tx
+i,R xi),
+i∈{1,...,K}, as described in Figure 1. The baseband signal
+received by Rx i, can be expressed by:
+yi(t)=K/summationdisplay
+j=1hjixj(t)+zi(t), (1)
+where∀(i,j)∈{1,...,K}2,hjirepresents the channel gain
+of the link between nodes jandi;xj(t) represents the signal
+transmitted by Tx jand is assumed to belong to a ﬁnite
+alphabet (an element of this alphabet is called a symbol,e.g., a quadrature amplitude modulation symbol), tbeing
+a time index associated with a certain rate at which themedium is used (symbol index, channel use index); z
+i(t)i s
+the additive white complex noise at receiver i,ziis assumed
+to be distributed according to a zero-mean Gaussian randomvariable with variance σ
+2
+i.A sw ea n a l y z eaP Cp r o b l e m ,
+we make the same assumptions as in the related works([6,7], etc.), that is, the channel gains are assumed to be
+constant over the whole duration of the transmission butcan be updated on a block-by-block basis; note that a blockis deﬁned as a sequence of Nconsecutive symbols which
+comprises a training sequence that is, a certain number of
+consecutive symbols used to estimate the channel, the SINR,
+and so forth. Usually, the PC problem consists in updatingthe power of a given transmitter every block duration. Here,with more generality, we assume that it can be updatedwithin a block duration. We will therefore assume a blockc a nb es e e na s N/n consecutive subblocks of nsymbols each
+and use a time index τto indicate when, in a given block, the
+transmit power of a given transmitter is updated. Using thistime or sub-block index, one can deﬁne within a given blockthe instantaneous SINR for receiver ias follows:
+∀τ∈/braceleftbigg
+1,...,N
+n/bracerightbigg
+, SINR i(τ)=|hii|2pi(τ)
+σ2
+i+/summationtext
+j/=i/vextendsingle/vextendsingle/vextendsinglehji/vextendsingle/vextendsingle/vextendsingle2pj(τ)
+(2)
+with
+pi(τ)=1
+nn/summationdisplay
+t/prime=1/vextendsingle/vextendsinglex(t/prime)/vextendsingle/vextendsingle2, (3)
+which means that the instantaneous power results from
+averaging the power over nconsecutive symbols. The vector
+(p1(τ),...,pK(τ)) will be called the network state for sub-
+blockτ. We will call the time elapsed during nsymbol
+
+--- Page 3 ---
+EURASIP Journal on Wireless Communications and Networking 3
+Tx1 Tx2 Txk
+h11h12
+h21h22 hkk
+Rx1 Rx2 Rxk···
+···
+Figure 1: Assumed communication model: a K-user interference
+channel.
+durations a time unit (TU). In addition to the assumptions
+made so far, we will suppose the following
+Assumption 1. The transmit power of each transmitter i∈
+{1,...,K}is discrete, pi(τ)[dBm]∈Pi,Pi={P0,P0+
+ΔP,...,P0+(M−1)ΔP}, and can be increased or decreased
+by at most one power increment ΔPevery TU; w.l.o.g. Mis
+assumed to be an odd integer.
+Assumption 2. Every arriving user starts transmitting at the
+powerpi(t=0)[dBm]=Pwu=P0+( (M−1)/2)ΔP(“wu”
+stands for wake up ).
+Assumption 3. Each transmitter can start /stop transmitting
+at any time but has to remain at the ON or OFF state duringa minimum amount of time t
+ONortOFF.
+Assumption 4. Each transmitter (say i) knows its SINR and
+(hji)jperfectly.
+Assumption 5. There is a maximum SINR, denoted by γmax,
+above which no transmitter is allowed to operate.
+Assumption 6. Each receiver Rx iknows the channel gain hii
+only.
+Assumption 7. The number of transmitters, that is, Kcan
+possibly vary at any time, which means in particular that theycan be asynchronous (to the best to the authors’ knowledgethe models currently available in the literature of distributedPC problems cannot account for this feature).
+Let us give some motivations for these assumptions. First,
+concerning Assumption 1, note that the transmit power
+cannot vary arbitrarily over time, it can only be increasedor decreased by one power step every TU. This mighttranslate some physical limitations due to the transmitter(e.g., because of the ﬁnite power ampliﬁer slew rate). Infact, for the model checker we exploit in Section 5, this
+assumption implies a dramatic reduction of complexity forthe veriﬁcation procedure. T o conclude with Assumption 1,
+note that the discrete power assumption ensures the existenceof a mixed NE in strategic-form non-cooperative PC gameswith complete information and rational users. In this paper,we do not want to exploit this result for at least three reasons:it is demanding in terms of information assumptions; wedo not focus on the case of network states having the NE
+property (namely, they are stable to a single deviation)but look at states which can have di ﬀerent properties;
+mixed strategies are not always relevant in communicationnetworks (e.g., for short transmissions, sporadic tra ﬃcw i t h
+nonstationary network parameters). Note that [ 13] also
+addressed the case of discrete powers but the goal in [ 13]i s
+to study the existence and convergence issues towards a pureor mixed NE by exploiting stochastic learning algorithm.Assumption 2is arbitrary but reasonable if the environment
+is unknown before starting the transmission. Assumption 3
+accounts for possible constraints from the network or usedtechnology. Assumption 4is realistic in terms of knowledge
+since in many communication systems, there is a feedbackmechanism allowing the transmitter to be informed with theSINR. This information assumption is also not very strongin comparison to the usual assumptions generally needed toanalyze Nash equilibria in PC games, especially games withcomplete information. Assumption 5indicates the existence
+of a constraint on the SINR for every transmitter. Forinstance, this constraint can be imposed by a regulator orfollow from an agreement between operators/manufacturers.Note that this constraint is di ﬀerent from the one on the
+maximum transmit power. It can be stronger in fact. Indeed,i fat r a n s m i t t e r ,s a y i, is very close to its access point, it can
+happen that transmitting at full power, that is, p
+i[dBm]=
+Pmax[dBm]=P0+(M−1)ΔPdoes not meet the condition
+SINRi≤SINR max. Assumption 6is a standard assumption,
+which is necessary to ensure coherent communications.Assumption 7indicates that the proposed approach applies
+to networks where transmitters are asynchronous and can
+enter/leave the network at any time. This is a consequenceof our information assumptions: the individual SINR can beknown without knowing the instantaneous number of activetransmitters and the worst case assumption only requiresthe knowledge of the maximum transmitters with which atransmitter can interact (this number is necessarily limitedin wireless networks because of path loss e ﬀects and limited
+user density). At last, the fact that the arrival/departureinstant of a transmitter is not a multiple of the sub-blockduration is known to be a negligible e ﬀect in real wireless
+networks, which is what is assumed here.
+3. Proposed Network Properties and Power
+Control Game Deﬁnition
+Our ultimate objective is to know if, in the network described
+in the preceding section, every transmitter is satisﬁed. Atransmitter will be said to be satisﬁed if it can exchange acertain volume of data and at the same time reach a transmis-sion quality target. In fact, we assume that every transmitterwants to reach this objective independently of what the othertransmitters do. As a consequence of this, the network can beseen from the point of view of a given transmitter, say i,a sa
+game between itself and its environment. The environmentincludes the other transmitters and the channel. The channelconsists of the matrix Hwhose entries are the channel gains
+h
+ij. It is ﬁxed for a given block of data. Therefore, transmitter
+
+--- Page 4 ---
+4 EURASIP Journal on Wireless Communications and Networking
+iwill be satisﬁed if there exists a winning strategy in the
+game between itself and its environment, that is, the desiredproperties will be veriﬁed whatever the environment does.The existence of such a winning strategy will be provedin Section 5by using the Uppaal-TiGA model checker.
+We consider the following properties. Let Δτandt
+outbe
+two durations expressed in TUs and γmin,γ−be two SINR
+thresholds with γmin≥γ−.
+Property 1. The network satisﬁes Property 1for player iif the
+following three relations are veriﬁed:
+∃τi,∀τ∈{τi,τi+1 ,...,τi+Δτ},
+∀p−i(τ)∈/tildewiderP−i, SINRi(τ)≥γmin;(4)
+/bracketleftbig
+∃(τ0,τ−),∀τ∈{τ0,τ0+1 ,...,τ0+τ−},
+γ−≤SINRi(τ)≤γmin/bracketrightbig
+=⇒τ−≤tout;(5)
+∀τ∈/braceleftbigg
+1,...,N
+n/bracerightbigg
+, SINR i(τ)≥γ−. (6)
+Property 2. The network satisﬁes Property 2for player iif
+Property 1is satisﬁed in the special case γmin=γ−or
+equivalently if tout=0.
+Property 3. The network satisﬁes Property 3for player iif
+Property 2is satisﬁed in the special case Δτ=0, that is, the
+target SINR γmincan be reached during at least one sub-block
+index (namely τi).
+In ( 4),p−i(τ) is the ( K− 1)-uplet
+(p1(τ),...,pi−1(τ),pi+1(τ),...,pK(τ)). This ( K−1)-
+dimensional vector lies in general in the product spaceP
+1×···× Pi−1×Pi+1···× PK. But here, we have used the
+notation/tildewiderP−ito clearly indicate that we assume that the PC
+policy implemented by every transmitter cannot be arbitrarybut has to verify Assumption 5
+/tildewiderPi=/braceleftbigpi∈Pi, SINRi≤γmax/bracerightbig. (7)
+We therefore see that, for a ﬁxed channel, transmitter i
+assumes the worst case in terms of environment, that is, interms of behavior for the other transmitters. Said otherwise,a given transmitter is free to do what is best for itself butassumes that the other transmitters can form a coalitionaiming at decreasing its chances to reach its objective.
+The drawback for this assumption is that the obtained
+results will be pessimistic and the desired property will bemet more often than expected. But, we have to keep inmind that one of our goals was to relax the rationalityassumption (every transmitter does the best for itself andthis is common knowledge to every transmitter). We can seethat in the proposed framework it is e ﬀectively not needed.
+This framework can be very useful in some scenarios.For example, it can happen that, over a certain period oftime, Tx
+2wants to maximize its transmission rate (high-
+speed uploading) while later on, for a second phase, itwants to save its energy. From the point of view of Tx
+1,
+assuming that it always wants to save its energy, Tx 2willnot behave rationally over the ﬁrst phase. In brief, the
+rationality assumption can be very questionable, especiallyin heterogeneous networks (with di ﬀerent manufacturers,
+operators, services, technologies, etc.). Therefore, if Property
+q
+∈{1, 2, 3}is veriﬁed for transmitter i, it means that the
+latter can reach its objective in the worst environment.
+Now, let us comment on the proposed properties sep-
+arately. Property 3allows a transmitter to be sure that for
+a ﬁxed channel state, there will be a moment at which thepacket it wants to send can be received reliably, indepen-dently of the power dynamics of the other transmitters.This occurs when a short message has to be transmitted.Property 2allows, this time, the transmitter to be ensured
+to transmit a certain volume of data ( D
+×Δτbits where Dis
+the data rate in bit/s) reliably within a time interval equal tothe channel coherence time, that is, the interval over whichthe channel state can be considered to be ﬁxed. As t
+out=0,
+the property also imposes that connectivity is never lost.Property 1,l i k eP r o p e r t y 2, guarantees that a certain volume
+of data can be exchanged reliably but is more tolerant thanProperty 2. Indeed, it allows the receiver to operate below the
+minimum required SINR for ensuring a certain transmissionquality target for a certain duration ( t
+outTUs). For example,
+this allows one to account for interesting scenarios such asthe case where a new transmitter enters the network. Whena new user arrives, it can happen that the minimum SINRtarget of player i, that is,γ
+minis not met for a short interval
+only and operating at a lower SINR γ−can su ﬃce to maintain
+connectivity. We will comment more on this scenario below.Another scenario where considering this property is relevant
+is an application or a service where two levels of quality are
+admitted for the transmission. T o conclude on Property 1we
+make some comments on the physical feasibility of such aproperty: ( 4) translates the existence of a time windows over
+which the medium is su ﬃciently good, which happens, for
+example, when the link h
+iiis good enough some transmitters
+stop emitting or the other transmitters are far enough fromtransmitter i;(5) translates the nonexistence of a too wide
+windows over which the channel conditions are bad in thesense that the system is not robust to a network change overthis time windows; ( 6) ensures that over the whole block or
+packet duration connectivity is not lost.
+Here, we justify in a more detailed manner why we
+use two SINR thresholds (namely, γ
+minandγ−) instead of
+one as it is usually the case for the standard formulationof the PC problem (see, e.g., [ 16]). Indeed, in [ 16]a n d
+related papers the goal is to minimize the transmit powerunder the constraint SINR
+i≥γ−withtout→+∞; this
+policy allows one to reach the minimum transmission qualitytarget and save energy. Here, by allowing the SINR targetto be di ﬀerent from the minimum SINR target we ensure a
+c e r t a i nd e g r e eo fr o b u s t n e s sa g a i n s tn e t w o r k sc h a n g e sl i k ethe arrival of a new user. Therefore, the value of γ
+−has
+to be chosen in accordance with desired robustness degree.
+T o be more concrete, let us consider an example. Assume
+a network comprising 2 pairs of nodes at time τand 3
+pairs of nodes at time τ+ 1 and the existence of a steady
+state for the network with two users, that is, pi(τ)=pi.
+Without loss of generality, consider transmitter 1. Under
+
+--- Page 5 ---
+EURASIP Journal on Wireless Communications and Networking 5
+typical assumptions, the probability that SINR 1at timeτ+1
+is less than γ−g i v e nt h a ti te q u a l s γminat timeτcan be
+checked to be (see Appendix A)
+Pr/bracketleftbigSINR 1(τ+1)≤γ−|SINR 1(τ)=γmin/bracketrightbig
+=Pr/bracketleftBigg
+|h31|2≥α/parenleftBigg
+γmin
+γ−−1/parenrightBigg/bracketrightBigg
+,(8)
+whereα=(σ2
+1+|h21|2p2)/Pwu. Additionally, if |h31|2
+is exponentially distributed (case of Rayleigh fading) we
+have that the probability of loosing connectivity (outageprobability), which we call P
+out,i sg i v e nb y
+Pout=exp/bracketleftBigg
+−σ2
+1+|h21|2p2
+Pwu/parenleftBigg
+γmin
+γ−−1/parenrightBigg/bracketrightBigg
+. (9)
+Therefore, by ﬁxing a desired target for Poutwe ﬁnd the
+appropriate value for γminto be used in the PC algorithm. As
+a consequence, for a given channel state, Properties 3–1will
+be veriﬁed or not but γminallows one to tune the probability
+of verifying the latter. The price to be paid for a certain
+robustness against the arrival of a new user is a higher energyconsumption w.r.t. the standard assumption γ
+min=γ−.
+At this point we have all the elements to deﬁne the PC
+game under investigation properly. As already mentioned,the game has to be deﬁned from a given transmitter’s pointof view. Consider transmitter i.
+Players. There are two players in the game. Transmitter iis
+the ﬁrst player (protagonist) and the rest of the transmitters(
+−i) constitutes the second player (antagonist).
+Strategies. A pure strategy for transmitter iconsists of a
+sequence of causal functions ( pτ
+i)τ∈{1,...,N/n}with
+pτ
+i:/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleH(τ)
+i −→/tildewiderPi,
+(SINRi(1),..., SINRi(τ−1))
+-−→pi(τ),(10)
+where H(τ)
+iis the set of private histories for the SINR of
+transmitter i, each possible history verifying Assumptions
+1to7. Note that the choice of these functions does not
+depend on a particular action (vector of transmit powers)of the opponent (called a move in game theory) but onlydepends on the knowledge of the considered transmitter onthe game. In particular, it depends on what it believes aboutits opponent and its objective.
+Utilities. If a given Property is satisﬁed (resp., not satisﬁed)
+for transmitter i,t r a n s m i t t e r igets +1 (resp.,
+−1) and the
+environment −i(i.e., the antagonist) gets −1 (resp., +1). If
+a player has several winning strategies (providing him with+1), he chooses the one minimizing the consumed energy or
+equivalently the quantity/summationtextN
+t=0|xi(t)|2.
+Proving the existence of a winning strategy for player i
+in the stated zero-sum game appears to be nontrivial. Wenote that one of the problems here is the dynamic aspect ofthe game, which is not present in the conventional approachof the distributed PC problem (e.g., [ 16]). Indeed, the other
+transmitters can start /stop emitting whenever they want to
+and also choose any feasible sequence of actions ( p
+i(τ))τ.
+Additionally, the game is with incomplete information sinceat r a n s m i t t e r( s a y i) does not know all the game; for instance
+the channel gains of the others are not known ( h
+jk,k/=i).
+A possible way of tackling the considered problem is to
+reformulate the game as a timed game, for which MC canbe applied. This is the purpose of the next section.
+4. Translating the Distributed PC Problem into
+a Timed Game
+We have presented the assumed network model in Section 2
+and the properties we would like it to verify in Section 3.
+In order to know whether these properties are veriﬁedor not we want to exploit the concept of MC and morespeciﬁcally the Uppaal-TiGA model checker, which is thepurpose of Section 5. T o this end, we need to translate the
+network model into a timed automaton model, and expressthe desired properties in a formal language named TATL
+(for timed alternating-time temporal logic ). This is done in
+Section 4.2. In order to make this paper su ﬃciently self-
+contained and the corresponding methodology applicableto other communication scenarios, we ﬁrst review, inSection 4.1, some important notions on timed automata
+[17]a n dt i m e dg a m e s[ 10]. More details are provided in
+Appendices Band C.
+4.1. Review of Basic Notions
+4.1.1. Timed Automata. Roughly speaking, a timed automa-
+ton is a ﬁnite automaton enriched with clocks, which arereal-valued variables used to measure the time elapsedbetween di ﬀerent events of the automaton. All clocks evolve
+at the same rate, but their values can be reset when ﬁringtransitions. The values of the clocks can be used to enable ordisable some of the transitions. A state (orconﬁguration )o fa
+timed automaton is a pair ( /lscript,v)w h e r e/lscriptis a location of the
+timed automaton and vis a valuation assigning to each clock
+of the automaton its nonnegative real value. There are twotypes of moves in timed automata.
+Delay Transition. They consist in staying at the same location
+and letting time elapse. The automaton then goes from someconﬁguration ( /lscript,v) to another conﬁguration ( /lscript,v+t), where
+t
+∈R+andv+t:x
+-→v(x)+t(all the clocks evolve at the
+same rate).
+Discrete Transitions. They consist in ﬁring a transition of
+the timed automaton. A transition /lscriptg;a;r−−→/lscript/primeof the timed
+automaton comprises the following elements:
+(i) the source and target locations /lscriptand/lscript/prime;
+(ii) a guardg, which is a constraint on clocks (for
+instance, “ x≥1” , requiring that clock xmust have
+a value greater than or equal to 1 for being allowed toﬁre this transition);
+
+--- Page 6 ---
+6 EURASIP Journal on Wireless Communications and Networking
+(iii) a label aon the transition, representing the corre-
+sponding event;
+(iv) the set rof clocks to be reset (e.g., “ x:=0”).
+Firing this transition from a state ( /lscript,v)i so n l ya l l o w e d
+if the guard is satisﬁed. We then switch to state ( /lscript/prime,v/prime), with
+v/prime(x)=0i fx∈r,a n dv/prime(x)=v(x) otherwise.
+Timed automata are thus a ﬁnite representation of an
+inﬁnite-state automaton. Still, the underlying inﬁnite-stateautomaton is quite “regular” , and this regularity allows oneto have several problems decidable (for instance, “is therean execution of the automaton reaching a given state?”(reachability) or “do all executions avoid a given bad state?”(safety)). The algorithms generally rely on a ﬁnite-stateautomaton, called the region automaton [17], which roughly
+exhibits the same behaviors as the inﬁnite-state automatonit abstracts. More precise deﬁnitions for timed automata areprovided in Appendix B.
+4.1.2. Timed Games. Timed games [ 10]a r et i m e da u t o m a t a
+in which some transitions can be uncontrollable, in the sense
+that a player cannot neither prevent them from occurring
+nor force them to occur. In this setting, a given state is saidto be reachable if there exists a strategy which, if consis-
+tently applied, and whichever uncontrollable transitions areapplied, ensures that the goal state will be reached. In orderto illustrate these notions let us consider a simple example oftimed game. Consider a transmission game with two players(the transmitters). Assume that each transmitter has twopossible actions: either transmits at full power (called Highmode) or at low power (called Low mode). The transmissionconstraints are as follows. The transmitter has to stay for aminimum amount of time in each mode, and cannot staythere forever: precisely, transmitter ihas to stay between m
+Li
+andMLi(resp.,mHiandMHi) TUs in the Low (resp., High)
+mode. We also assume the existence of a state for whichthe system (or network) is blocked if both transmitters stayat the same time in the High mode for too long, say T
+TUs; the clock associated with the overall system or networkwill be denoted by y. Does a given user have a way of
+controlling its power in order to ensure that the network willnot reach the blocking state, whatever the other transmitterwill do? This situation can be modeled by a timed game (seeFigure 2where some choices for the values for the guards
+and invariants have been made. Locations /lscript
+0to/lscript3model
+the di ﬀerent modes of the two transmitters and location /lscript4
+is the blocking location. We have considered the point of
+view of transmitter 1. We see that user 1 acts as a controller(playing with solid transitions) and the second user acts asthe environment (controlling dashed transitions). One canshow that the controller has no strategy to avoid reachingthe blocking location /lscript
+4. Even in this simple example, the
+non-existence problem of a winning strategy is not trivial.T h em o r eg e n e r a lp r o b l e mo fP Ci sm o r ec o m p l e xt h a nthis problem, which is one of the reasons why automatedtechniques (such as MC) are used to answer this type ofquestions. For the interested reader, more precise deﬁnitionsfor timed games are provided in Appendix C.4.2. Timed Power Control Game Modeling. In this section,
+we propose a model for the general PC game presented inSection 2, taking into account the features of the model
+checker Uppaal-TiGA. We proceed in three steps. Witheach of the ﬁrst two steps a ﬁgure representing the timedautomaton e ﬀectively implemented is associated. In the ﬁrst
+and second steps, for clarity, we restrict our attention to the
+case of two transmitter-receiver pairs.
+Step 1. Figure 3represents our model of a transmitter. Each
+transmitter has its own two clocks, denoted by xandy,
+and can be either ON or OFF. Clock yis used to force the
+transmitter to stay at least t
+ON(resp.,tOFF) TUs in the ON
+(resp., OFF) state. In the ﬁgure, which corresponds to the
+exact model implemented in Uppaal-TiGA, the quantitiest
+ONandtOFF are renamed on delay and o ﬀdelay, and
+switching between ON and OFF is represented by the three-state loop in the upper part of Figure 3. Let us comment
+on the other three loops. The one on the left representsthe transmitter increasing its power. This can only happenif enough time has elapsed since the last change (i.e., ifx
+≥delay where delay is some positive amount of time)
+and if the ﬂoor SINR target is not reached yet (this lastcondition is encoded by the constraint A
+0p1<m 1(B0+
+C0·p2), whereA0,B0,C0andm1are chosen, so that this
+equation represents the required condition on the SINR).The loop on the right is the opposite case, which correspondsto the situation where the transmitter decreases its power.The loop in the middle, represented by a dashed transition,is uncontrollable for the transmitter: the transmitter cannotprevent this transition from occurring (as soon as the guardsare true). As a consequence, any winning strategy for thetransmitter must in particular be able to handle the casewhere this transition is ﬁred. This is a “coding trick” weuse to model the fact that the transmitter has to decreaseits power when it is too high, in the sense that it forces thetransmitter to take this case into account: the transmitter has
+a winning strategy only if the latter is able to handle the case
+where this transition is ﬁred as soon as it is enabled. In a realcommunication system, the constraint SINR
+i≤γmaxcould
+be imposed to the transmitter (even if it is a free decisionmaker), for example, by a regulator or the receiver itself (ifthe latter breaks the communication). Finally, let us stress onthe fact that the transmitter depicted on Figure 3will “play”
+against a similar opponent that is, having similar constraintsfor increasing or decreasing its power but implementing anyfeasible PC policies.
+Step 2. An important feature we want the network to have
+is that the communication is broken if the SINR goesbelow a certain threshold. The objective of transmitter 1will be to establish and maintain a communication onthis network. T o easily represent this objective, we add anobserver automaton. ( Observer here means that it plays
+no role in the evolution of the system, but changes statesaccording to the values of the SINR. There is only one copyof this automaton in our system, which is used to keep trackof whether transmitter 1 manages to establish and maintain
+
+--- Page 7 ---
+EURASIP Journal on Wireless Communications and Networking 7
+L1,L2
+x1≤200,x2≤100c,x1≥10H1,L2
+x1≤50,x2≤100
+/lscript0x1:=0
+c,x1≤10/lscript1
+u,x2≥5
+x2:=0x1:=0
+u,x2≥15
+x2:=0
+c,x1≥10u,x2≥5
+x2:=0u,x2≥15
+x2,y:=0
+/lscript2x1,y:=0
+c,x1≥10/lscript3y≥9/lscript4
+L1,H2
+x1≤200,x2≤20x1:=0H1,H2
+x1≤50,x2≤20Block
+Figure 2: Timed game example: each xiis the clock
+for player i;(mL1,ML1,mH1,MH1)= (10, 200, 10, 50) and
+(mL2,ML2,mH2,MH2)=(15, 100, 5, 20); yis the clock for the
+network; T=9.
+a communication.) This is what Figure 4represents. This
+automaton has three states. State Emit represents the target
+state of transmitter 1, where it can emit with an SINR largerthanγ
+min. Thus, player 1 can go to this state if the SINR
+is high enough, encoded by the condition A0p1≥H(B0+
+C0p2). Then, state Emit2 is a degraded operating mode, in
+which the SINR can be below a given threshold ( γ−). Again,
+we make the transition to Emit2 uncontrollable to “force”the system to go to this state when the guard holds true. Twocases can occur in Emit2: either the transmitter manages tohave its SINR back to a reasonable value, in which case itwill be allowed to go back to the Emit state; or it does notmanage to do so within timeout TUs (corresponding to
+t
+out), in which case the system will be taken to the Stop state,
+representing the fact that the connection is broken.
+Step 3. In order to model a system with more than two
+transmitter-receiver pairs, the only things to be changed inSteps 1and 2are the expressions of the SINRs and the
+corresponding constraints. For example, the condition fromEmit to Emit2 in the observer becomes A
+0p1<m 1(B0+/summationtext
+i/=1Ci
+0pi).
+5. Model Checking and Uppaal-TiGA
+Now we have translated the PC problem under investigation
+into a timed game. We will check if the corresponding gamesatisﬁes the required properties, which will be expressedas temporal logic formulas. In order to make this paperself-contained, we ﬁrst brieﬂy review the concept of MC.Then, as the last step of our methodology, we express thedesired properties in TATL and use Uppaal-TiGA to checkthese properties are veriﬁed by the timed game modeling thenetwork of interest.
+5.1. Model Checking. Formal veriﬁcation is a ﬁeld of com-
+puter science where the aim is to check that the behaviorof an automated system satisﬁes some given properties. Itrelies on a mathematical basis, involving logical reasoning.Model checking is one of the existing formal-veriﬁcationtechniques: in this setting, the considered automated system
+is modeled by a ﬁnite-state automaton (or by exploitinga related formalism, depending on the properties underconsideration). Model checking aims at automatically andexhaustively verifying that all the executions of this automa-ton satisﬁes the properties we want to check for the original
+system. Those properties can be expressed in various ways:
+basic properties such as reachability or safety can be checked,but richer properties can be handled thanks to temporal
+logics . Those logics extend classical propositional logics with
+temporal modalities . For instance, ♦Goal expresses that
+“eventually, property Goal will hold true” , and /square
+¬Error
+expresses that “always (in the future), Error will not
+hold” (i.e., an error will never occur). Combining them,we can write /square(Request
+⇒♦Grant) for expressing that
+any request is eventually granted. Original model-checkingalgorithms have been developed to handle timed automataand quantitative properties, such as “every request is granted
+within 10 time units” . T emporal logics have been extendedaccordingly, so that the above property can be written/square(Request
+⇒♦≤10Grant) . They have also been extended
+to deal with open systems (games and timed games). In thissetting, MC aims at verifying controllability properties: “ does
+t h e r ee x i s tas t r a t e g yf o rr e s t r i c t i n gt h eb e h a v i o ro ft h es y s t e mi norder to enforce the given property ” . T emporal logics have been
+extended in order to express this kind of properties.
+In the following, we use the Uppaal-TiGA model-
+checker, which is a model-checker for timed controllabilityproperties. The three properties stated in Section 3are then
+encoded by the following three temporal logic formulae (we
+use the syntax of Uppaal-TiGA here):
+control:A <>(Observer.Emit)
+control:A <>(Observer.Emit &&
+Observer.y >Δτ)
+control:A []((Observer.Emit||
+Observer.Emit2)||Observer.y
+≤Δτ)
+The ﬁrst sentence means that there is a strategy
+(control ) under which all executions ( A)e v e n t u a l l y
+reach (<>)l o c a t i o n Observer.Emit . The second sentence
+expresses that there is a strategy to make the system reachlocation Observer.Emit and stay there for at least Δτtime
+units there (because clock Observer.y is reset when we
+enter this location, so that being in Observer.Emit with
+Observer.Emit >Δτis equivalent to staying in that location
+forΔτtime units). Finally, the third statement requires the
+existence of a strategy whose outcomes satisfy the followingproperty: it is always ([]) true that the observer is either inEmit of Emit2, except possibly at the very beginning, when y
+is small enough. This precisely encodes Property 1.
+5.2. Veriﬁcation Results Obtained by Using Uppaal-TiGA. We
+now provide some results we have obtained when runningthe Uppaal-TiGA model-checker for our models and theproperties we are interested in. All the quantities used (reals)by Uppaal-TiGA have been approximated by rationals having
+
+--- Page 8 ---
+8 EURASIP Journal on Wireless Communications and Networking
+y≥on delay
+y:=0
+pi:=0y≥oﬀdelayOﬀ
+x:=0
+y:=0
+pi:=Pwupi=0
+On
+Increase ( p1)
+x:=0
+x≥delay∧
+pi<P max∧
+A0p1<m 1·(B0+C0p2)pi≤Pmax
+Decrease ( p1)
+x:=0
+x≥delay∧
+pi>0∧
+A0p1>M 1·(B0+C0p2)∧
+A0(p1−1)>m 1(B0+C0p2)
+Decrease ( p1)x:=0
+x≥delay∧pi>0·∧
+A0p1>M 1·(B0+C0p2)
+Figure 3: Our model of a transmitter. Equations in blue are guards of the closest transition, while updates are in green.
+A0p1≥H(B0+C0p2)
+A0p1≥L(B0+C0p2)
+z≥timeout A0p1<L(B0+C0p2)y:=0
+z:=0Stop
+Emit2Emit
+Figure 4: The observer implementing whether or not the connec-
+tion can be established or maintained.
+8 signiﬁcant numbers. We have assumed a scenario with two
+transmitter-receiver pairs. Figure 5represents the topology
+of the network considered. We assume that three terminals
+have ﬁxed positions and one terminal can move. Depending
+on the location of the mobile terminal (e.g., a laptop), the
+channel gains hijhave di ﬀerent values and the question is
+precisely to know if the three properties stated in Section 3
+are veriﬁed in a given point. The channel gains are assumed
+to follow the following path loss model:
+/vextendsingle/vextendsingle/vextendsinglehij/vextendsingle/vextendsingle/vextendsingle2
+=β⎛
+⎝d0/radicalBig
+d2
+ij+h2⎞
+⎠λ
+, (11)
+whereβ=0.01,d0is a reference distance taken to be equal
+to 0.1 m, dijthe distance between nodes iandjandλthe
+path loss exponent, taken to be equal to 3. The distance
+h=0.5 m is used to avoid the divergence of the path loss
+5m 5m
+Tx2(ﬁxed
+computer)
+Tx1
+(mobile laptop)
+Rx1
+(ﬁxed acces point)Rx2(ﬁxed
+acces point)
+5m
+Figure 5: Assumed scenario. The network comprises one mobile
+laptop (Tx 1), one ﬁxed computer (Tx 2), and two ﬁxed access points
+(Rx 1) and (Rx 2).
+indij=0. The transmit power of Tx iis such that Pi[dBm]∈
+{11, 14, 17, 20, 23, 26, 29 }. The noise power σ2
+iis−90 dBm.
+Alsoγ−[dB]=5,γmin[dB]=10 andγmax[dB]=13.
+As mentioned just above only Tx 1can move. Its coor-
+dinates (in meters) are denoted by ( a,b ) w i t ha=i∗Δa,
+b=j∗Δb, so that ( a,b)=(5, 10) if Tx 1and Tx 2are
+colocated, ( a,b)=(10, 5) if Tx 1and Rx 1are co-located,
+and so forth. With these conventions, the distance between
+Tx1and Rx 1is expressed as d2
+11=(10−a)2+( 5−
+b)2. With the set of all possible positions for Tx 1one can
+associate an image which is labeled by I(i,q)a n dd e ﬁ n e da s
+follows: a white pixel indicates that Property q∈{1, 2, 3}is
+satisﬁed for transmitter i∈{1, 2}at the considered point,
+a gray pixel indicates that Property qis not satisﬁed at the
+
+--- Page 9 ---
+EURASIP Journal on Wireless Communications and Networking 9
+Tx2 Rx2
+Rx1y
+x10
+50
+0 5 10 15 20
+Figure 6:I(1,3): veriﬁcation of Property 1for transmitter 1 with
+(Δa,Δb)=(0.125 m, 0.125 m).
+considered point and a black pixel indicates the positions of
+the ﬁxed terminals. Here are some results we obtained byusing Uppaal-TiGA.
+5.2.1. Image I
+(1,3).Here we consider a simple scenario, which
+allows us to validate the model implemented with Uppaal-TiGA. Figure 6shows the area in which Property 1is
+satisﬁed for transmitter 1 for Δt
+=1T U s ,tout=3T U s ,
+tON=5T U s ,tOFF=5 T U s .T h i sa r e ai sad i s kc e n t e r e d
+in the position of receiver 1, which can be explained bya simple calculation on the path loss e ﬀect. What is more
+surprising is the presence of the gray ring, which shows thatconnectivity can be lost as d
+11increases and then recovered
+whiled11still increases. This non-trivial e ﬀect has been
+observed in many other scenarios. Our interpretation is
+that this e ﬀect is due to the discrete nature of the transmit
+power. Uppaal-TiGA allowed us to partly conﬁrm thisinterpretation. Indeed, Uppaal-TiGA allows us to synthesizethe corresponding strategies and play against it: we could
+not explore all possible plays, but the existence of the ringappearing in the ﬁgure seems to be linked to the fact thatthe transmitter has to decrease its power one more timeby moving from the closest inner adjacent white circleto the gray ring. Figure 7shows a zoom on a part of
+this area when the power increment is 1 dBm (instead of3 dBm in the case of Figure 6). The results provided here
+are useful not only because they can help assessing thecoverage area of a receiver (important for an operator ornetwork owner) but also because they show the importanceof having a transmit power quantized more accurately forthe highest values. Indeed, using di ﬀerent quantization steps
+(nonuniform quantization) for the transmit power (alwaysin dB) should help removing the intermediate dead zonesappearing in Figure 7.
+5.2.2. Image I
+(2,1).This time we consider the point of view
+of transmitter 2 vis-a-vis the position of transmitter 1, wherethe noise power σ
+2
+iis−92.2 dBm. Not surprisingly Figure 8
+shows that when transmitter 1 is too close to receiver 2Property 3cannot be veriﬁed for transmitter 2. This explains
+the gray area and the white area on the left. Here again, ana priori non-trivial e ﬀe c ta p p e a r s .T h e r ei sas m a l lw h i t eRx1y
+x4
+3
+2
+10
+56 789
+Figure 7:I(1,3): showing the inﬂuence of the discrete nature of
+transmit power on connectivity between Tx 1and Rx 1in the sense
+of Property 1;(Δa,Δb)=(0.0625 m, 0 .0625 m).
+area mixed with the gray area in which Property 3is true.
+Our interpretation is as follows. When Tx 1is close to Rx 1,
+Tx1becomes less aggressive in terms of transmit power since
+its objective can be easily reached, which means that Rx 2
+receives less interference. But only half of the “disk” is whitebecause in the other half, Tx
+1s e e m st ob et o oc l o s et oR x 2
+to allow Tx 2and Rx 2to be connected. The existence of such
+an area is interesting since it shows that designing sensingalgorithms based on the distance only can have undesirableeﬀects. Indeed, if Tx
+2implements such an algorithm based
+on the distance between itself and Tx 1, it appears that the
+inﬂuence of Tx 1is stronger when it is close to Rx 1than
+what it is when it is close to Tx 2. This shows the type of
+implications of our results in terms of design. Note thatthis type of algorithms is implicitly assumed in the wirelessgame theory literature using best-response or learning-typealgorithms.
+Finally, Figure 9shows how players interact with each
+other by choosing their transmit power over time. In thisexample, transmitter Tx
+1tries to establish and maintain a
+communication with its receiver Rx 1, while Tx 2initiates
+short communications. In this example, Tx 2is rather far
+f r o mi t sr e c e i v e r ,s ot h a ti ti sa l l o w e dt ot u r ni t sp o w e rt oits maximal value. In order to maintain the communication,Tx
+1also has to increase its power. This goes smoothly for the
+ﬁrst communication initiated by Tx 2, but communication of
+Tx1is broken at the second time, because Tx 1, that is close to
+its receiver, had set its power to its minimal value and couldnot “react” in time to set its SINR back to a reasonable value.This both illustrates the sequence of actions associated withthe winning strategies of the transmitters and shows that theproposed setup allows one to accommodate asynchronoustransmitters.
+
+--- Page 10 ---
+10 EURASIP Journal on Wireless Communications and Networking
+Tx2 Rx2
+Rx1y
+x10
+5
+0
+0 5 10 15 20
+Figure 8:I(2,1): Inﬂuence of the position of Tx 1on connectivity
+between Tx 2and Rx 2in the sense of Property 3.
+P(dBm)
+Pwu=Tx2
+Tx1
+Time
+Emit
+Emit2Stop29
+26
+23
+20
+17
+14
+11
+0
+Figure 9: Transmit power versus time for the two users.
+5.3. Towards an Implementable Distributed Power Control
+Algorithm. A natural and relevant issue is to assess the gap
+between the power control procedure and an algorithmimplementable in a real terminal (a laptop, a mobile phone,a robot, a sensor, etc.). Here we do not pretend that theproposed procedure is ready to be implemented in a realterminal but we still want to provide some elements towardsreaching this objective. Consider transmitter i.T h e r ea r et w o
+steps. The ﬁrst step is performed o ﬀ-line by a computation
+center (which can be di ﬀerent from the transmitter but not
+necessarily). The second one is always performed online atthe transmitter.
+First Step. Deﬁne a o ﬀ-line function for which the output is
+(i) either a positive answer (yes or 1) associated with a
+nonzero sequence of functions (as deﬁned in ( 10)),
+(ii) or a negative answer (no or 0) associated with the zero
+sequence (connection failure),and the inputs are the (quantized) channel gains (
+|hij|)j/=i),
+the (quantized) noise level σ2
+i, the maximum number of
+transmitters Kmax (already discrete), the sets of transmit
+powers Pj,j∈{1,...,Kmax(already discrete), and Fqthe
+logic formulae (written with the syntax of Uppaal-TiGA),whereq
+∈{ 1, 2,...,Q}is the formula index ( Q=3i n
+our case), translating the properties to be veriﬁed. For everypossible 5-tuple ((
+|hij|)j,σ2
+i,Kmax,(Pj)j,(Fq)q) the model
+checker is used to provide the value of the output of the
+function. The corresponding lookup table is stored in thetransmitter memory.
+Second Step. Deﬁne an on-line function for which the output
+is a sequence of functions and the inputs are the channel
+gains (
+|hij|)j/=i. Every block duration, this function is run
+(processing) and the look-up table (memory) gives the
+terminal the sequence of power control functions to beused (see ( 10)). Within a block, the transmitter plays its
+actions (transmit power levels) according to this sequence offunctions.
+6. Summarizing and Concluding Remarks
+In comparison with existing works on distributed powercontrol, we have made two key choices, leading to a di ﬀerent
+methodology to analyze the problem. Instead of assumingthat every transmitter does what is best for itself we assumethat, from a given transmitter point of view, the othertransmitter can form a coalition aiming at choosing the worstenvironment for the considered transmitter. This worst-caseassumption allows one to cope with some assumptions onthe behavior of the other transmitters, which can be invalidin certain scenarios like in heterogeneous networks or whentransmitters does not act rationally. Although pessimistic,it also allows the engineer to design a transmitter-receiverpair able to operate successfully under any feasible networkconﬁguration. The second important choice made in thispaper is that the existence of the desired network state(namely verifying some properties for each transmitter) isnot proved mathematically as it usually the case for Nashequilibria; one of the motivations for this is that this problemwas non-trivial especially because we have considered thepractical assumption of discrete transmit power and consid-ered the dynamic aspect of the problem. Rather, we propose
+another approach. This approach consists in modeling the
+problem as a timed game between a given transmitter andits environment and ask a model checker for a rigorousanswer to whether or not there exists a winning strategy(in the sense of certain desired properties for this player).Note that model checkers not only provide the answer tothis question but also a winning strategy when it exists. In aconcrete manner, this shows that it is possible to implementa certain mapping between a set of possible channel statesand a set of winning strategies. At last, we have illustratedour approach by exploiting the Uppaal-TiGA model checkerand shown how non-trivial veriﬁcation results could beobtained.
+
+--- Page 11 ---
+EURASIP Journal on Wireless Communications and Networking 11
+In view of the obtained results, the proposed approach
+is quite general and seems to be promising. By general, wemean that it does not only apply to interference channelsbut also to any multiuser channel. Of course, the authorsmade some assumptions which can be discussed and whichopens the possibility of extending the present work. For
+example, in addition to the extensions proposed previously:
+(a) one could try to remove the assumption of the worstbehavior assumption for the environment. Indeed the priceto be paid for removing the rationality assumption is thatthe inﬂuence of the other transmitters is overestimated.In a non-cooperative network, the transmitters will notalways be able to form a coalition to ﬁght against a giventransmitter. In particular, this means that if the Nashequilibrium is e ﬀectively the most appropriate solution
+concept, the proposed approach can be adapted to provethe existence and uniqueness of an NE when provinga ﬁxed-point theorem leads to a failure. The extensionof our work to the Nash equilibrium solution conceptwould be an interesting and non-trivial extension sincethe protagonist-antagonist approach used in Uppaal-TiGAdoes not hold anymore; (b) the framework of timed gamesallows one to deal with real-time applications while we havefocused here on the case of delay-tolerant applications; (c)since one can treat the case of dynamic games, it wouldbe very interesting to compare the utilities obtained byUppaal-TiGA and compare with individually rational levelsallowed by equilibria in repeated games; (d) consideringa constraint on the average transmit power and a ﬁniteenergy constraint would also be a very practical feature
+to be included. The energy constraint should change the
+transmitters’ behaviors, which is ap r i o r i not that easy to be
+predicted.
+Appendices
+A. Derivation of the Outage Probability
+The SINR of user 1 at time τis given by
+SINR 1(τ)=γ1(τ)=|h11|2p1
+σ2
+1+|h21|2p2. (A.1)
+At timeτ+ 1 one new transmitter arrives, transmitter 1
+observes its new SINR but is only able to react at time τ+2 .
+We precisely want that at least at time τ+1, while transmitter
+1 is “surprised” , its communication is not broken that is, itsSINR does not go below a certain threshold, say γ
+−.A tt i m e
+τ+ 1 the SINR of user 1 is
+SINR 1(τ+1)=γ1(τ+1)=|h11|2p1
+σ2
+1+|h21|2p2+|h31|2p3(τ+1).
+(A.2)The probability that SINR of player 1 falls, at time τ+1, below
+γ−given that it was equal to γminat timeτis expressed by
+Pr/bracketleftbigSINR 1(τ+1)≤γ−|SINR 1(τ)=γmin/bracketrightbig
+=Pr/bracketleftBigg
+|h11|2p1
+σ2
+1+|h21|2p2+|h31|2Pwu≤γ−|γ1(τ)=γmin/bracketrightBigg
+=Pr⎡
+⎣γ1(τ)1
+1+|h31|2Pwu//parenleftBig
+σ2
+1+|h21|2p2/parenrightBig
+≤γ−|γ1(τ)=γmin⎤
+⎦
+=Pr⎡
+⎣γmin1
+1+|h31|2Pwu//parenleftBig
+σ2
+1+|h21|2p2/parenrightBig≤γ−⎤
+⎦
+=Pr/bracketleftBigg
+|h31|2≥α/parenleftBigg
+γmin
+γ−−1/parenrightBigg/bracketrightBigg
+,
+(A.3)
+whereα=(σ2
+1+|h21|2p2)/Pwu. Here we implicitly assumed
+that randomness comes from the channel gain betweentransmitter 3 and the corresponding receiver.
+B. Timed Automata
+Deﬁnition 1. Atimed automaton A=(L,X,Σ,E,I,L)h a s
+the following components: (i) Lis a ﬁnite set of locations ,
+(ii)Xis a ﬁnite set of clocks , (iii)Σis a ﬁnite set of actions ,
+(iv)E⊆L×Σ×G×2X×Lis a ﬁnite set of edges ,( v ) I:L→G
+assigns an invariant to each location, and (vi) L:L→2APis
+thelabeling function.
+The semantics of a timed automaton Ais given by a
+labeled transition system TA.Astate ofAis a pairq=(l,ν)
+such that l∈Landν/satisfiesI(l). We letQdenote the set of all
+states.
+We distinguish two kinds of transitions: time transitions
+and switch-transitions :
+(i) Given q=(l,ν)a n dq/prime=(l/prime,ν/prime) two states of A, there
+is a time-transition inAbetweenqandq/primeif there
+existsτ∈R+such that l=l/prime,ν/prime=ν+τandν+τ/prime/satisfies
+I(l)f o ra n yτ/prime,0≤τ/prime≤τ. We denote this transition
+byqτ−→q/prime.
+(ii) Given q=(l,ν)a n dq/prime=(l/prime,ν/prime) two states of A, there
+is a switch transition inAbetweenqandq/primeif there
+existse=(l,a,g,Y,l/prime)∈Esuch that ν/satisfiesgandν/primeis
+given by
+ν/prime
+i=⎧
+⎨
+⎩0, ifxi∈Y,
+νi,i fxi/∈Y.(B.1)
+We denote this switch-transition by qe−→q/prime. T o emphasize
+on the action a,w ea l s ou s en o t a t i o n qa−→q/primein this case, we
+use the notation Action( e)=a.
+We now deﬁne the (labeled) transition system TA.
+
+--- Page 12 ---
+12 EURASIP Journal on Wireless Communications and Networking
+Deﬁnition 2. Given a timed automaton A, the (labeled)
+transition system associated with Ais given by TA=
+(Q,Σ∪+,→) where the transition relation is given by
+−→ =/uniondisplay
+τ∈R+τ−→∪/uniondisplay
+e∈Ee−→.(B.2)
+Let A=(L,X,Σ,E,I,L) be a timed automaton, q1,q2
+andq3be three states of A.I fq1τ−→q2,f o rs o m e τ∈R+,
+andq2e−→q3,f o rs o m e e∈E, we shortly denote q1τ·e−−→
+this sequence of two transitions. A ﬁnite or inﬁnite run ρis
+sequence of alternating transitions of the form
+ρ=q1τ1·e1−−−→q2τ2·e2−−−→···τk·ek−−−→qk+1···. (B.3)
+We denote by Run A(resp., Runf
+A) the set of runs (resp.,
+ﬁnite runs) of A.
+C. Timed Games
+Deﬁnition 1. Let A=(L,X,Σ,E,I) be a timed automaton.
+We say that Ais atimed game , if the set of action Σcontains
+ap a r t i c u l a ra c t i o nd e n o t e d u.
+In this context, the transitions labeled with uare called
+the uncontrollable transitions . They represent the set of
+actions available to the environment. The other ones arecalled the controlled transitions .W ed e n o t eb y Σ
+cthe set of
+actionsΣ\{u}.
+Before giving the semantics of timed games, let us ﬁrst
+explain it intuitively.
+Let A=(L,X,Σ,E,I)b eat i m e dg a m e .T h eg a m ei s
+played by two players, Player 1 (the controller )a n d Player 2
+(the environment ). At any state q, Player 1 picks a time τand
+an action a∈Σcsuch that there is a transition qτ·e−−→q/primewith
+Action(e)=a. Player 2 has two choices:
+(i) either he can decide to wait for time τand execute a
+transition qτ·e−−→q/primeproposed by Player 1,
+(ii) or he can wait for time τ/prime,0≤τ/prime≤τ,a n de x e c u t ea
+transition qτ/prime·e/prime
+−−→q/prime/primewith Action( e/prime)=u.
+The game then evolves to a new state (according to the choice
+of Player 2) and the two players proceed to play as before.
+Notice that, in the deﬁnition of a timed game, it is
+implicitly supposed that Player 1 can always formulate a
+choice (τ,a) in any reachable state qof the game.
+We will now formalize the semantics through the concept
+ofstrategy .
+Deﬁnition 2. A(Player 1)s t r a t e g y is a function
+λ:R u nf
+A
+-−→R+×Σc. (C.1)
+Before deﬁning the notion of a winning strategy, we need to
+deﬁne several other notions. We say that a run ρismaximal
+if it is either inﬁnite or ending in a deadlock. An objectiveΩof a timed game is a subset of the runs of A.L e tρbe a
+run of the form q
+1τ1·e1−−−→q2τ2·e2−−−→···τk·ek−−−→qk+1···,w edenote by ρithe preﬁx of ρending in qi.G i v e nas t r a t e g y λ
+and a run ρ, we say that ρisplayed according to λfor every
+i,i fλ(ρi)=(τ/prime
+i,ai), then either τi=τ/prime
+iand Action( ei)=ai,
+orτi≤τ/prime
+iand Action( ei)=u.W ed e n o t eb yO u t c o m e ( ρ,λ)
+the set of maximal runs extending ρand played according
+toλ. Given a state q,as t r a t e g y λand an objective Ω,w e
+say that the strategy λis winning for the objective Ωfromq
+if Outcome( q,λ)⊆Ω.
+Acknowledgment
+The work reported herein is partly supported by “Institut
+Farman” (ENS Cachan) and by CNRS, in the framework ofthe TOAST project.
+References
+[1] J. Mitola III and G. Q. Maguire Jr., “Cognitive radio: making
+software radios more personal,” IEEE Personal Communica-
+tions , vol. 6, no. 4, pp. 13–18, 1999.
+[2] Q. Zhao and B. M. Sadler, “A survey of dynamic spectrum
+access,” IEEE Signal Processing Magazine ,v o l .2 4 ,n o .3 ,p p .7 9 –
+89, 2007.
+[3] W. Yu, G. Ginis, and J. M. Cio ﬃ, “Distributed multiuser power
+control for digital subscriber lines,” IEEE Journal on Selected
+Areas in Communications , vol. 20, no. 5, pp. 1105–1115, 2002.
+[4] L. Lai and H. E. El Gamal, “The water-ﬁlling game in fading
+multiple-access channels,” IEEE Transactions on Information
+Theory , vol. 54, no. 5, pp. 2110–2122, 2008.
+[5] E.-V . Belmega, S. Lasaulce, and M. Debbah, “Power allocation
+games for mimo multiple access channels with coordination,”
+IEEE Transactions on Wireless Communications , vol. 8, no. 6,
+pp. 3182–3192, 2009.
+[6] D. Goodman and N. Mandayam, “Power control for wireless
+data,” IEEE Personal Communications , vol. 7, no. 2, pp. 48–54,
+2000.
+[7] F. Meshkati, M. Chiang, H. V . Poor, and S. C. Schwartz, “A
+game-theoretic approach to energy-e ﬃcient power control in
+multicarrier CDMA systems,” IEEE Journal on Selected Areas
+in Communications , vol. 24, no. 6, pp. 1115–1129, 2006.
+[8] S. Lasaulce, Y. Hayel, R. El Azouzi, and M. Debbah, “Introduc-
+ing hierarchy in energy games,” IEEE Transactions on Wireless
+Communications , vol. 8, no. 7, pp. 3833–3834, 2009.
+[9] S. Lasaulce, M. Debbah, and E. Altman, “Methodologies for
+analyzing equilibria in wireless games,” IEEE Signal Processing
+Magazine , vol. 26, no. 5, pp. 41–52, 2009.
+[10] O. Maler, A. Pnueli, and J. Sifakis, “On the synthesis of
+discrete controllers for timed systems,” in Proceedings of the
+12th Annual Symposium on Theoretical Aspects of ComputerScience (STACS ’95) , vol. 900, pp. 229–242, Munich, Germany,
+March 1995.
+[11] E. Emerson, “T emporal and modal logic,” in Handbook
+of Theoretical Computer Science , pp. 995–1072, MIT Press,
+Cambridge, Mass, USA, 1990.
+[ 1 2 ] E .M .C l a r k e ,O .G r u m b e r g ,a n dD .A .P e l e d , Model Checking ,
+MIT Press, Cambridge, Mass, USA, 1999.
+[13] Y. Xing and R. Chandramouli, “Stochastic learning solution
+for distributed discrete power control game in wireless data
+networks,” IEEE/ACM Transactions on Networking , vol. 16, no.
+4, pp. 932–944, 2008.
+[14] G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G. Larsen,
+and D. Lime, “UPPAAL-tiga: time for playing games!,” in
+
+--- Page 13 ---
+EURASIP Journal on Wireless Communications and Networking 13
+Proceedings of the 19th International Conference on Computer
+Aided Veriﬁcation (CA V ’07) , vol. 4590, pp. 121–125, Berlin,
+Germany, 2007.
+[15] A. B. Carleial, “Interference channels,” IEEE Transactions on
+Information Theory , vol. 24, no. 1, pp. 60–70, 1978.
+[16] G. Scutari, S. Barbarossa, and D. P . Palomar, “Potential games:
+a framework for vector power control problems with coupledconstraints,” in Proceedings of IEEE International Conference on
+Acoustics, Speech and Signal Processing (ICASSP ’06) , vol. 4, pp.
+241–244, T oulouse, France, May 2006.
+[17] R. Alur and D. L. Dill, “A theory of timed automata,”
+Theoretical Computer Science , vol. 126, no. 2, pp. 183–235,
+1994.

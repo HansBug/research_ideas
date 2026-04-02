@@ -1,0 +1,519 @@
+--- Page 1 ---
+Aalborg Universitet
+Statistical Performance Verification of the FS-MPC Algorithm Applied to the Matrix
+Converter
+Novak, Mateja; Grobelna, Iwona; Nyman, Ulrik; Szcześniak, Pawel; Blaabjerg, Frede
+Published in:
+2022 International Power Electronics Conference (IPEC-Himeji 2022- ECCE Asia)
+DOI (link to publication from Publisher):
+10.23919/IPEC-Himeji2022-ECCE53331.2022.9806839
+Creative Commons License
+Unspecified
+Publication date:
+2022
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Novak, M., Grobelna, I., Nyman, U., Szcześniak, P., & Blaabjerg, F. (2022). Statistical Performance Verification
+of the FS-MPC Algorithm Applied to the Matrix Converter. In 2022 International Power Electronics Conference
+(IPEC-Himeji 2022- ECCE Asia) (pp. 76-82). IEEE Press. https://doi.org/10.23919/IPEC-Himeji2022-
+ECCE53331.2022.9806839
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+
+--- Page 2 ---
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 3 ---
+Statistical Performance Veriﬁcation of the FS-MPC
+Algorithm Applied to the Matrix Converter
+Mateja Novak1∗, Iwona Grobelna2, Ulrik Nyman3, Pawel Szczesniak2and Frede Blaabjerg1
+1 AAU Energy, Aalborg University, Aalborg, Denmark
+2 Autom. Control, Electronics and Electr. Eng, University of Zielona Gora, Zielona Gora, Poland
+3 Computer Science Department, Aalborg University, Aalborg, Denmark
+∗E-mail: nov@energy.aau.dk
+Abstract —In recent publications statistical model checking
+(SMC) has been proposed as a method for verifying the perfor-
+mance of ﬁnite-set model predictive control (FS-MPC) algorithms
+applied to power electronics converters. SMC is a powerful
+method originating from statistics, which can provide statistical
+evidence of a system’s performance in a stochastic environment.In this paper , SMC is applied to a direct matrix converter , which
+operates in a grid with different harmonic distortion levels and
+voltage sags. Using the proposed method it is possible to evaluatenot only the performance of the control algorithm in terms ofthe output current distortion but also evaluate the effects of
+the weighting factor selection and grid distortions on the device
+utilization. The obtained results show that high grid distortionsand voltage sags increase the number of switching cycles. This
+information can be of great importance to identify the most
+stressed devices and how the control algorithm can be adapted to
+extend the lifetime of the devices and thereby the system duringdifferent grid conditions at the very early stage of the converter
+system design.
+Index T erms —ﬁnite-set model predictive control, matrix con-
+verter , performance veriﬁcation, statistical model checking
+I. I NTRODUCTION
+In the design of grid-connected power electronics converter
+systems, veriﬁcation of the control algorithm is an importantdesign stage as improper design might have a high inﬂuence onother units operating in the grid [1]. Moreover, nowadays theimportance of design for reliability (DfR) has increased [2],the inﬂuence of the control algorithm on the stress of the
+components becomes more relevant and it should be explored
+before implementing the control algorithm. For linear control
+based algorithms, methods for evaluating the performance andstability are well established, while for control algorithms like
+model predictive control (MPC), whose popularity in powerelectronic converter applications is increasing, the methods
+for verifying the performance and stability are still under
+development [3].
+Available control algorithm veriﬁcation methods in power
+electronics systems [4] include simulations, symbolic model
+checking (MC), statistical model checking (SMC), hardware-
+in-the-loop (HiL) and experiments. Each of them has its
+advantages and disadvantages, providing at the same timedifferent kinds of feedback information and it is typically
+applied at different stages of converter system development.Formal veriﬁcation methods (e.g. symbolic MC and SMC),
+which use mathematical models, can be applied at the earlystages of system development to increase the quality of the
+ﬁnal product and to decrease the costs of design correction [5].
+Symbolic MC [6] allows the analysis of dynamical systemsmodeled by state-transition systems and has been widelyused for the veriﬁcation of hardware and software in the
+industry. A system model is typically compared with user-
+deﬁned requirements. As a result, an answer is given statingwhich properties are satisﬁed and which are not, in the secondcase - also supplemented with counter-examples. Symbolicmodel checking was applied for a direct matrix converter(DMC) in [7] for veriﬁcation of structural properties, e.g.,
+whether all system locations are reachable. Symbolic MC
+gives a 100% conﬁdence, but it suffers from the state spaceexplosion problem and it is not suitable for systems with
+stochastic components. Therefore, in many cases the system
+model has to be some kind of abstraction.
+As an alternative, SMC was introduced, which can be
+treated as a combination of simulation and statistical meth-
+ods [8], [9]. Instead of exploring the whole state space of thesystem, the distribution of samples obtained by simulating thestochastic system is used to obtain an estimated probability
+of the system having a certain property. It allows gainingstatistically valid results that predict system behaviour with
+high conﬁdence. Guidelines for applying SMC for control
+algorithm performance veriﬁcation in power electronics ap-
+plications were presented in [10], where the veriﬁcation wasfocused on the effects of a stochastic load, weighting factordesign and parameter mismatch on the reference tracking
+performance.
+In this paper it will be demonstrated how an SMC approach
+can provide valuable information about the performance of
+the grid connected converters operating with the FS-MPCalgorithm. The direct matrix converter with FS-MPC algorithm
+was selected as the application topology. Predictive control has
+been reported as the most promised alternative to control the
+matrix converter. However, due to the lack of performance ver-iﬁcation tools, it was not possible to complete the benchmark-ing to other conventional methods in [11]. The SMC approach
+applied in this paper can provide the necessary informationon how a grid connected matrix converter performs under
+different levels of harmonic distortions and types of voltage
+sags. In order to ensure safe operation of a grid-connected
+converter, algorithm performance in these conditions should
+
+--- Page 4 ---
+Fig. 1: Workﬂow of the control algorithm performance veriﬁcation using U PPAAL SMC.
+be analysed. On top of that, using SMC, the distribution of
+device thermal stress can be checked at the same time. Due to
+the fact that the FS-MPC algorithm has a variable switching
+frequency, it cannot easily be performed using conventionalsimulations. Different grid conditions paired with different
+weighting factors used in the algorithm will provide differentstress distributions. Methods that explore a single run of thesystem, like simulations or experiments, will be unable tocover all the converter operating points or easily gain insight
+into the statistical evidence of the system performance.
+Both modelling and veriﬁcation of the matrix converter
+system are performed using U
+PPAAL SMC, a model checker
+toolbox, whose essential building blocks are timed automatastructures (state machines). This fact makes it partially easyfor implementation as the behaviour of FS-MPC algorithm
+can be represented using a state machine. Each stage of
+the veriﬁcation workﬂow is illustrated in Fig. 1 and will bepresented in detail in the following sections.
+The rest of the paper is structured as follows. Section II
+provides some general information about the system model.Section III explains how the system can be modelled in the
+U
+PPAAL SMC toolbox to enable SMC. Section IV shows
+the results of the performed SMC, focusing on the effectsof a stochastic grid behavior on the device stress and controlperformance and, additionally, the effects of the cost functionon the device stress. Finally, section V concludes the paper.
+II. S
+YSTEM MODEL
+A direct matrix converter (DMC) [12] can be described as
+a power electronic system with a complex structure and with
+a large number of power electronic devices, responsible for
+a direct AC/AC conversion. Statistical model checking will bepresented on the example of a direct matrix converter with
+a simpliﬁed load model. The load is modelled as a typicalimpedance with series connected Rand Lelements. The
+structure of the converter is a matrix of bidirectional semi-conductor devices directly switching the three-phase powergrid to the inductive load as shown in Fig. 2. It is possible toindependently control the output currents and the input powerfactor. The converter is connected to the source through a low-pass input ﬁlter to eliminate high-frequency harmonics in theinput currents and overvoltages from the network.
+The converter will be operated using the FS-MPC algorithm
+presented in [11], [12], thus only a short algorithm description
+will be provided here. The FS-MPC algorithm control actionsvSa
+vSb
+vScL6
+L6
+L6R6
+R6
+R6
+C6C6C6iin a
+iin bioa iSa
+iSb
+iSc
+Predictive 
+modelMinimization of the 
+cost function27i*
+o,abc  (k+1)vin,abc
+Sij(k)iob
+iocLLoad
+LLoad
+LLoadRLoad
+RLoad
+RLoadvo,abcSaA
+SbA
+ScA
+SaB
+SbB
+ScB
+SaC
+SbC
+ScCiS,abc(k), vS,abc(k)
+iin,abc (k), vin,abc (k)
+io,abc(k)a
+iin cb
+cA
+B
+CGrid Load LC Filter
+FS-MPC 
+algorithmCost function
+calculation&RQYHUWHU
+Fig. 2: Simpliﬁed direct matrix converter topology with FS-MPC algorithm.
+are based on predicted values of the system variables. The
+predictions are calculated for all allowed converter operation
+states (27 in total) using the system model and afterward
+evaluated in the cost function. The converter state that willprovide the minimum cost function value is selected amongthe allowed converter operation states. The source ﬁlter system
+model can be described by the state space equations in (1) and
+the load model by the equation (2), where L
+F,RLFandCF
+represent the output ﬁlter inductance, resistance and capaci-
+tance,LLoad andRLoad are load inductance and resistance,
+respectively. The DMC model is deﬁned by equations (3)-(4)describing the voltage and current relationships at the outputand input:
+/bracketleftBigg
+dvin, abc
+dtdiS, abc
+dt/bracketrightBigg
+=/bracketleftbigg01
+CS−1
+LS−RS
+LS/bracketrightbigg/bracketleftbigg
+vin, abc
+iS, abc/bracketrightbigg
++
++/bracketleftbigg0−1
+CS1
+LS−RS
+LS/bracketrightbigg/bracketleftbigg
+vS, abc
+iin, abc/bracketrightbigg
+(1)
+LLoaddio, abc
+dt=vo, abc−RLoadio, abc (2)
+⎡
+⎣voa
+vob
+voc⎤
+⎦=⎡
+⎣saAsbAscA
+saBsbBscB
+saCsbCscC⎤
+⎦⎡
+⎣vin a
+vin b
+vin c⎤
+⎦ (3)
+
+--- Page 5 ---
+Fig. 3: Controller model in U PPAAL SMC.
+⎡
+⎣iin a
+iin b
+iin c⎤
+⎦=⎡
+⎣saAsaBsaC
+sbAsbBsbC
+scAscBscC⎤
+⎦⎡
+⎣ioa
+iob
+ioc⎤
+⎦ (4)
+wherevS, abc andiS, abc are the grid voltages and currents,
+vin, abc andiin, abc are the converter input voltages and
+currents, vo, abc andio, abc are the load voltages and currents
+andsxy∈(0,1)deﬁne the switching states of the converter
+devices shown in Fig. 2 for x,y∈a,b,c . Using the forward
+Euler method, equations (1) and (2) are discretized and usedto calculate the predictions. New measurements of signalsv
+S, abc ,iS, abc andvin, abc andio, abc are obtained for each
+sampling period. Accurately tracking the reference output
+currenti∗
+o, abc by shaping the appropriate output voltage of
+the converter is the main goal of the algorithm. A secondarycontrol objective with the goal of maintaining unity input
+power factor is also deﬁned. For these purposes, the cost
+function is deﬁned as:
+g=λ
+1/parenleftBig
+|i∗
+oα−ip
+oα|+|i∗
+oβ−ip
+oβ|/parenrightBig
++λ2|vSβip
+Sα−vSαip
+Sβ|(5)
+where indices αandβ- are the real and imaginary part of the
+respective three-phase voltages and currents described in the
+complex reference plane, ip
+S, abcandip
+o, abcare the predicted
+values obtained using the system model, λ1andλ2are the
+weighting factors.
+III. M ODELING THE SYSTEM IN THE UPPAAL TOOLBOX
+In order to formally verify the performance of a designed
+matrix converter, it is ﬁrst necessary to present it as a networkof timed automata (Figs. 3-5). The core component is the
+Controller model (shown in Fig. 3), with 27 available loca-
+tions, which are chosen based on the result of calculating thecost function (5). The model represents two components from
+Fig. 2: converter and the control algorithm. Each location of
+the controller model has a unique name related to the switch
+conﬁguration. For example: location
+aacindicates that in this
+location the output terminals of the matrix converter Aand B
+are connected to the input terminal aand the output terminal Cis connected to the input terminal c. Before reaching the
+location, to each switch of the matrix converter will beassigned to appropriate values (switching signals 1 or 0, i.e.,ON and OFF) that can realize the state deﬁned in that location(e.g.
+assignS (1,0,0,1,0,0,0,0,1)for location aac). On each
+transition edge there is a guard for choosing the particular
+location, resulting from calculating the cost function (e.g.
+con== 19 for location aac). The transition from one location
+of a controller to the next is triggered by a synchronization
+component. The synchronization component sends the tick
+signal to the Controller model every 25 time units, whichequals to sampling time of 25 μs. The system voltages and
+currents are deﬁned in a physical system automaton (Fig. 5)
+as a system of ﬁrst-order differential equations. They areobtained from the system model equations given in (1)-(4) andmultiplied by the GLOBAL FACTOR = 10
+−6, so the system
+will have the same dynamics as an equivalent simulation
+model with a sample time of Ts=1μs.
+One of the metrics that will be used to evaluate the perfor-
+mance of the algorithm is the root mean square difference of
+the load current (RMSD), deﬁned by the equation:
+RMSD=/radicalBigg/summationtextN
+j=1(ij−i∗
+j)
+N(6)
+whereNrepresents the number of samples, ijis the measured
+load current and i∗
+jis the reference current. The RMSD model
+in U PPAAL SMC is shown in Fig. 4b. It can be noticed that
+three values are calculated, namely a,band c, which represent
+the RMSD of each phase. These values will be compared undervarious combinations of grid sag types and distortion levels.
+To assess the performance of the algorithm, a stochas-
+tic grid model is used. Three levels of grid distortions(no/low/high distortion) are modelled separately. The structure
+of the low/high distortion models is the same (leading froma perfect grid), the values and equations are adjusted for the
+particular distortion. The low distortion grid corresponds to the
+compatibility level of harmonics deﬁned by the IEC 61000-2-
+4 [13], while the high distortion grid – to the immunity level of
+
+--- Page 6 ---
+(a) Grid sag type A.
+ (b) RMSD.
+Fig. 4: Model of grid sag type A and root mean square difference (RMSD) in U PPAAL SMC where V0a,V0b,V0care the
+amplitudes of the grid voltages and a,b,care the load current RMSD values for each phase.
+Fig. 5: Model of the physical system in Uppaal SMC.
+harmonics deﬁned by the IEC 61800-3 [14]. The grid voltage
+waveforms are shown in Fig. 6.
+In the ABC classiﬁcation, seven grid sag types are deﬁned
+based on the fault type, transformer winding connection and
+load connection [15]. For the application presented in thispaper, grid sag types - A, B and E - were selected. As anillustration, a model of grid sag type A in U
+PPAAL SMC is
+shown in Fig. 4a. Initially, the nominal grid parameter valuesare used and then randomly changed to model the stochasticbehaviour of the grid, also depending on the depth of the sagsize. In Fig.7a the voltage waveform during sag type A andlow level of grid distortion can be observed. This type ofsag inﬂuences all three grid phases by reducing the voltageamplitude for a certain period. Sag type B inﬂuences onlyone phase, selected randomly as shown in Fig.7b. Finally, sagtype E shown in Fig. 7c, will inﬂuence two phases, also chosenrandomly (during one simulation all phases have the same
+likelihood to experience a voltage sag).
+Any combination of distortion and grid sag type can be
+modeled, thus e.g. perfect grid and grid sag type A, low
+distortion and grid sag type B, or high distortion and grid sag
+type E. This allows comparing the performance of the FS-
+MPC algorithm under various conditions and can be checkedas it is demonstrated in the next section.
+IV . S
+TATISTICAL MODEL CHECKING
+Performance veriﬁcation has been carried out using the
+UPPAAL SMC toolbox [16]. Before evaluating various queries,
+multiple simulations have been performed and compared withSimulink simulation results to make sure that the system
+has been correctly modelled. Only after successful checking(and comparison) of simulation results, the results obtained
+in SMC can be treated as correct and representative. Two
+
+--- Page 7 ---
+0 0.01 0.02 0.03 0.04
+ Time(s)-400-2000200400 Grid voltage(V)vsa (no dis.)
+vsb (low dis.)
+vsc (high dis.)
+Fig. 6: Grid voltage waveforms: no distortion (no dis.), low
+distortion (low dis., compatibility level), high distortion (highdis., immunity level).
+ Time (s) Grid voltage(V)vsa
+vsb
+vsc
+(a) Grid sag A.
+0 0.01 0.02 0.03 0.04
+ Time (s)-400-2000200400 Grid voltage(V)vsa
+vsb
+vsc
+(b) Grid sag B.
+ Time (s) Grid voltage(V)vsa
+vsb
+vsc
+(c) Grid sag E.
+Fig. 7: Waveforms of the grid voltage sag types. Sag duration
+and location are selected randomly in each simulation run.
+types of queries have been deﬁned, i.e. probability and
+value estimation. Probability estimation (quantitative modelchecking) returns the probability of a path expression be-
+ing true in the deﬁned interval of the simulation (0, END)
+given that the predicate in probability brackets is true (e.g.,Pr[<=END](<>(Rmsd.a > 0.1))). Value estimation
+returns the expected mean value of an expression (e.g.,E[<=END](max:Rmsd.a)) by running a given number
+of simulations. The duration of a single simulation was set toEND = 4400, which corresponds to 44 ms. The number of
+simulations affects directly the veriﬁcation time. Afterward,the obtained results can be compared, analysed and interpreted
+to show how they inﬂuence the performance. The veriﬁcationof stochastic models is much more time-consuming than for
+fully deterministic models, but all deﬁned queries could be
+veriﬁed within a reasonable time for this application.
+A. Effects of the stochastic grid on the device stress
+SMC was ﬁrst applied to verify how different levels of
+grid distortion affect the utilization of the devices. For thispurpose two performance metrics were monitored for eachdevice of the matrix converter: the number of switching cycles
+(Fig. 8), and the conduction time during 20 fundamentalcycles (0.2 s) (Fig. 9). The mentioned metrics are connected
+to device switching and conduction losses. Device switchinglosses depend on the load current, junction temperature andduty cycles, while switching losses depend on the load current,load type, DC-link voltage, junction temperature and switching
+frequency [17]. Both the duty cycle and switching frequencyare in the case of the used FS-MPC algorithm variable, thusit is not easy to connect the expected thermal stress to the
+operation of the converter. What is also common for both
+loss types is the dependency on the current amplitude. Aslow amplitude currents do not produce high switching losseswhen counting the number of switching cycles for the purposeof comparing the switching stress during different distortions,
+the cycles where the device current was below 60% of the
+reference were not included in the stress analysis. Similar, the
+time intervals where the current ﬂowing through the device
+was below 60% were not included in the conduction time.
+In the presented case, the λ
+2was set to 0, i.e., the reactive
+power compensation was not active. It can be observed thatthree devices in each phase ( S
+1,S5,S9) have a signiﬁcantly
+larger switching and conduction stress. For the conductionintervals, the grid level distortion did not have an impact, buta higher number of switching cycles was observed for almostall devices when the grid distortion was high. This means thatthe converter had to increase the switching effort to supplythe load with a sinusoidal current, thus the switching stressapplied to the devices was also increased.
+B. Effects of the cost function on the device stress
+The device utilization has also been evaluated for the cost
+function with reactive power compensation ( λ
+2=0.01)i n
+Fig. 8 and Fig. 9. It can be observed, that for both cost
+functions, the amount of switching cycles is the highest fora high grid distortion, and the lowest for a grid without
+distortion, but the absolute values for λ
+2=0.00andλ2=0.01
+
+--- Page 8 ---
+differ a lot. For example, the number of switching cycles of
+theS1switch is almost 3000 when λ2=0.00, in comparison
+to half of the value when λ2=0.01(taking into account the
+same time period). Moreover, for the conduction interval it canbe noticed that the distribution is even more unbalanced, e.g.,devices (S
+1,S5,S9) forλ2=0.00conduct approximately for
+the same amount of time, while for λ2=0.01this is no longer
+the case. It can be concluded that by tuning the weighting
+factorλ2, the number of switching cycles can be reduced.
+In this way, SMC can be used to assess if the weightingfactor, which was selected in the steady state using some of theavailable weighting factor design methods, does also providethe required performance metrics in a stochastic environment
+with high harmonic distortion and voltage sags.
+Fig. 8: Number of device switching cycles for different levels
+of grid distortion and λ2.
+Fig. 9: Device conduction time for different levels of grid
+distortion and λ2.
+C. Effects of the stochastic grid on the control performance
+The average RMSD of the converter output current ( io,abc),
+expressed as an % of the reference current value, has beenevaluated for various combinations of grid voltage sags and
+grid distortions. The results are summarized in Fig. 10. It can
+be observed that for all grid distortion combinations and sagtypes, which reduce the grid voltage amplitude for only 0.1pu, theRMSD will preserve a low value. For larger voltage
+sags (0.3 pu) the A type and E type voltage sags signiﬁcantly
+degrade the performance of the control algorithm, as the resultsindicate 4% RMSD (two to three times larger than for 0.1 pu).
+It is interesting to observe that B type voltage sag, which isshown in Fig. 7 effects only one phase at a time, and does not
+signiﬁcantly degrade the controller performance.
+Fig. 10: Average root mean square difference ( RMSD ) ob-
+tained for different grid level distortions and voltage sags.
+D. Experimental validation
+In the experimental veriﬁcation the FS-MPC control algo-
+rithm has been implemented using a DSP card with Analog
+Devices Sharc processor (ADSP-21369) and 12 A/D con-
+verters. The matrix converter is powered by programmable
+multi-functional power source NETWA VE 20.2, which is used
+to apply various types of low-frequency distortions to thethree-phase supply voltage. Parameters of the experimental
+set-up shown in Fig. 11 are the following: L
+S=1mH,
+RS=0.01 Ω ,CS=6 0μF,LLoad=4 4mH and
+RLoad=6 9Ω . FS-MPC algorithm cost function (5) was used
+with weighting factors λ1= 1 andλ2= 0.01.
+The experiments were performed for the case of unbalanced
+source voltages where USa= 100%,USb= 90%,USc=
+95% ofUnas presented in Fig. 12 and for the case of high
+harmonic distortion of the source voltage in Fig. 13. It wasobserved in both cases that the output currents can follow thedeﬁned set of sinusoidal reference currents even with distortedsource voltage and voltages dips.
+V. C
+ONCLUSION
+SMC is proposed as an approach to verify the performance
+of the FS-MPC algorithm controlling a direct matrix converter
+connected to a stochastic grid model. The proposed converter
+system model, modelled in U PPAAL SMC, was used to verify
+how the controller performance and device stress distributionis affected by the different level of harmonic grid voltagedistortion and voltage sags. It was observed that a higher
+level of distortion will increase the switching stress, thus it
+is important to include different levels of grid distortions in
+
+--- Page 9 ---
+Fig. 11: Experimental set-up: matrix converter (1), RL load
+(2), DSP and FPGA control board (3), autotransformer (4),
+oscilloscope (5), PC (6).
+9
+$9 9
+YVD
+LRDYVEYVF
+Fig. 12: Experimental results with voltage sags in the sourcevoltages.
+the veriﬁcation. Moreover, device stress was not the same for
+different cost functions. This offers the possibility to deﬁnethe weighting factors in the cost function for a different level
+of grid voltage distortion and reduce the degradations of the
+most stressed devices. Finally, it was demonstrated that not alltypes of voltage sags signiﬁcantly degrade the performance ofthe control algorithm. As the proposed method requires mosttime to be invested in the modeling of the power electronics
+system, in future work we will focus on simplifying this
+procedure by providing building blocks for fast modeling of
+power electronics systems.
+A
+CKNOWLEDGMENT
+The work is supported by the Reliable Power Electronic-
+Based Power System (REPEPS) project at the AAU Energy,
+Aalborg University as a part of the Villum Investigator Pro-
+gram funded by the Villum Foundation.
+REFERENCES
+[1] Q. Peng, Q. Jiang, Y . Yang, T. Liu, H. Wang, and F. Blaabjerg, “On
+the stability of power electronics-dominated systems: Challenges and
+potential solutions,” IEEE Trans. Ind. Appl. , vol. 55, no. 6, pp. 7657–
+7670, 2019.
+[2] J. Falck, C. Felgemacher, A. Rojko, M. Liserre, and P. Zacharias,
+“Reliability of power electronic systems: An industry perspective,” IEEE
+Ind. Electron. Mag. , vol. 12, no. 2, pp. 24–35, 2018.
+9 $
+$
+9YVD
+LVD
+LRD
+YRDE
+Fig. 13: Experimental results with harmonic distortion in the
+source voltages.
+[3] P. Karamanakos, E. Liegmann, T. Geyer, and R. Kennel, “Model
+predictive control of power electronic systems: Methods, results, and
+challenges,” IEEE Open Jour . of Ind. Appl. , vol. 1, pp. 95–114, 2020.
+[4] P. Szcze ´sniak, I. Grobelna, M. Novak, and U. Nyman, “Overview of
+control algorithm veriﬁcation methods in power electronics systems,”
+Energies , vol. 14, no. 14, 2021.
+[5] J. Woodcock, P. G. Larsen, J. Bicarregui, and J. Fitzgerald, “Formal
+methods: Practice and experience,” ACM Comput. Surv. , vol. 41, no. 4,
+Oct. 2009.
+[6] E. M. Clarke Jr, O. Grumberg, D. Kroening, D. Peled, and H. Veith,
+Model checking . MIT Press, 2018.
+[7] R. Wisniewski, G. Bazydło, P. Szcze ´sniak, I. Grobelna, and M. Woj-
+nakowski, “Design and veriﬁcation of cyber-physical systems speciﬁedby petri nets—a case study of a direct matrix converter,” Mathematics ,
+vol. 7, no. 9, 2019.
+[8] E. M. Clarke and P. Zuliani, “Statistical model checking for cyber-
+physical systems,” in Automated Technology for V eriﬁcation and Anal-
+ysis. Springer Berlin Heidelberg, 2011, pp. 1–12.
+[9] G. Agha and K. Palmskog, “A survey of statistical model checking,”
+ACM Trans. Model. Comput. Simul. , vol. 28, no. 1, p. 1–39, Jan. 2018.
+[10] M. Novak, U. M. Nyman, T. Dragicevic, and F. Blaabjerg, “Statistical
+model checking for ﬁnite-set model predictive control converters: A
+tutorial on modeling and performance veriﬁcation,” IEEE Ind. Electron.
+Mag. , vol. 13, no. 3, pp. 6–15, 2019.
+[11] J. Rodriguez, M. Rivera, J. W. Kolar, and P. W. Wheeler, “A review
+of control and modulation methods for matrix converters,” IEEE Trans.
+Ind. Electron. , vol. 59, no. 1, pp. 58–70, 2012.
+[12] L. Empringham, J. W. Kolar, J. Rodriguez, P. W. Wheeler, and J. C.
+Clare, “Technological issues and industrial application of matrix con-
+verters: A review,” IEEE Trans. Ind. Electron. , vol. 60, no. 10, pp.
+4260–4271, 2013.
+[13] “Electromagnetic compatibility (EMC) - part 2-4: Environment - com-
+patibility levels in industrial plants for low-frequency conducted distur-
+bances,” IEC 61000-2-4 , pp. 1–75, June 2002.
+[14] “Adjustable speed electrical power drive systems - part 3: EMC require-
+ments and speciﬁc test methods,” IEC 61800-3 , pp. 1–386, Feb 2017.
+[15] M. H. Bollen, Understanding Power Quality Problems: V oltage Sags
+and Interruptions . Wiley-IEEE Press, 1999.
+[16] A. David, K. G. Larsen, A. Legay, M. Miku ˘aionis, and D. B. Poulsen,
+“Uppaal SMC tutorial,” Int. J. Softw. Tools Technol. Transf. , vol. 17,
+no. 4, p. 397–415, Aug. 2015.
+[17] “Application manual power semiconductors,” Semikron , pp. 1–464, Rev
+2 2015.

@@ -1,0 +1,1112 @@
+--- Page 1 ---
+Aalborg Universitet
+Analytical Design and Performance Validation of Finite Set MPC Regulated Power
+Converters
+Novak, Mateja; Nyman, Ulrik Mathias; Dragicevic, Tomislav; Blaabjerg, Frede
+Published in:
+I E E E Transactions on Industrial Electronics
+DOI (link to publication from Publisher):
+10.1109/TIE.2018.2838073
+Publication date:
+2019
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Novak, M., Nyman, U. M., Dragicevic, T., & Blaabjerg, F. (2019). Analytical Design and Performance Validation
+of Finite Set MPC Regulated Power Converters. I E E E Transactions on Industrial Electronics, 66(3), 2004 -
+2014. Article 8368064. https://doi.org/10.1109/TIE.2018.2838073
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+
+--- Page 2 ---
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 3 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+Analytical Design and Performance Validation of
+Finite Set MPC Regulated Power Converters
+Mateja Novak, Student Member, IEEE, Ulrik Mathias Nyman, Tomislav Dragicevic, Senior Member, IEEE,
+and Frede Blaabjerg, Fellow, IEEE
+Abstract —A new approach to performance validation
+of ﬁnite control set model predictive control (FCS-MPC)
+regulated power electronics converters is presented in the
+paper - statistical model checking (SMC). SMC is an es-
+tablished method used in various sectors of industry to
+provide solutions to problems that are beyond the abilities
+of classical formal techniques. The method is simple for
+implementation and requires only an operational system
+model that can be simulated and checked against proper-
+ties. The approach will be presented on a standard 2-level
+voltage source converter (VSC) regulated by the FCS-MPC
+algorithm. In UPPAAL SMC toolbox the converter system
+and controller are modeled as a Network of Stochastic
+Timed Automata. To assess the quality of the model, an
+equivalent Simulink model is used as a benchmark model.
+Using the model created in UPPAAL SMC toolbox the
+performance of the FCS-MPC algorithm is veriﬁed. The
+control algorithm is also tested on an experimental set-
+up. During the evaluation, no signiﬁcant degradation of
+reference tracking was found during transients nor under
+model parameter uncertainty.
+Index Terms —Controller performance, DC-AC power
+conversion, ﬁnite control set model predictive control, sta-
+tistical model checking.
+I. INTRODUCTION
+CONTROL concept simplicity and the high-performance
+operation are important factors that decide the success
+of every new control method for power electronics converters.
+The cascaded linear control method has a long history of
+implementation and it is up to date the most matured control
+concept with widest range of implementation [1]. In this con-
+trol method, power electronics converter is approximated as
+a linear system using the modulation techniques (e.g. PWM).
+However, the application of a linear control method on a non-
+linear system can lead to variation of performance. Using a
+non-linear control method the non-linear discrete nature of
+the power electronic converter can be captured. The non-linear
+control methods are still under development and with constant
+improvements new application opportunities are emerging.
+Model predictive control (MPC) is one of the non-linear
+control methods that has received a lot of attention in the
+recent publications. The algorithm has been adapted to multi-
+ple applications in power electronics where linear hierarchical
+Manuscript received November 15, 2017; revised February 27 and
+April 17, 2018; accepted May 3, 2018.
+M. Novak, T. Dragicevic and F . Blaabjerg are with the Department
+of Energy Technology, Aalborg University, Aalborg, Denmark e-mail:
+(nov@et.aau.dk, tdr@et.aau.dk, fbl@et.aau.dk).
+U.M. Nyman is with with Department of Computer Science, Aalborg
+University, Aalborg, Denmark email:(ulrik@cs.aau.dk).control was dominating in the past years like electrical drives
+[2], [3], power ﬁlters [4], STATCOM [5], photovoltaics [6],
+microgrids [7] and many more. The system constraints and
+multi objective algorithms can easily be implemented making
+this control concept very attractive due to its straightforward
+design. In contrast to the cascaded linear control, where for
+every controlled variable an independent control loop has to
+be designed, the structure of the MPC algorithm can include
+all controlled variables in a single control loop. The core
+element of the control is the discrete model of the voltage
+source converter (VSC) and the converter output ﬁlter. Using
+the discrete model, the propagation of the control variables
+for the next sampling interval is calculated. The calculations
+are conducted for all possible converter switching states. The
+switching state which will produce the smallest difference
+between the control variable and the reference value will
+be applied to the converter switching devices. The latter is
+implemented in a form of a cost function, which typically
+has a structure of square of Euclidean distance between the
+reference signal and the prediction of the controlled variable.
+Most common objectives that can be included in a cost
+function are minimization of the reference tracking error [7],
+switching loss minimization [8], harmonics elimination [9],
+[10] and common-mode voltage minimization [11], [12]. The
+priorities of control objectives in the cost function are deﬁned
+by weighting factors. An overview of the converter objectives
+regarding their application is well presented in [13]. The
+quality of the prediction model has high importance as it
+directly affects the controller performance. If the parameters
+of the system are changing estimators are needed to ensure
+the predictions are correctly calculated.
+Predictive control algorithms can be divided into two cat-
+egories depending on how the optimization is performed
+and applied. The continuous control set MPC (CCS-MPC)
+produces a continuous reference that has to be modulated
+before it is applied to converter switching devices [14]–[16].
+On the other hand, ﬁnite control set MPC (FCS-MPC), which
+is a type of direct MPC, can directly apply the algorithm’s
+output signal to converter switching devices using an iterative
+algorithm to ﬁnd the optimum switching state [17], [18].
+MPC methods are not exactly a novelty in power electronics
+applications [19], however there are some aspects which are
+important for their implementation that have not yet been
+fully studied [13], [19]–[21]. An efﬁcient cost function design
+and weighting factor tuning process are one of the current
+concerns of MPC application in power electronics. While the
+traditional linear control algorithm can rely on well established
+
+--- Page 4 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+methods and guidelines to tune the controller parameters and
+verify the performance, MPC is still in need of analytical tools
+to improve the design process, evaluate the performance and
+demonstrate the stability. The issue of performance veriﬁcation
+of the FCS-MPC algorithm under different operating condi-
+tions, e.g. steady-state, transient load changes and parameter
+model mismatches, will be addressed in this paper. For steady-
+state performance, the algorithm veriﬁcation method must
+prove that the converter output voltages and currents will
+stay within the THD limits prescribed by the standards. On
+the other hand, transient load change can be treated as a
+disturbance in the system; therefore, veriﬁcation must ensure
+that the converter control can have a quick response and adjust
+to the new conditions in the system without causing larger
+variations than prescribed by the standards as well. Finally, the
+veriﬁcation under parameter mismatch should be done because
+the controller relies on the model.
+This paper is organized as follows. Section II outlines the
+most relevant research in the ﬁeld of FCS-MPC stability and
+performance veriﬁcation. The system model is introduced in
+Section III along with FCS-MPC algorithm and the deﬁned
+cost function. Section IV gives a brief introduction of the Sta-
+tistical Model Checking (SMC), a method used in this paper
+to verify the performance of the system. The presented FCS-
+MPC algorithm is veriﬁed in simulations and on experimental
+set-up in Sections V and VI, respectively. Results obtained by
+UPPAAL SMC toolbox are presented and discussed in Section
+VII. Finally, in Section VIII conclusions are provided.
+II. FCS-MPC STABILITY ,PERFORMANCE AND
+ROBUSTNESS RESEARCH
+Every control algorithm application demands a veriﬁcation
+of the performance and stability in closed-loop operation. In
+closed-loop control of the power converters, output variables
+like voltages, currents and power tend to diverge from the
+set-point values, so for a system to be addressed as stable it
+has to have the ability to prevent small input perturbations
+or disturbance in the control loop to cause large variations
+in the behavior of the converter output variables. Closed-loop
+stability of the MPC is usually analyzed using Lyapunov sta-
+bility theory and the inﬁnite-horizon MPC guarantees stability,
+however the closed-loop MPC is not necessarily stable with
+short prediction horizons [22]. FCS-MPC methods can’t rely
+on the well established traditional methods used for linear
+systems due to their non-linear nature, a closed-loop stability
+analysis of FCS-MPC is difﬁcult unless complicated mathe-
+matics is employed [21]. Because of the lack of analytical tools
+to evaluate the performance of MPC for power converters,
+extensive simulations or experiments were used to check the
+algorithm performance [19]. It is evident that a new approach
+is needed in this area. Table I presents an overview of research
+done in the ﬁeld of FCS-MPC performance and stability
+veriﬁcation. The most commonly used approach to test the
+performance and robustness of the FCS-MPC is by running
+multiple simulations with different system parameters to see
+how the converter outputs will respond to model uncertainties
+[23], [24]. The performance under model uncertainties can aswell be checked experimentally [25] and then be compared to a
+benchmark model with a classical PI linear control [26]. While
+conducting the experimental validation it was noticed that the
+performance of the control deteriorates for underestimated
+inductance, however almost no effect on performance was
+noticed for an overestimated value [25]. Both methods showed
+excellent steady- and transient-state response [26], however
+their deﬁciency is not providing the information needed to
+guarantee the stability of the control algorithm. While simula-
+tions can be performed in parallel to speed up the process of
+obtaining the results, experiments are more time consuming.
+The authors of [27]–[29] presented the most relevant
+progress in validating the stability of FCS-MPC. They veriﬁed
+the practical stability of FCS-MPC i.e. asymptotically stability
+under speciﬁc constraints by designing the cost function as a
+Lyapunov function for the VSC, DC-DC buck and multicell
+converter (MCC), but the design of the cost function is now
+more complex compared to the one used in simulations and
+experiments. The main drawback of the method is that it can
+be applied only to one class of converters. Therefore, more
+research is still needed to make this approach applicable for
+other applications [20]. A similar approach was presented for
+an active front end (AFE) VSC, however the algorithm used
+differs from the conventional FCS-MPC [30]. The objective
+of this paper is to present an alternative method for FCS-
+MPC performance veriﬁcation in power electronics, which
+is intuitive for industrial engineers to implement and use so
+new control algorithms can quickly be assessed before imple-
+mentations. Using the presented new approach and Lyapunov
+stability criteria as explained in [27]–[29] both stability and
+performance of the FCS-MPC algorithm can be veriﬁed for
+different applications.
+III. S YSTEM MODEL
+The design process of an MPC algorithm can be summed
+into three stages: identifying all possible switching states and
+their relations to input/output voltages and currents, deﬁning
+a cost function that will represent the desired behavior of
+the system and then obtain the discrete-time model used for
+prediction of the future behavior of controlled variables [31].
+To obtain the discrete-time model of the system, Euler forward
+method is usually applied for low order systems. Depending
+on converter application a variety of cost functions can be
+found in the literature. The 2L-VSC converter with LC output
+ﬁlter in this paper is used to obtain a sinusoidal output voltage
+with low harmonic distortion e.g. for uninterruptible power
+supply (UPS) systems Fig. 1. UPS systems are usually used to
+provide emergency power during grid blackouts. Their design
+and performance requirements are deﬁned in the IEC Standard
+62040-3 [32]. As presented in Fig. 1 the main controller
+variables are the output ﬁlter currents if abc , output capacitor
+voltagesvcabc and output load currents ioabc. The system
+model can be described by the following state-space equations:
+d
+dtif abc
+vcabc
+="
+0 1
+Lf1
+Cf0#if abc
+vcabc
++"1
+Lf0
+0 1
+Cf#viabc
+ioabc
+(1)
+
+--- Page 5 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+TABLE I
+LITERATURE OVERVIEW OF STATE -OF-THE-ART STABILITY ,ROBUSTNESS AND PERFORMANCE VALIDATION OF FCS-MPC
+Target object Method Advantages DisadvantagesVeriﬁed
+performanceVeriﬁed
+stability
+MMC [24]
+4–leg VSC [23]Multiple sim.,
+parameter sweepQuick, simple cost
+function designClosed loop stability not deﬁned, not
+a veriﬁed methodYes No
+2L–VSC [26]Multiple exp.,
+benchmarkingQuick, simple cost
+function designClosed loop stability not deﬁned, not
+a veriﬁed method, time consumingYes No
+2L–VSC [27]
+DC–DC [28]
+MCC [29]Lyapunov stability
+theoryVeriﬁed methodOnly stability of a neighborhood
+of the system reference is guaranteed,
+complex cost function designYes Yes
+AFE [30]Lyapunov stability
+theoryVeriﬁed methodNot a conventional FCS,
+complex cost function designNo Yes
+Predictive 
+modelMinimization of 
+the cost functionvc,abc(k), 
+if,abc (k), 
+io,abc(k) 82-level VSC
+Sabc (k)CfCfCfLf
+Lf
+Lfa
+b
+c
+vc,abcioa
+iob
+iocifa
+ifb
+ifc
+vc*(k+1)VDCLload
+Lload
+LloadRloadRload
+Rloadvo,abc
+vi,abcLC filterRL load
+Fig. 1. Simpliﬁed scheme of model predictive control for 2-level VSC.
+whereLfandCfrepresent the output ﬁlter inductance and
+capacitance, viabc is the inverter output voltage. Tracking the
+capacitor voltage reference v
+cabc by computing the converter
+output voltage viabc is the main objective of the algorithm.
+The secondary objectives include a derivative current com-
+ponent and minimization of the switching frequency to limit
+the number of commutations. The derivative component in
+the cost function improves the converter’s voltage tracking
+performance and lowers the THD [7]. Therefore, the cost
+function of the described system (1) is deﬁned as:
+g= (v
+c vP
+c)2+ (v
+c vP
+c)2+dgd+swn2(2)
+gd= (iP
+f io+Cf!v
+c)2+ (iP
+f io Cf!v
+c)2(3)
+wherev
+candv
+crepresent the real and imaginary parts of the
+reference voltage vector v
+c(k) =v
+c+jv
+c,vP
+candvP
+cthe
+real and imaginary parts of the predicted voltage vector vP
+c(k+
+1) =vP
+c+jvP
+c,iP
+fandiP
+fthe real and imaginary parts of
+the predicted ﬁlter current vector iP
+f(k+ 1) =iP
+f+jiP
+f,
+ioandiothe real and imaginary parts of the measured load
+current.dandsware the weighting factors of the secondary
+objectives and nis the number of switches that change when
+the switching state Sx(k),x2(a,b,c)is applied and it is
+calculated using the following expression:
+n=X
+x=a,b,cjSx(k) Sx(k 1)j(4)whereSx(k)is the new potential switching state and Sx(k 1)
+is the applied switching state from the previous switching
+instant. The THD factor of vcabc and average switching
+frequencyfswavgwere deﬁned as performance values to
+determine the weighting factors. During the simulation time
+interval,fswavgis calculated as a sum of the switching
+frequencies in each phase divided by the number of switches:
+fswavg=nX
+i=1fswai+fswbi+fswci
+6(5)
+wherei21, 2,nrepresents the number of switches in each
+phase leg. The permitted THD factor for converters used for
+UPS is deﬁned by the IEC Standard 62040-3 [32], therefore
+the selected swin the cost function should not produce a
+larger THD than deﬁned in the standard. The predicted voltage
+vector in the discretized model of the system vP
+c(k+ 1) is
+calculated using the measurements of the ﬁlter current if,
+capacitor voltage vcand load current io. The discrete-time
+model of the system (1) was obtained through forward Euler
+method as presented in [7].
+IV. S TATISTICAL MODEL CHECKING
+Statistical model checking is a well known technique used
+in aeronautics and embedded automotive systems, sensor
+networks, and communication systems to provide solutions
+to problems that are beyond the abilities of classical formal
+techniques [33]–[35]. As explained in the state of the art we
+can distinguish three approaches for stability and performance
+veriﬁcation: multiple simulations, experiments and analytical
+analysis using the Lyapunov stability criteria. Our focus will
+be on performance veriﬁcation methods. From the aspect of
+simplicity running multiple simulations seems as the most
+simple approach but also time consuming. Further on it is
+missing the reliability of the procedure. Since there is no
+guarantee for a ﬁnite set of experiments to cover all possible
+scenarios, errors could remain undetected. Also by looking at
+the characteristics of the physical system it can be noticed
+that some components feature probabilistic behavior e.g. the
+load values or the grid conditions, modeling them as ﬁxed
+components is not useful if we want to test the performance of
+the control algorithm under transients. Therefore, if we want to
+
+--- Page 6 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+ensure the full correctness of a system we need to use formal
+methods.
+Formal methods use techniques from mathematics for
+checking the system behavior in all possible scenarios and
+Statistical Model Checking (SMC) is an extension of one of
+those methods. Using this approach the system will be simu-
+lated for a ﬁnite number of times.The simulation samples are
+used for hypothesis testing i.e. to check if the samples provide
+statistical evidence that the set hypothesis is valid [36]. Two
+types of tests can be conducted: checking if the probability to
+satisfy a property is within the speciﬁed threshold e.g if the
+property is voltage deviation V < 5%, and estimation of this
+probability. For the ﬁrst testing, hypothesis testing algorithms
+are used and for the latter algorithms based on Monte Carlo
+simulation. The Monte Carlo algorithms are enhanced to
+overcome the problems of estimating low probabilities and
+rare events.
+The family of U PPAAL tools are all based on variants of
+Timed Automata [37]. Timed Automata are a mathematical
+rigorously deﬁned formalism for specifying the timed behavior
+of systems. Traditional analysis of such models suffers from
+the problem of state space explosion; the size of problems
+grow exponential in the size of the input problems. A more
+recent development in the analysis of Timed Automata models
+is the introduction of SMC. These methods allow for a
+precise modeling of dynamic aspects of models in the form
+of a Network of Stochastic Timed Automata. For a formal
+deﬁnition of Networks of Stochastic Timed Automata we
+refer the reader to [37]. Here we will ﬁrst give an intuitive
+explanation of the models by two examples.
+A model consists of several Timed Automata each deﬁning
+some behavior. They can synchronize with each other through
+the use of broadcast signals. The models can also contain
+clocks and continuous variables, which can progress according
+to differential equations. The timing intervals and delays
+described in the models are given a stochastic semantic. With
+this semantic the models can be simulated randomly. The
+analysis of the models consists of investigating a statistical
+hypothesis on the model by performing a number of indepen-
+dently random traces over the model. In this way a property
+of the model can be asserted with a given conﬁdence interval.
+The conﬁdence can be chosen by the engineer working with
+the models. In this fashion a low conﬁdence can be used
+while creating the models in order to explore the possibilities,
+while a much higher probability can be selected for the
+ﬁnal veriﬁcation of the system. Contrary to traditional model
+checking which grows exponentially in the size of the models,
+statistical model checking grows sub-linearly in the size of the
+models and linearly with increased conﬁdence of the results.
+One of the Timed Automata templates used in this paper are
+shown in Fig. 2. This model is used to model a simple transient
+load on the system. The states of the template are referred to as
+locations, in order not to confuse them with the global states,
+which are conﬁgurations of the entire model. The left most
+location in the model is the initial location. This fact can be
+seen by having a double circle surrounding it. This location
+is also of the type Committed, which can be seen by having
+aCinside it. This signiﬁes that it has a higher priority, and
+Fig. 2. Simple Timed Automata model of a changing load in UP-
+PAAL SMC .
+that no time can pass before this location has been left. In this
+case the feature is used as a simple initialization mechanism.
+On the edge going from the initial location to the location
+named LowLoad the variable Rload is assigned the value 100.
+The template contains one clock ywhich is used to track the
+time since the last change in the load on the system. The
+invariant y <7000 ensures that the change will happen after no
+more than 7000 time units, while the guard y >1000 ensures
+that it will no earlier than 1000 time units. Each time unit
+models 1sin the real world. The transition has a uniform
+probability of occurring any time in this interval. When the
+transition to the HighLoad location occurs the Rload variable
+is set to 200 and the clock is reset to 0. The mechanism
+for changing back to the LowLoad location is identical. Thus
+the template models a simple transient load, where the load
+randomly changes between 100 and 200.
+Fig. 3 models the actual controller logic of the converter.
+The locations v01tov78models the eight different states
+that the converter can be in. The model begins in the location
+at the bottom of the ﬁgure. This is similar to the initial
+location in the LoadModel also a committed location. This
+means that it will immediately transition to the location v56.
+Along this edge three assignments are performed. The values
+ofVinalpha andVinbeta are set according to the voltage
+generated in this conﬁguration. The variable active control
+is used mainly as a way of outputting the actual control state
+of the converter in traces of the system. The same pattern
+of assignment is followed along all the edges going from
+the location leftto each of the locations v01tov78. The
+controller will spend of its clock time in one of these locations.
+Each 25sanother template will generate a tick event thus
+synchronizing with this template and forcing it into the right
+location. Since this is a committed location it will immediately
+move to the leftlocation while evaluating two functions
+during this transition. These functions are inside the U PPAAL
+model and they are speciﬁed in a subset of C. The ﬁrst
+function evaluates the future cost of the different switching
+conﬁgurations, and the second one selects the one with the
+lowest cost and set the variable minControl accordingly. This
+is then used in the guard of the next edges thus forcing the
+model into the right switching state.
+The system contains four other templates which will not be
+discussed in details here: Tick, Sampler, PhysicalSystem and
+SimulationOutput.
+
+--- Page 7 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+Fig. 3. Controller hybrid automata model in UPPAAL SMC .
+V. S IMULATION RESULTS
+A discrete benchmark model of the previously described
+system was created in Matlab Simulink. The results obtained
+from the simulation model will be used to validate the quality
+of model created in the U PPAAL SMC toolbox. Parameters of
+the simulation model are presented in Table II.
+TABLE II
+SYSTEM PARAMETERS
+Parameter Value
+DC link voltage Vdc= 700 V
+Output ﬁlter parameters Lf= 2.4 mH,Cf= 25F
+Linear load Rload = 48 
+,Lload = 40 mH
+Non-linear load Rload = 230 
+,Cload = 1100F
+Reference voltage and frequency Vc ref rms = 400 V ,fref= 50 Hz
+Sampling time Ts= 25s
+Because of the nature of the FCS-MPC algorithm used in
+this paper, which does not have a modulator, the switching
+frequency is variable. This makes the precise ﬁlter parameter
+selection difﬁcult as standard linear control theory cannot
+be used to quantify the switching ripples. Finding the right
+methodology to analytically calculate the parameters is still
+an open research question [13], [20], [38]. On the other hand,
+we can quantify the effects of the ﬁlter around the fundamental
+harmonic. There are some guidelines regarding the maximum
+ﬁlter values as presented in [39] that were taken into consid-
+eration. However, the switching ripple attenuation capability
+of this ﬁlter depends also on the switching frequency. To this
+end, other authors have used larger ﬁlters then what is advised
+by these limits [40], [41]. While selecting the ﬁlter parameters,
+we have also taken into account comparable systems reported
+in the literature, that regulate voltage on the standalone load
+0 0.2 0.4 0.6 0.8
+d00.20.40.60.8 sw
+4.555.566.577.5
+Selected weighting factors fsw avg
+ (kHz)Fig. 4. Inﬂuence of weighting factor selection on output voltage THD
+factor (%).
+0 0.2 0.4 0.6 0.8
+d00.20.40.60.8 sw
+11.522.5
+Selected weighting factorsTHD
+ (%
+)
+Fig. 5. Inﬂuence of weighting factor selection on average converter
+switching frequency (kHz).
+operating at approximately the same power level and use
+comparable switching frequency, so that a fair comparison of
+different control methods can be made [41]–[44]. Commercial
+availability of the ﬁlter was also one of the aspects that
+was taken into consideration. The ﬁlter from manufacturer
+Schaffner with the inductance value of 2.4 mH was selected.
+The inductance value of this ﬁlter was larger then advised in
+the [39], but comparable to the ones used in [40], [41]. For the
+ﬁlter capacitance it is recommended that the maximum value
+is below the 5% of the base capacitance because the capacitor
+value is limited by the decrease of the power factor at rated
+power, therefore 25 F capacitors were selected. The system
+has a variable switching frequency, hence, only the average
+switching frequency, that can be calculated by ﬁltering the
+expression given in equation (5), could be speciﬁed. If both
+weighting factors are set to 0, the obtained output voltage THD
+is 1.1%, which complies with the IEC UPS standard 62040 and
+thefswavgwas around 9 kHz. It was of interest to investigate
+if it is possible to achieve the comparable level of THD at
+lowerfswavgby using a proper combination of the weighting
+factors in the cost function. For this purpose, parameter sweep
+simulations were performed in Matlab for different values
+of the weighting factors in the cost function and analyzed
+afterwards to see which combination would present the output
+voltage THD around 1.1% and have a lower fswavg. The
+results of such parameter sweep are presented in Fig. 4 and
+Fig. 5. As it can be seen, with the selected combination of
+weighting factors sw= 0.5 andd= 0.4, we obtained an
+
+--- Page 8 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+ Time (s) Capacitor voltage (V) Vc mes
+ Vc mes
+Fig. 6. Simulated output voltage in -frame in the 2L-VSC Simulink
+model.
+ Time (s) Voltage error (%)Vc error
+Vc error
+Fig. 7. Voltage reference tracking error in -frame in the 2L-VSC
+Simulink model, nominal LfCfparameters.
+0.02 0.03 0.04 0.05 0.06
+ Time (s)-505 Voltage error (%)Vc error
+Vc error
+Fig. 8. Voltage reference tracking error in -frame in the 2L-VSC
+Simulink model, 70% Lf.
+fswavgof 6 kHz and output voltage THD of 1.1%, which is
+the same as if both weighting factors are set to 0. Therefore,
+thefswavgof 6 kHz with aforementioned weighting factor
+settings was selected for all the experiments.
+If the cost function was limited just to include switching
+frequency minimization sw= 0.2 will offer a good compro-
+mise of a low THD and reduction of fswavgfrom 9 kHz to 6.5
+kHz. Fig. 6 and Fig. 7 present the measured output voltage
+and voltage reference tracking error in -frame in steady
+state for FCS-MPC cost function. It can be observed that the
+implemented control algorithm produces an output voltage that
+is closely following the reference values.
+The robustness of the control algorithm against parameter
+variations is also one of the key indicators of the control
+0.02 0.03 0.04 0.05 0.06
+ Time (s)-5-2.502.55 Voltage error (%)Vc error
+Vc errorFig. 9. Voltage reference tracking error in -frame in the 2L-VSC
+Simulink model, 130% Lf.
+-15 0 20 40 60 80 100 120
+Time (ms)-30-20-100102030Voltage error (%)IEC 62040-3 standard limits
+Voltage error for 100% load step
+Fig. 10. Output voltage amplitude error during 100% step change of
+linear load in the 2L-VSC Simulink model (R load= 0!48
+).
+algorithm performance. In Fig. 8 and Fig. 9 the impact of
+deviations of30% on the rated values of ﬁlter inductance
+were analyzed. Similar tests for variation of the converter
+output ﬁlter parameters have been performed in [45] for
+sliding mode control algorithm with Kalman ﬁlter, in [41] for
+a combination of robust control, state estimator, and linear
+matrix inequality (LMI) optimizations, and in [46] for a
+linear single current loop control with hybrid damper. As
+it can be seen from obtained results the overestimation and
+underestimation of the ﬁlter values didn’t signiﬁcantly effect
+the steady state performance of the converter which proves
+that the resistance to parameter variations is comparable to
+[41], [45], [46]. For a more detailed experimental study on
+parameter variation effects for FCS-MPC operated converters
+for UPS the reader is refereed to [7] where it is demonstrated
+that stability is not lost even under heavy mismatch between
+the model parameters used by the algorithm and those in the
+experimental set-up. The dynamic performance of the UPS
+standard is deﬁned in the IEC Standard 62040 for 0-100% step
+load change for the most critical and sensitive loads. In Fig. 10
+results can be observed for the linear load step change. Similar
+test was performed in [44] for linear cascaded control on a set-
+up with comparable physical parameters. By comparing the
+results it can be noted that both control methods comply with
+the standard, however the converter system controlled by the
+FCS-MPC showed a much faster response time.
+
+--- Page 9 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+Fig. 11. Experimental set-up for veriﬁcation of the FCS-MPC algorithm
+on the 2L-VSC.
+VI. E XPERIMENTAL RESULTS
+The FCS-MPC algorithm was also veriﬁed on an exper-
+imental set-up equivalent to the Simulink model as shown
+in Fig. 11. The set-up includes Semikron Power Electronics
+Teaching Unit, MicroLabBox DS1202 PowerPC DualCore
+2 GHz processor board and DS1302 I/O board from dSpace.
+The execution time of the algorithm is around 3 s. Such
+a low time was achieved because the discretization of the
+converter model is done ofﬂine i.e. the system matrixes in
+(1) are calculated prior to execution of the controller. On
+the other hand, most of the turn-around time is spent on the
+A/D conversion of the measurement channels. Since dSPACE’s
+A/D converters have the sampling rate of 1 MSPS, the time
+needed to sample one channel is around 1 s. Therefore, for
+all measurement channels, this gives approximately 12 sfor
+A/D conversion. When this is added to 3 sfor algorithm
+execution, the total turnaround time is 15 s. It is also
+worth noticing that standard industrial micro controllers could
+perform the A/D conversion much faster e.g TMS320F28377
+samples at a rate of 3.5 MSPS which means the conversion
+would be three times faster while the execution time of
+the algorithm would not change signiﬁcantly. To compensate
+this delay of approximately 15 sthe predicted values are
+calculated one step further ahead and applied at the beginning
+of the next time sampling interval as proposed in [31].
+Fig. 12 shows the measured ﬁlter capacitor voltage from
+experimental set-up for three different types of load a) linear
+Rload, b) linearRLloadand c) non-linear load (diode rectiﬁer
+withRCload). The THD was calculated up to the Nyquist
+frequency for measured vcabc, to include the wide frequency
+spectrum of FCS-MPC. The obtained measurements presented
+acceptable control performance in steady state and quick
+response during transient load change in Fig. 12(e) for Rload
+and Fig. 12(f) for RLload, and as well for step reference
+change in Fig. 12(d).
+VII. A NALYTICAL PERFORMANCE VERIFICATION
+For the purpose of performance veriﬁcation of the FSC-
+MPC algorithm, the system was modeled using U PPAAL SMC.
+In the U PPAAL SMC veriﬁer system, currents and voltages
+(a) Three phase capacitor voltage
+vc abc forRload (48
+), V oltage
+THD: 1.15%.
+(b) Three phase capacitor voltage
+vc abc forRLload (48
+, 40 mH),
+V oltage THD: 1.35%.
+(c) Capacitor voltage vc ab and load
+currentio a for non-linear load,
+V oltage THD: 1.35%.
+(d) Capacitor voltage vc ab and
+load current io afor step reference
+change with Rload.
+(e) Capacitor voltage and load cur-
+rentvc ab andio afor a step load
+change (linear Rload= 0!48
+).
+(f) Capacitor voltage and load cur-
+rentvc ab andio afor a step load
+change (linear RLload,Rload =
+48!34
+).
+Fig. 12. Experimental validation of the FCS-MPC algorithm on the 2L-
+VSC.
+can be presented graphically. An example of the output voltage
+waveform is shown in Fig. 13 for linear load and cost function
+(2), and another example is shown in Fig. 15 for the load
+current during the transient. In Fig. 14 for the linear load
+and cost function (2) it can be observed that the reference
+tracking ability of the algorithm was proved to be satisfying
+and matching the performance of simulation and experimental
+model. Therefore, it is conﬁrmed that the modeling was correct
+and that the model can be used for analytical performance
+validation during transient load. The algorithm’s analytical
+performance was assessed through two queries for a time
+interval of 40 ms:
+di= (v
+c vm
+c)2+ (v
+c vm
+c)2(6)
+wherev
+candv
+crepresent the real and imaginary parts of
+reference voltage vector v
+c(k),vm
+candvm
+care the values of
+measured output voltage vm
+c(k)and the second query was the
+simple moving average value SMA of the difference calculated
+onn= 10 sample subsets.
+SMA =SMAprev+diM
+n diM n
+n(7)
+The load value is changing stochastically during the time inter-
+val, through several runs all possible transients are evaluated
+in the queries. An example of the io waveform in one
+simulation run during the query evaluation is shown in Fig. 15.
+
+--- Page 10 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+0.02 0.03 0.04 0.05 0.06
+ Time (s)-400-2000200400 Capacitor voltage (V) Vc mes
+ Vc mes
+Fig. 13. Simulated output voltage in - frame in the 2L-VSC UP-
+PAAL SMC model.
+0.02 0.03 0.04 0.05 0.06
+Time (s)-5-2.502.55Voltage error (%)Vc error
+Vc error
+Fig. 14. Voltage reference tracking error in -frame in the 2L-VSC
+UPPAAL SMC model.
+0.02 0.03 0.04 0.05 0.06
+ Time (s)-10-50510 Load current (A) I0
+ I0
+Fig. 15. Load current under transient load change (R = 48 
+!100
+)
+in the 2L-VSC UPPAAL SMC model.
+To demonstrate the inﬂuence of each secondary objective in
+the algorithm’s cost function a case without secondary ob-
+jectives and only switching frequency minimization objective
+were as well evaluated. Table III shows the summary of tested
+probabilities for transient load with parameter uncertainty
+introduced into the model as false estimation of Lf. Both
+overestimation and underestimation of the ﬁlter inductance
+were taken into account as in [41], [45], [46]. The uncertainty
+of estimation process was set to = 0.05. The queries were
+tested forsw=d= 0 with output voltage reference tracking
+as primary objective, sw= 0.2 with switching frequency
+minimization applied as secondary objective and sw= 0.5
+d= 0.4 where derivative of voltage reference trajectory was
+tracked. After the simulation run is completed the veriﬁertoolbox will also provide the number of performed runs.
+For query probabilities close to 0 or 1, the number of runs
+necessary for assessment is low and it can be concluded that
+the events in those queries are not likely to happen (0) or are
+highly likely to happen (1).
+By analyzing the results in Table III the inﬂuence of weight-
+ing factor selection and parameter uncertainty on voltage
+tracking reference performance can be detected. The weighting
+factors obtained in the parameter sweep were proved to beneﬁt
+the performance of reference tracking as they presented a
+higher probability of minimal voltage error during transients
+and parameter uncertainty. This positive effect was even more
+noticeable in case of RLload. Introduced parameter uncertainty
+in the model didn’t signiﬁcantly lower the reference tracking
+performance for Rload. In the case of the sw=d= 0 for
+Rload there was a drop of 5% as seen in the queries for
+di<10% without parameter error (-30%) and di<15%
+with parameter error. When the model was tested with RLload
+the drop in the performance was more evident e.g for sw
+=d= 0 with underestimated parameter query di<15%
+has a very low probability. The case sw= 0.5,d= 0.4
+demonstrated robustness of the algorithm by not showing any
+signiﬁcant performance drop with a parameter error in the
+model for both load types. As expected the case with sw=
+0.2,d= 0 showed a more signiﬁcant drop of performance
+compared to the other two cases. This can be explained by
+the fact that the priority of this cost function lies in switching
+frequency minimization so the reference tracking performance
+will be more affected by the introduced parameter error in the
+model. The underestimation of ﬁlter inductance has a larger
+inﬂuence on the reference tracking performance for sw= 0.2
+d= 0 while if the ﬁlter inductance is overestimated the effect
+on the performance is very low.
+VIII. C ONCLUSION
+In this paper a new approach to analytical performance
+validation of the FCS-MPC algorithm was demonstrated. The
+approach is based on powerful tools from statistics and can
+be used to successfully validate the behavior of the control
+algorithm. The transition from a Simulink based model to
+the model used in U PPAAL SMC is based on the fact that
+the discrete system of the 2L-VCS with FCS-MPC algorithm
+can be represented as a network of stochastic automata. Time,
+which is usually used to drive the automaton is supplemented
+with system voltages and currents. The discrete converter
+states are the states of the automaton while the calculated
+predictions of voltages and currents, products of the cost
+function minimization, are deﬁning the next transition state. It
+was validated in the paper that this type of model will provide
+the same behavior as the Simulink model. U PPAAL SMC
+offers a beneﬁt compared to the Simulink model, a simple
+analytical veriﬁcation using the statistics tools. Therefore the
+probability of certain events occurring in the system can be
+checked very simply using Monte Carlo simulation in the form
+of a query.
+Queries used for checking the robustness were based on the
+reference tracking ability of the system under transient load
+
+--- Page 11 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+TABLE III
+QUERY PROBABILITY RESULTS OBTAINED FROM UPPAAL SMC TOOLBOX VERIFIER FOR RAND RLLOAD
+QueryParameter
+uncertaintyProbability
+(sw=d= 0)Probability
+(sw= 0.2,d= 0)Probability
+(sw= 0.5,d= 0.4)
+R RL R RL R RL
+di<8% 0 0.45 0.55 0.32 0.42 0 0.1 0 0.1 0.9 1 0.9 0.99
+di<10% 0 0.89 0.99 0.89 0.99 0.19 0.29 0.09 0.19 0.9 1 0.9 1
+di<12% 0 0.9 1 0.9 1 0.79 0.89 0.58 0.68 0.9 1 0.9 1
+di<15% 0 0.9 1 0.9 1 0.9 0.99 0.9 0.99 0.9 1 0.9 1
+di<10% -30% 0 0.1 0 0.1 0 0.1 0 0.1 0.78 0.88 0.73 0.83
+di<12% -30% 0.17 0.27 0 0.1 0 0.1 0 0.1 0.9 1 0.9 1
+di<15% -30% 0.81 0.91 0.08 0.18 0.47 0.57 0.22 0.32 0.9 1 0.9 1
+di<10% 30% 0.9 1 0.9 1 0.8 0.9 0.65 0.75 0.9 1 0.9 1
+SMA<8% 0 0.52 0.62 0.35 0.45 0 0.1 0 0.1 0.9 1 0.9 1
+SMA<10% 0 0.9 1 0.82 0.92 0.33 0.43 0.13 0.23 0.9 1 0.9 1
+SMA<12% 0 0.9 1 0.9 1 0.79 0.89 0.64 0.74 0.9 1 0.9 1
+SMA<10% -30% 0.01 0.1 0 0.1 0 0.1 0 0.1 0.82 0.91 0.76 0.86
+SMA<12% -30% 0.24 0.34 0 0.1 0 0.1 0 0.1 0.9 1 0.9 1
+SMA<15% -30% 0.81 0.91 0.1 0.2 0.52 0.62 0.34 0.44 0.9 1 0.9 1
+SMA<10% 30% 0.9 1 0.9 1 0.84 0.94 0.69 0.79 0.9 1 0.9 1
+changes and with parameter uncertainties in the system. The
+results demonstrated high robustness of the algorithm and how
+the right choice of the weighting factors in the cost function
+will positively affect it. During the evaluation, no signiﬁcant
+degradation of reference tracking was found during transients
+nor under model parameter uncertainty. Even under the most
+difﬁcult conditions including error in the prediction model,
+the difference between the reference and the control variable
+stayed below 10%.
+Statistical model checking has the potential to be the
+new powerful tool for performance evaluation of FCS-MPC
+algorithms in different power converter topologies. There are
+many possibilities for future work with focus on analytical
+performance evaluation of other MPC algorithms and more
+complex load and system models. Further development of the
+approach can be of great signiﬁcance for the power electronics
+industry as it will beneﬁt the application of the FCS-MPC
+algorithms.
+REFERENCES
+[1] J. I. Leon, S. Kouro, L. G. Franquelo, J. Rodriguez, and B. Wu, “The
+essential role and the continuous evolution of modulation techniques
+for voltage-source inverters in the past, present, and future power
+electronics,” IEEE Trans. Ind. Electron., vol. 63, no. 5, pp. 2688–2701,
+May. 2016.
+[2] B. Stellato, T. Geyer, and P. J. Goulart, “High-speed ﬁnite control set
+model predictive control for power electronics,” IEEE Trans. Power
+Electron., vol. 32, no. 5, pp. 4007–4020, May. 2017.
+[3] Z. Zhang, H. Fang, F. Gao, J. Rodriguez, and R. Kennel, “Multiple-
+vector model predictive power control for grid-tied wind turbine system
+with enhanced steady-state control performance,” IEEE Trans. Ind.
+Electron., vol. 64, no. 8, pp. 6287–6298, Aug. 2017.
+[4] S. C. Ferreira and et al., “Finite control set model predictive control for
+dynamic reactive power compensation with hybrid active power ﬁlters,”
+IEEE Trans. Ind. Electron., vol. 65, no. 3, pp. 2608–2617, Mar. 2018.
+[5] M. B. Shadmand, M. Mosa, R. S. Balog, and H. Abu-Rub, “Model
+predictive control of a capacitorless matrix converter-based STATCOM,”
+IEEE J. Emerg. Sel. Topics Power Electron. , vol. 5, no. 2, pp. 796–808,
+Jun. 2017.[6] S. Sajadian and R. Ahmadi, “Model predictive control of dual-mode
+operations z-source inverter: Islanded and grid-connected,” IEEE Trans.
+Power Electron., vol. 33, no. 5, pp. 4488–4497, May. 2018.
+[7] T. Dragicevic, “Model predictive control of power converters for robust
+and fast operation of AC microgrids,” IEEE Trans. Power Electron.,
+vol. 33, no. 7, pp. 6304–6317, Jul. 2018.
+[8] R. Vargas, U. Ammann, and J. Rodriguez, “Predictive approach to
+increase efﬁciency and reduce switching losses on matrix converters,”
+IEEE Trans. Power Electron., vol. 24, no. 4, pp. 894–902, Apr. 2009.
+[9] V . Smidl, S. Janous, and Z. Peroutka, “Frequency spectrum shaping
+using ﬁnite control set MPC with LQ lookahead,” in Proc. Workshop
+PRECEDE, pp. 44–48, Oct. 2015.
+[10] R. P. Aguilera and et al., “Selective harmonic elimination model
+predictive control for multilevel power converters,” IEEE Trans. Power
+Electron., vol. 32, no. 3, pp. 2416–2426, Mar. 2017.
+[11] L. Wang and et al., “A ﬁnite control set model predictive control method
+for matrix converter with zero common-mode voltage,” IEEE J. Emerg.
+Sel. Topics Power Electron., vol. 6, no. 1, pp. 327–338, Mar. 2018.
+[12] P. Kakosimos and H. Abu-Rub, “Predictive control of a grid-tied
+cascaded full-bridge NPC inverter for reducing high-frequency common-
+mode voltage components,” IEEE Trans. Ind. Informat., vol. In press,
+2018.
+[13] S. Kouro, M. A. Perez, J. Rodriguez, A. M. Llor, and H. A. Young,
+“Model predictive control: MPC’s role in the evolution of power
+electronics,” IEEE Ind. Electron. Mag., vol. 9, no. 4, pp. 8–21, Dec.
+2015.
+[14] P. Cortes, M. P. Kazmierkowski, R. M. Kennel, D. E. Quevedo, and
+J. Rodriguez, “Predictive control in power electronics and drives,” IEEE
+Trans. Ind. Electron., vol. 55, no. 12, pp. 4312–4324, Dec. 2008.
+[15] S. Vazquez and et al., “Model predictive control for single-phase NPC
+converters based on optimal switching sequences,” IEEE Trans. Ind.
+Electron., vol. 63, no. 12, pp. 7533–7541, Dec. 2016.
+[16] A. A. Ahmed, B. K. Koh, and Y . I. Lee, “A comparison of ﬁnite control
+set and continuous control set model predictive control schemes for
+speed control of induction motors,” IEEE Trans. Ind. Inf., vol. 14, no. 4,
+pp. 1334–1346, Apr. 2018.
+[17] M. Norambuena, H. Yin, S. Dieckerhoff, and J. Rodriguez, “Improved
+ﬁnite control set model predictive control with ﬁxed switching frequency
+for three phase NPC converter,” in Proc. PCIM Europe, pp. 1–8, May.
+2016.
+[18] M. Preindl and S. Bolognani, “Comparison of direct and PWM model
+predictive control for power electronic and drive systems,” in Proc. IEEE
+APEC, pp. 2526–2533, Mar. 2013.
+[19] S. Vazquez and et al., “Model predictive control: A review of its
+applications in power electronics,” IEEE Ind. Electron. Mag., vol. 8,
+no. 1, pp. 16–31, Mar. 2014.
+
+--- Page 12 ---
+0278-0046 (c) 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TIE.2018.2838073, IEEE
+Transactions on Industrial Electronics
+IEEE TRANSACTIONS ON INDUSTRIAL ELECTRONICS
+[20] S. Vazquez, J. Rodriguez, M. Rivera, L. G. Franquelo, and M. No-
+rambuena, “Model predictive control for power converters and drives:
+Advances and trends,” IEEE Trans. Ind. Electron., vol. 64, no. 2, pp.
+935–947, Feb. 2017.
+[21] V . Yaramasu and B. Wu, Model Predictive Control of Wind Energy
+Conversion Systems, ser. IEEE Press Series on Power Engineering.
+Wiley, 2016.
+[22] J. Rawlings and D. Mayne, Model Predictive Control: Theory and
+Design. Nob Hill Pub., 2009.
+[23] R. N. Fard, H. Nademi, and L. Norum, “Analysis of a modular multilevel
+inverter under the predicted current control based on ﬁnite-control-set
+strategy,” in Proc. EPECS, pp. 1–6, Oct. 2013.
+[24] V . Yaramasu, M. Rivera, B. Wu, and J. Rodriguez, “Model predictive
+current control of two-level four-leg inverters;part i: Concept, algorithm,
+and simulation analysis,” IEEE Trans. Power Electron., vol. 28, no. 7,
+pp. 3459–3468, Jul. 2013.
+[25] J. Rodriguez and et al., “Predictive current control of a voltage source
+inverter,” IEEE Trans. Ind. Electron., vol. 54, no. 1, pp. 495–503, Feb.
+2007.
+[26] H. A. Young, M. A. Perez, J. Rodriguez, and H. Abu-Rub, “Assessing
+ﬁnite-control-set model predictive control: A comparison with a linear
+current controller in two-level voltage source inverters,” IEEE Ind.
+Electron. Mag., vol. 8, no. 1, pp. 44–52, Mar. 2014.
+[27] R. P. Aguilera and D. E. Quevedo, “Predictive control of power
+converters: Designs with guaranteed performance,” IEEE Trans. Ind.
+Informat., vol. 11, no. 1, pp. 53–63, Feb. 2015.
+[28] R. P. Aguilera and D. E. Quevedo, “On stability and performance
+of ﬁnite control set MPC for power converters,” in Proc. Workshop
+PRECEDE, pp. 55–62, Oct. 2011.
+[29] R. P. Aguilera and D. E. Quevedo, “On stability of ﬁnite control set MPC
+strategy for multicell converters,” in Proc. IEEE ICIT, pp. 1277–1282,
+Mar. 2010.
+[30] M. P. Akter, S. Mekhilef, N. M. L. Tan, and H. Akagi, “Modiﬁed model
+predictive control of a bidirectional AC-DC converter based on lyapunov
+function for energy storage systems,” IEEE Trans. Ind. Electron., vol. 63,
+no. 2, pp. 704–715, Feb. 2016.
+[31] J. Rodriguez and P. Cortes, Predictive Control of Power Converters and
+Electrical Drives, ser. Wiley - IEEE. Wiley, 2012.
+[32] “IEC standard for uninterruptible power systems (UPS) - part 3,” IEC
+62040-3:2011, no. 2, pp. 1–214, Mar. 2011.
+[33] A. David, K. G. Larsen, A. Legay, and M. Miku ˇcionis, “Schedulability
+of herschel revisited using statistical model checking,” Int. J. Softw. Tools
+Technol. Transf., vol. 17, no. 2, pp. 187–199, Apr. 2015.
+[34] A. Boudjadar and et al., “Statistical and exact schedulability analysis of
+hierarchical scheduling systems,” Science of Computer Programming,
+vol. 127, pp. 103–130, 5 2016.
+[35] K. G. Larsen, M. Miku ˇcionis, M. Mu ˜niz, J. Srba, and J. H. Taankvist,
+Online and Compositional Learning of Controllers with Application to
+Floor Heating, pp. 244–259. Springer Berlin Heidelberg, 2016.
+[36] K. G. Larsen and A. Legay, On the Power of Statistical Model Checking,
+pp. 843–862. Springer International Publishing, 2016.
+[37] A. David and et al., “Uppaal SMC tutorial,” Int. J. Softw. Tools Technol.
+Transf., vol. 17, no. 4, pp. 397–415, Aug. 2015.
+[38] N. Panten, N. Hoffmann, and F. W. Fuchs, “Finite control set model
+predictive current control for grid-connected voltage-source converters
+with LCL ﬁlters: A study based on different state feedbacks,” IEEE
+Trans. Power Electron., vol. 31, no. 7, pp. 5189–5200, Jul. 2016.
+[39] M. Liserre, F. Blaabjerg, and S. Hansen, “Design and control of an LCL-
+ﬁlter-based three-phase active rectiﬁer,” IEEE Trans. Ind. Appl., vol. 41,
+no. 5, pp. 1281–1291, Sep. 2005.
+[40] A. Reznik, M. G. Simoes, A. Al-Durra, and S. M. Muyeen, “LCL ﬁlter
+design and performance analysis for grid-interconnected systems,” IEEE
+Trans. Ind. Appl., vol. 50, no. 2, pp. 1225–1232, Mar. 2014.
+[41] J. S. Lim, C. Park, J. Han, and Y . I. Lee, “Robust tracking control of
+a three-phase DC-AC inverter for UPS applications,” IEEE Trans. Ind.
+Electron., vol. 61, no. 8, pp. 4142–4151, Aug. 2014.
+[42] P. Cortes and et al., “Model predictive control of an inverter with output
+LC ﬁlter for UPS applications,” IEEE Trans. Ind. Electron., vol. 56,
+no. 6, pp. 1875–1883, Jun. 2009.
+[43] S. Vazquez, A. Marquez, J. I. Leon, L. G. Franquelo, and T. Geyer,
+“FCS-MPC and observer design for a VSI with output LC ﬁlter and
+[44] F. de Bosio, L. A. de Souza Ribeiro, F. D. Freijedo, M. Pastorelli, and
+J. M. Guerrero, “Effect of state feedback coupling and system delays
+on the transient performance of stand-alone VSI with LC output ﬁlter,”
+IEEE Trans. Ind. Electron., vol. 63, no. 8, pp. 4909–4918, Aug. 2016.sinusoidal output currents,” in Proc. IEEE CPE-POWERENG, pp. 677–
+682, Apr. 2017.
+[45] R. Guzman, L. G. de Vicuna, M. Castilla, J. Miret, and H. Martin, “Vari-
+able structure control in natural frame for three-phase grid-connected
+inverters with LCL ﬁlter,” IEEE Trans. Power Electron., vol. 33, no. 5,
+pp. 4512–4522, May. 2018.
+[46] Y . Liu and et al., “An efﬁcient and robust hybrid damper for LCL- or
+LLCL- based grid-tied inverter with strong grid-side harmonic voltage
+effect rejection,” IEEE Trans. Ind. Electron., vol. 63, no. 2, pp. 926–936,
+Feb. 2016.
+Mateja Novak (S’17) received the M.Sc. degree
+in Electrical Engineering and Information Tech-
+nology from Zagreb University, Croatia, in 2014.
+She is currently working toward the Ph.D. de-
+gree in power electronics at Aalborg University,
+Denmark. Her research interests include ﬁnite
+control set model predictive control, multilevel
+converters, statistical model checking and re-
+newable energy systems.
+Ulrik Nyman is an Associate Professor at the
+Department of Computer Science at Aalborg
+University. He did his PhD Thesis on the topic
+of Modal Transition Systems as the Basis for
+Interface Theories and Product Lines under the
+supervision of Professor Kim G. Larsen.
+His research interests lies within formal meth-
+ods such as: Interface Theories, Model Check-
+ing, Compositional Veriﬁcation and Software
+Veriﬁcation. Since then he has worked with ap-
+plying formal methods to different application
+domains. This includes model based schedulability analysis of em-
+bedded systems. He is currently the PI for the DFF research project
+Compositional Veriﬁcation of Real-time MULTI-CORE SAFETY Critical
+Systems.
+Tomislav Dragicevic (S’09-M’13-SM’17) re-
+ceived the M.E.E. and the industrial Ph.D. de-
+gree from the Faculty of Electrical Engineering,
+Zagreb, Croatia, in 2009 and 2013, respectively.
+From 2013 until 2016 he has been a Postdoc-
+toral research associate at Aalborg University,
+Denmark. From March 2016 he is an Associate
+Professor at Aalborg University, Denmark.
+His principal ﬁeld of interest is overall system
+design of autonomous and grid connected DC
+and AC microgrids, and application of advanced
+modeling and control concepts to power electronic systems. He has
+authored and co-authored more than 120 technical papers in his domain
+of interest and is currently editing a book in the ﬁeld. He serves as
+an Associate Editor in the IEEE TRANSACTIONS ON INDUSTRIAL
+ELECTRONICS and in the Journal of Power Electronics.
+Frede Blaabjerg (S’86-M’88-SM’97-F’03) was
+with ABB-Scandia, Randers, Denmark, from
+1987 to 1988. From 1988 to 1992, he was a
+Ph.D. Student with Aalborg University, Aalborg,
+Denmark. He became an Assistant Professor in
+1992, Associate Professor in 1996, and Full Pro-
+fessor of power electronics and drives in 1998.
+His current research interests include power
+electronics and its applications such as in wind
+turbines, PV systems, reliability, harmonics and
+adjustable speed drives.
+He has received 18 IEEE Prize Paper Awards, the IEEE PELS
+Distinguished Service Award in 2009, the EPE-PEMC Council Award in
+2010, the IEEE William E. Newell Power Electronics Award 2014 and the
+Villum Kann Rasmussen Research Award 2014. He was an Editor-in-
+Chief of the IEEE TRANSACTIONS ON POWER ELECTRONICS from
+2006 to 2012. He was nominated in 2014, 2015 and 2016 by Thomson
+Reuters to be between the most 250 cited researchers in Engineering in
+the world.

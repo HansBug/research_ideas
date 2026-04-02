@@ -1,0 +1,691 @@
+--- Page 1 ---
+ 
+ 
+General rights  
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other  copyright 
+owners and it is a condition of accessing publications that users recognise  and abide by the legal requirements associated with these rights.  
+ 
+ Users may download and print one copy of any publication from the public portal for the purpose of private study or research.  
+ You may not further distribute the material or use it for any profit -making activity or commercial gain  
+ You may freely distribute the URL identifying the p ublication in the public portal  
+ 
+If you believe that this document breaches copyright please contact us providing details, and we will remove access to the wo rk im mediately 
+and investigate your claim.  
+  
+ 
+   
+ 
+ 
+Downloaded from orbit.dtu.dk on: Apr 01, 2026
+Formal Verification of Railway Timetables - Using the UPPAAL Model Checker
+Haxthausen, Anne E.; Hede, Kristian
+Published in:
+From Software Engineering to Formal Methods and Tools, and Back
+Link to article, DOI:
+10.1007/978-3-030-30985-5_25
+Publication date:
+2019
+Document Version
+Early version, also known as pre-print
+Link back to DTU Orbit
+Citation (APA):
+Haxthausen, A. E., & Hede, K. (2019). Formal Verification of Railway Timetables - Using the UPPAAL Model
+Checker. In From Software Engineering to Formal Methods and Tools, and Back (pp. 433-448). Springer.
+https://doi.org/10.1007/978-3-030-30985-5_25
+
+--- Page 2 ---
+Formal Verication of Railway Timetables
+- Using the UPPAAL Model Checker
+Anne E. Haxthausen and Kristian Hede
+DTU Compute, Technical University of Denmark, Kongens Lyngby, Denmark.
+aeha@dtu.dk and krhede@gmail.com
+Abstract. This paper considers the challenge of validating railway time-
+tables and investigates how formal methods can be used for that. The pa-
+per presents a re-congurable, formal model which can be congured with
+a timetable for a railway network, properties of that network, and various
+timetabling parameters (such as station and line capacities, headways,
+and minimum running times) constraining the allowed train behaviour.
+The formal model describes the system behaviour of trains driving ac-
+cording to the given railway timetable. Model checking can then be used
+to check that driving according to the timetable does not lead to illegal
+system states. The method has successfully been applied to a real world
+case study: a time table for 12 trains at Nrumbanen in Denmark.
+Keywords: formal methods model checking UPPAAL railways 
+timetables
+1 Introduction
+This paper considers the challenge of validating time tables in the railway do-
+main.
+Background. As timetables specify how the trains should run in the railway
+network, they have a great inuence on the railway operations. Therefore, for
+any railway operator, it is of very high priority that the timetables are feasible
+as well as robust against delays. However, the process of creating train timeta-
+bles [6] is very complicated and goes through many steps taking various wishes,
+requirements and scheduling constraints into account. Traditionally, time tables
+are created in a stepwise manner, where schedules are manually adjusted un-
+til all constraints are met.1When a timetable has been created in this way, it
+should be veried that it is feasible and satises all the many stated require-
+ments and scheduling constraints. For instance, it should be checked that at
+any time the number of trains waiting at a station does not exceed the station
+capacity and that the minimal headways between trains are satised. Tools for
+automated checking of all such requirements are highly needed. Today there are
+1Research in optimisation models and techniques for generating optimal timetables
+have been done [6], but these are very rarely used by the railway operators.
+
+--- Page 3 ---
+some timetabling tools [10] like RailSys and TPS on the market which can be
+used for managing timetables and estimating the eect of train delays. The tools
+typically have functionality for displaying time tables graphically (showing the
+planned train positions as a function of time). In order to verify a timetable,
+one can inspect such graphs and manually check whether the requirements are
+fullled. Although this is very useful, it would be desirable to have a tool that
+could automatically check all requirements.
+Contribution. In this paper we propose a fully automated method for verifying
+timetables. This method is formal and based on model checking. The idea is as
+follows: To check a timetable for a given railway network, one should create a
+real-time model simulating how trains move around in the network, from station
+to station over time, according to the timetable. During the simulation, a number
+of required properties of timetables should be checked. If any of these fail, the
+system should go into an error state. Then one can model check that all trains
+reach their nal destination without ending in an error state. We have explored
+this idea using UPPAAL[3], which is an integrated tool environment for mod-
+elling, validation and verication of real-time systems modelled as networks of
+timed automata. We choose to use UPPAAL as our system is a real-time system
+and the UPPAAL symbolic model checker has shown to very be eective. The
+UPPAAL model is re-congurable: It can be congured with a timetable and
+a railway network description including various scheduling parameters (such as
+station and line capacities, headways, and minimum running times) constrain-
+ing the allowed train behaviour. The verication method has successfully been
+applied to a real world case study: a time table for 12 trains at Nrumbanen
+Local Railway in Denmark.
+To our best knowledge it is a novelty to verify railway timetables by model
+checking.
+Related work. Over the last decade formal methods have been widely used for
+developing railway systems, cf., the surveys given in [2, 5]. According to these
+surveys, formal methods have mostly been applied to railway interlocking sys-
+tems2(as e.g. in [11, 8, 7, 12, 1]) and other control system components, but less for
+railway operations, where formal methods have primarily been used for capacity
+analyses (as e.g. in [4]).
+Paper overview. First, in Sect. 2 and Sect. 3, short, informal introductions
+to the UPPAAL modelling language and to the domain of railway timetables
+are given, respectively. Then Sect. 4 presents a formal UPPAAL model of trains
+driving according to a given railway time table, whereupon, in Sect. 5, it is
+described how the verication of model instances is done. Finally, Sect. 6 gives
+a conclusion and states ideas for future work.
+2An interlocking system is a signalling system component responsible for the safe
+routing of trains through a railway network.
+
+--- Page 4 ---
+2 The UPPAAL Modelling Language
+This section gives an ultra short, informal introduction to the major UPPAAL
+modelling language constructs used in this paper. The reader is assumed familiar
+with the theory of timed automata. For more details, especially on semantics of
+the concurrency construct, the reader should consult [3].
+In UPPAAL a system is modelled as a network of parallel timed automata
+(called processes) which are nite-state machines extended with time in the
+form of real-valued clocks which progress synchronously and with data variables
+of simple data types (bounded integers, arrays, etc.).
+The specication of a system model consists of (1) templates for timed au-
+tomata, (2) declarations of clocks, data variables, constants, channels, and func-
+tions which can be used in the templates, and (3) a system declaration which is a
+parallel composition of processes which are instances of the templates. The pro-
+cesses can communicate asynchronously via shared variables or synchronously
+via channels.
+A timed automaton consists of locations and edges.
+In the UPPAAL graphical representation of timed automata, locations are
+shown as circles and may have a name shown in red colour. The initial location
+is shown by double circles. A location may be committed (shown as a circle with
+a C inside). If a process is in a committed location, the time must not pass
+and the next system transition must involve an edge from a committed location.
+A location may be labelled with an invariant (shown in purple colour) which
+is Boolean expression over variables and clocks. The process can stay in that
+location and let the time pass as long as the invariant is satised, but when the
+invariant becomes false, it must leave the location.
+In the graphical representation, edges are shown as arrows. An edge may be
+labelled with (1) a guard (shown in green colour) which is Boolean expression
+over variables and clocks determining when the edge is enabled and can be
+red, (2) updates of variables and clocks (shown in blue colour) that should be
+executed when the edge is red, and (3) synchronisations of the form c? orc! over
+a channel c(shown in light blue colour). (An edge labelled with c! in one process
+may synchronise with an edge labelled with c? in another process provided that
+both edges are enabled.)
+3 Domain Description
+This section presents the denitions of basic terms of timetabling, as used in this
+paper, and requirements to timetables.
+3.1 Basic concepts and terms
+Railway networks. Arailway network consists of stations and open lines be-
+tween stations. A station can be a passenger station where people embark and
+disembark trains, or a technical station where e.g. trains can overtake each other.
+
+--- Page 5 ---
+Anopen line is a collection of tracks between two stations. In this paper it is
+assumed that each open line is either a single track or is a double track (has two
+tracks).3For double track lines it is assumed that there is one track dedicated
+to each driving direction.
+Railway timetables. Arailway timetable for a given railway network is a col-
+lection of individual train timetables/schedules for train journeys in the network.
+Each train timetable has a unique (train) identier and a list of stations at which
+the train should stop, along with the arrival and departure times at those stops.
+A train is said to drive according to its timetable , if it arrives at and departs
+from the stations in its timetable at the stated arrival and departure times.
+Parameters in timetabling. The requirements to timetables are expressed
+in terms of a number of scheduling parameters described below. These depend
+among others on the track layout, train properties, and signalling system prop-
+erties. It is out of the scope to explain how these parameters are determined - for
+an explanation of that, see e.g. [9]. Often some time supplements are added to /
+included in the minimum times mentioned below to make the timetable robust
+against small train delays.
+The capacity of a station is the maximal number of trains that are allowed to
+be at the station at the same time. (In this paper, for simplicity, we will assume
+that if a station has capacity n, then it consists of nparallel tracks, each track
+having capacity for one train. Furthermore, we will assume that each station
+track is connected to each open line track.) The minimum dwell time of a train
+at a station is the minimum time it must wait at the station, such that there is
+time to open and close doors and let people enter and exit the train.
+The capacity of an open line is the maximal number of trains that are al-
+lowed to be on each of its tracks at the same time. An open line also has a
+minimum running time , i.e. the time it must at least take for a train to drive
+between the two stations connected by the open line. Furthermore, an open line
+has a minimum headway , i.e. the minimum time that must pass between two
+following trains both entering the same track or both leaving the same track.
+Stations can also have dierent kinds of minimum headways between two trains
+entering/leaving the stations (depending on the signalling system). In this paper
+we just illustrate how this can be done for a minimum headway between two
+trains entering the station.
+3.2 Requirements
+For a timetable to be valid, a number of requirements must hold when the
+trains drive according to the timetables. Below we state examples of typical
+requirements, but these might dier for dierent railways.
+3In Denmark this is the case for most railway networks, with only very few exceptions.
+
+--- Page 6 ---
+no overtaking: Trains must not overtake another train on the same track of
+an open line (as this is physically not possible and would prevent the plan
+from being executable.)
+no opposing trains: Single track open lines must not be utilised in both di-
+rections simultaneously (as that would lead to deadlocks preventing the plan
+from being executable.)
+open line running times: Trains must satisfy the minimum running times of
+the open lines.
+open line capacities: The capacity of open lines must never be exceeded.
+open line headways: The headway times of open lines must be respected.
+station dwell times: Trains must satisfy the dwell times at the stations.
+station capacities: The capacity of stations must never be exceeded.
+station headways: The headway times of stations must be respected.
+It is seen how the two rst requirements concern internal inconsistencies in a
+given timetable (in this case conicting train schedules)4, while the remaining
+ones concern the timetabling parameters identied above.
+4 UPPAAL Model
+This section presents the UPPAAL model created for verifying timetables. The
+model can be found here: http://www2.compute.dtu.dk/ ~aeha/RobustRailS/
+data/timetabling/uppaal-models/ . The model has been designed to be re-
+congurable, so that it can be re-used for a whole class of railway networks
+and timetables, without having to change the templates of the model, but only
+constant data representing the railway network and the timetables.
+4.1 Overview
+The model consists of the following three parts:
+1. Global declarations of (1) the conguration data (constants) dening a rail-
+way network layout and timetabling parameters and a timetable for that
+network, (2) clocks, (3) variables, (4) types, and (5) functions.
+2. Two templates: Train and Initialiser . A process instance of the Train
+template represents a single train, running according to one of the timetables
+in the global declarations. The Initialiser template is used to initialise
+the system.
+3. The system declaration, which creates a single Initialiser process and a
+Train process for each of the trains in the timetable.
+The following sections describe these parts, except the types and functions.
+4Note that the interlocking system has the responsibility to ensure that collisions
+would not happen in such cases.
+
+--- Page 7 ---
+4.2 Railway network data
+The railway network data (describing the network layout and the timetabling
+parameters) are represented by a collection of constants as shown in Listing 1.1,
+where the constants are congured for the network of Nrumbanen in Denmark
+which has 9 stations connected one by one by single track open lines. The rst
+constants give the number of stations, the number of open lines, and the sta-
+tion ids. The stationTable is an array with one entry for each station giving
+the capacity ( capacity ) and minimum headway ( HWT) for that station. The
+openLineTable is an array with one entry for each open line (represented as a
+pair of the two stations it is connecting) stating the kind of line ( false means
+single track and true means double track) and giving the minimum running
+time ( MRT), the capacity ( capacity ), and the minimum headway ( HWT) for that
+open line.
+const int STATIONS = 9; // number of stations
+const int OPENLINES = 8; // number of open lines
+// station ids for station numbers 0 .. STATIONS -1:
+const int remisen = 0;
+...
+const int narum = 8;
+const StationTableEntry stationTable [ STATIONS ] =
+{{ remisen , 6, 1},
+{ jagersborg , 2, 1},
+{ norgaardsvej , 1, 1},
+{ lyngbylokal , 1, 1},
+{ fuglevad , 2, 1},
+{brede , 1, 1},
+{orholm , 2, 1},
+{ ravnholm , 1, 1},
+{narum , 2, 1}};
+const OpenLineTableEntry openLineTable [ OPENLINES ] =
+{{{ remisen , jagersborg },false ,2 ,1 ,1} ,
+{{ jagersborg , norgaardsvej },false ,1 ,1 ,1} ,
+{{ norgaardsvej , lyngbylokal },false ,1 ,1 ,1} ,
+{{ lyngbylokal , fuglevad },false ,1 ,1 ,1} ,
+{{ fuglevad , brede },false ,2 ,1 ,1} ,
+{{ brede , orholm },false ,2 ,1 ,1} ,
+{{ orholm , ravnholm },false ,1 ,1 ,1} ,
+{{ ravnholm , narum },false ,2 ,1 ,1}};
+Listing 1.1. Example of network data for Nrumbanen .
+4.3 Timetable data
+The railway timetable is represented by a collection of constants as shown in
+Listing 1.2, where the constants are congured for an extract of the timetable of
+
+--- Page 8 ---
+Nrumbanen in Denmark. stops is an array of timetables { one for each train,
+and each timetable is an array of stop entries. Each stop entry gives the station
+id (StationID ), the arrival time ( AT), the departure time ( DT), and the minimum
+dwell time5(DWT) for a stop. For the shown train timetables the minimum dwell
+time has been chosen to be zero for stations where the trains need not to stop.
+const int TRAINS = 2; // number of trains in the timetable
+const int TRAINSTOPS [ TRAINS ] = {8 ,9}; // number of stops for
+each train time table
+const int MAXLENGTH = 9; // max number of stops for any train
+/* timetable for each train */
+const StopEntry stops [ TRAINS ][ MAXLENGTH ] = {
+// timetable for train 0
+{{ jagersborg ,26 ,30 ,1} ,
+{ norgaardsvej ,31 ,31 ,0} ,
+{ lyngbylokal ,33 ,33 ,0} ,
+{ fuglevad ,35 ,35 ,0} ,
+{brede ,37 ,37 ,0} ,
+{orholm ,39 ,40 ,1} ,
+{ ravnholm ,41 ,41 ,0} ,
+{narum ,43 ,47 ,1} ,
+{-1,-1,-1, -1}} ,
+// timetable for train 1
+{{ remisen ,0 ,34 ,0} ,
+{ jagersborg ,36 ,40 ,1} ,
+{ norgaardsvej ,41 ,41 ,0} ,
+{ lyngbylokal ,43 ,43 ,0} ,
+{ fuglevad ,45 ,45 ,0} ,
+{brede ,47 ,47 ,0} ,
+{orholm ,49 ,50 ,1} ,
+{ ravnholm ,51 ,51 ,0} ,
+{narum ,53 ,57 ,1}}};
+Listing 1.2. Example of a timetable for Nrumbanen.
+4.4 Clocks
+To express time constraints in the model, a number of clocks are introduced in
+addition to the system clock time :
+clock TrainClock[TRAINS];
+clock openLineLastEntered[OPENLINES][2];
+clock openLineLastExit[OPENLINES][2];
+clock stationLastEntered[STATIONS];
+For each train id,TrainClock[id] is used to record how long time the train has
+been in its current location. For each open line number o(which is an index in the
+5To allow for dierent minimum dwell times at the same station for dierent trains,
+this scheduling parameter has been placed here and not in stationTable .
+
+--- Page 9 ---
+openLineTable ) and driving direction d20 .. 1, openLineLastEntered[o][d]
+and openLineLastExit[o][d] records the time elapsed since a train last time
+entered oand exited oin direction d, respectively. Direction 0 is used for the di-
+rection towards the rst station found in the open line entry openLinetable[o] ,
+and direction 1 is used for the other direction. For each station id s,station-
+LastEntered[s] records the time elapsed since a train last time entered s.
+4.5 Variables
+To express requirement checks in the model, a number of variables are intro-
+duced:
+int currentStop[TRAINS];
+int[0, TRAINS] trainsAtStation[STATIONS];
+int[0, TRAINS] trainsAtOpenLine[OPENLINES][2];
+queueEntry queue[OPENLINES][2][TRAINS];
+For each train id t,currentStop[t] stores the station id of the station at
+which the train is currently waiting or towards which it is currently moving (when
+it is on an open line). For each station s,trainsAtStation[s] stores the number
+of trains currently waiting at s. For each open line number oand direction d20
+.. 1, trainsAtOpenLine[o][d] stores the number of trains currently driving on
+oin direction d. For each open line number oand direction d,queue[o][d] is a
+queue (an array) of entries for trains currently present on oin direction d. Each
+entry contains the id of a train and the time it is planned to leave the open line.
+The trains appear in the order they entered o, with the head in queue[o][d][0] .
+4.6 The Initialiser template
+The Initialiser template is shown in Figure 1. The initial location is commit-
+initialise()
+Fig. 1. The Initialiser Template.
+ted making the outgoing edge of that location, the rst to be red in the system
+- without any delay. This edge invokes a function to initialise global variables
+and clocks.
+
+--- Page 10 ---
+4.7 The Train template
+The Train template has a single parameter, id, which can be instantiated with
+the identier of a train from the timetable. The resulting train process sim-
+ulates the behaviour of the train driving perfectly according to its timetable
+instops[id] without any deviations. During the simulation, the timetable is
+checked to satisfy the requirements stated in Sect. 3.2.
+ERROR_OpenLineHeadwayTimeExitERROR_OpenLineOccupiedBothDirectionsERROR_OpenLineHWTEnterERROR_OpenLineCapacity
+ERROR_StationHWTERROR_StationCapacityERROR_OvertakeAttemptevaluatingOpenLineToStationERROR_DwellTime
+evaluatingStationToOpenLine
+ERROR_MinimumRunningTimeCompleteInactive
+time <= stops[id][0].AT
+EnRoute
+time <= stops[id][currentStop[id]].ATAtStation
+time <= stops[id][currentStop[id]].DTtime == stops[id][0].ATtime >= stops[id][currentStop[id]].DT &&
+TRAINSTOPS[id] != (currentStop[id]+1)
+currentStop[id]++
+time >= stops[id][currentStop[id]].ATTRAINSTOPS[id] == 
+  (currentStop[id]+1) &&
+time == 
+  stops[id][currentStop[id]].DT
+Fig. 2. The Train Template only showing state invariants and edge labels expressing
+conditions ensuring that the train drives according to its time table.
+Figure 2 shows the template with all its locations and edges, but for read-
+ability only with those state invariants and edge labels that enforce the train
+to drive according to its time table. Later, the remaining edge labels will be
+explained.
+As it can be seen, a train has the following locations:
+{Inactive which is the initial location.
+{AtStation which reects that at the current time the train is waiting at a
+station according to the timetable.
+{EnRoute which reects that at the current time the train is driving on the
+open line between two consecutive stations in its timetable.
+{evaluatingStationToOpenLine which is a committed, intermediate loca-
+tion between AtStation andEnRoute . It is an auxiliary location (not exist-
+ing in a real system) which is only used for checking that neither leaving the
+current station nor entering the next open line would break a requirement.
+
+--- Page 11 ---
+{evaluatingOpenLineToStation which is a committed, intermediate loca-
+tion between EnRoute andAtStation . It is an auxiliary location (not exist-
+ing in a real system) which is only used for checking that neither leaving the
+current open line nor entering the next station would break a requirement.
+{An error location for each possible error (breaking a requirement). For in-
+stance, if the open line capacity is exceeded at time t, the error state
+ERROR OpenLineCapacity will be reached at that time.
+{Complete which is a location that is reached if and when the train has suc-
+cessfully run through its whole timetable and reached its destination without
+any errors have been detected. If all trains reach this location, the complete
+railway timetable has successfully been validated.
+Figure 2 shows those state invariants and edge labels that enforce the train to
+drive according to its time table: A train starts in the Inactive location. At the
+start time of its timetable (i.e. the arrival time stops[id][0].AT of its rst stop)
+it will enter the AtStation location modelling that it is at the rst stop of its
+timetable. Whenever the AtStation location is entered, if the train has reached
+its nal stop ( TRAINSTOPS[id] == currentStop[id] + 1 ) and nal time of the
+timetable, it will immediately go to the Complete location. Otherwise, it must
+leave the AtStation location and enter the evaluatingStationToOpenLine lo-
+cation at its departure time stops[id][currentStop[id]].DT for its current
+station. During that transition the currentStop[id] counter is incremented by
+one.
+In the evaluatingStationToOpenLine location it is checked whether some re-
+quirements are broken. If that is the case, the system goes into an error location,
+and otherwise it goes to the EnRoute location.
+Similarly, whenever the train is in the EnRoute location (i.e. is driving on
+the open line towards the next station in its route), it must leave the loca-
+tion and enter the evaluatingOpenLineToStation location at the arrival time
+stops[id][currentStop[id]].AT for the train's next station.
+In the evaluatingOpenLineToStation location it is checked whether some re-
+quirements are broken. If that is the case, the system goes into an error location,
+and otherwise it goes to the AtStation location.
+Figure 3 shows the full model with all edge labels included. The additional guards
+and variable/clock updates are used to express the checks for the requirements
+stated in Sect. 3.2. On each edge from the evaluatingStationToOpenLine and
+evaluatingOpenLineToStation locations to an error state for a certain kind of
+error, there is a guard expressing that this error is found. The guard of the edge
+from the evaluatingStationToOpenLine /evaluatingOpenLineToStation lo-
+cation to the EnRoute /AtStation location is a conjunction of the negated error
+conditions in the guards of each of the edges leading to an error location from
+theevaluatingStationToOpenLine /evaluatingOpenLineToStation location.
+The guards are expressed in terms of the clocks and variables declared in Sec-
+tions Sect. 4.4 and Sect. 4.5. These clocks and variables are updated when a
+train is entering a station or an open line.
+
+--- Page 12 ---
+ERROR_OpenLineHeadwayTimeExitERROR_OpenLineOccupiedBothDirectionsERROR_OpenLineHeadwayTimeEnterERROR_OpenLineCapacity
+ERROR_StationHeadwayTimeERROR_StationCapacityERROR_OvertakeAttemptevaluatingOpenLineToStationERROR_DwellTime
+evaluatingStationToOpenLine
+ERROR_MinimumRunningTimeCompleteInactive
+time <= stops[id][0].AT
+EnRoute
+time <= stops[id][currentStop[id]].ATAtStation
+time <= stops[id][currentStop[id]].DT
+openLineLastExit[GetCurrentOpenLine()][GetDirection()] < 
+ GetOpenLineHWT(GetCurrentOpenLine())StationCapacityError()
+stationLastEntered[GetNextStation()] < 
+ GetStationHWT(GetNextStation())OccupiedOppositeError()openLineLastEntered[GetCurrentOpenLine()][GetDirection()] < 
+ GetOpenLineHWT(GetCurrentOpenLine())OpenLineCapacityError()
+time == stops[id][0].AT &&
+stationLastEntered[GetNextStation()] < GetStationHWT(GetNextStation())time == stops[id][0].AT &&
+StationCapacityError()AttemptedOvertake()TrainClock[id] >= stops[id][currentStop[id]-1].DWT &&
+!OpenLineCapacityError() &&
+openLineLastEntered[GetCurrentOpenLine()][GetDirection()] >= 
+ GetOpenLineHWT(GetCurrentOpenLine()) &&
+!OccupiedOppositeError()
+TrainClock[id] = 0,
+EnterOpenLine(GetCurrentOpenLine(), GetNextStation()),
+LeaveStation(stops[id][currentStop[id]-1].stationId)time == stops[id][0].AT &&
+!StationCapacityError() &&
+stationLastEntered[stops[id][0].stationId] >= 
+ GetStationHWT(stops[id][0].stationId)
+EnterStation(stops[id][0].stationId),
+TrainClock[id] = 0TrainClock[id] < stops[id][currentStop[id]-1].DWT
+time >= stops[id][currentStop[id]].DT &&
+TRAINSTOPS[id] != (currentStop[id]+1) &&
+(QueueExpectedExit() > time ||
+ QueueExpectedExit() == -1)
+currentStop[id]++
+TrainClock[id] < GetMRT(GetCurrentOpenLine())TrainClock[id] >= GetMRT(GetCurrentOpenLine()) &&
+!AttemptedOvertake() &&
+!StationCapacityError() &&
+stationLastEntered[GetNextStation()] >= 
+ GetStationHWT(GetNextStation()) &&
+openLineLastExit[GetCurrentOpenLine()][GetDirection()] >= 
+ GetOpenLineHWT(GetCurrentOpenLine())
+LeaveOpenLine(GetCurrentOpenLine(), GetNextStation()),
+EnterStation(GetNextStation()),
+TrainClock[id] = 0time >= stops[id][currentStop[id]].ATTRAINSTOPS[id] == (currentStop[id]+1) &&
+time == stops[id][currentStop[id]].DT
+LeaveStation(stops[id][TRAINSTOPS[id]-1].stationId)Fig. 3. The complete Train Template.
+
+--- Page 13 ---
+Below we will give an overall idea of how the updates and checks for the
+various requirements are done.6
+Theopenline running times requirement: In order to be able to measure
+how long time a train has been driving on an open line, the TrainClock[id]
+clock is reset to 0 each time the train enters the EnRoute location. Then, the
+following condition, when evaluated in the evaluatingOpenLineToStation lo-
+cation (i.e. when the train leaves the open line), expresses that the train has at
+least spent the minimum running time of the current open line in the EnRoute
+location:
+TrainClock[id] >= GetMRT(GetCurrentOpenLine())
+where GetCurrentOpenLine is an auxiliary function which returns the current
+open line oandGetMRT(o) returns the minimum running time of oas stated in
+theopenLineTable :openLineTable[o].MRT .
+Thedwell times requirement is checked similarly using TrainClock[id] .
+Thestation headways requirement is checked in a similar way using the
+stationLastEntered[s] clock which is reset (by an EnterStation(s) function
+call) each time a train enters station s.
+Theopen line headways requirements for entering and leaving an open line
+oare checked in a similar way using the openLineLastEntered[o][d] and the
+openLineLastExit[o][d] clocks, respectively. These clocks are reset to 0 (by
+EnterOpenLine(o, s) and LeaveOpenLine(o, s) function calls, respectively,
+where sis the next station/stop) each time some train enters oand leaves oin
+direction d7(towards s), respectively.
+Thestation capacity requirement: In order to be able to count the number
+of trains present on a station s, the trainsAtStation[s] variable is incremented
+by 1 (by an EnterStation(s) function call) each time some train enters sand
+is decremented by 1 (by a LeaveStation(s) function call) each time some train
+leaves s. Before the train is entering a new station s, the following condition is
+used to check that the capacity of that station will not be exceeded, if the train
+enters the station:
+trainsAtStation[s] < GetStationCapacity(s)
+where GetStationCapacity(s) returns the station capacity of sas stated in
+thestationTable :stationTable[s].capacity
+Theopen line capacity requirement is checked in a similar way for an
+open line ousing the trainsAtOpenLine[o][d] variables which are increment-
+ed/decremented (by an EnterOpenLine(o, s)/LeaveOpenLine(o, s) function
+call) each time a train enters/leaves oin direction d(towards s).
+Theno opposing trains requirement is checked before a train is entering
+a single track open line oin direction dby the condition
+trainsAtOpenLine[o][d'] = 0
+where d'is the opposite direction of d.
+6There is no space to show and explain the many auxiliary functions used in the edge
+labels to implement that.
+7dcan be found from sas explained in Sect. 4.4.
+
+--- Page 14 ---
+Theno overtaking requirement is checked using the queue[o][d] variables
+(introduced in Sect. 4.5). Each time some train enters/leaves an open line oin
+direction dtowards the next station s, a train entry for that train (keeping
+its name and planed arrival time at next station) is pushed/popped to/from
+the queue in queue[o][d] (by an EnterOpenLine(o, s)/LeaveOpenLine(o,
+s)function call). When a train is leaving its current open line oin direction d, the
+following condition is used to check that the rst train in the queue queue[o][d]
+is the train it-self which means that it has not overtaken any train:
+GetQueueFirstTrain(o, d) = id
+where GetQueueFirstTrain(o, d) returns the train id in queue[o][d][0] .
+A concurrency issue: If one train t1enters an open line oat the same time
+t(according to the timetable) as another train t2leaves the same open line
+according to the timetable (both driving in the same direction d), the interleaving
+semantics of UPPAAL would lead to two dierent traces sequencing the two
+events: one in which t1enters rst and t2leaves afterwards, and one in which
+the order is opposite. If we assume that there are no other trains on the line,
+the value of trainsAtOpenLine[o][d] will at time tin the rst trace rst be 2
+and then 1, while in the other trace it will be 1 in both states. If the capacity
+of the line is 1, then the rst trace will give rise to a false line capacity error.
+Therefore, we should ensure that only the second trace is considered. In order
+to ensure this, the following time constraint was added to the guard of the edge
+from the AtStation location to the evaluatingStationToOpenLine location:
+QueueExpectedExit() > time
+where QueueExpectedExit() returns the expected exit time of the train in the
+head of the queue in queue[o][d] :queue[o][d][0].expectedExit . This would
+mean, that a train can only enter the open line at time time , if the next train
+that will leave the same open line in the same direction will do that later on.
+Hence, for the example above, trace 1 would not anymore be possible.
+Note that we do not have the same concurrency issue for stations, since if
+one train enters the station at the same time as another leaves it, there should
+be space for both of them at the same time, so both traces should be considered.
+4.8 System declaration
+The system declaration
+system Train, Initialiser;
+creates a single Initialiser process and a Train process Train(id) for each
+train identier id,id = 0, .. ,TRAIN-1 .
+5 Verication
+This section explains how a railway timetable can be veried by model checking a
+system model instantiated with data for that timetable against some properties.
+
+--- Page 15 ---
+5.1 Properties
+To verify that a railway timetable is valid, it should be checked that eventually
+all the trains have reached their destination as expressed by the property
+A<> forall(i: t id) Train(i).Complete
+If this property is true, it in particular follows that no error states have been
+reached and therefore all the requirements stated in Sect. 3.2 are fullled for
+trains driving according to the timetable.
+However, if the property fails, one can't from the property itself conclude
+what went wrong. In such a case, if one wishes to know which kind of errors were
+encountered and which trains did not reach their destination, one can instead
+check
+A[] forall(i: t id) not Train(i). ERROR S
+for each error location ERROR S, and
+Train(i).Inactive --> Train(i).Complete
+and for each train i.
+5.2 Verication results
+For an extended version of the model created in Sect. 3.2 for Nrumbanen (now
+with 12 trains), we used the symbolic model checker of UPPAAL to check the
+properties above. All properties were successfully veried as shown by green
+lamps in Figure 4.
+Fig. 4. Verication results for the timetable for Nrumbanen in Denmark.
+Verication8using the A<> forall(i: t id) Train(i).Complete property
+took less than a second. The alternative (more informative) verication of all
+the detailed properties (for individual errors and individual trains) took 5 - 6
+seconds.
+8The experiments were done with an Intel(R) Core(TM) i5-5200U processor at 2.2
+GHz with 12 GB RAM.
+
+--- Page 16 ---
+We also made examples with illegal timetables to test that the model checker
+would be able to catch the dierent kinds of errors. For instance, we changed
+the capacity of orholm station from 2 to 1, such that the station capacity would
+be exceeded when two trains should pass each other at the station.
+Once an error has been detected, it is possible to identify how, where and
+when it occurred by choosing the 'Some' option of the Diagnostic Trace. Then
+the failing query should be chosen and veried by itself, resulting in a diagnostic
+trace, which will provide the entire diagnostic trace up until the state of the
+error.
+6 Conclusion and Future Plans
+This paper has shown how railway timetables can be formally veried to be fea-
+sible (executable) and satisfy a number of scheduling constraints. The UPPAAL
+model checker was used for that purpose. To our knowledge, it is the rst time
+that model checking has been used for that. The approach is quite promising
+as it was applied successfully to a real-world case study for which the timetable
+for 12 trains on a railway with 9 stations was successfully veried in less than
+a second. In future work, it would be interesting to apply the method to larger
+examples.
+It should be straight forward to extend the model to allow more than two
+tracks on open lines and take more details of station topologies into account (e.g.
+the number of platforms and which open line tracks they are connected to) and
+include scheduled track occupation information for trains in their timetables.
+Furthermore, it could be interesting to investigate how model checking could be
+used for investigating the eects of train delays.
+We have also investigated how model checking can be used to generate timeta-
+bles and we plan to describe those results in a future paper.
+Acknowledgements
+This paper is dedicated to Professor Stefania Gnesi on the occasion of her 65th
+birthday. The rst author have had the great pleasure of meeting Stefania Gnesi
+at many occasions and would like to thank her for inspiration, discussions, and
+collaboration, especially in European Technical Working Group on Formal Meth-
+ods in Railway Control.
+The research was partially funded by the RobustRailS project (2012-17)
+granted by Innovation Fund Denmark under grant agreement 0603-00483B. The
+authors are grateful to the organisers of the Festschrift Symposium for giving
+the opportunity to prepare this paper. We would like to thank the anonymous
+reviewers for their comments, and we would like to thank Alex Landex for dis-
+cussions and sharing of his deep knowledge about railway timetabling while he
+was employed as a researcher in railway operations at DTU Transport.
+
+--- Page 17 ---
+References
+1. Banci, M., Fantechi, A., Gnesi, S.: Some Experiences on Formal Specication of
+Railway Interlocking Systems Using Statecharts. In: TRain Workshop at SEFM
+(2005)
+2. Basile, D., ter Beek, M.H., Fantechi, A., Gnesi, S., Mazzanti, F., Piattino, A.,
+Trentini, D., Ferrari, A.: On the industrial uptake of formal methods in the railway
+domain - A survey with stakeholders. In: Furia, C.A., Winter, K. (eds.) Integrated
+Formal Methods. pp. 20{29. Springer International Publishing (2018)
+3. Behrmann, G., David, A., Larsen, K.G.: A Tutorial on UPPAAL. In: Bernardo, M.,
+Corradini, F. (eds.) Formal Methods for the Design of Real-Time Systems: Inter-
+national School on Formal Methods for the Design of Computer, Communication,
+and Software Systems, Revised Lectures, pp. 200{236. Springer Berlin Heidelberg,
+Berlin, Heidelberg (2004)
+4. Di Giandomenico, F., Fantechi, A., Gnesi, S., Itria, M.L.: Stochastic model-based
+analysis of railway operation to support trac planning. In: Gorbenko, A., Ro-
+manovsky, A., Kharchenko, V. (eds.) Software Engineering for Resilient Systems.
+pp. 184{198. Springer Berlin Heidelberg, Berlin, Heidelberg (2013)
+5. Fantechi, A.: Twenty-Five Years of Formal Methods and Railways: What Next? In:
+Counsell, S., N u~ nez, M. (eds.) Software Engineering and Formal Methods. Lecture
+Notes in Computer Science, vol. 8368, pp. 167{183. Springer (2014)
+6. Hansen, I.A., Pachl, J.: Railway Timetable & Trac: Analysis, Modelling, Simu-
+lation. Eurailpress (2008)
+7. James, P., Moller, F., Nguyen, H.N., Roggenbach, M., Schneider, S., Treharne, H.:
+Techniques for modelling and verifying railway interlockings. International Journal
+on Software Tools for Technology Transfer 16(6), 685{711 (2014)
+8. Khan, U., Ahmad, J., Saeed, T., Hayat, S.: Real Time Modeling of Interlock-
+ing Control System of Rawalpindi Cantt Train Yard. In: 2015 13th International
+Conference on Frontiers of Information Technology (FIT). pp. 347{352 (2015).
+https://doi.org/10.1109/FIT.2015.28
+9. Landex, A., Kaas, A., Hansen, S.: Railway Operation. Tech. rep., Technical Uni-
+versity of Denmark, Centre for Trac and Transport (2006)
+10. Schittenhelm, B., Landex, A.: Jernbanesimuleringsvrktjer i Danmark (Eng.:
+Railway Simulation Tools in Denmark). In: Aalborg Trakdage 2008, available
+from www.trafikdage.dk/papers_2008/praesentationer/bernd_schittenhelm_
+158.pdf (2008), in Danish
+11. Vu, L.H., Haxthausen, A.E., Peleska, J.: Formal Modelling and Ver-
+ication of Interlocking Systems Featuring Sequential Release. Sci-
+ence of Computer Programming 133, Part 2 , 91{115 (2017).
+https://doi.org/http://dx.doi.org/10.1016/j.scico.2016.05.010, http:
+//www.sciencedirect.com/science/article/pii/S0167642316300570 ,
+http://dx.doi.org/10.1016/j.scico.2016.05.010
+12. Winter, K.: Symbolic Model Checking for Interlocking Systems. In: Flammini, F.
+(ed.) Railway safety, reliability, and security: technologies and systems engineering.
+IGI Global (2012)

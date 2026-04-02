@@ -1,0 +1,2413 @@
+--- Page 1 ---
+Software and Systems Modeling
+https://doi.org/10.1007/s10270-020-00819-0
+REGULAR PAPER
+Speciﬁcation and automated veriﬁcation of atomic concurrent
+real-time transactions
+Simin Cai1·Barbara Gallina1·Dag Nyström1·Cristina Seceleanu1
+Received: 5 September 2019 / Revised: 13 April 2020 / Accepted: 7 July 2020
+© The Author(s) 2020
+Abstract
+Many database management systems (DBMS) need to ensure atomicity and isolation of transactions for logical data con-
+sistency, as well as to guarantee temporal correctness of the executed transactions. Since the mechanisms for atomicity and
+isolation may lead to breaching temporal correctness, trade-offs between these properties are often required during the DBMSdesign. To be able to address this concern, we have previously proposed the pattern-based UPPCART framework, which
+models the transactions and the DBMS mechanisms as timed automata, and veriﬁes the trade-offs with provable guarantee.
+However, the manual construction of UPPCART models can require considerable effort and is prone to errors. In this paper,we advance the formal analysis of atomic concurrent real-time transactions with tool-automated construction of UPPCART
+models. The latter are generated automatically from our previously proposed UTRAN speciﬁcations, which are high-level
+UML-based speciﬁcations familiar to designers. To achieve this, we ﬁrst propose formal deﬁnitions for the modeling patternsin UPPCART, as well as for the pattern-based construction of DBMS models, respectively. Based on this, we establish a trans-lational semantics from UTRAN speciﬁcations to UPPCART models, to provide the former with a formal semantics relying
+on timed automata, and develop a tool that implements the automated transformation. We also extend the expressiveness of
+UTRAN and UPPCART, to incorporate transaction sequences and their timing properties. We demonstrate the speciﬁcationin UTRAN, automated transformation to UPPCART, and veriﬁcation of the traded-off properties, via an industrial use case.
+Keywords Transaction ·Atomicity ·Isolation ·Temporal correctness ·Uniﬁed modeling language ·Model checking
+1 Introduction
+Many modern computer systems rely on database manage-
+ment systems (DBMS) to maintain the logical consistency
+of critical data, such as to ensure the correct balance of
+bank accounts during a bank transfer. By employing a vari-ety of transaction management mechanisms, DBMS ensures
+logical data consistency under complex data management
+Communicated by Ina Schaefer.
+B Simin Cai
+simin.cai@mdh.se
+Barbara Gallina
+barbara.gallina@mdh.se
+Dag Nyström
+dag.nystrom@mdh.se
+Cristina Seceleanu
+cristina.seceleanu@mdh.se
+1School of Innovation, Design and Engineering, MälardalenUniversity, V ästerås, Swedenscenarios, such as transaction abortions and concurrent
+access of data. Among these mechanisms, abort recovery
+(AR) restores the consistent state of a database when a trans-action is aborted due to errors and thus achieves atomicity
+[1]. Rollback, for instance, is a common AR technique that
+undoes all changes of an aborted transaction [ 1]. Concur-
+rency control (CC) regulates concurrent access to data from
+different transactions, which prevents inconsistent data due
+to interference, and ensures isolation [1]. A widely adopted
+CC technique is to apply locks on the data such that arbi-trary access is prevented [ 2]. Together, AR and CC ensure
+the logical consistency of critical data that the applications
+rely on, hence contributing to the dependability of the overallsystems.
+In addition to logical data consistency, another important
+factor to the dependability of many database-centric systemsis the temporal correctness of transactions. Examples of sys-
+tems where the temporal property is crucial include industrial
+control systems [ 3] and automotive systems [ 4], whose con-
+ﬁgurations and states can be stored in databases. Reading an
+123
+
+--- Page 2 ---
+S. Cai et al.
+outdated sensor value or calibration parameter could result in
+catastrophic consequences such as loss of lives. Finishing atransaction too late could cause the production process to fall
+behind schedule and lead to economic loss. In such real-time
+database systems, transactions must be temporally correct,meaning that they must be scheduled to use fresh data, andhave to meet speciﬁed deadlines [ 5].
+The assurance of atomicity and isolation, however, may
+stand at odds with enforcing temporal correctness, becauseCC may cause a transaction to be blocked for a long time,
+and AR often introduces extra workload when performing
+recovery. To make matters worse, some CC algorithms maydirectly abort transactions, while the recovery may again
+lock the data and block other transactions further, which
+entails complex behaviors in time and could lead to deadlinemisses. Therefore, designing a real-time DBMS (RTDBMS)requires careful trade-offs in transaction management [ 6],
+with respect to deciding on proper “variants” [ 7]o fa t o m -
+icity and isolation, as well as selecting proper AR and CCmechanisms. To achieve an appropriate trade-off, it is helpful
+to specify all three properties explicitly, together with their
+supporting AR, CC, and scheduling mechanisms, in a high-level language if possible familiar to system designers. To
+ensure the correctness of the trade-off, one should be able
+to analyze such speciﬁcations, and reason about whether theproperties can be satisﬁed with the selected mechanisms.
+This paper builds on top of our previous work [ 8], in which
+we took an initial step to specify and verify atomicity, iso-
+lation and temporal correctness in a uniﬁed framework. Weproposed a Uniﬁed Modeling Language (UML) [ 9] proﬁle
+called UML for TRANsactions (UTRAN), for the speciﬁ-
+cation of transactions with atomicity, isolation and temporalcorrectness properties. UTRAN models a transaction as an
+activity, and includes explicit modeling elements to express
+atomicity and isolation variants, as well as the AR, CC andscheduling mechanisms. We also proposed a formal frame-work, called UPPAAL for Concurrent Atomic Real-time
+Transactions (UPPCART) [ 8], which models real-time trans-
+actions, together with the selected AR, CC and schedulingmechanisms in the RTDBMS, as a network of UPPAAL
+timed automata (TA) [ 10]. Constituents of the UPPCART
+models are formulated as automata patterns, such that thecomplexity of the models is tamed, and reuse of repeat-
+able modeling pieces is enabled. The transactional properties
+can then be formalized, and veriﬁed rigorously using thestate-of-the-art UPPAAL model checker [ 10]. The connec-
+tion between UTRAN and UPPCART, however, is still not
+formally deﬁned, which prohibits automated transformation
+for practices in complex systems. As a result, the current con-struction of UPPCART models requires considerable manual
+efforts and is prone to error.
+In this paper, we contribute to the speciﬁcation and veriﬁ-
+cation of atomic concurrent real-time transactions in severalaspects. We extend UTRAN and UPPCART to support
+sequences of transactions, and their end-to-end deadlines.Many real-time system designs contain invocation dependen-
+cies between transactions, that is, one transaction is started
+only after the termination of another. For instance, an updatetransaction executed by a sensor may trigger another transac-tion that updates the speed of the vehicle. In such cases, it is
+the end-to-end execution of the entire sequence that matters
+to the system validation. Therefore, we extend our UTRANand UPPCART so as to cater for the speciﬁcation and anal-
+ysis of transaction sequences.
+In order to help system designers to create well-formed
+UTRAN speciﬁcations, we enhance the UTRAN deﬁnition
+with static semantics constraints, deﬁned in the Object Con-
+straint Language (OCL) [ 11]. Speciﬁcation errors violating
+the OCL constraints can be directly spotted by common UMLeditors, such as Eclipse Papyrus
+1and IBM Rational Software
+Architect (RSA)2.
+We bridge the gap between UTRAN and UPPCART in
+this paper, such that automated transformation is facilitated.
+To achieve this, we ﬁrst propose formal deﬁnitions of UPP-
+CART patterns and connectors, in terms of UPPAAL TA,based on which we are able to deﬁne the pattern-based con-
+struction for UPPCART models. This formalism enables
+us to create a translational semantics that maps the syn-tactic structures in UTRAN with the UPPCART patterns,which provides UTRAN with a formal semantics relying on
+timed automata. The translation process is implemented in
+our tool U
+2Transfo rme r [12], which transforms high-level
+UTRAN speciﬁcations, into veriﬁable UPPCART models.
+We also present an industrial use case to demonstrate
+the speciﬁcation, transformation, and veriﬁcation of trans-actions using the extended UTRAN and UPPCART. The
+use case involves multiple construction vehicles working
+autonomously in a quarry, with requirements on collisionavoidance and mission efﬁciency. To achieve this, we designa two-layer collision avoidance system to moderate the
+behaviors of the vehicles. Among them, the global collision
+avoidance layer is backed by an RTDBMS that stores themap of the quarry, and prevent vehicles colliding into each
+other via concurrency control. The local layer utilizes a local
+RTDBMS for ambient data that are used for obstacle avoid-ance by individual vehicles. We use UTRAN to specify the
+transaction sequences and transactions in both layers, as well
+as the properties to be ensured. We then transform these spec-iﬁcations into UPPCART models with U
+2Transformer, and
+verify the correctness of our design.
+In brief, our contributions in this paper are listed as fol-
+lows:
+1https://www.eclipse.org/papyrus/ .
+2https://www.ibm.com/developerworks/downloads/r/architect .
+123
+
+--- Page 3 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+– extensions of UTRAN and UPPCART for transaction
+sequences;
+– OCL constraints for UTRAN;
+– a formal deﬁnition of pattern-based construction for
+UPPCART;
+– a translational semantics from UTRAN to UPPCART,
+and tool-supported transformations based on this;
+– a use case that demonstrates UTRAN, UPPCART, the
+transformation, and the veriﬁcation.
+The remainder of the paper is organized as follows. In
+Sect. 2, we present the preliminaries of the paper. In Sect. 3,
+we recall and extend the UTRAN proﬁle. Section 4intro-
+duces the formal deﬁnition of pattern-based construction, aswell as the extended UPPCART framework. We propose the
+translational semantics of UTRAN to UPPCART, as well as
+our automated transformation, in Sect. 5, followed by our
+use case in Sect. 6. We discuss the related work in Sect. 7,
+after which we conclude the paper and outline future work
+in Sect. 8.
+2 Preliminaries
+In this section, we present the preliminaries of this paper,
+including the concepts of transactions, atomicity, isola-
+tion and temporal correctness (Sect. 2.1), UML proﬁles
+(Sect. 2.2), and UPPAAL timed automata (Sect. 2.3).
+2.1 Real-time transactions
+A DBMS models read and write operations of data as trans-
+actions, and handles data consistency via transaction man-agement. Traditionally, a transaction is a partially ordered
+set of logically-related operations that as a whole ensures the
+ACID properties [ 1]:atomicity (a transaction either runs com-
+pletely or makes no changes at all), consistency (transactions
+executed alone must ensure logical constraints), isolation
+(concurrent transactions do not interfere with each other), anddurability (committed changes are made permanent). The set
+of operations is called a work unit (WU). The scope of a trans-
+action is usually deﬁned by the following operations: begin
+(start a transaction), commit (terminate a transaction and
+make its changes permanent and visible), and abort (termi-
+nate a transaction and recover from its changes). We consider
+two types of aborts in a database system: system aborts are
+caused by system errors or data contentions and thus are
+issued by the DBMS. User aborts are started by clients to
+stop the transaction on the purpose of fulﬁlling applicationsemantics.
+As complements to the classical transaction model with
+full ACID assurance, a number of other transaction modelsthat deﬁne different variants of transaction properties havebeen proposed, as well as the mechanisms to realize them [ 7].
+In this paper, we focus on the variants of atomicity, isolation,and temporal correctness.
+2.1.1 Atomicity
+Full atomicity achieves an “all-or-nothing” semantics, in
+which “commit” means completing “all” changes included
+in the transaction, while “abort” means that “nothing” ischanged at all. In this paper, we particularly emphasize the
+recovery of transactions terminated by errors, and focus on
+the variants of atomicity upon transaction abortions.
+We refer to the “nothing” semantics of full atomicity as
+failure atomicity , which is achieved by rollback , a recovery
+mechanism that restores database consistency by undoing all
+changes made by the to-be-aborted transaction [ 1]. Let us use
+w
+j
+ito denote that transaction Tiwrites data Dj. The sequence
+<w0
+1,w1
+1>denotes that transaction T1writes D0and D1in
+order. If T1gets aborted right after w1
+1, its rollback sequence
+is<w1
+1,w0
+1>. Due to the performance and functionality
+restrictions of failure atomicity, a number of relaxed atom-
+icity variants as options have been proposed, which allow
+changes to be partially undone, or recover inconsistencysemantically using compensating operations [ 7,13]. We con-
+sider the following abort recovery mechanisms for relaxed
+atomicity in this paper. Immediate compensation executes a
+sequence of operations immediately upon abortion, in order
+to update the database into a consistent state. For instance,
+the compensation for the aforementioned aborted transaction
+T
+1may be <w2
+1>, that is, to update D2immediately instead
+of rollback. Deferred compensation , in contrast to the imme-
+diate execution of compensation, executes the compensatingoperations to restore consistency as a normal transaction,scheduled with other transactions. The deferred compensa-
+tion for the previous example could be, for instance, that the
+update of D
+2is scheduled to take place after the termination
+of other transactions rather than immediately. In both vari-
+ants, designers can decide the operations ﬂexibly depending
+on the application semantics. An atomicity manager withthe knowledge of the atomicity variants then performs the
+designed recovery at runtime.
+2.1.2 Isolation
+Isolation variants have been proposed as a series of levels
+[7,14], for instance, the read uncommitted, read commit-
+ted, repeatable read and serializable levels in the SQL-92
+standard [ 15]. An isolation level is deﬁned as the property
+to preclude a particular set of phenomena , which are inter-
+leaved transaction executions that can lead to inconsistent
+data. Let us use rj
+ito denote that transaction Tireads data
+Dj. The following sequence <r0
+0,w0
+1,w1
+1,r1
+0>represents
+the execution “ T0reads D0,T1writes D0,T1writes D1,T0
+123
+
+--- Page 4 ---
+S. Cai et al.
+reads D1”. In this execution, T0reads an old version of D0
+before the change of T1,b u tan e wv e r s i o no f D1after the
+change of T1. Considering that D0and D1are a pair of con-
+ﬁguration parameters that are required to always be updated
+together, the values read by T0become inconsistent in this
+sequence, which may break the safety requirements. There-fore, the example execution is considered as an isolation
+phenomenon, and should be avoided by the required iso-
+lation level, such as the serializable level [ 15]. By adjusting
+the precluded phenomena, isolation levels provide a ﬂexible
+way to relax isolation according to the particular semantics.
+DBMS ensures isolation by applying concurrency control
+on the access of data, which regulates the interleaved trans-
+action executions according to a selected CC algorithm [ 2].
+We consider a family of commonly applied CC algorithmsin this paper, called pessimistic concurrency control (PCC)
+algorithms[ 2]. PCC exploits locking techniques to prevent
+unwanted interleavings. Depending on the algorithm, a trans-
+action needs to acquire a speciﬁc type of lock at a certain timepoint before accessing the data, and releases the lock at a
+certain time point after the usage of the data. Upon receiving
+requests, the CC manager decides which transactions shouldobtain the lock, wait for the lock, or even be aborted, accord-
+ing to the resolution policy of the selected algorithm. In case
+a transaction gets aborted by CC, the atomicity manager mayperform the abort and recovery of the transaction.
+2.1.3 Temporal correctness
+In a real-time database system, temporal correctness consists
+of transaction timeliness , and temporal data consistency [5].
+Timeliness means that transactions should meet their dead-lines [ 5]. Temporal data consistency includes two aspects.
+Absolute validity requires that data read by a transaction must
+not be older than a speciﬁed validity interval. Relative valid-
+ityrequires that, if a transaction reads a group of data, these
+data must be generated within a speciﬁed interval so that the
+results are temporally correct. RTDBMS may employ various
+scheduling policies to schedule the transaction operations,in order to achieve better temporal correctness. Commonly
+applied scheduling policies include ﬁrst-in-ﬁrst-out (FIFO),
+round robin, or policies based on the priorities of the trans-actions [ 2]. In addition to deadlines and validity intervals,
+other important time-related information includes execution
+times of the operations, and the arrival patterns of transac-
+tions (whether a transaction is started with a period, with abounded inter-arrival interval, or randomly) [ 5].
+Since temporal correctness is often crucial to the safety
+of the system, full ACID assurance often needs to be relaxedsuch that the former can be guaranteed [ 6]. For instance,
+relaxed atomicity with compensation can be adopted, instead
+of failure atomicity with rollback [ 16]. Real-time CC algo-
+rithms often incorporate time-related information of thetransactions to achieve better timeliness. For instance, a
+widely applied real-time PCC, Two-Phase locking - High
+Priority (2PL-HP) [17], takes priorities and abortion into
+consideration of its resolution policy. In this algorithm, a
+transaction acquires a readlock (writelock) on data beforeit performs a read (write) operation, and releases all locksduring commitment. A CC conﬂict occurs when two trans-
+actions try to writelock the same data. In this situation, the
+transaction with higher priority will be granted with the lock,while the transaction with lower priority will be aborted by
+the RTDBMS. As a result, transactions with higher priorities
+are more likely to meet their deadlines.
+2.2 UML Profiles and MARTE
+UML is one of the most widely accepted modeling lan-guage in software development, and has been extended forvarious application domains [ 9]. A common way to extend
+UML is through proﬁles . A proﬁle deﬁnes a package of
+stereotypes, which are domain-speciﬁc concepts that extendexisting UML metaclasses, as well as dependencies between
+the deﬁned stereotypes. Properties that are speciﬁc to these
+concepts are deﬁned as tagged values associated to the stereo-types. When a stereotype is applied to a UML modelingelement, the instance of this element becomes an instance of
+the domain-speciﬁc concept represented by the stereotype,
+and extended with its properties.
+In addition to developing speciﬁcation languages for
+particular domains, proﬁles may also be adopted to add sup-
+plementary information for the purpose of analysis or codegeneration. Modeling and analysis of real-time embedded
+systems (MARTE) [ 18] is a proﬁle that deﬁnes the basic
+concepts to support the modeling of real-time and embeddedapplications, as well as to provide time-related informationfor performance and schedulability analysis. As timing infor-
+mation is essential for our analysis and thus needs to be
+supported in the speciﬁcations, we reuse the relevant con-cepts from MARTE in this paper. The following MARTE
+concepts are reused: (i) MARTE::NFP_Duration, a data type
+for time intervals; (ii) MARTE::ArrivalPattern, a data typefor arrival patterns, such as periodic, sporadic and aperiodic
+patterns.
+2.3 UPPAAL timed automata and UPPAAL model
+checker
+An UPPAAL Timed Automaton (TA)[ 10] is deﬁned as a tuple
+A:: = (L,l0,X,V,I,Act ,E), in which:
+–Lis a ﬁnite set of locations,
+–l0is the initial location,
+–Xis a ﬁnite set of clock variables,
+–Vis a ﬁnite set of discrete variables,
+123
+
+--- Page 5 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+(a) (b)
+Fig. 1 A network of timed automata
+–I:L→B(X)assigns invariants to locations, where
+B(X)denotes the set of clock constraints,
+–Act is a set of synchronization channels,
+–E⊂L×B(X,V)×Act×R×Lis a ﬁnite set of edges,
+where B(X,V)denotes the set of guards, Rdenotes the
+set of assignments.
+The state of a TA consists of the values of its clock vari-
+ables, together with the current location. Multiple TA can
+form a network of timed automata (NTA) via parallel com-
+position (“||”) [ 19], by which individual TA are allowed to
+carry out internal actions (i.e., interleaving), while pairs ofTA can perform hand-shake synchronization via channels
+(see below). The state of an NTA then consists of the values
+of all variables in the NTA, together with the currently visitedlocations of each TA, respectively.
+As an example, Fig. 1shows an NTA modeling a sim-
+ple concurrent real-time system, in which automaton A1sporadically increments a variable aand synchronizes with
+automaton A2. A1 consists of a set of locations (L1, L2 and
+L3), and edges connecting them. A clock variable clis deﬁned
+in A1 to measure the elapse of time, and progresses contin-uously at rate 1. A discrete variable ais deﬁned globally,
+and shared by A1 and A2. At each location, an automaton
+may stay at the location, as long as the invariant , which is
+a conjunction of clock constraints associated with the loca-
+tion, is satisﬁed. Alternatively and non-deterministically, the
+automaton may take a transition along an edge, if the guard ,
+which is a conjunction of constraints on discrete or clock vari-
+ables associated with the edge, is satisﬁed. In Fig. 1,A 1m a y
+delay in L2 as long as cl ≤3, or follow the edge to L3 when cl
+≥1. Each edge may have an associated action, which is the
+synchronization with other automata via a channel . Binary
+channels are used to synchronize one sender (indicated by a
+mark “!”) with a single receiver (indicated by a mark “?”).In Fig. 1, A1 sends a message to A2 via binary channel ch,
+while taking the edge from L2 to L3. The synchronization
+can take place only if both the sender and the receiver areready to traverse the edge. A broadcast channel is used to
+pass messages between one sender and an arbitrary num-
+ber of receivers. When using broadcast channels, the senderdoes not block even if some of the receivers are not ready.An edge may have an
+assignment , which resets the clocks
+or updates discrete variables when the edge is traversed. InUPPAAL TA, both guards and assignments can be encoded
+as functions in a subset of the C language, which brings high
+ﬂexibility and expressiveness to modeling. In our example,when A1 moves from L2 to L3, ais incremented using the
+function inc(a) .
+A location marked as “U” is an urgent location, meaning
+that the automaton must leave the location without delay intime. Another automaton may ﬁre transitions as long as time
+does not progress. A location marked as “C” is a committed
+location, which indicates no delay in time, and immediatetransition. Another automaton may not ﬁre any transitions,
+unless it is also at a committed location.
+The UPPAAL model checker can verify properties speci-
+ﬁed as UPPAAL queries, in UPPAAL’s property speciﬁcationlanguage [ 10] that is a decidable subset of Computation Tree
+Logic (CTL) [ 20], possibly extended with clock constraints.
+For instance, the invariance property “A1 never reaches loca-tion L3” can be speciﬁed as “ A[]not A 1.L3”, in which “ A”i s
+a path quantiﬁer and reads “for all paths”, whereas “ []”i st h e
+“always” temporal operator and speciﬁes that (not A 1.L3)is
+satisﬁed in all states of a path. If an invariance property is not
+satisﬁed, the model checker will provide a counterexample.
+The liveness property “If A1 reaches L2, it will eventu-ally reach L3” can be speciﬁed, using the “leads-to ( →)”
+operator, as “ A1.L2→ A1.L3”, which is equivalent to
+“A[](A1.L2imply A <> A1.L3)”, where “ <>”i st h e
+“eventually” temporal operator and speciﬁes that A1.L3i s
+satisﬁed in ﬁnite time in at least one state of a path.
+3 UTRAN
+In this section, we recall the UTRAN proﬁle ﬁrstly pro-posed in our previous work [ 8], and present its extension
+for transaction sequences, as well as the OCL constraints for
+creating consistent UTRAN speciﬁcations. We ﬁrst present
+the domain model of real-time transactions in Section 3.1,
+after which we introduce the UML proﬁle diagram in Sec-
+tion 3.2, including the OCL constraints.
+3.1 Domain view
+The domain model of real-time transactions is presented in
+Fig. 2. A RTDBMS manages a set of transactions. A transac-
+tion can be conceptually modeled as an activity in the UML
+activity diagram, which consists of a set of partially-ordered
+operations, represented as UML actions in the containingactivity. Two types of operations are considered explicitly in
+a transaction: DBOperations andTMOperations . DBOpera-
+tions directly perform read and write access to the data. Suchread and write operations, denoted as ReadOP andWriteOP
+123
+
+--- Page 6 ---
+S. Cai et al.
+0..1
+<< enumera/g415on >>
+ARMechanism<< enumera/g415on >>
+ARMechanism
+Rollback
+ImmediateCompensate
+DeferredCompensateRTDBMSScopeRTDBMSScopeConcurrencyControl
+AlgorithmConcurrencyControl
+AlgorithmLockingRuleLockingRule
+LockTypeLockType
+UnlockingRuleUnlockingRuleResolu/g415onPolicyResolu/g415onPolicy
+Isola/g415onPhenomenonIsola/g415onPhenomenon
+0..*
+AtomicitySpeciﬁca/g415onAtomicitySpeciﬁca/g415on
+-atomVariant: 
+AtomicityVariantCompensa/g415
+onCompensa/g415
+on
+-relValidity: NFP_Dura/g415on<< enumera/g415on >>
+Isola/g415onLevel<< enumera/g415on >>
+Isola/g415onLevel
+ReadUncommi/g425ed
+ReadCommi/g425ed
+RepeatableRead
+Serializable
+Customized1..*
+-schedPolicy: 
+SchedPolicy<< enumera/g415on >>
+SchedPolicy<< enumera/g415on >>
+SchedPolicy
+FIFO
+RoundRobin
+Priority
+Isola/g415onSpeciﬁca/g415onIsola/g415onSpeciﬁca/g415on
+-level: Isola/g415onLevel
+Transac/g415onTransac/g415on
+-relDeadline: NFP_Dura/g415on-priority: NFP_Int
+ReadOpReadOpWriteOpWriteOpOpera/g415onOpera/g415on
+CommitOpCommitOp BeginOpBeginOp AbortOpAbortOpDBOpera/g415onDBOpera/g415on TMOpera/g415onTMOpera/g415on
+-execTime: 
+NFP_Dura/g415on -execTime: 
+NFP_Dura/g415on-execTime: 
+NFP_Dura/g415on-execTime: 
+NFP_Dura/g415on-execTime: 
+NFP_Dura/g415onPrecedenceRela/g415onPrecedenceRela/g415on
+pr ed ecpr ed ecUML::Ac/g415vityUML::Ac/g415vity
+-pa/g425ern: ArrivalPa/g425ern 
+DataData readreadwritewriteOpera/g415onPar/g415alOrderOpera/g415onPar/g415alOrder
+MARTE_Library:: 
+BasicNFP_Types:: ArrivalPa/g425ern MARTE_Library:: 
+BasicNFP_Types:: ArrivalPa/g425ern 
+-periodic: Periodic_Pa/g425ern
+-aperiodic: Aperiodic_Pa/g425ern
+-sporadic: Sporadic_Pa/g425ern 
+-. . .-max_delay: 
+NFP_Dura/g415on
+-min_delay: 
+NFP_Dura/g415on
+-id: IntegerUML::Ac/g415onUML::Ac/g415on
+successucces
+-period: NFP_Dura/g415on
+-id: Integer1..*
+0..1<< enumera/g415on >>
+AtomicityVariant<< enumera/g415on >>
+AtomicityVariant
+FailureAtomicity
+RelaxedAtomicity
+AbortRecovery
+MechanismAbortRecoveryMechanism
+-ar: ARMechanism-cc: CCAlgorithm<< enumera/g415on >>
+CCAlgorithm<< enumera/g415on >>
+CCAlgorithm
+2PL-HP
+R2PL
+...
+TemporalCorrectness
+Speciﬁca/g415onTemporalCorrectness
+Speciﬁca/g415on
+-recoverTime: NFP_Dura/g415on-absValidity: 
+NFP_Dura/g415on0..1
+-relValGroup: Integer[*]Transac/g415on 
+SequenceTransac/g415on 
+Sequence
+-id: Integer
+successucces
+predecpredec1..*0..*
+0..10..1
+Fig. 2 Domain model of real-time transactions, extended from [ 8]. New concept marked with darker frame
+respectively, are atomic, and their worst-case execution times
+are known a priori (assuming a given hardware platform). AReadOP may be assigned with an absolute validity inter-
+val for the data it reads. TMOperations are the operations
+that begin ,commit andabort transactions. The times for the
+RTDBMS to execute such TMOperations are also known a
+priori. A precedence relation describes the order of the oper-
+ations, as well as the maximal and minimal delays between
+the operations. Such delays may include, not only the com-munication overhead, but also the response times of the client
+computations that do not interact with the database.
+A transaction may be assigned with a TemporalCorrect-
+nessSpeciﬁcation for time-related properties, including the
+priority ,t h e relative deadline , and the period (or minimum
+inter-arrival time) of the transaction, if applicable. A transac-
+tion may also have a speciﬁed relative validity interval ,f o r
+the validity of a group of data read by the transaction, and thearrival pattern of the transaction, such as periodic, sporadic
+and aperiodic.
+123
+
+--- Page 7 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+<<Metaclass>>
+Comment<<Metaclass>>
+Comment<<Metaclass>>
+Ac/g415vity<<Metaclass>>
+Ac/g415vity<<Metaclass>>
+Ac/g415on<<Metaclass>>
+Ac/g415on
+/g415d: Integer<<stereotype>>
+Transac/g415on
+/g415d: Integer<<stereotype>>
+Transac/g415onpid: Integer<<stereotype>>
+Isola/g415onPhenomenon
+pid: Integer<<stereotype>>
+Isola/g415onPhenomenon
+<<stereotype>>
+Compensa/g415on<<stereotype>>
+Compensa/g415on/g415d: Integer<<stereotype>>
+Opera/g415on
+/g415d: Integer<<stereotype>>
+Opera/g415on<<Metaclass>>
+Ac/g415vityEdge<<Metaclass>>
+Ac/g415vityEdge
+max_delay: 
+MARTE::NFP_Dura/g415on
+min_delay: MARTE::NFP_Dura/g415on<<stereotype>>
+DelayedNext
+max_delay: 
+MARTE::NFP_Dura/g415on
+min_delay: MARTE::NFP_Dura/g415on<<stereotype>>
+DelayedNext
+execTime: 
+MARTE::NFP_Dura/g415on
+did: Integer<<stereotype>>
+DBOpera/g415on
+execTime: 
+MARTE::NFP_Dura/g415on
+did: Integer<<stereotype>>
+DBOpera/g415on
+<<stereotype>>
+WriteOP<<stereotype>>
+WriteOPexecTime: 
+MARTE::NFP_Dura/g415on<<stereotype>>
+TMOpera/g415on
+execTime: 
+MARTE::NFP_Dura/g415on<<stereotype>>
+TMOpera/g415on
+<<stereotype>>
+BeginOP<<stereotype>>
+BeginOP<<stereotype>>
+CommitOP<<stereotype>>
+CommitOP
+<<stereotype>>
+AbortOP<<stereotype>>
+AbortOP<<Metaclass>>
+NamedElement<<Metaclass>>
+NamedElement
+transac/g415ons: 
+Integer[*]
+Sched: SchedPolicy<<stereotype>>
+RTDBMSScope
+transac/g415ons: 
+Integer[*]
+Sched: SchedPolicy<<stereotype>>
+RTDBMSScope
+is ol a/g415 onLevel: 
+Isola/g415onLevel
+disallowedPhenomena: 
+Integer[*]
+cc: CCAlgorithm<<stereotype>>
+Isola/g415onSpeciﬁca/g415on
+is ol a/g415 onLevel: 
+Isola/g415onLeveldisallowedPhenomena: 
+Integer[*]
+cc: CCAlgorithm<<stereotype>>
+Isola/g415onSpeciﬁca/g415onrelDeadline: 
+MARTE::NFP_Dura/g415on
+priority: Integer
+pa/g425ern: MARTE::ArrivalPa/g425ernperiod: MARTE::NFP_Dura/g415on
+relValidity: MARTE::NFP_Dura/g415on
+relValGroup: Integer[*]<<stereotype>>
+TemporalCorrectnessSpeciﬁca/g415on
+relDeadline: 
+MARTE::NFP_Dura/g415on
+priority: Integer
+pa/g425ern: MARTE::ArrivalPa/g425ernperiod: MARTE::NFP_Dura/g415on
+relValidity: MARTE::NFP_Dura/g415on
+relValGroup: Integer[*]<<stereotype>>
+TemporalCorrectnessSpeciﬁca/g415on
+atomVariant: AtomicityVariant
+arMech: ARMechanism
+reco verTim e: MARTE::NFP_D ur a/g415o n
+compID:  Integer<<stereotype>>
+AtomicitySpeciﬁca/g415on
+atomVariant: AtomicityVariant
+arMech: ARMechanism
+reco verTim e: MARTE::NFP_D ur a/g415o ncompID:  Integer<<stereotype>>
+AtomicitySpeciﬁca/g415on
+<<Metaclass>>
+Comment<<Metaclass>>
+Comment
+ReadUncommi/g425ed
+ReadCommi/g425ed
+RepeatableRead
+Serializable
+Customized<<Enumera/g415on>>
+Isola/g415onLevel
+ReadUncommi/g425ed
+ReadCommi/g425ed
+RepeatableRead
+Serializable
+Customized<<Enumera/g415on>>
+Isola/g415onLevel
+Rollback
+ImmediateCompensate
+DeferredCompensate<<Enumera/g415on>>
+ARMechanism
+Rollback
+ImmediateCompensate
+DeferredCompensate<<Enumera/g415on>>
+ARMechanism
+R2PL
+ShortReadlock
+2PL-HP<<Enumera/g415on>>
+CCAlgorithm
+R2PL
+ShortReadlock2PL-HP<<Enumera/g415on>>
+CCAlgorithm
+FIFO
+RoundRobin
+Priority<<Enumera/g415on>>
+SchedPolicy
+FIFO
+RoundRobin
+Priority<<Enumera/g415on>>
+SchedPolicyabsValidity: 
+MARTE::NFP_D
+ura/g415on<<stereotype>>
+ReadOP
+absValidity: 
+MARTE::NFP_D
+ura/g415on<<stereotype>>
+ReadOP
+FailureAtomicity
+RelaxedAtomicity <<Enumera/g415on>>
+AtomicityVariant
+FailureAtomicity
+RelaxedAtomicity <<Enumera/g415on>>
+AtomicityVariant<<Metaclass>>
+StructuredAc/g415vityNode<<Metaclass>>
+StructuredAc/g415vityNodetransac/g415ons: Integer[*]<<stereotype>>
+Transac/g415onSequence
+transac/g415ons: Integer[*]<<stereotype>>
+Transac/g415onSequence
+Fig. 3 UTRAN proﬁle for real-time transactions, extended from [ 8]. New structure marked with darker frame
+Atomicity and isolation of transactions are also included
+in the domain model. Multiple transactions managed by the
+same RTDBMS are related to an RTDBMSScope , which
+employs a scheduling policy , selected from FIFO, round
+robin, and priority based. An IsolationSpeciﬁcation is asso-
+ciated with the RTDBMSScope, with an IsolationLevel
+indicating the variant of isolation that should be providedfor the set of transactions. The IsolationSpeciﬁcation is
+associated with a set of IsolationPhenomena , which are Oper-
+ationPartialOrders that represent the illegal sequences ofoperations.
+AConcurrencyControlAlgorithm deﬁnes a set of lock
+types to be applied in the lock-based concurrency control. The
+rules for obtaining and releasing locks are speciﬁed as Lock-
+ingRule and UnlockingRule .Aresolution policy describes
+the resolution of lock conﬂicts on the shared data.
+AnAtomicitySpeciﬁcation speciﬁes the atomicity variant
+and the desired recovery time . An AtomicitySpeciﬁcation can
+be attached to a transaction, or to an abort operation. In the
+former case, the AtomicitySpeciﬁcation speciﬁes the atom-icity handling of system abortion by the RTDBMS, while in
+the latter, it speciﬁes the handling of user abortion via abort
+operations. An AtomicitySpeciﬁcation contains an Atomici-
+tyVariant and its corresponding AbortRecoveryMechanism .
+An AtomicityV ariant is an enumeration of the supported
+atomicity variants, which includes FailureAtomicity and
+RelaxedAtomicity . An AbortRecoveryMechanism can be
+selected from rollback ,immediateCompensate , and deferred-Compensate . Without any AtomicitySpeciﬁcation speciﬁed,
+atomicity is totally relaxed, and the partially changed data
+will not be recovered or compensated at all.
+In this paper, we also consider transactions with invo-
+cation dependencies, modeled as a TransactionSequence .
+Its time-related constraints can be speciﬁed in the associ-
+ated TemporalCorrectnessSpeciﬁcation . A transaction in a
+TransactionSequence can be started only if its prior one has
+terminated (committed or aborted).
+3.2 Profile
+This subsection describes our previous UTRAN proﬁle [ 8],
+as well as the extensions to model the TransactionSequence in
+the extended domain model. The proﬁle diagram is presented
+in Fig. 3, with the new structure marked with darker frame.
+In the existing UTRAN proﬁle, the stereotype <<Transact
+ion>> extends the UML Activity metaclass, and is mapped
+to the Transaction domain element. Each <<Transaction >>
+may be associated with a <<TemporalCorrectnessSpeciﬁcati
+on>>, and an <<AtomicitySpeciﬁcation >>, both extend-
+ing the UML Comment metaclass. A <<TemporalCorrectnes
+sSpeciﬁcation >> contains values of deadline, priority, arrival
+pattern, period, and relative validity of the transaction. An
+<<AtomicitySpeciﬁcation >> speciﬁes the selected Atom-
+icityV ariant and Abort-RecoveryMechanism, as well as therecovery time, and the reference to the compensation trans-
+123
+
+--- Page 8 ---
+S. Cai et al.
+action, which is stereotyped with <<Compensation >> that
+inherits <<Transaction >>.
+Each action in a <<Transaction >> is a stereotyped
+<<Operation >>.<<DBOperation >>,<<TMOperation
+>> and <<ClientOperation >> map the DBOperation,
+TMOperation and ClientOperation, respectively. A <<DBOp
+eration >> contains tagged values that specify the exe-
+cution time for this operation, and the reference to the
+data it accesses. <<ReadOP >> and <<WriteOP >> map
+the ReadOP and WriteOP , respectively, and both extend
+<<DBOperation >>.A <<TMOperation >> is associated
+with the execution time for the transaction management oper-ation, which can be <<BeginOP >>,<<CommitOP >>,
+or<<AbortOP >>. The PrecedenceRelation in the domain
+view is mapped by the stereotype <<DelayedNext >>,
+which extends the UML metaclass ActivityEdge with delaysbetween operations, and delays between sub-transactions.
+The stereotype <<RTDBMSScope >> maps the RTDB
+MSScope concept, which contains the transactions managedby the RTDBMS. The stereotype also speciﬁes the schedul-
+ing policy, selected from the enumeration of SchedPolicy.
+The stereotype <<IsolationSpeciﬁcation >> maps Isola-
+tionSpecation in the domain view, and speciﬁes the isolation
+level, the CC algorithm selected from the enumeration of
+CCAlgorithm, as well as the disallowed phenomena explic-itly. Each phenomenon is modeled as an activity stereotypedas<<IsolationPhenomenon >>, which contains a sequence
+of actions stereotyped as <<Operation >>.
+TransactionSequence domain element, which contains the
+id’s of the transactions in the sequence. The invocation
+order and the delays between invocations are speciﬁed via
+<<DelayedNext >> associated to <<Transaction >>.
+3.2.1 Static semantics constraints for UTRAN
+We present a set of static semantics constraints for correct
+speciﬁcations in UTRAN. These constraints are formulated
+in the Object Constraint Language (OCL) [ 11], as follows.
+1. A <<Transaction >> must have one <<BeginOP >>,
+one <<CommitOP >>, and at least one <<DBOperati
+on>>.
+Context Transaction
+inv: self.operations ->
+select( DBOperation)-> size()>=1
+inv: self.operations ->
+select(BeginOP )->size()=1
+inv: self.operations ->
+select(CommitOP)-> size()=1
+2.<<BeginOP >> marks the start of the transaction.
+<<CommitOP >> and <<AbortOP >> mark the end
+of the transaction. No <<Operation >> occurs before
+a<<BeginOP >>,o ra f t e ra <<CommitOP >> or an
+<<AbortOP >>.Context Operation
+def: precedingOPs() : Set(Action)
+=self. incoming.source
+def: succeedingOPs() : Set(Action)
+=self. outgoing.target
+inv: self-> oclIsTypeOf( BeginOP) implies
+(not self-> closure( precedingOPs)->
+exits( Operation))
+inv: (self-> oclIsTypeOf(CommitOP) or
+self-> oclIsTypeOf( AbortOP)) implies
+(not self-> closure( succeedingOPs)->
+exits( Operation))
+3. If ImmediateCompensate is selected as the AR, the
+compensate transaction is executed by the DBMS withno delays between its operations. Therefore, in this
+case, the max_delay and min_delay values of every
+<<DelayedNext >> edge in the <<Compensation >>
+transaction are 0.
+Context AtomicitySpecification
+inv: (self.arMech= ARMechanism::
+ImmediateCompensate)
+implies ( self. compensation.
+delayednexts ->
+forall(max_delay=0
+and min_delay =0))
+4. Immediate compensation transactions are always exe-
+cuted immediately by the DBMS after abortion. There-fore, they do not have <<TemporalCorrectnessSpeciﬁca-
+tion >>.
+Context Compensation
+inv: (self. atomspec.arMech=
+ARMechanism:: ImmediateCompensate)
+implies ( self. tcspec->size()=0)
+5. For deferred compensation transactions, the only mean-
+ingful value in its <<TemporalCorrectnessSpeciﬁcation >>
+ispriority .
+Context Compensation
+inv: (self. atomspec.arMech=
+ARMechanism:: DeferredCompensate)
+implies
+(self.tcspec. relDeadline= null and
+self.tcspec. pattern= null and
+self.tcspec.period=null
+and self.tcspec. relValidity= null and
+self.tcspec. relValGroup= null)
+6. Since cascade abortion introduces high unpredictabil-
+ity and is hence not desired in real-time systems, we
+assume that compensation transactions do not have userabort operations, and do not get recovered after systemabortion. Therefore, a <<Compensation >> does not
+have <<AbortOp >>,<<AtomicitySpeciﬁcation >>,
+or<<TemporalCorrectnessSpeciﬁcation >>.
+123
+
+--- Page 9 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Context Compensation
+inv: self. tcspec=null
+inv: self. atomspec= null
+inv: not (self. operations ->exists (AbortOp))
+7. The execTime andabsValidity values of every <<Opera-
+tion >> in the <<IsolationPhenomenon >> are set to 0.
+Context IsolationPhenomenon
+inv: self.operations ->forall( execTime=0)
+inv: self.operations ->select(ReadOP)->
+forall( absValidity=0)
+8. Since the start of the ﬁrst sub-transaction also marks
+the start of its containing transaction sequence, the ﬁrst
+<<Transaction >> has the same pattern and period attri-
+butes as its corresponding <<TransactionSequence >>.
+Since the other sub-transactions are started by the termi-
+nation of their previous counterparts, their patterns and
+periods may remain unspeciﬁed and can be derived later.If the <<TransactionSequence >>’s priority is speciﬁed,
+all <<Transactions >> inherit this priority value. The
+sum of the relative deadlines of all <<Transactions >>
+must be smaller than or equal to the relative deadline of
+the <<TransactionSequence >>.
+Context TransactionSequence
+inv: self .transactions ->
+first().tcspec. pattern= self.
+tcspec.pattern
+inv: self .transactions ->
+first().tcspec.period=
+self.tcspec .period
+inv: self. tcspec. priority <>
+null implies
+(self. transactions ->
+forall(tcspec.priority=
+self.tcspec. priority))
+inv: self .transactions ->
+collect(tcspec .relDeadline)->
+sum<=self.tcspec. relDeadline
+9. For a periodic or sporadic <<Transaction >> or<<Tran
+sactionSequence >>, its period value should be no
+smaller than its relative deadline. This rule eliminatesthe following non-schedulable and undesirable executionfrom early design: A transaction instance is started even
+before a previous instance, which is known likely to still
+be in execution.
+Context TemporalCorrectness
+Specification
+inv: (self .pattern= periodic
+or self. pattern= sporadic)
+implies self. period >=
+self. relDeadline4 UPPCART framework
+In this section, we extend our UPPCART (UPPaal for
+Concurrent Atomic Real-time Transactions) framework, for
+pattern-based formal modeling of real-time transactions withconcurrency control and abort recovery in UPPAAL TA.
+Our UPPCART framework, ﬁrst proposed in our previous
+work [ 8], models the transactions, together with the CC algo-
+rithm and the AR mechanisms, as a network of UPPAAL TA.Denoted as N, the NTA of the modeled real-time transactions
+is deﬁned as follows:
+N:: = W
+1||...||Wn||ACCManager ||AAT Manager
+||O1||...||Ok||D1||...||Dm,||S1||...||Sl, (1)
+where W1, ..., Wnare work unit automata of transactions T1,
+...,Tn, respectively. They also model the work unit’s interac-
+tion with the transaction manager with respect to concurrencycontrol and abort recovery. A
+CCManager is the CCManager
+automaton that models the CC algorithm, and interacts with
+the work unit TA. AAT Manager is the A TManager automaton
+that models the atomicity controller of recovery mechanismsupon abort of transactions. O
+1, ..., Okare IsolationObserver
+automata that observe the phenomena to be precluded by iso-
+lation, by monitoring the behaviors of the work unit automata.When a work unit automaton performs a particular sequence
+of transitions representing a phenomenon, the corresponding
+IsolationObserver is notiﬁed and moves to a state indicatingthis occurrence. D
+1, ..., Dmare data automata for the data
+with temporal validity constraints. S1, ...,Slare automata for
+transaction sequences.
+For each type of the aforementioned TA in N, we propose a
+set of parameterized patterns andconnectors for the pattern-
+based construction. In the following, we propose a deﬁnition
+of pattern-based construction, followed by the detailed pat-terns for UPPCART in the next subsections.
+Aparameterized pattern (PP) of TA is a reusable structure
+that models a repetitive behavior or property. Formally, wedeﬁned a parameterized pattern as follows:
+PP (P):: = (L
+pp,Lpinit ,Xpp,Vpp,Ipp,Act pp,Epp)
+∪F, (2)
+where Pis a set of parameters (p1,p2, ...) that appear in
+the tuple (Lpp,Lpinit ,Xpp,Vpp,Ipp,Act pp,Epp), and Fis
+a set of function signatures that appear in Epp.
+Aparameterized connector (PCon) is a structure that con-
+nects two parameterized patterns. Formally, a parameterized
+connector connecting parameterized patterns PP iand PP j
+is deﬁned as follows:
+PCon (PP i,PP j,P):: = (Lpp_i×B(Xpcon ,Vpcon )
+123
+
+--- Page 10 ---
+S. Cai et al.
+×Act pcon×Lpp_j)∪F. (3)
+A parameterized pattern can be constructed from sub-
+patterns and the connectors connecting them, as the unionsof their locations, variables, invariants, edges, actions, and
+parameters.
+The instantiation of PP assigns the parameters in Pwith
+actual values, and provides the functions in Fwith implemen-
+tations. Using “ p=v” to denote the assignment of parameter
+pwith value v, we deﬁne the instantiated pattern as:
+PI
+i(p1=v1,p2=v2, ...):: =
+(Lpi_i,Linit _i,Xpi_i,Vpi_i,Ipi_i,Act pi_i,Epi_i).
+(4)
+Similarly, the instantiation of Con i,jassigns the parame-
+ters in Pwith actual values:
+Con i,j(PIi,PIj,p1=v1,p2=v2, ...):: =
+(Lpi_i×B(Xcon_ij,Vcon_ij)×Act con_ij×Lpi_j),
+(5)
+which is a set of edges of a TA.
+Given a TA A=(L,l0,X,V,I,Act ,E), a set of instan-
+tiated patterns PI, and a set of instantiated connectors CON ,
+Ais apattern-based construction from PIand CON ,iff:
+–L=/uniontext
+PIi∈PILpi_i,
+–/uniontext
+PIi∈PILinit _i={l0},
+–X=/uniontext
+PIi∈PIXpi_i/uniontext
+Con j∈CON Xcon_j,
+–V=/uniontext
+PIi∈PIVpi_i/uniontext
+Con j∈CON Vcon_j,
+–Act=/uniontext
+PIi∈PIAct pi_i/uniontext
+Con j∈CON Act con_j,
+–E=/uniontext
+PIi∈PIEpi_i/uniontextCON ,
+which means that the locations, variables, actions and edges
+of A are the unions of the respective counterparts in the com-
+ponent instantiated patterns and connectors. We denote it as
+A=˙/uniontext(PI,CON ).
+For the convenience of later presentations, we call a pat-
+tern a skeleton of TA A,i fLinit/negationslash=∅ .
+4.1 Patterns and connectors for modeling work units
+In the following subsections, we introduce the UPPCART
+patterns and connectors for each automaton within the
+parallel composition in Eq. 1, in the order of the work
+unit automaton W, the transaction sequence automaton S,
+CCManager automaton ACCManager , A TManager automa-
+tonAAT Manager , IsolationObserver O, and data automaton
+D.trans_started
+Utrans_commi/g425edCtc:=0ready
+U
+miss_deadlinetrans_aborted
+tc>DEADLINE tr>RECOVERY_DEADLINEC
+ini/g415alize(/g415, PRIORITY)
+tc<=DEADLINEtc<=PERIODtc>=PERIOD
+tc:=0
+tr<=RECOVERY_DEADLINEwaitini/g415al
+start_trans[/g415]?
+Other instan/g415ated pa/g425erns
+Fig. 4 Work unit skeleton (WUS) for a generic transaction Ti[8]
+4.1.1 Work unit skeleton (WUS)
+A work unit (WU) automaton models the work unit of a
+transaction and its interaction with the CC and atomicitymanagers. A WU skeleton (WUS) , as shown in Fig. 4,i sa
+parameterized pattern that consists of the common variables,
+locations and edges of a WU automaton. Formally, WUS isdeﬁned as follows:
+WUS (P
+wus):: = (Lwus,Lwusinit ,Xwus,
+Vwus,Iwus,Act wus,Ewus)
+∪Fwus, (6)
+The locations Lwusand edges Ewusare shown in Fig.
+4, in which Lwusinit is the location initial . The parame-
+ters Pwus, clock variables Xwus, discrete variables Vwus,
+as well as functions Fwus, are listed in Table 1.I nF i g . 4,
+the automaton starts from the initial location, initializes the
+transaction with the speciﬁed id tiand priority pusing func-
+tion initialize(ti, p) , and moves to the location ready . Upon
+receiving the start_trans[ti] message, it moves to the location
+trans_started , which represents the begin of the transaction,
+and resets clock variable tc. The location trans_committed
+indicates the committed state of the transaction. Betweentrans_started and trans_committed are a set of connected
+instantiated patterns that model the database and transaction
+management operations, and delays between the operations.
+If the value of tcis greater than the speciﬁed DEADLINE ,
+the automaton moves to the location miss_deadline , indicat-
+ing a deadline miss. Otherwise, it waits until the speciﬁed
+PERIOD has been reached, and moves to begin for the next
+activation. The location trans_aborted represents the aborted
+state of the transaction. If the value of tris greater than the
+speciﬁed RECOVERY_DEADLINE , timeliness is breached,
+and the WU automaton moves to miss_deadline .
+123
+
+--- Page 11 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Table 1 Modeling elements of
+the work unit skeletonElement Type Explanation
+ti Parameter Id of the modeled transaction
+PRIORITY Parameter Priority of transaction tiPERIOD Parameter Period/minimal inter-arrival time of
+the transaction ti
+DEADLINE Parameter Deadline of transaction ti’s
+commitment
+RECOVERY_ DEADLINE Parameter Deadline of transaction ti’s recoverytc Clock variable Tracking the elapsed time of
+transaction ti
+tr Clock variable Tracking the elapsed time of the abort
+recovery of ti
+start_trans[ti] Channel Message to start the transaction tiinitialize(ti, p) Function Initialization of the transaction ti with
+priority p
+sch()==/g415
+tp:=0, cs:=/g415check_schedCenq_sch(/g415)
+sch()!=/g415
+cpu_free?
+do_opera/g415on
+tp<=WCET_op
+C
+Ctp>=BCET_op
+no/g415fy_op[/g415]!
+cpu_free!
+cs:=FREE, deq_sch(/g415)
+ﬁnish_opera/g415onstart_opera/g415on
+wait
+no/g415ﬁed_observer
+Fig. 5 Operation Pattern (OP)[ 8]
+4.1.2 Operation-CC, Locking and Unlocking Patterns, and
+their Connectors
+We deﬁne patterns to model the begin, commit, read and
+write operations in each work unit. Since a transaction may
+interact with the CC manager according to the speciﬁc CC
+algorithm during the operations, our operation patterns alsocomprises CC-related activities such as the locking andunlocking activities. The pattern for modeling basic opera-
+tions, the operation pattern (OP) , is presented in Fig. 5.T h e
+modeling elements are listed in Table 2. In OP , we model the
+scheduling policy using three functions, namely, enq_sch(ti) ,
+deq_sch(ti) andsch() .A f t e rt h e start_operation location, the
+enq_sch(ti) function is called, which pushes the transaction
+into the scheduling queue. On the edges from the location
+check_sched , the function sch() checks whether the transac-
+tion is the next one to be executed. If yes, the automatonmoves to do_operation , representing the execution of the
+operation; otherwise, the automaton waits at location wait ,
+until the CPU is released by the occupying transaction orthe RTDBMS, indicated via the signal in the cpu_free chan-
+nel. The automaton may stay at do_operation for at most
+WCRT_op time units, and at least BCRT_op time units, which
+represent the longest and shortest time to complete the oper-
+ation. Upon the completion of the operation, a signal is sent
+to the IsolationObservers via channel notify_op[ti] . Before
+reaching ﬁnish_operation , the CPU is set to be free, and the
+transaction is removed from the scheduling queue by the
+function deq_sch(ti) . As an example, the corresponding func-
+tions for a priority-based scheduling policy is listed in Listing1.
+123
+
+--- Page 12 ---
+S. Cai et al.
+Listing 1 Functions for priority-based scheduling
+//Push ti to the queue, sorted by priority
+void enq_sch(ti) {
+...
+for(i=0;i<queue.size;i++) {
+if(ti.priority < queue [i].priority) {
+queue[i+1] = queue[i];
+queue[i] = ti;
+...} }
+}
+//Delete ti from the queue, and sort the rest
+void deq_sch(ti) {
+...
+for(i=0;i<queue.size;i++) {
+if(ti == queue[i]) {
+queue[i] = queue[i+1];
+...} }
+}
+//Return the first ready transaction in the queue,
+//and the CPU is not occupied by others
+int sch() {
+...
+for(i=0;i<queue.size;i++) {
+if((cs==i||cs==FREE) && queue[i].state==READY) {
+return i; }}
+}
+According to the selected CC algorithm, the transaction
+needs to lock and unlock data, before or after the opera-
+tions. This is modeled by the Locking Pattern (LP,F i g .
+6) and Unlocking Pattern (UP,F i g . 7), which are com-
+posed with the operation patterns. The locations and edges
+are presented in the ﬁgures, while the parameters, variablesand functions are listed in Table 2. In the locking pattern,
+the automaton sends a request to the CCManager via chan-
+nellocktype[ti][di] , in which “locktype” is parameterized
+for the particular type of lock, such as a readlock, speciﬁedby the CC algorithm. The automaton then either moves to
+location ﬁnish_locking , if it is granted by CCManager via
+channel grant[ti][di] ; or releases CPU and gets blocked at
+location wait_for_lock , until CCManager grants it later. In
+the Unlocking pattern, the automaton sends the request via
+channel unlock[ti][di] , which is received and processed by
+the CCManager. A database operation may lock (or unlock)
+several data items altogether, depending on the CC algo-
+rithm. The combination of multiple lock/unlocks are modeledby the connectors. The connector connecting two Lockingpatterns is deﬁned as Con (LP
+i,LP j)in Table 3, and the
+connector connecting two unlocking patterns is deﬁned as
+Con (UP i,UP j)in Table 3.
+The composition of LP and UP with OP is illustrated in
+Fig. 8, which forms the Operation-CC Pattern (OCCP) .
+Formally, OCCP is deﬁned as follows:
+OCCP :: =˙/uniondisplay
+(LP∪OP∪UP ,CON occp ), (7)
+in which LP,OP and UPare previously deﬁned sets of lock-
+ing, operation and unlocking patterns, respectively. The set
+of connectors is deﬁned as:
+CON occp:=Con (OP ,LP/prime)∪Con (OP ,UP/prime)
+∪{Con (Begin ,WUS )}
+∪{Con (Commit ,WUS )}. (8)
+Con (OP ,LP/prime)is a connector that connects an OP with a
+group of LP , as deﬁned in Table 3, in which LP/primeis a pattern
+composed of a set of LP, starting with LPiand ending with
+123
+
+--- Page 13 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Table 2 Modeling elements of
+the operationand locking and
+unlocking patternsElement Type Explanation
+ti Parameter Id of the modeled transaction
+di Parameter Id of the data to be accessedop Parameter Name of the operationlocktype Parameter The type of lock according to the selected CCBCRT_op (WCRT_op) Parameter Best (worst) case response time of the operationtp Clock variable Temporary variable for tracking the time of individual
+operations
+cs Integer variable Indicating the possession of the CPUFREE Constant Indicating that the CPU is freecpu_free Broadcast channel Release of CPUlocktype[ti][di] Channel Request sent by ti to the CCManager for a “locktype”
+of lock on data di
+grant[ti][di] Channel Grant of lock on data di for ti from CCManagerwait[ti][di] Channel Reject of ti’s lock request on data di from CCManagerunlock[ti][di] Channel ti unlocking data dinotify_op[ti] Broadcast channel Notiﬁcation of completion of ti’s operationenq_sch(ti) Function Adding transaction ti in the scheduling queue
+sch() function Returning the next transaction from the scheduling
+queue according to the selected policy
+deq_sch(ti) Function Removing transaction ti from the scheduling queue
+wait[/g415][di]?try_to_lock_diC
+C
+C
+wait_for_lock
+Ccpu_free!
+cs:=FREE
+grant[/g415][di]?
+cs:=/g415
+ﬁnish_lockingstart_locking
+grant[/g415][di]?locktype[ti][di]!
+Fig. 6 Locking Pattern (LP)[ 8]
+LP j.Con (OP ,UP/prime)is a connector that connects an OP
+with a group of UP , as deﬁned in Table 3, in which UP/primeis
+a pattern composed of a set of UP , starting with UP iand
+ending with UP j.Con (Begin ,WUS )and Con (Commit ,
+WUS )are connectors that connect the begin OP and commit
+OP to the work unit skeleton WUS, also deﬁned in Table 3.
+4.1.3 Delay Pattern and its Connector
+The delay pattern (DP) in Fig 9models the delays between
+operations, formally deﬁned as follows:CCstart_unlocking
+finish_unlockingunlock[ti][di]!
+Fig. 7 Unlocking Pattern (UP)[ 8]
+DP (Pdp):: = (Ldp,∅,Xdp,∅,Idp,∅,∅)∪∅ , (9)
+which contains one location and its invariant as shown in Fig
+9, and a parameter MAX_delay . The automaton may stay at
+location delay for at most MAX_delay time units.
+Assuming that OP iandOP jmodel the operations before
+and after a delay modeled by DP, respectively, the connec-
+tors to connect OP iand DP is deﬁned as Con (OP i,DP )
+in Table 3. The connector for connecting DP with OP jis
+deﬁned as Con (DP ,OP j)in Table 3, in which MIN_delay
+is a parameter and denotes the lower bound of the delay.
+4.1.4 Abort and Recovery Patterns, and their Connectors
+The abort recovery mechanisms are modeled by the Roll-
+backImComp Pattern (RIP ,F i g . 10), and the Deferred-
+Comp Pattern (DCP ,F i g . 11), respectively, which are
+composed into the work unit automata. The former (RIP)
+models the rollback and immediate compensation mecha-nisms, which are executions of series of operations by the
+123
+
+--- Page 14 ---
+S. Cai et al.
+Table 3 Deﬁnitions of connectors in UPPCART
+Connector Identiﬁer Deﬁnition
+Con (LPi,LP j) {fin is h _locking _i→start _locking _j}
+Con (UP i,UP j) {fin is h _unlocking _i→start _unlocking _j}
+Con (OP ,LP/prime) {check _schedsch ()==ti−−−−−− →
+cs:=tistart _locking _i,fin is h _locking _jtp:=0−−−→do_operation }
+Con (OP ,UP/prime) {noti f ied _obser ver−→start _unlocking _i,
+fin is h _unlocking _jcpu_fre e!−−−−−−−−−−−−−− →
+cs:=FREE ,deq _sch (ti)fin is h _operation }
+Con (Begin ,WUS ) {trans _started →start _operation }
+Con (Commit ,WUS ) {fin is h _operation →trans _committed }
+Con (OP i,DP ) {fin is h _operation _itp:=0−−−→delay}
+Con (DP ,OP j) {delaytp≥MIN _delay−−−−−−−−− →start _operation _j}
+Con (DP ,UAP ) {delaytp≥MIN _delay−−−−−−−−− →start _user _abort}
+Con (UAP ,WUS ) {fin is h _user _abort →trans _aborted }
+Con (UA O ,RIP ) {wait1abort _trans[ti]?−−−−−−−−− →
+tr:=0start _rollback ,wait2abort _trans[ti]?−−−−−−−−− →
+tr:=0start _rollback ,
+abort _noti f iedcpu_fre e!−−−−−−→
+cs:=FREEfin is h _user _abort}
+Con (UA O ,DC P ) {wait1abort _trans[ti]?−−−−−−−−− →
+tr:=0start _def erred _op,wait2abort _trans[ti]?−−−−−−−−− →
+tr:=0start _def erred _op,
+abort _noti f iedcpu_fre e!−−−−−−→
+cs:=FREEfin is h _user _abort}
+Con (OCCP ,RIP ) {waitabort _trans[ti]?−−−−−−−−− →
+tr:=0start _rollback ,do_operationabort _trans[ti]?−−−−−−−−− →
+tr:=0start _rollback ,
+wait_fo r_lockabort _trans[ti]?−−−−−−−−− →
+tr:=0start _rollback }
+Con (OCCP ,DC P ) {waitabort _trans[ti]?−−−−−−−−− →
+tr:=0start _def erred _op,do_operationabort _trans[ti]?−−−−−−−−− →
+tr:=0start _def erred _op,
+wait_fo r_lockabort _trans[ti]?−−−−−−−−− →
+tr:=0start _def erred _op}
+Con (DP ,RIP ) {delayabort _trans[ti]?−−−−−−−−− →
+tr:=0start _rollback }
+Con (DP ,DC P ) {delayabort _trans[ti]?−−−−−−−−− →
+tr:=0start _def erred _op}
+Con (RIP ,WUS ) {abort _noti f ied →trans _aborted }
+Con (DC P ,WUS ) {abort _noti f ied →trans _aborted }
+Con (TSS ,SSP i) {seq_started →start _sub_i}
+Con (SSP j,TSS ) {sub_j_terminated →seq_terminated }
+Con (SSP i,DP ) {sub_i_terminatedtp:=0−−−→delay}
+Con (DP ,SSP j) {delaytp≥MIN _delay−−−−−−−−− →start _sub_j}
+DBMS immediately after the abort. In case of rollback, the
+recovery operations redo the write operations that have beencompleted by the aborted transaction. In case of immediate
+compensation, the operations are speciﬁed for the transaction
+explicitly. The latter (DCP) models the deferred compensa-tion mechanism, which executes a separate transaction forcompensation. The locations and edges are shown in the ﬁg-
+ures, while parameters, variables and functions are listed in
+Table 4.In the RIP pattern (Fig. 10), each operation is represented
+by a location op_n , at which the automaton may stay for
+at most (least) WCRT_opn (BCRT_opn ) time units. When
+all operations are completed, the completion of recovery
+is reported to the A TManager via channel report_abort[ti] ,
+removes the transaction from the scheduling queue byfunction deq_sch(ti) , and notiﬁes the IsolationObserver via
+channel notify_abort[ti] .
+In case of deferred compensation, a compensating trans-
+action is modeled as a separate work unit, using the work
+123
+
+--- Page 15 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+sch()==/g415
+cs:=/g415check_schedC
+Cenq_sch(/g415)
+sch()!=/g415
+cpu_free?
+do_opera/g415on
+tp<=WCRT_op
+C
+Ctp>=BCRT_op
+no/g415fy_op[/g415]!
+cpu_free!
+cs:=FREE, deq_sch(/g415)
+ﬁnish_opera/g415onstart_opera/g415on
+Instan/g415ated Locking/Unlocking Pa/g425erns
+Instan/g415ated Locking/Unlocking Pa/g425ernstp:=0wait
+notified_observer
+Fig. 8 Operation-CC Pattern (OCCP)[ 8]
+Fig. 9 Delay Pattern (DP)[ 8]delay tp<=MAX_delay
+unit skeleton and the operation patterns. The DeferredComp
+pattern (Fig. 11) starts the compensation transaction via the
+channel start_trans[ci] , where ciis the id of the compensat-
+ing transaction. The work unit automaton then immediately
+reports to A TManager and removes the transaction from thescheduling queue. When the compensating transaction cihas
+committed, the work unit automaton receives the notiﬁcation
+ofci, and notiﬁes that transaction is aborted and recovered
+via channel notify_abort[ti] .
+The above two recovery patterns are composed into a work
+unit skeleton via the UserAbort Pattern , if they model the
+recovery for user abort; or via the System Abort Connec-
+tors , if the recovery is performed for system abort.4.1.5 UserAbort Pattern (UAP)
+This pattern is deﬁned as a composition of a recovery pat-
+tern (RIP or DCP) with a UserAbortOp (UAO) pattern as
+shown in Fig. 12. When the work unit is scheduled as the
+next one to be executed, according to function sch(ti) ,i ti s s u e s
+the abort request to A TManager via channel user_abort[ti] .
+After it gets the permission from A TManager via channel
+abort_trans[ti] , the automaton proceeds to the correspond-
+ing abort recovery pattern. When the recovery is completed,
+the automaton sets the CPU to be free. Formally, UAP is
+deﬁned as follows:
+UAP :: =˙/uniondisplay
+(({RIP}| |{ DC P})∪{UA O},CON
+uap ),
+(10)
+Here, the locations and edges of UA O are deﬁned in Fig.
+12, while the parameters, variables and functions are listed
+in Table 4.CON uapcontains connectors Con (UA O ,RIP )
+andCon (UA O ,DC P ), as deﬁned in Table 3.
+The UAP can be composed with the delay pattern rep-
+resenting the delay before the user abort operation, using
+the connector Con (DP ,UAP )in Table 3.T h eU A Pi s
+composed with the work unit skeleton using the connector
+Con (UAP ,WUS )in Table 3.
+4.1.6 System Abort Connectors
+System abort and its consequent recovery activities may take
+place either during one operation, or between the execution
+of two operations. We deﬁne the following connectors to
+model both behaviors. For the system abortion that occurswithin one operation, we deﬁne Con (OCCP ,RIP )and
+Con (OCCP ,DC P )that compose an instantiated Operation-
+CC pattern with a RollbackImComp pattern or a Deferred-Comp pattern, respectively, as illustrated in Fig. 13. When
+the OCCP receives a signal via channel abort_trans[ti] from
+the A TManager, it moves to the corresponding abort recovery
+patterns. The connectors are deﬁned as Con (OCCP ,RIP )
+andCon (OCCP ,DC P ), respectively, in Table 3.
+Fig. 10 RollbackImComp
+Pattern (RIP)[ 8]tp <=WCRT_op1
+start_rollback/
+start_immed_comptp >=BCRT_op1Ctp:=0op_1tp:=0C …
+trans_rolledback/
+trans_compensatedreport_abort[/g415]!
+deq_sch(/g415)
+Cno/g415fy_abort[/g415]!
+abort_no/g415ﬁed
+Fig. 11 DeferredComp Pattern
+(DCP)[ 8]
+start_deferred_compC
+wait_for_compC
+trans_compensatedstart_trans[ci]! no/g415fy_commit[ci]?
+Creport_abort[/g415]!
+deq_sch(/g415)
+Cno/g415fy_abort[/g415]!
+abort_no/g415ﬁed
+async_report
+123
+
+--- Page 16 ---
+S. Cai et al.
+Table 4 Modeling elements of
+the abort and recovery patternsElement Type Explanation
+ti Parameter Id of the modeled transaction
+ci Parameter Id of compensation transactionop Parameter Name of the operationBCRT_op (WCRT_op) Parameter Best (worst) case response time of the operationtp Clock variable Temporary variable for tracking the time of individual
+operations
+tr Clock variable Tracking the recovery timecs Integer variable Indicating the possession of the CPUFREE Constant Indicating that the CPU is freereport_abort[ti] Channel Message that reports to the A TManager that the abor-
+tion of ti is done
+abort_trans[ti] Channel Message from the A TManager that starts the abortion
+of ti
+user_abort[ti] Channel Message that notiﬁes to the A TManager that a user
+abort operation of ti is issued
+start_trans[ci] Channel Message that starts the compensation transaction cinotify_abort[ti] Broadcast channel Notiﬁcation of abortion of the transaction tinotify_commit [ci] Broadcast channel Notiﬁcation of commitment of the transaction cicpu_free Broadcast channel Release of CPUenq_sch(ti) Function Adding transaction ti in the scheduling queuesch() function Returning the next transaction from the scheduling
+queue according to the selected policy
+deq_sch(ti) Function Removing transaction ti from the scheduling queue
+sch()==/g415
+tp:=0, cs:=DBMScheck_schedCenq_sch(/g415)
+sch()!=/g415
+cpu_free?start_user_abort
+C
+user_abort[/g415]!
+abort_trans[/g415]?
+tr:=0
+Instan/g415ated Abort
+Recovery Pa/g425erns
+Cﬁnish_user_abortcpu_free!
+cs:=FREEcall_ATManager
+abort_trans[/g415]?
+tr:=0wait1
+wait2
+Fig. 12 UserAbort Pattern (UAP)[ 8]
+For system aborts that occur between operations, we
+deﬁne the following connectors Con (DP ,RIP )and
+Con (DP ,DC P )in Table 3, which connect a Delay pattern
+with a RollbackImComp pattern or a DeferredComp patternrespectively.Fig. 13 System Abort
+Connector Con (OCCP ,RIP )
+andCon (OCCP ,DC P )[8]
+abort_trans[/g415]?
+tr:=0Instan/g415ated 
+Opera/g415on-CC 
+Pa/g425ern
+Instan/g415ated Abort 
+Recovery Pa/g425erns
+Utrans_aborted
+In addition, to connect the recovery patterns with the work
+unit skeleton, we deﬁne connectors Con (RIP ,WUS ), and
+Con (DC P ,WUS ), respectively, in Table 3.
+4.1.7 Pattern-based Construction of a WU Automaton
+With these deﬁnitions of patterns and connectors, a work unit
+automaton Wis a pattern-based construction, as follows:
+W:: =˙/uniondisplay
+({WUS}/uniondisplay
+OCCP/uniondisplay
+UAP/uniondisplay
+DP ,CON ),
+(11)
+in which,
+123
+
+--- Page 17 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+trans_started
+Utrans_commi/g425edOpera/g415ons with CC and abort 
+recoveryC
+…tc:=0ready
+U
+miss_deadlinetrans_aborted
+tc>DEADLINE tr>RECOVERY_DEADLINEC
+ini/g415alize(/g415, p)
+…tc<=DEADLINEtc<=PERIODtc>=PERIOD
+tc:=0
+tr<=RECOVERY_DEADLINEwaitini/g415al
+start_trans[/g415]?
+Delays
+Fig. 14 Illustration of pattern-based construction of a WU automaton
+–WUS is an instantiated WUS for the basic structure of
+W, deﬁned in Equation 6;
+–OCCP is a set of instantiated OCCP , deﬁned in Equa-
+tion 7, each representing a begin, commit, read or write
+operation;
+–UAP is a set of instantiated UAP , deﬁned in Equation 10,
+each representing a user abort operation;
+–DPis a set of instantiated DP , deﬁned in Equation 9, each
+representing a delay between two operations;
+–CON is a set of instantiated connectors deﬁned in
+Table 3:Con (Begin ,WUS ),Con (Commit ,WUS ),
+Con (UAP ,WUS ),Con (DP ,OCCP ),Con (OCCP ,
+DP ), for each OCCP , DP and UAP .
+The pattern-based construction of a WU automaton is
+illustrated in Fig. 14.
+4.2 Patterns and Connectors for Modeling
+TransactionSequence
+The modeling units in this subsection model the basic struc-
+ture of a TransactionSequence, as well as the interactionsbetween the TransactionSequence and its sub-transactions.
+4.2.1 TransactionSequence Skeleton (TSS)
+The skeleton of a TransactionSequence, presented in Fig.
+15, resembles the work unit skeleton of a transaction, in
+which its basic locations represent the ready, start, termi-C
+U
+ts>DEADLINE
+miss_deadlineInstan/g415ated Delay Pa/g425ernts<=PERIOD
+ts>=PERIOD
+ts:=0wait
+C
+_terminatedready
+…ini/g415al
+ts<=DEADLINEini/g415alize(si, p)
+start_trans[si]?
+ts:=0
+_started
+  detaitnatsnI SSP
+seqseq
+Fig. 15 TransactionSequence Skeleton (TSS)
+Table 5 Modeling elements of the TransactionSequence skeleton
+Element Type Explanation
+si Parameter Id of the modeled
+transactionsequence
+p Parameter Priority of
+transactionsequence si
+PERIOD Parameter Period/minimal
+inter-arrival timeof the transactionsequence si
+DEADLINE Parameter Deadline of
+transactionsequence si’scommitment
+ts Clock variable Tracking the elapsed
+time of transaction
+sequence si
+start_trans[si] Channel Message to start the
+transaction
+sequence si
+initialize(si, p) Function Initialization of the
+transaction
+sequence si withpriority p
+nation and deadline-missing states, respectively. Formally,
+TSS is deﬁned as follows:
+TSS (Ptss):: = (Ltss,Ltssinit ,Xtss,
+Vtss,Itss,Act tss,Etss)
+∪Ftss, (12)
+123
+
+--- Page 18 ---
+S. Cai et al.
+Fig. 16 Sequence Sub-transaction Pattern (SSP)
+in which the parameters, variables and functions are deﬁned
+in Table 5. A clock variable tskeeps track of the time spent by
+the sequence. If the value of tsexceeds the speciﬁed deadline,
+the automaton will reach the miss_deadline location.
+4.2.2 Sequence Sub-transaction Pattern (SSP)
+A TransactionSequence skeleton incorporates a series of
+instantiated Sequence Sub-transaction Patterns (SSP), shownin Fig. 16, which models the behavior of starting a sub-
+transaction and waiting for its termination. SSP is formally
+deﬁned as follows:
+SSP (P
+ssp):: = (Lssp,∅,∅,∅,Issp,Act ssp,Essp)
+∪∅ , (13)
+where the locations and edges are deﬁned as shown in Fig.
+16, and Psspcontains a parameter tithat represents a sub-
+transaction. The TransactionSequence automaton starts asub-transaction tiby sending a message via the start_trans[ti]
+channel, which is received by the WU automaton of transac-
+tion ti. Then the TransactionSequence automaton waits for
+the broadcast signals of either commitment or abortion of ti.
+4.2.3 TransactionSequence Connectors
+To connect a TransactionSequence with its sub-transactions,
+we deﬁne the following connectors in Table 3:Con (TSS ,
+SSP
+i), and Con (SSP j,TSS ).
+We also deﬁne the following connectors to connect two
+sub-transaction with delay between them: Con (SSP i,DP )
+andCon (DP ,SSP j)in Table 3in which DP is a delay pat-
+tern.
+With these deﬁnitions of patterns and connectors, we
+deﬁne a TransactionSequence automaton Sas the following
+pattern-based construction:
+S:: =˙/uniondisplay
+({TSS}/uniondisplay
+SSP/uniondisplay
+DP ,CON ), (14)
+in which,–TSS is an instantiated TSS, deﬁned in Equation 12,f o r
+the basic structure of the sequence automaton;
+–SSP a set of instantiated SSP , deﬁned in Equation 13,
+each representing the control of a sub-transaction;
+–DPis a set of instantiated DP , deﬁned in Equation 9, each
+representing a delay between two sub-transactions;
+–CON is a set of the following instantiated connectors
+deﬁned in Table 3:Con (TSS ,SSP ),Con (SSP ,TSS ),
+Con (DP ,SSP ),Con (SSP ,DP ), for each SSP and DP .
+4.3 CCManager Skeleton (CCS)
+The CCManager skeleton, presented in Fig. 17, provides a
+common structure for modeling various CC algorithms, and
+the interaction with the transactions and the atomicity man-ager. Formally, CCS is deﬁned as follows:
+CCS (P
+ccs):: = (Lccs,Lccsinit ,Xccs,
+Vccs,Iccs,Act ccs,Eccs)
+∪Fccs, (15)
+in which the locations and edges are deﬁned as shown in
+Fig. 17. Table 6lists the parameters and variables, as well
+as functions to encode the resolution policy of a CC algo-rithm. In this skeleton, the CCManager calls satisfyPolicy()
+when it receives a locking request, in order to decide whether
+the requester should be granted with the lock. If the functionreturns true, and no other transactions should be aborted, as
+suggested by needAbort() , the requester is granted with the
+lock. If any transactions need to be aborted due to concur-rency conﬂicts, CCManager sends a signal to A TManager viachannel cc_conf , and waits until all abort and recovery have
+been processed, before it grants the lock to the requester. On
+the other hand, if satisfyPolicy() returns false, the requester
+either gets aborted, decided by needAbort() according to the
+CC algorithm, or gets blocked and has to wait.
+In case the CCManager receives an unlocking request, it
+updates the status of the transaction and the locks, and grants
+locks to all legitimated blocked transactions, decided by the
+getNext() function.
+Automaton A
+CCManager is then constructed by instantiat-
+ing the CCManager skeleton, according to the selected CC
+algorithm. For instance, Listing 2 shows the function satisfy-
+123
+
+--- Page 19 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+CC
+C
+CCcs_dbms==0
+i:trans_t, j:data_t
+locktype[i][j]?updateRequest(i,j,LOCKTYPE), 
+cs_dbms:=1cs_dbms==0 
+i:trans_t, j:data_t unlock[i][j]?
+updateUnlock(), cs_dbms:=1
+next_id==-1
+cs_dbms:=0getNext()needAbort() 
+cc_conf!
+!needAbort() 
+grant[request_id][data_id]!updateGrant() sa/g415sfyPolicy()
+sa/g415sfy:=true
+!sa/g415sfyPolicy()
+sa/g415sfy:=falsenext_id!=-1
+grant[next][data_id]!
+updateGrant(), getNext()lock_request_received unlock_request_receiveddecide_grant
+decide_rejectdecide_grant_nextcall_ATManager
+grant[request_id][data_id]!
+updateGrant()
+!needAbort() 
+wait[request_id][data_id]!
+updateReject()Ccc_conf_handled?
+C
+cs_dbms:=0
+idleatomicity_resolved
+needAbort() 
+cc_conf!call_ATManager2Ccc_conf_handled?atomicity_resolved2Ccs_dbms:=0
+Fig. 17 CCManager Skeleton (CCS) [ 8]
+Table 6 Modeling elements of
+the CCManager skeletonElement Type Explanation
+LOCKTYPE Parameter Type of the lock
+request_id Integer variable Id of the requesting transactiondata_id Integer variable Id of the requested datanext_id Integer variable Id of the next transaction to be granted with lockscs_dbms Integer variable Indicating critical section for handling request atom-
+ically
+satisfy Boolean variable Indicating whether the requester request_id should be
+granted with the lock
+cc_conf Channel Notiﬁcation of CC conﬂict to A TManagercc_conf_handled Channel Resolution of CC conﬂict by A TManagersatisfy Policy() Function Checking if the requester request_id should be granted
+with the lock according to the selected CC algorithm
+needAbort() Function Checking if any transaction should be aborted due to
+CC
+getNext() Function Getting the next transaction to be granted with locks
+update Request() Function Updating status of transaction request_id and data
+data_id on request
+update Grant() Function Updating status of transaction request_id and data
+data_id after grant
+update Reject() Function Updating status of transaction request_id and data
+data_id after reject
+update Unlock() Function Updating status of transaction request_id and data
+data_id after unlock
+cc_conf_detected
+CgetAbort()Ccc_conf?
+error_type:=CCabort_id!=-1
+abort_trans[abort_id]!Creport_abort[abort_id]?updateAbort(), getAbort()
+abort_id==-1 && error_type==CC
+cc_conf_handled!idle
+do_abort abort_donei:trans_t
+user_abort[i]?
+abort_id:=i, error_type:=USERuser_abort_detected
+C
+start_abort
+abort_id==-1 && error_type==USER
+Fig. 18 A TManager Skeleton (A TS)[ 8]
+123
+
+--- Page 20 ---
+S. Cai et al.
+Policy() of the CCManager that models the conﬂict detection
+of the 2PL-HP algorithm.
+Listing 2 Functions for 2PL-HP CCManager
+//Check if the requester should be granted with the lock
+bool satisfyPolicy() {
+...
+if(data_id not locked ) return true;
+else if( data_id is readlocked) {
+if(locktype == readlock) return true;
+if(locker has lower priority ) return true;
+else return false;
+} else {
+if(locker has lower priority ) return true;
+else return false; }
+}
+4.4 ATManager Skeleton (ATS)
+We separate the atomicity control model into an A TMan-
+ager automaton, and the abort recovery parts in work unitautomata. The A TManager models the decisions on aborted
+transactions upon errors, conﬂicts or user’s instructions. The
+work unit automata include the instantiated abort recoverypatterns that model the selected mechanisms for the speciﬁctransactions. We distinguish two types of abort, which are
+user abort that is issued by a client using an abort opera-
+tion deliberately, and system abort that occurs due to internalconﬂicts and system failures, such as CC conﬂicts.
+Our A TManager skeleton provides a common structure for
+modeling the atomicity manager. Formally, A TS is deﬁnedas follows:
+AT S (P
+ats):: = (Lats,Latsinit ,Xats,
+Vats,Iats,Act ats,Eats)
+∪Fats, (16)
+in which the locations and edges are deﬁned in Fig. 18,
+while the parameters, variables and functions are listed inTable 7. The A TManager may receive user abort requests
+viauser_abort[i] channel, or system abort due to CC via
+cc_conf channel from CCManager. Other types of errors,
+such as communication errors, can be modeled in a similarway. The function getAbort() speciﬁes the logic to decide the
+transaction to be aborted. The automaton then sends the abort
+signal to the corresponding work unit automaton via channelabort_trans[abort_id] , and waits until the abort is done by
+the work unit automaton. A TManager then updates the status
+and locks of transactions and data using the function update-
+Abort() , and checks if more transactions need to be aborted.The construction of automaton A
+AT Manager is achieved by
+instantiating this A TManager Skeleton.
+4.5 IsolationObserver Skeleton (IOS)
+The skeleton for an IsolationObserver is shown in Fig. 19.
+Formally, IOS is deﬁned as follows:
+IOS (Pios):: = (Lios,Liosinit ,Xios,
+Vios,Iios,Act ios,Eios)
+∪∅ , (17)
+in which the locations and edges are deﬁned in Fig. 19.
+The parameters include transaction ids tiandtm,a sw e l la s
+data ids djanddn. Each IsolationObserver observes a speci-
+ﬁed sequence of operations, by accepting the correspondingnotiﬁcation messages from the work unit automata via the
+notify_op[ti][di] channel when an operation is completed. If
+the monitored sequence indicating the phenomenon occurs,the automaton moves to the isolation_phenomenon location.
+4.6 Data Skeleton (DS)
+Fig. 20presents the skeleton of data. Formally, DS is deﬁned
+as follows:
+DS (Pds):: = (Lds,Ldsinit ,Xds,Vds,Ids,Act ds,Eds)
+∪∅ , (18)
+in which the locations and edges are deﬁned in Fig. 20.T h e
+parameters include a list of transaction ids trans_t ,a sw e l la s
+data id di. The clock variable age is reset every time a write
+123
+
+--- Page 21 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Table 7 Modeling elements of the A TManager skeleton
+Element Type Explanation
+abort_id Integer variable Id of the aborting transaction
+error_type Integer variable Type of error that causes abortionCC Constant Indicating the abortion caused by CCUSER Constant Indicating the abortion caused by user abort operationcc_conf Channel Notiﬁcation of CC conﬂict to A TManagercc_conf_handled Channel Resolution of CC conﬂict by A TManagerreport_abort[ti] Channel Message that reports to the A TManager that the abortion of ti is doneabort_trans[ti] Channel Message from the A TManager that starts the abortion of tiuser_abort[ti] Channel Message that notiﬁes to the A TManager that a user abort operation for ti is issuedgetAbort() Function Getting the transaction to be abortedupdateAbort() Function Updating status of transaction and data after transaction ti gets aborted
+isola/g415on_phenomenonno/g415fy_ read [/g415][ dj]?
+no/g415fy_ write[tm][dn] ?
+…r_i_j
+r_i_j_w_m_nidle
+C
+no/g415fy_ commit[/g415] ?
+/no/g415fy_ abort[/g415] ?no/g415fy_ commit[/g415] ?
+/no/g415fy_ abort[/g415] ?/g415_commi/g425ed/
+/g415_aborted
+Fig. 19 IsolationObserver Skeleton (IOS)[ 8]
+Fig. 20 Data Skeleton (DS)[ 8]
+operation is performed on the data. The value of age hence
+represents how old the data is since the last update.
+4.7 Summary of Modeling
+Given a set of transactions and the selected CC and AR mech-anisms, the UPPCART model of the RTDBMS can be created
+by the parallel composition of its component TA, which are
+constructed via the pattern-based construction by instanti-ating our proposed patterns and connectors. Formally, the
+pattern-based construction of the RTDBMS is deﬁned as fol-
+lows:
+N:: = W
+1||...||Wn||ACCManager ||AAT Manager
+||O1||...||Ok||D1||...||Dm,||S1||...||Sl,
+in which:
+–Wi:: =˙/uniontext({WUS i}/uniontextOCCP i/uniontextUAP i/uniontextDP i,CON i),
+–ACCManager :: =˙/uniontext({CCS},∅),–AAT Manager :: =˙/uniontext({AT S},∅),
+–Oi:: =˙/uniontext({IOS i},∅),
+–Di:: =˙/uniontext({DSi},∅),
+–Si:: =˙/uniontext({TSS i}/uniontextSSP i/uniontextDP i,CON i).
+The pattern-based construction allows large parts of exist-
+ing models to be reused, in case a different CC or AR is
+selected, and the models need to be updated. An example ispresented in our previous work [ 21], which demonstrates the
+easy adjustments when different CC algorithms are selected
+for the same sets of transactions and data.
+It is possible to extend UPPCART to model more varieties
+of transaction management and behaviors. For instance, one
+can also add a TA to the parallel composition, to model the
+dispatching pattern of transactions from the clients. This TAsends signals via the start_trans[i] channel to each W
+i, with
+a speciﬁc order and predeﬁned intervals. It may even receive
+thenotify_commit[i] signals from Wi, such that the end-to-
+end deadline of a sequence of transactions can be monitored.
+4.8 Verification
+With the transactions as well as the atomicity and concur-
+rency control mechanisms modeled in UPPAAL TA, we are
+able to formally verify the atomicity, isolation and temporalcorrectness properties using UPPAAL Model Checker.
+Table 8lists the patterns to formalize the properties in
+UPPAAL queries. Among them, atomicity is formalized as a
+liveness property, that the automaton A
+irepresenting trans-
+action Tieventually reaches the dedicated trans_rollback or
+trans_compensated location if the abort_id equals i.I s o l a -
+tion and temporal correctness are formalized as invarianceproperties. The isolation property is speciﬁed as the isola-
+tion_phenomenon locations are not reachable. The timeliness
+property is formalized as the miss_deadline location of the
+analyzed T
+iis not reachable, while temporal validity proper-
+123
+
+--- Page 22 ---
+S. Cai et al.
+Table 8 UPPAAL query patterns for verifying transactional properties[ 8]
+Property Type Property Description UPPAAL Query Pattern
+Atomicity Tiaborted due to ERRORTYPE is eventually rolled
+back (compensated)(AT Manager .abort _id == i &&
+AT Manager .error _type== ERRORTYPE )→
+Ai.trans _rolledback (Ai.trans _compensated )
+Isolation The speciﬁed isolation phenomena never occur A[]not (O1.isolation _phenomenon ||...||
+On.isolation _phenomenon )
+Timeliness Tinever misses its deadline A[]not Ai .miss _deadline
+Absolute V alidity When read by Ti,Djis never older than the absolute
+validity interval A VI(j)A[](Ai.read _di_doneimply Dj .age <=
+AV I (j))
+Relative V alidity Whenever Tireads DjorDl, the age differences of Dj
+and Dlis smaller than or equal to the relative validity
+interval RVI(j,l)A[]((Ai.read _dj_done||Ai.read _dl_done )imply
+((Dj.age−Dl.age <= RV I (j,l)) &&
+(Dl.age−Dj.age <=RV I (j,l))))
+ties are formalized as the states where the ages of data exceed
+their thresholds are never reachable.
+5 From UTRAN to UPPCART
+We provide a translational semantics from UTRAN to UPP-CART, in order to bridge the gap between the high-leveldescription of transactions and the veriﬁable models for
+reasoning about the transaction properties. In this way, the
+formal semantics of UTRAN is deﬁned using UPPAAL TA,which also lays the foundation of automated transformation
+from UTRAN to UPPCART models. In this section, we ﬁrst
+introduce the semantic deﬁnitions of UTRAN (Section 5.1),
+followed by the tool automation for the transformation (Sec-
+tion 5.2).
+5.1 Translational Semantics of UTRAN
+We encode the formal semantics of UTRAN in terms of UPP-
+CART as follows:
+Deﬁnition 1 [Semantics of <<RTDBMSScope >>]A n <<
+RTDBMSScope >> in UTRAN is formally deﬁned as an
+UPPCART NTA NRT DBMS , whose deﬁnition is given in
+Equation 1.
+Deﬁnition 2 [Semantics of <<IsolationSpeciﬁcation >>]
+An <<IsolationSpeciﬁcation >> in the <<RTDBMSScope
+>> is formally deﬁned as ACCManager and a set of
+IsolationObservers in NRT DBMS .T h e ACCManager is an
+instantiation of the CCManager skeleton with the selected
+CC algorithm, that is, the value of CCAlgorithm in the
+<<IsolationSpeciﬁcation >>.A n <<IsolationPhenomenon
+>> speciﬁed in the <<IsolationSpeciﬁcation >> is deﬁned
+as an instantiated IsolationObserver skeleton.
+Deﬁnition 3 [Semantics of <<Transaction >>]A <<Trans
+action >> Ti in the <<RTDBMSScope>> is formally deﬁned as a work unit TA Wi, according
+to Equation 11, in the parallel composition of NRT DBMS .
+The <<Operations >> within a <<Transaction >> are
+deﬁned as follows:
+Deﬁnition 4 [Semantics of <<BeginOp >>,<<CommitOp
+>>,<<ReadOp >> and <<WriteOp >>]A <<BeginOp
+>>,<<CommitOp >>,<<ReadOp >> or<<WriteOp >>
+is formally deﬁned as an instantiated OCCP . The datajread by <<ReadOP >> r, with r.did== jand
+r.absValidity >0, is deﬁned as a Data automaton D
+ij
+by instantiating the Data skeleton.
+Depending on the value of CCAlgorithm in the <<Isola
+tionSpeciﬁcation >>, the OCCP is deﬁned by composing
+an OP (operation), with zero or more LP (locking) or UP
+(unlocking).
+For instance, if CCAlgorithm ∈{2PL-HP ,R2PL},
+the operations with CC are deﬁned as follows:
+–F o r t h e <<BeginOP >>,OCCP begin:: =˙/uniontext({OP begin},
+∅).
+– For each <<ReadOP >> r, with r.tid== iand
+r.did== j,OCCP i:: = ˙/uniontext({OP i,LPi},{Con (
+OP i,LPi)}), in which the parameter locktype inLPiis
+readlock .
+– For each <<WriteOP >> w, with w.tid== iand
+w.did== j,OCCP i:: =˙/uniontext({OP i,LPi},{Con (OP i,
+LPi)}), in which the parameter locktype inLPiiswrite-
+lock .
+–F o r t h e <<CommitOP >>,OCCP commit :: =˙/uniontext({OP
+commit }/uniontextUP/prime,{Con (OP commit ,UP/prime)}), in which UP/prime
+is a pattern composed of a set of unlocking patterns for
+all data read or written by the transaction.
+IfCCAlgorithm ∈{Short Readlock }, the operations
+with CC are deﬁned as follows:
+123
+
+--- Page 23 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+–F o r t h e <<BeginOP >>,OCCP begin:: =˙/uniontext({OP begin},
+∅).
+– For each <<ReadOP >> r, with r.tid== iand
+r.did== j,OCCP i:: = ˙/uniontext({OP i,LPi,UP i},
+{Con (OP i,LPi),Con (OP i,UP i)}), in which the param-
+eter locktype inLPiisreadlock .
+– For each <<WriteOP >> w, with w.tid== iand
+w.did== j,OCCP i:: =˙/uniontext({OP i,LPi},{Con (OP i,
+LPi)}), in which the parameter locktype inLPiiswrite-
+lock .
+–F o r t h e <<CommitOP >>,OCCP commit :: =˙/uniontext({OP
+commit }/uniontextUP/prime,{Con (OP commit ,UP/prime)}), in which UP/prime
+is a pattern composed of a set of unlocking patterns for
+all data writen by the transaction.
+Deﬁnition 5 [Semantics of <<DelayedNext >>]A <<Dela
+yedNext >> edge is formally deﬁned as an instantiated DP ,
+together with connectors Con (OCCP i,DP )andCon (DP ,
+OCCP j), where OCCP iand OCCP jare the source and
+target <<Operation >> of the <<DelayedNext >>, respec-
+tively.
+Deﬁnition 6 [Semantics of <<AtomicitySpeciﬁcation >>]
+An <<AtomicitySpeciﬁcation >> associated with the
+<<Transaction >> is formally deﬁned as a construction of
+patterns and connectors, depending on the values in the spec-
+iﬁcation. We deﬁne a Con (OCCP ,RIP )for each OCCP ,
+ifar Mech ∈{ Rollback ,ImmediateCompensate };o r
+aCon (OCCP ,DC P )for each OCCP , if ar Mech ∈
+{Def erredCompen -sate}. For each DP , we deﬁne a Con
+(DP ,RIP )or a Con (DP ,DC P ).
+Deﬁnition 7 [Semantics of <<AbortOp >>] Each <<Abort
+Op>> is formally deﬁned as an instantiated UAP , which is
+composed with a Con (OCCP ,RIP )or a Con (OCCP ,
+DC P ), depending on the value of attribute ar Mech in the
+associated <<AtomicitySpeciﬁcation >>.
+Deﬁnition 8 [Semantics of <<TransactionSequence >>]A
+<<TransactionSequence >> Seq iis formally deﬁned as a
+TASi, according to Equation 14, whose construction ele-
+ments are deﬁned by the following:
+1. Each <<Transaction >> in the sequence is deﬁned as
+an instantiated Sequence Sub-transaction Pattern (SSP),together with the connectors Con (TSS ,SSP )andCon (
+SSP ,TSS ).
+2. Each <<DelayedNext >> between the <<Transactions
+>> is deﬁned as an instantiated DP , as well as instantiated
+connectors Con (DP ,SSP )andCon (SSP ,DP ).
+5.2 Automated Transformation
+Automated transformation from UTRAN speciﬁcations to
+UPPCART models can reduce the efforts of system design-ers by shielding them from the under-the-hood formalism.
+In this section, we developed a Java-based tool prototype,called U
+2−Transfo rme r [12], which provides automated
+transformation based on the previously mentioned mapping.
+U2Transformer accepts a system model deﬁned in UML
+with the UTRAN proﬁle, created in common UML editorsincluding Eclipse Papyrus modeling environment
+3and IBM
+Rational Software Architect (RSA) environment4, in their
+respective XML format. The tool parses the UTRAN speci-ﬁcations and returns the XML-format UPPCART models for
+the UPPAAL tool. More implementation details of the tool
+can be referred to in our extended report [ 22].
+5.3 Validation of U2Transformer
+As the ﬁrst step of validation, we create a series of unit test
+cases to test the individual mappings in Section 5.1.T h e y
+generate pieces of UPPCART models corresponding to theselected subsets of UTRAN concepts. These cases include
+transformation of single transactions with only one type of
+the properties, as well as sequences of transactions with mul-tiple properties. The generated models are manually checkedfor their correctness. The test units are written using the JUnit
+framework, and are included in the source ﬁles of the tool.
+We also apply a common approach to test model trans-
+formation, that is, to compare the automatically generated
+model with an expected output model [ 23]. We use the
+example UTRAN speciﬁcation and its manually-generatedcorresponding UPPCART model from our previous work [ 8]
+as a reference for the validation.
+The UTRAN example in [ 8] speciﬁes the transactions
+managing the conﬁguration data and mission status of anautonomous wheel loader. It involves three ordinary transac-
+tions, one compensation transaction, ﬁve data objects, as well
+as the atomicity, isolation and temporal correctness speciﬁ-cations. The UPPCART model is created manually by the
+authors, which is a network of UPPAAL TA that conforms
+to Equation 1. We use the same UTRAN speciﬁcation as the
+input of U
+2Transformer, and run the translation. The gen-
+erated UPPCART model contains the same elements (e.g.,
+individual automata and global variables) as the manuallycreated model, and satisfy the same atomicity, isolation andtemporal correctness properties.
+6 Case Study
+In this section, we demonstrate UTRAN, UPPCART and thetool-supported transformation, via the speciﬁcation and ver-
+iﬁcation of a transaction-based system.
+3https://www.eclipse.org/papyrus/ .
+4https://www.ibm.com/developerworks/downloads/r/architect .
+123
+
+--- Page 24 ---
+S. Cai et al.
+L1L2
+E11 23 4 5
+6 78 9 10
+11 12 13 14 15
+16 17 18 19 20
+Wheel loader Excavator Crusher Power sta/g415onL3
+Fig. 21 Map and paths of vehicles in our case study
+w1 c1 w2 c2  w3
+Cell1 Cell2 Cell31 2 2 1 3
+n: lock data Cell n
+n: unlock data Cell nstartc33 T1 T2 T3Mission
+Tn: transac/g415on represen/g415ng passing Cell n
+wn: wri/g415ng opera/g415on on Cell n
+cn: commi/g427ng opera/g415on of T n
+Fig. 22 Illustration of collision avoidance through transactions and CC
+Autonomous construction vehicles such as wheel loaders
+and excavators are considered as a promising trend to reduce
+costs and avoid safety hazards in construction and mining
+sites. In this case study, we consider a quarry where raw mate-rials (e.g., iron ores) are mined by excavators, and transported
+by a group of wheel loaders to crushers deployed on the site.
+A mission is decided for each wheel loader and excavator,which follows a designed path in order to complete its job,
+such as transportation of materials, and maintenance activ-
+ities, such as charging the battery. In order to ensure safetywhile maintaining productivity, we design a two-layer colli-sion avoidance system to prevent collisions between vehicles
+achieved by the global collision avoidance layer, as well as
+with obstacles such as rocks and holes, achieved by the localcollision avoidance layer. The functionalities of both layers
+rely on the data management and transaction control provided
+by their DBMS. In the following subsections, we present thedesign of the DBMS in these two layers, as well as the ver-
+iﬁcation of the crucial temporal and logical properties using
+our proposed framework and tool, respectively.
+6.1 Global Collision Avoidance Layer
+The center of the global collision avoidance layer is a
+global DBMS that stores the map of the quarry, which isdivided into smaller cells of a grid. The mission of a vehicleis represented as a sequence of cells that it should visit. Fig. 21
+presents the map of the quarry in our case study. Three wheelloaders are deployed at Cells 7, 10 and 17, whose plans are
+determined to carry materials to the crushers at Cells 9 and
+18, respectively. On the way back from the crushers, someof the wheel loaders are scheduled to refuel at the chargingstations at Cell 12, as shown in their paths respectively. An
+excavator digs the ores at Cell 11. From time to time, the
+excavator also needs to charge at Cell 12. As illustrated inthe ﬁgure, the vehicles not only share the crushers and the
+power stations, but their paths also overlap in multiple cells.
+In order to avoid collision with each other, the vehicles are
+not allowed to operate in the same cell simultaneously. To
+achieve optimal productivity, each wheel loader is scheduled
+to operate its mission with a speciﬁc period, and is expectedto ﬁnish by a given deadline. In addition, since there aremore wheel loaders than excavators, it is further required to
+allow the excavator to be charged whenever necessary for
+better productivity. In other words, the excavator should beprioritized to use the charging station.
+We achieve global collision avoidance by leveraging con-
+currency control of the DBMS to prevent multiple vehiclesoperating in the same cell simultaneously. The key idea is
+to let a vehicle lock the cell before entering it, and unlock it
+when the vehicle is about to leave the cell. As illustrated inFig. 22, the entire path of a vehicle is modeled as transaction
+sequence, while the activity of passing an individual cell,
+including the performed job in it, is modeled as a transac-
+tion. Before entering a cell, a vehicle starts a transaction andperforms a write operation on the cell data, which results
+in a lock on the cell. Before the vehicle leaves the cell, it
+commits the transaction, which releases the lock and allowsother vehicles to enter this cell. We assume the committing
+vehicle is in full stop before entering the next cell. Therefore,
+even if another vehicle may enter the unlocked cell beforethe committing vehicle leaves, these two are not operatingtheir tasks simultaneously, and hence are considered safe.
+To ensure immediate access of the high-priority vehicle, we
+apply a priority-based CC (2PL-HP [ 17]), which aborts the
+low-priority transaction when two transactions try to lock the
+same data.
+Based on this, we identify 4 transaction sequences in the
+global layer, each for one vehicle in Fig. 21; with a total
+number of 18 transactions, each controlling one vehicle pass-
+ing one cell, and 2 compensation transactions re-entering thecharging stations. The sequences and transactions are listedin Table 9. For temporal correctness, in this case study we
+focus on the end-to-end deadlines of the sequences. The iso-
+lation constraint imposed by safety requires that two vehiclesshould not use the same cell, especially the power station, that
+is, no simultaneous access to Cell 12. In addition, since the
+excavator has a higher priority, the wheel loaders L1 and L2may be aborted when they are using the power station. We
+123
+
+--- Page 25 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Table 9 Transactions in the global collision avoidance layer
+V ehicle Transaction sequence Contained trans-
+actionsSequence deadline Atomicity Isolation
+L1 S1L1 G17, G18, G13,
+G12, G172000 s When G12 (charging) gets
+aborted, redo G12V ehicles should not access
+the power station simultane-ously. That is, transactionsdo not access Cell 12 simul-taneously.
+L2 S2L2 G7, G8, G9, G14,
+G13, G12, G72100 s When G12 (charging) gets
+aborted, redo G12
+L3 S3L3 G1, G9, G10 2500 sE1 S4E1 G11, G12, G11 2400 s
+Fig. 23 Excerpt of the UTRAN speciﬁcation for the global layer using the Papyrus tool
+hence add the atomicity requirement that when charging gets
+aborted, the vehicle should redo the charging later when thestation is free.
+6.1.1 Speciﬁcation in UTRAN
+Fig. 23 presents an excerpt from the Eclipse Papyrus
+tool that exhibits the speciﬁcation of transaction sequence
+S1L1. The sequence contains ﬁve <<Transactions >>.
+Each <<Transaction >> includes three <<Operations >>:
+one <<BeginOP >>, one <<WriteOP >> that writes the
+cell data, and one <<CommitOP >>. The time to per-
+form the operation in the cell (e.g., digging, cruising,
+crushing, or charging) is speciﬁed as the delay in the
+<<DelayedNext >> edge between the <<WriteOP >> and
+the <<CommitOP >>. The timing properties of S1L1are speciﬁed in its attached <<TemporalCorrectnessSpeciﬁ
+cation >>.<<Transaction >> G12 is associated with an
+<<AtomicitySpeciﬁcation >>, which refers to <<Compens
+ation >> RedoCharge1 as its deferred compensating trans-
+action. An <<IsolationPhenomenon >>, E1- L1Conﬂict,
+speciﬁes the interleavings that results in the simultaneous
+access of Cell 12, which should be prevented by the CC. The
+complete speciﬁcation can be found in our online repository[12].
+6.1.2 Construction of UPPCART models
+We applied U
+2Transformer to generate UPPCART models.
+As shown in Fig. 24, we used the command-line interface
+to specify the Eclipse Papyrus format, the path to the input
+123
+
+--- Page 26 ---
+S. Cai et al.
+Fig. 24 Transformation of the
+UTRAN speciﬁcation using
+U2Transformer
+Fig. 25 Excerpt of the UPPCART models for S1L1 from the UPPAAL tool
+UTRAN ﬁle, and the output path for the generated UPPAAL
+model. The transformation took 4.097 s.
+Figure 25shows an example of the generated UPPCART
+model for S1L1, which corresponds to the <<TransactionSe
+quence >> S1L1 in Fig. 23. The main structure of this TA
+is an instantiation of the TransactionSequence Skeleton and
+represents the basic structure of the sequence S1L1. Its sub-
+transactions, including G17, G18, G13, G12, and G17_2,are modeled by instantiation of the sub-transaction patterns,
+respectively.
+6.1.3 Optimization
+During the simulation and veriﬁcation of the generated mod-
+els, we realize that the number of channels is large, whichcauses very long time for UPPAAL to reach a conclusion.
+For instance, we have a matrix of channels for write locks,
+whose number is a multiplication of the number of transac-tions and the number of data. This contributes greatly to the
+state space, which results in extremely long veriﬁcation time.
+Therefore, we have performed a few optimizations in the TAmodels. First, we merge the begin operation with the writeoperation in each sub-transaction. This is because the delays
+between these two operations are negligible (in milliseconds)
+compared with the mission time (in hundreds or thousands of
+seconds). This way, we can reduce the channels related to thebegin operations. Second, since within each sequence, onlyone sub-transaction can be executed at any time, we there-
+fore use the sequence ID to identify its sub-transactions in the
+channels. This considerably reduces the number of channelswithout changing the semantics of the models. For instance,
+the number of channels for write locks is now a multipli-
+cation of the number of sequences and the number of data,which is signiﬁcantly smaller than using separate transaction
+ID’s. Both the original and the optimized UPPCART models
+are presented in our online repository [ 12].
+6.1.4 Veriﬁcation of the global layer
+We verify the optimized models against the requirements
+using the UPPAAL model checker (version 4.1.19). The ver-
+iﬁcation PC is equipped with an Intel i7-4800MQ CPU (2.70GHz, 8 cores), 16 GB memory, and Ubuntu 16.04 (64-bit).
+123
+
+--- Page 27 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Table 10 V eriﬁcation results of the global collision avoidance layer
+Property type UPPAAL query pattern Explored states Memory consumption V eriﬁcation time Result
+Timeliness A[]not S 1L1.miss _deadline 40950261 3054896 KB 6161 s Satisﬁed
+Timeliness A[]not S 2L2.miss _deadline 40950261 3054944 KB 6208 s Satisﬁed
+Timeliness A[]not S 3L3.miss _deadline 40950261 3054888 KB 6229 s Satisﬁed
+Timeliness A[]not S 4E1.miss _deadline 40950261 3054968 KB 6178 s Satisﬁed
+Atomicity E<> ( AT Manager .abort _id== 1& &
+AT Manager .error _type== CC )36840129 2988620KB 5687s Satisﬁed
+(AT Manager .abort _id== 1& &
+AT Manager .error _type== CC )
+→S1G12.trans _def _compensated40467738 3083780KB 6444s Satisﬁed
+Atomicity E<> ( AT Manager .abort _id== 2& &
+AT Manager .error _type== CC )36839868 2988480KB 5613s Satisﬁed
+(AT Manager .abort _id== 2& &
+AT Manager .error _type== CC )
+→S2G12.trans _def _compensated40470864 3083812KB 6452s Satisﬁed
+Isolation A[]not (Iso latio nObse r ver1.isolation _phenomenon ||
+Iso latio nObse r ver1.isolation _phenomenon ||
+Iso latio nObse r ver1.isolation _phenomenon ||
+Iso latio nObse r ver1.isolation _phenomenon ||
+Iso latio nObse r ver1.isolation _phenomenon ||
+Iso latio nObse r ver1.isolation _phenomenon )40950261 3057276KB 6165s Satisﬁed
+123
+
+--- Page 28 ---
+S. Cai et al.
+The veriﬁcation results, presented in Table 10, show that the
+current design satisﬁes all imposed requirements.
+6.2 Local collision avoidance layer
+The local collision avoidance layer allows a vehicle to movearound an obstacle in its way, by monitoring the surround-
+ings using a camera, a sensor and a lidar. Timely update and
+access of the surrounding data, as well as correct reaction tothe detection of obstacles, are crucial to the safety of the vehi-
+cle. The data and all related transactions are listed in Table 11.
+In our case, these data are stored in the vehicle’s local DBMS,and updated periodically by transactions UpdateCamera,UpdateSensor, and UpdateLidar respectively. Another trans-
+action MoveV ehicle reads these data, and checks if any
+obstacle occurs. If the path is clear, the vehicle moves for-ward for a period of time, and commits the transaction. If
+an obstacle occurs, the MoveV ehicle transaction is aborted,
+after which a compensation AvoidObstacle is started to movearound the obstacle, and updates a log with the obstacle posi-
+tion for the future updates of vehicle paths.
+Similar to the design of the global layer, we specify
+the local layer in UTRAN, as presented in Fig. 26. Each
+transaction in Table 11is speciﬁed as an activity stereo-
+typed with <<Transaction >> (or <<Compensation >>
+for AvoidObstacle), with their properties speciﬁed in theattached <<TemporalCorrectnessSpeciﬁcation >> and
+<<AtomicitySpeciﬁcation >>. We generate the UPPAAL
+models from this UTRAN speciﬁcation using our tool. Thecomplete speciﬁcations and the TA models are presented in
+our online repository [ 12].
+The veriﬁcation results of the local collision avoidance
+layer are listed in Table 12. The desired atomicity and tempo-
+ral correctness properties are satisﬁed by the current design,
+according to the veriﬁcation results.
+Since all desired requirements have been satisﬁed, no
+trade-offs among the properties are necessary in our cur-
+rent design. However, in case any violation was detected by
+the veriﬁcation, indicating conﬂicts among the properties,the designer would need to revise the design with trade-
+off decisions. Such trade-offs may involve adjustments in
+the selected CC, AR and scheduling mechanisms, as wellas in the variants of the properties. The revised speciﬁca-tions are then formalized and checked as mentioned above.
+Such revising-and-model-checking iterations continue until
+we reach a design that satisﬁes all desired properties.
+7 Related work
+Researchers have made a number of efforts in the speci-ﬁcation of transaction-based systems and their properties.Among them, ASSET [ 24] and KALA [ 25] specify ﬂexi-ble transaction models with procedural languages, in which
+operations and AR mechanisms are speciﬁed using primitivesprovided by the languages. ReﬂecTS [ 26] allows speciﬁ-
+cation of various ACID properties of ﬂexible transaction
+models. Compared to these works, our supports speciﬁca-tion of temporal correctness for transactions and transactionsequences, and the selection of CC algorithms. Several high-
+level description languages opt for extending UML with
+elements related to the topic. In the real-database proﬁle pro-posed by Marouane et al. [ 27], the authors extend MARTE for
+real-time database systems and incorporate timing properties
+such as transaction timeliness. However, neither transactionsequence nor atomicity or isolation are their focus. Uniﬁed
+transaction modeling language (UTML) [ 28] and its exten-
+sion [ 29] extend UML for transactions with various selection
+of the ACID properties. In these works, atomicity and isola-tion are treated as monolithic properties respectively, rather
+than a spectrum of variants. Temporal correctness of trans-
+actions and transaction sequences is not addressed.
+Some inﬂuential work include the Business Process Exe-
+cution Language (BPEL) [ 30], the Business Process Model
+and Notation (BPMN) [ 31], and their extensions. Both BPEL
+and BPMN are XML-based, high-level description languages
+for specifying business processes, which can be considered as
+a ﬂexible transaction model with various atomicity options.Rollback and compensation can be speciﬁed at transactionlevel and for internal activities. Invocation dependencies
+between transactions are also supported by these languages.
+Charﬁ et al. [ 32] and Sun et al. [ 33] introduce extra concepts
+for transactions to BPEL, which allow explicit speciﬁcation
+of atomicity policies. Compared with their work, our pro-
+posed proﬁle can specify variants of isolation for a groupof transactions, as well as timing properties for transactions
+and transaction sequences. Watahiki et al. [ 34] propose to
+strengthen BPMN with temporal constraints, and generateUPPAAL models for veriﬁcation. Isolation and CC are outof the scope of this framework.
+As for formal modeling and analysis of transaction proper-
+ties, the ACTA framework [ 35] speciﬁes transaction models
+in ﬁrst order logic and allows for formal reasoning. Derks
+et al. [ 13] propose to model and verify transactions with
+atomicity variants in Petri nets. Gallina [ 7] uses higher-order
+logic to specify transaction properties, which can be formally
+analyzed by the Alloy tool. A number of formal languages
+for transaction models have been discussed by Gallina [ 7].
+However, these frameworks are restricted in the formal spec-iﬁcation and analysis of ACID, while timeliness, especially
+the impact of CC and abort recovery mechanisms on the time,
+are not included. In a more recent work, Liu et al. [ 36] model
+a transaction model using Maude, and analyze only proper-
+ties regarding logical consistency. Lanotte et al. [ 37] propose
+a timed-automata-based language for long running trans-actions with timing constraints. Committing protocols for
+123
+
+--- Page 29 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+Table 11 Transactions in the local collision avoidance layer
+Transaction Description Period Deadline Atomicity Temporal correctness
+UpdateCamera Write camera 200 ms 150 ms When MoveV ehicle is
+aborted, executeAvoidObstacle forcompensationimmediately.The absolute validity
+intervals of camera ,
+sensor andlidar are
+400 ms. The relativevalidity interval of thegroup { camera ,sensor ,
+lidar } read by
+MoveV ehicle is 400 ms.
+UpdateSensor Write sensor 200 ms 150 ms
+UpdateLidar Write lidar 200 ms 150 ms
+MoveV ehicle Read camera ,snesor andlidar ,I f
+no obstacles, move forward1200 ms. Otherwise, abort.2000 ms 2000 ms
+AvoidObstacle Move around the obstacle. Write
+log.
+Fig. 26 Excerpt of the UTRAN speciﬁcation for the local layer using the Papyrus tool
+atomicity variants can be modeled and analyzed. In contrast
+to these works, our work provides a formal framework for
+modeling transactions together with abort recovery and CC
+mechanisms, in which atomicity, isolation, temporal correct-ness, as well as their impacts on each other, can be analyzed
+in a uniﬁed framework. Our recent work [ 38] proposes the
+UPPCART-SMC framework, which models the transactionsystem as stochastic timed automata, and applies statistical
+model checking [ 39] to analyze the same properties as we
+do in this paper. Although UPPCART-SMC avoids the stateexplosion problem and thus can analyze large systems, it onlyprovides probabilistic assurance of the properties. On the
+contrary, UPPCART in this paper applies exhaustive model
+checking and provides a formal guarantee of the properties.
+Pattern-based techniques have been considered useful in
+modeling real-time systems with timed automata. Dong et
+al. [ 40] propose a set of TA patterns for common timing
+constraints, such as delay and deadline. Mekki et al. [ 41]
+introduce TA observer patterns for time-related requirement
+in UML statecharts. Étienne André [ 42] proposes a set of
+TA observer patterns for timing constraints and behaviorsof real-time systems. In our work, we also apply pattern-
+123
+
+--- Page 30 ---
+S. Cai et al.Table 12 V eriﬁcation results of the local collision avoidance layer
+Property type UPPAAL query pattern Explored states Memory consumption V eriﬁcation time Result
+Timeliness A[]not UpdateCamera .miss _deadline 6752 45872 KB 0.13 s Satisﬁed
+Timeliness A[]not UpdateSensor .miss _deadline 6752 45872 KB 0.14 s Satisﬁed
+Timeliness A[]not UpdateLidar .miss _deadline 6752 45872 KB 0.14 s Satisﬁed
+Timeliness A[]not Mo veVehicle .miss _deadline 6752 45872 KB 0.13 s Satisﬁed
+Absolute V alidity A[](camera .age≤40) 6821 45872 KB 0.2 s Satisﬁed
+Absolute V alidity A[](sensor .age≤40) 6821 45872 KB 0.19 s Satisﬁed
+Absolute V alidity A[](lidar .age≤40) 6821 45872 KB 0.2 s Satisﬁed
+Relative V alidity A[]((Mo veVehicle .fin is h _readCamera ||Mo veVehicle .
+fin is h _readSensor ||Mo veVehicle .fin is h _readLidar )
+imply (camera .age−sensor .age≤40 &&
+camera .age−lidar .age≤40 && sensor .age−
+lidar .age≤40
+&& sensor .age−camera .age≤40 && lidar .age−
+sensor .age≤40
+&& lidar .age−camera .age≤40))39804 45872 KB 1.62 s Satisﬁed
+Atomicity E<> ( AT Manager .abort _id== 4& &
+AT Manager .error _type== USER )3675 28976 KB 0.03 s Satisﬁed
+(AT Manager .abort _id== 4& &
+AT Manager .error _type== USER )
+→Mo veVehicle .trans _imme _compensated25,008 43,084 KB 0.16s Satisﬁed
+123
+
+--- Page 31 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+based techniques to model real-time transactions. We provide
+a formal deﬁnition of patterns and pattern-based modeling inour context. Our patterns are not only used to model time-
+related behaviors and observe timing properties, but also used
+to specify transaction management mechanisms and capturedata inconsistency.
+Researchers have proposed many tool chains for model-
+ing and analyzing various aspects of critical systems, within
+the model-driven engineering paradigm. Examples includethe work of Biehl et al. [ 43], ViTAL [ 44] and CHESS [ 45].
+In these tool chains, domain-speciﬁc languages are imple-
+mented to be applied by users to create system speciﬁcations,which are then transformed into formal models for rigorous
+analysis. Our work shares the same model-driven engineering
+approach, facilitated with our own language, formal seman-tics, and transformation.
+8 Conclusions and future work
+In this paper, we have presented a high-level speciﬁcationlanguage that extends our previously proposed UTRAN pro-ﬁle. In addition to the speciﬁcation of transactions withatomicity, isolation and temporal correctness properties, the
+extended UTRAN proﬁle also supports speciﬁcation of trans-
+action sequences and their timing constraints. We have alsoextended our previously proposed UPPCART framework, a
+pattern-based formal framework that models transactions in
+UPPAAL timed automata, with counterparts for transactionsequences.
+We have proposed a formal deﬁnition of pattern-based
+construction of UPPCART models, based on which we areable to provide a mapping between the UTRAN elements andUPPCART patterns, and automate the transformation from
+UTRAN to UPPCART. Designers can specify the transac-
+tions in UML diagrams with UTRAN using existing UMLeditors, and transform them into formal models that can be
+rigorously analyzed by UPPAAL. The automated transfor-
+mation is supported by our tool U
+2Transformer.
+We also have performed an industrial use case that
+involves collision avoidance of autonomous vehicles via
+transaction management. In the case study, we appliedUTRAN to specify the transactions in the system, and trans-formed them into UPPCART models using U
+2Transformer.
+The desired atomicity, isolation and temporal correctness
+properties were successfully veriﬁed by UPPAAL modelchecker. A lesson learned from the use case is that, the
+automatically generated models can be further optimized
+according to the application semantics. By reducing, forinstance, the number of channels, the models may achieve
+much smaller state space and result in much shorter veriﬁca-
+tion time and lower memory consumption. This is importantfor large systems since we use exhaustive model checking forthe analysis. Such optimization, admittedly, requires knowl-
+edge in formal modeling with UPPAAL. Nevertheless, ourproposed tool automation greatly reduces the efforts to con-
+struct the formal models.
+Although only a set of property variants and mechanisms
+are selected and presented in this paper, our work can be usedas a general framework for creating formally assured designs
+for a wider variety of transaction models applied in data and
+process management. Both transaction properties, and trans-action management mechanisms, can be traded-off in the
+development process, guided by formal veriﬁcation. Support
+for advanced transaction models such as nested transactions[46] and SAGAs [ 47] can be easily added, as we have done
+for transaction sequences in this paper. Other CC, AR and
+scheduling mechanisms can also be modeled and checked inour framework following the same principles.
+As we have learned from the use case, automatically
+generated formal models may not be optimal in terms of
+veriﬁcation performance. Manual optimization of the mod-els can help to reduce veriﬁcation time, and sometimes is
+even necessary for the veriﬁcation process to reach a conclu-
+sion. However, this introduces extra development costs sincedomain knowledge is often required, risks of errors arise dur-
+ing manual optimization. A solution to this, as a future work,
+is to devise “optimization patterns” with domain expertisethat are formally proven and integrated as part of the formaltransformation process.
+Our other future work includes to develop a better tool
+chain, based on best practices in model-driven engineering,that integrates speciﬁcation, model generation and veriﬁca-
+tion. A more thorough validation of the model transforma-
+tion, including more evidences from mathematical reasoningand testing, should be considered in the future tool chain
+development. Selection between UPPCART and UPPCART-
+SMC, based on heuristics such as veriﬁcation time or memoryconsumption, may also be supported by tool automation inthe future. Another future work is to incorporate the veriﬁ-
+cation of the user-deﬁned functions for different transaction
+management mechanisms, which are encoded in C, and canbe veriﬁed using existing program veriﬁers.
+Acknowledgements Open access funding provided by Mälardalen
+University. The Swedish Research Council (VR) is gratefully acknowl-edged for supporting this research by the project “Adequacy-basedTesting of Extra-Functional Properties of Embedded Systems”.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds the
+123
+
+--- Page 32 ---
+S. Cai et al.
+permitted use, you will need to obtain permission directly from the copy-
+right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+1. Gray, J., Reuter, A.: Transaction Processing: Concepts and Tech-
+niques. Morgan Kaufmann Publishers Inc., Burlington (1992)
+2. Elmasri, R.A., Navathe, S.B.: Fundamentals of Database Systems.
+Addison-Wesley Longman Publishing Co. Inc, Boston (2004)
+3. Han, S., et al.: On co-scheduling of update and control transactions
+in real-time sensing and control systems: algorithms, analysis, andperformance. IEEE Trans. Knowl. Data Eng. 25, 2325–2342 (2013)
+4. Cai S., Gallina, B., Nyström, D., Seceleanu, C.: Customized real-
+time data management for automotive systems: a case study. In:The 43rd Annual Conference of the IEEE Industrial ElectronicsSociety, pp. 8397–8404 (2017)
+5. Ramamritham, K.: Real-time databases. Distrib Parallel Databases
+1(2), 199–226 (1993)
+6. Stankovic, J.A., et al.: Misconceptions about real-time databases.
+Computer 32(6), 29–36 (1999)
+7. Gallina, B.: PRISMA: a software product line-oriented process for
+the requirements engineering of ﬂexible transaction models, Ph.D.
+thesis, University of Luxembourg (2010)
+8. Cai, S., Gallina, B., Nyström, D., Seceleanu, C.: Speciﬁcation and
+formal veriﬁcation of atomic concurrent real-time transactions. In:The 23rd IEEE Paciﬁc Rim International Symposium on Depend-able Computing (2018)
+9. The uniﬁed modeling language speciﬁcation version 2.5.1, Stan-
+dard, OMG. https://www.omg.org/spec/UML/2.5.1/ . Accessed on
+09 Jan 2019
+10. Larsen, K., et al.: UPPAAL in a nutshell. Int. J. Softw. Tools Tech-
+nol. Transfer 1, 134–152 (1997)
+11. Object Constraint Language version 2.4, Standard, OMG. https://
+www.omg.org/spec/OCL/2.4 . Accessed on 09 Jan 2019
+12. Cai, S.: The code repository. Password: SOSYM2019. https://
+www.idt.mdh.se/personal/sica/sosym/ . Accessed on 30 Aug 2019
+13. Derks, W., Dehnert, J., Grefen, P ., Jonker, W.: Customized atomic-
+ity speciﬁcation for transactional workﬂows. In: The Proceedingsof the 3rd International Symposium on Cooperative Database Sys-tems for Advanced Applications, pp. 140–147 (2001)
+14. Adya, A., et al.: Generalized isolation level deﬁnitions. In: Proceed-
+ings of the 16th International Conference on Data Engineering, pp.67–78 (2000)
+15. ISO/IEC 9075:1992 Database Language SQL, Standard, Interna-
+tional Organization for Standardization
+16. Soparkar, N., et al.: Adaptive commitment for distributed real-time
+transactions. In: Proceedings of the third Conference on Informa-
+tion and Knowledge Management, pp. 187–194 (1994)
+17. Abbott, R.K., Garcia-Molina, H.: Scheduling real-time transac-
+tions: a performance evaluation. ACM Trans. Database Syst. 17,
+513–560 (1992)
+18. UML proﬁle for marte speciﬁcation version 1.1, Standard, OMG.
+https://www.omg.org/spec/MARTE/1.1/
+19. Milner, R.: Communication and Concurrency, vol. 84. Prentice
+Hall, Upper Saddle River (1989)
+20. Clarke, E.M., et al.: Automatic veriﬁcation of ﬁnite-state con-
+current systems using temporal logic speciﬁcations. ACM Trans.Program. Lang. Syst. 8(2), 244–263 (1986)
+21. Cai, S., Gallina, B., Nyström, D., Seceleanu, C.: A formal approach
+for ﬂexible modeling and analysis of transaction timeliness andisolation. In: Proceedings of the 24th International Conference onReal-Time Networks and Systems, pp. 3–12 (2016)22. Cai, S., Gallina, B., Nyström, D., Seceleanu, C.: Speciﬁcation and
+automated veriﬁcation of atomic concurrent real-time transactions:extended report. Tech. rep. http://www.es.mdh.se/publications/
+5792-
+23. Mottu, J.-M., Baudry, B., Le Traon, Y .: Model transformation
+testing: oracle issue. In: 2008 IEEE International Conference onSoftware Testing V eriﬁcation and V alidation Workshop, IEEE, pp.105–112 (2008)
+24. Biliris, A., Dar, S., Gehani, N., Jagadish, H., Ramamritham, K.:
+ASSET: A system for supporting extended transactions. In: ACMSIGMOD Record, vol. 23, pp. 44–54 (1994)
+25. Fabry, J., D’Hondt, T.: KALA: Kernel aspect language for
+advanced transactions. In: Proceedings of the 2006 ACM Sym-posium on Applied Computing, pp. 1615–1620 (2006)
+26. Arntsen, A.-B., Karlsen, R.: Reﬂects: a ﬂexible transaction service
+framework. In: Proceedings of the 4th Workshop on Reﬂective andAdaptive Middleware Systems, ACM, p. 4 (2005)
+27. Marouane, H., Duvallet, C., Makni, A., Bouaziz, R., Sadeg, B.:
+An UML proﬁle for representing real-time design patterns. J KingSaud Univ. Comput. Inf. Sci
+28. Nektarios, G., Christodoulakis, S.: UTML: Uniﬁed transaction
+modeling language. In: Proceedings of the 3rd International Con-
+ference on Web Information Systems Engineering, pp. 115–126
+(2002)
+29. Distante, D., Rossi, G., Canfora, G., Tilley, S.: A comprehensive
+design model for integrating business processes in web applica-tions. Int. J. Web Eng. Technol. 3(1), 43–72 (2006)
+30. Web services business process execution language version
+2.0, Standard, OASIS. http://docs.oasis-open.org/wsbpel/2.0/OS/
+wsbpel-v2.0-OS.html
+31. Business process model and notation speciﬁcation version 2.0,
+Standard, OMG. https://www.omg.org/spec/BPMN/2.0/
+32. Charﬁ, A., Schmeling, B., Mezini, M.: Transactional BPEL pro-
+cesses with AO4BPEL aspects. In: Fifth European Conference onWeb Services, pp. 149–158 (2007)
+33. Sun, C.-A., el Khoury, E., Aiello, M.: Transaction management
+in service-oriented systems: requirements and a proposal. IEEETrans. Serv. Comput. 4(2), 167–180 (2011)
+34. Watahiki, K., Ishikawa, F., Hiraishi, K.: Formal veriﬁcation of busi-
+ness processes with temporal and resource constraints. In: IEEEInternational Conference on Systems, Man, and Cybernetics, pp.1173–1180 (2011)
+35. Chrysanthis, P .K., Ramamritham, K.: Synthesis of extended trans-
+action models using ACTA. ACM Trans. Database Syst. 19,
+450–491 (1994)
+36. Liu, S., Ölveczky, P . C., Rahman, M.R., Ganhotra, J., Gupta, I.,
+Meseguer, J.: Formal modeling and analysis of RAMP transaction
+systems. In: Proceedings of the 31st Annual ACM Symposium on
+Applied Computing, pp. 1700–1707 (2016)
+37. Lanotte, R., Maggiolo-Schettini, A., Milazzo, P ., Troina, A.: Mod-
+eling long-running transactions with communicating hierarchicaltimed automata. In: Formal Methods for Open Object-Based Dis-tributed Systems, Springer, pp. 108–122 (2006)
+38. Cai, S., Gallina, B., Nyström, D., Seceleanu, C.: Statistical model
+checking for real-time database management systems: a case study.In: Proceedings of the 24th IEEE Conference on Emerging Tech-nologies and Factory Automation (ETFA), IEEE (2019)
+39. David, A., Larsen, K.G., Legay, A., Mikuˇ cionis, M., Poulsen, D.B.,
+V an Vliet, J., Wang, Z.: Statistical model checking for networksof priced timed automata. In: International Conference on FormalModeling and Analysis of Timed Systems, Springer, pp. 80–96(2011)
+40. Dong, J.S., Hao, P ., Qin, S., Sun, J., Yi, W.: Timed automata pat-
+terns. IEEE Trans. Software Eng. 34(6), 844–859 (2008)
+41. Mekki, A., Ghazel, M., Toguyeni, A.: V alidating time-constrained
+systems using UML statecharts patterns and timed automata
+123
+
+--- Page 33 ---
+Speciﬁcation and automated veriﬁcation of atomic concurrent...
+observers. In: 3rd International Workshop on V eriﬁcation and Eval-
+uation of Computer and Communication Systems (2009)
+42. André, É.: Observer patterns for real-time systems. In: 2013 18th
+International Conference on Engineering of Complex ComputerSystems, IEEE, pp. 125–134 (2013)
+43. Biehl, M., DeJiu, C., Törngren, M.: Integrating safety analysis into
+the model-based development toolchain of automotive embeddedsystems. ACM SIGPLAN Not. 45(4), 125–132 (2010)
+44. Enoiu, E.P ., Marinescu, R., Seceleanu, C., Pettersson, P .: ViTAL:
+A veriﬁcation tool for east-adl models using uppaal por. In: Pro-ceedings of the 17th International Conference on Engineering ofComplex Computer Systems, IEEE, pp. 328–337 (2012)
+45. Mazzini, S., Favaro, J.M., Puri, S., Baracchi, L.: CHESS: an open
+source methodology and toolset for the development of criticalsystems. In: EduSymp/OSS4MDE@ MoDELS, pp. 59–66 (2016)
+46. Moss, E.B.: Nested transactions: an approach to reliable distributed
+computing. Massachusetts Institute of Technology, USA. Ph.D.thesis (1981)
+47. Garcia-Molina, H., Salem, K.: SAGAS. ACM Sigmod Record
+16(3), 249–259 (1987)
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+Simin Cai received a BS degree
+in Software Engineering and aMS degree in Applied ComputerTechnology from Tongji Univer-sity, China, and a MS degree inComputer Science from UppsalaUniversity, Sweden. He receivedhis Ph.D. degree from MälardalenUniversity, Sweden, in 2019. His
+current role is within the research
+and development of database sys-tems in Mimer Information Tech-nology. His research interestsinclude real-time database systems,transaction management, and for-
+mal modeling and veriﬁcation.
+Barbara Gallina is Associate Pro-
+fessor of Dependable Software Engi-neering at Mälardalen University,where she leads the Certiﬁable
+Evidences and Justiﬁcation Engi-
+neering group. Within EU fundedprojects, she played various roles:technical manager at the globallevel, work package leader, taskleader, and land coordinator. Sheregularly serves in several pro-gram committees related to depend-ability such as ISSRE, SafeComp,EDCC, LADC, COMPSAC-SEPT,AdaEurope, RSS-Rail, and PRDC.
+Dr. Gallina is the author of over 100 articles in the area of dependablesoftware engineering and certiﬁcation. Dr. Gallina’s Ph.D. thesis con-tributed to the requirements identiﬁcation, speciﬁcation and machine-supported analysis of transaction-based systems.
+Dag Nyström is a senior lec-
+turer at the school for innova-tion, design and Technology atMälardalen University, Sweden. Hereceived his Ph.D. from MälardalenUniversity in 2005. His researchinterests include real-time databasemanagement systems, embeddedsystems, and transaction models.He has developed a commercialreal-time database in collabora-tion with Mimer Information Tech-
+nology.
+Cristina Seceleanu is Associate
+Professor at Mä lardalen Univer-sity, School of Innovation, Designand Engineering, Embedded Sys-tems Division, V ä sterås, Sweden,and leader of the Formal Mod-eling and Analysis of EmbeddedSystems research group. She holdsa M.Sc. in Electronics (Polytech-nic University of Bucharest, Roma-nia, 1993) and a Ph.D. in Com-puter Science (Turku Centre for
+Computer Science, Finland, 2005).
+Her research focuses on develop-ing formal models and veriﬁca-
+tion techniques for predictable real-time and adaptive systems. Shecurrently is and has been involved as organizer, co-organizer, and chairfor relevant conferences and workshops in computer engineering, andis a member of the Editorial Board of the Frontiers in ICT: FormalMethods, and the International Journal of Embedded and Real-TimeCommunication Systems.
+123

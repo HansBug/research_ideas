@@ -1,0 +1,675 @@
+--- Page 1 ---
+Analyzing Industrial Architectural Models by
+Simulation and Model-Checking
+Raluca Marinescu1, Henrik Kaijser2, Marius Miku cionis3,
+Cristina Seceleanu1, Henrik L onn2, and Alexandre David3
+1M alardalen University, V aster as, Sweden
+raluca.marinescu@mdh.se, cristina.seceleanu@mdh.se
+2Volvo Group Trucks Technology, G oteborg, Sweden
+henrik.kaijser@volvo.com, henrik.lonn@volvo.com
+3Aalborg University, Aalborg, Denmark
+marius@cs.aau.dk, adavid@cs.aau.dk
+Abstract. The software architecture of any automotive system has to
+be decided well in advance of production, so it is very desirable to assess
+its quality in order to obtain quick indications of errors at early design
+phases. In this paper, we present a constellation of analysis techniques for
+architectural models described in EAST-ADL. The methods are comple-
+mentary in terms of covering EAST-ADL model analysis against a rich
+set of requirements, and in terms of the varying degree of condence
+in the provided guarantees. Based on the needs of the current model-
+driven development in a chosen automotive context, we propose three
+analysis techniques of EAST-ADL architectural models, in an attempt
+to tackle some of the exposed design needs: simulation of EAST-ADL
+functions in Simulink, model-checking EAST-ADL models with timed
+automata semantics, and statistical model-checking in UPPAAL, applied
+on an automatically generated network of timed automata. An indus-
+trial Brake-by-Wire prototype is the case study on which we show the
+potential of simulating EAST-ADL models in Simulink, model-checking
+downscale EAST-ADL models, as well statistical model-checking of full
+model versions, in order to tame verication scalability problems.
+1 Introduction
+Mechanical and hydraulic systems in current vehicles are being replaced by elec-
+trical/electronic systems that can implement highly complex functions like cruise
+control and automatic braking. In order to deal with this complexity, the au-
+tomotive industry has moved towards a model-based development process, dur-
+ing which high-level system models are designed and analyzed against require-
+ments. Since many automotive systems are safety-critical, new standards such
+as ISO26262 place requirements on the quality of software. Consequently, com-
+panies that wish to adopt such standards will need to use methods and tools t
+for guaranteeing such quality on each level of design abstraction.
+Simulink [2], a model-based tool for design, simulation, and code generation
+of embedded systems, is already a well-established practice in the automotive
+
+--- Page 2 ---
+2 Marinescu et al.
+domain. Simulink is typically used to dene and assess system behavior in an
+early phase, or to create a detailed behavioral behavioral denition of the sys-
+tem in order to automatically generate the corresponding code. Architectural
+description languages, on the other hand, can be introduced earlier in the devel-
+opment, to provide models that could handle the complex software architecture
+of automotive systems. Compared to the current state-of-practice, architectural
+models oer a well-dened and standardized structure that deals with all the
+related information (e.g. functions, timing, triggering) of safety-critical systems
+[8]. A candidate for this task is East-adl [7], an architectural description lan-
+guage dedicated to the modeling and development of automotive embedded sys-
+tems. The use of such modeling notations enables the application of verication
+techniques early in the industrial development process, in an attempt to gain
+early-phase indications of possible functional and timing errors.
+In this paper, we propose a constellation of complementary verication tech-
+niques that can be applied on East-adl models to deliver various types of model
+correctness assurance. We start by briey presenting the East-adl architectural
+language and the tools involved in the verication process (see Section 2), and
+we discuss the current state-of-practice in the development of automotive sys-
+tems as used nowadays by the automotive industry (see Section 3). Next, we
+present our simulation and model-checking methodology (see Section 4), and
+we show the verication techniques based on the: (i) simulation of East-adl
+models from a set of predened verication cases with Simulink (see Section 6),
+(ii) symbolic simulation and formal verication of East-adl withUppaal , and
+(iii) statistical model-checking of the architectural model with Uppaal SMC
+(see Section 8). In order to enable the verication of architectural models in
+East-adl , we also contribute with a timed automata (TA) semantics that we
+propose for the East-adl components (see Section 7). We show how the formal
+techniques underlying the tools complement each other, by applying the East-
+adlto Simulink, and East-adl toUppaal -TA transformations to analyze the
+Brake-by-Wire (BBW) industrial system (see Section 5). Such an endeavor ex-
+poses also the advantages and limitations of each framework, when used on an
+industrial system model, which can serve as a guiding result especially if safety
+standards such as ISO26262 are to be adopted. We end this paper by discussing
+similar related works (see Section 9), and by presenting our conclusions (see
+Section 10). The actual contribution of this paper consists of introducing two
+new transformations, one from East-adl models to Simulink models, and one
+from East-adl models to Uppaal models, together with the application of
+simulation, model-checking and statistical model-checking on an industrial ar-
+chitectural model.
+2 Brief Overview of the EAST-ADL Language
+East-adl [7] is an AUTOSAR [4] compatible architectural description language
+for automotive electronic systems. The functionality of the system is dened at
+four levels of abstraction, as follows. The Vehicle Level is the highest level of
+
+--- Page 3 ---
+Lecture Notes in Computer Science 3
+abstraction and describes the electronic features as they are perceived externally.
+Next, the Analysis Level allows an abstract functional representation of the ar-
+chitecture without prescribing a specic hardware topology. The Design Level
+presents a detailed functional representation of the architecture, plus the allo-
+cation of these elements on to the hardware platform. Last, the Implementation
+Level describes the implementation of the system using AUTOSAR elements. At
+each abstraction level, the system model relies on the denition of a set of Func-
+tionTypes representing components that describe the functional structure of the
+system. Each of these FunctionTypes has: (i) a set of FlowPorts that provide and
+receive data, (ii) a FunctionTrigger that can be either time-based or event-based,
+and (iii) a FunctionBehavior . The system is modeled as a set of interconnected
+FunctionPrototypes , where each FunctionPrototype is an instantiation of the cor-
+responding FunctionType . The execution of each FunctionPrototype is based on
+the "read-execute-write" semantics, which enables semantically sound analysis
+and behavioral composition, and makes the function execution independent of
+the notation used, when dening its internal behavior. The FunctionBehavior
+is dened using dierent notations and tools, e.g., Simulink or Uppaal Port
+timed automata (TA) [13]. At each level of abstraction, the above structural
+elements of the system can be extended with annotations for orthogonal as-
+pects like requirements, timing properties, generic constraints. etc. East-adl
+also provides means to describe dierent validation and verication activities as
+VVCases for dierent levels of abstraction.
+In the following section, we present a typical automotive development process
+and we try to identify dierent needs and gaps that need to be addressed.
+3 The Current Development Process in an Automotive
+Context
+We have identied four main groups of actors who are involved in a typical
+automotive development process: the Client , the System Engineers , the Software
+Developers , and the Verication Engineers .
+System
+RequirementClient
+Fig. 1: A typical automotive development process.
+As depicted in Figure 1, the Client compiles a set of informal, natural lan-
+guage requirements describing the new system that needs to be implemented.
+The System Engineers break down these requirements in incremental steps, pass-
+ing the current requirement set from one engineer to the other for further decom-
+
+--- Page 4 ---
+4 Marinescu et al.
+position. The Software Developers decompose further these requirements while
+considering implementation elements like the system architecture. This new set
+of requirements, consisting of one requirement document per system component,
+is divided among the Software Developers , who create a model-based implemen-
+tation of the components in the system. The components may be modeled using
+the Simulink tool, and the code is automatically generated based on these mod-
+els. This code is integrated as the behavior of an AUTOSAR software component
+and, where necessary, adjusted by the Software Developers . In order to ensure
+correct behavior, model-in-the-loop and software-in-the-loop analysis are used.
+Once a software component has been implemented, it can be deployed on an
+electronic control unit (ECU) for component testing. Finally, the Verication
+Engineers perform testing at the system level directly on the platform, using
+manually written tests. Any bugs discovered in the implementation or any prob-
+lems in the requirements are reported back to the person responsible for the
+implementation or requirement, respectively. Since models start to be included
+in the industrial development process, there is also an increased need of stronger
+evidence of model correctness with respect to functional or timing requirements.
+For the development process described above, dierent state-of-the-art tech-
+niques could facilitate model integration and verication, as follows:
+{Introducing architectural languages (like East-adl ) will keep track of re-
+quirements, features, functions, and hardware topology in an integrated
+model, making the design decisions consistent and traceable.
+{Providing the behavior for architectural components based on formal deni-
+tions like TA, together with typical Simulink denitions, will enable alterna-
+tive representations of the same function, hence providing a more compre-
+hensive assessment of the system.
+{Applying formal verication techniques, like model-checking, on the system's
+formalized structural and behavioral model will provide correctness assur-
+ances regarding important properties.
+In order to adopt these steps, an integrated system model is needed, such
+that dierent verication techniques can be applied consistently, on the same
+system description, at various levels of abstraction.
+4 Our Methodology for Analyzing Architectural Models
+In this section, we propose a methodology for simulation and model-checking of
+East-adl models, which is depicted in Figure 2. Our verication methodology
+consists of the following steps:
+{Create the East-adl model and provide the behavior of each FunctionPro-
+totype as a FMU1[3] or a Simulink model;
+1The Functional Mock-up Interface (FMI) is a tool-independent standard to support
+behavior models using a combination of xml-les and compiled C-code.The standard
+denes the concept of a Functional Mock-up Unit (FMU), as a software component
+that implements the FMI standard.
+
+--- Page 5 ---
+Lecture Notes in Computer Science 5
+EAST-ADL Model
+Functional DesignArchitecture
+Simulinkgenerationbehavior
+description
+FMUs or
+SimulinkComponent ModelsFunctionPrototype
+1 Port1 Port2FunctionPrototype
+2 Port3 Port4
+Simulink System Model
+Function3Function1
+Function221Requirements
+TimingProp.
+VVCases
+SimulationResultsUPPAALTimedAutomataModel
+Interface Behaviorgeneration
+UPPAALSMC
+Analysis Results
+Fig. 2: Our simulation and model-checking methodology.
+{Select the verication method:
+1. Simulation: by implementing an automatic transformation from the ar-
+chitectural model to a Simulink model and calling the Simulink tool, we
+can provide verication through simulation;
+2. Model-checking: by implementing an automatic transformation from the
+architectural model to a network of TA, we can use the Uppaal or
+Uppaal SMC model-checker to formally verify the system;
+{Return the verication results back to the East-adl model for possible
+improvements of the design.
+There are several dierences between the two frameworks. The simulation
+method requires the East-adl model to be extended with verication and val-
+idation elements as VVCases , which describe the part of the model to be ana-
+lyzed, together with the denition of monitor FunctionTypes , stimuli data, and
+the requirements to be veried. The behavioral model of the monitor is provided
+as an FMU or a Simulink model. The transformation to the network of TA pro-
+vides formal semantics for the architectural model in terms of timed transition
+systems [5]. In order to preserve the informal semantics of the architectural lan-
+guage, the transformation produces a network of two synchronized TA for each
+East-adlFunctionPrototype : anInterface TA with the elements provided in
+the architectural model and a Behavior TA.
+The parts represented with a dotted line in Figure 2 have not been imple-
+mented in the current version of the transformation. By extending our method-
+ology to include an automatic transformation from the Simulink component
+model to the corresponding Behavior TA, the two models would be consistent
+
+--- Page 6 ---
+6 Marinescu et al.
+and the verication results of the both frameworks would truly complement each
+other. However, information would be lost in such a transformation and the TA
+model would require manual renements, such that the TA could represent the
+key behavior of the component that is largely consistent with the corresponding
+Simulink model.
+5 An Example from Industry: Brake-by-Wire Case Study
+FunctionalDesignArchitecture
+pBrakePedalLDM pBrakeTorqueMap
+pGlobalBrakeController
+pLDM_Sensor_FLpABS_FL pLDM_Brake_FLElSignalIn
+PositionPercentOutBrakePedalPos_percentIn
+DriverReqTorqOut
+WheelSpeed_FLInTorqRef_FLOut
+WheelSpeedOut TicksInRequestedTorqueIn
+WheelSpeedInDriverReqTorqueIn
+ABSBrakeTorqueOut TorqCmdIn ElSignalOutWheelSpeed_FRInTorqRef_FROut
+VehicleSpeedIn
+pLDM_Sensor_FRpABS_FR pLDM_Brake_FR
+WheelSpeedOut TicksInRequestedTorqueIn
+WheelSpeedInABSBrakeTorqueOut TorqCmdIn ElSignalOut
+VehicleSpeedI
+npBrakePedalSensor
+PositionIn ElSignalOut
+pHW_Encoder_FL
+RotationIn TicksOut
+pHW_Encoder_FR
+RotationIn TicksOut
+pVehicleSpeedEstimator
+WheelSpeed_FRInWheelSpeed_FLIn
+VehicleSpeedEstpLDM_Sensor_RL
+WheelSpeedOut TicksInpHW_Encoder_RL
+RotationIn TicksOut
+pLDM_Sensor_RR
+WheelSpeedOut TicksInpHW_Encoder_RR
+RotationIn TicksOutWheelSpeed_RLIn
+WheelSpeed_RRInTorqRef_RLOut
+TorqRef_RROut
+WheelSpeed_RLIn
+WheelSpeed_RRInpHW_Brake_FL
+ElSignalIn BrakeTorqueOut
+pHW_Brake_FR
+ElSignalIn BrakeTorqueOut
+pABS_RL pLDM_Brake_RL
+RequestedTorqueIn
+WheelSpeedInABSBrakeTorqueOut TorqCmdIn ElSignalOut
+VehicleSpeedInpHW_Brake_RL
+ElSignalIn BrakeTorqueOut
+pABS_RR: ABS pLDM_Brake_RR:
+BrakeActuatorLDM
+RequestedTorqueIn
+WheelSpeedInABSBrakeTorqueOutTorqCmdIn ElSignalOut
+VehicleSpeedInpHW_Brake_RL:
+BrakeActuator
+ElSignalIn BrakeTorqueOutperiod=nulBrakePedalLDM_Period_Constraint
+period=20msGlobalBrakeController_Periodic_Constraint
+upper=nullBrakePedalLDM_ExecTime_Constraintupper=null
+upper=0.154msBrakeTorqueMap_ExecTime_Constraintupper=nullGlobalBrakeController_ExecTime_Constraint
+upper=0.645msABS_ExecTime_Constraint
+upper=nullLDM_Brake_ExecTime_Constraintperiod=5msLDM_Sensor_ExecTime_Constraint
+period=10msABS_Periodic_Constraint
+period=5msLDM_Brake_Period_Constraintperiod=10ms
+LDM_Sensor_ExecTime_ConstraintBrakeTorqueMap_Periodic_Constraint
+Fig. 3: The EAST-ADL model of the BBW system at Design Level.
+In this section, we introduce the Brake-by-Wire (BBW) system that will be
+used through the paper as the running example to illustrate our techniques. The
+BBW system is a braking system equipped with an ABS function, and without
+any mechanical connectors between the brake pedal and the brake actuators. A
+sensor attached to the brake pedal reads its position, which is used to compute
+the desired global brake torque. For vehicles with stability control, the torque is
+inuenced by the wheel speed and the desired torque for each wheel is calculated
+based on the following equation:
+torque = (pos=100)maxBrakeTorque distribution (1)
+where posis the pedal position with values 2[0,100], maxBrakeTorque is the
+maximum global brake torque, and distribution is the static distribution factor.
+The ABS algorithm computes the slip rate sbased on the following equation:
+s= (v wR)=v (2)
+
+--- Page 7 ---
+Lecture Notes in Computer Science 7
+where vis the speed of the vehicle, wis the speed of the wheel, and Ris the
+radius of the wheel. The friction coecient has a nonlinear relationship with
+the slip rate: when sstarts increasing, the friction coecient also increases, and
+its value reaches the peak when sis around 0.2. After that, further increase in
+sreduces the friction coecient of the wheel. For this reason, if sis greater
+than 0.2 the brake actuator is released and no brake is applied, otherwise the
+requested brake torque is used.
+Figure 3 presents the East-adl model of the BBW system at the Design
+Level, and a set of requirements has been provided (to describe the functionality
+of this system at this level), as follows:
+D1The torque on the wheel shall be dened as: (pos/100) maxBrakeTorque distribution .
+D2If VehicleSpeedIn >ABSVehicleSpeedThreshhold and s>ABSSlipRateThreshhold,
+then ABSBrakeTorqueOut shall be set to 0Nm .
+D3If s<=ABSSlipRateThreshhold orVehicleSpeedIn <=ABSVehicleSpeedThreshhold,
+then ABSBrakeTorqueOut shall be set to RequestedTorqueIn .
+D4Investigate the latency between the wheel sensor and the brake pedal actu-
+ator.
+The goal of this work is to show how one can verify the above requirements on
+theEast-adl description, using various verication techniques that we present
+in the following.
+6 Simulation of EAST-ADL Functional Architecture in
+Simulink
+In this section we describe the simulation method proposed in Section 4, which
+has been implemented as an EATOP [1] plug-in called FMUSim that synthesizes
+a Simulink model and congures it according to the properties in the East-
+adlmodel. The model transformation preserves the compositional hierarchy of
+theEast-adl model in EATOP, and is implemented as a one-to-one mapping
+between East-adl elements and Simulink elements, as depicted in Table 1.
+In order to simulate a time-trigged East-adl function, the FMU block needs
+to be sampled once per period. However, the FMU blocks provided by the FMI
+Toolbox are continuous and cannot be sampled directly. As depicted in Figure
+4, the solution chosen in this implementation is to add a pulse generator and
+a subsystem InputData that is acting as a ip-op clocked on the positive ank
+of the pulse. Since the execution of a Simulink block is instantaneous, another
+ip-op OutputData is added, which is clocked on the negative ank of the pulse,
+such that the execution time of the FMU becomes equal to the pulse width.
+Similarly, in order to simulate an event-trigged East-adl function, we reuse
+the negative ank of the trigger pulse from another time-triggered function that
+acts as the event source. The negative ank of EventTriggerIn is used to clock a ip-
+op InputData to control execution start, as depicted in Figure 5. The execution
+period of the function is then simulated by adding a ip-op OutputData , which
+is clocked on a step down that is generated at a time equal to the worst-case
+
+--- Page 8 ---
+8 Marinescu et al.
+Table 1: Mapping rules for the EAST-ADL to Simulink transformation.
+EAST-ADL element Simulink element(s)
+composed FunctionType Subsystem
+Function Connector Line
+non-top-level Function Flow Port In Inport
+non-top-level Function Flow Port Out Outport
+top-level Function Flow Port In Repeating Sequence Interpolated
+top-level Function Flow Port Out Scope
+time-trigged leaf Function Type with Pattern with several elements
+FMU behavior
+event-trigged leaf Function Type with Pattern with several elements
+FMU behavior
+Continuous leaf Function Type with FMU Block
+FMU behavior
+leaf Function Type with Simulink Same pattern as in the FMU cases above,
+behavior but a copy of the behavior model is inserted
+instead of the FMU block
+execution time (WCET) after the function starts executing. The clock signal is
+exported as EventTriggerOut for the pattern to be repeatable. This means that it
+is possible to simulate a chain of event-trigged functions with the pattern.
+Fig. 4: Simulink pattern for modeling time-trigged execution of an EAST-ADL
+function with execution time. The block pLDM Brake FLrepresents the FMU.
+In this transformation, we have not addressed the nondeterminism or the
+possible interleavings of the FunctionPrototypes 's execution. Since we are per-
+forming simulations on the transformed model, the current execution pattern
+is one of innitely many interleavings and event sequences, which means that
+some errors may be overlooked. To represent deviating clock speeds and arbi-
+trary start-up time, an arbitrary component could be added by the transforma-
+tion to the oset and period times, and a deterministic yet random sequence
+would secure repeatability of the simulation runs. Multiple runs with random-
+ized parametrization would increase condence through the extended state space
+
+--- Page 9 ---
+Lecture Notes in Computer Science 9
+Fig. 5: Simulink pattern for modeling event-trigged execution of an EAST-ADL
+function with execution time. The block FMU function Frepresents the FMU.
+covered. However, these extensions to the method are not in the scope of this
+paper.
+Application on the BBW case study. We have applied the transforma-
+tion described above on the BBW case study. The resulting model contains one
+FMU for each leaf East-adl FunctionPrototype , plus the required monitors for
+theVVCase specied in the East-adl model.
+Fig. 6: Implementation of the pBrakeTorqueRRMonitor . The lower half of the gure
+shows the contents of the block named for each subsystem in the upper half.
+
+--- Page 10 ---
+10 Marinescu et al.
+Fig. 7: Simulation results provided by the pBrakeTorqueRRMonitor .
+As depicted in Figure 6, pBrakeTorqueRRMonitor is a complex monitor despite
+the fact that it veries a simple linear function like requirement D1for the
+rear right wheel. The time until a new pedal position has propagated through
+the system and has given rise to a new torque value GBC TorqueReq RRvaries
+between delay minand delay max[ms]. As shown in Figure 7, the torque requested
+by the brake controller on the rear right wheel is a linear scaling of the pedal
+position delayed by the propagation time. The boolean monitor function \looks
+back" in time according to the delay interval, and is able to nd a pedal position
+corresponding to the requested torque at all evaluated time points. The result
+shows that requirement D1is satised to the extent guaranteed by the simulation
+technique.
+7 Formal Semantics of EAST-ADL as a network of Timed
+Automata
+To formally verify that the architectural model meets its requirements, we need
+to exhaustively explore all the function blocks in the model. In this context,
+we need to represent the execution semantics of the East-adl function blocks
+using a network of TA (see Figure 2), which has a well-dened formal semantics
+in terms of timed transition systems [5]. We have developed an automatic trans-
+formation, considering a subset of the East-adl elements, which we dene as a
+tuple:
+EAST ADL DesignLevel ,hFP;Con;DP;Trigg;TC i;
+whereFPis the set of FunctionPrototypes ,Con is the set of connectors between
+theFP,DPis the set of data ports, dened as the union of input ports and
+output ports, Trigg is the set of triggering elements, dened as the union of
+events and periodic triggers, and TCthe set of the model's timing constraints.
+In a similar manner, the TA is dened as a tuple:
+TA,hL;l0;C;A;E;Ii;
+
+--- Page 11 ---
+Lecture Notes in Computer Science 11
+whereLis a nite set of locations, l02Lis the initial location, Cis a set of
+clocks,Ais a set of possible actions, Eis a set of edges between two locations,
+andIis a set of invariants attached to the locations.
+The transformation is a one-to-one function : EAST-ADL DesignLevel!TA,
+which maps each element in the EAST-ADL DesignLevel to a TA element. The
+mapping rules are:
+{Each function FPis dened in terms of a network of two TA, as shown in
+Figure 8. To preserve the \read-execute-write" semantics of East-adl , the
+Interface TA (see Figure 8a) has four locations: (i) Idle, (ii) aRead location
+that allows the update of the variables according to the values on the input
+ports, independent of other computations, (iii) an Exec location that triggers
+theBehavior TA (see Figure 8b) that models the desired behavior of FP, and
+(iv) aWrite location that allows the update of the output ports according
+to the values of the computed internal variables, respectively, independent
+of other computations.
+{Each input and output port DPis mapped to a global variable in the TA
+network, respectively.
+{Each connector Con from output port Port out1ofFP1to input port Port in2
+ofFP2is transformed into an assignment Port in2:=Port out1, along the edge
+fromIdle toRead ;
+{The triggering of each interface TA is based on the triggering Trigg associ-
+ated to the East-adlFP. Concretely, this creates two possible instantiations
+of theInterface TA: (i) for timed-triggered FPthe transformation produces
+a local clock, plus invariants and guards on TA (see Figure 9a), and (ii) for
+event-triggered FPthe transformation produces a set of dedicated variables
+that need to be constantly updated and reset, respectively (see Figure 10a).
+{Other timing annotations TC, e.g., the execution time, can be included in
+the timing behavior of the TA model.
+IdleRead
+Exec
+WriteComp1_beh_start!
+Comp1_beh_stop!C
+C
+(a) Interface template.
+Init BehComp1_beh_start?
+Comp1_beh_stop?(b) Behavior template.
+Fig. 8: The generic TA semantics of an East-adlFP.
+Once we obtain the network of TA corresponding to the East-adl model,
+one manually edits the Behavior TA to match the desired behavior of the cor-
+responding FunctionPrototype . Formal analysis techniques like model-checking
+and statistical model-checking are then applied to verify the resulting model. In
+the next section we apply such transformation on the BBW East-adl model,
+to enable the latter's verication.
+
+--- Page 12 ---
+12 Marinescu et al.
+8 Analysis of EAST-ADL Models Using Model-Checking
+and Statistical Model Checking
+We have applied our method on the BBW architecture, and generated a net-
+work of 50 TA, by transforming each of the 25 FPof Figure 3 into a network
+of two synchronized TA, respectively. In Figures 9 and 10, we exemplify the
+transformation of two FPas follows: Figure 9a presents the interface of the
+time-triggered pABS FLFP, automatically generated from the East-adl model,
+Figure 9b presents the behavior of the pABS FLFPobtained after manually edit-
+ing the dedicated TA template (see Figure 8b); Figure 10a shows the interface
+of the event-triggered pVehicleSpeedEstimator FP, whereas Figure 10b shows the
+behavior of the pVehicleSpeedEstimator FP, after manually editing the dedicated
+TA template.
+(a) Interface TA
+(b) Behavior TA
+Fig. 9: The TA model for the pABS FLEast-adlFP.
+(a) Interface TA
+(b) Behavior TA
+Fig. 10: The TA model for the pVehicleSpeedEstimator East-adlFP.
+On this formal model, we have applied model-checking and statistical model-
+checking techniques to validate the original East-adl model against the re-
+quirements introduced in Section 5.
+Model-Checking with UPPAAL. With Uppaal , we have simulated and
+we have attempted to verify the previously described network of TA. However,
+the size of the model has lead to a state space explosion. On a computer with 1.8
+Ghz Intel processor and 8GB memory, the verier could explore only 10 962 377
+states before it had run out of memory. This is not surprising, since the BBW
+system is subject to an enormous state-space explosion due to large number to
+TA in the network, each with its clock and its set of variable created based o
+the ports of the corresponding FunctionPrototype .
+
+--- Page 13 ---
+Lecture Notes in Computer Science 13
+Consequently, we have used Uppaal to verify a simplied version of the
+BBW system with one wheel only. Properties D2andD3are formalized as
+TCTL properties [5], as follows:
+D2A[]pABS FLVehicleSpeedIn >speed thrshld and pABS FLs==true imply
+pABS FLABSBrakeTorqueOut==0.
+D3A[]pABS FLVehicleSpeedIn <=speed thrshld orpABS FLs==false imply
+pABS FLABSBrakeTorqueOut==pABS FLRequestedTorqueIn
+Both properties have been veried and hold on the model. For property D2
+the verication took 13,7 seconds and used 26 900KB of memory. For property
+D3the verication took 9,1 seconds and used 26 916KB of memory.
+Statistical model-checking with UPPAAL SMC. TA is a suitable for-
+malism for analyzing architectural models like East-adl , and enables symbolic
+model-checking techniques to provide a rigorous proof of verifying or refuting a
+TCTL property. However, such techniques suer from state-space explosion in
+terms of number of parallel components in the model, which is the case with
+complex, industrial systems. One possible solution is the use of a statistical
+model-checking engine to generate stochastic simulations and employ statisti-
+cal methods to estimate probabilities and probability distributions over time
+with given condence levels. The Uppaal modeling language has been extended
+with probabilistic and dynamical constructs, given a stochastic semantics of
+timed automata networks [9], and the tool has been equipped with statistical
+model-checking (SMC) algorithms [10] to decide qualitative properties in terms
+of probabilities and cost. The symbolic and statistical techniques complement
+each other: SMC can show results only up to a specied level of condence and
+never for certain like symbolic techniques, but it is a cheap way to generate and
+conrm safety counter-examples where symbolic techniques may employ expen-
+sive over-approximation [11]. Here, we attempt to analyze requirement D4.
+Since Uppaal SMC works on stochastic models, we have manually added
+probabilistic extensions to the four-wheels BBW model that contains the timed
+behavior. Figures 11a and 11b show exponential rates added to locations Idleand
+Exec of one Encoder component of Figure 3. The rate of 1 means that the com-
+ponent may potentially stay in the location forever, but it will stay there for 1
+time unit on average which is consistent with the timed behavior. Further, we are
+interested in latency between pressing the pedal and applying the brakes, hence
+we added a monitoring stop-watch automaton shown in Figure 11c. The moni-
+toring automaton has a stop-watch Lthat is stopped originally in location Wait
+by specifying that the derivative is zero: L'==0 . The stop-watch is started when
+synchronization pBrakePedalSensor beh start? is received (the derivative L'==1 is
+implicit in timed automata). The stop-watch is stopped again when any of
+the wheels receive braking signal by synchronization pHW Brake FLbeh start? ,
+pHW Brake FRbeh start? ,pHW Brake RLbeh start? orpHW Brake RRbeh start? (the
+synchronizations are then on dierent edges that are drawn on top of each other
+to minimize cluttering). The latency can be estimated by the following query:
+Pr[bm.L <=1000]( <>bm.Done) that asks what is the probability that the brake mon-
+itor process bmwill end up in location Done in terms of the stop-watch Lvalue.
+
+--- Page 14 ---
+14 Marinescu et al.
+The result is shown in Figure 11d. The average latency is 5 time units but it
+tends to be high even though our added stochastic delay assumptions are de-
+creasing towards innity, which is a worrying behavior. The good news is that it
+seems to be strictly limited by 6 time units and no simulation has been observed
+greater or equal than 6 time units, which is on the other hand surprising, as the
+model contains components with unlimited delays.
+(a) pHW Encoder FLCTRL component.
+(b)
+pHW Encoder FLBEH component.
+(c)
+Stop-watch automaton bm
+measuring latency.
+(d)
+Estimated latency of 5 :010:05 time units (99.9%
+CI).
+Fig. 11: The components decorated with stochastic extensions and estimated
+latency between pressing the pedal and applying brakes.
+9 Related Work
+Several researchers have looked into the formal analysis and verication of East-
+adl models. Kang et al. [13] propose a component-based analysis framework
+for the East-adl models extended with TA semantics based on the Uppaal
+Port model-checker. Mallet et al. [14] describe the use of UML MARTE prole
+for the timing analysis of East-adl . In addition, Feng et al. [12] propose a
+translation of East-adl activity diagrams into the input language of SPIN for
+formal verication. More recently, Qureshi et al. [15] describe a model-to-model
+transformation from East-adl to timed automata towards formal verication
+based on timing constraints using Uppaal . Closely related to our work, in the
+context of model-driven development, Biehl et al. [6] propose a modular approach
+for data integration, together with their experiences from applying this approach
+for the verication of East-adl models. The latter is focused on introducing a
+
+--- Page 15 ---
+Lecture Notes in Computer Science 15
+systematic solution for model-based tool integration, whereas our work is focused
+on the analysis of industrial systems through complementary methodologies that
+provide various degrees of assurance.
+10 Conclusions and Discussion
+In this paper, we have presented a set of analysis techniques dedicated to the sim-
+ulation and verication of automotive embedded systems specied in the East-
+adlarchitectural language. In order to provide dierent correctness guarantees,
+we present three techniques that enable the transformation in, and analysis of
+East-adl models with: (i) Simulink, a design and simulation tool used exten-
+sively in industry, (ii) Uppaal for model-checking purposes, and (iii) Uppaal
+SMC, a new extension of Uppaal with statistical model-checking capabilities.
+We report our analysis results by applying all these frameworks on the indus-
+trial BBW case study. As future work, we intend to investigate the possible
+integration and application of these frameworks into the large-vehicle industrial
+development process.
+Limitations. Our current transformation to Simulink does not support jit-
+tering of the execution start time and period times. The coverage of the state
+space in terms of dierent function execution orders and phasings is thus very
+low, but sucient to detect the fundamental problems.
+The model transformation from East-adl to the network of TA and to the
+Simulink model rely on the execution semantics of East-adl . However, the TA
+used to dene FunctionBehavior is dicult to make fully consistent with the
+richer representation of the Simulink model or the FMU that is used by the
+FMUSim tool. The verications are thus complementary, and will not in general
+verify the same properties.
+Lessons Learned. Both transformations presented in the paper are con-
+ceptually simple, making them easy to implement and fast to execute. The two
+model transformations preserve the structure of the architecture, which simpli-
+es the understanding and the debugging of the model. In our transformation
+to Simulink, it is possible to dene useful transformation patterns for time and
+event triggered functions based on the FMI Toolbox and legacy Simulink blocks
+only, so additional commercial toolboxes are not required. The East-adl mod-
+els with feedback loops require that the loops are broken before they can be
+simulated in Simulink. This can be achieved either by adding a memory block
+somewhere in each loop or latching the subsystem ports of at least one subsys-
+tem in each loop. Moreover, the network of TA can be easily used for statistical
+model-checking with UPPAAL SMC, ensuring formal verication of the model
+even if the analysis with Uppaal leads to a state-space explosion.
+Acknowledgment: The research leading to these results has received funding
+from the ARTEMIS Joint Undertaking under grant agreement number 269335, and
+from VINNOVA, the Swedish Governmental Agency for Innovation Systems, within
+the MBAT project.
+
+--- Page 16 ---
+16 Marinescu et al.
+References
+1. Eclipse. The EAST-ADL Tool Platform (EATOP) Editor Tool. Available from
+http://www.eclipse.org/proposals/modeling.eatop/, (2014).
+2. Matworks. The MATLAB Simulink Design Tool. Available from
+http://www.mathworks.se/products/simulink/, (2014).
+3. Modelica Association Project. The Functional Mock-up Interface (FMI) Standard.
+Available from http://www.fmi-standard.org/, (2014).
+4. The AUTomotive Open System ARchitecture (AUTOSAR). Available from
+http://www.autosar.org/, (2014).
+5. Rajeev Alur. Timed Automata. In Computer Aided Verication , pages 8{22.
+Springer, (1999).
+6. Matthias Biehl, Carl-Johan Sj ostedt, and Martin T orngren. A Modular Tool In-
+tegration Approach- Experiences From Two Case Studies. In 3rd Workshop on
+Model-Driven Tool & Process Integration at the European Conference on Modelling
+Foundations and Applications , (2010).
+7. Hans Blom, Henrik L onn, Frank Hagl, Yiannis Papadopoulos, Mark-Oliver Reiser,
+Carl-Johan Sj ostedt, De-Jiu Chen, Fulvio Tagliab o, Sandra Torchiaro, and Sara
+Tucci. EAST-ADL: An Architecture Description Language for Automotive
+Software-Intensive Systems. EAST-ADL WhitePaper , Volume 1, (2013).
+8. Philippe Cuenot, DeJiu Chen, Sebastien Gerard, Henrik Lonn, M-O Reiser, David
+Servat, C-J Sjostedt, Ramin Tavakoli Kolagari, Martin Torngren, and Matthias
+Weber. Managing Complexity of Automotive Electronics using the EAST-ADL. In
+12th IEEE International Conference on Engineering Complex Computer Systems ,
+pages 353{358. IEEE, (2007).
+9. Alexandre David, Kim G. Larsen, Axel Legay, Marius Mikucionis, Danny Bgsted
+Poulsen, Jonas van Vliet, and Zheng Wang. Statistical Model Checking for Net-
+works of Priced Timed Automata. In International Conference on Formal Modeling
+and Analysis of Timed Systems (FORMATS) , pages 80{96, (2011).
+10. Alexandre David, Kim G. Larsen, Axel Legay, Marius Mikucionis, and Zheng
+Wang. Time for Statistical Model Checking of Real-Time Systems. In Computer-
+Aided Verication , pages 349{355, (2011).
+11. Alexandre David, Kim Guldstrand Larsen, Axel Legay, and Marius Mikucionis.
+Schedulability of Herschel-Planck Revisited Using Statistical Model Checking. In
+International Symposium On Leveraging Applications of Formal Methods, Veri-
+cation and Validation , pages 293{307, (2012).
+12. Lei Feng, DeJiu Chen, Henrik L onn, and Martin Torngren. Verifying System Be-
+haviors in EAST-ADL2 with the SPIN Model Checker. In International Conference
+on Mechatronics and Automation , pages 144 {149, (2010).
+13. Eun-Young Kang, Eduard Paul Enoiu, Raluca Marinescu, Cristina Seceleanu,
+Pierre-Yves Schobbens, and Paul Pettersson. A Methodology for Formal Anal-
+ysis and Verication of EAST-ADL Models. Reliability Engineering & System
+Safety International Journal , (2013).
+14. Fr ed eric Mallet, Marie-Agn es Peraldi-Frati, and Charles Andr e. Marte CCSL
+to Execute EAST-ADL Timing Requirements. In International Symposium on
+Object/Component/Service-Oriented Real-Time Distributed Computing , pages 249
+{253. IEEE, (2009).
+15. Tahir Naseer Qureshi, De-Jiu Chen, Magnus Persson, and Martin Trngren. On
+Integrating EAST-ADL and UPPAAL for Embedded System Architecture Ver-
+ication. In Embedded Systems Development , volume Volume 20, pages 85{99.
+Springer, (2014).
