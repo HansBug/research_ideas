@@ -1,0 +1,1353 @@
+--- Page 1 ---
+Citation: Pałka, P .; Zieli ´ nski, C.;
+Dudek, W.; Seredy ´ nski, D.;
+Szynkiewicz, W. Communication-
+Focused Top-Down Design of
+Robotic Systems Based on Binary
+Decomposition. Energies 2022 ,15,
+7983. https://doi.org/10.3390/
+en15217983
+Academic Editors: Dariusz Pazderski
+and Slawomir Jan Stepien
+Received: 29 September 2022
+Accepted: 22 October 2022
+Published: 27 October 2022
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+energies
+Article
+Communication-Focused Top-Down Design of Robotic Systems
+Based on Binary Decomposition
+Piotr Pałka
+ , Cezary Zieli ´ nski
+ , Wojciech Dudek
+ , Dawid Seredy ´ nski
+ and Wojciech Szynkiewicz *
+Institute of Control and Automation Engineering, Faculty of Electronics and Information Technology,
+Warsaw University of Technology, Nowowiejska 15/19, 00-665 Warsaw, Poland
+*Correspondence: wojciech.szynkiewicz@pw.edu.pl; Tel.: +48-22-234-7119
+Abstract: This article proposes a formal method of designing robotic systems focusing on communica-
+tion between components, as well as standardization of the messages between those components. The
+objective is to design a robotic system controller in a systematic way, focusing on communication at an
+abstract agent level. Communication, thus organized, and its properly deﬁned speciﬁcation facilitate
+the system’s further development. The method uses a standard message structure, based on IEEE
+FIPA standards, for communication within robotic systems composed of agents. Communication-
+focused top-down design of robotic systems based on binary decomposition is proposed, and used to
+design a companion robot working in the kitchen environment. The implemented robotic system
+is veriﬁed based on whether or not the speciﬁcation conforms to the speciﬁed requirements. The
+characteristics of the designed communication are evaluated. The obtained results prove that the
+proposed method of designing robotic systems is formally correct, it facilitates the implementation of
+agents, and separates speciﬁcation of the system from its implementation. The method of designing
+robotic systems is correct and useful. The proposed formal notation facilitates understanding of
+how the system operates and organizes the design process. It puts the communication between
+system components at the forefront. The resulting system speciﬁcation facilitates the implementation.
+The tools for experimental evaluation of its characteristics enable the conﬁrmation that it fulﬁlls the
+requirements, and that the communication between the system components is correct.
+Keywords: robot design; system design; communication approach; robotic agent; robot controller
+1. Introduction
+The energy consumption of electromechanical systems, including robots, depends on
+the quality of control, and that is inﬂuenced by the control system architecture. This article
+delves into the problem of producing the architecture of the control system by analysing
+the task, or the category of tasks, that the system has to accomplish. Those tasks provide
+guidance for the system decomposition. Systems are decomposed into modules (agents in
+this case); however, those modules need to communicate to produce an integrated system.
+All these aspects inﬂuence the optimality of energy consumption of the overall system, thus
+it is necessary to study them. The presented design method addresses the pre-speciﬁcation
+design phase, which is the basis for the creation of system speciﬁcation, which in turn is
+the foundation of its implementation.
+The spectrum of approaches to robotic system design stretches from purely implementation-
+based to specification-based. Implementation-based approaches encompass: (1) coding the
+system software in a universal programming language (e.g., C, C++, Python) targeting
+a speciﬁc implementation platform, (2) composing the system out of library modules
+(e.g., functions, procedures, software objects) coded in a universal programming language
+(e.g., RCCL [ 1], PASRO [ 2]), (3) utilising a programming framework, which is composed
+of a library of modules supplemented by use patterns (e.g., Player [ 3],MRROC++ [4]) ,
+(4) composing the system out of components [ 5] (usually software black-boxes, or less
+Energies 2022 ,15, 7983. https://doi.org/10.3390/en15217983 https://www.mdpi.com/journal/energies
+
+--- Page 2 ---
+Energies 2022 ,15, 7983 2 of 25
+frequently white-boxes, providing services through well deﬁned interfaces), which form
+a programming framework (e.g., OROCOS [ 6], ORCA [ 7], GenoM [ 8], ROS [ 9]). In all
+implementation-based cases, the system speciﬁcation is formulated as a general architecture
+deﬁned in terms of boxes and arrows diagrams. At the other end of this spectrum, systems
+are built using model driven approaches [ 10]. The system speciﬁcation is provided as a
+system model that can be used for either manual or automatic code generation. In the
+manual mode, the model is a blueprint for the developers writing the system code. In
+the automatic mode, a compiler transforms the model into code automatically, usually
+in many transformation steps—tool-chains are used for that purpose [ 11]. This article
+addresses the problem of providing adequate guidance to the designer by proposing a
+speciﬁcation method rationalising the design decisions, at the same time facilitating the
+system architecture design.
+This article aspires to provide means for reasoning about the composition of the de-
+signed system, both from the point of view of constituent elements and the point of view of
+the communication between them. The problem tackled in this article is further aggravated
+by the fact that, although many robotic systems have been created, there is no single method
+of describing their architecture, e.g., [ 12–19]. References [ 20,21] suggest the decomposition
+of the architecture presentation into structure and activities (style). Nevertheless, Refer-
+ence [ 20] acknowledges that it is difﬁcult to distinguish between those two elements in
+the presentation of the majority of systems. Formal descriptions of robotic systems also
+exist, e.g., [ 22–28]; however, this approach is not popular in the robotics community. This is
+unfortunate as, besides a clear presentation, they enable formal veriﬁcation of some system
+properties at the speciﬁcation stage of their design, e.g., [ 29,30]. As most robotics systems
+have been designed using implementation-based methods, the composition of modules or
+components dominates, i.e., bottom-up design prevails.
+However, the method postulated here uses a decomposition-based top-down approach.
+In the bottom-up method, the system’s task emerges from the composition of modules,
+while in the top-down method, the system’s task is the design-guiding principle. Instead
+of using an implementation-guided approach, the task-guided approach is favoured here.
+This approach focuses on the system-speciﬁcation stage.
+It should be noted that even if formal system speciﬁcation methods are employed,
+the communication aspect is treated as an implementation detail, e.g., [31,32].
+As robotic systems are usually inherently complex, the ﬁrst problem the designer faces
+is how to tackle this complexity. System engineering provides a hint—use decomposition.
+Decomposition implies a division of the system into modules or components, allowing the
+designer to subsequently focus on those elements. However, this subdivision also implies
+that communication between them will have to be established. Although this communi-
+cation aspect of system design is of paramount importance, it tends to be hidden behind
+the computational aspects of individual system modules. The services that the modules or
+components provide are at the forefront. Thus, this inter-module communication should
+gain a prominent position in the design process, but usually is treated as subordinate.
+Communication has to be discussed from two perspectives: (1) who communicates with
+whom, (2) what is being communicated, i.e., the contents of the communication. The design
+methodology proposed here takes into account all of these aspects of system design. The
+novelty of the proposed design methodology lies in the rationalisation of the decomposi-
+tion process and putting inter-module communication on equal terms with computational
+aspects of modules.
+Reference [ 20] points out that, for the majority of created systems, it is difﬁcult to
+determine both their structure and activities. Usually architectures are presented by using
+informal textual descriptions and block diagrams with a very varied level of detail. This
+usually leads to problems during implementation and documentation of such systems.
+This is the consequence of the fact that the robotic system controller design lacks well-
+established design methodology. Sometimes the design relies on the software speciﬁcation
+methods based on general software engineering practice, e.g., the speciﬁcation is expressed
+
+--- Page 3 ---
+Energies 2022 ,15, 7983 3 of 25
+in terms of UML diagrams [ 33]. However, there is no hint as to how to create the system
+architecture and how the task inﬂuences it. Knowing the hardware system composition and
+the tasks that it will be put to, there is no standard procedure leading to the speciﬁcation
+of the structure and description of activities of the designed system. This paper tries to
+ﬁll this gap and formulate such a methodology, simultaneously taking into account the
+abundant communication that appears in complex systems. The focus on communication
+is its unique feature.
+The theses of the article are as follows. The proposed design method leads to an
+organised analysis of the communication at an abstract agent-level. The so-organised
+communication and its properly deﬁned speciﬁcation facilitate further system develop-
+ment. The proposed method uses a standard message structure for communication within
+robotic systems composed of agents. It is based on the IEEE FIPA standard, as utilised
+by multi-agent systems. The work contributes to the design of robotic systems in terms
+of: (i) standardization of the message structure for communication within robotic systems
+composed of agents applying IEEE FIPA standards (Foundation for Intelligent Physical
+Agents, brings together the creators of the agent technology); (ii) top-down, binary, commu-
+nication focused design method for robotic systems. However, our work does not concern
+either the distribution of the system on multiple physical platforms [ 34,35] or the security
+of communication [36–39].
+The structure of the article is as follows. Section 3 introduces the notation used in
+the article and presents the formal approach to the communication within robotic systems
+composed of embodied agents. Section 4 describes the proposed communication-focused
+design of robotics systems. Section 5 provides an example of the use of this approach.
+Section 6 draws the conclusions.
+2. Related Work
+Many architectures of robotic systems have been proposed (e.g., reactive [ 40], behaviour-
+based [ 12,29] subsumption [ 41]; however, layered architectures dominate. The decomposi-
+tion into layers is conducted either based on the frequency of subsystem behaviour repetition
+or on the subdivision into subtasks the system is to execute [ 20]. Three-layered structures
+dominate, e.g., Sense–Plan–Act (SPA), subsumption [ 42], hybrid planning–reactive [ 43],
+hierarchic [ 44,45]), biologically inspired [ 22,23,46], using belief–desire– intension (BDI) ap-
+proach [ 47,48]. Two-layered structures also have been proposed [ 49]. However, all of
+them provide guidance to the designer only as templates that can be used for the purpose
+of imitation.
+Ahmad and Babar [ 50] presented a systematic classiﬁcation of software architectural
+solutions for robotic systems. They suggest that architectural solutions support opera-
+tions enabling information and resource distribution and development such as modelling,
+designing and programming robotic software.
+Among component-based approaches, the Robot Operating System (ROS) is becoming
+the standard programming framework for developing robotic applications [ 9,51]. The ROS-
+based software architecture is composed of components and connectors between them, that
+are partially speciﬁed in the code and created at run-time. However, there are no generally
+accepted rules and guidelines for developing applications to perform the required task.
+Moreover, static information about the architecture during system conﬁguration is limited,
+and consistency checking during development is usually very difﬁcult or even impossible.
+The quality of the created software depends primarily on the skills and experience of the
+developers and is mostly a matter of trial and error [52].
+The service-driven architecture model or Service-Oriented Architecture (SOA) for
+robotics relies on loosely connected, heterogeneous and dynamically composed services [ 53],
+which are typically located in the cloud. SOA involves using Internet technologies to deﬁne
+services through which robots can be accessed or robots can access the resources of other
+machines. Service-based robotics enables robot operations by utilizing powerful comput-
+
+--- Page 4 ---
+Energies 2022 ,15, 7983 4 of 25
+ing capacities, virtually unlimited storage, and communication resources available from
+cloud-based infrastructures.
+Model Driven Engineering (MDE) is a formal methodology that can be used for
+the design of robotics software, which involves a transition from code-based software
+development to model-based development [ 52]. MDE for robotics provides an opportunity
+to systematically and simultaneously bring together different levels of abstraction at which
+developers can work to improve the quality of the system in terms of security, reliability
+and reusability. The model is deﬁned in terms of formal meta-models (or generic models).
+Software languages for the speciﬁcation of system models play a similar role to that of
+meta-models (e.g., [ 54]). In rare cases, meta-models are provided, guiding the developers
+in the design of the system model (e.g., [ 55]). The problem is that the above mentioned
+approaches must strike a balance between too much freedom of choice and too little—this
+is termed proper freedom from choice [ 56,57]. Unfortunately, there is no one generally
+accepted deﬁnition of a meta-model. Another major problem among existing model-
+based robotic system design methodologies is their complexity. The software development
+process is multi-stage, and the number of models required is signiﬁcant. In consequence,
+multiple domain languages and tools are needed to support the development process of
+robotic systems.
+3. Inter-Agent Communication
+3.1. Notational Convention
+Formalisation of the discussion of any subject requires adequate notation. The nu-
+merosity of discussed abstract objects necessitates an introduction of a naming convention
+to facilitate the decryption of the symbols used. The article discusses both the system
+structure and its activities. The system structure is described in terms of agents aand their
+subsystems s. Each agent has its own name, which, in general, is represented by jused
+as a right subscript of the central symbol, i.e., aj, or its control subsystem cj. Similarly, a
+subsystem of ajmay have its own name v; thus, to distinguish it sj,vis used. Subsystems
+interact with each other using input (left subscript x) and output (left subscript y) buffers,
+i.e.,xsj,v,ysj,v. Usually the type of subsystem s0from which the information is received
+or to which it is dispatched is denoted by a left superscript of a buffer symbol, i.e.,s0
+xsj,v,
+s0
+ysj,v, where s2fc,e,rgand s02fc,e,r,E,R,Tg, i.e., control subsystem c, virtual effector
+e, virtual receptor r, real effector E, real receptor Ror an inter-agent transmission buffer
+T. The internal memory of a subsystem is denoted byssj,v. As it is not connected to other
+subsystems, no leading subscript xoryis used. As the values contained in the buffers
+change in time, a discrete time index has to be introduced for each of the subsystems
+separately. If the time counter is i, the contents of a speciﬁc buffer are labeled with a right
+superscript, e.g.,xsi
+j,vorysi+1
+j,v, to denote that the contents are considered at the current
+instant ior the next one i+1, respectively.
+The activities of an agent result from the activities of its subsystems and their interac-
+tion through the abovementioned buffers. The activities of a subsystem sj,vof an agent aj
+are described hierarchically by using the following concepts. At the lowest level appear
+transition functionssfj,v,w, terminal conditionssft
+j,v,w, error conditionssf#
+j,v,w, where wis the
+name of a particular function. At the intermediate level, behaviourssBj,v,gappear, where
+gis the name of a particular behaviour. At the highest level, a ﬁnite state machine (FSM)
+sFj,vappears.sFj,vis represented by a graph containing nodes/statessSn
+j,v(where nis a
+particular state designator) and directed arcs labeled by initial conditionssfs
+j,v,d, where dis
+its name. In general all functions are symbolised by f. Terminal, error and initial conditions
+are predicates and are distinguished by the right superscript t,#ands, respectively. Such
+a superscript is missing in the case of a transition function.
+A group of agentsagq, where qis the group name, aggregates one or more agents or
+subgroups. A group of agents is used as a component of a robotic system when the exact
+internal structure is unknown or when this component will be decomposed. Communica-
+
+--- Page 5 ---
+Energies 2022 ,15, 7983 5 of 25
+tion between groupsagqandagq0is carried out through the communication channel Ck
+q,q0,
+where kis its name, and qand q0are the names of the communicating groups of agents.
+One or more communication channels may exist between a pair of agent groups. The
+communication channels Ck
+q,q0andCk
+q0,qare identical.
+3.2. Inﬂuence of Communication on System Activities
+An embodied agent ais subdivided into subsystems, namely: a single control sub-
+system cand zero or more virtual and real effectors ( eand E, respectively) and zero or
+more virtual and real receptors ( rand R, respectively) (Figure 1) [ 27,28,58–60]. As only the
+control subsystem of an agent has the capability of interacting with other agents (precisely
+speaking with their control subsystems) this subsystem will be the focus of our attention.
+The primary activity of the control subsystem cjof an agent aj, is the computation of the
+control subsystem transition functioncfj,m(mis the name of the particular function), which
+in the decomposed form can be presented as:
+8
+>>>>><
+>>>>>:cci+1
+j:=c,cfj,m(cci
+j,e
+xci
+j,r
+xci
+j,T
+xci
+j)
+e
+yci+1
+j:=c,efj,m(cci
+j,e
+xci
+j,r
+xci
+j,T
+xci
+j)
+r
+yci+1
+j:=c,rfj,m(cci
+j,e
+xci
+j,r
+xci
+j,T
+xci
+j)
+T
+yci+1
+j:=c,Tfj,m(cci
+j,e
+xci
+j,r
+xci
+j,T
+xci
+j)(1)
+From the point of view of inter-agent communication, the utilisation of the transmission
+input bufferT
+xcjand output bufferT
+ycjis most important. Whenevercfj,mis used,c,Tfj,m
+is the only partial function producing the contents of the output bufferT
+ycj. Thus, only
+the partial transition functionc,Tfj,mproduces the response of the agent ajto the messages
+inserted intoT
+xcjby the other agents. However, all partial transition functions useT
+xcjto
+compute the commands for other subsystems of the agent aj; thus, the obtained message
+inﬂuences all the activities of the agent. The transition function (1) takes in its arguments at
+discrete time iand computes the values dispatched to the other subsystems at time i+1.
+This deﬁnes the subsystem sampling time. Hence the elementary action of a subsystem is
+deﬁned for a single sampling period and consists of:
+1. Computation of the transition functioncfj,mand assigning the computed values
+to appropriate components of the output bufferycj= [e
+ycj,r
+ycj,T
+ycj]and internal
+memoryccj,
+2. Dispatching the contents ofycjto the associated subsystems,
+3. Incrementation of the discrete time counter i,
+4. Acquiring intoxcj= [e
+xcj,r
+xcj,T
+xcj]new input values from the cooperating subsystems.
+This elementary action is iterated until a predicatecft
+j,m, called the terminal condition,
+orcf#
+j,m, called an error condition, becomes true. The process of iterating the elementary ac-
+tion is called a behaviourcBj,mand can be represented by a graph (Figure 2). As behaviour
+depends on the transition function, terminal condition and error condition, it is parame-
+terised by all of them:cBj,m(cfj,m,cft
+j,m,cf#
+j,m); however, for brevity the dependence oncf#
+j,m
+will be neglected. Once behaviourcBj,mterminates its actions, another behaviour has to be
+chosen. This choice is based on a predicatecfs
+j,v,m,m0, called the initial condition ( mand m0
+are the designators of the nodes connected by the directed arc labeled bycfs
+j,v,m,m0). Initial
+conditions label the directed arcs connecting the nodes of a graph representing a Finite State
+Machine (FSM)cFj. With each of its nodes (states)cSm
+j, a behaviourcBj,mis associated;
+thus, switching states switches behaviours. As initial conditions are parameterised by the
+contents of input buffers, here again the acquired message inﬂuences the activities of the
+
+--- Page 6 ---
+Energies 2022 ,15, 7983 6 of 25
+agent. Hence the messages introduced into the input bufferT
+xcjcan inﬂuence the activities
+of an agent in three ways:
+• In each iteration of the behaviour through the inﬂuence on the values computed by
+the iterated transition function (1),
+• By terminating the behaviour, i.e., by causing the terminal conditioncft
+j,mto be satisfied,
+• By selecting a new behaviour, i.e., by causing an adequate initial conditioncfs
+j,v,m,m0to
+become true.
+All these ways of inﬂuencing the activities of an agent result from the assumed model
+of an embodied agent. However, the designer of the system can also exert inﬂuence on
+the structure of the FSMcFj. Some of its states can be distinguished as communication
+states (a single such state is quite common), in which the behaviour of the agent waits for a
+message. Once a message is obtained, the FSM reacts to it by directing the execution to an
+appropriate section of the FSM, which is responsible for the execution of a set of behaviours
+that compose a service—a service-oriented architecture (SOA) results. At each of the four
+mentioned communication levels, FIPA messages can be utilised.
+Figure 1. Internal structure of an agent aj.
+It should be noted that this propagation of the received message through the four levels
+of the agent execution structure is beneﬁcial from the point of view of the agent’s reactivity
+to outside stimuli, i.e., incoming messages. Each message can be accessed at the control
+subsystem sampling rate. If the currently executed service has to be interrupted, e.g., due
+to the request for a higher priority service, this subsystem, and hence the agent, will detect
+this through the evaluation of the terminal condition associated with the currently executed
+behaviour. The satisfaction of the terminal condition will cause the current behaviour
+to be aborted, and that in turn will initiate the evaluation of the initial condition, what
+will result in switching the FSM state, e.g., the state responsible for invoking the newly
+requested service. Such an instantaneous switch from one service to the other might not be
+possible, e.g., if the current service consists in the delivery of a cup of tea to the user, this
+
+--- Page 7 ---
+Energies 2022 ,15, 7983 7 of 25
+cup cannot be simply dropped to start the execution of the higher priority service. In this
+case the FSM will need to pass through an intermediate state, in which it will execute a
+behaviour of placing the cup in a safe location, and only then proceeding to the execution
+of a new service.
+cS1
+j;m;!
+cS2
+j;m;!
+cS3
+j;m;!
+cS4
+j;m;!Computecfj;m;!
+Sends
+ycj;m
+Increment i
+Receive intos
+xcj;m
+cf
+j;m;_cf"
+j;m;:cf
+j;m;^:cf"
+j;m;
+Figure 2. The cjFSMcFjexecuting any behaviour.
+It is worth noticing that in the case of complex robotic systems, e.g., cognitive robots,
+their control systems contain many CT type agents [ 28,61], i.e., computational agents, hav-
+ing the capability of communicating with other agents, but lacking effectors and receptors.
+In this case (1) becomes:8
+<
+:cci+1
+j:=c,cfj,m(cci
+j,T
+xci
+j)
+T
+yci+1
+j:=c,Tfj,m(cci
+j,T
+xci
+j)(2)
+In other words , the activities of the FSM of such an agent (its control subsystem, to be
+precise) mainly rely on the inter-agent communication, i.e., the contents of the messages
+transferred between such agents. Thus,c,Tfj,mis of paramount importance.
+3.3. Structure of a Communicate
+To take into account all the necessary possibilities of message contents, we propose
+that the contents of the output and input buffers—a communicate—be set in accordance
+with the IEEE FIPA standards. The partial transition functionc,Tfj,mshould produce the
+content of the output bufferT
+ycjas a messageMi
+j,j0(where jand j0are the designators of the
+communicating agents) and accept the content of the input bufferT
+xcjin the format ofMi
+j0,j
+(see Figure 3). A communicate transmitted from agent ajto agent aj0at instant iis a tuple:
+Mi
+j,j0=hV,Z,L,O,I,tb,mw,mt,mci (3)
+Figure 3. MessagesMj,j0andMj0,jtransmitted between ajand aj0.
+
+--- Page 8 ---
+Energies 2022 ,15, 7983 8 of 25
+The tupleMi
+j,j0, according to FIPA ACL Message Structure Speciﬁcation standard [ 62],
+contains the following items:
+• Performative verb V2 ˆV, where ˆVis a set of possible performative verbs deﬁned
+by [62]:ˆV=faccept-proposal, agree, cancel, cfp, conﬁrm, disconﬁrm, failure, inform,
+inform-if, inform-ref, not-understood, propagate, propose, proxy, query-if, query-
+ref, refuse, reject-proposal, request, request-when, request-whenever, subscribe g. It
+deﬁnes the intention of sending the communicate (request, inquiry, statement, etc.),
+and how the recipient of the message should interpret it.
+• ContentZof the communicate. If the language Lis provided, the content should
+conform to the syntax and semantics of that language.
+• Name of language L2 ˆLused to formulate the content, where ˆLis a set of languages
+used for the formulation of contents of the communicates. Proper indication of the
+language expressing the content of each message helps the sender of the message to
+correctly formulate the content of the message, and the recipient to correctly under-
+stand this content. The FIPA standard does not require a language to be deﬁned (no
+syntax and semantics are required). Different languages can be assigned to different
+communicative acts between pairs of agents.
+• Name of the ontology O2 ˆO, where ˆOis a set of ontologies. An ontology deﬁnes the
+meaning and relations between symbols used in the message content. An ontology
+is needed when it is not enough to deﬁne the language and performative verb to
+understand the message content correctly, and also when the agent does not have the
+common knowledge required for its operation. The ontology determines for the agent
+how to understand the message in the context of knowledge that the ontology speciﬁes.
+• Name of the interaction protocol I 2 ˆI, where ˆIis a set of possible interaction
+protocols deﬁned by [ 62]:ˆI=fquery, request, subscribe, request-when, cfp, icfp,
+propose, ...g. It deﬁnes the pattern of interaction governing the conversation. The
+protocol organizes the exchange of messages and determines their order. Conversation
+between agents is usually bi-directional, and the goal is not only to pass an information
+item, but also to request and obtain a piece of information, to query the other agent,
+subscribe to a speciﬁc piece of information, etc. Thus, pairs of input and output buffers
+are considered (T
+xcj,T
+ycj); and for the sake of brevity, the pair is denoted asT
+x,ycj.
+• Reply-by tb2ˆT, is a timestamp indicating the latest time by which the reply to this
+communicate should be produced.
+• Reply-with identiﬁer mw2ˆMand in-reply-to identiﬁer mt2ˆM. The pair of identiﬁers
+is used to combine messages into short-term conversations. If the sender of the
+message wants the recipient’s reply to match the message it sent, it should set the mw
+identiﬁer value. In turn, the recipient who wants to refer to the message with the mw
+identiﬁer should set this value in mt.
+• Conversation identiﬁer mc2ˆMidentiﬁes the ongoing sequence of communicative
+acts that together form a conversation.
+The ﬁgure ˆTis a set of timestamps, and ˆMis a set of identiﬁers of communicates sent.
+While ˆMis a set of all communicates. The symbol fM:ˆM! ˆMis a function mapping a
+message to its identiﬁer. The set of all messages that can be sent by the agent ajis denoted
+asa
+yˆMj. The set of all messages that can be received by the agent ajis denoted asa
+xˆMj.
+4. Robotic System Design Method
+The design method assumes that the designer begins with a general robotic system
+characterized by a set of generic tasks for the robot. Next, he/she speciﬁes the tree of
+requirements, making the requirements ever more detailed and thus expanding the tree.
+Based on that, the robotic system is divided into smaller parts (agent groups), and as
+a result, the communication channels appear. The decomposition is stopped when the
+requirements are fully addressed, and the resulting agent groups are within the mental
+grasp of the designer, so that they can be substituted by agents. During decomposition,
+
+--- Page 9 ---
+Energies 2022 ,15, 7983 9 of 25
+adequate speciﬁcation of communication has to be produced. Finally, the speciﬁcation of
+agents’ interfaces is done. The top-down approach based on system decomposition implies
+that system properties follow directly from the requirements. This is in contrast to the
+bottom-up compositional approach, where system properties emerge during the design
+process. Detailed speciﬁcation of communication is completed when the agents substitute
+the groups. The process is depicted in Figure 4 and consists of the following steps.
+Figure 4. Binary decomposition process.
+1. Speciﬁcation of system requirements. The designer formulates a set of tasks that the
+robot should perform. On this basis, a set of requirements is formulated for the robotic
+system. Each general requirement is speciﬁed as a set of more detailed requirements;
+thus, a hierarchy of requirements is formulated. It can be represented as a requirement
+tree. This tree will serve as a basis for system decomposition.
+The output of this step is a hierarchy of requirements, speciﬁed as a tree.
+2. Binary decomposition of a robotic system. The designer divides the system into
+smaller elements, assuring proper assignment of tasks (requirements) to each of
+them. Each decomposition step has to produce elements that have clearly deﬁned
+and coherent tasks. The elements that are the result of decomposition are groups
+of agentsagq. This step considers an iterative process consisting of the following
+stages concerning the analysis of successive requirements from the tree in the top-
+down order.
+(a) Decomposition of a group. One group of agents is divided into two groups,
+thus the name—binary decomposition. Whenagqis decomposed intoagpand
+agr, the following notation is used:agq:=hagp,agri.
+(b) Creation of new channels. The need for creation of one to N new communica-
+tion channels might arise. In this case, it is necessary to correctly determine
+which component needs an action to be realized (e.g., answer in the case of
+query interaction protocol, command execution in the case of request interac-
+tion protocol, new information in the case of subscribe interaction protocol).
+
+--- Page 10 ---
+Energies 2022 ,15, 7983 10 of 25
+(c) Reallocation of existing channels. After each decomposition step, the de-
+signer must decide on the proper allocation of the existing communication
+channels, associated with the decomposed group, to the newly created groups.
+When groupagqis decomposed intoagpandagr, andCk
+q,q0is reallocated toagp,
+the following notation is used: Ck
+q,q07!Ck
+p,q0. When both decomposed groups
+agpandagrneed to communicate with the non-decomposed groupagq0the
+channel is split into two: Ck
+q,q07!Cm
+p,q0,Cn
+r,q0.
+(d) Complementing communication channels. Due to the analysis of new re-
+quirements, there may be a need to supplement the existing communication
+channels, without need for creating new ones.
+Stop condition . The decomposition process stops when all of the requirements are
+processed. When the designer concludes that the agent groups have clearly deﬁned
+and coherent tasks that are comprehensively understood by the programmer he/she
+should substitute each of the existing agent groups by single agents. Otherwise, the
+analysis of the requirements has to be repeated, making them more detailed.
+The output of binary decomposition are sets of agents ˆa, and of communication
+channels ˆC. Any group of agents can be composed of a single agent. Speciﬁc agents
+have strictly assigned functionalities.
+3. Speciﬁcation and conversion of the communication channels. The next step is to
+specify the communication exchanged between the pairs of agents ajand aj0, substitut-
+ing groupsagqandagq0, between which the communication channel Ck
+q,q0was created
+initially. There is a need to properly convert the communication channel into the
+speciﬁcation of input and output buffers, and to deﬁne the patterns of communication
+between the agents ajand aj0. This results in the creation of four buffers for agents
+ajand aj0: two input buffers:T
+xcj,T
+xcj0and two output buffers:T
+ycj,T
+ycj0. BuffersT
+ycj
+andT
+ycj0are used to send, whileT
+xcjandT
+xcj0to receive the communicates. Those
+communicates are speciﬁed by a number of interaction protocols. The interaction
+protocolIp
+j,j0(orIp
+j0,j—depending on who initiates the communication) speciﬁes the
+pattern of communication between the agents. A conversation is an exchange of
+messages within a speciﬁc communication channel. A number of interaction protocols
+can be associated with one communication channel.
+The deﬁnition of the interaction protocol determines the performative verbs for the
+speciﬁc messages. Moreover, every message contains the communication language,
+and possibly the ontology used.
+While specifying new communication channels, an analysis targeted at communica-
+tion deadlocks is mandatory. In our approach the analysis is focused on the newly
+created channels, therefore, it is easier to conduct. This article does not delve into dead-
+lock analysis, as it focuses on the problem of system decomposition. However, in [ 31],
+communication analysis of Embodied Agent-based systems is provided, and in [ 59],
+a Petri-Net-based description of Embodied Agents is presented. The formal speciﬁca-
+tion and veriﬁcation of FIPA interaction protocols by means of Colored Petri Nets is
+proposed in [ 63]. Therefore, the system designers utilising this approach can check
+deadlocks with the known tools for Petri-Net deadlock analysis, and the proposed
+decomposition method enables concentration of the analysis on a part of a complex
+system, making the analysis simpler.
+The output of this step is the speciﬁcation of each of the deﬁned communication
+channels from the set ˆC. Each channelCk
+j,j0speciﬁes the sets of interaction protocols
+ˆIj,j0. Each interaction protocol Ip
+j,j02ˆIj,j0deﬁnes a set of messages that are sent
+from the agent ajto the agent aj0:ˆMj,j0, and back from the agent aj0to the agent aj:
+ˆMj0,j. The messages should contain the performative verb V, interaction protocol I,
+and optionally the language Land ontologyO.
+
+--- Page 11 ---
+Energies 2022 ,15, 7983 11 of 25
+4. Speciﬁcation of agent interfaces. The previous steps concentrated on the communi-
+cation channels, while the current focuses on the agents (or groups of them). This
+step speciﬁes the following elements: sets of performative verbs yˆVjand xˆVjthat
+agents send and receive, respectively, in the communicates, and the sets of languages
+yˆLjand xˆLjused in those communicates, as well as sets of ontologies yˆOjand xˆOj
+employed by those communicates. The speciﬁcation of the interfaces organizes the
+project, and enables the detection of inconsistencies. Moreover, it helps to organize
+the handling of errors that occur when an unsupported message is received. However,
+this is not discussed in this article.
+The design process should be iterative as, after the initial system design, it may be
+necessary to relapse and re-run through it several times.
+5. Illustrative Example: Robot Companion
+The herein presented illustrative example shows how to apply the proposed design
+method. It is purposefully kept simple to let the reader concentrate on the method, however
+the resulting system is of utility. The purpose of a robot companion is to assist users (usually
+elderly) at their homes. A survey of robot tasks that the elderly person might request is
+presented in [ 64]. A robot companion, as pointed out in [ 65,66], should exhibit the following
+capabilities: (1) moving around in the user’s home; (2) being safe for humans, household
+appliances and furniture; (3) being aware of the dynamic environment; (4) having a simple
+and intuitive human-robot interface (e.g., voice, display, gestures, tactile); (5) possessing
+manipulation capability; (6) having a friendly look; (7) having its own task management.
+A robot companion should be versatile and address as many requests of the elderly as
+possible. However, there are still technology limitations that force robot specialization.
+The mentioned range of tasks for a companion robot is wide, therefore an analysis of the
+requirements set for a speciﬁc robot should be carried out and a selection has to be made.
+5.1. Formulation of Requirements
+For brevity, we shall focus on the Robot Companion helping in a kitchen. The
+above general requirements should be analysed from the point of view of the chosen
+task. The most general requirement for the Robot Companion is that it should be able
+to acquire and subsequently execute human commands. Next, the robot should decide
+upon the necessary activity, i.e., interpret the command. To be able to perform the activity,
+there is a need for creating and managing a plan and afterwards executing it. As the Robot
+Companion interacts with an elderly person, who can change his/her mind, it is crucial for
+it to be able to interrupt the action currently performed and schedule the next one. To plan
+in a kitchen environment, the Robot Companion must be able to model this environment.
+The environment in which it works is dynamic, so in order to correctly plan its activities,
+the Robot Companion should deduce what activities it should perform. Moreover, it must
+identify and understand relationships (including spatial ones) between objects, both ex-
+isting currently and those that will result from the execution of the plan. To execute the
+plan, it has to be able to sense and inﬂuence the environment using appropriate sensors
+and actuators. The environment is dynamic, because the robot and other agents change the
+positions and orientations of objects, thus, the Robot Companion should be able to update
+the environment model. The hierarchy of proposed requirements is presented in Figure 5.
+
+--- Page 12 ---
+Energies 2022 ,15, 7983 12 of 25
+Figure 5. Requirement hierarchy for the Robot Companion.
+5.2. Decomposition of the Robot Companion
+The Robot Companion can be treated as a monolithic system represented as a group of
+agentsagRoCo . For brevity, only two decomposition steps (the ﬁrst and fourth) are described
+in detail, the remaining are only outlined.
+The ﬁrst decomposition is due to the requirement at the root of the tree (see Figure 5)
+that says that a robotic system should acquire and execute human commands. The division
+agRoCo :=hagac,ageciresults in two agent groups:
+•agac(ac for acquire commands)—group responsible for acquiring the commands from
+a human
+•agec(ec for execute commands)—group responsible for execution of the commands.
+These two groups communicate by sending commands and responses. In general,
+communication channels Ck
+j,j0created in the successive steps of the decomposition process
+are marked by consecutive integers k. Those numbers remain unchanged during the
+design process. Moreover, those channels are also marked with the symbols of the groups,
+however, those will evolve. The communication channel C1
+ac,ec is created between groups
+agacandagec(Table 1).
+Table 1. Summary of the ﬁrst step ofagRoCo decomposition process. The arrows show which groups
+are the result of the decomposition of the initial group. Dashed lines show emerging communication
+channels. The light coloured groups form the decomposition tree fringe, which shows which groups
+exist at the current step—the dark ones disappear, because they were decomposed.
+Requirements acquire and execute human commands
+DecompositionagRoCo :=hagac,ageci
+agactasks acquiring commands from a human
+agectasks executing commands
+Channel reallocation —
+New channels C1ac,ec
+C1ac,ec transmits commands to be executed
+The second division results from the requirement that the robotic system interprets
+the commands obtained from a human, and decides about the command to be executed
+
+--- Page 13 ---
+Energies 2022 ,15, 7983 13 of 25
+ﬁrst. The groupagacis decomposed into:aghi(human-machine interface), andagda(de-
+cides upon command to be executed). It results in reallocation of the communication
+channelC1
+ac,ec7!C1
+da,ec,and creation of the new one: C2
+ic,hi, that is used to pass interpreted
+human commands.
+The third division results from the requirements that demand the creation and man-
+agement of a plan, and allow the interruption of the current action and scheduling the
+next one. The groupagdais divided intoagco(coordinates command execution and schedul-
+ing), andagcp(creates and manages a plan). Two channels are reallocated: C1
+da,ec7!C1
+co,ec,
+C2
+da,hi7!C2
+co,hi. Also, a new one is created: C3
+co,cp, that is used to request for plan generation.
+In the fourth step the designer takes into account that the Robot Companion should
+infer actions, model the environment and manage the knowledge (see Figure 5). Inference
+of actions requires a component responsible for creating abstract plans:agpl(pl for planner).
+In turn, the group responsible for knowledge management will provide knowledge about
+the objects and relationships between them:agkm(km for knowledge manager). Thus,
+the groupagcpis split into two:agcp:=hagpl,agkmi(see Table 2). There is a need to reallocate
+the channelC3
+co,cp and it is obvious that it will be handled by the group responsible for
+creating the plan: C3
+co,cp7!C3
+co,pl. A new channelC4
+pl,kmmust be created between the new
+groups to enable the transfer of knowledge extracted from the knowledge base.
+Table 2. Summary of the fourth step—agcpdecomposition.
+Requirementsinfer actions, model environment, knowledge
+management
+Decompositionagcp:=hagpl,agkmi
+agpltasks planning
+agkmtasks knowledge management
+Chann. reallocation C3co,cp7!C3
+co,pl
+New channels C4
+pl,km
+C1co,ec transmits commands to be executed
+C2
+co,hitransmits interpreted human commands
+C3
+co,pltransmits generated plan
+C4
+pl,kmtransmits knowledge needed by planner
+In the ﬁfth step, we take into account that the robotic system must execute the plan,
+inﬂuence and sense the environment by controlling the robot. Thus,agecis decomposed
+into:agex(responsible for inﬂuencing and sensing the environment by operating the hard-
+ware) andagta(responsible for executing the plan). C1
+co,ec is reallocated:C1
+co,ec7!C1
+co,ta.
+Two communication channels are created: C5
+ex,ta, where the low-level commands for the
+hardware, i.e., acquiring sensor readings and controlling the actuators, are transmitted,
+andC6
+ta,kmpassing the knowledge needed by ata.
+
+--- Page 14 ---
+Energies 2022 ,15, 7983 14 of 25
+The last step takes into account that the robotic system should update the environment
+model. As there already exists a group responsible for managing the environment model
+(agkm), and sensor data are provided byagex, and a communication channel C6
+ta,kmexists
+already; thus, only the content transmitted by this channel has to be supplemented.
+After exhausting the requirement tree, the decomposition process is complete. Six
+groups of agents emerged (see Figure 6). Again for brevity the description of decomposition
+ofagex, that controls the robot hardware, has been omitted here. Hardware conﬁguration
+is described below. Five groups (agta,agpl,agkm,agco,aghi) are transformed into respective
+agents: ˆa=fata,apl,akm,aco,ahig. Those agents have clearly deﬁned and coherent tasks.
+aplgenerates a plan based on problem deﬁnition; akmmanages the knowledge database; aco
+coordinates a set of commands received from a human, orders plans from apl, and schedules
+their execution; ataexecutes the plan and dispatches low-level instructions toagex;ahi
+acts as a human-machine interface. Further decomposition would result in too much
+fragmentation and too much communication effort. Moreover, during decomposition, six
+communication channels were identiﬁed: ˆC=fC1
+co,ta,C2
+co,hi,C3
+co,pl,C4
+pl,km,C5
+ex,ta,C6
+ta,kmg.
+Figure 6. The decomposition after six steps of the process.
+5.3. Hardware Conﬁguration
+The Velma robot (Figure 7) has adequate capabilities to satisfyagexrequirements. Thus,
+it became the hardware part of the Robot Companion [ 67]. It is the torso of a humanoid
+robot with two KUKA LWR arms and additional F/T sensors embedded in the wrists
+to which three-ﬁngered BarrettHand grippers are attached. The torso is mounted on a
+1 DOF revolute column which also supports a 2 DOF neck equipped with cameras and
+Kinect sensor (the head). Arms are torque controlled, employing impedance control [ 67,68].
+The control laws offer two basic modes of operation: Cartesian and conﬁguration space [ 69].
+The neck and grippers are position-controlled. The control system is implemented using
+the FABRIC programming framework [70].
+
+--- Page 15 ---
+Energies 2022 ,15, 7983 15 of 25
+Figure 7. Velma robot operating in the environment.
+5.4. Speciﬁcation of Communication Channels
+At this stage of design, the messages sent between pairs of agents need to be reﬁned,
+leading to the speciﬁcation of the interaction protocols. Each communication channel
+should have a speciﬁed set of interaction protocols according to which the conversations
+take place. Moreover, every interaction protocol should contain: performative verbs,
+languages that specify the content of the messages, and possibly the ontologies. Due to the
+limited space, only two communication channels are described. However, the creation of
+the remaining follows the same pattern.
+The communication channel C1
+co,tais used to send plans to be executed. The ﬁrst mes-
+sage deals with requesting from atato execute the plan. The plan should be understandable
+to the agents; therefore, the task notation using HFSM (HFSM for Hierarchical Finite State
+Machine) is chosen. As acorequests from ata, the performative verb is Vrequest , and the
+contentZis expressed using LHFSM .LHFSM is used for requesting the execution of the
+generated plan; thus, a typical message is up to dozens of kB.
+While executing the plan, atasends its status (name of its current state). Together with
+the performative verb Vinform it sendsZfrom a speciﬁed set of states: Z2{Idle, Run, Error,
+Terminating, Finished, Failed, Replan}. The language LSW(SW for Supervised Worker)
+was proposed to organize the list, thus, Zshould be formulated using LSW. The detailed
+description ofZis as follows. Idle—awaiting for the next plan. Running —executing
+a plan. Error —the plan execution ended with an error. Terminating —the plan execution is
+being terminated. Succeeded —the plan is ﬁnished with success. Preempted —the plan is
+preempted due to an interruption from aco.Replan —the plan cannot be further executed
+and a new plan is required.
+The agent acoconﬁrms each message it receives from ataby a message with the perfor-
+mative verbVconﬁrm and empty content, as the intention provides complete information.
+In the case when the plan has to be interrupted, acosends an interrupting message to
+ata. The performative verb is Vcancel , and again sending any content is not necessary. The
+messages sent with LSWhave no content, so their size is 100 to 200 bytes, and are sent every
+time atamodiﬁes its internal state. The detailed speciﬁcation is presented as follows.
+V2f con f irm ,cancelg ) (L=LSW)^(Z= ) (4)
+V2f requestg ) (L=LHFSM )^(Z=plan)
+These four messages make up the interaction protocol Icoordinate
+co,ta . The interaction proto-
+col managing the conversation between acoand ata, together with the detailed formulation
+of the messages is shown in Figure 8.
+
+--- Page 16 ---
+Energies 2022 ,15, 7983 16 of 25
+Figure 8.Icoordinate
+co,ta interaction protocol. The initiator agent aco, that contains the pair of buffers
+Tx,ycco, starts the interaction, while the participating agent ata, that contains the pair of buffersTx,ycta
+takes part in it. The dashed lines are lifelines, arrows represent particular communicates. A diamond
+indicates an alternative in messaging. The sub-diagram ’loop’ means the repetition of its contents.
+The communication channel C4
+pl,kmis used to transmit knowledge, in the form of
+queries produced by apl, and answers formulated and sent by akm. For both agents,
+to understand the queries and knowledge, the language LWM(WM for World Model)
+is proposed. The agent initiating the conversation is apl, asking for knowledge using Z
+expressed usingLWM. The ontologyORoCo speciﬁes the knowledge about the robot’s
+environment. It is built from scratch in OWL to keep it as simple as possible. The ontology
+was inspired by the KnowRob2 project [ 71]. It was used to implement a simple knowledge
+base. The performative verb for the message is Vquery ref. Agent akmformulates the answer
+to the query, and informs the inquirer; thus, the performative verb is Vinform ref.
+The interaction protocol Iquery
+pl,km, together with the detailed formulation of the messages
+is presented in Figure 9. After designing the six communication channels, the system
+shown in Figure 10 results.
+Figure 9. Interaction protocol Iquery
+pl,km.
+Figure 10. The considered part of Robot Companion realised as ﬁve agents: ata,akm,aco,ahi, and apl,
+including interaction protocols. The groupagexis not shown.
+The size of the content formulated using LWMdepends on the purpose of the mes-
+sage, e.g., requests are up to 250 bytes, but the size of answers depends on particular
+knowledge—from 250 bytes (in the case of, e.g., state of the gripper) up to 1 MB (in the
+case of complex or accurate information about the environment). The messages are sent
+every time the knowledge is needed, i.e., mainly during plan generation.
+
+--- Page 17 ---
+Energies 2022 ,15, 7983 17 of 25
+5.5. Agents in the Robot Companion System
+Having deﬁned the communication between agents, we can proceed to the speciﬁca-
+tion of the embodied agents themselves. A crude speciﬁcation of the agents arises from
+the system decomposition, however, a more detailed description is required. Thus, a brief
+description of key behaviours and speciﬁcation of the FSMs governing them, for each agent,
+is presented below (Figure 11). All of the agents considered here (Figure 10) contain only
+their control subsystem—they are purely computational agents.
+The objective of the coordinator agent acois to select one task out of all the tasks
+requested and coordinate its execution. The problem of task execution coordination and its
+solution for service robots is published in [72,73].
+Based on conﬁgurable parameters and the scheduling algorithm, acodecides when to
+switch the plan being executed by atato another one. The agent manages the procedure of
+suspending the current and starting the next plan execution. The FSMcFcoof the control
+subsystem ccoof the agent acois tailored to ﬁt the Robot Companion requirements. The
+FSM has 5 states (Figure 11a). A brief description of the behaviours executed in each of
+them is shown in Table 3. The agent receives the communicates from ahiin statecStrigger
+co ,
+from aplin statecScompSP
+co , and from atain all states.
+Version October 21, 2022 submitted to Energies 18 of 26
+(a) cco FSM graph
+ (b) cpl FSM graph
+(c) ckm FSM graph (d) cta FSM graph
+Figure 11. FSMs governing the behaviours of the agents, i.e. their control subsystems. The arc labels 
+specify conditions; missing labels are always True . The conditions are checked as soon as a behaviour 
+terminates.
+Table 3. Mapping of the states of cco FSM to aco behaviours
+State Behaviour Description
+cStrigger
+cocBco,trigger acois idle, it receives a new command by Irequest
+hi,coand atastate by Icoordinate
+co,ta
+cSprocReq
+cocBco,procReqacostores the task it received from ahiand calculates its deadline and start time
+cScompSP
+cocBco,compSPacorequests aplto update plans (initiates Irequest
+co,pl) of all tasks awaiting execution and based on
+them determines the schedule parameters
+cSschedulecocBco,scheduleacoexecutes the scheduling algorithm that produces a decision. The decision is either to switch
+the plan being executed to another one, or to continue with the current one. A transition labelled
+(continue orswitch) is satisfied if the decision (continue orswitch) of the schedule algorithm is
+made.
+cSswitchcocBco,switchacoexecutes the plan switch procedure. It initiates the Icoordinate
+co,ta protocol.
+The purpose of aplis to generate the plan on demand of aco, in response to Irequest
+co,pl. 571
+During plan generation it may need additional knowledge, so it queries akmusingIquery
+pl,km. 572
+The activities of the control subsystem cplof the agent aplare governed by the FSM shown 573
+in fig. 11b. In each state of the FSM, an associated behaviour is executed (Tab. 4). 574
+Figure 11. FSMs governing the behaviours of the agents, i.e., their control subsystems. The arc
+labels specify conditions; missing labels are always True . The conditions are checked as soon as
+a behaviour terminates.
+
+--- Page 18 ---
+Energies 2022 ,15, 7983 18 of 25
+Table 3. Mapping of the states of ccoFSM to acobehaviours.
+State Behaviour Description
+cStrigger
+cocBco,trigger acois idle, it receives a new command by Irequest
+hi,coand atastate byIcoordinate
+co,ta
+cSprocReq
+cocBco,procReqacostores the task it received from ahiand calculates its deadline and start time
+cScompSP
+cocBco,compSPacorequests aplto update plans (initiates Irequest
+co,pl) of all tasks awaiting execution and, based on
+them, determines the schedule parameters
+cSschedulecocBco,scheduleacoexecutes the scheduling algorithm that produces a decision. The decision is either to switch
+the plan being executed to another one, or to continue with the current one. A transition labelled
+(continue orswitch ) is satisﬁed if the decision ( continue orswitch ) of the schedule algorithm
+is made.
+cSswitchcocBco,switchacoexecutes the plan switch procedure. It initiates the Icoordinate
+co,ta protocol.
+The purpose of aplis to generate the plan on demand of aco, in response toIrequest
+co,pl.
+During plan generation it may need additional knowledge, so it queries akmusingIquery
+pl,km.
+The activities of the control subsystem cplof the agent aplare governed by the FSM shown
+in Figure 11b. In each state of the FSM, an associated behaviour is executed (Table 4).
+Table 4. Mapping of the states of cplFSM to aplbehaviours.
+State Behaviour Description
+cSidle
+plcBpl,idle aplwaits for a planning problem to be transmitted through Irequest
+co,pl
+cSinitialize
+plcBpl,initializeaplinitializes the planning problem, multiple possible initiations of Iquery
+pl,km
+cSsearch
+plcBpl,searchaplsearches for the solution
+cSﬁnalize
+plcBpl,ﬁnalizeaplgenerates the plan
+The agent akmis responsible for query answering and for updating the knowledge
+database. At initialization the agent starts the Isubscribe
+km,taprotocol, which results in receiving
+updates on the environment states. Its activity is governed by the FSM shown in Figure 11c.
+In each state of the FSM, a corresponding behaviour is executed (Table 5).
+Table 5. Mapping of the states of ckmFSM to akmbehaviours.
+State Behaviour Description
+cSidle
+kmcBkm,idleakmwaits for three kinds of messages: a query passed by using Iquery
+pl,km,Iquery
+ta,kmor a
+new observation of the environment. Based on that it prepares a switch of state.
+cSquestionAnswering
+kmcBkm,questionAnsweringakmreasons using the knowledge database to answer the received query, and formu-
+lates an appropriate message.
+cSknowledgeSaving
+kmcBkm,knowledgeSavingakmupdates the knowledge database with the received information.
+The agent atacommunicates with aco,akm, andagex. It receives plans and plan ex-
+ecution interruption messages from acoby means ofIcoordinate
+co,ta . In reaction to the plan
+execution and interruption requests the atastates are switched. For the sake of brevity the
+communication withagexis not presented. The FSM that governs the activity of atais shown
+in Figure 11d. In each state of the FSM, a corresponding behaviour is executed (Table 6).
+
+--- Page 19 ---
+Energies 2022 ,15, 7983 19 of 25
+Table 6. Mapping of the states of ctatoatabehaviours.
+State Behaviour Description
+cSidle
+tacBta,idleatawaits for a plan execution request, transmitted by communicates Mco,ta =
+hVrequest ,Z,LHFSM , ,Icoordinate , ,mw, ,mciwithinIcoordinate
+co,ta interaction protocol.
+cSrunning
+tacBta,runningataexecutes the plan speciﬁed by aco. The plan is deﬁned by a Hierarchical Fi-
+nite State Machine (HFSM); therefore,cSRunning
+tais a super state deﬁned by the HFSM.
+It constantly reports on the state of execution of the plan by sending Mta,co =
+hVinform ,Z,LSW, ,Icoordinate , ,mw, ,mci. When the HFSM terminates or atareceives an
+interruption message ( Mco,ta=hVcancel ,Z,LHFSM , ,Icoordinate , ,mw, ,mci) from aco(via
+Icoordinate
+co,ta ) the behaviour is terminated. In the case when it needs a piece of knowledge, it
+initiatesIrequest
+ta,kminteraction protocol to query the akmfor it.
+cSﬁnished
+tacBta,ﬁnishedatawaits for an acknowledgment from acoregarding the plan termination
+5.6. Implementation
+The system is implemented using ROS 1. The message exchange was performed using
+the Remote Procedure Call (RPC) mechanism. Agents are implemented as ROS nodes.
+The standardized message format, proposed by IEEE FIPA standards, and speciﬁed in
+this article, is treated as a design pattern from the system implementation point of view.
+It is implemented as an ROS service, and used for all agents. The interaction protocols of
+the agents are speciﬁed with the ClassInterfaceInfo class. Thus, communicates of any
+agent are speciﬁed by ﬁlling elements of IEEE FIPA standard communicate. For example,
+the interaction protocol Irequest
+co,plis speciﬁed as:
+C l a s s I n t e r f a c e I n f o ( [ ( ‘ request ’ , ‘ generatePlan ’ , [ GroundTaskNetwork ] , H i e r a r c h i c a l P l a n ) ] ) ,
+where ‘request’ is the performative, ‘generatePlan’ is the query name, ‘[GroundTaskNet-
+work]’ is the request content class expressed in LHFSM , ‘HierarchicalPlan’ is the response
+content class given in LHFSM . Besides enforcing IEEE FIPA communicate standard, the
+ClassInterfaceInfo class veriﬁes if the content follows the speciﬁed language. The part
+of the code responsible for communication has been separated, and used as programming
+modules. The modules implement, e.g., the ClassInterfaceInfo class, all interfaces for
+all agents and variety of world model objects being transmitted between the agents.
+The standardization of interaction protocols enabled veriﬁcation of the implementation
+against the speciﬁcation. It made it easier to verify the implementation of agents by checking
+that all kinds of queries are supported at the agent code level and that the arguments and
+returned value comply with the speciﬁcation. Due to structured messages and well-
+organised communication at the abstract agent-level, it is straightforward to implement
+query checks in the agents and analyse inter-agent communication abstracting from the
+implementation details. The approach presented in this article requires the deﬁnition of
+six communication languages used in the system. Due to that the organization of data
+structures into a hierarchy of classes emerged.
+5.7. Experiment
+In the previous sections, the proposed method was used to design a robotic system,
+then its implementation was described. The experiment presented herein veriﬁes that the
+thus-produced speciﬁcation conforms to the requirements. Moreover, the characteristics of
+the designed communication are assessed. The mentioned characteristics are as follows:
+the size of communicates, number of them, and frequency of their occurrence in speciﬁc
+timeframes.
+The sizes of the messages were estimated in Section 5.4, but their true sizes, their
+number and frequency of occurrence, depend on particular tasks that the robotic system ex-
+ecutes. Therefore, in order to determine whether the communication between the individual
+components of the system is efﬁcient, these characteristics should be veriﬁed in simulations,
+
+--- Page 20 ---
+Energies 2022 ,15, 7983 20 of 25
+and then in the real robotic system. The approach for testing the communication is also
+sketched. Due to limited space, only one test case is described.
+The designed robotic system was run under the following conditions. The group
+agexis built of robot hardware components and software running on a machine with 4
+core CPU and Linux OS with RT (real time) kernel. The software is semi-automatically
+generated from the speciﬁcation using FABRIC [ 70] and it meets hard RT requirements. The
+remaining agents, i.e., aco,ata,ahi,apl,akmdo not require hard RT, and they are deployed
+on another machine with Linux OS and ROS 1. Both machines are connected by a LAN
+using an Ethernet cable.
+In the presented experiment, a complex task was performed that employs interleaved
+planning and execution. The experimental task was to pour content of a jar into a bowl.
+Both objects were initially located in an open cabinet. A video of the experiment is available
+at the link : https://vimeo.com/720200335 (accessed on 21 October 2022). The provided
+video, as well as Table 7, show that the requirements imposed on the system, as stated in
+Section 5.1, are fulﬁlled.
+During the experiment the occurrence of each message was logged along with the
+metadata (size, sender, recipient, performative, and interaction protocol) and the time at
+which it was sent. Based on this information, the detailed analysis presented below was
+carried out.
+The execution of a given task took 778 s. and required 1856 messages to be exchanged
+between the agents. A timetable summarizing the experiment is shown in Table 7.
+Table 7. Communicates and robot actions in the experiment.
+Time [s] Event C,Used
+0–37 akmreceives an initial knowledge about the environment C5
+ex,ta,C6
+ta,km
+83 ahireceives a new command, and requests acoto coordinate its execution C2
+co,hi
+97 acorequests aplfor the plan #1 C3
+co,pl
+97–152 aplgenerates the plan #1, and queries akm C4
+pl,km
+153 acoreceives the generated plan #1 from apl C3
+co,pl
+153–681 ataexecutes the plan, reports its state to aco C1
+co,ta
+293–315, 674–680 akmreceives information about the modiﬁed environment from ataC5
+ex,ta,C6
+ta,km
+300 the jar is grasped with the left gripper —
+315 the jar is pulled out of the cabinet —
+495 the bowl is grasped with the right gripper —
+508 the bowl is pulled out of the cabinet —
+620 the bowl is put down on the table and released —
+680 the bowl is localized —
+681 acorequests aplfor the plan #2 C3
+co,pl
+681–682 aplgenerates the plan #2, and querries akm C4
+pl,km
+682 acoreceives the generated plan #2 from apl C3
+co,pl
+682–778 ataexecutes the plan, reports its state to aco C1
+co,ta
+674–682 akmreceives information about the environment from ata C5
+ex,ta,C6
+ta,km
+763 the content of the jar is poured into the bowl —
+778 the task is ﬁnished —
+
+--- Page 21 ---
+Energies 2022 ,15, 7983 21 of 25
+Agents aco,ata,ahi,apland akmshare the same codes for inter-agent communication.
+The intensity of communication in the whole system is presented in Figure 12. There is
+intense communication from 97 up to 152 s. (planning #1), and a few other communication
+episodes. There are two planning processes. In the ﬁrst one (#1) the robot plans how to
+take the jar and bowl out of the cabinet, and put the bowl on the table. In the second one
+(#2) the robot plans how to pour the contents of the jar into the bowl.
+Figure 12. Size (in bytes) of messages sent at speciﬁc times.
+86% of the sent messages is below 0.5 kB, but there are larger ones too, going up to
+852 kB. This shows a great variety of the size of communicates. During execution of a
+command, agents apply speciﬁc communication, depending on the current situation (see
+Table 7). The difference in the size of the communicates is in line with the estimates of the
+various types of them made in Section 5.4.
+The number of messages sent and received by particular agents is presented in Table 8.
+Most of the communication is carried out by agents akmand aplthrough the communication
+channelC4
+pl,km. For the whole planning process #1 the required bandwidth is on average
+32 kbps, but the peak (150 kbps) is at the end of the ﬁrst planning process (sec. 153) (see
+Figure 13). The number of communicates sent in planning #1 is equal to 1598. Later
+on, the channel is not used (154–680 s), up to 681–682 s. where the planning #2 is done.
+57 communicates are exchanged, with average bandwidth equal to 32 kbps. In total,
+the minimum size of the communicate is 231 b, the maximum is equal to 98 kb, and the
+average size is 654 b. It shows the accuracy of the predictions made during the construction
+of the communication channels (see Section 5.4). The distribution of messages over time is
+difﬁcult to estimate accurately. The size of the message querying akmis small, as it contains
+only the speciﬁcation of the knowledge needed. However, the size of the reply from akm
+depends on the speciﬁc piece of knowledge. The communicate size can be small (up to
+1 kb), e.g., information on the gripper state, or creation of the hypothetical state of the
+knowledge base; large (dozens of kb), e.g., sequence of positions of the bowl held by the
+gripper, possible grasps of the jar; or even very large (up to 100 kb), e.g., the current state of
+the whole environment.
+Table 8. Number of messages sent and received by agents.
+aco ahi akm apl ataagex Received
+aco 1 2 8 11
+akm 925 83 24 1032
+apl 2 730 732
+ata 4 71 75
+agex 14 1 15
+send 6 1 815 927 92 24 1865
+
+--- Page 22 ---
+Energies 2022 ,15, 7983 22 of 25
+Figure 13. Bandwidth used by C4
+pl,kmin every second of robotic system operation. The plot contains
+only the time slots in which the communication takes place.
+6. Conclusions
+The article presents a method of designing robotic systems, which puts the commu-
+nication between system components at the forefront. This systematic design method
+facilitates system implementation and enables experimental evaluation of its characteristics,
+thus conﬁrming that it fulﬁlls the requirements, and that the communication between the
+system components is correct. This strengthens the authors’ claim that the communication-
+focused top-down robotic system design method based on binary decomposition is correct
+and useful. Decomposition based top-down design methods, if applied systematically,
+assure that the resulting system fulﬁls the requirements, as opposed to bottom-up synthesis
+techniques, which produce emergent system properties, which have to be deduced and
+subsequently tested against the requirements. Moreover, it uses the standardization of the
+message structure for communication within robotic systems composed of agents based on
+the IEEE FIPA standard, known from multi-agent systems. In contrast to a commonly used
+bottom-up approach, where designers take components from a library or a framework and
+connect them complying with their interfaces, the proposed method is strictly top-down.
+It separates the speciﬁcation of the system from its implementation. It shows how to
+systematically decompose groups and connect them by communication channels.
+The communication focused system decomposition enables the analysis of the com-
+munication on the abstract agent-level. Organized communication and its properly deﬁned
+speciﬁcation facilitates the system’s further development. System-speciﬁc messages and
+language deﬁnitions are grouped and separated from the implementation. The imple-
+mentation of the software that handles the communication process is generic. Therefore,
+there is no need to test the software multiple times. Only veriﬁcation against the system
+speciﬁcations is required.
+Highlighting communication in the design process shows the critical aspects of its
+operation. The bandwidth of communication channels and communication intensity can
+be estimated in the development. On their basis, it is possible to properly deﬁne or
+redeﬁne the architecture of the entire robotic system and avoid bottlenecks. Application
+of the communication focused system decomposition method, with adequately deﬁned
+requirements, allows for designing a robotic system with optimal control and energy
+consumption.
+Author Contributions: Conceptualization, C.Z.; methodology, P .P . and C.Z.; software, D.S. and W.D.;
+validation, D.S. and P .P .; writing—original draft preparation, C.Z, P .P . and W.S.; writing—review and
+editing, C.Z., P .P ., W.S., D.S. and W.D.; supervision, W.S.; project administration, P .P . and W.S.; funding
+acquisition, W.S. All authors have read and agreed to the published version of the manuscript.
+
+--- Page 23 ---
+Energies 2022 ,15, 7983 23 of 25
+Funding: Research was funded by the Centre for Priority Research Area Artiﬁcial Intelligence and
+Robotics of Warsaw University of Technology within the Excellence Initiative: Research University
+(IDUB) programme.
+Institutional Review Board Statement: Not applicable
+Data Availability Statement: Not applicable
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. Hayward, V .; Paul, R. Robot Manipulator Control Under Unix RCCL: A Robot Control C Library. Int. J. Robot. Res. 1986 ,5, 94–111.
+[CrossRef]
+2. Blume, C.; Jakob, W. P ASRO: Pascal for Robots ; Springer: Berlin/Heidelberg, Germany, 1985.
+3. Collett, T.; MacDonald, B.; Gerkey, B. Player 2.0: Toward a Practical Robot Programming Framework. In Proceedings of the
+Australasian Conference on Robotics and Automation (ACRA), Sydney, Australia, 5–7 December 2005.
+4. Zieli´ nski, C.; Winiarski, T. Motion Generation in the MRROC++ Robot Programming Framework. Int. J. Robot. Res. 2010 ,
+29, 386–413. [CrossRef]
+5. Brugali, D.; Scandurra, P . Component-based Robotic Engineering. Part I: Reusable building blocks. IEEE Robot. Autom. Mag.
+2009 ,16, 84–96. [CrossRef]
+6. Bruyninckx, H. OROCOS: Design and implementation of a robot control software framework. In Proceedings of the IEEE
+International Conference on Robotics and Automation, Washington, DC, USA, 11–15 May 2002.
+7. Brooks, A.; Kaupp, T.; Makarenko, A.; Williams, S.; Orebäck, A. Orca: A component model and repository. In Software Engineering
+for Experimental Robotics ; Springer: Berlin/Heidelberg, Germany, 2007; pp. 231–251.
+8. Mallet, A.; Pasteur, C.; Herrb, M.; Lemaignan, S.; Ingrand, F. GenoM3: Building middleware-independent robotic components.
+In Proceedings of the IEEE International Conference on Robotics and Automation, Anchorage, AK, USA, 3–7 May 2010;
+pp. 4627–4632.
+9. Quigley, M.; Gerkey, B.; Conley, K.; Faust, J.; Foote, T.; Leibs, J.; Berger, E.; Wheeler, R.; Ng, A. ROS: An open-source Robot
+Operating System. In Proceedings of the Open-Source Software Workshop at the International Conference on Robotics and
+Automation (ICRA), Kobe, Japan, 12–17 May 2009.
+10. Brambilla, M.; Cabot, J.; Wimmer, M. Model-Driven Software Engineering in Practice. Synth. Lect. Softw. Eng. 2017 ,3, 1–207.
+11. MacDonald, B.; Biggs, G.; Collett, T., Software Environments for Robot Programming. In Software Engineering for Experimental
+Robotics ; Brugali, D., Ed.; Springer: Berlin/Heidelberg, Germany, 2007; pp. 107–124._6. [CrossRef]
+12. Matari´ c, M.J.; Michaud, F. The Handbook of Robotics. In The Handbook of Robotics ; Siciliano, B., Khatib, O., Eds.; Chapter
+Behavior-Based Systems; Springer: Berlin/Heidelberg, Germany, 2008; pp. 891–909.
+13. Bulter, Z.; Rizzi, A. Distributed and Cellular Robots. In Springer Handbook of Robotics ; Khatib, O., Siciliano, B., Eds.; Springer:
+Berlin/Heidelberg, Germany, 2008; pp. 911–920.
+14. Yim, M.; Shen, W.M.; Salemi, B.; Rus, D.; Moll, M.; Lipson, H.; Klavins, E.; Chirikjian, G.S. Modular Self-Reconﬁgurable Robot
+Systems [Grand Challenges of Robotics]. IEEE Robot. Autom. Mag. 2007 ,14, 43–52. [CrossRef]
+15. Farinelli, A.; Iocchi, L.; Nardi, D. Multirobot systems: A classiﬁcation focused on coordination. IEEE Trans. Syst. Man Cybern.
+Part B (Cybern.) 2004 ,34, 2015–2028. [CrossRef]
+16. Dudek, G.; Jenkin, M.R.M.; Milios, E.; Wilkes, D. A taxonomy for multi-agent robotics. Auton. Robot. 1996 ,3, 375–397. [CrossRef]
+17. Doriya, R.; Mishra, S.; Gupta, S. A brief survey and analysis of multi-robot communication and coordination. In Proceedings of
+the 2015 International Conference on Computing, Communication & Automation, Noida, India, 15–16 May 2015; pp. 1014–1021.
+[CrossRef]
+18. Chibani, A.; Amirat, Y.; Mohammed, S.; Matson, E.; Hagita, N.; Barreto, M. Ubiquitous robotics: Recent challenges and future
+trends. Robot. Auton. Syst. 2013 ,61, 1162–1172. [CrossRef]
+19. Campusano, M.; Fabry, J.; Bergel, A. Live programming in practice: A controlled experiment on state machines for robotic
+behaviors. Inf. Softw. Technol. 2019 ,108, 99–114. [CrossRef]
+20. Kortenkamp, D.; Simmons, R.; Brugali, D. Robotic Systems Architectures and Programming. In Springer Handbook of Robotics ,
+2nd ed.; Siciliano, B., Khatib, O., Eds.; Springer: Berlin/Heidelberg, Germany, 2016; pp. 283–306.
+21. Coste-Maniere, E.; Simmons, R. Architecture, the backbone of robotic systems. In Proceedings of the IEEE International
+Conference on Robotics and Automation ICRA ’00, San Francisco, CA, USA, 24–28 April 2000; Volume 1, pp. 67–72. [CrossRef]
+22. Lyons, D.M.; Arbib, M.A. A Formal Model of Computation for Sensory-Based Robotics. IEEE Trans. Robot. Autom. 1989 ,
+5, 280–293. [CrossRef]
+23. Lyons, D.M. Adaptive behavior and intelligent systems without symbols and logic. In Studies in Cognitive Systems ; Chapter
+A Schema-Theory Approach to Specifying and Analysing the Behavior of Robotic Systems; Kluwer Academic: Alphen aan den
+Rijn, The Netherlands, 2001; Volume 2, pp. 51–70.
+
+--- Page 24 ---
+Energies 2022 ,15, 7983 24 of 25
+24. Zieli ´ nski, C.; Kornuta, T. Diagnostic Requirements in Multi-robot Systems. In Intelligent Systems in Technical and Medical Diagnostics ;
+Korbicz, J., Kowal, M., Eds.; Advances in Intelligent Systems and Computing; Springer: Berlin/Heidelberg, Germany, 2014;
+Volume 230, pp. 345–356. [CrossRef]
+25. Armbrust, C.; Kiekbusch, L.; Ropertz, T.; Berns, K. Soft Robot Control with a Behaviour-Based Architecture. In Soft Robotics ;
+Springer: Berlin/Heidelberg, Germany, 2015; pp. 81–91.
+26. Figat, M.; Zieli´ nski, C. Methodology of Designing Multi-agent Robot Control Systems Utilising Hierarchical Petri Nets. In
+Proceedings of the 2019 International Conference on Robotics and Automation (ICRA), Montreal, QC, Canada, 20–24 May 2019;
+pp. 3363–3369.
+27. Kornuta, T.; Zieli ´ nski, C.; Winiarski, T. A universal architectural pattern and speciﬁcation method for robot control system design.
+Bull. Pol. Acad. Sci. Technol. Sci. 2020 ,68, 3–29. [CrossRef]
+28. Zieli ´ nski, C. Robotic System Design Methodology Utilising Embodied Agents. In Automatic Control, Robotics and Information Pro-
+cessing ; Kulczycki, P ., Korbicz, J., Kacprzyk, J., Eds.; Advances in Intelligent Systems and Computing; Springer: Berlin/Heidelberg,
+Germany, 2021; Volume 296, pp. 523–561. [CrossRef]
+29. Kiekbusch, L.; Armbrust, C.; Berns, K. Formal veriﬁcation of behaviour networks including sensor failures. Robot. Auton. Syst.
+2015 ,74, 331–339. [CrossRef]
+30. Kiekbusch, L.; Armbrust, C.; Berns, K., Formal Veriﬁcation of Behaviour Networks Including Hardware Failures. In Proceedings
+of the International Conference Intelligent Autonomous Systems IAS 13 ; Advances in Intelligent Systems and Computing; Springer:
+Berlin/Heidelberg, Germany, 2016; Volume 302, pp. 1571–1582.
+31. Zieli ´ nski, C.; Figat, M.; Hexel, R. Communication Within Multi-FSM Based Robotic Systems. J. Intell. Robot. Syst. 2019 ,93, 787–805.
+[CrossRef]
+32. Hussain, R.; Zielinska, T.; Hexel, R. Finite state automaton based control system for walking machines. Int. J. Adv. Robot. Syst.
+2019 ,16, 1729881419853182. [CrossRef]
+33. Pilone, D.; Pitman, N. UML 2.0 in a Nutshell ; O’Reilly: Sebastopol, CA, USA, 2005.
+34. Kaptein, F.; Kiefer, B.; Cully, A.; Celiktutan, O.; Bierman, B.; Rijgersberg-peters, R.; Broekens, J.; Van Vught, W.; Van Bekkum, M.;
+Demiris, Y.; et al. A Cloud-Based Robot System for Long-Term Interaction: Principles, Implementation, Lessons Learned. J. Hum.
+Robot Interact. 2021 ,11, 1–27. [CrossRef]
+35. Dudek, W.; Szynkiewicz, W.; Winiarski, T. Cloud computing support for the multi-agent robot navigation system. J. Autom. Mob.
+Robot. Intell. Syst. 2017 ,11, 67–74. [CrossRef]
+36. Dieber, B.; Breiling, B.; Taurer, S.; Kacianka, S.; Rass, S.; Schartner, P . Security for the Robot Operating System. Robot. Auton. Syst.
+2017 ,98, 192–203. [CrossRef]
+37. DiLuoffo, V .; Michalson, W.R.; Sunar, B. Robot Operating System 2: The need for a holistic security approach to robotic
+architectures. Int. J. Adv. Robot. Syst. 2018 ,15, 1729881418770011. [CrossRef]
+38. Dudek, W.; Szynkiewicz, W. Cyber-security for Mobile Service Robots—Challenges for Cyber-physical System Safety. J.
+Telecommun. Inf. Technol. 2019 ,2, 29–36. [CrossRef]
+39. Krzykowska-Piotrowska, K.; Dudek, E.; Siergiejczyk, M.; Rosi´ nski, A.; Wawrzy´ nski, W. Is Secure Communication in the R2I
+(Robot-to-Infrastructure) Model Possible? Identiﬁcation of Threats. Energies 2021 ,14, 4702. [CrossRef]
+40. Baklouti, E.; Amor, N.B.; Jallouli, M. Reactive control architecture for mobile robot autonomous navigation. Robot. Auton. Syst.
+2017 ,89, 9–14. [CrossRef]
+41. Brooks, R.A. Intelligence Without Representation. Artif. Intell. 1991 ,47, 139–159. [CrossRef]
+42. Brooks, R.A. A robust layered control system for a mobile robot. IEEE J. Robot. Autom. 1986 ,2, 14–23. [CrossRef]
+43. Arkin, R.C. Behavior-Based Robotics ; MIT Press: Cambridge, MA, USA: 1998.
+44. Gat, E. On Three-Layer Architectures. In Artiﬁcial Intelligence and Mobile Robots ; Kortenkamp, D., Bonnasso, R.P ., Murphy, R., Eds.;
+AAAI Press: Cambridge, MA, USA, 1998; pp. 195–210.
+45. Alami, R.; Chatila, R.; Fleury, S.; M. Ghallab, M.; Ingrand, F. An Architecture for Autonomy. Int. J. Robot. Res. 1998 ,17, 315–337.
+[CrossRef]
+46. Tang, F.; Parker, L. A Complete Methodology for Generating Multi-Robot Task Solutions using ASyMTRe-D and Market-Based
+Task Allocation. In Proceedings of the 2007 IEEE International Conference on Robotics and Automation, Rome, Italy, 10–14 April
+2007; pp. 3351–3358.
+47. Shoham, Y. Agent-Oriented Programming. Artif. Intell. 1993 ,60, 51–92. [CrossRef]
+48. Padgham, L.; Winikoff, M. Developing Intelligent Agent Systems: A Practical Guide ; John Wiley & Sons: Hoboken, NJ, USA, 2004.
+49. Nesnas, I. The CLARAty Project: Coping with Hardware and Software Heterogenity. In Software Engineering for Experimental
+Robotics ; Brugali, D., Ed.; Springer: Berlin/Heidelberg, Germany, 2007; pp. 31–70.
+50. Ahmad, A.; Babar, M.A. Software architectures for robotic systems: A systematic mapping study. J. Syst. Softw. 2016 ,122, 16–39.
+[CrossRef]
+51. Malavolta, I.; Lewis, G.A.; Schmerl, B.; Lago, P .; Garlan, D. Mining guidelines for architecting robotics software. J. Syst. Softw.
+2021 ,178, 110969. [CrossRef]
+52. de Araújo Silva, E.; Valentin, E.; Carvalho, J.R.H.; da Silva Barreto, R. A survey of Model Driven Engineering in robotics. J.
+Comput. Lang. 2021 ,62, 101021. [CrossRef]
+53. Remy, S.; Blake, M. Distributed Service-Oriented Robotics. IEEE Internet Comput. 2011 ,15, 70–74. [CrossRef]
+
+--- Page 25 ---
+Energies 2022 ,15, 7983 25 of 25
+54. Kleppe, A. The Field of Software Language Engineering. In Software Language Engineering ; Gaševi´ c, D., Lämmel, R., Wyk, E., Eds.;
+Lecture Notes in Computer Science; Springer: Berlin/Heidelberg, Germany, 2009; pp. 1–7.
+55. Figat, M.; Zieli ´ nski, C. Parameterised robotic system meta-model expressed by Hierarchical Petri nets. Robot. Auton. Syst. 2022 ,
+150, 103987. [CrossRef]
+56. Cisternino, A.; Colombo, D.; Ambriola, V .; Combetto, M. Increasing Decoupling in the Robotics4.NET Framework. In Software
+Engineering for Experimental Robotics ; Brugali, D., Ed.; Springer: Berlin/Heidelberg, Germany, 2007; pp. 307–324.
+57. Stampfer, D.; Lotz, A.; Lutz, M.; Schlegel, C. The SmartMDSD Toolchain: An Integrated MDSD Workﬂow and Integrated
+Development Environment (IDE) for Robotics Software. J. Softw. Eng. Robot. 2016 ,7, 3–19.
+58. Zieli ´ nski, C. General Robotic System Software Design Methodology. In Proceedings of the Advances in Mechanism and Machine
+Science, 15th IFToMM World Congress, Kraków, Poland, 30 June–4 July 2019; Uhl, T., Ed.; Springer: Berlin/Heidelberg, Germany,
+2019; Volume 73, pp. 2779–2788.
+59. Figat, M.; Zieli´ nski, C. Robotic System Speciﬁcation Methodology Based on Hierarchical Petri Nets. IEEE Access 2020 ,
+8, 71617–71627. [CrossRef]
+60. Janiak, M.; Zieli´ nski, C. Control System Architecture for the Investigation of Motion Control Algorithms on an Example of the
+Mobile Platform Rex. Bull. Pol. Acad. Sci. Technol. Sci. 2015 ,63, 667–678. [CrossRef]
+61. Zieli ´ nski, C.; Trojanek, P . Stigmergic cooperation of autonomous robots. J. Mech. Mach. Theory 2009 ,44, 656–670. [CrossRef]
+62. Foundation for Intelligent Physical Agents. FIPA ACL Message Structure Speciﬁcation. 2000. Available online: http://www.ﬁpa.
+org/specs/ﬁpa00061/SC00061G.html (accessed on October 25, 2022) .
+63. Mazouzi, H.; Seghrouchni, A.E.F.; Haddad, S. Open protocol design for complex interactions in multi-agent systems. In First
+International Joint Conference on Autonomous Agents and Multiagent Systems: Part 2 ; Association for Computing Machinery: New
+York, NY, USA, 2002; pp. 517–526.
+64. Bedaf, S. The Future is Now: The Potential of Service Robots in Elderly Care. Ph.D. Thesis, Datawyse/Universitaire Pers
+Maastricht, Maastricht, The Netherlands, 2017. [CrossRef]
+65. Salichs, M.A.; Encinar, I.P .; Salichs, E.; Castro-González, Á.; Malfaz, M. Study of scenarios and technical requirements of a social
+assistive robot for Alzheimer’s disease patients and their caregivers. Int. J. Soc. Robot. 2016 ,8, 85–102. [CrossRef]
+66. Frennert, S.; Eftring, H.; Östlund, B. What older people expect of robots: A mixed methods approach. In International Conference
+on Social Robotics ; Springer: Berlin/Heidelberg, Germany, 2013; pp. 19–29.
+67. Winiarski, T.; Jarocki, S.; Seredy´ nski, D. Grasped Object Weight Compensation in Reference to Impedance Controlled Robots.
+Energies 2021 ,14, 6693. [CrossRef]
+68. Seredy ´ nski, D.; Banachowicz, K.; Winiarski, T. Graph–based potential ﬁeld for the end–effector control within the torque–based
+task hierarchy. In Proceedings of the 21th IEEE International Conference on Methods and Models in Automation and Robotics,
+MMAR’2016, Miedzyzdroje, Poland, 29 August–1 September 2016; pp. 645–650. [CrossRef]
+69. Winiarski, T.; Banachowicz, K.; Seredy ´ nski, D. Two mode impedance control of Velma service robot redundant arm. In Progress in
+Automation, Robotics and Measuring Techniques ; Szewczyk, R., Zieli ´ nski, C., Kaliczy ´ nska, M., Eds.; Advances in Intelligent Systems
+and Computing (AISC); Springer: Berlin/Heidelberg, Germany, 2015; Volume 351, pp. 319–328. [CrossRef]
+70. Seredy´ nski, D.; Winiarski, T.; Zieli ´ nski, C. FABRIC: Framework for Agent-Based Robot Control Systems. In Proceedings of the
+12th International Workshop on Robot Motion and Control (RoMoCo), Pozna ´ n, Poland, 8–10 July 2019; pp. 215–222. [CrossRef]
+71. Beetz, M.; Beßler, D.; Haidu, A.; Pomarlan, M.; Bozcuo˘ glu, A.K.; Bartels, G. Knowrob 2.0—A 2nd generation knowledge
+processing framework for cognition-enabled robotic agents. In Proceedings of the 2018 IEEE International Conference on Robotics
+and Automation (ICRA), Brisbane, Australia, 21–25 May 2018; pp. 512–519.
+72. Dudek, W.; Winiarski, T. Scheduling of a Robot’s Tasks With the TaskER Framework. IEEE Access 2020 ,8, 161449–161471.
+[CrossRef]
+73. Dudek, W.; W˛ egierek, M.; Karwowski, J.; Szynkiewicz, W.; Winiarski, T. Task harmonisation for a single–task robot controller.
+In Proceedings of the 12th International Workshop on Robot Motion and Control (RoMoCo), Pozna´ n, Poland, 8–10 July 2019;
+pp. 86–91. [CrossRef]
