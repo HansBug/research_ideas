@@ -114,36 +114,36 @@
 │     ├─ Extended Finite State Machine (1990)
 │     ├─ 层次状态机支线
 │     │  └─ Statecharts (1987)
-|     │     ├─ STATEMATE Statecharts (1996)
-|     │     ├─ UML State Machine (2017 规范条目)
-|     │     │  └─ RoboChart (2017 / 2019 / 2024)
-|     │     │     └─ RoboSim (2019)
-|     │     ├─ SCXML (2015)
-|     │     ├─ Stateflow (2007)
-|     │     ├─ rFSM Statecharts (2012)
-|     │     └─ 同步反应式状态机支线
-|     │        ├─ Argos (2001)
-|     │        ├─ SyncCharts (1996)
-|     │        └─ Polychronous Mode Automata (2006)
-|     ├─ 需求规格 DSL 支线
-|     │  ├─ SCR (1998)
-|     │  └─ RSML / SpecTRM-RL (1999)
-|     │     └─ RSML-e (2002)
-|     ├─ 工业顺控 / Modelica DSL 支线
-|     │  ├─ Sequential Function Charts, SFC (2004 语义条目；蓝本更早)
-|     │  │  └─ Grafchart / JGrafchart (2002)
-|     │  │     └─ StateGraph (2005)
-|     │  │        ├─ ModeGraph (2008)
-|     │  │        ├─ Modelica_StateGraph2 (2009)
-|     │  │        └─ Modelica State Machines (2012)
-|     │  └─ Ptolemy II FSM / Modal Models (2009)
-|     └─ 任务 / 行为 DSL 支线
-|        ├─ MissionLab / CDL (1997)
-|        ├─ PLEXIL (2006)
-|        ├─ XABSL (2006)
-|        ├─ XRobots (2011)
-|        ├─ SEAD / MDL (2021)
-|        └─ DSD (2021)
+│     │     ├─ STATEMATE Statecharts (1996)
+│     │     ├─ UML State Machine (2017 规范条目)
+│     │     │  └─ RoboChart (2017 / 2019 / 2024)
+│     │     │     └─ RoboSim (2019)
+│     │     ├─ SCXML (2015)
+│     │     ├─ Stateflow (2007)
+│     │     ├─ rFSM Statecharts (2012)
+│     │     └─ 同步反应式状态机支线
+│     │        ├─ Argos (2001)
+│     │        ├─ SyncCharts (1996)
+│     │        └─ Polychronous Mode Automata (2006)
+│     ├─ 需求规格 DSL 支线
+│     │  ├─ SCR (1998)
+│     │  └─ RSML / SpecTRM-RL (1999)
+│     │     └─ RSML-e (2002)
+│     ├─ 工业顺控 / Modelica DSL 支线
+│     │  ├─ Sequential Function Charts, SFC (2004 语义条目；蓝本更早)
+│     │  │  └─ Grafchart / JGrafchart (2002)
+│     │  │     └─ StateGraph (2005)
+│     │  │        ├─ ModeGraph (2008)
+│     │  │        ├─ Modelica_StateGraph2 (2009)
+│     │  │        └─ Modelica State Machines (2012)
+│     │  └─ Ptolemy II FSM / Modal Models (2009)
+│     └─ 任务 / 行为 DSL 支线
+│        ├─ MissionLab / CDL (1997)
+│        ├─ PLEXIL (2006)
+│        ├─ XABSL (2006)
+│        ├─ XRobots (2011)
+│        ├─ SEAD / MDL (2021)
+│        └─ DSD (2021)
 ├─ 接口 / 组合主干
 │  └─ I/O Automata (1989)
 │     ├─ Timed I/O Automata (2005)
@@ -156,7 +156,8 @@
 ├─ 时间 / 连续主干
 │  ├─ Timed Automata (1994)
 │  └─ Hybrid Automata (1996)
-│     └─ CHARON (2002)
+│     ├─ CHARON (2002)
+│     └─ Nested Hybrid Automata (2007，文库代表条目)
 └─ Petri 网 / 并发网主干
    └─ Petri Nets (1989，文库代表条目)
       ├─ WorkFlow nets (1998)
@@ -173,7 +174,7 @@
 3. `Grafchart + DPWS/FMI`、`RAFCON`、`FlexBE`、`SMACHA/SMACH`、`YASMIN`、`VisualHFSM` 等当前更适合作为“执行载体 / 工具链”而不是主蓝本节点，暂不挂入主树。
 4. 最近两次提交新增的 `Transaction-Aware Web Service Interface`、`IoT Interface Theory`、`FMCA`、`MOPN / GSPN for Multi-Robot Tasks` 与 `GSPNR / MRA for Persistent Multi-Robot Tasks`，都在原有主干下补出了可稳定命名的接口/契约或 `Petri` 扩展节点，因此已同步整合进主树。
 5. 最近两次提交新增的 `CARE Runtime`、`Commercial Field Bus Timed Automata`、`Timed Multi-Robot Planning`、`Hybrid Action Coordination`、`Hybrid Field Robot Teams` 主要提供运行时、工具链或应用级挂接证据，而不是新的语言本体；因此保留在正式总表中，并作为 `Contract Automata`、`Timed Automata`、`Hybrid Automata` 主干的应用侧代表，不单独挂入主树。
-6. 本轮新增的 `CARE-Uppaal Runtime Verification`、`SCADA Timed Automata`、`Urban Driving NHA`、`Open-Path AGV CPN` 与 `Modular HRC Safety PN` 同样主要提供接口/契约、时间/混成与 `Petri` 主干的应用侧证；它们强化了主干分支的落地边界，但不形成新的独立树节点。
+6. 本轮新增的 `Urban Driving NHA` 虽然属于自动驾驶应用条目，但原文显式给出了标准 `HA` 九元组和层次化的 `$HA^k(q^{k-1})$` 嵌套结构，可稳定提炼为 `Nested Hybrid Automata` 子类，因此已在 `Hybrid Automata` 下补出 `Nested Hybrid Automata (2007，文库代表条目)`；其余 `CARE-Uppaal Runtime Verification`、`SCADA Timed Automata`、`Open-Path AGV CPN` 与 `Modular HRC Safety PN` 仍主要作为 `Contract Automata`、`Timed Automata`、`Coloured Petri Nets` / `Petri Nets` 主干的应用侧证，不单独挂入主树。
 
 ## 检索关键词簇
 
@@ -452,6 +453,7 @@
 | 2026-04-02 21:24:12 | 继续扩展主干形式主义应用条目 | 本轮重新联网筛查接口/组合、时间/混成与 `Petri` 并发主干候选后，正式新增 5 篇 `desc.md` 条目，覆盖 `Web-Service Transactions Interface`、`IoT Interface Theory`、`Timed Multi-Robot Planning`、`Hybrid Action Coordination`、`Persistent-Task GSPNR`；全部补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib` 与 `desc.md`，并同步回填统计、关键词簇、普通论文总表、待补方向与更新日志 |
 | 2026-04-02 22:48:58 | 强化 tree 同步规则并回填最近两次提交的演化关系 | 在 [GUIDE.md](./GUIDE.md) 中新增“更新正式文献时必须同步检查并更新状态机族演化树及挂接说明”的硬约束；同时回看最近两次提交新增条目，把 `Transaction-Aware Web Service Interface`、`IoT Interface Theory`、`FMCA`、`MOPN / GSPN for Multi-Robot Tasks` 与 `GSPNR / MRA for Persistent Multi-Robot Tasks` 整合进主蓝本树，并把 `CARE Runtime`、`Timed Automata`、`Hybrid Automata` 应用条目明确记为主干侧证而非独立树节点 |
 | 2026-04-02 23:25:41 | 继续扩展主干形式主义应用条目 | 本轮重新联网筛查 `15+` 个接口/组合、时间/混成与 `Petri` 并发候选后，正式新增 5 篇 `desc.md` 条目，覆盖 `Urban Driving NHA`、`SCADA Timed Automata`、`Open-Path AGV CPN`、`Modular HRC Safety PN` 与 `CARE-Uppaal Runtime Verification`；全部补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib` 与 `desc.md`，并同步回填统计、关键词簇、普通总表、待补方向、挂接说明与更新日志 |
+| 2026-04-02 23:52:35 | 结合最近提交回填 NHA 到演化树 | 回看最新一次提交新增的 5 篇接口/组合、时间/混成与 `Petri` 应用条目后，确认 `Urban Driving NHA` 已给出可稳定提炼的 `Nested Hybrid Automata` 结构定义，因此把 `Nested Hybrid Automata (2007，文库代表条目)` 挂到 `Hybrid Automata` 主干；其余 `SCADA Timed Automata`、`Open-Path AGV CPN`、`Modular HRC Safety PN` 与 `CARE-Uppaal Runtime Verification` 继续保留为主干应用侧证，并同步整理演化树文本排版 |
 
 ## 失败与阻塞记录
 
