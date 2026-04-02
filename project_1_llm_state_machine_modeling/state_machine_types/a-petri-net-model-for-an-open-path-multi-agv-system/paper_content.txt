@@ -1,0 +1,1020 @@
+--- Page 1 ---
+APetriNet Model foranOpen PathMulti-AGV System
+D
+avideGiglio
+Department of Informatics, Bioengineering, Robotics and Systems Engineering, University of Genova, Genova, Italy
+Keywords: ColouredPetriNets,Automated DistributionWarehouses, Autonomous Guided Vehicles,ForkliftAGVs.
+Abstract: Automated distribution warehouses in which pallet and roll pallet loads are transported by means of forklift
+AGVs are considered in this work, with the objective of deﬁning a mathematical model which accurately
+represents thebehaviour ofAGVsinthe system. AGVscanmove freelyinthewarehouse (anopenpathAGV
+system is adopted), and their transportation activities can be modelled as a sequence of elementary or basic
+actions. In the paper, a coloured Petri net (CPN) model is proposed. It allows representing any sequence of
+elementaryactionsofAGVs(includingpick-upanddrop-offactivities),andaccuratelymodelstheinteractions
+among AGVs,inorder toguarantee the safetyduring the execution of activities. The CPNmodel canbe used
+toanalyseandimplementdeadlockpreventionanddeadlockrecoverystrategies,andithasbeenadoptedinthe
+building of a discrete-event simulator whichis employed toanalyse the system’s performance andtoevaluate
+scheduling policies for transportation tasks.
+1 INTRODUCTION
+In the last century, the process of automating manu-
+facturingsystemsandotherbusinessactivities,aimed
+at increasing the performanceof the systems, has in-
+volved both production tasks and transportation op-
+erations. In this connection, autonomous guided ve-
+hicles (AGVs) have been used to automate the trans-
+portationofpartsandmaterialswithinmanufacturing
+systems and other indoor or outdoor facilities (Vis,
+2006; Le-Ahn and De Koster, 2006). The deﬁni-
+tionofanAGVsystemincludesseveralactivitiesthat
+can be related to the three standard decision-levels,
+namely,thestrategiclevel(layoutdesign),thetactical
+level (determination of the number of AGVs, dead-
+lockprevention,planningoftransportationactivities),
+and the operational/real-time control level (dispatch-
+ing of AGVs, scheduling of transportation activities,
+vehicle routing, deadlock avoidance). In this paper,
+a mathematicalmodelbasedonthe graphicalformal-
+ism of the Petri nets (Petri, 1962; Murata, 1989) is
+presented; it can be used to solve some of the prob-
+lems to be dealt with at the tactical and operational
+decision-levels.
+In this work, automated distribution warehouses
+aretakenintoaccount. Intheconsideredclassofsys-
+tems,thestorageareaislaidwithpalletandrollpallet
+loads that must be moved to the gate area when the
+trucks which will deliver the items to their ﬁnal des-
+tinations arrive at the warehouse. All transportationactivities are carried out by forklift AGVs (Seelinger
+and Yoder, 2006; Mart´ ınez-Barber´ a and Herrero-
+P´ erez, 2010), which are not constrained to follow
+any guide path as they can move freely along the
+warehouse’s aisles; then, a free-rangingor open path
+model (Sen et al., 1991; Duinkerken et al., 2006) is
+adopted. In the system, several AGVs work simul-
+taneously (multi-AGV system) and cooperate to par-
+allelize the execution of truck loading activities, thus
+minimizingtheoverallcompletiontime.
+Themanagementofanopenpathmulti-AGVsys-
+tem is of a crucial importance, in particular to guar-
+anteethesafetyduringtheexecutionoftransportation
+activities. Even if vehicles are nowadays equipped
+withdevices(e.g.,lasers)todetectobstaclesandother
+vehicles,itisnecessarytoaccuratelymodelthemove-
+ments of AGVs in order to dispatch AGVs, schedule
+theiractivities,androutetheminanefﬁcientandsafe
+way. In this paper, a coloured Petri net (Jensen and
+Kristensen, 2009) model, representing all elemen-
+tary actions of AGVs (including pick-up and drop-
+offactivities)andpreciselymodellingtheinteractions
+amongAGVs,isproposed.
+The Petri net formalism has been adopted to
+modelAGVsfromthenineties(HollowayandKrogh,
+1990; Lee and DiCesare, 1994), and since then Petri
+nets have been used to analyse the system’s perfor-
+mance, to dispatch AGVs and schedule their activi-
+ties, and to analyse and implement deadlock preven-
+tion strategies. In (Castillo et al., 2001), the perfor-
+734
+Giglio D..
+A Petri Net Model for an Open Path Multi-AGV System.
+DOI: 10.5220/0005054807340745
+InProceedings of the 11th International Conference on Informatics in Control, Automation and Robotics (ICINCO-2014), pages 734-745
+ISBN: 978-989-758-040-6
+Copyright c2014 SCITEPRESS (Science and Technology Publications, Lda.)
+
+--- Page 2 ---
+AISLEH1A AISLEH1B
+AISLEH2A AISLEH2B
+AISLEH3A AISLEH3BAISLEV1A LEV1B
+AISLEV2A AISLEV2B
+AISLEV3A AISLEV3B
+DROP-OFF DROP-OFF DROP-OFF DROP-OFF DROP-OFF DROP-OFF DROP-OFF DROP-OFF
+AREA AREA AREA AREA AREA AREA AREA AREA
+BUFFERAREA BUFFERAREA BUFFERAREA BUFFERAREA BUFFERAREA BUFFERAREA BUFFE
+GAER AREA
+ATE2BUFFER
+GATE GATE 1 GATE 3 GATE 4 GATE 5 GATE 7 GATE 9
+GATE 1 GATE 4 GATE 5 GATE 7 GATE 9
+SHOP 1 SHOP 2 SHOP 3 SHOP 4 SHOP 5
+SHOP 6 SHOP 7 SHOP 8 SHOP 9SHOP10 SHOP11 SHOP12 SHOP13
+SHOP14 P 15 SHO SHOP17SHOP18 SHOP19 SHOP20 SHOP21 SHOP22
+SHOP23 SHOP24 SHOP25 SHOP26 SHOP27STORAGELANE
+STORAGELANE
+STORAGELANE
+STORAGELANE
+...1
+2
+3
+4
+Figure 1: The distributionwarehouse.
+mance of a tandem AGV system is analysed through
+a generalizedstochastic Petri net (GSPN) model (Aj-
+mone Marsan et al., 1984); deadlock issues are con-
+sidered in (Wu and Zhou, 2005), where a maximally
+permissivedeadlockavoidancepolicyisproposed;re-
+cently, in (Nishi and Maeno, 2010) and (Nishi and
+Tanaka, 2012), Petri nets have been used to dispatch
+AGVsandtoroutethemwithinan AGVsystem. The
+colouredPetri netshasbeenadoptedin(Hsieh,1998;
+HsiehandChen,1999;DotoliandFanti,2004;Aized,
+2009)to model, analyse, and simulate AGV systems.
+However, in all these works, the considered AGVsystems are guided path, in which AGVs are con-
+strained to follow the arcs (generally unidirectional)
+of a network representing the available routes/paths
+forAGVsinthe system.
+Instead, in this paper, an open path AGV system
+is adopted, since it allows more ﬂexibility in manag-
+ing the time-variant AGVs’ tasks that have to be ac-
+complished in the considered class of systems. As it
+will be described in the following section, AGVs are
+required to travel paths which change with time, as
+the pick-up and drop-off points change dynamically
+on the basis of the trucks’ arrivals and of the assign- APetriNetModelforanOpenPathMulti-AGVSystem
+735
+
+
+--- Page 3 ---
+mentof thegatestothe trucks;moreover,thevertical
+aisles must be traveled by AGVs both in the left side
+and in the right side, since the loads to be picked-up
+are placed next to both sides of the aisles (see Fig-
+ure1). A guidedpathsystem forthe consideredclass
+of warehouses would require a very large number of
+paths, thus making that kind of approach very com-
+plex. Therefore,anopenpathmodelis preferred.
+Thispaperisorganizedasfollows. Insection2the
+class of distribution warehousesand the adoptedsys-
+tem model are respectivelyintroduced. The coloured
+Petri net modelisproposedin section3. Issues about
+deadlock prevention and deadlock recovery are dealt
+withinsection4,whereasinsection5someconclud-
+ingremarksarereported.
+2 THE DISTRIBUTION
+WAREHOUSE
+Intheconsideredclassofwarehouses,itemstobede-
+livered are stacked and stored on pallet and roll pal-
+let loads (pallets and rolls, simply), which are placed
+on the ﬂoor in short lanes that are physically deﬁned
+amongthe warehouse’saisles (storagelanes). An ex-
+ample of distribution warehouse is illustrated in Fig-
+ure 1. Each lane may contain a variable number of
+pallets(usually3or4)orrolls(usually4or5),which
+are lined up in a row since a lane is about 1 meter
+wide. Each storage lane is associated with a “shop”
+(e.g.,astoreorasupermarket)andeachshopconsists
+of one or more consecutive lanes. In general, each
+shop holds either pallets or rolls. Shops/lanesare ac-
+cessible only throughthe vertical aisles and only one
+side of a storage lane can be approachedby the fork-
+lift AGVs to get the loads, as illustrated in Figure 1.
+Both the horizontalandtheverticalaisles are about3
+meters wide, but the horizontal aisle adjacent to the
+gate zone, which is wider as it includesthe bufferar-
+eas where pallets and rolls, just dropped off by the
+forkliftAGVs,aretemporarilyleft. Bidirectionaltraf-
+ﬁc of transportationresourcesis allowed in anyaisle,
+and AGVs are not required to respect any right-hand
+orleft-handrule.
+Warehouse activities start each day in the after-
+noon and conclude in the morning of the next day.
+In the afternoon the orders of stores and supermar-
+kets are processed, pallets and rolls are prepared and
+movedto the storage lanescorrespondingto the shop
+towhichitemshavetobedelivered(thewarehouseis
+initially empty). These operationsare man-madeand
+canlastuptotheevening. Intheearlymorningofthe
+followingday(fromabout4a.m.),trucksarriveatthe
+distribution warehouse (in accordance with a prede-ﬁnedschedule);eachtruckhastodeliveritemstoone
+or more shops and then pallets and/or rolls are trans-
+ported from the storage lanes relevant to those shops
+to the buffer area of the gate at which the truck is
+parked. A forkliftAGVmovestotheopensideofthe
+lane,entersthe lanehorizontally,pickseither1pallet
+or 1 roll or 2 rolls up, exits the lane, travels towards
+therelevantgatewhereitdropsthepallet/roll(s)offin
+a dedicated zone next to the buffer area of the gate
+(drop-off area). This sequence of operations made
+by an AGV (empty transfer, pick-up, transportation,
+drop-off)represents a single task to be accomplished
+by the transportation resource. Activities end when
+all palletsandrollshavebeendelivered.
+2.1 The System Model
+In order to obtain a system model which allows rep-
+resenting the behaviour of AGVs in the distribution
+warehouse, the layout (in particular, the horizontal
+andtheverticalaisles)isdividedintocellsofapprox-
+imately the same size (0.8-1 m ×0.8-1 m) so that
+a forklift AGV occupies 3 cells when moving in the
+warehouse,as illustrated in Figure 2. The position of
+aforkliftAGVisdeﬁnedbythecellwhichisoccupied
+bytheextremitiesoftheforks,andbythedirectionof
+the AGV which is speciﬁed by the “truck” part of it
+(then, an AGV has north direction when its forks are
+down-sidewithrespecttothetruck,haseastdirection
+when its forks are left-side, and so on, for example,
+the AGV which is in the aisle V1B has north direc-
+tion). The state of a forklift AGV consists of the po-
+sition and the load which is transported (no load, 1
+pallet,1roll,2rolls).
+An AGV is allowed to execute three kindsof ele-
+mentary movements: move straight, rotate 90◦, and
+turn; they lead to eight “basic actions” which are:
+movenorth,moveeast,movesouth,movewest,rotate
+90◦clockwise,rotate90◦counterclockwise,turnleft,
+andturnright. A forkliftAGVwitha certainposition
+is allowed to perform one or more basic actions (for
+example,with referenceto Figures1 and 2, the AGV
+which is in the aisle H2A can either move west or
+rotate counterclockwise or turn left; turn right is not
+allowed since the presence of the corner of the stor-
+age lane). All trips, from whichever cell to another
+different cell, can be deﬁned as a sequence of basic
+actions. Other movementsare relevantto the loading
+andunloadingactivities; inthiscase,aloadingaction
+includesallthebasicmovementswhicharenecessary
+to enter a lane, to place the AGV in the right posi-
+tion,topickthepalletortheroll(s)up,andtoexitthe
+lane; in the same way, an unloading action includes
+all the basic movementswhichare necessaryto placeICINCO2014-11thInternationalConferenceonInformaticsinControl,AutomationandRobotics
+736
+
+
+--- Page 4 ---
+Figure2: The system model.
+theAGVintherightpositionandtodropthepalletor
+theroll(s)off.
+It is worth remarking that the proposed model
+can be quite easily enhanced by adding further basic
+movements, such as, for example, a diagonal move-
+ment to be used to change lane when travelling an
+aisle; the new movements would be then modelled
+within the CPN representationbyfollowingthe same
+reasoning lines used to model the three kinds of el-
+ementary movements here taken into account (de-
+scribed in section 3). In any case, the considered ba-
+sicmovementsallowstheAGVstofreelytravelinthe
+warehouse,thatis,theAGVscanrunthroughanaisle
+in any direction and to do that they can stay in the
+middleorin anyoftheside partsoftheaisle.
+2.2 OnRepresenting theSystem Model
+by means ofColoured Petri Nets
+The system model is represented in this paper bymeans of coloured Petri nets (CPNs), with the aim
+ofprovidingaformalmodeltobeusedtoanalysethe
+performanceofthesystem,todeﬁnedeadlockpreven-
+tion and recovery strategies, and to simulate AGVs
+tasks. The choice of using CPNs, instead of (classic)
+Petri nets, is due to the need of representing differ-
+ent types of loads (pallets and rolls), different states
+ofthe AGV(empty,loadedwith 1pallet, loadedwith
+1 roll, or loaded with 2 rolls), and different states of
+the cells whichformthe layout. The adoptedclass of
+CPN is the one proposed in (Jensen and Kristensen,
+2009),whosedeﬁnitionisthefollowing.
+Deﬁnition 1. A (non-hierarchical) Coloured Petri
+Net is a nine-tuple CPN = (P,T,A,Σ,V,C,G,E,I),
+where:
+1. P isaﬁniteset of places;
+2. T isaﬁniteset oftransitions(P ∩T=/0);
+3. A⊆P×T∪T×Pisaset ofdirectedarcs;
+4.Σis aﬁniteset ofnonemptycoloursets; APetriNetModelforanOpenPathMulti-AGVSystem
+737
+
+
+--- Page 5 ---
+5. V is a ﬁnite set of typed variables such that
+Type[v]∈Σforall variablesv ∈V;
+6. C:P→Σis a colour set function that assigns a
+colourset to eachplace;
+7. G:T→ExprVis a guard function that assigns a
+guard to each transitiont such that Type[G(t)]=
+Bool;
+8. E:A→ExprVis an arc expression function that
+assigns an arc expression to each arc a such that
+Type[E(a)] =C(p)MS, where p is the place con-
+nectedtothe arca;
+9. I:P→Expr/0isaninitializationfunctionthatas-
+signs an initialization expression to each place p
+suchthat Type[I(p)]=C(p)MS.
+In the proposed model, the i-th cell of the layout
+is modelled through two places, namely, piandsi.
+Placepimodelsthepresenceofa forkliftAGVin the
+cell, in particular, the presence of the extremities of
+the forks(then,each AGV, evenif it physicallyoccu-
+pies 3 cells, is represented by a single token moving
+throughplaces pi). Placesirepresentsthestate of the
+cell, which is deﬁned on the basis of the following
+safety-relatedconsiderations.
+In an open path multi-AGV system, in which
+AGVs can move freely in the system layout, safety
+is of primary importance. In the proposed system,
+safety is guaranteed by assuming that no AGV can
+be in any of the cells that are adjacent to the three
+occupied by another AGV. In this way, there is al-
+ways 0.8-1 meter (at least) between two AGVs. In
+Figure 2, the light grey cells surrounding each AGV
+arethosethatcannotbeoccupiedbyanotherAGV.In
+other words, an AGV physically occupies three cells
+(the dark grey cells) and virtually occupies a maxi-
+mum of 12 cells (the light grey ones). Then, before
+executinganyactionormovement,itisalwaysneces-
+saryto verifyif sucha safetyconstraintis satisﬁed or
+not (in this connection, note that cells that are virtu-
+ally occupied by an AGV can be also virtually occu-
+pied by another AGV). In the rest of the paper, a cell
+is:
+•“O”(occupied)whenit is physicallyoccupied;
+•“V”(virtual)whenitis virtuallyoccupied;
+•“A”(available)ifitisneitherphysicallynorvirtu-
+allyoccupied.
+Further places of the CPN model are relevant to
+the storage lanes and to the drop-off areas. Place la
+represents the a-th storage lanes (the marking of la
+modelsthepresenceofpalletsand/orrollstobetrans-
+ported),whereasplace dbrepresentsthe b-thdrop-off
+area(themarkingof dbmodelsthepresenceofpallets
+and/orrollsthat arereadytobeloadedonthe truck).Onthebasisofsuchconsiderations,thefollowing
+setsP,Σ,C,VcharacterizetheproposedCPNmodel.
+P={pi,si,la,db;
+i=1,...,N,a=1,...,L,b=1,...,D}(1)
+beingN,L,andD,thenumberofcellswhichformthe
+layout,thenumberofstoragelanesandthenumberof
+drop-offareas/gates,respectively;
+Σ={CELL,LOAD,LTYPE,NO,DIR,
+LTYPE×NO×DIR}(2)
+wherethecoloursetsin(2)aredeﬁnedas
+CELL={O,V,A} (3)
+LOAD={P,R} (4)
+LTYPE={none,P,R} (5)
+NO={0,1,2} (6)
+DIR={N,E,S,W} (7)
+(P and R stand for pallet and roll, respectively; N, E
+S, and W stand for north, east, south, and west, re-
+spectively);
+C(pi)=LTYPE×NO×DIRi=1,...,N(8)
+C(si)=CELLi=1,...,N (9)
+C(la)=LOADa=1,...,L(10)
+C(db)=LOADb=1,...,D(11)
+V={ci:CELL;q:LOAD;l:LTYPE; n:NO;
+d:DIR;i=1,...,N}(12)
+The transitions of the CPN represent the execu-
+tionsofthebasic actions. Set Tisdeﬁnedasfollows.
+T={ti−j,ti−i,tP
+i−a,tD
+i−b;
+(i,j)∈E,(i,a)∈L,(i,b)∈D}(13)
+being E,L, and Drespectively the set of pairs (i,j)
+such that it exists an elementary movement (move
+straightorturn)whichcarriesan AGVfromthecell i
+to the cell j, the set of pairs (i,a)such that the cell i
+is next to the storagelane a, and the set of pairs (i,b)
+suchthatthe cell icorrespondsto thedrop-offarea b.
+Then, transitions of type ti−jare relevant to a move
+straightoraturnaction,thoseoftype ti−iarerelevant
+toarotateaction,whereastransitionsoftypes tP
+i−aand
+tD
+i−bmodelrespectivelya pick-upactivityand a drop-
+offone.ICINCO2014-11thInternationalConferenceonInformaticsinControl,AutomationandRobotics
+738
+
+
+--- Page 6 ---
+3 THE CPN MODEL
+The CPN representing the whole system can be ob-
+tained bysuitablymergingthe netsrepresentingeach
+cell. SincethesetofactionsthatanAGVcantakede-
+pends on the position of the AGV in the system lay-
+out, such nets can be different one from another. In
+order to generalize the behaviour of an AGV within
+a distribution warehouse of the consideredclass, it is
+possible to refer to the generic portionof system lay-
+outillustratedinFigure3,whichconsistsof121cells
+(11×11 grid). Such a portion is generic in the sense
+that all basic actions (move straight, rotate 90◦, and
+turn) are allowed for an AGV with the extremities of
+the forks in the central cell, namely c 61, and having
+any direction (the AGV in Figure 3 has north direc-
+tionbutit isevidentthat it canhaveanydirection).
+c1c2c3c4c5c6c7c8c9c10c11
+c12c13c14c15c16c17c18c19c20c21c22
+c23c24c25c26c27c28c29c30c31c32c33
+c34c35c36c37c38c39c40c41c42c43c44
+c45c46c47c48c49c50c51c52c53c54c55
+c56c57c58c59c60c61c62c63c64c65c66
+c67c68c69c70c71c72c73c74c75c76c77
+c78c79c80c81c82c83c84c85c86c87c88
+c89c90c91c92c93c94c95c96c97c98c99
+c100c101c102c103c104c105c106c107c108c109c110
+c111c112c113c114c115c116c117c118c119c120c121
+Figure3: AnAGVina generic portion of a system layout.
+Sinceeverypartofthesystemlayout(verticaland
+horizontal lanes, X-crossroads, T-crossroads, etc.)
+can be “mapped” to such generic portion of the sys-
+tem layout, the net representing the behaviour of an
+AGV in a speciﬁc cell can be obtained from the
+net representing the “meta-cell” c 61by removing all
+places,transitions,andarcswhichare“notinvolved”,
+that is, which refer to cells that are outside of the
+“mapped” part. An example relevant to a cell in the
+middle-right side of a vertical aisle will be provided
+in subsection3.3.
+3.1 BasicActions
+The 5 basic actions (move straight, rotate 90◦clock-
+wise, rotate 90◦counterclockwise, turn left, turn
+right)thatcanbetakenbytheAGVillustratedinFig-
+ure 3 are now described in detail. The states of theAGV and of the layout at the start of the movement
+arecharacterizedby:
+•Start position(cell)ofthe AGV :c61
+Start directionof theAGV :north
+•O-cellsinthe layout : c39, c50, c61
+V-cells in the layout : c27, c28, c29, c38, c40, c49,
+c51,c60,c62,c71,c72,c73
+It is worth noting that the 15 further actions that
+can be taken by the AGV in c 61when its direction is
+eastorsouthorwest canbeeasilyderivedfromthose
+hereconsidered.
+3.1.1 MoveStraight
+This action can be taken onlywhen the cells c 16, c17,
+andc18arenotO.
+START END
+Figure4: AGV’sbehavior inmove straight action.
+ThestatesoftheAGVandofthelayoutattheend
+ofthemovementarecharacterizedby:
+•Endposition(cell)of theAGV :c50
+Enddirectionof theAGV :north
+•O-cellsinthe layout : c28, c39, c50
+V-cells in the layout : c16, c17, c18, c27, c29, c38,
+c40,c49,c51,c60,c61,c62
+The states of the cells that have been “released” in
+consequence of the movement, namely c 71, c72, and
+c73, become either V or A dependingon the states of
+the cells c 59, c63, c70, c74, c81, c82, c83, c84, and c 85
+(for example, c 71is V if one of c 59, c70, c81, c82, c83
+isO, andisA otherwise).
+3.1.2 Rotate90◦Clockwise
+This action can be taken onlywhen cells the c 41, c52,
+andc63areA.
+START END
+Figure 5: AGV’sbehavior inrotate 90◦clockwise action.
+ThestatesoftheAGVandofthelayoutattheend
+ofthemovementarecharacterizedby: APetriNetModelforanOpenPathMulti-AGVSystem
+739
+
+
+--- Page 7 ---
+•Endposition(cell)of theAGV :c61
+EnddirectionoftheAGV : east
+•O-cellsin thelayout : c61,c62,c63
+V-cells in the layout : c49, c50, c51, c52, c53, c60,
+c64, c71, c72, c73, c74, c75
+The states of the cells that havebeen releasedin con-
+sequence of the movement, namely c 27, c28, c29, c38,
+c39, and c40, become either A or V depending on the
+states of the cells c 15, c16, c17, c18, c19, c26, c37, and
+c48(cellsc 39andc40becomeA forcertain).
+3.1.3 Rotate90◦Counterclockwise
+Thisactionisverysimilartotherotate90◦clockwise
+action; the details are not given as they can be eas-
+ily derived on the basis of what reported in subsec-
+tion3.1.2.
+3.1.4 Turn Left
+This action can be taken onlywhen the cells c 14, c15,
+andc16areA.
+START END
+Figure 6: AGV’sbehavior inturnleftaction.
+ThestatesoftheAGVandofthelayoutattheend
+ofthemovementarecharacterizedby:
+•Endposition(cell)of theAGV :c16
+EnddirectionoftheAGV : west
+•O-cellsin thelayout : c14,c15,c16
+V-cells in the layout : c2, c3, c4, c5, c6, c13, c17,
+c24, c25, c26, c27, c28
+The states of the cells that havebeen releasedin con-
+sequence of the movement, namely c 29, c38, c39, c40,
+c49, c50, c51, c60, c61, c62, c71, c72, and c 73, become
+eitherA orV dependingonthe statesof thecells c 18,
+c19, c30, c37, c41, c48, c52, c59, c63, c70, c74, c81, c82,
+c83, c84, and c85(cells c 39, c50, and c61becomeA for
+certain).
+3.1.5 Turn Right
+This action is very similar to the turn left action; the
+details are not given as they can be easily derived on
+thebasisofwhatreportedinsubsection3.1.4.3.1.6 OtherActions(Pick-upand Drop-off)
+When an AGV is in a vertical aisle, has east or west
+direction,andis in a cell nextto a storage lane,it can
+pick-upa load in the lane (if any)if it is either empty
+(in this case it can pick-up either 1 pallet or 1 roll or
+2rolls)orcarrying1roll(inthiscaseitcanpick-up1
+roll). For what concerns the availability (physical or
+virtual) of cells, the pick-up activity does not require
+speciﬁcconditionstobefulﬁlledasit isassumedthat
+the cells that are O and V when the activity starts,
+remain in their state throughout the execution of the
+activity.
+Similarly,whenanAGVhaseastorwestdirection
+andisinacellwhichcorrespondstoadrop-offarea,it
+candrop-offitsload(s). Asbefore,thedrop-offactiv-
+itydoesnotrequirespeciﬁc conditionsonthestate of
+thenearcells(alsointhiscasethecellsthatareOand
+Vatthebeginningremainintheirstatethroughoutthe
+executionoftheactivity).
+3.2 The CPN Model oftheMeta-cell
+The coloured Petri net which models all the consid-
+eredbehavioursofanautomaticguidedvehiclewhich
+isincellc 61ofthe11×11layoutportionrepresented
+in Figure 3, is illustrated in Figure 7. Such a net is
+undoubtedly complex due to the presence of several
+arcs. However,in orderto evaluatethe complexityof
+the netsthat are generated,it isnecessaryto take into
+accountthefactthatonlyasubsetofbasicactionsare
+allowed in each of the cells which are present in the
+layout of the class of warehouses considered in this
+paper(such as the one illustratedin Figures1 and 2);
+this signiﬁcantly reduces the number of transitions.
+Moreover, since the aisles are 3 cells wide, the tran-
+sitions representing the basic actions will be actually
+connected with a reduced number of siplaces; this
+greatlyreducesthenumberofarcs.
+Inthisconnection,inthefollowingsubsectionthe
+CPN representinga speciﬁc part in the layout of Fig-
+ure2(acellinthemiddle/rightsideoftheaisleV2A)
+is described. It can be derived from the generic one
+illustrated in Figure 7 but it has a limited number of
+transitionsandespeciallyarcs.
+Before describing such a simpler net, it is worth
+noting that the places representing the state of a cell,
+namelysi,i=1,...,N, always contains 1 and only
+1 token (or, equivalently, they are safe and always
+marked); however, the colour of the token of such
+placeschangesonthebasisoftheevolutionoftokens
+throughplaces pi,i=1,...,N,inaccordancewiththe
+arc expressionfunction(places piare safe but not al-
+waysmarked).ICINCO2014-11thInternationalConferenceonInformaticsinControl,AutomationandRobotics
+740
+
+
+--- Page 8 ---
+s2s3s4s5s6s7s8s9s10
+s12s13s14s15s16s17s18s19s20s21s22
+s23s24s25s26s27s28s29s30s31s32s33
+s34s35s36s37s38s39s40s41s42s43s44
+s45s46s47s48s49s50s51s52s53s54s55
+s56s57s58s59s60s61s62s63s64s65s66
+s67s68s69s70s71s72s73s74s75s76s77
+s78s79s80s81s82s83s84s85s86s87s88
+s89s90s91s92s93s94s95s96s97s98s99
+s100s101s102s103s104s105s106s107s108s109s110
+s112s113s114s115s116s117s118s119s120la
+dbp61p50p50
+p62
+p62
+p72 p72p60p60p16p16
+p54
+p54
+p106 p106p68p68p18p18
+p76
+p76
+p104 p104p46p46(MOVE NORTH)
+(MOVE EAST)
+(MOVE SOUTH)(MOVE WEST)
+(TURNLEFT)(TURNLEFT)
+(TURNLEFT)(TURNLEFT)
+(TURNRIGHT)
+(TURNRIGHT)
+(TURNRIGHT)(TURNRIGHT)
+(ROTATE)(PICK-UP)
+(DROP-OFF)
+Figure7: The CPNmodel of the meta-cell of the system layout.
+3.3 The CPN Model foraCell ina
+Vertical Aisle
+The speciﬁc CPN representing a cell in the middle /
+right side of a vertical aisle is illustrated in Figure 8.
+In such a cell, an AGV can pick-up loads (by ﬁring
+transition tP
+132−71), rotate (transition t132−132), leave
+the cell by moving either to north (transition t132−84)
+or to south(transition t132−135). The arc expressions1
+and the guard function which characterize such ac-
+tions are reported in the following subsections (the
+arc expressions, which update the state of the cells,
+arenotdiscussedforthesakeofbrevity).
+3.3.1 Action: MoveNorth
+ArcExpressions
+E(p132,t132−84)=1′(l,n,d)
+E(t132−84,p84)=1′(l,n,d)
+E(s74,t132−84)=1′c74E(t132−84,s74)=1′V
+E(s75,t132−84)=1′c75E(t132−84,s75)=1′V
+E(s78,t132−84)=1′VE(t132−84,s78)=1′O
+E(s130,t132−84)=1′c130E(t132−84,s130)=1′c130
+1In accordance with (Jensen and Kristensen, 2009), arc
+expressionsarespeciﬁedbyusingtheinﬁxoperator′which
+takes a positive integer as its left argument, specifying th e
+number of tokens of the colour provided as the right ar-
+gument that are removed from (resp., added to) the place
+whichis the origin(resp., the destination) of the arc.E(s132,t132−84)=1′OE(t132−84,s132)=1′V
+E(s133,t132−84)=1′c133E(t132−84,s133)=1′c133
+E(s134,t132−84)=1′V
+E(t132−84,s134)=if(c130=O)∨(c133=O)
+∨(c193=O)∨(c194=O)∨(c195=O)then1′V
+else 1′A
+E(s135,t132−84)=1′V
+E(t132−84,s135)=if(c194=O)∨(c195=O)
+then1′Velse 1′A
+E(s193,t132−84)=1′c193E(t132−84,s193)=1′c193
+E(s194,t132−84)=1′c194E(t132−84,s194)=1′c194
+E(s195,t132−84)=1′c195E(t132−84,s195)=1′c195
+GuardFunction
+G(t132−84)=(d=N)∧/bracketleftbig
+(c74/ne}ationslash=O)∧(c75/ne}ationslash=O)/bracketrightbig
+The AGV can move towards north if its direction
+isNandifthetwocellsc 74andc75arenotphysically
+occupied.
+3.3.2 Action: Rotate
+ArcExpressions
+E(p132,t132−132)=1′(l,n,d)
+E(t132−132,p132)=1′(l,n,e)
+E(s73,t132−132)=1′c73E(t132−132,s73)=1′c73 APetriNetModelforanOpenPathMulti-AGVSystem
+741
+
+
+--- Page 9 ---
+c76c77c78
+c79c80c81
+c82c83c84
+c130c131c132
+c133c134c135
+c193c194c195
+c196c197c198STORAGE
+LANEN.71
+l71p132t84−132 t132−84
+t132−135 t135−132t132−132 tP
+132−71s73 s74 s75
+s76 s77 s78
+s79 s80 s81
+s82 s83 s84
+s130 s131 s132
+s133 s134 s135
+s193 s194 s195
+s196 s197 s198
+s199 s200 s201FROM
+FROMTO
+TOp84 p84
+p135 p135
+Figure 8: Speciﬁc CPNmodel for a cell inthe middle/right sid e ofa vertical aisle.
+E(s74,t132−132)=1′c74E(t132−132,s74)=1′c74
+E(s75,t132−132)=1′c75E(t132−132,s75)=1′c75
+E(s77,t132−132)=select case (d,e): case(N,W)→
+1′V; else→1′c77
+E(t132−132,s77)=select case (d,e): case(N,W)→
+if(c73=O)∨(c74=O)∨(c75=O)then1′V
+else 1′A; case(W,N)→1′V;else→1′c77
+E(s78,t132−132)=select case (d,e): case(N,W)→
+1′V; else→1′c78
+E(t132−132,s78)=select case (d,e): case(N,W)→
+if(c74=O)∨(c75=O)then1′Velse 1′A;
+case(W,N)→1′V; else→1′c78
+E(s79,t132−132)=selectcase (d,e): case/bracketleftbig
+(N,W)
+∨(W,N)/bracketrightbig
+→1′A; else→1′c79
+E(t132−132,s79)=selectcase (d,e): case/bracketleftbig
+(N,W)
+∨(W,N)/bracketrightbig
+→1′A; else→1′c79
+E(s80,t132−132)=select case (d,e): case(N,W)→
+1′V; case(W,N)→1′A; else→1′c80E(t132−132,s80)=select case (d,e): case(N,W)→
+1′A;case(W,N)→1′V;else→1′c80
+E(s81,t132−132)=select case (d,e): case(N,W)→
+1′O;case(W,N)→1′A;else→1′c81
+E(t132−132,s81)=select case (d,e): case(N,W)→
+1′A;case(W,N)→1′O;else→1′c81
+E(s82,t132−132)=select case (d,e): case(N,W)→
+1′A;case(S,W)→1′c82; else→1′V
+E(t132−132,s82)=select case (d,e): case(W,N)→
+1′A;case(W,S)→if(c79=O)∨(c80=O)
+then1′V else 1′A; else→1′V
+E(s84,t132−132)=select case (d,e): case(N,W)→
+1′O;else→1′V
+E(t132−132,s84)=select case (d,e): case(W,N)→
+1′O;else→1′V
+E(s130,t132−132)=select case (d,e): case/bracketleftbig
+(N,W)
+∨(S,W)/bracketrightbig
+→1′A;else→1′OICINCO2014-11thInternationalConferenceonInformaticsinControl,AutomationandRobotics
+742
+
+
+--- Page 10 ---
+E(t132−132,s130)=select case (d,e): case/bracketleftbig
+(N,W)
+∨(S,W)/bracketrightbig
+→1′O; else→1′A
+E(s131,t132−132)=select case (d,e): case/bracketleftbig
+(N,W)
+∨(S,W)/bracketrightbig
+→1′V; else→1′O
+E(t132−132,s131)=select case (d,e): case/bracketleftbig
+(N,W)
+∨(S,W)/bracketrightbig
+→1′O; else→1′V
+E(s133,t132−132)=selectcase (d,e): case(N,W)→
+1′c133; case(S,W)→1′A; else→1′V
+E(t132−132,s133)=selectcase (d,e): case(W,N)→
+if(c193=O)∨(c194=O)then1′Velse 1′A;
+case(W,S)→1′A; else→1′V
+E(s135,t132−132)=select case (d,e): case(S,W)→
+1′O; else→1′V
+E(t132−132,s135)=select case (d,e): case(W,S)→
+1′O; else→1′V
+E(s193,t132−132)=select case (d,e): case/bracketleftbig
+(S,W)
+∨(W,S)/bracketrightbig
+→1′A; else→1′c193
+E(t132−132,s193)=select case (d,e): case/bracketleftbig
+(S,W)
+∨(W,S)/bracketrightbig
+→1′A; else→1′c193
+E(s194,t132−132)=select case (d,e): case(S,W)→
+1′V; case(W,S)→1′A; else→1′c194
+E(t132−132,s194)=select case (d,e): case(S,W)→
+1′A; case(W,S)→1′V; else→1′c194
+E(s195,t132−132)=select case (d,e): case(S,W)→
+1′O; case(W,S)→1′A; else→1′c195
+E(t132−132,s195)=select case (d,e): case(S,W)→
+1′A; case(W,S)→1′O; else→1′c195
+E(s197,t132−132)=select case (d,e): case(S,W)→
+1′V; else→1′c197
+E(t132−132,s197)=select case (d,e): case(S,W)→
+if(c199=O)∨(c200=O)∨(c201=O)then1′V
+else 1′A; case(W,S)→1′V; else→1′c197
+E(s198,t132−132)=select case (d,e): case(S,W)→
+1′V; else→1′c198
+E(t132−132,s198)=select case (d,e): case(S,W)→
+if(c200=O)∨(c201=O)then1′Velse 1′A;
+case(W,S)→1′V; else→1′c198
+E(s199,t132−132)=1′c199E(t132−132,s199)=1′c199
+E(s200,t132−132)=1′c200E(t132−132,s200)=1′c200
+E(s201,t132−132)=1′c201E(t132−132,s201)=1′c201GuardFunction
+G(t132−132)=/braceleftbig
+(d=N)∧(e=W)∧/bracketleftbig
+(c79=A)
+∧(c82=A)∧(c130=A)/bracketrightbig/bracerightbig
+∨/braceleftbig
+(d=W)
+∧/bracketleftbig/bracketleftbig
+(e=N)∧/bracketleftbig
+(c79=A)∧(c80=A)
+∧(c81=A)/bracketrightbig/bracketrightbig
+∨/bracketleftbig
+(e=S)∧/bracketleftbig
+(c193=A)
+∧(c194=A)∧(c195=A)/bracketrightbig/bracketrightbig/bracketrightbig/bracerightbig
+∨/braceleftbig
+(d=S)
+∧(e=W)∧/bracketleftbig
+(c130=A)∧(c133=A)
+∧(c193=A)/bracketrightbig/bracerightbig
+TheAGVcanrotate:
+•counterclockwise, from direction N to W, if its
+direction is N and if the three cells c 79, c82, and
+c130are available;
+•clockwise, from direction W to N, if its direction
+is W and if the three cells c 79, c80, and c 81are
+available;
+•counterclockwise,fromdirectionWtoS,ifitsdi-
+rection is W and if the three cells c 193, c194, and
+c195are available;
+•clockwise, from direction S to W, if its direction
+is S and if the three cells c 130, c133, and c 193are
+available.
+3.3.3 Action: MoveSouth
+ArcExpressions
+E(p132,t132−135)=1′(l,n,d)
+E(t132−135,p135)=1′(l,n,d)
+E(s79,t132−135)=1′c79E(t132−135,s79)=1′c79
+E(s80,t132−135)=1′c80E(t132−135,s80)=1′c80
+E(s81,t132−135)=1′c81E(t132−135,s81)=1′c81
+E(s82,t132−135)=1′c82E(t132−135,s82)=1′c82
+E(s83,t132−135)=1′V
+E(t132−135,s83)=if(c79=O)∨(c80=O)
+∨(c81=O)∨(c82=O)∨(c130=O)then1′V
+else1′A
+E(s84,t132−135)=1′V
+E(t132−135,s84)=if(c80=O)∨(c81=O)
+then1′Velse 1′A
+E(s130,t132−135)=1′c130E(t132−135,s130)=1′c130
+E(s132,t132−135)=1′OE(t132−135,s132)=1′V
+E(s198,t132−135)=1′VE(t132−135,s198)=1′O
+E(s200,t132−135)=1′c200E(t132−135,s200)=1′V
+E(s201,t132−135)=1′c201E(t132−135,s201)=1′V APetriNetModelforanOpenPathMulti-AGVSystem
+743
+
+
+--- Page 11 ---
+GuardFunction
+G(t132−135)=(d=S)∧/bracketleftbig
+(c200/ne}ationslash=O)∧(c201/ne}ationslash=O)/bracketrightbig
+The AGV can move towards south if its direction
+is S and if the two cells c 200and c201are not physi-
+callyoccupied.
+3.3.4 Action: Pick-upPallet/Roll(s)
+ArcExpressions
+E(l71,tP
+132−71)=m′q
+E(p132,tP
+132−71)=1′(l,n,d)
+E(tP
+132−71,p132)=1′(q,n+m,d)
+GuardFunction
+G(tP
+132−71)=(d=W)∧(m≥1)∧/braceleftbig/bracketleftbig
+(n=0)
+∧(l=none)∧/bracketleftbig/bracketleftbig
+(m=1)∧(q=P)/bracketrightbig
+∨/bracketleftbig
+(m≤2)
+∧(q=R)/bracketrightbig/bracketrightbig/bracketrightbig
+∨/bracketleftbig
+(n=1)∧(l=R)∧(m=1)
+∧(q=R)/bracketrightbig/bracerightbig
+Firstofall,theAGVcanpick-uploadsifitsdirec-
+tion is W, and some loads are present in the storage
+lane; moreover,an unloadedAGV can pick-upeither
+1 pallet or 1 roll or 2 rolls (if available), whereas a
+loaded AGV can pick-up 1 roll if its actual load is 1
+roll.
+4 DEADLOCK ISSUES
+Deadlocksmay blocka multi-AGVsystem, and such
+an issue is indeed critical in open path multi-AGV
+systems. In the considered class of systems, some
+strategiesare takenintoaccountto preventdeadlocks
+and to recover from them. However, it is worth not-
+ingthatthispaperisfocusedonthemodellingaspects
+ofadistributionwarehouse;therefore,suchstrategies
+arehereonlybrieﬂydiscussed,withnoclaimofbeing
+exhaustive.
+4.1 Deadlock Prevention
+The deadlock prevention strategies which are pro-
+posed consist, as usually done in this ﬁeld, in apply-
+ing some constraints to the behaviour of the forklift
+AGVs,sothattheprobabilitythattwoormoreAGVs
+incur in a deadlock is reduced. The constraints will
+be formalizedin the CPN as GeneralizedMutual Ex-
+clusion Constraints (GMEC) which are implemented
+byaddingsomemonitorplaceswhosemarkingeitherpreventsor allows the ﬁring of transitions, on the ba-
+sisofthe actualsystemstate.
+Intheconsideredclassofdistributionwarehouses,
+in which lanes are wide 3 cells, a ﬁrst set of con-
+straintsfordeadlockpreventionisthefollowing:
+•two AGVs at most can travel in the same aisle
+(bothhorizontalandvertical);
+•if twoAGVstravelinthesame aisle:
+–theycannotusethe centrallane;
+–they can use the same lane only if they have
+identicaldirection;
+•only one AGV can approach the nine cells of a
+crossroadat a time.
+Suchconstraintsworkwellwhenthenumberoffork-
+lift AGVs is limited (for example, 6-8 AGVs in the
+distributionwarehouseillustratedinFigures1and2).
+However, these deadlock prevention strategies are
+not sufﬁcient to guarantee the absence of deadlocks,
+since, for example, it can happen that an AGV in
+an aisle may require, to complete its turn action, the
+roomofanotheraislewhichisactuallyoccupiedbyan
+AGV that, in turn, needs to go to the room occupied
+by the ﬁrst AGV. For this reason, deadlock recovery
+strategiesarealso consideredinthe model.
+4.2 Deadlock Recovery
+The recovery strategy consists in forcing the over-
+comeof the deadlocksituationafter a certain amount
+of time. This is accomplished by the AGVs which
+areassumedtobeautonomouslyabletorecoverfrom
+a deadlock situation by performingsome speciﬁc ac-
+tions;when,forexample,anAGVencountersanother
+AGVandadeadlockoccurs(becauseeachofthetwo
+AGVs has to go to the room occupied by the other
+one), the two AGVs stop their nominal movements
+and perform some speciﬁc actions which allow them
+to swap their position, thus overcomingthe deadlock
+situation. Such actions are carried out safely, being
+the AGVs equipped with lasers to detect obstacles or
+otherAGVs.
+ThiscapabilityofAGVsismodelledintotheCPN
+by adding some net structures (places, timed transi-
+tions,andarcs)whichrecoverdeadlocksaftertheesti-
+matedamountoftime. Inparticular,theaddedtransi-
+tions are enabled by the possible deadlock markings;
+whenadeadlockoccurs,oneofthesetransitionsisen-
+abled andthuscan ﬁre; the ﬁring drivesthe CPN to a
+newmarkingin whichthe deadlockhasbeensolved.ICINCO2014-11thInternationalConferenceonInformaticsinControl,AutomationandRobotics
+744
+
+
+--- Page 12 ---
+5 CONCLUSIONS
+A coloured Petri net model of a distribution ware-
+house,inwhichAGVsmovepalletsandrollsfromthe
+storage area to the gates of the warehouse, has been
+describedinthispaper. TheAGVsystemisopenpath
+and the proposed CPN model is able to represent the
+behaviourofavariablenumberofAGVswhichfreely
+travelonthesystemlayout. Toensuresafety,thepro-
+posed CPN model includes colours, guards and arc
+expressions which constrain each AGV to be at least
+0.8-1meterdistantfromanyotherAGV.
+This CPN model has been also used to build
+a discrete-event simulator of the distribution ware-
+house. Such a simulator, implemented in Extend-
+Sim, is currently used to test a scheduling procedure
+(based on the solution of some mathematical pro-
+grammingproblemsanda heuristicalgorithm)aimed
+atassigningtheAGVstothetruckswhicharriveatthe
+warehouseandsequencingtransportationtasksonthe
+AGVs. Moreover,theuseoftheproposedCPNmodel
+for determining the actual paths that the AGVs have
+tobefollowtominimizetraveltimesandtoreducein-
+teractionswithotherAGVsiscurrentlyinvestigated.
+ACKNOWLEDGEMENTS
+This work has been supported by A.I.R.O.N.E.
+project funded by European Union and Regione Lig-
+uria (Italy) under POR-FESR 2007/2013. Special
+thanks to the partners of the project: Softeco Sismat
+SpA,SogegrossSpA,andGenovaRobotSrl.
+REFERENCES
+Aized,T.(2009).Modellingandperformancemaximization
+of an integrated automated guided vehicle system us-
+ing coloured Petri net and response surface methods.
+Computers and Industrial Engineering , 57(3):822–
+831.
+Ajmone Marsan, M., Conte, G., and Balbo, G. (1984). A
+class of Generalized Stochastic Petri Nets for the per-
+formance evaluationof multiprocessor systems. ACM
+Transactions onComputer Systems , 2(2):93–122.
+Castillo, I., Reyes, S. A., and Peters, B. A. (2001). Model-
+ingandanalysisoftandemAGVsystemsusinggener-
+alizedstochasticPetrinets. Journal ofManufacturing
+Systems, 20(4):236–249.
+Dotoli, M. and Fanti, M. (2004). Coloured timed Petri net
+modelforreal-timecontrolofautomatedguidedvehi-
+cle systems. International Journal of Production Re-
+search, 42(9):1787–1814.
+Duinkerken, M. B., ter Hoeven, T., and Lodewijks, G.
+(2006). Simulating the operational control of freeranging AGVs. In Perrone, L. F., Wieland, F. P., Liu,
+J., Lawson, B.G., Nicol, D. M., andFujimoto, R. M.,
+editors,Proceedings of the 2006 Winter Simulation
+Conference , pages 1515–1522.
+Holloway,L.E.andKrogh,B.H.(1990). Synthesisoffeed-
+back control logic for a class of controlled Petri nets.
+IEEE Transactions on Automatic Control , 35(5):514–
+523.
+Hsieh, S. (1998). Synthesis of AGVS by coloured-timed
+Petri nets. International Journal of Computer Inte-
+grated Manufacturing , 11(4):334–346.
+Hsieh, S. and Chen, Y.-F. (1999). AgvSimNet: A
+Petri-net-based AGVS simulation system. Interna-
+tional Journal of Advanced Manufacturing Technol-
+ogy, 15(11):851–861.
+Jensen, K. and Kristensen, L. M. (2009). Coloured Petri
+Nets. Springer.
+Le-Ahn,T.andDeKoster,M.B.M.(2006). Areviewofde-
+signandcontrolofautomatedguidedvehiclesystems.
+European Journal of Operational Research , 171:1–
+23.
+Lee, D. Y. and DiCesare, F. (1994). Integrated schedul-
+ing of ﬂexible manufacturing systems employing au-
+tomated guided vehicles. IEEE Transactions on In-
+dustrial Electronics , 41(6):602–610.
+Mart´ ınez-Barber´ a, H. and Herrero-P´ erez, D. (2010). Au-
+tonomous navigation of an automated guided vehicle
+in industrial environments. Robotics and Computer-
+Integrated Manufacturing , 26:296–311.
+Murata, T. (1989). Petri Nets: Properties, analysis and ap-
+plications. Proceedings of the IEEE ,77(4):541–580.
+Nishi, T. and Maeno, R. (2010). Petri net decomposition
+approach to optimization of route planning problems
+for AGV systems. IEEE Transactions on Automation
+Science and Engineering , 7(3):523–537.
+Nishi, T. and Tanaka, Y. (2012). Petri net decomposition
+approach for dispatching and conﬂict-free routing of
+bidirectionalautomatedguidedvehiclesystems. IEEE
+Transactions on Systems, Man, and Cybernetics Part
+A:Systems and Humans , 42(5):1230–1243.
+Petri, C. A. (1962). Kommunikation mit Automaten . Bonn:
+Institut f¨ ur Instrumentelle Mathematik, Schriften des
+IIMNr.2.
+Seelinger, M. and Yoder, J.-D. (2006). Automatic visual
+guidance of a forklift engaging a pallet. Robotics and
+Autonomous Systems , 54:1026–1038.
+Sen, A., Wang, C., Ristic, M., and Besant, C. (1991). The
+supervisory system of the imperial college free rang-
+ingautomated guided vehicle project. In Proceedings
+of the 1991 IEEE International Conference on Sys-
+tems,Man, andCybernetics , pages 1017–1022.
+Vis, I. F. A. (2006). Survey of research in the design and
+control of automated guided vehicle systems. Euro-
+pean Journal of Operational Research , 170:677–709.
+Wu,N.andZhou,M.(2005).Modelinganddeadlockavoid-
+ance ofautomatedmanufacturing systemswithmulti-
+pleautomated guidedvehicles. IEEETransactions on
+Systems, Man, and Cybernetics, Part B: Cybernetics ,
+35(6):1193–1202. APetriNetModelforanOpenPathMulti-AGVSystem
+745
