@@ -12,13 +12,13 @@
 
 ## 当前收录统计
 
-- 已收录普通类型论文：**54** 篇
+- 已收录普通类型论文：**59** 篇
 - 已收录综述类论文：**10** 篇
 - 本轮新增论文：**5** 篇
-- 已完成 `desc.md`：**54** 篇
+- 已完成 `desc.md`：**59** 篇
 - 已完成 `survey.md`：**10** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮工作：新增 5 篇机器人行为工程 / 仿真与工具链条目，覆盖 `FlexBE`、`VisualHFSM`、`RoboChart` 定时语义、`RoboSim`、`RoboChart/RoboTool` 设计到实现链路
+- 本轮工作：新增 5 篇应用型状态机执行载体条目，覆盖 `ARGO/Cortex`、`Embodied Agent / LLFSM + Whiteboard`、`DSD`、`Safety4.0 Dynamic FSM`、`AutoPlant/SMACH mission supervisor`
 
 ## 形式主义主类口径
 
@@ -31,7 +31,7 @@
 | 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 3 |
 | 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 | 5 |
 | 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 | 5 |
-| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 34 |
+| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 39 |
 
 ## 描述客体口径
 
@@ -42,8 +42,8 @@
 | 📝 | 序列 / 语言对象 | 主要描述字符串、事件序列、trace、多串关系等离散序列对象 | 3 |
 | 🌳 | 树 / 文档对象 | 主要描述树结构、XML 文档、层次内容或其他树形对象 | 1 |
 | 🖼️ | 网格 / 图案对象 | 主要描述二维 tape、图片、网格或格点对象 | 2 |
-| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 33 |
-| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 8 |
+| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 36 |
+| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 10 |
 | 🏭 | 并发过程 / 资源流 | 主要描述并发过程、工作流、token/资源流网络 | 4 |
 | 🌡️ | 物理 / 混成对象 | 主要描述物理装置、连续动力学对象或混成/CPS 对象 | 3 |
 
@@ -57,9 +57,9 @@
 | 💻 | 软件建模与程序行为 | 主要面向软件状态、程序行为、反应式软件或模型驱动开发 | 7 |
 | 📄 | 文档与数据交换 | 主要面向 XML、schema、文档结构与数据交换 | 0 |
 | ⏱️ | 实时与嵌入式系统 | 主要面向实时、调度、时序约束和嵌入式执行 | 7 |
-| 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 7 |
+| 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 8 |
 | 🌐 | 协议 / 分布式 / 交互系统 | 主要面向通信协议、服务交互、接口组合与分布式行为 | 6 |
-| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 22 |
+| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 26 |
 
 ## 状态口径
 
@@ -67,7 +67,7 @@
 
 | Emoji | 含义 | 数量 |
 |---|---|---:|
-| 🟢 | 直接可用 | 63 |
+| 🟢 | 直接可用 | 68 |
 | 🟡 | 可整理 | 1 |
 | ⚪ | 未收获 | 0 |
 | ⏳ | 尚未提取 | 0 |
@@ -88,7 +88,7 @@
 - 后续普通条目优先补**模型本体**与**标准/基础设施**，即定义、语义、构造方式、交换格式、元模型、工具链与标准材料。
 - 方法路线类论文或综述只作为辅助证据使用，前提是它们能说明某一形式主义“能做什么、如何落地、依赖什么基础设施”。
 - 应用/案例导向条目原则上不作为本 collection 的正式扩库方向，除非它同时补出了稳定的模型本体或基础设施证据。
-- 对 `SyncCharts / Argos / STATEMATE / SFC / Stateflow / StateGraph / Grafchart / RSML-SpecTRM / CHARON / Polychrony / RSML-e / JGrafchart + DPWS/FMI / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD` 这类专用模型或执行载体，若能稳定回填“对象、语义、承载方式、工具入口”，可正式入账。
+- 对 `SyncCharts / Argos / STATEMATE / SFC / Stateflow / StateGraph / Grafchart / RSML-SpecTRM / CHARON / Polychrony / RSML-e / JGrafchart + DPWS/FMI / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD / ARGO / Cortex / LLFSM / DSD / Safety4.0 / AutoPlant-SMACH` 这类专用模型或执行载体，若能稳定回填“对象、语义、承载方式、工具入口”，可正式入账。
 
 ## 检索关键词簇
 
@@ -101,7 +101,7 @@
 - `hybrid automata / probabilistic automata / stochastic automata / stochastic hybrid automata`
 - `petri net / colored petri net / timed petri net / PNML / hierarchical petri net`
 - `interface automata / I-O automata / contract automata / reactive modules`
-- `communicating finite-state machine / workflow net / reactive modules / synccharts / argos / statemate / stateflow / sequential function chart / stategraph / grafchart / spectrm-rl / rsml / rsml-e / charon / polychrony / dpws / fmi / plexil / missionlab / cdl / xabsl / flexbe / visualhfsm / robosim / xrobots / smach / smacha / rafcon / robochart / yasmin / merlin2 / scr / platoon manoeuvre / manoeuvre design language`
+- `communicating finite-state machine / workflow net / reactive modules / synccharts / argos / statemate / stateflow / sequential function chart / stategraph / grafchart / spectrm-rl / rsml / rsml-e / charon / polychrony / dpws / fmi / plexil / missionlab / cdl / xabsl / flexbe / visualhfsm / robosim / xrobots / smach / smacha / rafcon / robochart / yasmin / merlin2 / scr / argo / cortex / llfsm / dynamic stack decider / safety4.0 / smach mission supervisor / autoplant / platoon manoeuvre / manoeuvre design language`
 - `survey / review / tutorial / taxonomy / mapping study` + 上述形式主义关键词
 
 ### 已观察到的高命中特征
@@ -114,7 +114,7 @@
 - 精确形式主义名与框架名组合时命中率高，例如 `workflow net`、`synccharts esterel`、`stateflow semantics`、`stategraph modelica`、`argos statecharts`、`statemate semantics`、`grafchart process control`
 - 对需求/规程导向载体，`process control / requirements language / procedural operator support` 与精确语言名组合时命中率高，如 `spectrm-rl`、`rsml`、`grafchart`
 - 精确语言名再叠加基础设施关键词命中率也很高，例如 `charon hybrid systems`、`polychrony mode automata`、`rsml-e nusmv`、`grafchart dpws`、`jgrafchart fmi`
-- 对执行载体 / 领域 DSL，精确名称直接定点检索效果很好，例如 `plexil nasa tm`、`missionlab cdl`、`xabsl behavior engineering`、`flexbe behavior engine`、`visualhfsm jderobot`、`robosim robotics`、`rafcon task programming`、`robochart robotic applications`、`yasmin ros 2`
+- 对执行载体 / 领域 DSL，精确名称直接定点检索效果很好，例如 `plexil nasa tm`、`missionlab cdl`、`xabsl behavior engineering`、`flexbe behavior engine`、`visualhfsm jderobot`、`robosim robotics`、`rafcon task programming`、`robochart robotic applications`、`yasmin ros 2`、`argo cortex`、`llfsm whiteboard`、`dynamic stack decider`、`autoplant smach`
 - 对车队协同行为，`platoon manoeuvre state machine` 太宽，绑定 `SEAD / MDL / leader perspective / gap close` 后命中显著提升
 
 ### 已观察到的低命中特征
@@ -126,7 +126,7 @@
 - 只搜 `reactive state machine` 容易漂到泛软件工程或教学材料，而不是具体载体论文
 - 只搜 `process control state machine` 容易漂到一般控制案例、PLC 教程或工艺说明，而不是语言/载体论文
 - 只搜 `service-oriented automation` 或 `co-simulation state machine` 容易漂到中间件综述和一般 `FMI` 框架，而不是具体状态机载体
-- 只搜 `robot / ros 2 state machine`、`humanoid framework` 或 `robot simulation` 容易漂到课程项目、软件仓库说明或泛系统论文，难命中可入账条目
+- 只搜 `robot / ros 2 state machine`、`space robot autonomy`、`human robot collaboration safety fsm`、`humanoid framework` 或 `robot simulation` 容易漂到课程项目、软件仓库说明或泛系统论文，难命中可入账条目
 
 ### 检索倾向调整
 
@@ -137,9 +137,9 @@
 - `SCXML`、`Interface/Contract Automata` 已补基础条目，下一轮应继续补执行器/工具线与更早代表文献
 - 方法路线条目只在能够反向支撑某一形式主义的能力边界或基础设施条件时再跟进
 - 对应用/专用模型，优先用“精确形式主义名 + 框架名 + pdf/tech report/proceedings”检索，避免被泛领域关键词带偏
-- `SyncCharts / SFC / Stateflow / StateGraph / STATEMATE / Grafchart / SpecTRM-RL / CHARON / RSML-e / Polychrony / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD` 这类工程载体更适合直接搜准确名称，而不适合先走宽泛的 `state machine` 关键词
+- `SyncCharts / SFC / Stateflow / StateGraph / STATEMATE / Grafchart / SpecTRM-RL / CHARON / RSML-e / Polychrony / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD / ARGO / LLFSM / DSD / Safety4.0 / AutoPlant` 这类工程载体更适合直接搜准确名称，而不适合先走宽泛的 `state machine` 关键词
 - `Reactive Modules / Argos` 这类语义与组合框架更适合用精确标题或作者名定点命中，否则容易与泛“module / reactive”关键词发生漂移
-- 对 `DPWS / FMI / NuSMV / GME / Polychrony / CLARAty / JSON MDL / manoeuvre catalogue` 这类基础设施词，必须和精确形式主义名绑定检索，否则很容易被泛工具论文淹没
+- 对 `DPWS / FMI / NuSMV / GME / Polychrony / CLARAty / JSON MDL / manoeuvre catalogue / whiteboard / smach mission supervisor / dynamic risk assessment` 这类基础设施词，必须和精确形式主义名绑定检索，否则很容易被泛工具论文淹没
 
 ## 状态机类型论文总表
 
@@ -181,30 +181,35 @@
 | 28 | 📦 | 🎛️ | ⏱️ | `Polychronous Mode Automata` | 多时钟建模构件 | Polychronous Mode Automata | 2006 | 把多时钟数据流与 mode automata 统一到同一建模前端 | 弱/强抢占、多时钟、元模型扩展、Signal 编译 | `GME` metamodel + `Signal` equations + automata | `Polychrony` + `Signal-Meta` + `GME` | 航电与分布式嵌入式系统 | 需求同时含局部时钟、控制模式和数据流 | 🟢 | [desc.md](./polychronous-mode-automata/desc.md) |
 | 29 | 📦 | 🎛️ | 🌡️ | `PLEXIL` | 计划执行语言 / 执行载体 | Plan Execution Interchange Language (PLEXIL) | 2006 | 把 planner 输出统一落成可执行任务节点树 | node conditions、XML、lookup/command、deterministic execution | `NodeList/Command/Assignment` 树 + domain description + XML | universal executive + `CLARAty` + plan editor | 航天器 / 火星车自主任务执行 | 需求需显式命令接口、世界状态查询与时序条件 | 🟢 | [desc.md](./plan-execution-interchange-language-plexil/desc.md) |
 | 30 | 📦 | 🎛️ | 🌡️ | `XABSL` | 机器人行为语言 / 执行引擎 | XABSL - A Pragmatic Approach to Behavior Engineering | 2006 | 用 option hierarchy 组织复杂自主体行为 | option graph、activation path、symbols、basic behaviors、debugging | `XABSL` DSL + decision trees + XML/intermediate code | Ruby compiler + `XabslEngine` + monitor/profiler | RoboCup 与动态机器人行为控制 | 需求需可抽成层次技能、符号接口和 basic behaviors | 🟢 | [desc.md](./xabsl-a-pragmatic-approach-to-behavior-engineering/desc.md) |
-| 31 | 📦 | 🎛️ | 🌡️ | `Stateflow` | 形式语义 | An Operational Semantics for Stateflow | 2007 | 把工业 `Stateflow` chart 形式化为顺序化图形状态机语义 | junction、local events、`12 o'clock` ordering、安全子集 | states/junctions/transitions + linearized SOS | `Matlab/Simulink/Stateflow` 生态成熟 | 嵌入式控制器、混成系统离散部分 | 需求最终落到 `Stateflow` 工具链且接受工具优先级 | 🟢 | [desc.md](./an-operational-semantics-for-stateflow/desc.md) |
-| 32 | 🕸️ | 🏭 | ⏱️ | `Time Petri Nets` | 教程讲义 | Time Petri Nets Part II: State Class based methods | 2008 | 在并发网上加入时间区间 | 静态区间、state class graph | P/T 网 + 变迁时间区间 | TINA 线成熟，标准格式较弱 | 实时并发流程与调度 | 并发资源流 + 时间窗口 | 🟢 | [desc.md](./time-petri-nets/desc.md) |
-| 33 | 🧩 | 🌳 | 🧮 | `Tree Automata` | 教程专著 | Tree Automata Techniques and Applications | 2008 | 识别树、项与层次结构语言 | bottom-up、top-down、determinization、decision problems | ranked alphabet + 状态 + 树重写规则 | 理论与算法成熟，XML/hedge 在线路上衔接强 | AST、term rewriting、schema-like structural validation | 输入需显式树/项结构而非平坦事件串 | 🟢 | [desc.md](./tree-automata-techniques-and-applications/desc.md) |
-| 34 | 📦 | 🎛️ | 🏭 | `ModeGraph` | 工具/库 | ModeGraph - A Modelica Library for Embedded Control Based on Mode-Automata | 2008 | 在 Modelica 中实现安全层次状态机与 mode-automata 执行 | single-assignment、delayed transition、preemption、parallel | `Step/Transition/Composite/Parallel` + mode equations | Modelica 工具链明确，需语言扩展，无独立交换标准 | 嵌入式控制、混合控制、工业逻辑 | 需求需安全模式切换并与 Modelica 模型协同 | 🟢 | [desc.md](./modegraph-modelica-library-for-embedded-control-based-on-mode-automata/desc.md) |
-| 35 | 🧩 | 📝 | 🧮 | `Weighted Automata` | 手册章节 | Weighted Automata Algorithms | 2009 | 在自动机/转导器上附加 semiring 权值 | semiring、path weight、determinization、minimization | 图结构 + label + weight + semiring 运算 | 算法体系成熟，但无统一交换标准 | 概率/代价/评分型字符串与转导建模 | 需求需保留有限状态骨架且每条路径带可组合权值 | 🟢 | [desc.md](./weighted-automata-algorithms/desc.md) |
-| 36 | 📦 | 🎛️ | 🌡️ | `Ptolemy II FSM / Modal Models` | 工具教程 | Finite State Machines and Modal Models in Ptolemy II | 2009 | 用状态机控制 refinement 切换并支撑异构执行 | guard/output/set action、mode refinement、microstep、local time | `FSMActor / ModalModel` + `MoML` + compatible directors | Ptolemy II 图形/Java/MoML 生态完整 | 异构嵌入式系统、CPS mode switching | 不同模式需挂不同 refinement 与执行域 | 🟢 | [desc.md](./finite-state-machines-and-modal-models-in-ptolemy-ii/desc.md) |
-| 37 | 📦 | 🎛️ | 🌡️ | `Modelica_StateGraph2` | 形式主义 / 工具库 | A New Formalism for Modeling of Reactive and Hybrid Systems | 2009 | 把 Modelica 状态机扩成安全层次并行 generalized steps | generalized steps、suspend/resume、delay、`NuSMV` verification | `\Gamma = \langle V_c,G,T,g_I \rangle` + ports + interpretation algorithm | `Modelica_StateGraph2` + `NuSMV` | reactive/hybrid systems | 需求含模式切换并需与物理模型联仿 | 🟢 | [desc.md](./a-new-formalism-for-modeling-of-reactive-and-hybrid-systems/desc.md) |
-| 38 | 📦 | 🎛️ | 🌡️ | `XRobots` | 领域特化 DSL | An Overview of XRobots: A Hierarchical State Machine-Based Language | 2011 | 用可参数化 behavior 组织移动机器人行为 | HSM、first-class behavior、by-value/by-reference、entry/exit | `Behavior` DSL + parameterized transitions | prototype compiler 路线，原文无公开工具 | 移动机器人行为编程 | 需求可拆为可复用行为并接受高阶参数化 | 🟢 | [desc.md](./an-overview-of-xrobots-a-hierarchical-state-machine-based-language/desc.md) |
-| 39 | 📦 | 🎛️ | 🌡️ | `Modelica State Machines` | 语言扩展 | State Machines in Modelica | 2012 | 把状态机纳入 Modelica 语言核心 | 13 方程语义、immediate/delayed、reset/synchronize | Modelica blocks + transition equations + clock | Modelica 3.3 语言级支持明确 | 物理系统中的控制逻辑、嵌入式控制 | 状态逻辑需与同 clock 的 Modelica 模型原生集成 | 🟢 | [desc.md](./state-machines-in-modelica/desc.md) |
-| 40 | 📦 | 🤝 | 🏭 | `Grafchart / JGrafchart + DPWS` | 工具扩展 / 服务编排载体 | Graphical Programming Language Support for Service Oriented Architecture in Automation | 2012 | 把可发现服务设备嵌入图形状态机协调逻辑 | `DPWS Object`、自动重绑、通知事件、方法式调用 | `JGrafchart` 图形模型 + `DPWS/WSDL` 绑定 | `JGrafchart` + `DPWS` discovery + `WSDL` | 服务化车间集成与设备协调 | 设备需以 `DPWS` 服务暴露并允许事件订阅 | 🟢 | [desc.md](./graphical-programming-language-support-for-service-oriented-architecture-in-automation/desc.md) |
-| 41 | 📦 | 🌡️ | 🌡️ | `Grafchart / JGrafchart + FMI` | 工具扩展 / 协同仿真载体 | On Extending JGrafchart with Support for FMI for Co-Simulation | 2014 | 把图形顺控应用接入 `FMI` 协同仿真 | communication step、wrapper/FMU 导出、scan-cycle 对齐 | `JGrafchart` + `FMU`/XML + wrapper/export | `JGrafchart` + `FMI` + `CustomIO/SocketIO` | 控制器与物理模型联合验证 | 控制逻辑需为离散 scan-cycle，plant 可作为 `FMU` | 🟢 | [desc.md](./on-extending-jgrafchart-with-support-for-fmi-for-co-simulation/desc.md) |
-| 42 | 🔌 | 🤝 | 🌐 | `Contract Automata` | 模型提出 | Automata for Analysing Service Contracts | 2014 | 分析多方契约匹配与责任 | agreement、weak agreement、liability | 向量动作自动机 + 组合 | 分析方法明确，生态偏研究型 | 服务编排、契约组合 | 多方 request/offer 关系清晰 | 🟢 | [desc.md](./contract-automata/desc.md) |
-| 43 | 🧩 | 🎛️ | 💻 | `SCXML` | 标准规范 | State Chart XML (SCXML): State Machine Notation for Control Abstraction | 2015 | 提供可执行层次状态机 XML 载体 | `state/parallel/history/datamodel/invoke` | SCXML XML 文档 | W3C 规范、Schema、测试套件 | 事件驱动流程与互操作 | 需要标准文本载体 | 🟢 | [desc.md](./scxml-state-machine-notation-for-control-abstraction/desc.md) |
-| 44 | 📦 | 🎛️ | 🌡️ | `FlexBE` | 系统框架 / 行为执行器 | A Comprehensive Software Framework for Complex Locomotion and Manipulation Tasks Applicable to Different Types of Humanoid Robots | 2016 | 用层次状态机在 `ROS` 框架中协调复杂人形机器人任务 | `HFSM`、outcome、input/output keys、autonomy level、behavior mirror | state classes + graphical editor + embedded behaviors + dataflow | `FlexBE` + `SMACH` + `ROS` + runtime control UI | 灾害响应人形机器人任务控制 | 任务可拆为高层 action states 且需要 operator-supervised autonomy | 🟢 | [desc.md](./a-comprehensive-software-framework-for-complex-locomotion-and-manipulation-tasks/desc.md) |
-| 45 | 📦 | 🎛️ | 🌡️ | `VisualHFSM / JdeRobot` | 可视化 `HFSM` 工具 / 代码生成 | VisualHFSM 5: recent improvements in programming robots with automata in JdeRobot | 2016 | 图形化设计机器人 `HFSM` 并自动生成 `JdeRobot` 组件 | hierarchy、XML、C++/Python、runtime GUI、multithread templates | graphical editor + XML + state/transition code snippets | `VisualHFSM` + `JdeRobot` + runtime GUI + code generator | 移动机器人与无人机行为编程 | 接受 `JdeRobot` 组件架构并能在状态/转移内填写局部代码 | 🟢 | [desc.md](./visualhfsm-5-recent-improvements-in-programming-robots-with-automata-in-jderobot/desc.md) |
-| 46 | 📦 | 🎛️ | 🌡️ | `RoboChart` | 定时语义 / 形式化 DSL | Modelling and Verification of Timed Robotic Controllers | 2017 | 为机器人控制器提供带 budget/deadline 的 timed 状态机语义 | clock、`since/sinceEntry`、`wait`、deadline、`tock-CSP` | module/platform/controller/machine + timed primitives | `RoboTool` + `Timed CSP/tock-CSP` + `FDR` | timed robotic controllers、swarm transport、chemical detector | 需求含显式时间预算、deadline 和平台接口 | 🟢 | [desc.md](./modelling-and-verification-of-timed-robotic-controllers/desc.md) |
-| 47 | 📦 | 🎛️ | 🌡️ | `SMACHA / SMACH` | 状态机装配 / 代码生成 | Rapid state machine assembly for modular robot control using meta-scripting, templating and code generation | 2017 | 用 `YAML` 和模板快速生成可执行 `SMACH` 状态机 | meta-scripting、templating、sub-scripts、container recursion | `YAML` scripts + `Jinja2` templates + generated Python `SMACH` | `SMACHA` API + `SMACH` + ROS/Gazebo/Baxter | `ROS` 任务控制、pick-place、stacking | 需求已接受 `SMACH` 运行时且存在高复用结构 | 🟢 | [desc.md](./rapid-state-machine-assembly-for-modular-robot-control/desc.md) |
-| 48 | 📦 | 🎛️ | 🌡️ | `RAFCON` | 图形任务编程 / mission control 载体 | RAFCON: A Graphical Tool for Task Programming and Mission Control | 2017 | 用图形层次状态机协调复杂机器人任务 | hierarchy、concurrency、library state、data flow、remote monitoring | 图形状态机 + Python execute + ports/data flow | GTK+ GUI + execution engine + API | 复杂机器人任务编排与监控 | 需求需能拆成层次技能并依赖中间件执行 | 🟢 | [desc.md](./rafcon-graphical-tool-for-task-programming-and-mission-control/desc.md) |
-| 49 | 🧩 | 🎛️ | 💻 | `UML State Machine` | 标准规范 | OMG Unified Modeling Language (OMG UML), Version 2.5.1 | 2017 | 标准化行为/协议状态机元模型 | regions、pseudostates、XMI | 图形建模 + metamodel + XMI | OMG 标准和工具生态成熟 | MDE、跨工具交换 | 需要与 UML 语境集成 | 🟢 | [desc.md](./uml-251-specification/desc.md) |
-| 50 | 📦 | 🎛️ | 🌡️ | `RoboSim` | 仿真 DSL / 一致性验证 | Verified Simulation for Robotics | 2019 | 用周期化状态机描述仿真并验证其与设计一致 | cycle period、`exec`、register I/O、scheduling assumptions、refinement | module/controller/simulation machine + cyclic exec | `RoboSim` + `RoboChart` + `tock-CSP` + `FDR` | verified simulation、obstacle avoidance、transport swarm | 仿真按周期执行且传感器/执行器可抽成寄存器 | 🟢 | [desc.md](./verified-simulation-for-robotics/desc.md) |
-| 51 | 📦 | 🎛️ | 🌡️ | `RoboChart` | 机器人 DSL / 形式验证工具链 | RoboChart: modelling and verification of the functional behaviour of robotic applications | 2019 | 用受限 `UML` 状态机建模并自动生成验证语义 | metamodel、well-formedness、timed primitives、`CSP` semantics | module/controller/machine + graphical/textual editors | `RoboTool` + `CSP-M/tock-CSP` + `FDR` + Eclipse | 高可信机器人控制器建模与验证 | 需求需显式平台接口、状态逻辑和时间约束 | 🟢 | [desc.md](./robochart-modelling-and-verification-of-robotic-applications/desc.md) |
-| 52 | 📦 | 🤝 | 🌡️ | `SEAD / MDL` | 领域特化框架 / 机动描述语言 | A Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions | 2021 | 把 platoon manoeuvre 统一成 leader-perspective 分层状态机与 JSON 描述 | idle states、action primitives、PME/RSM、SIM wrapper、MDL | idle states + sub-manoeuvres + `JSON MDL` | manoeuvre catalogue + MDL parser + simulation | 车队 join/split/lane-change/gap-close 协同行为 | 需求需存在 leader-follower 角色与 V2V 协同协议 | 🟢 | [desc.md](./hierarchical-state-machine-based-framework-for-platoon-manoeuvre-descriptions/desc.md) |
-| 53 | 📦 | 🎛️ | 🌡️ | `YASMIN` | `ROS 2` 状态机库 / 运行时载体 | YASMIN: Yet Another State MachINe library for ROS 2 | 2022 | 为 `ROS 2` 提供轻量 `FSM/HFSM` 行为层库 | blackboard、nested state machines、Python/C++、viewer | library API + shared blackboard + web viewer | GitHub repo + `ROS 2` integration + web viewer | 服务机器人行为控制与执行层编排 | 需求基于 `ROS 2` 且可用 `FSM/HFSM` 表达 | 🟢 | [desc.md](./yasmin-yet-another-state-machine/desc.md) |
-| 54 | 📦 | 🎛️ | 🌡️ | `RoboChart / RoboTool` | 设计-验证-实现工具链 | Formal design, verification and implementation of robotic controller software via RoboChart and RoboTool | 2024 | 从 RoboChart 设计自动生成可验证、可执行的机器人控制软件架构 | metamodel、`Sense-Execute-Actuate`、channels、timers、C++ API | module/platform/controller/machine + generated classes | `RoboTool` + Eclipse + `CSP/FDR` + Gazebo/ROS bridge | exploration task、高可信机器人控制软件 | 需求可抽成显式平台接口与层次状态机 | 🟢 | [desc.md](./formal-design-verification-and-implementation-of-robotic-controller-software-via-robochart-and-robotool/desc.md) |
+| 31 | 📦 | 🎛️ | 🌡️ | `ARGO / Cortex` | 空间机器人操作框架 / 自主工具箱 | A Framework for Autonomous Space Robotic Operations | 2006 | 把空间机器人命令脚本与自治行为统一到层次 `FSM` 工具箱 | `HFSM`、guards/triggers、图形编辑、代码生成、远程监控 | 图形 `FSM/sub-FSM` + `JAVA` snippets + toolbox 组装 | `Cortex` + `RGCS` + `Remote/Log` toolboxes + simulator | 轨道机械臂、行星车与长时延空间机器人操作 | 任务需脚本化且存在长时延、低带宽或间歇通信 | 🟢 | [desc.md](./a-framework-for-autonomous-space-robotic-operations/desc.md) |
+| 32 | 📦 | 🎛️ | 🌡️ | `Stateflow` | 形式语义 | An Operational Semantics for Stateflow | 2007 | 把工业 `Stateflow` chart 形式化为顺序化图形状态机语义 | junction、local events、`12 o'clock` ordering、安全子集 | states/junctions/transitions + linearized SOS | `Matlab/Simulink/Stateflow` 生态成熟 | 嵌入式控制器、混成系统离散部分 | 需求最终落到 `Stateflow` 工具链且接受工具优先级 | 🟢 | [desc.md](./an-operational-semantics-for-stateflow/desc.md) |
+| 33 | 🕸️ | 🏭 | ⏱️ | `Time Petri Nets` | 教程讲义 | Time Petri Nets Part II: State Class based methods | 2008 | 在并发网上加入时间区间 | 静态区间、state class graph | P/T 网 + 变迁时间区间 | TINA 线成熟，标准格式较弱 | 实时并发流程与调度 | 并发资源流 + 时间窗口 | 🟢 | [desc.md](./time-petri-nets/desc.md) |
+| 34 | 🧩 | 🌳 | 🧮 | `Tree Automata` | 教程专著 | Tree Automata Techniques and Applications | 2008 | 识别树、项与层次结构语言 | bottom-up、top-down、determinization、decision problems | ranked alphabet + 状态 + 树重写规则 | 理论与算法成熟，XML/hedge 在线路上衔接强 | AST、term rewriting、schema-like structural validation | 输入需显式树/项结构而非平坦事件串 | 🟢 | [desc.md](./tree-automata-techniques-and-applications/desc.md) |
+| 35 | 📦 | 🎛️ | 🏭 | `ModeGraph` | 工具/库 | ModeGraph - A Modelica Library for Embedded Control Based on Mode-Automata | 2008 | 在 Modelica 中实现安全层次状态机与 mode-automata 执行 | single-assignment、delayed transition、preemption、parallel | `Step/Transition/Composite/Parallel` + mode equations | Modelica 工具链明确，需语言扩展，无独立交换标准 | 嵌入式控制、混合控制、工业逻辑 | 需求需安全模式切换并与 Modelica 模型协同 | 🟢 | [desc.md](./modegraph-modelica-library-for-embedded-control-based-on-mode-automata/desc.md) |
+| 36 | 🧩 | 📝 | 🧮 | `Weighted Automata` | 手册章节 | Weighted Automata Algorithms | 2009 | 在自动机/转导器上附加 semiring 权值 | semiring、path weight、determinization、minimization | 图结构 + label + weight + semiring 运算 | 算法体系成熟，但无统一交换标准 | 概率/代价/评分型字符串与转导建模 | 需求需保留有限状态骨架且每条路径带可组合权值 | 🟢 | [desc.md](./weighted-automata-algorithms/desc.md) |
+| 37 | 📦 | 🎛️ | 🌡️ | `Ptolemy II FSM / Modal Models` | 工具教程 | Finite State Machines and Modal Models in Ptolemy II | 2009 | 用状态机控制 refinement 切换并支撑异构执行 | guard/output/set action、mode refinement、microstep、local time | `FSMActor / ModalModel` + `MoML` + compatible directors | Ptolemy II 图形/Java/MoML 生态完整 | 异构嵌入式系统、CPS mode switching | 不同模式需挂不同 refinement 与执行域 | 🟢 | [desc.md](./finite-state-machines-and-modal-models-in-ptolemy-ii/desc.md) |
+| 38 | 📦 | 🎛️ | 🌡️ | `Modelica_StateGraph2` | 形式主义 / 工具库 | A New Formalism for Modeling of Reactive and Hybrid Systems | 2009 | 把 Modelica 状态机扩成安全层次并行 generalized steps | generalized steps、suspend/resume、delay、`NuSMV` verification | `\Gamma = \langle V_c,G,T,g_I \rangle` + ports + interpretation algorithm | `Modelica_StateGraph2` + `NuSMV` | reactive/hybrid systems | 需求含模式切换并需与物理模型联仿 | 🟢 | [desc.md](./a-new-formalism-for-modeling-of-reactive-and-hybrid-systems/desc.md) |
+| 39 | 📦 | 🎛️ | 🌡️ | `XRobots` | 领域特化 DSL | An Overview of XRobots: A Hierarchical State Machine-Based Language | 2011 | 用可参数化 behavior 组织移动机器人行为 | HSM、first-class behavior、by-value/by-reference、entry/exit | `Behavior` DSL + parameterized transitions | prototype compiler 路线，原文无公开工具 | 移动机器人行为编程 | 需求可拆为可复用行为并接受高阶参数化 | 🟢 | [desc.md](./an-overview-of-xrobots-a-hierarchical-state-machine-based-language/desc.md) |
+| 40 | 📦 | 🎛️ | 🌡️ | `Modelica State Machines` | 语言扩展 | State Machines in Modelica | 2012 | 把状态机纳入 Modelica 语言核心 | 13 方程语义、immediate/delayed、reset/synchronize | Modelica blocks + transition equations + clock | Modelica 3.3 语言级支持明确 | 物理系统中的控制逻辑、嵌入式控制 | 状态逻辑需与同 clock 的 Modelica 模型原生集成 | 🟢 | [desc.md](./state-machines-in-modelica/desc.md) |
+| 41 | 📦 | 🤝 | 🏭 | `Grafchart / JGrafchart + DPWS` | 工具扩展 / 服务编排载体 | Graphical Programming Language Support for Service Oriented Architecture in Automation | 2012 | 把可发现服务设备嵌入图形状态机协调逻辑 | `DPWS Object`、自动重绑、通知事件、方法式调用 | `JGrafchart` 图形模型 + `DPWS/WSDL` 绑定 | `JGrafchart` + `DPWS` discovery + `WSDL` | 服务化车间集成与设备协调 | 设备需以 `DPWS` 服务暴露并允许事件订阅 | 🟢 | [desc.md](./graphical-programming-language-support-for-service-oriented-architecture-in-automation/desc.md) |
+| 42 | 📦 | 🌡️ | 🌡️ | `Grafchart / JGrafchart + FMI` | 工具扩展 / 协同仿真载体 | On Extending JGrafchart with Support for FMI for Co-Simulation | 2014 | 把图形顺控应用接入 `FMI` 协同仿真 | communication step、wrapper/FMU 导出、scan-cycle 对齐 | `JGrafchart` + `FMU`/XML + wrapper/export | `JGrafchart` + `FMI` + `CustomIO/SocketIO` | 控制器与物理模型联合验证 | 控制逻辑需为离散 scan-cycle，plant 可作为 `FMU` | 🟢 | [desc.md](./on-extending-jgrafchart-with-support-for-fmi-for-co-simulation/desc.md) |
+| 43 | 🔌 | 🤝 | 🌐 | `Contract Automata` | 模型提出 | Automata for Analysing Service Contracts | 2014 | 分析多方契约匹配与责任 | agreement、weak agreement、liability | 向量动作自动机 + 组合 | 分析方法明确，生态偏研究型 | 服务编排、契约组合 | 多方 request/offer 关系清晰 | 🟢 | [desc.md](./contract-automata/desc.md) |
+| 44 | 🧩 | 🎛️ | 💻 | `SCXML` | 标准规范 | State Chart XML (SCXML): State Machine Notation for Control Abstraction | 2015 | 提供可执行层次状态机 XML 载体 | `state/parallel/history/datamodel/invoke` | SCXML XML 文档 | W3C 规范、Schema、测试套件 | 事件驱动流程与互操作 | 需要标准文本载体 | 🟢 | [desc.md](./scxml-state-machine-notation-for-control-abstraction/desc.md) |
+| 45 | 📦 | 🎛️ | 🌡️ | `FlexBE` | 系统框架 / 行为执行器 | A Comprehensive Software Framework for Complex Locomotion and Manipulation Tasks Applicable to Different Types of Humanoid Robots | 2016 | 用层次状态机在 `ROS` 框架中协调复杂人形机器人任务 | `HFSM`、outcome、input/output keys、autonomy level、behavior mirror | state classes + graphical editor + embedded behaviors + dataflow | `FlexBE` + `SMACH` + `ROS` + runtime control UI | 灾害响应人形机器人任务控制 | 任务可拆为高层 action states 且需要 operator-supervised autonomy | 🟢 | [desc.md](./a-comprehensive-software-framework-for-complex-locomotion-and-manipulation-tasks/desc.md) |
+| 46 | 📦 | 🎛️ | 🌡️ | `VisualHFSM / JdeRobot` | 可视化 `HFSM` 工具 / 代码生成 | VisualHFSM 5: recent improvements in programming robots with automata in JdeRobot | 2016 | 图形化设计机器人 `HFSM` 并自动生成 `JdeRobot` 组件 | hierarchy、XML、C++/Python、runtime GUI、multithread templates | graphical editor + XML + state/transition code snippets | `VisualHFSM` + `JdeRobot` + runtime GUI + code generator | 移动机器人与无人机行为编程 | 接受 `JdeRobot` 组件架构并能在状态/转移内填写局部代码 | 🟢 | [desc.md](./visualhfsm-5-recent-improvements-in-programming-robots-with-automata-in-jderobot/desc.md) |
+| 47 | 📦 | 🎛️ | 🌡️ | `RoboChart` | 定时语义 / 形式化 DSL | Modelling and Verification of Timed Robotic Controllers | 2017 | 为机器人控制器提供带 budget/deadline 的 timed 状态机语义 | clock、`since/sinceEntry`、`wait`、deadline、`tock-CSP` | module/platform/controller/machine + timed primitives | `RoboTool` + `Timed CSP/tock-CSP` + `FDR` | timed robotic controllers、swarm transport、chemical detector | 需求含显式时间预算、deadline 和平台接口 | 🟢 | [desc.md](./modelling-and-verification-of-timed-robotic-controllers/desc.md) |
+| 48 | 📦 | 🎛️ | 🌡️ | `SMACHA / SMACH` | 状态机装配 / 代码生成 | Rapid state machine assembly for modular robot control using meta-scripting, templating and code generation | 2017 | 用 `YAML` 和模板快速生成可执行 `SMACH` 状态机 | meta-scripting、templating、sub-scripts、container recursion | `YAML` scripts + `Jinja2` templates + generated Python `SMACH` | `SMACHA` API + `SMACH` + ROS/Gazebo/Baxter | `ROS` 任务控制、pick-place、stacking | 需求已接受 `SMACH` 运行时且存在高复用结构 | 🟢 | [desc.md](./rapid-state-machine-assembly-for-modular-robot-control/desc.md) |
+| 49 | 📦 | 🎛️ | 🌡️ | `RAFCON` | 图形任务编程 / mission control 载体 | RAFCON: A Graphical Tool for Task Programming and Mission Control | 2017 | 用图形层次状态机协调复杂机器人任务 | hierarchy、concurrency、library state、data flow、remote monitoring | 图形状态机 + Python execute + ports/data flow | GTK+ GUI + execution engine + API | 复杂机器人任务编排与监控 | 需求需能拆成层次技能并依赖中间件执行 | 🟢 | [desc.md](./rafcon-graphical-tool-for-task-programming-and-mission-control/desc.md) |
+| 50 | 🧩 | 🎛️ | 💻 | `UML State Machine` | 标准规范 | OMG Unified Modeling Language (OMG UML), Version 2.5.1 | 2017 | 标准化行为/协议状态机元模型 | regions、pseudostates、XMI | 图形建模 + metamodel + XMI | OMG 标准和工具生态成熟 | MDE、跨工具交换 | 需要与 UML 语境集成 | 🟢 | [desc.md](./uml-251-specification/desc.md) |
+| 51 | 📦 | 🤝 | 🌡️ | `Embodied Agent / LLFSM + Whiteboard` | 设计方法 / 通信执行架构 | Communication Within Multi-FSM Based Robotic Systems | 2018 | 用多 `FSM` 子系统、`LLFSM` 与白板通信生成机器人控制器 | embodied agent、hierarchical `FSM`、transition function、terminal condition、shared memory | embodied-agent 规格 + subsystem `FSM` + `LLFSM` + whiteboard | `gusimplewhiteboard` + `LLFSM` runtime/codegen + distributed UDP sharing | 多子系统机器人控制器与通信解耦设计 | 系统需可拆成周期运行的 communicating subsystems | 🟢 | [desc.md](./communication-within-multi-fsm-based-robotic-systems/desc.md) |
+| 52 | 📦 | 🎛️ | 🌡️ | `RoboSim` | 仿真 DSL / 一致性验证 | Verified Simulation for Robotics | 2019 | 用周期化状态机描述仿真并验证其与设计一致 | cycle period、`exec`、register I/O、scheduling assumptions、refinement | module/controller/simulation machine + cyclic exec | `RoboSim` + `RoboChart` + `tock-CSP` + `FDR` | verified simulation、obstacle avoidance、transport swarm | 仿真按周期执行且传感器/执行器可抽成寄存器 | 🟢 | [desc.md](./verified-simulation-for-robotics/desc.md) |
+| 53 | 📦 | 🎛️ | 🌡️ | `RoboChart` | 机器人 DSL / 形式验证工具链 | RoboChart: modelling and verification of the functional behaviour of robotic applications | 2019 | 用受限 `UML` 状态机建模并自动生成验证语义 | metamodel、well-formedness、timed primitives、`CSP` semantics | module/controller/machine + graphical/textual editors | `RoboTool` + `CSP-M/tock-CSP` + `FDR` + Eclipse | 高可信机器人控制器建模与验证 | 需求需显式平台接口、状态逻辑和时间约束 | 🟢 | [desc.md](./robochart-modelling-and-verification-of-robotic-applications/desc.md) |
+| 54 | 📦 | 🤝 | 🌡️ | `SEAD / MDL` | 领域特化框架 / 机动描述语言 | A Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions | 2021 | 把 platoon manoeuvre 统一成 leader-perspective 分层状态机与 JSON 描述 | idle states、action primitives、PME/RSM、SIM wrapper、MDL | idle states + sub-manoeuvres + `JSON MDL` | manoeuvre catalogue + MDL parser + simulation | 车队 join/split/lane-change/gap-close 协同行为 | 需求需存在 leader-follower 角色与 V2V 协同协议 | 🟢 | [desc.md](./hierarchical-state-machine-based-framework-for-platoon-manoeuvre-descriptions/desc.md) |
+| 55 | 📦 | 🎛️ | 🌡️ | `DSD` | 行为 DSL / 轻量决策框架 | DSD - Dynamic Stack Decider: A Lightweight Decision Making Framework for Robots and Software Agents | 2021 | 用栈式 `DSL` 把行为树式重评估和状态机式 statefulness 结合 | decision/action elements、reevaluation、interrupt、action sequences、traceable stack | `DSL` 描述 `DAG` + decision/action modules + runtime stack | open-source `DSD` + `ROS/rqt` visualization + reusable modules | 机器人与软件 agent 的高层行为控制 | 需求需频繁改控制流、持续检查前置条件并保留决策历史 | 🟢 | [desc.md](./dsd-dynamic-stack-decider/desc.md) |
+| 56 | 📦 | 🎛️ | 🌡️ | `YASMIN` | `ROS 2` 状态机库 / 运行时载体 | YASMIN: Yet Another State MachINe library for ROS 2 | 2022 | 为 `ROS 2` 提供轻量 `FSM/HFSM` 行为层库 | blackboard、nested state machines、Python/C++、viewer | library API + shared blackboard + web viewer | GitHub repo + `ROS 2` integration + web viewer | 服务机器人行为控制与执行层编排 | 需求基于 `ROS 2` 且可用 `FSM/HFSM` 表达 | 🟢 | [desc.md](./yasmin-yet-another-state-machine/desc.md) |
+| 57 | 📦 | 🤝 | 🏭 | `Safety4.0 Dynamic FSM` | 安全模式框架 / 风险分析载体 | Towards safety4.0: A novel approach for flexible human-robot-interaction based on safety-related dynamic finite-state machine with multilayer operation modes | 2022 | 把 `HRI` 交互层级、operation clusters 与 safety functions 压成动态安全状态机 | multilayer modes、clustered states、safety guards、dynamic risk analysis | level planner + clustered modes + state graphs + safety-function formulas | dynamic risk assessment tool + `ISO 12100/10218/15066` mapping | 工业 `HRC/HRI` 工作站的安全规划与运行模式切换 | 需求需显式交互层级、协作模式和安全功能集合 | 🟢 | [desc.md](./towards-safety4-0-flexible-human-robot-interaction-based-on-safety-related-dynamic-finite-state-machine-with-multilayer-operation-modes/desc.md) |
+| 58 | 📦 | 🎛️ | 🌡️ | `SMACH Mission Supervisor / AutoPlant` | 任务监督器 / 应用控制系统 | Design and Implementation of a Control System for an Autonomous Reforestation Machine Using Finite State Machines | 2023 | 用 `SMACH` 监督器协调造林机器的移动车体、吊机、规划器与种植单元 | hierarchical `FSM`、parallel states、ROS actions/services、digital twin、simulator | top-level `FSM` + submachines + status variables + client actions | `ROS` + `SMACH` + `MoveIt` + `RViz/URDF` + custom simulator | 自主造林机与林业作业流程控制 | 任务需可拆成顺序/并行动作并通过 outcomes 协调多个子系统 | 🟢 | [desc.md](./design-and-implementation-of-a-control-system-for-an-autonomous-reforestation-machine-using-finite-state-machines/desc.md) |
+| 59 | 📦 | 🎛️ | 🌡️ | `RoboChart / RoboTool` | 设计-验证-实现工具链 | Formal design, verification and implementation of robotic controller software via RoboChart and RoboTool | 2024 | 从 RoboChart 设计自动生成可验证、可执行的机器人控制软件架构 | metamodel、`Sense-Execute-Actuate`、channels、timers、C++ API | module/platform/controller/machine + generated classes | `RoboTool` + Eclipse + `CSP/FDR` + Gazebo/ROS bridge | exploration task、高可信机器人控制软件 | 需求可抽成显式平台接口与层次状态机 | 🟢 | [desc.md](./formal-design-verification-and-implementation-of-robotic-controller-software-via-robochart-and-robotool/desc.md) |
 
 ## 综述类论文总表
 
@@ -277,7 +282,7 @@
 10. `EFSM` 已补方法支撑型条目，下一轮应继续补更纯粹的定义/标准源，如 `SDL / Estelle / 测试主线`。
 11. 上述每条主线都优先补“模型本体 + 标准/基础设施”条目；方法路线只作为辅证，不单独扩成主收录方向。
 12. `CHARON / Polychrony / RSML-e / JGrafchart` 已补应用与工具桥接条目，下一轮可沿 `CHARON` 本体、`Signal/Polychrony` 工具线、`RSML-e` 工业案例、`JGrafchart` 导出/runtime 继续扩展。
-13. `PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / YASMIN / RoboChart / SEAD / SCR` 已补执行载体与机器人任务 DSL 条目，下一轮可沿 `CLARAty / PLEXIL runtime`、`MissionLab CfgEdit / CDL`、`XABSL runtime/engine`、`SMACH / SMACC`、`FlexBE standalone / ROS 2 port`、`VisualHFSM / JdeRobot deployment line`、`RoboSim code generation`、`RoboTool / RoboCalc`、`YASMIN / MERLIN2`、`SEAD` manoeuvre library、`SCR` 规格编辑与验证工具链继续扩展。
+13. `PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / YASMIN / RoboChart / SEAD / SCR / ARGO / LLFSM / DSD / Safety4.0 / AutoPlant-SMACH` 已补执行载体与机器人任务 DSL/应用条目，下一轮可沿 `CLARAty / RGCS / Remote toolbox`、`MissionLab CfgEdit / CDL`、`LLFSM generator / whiteboard variants`、`DSD GUI / sanity checks`、`SMACH / SMACC`、`FlexBE standalone / ROS 2 port`、`VisualHFSM / JdeRobot deployment line`、`RoboSim code generation`、`RoboTool / RoboCalc`、`industrial HRC mode libraries`、`AutoPlant` 任务控制扩展线继续扩展。
 
 ## 更新日志
 
@@ -296,6 +301,7 @@
 | 2026-04-01 23:42:19 | 扩展应用/专用状态机载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `SCR` 需求规格+模型检查、`PLEXIL` 计划执行语言、`XRobots` 行为 DSL、`RAFCON` 图形任务编程、`SEAD` platoon `MDL`，并同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 | 2026-04-02 00:33:22 | 扩展机器人任务控制载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `MissionLab/CDL`、`XABSL`、`SMACHA/SMACH`、`RoboChart`、`YASMIN`，并同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 | 2026-04-02 01:32:17 | 扩展机器人行为工程与仿真工具链条目 | 新增 5 篇 `desc.md` 条目，覆盖 `FlexBE`、`VisualHFSM`、`RoboChart` 定时语义、`RoboSim`、`RoboChart/RoboTool` 设计到实现链路，并同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
+| 2026-04-02 10:37:53 | 扩展应用型状态机执行载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `ARGO/Cortex`、`Embodied Agent / LLFSM + Whiteboard`、`DSD`、`Safety4.0 Dynamic FSM`、`AutoPlant/SMACH mission supervisor`；其中空间机器人条目的原始 PDF 链接已失效，本轮通过归档快照补齐原文后同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 
 ## 失败与阻塞记录
 

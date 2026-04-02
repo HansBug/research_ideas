@@ -1,0 +1,673 @@
+--- Page 1 ---
+International Journal of Social Robotics (2022) 14:73–83
+https://doi.org/10.1007/s12369-021-00768-8
+DSD - Dynamic Stack Decider
+A Lightweight Decision Making Framework for Robots and Software Agents
+Martin Poppinga1·Marc Bestmann1
+Accepted: 18 February 2021 / Published online: 18 March 2021
+© The Author(s) 2021
+Abstract
+We present the Dynamic Stack Decider (DSD), a lightweight open-source control architecture. It combines different well-
+known approaches and is inspired by behavior trees as well as hierarchical state machines . The DSD allows to design and
+structure complex behavior of robots as well as software agents while providing easy maintainability. Challenges that oftenoccur in robotics, i.e., a dynamic environment and situation uncertainty, remain well-manageable. Furthermore, it allows
+fast modiﬁcations of the control ﬂow, while providing the state-fullness of a state machine. The approach allows developing
+software using a simple Domain Speciﬁc Language (DSL) which deﬁnes the control ﬂow and two types of elements thatcontain the programmed parts. The framework takes care of executing the demanded portions of the code and gives, due toits stack-like internal representation, the ability to verify preconditions while maintaining a clear structure. The presented
+software was used in different robotic scenarios and showed great performance in terms of ﬂexibility and structuredness.
+Keywords Control architecture ·Framework ·Behavior ·Robots ·Agents
+1 Introduction
+A variety of challenges needs to be tackled in robotics to cre-
+ate software that can produce a complex behavior. A control
+architecture helps to fulﬁll these tasks. While some co-routines like the image processing or the walk engine perform
+scenario-speciﬁc, well-deﬁned tasks, high-level planning has
+to solve more abstract tasks in complex environments. Thislogical layer, which decides what action needs to be per-formed, is called the behavior in the following.
+In earlier years, complex behavior on a high level was
+often limited, as most systems were designated for a speciﬁctask, e.g., cleaning the ﬂoor of a room. Due to advancements
+in robotics, decision-making processes are becoming more
+complex, especially because in real-world robotic scenariosmost often no closed world assumption can be made. For
+example, in competitive environments with multiple agents
+B Martin Poppinga
+poppinga@informatik.uni-hamburg.de
+Marc Bestmann
+bestmann@informatik.uni-hamburg.de
+1Department of Informatics, Universität Hamburg,V ogt-Kölln-Straße 30, 22527 Hamburg, Germanyor, in the case of human-robot interaction, different roles and
+strategies need to be speciﬁed, and switched on-demand, asthe environment changes quickly and the behavior needs to
+be adapted to new situations. Similar is true for software
+agents who deal in uncertain environments, for example,when humans or other agents are involved.
+The presented approach consists of two parts. First, the
+programmed modules of the behavior, which decide and theact, and second, a simple Domain Speciﬁc Language (DSL)
+which connects these modules and deﬁnes the control ﬂow.
+This DSL allows fast adaptions in the robot behavior without
+altering the source code of the modules.
+This framework was initially designed for challenges in
+the RoboCup competition [ 11] and was developed in the
+Humanoid Soccer League and used for example on thehumanoid robot platform Wolfgang [ 3] (see Fig. 1). How-
+ever, it was adapted for other areas of robotics and showed its
+beneﬁts outside of the RoboCup competition, too. The DSDproved its advantages in several competitions since 2015 andwas improved several times, including a clearer formalism in
+early 2017 under the name Active Self Deciding Stack and the
+addition of the Domain Speciﬁc Language in late 2018. We
+123
+
+--- Page 2 ---
+74 International Journal of Social Robotics (2022) 14:73–83
+Fig. 1 The humanoid robot platform Wolfgang ( a) and a game in the
+RoboCup competition ( b) in which the DSD has proven itself
+use it as high-level tactics behavior1as well as an abstrac-
+tion low-level abstraction mechanism [ 4]2. It can be used
+for compact high-level control of robot behavior and otherstate-machine-like situations. Furthermore, it was success-fully applied in the scenario of a mobile robotic bartender
+and won the ﬁrst place in the IROS 2018 Mobile Manipula-
+tion Hackathon
+3,4.
+In the RoboCup Humanoid Soccer competition, only
+human-like sensors are allowed, and thus object recognition
+in larger distances provides a difﬁcult task, and decisions aremade in an uncertain environment. This challenge increases,
+as the environment holds multiple robots of which half, the
+opposing team, do not provide information. Similar chal-
+1https://github.com/bit-bots/bitbots_behavior .
+2https://github.com/bit-bots/bitbots_motion .
+3http://iros18-mmh.pal-robotics.com/ .
+4https://github.com/TAMS-Group/tiago_bartender/tree/master/
+tiago_bartender_stackmachine .lenges occur in other examples as sensor information is often
+imperfect and external changes require quick changes inthe programming routine. Aside from higher-level decision
+making, other parts in the robot software require state-full
+decision making and easily maintainable frameworks for anefﬁcient development process, too.
+To enable a feature-rich implementation to handle this
+complexity in decision making as well as for the developers
+to adapt and maintain the source code, we extracted severalaspects for the here presented framework that need to be
+considered:
+–States: For debugging and development it is necessary
+that developers can easily evaluate in which state the
+agent currently is. Furthermore, some sub-tasks may havea time component which requires them to stay with their
+former decision during execution.
+–Reevaluation of previous decisions: In a dynamic envi-
+ronment preconditions can change rapidly. It is required
+to reevaluate all such conditions and change the behav-
+ior accordingly promptly without getting stuck in anunwanted state.
+–Divisibility: For structured testing and fast debugging the
+ability to launch all sub-parts of the behavior separately
+is beneﬁcial.
+–Maintainability: Changing or adding parts to the behav-
+ior has to be possible at all times without the need for a
+general restructuring.
+–Code Reuse: As many routines can occur in completely
+different states, a mechanism to prevent code duplica-
+tion is preferable. The means to avoid rewriting speciﬁcbehavior steps as well as requiring to perform the samecheck in various modules.
+–Scalability: The logic needs to express complex behavior
+for autonomous systems while staying clear and under-standable.
+This paper is structured as followed. In Section 2the
+related work and existing approaches and frameworks for
+high-level behavior are presented. Our approach is presentedin Section 3and some insight into the implementation is given
+in Section 4. In Section 5we evaluate the proposed approach
+and give a more complex example in Section 6. Finally, in
+Section 7we conclude.
+While the framework was originally designed for the
+use in robotics using the ROS Middleware
+5, the presented
+approach and the published software are also suitable forother use-cases outside of robotics. In the following, the term
+agent refers to robots as well as software agents.
+5https://ros.org
+123
+
+--- Page 3 ---
+International Journal of Social Robotics (2022) 14:73–83 75
+Fig. 2 Simpliﬁed example of
+the direct acyclic graph (DAG)
+w h i c hi sd e ﬁ n e db yt h eD S L
+using the output of the DEs. Achosen path ( blue ) is displayed.
+The agent decided on being anattacker and going to the ball.These taken decisions and thecurrent action can be seen in thestack (cp. Fig. 3). Since there
+are multiple ways to reach theGoToBallDirect action, it isnecessary to have a history onthe stack to retrace the agent’sdecisionsRole Decision
+DefendAttackDecisionYesBallPositionAvailable
+ClosestPlayerToBall
+InKickDistance
+GoToBallDirectField Player
+Attack
+Yes
+Yes
+NoStart
+Goalie
+DefendNo
+No
+KickBallYesWait[...]
+NoBallInOwnHalf
+[...][...]
+2 Related Work
+Due to the importance of control architectures in many ﬁelds,
+several approaches were developed.
+Some of them, e.g., ﬁnite state machines (FSM) [ 9], exist
+for a long time. Others, like behavior trees [ 6], are more
+recent and mostly used in the domain of video games. Thesehave already proven to be suitable for complex behaviors, but
+they are not always ideally suited for the uncertain environ-
+ments of robotics or in for the use in competitions, where thesoftware needs to adapt constantly. Robot behaviour, while
+in many scenarios is used for navigation purposes [ 1], vari-
+ous tasks can be solved using these different approaches [ 2].
+In the following section, the advantages and disadvantages
+of the most popular approaches are discussed. They are com-
+pared with our approach in Fig. 2.
+2.1 State Machines
+FSM
+The ﬁnite state machine (FSM) [ 9] is a commonly used
+approach based on a ﬁnite set of discrete states of the agent.Transitions are deﬁned between the states. Typically, actions
+are performed while entering and leaving a state as well as
+while the state is active. While this approach is inherentlystateful and straightforward to understand, its scalability andmaintainability are bad due to the high number of transitions.
+Furthermore, testing is complicated due to bad divisibility.
+HFSM Hierarchical ﬁnite state machines (HSMs) [ 10]a r e
+an extension of the FSM. Here, the states are organized in a
+hierarchical structure. States can be substates of other states
+which enables the inheritance of behavior from superstates.This way, each substate only needs to focus on its designated
+tasks and events while its ancestors can handle more general
+events. This prevents state explosion and code duplication in
+complex systems.
+Still, HFSMs are hard to maintain since adding or remov-
+ing states requires the programmer to reevaluate a largenumber of transitions [ 6].
+2.2 Planning
+For planning sequences of actions and executing them, multi-
+ple approaches exist that follow a traditional Sense-Plan-Act
+manner. The most prominent example is STRIPS [ 8]. In
+recent years this area was also inﬂuenced by the gam-
+ing industry and new approaches arose, e.g., Goal-Oriented
+Action Planning [12].
+While these approaches can be used to create sophisticated
+behaviors, their reactiveness is low, and they often rely on
+the closed world assumption, making them not applicable inmany real-world scenarios.
+123
+
+--- Page 4 ---
+76 International Journal of Social Robotics (2022) 14:73–83
+2.3 Subsumption
+The Subsumption Architecture (SA) [ 5] was introduced as
+a solution to the low reactiveness of classical planning
+approaches. It divides the task into subtasks that can run inparallel but have a hierarchical order. More important partscan subsume others in the control of the robot’s actuators.
+While this approach has a high reactiveness, it is not state-
+ful and therefore very limited, especially in ﬁnding optimalsolutions or making decisions based on previous actions.
+2.4 Decision Trees
+Decision trees (DTs) [ 13] are a simple concept of connect-
+ing multiple conditions into a tree-like structure. They are,
+among others, applied in the area of artiﬁcial intelligence forsolving classiﬁcation problems, but also for decision making.While simple to implement and intuitively understandable,
+they are stateless. During each iteration, all decisions have
+to be reevaluated which is expensive. Since the result is onlybased on a single iteration, it can lead to jumping back and
+forth between two different results, especially when using
+noisy sensor data. This makes it challenging to implementnon-instantaneous actions. For example, a collision avoid-
+ance decision tree might outputs alternating steer left and
+steer right when presented with an obstacle right in front.
+The noise of the sensor will sometimes put it more to the leftand sometimes more to the right, maybe resulting in a crash.
+2.5 Behavior Trees
+Behavior trees (BTs) [ 7] create a hierarchical tree structure of
+control elements that result in actions or conditions as leafs.
+It is possible to deﬁne composite tasks which are performedsequentially or in parallel. Due to the possible parallelism
+and looped conditions, there is not only one point of activity
+in the tree, but distant parts can be active at the same time.This makes it difﬁcult to see the current state of a tree ata glance. Furthermore, the decision path through the tree is
+less clear than it is in a decision tree because the conditions
+are leaf nodes and not internal nodes. This makes a differ-entiation between actions and conditions more difﬁcult. The
+implementation of a BT engine is complex since parallelism
+has to be considered [ 6]. Since BTs are tick driven, rather
+than event-driven like most approaches, it requires a change
+of paradigm [ 6]. In larger closed-loop systems, many con-
+ditions may have to be checked, leading to a high executiontime [ 6].3 The Dynamic Stack Decider
+Our approach combines the simplicity and statefulness of an
+FSM with the ﬂexibility and scalability of a behavior tree to
+achieve a light-weighted control architecture that can han-dle the dynamic and uncertain environment in robotics. TheDynamic Stack Decider (DSD) consists in its central part of
+a stack-like structure that orders the currently loaded parts
+of the behavior. Similar to many control systems, the DSD isexpected to be called periodically to evaluate its current state
+and to take actions. A Domain Speciﬁc Language (DSL) is
+speciﬁed that deﬁnes which elements are pushed on top ofthe stack depending on the output of the currently executed
+element and the current position in the tree-like structure.
+The DSL deﬁnes all possible execution paths and creates adirected acyclic graph (DAG).
+Using this DSL, further parameters can be passed to the
+elements. The elements on the stack are divided into decision
+andaction elements. The stack holds the active components
+in the current state as well as the history which lead to the
+current state. This concept is explained in more detail in the
+following.
+3.1 The Elements
+Decision Elements
+Each decision element (DE) capsules one logical decision
+and has a ﬁnite set of possible outputs. It does not control its
+actors or is in any kind altering the environment. Decisionscan be as complex as needed, using if-else clauses for simple
+cases or, in a more complex situation, for example, neural
+networks. One example in the RoboCup Soccer domain is thedecision whether the agent has sufﬁcient knowledge about
+the current ball position in its world model. This decision
+element could be followed by an action to search for the ballor a decision whether the agent should walk towards the ball.
+DEs are used in two ways. If they are on top of the stack,
+the following element is put on top ( pushed ) and this element
+is executed next. If a DE is inside the stack, it can specifyif it wants to be reevaluated . When a DE is reevaluated, the
+outcome of the production is compared to the outcome of the
+same element in the previous iteration. If it is identical, thestack remains unaltered. When the outcome differs, the stack
+above the reevaluated DE is discarded, and the new sub-tree
+is put on top. This method is crucial for validating precondi-tions, e.g., having sufﬁcient knowledge of the ball locationis necessary to be able to go towards it. This mechanism is
+further explained in 3.3.
+Action Elements
+The second type of element is the action element (AE) .A n
+AE is similar to a state of an FSM, in the meaning that thesystem stays in this state and executes its logic as long as the
+123
+
+--- Page 5 ---
+International Journal of Social Robotics (2022) 14:73–83 77
+AE is on top of the stack. This is in contrast to a DE which
+is evaluated instantaneously. An exemplary AE is a kick ora stand-up animation that stays on top of the stack until the
+animation has ﬁnished playing. An AE could also handle
+going to the ball. In this case, the AE remains on top of thestack until the ball is reached. The AE only makes decisionsthat are necessary for its own purpose, e.g., some adjustments
+to the kicking movement. AEs do not push further elements
+on the stack but control actions on lower-level modules likejoint goals. If the AE has ﬁnished, it can remove itself from
+the stack by performing a pop command or otherwise remains
+active until a precondition becomes invalid.
+3.2 DSD Description Language
+For easy maintainability and visualization, the possibleexecution ﬂows are described in a designated description lan-
+guage an overview of the symbols is shown in Table 1.T h i s
+representation is parsed while initialization of the DSD. TheDSL determines which return value of a decision element
+leads to which element executed in the following.
+In Listing 1an example behavior is given, creating the
+DAG as shown in Fig. 2.
+1#Kick
+2 $InKickDistance + kick_threshhold:0.1
+3 "Yes" −−> @KickBall
+4 "No"−−> @GoToBallDirect
+5
+6#Attack
+7 $ClosestPlayerToBall
+8 "Yes" −>#Kick
+9 "No"−>@ W a i t
+10
+11−−>SampleBehavior
+12 $RoleDecision
+13 "FieldPlayer" −−> $BallPositionAvailable
+14 "No"−−> [...]
+15 "Yes" −−> $DefendAttackDecision
+16 "Defend" −−> $BallInOwnHalf
+17 "No"−−>@ W a i t
+18 "Yes" −−>#Attack
+19 "Goalie" −−> [...]
+2 0 [...] −−>#Kick
+Listing 1 Example of the used DSL. With Kick and Attack, two subtrees
+are deﬁned. SampleBehavior deﬁnes the starting point. Depending onthe output of the $RoleDecision different paths are executed in thecontrol ﬂow which leads to the corresponding actions.
+This structure allows fast changes of connections as well
+as parameters (e.g., thresholds, speeds) in one place, givinga good overview without the requirement of searching in
+long lists of parameters or directly in the code. Due to the
+semantic naming of decision results, transition changes canbe performed locally.Table 1 These symbols are used in the DSL. They assemble the DAG
+as shown in Fig. 2
+Fig. 3 Example of a stack for a ﬁeld player after taking the decisions as
+displayed in Fig. 2. Each time step all DEs which should be re-evaluated
+are called from bottom to top. If no precondition changed, the AE ontop of the stack is executed
+3.3 Call Stack
+The built stack follows a similar logic as call stacks in var-
+ious programming environments (e.g., Python, Java, .NET),
+providing the current call stack as a path to the ﬁnally exe-cuted module. However, in this architecture, each element on
+the stack can remain active.
+The control workﬂow of the DSD is sketched in Fig. 4
+and described in the following: The DSD is initialized with
+one decision on the stack (Fig. 3) as the root decision. This
+can be any node in the DAG, allowing simple execution ofsubgraphs / sub-behaviors. Each iteration, all DEs on thestack can be reevaluated from bottom to top to see if any
+preconditions have changed. For this, each DE is checked if
+it requires to be reevaluated. If it has to be reevaluated, the DEis re-performed, and the outcome is compared to the output
+of the previous iteration. If it has changed, the stack above
+the current DE is cleared, and the new outcome is pushed.Otherwise, the next element is checked to be reevaluated.
+After every element has been reevaluated, or after the ﬁrst
+different outcome, the reevaluation phase is ﬁnished. Then,the topmost element is executed. If the topmost element is
+123
+
+--- Page 6 ---
+78 International Journal of Social Robotics (2022) 14:73–83
+Fig. 4 The control ﬂow of the
+DSDDSD
+Initialize Stack with
+Root Element
+Reevaluation phase
+reeva luation
+requeste delementsall em
+valuatedevvuCheck each Element on
+Stack (Bottom to Top)
+same
+result
+other resultExecute Elementinitial start
+interrupt
+push new elementDrop all Elements
+Abovepush or pop
+while execut ionPerform Topmost
+Elementcall for each
+iterationno
+push or popend of
+iterationno
+reeva luation
+a DE, it is executed, and its outcome deﬁnes, according to
+the DSL, which element or elements is or are pushed next
+on the stack. If an element pushes one or multiple elements
+on the stack, the topmost it is directly executed, enabling theevaluation of multiple DEs in one cycle. If the topmost is an
+AE, the AE is executed. If the AE pops itself from the stack,
+the new topmost element is executed. If the topmost elementis an AE and performs no pop, it stays on top of the stack,and the DSD has ﬁnished its iteration.
+This way the AE is executed each iteration until either a
+precondition changes (as checked in reevaluation) or the AEpops itself after completion. At any time an external interrupt
+can clear the stack and start again with the root element.
+By using this stack-like structure, it is always traceable
+which action the agent tries to perform and which decisions
+were made.
+3.4 Extended Features
+A few additional features are added to the base structure tofacilitate the use of the DSD:
+Interrupts
+An interrupt is an event from outside of the structure,
+which clears the complete stack to reset the behavior as dis-
+played in Fig. 4. In the particular case of RoboCup, we use
+it when the game state changes, for example, if a goal wasscored. However, it can also be used, for example, if theagent is kidnapped or paused. After the interrupt, the stack
+is recreated, starting at the root element.
+Reevaluate
+Each decision element may deﬁne a reevaluate criteria.
+If the corresponding method returns true, the element willbe executed during the reevaluation phase even if it is in the
+middle of the stack. This way a precondition can be checked
+constantly or periodically. As an example, every iteration itcould be checked if the ball position is known to the agent
+with a given certainty. If the now pushed element is differ-
+ent from the element which is currently above in the stack,meaning that the decision changed, the whole stack abovewill be dropped and the newly selected element executed.
+Additionally, actions can specify set a do_not_reevaluate ﬂag
+which prevents all decision elements from being reevaluated.Semantically, this allows to specify actions that can not be
+interrupted, e.g. stopping a dynamic motion animation on a
+bipedal robot would lead to a fall.
+Passing arguments
+It is possible to pass arguments to decision and action
+elements directly in the DSL. This improves the generaliza-
+tion of stack elements and allows to use the same elementsin multiple parts of the DAG. For example, it is possible
+to implement a Move Action that takes an argument on the
+direction to move rather than implementing MoveForward
+andMoveBackwards . An example of how this is speciﬁed in
+the DSL is shown in Listing 1.
+123
+
+--- Page 7 ---
+International Journal of Social Robotics (2022) 14:73–83 79
+Actions Sequences
+It is possible to perform a sequence of actions. For this, a
+DE can push multiple AEs at once on top of the stack. In this
+case, at ﬁrst, only the topmost AE is executed.
+If the element is popped from the stack, the next action is
+directly executed. This way for example movement patternscan be executed over multiple iterations unless any precon-
+ditions change. Alternatively, an AE can be pushed, which
+does only one task for a single iteration, e.g. sending a mes-sage to other agents and then popping itself, followed by a
+movement in the second AE.
+4 Implementation
+The reference implementation is written in Python. UsingPython [ 14] allows fast development due to its well readable
+syntax and the absence of the need to recompile the codeon changes. Further, feature rich libraries, like scipy orten-
+sorﬂow can be used if needed. As decision making in the
+presented context is not crucial to milliseconds, the reduced
+performance in contrast to an optimized C++ variant is negli-gible. However, the same patterns of a DSD would also apply
+to runtime-sensitive languages, as i.e. C++.
+Listing 2shows an example of a simple decision element.
+Each element inherits from an abstract class.
+1from DSDimport DecisionElement
+2
+3class InKickDistance(DecisionElement) :
+4def perform( self ,d a t a ,p a r a m ) :
+5 ifdata . world_model . get_ball_dist () <
+/arrowhookleft→param[ "kick_threshhold" ]:
+6 return "Yes"
+7 else :
+8 return "No"
+9
+10 def get_reevaluate( self ):
+11 return True
+Listing 2 An example of a simple decision element. It checks every
+iteration whether the ball is currently close to the agent.
+Data Exchange
+Each stack element holds its instance variables as long
+it is in the stack. The data is discarded when the element
+is removed from the stack. If persistent data is required, it
+can be written to a shared blackboard . Data required by the
+elements is structured in different scopes, which encapsulate
+different parts of the agent’s knowledge. For example, infor-
+mation coming from the vision is handled separately fromthe information of the inter-agent communication. This data
+can be stored locally or published to other processes. For this
+purpose, a data handler in the form of a python object can bepassed to the framework at startup.The getter may deﬁne default values if no data is exist-
+ing. Setters are only existing where it is necessary to publish
+information. In most cases, the decisions use the getters to
+obtain information from other parts of the system, and only
+the actions publish commands and data using the setters for
+external modules.
+Running Multiple Instances
+If two or more independent behaviors are required, it
+is possible to create multiple independent behavior stacks.
+For example, in robot soccer, the behavior of the head isoften controlled semi-independently from the body behav-
+ior. There, the head, equipped with a camera, collects data
+while the body may request to obtain certain information.As these are independent processes, no common blackboard
+is accessible for communication between the different DSD
+instances. In this case, for example, communication is han-dled by ROS messages.
+Reusing Modules
+In some cases, it is required to use the stack elements sev-
+eral times but with modiﬁed decisions or other outcomes. In
+these cases, a module can be reused and given a different pathin the description ﬁle and other parameters can be passed.
+Visualization
+When integrated into ROS it is possible to create a real-
+time view of the active action and elements on the stack, cp.Fig. 5. As well as alternative paths in the DAG.
+Future Work on Implementation
+We plan to further improve the usability of our implemen-
+tation by providing a GUI to create DSDs, which are thensaved in the DSL. This improves the overview and lowersthe entry barrier. Furthermore, we want to introduce auto-
+matic sanity checks, that verify, for example, if all elements
+are part of the same graph and if all outcomes of a DE leadto another element.
+5 Evaluation
+In the following, we evaluate different aspects of the DSDcompared to other frameworks, especially to behavior trees.
+An overview can be seen in Table 2.
+Hierarchical organization
+The DSD allows clear hierarchical ordering of importance
+based on the decision element’s position on the stack. During
+the reevaluation phase, DEs which are closer to the bottom
+of the stack are performed earlier and are therefore moreimportant. This is also visible in the DSL description of the
+DSD since elements speciﬁed earlier will end up lower on the
+stack. The ordering of importance is thereby clearly visibleand changeable before and during run time.
+123
+
+--- Page 8 ---
+80 International Journal of Social Robotics (2022) 14:73–83
+Fig. 5 Live visualization of an exemplary stack DAG inside rqt
+Table 2 Comparison of different control architectures. Partly following
+[6, Chapter 2]
+FSM HSM SA DT BT DSD
+Hierarchical org. - + ++ + + +
+Code reuse - ◦◦ +++ +
+Maintainability – ◦ --+ +
+Human readable - ◦ -+ ◦ ++
+Stateful + + - - + +Scalability – ◦ - ◦ ++ +
+Concept compre. + + ◦ ++ - -
+The other frameworks perform mostly similar in this
+regard, with the exception of the FSM, which does not allow
+such an ordering.
+Code reuse
+Reusing existing code parts, inside one behavior and from
+previous ones, can signiﬁcantly decrease development time.
+The DSD performs especially well in this regard, due to theclear separation of decision and action elements. Further-more, the used DSL allows simple and fast creation of a
+behavior when reusing existing decision and action elements.
+In behavior trees, there is only separation between actions
+and conditions. The decisions are encoded by a combination
+of conditions and control ﬂow nodes. Therefore it is often
+necessary to take subtrees when reusing code. Furthermore,a simple reordering with a DSL is there not possible.
+Maintainability
+Changes that are introduced after the initial implementa-
+tion should only require modiﬁcations to the correspondingpart. The DSD performs well on this as each element can be
+modiﬁed without the need to touch others. Furthermore, the
+introduction of a new element into the DAG is simple andonly requires a local change in the DSL description ﬁle.
+Behavior trees perform similar well in this regard. In com-
+parison, in an FSM the introduction of a new state may requireadding transitions to all other states.
+The Dynamic Stack Decider allows to explicitly deﬁne
+the required behavior and enables fast replacements of codeparts. Since the root decision can be deﬁned at the start, it is
+123
+
+--- Page 9 ---
+International Journal of Social Robotics (2022) 14:73–83 81
+easy to run only a part of the behavior or even just a single
+action.
+Human readable
+While programming and debugging it is necessary to have
+a clearly arranged graphical representation that is easy to
+understand by the developer. The DSD performs well in thisregard due to the clear separation between actions and deci-sions, the semantic labeling of decision outcomes, and its
+tree-like structure.
+While behavior trees do also provide a clear graphical
+representation, they are more difﬁcult to read since different
+parts can be active at the same time and the transitions have
+no semantic labeling. A typical negative example is the FSMwhere the high number of transitions for complex systems
+results in cluttered graphs.
+Stateful
+The state of a DSD is deﬁned by all elements on its stack.
+The current active action element is clearly visible since it is
+the top-most element in the stack. The remaining elements on
+the stack provide information on the previously taken deci-sions but are also part of the state since they inﬂuence howthe DSD will act in the future, e.g., by reevaluation.
+In a behavior tree, the state is deﬁned by its currently active
+nodes. Naturally, the reactive approaches SA and DT haveno deﬁned state.
+Scalability
+While the DSD does generally scale well to complex prob-
+lems, it has no concept of parallel execution and is thereforelimited in this regard. It is possible to get around it by running
+multiple DSDs concurrently, but this only works well if they
+are mostly independent of each other.
+Behavior trees scale better since they can handle paral-
+lelism easily with their tick concept.
+1−−>Waiter
+2 $CustomersWaiting
+3 "None" −−> $ContinousRoomCheck
+4 "Clean" −−> @CleanFloor
+5 "Check" −−> @CheckRoom + room : 1 , @CheckRoom +
+/arrowhookleft→room: 2 , @CheckRoom + room:3
+6 "AtLeastOne" −−> $CustomerDistance
+7 "Far" −−>@ G o T o C u s t o m e r
+8 "Near" −−> $SpeakWithCustomer
+9 "WantsToOrder" −−> @TakeOrder
+10 "BringBill" −−> @BringBill
+11 "Complains" −−> @FetchManager
+Listing 3 Corresponding DSL for the example DSD displayed in Figure
+6.
+Concept comprehensibility
+The amount of time which is spent to understand how a
+framework works should be as low as possible to keep thedevelopment time to a minimum. Some concepts, i.e. BT andDSD, need more time to understand, as they are more com-
+plex and less intuitive. Other more simplistic frameworks,for example, ones based on Decisions Trees, are faster to
+understand but tend to not have the same usability for larger
+projects.
+6 Example
+To better demonstrate how the DSD works and its beneﬁts,we consider a robot waiter scenario. The robot works in athree-room restaurant where it should serve customers but
+also clean when possible. It may ﬁnd waiting customers ran-
+domly while cleaning, but to keep the waiting time low, itshould stop cleaning and search for customers in all three
+rooms every three minutes. When a customer is found, the
+robot needs to drive towards it, and then it should deal withall wishes of this customer before going to another one.
+An overview of the resulting DSD is displayed in Fig. 6
+and the corresponding description in the DSL is shown inListing 3.
+In the beginning, the robot is cleaning. After some
+time, the ContinousRoomCheck is reevaluated and an action
+sequence is pushed on the stack. It consists of three times thesame action, but with different arguments. The robot checks
+the ﬁrst room and the corresponding action is popped. Dur-
+ing the check of the second room, two customers are found.Therefore the root decision is reevaluated and further room
+checks are aborted. The robot drives to the ﬁrst customer
+and sees what he wants. After bringing the bill, the customercomplains. Only after completely serving this customer therobot drives to the second and takes its order. Afterward, it
+continues cleaning.
+The DSD implementation of this scenario stays small
+(four decisions and six actions) and is easily readable due
+to its semantic decisions. The adaptable reevaluation mecha-
+nism allows constant checking for new customers on currentcamera images while moving into other rooms to search for
+customers is only performed periodically, as this interrupts
+the cleaning process. While the robot serves a customer, ituses DoNotReevaluate to make sure it is not interrupted. The
+reevaluation mechanism allows giving a clear hierarchical
+organization of the different tasks by specifying which tasks
+can interrupt others.
+The checking of the three rooms is utilizing the ability
+to provide arguments to actions and is formed by using an
+action sequence. If the robot should be expanded, e.g., by aBringOrder action, this can be done easily by adding another
+action. The current stack of the DSD provides a clear state of
+the robot’s behavior, which could, for example, be used by ahuman supervisor.
+123
+
+--- Page 10 ---
+82 International Journal of Social Robotics (2022) 14:73–83
+CustomersWaiting
+[Reevaluate]
+ContinousRoomCheck
+[Reevaluate every 3min]
+CheckNone
+SpeakWithCustomerCleanAtLeastOne
+WantsToOrder WantsBill ComplainsCustomersWaitingContinousRoomCheckCleanFloor
+CleanFloorCheckRoom(1),CheckRoom(2),
+CheckRoom(3)
+TakeOrder
+[DoNotReev.]BringBill
+[DoNotReev.]FetchManager
+[DoNotReev.]CustomersWaitingContinousRoomCheckCheckRoom(3)CheckRoom(2)CheckRoom(1)
+CustomersWaitingContinousRoomCheckCheckRoom(3)CheckRoom(2)
+CustomersWaitingSpeakWithCustomerBringBill
+CustomersWaitingSpeakWithCustomerFetchManager
+CustomersWaitingContinousRoomCheckCleanFloorCustomerDistance
+Near
+GoToCustomerFar
+CustomersWaitingCustomerDistanceGoToCustomer
+CustomerDistance CustomerDistance
+CustomersWaitingCustomerDistanceGoToCustomer
+CustomersWaitingTakeOrder
+CustomerDistance12 3
+45 6
+78 9
+Fig. 6 Example of a DSD for a robot waiter. The DAG ( left) shows the structure of the DSD with annotations displaying the reevaluation behavior.
+The stacks ( right ) show steps in an exemplary scenario
+7 Conclusion
+We presented a lightweight, open-source control architec-
+ture for robots and software agents. The presented approach,called Dynamic Stack Decider (DSD), gives several beneﬁts
+over existing techniques. Most importantly, the current state
+of the behavior, as well as the decisions leading to this state,are clear at all times. Furthermore, decisions and actions areclearly differentiated, reusable, and replaceable. The DSD
+can easily be created using its own domain-speciﬁc language,
+a feature no other framework provides.
+In Section 5we showed the beneﬁts over existing
+approaches, especially in readability and maintainability. Our
+model focuses on more complex behaviors with high read-ability and good maintainability. Further, it shows its beneﬁts
+in the development process, as it allows easy code reuse and
+offers good human readability. For this, we made a trade-offwhich limited the possibilities of parallelism and the simplic-ity of the concept.
+Finding an objective measurement for the best frame-
+work is hard, if not impossible. Further, the scenario wherethe system is used determines how well-suited an approach
+is. However, we are conﬁdent that the proposed framework
+works very well for a lot of use cases. It provides a greatapproach for writing easy understandable and maintainable
+software.
+The RoboCup context was chosen as an example, as this
+provides a convenient scenario, showing a complex envi-ronment while maintaining understandable and showing an
+alternative application aside from the often shown examples
+in research, as robot navigation and related behaviors.We provide a reference implementation
+6, which has been
+used in RoboCup competitions for several years and was
+further extended and improved over the years. The approach
+with this implementation was also used in social domains onmobile and non-mobile platforms (see Section 1) and will be
+used for further research. The written software is provided as
+a ROS package and is therefore easy to integrate into existingsystems. It can utilize many tools and libraries provided byROS, as rqt or the logging environment. While it is ready to
+work with ROS, it can still be used ROS agnostic in every
+environment which supports Python.
+Acknowledgements Thanks to Nils Rokita for helping to implement
+the DSD, thanks to Finn-Thorben Sell for implementing the visualiza-tion tool, thanks to Timon Engelke for cleaning up the implementation,and thanks to the Hamburg Bit-Bots for the support.
+Declarations
+Conﬂict of interest The authors declare that they have no conﬂict of
+interest.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-
+6https://github.com/bit-bots/dynamic_stack_decider
+123
+
+--- Page 11 ---
+International Journal of Social Robotics (2022) 14:73–83 83
+right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+1. Adouane L (2016) Autonomous vehicle navigation: from behav-
+ioral to hybrid multi-controller architectures. CRC Press . 00018
+2. Arkin RC (1998) Arkin. Behavior-Based Robotics. p 04358 MIT
+press, R.C
+3. Bestmann M, Brandt H, Engelke T, Fiedler N, Gabel A, Güldenstein
+J, Hagge J, Hartﬁll J, Lorenz T, Heuer T, et al (2019) Hamburg bit-bots and wf wolves team description for robocup 2019 humanoidkidsize. In: RoboCup Symposium
+4. Bestmann M, Zhang J (2020) Humanoid control module: An
+abstraction layer for humanoid robots. In: 2020 IEEE InternationalConference on Autonomous Robot Systems and Competitions(ICARSC), pp 263–268. IEEE
+5. Brooks R (1986) A robust layered control system for a mobile
+robot. IEEE J Robot Autom 2(1):14–23
+6. Colledanchise M, Ögren P (2017) Behavior Trees in Robotics and
+AI: An Introduction . https://doi.org/10.1201/9780429489105
+7. Dromey G (2003). From requirements to design: formalizing the
+key steps. https://doi.org/10.1109/SEFM.2003.1236202 .https://
+doi.org/10.1109/SEFM.2003.1236202
+8. Fikes RE, Nilsson NJ (1971) Strips: a new approach to the
+application of theorem proving to problem solving. Artif Intell 2(3–4):189–208
+9. Gill a introduction to the theory of ﬁnite-state machines (1962).
+https://doi.org/10.1109/PROC.1963.2548
+10. Harel D (1987) Statecharts: a visual formalism for complex sys-
+tems. Sci Comput Program 8(3):231–274. https://doi.org/10.1016/
+0167-6423(87)90035-911. Kitano H, Asada M, Kuniyoshi Y , Noda I, Osawa E RoboCup
+The robot world cup initiative. Tech. rep. https://doi.org/10.1145/
+267658.267738
+12. Orkin J (2003) Applying goal-oriented action planning to games.
+AI game programming wisdom 2 pp. 217–227 . http://alumni.
+media.mit.edu/~jorkin/GOAP_draft_AIWisdom2_2003.pdf
+13. Quinlan JR (1986) Induction of decision trees. Mach Learn
+1(1):81–106. https://doi.org/10.1007/BF00116251
+14. Sanner MF (1999) Python: a programming language for soft-
+ware integration and development. J Mole Gr Modell 17(1):57–61.https://doi.org/10.1016/S1093-3263(99)99999-0
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123
