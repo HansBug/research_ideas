@@ -1,0 +1,1034 @@
+--- Page 1 ---
+Formal Veriﬁcation of a Power Controller
+Using the Real-Time Model Checker UPPAAL
+Klaus Havelund
+/1, Kim Guldstrand Larsen
+/2, and Arne Skou
+/2/1NASA Ames Research Center, Recom Technologies, CA, USA
+havelund@ptolemy.arc.nasa.gov/2BRICS, Aalborg University, Denmarkfkgl,ask g@cs.auc.dk
+Abstract. A real-time system for power-down control in audio/video co mpo-
+nents is modeled and veriﬁed using the real-time model check er U PPAAL . The
+system is supposed to reside in an audio/video component and control (read from
+and write to) links to neighbor audio/video components such as TV , VCR and
+remote–control. In particular, the system is responsible f or the powering up and
+down of the component in between the arrival of data, and in or der to do so in a
+safe way without loss of data, it is essential that no link int errupts are lost. Hence,
+a component system is a multitasking system with hard real-t ime requirements,
+and we present techniques for modeling time consumption in s uch a multitasked,
+prioritized system. The work has been carried out in a collab oration between Aal-
+borg University and the audio/video company B&O. By modelin g the system, 3
+design errors were identiﬁed and corrected, and the followi ng veriﬁcation con-
+ﬁrmed the validity of the design but also revealed the necess ity for an upper limit
+of the interrupt frequency. The resulting design has been im plemented and it is
+going to be incorporated as part of a new product line.
+1 Introduction
+Since the basic results by Alur, Courcoubetis and Dill [3, 4] on decidab ility of model
+checking for real–time systems with dense time, a number of tools for aut omatic ver-
+iﬁcation of hybrid and real–time systems have emerged [7, 14, 10]. These tools have
+by now reached a state, where they are mature enough for application on indus trial
+development of real-time systems as we hope to demonstrate in this paper .
+One such tool is the real–time veriﬁcation tool U PPAAL
+/1[7] developed jointly by
+BRICS
+/2at Aalborg University and Department of Computing Systems at Uppsala Un i-
+versity. The tool provides support for automatic veriﬁcation of safet y and bounded live-
+ness properties of real–time systems and contains a number of additional f eatures in-
+cluding graphical interfaces for designing and simulating system models. The tool has
+been applied successfully to a number of case–studies [13, 18, 5, 6, 16, 9] w hich can
+roughly be divided in two classes: real–time controllers and real–time co mmunication
+protocols./1See URL: http://www.docs.uu.se/docs/rtmv/uppaal for inf ormation about U PPAAL ./2BRICS – Basic Research in Computer Science – is a basic resear ch centre funded by the Danish
+government at Aarhus and Aalborg University.
+
+--- Page 2 ---
+Industrial developers of embedded systems have been following the abov e work
+with great interest, because the real–time aspects of concurrent systems can be e x-
+tremely difﬁcult to analyze during the design and implementation phase. On e such
+company is Bang /&Olufsen (B&O) – having development and production of fully
+integrated home audio/video systems as a main activity.
+The work presented in this paper documents a collaboration between AAU (Aal-
+borg University) – under the BRICS project – and B&O on the developmen t of one
+of the company’s new designs: a system for audio/video power control. The system is
+supposed to reside in an audio/video component and control (read from and w rite to)
+links to neighbor audio/video components such as TV , VCR and remote–cont rol. In
+particular, the system is responsible for the powering up and down of the component in
+between the arrival of data, and in order to do so, it is essential that no link interrupts
+are lost. The work is a continuation of an earlier successful collaboration [13] between
+the same two organizations, where an existing audio/video protocol fo r detecting colli-
+sions on a link between audio/video components was analyzed and found to cont ain a
+timing error causing occasional data loss. The interesting point was, th at the error was
+a decade old, like the protocol, and that it was known to exist – but nor mal testing had
+never been sufﬁcient in tracking down the reason for the error.
+The collaboration between B&O and AAU spanned 3 weeks (4 including report
+writing), and was very intense the ﬁrst week, where a representative from B&O vis-
+ited AAU, and a ﬁrst sketch of the model was produced. During the next tw o weeks,
+the model was reﬁned, and 15 properties formulated by B&O in natural languag e were
+formalized and then veriﬁed using the U PPAAL model checker. During a meeting, revi-
+sions to the model and properties were suggested, and a ﬁnal effort was spen t on model
+revision, re-veriﬁcation and report writing. The present paper is an int ensive elaboration
+of the preliminary report [12]
+/3.
+The paper is structured as follows. Section 2 contains an informal descript ion of the
+B&O protocol, and in section 3 we present the U PPAAL modeling language and tool.
+In section 4 we present our techniques for modeling timed transitions and interrupts in
+the U PPAAL language. Section 5 presents the formal modeling of this protocol in the
+UPPAAL language, while section 6 presents the veriﬁcation results. Finally sectio n 7
+provides an evaluation of the project and points out future work.
+2 Informal Description of the Power Down Protocol
+In this section, we provide an informal description of the designed pr otocol for power
+down control in an audio/video component. As advocated in [15], we divid e the de-
+scription into environment, syntax, and protocol rules.
+2.1 Protocol Environment
+A typical B&O conﬁguration (see ﬁgure 1) consists of a number of compon ents, which
+are interconnected by different kinds of links carrying audio/video data an d (or) control/3A full version of the paper is available at
+http://ic-www.arc.nasa.gov/ic/projects/amphion/peop le/havelund.
+
+--- Page 3 ---
+information. Each component is equipped with two processors controlli ng audio/video
+devices and links, and among other tasks, the processors must minimize t he energy
+consumption when the component goes stand by. Each processor may be in one of two
+modes: (1) active, where it is operational and can handle its devices and links , (2) stand
+by, where it is unable to do anything except wake up and enter active mode. On e of the
+processors acts as a master in the sense that it may order the other processor ( the slave)
+to enter stand by mode (and thereby reduce energy consumption). Due to phy sical laws
+/4
+a processor cannot leave stand by mode via one atomic action, and the purp ose of the
+protocol is to ensure that stand by operation is handled in a consistent w ay, i.e. when
+one of the processors enters or leaves stand by mode, this is also recognized by the other
+processor. Furthermore, whenever a processor senses valid data on an extern al link, it
+must leave stand by operation. Also, the real-time duration for swit ching between the
+modes may not exceed a given upper limit in order not to lose messages.
+Audio CenterBroadcast BusOther Rooms Main Room
+MX-TV
+VX7000-VCR
+Fig. 1. Example B /&O conﬁguration.
+Figure 2 illustrates the processor interconnection and our model of the software ar-
+chitecture for one of the processors. Each processor communicates with dev ices and
+other components via external links
+/5, and the two processors are interconnected via an
+internal link. The software architecture will be almost identical for th e two processors,
+and in this report we concentrate on the IOP3212 processor – the slave p rocessor. The
+main software module is the IOP process which communicates with the AP p rocessor,
+the external link drivers, and the interrupt handlers according to the p rotocol rules de-
+scribed below. The protocol forms the crucial part of the software desig n, because it
+must assure that no data and interrupts are lost (in order to leave stand by operation at
+due time)./4It takes e.g. approx. 1 ms to make the processor operational w hen it has been in stand by
+operation./5The ﬁgure illustrates a conﬁguration with one external link , the LSL link.
+
+--- Page 4 ---
+ap_down
+ap_activeap_down_ack
+ap_down_nackIOPAP 3002 processorIOP 3212 processor device  links
+data/no_data
+interrupt/no_interruptcheck driver
+check interrupt
+interrupt
+handlersdrivers
+Fig. 2. Software architecture of the power down protocol. The proto col entity process (IOP) re-
+ceives protocol commands (left arrows) from the drivers and interrupt handlers by issuing check
+commands (right arrows).
+2.2 Protocol Syntax
+The power down protocol entity (the IOP process) communicates with its environ-
+ment (AP processor, link drivers and interrupt handlers) via the prot ocol commands
+in the set: fapdown, ap active, ap down ack, ap down nack, data, no data, interrupt,
+nointerrupt g. Theapdown command is sent from the AP processor and commands
+the IOP processor to enter stand by operation. The data command is sent from a link
+driver and indicates that meaningful input has been detected on the link, whereas the
+nodata command indicates that there is no input from the link. Likewise, the inter-
+rupt (nointerrupt) command is sent from from the link interrupt handler and indi-
+cates that an interrupt (or no interrupt) has been received at the link interrup t interface.
+The commands apactive ,apdownack,apdownnack informs the AP3002 processor
+about state changes of the protocol, that is, apactive is sent when the IOP3212 proces-
+sor becomes active, apdownackis sent when it accepts to enter stand by mode, and
+apdownnack is sent when stand by cannot be entered.
+2.3 Protocol Rules
+In order to give an intuitive explanation of the protocol, we describ e below in an infor-
+mal way the major protocol rules, which must be obeyed by the IOP proto col entity. We
+leave out the details on communication with interrupt handlers and driv ers, which will
+be described in the formalization section. In order to structure the descr iption, we deﬁne
+the following major phases (see Figure 3 below) for the entity: the activephase , where
+the IOP is in normal (active) operation, the check driver phase , where the IOP process
+is waiting for a driver status (no data/data) in order to decide whether or n ot to leave
+the active phase, the standby phase , where the IOP processor is out of operation, and
+thecheck interruptsphase , where the IOP processor is waiting for an interrupt handler
+
+--- Page 5 ---
+status (no interrupt/interrupt) in order to decide whether or not to en ter the stand by
+phase. We use ?/! to indicate protocol input/output in the usual way.
+check interrupts
+stand by
+activedata
+down signaldatainterrupt
+interruptno interrupt
+no datano data
+check driver
+check drivercheck driver
+datano data
+initial state
+Fig. 3. Major protocol phases. The dotted lines indicate transitio ns leading towards power down.
+The full lines are leading towards power up. The two neighbor ing ’check driver’ phases are
+necessary in order to be able to ignore noise from the communi cation lines.
+Activerule In the active phase, the IOP protocol entity must enter the check driver
+phase, whenever a apdown command is received from the AP processor.
+Check driverrule In the check driver phase, the IOP protocol entity commands the
+drivers to check whether or not meaningful data are received from the links. T he
+outcome of the check deﬁnes the succeeding phase according to Figure 3.
+Standbyrule Whenever an interrupt is received in the stand by phase, the IOP protocol
+entity must enter the check driver phase.
+Check interruptsrule In the check interrupts phase, the protocol entity commands the
+interrupt handlers to check for pending interrupts. If no interrupts ar e pending, the
+stand by phase can safely be entered. Otherwise, the check driver phase is entered.
+The above rules have to be implemented in such a way, that (1) Whenever an in -
+terrupt is received and meaningful data is present on the given link, the acti ve phase
+must be entered, and (2) Whenever a down signal is received from the AP proces sor
+and no interrupts and valid data are present, the stand by phase must be ent ered. The
+delay caused by software of these transitions may not exceed /1/5/0/0 /ssince otherwise
+data may be lost.
+The informal rules form the basis for the model design, and in the analy sis section,
+we present a complete list of protocol requirements in terms of properti es of the formal
+protocol model.
+
+--- Page 6 ---
+3 The UPPAAL Model and Tool
+UPPAAL is a tool box for symbolic simulation and automatic veriﬁcation of real –timed
+systems modeled as networks of timed automata [4] extended with global sh ared in-
+teger variables. More precisely, a model consists of a collection of non–d eterministic
+processes with ﬁnite control structure and real–valued clocks communicatin g through
+channels and shared integer variables. The tool box is developed in collabor ation be-
+tween BRICS at Aalborg University and Department of Computing Systems at Uppsala
+University, and has been applied to several case–studies [13, 18, 5, 6, 16, 9 ].
+The current version of U PPAAL is implemented in C++, XF ORMS and M OTIF and
+includes the following main features:
+–A graphical interface based on Autograph [8] allowing graphical description s of
+systems.
+–A compiler transforming graphical descriptions into a textual program ming format.
+–A simulator, which provides a graphical visualization and recording of th e possi-
+ble dynamic behaviors of a system description. This allows for inex pensive fault
+detection in the early modeling stages.
+–A model checker for automatic veriﬁcation of safety and bounded–liveness prop er-
+ties by on–the–ﬂy reachability analysis.
+–Generation of (shortest) diagnostic traces in case veriﬁcation of a particul ar real–
+time system fails. The diagnostic traces may be graphically visualized usi ng the
+simulator.
+A system description (or model) in U PPAAL consists of a collection of automata
+modeling the ﬁnite control structures of the system. In addition th e model uses a ﬁnite
+set of (global) real–valued clocks and integer variables.
+Consider the model of Figure 4. The model consists of two components A and B
+with control nodes fA0,A1,A2,A3 gand fB0,B1,B2,B3 grespectively. In addition
+to these discrete control structures, the model uses two clocks xandy, one integer
+variablenand a channel afor communication.
+y >= 3y >= 3y >= 3y >= 3y >= 3 y >= 3 y >= 3 y >= 3 y >= 3y >= 3y >= 3y >= 3y >= 3 y >= 3 y >= 3 y >= 3y >= 3
+a!a!a!a!a! a! a! a! a!a!a!a!a! a! a! a!a!
+y := 0y := 0y := 0y := 0y := 0 y := 0 y := 0 y := 0 y := 0y := 0y := 0y := 0y := 0 y := 0 y := 0 y := 0y := 0 y >= 4y >= 4y >= 4y >= 4y >= 4 y >= 4 y >= 4 y >= 4 y >= 4y >= 4y >= 4y >= 4y >= 4 y >= 4 y >= 4 y >= 4y >= 4 n == 5n == 5n == 5n == 5n == 5 n == 5 n == 5 n == 5 n == 5n == 5n == 5n == 5n == 5 n == 5 n == 5 n == 5n == 5
+x >= 2x >= 2x >= 2x >= 2x >= 2 x >= 2 x >= 2 x >= 2 x >= 2x >= 2x >= 2x >= 2x >= 2 x >= 2 x >= 2 x >= 2x >= 2
+a?a?a?a?a? a? a? a? a?a?a?a?a? a? a? a?a?
+n := 5n := 5n := 5n := 5n := 5 n := 5 n := 5 n := 5 n := 5n := 5n := 5n := 5n := 5 n := 5 n := 5 n := 5n := 5
+x := 0x := 0x := 0x := 0x := 0 x := 0 x := 0 x := 0 x := 0x := 0x := 0x := 0x := 0 x := 0 x := 0 x := 0x := 0n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1 n := n + 1 n := n + 1 n := n + 1 n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1 n := n + 1 n := n + 1 n := n + 1n := n + 1A0A0A0A0A0 A0 A0 A0 A0A0A0A0A0 A0 A0 A0A0
+(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6) (y <= 6) (y <= 6) (y <= 6) (y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6) (y <= 6) (y <= 6) (y <= 6)(y <= 6)A1A1A1A1A1 A1 A1 A1 A1A1A1A1A1 A1 A1 A1A1 A2A2A2A2A2 A2 A2 A2 A2A2A2A2A2 A2 A2 A2A2 A3A3A3A3A3 A3 A3 A3 A3A3A3A3A3 A3 A3 A3A3
+B0B0B0B0B0 B0 B0 B0 B0B0B0B0B0 B0 B0 B0B0
+(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4) (x <= 4) (x <= 4) (x <= 4) (x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4) (x <= 4) (x <= 4) (x <= 4)(x <= 4)c:B1c:B1c:B1c:B1c:B1 c:B1 c:B1 c:B1 c:B1c:B1c:B1c:B1c:B1 c:B1 c:B1 c:B1c:B1 B2B2B2B2B2 B2 B2 B2 B2B2B2B2B2 B2 B2 B2B2 B3B3B3B3B3 B3 B3 B3 B3B3B3B3B3 B3 B3 B3B3AAAAA A A A AAAAA A A AA
+BBBBB B B B BBBBB B B BB
+Fig. 4. An example U PPAAL model
+
+--- Page 7 ---
+The edges of the automata are decorated with three types of labels: a guard , ex-
+pressing a condition on the values of clocks and integer variables that mus t be satisﬁed
+in order for the edge to be taken; a synchronization action which is performed when
+the edge is taken forcing as in CCS [19] synchronization with another comp onent on
+a complementary action
+/6, and ﬁnally a number of clock resets andassignments to in-
+teger variables. All three types of labels are optional: absence of a guard is interpreted
+as the condition tr ue, and absence of a synchronization action indicates an internal
+(non–synchronizing) edge similar to /–transitions in CCS. Reconsider Figure 4. Here
+the edge between A0andA1can only be taken, when the value of the clock yis greater
+than or equal to /3. When the edge is taken the action a!is performed thus insisting on
+synchronization with B on the complementary action a?; that is for A to take the edge
+in question, B must simultaneously be able to take the edge from B0toB1. Finally,
+when taking the edge, the clock yis reset to /0.
+In addition, control nodes may be decorated with so–called invariants , which ex-
+press constraints on the clock values in order for control to remain in a par ticular node.
+Thus, in Figure 4, control can only remain in A0as long as the value of yis no more
+than /6.
+Formally, states of a U PPAAL model are of the form /( l /; v /), where lis acontrol
+vector indicating the current control node for each component of the network and vis an
+assignment given the current value for each clock and integer variable. The initial state
+of a U PPAAL model consists of the initial node of all components
+/7and an assignment
+giving the value /0for all clocks and integer variables. A U PPAAL model determines the
+following two types of transitions between states:
+Delay transitions As long as none of the invariants of the control nodes in the current
+state are violated, time may progress without affecting the control nod e vector and
+with all clock values incremented with the elapsed duration of time. In Figur e 4,
+from the initial state h /( A/0 /; B/0 /) /; x /= /0 /; y /= /0 /; n /= /0 itime may elapse /3 /: /5time
+units leading to the state h /( A/0 /; B/0 /) /; x /= /3 /: /5 /; y /= /3 /: /5 /; n /= /0 i. However, time
+cannot elapse /5time units as this would violate the invariant of B0.
+Action transitions If two complementary labeled edges of two different components
+are enabled in a state then they can synchronize. Thus in state h /( A/0 /; B/0 /) /; x /=/3 /: /5 /; y /= /3 /: /5 /; n /= /0 ithe two components can synchronize on aleading to the
+new state h /( A/1 /; B/1 /) /; x /= /0 /; y /= /0 /; n /= /5 i(note thatx,y, andnhave been ap-
+propriately updated). If a component has an internal edge enabled, the edge can b e
+taken without any synchronization. Thus in state h /( A/1 /; B/1 /) /; x /= /0 /; y /= /0 /; n /= /5 i,
+the B–component can perform without synchronizing with A, leading to t he stateh /( A/1 /; B/2 /) /; x /= /0 /; y /= /0 /; n /= /6 i.
+Finally, in order to enable modeling of atomicity of transition–sequen ces of a par-
+ticular component (i.e. without time–delay and interleaving of other comp onents) nodes
+may be marked as committed (indicated by a c–preﬁx). If in a state one of the compo-
+nents is in a control node labeled as being committed, no delay is allowed to o ccur and/6Given a channel name a,a!anda?denote complementary actions corresponding to sending
+respectively receiving on the channel a./7indicated graphically by a double circled node.
+
+--- Page 8 ---
+any action transition (synchronizing or not) must involve the particular component (the
+component is so–to–speak committed to continue). In the state /(/( A/1 /; B/1 /) /; x /= /0 /; y /=/0 /; n /= /5/)B1is committed; thus without any delay the next transition must invol ve
+the B–component. Hence the two ﬁrst transitions of B are guaranteed to be performed
+atomically. Besides ensuring atomicity, the notion of committed nodes also helps in sig-
+niﬁcantly reducing the space–consumption during veriﬁcation. Channels can in addition
+be deﬁned as urgent : when two components can synchronize on an urgent channel no
+further delay is allowed before communication takes place.
+In this section and indeed in the modeling of the audio/video protocol p resented in
+the following sections, the values of all clocks are assumed to increase wit h identical
+speed (perfect clocks). However, U PPAAL also supports analysis of timed automata with
+varying and drifting time–speed of clocks. This feature was crucial in the m odeling and
+analysis of the Philips Audio–Control protocol [5] using U PPAAL .
+UPPAAL is able to check for reachability properties, in particular whether a certain
+combination of control-nodes and constraints on clock and data variables is reachable
+from an initial conﬁguration. The properties that can be analyzed are of two f orms:
+“A[]p ” and “E<>p ”, wherepis a formula over clock variables, data variables, and
+control-node positions. Intuitively for “ A[]p ” to be satisﬁed, all reachable states must
+satisfyp. Dually, for “ E<>p ” to be satisﬁed, some reachable state must satisfy p.
+4 Timed Transitions and Interrupts
+In this section, we shall introduce techniques for dealing with a couple of concepts that
+appear in the protocol, and which are not supported directly by the U PPAAL notation.
+These concepts are on the one hand time slicing in combination with time consuming
+transitions , and on the other hand prioritized interrupts . We refer to time slicing as the
+activity of delegating and scheduling execution rights to processes that al l run on the
+same single processor. Transitions normally don’t take time in U PPAAL , but this occurs
+in the protocol. Interrupts is a well known concept.
+First, we give a small example illustrating what we need. Then we sugg est the tech-
+niques that we shall apply in the modeling of the protocol.
+4.1 The Problem
+Assume a system with two processes A and B running on a single processo r. Assume
+further, that these processes can be interrupted by an interrupt handler. Th e situation is
+illustrated in Figure 5, which is notexpressed in the U PPAAL language, but rather in
+some informal extension of the language.
+Each edge modiﬁes a variable (A modiﬁes xandy, B modiﬁes vandw, and the
+interrupt handler modiﬁes iandj). These assignments only serve to identify the edges
+and have no real importance for the example. Each edge is furthermore labeled with a
+time slot within parenthesis ( 2,5,7-12 ), indicating the amount of time units the edge
+takes. The slot 7-12 means anywhere between /7and /1/2time units.
+Suppose the interrupt handler does not interrupt. Then the semantics s hould be the
+following: A and B execute in an interleaved manner modeling the time sli cing of the
+processor – each transition taking the amount of time it is labeled with. N o unnecessary
+
+--- Page 9 ---
+i := 1i := 1i := 1i := 1i := 1 i := 1 i := 1 i := 1 i := 1i := 1i := 1i := 1i := 1 i := 1 i := 1 i := 1i := 1
+(2)(2)(2)(2)(2) (2) (2) (2) (2)(2)(2)(2)(2) (2) (2) (2)(2)
+j := 2j := 2j := 2j := 2j := 2 j := 2 j := 2 j := 2 j := 2j := 2j := 2j := 2j := 2 j := 2 j := 2 j := 2j := 2
+(5)(5)(5)(5)(5) (5) (5) (5) (5)(5)(5)(5)(5) (5) (5) (5)(5)
+v := 1v := 1v := 1v := 1v := 1 v := 1 v := 1 v := 1 v := 1v := 1v := 1v := 1v := 1 v := 1 v := 1 v := 1v := 1
+(5)(5)(5)(5)(5) (5) (5) (5) (5)(5)(5)(5)(5) (5) (5) (5)(5)w := 2w := 2w := 2w := 2w := 2 w := 2 w := 2 w := 2 w := 2w := 2w := 2w := 2w := 2 w := 2 w := 2 w := 2w := 2
+(7-12)(7-12)(7-12)(7-12)(7-12) (7-12) (7-12) (7-12) (7-12)(7-12)(7-12)(7-12)(7-12) (7-12) (7-12) (7-12)(7-12)y := 2y := 2y := 2y := 2y := 2 y := 2 y := 2 y := 2 y := 2y := 2y := 2y := 2y := 2 y := 2 y := 2 y := 2y := 2
+(5)(5)(5)(5)(5) (5) (5) (5) (5)(5)(5)(5)(5) (5) (5) (5)(5)x := 1x := 1x := 1x := 1x := 1 x := 1 x := 1 x := 1 x := 1x := 1x := 1x := 1x := 1 x := 1 x := 1 x := 1x := 1
+(2)(2)(2)(2)(2) (2) (2) (2) (2)(2)(2)(2)(2) (2) (2) (2)(2) aaaaa a a a aaaaa a a aa
+bbbbb b b b bbbbb b b bb
+ccccc c c c ccccc c c cc aaaaa a a a aaaaa a a aa bbbbb b b b bbbbb b b bb ccccc c c c ccccc c c ccccccc c c c ccccc c c cc bbbbb b b b bbbbb b b bb aaaaa a a a aaaaa a a aaAAAAA A A A AAAAA A A AA
+BBBBB B B B BBBBB B B BBInterruptInterruptInterruptInterruptInterrupt Interrupt Interrupt Interrupt InterruptInterruptInterruptInterruptInterrupt Interrupt Interrupt InterruptInterrupt
+Fig. 5. What we want to express
+time is spent in intermediate nodes (except waiting for the other process to execute). At
+the end, as soon as both A and B are in the node c, at least /1/9( /2 /+ /5 /+ /5 /+ /7 ) and at
+most /2/4( /2 /+ /5 /+ /5 /+ /1/2 ) time units will have passed.
+An interrupt can occur at any moment and executes “to the end” when occurring.
+That is, it goes from node atocwithout neither A nor Bbeing allowed to execute in the
+meantime. If we assume that the interrupt handler can also interrupt, then i t will change
+the above numbers to /2/6( /1/9 /+ /2 /+ /5 ) and /3/1( /2/4 /+ /2 /+ /5 ).
+Or goal is now to formulate this in the U PPAAL language. Consider an approach where
+nodes are annotated with time constraints on local clocks, expressing the time consumed
+by theprevious edge. This solution does not work since the two automata may consume
+time “together”, and does not reﬂect the desired behavior, since they are sup posed to
+run on a single processor. Let us ﬁrst model time consuming transiti ons, ignoring the
+interrupts for a moment.
+4.2 Modeling Timed Transitions
+In a single processor setting it is natural to hand over time control to a single “operating
+system” process. Figure 6 illustrates such a process, called Timer, using a local clock k.
+k >= 7k >= 7k >= 7k >= 7k >= 7 k >= 7 k >= 7 k >= 7 k >= 7k >= 7k >= 7k >= 7k >= 7 k >= 7 k >= 7 k >= 7k >= 7k == 5k == 5k == 5k == 5k == 5 k == 5 k == 5 k == 5 k == 5k == 5k == 5k == 5k == 5 k == 5 k == 5 k == 5k == 5
+k == 2k == 2k == 2k == 2k == 2 k == 2 k == 2 k == 2 k == 2k == 2k == 2k == 2k == 2 k == 2 k == 2 k == 2k == 2k := 0k := 0k := 0k := 0k := 0 k := 0 k := 0 k := 0 k := 0k := 0k := 0k := 0k := 0 k := 0 k := 0 k := 0k := 0finish?finish?finish?finish?finish? finish? finish? finish? finish?finish?finish?finish?finish? finish? finish? finish?finish?
+t7_12?t7_12?t7_12?t7_12?t7_12? t7_12? t7_12? t7_12? t7_12?t7_12?t7_12?t7_12?t7_12? t7_12? t7_12? t7_12?t7_12? t2?t2?t2?t2?t2? t2? t2? t2? t2?t2?t2?t2?t2? t2? t2? t2?t2?t5?t5?t5?t5?t5? t5? t5? t5? t5?t5?t5?t5?t5? t5? t5? t5?t5?
+w7_12w7_12w7_12w7_12w7_12 w7_12 w7_12 w7_12 w7_12w7_12w7_12w7_12w7_12 w7_12 w7_12 w7_12w7_12
+(k <= 12)(k <= 12)(k <= 12)(k <= 12)(k <= 12) (k <= 12) (k <= 12) (k <= 12) (k <= 12)(k <= 12)(k <= 12)(k <= 12)(k <= 12) (k <= 12) (k <= 12) (k <= 12)(k <= 12)w5w5w5w5w5 w5 w5 w5 w5w5w5w5w5 w5 w5 w5w5
+(k <= 5)(k <= 5)(k <= 5)(k <= 5)(k <= 5) (k <= 5) (k <= 5) (k <= 5) (k <= 5)(k <= 5)(k <= 5)(k <= 5)(k <= 5) (k <= 5) (k <= 5) (k <= 5)(k <= 5)w2w2w2w2w2 w2 w2 w2 w2w2w2w2w2 w2 w2 w2w2
+(k <= 2)(k <= 2)(k <= 2)(k <= 2)(k <= 2) (k <= 2) (k <= 2) (k <= 2) (k <= 2)(k <= 2)(k <= 2)(k <= 2)(k <= 2) (k <= 2) (k <= 2) (k <= 2)(k <= 2)
+c:backc:backc:backc:backc:back c:back c:back c:back c:backc:backc:backc:backc:back c:back c:back c:backc:backgogogogogo go go go gogogogogo go go gogo
+(k <= 0)(k <= 0)(k <= 0)(k <= 0)(k <= 0) (k <= 0) (k <= 0) (k <= 0) (k <= 0)(k <= 0)(k <= 0)(k <= 0)(k <= 0) (k <= 0) (k <= 0) (k <= 0)(k <= 0)TimerTimerTimerTimerTimer Timer Timer Timer TimerTimerTimerTimerTimer Timer Timer TimerTimer
+Fig. 6. The Timer
+
+--- Page 10 ---
+It has a start node, named go, in which time is constrained to not progress at all. This
+means that in order for time to progress, one of the edges t2?,t5? ort712? must
+be taken. These edges then lead to nodes where time can progress the correspond ing
+number of time units, where after control returns immediately (back is a co mmitted
+node just used to collect the edges) to the gonode.
+Now let us turn to the processes A and B, which are shown in Figure 7. Thes e
+now communicate with the Timer, asking for time slots. Every time un itTthat in the
+informal model, Figure 5, was in brackets (T) is now expressed as tT!. When for
+example A takes the edge from node ato nodeb, the Timer goes into the node w2, and
+stays there for /2time units while A stays in node b. Hence, the time consumed by an
+edge is really consumed in the node it leads to. We have, however, guaranteed that B
+for example, cannot go to the node band consume time “in parallel” since that would
+require a communication with Timer, and this is not ready for that before it returns to
+the node go.
+x := 1x := 1x := 1x := 1x := 1 x := 1 x := 1 x := 1 x := 1x := 1x := 1x := 1x := 1 x := 1 x := 1 x := 1x := 1
+t2!t2!t2!t2!t2! t2! t2! t2! t2!t2!t2!t2!t2! t2! t2! t2!t2!y := 2y := 2y := 2y := 2y := 2 y := 2 y := 2 y := 2 y := 2y := 2y := 2y := 2y := 2 y := 2 y := 2 y := 2y := 2
+t5!t5!t5!t5!t5! t5! t5! t5! t5!t5!t5!t5!t5! t5! t5! t5!t5!finish!finish!finish!finish!finish! finish! finish! finish! finish!finish!finish!finish!finish! finish! finish! finish!finish!
+finish!finish!finish!finish!finish! finish! finish! finish! finish!finish!finish!finish!finish! finish! finish! finish!finish! w := 2w := 2w := 2w := 2w := 2 w := 2 w := 2 w := 2 w := 2w := 2w := 2w := 2w := 2 w := 2 w := 2 w := 2w := 2
+t7_12!t7_12!t7_12!t7_12!t7_12! t7_12! t7_12! t7_12! t7_12!t7_12!t7_12!t7_12!t7_12! t7_12! t7_12! t7_12!t7_12!v := 1v := 1v := 1v := 1v := 1 v := 1 v := 1 v := 1 v := 1v := 1v := 1v := 1v := 1 v := 1 v := 1 v := 1v := 1
+t5!t5!t5!t5!t5! t5! t5! t5! t5!t5!t5!t5!t5! t5! t5! t5!t5!
+ddddd d d d ddddd d d ddddddd d d d ddddd d d dd aaaaa a a a aaaaa a a aa bbbbb b b b bbbbb b b bb ccccc c c c ccccc c c cc
+ccccc c c c ccccc c c cc bbbbb b b b bbbbb b b bb aaaaa a a a aaaaa a a aaAAAAA A A A AAAAA A A AA
+BBBBB B B B BBBBB B B BB
+Fig. 7. A and B communicating with the Timer
+When A reaches the node c, it has not yet consumed /7time units ( /2 /+ /5 ), it has only
+consumed /2. The /5will be consumed while in node c. In order to reach a state where
+we for sure know that all the time has been consumed, we add an extra dnode, which
+is reached by communicating finish! to the Timer. This forces the Timer to “ﬁnish”
+the last time consumption. Now we can express and verify the followin g true property,
+wheregcis a global clock variable that is never reset:
+A[] (A.d and B.d) imply ((19 <= gc) and (gc <= 24))
+That is, if both A and B reach node d, then they will do so within /1/9 /BnZr /2/4time units. Note
+that due to the design of the Timer, time cannot progress further when t hat happens (the
+Timer will be in the gonode where time cannot progress). Of course one can design a
+Timer that allows time to progress freely when asked to, and that is in fact wh at happens
+in the protocol. Basically one introduces an idle node in the Timer, th at can be entered
+upon request, and where time can progress without constraints.
+It is possible to model such single processor time scheduling in mod el checkers
+lacking real-time features, such as for example S PIN[15]. However, when trying to
+
+--- Page 11 ---
+formulate and verify properties where time ticks are summed up, such exp licit modeling
+easily leads to state space explosion.
+4.3 Modeling Interrupts
+Now we incorporate the interrupt handler. The basic idea is to give a p riority to each
+process, and then maintain a variable, which at any moment contains the priori ty cur-
+rently active. Processes with a priority lower than the current cannot execut e. When an
+interrupt occurs, the current priority is set to a value higher than tho se of the processes
+interrupted.
+Processes A and B can for example have priority /0while the interrupt handler gets
+priority /1. When the interrupt occurs, the current priority is then set to /1, preventing
+priority /0processes from running. We introduce the variable cur for this purpose, see
+Figure 8. The Timer stays unchanged.
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+v := 1v := 1v := 1v := 1v := 1 v := 1 v := 1 v := 1 v := 1v := 1v := 1v := 1v := 1 v := 1 v := 1 v := 1v := 1
+t5!t5!t5!t5!t5! t5! t5! t5! t5!t5!t5!t5!t5! t5! t5! t5!t5!cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+w := 2w := 2w := 2w := 2w := 2 w := 2 w := 2 w := 2 w := 2w := 2w := 2w := 2w := 2 w := 2 w := 2 w := 2w := 2
+t7_12!t7_12!t7_12!t7_12!t7_12! t7_12! t7_12! t7_12! t7_12!t7_12!t7_12!t7_12!t7_12! t7_12! t7_12! t7_12!t7_12!finish!finish!finish!finish!finish! finish! finish! finish! finish!finish!finish!finish!finish! finish! finish! finish!finish!finish!finish!finish!finish!finish! finish! finish! finish! finish!finish!finish!finish!finish! finish! finish! finish!finish! cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+y := 2y := 2y := 2y := 2y := 2 y := 2 y := 2 y := 2 y := 2y := 2y := 2y := 2y := 2 y := 2 y := 2 y := 2y := 2
+t5!t5!t5!t5!t5! t5! t5! t5! t5!t5!t5!t5!t5! t5! t5! t5!t5!cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+x := 1x := 1x := 1x := 1x := 1 x := 1 x := 1 x := 1 x := 1x := 1x := 1x := 1x := 1 x := 1 x := 1 x := 1x := 1
+t2!t2!t2!t2!t2! t2! t2! t2! t2!t2!t2!t2!t2! t2! t2! t2!t2!
+finish!finish!finish!finish!finish! finish! finish! finish! finish!finish!finish!finish!finish! finish! finish! finish!finish!cur := 0cur := 0cur := 0cur := 0cur := 0 cur := 0 cur := 0 cur := 0 cur := 0cur := 0cur := 0cur := 0cur := 0 cur := 0 cur := 0 cur := 0cur := 0
+j := 2j := 2j := 2j := 2j := 2 j := 2 j := 2 j := 2 j := 2j := 2j := 2j := 2j := 2 j := 2 j := 2 j := 2j := 2
+t5!t5!t5!t5!t5! t5! t5! t5! t5!t5!t5!t5!t5! t5! t5! t5!t5!cur := 1cur := 1cur := 1cur := 1cur := 1 cur := 1 cur := 1 cur := 1 cur := 1cur := 1cur := 1cur := 1cur := 1 cur := 1 cur := 1 cur := 1cur := 1
+i := 1i := 1i := 1i := 1i := 1 i := 1 i := 1 i := 1 i := 1i := 1i := 1i := 1i := 1 i := 1 i := 1 i := 1i := 1
+t2!t2!t2!t2!t2! t2! t2! t2! t2!t2!t2!t2!t2! t2! t2! t2!t2!
+ddddd d d d ddddd d d ddddddd d d d ddddd d d ddddddd d d d ddddd d d dd
+aaaaa a a a aaaaa a a aa bbbbb b b b bbbbb b b bb ccccc c c c ccccc c c ccccccc c c c ccccc c c cc bbbbb b b b bbbbb b b bb aaaaa a a a aaaaa a a aa
+ccccc c c c ccccc c c ccbbbbb b b b bbbbb b b bbaaaaa a a a aaaaa a a aaAAAAA A A A AAAAA A A AA
+BBBBB B B B BBBBB B B BBInterruptInterruptInterruptInterruptInterrupt Interrupt Interrupt Interrupt InterruptInterruptInterruptInterruptInterrupt Interrupt Interrupt InterruptInterrupt
+Fig. 8. Dealing with interrupts
+Note how the variable cur occurs in guards of A and B, and how it is assigned to
+by the interrupt handler. In this model, we can verify the following p roperty to be true:
+A[] (A.d and B.d and Interrupt.d) imply
+(26 <= gc and gc <= 31)
+5 Formalization in UPPAAL
+In this section, we shall formalize the system in U PPAAL . We start with an overview
+of the components and their interaction via channels and shared variables. Then we
+describe the IOP in detail.
+5.1 Component Overview
+The system consists of 7 automata, as illustrated in Figure 9. The Timer controls the
+time slicing between the components using the technique described in secti on 4.2. In
+addition, there is an environment which generates interrupts correspondi ng to data ar-
+riving on the links; hence this environment is referred to as the Interr upt Generator.
+
+--- Page 12 ---
+LSL Driver IOP
+AP Timertiap_down
+ap_activeap_down_ack
+ap_down_nackreset
+wait
+wait_int
+ti
+i_reset
+i_wait
+tii_reset
+i_wait
+ti
+AP Int
+HandlerLSL Int
+HandlerKernel
+Int Gen.generated_ap_interrupt
+enabled_lsl_interruptgenerated_lsl_interruptlsl_commandlsl_data lsl_running
+sw_stand_bysleep_opsleeping
+ap_interrupt lsl_interrupt
+some_interruptcur
+lsl_interrupt_ex
+Fig. 9. The components
+The components communicate via channel synchronization and via shared vari-
+ables. The ﬁgure illustrates the channel connections by fully drawn arcs, each going
+from one component (the one that does a send “ !”) to another (the one that does a re-
+ceive “?”). Also, all shared variables are plotted into the ﬁgure, in italics, with dotted
+lines indicating their role as message carriers, from the process that typi cally writes
+to the variable to the process that typically reads the variable. This notat ion is infor-
+mal, but it should give an overview of the shared variables and the role t hey play in
+communication. Channels and variables are described below.
+5.2 The Channels
+The AP signals the IOP to go down by issuing an apdown! (which the IOP then con-
+sumes by performing a dual apdown? ). The channels apdownack and
+apdownnack correspond to the IOP’s response to such an apdown signal from
+the AP. They represent the acknowledgment (ack) respectively the negative ack nowl-
+edgment (nack) that the closing down has succeeded respectively not succeeded. The
+apactive channel is used by the IOP to request the AP to become active.
+The channels reset ,wait ,waitint,ireset ,iwait are all used to op-
+erate the timer. Basically, the reset andireset channels are used to activate the
+timer, to start delivering time slots, while the wait ,waitint andiwait channels
+are used to dis-activate the timer, to stop delivering time slots. Dif ferent channels for re-
+setting (reset andireset ) respectively waiting ( wait ,waitint andiwait )
+are needed due to different interpretations of these commands in different co ntexts.
+
+--- Page 13 ---
+Whenever activated, the timer then delivers time slots to the IOP, the LS L (Low Speed
+Link) driver, and the interrupt handlers when these issue signals on t hetichannels.
+5.3 The Shared Variables
+The interrupt generator generates interrupts corresponding to data arriv ing on the links.
+Such an interrupt is generated by setting the variable generated lslinterrupt
+to /1( tr ue). The LSL interrupt handler then reacts on this by interrupting the IO P
+or the driver, whichever is running. A result of such an interrupt is t hat the variable
+lslinterrupt is set to /1. The IOP reads the value of this variable, and hence is
+triggered to deal with new data if it equals /1. In order for the interrupt generator to gen-
+erate interrupts at all, the variable enabled lslinterrupt must be /1. Concerning
+the AP, there is a generated apinterrupt and anapinterrupt , but there is
+noenabled apinterrupt . The AP itself plays the role as AP interrupt generator,
+and hence sets the generated apinterrupt to /1, while the AP interrupt handler
+reacts to this by setting the apinterrupt to /1. The variable someinterrupt is/1whenever either apinterrupt orlslinterrupt is /1.
+The variable cur is used to secure that an interrupt handler gets higher priority than
+the process it interrupts. Note that in this sense, the IOP and the dri ver have the lowest
+priority ( /0), while the LSL interrupt handler has one higher ( /1), and the AP interrupt
+handler has the highest ( /2). Hence, whenever the value of cur is /0, the IOP and the LSL
+driver are allowed to execute. When the LSL interrupt handler starts executi ng, it sets
+the value to /1, whereby the IOP and driver are no longer allowed to execute. The AP
+interrupt handler can further interrupt all the previous processes, assi gning /2tocur,
+whereby all other processes with lower priority are denied to execute.
+We said that the AP interrupt handler can interrupt the LSL interrupt han dler. This
+is a truth with modiﬁcations. In fact, it is not allowed to interrupt d uring the initializa-
+tion phase of the LSL interrupt handler. This is modeled by introduci ng a semaphore
+lslinterrupt ex. It is used to exclude the AP interrupt handler from interrupting
+the LSL interrupt handler during the latter’s ﬁrst activities.
+The IOP sends messages to the LSL driver by assigning values to the variab le
+lslcommand with the following meanings: /1=Initializethe driver , /2=Close down
+the driver , and /3=Activate the driver . After initialization of the driver, the IOP can
+read the results of the driver’s activity (whether it is still running and whether there
+are data or not) in the variables lslrunning andlsldata . Since the model is a
+reduction from a bigger model also involving the AP driver, we had early in the design
+a need for maintaining a variable somerunning , being true if either aprunning
+orlslrunning was true, and likewise we needed a variable somedata , being
+true if either lsldata or other similar variables were true. These two variables have
+survived after we have reduced the model.
+The three variables swstandby,sleeping andsleepopare central to the
+closing down procedure, and the interaction between the IOP and the interru pt han-
+dlers. Figure 10 illustrates the relevant pieces of code in the IOP (when approaching
+stand by mode), respectively the Interrupt handlers. To start with the I OP, the variable
+sleepopis a kind of “emergencybreak” which can be “pulled” by the interrupt han-
+dler. The IOP assigns tr ue to this variable, and it has to be tr ue before going to sleep.
+
+--- Page 14 ---
+The interrupt handler can change the value of sleepop“in last micro second”. Next,
+the IOP assigns tr ue to the variable swstandbywhen approaching the standby
+node. Hence this variable is tr ue in a certain critical time zone just before closing
+down
+/8. When the IOP ﬁnally goes down (enters the standbymode), the variable
+sleeping becomes tr ue.
+The value of swstandbyis used by the interrupt handlers when activated to
+see whether the IOP is in its critical closing down zone. If so, they assig n the valuef al se to the variable sleepop, and this will then prevent the IOP from going to
+sleep. The interrupt handlers also “wake up” ( sleeping := 0 ) the IOP in case it is
+sleeping (sleeping == 1 ). Thesleeping variable is used by the interrupt handler
+to direct the amount of time used to restart the IOP. If sleeping == 1 it takes 900
+micro seconds, otherwise it is instantaneous. We shall see the IOP algor ithm formulated
+in U PPAAL below.
+IOP: Interrupt Handler:
+sleep_op := 1; If sleeping == 1 Then
+sw_stand_by := 1; ‘‘spend 900 ms’’
+If sleep_op == 1 Then sleeping := 0
+sleeping := 1; End;
+‘‘stand by’’ If sw_stand_by == 1 Then
+End; sleep_op := 0;
+‘‘after interrupt’’: sw_stand_by := 0
+sw_stand_by := 0 End;
+‘‘go up’’
+Fig. 10. The variables swstandby,sleeping andsleepop
+5.4 The IOP
+The IOP, Figure 11, is obtained by reﬁning (in an informal sense) the ab stract model
+presented in Figure 3. The model is reﬁned using state reﬁnement as well as action
+reﬁnement . By state reﬁnement we mean that certain states (the ovals) are expanded out
+to sub–transition systems with new states connected with new (labeled) ar cs. We have
+enclosed these new sub–systems in boxes on Figure 11 such that they can be easier
+related to Figure 3. Note, however, that this is not formal U PPAAL notation. By action
+reﬁnement we mean that also arcs are expanded out to such sub–transition syst ems.
+Concerning state reﬁnement, we have expanded each “checkdriver” state into a couple
+of states:drivercall – representing the point where a driver has been called – and
+driverreturn – representing the point where the driver returns. The state “check
+interrupts” has been expanded out to a small transition system consisting of the fou r
+states:insertnoop ,setstandby,checkinterrupts andchecknoop .
+The IOP starts being active, in the node active . In this node it does not need time
+slots, hence the timer is supposed to be inactive. Note that although th e IOP is in the
+nodeactive , and hence intuitively is active, from a technical point of view, we don’t
+see it as requiring time slots, since it does not take any transitions./8In the C-implementation, the variable swstandbyis a register informing the processor
+hardware about the approaching close down.
+
+--- Page 15 ---
+ap_active!ap_active!ap_active!ap_active!ap_active! ap_active! ap_active! ap_active! ap_active!ap_active!ap_active!ap_active!ap_active! ap_active! ap_active! ap_active!ap_active!
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+wait!wait!wait!wait!wait! wait! wait! wait! wait!wait!wait!wait!wait! wait! wait! wait!wait!cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+wait!wait!wait!wait!wait! wait! wait! wait! wait!wait!wait!wait!wait! wait! wait! wait!wait!reset!reset!reset!reset!reset! reset! reset! reset! reset!reset!reset!reset!reset! reset! reset! reset!reset!cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t3!t3!t3!t3!t3! t3! t3! t3! t3!t3!t3!t3!t3! t3! t3! t3!t3!
+sw_stand_by := 1sw_stand_by := 1sw_stand_by := 1sw_stand_by := 1sw_stand_by := 1 sw_stand_by := 1 sw_stand_by := 1 sw_stand_by := 1 sw_stand_by := 1sw_stand_by := 1sw_stand_by := 1sw_stand_by := 1sw_stand_by := 1 sw_stand_by := 1 sw_stand_by := 1 sw_stand_by := 1sw_stand_by := 1
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t900_1100!t900_1100!t900_1100!t900_1100!t900_1100! t900_1100! t900_1100! t900_1100! t900_1100!t900_1100!t900_1100!t900_1100!t900_1100! t900_1100! t900_1100! t900_1100!t900_1100!
+lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3 lsl_command := 3 lsl_command := 3 lsl_command := 3 lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3 lsl_command := 3 lsl_command := 3 lsl_command := 3lsl_command := 3ap_down_ack!ap_down_ack!ap_down_ack!ap_down_ack!ap_down_ack! ap_down_ack! ap_down_ack! ap_down_ack! ap_down_ack!ap_down_ack!ap_down_ack!ap_down_ack!ap_down_ack! ap_down_ack! ap_down_ack! ap_down_ack!ap_down_ack!
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t37!t37!t37!t37!t37! t37! t37! t37! t37!t37!t37!t37!t37! t37! t37! t37!t37!
+enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0
+generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0generated_lsl_interrupt := 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t640_840!t640_840!t640_840!t640_840!t640_840! t640_840! t640_840! t640_840! t640_840!t640_840!t640_840!t640_840!t640_840! t640_840! t640_840! t640_840!t640_840!
+some_data == 0some_data == 0some_data == 0some_data == 0some_data == 0 some_data == 0 some_data == 0 some_data == 0 some_data == 0some_data == 0some_data == 0some_data == 0some_data == 0 some_data == 0 some_data == 0 some_data == 0some_data == 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t3!t3!t3!t3!t3! t3! t3! t3! t3!t3!t3!t3!t3! t3! t3! t3!t3!
+some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+some_running == 0some_running == 0some_running == 0some_running == 0some_running == 0 some_running == 0 some_running == 0 some_running == 0 some_running == 0some_running == 0some_running == 0some_running == 0some_running == 0 some_running == 0 some_running == 0 some_running == 0some_running == 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t7!t7!t7!t7!t7! t7! t7! t7! t7!t7!t7!t7!t7! t7! t7! t7!t7!
+enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1
+generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0generated_lsl_interrupt := 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t6!t6!t6!t6!t6! t6! t6! t6! t6!t6!t6!t6!t6! t6! t6! t6!t6!
+lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0lsl_data := 0
+some_data := 0some_data := 0some_data := 0some_data := 0some_data := 0 some_data := 0 some_data := 0 some_data := 0 some_data := 0some_data := 0some_data := 0some_data := 0some_data := 0 some_data := 0 some_data := 0 some_data := 0some_data := 0
+lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1lsl_running := 1
+some_running := 1some_running := 1some_running := 1some_running := 1some_running := 1 some_running := 1 some_running := 1 some_running := 1 some_running := 1some_running := 1some_running := 1some_running := 1some_running := 1 some_running := 1 some_running := 1 some_running := 1some_running := 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t17!t17!t17!t17!t17! t17! t17! t17! t17!t17!t17!t17!t17! t17! t17! t17!t17!
+sleep_op := 1sleep_op := 1sleep_op := 1sleep_op := 1sleep_op := 1 sleep_op := 1 sleep_op := 1 sleep_op := 1 sleep_op := 1sleep_op := 1sleep_op := 1sleep_op := 1sleep_op := 1 sleep_op := 1 sleep_op := 1 sleep_op := 1sleep_op := 1
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+wait_int!wait_int!wait_int!wait_int!wait_int! wait_int! wait_int! wait_int! wait_int!wait_int!wait_int!wait_int!wait_int! wait_int! wait_int! wait_int!wait_int!
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t8!t8!t8!t8!t8! t8! t8! t8! t8!t8!t8!t8!t8! t8! t8! t8!t8!
+sleep_op == 0sleep_op == 0sleep_op == 0sleep_op == 0sleep_op == 0 sleep_op == 0 sleep_op == 0 sleep_op == 0 sleep_op == 0sleep_op == 0sleep_op == 0sleep_op == 0sleep_op == 0 sleep_op == 0 sleep_op == 0 sleep_op == 0sleep_op == 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t3!t3!t3!t3!t3! t3! t3! t3! t3!t3!t3!t3!t3! t3! t3! t3!t3!
+sleep_op == 1sleep_op == 1sleep_op == 1sleep_op == 1sleep_op == 1 sleep_op == 1 sleep_op == 1 sleep_op == 1 sleep_op == 1sleep_op == 1sleep_op == 1sleep_op == 1sleep_op == 1 sleep_op == 1 sleep_op == 1 sleep_op == 1sleep_op == 1
+sleeping := 1sleeping := 1sleeping := 1sleeping := 1sleeping := 1 sleeping := 1 sleeping := 1 sleeping := 1 sleeping := 1sleeping := 1sleeping := 1sleeping := 1sleeping := 1 sleeping := 1 sleeping := 1 sleeping := 1sleeping := 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t8!t8!t8!t8!t8! t8! t8! t8! t8!t8!t8!t8!t8! t8! t8! t8!t8!
+some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1 some_interrupt == 1 some_interrupt == 1 some_interrupt == 1 some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1 some_interrupt == 1 some_interrupt == 1 some_interrupt == 1some_interrupt == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t2!t2!t2!t2!t2! t2! t2! t2! t2!t2!t2!t2!t2! t2! t2! t2!t2!
+some_interrupt == 0some_interrupt == 0some_interrupt == 0some_interrupt == 0some_interrupt == 0 some_interrupt == 0 some_interrupt == 0 some_interrupt == 0 some_interrupt == 0some_interrupt == 0some_interrupt == 0some_interrupt == 0some_interrupt == 0 some_interrupt == 0 some_interrupt == 0 some_interrupt == 0some_interrupt == 0
+lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3 lsl_command := 3 lsl_command := 3 lsl_command := 3 lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3lsl_command := 3 lsl_command := 3 lsl_command := 3 lsl_command := 3lsl_command := 3
+ap_active!ap_active!ap_active!ap_active!ap_active! ap_active! ap_active! ap_active! ap_active!ap_active!ap_active!ap_active!ap_active! ap_active! ap_active! ap_active!ap_active!cur ==0cur ==0cur ==0cur ==0cur ==0 cur ==0 cur ==0 cur ==0 cur ==0cur ==0cur ==0cur ==0cur ==0 cur ==0 cur ==0 cur ==0cur ==0
+t41_300!t41_300!t41_300!t41_300!t41_300! t41_300! t41_300! t41_300! t41_300!t41_300!t41_300!t41_300!t41_300! t41_300! t41_300! t41_300!t41_300!
+some_data == 0some_data == 0some_data == 0some_data == 0some_data == 0 some_data == 0 some_data == 0 some_data == 0 some_data == 0some_data == 0some_data == 0some_data == 0some_data == 0 some_data == 0 some_data == 0 some_data == 0some_data == 0
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t1!t1!t1!t1!t1! t1! t1! t1! t1!t1!t1!t1!t1! t1! t1! t1!t1!
+some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t314!t314!t314!t314!t314! t314! t314! t314! t314!t314!t314!t314!t314! t314! t314! t314!t314!
+enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0 enabled_lsl_interrupt := 0enabled_lsl_interrupt := 0
+generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0 generated_lsl_interrupt := 0generated_lsl_interrupt := 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+some_running == 0some_running == 0some_running == 0some_running == 0some_running == 0 some_running == 0 some_running == 0 some_running == 0 some_running == 0some_running == 0some_running == 0some_running == 0some_running == 0 some_running == 0 some_running == 0 some_running == 0some_running == 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t18!t18!t18!t18!t18! t18! t18! t18! t18!t18!t18!t18!t18! t18! t18! t18!t18!
+enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1 enabled_lsl_interrupt := 1enabled_lsl_interrupt := 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t6!t6!t6!t6!t6! t6! t6! t6! t6!t6!t6!t6!t6! t6! t6! t6!t6!
+lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0lsl_data := 0
+some_data := 0some_data := 0some_data := 0some_data := 0some_data := 0 some_data := 0 some_data := 0 some_data := 0 some_data := 0some_data := 0some_data := 0some_data := 0some_data := 0 some_data := 0 some_data := 0 some_data := 0some_data := 0
+lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1lsl_running := 1
+some_running := 1some_running := 1some_running := 1some_running := 1some_running := 1 some_running := 1 some_running := 1 some_running := 1 some_running := 1some_running := 1some_running := 1some_running := 1some_running := 1 some_running := 1 some_running := 1 some_running := 1some_running := 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+ap_down?ap_down?ap_down?ap_down?ap_down? ap_down? ap_down? ap_down? ap_down?ap_down?ap_down?ap_down?ap_down? ap_down? ap_down? ap_down?ap_down?
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t8!t8!t8!t8!t8! t8! t8! t8! t8!t8!t8!t8!t8! t8! t8! t8!t8!
+some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t8!t8!t8!t8!t8! t8! t8! t8! t8!t8!t8!t8!t8! t8! t8! t8!t8!
+some_data == 0some_data == 0some_data == 0some_data == 0some_data == 0 some_data == 0 some_data == 0 some_data == 0 some_data == 0some_data == 0some_data == 0some_data == 0some_data == 0 some_data == 0 some_data == 0 some_data == 0some_data == 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+some_running == 0some_running == 0some_running == 0some_running == 0some_running == 0 some_running == 0 some_running == 0 some_running == 0 some_running == 0some_running == 0some_running == 0some_running == 0some_running == 0 some_running == 0 some_running == 0 some_running == 0some_running == 0cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1some_data == 1some_data == 1some_data == 1 some_data == 1 some_data == 1 some_data == 1some_data == 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t24!t24!t24!t24!t24! t24! t24! t24! t24!t24!t24!t24!t24! t24! t24! t24!t24!
+sw_stand_by := 0sw_stand_by := 0sw_stand_by := 0sw_stand_by := 0sw_stand_by := 0 sw_stand_by := 0 sw_stand_by := 0 sw_stand_by := 0 sw_stand_by := 0sw_stand_by := 0sw_stand_by := 0sw_stand_by := 0sw_stand_by := 0 sw_stand_by := 0 sw_stand_by := 0 sw_stand_by := 0sw_stand_by := 0
+lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0lsl_data := 0 lsl_data := 0 lsl_data := 0 lsl_data := 0lsl_data := 0
+some_data := 0some_data := 0some_data := 0some_data := 0some_data := 0 some_data := 0 some_data := 0 some_data := 0 some_data := 0some_data := 0some_data := 0some_data := 0some_data := 0 some_data := 0 some_data := 0 some_data := 0some_data := 0
+lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1lsl_running := 1 lsl_running := 1 lsl_running := 1 lsl_running := 1lsl_running := 1
+some_running := 1some_running := 1some_running := 1some_running := 1some_running := 1 some_running := 1 some_running := 1 some_running := 1 some_running := 1some_running := 1some_running := 1some_running := 1some_running := 1 some_running := 1 some_running := 1 some_running := 1some_running := 1cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t1!t1!t1!t1!t1! t1! t1! t1! t1!t1!t1!t1!t1! t1! t1! t1!t1!
+ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0ap_interrupt := 0
+lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0lsl_interrupt := 0
+some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0 some_interrupt := 0 some_interrupt := 0 some_interrupt := 0 some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0 some_interrupt := 0 some_interrupt := 0 some_interrupt := 0some_interrupt := 0
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t13!t13!t13!t13!t13! t13! t13! t13! t13!t13!t13!t13!t13! t13! t13! t13!t13!
+lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2 lsl_command := 2 lsl_command := 2 lsl_command := 2 lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2 lsl_command := 2 lsl_command := 2 lsl_command := 2lsl_command := 2
+ap_down_nack!ap_down_nack!ap_down_nack!ap_down_nack!ap_down_nack! ap_down_nack! ap_down_nack! ap_down_nack! ap_down_nack!ap_down_nack!ap_down_nack!ap_down_nack!ap_down_nack! ap_down_nack! ap_down_nack! ap_down_nack!ap_down_nack!cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t9!t9!t9!t9!t9! t9! t9! t9! t9!t9!t9!t9!t9! t9! t9! t9!t9!
+ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0 ap_interrupt := 0ap_interrupt := 0
+lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0 lsl_interrupt := 0lsl_interrupt := 0
+some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0 some_interrupt := 0 some_interrupt := 0 some_interrupt := 0 some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0some_interrupt := 0 some_interrupt := 0 some_interrupt := 0 some_interrupt := 0some_interrupt := 0
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t300!t300!t300!t300!t300! t300! t300! t300! t300!t300!t300!t300!t300! t300! t300! t300!t300!
+lsl_command := 1lsl_command := 1lsl_command := 1lsl_command := 1lsl_command := 1 lsl_command := 1 lsl_command := 1 lsl_command := 1 lsl_command := 1lsl_command := 1lsl_command := 1lsl_command := 1lsl_command := 1 lsl_command := 1 lsl_command := 1 lsl_command := 1lsl_command := 1
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t5!t5!t5!t5!t5! t5! t5! t5! t5!t5!t5!t5!t5! t5! t5! t5!t5!
+lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2 lsl_command := 2 lsl_command := 2 lsl_command := 2 lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2lsl_command := 2 lsl_command := 2 lsl_command := 2 lsl_command := 2lsl_command := 2cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+t1!t1!t1!t1!t1! t1! t1! t1! t1!t1!t1!t1!t1! t1! t1! t1!t1!
+some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1 some_interrupt == 1 some_interrupt == 1 some_interrupt == 1 some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1some_interrupt == 1 some_interrupt == 1 some_interrupt == 1 some_interrupt == 1some_interrupt == 1
+cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0 cur == 0cur == 0cur == 0cur == 0cur == 0 cur == 0 cur == 0 cur == 0cur == 0
+wait!wait!wait!wait!wait! wait! wait! wait! wait!wait!wait!wait!wait! wait! wait! wait!wait!s_actives_actives_actives_actives_active s_active s_active s_active s_actives_actives_actives_actives_active s_active s_active s_actives_active
+back_to_activeback_to_activeback_to_activeback_to_activeback_to_active back_to_active back_to_active back_to_active back_to_activeback_to_activeback_to_activeback_to_activeback_to_active back_to_active back_to_active back_to_activeback_to_activeenter_activeenter_activeenter_activeenter_activeenter_active enter_active enter_active enter_active enter_activeenter_activeenter_activeenter_activeenter_active enter_active enter_active enter_activeenter_activedown_receiveddown_receiveddown_receiveddown_receiveddown_received down_received down_received down_received down_receiveddown_receiveddown_receiveddown_receiveddown_received down_received down_received down_receiveddown_receivedset_stand_byset_stand_byset_stand_byset_stand_byset_stand_by set_stand_by set_stand_by set_stand_by set_stand_byset_stand_byset_stand_byset_stand_byset_stand_by set_stand_by set_stand_by set_stand_byset_stand_by
+issue_active_commandsissue_active_commandsissue_active_commandsissue_active_commandsissue_active_commands issue_active_commands issue_active_commands issue_active_commands issue_active_commandsissue_active_commandsissue_active_commandsissue_active_commandsissue_active_commands issue_active_commands issue_active_commands issue_active_commandsissue_active_commandsdown_verifieddown_verifieddown_verifieddown_verifieddown_verified down_verified down_verified down_verified down_verifieddown_verifieddown_verifieddown_verifieddown_verified down_verified down_verified down_verifieddown_verifieddisable_lsl_interruptdisable_lsl_interruptdisable_lsl_interruptdisable_lsl_interruptdisable_lsl_interrupt disable_lsl_interrupt disable_lsl_interrupt disable_lsl_interrupt disable_lsl_interruptdisable_lsl_interruptdisable_lsl_interruptdisable_lsl_interruptdisable_lsl_interrupt disable_lsl_interrupt disable_lsl_interrupt disable_lsl_interruptdisable_lsl_interruptdriver_return1driver_return1driver_return1driver_return1driver_return1 driver_return1 driver_return1 driver_return1 driver_return1driver_return1driver_return1driver_return1driver_return1 driver_return1 driver_return1 driver_return1driver_return1driver_call1driver_call1driver_call1driver_call1driver_call1 driver_call1 driver_call1 driver_call1 driver_call1driver_call1driver_call1driver_call1driver_call1 driver_call1 driver_call1 driver_call1driver_call1enable_lsl_interruptenable_lsl_interruptenable_lsl_interruptenable_lsl_interruptenable_lsl_interrupt enable_lsl_interrupt enable_lsl_interrupt enable_lsl_interrupt enable_lsl_interruptenable_lsl_interruptenable_lsl_interruptenable_lsl_interruptenable_lsl_interrupt enable_lsl_interrupt enable_lsl_interrupt enable_lsl_interruptenable_lsl_interruptgoing_downgoing_downgoing_downgoing_downgoing_down going_down going_down going_down going_downgoing_downgoing_downgoing_downgoing_down going_down going_down going_downgoing_downinsert_noopinsert_noopinsert_noopinsert_noopinsert_noop insert_noop insert_noop insert_noop insert_noopinsert_noopinsert_noopinsert_noopinsert_noop insert_noop insert_noop insert_noopinsert_noop
+w_stand_byw_stand_byw_stand_byw_stand_byw_stand_by w_stand_by w_stand_by w_stand_by w_stand_byw_stand_byw_stand_byw_stand_byw_stand_by w_stand_by w_stand_by w_stand_byw_stand_bycheck_noopcheck_noopcheck_noopcheck_noopcheck_noop check_noop check_noop check_noop check_noopcheck_noopcheck_noopcheck_noopcheck_noop check_noop check_noop check_noopcheck_noopcheck_interruptscheck_interruptscheck_interruptscheck_interruptscheck_interrupts check_interrupts check_interrupts check_interrupts check_interruptscheck_interruptscheck_interruptscheck_interruptscheck_interrupts check_interrupts check_interrupts check_interruptscheck_interrupts
+send_active_commandsend_active_commandsend_active_commandsend_active_commandsend_active_command send_active_command send_active_command send_active_command send_active_commandsend_active_commandsend_active_commandsend_active_commandsend_active_command send_active_command send_active_command send_active_commandsend_active_command
+driver_return3driver_return3driver_return3driver_return3driver_return3 driver_return3 driver_return3 driver_return3 driver_return3driver_return3driver_return3driver_return3driver_return3 driver_return3 driver_return3 driver_return3driver_return3clear_lsl_interruptclear_lsl_interruptclear_lsl_interruptclear_lsl_interruptclear_lsl_interrupt clear_lsl_interrupt clear_lsl_interrupt clear_lsl_interrupt clear_lsl_interruptclear_lsl_interruptclear_lsl_interruptclear_lsl_interruptclear_lsl_interrupt clear_lsl_interrupt clear_lsl_interrupt clear_lsl_interruptclear_lsl_interruptdriver_call3driver_call3driver_call3driver_call3driver_call3 driver_call3 driver_call3 driver_call3 driver_call3driver_call3driver_call3driver_call3driver_call3 driver_call3 driver_call3 driver_call3driver_call3re_enable_lsl_interruptre_enable_lsl_interruptre_enable_lsl_interruptre_enable_lsl_interruptre_enable_lsl_interrupt re_enable_lsl_interrupt re_enable_lsl_interrupt re_enable_lsl_interrupt re_enable_lsl_interruptre_enable_lsl_interruptre_enable_lsl_interruptre_enable_lsl_interruptre_enable_lsl_interrupt re_enable_lsl_interrupt re_enable_lsl_interrupt re_enable_lsl_interruptre_enable_lsl_interruptnoisenoisenoisenoisenoise noise noise noise noisenoisenoisenoisenoise noise noise noisenoise
+activeactiveactiveactiveactive active active active activeactiveactiveactiveactive active active activeactivedriver_return2driver_return2driver_return2driver_return2driver_return2 driver_return2 driver_return2 driver_return2 driver_return2driver_return2driver_return2driver_return2driver_return2 driver_return2 driver_return2 driver_return2driver_return2driver_call2driver_call2driver_call2driver_call2driver_call2 driver_call2 driver_call2 driver_call2 driver_call2driver_call2driver_call2driver_call2driver_call2 driver_call2 driver_call2 driver_call2driver_call2wake_upwake_upwake_upwake_upwake_up wake_up wake_up wake_up wake_upwake_upwake_upwake_upwake_up wake_up wake_up wake_upwake_upclear_interruptsclear_interruptsclear_interruptsclear_interruptsclear_interrupts clear_interrupts clear_interrupts clear_interrupts clear_interruptsclear_interruptsclear_interruptsclear_interruptsclear_interrupts clear_interrupts clear_interrupts clear_interruptsclear_interrupts
+issue_down_lslissue_down_lslissue_down_lslissue_down_lslissue_down_lsl issue_down_lsl issue_down_lsl issue_down_lsl issue_down_lslissue_down_lslissue_down_lslissue_down_lslissue_down_lsl issue_down_lsl issue_down_lsl issue_down_lslissue_down_lsl
+send_nacksend_nacksend_nacksend_nacksend_nack send_nack send_nack send_nack send_nacksend_nacksend_nacksend_nacksend_nack send_nack send_nack send_nacksend_nackclear_intclear_intclear_intclear_intclear_int clear_int clear_int clear_int clear_intclear_intclear_intclear_intclear_int clear_int clear_int clear_intclear_int
+issue_lsl_upissue_lsl_upissue_lsl_upissue_lsl_upissue_lsl_up issue_lsl_up issue_lsl_up issue_lsl_up issue_lsl_upissue_lsl_upissue_lsl_upissue_lsl_upissue_lsl_up issue_lsl_up issue_lsl_up issue_lsl_upissue_lsl_up
+re_issue_lsl_downre_issue_lsl_downre_issue_lsl_downre_issue_lsl_downre_issue_lsl_down re_issue_lsl_down re_issue_lsl_down re_issue_lsl_down re_issue_lsl_downre_issue_lsl_downre_issue_lsl_downre_issue_lsl_downre_issue_lsl_down re_issue_lsl_down re_issue_lsl_down re_issue_lsl_downre_issue_lsl_downstand_bystand_bystand_bystand_bystand_by stand_by stand_by stand_by stand_bystand_bystand_bystand_bystand_by stand_by stand_by stand_bystand_by
+now_waitnow_waitnow_waitnow_waitnow_wait now_wait now_wait now_wait now_waitnow_waitnow_waitnow_waitnow_wait now_wait now_wait now_waitnow_waitPower_Down_IOPPower_Down_IOPPower_Down_IOPPower_Down_IOPPower_Down_IOP Power_Down_IOP Power_Down_IOP Power_Down_IOP Power_Down_IOPPower_Down_IOPPower_Down_IOPPower_Down_IOPPower_Down_IOP Power_Down_IOP Power_Down_IOP Power_Down_IOPPower_Down_IOP
+Fig. 11. The IOP
+Now it can receive an apdown signal from the AP, ordering it to close down. It
+then proceeds (up, left – referring to the approximate position on the ﬁ gure) by reset-
+ting the timer – reset! , indicating that now it wants processor time slots necessary
+to close down. It then initializes the variables lslrunning (to /1) andlsldata
+(to /0) preparing the activation of the LSL driver, initially assuming that t here are no
+data. Note the “ priority 0 ” guard –cur == 0 – and the time slot demand – t6! –
+requiring /6micro seconds to initialize these variables. The time constant, and all oth er
+time constants in the model, have been estimated by the protocol develop ers at B&O.
+When the driver later returns, it will have set the variable lslrunning to /0, and now
+the IOP can check the value of lsldata . The driver is, however, ﬁrst activated with
+the assignment of /2(close down) to the variable lslcommand in the edge leading to
+the nodedrivercall1 .
+In this node the IOP waits for the driver to ﬁnish its job. If at that point, in node
+driverreturn1 ,lsldata equals /1there is data, and the IOP must activate the
+driver –lslcommand is assigned the value /3– and it must respond to the AP with a
+negative acknowledgment – apdownnack! . If on the other hand lsldata equals/0, then there are no data on the link, and the IOP can proceed successfully to clo se
+
+--- Page 16 ---
+down, next checking whether there are any interrupts. First, however, i t acknowledges
+via anapdownack! signal to the AP, and then goes to the node insertnoop
+(up, right) to check interrupts. A possible trace from here leads to the nodestandby,
+where the IOP is sleeping, and can only be wakened by an interrupt. The waiti ng for
+an interrupt is done by issuing a waitint! signal to the timer just before entering
+thestandbynode. When an interrupt occurs thereafter, the timer will ensure that the
+IOP is re-activated immediately.
+If on the other hand, before reaching the standbynode, an interrupt has already
+occurred, then the IOP will avoid going into that node and instead go di rectly to the
+wakeupnode. Hence, in this node we assume that an interrupt has occurred, and now
+the LSL driver has to be re-started, since apparently there must be data. Th is means re-
+initializing the variables lslrunning andlsldata , and then assigning the value/1(initialize) to lslcommand . In the node drivercall2 , the IOP then waits for
+the LSL driver to return. If there is data – lsldata equals /1– the AP is asked to
+become active – apactive! – and the IOP goes into the node active . Note that
+when entering this node, a wait! signal is issued to the timer to dis-activate it. If on the
+other hand there are no data – lsldata equals /0– then what has been encountered
+is noise, and the node noise is entered. In this node the IOP wants to close down, but
+before doing this, the driver is asked to close down – lslcommand is assigned the
+value /2. The IOP then waits in the node driverreturn3 for the drivers response.
+Now, if there is data – lsldata equals /1the AP is activated – apactive! –
+and the node active is entered. If on the other hand there are no data – lsldata
+equals /0– then the IOP returns to the node insertnoop (up, right), ready to check
+the interrupts again, and close down (if an interrupt does not occur, etc.) .
+Note that some transitions labeled with channel communications are not lab eled
+with the priority guard cur == 0 . These channels are elsewhere deﬁned as urgent,
+meaning that communication must take place immediately whenever enabled.
+6 Veriﬁcation of Selected Properties
+In this section a collection of properties will be formulated and veriﬁed u sing the U P-
+PAAL logic and veriﬁcation tool. In order to verify these properties, a set of techniques
+for annotating the model and for deﬁning observer automata have been appli ed. These
+techniques are presented ﬁrst. Then follows the formulation and veriﬁcati on of the in-
+dividual properties of which there are 15.
+6.1 Model Annotation and Test Automata
+Amongst the properties formulated by B&O, in particular three kinds w ere typical and
+needed special techniques. The general principle behind the three techniques, t o be de-
+scribed below, is to annotate the model by adding new variables or communication
+actions, and then observe these, either by mentioning the variables in the f ormulae to be
+veriﬁed (the ﬁrst two techniques) or by letting the new communication act ions synchro-
+nize with a furthermore added observer automaton (the third technique). The need for
+these techniques is caused by the existing logic in which it only is pos sible to state prop-
+erties like: “ A[]p ” and “E<>p ”, wherepis an atomic predicate over program variables
+
+--- Page 17 ---
+and nodes (hence no nesting of modal operators). Theoretical as well as practical w ork
+is currently undertaken to extend the U PPAAL logic, deﬁning translations into model
+annotations and observers as outlined below.
+The FLAG Technique The ﬁrst technique, called the F LAG technique for later refer-
+ence, is illustrated in Figure 12. Suppose we have an automaton A contain ing two states
+(amongst others): aandb, and suppose we want to verify, that “there is a pathfrom a
+tob”.
+searched pathsearched pathsearched pathsearched pathsearched path searched path searched path searched path searched pathsearched pathsearched pathsearched pathsearched path searched path searched path searched pathsearched patha_reached := 1a_reached := 1a_reached := 1a_reached := 1a_reached := 1 a_reached := 1 a_reached := 1 a_reached := 1 a_reached := 1a_reached := 1a_reached := 1a_reached := 1a_reached := 1 a_reached := 1 a_reached := 1 a_reached := 1a_reached := 1aaaaa a a a aaaaa a a aa
+bbbbb b b b bbbbb b b bb bbbbb b b b bbbbb b b bbaaaaa a a a aaaaa a a aaAAAAA A A A AAAAA A A AA
+There must be a path from a to bThere must be a path from a to bThere must be a path from a to bThere must be a path from a to bThere must be a path from a to b There must be a path from a to b There must be a path from a to b There must be a path from a to b There must be a path from a to bThere must be a path from a to bThere must be a path from a to bThere must be a path from a to bThere must be a path from a to b There must be a path from a to b There must be a path from a to b There must be a path from a to bThere must be a path from a to bAnnotated_AAnnotated_AAnnotated_AAnnotated_AAnnotated_A Annotated_A Annotated_A Annotated_A Annotated_AAnnotated_AAnnotated_AAnnotated_AAnnotated_A Annotated_A Annotated_A Annotated_AAnnotated_A
+E<> b and a_reached == 1E<> b and a_reached == 1E<> b and a_reached == 1E<> b and a_reached == 1E<> b and a_reached == 1 E<> b and a_reached == 1 E<> b and a_reached == 1 E<> b and a_reached == 1 E<> b and a_reached == 1E<> b and a_reached == 1E<> b and a_reached == 1E<> b and a_reached == 1E<> b and a_reached == 1 E<> b and a_reached == 1 E<> b and a_reached == 1 E<> b and a_reached == 1E<> b and a_reached == 1
+Fig. 12. Automaton A and its annotation
+Note, that the current logic does not allow nested modal operators, hence it is for
+example not possible to state this as: “ E<> (a and E<>b) ” saying that there exists
+a path such that eventually node ais reached and from there node bcan be reached. The
+technique consists of annotating automaton A, obtaining automaton Ann otated A, by
+adding a boolean ﬂagvariableareached , which initially has the value /0, and which
+is assigned the value /1when passing through a. The property can now be formally
+stated as follows: “ E<>(b and a reached == 1) ”. That is, eventually node bis
+reached, after having passed through node a.
+The DEBT technique The second technique, called the D EBT technique, is illustrated
+in Figure 13. Suppose we have an automaton B containing three states (am ongst others):
+a,bandx, and suppose we want to verify, that “every path from atobmust pass
+throughx”.
+In an imagined extended logic this could be formulated as follows:
+“A[] (a imply ((not b) Until x)) ” saying that if at any time ais reached,
+then “not b ” will hold until xhas been reached
+/9. The technique consists of annotating
+automaton B, obtaining automaton Annotated B, by adding a boolean variable debt ,
+which initially has the value /0, and which is assigned the value /1when passing through
+a. Furthermore, when passing through xit is reset to /0– the debt has been “cashed”.
+The property can now be formally stated as follows: “ A[] b imply debt == 0 ”.
+That is, if at any point node bis reached, then debt must not be /1, since that would
+indicate that node ahad been reached before, but not xin between./9Note that the Until operator here must be weak in the sense that node xneed not be reached
+at all, and hence node bneed not be reached neither, which is what we want.
+
+--- Page 18 ---
+wrong pathwrong pathwrong pathwrong pathwrong path wrong path wrong path wrong path wrong pathwrong pathwrong pathwrong pathwrong path wrong path wrong path wrong pathwrong pathgood pathgood pathgood pathgood pathgood path good path good path good path good pathgood pathgood pathgood pathgood path good path good path good pathgood pathdebt := 1debt := 1debt := 1debt := 1debt := 1 debt := 1 debt := 1 debt := 1 debt := 1debt := 1debt := 1debt := 1debt := 1 debt := 1 debt := 1 debt := 1debt := 1 debt := 1debt := 1debt := 1debt := 1debt := 1 debt := 1 debt := 1 debt := 1 debt := 1debt := 1debt := 1debt := 1debt := 1 debt := 1 debt := 1 debt := 1debt := 1
+debt := 0debt := 0debt := 0debt := 0debt := 0 debt := 0 debt := 0 debt := 0 debt := 0debt := 0debt := 0debt := 0debt := 0 debt := 0 debt := 0 debt := 0debt := 0wrong pathwrong pathwrong pathwrong pathwrong path wrong path wrong path wrong path wrong pathwrong pathwrong pathwrong pathwrong path wrong path wrong path wrong pathwrong pathgood pathgood pathgood pathgood pathgood path good path good path good path good pathgood pathgood pathgood pathgood path good path good path good pathgood path
+N3N3N3N3N3 N3 N3 N3 N3N3N3N3N3 N3 N3 N3N3N1N1N1N1N1 N1 N1 N1 N1N1N1N1N1 N1 N1 N1N1 N2N2N2N2N2 N2 N2 N2 N2N2N2N2N2 N2 N2 N2N2 aaaaa a a a aaaaa a a aa
+xxxxx x x x xxxxx x x xx
+bbbbb b b b bbbbb b b bbbbbbb b b b bbbbb b b bbaaaaa a a a aaaaa a a aa
+xxxxx x x x xxxxx x x xxAnnotated_BAnnotated_BAnnotated_BAnnotated_BAnnotated_B Annotated_B Annotated_B Annotated_B Annotated_BAnnotated_BAnnotated_BAnnotated_BAnnotated_B Annotated_B Annotated_B Annotated_BAnnotated_B
+A[] b imply debt == 0A[] b imply debt == 0A[] b imply debt == 0A[] b imply debt == 0A[] b imply debt == 0 A[] b imply debt == 0 A[] b imply debt == 0 A[] b imply debt == 0 A[] b imply debt == 0A[] b imply debt == 0A[] b imply debt == 0A[] b imply debt == 0A[] b imply debt == 0 A[] b imply debt == 0 A[] b imply debt == 0 A[] b imply debt == 0A[] b imply debt == 0BBBBB B B B BBBBB B B BB
+Every path from a to b must pass xEvery path from a to b must pass xEvery path from a to b must pass xEvery path from a to b must pass xEvery path from a to b must pass x Every path from a to b must pass x Every path from a to b must pass x Every path from a to b must pass x Every path from a to b must pass xEvery path from a to b must pass xEvery path from a to b must pass xEvery path from a to b must pass xEvery path from a to b must pass x Every path from a to b must pass x Every path from a to b must pass x Every path from a to b must pass xEvery path from a to b must pass x
+Fig. 13. Automaton B and its annotation
+The OBSERVER Technique The last technique, called the O BSERVER technique, is il-
+lustrated in Figure 14. Suppose we have an automaton C containing two nodes (amongst
+others):aandb, and suppose we want to verify, that “from node a, nodebmust be
+reachedwithin Ttime units” .
+end!end!end!end!end! end! end! end! end!end!end!end!end! end! end! end!end! end!end!end!end!end! end! end! end! end!end!end!end!end! end! end! end!end!begin!begin!begin!begin!begin! begin! begin! begin! begin!begin!begin!begin!begin! begin! begin! begin!begin!
+begin?begin?begin?begin?begin? begin? begin? begin? begin?begin?begin?begin?begin? begin? begin? begin?begin?
+c := 0c := 0c := 0c := 0c := 0 c := 0 c := 0 c := 0 c := 0c := 0c := 0c := 0c := 0 c := 0 c := 0 c := 0c := 0
+c == Tc == Tc == Tc == Tc == T c == T c == T c == T c == Tc == Tc == Tc == Tc == T c == T c == T c == Tc == T end?end?end?end?end? end? end? end? end?end?end?end?end? end? end? end?end?
+bbbbb b b b bbbbb b b bbaaaaa a a a aaaaa a a aa aaaaa a a a aaaaa a a aa
+bbbbb b b b bbbbb b b bbstartstartstartstartstart start start start startstartstartstartstart start start startstart
+waitwaitwaitwaitwait wait wait wait waitwaitwaitwaitwait wait wait waitwait
+(c <= T)(c <= T)(c <= T)(c <= T)(c <= T) (c <= T) (c <= T) (c <= T) (c <= T)(c <= T)(c <= T)(c <= T)(c <= T) (c <= T) (c <= T) (c <= T)(c <= T)
+goodgoodgoodgoodgood good good good goodgoodgoodgoodgood good good goodgood badbadbadbadbad bad bad bad badbadbadbadbad bad bad badbadCCCCC C C C CCCCC C C CC
+From a to b in within TFrom a to b in within TFrom a to b in within TFrom a to b in within TFrom a to b in within T From a to b in within T From a to b in within T From a to b in within T From a to b in within TFrom a to b in within TFrom a to b in within TFrom a to b in within TFrom a to b in within T From a to b in within T From a to b in within T From a to b in within TFrom a to b in within TAnnotated_CAnnotated_CAnnotated_CAnnotated_CAnnotated_C Annotated_C Annotated_C Annotated_C Annotated_CAnnotated_CAnnotated_CAnnotated_CAnnotated_C Annotated_C Annotated_C Annotated_CAnnotated_C ObserverObserverObserverObserverObserver Observer Observer Observer ObserverObserverObserverObserverObserver Observer Observer ObserverObserver
+A[] not badA[] not badA[] not badA[] not badA[] not bad A[] not bad A[] not bad A[] not bad A[] not badA[] not badA[] not badA[] not badA[] not bad A[] not bad A[] not bad A[] not badA[] not bad
+Fig. 14. Automaton C, its annotation and observer
+In an extended logic this could be formulated as follows: “ A[] (a imply A<T>
+b)” saying that if at any time ais reached, then eventually – within Ttime units – node
+bwill be reached. The technique consists of annotating automaton C, obtain ing au-
+tomaton Annotated C, by adding two kinds of communication actions, each of which
+communicates with an added observer that measures time. Let’s ﬁrst look at Anno -
+tated C. When in node a, abegin! signal can be issued, telling the observer to start
+measure time. When reaching node b, no matter along which path, an end! signal is is-
+sued, telling the observer to stop measure time. The channel end is declared as urgent ,
+hence it will be taken as soon as node bis reached.
+The Observer automaton rests in the start node until it receives a begin? signal
+(nodeareached), where after it initializes its local clock cand enters the node wait
+where time can progress. Time can, however, only progress Ttime units due to the
+node invariant, where after the node bad is entered. If on the other hand an end?
+
+--- Page 19 ---
+signal is received before that, then the node good is entered. The property can now be
+formally stated as a property of the observer: “ A[] not bad ”. That is, the Observer
+will never reach node bad: anend? signal will always be received ( breached) beforeTtime units.
+6.2 Property Veriﬁcation
+In this section we shall present the results of analyzing in U PPAAL various desired prop-
+erties. The properties as directly formulated by B&O are listed below, wit h explanatory
+comments in brackets. The listing is just supposed to give the reader a g eneral feeling
+of the kinds of properties formulated.
+1.sleeping must not change from 0 to 1 while sleepophas the value 0. (The IOP must
+not go to sleep if there has been an interrupt – see Figure 10 fo r an explanation of these
+variables.)
+2. There must be a path from active tostandbyand vice versa. (It must be possible for
+theIOPtoswitchbetweenitstwoﬁnal states.)
+3. Every path from active tonoise must pass through standby(The IOP must have
+been asleep before reaching the noisestate where it on its way up due to an interrupt
+discovers that theinterrupt is“false”,and hence caused by noiseonly.)
+4. The variable sleeping must not change from 0 to 1 while lslinterrupt is 1 or
+apinterrupt is 1(The IOP must not go to sleep as long as there is an untreated in ter-
+rupt.)
+5. The shortest way from driverreturn1 todrivercall2 does not take more than
+1500 /s(If theIOP on its waydown veriﬁes that thelinkis empty by cal lingthe driver, and
+then immediately thereafter data arrive (an interrupt occu rs) no more than /1/5/0/0 /s must
+pass before thedriver iscalled again.)
+6. The shortest way from driverreturn1 toactive does not take more than 1500 /s(If
+the IOP on its way down discovers data on the link by calling th e driver, then no more than/1/5/0/0 /s must pass before theIOPisactiveagain.)
+7. The shortest way from driverreturn3 todrivercall2 does not take more than
+1500 /s(Like5, butinadifferent placeintheprotocol’s execution .)
+8. The shortest way from driverreturn3 toactive does not take more than 1500 /s
+(Like6,but inadifferent placeintheprotocol’s execution .)
+9. If the last value of the variable lslcommand has been 1 or 3 (driver starting commands),
+then the value of sleeping must not change from 0 to 1 (Ifthelastcommandissuedtothe
+driver was a“start command”, thentheIOP mustnot gotosleep .)
+10. If the last value of lslcommand has been 3 (activate driver), then the next value must not
+be 1 (initialize driver), and vice versa (Inbetween twodriver starting commands must come
+adriver closingcommand.)
+11. No more than 1500 /s must pass from an interrupt occurs until all drivers are act ive
+12. It must be possible for both interrupt handlers to want to assign /0tosleepopat the same
+time, while in addition this variable’s value is already /0(Intuition missing – “technical”
+property.)
+13. If both interrupt handlers want to assign /0tosleepopat the same time, then the IOP will
+be in one of the nodes: setstandby,checkinterrupts ,checknoop ,
+wstandby,standby, orwakeup(IfbothanLSLandanAPinterruptoccur,andboth
+interrupt handlers believethat theIOPisapproaching stan d bymode, then thisis thecase.)
+14. It must be possible to come from the node noise to the node standby(In case IOPhas
+discoverednoiseonthelink,itwillreachstandbymodeandg otosleep,unlessdataarrive.)
+
+--- Page 20 ---
+15. I should not be possible to come from the node standbyto the node active without
+synchronizing on the channel apactive (The IOP cannot get from stand by mode to
+activemode without activatingtheAP.)
+Figure 15 shows the veriﬁcation results, indicating the outcome (sat isﬁed or not)
+and the veriﬁcation technique used. Those properties not veriﬁed using an y of the three
+techniques outlined in section 6.1 have been veriﬁed using other and simpl er techniques:
+“trivial ” means the property was seen correct without veriﬁcation. “ formula ” means that
+the property could be directly stated in the U PPAAL temporal logic. Finally, “ formula
++ aux. variable ” means that by adding an additional variable being updated in appro-
+priate places, the property could be directly stated in the U PPAAL temporal logic. The
+properties were veriﬁed using U PPAAL version /2 /: /1/7from March 1998, on a Sun Ultra
+Sparc 60 with /5/1/2MB main memory.
+No.Satisﬁed? Technique Comment Memory Time
+(MB) (min:sec)
+1YES trivial
+2YES FLAG 5.3 0:5
+3NO DEBT should not be satisﬁed 4.1 0:2
+4YES formula 8.2 0:9
+5NO OBSERVER 18 AP interrupts causes error 36.0 1:42
+6NO OBSERVER 24 AP interrupts causes error 22.0 0:56
+7? OBSERVER state explosion
+8NO OBSERVER 79 AP interrupts causes error 157.0 33:39
+9YES formula + aux. variable 8.3 0:9
+10YES formula + aux. variable 8.7 0:25
+11YES OBSERVER 16.0 0:41
+12NO formula should not be satisﬁed 7.9 0:8
+13YES formula 8.2 0:9
+14YES FLAG 8.0 0:8
+15YES trivial
+Fig. 15. Veriﬁcation results
+Properties /3and /1/2turned out not to be satisﬁed, and after having examined the
+error traces B&O recognized that these properties were wrongly formulated and hence
+the “error” traces showed valid behaviors.
+Properties /5– /8, on the other hand, are interesting in the sense that their veriﬁcations
+failed and caused B&O to reconsider their design. In particular property /5gave an
+error trace, where a single LSL interrupt and 18 AP interrupts, all consu ming time, are
+generated before the next driver call. As a result, B&O decided to only allow one AP
+interrupt to occur in their implementation.
+7 Conclusion
+During a period of 3 weeks, a model of B&O’s Power Down protocol was dev eloped
+and veriﬁed using the U PPAAL language and model checker. The ﬁrst week consisted
+of an intense collaboration between AAU and B&O, where the B&O representativ e vis-
+ited AAU. During this week, a ﬁrst sketch of the model was written down i n U PPAAL ’s
+
+--- Page 21 ---
+language. The model was based on an initial design sketch made by the company rep -
+resentative. The work carried out during the following two weeks was main ly carried
+out by AAU. Hence, during the second week, a technique was introduced for deal ing
+with timed transitions and interrupts. During this same week, the mo del was reduced by
+omitting certain components in order to obtain a model being veriﬁable wi thin reason-
+able time and memory space. In other words, at the end of the second week, a mod el
+was produced that was ready for veriﬁcation. At the beginning of the thir d (and last)
+week, various properties to be veriﬁed were formulated by B&O in natural lan guage.
+These were then translated into the U PPAAL temporal logic, together with various mod-
+iﬁcations to the model, and all veriﬁcations were then carried out.
+After the collaboration, the company made a C-code implementation, and aft er a
+testing phase (which did not reveal any design errors), the implementati on is by now
+ready to be put into operation in the new company product.
+During the development of models, we found that the notion of timed automata
+and their graphical representation served extremely well as a communication medi um
+between the industrial protocol designer and the tool expert doing the simulation and
+veriﬁcation. In addition, the graphical simulation features of U PPAAL lead to fast de-
+tection of (obvious) errors in the early models.
+The protocol was veriﬁed correct wrt. the 15 properties formulated by B&O , and
+although no bugs were identiﬁed, various critical time constants were id entiﬁed, which
+should be obeyed in order to keep the protocol correct. Various unexpected , but correct,
+behaviors were furthermore demonstrated, challenging the understandi ng of the pro-
+tocol. Overall, the experience appeared to increase B&O’s conﬁdence in their des ign.
+The fact that 3 errors were caught during the modeling phase suggests that just spec-
+ifying a system can be very informative. In fact, B&O claimed they had got a b etter
+understanding of their system this way.
+The collaboration has been beneﬁcial for both partners: B&O now considers to ols
+like U PPAAL as viable means to improve the design process for time-critical software.
+Also, in order to model the system, we have developed techniques for mo deling timed
+transitions and prioritized interrupts. A timed transition is a tran sition which consumes
+time, like code in a program which takes time to execute. It is a special circum stance,
+that several processes run on a single processor. To the best of our know ledge, such
+techniques have not been presented elsewhere.
+What concerns the U PPAAL tool set, we anticipate investigating techniques for ver-
+sion control, (keeping track of several related models), and we consider too l support for
+deﬁning abstractions. Both themes appear non-trivial in fact. Concerning t he U PPAAL
+language, a technical contribution of the work is a way of modeling timed t ransitions
+and interrupts in a setting where several processes share one processor. I n the forth-
+coming new version of U PPAAL , the introduction of parameterized timed automatons
+will support a more structural way to deﬁne time consuming transiti ons than we have
+presented in this paper. In [11], the problem of supporting task schedu ling is treated. It
+is likely that this work will be included in later versions of U PPAAL .
+In this work, we have sketched a number of patterns which may be used to deﬁ ne
+properties of real-time systems. In [1, 2] the limits of U PPAAL ’s model checking lan-
+guage are characterized. In future versions of U PPAAL , its timed logic will be modiﬁed
+
+--- Page 22 ---
+according to these results - thereby supporting the deﬁnition of the p atterns in a more
+direct way.
+Acknowledgments The B&O representative was Johnny Kudahl, who we thank for
+being extremely collaborative and productive, as well during the model bu ilding as in
+formulating the properties to be veriﬁed. Also thanks to the review ers.
+References
+1. L. Aceto, A. Bergueno, and K. G. Larsen. Model Checking via Reachability Testing for
+Timed Automata. In B. Steffen, editor, Proceedings of TACAS’98 , volume 1384 of Lecture
+Notes inComputer Science , pages 263–280, 1998.
+2. L. Aceto, P. Bouyer, A. Burgueno, and K. G. Larsen. The Limi t of Testing for Timed Au-
+tomata. In Proceedings ofFST TCS’98 , Lecture Notes in Computer Science, 1998.
+3. R. Alur, C. Courcoubetis, and D. Dill. Model-checking for Real-Time Systems. In Proc. of
+LogicinComputer Science , pages 414–425. IEEE Computer Society Press, 1990.
+4. R. Alur and D. Dill. Automata for Modelling Real-Time Syst ems. InProc. of ICALP’90 ,
+volume 443 of LectureNotes inComputer Science , 1990.
+5. J. Bengtsson, D. Grifﬁoen, K. Kristoffersen, K. G. Larsen , F. Larsson, P. Pettersson, and
+W. Yi. Veriﬁcation of an Audio Protocol with Bus Collision Us ing U PPAAL . InProc. of
+CAV’96 , volume 1102 of LectureNotes inComputer Science . Springer–Verlag, 1996.
+6. J. Bengtsson, K. G. Larsen, F. Larsson, P. Pettersson, and W. Yi. U PPAAL — A Tool Suite
+for Symbolic and Compositional Veriﬁcation of Real-Time Sy stems. In Proc. of the 1 st
+Workshop on Tools and Algorithms for the Construction and An alysis of Systems , volume
+1019 ofLectureNotes inComputer Science . Springer–Verlag, May 1995.
+7. J. Bengtsson, K. G. Larsen, F. Larsson, P. Pettersson, and W. Yi. U PPAAL in 1995. In
+Proc. of the 2 ndWorkshop on Tools and Algorithms for the Construction and An alysis of
+Systems , number 1055 in Lecture Notes in Computer Science, pages 431 –434. Springer–
+Verlag, March 1996.
+8. A. Bouali, A. Ressouche, and V . Roy R. de Simone. The FC2Too lset.Lecture Notes in
+Computer Science , 1102, 1996.
+9. P.R. D’Argenio, J.-P. Katoen, T. Ruys, and J. Tretmans. Mo delling and Verifying a Bounded
+Retransmission Protocol. InProc.ofCOST247, International Workshop onAppliedForm al
+Methods inSystem Design , 1996.
+10. C. Daws, A. Olivero, S. Tripakis, and S. Yovine. The tool K RONOS. In Hybrid Systems
+III, Veriﬁcation and Control , volume 1066 of Lecture Notes in Computer Science , pages
+208–219. Springer-Verlag, 1996.
+11. C. Ericsson, A. Wall, and W. Yi. Timed Automata as Task Mod els for Event-Driven Systems.
+InProceedings of Nordic Workshop on Programming Theory , 1998. To appear in a special
+issue of Nordic Journal of Computing.
+12. K. Havelund, K. G. Larsen, and A. Skou. Documentation of t he Modeling and Veriﬁcation of
+Bang /&Olufsens’s IOP Power Down Module in U PPAAL . Internal AUC document delivered
+to B&O. Early version of this report., September 1997.
+13. K. Havelund, A. Skou, K. G. Larsen, and K. Lund. Formal Mod eling and Analysis of an
+Audio/Video Protocol: An Industrial Case Study Using U PPAAL . InProc. of the 18 thIEEE
+Real-TimeSystems Symposium , pages 2–13, Dec 1997. San Francisco, California, USA.
+14. P.-H. Ho and H. Wong-Toi. Automated Analysis of an Audio C ontrol Protocol. In Proc. of
+CAV’95 , volume 939 of LectureNotes inComputer Science . Springer–Verlag, 1995.
+15. G. Holzmann. TheDesignand Validationof Computer Protocols . Prentice Hall, 1991.
+
+--- Page 23 ---
+16. H.E. Jensen, K.G. Larsen, and A. Skou. Modelling and Anal ysis of a Collision Avoidance
+Protocol Using SPIN and UPPAAL. In The Second Workshop on the SPIN Veriﬁcation
+System , volume 32 of DIMACS, Series in Discrete Mathematics and Theoretical Com puter
+Science . American Mathematical Society, 1996.
+17. K. G. Larsen, P. Pettersson, and W. Yi. Diagnostic Model C hecking for Real-Time Systems.
+InProceedingsofthe4thDIMACSWorkshoponVeriﬁcationandCo ntrolofHybridSystems ,
+1995.
+18. M. Lindahl, P. Pettersson, and W. Yi. Formal Design and An alysis of a Gear-Box Controller.
+In Bernhard Steffen, editor, Proc.ofthe4 thInternationalWorkshoponToolsandAlgorithms
+for the Construction and Analysis of Systems – LNCS 1384 , pages 281–297. Gulbelkian
+Foundation, March 1998. Lisbon, Portugal.
+19. R. Milner. Communication and Concurrency . Prentice Hall, Englewood Cliffs, 1989.
+20. S. Tripakis. Timed Diagnostics for Reachability Proper ties. InProceedings of TACAS’99 ,
+Lecture Notes in Computer Science, 1999.
