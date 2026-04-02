@@ -1,0 +1,556 @@
+--- Page 1 ---
+HAL Id: hal-01432928
+https://inria.hal.science/hal-01432928v1
+Submitted on 12 Jan 2017
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+Distributed under a Creative Commons CC BY 4.0 - Attribution - International License
+Playing with Our CAT and Communication-Centric
+Applications
+Davide Basile, Pierpaolo Degano, Gian-Luigi Ferrari, Emilio Tuosto
+To cite this version:
+Davide Basile, Pierpaolo Degano, Gian-Luigi Ferrari, Emilio Tuosto. Playing with Our CAT and
+Communication-Centric Applications. 36th International Conference on Formal Techniques for Distributed
+Objects, Components, and Systems (FORTE), Jun 2016, Heraklion, Greece. pp.62-73, ⟨10.1007/978-3-319-
+39570-8_5⟩. ⟨hal-01432928⟩
+
+--- Page 2 ---
+Playing with our CAT
+and Communication-Centric Applications?
+Davide Basile1 2, Pierpaolo Degano2, Gian-Luigi Ferrari2, and Emilio Tuosto3
+1dbasile@isti.cnr.it fdegano,giangi g@di.unipi.it emilio@le.ac.uk
+I.S.T.I “A.Faedo”2Dept. of Computer Science3Dept. of Computer Science
+CNR Pisa, Italy University of Pisa, Italy University of Leicester, UK
+Abstract. We describe CAT, a toolkit supporting the analysis of communication-
+centric applications, i.e., applications consisting of ensembles of interacting ser-
+vices. Services are modelled in CAT ascontract automata and communication
+safety is deﬁned in terms of agreement properties . With the help of a simple (al-
+beit non trivial) example, we demonstrate how CAT can ( i) verify agreement prop-
+erties, ( ii) synthesise an orchestrator enforcing communication safety, ( iii) detect
+misbehaving services, and ( iv) check when the services form a choreography. The
+use of mixed-integer linear programming is a distinguished characteristic of CAT
+that allows us to verify context-sensitive properties of agreement.
+1 Introduction
+Communication is increasingly important in modern applications, especially for the
+distributed ones. Remote procedure/method invocations are loosing their prominence at
+the application level due to their poor scalability, crucial in modern distributed applica-
+tions. Communication-based modelling is also appealing for non-distributed software.
+For instance, application-level protocols can be devised to specify the behavioural con-
+straints ensuring the correct use of a library or of an off-the-shelf component. This
+trend is also witnessed by the growth that service-oriented or cloud computing had in
+the software industry. In this context, composition of software becomes paramount and
+requires proper theoretical foundations as well as tool support. In fact, although scal-
+able, communication-centric applications may pose non trivial obstacles to validation.
+We showcase CAT, a prototype toolkit supporting the validation of communication-
+centric applications. This toolkit (available at [3]) is based on contract automata [4,5,6],
+a recently proposed formal model of service composition. Contract automata abstractly
+describe (the communication pattern of) services as automata whose transitions rep-
+resent requests andoffers . An interaction between two services occurs when a match
+action is possible, that is when one service’s offer matches a partner’s request. Intu-
+itively, contract automata capture the behaviour of services by tracking the interactions
+they are keen to execute with each other. Service composition is naturally described in
+terms of product automata. The matching between offers and requests has to guarantee
+agreement properties that amount to safe communications. Intuitively, an automaton
+?The ﬁrst three authors have been partially supported by project PRA 2016 64 “Through the
+fog” funded by the University of Pisa.
+
+--- Page 3 ---
+qB10 qB11
+qB12 qB13price
+quote1
+contrib
+Buyer B1qB20 qB21 qB22
+qB23 qB24quote2 contrib
+oknop
+delivery
+Buyer B2qS0 qS1
+qS2 qS3 qS4qS5price
+quote1
+quote2oknop delivery
+Seller S
+~q0
+~q1 ~q2~q3 ~q4
+~q5 ~q6(price;;price )
+(quote1;;quote1)(;quote2;quote2)(contrib ;contrib ;)
+(;ok;ok)(;nop;nop)
+(;delivery ;delivery )
+The most permissive strong controller of the product automaton B1
+B2
+S
+Fig. 1. The contract automata for 2BP
+admits strong agreement if it has at least one trace made only by match transitions; and
+it isstrongly safe if all the traces are in strong agreement. Basically, strong agreement
+guarantees that the composition of services has a sound execution, while strong safety
+guarantees that allexecutions of the composition are sound. Likewise for agreement
+but for the fact that traces also admit (unmatched) offers to model interactions with an
+external environment.
+By means of an example we describe how the analysis of communication-centric
+applications can be supported by CAT. To this purpose we borrow here the two-buyers
+protocol (2BP) from [10] which we now brieﬂy recall. Two buyers, say B1andB2, col-
+laborate in purchasing an item from a seller S. Buyer B1starts the protocol by asking S
+the price of the desired item ( price ); the seller Smakes an offer by sending the message
+quote1toB1and the message quote2toB2. Once received its quote, buyer B1sends to
+B2its contribution for purchasing the item (message contrib ). Buyer B2waits for the
+quote from Sand the contribution from B1. Then, it decides whether to terminate by
+issuing the nopmessage to S, or to proceed by sending an acknowledgement to S. In the
+latter case, Ssends the item to B2(delivery ), while if it receives nopit terminates with
+no further action. Figure 1 shows the contract automata of B1,B2, and Swhere each
+interaction is split in offers (over-lined labels) and requests (non over-lined labels).
+We will apply CAT to the above protocol and show how, when the agreement prop-
+erty of interest is violated, we identify and ﬁx defects.
+2 Background: Contract Automata
+Contract automata have been introduced in [4] from which we borrow the following
+deﬁnitions. Intuitively, a contract automaton represents the behaviour of a set of prin-
+cipals capable of performing some actions ; more precisely, as formalised in Def. 1,
+the actions of contract automata allow them to “advertise” offers, “make” requests, or
+“handshake” on matching offer/request actions. The number of principals in a contract
+automaton is its rank, and a vectorial representation is used for tracking the moves of
+
+--- Page 4 ---
+each principal in it. The transitions are labelled with tuples in the set Ldef=R[O[fg
+where: requests of principals will be built out of Rwhile their offers will be built out of
+O,R\O=/0, and 62R[Ois a distinguished label to represent components that stay
+idle. We let a;b;c;:::range over Land ﬁx an involution :L!Lsuch that
+RO;OR;8a2R[O:a=a;and =
+Offer actions are overlined, e.g. a. Let~v= (a1;:::;an)be a vector of rank r v, then ~v(i)
+denotes the i-th element. We write ~v1~v2:::~vmfor the concatenation of mvectors ~vi;
+j~vj=nis the rank of ~v; and~vnfor the vector obtained by nconcatenations of ~v.
+Deﬁnition 1. A tuple bonLis arequest (resp. offer) action on b iff b2R(resp.
+b2O). Amatch (action) on b is a tuple bbonL( b2R[O). Let . /LL
+be the symmetric closure of. /LLwhere ~a1. / ~a2iffj~a1j=j~a2jand both the
+following conditions hold
+–9b2R[O:~a is either a request or an offer on b;
+–9b2R[O:~a1is an offer on b =)~a2is a request on b
+–9b2R[O:~a1is a request on b =)~a2is a offer on b.
+Deﬁnition 2. Assume as given a ﬁnite set of states Q=fq1;q2;:::g. Then a contract
+automaton Aof rank n is a tuple hQ;~q0;Ar;Ao;T;Fi, where
+–Q=Q1:::QnQn
+–~q02Q is the initial state
+–ArR;AoOare ﬁnite sets (of requests and offers, respectively)
+–FQ is the set of ﬁnal states
+–TQAQ is the set of transitions, where A (Ar[Ao[fg)nand if
+(~q;~a;~q0)2T then both the following conditions hold:
+~a is either a request or an offer or a match
+if~a(i)=then it must be ~q(i)=~q0(i)
+Aprincipal is a contract automaton of rank 1 such that Ar\co(Ao) =/0.
+A principal is not allowed to make a request on actions that it offers. We have two
+different operators for composing contract automata, that interleave or match the tran-
+sitions of their operands. We only force a synchronisation to happen when two contract
+automata are ready on their respective request/offer action. These operators represent
+two different policies of orchestration. The ﬁrst operator, called product , considers the
+case when a service Sjoins a group of services already clustered as a single orchestrated
+service S0. In the product of SandS0, the ﬁrst can only accept the still available offers
+(requests, respectively) of S0and vice versa. In other words, Scannot interact with the
+principals of the orchestration S0, but only with it as a whole component.
+The second operation of composition, called a-product , puts instead all the prin-
+cipals of Sat the same level of those of S0. Any matching request-offer of either con-
+tracts are split, and the offers and requests become available again, and are re-combined
+with complementary actions of S, and viceversa. The a-product turns out to satisfacto-
+rily model coordination policies in dynamically changing environments, because the
+
+--- Page 5 ---
+a-product is a form of dynamic orchestration , that adjusts the workﬂow of messages
+when new principals join the contract.
+We now introduce our ﬁrst operation of composition; recall that we implicitly as-
+sume the alphabet of a contract automaton of rank mto be A(Ar[Ao[fg)m.
+Deﬁnition 3 (Product). LetAi=hQi;~q0i;Ar
+i;Ao
+i;Ti;Fii;i21:::n be contract automata
+of rank r i. The productN
+i21:::nAiis the contract automaton hQ;~q0;Ar;Ao;T;Fiof rank
+m=åi21:::nri, where:
+–Q=Q1:::Qn;where ~q0=~q01:::~q0n
+–Ar=S
+i21nAr
+i;Ao=S
+i21nAo
+i
+–F=f~q1:::~qnj~q1:::~qn2Q;~qi2Fi;i21:::ng
+–T is the least subset of Q AQ s.t. (~q;~c;~q0)2T iff, when ~q=~q1:::~qn2Q,
+either there are 1i<jn s.t. (~qi;~ai;~q0
+i)2Ti,(~qj;~aj;~q0
+j)2Tj,~ai. /~ajand8
+<
+:~c=u~aiv~ajzwith u =r1+:::+ri 1;v=ri+1+:::+rj 1;j~cj=m
+and
+~q0=~q1:::~qi 1~q0
+i~qi+1::: ~qj 1~q0
+j~qj+1:::~qn
+orthere is 1in s.t. (~qi;~ai;~q0
+i)2Tiand
+~c=u~aivwith u =r1+:::+ri 1, v=ri+1+:::+rn, and
+~q0=~q1:::~qi 1~q0
+i~qi+1:::~qnand
+8j6=i;1jn;(~qj;~aj;~q0
+j)2Tjit does not hold that ~ai. /~aj.
+To retrieve the principals involved in a contract automaton obtained through the
+product introduced above, we introduce the following:
+Deﬁnition 4 (Projection). LetA=hQ;~q0;Ar;Ao;T;Fibe a contract automaton of
+rank n, then the projection on the i-th principal is
+Õi(A) =hÕi(Q);~q0(i);Õi(Ar);Õi(Ao);Õi(T);Õi(F)iwhere i21:::n and:
+i
+Õ(Q) =f~q(i)j~q2Qgi
+Õ(F) =f~q(i)j~q2Fgi
+Õ(Ar) =faja2Ar;(q;a;q0)2i
+Õ(T)g
+i
+Õ(Ao) =faja2Ao;(q;a;q0)2i
+Õ(T)gi
+Õ(T) =f(~q(i);~a(i);~q0(i))j(~q;~a;~q0)2T^~a(i)6=g
+We now deﬁne the associative product.
+Deﬁnition 5 (a-Product). LetA1;A2be two contract automata of rank n and m, re-
+spectively, and let I =fÕi(A1)j0<ing[fÕj(A2)j0<jmg. Then the a-product
+ofA1andA2isA1A2=N
+Ai2IAi.
+3CAT at work
+We have implemented CAT in Java according to the simple architecture of Figure 2.
+The main class of CAT extends JAMATA [3], a framework for manipulating automata
+yielding methods for loading, storing, printing, and representing ﬁnite state automata.
+In other words, CAT originally specializes JAMATA on contract automata, offering to the
+
+--- Page 6 ---
+AMPL models CAT API JAMATAuses extends
+Fig. 2. The architecture of CAT
+developers an API for creating and verifying contract automata. Also, CAT interfaces
+with a separate module for solving linear optimization problems, called AMPL [8],
+described in Section 5. This is an original facet of CAT; in fact, it maps the (check of)
+agreement properties of interest on a linear optimization problem.
+The user of CAT has access to its API, that can be conceptually classiﬁed as follows:
+Automata operations consist of the methods CA proj(int i) , that returns the au-
+tomaton specifying the ithservice of the composition, CA product(CA[] aut)
+andCA aproduct(CA[] aut) that compute respectively the product and the as-
+sociative product of contract automata. Interestingly, product has to ﬁlter out the
+offers and request transitions when the source state has a corresponding outgo-
+ing match transition. Method aproduct is built on top of product by invoking
+product on the services obtained as projections of the automaton in input.
+Safety check consists of the instance methods safe ,agreement ,strongAgreement ,
+andstrongSafe returning true if the corresponding agreement property holds on
+the contract automaton. Section 5 discusses the property of weak agreement .
+Controllers consist of the methods CA mpc() andCA smpc() that return the most per-
+missive controller (MPC), for respectively agreement and strong agreement. A con-
+troller basically represents the largest (strongly) safe sub-automaton and is obtained
+through a standard construction of Control Theory [7].
+Liable detection consists of the methods CATransition[] liable() - returning tran-
+sitions from a state sto a state tsuch that sis in the MPC but tis not - and
+CATransition[] strongLiable() that similarly returns such transitions for the
+MPC of the strong agreement property. In particular, liable services are those re-
+sponsible for leading a contract composition into a failure.
+Decentralization includes int[][] branchingCondition() , that returns two states
+and an action for which the branching condition is violated. Basically, the branching
+condition holds if the actions of a service are not affected by the states of the other
+services in the composition. Another similar method that deals with open-ended
+interactions is int[][] extendedBranchingCondition() . The last method in
+this category is int[] mixedChoice() that returns a mixed-choice state (a state
+where a principal has enabled both offers and requests inside matches). All such
+methods return null when the conditions they check do not hold.
+We describe how to interact with the API of CAT through a simple command line
+interface (we plan to develop a GUI as well). The API is displayed and the user can
+choose one of the options (this is not shown here). Each displayed option corresponds
+to one of the methods described above. For instance, after choosing to compute a prod-
+uct, the user is asked to set the contract automata on which to take the product.
+
+--- Page 7 ---
+Output 1
+Do you want to create/load other contract automata? yes 1
+Insert the name of the automaton to load or leave empty for create a new one: B1 2
+3
+Contract automaton: 4
+Rank: 1, Number of states: [4], Initial state: [0], Final states: [[3]] 5
+Transitions: ([0],[1],[1]), ([1],[-2],[2]), ([2],[3],[3]) 6
+7
+Do you want to create/load other contract automata? yes 8
+The user inputs the automata in CAT by providing their ﬁle names (line 2 of Output 1)
+andyes on line 8 until there are no more automata to load (in which case the user
+enters noto obtain the result of the product). For each entered automaton, CAT prints a
+textual description on the screen (lines 4-6 in Output 1) reporting the rank, initial and
+ﬁnal states, and the list of transitions. The transitions are triples (s;l;t)where sis the
+source state, lis the label, and tis the target state. These elements are lists of length
+r(the rank of the automaton), for instance, in Output 1 r=1 (cf. on line 5). The i-th
+element of each list corresponds to the i-th service. In particular, the i-th action in the
+list of labels identiﬁes the action performed by the i-th service; such action is strictly
+positive (if the action is an offer), strictly negative (if it is a request), and 0 if the service
+is idle in the transition. For B1, actions price ,quote1, and contrib are represented with
+the integers 1, 2, and 3, respectively.
+FirstCAT computes the product automaton, and then it displays the result ( B1xB2xS
+in our example and stores it in a ﬁle named B1xB2xS.data ). From the main menu, the
+user can now choose to compute the MPC of the product automaton (shown in Figure 1);
+the result is displayed in Output 2 below. Once the product automaton is loaded, CAT
+will compute the MPC:
+Output 2
+The most permissive controller for strong agreement is: 1
+Rank: 3 2
+Number of states: [4, 5, 6], Initial state: [0, 0, 0], Final states: [[3][4][5]] 3
+Transitions: 4
+([0, 0, 0],[1, 0, -1],[1, 0, 1]) ([1, 0, 1],[-2, 0, 2],[2, 0, 2]) 5
+([2, 1, 3],[3, -3, 0],[3, 2, 3]) ([2, 0, 2],[0, -7, 7],[2, 1, 3]) 6
+([3, 2, 3],[0, 4, -4],[3, 3, 4]) ([3, 2, 3],[0, 5, -5],[3, 4, 5]) 7
+([3, 3, 4],[0, -6, 6],[3, 4, 5]) 8
+Do you want to save this automaton? (write yes or no) yes KS_B1xB2xS 9
+The resulting automaton is of rank 3 and corresponds to the MPC of Figure 1. The ﬁnal
+states are represented as a list where the i-th element is the list of the ﬁnal states of the
+i-th service. This representation allows to check if a state of the MPC is ﬁnal or not
+without needing to explicitly enumerate all the ﬁnal states of the MPC.
+The transitions on lines 5-8 in Output 2 represent the transitions of the MPC; note
+that in each transition there is always an idle service. For instance, consider the transi-
+tion ([0, 0, 0],[1, 0, -1],[1, 0, 1]): it corresponds to the transition (~q0;(price;;price );~q1)
+of the MPC in Fig. 1 (the second component of the label is 0 because B2is idle). The
+MPC can now be saved in a ﬁle as per line 9 in Output 2.
+The underlying coordination mechanism of contract automata is orchestration. More
+precisely, services are oblivious of their partners and exchange messages through a “hid-
+den” orchestrator (formalised by the MPC, if any). Whenever possible, one would like
+to have services interacting without the “supervision” of an orchestrator, using FIFO
+
+--- Page 8 ---
+buffers. Mild conditions [6] ensure that choreographies are sound, in other words that
+all the interactions among services are successful. We brieﬂy discuss this issue below.
+For synchronous interactions (where buffers have size 1 and a single buffer may be
+non empty), services have to enjoy the branching condition that is necessary and sufﬁ-
+cient for services to form a sound choreography. As said, a branching condition guar-
+antees “unsupervised” communications soundness when the communication are syn-
+chronous [6,5]. However, such branching condition does not sufﬁce for asynchronous
+interactions (namely when buffers are unbounded and more than one buffer is possibly
+non empty). In this case, an additional sufﬁcient and commonly required condition is
+the absence of mixed choice states , i.e., states where more than one service can perform
+an offer (see [6]). Consider now Fig. 1, where in Output 3 the state ~q2corresponds to
+[2,0,2] , the state ~q3to[2,1,3] , and the transition (contrib ;contrib ;)to the label
+[3,-3,0] . The MPC does not enjoy the branching condition, as CAT reports:
+Output 3
+State [2,0,2] violates the branching condition because it has no transition labelled 1
+[3,-3,0] which is instead enabled in state [2,1,3] 2
+It is important to observe that the message in Output 3 also ﬂags states and transitions
+for which the condition is violated. We discuss the problem by considering the automata
+in Fig. 1. The local state of buyer B1in~q2and~q3isqB12, while the locale state of B2
+in~q2isqB20, and in ~q3isqB21. Therefore, in the case that B2is in local state qB20
+where it is waiting for quote2, without an orchestrator the offer contrib from B1could
+ﬁll up the 1-buffer of B2, leading to a deadlock. A simple ﬁx consists in swapping the
+order in which the quotes are sent by the seller; CAT reports that the amended protocol
+(not shown here) enjoys the branching condition. The contract automaton has no mixed
+choice states, as detected by CAT. A mixed choice state could be introduced in 2BP if,
+e.g., B2could send the acknowledgement to Sor receive contrib from B1in any order.
+For this variant of 2BP, CAT ﬁnds the mixed choice state, so showing that these services
+do not form a sound choreography.
+4 Detailing the Implementation of CAT
+CAT consists of a class CAUtil and of other classes CAandCATransition , extending
+two corresponding super-classes of JAMATA . The class CAprovides the main function-
+alities of CAT; its instance variables capture the basic structure of our automata:
+–int rank is the rank of the automaton;
+–int[] initial is the initial state of the automaton (the array is of size rank );
+–int[] states the vector of the number of local states of each principal in the
+contract automaton (the array is of size rank );
+–int[][] finalstates the ﬁnal states of each principal in the contract automaton;
+–CATransition[] tra the transitions of the contract automaton.
+Thenlocal states of a principal are represented as integers in the range 0 ;:::; n 1;
+in this case, states.length = 1 andstates[0] = n . The state of an automaton of
+rank m>1 is an m-vector states such that states[i] yields the number of states of
+
+--- Page 9 ---
+theithprincipal. This low-level representation (together with the encoding of actions
+and labels as integers) enabled us to optimize space.
+The class CATransition , describes a transition of a contract automaton. The in-
+stance variables of a CATransition object are:
+–int[] source (the starting state of the transition);
+–int[] label (the label of the transition);
+–int[] target (the arriving state of the transition).
+The class CATransition provides methods to extract its instance variables, to check if
+the transition is an offer, a request or a match, and to extract the (index of the) principal
+performing the offer, if any.
+5 Linear programming and contract automata
+The properties of weak agreement were introduced for solving circularity issues, in
+which all services are stuck waiting the fulﬁlment of their requests before providing
+the corresponding offers [4]. For example, consider the services (rendered as regular
+expressions) A=a:bandB=b:a; their product does not admit agreement. Circularity
+is solved by allowing matches between requests and offers even though they are not si-
+multaneous; intuitively, offers may be ﬁred “on credit” provided that the corresponding
+requests are honoured later on. A trace of an automaton is a weak agreement if for each
+request there is a corresponding offer, no matter in which order they occur in the trace.
+The notions of admitting weak agreement and of weakly safety are then similar to the
+ones of (strong) agreement reviewed earlier. For example, A
+Badmits weak agree-
+ment. The underlying theory and the decision procedures for the properties of weak
+agreement are developed in [4], and are formalised as mixed linear integer program-
+ming. This is because the properties of weak agreement are context-sensitive, and thus
+no controller can exist, i.e., a contract automaton for enforcing them. Below, we brieﬂy
+review a component for solving the optimization problems related to contract automata,
+that complements the functionalities offered by CAT.
+The decision procedures are implemented in A Mathematical Programming Lan-
+guage (AMPL ) [8], a widely used language for describing and solving optimization prob-
+lems. In this way, the automatic veriﬁcation of contract automata under properties of
+weak agreement exploits efﬁcient techniques and algorithms developed in the area of
+operational research. We now brieﬂy describe the implementation of the techniques for
+verifying weak agreement. The script flow.run , to be launched with the command
+ampl , is described below:
+flow.run
+#reset; 1
+option solver cplex; // use the simplex algorithm in C 2
+model weakagreement.mod; // select model for weak agreement 3
+data flow.dat; // load 4
+solve; // apply the simplex algorithm 5
+display gamma; // display the result: if gamma >= 0 then property holds 6
+The script ﬁrstly loads the automaton from the ﬁle flow.dat (line 4). The description of
+the automata consists of the number of nodes, the cardinality of the alphabet of actions,
+
+--- Page 10 ---
+and a matrix of transitions for each action a, where there is value 0 at position (s;t)if
+there is no transition from state sto state tlabelled by a, and respectively 1 or  1 if
+there is an offer or request transition on a. In this case, the contract automaton described
+inflow.dat is representative.
+TheAMPL linear program to load is given as input parameter to the script (line 3).
+The two optimization problems available are: weakagreement.mod , the ﬁle contains
+the formalization of the optimization problem for deciding whether a contract automa-
+ton admits weak agreement, and weaksafety.mod that contains the formalization of
+the optimization problem for deciding whether a contract automaton is weakly safe.
+Both formal descriptions are then solved using the solver cplex , that is the sim-
+plex method implemented in C. However it is possible to select other available solvers
+in the script flow.run (line 2). The execution of the script will prompt to the user
+the value of variables. As proved in [4], if the variable gamma is non negative then the
+contract automaton satisﬁes the given property. Bi-level optimization problems can not
+be deﬁned directly in AMPL . Therefore, we cannot plainly apply formalisation of [4]
+for representing weakly liable transitions as an optimization problem. However, differ-
+ent techniques of relaxation of the bi-level problem for over approximating the set of
+weakly liable transitions can be used, as for example lagrangian relaxation. As future
+work, we are planning to develop a toolchain for fully integrating the above techniques
+inCAT, in order to reuse them for the functionalities described in Section 3. In par-
+ticular, CAT will automatically generate a contract automaton description flow.dat ,
+execute the script flow.run and collect the results. The code of weakagreement.mod
+andweaksafety.mod is depicted in Figure 3. For further details about CAT, we refer
+the interested reader to the full documentation, available online at [3].
+6 Concluding Remarks
+We described CAT, a tool supporting the analysis of communication-centric applica-
+tions attained with novel techniques based on combinatorial optimization. A non trivial
+example was used to show main features of CAT.
+An interesting application domain for CAT are service-oriented applications. In this
+context, model-driven approaches have been advocated for the analysis of service com-
+position. In particular, automata have been used as target models to translate BPEL
+processes [11] in [13,9]; for instance, constraint automata semantics of REO [1,2] is
+used in [12] to analyse web-services. Relations of contract automata with service com-
+position are studied in [4,5,6]. The properties veriﬁed by CAT have not been considered
+by other approaches. For example, the identiﬁcation - even in presence of circular de-
+pendencies of services (see Section 5) - of liable transitions that may spoil a composi-
+tion complement the veriﬁcation done in [12]. We conjecture that it would be possible
+to deﬁne model transformations from contract automata to BPEL which preserve the
+analysis discussed here.
+A model-driven approach would also ease the integration of CAT with e.g., the tools
+discussed above. This would provide developers with a wide variety of tools for guar-
+anteeing the quality of the composition of services according to different criteria.
+
+--- Page 11 ---
+weakagreement.mod
+1
+# n number of nodes # m number of actions 2
+param n; param m; param K; param final; #final node 3
+set N := {1..n}; set M := {1..m}; param t{N,N}; param a{N,N,M}; 4
+var x_t{N,N} >=0 integer; var z_t{N,N,N} >=0; 5
+var gamma; var p{N} binary; var wagreement; 6
+7
+#flow constraints 8
+subject to Flow_Constraints {node in N}: 9
+sum{i in N}( x_t[i,node]*t[i,node] ) - sum{i in N}(x_t[node,i]*t[node,i]) = 10
+if (node == 1) then -1 11
+else if (node == final) then 1 12
+else 0; 13
+; 14
+15
+subject to p1{node in N}: p[node] <= sum{i in N}( x_t[node,i]*t[node,i]); 16
+subject to p2{node in N}: sum{i in N}( x_t[node,i]*t[node,i]) <= p[node]*K; 17
+18
+subject to Auxiliary_Flow_Constraints {snode in N diff {1},node in N}: 19
+sum{i in N}( z_t[snode,i,node]*t[i,node] ) - sum{i in N}(z_t[snode,node,i]*t[node,i]) = 20
+if (node == 1) then - p[snode] 21
+else if (node == snode) then p[snode] 22
+else 0; 23
+24
+subject to Auxiliary_Flow_Constraints2{i in N, j in N,snode in N}: 25
+z_t[snode,i,j]*t[i,j] <= x_t[i,j]*t[i,j]; 26
+27
+subject to threshold_constraint {act in M}: 28
+sum{i in N,j in N} x_t[i,j]*t[i,j]*a[i,j,act] >= gamma; 29
+30
+#objective function 31
+maximize cost: gamma; 32
+weaksafety.mod
+1
+# n number of nodes # m number of actions 2
+param n; param m; param K; param final; #final node 3
+set N := {1..n}; set M := {1..m}; param t{N,N}; param a{N,N,M}; 4
+var x_t{N,N} >=0 integer; var z_t{N,N,N} >=0; 5
+var gamma; var p{N} binary; var v{M} binary; var wagreement; 6
+7
+#flow constraints 8
+subject to Flow_Constraints {node in N}: 9
+sum{i in N}( x_t[i,node]*t[i,node] ) - sum{i in N}(x_t[node,i]*t[node,i]) = 10
+if (node == 1) then -1 11
+else if (node == final) then 1 12
+else 0; 13
+; 14
+15
+subject to p1{node in N}: p[node] <= sum{i in N}( x_t[node,i]*t[node,i]); 16
+subject to p2{node in N}: sum{i in N}( x_t[node,i]*t[node,i]) <= p[node]*K; 17
+18
+subject to Auxiliary_Flow_Constraints {snode in N diff {1},node in N}: 19
+sum{i in N}( z_t[snode,i,node]*t[i,node] ) - sum{i in N}(z_t[snode,node,i]*t[node,i]) = 20
+if (node == 1) then - p[snode] 21
+else if (node == snode) then p[snode] 22
+else 0; 23
+24
+subject to Auxiliary_Flow_Constraints2{i in N, j in N,snode in N}: 25
+z_t[snode,i,j]*t[i,j] <= x_t[i,j]*t[i,j]; 26
+27
+subject to vi: sum{i in M} v[i] = 1; 28
+29
+subject to threshold_constraint : 30
+sum{act in M,i in N,j in N} (v[act]*x_t[i,j]*t[i,j]*a[i,j,act]) <= gamma; 31
+32
+#objective function 33
+minimize cost: gamma; 34
+Fig. 3. The implementation in AMPL of the optimization problem for deciding weakagreement and
+weak safety.
+
+--- Page 12 ---
+The tool is still a prototype; we plan to improve its efﬁciency, extend it with new
+functionalities (e.g., relaxation), and improve its usability (e.g., adding a user-friendly
+GUI and pretty-printing automata). We note that CAT provides a valid support to the
+analysis of applications. In fact, CAT is able to detect possible violations of the proper-
+ties of interest (for example branching condition, mixed choice). A drawback of CAT is
+that it does not support modelling and design of applications. An interesting evolution
+ofCAT would be to add functionalities for amending applications violating properties
+of interest. For instance, once liable transitions are identiﬁed, CAT could suggest how
+to modify services to guarantee the property. This may also be coupled with the model-
+driven approach by featuring functionalities tracing transitions in the actual source-code
+of services.
+References
+1. F. Arbab. Reo: a channel-based coordination model for component composition. Mathemat-
+ical Structures in Computer Science , 14(3):329–366, 2004.
+2. C. Baier, M. Sirjani, F. Arbab, and J. J. M. M. Rutten. Modeling component connectors in
+reo by constraint automata. Sci. Comput. Program. , 61(2):75–113, 2006.
+3. D. Basile. JAMATA and CAT. https://github.com/davidebasile/workspace .
+4. D. Basile, P. Degano, and G. L. Ferrari. Automata for analysing service contracts. In M. Maf-
+fei and E. Tuosto, editors, TGC 2014 , volume 8902 of LNCS , pages 34–50. Springer, 2014.
+5. D. Basile, P. Degano, G. L. Ferrari, and E. Tuosto. From orchestration to choreography
+through contract automata. In ICE 2014 , pages 67–85, 2014.
+6. D. Basile, P. Degano, G. L. Ferrari, and E. Tuosto. Relating two automata-based models of
+orchestration and choreography. Journal of Logical and Algebraic Methods in Programming ,
+85(3):425 – 446, 2016.
+7. C. G. Cassandras and S. Lafortune. Introduction to Discrete Event Systems . Springer-Verlag
+New York, Inc., Secaucus, NJ, USA, 2006.
+8. R. Fourer, D. M. Gay, and B. W. Kernighan. AMPL: A mathematical programming language .
+AT&T Bell Laboratories Murray Hill, NJ 07974, 1987.
+9. X. Fu, T. Bultan, and J. Su. Analysis of Interacting BPEL Web Services. In WWW ’04 , pages
+621–630. ACM, 2004.
+10. K. Honda, N. Yoshida, and M. Carbone. Multiparty asynchronous session types. In G. C.
+Necula and P. Wadler, editors, POPL , pages 273–284. ACM, 2008.
+11. M. B. Juric. Business Process Execution Language for Web Services BPEL and BPEL4WS
+2Nd Edition . Packt Publishing, 2006.
+12. S. Tasharoﬁ, M. Vakilian, R. Z. Moghaddam, and M. Sirjani. Modeling Web Service Inter-
+actions Using the Coordination Language Reo. In WS-FM , volume 4937 of LNCS . Springer,
+2008.
+13. A. Wombacher, P. Fankhauser, and E. Neuhold. Transforming BPEL into annotated deter-
+ministic ﬁnite state automata for service discovery. In Web Services, 2004 , 2004.
