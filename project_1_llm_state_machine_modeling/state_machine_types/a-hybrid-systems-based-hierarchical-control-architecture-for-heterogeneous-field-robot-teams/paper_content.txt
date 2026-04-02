@@ -1,0 +1,1252 @@
+--- Page 1 ---
+A H YBRID SYSTEMS -BASED HIERARCHICAL CONTROL
+ARCHITECTURE FOR HETEROGENEOUS FIELD ROBOT TEAMS
+A P REPRINT
+Chanyoung Ju and Hyoung Il Son
+Department of Rural and Biosystems Engineering
+Chonnam National University
+77 Yongbong-ro, Buk-Gu, Gwnagju 61186, Repulbic of Korea
+cksdud15@gmail.com, hison@jnu.ac.kr
+February 21, 2020
+ABSTRACT
+Field robot systems have recently been applied to a wide range of research ﬁelds. Making such
+systems more automated, advanced, and activated requires cooperation among heterogeneous robots.
+Classic control theory is inefﬁcient in managing large-scale complex dynamic systems. Therefore,
+the supervisory control theory based on discrete event system needs to be introduced to overcome
+this limitation. In this study, we propose a hybrid systems-based hierarchical control architecture
+through a supervisory control-based high-level controller and a traditional control-based low-level
+controller. The hybrid systems and its dynamics are modeled through a formal method called
+hybrid automata, and the behavior speciﬁcations expressing the control objectives for cooperation
+are designed. Additionally, a modular supervisor that is more scalable and maintainable than a
+centralized supervisory controller was synthesized. The proposed hybrid systems and hierarchical
+control architecture were implemented, validated, and then evaluated for performance through the
+physics-based simulator. Experimental results conﬁrmed that the heterogeneous ﬁeld robot team
+satisﬁed the given speciﬁcations and presented systematic results, validating the efﬁciency of the
+proposed control architecture.
+Keywords Heterogeneous multi-robot Field roboticsHybrid systemsHybrid automataSupervisory control
+1 Introduction
+In recent years, ﬁeld robots have been widely deployed in nuclear plants, agri-
+culture [ Kim et al.(2019)Kim, Kim, Ju, and Son ] and construction, and underwa-
+ter [ Zhang et al.(2019)Zhang, Liu, Luo, and Yang ], as well as military areas, and their usefulness has at-
+tracted a considerable amount of attention from environmental scientists and robotics engineers. How-
+ever, ﬁeld robotics research is complicated because agents need to perform tasks or missions in out-
+door, unstructured, and unknown environments. Nevertheless, various types of robots (e.g., unmanned
+ground vehicles (UGVs), unmanned aerial vehicles (UA Vs), mobile manipulators, humanoids, and hybrid
+UA Vs [ Ozdemir et al.(2014)Ozdemir, Aktas, Vuruskan, Dereli, Tarhan, Demirbag, Erdem, Kalaycioglu, Ozkol, and Inalhan ])
+are being developed to cope with disasters and replace labor (e.g., by au-
+tomating agricultural work, such as spraying, cultivation, grafting, and harvest-
+ing) [ Schwarz et al.(2017)Schwarz, Rodehutskors, Droeschel, Beul, Schreiber, Araslanov, Ivanov, Lenz, Razlaw, Schüller, et al. ,
+Christiansen et al.(2017)Christiansen, Laursen, Jørgensen, Skovsen, and Gislum ,Silwal et al.(2017)Silwal, Davidson, Karkee, Mo, Zhang, and Lewis ].
+However, issues of application and commercialization have gradually emerged owing to the considerable gap between
+the current robot technology and the required technology in the real ﬁeld. In particular, the development of control
+systems for the cooperation of homogeneous and heterogeneous ﬁeld robots is still an enormous challenge.
+Corresponding author.arXiv:2002.08602v1  [cs.RO]  20 Feb 2020
+
+--- Page 2 ---
+APREPRINT - FEBRUARY 21, 2020
+Discrete Event 
+SystemContinuous 
+Time System
+Discrete- to-
+Continuous 
+InterfaceContinuous-
+to-Discrete
+InterfaceContinuous input
+Discrete inputContinuous output
+Discrete outputTimeState
+Figure 1: Concept of hybrid systems consisting of CTS and DES.
+For the eventual autonomy of temporal–spatial missions (e.g., mapping, sensing, sampling, and monitoring) us-
+ing ﬁeld robots, novel control frameworks that enable multiple heterogeneous robots to collaborate must be in-
+troduced. However, the classical control theory based on differential equations has some limitations in handling
+large-scale complex dynamic systems (e.g., heterogeneous ﬁeld robots). For example, multiple UA V systems
+for remote sensing [ Ju and Son(2018a) ], autonomous underwater vehicles (AUVs) for distributed formation track-
+ing [ Yuan et al.(2018)Yuan, Licht, and He ] and path planning [ Cui et al.(2016)Cui, Li, and Yan ], and heterogeneous
+multi-robot systems for exploration, sampling [ Manjanna et al.(2018)Manjanna, Li, Smith, Rekleitis, and Dudek ], and
+mapping [ Roldán et al.(2016)Roldán, Garcia-Aunon, Garzón, de León, del Cerro, and Barrientos ] have been studied
+through the traditional control approach. These approaches are inadequate for handling reactivity, scalability, main-
+tainability, modularity, and systematic analysis when ﬁeld robots are added to or removed from a team, or when a
+given mission is modiﬁed (e.g., a change of tasks in local or global areas), even if robustness and adaptiveness are
+considered in the controller. Additionally, the ﬁeld robot systems need to meet the practicality requirements of a
+dynamic environment, which reﬂects asynchronous events.
+One approach to solve this problem involves the use of discrete event systems (DESs) and formal methods to
+systematically analyze the states, events, and behaviors of large-scale dynamic systems and design powerful
+controllers [ Cassandras and Lafortune(2009) ]. The formal methods typically include automata, Petri nets, temporal
+logic, behavior trees, and min-max algebra. Recently, supervisory control theory (SCT), also known as the Ramadge-
+Wonham framework (RW framework), based on automata has become an intensive approach to controlling DES
+behavior [ Wonham(2015) ]. SCT has proven to be efﬁcient for large-scale dynamic systems as this approach can design
+supervisors that meet behavior speciﬁcations of plants and maximally enables eligible events [ Son(2011) ]. Consequently,
+SCT-based control systems have been developed for sumo robots [ Torrico et al.(2016)Torrico, Leal, and Watanabe ],
+industrial UGVs [ Gonzalez et al.(2017)Gonzalez, Alves, Viana, Carvalho, and Basilio ], mul-
+ticopters [ Quan et al.(2017)Quan, Zhao, Lin, Wang, Wonham, and Cai ], patient support ta-
+bles [ Theunissen et al.(2013)Theunissen, Petreczky, Schiffelers, van Beek, and Rooda ], and fuzzy
+DESs [ Jayasiri et al.(2011)Jayasiri, Mann, and Gosine ]. However, the challenging problems that arise in this
+domain are how to debug, use, and apply formal methods for dynamic systems. More importantly, automata-based SCT,
+which is a rule-based approach, requires an implementable solution without event generators because the supervisory
+controller enables and disables controllable events while observing events occurring in the target plant.
+Therefore, a new approach using DES and SCT is needed for the explicit cooperation of heterogeneous ﬁeld robots.
+In this study, we propose a hybrid systems-based hierarchical control (HSHC) architecture that combines classical
+control theory based on a continuous time system (CTS) and DES-based SCT to overcome these weaknesses. Because
+HSHC tries to integrate the advantages of each system and control theory, it also considerably overcomes the existing
+limitations (i.e., computational complexity, modeling uncertainties, or differences of dynamics) of large-scale complex
+dynamic systems with unstructured and unknown environments. Additionally, it has the advantage of systematically
+analyzing the system behaviors (i.e., state transitions), events occurrence and sequence, and control behaviors in any
+condition. Hence, HSHC is an ideal control architecture for heterogeneous ﬁeld robot teams where system modeling
+and controller design are extremely challenging.
+2
+
+--- Page 3 ---
+APREPRINT - FEBRUARY 21, 2020
+User Inputs: Goals and Policies
+High -level Plant
+(modeling: automata)
+Low -level Plant
+(modeling: ODE)MeasurementControl input
+Command
+Control inputLow -level 
+Controller
+(traditional control)High -level 
+Controller
+(supervisory control)
+OutputOutput
+Information
+channelControl logic
+channelSpecification
+Figure 2: Concept of hierarchical control architecture composed of a DES-based high-level controller and a CTS-based
+low-level controller. (ODE stands for ordinary differential equation.)
+1.1 Objective of the Study
+This study aims to propose an HSHC architecture for heterogeneous ﬁeld robot cooperation. The hybrid systems are the
+coupling scheme consisting of a CTS and a DES, as shown in Fig. 1. The hierarchical control architecture is illustrated
+in Fig. 2. We design the speciﬁcation language representing the goals and policies, high-level plant, and high-level
+controller based on the DES. However, when controlling the robot system with dynamics taken into consideration, a
+low-level controller is imperatively needed. Therefore, we model the plant based on the CTS and design the low-level
+controller using ordinary differential equations. The command of a supervisor is transmitted to the low-level controller
+through the control logic channel, and the output of the ﬁeld robot plant (measured values, state variables, occurred
+events, etc.) is transmitted to the high-level stage through the information channel. Consequently, the supervisory
+controller can feedback control the hybrid systems by selectively enabling controllable events based on this information.
+In our previous work [ Ju and Son(2020) ,Ju and Son(2019) ], we also designed a centralized supervisory controller to
+control a heterogeneous agricultural ﬁeld robot system. Additionally, the ﬁnite-state automata theory was applied
+to model the entire system, focusing only on the behavior of ﬁeld robots for collaboration. In other words, it was a
+preliminary study to verify the feasibility of HSHC that we propose here. In this study, we modeled the ﬁeld robot
+system based on the dynamics of each mobile robot, and extended the previous research using the hybrid automata and
+hybrid systems. Furthermore, the modular supervisor was designed to be more scalable, maintainable, and superior to
+the centralized supervisory controller to manage large-scale dynamic systems. In summary, the goals of our research are
+to develop the HSHC system that can systematically model, control, and analyze heterogeneous ﬁeld robots based on a
+novel approach. The proposed hybrid systems and modular supervisors are implemented, experimented upon, validated,
+and evaluated in a physics-based simulator similar to a ﬁeld environment, and we present its systematic results and
+effectiveness.
+1.2 Related Works
+In this section, we review related studies based on formal methods for multi-robots, in particular, DES
+and SCT. SCT, a theory proposed by Ramadge and Wonham in 1987, introduced a methodology for
+controlling DESs [ Ramadge and Wonham(1987) ]. It has been applied mainly to the ﬁeld of manufac-
+turing automation [ Son and Lee(2007) ], but recently it has been introduced into a cyber-physical robotic
+system (i.e., a dynamic system). For task allocation for cooperative robot teams, the supervisory con-
+troller was designed to accommodate ﬂexibility in task assignments, robot coordination, and tolerance
+of failures and repairs [ Tsalatsanis et al.(2012)Tsalatsanis, Yalcin, and Valavanis ]. By designing a con-
+trol architecture for the application of heterogeneous multi-robot teams to urban search and rescue and
+presenting its simulation results, Yugang et al . [ Liu et al.(2015)Liu, Ficocelli, and Nejat ] found that this
+approach was effective for multi-robot control in ﬁeld applications and is robust to varying scene sce-
+narios and increasing team size. Nevertheless, most research on the supervisory control of multiple
+robots aims at autonomous navigation [ Dulce-Galindo et al.(2019)Dulce-Galindo, Santos, Raffo, and Pena ]
+3
+
+--- Page 4 ---
+APREPRINT - FEBRUARY 21, 2020
+through behavior coordination [ Mendiburu et al.(2016)Mendiburu, Morais, and Lima ] and forma-
+tion control [ Gamage et al.(2009)Gamage, Mann, and Gosine ]. However, these works focus on
+how to model the DES and how to analyze the supervisory controller rather than the imple-
+mentation or demonstration of their robot system. Examples of implementation and applica-
+tion of SCT include warehouse automation [ Tatsumoto et al.(2018)Tatsumoto, Shiraishi, Cai, and Lin ],
+agricultural UA Vs [ Ju and Son(2018b) ], exploration [ Dai et al.(2016)Dai, Jiang, and Zhao ], theme
+parking vehicles [ Forschelen et al.(2012)Forschelen, van de Mortel-Fronczak, Su, and Rooda ],
+swarm robotics [ Lopes et al.(2016)Lopes, Trenkwalder, Leal, Dodd, and Groß ], and attempts to
+integrate self-development tools and frameworks [ Jordan et al.(2017)Jordan, Ma, and Provost ,
+Pinheiro et al.(2015)Pinheiro, Lopes, Leal, and Junior ,Rahmani et al.(2018)Rahmani, Donyanavard, Mück, Moazzemi, Jantsch, Mutlu, and Dutt ,
+Hill and Lafortune(2017) ,Malik et al.(2017)Malik, Åkesson, Flordal, and Fabian ]. Most of the aforemen-
+tioned studies employ a simple supervisory control through an automata model and do not handle the
+implementation problem by combining with the CTS. In recent research, for example, a learning-based
+synthesis approach [ Zhang et al.(2018)Zhang, Feng, and Li ], a probabilistic DES under partial observa-
+tion [ Deng et al.(2019)Deng, Yang, and Qiu ], fuzzy DES-based shared control [ Liu et al.(2016)Liu, Wang, and Zhang ],
+robust supervisory-based control [ Furci et al.(2016)Furci, Naldi, Paoli, and Marconi ]. and a multilevel DES for bus
+structure [ Goorden et al.(2019)Goorden, Dingemans, Reniers, van de Mortel-Fronczak, Fokkink, and Rooda ] have
+been studied for application to the robotics ﬁeld based on DES and SCT, but these are still in a simple simulation
+stage. These studies, in which supervisory control and a dynamic system based on DES are proposed, do not guarantee
+solution to the above-mentioned problems. Therefore, additional research is required to control, implement, and sustain
+large-scale dynamic systems by using DES and SCT beyond the traditional control method in ﬁeld robotics. To the best
+of our knowledge, additionally, no prior studies have examined the supervisory control of heterogeneous ﬁeld robots.
+We address this issue by proposing an HSHC architecture through a new perspective on supervisory control and classic
+control.
+1.3 Structure of the Paper
+The remainder of this paper is organized as follows: In Section 2, we present the process of designing a CTS-based
+low-level controller and distributed swarm control algorithm, consisting of obstacle avoidance control, formation control,
+and path-following control. In Section 3, we introduce the overall DES concept and a system modeling method using
+automata and describe the design of a high-level controller through SCT and detail the conditions for a proper supervisor.
+In Section 4, we describe the control approach proposed in this study, HSHC architecture, method of combining CTS
+and DES, hybrid automata-based system modeling, design of behavior speciﬁcations to achieve control objectives,
+and synthesis of the modular supervisor for heterogeneous ﬁeld robots. In Section 5, we present the implementation
+procedure, experimental setup, and experimental results through a physics-based simulator to evaluate the proposed
+control system. Finally, in Section 6, we summarize the conclusion and address the direction of future research.
+2 CTS-based Low-level Control
+2.1 Ordinary Differential Equation-based System Modeling
+We use the dynamic UA V and UGV models to design a low-level controller based on a CTS. The kinematic and dynamic
+equations for each vehicle are described in Sections 2.1.1 and 2.1.2.
+2.1.1 UA V model
+We consider NUA Vs with three degrees of freedom (DOF). The positions are marked by pi2<3,i= 1;2;:::;N .
+The ﬂight control input of UA Vs is derived from the following dynamics and kinematic equations:
+mipi= iRie3+mige3+i (1)
+Ji_wi+S(wi)Jiwi=i+i (2)
+_Ri=RiS(wi) (3)
+wheremi>0denotes the mass, pi:= [p1;p2;:::;pN]2<3Nrepresents the Cartesian center-of-mass position
+represented in the northeast (NE) inertial frame fOg,i2< indicates the thrust control input along e3(withe1,
+e2, ande3indicating N, E, and D directions), Ri2SO(3)presents the rotational matrix describing the body frame
+fBgof the UA V w.r.t. the inertial frame fOg,Ais the gravitational constant, e3= [0;0;1]Tdenotes the basis vector
+4
+
+--- Page 5 ---
+APREPRINT - FEBRUARY 21, 2020
+0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+Dij00.511.522.53ij109
+inter-virtual point
+virtual point-obstacle
+Figure 3: Example of potential functions 	f
+ijand	o
+ijused to avoid collisions and to maintain a desired distance.
+representing the down direction and representing that thrust and gravity act in the D direction, Ji2<33indicates
+the inertia matrix w.r.t. the body frame fBg,wi2<3presents the angular speed of the UA V relative to the inertial
+framefOgrepresented in the body frame fBg,i2<3represents the attitude torque control input, i;i2<3
+denote the aerodynamic perturbations, and () :<3!so(3)denotes the skew-symmetric operator deﬁned subject to
+;2<3;()=. For typical UA V ﬂying, i;i0.
+The relationships among angular speed, thrust, and torque of each propeller for low-level control input are as follows:
+0
+B@i
+i1
+i2
+i31
+CA=2
+64   
+0 L 0L
+L 0 L 0
+   3
+750
+B@!2
+i1
+!2
+i2
+!2
+i3
+!2
+i41
+CA (4)
+whereandare constants that determine the relationship among angular speed, thrust, and torque; Lis the distance
+between the propeller and the center of the UA V; ijdenotes the torque in the roll, pitch, and yaw directions; and !ij
+denotes the angular speed of each propeller. As a result, when the desired thrust and torque are determined, the desired
+control input can be generated by controlling the motor through equation (4).
+2.1.2 UGV model
+We consider NUGVs with the positions when the coordinate frame is fUgand the body frame is fDg. The kinematic
+and dynamics equations of the UGV are as follows:
+_xi=icos( i)
+_yi=isin( i)
+_ i=!i(5)
+D(xi)
+_i
+_!i
++Q(xi;wi)i
+_ i
+=i+%i (6)
+wherexi,yiare the coordinates of the UGV w.r.t. coordinate frame fUg; idenotes the heading angle; iand!iare
+the linear and angular speeds of the ith robot expressed in fDg, respectively; i= [
+i;!
+i]Tand%i= [%
+i;%!
+i]Tare
+the control input and the external force and torque, respectively; D(xi)2<3is the positive-deﬁnite symmetric inertia
+matrix; andQ(xi;!i)2<33is the Coriolis matrix.
+2.2 Distributed Swarm Control
+We deﬁne the following distributed swarm control for the low-level control of heterogeneous ﬁeld robots. The
+heterogeneous ﬁeld robots consist of a group of NUA Vs andNUGVs, and we denote Ri2<3as the position of the
+ith robot,i= 1;:::;N . Here, we deﬁne the virtual point (VP) di:t2<7!pi(t)2<3to be followed byRi.
+We deﬁne the dynamic undirected connectivity graph C:=fV;Egby the vertex setV:=f1;2;:::;ng, representing
+the heterogeneous robots and the edge set E:=feij:i= 1;2;:::;n;j2Nigrepresenting the connectivity among the
+heterogeneous robots, where the dynamic neighbor set Niof theirobot is deﬁned as follows:
+Ni:=fj2V:ireceives information from j;i6=jg (7)
+5
+
+--- Page 6 ---
+APREPRINT - FEBRUARY 21, 2020
+Subsequently, the kinematic evolution of VP digenerated by a distributed swarm control is as follows: For the ith robot,
+_di(t) :=uf
+i+uo
+i+uu
+i; di(0) =Ri(0) (8)
+where the three control inputs uu
+i2<3;uf
+i2<3, anduo
+i2<3represent the velocity terms.
+The ﬁrst term, uf
+i2<3, denotes a control input to avoid a collision among heterogeneous robots, preserves connectivity,
+and achieves a desired formation as speciﬁed by the desired distances Df2<+;8i= 1;:::;N; and8j2Ni, as
+deﬁned by
+uf
+i:= X
+j2Ni@f
+ij(kdi djk2)T
+@di(9)
+where f
+ijdenotes a designed potential function to produce an attractive behavior if kdi djk>Df, a repulsive
+behavior ifkdi djk<Df, and a null behavior if kdi djk=Df. Because there are two vertical asymptotes in
+uf
+i(f
+ij)that correspond to the minimum and maximum permitted distances as shown in Fig. 3, collisions between
+robots are guaranteed and connectivity between robots is conserved.
+The second term, uo
+i2<3, is expressed by the following equation as a control input based on a potential ﬁeld that
+allows heterogeneous robots to avoid obstacles through a certain distance threshold Do2<+:
+uo
+i:= X
+j2Oi@o
+ij(kdi do
+jk)T
+@di(10)
+whereOidenotes the set of obstacles of the ith VP with an obstacle point do
+jthat corresponds to the position of the rth
+obstacle in the environment and o
+ijdenotes a speciﬁc artiﬁcial potential function that produces a repulsive behavior
+ifkdi do
+jk<Doand a null behavior if kdi dj
+rkDo. When the distance between the VP and the obstacles
+becomes closer to Do, then the repulsive behavior increases to inﬁnity. However, if kdi do
+jk!Do, then o
+ijgradually
+converges to zero (see Fig. 3).
+The ﬁnal term, uu
+i2<3, represents the desired velocity input of the VP that is controlled by the planning algorithm
+deﬁned as follows:
+uu
+i=KP(t)ei(t) +KIZ
+ei(t)dt+KDd
+dtei(t) (11)
+whereTi2<3denotes the target velocity, ei(t) =Ti diindicates the velocity error between the target trajectory and
+the VP, andKP;KI;andKDare the parameters of the desired velocity controller, respectively.
+3 DES-based High-level Control
+3.1 Formal Method-based System Modeling
+DES is a dynamic system with characteristics of a discrete state space. It is also an event-driven system in which the state
+is changed by the occurred events with the passage of time. The types of discrete event models (DEMs) for modeling
+the DES include nondeterministic DEMs, stochastic DEMs, timed DEMs, and logical DEMs [ Cao and Ho(1990) ].
+Basically, the state of the system and the events are listed in the order of occurrence to represent the qualitative or
+logical properties of the DES. Furthermore, when the next state transited by an event is uniquely determined, this system
+is referred to as a deterministic DES. The behavior of a deterministic DES can be expressed by listing all possible
+sequences from the initial state: s=123i;i2;i2[1;n]and the initial state x0. The ﬁnite sequence of
+events,s, is deﬁned as a trace or string, and the collection of such strings is deﬁned as a formal language. In this study,
+we applied automata theory with a logical DEM as the modeling formalism to describe DES behavior.
+The automaton Ais a tuple comprising the following ﬁve elements [ Ramadge and Wonham(1989) ,
+Ramadge and Wonham(1987)]:
+A=fE;
+;;E0;Emg (12)
+whereEis the set of states, 
+is the set of events, is the state transition function of A(:E
+7!E),E0is the
+initial state ofA, andEmis the set of marker states, which indicates a ﬁnal or desired state (EmE). In the state
+transition function ,
+represents a sequence (string) of events comprising the null event ". Moreover, the event set 
+is categorized as a set of controllable and uncontrollable events, 
+cand
+uc, respectively. The event set 
+can also be
+classiﬁed into observable events 
+oand unobservable events 
+uo.
+6
+
+--- Page 7 ---
+APREPRINT - FEBRUARY 21, 2020
+off on𝛼
+POWER
+𝛼
+(a)
+off on𝛼
+POWER
+𝛼 (b)
+Figure 4: Example 1: (a) electrical system and (b) automata model for a light bulb.
+Example 1: Automata modeling
+In this example, we considered the electrical system shown in Fig. 4. In this system, when a control input called a ﬂip
+switch event occurs, the light bulb changes state (i.e., its output). Here, automata modeling for a dynamic light bulb, as
+brieﬂy depicted in Fig. 4(b), is as follows: E=foff, ong,
+ =f:ﬂip switchg,=ff(off;) =on; f(on;) =
+offg,E0=offg, andEm=fong.
+The language obtained using the automaton Ais deﬁned as L(A) :=fs2
+j(a0;s)!g, where(a0;s)!indicates that
+the next state in which the string soccurred ata0is deﬁned inA. The preﬁx closure of language L(A)is deﬁned as
+L(A) :=ft2
+jts9s2L(A)g, whereL(A)is deﬁned as preﬁx-closed when L(A) =L(A).
+The marked language of automaton Ais deﬁned as Lm(A) :=fs2L(A)j(a0;s)2Amg L(A), whereA
+satisﬁesLm(A) =L(A). Then,L(A)is deﬁned as nonblocking. In other words, this indicates that the marked state
+can be attained after a string occurs in any state of A[Wonham(2015) ]. Nonblocking should be realized for designing a
+proper supervisor in RW framework, because the DES may fall into deadlocks or livelocks when L(A)is blocking.
+Idle
+Work𝛼
+Down𝛽
+𝛾𝜇
+Figure 5: Example 2: automata model for manufacturing machine Amc.
+Example 2: Language
+Suppose we modeled the automata model of a manufacturing machine Amcas shown in Fig. 5. When the Idle state is
+marked as state, the language (i.e., all strings being generable from the initial state) and marked language (i.e., all gener-
+able strings hitting some marker state) that this automaton generates are as follows: L(A) =f";;;;;::: g
+andLm(A) =f";;;:::g. Here, nonblocking is satisﬁed when L(A) =Lm(A).
+3.2 Supervisory Control
+The supervisor is deﬁned as the automaton S= (X;
+;;x 0;Xm), whereX;
+;;x 0;andXmindicate the state set,
+event set, state transition function, initial state, and marker states, respectively. Consider that the plant is deﬁned as
+DESAand that the behavior and generated language of the plant Aunder supervision are deﬁned as
+S=A=fXA;
+;;(x0;a0);XmAmg (13)
+L(S=A) :"2L(S=A);8s2
+;"2
+ :
+s2L(S=A);s2L(A);62)s2L(S=A);(14)
+7
+
+--- Page 8 ---
+APREPRINT - FEBRUARY 21, 2020
+Plant
+Modeling
+𝒜𝑖
+Behavior
+Specification
+𝐻𝑖Synthesized
+Language
+𝐾𝑖1
+234
+5
+6Nonblocking
+Property
+Checks
+Controllability
+Property
+Checks
+Nonconflict
+Property
+ChecksVerified
+Supervisor
+𝑆𝑖Satisfied
+Unsatisfied7
+Figure 6: Process of designing and verifying the supervisory controllers Si.
+whereis a eligible event and is a control map deﬁned as  :L(A)7!2
+c.
+In addition, the projection map P: 
+7!
+
+ois deﬁned as
+P(") ="
+P() =
+"if62
+o
+if2
+o(15)
+P(s) =P(s)P();8s2
+;82
+The controllability and observability of L(S)w.r.t.Aare described by the following deﬁnitions:
+Deﬁnition 1Sis deﬁned as controllable w.r.t. (A;
+uc)when the following condition is satisﬁed:
+(8s;)s2L(S); 2
+uc; s2L(A))s2L(S) (16)
+In other words, s, which is allowable by Sand an uncontrollable event , is eligible inA, if the sequence sis eligible
+inA; furthermore, ifSalso allowss, thenSis controllable w.r.t. A.
+Deﬁnition 2 ForSA ,Sis said to be observable w.r.t. (A;P;
+uo)when the following condition is satisﬁed:
+(8s;s0;2L(S))2
+uo;P(s) =P(s0);
+s2L(S);s02L(A))s02L(S) (17)
+Namely, if the string sis permissible by the supervisor Sands0is eligible in the plant A, thenSalso has to permit
+s0, where two strings s;s02
+are recognized as the same string by the projection map Pand are also permissible by
+Sand whereis an unobservable event, then Sis observable w.r.t.A. Note that we consider only controllability for
+DES-based high-level control design in this work.
+Moreover, the supervisory control problem (SCP) used to design a supervisor (a procedure presented in Fig. 6) is
+deﬁned as follows:
+Deﬁnition 3 For a givenKA, we determine a supremal language Sthat is controllable w.r.t. (A;
+uc), satisfying
+L(S=A) =KandL(S=A) =Lm(S=A).
+Therefore, if Kis deﬁned as the speciﬁcation for A, then the SCP is to identify a supervisory controller that satisﬁes
+L(S=A) =K=Lm(S=A)and is nonblocking and controllable w.r.t. A. Here, a plurality of supervisors that satisfy
+speciﬁcations exist and are controllable. Among these K, a supremal controllable sublanguage of Kis determined as
+the solution of the SCP. Therefore, Scan maximally allow the eligible language to occur in A.
+8
+
+--- Page 9 ---
+APREPRINT - FEBRUARY 21, 2020
+Empty𝛽
+Full
+𝛼𝛾,𝜇 𝛾,𝜇Plant
+𝒜Supervisor
+𝑆
+Projection
+𝑃𝑠
+𝑃(𝑠)𝑆[𝑃𝑠]
+(a)
+0𝛽
+𝛼1 2 3𝛾 𝜇 (b)
+Empty𝛽
+Full
+𝛼𝛾,𝜇 𝛾,𝜇Plant
+𝒜Supervisor
+𝑆
+Projection
+𝑃𝑠
+𝑃(𝑠)𝑆[𝑃𝑠]
+(c)
+Figure 7: Example 3: (a) behavior speciﬁcation HforAmc, (b) supervisory controller SforAmc, and (c) architecture
+of the supervisory control system.
+Example 3: Supervisor design
+When we design a manufacturing machine Amcwith a buffer size of 2, the behavior speciﬁcation can be expressed
+as shown in Fig. 7(a). When deﬁning the automaton of the speciﬁcation as the alphabet Hand the language of Has
+K(i.e.,K=L(H)), ifKsatisﬁes the nonblocking and controllability properties concerning plant A, thenKcan be
+deﬁned as supervisor S. In this case, unobservable events are reﬂected to "by the projection P, and the supervisory
+controllerScontrols the target plant Amcby control map . In other words, associates each string s2L(A)with a
+control pattern in (s)22
+Cmarked with automata as shown in Fig. 7(b). This approach is a closed-loop control
+system, the architecture of which is shown in Fig. 7(c).
+4 Hybrid Systems-based Hierarchical Control Architecture
+4.1 Hybrid Automata
+Hybrid systems are dynamic systems that combine CTS and DES. For example, a motor (a continuous component) of
+a mobile robot controlled by a microprocessor (a discrete component) is a hybrid system. There are various hybrid
+systems deployed in real applications (e.g., elevators, automobile engines, heating systems, and transportation systems).
+For this purpose, hybrid automatons have been proposed as formal models for hybrid systems [ Henzinger(2000) ]. The
+hybrid automatonGhis a tuple comprising the following elements:
+Gh= (E;X;E;U;F;;Inv;Guard;; E0;X0) (18)
+whereEis the set of discrete states, Xis the set of continuous states, Eis the set of events, Uis the set of admissible
+controls,Fis the vector ﬁeld of Gh(F:EXU ! X ),is the discrete state transition function of Gh
+(:EXE!E ),Inv is the set deﬁning an invariant condition ( InvEX ),Guard is the set deﬁning a guard
+condition (GuardEEX ),is the reset function ( :EEXE!X ),X0is the initial discrete state,
+andX0is the initial continuous state. In this study, we also attempt to model heterogeneous ﬁeld robots using hybrid
+automata models that combine continuous time models and DEMs. Furthermore, we extend the SCT introduced in
+Section 3 to propose an HSHC structure applicable to complex dynamic systems. The detailed system modeling and
+supervisor design are discussed in the following sections.
+4.2 Plant Modeling for Heterogeneous Field Robots
+The objective is to enable collaboration among heterogeneous ﬁeld robots, so that the hybrid automaton model and
+behavior speciﬁcations of heterogeneous ﬁeld robots consisting of UA Vs and UGVs can be designed. Hybrid models
+for UA Vs and UGVs are shown in Figs. 8 and 9, respectively. In these ﬁgures, the initial state is shown ﬁrst (i.e., at the
+9
+
+--- Page 10 ---
+APREPRINT - FEBRUARY 21, 2020
+ℎ𝑖=0
+ሶ𝑟𝑖=0
+ሶ𝑑𝑖>0ℎ𝑖>0
+ሶ𝑟𝑖≈0
+ሶ𝑑𝑖>0
+ℎ𝑖>0
+ሶ𝑟𝑖>0
+𝑑𝑖−𝑑𝑗𝑜<𝒟𝑜
+ሶ𝑑𝑖=0ℎ𝑖>0
+ሶ𝑟𝑖>0
+ሶ𝑑𝑖>0ℎ𝑖=0
+ሶ𝑟𝑖=0
+ሶ𝑑𝑖=0𝑨𝟏 𝑨𝟐 𝑨𝟑
+𝑨𝟒 𝑨𝟓𝛼1
+𝛼3,22𝛼5
+𝛼7𝛼9,18
+𝛼14𝛼20,29
+𝛼15𝛼11
+𝛼24
+𝛼26 𝛼27𝛼11 𝛼7𝛼14𝛼18
+Figure 8: Hybrid automata model for UA V GA.
+ሶ𝑟𝑖>0
+ሶ𝑑𝑖>0
+ሶ𝑑𝑖>0
+𝑑𝑖−𝑑𝑗≠𝒟𝑓ሶ𝑟𝑖>0
+ሶ𝑑𝑖>0
+𝑑𝑖−𝑑𝑗𝑜<𝒟𝑜ሶ𝑟𝑖=0
+ሶ𝑑𝑖=0𝑩𝟐
+𝑩𝟑𝑩𝟏
+𝑩𝟒𝛽18
+𝛽1
+𝛽20,21𝛽15
+𝛽10𝛽6
+𝛽4𝛽4𝛽15𝛽10
+𝛽13
+𝛽7𝛽12,23
+Figure 9: Hybrid automata model for UGV GB.
+upper right position), the marked states are indicated by a double line, the discrete states are listed at the top left of the
+shape, the continuous states are described in the middle of the shape, and the events and state transition functions are
+speciﬁed with alphabetical designations and arrows, respectively. Here, we modeled the states of hybrid models by
+focusing on the dynamics of the heterogeneous robots with a CTS, unlike in previous studies [ Ju and Son(2020) ]. In
+other words, hybrid modeling was considered for heterogeneous ﬁeld robots by combining the CTS-based modeling
+introduced in Section 2 and the DES-based modeling introduced in Section 3. As a result, UA V (model as GA) consists
+of 5 states, 23 transitions, and 15 events whereas UGVs (model as GB) consist of 4 states, 13 transitions, and 12 events.
+The events for each model are described in detail in Table 1. Here, odd-numbered events are controllable events and
+even-numbered events are uncontrollable events. Finally, we obtained the hybrid automata model of the entire plant
+system through parallel composition [Wonham(2015)] as follows:
+Gplant =GAjjGB1jjGB2(19)
+4.2.1 Hybrid Automata Model for UA Vs
+Hybrid automataGAmodels (shown in Fig. 8) the dynamic behavior of the UA V , and the states are as follows.
+QA=fA1;A2;A3;A4;A5g, whereA1:Ideal ,A2:Arming ,A3:Hovering ,A4:Flying , andA5:Avoiding . The eligible
+eventsEAare detailed in Table 1, and the discrete transition function is A:f(GA;EA) =GA, as shown by the arrow
+in Fig. 8. The initial state E0isA1and the desired state is Em=fA1;A3g. From the perspective of the CTS, hi
+represents the height of the ith robot,Riis the position, and diis the position of the ith VP, as deﬁned in Section 2. For
+example, if an event 5occurs in state A2, the state transitions to A3, where the continuous state XAis a state where
+the heighthiof the UA Vs is greater than zero, the velocity Riis close to zero, and a control command is input to the
+VP (jjdijj>0). The initial continuous state of this model is as follows: hi;_Ri;_di= 0
+10
+
+--- Page 11 ---
+APREPRINT - FEBRUARY 21, 2020
+Table 1: Description of events for hybrid UA V model GAand hybrid UGV model GB
+Plant Event Controllability Description
+UA V
+(GA)1 O Arm
+3 O Disarm
+5 O Take off
+7 O Land
+9 O Keep hovering
+11 O Return to home
+14 X Start mission
+15 O Keep mission
+18 X Receive mission
+20 X Finish mission
+22 X Time out
+24 X Detect obstacles
+26 X Detect free space
+27 O Keep avoiding
+29 X Clear mission
+UGV
+(GB)1 O Start mission
+4 X Detect obstacles
+6 X Detect free space
+7 O Keep avoiding
+10 X Network connected
+12 X Network disconnected
+13 O Keep formation
+15 O Keep mission
+18 X Receive mission
+20 X Finish mission
+21 O Clear mission
+23 O Break formation
+4.2.2 Hybrid Automata Model for UGVs
+Hybrid automataGBalso model (shown in Fig. 9) the dynamic property of the UGV , and the states are as follows.
+QB=fB1;B2;B3;B4g, whereB1:Stationary ,B2:Navigation ,B3:Safety , andB4:Formation . The discrete
+transition function is B:f(GB;EB) =GB, as shown by the arrow in Fig. 8, the initial state E0isB1, and the desired
+state isEm=fB1;B4g. For example, when UGVs form the desired formation (i.e., the state is B4) and an eligible
+event4occurs that detects an obstacle, the state transitions to B3. In theB3state, the event of avoiding obstacles ( 7)
+is allowed by the supervisory controller Si. Here, in the CTS, the velocity of the UGV ( jj_Rijj) and the control input to
+the VP (jj_dijj) are greater than zero, and the distance between the UGV and the obstacle ( jjdi do
+jjj) is less than the
+desired safe distance ( Do).
+4.3 Design of Speciﬁcations
+The supervisor is the result of establishing a legal language (i.e., speciﬁcation) and then ﬁnding a supremal controllable
+sublanguage for the plant. Alternatively, we should ﬁnd a controllable language that meets the conditions for becoming
+an appropriate supervisor w.r.t. plant model Gi. The behavior speciﬁcations are designed such that they satisfy the
+condition of nonblocking, controllability, and nonconﬂictness for cooperation of heterogeneous ﬁeld robots. The
+POL 1;POL 2;:::;POL 10policies for designing speciﬁcations are as follows:
+POL 1: Arming must be in operation before the UA V takes off (i.e., hovering).
+POL 2: The mission is assigned while the UA V is arming and performed while the UA V is hovering.
+POL 3: When UGV completes its mission, the UA V lands and waits for the next mission.
+POL 4: UGVs form a desired formation when the network is connected.
+POL 5: UGVs receive a mission and start while the UGV is stop.
+POL 6: UGVs perform missions forming formations.
+11
+
+--- Page 12 ---
+APREPRINT - FEBRUARY 21, 2020
+𝑡4𝑡1 𝑡2
+𝑡3𝛼3
+𝛼1,18𝛼1,18
+𝛼1,18𝛼1
+𝛼22
+𝛼22𝛼3,22
+(a)
+𝑜2 𝑜3 𝑜1𝛼24
+𝛼26𝛼27 𝛼27
+𝛼24
+𝛼24
+𝛼26𝛼15 (b)
+𝑚4𝑚1 𝑚2
+𝑚3𝛼9
+𝛼18𝛼9
+𝛼14
+𝛼20
+𝛼29𝛼29
+𝛼15𝛼18𝛼18
+𝛼9 (c)
+𝑓2 𝑓3 𝑓1𝛽10𝛽13 𝛽7
+𝛽4𝛽15
+𝑓5 𝑓6 𝑓4
+𝛽23𝛽12𝛽4
+𝛽6
+𝛽12𝛽10 𝛽15
+𝛽12
+𝛽15𝛽12𝛽10
+(d)
+𝑣2 𝑣3 𝑣1𝛽4
+𝛽6𝛽4
+𝛽4
+𝛽6𝛽15 𝛽7 𝛽7 (e)
+𝑠4𝑠1 𝑠2
+𝑠3𝛽18
+𝛽1𝛽15
+𝛽21𝛽18
+𝛽21𝛽20𝛽21𝛽18 (f)
+Figure 10: Speciﬁcations for heterogeneous robots: (a) ﬂying for UA V H1
+A, (b) obstacle avoidance for UA V H2
+A, (c)
+mission management for UA V H3
+A, (d) navigation for UGV H1
+B;(e) obstacle avoidance for UGV H2
+B, and (f) mission
+management for UA V H3
+B.
+POL 7: At the end of the mission, the UA V remains hovering and the UGV remains stopped.
+POL 8: If an obstacle is found while the robot is moving, obstacle avoidance is the priority and guaranteed.
+POL 9: Duplicate missions are not assigned to each robot.
+POL 10: When the mission is over, wait for the next mission.
+Therefore, we modeled the speciﬁcations Hithat met the above-mentioned policies before synthesizing the modular
+supervisory controller Si. A total of six speciﬁcations were designed to achieve the desired control objectives for each
+robot, as shown in Fig. 10. Figs. 10a, 10b, and 10c are the control speciﬁcations for the UA V , modeling for arming and
+disarming, obstacle avoidance, and mission management, respectively. Additionally, Figs. 10d, 10e, and 10f are control
+speciﬁcations for navigation, obstacle avoidance, and mission management for UGVs. In details, we build automaton
+H1
+Ashown in Fig. 10(a), that take into account for policies POL 1,POL 2, andPOL 7. The states of H1
+Aare as follows:
+(1) statet1represents the UA V is stopped, (2) state t2represents the arming state where the UA V operates and is
+assigned a desired goal, (3) the UA V is driven along with a given mission in t3, and (4) the state t4shows the situation
+in which the UA V avoids obstacles. We also built an automaton H1
+B, as shown in Fig. 10(d), for the speciﬁcations of the
+UGV , taking into account POL 3toPOL 7. Speciﬁcations H2
+AandH2
+Bconsidering POL 8are shown in Figs. 10(b)
+and 10(e). In other words, if obstacles are found in states o1andv1while the robot is in motion, the states will be
+transitioned to states o2andv2, respectively. Then, the obstacle avoidance controls, controllable events, alpha 27
+andbeta 7will be allowed in that states. While heterogeneous robots avoid obstacles, the state transitions from o2
+too3andv2tov3are repeated before free space detect events 26and6occur. Finally, speciﬁcations H3
+AandH3
+B
+reﬂectingPOL 9andPOL 10are depicted in Figs. 10(c) and 10(f). In the case of UGVs, the state s1that receives the
+mission transitions to the state s2when the mission begins. In the state s2, the mission is performed according to the
+controllable event 15. Here, state s2transitions to state s4when the mission is completed, and transitions to state s3
+when the mission is cleared. In the states s3ands4, when a new mission is received, the state transitions to s1and
+iterates through these mission loop.
+Therefore, the control objectives model what events would be allowed and disallowed correctly by the supervisor when
+heterogeneous robots do not collide with each other when given a mission. In addition, when the obstacle is found, it
+gives the highest priority; in case of UGVs, it is designed to keep the formation while following the given path. The
+design speciﬁcations were modeled to reﬂect the desired policies and meet the conditions for the proper formal language
+Ki.
+12
+
+--- Page 13 ---
+APREPRINT - FEBRUARY 21, 2020
+Algorithm 1 Solutions of modular supervisory SCP
+Input: PlantGiand speciﬁcation Ki; i= 1;2;:::;n .
+Output: Modular supervisors SjorS0
+j; j= 1;2;:::;m .
+Step 1: Deﬁne the subplant automaton Gsub;i and speciﬁcation automaton Ki.
+Step 2: Determine Sj(the supremal controllable sublanguage) of KiandGsub;i.
+Step 3: Verify the controllability of Kiw.r.t.Gsub;i using 
+cinKi.
+Step 4: Verify the nonblocking of Ki.
+Step 5: Verify the nonconﬂicting of Kiw.r.t.Gsub;i. IfKiis nonconﬂicting, then S0
+jexist, whereS0
+j=Ki.
+Goto Step 8.
+Step 6: If the speciﬁcation Kidoes not satisfy steps 3, 4 and 5, go back to step 1 and redesign. Nevertheless,
+ifKidoes not meet the proper conditions then, S0
+jdoes not exist. Goto Step 7.
+Step 7:Sjis the solution of the SCP w.r.t. ( Ki;Gsub;i).returnSj
+Step 8: IfL(Sj) =L(S0
+j=Gsub;i), thenS0
+jis the solution of the SCP w.r.t. ( Ki;Gsub;i).
+returnS0
+j,else returnSj.
+0
+212 14
+1513
+10
+84
+7 9
+111
+3
+5 610𝛼3
+𝛼22 𝛼1𝛼18
+𝛼5
+𝛼7
+𝛼24𝛼7𝛼1
+𝛼9,18
+𝛼14
+𝛼20,29
+𝛼11𝛼15𝛼14
+𝛼26
+𝛼11𝛼22
+𝛼27𝛼1
+𝛼11𝛼11
+𝛼5
+𝛼7𝛼18𝛼22
+𝛼14𝛼7
+𝛼9,18𝛼20,29
+𝛼14𝛼15
+𝛼26
+𝛼24
+𝛼27𝛼1𝛼18
+𝛼14𝛼7
+𝛼15
+𝛼5,7
+𝛼11𝛼14
+𝛼20,29𝛼26
+𝛼24
+𝛼11𝛼27𝛼9,18
+(a)
+0
+36
+7 18
+254
+𝛼3,22𝛼1𝛼11
+𝛼18
+𝛼18𝛼9𝛼5𝛼9
+𝛼18𝛼18
+𝛼7𝛼7𝛼11𝛼22
+𝛼1
+𝛼11
+𝛼24
+𝛼26𝛼27𝛼15
+𝛼14𝛼14𝛼20
+14𝛼5𝛼14
+(b)
+Figure 11: UA V modular supervisors ( S1
+AandS3
+A).
+4.4 Synthesis of the Modular Supervisor
+For modular supervisory control, plant Giand speciﬁcation Hiare synthesized to obtain the legal language Ki. If
+Sj; j= 1;2;:::;m , is veriﬁed for such legal speciﬁcations Ki; i= 1;2;:::;n (mn), then thisSjis deﬁned as a
+modular supervisory controller. The modular supervisor Sjsatisﬁes the nonconﬂictness condition deﬁned as
+S=S1^S2^^ Sm (20)
+where^is meet product [ Wonham(2015) ] (deﬁned as S1^S2=L(S1)TL(S2)). In (20),Sis a centralized supervisor
+designed w.r.t. K=K1^:::^Kn. IfSjsatisﬁes nonconﬂictness, all modular supervisors can control the plant
+Gplant like the centralized supervisor S. IfSjis conﬂicting, modular supervisors do not satisfy the speciﬁcations
+Ki; i= 1;2;:::;n by allowing unnecessary events. Therefore, the modular supervisory Sjmust satisfy the conditions
+of controllability, nonblocking, and nonconﬂictness as explained in Section 3. The solution of the modular supervisory
+SCP is presented in Algorithm 1 (see [Son(2011)] for a formal proof).
+13
+
+--- Page 14 ---
+APREPRINT - FEBRUARY 21, 2020
+31 2
+𝟒𝛽18
+𝛽1
+𝛽20𝛽18
+𝛽21𝛽18
+Figure 12: UGV modular supervisor ( S3
+B).
+Heterogeneous Field Robots
+Trees
+Map SharingUA V 
+Navigation
+UGVs 
+NavigationCooperation
+ObstaclesInitial/Goal 
+position
+Desired 
+direction
+Physics based environment
+Figure 13: Simulation environments for HSHC.
+SubcomponentGsub;i of the entire plant Gplant consists of UA VGAand UGVGB. First, we check whether each
+speciﬁcation Kisatisﬁes controllability, nonblocking, and nonconﬂictness for the plant. According to Algorithm 1,
+the speciﬁcations Kithat meet the requirements for subplants UA V GAand UGVGB,K3
+A,K1
+B, andK2
+B, are deﬁned
+as modular supervisors S3
+A,S1
+B, andS2
+B, respectively. In contrast, the supremal controllable sublanguage Sjwas
+synthesized for the speciﬁcations Kithat do not satisfy the controllability, that is, K1
+A,K2
+A, andK3
+B. The obtained
+supremal controllable sublanguage Sjis the solution to the SCP for KiandGi; hereafter, it is determined to be
+supervisorsS1
+A,S2
+A, andS3
+B, respectively, as shown in Figs. 11 and 12. As a result, we found a modular supervisor
+Sj; j= 1;2;:::; 6, for speciﬁcation language Kiw.r.t.Gi. Finally, we veriﬁed that the designed modular supervisory
+controllers satisfy nonconﬂictness by using a supervisory control synthesis tool. These modular supervisors Sjcan
+control the dynamic complex system in the desired behavior by selectively allowing or disallowing controllable events
+Egenerated by the plant Gplant .
+5 Experimental Results and Discussion
+5.1 Experimental Setup
+5.1.1 Environmental Setup
+A physics-based simulator was constructed to implement and verify the designed modular supervisory controller and
+HSHC architecture to control heterogeneous ﬁeld robots, as shown in Fig. 13. The heterogeneous robot system includes
+one UA V and two UGVs. The virtual environment is described as an agricultural orchard. Each robot was equipped
+with LIDAR and camera sensors to recognize obstacles and assign a desired path to the starting point and target point
+through a start algorithm. The implementation of the entire system uses V-REP, a robot simulator, and MATLAB
+for low-level and high-level controllers. Therefore, the HSHC architecture for controlling heterogeneous ﬁeld robots
+is shown in Fig. 14. For the hybrid systems, a DES and SCT computation tool, TCT, is combined with CST-based
+MATLAB that sends real-time data to and receives them from the simulator. The lower controller and the modular
+supervisor communicate with each other through the DES-to-CTS interface and the CTS-to-DES interface including the
+control logic channel and the information channel and send or receive command signals through the mapping function.
+14
+
+--- Page 15 ---
+APREPRINT - FEBRUARY 21, 2020
+Sub-plant
+(Robot 1)Sub-plant
+(Robot 2)Sub-plant
+(Robot k)Sub-plant
+(Robot 3)Discrete event system based high -level controller
+Traditional 
+controller 1Traditional 
+controller 2Traditional 
+controller j
+Large -scale dynamical systemModular 
+supervisor 1Modular 
+supervisor 2Modular 
+supervisor 3Modular 
+supervisor i
+Continuous time system based low -level controllerCommand
+Control input
+Figure 14: Hybrid systems-based hierarchical control architecture.
+To evaluate the performance of the proposed HSHC system, the measured output was recorded at 50 Hz. Furthermore,
+to analyze the experimental results, the states of the plant, the occurrence of events, the position and velocity of the
+heterogeneous robot, and the VP were recorded.
+5.1.2 Experimental Task
+In these experiments, heterogeneous robots aim for collaborative mapping and driving in an unknown ﬁeld. The
+experimental task executed is as follows: A UA V ﬁrst navigates in the agricultural environment and then shares the
+built map with the UGVs. Therefore, the UGVs drive based on the shared map for autonomous navigation and obstacle
+avoidance. We set up cubes and trees as obstacles, and the heterogeneous robots map and drive through onboard sensors
+and controllers. The following four experiments were conducted by combining the existence of obstacles and two path
+scenarios:
+case 1: circular path with obstacles,
+case 2: circular path without obstacles,
+case 3: straight path with obstacles, and
+case 4: straight path without obstacles.
+In this experimental task, we focused on whether heterogeneous robots perform a given cooperative task while achieving
+the control objectives of the modular supervisors.
+5.2 Experimental Results of Field Tasks
+5.2.1 Scenario 1 (Circular Path with and without Obstacles)
+The experimental results of scenario 1 for cases 1 and 2 are shown in Figs. 15 and 16, respectively. In these ﬁgures,
+panels a, b, and c show the trajectories, state transitions, and observed events of the heterogeneous ﬁeld robots controlled
+by the designed modular supervisors, respectively. Figs. 15(a) and 16(a) indicate the navigated path, conﬁrming that
+the UGVs avoid obstacles and do not collide with each other with the aid of the distributed swarm controller when
+they cooperate. Additionally, Figs. 15(b) and 16(b) show the state transition of the UA V and UGVs, clearly indicating
+the current states of the ﬁeld robots during the experiment. For example, in Fig. 15(b), the UA V maintains the state of
+A4to perform the given mission through the arming state A2and the hovering state A3from the ideal state A1. After
+completing the given mission, the UA V maintains the hovering state A3, while the UGVs’ missions are in progress, and
+then transitions to the arming state A2by enabling a land event when the missions of the UGVs are completed. If the
+mission is cleared, the UA V state changes to A1and the ﬁeld experiment ends. According to the experimental result
+depending on the presence or absence of obstacles (i.e., comparison of cases 1 and 2 ), the red line representing the
+state of the UGV in Fig. 16(b) does not transition to B3, which is a state of avoiding obstacles. However, in Fig. 15(b),
+the UGV detects obstacles three times while driving; thus, the experimental result demonstrates that the UGV’s state
+transitions to B3during the given mission. Furthermore, Figs. 15(c) and 16(c) depict events that shift the behavior of
+the heterogeneous ﬁeld robots. These systematic results are advantages of the proposed HSHC system, which ensures
+that it can manage large-scale dynamic systems by observing events and states to obtain the desired behavior.
+15
+
+--- Page 16 ---
+APREPRINT - FEBRUARY 21, 2020
+(a)
+0 2 04 06 08 0 1 0 0
+Time [s]A1A2A3A4UAV State
+B1B2B3B4
+UGV StateUAV
+UGVs
+(b)
+0 2 04 06 08 0 1 0 0
+Time [s]135791415182029UAV Event
+1467101315182021
+UGV EventUAV
+UGVs
+(c)
+Figure 15: Experimental results for case 1: (a) trajectory, (b) state transition, and (c) event occurrence.
+5.2.2 Scenario 2 (Straight Path with and without Obstacles)
+Figs. 17 and 18 depict the experimental results for the heterogeneous ﬁeld robot systems for scenario 2. Figs. 17(a) and
+18(a) show that the ﬁeld robots follow a given path, avoid obstacles, and form the desired formation. These ﬁgures
+are the result of the system behaviors under the obstacle avoidance controller, formation controller, path-following
+controller introduced in Section 2, and the modular supervisors designed in Section 3. Figs. 17(b) and 17(b) show the
+state transitions and event occurrences of the UA V plant for each case. The state transitions of the UA V between cases
+3 and 4 are not very different because the UA V ﬂies over obstacles. For the control purposes of this experiment, we
+veriﬁed whether the speciﬁcations designed in Section 4.3 were met, and found that the UA V , the leader robot, performs
+its mission according to the desired process. For example, Figs. 17(b) and 17(b) show that the UA V takes off and
+maintains a hovering state before it performs its mission. Additionally, the UA V satisﬁes the speciﬁcation that the
+mission should be assigned while arming. Figs. 17(c) and 18(c) show the state transitions and event occurrences of
+the UGVs’ plant for cases 3 and 4 in scenario 2, respectively. In the case of UGVs that navigate the unknown ﬁeld
+environment based on the UA V-generated map, these results ensure that the states of obstacle avoidance and navigation
+are originated from the events that detect obstacles and free space. In detail, these graphs demonstrate that the state of
+the UGV is changed from B2 to B3 when an event that detects an obstacle occurs. However, in Fig. 18(c), the UGVs
+16
+
+--- Page 17 ---
+APREPRINT - FEBRUARY 21, 2020
+(a)
+0 2 04 06 08 0 1 0 0
+Time [s]A1A2A3A4UAV State
+B1B2B3B4
+UGV StateUAV
+UGVs
+(b)
+0 2 04 06 08 0 1 0 0
+Time [s]135791415182029UAV Event
+1467101315182021
+UGV EventUAV
+UGVs
+(c)
+Figure 16: Experimental results for case 2: (a) trajectory, (b) state transition, and (c) event occurrence.
+continue to cooperatively work because there are no obstacle environments. In other words, the modular supervisors
+manage the controllable events to ensure that the plants have the desired behavior while observing eligible events.
+5.2.3 Formation Control of Heterogeneous Field Robots
+Fig. 19 shows the relative distance between UGVs during the experiments, and this result is affected by the formation
+controller introduced in Section 2. Theoretically, the desired relative distance is 1 m; however, it is difﬁcult to maintain
+this distance because of the measurement error and disturbances. Therefore, the formation of UGVs is controlled by a
+potential function with a speciﬁc range that is designed to maintain a distance of 0.9–1.1 m in this experiment. From
+Figs. 18(c) and 19, we can observe that the UGVs form the desired formation after the network is connected. Therefore,
+heterogeneous ﬁeld robot systems composed of multiple follower robots can collaborate through the proposed HSHC
+architecture. In other words, when an event indicating a network connection occurs, the controllable event, the formation
+control input, is enabled by the modular supervisor, and then the low-level controller regulates the heterogeneous robot.
+17
+
+--- Page 18 ---
+APREPRINT - FEBRUARY 21, 2020
+Goal area
+(a)
+0 20 40 60 80 100 120 140 160 180
+Time [s]A1A2A3A4UAV State
+135791415182029
+UAV EventState
+Event
+(b)
+0 20 40 60 80 100 120 140 160 180
+Time [s]B1B2B3B4UGV State
+1467101315182021
+UGV EventState
+Event
+(c)
+Figure 17: Experimental results for case 3: (a) trajectory, (b) UA V , and (c) UGV .
+5.3 Discussion
+Multiple robots based systems for autonomous ﬁeld tasks must be guaranteed for scalability and responsiveness. For ex-
+ample, when a humanoid robot is added to the existing robot team consisting of UA V and UGV to collaborate, modeling
+and controller design of the robot system are inevitable and challenging. However, the proposed HSHC approach has
+the advantages of modularity, scalability, reactivity, and explainability in comparison with classical control methods. In
+other words, modeling a subplant Gsub;i for a new environment and designing the speciﬁcations Hito obtain a modular
+supervisorSjcreates a novel control system while systematically observing the states and events. Remodeling and
+redesign of large-dynamic systems are identical processes, but the HSHC architecture is a more prompt, modular, and
+systematic approach. As another example, to obtain the dynamic model of the ﬁeld robots equipped with a speciﬁc
+sensor (e.g., laser, sonar, and Lidar), the robot models GAandGBare synthesized with a sensor model Gsensor by con-
+sidering the statesEand events 
+of the sensor [ Gonzalez et al.(2017)Gonzalez, Alves, Viana, Carvalho, and Basilio ].
+Therefore, considering this scalability, HSHC-based heterogeneous ﬁeld robot teams are guaranteed applicability and
+adaptability for dynamic environments.
+However, the SCT-based HSHC system also faces various drawbacks and challenges. This approach is intuitive and plain
+because it models systems and designs controllers based on formal languages. Besides, extremely complex systems have
+18
+
+--- Page 19 ---
+APREPRINT - FEBRUARY 21, 2020
+Goal area
+(a)
+0 20 40 60 80 100 120 140 160 180
+Time [s]A1A2A3A4UAV State
+135791415182029
+UAV EventState
+Event
+(b)
+0 20 40 60 80 100 120 140 160 180
+Time [s]B1B2B3B4UGV State
+1467101315182021
+UGV EventState
+Event
+(c)
+Figure 18: Experimental results for case 4: (a) trajectory, (b) UA V , and (c) UGV .
+extensive states, events, and state transition functions. Therefore, graphical tools must be introduced to represent the for-
+mal languages clearly, and it is complicate to debug and apply HSHC for the implementation without an event generator.
+Moreover, the low-level controllers for dynamic systems must be established to apply HSHC architecture. Nevertheless,
+if the above-mentioned components for control and implementation are constructed, the HSHC approach is efﬁcient to
+manage the heterogeneous multi-robot systems. In the challenges, there are centralized, decentralized, distributed, and
+hierarchical approaches to the design of supervisory controllers [ Wonham(2015) ]. Additionally, depending on the type
+of control method, the optimal, robust, adaptive supervisory controller can be considered for the nonlinear hybrid dynam-
+ical systems [ Buss et al.(2002)Buss, Glocker, Hardt, V on Stryk, Bulirsch, and Schmidt ]. The integration of artiﬁcial
+intelligence with HSHC and SCT for learning also poses a future challenge [ Kang et al.(2019)Kang, Seo, and Kim ].
+More detailed and advanced research that considers the observability, failure diagnosis, and parallel executions of hybrid
+systems such as behavior trees [ Marzinotto et al.(2014)Marzinotto, Colledanchise, Smith, and Ögren ], is of utmost
+importance, and we intend to pursue these challenges in our future work.
+19
+
+--- Page 20 ---
+APREPRINT - FEBRUARY 21, 2020
+Figure 19: Relative distance between UGVs for case 4.
+6 Conclusions
+We proposed an HSHC architecture for the cooperation of heterogeneous ﬁeld robot team used hybrid automata and the
+formal modeling approach for the hybrid systems consisted of CTS and DES. Their performance and effectiveness
+were veriﬁed and evaluated through the heterogeneous ﬁeld robot system consisted of one UA V and two UGVs. For
+the modeled large-scale dynamic plant, we designed a legal behavior (speciﬁcations) to achieve the control objectives.
+Based on these speciﬁcations, modular supervisory controllers were synthesized. We also evaluated the nonblocking,
+nonconﬂictness, and controllability to verify that the modular supervisors were proper. All modular supervisors can
+control and manage the entire plant exactly same with a centralized supervisor. To evaluate our proposed HSHC
+approach and develop a supervisory control system, we conducted its implementation and performed experiments on it
+in a physics-based simulator. The experimental results conﬁrmed that the heterogeneous ﬁeld robots achieve the given
+control objectives, and systematic results, such as the system behavior and the event string are presented.
+Based on the results obtained in ﬁeld experiments and the previous results from our studies [ Ju and Son(2020) ] (please
+note that a ﬁeld experiment was already done based on some parts of HSHC in [ Ju and Son(2020) ]), the feasibility and
+effectiveness of our proposed HSHC system were sufﬁciently validated. Therefore, hybrid systems and SCT are more
+efﬁcient and scalable than traditional control systems to control large-scale dynamic systems, such as heterogeneous
+robot systems. For example, when an additional ﬁeld robot is included in the entire plant, the subplant is modeled
+with hybrid automata and synthesized in the plant, and the speciﬁcations for the added model are designed to obtain
+a modular supervisor, which is effective for addressing complexity, modularity, and reactivity. In our future work,
+we intend to apply more elaborate scenarios and implement the HSHC architecture fully and the heterogeneous ﬁeld
+robots in real outdoor environments to evaluate their practicality. Implementing this approach can be of signiﬁcant
+value to advanced and autonomous ﬁeld robot systems in the future (e.g., large-scale environmental sampling and
+monitoring and smart farming), and research on these HSHC systems are expected to proceed in various directions,
+such as multitasking, multiareas, observability, and failure diagnosis.
+References
+[Kim et al.(2019)Kim, Kim, Ju, and Son] J. Kim, S. Kim, C. Ju, and H. I. Son. Unmanned aerial vehicles in agriculture:
+A review of perspective of platform, control, and applications. IEEE Access , 7:105100–105115, 2019. doi:
+10.1109/ACCESS.2019.2932119.
+[Zhang et al.(2019)Zhang, Liu, Luo, and Yang] Y . Zhang, X. Liu, M. Luo, and C. Yang. Bio-inspired approach for
+long-range underwater navigation using model predictive control. IEEE Transactions on Cybernetics , pages 1–12,
+2019. doi: 10.1109/TCYB.2019.2933397.
+[Ozdemir et al.(2014)Ozdemir, Aktas, Vuruskan, Dereli, Tarhan, Demirbag, Erdem, Kalaycioglu, Ozkol, and Inalhan]
+Ugur Ozdemir, Yucel Orkut Aktas, Aslihan Vuruskan, Yasin Dereli, Ahmed Farabi Tarhan, Karaca Demirbag,
+Ahmet Erdem, Ganime Duygu Kalaycioglu, Ibrahim Ozkol, and Gokhan Inalhan. Design of a commercial hybrid
+vtol uav system. Journal of Intelligent & Robotic Systems , 74(1-2):371–393, 2014.
+[Schwarz et al.(2017)Schwarz, Rodehutskors, Droeschel, Beul, Schreiber, Araslanov, Ivanov, Lenz, Razlaw, Schüller, et al.]
+Max Schwarz, Tobias Rodehutskors, David Droeschel, Marius Beul, Michael Schreiber, Nikita Araslanov, Ivan
+Ivanov, Christian Lenz, Jan Razlaw, Sebastian Schüller, et al. Nimbro rescue: Solving disaster-response tasks
+with the mobile manipulation robot momaro. Journal of Field Robotics , 34(2):400–425, 2017.
+20
+
+--- Page 21 ---
+APREPRINT - FEBRUARY 21, 2020
+[Christiansen et al.(2017)Christiansen, Laursen, Jørgensen, Skovsen, and Gislum] Martin Christiansen, Morten
+Laursen, Rasmus Jørgensen, Søren Skovsen, and René Gislum. Designing and testing a uav mapping system for
+agricultural ﬁeld surveying. Sensors , 17(12):2703, 2017.
+[Silwal et al.(2017)Silwal, Davidson, Karkee, Mo, Zhang, and Lewis] Abhisesh Silwal, Joseph R Davidson, Manoj
+Karkee, Changki Mo, Qin Zhang, and Karen Lewis. Design, integration, and ﬁeld evaluation of a robotic apple
+harvester. Journal of Field Robotics , 34(6):1140–1159, 2017.
+[Ju and Son(2018a)] Chanyoung Ju and Hyoung Son. Multiple uav systems for agricultural applications: control,
+implementation, and evaluation. Electronics , 7(9):162, 2018a.
+[Yuan et al.(2018)Yuan, Licht, and He] C. Yuan, S. Licht, and H. He. Formation learning control of multiple au-
+tonomous underwater vehicles with heterogeneous nonlinear uncertain dynamics. IEEE Transactions on Cyber-
+netics , 48(10):2920–2934, Oct 2018. doi: 10.1109/TCYB.2017.2752458.
+[Cui et al.(2016)Cui, Li, and Yan] R. Cui, Y . Li, and W. Yan. Mutual information-based multi-auv path planning for
+scalar ﬁeld sampling using multidimensional rrt*. IEEE Transactions on Systems, Man, and Cybernetics: Systems ,
+46(7):993–1004, July 2016. doi: 10.1109/TSMC.2015.2500027.
+[Manjanna et al.(2018)Manjanna, Li, Smith, Rekleitis, and Dudek] Sandeep Manjanna, Alberto Quattrini Li, Ryan N
+Smith, Ioannis Rekleitis, and Gregory Dudek. Heterogeneous multi-robot system for exploration and strategic
+water sampling. In 2018 IEEE International Conference on Robotics and Automation (ICRA) , pages 1–8. IEEE,
+2018.
+[Roldán et al.(2016)Roldán, Garcia-Aunon, Garzón, de León, del Cerro, and Barrientos] Juan Roldán, Pablo Garcia-
+Aunon, Mario Garzón, Jorge de León, Jaime del Cerro, and Antonio Barrientos. Heterogeneous multi-robot
+system for mapping environmental variables of greenhouses. Sensors , 16(7):1018, 2016.
+[Cassandras and Lafortune(2009)] Christos G Cassandras and Stephane Lafortune. Introduction to discrete event
+systems . Springer Science & Business Media, 2009.
+[Wonham(2015)] Walter Murray Wonham. Supervisory control of discrete-event systems. Encyclopedia of systems
+and control , pages 1396–1404, 2015.
+[Son(2011)] Hyoung Il Son. Design and implementation of decentralised supervisory control for manufacturing system
+automation. International Journal of Computer Integrated Manufacturing , 24(3):242–256, 2011.
+[Torrico et al.(2016)Torrico, Leal, and Watanabe] César RC Torrico, André B Leal, and Ana TY Watanabe. Modeling
+and supervisory control of mobile robots: A case of a sumo robot. IFAC-PapersOnLine , 49(32):240–245, 2016.
+[Gonzalez et al.(2017)Gonzalez, Alves, Viana, Carvalho, and Basilio] Antonio GC Gonzalez, Marcos VS Alves, Gus-
+tavo S Viana, Lilian K Carvalho, and João C Basilio. Supervisory control-based navigation architecture: a new
+framework for autonomous robots in industry 4.0 environments. IEEE Transactions on Industrial Informatics , 14
+(4):1732–1743, 2017.
+[Quan et al.(2017)Quan, Zhao, Lin, Wang, Wonham, and Cai] Quan Quan, Zhiyao Zhao, Liyong Lin, Peng Wang,
+Walter Murray Wonham, and Kai-Yuan Cai. Failsafe mechanism design of multicopters based on supervisory
+control theory. arXiv preprint arXiv:1704.08605 , 2017.
+[Theunissen et al.(2013)Theunissen, Petreczky, Schiffelers, van Beek, and Rooda] Rolf JM Theunissen, Mihály Pe-
+treczky, Ramon RH Schiffelers, Dirk A van Beek, and Jacobus E Rooda. Application of supervisory control
+synthesis to a patient support table of a magnetic resonance imaging scanner. IEEE Transactions on Automation
+Science and Engineering , 11(1):20–32, 2013.
+[Jayasiri et al.(2011)Jayasiri, Mann, and Gosine] Awantha Jayasiri, George KI Mann, and Raymond G Gosine. Behav-
+ior coordination of mobile robotics using supervisory control of fuzzy discrete event systems. IEEE Transactions
+on Systems, Man, and Cybernetics, Part B (Cybernetics) , 41(5):1224–1238, 2011.
+[Ju and Son(2020)] C. Ju and H. I. Son. Modeling and control of heterogeneous agricultural ﬁeld robots based on
+ramadge–wonham theory. IEEE Robotics and Automation Letters , 5(1):48–55, Jan 2020. doi: 10.1109/LRA.2019.
+2941178.
+[Ju and Son(2019)] Chanyoung Ju and Hyoung Il Son. Hybrid systems based modeling and control of heterogeneous
+agricultural robots for ﬁeld operations. In 2019 ASABE Annual International Meeting , pages 1–5. American
+Society of Agricultural and Biological Engineers, 2019.
+[Ramadge and Wonham(1987)] Peter J Ramadge and W Murray Wonham. Supervisory control of a class of discrete
+event processes. SIAM journal on control and optimization , 25(1):206–230, 1987.
+[Son and Lee(2007)] Hyoung Il Son and Suk Lee. Failure diagnosis and recovery based on des framework. Journal of
+Intelligent Manufacturing , 18(2):249–260, 2007.
+21
+
+--- Page 22 ---
+APREPRINT - FEBRUARY 21, 2020
+[Tsalatsanis et al.(2012)Tsalatsanis, Yalcin, and Valavanis] Athanasios Tsalatsanis, Ali Yalcin, and Kimon P Valavanis.
+Dynamic task allocation in cooperative robot teams. Robotica , 30(5):721–730, 2012.
+[Liu et al.(2015)Liu, Ficocelli, and Nejat] Yugang Liu, Maurizio Ficocelli, and Goldie Nejat. A supervisory control
+method for multi-robot task allocation in urban search and rescue. In 2015 IEEE International Symposium on
+Safety, Security, and Rescue Robotics (SSRR) , pages 1–6. IEEE, 2015.
+[Dulce-Galindo et al.(2019)Dulce-Galindo, Santos, Raffo, and Pena] JA Dulce-Galindo, Marcelo A Santos, Guil-
+herme V Raffo, and Patrícia N Pena. Autonomous navigation of multiple robots using supervisory control
+theory. In 2019 18th European Control Conference (ECC) , pages 3198–3203. IEEE, 2019.
+[Mendiburu et al.(2016)Mendiburu, Morais, and Lima] Fernando J Mendiburu, Marcos RA Morais, and Antonio MN
+Lima. Behavior coordination in multi-robot systems. In 2016 IEEE International Conference on Automatica
+(ICA-ACCA) , pages 1–7. IEEE, 2016.
+[Gamage et al.(2009)Gamage, Mann, and Gosine] G. W. Gamage, G. K. I. Mann, and R. G. Gosine. Discrete event
+systems based formation control framework to coordinate multiple nonholonomic mobile robots. In 2009
+IEEE/RSJ International Conference on Intelligent Robots and Systems , pages 4831–4836, Oct 2009. doi:
+10.1109/IROS.2009.5354788.
+[Tatsumoto et al.(2018)Tatsumoto, Shiraishi, Cai, and Lin] Yuta Tatsumoto, Masahiro Shiraishi, Kai Cai, and Zhiyun
+Lin. Application of online supervisory control of discrete-event systems to multi-robot warehouse automation.
+Control Engineering Practice , 81:97–104, 2018.
+[Ju and Son(2018b)] Chanyoung Ju and Hyoung Il Son. Discrete event systems based modeling for agricultural
+multiple unmanned aerial vehicles: Automata theory approach. In 2018 18th International Conference on Control,
+Automation and Systems (ICCAS) , pages 258–260. IEEE, 2018b.
+[Dai et al.(2016)Dai, Jiang, and Zhao] Xuefeng Dai, Laihao Jiang, and Yan Zhao. Cooperative exploration based on
+supervisory control of multi-robot systems. Applied Intelligence , 45(1):18–29, 2016.
+[Forschelen et al.(2012)Forschelen, van de Mortel-Fronczak, Su, and Rooda] Stefan TJ Forschelen, Joanna M van de
+Mortel-Fronczak, Rong Su, and Jacobus E Rooda. Application of supervisory control theory to theme park
+vehicles. Discrete Event Dynamic Systems , 22(4):511–540, 2012.
+[Lopes et al.(2016)Lopes, Trenkwalder, Leal, Dodd, and Groß] Yuri K Lopes, Stefan M Trenkwalder, André B Leal,
+Tony J Dodd, and Roderich Groß. Supervisory control theory applied to swarm robotics. Swarm Intelligence , 10
+(1):65–97, 2016.
+[Jordan et al.(2017)Jordan, Ma, and Provost] Claudius Jordan, Canlong Ma, and Julien Provost. An educational
+toolbox on supervisory control theory using matlab simulink stateﬂow: From theory to practice in one week. In
+2017 IEEE Global Engineering Education Conference (EDUCON) , pages 632–639. IEEE, 2017.
+[Pinheiro et al.(2015)Pinheiro, Lopes, Leal, and Junior] Lucas Preischadt Pinheiro, Yuri Kaszubowski Lopes, An-
+dré Bittencourt Leal, and Roberto Silvio Ubertino Rosso Junior. Nadzoru: A software tool for supervisory control
+of discrete event systems. IFAC-PapersOnLine , 48(7):182–187, 2015.
+[Rahmani et al.(2018)Rahmani, Donyanavard, Mück, Moazzemi, Jantsch, Mutlu, and Dutt] Amir M Rahmani, Bryan
+Donyanavard, Tiago Mück, Kasra Moazzemi, Axel Jantsch, Onur Mutlu, and Nikil Dutt. Spectr: Formal
+supervisory control and coordination for many-core systems resource management. ACM SIGPLAN Notices , 53
+(2):169–183, 2018.
+[Hill and Lafortune(2017)] Richard C Hill and Stéphane Lafortune. Scaling the formal synthesis of supervisory control
+software for multiple robot systems. In 2017 American Control Conference (ACC) , pages 3840–3847. IEEE,
+2017.
+[Malik et al.(2017)Malik, Åkesson, Flordal, and Fabian] Robi Malik, Knut Åkesson, Hugo Flordal, and Martin Fabian.
+Supremica–an efﬁcient tool for large-scale discrete event systems. IFAC-PapersOnLine , 50(1):5794–5799, 2017.
+[Zhang et al.(2018)Zhang, Feng, and Li] H. Zhang, L. Feng, and Z. Li. A learning-based synthesis approach to the
+supremal nonblocking supervisor of discrete-event systems. IEEE Transactions on Automatic Control , 63(10):
+3345–3360, Oct 2018. doi: 10.1109/TAC.2018.2793662.
+[Deng et al.(2019)Deng, Yang, and Qiu] W. Deng, J. Yang, and D. Qiu. Supervisory control of probabilistic discrete
+event systems under partial observation. IEEE Transactions on Automatic Control , pages 1–1, 2019. doi:
+10.1109/TAC.2019.2905305.
+[Liu et al.(2016)Liu, Wang, and Zhang] R. Liu, Y . Wang, and L. Zhang. An fdes-based shared control method for
+asynchronous brain-actuated robot. IEEE Transactions on Cybernetics , 46(6):1452–1462, June 2016. doi:
+10.1109/TCYB.2015.2469278.
+22
+
+--- Page 23 ---
+APREPRINT - FEBRUARY 21, 2020
+[Furci et al.(2016)Furci, Naldi, Paoli, and Marconi] Michele Furci, Roberto Naldi, Andrea Paoli, and Lorenzo Mar-
+coni. Robust supervisory-based control strategy for mobile robot navigation. In Emanuele Menegatti, Nathan
+Michael, Karsten Berns, and Hiroaki Yamaguchi, editors, Intelligent Autonomous Systems 13 , pages 121–133,
+Cham, 2016. Springer International Publishing. ISBN 978-3-319-08338-4.
+[Goorden et al.(2019)Goorden, Dingemans, Reniers, van de Mortel-Fronczak, Fokkink, and Rooda] M. Goorden,
+C. Dingemans, M. Reniers, J. van de Mortel-Fronczak, W. Fokkink, and J. Rooda. Supervisory control of
+multilevel discrete-event systems with a bus structure. In 2019 18th European Control Conference (ECC) , pages
+3204–3211, June 2019. doi: 10.23919/ECC.2019.8795835.
+[Cao and Ho(1990)] X-R Cao and Y-C Ho. Models of discrete event dynamic systems. IEEE Control Systems
+Magazine , 10(4):69–76, 1990.
+[Ramadge and Wonham(1989)] Peter JG Ramadge and W Murray Wonham. The control of discrete event systems.
+Proceedings of the IEEE , 77(1):81–98, 1989.
+[Henzinger(2000)] Thomas A Henzinger. The theory of hybrid automata. In Veriﬁcation of digital and hybrid systems ,
+pages 265–292. Springer, 2000.
+[Buss et al.(2002)Buss, Glocker, Hardt, V on Stryk, Bulirsch, and Schmidt] Martin Buss, Markus Glocker, Michael
+Hardt, Oskar V on Stryk, Roland Bulirsch, and Günther Schmidt. Nonlinear hybrid dynamical systems: modeling,
+optimal control, and applications. In Modelling, Analysis, and Design of Hybrid Systems , pages 311–335. Springer,
+2002.
+[Kang et al.(2019)Kang, Seo, and Kim] Bong Gu Kang, Kyung-Min Seo, and Tag Gon Kim. Machine learning-based
+discrete event dynamic surrogate model of communication systems for simulating the command, control, and
+communication system of systems. Simulation , 95(8):673–691, 2019.
+[Marzinotto et al.(2014)Marzinotto, Colledanchise, Smith, and Ögren] Alejandro Marzinotto, Michele Colledanchise,
+Christian Smith, and Petter Ögren. Towards a uniﬁed behavior trees framework for robot control. In 2014 IEEE
+International Conference on Robotics and Automation (ICRA) , pages 5420–5427. IEEE, 2014.
+23
