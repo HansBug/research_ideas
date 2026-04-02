@@ -1,0 +1,742 @@
+--- Page 1 ---
+An Introduction to
+Pervasive Interface Automata⋆
+M. Calder⋆⋆, P. Gray, A. Miller, and C. Unsworth
+Computing Science, University of Glasgow, U.K.
+Abstract. Pervasive systems are often context-dependent, component
+based systems in which components expose interfaces and oﬀe r one or
+more services. These systems may evolve in unpredictable wa ys, of-
+ten through component replacement. We present pervasive in terface au-
+tomata as a formalism for modelling components and their com posi-
+tion. Pervasive interface automata are based on the interfa ce automata
+of Henzinger et al [3], with several signiﬁcant diﬀerences. We expand
+their notion of input and output actions to combinations of i nput, out-
+put actions, and callable methods and method calls. Whereas interface
+automata have a reﬁnement relation, we argue the crucial rel ation in
+pervasive systems is component replacement , which must include consid-
+eration of the services oﬀered by a component and assumption s about
+the environment. We illustrate pervasive interface automa ta and compo-
+nent replacement with a small case study of a pervasive appli cation for
+sports predictions.
+1 Introduction
+Pervasive systems are often context-dependent, component b ased systems that
+can evolve in unpredictable ways, through component addition (com position)
+and replacement. But unpredictability can have detrimental conse quences for
+usability and for wide-spread adoption of systems: how can we make component
+based evolution more predictable ?
+The question is diﬃcult because components are often designed and imple-
+mented incrementally by diﬀerent development teams, or via end-us er conﬁgura-
+tions, or they are mashups (e.g. make your own Android application m ashup[7]).
+A traditional approachinvolving modelling and reasoning about full be havioural
+speciﬁcationsis unlikely tobe plausible. Consequently,wefocus on th einterfaces
+exposed by components and the servicesthey oﬀer. We deﬁne pervasive inter-
+face automata asaformalismformodellingtheinterfacesexposedbycomponents
+and their composition. These automata are based on the interface automata of
+Henzinger et al [3], but there are several signiﬁcant diﬀerences.
+First, we expand their notion of input and output actions to combina tions
+of input/output and calling and callable methods. We refer to the latt er two
+⋆This work was funded by the EPSRC grant, Verifying Interoperability Requirements
+in Pervasive Systems EP/F033206/1
+⋆⋆Corresponding author Muﬀy.Calder@glasgow.ac.uk
+
+--- Page 2 ---
+as master and slave actions, respectively. When components are c omposed, they
+synchronise on shared actions so that input/output and calling/ca lled behaviour
+assumptionsaremet. Informally,this meansthat input/output an d master/slave
+behaviours are (two-way) synchronised. We relax the synchronis ation of compo-
+nents to allowa component oﬀeringa masteraction to wait until the a ppropriate
+slave action is oﬀered. This allows both busy send andbusy receive , where the
+original interface automata only allows a component to wait to receiv e, and not
+wait to send.
+Second, we argue the crucial relation in pervasive systems is compo nentre-
+placement , which must include consideration of both services oﬀered by a com-
+ponent and assumptions about the environment, where the enviro nment is a
+composition of components. We include the environment because it m ay include
+actions that aﬀect the interface of the component under conside ration; speciﬁ-
+cally, it can cause some actions to become hidden (internal) or some c hoices to
+be removed.
+As an example, consider a server component within a sports predict ion ap-
+plication. The application keeps track of ﬁxtures and results (e.g. a football
+league, or a tennis tournament) and allows users to make and share predictions
+in advance of actual events. The standard server component oﬀ ers a service to
+add predictions and toget predictions . An online betting company might oﬀer
+an alternative component that oﬀers a service to place a bet , in addition to the
+previously mentioned services, the delivery of which relies on the ava ilability of
+servicesget data andadd data supplied by the betting company’s online server
+component. Under what circumstances can we replace the standa rd component
+by the betting company’s component? The latter relies on services f rom the
+company’s online server component, which we call environmental assumptions ;
+informally, we will allow replacement when environmental assumptions are met.
+We introduce a linear temporal action logic to deﬁne service behaviou r and
+deﬁne the satisfaction of the formulae by a pervasive interface au tomaton under
+assumptions about the environment. For a given environment, we c an replace
+one component by another, with respect to a service, when both c omponents
+satisfy the service in the environment. We judge the quality of a rep lacement
+of one component by another by the number of services that it pre serves and
+any new services it may oﬀer. We illustrate pervasive interface auto mata and
+component replacement with a small case study of an application for sports
+predictions, based on a real application.
+In summary, the contributions of the paper are the following:
+–deﬁnition of pervasive interface automata
+–deﬁnition of action matching and algorithm for
+composition of pervasive interface automata
+–logical speciﬁcation of services
+–satisfaction relation of pervasive interaction automaton
+and a service under environmental assumptions
+–replacement relation between components, services
+and environment assumptions
+
+--- Page 3 ---
+–application of pervasive interaction automata and replacement
+relation to a case study involving sports predictions.
+In the next section we give a brief overview of our case study, as mo tivation
+for pervasive interface automata, which we deﬁne formally in Sect. 3. In Sect.
+4 we discuss action matching and we deﬁne automata composition by w ay of
+an algorithm. In Sect. 5 we introduce the concept of a service and d eﬁne an
+action based logic for deﬁning service behaviour; in the following sect ion, Sect.
+6 we deﬁne the replacement of one component for another, with re spect to an
+environment and a set of services. Comparison of pervasive interf ace automata
+with interface automata and other related work is in Sect. 7. Our co nclusions
+and directions for future work are in Sect. 8.
+2 Case Study
+We now present a case study which we use both as motivation and for expla-
+nation. The case study is a pervasive application for sports predict ion, written
+within the Domino framework [2]. This application is mobile phone based an d
+allowsa userto see alist ofupcoming sports ﬁxtures and makepredic tions about
+the results.Thesepredictionsarethen uploadedandstoredonar emoteserver.A
+prediction league graphical interface allows a user to download pred ictions from
+multiple users (stored on a remote sever component) to compare t hem with the
+actual results in a league table. The architecture of this system is s hown in Fig
+1. Brief descriptions of the components follow.
+Storage
+Server
+Prediction
+Server
+Prediction
+LeaguePrediction
+Interface
+Fixture
+Server
+LocalRequest
+PredictionsReturn
+Data Submit
+DataRequest
+Data
+addPrediction
+Return
+FixturesRequest
+FixturesReturn
+Predictions
+Fig.1.Architecture of the sports prediction application.
+
+--- Page 4 ---
+Prediction Interface This component is a graphical user interface that allows a
+user to pull information about upcoming sporting ﬁxtures from a ﬁx ture server.
+A user can input a prediction for one or more of the ﬁxtures. The pr edictions
+are then sent to a prediction server for storage.
+Fixture Server This is a passive component that responds to requests for ﬁxture
+information. The data returnedis a list of forthcomingsportingeve nts, including
+information about times, dates, locations and the teams involved in t he ﬁxture.
+Prediction Server This component accepts predictions from a prediction inter-
+face component and stores them in an external storage server c omponent. The
+information sent to the server includes the ﬁxture, the prediction and the user
+that made the prediction. Predictions are also retrieved from the s torage server
+upon request.
+Storage Server This is a web based generic data storage server component. It
+allows the storageof data and allows any user to retrieveany store d information.
+Prediction League This component is a graphical user interface that allows a
+user to pull historical predictions from a prediction server along wit h the actual
+results to evaluate the predictions. The prediction league compone nt can also
+retrieve and display the predictions from other users, allowing a use r to compare
+their performance against that of their friends.
+In this system most components are held on a local device (such as a mobile
+phone) only the storage server component is external. A user may wish to up-
+gradeor replaceany ofthe individual components to increasethe o verallsystems
+functionality or to improve the user experience. However, any new component
+must be capable of providing all the services provided by the compon ent it is
+replacing.
+3 Pervasive Interface Automata
+Pervasive Interface Automata are an extension of interface aut omata [3] with
+pervasive systems in mind. The main diﬀerence is the addition of annot ations to
+actions. These annotations include ! and ? to indicate output and inp ut respec-
+tively, and ◦and⋆to represent slave and master actions respectively. Master
+actions are instigated by the component and slave actions are instig ated by the
+environment (i.e. some other component). We have distinguished ma ster/slave
+behaviour from input/output behaviour to ensure that we captur e the notion
+of when a component requires external resources to function, i.e . to deliver a
+service. This is essentially the diﬀerence between callinga method and oﬀering
+a method that can be called . For example, consider the four combinations of be-
+haviour. If automaton Poﬀers action foo?◦, thenPis oﬀering a callable method
+foo, which will receive data; if Poﬀers action foo?⋆, then data is returned to
+P, from a method instigated by P. If automaton Poﬀers action foo!◦, thenP
+
+--- Page 5 ---
+is oﬀering a callable method foo, which delivers data; if Poﬀers action foo!⋆,
+then data is sent by P, from a method instigated by P.
+Masters synchronise with slaves, and inputs synchronise with outp uts. How-
+ever, there is an asymmetry between masters and slaves. Wherea s components
+with master actions (i.e. method calls) requireslave actions (i.e. callable meth-
+ods) in order to function properly, the converse is not true. More precisely, if a
+component reaches a state in which a master action is oﬀered, a syn chronising
+slave action is required at that point. On the other hand, if a compon ent reaches
+a state in which a slave action is oﬀered, and there is no correspondin g synchro-
+nising master action, that slave action can be considered spare cap acity; that is
+the actionis onoﬀer, but noothercomponent requiresit. In these circumstances,
+it can be ignored.
+Deﬁnition 1. A Pervasive Interface Automaton P=/an}bracketle{tVP,Vinit
+P,AP,TP/an}bracketri}htwhere
+–VP={v1,v2,...,v |VP|}is a ﬁnite set of states
+–Vinit
+P⊆VPis the set of initial states
+–AP={a1,a2,...,a |AP|}is the ﬁnite set of actions,
+•where an action a=name[?⋆|?◦|!⋆|!◦]
+–TP⊆VP×AP×VPis the set of steps (state transitions)
+Action annotations indicate the following. Annotations ! and ? denot e input
+and output, respectively, and ⋆and◦denote master and slave, respectively. An
+action that has no annotation is a hidden (internal) action. A◦
+Pis deﬁned to be
+the set of all slave actions, i.e. actions with a ◦annotation, and A⋆
+Pis deﬁned
+to be the set of all master actions. We often use graphical repres entations of
+example automata.
+To aid later description, a number of functions are now deﬁned.
+–AP(v) is the set of actions enabled at state v
+•an action ais enabled in state vif there exists ( v,a,v′)∈TP
+•A◦
+P(v) is the set of slave actions enabled at state v
+•A⋆
+P(v) is the set of master actions enabled at state v
+–source(t) returns the state v, where transition t= (v,a,v′)
+–act(t) returns the action a, where transition t= (v,a,v′)
+–target(t) returns the state v′, where transition t= (v,a,v′)
+–ρ={t1,t2,...}is a path, deﬁned as an ordered multiset of transitions
+•ρitheithtransition in ρ
+• ∀ti,ti+1∈ρ,target(ti) =source(ti+1)
+•ρ∈Pmeans that ∀ρi∈ρ=⇒ρi∈TP
+An automaton Pis said to be closed if it does not require any external re-
+sources to function. Input/output actions require external re sources to function.
+However, slave actions (annotated with ◦) are assumed to be spare capacity,
+thus they will not be performed unless synchronised with some othe r compo-
+nent. Therefore, only master actions need be considered when de termining if an
+
+--- Page 6 ---
+automaton is open or closed. However, it may be the case that some master ac-
+tions are only enabled in states that require a transition involving a sla ve action
+to be taken to be reached from the initial state. Such unreachable actions will
+not be considered. The set of input/output requirements for an a utomaton is
+now deﬁned.
+Deﬁnition 2. The set of input/output requirements for automaton Pis
+req(P) ={a∈A⋆
+P|∃ρ∈P,∃ti∈ρ,act(ti) =a,∀j < i,act (tj)/∈A◦
+P}
+Ifreq(P) =∅thenPis closed and Pis open otherwise.
+4 Composition
+Before two automata can be composed, it needs to be established h ow they are
+to interact. This is a non-trivial problem, which will need a domain spec iﬁc
+solution. For the purposes of this document, it will be assumed that automata
+will synchronise on action names. For example, if automaton Phas an action
+foo?◦andautomaton Qhastheaction foo!⋆,thecomposition P⊗Qwillhaveboth
+actionscombinedintoasinglehiddenaction foo.Theset match(P,P⊗Q)isused
+toshowhowactionsintheautomaton Paremappedtotheactionsintheproduct
+automaton P⊗Q. For example in the case mentioned above, ( foo?◦,foo)∈
+match(P,P⊗Q), meaning the slave input action fooinPis mapped to the
+hidden action fooinP⊗Q. Similarly, ( foo?⋆,foo)∈match(Q,P⊗Q). For each
+actiona∈APweassumethereis acorrespondingpair( a,a′)∈match(P,P⊗Q),
+such that neither anora′appear in any other pair in match(P,P⊗Q). In other
+words,amatches, or synchronises uniquely with a′inP⊗Q. Note, our notion
+of 2-way synchronisation is similar to CCS [10], where action amatches action
+a. But, whereas in CCS aandasynchronise to become hidden τ, we assume the
+name of the hidden action is retained. Note that, match(P,P⊗Q) is used to
+map all actions from PtoP⊗Qnot just the synchronised actions.
+For the default case of matching actions, if aP∈APandaQ∈AQare to
+be synchronised in P⊗QthenaPandaQmust be compatible. Meaning that
+master output actions match slaveinput actions and master input a ctions match
+slave output actions. Both aPandaQare matched to the same hidden action in
+P⊗Q. Alternately, if an action aP∈APis not to be synchronised then it will
+be unchanged in P⊗Q.
+Pervasive interface automata PandQare composable if each automaton
+can perform its shared actions as required. That is, whenever Phas an enabled
+shared master action either Qis also capable of performing the corresponding
+slave action, or Pis able to wait until Qis ready to perform the slave action. In
+practice this means that if a shared master action ais enabled in a state v∈VP
+but not enabled in a product state ( v,u)∈VP⊗Qthen all paths originating in
+(v,u) must include a state in which ais enabled. When allowing an automaton
+to wait we do not distinguish between input and output actions, ther efore, we
+
+--- Page 7 ---
+allow both busy send and busy receive. Note that while Pis waiting Qmay need
+to interact with one or more other components, in which case the av ailability
+of these components will be a factor in the assessment of the comp osability of
+PandQ. Such requirements can be modelled as environmental assumptions ,
+meaning that for PandQto be composable the environment must meet these
+assumptions.
+4.1 Composition
+The compositionof automatahas two stages.The ﬁrst is to genera tethe product
+of the two automata. The second attempts to validate the produc t as a valid
+composition.
+We ﬁrst deﬁne shared(P,Q) as the set of shared actions in the product of
+P⊗Q:
+shared(P,Q) :={a|(aP,a)∈match(P,P⊗Q)}∩{a|(aQ,a)∈match(Q,P⊗Q)}
+Product We now deﬁne the product of automata P⊗Qas:
+Vinit
+P⊗Q=Vinit
+P×Vinit
+Q
+AP⊗Q={a′|(a,a′)∈match(P,P⊗Q)}∪{a′|(a,a′)∈match(Q,P⊗Q)}
+Tprov
+P⊗Q=
+{((v1,u),a′,(v2,u))|u∈VQ,((v1),a,(v2))∈TP,
+(a,a′)∈match(P,P⊗Q),a′/∈shared(P,Q)}∪
+{((v,u1),a′,(v,u2))|v∈VP,((u1),a,(u2))∈TQ,
+(a,a′)∈match(Q,P⊗Q),a′/∈shared(P,Q)}∪
+{((v1,u1),a′,(v2,u2))|((v1),a1,(v2))∈TP,((u1),a2,(u2))∈TQ,
+(a1,a′)∈match(P,P⊗Q),
+(a2,a′)∈match(Q,P⊗Q)}
+s∈VP⊗Q⇐⇒ ∃ρ={ρ1,...,ρ n,...}. source(ρ1)∈Vinit
+P⊗Q
+∧target(ρn) =s
+∧ ∀ρi∈ρ. ρi∈Tprov
+P⊗Q
+t∈TP⊗Q⇐⇒t∈Tprov
+P⊗Q∧source(t)∈VP⊗Q
+The set of initial states of P⊗Q,Vinit
+P⊗Qis the product of the two sets of
+initial states Vinit
+PandVinit
+Q. The action set AP⊗Qis the union of the action sets
+ofPandQ, respecting the matchings match(P,P⊗Q) andmatch(Q,P⊗Q)
+andTprov
+P⊗Qis the provisional set of transitions for P⊗Q, which is used only as
+a construct to aid the deﬁnition of the product. A set of transition s is added
+toTprov
+P⊗Qfor each non-shared transition in TP; for a transition ( v1,a,v2) this
+set consists of a transition (( v1,u),a′,(v2,u)) for each u∈VQ, where ( a,a′)∈
+match(P,P⊗Q). Similarly, a set of transitions is added to Tprov
+P⊗Qfor each non-
+shared transition in TQ. For every pair of transitions tp∈TPandtq∈TQ,
+
+--- Page 8 ---
+wheretpandtqinvolvematching shared actions,a transition tis added to Tprov
+P⊗Q,
+wheresource(t) = (source(tp),source(tq)),target(t) = (target(tp),target(tq))
+andact(t) =a, where ( act(tp),a)∈match(P,P⊗Q). The set of states VP⊗Q
+containsallstates reachableviaa path constructedoftransition sfromTprov
+P⊗Qand
+originating from a state in Vinit
+P⊗Q. Finally, the set of transitions TP⊗Qconsists
+of all transitions t∈Tprov
+P⊗Q, wheresource(t)∈VP⊗Q.
+Composition validation Informally, a product is a valid composition if the
+following two properties hold for master transitions in P(andQ, respectively).
+First, for every transition in Pthat involves a master action, there is a corre-
+sponding transition in P⊗Q. Second, if vis a state of P⊗Qat which master
+actionais enabled, and acorresponds to a master action of P, then there is a
+path preﬁx in P⊗Qthat contains a, all actions occurring prior to aare hidden,
+and they do not involve a state change for P.
+The product P⊗Qis a valid composition iﬀ:
+∀t∈TP. act(t)∈A⋆
+P=⇒
+∃t′∈TP⊗Q.(t′= ((source(t),),a,(target(t),))
+∧(act(t),a)∈match(P,P⊗Q))
+∧ ∀v∈VP⊗Q.(v= (source(t),u)) =⇒
+∃pathρ={ρ1,...,ρ n,...}.(ρ∈P⊗Q
+∧source(ρ1) = (source(t),u)
+∧act(ρn) =a
+∧ ∀i: 1≤i < n.
+(source(ρi) = (source(t),)
+∧act(ρi)is hidden ))
+and
+∀t∈TQ. act(t)∈A⋆
+Q=⇒
+∃t′∈TP⊗Q.(t′= ((source(t),),a,(target(t),))
+∧(act(t),a)∈match(Q,P⊗Q))
+∧ ∀v∈VP⊗Q.(v= (source(t),u)) =⇒
+∃pathρ={ρ1,...,ρ n,...}.(ρ∈P⊗Q
+∧source(ρ1) = (source(t),u)
+∧act(ρn) =a
+∧ ∀i: 1≤i < n.
+(source(ρi) = (source(t),)
+∧act(ρi)is hidden ))
+whereis any state in the relevant component automaton.
+4.2 Composition Examples
+A simple example illustrates the role of master actions in composition. C onsider
+the automata given in Fig. 2, assume aandbare shared actions and xis hidden
+(so not shared). In the composition, EX1 ⊗EX2, master action a!⋆waits for
+a?◦at (0,0) , i.e. they do not synchronise until (0 ,1). The slave b!◦is never
+
+--- Page 9 ---
+synchronised. If however b!◦is replaced by b!⋆inEX1, then EX1 ⊗EX2 would
+beinvalid.
+0
+b!◦a!⋆
+0 1xa?◦
+x0,0 0,1a
+EX1 EX2 EX1 ⊗EX2
+Fig.2.Pervasive interface automata examples
+As another example, consider the prediction server and storage s erver com-
+ponents described in Sect. 2, represented as pervasive interfac e automata in Fig.
+3.
+0 1 2
+34getPred?◦
+rtnPred !◦getData!⋆
+rtnData ?⋆addPred ?◦addData !⋆
+01
+2 34getData?◦
+rtnData !◦storeData
+notifyaddData ?◦
+findData
+Prediction Server PS Storage Server SS
+Fig.3.Pervasive interface automata examples
+Thecompositionofthesetwoautomatawillsynchroniseoverthese tofshared
+actions{getData,rtnData,addData }. The composition is shown in Fig. 4. Note
+the occurrence of a busy send in this example. From the product st ate (2,4), PS
+needs to be able to perform the master action getData but in state 4 SSis not
+yet ready to provide the matching slave action. Therefore, PSwill then wait in
+state 2 until SSperforms the storeData andnotifyactions before it returns to
+state 0 in which it is ready to perform the matching getData slave action. If SS
+was never enabled to receive the request, then the composition wo uld be invalid.
+5 Services
+A service1is something that a component can do, such as respond to a data
+request, distribute information, store and retrieve data, etc; in ternal detail is not
+1Similar to a web service [1].
+
+--- Page 10 ---
+getPred?◦
+addPred ?◦getData
+findDatartnDatartnPred !◦addDatanotify
+notifygetPred?◦storeData
+getPred?◦
+storeData
+addPred ?◦
+storeData
+notify0,0
+1,00,4
+1,31,4
+4,0
+3,23,12,02,32,4
+0,3
+addPred ?◦
+Fig.4.The composition of PS and SS, PS ⊗SS.
+relevant. For example, a ﬁxture server component Pmay oﬀer the getFixture
+service, a service that always responds to the method call getFix() by returning
+a list of ﬁxtures via a return method rtnFix(). In component P, the service
+is oﬀered in a straightforward way because the ﬁxture list is held inte rnally.
+Another component, P′say, may also oﬀer the same service, even though it
+obtains the list ofﬁxtures from a third component. Forexample, P′may respond
+to thegetFix() call by calling a third component to obtain the ﬁxture list, which
+it then returns via the method rtnFix(). In both cases, PandP′oﬀer the same
+getFixture service.
+In terms of pervasive interface automata, a service can be descr ibed as a
+property deﬁned in our own simple custom logic, deﬁned below.
+5.1 Logic for Services
+We now describe a linear temporal action logic for deﬁning services (a simpliﬁ-
+cation of that in [6]). The logic is deﬁned over paths ρof a pervasive interface
+automaton P. Hereaandbare (annotated) actions.
+Syntax:
+φ=tt|oﬀera φ|a/squigglerightb φ path formulae
+Σ=∀φ| ∃φ|Σ∧Σ|Σ∨Σservice formulae
+Semantics:
+ρ|=tt always
+ρ|=oﬀera φiﬀ∃n≥1. ρ={...,tn,...}
+andact(tn) =a
+and∀i<nact(ti) are hidden actions
+and{tn+1,...} |=φ
+ρ|=a/squigglerightb φiﬀ∃n≥1,∃m≥n. ρ={...,tn,...,tm,...}
+
+--- Page 11 ---
+andact(tn) =a
+andact(tm) =b
+and∀i<nact(ti) are hidden actions
+and∀n<i<mact(ti) are hidden actions
+and{tm+1,...} |=φ
+or/ne}ationslash ∃n≥1. ρ{...,tn,...}
+andact(tn) =a
+P|=∀φ iﬀ∀ρ∈P. ρ|=φ
+P|=∃φ iﬀ∃ρ∈P. ρ|=φ
+P|=Σ1∧Σ2iﬀP|=Σ1∧P|=Σ2
+P|=Σ1∨Σ2iﬀP|=Σ1∨P|=Σ2
+Note that the actions preceding aare hidden in both oﬀera φanda/squigglerightb φ.
+Thisexpressestherequirementthattheinitiatingaction aofaserviceisavailable
+(e.g. cannot be blocked by waiting on another component), and if a s ervice is
+initiated, then it is completed, e.g. a service is not abandoned.
+5.2 Typical services
+A service often involves a response to a request (a liveness proper ty). More
+precisely, after possible hidden actions, it oﬀers the request, which is a callable
+method. After further possible hidden actions, it either sendsa response, which
+is a method call, or it oﬀers to respond, which is a callable method. The ini-
+tial request may be accompanied by data (an input); the response may also be
+accompanied by data (an output).
+Formally, assuming actions request(slave),send(master), and respond
+(slave), these two service are expressed in our logic by:
+1. request/send: ∀(request?◦/squigglerightsend!⋆tt)∧∃(oﬀerrequest?◦tt)
+2. request/respond: ∀(request?◦/squigglerightrespond!◦tt)∧∃(oﬀerrequest?◦tt)
+The second conjunct: ∃(oﬀerrequest?◦tt), serves to ensure the service is not
+trivially satisﬁed, i.e. the ﬁrst action is oﬀered by at least one path. A s examples,
+the ﬁrst type of service is oﬀered by the prediction serverPS (Fig. 3):addPred ?◦
+is always followed by addData !⋆, and the second is oﬀered by the storage server
+SS:getData?◦is always followed by rtnData!◦.
+5.3 Components, environments and services
+Ournotionofacomponentautomaton oﬀeringaserviceisnotsimplysatisfaction
+of a service formula, we also take into account the impact and requir ements
+placed upon the environment . We assume an environment is itself a composition
+of components. How to quantify the impact is subtle; it is not suﬃcien t to check
+P|=Σ(does a component Poﬀer the service Σ), nor is it appropriate to check
+P⊗E|=Σ(does the composition of Pwith environment EoﬀerΣ). In the
+
+--- Page 12 ---
+former,Σmay not be satisﬁed because there are non-hidden actions that do
+not occur in Σ, but they will be hidden when the component is composed with
+the environment and in the latter, after composition, the actions o ccurring in Σ
+may have become hidden. Instead we consider an abstraction of environments
+that, if fulﬁlled, means that Poﬀers the service ΣtoE.
+Speciﬁcally when checking if Poﬀers the service ΣtoE, we consider the
+availability of actions we require Eto oﬀer. We refer to the set of requirements
+for the availability of actions as A. The availability set Acontains (action,state)
+pairs.Ais split into two subsets A+andA−. If (a,s)∈A+then the environment
+must oﬀer action ain states, if (a,s)∈A−then the environment must not oﬀer
+actionain states.
+We deﬁne a set cpathof modiﬁed paths of a component automaton. There
+are two cases to consider. First, if an action (slave or master) can alwaysbe
+matched by the environment, then we assume the actions represe nthidden ac-
+tivity. Second, if a slave action can neverbe matched with the environment, and
+it is oﬀered from a component state that oﬀers any other type of a ction (slave or
+hidden), then the slave action represents spare capacity . Note, we assume angelic
+non-determinism; this means that paths representing spare capa city will not be
+taken.
+In the following, we write f◦,g∗etc. to stand for any slave or master action
+respectively, that is we ignore input and output annotations. We ca ll these ab-
+stract actions and when we say that abstract action f◦matches f∗, we assume
+the underlying input and output annotations match as required. We refer to the
+set of actions in a service formula by α(Σ); for example, α(∀a/squigglerightb tt) ={a,b}.
+Deﬁnition 3. The alphabet of a service formula, α(Σ), is the set of all actions
+occurring in the path sub-formulas of Σ.
+Deﬁnition 4. Given component automaton P, service Σand environment as-
+sumptions A, deﬁne the set cpath(P,Σ,A+,A−), as all the paths of Pcon-
+structed in the usual way except, when constructing the paths
+•for transition t, ifact(t) =f∗,f∗/ne}ationslash∈α(Σ), and(f◦,source(t))∈A+, then
+replacef⋆byfint(hide master),
+•for transition t, ifact(t) =f◦,f◦/ne}ationslash∈α(Σ), and(f⋆,source(t))∈A+, then
+replacef◦byfint(hide slave),
+•for transition t, ifact(t) =f◦,f◦/ne}ationslash∈α(Σ), and(f⋆,source(t))∈A−, then
+any (sub)path beginning with tis excluded (remove spare capacity).
+Note that, under the conditions given above, some slave actions ca n be safely
+excluded from the set of paths. This is not the case for master act ions as, by
+deﬁnition, a component requires to be able to perform them in order to function
+correctly.
+As illustration of spare capacity and hidden activity, consider the tw o au-
+tomata in Fig. 5 and the service Σ=∀(g1◦/squigglerightg2◦tt). The alphabet of Σis
+{g1◦,g2◦}. BothP1andP2include one hidden action, I.
+
+--- Page 13 ---
+01
+2345
+6
+g1◦
+g2◦f◦
+I
+l◦h2⋆h1◦k◦
+01
+234g1◦
+g2◦f◦
+I
+l⋆
+Component P1 Component P2
+Fig.5.Component automata, with abstract actions
+The paths in cpath(P1,Σ,{(l⋆,2)},{(f⋆,1)}) start with either preﬁx ρ1=
+{h1◦,k◦,h2⋆}orρ2=g1◦,I,l,g2◦}. As both ρ1|=Σandρ2|=Σ,P1can oﬀer
+Σin an environment which oﬀers l⋆whenever P1is in state 2 and does not oﬀer
+f⋆whenP1is in state 1. All the paths in cpath(P2,Σ,{(l◦,2)},{(f⋆,1)}) start
+with preﬁx ρ2={g1◦,I,l,g2◦}. Asρ2|=Σ,P2can oﬀer Σin an environment
+which oﬀers l◦whenever P2is in state 2 and does not oﬀer f⋆whenP2is in
+state 1.
+Note that in both cases the path preﬁx g1◦,f◦is excluded because the action
+f◦is forbidden in state 1 (the environment will never oﬀer a matching ma ster
+action), whereas in component P1, the path preﬁx h1◦,k◦is included as spare
+capacity. In both cases the action l◦has become hidden in cpath, because it
+matches an action oﬀered by E.
+In summary, the set cpathallows us to specify services that are oﬀered by
+a component, in the context of an environment that meets assump tionsA+
+andA−. Together, A+andA−are an abstraction of a class of environments.
+From here on we assume quantiﬁcation over paths in cpath(P,Σ,A+,A−) and
+we denote satisfaction with respect to A+andA−by|=A, deﬁned thus.
+Deﬁnition 5. Given component automaton P, environment assumptions A,
+and path formula φ,
+P|=A∀φ iﬀ∀ρ∈cpath(P,φ,A+,A−).ρ|=φ
+P|=A∃φ iﬀ∃ρ∈cpath(P,φ,A+,A−).ρ|=φ
+P|=AΣ1∧Π2iﬀP|=AΣ1∧P|=AΣ2
+P|=AΣ1∨Π2iﬀP|=AΣ1∨P|=AΣ2
+By abuse of notation we extend satisfaction to sets of servic esS, and write
+P|=AS, when∀Σ∈S.P|=AΣ.
+Note that PoﬀersΣtoEcan mean either Poﬀers a service that Eneeds,
+orPoﬀers a service that persists after Pis composed with E. In the latter case
+we have P⊗E|=Σ, but in the former case this is not true because the actions
+inΣhave become hidden.
+
+--- Page 14 ---
+5.4 Service Example
+Consider again the getFixture service example. If we translate the oﬀering of
+method getFix() as an action getFix?◦and the rtnFix() method as action
+rtnFix!◦, we can express the getFixture service as the property:
+getFixture =∀(getFix?◦/squigglerightrtnFix!◦tt)∧∃(oﬀergetFix?◦tt)
+01
+2I
+rtnFix!◦getFix?◦
+01
+2getData!⋆
+rtnFix!◦getFix?◦
+3
+rtnData ?⋆01
+2I
+rtnFix!◦getFix?◦getRefinedFix ?◦
+FS1 FS2 FS3
+Fig.6.Three example automata.
+Figure 6 shows three example automata. The ﬁrst, FS1, represents a com-
+ponent that can supply a ﬁxture list without referring to any other component.
+FS2 represents a component that, upon request, requires a third p arty com-
+ponent (i.e. a storage server) before the requested ﬁxture list c an be returned.
+The third, FS3, oﬀers the same basic functionality as FS1 (and thus oﬀers the
+getFixservice), however,it also oﬀers the addition option ofrequesting a reﬁned
+ﬁxture list. More formally, we have:
+–FS1|=AgetFixture , whereA+=∅andA−=∅.
+–FS2|=AgetFixture , where A+={(getData?◦,1),(rtnData!◦,3)}and
+A−=∅.
+–FS3|=AgetFixture , whereA+=∅andA−=∅.
+6 Replacement
+Pervasive systems are adaptive and evolutionary by deﬁnition, mea ning that
+components will be updated and replaced over time. Therefore, it is useful to
+know what eﬀects such replacements will have on the system. Will th e new
+component have the same functionality as the component it is replac ing? To
+this end, we now deﬁne the replacement relation, which allows us to ch eck if one
+component can be replaced by another in a given environment, with r espect to
+a given set of services.
+Deﬁnition 6. For given component automata P,P′, service Σand environ-
+ment requirements A, ifP|=AΣ, thenPmay be replaced by P′ifP′|=A′Σ
+andA′⊆A.
+
+--- Page 15 ---
+Replacement of a component with respect to a set of services is the natural
+extension of replacement with respect to a single service. This can b e qualiﬁed:
+thequalityof a replacement depends upon which services are preserved in a
+replacement, i.e.
+Deﬁnition 7. Given component automata P,P1,P2, sets of services SS,S1,
+andS2, and environment assumptions A, ifP|=ASS,P1|=AS1, andP2|=AS2,
+we say that component P1is a better replacement than component P2forPwhen
+(S2∩SS)⊂(S1∩SS)⊆SS.
+Note, we consider intersections of services, since the new compon ents may
+oﬀer additional services.
+6.1 Replacement Example
+Consider ﬁxture server component FS1 from Fig. 6 that oﬀers the getFixture
+service deﬁned as ∀(getFix?◦/squigglerightrtnFix!◦)∧∃(oﬀergetFix?◦tt), with no envi-
+ronment assumptions. Which components could replace FS1?
+01
+2I
+rtnFix!◦getFix?◦getRefinedFix ?◦
+01
+2log!⋆
+rtnFix!◦getFix?◦
+01
+2τ
+rtnFix!◦getFix?◦premium !⋆
+FS3 FS4 FS5
+Fig.7.Three potential replacement automata for FS1.
+Component FS3 oﬀers the getFixture service with no environmental as-
+sumptions: FS3|=AgetFixture whereA+=∅,A−=∅. It also oﬀers the
+additional option of requesting a reﬁned ﬁxture list. Therefore FS3 can re-
+placeFS1 in any environment; as FS3 oﬀers additional functionality, this re-
+placement would be referred to as an upgrade. Component FS4 also oﬀers the
+getFixture service, however, it also logs each use of the service. Therefore,
+FS4|=AgetFixture , whereA+={(log?◦,1)},A−=∅. That is, FS4 oﬀers
+getFixture only if a logging service is available in the environment. So FS4 can
+only replace FS1 in environments oﬀering a logging service. A ﬁfth component,
+FS5, may be oﬀered by some commercial organisation that requires a s ubscrip-
+tion to have access to some premium content. In which case, a getFix?◦request
+may result in an error message notifying the environment that the p remium
+content is inaccessible. As premium !⋆is a master action, it cannot be ignored.
+Therefore, FS5 would not be a viable replacement for FS1, asFS5/ne}ationslash|=AgetFix,
+for anyA.
+
+--- Page 16 ---
+7 Comparison with Interface Automata and Session
+Types
+Pervasive Interface Automata are based on Interface automat a [3–5]. However,
+the addition classiﬁcation of non-hidden actions as either master (⋆) or slave (◦),
+results in a richer action set. This combined with the more relaxed deﬁ nition of
+composability of pervasive interface automata make them more app ropriate for
+the context of pervasive systems.
+A states= (f,g) in the composition of two interface automata FandGis
+said to be an error state if there is a shared action athat is an output action
+inFand enabled in f, but the corresponding action is not enabled in g. This
+disallows a component to wait for another to be ready before it perf orms an
+output action. Such conditions are prevalent and desirable in perva sive systems.
+Our notion of master and slave actions allow us to both deﬁne and emb race this
+kind of behaviour.
+A crucial aspect of pervasive interface automata is that they allow us to
+formallydeﬁnethenotionof replacement ofcomponents,withrespecttoservices.
+This concept relies heavily on our categorisation of actions as either master or
+slave, and so is not possible with interface automata.
+The stated objectives in [11] are similar to our own, however the aut hors do
+not diﬀerentiate between master and slave actions. They also have a less rich
+deﬁnition of services.
+Pervasive interface automata (and indeed interface automata) a lso bear a
+superﬁcial resemblance to session types [8,9]. A session represents possible se-
+quences of communication events between processes. Communica tion events in-
+clude synchronous message passing and the passing of channel na mes. Again
+there is no notion of master/slave actions, and properties are res tricted to the
+matching of communication events.
+8 Conclusion and Future Work
+We have introduced pervasive interface automata as a formalism fo r modelling
+interfaces oﬀered by components. Our motivation is managing pred ictability in
+component-based systems, especially in pervasive systems where components
+are regularly composed and replaced. Distinctive features of our a utomata in-
+clude the separation of actions according to input or output, and m ethod call
+or callable method. Composition of automata involves synchronisatio n on in-
+put/output and calling/called actions.
+We do not just model interfaces, but also reason about services, which we
+deﬁne using a linear temporal action logic. We deﬁne the notion of a co mponent
+oﬀering a service toan environment (a composition of components) by consider-
+ing the assumptions we need to make about the environment. If an e nvironment
+meets those assumptions, then we can be assured that either the component
+meets the (service) needs of the environment or the service will pe rsist after
+composition. In either case, we can proceed with composition. A key relation
+
+--- Page 17 ---
+is replacement, which may add new functionality, but ensures that s ervices are
+still oﬀered, given environment assumptions. Key concepts are illus trated with
+a mobile phone based application for sports predictions. Our long ter m goal is
+to derive pervasive interface automata automatically from code; t his is future
+work.
+References
+1. Alonso, G., Casati, F., Kuno, H., Machiraju, V.: Web Servi ces: Concepts, Archi-
+tectures and Applications. Data-centric systems and appli cations, Springer-Verlag
+(2004)
+2. Bell, M., Hall, M., Chalmers, M., Gray, P., B., B.: Domino: Exploring mobile
+collaborative software adaptaion. In: Fishkin, K., Scheil e, B., Nixon, P., Quigley,
+A. (eds.) Proceedings of the 4th international conference o n Pervasive Computing
+(PERVASIVE 2006). Lecture Notes in Computer Science, vol. 3 968, pp. 153–168.
+Springer-Verlag, Dublin, Ireland (May 2006)
+3. de Alfaro, L., Henzinger, T.: Interface automata. SIGSOF T Software Engineering
+Notes 26(5), 109–120 (2001)
+4. de Alfaro, L., Henzinger, T.: Interface theories for comp onent-based design. In:
+Henzinger, T., Kirsch, C. (eds.) Proceedings of the 1st Inte rnational Workshop on
+Embedded Software (EMSOFT). Lecture Notes in Computer Scie nce, vol. 2211,
+pp. 148–165. Springer-Verlag, Tahoe City, CA, USA (October 2001)
+5. de Alfaro, L., Henzinger, T.: Interface-based design. En gineering Theories of
+Software-intensive Systems 195, 83–104 (2005)
+6. de Nicola, R., Vaandrager, F.: Action versus state based l ogics for transition sys-
+tems. In: Guessarian, I. (ed.) Semantics of Systems of Concu rrent Processes. Lec-
+ture Notes in Computer Science, vol. 469, pp. 407–419. Sprin ger-Verlag, La Roche
+Posay, France (April 1990)
+7. Google: App inventor for android. http://appinventor.g ooglelabs.com (July 2010)
+8. Honda, K.: Types for dyadic interaction. In: Best, E. (ed. ) Proceedings of the 4th
+International Conference on Concurrency Theory (CONCUR ‘9 3). Lecture Notes
+in Computer Science, vol. 715, pp. 509–523. Springer-Verla g, Hildesheim, Germany
+(August 1993)
+9. Honda, K., Vasconcelos, V., Kubo, M.: Language primitive s and type discipline for
+structured communication-based programming. In: Proceed ings of the European
+Symposium on Programming (ESOP’98). Lecture Notes in Compu ter Science, vol.
+1381, pp. 123–138. Springer-Verlag, Lisbon, Portugal (Mar ch-April 1998)
+10. Milner, R.: A Calculus of Communicating Systems, Lectur e Notes in Computer
+Science, vol. 92. Springer-Verlag (1980)
+11.ˇCern´ a, I., Vaˇ rekov´ a, P., Zimmerova, B.: Component subst itutability via equivalen-
+cies of component-interaction automata. Electronic Notes in Theoretical Computer
+Science (ENTCS) 182, 39–55 (2007)
