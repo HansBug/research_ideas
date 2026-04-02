@@ -1,0 +1,732 @@
+--- Page 1 ---
+Statistical Model Checking of a Clock
+Synchronization Protocol for Sensor Networks⋆
+Luca Battisti, Damiano Macedonio, and Massimo Merro
+Dipartimento di Informatica, Universit` a degli Studi di Verona, Italy
+Abstract This paper uses the statistical model checking tool in the UP-
+PAAL toolset to test the robustness of a distributed clock synchroniza-
+tion algorithm for wireless sensor networks (WSN), in the case of lossy
+communication, i.e., when the WSN is deployed in an environment with
+signiﬁcant multi-path propagation, leading to interference. More pre-
+cisely, the robustness of the gMAC protocol included in the Chess WSN
+platform is tested on two important classes of regular network topologies:
+cliques (networks with full connectivity) and small grids (where all nodes
+have the same degree). The paper extends previous work by Hedaraian
+et al. that only analyzed this algorithm in the ideal case of non-lossy
+communication, and only in the case of cliques and line topologies. The
+main contribution is to show that the original clock synchronization al-
+gorithm is not robust to changing the quality of communication between
+sensors. More precisely, with high probability the algorithm fails to syn-
+chronize the nodes when considering lossy communication over cliques
+of arbitrary size, as well as over small grid topologies.
+1 Introduction
+Wireless sensor networks (WSNs) are (possibly large-scale) networks of sensor
+nodes deployed in strategic areas to gather data. Sensor nodes collaborate using
+wireless communications with an asymmetric many-to-one data transfer model.
+Typically, they send their sensed data to a sink node which collects the relevant
+information. WSNs are primarily designed for monitoring environments that hu-
+mans cannot easily reach (e.g., motion, target tracking, ﬁre detection, chemicals,
+temperature); they are used as embedded systems (e.g., biomedical sensor en-
+gineering, smart homes) or mobile applications (e.g., when attached to robots,
+soldiers, or vehicles).
+In wireless sensor networks, the basic operation is data fusion , whereby data
+from each sensor is agglomerated to form a single meaningful result. The fusion
+of individual sensor readings is possible only by exchanging messages that are
+timestamped by each sensor’s local clock. This mandates the need for a common
+notion of time among the sensors which is achieved by means of so called clock
+synchronization protocols [13,15].
+In this paper we do model checking of a distributed algorithm of clock
+synchronization for WSNs that has been developed by the Dutch company
+⋆Work partially supported by the PRIN 2010-2011 project “Security Horizons”.
+
+--- Page 2 ---
+2
+CHESS [12]. In order to realise an energy eﬃcient communication mechanism,
+CHESS developed a gossip-based MAC algorithm [14] (abbreviated gMAC)
+which is responsible for regulating the access to the wireless shared channel.
+Here we are interested in verifying the robustness of the gMAC algorithm in the
+presence of packet loss . Packet loss is particularly relevant in wireless sensor net-
+works which are deployed in environments with signiﬁcant multi-path distortion
+(when part of the signal goes to the destination while another part bounces oﬀ
+an obstruction and then goes on to the destination). Most of sensor platforms
+do not have enough frequency diversity to reject multi-path propagation.
+Our work has been strongly inspired by a recent analysis [8] of the gMAC
+synchronization protocol on clique and line topologies, in the ideal case of non-
+lossy communication. In the case of line topologies, paper [8] shows that the
+protocol fails to synchronize all nodes, when the number of nodes grows. On the
+other hand, on clique topologies the protocol behaves quite well and the paper
+provides constraints on guard times (delays added before and after the trans-
+mission of sync messages) to guarantee clock synchronization, independently on
+the clique size. In [8] the protocol is modelled as a network of timed automata
+and veriﬁed using the UPPAAL model checker [2,3]. However, the model in [8]
+does not incorporate several features such as dynamic slot allocation, uncer-
+tain communication delays, and unreliable radio communication. In the current
+paper we extend their analysis by adopting a probabilistic model of radio com-
+munication that takes into account message loss according to the measurement
+of packet delivery suggested in [17]. As our model is a network of probabilistic
+timed automata, we decided to do our analysys by applying Statistical Model
+Checking (SMC) [7] within the UPPAAL toolset [2,3]. SMC consists in moni-
+toring a proper number of runs of the system and then applying a statistical
+algorithm to obtain an estimate of the result of the desired query.
+Our analysis shows that low guard times (within the safety range proposed
+in [8]) are not suﬃcient to guarantee clock synchronization in clique topologies
+of arbitrary size. More precisely, in the case of lossy communication, the size of
+the clique does play a crucial role in the eﬀectiveness of the protocol: the bigger
+is the clique the higher must be the guard time to ensure clock synchronization
+with high probability. Here it is important to notice that guard times cannot be
+arbitrary increased without dramatically aﬀecting the duration of the battery
+life of the sensor nodes [1]. Finally, we move our analysis on grid topologies, with
+increasing neighbour degree, to better simulate a uniform node distribution of
+sensor nodes in a given area. Our simulations show that high values of the guard
+times may be not suﬃcient to guarantee clock synchronization in the presence of
+message loss, even in small 5 ×5 grid networks. On the other hand, we observe
+that the eﬃciency of the protocol improves when the number of neighbours, and
+hence node connectivity, increases.
+Outline Section 2 introduces the gMAC protocol. Section 3 illustrates the corre-
+sponding UPPAAL probabilistic model. Section 4 details our analysis on cliques
+and grid topologies. Section 5 concludes the paper with ﬁnal remarks, future and
+related work.
+
+--- Page 3 ---
+3
+2 The gMAC protocol
+The gMAC protocol is a Time Division Multiple Access (TDMA) protocol, where
+time is divided into ﬁxed length frames , and each frame is subdivided into slots.
+Slots can be either active oridle. During active slots, a node is either listening
+for incoming messages from neighbouring nodes (RX slot) or it is sending a
+message (TX slot). During idle slots a node is switched to energy saving mode.
+Active slots are gathered in a contiguous sequence placed at the beginning of
+each frame.
+Structure of a time frame: RX···RXTXRX···RX idle slots
+Structure of an active slot: ←g→ sending/receiving ←t→
+Since energy eﬃciency is a major concern in the design of wireless sensor
+networks, the number of active slots is typically much smaller than the total
+number of slots. In the implementation of gMAC the number of slots within a
+frame is 1129 out of which 10 are active. A node can only transmit a message
+once per time frame in its TX slot. If two neighbouring nodes choose the same
+send slot then a communication collision will occur in the intersection of their
+transmission ranges preventing message delivery. In the original protocol a node
+randomly chooses an active slots as send slot (TX slot) considering all other
+active slots as receive slots (RX slots). However, for the sake of simplicity, as in
+[8], in our analysis we assume that the TX slots are ﬁxed and have been chosen
+in such a way that no collision occurs.
+In order to ensure that when a node is sending all its neighbours are listening,
+guard times are introduced. This means that each sender waits for some time
+(gclock cycles) at the beginning of its TX slot to ensure that all its neighbours
+are ready to receive messages; similarly, a sender does not transmit for a certain
+amount of time ( tclock cycles) at the end of its TX slot. Guard times cannot be
+arbitrary increased without dramatically aﬀecting the duration of the battery
+life of the sensor nodes [1]. So, the choice of proper guard time values is crucial
+in the protocol design. In the current implementation, each slot consists of 29
+clock cycles, out of which 18 cycles are used as guard time.
+The CHESS sensor nodes come equipped with a 32 kHz crystal oscillator
+that drives an internal clock used to determine the beginning and the end of
+each slot. Sensor nodes are also equipped with an ATMega64 microcontroller
+and a Nordic nRF24L01 [10] packet radio. Depending on the environment, the
+Nordic nRF24L01 radio has a transmission range between 0 .5mand 50 m, For
+the sake of simplicity we assume that all nodes have the same transmission range;
+this means that the transmission between nodes is assumed to be symmetric.
+3 UPPAAL Probabilistic Model for gMAC
+In this section, we provide a small extension of the UPPAAL model for gMAC
+of [8] in which a probabilistic choice to model message loss is introduced. The
+
+--- Page 4 ---
+4
+Table 1 Protocol parameters
+Parameter Description Contraints
+N number of nodes 0<N
+C number of slots in a time frame 0<C
+n number of active slots in a time frame 0<n≤C
+k0 number of clock ticks in a time slot 0<k0
+csn[i] current slot number for node i 0≤csn[i]<n
+tsn[i] TX slot number for node i 0≤tsn[i]<n
+clk[i] clock value for node i 0≤clk[i]<k0
+g guard time 0<g
+t tail time 0<t
+min minimal time between two clock ticks 0<min
+max maximal time between two clock ticks min≤max
+loss message loss probability 0≤loss≤100
+model assumes a ﬁnite, ﬁxed set of sensor nodes Nodes ={0, . . . , N−1}. The
+behaviour of each individual node i∈Nodes is described by means of three
+diﬀerent timed automata: Clock (i),WSN (i),Synchronizer (i). Automaton
+Clock (i) models the hardware clock of the node, WSN (i) takes care of sending
+messages, and Synchronizer (i) re-synchronises the hardware clock upon receipt
+of a message. The automaton Synchronizer (i) is the only one where probabil-
+ities are introduced to model packet loss. The complete model consists of the
+composition of the three automata Clock (i),WSN (i) and Synchronizer (i),
+for each i∈Nodes .
+For each node ithere are two state variables: clk[i], which records the value
+of the hardware clock (initially 0), and csn[i], which records the current slot
+number (initially 0). Furthermore, there are two broadcast channels: tick[i], used
+to synchronise the activities within the node i, and start message [i], used to
+inform all neighbours of the beginning of i’s transmission. Table 1 reports the
+protocol parameters.
+Figure 1 Clock (i)
+x := 0,
+clk[i] := (clk[i] + 1) % k0x >= min
+X0 tick[i]!
+x <= max
+Figure 1 depicts the automaton Clock (i) of [8] modelling the hardware clock
+of node i. The local clock variable xmeasures the time between two consecutive
+clock ticks. A tick[i]! action is enabled when xreaches the value minand must
+ﬁre before xreaches the value max. When the action tick[i]! occurs the variable
+xis reset to 0 and the variable clk[i] is incremented by 1. As explained in [8], the
+state variable clk[i] is reset after k0clock ticks for the model checking to become
+feasible. A realistic clock drift rate is about 20 ppm (parts-per-million). Such a
+
+--- Page 5 ---
+5
+Figure 2 WSN (i)
+start_message[i]!
+tick[i]?tick[i]?tick[i]?
+clk[i]==k0-1clk[i]==k0 - t -1csn[i]==tsn[i]
+&& clk[i]==g -1GO_SEND
+WAITSENDING
+csn[i] := (csn[i]+1) % C
+rate is achieved in the model by setting min= 105−2 and max = 105+ 2. In
+the model of [8] ticks may nondeterministically occur within the time interval
+[min,max]; thus the delay between two tick[i]! actions is nondeterministic. The
+stochastic semantics for timed automata of UPPAAL SMC excludes nondeter-
+minism; thus the delay between two tick[i]! actions is implemented as a uniformly
+distributed stochastic delay. This may be non-realistic in general: clocks usually
+run either too fast or too slow for long periods of time, due to environmental
+diﬀerences. However in our analysis we will focus on small networks and we will
+assume all sensors being in the same environmental conditions. Thus we exploit
+UPPAAL SMC’s random clock speed jitter.
+Figure 2 describes automaton WSN (i) of [8] devoted to message sending.
+The automaton waits in the initial location WAIT until the current slot number
+csn[i] equals the TX slot tsn[i], and gticks occur in that slot. Then the au-
+tomaton moves to the location GOSEND which is immediately left by perform-
+ing a start message [i]! action. This action leads the automaton to the location
+SENDING . The automaton remains in this location until the beginning of the
+tail interval (which starts after k0−tticks). Then the automaton returns to the
+location WAIT where it increments the current slot number csn[i] every k0ticks.
+Figure 3 Synchronizer (i)
+S0
+S1clk[i]:= g+1(csn[i] < n) && neighbour(i,j)j:Nodes
+loss
+100 - loss
+tick[i]?start_message[j]?
+Figure 3 contains the automaton Synchronizer (i) which is devoted to syn-
+chronise the hardware clock. We enrich the corresponding automaton of [8] with a
+simulation of message loss on the channel start message [i]. The UPPAAL model
+checker features branching edges with associated weights for the probabilistic
+
+--- Page 6 ---
+6
+extension. Thus we deﬁne an integer constant loss, with 0≤loss≤100, and
+every node can either lose a message with weight lossor receive it with weight
+(100−loss). The automaton Synchronizer (i) waits in its initial location S0un-
+til it detects, in an active slot ( csn[i]<n), the beginning of a new message
+from a neighbour j(action start message [j]?). When this happens the automa-
+ton moves to a committing location Cand it immediately goes to a branching
+edge where: (i) with weight lossit returns in its initial location S0and (ii) with
+weight 100−lossit goes to location S1. Case (i) formalises the loss of the start-
+ing message from node j, while case (ii) formalises the reception of the same
+message. Notice that UPPAAL requires input determinism to ensure that the
+system to be tested always produces the same outputs on any given sequence of
+inputs. Thus we need an extra intermediate location instead of branching im-
+mediately on the start message [j]! action. Notice also that the start message [j]!
+action occurs exactly when clk[j] =g(as a result of the synchronization of au-
+tomata WSN (j) and CLOCK (j)); while the node i, by means of automaton
+Synchronizer (i), resets the variable clk[i] tog+1 after a further tick. The guard
+neighbour (i, j) indicates that iandjare in the transmission range of each other.
+Formally, neighbour () is a symmetric function related to the slot allocation in
+the following manner [8]:
+neighbour (i, j) =⇒tsn[i]/negationslash=tsn[j]
+neighbour (i, j)∧neighbour (i, k) =⇒tsn[j]/negationslash=tsn[k](1)
+This means that whenever two nodes are neighbours or have a common neigh-
+bour then they must have distinct TX slot numbers. The function neighbour ()
+is helpful to provide a formal deﬁnition of synchronised sensor networks. Intu-
+itively, a sensor network is said to be synchronised if, whenever a node is sending
+in a given slot number then all neighbouring nodes are in the same slot number.
+Deﬁnition 1. A network is said to be synchronised if for all reachable states
+(∀i, j∈Nodes )( (SENDING i∧neighbour (i, j) ) =⇒(csn[i] =csn[j] ) ).
+4 Our Analysis
+UPPAAL Statistical Model Checker [7] evaluates properties on execution runs of
+a network of probabilistic timed automata. The execution time of these runs is
+represented by a variable time . It is left to the user to set a bound to this variable.
+In particular, ﬁxed a constant value bound , the Statistical Model Checker can
+reply to queries of the following shape
+Pr[time<=bound] (<> expr)
+by performing an adequate number of runs to estimate the probability to reach
+a state which satisﬁes the property expr , within the time bound . The user must
+ﬁx two main statistical parameters, αand ε, both in the real interval ]0 ,1[ .
+The answer provided by the tool is a conﬁdence interval [ p−ε, p+ε] where
+αrepresents the probability of the answer of being wrong. The higher is the
+
+--- Page 7 ---
+7
+precision of the analysis the bigger must be the number of runs performed by
+the simulator. Thus the waiting time for a reply of a query depends both on the
+length of runs, i.e. on the parameter bound , and on the statistical parameters ε
+andα.
+In order to make feasible our analysis we try to understand if we can change
+some system parameters without aﬀecting the quality of the analysis. In par-
+ticular, we focus on the parameter Cthat is the number of slots composing a
+frame. The eﬀectiveness of any synchronization protocol is crucially based on
+the exchange of some timing information to synchronise neighbour nodes. Said
+in other words, the longer nodes remain silent the quicker they get out of sync,
+because they do not get enough information to synchronise with each other. As
+consequence, once ﬁxed the number of active slots, if the system gets out of sync
+with probability p, for a certain value of C, then the same system will get out of
+sync more quickly (or with higher probability) for a bigger value of C.
+The parameter lossexpresses the probability of message loss at the physical
+level due to the unreliability of the wireless medium. In our analysis, we will
+instantiate lossaccording to the results appeared in [17], where packet delivery
+performances of WSNs have been studied at physical layer under diﬀerent trans-
+mission powers and physical-layer encodings. In that analysis, 60 Mica motes
+have been used to measure packet delivery under three diﬀerent environmental
+settings: oﬃce building, open parking lot, habitat with moderate foliage. Under
+these settings, results show that the physical layer contributes to the packet-
+delivery performance, which is deﬁned as the fraction of packets not successfully
+received by the receiver within a time window.
+For the sake of simplicity, all nodes of our networks will be instantiated with
+the same value of the parameter loss. According to [17] this parameter will be set
+to: 10, to approximate the average message loss in a parking lot; 20, to model the
+average message loss in a oﬃce building; and 30, which represents the average
+message loss in an habitat setting with moderate foliage.
+4.1 Verifying Clique Topologies
+Paper [8] derives necessary and suﬃcient constraints on the guard times to guar-
+antee the correctness of the protocol on clique topologies in the case of perfect
+communication. These constraints depend on the clock ratio min/max, on the
+parameter k0and on the maximal distance Mbetween two transmitting slots1;
+they do not depend on the size Nof the network. They are:
+g>/parenleftbig
+1−min
+max/parenrightbig
+·M·k0+min
+max
+g</parenleftbig
+1−max
+min/parenrightbig
+·M·k0+k0−2
+t>/parenleftbig
+1−min
+max/parenrightbig
+·(k0−g) +min
+max(2)
+From an analysis of these conditions, paper [8] demonstrates that guard time
+values g=t= 3 are suﬃcient to guarantee clock synchronization in a clique of
+arbitrary size.
+1For a formal deﬁnition of parameter Mwe refer to [8].
+
+--- Page 8 ---
+8
+Table 2 On the parameter C.
+gN C bound frames p ε α
+310120.07·1092 0.025 0.020.01
+310480.28·1092 0.029 0.020.01
+310192 1.12·1092 0.031 0.020.01
+310336 2.00·1092 0.031 0.020.01
+415170.50·10910 0.022 0.010.05
+415341.00·10910 0.027 0.010.05
+415682.00·10910 0.027 0.010.05
+Here we want to demonstrate that, in the presence of packet loss, the size of
+the clique network does play a crucial role. In particular, the bigger is the clique
+the higher must be the value of g(and t) to ensure clock synchronization. Said
+in other words: in the presence of message loss, ﬁxed a value of g(and t), there
+is always a clique which gets out of sync with high probability.
+For networks with full connectivity clock synchronization means that all
+nodes of the network agree on the current slot. As a consequence, Deﬁnition 1
+can be rephrased as in [8] in the following manner:
+Deﬁnition 2. A clique network is said to be synchronised if for all reachable
+states it holds the following: (∀i, j∈Nodes )(SENDING i=⇒csn[i]=csn[j]).
+So, in order to estimate the probability of going out of synchronization we will
+use UPPAAL SMC to perform the following quantitative check:
+Pr[time<=bound] (<> exists(i:Nodes) exists(j:Nodes)
+(WSN(i).SENDING and not(csn[i]==csn[j]))(3)
+Simulation setting In our simulations on cliques, all protocol parameters will
+satisfy the constraints in (2). As in [8], the guard time tis chosen to be the same
+asg. Parameter tsn[i] is chosen equal to i, as fully connectivity implies a diﬀerent
+TX slot for each node. We set k0= 29. Unfortunately, we cannot set C= 1129, as
+in the real implementation, because the length of the runs that can be analysed
+by UPPAAL is limited: in order to avoid integer overﬂow, the parameter bound
+cannot overtake the value 2 ·109. This means that if we would keep Cclose
+to the real value, then our execution runs would last just a single time frame
+and they would be too short to provide any signiﬁcant result. According to the
+discussion done in the preface of this section we perform our analysis for low
+values of the parameter C. This modiﬁcation does not aﬀect our analysis. As an
+example, in Table 2 we consider cliques with N= 10 ,15,loss= 20 and g= 3,4.
+We then perform the quantitative check (3) by varying Cand keeping constant
+the number of observed time frames. The value prepresents the center of the
+conﬁdence interval computed by UPPAAL SMC. Every check required 6623 runs
+of the protocol and lasted for about four days on a Intel core i5-2420M CPU
+2.30GHz with 6G RAM. We gradually increased the precision of the parameter
+
+--- Page 9 ---
+9
+Table 3 Cliques and node number. Maximal run length. α= 0.05,ε= 0.025
+N= 10 frames: 60
+gloss p
+310 0.059
+320 0.386
+330 0.787
+410 0.000
+420 0.025
+430 0.155N= 15 frames: 40
+gloss p
+310 0.100
+320 0.560
+330 0.931
+410 0.000
+420 0.046
+430 0.243N= 20 frames: 30
+gloss p
+310 0.133
+320 0.692
+330 0.972
+410 0.003
+420 0.063
+430 0.325N= 30 frames: 20
+gloss p
+310 0.236
+320 0.851
+330 0.992
+410 0.005
+420 0.106
+430 0.464
+εin order to achieve an interval which does not include the value 0 as a reply;
+in other words we have looked for lower bounds p−ε >0.
+Table 2 outlines that when the number of time frames is ﬁxed then the proba-
+bility of going out of sync for the system does not decrease when the parameter C
+increases (similar results can be obtained for diﬀerent values of N,g,lossand for
+diﬀerent topologies). As a consequence, our simulations provide a lower bound
+of the probability of getting out of sync in a setting with C= 1129.
+In Table 3 we study the behaviour of the protocol on cliques up to 30 nodes.
+We vary the number of nodes N, the guard time gand the parameter loss. Since
+we consider fully connected networks and the transmitting slots are grouped at
+the beginning of each time frame, we ﬁx C=N+2, as in [8], to allow at least two
+idle slots at the end of each frame. We set the statistical parameters ε= 0.025,
+α= 0.05 to have meaningful results. We check property (3) on the maximal run
+UPPAAL SMC can handle without incurring in integer overﬂow. The result of
+the quantitative check is represented by the probability p, which is the center of
+the conﬁdence interval computed by UPPAAL SMC. Every check required 2952
+runs of the protocol. In the following table we report the time required by our
+simulations on a Intel core i3-2310M CPU 2.10GHz with 4G RAM.
+nodes time
+10 11 hours
+15 1 day 7hours
+20 2 days 23hours
+30 9 days 4hours
+All runs in Table 3 are quite short (from 30 to 60 frames, depending on
+N); however, they are long enough to deduce some signiﬁcant observation. For
+instance, we notice that once ﬁxed the value of the guard time g, the probability
+of going out of sync increases when either Norlossincrease. Moreover, once ﬁxed
+both Nandloss, the probability pdecreases when the guard time gincreases.
+Since the probability of going out of sync cannot decrease when going to longer
+runs, in Table 3 we compare probabilities associated to runs of diﬀerent lengths.
+In particular, we notice that if we ﬁx lossandgthen the probability of getting
+out of sync increases when Nincreases. At the end of this section we will compare
+runs of the same lenght.
+
+--- Page 10 ---
+10
+Table 4 Module comparison – g= 4, α= 0.05, run length 30 frames –
+N= 5
+I p ε
+[0] 0.019 0.01
+[0, . . . , 4]0.113 0.030
+[0, . . . , 9]0.665 0.050
+[0, . . . , 14] 0.827 0.050N= 10
+I p ε
+[0] 0.015 0.01
+[0, . . . , 4]0.113 0.030
+[0, . . . , 9]0.677 0.030
+[0, . . . , 14] 0.816 0.030
+The analysis provided in Table 3 says also that the protocol is certainly not
+suitable in certain scenarios. For instance, in a clique of at least 10 nodes with
+g= 3 the system will get immediately out of sync with high probability if the
+loss probability is greater than 0 .2. In other settings the results are not that
+strong. This is the case of a clique with 10 nodes, g= 4 and loss= 20. In this
+case, our analysis says that this system will get out of sync with probability
+0.025. Such a value is ten times smaller than the loss probability, too small to
+conclude anything, at least in a so short run. Unfortunately, a priori, we cannot
+predict the behaviour of the system for longer runs as the probability pmay
+increase or stabilise. In the following we will try to overcome this limitation.
+UPPAAL SMC can simulate the behaviour of our systems on runs limited
+in size, called execution modules . At the beginning of an execution module all
+nodes are in the same time slot and with the same value in their clock variables.
+At the end of an execution module, UPPAAL SMC computes an estimate of the
+probability pto reach a state which does not satisfy Deﬁnition 2. This deﬁnition
+does not identify a single state of the system: nodes may have diﬀerent clock
+values while still being in the same time slot. We claim that the initial state,
+where all nodes begin the execution module with the same clock value, is the
+state which has the smallest probability to lead the system out of sync . In order
+to support our argument, we provide an example in Table 4. We consider cliques
+of 5 and 10 nodes, with g= 4, C= 7 and loss= 20. Table 4 shows experiments
+in which the system starts from a state that satisﬁes Deﬁnition 2 while internal
+clocks may have diﬀerent values. The starting value of every internal clock is
+randomly chosen from a ﬁxed interval Iof clock values. Runs are 30 time frames
+long. We set α= 0.05. It can be noticed that the smallest desync probability is
+obtained when the execution module starts in the initial state where all nodes
+have the same clock value. Similar results can be obtained for other values of N,
+g,Candloss.
+In virtue of this observation, we can divide a long run in consecutive execution
+modules, all starting in the initial state. Then, we can derive by composition a
+lower bound of the probability of desynchronization for that run. Thus, if [ p−
+ε, p+ε] is the conﬁdence interval provided by UPPAAL SMC after performing
+the quantitative check (3) within an execution module, then the probability of
+going out of sync within nexecution modules is at least
+1−(1−(p−ε))n. (4)
+
+--- Page 11 ---
+11
+Table 5 Quantitative check on cliques with loss= 20 and α= 0.05
+gNCp−ε300 frames 600 frames 900 frames
+310120.361 ≥0.893 ≥0.989 ≥0.999
+315170.535 ≥0.998 ≥0.999 ≥0.999
+320220.667 ≥0.999 ≥0.999 ≥0.999
+330320.826 ≥0.999 ≥0.999 ≥0.999
+415170.021 ≥0.156 ≥0.273 ≥0.373
+420220.038 ≥0.321 ≥0.539 ≥0.687
+430320.081 ≥0.718 ≥0.920 ≥0.980
+Table 5 extends the results of Table 3 to longer runs which lasts for 300, 600
+and 900 time frames, respectively. The forth column of Table 5 reports the lower
+bound of the conﬁdence interval of an execution module. When N= 10 ,15,20,30
+the execution module studied in Table 3 lasts for approximately 60 ,40,30 and 20
+time frames respectively. Thus, by applying the formula (4) with n= 5,8,10,15
+we obtain a lower bound for the probability of being out of sync within 300
+time frames in the cases of cliques with 10, 15, 20 and 30 nodes, respectively.
+Analogously when n= 10 ,15,20,30 and n= 15 ,22,30,45 we obtain a lower
+bound for the probability of being out of sync within 600 and 900 time frames,
+respectively.
+As discussed at the beginning of this section, the values of Table 5 represent
+also lower bounds of the probability of desynchronization for the real implemen-
+tation. In the real setting, with C= 1129 and clock frequency of 32 kHz, a time
+frame lasts for about 1 sec. As a consequence, Table 5 expresses a lower bound
+of the probability of getting out of sync within 5, 10 and 15 min. Thus, when
+g= 3 the probability of getting out of sync is high also for small networks and in-
+creases as long as Nincreases. The probability of getting out of sync within 5 min
+increases dramatically when Nreaches 10: the network gets out of sync almost
+certainly. The value g= 4 is enough for small networks (around 10 nodes), but
+when N= 15 we have a probability of being out of sync of almost 0 .4 in 15 min.
+When N= 20 the probability reaches 0 .7 in less than 15 min. When N= 30 the
+probability reaches 0 .7 in less than 5 min. These results outline an increasing of
+the desync probability when the number of nodes increases.
+4.2 Verifying Grid Topologies
+Clock synchronization in clique topologies has been studied in [8] as a ﬁrst step
+towards more realistic topologies. Usually sensor nodes have a limited number
+of neighbours and do not have direct communication with the whole network.
+In this section, we study how the gMAC synchronization protocol behaves on
+regular topologies which better simulate a uniform node distribution in a given
+area2. In particular, we will focus on grid topologies where nodes have a uniform
+2Regular topologies have been applied to WSNs to study coverage, connectivity and
+energy-eﬃciency.
+
+--- Page 12 ---
+12
+number of neighbours. Unlike cliques, there are no theoretical results suggesting
+how to choose protocol parameters to guarantee the synchronization of grid
+networks in the case of non-lossy communication. The implementation of gMAC
+adopts an high guard time, g= 9, to ensure synchronization in networks with
+arbitrary topologies. In this section, we study whether high values of gguarantee
+node synchronization in grid-based networks, in the case of lossy communication.
+In our simulations we focus on a small sensor network where nodes are placed
+in a 5×5 grid, thus N= 25. Unlike cliques, grid topologies do not need a diﬀerent
+TX slot for each node: we can allocate the same TX slot to diﬀerent nodes
+provided that when two nodes are neighbours or have a common neighbour then
+they get distinct TX slot numbers. According to the implementation of gMAC,
+where the number of TX slots is limited, we consider the minimum number of
+TX slots to be allocated to satisfy conditions (1). The number of transmission
+slots depends on the number of neighbours for each single node; if a node vhas
+kneighbours then we need a TX slot in which vtransmits and all its neighbours
+listen, and kdistinct slots in which each neighbour transmits and vlistens. Thus
+ifkrepresents the maximum node degree, then we need at least k+ 1 TX slots.
+In the following we analyse the behaviour of the protocol on grid topologies
+by considering three possible maximum node degrees: 4, 6 and 8. These grid
+networks require at least 5, 7 and 9 TX slots, respectively. Below we report the
+three topologies we consider along with a simple slot allocation which satisﬁes
+conditions (1) by using exactly k+ 1 TX slots, where kis the maximum node
+degree. The grid structures outlines the network topology while the identiﬁers
+0,1, . . .show the TX slot allocated for the corresponding node.
+0 1 2 3 4
+2 3 4 0 1
+4 0 1 2 3
+1 2 3 4 0
+3 4 0 1 20 1 2 3 0
+2 3 4 5 6
+5 6 0 1 2
+0 1 2 3 4
+3 4 5 6 0/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63
+/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127
+/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63
+/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d1270 1 2 0 1
+3 4 5 3 4
+6 7 8 6 7
+0 1 2 0 1
+3 4 5 3 4/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63
+/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127
+/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63
+/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127
+/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63
+/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127/d127
+/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63/d63
+As for cliques, our analysis does not loose in generality if we consider small
+values of C. Thus we pick C= 7,9,11 for the three diﬀerent cases, respectively.
+Depending on the maximum node degree, a single time frame is composed by
+5,7,9 TX slots plus 2 idle slots. TX slots are allocated according to the distri-
+butions depicted above. We set k0= 29 and we vary the parameter loss, as done
+for cliques. Then, we apply UPPAAL SMC to perform the following quantitative
+check, according to Deﬁnition 1:
+Pr[time<=bound](<> exists(i:Nodes) exists(j:Nodes)
+(neighbour(i,j) and WSN(i).SENDING and not(csn[i]==csn[j]))(5)
+Again, we consider the longest run UPPAAL SMC can handle to avoid integer
+overﬂow by setting bound = 2·109. This means that an execution module lasts
+
+--- Page 13 ---
+13
+Table 6 Grids 5×5 and node degree. Maximal run length. α= 0.05,ε= 0.03
+max degree 4
+gCloss p
+670 0
+6710 0.03
+6720 0.11
+6730 0.45
+770 0
+7710 0.01
+7720 0.06
+7730 0.28max degree 6
+gCloss p
+690 0
+6910 0.01
+6920 0.07
+6930 0.25
+790 0
+7910 0
+7920 0.03
+7930 0.18max degree 8
+gCloss p
+611 0 0
+611 10 0
+611 20 0.05
+611 30 0.19
+711 0 0
+711 10 0
+711 20 0.02
+711 30 0.11
+Table 7 Quantitative check on 5 ×5 grids with loss= 20 and g= 6
+degree Cp−ε900 frames 1800 frames 2700 frames 3600 frames
+4 70.08 ≥0.53 ≥0.78 ≥0.90 ≥0.95
+6 90.04 ≥0.39 ≥0.61 ≥0.76 ≥0.84
+8 110.02 ≥0.25 ≥0.44 ≥0.58 ≥0.69
+for almost 100, 80 and 65 time frames when the maximum node degree is 4, 6
+and 8, respectively. These are quite short runs, but long enough to conclude that
+the system may get out of sync also for high values of the guard time g. The
+result of the quantitative check is reported in Table 6. The value prepresents
+the center of the conﬁdence interval computed by UPPAAL.
+The compositional reasoning on execution modules adopted for cliques can
+be easily generalised to grid topologies. Table 7 ﬁxes loss= 20 and g= 6. It
+reports lower bounds to the probability of getting out of sync within 900, 1800,
+2700 and 3600 time frames. As said before, in the real implementation a time
+frame lasts for around 1 sec. Thus, when considering g= 6 and a message loss of
+20%, we observe that the desync probability exceeds 0 .5 in less than 15 minfor
+degree 4, in less than 30 min for degree 6, and in less than 45 min for degree 8.
+Table 7 outlines also how the performances of the protocol depend on the node
+degree: the probability of getting out of sync decreases for grid topologies with
+higher node degree.
+Finally, let us give a taste of what happens when g= 7. Among the results
+on Table 6 we extend the case of degree 4 and loss= 20, where the probability of
+getting out of sync within 100 time frames lays in the interval [0 .03,0.09]. The
+projection to 2700 time frames says that the probability of getting out of sync
+becomes greater than 0 .54. In the real settings, this means that the probability
+of getting out of sync exceeds 0 .5 in less than 45 min.
+In conclusion, in the case of lossy communication, small grid topologies have
+a high probability of getting out of sync even for high values of the guard time g
+and for low values of the loss probability. Moreover the probability of getting out
+of sync increases when decreasing the maximum node degree .
+
+--- Page 14 ---
+14
+5 Conclusions, Future and Related Work
+Our work has been strongly inspired by a recent analysis [8] of the gMAC syn-
+chronization protocol on clique and line topologies, in the ideal case of non-lossy
+communication. That analysis provides constraints on the protocol parameters
+that are both necessary and suﬃcient for the correctness of the protocol for
+cliques of arbitrary size. Here we have carried on the work of [8] in the case of
+lossy communication. We have extended their model and obtained a network of
+probabilistic timed automata [6] which has been used for doing Statistical Model
+Checking within the UPPAAL toolset [7]. As a main result, we have showed that
+in the presence of message loss the constraints provided in [8] may be not suﬃ-
+cient to ensure clock synchronization of cliques of arbitrary size. Then, we have
+extended our analysis of the protocol to small grid topologies and again found
+that, in the case of lossy communication, the nodes of the grid may get out of
+sync with high probability. More interestingly, grid topologies with higher node
+degree have a smaller probability of desynchronization. This lets us to conjecture
+that higher connectivity helps synchronization protocols. In this respect, among
+the regular topologies, clique topologies are those with the best performances!
+As in [8] we have assumed a ﬁxed slot allocation. However, the implemen-
+tation of gMAC includes a probabilistic dynamic slot allocation algorithm. The
+only analysis we are aware of the probabilistic gMAC algorithm appears in [16].
+In that paper, mobile sensors do not use a ﬁxed schedule to control medium
+access but instead employ gMAC’s full decentralised slot allocation: gossiping is
+introduced to allow each node to decide when to send. Paper [16] analysises the
+energy-eﬃciency of gMAC under the assumption of perfect clock synchroniza-
+tion. The protocol, formalised in the MoDeST language [4], is evaluated using
+the discrete-event simulator of the M¨ obius tool suite. We are planning to study
+the performance of the gMAC protocol with dynamic slot allocation in the case
+of lossy communication and realistic clock. In doing that, we intend to adopt ei-
+ther a (truncated) normal distribution or a (truncated) exponential distribution
+for modelling a more realistic delay between consecutive ticks.
+Statistical Model Checking allows us to study networks of bigger size with
+respect to the state-of-the art model checking technology, such as PRISM [9,11].
+SMC can be seen as a trade oﬀ between testing and formal veriﬁcation: its
+approach consists in performing an appropriate number of simulations which are
+elaborated with statistical algorithms to verify if a given property is satisﬁed with
+a certain probability. Unlike an exhaustive approach, a simulation-based solution
+does not guarantee a correct result with a 100% conﬁdence. It is only possible
+to bound the probability of making an error. In order to study bigger systems
+with an higher conﬁdence, paper [5] proposes a distributed implementation of
+UPPAAL SMC by means of a master/slave architecture where several computers
+are used to generate simulations and a single master process is used to collect
+those simulations and perform the statistical test. We are planning to employ
+this approach to extend the conﬁdence of the results we obtained in this paper.
+Acknowledgements The anonymous referees provided insightful comments.
+
+--- Page 15 ---
+15
+References
+1.Assegei, F.: Decentralized frame synchronization of a TDMA-based wireless sen-
+sor network. Master’s thesis, Eindhoven University of Technology, Department of
+Electrical Engineering (2008)
+2.Behrmann, G., David, A., Larsen, K.G.: c. In: Bernardo, M., Corradini, F. (eds.)
+SFM-RT’04. LNCS, vol. 3185, pp. 200–236. Springer (2004)
+3.Behrmann, G., David, A., Larsen, K.G., H˚ akansson, J., Pettersson, P., Yi, W.,
+Hendriks, M.: Uppaal 4.0. In: QEST’06. pp. 125–126. IEEE Computer Society
+(2006)
+4.Bohnenkamp, H.C., D’Argenio, P.R., Hermanns, H., Katoen, J.P.: MODEST: A
+compositional modeling formalism for hard and softly timed systems. IEEE Trans.
+Software Eng. 32(10), 812–830 (2006)
+5.Bulychev, P.E., David, A., Larsen, K.G., Legay, A., Mikucionis, M., Poulsen, D.B.:
+Checking and distributing statistical model checking. In: Goodloe, A., Person, S.
+(eds.) NFM’12. LNCS, vol. 7226. Springer (2012)
+6.David, A., Larsen, K.G., Legay, A., Mikucionis, M., Poulsen, D.B., van Vliet, J.,
+Wang, Z.: Statistical model checking for networks of priced timed automata. In:
+Fahrenberg, U., Tripakis, S. (eds.) FORMATS’11. LNCS, vol. 6919, pp. 80–96.
+Springer (2011)
+7.David, A., Larsen, K.G., Legay, A., Mikucionis, M., Wang, Z.: Time for statistical
+model checking of real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)
+CAV’11. LNCS, vol. 6806, pp. 349–355. Springer (2011)
+8.Heidarian, F., Schmaltz, J., Vaandrager, F.W.: Analysis of a clock synchronization
+protocol for wireless sensor networks. Theor. Comput. Sci. 413(1), 87–105 (2012)
+9.Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: Veriﬁcation of probabilistic
+real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV’11. LNCS, vol.
+6806, pp. 585–591. Springer (2011)
+10.Nordic Semiconductors: nRF2401 Single-chip 2.4GHz Transceiver Data Sheet
+(2002)
+11.Norman, G., Parker, D., Sproston, J.: Model checking for probabilistic timed au-
+tomata. Formal Methods in System Design (2012), to appear
+12.QUASIMODO: Preliminary description of case studies, deliverable 5.2 from the
+FP7 ICT STREP project 214755 (January 2009)
+13.Sundararaman, B., Buy, U., Kshemkalyani, A.D.: Clock synchronization for wire-
+less sensor networks: a survey. Ad Hoc Networks 3(3), 281–323 (2005)
+14.van Vessem, I.: WSN gMAC protocol speciﬁcations. Tech. rep., CHESS B.V., Haar-
+lem, NL (2008), version 1.1. Patent pending US 12 / 250,040
+15.Wu, Y.C., Chaudhari, Q.M., Serpedin, E.: Clock synchronization of wireless sensor
+networks. IEEE Signal Process. Mag. 28(1), 124–138 (2011)
+16.Yue, H., Bohnenkamp, H.C., Katoen, J.P.: Analyzing energy consumption in a
+gossiping mac protocol. In: M¨ uller-Clostermann, B., Echtle, K., Rathgeb, E.P.
+(eds.) MMB&DFT”10. LNCS, vol. 5987, pp. 107–119. Springer (2010)
+17.Zhao, J., Govindan, R.: Understanding packet delivery performance in dense wire-
+less sensor networks. In: Akyildiz, I.F., Estrin, D., Culler, D.E., Srivastava, M.B.
+(eds.) SenSys’03. pp. 1–13. ACM (2003)

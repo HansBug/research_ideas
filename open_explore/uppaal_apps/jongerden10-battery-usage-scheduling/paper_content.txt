@@ -1,0 +1,427 @@
+--- Page 1 ---
+276IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 6, NO. 3, AUGUST 2010Computing Optimal Schedules of Battery Usage inEmbedded SystemsMarijn Jongerden, Alexandru Mereacre, Henrik Bohnenkamp, Member, IEEE, Boudewijn Haverkort, Fellow, IEEE,and Joost-Pieter KatoenAbstract—The use of mobile devices is often limited by the bat-tery lifetime. Some devices have the option to connect an extrabattery, or to use smart battery-packs with multiple cells to ex-tend the lifetime. In these cases, scheduling the batteries or bat-tery cells over the load to exploit the recovery properties of thebatteries helps to extend the overall systems lifetime. Straightfor-ward scheduling schemes, like round-robin or choosing the bestbattery available, already provide a big improvement compared toa sequential discharge of the batteries. In this paper, we comparethese scheduling schemes with the optimal scheduling scheme pro-duced with two different modeling approaches: an approach basedon a priced-timed automaton model (implemented and evaluatedin
+), as well as an analytical approach (partly for-mulated as nonlinear optimization problem) for a slightly adaptedscheduling problem. We show that in some cases the results of thesimple scheduling schemes (round-robin, and best-ﬁrst) are closeto optimal. However, the optimal schedules, computed accordingto both methods, also clearly show that in a variety of scenarios,the simple schedules are far from optimal.Index Terms—Batteries, embedded systems, lifetime optimiza-tion, scheduling.I. INTRODUCTIONMANY autonomous devices mostly rely on batteries aspower supply. The capacity of batteries is ﬁnite and,together with the current drawn from them, determines the timeduring which the device can be used. The battery is at the endof its lifetime when it can not deliver the desired current whenit is needed.To extend the usability of such devices, frequently several bat-teries are provided. Mostly, these batteries are used in sequentialorder, the next one when the previous one has reached the end ofManuscript received November 10, 2009; revised February 26, 2010 andApril 16, 2010; accepted May 18, 2010. Date of publication June 21, 2010; dateof current version August 06, 2010. The work of A. Mereacre, H. Bohnenkamp,and J.-P. Katoen was supported by the DFG Research Training Group 1295AlgoSyn and the EU FP7 Project ICT-FP7-STREP-214755 (QUASIMODO).The work of M. Jongerden and B. Haverkort was supported by the ITEA2GEODES Project 07013 (grant: PNEI081011). All were partially supported byDFG/NWO Bilateral Research Program ROCKS. Paper no. TII-09-11-0320.M. Jongerden is with the CTIT, University of Twente, 7500 AE Enschede,The Netherlands (e-mail: jongerdenmr@ewi.utwente.nl).A. Mereacre, H. Bohnenkamp, and J.-P. Katoen are with Software Mod-eling and Veriﬁcation, RWTH Aachen University, 52056 Aachen, Germany(e-mail: mereacre@cs.rwth-aachen.de; henrik@cs.rwth-aachen.de; katoen@cs.rwth-aachen.de).B. Haverkort is with the CTIT, University of Twente, 7500 AE En-schede, The Netherlands, and also with the Embedded Systems Insti-tute, 5600 MB Eindhoven, The Netherlands (e-mail: brh@ewi.utwente.nl;boudewijn.haverkort@esi.nl).Color versions of one or more of the ﬁgures in this paper are available onlineat http://ieeexplore.ieee.org.Digital Object Identiﬁer 10.1109/TII.2010.2051813its lifetime. Whereas this clearly is an effective approach to pro-long device lifetimes, it is not an efﬁcient one. Efﬁciency, how-ever, is very desirable: batteries are usually heavy, compared tothe devices they power, and their number should thus be keptsmall. Furthermore, as we will see below, using multiple bat-teries in a nonsequential way, the available energy as stored inthe battery is used more effectively, and less “unused battery ca-pacity” is thrown away.The question to be answered is whether it is possible touse batteries in a more clever way than just sequentially, i.e.,whether there are betterschedulesfor battery use. A reason whythis might be the case is given by the two inherent propertiesof batteries, the so-calledrate-capacity effectand therecoveryeffect. The ﬁrst property is the phenomenon that a batterydelivers in total a smaller charge during its lifetime when itis discharged with a high current, compared to a lower one.The second property is the phenomenon that a battery, whennot used or only with a low current, can recover and procuresome additional charge. These two effects are captured quiteprecisely in a simple mathematical model, theKinetic BatteryModel(KiBaM) of Manwell and McGowan [10]–[12]. Inparticular, if the recovery effect can be exploited to draw morecharge from a battery, compared to the purely sequential case,the lifetime of the powered device is increased.This paper, which is an extended version of [9], investigatesmethods to ﬁnd schedules for the use of batteries for a givenload function which maximize the lifetime of the device. Twodifferent approaches are followed, which both are based on theKiBaM. First, a discretized version of the KiBaM, together witha predeﬁned load is modelled aslinearly priced timed automata(LPTA) [3], [4]. Then, the model-checker
+[1] isused to derive schedules that maximize the system lifetime.This approach is described in more detail in [9]. Here, someextra results as a ﬁrst step towards random loads are given. Inthe second approach, which is new, the KiBaM is investigatedanalytically, using, among others, nonlinear optimization tech-niques, to solve the scheduling problem.Both approaches yield excellent results. The LPTA approach,on one hand, provides schedules in a fully algorithmic waywhich come very close to the optimal lifetime, when schedulingmoments are predeﬁned (e.g., at load changes). The analytic ap-proach, on the other hand, shows that battery scheduling is actu-ally trivial when the moments when batteries are switched canbe chosen freely. The system lifetime is not inﬂuenced by theschedule, but actually by the number of switching points that areallowed: the more, the better. A further result is that the optimalsystem lifetime for
+batteries and a given load function can be1551-3203/$26.00 © 2010 IEEE
+
+--- Page 2 ---
+JONGERDENet al.:C O M P U T I N GO P T I M A LS C H E D U L E SO FB A T T E R YU S A G EI NE M B E D D E DS Y S T E M S 2 7 7
+Fig. 1. KiBaM.expressed analytically, i.e., there is a natural upper bound on thesystem lifetime which can not be exceeded by even more cleverscheduling.Structure of the Paper:In Section II, we introduce the nec-essary preliminaries of the kinetic battery model and of lin-early-priced timed automata. In Section III, we describe how wederive battery schedules from an LPTA model. In Section IV, wecompare the obtained optimal with some deterministic sched-ules. In Section V, we show optimal schedules can be obtainedanalytically. In Section VI, we discuss the LPTA and the ana-lytic approach. In Section VII, we discuss related work and con-clude in Section VIII.II. PRELIMINARIESA. Kinetic Battery ModelThe battery model we use is the Kinetic Battery Model(KiBaM) [10]–[12], which describes two essential nonlinearproperties, the rate-capacity effect and the recovery effect [8].The former is the effect that less charge can be drawn from abattery when the discharge current is increased. The latter is theeffect that a nearly discharged battery can recover in a periodwith no or low current and make some more charge availableagain.In the KiBaM the battery charge is distributed over theavail-able-charge well
+and thebound-charge well
+(cf. Fig. 1). A fraction
+of the initial total capacity
+is put in the ACW, and a fraction
+in the
+. The
+supplies electrons directly to the load
+,whereas the
+supplies electrons only to the
+. Thecharge ﬂows from the
+to the
+through a “valve,”where the ﬂow rate depends on aconductance parameter,
+,and theheight difference
+between the two wells,where the heights of the two wells are given by:
+and
+. The change of the charge in bothwells is then described by the following system of differentialequations:
+(1)The battery is considered empty at time
+when there isno charge left in the available charge well, i.e.,
+.A coordinate transform, applied to (1), makes the handlingof the KiBaM easier. Obviously, the height difference
+Fig. 2. Model of lamp.
+plays a major role, which becomes one of the co-ordinates after the transformation. The other is the total charge
+. The transformed differential equationsbecome
+(2)where
+. The initial conditions change to
+and
+. The condition for the battery to be empty is
+.B. Discretization of the KiBaMIn this section a discretized version of the KiBaM is intro-duced, called dKiBaM. In the dKiBaM, the discharge and re-covery processes governing the KiBaM are separated. Time isdiscretized in time steps of size
+. Within a time step the dis-charge current is assumed to be constant. For a constant current
+, the total charge decreases linearly. The total charge is dis-cretized in
+parts of size
+. It takes
+timeunits to decrease the total charge with one charge unit at rate
+.At the same time, the discharge with current
+will increase theheight difference with
+. This will be the step size of the dis-cretization of the height difference. Once some charge is drawnfrom the
+, charge will start to ﬂow from the
+to the
+. This is a nonlinear process, described by the second partof the ﬁrst equation in (2),
+. The solution to thisdifferential equation is
+. If at time point
+,
+, the time
+needed to decrease the height dif-ference by one unit is
+(3)The number of time steps needed to decrease the height dif-ference by one unit is obtained by dividing this time by
+androunding to the nearest integer.C. Linearly Priced Timed AutomataThe basic ingredients of Linearly Priced Timed Automata(LPTA) [3], [4] arelocations,switches,clocks,guards, andin-variants. Fig. 2 depicts a simple LPTA, which models the be-havior of a lamp. Location
+is the starting location. Whilethe switch from
+to
+(abbreviated
+) is exe-cuted (triggered by the environment over channel
+), clock
+is reset to 0. Clocks are real-valued variables which are usedto measure time: clock values increase linearly with rate 1 astime progresses. Clocks are used to express enabling- and ur-gency-conditions for transitions depending on time. The switch
+is executed when triggered by the environment,
+
+--- Page 3 ---
+278IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 6, NO. 3, AUGUST 2010again over channel
+. This transition isguardedby expres-sion
+, i.e., only if clock
+, this switch can be executed.Thus, if the environment triggers channel
+a second timewithin5 time units since the ﬁrst, the lamp switches to brighterlight. Locations
+and
+are both annotated with the in-variant
+, which means that both locations can only beoccupied as long as
+holds. During this time, the loca-tion must be vacated via
+or
+. Since bothswitches have guard
+, this will happen precisely at thetime when clock
+reaches value 10.Switching on a lamp and letting it burn uses energy, whichdeﬁnes costs. To account for these costs, LPTA have a globalcost variable
+which can be explicitly increased while exe-cuting a switch (as is done with switch
+), or which isincreased implicitly as time progresses. For the latter, locationscan be annotated with costrates. In locations
+and
+, wehave the extra “invariants”
+and
+, re-spectively, which indicate that the energy consumption is 10 and20 units per time unit in the respective locations. When stayingin these locations,
+is implicitly increasing with time, withrate 10 and 20, respectively.D. Schedule Generation Using LPTA
+[1] is a model checker for LPTA, i.e., a tool tocheck whether the modeled LPTA has certain properties whichare expressed as logic formulae in a fragment of thetimedcomputation tree logic[2]. An important problem to solvefor LPTA to make model checking feasible isminimum-costreachability, i.e., given an LPTA and a target state (where astateis a combination of a location and additional informationabout the clocks), determine the minimal cost of all pathsleading from the initial location to the target state [4], whilemeeting a certain time bound. In [3] and [4], it has been shownindependently that this problem is effectively computable. Thisvery important result allows to use LPTA for schedule gen-eration as follows. LPTA models can be nondeterministic. Amodel checker like
+can ﬁnd paths—starting in theinitial location—through the state space of a timed automatonto target states and compute the minimal cost to do so. Thesepaths resolve nondeterministic choices on the way to the target.The idea of schedule generation with model checkers is tomodel the system to be scheduled (which is thus a combinationof resources and load), but to leave the scheduling decisionsopen, i.e., nondeterministic. If a certain scheduling objectivecan be formulated as a state property of this system, then themodel checker can be employed to ﬁnd such a state and thepath leading to it;the determined path is a schedule. Findingthecheapestpath to the target state yields anoptimalschedule.III. LPTA BATTERYSCHEDULINGMODELThe behavior of batteries, as described by the dKiBaM, canbe modeled using LPTA. The problem to generate scheduleswhich maximize the lifetime of a system using more than onebattery can also be solved using the cost-minimal reachabilityalgorithms as implemented in
+. The cost to be min-imized is the total charge left in the batteries at the time whennone of them can be used anymore, i.e., when all
+areempty.
+Fig. 3. Discharge automaton
+.
+Fig. 4. Recovery automaton
+.A. Basic Battery ModelThe discharge and recovery behavior of the dKiBaM is mod-eled essentially by two LPTA, one,
+, modeling the dischargeprocess, the other one,
+, the recovery process. A simpliﬁed,abstract version of these automata is shown in Figs. 3 and 4.Every battery is identiﬁed by the respective local variable
+.Both automata operate on global integer arrays. The array
+keeps track of the total charge in battery
+, and
+of theheight difference of the wells.The discharge automaton in Fig. 3 starts in location
+andwaits for a signal on channel
+. Once this arrives (i.e., thebattery is scheduled for use), with the switch from
+to
+, clock
+is set to 0. In a globally available, precomputed array
+,which is part of the load description, the time required to de-plete the battery by one charge unit is stored. Once clock
+has reached value
+, the self-loop transition of
+is exe-cuted, which decreases
+by
+, the number of charge unitsdrawn in epoch
+, and increases the height-difference
+bythe same amount. The global epoch counter
+is increased, and
+reset to 0.The recovery automaton in Fig. 4 works autonomously, anddepends on the value of
+. Starting in location
+, the switchto
+is taken once
+. Then the self-loop is executeduntil
+is equal to 1. With the transition back to
+the heightdifference is set to 0 again. Important in this automaton is thetiming. The time it takes to decrease the height difference byone unit depends on the height difference itself. Those timesare precomputed and kept in the array
+: the value
+is the time it takes to decrease
+by one.The self-loop of
+is, hence, executed every
+time-units, upon which
+is decreased by one.Two more automata, which are not described here, have to bedeﬁned to complete the model: one to describe the load applied
+
+--- Page 4 ---
+JONGERDENet al.:C O M P U T I N GO P T I M A LS C H E D U L E SO FB A T T E R YU S A G EI NE M B E D D E DS Y S T E M S 2 7 9to the battery, the other to describe the scheduler, which makesthe nondeterministic choice between the still-available batteries.The total system
+with
+batteries is then the parallel compo-sition of the automata
+where the indices
+serve also as the
+parameter. Adetailed description of the
+model can be foundin [9].B. Battery SchedulingThe scheduling decisions in the LPTA model are kept non-deterministic, in order to allow
+to make the op-timal decisions. If several automata components are replicatedto model
+batteries, the nondeterminism lies in the
+dis-charge automata (Fig. 3), which all wait for a signal on channel
+to start. Only one can actually consume the signal, onceit is sent by theSchedulerautomaton. Which one this is, is de-cided nondeterministically.The optimality criterion of a schedule is the length of thelifetime of the system: the longer, the better. This criterion hasto be translated into a cost function that can be minimized by
+. The cost that is incurred is the charge in the boundcharge well of the batteries that is still available, but can notbe used anymore because the available charge has once beenemptied. At the end of a run, this remaining charge is added tothe cost-variable, and the run is evaluated based on that.C. ComplexityThecomplexityof ﬁnding the optimal schedule clearly de-pends exponentially on the number of scheduling decisions thathave to be made, where the number of batteries
+is the base.At every scheduling point one can choose between all
+bat-teries. The number of scheduling points depends on the battery’scapacity and the load applied.Between the scheduling points the model behaves fully deter-ministically. The number of states in between two schedulingpoints will depend on the granularity of the discretization. Themaximum number of state changes that can be made due to dis-charging is
+, when all charge units are drained oneat a time. The maximum number of state changes due to re-covery is not so easy to deﬁne. However, it will be proportionalto
+. Since in the model
+, the maximum number ofstates will be proportional to
+. The discretization of timewill not inﬂuence the maximum number of states. Introducingsmaller time steps will only increase the number of time steps ittakes to change states.IV. SCHEDULINGRESULTSTA-KIBAMA. Test LoadsWe use the multiple battery priced-timed automaton model toﬁnd the schedule that gives the longest lifetime for a system oftwo batteries on a set of test loads. We use two batteries withcapacity 5.5 Amin (Ampere-minute). The battery parametersare:
+and
+[8], corresponding tothe lithium-ion battery used in the Itsy pocket computer, whichwas also simulated by Rakhmatovet al.[13], [14]. In [9], theTA-KiBaM model has been validated for the same batteries.The time step size is set to 0.01 min. The total charge is dis-cretized in steps of size 0.01 Amin. This leads to the discretiza-tion step size of the height difference of
+.The Itsy pocket computer operates with currents up to 700mA. In the test loads, we used two types of jobs, a low currentjob (250 mA) and a high current job (500 mA). With these jobs,eight different test loads have been created:• Three continuous loads (CL) with no idle periods betweenthe jobs: one load with only low current jobs (CL_250), onewith only high current jobs (CL_500), and one alternatingbetween a low current job and a high current job (CL_alt).• Three intermitted loads with short idle periods of oneminute between the jobs (ILs): one with only low currentjobs (ILs_250), one with only high current jobs (ILs_500),one alternating between a low current job and a highcurrent job (ILs_alt).• Two intermitted loads with long idle periods of two min-utes between the jobs
+: one with only low current jobs
+and one with only high current jobs
+.Next to computing the maximum lifetime, we used theTA-KiBaM to compute the lifetime using three deterministicscheduling schemes:•Sequential scheduling. The batteries are used sequentially,i.e., the second battery is only chosen when the ﬁrst one isempty.•Round-robin scheduling. For every new job a new batteryis chosen. The batteries are chosen in a ﬁxed order.•Best-of-two scheduling. At the start of a job, the status ofthe batteries is checked. The battery with the most charge inthe
+is chosen to supply the charge for the job. Notethat this requires the possibility to “measure” the charge inthe
+, a feature that is mostly absent in practice.The scheduling decisions for the given load functions aremade at the beginning of new jobs (except at time 0), whichin the case of the CL loads are equidistant points in time,and for the other loads whenever the load changes. The com-puted lifetimes are given in Table I, along with the relativedifference to the lifetime using the round-robin scheduling.For the test loads, one can see the order in performance ofthe different scheduling schemes. One can easily show, usingthe
+model, that the sequential scheduling is actu-ally the worst possible way to schedule the batteries. For thetest loads the round-robin and best-of-two scheme differ onlyfor alternating jobs. These cases are clearly very bad for theround-robin scheme, since the heavy load is always put ontothe same battery. This battery will get empty very fast, andthen only one battery is left to handle all of the remainingload, leaving this battery with less idle time to recover. Thebest-of-two scheme balances the load better over the two bat-teries, which leads to a longer lifetime, especially in the ILs_altcase. In the other cases the best-of-two scheme behaves ex-actly like the round-robin scheme. Although the round-robinand best-of-two schedulers perform close to the TA-KiBaMscheduler in most cases, for some loads the schedules lead tosigniﬁcantly shorter lifetimes. The TA-KiBaM scheduler yieldslifetime improvements up to 32%. Of course, it has to be noted,
+
+--- Page 5 ---
+280IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 6, NO. 3, AUGUST 2010TABLE ISYSTEMLIFETIMECOMPUTED FORALLTESTLOADSACCORDING TO THEFOURSCHEDULINGSCHEMES.NEXT TO THEVALUES OF THELIFETIMES,THEDIFFERENCERELATIVE TO THEROUND-ROBINSCHEME AREGIVEN
+Fig. 5. The schedules and the total and available charge in the batteries for the(a) best-of-two and (b) the optimal schedule for the ILs_alt load.that the TA-KiBaM scheduler is not practically useable, sinceone needs to to know the exact load function in advance.Besides the system lifetimes, the
+evaluation ofthe TA-KiBaM also provides the actual schedules which leadto these lifetimes, as well as the evolution of the charge in thebattery. Fig. 5 shows the evolution of the total and availablecharge in the two batteries (left
+axis) for both the best-of-twoscheduler [Fig. 5(a) and the TA-KiBaM scheduler (Fig. 5(b)],in the ILl_alt case. In the ﬁgure, also the two schedules (right
+axis) are shown. When a battery is chosen, one can see thetotal and available charge decrease due to the load. The slope ofthe curves is proportional to the discharge current. When a bat-tery is not used, one clearly observes the recovery effect. Notethat, when the batteries are empty, still a relatively large amountof charge remains in the battery (approximately 3.9 Amin perbattery). Due to the high complexity of ﬁnding the TA-KiBaMschedule, it is possible to model only a limited total battery ca-pacity. The used discharge currents are relatively high for thebattery’s capacity, and will drain the available charge well fast.Therefore, there will be little time for the bound charge to be-come available, and a large fraction will remain unused. Whenthe battery capacity is increased this fraction will be smaller.Using the deterministic scheduling scheme, we can compute theresults for larger capacities. For example, with a ten times largercapacity, the fraction of charge left behind in the batteries willbe less than 10% in the case of best-of-two scheduling.When we look at the two schedules in Fig. 5, we see thatthe best-of-two schedule acts like a round-robin scheduler thatswitches batteries after the high current jobs. The TA-KiBaMschedule seems to behave randomly, no direct relation betweenthe state of the batteries and the schedule can be made. TheTA-KiBaM schedule does depend strongly on the size of the bat-teries and their parameters, as well as on the load that is applied.B. Towards Random LoadsThe test loads presented in the previous section are veryregular. The discharge current switches after ﬁxed time periods.However, most realistic loads are not regular and have dischargeand idle periods of random length. As a ﬁrst step towards morerealistic loads, we introduce discharge periods of randomlength. The load proﬁle we use is still an on-off load, wherethe discharge current switches between 250 and 0 mA. Alloff-periods last 1 min. However, the lengths of the on-periodsare chosen from a uniform distribution on [1/2 min, 3/2 min].The scheduling decision is made at the start of each on-period.To see how the different scheduling schemes perform for thisrandom load, 500 load traces have been generated. For eachof these traces, the system lifetime under the four schedulingschemes has been computed for two batteries with 5 Amincapacity. Since the loads are random, the result is now an em-pirical distribution. The results are shown in Fig. 6. Like withthe test loads, the sequential scheduler results in much shorterlifetimes than the other schedulers, and is far from optimal. On
+
+--- Page 6 ---
+JONGERDENet al.:C O M P U T I N GO P T I M A LS C H E D U L E SO FB A T T E R YU S A G EI NE M B E D D E DS Y S T E M S 2 8 1
+Fig. 6. Lifetime distributions of the four scheduling schemes for 500 randomloads.average the TA-KiBaM scheduler outperforms the sequentialscheduling scheme by 70%. The results of the round-robinscheduler and the best-of-two scheduler lie close to each other,although the latter performs slightly better. The schedules ofTA-KiBaM outperform round-robin and best-of-two by 10%and 8%, respectively.V. NONUNIFORMSCHEDULERGENERATIONThe LPTA approach described in Section III was based onthe assumption that a scheduling decision must be made at pre-deﬁned points in time. Even with this restriction, schedule gen-eration for realistic battery capacities is not feasible due to anexponential growth of the time needed to assess all possibleschedules. In this section, we investigate a slightly more gen-eral scheduling problem, which differs in two points. First, thequestion is not only to choose the optimal among available bat-teries, but alsowhento do this; second, a battery can be reusedafter its
+has been completely drained and some recoverperiod afterwards. The chosen approach to tackle this sched-uling problem isanalytic.A. Identical BatteriesConsider
+identical batteries with parameters
+,
+,and
+. A switching mechanism is a collection of
+functions
+with
+,
+.
+iff battery
+is selected at time
+. Note that
+, for
+.When a battery is selected, a charge is drawn from it withcurrent
+. Given the switching mechanism
+, theavailable and bound charges of all
+batteries can be expressedusing the system of ODEs in (1)
+(4)where
+is the available charge and
+is the bound chargein battery
+. Here, we take again the initial conditions
+Fig. 7. Control function
+and the available charges
+and
+.
+and
+, where
+is the total initial batterycharge. Similar as before,
+and
+.Example 1:Fig. 7 depicts the available charge of twobatteries, where the switching functions
+and
+are deﬁned in terms of the piecewiseconstant control function
+. Note that in the interval of time
+, the ﬁrst battery is selected and therefore the availablecharge decreases, while the available charge of the secondbattery remains constant. When in the interval of time
+the second battery is selected, the available charge
+decreases, while
+increases due to the recovery effect.Given
+batteries with identical parameters
+,
+and
+, and aswitching mechanism
+, the total available charge
+and bound charge
+at time
+is given by the following theorem.Theorem 1:The total available charge
+and the totalbound charge
+is given by the following system of ODEs:
+(5)where
+,
+and the initialconditions are
+and
+.Proof:By adding up (4) for all
+, and the factthat
+for all
+.Theorem 1 shows that the total remaining available chargeof
+batteries at any time
+is equal to the total charge of asingle battery
+with initial capacity
+, and parameters
+and
+. More remarkable is the fact that the total remainingcharge of all
+batteries doesnotdepend on the control func-tions
+at all. This surprising result will be pivotalin the following investigation.For a constant load function
+with
+, the solu-tion to (5) can be derived as
+and
+(6)
+
+--- Page 7 ---
+282IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 6, NO. 3, AUGUST 2010where
+. The available charge
+from (6) ismonotonously decreasing due to the fact that
+.Also notice that
+. There exists thereforea time point
+, where
+, and for all
+,
+. One could say that
+is the maximum total life-time achieved by
+batteries under any switching mechanism
+. The maximum total lifetime
+can be expressedanalytically as follows:
+(7)where
+is the Lambert
+function.Theorem 1 proves that it is rather simple to obtain the optimallifetime of
+batteries: the problem can be reduced to ﬁndingthe maximum total lifetime of a single battery
+with
+-foldinitial capacity, and otherwise identical parameters
+and
+.Unbalanced Case:Eq. (6) describes the evolution of
+and
+for the special case of a initial height difference of 0 between
+and
+, and initial charge
+. The equations canbe generalized to the unbalanced case, where the total chargeis distributed over
+and
+with a nonnegative heightdifference. This is deﬁned by the following equations:
+(8)where
+is the charge in the
+after
+timeunits have passed,
+is the charge in the
+,
+is the chargein the
+(both at time 0),
+is the constant current applied,
+the time and
+. The initial total charge is thus
+, and the initial height difference
+,which, for the equations to be valid, we assume to be non-negative. It is straightforward to verify that
+[(6)] equals
+for
+, 2, and that
+with
+, for
+, 2.For the unbalanced case, the total remaining lifetime for aconstant load can be expressed as
+(9)where again
+is the Lambert
+function, and other parame-ters as before.B. Greedy Scheduler AlgorithmTheorem 1 suggests that to reason about the scheduling ofbatteries is unnecessary, since any switching mechanism woulddo. However, this is only true under certain unrealistic assump-tions. Again, we consider
+batteries controlled by a piece-wise constant switching mechanism
+. The the-orem does not take into account that for all batteries
+must hold at all time. Furthermore, the condition
+with
+being the maximum lifetime of
+for given load
+indicates that for each individual battery
+,
+, i.e.,the
+of the
+batteries must all be empty at this precisepoint in time. The total charge left in the batteries is
+,i.e., there must be several batteries
+suchthat
+. The batteries
+thus still have poten-tial for recovery at time
+. The discrete switching functions
+must then have the property to switch faster and fasterbetween batteries as
+approaches
+, in order to ensure that
+and no battery has time to recover fromits
+: in the time interval
+thus an inﬁnite number ofswitching points must occur.In practice, it is unrealistic to assume an inﬁnite number ofswitching points. In the following, we thus consider only a ﬁnitenumber
+of switches and investigate how to place them in theinterval
+. The time line is thus divided into
+pieces,such that for all
+,
+,
+,if the
+th battery is selected in the interval
+.
+is not considered a switching point. The total lifetime in thissetting is deﬁned as the time
+, which is the time when theavailable charge of the battery chosen last at time
+reaches 0.Note that
+is also not a switch, and the
+are constantfor
+.Constant Load:Initially, we consider that the load function
+is constant, i.e.,
+, for all
+.Therefore, for the
+th battery and
+the available andbound charge can be computed recursively as follows, using (8):
+(10)where
+and
+,
+,
+,
+and
+, forall
+.Scheduling problem: Given
+batteries with parame-ters
+,
+and
+switches, the scheduling problem isto ﬁnd all switching time points
+and
+,
+,
+, such that
+, and thetotal life-time
+ismaximized.The problem is thus now to ﬁnd a good schedule for a givennumber of switching points
+. However, Theorem 1 alreadyindicates that it is not the schedule that is relevant. As it turnsout, more important is the number of switching points that isallowed, which is clearly indicated by Fig. 8. There, the
+axisrepresents the number of switching points, the
+axis the op-timal lifetime that can be achieved with the number of switches.We see three curves for different constant load functions. Thenumber of batteries is
+. We see clearly that for
+A, the total lifetime is nearing asymptotically a constant, whichis actually the optimal lifetime
+. For the higher loads, the samephenomenon can be observed.We are now in a position to deﬁne a family of schedules forany number of identical batteries
+.Deﬁnition 1 (Greedy Schedule Generation):• Find all time points
+,
+, such that
+such that for
+it holds:
+.
+
+--- Page 8 ---
+JONGERDENet al.:C O M P U T I N GO P T I M A LS C H E D U L E SO FB A T T E R YU S A G EI NE M B E D D E DS Y S T E M S 2 8 3
+Fig. 8. Dependence of the total lifetime regarding the number of switches forthree constant load functions and two batteries.
+Fig. 9. Example of a piecewise constant load function
+.•
+, for all
+.Informally. thegreedy scheduler(GS) works as follows: ini-tially the ﬁrst battery is drained until
+, then weswitch to the second battery and so on. When the
+’th batteryis drained at time point
+, i.e.,
+we switch backto the ﬁrst battery and the scheduler algorithm continues fromthere on. This scheduler behaves like the sequential scheduler inSection IV with the improvement that the batteries are allowedto be reused after being emptied. Note that in general the numberof switching points
+is still inﬁnite. This can be mended by justusing the ﬁrst
+points of the schedule, if
+is given in advance,or stop switching once the condition
+,
+forsome
+, holds. Then, we set
+. In this case, thetotal lifetime will be
+.Piecewise Constant Loads:Assume a piecewise constantload function which is deﬁned by right-open, left-closed in-tervals
+with interval width
+(see Fig. 9 for an initial piece) and constant currents
+on the respective intervals. The switching points
+,
+, are deﬁned precisely as in the constant case (cf.Deﬁnition 1). However, the question is, how to compute thesepoints effectively? This can be done in an iterative manner,using (8) and (9). Assume switching points
+alreadygiven and battery
+chosen as the next battery at time
+.Assume also that
+. Let
+be theavailable charge of battery
+at time
+.1) If
+, set
+for
+, 2. Otherwise, set
+andterminate.2) Compute the values
+for
+,2and
+, using the boundary points of inter-vals
+, where
+is determined by thecondition
+. Then set
+and terminate.The switching points
+,
+can be computed successivelyusing this scheme, starting with
+.Note that there is in fact no proof that an inﬁnite schedule gen-erated by the GS algorithm would actually approach the max-imal lifetime. This is an open problem, subject to further in-vestigation. However, experimental results show that the pro-posed scheme comes very close to the optimal lifetime, whichalso for piecewise constant loads is determined by the ODE inTheorem 1.C. Alternative SolutionBesides the schedules generated by the GS algorithm, we cangenerate schedules by specifying the scheduling problem as anoptimization problem. To do so, we need to pick an objectivefunction, i.e., the function which needs to be maximized, and aset of constraints.The objective function is deﬁned as
+, i.e.,the total lifetime
+. The set of constraints will represent theavailable charge at time points
+,
+. Using (8),we deﬁne more formally the optimization problem as follows:
+Here, we assume the load function
+is constant. Also, asfor the GS algorithm, we take
+, for all
+, for
+.The above optimization problem is a nonlinear programmingproblem due to the fact that the set of constraints are nonlinearfunctions. It is important to note that by wisely choosing theset of constraints, i.e., considering only the set of constraints
+such that
+is the time point when the
+th batteryis discharging, the above nonlinear programming problem be-comes a convex optimization problem. Note that this will holdas soon as the load function is constant. As the optimizationproblem is convex any local minimum is also a global one.Convex optimization problems can be solved efﬁciently, for in-stance by using interior-point method algorithms [6].D. Greedy Schedule Algorithm ResultsThe system lifetime for the test loads introduced inSection IV-A has also been computed using the GS approach.The results are given in Table II. For most of the test loads theresults are close to the lifetimes obtained by the TA-KiBaMscheduler. However, for three of the loads the schedules ob-tained from the GS approach result in a signiﬁcantly longerlifetime. This difference is due to the fact that the TA-KiBaMscheduler can only switch batteries at ﬁxed points in time,while in the GS schedule batteries may be switched at anytime. The limitation in switching options may result in one of
+
+--- Page 9 ---
+284IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 6, NO. 3, AUGUST 2010TABLE IISYSTEMLIFETIME FOR THETESTLOADSUSING THEGREEDYSCHEDULES ANDTHETA-KiBaM SCHEDULES.FOR THEHIGHLIGHTEDLOADS THEGREEDYSCHEDULELEADS TO ASIGNIFICANTLYLONGERLIFETIME
+the batteries being emptied sooner, and thus giving a shortersystem lifetime.Besides that the schedules of the GS approach lead to longerlifetimes, the GS approach has one major beneﬁt compared tothe TA-KiBaM. Where the TA-KiBaM cannot handle batterieswith large capacity due to the exponential growth of the statespace, the GS approach can cope with larger batteries.VI. DISCUSSIONIn this section, we compare the TA-KiBaM and the analyticapproaches. The TA-KiBaM produces schedules for given loadfunctions and predeﬁned scheduling points. At these schedulingpoints a switch between batteries can occur, but does not haveto. In the considered scenarios, decision points are predeﬁnedand coincide in the nonconstant cases with the times where theload changes. While this choice was made to keep the schedulegeneration within reasonable time and memory-bounds, it is ofcourse straightforward to deﬁne more or different schedulingpoints. The more there are, the better the resulting schedulesshould approximate the results of the greedy scheduler.In the case of batteries with identical parameters, Theorem 1suggests that proactive scheduling as done with the TA-KiBaMis hardly necessary: as long as the internal state of a batteryis accessible or reasonably well predictable, the greedy sched-uler can be easily implemented, and optimal usage of a batteryachieved. The situation changes however, when batteries withdifferent parameters are considered (as is done for example in[16]). In that case Theorem 1 does not hold anymore. However,an adapted version of the TA-KiBaM can then still be used toderive schedules.A related question is whether Theorem 1 does not in fact sug-gest to abandon scheduling altogether, at least if identical bat-teries are involved: since two batteries with identical parame-ters behave apparently like one battery with the same parame-ters and double capacity, one could conjecture that it is possibleto just put two identical batteries in parallel and drain them asone big battery. However, this conjecture needs to be validated,i.e., it requires experimental evidence that two batteries indeedbehave as one battery with the same KiBaM parameters whenput in parallel. In particular, voltage, which is abstracted awayin the KiBaM, becomes an issue. Even for two batteries of thesame type a difference in the potential of the batteries can occur.Then, a current will ﬂow between the batteries, resulting in lossof capacity and possibly damage to the batteries. Using batteriesin parallel requires extra electronic circuitry which consumessome power and decreases efﬁciency. Scheduling could reducethe power consumption, and at the same time approach the op-timal lifetime.There are also situations where scheduling is preferable overputting batteries in parallel, for example, routing in a sensor net-work. Although each sensor, in general, is powered by only onebattery, the entire network is powered by many. Often there areseveral routes from a sensor node to the data sink to send thecollected data through the network. To keep all the sensors pow-ered as long as possible, battery-aware routing has to be done,i.e., the decision on which sensor has to forward the data has tobe based on the status of the sensor’s batteries. Switching fromone route to the other will give the batteries time to recover andthus give a longer lifetime to the sensor network as a whole. Inthis way, the routing problem is turned into a battery schedulingproblem.VII. RELATEDWORKOptimal scheduling of batteries has attracted quite some at-tention in the literature. We consider here the main approaches.In [7], Chiasserini and Rao use a discrete-time Markov bat-tery model to compare three different scheduling schemes in amultiple battery system. In the model, the recovery of the bat-tery is considered as a random process. Also the load appliedis stochastic. The complexity of the used model limits the bat-tery capacity to very small batteries. The three schedulers thatare considered are the round-robin and best-of-two scheduler,which are also used here, and a random scheduler. The sched-ulers are compared for different job arrival rates. The resultsshow that the best-of-two scheduler outperforms the other two.However, the model does not allow for any optimization withrespect to battery schedule.Also, in [5], the analysis is limited to deterministic sched-ulers. Beniniet al.consider sequential scheduling, round-robinscheduling and various types of best-of-two scheduling, whereeither the output voltage or the time that a battery has been un-used determines which battery is to be scheduled. The differentscheduling schemes are applied to several battery conﬁgurationscontaining up to four batteries. The loads that have been usedare simple continuous and intermitted loads and two real-lifeexample load proﬁles. Which scheduler performs best dependson the applied load. However, Beniniet al.do show that forround-robin scheduling the system lifetime increases when theswitching frequency is increased.A completely different battery scheduling approach is takenin [16]. Instead of using two identical batteries, Wuet al.usetwo batteries with different discharge characteristics. The ﬁrstbattery has a high capacity and performs well at low dischargecurrents, whereas the second has a lower capacity but performsbetter at high discharge currents. The scheduling decision istaken with respect to the level of the discharge current. In thisway both batteries are used only for currents where they performthe best. Wuet al.show that this way of scheduling may lead toa 30% lifetime improvement compared to using only one typeof battery.
+
+--- Page 10 ---
+JONGERDENet al.:C O M P U T I N GO P T I M A LS C H E D U L E SO FB A T T E R YU S A G EI NE M B E D D E DS Y S T E M S 2 8 5In all this work, the battery scheduling is limited todeter-ministicscheduling schemes. All show that battery schedulinggives longer system lifetime than when the batteries are usedsequentially. However, they do not indicate whether longer life-time could be possible by using smarter scheduling. In [15],Sarkar and Adamou propose an algorithm for computing an op-timal scheduling scheme based on the stochastic battery modelof Chiasserini and Rao. To do this they translate the problemto a stochastic shortest path problem. The optimal solution canonly be computed for small batteries. However, they do showthat best-of-two scheduling performs close to optimal.VIII. CONCLUSIONIn this paper, we provide two different approaches to maxi-mize system lifetime by battery scheduling. The ﬁrst approachmodels a discretized version of the KiBaM using linearlypriced-timed automata. In this approach, the scheduling deci-sion is made at predeﬁned points in time, e.g., at load changes.With model checking techniques the best possible batteryschedule is found, up to an error due to the discretization.In the second approach, an analytical analysis of the KiBaMis made. The main result is that the actual schedule is not impor-tant when one can change between batteries at arbitrary pointsin time. Based on this conclusion, we propose a greedy sched-uler algorithm that only switches batteries when the one used isperceived as empty.The results show that both approaches lead to signiﬁcantlonger lifetimes compared to simply using the batteries se-quentially. With the greedy algorithm it is possible to docomputations for larger and more batteries, which is not pos-sible with the TA-KiBaM. However, the TA-KiBaM allowsfor extra limitations on the time of scheduling, and the modelchecking techniques ensure that the best possible schedule willbe found.The modeled battery is a lithium-ion battery. This type is usedin most handheld mobile devices. It would be interesting to seewhether battery scheduling would also beneﬁcial for other bat-tery types, e.g., those that are used in big systems like electriccars.REFERENCES[1] UPPAAL Cora webpage. [Online]. Available: www.cs.aau.dk/~behrmann/cora/index.html[2] R. Alur, C. Courcoubetis, and D. Dill, “Model-checking in dense real-time,”Inf. Comput., vol. 104, no. 2, pp. 2–34, 1993.[3] R. Alur, S. La Torre, and G. J. Pappas, “Optimal paths in weightedtimed automata,” inProc. Hybrid Syst.: Comput. Control (HSCC ’01),M. D. Di Benedetto and A. Sangiovanni-Vincentelli, Eds., 2001, vol.2034, LNCS, pp. 49–62, Springer-Verlag.[4] G. Behrmann, A. Fehnker, T. Hune, K. Larsen, P. Pettersson, J. Romijn,and F. Vaandrager, “Minimum-cost reachability for priced time au-tomata,” inProc. Hybrid Syst.: Comput. Control (HSCC ’01), M. D.Di Benedetto and A. Sangiovanni-Vincentelli, Eds., 2001, vol. 2034,LNCS, pp. 147–161.[5] L. Benini, G. Castelli, A. Macii, E. Macii, M. Poncino, and R. Scarsi,“Extending lifetime of portable systems by battery scheduling,” inDe-sign, Automation and Test in Europe (DATE), Los Alamitos, CA, 2001,pp. 197–203.[6] S. Boyd and L. Vandenberghe, Convex Optimization. Cambridge,U.K.: Cambridge University Press, 2004.[7] C. F. Chiasserini and R. R. Rao, “Energy efﬁcient battery manage-ment,”IEEE J. Sel. Areas Commun., vol. 19, no. 7, pp. 1235–1245,2001.[8] M. R. Jongerden and B. R. Haverkort, “Which battery model to use?,”IET Software, vol. 3, no. 6, pp. 445–457, 2010.[9] M. R. Jongerden, B. R. H. M. Haverkort, H. C. Bohnenkamp, and J. P.Katoen, “Maximizing system lifetime by battery scheduling,” inProc.39th Annu. IEEE/IFIP Int. Conf. Dependable Systems and Networks(DSN 2009), 2009, pp. 63–72.[10] J. F. Manwell and J. G. McGowan, “Lead acid battery storage modelfor hybrid energy systems,”Solar Energy, vol. 50, pp. 399–405, 1993.[11] J. F. Manwell and J. G. McGowan, “Extension of the kinetic batterymodel for wind/hybrid power systems,” inProc. 5th Eur. Wind EnergyAssoc. Conf. (EWEC ’94), 1994, pp. 284–289.[12] J. F. Manwell, J. G. McGowan, E. I. Baring-Gould, W. Stein, and A.Leotta, “Evaluation of battery models for wind/hybrid power systemsimulation,” inProc. 5th Eur. Wind Energy Assoc. Conf. (EWEC ’94),1994, pp. 1182–1187.[13] D. Rakhmatov, S. Vrudhula, and D. A. Wallach, “Battery lifetime pre-dictions for energy-aware computing,” inProc. 2002 Int. Symp. LowPower Electron. Design (ISLPED’02), 2002, pp. 154–159.[14] D. Rakhmatov, S. Vrudhula, and D. A. Wallach, “A model for batterylifetime analysis for organizing applications on a pocket computer,”IEEE Trans. VLSI Syst., vol. 11, no. 6, pp. 1019–1030, 2003.[15] S. Sarkar and M. Adamou, “A framework for optimal battery manage-ment for wireless nodes,”IEEE J. Sel. Areas Commun., vol. 21, no. 2,pp. 179–188, 2003.[16] Q. Wu, Q. Qiu, and M. Pedram, “An interleaved dual-battery powersupply for battery-operated electronics,” inProc. Conf. Asia South Pa-ciﬁc Design Autom. (ASP-DAC’00), 2000, pp. 387–390.
+Marijn Jongerdenreceived the B.S. degree inmathematics and the M.S. degree in physics fromthe VU University Amsterdam, Amsterdam, TheNetherlands, in 2000 and 2005, respectively. He iscurrently working towards the Ph.D. degree at theCentre for Telematics and Information Technology,University of Twente, Enschede, The Netherlands, inthe Group on Design and Analysis of Communica-tion Systems. His Ph.D. research is on maximizinglifetime of battery powered embedded systems.
+Alexandru Mereacrereceived the B.S. degree incomputer science from the Technical University ofMoldova, Moldova, in 2005 and the M.S. degree incomputer science from RWTH Aachen University,Aachen, Germany, and the University of Trento,Trento, Italy, in 2007. He is currently working to-wards the Ph.D. degree with the Group on SoftwareModeling and Veriﬁcation, Technical UniversityAachen.His research interests include modeling of proba-bilistic and stochastic systems, state space minimiza-tion and veriﬁcation of time-inhomogeneous Markov chains.
+Henrik Bohnenkamp(M’03) received the Diplomadegree in computer science from the UniversityErlangen-Nürnberg, Erlangen, Germany, in 1995and the Ph.D. degree in computer science from theRWTH Aachen University, Aachen, Germany, in2002.He is a Researcher with the Group on SoftwareModeling and Veriﬁcation, Technical UniversityAachen. He held positions at the Computer ScienceDepartment, University of Twente, The Netherlands.His research interests include modeling of proba-bilistic and stochastic systems, semantics, and speciﬁcation-based testing.
+
+--- Page 11 ---
+286IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 6, NO. 3, AUGUST 2010
+Boudewijn Haverkort(F’07) received the M.Sc.and Ph.D. degree in computer science from theUniversity of Twente, Enschede, The Netherlands,in 1986 and 1991, respectively.He has been a Lecturer at the University of Twente(1991–1995), before he was appointed Professor ofDistributed Systems at the RWTH Aachen Univer-sity, Aachen, Germany (1995–2002). In 2003, he wasappointed as Full Professor of Design and Analysis ofCommunication Systems at the University of Twente.From 2008 to 2009, he was Chairman of the Depart-ment of Computer Science. Since March 2009, he is also Scientiﬁc Directorand Chairman of the Embedded Systems Institute, Eindhoven, The Netherlands,a public-private partnership for applied research on embedded systems engi-neering. He has written over 100 papers on performance and dependability mod-eling and evaluation in computer and communication systems. He also pub-lished a textbook on this topic, as well as a number of conference proceedings.He has been host (general chair and PC chair) of a large number of internationalconferences.Prof. Haverkort is a member of the ACM and GI.
+Joost-Pieter Katoenis a Full Professor at theRWTH Aachen University, Aachen, Germany,and is associated part-time with the University ofTwente. His research interests include concurrencytheory, model checking, timed and probabilisticsystems, and semantics. He coauthored more than130 journals and conferences papers, and coauthoreda comprehensive book (with C. Baier) onPrinciplesof Model Checking.Prof. Katoen is a Steering Committee Memberof QEST, ETAPS, and FORMATS, and is SeniorMember of the ACM.

@@ -1,0 +1,2285 @@
+--- Page 1 ---
+Software Tools for Technology Transfer manuscript No.
+(will be inserted by the editor)
+Closed-loop Verication of Medical Devices with Model
+Abstraction and Renement?
+Zhihao Jiang, Miroslav Pajic, Rajeev Alur and Rahul Mangharam
+University of Pennsylvania, Philadelphia PA, USA
+Received: date / Revised version: date
+Abstract. The design and implementation of software
+for medical devices is challenging due to the closed-loop
+interaction with the patient, which is a stochastic physi-
+cal environment. The safety-critical nature and the lack
+of existing industry standards for verication, make this
+an ideal domain for exploring applications of formal mod-
+eling and closed-loop analysis. The biggest challenge is
+that the environment model(s) have to be both complex
+enough to express the physiological requirements, and
+general enough to cover all possible inputs to the de-
+vice. In this eort, we use a dual chamber implantable
+pacemaker as a case study to demonstrate verication
+of software specications of medical devices as timed-
+automata models in UPPAAL. The pacemaker model
+is based on the specications and algorithm descrip-
+tions from Boston Scientic. The heart is modeled using
+timed automata based on the physiology of heart. The
+model is gradually abstracted with timed simulation to
+preserve properties. A manual Counter-Example-Guided
+Abstraction and Renement (CEGAR) framework has
+been adapted to rene the heart model when spurious
+counter-examples are found. To demonstrate the closed-
+loop nature of the problem and heart model renement,
+we investigated two clinical cases of Pacemaker Mediated
+Tachycardia and veried their corresponding correction
+algorithms in the pacemaker. Along with our tools for
+code generation from UPPAAL models, this eort en-
+ables model-driven design and certication of software
+for medical devices.
+Key words: Medical Devices, Implantable Pacemaker,
+Software Verication, Cyber-Physical Systems, Model
+Abstraction and Renement, CEGAR
+?This research was partially supported by NSF research
+grants MRI 0923518, CAREER 1253842, CNS 1035715 and CCF
+0915777.1 Introduction
+Over the past four decades, cardiac rhythm management
+devices such as pacemakers have expanded their role
+from \keeping the patient alive" to \improving the qual-
+ity of the patient's life". The addition of more safety and
+ecacy features has resulted in increased complexity, in-
+evitably leading to more potential safety issues. From
+1996-2006, the percentage of software-related causes in
+medical device recalls have grown from 10% to 21% [1].
+During the rst half of 2010, the US Food and Drug Ad-
+ministration (FDA) issued 23 recalls of defective devices,
+all of which are categorized as Class I , meaning there is
+a \reasonable probability that use of these products will
+cause serious adverse health consequences or death." At
+least six of the recalls were caused by software defects [2].
+Medical devices, such as the implantable cardiac pace-
+maker, are perfect examples of Cyber-Physical Systems
+(CPS), in which the controller (the pacemaker) actively
+interacts with a stochastic plant (the heart). While in
+other CPS domains like the aviation and automotive in-
+dustries, standards are enforced during software devel-
+opment, manufacturing, and post-market change [3,4],
+there are no well-established standards or tools for de-
+velopment of software for medical devices. One reason is
+because the software design in medical device industry is
+dierent from other industries. With physiological con-
+trol systems, the is a large degree of uncertainty in the
+model of the organ and physiological process. The modes
+of operation vary across the population of patients, level
+of activities, metabolic rates, and so on. Thus, the safety
+and ecacy of the device should be evaluated in closed-
+loop based on the well-being of the patient, which relies
+on extensive domain knowledge on the physical environ-
+ment. In model-based design, this unique feature results
+in two contradictory requirements on the environment
+model.
+
+--- Page 2 ---
+2 Zhihao Jiang et al.: Pacemaker Verication
+ 
+ 
+ 
+Conformance Testing  Test  
+Generation  Domain  
+Expert  
+Software 
+Engineer  
+Electrical  
+engineer  Safety/Efficacy  
+Requirements  
+Software 
+specifications  
+Implementation  Safety/Efficacy 
+properties  
+System  
+model  
+Test Cases  Environment  
+model  Model Checking  a 
+b 
+Fig. 1. a. Traditional real-time software development process;
+b. model-based design framework
+1. The environment model has to be complex
+enough
+Since the safety properties are specied based on the pa-
+tient conditions, the environment model has to be able
+to represent specic patient conditions and condition
+groups, regardless of the capability of the device. When
+a certain algorithm is targeting a very specic patient
+condition, the environment model should be complex
+enough to distinguish that particular patient condition
+from other conditions.
+2. The environment model has to be general
+enough
+Unlike products in other industries, most medical device
+products have to be able to deal with large variety of
+environmental conditions. Thus the environment model
+used during safety evaluation has to be general enough
+to cover all possible scenarios.
+The more complex the environment model is, there
+are usually more constraints on model outputs, which
+then reduce the coverage for the input to the device. It
+is contradictory that a single model can be both general
+and complex. One possible solution is to use multiple
+models with dierent complexity. When dierent mod-
+els are used to prove dierent properties, we have to
+make sure that the models have certain relations so that
+properties veried with one model are preserved when
+we use other models.
+1.1 Model-based Software Design Framework
+In the current practice, medical device software is largely
+designed informally, as shown in Fig. 1.a. The domain
+expert, the physician in this case, rst comes up with
+physiological safety/ecacy requirements which describe
+the objective of the device. Together with the software
+engineer, they specify the software specications for the
+device, which explain how the device software would
+achieve the requirements. Then, the software engineer
+and electrical engineer convert the software specica-
+tions to physical implementation . However, due to the dis-crepancies created during manual translations, there is
+no formal correlation from physiological requirements to
+specication and then to implementation. It is not guar-
+anteed that the nal implementation satises all physio-
+logical requirements. Thus, the safety and ecacy of the
+device cannot be ensured.
+Fig. 1.b demonstrates how to establish formal corre-
+lations throughout the development process using model-
+based design framework. The software specication of
+the system is represented by a model. Together with a
+model of the environment, the closed-loop system is veri-
+ed using model checking against safety properties which
+are converted from the safety/ecacy requirements. Sat-
+isfaction of the properties ensures that the software spec-
+ications satises the safety/ecacy requirements. Us-
+ing automatic code generation, the specication as mod-
+eled, can be translated into C code and implemented
+on hardware. The same system model can be used to
+generate test cases for conformance testing of the im-
+plementation. Satisfaction of all the tests ensures that
+the implementation successfully conforms to the soft-
+ware specication. In this paper, we use an implantable
+cardiac pacemaker as an example to demonstrate the
+use of model checking to verify whether the pacemaker
+specication satises the safety/ecacy requirements.
+1.2 Closed-loop Model Checking
+Closed-loop model checking is a widely-used technique
+to formally verify the closed-loop system model against
+safety and ecacy properties. In this paper, we model
+the closed-loop system, which consists of the heart and
+a pacemaker, using networks of timed automata [5]. The
+closed-loop system model is then veried in model checker
+UPPAAL[6] against safety properties specied in Timed
+Computational Tree Logic (TCTL).
+Safety properties are translated from physiological
+requirements learned from cardiac electrophysiology[7]
+and [8]. Intuitively the objective of a pacemaker is to
+maintain appropriate heart rate. Allowing too slow a
+heart rate or driving the heart rate too fast can cause
+serious adverse eect to the patient. Thus, it is essential
+to maintain appropriate heart rate within a safe range.
+Unsafe conditions are specied as unsafe regions within
+the state space of the closed-loop system, and their reach-
+ability can be checked with a model checker. More im-
+portantly, there are closed-loop executions in which the
+pacemaker inappropriately raises the heart rate up to
+the boundary of the unsafe regions - even from healthy
+open-loop heart conditions. These unsafe executions are
+referred to as Pacemaker Mediated Tachycardia (PMT),
+during which the pacemaker incorrectly drives the heart
+into an overly fast rate.
+We use these examples to show:
+{Whether the anti-PMT algorithms developed by de-
+vice manufacturers can successfully detect and ter-
+minate corresponding PMT.
+
+--- Page 3 ---
+Zhihao Jiang et al.: Pacemaker Verication 3
+Abstraction
+TCTL Safe?No
+YesYesHeart
+Pacemaker Timed automata model
+PhysicianPhysiological 
+requirementsNo
+Bug found System SafeRefinement
+Valid?
+Counter -
+examplesAmbiguous?
+NoYes
+Model 
+Checker
+H0 H1 H2 H3H4
+Fig. 2. Counter-Example-Guided Abstraction Renement (CEGAR) framework
+{After introducing these additional algorithms into
+the previously veried system, whether the combined
+system has unsafe states.
+{Whether the environment model, the heart model
+in this case, is complex enough to distinguish PMT
+cases from healthy heart conditions, and at the same
+time be general enough to represent all possible heart
+conditions.
+1.3 Model Abstraction and Renement
+Model abstraction [9] was originally proposed as a pow-
+erful state-reduction technique to alleviate the state ex-
+plosion problem [10] during model-checking. Models are
+created as abstraction of the original system. Since the
+abstracted models have more behaviors than the original
+system, properties satised in an abstract model will also
+be satised in the original system. In this paper, we rst
+derived a timed automata model of the heart tissue by
+extracting its timing behaviors. With a similar abstrac-
+tion scheme used in clinical Cardiac Electro-physiology
+study [7], we then abstract the whole heart as electrical
+conduction network. The heart model is then further ab-
+stracted till its simplest form which covers all possible
+inputs to the pacemaker. During each abstraction step,
+we prove that the abstracted heart model is a timed simu-
+lation of the rened heart model and properties specied
+in ATCTL* are preserved.
+Now we have a set of heart models from the cellu-
+lar level to the whole heart, with abstraction relation-
+ship between each level. The question we aim to answer
+is: What do we determine which environment model to
+use during verication for each of the dierent safetyproperties for the closed loop system? We base our ap-
+proach on the Counter-Example-Guided Abstraction Re-
+nement (CEGAR) framework, proposed by Clake et al.
+[11], which can systematically and automatically handle
+model complexity.
+In this work, we apply and extend the CEGAR frame-
+work to handle the complexity of the heart model dur-
+ing verication of a dual chamber pacemaker model. The
+framework is shown in Fig. 2. The most abstract heart
+model is rst combined with a timed-automata-based
+pacemaker model [12] based on the algorithm descrip-
+tions from Boston Scientic [13]. The closed-loop system
+is then veried in model checker UPPAAL [6] against
+safety properties (e.g. the pacemaker must not allow the
+heart rate to be too slow and must not drive the heart
+rate too fast). If the unsafe regions are not reachable
+and unsafe executions do not exist, the system is safe.
+Otherwise the model checker returns execution traces
+as counterexamples which are checked in a more rened
+heart model for validity.
+There are two scenarios where we use more rened
+heart model for model checking:
+(1) If the trace is not a valid heart-pacemaker interac-
+tion, it is referred to as a spurious counterexample . In this
+case we follow the traditional CEGAR framework. The
+property is checked with a more rened model until the
+spurious behavior is eliminated.
+(2) If the trace corresponds to a realistic heart-pacemaker
+interaction, we check further whether the returned traces
+only contain unsafe conditions that we are looking for.
+If the traces returned contains other heart conditions,
+the counter-example is referred to as ambiguous . In this
+case the property is checked with a more rened model
+
+--- Page 4 ---
+4 Zhihao Jiang et al.: Pacemaker Verication
+until the ambiguity is removed. Otherwise we conrm a
+potential bug has been found.
+In this paper, we use two Pacemaker Mediated Tachy-
+cardia (PMT) (i.e. when the pacemaker drives the heart
+into an unsafe state) cases as example to demonstrate
+the two scenarios which require heart model renement.
+By using the improved CEGAR framework we are able
+to check a wide range of physiological properties. The
+framework also improved the model checking eciency
+without losing accuracy. The heart model abstraction
+enables model checking for more complex systems and
+the model renement enables us to check more complex
+properties. In contrast to the CEGAR framework pro-
+posed by Clarke et al., the model abstraction, model
+renement and trace validity check are done manually
+and can be potentially automated in the future work.
+1.4 Contributions
+This paper builds upon our previous work in [12] in
+which we described formal modeling of the pacemaker
+and verication of closed-loop interactions with a simple
+Random Heart Model and its ad-hoc renements. The
+contributions of this paper are thus:
+1. We abstracted the heart from top-down till its sim-
+plest form, which allows us to verify wide range of
+physiological properties.
+2. The heart model abstraction is formalized and the
+timed simulation relation between each abstraction
+level are established and proved.
+3. We improved the Counter-Example-Guided Abstrac-
+tion and Renement (CEGAR) framework to balance
+model complexity and expressiveness.
+4. The safety properties are checked for all possible com-
+binations of pacemaker parameters.
+The UPPAAL models developed in this paper are avail-
+able online [14]. These models can be used as a starting
+point for many purposes (e.g. to build models with costs
+and probabilities for quantitative analysis of the ecacy
+of pacemaker algorithms; development of patient-specic
+algorithms). In particular, the veried pacemaker model
+can be automatically translated from UPPAAL into State-
+ow charts in Simulink for test generation and code gen-
+eration using the UPP2SF tool [15].
+1.5 Organization
+The paper is organized as follow: In Section 2, we intro-
+duce the basic description for the heart and pacemaker
+operation. In Section 3, we describe the timed automata
+model of the heart and its abstractions. In Section 4,
+we describe the timed automata model of a dual cham-
+ber pacemaker. In Section 5, we verify the pacemaker
+model against two basic safety properties in UPPAAL;
+In Section 6 and 7, we use model checking to identify
+A-lead 
+V-lead 
+Marker  AS 
+VS 
+AP 
+VP Fig. 3. (a) Electrical Conduction System of the Heart and
+pacemaker leads location. (b) Electrical signal sensed from
+the pacemaker leads are converted to event markers (AS,VS).
+Pacemaker delivers electrical pacing (AP,VP) from corre-
+sponding leads when heart rate is slow.
+two known cases of PMT, in which the pacemaker in-
+appropriately increases the heart rate. We evaluate the
+safety and eectiveness of two anti-PMT algorithms cor-
+responding to the two common PMT cases, and demon-
+strate two scenarios for heart model renements.
+2 Overview of the Heart's Electrical
+Conduction System
+In this section, we review basic concepts related to the
+heart and its electrical conduction system which inter-
+acts with the pacemaker. In-depth material of cardiac
+electro-physiology can be found in [16].
+2.1 Basics of Cardiac Electrophysiology Operation
+The coordinated contraction of the heart is governed by
+its Electrical Conduction System (see Fig. 3). The Sinoa-
+trial (SA) node, which is a collection of specialized tissue
+at the upper right atrium, periodically spontaneously
+generates electrical pulses that can cause muscle con-
+traction. The SA node acts as the natural pacemaker of
+the heart. The electrical pulses rst cause both atria to
+contract, forcing the blood into the ventricles. The elec-
+trical conduction is then delayed at the Atrioventricular
+(AV) node, allowing the ventricles to ll fully. Finally,
+the fast-conducting His-Pukinje system spreads the elec-
+trical activation within both ventricles, causing simulta-
+neous contraction of the ventricular muscles, and pumps
+the blood out of the heart. The electrical conduction
+system of the heart is a timed system and appropriate
+timing is key to proper heart rhythm.
+Due to various factors such as aging and disease,
+the conduction properties of heart tissue may change.
+These changes often cause timing anomalies in heart
+rhythm, thus decreasing the blood pumping eciency
+of the heart. These timing anomalies are referred to as
+arrhythmias, and are categorized into so-called Tachy-
+cardia and Bradycardia . Tachycardia features undesirable
+
+--- Page 5 ---
+Zhihao Jiang et al.: Pacemaker Verication 5
+fast heart rate which results in inecient blood pump-
+ing. Bradycardia features slow heart rate which results
+in insucient blood supply. Bradycardia is due to fail-
+ure of impulse generation with anomalies in the SA node,
+or failure of impulse propagation where the conduction
+from atria to the ventricles is delayed or blocked.
+2.2 Interfacing the Heart with the Pacemaker
+Heart tissue can also be activated by external electri-
+cal pulses. Implantable Pacemakers have been developed
+to deliver timely electrical pulses to the heart to main-
+tain an appropriate heart rate and Atrial-Ventricular
+synchrony. Implantable pacemakers normally have two
+leads xed on the wall of the right atrium and the right
+ventricle respectively (Fig. 3 (a)). These leads are capa-
+ble of both sensing electrical activity in the heart tis-
+sue and are able to emit pacing signals into the tissue.
+Tissue activation near the leads is sensed by the leads,
+triggering an Atrial Sense (AS) and Ventricular Sense
+(VS) events in the pacemaker (see Fig. 3 (b)). Atrial
+Pacing (AP) and Ventricular Pacing (VP) are delivered
+if no sensed events occur within pre-specied deadlines.
+A dual chamber pacemaker only utilizes activation tim-
+ing information of two small regions in the heart. The
+\low-resolution" sensing of the pacemaker results in its
+limited knowledge of current heart condition thus could
+lead to potential incorrect estimation of the heart's elec-
+trical activity and result in inappropriate therapies.
+In order to deal with dierent heart conditions, mod-
+ern pacemakers can be programmed to operate in dier-
+ent modes. The modes are labeled using a three char-
+acter system (e.g. DDD) by the Heart Rhythm Society
+[16]. The rst character describes the pacing locations
+(i.e. atrium or ventricle or both), the second character
+describes the sensing locations, and the third character
+describes how the pacemaker software responds to sens-
+ing. For example, the dual-chamber DDD mode stands
+for sensing in both atrium and ventricle, and pace both
+of them if needed. In this eort, we describe two most
+commonly used modes of pacemaker, the dual-chamber
+DDD mode, that paces both the atrium and the ventri-
+cle, senses both chambers, and sensing can both activate
+or inhibit further pacing. Similarly, the VDI mode paces
+only in the ventricle, senses both chambers, and inhibits
+pacing if event is sensed [8]. During certain heart condi-
+tion changes, the pacemaker has to switch between dif-
+ferent modes to achieve better treatment. It is very im-
+portant to ensure that the mode-switches are performed
+as intended, and no safety issues can occur during the
+transition between dierent modes.
+3 Heart Modeling and Abstraction
+In this section, we model the timing behaviors of the
+heart using timed automata [5]. We rst model the hearttissue at cellular level. Through a series of abstractions
+we end up with a series of heart model with complexity
+from maximum to the minimum. By proving the timed
+simulation relationship between each pair of heart model
+abstractions, the properties proved in the abstract level
+can be preserved. By specifying the safety properties
+with a universal subset of Timed Computational Tree
+Logic (ATCTL)[17], a model checker like UPPAAL [6,
+18] can return counter-examples upon violations of the
+properties. This enables us to balance model complexity
+and property expressiveness using the Counter-Example-
+Guided Abstraction and Renement (CEGAR) frame-
+work.
+3.1 Timed Automata and Timed Simulation
+Timed automata [5] are an extension of a nite automa-
+ton with a nite set of real-valued clocks. It has been
+used for modeling and verifying systems which are trig-
+gered by events and have timing constraints between
+events. UPPAAL is a standard tool for modeling and ver-
+ication of real-time systems, based on networks of timed
+automata. The graphical and text-based interface makes
+modeling more intuitive. Requirements can be specied
+using Computational Tree Logic (CTL) [19] and viola-
+tions can be visualized in the simulation environment.
+3.1.1 Syntax of Timed Automata
+A timed automaton Gis a tuplehS;S 0;;X;inv;Ei,
+where
+{Sis a nite set of locations.
+{S02Sis the set of initial locations.
+{is the set of events.
+{Xis the set of clocks.
+{invis the set of invariants for clock constraints at
+each location.
+{Eis the set of edges. Each edge is a tuple hs;;	;;s0i
+which consists of a source location s, an event2,
+clock constraints 	,as a set of clocks to be reset
+and the target location s0.
+For the clock variables X, the clock constraints 	2
+	Xcan be inductively dened by 	:=x?ck	1^	2,
+where?2f;=;g, andc2N.
+3.1.2 Semantics of Timed Automata
+A state of a timed automaton is a pair hs;viwhich con-
+tains the location s2Sand the valuation vfor all clocks.
+The set of all states is 
+. For all2X,v[:= 0] de-
+notes the valuation which sets all clocks x2as zero
+and the rest of the clocks unchanged. For all t2R,v+t
+denotes the valuation which increase all the clock value
+byt. There are two kinds of transitions between states.
+
+--- Page 6 ---
+6 Zhihao Jiang et al.: Pacemaker Verication
+The discrete transition happens when the condition of an
+edge has been met. So we have:
+hs;;	;;s0i2E;vj=	;v[:= 0]j=inv(s0)
+)(s;v)  !(s0;v[:= 0])
+The timed transition happens when the timed automaton
+can stay in the same location for certain amount of time.
+We have:
+2R;80;v+0j=inv(s)
+)(s;v)  !(s;v+)
+3.1.3 Timed Simulation
+For two timed automata T1=
+S1;S1
+0;1;X1;inv1;E1
+andT2=
+S2;S2
+0;2;X2;inv2;E2
+, a timed simulation
+relation is a binary relation sim
+1
+2where
+1
+and
+2are sets of states of T1andT2. We sayT2time
+simulatesT1(T1tT2) if the following conditions holds:
+{Initial states correspondence: (
+s1
+0;0
+;
+s2
+0;0
+)2sim
+{Timed transition: For every ( hs1;v1i;hs2;v2i)2sim,
+ifhs1;v1i  !hs1;v1+i, there existshs2;v2+isuch
+thaths2;v2i  !hs2;v2+iand
+(hs1;v1+i;hs2;v2+i)2sim.
+{Discrete transition: For every ( hs1;v1i;hs2;v2i)2sim,
+ifhs1;v1i  !hs0
+1;v0
+1i, there existshs0
+2;v0
+2isuch that
+hs2;v2i  !hs0
+2;v0
+2iand (hs0
+1;v0
+1i;hs0
+2;v0
+2i)2sim.
+Certain properties are preserved for timed simulation
+relation. For '2ATCTL , ifMtM0, we haveM0j=
+')Mj='.[17] However, M06j=')M6j='does not
+hold. Violations of ATCTL yield counter-examples and
+the validity of which need to be checked on more rened
+model.
+It is known that timed simulation relation is also
+closed under composition [17]. So when we have two
+heart models H1tH2we will have H1kPtH2kP
+wherePis the timed-automata model of the pacemaker.
+For'2ATCTL , we haveH2kPj=')H1kPj='.
+With this property we can verify the pacemaker model
+with abstract heart model. In the rest of the section, we
+will describe how we develop our initial heart model from
+the physiological perspective and abstract the model step
+by step so that the complexity of the model is reduced
+for verication. Given two heart models H1,H2and a
+timed simulation mapping sim=
+1
+2, there are no au-
+tomated methods to check H1tH2. In the Appendix,
+we show the manual proof for the timed simulation rela-
+tion between two heart models H2andH3. Other timed
+simulation relations can be proved similarly.
+3.2 Initial Tissue Model
+The initial model of the heart abstracts the electrical be-
+haviors of the heart tissue. When the tissue is activatedby an external electrical signal, the voltage across the
+tissue increases rapidly. When the voltage reaches a cer-
+tain threshold, the adjacent tissue will be activated. This
+activation then propagates throughout the heart, caus-
+ing coordinated contraction of the heart muscles. Fig. 4
+(a) shows the voltage change over time across a heart
+tissue region (solid line) and its adjacent tissue region
+(dotted line). After the activation, the heart tissue must
+recover from the activation (i.e. recharge) before it can
+be activated again. The time interval before the tissue
+voltage drops back to resting voltage is referred to as the
+Refractory Period . The refractory period can be divided
+into the Eective Refractory Period (ERP) and the Rela-
+tive Refractory Period (RRP) according to their dierent
+response to new activation signals [7] [16].
+We construct our initial heart model by modeling the
+timing behaviors of the heart tissue. The timed automa-
+tonN0is shown in Fig. 4 (b). The tissue starts from
+theRest location. The tissue can self-activate after cer-
+tain period and go to cond location which models the
+short delay before it activates the adjacent tissue. After
+thecond location the model goes to ERP location dur-
+ing which no activation events can be processed. The
+duration of the cond location and ERP location depend
+on the state of the tissue when it was activated by the
+previous activation signal. In this model, we use non-
+determinism to cover all possible duration length. After
+the ERP nishes, the model goes from the ERP location
+to the RRP location. If the heart tissue receives activa-
+tion when it is in the RRP location, it will go to the ERP
+location with prolonged ERP length, which is covered
+by non-determinism. The tissue then goes back to the
+Rest location after the RRP period.
+Consider the Actnode? event as input and Actnext!
+as output; N0covers all possible timing behaviors of a
+heart tissue. The whole heart can be modeled by com-
+posing tissue models with dierent parameters H0=
+N1
+0kN2
+0Nn
+0. However, for a real heart the number
+nis very large and their connectivity and parameter
+values are dicult, and perhaps impossible, to deter-
+mine, which makes verication with H0infeasible. For
+the remainder of the section, please refer to both Fig. 4
+along with Fig. 5 for progressive abstraction of the heart
+model. The abbreviations for the locations in Fig. 5 are
+shown in the table below. The gures are more under-
+standable in color.
+3.3 Abstraction 1: Model Conduction Delay with Path
+During the Electro-physiology testing procedure [16], the
+physician places catheters with multiple electrodes into
+dierent locations of the patient's heart to perform a
+\timing analysis" of the propagation of electrical signals
+through heart. The local electrical activity of heart tis-
+sue at the locations of the electrodes can be monitored.
+The physician then evaluates the heart condition by ex-
+amining the refractory properties of local tissue, and the
+
+--- Page 7 ---
+Zhihao Jiang et al.: Pacemaker Verication 7
+Refractory  
+Time Vout 
+ERP RRP  Rest Rest 
+$POEERP RRP  Rest Rest 
+RRP
+t<=Trrp_maxERP
+t<=Terp_maxcond
+t<=Tcond_maxRest
+t<=Trest_maxt>Trest_min
+t=0
+Act_node?
+t=0t>Trrp_min
+t=0
+t>Terp_min
+t=0t>Tcond_min
+Act_next!t=0Act_node?
+t=0
+RRP
+t<=Trrp_maxERP
+t<=Terp_maxtemp Rest
+t<=Trest_maxt>Trest_min
+t=0
+Act_node?
+t=0t>Trrp_min
+t=0
+t>Terp_min
+t=0Act_path!Act_node?
+t=0 Con/f_lict t<=1
+Double t1+t2<=Tcond_maxAnte
+t1<=Tcond_maxRetro
+t2<=Tcond_maxIdle
+t1+t2>Tcond_min
+Act_node_1? Act_node_2?t>1
+t1>Tcond_min
+Act_node_2!t2>Tcond_min
+Act_node_1!Act_path_2?
+t2=0Act_path_1?
+t1=0
+Retro
+t<=Tcond_maxAnte
+t<=Tcond_maxIdle
+t>Tcond_min
+Act_node_1!t>Tcond_min
+Act_node_2!Act_path_1? Act_path_2?Act_path_2?
+t=0Act_path_1?
+t=0
+ERP
+t<=Terp_maxtempRest
+t<=Trest_maxt>Trest_min
+t=0
+t>Terp_min
+t=0
+Act_path!Act_node?
+t=0
+temp Rest
+t<=Trest_maxt>Trest_min
+t=0
+Act_path!Act_node?
+t=0Retro
+t<=Tcond_maxAnte
+t<=Tcond_max
+IdleAct_path_1? Act_path_2?
+t>Tcond_min
+Act_node_1!Act_path_2?
+t=0
+t>Tcond_min
+Act_node_2!Act_path_1?
+t=0
+Act_path_2?Act_path_1?
+temp Rest
+t<=Trest_maxt>0
+t=0
+Act_path!Act_node?
+t=0N0
+N1P1Original tissue Model
+Abstraction 1N0
+Abstraction 2N1 P1
+N2 P2
+N3 P3
+N4a
+b
+c
+d
+e
+f
+Fig. 4. (a) Electrical voltage change on the surface of the heart tissue and its adjacent tissue region (dotted) upon activation.
+The whole process is divided into timing periods with dierent behaviors. (b) The original tissue model which captures the
+timing behaviors of the heart tissue. (c) The conduction property is separated to the path automaton and the heart can
+be modeled as conduction network. (d) Equivalent locations are merged. (e) The blocking property of the ERP location is
+replaced by a non-deterministic transition in the path automaton. (f) The correlation between the two nodes is replaced by
+allowing the node automaton to have more behaviors.
+
+--- Page 8 ---
+8 Zhihao Jiang et al.: Pacemaker Verication
+RE 
+ID RE RR 
+ID RE RE 
+ID RR 
+RR 
+ID RR ER 
+AN RE ER 
+AN RR RE 
+RT ER RR 
+RT ER 
+ER 
+DO ER 
+RR 
+ID ER ER 
+ID RR ER 
+ID ER 
+RE 
+ID 
+RE ER 
+AN 
+RE RE 
+RT
+ER 
+RE 
+ID 
+ER ER 
+ID
+RE ER 
+ID 
+ER 
+RE 
+ID RE RE 
+AN RE RE 
+RTRE RE 
+RE RE 
+RE RR 
+RE RE 
+RR 
+RR 
+RR CO 
+RE CO 
+RR RE
+CO RR 
+CO 
+CO
+CO 
+ER
+CO CO
+ER 
+RR 
+ER ER
+RR ER
+ER 
+Act_next ! 
+Act_next ! Act_path_1!  
+Act_path_2!  Act_node_2!  
+Act_node_1!  
+RE 
+ID RE RR 
+ID RE RE 
+ID RR 
+RR 
+ID RR ER 
+AN RE ER 
+AN RR RE 
+RT ER RR 
+RT ER 
+ER 
+DO ER 
+RR 
+ID ER ER 
+ID RR ER 
+ID ER 
+RE 
+ID 
+RE ER 
+AN 
+RE RE 
+RT
+ER 
+RE 
+ID 
+ER ER 
+ID
+RE ER 
+ID 
+ER Act_path_1!  
+Act_path_2!  Act_node_2!  
+Act_node_1!  𝑵𝟐𝟏 𝑵𝟐𝟐 𝑷𝟐 Act_path_1!  
+Act_path_2!  Act_node_2!  
+Act_node_1!  𝑵𝟏𝟏 𝑵𝟏𝟐 𝑷𝟏 
+Act_path_1!  
+Act_path_2!  Act_node_2!  
+Act_node_1!  𝑵𝟐𝟏 𝑵𝟐𝟐 𝑷𝟐 Act_path_1!  
+Act_path_2!  Act_node_2!  
+Act_node_1!  𝑵𝟑𝟏 𝑵𝟑𝟐 𝑷𝟑 𝑵𝟒𝟏 𝑵𝟒𝟐 a 
+b 
+c d 
+Fig. 5. (a) Model conduction delay between nodes as path; (b) Merging RRP with Rest; (c) Replace blocking property of ERP with
+non-deterministic conduction; d. Use self activation to replace conduction
+
+--- Page 9 ---
+Zhihao Jiang et al.: Pacemaker Verication 9
+Location Abbreviation Description
+ERP ER Eective Refractory Period
+RRP RR Relative Refractory Period
+Rest RE Rest Period
+Cond CO Conduction Period
+Idle ID No Conduction
+Ante AN Antegrade Conduction
+Retro RT Retrograde Conduction
+Double DO Both Way Conduction
+Table 1. Abbreviations used in heart models
+timing delays for an electrical activation to conduct from
+one electrode to another. Due to the limited number of
+electrodes that can be placed into the heart, the physi-
+cian can examine the refractory properties at the loca-
+tions of the electrodes, and only consider the conduction
+delays between the electrodes. The procedure give us the
+intuition to abstract the heart as a conduction network
+as shown in Fig. 4 (c).
+3.3.1 Tissue level abstraction
+At the tissue level, we model the conduction delay be-
+tween node automata using a path automaton. So two
+adjacent node automata N1
+0kN2
+0can be simulated by
+two node automata and a path automaton ( N1
+1kP1kN2
+1)
+(Fig. 4 (c)). In the new node automaton N1, location
+cond is replaced by a committed location temp . In cond
+location,N0does not have a transition for Act node? ,
+which is equivalent to the ERP location. So the time for
+thecond location is added to the new ERP location:
+N1:Terpmax =N0:Terpmax +N0:Tcondmax
+N1:Terpmin =N0:Terpmin+N0:Tcondmin
+The path automaton P1models the conduction property
+of between N1
+0andN2
+0with
+P1:Tcondmin =min(N1
+0:Tcondmin;N2
+0:Tcondmin)
+P1:Tcondmax =max(N1
+0:Tcondmax;N2
+0:Tcondmax)
+The location correspondence and abstraction are shown
+in Fig. 5 (a). A typical timed execution where a node
+N1
+0got activated and activates the other node N2
+0after
+delay is shown below:
+REkREActnode 1?        !
+COkRETcondmin         !
+Actnext !ERkCO
+Correspondingly, in N1
+1kP1kN2
+1, the path P1is im-
+mediately activated when the node N1
+1is activated, and
+after the same conduction delay the node N2
+1on the
+other end of the path is activated.
+REkIDkREActnode 1?        !
+Actpath 1!
+ERkANkRETcondmin         !
+Actnode 2!ERkCFkER
+We use Double location in path automaton to model
+when both node automata are in Cond location. Whenone of the nodes nishes conducting, it will send Act next!
+event to the adjacent node and enter ERP location. Since
+the other node is in Cond orERP location, there is no
+transition for the Act next! event and the conduction is
+blocked. So the locations for COkER;ERkCO;ERkER
+are abstracted as a single location ERkIDkER. We claim
+thatN1
+0kN2
+0tN1
+1kP1kN2
+1and the heart can be mod-
+eled asH1=N1
+1kP1
+1kN2
+1Pm
+1kNn
+1. This model trans-
+formation does not simplify the heart model, but it pro-
+vides an abstract conduction path of arbitrary length
+with node and path automata.
+3.3.2 Conduction Path Abstraction
+A node automaton can generate Actpath! events by
+self-activation, and prevent Actnode! event to trigger
+Actpath! during ERP. If the self-activation period is
+too long for a node automaton Ni
+1, and its ERP is short
+enough not to block any Actnode! event, it can be re-
+moved from the model and the paths connect to it can
+be merged. A conduction path with N1kP1kN2kP2kN3
+can be abstracted into N4kP3kN5with the following
+assumptions:
+min(N1:Terpmin;N3:Terpmin)N2:Terpmax
+max(N1:Trestmax;N3:Trestmax)<N2:Trestmin
+The rst assumption infers that when the location of N3
+changes from ERP toRRP, it is guaranteed that N1
+1.ERP
+&&N2
+1.ERP . Under this assumption N2won't block any
+activation signal travel from N1toN3and vice versa.
+The second assumption guarantees that the clock tof
+N2will be reset before reaching Trest mininRest loca-
+tion, so there will not be self-activation from N2. Under
+these two assumptions we can have N4=N1,N5=N3,
+P3.Tcond min =P1.Tcond min +P2.Tcond min
+P3.Tcond max =P1.Tcond max +P2.Tcond max
+This can be generalized for acyclic conduction paths of
+arbitrary length. The rst assumption can be achieved
+by assigning node automata to the locations with longer
+ERP. Since the pacemaker only has two leads monitor-
+ing the timing delay between heart activation events, and
+the AV node has the longest ERP period, the heart struc-
+ture can be abstracted with two nodes and a path H0
+1=
+N1
+1kP1
+1kN2
+1kP2
+1kN3
+1, with theActnode events from N1
+1
+andN3
+1as input to the pacemaker.
+3.3.3 Resolve Non-determinism with Linear
+interpolation
+Abstraction 1 can be used in verication but not testing
+due to the non-deterministic choices of parameters. It
+captures all behaviors of the heart tissue but is not able
+to simulate a particular behavior, especially over multi-
+ple heart cycles. In [20], we developed the Virtual Heart
+Model (VHM) which resolved the non-determinism in
+Abstraction 1 with linear interpolations and can be used
+
+--- Page 10 ---
+10 Zhihao Jiang et al.: Pacemaker Verication
+Heart  Pacemaker  
+Aget !  
+Vget ! 
+VP ! AP ! 
+
+
+
+Fig. 6. (a) The heart model generates heart events (Aget,Vget) and responds to pacemaker events (AP,VP). (b) Basic 5 timing cycles
+of DDD pacemaker which maintain minimal heart rate, minimal A-V delay and lter noises
+to mimic the behavior of dierent heart conditions. For
+example, the non-deterministic ERP range [ Tmin;Tmax]
+is interpolated as a linear function:
+Tmin+ (1 (1 t=Trrp )3)(Tmax Tmin) (1)
+wheretis the time since the node enters the RRP loca-
+tion.
+3.4 Abstraction 2: Merging Equivalent Locations
+The heart model H0
+1still has equivalent locations. In
+Abstraction 2 we further abstract the node and path
+automata. With non-determinism, the node automaton
+react to Act node! event the same way in RRP and Rest
+state. In the new node automaton N2we merge the RRP
+state with the Rest state with:
+N2:Trestmin =N1:Trestmin+N1:Trrpmin
+N2:Trestmax =N1:Trestmax +N1:Trrpmax
+Since during ERP state, the node automata won't re-
+act to any Act node! event, for a N1
+1kP1kN2
+1setting, the
+symbolic state ERkDOkERis equivalent to ERkIDkER.
+Under the assumption that the ERP period of a node
+automaton is much longer than the conduction delay of
+a path automaton, it is guaranteed that both node au-
+tomata will be in ERP location when the path exits the
+Double location. In the path automaton, the Double and
+Conict location is merged with the Idlestate. The loca-
+tion abstraction and mapping is in Fig. 5 (b). The heart
+can be modeled as H2=N1
+2kP1
+2kN2
+2kP2
+2kN3
+2.
+3.5 Abstraction 3: Replacing Blocking with
+Non-deterministic Conduction
+In Abstraction 3, we replace the blocking behavior of the
+ERP location of the node with non-deterministic conduc-
+tion in the path automaton. There exists a transitionREkIDkREActnode 1?        !
+Actpath 1!Actpath 1?       ! REkIDkRE
+inN1
+3kP1
+3kN2
+3to replace transition
+ERkIDkERActnode 1?        ! ERkIDkER
+inN1
+2kP1
+2kN2
+2
+Without the ERP constraint the AV node is no longer
+needed and the heart can be modeled as H3=N1
+3kP3kN2
+3.
+The location abstraction and mapping is in Fig. 5 (c).
+The detailed proof for this timed simulation relation is
+in the appendix.
+3.6 Abstraction 4: Random Heart Model (RHM)
+In Abstraction 4, we further simplify the heart model
+by removing the conduction path between two nodes.
+By settingTrestmin for both nodes to 0 the new heart
+modelH4=N1
+3kN2
+3covers all possible behavior of H3.
+The location abstraction and mapping is in Fig. 5 (d).
+This random heart model with two nodes is the most
+abstract model that will be used at the beginning of the
+closed-loop verication process in Section 5.
+Eventually we have a series of heart models with:
+N1
+0kN2
+0Nn
+0
+tN1
+1kP1
+1kN2
+1Pm
+1kNn
+1
+tN1
+1kP1
+1kN2
+1kP2
+1kN3
+1
+tN1
+2kP1
+2kN2
+2kP2
+2kN2
+2
+tN1
+3kP3kN2
+3
+tN1
+4kN2
+4
+4 Pacemaker Modeling
+In this section, we discuss our timed-automata model of
+the pacemaker. The overview of the closed-loop system is
+showed in Fig. 6(a). The interactions between the heart
+and the pacemaker are modeled by using binary event
+channels. The activation of N1of the heart is the input
+to the atrial lead
+N1:Actpath!!Aget!
+
+--- Page 11 ---
+Zhihao Jiang et al.: Pacemaker Verication 11
+PVARP  
+Aget? 
+VS? 
+VP? 
+AS! 
+AR! LRI 
+AS? 
+VS? 
+VP? 
+AP! 
+AVI 
+AS? 
+VS? 
+VP? 
+VP! VS? 
+URI 
+ VP? 
+VRP 
+Vget? 
+VS! VP? 
+(a) LRI component  (b) AVI component  
+ (c) URI component  
+(d) PVARP component  (e) VRP component  
+Fig. 7. (a)LRI component delivers AP!event if the V-A delay exceeds TLRI-TAVI; (b)AVI component delivers VP!if the A-V
+delay exceeds TAVI while the V-V delay is longer than TURI; (c)URI component keeps track of the V-V delay; (d)PVARP
+component lters certain Aget! from the heart and generates AS!; (e)VRP component lters certain Vget! from the heart and
+generates VS!
+and for ventricular lead
+N2:Actpath!!Vget!
+The pacemaker accordingly generates atrial or ven-
+tricular pacing actions
+AP!!N1:Actnode!
+VP!!N2:Actnode!
+to the corresponding nodes in the heart. We now present
+our pacemaker model within the closed-loop heart-pacemaker
+system.
+4.1 Basic DDD pacemaker modeling
+The DDD pacemaker has 5 basic timing cycles triggered
+by events, as shown in Fig. 6(b). We decomposed our
+pacemaker model into 5 components which correspond
+to the 5 counters. P=LRIkAVIkURIkPVARPkVRP .
+These components synchronize with each other using
+broadcast channels and shared variables (as shown in
+Fig. 7).4.1.1 Lower Rate Interval (LRI)
+The Lower Rate Interval (LRI) component is shown in
+Fig. 7(a). This component denes the longest interval
+allowed between two ventricular events, thus keeps the
+heart rate above a minimum value. In DDD mode, the
+LRI interval is divided into a V-A interval (TLRI-TAVI)
+and a A-V interval (TAVI). The LRI component main-
+tains a maximum V-A delay while the AVI component
+maintains a maximum A-V delay so together they main-
+tain the maximum V-V delay. In the LRI component,
+the clock is reset when a ventricular event (VS, VP) is
+received. If no atrial event has been sensed (AS), the
+component will deliver atrial pacing (AP) after TLRI-
+TAVI. The UPPAAL design of LRI component is shown
+in Fig. 7(a).
+4.1.2 Atrio-Ventricular Interval (AVI) and Upper Rate
+Interval (URI)
+The function of the AVI component is to maintain the
+appropriate delay between the atrial activation and the
+ventricular activation. It denes the longest interval be-
+
+--- Page 12 ---
+12 Zhihao Jiang et al.: Pacemaker Verication
+secV wait_2nd wait_1st
+t=0VP?Vget?
+VP?
+t=0Vget?
+t=0
+(a) Monitor PLRI test
+secV wait_vp wait_v
+Vget?t=0t=0VP?
+Vget?
+t=0VP?
+t=0 (b) Monitor PURI test
+Fig. 8. (a) Monitor for LRL: Interval between two ventricular events should be less than TLRI, (b) Monitor for URL: Interval between
+a ventricular event and a VP should be longer than TURI
+tween an atrial event and a ventricular event. If no ven-
+tricular event has been sensed (VS) within TAVI after
+an atrial event (AS, AP) , the component will deliver ven-
+tricular pacing (VP). In order to prevent the pacemaker
+from pacing the ventricle too fast, a URI component uses
+a global clock clkto track the time after a ventricular
+event (VS, VP) . The URI limits the ventricular pacing
+rate by enforcing a lower bound on the times between
+consecutive ventricle events. If the global clock value is
+less than TURI when the AVI component is about to
+deliver VP, AVI will hold VP and deliver it after the
+global clock reaches TURI. The UPPAAL design of AVI
+and URI component is shown in Fig. 7(b) and (c).
+4.1.3 Post Ventricular Atrial Refractory Period
+(PVARP) and Post Ventricular Atrial Blanking
+(PVAB)
+Ventricular events, especially Ventricular Pace (VP) are
+sometimes so strong that the atrial lead can sense the ac-
+tivation as well. This signal may be falsely recognized as
+an atrial event and disrupt normal pacemaker function.
+This scenario is called crosstalk and was discussed in our
+previous work [21]. In order to prevent this undesired
+behavior, there is a blanking period (PVAB) followed
+by a refractory period (PVARP) for the atrial events
+after each ventricular event (VS, VP) . Atrial events dur-
+ing PVAB are ignored and atrial events during PVARP
+trigger AR!event which can be used in some advanced
+diagnostic algorithms. The UPPAAL design of PVARP
+component is shown in Fig. 7(d).
+4.1.4 Ventricular Refractory Period (VRP)
+Correspondingly, the VRP follows each ventricular event
+(VP, VS) to lter noise and early events in the ventricu-
+lar channel which could otherwise cause undesired pace-
+maker behavior. Fig. 7(e) shows the UPPAAL design of
+VRP component.
+4.1.5 Parameter Selection
+In order to cope with the large variety of patient condi-
+tions, the timing parameters of the pacemaker can be
+programmed to discrete values. In our previous work
+[12], we picked a set of default values for the parameters
+and veried safety properties on it. In order to evaluatethe safety of the pacemaker software, it is important to
+check all possible parameter combinations. Since there
+are only a nite number (i.e. 8000) of dierent parame-
+ter combinations [13], in this paper we enumerate all of
+them and check all properties on each combination.
+5 Reachability of Unsafe Regions
+In this section, we dene unsafe regions regarding brady-
+cardia and tachycardia and specify two fundamental safety
+properties. These two fundamental safety properties are
+strict so that they must be satised by any pacemaker
+under all heart conditions.
+5.1 Lower Rate Limit
+The most essential function for the pacemaker is to treat
+bradycardia by maintaining the ventricular rate above a
+certain threshold. We dene the region where the ven-
+tricular rate is slow, as unsafe . The monitor PLRI testis
+designed to measure interval between ventricular events
+and is shown in Fig. 8(a). For property
+'LRI=A[] (PLRI test.secV imply PLRI test.tTLRI)
+we haveH4kPkPLRItestj='LRI.
+5.2 Upper Rate Limit
+The pacemaker is not designed to treat tachycardia so it
+can only pace the heart to increase its rate and cannot
+slow it down. However, it is still important to guarantee
+it does not pace the ventricles beyond a maximum rate
+to ensure safe operations. To this eect, an Upper Rate
+Interval (URI) is specied such that the pacemaker can
+increase the ventricular rate up to this limit.
+We require that a ventricle pace (VP) can only occur
+at leastTURI after a ventricle event (VS, VP). The
+monitor PURI testis shown in Fig. 8(b). For the property
+'URI=A[] (PURI test.secV imply PURI test.tTURI)
+we haveH4kPkPURItestj='URI.
+Since'LRIand'URIbelong to ATCTL*, the veried
+properties are preserved in the real heart.
+In the following two sections, we discuss two closed-
+loop unsafe executions where the pacemaker inappropri-
+ately increases the heart rate. Such executions are re-
+ferred to as Pacemaker Mediated Tachycardia (PMT).
+
+--- Page 13 ---
+Zhihao Jiang et al.: Pacemaker Verication 13
+Intrinsic pathway
+Fast “pathway”: pacemaker
+A-V synchrony
+(a) Virtual circuit formed by the pacemaker and the
+heart
+0 1000  2000  3000  AS AS AS AS AS 
+VS VP VP VP VP VP 
+ms AS 
+1 2 
+3 (b) Pacemaker trace for ELT initialized by a early ven-
+tricular signal
+Fig. 9. Endless Loop Tachycardia case study demonstrating the situation when the pacemaker drives the heart into an unsafe state [22]
+We use existential properties PE2ETCTLto show the
+existence of these executions and use :PEto prove the
+correctness of the corresponding Anti-PMT algorithms.
+Since AG':EF(:'), the properties also belong to
+ATCTL* and are preserved for the real heart.
+6 Endless Loop Tachycardia
+The AVI component of a dual-chamber pacemaker in-
+troduces a virtual A-V conduction pathway. This forms
+a timing loop with the intrinsic (physiological) A-V con-
+duction pathway (see Fig. 9(a)). A Premature Ventric-
+ular Contraction (PVC), i.e. an early extra beat in the
+ventricular, may trigger another ventricular event (VS)
+and initiate a V-A conduction through the intrinsic path-
+way (Marker 1 in Fig. 9(b)). The pacemaker registers
+this signal as an Atrial Sense (AS) (Marker 2 in Fig. 9(b)).
+This event triggers a VP after TAVI, as if the signal con-
+ducts through the \virtual" A-V pathway (Marker 3 in
+Fig. 9(b)). We call it \virtual" pathway as the \con-
+duction" delay is fullled by a timer in the pacemaker
+instead of a physical signal propagation along the heart
+tissue. The VP will trigger another V-A conduction and
+this VP-AS-VP-AS looping behavior will continue (see
+Fig. 9(b)). The interval between atrial events is TAVI
+plus the V-A conduction delay, which is normally shorter
+than the delay between intrinsic heart beats, thus will
+drive the ventricular rate as high as the Upper Rate
+Limit. During ELT, the heart rate is not only high, but
+also xed, which is unsafe scenario.
+Due to the limited information the pacemaker has
+about the heart, the pacemaker cannot distinguish a ret-
+rograde atrial event from an intrinsic atrial event which
+is triggered by the SA node. From the pacemaker's point
+of view, the pacemaker paces the ventricles as specied
+for every AS. That is why open-loop testing is unable to
+detect this closed-loop behavior.
+Modern pacemakers are equipped with anti-ELT al-
+gorithms to identify and terminate potential ELT. One
+common algorithm identies ELT by the ELT patternand terminates ELT by increasing TPVARP time once
+to block the AS caused by the V-A conduction. By in-
+creasing the blocking interval after a ventricular event,
+the pacemaker eectively ignores the early atrial signal
+detected due to the PVC.
+6.1 Existence of ELT
+Two monitors were designed to show the existence of
+ELT. One monitor, PELT det, shows the persistence of
+the VP-AS pattern and the other monitor, Pvv, shows
+that the ventricular rate is always no slower than the
+upper rate limit (Fig. 10). The property
+'ELT=E[] ((not PELT det.err) && (not Pvv.err))
+checks the existence of ELT behavior. After our initial
+verication we have:
+H4kPkPELTdetkPvvj='ELT
+The evidence trace shows the behavior of the system.
+For simplicity we only show the state of the heart:
+REkREAVI:tTAVI^URI:tTURI                   !
+VP!!Actnode 2!
+REkREN1:t0           !
+Actpath 1!!AS!
+REkREAVI:tTAVI^URI:tTURI                   !
+VP!!Actnode 2!
+REkREN1:t0           !
+Actpath 1!!AS!
+REkRE
+6.2 Trace Validation and Heart Model Renement
+We check this trace on more rened H3kPand discov-
+ered that the trace above can correspond to two dierent
+scenarios:
+REkANkREAVI:tTAVI^URI:tTURI                   !
+VP!!Actnode 2!
+REkIDkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+REkANkREAVI:tTAVI^URI:tTURI                   !
+VP!!Actnode 2!
+REkIDkREN1:tN1:Trestmin             !
+Actpath 1!!AS!REkANkRE
+
+--- Page 14 ---
+14 Zhihao Jiang et al.: Pacemaker Verication
+PELT_det  Pv_v  
+Fig. 10. (a) Any pattern other than VP-AS will result in error state (b) If the ventricular rate is slower than the Upper Rate
+Limit will go to error state
+2 1 3 
+Fig. 11. (1) The component PVAS sends VPAS!event when a VP-AS pattern with delay between [150,200] is detected; (2)
+Component ELTct . After 8 VP-AS pattern, the algorithm increase TPVARP to 500ms. (3) Modied PVARP' component.
+TPVARP can only be set to 500 for one timing cycle.
+and
+REkIDkREAVI:tTAVI^URI:tTURI                   !
+VP!!Actnode 2!
+REkRTkREP:tP:Tcondmin                    !
+Actnode 1!!Actpath 1!!AS!
+REkIDkREAVI:tTAVI^URI:tTURI                   !
+VP!!Actnode 2!
+REkRTkREP:tP:Tcondmin                    !
+Actnode 1!!Actpath 1!!AS!
+REkIDkRE
+Both traces correspond to actual clinical scenarios.
+However, the second trace corresponds to the ELT be-
+havior which inappropriately increased the heart rate.
+By settingN1:TrestminTURI inH3we can model
+the healthy heart and the rst scenario will be elimi-
+nated. However, in H4theTrestmin is set to 0 so the
+two cases cannot be distinguished. So we use the rened
+heart model H3withN1:TrestminTURI . With the
+new heart model we have:
+H3kPkPELTdetkPvvj='ELT
+The evidence trace, which is exactly the second trace
+above, shows exactly the ELT scenario.6.3 ELT termination algorithm
+The ELT will persists without intervention and the pa-
+tient's heart is forced to beat at a fast rate approaching
+the Upper Rate Limit. Thus, device manufacturers re-
+quire a way to identify ELT and terminate it despite
+of the limited information the pacemaker can get. The
+ELT detection algorithm by Boston Scientic [23] uti-
+lizes these three features:
+{Ventricular rate at Upper Rate Limit
+{VP-AS pattern
+{Fixed V-A conduction delay
+The pacemaker rst monitors VP-AS pattern with ven-
+tricular rate at upper rate limit. Then it compares the
+VP-AS interval with previous intervals. ELT is conrmed
+if the dierence between the current VP-AS interval and
+the rst VP-AS interval are within 32ms for 8 consec-
+utive times. Then the pacemaker increases the PVARP
+period to 500ms once so that the next AS will be blocked
+and will not trigger a VP. ELT will then be terminated.
+As the V-A conduction delays are patient-specic, the
+algorithm compares the VP-AS interval to a previously
+sensed value instead of an absolute value. Since we can
+
+--- Page 15 ---
+Zhihao Jiang et al.: Pacemaker Verication 15
+0 1000 2000 3000 4000 AS AS AS AS AS AS AS AS AS 
+VS VS VS VS VS AS 
+ms 
+SVT 
+ Bradycardia 
+(a)
+0 1000 2000 3000 4000 AS [AR] 
+AS AS AS AP AP 
+VP VP VP VP VS VS [AR] [AR] 
+ms 
+PMT  
+ Appropriate  (b)
+Fig. 12. (a) Open-loop: 3:1 A-V conduction during SVT and low ventricular rate without SVT; (b) With DDD pacemaker: the pacemaker
+paces the ventricle for every atrial sense (AS), thus increase the ventricular rate inappropriately
+not store past clock values in UPPAAL, we can not ex-
+plicitly model this ELT detection algorithm. However,
+since the conduction delay in our heart model is within
+a known range, we can compare the VP-AS interval with
+this range. The VP-AS pattern detection module VPAS
+for our anti-ELT algorithm is shown in Fig. 11 (1). It
+detects the VP-AS pattern with ventricular rate at the
+Upper Rate Limit and sends out a VPASevent if the
+interval qualies.
+A counterELTct counts the number of qualied VP-
+AS patterns. It increases the PVARP period to 500ms if
+eight consecutive VP-AS patterns are detected. (Fig. 11
+(2)) The PVARP component is also modied so that the
+PVARP period can only be changed once by the anti-
+ELT algorithm. (Fig. 11 (3))
+6.4 Verication of the algorithm:
+With the new pacemaker model
+P1=LRIkAVIkURIkPVARP0kVRPkELTctkVPAS
+we rst check whether the two fundamental safety prop-
+erties still hold when the anti-ELT algorithm is intro-
+duced. We have
+H3kP1kPLRItestj='LRI
+H3kP1kPURItestj='URI
+Then we check the existence of ELT and we have:
+H3kP1kPELTdetkPvv6j='ELT
+which indicates the algorithm successfully eliminated all
+ELT executions.
+7 Verication of the Mode-Switch Algorithm
+7.1 Supraventricular tachycardia (SVT)
+SVT is an arrhythmia which features an abnormally fast
+atrial rate. Typically, in the open loop case, the AV node,
+which has a long refractory period, can lter most of the
+fast atrial activations during SVT thus the ventricular
+rate remains relatively normal. Fig. 12(a) demonstratesa pacemaker event trace during SVT, with a ODO mode
+pacemaker which just sensing in both channels. In this
+particular case, every 3 atrial events (AS) correspond to
+1 ventricular event (VS) during SVT. As an arrhythmia,
+SVT is still considered as a safe heart condition since
+the ventricles operate under normal rate can and still
+maintain adequate cardiac output.
+However, in the closed loop case with the pacemaker,
+the AVI component of a dual chamber pacemaker is
+equivalent to a virtual pathway in addition to the in-
+trinsic conduction pathway between the atria and the
+ventricles. The pacemaker tries to maintain 1:1 A-V con-
+duction and thus increases the ventricular rate inappro-
+priately to match the atrial rate. Fig. 12(b) shows the
+pacemaker trace of the same SVT case with DDD pace-
+maker. Although half of the fast atrial events are l-
+tered by the PVARP period ([AR]s), the DDD pace-
+maker still drives the closed-loop system into 2:1 A-V
+conduction with faster ventricular rate, which is inap-
+propriate. This problem can be resolved by switching the
+pacemaker from the dual chamber mode, which couples
+the atrial and ventricular rates, into a single chamber
+mode to maintain appropriate ventricular rate indepen-
+dent of the atrial rate.
+7.2 Existence of PMT during SVT
+The monitor Pvvis designed to show existence of PMT
+during SVT. It goes to the error state if the ventricular
+rate drops below the Upper Rate Limit (Fig. 15).
+We specify
+'MS=E[](notPvv:err )
+which veries the existence of PMT. To identify the
+PMT scenario, we rst set H3:N1:Trestmin < 100 so
+that the atrial rate can be high and H3:N2:Trestmin>
+TURI so that the intrinsic heart rate is less than TURI.
+The property is rst veried on pacemaker without the
+mode-switch algorithm. We have
+H3kPkPvvj='MS
+The property is satised and the evidence trace shows
+the behavior of the system.
+REkIDkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+
+--- Page 16 ---
+16 Zhihao Jiang et al.: Pacemaker Verication
+Counter  
+Fast?  
+Slow?  
+du_end ? 
+DDD!  
+VDI! 
+du_beg ! 
+Duration  
+VS? 
+VP? 
+du_beg ? 
+du_end ! 
+Interval  
+AS? 
+AR? 
+AP? 
+Fast!  
+Slow!  1 
+2 
+3 
+Fig. 13. (a) Component INTAn atrial event ( AS,AR ) arrive before thresh after the previous atrial event is regarded as fast
+event. Atrial event arrive after thresh andAPare regarded as slow event; (b) Component CNT After 8 fastevent the algorithm
+will start a duration by sending dubegand will switch to VDImode when the duration ends ( duend); (c) Component DUR
+The duration length is 8 ventricular events ( VS,VP )
+REkANkREP:tP:Tcondmin                    !
+Actnode 2!!Actpath 1!!VS!
+REkIDkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+REkANkREP:tP:Tcondmin                    !
+Actnode 2!!Actpath 1!!VS!
+REkIDkRE
+The time between two VS!events are less than TURI
+so the property holds. But that is not exactly the PMT
+case we are looking for.
+7.3 Trace Validation and Heart Model Renement
+When a path P3receives aActpath 1! event, there are
+two non-deterministic transitions. IDActpath 1!       ! ID
+andIDActpath 1!       ! AN. From the trace above we can
+see that every atrial event triggers the path conduction.
+When the trace is validated against
+H2=N1
+2kP1
+2kN2
+2kP2
+2kN3
+2
+we have:
+REkIDkREkIDkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+ERkANkREkIDkREP1:tP1:Tcondmin                !
+Actnode 2!!Actpath 2!
+ERkIDkERkANkREN1:tN1:Terpmin             !
+REkIDkERkANkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+ERkANkERkANkREP1:tP1:Tcondmin             !
+Actnode 2!
+ERkIDkERkANkRE
+The second Actnode 2! is blocked by N2
+3so it won't
+conduct to N3
+3and trigger VS!. So it turns out to be a
+spurious counter-example .ERkANkERkANkREis thedead-end state where the trace cannot proceed in the re-
+ned model and ERkANkREkANkREis the bad state
+which is in the same abstract state as the dead-end state
+and enables the trace to proceed in the abstract model.
+The heart model needs to be rened so that the bad state
+and the dead-end state are separated and the spurious
+counter-example is eliminated. So we rene the heart
+model from H3toH2withH3tH2. Our second veri-
+cation eort shows that:
+H3kPkPvvj='MS
+The property is satised and the evidence trace shows
+the behavior of the system.
+REkIDkREkIDkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+ERkANkREkIDkREP1:tP1:Tcondmin                !
+Actnode 2!!Actpath 2!
+ERkIDkERkANkREN1:tN1:Terpmin             !
+REkIDkERkANkREN1:tN1:Trestmin             !
+Actpath 1!!AS!
+ERkANkERkANkREAVI:tTAVI^URI:tTURI                   !
+Actnode 3!!VP!
+ERkANkERkDOkER
+In the trace, the pacemaker delivers VP for every atrial
+event, increasing the ventricular rate, which is exactly
+the PMT case.
+7.4 Mode-Switch Algorithm
+We now analyze the approach use in pacemakers to pre-
+vent prolonged ventricular pacing under SVT. Intuitively,
+the mode-switch algorithm rst detects SVT. After con-
+rmed detection, it switches the pacemaker from a dual-
+chamber mode to a single-chamber mode. During the
+
+--- Page 17 ---
+Zhihao Jiang et al.: Pacemaker Verication 17
+LRI-
+MS 
+AS? 
+VS? 
+VP? 
+ AP! 
+DDD?  
+VDI?  
+AVI-
+MS 
+AS? 
+VS? 
+AP? 
+ VP! 
+DDD?  
+VDI?  
+Fig. 14. (a) After switching to VDImode, the new LRI component LRI'maintains a minimum V-V interval; (b) After switching
+toVDImode, the new AVI component AVI' keeps track of the time after each atrial events.
+single-chamber mode, the A-V synchrony function of the
+pacemaker is deactivated thus the ventricular rate is de-
+coupled from the fast atrial rate. After the algorithm
+determines the end of SVT, it will switch the pacemaker
+back to the dual chamber mode.
+The mode-switch algorithm specication we use is
+similar to the one described in the Boston Scientic pace-
+makers manual [13]. The algorithm rst measures the in-
+terval between atrial events outside the blanking period
+(AS, AR). The interval is considered as fastif it is above
+a threshold ( Trigger Rate ) and slow otherwise. In our
+UPPAAL model we model it as INT (see Fig. 13 (1)). A
+counterCNT increments for fastevents and decrements
+forslow events (see Fig. 13 (2)). After the counter value
+reaches the Entry Count , the algorithm will start a Du-
+ration (DUR ) which is a time interval used to conrm
+the detection of SVT (see Fig. 13 (3)). In the Duration ,
+the counter keeps counting. If the counter value is still
+positive after the Duration , the pacemaker will switch to
+the VDI mode ( Fallback mode ). In the VDI mode, the
+pacemaker only senses and paces the ventricle. At any
+time if the counter reaches zero, the Duration will termi-
+nate and the pacemaker is switched back to DDD mode.
+In our UPPAAL model of the mode-switch algorithm,
+we use nominal parameter values from the clinical set-
+ting. We dene trigger rate at 170bpm (350ms), entry
+count at 8, duration for 8 ventricular events and fallback
+mode as VDI.
+In order to model both DDD and VDI modes and the
+switching between them, we made modications to the
+AVI and LRI components. In each component two copies
+for both modes are modeled, and switch between each
+other when switching events (DDD, VDI) are received.
+During VDI mode, VP is delivered by the LRI compo-
+nent instead of the AVI component. The clock values areshared between both copies in order to preserve essential
+intervals even after switching. The modied AVI ( AVI0)
+and LRI (LRI0)components are shown in Fig. 14. So the
+new pacemaker model is:
+P2=LRI'kAVI'kURIkPVARPkVRPkINTkCNTkDUR
+7.5 Verication against fundamental safety properties
+We verify the same fundamental safety properties on the
+pacemaker model with mode-switch algorithm. We have:
+H2kP2kPURItestj='URI
+H2kP2kPLRItest6j='LRI
+The Upper Rate Limit property still holds but the Lower
+Rate Limit property is violated. The counterexample
+is proved to be valid after checking the trace of more
+rened heart models. By analyzing the trace we found
+that when the pacemaker is switching from VDI mode
+to DDD mode, the responsibility to deliver VP switched
+from LRI component to AVI component. Since the clock
+reference is dierent (Ventricular events in LRI compo-
+nent and Atrial events in AVI component), the clock
+value for delivering the next VP is not preserved. As a
+result, if an atrial event which triggered the mode-switch
+from VDI to DDD happens within [TLRI-TAVI, TLRI)
+after the last ventricular event, the next ventricular pac-
+ing will be delayed by at most TAVI time, which violates
+the Lower Rate Limit property (Fig. 16(a)).
+7.6 Verication Result
+After implementing the Mode-switch algorithm, we ver-
+ied the model against the same existence property. We
+expect the violation of this property, since during VDI
+
+--- Page 18 ---
+18 Zhihao Jiang et al.: Pacemaker Verication
+Fig. 15. Monitor Pvvfor SVT: There exists an endless se-
+quence in which interval between ventricular events is at most
+TURI
+AS AS
+VS (VP) VP
+MS
+TLRIVDI DDD
+TAVI
+(a)
+PVAB  
+VS AS Aget  AS 
+Fast Fast 
+Slow  (b)
+Fig. 16. (a) Safety Violation: VP is delayed due to the reset of
+timer during mode-switch, (b) Correctness Violation: The blocking
+period may block some atrial events, turning two Fast events to
+oneSlow event [12]
+mode the ventricular rate of the heart model is less than
+the Upper Rate Limit and will not trigger ventricular
+pacing. However, this property is still satised, indicat-
+ing the mode-switch algorithm failed to eliminate the
+PMT scenario. The evidence trace returned by UPPAAL
+shows that a subset of atrial events fall into the blank-
+ing period after a ventricular event (see Fig. 16(b)). As
+a result, two fast events are reduced to one slow event
+and mode switch may never happen. This scenario does
+exist in all our rened heart models, we conclude that
+the trace is physiologically feasible. The mode-switch al-
+gorithm in our pacemaker model can not terminate all
+PMT behaviors as specied.
+7.7 Trace Validation on Real Pacemaker and
+Pacemaker Renement
+In the previous subsections, we have found two potential
+safety violations in our pacemaker model. However, this
+does not mean the actual pacemaker has the same viola-
+tion. Jiang et al. have implemented the VHM model onto
+a programmable integrated circuit (FPGA) platform and
+had it interact with a real pacemaker at run-time [24].
+The closed-loop behavior can be checked in closed-loop
+with a real pacemaker. If the trace is not feasible in the
+closed-loop system, the pacemaker model needs to be re-
+ned to eliminate the execution. However, rening the
+pacemaker model requires more detailed representation
+of the pacemaker software, which was not available to us
+at that time.
+8 Related Work
+Chen et. al [25] extended our verication work [12]. They
+developed a hybrid heart model which is able to simu-
+late action potential at tissue level. The model is a morerened model than our Virtual Heart Model [20], with
+linear dynamics on each state of the heart tissue. They
+also developed a probability model to simulate natu-
+ral pacemaker function. They then used the combined
+heart model for quantitative verication of the pace-
+maker. However, since the pacemaker only sense the tim-
+ing of the heart tissue activation, their hybrid extension
+for action potential does not bring much benet but in-
+creased model complexity dramatically. As a result, they
+have to use bounded model checking thus sacriced ac-
+curacy.
+Jee et. al present a safety assured development ap-
+proach of real-time software using pacemaker as their
+case study in [26]. They formally model and verify a sin-
+gle chamber VVI pacemaker using UPPAAL and then
+implement it and check the preservation of properties
+transferred from model to implementation code.
+Tuan et. al propose an RTS formal model for pace-
+maker and its environment and veried it against num-
+ber of safety properties and timed constraints using the
+PAT model checker [27]. They have modeled the pace-
+maker for all 18 operating modes as described in Boston
+scientic, but their work lacks specication and analysis
+of complex behaviors of the pacemaker, such as mode-
+switch.
+Wiggelinkhuizen uses mCRL2 and UPPAAL to for-
+mally model the pacemaker from the rmware design of
+Vitatron's DA+ pacemaker [28]. Two main approaches
+have been used to investigate the feasibility of applying
+formal model checking to the design of device rmware.
+The main approach consists of verifying the rmware
+model in context of a formal heart model and a formal
+model of a hardware module which fails for high heart
+rates because of the state explosion. Another approach
+is to verify a part of rmware design which was feasible
+and was able to detect a known deadlock rather soon.
+Macedo et. al have developed a concurrent and dis-
+tributed real-time model for a cardiac pacemaker through
+a pragmatic incremental approach [29]. The models are
+expressed using the VDM and are validated primarily
+by scenario-based test, where test scenarios are dened
+to model interesting situations such as the absence of
+input pulses. The models cover 8 modes of pacemaker
+operation.
+Gomes et. al present a formal specication of pace-
+maker system using the Z notation in [30]. They have
+also tried to validate that the formal specication satis-
+es the informal requirements of Boston Scientic by us-
+ing a theorem prover, ProofPower-Z. They have partially
+checked the consistency of their specication through
+reasoning. No validation experiment regarding safety con-
+ditions were performed yet.
+Mery et. al in [31], formally model all operational
+modes of a single electrode pacemaker system using event-
+B and prove them. They use an incremental proof-based
+approach to rene the basic abstract model of the system
+and add more functional and timing properties. They use
+
+--- Page 19 ---
+Zhihao Jiang et al.: Pacemaker Verication 19
+the ProB tool to validate their models in dierent situ-
+ations such as absence of input pulses.
+9 Conclusion and Future Work
+In this paper, we rst extend our TACAS'12 paper [12]
+by formalizing the heart model abstraction process. By
+establishing the timed simulation relation between ab-
+straction levels the safety properties specied in ATCTL*
+are preserved during renement. Based on the heart model
+formulation we proposed a Counter-Example-Guided Ab-
+straction and Renement (CEGAR) framework to bal-
+ance model complexity and delity for pacemaker ver-
+ication. We demonstrated how to identify two unsafe
+Pacemaker Mediated Tachycardia (PMT) executions us-
+ing model checking and heart model renement for more
+specic heart conditions. We also veried the safety and
+eectiveness of the corresponding Anti-PMT algorithms.
+The work in this paper demonstrated the application
+of formal methods and model checking techniques for
+evaluating safety and ecacy of Cyber-Physical Systems
+like medical devices. This is a step toward certication of
+veried models and automated synthesis to veried code
+for medical device regulatory eorts. As future work,
+there are several directions worth exploration:
+1. The CEGAR framework enables us to explore more
+complex pacemaker algorithms for more specic heart
+conditions.
+2. In the CEGAR framework, model abstraction, model
+renement and trace validity check are performed
+manually using physiological reasoning. The domain
+knowledge can be potentially formalized into rules
+and the abstraction and renement process can be
+automated.
+3. In this paper we only evaluated binary safety proper-
+ties. We are interested in quantitative properties such
+as power consumption and physiological ecacy. Our
+current eorts are on extending this framework to in-
+corporate tools and techniques for quantitative veri-
+cation of closed-loop medical devices.
+4. In this work we only investigate the interaction be-
+tween the heart and the pacemaker so that only sim-
+ple rate-based properties can be specied. Investigat-
+ing the interaction between the heart and the oxygen
+demands from the rest of the body will give us better
+metric for the ecacy of the devices.
+Acknowledgements. The authors would like to thank Ashutosh
+Trivedi, from the University of Pennsylvania and the Indian
+Institute of Technology, Mumbai, for fruitful discussions dur-
+ing the preparation of this paper.
+References
+1. List of Device Recalls, U.S. Food and Drug Admin., (last
+visited Jul. 19, 2010).2. K. Sandler, L. Ohrstrom, L. Moy, and R. McVay. Killed
+by Code: Software Transparency in Implantable Medical
+Devices. Software Freedom Law Center , 2010.
+3. AUTOSAR website: http://www.autosar.org/.
+4. AVSI website: http://www.avsi.aero.
+5. R. Alur and D. L. Dill. A Theory of Timed Automata.
+Theoretical Computer Science , 126:183{235, 1994.
+6. K.G. Larsen, Paul Pettersson, and Wang Yi. UPPAAL
+in a Nutshell. International Journal on Software Tools
+for Technology Transfer (STTT) , pages 134{152, 1997.
+7. M.E. Josephson. Clinical Cardiac Electrophysiology . Lip-
+pincot Williams and Wilkins, 2008.
+8. S. Barold, R. Stroobandt, and A. Sinnaeve. Cardiac
+Pacemakers Step by Step . Blackwell Futura, 2004.
+9. E. M. Clarke, O. Grumberg, and D. E. Long. Model
+Checking and Abstraction. ACM Trans. Program. Lang.
+Syst. , 16(5):1512{1542, 1994.
+10. Edmund M. Clarke, Orna Grumberg, and Doron A.
+Peled. Model Checking. 2000.
+11. Edmund Clarke, Orna Grumberg, Somesh Jha, Yuan Lu,
+and Helmut Veith. Counter Example-Guided Abstrac-
+tion Renement for Symbolic Model Checking. J. ACM ,
+50(5):752{794, 2003.
+12. Zhihao Jiang, Miroslav Pajic, Salar Moarref, Rajeev
+Alur, and Rahul Mangharam. Modeling and Verica-
+tion of a Dual Chamber Implantable Pacemaker. Tools
+and Algorithms for the Construction and Analysis of Sys-
+tems, 7214:188{203, 2012.
+13. The Compass - Technical Guide to Boston Scientic Car-
+diac Rhythm Management Products. 2007.
+14. Zhihao Jiang, Miroslav Pajic, Rajeev Alur, and Rahul
+Mangharam. Pacemaker UPPAAL model download:
+http://mlab.seas.upenn.edu.
+15. Miroslav Pajic, Zhihao Jiang, Insup Lee, Oleg Sokolsky,
+and Rahul Mangharam. From Verication to Implemen-
+tation: A Model Translation Tool and a Pacemaker Case
+Study. In Proceedings of the 2012 IEEE 18th Real Time
+and Embedded Technology and Applications Symposium ,
+RTAS '12, pages 173{184, 2012.
+16. R.N. Fogoros. EP Testing . Blackwell Science, 1999.
+17. Satoshi Yamane. Timed Weak Simulation Verication
+and its Application to Stepwise Renement of Real Time
+Software. International Journal of Computer Science
+and Network Security , 6, 2006.
+18. Gerd Behrmann, Alexandre David, and Kim G. Larsen.
+A Tutorial on UPPAAL. Formal Methods for the De-
+sign of Real-Time Systems, Lecture Notes in Computer
+Science , pages 200{236, 2004.
+19. Edmund M. Clarke and E. Allen Emerson. Design and
+Synthesis of Synchronization Skeletons Using Branching-
+Time Temporal Logic. In Logic of Programs, Workshop ,
+pages 52{71, 1982.
+20. Zhihao Jiang, Miroslav Pajic, and Rahul Mangharam.
+Cyber-Physical Modeling of Implantable Cardiac Medi-
+cal Devices. Proceedings of the IEEE , 100(1):122 {137,
+Jan. 2012.
+21. Zhihao Jiang and Rahul Mangharam. Modeling Car-
+diac Pacemaker Malfunctions with the Virtual Heart
+Model. In Engineering in Medicine and Biology Soci-
+ety,EMBC, 2011 Annual International Conference of the
+IEEE , pages 263 {266, Sept 2011.
+
+--- Page 20 ---
+20 Zhihao Jiang et al.: Pacemaker Verication
+22. Z. Jiang, M. Pajic, and R. Mangharam. Model-based
+Closed-loop Testing of Implantable Pacemakers. In IC-
+CPS'11: ACM/IEEE 2nd Intl. Conf. on Cyber-Physical
+Systems , 2011.
+23. PACEMAKER System Specication. Boston Scientic.
+2007.
+24. Zhihao Jiang, Sriram Radhakrishnan, Varun Sampath,
+Shilpa Sarode, Miroslav Pajic, and Rahul Mangharam.
+Heart-on-a-Chip: A Closed-loop Testing Platform for Im-
+plantable Pacemakers. In Third Workshop on Design,
+Modeling and Evaluation of Cyber Physical Systems (Cy-
+Phy), CPS Week, 2013.
+25. T. Chen, M. Diciolla, M. Kwiatkowska, and A. Mereacre.
+Quantitative Verication of Implantable Cardiac Pace-
+makers. In Hybrid Systems: Computation and Control
+(HSCC 2013) , 2013.
+26. E. Jee, S. Wang, J. K. Kim, J. Lee, O. Sokolsky, and
+I. Lee. A Safety-Assured Development Approach for
+Real-Time Software. The Proceedings of 16th IEEE
+International Conference on Embedded and Real-Time
+Computing Systems and Applications , pages 133{142,
+2010.
+27. L. A. Tuan, M. C. Zheng, and Q. T. Tho. Modeling and
+Verication of Safety Critical Systems: A Case Study on
+Pacemaker. Fourth International Conference on Secure
+Software Integration and Reliability Improvement , pages
+23{32, 2010.
+28. J. E. Wiggelinkhuizen. Feasibility of Formal Model
+Checking in the Vitatron Environment. Master thesis,
+Eindhoven University of Technology , 2007.
+29. Macedo H. D., Larsen P. G., and Fitzgerald J. Incremen-
+tal Development of a Distributed Real-Time Model of a
+Cardiac Pacing System using VDM. Formal Methods ,
+pages 28{30, 2008.
+30. A. O. Gomes and M. V. Oliveira. Formal Specica-
+tion of a Cardiac Pacing System. In Proceedings of the
+2nd World Congress on Formal Methods (FM '09) , pages
+692{707, 2009.
+31. D. Mery and N. K. Singh. Pacemaker's Functional Be-
+haviors in Event-B. Research report, INRIA , 2009.A Appendix
+Proof for N1
+2kP2kN2
+2tN1
+3kP3kN2
+3
+In this subsection we manually prove the timed simu-
+lation relation N1
+2kP2kN2
+2tN1
+3kP3kN2
+3. The other re-
+lations can be proved accordingly.
+A.1 Timed Simulation Relation sim
+For two timed automata T1andT2, we write timed
+simulation relation simis dened on 
+1
+2where
+(s;v)2
+1andvis the valuation of all clocks t12X1.
+((s;v);(s0;v0)) is in simif and only if v0=v(+), for
+2D, such that sim(s;v) = (s0;v(+D))
+LetT1=N1
+2kP2kN2
+2andT2=N1
+3kP3kN2
+3.X1=
+ftn1
+2;tp2;tn2
+2gandX2=ftn1
+3;tp3;tn2
+3g, the state map-
+ping for the timed simulation relation is shown below:
+sim(REkIDkRE;v ) = (REkIDkRE;v (tn1
+3+D1;tn2
+3+
+D2)) whereD1= [N1
+2:Terpmin;N1
+2:Terpmax],
+D2= [N2
+2:Terpmin;N2
+2:Terpmax]
+A special condition for this mapping is the initial state:
+sim(REkIDkRE;v (tn1
+3:= 0;tp3:= 0;tn2
+3:= 0)) =
+(REkIDkRE;v (tn1
+3+D1;tn2
+3+D2))
+sim(ERkANkRE;v ) = (REkANkRE;v )
+sim(REkRTkER;v ) = (REkRTkRE;v )
+sim(ERkIDkER;v ) = (REkIDkRE;v )
+sim(ERkIDkRE;v ) = (REkIDkRE;v (tn2
+3+D))
+whereD= [N2
+2:Terpmin;N2
+2:Terpmax]
+sim(REkIDkER;v ) = (REkIDkRE;v (tn1
+3+D))
+whereD= [N1
+2:Terpmin;N1
+2:Terpmax]
+The location mapping is shown in Fig. 5.
+A.2 Timed Transitions
+Here we want to ensure every timed transition for T1
+has a corresponding timed transition in T2. We denote
+S= (s;v) andS= (s;v+). For each location in T1we
+haveS  !Sfor82Runder condition v+j=inv(s).
+InT2we useS0= (s0;v0) andS0
+= (s0;v0+). For
+(S;S0)2simwe show that there exists S0
+such that
+s0  !s0
+and (s;s0
+)2sim. For every location we list
+all the corresponding components and provide proof.
+For location REkIDkREinT1we have:
+S= (REkIDkRE;v )
+S= (REkIDkRE;v +)
+inv(s) =tn1
+2+N1
+2:Trestmax &&
+
+--- Page 21 ---
+Zhihao Jiang et al.: Pacemaker Verication 21
+tn2
+2+N2
+2:Trestmax)
+D1= [N1
+2:Terpmin;N1
+2:Terpmax],
+D2= [N2
+2:Terpmin;N2
+2:Terpmax].
+S0= (REkIDkRE;v (tn1
+3+D1;tn2
+3+D2))
+S0
+= (REkIDkRE;v (tn1
+3+D1;tn2
+3+D2) +)
+inv(s0) =tn1
+3+D1+N1
+3:Trestmax andtn2
+3+D2+
+N2
+3:Trestmax
+Since
+N3:Trestmax =N2:Trestmax +N2:Terpmax
+we haveinv(s)inv(s0) so the correspondence holds.
+For location ERkANkREinT1we have:
+S= (ERkANkRE;v )
+S= (ERkANkRE;v +)
+inv(s) =tp2+P2:Tcondmax
+S0= (REkANkRE;v )
+S0
+= (REkANkRE;v +)
+inv(s0) =tp3+P3:Tcondmax
+SinceP2:Tcondmax ==P3:Tcondmax, we have
+inv(s)inv(s0) so the correspondence holds.
+For location REkRTkERinT1we have:
+S= (REkRTkER;v )
+S= (REkRTkER;v +)
+inv(s) =tp2+P2:Tcondmax
+S0= (REkRTkRE;v )
+S0
+= (REkRTkRE;v +)
+inv(s0) =tp3+P3:Tcondmax
+SinceP2:Tcondmax ==P3:Tcondmax, we have
+inv(s)inv(s0) so the correspondence holds.
+For location ERkIDkERinT1we have:
+S= (ERkIDkER;v )
+S= (ERkIDkER;v +)
+inv(s) =tn1
+2+N1
+2:Terpmax&&
+tn2
+2+N2
+2:Terpmax
+S0= (REkIDkRE;v )
+S0
+= (REkIDkRE;v +)
+inv(s0) =tn1
+3+N1
+3:Trestmax&&
+tn2
+3+N2
+3:Trestmax
+Since
+N3:Trestmax =N2:Trestmax +N2:Terpmax
+We haveinv(s)inv(s0) so the correspondence holds.
+For location ERkIDkREinT1we have:
+S= (ERkIDkRE;v )
+S= (ERkIDkRE;v +)
+inv(s) =tn1
+2+N1
+2:Terpmax&&
+tn2
+2+N2
+2:Trestmax
+D= [N2
+2:Terpmin;N2
+2:Terpmax]
+S0= (REkIDkRE;v (tn2
+3+D)
+S0
+= (REkIDkRE;v (tn2
+3+D) +)
+inv(s0) =tn1
+3+N1
+3:Trestmax&&
+tn2
+3+D+N2
+3:TrestmaxSince
+N3:Trestmax =N2:Trestmax +N2:Terpmax
+We haveinv(s)inv(s0) so the correspondence holds.
+For location REkIDkERinT1we have:
+S= (REkIDkER;v )
+S= (REkIDkER;v +)
+inv(s) =tn1
+2+N1
+2:Trestmax&&
+tn2
+2+N2
+2:Terpmax
+D= [N1
+2:Terpmin;N1
+2:Terpmax]
+S0= (REkIDkRE;v (tn1
+3+D)
+S0
+= (REkIDkRE;v (tn1
+3+D) +)
+inv(s0) =tn1
+3+D+N1
+3:Trestmax&&
+tn2
+3+N2
+3:Trestmax
+Since
+N3:Trestmax =N2:Trestmax +N2:Terpmax
+We haveinv(s)inv(s0) so the correspondence holds.
+A.3 Discrete Transitions
+During a discrete transition, a state S= (s;v) proceed
+toS= (s0;v(:= 0)). Here we prove that for every
+discrete transition S  !SinT1, there exists S1=
+(s1;v) such that ( S;S 1)2sim,S1  !S;1forS;1=
+(s0
+1;v(0:= 0)) and ( S;S;1)2sim.
+Self-activation for N1
+2triggers antegrade conduction,
+we haveN3:Trest =N2:Terp +N2:Trest
+(REkIDkRE,v)tn1
+2>N1
+2:TrestminkActnode 1?                     !
+Actpath 1!
+(ERkANkRE,v(tn1
+2:= 0;tp2:= 0))
++
+(REkIDkRE,v)tn1
+3>N1
+3:TrestminkActnode 1?                     !
+Actpath 1!
+(REkANkRE,v(tn1
+3:= 0;tp3:= 0))
+Self-activation for N2
+2triggers retrograde conduction,
+we haveN3:Trest =N2:Terp +N2:Trest .
+(REkIDkRE,v)tn2
+2>N2
+2:TrestminkActnode 2?                     !
+Actpath 2!
+(REkRTkER,v(tp2:= 0;tn2
+2:= 0))
++
+(REkIDkRE,v)tn2
+3>N2
+3:Trestmin )kActnode 2?                     !
+Actpath 2!
+(REkRTkRE,v(tp3:= 0;tn2
+3:= 0))
+N2
+2activated after antegrade conduction
+(ERkANkRE,v)tp2>Tcondmin          !
+Actnode 2!
+(ERkIDkER,v(tn2
+2:= 0))
++
+(REkANkRE,v)tp3>Tcondmin          !
+Actnode 2!
+(REkIDkRE,v(tn2
+3:= 0))
+
+--- Page 22 ---
+22 Zhihao Jiang et al.: Pacemaker Verication
+N1
+2activated after retrograde conduction
+(REkRTkER,v)tp2>Tcondmin )           !
+Actnode 1!
+(ERkIDkER,v(tn1
+2:= 0))
++
+(REkRTkRE,v)tp3>Tcondmin )           !
+Actnode 1!
+(REkIDkRE,v(tn1
+3:= 0))
+ERP ofN1
+2nishes rst
+(ERkIDkER,v)tn1
+2>N1
+2:Terpmin            !
+(REkIDkER,v(tn1
+2:= 0))
++
+(REkIDkRE,v)tn1
+3>N1
+3:Terpmin            !
+(REkIDkRE,v)
+ERP ofN2
+2nishes rst
+(ERkIDkER,v)tn2
+2>N2
+2:Terpmin            !
+(ERkIDkRE,v(tn2
+2:= 0))
++
+(REkIDkRE,v)tn2
+3>N2
+3:Terpmin            !
+(REkIDkRE,v)
+ERP ofN2
+2nishes after N1
+2
+(REkIDkER,v)tn2
+2>N2
+2:Terpmin            !
+(REkIDkRE,v(tn2
+2:= 0))
++
+D= [N1
+2:Terpmin;N1
+2:Terpmax]
+(REkIDkRE,v(tn1
+3+D))tn2
+3>N2
+3:Terpmin            !
+(REkIDkRE,v(tn1
+3+D))
+ERP ofN1
+2nishes after N2
+2
+(ERkIDkRE,v)tn1
+2>N1
+2:Terpmin            !
+(REkIDkRE,v(tn1
+2:= 0))
++
+D= [N1
+3:Terpmin;N1
+3:Terpmax]
+(REkIDkRE,v(tn2
+3+D))tn1
+3>N1
+3:Terpmin            !
+(REkIDkRE,v(tn2
+3+D))
+N2
+2is activated when N1
+2is in ERP
+(ERkIDkRE,v)Actnode 2?        !
+Actpath 2!
+(ERkIDkER,v(tn2
+2:= 0))
+(+
+(REkIDkRE,v)Actnode 2?        !
+Actpath 2!
+(REkIDkRE,v(tn2
+3:= 0))
+N2
+2is activated when N1
+2is in ERP
+(REkIDkER,v)Actnode 1?        !
+Actpath 1!
+(ERkIDkER,v(tn1
+2:= 0))
++
+(REkIDkRE,v)Actnode 1?        !
+Actpath 1!(REkIDkRE,v(tn1
+3:= 0))
+Blocking during ERP is simulated by a non-deterministic
+transition in the path
+(ERkIDkER,v)Actnode 1?        ! (ERkIDkER,v)
++
+(REkIDkRE,v)Actnode 1?        !
+Actpath 1!Actpath 1?       !
+(REkIDkRE,v)
+(ERkIDkER,v)Actnode 2?        ! (ERkIDkER,v)
++
+(REkIDkRE,v)Actnode 2?        !
+Actpath 2!Actpath 2?       !
+(REkIDkRE,v)
+(ERkIDkRE,v)Actnode 1?        ! (ERkIDkRE,v)
++
+D= [N2
+2:Terpmin;N2
+2:Terpmax]
+(REkIDkRE,v(tn2
+3+D))Actnode 1?        !
+Actpath 1!Actpath 1?       !
+(REkIDkRE,v(tn2
+3+D))
+(REkIDkER,v)Actnode 2?        ! (REkIDkER,v)
++
+D= [N1
+2:Terpmin;N1
+2:Terpmax]
+(REkIDkRE,v(tn1
+3+D))Actnode 2?        !
+Actpath 2!Actpath 2?       !
+(REkIDkRE,v(tn1
+3+D))

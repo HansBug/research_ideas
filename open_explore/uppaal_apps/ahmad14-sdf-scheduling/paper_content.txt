@@ -1,0 +1,1196 @@
+--- Page 1 ---
+Resource-Constrained Optimal Scheduling of
+Synchronous Dataﬂow Graphs via Timed Automata
+Waheed Ahmad, Robert de Groote, Philip K.F. Hölzenspies, Mariëlle Stoelinga, Jaco van de Pol
+University of Twente, The Netherlands
+Email: {w.ahmad, e.deGroote, p.k.f.holzenspies, m.i.a.stoelinga, j.c.vandepol}@utwente.nl
+Abstract —Synchronous dataﬂow (SDF) graphs are a widely used
+formalism for modelling, analysing and realising streaming applica-
+tions, both on a single processor and in a multiprocessing context.
+Efﬁcient schedules are essential to obtain maximal throughput
+under the constraint of available resources. This paper presents
+an approach to schedule SDF graphs using a proven formalism
+of timed automata (TA). TA maintain a good balance between
+expressiveness and tractability, and are supported by powerful ver-
+iﬁcation tools, e.g. UPPAAL . We describe a compositional translation
+of SDF graphs to TA, and perform analysis and veriﬁcation in the
+UPPAAL state-of-the-art tool. This approach does not require the
+(exponential) transformation of SDF graphs to homogeneous SDF
+graphs and helps to ﬁnd schedules with a trade-off between the
+number of processors required and the throughput. It also allows
+quantitative model checking and veriﬁcation of (preservation of)
+user-deﬁned properties such as the absence of deadlocks, safety,
+liveness and throughput analysis. This translation also forms the
+basis for future work to extend this analysis of SDF graphs with
+new features such as stochastics, energy consumption and costs.
+I. I NTRODUCTION
+Modern multimedia applications, such as multi-party video
+conferencing and video-in-video, impose high demands on a
+system’s throughput. At the same time, resource requirements
+(buffer sizes, number of processors used) should be minimised.
+Therefore, smart scheduling strategies are needed.
+Synchronous Dataﬂow (SDF) graphs are well-known com-
+putational models for analysing dataﬂow and digital signal
+processing applications and are increasingly utilised for both
+modelling and analysing multimedia applications on a multi-
+processor Systems-on-Chip (MPSoC) [16]. In this paper, all
+software tasks of an application are modelled as SDF actors.
+Currently, resource-allocation strategies and scheduling of
+tasks for SDF graphs are carried out using the max-plus al-
+gebraic semantics and graph analysis by transforming SDF
+graphs to equivalent Homogeneous SDF graphs (HSDF) [5] [12].
+This approach leads to a larger graph; in the worst case, the
+derived HSDF graph can be exponentially larger than the original
+SDF graph [20]. Our approach does not avoid this exponential
+complexity but rather we are solving the problem with resource
+constraints in the same complexity.
+Another state-of-the-art method [9] calculates the throughput
+of SDF graphs by exploring the state-space until a periodic phase
+is found. However, in this method, each actor is executed as soon
+as it is enabled and it is assumed that sufﬁcient resources are
+available to accommodate all the enabled executions simulta-
+neously. On the contrary, this may not be the case in real-life
+applications, where there is always a constraint on the number
+of resources.
+We propose an alternative, novel approach to analyse sched-
+ules of SDF graphs on a limited number of processors using
+Timed Automata (TA) [3]. TA are a natural choice for modellingtime-critical systems to check whether the timing constraints are
+met. By deﬁnition, TA are automata in which clock variables
+measure the elapse of time. Clock guards on the edges indicate
+conditions under which an edge can be taken and invariants
+show the conditions under which a system can stay in a certain
+location. TA are extensively used in the veriﬁcation and model
+checking of industrial applications [17].
+In particular, our main contributions are: (1) Translating
+SDF graphs into timed automata in a compositional manner;
+(2) Exploiting U PPAAL ’s [4] capabilities to search the state-
+space and derive a schedule that ﬁts on the given number of
+processors while maximising throughput; (3) Handling hetero-
+geneous processor models, in which only speciﬁc processors can
+run a particular task. In this way, we can efﬁciently determine a
+trade-off between the number of processors and the throughput
+for a certain application. This will hugely aid in ﬁnding efﬁcient
+schedules in terms of energy and memory consumption. We also
+demonstrate that our translation preserves deadlock freedom if
+the number of processors varies.
+Quantitative model checking and support for evaluating user-
+deﬁned properties is lacking in the existing contemporary SDF
+graph analysis tools e.g. SDF3[22]. In this context, U PPAAL
+is exploited to address this lack and to evaluate user-deﬁned
+properties which further adds to the beneﬁts of SDF graphs.
+Future research directions are to carry on from the results
+achieved in this paper and explore the possibilities of extending
+the analysis of SDF graphs with the new features, i.e. stochastics
+and energy costs and combine with new extensions of TA like
+costs and timed games.
+Paper organisation. Firstly, Section II reviews related work.
+Section III explains SDF graphs and Section IV discusses the
+throughput analysis of SDF graphs and our method of calculating
+it. Section V covers TA and U PPAAL and Section VI covers the
+translation of SDF graphs to TA. The methodology of analysing
+SDF graphs using U PPAAL is explained in section VII. Section
+VIII experimentally validates our approach via case studies.
+Finally, Section IX draws conclusions and outlines possible
+future research.
+II. R ELATED WORK
+Various dataﬂow models exist, such as computational graphs
+[12] and SDF graphs [16]. SDF graphs are the more expressive
+of the two, and can analyse applications running on multiproces-
+sors, such as MPEG-4 and MP3 decoder. Minimising the buffer
+requirements of SDF graphs using model checking is analysed in
+depth [8], [10]. Throughput analysis of HSDF graphs is studied
+extensively in [5], [12], [25], [27]. An algorithm proposed by
+Karp in [12] to calculate maximum cycle ratio (MCR) is another
+efﬁcient method of calculating the throughput. All these studies
+2014 14th International Conference on Application of Concurrency to System Design
+1550-4808/14 $31.00 © 2014 IEEE
+DOI 10.1109/ACSD.2014.1372
+
+
+--- Page 2 ---
+require a conversion of SDF graphs into HSDF graphs [16], [27]
+which can be exponentially larger than the original SDF graphs
+in the worst case. On the other side, the throughput calculation
+method applicable directly to SDF graphs [9] is practical only if
+we have sufﬁcient processors. However, our strategy calculates
+maximal throughput on a given ﬁnite number of processors.
+Another novel technique for task binding and scheduling
+of SDF graphs under given throughput constraints is presented
+in [20]. But this approach uses an combination of static-order
+and TDMA scheduling for actors within an application, unlike
+in our strategy where the actors are mapped in such a way
+that maximal throughput is achieved at run-time. A model-
+checking based approach to guarantee timing bounds of multiple
+SDF graphs running on a shared-bus multicore architectures is
+analysed in [6]. However, this analysis also requires a static-
+order scheduling.
+Model-checking of a recently introduced extension of SDF
+graphs known as Scenario-Aware Dataﬂow (SADF) [23] is done
+in [24] utilising the CADP tool suite [7] by the application
+of Interactive Markov Chains (IMC). Nevertheless, it does not
+investigate the calculation of throughput nor does it consider
+multiprocessor platforms.
+To the best of our knowledge, there are no papers that present
+a technique of ﬁnding a maximal throughput without translating
+SDF graphs to equivalent HSDF graphs on a given number of
+processors, both in homogeneous and heterogeneous systems.
+III. S YNCHRONOUS DATAFLOW
+In this section, the formal deﬁnitions and semantics of SDF
+graphs are introduced.
+A. SDF Graphs
+In typical streaming applications, there is a set of tasks
+to be executed in a certain order. An important part of these
+applications is a set of periodically executing tasks which
+consume and produce ﬁxed amounts of data. An SDF graph is
+a directed, connected graph in which these tasks are represented
+byactors , data communicated is represented by tokens and the
+edges transport tokens between actors. Each edge is connected
+to precisely one producer and precisely one consumer. The
+execution of an actor is known as an ( actor )ﬁring and the
+number of tokens consumed or produced onto an edge as a result
+of a ﬁring is referred to as consumption andproduction rates
+respectively. In the origial deﬁnition [16], each actor takes unit
+time to complete its ﬁring. However, there is a natural extension
+by which a certain execution time is associated with each actor
+[19].
+Example 1. Figure 1 shows an SDF graph with three actors u,
+v, w. Arrows between the actors depict the edges which hold
+tokens (dots). The execution time of the actors is represented by
+a number inside the actor nodes. The numbers near the source
+and destination of each edge are the rates.
+An SDF graph is deﬁned in the following.
+Deﬁnition 1. An SDF Graph is a tuple G=(A,D,Tok0,τ)
+where:
+• A is a ﬁnite set of actors,
+• D is a ﬁnite set of dependency edges D⊆A2×N2,
+•Tok0:D→Ndenotes initial tokens in each edge andu,2 v,2 w,312 3 211
+1
+Fig. 1: SDF Graph (taken from [5])
+•τ:A→N≥1assigns an execution time to each actor.
+For an SDF graph Gwith actors A={a,b}, a dependency edge
+d=(a,b,p,q)denotes a data dependency of actor bon actor
+a. The ﬁring of actor aresults in the production of ptokens on
+edged. If the number of tokens on edge dis greater than or
+equal toq, actorbcan execute, and as a result, it consumes q
+tokens from edge d.
+Deﬁnition 2. The sets of input edges In(a) and output edges
+Out(a) of an actor a∈Aare deﬁned as
+In(a)={(a′,a,p,q)∈D|a′∈A∧p,q∈N}
+Out(a)={(a,b,p,q)∈D|b∈A∧p,q∈N}
+Informally, for all actors a∈Aand dependency edges d∈
+D, if the number of tokens on every input edge (a′
+i,a,pi,qi)∈
+In(a)is greater than or equal to qi, actoraﬁres and removes qi
+tokens from every In(a). The ﬁring takes place for τ(a)time
+units and it ends by producing pitokens on all (a,bi,pi,qi)∈
+Out(a). For example, actor vin Figure 1 takes in 2 tokens from
+the edge u-vand 1 token from the edge v-v, ﬁres for 2 time units
+and produces 3 tokens on the edge v-wand 1 token on the edge
+v-v.
+Deﬁnition 3. The consumption rate CR(a,b,p,q)and produc-
+tion rate PR(a,b,p,q)of an edge (a,b,p,q)∈Dare deﬁned
+as
+CR(a,b,p,q)=q
+PR(a,b,p,q)=p
+B. Semantics
+The dynamic behaviour of an SDF graph can be best under-
+stood if we deﬁne it in terms of a labelled transition system. For
+this purpose, we need to deﬁne the notions of state, transition
+and execution [9] [21].
+Deﬁnition 4. Thestate of an SDF graph (A,D,Tok0,τ)is a pair
+(ρ,υ). Here,ρ:D→Nassociates with each edge the number
+of tokens it currently holds and υ:A→NNrecords for each
+ﬁring of actor a∈Athat occurred in the past, the remaining
+execution time. Thus, υ(a)(k)denotes the number of ﬁrings of
+a∈Athat complete in exactly ktime units. The initial state
+of an SDF graph is deﬁned as (Tok0,{(a,∅)|a∈A})where∅
+denotes an empty multiset.
+By introducing the concept of multiset of numbers for actors,
+it is possible to have multiple simultaneous ﬁrings of same actor
+also known as auto -concurrency . An edge (a,b,p,q)∈Din
+an SDF graph is called a self-loop ifa=b. Auto-concurrency of
+any actor can be trivially restrained by adding self-loops with
+initial tokens equal to the desired degree of auto-concurrency.
+Suppose that the state vector of the SDF graph in Figure 1 is
+(ρ,υ)whereρcorresponds to edges u-v, v-w, v-v respectively and
+73
+
+--- Page 3 ---
+υrepresents the multisets for actor u, vandwrespectively. The
+initial state of the SDF graph in Figure 1 is ((0,0,1),(∅,∅,∅)).
+The transitions are of three forms i.e. the start transition rep-
+resenting the start of actor ﬁring, the end transition representing
+the end of actor ﬁring and discrete clock ticks representing the
+progress of time.
+Deﬁnition 5. A transition of an SDF graph (A,D,Tok0,τ)from
+state(ρ1,υ1)to(ρ2,υ2)is denoted as (ρ1,υ1)κ− →(ρ2,υ2)and
+labelκis deﬁned as κ∈(A×{start,end })∪{tick}and
+corresponds to the type of transition.
+• Labelκ=(a,start)denotes the starting of a ﬁring by
+an actor a∈A. For all a∈Aandd∈In(a), this
+transition results in,
+ρ2(d)=⎧
+⎪⎪⎨
+⎪⎪⎩ρ1(d)−CR(d),ifρ1(d)≥CR(d)
+∀a∈Aand∀d∈In(a)
+ρ1(d), otherwise
+∀a∈Aand∀d∈In(a)
+(1)
+υ2(a)=⎧
+⎪⎪⎨
+⎪⎪⎩υ1(a)⊎τ(a),ifρ1(d)≥CR(d)
+∀a∈Aand∀d∈In(a)
+υ1(a), otherwise .
+∀a∈Aand∀d∈In(a)
+(2)
+where⊎represents multiset union; that is we remove
+CR(d)tokens and attach a’s execution time τ(a)toυ2
+for alla∈Aandd∈In(a).
+• Labelκ=(a,end)denotes the ending of a ﬁring by
+an actor a∈A. For all a∈Aandd∈Out(a), this
+transition results in,
+ρ2(d)=⎧
+⎪⎪⎨
+⎪⎪⎩ρ1(d)+PR(d),if0∈υ1(a)
+∀a∈Aand∀d∈Out(a)
+ρ1(d), otherwise
+∀a∈Aand∀d∈Out(a)
+(3)
+υ2(a)=⎧
+⎪⎪⎨
+⎪⎪⎩υ1(a)\{0},if0∈υ1(a)
+∀a∈Aand∀d∈Out(a)
+υ1(a), otherwise .
+∀a∈Aand∀d∈Out(a)
+(4)
+where\represents multiset difference. This transition
+produces the speciﬁed number of tokens on the outgoing
+edge ofaand removes from υ1one occurrence of a
+with remaining executing time 0 for all a∈Aand
+d∈Out(a).
+• Labelκ=tick denotes a clock tick transition. For
+alla∈Aandd∈D, this transition is enabled
+if0/∈υ1(a)and results in ρ2(d)=ρ1(d)and
+υ2={(a,υ1(a)⊖1)|a∈A}whereυ1(a)⊖1denotes
+a multiset of elements of υ1(a)decreased by one. This
+transition decreases by 1 the remaining execution time
+for all actor occurrences.
+C. Scheduling
+Aschedule of an SDF graph is a ﬁring sequence of actors to
+meet certain design objectives. A key aspect in SDF graphs is toﬁnd schedules with certain optimality properties, e.g. maximal
+throughput or the minimum number of processors required.
+Deﬁnition 6. An execution of an SDF graph (A,D,Tok0,τ)is
+deﬁned as an inﬁnite sequence of states and transitions s0κ0− →
+s1κ1− →...starting from initial state of SDF graph such that
+∀n≥0,snκn− − →sn+1.
+SDF graphs may end up in a deadlock or with an unbounded
+accumulation of tokens in a certain edge due to inappropriate
+consumption and production rates in case of non-terminating
+programs.
+Deﬁnition 7. An SDF graph experiences a deadlock if and only
+if its execution has a state (ρ,υ)in which ∀a∈Aand∃d∈
+In(a)such that ρ(d)/notgreaterequalCR(d)andυ(a)=∅.
+Note that deadlocked executions are inﬁnite, as time can
+always progress. To avoid these effects, there is a property
+termedconsistency which must hold [14] (although it does
+not guarantee deadlock freedom [9]). Consistency is deﬁned as
+follows:
+Deﬁnition 8. A repetition vector of an SDF graph
+(A,D,Tok0,τ)is a function γ:A→N0such that for
+every edge (a,b,p,q)∈Dfroma∈Atob∈A, the following
+equality holds.
+p.γ(a)=q.γ(b)
+Repetition vector γis termed non-trivial if and only if ∀a∈
+A,γ(a)>0. An SDF graph is consistent if it has a non-trivial
+repetition vector.
+A repetition vector determines how often each actor must ﬁre
+with respect to the other actors without a change in the token
+distribution. If each actor of an SDF graph is invoked according
+to its repetition vector in a schedule, the number of tokens on
+each edge is the same after the schedule is executed as before.
+Such a schedule is termed a periodic schedule. The repetition
+vector can be written in the form of matrix-vector [15] as:
+Γγ=0, (5)
+whereΓis termed the topology matrix of an SDF graph and
+0is a null vector. The rows and columns of Γare indexed by
+the edges and actors in an SDF graph respectively. For every
+edge(a,b,p,q)∈Dfroma∈Atob∈A, the entries of the
+topology matrix are deﬁned as:
+Γ((a,b,p,q),a′)=⎧
+⎨
+⎩p, ifa′=a
+−q,ifa′=b
+0,o t h e r w i s e .(6)
+A self-loop rules out the possibility of a repetition vector if
+p/negationslash=qas it contradicts equation 6; otherwise it does not have
+any effect on the existence of a repetition vector and is therefore
+not added to the topology matrix.
+Lemma III.1. Forγin the equation 5 to be a vector containing
+only positive integers, the rank of Γmust not be full.
+Proof: If the rank of Γis full, it implies that Γis invertible.
+Then we can write the equation 5 as,
+Γ−1Γγ=Γ−10
+Iγ=0
+74
+
+--- Page 4 ---
+whereIis an identity matrix. The above equation is valid only
+ifγis a vector with all entries equal to 0, which clearly is a
+contradiction.
+The rank of γof an SDF graph is always equal to norn−1
+wherenis the number of actors [15]. Therefore, it is necessary
+forΓto have a rank n−1for a repetition vector to exist [15].
+Theorem III.2. An SDF graph with nactors has a periodic
+schedule if and only if its topology matrix Γhas a rank n−1.
+Furthermore, if its topology matrix has a rank n−1, then there
+exists a unique smallest integer solution γto the equation Γγ=
+0and all entries in the vector γare coprime.
+IfΓhas a rank n−1, we obtain the following facts by
+applying linear algebra [15]:
+Fact III.3. There exists a vector γ/negationslash=0 such that Γγ=0.
+Fact III.4. IfΓγ=0 thenΓ(Kγ)=0 for any constant K.
+Fact III.5. IfΓγ1=0 andΓγ2=0 then there exists a scalar
+constantKsuch that γ1=Kγ2.
+Clearly, an SDF graph is consistent only if its topology
+matrix has a rank = n−1wherenis the number of actors.
+In the remaining paper, we always assume consistency.
+Deﬁnition 9. Let us assume that an SDF graph (A,D,Tok0,τ)
+has a repetition vector γ. An iteration is a set of actor ﬁrings
+such that for each a∈A, the set contains γ(a)ﬁrings of a.
+For the SDF graph in Figure 1, the topology matrix is given
+by:
+Γ=/parenleftBig1−20
+03−2/parenrightBig
+As we can see that the topology matrix Γis equal to
+two linear independent rows, the positive integer solution i.e.
+repetition vector γexists and is equal to /angbracketleft4,2,3/angbracketright. This shows
+that the graph is consistent and graph iteration consists of 4
+ﬁrings of actor u, 2 ﬁrings of actor vand 3 ﬁrings of actor w.
+D. Modelling Finite Resources
+An SDF graph typically only models an application. When
+mapping an application onto a hardware platform, the chosen
+platform imposes an extra set of constraints, which we need
+to take into account. Communication between actors in an
+SDF graph requires buffer storage capacity. Minimising buffer
+capacity is an important factor to improve energy costs [8].
+We therefore deﬁne an edge capacity function, which yields the
+maximum number of tokens that can be stored on an edge. The
+edge capacity function also help to make an SDF graph strongly
+connected.
+Deﬁnition 10. The edge capacity of an SDF graph Gis a
+function σ:D→N0that assigns to each edge d∈Dthe
+maximum number of tokens it can hold.
+The capacity of an edge (a,b,p,q)∈Dis modelled
+in an SDF graph by adding an edge (bσ,aσ,qσ,pσ)∈D
+withCR(a,b,p,q)=PR(bσ,aσ,qσ,pσ)andPR(a,b,p,q)=
+CR(bσ,aσ,qσ,pσ)[20]. The capacity of an edge (a,b,p,q)∈
+Dis denoted by the number of initial tokens on the edge
+(bσ,aσ,qσ,pσ)∈D. The SDF graph shown in Figure 1 after
+adding the edge capacities is shown in Figure 2. The edgeu,2 v,2 w,31 2
+2
+213 2
+2
+6311
+1
+Fig. 2: SDF Graph shown in Figure 1 with edge capacities
+••
+Firing StartsClaim Processor
+Firing EndsRelease Processor
+Execution Time
+Fig. 3: Firing of an actor (taken from [26])
+capacities are σ(u,v,p,q)=2 andσ(v,w,p,q)=6 .
+To avoid deadlock, an SDF graph must have a topology
+matrix with a rank equal to n−1and enough initial tokens
+to execute all the ﬁrings in the repetition vector. Finding the
+smallest edge capacities for which the graph can be executed
+without the risk of a deadlock using model checking is described
+in [8].
+Furthermore, not all actors can be mapped onto every pro-
+cessor, because of memory and bandwidth limitations, analogue
+versus digital processing capabilities, instruction set limitations,
+etc. as reﬂected in a processor application as follows:
+Deﬁnition 11. Aprocessor application model is a tuple (P,ζ)
+consisting of a ﬁnite set Pof processors and a function ζ:P→
+2Aindicating which actors can be mapped to which processor.
+The edge capacity function and processor application model
+allow us to reason about the behaviour of an application under
+a speciﬁc mapping. The processor is claimed by an actor at the
+beginning of its ﬁring and after the execution time of the actor
+elapses, it ﬁnishes ﬁring and releases the processor as shown in
+Figure 3.
+In real-life applications, the execution time of an actor varies
+with the type of processor onto which it is mapped. Since we
+associate with each actor precisely one execution time, at the
+moment our model covers instances where actors are mapped
+onto only one type of processor in case of a heterogeneous
+platform.
+Deﬁnition 12. A processor availability function δon a set of
+processors Pis given by δ:P→{0,1}.
+We deﬁne claiming of a processor p∈Pby an actor a∈A
+at the start of its ﬁring by Clm:A→(P→{1}). Similarly,
+releasing of a processor p∈Pby an actor a∈Aat the end of
+its ﬁring is deﬁned by Rel:A→(P→{0}).
+Deﬁnition 13. A state of an SDF graph (A,D,Tok0,τ)mapped
+on a processor application model (P,ζ)is a triple (ρ,δ,υ)
+[26]. Edge quantity ρ:D→Nassociates with each edge the
+number of tokens present in that edge and δassociates with
+each processor p∈Pif it is available or occupied. To observe
+the progress of time, υ:A→NNassociates a multiset of
+numbers representing the remaining execution times of active
+actor ﬁrings.
+Deﬁnition 14. A transition of an SDF graph (A,D,Tok0,τ)
+75
+
+--- Page 5 ---
+mapped on a processor application model (P,ζ)from state
+(ρ1,δ1,υ1)to(ρ2,δ2,υ2)is denoted as (ρ1,δ1,υ1)κ− →
+(ρ2,δ2,υ2)and label κis deﬁned as κ∈(A×{start,end })∪
+{tick}and corresponds to the type of transition.
+• Labelκ=(a,start)denotes starting of a ﬁring by an
+actora∈A. For all a∈A,d∈In(a)andp∈P,
+this transition may occur if ρ1(d)≥CR(d),δ1(p)=0
+anda∈ζ(p)and results in ρ2(d)=ρ1(d)−CR(d),
+υ2(a)=υ1(a)⊎τ(a)andδ2(p)=Clm(a)(p). Here,⊎
+represents multiset union.
+• Labelκ=(a,end)denotes ending of a ﬁring by
+an actor a∈A. For all a∈A,d∈Out(a)and
+p∈P, this transition can occur if 0∈υ1(a)and
+results in ρ2(d)=ρ1(d)+PR(d),υ2(a)=υ1(a)\{0}
+andδ2(p)=Rel(a)(p). Here,\represents multiset
+difference.
+• Labelκ=tick denotes a clock tick transition. This
+transition is enabled if 0/∈υ1(a)for alla∈A.
+For alla∈A,d∈Dandp∈P, this transition
+results in ρ2(d)=ρ1(d),δ1(p)=δ2(p)andυ2=
+{(a,υ1(a)⊖1)|a∈A}whereυ1(a)⊖1denotes a
+multiset of elements of υ1(a)decreased by one.
+IV . T HROUGHPUT ANALYSIS
+A. Throughput Analysis by Self-Timed Execution
+The maximal throughput of an SDF graph is determined from
+a speciﬁc type of execution known as a self-timed execution
+[9] in which every actor ﬁres as soon as it is enabled.
+Deﬁnition 15. An execution is self-timed if and only if clock
+transitions occur when no start transitions are enabled.
+Due to the deterministic behaviour of an SDF graph, the
+states are repeated in an execution after a certain number of
+ﬁrings.
+Proposition IV .1. According to [9], for every consistent and
+strongly connected SDF graph, the state-space of a self-timed
+execution consists of a ﬁnite sequence of states ( transient phase )
+followed by a periodic sequence repeated inﬁnitely ( periodic
+phase ).
+In a self-timed execution, a certain state that was visited
+before is revisited implying the fact that execution is then in the
+periodic phase. The periodic phase of an SDF graph consists
+of a whole number of iterations. Moreover, each actor ﬁres
+according to the repetition vector in an iteration. For each actor
+a∈Ain the SDF graph, we deﬁne its corresponding entry in
+the repetition vector γasγ(a). We also deﬁne the number of
+iterations per period as m.
+Deﬁnition 16. The throughput of an SDF graph with a processor
+application model is the average number of graph iterations that
+are executed per unit time, measured over a sufﬁciently long
+period.
+The self-timed execution of the SDF graph shown in Figure
+2 is explained in Figure 4. It is worth noting that after 2
+simultaneous ﬁrings of actor uon processors p0andp1,a n
+iteration is completed every 9 time units and hence throughput
+is1
+9. Similarly, self-timed execution in terms of the state vectoruu
+uu
+uu
+uu
+uu
+v v v v
+w w w w
+w w
+time0123456 78 9 10 11 12 13 14 15 16 17 18 19 20p3p2p1p0
+uu
+uu
+v v
+w w
+wgraph iteration
+processors
+Fig. 4: Self-timed execution of SDF graph shown in Figure 2
+• • •• ••• ••• ••
+•• ••• ••
+((0,0,6,2,1),(∅,∅,∅))((0,0,3,0,0),(∅,{2},∅))
+((2,0,2,0,1),(∅,∅,{∅,∅}))((0,1,3,0,1),({∅,∅},∅,1))
+(u,start)
+(u,start)tick tick(u,end)
+(u,end)
+(v,start)tick tick(v,end)
+(u,start)
+(u,start)
+(w,start)tick tick(u,end)
+(u,end)
+(v,start)tick
+(w,end)
+tick (v,end)
+(u,start)
+(u,start)
+(w,start)
+(w,start)tick tick (u,end)
+(u,end)tick(w,end)
+(w,end)
+(v,start)
+Fig. 5: Self-timed execution of our running example
+(ρ,υ)of the same SDF graph is shown in Figure 5 where the
+edges u-v, v-w, w-v, v-u andv-vare represented by ρrespectively.
+Similarly, υcorresponds to the multisets for actor u, v and
+wrespectively. We can also see that the periodic phase has a
+duration of 9 time units consisting of precisely one iteration. This
+method is implemented in the SDF3to calculate the throughput
+of SDF graphs.
+B. Throughput Analysis by Fastest Execution
+Let(ρ0,υ0)and(ρr,υr)denote the initial and recurrent
+states at the completion of the periodic phase respectively in
+a self-timed execution. For each actor a∈A, letfatandfap
+represents the number of times actor a∈Aﬁres in the transient
+phase and periodic phase respectively.
+Lemma IV .2. If a periodic phase in a self-timed execution is
+repeated for ntimes, then fapis equal to nmγ(a).
+Proof: The proof follows from the deﬁnition of self-timed
+execution, repetition vector and iteration.
+The self-timed execution takes a minimum amount of time
+to revisit (ρr,υr)and provides the maximum throughput of an
+SDF graph. Therefore, we can consider it as a fastest execution
+to reach(ρr,υr)again.
+Lemma IV .3. As a result of the fastest execution, let us say
+that the SDF graph has repeated the periodic phase ntimes
+and is in the state (ρr,υr). From here, if the SDF graph is
+executed in such a way that each actor a∈Aﬁres equal to
+f′
+at=kγ(a)−fatfor some constant k, the SDF graph reaches
+the initial state (ρ0,υ0).
+Proof: Total number of ﬁrings for each actor a∈Ain this
+case are:
+=fat+fap+f′
+at
+=fat+nmγ(a)+kγ(a)−fat
+=(nm+k)γ(a)
+76
+
+--- Page 6 ---
+From Fact III.4, Γ(nγ)=0 for any constant n.
+A necessary condition for previous lemma to hold is f′
+at≥0.
+To reach (ρ0,υ0)from(ρr,υr)in the least number of ﬁrings,
+f′
+atmust be minimal. Let kmin denote the smallest ksuch that
+f′
+at≥0andf′
+atis minimal for all actors a∈A.
+If we assume that the part of execution from (ρr,υr)to
+(ρ0,υ0)isfastest also, then we can say the following.
+Lemma IV .4. The fastest execution of every consistent and
+strongly connected SDF graph repeats the periodic phase ntimes
+if each actor a∈Aﬁres equal to (nm+kmin)γ(a)for some
+constants nandkmin.
+Proof: Trivial for non-zero transient phase following lemma
+IV .2 and IV .3. If a transient phase does not exist and the SDF
+graph enters the periodic phase directly, then fat=0. In this
+case, the minimum value of ksatisfying f′
+at≥0iskmin=0.
+Furthermore, the total number of ﬁrings is equal to nmγ(a)for
+eacha∈Aand the periodic phase is repeated ntimes.
+In section VII, we propose U PPAAL as a tool to compute
+the repetition vector and throughput. U PPAAL can automatically
+verify a number of properties, including invariant and reachabil-
+ity checking. An important feature in our approach is the option
+of generating a trace with the shortest possible accumulated time
+delay to reach the ﬁnal state i.e. (nm+kmin)γ(a)for each actor
+a∈Afrom the initial state (ρ0,υ0), termed Fastest Trace .
+UPPAAL explores the whole state-space and ﬁnds the fastest
+execution trace containing the periodic phase repeated ntimes.
+From the periodic phase, we determine the maximal throughput
+of the SDF graph.
+Self-timed execution assumes there is an unbounded number
+of processors to accommodate all enabled ﬁrings of all actors at
+a certain time. Let Pmindenote the ﬁnite set containing the
+minimum number of processors required to allow self-timed
+execution. From lemmas IV .3 and IV .4, we can generalise the
+following.
+Lemma IV .5. For every consistent and strongly connected SDF
+graph mapped on a processor application model (P,ζ)in such
+a way that/uniontext
+∀p∈Pζ(p)=Aand∅⊂P⊆Pmin, the maximal
+throughput of the SDF graph is determined from the periodic
+phase of the fastest execution to the ithmultiple of the repetition
+vector for some constant i.
+Proof: In a strongly connected and consistent SDF graph,
+each actor depends on the other actors in order to have a
+sufﬁcient amount of tokens on its input edges to be enabled for
+ﬁring. This implies a bound on the difference in the number of
+ﬁrings of each actor with respect to the corresponding entries in
+the repetition vector. The state-space of reaching the ithmultiple
+of the repetition vector for some constant iif∅⊂P⊆Pmin
+could contain multiple possible executions. If we search the
+whole state-space and consider only the fastest execution out
+of all executions, we notice that it contains a periodic phase
+implying the maximal throughput.
+The reason is that in a fastest execution, if insufﬁcient
+processors are available to map all simultaneous enabled ﬁrings,
+some of the ﬁrings will be delayed. Delaying a certain ﬁring does
+not change any dependency. Instead, successors ﬁrings would
+also be delayed. The constraint of having to reach the ﬁnal
+state in the least possible time ensures that delayed ﬁrings are
+mapped in such a way that they cause the least delay for theiruu
+uu
+uu
+uu
+uu
+uu
+v v v v v v
+w w w w w w
+w w w
+time0123456 78 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29p3p2p1p0
+uu
+uu
+v v
+w w
+wuu
+uu
+v v
+w w
+wgraph iteration graph iteration
+processorsInitial Transient Phase First Periodic Phase Second Periodic Phase Final Transient Phase
+Initial Token Distribution Initial Token Distribution
+Fig. 6: Schedule using four processors
+uu
+uu
+uu
+uu
+uu
+uu v v v v v v
+w w w w w w w ww
+time0123456 78 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29p2p1p0
+uu
+uu v v
+w w wuu
+uu v v
+w w wgraph iteration graph iteration
+processorsInitial Transient Phase First Periodic Phase Second Periodic Phase Final Transient Phase
+Initial Token Distribution Initial Token Distribution
+Fig. 7: Schedule using three processors
+successor ﬁrings to be enabled. As the number of simultaneous
+ﬁrings of the actors and number of tokens in any edge remains
+bounded, the state-space is also ﬁnite. This ensures that a certain
+state(ρr,υr)will be revisited eventually during the execution
+representing the periodic phase. We explore the whole state-
+space with U PPAAL and ﬁnd the fastest execution trace from all
+possible executions.
+For each SDF graph, the value of kmin varies by altering
+the given number of processors and depends on how many
+times each actor a∈Ahas ﬁred during the transient phase.
+Therefore, the value of nm+kmin given to U PPAAL as a ﬁnal
+state must be high enough to ensure that f′
+atis greater than 0
+and the SDF graph enters the periodic phase.
+Example 2. The minimum number of processors to achieve
+self-timed execution for the SDF graph in Figure 2 is Pmin=
+4. If we map the same SDF graph on 4 processors, then the
+fastest execution to the 3rdmultiple of repetition vector i.e. 3 γ=
+/angbracketleft12,6,9/angbracketrightis shown in Figure 6. In this example, the values of n,
+mandkminare 2, 1 and 1 respectively. Therefore, the periodic
+phase is repeated twice. We could determine the throughput from
+the periodic phase which is equal to1
+9.
+In the similar fashion, if we map the same SDF graph on 3
+processors, the fastest execution to the 3rdmultiple of repetition
+vector is shown in Figure 7. Please note that the the value of
+throughput still remains1
+9. In the rest of the paper, we do not
+analyse ﬁnal transient phase as it does not affect the throughput.
+V. T IMED AUTOMATA
+This section recalls the basic deﬁnitions of timed automata
+(TA) [2], [3]. We use B(C) to denote the set of clock constraints
+for a ﬁnite set of clocks C. That is, B(C) contains all of
+conjunctions over simple conditions of the form x⋊ ⋉cor
+x−y⋊ ⋉c, wherex,y∈C,c∈Nand⋊ ⋉∈{<,≤,=,≥,>}.
+Deﬁnition 17. A timed automaton A is a tuple
+(L,Act,C,E,Inv,l0), where Lis a set of locations ;Act
+is a ﬁnite set of actions , co-actions and internal λ-actions; C
+77
+
+--- Page 7 ---
+is a ﬁnite set of clocks ;E⊆L×Act×B(C)×2C×Lis
+a set of edges ;Inv:L→B(C)assigns an invariant to each
+location; and l0∈Lis the initial location .
+Edges are labelled with tuples (g,α,D). Here, gis a con-
+straint on the clocks of the timed automaton expressing when the
+transition can be taken; αis an action used for communication
+between automata; and D⊆Cis a set of clocks to be reset
+on the edge. For example, the edge from InUse _wtoIdle in
+Figure 8b indicates that this edge can be taken when clock
+x=3, its action label is end[i][w]!, and it resets no clocks.
+Invariants indicate when actions have to be taken, i.e. a timed
+automaton can only be in a location if all its invariants are true.
+For instance, the timed automaton in Figure 8b can only remain
+in the location InUse _wif it fulﬁls x≤3.
+Complex TA are often built by putting together smaller
+component TA, using the parallel composition operator ||.T w o
+components in a composition synchronise on joint actions, while
+evolving independently on non-joint actions.
+Deﬁnition 18. LetAi=(Li,Acti,Ci,Ei,Invi,l0
+i),i=1,2
+withH⊆Act1∩Act2andC1∩C2=∅. The timed automata
+A1||A2is deﬁned as,
+(L1×L2,Act1∪Act2,C1∪C2,E,Inv1∧Inv2,l0
+1×l0
+2)
+The edge set Eis the smallest set that contains the following
+transitions
+• ifα∈H,l1g1:α,D1−−−−−→1l′
+1,l2g2:α,D2−−−−−→2l′
+2, then
+/angbracketleftl1,l2/angbracketrightg1∧g2:α,D1∪D2−−−−−−−−−− →/angbracketleftl′
+1,l′
+2/angbracketright∈E.
+• Ifα/∈H,l1g:α,D−−−−→1l′
+1,/angbracketleftl1,l2/angbracketrightg:α,D−−−−→/angbracketleftl′
+1,l2/angbracketrightthen
+l2g:α,D−−−−→2l′
+2,/angbracketleftl1,l2/angbracketrightg:α,D−−−−→/angbracketleftl1,l′
+2/angbracketright.
+VI. T RANSLATION OF SDF GRAPHS TO TIMED AUTOMATA
+Our framework of scheduling SDF graphs consists of sepa-
+rate models of an SDF graph and the processors. This method
+splits the scheduling problem of the SDF graphs in terms of the
+tasks and resources. In this section, we explain the translation
+of an SDF graph along with a processor application model to
+timed-automata with the help of U PPAAL .
+Given an SDF graph G=(A,D,Tok0,τ)together with
+a processor application model (P,ζ), we generate a parallel
+composition of TA:
+AG/bardblProcessor 1/bardbl.../bardblProcessor n,
+as shown in Figure 8. Here, the timed automaton AG
+models the SDF graph as shown in Figure 8a. The TA
+Processor 1,...,Processor nmodel the processors P=
+{p1,...,p n}, as shown in Figure 8b. Note that the resulting
+timed automaton is trivially extensible in the number of proces-
+sors. Thus, the translation is, at least, composable with regards
+to the processor application model.The underlying LTS of Gis
+given by (S,Lab,→G)whereS=(ρ,η)denotes the states,
+Lab=κdenotes the labels and →G⊆S×Lab×Sdenotes the
+edges.AGis deﬁned as,
+AG=(L,Act,C,E,Inv,Initial)
+whereL=l0={Initial}is the only location in our SDF graph
+model. The action set Act={ﬁre!,end?}contains two param-
+eterised actions i.e. ﬁre! (exclamation mark signiﬁes a sendingoperation) and end? (question mark signiﬁes a receiving oper-
+ation) to synchronise with the TA Processor 1,...,Processor n.
+For each processor pi∈Pand actor a∈A,ﬁre[i][a]
+represents the start of the execution of actor aon a processor
+pi, and end[i][a] represents its ending. The action ﬁre[i][a] is
+enabled if the incoming buffers of actor ahave sufﬁcient tokens.
+We do not have any clocks and invariants in AG. Therefore,
+Inv: L→B(C) and Inv(l0)=true. For each a∈Aand all
+d∈In(a),Econtains two edges such that:
+•Initialρ(d)≥CR(d):ﬁre[i][a]!,∅−−−−−−−−−−−−−−→ Initial and
+•Initialtrue:end[i][a]?,∅−−−−−−−−−− →Initial .
+Here,ρ(d)≥CR(d)refers to a guard and it signiﬁes that tokens
+on all input edges d∈In(a)of an actor a∈Amust be greater
+than or equal to their consumption rate in order to take the
+actionﬁre!. As a result of taking the action ﬁre!, tokens on all
+input edges d∈In(a)of an actor a∈Aare subtracted i.e.
+ρ(d)=ρ(d)−CR(d). Similarly, by taking the action end?,
+actor ﬁring is completed and tokens are produced on all output
+edgesd∈Out(a)of an actor a∈Ai.e.ρ(d)=ρ(d)+PR(d).
+AGcontains a number of variables: for each edge from actors
+a∈Atob∈B, an integer variable buﬀ_a2b containing the
+number of tokens in the buffer from a∈Atob∈B;counter _a,
+which counts how many times actor a∈Ahas ﬁred; and a
+booleanﬂag_act, which is initially 1, and set to 0 as soon as
+any actor ﬁres. Initially, counter _a=0 andbuﬀ_a2b contains
+the number of tokens in the initial distribution of G.
+Taking the action ﬁre[i][a] consumes, for each actor a∈
+Aand input edge (b,a,p,q)∈In(a)inG, theqtokens
+from the buffer buff_b2a , and is carried out by the function
+consume(buﬀ_b2a,q). The action end[i][a] adds, for each actor
+a∈Aand output edge (a,b,p,q)∈Out(a)inG, thep
+tokens on the buffer buff_a2b by carrying out the function
+produce(buﬀ_a2b,p). Finally, we note that the edges are pa-
+rameterised in processor id’s but not in actors. This is because
+each edge can contain only one parameter. Since the translation
+is deﬁned by induction on the structure of SDF graphs, it is also
+composable in the (software) application.
+Likewise, processor TA Processor 1,...,Processor nare
+deﬁned as for all 1≥i≥n:
+Processor i=(Li,Acti,Ci,Ei,Invi,l0
+i)
+wherel0
+i=Idle is an initial location and Ci={xi}is
+a set of clocks. We do not have any invariant associated to
+the initial location and therefore, Invi(l0
+i)=true. For each
+a∈ζ(pi), there is a set of locations L={InUse _a}indicating
+that processor pi∈Pis currently used by actor a∈A.
+Furthermore, each location InUse _ais equipped with an invariant
+Invi(InUse _a)≤τ(a)enforcing the system to stay in InUse _a
+for exactly the execution time τ(a). The action set Acti=
+{ﬁre?,end!}contains for each a∈ζ(pi), two parameterised
+actions ﬁre? andend! . All actions in Actisynchronise with
+AG. For each pi∈Panda∈ζ(pi), there are two edges,
+•Idletrue:ﬁre[i][a]?,{xi}−−−−−−−−−−− →InUse_a where{xi}means
+clockxiis set to zero and
+•InUse_axi=τ(a):end[i][a]!,∅−−−−−−−−−−−− →Initial wherexi=τ(a)is
+aguard .
+The action ﬁre[i][a] is enabled in the initial state and leads to
+the location InUse _a. Thus, ﬁre[i][a] “claims” the processor pi∈
+78
+
+--- Page 8 ---
+(a) UPPAAL model AGfor actors u,v,w
+(b) UPPAAL model Processor ifor actors u,v,w
+Fig. 8: UPPAAL editor showing SDF graph and Processor
+P, so that any other ﬁring cannot run on pi∈Pbefore the
+current ﬁring of a∈Ais ﬁnished. As each location InUse _a
+has an invariant Invi(InUse _a)≤τ(a), the automaton can stay
+inInUse _afor exactly the execution time τ(a).I fx=τ(a),
+the system has to leave InUse _aby taking the end[i][a] action.
+In this way, AGis notiﬁed that the execution of a∈Ahas
+ended, so that AGupdates the buffers and other variables. Note
+thatProcessor icontains exactly one clock xi; since clocks in
+UPPAAL are local we can abbreviate xibyx. A separate clock
+variable records the overall time progress. For more details on
+translation from SDF graphs to TA and analysis in U PPAAL ,w e
+refer to [1].
+VII. A NALYSIS OF SDF GRAPHS WITH UPPAAL
+Following Theorem III.2, starting from the initial token
+distribution of an SDF graph, we ask U PPAAL to ﬁnd a trace
+which leads us to the initial token distribution again in the
+least possible time. We have a boolean variable flag_act
+with an initial value true in our U PPAAL model. As soon as
+the U PPAAL model starts executing, the value of flag_act
+changes to false. In a nutshell, the purpose of flag_act is
+not to give the initial state as a result and to force the model
+to start executing. We also associate a counter with each actor.
+By checking the values of counters after the query gives us a
+trace, we determine how many times each actor has ﬁred to
+reach the target state (initial token distribution) which gives us
+therepetition vector .
+As we know the initial token distribution of the SDF graph in
+Figure 2, selecting Fastest trace and verifying the following
+query in U PPAAL generates a trace by which we determine the
+repetition vector i.e. /angbracketleft4,2,3/angbracketright.E<>(buff_u2v==0&buff_v2w==0&buff_v2u==2&buff_-
+w2v==6&buff_v2v==1&ﬂag_act==false)
+The repetition vector γfound in the previous step is an input
+to ﬁndmaximal throughput . Following lemma IV .5, we ﬁnd the
+fastest trace to nm+kmin-multiple of the repetition vector.
+We ﬁnd out the throughput of SDF graph shown in Figure
+2 usingnm+kmin=3rdmultiple of the repetition vector i.e.
+/angbracketleft12,6,9/angbracketrightby verifying the following query.
+E<>(counter_u==12&counter_v==6&counter_w==9)
+Figure 6 shows the schedule build from the generated trace
+when the SDF graph in Figure 2 is mapped on 4 processors.
+Similarly, we can detect the presence or absence of
+deadlocks in an SDF graph by checking “A[] not deadlock”.
+Please note that all counters must be removed to verify the
+absence of deadlocks.
+VIII. C ASE STUDIES
+This section presents the results of the experiments in var-
+ious case studies. We have used a bipartite graph with buffer
+capacities [8] in Figure 9, a MPEG-4 decoder [24] capable
+of processing 5 macro blocks in Figure 10, a MP3 playback
+application [25] in Figure 11, an example of SDF graphs shown
+in Figure 12, a MP3 decoder [20] in Figure 13 and an audio
+echo canceller [11] in Figure 14. Table I shows repetition
+vector of each SDF graph and Table II shows the results of
+the experiments to ﬁnd out the repetition vector, throughput and
+deadlock freedom and comparison with SDF3. These ﬁgures are
+determined using an utility called memtime . The experiments
+were run on a dual-core 2.8 GHz machine with 4GB RAM.
+The ﬁrst column displays the number of processors, and the
+second column represents the value of maximal throughput
+with respect to various numbers of processors. Columns 3-6
+depict memory consumption (KB) and computation time (s)
+required by U PPAAL in generating the trace of second multiple
+of the repetition vector to determine throughput, and to verify
+deadlock freedom. The ﬁnal column represents time (s) taken
+by SDF3for calculating throughput for self-timed execution. It
+also explains that SDF3only calculates the throughput of an
+SDF graph assuming that a sufﬁcient number of processors to
+realise self-timed execution are available.
+We could determine the exact number of processors required
+for a self-timed execution, which is 4 for the example SDF graph
+in Figure 1 using SDF3. Then, we apply our approach to derive
+an optimal schedule on a smaller number of processors. As we
+can observe from Table II, even after reducing the number of
+processors to 3, the throughput is the same, i.e.1
+9, which clearly
+shows that we do not always need a self-timed execution to
+realise maximum throughput. If we further reduce the number
+of processors to 2, throughput does not deteriorate signiﬁcantly
+and decreases slightly to1
+11. Thus, using model-checking, we
+could generate an optimal schedule in a simple manner on a
+given number of processors automatically, once the target state
+is speciﬁed in a query. We could also check deadlock freedom
+efﬁciently if a certain SDF graph is mapped on a reduced number
+of processors than required for a self-timed execution.
+So far, we have assumed a homogeneous system in which
+an actor can be mapped on any processor as all processors are
+identical. A homogeneous system gives more freedom to decide
+which actor to assign to a particular processor. However, this
+freedom is constrained in a heterogeneous system by which
+79
+
+--- Page 9 ---
+b,1a,1
+d,1c,13 44 6 3
+14
+4
+4
+14
+3
+364
+49
+912 4
+Fig. 9: Bipartite Graph [8]
+FD,1 MC,1
+RC,1VLD,1 IDCT,1
+1
+3
+1
+11115111
+1
+51
+11
+111151
+Fig. 10: MPEG-4 Decoder [24]
+MP3,1 SRC,1 DAC,1470 66520470
+8 111908
+111 111 111
+Fig. 11: MP3 Playback Application [25]
+f,2 a,2 b,2
+e,2c,2
+d,21
+422 1
+3 5593
+4
+11842 3362
+1 22413
+1 153
+5161212
+35
+511
+1 11
+1
+1
+11
+Fig. 12: Example SDF Graph
+TABLE I: Repetition Vectors
+Case Studies Repetition Vector
+Bipartite graph in Figure 9 [a b c d] = [12 36 9 16]
+MPEG-4 Decoder in Figure 10 [FD VLD IDCT RC MC] = [ 15511 ]
+MP3 Playback Application in Figure 11 [MP3 SRC DAC] = [3 235 1880]
+Example SDF graph in Figure 12 [ abcdef ]=[ 53261 21 0 ]
+MP3 Decoder in Figure 13 [Huffman,Req0,Req1,Redorder0,Reorder1,Stereo,
+Antialias0,Antialias1,Hyb Syn.0,Hyb Syn.1,Freq.Inv0,
+Freq.Inv1,Subb.Inv0,Subb.Inv1] = [ 2111111111
+1111 ]
+Audio Echo Canceller in Figure 14 [OUT SRC AEC ADC] = [23 23 1 23]
+processors could be utilised to execute a particular actor.
+In U PPAAL , we can utilise the same models described earlier
+in a heterogeneous system following lemma IV .5. Let us consider
+an SDF graph shown in Figure 1 mapped on a heterogeneous
+system in such a way that actor ucan be mapped only on
+the processors p0andp1, actor vcan be executed only on the
+processor p2, and the processor p3is assigned to execute actor
+conly. The schedule of this system is displayed in Figure 15
+and themaximal throughput is1
+9.Huffman,1Req0,1
+Req0,1Reorder0,1
+Reorder1,1Stereo,1
+Antialias0,1
+Antialias1,1Hyb. Syn0,1
+Hyb. Syn1,1Freq. Inv0,1
+Freq. Inv1,1Subb . Inv0,1
+Subb . Inv1,121
+2
+111
+111
+1
+11 1
+11
+11 1
+1 11 1
+1 11 1
+1 1122
+12211
+111
+1
+1
+11
+Fig. 13: MP3 Decoder [20]
+OUT ,1 AEC,1 ADC,1SRC,1
+1
+442323 1
+23
+4411 2323441 1
+23
+1
+11 1
+11 1
+1111
+1
+Fig. 14: Audio Echo Canceller [11]
+TABLE II: Experimental Results
+Proc. Thr Throughput Deadlock SDF3
+Memory Time Memory Time Time
+Example SDF graph in Figure 1
+4 1/9 38144 0.3 37880 0.21 0
+3 1/9 2008 0.1 2008 0.1 -
+2 1/11 2008 0.1 2008 0.1 -
+1 1/21 2008 0.1 2008 0.1 -
+Bipartite graph in Figure 9
+4 1/42 38036 0.41 38024 0.21 0
+3 1/44 37880 0.31 38008 0.2 -
+2 1/51 37884 0.21 2008 0.1 -
+1 1/73 2008 0.21 2008 0.1 -
+MPEG-4 Decoder in Figure 10
+6 1/4 99460 259.18 41576 3.5 0
+5 1/5 48960 12.04 39320 1.11 -
+4 1/5 39628 0.71 38268 0.41 -
+3 1/6 2008 0.1 38008 0.2 -
+2 1/8 2008 0.1 2008 0.11 -
+1 1/13 2008 0.1 2008 0.1 -
+MP3 Playback Application in Figure 11
+2 1/1880 99176 7.25 67056 8.93 0.036002
+1 1/2118 59472 1.41 47248 2.1 -
+Example SDF graph in Figure 12
+5 1/24 153048 108.48 71932 36.2 0
+4 1/24 63924 10.28 48600 9.66 -
+3 1/28 2008 0.1 40500 1.92 -
+2 1/38 2008 0.1 38284 0.3 -
+1 1/76 2008 0.1 2008 0.1 -
+MP3 Decoder in Figure 13
+2 1/9 38172 0.22 2008 0.1 0
+1 1/15 2088 0.1 2008 0.1 -
+Audio Echo Canceller in Figure 14
+4 1/23 2874728 302.97 1820852 856.36 0.004
+3 1/24 484736 133.65 578080 181.36 -
+2 1/25 149264 18.29 150088 26.46 -
+1 1/70 55572 1.41 60856 2.82 -
+IX. C ONCLUSIONS AND FUTURE WORK
+Despite the remarkable progress in analysis of SDF graphs,
+compact methods for the efﬁcient scheduling of SDF graphs are
+still needed with an optimum trade-off between the maximum
+80
+
+--- Page 10 ---
+uu
+uu
+uu
+uu
+uu
+v v v v
+w w w w w
+time0123456 78 9 10 11 12 13 14 15 16 17 18 19 20p3p2p1p0
+uu
+uu
+v v
+w w wgraph iteration
+processors
+Fig. 15: Schedule in a heterogeneous system
+throughput and the number of processors. By translating SDF
+graphs to TA, we have combined the ﬂexibility of automata with
+the efﬁciency of SDF graphs to derive optimum schedules.
+Moreover, with the help of contemporary model checkers
+such as U PPAAL , beneﬁts over the range of analysable properties
+such as the absence of deadlocks and unboundedness, safety,
+liveness and reachability can also be achieved. We encountered
+some limitations while using U PPAAL in this context such as
+the state-space explosion problem for the bigger models and the
+inability to express complex statements such as nesting of path
+quantiﬁers.
+To tackle these problems, we plan to apply multi-core LTL
+model checking using opaal+LTS MIN [13]. Future work also
+includes energy optimal reachability analysis with the help of
+UPPAAL CORA [18] and possibly extending the processor ap-
+plication model with the features such as stochastics and energy
+costs. Similarly, we also plan to translate a recent extension of
+SDF, i.e. Scenario Aware Dataﬂow to TA, enrich it with energy
+optimal reachability and mappings to Markov automata. This
+will allow us to achieve self energy-supporting computation in
+the target systems where energy generation, energy storage, and
+energy consumption are kept in balance over the lifetime of a
+system.
+ACKNOWLEDGEMENT
+This research is supported by the EU FP7 projects SENSA-
+TION (318490) and POLCA (610686). The authors would like
+to thank Bart Theelen and reviewers for their valuable comments
+and knowledge sharing.
+REFERENCES
+[1] W. Ahmad, R. de Groote, P. K. Hölzenspies, M. Stoelinga, and J. van de
+Pol. Resource-constrained optimal scheduling of synchronous dataﬂow
+graphs via timed automata (extended version). Technical Report TR-
+CTIT-13-17, University of Twente, 2014.
+[2] R. Alur and D. L. Dill. Automata for modeling real-time systems. In
+Seventeenth ICALP ’90 , pages 322–335. Springer, 1990.
+[3] R. Alur and D. L. Dill. A theory of timed automata. Theoretical Computer
+Science , 126:183–235, 1994.
+[4] G. Behrmann, A. David, and K. G. Larsen. A tutorial on UPPAAL .I n
+Formal Methods for the Design of Real-Time Systems: 4th International
+School on SFM-RT ’04 , LNCS, pages 200–236. Springer, 2004.
+[5] E. de Groote, J. Kuper, H. J. Broersma, and G. J. M. Smit. Max-plus
+algebraic throughput analysis of synchronous dataﬂow graphs. In 38th
+EUROMICRO Conference on SEAA ’12 , pages 29–38, 2012.
+[6] M. Fakih, K. Grüttner, M. Fränzle, and A. Rettberg. Towards performance
+analysis of SDFGs mapped to shared-bus architectures using model-
+checking. In DATE ’13 , pages 1167–1172, 2013.
+[7] H. Garavel, F. Lang, R. Mateescu, and W. Serwe. CADP 2010: A toolbox
+for the construction and analysis of distributed processes. In TACAS
+’11, Lecture Notes in Computer Science, pages 372–387. Springer Berlin
+Heidelberg, 2011.
+[8] M. Geilen, T. Basten, and E. Stuijk. Minimising buffer requirements of
+synchronous dataﬂow graphs with model checking. In DAC ’05 , pages
+819–824. ACM, 2005.[9] A. H. Ghamarian, M. C. W. Geilen, S. Stuijk, T. Basten, A. J. M. Moonen,
+M. J. G. Bekooij, B. D. Theelen, and M. R. Mousavi. Throughput analysis
+of synchronous data ﬂow graphs. In ACSD ’06 , pages 25–34. IEEE, 2006.
+[10] P. H. Hartel, T. C. Ruys, and M. C. W. Geilen. Scheduling optimisations
+for SPIN to minimise buffer requirements in synchronous data ﬂow. In
+FMCAD ’08 , pages 21:1–21:10. IEEE Press, 2008.
+[11] J. P. Hausmans, S. J. Geuns, M. H. Wiggers, and M. J. Bekooij.
+Compositional temporal analysis model for incremental hard real-time
+system design. In EMSOFT ’12 , pages 185–194. ACM, 2012.
+[12] R. Karp. A characterization of the minimum cycle mean in a digraph.
+Discrete Mathematics , 23(3):309–311, 1978.
+[13] A. W. Laarman, M. C. Olesen, A. E. Dalsgaard, K. G. Larsen, and J. C.
+van de Pol. Multi-core emptiness checking of timed büchi automata using
+inclusion abstraction. In CAV ’13 , LNCS. Springer, July 2013.
+[14] E. Lee. Consistency in dataﬂow graphs. IEEE Transactions on Parallel
+and Distributed Systems , 2(2):223–235, 1991.
+[15] E. A. Lee and D. G. Messerschmitt. Static scheduling of synchronous
+data ﬂow programs for digital signal processing. IEEE Trans. Comput. ,
+36(1):24–35, Jan. 1987.
+[16] E. A. Lee and D. G. Messerschmitt. Synchronous data ﬂow: Describing
+signal processing algorithm for parallel computation. In COMPCON ’87 ,
+pages 310–315, 1987.
+[17] N. Navet and S. Merz. Modeling and Veriﬁcation of Real-time Systems .
+Wiley, 2010.
+[18] J. Rasmussen, K. Larsen, and K. Subramani. Resource-optimal scheduling
+using priced timed automata. In TACAS ’04 , LNCS, pages 220–235, 2004.
+[19] S. Sriram and S. S. Bhattacharyya. Embedded Multiprocessors: Schedul-
+ing and Synchronization . Marcel Dekker, Inc., 1st edition, 2000.
+[20] S. Stuijk. Predictable Mapping of Streaming Applications on Multipro-
+cessors . PhD thesis, 2007.
+[21] S. Stuijk, T. Basten, M. C. W. Geilen, and H. Corporaal. Multiproces-
+sor resource allocation for throughput-constrained synchronous dataﬂow
+graphs. In DAC ’07 , pages 777–782, New York, NY , USA, 2007. ACM.
+[22] S. Stuijk, M. Geilen, and T. Basten. SDF3: SDF For Free. In ACSD ’06 ,
+pages 276–278. IEEE Computer Society Press, June 2006.
+[23] B. Theelen, M. C. W. Geilen, T. Basten, J. P. M. V oeten, S. V . Gheorghita,
+and S. Stuijk. A scenario-aware data ﬂow model for combined long-run
+average and worst-case performance analysis. In MEMOCODE ’06 , pages
+185–194, 2006.
+[24] B. D. Theelen, J.-P. Katoen, and H. Wu. Model checking of scenario-
+aware dataﬂow with CADP. In DATE ’12 , pages 653–658, 2012.
+[25] M. H. Wiggers. Aperiodic multiprocessor scheduling for real-time stream
+processing applications . PhD thesis, Enschede, June 2009.
+[26] Y . Yang, M. Geilen, T. Basten, S. Stuijk, and H. Corporaal. Ex-
+ploring trade-offs between performance and resource requirements for
+synchronous dataﬂow graphs. In ESTIMedia ’09 , pages 96–105, 2009.
+[27] N. E. Young, R. E. Tarjan, and J. B. Orlin. Faster parametric shortest
+path and minimum-balance algorithms. Networks , 21(2):205–221, 1991.
+81

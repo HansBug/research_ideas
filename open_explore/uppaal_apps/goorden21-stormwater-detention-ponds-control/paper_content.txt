@@ -1,0 +1,1284 @@
+--- Page 1 ---
+Aalborg Universitet
+Learning Safe and Optimal Control Strategies for Storm Water Detention Ponds
+Goorden, Martijn; Larsen, Kim Guldstrand; Nielsen, Jesper Ellerbæk; Nielsen, Thomas Dyhre;
+Rasmussen, Michael R.; Srba, Jiri
+Published in:
+IFAC-PapersOnLine
+DOI (link to publication from Publisher):
+10.1016/j.ifacol.2021.08.467
+Creative Commons License
+CC BY-NC-ND 4.0
+Publication date:
+2021
+Document Version
+Publisher's PDF, also known as Version of record
+Link to publication from Aalborg University
+Citation for published version (APA):
+Goorden, M., Larsen, K. G., Nielsen, J. E., Nielsen, T. D., Rasmussen, M. R., & Srba, J. (2021). Learning Safe
+and Optimal Control Strategies for Storm Water Detention Ponds. In IFAC-PapersOnLine: 7th IFAC Conference
+on Analysis and Design of Hybrid Systems (5 ed., Vol. 54, pp. 13-18). Elsevier.
+https://doi.org/10.1016/j.ifacol.2021.08.467
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: April 01, 2026
+
+--- Page 2 ---
+IFAC PapersOnLine 54-5 (2021)  13–18
+ScienceDirect
+ScienceDirectAvailable online at www.sciencedirect.com
+2405-8963 Copyright © 2021 The Authors. This is an open access article under the CC BY-NC-ND license .
+Peer review under responsibility of International Federation of Automatic Control.
+10.1016/j.ifacol.2021.08.467
+10.1016/j.ifacol.2021.08.467 2405-8963Copyright ©  2021 The Authors. This is an open access article under the CC BY-NC-ND license  
+(http://creativecommons.org/licenses/by-nc-nd/4.0 )
+Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact and
+sediment loads of the receiving waters. Detention ponds are currently designed based on staticcontrols: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect to
+the current infrastructure capacity and for some detention ponds it might even violate current
+regulations set by the European Water Framework Directive. We apply formal methods tosynthesize (i.e., derive automatically) a safe and optimal active controller. We model the stormwater detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater and
+generate runoﬀ, which needs to be transported away from
+the city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm water
+discharge. For example, it is estimated by the Danish Wa-ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the discharge
+permits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact andsediment loads of the receiving waters. Detention ponds are currently designed based on staticcontrols: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect to
+the current infrastructure capacity and for some detention ponds it might even violate current
+regulations set by the European Water Framework Directive. We apply formal methods tosynthesize (i.e., derive automatically) a safe and optimal active controller. We model the stormwater detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater and
+generate runoﬀ, which needs to be transported away from
+the city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm water
+discharge. For example, it is estimated by the Danish Wa-ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the discharge
+permits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact andsediment loads of the receiving waters. Detention ponds are currently designed based on staticcontrols: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect to
+the current infrastructure capacity and for some detention ponds it might even violate current
+regulations set by the European Water Framework Directive. We apply formal methods tosynthesize (i.e., derive automatically) a safe and optimal active controller. We model the stormwater detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater and
+generate runoﬀ, which needs to be transported away from
+the city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm water
+discharge. For example, it is estimated by the Danish Wa-ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the discharge
+permits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact and
+sediment loads of the receiving waters. Detention ponds are currently designed based on staticcontrols: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect to
+the current infrastructure capacity and for some detention ponds it might even violate current
+regulations set by the European Water Framework Directive. We apply formal methods tosynthesize (i.e., derive automatically) a safe and optimal active controller. We model the stormwater detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater andgenerate runoﬀ, which needs to be transported away fromthe city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-
+positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm waterdischarge. For example, it is estimated by the Danish Wa-
+ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the dischargepermits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact andsediment loads of the receiving waters. Detention ponds are currently designed based on static
+controls: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect tothe current infrastructure capacity and for some detention ponds it might even violate currentregulations set by the European Water Framework Directive. We apply formal methods to
+synthesize (i.e., derive automatically) a safe and optimal active controller. We model the storm
+water detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater andgenerate runoﬀ, which needs to be transported away fromthe city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-
+positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm water
+discharge. For example, it is estimated by the Danish Wa-
+ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the discharge
+permits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr }@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact and
+sediment loads of the receiving waters. Detention ponds are currently designed based on static
+controls: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect tothe current infrastructure capacity and for some detention ponds it might even violate currentregulations set by the European Water Framework Directive. We apply formal methods to
+synthesize (i.e., derive automatically) a safe and optimal active controller. We model the storm
+water detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater andgenerate runoﬀ, which needs to be transported away fromthe city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-
+positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm waterdischarge. For example, it is estimated by the Danish Wa-
+ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the dischargepermits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact andsediment loads of the receiving waters. Detention ponds are currently designed based on staticcontrols: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect to
+the current infrastructure capacity and for some detention ponds it might even violate current
+regulations set by the European Water Framework Directive. We apply formal methods tosynthesize (i.e., derive automatically) a safe and optimal active controller. We model the stormwater detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater and
+generate runoﬀ, which needs to be transported away from
+the city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm water
+discharge. For example, it is estimated by the Danish Wa-ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the discharge
+permits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),Learning Safe and Optimal Control
+Strategies for Storm Water Detention
+Ponds⋆
+Martijn A. Goorden∗Kim G. Larsen∗Jesper E. Nielsen∗∗
+Thomas D. Nielsen∗Michael R. Rasmussen∗∗Jiˇ r´ ı Srba∗
+∗Department of Computer Science, Aalborg University, Aalborg,
+Denmark (e-mail: {mgoorden,kgl,tdn,srba}@cs.aau.dk).
+∗∗Department of Built Environment, Aalborg University, Aalborg,
+Denmark, (e-mail: {jen,mrr}@build.aau.dk)
+Abstract: Storm water detention ponds are used to manage the discharge of rainfall runoﬀ
+from urban areas to nearby streams. Their purpose is to reduce the hydraulic impact andsediment loads of the receiving waters. Detention ponds are currently designed based on staticcontrols: the output ﬂow of a pond is capped at a ﬁxed value. This is not optimal with respect to
+the current infrastructure capacity and for some detention ponds it might even violate current
+regulations set by the European Water Framework Directive. We apply formal methods tosynthesize (i.e., derive automatically) a safe and optimal active controller. We model the stormwater detention pond, including the urban catchment area and the rain forecasts, as a hybrid
+Markov decision process. Subsequently, we use the tool Uppaal Stratego to synthesize a
+control strategy minimizing the cost related to pollution (optimality) while guaranteeing no
+emergency overﬂow of the detention pond (safety). Simulation results for an existing pond show
+thatUppaal Stratego can learn optimal strategies that prevent emergency overﬂows, where
+the current static control is not always able to prevent it. At the same time, our approach can
+improve sedimentation during low rain periods.
+Keywords: Stochastic hybrid systems, Switching control, Safe and optimal control,
+Hydroinformatics, Storm water detention ponds
+1. INTRODUCTION
+Urbanization poses two major risks related to storm wa-
+ter runoﬀ management: ﬂooding of the urban area, and
+environmental impact on receiving waters from hydraulicloads and pollution. The roads, roofs and other man-
+made surfaces of urban areas collect the rainwater and
+generate runoﬀ, which needs to be transported away from
+the city to receiving waters to avoid urban ﬂooding. Theurban runoﬀ carries particulates and xenobiotics from de-positions on the urban surfaces (Hvitved-Jacobsen et al.,
+2010). Storm water detention ponds are the most com-
+monly used storm water management tool for avoiding or
+reducing the impacts of storm water runoﬀ (Tixier et al.,
+2011). Negative impacts of storm water runoﬀ include un-
+natural disturbances, stream bed erosion, and downstream
+ﬂooding (Walsh et al., 2005).
+With the growth of urban areas as well as the change in
+climate and its related rain events, water utility compa-
+nies need to constantly construct, maintain, and upgrade
+detention ponds to ensure eﬃcient and safe storm water
+discharge. For example, it is estimated by the Danish Wa-ter and Wastewater Association that the cost of updating
+the Danish storm water systems will be between 0.6 and
+1.3 billion euros (DANVA, 2018). Mitigating the envi-
+⋆We thank the support from Villum Synergy project CLAIRE and
+ERC Advanced Grant LASSO.ronmental impact has increasingly changed the discharge
+permits over the last 15 years, so even recently constructed
+storm water detention ponds do not comply with present
+recommendations, see Jensen et al. (2020).
+The requirements for the design of storm water detention
+ponds are, in general, based on the maximum allowed
+discharge ﬂow rate into the nearby stream or river, the
+probability of emergency overﬂow, and the concentration
+of pollutants in the discharged water (Mobley and Culver,
+2014). These regulations are derived from the European
+Water Framework Directive (European Commission, 2000)
+and discharge permits issued by the local authorities.
+Currently, the most common discharge strategies involve
+static ﬂows (when there is storm water in the detention
+pond) into the stream without taking into account theactual capacity of the receiving stream. These strategies
+do not necessarily comply with the regulations set by
+the European Water Framework Directive, as pointed out
+by Sch¨ utze et al. (2004).
+Existing work on the design of active control strategies for
+urban water systems primarily focus on sewer systems and
+wastewater treatment plants, which do include detention
+ponds as a subsystem, see for example Sch¨ utze et al.
+(2004); Haverkort et al. (2010); Hoppe et al. (2011);
+Sun et al. (2017). Controlled discharge from detention
+ponds has also been studied. In Muschalla et al. (2014),
+
+--- Page 3 ---
+14 Martijn A. Goorden  et al. / IF AC PapersOnLine 54-5 (2021) 13–18
+05/01/2021 Google Maps
+https://www.google.com/maps/@56.0643391,10.2074936,290m/data=!3m1!1e3 1/2Imagery ©2021 Aerodata International Surveys, CNES / Airbus, Maxar Technologies, Scankort, Map data ©2021 20 m 
+Vilhelmsborg Skov pond  Beder
+Klimopberg 25 Roosendaal, NetherlandsA
+BC
+Fig. 1. Satellite image of the Vilhelmsborg Skov pond
+south of Aarhus, Denmark . A is the detention pond,
+where the outlet is located at B. Storm water is
+discharged in the stream labeled with C, which runsfrom the south to the north. Image from Google Maps.
+a real-time controller is designed improving the eﬃciencyof particle removal. Further improvements are presentedin Gaborit et al. (2013, 2016), where oﬀ-line strategies take
+weather forecasts into account. However, these works focus
+primarily on particle removal eﬃciency as the objective,
+as most of the pollution is bound strongly to organicand inorganic particles . Furthermore, the underlying rule-
+based control strategies are manually derived and the
+discharge output can only be changed infrequently, like
+once a day.
+In the ﬁeld of cyber-physical systems, there is consider-
+able research in deploying formal methods for verifying oreven synthesizing controllers for stochastic hybrid systems.
+For example, the tool Uppaal Stratego (David et al.,
+2015) is able to synthesize safe and near-optimal con-
+trollers by combining model checking and reinforcementlearning. Case studies using Uppaal Stratego include
+battery aware scheduling problems (Wognsen et al., 2015),adaptive cruise control (Larsen et al., 2015), and ﬂoor
+heating (Larsen et al., 2016).
+In this paper, we deploy formal methods to automatically
+synthesize active control strategies for storm water deten-
+tion ponds, where we optimize for particle sedimentationwhile also guaranteeing safety with respect to emergencyoverﬂows. As basis for the control synthesis, we model the
+storm water detention pond as a hybrid Markov decision
+process utilizing a combination of diﬀerential equationsand (stochastic) timed automata. The synthesized con-troller is able to periodically change the discharge ﬂow,
+thus allowing a more rapid and precise response to un-
+certain weather events. Simulation experiments of a real-
+world detention pond show that the synthesized strategies
+are better at utilizing the pond’s capacity compared to thecurrent static control while also honoring the stated safety
+requirements .
+2. STORM WATER DETENTION PONDS
+Storm water detention ponds collect storm water from ur-ban areas, like streets, roofs, parking lots, and recreational
+parks. When it is raining or snow is melting, two main risks
+arise. First, the runoﬀ ﬂow in urban areas can exceed the
+capacity of nearby streams. Second, urban area particles
+collected by the storm water can pollute the ecosystemof the stream and downstream waterbodies. Storm waterQinQoutwW ValveUrban areaRain
+Fig. 2. Overview of the storm water detention pond
+detention ponds aim to reduce or avoid the impact of both
+risks.
+An example of such a pond is shown in Figure 1. The
+satellite image shows the Vilhelmsborg Skov pond south
+of Aarhus, Denmark . Labeled by A is the storm water
+detention pond, partially ﬁlled with water. It collects the
+water from from the neighborhoods south of it through the
+storm water sewer system next to the roads. The pond’soutlet is indicated by B, which connects to the streamlabeled with C. This stream runs from south to north and
+discharges the water from the neighborhood.
+Storm water detention ponds can be characterized by
+being either a wet or a dry detention pond. A wet detention
+pond always has a minimal amount of water in it, while a
+dry one can empty completely (hence the names). In ourcase study, we focus on a wet detention pond.
+Currently, storm water detention ponds are designed with
+static outlet ﬂow regulator creating a capped outlet ﬂow
+into the stream. The capacity of the stream (reﬂected in
+the issued permits) dictates the maximum outlet ﬂow ofthe pond. This capped outlet ﬂow determines, togetherwith other criteria like the urban catchment size and the
+emergency overﬂow risk, the size of the pond.
+Recent research has focused on the design of energy
+eﬃcient dynamic outlet ﬂow regulator
+1. Having these ﬂow
+regulators allows utility companies to incorporate active(or real-time) control into their design of the storm water
+detention ponds. This has the potential to enable moreeﬃcient detention pond designs and reduce the negativeeﬀect of the two aforementioned main risks.
+Figure 2 shows a schematic overview of the wet storm
+water detention pond. Rain water falls into an urban area,
+like a neighborhood, university campus area, or a highway,and is transported to a nearby pond. Rain water enters the
+pond through inlet Q
+inand exits it through outlet Qout
+into a nearby stream or river. A valve in the outlet limits
+the outﬂow. Due to the positioning of the outlet pipe,
+there is a permanent water level in the pond (indicated
+with the lower horizontal dashed line in the ﬁgure). The
+variation of the water level above this permanent water
+level is indicated by w.When the maximum water level,
+indicated by W, is reached, the pond will overﬂow.
+We neglect the rain falling directly on the pond surface,
+the water evaporating into the atmosphere, the water
+inﬁltration into the pond from the bottom and the sides,
+and the water leaking through the bottom and sides. It is
+shown in Thomsen et al. (2019) that these water ﬂows are
+negligible compared to the storm water ﬂow.
+1See project webpage at https://www.danva.dk/viden/vudp/
+projektuddelinger/relevand/ (in Danish).Rain
+VVminWater
+Controller
+Rain
+Dry
+x≤12Raining
+x≤12x≥6
+x:= 0,r ∈uniform (5,10)
+x≥8
+x:= 0,r := 0. 0
+Controller
+Closed
+y≤1Open
+y≤1y=1
+y:= 0,o := 8
+y=1
+y:= 0,o := 0y=1
+y:= 0y=1
+y:= 0
+WaterdV
+dt=r−o
+Fig. 3. A small HMDP example.
+3. PRELIMINARIES
+We use the mathematical modeling framework of hybridMarkov decision process (HMDP), adapted from Ashok
+et al. (2019); Larsen et al. (2016) .The formal deﬁnitions
+can be found in the full conference paper (Goorden et al.,
+2021a). Here we will introduce HMDP with an example.
+Figure 3 shows a small HMDP example. Rain can fall
+into a storage tank, from which water can be drained
+with a controlled valve. The uncontrollable environmentis modeled with the (stochastic) timed automaton Rain.
+The two locations, depicted with circles, represent the twomodes DryandRaining. The clock variable xkeeps track
+of the duration of modes. The model indicates that the drymode has a duration between 6 and 12 time units, while the
+raining mode has a duration between 8 and 12 time units,
+both uniformly distributed. Once an uncontrollable edge
+is taken from DrytoRaining (indicated by the dashed
+arrow), the rain intensity ris chosen uniformly between
+5 and 10 volume unit per time unit. The initial locationis indicated by the small incoming arrow at location Dry.
+The initial value of clock variables is assumed to be 0 whennot depicted.
+The timed automaton Controller models the controllable
+valve, which is either incontrol mode Closed orOpen. The
+solid edges indicate controllable actions. Clock variable
+ykeeps track of the control period duration, where the
+control period is set to 1 (see guards y= 1 on the edges).
+When switching to theClosed mode, the output ﬂow ois
+set to 0 volume units per time unit, while switching to the
+Open mode it is set to 8 volume units per time units.Finally, the Water model describes the evolution of the
+water volume Vover time with a simple diﬀerential
+equation: the volume change is the diﬀerence between the
+water inﬂow rand the water outﬂow o.
+3.1Strategies for HMDP
+For a given HMDP, a memoryless and possibly non-deterministic strategy σdetermines which of the control
+modes can be used in the next period. A strategy is calleddeterministic if exactly one control mode is permitted in
+each conﬁguration.
+A strategy σis called safe with respect to a set of states
+if all states encountered are within the safe set . A safe
+strategy is called maximally permissive if for each state it
+returns the largest set of possible actions (David et al.,
+2015). For the example, the safety objective could be
+maintaining a minimal water level V
+min.
+The optimality of a strategy can be evaluated for theHMDP Mwith a given optimization variable. Let H∈
+R
+≥0be a given time-horizon and Da random variable on
+ﬁnite runs, then EM,γ
+σ,H(D)∈R≥0is the expected value
+ofDon the space of runs of HMDP under strategy σ
+of length Hstarting in state γ. For the example, the
+optimization objective is to minimize the expected average(accumulated) water level.
+3.2Uppaal Stratego
+We use the modeling tool Uppaal Stratego (David
+et al., 2015) for control synthesis. It integrates Uppaal
+with the two branches Uppaal SMC (Bulychev et al.,
+2012) (statistical model checking for stochastic hybrid
+systems) and Uppaal Tiga (Behrmann et al., 2007)
+(synthesis for timed games). Therefore, Uppaal is able
+to synthesize safe and optimal strategies. To synthesize
+a safe and optimal strategy σ
+opt,Uppaal Stratego
+ﬁrst abstracts the HMDP into a 2-player timed game,
+ignoring all stochasticity. A safe strategy σsafeis afterwards
+synthesized for this timed game. A simpliﬁed versionof timed computational tree logic (TCTL) (Behrmann
+et al., 2007) is used to formulate the safety speciﬁcation.Subsequently, reinforcement learning is used to obtainan optimal sub-strategy σ
+optbased on the HMDP under
+supervision of the safe strategy and the given random
+optimization variable (David et al., 2015).
+Several learning algorithms are at the modelers disposal
+inUppaal Stratego. Recently, in Jaeger et al. (2019)
+Q-learning and M-learning were introduced. With Q-
+learning, sample runs are drawn from the HMDP model
+and are used afterwards to calculate the so-called Q-
+values. These values are reﬁned into a new strategy and
+the previous step is repeated with this new strategy untilsome termination criteria is met. M-learning works sim-
+ilar to Q-learning, except that the HMDP model is now
+used to approximate the transition and cost functions,
+which are used to calculate the Q-values instead of sample
+runs. To eﬃciently cope with continuous state spaces,
+Uppaal Stratego uses online partition reﬁnement tech-
+niques.
+
+--- Page 4 ---
+ Martijn A. Goorden  et al. / IF AC PapersOnLine 54-5 (2021) 13–18 15
+Rain
+VVminWater
+Controller
+Rain
+Dry
+x≤12Raining
+x≤12x≥6
+x:= 0,r ∈uniform (5,10)
+x≥8
+x:= 0,r := 0. 0
+Controller
+Closed
+y≤1Open
+y≤1y=1
+y:= 0,o := 8
+y=1
+y:= 0,o := 0y=1
+y:= 0y=1
+y:= 0
+WaterdV
+dt=r−o
+Fig. 3. A small HMDP example.
+3. PRELIMINARIES
+We use the mathematical modeling framework of hybrid
+Markov decision process (HMDP), adapted from Ashok
+et al. (2019); Larsen et al. (2016) .The formal deﬁnitions
+can be found in the full conference paper (Goorden et al.,2021a). Here we will introduce HMDP with an example.
+Figure 3 shows a small HMDP example. Rain can fall
+into a storage tank, from which water can be drainedwith a controlled valve. The uncontrollable environment
+is modeled with the (stochastic) timed automaton Rain.
+The two locations, depicted with circles, represent the two
+modes DryandRaining. The clock variable xkeeps track
+of the duration of modes. The model indicates that the dry
+mode has a duration between 6 and 12 time units, while the
+raining mode has a duration between 8 and 12 time units,
+both uniformly distributed. Once an uncontrollable edge
+is taken from DrytoRaining (indicated by the dashed
+arrow), the rain intensity ris chosen uniformly between
+5 and 10 volume unit per time unit. The initial location
+is indicated by the small incoming arrow at location Dry.
+The initial value of clock variables is assumed to be 0 when
+not depicted.
+The timed automaton Controller models the controllable
+valve, which is either incontrol mode Closed orOpen. The
+solid edges indicate controllable actions. Clock variable
+ykeeps track of the control period duration, where the
+control period is set to 1 (see guards y= 1 on the edges).
+When switching to theClosed mode, the output ﬂow ois
+set to 0 volume units per time unit, while switching to the
+Open mode it is set to 8 volume units per time units.Finally, the Water model describes the evolution of the
+water volume Vover time with a simple diﬀerential
+equation: the volume change is the diﬀerence between the
+water inﬂow rand the water outﬂow o.
+3.1Strategies for HMDP
+For a given HMDP, a memoryless and possibly non-deterministic strategy σdetermines which of the control
+modes can be used in the next period. A strategy is called
+deterministic if exactly one control mode is permitted in
+each conﬁguration.
+A strategy σis called safe with respect to a set of states
+if all states encountered are within the safe set . A safe
+strategy is called maximally permissive if for each state it
+returns the largest set of possible actions (David et al.,
+2015). For the example, the safety objective could be
+maintaining a minimal water level V
+min.
+The optimality of a strategy can be evaluated for theHMDP Mwith a given optimization variable. Let H∈
+R
+≥0be a given time-horizon and Da random variable on
+ﬁnite runs, then EM,γ
+σ,H(D)∈R≥0is the expected value
+ofDon the space of runs of HMDP under strategy σ
+of length Hstarting in state γ. For the example, the
+optimization objective is to minimize the expected average(accumulated) water level.
+3.2Uppaal Stratego
+We use the modeling tool Uppaal Stratego (David
+et al., 2015) for control synthesis. It integrates Uppaal
+with the two branches Uppaal SMC (Bulychev et al.,
+2012) (statistical model checking for stochastic hybrid
+systems) and Uppaal Tiga (Behrmann et al., 2007)
+(synthesis for timed games). Therefore, Uppaal is able
+to synthesize safe and optimal strategies. To synthesize
+a safe and optimal strategy σ
+opt,Uppaal Stratego
+ﬁrst abstracts the HMDP into a 2-player timed game,
+ignoring all stochasticity. A safe strategy σsafeis afterwards
+synthesized for this timed game. A simpliﬁed versionof timed computational tree logic (TCTL) (Behrmann
+et al., 2007) is used to formulate the safety speciﬁcation.Subsequently, reinforcement learning is used to obtainan optimal sub-strategy σ
+optbased on the HMDP under
+supervision of the safe strategy and the given random
+optimization variable (David et al., 2015).
+Several learning algorithms are at the modelers disposal
+inUppaal Stratego. Recently, in Jaeger et al. (2019)
+Q-learning and M-learning were introduced. With Q-
+learning, sample runs are drawn from the HMDP model
+and are used afterwards to calculate the so-called Q-
+values. These values are reﬁned into a new strategy and
+the previous step is repeated with this new strategy untilsome termination criteria is met. M-learning works sim-
+ilar to Q-learning, except that the HMDP model is now
+used to approximate the transition and cost functions,
+which are used to calculate the Q-values instead of sample
+runs. To eﬃciently cope with continuous state spaces,
+Uppaal Stratego uses online partition reﬁnement tech-
+niques.
+
+--- Page 5 ---
+16 Martijn A. Goorden  et al. / IF AC PapersOnLine 54-5 (2021) 13–18
+d≤P∪x==P
+select j: [0,C−1]
+d:= 0,Q out:=Qoptions
+out [j]
+Fig. 4. The model of the controller. The select statement
+is a simpliﬁcation of having a set of edges with one
+for each value in the select range.
+4. MODELING
+Our model of a detention pond consists of the components
+Pond, Controller, Rain, and UrbanCatchment . The model
+can be downloaded from Goorden et al. (2021b).
+Pond The dynamics of the water level win the pond can
+be derived using the mass balance equation, see Thomsen
+et al. (2019). Assuming constant density of water, this
+translates into a volume balance equation. Using Figure 2,
+we see that the diﬀerence in inﬂow and outﬂow contributeto the change in water inside the pond. Therefore,
+Q
+in−Qout=dV
+dt, (1)
+where Qinis the water inlet ﬂow from the urban drainage
+system, Qoutis the water outlet ﬂow into a nearby stream,
+andVthe water volume of the pond above the permanent
+water level. The outlet ﬂow is assumed to more or less
+constant and equal to the discharge permission, but inreality, there will be non-linear relationship to the waterlevel. This is however simpliﬁed in this model.
+The change in volume over time can also be expressed
+using the geometry of the pond:
+dV
+dt=d(wA p(w))
+dt, (2)
+where Ap(w) is the pond surface area at height w. Equa-
+tions (1) and (2) together describe the dynamics of thepond’s water level under ‘normal’ circumstances.
+There are two boundary cases that need to be taken into
+account. The ﬁrst case is when the outﬂow is larger than
+the inﬂow and the water level reaches the permanent waterlevel. The second case is when the inﬂow is larger than the
+outﬂow and the water level reaches the maximum height
+Wof the pond, which results in an emergency overﬂow. In
+both cases, the water level wremains stationary.
+Now, Equation (1) can be reformulated taking these
+boundary cases into account:
+dV
+dt=
+
+0 ifQout≥Qin∧w=0,
+0 ifQin≥Qout∧w=W,
+Qin−Qout otherwise.(3)
+Controller The controller is able to change the size of the
+pond outlet valve periodically. Figure 4 shows the model
+of the controller.
+It starts in the urgent location on the right from where
+it choses with a controllable action one of the Ccontrol
+options. The actual output Qoutis set to one of the
+predeﬁned constant outputs for each mode Qoptions
+out and
+the clock d, measuring the duration of the current controlDry
+d≤dryU [i]Raining
+d≤rainU [i]d≥dryL [i]
+d:= 0, rain :=rain [i]·uniform (1−ε,1+ ε)
+d≥rainL[ i]
+d:= 0,i ++ ,rain := 0. 0
+Fig. 5. The model generating rainfall.
+period, is reset to 0. Note that dis local to the controller
+and does not interfere with clock dfrom the Rain model.
+In the left location, the controller waits until the period
+with duration Pis over, indicated with invariant d≤P.
+When the controller has waited for Ptime units, it goes
+to the right urgent location and above process is repeatedfor the next control period.
+Rain Figure 5 shows the rain model including its uncer-
+tainty .It generates the uncontrollable input to the system.
+The rain proﬁle is modeled as alternating dry and raining
+intervals, each modeled with a location . For each interval
+period, indicated with i, the duration of the dry (raining)
+period is bounded between dryL [i](rainL[ i]) and dryU [i]
+(rainU [i]),all being positive integers . Clock dtracks the
+duration of the current interval. The actual dry or rain
+duration is chosen uniformly at random between dryL [i]
+anddryU [i] or rainL[ i] and rainU [i], respectively.
+When it is raining in the i-th interval, the actual rain
+intensity rain∈Rused as input for the UrbanCatchment
+model is chosen uniformly random between rain[i]·(1−ε)
+and rain[i]·(1 +ε), where εis a ﬁxed uncertainty factor.
+Within an interval, the rain intensity is constant.
+The concrete values for dryL [i],dryU [i],rainL[ i],rainU [i],
+and rain[i] are derived from historical rain data from
+the Danish Meteorological Institute (2020).
+UrbanCatchment The model of the urban catchment
+area can be found in the full version of this paper (Goorden
+et al., 2021a).
+5. CONTROLLER SYNTHESIS
+5.1 Problem deﬁnition
+The main objective of the controller is to ensure a safe op-
+eration of the storm water detention pond. In this context,
+safety is deﬁned as preventing the pond from overﬂowing.
+In case of an overﬂow event, the water discharge in thenearby stream or river is temporarily much higher than
+normal. This excessive discharge might have environmen-
+tal impacts or cause downstream ﬂooding.
+We measure overﬂow with a continuous variable othat
+represents the accumulated overﬂow duration. Formally,
+do
+dt=/braceleftbigg1 if w=W,
+0 if w < W.(4)
+The secondary objective is to capture as much urban area
+particles as possible from the storm water. This is done
+to prevent contamination of the nearby stream or river.
+Particles are captured through particle sedimentation ontothe pond’s ﬂoor surface. Hence, the more water in the
+pond, the more time particles have to be deposited on
+the ﬂoor.
+In the model, we associate a cost cto the ability of
+particle sedimentation. A linear cost function is used such
+that higher water levels, related to higher possibilities for
+particle sedimentation, result in lower cost. Formally,
+dc
+dt=1−w
+W. (5)
+Therefore, crepresents the accumulated cost, where a cost
+of 1 per time unit is associated with wbeing the permanent
+water level and a cost of 0 with wbeing at the maximum
+height W.
+Now, the controller synthesis problem is formulated as
+follows. Synthesize the safe strategy σsafewith respect to
+the safe state set Sspeciﬁed by TCTL predicate φ≡
+/square(o= 0)2, i.e., no overﬂow is encountered in all states
+of the runs according to the safe strategy. Subsequently,the optimal strategy is calculated with
+σ
+opt=arg min
+σ⊆σsafeEM,γ
+σsafe,H(c), (6)
+where the particle sedimentation cost is minimized while
+adhering to the synthesized safe strategy σsafe.Up-
+paal Stratego is used to synthesize controllers for this
+problem .
+5.2 Experimental results
+We calibrated our model to the Vilhelmsborg Skov pond
+south of Aarhus, Denmark. It has an urban catchment area
+ofAuc=0.59 ha, a permitted discharge of 95 L/s, and an
+average pond area Ap=5,572 m2(data from Thomsen
+et al. (2019)). We estimated the maximum water level to
+W= 300 cm.
+Historical rain data for the period September 5 - Septem-ber 7 2019 are used, obtained from the Danish Meteorolog-
+ical Institute (2020). For each rain event, we averaged therain intensity. Subsequently, an uncertainty of ε= 10% is
+added to the observed interval durations and rain intensi-
+ties to obtain a weather forecast. In this period, ﬁve rain
+events occurred with varying lengths and intensities. Full
+rain details can be found in Goorden et al. (2021a).
+Figure 6 shows the results of ﬁve simulated runs in
+Uppaal Stratego with an initial water height w= 100
+cm and the current static control strategy, i.e., the number
+of control modes Cfor the valve is 1. In blue and solid lines
+the water level is plotted, in black and dotted lines the rain.
+We observe that one of the ﬁveruns eventually results in
+an emergency overﬂow of the pond around 2700 minutes (9
+pm on September 6). This is also conﬁrmed by analyzing
+the expected value of o:E
+M,w=100
+σstatic,3days(o)=1 .8±0.4, i.e.,
+the pond is expected to be overﬂowing for 1.8 minutes.
+An actively controlled valve can have three diﬀerent
+modes: small, medium, and large. We set the medium
+setting to the current static output ﬂow capacity of 95
+L/s. The low setting is 0 .25 times medium and high 1 .5
+2InUppaal Stratego, we actually implemented it with ♦(o=
+0∧t=H), which is equivalent as ois a monotonically increasing
+variable, and integrated it with Equation 6.0 720 1,440 2,160 2,880 3,600 4,3200100200300Overflow
+Time [min]Water level [cm]0
+24
+6·10
+□2
+Rain intensity [mm/min]
+Fig. 6. Five simulations of the model with the current
+static control and active control. Blue and solid lines
+indicate the water level in the pond for static control
+and red and dashed lines the water level for active
+control. The rain fall is depicted in black, dotted, and
+in reverse y-axis .For one run, overﬂow occurs around
+t= 2700 min, as the maximum water level is W= 300
+cm.As a quick reference, 720 minutes is a half day,
+and the total time scale is three days.
+times medium. Due to power constraints, the valve canonly change once every hour, so P= 60 min. We use Q-
+learning to synthesize strategies .
+With these control modes, we synthesized an optimal
+controller using Equation (6). Figure 6shows ﬁveruns
+inUppaal Stratego of the model using the synthesized
+optimal controller (depicted in red and dashed). As can
+be seen from the ﬁgure, in order to ensure safety, thecontroller keeps the water level in the pond lower thanthe static controller. For some runs the pond water leveleven reaches the permanent water level, i.e., it cannot go
+lower.
+Yet, having a safe strategy comes with higher cost for
+particle sedimentation. For static control, the expected
+cost is E
+M,w=100
+σstatic,3days(c) = 2026 ±8, while for the optimal
+control it is EM,w=100
+σopt3days(c) = 2480 ±8. This is an increase of
+22%, but accepted as our primary aim is to avoid ﬂooding .
+Finally, Uppaal Stratego can also report when no
+optimal and safe strategy can be synthesized. For example,
+if the initial water level is w= 150 cm, the query for
+Equation (6) cannot be satisﬁed. This means that no safestrategy can be found against the uncontrollable opponent
+(in this case the weather forecast) such that the pond
+will never overﬂow. This can be useful in predicting whenemergency overﬂows will occur, acting as a warning system
+for the pond’s operational organization, such that they
+can take additional measures at the pond in question,like maximizing the discharge ﬂow, or in the potentially
+aﬀected area downstream.
+More experimental results can be found in the full confer-
+ence paper (Goorden et al., 2021a).
+
+--- Page 6 ---
+ Martijn A. Goorden  et al. / IF AC PapersOnLine 54-5 (2021) 13–18 17
+the pond’s ﬂoor surface. Hence, the more water in the
+pond, the more time particles have to be deposited on
+the ﬂoor.
+In the model, we associate a cost cto the ability of
+particle sedimentation. A linear cost function is used such
+that higher water levels, related to higher possibilities for
+particle sedimentation, result in lower cost. Formally,
+dc
+dt=1−w
+W. (5)
+Therefore, crepresents the accumulated cost, where a cost
+of 1 per time unit is associated with wbeing the permanent
+water level and a cost of 0 with wbeing at the maximum
+height W.
+Now, the controller synthesis problem is formulated as
+follows. Synthesize the safe strategy σsafewith respect to
+the safe state set Sspeciﬁed by TCTL predicate φ≡
+/square(o= 0)2, i.e., no overﬂow is encountered in all states
+of the runs according to the safe strategy. Subsequently,the optimal strategy is calculated with
+σ
+opt=arg min
+σ⊆σsafeEM,γ
+σsafe,H(c), (6)
+where the particle sedimentation cost is minimized while
+adhering to the synthesized safe strategy σsafe.Up-
+paal Stratego is used to synthesize controllers for this
+problem .
+5.2 Experimental results
+We calibrated our model to the Vilhelmsborg Skov pond
+south of Aarhus, Denmark. It has an urban catchment area
+ofAuc=0.59 ha, a permitted discharge of 95 L/s, and an
+average pond area Ap=5,572 m2(data from Thomsen
+et al. (2019)). We estimated the maximum water level to
+W= 300 cm.
+Historical rain data for the period September 5 - Septem-ber 7 2019 are used, obtained from the Danish Meteorolog-
+ical Institute (2020). For each rain event, we averaged therain intensity. Subsequently, an uncertainty of ε= 10% is
+added to the observed interval durations and rain intensi-
+ties to obtain a weather forecast. In this period, ﬁve rain
+events occurred with varying lengths and intensities. Full
+rain details can be found in Goorden et al. (2021a).
+Figure 6 shows the results of ﬁve simulated runs in
+Uppaal Stratego with an initial water height w= 100
+cm and the current static control strategy, i.e., the number
+of control modes Cfor the valve is 1. In blue and solid lines
+the water level is plotted, in black and dotted lines the rain.
+We observe that one of the ﬁveruns eventually results in
+an emergency overﬂow of the pond around 2700 minutes (9
+pm on September 6). This is also conﬁrmed by analyzing
+the expected value of o:E
+M,w=100
+σstatic,3days(o)=1 .8±0.4, i.e.,
+the pond is expected to be overﬂowing for 1.8 minutes.
+An actively controlled valve can have three diﬀerent
+modes: small, medium, and large. We set the medium
+setting to the current static output ﬂow capacity of 95
+L/s. The low setting is 0 .25 times medium and high 1 .5
+2InUppaal Stratego, we actually implemented it with ♦(o=
+0∧t=H), which is equivalent as ois a monotonically increasing
+variable, and integrated it with Equation 6.0 720 1,440 2,160 2,880 3,600 4,3200100200300Overflow
+Time [min]Water level [cm]0
+24
+6·10
+□2
+Rain intensity [mm/min]
+Fig. 6. Five simulations of the model with the current
+static control and active control. Blue and solid lines
+indicate the water level in the pond for static control
+and red and dashed lines the water level for active
+control. The rain fall is depicted in black, dotted, and
+in reverse y-axis .For one run, overﬂow occurs around
+t= 2700 min, as the maximum water level is W= 300
+cm.As a quick reference, 720 minutes is a half day,
+and the total time scale is three days.
+times medium. Due to power constraints, the valve can
+only change once every hour, so P= 60 min. We use Q-
+learning to synthesize strategies .
+With these control modes, we synthesized an optimal
+controller using Equation (6). Figure 6shows ﬁveruns
+inUppaal Stratego of the model using the synthesized
+optimal controller (depicted in red and dashed). As can
+be seen from the ﬁgure, in order to ensure safety, thecontroller keeps the water level in the pond lower thanthe static controller. For some runs the pond water leveleven reaches the permanent water level, i.e., it cannot go
+lower.
+Yet, having a safe strategy comes with higher cost for
+particle sedimentation. For static control, the expected
+cost is E
+M,w=100
+σstatic,3days(c) = 2026 ±8, while for the optimal
+control it is EM,w=100
+σopt3days(c) = 2480 ±8. This is an increase of
+22%, but accepted as our primary aim is to avoid ﬂooding .
+Finally, Uppaal Stratego can also report when no
+optimal and safe strategy can be synthesized. For example,
+if the initial water level is w= 150 cm, the query for
+Equation (6) cannot be satisﬁed. This means that no safestrategy can be found against the uncontrollable opponent
+(in this case the weather forecast) such that the pond
+will never overﬂow. This can be useful in predicting whenemergency overﬂows will occur, acting as a warning system
+for the pond’s operational organization, such that they
+can take additional measures at the pond in question,like maximizing the discharge ﬂow, or in the potentially
+aﬀected area downstream.
+More experimental results can be found in the full confer-
+ence paper (Goorden et al., 2021a).
+
+--- Page 7 ---
+18 Martijn A. Goorden  et al. / IF AC PapersOnLine 54-5 (2021) 13–18
+6. CONCLUSION AND FUTURE CHALLENGES
+We applied formal controller synthesis to automatically
+derive controllers for storm water detention ponds where
+the water discharge into the nearby stream can be regu-
+lated. We showed that the problem can be modeled as a
+hybrid Markov decision process, such that symbolic andreinforced learning techniques from Uppaal Stratego
+can be applied. Simulation results of an existing detention
+pond in Denmark shows that safe and near-optimal active
+controllers can be synthesized.
+This ﬁrst step opens several future research directions.
+First, weather forecasts change over time and are increas-
+ingly used in urban hydrology research (Thorndahl et al.,
+2017) . Therefore, the presented model setup should be
+adapted to an on-line model-predictive control setting.
+Second, to increase the explainability of the synthesizedstrategies, it is to be investigated whether exporting strate-
+gies to decision trees, see Ashok et al. (2019), is possible.
+Third, it would be interesting to validate the approach
+with real-life data. Yet, actual data of water levels in ponds
+are scarce. Finally, only a single storm water detention
+pond is analyzed in isolation from the discharge stream.It is interesting to see whether collaborative strategiescan be synthesized for a collection of detention ponds alldischarging into the same stream.
+REFERENCES
+Ashok, P., Kˇ ret´ ınsk´ y, J., Larsen, K.G., Le Co¨ ent, A., Taankvist, J.H.,
+and Weininger, M. (2019). SOS: Safe, optimal and small strategies
+for hybrid markov decision processes. In QEST , LNCS, 147–164.
+doi:10.1007/978-3-030-30281-8 9.
+Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G.,
+and Lime, D. (2007). Uppaal-tiga: Time for playing games! InCAV , LNCS, 121–125.
+Bulychev, P.E., David, A., Larsen, K.G., Mikuˇ cionis, M., Poulsen,
+D.B., Legay, A., and Wang, Z. (2012). Uppaal-smc: statistical
+model checking for priced timed automata. In QALP , 85, 1–16.
+EPTCS. doi:10.4204/EPTCS.85.1.
+Danish Meteorological Institute (2020). DMI homepage. URL dmi.
+dk.
+DANVA (2018). Administrationspraksis for regnvandsbassiner og
+udledningstilladelser. In Danish.
+David, A., Jensen, P.G., Larsen, K.G., Mikuˇ cionis, M., and
+Taankvist, J.H. (2015). Uppaal stratego. In TACAS , LNCS, 206–
+211. doi:10.1007/978-3-662-46681-0
+16.
+European Commission (2000). Directive 2000/60/EC of the Euro-
+pean Parliament and of the Council of 23 October 2000 Estab-
+lishing a Framework for Community Action in the Field of WaterPolicy. Oﬃcial Journal L 327.
+Gaborit, E., Anctil, F., Pelletier, G., and Vanrolleghem, P.A. (2016).
+Exploring forecast-based management strategies for stormwater
+detention ponds. Urban Water Journal, 13(8), 841–851. doi:
+10.1080/1573062X.2015.1057172.
+Gaborit, E., Muschalla, D., Vallet, B., Vanrolleghem, P.A., and
+Anctil, F. (2013). Improving the performance of stormwater
+detention basins by real-time control using rainfall forecasts.
+Urban Water Journal , 10(4), 230–246. doi:10.1080/1573062X.
+2012.726229.
+Goorden, M.A., Larsen, K.G., Nielsen, J.E., Nielsen, T.D., Ras-
+mussen, M.R., and Srba, J. (2021a). Learning safe and optimalcontrol strategies for storm water detention ponds. URL https://
+arxiv.org/abs/2104.12509. Full ADHS’21 conference paper.
+Goorden, M.A., Larsen, K.G., Nielsen, J.E., Nielsen, T.D., Ras-
+mussen, M.R., and Srba, J. (2021b). Models for “learning safeand optimal control strategies for storm water detention ponds”.Zenodo. URL https://doi.org/10.5281/zenodo.4719450 .Haverkort, B.R., Kuntz, M., Remke, A., Roolvink, S., and Stoelinga,
+M.I.A. (2010). Evaluating repair strategies for a water-treatmentfacility using arcade. In DSN , 419–424. doi:10.1109/DSN.2010.
+5544290.
+Hoppe, H., Messmann, S., Giga, A., and Gruening, H. (2011). A real-
+time control strategy for separation of highly polluted storm water
+based on UV-Vis online measurements - from theory to operation.
+Journal of Water Science and Technology , 63(10), 2287–2293. doi:
+10.2166/wst.2011.164.
+Hvitved-Jacobsen, T., Vollertsen, J., and Nielsen, A.H. (2010). Urban
+and Highway Stormwater Pollution: Concepts and Engineering .
+CRC Press. doi:10.1201/9781439826867.
+Jaeger, M., Jensen, P.G., Larsen, K.G., Legay, A., Sedwards, S., and
+Taankvist, J.H. (2019). Teaching stratego to play ball: Optimal
+synthesis for continuous space MDPs. In ATVA , LNCS, 81–97.
+doi:10.1007/978-3-030-31784-3
+5.
+Jensen, D.M.R., Thomsen, A.T.H., Larsen, T., Egemose, S., and
+Mikkelsen, P.S. (2020). From EU directives to local stormwater
+discharge permits: A study of regulatory uncertainty and practicegaps in Denmark. Sustainability , 12(16), 6317. doi:10.3390/
+su12166317.
+Larsen, K.G., Mikuˇ cioni, M., Mu˜ niz, M., Srba, J., and Taankvist,
+J.H. (2016). Online and compositional learning of controllers withapplication to ﬂoor heating. In TACAS , LNCS, 244–259. doi:
+10.1007/978-3-662-49674-9
+14.
+Larsen, K.G., Mikuˇ cioni, M., and Taankvist, J.H. (2015). Safe and
+optimal adaptive cruise control. In Olderog-Festschrift , LNCS,
+260–277. doi:10.1007/978-3-319-23506-6 17.
+Mobley, J.T. and Culver, T.B. (2014). Design of outlet control
+structures for ecological detention ponds. Journal of Water
+Resources Planning and Management , 140(2), 250–257. doi:10.
+1061/(ASCE)WR.1943-5452.0000266.
+Muschalla, D., Vallet, B., Anctil, F., Lessard, P., Pelletier, G., and
+Vanrolleghem, P.A. (2014). Ecohydraulic-driven real-time controlof stormwater basins. Journal of Hydrology , 511, 82–91. doi:
+10.1016/j.jhydrol.2014.01.002.
+Sch¨ utze, M., Campisano, A., Colas, H., Schilling, W., and Van-
+rolleghem, P.A. (2004). Real time control of urban wastewatersystems–where do we stand today? Journal of Hydrology, 299(3-
+4), 335–348. doi:10.1016/j.jhydrol.2004.08.010.
+Sun, C., Joseph-Duran, B., Maruejouls, T., Cembrano, G., Meseguer,
+J., Puig, V., and Litrico, X. (2017). Real-time control-orientedquality modelling in combined urban drainage networks. IFAC-
+PapersOnLine, 50(1), 3941–3946. doi:10.1016/j.ifacol.2017.08.142.
+Thomsen, A.T.H., Nielsen, J.E., and Rasmussen, M.R. (2019). A
+simpliﬁed method for measuring the discharge from stormwaterdetention ponds. Submitted.
+Thorndahl, S., Einfalt, T., Willems, P., Nielsen, J.E., ten Veldhuis,
+M.C., Arnbjerg-Nielsen, K., Rasmussen, M.R., and Molnar, P.
+(2017). Weather radar rainfall data in urban hydrology. Hydrology
+and Earth System Sciences, 21(3), 1359–1380. doi:10.5194/
+hess-21-1359-2017.
+Tixier, G., Lafont, M., Grapentine, L., Rochfort, Q., and Marsalek,
+J. (2011). Ecological risk assessment of urban stormwater ponds:
+literature review and proposal of a new conceptual approach pro-viding ecological quality goals and the associated bioassassmenttools. Journal of Ecological Indicators, 11(6), 1497–1506. doi:
+10.1016/j.ecolind.2011.03.027.
+Walsh, C.J., Roy, A.H., Feminella, J.W., Cottingham, P.D., Groﬀ-
+man, P.M., and Morgan, R.P. (2005). The urban stream syn-drome: current knowledge and the search for a cure. Journal of
+the North American Benthological Society , 24(3), 706–723. doi:
+10.1899/04-028.1.
+Wognsen, E.R., Haverkort, B.R., Jongerden, M., Hansen, R.R., and
+Larsen, K.G. (2015). A score function for optimizing the cycle-
+life of battery-powered embedded systems. In FORMATS , LNCS,
+305–320. doi:10.1007/978-3-319-22975-1
+20.

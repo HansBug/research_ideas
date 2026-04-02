@@ -1,0 +1,1810 @@
+--- Page 1 ---
+Formal Analysis of Non-functional Properties for a
+Cooperative Automotive System
+Eun-Young Kang12, Li Huang2and Dongrui Mu2
+1PReCISE Research Centre, University of Namur, Belgium
+2School of Data and Computer Science,
+Sun Yat-sen University, Guangzhou, China
+eykang@fundp.ac.be
+fhuangl223, mudrg@mail2.sysu.edu.cnarXiv:1803.06075v2  [cs.SE]  19 Mar 2018
+
+--- Page 2 ---
+ABSTRACT
+Modeling and analysis of nonfunctional requirements is crucial in automotive sys-
+tems. E AST-ADL is an architectural language dedicated to safety-critical automotive
+system design. We have previously modiﬁed E AST-ADL to include energy con-
+straints and transformed energy-aware timed (ET) behaviors modeled in S IMULINK /
+STATEFLOW into U PPAAL models amenable to formal veriﬁcation. Previous work
+is extended in this paper by including support for S IMULINK DESIGN VERIFIER
+(SDV), i.e., the ET constraints are translated into proof objective models that can be
+veriﬁed using SDV. Furthermore, probabilistic extension of E AST-ADL constraints
+is deﬁned and the semantics of the extended constraints is translated into veriﬁable
+UPPAAL models with stochastic semantics for formal veriﬁcation. A set of mapping
+rules are proposed to facilitate the guarantee of translation. Veriﬁcation & Valida-
+tion are performed on the extended timing and energy constraints using SDV and
+UPPAAL -SMC. Our approach is demonstrated on a cooperative automotive system
+case study.
+Keywords: EAST-ADL, UPPAAL -SMC, SIMULINK DESIGN VERIFIER
+
+--- Page 3 ---
+Contents
+1 Introduction 1
+2 Preliminary 3
+3 Case Study 5
+4 Modeling Non-functional Behaviors in S IMULINK & S TATEFLOW 12
+4.1 Behavioral Modeling of fps in S IMULINK & S TATEFLOW . . . . . 12
+4.2 Modeling Timing and Energy Constraints in Simulink/Stateﬂow . . 18
+5 Timing & Energy Requirements Translation in SDV 20
+5.1 LTL Properties . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+5.2 Timing Constraints in SDV . . . . . . . . . . . . . . . . . . . . . . 22
+5.3 Energy Constraints in SDV . . . . . . . . . . . . . . . . . . . . . . 24
+6 Modeling Functional Behaviours in U PPAAL -SMC 26
+7 (Non)-functional Property Translation in U PPAAL -SMC 44
+7.1 Probabilistic Timing Constraints Translation . . . . . . . . . . . . . 44
+7.2 Energy Constraint Estimation . . . . . . . . . . . . . . . . . . . . . 46
+8 Experiment and Veriﬁcation 48
+9 Veriﬁcation of Comparison Constraint in U PPAAL -SMC 63
+10 Related Work 66
+11 Conclusion 67
+References 68
+
+--- Page 4 ---
+List of Figures
+2.1 General veriﬁcation models in SDV . . . . . . . . . . . . . . . . . 3
+2.2 Simulink Blocks used for property modeling . . . . . . . . . . . . . 4
+3.1 Cooperative Automotive System . . . . . . . . . . . . . . . . . . . 5
+3.2 E AST-ADL Architecture of CAS . . . . . . . . . . . . . . . . . . . 7
+4.1 Top-level diagram of CAS S IMULINK & S TATEFLOW model . . . . 13
+4.2 S TATEFLOW chart of v1Controller . . . . . . . . . . . . . . . . . 13
+4.3 leader state in v1Controller . . . . . . . . . . . . . . . . . . . . 14
+4.4 follower state in v1Controller . . . . . . . . . . . . . . . . . . . 15
+4.5 userCtrl state in v1Controller . . . . . . . . . . . . . . . . . . . 15
+4.6 S IMULINK & S TATEFLOW model of localEnv . . . . . . . . . . . 16
+4.7 S IMULINK & S TATEFLOW model of DriverBehavior . . . . . . . 16
+4.8 S IMULINK & S TATEFLOW model of VehicleDynamic . . . . . . . 17
+4.9 S IMULINK & S TATEFLOW model of ComDevice . . . . . . . . . . . 17
+4.10 Timing constraints modeling . . . . . . . . . . . . . . . . . . . . . 19
+4.11 Cumulative andNoncumulative constraint . . . . . . . . . . . . . 19
+4.12 Periodic constraint modeling . . . . . . . . . . . . . . . . . . . . 19
+5.1 Bounded Always andEventually property . . . . . . . . . . . . . 20
+5.2 p Until q:G(F[0;t]q^(:q=)p)) . . . . . . . . . . . . . . . . 21
+5.3 Functional Property: When auto is true and msg is false for 200ms,
+userCtrl should become true within 200ms. . . . . . . . . . . . . . 21
+5.4 Property: If the dis12 is smaller than safeDis ,v2dec should be true
+within 500ms. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.5 Synchronization timing constraint . . . . . . . . . . . . . . . . . . 22
+5.6 Timing constraints translation . . . . . . . . . . . . . . . . . . . . 23
+5.7 Sporadic timing constraint . . . . . . . . . . . . . . . . . . . . . . 23
+5.8 R30: if the message transmission is failed ( msgNormal == false )
+when the vehicle runs in auto-mode, for the next 20 seconds, the
+vehicle should not run automatically, i.e., auto == false . . . . . . . 24
+5.9 Cumulative Periodic Timing Constraint . . . . . . . . . . . . . . . 24
+5.10 Non-cumulative Periodic Timing Constraint . . . . . . . . . . . . . 24
+5.11 Energy constraint . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+
+--- Page 5 ---
+6.1 STA of SignRecognition . . . . . . . . . . . . . . . . . . . . . . 26
+6.2 STA of VehicleDynamic . . . . . . . . . . . . . . . . . . . . . . . 27
+6.3 STA for modeling ComDevice . . . . . . . . . . . . . . . . . . . . 28
+6.4 STA for modeling DriverBehaviour . . . . . . . . . . . . . . . . 29
+6.5 STA of Controller . . . . . . . . . . . . . . . . . . . . . . . . . 30
+6.6 STA of Control state . . . . . . . . . . . . . . . . . . . . . . . . . 30
+6.7 STA for deciding whether the message is missing . . . . . . . . . . 30
+6.8 STA for modeling Communication state . . . . . . . . . . . . . . . 31
+6.9 STA for modeling leader state . . . . . . . . . . . . . . . . . . . . 31
+6.10 STA for modeling substates of leader state . . . . . . . . . . . . . . 32
+6.11 STA for modeling substates of leader state . . . . . . . . . . . . . . 33
+6.12 STA of turnLeft state . . . . . . . . . . . . . . . . . . . . . . . . . 34
+6.13 STA of turnRight state . . . . . . . . . . . . . . . . . . . . . . . . 35
+6.14 STA of follower state . . . . . . . . . . . . . . . . . . . . . . . . . 36
+6.15 STA of follower state . . . . . . . . . . . . . . . . . . . . . . . . . 37
+6.16 STA for modeling substates of straight state . . . . . . . . . . . . . 38
+6.17 STA for modeling substates of turn state . . . . . . . . . . . . . . . 39
+6.18 STA for modeling userctrl state . . . . . . . . . . . . . . . . . . . . 40
+6.19 STA of UserCtrl state . . . . . . . . . . . . . . . . . . . . . . . . . 41
+6.20 STA for modeling substates of straight state . . . . . . . . . . . . . 42
+6.21 STA for modeling substates of turnleft state . . . . . . . . . . . . . 42
+6.22 STA for modeling substates of turnright state . . . . . . . . . . . . 43
+7.1 Probabilistic Extension of Timing Constraints in U PPAAL -SMC . . . 45
+7.2 Energy estimation of v1Controller . . . . . . . . . . . . . . . . . 47
+7.3 Energy constraints on sensors in U PPAAL -SMC . . . . . . . . . . . 47
+8.1 When v1 runs automatically and if there is no message received
+by the vehicle for a certain time, the running mode of the vehicle
+should be changed to manual mode within a certain time: G(G[0;200]
+v1.Auto==true^v1.msg == false =)F[0;2000]v1.userCtrl == true) 48
+8.2 When v1 runs automatically with a constant speed, if it detects a
+stop sign, it should start to brake in 500ms: G(v1.Auto == true^
+v1.const == true^signType == 5 =)F[0;500]v1.stop == true) . . 48
+8.3 When the lead vehicle (v1) runs automatically with a constant speed,
+if it detects left turn sign, it should start to turn left in 200ms: G
+(v1.auto == true^v1.const == true^signType == 4 =)F[0;200]
+v1.turnLeft == true) . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+8.4 If v1 is driven by the driver and it is running with a constant speed,
+the driver steers to the left, the vehicle will turn left within 200ms:
+G(v1.userCtrl == true ^v1.const == true^v1.steerReq == 1 =)
+F[0;200]v1.turnLeft == true) . . . . . . . . . . . . . . . . . . . . . 49
+
+--- Page 6 ---
+8.5 If v1 is driven by the driver and it is running at a constant speed, the
+driver brakes the car, the vehicle will slow down. G: (v1.userCtrl ==
+true^v1.const == true^v1.brakeReq == 2 =)F[0;200]v1.brake
+== true) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+8.6 When v1 is driven by the driver and it is running at a constant speed,
+if the driver gears up, the vehicle will accelerate. G(v1.userCtrl ==
+true^v1.const == true^v1.gearReq >v1.gear =)F[0;200]v1.acc
+== true) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+8.7 When the vehicles are running horizontally, following vehicle should
+not run ahead of lead vehicle. G(v1.dx == 1^v2.dx == 1^v3.dx
+== 1 =)v1.x >v2.x) . . . . . . . . . . . . . . . . . . . . . . . . 50
+8.8 When the lead vehicle detects a stop sign, the three vehicles should
+stop in 5s. G(v1.auto == true^signType == 5 =)F[0;5000]
+v1.static == true^v2.static == true^v3.static==true) . . . . . . . 50
+8.9 Noncumulative Periodic timing constraint: A Periodic acqui-
+sition of VehicleDynamic of v1 must be carried out for every 50
+ms with a jitter 10 ms. G(v1.velIn == true =)v1.velIn == false
+U[40;60]v1.velIn == true) . . . . . . . . . . . . . . . . . . . . . . 50
+8.10 Cumulative Periodic timing constraint of R27 . . . . . . . . . . 50
+8.11 Sporadic constraint: After the running mode of the lead vehicle is
+changed to manual mode because of the failed message transmis-
+sion, the driver should not change it into auto mode within 20 sec-
+onds. G(v1.msgNormal == false =)v1.auto == false U[2000 ;¥])
+v1.auto == true . . . . . . . . . . . . . . . . . . . . . . . . . . . . 51
+8.12 An Execution constraint applied on v3Controller , which mea-
+sured from the inputs ports Avel to output ports gearReq ,torqueReq ,
+andbrake , should be between 100 ms and 300 ms; G(v3.ctrlIn =)
+F[100;300]v3.ctrlOut) . . . . . . . . . . . . . . . . . . . . . . . . . 51
+8.13 An Execution constraint applied on v3Controller , which mea-
+sured from the inputs ports Avel to output ports gearReq ,torqueReq ,
+andbrake , should be between 100 ms and 300 ms; G(v3.ctrlIn =)
+F[100;300]v3.ctrlOut) . . . . . . . . . . . . . . . . . . . . . . . . . 51
+8.14 An Execution constraint applied on ComDevice of v1, which mea-
+sured from the inputs ports torqueSet ,gearSet andbrake to output
+ports wheelSpeed ,direct should be between 100 ms and 150 ms; G
+(v1.sdrIn =)F[100;300]v1.sdrOut . . . . . . . . . . . . . . . . . . 52
+8.15 Observer STA of R1 and its triggering . . . . . . . . . . . . . . . . 53
+8.16 U PPAAL -SMC STAs for timing constraints veriﬁcation . . . . . . . 54
+8.17 U PPAAL -SMC STAs for End-to-End timing constraints veriﬁcation 55
+8.18 U PPAAL -SMC STAs for End-to-End timing constraints veriﬁcation 55
+
+--- Page 7 ---
+8.19 CE in SDV: In (b), leadVe.y equals to followVe.y ) from 0 to 8s,
+which indicates that the two vehicles run in the same lane. In (a),
+signType becomes “turn left (4)” at 8s and the lead vehicle begins
+to turn left. However, the following vehicle turns left at a different
+location ( leadVe.x is not equal to followVe.x at 9s). Hence, the “x”
+is unequal after turning, which means that the two vehicles run on
+different lanes. Thus R23 and R24 is violated. . . . . . . . . . . . . 60
+8.20 CE in SMC: At the beginning, three vehicles run towards direction
+(1,0). The three values of posy are the same, which indicates that the
+three vehicles are in the same lane. After a left turn sign is detected,
+the lead vehicle starts to turn left. Since the ﬁrst follower turns left at
+(184, 0) and the second turns left at (157, 0), the three values of posx
+are not equal after turning, which indicates the three vehicle are not
+running in the same lane. Thus R5 is violated. . . . . . . . . . . . . 61
+8.21 Probabilistic distribution of the expected energy consumption . . . . 61
+8.22 Total energy consumption estimation of the lead vehicle . . . . . . . 62
+
+--- Page 8 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 1
+Introduction
+Model-driven development is rigorously applied in automotive systems in which
+the software controllers interact with physical environments. The continuous time
+behaviors (evolved with various energy rates) of those systems often rely on com-
+plex dynamics as well as on stochastic behaviors. Formal veriﬁcation and validation
+(V&V) technologies are indispensable and highly recommended for development
+of safe and reliable automotive systems [1, 2]. Conventional V&V , i.e., testing and
+model checking have limitations in terms of assessing the reliability of hybrid sys-
+tems due to both the stochastic and non-linear dynamical features. To ensure the re-
+liability of safety critical hybrid dynamic systems, statistical model checking (SMC)
+techniques have been proposed [3–5]. These techniques for fully stochastic models
+validate probabilistic performance properties of given deterministic (or stochastic)
+controllers in given stochastic environments.
+EAST-ADL [6, 7] is a domain speciﬁc language that provides support for archi-
+tectural modeling of automotive embedded systems. A system in E AST-ADL is de-
+scribed by Functional Architectures (FA) at different abstraction levels. The
+FAare composed of a number of interconnected functionprototypes (fps), and the fps
+have ports and connectors for communication. E AST-ADL relies on external tools
+for the analysis of speciﬁcations related to requirements. For example, behavioral
+description in E AST-ADL is captured in external tools, i.e., S IMULINK /STATEFLOW
+[8]. The latest release of E AST-ADL has adopted the time model proposed in the
+Timing Augmented Description Language (T ADL2) [9]. T ADL2 allows for the ex-
+pression and composition of timing constraints, e.g., periodic, end-to-end delay, and
+synchronization constraints on top of E AST-ADL models.
+In this paper, we propose a model-driven approach to support formal analysis
+of energy and timed (ET) requirements for automotive systems at the design level:
+1. The ET constraints in E AST-ADL are interpreted in S IMULINK /STATEFLOW (S/S)
+and provide corresponding modeling extensions in S/S; 2. The ET requirements,
+speciﬁed in temporal logics, are translated into proof objective models to perform
+formal veriﬁcation using SDV; 3. Probabilistic extension of E AST-ADL/TADL con-
+straints is deﬁned and the semantics of the extended constraints (X TC) is translated
+into veriﬁable U PPAAL -SMC [10] models with stochastic semantics for formal veri-
+Technical Report 1
+
+--- Page 9 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+ﬁcation; 4. A set of mapping rules are proposed to facilitate the guarantee of trans-
+lation; 5. Simulation and V&V are performed on the X TCand energy constraints
+using SDV and U PPAAL -SMC. Our approach is demonstrated on the cooperative
+automotive system (CAS) case study.
+The paper is organized as follows: Chap. 2 presents an overview of S IMULINK ,
+SDV, and U PPAAL -SMC. The CAS is introduced as a running example in Chap. 3.
+Chap. 4, 5, 6 and 7 describe a set of translation patterns and how our approaches
+provide support for formal analysis at the design level. The applicability of our
+method is demonstrated by performing veriﬁcation on the CAS case study in Chap.
+8. Chap. 10 and Chap. 11 present related work and conclusion.
+2
+
+--- Page 10 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 2
+Preliminary
+In our framework, Simulink and E MBEDDED MATLAB (EML) are utilized for mod-
+eling purposes. Veriﬁcation and experiment are performed by SDV and U PPAAL -
+SMC.
+Simulink and SDV : Simulink [8] is a synchronous data ﬂow language, which pro-
+vides different types of blocks , i.e., primitive-, control ﬂow-, and temporal-blocks
+with predeﬁned libraries for modeling and simulation of dynamic systems and code
+generation. Simulink supports the deﬁnition of custom blocks via Stateﬂow dia-
+grams or user-deﬁned function blocks written in EML, C, and C++. SDV is a plug-in
+to P ROVER , which is a formal veriﬁcation tool that performs reachability analysis on
+Simulink/Stateﬂow model. The satisﬁability of each reachable state is determined by
+a SAT solver. A proof objective model is speciﬁed in Simulink/SDV and illustrated
+in Fig.2.1. A set of data (predicates) on the input ﬂows of System is constrained via
+Proof Assumption blocks during proof construction. A set of proof obligations
+is constructed via a function Fblock and the output of Fis speciﬁed as input to
+a property Pblock. Ppasses its output signal to an Proof Objective block and
+returns truewhen the predicates set on the input data ﬂows of the outline model are
+satisﬁed. Whenever Proof Objective (P block) is utilized, SDV veriﬁes whether
+the speciﬁed input data ﬂow is always true. The underlying P ROVER engine allows
+the formal veriﬁcation of properties for a given model. Any failed proof attempt
+ends in the generation of a counterexample representing an execution path to an in-
+valid state. A harness model is generated to analyze the counterexample and reﬁne
+the model.
+Figure 2.1: General veriﬁcation models in SDV
+Fig.2.2 shows blocks in SDV that can be employed in properties speciﬁcation.
+Technical Report 3
+
+--- Page 11 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Impliesblock (Fig.2.2.(a)) allows to specify a condition to produce a certain re-
+sponse: if A is true and B is false, the output is false; for all other pairs of A and B,
+the outputs are true. Within Implies block (Fig.2.2.(b)) veriﬁes the property that
+the response occurs within a given duration. This block captures the within implica-
+tion by observing whether the Obsinput is true for at least one step within each true
+duration of In. IfObsis always false within a particular input true duration of In, the
+output becomes false for one time step following the input true duration. As shown
+in Fig.2.2.(c), the two blocks always appear in pairs with the same tags. The output
+signal from Block A goes to the Gotoblock tagged with A.Gotoblock then
+passes that signal to the Fromblock tagged with A. Block B receives the signal
+from theFromblock.
+(a) Implies
+ (b) Within Implies
+ (c) From and Goto
+Figure 2.2: Simulink Blocks used for property modeling
+UPPAAL -SMC provides probabilistic analysis of properties based on statistical es-
+timation of system models. By monitoring simulations of an hybrid system and
+using the statistic result to determine whether the properties are satisﬁed on top of
+the system model, an exhaustive exploration of the state-space of the system can be
+avoided. U PPAAL -SMC represents systems via networks of Timed Automata (TA)
+whose behaviours depend on both stochastic and non-linear dynamical features. Its
+clocks evolve with various rates, such rates can be speciﬁed with ordinary differen-
+tial equations. U PPAAL -SMC provides a number of queries related to the stochastic
+interpretation of TA (STA) [5]. The following four queries are sufﬁcient to perform
+V&V on timing and energy constraints in E AST-ADL, where Nandbound indicate
+the number of simulations and the simulation time for each simulation respectively.
+1.Probability Estimation estimates the probability that a requirement property f
+is satisﬁed for a given STA model within the time bound: Pr[bound ]f;
+2.Hypothesis Testing checks if the probability of fis satisﬁed over a given prob-
+ability P0:Pr[bound ]fP0;
+3.Simulations : UPPAAL -SMC runs multiple simulations on the system model and
+thek(state-based) properties/expressions f1;:::;fkare monitored and visual-
+ized along the simulations: simulate N [bound ]ff1;:::;fkg;
+4.Expected Value evaluates the minimal or maximal value of a clock or an integer
+value while U PPAAL -SMC checks the STA model: E[bound ;N](min:f)or
+E[bound ;N](max :f).
+4
+
+--- Page 12 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 3
+Case Study
+A Cooperative Automotive System (CAS) is adopted as our running example where
+sensing and actuation are distributed over a number of vehicles, which is illustrated
+in Fig.3.1. A vehicle can be either a lead vehicle ( leadVe ) or a following vehicle ( fol-
+lowVe ) depends on its absolute position. We name the ﬁrst vehicle as v1, the vehicle
+in the middle as v2 and the last vehicle v3. Communication between vehicles are
+realized by the Dedicated Short-Range Communication (DSRC), which is a wireless
+communication technology speciﬁcally dedicated for message transmission among
+automotive systems. The lead vehicle can either run automatically ( auto mode) by
+detecting trafﬁc signs on the road or be driven by the driver ( userCtrl mode). Any
+two adjacent vehicles should be distant enough to avoid rear-end collision and close
+enough to guarantee the communication quality.
+The requested vehicle motion is based on driver’s input, detected environment
+(e.g., trafﬁc sign) and running situation. The vehicle movement can be either hori-
+zontal or vertical and the position of each vehicle is represented by two-dimension
+coordinates (x, y) in Cartesian coordinate system, where x and y are distances mea-
+sured from vehicle to two ﬁxed perpendicular directed lines respectively. Ideally, the
+following vehicle should maintain the same movement as the vehicle ahead and be-
+haves similarly, e.g., when a lead vehicle accelerates, the following vehicles should
+be able to accelerate to a similar extent.
+Figure 3.1: Cooperative Automotive System
+Fig.3.2(a) shows the E AST-ADL model of the CAS, which consists of coop-
+erative environment ( CoopEnv ) and local environments, left and middle, and the
+software controllers of three vehicles, right. The three LocalEnv fps receive in-
+formation of positions and the trafﬁc sign from the CoopEnv . Each lead vehicle
+Technical Report 5
+
+--- Page 13 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+sends its own position and velocity to its adjacent following vehicle. The function-
+ality of an individual vehicle, augmented with timing/energy constraints and viewed
+asFunctionDesignArchitecture (FDA) in 3.2(b), consists of the following fps
+(components): ComDevice represents the DSRC device for vehicle to send and re-
+ceive messages. SignRecDevice analyzes the detected images and computes de-
+sired images (sign types). VeModeDevice reads the driver’s requests by means of
+pedals ( brakeReq ), steering wheel ( steerReq ), gear ( gearReq ) and a switch ( driver-
+State ) which indicates whether the driver intends to drive. v1Controller deter-
+mines how the torque and gear of the vehicle are adjusted based on the received
+information. VeDynamicDevice speciﬁes the kinematics behaviors of the vehicle
+based on engine torque, brake, steer and gear. The value of signType ranges from 0
+to 5, which represents “straight”, “min/max speed limit”, “left/right turn ahead” and
+“stop” signs respectively.
+We consider the following functional and non-functional properties, which in-
+cludes Execution ,End-to-End ,Synchronization ,Periodic ,Sporadic and
+Comparison timing and Energy constraints, on top of the CAS EAST-ADL model,
+which are sufﬁcient to capture the constraints described in Fig.3.2. Energy con-
+straint refers to the battery consumption of an individual vehicle in CAS.
+R1. When v1 runs automatically and if there is no message received by the vehicle
+for a certain time, the running mode of the vehicle should be changed to manual
+mode within a certain time.
+R2. When v2 runs automatically and if there is no message received by the vehicle
+for a certain time, the running mode of the vehicle should be changed to manual
+mode within a certain time.
+R3. When v3 runs automatically and if there is no message received by the vehicle
+for a certain time, the running mode of the vehicle should be changed to manual
+mode within a certain time.
+R4. When v1 runs automatically at a constant speed, if it detects a stop sign, it
+should start to brake in 500ms.
+R5. When v1 runs automatically at a constant speed, if it detects left turn sign, it
+should start to turn left in 200ms.
+R6. When v1 runs automatically at a constant speed, if it detects right turn sign, it
+should start to turn right in 200ms.
+R7. If v1 is driven by the driver and it is running with a constant speed, the driver
+steers to the left, the vehicle will turn left within 200ms.
+R8. If v1 is driven by the driver and it is running at a constant speed, the driver
+steers to the right, the vehicle will turn right within 200ms.
+6
+
+--- Page 14 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Architecture of cooperative automotive system model
+(b) Function architecture of a vehicle
+Figure 3.2: EAST-ADL Architecture of CAS
+7
+
+--- Page 15 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+R9. If v1 is driven by the driver and it is running at a constant speed, the driver
+brake the car, the vehicle will slow down.
+R10. When v1 is driven by the driver and it is running at a constant speed, if the
+driver gears up, the vehicle will accelerate.
+R11. When v1 is driven by the driver and it is running at a constant speed, if the
+driver gears down, the vehicle will decelerate.
+R12. v2 should not run ahead of v1.
+R13. v3 should not run ahead of v2.
+R14. When the lead vehicle detects a stop sign, the three vehicles should stop in 5s.
+R15. When the vehicles are running straight with a constant speed, if v2 runs slower
+than v1, it should start to accelerate within a certain time.
+R16. When the vehicles are running straight with a constant speed, if v3 runs slower
+than v2, it should start to accelerate within a certain time.
+R17. When the vehicles are running straight with a constant speed, if v2 runs faster
+than v1, it should start to decelerate within a certain time.
+R18. When the vehicles are running straight with a constant speed, if v3 runs faster
+than v2, it should start to decelerate within a certain time.
+R19. If the distance between v1 and v2 is larger than 500m, v2 should accelerate
+within a certain time, e.g. 200ms.
+R20. If the distance between v2 and v3 is larger than 500m, v3 should accelerate
+within a certain time, e.g. 200ms.
+R21. If the distance between v1 and v2 is smaller than the safety distance, v2 should
+decelerate within a certain time, e.g. 500ms.
+R22. If the distance between v2 and v3 is smaller than the safety distance, v3 should
+decelerate within a certain time, e.g. 500ms.
+R23. When v1 starts to turn left, v1 and v2 should ﬁnish turning and run in the
+same lane within a given time.
+R24. When v2 starts to turn left, v2 and v3 should ﬁnish turning and run in the
+same lane within a given time.
+R25. When v1 starts to turn right, v1 and v2 should ﬁnish turning and run in the
+same lane within a given time.
+8
+
+--- Page 16 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+R26. When v2 starts to turn right, v2 and v3 should ﬁnish turning and run in the
+same lane within a given time.
+R27. A Periodic acquisition of VehicleDynamic of v1 must be carried out for
+every 50 ms with a jitter 10 ms.
+R28. A Periodic acquisition of VehicleDynamic of v2 must be carried out for
+every 50 ms with a jitter 10 ms.
+R29. A Periodic acquisition of VehicleDynamic of v3 must be carried out for
+every 50 ms with a jitter 10 ms.
+R30. Sporadic constraint: After the running mode of v1 is changed to manual
+mode because of the failed message transmission, the driver should not change it
+intoauto mode within 20 seconds.
+R31. Sporadic constraint: After the running mode of v2 is changed to manual
+mode because of the failed message transmission, the driver should not change it
+intoauto mode within 20 seconds.
+R32. Sporadic constraint: After the running mode of v3 is changed to manual
+mode because of the failed message transmission, the driver should not change it
+intoauto mode within 20 seconds.
+R33. An Execution constraint applied on v1Controller , which measured from
+the input port Avel to output ports gearReq ,torqueReq andbrake , should be be-
+tween 100 ms and 300 ms;
+R34. An Execution constraint applied on v2Controller , which measured from
+the input port Avel to output ports gearReq ,torqueReq andbrake , should be be-
+tween 100 ms and 300 ms;
+R35. An Execution constraint applied on v3Controller , which measured from
+the input port Avel to output ports gearReq ,torqueReq andbrake , should be be-
+tween 100 ms and 300 ms;
+R36. An Execution constraint applied on ComDevice of v1, which measured from
+the input ports Avel,Apos ,Adirect andposto output ports Avel,Apos ,Adirect and
+posshould be between 50 ms and 100 ms;
+R37. An Execution constraint applied on ComDevice of v2, which measured from
+the input ports Avel,Apos ,Adirect andposto output ports Avel,Apos ,Adirect and
+posshould be between 50 ms and 100 ms;
+R38. An Execution constraint applied on ComDevice of v3, which measured from
+the input ports Avel,Apos ,Adirect andposto output ports Avel,Apos ,Adirect and
+posshould be between 50 ms and 100 ms;
+9
+
+--- Page 17 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+R39. An End-to-End is measured from v1Controller tov2Controller . The
+time interval is bounded with a minimum value of 300 ms and a maximum value of
+700 ms;
+R40. An End-to-End is measured from v2Controller tov3Controller . The
+time interval is bounded with a minimum value of 300 ms and a maximum value of
+700 ms;
+R41. An End-to-End constraint measured from input port position ofv1LocalEnv
+to output ports gearReq ,torqueReq andbrake ofv1Controller should be limited
+within [200, 500]ms;
+R42. An End-to-End constraint measured from input port position ofv2LocalEnv
+to output ports gearReq ,torqueReq andbrake ofv2Controller should be limited
+within [200, 500]ms;
+R43. An End-to-End constraint measured from input port position ofv3LocalEnv
+to output ports gearReq ,torqueReq andbrake ofv3Controller should be limited
+within [200, 500]ms;
+R44. Synchronization constraint: The position and velocity of the vehicle and its
+lead vehicle ( pos, vel, Apos and Avel ports on v1Controller ) must be detected by
+v1Controller within a given time window, i.e., the tolerated maximum constraint
+= 200 ms;
+R45. Synchronization constraint: The position and velocity of the vehicle and its
+lead vehicle ( pos, vel, Apos and Avel ports on v2Controller ) must be detected by
+v2Controller within a given time window, i.e., the tolerated maximum constraint
+= 200 ms;
+R46. Synchronization constraint: The position and velocity of the vehicle and its
+lead vehicle ( pos, vel, Apos and Avel ports on v3Controller ) must be detected by
+v3Controller within a given time window, i.e., the tolerated maximum constraint
+= 200 ms;
+R47. A Comparison constraint: The execution time interval measured from
+v1Controller tov2Controller needs to be larger than or equal to the sum of the
+worst-case execution times of the fps.
+R48. Energy constraint: The maximum battery energy consumption for the braking
+of a vehicle should be less than 30kJ;
+R49. Energy constraint: The maximum battery energy consumption for the con-
+troller to decide its movement for once should be less than 30J;
+R50. Energy constraint: The maximum battery energy consumption for ComDevice
+to get/send signals for once should be less than 5J;
+10
+
+--- Page 18 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+According to the E AST-ADL meta-model, the timing constraint describes a
+design constraint, but has the role of a property, requirement or validation result,
+based on its Context [6]. The T ADL meta-model is integrated with the E AST-ADL
+meta-model and is supplemented with structural concepts from E AST-ADL. The
+EAST-ADL/TADL constraints contain the identiﬁable state changes as Events . The
+causality related events are contained as a pair by EventChains . Based on Event and
+EventChains , data dependencies, control ﬂows, and critical execution paths are rep-
+resented as additional constraints for the E AST-ADL functional architectural model,
+and apply timing constraints on these paths.
+Sporadic constraint speciﬁes a minimum delay min between any two con-
+secutive occurrences of an event. Execution constraint restricts the time interval
+between inputs and outputs of a fp, which can be speciﬁed using lower, upper val-
+ues given as Execution constraint. End-to-End constraint gives duration bounds
+(minimum and maximum) between two events source andtarget . The time inter-
+vals between source event and target event should satisfy lower, upper values given
+asEnd-to-End constraint. Synchronization constraint describes how tightly the
+occurrences of a group of events follow each other. All events must occur within a
+sliding window, speciﬁed by the tolerance attribute, i.e., the maximum time interval
+allowed between events. Comparison constraint speciﬁes the comparison relation
+(including <,,=,and>) among timing expressions. Periodic constraint
+states that the period of successive occurrences of a single event must have a length
+of at least a lower and at most an upper time interval. The interval is given as
+Periodic constraint. There are two types of Periodic timing constraints: cumula-
+tive ( Cumu Periodic ) and non-cumulative timing constraints ( Noncumu Periodic ).
+Those (non)-functional properties are formally speciﬁed and veriﬁed in the follow-
+ing sections.
+11
+
+--- Page 19 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 4
+Modeling Non-functional Behaviors in
+SIMULINK & S TATEFLOW
+4.1 Behavioral Modeling of fps in S IMULINK & S TATEFLOW
+Based on the E AST-ADL architectural model of CAS, the functional and non-functional
+behaviours of fps is constructed with Stateﬂow chart and Simulink blocks. The ar-
+chitecture of Simulink/Stateﬂow model can be seen in Fig.4.1. v1Controller fpis
+modeled as a Stateﬂow chart while localEnv ,CoopEnv are modeled as Simulink
+subsystems with a number of mathematical and descriptive blocks provided in Simulink
+block library.
+The top-level diagram of v1Controller Stateﬂow chart is illustrated in Fig.4.2,
+where three Matlab functions blocks are embedded: checkGear() is used to ensure
+thatgear is in the reasonable value range; reDirect() adjusts vehicle’s direction when
+vehicle turns; checkDis calculates the distance between the vehicle and the vehicle
+in front of it. A single Stateﬂow chart, consisting of two parallel states, implements
+the control logic of the system in its entirety. In Control state, Auto anduserCtrl
+refer two different running modes of a vehicle depend on whether the driver controls
+the vehicle.
+If the vehicle runs automatically, either leader (shown in Fig.4.3) or follower
+(shown in Fig.4.4) will be activated according to the absolute positions of the three
+vehicles. Inside the leader state, there are six superstates turn right ,turn left,con-
+stSpeed ,acc,decandstop together with their child states. The edges represent
+transitions between the states with the conditions on the edges. Initially, The chart
+transits to either straight orstop based on the initial speeds of the wheels. The tran-
+sitions will be taken according to the current speed of the wheels and the value of
+signType , whose various evaluation represents the different trafﬁc sign. For exam-
+ple, when the vehicle is in constSpeed state and the detected signType is 5 (stop
+sign is encountered), braking andstop will be activated and brake will become 1
+indicating that the velocity of vehicle should be decreased steeply. Whenever the
+vehicle detects a stop sign, the vehicle will start to brake. If the straight sign is de-
+tected ( signType is 0), the vehicle will maintain the current state and speed. If the
+Technical Report 12
+
+--- Page 20 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 4.1: Top-level diagram of CAS S IMULINK & S TATEFLOW model
+Figure 4.2: STATEFLOW chart of v1Controller
+13
+
+--- Page 21 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+vehicle recognizes a left turn sign, it will ﬁrst decrease its speed to a low level (less
+than 30 km/h) and start to turn. After turning left, the vehicle will ﬁnally go straight
+and maintain the speed. turnX andturnY specify the location at which the vehicle
+turns.
+Figure 4.3: leader state in v1Controller
+Since a following vehicle should follow the traces and movements of the vehicle
+in front of it, in follower state, the transitions will be taken once the safety condition
+is violated, e.g., the distance between the two adjacent vehicles is either larger than
+500m or less than the safety distance. As illustrated in turn state on the left of
+Fig.4.4, when the following vehicle is turning left/right, it will ﬁrst accelerate to
+reach to the turning location at which the lead vehicle turns.
+If the vehicle is driven by its driver, userCtrl state (as illustrated in Fig.4.5)
+will be active. The running mode ( stop,turnLeft ,turnRight andstraight ) of the
+vehicle will be changed based on the driver’s operations. steer represents the steering
+operation is conducted, i.e., steering to left ( steer = 1), right ( steer = 2) and straight
+(steer = 3).
+Fig.4.6 illustrates the Simulink and Stateﬂow model of localEnv , whose func-
+tionality is captured in three subsystems: ComDevice is responsible for signal prop-
+agation and message receiving; DriverBehavior records the value of signals ( gear,
+steer, brake and DriverState ) that represent various operations conducted by the
+driver; VehicleDynamic speciﬁes the how the velocity and running direction of
+the vehicle are changed according to the input torque andgear value. In this ﬁgure,
+blocks/entities in green format are employed to model timing constraints, whose
+modeling process will be explained detailly in the following section.
+Fig.4.7 shows the Simulink and Stateﬂow model of DriverBehavior fp. This
+14
+
+--- Page 22 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 4.4: follower state in v1Controller
+Figure 4.5: userCtrl state in v1Controller
+15
+
+--- Page 23 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 4.6: SIMULINK & S TATEFLOW model of localEnv
+subsystem obtains inputs from the driver by Manual Switch block, which repre-
+sents a toggle switch where one of its two inputs (1 or 0) will be selected to pass
+through and become the value of the output.
+Figure 4.7: SIMULINK & S TATEFLOW model of DriverBehavior
+Fig.4.8 shows the Simulink and Stateﬂow model of VehicleDynamic fp. In
+VehicleDynamic subsystem, a Look Up Table block maps inputs ( gear and
+torqueSet ) to an output value ( wheelspeed ) by looking up or interpolating the pre-
+deﬁned values in a table. DataStoreblock records the energy consumption in the
+duration of braking.
+16
+
+--- Page 24 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 4.8: SIMULINK & S TATEFLOW model of VehicleDynamic
+Figure 4.9: SIMULINK & S TATEFLOW model of ComDevice
+17
+
+--- Page 25 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+4.2 Modeling Timing and Energy Constraints in Simulink/State-
+ﬂow
+In this section, we investigate how to model timing and energy constraints in S/S. In
+our previous work, we have shown how those constraints are interpreted in S/S and
+provided corresponding modeling extensions in S/S. However, the previous model-
+ing extensions contain blocks that are unsupported in SDV , which leads to incom-
+patibility problem. To perform veriﬁcation of timing and energy constraints in SDV ,
+the modeling extensions are modiﬁed to ensure the compatibility.
+Sporadic timing constraint is modeled using “after(min, msec)” expression,
+which returns true after minmilliseconds (msec) have elapsed since activation of
+the associated state. Synchronization timing constraint restricts the time duration
+among a set of events (i.e., maximum allowed time between the arrival of the event
+occurrences). We use In1,In2andIn3(in Fig.4.10(a)) to indicate the arrivals of the
+three inputs of fp. To verify Synchronization constraint, we check whether the
+interval between occurrences of earliest and latest input event is within tolerance ,
+which is described in Chap. 5.
+As shown in Fig.4.10(a), to model Execution timing constraint of an fp, a
+Stateﬂow chart is used to create a true duration to execute the fp. TheEnable
+Subsystem ES(representative of fp) executes when Exe state is active. tis the
+Execution constraint applied on the fp.idis a monotonically increased value.
+To ensure the one-to-one correspondence of input andoutput event, we use two
+variables, rands, to represent the value of input andoutput event respectively.
+When input event occurs, fpwill start to execute and rwill be assigned by the value
+of current id. After tmilliseconds, fpﬁnishes execution and sbecomes identical with
+r, which indicates the occurrence of output event.
+Fig.4.10(b) shows an EventChain ofn fps, we model each fpbased on the
+pattern of Fig.4.10(a). For each fp,riandsirepresent the values of input and
+output event. Hence in this EventChain ,r1is the value of source event and s n
+is the value of target event of End-to-End constraint. To identify the one-to-
+one correspondence of source andtarget event, r1andsnshould have the same
+assigned value.
+We consider two types of Periodic timing constraints: cumulative constraint
+and noncumulative constraint. Tandjindicate the period and jitter of Periodic
+constraint. In Fig.4.11, e(i) denotes the time point of the ithoccurrence of a single
+event e. eirepresents the ithoccurrence of event e.Cumulative Periodic con-
+straint limits that the time intervals between any two consecutive occurrences of e
+(e.g,je(2)-e(1)jandje(3)-e(2)j) should be within [ T-j,T+j].Noncumulative
+Periodic constraint limits that e(i) should be within [ i*T-j,i*T+j ].
+Fig.4.12(a) shows the model of Cumulative Periodic timing constraint of
+fp. The behaviour of fpis modeled in TS(Trigger subsystem) The Stateﬂow chart
+18
+
+--- Page 26 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Execution
+ (b) End-to-End
+Figure 4.10: Timing constraints modeling
+Figure 4.11: Cumulative andNoncumulative constraint
+generates a signal Trig to trigger TS.rand is a random number within [0, 2*j]. Once
+fpis triggered, it will be triggered again after T-j+rand ms such that the time interval
+between any two consecutive triggerings of fpis in [ T-j,T+j]. Fig.4.12(b) shows the
+model of Noncumulative Periodic timing constraint of fp(modeled in TS1). A
+Pulse Generator (PG) generates square waves based on Period and Phase delay
+parameters. Phase delay speciﬁes the delay before the pulse is generated. PG gener-
+ates a square wave signal whose Period isTandPhase delay isT-jsuch that the ith
+rising edge of the signal arrives at the time point of i*T-j. In the mean time, TSwill
+be triggered to pass rand andDelayblock delays the rising edges by rand ms s.t.
+the time point of the ithrising edge will be in [i*T-j, i*T+j] .
+(a) Cumulative
+ (b) Noncumulative
+Figure 4.12: Periodic constraint modeling
+Energy constraints are modeled with Data Store and integrated M ATLAB
+blocks, which calculate and record energy consumption in different modes of a ve-
+hicle. According to the various modes of vehicles in CAS, the amount of battery
+consumed for the mechanical motion of wheels is calculated: energy =Rt
+0av dx
+where, t,a, and vdenote running time, coefﬁcient reﬂects an energy rate associated
+to the current mode of an individual vehicle, and velocity respectively.
+19
+
+--- Page 27 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 5
+Timing & Energy Requirements Translation
+in SDV
+To enable the veriﬁcation of the timing and energy requirements illustrated in Chap.
+4, we specify timing and energy requirements as LTL formulas and provide the ap-
+proach to model linear temporal logic (LTL) [11] formulas into proof objective mod-
+els.
+5.1 LTL Properties
+An LTL formula usually consists of predicates and propositional connectives, to-
+gether with temporal operators (e.g. Always ,Eventually andUntil ).
+Always p (Gp) states that property palways holds along the execution, which is
+modeled as the proof objective model described in Chap. 2.
+Always and Eventually within t time steps :Always p within ttime steps, de-
+noted by G[0;t]p, is valid if property pholds over the ﬁrst ttime steps during ex-
+ecution. Eventually p within ttime steps, denoted as F[0;t]p, holds if poccurs
+within the ﬁrst ttime steps during the execution. The model of Always property and
+Eventually are illustrated on the left and right of Fig.5.1: duris a signal which is
+true within the ﬁrst ttime steps. To checks whether palways holds true within the
+true duration, pis connected to Impliesblock.Within Implies block is em-
+ployed to verify whether pholds for at least one time step within the true duration
+dur. P block is applied to prove whether the property is satisﬁed.
+Figure 5.1: Bounded Always andEventually property
+p Until q within t time steps . Denoted as pU[0;t]q, this property states that pshould
+always hold before qbecomes true within the ﬁrst ttime steps during the execution.
+The satisfaction of this property requires j1:qmust hold at least one time step
+Technical Report 20
+
+--- Page 28 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+within the ﬁrst ttime steps; j2: before qholds, pmust always be true. This property
+can be interpreted as: F[0;t]q^G[0;t](:q=)p). The implementation of this
+property is shown in Fig.5.2: durhas a true duration with length t. First, aWithin
+Impliesblock check whether j1: F[0;t]qholds. An Extenderblock is applied
+to extend the true duration of qtottime steps after qoccurs.Notblock is then
+employed to capture the true duration of :q.Impliesblock checks whether “not
+qimplies p” holds. Afterwards, AndandProof Objective validate whether “ j1
+^j2” is always true.
+Figure 5.2: pUntil q:G(F[0;t]q^(:q=)p))
+Fig.5.3 illustrates the functional property (R1) which can be speciﬁed by us-
+ingAlways andEventually operators: G[0;200](auto == true^msgNormal == false)
+=)F[0;200]userCtrl == true. auto (userCtrl ) represents whether the vehicle is run-
+ning automatically (driven manually). msgNormal indicates whether the message is
+transmitted normally. In Fig.5.3, Detectorconstructs a signal with a 200ms true
+duration after “ auto == true and msg== false” becomes true for 200ms. Within this
+true duration, “ userCtrl == true” should be satisﬁed at least one time step. To check
+this, the output signal from Detectorgoes to the Gotoblock tagged with dur.
+Then it is passed to the corresponding durtag on the right of Fig.5.1. Similarly, the
+signal that represents “ userCtrl == true” is passed to ptag on the right of Fig.5.1
+(the input of Within Imply ) block.
+Figure 5.3: Functional Property: When auto is true and msgis false for 200ms, userCtrl should become true
+within 200ms.
+Fig.5.4 illustrates the model of the functional property (R21), which can be
+speciﬁed with UtilandAlways temporal operators: G(dist12 <safeDis =)v2.dec
+== false U[0;500]v2.dec == true). dist12 is the distance between the lead vehicle
+(v1) and the following vehicle ( v2).safeDis is the required safety distance between
+them. v2.dec represents whether v2is decelerating. Detectorcreates a signal with
+a 500ms true duration after “ dist12 <safeDis ” becomes true. This signal then goes
+to theFromblock tagged with durin Fig.5.2. In this example, prepresents the
+property “ v2.dec == false” and qrepresents “ v2.dec == true” as illustrated on the
+right of Fig.5.4.
+21
+
+--- Page 29 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 5.4: Property: If the dis12 is smaller than safeDis ,v2dec should be true within 500ms.
+5.2 Timing Constraints in SDV
+Timing constraints in E AST-ADL are modeled by means of constraints speciﬁed
+onEvents andEventChains . A constraint is expressed as a proof objective model
+in SDV . To proof the correctness of the timing behaviours of Simulink/Stateﬂow
+model, we show how to construct the proof objective models for the design model
+based on the timing constraints. We focus on Synchronization, Execution,
+End-to-End, Periodic, Sporadic constraints (R27-R46) that are associated to
+fps in E AST-ADL.
+Synchronization timing constraint can be interpreted as: all the input signals
+should be received within tolerance after the ﬁrst (earliest) input signal arrives. The
+model of the timing constraint is shown in Fig.5.5: Assume that there are three
+input signals of an fp.ﬁrstIn represents whether the ﬁrst (earliest) input signal is re-
+ceived. In1,In2andIn3indicate the arrival of three input signals of fprespectively.
+Extenderis employed to construct a true duration with length tolerance from the
+time step in which ﬁrstIn becomes true. Three Within Implies block are applied
+to capture whether In1,In2andIn3becomes true within the true duration. And
+block then validates whether In1,In2andIn3all become true within the true dura-
+tion and pass the output signal to a Proof Objective block, which proves whether
+the constraint is valid.
+Figure 5.5: Synchronization timing constraint
+Execution timing constraint limits that after the input signals are received, the out-
+put data should be sent out within upper time steps. The construct of this timing
+constraint is shown on the left of Fig.5.6 (a): dataIn (dataOut ) indicates the input
+(output) signal received (sent out). Extenderis applied to construct a true du-
+ration with length upper after dataIn becomes true. Afterwards Within Implies 
+andProof Objective blocks are used to verify whether the dataOut becomes true
+within the true duration.
+End-to-End timing constraint restricts that after source event occurs, target event
+22
+
+--- Page 30 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+should happen within tolerance . The model of this timing constraint is illustrated on
+the right of Fig.5.6 (b): source andtarget indicate the source andtarget event oc-
+curs (true) or not (false). Extenderconstructs a true duration with length tolerance
+after source becomes true. Afterwards Within Implies andProof Objective 
+blocks are used to verify whether the target becomes true within the true duration.
+(a) Execution
+(b) End-to-end
+Figure 5.6: Timing constraints translation
+Sporadic timing constraint speciﬁes that after the event occurs, the next occurrence
+should not happen within mintime steps. This timing constraint is constructed as the
+model in Fig.5.7. event indicates the occurrence of an event. Detectorconstructs
+a true duration with length minafter event becomes true. Afterwards, Negation
+(Not) and Impliesblocks are employed to validate whether pis false over the
+true duration. At last, Proof Objective block checks whether the property is sat-
+isﬁed. Fig.5.8 illustrates an example of sporadic timing constraint (R30), where the
+constraint is modeled in the dash box. In this example, event is “auto == true”.
+Figure 5.7: Sporadic timing constraint
+Periodic timing constraint limits a single event fpshould occur periodically with
+period Tand jitter j. We consider two types of timing constraints in SDV: 1. Cumulative
+Periodic timing constraint is modeled as the proof objective model illustrated in
+Fig.5.9. To verify this property, we check whether ti+1 locates in [ ti+T-j,ti+T+j].
+As shown on the left of Fig.5.9, a Delayis to add a T-jdelay to the input signal
+event . As illustrated on the right of Fig.5.9, an Extenderthen generates a true
+duration with length 2*jsuch that the range of true duration is [ ti+T-j,ti+T+j].
+Afterwards, Within Implies checks whether event occurs within each true dura-
+tion. Take R27 as an example, if event ﬁrstly occurs at 0.01s, a corresponding true
+23
+
+--- Page 31 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 5.8: R30: if the message transmission is failed ( msgNormal == false ) when the vehicle runs in auto-
+mode, for the next 20 seconds, the vehicle should not run automatically, i.e., auto == false
+duration [0.05, 0.07] is generated, where the existence of the second occurrence is
+checked.
+2.Noncumulative Periodic timing constraint is constructed with the blocks
+illustrated in Fig.5.10: a Pulse Generator is applied to generate signals (square
+waves) based on Period, Pulse width, Phase delay parameters (see Fig.5.10). Pulse
+width is a duty cycle speciﬁed as a percentage of Period , i.e., Pulse width =Width /Period .
+Phase delay speciﬁes the delay before the pulse is generated. Convertblock is
+used to transform the signal type from double toboolean . The generated signal and
+event signal from the input port, are then passed to Within Implies block.Within
+Implieschecks whether event becomes true within each true duration of the gener-
+ated signal. Take R27 as an example, the Phase delay is speciﬁed as 0.04s, Period
+is 0.05s and Pulse width is 40%, which is illustrated on the right of Fig.5.10. To
+satisfy this timing constraint, VehicleDynamic should be triggered within each true
+duration of the generated signal.
+Figure 5.9: Cumulative Periodic Timing Constraint
+Figure 5.10: Non-cumulative Periodic Timing Constraint
+5.3 Energy Constraints in SDV
+According to the various modes of vehicles in CAS, the amount of battery consumed
+for the mechanical motion of wheels is calculated: energy =Rt
+0av dx where, t,
+24
+
+--- Page 32 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+a, and vdenote running time, coefﬁcient reﬂects an energy rate associated to the
+current mode of an individual vehicle, and wheel speed respectively.
+Energy constraint demarcates that the energy consumption on different modes
+of an individual vehicle is within [lower ;upper ]. It is speciﬁed as G(lower6energy
+^energy 6upper )and its POM is depicted in Fig. 5.11, where the value of the
+energy consumption is obtained through Data Store Read block and compared
+with upper andlower .
+Figure 5.11: Energy constraint
+25
+
+--- Page 33 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 6
+Modeling Functional Behaviours in
+UPPAAL -SMC
+We translate the E AST-ADL architectural model illustrated in Fig.3.2 and Simulink/S-
+tateﬂow model in Fig.4.1 into a networks of STAs in U PPAAL -SMC. In the model,
+there are three vehicles receiving the information of trafﬁc signs from cooperative
+environment CoopEnv fp. The functionality trafﬁc sign recognition is modeled as the
+STA shown in Fig.6.1. The type of trafﬁc signs include stop,left/right turn ,straight ,
+minimum/maximum speed limit . The dash line in Fig.6.1 indicates the probabilistic
+distribution of different trafﬁc signs, i.e., trafﬁc sign occurs randomly with a certain
+probability. The lead vehicle (v1) will adjust its speed and running direction accord-
+ing to the detected sign types. The two follower vehicles (v2 and v3) will follow the
+lead vehicle.
+Figure 6.1: STA of SignRecognition
+The functionality of the three vehicles are similar. Each vehicle consists of a
+localEnv fpand a Controller . Each localEnv consists of three fps:ComDevice ,
+VehicleDynamic andDriverBehaviour .ComDevice is modeled in Fig.6.3. The
+Technical Report 26
+
+--- Page 34 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+inner behaviour of the vehicle calculating velocity according to the gears and torque
+is modeled in Fig.6.2. This fpwill be triggered to execute periodically with period
+50ms and jitter 10ms, i.e., STA of VehicleDynamic will be triggered to update the
+speed, gear and torque of the vehicle periodically. The computation is implemented
+as the function speedCal() , which will be called to update the states and valuation of
+variables whenever the corresponding transition is taken.
+Figure 6.2: STA of VehicleDynamic
+Fig.6.3(a) captures the behaviour of the sensor sending out signals of position,
+velocity and direction of vehicle. Fig.6.3(b) models the behaviour of the sensor
+receiving signals from other vehicles. It receives information (the position, velocity
+and direction) from the lead vehicle, and detects whether the lead vehicle is braking
+periodically. The sensor will send out signals/information when the Controller of
+the vehicle ﬁnishes execution.
+The behaviors of the driver is modeled as the STAs shown in Fig.6.4. Brake
+Pedal STA represents the behaviors of braking pedal (Fig.6.4(a)). Control status
+button STA records whether the driver intends to drive the vehicle manually (Fig.6.4(b)).
+The behaviors of controlling gear and steer is modeled as the STA in Fig.6.4(c) and
+Fig.6.4(d) respectively. The driver can take charge of the running state of the vehicle
+by switching the running state to userCtrl mode using Control Button. The driver
+can control the vehicle by steer (steer the running direction of vehicle), gear (control
+the speeds of the wheels) and the brake pedal (to stop the vehicle).
+The top view of the Controller modeled in Fig.4.2 is shown in Fig.6.5. The
+controller gets information from four different sensors. After receiving all input
+signals, the Controller will decide which state should be activated. Fig.6.6 and
+Fig.6.8 describe two states that represent auto mode and userCtrl mode of vehicle.
+If the driver intends to control the vehicle, the Control Button will transit to userCtrl ,
+indicating that the vehicle is driven manually. When Auto location is active, and the
+vehicle cannot get the information from the ahead vehicle, then userCtrl will be
+activated automatically.
+Fig.6.8 describes the behavior that it is of 50% probability that the message
+transmission is failed. The message state is modeled by STA in Fig.6.7. When the
+message is missed for 2s, userCtrl mode will be activated.
+The behaviour of leader state in the Stateﬂow chart is captured by STA illus-
+trated in Fig.6.9. The leader gets image information from CoopEnv and changes its
+27
+
+--- Page 35 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Sensor of sending signals
+(b) Sensor of receiving signals
+Figure 6.3: STA for modeling ComDevice
+running mode according to signType , the current running state and velocity. The
+substates of leader state is modeled in Fig.6.10.
+The inner behaviours of Stop can be captured in Fig.6.10(a). Similarly, Fig.6.10
+(b) and Fig.6.10 (c) describe the behaviour of turnLeft ,turnRight . Fig.6.11 (a) and
+Fig.6.11 (b) illustrates the STA of accanddecstate respectively. When the leader
+vehicle detects a stop sign ( signType == 5) and if it is in Auto mode, Stop state
+inleader STA will be activated and the torque will be set to maximum value (the
+velocity will be decreased rapidly). When the velocity of the vehicle is less than or
+equal to 0, it will stop and static state (shown in Fig.6.10) will be active. When a
+minimum speed limit sign is detected or the driver takes control of the vehicle, the
+straight state will be active. When the lead vehicle detects a left turn sign and the
+straight state is active, turnLeft state will be active. The vehicle will ﬁrst decelerate
+by decreasing the value of its gear until its velocity is less than or equal to 30km/h.
+Afterwards, the direction of the vehicle will be changed according to its current
+direction and the detected trafﬁc sign. After turning, the vehicle will increase its
+velocity to the original velocity before turning.
+The inner behaviour speedUp andspeedDown is modeled in Fig.6.12. When
+the vehicle is decelerating, the torque ( torq) of the vehicle will be increased and
+the gear ( gear) will be decreased. Since the velocity of one vehicle is positively
+proportional to gear, the velocity will be increased when gear is increased. When
+the vehicle ﬁnishes turning, the torque of the vehicle will be decreased and the gear
+28
+
+--- Page 36 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Brake Pedal
+(b) Control Status Button
+(c) Gear
+(d) Steer
+Figure 6.4: STA for modeling DriverBehaviour
+29
+
+--- Page 37 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 6.5: STA of Controller
+Figure 6.6: STA of Control state
+Figure 6.7: STA for deciding whether the message is missing
+30
+
+--- Page 38 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 6.8: STA for modeling Communication state
+Figure 6.9: STA for modeling leader state
+31
+
+--- Page 39 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Stop
+(b) Turn Left
+(c) Turn Right
+Figure 6.10: STA for modeling substates of leader state
+32
+
+--- Page 40 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Accelerate
+(b) Decelerate
+Figure 6.11: STA for modeling substates of leader state
+will be increased to resume to the original velocity.
+The inner behaviour of turnLeft state is captured in Fig.6.13. Similarly, when
+the vehicle detects a turn right sign, it will decelerate until its speed velocity is less
+than 30km/h. Afterwards, it will turn (its running directions will be changed) and
+increases its velocity. The accanddecstates (Fig.6.10(d), (e)) represent the states
+that the vehicle is accelerating or decelerating. When the lead vehicle (v1) detects
+a minimum speed limit, and the velocity of the vehicle is less than the limit, acc
+state will be active. The torque of the vehicle will be decreased to order to increase
+the velocity. In the mean time, the gear of the vehicle will be increased every 40ms
+until it reaches the maximum value. When the lead vehicle detects a maximum speed
+limit and the velocity is larger than the limit, it will activate decstate and its velocity
+will be decreased.
+The behaviour of the follower is captured in Fig.6.14. The follow vehicle will
+decide its behaviour by three super-states: stop,turn andstraight , which will be
+active according to the velocity and running mode of the lead vehicle. It is re-
+quired to guarantee the distance between the following vehicle and the lead vehicle
+should be limited in order to ensure the safety. When the follower is in straight state
+(Fig.6.15(c)), it will always check the distance departing from the leader vehicle by
+executing checkDistance() function. If the distance is less than the safety distance,
+then it will activate decstate (Fig.6.15(c)) inside straight state. If the following
+vehicle is in decstate, which is shown in Fig.6.16(a), it will increase its torque or
+decrease its gear every 40ms until it reaches 0. If the distance between the following
+33
+
+--- Page 41 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) speedDown
+(b) speedUp
+Figure 6.12: STA of turnLeft state
+34
+
+--- Page 42 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) speedDown
+(b) speedUp
+Figure 6.13: STA of turnRight state
+35
+
+--- Page 43 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+vehicle and the leader vehicle is greater than the safety distance, the vehicle will
+stop decelerating. When the distance between the following vehicle and the leader
+vehicle is greater than 500m, in this case, the communication between the two vehi-
+cles may be lost. Hence the following vehicle should increase its speed in order to
+maintain the communication quality.
+As presented in Fig.6.16(b), when the vehicle accelerates, it will decrease its
+torque and increase its gear every 40ms. If the lead vehicle is braking, the follower
+will activate stop state (shown in Fig.6.15(a)). When the follower stops, it will main-
+tain the safety distance with the lead vehicle. When the follow vehicle detects that
+its running direction and the running direction of the lead vehicle are different, it
+will turn left/right in order to keep the same running direction with the lead vehicle.
+In this case, the following vehicle will ﬁrst reach the turning point of the lead ve-
+hicle (recorded in judgeturnpoint ), which is illustrated in Fig.6.14. Similar to lead
+vehicle, the following vehicle will ﬁrst decreases the velocity to turn and increase to
+ﬁnish turning. Detailed behaviors of turn state is captured in Fig.6.17.
+Figure 6.14: STA of follower state
+If the driver takes control of the vehicle, userCtrl (Fig.6.18) state will be active.
+The movement of the vehicle will be controlled by the driver. Hence when the driver
+pressed the brake pedal, stop state in userCtrl will be active. Detailed behaviours of
+stop state is captured in Fig.6.19(a).
+However, when the driver increases the velocity of the vehicle, stop state will
+transit to straight state. In straight mode,the speed of the vehicle can be increased/de-
+creased by changing the gear (gear up or gear down). As shown in Fig.6.16, the vehi-
+cle will adjust its velocity according to the operation by the driver. If the driver steer
+to left or right, the vehicle will decrease its velocity to turn and increase the velocity
+to the original velocity after turning (as illustrated in Fig.6.21 and Fig. 6.22).
+36
+
+--- Page 44 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) stop
+(b) turn
+(c) straight
+Figure 6.15: STA of follower state
+37
+
+--- Page 45 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) dec
+(b) acc
+Figure 6.16: STA for modeling substates of straight state
+38
+
+--- Page 46 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) speedDown
+(b) speedUp
+Figure 6.17: STA for modeling substates of turn state
+39
+
+--- Page 47 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 6.18: STA for modeling userctrl state
+40
+
+--- Page 48 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) stop
+(b) TurnLeft
+(c) TurnRight
+(d) Straight
+Figure 6.19: STA of UserCtrl state
+41
+
+--- Page 49 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) gearUp
+ (b) gearDown
+Figure 6.20: STA for modeling substates of straight state
+(a) SpeedDownL
+(b) SpeedUpL
+Figure 6.21: STA for modeling substates of turnleft state
+42
+
+--- Page 50 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) SpeedDownR
+(b) SpeedUpR
+Figure 6.22: STA for modeling substates of turnright state
+43
+
+--- Page 51 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 7
+(Non)-functional Property Translation in
+UPPAAL -SMC
+In this section, we discuss semantics of the extended Periodic, Sporadic , and
+Comparison timing constraints (X TC) with probabilistic parameters according to
+TADL [9]. Afterwards, we provide translation of X TCin U PPAAL -SMC. Finally, we
+present how the energy consumption of an individual vehicle in CAS can be modeled
+in U PPAAL -SMC.
+7.1 Probabilistic Timing Constraints Translation
+XTCthat we veriﬁed follow the weakly-hard ( WH) approach [9], which describes
+that a bounded number of occurrences among all are allowed to violate the con-
+straints. The semantics of the WH(c,m,k) is that a system behavior must satisfy a
+given timing constraint cat least mtimes out of kconsecutive occurrences. We use
+object-oriented notation to deﬁne the attributes of occurrences of an event except for
+Comparison timing constraint, which does not related to any event. fp.erefers to
+an event eoffp. we apply eiande(i) to represent the ithoccurrence of fp.eand
+the time point of ithoccurrence respectively.
+WH(End-to-End,m,k) limits the interval between the occurrences of fp.source
+and corresponding fp.target . For any source i2fp.source (ijfp.sourcej),
+out of kconsecutive occurrences of fp.source , i.e., source itosource i+k, at least
+msatisfy lowerjtarget(i)-source(i) jupper , wherejtarget(i)-source(i) j
+denotes the corresponding delay of fp.source . We have previously proposed the
+translation pattern of probabilistic End-to-End constraint, which is applicable for
+the system where target ialways happens prior to source i+1. To allow the case that
+source i+1occurs prior to target i, we model End-to-End constraint as a spawn-
+able STA [5]. As shown in Fig.7.1(a), whenever fp.source occurs, Source STA
+will activate a spawned STA ( STA sp(i)) from End-to-End STA (in Fig.7.1(b)).
+When STA sp(i) is activated, the clock clkstarts to count from 0 until target i
+occurs. STA sp(i)will judge whether the time interval from source itotarget i
+is within the lower and upper bound. According to the judgment, either success or
+Technical Report 44
+
+--- Page 52 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Source
+ (b) End-to-End (e2e)
+(c) Noncumulative
+ (d) Sporadic
+Figure 7.1: Probabilistic Extension of Timing Constraints in U PPAAL -SMC
+faillocation will be activated, representing that the End-to-End constraint is satis-
+ﬁed or not. Afterwards, STA sp(i)will be inactive. To ensure the correspondence
+offp.source andfp.target , iftarget idoesn’t occur, STA sp(i)will be inactive
+when target i+1occurs. WH(End-to-End,m,k) is speciﬁed as: Pr[bound ]([ ]8
+source i2fp.source (:STA sp(i).f ail))>P.
+WH(Periodic,m,k) limits the period of the successive occurrences of an event
+including jitter . As our previous work has provide probabilistic extension of Cumu
+Periodic and translation rules to STA, we focus on Noncumu Periodic .Noncumu
+Periodic : For any e(i)2fp.start , at least mtimes out of koccurrences, e(i)
+satisﬁes: ( i*T-jittere(i)i*T+jitter ). In Fig.7.1(c), the STA enforces the ith
+event event to occur within [ i*T-jitter ,i*T+jitter ]. Initially, STA resets the local
+clock clkwhen it counts to jitter , which indicates that the time moves backwards
+byjitter time on the time line. When event happen, STA will judge if clkis within
+[T-2*jitter ,T] and changes its current state to either ( success orfail) based on the
+judgment. Afterwards, the STA will wait at reset till period Tand reset clk. Fi-
+nally the STA repeats the calculation. WH(Noncumu Periodic,m,k) is speciﬁed as:
+Pr[bound ]([ ]:STA Noncumu Periodic :f ail)P.
+WH(Sporadic,m,k) describes a single event fpthat occurs sporadically. For
+anye(i)2fp.start s.t. its successive occurrence e’(i) starts at e(i) , out of
+kconsecutive occurrences e(i) , i.e., e(i) toe(i+k) , at least msequences satisfy
+(je’(i)-e(i)jmin), where mindenotes the minimum time interval between con-
+secutive occurrences.In Fig.7.1(d), initially, STA resets the local clock clkwhen
+it receives signal event ?, which indicates the ﬁrst occurrence of an event. When
+STA receives event ? again, it will judge if clkis larger than minand changes its
+current state to either ( success orfail) based on the judgment. Finally STA reset
+45
+
+--- Page 53 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+clkand repeat calculation. WH(Sporadic,m,k) is speciﬁed as: Pr[bound ]([ ]:
+STA Sporadic :f ail)P.
+WH(Comparison,m,k) limits the comparison relation (including <,,==,
+and>) among timing expressions, where WH(Comparison,m,k) can be expressed
+as arithmetic. WH(Comparison,m,k) is deﬁned as: out of kruns, at least mtimes the
+comparison relation between TimingExpr1 andTimingExpr2 is satisﬁed.
+WH(Comparison,m,k) is interpreted as: Pr[bound ]([]TimingExpr1TimingExpr2 )
+P, where2f <,,=,or>g.
+7.2 Energy Constraint Estimation
+Fig.7.2 shows the stochastic timed automata (STA) that estimates the energy con-
+sumption of the Controller of the lead vehicle with extended arithmetic on clocks:
+total energy represents the total energy consumption of the Controller of the lead
+vehicle. Different modes of the vehicle are corresponded to different locations in
+the STA. As the energy consumption rate for turning right and turning left mode
+are the same, we combine the two modes into one location in the STA, i.e., turn-
+LeftorRight . Similarly, the acceleration and deceleration mode of the Controller are
+combined into decoracc . Since the energy consumption rate varies with the running
+mode of the vehicle, e.g., the energy consumes faster when the vehicle is in braking
+mode than when the vehicle drives in a constant speed, we deﬁne total energy’ (the
+rate of total energy ) with ordinary differential equation (ODE) and assign different
+values to total energy’ for different locations in the STA. Parameters a,b,cand
+dare user-deﬁned coefﬁcients to estimate energy consumption of the lead vehicle
+when it drives in a constant speed, brakes, turns or increases (decreases) its speed
+respectively. The values of the coefﬁcients indicate the increasing rate of the en-
+ergy consumption of the Controller and b>d>c>a. The estimation of energy
+consumption requirement of Controller (R48) will be evaluated in Chap.8.
+Also, the four sensors in Fig.3.2(b) will consume energy. As VeDynamicDevice
+is an imitation of how the velocity of an vehicle can be achieved, its energy con-
+sumption is more like the mechanical kinetic energy of the vehicle. While in our
+case, the velocity and the energy consumption of the vehicle is strongly related
+to the mode of the vehicle, thus we model the mechanical kinetic energy con-
+sumption in Controller (Fig.7.2). The energy of the other three fps,ComDevice ,
+SignRecDevice andVeModeDevice , are modeled in Fig.7.3. In order to simplify
+calculation, we set constants as the increasing rate of energy consumption of each
+sensor. When the sensor is working, the energy consumption will increase uni-
+formly. And when the sensors don’t work anymore, the energy consumption will
+not increase.
+46
+
+--- Page 54 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 7.2: Energy estimation of v1Controller
+(a) Energy of ComDevice
+ (b) Energy of VeModeDevice
+(c) Energy of SignRecDevice
+Figure 7.3: Energy constraints on sensors in U PPAAL -SMC
+47
+
+--- Page 55 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 8
+Experiment and Veriﬁcation
+Formal veriﬁcation of functional and non-functional properties are conducted by
+using SDV and U PPAAL -SMC. Since SDV only supports a sub-set of blocks in
+Simulink block library, several blocks need to be replaced from the original model,
+e.g., look-up table block and random value generator . The proof objective models
+that specify the functional and non-functional properties are constructed, which are
+illustrated in the following ﬁgures.
+Figure 8.1: When v1 runs automatically and if there is no message received by the vehicle for a certain
+time, the running mode of the vehicle should be changed to manual mode within a certain time: G(G[0;200]
+v1.Auto==true^v1.msg == false =)F[0;2000]v1.userCtrl == true)
+Figure 8.2: When v1 runs automatically with a constant speed, if it detects a stop sign, it should start to brake
+in 500ms: G(v1.Auto == true^v1.const == true^signType == 5 =)F[0;500]v1.stop == true)
+Functional properties of CAS (R1-R26) can be measured using observer STAs.
+Observer STA describes the time delay between two transitions, i.e., two events.
+An event can be indicated by a synchronization channel, changes of states or data.
+Trigger STA represents the events that are represented by changes of states or data.
+Fig.8.15 shows how functional requirements can be modeled in observer STA. For
+Technical Report 48
+
+--- Page 56 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 8.3: When the lead vehicle (v1) runs automatically with a constant speed, if it detects left turn sign,
+it should start to turn left in 200ms: G(v1.auto == true^v1.const == true^signType == 4 =)F[0;200]
+v1.turnLeft == true)
+Figure 8.4: If v1 is driven by the driver and it is running with a constant speed, the driver steers to the left,
+the vehicle will turn left within 200ms: G(v1.userCtrl == true ^v1.const == true^v1.steerReq == 1 =)
+F[0;200]v1.turnLeft == true)
+Figure 8.5: If v1 is driven by the driver and it is running at a constant speed, the driver brakes the car, the
+vehicle will slow down. G: (v1.userCtrl == true ^v1.const == true^v1.brakeReq == 2 =)F[0;200]v1.brake
+== true)
+Figure 8.6: When v1 is driven by the driver and it is running at a constant speed, if the driver gears up, the
+vehicle will accelerate. G(v1.userCtrl == true ^v1.const == true^v1.gearReq >v1.gear =)F[0;200]v1.acc
+== true)
+49
+
+--- Page 57 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 8.7: When the vehicles are running horizontally, following vehicle should not run ahead of lead vehicle.
+G(v1.dx == 1^v2.dx == 1^v3.dx == 1 =)v1.x >v2.x)
+Figure 8.8: When the lead vehicle detects a stop sign, the three vehicles should stop in 5s. G(v1.auto == true
+^signType == 5 =)F[0;5000]v1.static == true^v2.static == true^v3.static==true)
+Figure 8.9: Noncumulative Periodic timing constraint: A Periodic acquisition of VehicleDynamic of
+v1 must be carried out for every 50 ms with a jitter 10 ms. G(v1.velIn == true =)v1.velIn == false U[40;60]
+v1.velIn == true)
+Figure 8.10: Cumulative Periodic timing constraint of R27
+50
+
+--- Page 58 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 8.11: Sporadic constraint: After the running mode of the lead vehicle is changed to manual mode
+because of the failed message transmission, the driver should not change it into auto mode within 20 seconds.
+G(v1.msgNormal == false =)v1.auto == false U[2000 ;¥]) v1.auto == true
+Figure 8.12: AnExecution constraint applied on v3Controller , which measured from the inputs ports Avel
+to output ports gearReq ,torqueReq , and brake , should be between 100 ms and 300 ms; G(v3.ctrlIn =)
+F[100;300]v3.ctrlOut)
+Figure 8.13: AnExecution constraint applied on v3Controller , which measured from the inputs ports Avel
+to output ports gearReq ,torqueReq , and brake , should be between 100 ms and 300 ms; G(v3.ctrlIn =)
+F[100;300]v3.ctrlOut)
+51
+
+--- Page 59 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Upper bound
+(b) Lower bound
+Figure 8.14: AnExecution constraint applied on ComDevice of v1, which measured from the inputs ports
+torqueSet ,gearSet andbrake to output ports wheelSpeed ,direct should be between 100 ms and 150 ms; G
+(v1.sdrIn =)F[100;300]v1.sdrOut
+52
+
+--- Page 60 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+R1, the observer STA will start to count the elapsed time when communication fail-
+ure occurs. It stops counting when the driver of this vehicle takes control of the
+vehicle. An STA is used to indicate the time instant at which the driver takes con-
+trol of the car (the manual mode is activated). Whenever the user takes control
+(inuc[0]==1), a signal will be sent to the STA in Fig.8.15(a) and time counting will
+be ceased.
+(a) R1
+ (b) Trigger of R1
+Figure 8.15: Observer STA of R1 and its triggering
+Veriﬁcation of timing properties (R27-R50) are done by adapting observer STAs
+in Fig.8.16. R27-R29 are veriﬁed by using the STAs in Fig.8.16(a) and (b), where the
+VeDynamicDevice is triggered periodly with jitter 10ms. R30-R32 are Sporadic
+constraints: if communication is missing, the driver should take control of the vehi-
+cle for at least 2s (Fig.8.16(c)). The Execution timing constraint of Controller
+andComDevice are considered in STAs shown in Fig.8.16(d), (e). The End-to-End
+constraints measured from the Controller of the lead vehicles to the Controller
+of the follow vehicles (R39 and R40) can be checked by employing the STAs in
+Fig.8.16(f). R41-R43 measure the time duration from the Controller of each
+vehicle receiving signal from the sensors to sendig information to other vehicles
+(Fig.8.16(g)). The synchronization of the input ports of the Controller can be
+modeled in STA in Fig.8.16(h).
+Table.8.1 depicts the veriﬁcation result of a list of functional (R1-R26) and
+non-functional (R27-R50) properties. The experiments are performed on a computer
+with Intel Core i3 CPU and 4GB of RAM. For Periodic timing constraints (R27-
+R29), results are provided in two categories: cumulative (R27.1, R28.1, R29.1) and
+non-cumulative (R27.2, R28.2, R29.2). The non-functional properties (R27-R50)
+are all satisﬁed in both U PPAAL -SMC and SDV . The functional properties R1-R22,
+R25-R26 are established as valid in SDV and are satisﬁed in U PPAAL -SMC with
+conﬁdence greater than 95%, while R23-R24 is invalid in both SDV and U PPAAL -
+SMC.
+The invalid property R23 is identiﬁed using SDV and U PPAAL -SMC. The
+counter-examples (CE) generated by SDV is shown in Fig.8.19. We perform the
+simulation in U PPAAL -SMC to obtain the error trace of CE, which is illustrated in
+53
+
+--- Page 61 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Cumulative Periodic
+ (b) Noncumulative Periodic
+(c) Sporadic
+(d) Synchronization
+Figure 8.16: UPPAAL -SMC STAs for timing constraints veriﬁcation
+54
+
+--- Page 62 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+(a) Execution on Controller
+ (b) Execution on Sensor
+Figure 8.17: UPPAAL -SMC STAs for End-to-End timing constraints veriﬁcation
+(a) End-to-End between vehicles
+ (b) End-to-End for one vehicle
+Figure 8.18: UPPAAL -SMC STAs for End-to-End timing constraints veriﬁcation
+55
+
+--- Page 63 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive SystemTable 8.1: Logic expression and veriﬁcation results of the requirements
+Req Type Expression Result Time (min) Memory (Mb) CPU (%))
+R1SDV G(G[0;2000]v1.auto==true^v1.msgNormal==false =)F[0;200]
+v1.userCtrl==true)valid 14.95 1675.47 0.55
+UPPAAL -SMC Pr[63000] ([ ] (:Commufail(0).fail)) [0.902, 1] 7.61 38.48 22.40
+R2SDV G(G[0;200]v2.auto==true^v2.msgNormal==false =)F[0;200]
+v2.userCtrl==true)valid 18.45 1782.39 0.29
+UPPAAL -SMC Pr[63000] ([ ] (:Commufail(1).fail)) [0.902, 1] 6.83 40.49 22.49
+R3SDV G(G[0;200]v3.auto==true^v3.msgNormal==false =)F[0;200]
+v3.userCtrl==true)valid 26.3 1932.35 0.69
+UPPAAL -SMC Pr[63000] ([ ] (:Commufail(2).fail)) [0.902, 1] 7.89 42.88 22.62
+R4SDV G(v1.auto==true^v1.const==true^signType==5 =)F[0;500]
+v1.brake==true)valid 46.8 1964.57 10.25
+UPPAAL -SMC Pr[63000] ([ ] (:R4TR.fail)) >0.95 valid 21.63 39.27 24.75
+R5SDV G(v1.auto==true^v1.const==true^signType==4 =)F[0;200]
+v1.turnLeft==true)valid 40.08 2072.23 11.21
+UPPAAL -SMC Pr[63000] ([ ] (:R5TR.fail)) >0.95 valid 25.33 39.20 24.52
+R6SDV G(v1.auto==true^v1.const==true^signType==3 =)F[0;200]
+v1.turnRight==true)valid 40.28 2026.57 6.84
+UPPAAL -SMC Pr[63000] ([ ] (:R6TR.fail)) >0.95 valid 25.67 39.20 24.78
+R7SDV G(v1.userCtrl==true ^v1.const==true^v1.steerReq==1 =)
+F[0;200]v1.turnLeft==true)valid 99.95 2144.16 8.64
+UPPAAL -SMC Pr[63000] ([ ] (:R7TR.fail)) >0.95 valid 27.6 39.10 24.67
+R8SDV G(v1.userCtrl==true ^v1.const==true^v1.steerReq==2 =)
+F[0;200]v1.turnRight==true)valid 157.68 1852.91 1.78
+UPPAAL -SMC Pr[63000] ([ ] (:R8TR.fail)) >0.95 valid 24.48 39.09 24.65
+R9SDV G(v1.userCtrl==true ^v1.const==true^v1.brakeReq==2 =)
+F[0;200]v1.brake==true)valid 80.46 1667 1.46
+UPPAAL -SMC Pr[63000] ([ ] (:R9TR.fail)) >0.95 valid 28.2 39.26 24.63
+R10SDV G(v1.userCtrl==true ^v1.const==true^v1.gearReq >v1.gear
+=)F[0;200]v1.acc==true)valid 6.98 1882.97 2.95
+UPPAAL -SMC Pr[63000] ([ ] (:R10TR.fail)) >0.95 valid 29.16 38.92 24.52
+R11SDV G(v1.userCtrl==true ^v1.const==true^v1.gearReq <v1.gear
+=)F[0;200]v1.dec==true)valid 259.98 1430 1.85
+UPPAAL -SMC Pr[63000] ([ ] (:R11TR.fail)) >0.95 valid 29.03 39.24 24.57
+56
+
+--- Page 64 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive SystemReq Type Expression Result Time (min) Memory (Mb) CPU (%))
+R12SDV G(v1.dx==1^v2.dx==1^v3.dx==1 =)v1.x>v2.x) valid 14.02 1320 3.65
+UPPAAL -SMC Pr[63000]([ ] (dx[0]==1 ^dy[0]==0^dx[1]==1^dy[1]==0
+^(inStr[0]_indec[0]_instr[0]_inacc[0]_inconstSpeed[0])^
+(inStr[1]_instr[1]) =)x[0]>x[1]))>0.95valid 13.27 57.06 24.31
+R13 SDV G(v1.dx==1^v2.dx==1^v3.dx==1 =)v2.x>v3.x) valid 35.37 2085 3.05
+UPPAAL -SMC Pr[63000]([ ] (dx[1]==1 ^dy[1]==0^dx[2]==1^dy[2]==0
+^(inStr[1]_indec[1]_instr[1]_inacc[1]_inconstSpeed[1])^
+(inStr[2]_instr[2]) =)x[1]>x[2]))>0.95valid 11.43 55.67 24.42
+R14SDV G( v1auto^signType==5 =)F[0;5000](v1static^v2static^
+v3static) )valid 4.67 1903 4.91
+UPPAAL -SMC Pr[63000] ([ ] (:allstop.fail)) >0.95 valid 20.28 52.47 23.10
+R15SDV G(v1.const==true^v2.const==true^v1.vel >v2.vel =)F[0;200]
+v2.acc==true)valid 5.10 2095 4.20
+UPPAAL -SMC Pr[63000] ([ ] (:acc(1).fail)) >0.95 valid 21.52 43.68 22.43
+R16SDV G(v2.const==true^v3.const==true^v2.vel >v3.vel =)F[0;200]
+v3.acc==true)valid 0.15 2038 38.76
+UPPAAL -SMC Pr[63000] ([ ] (:acc(2).fail)) >0.95 valid 19.43 40.46 23.21
+R17 SDV G(v1.const==true^v2.const==true^v1.vel <v2.vel =)F[0;200]
+v2.dec==true)valid 0.15 1963 23.04
+UPPAAL -SMC Pr[63000] ([ ] (:R17TR.fail)) >0.95 valid 27.3 39.10 24.60
+R18 SDV G(v2.const==true^v3.const==true^v2.vel <v3.vel =)F[0;200]
+v3.dec==true)valid 11.52 2026 3.99
+UPPAAL -SMC Pr[63000] ([ ] (:R18TR.fail)) >0.95 valid 26.89 39.07 24.73
+R19SDV G(v1.const==true^v2.const==true^dist12 >500 =)
+v2.acc==truevalid 0.04 1961 4.38
+UPPAAL -SMC Pr[63000] ([ ] (:R19TR.fail)) >0.95 valid 27.2 39.16 24.84
+R20SDV G(v1.const==true^v2.const==true^dist12 >500=)
+v3.acc==truevalid 0.01 1961 4.38
+UPPAAL -SMC Pr[63000] ([ ] (:R20TR.fail)) >0.95 valid 26.53 38.92 24.65
+R21SDV G(v1.const==true^v2.const==true^dist12 <safeDis =)
+v2.dec==truevalid 11.13 2054 4.09
+UPPAAL -SMC Pr[63000] ([ ] (:dec(1).fail)) >0.95 valid 22.1 43.23 22.60
+R22SDV G(v2.const==true^v3.const==true^dist23 <safeDis =)
+v3.dec==truevalid 0.03 2234 3.92
+UPPAAL -SMC Pr[63000] ([ ] (:dec(1).fail)) >0.95 valid 20.59 43.27 22.81
+57
+
+--- Page 65 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive SystemReq Type Expression Result Time (min) Memory (Mb) CPU (%))
+R23SDV G(v1TurnLeft =)F[0;5000]RunInSameLine) valid 15.49 1492.96 1.82
+UPPAAL -SMC Pr[63000] ([ ]:turnleftTime12.fail) >0.95 valid 40.93 42.46 24.79
+R24SDV G(v2TurnLeft =)F[0;5000]RunInSameLine) valid 1.10 1918 3.48
+UPPAAL -SMC Pr[63000] ([ ]:turnleftTime23.fail) >0.95 valid 42.71 47.23 23.80
+R25SDV G(v1.turnRight==true =) F[0;5000]v1.turnRight==false ^
+v2.turnRight==false ^v1.x==v2.x_v1.y==v2.y)valid 0.31 1930 2.02
+UPPAAL -SMC Pr[63000] ([ ]:turnrightTime23.fail) >0.95 valid 39.13 55.11 24.63
+R26SDV G(v2.turnRight==true =) F[0;5000]v2.turnRight==false ^
+v3.turnRight==false ^v2.x==v3.x_v2.y==v3.y)valid 31.26 2253 3.86
+UPPAAL -SMC Pr[63000] ([ ]:turnrightTime23.fail) >0.95 valid 40.24 56.20 24.89
+R27.1SDV G(velIn==1 =)F[40;60]velIn==1) valid 28.4 1642 6.51
+UPPAAL -SMC Pr[63000] ([ ]:VehicleDynamic(0) cumulative .fail)>0.95 valid 7.18 51.57 24.64
+R27.2SDV G(period pre==0^period==1 =)F[0;20]velIn) valid 8.42 1819.24 1.22
+UPPAAL -SMC Pr[63000] ([ ]:VehicleDynamic(0) noncumulative .fail)>0.95 valid 9.17 51.19 23.25
+R28.1SDV G(vel2In==1 =)F[40;60]vel2In==1) valid 0.71 1285 0.5
+UPPAAL -SMC Pr[63000] ([ ]:VehicleDynamic(1) cumulative .fail)>0.95 valid 7.28 42.70 24.65
+R28.2SDV G(p2pre==0^p2==1 =)F[0;20]vel2In) valid 10.98 2002.17 8.10
+UPPAAL -SMC Pr[63000] ([ ]:VehicleDynamic(1) noncumulative .fail)>0.95 valid 5.6 51.79 24.66
+R29.1SDV G(vel3In==1 =)F[40;60]vel2In==1) valid 0.65 54.69 8.3
+UPPAAL -SMC Pr[63000] ([ ]:VehicleDynamic(2) cumulative .fail)>0.95 valid 7.23 42.70 24.69
+R29.2SDV G(p3pre==0^p3==1 =)F[0;20]vel3In) valid 6.97 2084 8.30
+UPPAAL -SMC Pr[63000] ([ ]:VehicleDynamic(2) noncumulative .fail)>0.95 valid 6.13 51.79 24.49
+R30SDV G(:msgNormal =): autoU[2000 ;¥]auto==true) valid 4h 1588.14 7.27
+UPPAAL -SMC Pr[63000] ([ ] (:sporadic(0).fail)) >0.95 valid 0.001 30.96 0.9
+R31SDV G(:msgNormal2 =): auto2 U[2000 ;¥]auto2==true) valid 49.15 2253 38.85
+UPPAAL -SMC Pr[63000] ([ ] (:sporadic(1).fail)) >0.95 valid 0.002 30.96 1.2
+R32SDV G(:msgNormal =): auto3 U[2000 ;¥]auto3==true) valid 59.15 2125 36.40
+UPPAAL -SMC Pr[63000] ([ ] (:sporadic(2).fail)) >0.95 valid 23:03 1167.54 22.24
+R33SDV G(rpre==0^r>0=)F[100;300]s==r) valid 19.7 1661 7.31
+UPPAAL -SMC Pr[63000] ([ ] (:v1Controller execution .fail))>0.95 valid 7.7 51.67 24.71
+R34SDV G(r2pre==0^r2>0=)F[100;300]s2==r2) valid 1.38 1493 3.63
+UPPAAL -SMC Pr[63000] ([ ] (:v2Controller execution .fail))>0.95 valid 6.5 42.61 24.72
+R35SDV G(r3pre==0^r3>0=)F[100;300]s3==r3) valid 1.08 1551 20.3
+UPPAAL -SMC Pr[63000] ([ ] (:v3Controller execution .fail))>0.95 valid 7.12 43.24 24.79
+R36SDV G(rcd pre==0^rcd>0=)F[50;100]scd==rcd) valid 1.83 1533.81 1.49
+UPPAAL -SMC Pr[63000] ([ ] (:sensor1 execution .fail))>0.95 valid 7.47 43.24 24.97
+58
+
+--- Page 66 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive SystemReq Type Expression Result Time (min) Memory (Mb) CPU (%))
+R37SDV G(rcd2 pre==0^rcd2>0=)F[50;100]scd2==rcd2) valid 1.23 12.69 8.07
+UPPAAL -SMC Pr[63000] ([ ] (:sensor2 execution .fail))>0.95 valid 7.03 42.72 24.63
+R38 SDV G(rcd3 pre==0^rcd3>0=)F[50;100]scd3==rcd3) valid 2.26 1515.98 3.41
+UPPAAL -SMC Pr[63000] ([ ] (:sensor3 execution .fail))>0.95 valid 9.91 35.12 24.56
+R39 SDV G(sou1 pre==0^sou2>0=)(F[300;700]tar1==cur1^tar16=0)) valid 30.01 1718.32 3.78
+UPPAAL -SMC Pr[63000] ([ ] forall (e:endtoend) ( :e.fail)) >0.95 valid 5.15 39.38 24.54
+R40 SDV G(sou2 pre==0^sou2>0=)(F[300;700]tar2==cur2^tar26=0)) valid 10.08 1204.86 5.96
+UPPAAL -SMC Pr[63000] ([ ] forall (e:endtoend2) ( :e.fail)) >0.95 valid 6.27 42.56 24.68
+R41SDV G(v1.const==true ^v2.const==true^dist12 >500 =)
+v2.acc==truevalid 0.04 1961 4.38
+UPPAAL -SMC Pr[63000] ([ ] (:execv1.fail)) >0.95 valid 7.28 42.70 24.76
+R42SDV G(v1.const==true ^v2.const==true^dist12 >500 =)
+v3.acc==truevalid 0.01 1961 4.38
+UPPAAL -SMC Pr[63000] ([ ] (:execv2.fail)) >0.95 valid 7.47 42.70 24.67
+R43SDV G(v2.const==true ^v3.const==true^dist23 <safeDis =)
+v3.dec==truevalid 0.03 2234 3.92
+UPPAAL -SMC Pr[63000] ([ ] (:execv3.fail)) >0.95 valid 7.33 42.70 24.77
+R44SDV G(:rpre==0^r>0=)F[0;200]posIn^F[0;200]AposIn^F[0;200]
+velIn^F[0;200]AvelIn)valid 32.53 36.51 15.31
+UPPAAL -SMC Pr[63000] ([ ]:v1Controller synchronization .fail))>0.95 valid 5.98 50.84 24.51
+R45SDV G(:r2pre==0^r2>0=)F[0;200]posIn2^F[0;200]AposIn2^
+F[0;200]velIn2^F[0;200]AvelIn2)valid 105.75 1197.67 6.56
+UPPAAL -SMC Pr[63000] ([ ]:v2Controller synchronization .fail))>0.95 valid 7.17 42.37 24.74
+R46SDV G(:r3pre==0^r3>0=)F[0;200]posIn3^F[0;200]AposIn3^
+F[0;200]velIn3^F[0;200]AvelIn3)valid 1.04 1249.30 4.3
+UPPAAL -SMC Pr[63000] ([ ]:v3Controller synchronization .fail))>0.95 valid 7.33 42.37 24.52
+R47SDV G(etcon1==w con1^etcon2==w con2^etsen1==w sen1^etsen2==w sen2
+=)wcon1+ w con2+ w sen1+ w sen2>EndtoEnd)valid 31.26 2253 38.86
+UPPAAL -SMC Pr[63000]( < >:(etcon1==w con1^etcon2==w con2^etsen1==w sen1
+^etsen2==w sen2=)wcon1+ w con2+ w sen1+ w sen2>EndtoEnd)
+60.05valid 165.65 175.24 23.53
+R48SDV G(BrakeEnergy <30000) valid 32.53 36.51 1.31
+SMC E[63000;100] (max: energy.braking energy) 79441172 8.7 51.44 24.58
+SMC simulate 100 [ 63000] (total energy) valid 7.67 45.50 24.63
+R49SDV G(ConEnergy 630) valid 18.05 1000.8 2.05
+UPPAAL -SMC Pr[63000] ([ ] energy con630))>0.95 valid 18.05 1000.8 0.9
+R50SDV G(CDEnergy 65) valid 31.26 2253 38.86
+UPPAAL -SMC Pr[63000] ([ ] energy sen65))>0.95 valid 20.2 80.9 24.02
+59
+
+--- Page 67 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Fig.8.20. DirectX andDirectY represent the directions of the three vehicles and posx
+andposy indicate the position of the three vehicles. After analyzing CE, the cause
+of errors was found: After the lead vehicle turns left, the following vehicle begins
+to turn left after it detects that the running direction of the lead vehicle is changed.
+The two vehicles turn left at different locations. We modify SDV and U PPAAL -
+SMC models according to the CE: a turning location where the lead vehicle turns is
+recorded and sent to the following vehicle. Hence all the following vehicles should
+turn at the same turning location to ensure that the three vehicles are still in a lane
+after turning. After the reﬁnement, R23 and R24 are satisﬁed in both SDV and
+UPPAAL -SMC.
+(a)signType
+(b) Vehicles’ position
+Figure 8.19: CE in SDV: In (b), leadVe.y equals to followVe.y ) from 0 to 8s, which indicates that the two
+vehicles run in the same lane. In (a), signType becomes “turn left (4)” at 8s and the lead vehicle begins to turn
+left. However, the following vehicle turns left at a different location ( leadVe.x is not equal to followVe.x at 9s).
+Hence, the “x” is unequal after turning, which means that the two vehicles run on different lanes. Thus R23
+and R24 is violated.
+Probability Estimation query is applied on R1-R47, R49-R50, indicating that
+the property can be veriﬁed as valid within [0.902, 1]. For estimate the maximum
+energy consumption for braking the vehicles (R48), we adapt Expected value query
+60
+
+--- Page 68 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 8.20: CE in SMC: At the beginning, three vehicles run towards direction (1,0). The three values of
+posy are the same, which indicates that the three vehicles are in the same lane. After a left turn sign is detected,
+the lead vehicle starts to turn left. Since the ﬁrst follower turns left at (184, 0) and the second turns left at (157,
+0), the three values of posx are not equal after turning, which indicates the three vehicle are not running in the
+same lane. Thus R5 is violated.
+Figure 8.21: Probabilistic distribution of the expected energy consumption
+61
+
+--- Page 69 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Figure 8.22: Total energy consumption estimation of the lead vehicle
+and generate probability distribution diagram (Fig.8.21) of the expected energy con-
+sumption. It illustrates that the average of energy consumption is approx. 7944J and
+the expected energy consumption is always less than 30kJ. The total energy of the
+lead vehicle is estimated with Simulation query for 100 times within 300 time units.
+Fig.8.22 shows the result of one time simulation. At the beginning, the lead vehi-
+cle runs at constant speed, hence the total energy consumption increases constantly.
+When it recognizes the minimum speed limit sign ( signType = 2), the vehicle starts
+to accelerate thus energy is consumed faster. The total energy then increases con-
+stantly with slight ﬂuctuation due to energy consumption of the sensor and the cam-
+era. When the vehicle recognizes a turn right sign ( signType = 3), it turns right
+from 1.55s to 1.88s, during which the energy is consumed faster than when the ve-
+hicle is running constantly. The vehicle ﬁnally recognizes a stop sign ( signType =
+5) at 4.46s and stops at 4.84s. The total energy consumed during braking is 18.33kJ,
+which is less than 30kJ, which validates R48. After the vehicle stops, the sensors
+and the camera still work, thus the consumed energy increases slowly.
+62
+
+--- Page 70 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 9
+Veriﬁcation of Comparison Constraint in
+UPPAAL -SMC
+For comparison constraint (R47), which states that the execution time interval mea-
+sured from v1Controller tov2Controller needs to be greater than or equal to the
+sum of the worst-case execution time of fps, can be speciﬁed as:
+j= [ ](et con1==w con1^etcon2==w con2^etsen1==w sen1^etsen2==w sen2=)
+wcon1+ w con2+ w sen1+ w sen2>EndtoEnd .
+We verify this requirement in U PPAAL -SMC with the query:
+Pr[63000]j>0:95 (9.1)
+which means that the probability that jis satisﬁed should be greater than or equal
+to 0.95. However, U PPAAL -SMC cannot give the decidable result because of the
+large state space. Hence we transform the “always” operator with its dual operator
+“eventually” and then verify that the probability that the negation of jis satisﬁed is
+less than or equal to 0.05, i.e.,
+Pr[63000]:j60:05 (9.2)
+In CTL, A[ ] yE< >:y. Here we want to validates the equivalence be-
+tween (9.1) and (9.2) by specifying same requirements into the two different types of
+formulas and compare the veriﬁcation results. We applied the existed case studies of
+Fischer protocol and train gate system provided in U PPAAL -SMC˙In Fischer protocol
+example, we check the mutual exclusion property that two processes can get into the
+critical section at the same time. We verify
+Pr[63000]([ ]8(i:id)8(j:id)P(i):cs^P(j):cs=)i=j)>p (9.3)
+Pr[63000](< >:(8(i:id)8(j:id)P(i):cs^P(j):cs=)i=j))61 p(9.4)
+Technical Report 63
+
+--- Page 71 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Table 9.1: Veriﬁcation Results of Mutual Exclusion in Fischer Protocol Example
+Expression Result Time (s) No. of Runs Mem (Kb)
+Pr [63000] ([ ] forall (i:id t) forall (j:id t) P(i).cs^P(j).cs
+=)i == j) >0.95valid 0.003 140 26188
+Pr [63000] ( < >:(forall (i:id t) forall (j:id t) P(i).cs^
+P(j).cs =)i == j)) 60.05valid 8.672 140 26188
+Pr [63000] ([ ] forall (i:id t) forall (j:id t) P(i).cs^P(j).cs
+=)i == j) >0.9valid 0.009 67 26752
+Pr [63000] ( < >:(forall (i:id t) forall (j:id t) P(i).cs^
+P(j).cs =)i == j)) 60.1valid 4.175 67 26752
+Pr [63000] ([ ] forall (i:id t) forall (j:id t) P(i).cs^P(j).cs
+=)i == j) >0.8valid 0.007 60 27688
+Pr [63000] ( < >:(forall (i:id t) forall (j:id t) P(i).cs^
+P(j).cs =)i == j)) 60.2valid 3.081 60 27688
+Pr [63000] ([ ] forall (i:id t) forall (j:id t) P(i).cs^P(j).cs
+=)i == j) >0.7valid 0.002 53 26996
+Pr [63000] ( < >:(forall (i:id t) forall (j:id t) P(i).cs^
+P(j).cs =)i == j)) 60.3valid 3.263 53 26996
+Pr [63000] ([ ] forall (i:id t) forall (j:id t) P(i).cs^P(j).cs
+=)i == j) >0.6valid 0.007 31 27584
+Pr [63000] ( < >:(forall (i:id t) forall (j:id t) P(i).cs^
+P(j).cs =)i == j)) 60.4valid 1.755 31 27584
+Pr [63000] ([ ] forall (i:id t) forall (j:id t) P(i).cs^P(j).cs
+=)i == j) >0.5valid 0.005 26 27724
+Pr [63000] ( < >:(forall (i:id t) forall (j:id t) P(i).cs^
+P(j).cs =)i == j)) 60.5valid 1.487 26 27740
+The veriﬁcation results of (9.3) and (9.4) are shown in Table.9.1. The veriﬁca-
+tion results of (9.3) and (9.4) are the same. We then conduct the same veriﬁcation
+for the mutual exclusion property in train gate system, i.e., only one train can cross
+the gate at one time.
+Pr[6100]([]8(i:id)8(j:id)Train (i):cross^Train (j):cross =)i=j)>p(9.5)
+Pr[6100](<>:(8(i:id)8(j:id)Train (i):cross^Train (j):cross =)i=j))61 p
+(9.6)
+Table.9.2 shows that veriﬁcation result of (9.5) and (9.6) are the same. From
+the above experimental results, we can conclude that (9.1) and (9.2) are equivalent.
+By verifying the negation of R47 is satisﬁed with the probability at most 0.05, we
+can get the decidable result of R47.
+64
+
+--- Page 72 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Table 9.2: Veriﬁcation Results of Mutual Exclusion in Train Gate Example
+Expression Result Time (s) No. of Runs Mem (Kb)
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.95valid 0.004 140 26988
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.05valid 0.078 140 26988
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.85valid 0.003 126 26980
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.15valid 0.003 126 26996
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.75valid 0.004 111 27080
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.25valid 0.003 111 27436
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.65valid 0.003 96 27436
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.35valid 0.002 96 27260
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.55valid 0.003 81 27272
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.45valid 0.057 81 27272
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.45valid 0.003 67 27308
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.55valid 0.032 67 27328
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.35valid 0.005 52 26752
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.65valid 0.041 52 26752
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.25valid 0.003 37 27896
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.75valid 0.007 37 27840
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.15valid 0.007 23 27840
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.85valid 0.007 23 27840
+Pr [6100] ([ ] forall (i:id t) forall (j:id t) Train(i).Cross ^
+Train(j).Cross =)i == j) >0.05valid 0.0.007 8 27840
+Pr [6100] ( < >:(forall (i:id t) forall (j:id t) Train(i).Cross^
+Train(j).Cross =)i == j)) 60.95valid 0.007 8 27840
+65
+
+--- Page 73 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 10
+Related Work
+In the context of E AST-ADL, efforts on the integration of E AST-ADL and formal
+techniques based on timing constraints were investigated in several works [14–16],
+which are however, limited to the executional aspects of system functions without
+addressing energy-aware behaviors. Kang [17], Goknil et al. [18] and Seceleanu
+et al. [19] deﬁned the execution semantics of both the controller and the environ-
+ment of industrial systems in CCSL [20] which are also given as mapping to U P-
+PAAL models amenable to model checking. In contrast to our current work, those
+approaches lack precise stochastic annotations specifying continuous dynamics in
+particular regarding different energy consumption rates during execution. Though,
+Kang et al. [21, 22] and Marinescu et al. [23] present both simulation and model
+checking approaches of S IMULINK and U PPAAL -SMC on E AST-ADL models, nei-
+ther formal speciﬁcation nor veriﬁcation of extended E AST-ADL timing constraints
+with probability were conducted. Our approach is a ﬁrst application on the integra-
+tion of E AST-ADL and formal V&V techniques based on a composition of energy-
+and probabilistic extension of E AST-ADL/TADL constraints. Gholami [24] extended
+the block library of S IMULINK in order to specify basic LTL properties and to trans-
+form them into assertions that are veriﬁable by SDV. However, this work is limited
+to functional properties (i.e., Neither energy nor timing constraints are addressed)
+and restricted to specify a subset of LTL.
+Technical Report 66
+
+--- Page 74 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Chapter 11
+Conclusion
+We present an approach to perform V&V on nonfunctional properties of (cooperative)-
+automotive systems using SDV and U PPAAL -SMC at the early design phase: 1. ET
+requirements are translated into POMs to perform formal veriﬁcation using SDV;
+2. Probabilistic extension of E AST-ADL constraints is deﬁned and the semantics of
+the X TCis translated into analyzable U PPAAL -SMC models for formal veriﬁcation;
+3. A set of mapping rules is proposed to facilitate the guarantee of translation and
+V&V are performed on the X TC. As ongoing work, a dedicated plugin that di-
+rectly provides translation of LTL2S IMULINK and of S/S to U PPAAL -SMC in fully
+automatic will supplement our tool chain, A-BeTA (A b: EAST- ADLBehavioral
+Modeling and Translation into Analy-zable Model).
+Technical Report 67
+
+--- Page 75 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+Acknowledgment
+This work is supported by the National Natural Science Foundation of China and In-
+ternational Cooperation & Exchange Program (46000-41030005) within the project
+EASY .
+Technical Report 68
+
+--- Page 76 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+References
+[1] “ISO 26262-6: Road vehicles functional safety part 6. Product development
+at the software level. International organization for standardization, geneva,”
+2011.
+[2] “IEC 61508: Functional safety of electrical, electronic, programmable elec-
+tronic safety related systems. International organization for standardization,
+geneva,” 2010.
+[3] A. Legay and M. Viswanathan, “Statistical model checking: Challenges and
+perspectives,” STTT , vol. 17, no. 4, pp. 369–376, 2015.
+[4] A. David, D. Du, K. G. Larsen, A. Legay, M. Mikucionis, D. B. Poulsen, and
+S. Sedwards, “Statistical model checking for stochastic hybrid systems,” in
+HSB, ser. EPTCS 92, 2012, pp. 122–136.
+[5] A. David, K. G. Larsen, A. Legay, M. Mikucionis, and D. B. Poulsen, “Uppaal
+SMC tutorial,” STTT , vol. 17, no. 4, 2015, pp. 397–415.
+[6] EAST-ADL Consortium, “EAST-ADL domain model speciﬁcation v2.1.9,”
+Maenad European Project, Tech. Rep., 2011. http://www.maenad.eu/
+public/EAST-ADL-Specification_M2.1.9.1.pdf
+[7] H. Blom, H. L ¨onn, F. Hagl, Y . Papadopoulos, M.-O.Reiser, C.-J. Sj ¨ostedt, D.-J.
+Chen, F. Tagliab `o, S. Torchiaro, S. Tucci et al. , “EAST-ADL: An architecture
+description language for automotive software-intensive systems,” Embedded
+Computing Systems: Applications, Optimization, and Advanced Design , 2013,
+p. 456.
+[8] “Simulink/StateFlow,” http://www.mathworks.nl/products/ .
+[9] H. Blom, L. Feng, H. L ¨onn, J. Nordlander, S. Kuntz, B. Lisper, S. Quinton,
+M. Hanke, M.-A. Peraldi-Frati, A. Goknil, J. Deantoni, G. B. Defo, K. Klobe-
+danz, M. zhan, and O. Honcharova, “Timing Model, Tools, algorithms, lan-
+guages, methodology, USE cases,” TIMMO-2-USE, Tech. Rep., 2012.
+[10] “UPPAAL-SMC,” http://people.cs.aau.dk/ ˜adavid/smc/ .
+[11] C. Baier, J.-P. Katoen, and K. G. Larsen, Principles of Model Checking . MIT
+press, 2008.
+Technical Report 69
+
+--- Page 77 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+[12] E. Y . Kang, D. Mu, and L. Huang, “Veriﬁcation and validation of a cooperative
+automotive system,” Tech. Rep., 2017. [Online]. Available: https://sites.
+google.com/site/kangeu/home/publications
+[13] E. Y . Kang, D. Mu, L. Huang, and Q. Lan, “Model-based analysis of timing
+and energy constraints in an autonomous vehicle system,” IEEE QRS-C , July
+2017, pp. 525–532.
+[14] T. N. Qureshi, D.-J. Chen, and M. T ¨orngren, A Timed Automata-Based Method
+to Analyze EAST-ADL Timing Constraint Speciﬁcations . Springer, 2012.
+[15] E. Kang, E. P. Enois, R. Marinescu, C. Seceleanu, P. Schobbens, and P. Pet-
+tersson, “A methodology for formal analysis and veriﬁcation of EAST-ADL
+models,” Reliability Engineering and System Safety Journal , 2013, pp. 127 –
+138.
+[16] E. Kang, P. Schobbens, and P. Pettersson, “Verifying functional behaviors of
+automotive products in EAST-ADL2 using UPPAAL-PORT,” in SAFECOMP .
+Springer, vol 6894, 2011, pp. 243–256.
+[17] E. Kang and P. Schobbens, “Schedulability analysis support for automotive
+systems: from requirement to implementation,” in 29th Symposium on Applied
+Computing , 2014, pp. 1080–1085.
+[18] A. Goknil, J. Suryadevara, M.-A. Peraldi-Frati, and F. Mallet, “Analysis sup-
+port for TADL 2 timing constraints on EAST-ADL models,” ECSA . Springer,
+2013.
+[19] C. Seceleanu, M. Johansson, J. Suryadevara, G. Sapienza, T. Seceleanu, S.-E.
+Ellevseth, and P. Pettersson, “Analyzing a wind turbine system: From simula-
+tion to formal veriﬁcation,” Science of Computer Programming , vol. 133, 2017,
+pp. 216–242.
+[20] F. Mallet, M.-A. Peraldi-Frati, and C. Andre, “MARTE CCSL to execute
+EAST-ADL timing requirements,” in 12th International Symposium on Obe-
+jct, Component, Service-oriented Real-time Distributed Computing , 2009, pp.
+249 –253.
+[21] E. Kang, J. Chen, L. Ke, and S. Chen, “Statistical analysis of energy-aware
+real-time automotive systems in EAST-ADL/Stateﬂow,” ICIEA . IEEE, 2016,
+pp. 1328–1333.
+[22] E. Kang, L. Ke, M. Hua, and Y . Wang, “Verifying automotive systems in EAST-
+ADL/Stateﬂow using UPPAAL,” in 2015 22nd Asia-Paciﬁc Software Engineer-
+ing Conference . IEEE, 2015, pp. 143–150.
+70
+
+--- Page 78 ---
+Formal Analysis of Non-functional Properties for a Cooperative Automotive System
+[23] R. Marinescu, H. Kaijser, M. Miku `eionis, C. Seceleanu, H. L ¨onn, and A. David,
+“Analyzing industrial architectural models by simulation and model-checking,”
+in3rd International Workshop on Formal Techniques for Safety-Critical Sys-
+tems. Springer, 2014, pp. 189 – 205.
+[24] M.-R. Gholami, “Verifying timed LTL properties using simulink design veri-
+ﬁer,” Ph.D. dissertation, ´Ecole Polytechnique de Montr ´eal, 2016.
+71

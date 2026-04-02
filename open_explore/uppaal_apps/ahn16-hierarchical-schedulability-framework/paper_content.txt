@@ -1,0 +1,280 @@
+--- Page 1 ---
+2172IEICE TRANS. INF. & SYST., VOL.E99–D, NO.8 AUGUST 2016
+LETTER
+Hierarchical System Schedulability Analysis Framework Using
+UPPAAL
+So Jin AHN†a),Student Member , Dae Yon HWANG†,Nonmember , Miyoung KANG†,Member ,
+andJin-Young CHOI†b),Nonmember
+SUMMARY Analyzing the schedulability of hierarchical real-time sys-
+tems is diﬃcult because of the systems’ complex behavior. It gets more
+complicated when shared resources or dependencies among tasks are in-cluded. This paper introduces a framework based on UPPAAL that cananalyze the schedulability of hierarchical real-time systems.key words: hierarchical system, schedulability analysis, real-time systems,
+formal methods, UPPAAL
+1. Introduction
+Virtualization technology has been attracting increasing at-
+tention for its advantages like isolation and easy mainte-
+nance. However, it is di ﬃcult to analyze the schedulabil-
+ity of a system using virtualization technology because theschedulers in the system are hierarchical. One of the moreimportant requirements of real-time systems is that all thereal-time tasks in the system complete their execution within
+the allotted period. When a task related to safety misses a
+deadline, it could lead to a system failure causing consid-erable casualties and property damage. Therefore, it is es-sential to verify that all the real-time tasks in a system arealways schedulable.
+[1],[2], and [3]formally specify and verify two-
+level hierarchical systems under the rate-monotonic (RM) orearliest-deadline-ﬁrst (EDF) scheduling policy. These stud-ies analyze in detail the system behavior because all sched-
+ulers of the system are analyzed together. However, thus far,
+no method that can handle more than two hierarchical levelshas been developed.
+[4]–[6], and [7]formally analyze the schedulability of
+hierarchical real-time systems with the compositional anal-
+ysis approach. The compositional analysis approach is used
+for partitioning a huge hierarchical system into subsystems,and each partition is separately veriﬁed as whether it is al-ways schedulable. They prove that if all subsystems are al-ways schedulable, then the entire system is always schedula-
+ble.[6]and[7]specify shared resources such as semaphore
+or message passing and verify a system that includesthem. The compositional analysis approach can preventstate explosion and analyze more than two-level hierarchical
+Manuscript received January 7, 2016.
+Manuscript revised March 28, 2016.
+Manuscript publicized May 6, 2016.
+†The authors are with Korea University, Seoul, Korea.
+a) E-mail: sjspirit@formal.korea.ac.kr
+b) E-mail: choi@formal.korea.ac.kr (Corresponding author)
+DOI: 10.1587/transinf.2016EDL8003systems eﬃciently. Although this approach has its advan-
+tages, it is diﬃcult to check the behaviors such as pre-
+emptions and priority inversion problem in detail, and tospecify the shared resources or dependencies among tasks
+intuitively.
+In this paper, a formal speciﬁcation and veriﬁcation
+framework based on UPPAAL [8]to analyze the schedula-
+bility of a hierarchical real-time system is proposed. The
+advantages of this framework are as follows:
+1) A hierarchical real-time system can be formally
+speciﬁed with time requirements.
+2) Shared resources and dependencies among tasks
+can be speciﬁed intuitively.
+3) The framework helps to update worst case execution
+time (WCET) with the overhead time related to
+preemption by counting the preemptions of each
+task.
+4) A user-deﬁned scheduling policy can be included in
+the framework and veriﬁed.
+This work advances hierarchical real-time system anal-
+ysis because it can present detailed system behaviors, which
+reduces the number of false-positive results and yields accu-
+rate WCET.
+2. Hierarchical Schedulability Analysis Framework
+2.1 Hierarchical Real-Time System
+A real-time system and a hierarchical real-time system are
+deﬁned as follows [9]:
+Deﬁnition 1. Real-time system (RS)
+A real-time system RS can be deﬁned as follows:
+RS=(W,R,S), where W represents a set of tasks, such as
+real-time preemptive tasks; R, a resource model; and S, a
+scheduling policy.
+Deﬁnition 2. Hierarchical real-time system (HS)
+A hierarchical real-time system HS can be recursively
+deﬁned as follows:
+1) a real time system RS, or2) HS=(W
+H,R,S), where W Hdenotes a set of real-time
+preemptive tasks and hierarchical systems; R, a resourcemodel; and S, a scheduling policy.
+Copyright c/circlecopyrt2016 The Institute of Electronics, Information and Communication Engineers
+
+--- Page 2 ---
+LETTER
+2173
+Fig. 1 Example of hierarchical real-time system.
+Fig. 2 Overview of proposed framework.
+Figure 1 shows an example of a hierarchical real-time
+system. T n(0≤n≤6) in Fig. 1 represent real-time pre-
+emptive tasks. Each HS has a scheduler and a workload,
+that is, a set of HSs and tasks that the scheduler schedules.
+For example, in the case of HS 1=(W1,R1,S1)i nF i g .1 ,t h e
+workload is W 1={HS3,T0,T1}.H S 1does not recognize
+that HS 3is a system; the scheduler of HS 1schedules HS 3as
+it schedules T 0and T 1.
+A resource model is an abstraction of resources such
+as physical CPUs or virtual CPUs. In this study, a resourcemodel of the root HS, for example, R
+0of HS 0in Fig. 1, is
+considered an abstraction of a physical resource. The other
+resource models, for example, R 1of HS 1and R 2of HS 2rep-
+resent an abstraction of a virtual resource that is a virtualizedR
+0.R3of HS 3is a model of virtualized R 1.
+A scheduling policy is an algorithm that describes the
+order in which HS assigns an abstracted resource to the el-
+ements of the workload. RM and EDF are the most popu-
+lar scheduling policies for real-time systems; therefore, theframework includes the RM and EDF policies by default.
+The proposed framework will be explained with the
+following notations: T represents a real-time preemptive
+task, the root HS is denoted as P, and HSs that are not rootHS are indicated as V.
+2.2 Framework for Schedulability Analysis of Hierarchi-
+cal Real-Time System
+The proposed framework speciﬁes and veriﬁes HSs that
+have shared resources and dependencies among tasks with-out partitions. Figure 2 shows an overview of the frame-
+work. The system information is about the schedulers and
+tasks and includes workloads, scheduling policies, and timerequirements. The framework inputs are as follows:
+•P=(W,R
+P,S), where R P=(∞,∞)
+•V=(W,RV,S), where R V=(Pe,B)•T=(Pe,E,D,O,SR,Dep)
+Workloads (W) of P and V are the same as the work-
+loads explained in 2.1, and so are the scheduling policies
+(S). RM, EDF, and preemptive FP are built into the frame-
+work, and user-deﬁned scheduling policies can be added to
+the framework.
+To specify resource models of P and V, information of
+period and time budget is needed. A HS is given a speciﬁcamount of time budget that can be used every period by the
+parent system. Perepresents the length of one period, and
+Bdenotes the budget time given to HS for using a physical
+resource in this period. P manages physical resource directlywhich means P has inﬁnite PeandBby default. Therefore,
+R
+P, the resource model of P is ( ∞,∞) by default, and R V,
+the resource model of V need inputs of PeandB.
+A task has to use the physical resource for the execu-
+tion time (E) every period. The ﬁrst period of a task starts
+at the oﬀsettime Oafter the system is started. Ddenotes
+the deadline of the task, by which it has to complete its job.
+If there is any shared resource (SR) among tasks, the id of
+the shared resource needs to be included in the task infor-mation. Depdenotes the dependency variable. It is optional
+information that speciﬁes a set of tasks that must completed
+before the given task can be executed. The proposed frame-
+work can specify tasks that are not in the same scheduler asSRandDep.
+2.3 Resource Request and Allocation Procedure for the
+Proposed Framework
+Physical resource scheduler is a scheduler of HS
+0.I t s o r t s
+the elements of its workload that are requesting resources
+with its scheduling policy every time an element sends a
+new request or an element completes its execution. Aftersorting the elements, the scheduler selects the ﬁrst elementof the workload and allocates the resource.
+Virtual resource scheduler is a scheduler of V. It sched-
+ules its workload in the same manner as the physical re-
+source scheduler except for some limitations. A virtual re-source is not always available; it is available only when itoccupies a physical resource. Therefore, the virtual resourcescheduler can only schedule and allocate its resource when
+it is given a physical resource. V has a predeﬁned time pe-
+riod and time budget; therefore, it cannot request more thanthe assigned budget per period, but this does not mean thatV has to spend its complete budget every time; if no ele-
+ments of V’s workload request a resource, then the virtual
+resource will be idle. Because V has no elements to allo-cate its resource, a physical resource will be wasted if thereare any other Vs or Ts that are waiting for the physical re-source. Therefore, in the proposed framework, we assume
+that the resources in the system will not be idle if there is
+any V or T requesting for the resource; the V that is idle willyield its use of the physical resource. This implies that anyV that cannot consume its entire budget is not related to thescheduling problem.
+
+--- Page 3 ---
+2174IEICE TRANS. INF. & SYST., VOL.E99–D, NO.8 AUGUST 2016
+Fig. 3 Task model.
+Figure 3 shows a timed automaton modelling a task.
+Tasks begin their ﬁrst period after their start o ﬀset time O.
+From the second period, T starts its new period right after a
+period ends. T checks the availability of the shared resource
+and the completion of the dependent tasks before requestinga resource at the beginning of every period. If a shared re-source is available (or there is no shared resource) and theexecution of every dependent task has been completed (or
+there is no dependent task), then T requests a resource and
+remains in the Ready state. Before T transits its state fromReady to Running, which implies that a resource is allo-cated to T, T checks the state of the shared resource and the
+dependent tasks again. If any conditions to execute T are
+not satisﬁed, then T yields the resource.
+Every task must get the resource of P for its execution
+time Eper its period time Pe. The schedulability of the sys-
+tem will fail if any of the tasks cannot complete its execution
+within its period time Pe. In Fig. 3, the Error station implies
+that the task failed to complete its job in time.
+2.4 Preemption Counting
+Overheads extend the execution time Eof tasks beyond the
+required time. The context switching (CXS) overhead andthe cache migration and preemption delay (CMPD) over-head are introduced when a task starts or is preempted. Tocalculate these overheads, we need to count how many times
+the task is preempted. The proposed framework counts each
+task’s preemption occurrence per its period, respectively.
+In this study, we classify preemption into two types:
+intra-scheduler preemption and inter-scheduler preemption.
+A running task is intra-scheduler-preempted when an
+element in the same workload preempts the task, and isinter-scheduler-preempted when the HS scheduling the taskis preempted or runs out of budget before the period ends.In other words, inter-scheduler preemption occurs if a task
+is preempted by another element that belongs to another
+workload.
+After counting the preemptions of each T, we can cal-
+culate the new execution times of each T. In this paper, weassume that the execution time of a task is delayed for a cer-tain amount of CXS overhead time and the CMPD overhead
+time when a task is preempted. The new execution time ofthe task is then calculated as follows:
+E
+t=Et/prime+(ΔCXS+ΔCMPD)∗PRM t
+where tdenotes the id of a task; Et, the new execution time
+of the task; Et/prime, the current execution time; ΔCXS, the con-
+text switching overhead time; ΔCMPD, the CMPD overhead
+time; and PRM t, the sum of the maximum intra-scheduler
+preemption number and the maximum inter-scheduler pre-emption number per period of the task.
+3. Case Study
+In this section, we demonstrate the proposed framework by
+specifying and verifying a target system. The informationof the target system is presented in Table 1.
+After inserting the information into the proposed
+framework, the following veriﬁcation property written in
+TCTL [8]is checked formally.
+A[] not err
+The TCTL sentence means the variable errnever be
+true in any execution path of the system. When a task missesits deadline, the variable erris set to true. If there is no path
+that leads to a state where erris true then the task can always
+be completed before its deadline.
+The UPPAAL tool automatically veriﬁes the property
+whether it is “Satisﬁed” or “Unsatisﬁed” when the targetsystem information and the property are given to the pro-posed framework. “Satisﬁed” implies that the target system
+is schedulable, and “Unsatisﬁed” means that there are one
+or more cases in which the target system misses a deadline.
+The veriﬁcation result of our case study is “Satisﬁed.”Figure 4 illustrates a case of the target system speci-
+ﬁed in Table 1 with a shared resource between T
+1and T 3.
+The veriﬁcation result is “Unsatisﬁed”; the counter exam-
+ple shows that the shared resource SR 0can cause a priority
+inversion problem leading to a deadline miss for T 4.
+Table 2 shows the preemption counts of the target
+system speciﬁed in Table 1 without any shared resource. We
+
+--- Page 4 ---
+LETTER
+2175
+Table 1 Requirements of target system without SR.
+Fig. 4 Topology of target system with SR.
+Table 2 Preemption count.
+Table 3 Updated information of target system
+set the CXS time=86.917µs and CMPD time=139.12µs
+as in [10]to derive a new E. The veriﬁcation result is “Un-
+satisﬁed”; the counter example shows that the given budgetof V
+0is not suﬃcient to schedule T 1and T 2.
+More than two-level hierarchical system can be speci-
+ﬁed and veriﬁed in a similar way. For example, the target
+system can be updated to a three-level hierarchical system
+as follow. A virtual scheduler V 2, has two tasks as its work-
+load, is added to the workload of V 0. The workload of V 0is
+updated from{T0,T1}to{V2,T0,T1}, and the information of
+V2,T5, and T 6is added as is presented in Table 3. The sys-
+tem topology is same as Fig. 1. After update, the frameworkveriﬁes the schedulability of the system using the TCTL sen-tence introduced above. The veriﬁcation result of extendedtarget system is “Satisﬁed.”
+4. Conclusion
+In this paper, we proposed a schedulability analysis frame-work that can specify systems intuitively and verify whether
+they are always schedulable. The advantage of the proposed
+framework is that it can check the entire system; therefore,it is possible to specify the shared resources intuitively andcount the number of preemption occurrences.
+Further, in this paper, we presented a simple case study
+to show how the framework speciﬁes a system and analyzessystem schedulability. In the future, we intend to analyzeavionic systems introduced in [5]and[9]with the proposed
+framework.
+In a future study, we will upgrade the proposed frame-
+work to specify a system for multi-core and implement pro-tocols for the shared resources to prevent priority inversionproblems. Moreover, the proposed framework will be up-graded to automatically add the overhead time to the execu-
+tion time when preemption occurs in order to obtain a more
+accurate result.
+Acknowledgments
+This research was supported by the MSIP (Ministry of Sci-
+ence, ICT and Future Planning), Korea, under the ITRC(Information Technology Research Center) support pro-gram (IITP-2015-H8501-15-1012) supervised by the IITP(Institute for Information & Communications Technology
+Promotion) and Basic Science Research Program through
+the National Research Foundation of Korea (NRF) fundedby the Ministry of Education, Science and Technology(2012R1A1A2009354).
+References
+[1]T.-W. Kuo and C.-H. Li, “A ﬁxed-priority-driven open environment
+for real-time applications,” Proc. 20th IEEE Real-Time Systems
+Symposium 1999, pp.256–267, IEEE, 1999.
+[2] G. Lipari and S.K. Baruah, “E ﬃcient scheduling of real-time multi-
+task applications in dynamic systems,” Proc. IEEE, pp.166–175,
+2000.
+[3]G. Lipari, J. Carpenter, and S. Baruah, “A framework for achiev-
+ing inter-application isolation in multiprogrammed, hard real-time
+environments,” Proc. 21stIEEE Real-Time Systems Symposium,
+pp.217–226, IEEE, 2000.
+[4] I. Shin and I. Lee, “Compositional real-time scheduling framework
+with periodic model,” ACM Trans. Embedded Computing Systems(TECS), vol.7, no.3, p.30, 2008.
+[5] J. Boudjadar, et al., “Hierarchical scheduling framework based
+on compositional analysis using UPPAAL,” The 10th InternationalSymposium on Formal Aspects of Component Software, LNCS
+8348, pp.61–77, 2013.
+[6]L. Carnevali, A. Pinzuti, and E. Vicario, “Compositional veriﬁca-
+tion for hierarchical scheduling of real-time systems,” IEEE Trans.
+Softw. Eng., vol.39, no.5, pp.638–657, 2013.
+[7] A. Easwaran, et al., “A compositional framework for avionics
+(ARINC-653) systems,” Technical Report, Department of Computer
+& Information Science, University of Pennsylvania, no.MS-CIS-09-04, 2009.
+[8]G. Behrmann, A. David, and K.G. Larsen, “A Tutorial on Uppaal,”
+Formal Methods for the Design of Real-Time Systems, LectureNotes in Computer Science, vol.3185, pp.200–236, Springer Berlin
+Heidelberg, Berlin, Heidelberg, 2004.
+[9] J. Park, et al., “A process algebraic approach to the schedulability
+analysis and workload abstraction of hierarchical real-time systems,”
+
+--- Page 5 ---
+2176IEICE TRANS. INF. & SYST., VOL.E99–D, NO.8 AUGUST 2016
+Journal of Logical and Algebraic Methods in Programming (submit-
+ted).[10] L.T.X. Phan, M. Xu, J. Lee, I. Lee, and O. Sokolsky, “Overhead-
+aware compositional analysis of real-time systems,” 2013 IEEE 19th
+Real-Time and Embedded Technology and Applications Sympo-
+sium (RTAS), pp.237–246, 2013.

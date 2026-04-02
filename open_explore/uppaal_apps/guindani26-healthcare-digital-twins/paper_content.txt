@@ -1,0 +1,1689 @@
+--- Page 1 ---
+1
+Automated Detection and Mitigation of Dependability Failures in
+Healthcare Scenarios through Digital Twins
+Bruno Guindani∗, Matteo Camilli∗, Livia Lestingi∗, Marcello M. Bersani∗
+∗Dipartimento di Elettronica, Informazione e Bioingegneria
+Politecnico di Milano, Via Ponzio 34/5, 20133 Milan, Italy
+Email: {name}.{surname}@polimi.it
+Abstract—Medical Cyber-Physical Systems (CPSs) integrating
+Patients, Devices, and healthcare personnel (Physicians) form
+safety-critical PDP triads whose dependability is challenged by
+system heterogeneity and uncertainty in human and physiological
+behavior. While existing clinical decision support systems support
+clinical practice, there remains a need for proactive, reliability-
+oriented methodologies capable of identifying and mitigating
+failure scenarios before patient safety is compromised. This
+paper presents M-GENGAR, a methodology based on a closed-
+loop Digital Twin (DT) paradigm for dependability assurance
+of medical CPSs. The approach combines Stochastic Hybrid
+Automata modeling, data-driven learning of patient dynamics,
+and Statistical Model Checking with an offline critical scenario
+detection phase that integrates model-space exploration and
+diversity analysis to systematically identify and classify sce-
+narios violating expert-defined dependability requirements. M-
+GENGAR also supports the automated synthesis of mitigation
+strategies, enabling runtime feedback and control within the DT
+loop. We evaluate M-GENGAR on a representative use case study
+involving a pulmonary ventilator. Results show that, in 87.5% of
+the evaluated scenarios, strategies synthesized through formal
+game-theoretic analysis stabilize patient vital metrics at least as
+effectively as human decision-making, while maintaining relevant
+metrics 20% closer to nominal healthy values on average.
+Index Terms—Human Digital Twin, Statistical Model Check-
+ing, Cyber-Physical Systems, Automata Learning
+I. INTRODUCTION
+Under hospitalized care, patients often interact with med-
+ical devices under the supervision of healthcare personnel.
+This patient-device-physician (PDP) triad constitutes a medi-
+cal Cyber-Physical System (CPS) requiring strict operational
+safety and specialized design [23].
+Medical practice defines the conditions under which a
+patient is considered clinically stable based on their vital
+parameters. We refer to situations in which the PDP triad
+cannot maintain such clinical stability asfailure scenarios,
+whereas the PDP is said to bedependablewhen coordi-
+nated practitioner and device actions successfully preserve
+patient stability. Failure scenarios are commonly recognized
+and addressed by relying on human expertise and Clinical
+Decision Support Systems (CDSSs). CDSS software [53]
+supports clinicians by providing patient-specific knowledge
+and information to enhance care and reduce errors at multiple
+stages of the clinical process. Engineering automated monitor-
+ing and control mechanisms for such medical CPSs remains
+challenging due to the inherent complexity of their interacting
+components and the uncertainty of human decision-making,which is influenced by individual expertise and environmental
+conditions. The US Institute of Medicine emphasizes that safe
+healthcare systems should “adopt a proactive approach that
+allows for examining processes of care for threats to safety”
+and incorporate mechanisms for “learning from errors” [45].
+In this paper, we present an extension of GENGAR1[29], a
+methodology for the proactive identification of dependability
+failures in PDP CPSs. The approach adopts the Digital Shadow
+(DS) paradigm and combines automata-based modeling, data-
+driven learning of patient dynamics, and formal verification
+with model space exploration techniques to systematically
+uncover failure scenarios, where the PDP triad violates given
+dependability requirements.
+Our extended version, referred to as M-GENGAR, complies
+with the Digital Twin (DT) paradigm [1]. As such, it enables a
+bidirectional digital representation of a physical system, where
+monitored data continuously updates the digital model, which
+can, in turn, influence the physical system through feedback
+and control. Beyond retrospective analysis, diagnostics, and
+monitoring, a DT enables simulation, prediction, and decision
+support by closing the loop between physical and digital
+domains. In addition to the identification of failure scenarios,
+our extension M-GENGAR supports:i)diversity analysis of
+failures by isolating distinct critical contingencies;ii)auto-
+mated synthesis of response strategies to such critical contin-
+gencies;iii)alignment of the PDP model with data from the
+physical system (feedbackaction of the DT paradigm) upon
+failure detection; andiv)clinical decision support through the
+recommendation of optimal mitigation actions for ongoing
+failures (controlaction of the DT paradigm).
+The PDP model at the core of our methodology captures
+the functions of medical equipment (including monitors for
+critical clinical metrics), the practitioner’s actions, the patient’s
+behavior, and all relevant interactions between the three en-
+tities by adopting Stochastic Hybrid Automata (SHA) [20].
+Specifically, we usehybridfeatures to capture non-trivial
+dynamics of physiological quantities andstochasticfeatures to
+approximate the sources of uncertainty due to human behavior
+(e.g., alternative practitioner decisions and delays or sudden
+changes in patient health). The SHA model is developed by
+relying on expert knowledge and field-collected data. For
+aspects subject to uncertainty (e.g., sudden changes in patient
+health), M-GENGAR uses the data-driven automata learning
+1Guided Exploration of iNterfaces and Guidelines Adhering to Requirements.arXiv:2602.21037v1  [cs.SE]  24 Feb 2026
+
+--- Page 2 ---
+2
+techniqueL∗
+SHA [37], [38] to infer the patient model from real
+physiological logs.
+The resulting parametric model represents a family of
+PDP triads and identifies a design space. A point in the
+design space (i.e., a value-assignment to the triad parameters)
+corresponds to a specific clinical scenario (e.g., the onset
+of an asthma attack). Our methodology explores the design
+space through fuzzing [41]. Starting from a reference model
+based on domain knowledge, multiple variants (mutants) are
+automatically generated to detect violations of dependability
+requirements (defined by domain experts). Specifically, each
+generated SHA mutant is analyzed through Statistical Model
+Checking (SMC) to calculate the probability that a requirement
+holds [36]. After filtering out unrealistic or clinically irrelevant
+scenarios, we analyze the diversity of the failures to isolate
+distinct root causes. SHA scenarios are converted to 1½-
+player-games to synthesize near-optimal strategies through
+UPPAALSTRATEGO[19], informing physicians on what actions to
+take to maximize the likelihood of satisfying the requirements.
+We empirically evaluate the proposed methodology on a
+representative PDP exemplar involving apatientaffected by
+lung disease, a pulmonary ventilator (thedevice), and an
+intensivist (thephysician). Domain knowledge elicited through
+expert interviews informs both the physician–device model
+and the specification of dependability requirements, while
+patient data are generated using a high-fidelity physiological
+simulator [13]. The experimental campaign includes10hours
+of cumulative acquisition time, including both interviews
+and simulation sessions. Results show that, in87.5%of the
+evaluated scenarios, the simulated physician guided by the
+synthesized strategies stabilizes patient vital metrics at least
+as effectively as the human physician, while maintaining the
+relevant metrics20%closer to their nominal healthy values.
+In summary, compared to our prior work [29], the main
+contributions are:
+•an online clinical decision support phase upgrading the
+previous DS to a fully fledged DT infrastructure with
+real-time state alignment and action selection;
+•a diversity analysis of failure scenarios to isolate different
+root causes;
+•an automated synthesis of control strategies that support
+medical personnel in selecting actions that ensure the
+dependability of the PDP system; and
+•an extended empirical evaluation covering the newly
+added elements of the methodology.
+The paper is structured as follows: Section II reviews
+preliminary concepts; Section III introduces the PDP exemplar
+serving as running example; Section IV details the developed
+methodology; Section V presents experimental results; Section
+VI discusses findings; Section VII surveys related work; and
+Section VIII concludes.
+II. PRELIMINARIES
+A. Formal Analysis
+1) Stochastic Hybrid Automata:Hybrid Automata (HA)
+extend finite-state automata by including real-valued variablesthat evolve continuously over time according to flow condi-
+tions specified by Ordinary Differential Equations (ODEs) [2],
+thus modeling systems with complex, non-linear dynamics. An
+HA is a tupleH= (Σ, L, X, F, E, I, P)where:i)Σis a set
+of actions, partitioned into inputs(Σ i)and outputs(Σ o);ii)L
+is a set of locations, each representing a distinct operational
+mode of an agent or a physical phenomenon;iii)Xis a set of
+real-valued variables governing system dynamics, andG(X)is
+the set of constraints onX(e.g.,x <10);iv)F=f ℓ:ℓ∈L
+defines flow conditions, with eachf ℓdescribing the time evo-
+lution of variables inXat locationℓthrough a system of ODEs
+˙X=f ℓ(X);v)E⊆L×G(X)×Σ×2X×Lis a finite set of
+edges between locations, each including a guard fromG(X),
+an event fromΣ, and an assignment to variables ofXcalled
+resets(e.g.,x= 0);vi)I:L→G(X)assignsinvariants, i.e.,
+constraints onX, to locations;vii)P:L→R+assigns exit
+rates to locations. Stochastic Hybrid Automata (SHA) extend
+HA with stochastic elements [20] that represent uncertainties
+in physical phenomena. For example, if parameterθin a flow
+condition is treated as a random variable s.t. ˙X=f(X, θ)
+withθ∼ D, thenXfollows a stochastic process.
+An SHA network consists of multiple SHAs that synchro-
+nize on actions inΣ, ensuring that all the involved automata
+take an edge simultaneously when an event occurs. Specifi-
+cally, an SHA can trigger synchronization via an edge labeled
+σ∈Σ o, while others react withσ∈Σ iat the same time.
+2)L∗
+SHA for SHA learning:Automata learning algorithms
+largely adopt the teacher-learner structure fromL∗[3]. Our
+approach usesL∗
+SHA, extendingL∗to SHA [37], [38], where
+the training dataset consists ofsignals, i.e., sequences of
+timestamp-value pairs(t 0, s0),(t1, s1), . . ., witht i, si∈R
+and0≤t i≤ti+1for adjacent pairs.
+Besides the training dataset,L∗
+SHA requires:i) a setX F
+of real-valued variables whose time dynamics are inferred
+and constrained by flow conditions;ii) a setΣof actions
+corresponding to real-world events, whose relationship with
+changes in the dynamics of variables inX Fis learned from
+data;iii) a setX Mof real-valued variables used to extract
+events from the collected data. Each variable inX FandX Mis
+associated with a signal in the dataset. A user-definedlabeling
+partial functionL XMmaps signals to traces (i.e., sequences
+of actions). Specifically,L XM(t) =σ∈Σindicates the action
+corresponding to the event at timestampt.L∗
+SHA learns:
+locationsL, edgesE, flow conditionsFfor variables inX F,
+and distributionsDfor random parameters in the ODEs. The
+resulting SHA is suitable for formal verification and can serve
+as a predictor for variables inX F, given the actions inΣ.
+3) Strategy Synthesis:Strategy synthesis for SHA networks
+aims to derive an optimalcontrollerpolicy that resolves
+nondeterminism to satisfy a quantitative reachability objective
+under stochastic uncertainty.
+An SHA network is interpreted as a 1½-player timed
+game [18]. In contrast to classical 2-player games, the en-
+vironment is stochastic rather than adversarial, and reacha-
+bility objectives are therefore addressed via stochastic strate-
+gies over controllable actions. Accordingly, the output action
+alphabet is partitioned ascontrollableanduncontrollable
+Σo= Σ o,c∪Σo,u. Astochastic strategyis a density function
+
+--- Page 3 ---
+3
+π:L×RX
++×R +×Σ o,c→R +, defining the likelihood of
+selecting a specific controllable actionσ∈Σ o,cafter a delay
+d∈R +for any possible system configuration(l, ν)∈L×RX
++.
+Strategy synthesis reduces to acost-bounded reachability
+problemthat, given a boundb∈RX
++, entails the computation
+of astochastic strategyguaranteeing the network reaches a
+safe state, i.e., a location inG⊆Lsuch that the accumu-
+lated costs are bounded byb. When dealing with stochastic
+strategies in timed games, it is common practice to restrict the
+scope to so-callednon-lazystrategies [18], [21]. Informally,
+these strategies are designed to avoid “procrastination”, as
+they ensure that controllable discrete actions are not unnec-
+essarily delayed when they contribute to reaching the goal.
+Instead of waiting for an arbitrary amount of time, a non-lazy
+strategy decides whether to act immediately or to wait for an
+environmental action, at any time instant. Non-lazy strategies
+can be effectively recast as deterministic strategies. For each
+configuration(l, v), one can simply select the most promising
+action. The deterministic choice maximizes the probability of
+success, effectively collapsing the stochastic distribution into a
+single, optimal decision. More formally, the resulting strategy
+derived fromπis a mappingΠ :L×RX
++→Σ o,c. UPPAAL
+STRATEGO[19] is adopted in this work to model the reachability
+game and compute the stochastic strategy.
+B. Fuzzing
+Fuzzing [41] is an automated testing approach that systemat-
+ically generates inputs. Instead of relying on manually crafted
+test cases, fuzzing explores a wide range of program behaviors
+to uncover defects, often using runtime feedback (e.g., code
+coverage) to guide the process. Inputs can be generated from
+scratch or derived from existing examples to reveal unexpected
+behavior, such as assertion violations.
+Mutational fuzzing [11] produces new test cases by applying
+transformations to a set of valid inputs (seeds). This approach
+assumes that small modifications to valid inputs can trigger
+new behaviors while largely preserving validity. Feedback
+mechanisms, such as code coverage or estimated likelihood
+of failure, are used to prioritize mutations, enabling the fuzzer
+to incrementally explore untested behavior.
+Search-based fuzzing (or testing) [10] extends mutational
+fuzzing by applying optimization strategies to guide input
+generation toward specific objectives. In this setting, test
+case generation is treated as an optimization problem, where
+candidate inputs are evaluated with a fitness function often
+based on execution depth, branch coverage, or proximity to
+requirements violations. Techniques like evolutionary strate-
+gies or genetic algorithms [22] allow the fuzzer to focus on
+input regions with higher potential to reveal failures.
+III. RUNNINGEXAMPLE: RESPIRATORYINTENSIVECARE
+Our scenarios of interest occur in the hospital Intensive Care
+Unit (ICU) and involve a patient with lung disease admitted
+to the ICU, the medical staff responsible for their care, and
+the mechanical ventilator (the device) operated by the staff to
+provide life support (see Fig. 1).
+(Patient)
+Lung Disease
+Patient
+(Physician)
+Intensivist(Device)
+Mechanical
+VentilatorPDP SystemEnvironment
+Patient V ital Signs 
+(e.g., carbon dioxide
+and heart rate)
+Parameter
+Settings
+(FIOX, PEEP ,
+RERA, and TVOL)Breathing Assistance
+(e.g., airflow and
+pressure)Uncontrollable Events
+(e.g., asthma attack)Fig. 1: PDP triad used as a running example showing interac-
+tions between the agents and the environment: an arrow from
+agentatobrepresents an event thatatriggers directed tob.
+Controllable events are in blue, uncontrollable but observable
+events are in solid black, while uncontrollable and not directly
+observable events are represented by dashed arrows.
+TABLE I: Ventilator parameters.
+acronym full name range unit
+FIOXfraction of inspired oxygen[0,1]N/A
+PEEPpositive end-expiratory pressure[5,25]cmH2O
+RERAforced respiration rate[6,18]min−1
+TVOLforced tidal volume[300,500]mL
+The intensivist can affect the patient’s respiratory state [46]
+by toggling the ventilator’s operation and adjusting the four
+parameters2in Table I [9]. Actions are applied to patients
+according to standard procedures [46], manipulating ventilator
+parameters to mitigate adverse events. Appropriate interven-
+tions are determined by the intensivist through continuous
+monitoring of patient’s key vital signs—carbon dioxideCD,
+heart rateHR, oxygen saturationOS, respiration rateRR, and
+tidal volumeTV— with actions based on changes that require
+medical attention. As illustrated in Fig. 1, the intensivist has
+full control over the ventilator but cannot directly observe
+events affecting the patient’s health, inferring conditions such
+as an asthma attack through observed variations in vital signs.
+This PDP triad forms a complex CPS, where human agents
+interact with cyber-physical devices and exercise judgment
+in operating them. Uncertainty arises from both human be-
+havior (the physician’s decisions) and environmental events
+that influence the patient’s vitals (e.g., asthma attacks). These
+factors highlight the importance of DT paradigms capable of
+accurately modeling all agents in the PDP triad. Moreover, de-
+tecting and analyzing critical scenarios that reflect reductions
+in practitioner effectiveness through the DT can aid medical
+staff in preventing patient-threatening situations.
+IV. METHODOLOGY
+M-GENGAR identifies potentially critical scenarios that
+may endanger the patient’s health status (thefailures), and
+synthesizes action strategies to provide the physician with
+2TVOLvalues depend on patient characteristics such as body mass [46].
+The reported range corresponds to values used in our experiments.
+
+--- Page 4 ---
+4
+Data1Model Definition 2
+Data Model
+Definition
+Data
+Pre-processingLearningDesign
+sampled
+signalsDomain
+Expert
+Software
+EngineerStakeholdersDependability
+Requirements
+Specification
+Model  Post-
+processing
+Select Realistic
+Failure CasesDiversity
+AnalysisModel Space
+Analysis
+Verification
+Space
+Exploration⊧
+3
+Digital State
+IdentificationController
+SynthesisValidation
+PatientDecision
+SelectionOffline Critical Scenario Detection
+Online Clinical Decision Support
+actuation
+effectcontrol
+signal
+Physical State
+Actuation
+Fig. 2: Overview of proposed methodology, highlighting the threephases(dashed boxes), the data flow between phaseactivities
+(solid boxes), and the actors involved in activities requiring human input. The DT alignment loop is in blue.
+clinical decision support. As depicted in Fig. 2, the method-
+ology includes three phases and requires the collaboration
+of actors with a medical background (i.e., thedomain ex-
+perts) and technical expertise (i.e.,software engineers). In
+particular, it generates models of PDP triads by leveraging
+domain knowledge and data collected in real-world settings
+(theModel Definitionphase). Model are then analyzed to
+determine whether they satisfy set dependability requirements
+(theOffline Critical Scenario Detectionphase). The resulting
+set of identified failures is filtered to remove redundancy
+and communicated to thestakeholdersof the PDP system;
+these comprise professionals involved in both the clinical and
+organizational dimensions of care delivery, including clinicians
+and department directors, as well as individuals responsible for
+training medical staff or overseeing their performance [25].
+Leveraging the generated models, our methodology synthe-
+sizes action strategies to support physician decision-making in
+the scenarios under scrutiny. These strategies can be integrated
+into a CDSS, constituting theOnline Clinical Decision Sup-
+portphase of the methodology, although no CDSS is deployed
+in this work. In a real-world setting, such a system would
+interface with the physical world by acquiring patient data,
+aligning the DT’s state with the physical one, and actuating
+or suggesting clinical actions.
+A. Model Definition
+This phase produces an SHA representation of the PDP
+triad via a manualDesignactivity and an automatedLearning
+activity. TheData Model DefinitionandData Pre-processingac-
+tivities must be carried out beforehand to provide well-formed
+inputs to the learning process. Finally,Model Post-processing
+refines the generated models to ensure their compatibility with
+the verification procedures employed in the subsequent phase.1) Data Model Definition:As we make use of SHA (see
+Section II-A), the input required for the learning process
+includes the set of eventsΣand the sets of physical quantities
+to be modeled. The selection is guided by domain expertise
+and informed by the operational capabilities and constraints of
+the available medical equipment, ensuring the learned model
+captures clinically meaningful and observable behaviors.
+Among the selected variables, those that are continuously
+monitored and require accurate estimation (X F) are modeled
+by flow conditions (F). Other variables (X M) are primarily
+informative when they signal specific conditions of the patient
+or the surrounding environment, such as the violation of
+critical thresholds that typically trigger alarms on medical
+equipment, and are thus used for event identification. The
+labeling functionL XMmaps scenario-dependent conditions on
+variables inX Mto events inΣ, thereby formally defining how
+real-world events are detected from data. Domain knowledge is
+essential here for identifying clinically relevant events through
+possibly complex activation criteria defined over the variables.
+Example IV .1.Consider our running example in Section III.
+Events represent either a significant variation in the patient’s
+vital signs or a change in ventilator settings performed by
+the intensivist. Accordingly, these quantities populate the set
+XM=V∪P, whereV={CD,HR,OS,RR,TV}contains
+the patient’s vitals andP={FIOX,PEEP,RERA,TVOL}
+includes the ventilator parameters. Each patient vitalv i, i=
+1, . . . ,5, is associated with a safe operating rangeR i=
+[vmin
+i, vmax
+i]. An event is observed when the value of vital
+iat timet k(denoted asvtk
+i) exceeds its safe range, indicating
+a deviation from normal physiological conditions, or when it
+returns within such range, signaling a possible recovery or
+stabilization. The ventilator parametersp j, withj= 1, . . . ,4
+(see Table I), trigger events whenever they are manually
+
+--- Page 5 ---
+5
+increased or decreased by the intensivist. Finally, the events
+onandoffcorrespond to the activation and deactivation of the
+mechanical ventilation device, respectively. When the device
+is inactive, all ventilator parameters are assumed to be set to
+zero. We define the partial labeling functionL XMas follows:
+LXM(tk) =
+
+(Vi)highifvtk
+i> vmax
+i∧vtk−1
+i≤vmax
+i
+(Vi)lowifvtk
+i< vmin
+i∧vtk−1
+i≥vmin
+i
+(Vi)okifvtk
+i∈Ri∧vtk−1
+i/∈Ri
+(Pj)upifptk
+j> ptk−1
+j∧ptk
+j, ptk−1
+j̸= 0
+(Pj)downifptk
+j< ptk−1
+j∧ptk
+j, ptk−1
+j̸= 0
+onifptk
+j>0∧ptk−1
+j= 0∀j
+offifptk
+j= 0∧ptk−1
+j>0∀j
+forV i∈V,P j∈P, k= 1,2, . . .
+We selectX F={TV}as the variable modeled through flow
+conditions, since even minor variations in its value are critical
+for assessing the patient’s ability to breathe.
+2) Data Pre-processing:Raw input data are generally un-
+suitable for learning algorithms, as meaningful information is
+not immediately available and must therefore be extracted with
+proper processing. Smoothing noisy signals, resampling data
+to enforce uniform time intervals, or extracting salient features,
+such as peak values or rates of change, is customary to capture
+underlying physiological dynamics better.
+Example IV .2.In our running example, we apply a smoothing
+transformation to theCD(carbon dioxide) signal, which
+naturally exhibits a sinusoidal breathing-induced pattern. The
+raw signal is transformed into a time series that records, at
+each time step, the most recent peak value observed. This
+peak-based representation attenuates high-frequency oscilla-
+tions while preserving clinically relevant trends, yielding a
+signal that is more robust to noise and better aligned with the
+threshold-based event definitions used by the learning activity.
+3) Design:Through structured interactions with domain
+experts (e.g., interviews), engineers elicit specifications of the
+interventions the physicians perform, the triggering events,
+and the contextual conditions required for each action. The
+collected knowledge allows them to formalize components of
+the PDP system by encoding established clinical practices for
+managing a patient’s evolving health conditions, effectively
+capturing medical expertise. Their activity results in models
+for both the physician (M Ph) and the ventilation device (M D).
+These elements are specified as a SHA, where interventions
+are modeled as actions on edges and care activities are rep-
+resented as locations within the physician and device models.
+Guards on edges encode the contextual conditions required
+for executing each action. When multiple interventions are
+clinically admissible while the physician is treating the patient,
+MPhincorporates probabilistic edges with predefined weights,
+allowing the physician–device interaction model to capture the
+inherent variability of clinical decision-making.
+The resulting SHA models are parameterized to represent
+the degrees of freedom in the intensivist’s decision-making
+process. Model parameters, defined jointly by engineers and
+idleactingA moni-
+toring
+actingD actingEactingB actingC
+stableFig. 3: Example of physician-device SHA.
+the domain experts, govern key behavioral aspects of the triad
+and explicitly encode elements of human judgment and uncer-
+tainty. Different parameter instantiations may yield adverse or
+unsafe patient behaviors, making these parameters central to
+the Offline Critical Scenario Detection phase.
+Example IV .3.Figure 3 shows a SHA obtained through expert
+elicitation. It models the behavior of an intensivist who reacts
+to clinical events (depicted with black labels on arrows) by ac-
+tivating the mechanical ventilator and adjusting its operational
+parameters. Physician-controlled edges are depicted with blue
+arrows and labels, while stochastic choices are represented by
+dashed edges annotated with probability weights. Guards are
+highlighted in green, and the distributions governing leaving
+times from locations are shown in red.
+According to the model, the physician activates the ven-
+tilator (actionon) when a decrease is detected in any of
+the vital signsTV,CD, orRR, provided the ventilator is
+inactive. In response to low oxygen saturation (OS) or elevated
+carbon dioxide (CD), the physician activates the ventilator
+and adjusts one of its parameters. For lowOS, the physician
+probabilistically increases eitherFIOXorPEEP, with weights
+(α,1−α); for highCD, the choice is between increasing
+RERAorTVOL, with probabilities(β,1−β). The edge labeled
+CDlowhas a guardTV<450, ensuring the physician responds
+to aCDlowalarm only when tidal volume is below 450 mL.
+Once all vitalsv ireturn to their safe rangesR i, the patient
+is considered stabilized, prompting a transition to thestable
+state, after which the physician returns to theidlestate.
+The SHA models realistic response delays for the physician
+using an exponentially distributed random variable with rate
+λ, while other actions are executed instantaneously. Obser-
+vation states such asidleandmonitoringlack physician-
+controlled outgoing transitions; exits from these states occur
+solely through patient-generated events, so no delay distribu-
+tion is assigned. Model parameters are collectively denoted
+φ= (α, β, λ), whereα∈[0,1],β∈[0,1], andλ∈[1/15,1]3.
+4) Learning:A data-driven model of patient behavior is
+essential to captures the evolution of physiological conditions
+over time and under clinical interventions. The patient model
+3αandβare probabilities, while the range forλreflects realistic average
+ICU response times (in seconds), as informed by domain expertise.
+
+--- Page 6 ---
+6
+Fig. 4: Detail of learned patient SHA having11locations.
+MPacomplements the physician and device models, thereby
+completing the PDP triad.
+Patient health conditions in ICUs are inherently complex
+and only partially observable, especially in the case of res-
+piratory diseases whose underlying physiological mechanisms
+cannot be measured directly. Intensivists therefore rely on indi-
+rect indicators, such as vital signs acquired through monitoring
+equipment, to assess patient status and guide interventions.
+This partial observability, combined with inter-patient vari-
+ability and stochastic physiological responses, motivates the
+learning of patient dynamics from empirical observations.
+TheLearningactivity builds upon the artifacts defined dur-
+ing the data model definition phase, including the set of events,
+the physical variables, and the labeling function. It integrates
+raw physiological signals collected in the ICU, which may
+originate from medical devices, hospital information systems,
+or manual entries by healthcare professionals. To infer the
+patient model, M-GENGAR employs the automata learning
+algorithmL∗
+SHA, which derives an SHA-based representation
+from clinical data. The algorithm infers both the discrete
+structure of the model (locations and edges) and the continuous
+dynamics associated with each location. Specifically, each
+learned location is equipped with a flow condition govern-
+ing the evolution of the physical variables inX F, together
+with a parametric probability distribution capturing stochastic
+variability. Locations thus correspond to distinct physiological
+states inferred from data, while edges represent clinically
+relevant events that drive changes between such states.
+Example IV .4.Figure 4 illustrates a portion of the patient
+SHA model learned usingL∗
+SHA. The flow conditionf i
+and stochastic parameter distributionD ijointly govern the
+evolution of variableTV∈X Fwhile the system resides in
+locationq i. From locationq 1, the occurrence of theTVok
+event, indicating that tidal volume has returned to safe levels,
+moves the patient to locationq 8. From there, eventTVlow
+transitions the patient to locationq 9. TheFIOXupself-loop
+represents that the physician’s action of increasingFIOXhas
+no observable effect on the patient’s state while inq 8.
+5) Post-processing:The final activity of model definition
+combines the individual models of the PDP components
+(namely physicianM Ph, deviceM D, and patientM Pa) into
+a single, unified model representing the triad. This composite
+model is further refined to ensure compatibility with the ver-
+ification procedures of the subsequent phase. The refinement
+produces the final modelMas output.
+Example IV .5.The patient modelM Palearned from data is
+inherently incomplete, as not all locations necessarily contain
+outgoing edges for every event inΣ. While manually designed
+models can explicitly handle all possible events in every
+location, learned models typically reflect only the behaviorsobserved during training. Some events may be left untreated
+in some locations if they never occurred during data collection.
+Under such circumstances, typical post-processing includes
+ensuring the model is well-defined for all events, by introduc-
+ing asinklocation representing unmodeled or unsupported
+behaviors for which data is insufficient. For each location in
+MPalacking an outgoing edge for some evente∈Σ, an edge
+labeled witheis added and linked to the sink location.
+B. Offline Critical Scenario Detection
+This phase evaluates whether the SHA digital modelM
+satisfies the dependability requirements required by stakehold-
+ers. TheModel space analysisactivity leverages an initial
+specification of formal requirements to systematically explore
+variations of model parameter and structure. Candidate gen-
+eration combined with formal verification enable the identifi-
+cation of failure-inducing configurations. Clinically unrealistic
+scenarios are filtered with theValidationactivity, and through
+theDiversity analysisactivity representative and meaningful
+critical scenarios are selected.
+1) Dependability Requirements Specification:To identify
+and formalize the system properties guaranteeing patient safety
+and reliable treatment, engineers directly collaborate with
+stakeholders. The latter may include clinicians, who define rel-
+evant medical conditions; biomedical engineers, who specify
+equipment constraints; safety analysts, who ensure compliance
+with risk mitigation standards; and department directors, who
+focus on operational efficiency. This elicitation process allows
+domain experts to contribute expectations and operational
+constraints, which are then translated into verifiable properties.
+The specification language must support properties with a
+probabilistic interpretation over SHA models, enabling reason-
+ing about uncertainty and temporal behavior in PDP triads.
+The activity yields a setΨof dependability properties, each
+of which can be evaluated on a given SHA instance as satisfied
+or violated with an associated probability. Such probabilistic
+semantics enables the identification of scenarios in which
+dependability degrades under uncertainty. The activity also
+defines a reachability goalG, specified as a set of safe
+automaton states and a cost metric to minimize. Reachability
+of these states constitutes a dependability objective that will
+be exploited in the online clinical decision support phase.
+Example IV .6.Consider again our running example presented
+in Section III. We define three dependability properties eval-
+uated over a fixed time horizon:
+1)Reachability of patient stability: reaching a location rep-
+resenting the stabilization of patient vitals;
+2)Duration in non-breathing state:TV(tidal volume) re-
+mains below a defined threshold for a specified duration;
+3)Persistence of critical health condition: remaining in a
+state with multiple vitals outside their safe ranges for a
+sustained period.
+These properties are expressed in Metric Interval Temporal
+Logic (MITL) [20] formulae. The probability that the first
+formula holds is expected to fall below a stakeholder-defined
+threshold, whereas the probabilities for the second and third
+are evaluated to exceed their respective thresholds. Traces
+
+--- Page 7 ---
+7
+reaching the sink location are not considered violations, as
+this represents unmodeled behaviors and an unknown system
+state. Alternative interpretations (e.g., treating these behaviors
+as failures) are possible and can be implemented by adjusting
+the MITL properties. We define goalGas the singleton set
+containing the location of the patient model representing a
+stable condition and the time spent in that location as the cost
+metric, which we aim to maximize.
+2) Model Space Analysis:Automated techniques are
+adopted to systematically explore the PDP model space and
+identify diverse critical scenarios. Model space analysis fol-
+lows an iterative process alternating betweenSpace Explo-
+rationandVerification. As introduced above, the PDP model
+Mis parameterized by vectorφ, representing the degrees of
+freedom in the behavior of both the physician and device
+models. The exploration step is realized either by selecting an
+assignment to parameters¯φor by changing structural features
+ofM, yielding a modified modelM′, while the verification
+step evaluates the probability thatM′[ ¯φ]satisfies the defined
+dependability requirementsΨ. These probabilities are fed back
+into the exploration step in a feedback loop. Specifically,
+the probability that models satisfyΨis computed through
+Statistical Model Checking (SMC) [36]. If the computed
+probability of any undesirable behavior exceeds a stakeholder-
+defined threshold, the model is considered afailure. During
+model space exploration, failure-inducing PDPs models (or
+more precisely, their parameterizationsφ) are collected in a set
+Φto identify critical behaviors of the physician-device system
+that may compromise patient safety. These failures highlight
+specific combinations of clinical decisions and system re-
+sponses that merit further investigation, either as indicators of
+potential safety risks or opportunities for system improvement.
+M-GENGAR supports two complementary exploration
+strategies: mutationalfuzzingandsearch-basedoptimization
+(see Section II). Both strategies modify model parameters or
+structural elements of the SHA model and are guided by the
+likelihood of a model violating requirements as determined
+duringVerification.Mutational fuzzingapplies domain-specific
+mutation operators to introduce behavioral variations into the
+SHA, iteratively generating newmutants. These operators
+maintain model validity while producing meaningful variabil-
+ity. An archive of physician-device SHA mutants is maintained
+and enriched with new mutants added according to application-
+specific criteria, serving as a pool of promising candidates for
+further mutation. By prioritizing high-risk mutants, the algo-
+rithm directs exploration toward underexplored regions of the
+model space, increasing the likelihood of uncovering critical
+behaviors. Thesearch-basedstrategy treats model space ex-
+ploration as a multi-objective optimization problem, with each
+objective minimizing the probability of satisfying a specific
+dependability property. Unlike fuzzing, the definition of the
+candidates to evaluate is not generally driven by application-
+dependent criteria, but rather depends on the employed algo-
+rithm, which introduces variability in an application-agnostic
+manner (still by acting on model parameters and on the
+structural elements of the automata). These strategies produce
+a collection of physician-device variants, each representing adistinct instantiation of modelM, which are then analyzed via
+verification and potentially labeled as failures.
+Example IV .7.In our running example, we define two mu-
+tation operators for fuzzing. The first perturbs a randomly
+selected parameter inφby applying a bounded scaling factor,
+thereby modifying the intensivist’s reaction times or proba-
+bilistic preferences when selecting interventions in the SHA
+shown in Fig. 3. The second removes a randomly chosen
+transition, modeling situations in which the physician does
+not respond to a specific clinical event. We set the criterion
+for adding a mutant to the archive as exceeding the current
+maximum observed likelihood of violation for at least one
+requirement. An example of an alternative physician–device
+model removes the topmost transition (labeled byon) that
+activates the ventilator in response to a low oxygen saturation
+event, while two others increase the physician’s reaction time
+(e.g.,λ= 1/15andλ= 2/25), representing delayed
+responses due to workload or organizational factors. SMC
+results indicate a violation of at least one requirement (see
+Example IV .6), leading the corresponding models to be clas-
+sified as failure-inducing scenarios. We employ the Non-
+dominated Sorting Genetic Algorithm II (NSGA-II) [22] as the
+multi-objective searching algorithm. Unlike fuzzing, candidate
+generation is not driven by application-dependent criteria, but
+is performed in a black-box manner by the algorithm, which
+perturbs model parameters and structure.
+3) Validation:PDP mutants inΦthat yield a failure but
+represent unrealistic or clinically irrelevant scenarios are fil-
+tered out, obtaining a reduced subset of parametersΦ′⊆Φ.
+While some of these cases may technically pose risks to
+patient safety, they are considered either uninteresting for
+further analysis or unlikely to occur in real-world settings,
+based on stakeholder judgment. For example, a case where
+a physician takes an excessively long time (e.g., minutes)
+to respond to an emergency may be deemed unrealistic, given
+the high availability of personnel in typical ICU environments.
+Other scenarios may involve implausible clinical actions that
+no trained physician would reasonably perform. Because such
+scenarios cannot always be excluded a priori, they must be
+explicitly reviewed by clinical experts to assess their validity.
+Example IV .8.After a guided review of the SHA components
+in Fig. 3, the expert identifies edges essential for any clinically
+reasonable procedure. Based on this review, a set of structural
+and parametric constraints is derived to serve as exclusion cri-
+teria. These constraints enable automated filtering of scenarios
+unlikely to occur in real ICU settings. For example, among the
+three SHA models in Example IV .7, the first is excluded as it
+lacks an appropriate physician response to theOSlowevent, a
+behavior deemed extremely unlikely by the domain expert.
+4) Diversity Analysis:The set of realistic failure-inducing
+PDP models inΦ′is subjected to a diversity analysis to
+identify distinct underlying root causes. Indeed, in some cases,
+failure-inducing models that differ syntactically may neverthe-
+less exhibit semantic similarity, and hence fail to correspond to
+distinct scenarios. To reduce redundant information and obtain
+a reduced set of representative critical scenarios, unsupervised
+
+--- Page 8 ---
+8
+clustering [52] is applied to group similar failure-inducing
+PDP models based on their behavioral characteristics and,
+from each cluster, a representative model is extracted. All the
+representatives collectively form the final set of diverse failure
+scenarios presented to stakeholders. This process requires
+a definition ofsimilaritybetween models and aselection
+criterionfor choosing a representative from each cluster. Both
+definitions are collaboratively established with domain experts
+to balance clinical and analytical relevance. Failure-inducing
+PDP models can be clustered by analyzing the parameter space
+defined by their associated vectorsφ.
+Example IV .9.We apply unsupervised hierarchical clustering
+using the Unweighted Pair-Group Method with Arithmetic
+mean (UPGMA) [52], which iteratively merges clusters based
+on the average pairwise distance between all elements across
+candidate clusters, thereby capturing similarity relationships in
+the parameter space. Rather than producing a single partition,
+UPGMA yields a dendrogram that represents the hierarchical
+organization of the PDP models. A concrete clustering is then
+obtained by cutting the dendrogram at a selected distance
+threshold, which allows the number and granularity of clus-
+ters to be tuned to the desired level of abstraction. In our
+evaluation, we consider multiple candidate clusterings with
+different numbers of clusters and automatically select the one
+that maximizes the silhouette score [50], a widely adopted
+metric for assessing cluster cohesion and separation.
+The parametersφof the two remaining example SHA in
+Example IV .8 are almost identical, differing only in the physi-
+cian’s response time. Accordingly, the clustering procedure
+considers them to be close in the parameter space and assigns
+them to the same cluster. This cluster can be interpreted as
+the set of critical circumstances due to delayed action by the
+physician (i.e., slow response time). The centroid of the cluster
+is then selected as its representative.
+C. Online Clinical Decision Support
+This phase completes the implementation of the DT of
+the PDP triad by establishing a feedback loop between its
+physical and the digital copies. Specifically, the DT requires
+alignmentbetween the physical state of the system and its
+digital representation through a continuous, bidirectional flow
+of data and corresponding state updates.
+A selected model, representing the current status of the
+physical PDP triad in the DT loop, is translated into a Priced
+Timed Game Automata (PTGA), and a strategy is computed,
+ensuring reachability of a prescribed goal. The strategy is then
+used inDecision Selection, while state alignment (highlighted
+in blue in Fig. 2) is maintained viaDigital State Identifica-
+tionandPhysical State Actuation. The models for which the
+control strategy is calculated can be either the representatives
+produced by the diversity analysis, or generalist models that do
+not capture specific criticalities of the physical triad but instead
+represent possible nominal operating scenarios. The latter can
+be developed starting from the model obtained through the
+activity described in Section IV .1 or from its generalizations.
+1) Controller Synthesis:Since patient safety is a primary
+concern, a controller is synthesized to assist the physician
+idleactingA moni-
+toring
+actingD actingEactingB actingC
+stable
+......
+...
+......Fig. 5: Physician-device PTGA used in the running exam-
+ple. Solid blue edges are the physician’s controllable actions
+σ1, . . . , σ n∈Σo,c. Dashed edges are uncontrollable actions.
+through recommended actions that aim at preserving patient
+stability. The methodology leverages game-theory techniques
+for which an entirely stochastic SHA model is interpreted as a
+1½-player game, modeling the physician (i.e., theplayer) as a
+goal-oriented strategy-based player and the patient (i.e., thead-
+versary) as a stochastic adversary [19]. Specifically, the SHA
+model is converted into a PTGA where the physician’s actions,
+instead of being probabilistic as in the SHA, are governed by a
+strategy while the patient’s reactions are stochastic. Hence, the
+SHA-to-PTGA conversion leaves the patient model unvaried
+and marks all physician’s edges as controllable.
+Based on a formal PTGA representation of the system,
+derived from a selected modelM[ ¯φ], theController Synthesis
+activity computes a strategyΠ M[ ¯φ] that prescribes the optimal
+action at each possible system state to satisfy the reachability
+goalGspecified by stakeholders. The strategy serves as a
+physician decision-support engine in the DT alignment loop.
+Example IV .10.Consider a modified version of the physician-
+device SHA of Fig. 3 with localized changes in eachacting
+andmonitoringlocation, represented in Fig. 5. This model
+is a generalization of the physician model shown in Fig. 3
+that does not encode any specific medical procedures, yet it
+represents a generalized physician with full freedom to adjust
+the ventilator parameters. Specifically, it includes outgoing
+edges for all the physician-controlled actionsσ 1, . . . ,σ nin
+Σo,c, whereΣ o,c:={(P j)up,(Pj)down}Pj∈P∪ {on,off}. By
+definition, the PTGA configuration tuple(l, ν)includes:i) the
+current locations of both automata;ii) a collection of boolean
+variablesr i, withV i∈V, indicating whether each patient’s
+vital currently falls within (T) or outside (F) its safe range
+Ri;iii) a boolean variabler onindicating whether mechanical
+ventilation is currently active (T) or inactive (F). The learned
+controllerΠ M[ ¯φ] maximizes permanence time in the location
+defining goalG(see Example IV .6). One illustrative tuple-
+action mapping of the learned strategy is:
+ΠM[ ¯φ](acting A, q9;T,T,T,T,F,F) =on.
+The mapping states that if the physician-device SHA is cur-
+rently in locationacting A, the patient SHA is in location
+
+--- Page 9 ---
+9
+q9, the first four patient vitals are stable while the fifth one
+(TV) is not, and mechanical ventilation is inactive, the action
+suggested by the strategy ison, i.e., activate the ventilator.
+2) Digital State Identification:Within the DT paradigm,
+a digital representation of the current state of the physical
+PDP triad, captured in the SHA modelM[ ¯φ]via locations
+and configuration variables, is essential for enabling control
+feedback through recommendations and formal analysis. State
+identification can be achieved by:i) acquiring the patient’s
+vital signals in real time, includingX M;ii) applying labeling
+functionL XM, which produces a traceτrepresenting the
+events recorded in the physical environment; andiii) interpret-
+ingτon the PDP model. The location reached in the SHA by
+sequentially firing the events fromτ, and the sampled vitals,
+represent the digital counterpart of the current state of the
+physical system. The initial location of the model at the onset
+of the feedback loop is the one marked asinitialin the SHA.
+Example IV .11.Consider the representation of the PDP triad
+shown in Fig. 4 (partially) for the patient and Fig. 5 for the
+physician. Let us assume that, at a certain time instant, the
+patient’s current location isq 8and the physician’s current
+location isidle, and that readings from the patient’s tidal
+volume indicate that the metric has dropped below the critical
+thresholdTVmax. The labeling function indicates that event
+LXM(tk) =TVlowhas taken place. The patient and physician
+SHA transition to locationsq 9andactingA, respectively.
+3) Decision Selection:The actions implementing the con-
+trol feedback loop are identified by means of adecision engine,
+which is based on the controllerΠ M[ ¯φ] synthesized during
+the previous phase. Given the current system state(l, ν), the
+engine selects an SHA eventσ= Π M[ ¯φ](l, ν)∈Σ o,c. This
+event is the formal representation of a physician’s action and
+corresponds to the behavior that results in minimal cost when
+reaching goalG. The selected action is sent to the physical
+state actuator either as a recommendation presented to the
+physician through a digital interface or as a direct control
+signal to an automated device. Concurrently, eventσis fired
+in the SHA network, potentially triggering a location update
+in the patient and/or physician automata.
+Example IV .12.The synthesized strategy prescribes the ac-
+tivation of the ventilator, corresponding to the firing of event
+σ=on. As a consequence, the physician SHA transitions from
+locationactingAtomonitoring, and a corresponding update
+occurs in the patient SHA if the current stateq 9admits an
+outgoing transition labeled with eventon.
+4) Physical State Actuation:The actuation of the decision
+engine’s output in the physical world can take two forms.
+It can be fully automated, with the actions sent directly to
+the device, which updates its settings accordingly and in real
+time. Alternatively, they can be provided as a recommendation
+to the physician, leaving the final decision to the physician’s
+judgment and expertise. In either case, the decision affects the
+patient’s physiological state and metrics, a process correspond-
+ing to the second half of the DT alignment loop.
+Physical state actuation closes the DT alignment loop, as itenables decisions produced in the digital domain to influence
+the physical system. It takes place entirely in the real world and
+depends on deployment-specific considerations, such as device
+interoperability, clinical workflows, and regulatory constraints.
+For this reason, the concrete implementation of actuation,
+whether fully automated or mediated by the physician, is
+beyond the scope of this work, which focuses on the method-
+ological foundations for constructing and analyzing DTs.
+Accordingly, in Fig. 2 this activity is depicted as an external
+block positioned outside the third phase of the methodology.
+V. EMPIRICALEVALUATION
+This section presents the experimental campaign4designed
+to assess both the accuracy and the scalability of the proposed
+methodology. The evaluation is structured around the follow-
+ing research questions:
+RQ1:What is the accuracy of the patient model resulting from
+the learning phase of M-GENGAR?
+RQ2:What is the effectiveness of M-GENGAR in detecting
+realistic and diverse failure scenarios?
+RQ3:What is the cost of the failure detection phase of M-
+GENGAR?
+RQ4:What is the effectiveness of the strategies synthesized
+by M-GENGAR in stabilizing patient metrics?
+A. Design of the evaluation
+1) Evaluation subjects:Synthetic patient data are gener-
+ated using Kitware PULSE[13], an open-source high-fidelity
+physiological simulator capable of reproducing diverse clinical
+conditions and adverse events. The simulations are executed
+through BREATHE [16], a framework built on PULSEthat
+provides a clinician-oriented interface for real-time monitoring
+of vital signs and interactive control of ventilator settings.
+Data collection to train the predictive models was carried out
+with the support of a physician with four years of experience in
+intensive care medicine. The clinician conducted8simulated
+clinical scenarios using BREATHE, for a cumulative simula-
+tion duration of45minutes. The executed scenarios covered10
+distinct health complications, together with the corresponding
+ICU interventions and resulting patient responses. During the
+simulations, the intensivist was provided with real-time physi-
+ological data and adjusted ventilation parameters according to
+their clinical judgment and established medical guidelines.
+The physician also contributed to the definition of our main
+study subject, that is, the respiratory intensive care example
+introduced in Section III and Section IV, by identifying
+relevant physiological signals, describing medical procedures
+with SHA, and specifying validation criteria to discriminate
+clinically realistic scenarios from unrealistic ones.
+2) Methods under comparison:We assess the cost-
+effectiveness of M-GENGAR by comparing it against multiple
+baseline methods, selected according to the specific RQ.
+To evaluate the accuracy of the learned patient model (RQ1),
+we compare it with three mainstream regression baselines. All
+models share the same input-output specification: the input
+4Replication package found at https://doi.org/10.5281/zenodo.18430307.
+
+--- Page 10 ---
+10
+encodes a simulation trace as a sequence of events (setΣas
+per IV-A), represented as categorical variables, together with
+the correspondingTVvalues associated with each event. The
+output is a single scalar representing the predictedTVafter
+the last event in the trace.
+The considered baseline models are:dual-inputNeural
+Network (NN) [27],XGBoost[15], andElastic Net[56]. The
+dual-inputNN uses one branch to encode the categorical event
+sequence through an embedding layer followed by an LSTM
+layer [32], while the second branch processes theTVvalues
+using a convolutional layer followed by pooling. The outputs
+of the two branches are concatenated and passed through a
+fully connected layer with dropout to mitigate overfitting. The
+XGBoostis a gradient-boosted decision tree model operating
+on a combined input vector that includes both the encoded
+event sequence and the correspondingTVvalues. TheElastic
+Netis a linear regression model with combinedL1andL2
+regularization (same input representation as XGBoost).
+We evaluate the effectiveness (RQ2) as well as the cost
+(RQ3) of M-GENGAR in detecting realistic and diverse failure
+scenarios by comparing alternative strategies for exploring
+the PDP model space. Specifically, we compare the proposed
+approaches—mutational fuzzingand asearch-basedstrategy
+based on NSGA-II—against arandom searchbaseline, which
+uniformly samples random mutations over both model param-
+eters and structural elements.
+Concerning the effectiveness of the strategies to stabilize the
+patients (RQ4), we compare M-GENGAR against a ground-
+truth decision-making process of a real human physician.
+3) Statistical tests:We reduce the risk of obtaining results
+by chance evaluating20distinct scenarios and executing each
+exploration strategy20times under the same budget con-
+straints (i.e., producing a total of500patient model mutants).
+Preliminary tests indicate that this budget is adequate to
+reach a performance plateau during model space exploration.
+Following the guideline by Arcuri and Briand [4], we employ
+the non-parametric Mann–Whitney U test [40] to assess the
+statistical significance of our results. Additionally, we calculate
+Vargha and Delaney’s ˆA12score [54] to measure the effect
+size between two samples, offering an indication of stochastic
+dominance. We categorize the effect size ˆA12(= 1− ˆA21)
+using the following standard classes: small (S), medium (M),
+or large (L) when its value is at least0.56,0.64, or0.71,
+respectively; none (N) otherwise.
+4) Evaluation testbed:All experiments were executed on
+an Ubuntu 24.10 system with standard hardware: an 8-core
+Intel Core i5 processor at 4.2GHz and 16 GB of RAM.
+B. Evaluation results
+1) Model accuracy (RQ1):We assess the accuracy of the
+model learned withL∗
+SHA by observing the variable governed
+by flow conditions, specificallyTV∈X F, in the patient
+SHA. The test set consists of 20 scenarios encompassing
+health complications of different types and severities, along
+with a sequence of events describing the onset of a particular
+health complication and randomly chosen physician actions.
+Each scenario is simulated in BREATHE to obtain the actual
+L*
+shaNeural Network XGBoost Elastic Net0.00.10.20.30.40.50.60.70.80.91.0
+Fig. 6: RQ1 MAPE values for each regression model.
+TABLE II: Results of statistical tests for regression (RQ1).
+p-val ˆA12
+L∗
+SHAvs Neural Network 3.97e-01 S
+L∗
+SHAvs XGBoost 9.35e-03 L
+L∗
+SHAvs Elastic Net 4.83e-01 S
+Neural Network vs XGBoost 2.27e-02 L
+Neural Network vs Elastic Net 2.09e-01 S
+XGBoost vs Elastic Net 5.54e-03 L
+finalTVvalues as ground truth that we used to compare the
+predictedTVvalue obtained from the learned patient SHA,
+coupled with the complete physician-device SHA from Fig. 3,
+and the trained baseline regressors. The SHA modeling PDP
+triads are translated into UPPAALmodels [6], from which we
+extract the predictedTVat the end of each trace.
+We evaluate our PDP model against the baselines on two
+prediction tasks:regressionandclassification. For theregres-
+siontask, we calculate each model’s test-set Mean Absolute
+Percentage Error (MAPE) relative to the ground truth.
+Results. Figure 6 shows the distribution of MAPE for each
+model, while Table II provides the Mann–Whitneyp-values
+and Vargha–Delaney effect sizes ( ˆA12). Forclassification,
+we discretize the regression outputs into three categories
+(low, ok, high)based on their position relative toTV’s safe
+operating range, as defined in Example IV .1. Classification
+accuracy is then computed as the proportion of correctly
+classified samples. Table III collects relevant metrics for both
+prediction tasks, namely median MAPE, mean MAPE, and
+classification accuracy.
+TheL∗
+SHA model consistently outperforms XGBoost in both
+regression and classification tasks. Its average MAPE is similar
+TABLE III: Scores for regression and classification (RQ1).
+regression (MAPE) classification
+model median mean accuracy
+L∗
+SHA0.184 0.258 0.90
+Neural Network 0.241 0.247 0.40
+XGBoost 0.833 0.609 0.30
+Elastic Net 0.179 0.227 0.70
+
+--- Page 11 ---
+11
+to that of the NN and Elastic Net models, though statistical
+testing does not allow us to reject the null hypothesis that
+these three models share the same MAPE distribution. We can
+observe thatL∗
+SHA achieves substantially higher classification
+accuracy, more than twice that of the NN, suggesting a deeper
+understanding of the underlying phenomenon.
+RQ1 summary.The SHA learned byL∗
+SHA outperforms
+all three baseline models: dual-input Neural Network (NN),
+XGBoost, and Elastic Net. This advantage is especially
+clear in classification, whereL∗
+SHA reaches accuracy levels
+up to3×higher. For regression,L∗
+SHA performs on par
+with the NN and Elastic Net, while reducing average error
+by3–4×relative to XGBoost.
+2) Effectiveness of failure detection (RQ2):We measure
+effectiveness by counting the occurrences ofdifferentfailure-
+inducing scenarios discovered during PDP space exploration,
+along with evaluating their realism. Using the complete physi-
+cian–device model shown in Fig. 3, we apply the mutation
+operators outlined in Section IV: parameter perturbation with
+a mutation factor ofk= 1.5(while respecting parameter
+bounds) and edge removal. All methods are executed under
+the same computational budget of500generated mutants
+(corresponding to50generations of10individuals each for the
+search-based strategy). For each technique and requirement,
+we filter out failure cases that are not clinically realistic
+according to the criteria defined by the domain expert, as
+described in Section IV (see Example IV .8). We then compute
+the rate of realistic failure cases over the total budget.
+To assess the diversity of the identified failures, we apply the
+clustering procedure (see Example IV .9) to the set of realistic
+failure cases. We evaluate clusterings composed of up to20
+clusters and select the one that maximizes the silhouette score.
+The resulting number of clusters is used as a surrogate measure
+of failure diversity, capturing the extent to which a technique
+explores distinct regions of the model space and uncovers
+qualitatively different classes of clinically relevant failures.
+For both failure detection rate and number of clusters, higher
+values indicate better performance, as they reflect a greater
+ability to uncover a wide variety of critical scenarios.
+Results. Figure 7 shows the distributions of the number of re-
+alistic failures identified by each technique over20repetitions.
+Similarly, Fig. 8 reports the distributions of cluster cardinalities
+across repetitions. Table IV presents statistical significance and
+effect size for all pairwise comparisons, considering both the
+number of realistic failures and the number of clusters.
+Mutational fuzzing identifies proportions of realistic fail-
+ure scenarios ranging between15and65%across different
+requirements. In particular, fuzzing detects failures in ap-
+proximately60%of cases (median value) for Requirement
+1and35%for Requirements2and3. It also achieves the
+largest number of distinct clusters, with median values (18–19)
+close to the maximum number of clusters evaluated across all
+requirements. Statistical tests confirm this superiority in all
+cases except one, i.e., the comparison against random search
+for the number of clusters derived from Requirement1.
+The failure detection rate of the search-based approach is
+Requirement 1 Requirement 2 Requirement 30.00.10.20.30.40.50.60.70.80.91.0Fraction of individuals
+fuzzing
+random
+search-basedFig. 7: Detection rate of realistic failures for each requirement
+and exploration technique (RQ2).
+Requirement 1 Requirement 2 Requirement 302468101214161820Number of clusters
+Fig. 8: Number of clusters for each requirement and explo-
+ration technique (RQ2). Color code is the same as Fig. 7.
+much lower than fuzzing, around10%for all requirements.
+This trend also holds for the number of clusters, sometimes
+comparable but lower on average. In this sense, performance
+of the search-based approach is comparable to random search.
+Overall, the results suggest that fuzzing is the most ef-
+fective technique for uncovering a larger number of realistic
+and distinct failure scenarios. Better performance of fuzzing
+compared to the search-based approach can be explained
+by the formulation of the optimization objective, i.e., the
+minimization of requirement satisfaction probability. This
+objective tends to drive the search-based approach toward
+simpler models (e.g., with fewer transitions), concentrating
+exploration near global optima in the parameter space. Such
+TABLE IV: Statistical tests for model space exploration and
+clustering (RQ2).
+Realistic failures Requirement 1 Requirement 2 Requirement 3
+p-val ˆA12 p-val ˆA12 p-val ˆA12
+fuzzing vs random 1.19e-06 L 1.22e-03 L 1.22e-03 L
+fuzzing vs search-based 2.35e-06 L 3.04e-03 L 3.04e-03 L
+random vs search-based 1.98e-01 S 5.87e-03 L 6.86e-03 L
+Clustering Requirement 1 Requirement 2 Requirement 3
+p-val ˆA12 p-val ˆA12 p-val ˆA12
+fuzzing vs random 3.85e-01 S 6.71e-03 L 6.71e-03 L
+fuzzing vs search-based 6.49e-01 N 8.29e-02 M 8.29e-02 M
+random vs search-based 2.87e-03 L 1.54e-01 S 1.62e-01 S
+
+--- Page 12 ---
+12
+fuzzing random search-based050100150200250300execution time [s]
+(a) Wall-clock time.
+fuzzing random search-based0.000.050.100.150.20Portion of clustering time (b) Partition of steps.
+Fig. 9: Cost of exploration techniques in execution time (RQ3).
+models are likely to violate the specified requirements, yet they
+typically lead to clinically unrealistic behaviors. This plausibly
+explains the substantial discrepancy between the total number
+of detected failures and those deemed clinically realistic.
+RQ2 summary.Fuzzing consistently outperforms both the
+search-based approach and random search, identifying the
+highest proportion of realistic failure scenarios (median val-
+ues between35-60%across requirements) and producing
+more clusters (median values18−19). The other methods
+yield substantially fewer realistic failures (around10%) and
+less clusters (median values between10-16).
+3) Cost of failure detection (RQ3):We use the same setup
+as in RQ2, but evaluate cost in terms of wall-clock execution
+time. We record the execution time of both model space
+analysis and clustering for each method under comparison.
+Results. Figure 9a shows the distribution of execution time
+across20repetitions. The cost of fuzzing is generally higher
+and exhibits a higher variance (ranging from2to6minutes)
+compared to the other methods. The search-based approach is
+the most time-efficient, typically finishing just over1.5min-
+utes, while random search averages around2.5minutes. Such
+efficiency can be attributed to its optimization objective, which
+explicitly minimizes requirement satisfaction probability. As
+anticipated above (see RQ2), this objective steers the search
+toward simpler yet unrealistic models. Such models are likely
+to violate the requirements and are usually faster to evaluate.
+Overall, most of the execution time is spent performing
+SMC with UPPAAL, while the time overhead for mutant gen-
+eration is generally negligible. The clustering activity also
+represents a small fraction of the total time, usually around
+5-10%, as shown in Fig. 9b.
+RQ3 summary.The search-based approach is the most
+time-efficient method, completing significantly faster than
+both fuzzing and random search, largely due to its optimiza-
+tion toward simpler models that are quicker to evaluate. Ex-
+ecution time is dominated by SMC, with mutant generation
+and clustering contributing only marginal overhead.TABLE V: Deviation compared to nominalTV= 400ml
+(RQ4). The bottom row shows average values.
+Human physician Controller
+absolute∆[ml] relative∆[%] absolute∆[ml] relative∆[%]
+201 50.2 39 9.7
+282 70.5 39 9.7
+237 59.2 224 56.0
+197 49.2 197 49.2
+400 100.0 400 100.0
+216 54.0 39 9.7
+400 100.0 400 100.0
+124 31.0 36 9.0
+257.1 64.2 171.7 42.9
+4) Effectiveness of stabilization strategies (RQ4):We as-
+sess the effectiveness of the proposed stabilization strategies by
+analyzing the patient’s physiological state after the application
+of each strategy and comparing it against the outcome achieved
+by a human physician under the same clinical conditions.
+To apply the strategies, we synthesized an automated con-
+troller using UPPAALSTRATEGO[18]. To ensure statistical ro-
+bustness, we repeat the strategy synthesis process20times,
+verifying that the resulting strategies lead to consistent and
+reproducible outcomes. We then execute8simulated clinical
+scenarios in BREATHE, reproducing the health complica-
+tions previously presented to the physician. In each scenario,
+BREATHE’s mechanical ventilator is automatically controlled
+according to the synthesized strategy, with patient states pe-
+riodically matched against the mapping table to trigger the
+corresponding control actions.
+At the end of a fixed observation period, we analyze
+the patient’s physiological state by counting the number of
+monitored patient vital signalsv i∈Vthat lie within their
+predefined safe operating rangesR i, and comparing this count
+against the human baseline. We consider a strategy assuccess-
+fulif it stabilizes at least as many vital signals as the human
+physician. In addition, we analyze the behavior ofTV, the
+variable governed by flow conditions in the SHA models. For
+each scenario, we record theTVvalue from BREATHE at the
+end of the observation period under the synthesized strategy
+and compare it against the simulated patient’s nominal healthy
+value (equal to400ml for all scenarios); the physician’s
+outcomes are evaluated using the same criterion.
+Results. Overall, the application of the strategies synthesised
+by M-GENGAR is successful in7out of8scenarios. Table V
+reports the deviation∆of the observedTVvalues from the
+nominal reference, expressed as both relative and absolute er-
+rors across all8scenarios, with average values summarized in
+the final row. On average, the automated controller maintains
+TVapproximately20%closer to the corresponding nominal
+value compared to the human physician.
+
+--- Page 13 ---
+13
+RQ4 summary.The stabilization strategies synthesized
+by M-GENGAR are successful in most cases, matching
+or outperforming the human physician. On average, the
+automated controller maintainsTVapproximately20%
+closer to its nominal healthy value, indicating comparable,
+and often improved, physiological stabilization relative to
+human-driven interventions.
+VI. DISCUSSION
+A. Threats to Validity
+Threats to external validity arise from the use of a single
+evaluation subject. We mitigate this threat by considering a
+wide variety of simulated clinical scenarios covering multiple
+health complications with varying severity levels, all validated
+by a physician with four years of working experience in
+intensive care units. All experiments rely on synthetic data
+generated by the PULSEphysiological engine, which is a
+high-fidelity simulator widely used for medical training and
+research. The learning and validation phases involve a single
+physician, which may limit the generalizability of clinical
+judgments and realism criteria used to detect plausible failures.
+To mitigate internal validity threats, all techniques are evalu-
+ated under identical computational budgets, identical mutation
+operators, and identical sets of requirements. Each stochastic
+method is executed multiple times, and statistical testing is
+applied to reduce the risk of obtaining results by chance [4].
+As reported in Section V, the search-based approach is
+optimized toward minimizing requirement satisfaction proba-
+bility, which may bias it toward simpler and faster-to-evaluate
+models. While this behavior is intrinsic to the optimization
+objective and intentionally analyzed, it may partially explain
+performance differences and must be considered when inter-
+preting effectiveness and cost results. Similarly, clustering-
+based diversity assessment depends on the chosen distance
+metric and clustering parameters, which may influence ab-
+solute cluster counts, although relative comparisons remain
+consistent across techniques.
+Concerning the effectiveness of the strategies synthesized
+by M-GENGAR, we measured the number of stabilized vital
+signs and the deviation ofTVfrom its nominal healthy value.
+This metric captures short-term physiological stabilization but
+does not account for possible longer-term outcomes (or sec-
+ondary clinical objectives). As a consequence, reported results
+should be interpreted as indicators of stabilization capability
+rather than comprehensive clinical optimality. Furthermore, we
+assume that the actions selected by the synthesized controller
+are always applied to the patient. This assumption models
+a deployment scenario in which the physician fully accepts
+the recommendations of a clinical decision support system,
+deliberately excluding cases of partial compliance or override.
+Under this assumption, the reported results can be interpreted
+as a lower bound stabilization capability. Real-world effective-
+ness will depend on human-DT interaction dynamics, which
+are outside the scope of this study.
+We mitigate conclusion validity threats by repeating ex-
+periments across multiple runs and scenarios, applying non-parametric statistical tests where applicable, and reporting
+effect sizes alongside statistical significance.
+B. Impact
+This work contributes to the SAFEST project5by advancing
+trustworthy DT-based methodologies for medical CPSs under
+uncertainty and heterogeneity. By integrating probabilistic
+modeling, automated exploration of critical contingencies,
+and strategy synthesis within a closed-loop DT architecture,
+the methodology increases confidence in DT-driven decision
+support despite incomplete data and modeling approximations.
+The explicit treatment of uncertainty and the modular repre-
+sentation of actors support sound dependability analysis while
+managing the complexity of heterogeneous DT components.
+The work also highlights two complementary needs central
+to SAFEST. First, effective DT-based analyses rely on reliable
+physiology simulators [12], [16] to generate realistic data
+and stress-test rare critical conditions. Second, automating the
+extraction of medical procedures and guidelines into machine-
+readable representations reduces ambiguity in practitioner be-
+havior. Approaches such as MARACTUS [30] address this
+need by transforming unstructured clinical documents into
+analyzable action models for integration into model-driven
+pipelines and CDSSs. Together, these directions strengthen the
+SAFEST vision of dependable DT-based healthcare solutions.
+VII. RELATEDWORK
+A review of the existing literature reveals that no prior
+study directly mirrors the approach proposed in this paper.
+A DT-oriented architectural solution to formalizing the PDP
+triad is introduced by Bersani et al. [7], [8]. Their approach
+emphasizes trust, defined as alignment between physical sys-
+tems and DTs, and includes mechanisms for validating per-
+formance under human and environmental uncertainty [7],
+a high-level reference architecture, and reliability estimation
+tools [8]. Nonetheless, their work remains conceptual and
+lacks empirical evaluation.
+The DT concept originally introduced by Grieves [28] has
+matured substantially, especially in manufacturing contexts.
+Abanda et al. [1] survey ten DT definitions from 2012 to 2022,
+illustrating this evolution. With increasing human involvement
+in industrial processes, DTs began to model human aspects,
+leading to the development of Human Digital Twins (HDTs).
+Gaffinet et al. [26] review ten surveys on HDTs, highlighting
+their expansion across domains. Miller et al. [43] define HDT
+as a digital representation of a human combining mechanistic
+and statistical models, covering cognition, personality, and
+behavior. Latif et al. [34] provide a domain-specific example
+of human-performed process modeling. Lin et al. [39] survey
+HDT technologies and propose a general architecture, focusing
+on modeling human activity and social behavior, but omitting
+task-based workflows such as medical procedures, which our
+model explicitly incorporates.
+Asad et al. [5] examine Human-Centric DTs, noting that
+while ergonomics and health are addressed, cognitive pro-
+cesses and decision-making are generally overlooked. Wang
+5https://safest-prin.github.io
+
+--- Page 14 ---
+14
+et al. [55] similarly highlight the overemphasis on physical
+assets at the expense of human modeling, proposing a lay-
+ered HDT architecture within which our SHA-based patient
+model fits. Our approach, however, introduces SMC-based
+analysis, adding capabilities absent from their taxonomy. Li
+et al. [31] present a DT-based framework for ergonomic
+analysis, focusing on body movement and cognition. Their
+“Digital Engine” includes simulation and analysis components,
+mapping closely to our SHA-based models and SMC-driven
+dependability evaluation. Lauer-Schmaltz et al. [35] review
+HDTs for behavioral therapy and rehabilitation, noting limited
+treatment of motivational and cognitive mechanisms. Our work
+goes further by explicitly capturing medical knowledge and
+procedural workflows. Sahal et al. [51] propose a Personal
+DT integrating blockchain and AI to support decision-making,
+though at a high level. They identify healthcare requirements
+such as clinical decision support and analysis. Our system can
+be seen as a concrete realization of these goals.
+Katsoulakis et al. [33] survey healthcare-focused DTs, pri-
+marily addressing patient care and organ-specific modeling
+for personalized medicine. One application area, namely hos-
+pital management and care coordination, includes hospital
+workflows and staff modeling, aligning with our approach.
+Yet, none of the surveyed works incorporate automata-based
+models or testing-inspired analysis, highlighting our contri-
+bution. Chen et al. [14] review communication technologies
+for HDTs in personalized healthcare, providing low-level
+networking insights not covered here. Likewise, Papachristou
+et al. [47] review DTs for precision medicine, covering diag-
+nosis, surgery, and therapy, but do not address task-oriented
+physician modeling as we do.
+Roopa and Venugopal [49] focus on DTs in Cyber-Physical
+Healthcare Systems (DT-CPHS), identifying operational ef-
+ficiency as a key requirement. Our system contributes by
+detecting critical scenarios in intensive care caused by physi-
+cian misbehavior, enhancing care delivery. Croatti et al. [17]
+integrate DTs with Multi-Agent Systems for smart healthcare,
+modeling heterogeneous entities and supporting trauma care,
+but their DT primarily aids documentation and procedure
+tracking without advanced analytics. Mariani et al. [42] extend
+this work conceptually, discussing simulation and prediction,
+yet without concrete implementation. While aligned with
+representing the PDP triad through DTs, our approach delivers
+a more operational and grounded realization.
+Mohamed et al. [44] propose a DT framework for healthcare
+systems engineering, including patients, staff, and facilities,
+but model physicians and processes more as administrative
+units than as knowledge-driven clinical agents. Our approach
+captures both behavioral dynamics and medical expertise of
+physicians within the DT. Elayan et al. [24] and Rahim et
+al. [48] both implement ECG classifiers in DT frameworks.
+Elayan et al. focus on real-time machine learning for heart
+disease diagnosis using IoT-integrated DTs, with healthcare
+improvements treated as secondary. Rahim et al. present a
+Smart Medical CPS for hospitals, integrating patients, devices,
+and staff. Their system supports arrhythmia diagnosis via ECG
+classification and provides monitoring tools for healthcare
+professionals. While both works offer predictive functionality,our approach uniquely integrates formal task modeling and
+automated analysis to identify critical care scenarios.
+VIII. CONCLUSION
+M-GENGAR is an extended reliability-engineering method-
+ology for the dependability analysis and attainment of critical
+PDP systems in healthcare, operating within a closed-loop
+DT paradigm. By combining data-driven learning of patient
+dynamics with automata-based modeling, statistical model
+checking, model-space exploration, and diversity analysis, M-
+GENGAR can systematically identify, classify, and mitigate
+clinically plausible failure scenarios. Fuzzing-based model-
+space exploration outperforms baseline approaches, detecting
+35–60%realistic failure scenarios and producing richer clus-
+ters of critical contingencies (median18–19versus10–16).
+Synthesized strategies stabilize patient vitals at least as effec-
+tively as human decision-making in87.5%of evaluated cases,
+keeping relevant metrics closer to nominal healthy values.
+Scaling M-GENGAR to more complex clinical settings and
+enriching human-in-the-loop models with cognitive and team-
+level factors are future works. Additional directions include
+improving robustness under partial observability, tighter inte-
+gration with high-fidelity physiology simulators, and further
+automation of clinical procedure extraction.
+ACKNOWLEDGMENTS
+This work was partially supported by the PRIN project
+SAFEST (award No: 20224AJBLJ) funded by the Italian
+Ministry of Education, Universities, and Research (MIUR).
+REFERENCES
+[1] F. Henry Abanda, N. Jian, Selorm Adukpo, Valerian Vanessa Tuhaise,
+and Marcelline Blanche Manjia. Digital twin for product versus project
+lifecycles’ development in manufacturing and construction industries.J.
+Intell. Manuf., 36(2):801–831, 2025.
+[2] Rajeev Alur, Costas Courcoubetis, Nicolas Halbwachs, Thomas A Hen-
+zinger, Pei-Hsin Ho, Alfredo Nicollin, Xavier Olivero, Joseph Sifakis,
+and Sergio Yovine. The algorithmic analysis of hybrid systems.TCS,
+138(1):3–34, 1995.
+[3] Dana Angluin. Learning regular sets from queries and counterexamples.
+Inf. Comput., 75(2):87–106, 1987.
+[4] Andrea Arcuri and Lionel Briand. A practical guide for using statistical
+tests to assess randomized algorithms in software engineering. InIntl.
+Conf. on Software Engineering, page 1–10. ACM, 2011.
+[5] Usman Asad, Madeeha Khan, Azfar Khalid, and Waqas Akbar Lugh-
+mani. Human-centric digital twins in industry: A comprehensive review
+of enabling technologies and implementation strategies.Sensors, 2023.
+[6] Gerd Behrmann, Alexandre David, and Kim G Larsen. A tutorial on
+uppaal.Formal methods for the design of real-time systems, pages 200–
+236, 2004.
+[7] Marcello M. Bersani, Chiara Braghin, Vittorio Cortellessa, Angelo
+Gargantini, Vincenzo Grassi, F. Lo Presti, Raffaela Mirandola, Alfonso
+Pierantonio, Elvinia Riccobene, and Patrizia Scandurra. Towards trust-
+preserving continuous co-evolution of digital twins. InIntl. Conf. on
+Software Architecture Companion, pages 96–99. IEEE, 2022.
+[8] Marcello M. Bersani, Chiara Braghin, Angelo Gargantini, Raffaela
+Mirandola, Elvinia Riccobene, and Patrizia Scandurra. Engineering of
+trust analysis-driven digital twins for a medical device. InSoftware
+Architecture. ECSA, pages 467–482. Springer, 2022.
+[9] Andrew D Bersten and Jonathan Handy.Oh’s Intensive Care Manual
+E-Book. Elsevier Health Sciences, 2013.
+[10] Marcel Böhme, Van-Thuan Pham, Manh-Dung Nguyen, and Abhik
+Roychoudhury. Directed greybox fuzzing. InProceedings of the 2017
+ACM SIGSAC Conference on Computer and Communications Security,
+page 2329–2344, New York, NY , USA, 2017. ACM.
+
+--- Page 15 ---
+15
+[11] Marcel Böhme, Van-Thuan Pham, and Abhik Roychoudhury. Coverage-
+based greybox fuzzing as markov chain. InACM SIGSAC Conf. on
+Computer and Communications Security, page 1032–1043. ACM, 2016.
+[12] Andrea Bombarda, Silvia Bonfanti, Angelo Gargantini, and Elvinia
+Riccobene. Simspire: A simulator of the respiratory system.IEEE
+Access, 2025.
+[13] Aaron Bray, Jeffrey B. Webb, Andinet Enquobahrie, Jared Vicory,
+Jerry Heneghan, Robert Hubal, Stephanie TerMaath, Philip Asare, and
+Rachel B. Clipp. Pulse Physiology Engine: an Open-Source Software
+Platform for Computational Modeling of Human Medical Simulation.
+SN Comprehensive Clinical Medicine, 1(5):362–377, 2019.
+[14] Jiayuan Chen, Changyan Yi, Samuel D. Okegbile, Jun Cai, and Xuemin
+Shen. Networking architecture and key supporting technologies for
+human digital twin in personalized healthcare: A comprehensive survey.
+Commun. Surveys Tuts., 26(1):706–746, 2024.
+[15] Tianqi Chen and Carlos Guestrin. Xgboost: A scalable tree boosting
+system. InKDD Proc., pages 785–794, 2016.
+[16] Alessandro Colombo, Gionatha Pirola, and Angelo Gargantini.
+BREATHE - Biomedical Respiratory Engine for Advanced Training and
+Human Evaluation. https://github.com/GionathaPirola/BREATHE, 2025.
+[17] A. Croatti, M. Gabellini, S. Montagna, and A. Ricci. On the integration
+of agents and digital twins in healthcare.Journal of Medical Systems,
+44, 2020.
+[18] Alexandre David, Peter G Jensen, Kim Guldstrand Larsen, Axel Legay,
+Didier Lime, Mathias Grund Sørensen, and Jakob H Taankvist. On
+time with minimal expected cost! InInternational Symposium on
+Automated Technology for Verification and Analysis, pages 129–145.
+Springer, 2014.
+[19] Alexandre David, Peter Gjøl Jensen, Kim Guldstrand Larsen, Marius
+Miku ˇcionis, and Jakob Haahr Taankvist. Uppaal stratego. InInterna-
+tional Conference on Tools and Algorithms for the Construction and
+Analysis of Systems, pages 206–211. Springer, 2015.
+[20] Alexandre David, Kim G Larsen, Axel Legay, Marius Miku ˇcionis,
+Danny Bøgsted Poulsen, Jonas Van Vliet, and Zheng Wang. Statistical
+model checking for networks of priced timed automata. InFORMATS,
+pages 80–96, Aalborg, Denmark, 2011. Springer.
+[21] Alexandre David, Kim Guldstrand Larsen, Axel Legay, Marius Miku-
+ˇcionis, and Danny Bøgsted Poulsen. Synthesis of optimal strategies for
+duration probabilistic automata. In Natasha Sharygina and Helmut Veith,
+editors,Computer Aided Verification - 25th International Conference,
+CAV 2013, Saint Petersburg, Russia, July 13-19, 2013. Proceedings,
+volume 8044 ofLecture Notes in Computer Science, pages 273–289.
+Springer, 2013.
+[22] Kalyanmoy Deb, Amrit Pratap, Sameer Agarwal, and TAMT Meyarivan.
+A fast and elitist multiobjective genetic algorithm: Nsga-ii.IEEE
+Transactions on Evolutionary Computation, 6(2):182–197, 2002.
+[23] Dheeraj Kumar Dhaked and Valayapathy Lakshmi Narayanan.Recent
+Trends in Medical Cyber-Physical System—A Brief Survey, pages 39–54.
+Springer Nature Singapore, Singapore, 2024.
+[24] Haya Elayan, Moayad Aloqaily, and Mohsen Guizani. Digital twin for
+intelligent context-aware iot healthcare systems.IEEE Internet of Things
+Journal, PP:1–1, 2021.
+[25] Myron D Fottler, John D Blair, Carlton J Whitehead, Michael D Laus,
+and Grant T Savage. Assessing key stakeholders: who matters to
+hospitals and why?Journal of Healthcare Management, 1989.
+[26] Ben Gaffinet, Jana Al Haj Ali, Yannick Naudet, and Hervé Panetto.
+Human digital twins: A systematic literature review and concept disam-
+biguation for industry 5.0.Computers in Industry, 166:104230, 2025.
+[27] Ian Goodfellow, Yoshua Bengio, Aaron Courville, and Yoshua Bengio.
+Deep learning, volume 1. MIT Press Cambridge, 2016.
+[28] Michael W. Grieves. Product lifecycle management: the new paradigm
+for enterprises.Intl. Jnl. of Product Development, 2(1/2):71–84, 2005.
+[29] Bruno Guindani, Matteo Camilli, Livia Lestingi, and Marcello Maria
+Bersani. Detecting Dependability Failures in Healthcare Scenarios via
+Digital Shadows. InIEEE 36th International Symposium on Software
+Reliability Engineering (ISSRE), pages 502–513. IEEE, 2025.
+[30] Bruno Guindani, Matteo Camilli, Livia Lestingi, and Marcello Maria
+Bersani. Agentic Generation of Structured Clinical Specifications for
+Digital Healthcare Services. InIEEE/ACM 48th International Confer-
+ence on Software Engineering (ICSE-SEIS). ACM, In-press, 2026.
+[31] Qiqi He, Li Li, Dai Li, Tao Peng, Xiangying Zhang, Yincheng Cai,
+Xujun Zhang, and Renzhong Tang. From digital human modeling
+to human digital twin: Framework and perspectives in human factors.
+Chinese Journal of Mechanical Engineering, 37:1–14, 2024.
+[32] Sepp Hochreiter and Jürgen Schmidhuber. Long short-term memory.
+Neural computation, 9(8):1735–1780, 1997.[33] E. Katsoulakis, Q. Wang, H. Wu, L. Shahriyari, R. Fletcher, J. Liu,
+L. E. K. Achenie, H. Liu, P. Jackson, Y . Xiao, T. Syeda-Mahmood,
+R. Tuli, and J. Deng. Digital twins for health: a scoping review.NPJ
+Digital Medicine, 7, 2024.
+[34] Hasan Latif, Guodong Shao, and Binil Starly. A case study of digital
+twin for a manufacturing process involving human interactions. In
+Winter Simulation Conference, pages 2659–2670, 2020.
+[35] Martin Wolfgang Lauer-Schmaltz, Philip J. Cash, John Paulin Hansen,
+and A. M. Maier. Designing human digital twins for behaviour-changing
+therapy and rehabilitation: A systematic review.Proceedings of the
+Design Society, 2:1303 – 1312, 2022.
+[36] Axel Legay, Benoît Delahaye, and Saddek Bensalem. Statistical model
+checking: An overview. InRV10 Proc., pages 122–135. Springer, 2010.
+[37] Livia Lestingi, Marcello M Bersani, and Matteo Rossi. Model-driven
+development of service robot applications dealing with uncertain human
+behavior.IEEE Intelligent Systems, 37(6):48–56, 2022.
+[38] Livia Lestingi, Nicla Frigerio, Marcello M Bersani, Andrea Matta,
+and Matteo Rossi. Data-driven energy modeling of machining centers
+through automata learning.IEEE Transactions on Automation Science
+and Engineering, 2024.
+[39] Yujia Lin, Liming Chen, Aftab Ali, Christopher Nugent, Ian Cleland,
+Rongyang Li, Jianguo Ding, and Huansheng Ning. Human digital twin:
+a survey.Journal of Cloud Computing, 13, 2024.
+[40] H. B. Mann and D. R. Whitney. On a test of whether one of two
+random variables is stochastically larger than the other.The Annals of
+Mathematical Statistics, 18(1):50–60, 1947.
+[41] Valentin J.M. Manès, HyungSeok Han, Choongwoo Han, Sang Kil Cha,
+Manuel Egele, Edward J. Schwartz, and Maverick Woo. The art, science,
+and engineering of fuzzing: A survey.IEEE Transactions on Software
+Engineering, 47(11):2312–2331, 2021.
+[42] Stefano Mariani, Marco Picone, and Alessandro Ricci. Agents and dig-
+ital twins for the engineering of cyber-physical systems: opportunities,
+and challenges.Annals of Mathematics and Artificial Intelligence, 92:1–
+22, 2023.
+[43] Michael Miller and Emily Spatz. A unified view of a human digital
+twin.Human-Intelligent Systems Integration, 4:23–33, 2022.
+[44] Nader Mohamed, Jameela Al-Jaroodi, Imad Jawhar, and Nader Kesser-
+wan. Leveraging digital twins for healthcare systems engineering.IEEE
+Access, 11:69841–69853, 2023.
+[45] Institute of Medicine (US) Committee on Quality of Health Care in
+America.To Err is Human: Building a Safer Health System. National
+Academies Press (US), Washington, DC, 2000.
+[46] William Owens.The ventilator book. First Draught Press, 2018.
+[47] Konstantinos Papachristou, Paraskevi F. Katsakiori, Panagiotis Papadim-
+itroulas, Lidia Strigari, and George C. Kagadis. Digital twins’ ad-
+vancements and applications in healthcare, towards precision medicine.
+Journal of Personalized Medicine, 14(11), 2024.
+[48] Messaoud Rahim, Wassila Lalouani, Elbahi Toubal, and Lloyd Emokpae.
+A digital twin-based platform for medical cyber-physical systems.IEEE
+Access, 12:174591–174607, 2024.
+[49] M. S. Roopa and K. R. Venugopal. Digital twins for cyber-physical
+healthcare systems: Architecture, requirements, systematic analysis, and
+future prospects.IEEE Access, 13:44963–44996, 2025.
+[50] Peter J Rousseeuw. Silhouettes: a graphical aid to the interpretation and
+validation of cluster analysis.Journal of computational and applied
+mathematics, 20:53–65, 1987.
+[51] Radhya Sahal, Saeed H. Alsamhi, and Kenneth N. Brown. Personal
+digital twin: A close look into the present and a step towards the future
+of personalised healthcare industry.Sensors, 22(15), 2022.
+[52] Robert R Sokal, Charles D Michener, et al. A statistical method for
+evaluating systematic relationships.Scientific Bulletin, 1958.
+[53] R. Sutton, D. Pincock, D. Baumgart, D. Sadowski, R. Fedorak, and
+K. Kroeker. An overview of clinical decision support systems: benefits,
+risks, and strategies for success.npj Digital Medicine, 3(1):17, 2020.
+[54] András Vargha and Harold D. Delaney. A critique and improvement of
+the "cl" common language effect size statistics of mcgraw and wong.
+Journal of Educational and Behavioral Statistics, 25(2):101–132, 2000.
+[55] Baicun Wang, Huiying Zhou, Xingyu Li, Geng Yang, Pai Zheng,
+Ci Song, Yixiu Yuan, Thorsten Wuest, Huayong Yang, and Lihui Wang.
+Human digital twin in the context of industry 5.0.Robot. Comput.-Integr.
+Manuf., 85(C), 2024.
+[56] Hui Zou and Trevor Hastie. Regularization and variable selection via the
+elastic net.Journal of the Royal Statistical Society Series B: Statistical
+Methodology, 67(2):301–320, 2005.

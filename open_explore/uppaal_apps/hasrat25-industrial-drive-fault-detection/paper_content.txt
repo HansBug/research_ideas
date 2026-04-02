@@ -1,0 +1,622 @@
+--- Page 1 ---
+Safe Failure Fraction Verification and
+Optimization in Industrial Drive Systems
+Imran Riaz Hasrat1, Eun-Young Kang1, and Christian Uldal Graulund2
+1The Mærsk Mc-Kinney Møller Institute, Software Engineering Department,
+University of Southern Denmark (SDU), Odense, Denmark
+{imrh,eyk}@mmmi.sdu.dk
+2Danfoss Drives A/S, Ulsnaes 1, DK-6300 Gråsten, Denmark
+christian.graulund@danfoss.com
+Abstract. Safety and reliability are crucial in industrial drive systems,
+where hazardous failures can have severe consequences. Detecting and
+mitigating dangerous faults on time is challenging due to the stochastic
+and unpredictable nature of fault occurrences, which can lead to lim-
+ited diagnostic efficiency and compromise safety. This paper optimizes
+the safety and diagnostic performance of a real-world industrial Basic
+Drive Module (BDM) using uppaal stratego . We model the BDM’s
+functional safety architecture with timed automata and formally ver-
+ify its key functional and safety requirements through model checking to
+eliminate unwanted behaviours. Considering the formally verified correct
+model as a baseline, we leverage the tool’s reinforcement learning facil-
+ity to optimize the safe failure fraction to the 90% threshold, improving
+fault detection ability. The promising results highlight strong potential
+for broader safety applications in industrial automation.
+Keywords: Industrial drives systems ·Model checking ·Safety analysis
+·Fault detection optimization.
+1 Introduction
+In the current fast-paced industrial world, industrial drive systems play a crucial
+roleinautomatingprocessesindiverseindustrieslikeautomotive,aerospace,and
+food and beverage [1]. In recent years, the demand for smooth automation and
+precision has steadily increased making these systems the backbone of industrial
+manufacturing for controlling speed, torque, and direction in the operations of
+machines. Since the drives primarily control the operation of electric motors,
+safety and reliability have become the top considerations for flawless and correct
+operation. However, the complex architecture (involving power converters and
+diagnostic means) of such drives poses challenges in achieving these goals.
+Functional safety standards such as IEC 61508 and EN 61800-5-2 require
+robust safety-related design techniques to be applied in industrial applications.
+Safe Torque Off (STO) is an important concept in shielding motors against
+faults—deactivating the motors to avoid situations that can lead to accidentsarXiv:2503.21965v1  [cs.SE]  27 Mar 2025
+
+--- Page 2 ---
+2 Hasrat et al.
+and ensuring safety. This not only demands solid hardware design but also so-
+phisticated diagnostic mechanisms to detect and react to failures in real-time.
+Formal verification [6] is a powerful technique for ensuring the functional cor-
+rectness of complex real-time industrial systems. The safe failure fraction (SFF)
+metric is used to evaluate these systems’ ability to detect failures. However, the
+randomness of fault occurrences makes optimizing SFF challenging, emphasizing
+the need for advanced techniques. Advancements in artificial intelligence make
+reinforcement learning (RL) [27] a strong candidate for optimization problems,
+such as enhancing SFF. RL can improve fault detection mechanism and safety
+by enabling systems to learn and adapt.
+This paper aims to optimize SFF performance in an industrial BDM drive
+through a real-world case study. To do so, we use an RL-enabled timed automata
+(TA) based tool Uppaal Stratego [9], widely known for formal modelling, ver-
+ification (using model checking), and optimization. In the first step, we construct
+the model of the BDM architecture as a set of TAs. We selected TA as the formal
+modelling technique due to their ability to represent complex systems with dis-
+crete states and time-dependent behaviours, making them ideal for the BDM,
+where timing and synchronization are critical. Next, we perform formal veri-
+fication against the functional and safety properties of the BDM to ensure its
+formal model is free from undesired behaviours and operates as intended. Formal
+verification ensures that the optimization process gets a correct model. Given
+the growing popularity of RL in solving optimization problems, we leverage the
+RL (Q-learning) capabilities embedded in Uppaal Stratego to optimize the
+SFF performance. The RL based optimization capabilities in Uppaal Strat-
+egomake it well-suited for training the diagnostics of the BDM and enhancing
+overall safety. The contributions of this study are as follows:
+–Formal modelling of the BDM architecture in Uppaal Stratego , capturing
+its functional behaviour, safety mechanisms, and timing constraints.
+–Formally verifying the functional and safety properties of the BDM, includ-
+ing core functionality and timing requirements, and ensuring the absence of
+undesired behaviours.
+–Optimizing the SFF to achieve the target safety levels using RL in Uppaal
+Stratego .
+2 Preliminaries
+In this section, we provide an overview of reinforcement learning and Uppaal
+Stratego , which serve as the essential background for this paper.
+2.1 Reinforcement Learning
+RL trains a machine how to behave by letting it interact with the environment.
+It computes the state-action pair values and collects the scores of the actions
+taken by the machine at different states. Q-learning [29] is an RL algorithm
+
+--- Page 3 ---
+Safety Verification and Optimization in Industrial Drive Systems 3
+that uses the Bellman-optimal equation to calculate the state-action pair values
+(called Q-values) by estimating the expected future reward for taking a specific
+action in a given state. The Q-learning algorithm can be represented as follows:
+Q∗(s, a) =Eh
+R(s, a) +γmax
+a′Q∗(s′, a′)i
+Here, Q∗(s, a)is the expected cumulative reward for taking an action afrom
+a state s, while Edenotes the expectation function over possible future states.
+R(s, a)is the immediate reward received from the environment when perform-
+ing an action afrom state s,γ∈[0,1]is the discount factor that adjusts the
+weight/importance of future rewards, and max a′Q∗(s′, a′)is the maximum ex-
+pected future reward achievable from the next state s′by taking action a′.
+2.2 Uppaal Stratego
+Uppaal Stratego [9] is an advanced extension of the Uppaal tool suite [21],
+integrating traditional Uppaal capabilities with RL techniques to derive safe
+and near-optimal strategies for Stochastic Hybrid Games (SHG) [8]. Uppaal
+Stratego is useful to generate strategies that can be used to optimize various
+performance metrics, such as minimizing cost or maximizing safety.
+To synthesize optimal control strategies within a specified context, Strat-
+egoincorporates RL algorithms like Q-learning. When applying Q-learning,
+Stratego calculates Q-values by running sample runs, and these computed val-
+ues are then used to improve the strategy. This iterative procedure is continually
+revised until the performance converges. In the case of continuous state spaces,
+Stratego employs an online partition refinement method to discretize the state
+space [15]. This technique allows the tool to dynamically enhance its representa-
+tion of the state space during exploration. Consequently, effective strategies can
+be developed without requiring a comprehensive state analysis. For an in-depth
+understanding of the tool’s rich formalism, refer to [5,9,21].
+3 Case Study
+The case study describes the functional safety (FS) architecture of an industrial
+BDM provided by Danfoss [3]. The BDM is an electronic power converter com-
+bined with its associated control system, positioned between an electric motor
+and power supply. It converts the supplied DC power into a format suitable for
+the smooth operation of the motor according to its design specifications.
+The BDM is required to integrate the iSM3 (Safety Module), with an em-
+phasis on implementing the SIL3 (Safety Integrity Level) STO function, along
+with internal diagnostics. To ensure an adequate safety level, the diagnostics in
+the iSM3 must achieve a SFF of at least 90% as the threshold. The overview of
+the BDM is illustrated in Figure 1. The functional blocks i.e., pulse generator,
+signal levelling and processing, switch, power processing and motor express the
+core functionality of the BDM. On the other hand, the diagnostic block (DB),
+
+--- Page 4 ---
+4 Hasrat et al.
+ 
+VSTOin
+Switch (A)
+Signal Levelling and      
+Processing (B)Switch (B)STO_A
+STO_BSTO Ch -A
+D_STO_A
+STO Ch -BDiagnostic Block
+D_STO_BPower
+Processing 
+(A)
+Power
+Processing 
+(B)Motor ACKAcknowledge
+V_STO_BV_STO_A
+VSTOinPulse Generator
+(A)Signal Levelling and      
+Processing (A)
+Pulse Generator
+(B)D_STO _ACT _A
+D_STO _ACT _B
+Fig.1: Overview of the functional safety architecture of the BDM
+being a non-functional block, implements diagnostic capabilities without directly
+contributing to the primary function of the BDM. We will now discuss the func-
+tionality of each block in detail.
+STO Channels: The BDM comprises two safety channels, STO Ch_A and
+STO Ch_B, depicted in green and pink colours, respectively. Each channel con-
+sists of three functional blocks identical to those in the other channel. The chan-
+nelsoperateindependentlyandprovideredundancyandfaulttolerance,support-
+ing high safety integrity levels. Both channels are responsible for implementing
+theSTOfunction,whichpreventstheunintendedmotionofthemotor.Theinput
+power is supplied to the channels through the STO_A and STO_B terminals.
+Whenever the STO function is activated, it ensures the de-energization of STO
+inputs which leads to removing the power supply to the motor, eliminating the
+risk of hazardous situations.
+Pulse Generator: The pulse generator converts DC power supplied from the
+STO_A and STO_B terminals into a pulsating AC signal when the input volt-
+age is within the normal operating range. Whenever STO is requested, the pulse
+generator gets de-energized from the STO_A and STO_B terminals.
+Signal Levelling and Processing (SLP): The implementation of STO in
+drives is publicly known, with a limited number of available practical methods
+detailed in an IFA report [4]. The general methods include main contactor cuts,
+pulse blocking, and others. While publicly known, Danfoss does not disclose its
+chosen method or the blocks involved. Instead, they are generalized as a single
+block, “Signal Levelling and Processing.” The pulsating AC signal passes through
+the SLP, enabling failure detection within its sub-blocks, before being converted
+back to DC. The DC output then controls the opening and closing of the switch
+based on the high/low value of the original signal.
+
+--- Page 5 ---
+Safety Verification and Optimization in Industrial Drive Systems 5
+Switch: The switches supply power to “Power Processing” blocks. STO follows
+the de-energize-to-trip principle, ensuring safety by opening the switches.
+Power Processing: The motor stays operational when "Power Processing"
+blocks receive continuous power. When the power supply is at logical low, the
+blocksturnthemotoroff,ensuringasafestate.Conversely,whenhigh,theblocks
+turn the motor on, allowing normal function.
+Diagnostic Block (DB): DB continuously monitors channel blocks (through
+D_STO_A and D_STO_B) to diagnose faults. When a fault is detected, DB
+enforcesasafestatebytriggeringchannelswitches(usingD_STO_ACT_Aand
+D_STO_ACT_B outputs) to cut power (V_STO_A and V_STO_B) to the
+“Power Processing” blocks. Additionally, DB sends an acknowledgement signal
+to the user interface, informing the operator that the motor is off and an STO
+request is active. The operator must then inspect, resolve the fault, and confirm
+the system is ready for operation again.
+4 Methodology
+Our methodological approach is divided into three phases: modelling, formal
+verification, and SFF optimization.
+1. Formal Modelling: In this phase, we formally represent the structural and
+behavioural aspects of the BDM architecture in Uppaal Stratego . The struc-
+tural mapping is performed by defining semantics of each DBM block as a sep-
+arate TA, ensuring a one-to-one correspondence between architectural compo-
+nents and their formal representations. Since the identical blocks in STO Ch_A
+and Ch_B perform the same tasks, they are grouped together and formally
+represented by a single TA with unique IDs. On the other hand, behavioural
+mapping is performed by translating each block’s dynamics, interactions, and
+synchronization mechanisms into formal semantics. This mapping approach is
+inspired by the work presented in [16]. We now discuss the formalism and be-
+haviour of single TA and the overall system.
+A TA for any block is defined as a tuple A= (L, ℓ 0, C, D, Σ, T, I ). Here, Lis
+the finite set of locations, and ℓ0∈L is the initial location. Crepresents real-
+valued clocks, while Ddefines the data variables. Σ=Σc∪Σurepresents a finite
+set of actions, where Σcare controllable and Σuare uncontrollable. Tis the set
+of transitions/edges, where each transition is a tuple (ℓ, g, a, u, ℓ′), with ℓ,ℓ′∈L
+as source and destination locations, g∈Guards( C, D) as a condition on clocks
+or data variables, a∈Σrepresenting an internal action or synchronization with
+other blocks, and u∈Updates( C, D) updating clocks or data variables. Finally,
+Iassigns invariants to locations, enforcing timing constraints on staying there.
+The complete model comprises several TAs, called a network of TAs. In
+the BDM architecture, communication or information sharing between blocks is
+represented by arrows (see Figure 1), while in the network of TAs, this happens
+throughtransitionsusingsynchronizationchannelsorsharedvariables.Formally,
+the network of TAs is defined as:
+N= (A1, A2, . . . , A n, V, C h)
+
+--- Page 6 ---
+6 Hasrat et al.
+where:
+–Ai= (Li, l0i, Ci, Di, Σi, Ti, Ii)represents the TA for block i.
+–Vis the set of shared variables (and global clocks).
+–Chis the set of synchronization channels.
+Operational Semantics of Network of TAs: Theexecutionprogressofthenetwork
+at any given moment is defined by its global state s:
+s= (l1, c1, d1, . . . , l n, cn, dn)
+where (li, ci, di)represents the current location, clock valuations, and data vari-
+ables of automaton Ai. The progress evolves through two types of transitions:
+1. Time Delayed Transitions: Time progresses uniformly across all the TAs while
+maintaining location invariants:
+(l1, c1, d1, . . . , l n, cn, dn)t− →(l1, c1+t, d1, . . . , l n, cn+t, dn)
+where t ≥0 and for each i, the condition ci+t|=Ii(li)must hold.
+2. Discrete Transitions: A TA Aitransitions instantaneously when triggered by
+synchronization with any other block or when allowed by a guard condition:
+(l1, c1, d1, . . . , l i, ci, di, . . . , l n, cn, dn)a− →(l1, c1, d1, . . . , l′
+i, c′
+i, d′
+i, . . . , l n, cn, dn)
+if there exists a transition (li, g, a, u, l′
+i)∈Eisuch that:
+–g(ci, di)holds.
+–ais either a synchronization event or an internal action permitted by Ii(li).
+For synchronization to occur, another block Ajmust simultaneously execute
+a complementary transition: a∈Σi∩Σj, ensuring coordinated execution.
+–The update function umodifies clocks and data to c′
+i, d′
+i.
+2. Formal Verification: In the second phase, we utilize Stratego’s verifica-
+tion engine to formally verify the correctness of the constructed formal model
+of the BDM against a set of functional and safety requirements formulated as
+CTL [5] queries. For example, verifying motor deactivation upon fault detection
+and the correct sequence of actions in different blocks to ensure correct and safe
+operation under both normal and faulty conditions.
+3. SFF Optimization: Once the formal verification step is complete, we opti-
+mize DB performance to achieve a target SFF of 90% using the formally verified
+correct model as a baseline. First, we define an objective function to set the op-
+timization criteria. Then controllable and uncontrollable actions are introduced
+to allow Stratego understand what actions can be controlled. The network of
+TAs, with controllable and uncontrollable transitions, incorporating continuous
+clocks and stochastic fault occurrences, collectively forms an SHG. The RL facil-
+ity in Stratego needs to solve our SHG model to generate a winning strategy,
+which can be defined through the function ρ→Σ′
+c⊆Σc. As the strategy ap-
+proach presented in this paper is memoryless, we express it as w:s→Σ′
+c⊆Σc
+where s=last(ρ)is the last state of ρ. Conceptually, wdirects the “system”
+player to select controllable actions from the states that help to achieve the
+desired objective.
+
+--- Page 7 ---
+Safety Verification and Optimization in Industrial Drive Systems 7
+5 BDM Formal Modelling, Verification and SFF
+Optimization using uppaal stratego
+In this section, we describe the formal modelling of BDM, the verification of its
+core functionality, and the optimization of SFF performance.
+5.1 Modelling the Behaviour of the BDM as Timed Automata
+As described in section 4, the formal translation of the overall BDM behaviour
+forms a network of TAs, where each block in Figure 1 is represented by a sepa-
+rate TA. In addition to BDM blocks, extra TAs are introduced to model the user
+interface and fault generation functionality. Since most TAs represent straight-
+forward functionalities described in section 3, we present only the complex and
+interesting ones in Figure 2. To view the full model, please refer to [2].
+In Figure 2, dotted lines represent controllable transitions, which are trig-
+gered by the Stratego , while dashed lines represent uncontrollable transitions,
+which occur automatically based on the system’s internal conditions or timing
+constraints. Double circles represent initial locations, single circles represent reg-
+ular locations, and locations marked with “C” are committed, while “U” denotes
+urgent locations. Both committed and urgent locations are used for atomic tran-
+sitions (no delay occurs), with committed locations having priority when enabled
+simultaneously.
+The first transition of the DiagnosticBlock can occur only once per minute,
+triggered when the guard global _time == 1 is satisfied, representing that di-
+agnostics are performed every minute (see Figure 2a). At this point, Diagnos-
+ticBlock communicates with the one of the two Faultautomata (depicted in
+Figure 2b) via the channel inspect. The Faulttemplate is responsible for gen-
+erating faults in both STO Ch_A and STO Ch_B channels. Committed and
+urgent locations ensure correct information flow. As the DiagnosticBlock is at
+an urgent location and a Faultis at a committed location, the DiagnosticBlock
+has to wait for all committed transitions in the Faultto complete. The urgent
+location also ensures control returns to the DiagnosticBlock , not some regular
+location of any other block. The system is free to select any channel randomly for
+fault generation in any of its blocks. We modelled an equal probability (dashed
+line transitions from a small circle before the Faultand NoFault locations) for
+the system to encounter a fault or remain fault-free in each diagnostic inspection
+cycle. If the system opts not to introduce a fault during a cycle, it transitions
+back to the initial location via the NoFault location. Conversely, if a fault is
+introduced, the system moves to the Faultlocation. From this location, the sys-
+tem can introduce a fault in the pulse generator, switch, or SLP blocks (through
+Pulse,Switch, orLevelProcess locations)—with equal probability. In the sub-
+sequent transition, the fault count for the respective block is incremented, and
+the overall faults record is updated through the update _failures() function.
+Now, the second transition in the DiagnosticBlock gets enabled, triggering
+the function diagnose() to check for new faults in the channels. If no faults
+
+--- Page 8 ---
+8 Hasrat et al.
+ 
+(a) Diagnostic block model constructed in Stratego
+ 
+(b) Fault model constructed in Stratego
+Fig.2: Overview of the main blocks of the BDM modelled in Stratego
+are found in the fault record, the guard fault==0 is validated, and the system
+returns to the initial state after resetting global _timevariable. Conversely, if
+faults are found in the fault record, the guard fault==1 is satisfied. During the
+subsequent transition, the statement i:int[0,1]assigns a temporary variable
+ia random value of 0 or 1, which is then used to update the variable found=i.
+This approach represents the randomness in ability of DB to either detect or
+miss faults. During SFF optimization, Stratego considers the whole system
+as an SHG, carefully selecting random values that enhance SFF during strategy
+learning.
+The guard found == 0 indicates that the DB missed the fault, causing the
+system to transition to the undetect location. In the subsequent transition,
+global _timeand faultare reset, the undetected counter is incremented, and
+the function calculate _coverage() updates the diagnostic coverage (DC). A
+detailed description of DC is provided in Section 5.3.
+On the other hand, when found==1 gets valid, the system reaches the detect
+location, indicating fault detection. In the next transition, the counter detected
+increments, and DB synchronizes with Switch(A) via the switch _off[0]chan-
+
+--- Page 9 ---
+Safety Verification and Optimization in Industrial Drive Systems 9
+Query Result
+1 Switch(0).Open - >PowerProcessing(0).Inactive Valid
+2 Switch(0).Closed - >PowerProcessing(0).Active Valid
+3 PowerProcessing(0).Active and PowerProcessing(1).Active- >Motor.On Valid
+4 PowerProcessing(0).Inactive and PowerProcessing(1).Inactive - >Motor.Off Valid
+5 DiagnosticBlock.Stopping - >Motor.Off Valid
+6 E<>Initializer.STO and STOChannel.Active Invalid
+7 E<>Initializer.STO and (PulseGenerator(0).Generate or PulseGenerator(1).Generate) Invalid
+8 E<>Initializer.STO and (Switch(0).Closed or Switch(1).Closed) Invalid
+9 E<>Initializer.STO and (PowerProcessing(0).Active or PowerProcessing(1).Active) Invalid
+10 Initializer.STO and Motor.On Invalid
+11A[]((DiagnosticBlock.Stopping and m _status == 1 and z >10 and z <=28) imply Motor.Off) Valid
+12 A[]((Motor.Off and m _status == 0 and z >10 and z <=30) imply Initializer.STO) Valid
+Table 1: Formal verification results
+nel. Similarly, in the following transition, calculate _coverage() updates the
+current SFF, and DB synchronizes with Switch(B) viaswitch _off[1].
+After a 5ms startup delay, the switches close and send power output signals
+toPowerProcessing(A) andPowerProcessing(B) . Then, after another 5ms delay,
+both power processing blocks send a power-off signal to the motor. Once both
+signals are received, the motor shuts down.
+The next transition from Stopping occurs only when done==2 is satisfied,
+with doneset by the motor upon shutdown. From Stopping , the DB sends
+reporting! signal to the UserInterface andInitializer TAs, reporting the fault.
+The operator cuts power to the STO channels through the Initializer , analyzes
+and resolves the fault, and then reactivates the STO channels through the Ini-
+tializerto resume normal operation.
+5.2 Safety Formal Verification Evaluation
+We incorporate startup delay requirements for BDM blocks as timing constraints
+on locations during formal modelling. Now, we identify key functional and safety
+requirements for BDM’s operation and formally verify them using CTL queries.
+The formal verification results are shown in Table 1. Queries 1–6 evaluate
+liveness in core functionalities, ensuring system progresses as intended. For in-
+stance, queries 1 and 2 verify that an open switch deactivates the power pro-
+cessing block, while a closed switch activates it. Query 3 checks that the motor
+turns on when both power processing blocks are active, while query 4 ensures it
+turns off when both are inactive. Query 5 confirms that if the DB reaches the
+stopping location after detecting a fault, the motor eventually shuts down.
+Queries 6–12 assess the system’s safety properties. Queries 6–10 verify that
+unintended states are never reached simultaneously, confirming the absence of
+undesired behaviours. None of these queries is satisfied, indicating no violations.
+Query 6 ensures that when STO is activated, the STO channels deactivate and
+stop sending signals to the pulse generator. Queries 7–10 confirm that in STO
+
+--- Page 10 ---
+10 Hasrat et al.
+mode, switches remain open, power processing blocks stay inactive, and the
+motor keeps turned off.
+Query 11 verifies the timing budget requirement, ensuring the motor turns
+off within 28ms after the DB detects a fault and initiates the STO call. Similarly,
+Query 12 checks that STO activation occurs within 30ms of fault detection and
+the STO call.
+5.3 SFF Optimization Evaluation
+Using the formally verified correct model as a base, we now focus on optimizing
+SFF and evaluate BD’s ability to detect failures, as given in Equation 1:
+SFF =λS+λDD
+λS+λDD+λDU(1)
+where λSrepresents the number of detected safe failures, λDDdenotes the num-
+ber of detected dangerous failures, and λDUshows the number of undetected
+dangerous failures. In this work, we disregard safe failures (i.e., λS= 0) in the
+system as they do not compromise safety but cause spurious activation of the
+STO. For example, a faulty voltage or temperature sensor may incorrectly detect
+an over voltage or over temperature condition, causing the motor to stop.
+Recall that the DB randomly determines whether to detect or miss faults.
+Without an optimization mechanism, this randomness can compromise SFF,
+leading to unpredictable system reliability. In order to achieve 90% SFF, the
+DB must detect at least 90% of dangerous failures.
+In order to provide Uppaal Stratego with an optimizing criteria, we for-
+mulated a fitness function (F, see Equation 2). During the optimization process,
+this formula enables Uppaal Stratego to compute F over the period t0totn,
+given that the SFF and SFF targetare known throughout this duration.
+F(t0, tn) =Ztn
+t0abs(SFF(t)−SFF target )dt (2)
+In Equation 2, SFF represents the current value at time t, updated each time
+the DB detects or misses a fault, while SFF targetis the target value (90 in
+this case). The objective is to minimize the absolute difference between them.
+The fitness function applies higher penalties as the gap between them increases
+and vice versa. In other words, when DB detects more faults, SFF improves
+(see Equation 1), reducing the gap. We use the following query to synthesize a
+strategy:
+strategy S = minE(F)[ <=10000]{}- >{SFF}: <>t==10000 (3)
+whichfindsastrategythatconstantlyobservescurrentSFFandtriestominimize
+F over a period of 10,000 minutes. Since fault generation and their detection
+mechanismoccureveryminute,aperiodof10,000minutesisconsideredsufficient
+to generate adequate number of faults and evaluate how effectively the system
+
+--- Page 11 ---
+Safety Verification and Optimization in Industrial Drive Systems 11
+0 2000 4000 6000 8000 10000
+Time (minutes)050100150200250Number of FaultsDetected faults without strategy
+Undetected faults without strategy
+Detected faults with strategy
+Undetected faults with strategy
+Fig.3: Fault detection with and without a strategy
+detects them. Once the strategy is synthesized, Equations 4-5 compute number
+of detected and undetected faults under strategy S.
+E[time <=10000; 1] (max:detected) under S (4)
+E[time <=10000; 1] (max:undetected) under S (5)
+Figure 3 presents experimental results for fault detection performed with
+and without a strategy. Without a strategy, only 185 faults are detected, while
+196 are missed, yielding unacceptable SFF of 48.5% (185
+185+196). In contrast,
+with the strategy, DB detects 290 faults, missing only 29, achieving an SFF of
+90.9% (290
+290+29) and meeting the threshold ( ≥90%). The results highlight how
+Q-learning in Stratego helps DB to enhance its fault detection performance
+and improve overall system reliability.
+6 Related Work
+Formal verification provides formal guarantees that a system functions correctly.
+Paul et. al. [26] applied it to aerospace applications for addressing their safety-
+critical issues through runtime evaluations. Similarly, Guha et. al. [11] applied it
+toanairbagsystem,demonstratingitseffectiveroleinidentifyingandmitigating
+safety-criticalfaults.Otherstudies[12,24,25]furthervalidateitsimpactonflight-
+critical software, networks, and distributed protocols.
+Studies [23,28] investigated how RL can optimize varying energy demands in
+building controls, smart energy management for heating and hot water use, and
+reduce CO 2emissions in smart homes. Uppaal Stratego (with an embedded
+RL facility) has been used in various applications for strategy synthesis, perfor-
+manceanalysis,andoptimalcontrol.Theseapplicationsincludeoptimalschedul-
+ingforbatteries[19],swarmrobotics[7],stormwaterdetentionponds[18],traffic
+lightcontrol[10],optimalrailwaysystemcontrol[17],adaptivecruisecontrol[22],
+and domestic heating control [13,14,20].
+The works mentioned above demonstrate how formal verification and RL op-
+timization techniques are individually useful in addressing real-world problems.
+
+--- Page 12 ---
+12 Hasrat et al.
+However, in our work, we demonstrate how formal verification and RL can be
+effective in a combined framework setting.
+7 Conclusion and Discussion
+In this paper, we present a detailed approach to addressing the safety and di-
+agnostic challenges of industrial drive systems through a combination of formal
+modelling, verification, and optimization techniques. We demonstrate our ap-
+proach using a real-world industrial case provided by Danfoss. A comprehensive
+formal model of the system was developed, capturing its functional behaviour,
+safety functions, and timing constraints, using Uppaal. Formal verification was
+conducted to ensure that the system does not exhibit any undesirable behaviour
+and satisfies key safety properties. Additionally, a reinforcement learning tech-
+nique from Uppaal Stratego was applied to the diagnostic block to achieve
+the target safe failure fraction and diagnostic coverage required by the design
+specifications of iSM3 products. The optimization approach adopted in this work
+not only seamlessly integrates with formal verification but also achieves a safe
+failure fraction of over 90.9%.
+To perform SFF optimization on a correct model, we first formally verify it.
+However, the model’s continuous nature and large state space make verification
+in Section 5.2 challenging. To address this, we introduce a deadlock condition by
+applying a guard on the global clock, halting the BDM system at a specific time
+point, thereby limiting the state space and making formal verification possible.
+This condition is enforced on the STO output transition, cutting off DC power to
+the pulse generator when the global time exceeds 100 minutes. BDM completes
+one cycle per minute, making the 100-minute limit sufficient to capture system
+behaviour and observe fault generation and detection. For SFF optimization, we
+modify the formally verified model by removing the deadlock condition, marking
+transitions as uncontrollable if they are not directly controlled by Stratego ,
+and assigning random weights to locations without invariants or untriggered
+transitions, as required by Stratego for the simulations to progress during
+strategysynthesis.Inourcurrentexperiments,wesynthesizeastrategyfor10000
+minutes, which provides a sufficient learning period for Stratego to achieve a
+targeted SFF threshold of 90%. Although we introduced a deadlock condition
+for verification, the SFF optimization problem is handled without it.
+For future work, we aim to adopt some suitable techniques to address the
+state space explosion problem. We also aim to extend our approach to optimize
+the energy efficiency and operating costs of the BDM. Energy efficiency can be
+improved by minimizing energy waste during low-load or idle conditions while
+maintaining safety criteria. Operating costs can be reduced through predictive
+maintenance,preventingfaultsbeforetheybecomeseriousandloweringlife-cycle
+expenses.
+
+--- Page 13 ---
+Safety Verification and Optimization in Industrial Drive Systems 13
+References
+1. ADVANCEMENTS IN INDUSTRIAL DRIVE SYSTEMS
+(2024). https://www.industryemea.com/market-overview/
+84535-advancements-in-industrial-drive-systems
+2. Complete Models for BDM Safety Optimization . https://github.com/
+ImranRiazAAU/BDM_safety_optimization.git
+3. Danfoss Drives (2024). https://www.danfoss.com/en/products/dds/
+4. Safe drive controls with frequency inverter (2025). https://www.dguv.de/medien/
+ifa/en/pub/rep/pdf/reports2018/report-gesamt.pdf
+5. Behrmann, G., David, A., Larsen, K.G.: A tutorial on uppaal. Formal methods for
+the design of real-time systems pp. 200–236 (2004)
+6. Bjesse, P.: What is formal verification? SIGDA Newsl. 35(24), 1–es (Dec
+2005). https://doi.org/10.1145/1113792.1113794 ,https://doi.org/10.1145/
+1113792.1113794
+7. Bøgh, S., Jensen, P.G., Kristjansen, M., Larsen, K.G., Nyman, U.: Distributed fleet
+management in noisy environments via model-predictive control. In: Proceedings
+of the International Conference on Automated Planning and Scheduling. vol. 32,
+pp. 565–573 (2022)
+8. Brorholt, A.H., Jensen, P.G., Larsen, K.G., Lorber, F., Schilling, C.: Shielded re-
+inforcement learning for hybrid systems. In: Steffen, B. (ed.) Bridging the Gap
+Between AI and Reality. pp. 33–54. Springer Nature Switzerland, Cham (2024)
+9. David, A., Jensen, P.G., Larsen, K.G., Mikučionis, M., Taankvist, J.H.: Uppaal
+stratego. In: Tools and Algorithms for the Construction and Analysis of Systems:
+21st International Conference, TACAS 2015, Held as Part of the European Joint
+Conferences on Theory and Practice of Software, ETAPS 2015, London, UK, April
+11-18, 2015, Proceedings 21. pp. 206–211. Springer (2015)
+10. Eriksen, A.B., Lahrmann, H., Larsen, K.G., Taankvist, J.H.: Controlling signalized
+intersections using machine learning. Transportation Research Procedia 48, 987–
+997 (2020)
+11. Guha, S., Nag, A., Karmakar, R.: Formal verification of safety-critical systems:
+A case-study in airbag system design. In: Abraham, A., Piuri, V., Gandhi, N.,
+Siarry, P., Kaklauskas, A., Madureira, A. (eds.) Intelligent Systems Design and
+Applications. pp. 107–116. Springer International Publishing, Cham (2021)
+12. Hasrat, I.R., Atif, M., Naeem, M.: Formal specification and analysis of termination
+detection by weight-throwing protocol. International Journal of Advanced Com-
+puter Science and Applications 9(2018), https://api.semanticscholar.org/
+CorpusID:13817289
+13. Hasrat, I.R., Jensen, P.G., Larsen, K.G., Srba, J.: Modelling of hot water buffer
+tank and mixing loop for an intelligent heat pump control. In: Cimatti, A., Titolo,
+L. (eds.) Formal Methods for Industrial Critical Systems. pp. 113–130. Springer
+Nature Switzerland, Cham (2023)
+14. Hasrat, I.R., Jensen, P.G., Larsen, K.G., Srba, J.: A toolchain for domestic
+heat-pump control using uppaal stratego. Science of Computer Program-
+ming 230, 102987 (2023). https://doi.org/https://doi.org/10.1016/j.
+scico.2023.102987 ,https://www.sciencedirect.com/science/article/pii/
+S0167642323000692
+15. Jaeger, M., Jensen, P.G., Guldstrand Larsen, K., Legay, A., Sedwards, S.,
+Taankvist, J.H.: Teaching stratego to play ball: Optimal synthesis for continuous
+
+--- Page 14 ---
+14 Hasrat et al.
+space mdps. In: Chen, Y.F., Cheng, C.H., Esparza, J. (eds.) Automated Technol-
+ogy for Verification and Analysis. pp. 81–97. Springer International Publishing,
+Cham (2019)
+16. Kang,E.Y.,Schobbens,P.Y.,Pettersson,P.:Verifyingfunctionalbehaviorsofauto-
+motive products in east-adl2 using uppaal-port. In: Flammini, F., Bologna, S., Vit-
+torini, V. (eds.) Computer Safety, Reliability, and Security. pp. 243–256. Springer
+Berlin Heidelberg, Berlin, Heidelberg (2011)
+17. Karra, S.L., Larsen, K.G., Lorber, F., Srba, J.: Safe and time-optimal control for
+railway games. In: Reliability, Safety, and Security of Railway Systems. Modelling,
+Analysis, Verification, and Certification: Third International Conference, RSSRail
+2019, Lille, France, June 4–6, 2019, Proceedings 3. pp. 106–122. Springer (2019)
+18. Kim, E.H., Larsen, K.G., Goorden, M.A., Nielsen, T.D.: Compositional con-
+trol synthesis for water management system. In: 2024 European Control Confer-
+ence (ECC). pp. 3130–3137 (2024). https://doi.org/10.23919/ECC64448.2024.
+10591152
+19. Kristjansen, M., Kulkarni, A., Jensen, P.G., Teodorescu, R., Larsen, K.G.: Dual
+balancingofsoc/sotinsmartbatteriesusingreinforcementlearninginuppaalstrat-
+ego. In: IECON 2023-49th Annual Conference of the IEEE Industrial Electronics
+Society. pp. 1–6. IEEE (2023)
+20. Larsen, K.G., Mikučionis, M., Muñiz, M., Srba, J., Taankvist, J.H.: Online and
+compositional learning of controllers with application to floor heating. In: Chechik,
+M., Raskin, J.F. (eds.) Tools and Algorithms for the Construction and Analysis of
+Systems. pp. 244–259. Springer Berlin Heidelberg, Berlin, Heidelberg (2016)
+21. Larsen, K.G., Pettersson, P., Yi, W.: Uppaal in a nutshell. International journal
+on software tools for technology transfer 1, 134–152 (1997)
+22. Larsen, K.G., Mikučionis, M., Taankvist, J.H.: Safe and optimal adaptive cruise
+control. In: Correct System Design: Symposium in Honor of Ernst-Rüdiger Olderog
+on the Occasion of His 60th Birthday, Oldenburg, Germany, September 8-9, 2015,
+Proceedings. pp. 260–277. Springer (2015)
+23. Lissa, P., Deane, C., Schukat, M., Seri, F., Keane, M., Barrett, E.: Deep
+reinforcement learning for home energy management system control. Energy
+and AI 3, 100043 (2021). https://doi.org/https://doi.org/10.1016/j.
+egyai.2020.100043 ,https://www.sciencedirect.com/science/article/pii/
+S2666546820300434
+24. Miller, S., Anderson, E., Wagner, L., Whalen, M., Heimdahl, M.: Formal veri-
+fication of flight critical software. In: AIAA Guidance, Navigation, and Control
+Conference and Exhibit. p. 6431 (2005)
+25. Naeem, M., Atif, M., Ali, A., Gulzar, M., Hasrat, I.R.: Modeling and analysis
+of cooperative packet recovery protocol. IEEE Access 12, 56334–56343 (2024).
+https://doi.org/10.1109/ACCESS.2024.3389738
+26. Paul, S., Cruz, E., Dutta, A., Bhaumik, A., Blasch, E., Agha, G., Patterson,
+S., Kopsaftopoulos, F., Varela, C.: Formal verification of safety-critical aerospace
+systems. IEEE Aerospace and Electronic Systems Magazine 38(5), 72–88 (2023).
+https://doi.org/10.1109/MAES.2023.3238378
+27. Sutton, R.S., Barto, A.G.: Reinforcement learning: An introduction. MIT press
+(2018)
+28. Wang, Z., Hong, T.: Reinforcement learning for building controls: The op-
+portunities and challenges. Applied Energy 269, 115036 (2020). https:
+//doi.org/https://doi.org/10.1016/j.apenergy.2020.115036 ,https://www.
+sciencedirect.com/science/article/pii/S0306261920305481
+
+--- Page 15 ---
+Safety Verification and Optimization in Industrial Drive Systems 15
+29. Watkins, C.J., Dayan, P.: Q-learning. Machine learning 8, 279–292 (1992)

@@ -1,0 +1,2613 @@
+--- Page 1 ---
+Analyzing a ÂModel of a Turntable System
+using Spin, CADP and Uppaal
+E. Bortnika, N. Tr· ckab, A.J. Wijsc;1, S.P. Luttikb;c,
+J.M. van de Mortel-Fronczaka, J.C.M. Baetenb,
+W.J. Fokkinkc;d, J.E. Roodaa
+aDepartment of Mechanical Engineering, Eindhoven University of
+Technology,P.O.Box 513, 5600 MB Eindhoven, The Netherlands
+bDepartment of Mathematics and Computer Science, Eindhoven University of
+Technology,P.O.Box 513, 5600 MB Eindhoven, The Netherlands
+cDepartment of Software Engineering, CWI,P.O.Box 94079, 1090 GB Amsterdam,
+The Netherlands
+dVrije Universiteit Amsterdam, Department of Theoretical Computer Science, De
+Boelelaan 1081a, 1081 HV Amsterdam, The Netherlands
+Abstract
+Nowadays, due to increasing system complexity and growing competition and costs,
+industry makes high demands on powerful techniques used to design and analyze
+manufacturing systems. One of the most popular techniques to do performance
+analysis is simulation. However, simulation-based analysis becomes insu±cient since
+it cannot guarantee the correctness of a system. Furthermore, it is not suitable
+for functional analysis. Our research focuses on examining other methods to do
+performance analysis and functional analysis, and trying to combine the two. One
+of the approaches is to translate a simulation model that is used for performance
+analysis to a model written in an input language of an existing veri¯cation tool.
+We translate a Â[1] simulation model of a turntable system into models written
+in the input languages of the tools CADP [2], Spin [3] and Uppaal [4] and do a
+functional analysis with each of them. This allows us to evaluate the usefulness of
+these tools for the functional analysis of Âmodels. We compare the input formalisms,
+the expressiveness of the temporal logics, and the algorithmic techniques for model
+checking, that are used in those tools.
+1Corresponding author. Tel.: +31-20-592-4165; fax: +31-20-592-4199.
+E-mail address: A.J.Wijs@cwi.nl (A.J.Wijs).
+
+--- Page 2 ---
+1 Introduction
+TheÂlanguage is a modeling and simulation language for the speci¯cation
+of industrial systems. It can be used for creating discrete-event, continuous
+or combined, so-called hybrid, models. The language and simulator have been
+successfully applied to a large number of industrial cases, such as an inte-
+grated circuit manufacturing plant, a brewery and process industry plants [5].
+Simulation is a powerful technique for performance analysis, like calculating
+throughput and cycle time, but for functional analysis (veri¯cation) it is less
+suitable. It can, for instance, show that (a model of) a system has a deadlock
+but it cannot show that the system is deadlock-free. For the purpose of veri¯-
+cation ¯rst the discrete-event part of Âhas been formalized [6]. The language
+was mapped onto the very expressive, process algebra like, language called Â¾
+for which an operational semantics was de¯ned and a state space generator
+has been built [6]. Recently, a new formalization of Â, including the hybrid
+part, resulted in a more elegant language [7]. The discrete-event part of this
+language is very similar to Â¾[8].
+The main goal of the TIPSy project [9] (Tools and Techniques for Integrating
+Performance Analysis and System Veri¯cation) is to combine performance
+analysis with veri¯cation, particularly in the Âenvironment. At the start of
+this project we are focusing on veri¯cation. There is no tool support for the new
+version of Âyet and the current toolset for Â¾is a prototype, meant only for
+educational purposes. Therefore it is not comparable, when it comes to state
+space generation, to more developed toolsets. Since we do not expect that a
+dedicated tool for Â, that would be able to compete with existing optimized
+model checkers, could be built within reasonable time, our aim is to translate
+Âmodels to input languages of other existing tools. While doing this, we want
+to compare input formalisms of di®erent tools and see which are best suited
+for translating Âmodels to. We also want to investigate the expressiveness of
+temporal logics and algorithmic techniques for model checking that are used
+in those tools.
+For this paper, we choose the well-known speci¯cation and veri¯cation tools
+CADP [2], Spin [3] and Uppaal [4]. There are several reasons why we make
+this choice:
+(1)The three tools are quite popular and have been used to detect design
+errors in applications from many di®erent domains.
+(2)Each tool has a di®erent input language. We use ¹CRL [10] as the
+modeling language for CADP. It is an action-based, process algebraic
+(ACP[11,12,13]) language with excellent data support. Spin's input lan-
+guage, Promela , is a state-based, imperative language. Finally, Up-
+paal 's input language is a speci¯c class of timed automata, combining
+2
+
+--- Page 3 ---
+both action-based and state-based features.
+(3)Each tool handles time di®erently.
+(4)Each tool has a di®erent logic for expressing properties of a model. In
+CADP, regular alternation-free ¹-calculus [14] is applied, while Spin and
+Uppaal use a temporal logic, LTL and TCTL [15] respectively.
+(5)Each tool uses a di®erent strategy for veri¯cation. In CADP (with ¹CRL
+as input) the whole state space must be built. Spin does model checking
+on-the-°y. Uppaal checks invariant and liveness properties by on-the-°y
+exploration of the state space of a system in terms of symbolic states
+represented by constraints.
+Our case study is a turntable device, a rotating drilling machine. We choose
+this particular case study because:
+(1)It is not too complex; otherwise it would take the emphasis away from
+translating and comparing and make the modeling unnecessarily di±cult.
+(2)It is complex enough in the sense that it contains many interesting fea-
+tures to model, such as parallelism and time.
+(3)It is a case study that has been used before [6], making it possible for us
+to look at existing models and extend them.
+(4)We have access to a physical turntable system and we can use it to
+perform physical experiments.
+In this document, we show how the turntable model can be mapped to the
+input languages of the mentioned tools and how it can be veri¯ed in those
+environments. We do not cover translations of general Âmodels and rather
+focus on the turntable only, but it should be clear that the same story holds for
+a large class of Âspeci¯cations. Of course, models resulting from a translation
+ofÂmodels might be very di®erent from those made from scratch. Our aim
+is to have translations resemble the original Âmodel closely so that possible
+veri¯cation errors in these translations can be related back to the original
+model. We show that many interesting properties of the turntable can be
+veri¯ed but that none of the three tools can easily express all of them. We
+also compare experiences of working with the tools and results such as the
+number of states generated.
+The structure of the document is as follows: First, the turntable device is
+explained. Then, we give an introduction to Âand present the model of
+the turntable. The next three sections are devoted to each tool. We give an
+overview of the input language and the veri¯cation mechanism, we explain how
+we deal with the translation problems and we present the veri¯cation of the
+turntable in detail. The last section gives some comparisons and conclusions.
+3
+
+--- Page 4 ---
+0
+123
+s2 
+s1 s3 
+c1 c2 t1 
+t2 
+DRILL TEST 
+ADD REMOVE 
+d1 
+d2 Fig. 1. The turntable system
+2 Turntable description
+The turntable system is an example of a real-life manufacturing system that
+is used for (real-time) control research [6,16,17].
+The turntable system consists of a round turntable, a clamp, a drill and a
+testing device (Figure 1). The turntable transports products to the drill and
+the testing device. The drill drills holes in the products. After drilling a hole the
+products are delivered to the tester, where the depth of the hole is measured,
+since it is possible that drilling went wrong. To control the turntable system,
+sensors and actuators are used. A sensor detects a physical phenomenon, and
+changes its state. The controller reads the state of the sensor, and sends output
+to actuators. The actuators translate output from the controller to a physical
+change in the machine.
+4
+
+--- Page 5 ---
+The turntable has four slots that can hold a product. Each slot can hold at
+most one product and can be in input, drill, test or output position. There are
+three sensors attached to the turntable: the sensor s1 at the input position (to
+detect if a product has been added by the environment), the sensor s3 in the
+output position (to detect if a product has been removed by the environment)
+and the sensor s2 that detects whether the turntable has completed the turn.
+The drilling module consists of the drill and the clamp. Every product should
+be locked before drilling and unlocked afterwards. To detect whether the clamp
+is locked or not two sensors are used ( c1 and c2 respectively). The drill also
+has two sensors to detect whether the drill is in its up ( d1) or down ( d2)
+position. These sensors are located above the surface of the turntable, so it is
+not possible to say whether the product has been drilled successfully or not.
+In the testing position there are two sensors to detect whether the tester has
+reached its up ( t1) or down ( t2) position. If the tester has reached its down
+position the test result of the product is good and if the sensor at the down
+position did not send a signal during a certain amount of time the test result
+of the product is bad.
+The turntable control system consists of the main controller, turntable con-
+troller, drill controller, and tester controller. The main controller supervises
+the other controllers and the environment. It stores current information about
+products and operations being performed and based on this information it
+issues commands to the other controllers and the environment to start opera-
+tions. When operations are completed the main controller updates the infor-
+mation about the products.
+The turntable controller gets signals from the turntable sensors and passes
+them to the main controller. It also starts rotation of the turntable at the
+command of the main controller.
+The drill controller supervises the drill and the clamp. It switches the drill
+on/o® and commands to lock/unlock the clamp or to start or stop drilling.
+The drill controller also gets signals from the drill and clamp sensors.
+The test controller sends a signal to the tester to start the operation. Then
+it waits for a signal from the sensor at the down position. If the hole is not
+deep enough, the sensor is not activated and the current product should be
+rejected.
+The operation-routing sequence of each product is following: add a product
+to the input position, make a turn (now product is in the drilling position),
+lock the clamp, switch on the drill, drill, switch o® the drill, unlock the clamp,
+make another turn (now product is in the test position), test, and make a turn
+again (product is in the removing position).
+5
+
+--- Page 6 ---
+No product can be added if the adding slot is not empty. No drilling, testing or
+removing can be performed if the corresponding slot is empty. The turntable
+can treat up to four products at the same time, that means that the operations
+can be done in parallel.
+Design rules and assumptions Creating the model we consider only
+"good weather" behavior, i.e. the assumption is that the system works with-
+out faults and there is no product loss. The initial state is de¯ned as follows:
+all slots are empty and no operation is started.
+For reasons of simplicity, we decided to concentrate on the control system.
+That means that we do not model material °ow as this information can be
+obtained from the information stored by the main controller.
+We assume that the main controller sends messages to the environment to
+allow adding and removing of products and the environment informs the main
+controller when the operations are completed. The environment can skip the
+adding or removing operations. A product can be removed from the removing
+position only if it has been drilled properly. If a product has a good test result
+and it has not been removed, it should not be drilled and tested again. If a
+product has a bad test result it must be drilled and tested again. That means
+that the information whether product has been added or removed is necessary
+only after the rotation of the turntable.
+When the other sensors change their states, the control system must be no-
+ti¯ed immediately. For instance, if the clamp sensor does not report that the
+clamp is locked, the drill cannot start drilling. This di®erence causes di®erent
+implementation of the sensors. The turntable sensor states are checked by the
+control system just before a turn, while the other sensors inform the control
+system about their state changes immediately.
+We also assume that the order of starting and ending of the adding, drilling,
+testing and removing operations is not known in advance.
+The execution of each turntable operation requires a certain amount of time.
+Because the duration of the turntable operations has not been de¯ned any-
+where, we have decided to use the delays, that have been de¯ned in other
+turntable models, like [6]. We assume that the environment needs 2 time units
+to perform adding or removing of a product. The clamp needs 2 time units
+to lock or unlock a product. The drilling operation takes 3 time units and
+returning the drill to its up position takes 2 time units. Testing and returning
+the tester to its initial (up) position require 2 time units each.
+6
+
+--- Page 7 ---
+Veri¯cation properties Traditionally, veri¯cation properties have been
+classi¯ed into safety and liveness properties. Safety is usually de¯ned as a
+set of properties that the system may not violate, while liveness is de¯ned
+as the set of properties that the system must satisfy [3]. Safety, then, de¯nes
+that something bad will never happen, and liveness de¯nes that eventually
+something good will happen.
+Given those assumptions we want to verify the following properties:
+(1)The system does not contain a deadlock, i.e. it cannot come to a state
+from which it cannot continue operating (safety).
+(2)If drilling (testing, adding or removing) is started then it is also ¯nished
+and the turntable doesn't rotate in the meantime (liveness).
+(3)If the product has a bad test result then the product remains on the table
+and is drilled again (liveness).
+(4)If the product has a good test result then the remover will be called to
+remove the product (liveness).
+(5)No drilling (testing or removing) takes place if there is no product in the
+slot and no adding is performed if there is a product in the slot (safety).
+(6)Every added product is drilled in the next rotation (liveness).
+(7)Every product eventually leaves the table (liveness).
+(8)When a product is added it takes between 21 and 30 time units to get
+its test result (liveness).
+The property 7 is a liveness property that requires a fairness principle, which
+makes this property the most complicated one.
+First, a product can be removed only if it has a good test result. However, the
+remover can always decide not to remove and the tester can always generate
+bad test results. This can happen because the choices whether the product
+will be removed and whether the test result of the product is good or bad are
+non-deterministic. In order to verify this property we must put some notion
+of fairness to the veri¯cation process, i.e. exclude unfair paths, in which a
+product yields a bad test result in¯nitely often.
+Second, since there are at most four products on the table it can happen that
+one of the products stays on the table while the other ones are drilled properly
+and removed. In order to verify that every product will eventually be removed
+we must identify them in some way. The most common solution is to give
+colors to the products, for instance, redandwhite , and change the adder so
+that it adds (non-deterministically) zero or more white products, then one
+red, and then again zero or more white ones. We want to make sure that if a
+redproduct is added then a redone will leave the table eventually. Another
+solution would be to assign unique identi¯ers to products or use some other
+way to distinguish them.
+7
+
+--- Page 8 ---
+The fairness constraints can be expressed syntactically in linear temporal logic
+(like PLTL), but not in branching temporal logic (like CTL). In ¹-calculus
+fairness properties can be expressed very e±ciently [14].
+The last property (so-called bounded liveness ) also requires identi¯cation of
+the products. First we calculate manually the time interval within which a test
+result of a product is known based on the assumptions. After that we check
+this interval automatically.
+3 The turntable model in Â
+3.1 The Âlanguage
+TheÂlanguage was designed as a hybrid , modeling and simulation language.
+Since we are interested only in discrete-event models and veri¯cation, we
+present here just a part of the language, disregarding features that are used
+for simulation and to model hybrid behavior. For a complete reference of Â,
+see [1]. The discrete-event subset of Âis described in [18].
+Data types TheÂlanguage is statically strongly typed. Every variable has
+a type which de¯nes the allowed operations on that variable. The basic data
+types are boolean, natural, integer and real numbers and enumerations. The
+language provides a mechanism to build sets, lists, array tuples, record tuples,
+dictionaries, functions, and distributions (for stochastic models). Channels
+also have a type that indicates the type of data that is communicated via the
+channel.
+Time model The time in Âis dense, i.e. timing is measured on a continuous
+time scale. The weak time determinism principle, or sometimes called the time
+factorization property, (time doesn't make a choice) and maximal progress (a
+process can delay only if it cannot do anything else) are implicit. The time
+additivity (if a process can delay ¯rst t1and then immediately following t2time
+units then it can delay t1+t2time units from the start) is not present. Delaying
+is enforced by the delay operator but some processes can also implicitly delay,
+e.g. send.
+Atomic processes The atomic processes of Âare process constructors and
+they cannot be split into smaller processes. They are:
+8
+
+--- Page 9 ---
+(1)The assignment process ( x:=e). It assigns the value (must be de¯ned)
+of expression eto variable x. It doesn't have the possibility to delay.
+(2)The skip process. It performs the internal action ¿and cannot delay.
+(3)The send process ( m!e). It sends the value of the expression evia channel
+m. The value of emust be de¯ned and of the right type. It is able to delay
+arbitrarily long.
+(4)The receive process ( m?x). It receives a value via the non-empty channel
+mand assigns it to the variable xwhich must be of the right type. It is
+also able to delay arbitrarily long.
+(5)The delay process ( ¢e). It delays a number of time units equal to the
+value of the expression eor less. The value of emust be a positive real
+number.
+Communication model Communication in Âis synchronous, meaning that
+asend and a receive action on a same channel cannot happen individually but
+only together, as a communication action.
+Operators Atomic processes can be combined by means of the following
+operators. We present each one of them together with their (informal) seman-
+tics.
+(1)The guard operator ( !). A process b!pbehaves as pif the value of
+the boolean expression (guard) bistrue, otherwise it deadlocks.
+(2)The alternative composition operator ([]). A process p[]qrepresents a
+non-deterministic choice between pandq.
+(3)The sequential composition operator ( ; ). A process p;qbehaves as p
+followed by the process q.
+(4)The repetition operator ( ¤). A process ¤pbehaves as pin¯nitely many
+times.
+(5)The parallel operator ( jj). A process pjjqexecutes pandqconcurrently in
+an interleaved fashion, i.e. the actions of pandqare executed in arbitrary
+order. If one of the processes can execute a send action and the other one
+can execute a receive action on the same channel then they communicate,
+in other words pjjqexecutes the communication action on this channel.
+(6)The scope operator ( j[j]j). A process j[sjp]jbehaves as pin a local state
+s. The state sis used to de¯ne local variables and channels visible only
+to the process p. It is recursively de¯ned as the empty state or as dcl; s0
+where s0is a state and dclis a variable declaration ( x:type[=val]) or a
+channel declaration ( m: ?type for receiving and m: !type for sending).
+Process de¯nitions The language Âprovides the possibility to de¯ne pro-
+cesses. We don't give a syntax de¯nition here but rather an example:
+9
+
+--- Page 10 ---
+procp(c: ?nat;b:bool) =j[x:natjb!c?x]j
+The process phas two arguments, a channel cthat can transport natural
+numbers and a boolean variable b. It has only one local variable, x. The process
+can now be instantiated (e.g. p(m; y > 7)) inside another process.
+3.2 The turntable model
+The turntable system architecture is depicted in Figure 2. The mechanical
+components are represented by means of the processes tester ,drill,clamp
+andturn table. These components are controlled by switching commands:
+cDrillOnO® switches the drill on/o®, cDrillUpDown instructs the drill to
+start or stop drilling, cClampOnO® instructs the clamp to lock or unlock
+the product, and cTesterUpDown instructs the tester to start or stop testing.
+The other signals that are used are cRotate (commands the turntable to start
+turning), cEnvCanAdd, cEnvCanRemove (inform the environment that it can
+perform adding or removing operations respectively). As already mentioned,
+the sensors are implemented in several ways (more explanations are given in
+the descriptions of the corresponding processes).
+The control system model consists of the main controller, drill and clamp con-
+troller, tester controller and turntable controller which are modeled by means
+of the processes main control ,drill control ,tester control andTTC respec-
+tively. The processes envaddandenvremove represent the environment.
+Below we explain all processes in detail. Of each process, a description is given
+followed by the Âcode that models the component.
+Theturn table process In the turn table process we de¯ne three boolean
+variables representing the turntable sensors. The variables bS1andbS3cor-
+respond to the sensors at the adding and removing positions respectively. The
+variable bS2corresponds to the turntable sensor that detects whether the
+turntable is rotating or not. The current states of the sensors are sent via
+channels cS1, cS2, cS3 . The sensor states are updated by the environment
+when a product is added or removed ( cEnvAdded, cEnvRemoved ). In the real
+system the states of these sensors are automatically updated while turning.
+To achieve this we add two more channels ( cUpdateS1, cUpdateS3 ). A dif-
+ferent way to model a change of the sensor states can be found later in the
+description of the main control process. When the turn table gets the signal
+cRotate it performs a delay. Reading and updating the sensors are 'atomic'
+and instantaneous actions. The control system is modeled in such a way that
+it is not possible to perform those actions in parallel. This allows us to use
+alternative composition instead of the parallel one and reduce the state space.
+10
+
+--- Page 11 ---
+Drill-Clamp 
+Control
+Main 
+Control
+TurnTable 
+ControlEnvironment
+Add Environment
+Remove Clamp Drill
+Tester
+ControlTester 
+TurnTable cTe
+sterUpDowncTesterDownDonecTesterUpDonecDrillOnOffcDrillOnDonecDrillOffDone cDrillUpDowncDrillUpDonecDrillDownDone
+cClampOnOff
+cLocked
+cUnlocked
+cStartDrill cDrillEndedcStartTe
+st
+cTe
+sted
+cEnvCanAdd
+cEnvAddFinishedcEnvCanRemove
+cEnvRemFinished
+cEnvAddedcEnvRemovedcS1
+cUpdateS 1
+cUpdateS 3
+cRotatecTurncTurnedcGetS1
+cGetS3
+cSetS3cSetS1cS3cS2Fig. 2. The turntable model architecture
+11
+
+--- Page 12 ---
+procTurn table(cEnvAdded ;cEnvRemoved
+;cRotate ;cUpdateS1 ;cUpdateS3 : ?bool
+;cS1;cS2;cS3: !bool
+)=
+j[bS1:bool = false ;bS2:bool = false ;bS3:bool = false ;x:bool
+j ¤(cS1!bS1
+[]cS2!bS2
+[]cS3!bS3
+[]cEnvAdded ?bS1
+[]cEnvRemoved ?x;bS3:= false
+[]cUpdateS1 ?bS1
+[]cUpdateS3 ?bS3
+[]cRotate ?bS2; ¢4:0;bS2:= false
+)
+]j
+Theclamp process The clamp has one actuator that is used to switch it
+on/o® ( cClampOnO® ). The clamp also has two sensors to detect if it is locked
+or unlocked. When the states of the sensors are changed, the process clamp
+reports to the control system via the channels cLocked andcUnlocked .
+procClamp (cClampOnO® : ?bool
+;cLocked ;cUnlocked : !bool
+)=
+j[x:bool
+j ¤(cClampOnO® ?x; ¢2:0;cLocked ! true
+;cClampOnO® ?x; ¢2:0;cUnlocked ! true
+)
+]j
+Thedrill process The drill is controlled by two independent actuators.
+One of the actuators is used to switch the drill on/o® ( cDrillOnO® ). The
+other one ( cDrillUpDown ) instructs the drill to start drilling or to return in
+its initial (up) position. The states of the sensors are detected through the
+channels cDrillDownDone ,cDrillUpDone . The commands are handled inde-
+pendently, that is why we use the parallel composition in the drill process. On
+the other hand, both actuators are the parts of the one physical component
+(the drill) and that is why we do not represent them by means of two separate
+Âprocesses, instead, we combine them into one process.
+12
+
+--- Page 13 ---
+procDrill(cDrillUpDown ;cDrillOnO® : ?bool
+;cDrillUpDone ;cDrillDownDone
+;cDrillOnDone ;cDrillO®Done : !bool
+)=
+j[x:bool
+j ¤(cDrillUpDown ?x; ¢3:0;cDrillDownDone ! true
+;cDrillUpDown ?x; ¢2:0;cDrillUpDone ! true
+)
+jj ¤(cDrillOnO® ?x;cDrillOnDone ! true
+;cDrillOnO® ?x;cDrillO®Done ! true
+)
+]j
+Thetester process The tester is controlled by one actuator ( cTesterUp-
+Down ) that is used to start or stop testing. It has two sensors as well. One of
+them is used to detect a test result of a product. The other one detects whether
+the tester is in its initial (up) position. Possible test results are implemented
+by non-deterministic choice. When the test result of a product is good the
+process tester sends a signal via the channel cTesterDownDone . Otherwise,
+the process tester waits for the command to move up to the initial position
+(cTesterUpDown ) and, then, sends a signal through the channel cTesterUp-
+Done .
+procTester (cTesterUpDown : ?bool
+;cTesterUpDone ;cTesterDownDone : !bool
+)=
+j[x:bool
+j ¤(cTesterUpDown ?x
+; ¢2:0
+; (cTesterDownDone ! true [] skip)
+;cTesterUpDown ?x
+; ¢2:0
+;cTesterUpDone ! true
+)
+]j
+Themain control process Themain control process keeps track of the
+slot states and operates the other controllers. We use four integer variables
+(p0, p1, p2, p3 ) to describe the state of every slot. The variable values range
+from 0 to 4 (0 means that there is no product in the slot, 1 - there is a
+product in the slot and it is not drilled, 2 - a product has been drilled, 3 - a
+product has been tested and has a bad test result, and 4 - a product has been
+tested and has a good test result). First, the main control process checks the
+states of the slots and starts corresponding processes (adding, drilling, testing
+13
+
+--- Page 14 ---
+and removing). As we assumed, the order of starting and ¯nishing of these
+operations can vary and is not known a priori. In order to implement it, we
+use nested parallelism. The operations ( cEnvCanAdd ,cStartDrill ,cStartTest ,
+cEnvCanRemove ) are started according to the following rules:
+²The environment is allowed to add a product if there is no product in the
+slot.
+²Drilling can be performed if there is a product in the slot and it has not
+been drilled yet or it has a bad test result.
+²Testing is allowed if there is a product in the slot and it has been drilled.
+²The environment is allowed to remove a product if there is a product in the
+slot and it has a good test result.
+If these operations have been started the main control process waits till they
+are completed ( cEnvAddFinished, cEnvRemFinished, cTested, cDrillEnded ).
+After that, it gives the command to the turntable controller (the process TTC )
+to read the states of the sensors at the adding and removing positions ( cGetS1,
+cGetS3 ) and gets their current states ( cSetS1, cSetS3 ). If their states have
+been changed (that means that the products have been added or removed),
+themain control updates the information about current slot states. Then, it
+sends the command to the turntable controller to rotate the turntable ( cTurn )
+and waits till the turn is completed ( cTurned ). Then, the loop is repeated. In
+the real system the states of the sensors at adding and removing positions
+are automatically updated during the turn. To achieve this in the model we
+send new states of the turntable sensors over the channel cTurn . In our model
+main control sends the value of the sensors after the turn over the channel
+cTurn (the information is coded as an integer in following way: p= 0 means
+that there is no product in the adding and removing positions, p= 1 means
+that there is no product in the adding position and there is a product in the
+removing slot, p= 2 means that there is a product in the adding position
+and there is not product in the removing position, p= 3 means that there
+are products in both slots). Another approach to update the sensor states is
+to duplicate the information about all slots in the turn table process [6]. This
+approach allows one to separate the physical and control systems easier and
+simpler but leads to a larger state space.
+14
+
+--- Page 15 ---
+procMain control (cDrillEnded ;cTested ;cTurned ;cSetS1
+;cSetS3 : ?bool
+;cEnvCanAdd ;cEnvAddFinished
+;cStartDrill ;cStartTest
+;cEnvCanRemove ;cEnvRemFinished
+;cGetS1 ;cGetS3 : !bool;cTurn : !nat
+)=
+j[x;y:bool;p:nat= 0;pp:nat= 0;
+p0:nat= 0;p1:nat= 0;p2:nat= 0;p3:nat= 0
+j ¤( (
+(p0= 0!cEnvCanAdd ! true; cEnvAddFinished ?x
+[]p06= 0!skip
+)
+jj(p1= 1_p1= 3!cStartDrill ! true; cDrillEnded ?x;p1:= 2
+[]:(p1= 1_p1= 3)!skip
+)
+jj(p2= 2!cStartTest ! true; cTested ?y; (y!p2:= 4 [] :y!p2:= 3)
+[]p26= 2!skip
+)
+jj(p3= 4!cEnvCanRemove ! true; cEnvRemFinished ?x
+[]p36= 4!skip
+)
+)
+; (p0= 0!cGetS1 ! true; cSetS1 ?x
+; (x!p0:= 1 [] :x!skip)
+[]p06= 0!skip
+)
+; (p3= 4!cGetS3 ! true; cSetS3 ?x; (:x!p3:= 0 [] x!skip)
+[]p36= 4!skip
+)
+;pp:=p3;p3:=p2;p2:=p1;p1:=p0;p0:=pp
+; (p0= 0!(p3= 0!p:= 0 [] p36= 0!p:= 1)
+[]p06= 0!(p3= 0!p:= 2 [] p36= 0!p:= 3)
+)
+;cTurn !p;cTurned ?x
+)
+]j
+Thedrill control process The process drill control gets the command to
+start drilling from the main control over the channel cStartDrill . Then, it sends
+a signal to lock the clamp ( cClampOnO® ) and waits for the reply from the
+clamp sensor ( cLocked ). When the clamp is locked the drill control uses the
+other switching command ( cDrillOnO® ) to start drilling and waits for the con-
+¯rmation ( cDrillOnDone ). Then, it gives a signal to start drilling ( cDrillUp-
+Down ), waits for con¯rmation from the sensor ( cDrillDownDone ), sends a sig-
+nal to return the drill in its initial (up) position ( cDrillUpDown ), and waits for
+15
+
+--- Page 16 ---
+con¯rmation from the sensor ( cDrillUpDone ). Then, the drill control switches
+the drill o® ( cDrillOnO® ), and waits for con¯rmation ( cDrillO®Done ). After
+that, the drill control switches the clamp on again ( cClampOnO® ), waits for
+the signal from the clamp sensor ( cUnlocked ) and reports to the main control
+that drilling is completed ( cDrillEnded ).
+procDrill control (cStartDrill ;cLocked ;cUnlocked
+;cDrillUpDone ;cDrillDownDone
+;cDrillOnDone ;cDrillO®Done
+;cDrillEnded : ?bool
+;cClampOnO® ;cDrillUpDown
+;cDrillOnO® : !bool
+)=
+j[x:bool
+j ¤(cStartDrill ?x
+;cClampOnO® ! true; cLocked ?x
+;cDrillOnO® ! true; cDrillOnDone ?x
+;cDrillUpDown ! true; cDrillDownDone ?x
+;cDrillUpDown ! true; cDrillUpDone ?x
+;cDrillOnO® ! true; cDrillO®Done ?x
+;cClampOnO® ! true; cUnlocked ?x
+;cDrillEnded ! true
+)
+]j
+Thetester control process Tester control gets a command to perform
+testing from main control (cStartTest ) and switches tester on (cTesterUp-
+Down ). To perform the testing operation, tester needs 2 time units. If the
+tester has reached its down position within 2 time units, the test result of the
+product is good ( cTesterDownDone ) and if the sensor does not react in 2 time
+units, the test result of the product is bad. However, in our model tester control
+waits for the signal from the tester for 4 time units instead of 2. The reason
+for this is that if tester and tester control delay for the same amount of time,
+there is a possibility that tester control would make its choice before tester .
+So, in order to ensure that tester always makes its choice before tester control
+the latter delays longer. In that case, tester makes a choice in 2 time units and
+after that tester control has no choice anymore. Then, tester control stores the
+test result ( bTstRes ), switches tester o® (cTesterUpDown ), and sends the test
+result to main control over the channel cTested .
+16
+
+--- Page 17 ---
+procTester control (cStartTest ;cTesterDownDone
+;cTesterUpDone : ?bool
+;cTesterUpDown ;cTested : !bool
+)=
+j[x;bTstRes :bool
+j ¤(cStartTest ?x
+;cTesterUpDown ! true
+; (cTesterDownDone ?bTstRes
+[] ¢4:0;bTstRes := false
+)
+;cTesterUpDown ! true
+;cTesterUpDone ?x
+;cTested !bTstRes
+)
+]j
+TheTTC process The process TTC (the turntable controller) gets com-
+mands from main control to perform the turn or update sensor information.
+When the turn is completed TTC sends a signal to main control over the
+channel cTurned .
+procTTC (cTurn : ?nat; cS1;cS2;cS3
+;cGetS1 ;cGetS3 : ?bool
+;cSetS1 ;cSetS3 ;cUpdateS1 ;cUpdateS3
+;cRotate ;cTurned : !bool
+)=
+j[x:bool;bS1:bool = false
+;bS3:bool = false ;ss:nat= 0
+j ¤(cTurn ?ss;cRotate ! true
+;cUpdateS1 !ss= 2_ss= 3
+;cUpdateS3 !ss= 1_ss= 3
+;cS2?x;cTurned ! true
+[]cGetS1 ?x;cS1?bS1;cSetS1 !bS1
+[]cGetS3 ?x;cS3?bS3;cSetS3 !bS3
+)
+]j
+The environment processes There are two environment processes in the
+model: adding and removing. They get appropriate signals from main control
+to add or remove a product ( cEnvCanAdd, cEnvCanRemove ). After perform-
+ing (or skipping) the operations the environment processes notify main control
+that they have ¯nished ( cEnvAddFinished, cEnvRemFinished ). If a product is
+added or removed the environment processes send corresponding messages to
+theturn table process through the channels ( cEnvAdded, cEnvRemoved ).
+17
+
+--- Page 18 ---
+procEnv add(cEnvCanAdd : ?bool;cEnvAdded
+;cEnvAddFinished : !bool
+)=
+j[x:bool
+j ¤(cEnvCanAdd ?x
+; (skip [] cEnvAdded ! true)
+;cEnvAddFinished ! true
+)
+]j
+procEnv remove (cEnvCanRemove : ?bool;cEnvRemoved
+;cEnvRemFinished : !bool
+)=
+j[x:bool
+j ¤(cEnvCanRemove ?x
+; (cEnvRemoved ! true [] skip)
+;cEnvRemFinished ! true
+)
+]j
+The state space As already mentioned, there is no tool available for Â
+yet. Therefore we have generated the state space in the Â¾toolset with the
+following results: the number of states is 32570 (6839 states after minimization
+under strong bisimulation).
+4 Promela/Spin
+4.1 Introduction to Promela /Spin
+The full presentation of Promela , a very complex language, is beyond the
+scope of this paper. We give here only a brief overview mentioning only those
+parts of the language that we are interested in. For more information, see
+[3,19,20] or consult the Spin's web page http://spinroot.com .
+Promela 's syntax is derived from C [21], with communication primitives
+from CSP [22] and control °ow statements based on the guarded command
+language [23]. It has many language constructs similar to Â¾constructs.
+A common speci¯cation consists of global channel declarations, variable decla-
+rations and process declarations with possibly one special init process. Pro-
+cess declarations specify behavior, channel and variable declarations de¯ne the
+environment in which the processes run. Promela has a rather limited set of
+18
+
+--- Page 19 ---
+data types, only bool,byte,short ,int(all with the unsigned possibility)
+and channels. It also provides a way to build records and arrays and to de-
+¯ne macros (processed by the C language preprocessor). Message channels are
+declared, for instance, as chan m = [2] of fintgmeaning that the channel
+is bu®ered and it can store (at most) two values of type integer (has only
+one ¯eld of type int). Channels can also be of length 0, i.e. unbu®ered, to
+model synchronous communication. They can also have more than one ¯eld,
+not necessarily of the same type.
+Every variable must be declared before use. The exception is the special
+dummy variable ' ' which is a prede¯ned write-only variable, that can be
+used to store scratch values. The type of this global variable is int. It is an
+error to use or reference its value.
+Process declarations are of this form:
+proctype name(parameters) {
+local variables and channels;
+body
+}
+Local variables and channels specify the local state of the process and they
+are not visible to other processes. The same rules as for global variables apply
+here. The body is a list of statements, itself a statement. Any expression
+can be used as a statement, enabled precisely if it evaluates to a non-zero
+value. Assignments are also statements and have the usual semantics. The
+skip statement executes the action (1)and has no e®ect on variables. The
+send statement ( m!e1,...,e n) sends a tuple of values of the expressions ei
+to the channel m. The receive statement ( m?E1,...,E n) retrieves a message
+from the non-empty channel m, for every Eithat is a variable assigns a value
+ofeito it and for every other Ejmakes sure that its value matches the value
+of the ej. If the channel is bu®ered, a send is enabled if the bu®er is not full; a
+receive is enabled if the bu®er is non-empty. On an unbu®ered channel, a send
+(receive) is enabled only if there is a corresponding receive (send) that can
+be executed simultaneously. There are also many variants of these statements
+(message can be left in or removed from a channel after receiving, send/receive
+can only be o®ered etc.)
+There are several ways to combine statements. The alternative composition is
+de¯ned by the selection statement:
+if
+:: statements
+...
+:: statements
+19
+
+--- Page 20 ---
+fi.
+It selects one among its options and executes it. An option can be selected
+if its ¯rst statement is executable. A selection blocks until there is at least
+one selectable option. If more than one option is selectable, one will be chosen
+non-deterministically. The repetition is achieved by the statement
+do
+:: statements
+...
+:: statements
+od.
+It is similar to the selection statement except that the choices are executed
+repeatedly, until control is explicitly transferred to outside the statement by
+break or the goto statement. The break terminates the innermost repetition
+statement in which it is executed and cannot be used outside a repetition.
+Another way to combine statements is to use sequential composition denoted
+asp;qorb -> p . The latter is usually used to emphasize that a process pis
+guarded by the conditional expression/statement b.
+The original version of Promela /Spin is untimed but there is a discrete time
+extension, called DT Promela /DTSpin [24]. The idea is to divide time into
+slices and then frame actions into these slices. The time between actions is
+measured in ticks of a global digital clock. By having a variable tdeclared as
+timer , setting its value to some expression that evaluates to a natural number
+(by doing set(t,e) ) and waiting for tto expire (by stating expire(t) ) a
+process can be enforced to postpone its execution for ntime slices (where
+nis the value of e). When DT Spin executes the timeout action, all timers
+synchronize and time progresses to a next slice. This action is executed only if
+no other actions can be executed, meaning that maximal progress is implicit.
+Deadlock is recognized when timeout is about to happen and all timers are
+o® (not set or already expired).
+Promela provides two constructs, atomic fstmt 1;...;stmt ngand
+dstepfstmt 1;...;stmt ngthat can be used to model indivisible events and
+to reduce a state space. Their purpose is to forbid the statements from inside
+to interleave with other statements in the speci¯cations. The di®erence is that
+additionally dstep executes all statements as one (one state in the state
+space). These constructs are very useful but have a limitation: statements
+other than the ¯rst may not block and the dstep cannot contain send/receive
+statements on unbu®ered channels.
+Once declared every process can be started by the Promela process cre-
+ation mechanism, the runstatement. The special init process, if present, is
+20
+
+--- Page 21 ---
+automatically instantiated once, and is often used to prepare the true initial
+state of a system by initializing variables and running the appropriate process-
+instances. Processes can be started with di®erent parameters. Once started
+they execute in parallel with the interleaving semantics. This is the only way
+to achieve parallelism because there is no explicit parallel operator. Processes
+communicate with each other through global variables and channels.
+4.2 The turntable model in Promela
+Translation of Âconstructs like assignments, skip statement, sequential and
+alternative composition and repetition is straight-forward since they have ob-
+vious equivalents in Promela .
+The data types used in the turntable model are also present in Promela .
+Both languages have a notion of channels. Communication in Âis synchronous
+and consequently all channels in the Promela translation are of length zero.
+For example, channel cRotate is declared as chan cRotate = [0] of fboolg.
+In general proc de¯nitions of Âare translated to proctype de¯nitions of
+Promela andinit process is used to run them all.
+For example, the drill control process is translated as
+proctype drill_control() {
+do
+:: cStartDrill?_,1;
+cClampOnOff!1; cLocked?_;
+cDrillOnOff!1; cDrillOnDone?_;
+cDrillUpDown!1; cDrillDownDone?_;
+cDrillUpDown!1; cDrillUpDone?_;
+cDrillOnOff!1; cDrillOffDone?_;
+cClampOnOff!1; cUnlocked?_;
+cDrillEnded!1
+od;
+}
+Since in the drill control process we use channels only for synchronization, af-
+ter receiving we don't need the value of xso we replace it by the dummy vari-
+able . The additional parameter ' ,1' incStartDrill? ,1will be explained
+later.
+We now present features of which translation requires a more careful consid-
+eration.
+21
+
+--- Page 22 ---
+Guards Statements of type b!p, in general cannot be just translated as b
+-> p. This is due to the fact that, since in Promela operator ->is equivalent
+to the sequential operator and the boolean expression bis also a statement, if
+the value of bistrue,Spin will execute the action (1)(e.g. it will pass the
+guard) even though process pcannot execute anything. This is di®erent from
+Âwhich looks for both bto be true and for pto be executable before taking
+the step.
+However, if pinb!pis an atomic process there is a way to translate. The
+guarded assignment such as b!x:=eis translated as dstepfb; x = e g.
+With the dstep operator we force the statement to be executed as one action
+like in Â. If the value of bisfalse the statement is blocked and if it is true,
+since an assignment is always executable, the statement will execute only one
+action. Translation is similar for a guarded skip.
+In order to translate guarded send/receive actions we must apply a di®erent
+trick because those actions can block and therefore cannot be put inside the
+dstep statement. For a channel that has send/receive actions involved in
+guarded statements we ¯rst change the declaration by adding another ¯eld
+argument to it, one of an integer type. We need the extra argument to syn-
+chronize on guards and we translate b!m!etom!e,b andB!m?xto
+m?x,eval(2-B) . We use 2-Binstead of just Bbecause the communication
+between a guarded send and a guarded receive should not take place if both
+guards evaluate to false ( 2-B = b is equivalent to B=1andb=1). The eval func-
+tion is used to force the evaluation of the expression 2-B.Spin does not do this
+automatically in receive statements because the expression can be a variable in
+which case it should not serve as a match but instead it would be assigned the
+incoming value from the message ¯eld. If a communication action, for example
+m?x, is not used in the guarded context but its counterpart send is, then it
+should be translated to m?x,1 . This goes similarly for m!ewhen a correspond-
+ing receive is guarded. For example, in the main control process a send action
+on the channel cStartDrill is guarded, p1= 1_p1= 3!cStartDrill !true,
+and this statement is translated as cStartDrill!1,(p1 == 1 || p1 == 3) .
+The corresponding receive action, cStartDrill ?xin the drill control process,
+is not guarded and therefore translated as cStartDrill? ,1.
+In case of the main control process not only atomic processes are guarded,
+but also, for example, we see
+p0= 0!(p3= 0!p:= 0 [] p36= 0!p:= 1)
+[]p06= 0!(p3= 0!p:= 2 [] p36= 0!p:= 3)
+To translate this fragment we use the fact that b1!(b2!p) is equivalent
+to (b1^b2)!pand that b!(p[]q) is equivalent to ( b!p) [] (b!q). This
+22
+
+--- Page 23 ---
+assures that we can distribute guards over the operators and have the equiv-
+alent process with guarded atomic processes only. The Promela translation
+is therefore:
+if
+:: d_step{(p0 == 0 && p3 == 0) -> p = 0}
+:: d_step{(p0 == 0 && p3 != 0) -> p = 1}
+:: d_step{(p0 != 0 && p3 == 0) -> p = 2}
+:: d_step{(p0 != 0 && p3 != 0) -> p = 3}
+fi;
+Time Note that in the turntable model all the delays are natural numbers
+so we don't think that much is lost when switching from continuous to dis-
+crete time. The ¢nstatement is translated to the DT Promela statement
+expire(t) , where tistimer , previously set to the value of n. In cases where
+¢nis not involved in a choice, set(t,n) can be present immediately be-
+fore the expire(t) . This is, indeed, the case in the translations of the clamp ,
+turn table,drill,tester ,envaddand the endremove process. However, in the
+tester control process there is an alternative composition of delaying and re-
+ceiving:
+cTesterUpDown ! true;
+(cTesterDownDone ?;
+bTstRes := true
+[] ¢2;
+bTstRes := false
+);
+cTesterUpDown ! true
+In order to prevent time from making a choice, the set(t,4) must be moved
+to some place 'safe', i.e. outside of the alternative composition. That is be-
+cause it is always executable and therefore always available as a choice, while
+expire(t) is a boolean expression/statement that is blocked until 4time slices
+later. The discussed fragment of the tester control process is translated as:
+proctype tester_control(){
+bool bTstRes;
+timer t;
+do
+:: cStartTest?_,1; set(t,4);
+cTesterUpDown!1;
+if
+:: cTesterDownDone?_; bTstRes = 1
+:: expire(t); bTstRes = 0
+23
+
+--- Page 24 ---
+fi;
+. . .
+od
+}
+Parallel operator InPromela there is no explicit parallel operator. Since
+processes drill andmain control contain it, we encounter a problem when
+trying to translate them.
+In the drill process no variables are shared (except the dummy xthat is re-
+moved in the Promela translation anyway) and the parallel operator is not
+used in the context of other operators. This means that drill can be split into
+two smaller processes that can be translated separately:
+proctype drill1() {
+timer t;
+do
+:: cDrillUpDown?_;
+set(t,3); expire(t);
+cDrillDownDone!1;
+cDrillUpDown?_;
+set(t,2); expire(t);
+cDrillUpDone!1
+od
+}proctype drill2() {
+do
+:: cDrillOnOff?_;
+cDrillOnDone!1;
+cDrillOnOff?_;
+cDrillOffDone!1
+od
+}
+The drill1 and drill2 are executing in parallel when started in the init
+process.
+On the other hand, in the main control process, the parallel operator is used
+within a repetition and a sequential composition context. To solve this problem
+we use Promela 's process creation mechanism. The parts of the main control
+process that run in parallel are translated to separate process de¯nitions,
+namely MC1() ,MC2() ,MC3() andMC4() . These processes should not be started
+in the init process since they are not available from the beginning. The
+part that comes after the parallel composition (together with the loop) is
+also translated to the new process but with the additional statement at the
+beginning of the loop whose role is to start the new processes. This process is
+called main control and it must be started in the init process.
+There is one more problem to solve. After the main control process starts its
+24
+
+--- Page 25 ---
+subprocesses it should be waiting for them to ¯nish, not run in parallel with
+them as would be the case now. Therefore, some synchronization is needed.
+We use a global variable WAIT of type integer, initially 0, which is incremented
+at the end of each subprocess, and for which the main control waits to be
+equal to 4, the number of subprocesses it started. Then, it sets the variable
+back to 0 (for later use) and continues. Therefore, main control is translated
+as:
+proctype main_control(){
+bool x;
+int p = 0, pp = 0;
+do
+:: atomic{ run MC1(); run MC2();
+run MC3(); run MC4() };
+d_step{ (WAIT == 4) -> WAIT = 0 };
+. . .
+od
+}
+Note that since variables p0; p1; p2andp3are shared between parts that are
+now separate processes in Promela , they must be declared in the global
+scope.
+Remark: Since parts of the main control process that run in parallel don't
+communicate with each other the parallel operator here is just an interleaving
+operator. In some cases the interleaving of actions in Promela could also be
+achieved with one loop and few additional guards (boolean variables). The
+idea is to associate one guard to each action. If there is a choice between two
+actions they share the same guard. Only actions available from the start have
+there guards initially set to true. When an action is executed, its guard is put
+to false and the guard of the action that comes next is assigned true. This is
+done in a loop that is exited when all the guards are false. To illustrate the
+technique we give an example. The interleaving between a;bandc; (d[]e)
+can be expressed as:
+bool b1,b2,b3,b4;
+d_step{ b1=1; b2=0; b3=1; b4=0; }
+do
+:: d_step{ b1->a; b1=0; b2=1 }
+:: d_step{ b2->b; b2=0 }
+:: d_step{ b3->c; b3=0; b4=1 }
+25
+
+--- Page 26 ---
+:: d_step{ b4->d; b4=0 }
+:: d_step{ b4->e; b4=0 }
+:: !(b1 || b2 || b3 || b4) -> break
+od;
+The dstep is used to prevent state space from growing when introducing
+extra actions.
+However, this approach results in a Promela model that is not very similar
+to the original Âmodel so we use it only to compare the state spaces generated
+by the Â¾toolset and Spin.
+4.3 Veri¯cation of the model in Spin
+In this section we ¯rst compare state spaces generated by Spin andÂ¾and
+later show how we veri¯ed the properties of the turntable.
+By performing an exhaustive search, Spin's veri¯er, almost instantly, reported
+100995 states, 188724 transitions and 5.8975MB of memory used (3.342MB
+for states). To compare this result to the size of the state space generated by
+Â¾(32570 states) we switch o® all the optimizations of Spin: like partial order
+reduction, statement merging and state vector compression. Now the number
+of states increases to 157576, the number of transitions to 455580. This shows
+the importance of the optimization features.
+The huge di®erence in the number of states generated by Â¾andSpin is mostly
+the result of the setactions and the statements used for process creation and
+synchronizing in the main control process. To show this we ¯rst force set
+actions to be executed atomically with the action before. Since this action is
+always send or receive we can't use the dstep, only the atomic statement.
+For example, in the turn table process
+cRotate?bS2; set(t,4);expire(t)
+is changed to
+atomic{
+cRotate?bS2;
+set(t,4)
+}; expire(t).
+Similarly in other processes. The number of states drops to 119616 and the
+number of transitions to 212876. Note that the fact that delays are always one
+(special) action in Âbut can be more ( timeout ) actions in Promela and the
+fact that we used atomic instead of dstep, also introduce 'extra' states but
+26
+
+--- Page 27 ---
+this is unavoidable.
+Second, instead of using the process creation mechanism we use the other
+trick (see the remark on page 25) to achieve nested parallelism. This results
+in 48252 states with 114048 transitions (32768/59154 fully optimized), much
+closer to the Â¾'s result. In this case, 9.236MB (7.170MB for states) is needed;
+3.132MB (1.026MB for states) when fully optimized.
+There are several ways to perform veri¯cation of properties in Spin but we
+use only LTL formulae veri¯cation and trace-assertions. The LTL mechanism
+checks properties expressed as linear temporal logic formulas over the values of
+variables (state based). The trace-assertion mechanism assures that the behav-
+ior of the system matches the behavior expressed as a deterministic automaton
+(trace) with only send/receive actions on globally declared channels as labels.
+In a case where communication is synchronous to prevent Spin from checking
+the send o®ers together with regular sending we use only receive actions as
+labels.
+Now we discuss how the eight properties from section 2.1 can be expressed in
+a way Spin understands them:
+(1)The system does not contain a deadlock. Absence of deadlock is
+veri¯ed in Spin by performing an exhaustive search for invalid end states.
+(2)If drilling (testing, adding or removing) is started then it is
+also ¯nished and the turntable doesn't rotate in the mean-
+time. To verify this property we introduce two new variables into the
+Promela model, drilling and rotating , both initially 0. The idea
+is to keep track of states in which the table is turning and the states
+in which the drilling is going on. We set the drilling to 1 when the
+master controller sends a message to the drill controller instructing it
+to start drilling ( dstepfcStartDrill!1; drilling = 1 g), and set it
+back to 0 when master controller is informed that the drilling is ¯nished
+(dstepfcDrillEnded!1; drilling = 0 g). We do a similar thing for
+rotating . The dstep is used to prevent the state space from growing
+after the additional statement is added.
+The property is now expressed as the LTL formula
+[](drilling == 1 -> (rotating == 0 U drilling == 0))
+Similarly, for testing, adding and removing.
+(3)If the product has a bad test result the product remains on the
+table and is drilled again (when it comes to the drilling posi-
+tion). Since the result of testing is communicated through the channel
+cTested and since it is easy to express the number of rotations we ¯nd
+the trace-assertion mechanism more suitable to verify this property then
+LTL. We must ¯rst rephrase this property so that it can be expressed
+with receive actions only: if a bad test result is received then in the next
+27
+
+--- Page 28 ---
+rotation the master controller doesn't instruct the remover to remove and
+in the next two rotations (when we are back to the drilling position) the
+driller will drill the product again. Now we state this behavior as:
+cRotate cEnvCanRemove 
+cTested?1 
+cTested?0 cStartDrill
+cEnvCanRemove cStartDrill
+cRotate 
+cRotate 
+cEnvCanRemove cTested?1 cTested?0 
+cStartDrill
+cStartDrill cTested?1 cTested?0 
+cTested?1 cTested?0 
+cEnvCanRemove 
+cStartDrill
+cTested?1 cTested?0 
+cEnvCanRemove cRotate 
+cRotate 
+trace{ st1: if
+:: cEnvCanRemove?_,1 -> goto st1;
+:: cTested?1 -> goto st1;
+:: cTested?0 -> goto st2;
+:: cRotate?_ -> goto st1
+:: cStartDrill?_,1 -> goto st1
+fi;
+st2: if
+:: cEnvCanRemove?_,1 -> goto st2;
+:: cRotate_1 -> goto st3
+:: cStartDrill?_,1 -> goto st2
+fi;
+st3: if
+:: cTested?1 -> goto st3;
+:: cTested?0 -> goto st3;
+:: cRotate?_ -> goto st4
+:: cStartDrill?_,1 -> goto st3
+fi;
+st4: if
+:: cTested?1 -> goto st4;
+:: cTested?0 -> goto st4;
+:: cEnvCanRemove?_,1 -> goto st4;
+:: cRotate?_ -> goto st5
+:: cStartDrill?_,1 -> goto st4
+fi;
+st5: if
+:: cTested?1 -> goto st5;
+:: cTested?0 -> goto st5;
+:: cEnvCanRemove?_,1 -> goto st5;
+:: cStartDrill?_,1 -> goto st6
+fi;
+st6: if
+:: cTested?1 -> goto st6;
+:: cTested?0 -> goto st6;
+:: cEnvCanRemove?_,1 -> goto st6;
+:: cRotate?_ -> goto st1
+fi;
+}
+(4)If the product has a good test result the remover will be called
+to remove the product. Similarly to the previous case we can rephrase
+the property and come out with the following trace:
+28
+
+--- Page 29 ---
+`cEnvCanRemove 
+cTested?1 
+cEnvCanRemove 
+cRotate 
+cTested?1 cTested?0 cRotate cTested?0 cRotate 
+cTested?1 cTested?0 
+cEnvCanRemove trace{ st1: if
+:: cEnvCanRemove?_,1 -> goto st1;
+:: cTested?0 -> goto st1;
+:: cTested?1 -> goto st2;
+:: cRotate_1 -> goto st1
+fi;
+st2: if
+:: cEnvCanRemove?_,1 -> goto st2;
+:: cRotate?_ -> goto st3
+fi;
+st3: if
+:: cTested?1 -> goto st3;
+:: cTested?0 -> goto st3;
+:: cEnvCanRemove?_,1 -> goto st4
+fi;
+st4: if
+:: cTested?1 -> goto st4;
+:: cTested?0 -> goto st4;
+:: cRotate?_ -> goto st1
+fi;
+}
+(5)No drilling (testing or removing) takes place if there is no prod-
+uct in the slot and no adding can be performed if there is a
+product in the slot). The LTL formula that represents this property
+is:
+[]!(p1 == 0 && drilling == 1)
+but the following event-trace can be used as well:
+cRotate!1 
+cDrillFinished!1 cStartDrill!1 
+cRotate!1 
+trace{ st1: if
+:: cStartDrill?_,1 -> goto st2
+:: cRotate?_ -> goto st1
+fi;
+st2: if
+:: cDrillFinished?_ -> goto st2;
+fi;
+st3: if
+:: cRotate?_ -> goto st1
+fi
+}
+and similarly for other cases.
+(6)Every added product is drilled in the next rotation. This property
+can be interpreted as: when you add and rotate afterwards then you must
+drill before you rotate again. The corresponding automata is:
+29
+
+--- Page 30 ---
+cRotate 
+cRotate 
+cEnvAdded cEnvAdded 
+cEnvAdded cStartDrill
+cStartDrillcStartDrill
+cRotate trace{ s1: if
+:: cEnvAdded_1; goto s2;
+:: cRotate_1; goto s1;
+:: cStartDrill?_,1; goto s1;
+fi;
+s2: if
+:: cRotate_1; goto s3;
+:: cStartDrill?_,1; goto s2;
+fi;
+s3: if
+:: cEnvAdded_1; goto s3;
+:: cStartDrill?_,1; goto s4;
+fi;
+s4: if
+:: cEnvAdded_1; goto s4;
+:: cRotate_1; goto s1;
+fi;
+}
+(7)Every product eventually leaves the table. To verify this property
+we ¯rst introduce a variable pstn that can have values 0, 1, 2 and 3.
+It represents the position of the turntable (or some mark on the rotat-
+ing disk) with respect to the adding position. After every rotation the
+value of pstn is changed by the rule pstn = (pstn + 1) % 4 . Second,
+variables removed and added are introduced. They keep track in which
+position the product was removed (added). They have two extra values:
+-1, meaning that the removing (adding) was skipped, and -2, a neutral
+value. The variable removed (added ) is set to the neutral value after the
+remover (adder) has made a choice, to remove (add) or to skip. To verify
+the property we must now prove the following four LTL formulas:
+[](added == 0 -> <> removed == 3)
+[](added == 1 -> <> removed == 0)
+[](added == 2 -> <> removed == 1)
+[](added == 3 -> <> removed == 2)
+We are sure that we are removing the same product we are adding since
+added cannot become 0 twice if removed doesn't become 3 in between
+(in the ¯rst formula, similarly for the other three). That is because if the
+product is not removed in 4 k+ 3 rotations then in the next rotation we
+don't add because there is already a product in the slot. To add fairness
+we forbid the remover to always skip removing while in the position 3
+(with a product to remove in place) and to always generate bad test
+results in the position 2 (with a product to test in place). The extended
+formula is:
+(
+[](pstn==3 && p3==4 -> <> removed == 3) &&
+[](pstn==2 && p2==2 -> <> (bTstRes == 1 && pstn == 2)
+) -> [](added == 0 -> <> removed == 3)
+30
+
+--- Page 31 ---
+(8)When a product is added it takes between 21 and 30 time units
+to get its test result. For this property we must calculate the number
+of clock ticks ( timeout actions) between adding a product and receiving
+its test result. To achieve this we must keep track of timeout 's somehow.
+Since they are not communication actions, trace assertion mechanism
+is ruled out. To use LTL mechanism we may try to add a special timer
+that counts ticks (it decreases accordingly) but because DT Spin does not
+allow values of timers in LTL formulas this would not be of much help.
+Another solution is to use timeout in formulas or to code the property
+directly as a never claim but at this moment it is hard to see how this
+can be done in an optimal and satisfactory way.
+We here present a solution that is based on the fact that, if the product
+is added in some position that no product is added in the same position
+before the test result is known. Because we have to distinguish products
+again, we use the same idea (variable pstn) as before. Here we check that
+if adding happens in the position 0 then result is known in position 2 in
+21-30 time units. Similarly for other positions.
+We introduce a variable, called added0 , which becomes 0 when adding
+does not happen (already a product in the slot) or is skipped (in the po-
+sition 0), and 1 when product is added (in the position 0). When added0
+becomes 1, we also set a special timer variable, called TT, to 30. The idea
+is to check if TThas a value less or equal to 9(= 30 ¡21) in a place where
+test result is obtained (in the position 2) and adding has previously hap-
+pened (in the position 0). This is done by assertion mechanism of Spin,
+directly in code:
+...
+cTesterUpDone?_;
+if
+:: (added0 == 1 && pstn == 2) -> assert(TT.val < 10)
+:: else
+fi;
+cTested!bTstRes;
+...
+5¹CRL/CADP
+5.1 The language ¹CRL
+Basically, ¹CRL is based on the process algebra ACP [11], extended with
+equational abstract data types [25]. In order to intertwine processes with data,
+actions and recursion variables can be parametrized with data types. More-
+31
+
+--- Page 32 ---
+over, a conditional construct (if-then-else) can be used to have data elements
+in°uence the course of a process, and alternative quanti¯cation (also called
+choice quanti¯cation ) is added to sum over possibly in¯nite data domains.
+The language comes with a toolset [26] that can build a state space from a
+speci¯cation and store it in the .aut format, one of the input formats of the
+model checker CADP [2] (more on this model checker in paragraph 5.3). Next
+to that, in order to strive for precision in proofs, an important research area
+is to use theorem provers such as PVS [27] to help in ¯nding and checking
+derivations in ¹CRL. A large number of distributed systems have been veri¯ed
+in¹CRL, often with the help of a proof checker or theorem prover [28,29].
+We will give a short overview of the language. For a complete reference, see [10].
+Data types Initially there are no data types known in a ¹CRL speci¯cation.
+Therefore each speci¯cation should start by de¯ning the necessary data types
+and the functions that work on them. In fact, it is mandatory to de¯ne the
+boolean type in each speci¯cation, since the conditional construct works with
+boolean expressions. In the case of the turntable model, the natural numbers
+were also de¯ned. One can virtually de¯ne any data type.
+In¹CRL one can specify abstract data types [25] in an algebraic way, with an
+explicit recognition of so-called constructor function symbols, which intuitively
+cannot be eliminated from data terms [10]. In the case of natural numbers the
+zero ( 0) and the successor function Sare constructors, while addition ( plus)
+is not. For booleans we have the constructors true ( T) and false ( F). This
+explicit recognition of constructor symbols makes it possible to enumerate the
+elements of a data type.
+To de¯ne a data type one uses the keyword sort. A sort represents a non-
+empty set of data elements. To declare the sort of booleans one can write:
+sort Bool
+Now the elements of the data type can be declared. This is done with the
+keywords func and map. A constructor symbol, declared with func, has as
+target the data type in question. For the booleans we declare Tand Fboth
+with func:
+sort Bool
+func T,F: !Bool
+What we state here is that the elements of Bool areTandF.
+Now that the structure of the data type is given, one can add additional
+32
+
+--- Page 33 ---
+functions. These can be de¯ned with map. For the booleans we de¯ne the
+function andand the equality relation eq.
+Using rewrite rules one can now de¯ne how the functions work. When de¯ning,
+it's allowed to use variables, which have to be de¯ned ¯rst using var. Having
+added the rewrite rules for andandeq, the declaration of Bool now looks like
+this:
+sort Bool
+func T,F: !Bool
+map eq:Bool#Bool !Bool
+and:Bool#Bool !Bool
+var x,y:Bool
+rew eq(x,x) = T
+eq(T,F) = F
+eq(F,T) = F
+and(T,x) = x
+and(x,T) = x
+and(F,x) = F
+and(x,F) = F
+In a similar way one can de¯ne the sort of natural numbers with the equality
+relation eqand the addition function plus:
+sort Nat
+func 0: !Nat
+S:Nat!Nat
+map plus:Nat#Nat !Nat
+eq:Nat#Nat !Bool
+var x,y:Nat
+rew plus(x,0) = x
+plus(x,S(y)) = S(plus(x,y))
+eq(x,x) = T
+eq(0,S(x)) = F
+eq(S(x),0) = F
+eq(S(x),S(y)) = eq(x,y)
+33
+
+--- Page 34 ---
+Actions In¹CRL one can declare actions in the actsection of a speci¯-
+cation. These actions may have zero, one or several data parameters. When
+parameters are used the data types of these parameters need to be given. In
+the next example an action ais de¯ned without a parameter, an action bis
+de¯ned with a parameter of type Bool and an action cis de¯ned with two
+parameters of type NatandBool respectively:
+act a
+b:Bool
+c:Nat#Bool
+One can allow processes Pand Qto communicate in the parallel process Pjj
+Q. To do this it is possible to de¯ne which actions are able to synchronize
+with each other using the keyword comm. The following example states that
+the actions dandecan synchronize and form the action ftogether:
+comm d je = f
+Finally the process deadlock ( ±), which cannot terminate successfully, and the
+internal action ¿are prede¯ned.
+Operators There are eight operators in ¹CRL. We present each one of them
+with an informal semantics.
+(1)The alternative composition operator ( +). A process p+qproceeds (non-
+deterministically) as porq(if they can proceed).
+(2)The sum operator (P
+d:DX(d)), with X(d) a mapping from the data type D
+to processes, behaves as X(d 1)+X(d 2)+: : :, i.e., as the possibly in¯nite
+choice between X(d) for any data term dtaken from D. This operator is
+used to describe a process that is reading some input over a data type [30].
+(3)The sequential composition operator ( .). A process p.qproceeds as p
+followed by q.
+(4)The process expression p/b.qwhere pand qare processes, and bis
+a data term of data type Bool, behaves as pifbis equal to T(true)
+and behaves as qifbis equal to F(false). This operator is called the
+conditional operator, and operates as a then ifelse construct.
+(5)The parallel operator ( jj). A process pjjqexecutes pandqconcurrently
+in an interleaved fashion, i.e. the actions of pand qare executed in
+arbitrary order. For all actions aand bwhich can communicate with
+each other: If one process can execute aand the other one can execute
+bthen pand qcan communicate ( pjjqexecutes the communication
+action).
+(6)The encapsulation operator ( @H). A process @H(p)disables all actions of
+34
+
+--- Page 35 ---
+pthat occur in the set HµAct. Typically this operator is used to enforce
+that certain actions synchronize.
+(7)The renaming operator ( ½f), with f:Act!Act, is suited for reusing a
+given speci¯cation with di®erent action names. The subscript fsigni¯es
+that the action amust be renamed to f(a). The process ½f(p)behaves
+aspwith its action names renamed according to f.
+(8)The abstraction operator ( ¿I). A process ¿I(p)'hides' (renames to ¿) all
+actions of pthat occur in the set IµAct.
+Process de¯nitions The heart of a ¹CRL speci¯cation is the proc section,
+where the behavior of the system is declared. This section consists of recursion
+equations of the following form, for n¸0:
+proc X(x 1:s1,: : :, x n:sn) = t
+Here Xis the process name, the x iare variables, not clashing with the name of a
+function symbol of arity zero nor with a parameterless process or action name,
+and the s iare sort names, expressing that the data parameters x iare of type
+si. Moreover, tis a process term possibly containing occurrences of expressions
+Y(d 1,: : :, d m), where Yis a process name and the diare data terms that may
+contain occurrences of the variables x1,: : :, x n. In this rule, X(x 1,: : :, x n)
+is declared to have the same (potential) behavior as the process expression
+t[10].
+The initial state of the speci¯cation is declared in a separate initial declaration
+init section, which is of the form
+init X(d 1,: : :, d n)
+Here (d1,: : :, d n)represents the initial behavior of the system that is being
+described. In general, in ¹CRL speci¯cations the init section is used to in-
+stantiate the data parameters of a process declaration, meaning that the diare
+data terms that do not contain variables. The init section may be omitted,
+in which case the initial behavior of the system is left unspeci¯ed.
+The time model Delaying for a certain amount of time is impossible in
+¹CRL at ¯rst glance. This is because ¹CRL does not work with time. A
+later extension of ¹CRL to timed ¹CRL [31] introduced the notion of time.
+However, at present creating a timed ¹CRL speci¯cation is not very practical
+since the ¹CRL toolset can only parse timed ¹CRL code and cannot generate
+a state space from it.
+There is another way however to simulate some notion of discrete time. In
+35
+
+--- Page 36 ---
+this paper we use a method based on the one from [32]. In short it works like
+this: ¯rst we de¯ne two actions: tick andtick2 . The tick action represents
+the end of a time slice and the beginning of a new one. In order to share this
+notion of time all running processes need to synchronize their tick actions. If
+at least one of these processes is busy and therefore unable to perform a tick
+thetick action will not take place. This synchronization aspect is essential if
+one wants to use global timing. Note that, using this technique, we get discrete
+time in ¹CRL, since we represent a time period as a number of time units.
+In most cases when using time in a model the modeler would like to give
+normal actions priority over tick actions. In order to realize this Âhas implicit
+maximal progress, but in ¹CRL an operator for this does not exist. We can
+however get similar results by using the tick2 action and post-processing the
+system after linearization (more on the latter in section 5.2).
+The di®erences between tick2 andtick are the following:
+²The action tick is used for translating delays, while tick2 is used to make
+an action delay-able (which means adding a tick2 self-loop as an alternative
+to this action);
+²Atick action can synchronize with any number of tick ortick2 actions,
+but a tick2 action cannot synchronize with only tick2 actions (at least
+onetick action is needed for going from one time unit to the next).
+Now, several delay-able processes can delay together if there is a tick action
+enabled in at least one process.
+5.2 The turntable model in ¹CRL
+In the next few paragraphs we will look at the ¹CRL model of the turntable
+which resulted from translating the original Âmodel. The ¹CRL language will
+be explained as far as needed. Translating the turntable model was done in an
+intuitive fashion in order to get some inspiration for developing a translation
+scheme for translating Âspeci¯cations to ¹CRL speci¯cations. In this paper
+therefore the way in which we ended up with this ¹CRL model will not be
+discussed in detail. We restrict ourselves to highlighting the interesting parts.
+Translating Âconstructs like an assignment, a skip statement, a sequential
+composition and a guard can be translated straightforwardly since there exist
+similar constructs in ¹CRL. Here we have to note that except for translating
+the atomic processes all other translations involve the usage of a program
+counter n. This counter is used to control the order of execution within a
+process. Initially, when a process starts its execution, the counter equals zero.
+By changing the value each time an action is executed and including the
+counter in the guards accompanying the actions one can specify the order in
+36
+
+--- Page 37 ---
+which these actions should be executed. Since we translated Âprocesses to
+Linear Process Equations (LPEs) we needed such a counter to translate (for
+instance) sequential compositions. Later in this section a de¯nition of LPE
+can be found. How the program counter functions in practice will become
+apparent when looking at the translations in the next few paragraphs.
+Following are remarks on the constructions that could not be translated in an
+obvious way:
+²In the ¹CRL model we move from one time slice to the next by synchronizing
+tick actions of all the processes in the system. This means that we use
+discrete timing. Delays in Âshould therefore always be 'discretizable'. A Â
+delay of ntime units is then translated to ntick actions placed in sequence.
+²The usage of time in combination with communication actions is tricky when
+translating. If you have a send action in one process and a corresponding
+receive action in another which (if any) of the actions can be delayed until
+the other action can be executed? In principle both send and receive actions
+are delay-able in Â. The maximal progress operator then ensures that pos-
+sible communications get a higher execution priority than a delay. In other
+words: Both send and receive actions can delay if communication is not
+possible. Once communication is possible it will be executed immediately.
+In¹CRL however, making all send and receive actions delay-able may
+result in communications being delay-able as well, since we cannot assign
+di®erent priorities to actions (see the time model paragraph in section 5.1);
+there is no maximal progress operator. Communications that turn out to be
+delay-able in the ¹CRL speci¯cation are therefore bad translations. These
+can be ¯xed once the speci¯cation is linearized using the ¹CRL toolset
+though: The linearized version can be (automatically) manipulated in such
+a way that these communications become non-delay-able again. In short, to
+do this the guards of all tick actions have to be changed in such a manner,
+that tick actions only become enabled if no 'normal' (non- tick) action is.
+²Another problem is translating an alternative composition: How to translate
+it depends on the number of alternatives that begin with a delay or are
+delay-able. This is due to the weak time determinism principle [18]: The
+passage of time cannot result in making a choice between the alternatives
+that can perform the time transition. In other words: Can both alternatives
+perform a delay, then they can delay together after which a choice can still
+be made. This principle led basically to two di®erent possible translations
+of an alternative composition when translating the turntable model:
+(1)None of the alternatives begin with a delay. We can translate this state-
+ment using the program counter in the right way; both alternatives are
+enabled at the start by extending the guards of both ¯rst actions of these
+alternatives with the same equation concerning the value of the program
+counter.
+(2)The left alternative is delay-able and the right alternative begins with a
+37
+
+--- Page 38 ---
+delay. This functions as a time-out: If you can start executing the left
+alternative within the time given by the delay of the right alternative,
+do that. Otherwise execute the right alternative. This can be translated
+by introducing a time counter initially having the value of the delay of
+the right alternative. Then we add an extra line to the process where the
+process can execute a tick and decrease the time counter by one as long
+as the time counter does not equal zero. Using some additional guards
+makes the translation complete. This situation can be found later on in
+this paragraph in the process TESTER CONTROL . Note however that there
+will not be maximal progress in this situation, so processing the linearized
+version is necessary (see the paragraph on the time model in section 5.1).
+²In LPEs we are not allowed to use parallelism, as can be seen by looking
+at its de¯nition later on in this section. In the Âturntable speci¯cation
+however there are two instances where we ¯nd parallelism inside a process:
+In the drill process and in the main control process.
+The nested parallelism in the drill process can be easily translated by
+really translating the two subprocesses of drill to separate processes and
+placing them in parallel in the init line.
+The second instance however poses a bigger problem since the subpro-
+cesses share variables. Since we cannot use shared variables in ¹CRL we
+have to ¯nd some other way to translate this construction. We do that
+by translating the subprocesses to individual processes and providing each
+process with local copies of the shared variables. Say two processes Aand
+Bshare a variable named x. Both processes can read the value of xat all
+times, but if one of them changes the value the other one should be aware
+of this (and change the value of its own 'copy' of xlikewise). To make this
+possible a new action assignx is introduced, which is called by a process
+if it has changed the value of x. As a parameter the new value should be
+given. This action communicates with another action updatex , which can
+be executed by the other process at all times . This last thing is very im-
+portant, since an assignment should proceed as soon at it is invoked. Once
+the other process can communicate via updatex it receives the new value
+forxand assigns this to the local copy.
+This does not solve the problem yet though; in the main control process
+we can identify four subprocesses running in parallel followed by a ¯fth sub-
+process placed sequentially behind these four. Since in the init line all pro-
+cesses need to be placed in parallel we have to force this order of execution
+upon the ¯ve processes which are translations of the ¯ve Âsubprocesses. We
+can do that by introducing some extra actions which synchronize between
+all the processes (this is done in a way similar to how it's done for tick);
+all processes start their execution once they can synchronize on the start
+action. Then the four placed in parallel begin while the ¯fth process starts
+waiting for the other four to ¯nish. Once the four processes in parallel are
+¯nished with their execution, they synchronize their stop actions with the
+start 2action of the ¯fth process. Then this process starts the execution.
+38
+
+--- Page 39 ---
+Once it's ¯nished it synchronizes its stop 2action with those of the other
+four processes, after which all processes can start all over again. The actual
+processes (named MAIN CONTROL1 through MAIN CONTROL5 ) will be treated
+later on.
+The data types First of all a ¹CRL model starts by de¯ning the data types
+used. As is the case with most models the data types Bool andNatare used
+(representing booleans and natural numbers respectively). See section 5.1 for
+part of their de¯nitions.
+The¹CRL turntable model uses a third data type though, which is used for
+readability and represents the state of a slot; a slot can be in one of the
+following states:
+²There is no product in the slot ( NoProduct );
+²There is a product in the slot which is not drilled and not tested yet
+(Product );
+²There is a product in the slot which is drilled but not tested yet ( Drilled );
+²There is a product in the slot which is drilled and had a bad test result
+(TestedBad );
+²There is a product in the slot which is drilled and had a good test result
+(TestedGood ).
+This data type is called SlotState.
+Linear process equations When translating we used Linear Process Equa-
+tions (LPEs). The de¯nition of an LPE is as stated in [33]. We chose to trans-
+lateÂprocesses to LPEs instead of the more general ¹CRL processes since
+LPEs proved to be better suited for setting up a general translation scheme.
+An LPE is of the following form:
+X(d:D) =X
+i2IX
+ei2Diai(fi(d;ei)):X(g i(d;ei))/hi(d;ei). ±+
+X
+i2I'X
+ei2Di'ai'(f i'(d;ei)/hi'(d;ei). ±
+where Iand I'are ¯nite index sets, D,Di,Di',Daiand Dai'are data types,
+ai;ai'2Act[ f¿g,ai:Dai,ai':Dai',fi:D£Di!Dai,fi':D£Di'!Dai',
+gi:D£Di!D,hi:D£Di!Bool andhi':D£Di'!Bool.
+Here the di®erent states of the process are represented by the data parameter
+d:D. Type Dmay also be a Cartesian product of ndata types. Besides that the
+data parameter ei(either of type DiorDi') can in°uence the parameter of
+39
+
+--- Page 40 ---
+action ai(orai'), the condition hi(orhi') and the resulting state gi(orgi'),
+thereby giving LPEs a more general form. The data parameter eiis typically
+used to let a read action range over a data domain.
+The LPE expresses that in state dit can do two things:
+(1)One can perform actions ai, carrying a data parameter fi(d,e i), under
+the condition that hi(d,e i)is true; in such a case the resulting state is
+gi(d,e i)[10].
+(2)One can perform actions ai', carrying a data parameter fi'(d,e i), under
+the condition that hi'(d,e i)is true; after executing one of these actions
+the process terminates.
+In general, when translating a Âprocess to an LPE the locally de¯ned variables
+siin the scope operator of Âshould be translated to parameters of the LPE
+(in other words, should become part of the data parameter d:D). The initial
+values of these variables can be set at the initialization line. Channels in Â
+that a process works with are mentioned as parameters of that process. These
+should not be included in the LPE. An LPE can work with communication
+actions which are de¯ned globally. More on communication actions in the next
+paragraph.
+The actions and communication rules The turntable model contains
+a lot of di®erent channels. We will not provide a full list here; that can be
+obtained from looking at the paragraph about the original Âmodel. Here we
+only give a guideline how to translate channels to pairs of actions. In general
+the usage of a channel ain the Âmodel will be translated as follows:
+(1)Sending a message over channel awill appear in the LPEs as the action
+sawith possibly a value as a parameter being the message sent; if no
+parameter is provided the send functions as a trigger for a certain event.
+(2)Receiving a message over channel awill appear in the LPEs as the action
+raorP
+y:Type (ra(y).X(y)) depending again on the fact whether the
+receive action functions as a trigger for an event or really for receiving a
+value (of type Type) respectively.
+(3)For these two actions a communication rule must be speci¯ed which looks
+like this: sajra = ca . This together with the encapsulation operator
+(@fsa;rag) forces the actions saand rato only execute if they can syn-
+chronize.
+Next we will look at interesting parts of some of the processes to give an idea
+of how the translation is done.
+40
+
+--- Page 41 ---
+Theturn table process The ¯rst process we look at is the turn table pro-
+cess. Here is part of the ¹CRL speci¯cation:
+proc TURN TABLE(n :Nat;bS1:Bool;bS2:Bool;bS3:Bool) =
+sS1(bS1) :TURN TABLE(0 ;bS1;bS2;bS3)Cn=0B±+
+: : :
+rEnvAdded :TURN TABLE(0 ;T;bS2;bS3)Cn=0B±+
+: : :
+¿:TURN TABLE(0 ;bS1;bS2;F)Cn=1B±+X
+b:BoolrUpdateS1(b) :TURN TABLE(0 ;b;bS2;bS3)Cn=0B±+
+: : :X
+b:BoolrRotate(b) :TURN TABLE(2 ;bS1;b;bS3)Cn=0B±+
+tick:TURN TABLE(3 ;bS1;bS2;bS3)Cn=2B±+
+: : :
+¿:TURN TABLE(0 ;bS1;F;bS3)Cn=6B±+
+tick2 :TURN TABLE(n ;bS1;bS2;bS3)Cn=0B±
+In every ¹CRL process of the turntable speci¯cation the program counter
+nis used to control the order of action execution. Initially this nequals 0.
+Therefore the program can start execution only by performing one of the
+actions for which the accompanying guard includes the conjunct n=0. The
+turntable for instance initially has several alternative options:
+²It can send the value of any of the three sensors S1,S2 and S3. The state
+will not change after this.
+²It can receive the message that the environment has received a new product
+or that a product has been removed. This will change the state in the obvious
+way.
+²It can get new values for the sensors S1 and S3. These will be set.
+²It can receive the request to rotate. Rotating takes four time units.
+²The lines beginning with ¿are in fact translations of Âassign actions.
+²The line beginning with tick2 is there to make some actions delay-able.
+The guard tells us which actions they are (see the paragraph on the time
+model in section 5.1).
+Thetester control process Thetester control process controls the testing
+procedure. The following is part of the translation of the original process:
+41
+
+--- Page 42 ---
+proc TESTER CONTROL(t :Nat;n:Nat;bTstRes :Bool) =
+: : :
+rTesterDownDone :TESTER CONTROL(0 ;3;T)Cn=2B±+
+tick:TESTER CONTROL(t ¡1;n;bTstRes) Cn=2^t6=0B±+
+¿:TESTER CONTROL(0 ;3;F)Cn=2^t=0B±+
+: : :
+The sequence of actions starts when the command is received to start testing.
+Then TESTER is given the command to move the testing device. Should the
+message return within 4 time units after the testing device has been lowered,
+then bTstRes is set to true, otherwise to false. Note here the usage of counter
+t, which indicates the number of time units left before the time out ends. Next
+the testing device is raised and the result (the value of bTstRes ) is sent to the
+MAIN CONTROL process.
+Themain control subprocesses Finally the most important and compli-
+cated process is the main control process. As can be seen in the Âspeci¯cation
+this process really consists of ¯ve subprocesses, with at ¯rst four of them run-
+ning in parallel after which a ¯fth starts execution. Once the ¯fth subprocess
+has ¯nished the four others restart etc. Since the subprocesses share some
+variables this requires special attention when translating. Basically each of
+the subprocesses is translated to an LPE using several special actions to syn-
+chronize the values of the local copies of the originally shared variables.
+The ¯rst subprocess is called MAIN CONTROL1 . Part of it is given here:
+proc MAIN CONTROL1(n :Nat;p0; : : : ; p3:SlotState) =X
+s:SlotStateupdatep 0(s):MAIN CONTROL1(n ;s;p1;p2;p3) +
+: : :
+start :MAIN CONTROL1(1 ;p0;p1;p2;p3)Cn=0B±+
+sEnvCanAdd :MAIN CONTROL1(2 ;p0;p1;p2;p3)Cn=1^p0=NoProduct B±+
+stop:MAIN CONTROL1(4 ;p0;p1;p2;p3)Cn=1^p06=NoProduct B±+
+rEnvAddFinished :MAIN CONTROL1(3 ;p0;p1;p2;p3)Cn=2B±+
+stop:MAIN CONTROL1(4 ;p0;p1;p2;p3)Cn=3B±+
+stop 2:MAIN CONTROL1(0 ;p3;p0;p1;p2)Cn=4B±+
+tick2 :MAIN CONTROL1(n ;p0;p1;p2;p3)
+The ¯rst four lines show update actions which can be executed at any time
+due to the fact that there are no guards. The encapsulation operator together
+with the synchronization rules provided in the ¹CRL speci¯cation however
+force the update action only to take place if another process executes the
+42
+
+--- Page 43 ---
+corresponding assign action. These update actions make sure that the process
+always works with the latest values of the variables p0,p1,p2andp3.
+The process itself ensures that products are added to the turntable. It starts
+executing once it can synchronize its start action with the start actions of
+the other subprocesses. Then if there is no product in slot p0available it sends
+the command to add a product. Once it has received the message that the
+product adding has ¯nished it stops execution. Notice (this remark also holds
+for the other four subprocesses) that after executing stop 2the values of the
+slots are moved to the next slots of the turntable. In other words, the e®ect of
+a rotation is here expressed; each product moves to the next position of the
+turntable. In the original speci¯cation this rotation cannot be found at this
+place, but it is needed in the translation in order to prepare for the rotation
+happening in the ¯fth subprocess.
+The last subprocess which runs after the others have stopped executing is
+called MAIN CONTROL5 . Part of its translation is the following:
+proc MAIN CONTROL5(n :Nat;x:Bool;p:Nat;p0; : : : ; p3:SlotState) =
+: : :
+¿:MAIN CONTROL5(9 ;x;p;p3;p0;p1;p2)Cn=8B±+
+: : :
+Rotating the turntable in a 90 degrees turn can be done with one ¿action
+compared to the four actions in the original Âspeci¯cation. To rotate the
+table in the Âspeci¯cation four assignments need to be done to update the
+slot states. In ¹CRL it is possible to provide the new values of all four states
+at once as parameters of a recursive call.
+The initialization line Now that all the processes have been translated
+all that remains is writing the right initialization line. In this line two special
+operators are used:
+²The ¯rst one is j ftickg j, which is basically a parallel composition operator
+which forces tick and tick2 actions of the two processes to synchronize.
+For a better understanding of this usage of time see the paragraph on the
+time model in section 5.1.
+²The second one is jSVTPC jwhich functions as a parallel composition opera-
+tor that synchronizes both time (like the operator stated above) and assign
+/ update actions that are needed to use shared variables (for the usage of
+shared variables see the remark at the beginning of this section).
+43
+
+--- Page 44 ---
+5.3 Veri¯cation of the model in CADP
+From the ¹CRL speci¯cation a state space in the .aut format was gener-
+ated by the ¹CRL toolset [26]. This state space could then be used by the
+veri¯cation tool CÀSAR ALD ¶EBARAN Development Package (CADP) [2].
+Using this tool one can express properties in the regular alternation-free logic
+¹-calculus [14]. These properties can then be veri¯ed on the state space gen-
+erated from the model. The CADP tool, together with ¹-calculus, was used
+for verifying the properties of the turntable model.
+The state space After having translated the Âspeci¯cation, the state space
+of the ¹CRL speci¯cation was generated using the ¹CRL toolset. This took
+about 8 seconds, resulting in a state space of 25926 states and 50835 transi-
+tions (12957 of them were ¿-transitions). After reduction modulo branching
+bisimulation [34] we ended up with a state space consisting of 4687 states and
+7579 transitions, of which 931 were ¿-transitions.
+When looking at the state space itself, we noticed the following di®erences:
+²While the state space resulting from the Âspeci¯cation shows assignments
+as actions, these cannot be found in the state space generated from the
+¹CRL speci¯cation. Instead one ¯nds ¿actions in these places. In short,
+¹CRL does not have assignment actions. Instead one assigns new values to
+parameters of a recursion variable. Because by the de¯nition of LPE a re-
+cursion variable has to be preceded by an action an assignment is translated
+to¿.
+²In the ¯fth main controller subprocess of the Âspeci¯cation multiple assign-
+ments were used for rotating the turntable 90 °. These assignments together
+were translated to a single ¿action followed by a recursive call containing
+the new values of the parameters, thus resulting in a smaller state space.
+²Special actions that were added to the translation, such as start andstop,
+didn't show up in the state space due to the fact that they were hidden. It
+was chosen to do this because then the state space would become smaller
+(after reducing modulo branching bisimulation) while these actions are not
+important for verifying properties of the system anyway. By hiding these
+actions we also accomplished that the state space generated from the ¹CRL
+speci¯cation more resembled the state space generated from the Âspeci¯-
+cation.
+²Delays need more states and transitions in the state space generated from
+the LPEs than in the state space generated from the original Âspeci¯cation.
+This is because a delay of ntime units takes up nstates and ntransitions
+in the state space generated from the LPEs.
+44
+
+--- Page 45 ---
+The regular alternation-free ¹-calculus To express the turntable prop-
+erties we used the regular alternation-free ¹-calculus. In this section a brief
+introduction to the syntax, that is relevant for understanding the formulas in
+this chapter, will be given. For a more detailed description see [14].
+The regular alternation-free ¹-calculus can only be used to express action-
+based formulas. There exists a more elaborate version of this logic which can
+express temporal properties involving data values, but that one is not sup-
+ported (yet) by CADP.
+A formula is built by providing a sequence of actions. We can place actions in
+sequence using the \ ." operator. Names of actions are placed between double
+quotes ( "). At places where the name of the action is not important we can
+write true. So a statement like "a".true."b" means \¯rst we encounter an
+action a, then some other action followed by an action b".
+We can use repetition by using the operator \ *", which denotes that the
+statement preceding it can be executed zero or more times.
+Finally we have a possibility and a necessity modal operator. The possibility
+modal operator (\ < >") is used to express that there exists an execution path
+in the state space for which the formula in between holds (or does not, de-
+pending on the boolean expression following it). The necessity modal operator
+(\[ ]") is used to express that for all execution paths in the state space the
+given formula holds (or, again, does not, depending on the following boolean
+expression).
+A formula is usually completed by adding a boolean value at the end. This
+value states that the preceding statement holds or does not hold.
+Finally an example: The formula ["a"*.true*."b"]false expresses that it's
+not true that in all execution paths in the state space we ¯rst ¯nd zero or
+more actions a, followed by zero or more other actions, followed again by one
+action b.
+Verifying properties Now, using the state space, one can start verifying
+system properties. Here we look again at the properties initially given in the
+chapter on the turntable description.
+(1)The system does not contain a deadlock. The absence of deadlock
+was veri¯ed in the CADP tool, which has this functionality built-in.
+(2)If drilling (testing, adding or removing) is started then it's also
+¯nished. The turntable does not rotate in the meantime. This
+property is checked using the following ¹-calculus formula:
+45
+
+--- Page 46 ---
+[true* :"cStartDrill" :(not("cStartDrill"
+or"cRotate"))* :"cDrillEnded"]true
+It states that after every cStartDrill action eventually cDrillEnded
+can be found without another cStartDrill orcRotate being called be-
+fore it.
+(3)If the product has a bad test result it remains on the table and
+is drilled again (when it comes to the drilling position). This
+property can be expressed in ¹-calculus as the following formula:
+[true* :"cTested(F)" :
+(not"cRotate")* :"cRotate" :
+(not("cRotate"or"cEnvRemoved"))* :
+"cRotate" :(not"cRotate")* :"cRotate" :
+(not("cRotate"or"cStartDrill"))* :
+"cStartDrill"]true
+It expresses that in every possible execution path of the state space where
+you encounter a failed test ( cTested(F) ) you will ¯nd later at some point
+three rotations without the product being removed in between. After that
+acStartDrill can be found because the product needs to be drilled
+again.
+(4)If the product has a good test result then the remover will be
+called to remove the product. This is represented in ¹-calculus by
+the formula:
+[true* :"cTested(T)" :(not"cRotate")*.
+"cRotate" :(not"cRotate")*.
+"cEnvCanRemove"]true
+(5)No drilling (testing or removing) takes place if there is no prod-
+uct in the slot and no adding can be performed if there is a
+product in the slot. Because of the usage of the regular alternation-
+free¹-calculus one can only verify action-based properties, but state-
+based properties can in general be checked in an action-based way by
+¯rst changing the model slightly [34]. In essence what happens is that if
+you want to check the value of parameter xof process Xyou extend the
+speci¯cation of Xso that it can perform an action having xas a parameter
+that does not have a real e®ect on the system. For this one can de¯ne a
+special action. Moreover, after executing this action the process returns
+to the state where it was when starting the action. In other words, the
+process performs a self-loop. Although this does not have an e®ect on the
+behavior of the system, it does provide the ability to see the value of xat
+any given time in the state space, since all states are now equipped with
+a self-loop of this action with the value of xvisible as a parameter.
+46
+
+--- Page 47 ---
+In this case one of the subprocesses of the main control has been
+equipped with a self-loop executing the action inslot1 , which tells whether
+a product is currently in slot 1 or not. Now we can state in ¹-calculus:
+[true* :"inslot1(F)" :"cStartDrill"]false
+This expresses that you can never encounter an inslot(F) action (there
+is no product in slot 1) just before cStartDrill .
+In a similar way one can equip one of the subprocesses of the main
+control with a self-loop containing the action inslot0 , which provides
+info on whether slot 0 contains a product or not. Then we can express
+in¹-calculus the property that no adding can be performed if there is a
+product in the slot:
+[true* :"inslot0(T)" :"cEnvCanAdd"]false
+(6)Every added product is drilled in the next rotation. This property
+just means that after every call of cEnvAdded (a product has just been
+added to the table) and one rotation one can always ¯nd a cStartDrill
+call. In ¹-calculus this leads to:
+[true* :"cEnvAdded" :(not"cRotate")* :
+"cRotate" :(not"cRotate")* :
+"cStartDrill"]true
+(7)Every product eventually leaves the table. It is a fairness property
+in the sense that the reachability of the action cEnvRemoved is checked
+infairexecution sequences. In ¹-calculus the notion of \fair reachability
+of predicates" is used for fairness, as already stated in chapter 1. To
+prove this property the model needs to be slightly changed so it supports
+colored products; a product can be either red or white. This is done
+by extending the sort SlotState . Next the envaddprocess is extended
+so that it ensures that it will constantly add white products except in at
+most one instance: Then it adds a red product. This red product can now
+easily be tracked at any time. Using this changed model it is possible to
+prove the fairness property.
+As an intermediate property, ¯rst we prove that in an execution se-
+quence one can never encounter more than one red product:
+[true* :"cEnvAdded(Red)" :true* :
+"cEnvAdded(Red)"]false
+Next using this transformed model one could express the property as
+follows:
+47
+
+--- Page 48 ---
+[true* :"cEnvAdded(Red)" :
+(not"cEnvRemoved(Red)")*]
+<(not"cEnvRemoved(Red)")* :
+"cEnvRemoved(Red)">true
+This states that once a cEnvAdded(Red) action is encountered it is always
+possible to execute the action cEnvRemoved(Red) down the line.
+(8)When a product is added it takes between 21 and 30 time units
+to get its test result. This property is checked by using the model
+with colored products, since we need to track a product to know how
+many time units it takes to get from having been added to having been
+tested. This model is changed so that the actions cEnvAdded andcTested
+provide us the information (as an argument) what the color is of the
+product that has been added or tested respectively. In ¹-calculus we can
+then write a number of formulas:
+²No paths exist with 20 tick action or less between cEnvAdded(Red)
+andcTested(Red) ;
+²There exists a path with exactly 21 tick actions between cEnvAdded(Red)
+andcTested(Red) ;
+²There exists a path with exactly 30 tick actions between cEnvAdded(Red)
+andcTested(Red) ;
+²No paths exist with 31 tick action or more between cEnvAdded(Red)
+andcTested(Red) .
+The actual formulas will not be presented here as they are rather large and
+really not that interesting, since they can be created straightforwardly.
+When verifying these formulas we get the information from CADP that
+there exists a path with exactly 21 tick actions but not one with less.
+Besides that we also ¯nd a path with 30 tick actions while we cannot
+¯nd one with a larger number.
+6 Uppaal
+6.1 Introduction to Uppaal
+Uppaal is a tool for modeling, simulation and veri¯cation of real-time sys-
+tems that can be modeled as a collection of non-deterministic processes with
+¯nite control structure and real-valued clocks. The Uppaal tool creators had
+two main aims in mind: e±ciency and ease-of-use. For the latter reason Up-
+paal has a well-developed and documented GUI and all formal de¯nitions
+and semantics are hidden from the user. The formal syntax and semantics are
+described in [35].
+48
+
+--- Page 49 ---
+Uppaal allows to make random or directed simulation and verify the models
+on-the-°y. Di®erent methods can be used to reduce the amount of the mem-
+ory used during veri¯cation. The state space reduction options (conservative
+or aggressive) allow to generate a smaller state space but require more time. It
+is also possible to choose di®erent kinds of the state space representation, like
+di®erence bound matrices, the compact data structure, under approximation
+(by bit-state hashing), and over approximation (by convex-hull approxima-
+tion) [36]. More detailed information about Uppaal can be found in [4,35].
+In this document we give a short description of the Uppaal timed automata.
+A model in Uppaal consists of a network of timed automata with clocks,
+invariants, variables over basic data types, guards, handshake synchronization,
+urgency, and committed locations. Uppaal has a continuous time model (real-
+valued clocks). However, bounds of clocks and clock reset values must belong
+to the set of nonnegative integers.
+A timed automaton consists of a directed control graph with labels on loca-
+tions and transitions; every timed automata must have one location marked
+asinitial . Locations can be equipped with an invariant. Transitions can carry
+guards, assignments, and synchronization signals. It is supposed that the in-
+variants, guards, synchronization parts and assignments are always given, in
+case of absence the invariants and guards can be represented by constant true;
+synchronization and assignment parts can be empty.
+AllUppaal timed automata work in parallel. Nested parallelism is not al-
+lowed. Uppaal allows rendezvous and broadcast synchronization via the uni-
+directional channels. Shared variables are used to communicate values from
+one process to another. Channels declared with pre¯x "urgent" perform syn-
+chronization without delay if synchronization is possible. On synchronizing
+transition, the assignments on the sender side are evaluated before the assign-
+ments on the receiver side.
+The scope of the elements (variables, constants, clocks and channels) can be
+either global, i.e. visible in the whole system, or local, i.e. visible only in the
+process in which the element was declared. Global variables are declared in
+the global declaration part and local ones are declared in the declaration part
+of the corresponding process.
+There are four prede¯ned types (bool, int, clock, chan) inUppaal . It is pos-
+sible to use arrays (including channel arrays and multidimensional ones) and
+to de¯ne a range of integers (ranges reduce the state space).
+49
+
+--- Page 50 ---
+6.2 The turntable model in Uppaal
+In this chapter, we explain gradually how the Âprocesses can be represented as
+Uppaal timed automata. First, we mention the main problems of the trans-
+lation. Then, we describe the declaration of the channels, clocks and variables.
+After that, we give the description of all Uppaal processes explaining how
+Âprocess terms and operators were translated. When an element (process or
+operator) ¯rst occurs its translation is explained in detail. We also mention
+how the resulting timed automata can be simpli¯ed.
+Translation problems As it was already mentioned, the translation of the
+turntable model from ÂintoUppaal timed automata given in this paper is
+not formal. In some cases, the ways of translating di®erent Âprocesses or
+operators are speci¯c for the turntable model and cannot be considered as
+generic.
+The main problem is the translation of the nested parallelism in the main control
+process. The nested parallelism can be translated by dividing the process into
+several parallel ones. The di±culty consists in the fact that main control can
+continue working only when the parallel processes have ¯nished. That means
+that we have to use additional shared variables as °ags and additional com-
+munication. The more detailed description can be found in the main control
+translation part.
+The other di±culty lies in the translation of the maximal progress. In Uppaal
+a delay can be performed only in locations (it is not a transition). That means
+that all actions in Uppaal are delayable. To implement maximal progress
+every transition must satisfy one of the following conditions:
+²the transition contains urgent synchronization
+²the transition has a clock guard with equality
+²the transition has urgent or committed input location
+Note that urgent locations and transitions cannot carry clock invariants or
+guards.
+Declaration As it was already mentioned, in Uppaal values cannot be
+transmitted through channels. That is why we have to declare additional global
+variables for every channel through which the value is passed. For instance, the
+global boolean variable bUpdateS1 is used to transmit the values through the
+channel cUpdateS1 . Note, that in the Âmodel some channels are used only for
+synchronization and the values that are transmitted through these channels
+50
+
+--- Page 51 ---
+are not actually used. To improve the readability and reduce the state space
+these variables are not translated. All the channels are declared as the urgent
+ones in order to implement maximal progress.
+In the Âmodel we use the variables p0;p1;p2;p3to store the information
+about the slots and the current product states. To improve the readability of
+the model we declare the variables as an array ( int[0;4]p[4] :=f0;0;0;0g).
+Note, that we de¯ne the range of the values that can be stored in the array
+(from 0 to 4) because it also reduces the state space. This array is declared
+globally, as well as four additional variables ( bStartP0 ,bStartP1 ,bStartP2 ,
+bStartP3 ). This is done in order to translate nested parallelism; more details
+can be found in the description of the main control process.
+The clocks and local variables are declared locally in the declaration part of
+the corresponding processes.
+Theturn table process In the turn table process, the channels are mostly
+used to transmit values. In that case, the corresponding transition consists
+of the synchronization part with send or receive signal (for instance, cS1! or
+cUpdateS1 ?) and the assignment part (for instance, bS1:=bS1orbS1:=bS1
+respectively). In the assignment part the new value is assigned to (or read
+from) the corresponding global variable. In Uppaal the assignment part of the
+sender is always executed before the assignment part of the receiver. Note,
+that the value that is sent through the channels cEnvAdded andcRotate is
+always true. This allows us to avoid the usage of additional global variables
+while keeping the behavior of the model unaltered.
+After the signal cRotate the process must delay. In Uppaal , a delay can be
+performed only in a location. To translate the delay we have to declare the
+clock (locally). Before the delay the clock must be reset to 0in the assignment
+part of the ingoing transition ( clTurning :=0). Then, the process is allowed to
+delay in the location. During the delay the value of the clock is increased and
+the invariant on the location makes sure that the value of the clock will not
+exceed the value of the timeout ( clTurning 64). The guard ( clTurning ==4)
+on the outgoing transition ensures that the process delays in the location for
+the exact number of time units and will not leave the location earlier (Figure
+3, a).
+In order to translate the sequential composition ( cRotate ?bS2;¢4), the end
+location of the timed automaton that corresponds to cRotate ?bS2should be
+merged with the input location of the timed automaton that corresponds to
+the delay. The resulting timed automaton is depicted in Figure 3, b (note, that
+the initial location is marked with double circle). As one can see, the merged
+location is de¯ned as a committed one, this is done to make sure that the
+51
+
+--- Page 52 ---
+a) clTurning <= 4
+b)clTurning <= 4
+c)clTurning <= 4clTurning := 0 clTurning == 4
+cRotate?
+bS2 := true clTurning := 0 clTurning == 4
+cRotate?
+bS2 := true,
+clTurning := 0clTurning == 4Fig. 3. Delay and sequential composition
+process will not delay in this location. In Uppaal several assignments can be
+combined in the assignment part of the same transition. In this case, they are
+performed sequentially. This possibility allows us to simplify the automaton
+(Figure 3, c).
+idle turning
+clTurning <= 4(*)
+clTurning == 4
+bS2:=falsecS1!
+b_S1:=bS1
+cEnvAdded?
+bS1:=true
+cUpdateS1?
+bS1:=b_S1
+Fig. 4. Alternative composition and repetition
+In order to translate the alternative composition of the created timed au-
+tomata we merged their input locations into the one and did the same with
+their end locations (Figure 4). From the united input location the process can
+perform transitions synchronizing with other processes. If there is no synchro-
+nization available the process delays in the input location. If several of them
+are available the choice is made in a non-deterministic way. This behavior
+corresponds to the alternative composition in Â.
+To translate the repetition operator, we need to add a transition that moves
+the process from its end location to its input location. The transition is marked
+with ( ¤) in Figure 4. Again, in order not to allow the process to delay in its
+former end location this location is labeled as a committed one. Knowing
+that the process must leave this location immediately we can get rid of it.
+The translation of the part of the turn table process into the Uppaal timed
+automaton is depicted in Figure 5.
+Theclamp process The translation of the clamp process is similar to the
+translation of the turn table process. Note, that in the case of the sequential
+52
+
+--- Page 53 ---
+idle
+turning
+clTurning <= 4clTurning == 4
+bS2:=falsecS1!
+b_S1:=bS1
+cEnvAdded?
+bS1:=true
+cUpdateS1?Fig. 5. The translated part of the turn table process
+composition of the delay and synchronization ( ¢2;cLocked ! true) we cannot
+combine the clock guard ( clClamp ==2) with the synchronization cLocked !
+into one transition. The reason for it is that according to the Âsemantics,
+the process must perform synchronization after the delay if it is possible,
+otherwise it can delay. On the other hand, in Uppaal it is not possible to
+use clock guards on the urgent transitions and all channels in the model are
+declared as urgent to comply with the maximal progress behavior (Figure 6).
+Fig. 6. Sequential composition in the clamp process
+Thedrill process Thedrill process actually consists of two independent
+processes working in parallel. The ¯rst process is responsible for switching the
+drill on/o® and the second one performs drilling. Uppaal does not support
+nested processes that is why we have changed the structure of the model.
+There is no variable that is shared by the nested processes in the Âdrill
+process (the value of variable xhas never been used) and the clamp process
+does not perform any other action. For this reason we can safely divide this
+process into two processes. The more complicated case of the nested processes
+and its translation is explained in the description of the main control process.
+Thetester process In the Âtester process the atomic process skip is used.
+In this case skip can be translated as a simple transition without any guards,
+synchronization or assignment labels. In Âskip cannot delay. To make it non-
+delayable in Uppaal the input location of the transition should be marked as
+urgent.
+Themain control process Themain control starts up the parallel adding,
+drilling, testing and removing operations and waits for their results. This is
+another case of the nested parallel processes. We cannot translate this process
+53
+
+--- Page 54 ---
+in the same way as we have translated the drill process because those four
+processes are not truly independent. First, they share variables that store the
+information about the slot states. Second, main control starts them up and
+after their completion it performs other operations sequentially. To translate
+this process we have to de¯ne four additional processes ( MCp0- adding,
+MCp1- drilling, MCp2- testing, MCp3- removing) that will work in
+parallel (Figure 7). To start them up from the main control process we use
+the °ags ( bStartP0 ;bStartP1 ;bStartP2 ;bStartP3 ) that are declared globally
+as well as the array where the current slot states are stored.
+Main control checks if the adding, drilling, testing and removing operations
+can be performed and if they can, it sets the corresponding °ags to true. The
+°ags are used as guards in the additional processes and as soon as they be-
+come true, the corresponding synchronization via the channels cEnvCanAdd,
+cStartTest, cStartDrill, cEnvCanRemove is performed. When the additional
+processes get the signals that the corresponding operations are completed
+(via the channels cEnvAddFinished, cDrillEnded, cTested, cEnvRemFinished ),
+they update the slot states if necessary (Figure 7).
+After ¯nishing the additional processes set the °ags to false andmain control
+can continue the execution of the sequential part. Note, that after starting up
+the nested processes the main process delays in the location till their comple-
+tion. For this reason this location cannot be marked as urgent. To implement
+maximal progress we add synchronization over the urgent channel cDummy
+to the outgoing transition and a "dummy" process that can perform only syn-
+chronization on the channel cDummy . Note, that in general case the nested
+processes can be synchronized with the main process by means of additional
+channels instead of °ags.
+cEnvAddFinished?bStartP0:=false
+Fig. 7. The example of the additional processes of main control
+According to the Âsemantics of the guard operator, the guarded process can
+perform an action if the guard is true and the process can perform the ac-
+tion. In order to translate this behavior we need to combine the guard and the
+guarded process in one transition (see the translation of p0=0!cGetS1 ! true
+in Figure 8).
+After ¯nishing the adding and removing operation main control requests the
+current slot (sensors) states from the turntable controller ( TTC ).TTC passes
+54
+
+--- Page 55 ---
+bStartP0:=(p[0]==c0),
+bStartP1:=(p[1]==c1 or p[1]==c3),
+bStartP2:=(p[2]==c2),
+bStartP3:=(p[3]==c4)
+not (bStartP0 or bStartP1 or bStartP2 or bStartP3)
+cDummy?
+cGetS1!p[0]==c0
+cSetS1?
+p[0]:=c1b_S1!b_S1p[0]!=c0
+cDummy?
+p[3]==c4 and bRemCalled
+cGetS3!
+bRemCalled:=false
+cSetS3?
+!b_S3
+p[3]:=c0b_S3p[3]!=c4
+cDummy?
+s:=p[3], p[3]:=p[2], p[2]:=p[1], p[1]:=p[0], p[0]:=s
+p[0]==c0 && p[3]==c0
+n_Turn:=0
+p[0]==c0 && p[3]!=c0
+n_Turn:=1p[0]!=0 && p[3]==0
+n_Turn:=2p[0]!=c0 && p[3]!=c0
+n_Turn:=3
+cTurn!cTurned?Fig. 8. Themain control process
+the request to the turn table process and gets the current states ( cS1!;bS1:=
+bS1;cS3!;bS3:=bS3). After that, it passes those slot states to main control
+(cSetS1 !;cSetS3 !). Note, that we did not de¯ne additional shared variables to
+pass the current slot states from TTC tomain control . Instead, main control
+reads the shared variables that have been updated by the turn table process.
+We can do this safely because it is only the main control process that can
+request to update the variables bS1andbS3, and it can read them only
+after they have been updated by the turn table process. That means that the
+situation, when one process wants to read from and another process wants to
+write into the same shared variable, is not possible. Re-using the same variable
+for several sequential communications allows us to reduce the state space by
+decreasing the number of the shared variables and assignments. As it has been
+explained before, the committed and urgent locations are used in order not to
+allow the process to perform a delay.
+55
+
+--- Page 56 ---
+Thedrill control ,tester control ,TTC and the environment pro-
+cesses The rest of the processes have been translated according to the de-
+scribed rules, so they do not require any additional explanation.
+6.3 Veri¯cation of the model in Uppaal
+TheUppaal model checking engine allows to automatically establish or re-
+fute properties that are expressed in the Uppaal Requirement Speci¯cation
+Language. This language is a subset of timed computation tree logic (TCTL),
+where primitive expressions are location names, variables, and clocks from the
+modeled system [35]. Uppaal performs veri¯cation on-the-°y and it is not
+possible to learn how many states were generated. The Uppaal developers
+created a tool named memtime to know how much time and how much mem-
+ory the Uppaal model checker verifyta needs. Time and memory consumption
+depends on the options of the model checker (search order, state space reduc-
+tion technique, state space representation, state space re-use). Veri¯cation of
+all properties of the turntable system requires 7.988 MB and 56.34 sec, if ag-
+gressive state space reduction and breadth-¯rst search order options are used
+without re-using of the state space. Veri¯cation with conservative state space
+reduction requires 20.527 MB and 55.29 sec. Veri¯cation without any state
+space reduction requires 21.004 MB, 54.42 sec.
+The state based properties like "If drilling, testing, adding or removing op-
+eration are started the turntable does not rotate in the meanwhile" or "No
+drilling, testing or removing operation take place if there is no product in the
+slot and no adding operation can be performed if there is a product in the
+corresponding slot" can be easily expressed as simple TCTL formulas.
+The model checking of properties other than plain reachability (for instance,
+bounded liveness) might be carried out in Uppaal by means of the test au-
+tomata [37] or the "decoration" method [38]. The latter can also be used to
+prove unbounded liveness properties.
+(1)The system does not contain a deadlock. The absence of a deadlock
+can be easily proved in Uppaal using the TCTL formula
+A[] not deadlock
+(2)If drilling (testing, adding or removing) is started then it's also
+¯nished and the turntable doesn't rotate in the meantime. Aux-
+iliary processes MCp0,MCp1,MCp2,MCp3, that we used to translate
+nested parallelism in the main control process, can be in the idleor in
+progress ( adding ,drilling ,testing orremoving ) locations. When the pro-
+cess is in its progress location that means that corresponding action has
+been started but is not ¯nished yet. If the process is in its idlelocation
+that means that it has not been started or it has been already ¯nished.
+56
+
+--- Page 57 ---
+This property we verify with the formula:
+A[] ( MC_p0.adding or MC_p1.drilling
+or MC_p2.testing or MC_p3.removing )
+imply not turn_table.turning
+(3)If the product has a bad test result it remains on the table and
+is drilled again. We can rephrase this property in the following way: a
+product with a bad test result will be drilled again if not any product with
+a bad test result can be removed or reach the testing position without
+being drilled (considering that there is no product loss). First, knowing
+that product with a bad test result is indicated by the constant 3, we
+verify that it will not be removed:
+A[] p[3] == 3 imply not MC_p3.removing
+Then, we verify that the product with a bad test result will never reach
+the testing position without being drilled again:
+A[] MC_p2.testing imply p[2]!= 3
+(4)If the product has a good test result then the remover will be
+called to remove the product. In order to verify this property we
+introduce a new boolean variable bRemCalled . This variable is set to
+false before removing started and its value is changed to true when the
+remover is called. Then, the value of the guard on the transition before
+the turn has been changed in a way that if the product in the removing
+position has a good test result and remover has not been called, the
+system will be deadlocked. After that, we verify the ¯rst property again.
+(5)No drilling (testing or removing) takes place if there is no prod-
+uct in the slot and no adding can be performed if there is a
+product in the slot. Knowing that the constant 0 indicates that there
+is no product in the slot we verify this property using simple formulas:
+A[] p[1] == 0 imply not MC_p1.drilling
+A[] p[0] != 0 imply not MC_p0.adding
+(6)Every added product is drilled in the next rotation. This property
+can be proved in the way similar to the third property. Knowing that every
+added product is indicated by the constant 1 and considering that there
+is no product loss we express and verify this property using the formula
+A[] MC_p2.testing imply p[2] != 1
+(7)Every product eventually leaves the table Properties with fairness
+cannot be veri¯ed in Uppaal .
+(8)When a product is added it takes between 21 and 30 time units
+to get its test result. This is so-called "bounded liveness" property and
+it can be veri¯ed in Uppaal by the means of test automata or decoration
+method [38,37]. We have decided to use the decoration method because
+it requires less changes of the model.
+We need to identify the products in order to verify that the product
+that has been added is tested. We know that there are four slots on the
+turntable and each of them can contain no more than one product. We
+also know that the products stay in the same slot till they are removed.
+57
+
+--- Page 58 ---
+That means that we can use 4 integers to identify slots and if there is a
+product in the slot it can be identi¯ed by the identi¯er of this slot.
+To identify slots we use four integers 0 through 3 that are stored in
+the array int[0;3]id[4] := 0 ;1;2;3. The values stored in the array are the
+identi¯ers and the indexes of the array are the positions of the turntable,
+i.e.id[2] == 3 means that the slot (product) with id== 3 is in the
+testing position. Every time the turntable rotates, the slots move as well
+and the values stored in the array are updated. It is su±cient to verify
+the property for a product with one particular identi¯er.
+The property "When a product is added it takes between 21 and 30
+time units to get its test result" actually consist of two properties: "When
+a product is added it takes 30 or less time units to get its test result"
+and "When a product is added it takes 21 or more time units to get its
+test result".
+To verify the ¯rst property additional global clock clDec and boolean
+variable bDec1 with initial value false have been declared. Then, we du-
+plicate the transition with communication over the channel cEnvAdded in
+theturn table process. We add the guard id[0] == 0 and the assignment
+bDec 1 := true; clDec := 0 to one of the duplicated transitions and the
+guard id[0]! = 0 to the other one (the part of the modi¯ed turn table pro-
+cess is shown in Figure 9). That means that when the product is added
+to the slot with id== 0, the °ag bDec 1 is set to trueand the clock clDec
+is set to 0.
+idleturning
+clTurning <= 4clTurning == 4
+bS2:=falsecS1!
+b_S1:=bS1
+cEnvAdded?cid == id[0]cid != id[0]
+cEnvAdded?
+bS1 := true
+Fig. 9. The part of the modi¯ed turn table process
+Then, we duplicate the transition with the communication over the
+channel cTesterUpDone in the tester controller, and add the guard id[2] ==
+0 and the assignment part bDec 1 :=false to one of them. We also add
+the guard id[2]! = 0 to the other one (the part of the modi¯ed TCprocess
+is shown in Figure 10). That means that the °ag bDec 1 is set to false
+when the test of the product in the slot with the id== 0 is completed.
+Now we can verify that if the °ag bDec 1 istrue the clock clDec does
+not exceed 30 time units.
+A[] bDec1 imply clDec <= 30
+The property "When a product is added it takes 21 or more time units
+to get its test result" is veri¯ed using the same approach.
+58
+
+--- Page 59 ---
+Fig. 10. The part of the modi¯ed TCprocess
+7 Comparisons and conclusions
+In this section we present three tables to give an impression on the level of
+di±culty concerning di®erent aspects on translating the Âmodel and verify-
+ing its properties. In the ¯rst table the number of states and transitions is
+shown. Note that Uppaal does not generate the entire state space. The Up-
+paal veri¯er required at most 7.988 MB during veri¯cation of all properties.
+Comparing the sizes of the state spaces generated by Spin and¹CRL we can
+conclude that the translation to ¹CRL provides us with a state space which
+is smaller than the one provided by Spin, though the state space generated
+by¹CRL requires more memory to be stored.
+Table 1
+State space comparison``````````````ToolState space# states # transitions MB used
+Spin 100995 188724 5.8975
+CADP( ¹CRL) 25926 50835 ( ¿: 12957) 7.332
+Uppaal - - 7.988
+The second and third table use a grading system which should be read as
+follows:
+²0: Impossible. Due to di®erences between the two modeling languages or
+the limitations of the temporal logic it is impossible to do this.
+²1: Di±cult. For Table 2, translation is not straightforward but can be done
+using special techniques; for Table 3, veri¯cation cannot be done straight-
+away, involves changing the model a lot.
+²2: Needs some work. For Table 2, translation is not completely straight-
+forward, but it does not require special techniques; for Table 3, only slight
+changes in the model are needed to verify this property.
+²3: Easy. Translation or veri¯cation can be done easily.
+59
+
+--- Page 60 ---
+The second table tells us how di±cult it is to translate certain Âconstructions
+in our case study (possibilities not mentioned here do not pose problems for
+any of the translations). Both translating to Promela and¹CRL can be
+di±cult under some circumstances, but translating to Uppaal on the other
+hand never gets really di±cult in our case. These results tell us that, at least
+concerning the turntable model, Uppaal is the best choice when selecting a
+language based on the di±culty to translate to this language.
+Table 2
+Comparison of translation problems``````````````LanguageProblemsAssignments Delays GuardsNested
+parallelismShared
+variables
+Promela 3 2 1 1 3
+¹CRL 2 1 3 2 1
+Uppaal t.a. 3 3 3 2 3
+The third table ¯nally shows how di±cult it is to express and verify the prop-
+erties of the turntable using the tools. In this table for each property (using
+the numbering as in previous parts of this article) the type ( safety, liveness,
+liveness + fairness, liveness + time) is given. What stands out is that prop-
+erty 7 is di±cult or even impossible to verify in either tool. Property 8 is
+very hard to verify in Spin due to the fact that time is hard to be referred
+to when expressing properties. In Uppaal and CADP verifying this property
+still needs some work. This is not due to problems with time, but because in
+order to prove the property at least some products need to be uniquely identi-
+¯able. Overall we conclude that CADP provides the least number of problems
+concerning the veri¯cation of the properties.
+Table 3
+Comparison of the veri¯cationXXXXXXXXXXXToolProperty1(s) 2(l) 3(l) 4(l) 5(s) 6(l) 7(l+f) 8(l+t)
+Spin 3 2 2 2 3 2 1 1
+CADP( ¹CRL) 3 3 3 3 2 3 1 2
+Uppaal 3 3 3 2 3 3 0 2
+All three formalisms are suitable for the analysis of systems that are originally
+modeled in Â. When translating we discovered that certain statements have
+straightforward translations in one language while they have not in another.
+For example, assignments exist in the same way in Â,Promela andUppaal ,
+while in ¹CRL they are represented di®erently. Additionally, some constructs
+like, for example, the parallel operator with shared variables inside the process
+de¯nition, we ¯nd very hard to achieve in each language, for di®erent reasons.
+To reason about the values of variables (state values) in CADP (using reg-
+60
+
+--- Page 61 ---
+ular, alternation-free ¹-calculus) one must extend the model with additional
+actions that make these values visible. This con of CADP makes the linear
+temporal logic, built in Spin, and the timed computation tree logic, built
+inUppaal , more appropriate when reasoning about states than the regu-
+lar, alternation-free ¹-calculus used in CADP, even though the latter is more
+powerful. Action-based properties could be veri¯ed in Spin as well, by the
+trace-assertion mechanism. In Uppaal proving such properties can be done
+using test automata or a decoration technique. When it comes to the fairness
+principle, ¹-calculus and Spin can express it in a very e®ective way while in
+Uppaal the use of the fairness principle is impossible.
+Finally, the graphical user interface makes modeling and verifying in Uppaal
+more comfortable than in ¹CRL. We also ¯nd X Spin, a graphical user interface
+forSpin, very useful.
+Related work
+²In the article [17] one of the ¯rst attempts to verify a Âmodel by man-
+ual translation to DT Promela and applying the model checker DT Spin
+is described. It dealt with a model of an industrial system and had three
+objectives. The ¯rst objective was to investigate the ability to verify trans-
+lated Âmodels with the model checker DT Spin. The second objective was
+to ¯nd out whether there are opportunities to automatically translate Â
+models into DT Promela . And the third objective was to verify formally
+some properties of a manufacturing system model.
+²In an article by Y.S. Usenko [39] Spin and¹CRL are compared using the
+HAVi leader election protocol. Concerning the generation of a state space
+for a speci¯cation of this protocol, it was concluded that Spin generates
+states faster, but the resulting state space has more states. On the other
+hand, according to the article, the state space generation capabilities of
+Spin and the ¹CRL toolset cannot be compared due to the di®erences in
+the underlying languages. Furthermore, the results may be misleading, so
+the author tells us, due to the fact that the Promela code was derived from
+the¹CRL code instead of from the informal description. The article ends
+by saying that a better comparison may be achieved using much smaller
+case studies.
+²The article by H.E. Jensen, K.G. Larsen and A. Skou [40] is on comparing
+Spin andUppaal using a collision avoidance protocol as a case study. In the
+paper it is indicated that it is possible to model real-time systems and their
+broadcast behavior in Uppaal and it cannot be done in Spin. The kind
+of properties expressible in the Uppaal requirement speci¯cation language
+are restricted to invariance and possibility properties. It is possible to verify
+bounded liveness properties in Uppaal , though they need to be expressed
+as separate test automata.
+61
+
+--- Page 62 ---
+Future work
+²Formulating general translation schemes from Âto input languages for
+model checkers;
+²Investigating how current stochastic tools can be used to determine per-
+formance characteristics of Âmodels and comparing the results with those
+coming from the Âsimulator;
+²Investigating theorem proving capabilities of di®erent veri¯cation tools, with
+respect to Â.
+62
+
+--- Page 63 ---
+References
+[1]R.R.H. Schi®elers, D.A. van Beek, K.L. Man, M.A. Reniers, and J.E. Rooda.
+Syntax and Formal Semantics of Hybrid Chi. Technical report, Eindhoven
+University of Technology, Department of Computer Science, 2004. To be
+published.
+[2]J.-C. Fernandez, H. Garavel, A. Kerbrat, L. Mounier, R. Mateescu, and
+M. Sighireanu. CADP - a protocol validation and veri¯cation toolbox. In
+Proceedings 8th Conference on Computer Aided Veri¯cation (CAV'96) , volume
+1102 of Lecture Notes in Computer Science , pages 437{440, 1996.
+[3]G.J. Holzmann. The SPIN model checker . Addison-Wesley, 2003.
+[4]K.G. Larsen, P. Pettersson, and W. Yi. Uppaal in a Nutshell. Int. Journal on
+Software Tools for Technology Transfer , 1(1-2):134{152, 1997.
+[5]D.A. van Beek, A. van der Ham, and J.E. Rooda. Modelling and Control of
+Process Industry Batch Production Systems. In 15th Triennial World Congress
+of the International Federation of Automatic Control , Barcelona, Spain, CD-
+ROM, 2002.
+[6]V. Bos and J.J.T. Klein. Formal Speci¯cation and Analysis of Industrial
+Systems . PhD thesis, Eindhoven University of Technology, 2002.
+[7]R.R.H. Schi®elers, D.A. van Beek, K.L. Man, M.A. Reniers, and J.E. Rooda.
+A Hybrid Language for Modeling, Simulation and Veri¯cation. In IFAC
+Conference on Analysis and Design of Hybrid Systems , Saint-Malo Brittany,
+France, 2003.
+[8]R.R.H. Schi®elers, D.A. van Beek, K.L. Man, M.A. Reniers, and J.E. Rooda.
+Formal semantics of hybrid chi. In First International Workshop on Formal
+Modeling and Analysis of Timed Systems , Lecture Notes in Computer Science,
+Marseille, France, 2003.
+[9]TIPSy Project Website. http://se.wtb.tue.nl/»awijs .
+[10]W.J. Fokkink, J.F. Groote, and M. Reniers. Modelling Distributed Systems.
+Unpublished manuscript, 2002.
+[11]J.A. Bergstra and J.W. Klop. Process algebra for synchronous communication.
+Information and Control , 60(1-3):109{137, 1984.
+[12]J.C.M. Baeten and W.P. Weijland. Process Algebra . Cambridge Tracts in
+Theoretical Computer Science 18. Cambridge University Press, 1990.
+[13]W.J. Fokkink. Introduction to Process Algebra . Texts in Theoretical Computer
+Science. An EATCS Series. Springer-Verlag, 2000.
+[14]R. Mateescu and M. Sighireanu. E±cient On-the-Fly Model-Checking for
+Regular Alternation-Free Mu-Calculus. Science of Computer Programming ,
+46(3):255{281, 2003.
+63
+
+--- Page 64 ---
+[15]R. Alur, C. Courcoubetis, and D. Dill. Model Checking in Dense Real-Time. In
+Proc. of the 5th IEEE Symposium on Logic in Computer Science . LICS, 1990.
+[16]A.T. Hofkamp and H.W.A.M. van Rooy. Embedded Systems Laboratory
+Exercises Manual , 2003.
+[17]V. Bos and J.J.T. Kleijn. Automatic veri¯cation of a manufacturing system.
+Robotics and Computer Integrated Manufacturing , 17:185{198, 2001.
+[18]R.R.H. Schi®elers, D.A. van Beek, K.L. Man, M.A. Reniers, and J.E. Rooda.
+Discrete-event subset of Â¾h. Eindhoven University of Technology.
+[19]R. Gerth. Concise Promela Reference. Online document: http://spinroot.
+com/spin/Man/Quick.html .
+[20]G.J. Holzmann. The Model Checker Spin. IEEE Transactions on Software
+Engineering , 23(5):279{295, 1997.
+[21]B.W. Kernighan and D.M. Ritchie. The C Programming Language, Second
+Edition . Prentice-Hall, 1988.
+[22]C.A.R. Hoare. Communicating Sequential Processes . Prentice Hall, Englewood
+Cli®s, NJ, 1985.
+[23]E. W. Dijkstra. A Discipline of Programming . Prentice-Hall, Englewood Cli®s,
+NJ, 1976.
+[24]D. Bo· sna· cki. Enhancing State Space Reduction Techniques for Model Checking .
+PhD thesis, Eindhoven University of Technology, 2001.
+[25]J. Loeckx, H.-D. Ehrich, and M. Wolf. Speci¯cation of Abstract Data Types .
+Wiley-Teubner, Chichester, Stuttgart, 1996.
+[26]S.C.C. Blom, W.J. Fokkink, J.F. Groote, I. van Langevelde, B. Lisser, and
+J.C. van de Pol. ¹CRL: A Toolset for Analysing Algebraic Speci¯cations.
+InProceedings 13th Conference on Computer Aided Veri¯cation (CAV2001) ,
+volume 2102 of Lecture Notes in Computer Science , pages 250{254, 2001.
+[27]S. Owre, J.M. Rushby, and N. Shankar. PVS: a Prototype Veri¯cation System.
+InProceedings 11th Conference on Automated Deduction (CADE'92) , volume
+607 of Lecture Notes in Computer Science , pages 748{752, 1992.
+[28]W.J. Fokkink, J.F. Groote, J. Pang, and B. Badban. Verifying a Sliding Window
+Protocol in ¹CRL. Technical Report SEN-R0308, CWI, 2003.
+[29]J.F. Groote, F. Monin, and J.C. van de Pol. Checking veri¯cations of protocols
+and distributed systems by computer. In Proceedings 9th Conference on
+Concurrency Theory (CONCUR'98) , volume 1466 of Lecture Notes in Computer
+Science , pages 629{655, 1998.
+[30]B. Luttik. Choice Quanti¯cation in Process Algebra . PhD thesis, University of
+Amsterdam, 2002.
+64
+
+--- Page 65 ---
+[31]J.F. Groote. The Syntax and Semantics of timed ¹CRL. Technical Report
+SEN-R9709, CWI, Amsterdam, 1997.
+[32]S.C.C. Blom, N. Ioustinova, and N. Sidorova. Timed veri¯cation with
+¹CRL. In Andrei Ershov Fifth International Conference Perspectives of System
+Informatics , volume 2890 of Lecture Notes in Computer Science , pages 178{192,
+2003.
+[33]M. Bezem and J.F. Groote. Invariants in Process Algebra with Data. In
+CONCUR '94: Concurrency Theory , volume 836 of Lecture Notes in Computer
+Science , pages 401{416, 1994.
+[34]R. De Nicola and F. Vaandrager. Three Logics for Branching Bisimulation.
+Journal of the ACM , 42(2):458{487, 1995.
+[35]M.O. MÄ oller. Structure and Hierarchy in Real-Time Systems . PhD thesis,
+University of Aarhus, 2002.
+[36]F. Larsson, K.G. Larsen, P. Pettersson, and W. Yi. E±cient Veri¯cation of
+Real-Time Systems: Compact Data Structures and State-Space Reduction. In
+Proc. of the 18th IEEE Real-Time Systems Symposium , pages 14{24. IEEE
+Computer Society Press, 1997.
+[37]L. Aceto, P. Bouyer, A. Burgue~ no, and K.G. Larsen. The Power of Reachability
+Testing for Timed Automata. Theor. Comput. Sci. , 300(1-3):411{475, 2003.
+[38]M. Lindahl, P. Pettersson, and W. Yi. Formal Design and Analysis of a Gear
+Controller. IEEE Transactions on Software Engineering , 3:353{368, 2001.
+[39]Y.S. Usenko. State space generation for the HAVi leader election protocol. Sci.
+Comput. Program , 43(1):1{33, 2002.
+[40]H.E. Jensen, K.G. Larsen, and A. Skou. Modelling and Analysis of a Collision
+Avoidance Protocol using SPIN and Uppaal. In Proceedings of the 2nd SPIN
+Workshop , Rutgers University, New Jersey, USA, 1996.
+65
