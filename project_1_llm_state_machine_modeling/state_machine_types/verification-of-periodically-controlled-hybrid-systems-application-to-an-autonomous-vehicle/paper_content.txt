@@ -1,0 +1,1298 @@
+--- Page 1 ---
+Verication of Periodically Controlled Hybrid
+Systems: Application to An Autonomous Vehicle
+TICHAKORN WONGPIROMSARN
+California Institute of Technology
+SAYAN MITRA
+University of Illinois at Urbana Champaign
+and
+ANDREW LAMPERSKI and RICHARD M. MURRAY
+California Institute of Technology
+This paper introduces Periodically Controlled Hybrid Automata (PCHA) for modular specication
+of embedded control systems. In a PCHA, control actions that change the control input to the
+plant occur roughly periodically, while other actions that update the state of the controller may
+occur in the interim. Such actions could model, for example, sensor updates and information
+received from higher-level planning modules that change the set-point of the controller. Based
+on periodicity and subtangential conditions, a new sucient condition for verifying invariant
+properties of PCHAs is presented. For PCHAs with polynomial continuous vector elds, it is
+possible to check these conditions automatically using, for example, quantier elimination or sum
+of squares decomposition. We examine the feasibility of this automatic approach on a small
+example. The proposed technique is also used to manually verify safety and progress properties
+of a fairly complex planner-controller subsystem of an autonomous ground vehicle. Geometric
+properties of planner-generated paths are derived which guarantee that such paths can be safely
+followed by the controller.
+Categories and Subject Descriptors: D.2.4 [ Software Engineering ]: Software/Program Veri-
+cation| Correctness proofs ;Formal methods ; F.3.1 [ Logics and Meanings of Programs ]:
+Specifying and Verifying and Reasoning about Programs| Invariants ;Specication techniques ;
+I.2.9 [ Articial Intelligence ]: Robotics| Autonomous vehicles
+General Terms: Verication
+Additional Key Words and Phrases: Embedded systems, Invariants
+1. INTRODUCTION
+Subtle design bugs in embedded systems may arise from the unforeseen interactions
+among the computing, the communication, and the control subsystems. Consider,
+for example, the embedded computing system of the autonomous vehicle Alice built
+at Caltech. Alice successfully accomplished two of the three tasks at the National
+Qualifying Event (NQE) of the 2007 DARPA Urban Challenge [Burdick et al.
+Author's address: T. Wongpiromsarn, MC 104-44, 1200 E. California Blvd., Pasadena, CA 91125.
+This work is partially supported by AFOSR through the MURI program.
+Permission to make digital/hard copy of all or part of this material without fee for personal
+or classroom use provided that the copies are not made or distributed for prot or commercial
+advantage, the ACM copyright/server notice, the title of the publication, and its date appear, and
+notice is given that copying is by permission of the ACM, Inc. To copy otherwise, to republish,
+to post on servers, or to redistribute to lists requires prior specic permission and/or a fee.
+©20YY ACM 0000-0000/20YY/0000-0001 $5.00
+ACM Journal Name, Vol. V, No. N, Month 20YY, Pages 1{0 ??.
+
+--- Page 2 ---
+2007; Wongpiromsarn and Murray 2008; DuToit et al. 2008]. During the third
+task, which involved making left-turns while merging into trac, its behavior was
+unsafe and almost led to a collision. Alice was stuck at the corner of a sharp turn
+dangerously stuttering in the middle of an intersection. It was later diagnosed
+that this behavior was caused by bad interactions between the reactive obstacle
+avoidance subsystem (ROA) and the relatively slowly reacting path planner . The
+planner incrementally generates a sequence of waypoints based on the road map,
+obstacles, and the mission goals. The ROA is designed to rapidly decelerate the
+vehicle when it gets too close to an obstacle or when the deviation from the planned
+path gets too large. Finally, to protect the vehicle steering system, Alice's low-level
+controller limits the rate of steering at low speeds. Thus, accelerating from a low
+speed, if the planner produces a path with a sharp left turn, the controller is unable
+to execute the turn closely. Alice deviates from the path; the ROA activates and
+slows it down. This cycle continues leading to stuttering.
+The above example illustrates how design of reliable embedded systems inherits
+the diculties involved in designing both control systems and distributed (con-
+current) computing systems. The described design bug manifests as undesirable
+behavior only under a very specic set of conditions and only when the controller,
+the ROA, and the vehicle interact in a very specic manner. Therefore, such a bug
+had never been discovered in thousands of hours of our extensive simulations and
+over three hundred miles of eld testing. Formal methods provide tools and tech-
+niques for uncovering such subtle design bugs and mathematically prove correctness
+of designs. More recently, formal techniques have also been used to automatically
+generate controllers that are correct by construction [Kloetzer and Belta 2006;
+Fainekos et al. 2009].
+The hybrid system formalism [Alur et al. 1995; Kaynar et al. 2005] provides a
+rich mathematical language for specifying embedded systems where computing and
+control components interact with physical processes. The algorithmic verication
+problem for hybrid systems with general dynamics is known to be computationally
+hard [Henzinger et al. 1995]. Restricted subclasses that are amenable to algorith-
+mic analysis have been identied, such as the rectangular-initialized hybrid au-
+tomata [Henzinger et al. 1995], o-minimal hybrid automata [Laerriere et al. 1999],
+and more recently planar [Prabhakar et al. 2008] and STORMED [Vladimerou et al.
+2008] hybrid automata. Although these restricted subclasses improve our under-
+standing of the decidability frontier for hybrid systems, the imposed restrictions
+are articial, i.e., they are not representative of structures that arise in real world
+systems. For example, initialized hybrid automata require the continuous state of
+the system to be reset every time the automaton enters a new mode.
+While real world embedded control systems are large and complex, they are also
+implemented on hardware platforms that have, at the fundamental level, similar
+architectures. Hence, hybrid automaton models that capture the commonality in
+such systems have more structure than general hybrid automata [Alur et al. 1995].
+With the motivation of abstractly capturing a common design pattern in embedded
+control systems, such as Alice, and other motion control systems [Mitra et al. 2003],
+in this paper we study a new subclass of hybrid automata.
+Two main contributions of this paper are the following: First, we dene a class of
+
+--- Page 3 ---
+hybrid control systems in which certain control actions occur roughly periodically.
+Each control action sets the controlling output that drives the underlying physical
+process which we refer to as the plant. In the interval between two control actions,
+the state of the plant evolves continuously with xed control inputs. Also, in the
+same interval, other discrete actions may occur, updating the state of the system.
+Such discrete changes may correspond, for example, to sensor inputs and changes of
+the waypoint or the set-point of the controller. These changes may in turn inuence
+the computation of the next control action. For this class of periodically controlled
+hybrid systems , we present a sucient condition for verifying invariant properties.
+The key requirement in applying this condition is to identify a collection of sub-
+set(s)Cof the candidate invariant set I, such that if the control action occurs
+when the system state is in C, then the subsequent control output guarantees that
+the system remains within Ifor the next period. The technique does not require
+solving the dierential equations; instead, it relies on checking conditions on the
+periodicity and the subtangential condition at the boundary of I. For systems
+with polynomial vector elds, we show how these checks can be automated using
+sum of squares decomposition and semidenite programming [Prajna et al. 2002].
+These formulations are illustrated by analyzing a simple example in which an in-
+variant is automatically determined using the constraint-based approach presented
+in [Gulwani and Tiwari 2008]. We believe that other techniques for nding invari-
+ants, for example those presented in [Platzer and Clarke 2008; Sankaranarayanan
+et al. 2008], could also be eectively used for computing invariants of PCHAs. The
+ndings from this direction of research will be reported in a future paper.
+Second, we apply the above technique to manually verify the safety and progress
+properties of the planner-controller subsystem of Alice. Since the model of Alice
+involves complex, nonpolynomial dynamics, the proposed automatic approach is not
+directly applicable. Thus, the analysis is done completely by hand. First, we verify
+a family of invariants fIkgk2Nusing the above-mentioned technique. This step
+is fairly simple, requiring only algebraic simplication of expressions dening the
+vector elds andIk's. Then, we determine a sequence of shrinking Ik's as the vehicle
+makes progress along the planned path. From these shrinking invariants, we are able
+to deduce safety. That is, the deviation|distance of the vehicle from the planned
+path|remains within a certain constant bound. In the process, we also derive
+geometric properties of planner paths that guarantee that they can be followed
+safely by the vehicle. Informally, these geometric properties require that sharp
+turns in the path are only present after relatively long segments. In executing a
+long segment, the vehicle converges to small deviation as well as small disorientation
+with respect to the path. Thus, the instruction for executing a subsequent sharp
+turn, does not make the deviation grow too much. The preliminary results of this
+paper were published in [Wongpiromsarn et al. 2009].
+The remainder of the paper is organized as follows: In Section 2, we briey
+present the key denitions for the hybrid I/O automaton framework. In Section 3,
+we present PCHA and a sucient condition for proving invariance. In this section,
+we also present the formulation of the sucient condition as a sum of squares
+optimization problem for automatic verication. In Sections 4 and 5, we present
+the formal model and verication of Alice's Controller-Vehicle subsystem.
+
+--- Page 4 ---
+2. PRELIMINARIES
+We use the Hybrid Input/Output Automata (HIOA) framework of [Lynch et al.
+2003; Kaynar et al. 2005] for modelling hybrid systems and the state model-based
+notations introduced in [Mitra 2007]. A HIOA is a non-deterministic state machine
+whose state may change instantaneously through a transition, or continuously over
+an interval of time following a trajectory . In this section, we briey present impor-
+tant terminology and notations that are used throughout the paper. We refer the
+reader to [Kaynar et al. 2005; Mitra 2007] for more details.
+A variable structure is used for specifying the states of an HIOA. Let Vbe a set
+of variables. Each variable v2Vis associated with a type which denes the set of
+valuesvcan take. The set of valuations of Vis denoted by val( V). For a valuation
+v2val(V) of set of variables V, its restriction to a subset of variables ZVis
+denoted by vdZ. A variable may be discrete orcontinuous . Typically, discrete
+variables model protocol or software state, and continuous variables model physical
+quantities such as time, position, and velocity.
+Atrajectory for a set of variables Vmodels continuous evolution of the values
+of the variables over an interval of time. Formally, a trajectoryis a map from
+a left-closed interval of R0with left endpoint 0 to val( V). The domain of is
+denoted by :dom . The rst state of,:fstate , is(0). A trajectory isclosed
+if:dom = [0;t] for some t2R0, in which case we dene the last time of,
+:ltime=t, and the last state of,:lstate=(t). For a trajectory forV, its
+restriction to a subset of variables ZVis denoted by #Z.
+The set of allowed trajectories of all the variables of an HIOA is dened by
+state models , as follows. For given set Vof variables, a state modelSis a triple
+(FS;InvS;StopS), where (a) FSis a collection of dierential equations (DEs)
+involving the continuous variables in V, and (b)InvSandStopSare predicates
+onVcalled invariant condition and stopping condition ofS.Sdenes a set of
+trajectories, denoted by traj(S), for the set Vof variables. A trajectory forVis
+in the settrajs (S) i (a) the discrete variables in Vremain constant over ; (b) the
+restriction of on the continuous variables in Vsatises all the DEs in FS; (c) at
+every point in time t2dom(), (#V)(t)2InvS; and (d) if ( #V)(t)2StopS
+for somet2dom(), thenis closed and t=:ltime.
+3. PERIODICALLY CONTROLLED HYBRID SYSTEMS
+In this section, we dene a subclass of HIOAs that is suitable for modeling sampled
+control systems and embedded systems with periodic sensing and actuation. The
+main result of this section, Theorem 3.5, gives a sucient condition for proving
+invariant properties of this subclass.
+3.1 Periodically Controlled Hybrid Automata
+A Periodically Controlled Hybrid Automaton (PCHA) is an HIOA with a set of
+(control ) actions that occur roughly periodically. These control actions alter the
+actual control signal (input) that feeds to the plant and may change the continuous
+and the discrete state variables of the automaton. The automaton may have other
+actions that change only the discrete state of the automaton. These actions can
+model, for example, sensor inputs and the change in the set-point of the controller
+from higher-level inputs. However, these external commands do not aect the
+
+--- Page 5 ---
+dynamics of the system immediately; they only change the internal variables of the
+controller. Formally, a PCHA is dened as follows.
+Denition 3.1. LetXRn, for somen2N, andL;Z;andUbe arbitrary types.
+APeriodically Controlled Hybrid Automaton (PCHA) Ais a tuple (X;Q;Q 0;A;D;S)
+where
+(a)X=fs;loc;z;u; now;nextgis a set of internal orstate variables where sis a
+continuous state variable of typeX,locis adiscrete state (location ormode )
+variable of typeL,zis acommand variable of typeZ,uis acontrol variable of
+typeU,now is a real continuous variable and next is a real discrete variable;
+(b)Qval(X) is a set of states andQ0Qis a nonempty set of start states ;
+(c)Ais a set of actions, consisting of a set of update actions and a control action;
+(d)DQAQis a set of discrete transitions . A transition ( x;a;x0)2D is
+written in short as xa!Ax0or as xa!x0whenAis clear from the context.
+An actiona2Ais said to be enabled at a state x2Qif there exists a state
+x02Qsuch that xa!x0; and
+(e)Sis a collection of state models forX, such that for every S;S02S,InvS\
+InvS0=;andQS
+S2SInvS.
+In addition,Amust satisfy the property that every update action is enabled1at
+every state and may only change the value of z, while control actions occur roughly
+periodically starting from time 0; the time gap between two successive occurrences
+ofcontrol actions is within [ 1;1+  2] where  1>0 and  20.
+We denote the components of a PCHA AbyXA;QA, etc. For a set Xof variables,
+astate xis an element of val( X). We denote the valuation of a variable y2Xat
+state x, by the usual ( :) notation x:y.
+The continuous state typically includes the continuous state of the plant and
+some internal state of the controller. The discrete state represents the mode of
+the system. The command variable stores externally produced input commands or
+sensor updates. The control variable stores the control input to the plant. Finally,
+thenow and next variables are used for triggering the control action periodically.
+Initializing next to 2ensures that the rst control action occurs at time 0.
+PCHAAhas two types of actions: (a) through input action update ,Alearns about
+new externally produced input commands such as set-points, waypoints. When an
+update (z0) action occurs, z0is recorded in the command variable z. (b) The control
+action changes the continuous and discrete state variables sandlocand the control
+variableu. When control occurs,locandsare computed as a function of their
+current values and that of z, anduis computed as a function of the new values of
+locands. Observe, from this denition, that the external commands do not aect
+the dynamics of the system immediately. The modication of the dynamics due to
+the external commands are eective at the next control cycle.
+For each value of l2L, the continuous state sevolves according to the trajectories
+specied by state model smodel (l). That is, sevolves according to the dierential
+equation _s=fl(s;u). The timing of control behavior is enforced by the precondition
+ofcontrol and the stopping condition of the state models.
+1In the terminology of HIOA, an update action is an input action.
+
+--- Page 6 ---
+Note that as opposed to a general HIOA, a PCHA does not contain input and
+output variables. For the sake of simplicity, we consider the PCHAs of the form
+shown in Figure 1 with only one update action, and a unique starting state. How-
+ever, Theorem 3.5 generalizes to PCHAs with multiple update actions as illustrated
+later in Section 5.
+1 signature
+internal control
+3 input update (z0:Z)
+5 variables
+internal s:X:=s0
+7 internal discrete loc:L:=l0,
+z:Z:=z0,u:U:=u0
+9 internal now :R0:= 0, next :R:= 2
+11 transitions
+input update (z0)
+13 ez:=z014 internal control
+prenownext
+16 enext :=now +  1;
+hloc,si:=h(loc,s,z);
+18 u:=g(loc,s)
+20 trajectories
+trajdef smodel (l:L)
+22 invariant loc=l
+evolve d(now) = 1;
+24 d(s) =fl(s,u)
+stop when now =next +  2
+Fig. 1. PHCA with parameters  1, 2,g,h,fflgl2L. See, for example [Mitra 2007] for
+the description of the language.
+An execution of a PCHA Arecords the valuations of all its variables and the
+occurrences of all actions over a particular run. An execution fragment ofAis
+a nite or innite sequence =0a11a2:::, such that for all iin the sequence,
+ai2AA,2trajs (S) for someS2SA, andi:lstateai+1!i+1:fstate . An execution
+fragment is an execution if0:fstate2Q0. An execution is closed if it is nite and
+the last trajectory in it is closed. The rst state of an execution fragment ,:fstate ,
+is0:fstate , and for a closed , its last state, :lstate , is the last state of its last
+trajectory. The limit time of,:ltime, is dened to beP
+ii:ltime. The set of
+executions and reachable states of Aare denoted by ExecsAand ReachA. A set of
+statesIQAis said to be an invariant ofAiReachAI.
+3.2 Invariant Verication
+Proving invariant properties of hybrid automata is a central problem in formal
+verication. Invariants are used for overapproximating the reachable states of a
+given system, and therefore, can be used for verifying safety properties.
+Given a candidate invariant set I Q, we are interested in verifying that
+ReachAI. For continuous dynamical systems, checking the well-known subtan-
+gential condition (see, for example [Bhatia and Szeg o 1967]) provides a sucient
+condition for proving invariance of a set Ithat is bounded by a closed surface. The-
+orem 3.5 below provides an analogous sucient condition for PCHAs. In general,
+however, invariant sets Ifor PCHAs have to be dened by a collection of functions
+instead of a single function. For each mode l2L, we assume that the invariant set
+IlX for the continuous state is dened by a collection of mboundary functions
+fFlkgm
+k=1, wheremis some natural number and each Flk:X!Ris a dierentiable
+function2. Formally,
+2Identical size mof the collections simplies our notation; dierent number of boundary functions
+for dierent values of lcan be handled by extending the theorem in an obvious way.
+
+--- Page 7 ---
+Il=fs2Xj8k2f1;:::;mg;Flk(s)0gandI=fx2Qjx:s2Ix:locg:
+Note that the overall candidate invariant set Idoes not restrict the values of the
+command or the control variables. In the remainder of this section, we develop a set
+of sucient conditions for checking that Iis indeed an invariant of a given PCHA.
+Lemma 3.2 modies the standard inductive technique for proving invariance, so
+that it suces to check invariance with respect to control transitions and control -
+free execution fragments of length not greater than  1+  2. It states thatIis an
+invariant if it is closed under (a) the discrete transitions of the control actions, and
+(b)control -free execution fragments of length at most  1+  2.
+Lemma 3.2. SupposeQ0I and the following two conditions hold:
+(a) ( control steps) For each state x;x02Q, ifxcontrol!x0andx2I thenx02I.
+(b) ( control -free fragments) For each closed execution fragment =0update (z1)
+1update (z2)::: nstarting from a state x2 I where each zi2 Z , if
+x:next x:now =  1and:ltime1+  2, then:lstate2I.
+Then ReachAI.
+Proof. Consider any reachable state xofAand any execution such that
+:lstate =x. We can write as0control1control:::k, where each iiscontrol -
+free execution fragment of A, i.e., execution fragments in which only update actions
+occur. From condition (a), it follows that for each i2f0;:::;kg, ifi:lstate2I,
+theni+1:fstate2I.
+Thus, it suces to prove that for each i2 f0;:::;kg, ifi:fstate2 I, then
+i:lstate2I. We x an i2f0;:::;kgand assume that i:fstate2I. Leti=
+0update (z1)1update (z2):::n, where for j2f0;:::;ng,zj2Z andjis a
+trajectory ofA. Ifi= 0, then0:ltime = 0 and0:lstatedfloc;sg=0:fstated
+floc;sgsince the rst control action occurs at time 0 and update transitions do not
+aect the value of locands. Therefore, i:lstate2I. Otherwise, i >0 and since
+istarts immediately after a control action,:fstatednext :fstatednow =  1.
+From periodicity of control actions, we know that i:ltime1+  2, and hence
+from condition (b) it follows that i:lstate2I.
+Invariance of control steps can often be checked through case analysis which can
+be partially automated using a theorem prover [Owre et al. 1996]. The next key
+lemma provides a sucient condition for proving invariance of control -free frag-
+ments. Since control -free fragments do not change the valuation of the locvariable,
+for this part, we x a value l2 L. For each index of the boundary functions
+j2f1;:::mg, we dene the set @Ijto be part of the set Ilwhere the function Flj
+vanishes. That is, @Ij=fs2IljFlj(s) = 0g. For the sake of brevity, we call @Ij
+thejthboundary of Ileven though strictly speaking, the jthboundary of Ilis only
+a subset of @Ijaccording to the standard topological denition. Similarly, we say
+that the boundary ofIl, is@Il=S
+j2f1;:::;mg@Ij.
+Lemma 3.3. Suppose that there exists a collection fCjgm
+j=1of subsets of Ilsuch
+that the following conditions hold:
+(a) (Subtangential) For each s02IlnCjands2@Ij,@Flj(s)
+@sfl(s;g(l;s0))0.
+(b) (Bounded distance) 9cj>0such that8s02Cj;s2@Ij,jjs s0jjcj.
+
+--- Page 8 ---
+(c) (Bounded speed) 9bj>0such that8s02Cj;s2Il,jjfl(s;g(l;s0))jjbj,
+(d) (Fast sampling) 1+  2minj2f1;:::;mgcj
+bj.
+Then, any control -free execution fragment , with:ltime1+  2, starting from
+a state inIlwherenext now =  1, remains within Il.
+β1Ilβ2β3β4β5β6β7C1C2∂I1
+∂I2
+Fig. 2. A graphical explanation of
+Lemma 3.3 showing an invariant set
+Ildened by two boundary func-
+tions. The boundary @I1is drawn
+in solid line whereas the boundary
+@I2is drawn in dotted line. The cor-
+responding sets C1andC2are also
+shown.In Figure 2, the control actions and the
+control -free execution fragments are shown by
+bullets and solid lines, respectively. The dashed
+lines represent the discrete transitions of the
+control actions. An execution fragment start-
+ing inIand leavingI, must cross @I1or@I2.
+Consider the following four cases.
+(1) Ifuis evaluated outside both C1andC2
+(e.g.2,4and6), then condition (a) guar-
+antees that the fragment does not cross @Ij
+wherej2f1;2gbecause when it reaches
+@Ij, the vector eld governing its evolution
+points inwards with respect to @Ij.
+(2) Ifuis evaluated inside C1but outside C2
+(e.g.1and7), then by the previous rea-
+soning, condition (a) guarantees that the
+fragment does not cross @I2. In addition, conditions (b) and (c) guarantee
+that it takes nite time before the fragment reaches @I1and condition (d)
+guarantees that this nite time is at least  1+  2; thus, before the fragment
+crosses@I1,uis evaluated again.
+(3) Ifuis evaluated outside C1but inside C2(e.g.3), then by a symmetric
+argument, the fragment does not cross @I1or@I2.
+(4) Ifuis evaluated inside both C1andC2(e.g.5), then conditions (b), (c) and
+(d) guarantee that uis evaluated again before the fragment crosses @I1or@I2.
+Proof. We x a control -free execution fragment =0update (z1)1update (z2):::n
+such that at :fstate ,next now =  1. Without loss of generality we assume that
+at:fstate ,loc=l, ands=x1, wherel2Landx12Il. We have to show that at
+:lstate ,s2Il.
+First, observe that for each k2f0;:::;ng, (k#s) is a solution of the dierential
+equation(s) d(s) =fl(s;g(l;x1)). Letbe the pasted trajectory 0_1_:::n.3Let
+:ltime beT. Since the update action does not change s,k:lstateds=k+1:fstated
+sfor eachk2f0;:::;n 1g. As the dierential equations are time invariant,
+(#s) is a solution of d(s) =fl(s;g(l;x1)). We dene the function : [0;T]!X
+as8t2[0;T],(t)= (#s)(t). We have to show that (T)2Il. Suppose,
+for the sake of contradiction, that there exists t2[0;T], such that (t)62Il.
+By the denition of Il, there exists isuch thatFli((0))0 andFli((t))<0.
+We pick one such iand x it for the remainder of the proof. Since Fliandare
+continuous, from intermediate value theorem, we know that there exists a time t1
+31_2is the trajectory obtained by concatenating 2at the end of 1.
+
+--- Page 9 ---
+beforetwhereFlivanishes and that there is some nite time >0 aftert1when
+Fliis strictly negative. Formally, there exists t12[0;t) and>0 such that for all
+t2[0;t1],Fli((t))0,Fli((t1)) = 0, and for all 2(0;],Fli((t1+))<0.
+Case 1:x12IlnCi. SinceFli((t1)) = 0, by denition, (t1)2@Ii. But from
+the value of Fli((t)) wheretis near tot1, we get that@Fli
+@t(t1) =@Fli
+@s((t1))
+fl((t1);g(l;x1))<0. This contradicts condition (a).
+Case 2:x12Ci. Since for all t2[0;t1],Fli((t))0 andFli((t1)) = 0, we get
+that for all t2[0;t1],(t)2Iland(t1)2@Ii. So from condition (b) and (c), we
+getcik(t1) x1k=Rt1
+0fl((t);g(l;x1))dtbit1. That is,t1ci
+bi. But we
+know thatt1<tTand periodicity of control actionsT1+  2. Combining
+these, we get  1+  2>ci
+bi, which contradicts condition (d).
+For PCHAs with certain properties, the following lemma provides sucient con-
+ditions for the existence of the bounds bjandcj, which satisfy the bounded distance
+and bounded speed conditions of Lemma 3.3. The proof appears in the full version
+of the paper available from [Wongpiromsarn et al. 2008]
+Lemma 3.4. For a given l2L, letUl=fg(l;s)jl2L;s2IlgU and suppose Il
+is compact and flis continuous in IlUl. The bounded distance and bounded speed
+conditions (of Lemma 3.3) are satised if CjIlsatises the following conditions:
+(a)Cjis closed, and (b) Cj\@Ij=;
+Theorem 3.5 combines the above lemmas and provides sucient conditions for
+invariance ofI.
+Theorem 3.5. Consider a PCHAAand a setI QA. Suppose Q0A I ,
+Asatises control invariance condition of Lemma 3.2, and conditions (a){(d) of
+Lemma 3.3 for each l2LA. Then ReachAI.
+Theorem 3.5 essentially exploits the structure of PCHAs in order to simplify their
+invariant verication. It can be applied to any PCHAs, including those with non-
+polynomial vector elds such as Alice, as illustrated later in Section 5. Although
+thePCHA of Figure 1 has one action of each type, Theorem 3.5 can be extended for
+periodically controlled hybrid systems with an arbitrary number of update actions.
+For PCHAs with polynomial vector elds, given semi-algebraic sets IlandCj,
+checking condition (a) and nding cjandbjthat satisfy conditions (b) and (c) of
+Lemma 3.3 can be formulated as a sum of squares optimization problem (provided
+thatIlandCjare basic semi-algebraic sets) or proving emptiness of certain semi-
+algebraic sets based on quantier elimination. The sum of squares formulation
+is presented in the next section and allows the proof to be automated using, for
+example, SOSTOOLS [Prajna et al. 2002]. The quantier elimination problem
+can also be formulated and allows the proof to be automated using, for example,
+QEPCAD [Brown 2003]. Alternatively, in Section 3.4, we show how an invariant
+set can be automatically computed using the constraint-based approach presented
+in [Gulwani and Tiwari 2008].
+3.3 Sum of Squares Formulation for Checking the Invariant Conditions
+Suppose the candidate invariant set Ilis a basic semi-algebraic set, i.e., each of
+the boundary functions Flk:X!Ris a real polynomial. This section presents a
+sum of squares formulation for (1) checking condition (a) and nding the cjandbj
+
+--- Page 10 ---
+that satisfy conditions (b) and (c) of Lemma 3.3 for a given basic semi-algebraic
+subsetCj, and (2) nding a subset Cjsuch that conditions (a){(c) of Lemma 3.3
+are satised. For the rst case, the sum of squares problem is convex and can be
+solved using, for example, SOSTOOLS [Prajna et al. 2002]. For the second case,
+however, the problem is not convex but can still be automatically solved using an
+iterative scheme as presented in [Prajna and Jadbabaie 2004]. Roughly, we iterate
+between for the following two steps: (i) x the unknown multipliers and search for a
+subsetCjthat satises conditions (a){(c) of Lemma 3.3, and (ii) x Cjand search
+for the unknown multipliers.
+Checking the Invariant Condition for a Given Subset
+SupposeCja basic semi-algebraic set, that is, there exists a natural number psuch
+thatCjcan be written as
+Cj=fs2Ilj8i2f1;:::;pg;Gji(s)0g (1)
+whereGji:X!Ris a real polynomial for each i2f1;:::;pg. Using the gener-
+alized S-procedure (a special case of the Positivstellensatz) [Topcu et al. 2008], we
+obtain the following sucient condition for condition (a) of Lemma 3.3.
+For eachk2f1;:::;pg, there exist sums of squares 1;k(s;s0),k(s),k;i(s) and
+k;i(s) fori2f1;:::;mgand a polynomial k(s) such that
+@Flj(s)
+@sfl(s;g(l;s0)) =1;k(s;s0) +mX
+i=1k;i(s)Fli(s) +k(s)Flj(s) +mX
+i=1k;i(s0)Fli(s0)
+ k(s0)Gjk(s0):
+Given arbitrary s2@Ijands02IlnCj, non-negativity of 1;k(s;s0),k;i(s),
+k;i(s0) andk(s0) implies that the derivative term on the left-hand side of the
+above equation is non-negative. In other words, the above condition ensures that
+for eachk2f1;:::;pg,
+f(s;s0)2XXj8 i2f1;:::mg;Fli(s)0;Flj(s) = 0;Fli(s0)0;Gjk(s0)0g
+
+(s;s0)2XX@Flj(s)
+@sfl(s;g(l;s0))0	
+:
+That is, for all s2@Ijands02IlnCj, we have@Flj(s)
+@sfl(s;g(l;s0))0. Similarly,
+based on the generalized S-procedure, condition (b) of Lemma 3.3 can be formulated
+as the following optimization problem.
+Minimize cjsuch that there exist sums of squares 2(s;s0),i(s) fori2f1;:::;mg
+andi(s) fori2f1;:::pgand a polynomial m+1(s) such that
+ks s0k2 c2
+j=2(s;s0) +mX
+i=1i(s)Fli(s) +m+1(s)Flj(s) +pX
+i=1i(s0)Gji(s0):
+Finally, condition (c) of Lemma 3.3 can be formulated as the following optimiza-
+tion problem.
+Minimizebjsuch that there exist sums of squares 3(s;s0),i(s) fori2f1;:::;mg
+andi(s) fori2f1;:::pgsuch that
+b2
+j kfl(s;g(l;s0)k2=3(s;s0) +mX
+i=1i(s)Fli(s) +pX
+i=1i(s0)Gji(s0):
+
+--- Page 11 ---
+Finding a Subset for Checking the Invariant Conditions
+SupposeCj=fs2IljGj(s)0g. In this case, we only have to nd a polynomial
+Gj(s). According to the generalized S-procedure, this problem can be formulated
+as follows: Find sums of squares i(s),i(s),(s),i(s),(s),i(s) and(s) for
+i2f1;:::;mgand polynomials Gj(s),(s) andm+1(s) such that the following
+are sums of squares:
+(a)@Flj(s)
+@sfl(s;g(l;s0)) Pm
+i=1i(s)Fli(s) (s)Flj(s) Pm
+i=1i(s0)Fli(s0) +
+(s0)Gj(s0),
+(b)ks s0k2 c2
+j Pm
+i=1i(s)Fli(s) m+1(s)Flj(s) (s0)Gj(s0), and
+(c)b2
+j kfl(s;g(l;s0)k2 Pm
+i=1i(s)Fli(s) (s0)Gj(s0).
+3.4 Example
+In this section, we illustrate, on a simple example, how invariant verication of
+a PCHA can be partially automated. Consider a one-dimensional system whose
+global state (e.g. position or velocity) needs to be regulated such that it stays within
+some safe ball with respect to a reference point, given by an external command.
+The reference point is given as an input to the system and may change throughout
+an execution. We assume that the distance between the reference point and the
+global state of the system at the time the reference point is received is not larger
+than. The system has the following variables: (a) a continuous state variable s
+of type Rthat represents the deviation of the system from the current reference
+point; (b) a discrete state variable locof type Rthat represents the current reference
+point; (c) a command variable zof type Rthat stores the last external command,
+i.e., the reference point for the next control cycle; and (d) a control variable uof
+typeU=fa1;a2gwherea12R anda22R+are system parameters.
+Figure 3 shows the HIOA specication of this state regulator system. The control
+action occurs once every  time starting from time 0 where  2R+. This action
+updates the values of the variables s,locanduas follows.
+A. First, set the value of locandsso that they correspond to the new reference
+point and the deviation of the system from the new reference point, respectively
+(lines 16{17).
+B. Based on the updated value of s,uis computed as follows (lines 18{19): If
+s>0, thenuis set toa1. Otherwise, uis set toa2.
+Along a trajectory, the continuous state sevolves according to the dierential
+equation _s=u(line 22). That is, for any l2L, the function flof line 24 of Figure 1
+is dened as fl(s;u) =u.
+Invariant. For each mode l2L, we letIl= [ +a1;+a2]. That is, the
+candidate invariant set Ilis dened by two boundary functions Fl1(s) =s+ a1
+andFl2(s) = s++a2. The overall candidate invariant set is then given by
+I=fx2QjFl1(x:s)0 andFl2(x:s)0g.
+Proving Invariance. We use Theorem 3.5 to show that Iis in fact an invariant
+of the system. Clearly, the initial state is contained in I. To verify the control
+invariance condition of Lemma 3.2, we dene ^ s,s+locto be the global state of the
+system. From the assumption on the distance between the reference point and the
+
+--- Page 12 ---
+1 signature
+internal control
+3 input update (z0:Z)
+5 variables
+internal s:R:=s0= 0
+7 internal discrete loc:R,z:R,u:fa1;a2g
+internal now :R0:= 0, next :R0:= 0
+9
+transitions
+11 input update (z0)
+ez:=z0internal control
+14 prenownext
+enext :=now + ;
+16 s:=s z+loc;
+loc:=z;
+18 ifs>0then u:=a1
+else u:=a2
+20
+trajectories
+22 evolve d(now) = 1; d(s) =u
+stop when now =next
+Fig. 3. The state regulator system with parameters a12R ,a22R+and 2R+.
+global state of the system at the time an update action occurs and periodicity control
+actions, it can be checked that when a control action occurs, ^ s z2[ +a1;+
+a2]. Hence, from the update rule of s(line 16), the control invariance condition
+of Lemma 3.2 is satised. Finally, dene C1,[0;+a2] andC2,[ +a1;0].
+We get that conditions (a){(d) of Lemma 3.3 are satised with c1= a1,
+c2=+a2,b1= a1,b2=a2.
+Automatically Finding an Invariant. We consider the case where a1= 1 and
+a2= 1. Assume that an invariant Ilfor any mode l2Rhas the following form:
+Il=fs2RjFl1(s)0 andFl2(s)0gwhereFl1(s) =s 1,Fl2(s) = s+2
+and1 +a1 and2+a2 are constants that need to be computed
+such that all the conditions of Lemma 3.3 are satised. (From the previous proof,
+these constraints on 1and2ensure that the initial state is contained in Iand
+thecontrol invariance condition of Lemma 3.2 are satised.)
+To prove that Ilis in fact an invariant, we use the sets C1andC2of the following
+forms:C1=fs2RjG1(s)0 andFl2(s)0gandC2=fs2RjFl1(s)
+0 andG2(s)0gwhereG1(s) =s 1,G2(s) = s+2and1and2are
+constants to be determined.
+Clearly, for any s;s02Randl2L,kfl(s;g(l;s0))k=kg(l;s0)k= 1. Thus,
+condition (c) of Lemma 3.3 is satised with bj= 1 for any sets CjandIl. With
+the particular form of the sets C1,C2andIlwe have previously chosen, it is
+straightforward to check that the problem of nding 1,2,1and2such that all
+the conditions of Lemma 3.3 are satised for j= 1 is equivalent to nding 1,2,
+1and2such that for all s;s02R, the followings are satised:
+(a) (Fl1(s0)<0)_(Fl2(s0)<0)_(G1(s0)0)_(Fl1(s)6= 0)_(Fl2(s)<
+0)_(s00),
+(b)12,1>1, and1 1.
+Note that condition (a) is obtained from condition (a) of Lemma 3.3 while condition
+(b) is obtained from conditions (b) and (d) of Lemma 3.3. Similarly, for j= 2, the
+following conditions need to be satised for all s;s02R:
+(c) (Fl1(s0)<0)_(Fl2(s0)<0)_(G2(s0)0)_(Fl1(s)<0)_(Fl2(s)6=
+0)_(s0>0),
+(d)21,2<2, and2 2.
+As described in [Gulwani and Tiwari 2008], condition (a) can be proved by nding
+a constant1and non-negative constants 1;:::; 3and1;:::; 3such that
+
+--- Page 13 ---
+Planner
+Controller
+VehicleBrake
+Controllerplan(p)
+a;x;y
+;vbrake(b)
+(a)vehicle
+p[seg]
+p[seg+ 1]current seg.
+e2
+e1
+d
+(b)1 variables
+output x:R:=x0;y:R:=y0;
+3 :R:=0;v:R:=v0
+input a,:R
+5
+trajectories
+7 evolve d(x) =vcos()
+d(y) =vsin()
+9 ifju.jmax
+then d() =v
+Ltan()
+11 else d() =v
+Ltan(
+jjmax)
+ifv>0_a0
+13 then d(v) =a
+else d(v) = 0 
+(c)
+Fig. 4. (a) Planner-Controller system. (b) Deviation and disorientation. (c) Vehicle .
+1Fl1(s0) +2Fl2(s0) 1G1(s0) +1Fl1(s) +3Fl2(s) +2s0+3= 0 (2)
+and at least one of the 1;2;3is strictly positive. Similarly, the validity of
+condition (c) can be proved by nding a constant 2and non-negative constants
+4;:::; 7and4;5such that
+4Fl1(s0) +5Fl2(s0) 4G2(s0) +6Fl1(s) +2Fl2(s) 7s0+5= 0 (3)
+and either4>0 or5>0 (or both).
+Using the tool presented in [Gulwani and Tiwari 2008], the unknowns that satisfy
+(2), (3) and conditions (b) and (d) are found for = 0:08 and  = 0 :02 to be:
+1= 0:2,2= 0:2,1= 0:1,2= 0:1,1= 1,2= 2,1= 16,1= 0,3= 0,
+2= 17,3= 1,4= 0,5= 0,4= 20,6= 0,2= 0,7= 20 and5= 2.
+That is, the invariant set is given by Il= [ 0:2;0:2] (whereas the invariant set we
+have veried manually is given by Il= [ 0:1;0:1]).
+4. AUTONOMOUS VEHICLE SYSTEM
+In this section, we describe an autonomous ground vehicle (Alice) consisting of the
+physical vehicle and the controller (see Figure 4(a)). Vehicle captures the position,
+orientation, and velocity of Alice on the plane. Controller receives information
+about the state of Alice and a (possibly innite) sequence of waypoints from a
+Planner , and periodically computes the steering ( ) and acceleration ( a) such that
+Alice (a) remains within a certain bounded distance emaxof the planned path, and
+(b) makes progress towards successive waypoints at a target speed. Property (a)
+together with the assumption (possibly guaranteed by Planner ) that all planned
+paths are at least emaxdistance away from obstacles, imply that the Vehicle does
+not collide with obstacles. While the Vehicle makes progress towards a certain
+waypoint, the subsequent waypoints may change owing to the discovery of new
+obstacles and changes in the mission plan. Finally, the Controller may receive an
+externally triggered brake input, to which it must react by slowing the Vehicle down.
+4.1 Vehicle
+The Vehicle and Controller are modeled as HIOAs, but as we shall see shortly, the
+composed system has no inputs and in fact is a PCHA. The Vehicle automaton
+(Figure 4) species the dynamics of the vehicle with acceleration ( a) and steering
+
+--- Page 14 ---
+() inputs, in terms of two parameters: (a) max2(0;
+2) is the physical limit on the
+steering angle, and (b) Lis the wheelbase. The output variables of Vehicle are (a)
+thexandycoordinates of the position with respect to a global coordinate system,
+(b) orientation with respect to the positive direction of the global xaxis, and (c)
+velocityv. These variables evolve according to the dierential equations of lines 7{
+14. Two aspects of this Vehicle model are noteworthy: (i) In determining the
+orientation of the Vehicle , if the input steering angle is greater than the maximum
+limitmax, then the maximum steering in the correct direction is applied. (ii) The
+acceleration can be negative only if the velocity is positive, and therefore the Vehicle
+cannot move backwards. This Vehicle model requires bounds on minimum and
+maximum acceleration, however, the Controller ensures that the input acceleration
+is always within such a bound.
+4.2 Controller
+Figure 5 shows the specication of the Controller automaton that reads the state
+of the Vehicle and issues acceleration and steering outputs to achieve the afore-
+mentioned goals. Controller is parameterized by: (a) the sampling period  2R+,
+(b) the target speed vT2R0, (c) proportional control gains k1;k2>0, (d) a con-
+stant>0 relating the maximum steering angle and the speed, and (e) maximum
+and braking accelerations amax>0 andabrake<0. Restricting the maximum
+steering angle instead of the maximum steering rate is a simplifying but conser-
+vative assumption. Given a constant relating the maximum steering rate and the
+speed, there exists as dened above that guarantees that the maximum steering
+rate requirement is satised.
+Apath is an innite sequence of points p1;p2;:::wherepi2R2, for eachi. The
+main state variables of Controller are the following:
+(a)brake andnew path are command variables that store the information received
+through the most recent brake (OnorO) and plan (a path) actions.
+(b)path is the current path being followed by Controller .
+(c)segis the index of the last waypoint visited in the current path. That is, seg+1
+is the index of the current waypoint. The straight line joining path[seg] and
+path[seg+1] is called the current segment .
+(d)deviatione1is the signed perpendicular distance from the current position of
+theVehicle to the current segment (see, Figure 4(b)).
+(e)disorientation e2is the dierence between the current orientation ( ) of the
+Vehicle and the angle of the current segment.
+(f)waypoint-distance dis the signed distance of the Vehicle to the current waypoint
+measured parallel to the current segment.
+The brake (b) action is an externally controlled input action that informs the
+Controller about the application of an external brake ( b=On) or the removal of
+the brake ( b=O). When brake (b) occurs,bis recorded in the command variable
+brake . The plan(p) action is controlled by the external Planner (not presented in
+this paper) and it informs the Controller about a newly planned path p. When this
+action occurs, the path pis recorded in the variable new path. The main action
+occurs once every  time starting from time 0. This action updates the values of
+the variables e1;e2;d;path;seg;aandas follows:
+
+--- Page 15 ---
+signature
+2 input plan(p:Seq[R]);brake(b:On;Off )
+internal main
+4
+variables
+6 inputx;y;;v :R
+outputa;:R:= (0, 0)
+8 internal brake :fOn,Og:=O
+path:Seq[R2] := arbitrary
+10 new path:Seq[R2] := path
+seg:N:= 1
+12 e1;e2;d:R:= [e1;0,e2;0,d0]
+now:R:= 0; next:R0:= 0
+14
+transitions
+16 input plan(p)
+enewpath :=p
+18
+input brake(b)
+20 ebrake :=b
+22 internal main
+prenow =next
+24 enext :=now + 
+ifpath6=new path_d0then
+26 ifpath6=new path
+then seg:= 1; path :=new path
+28 elseif d0
+then seg:=seg+ 130 let~ p="
+path[seg+ 1]:x path[seg]:x
+path[seg+ 1]:y path[seg]:y#
+~ q="
+path[seg+ 1]:y path[seg]:y
+ (path[seg+ 1]:x path[seg]:x)#
+32 ~ r="
+path[seg+ 1]:x x
+path[seg+ 1]:y y)#
+e1:=1
+k~ qk~ q~ r
+34 e2:= \~ p
+d:=1
+k~ pk~ p~ r
+36 
+38 letd= k1e1 k2e2
+=d
+jdjmin(v;jdj)
+40
+ifbrake =Onthen a:=abrake
+42 elseif brake =O^v< vT
+then a:=amax
+44 else a:= 0 
+46 trajectories
+evolve d(now) = 1
+48 d(e1) =vsin(e2)
+d(e2) =v
+Ltan()
+50 d(d) =-vcos(e2)
+stop when now =next
+Fig. 5. Controller with parameters vT;k1;k22R0,;2R+andabrake<0.
+A. If new path (obtained from the Planner ) is dierent from path, then segis set
+to 1 and path is set to new path (line 27).
+B. If new path is the same as path and the waypoint-distance dis less than or equal
+to 0, then segis set to seg+ 1 (line 29).
+C. For both of the above cases, temporary variables ~ p,~ q, and~ rare computed to
+update e1;e2;d;
+D. The steering is computed using a proportional control law saturated at v.
+That is, the magnitude of the steering output is set to the minimum of j 
+k1e1 k2e2jandv(line 39).
+E. The acceleration ais computed using bang-bang control law. If brake isOn
+then ais set to the braking deceleration abrake; otherwise, it executes amax
+until the Vehicle reaches the target speed, at which point ais set to 0.
+Along a trajectory, the evolution of the variables are specied by the dierential
+equations on lines 48{50.
+4.3 Complete System
+LetAbe the composition of the Controller and the Vehicle automata. The contin-
+uous state ofAis dened by the valuations of x;y;;v;e 1;e2, anddofVehicle
+and Controller . For convenience, we dene a single derived variable sof type
+X=R7encapsulating all these variables. The discrete state of Ais dened by
+the valuations of brake;path andsegofController . A derived variable locof type
+L=Tuple [fOn;Og;Seq[R2];N] is dened encapsulating all these variables. It
+can be checked easily that the composed automaton Ais a PCHA. The variables,
+
+--- Page 16 ---
+actions, state transition functions of the corresponding PCHA can be found in the
+full version of the paper [Wongpiromsarn et al. 2008].
+5. ANALYSIS OF THE SYSTEM
+The informally stated goals of the system translate to the following subgoals:
+A. (safety) At all reachable states of A, the deviation ( e1) of the Vehicle is upper-
+bounded by emax, whereemaxis determined in terms of system parameters.
+B. (waypoint progress) The Vehicle reaches successive waypoints.
+In Sections 5.1 and 5.2, we dene a family fIkgk2Nof subsets of QAand using
+Lemmas 3.3, 3.4, we conclude that they are invariant with respect to the control -
+free fragments of A. From the specication of main action, we see that the discrete
+state changes only occur if path6=newpath or waypoint-distance d0. Hence,
+using Theorem 3.5, we conclude that any execution fragment starting in Ikremains
+withinIk, provided that path and current segment do not change.
+In Section 5.3, we establish the following segment progress property: There ex-
+ist certain threshold values of deviation, disorientation, and waypoint-distance such
+that from any state xwith greater deviation, disorientation, and waypoint-distance,
+theVehicle reduces its deviation and disorientation with respect to the current seg-
+ment, while making progress towards its current waypoint. This intermediate result
+is proved by showing that starting from Ik,Ik+1Ikis reached in a nite amount
+of time and for ksmaller than the threshold value k,Ik+1is strictly contained
+inIk. Finally, in Section 5.4, we prove an invariance of I0and derive geometric
+properties of planner paths that can be followed by Asafely. These geometric prop-
+erties specify the minimum length of a path segment and the relationship between
+the segment length and the maximum dierence between consecutive segment ori-
+entations and are derived from the segment progress property. An invariance of I0
+provides a proof certicate that Asatises the safety property (A) and the way-
+point progress property (B). Since Alice's original parameters violate the sucient
+conditions for an invariance of I0, it is not guaranteed that the behavior of Alice
+satises these subgoals. In fact, during the National Qualifying Event of the 2007
+DARPA Urban Challenge, Alice violated the safety property (A), leading to the
+stuttering behavior.
+5.1 Family of Invariants
+We dene, for each k2N, the setIkthat bounds the deviation e1of the Vehicle
+to be within [ k;k]. This bound on deviation alone, of course, does not give us
+an inductive invariant. If the deviation is kand the Vehicle is highly disoriented,
+then it would violate Ik. Thus,Ikalso bounds the disorientation such that the
+steering angle computed based on the proportional control law is within [  k;k].
+To prevent the Vehicle from not being able to turn at low speed and to guarantee
+that the execution speed of the Controller is fast enough with respect to the speed
+of the Vehicle ,Ikalso bounds the speed of the Vehicle . Formally,Ikis dened in
+terms ofk;k0 as
+Ik=fx2Qj8i2f1;:::6g;Fk;i(x:s)0g (4)
+whereFk;1;:::;Fk;6:R7!Rare dened as follows:
+
+--- Page 17 ---
+Fk;1(s) =k s:e1;Fk;2(s) =k+s:e1; (5)
+Fk;3(s) =k+k1s:e1+k2s:e2;Fk;4(s) =k k1s:e1 k2s:e2; (6)
+Fk;5(s) =vmax s:v;Fk;6(s) =s:v b: (7)
+Herevmax=vT+ amaxandb>0 is an arbitrary constant. As we shall see
+shortly, the choice of baects the minimum speed of the Vehicle and also the
+requirements of a brake action. We examine a state x2Ik, that is,Fk;i(x:s)0 for
+anyi2f1;:::; 6g.Fk;1(s);Fk;2(s)0 meanss:e12[ k;k].Fk;3(s);Fk;4(s)0
+means that the steering angle computed based on the proportional control law is
+within the range [  k;k]. Further, if kmax, then the computed steering
+satises the physical constraint of the vehicle. If, in addition, we have bkand
+Fk;6(s)0, then the Vehicle actually executes the computed steering command.
+Fk;5(s)0 means that the speed of the Vehicle is at mostvmax.
+For eachk2N, we dene
+k;1=k1
+k2k 1
+k2kandk;2=k1
+k2k+1
+k2k: (8)
+That is,k;1andk;2are the values of e2at which the proportional control law yields
+the steering angle of kand krespectively, given that the value of e1is k. From
+the above denitions, we make the following observations about the boundary of the
+Iksets: for any k2Nandx2Ik, (a)x:e22[ k;2;k;2], (b)Fk;1(x:s) = 0 implies
+x:e22[ k;2; k;1], (c)Fk;2(x:s) = 0 implies x:e22[k;1;k;2], (d)Fk;3(x:s) = 0
+implies x:e22[ k;2;k;1], and (e)Fk;4(x:s) = 0 implies x:e22[ k;1;k;2].
+We assume that band all the 0
+ksandk's satisfy the following assumptions
+that are derived from physical and design constraints on the Controller . The region
+in thek,kplane that satises Assumption 5.1 is shown Figure 6.
+Assumption 5.1. (Vehicle and controller design) (a) kbmaxandk<
+
+2, (b) 0k;1k;2<
+2, (c)Lcotksink;2<k2
+k1, (d) c
+bwherec=
+1p
+k2
+1+k2
+2(k ~),b=vmaxq
+sin2k;2+1
+L2tan2(~) and ~= cot 1
+k2
+k1Lsink;2
+,4
+and (e)tank
+2Lvmax
+2.
+If the Vehicle is forced to slow down too much at the boundary of an Ikby
+thebrake s, then it may not be able to turn enough to remain inside Ik. Thus, in
+verifying the above properties we need to restrict our attention to executions in
+certain good brake controllers in which brake inputs do not occur at low speeds and
+are not too persistent. This is formalized by the next denition.
+Denition 5.2. A brake controller is good if its composition with Controller gives
+rise to an execution =0a11a2:::that satises: If a brake (On) action occurs at
+timet, then for any i2Nsuch thatt2dom(i), (a) (i#v)(t)>b
++ jabrakej,
+and (b) brake (O) must occur within time t+1
+jabrakej((i#v)(t) b
+ jabrakej).
+We assume that the brake controller satises the above assumption and for the
+remainder of this section, we only consider executions in good brake controllers. A
+state x2QAis reachable if there exists an execution in a good brake controller 
+with:lstate =x.
+4Using Assumption 5.1(c), it can be shown that ~< ksoc
+b>0.
+
+--- Page 18 ---
+0 0.5 1 1.50510152025
+φkekLcotφksinθ2,k=k2
+k1
+θ2,k=π
+2
+θ1,k=0
+φk=kθπ
+4(a)
+0 0.1 0.2 0.3 0.4 0.50.090.0920.0940.0960.0980.10.1020.1040.1060.108
+φk∆ (b)
+Fig. 6. (a) The set of ( k,k) that satises Assumptions 5.1 (c) and (d) and are represented by
+the green region. (b) The relationship between the maximum bound on  and kfork=1
+k1k.
+5.2 Invariance Property
+We x ak2Nfor the remainder of the section and denote Ik;Fk;iasIandFi,
+respectively, for i2f1;:::; 6g. As in Lemma 3.3, we dene I=fs2XjFi(s)0g
+and for each i2 f1;:::; 6g,@Ii=fs2 X jFi(s) = 0gand let the functions
+f1;f2;:::;f 7:R7R2!Rdescribe the evolution of x,y,,v,e1,e2andd, re-
+spectively. We prove that Isatises the control -free invariance condition of Lemma
+3.2 by applying Lemma 3.3.
+First, we check that the conditions in Lemma 3.3 are satised. This analysis
+appears in [Wongpiromsarn et al. 2008]. It does not involve solving dierential
+equations but relies on algebraic simplication of the expressions dening the vector
+elds and the boundaries of the invariant set.
+The next lemma shows that conditions (a)-(c) of Lemma 3.3 are satised. The
+proof forj= 5 is presented here as an example.
+Lemma 5.3. For eachl2L andj2f1;:::; 6g, the subtangential, bounded dis-
+tance, and bounded speed conditions (of Lemma 3.3) are satised.
+Proof. DeneC5=fs2Ijs:vvTg. We apply Lemma 3.4 to prove the
+bounded distance and the bounded speed conditions. First, note that the pro-
+jection ofIonto the (e1;e2;v) space is compact and C5is closed. LetUI=
+fg(l;s)jl2L; s2Ig. From the denition of I, it can be easily checked that
+fis continuous in IUI. In addition, s:v=vmax for anys2@I5. Since
+amax;>0,vmax =vT+ amax> vT. Therefore, C5\@I5=;. Hence,
+from Lemma 3.4, the bounded distance and bounded speed conditions are sat-
+ised. To prove the subtangential condition, we pick an arbitrary s2@I5and
+s02InC5. From the denitions of IandC5,vT< s0:vvmax. Therefore, for
+anyl2L, eitherf4(s;g(l;s0)) = 0 orf4(s;g(l;s0)) =abrake and we can conclude
+that@F5
+@sf(s;g(l;s0)) = f4(s;g(l;s0))0.
+From the denition of each Cj, we can derive the lower bound cjon the distance
+fromCjto@Ijand the upper bound bjon the length of the vector eld fwhere
+the control variable uis evaluated when the continuous state s2Cj. Using these
+bounds and Assumption 5.1(d), we prove the sampling rate condition.
+Lemma 5.4. For eachl2L, the sampling rate condition is satised.
+
+--- Page 19 ---
+Thus, conditions (a){(d) of Lemma 3.3 are satised; from Theorem 3.5 we obtain
+that good execution fragments of Apreserve invariance of I, provided that the
+path and current segment do not change over the fragment. Hence, any plan-free
+execution fragment, i.e., an execution fragment that does not contain a planaction,
+preserves invariance of Ias stated in the following theorem.
+Theorem 5.5. For any plan-free execution fragment starting at a state x2I
+and ending at x02QA, ifx:path =x:newpath andx:seg=x0:seg, then x02I.
+5.3 Segment Progress
+In this section, we establish the segment progress property, i.e., there exist certain
+threshold values of deviation, disorientation, and waypoint-distance such that from
+any state xwith greater deviation, disorientation and waypoint-distance, the Vehicle
+reduces its deviation and disorientation with respect to the current segment, while
+making progress towards its current waypoint. First, we prove the progress property
+over a pasted trajectory between any two main actions. That is, suppose right
+after an occurrence of a main action, x2Ikfor somek2N. Then, right before an
+occurrance of the next main action, x2Ik+1whereIk+1Ikand ifkis less than
+some threshold k, thenIk+1is strictly contained in Ik.
+Next, in Lemma 5.7, we compute the bound don the maximum change in the
+value of the waypoint distance dover. Given the progress property over and
+the boundd, we can then establish the segment progress property dened at the
+beginning of Section 5. That is, starting from a state xand ending at x0, ifx2Ik,
+thenx02Ik+nwhere an integer n0 depends on x:d x0:dand the system
+parameters, provided that path and current segment do not change. Furthermore,
+ifx:d x0:dis large enough, then nis strictly positive.
+By solving the dierential equation that describes the evolution of e1ande2along
+and using the periodicity of main actions, the next lemma provides the desired
+progress property over . The proof appears in [Wongpiromsarn et al. 2008].
+Lemma 5.6. Suppose:fstate2Ikfor somek2N. Then:lstate2Ik+1whose
+parameters k+1andk+1are given by k+1=k ^kandk+1=k ^kfor some
+^k;^k0. In addition, there exists a natural number ksuch that for any k<k,
+^kand^kare strictly positive, that is, Ik+1(Ik.
+The precise denitions of ^ k,^kandkare given in [Wongpiromsarn et al. 2008].
+The plots showing the progress in the deviation and disoriantation are shown in
+Figure 7(a) and Figure 7(b), respectively.
+The following lemma provides the value of the bound don the maximum change
+in the value of dover.
+Lemma 5.7. Suppose:fstate2Ikfor somek2N. For anyt2dom(),j(d
+d)(t) :fstateddjdwhered=vmax.
+Proof. From Theorem 5.5, the denitions of F5andF6and the denition of
+f7that describes the evolution of d, we get that max s;s02Ikf7(s;g(l;s0))kvmax.
+Sincedom() = [0;], we getj(#d)(t) :fstateddjmaxs;s02Ikf7(s;g(l;s0))k
+vmax.
+Using Lemma 5.6 and Lemma 5.7, we establish the relationship between the
+
+--- Page 20 ---
+progress ofIk's and the decrease in the value of d. The complete proof can be
+found in [Wongpiromsarn et al. 2008].
+Lemma 5.8. For eachk2N, starting from any reachable state x2Iksuch that
+x:d > vmax,x:path =x:newpath andx:next =x:now , any plan-free execution
+fragmentwith:ltime =  satises:lstate2Ik+1and:lstateddx:d 
+vmax.
+Finally, we conclude the section by establishing the segment progress property
+dened at the beginning of Section 5.
+Theorem 5.9. For eachk2N, starting from any reachable state x2Ik, any
+reachable state x0is inIk+nwheren= max(bx:d x0:d
+vmaxc 1;0), provided that path
+and current segment do not change.
+Proof. Consider an arbitrary closed execution fragment starting at xand
+ending at x0. Since by assumption, is a plan-free execution fragment such that
+:lstatedpath =:fstatednewpath and:lstatedseg=:fstatedseg, from
+Theorem 5.5, we know that :lstate2Ik. This completes the proof for the case
+wherebx:d x0d
+vmaxc 10.
+Next, consider the case where bx:d x0:d
+vmaxc 1>0. From the structure of a PCHA,
+we see that next =now every  time. So, the rst state in such thatnext =now
+occurs no later than time . Using Lemma 5.7, we see that at this state, d
+x:d vmax. Applying Lemma 5.8 and using an invariance of Ikfor anykproved
+in Theorem 5.5, we get that 1:lstate2Ik+nwheren=bx:d vmax x0:d
+vmaxc.
+A sequence of shrinking Ik's visited byAin making progress towards a waypoint
+is shown in Figure 7(c).
+0 5 10 15 20 25 303.63.844.24.44.64.85
+kem,k
+(a)
+0 5 10 15 20 25 300.20.250.30.350.40.450.5
+kφm,k (b)
+−0.8−0.6−0.4−0.2 0 0.2 0.4 0.6 0.8−5−4−3−2−1012345
+e2e1 (c)
+Fig. 7. The progress in (a) deviation and (b) disorientation. (c) A sequence of shrinking Ik's
+visited byAin making progress towards a waypoint.
+5.4 Safety and Waypoint Progress: Identifying Safe Planner Paths
+In this section, we derive a sucient condition on planner paths that can be safely
+followed with respect to a candidate invariant set I0whose parameters 02[0;emax]
+and02[0;max] satisfy Assumption 5.1 and are chosen such that I0contains the
+initial state Q0A. Then, we prove an invariance of I0and conclude that the safety
+and waypoint progress properties (A) and (B) dened at the beginning of Section
+5 are satised.
+The proof is structured as follows. First, we consider an execution fragment
+where path does not change and starting with waypoint-distance not shorter than
+
+--- Page 21 ---
+some threshold D. Lemma 5.13 uses the segment progress property established
+in Section 5.3 to prove that this execution fragment preserves an invariance of
+I0. Then, in Lemma 5.14 and Lemma 5.15, we show that right after the path
+changes, the waypoint-distance is not shorter than Dand the state ofAremains
+inI0. Using these results, Lemma 5.16 concludes that an execution fragment that
+updates the path exactly once by the rst main action preserves an invariance of
+I0. Finally, we use Lemma 5.13 and Lemma 5.16 to conclude the section that I0is
+in fact an invariant of Aand with this result, we conclude that the system satises
+the safety and waypoint progress properties (A) and (B) dened at the beginning
+of Section 5.
+The following assumption provides sucient conditions for planner paths that
+can be safely followed. The key idea in the condition is: Longer path segments can
+be succeeded by sharper turns . Following a long segment, the Vehicle reduces its
+deviation and disorientation by the time it reaches the end; thus, it is possible for
+theVehicle to turn more sharply at the end without breaking an invariance of I0.
+Assumption 5.10. (Planner paths) Let p0;p1;:::be a planner path; fori2N,
+letibe the length of the segment pipi+1andibe the dierence in orientation of
+pipi+1and that of pi+1pi+2. Then, for each i2f0;1;:::g,
+(a)i2vmax +0.
+(b) Letn=bi 0 2vmax
+vmaxc. Then,iandisatisfy the following conditions:
+n1
+jcosij(0 vmaxjsinij); (9)
+n0 k1vmax sinjij k1n(1 cosi) k2jij; (10)
+where, given 0and0,nandnare dened recursively for any n > 0 by
+n=n 1 ^n 1andn=n 1 ^n 1where for each k2N, ^kand ^kare
+dened in Lemma 5.6.
+0 5 10 15 2002468101214
+λ (m)|σ| (degree)L = 3, δ = 0.1
+L = 3.5, δ = 0.1
+L = 4, δ = 0.1
+L = 3.5, δ = 0.05
+L = 3.5, δ = 0.15
+Fig. 8. Segment length vs. maximum
+dierence between consecutive segment
+orientations, for dierent values of L
+and.The relationship between and the maxi-
+mum value of which satises this assumption
+is shown in Figure 8.
+Remark 5.11. The choice of 0's and0's af-
+fects both the requirements on a safe path (As-
+sumption 5.10) and the denition of a good
+brake controller (Denition 5.2). Larger 0's
+and0's allow sharper turns in planned paths
+but force brake s to occur only at higher speeds.
+That is, relaxing the constraint on a path re-
+sults in the tighter constraint on a brake action.
+This tradeo is related to the design aw of Al-
+ice as discussed in the introduction of the paper.
+Without having quantied the tradeo, we inadvertently allowed a path to have
+sharp turns and also brake s at low speeds|thus violating safety.
+To establish that I0is an invariant of A, we further assume that (a) new planner
+paths begin at the current position, (b) Vehicle is not too disoriented with respect
+to new paths, and (c) Vehicle speed is not too high as stated in Assumption 5.12.
+
+--- Page 22 ---
+Assumption 5.12. (plan action and new path)
+(a) Any new path p=p1p2:::satisesp1= [xp;yp] wherexpandypare the values
+of the variable xandy, respectively, when the path is received (i.e., when the
+plan action occurs). That is, for any new input path, the path must begin at
+the current position of the Vehicle .
+(b) Letvpandpbe the speed and the orientation of the Vehicle , respectively, when
+aplanaction occurs. Then, vp<0
+p
+1+sin20;2 amax where given 0and0,
+0;2is dened as in (8). In addition, let p=p1p2:::be the received path and
+let~ pbe the vector that represents a straight line dened by p1andp2. Then,
+j\~ p pj0
+k2 (vp+amax)k1
+k2q
+1 + sin20;2+tan0
+L
+:
+First, we consider an execution fragment where path does not change and starting
+with a large enough waypoint-distance. Using the progress property established in
+Section 5.3, the update rule of the variable segand Lemma 5.7, we can show that
+before switching to the next segment, x2Inwheren0 depends on the segment
+length. (See [Wongpiromsarn et al. 2008] for the complete proof.) Since we restrict
+the sharpness of the turn with respect to segment length (Assumption 5.10), we
+can then conclude that this execution fragment preserves an invariance of I0.
+Lemma 5.13. Consider a plan-free execution fragment starting at a state x2I0.
+Suppose x:path =x:newpath andx:dDwhereD=1 0 vmaxand1
+is the length of the segment x:seg. Then:lstate2I0.
+The next two lemmas show that Assumption 5.12 is sucient to guarantee that
+if the path changes, then all the assumptions in the Lemma 5.13 are satised. All
+the proofs appear in [Wongpiromsarn et al. 2008].
+Lemma 5.14. For each state x;x02Qsuch that x:path6=x:newpath , ifx2I0
+andxmain!x0, then x0:d vmax>0whereis the length of the rst segment
+ofx:newpath .
+Lemma 5.15. For each state x;x02Qsuch that x:path6=x:newpath , ifx2I0
+andxmain!x0, then x02I0.
+Using the previous three lemmas, the following lemma concludes that an execu-
+tion fragment that updates the path exactly once by the rst main action preserves
+an invariance ofI0.
+Lemma 5.16. Consider a plan-free execution fragment starting at a state x2I0.
+Ifx:path6=x:newpath , then:lstate2I0.
+Proof.can be written as =1main2where1=0brake1brake:::nand
+2is a plan-free execution fragment with 2:fstatedpath =2:fstatednewpath.
+Clearly,1:lstatedpath6=1:lstatednewpath. In addition, 1:fstate2I0and
+thus, from Theorem 5.5, 1:lstate2I0. Applying Lemma 5.14 and Lemma 5.15,
+we see that 2:fstatedd1 vmax1 0 vmax and2:fstate2I0where
+1is the length of the rst segment of x:newpath. Therefore, from Lemma 5.13,
+:lstate2I0.
+
+--- Page 23 ---
+Finally, we conclude that I0is an invariant of A.
+Theorem 5.17. Suppose the initial state x02I0andx0:d1 0 vmaxwhere
+1is the length of the rst segment of the initial path. Then, I0is an invariant of
+A.
+Proof. Any execution can be written as =1plan2plan:::where1is a
+plan-free execution fragment with 1:fstatedpath =1:fstatednewpath and for
+anyi2,iis a plan-free execution fragment with i:fstatedpath6=i:fstated
+newpath. Since plan action does not aect the variable s, if1:lstate2I0, then
+2:fstate2I0and using Lemma 5.16, we get that for any i2,i:lstate2I0.
+Thus, we only need to show that 1:lstate2I0. But this is true from Lemma 5.13
+since1:fstatedd=x0:d1 0 vmax and1:fstate2I0.
+Since for any state x2 I 0,jx:e1j 0emax, invariance ofI0guarantees
+the safety property (A). For property (B), we note that for any state x2 I 0,
+there exists vmin>0 such that x:vvmin>0 andjx:e2j0;2<
+2, that is,
+_d=f7(x:s;u)  vmincos0;2<0 for anyu2 U. Thus, it follows that the
+waypoint distance decreases and the Vehicle makes progress towards its waypoint.
+The simulation results are shown in Figure 9, which illustrate that the Vehicle
+is capable of making a sharp left turn, provided that the path satises Assump-
+tion 5.10. In addition, we are able to replicate the stuttering behavior described in
+the Introduction when Assumption 5.10 is violated.
+−40 −30 −20 −10 0 10−20−15−10−5051015Total Time: 9.6s
+x (m)y (m)
+−40 −30 −20 −10 0 10−20−15−10−5051015Total Time: 25.7s
+x (m)y (m)
+Fig. 9. The positions of Alice (dashed line) as it follows a path (solid line) to execute a
+sharp left turn. When brake is triggered a thick dashed (red) line is drawn on the position
+of Alice. Left. The path satises Assumption 5.10. Right. The path does not satisfy the
+assumption and the replan occurs due to excessive deviation.
+6. CONCLUSIONS
+Motivated by a design bug that caused an unsafe behavior of an autonomous ve-
+hicle (Alice) built at Caltech for the 2007 DARPA Urban Challenge, this paper
+introduced Periodically Controlled Hybrid Automata, a subclass of Hybrid I/O
+Automata that is suitable for modeling embedded control systems with periodic
+sensing and actuation. New sucient conditions for verifying invariant properties
+of PCHAs were presented. For PCHAs with polynomial continuous vector elds,
+it is possible to check these conditions automatically using, for example, quantier
+elimination or sum of squares decomposition.
+
+--- Page 24 ---
+We then applied the proposed technique to manually verify a sequence of invariant
+properties of the planner-controller subsystem of Alice. Geometric properties of
+planner generated paths were derived that guarantee that such paths can be safely
+followed by the controller. The analysis revealed that the software design was not
+inherently awed; the undesirable behavior was caused by an unfortunate choice of
+certain parameters. The simulation results veried that with the proper choice of
+parameters, the observed failure does not occur.
+An interesting direction for future research is towards automatic invariant proofs
+of PCHAs combining the proofs for invariance of control steps and for invariance
+ofcontrol -free fragments based on the results of Lemma 3.2. Invariance of control
+steps can be partially automated using a theorem prover while invariance of control -
+free fragments can be automated using software tools for solving sum of squares
+problems (e.g. SOSTOOLS [Prajna et al. 2002]) or software tools for quantier
+elimination (e.g. QEPCAD [Brown 2003], the constraint-based approach [Gulwani
+and Tiwari 2008]). We are currently examining a collection of PCHAs with poly-
+nomial dynamics for which this direction is promising. Another direction of future
+research is related to the progress property. Although the basic principle is straight-
+forward, the details of the progress proof in Sections 5.3 and 5.4 are quite involved.
+This is partly owing to the diculty of nding the appropriate Lyapunov functions.
+In the future, we plan on investigating this further and use ideas from [Chandy et al.
+2008] for the progress proof.
+7. ACKNOWLEDGMENTS
+The authors gratefully acknowledge Sumit Gulwani and Ashish Tiwari for letting
+us use their nonlinear solver for solving 98problems.
+REFERENCES
+Alur, R. ,Courcoubetis, C. ,Halbwachs, N. ,Henzinger, T. A. ,Ho, P.-H. ,Nicollin, X. ,
+Olivero, A. ,Sifakis, J. ,and Yovine, S. 1995. The algorithmic analysis of hybrid systems.
+Theoretical Computer Science 138, 1, 3{34.
+Bhatia, N. P. and Szeg o, G. P. 1967. Dynamical Systems: Stability Theory and Applications .
+Lecture notes in mathematics, vol. 35. Springer-Verlag, Berlin; New York.
+Brown, C. W. 2003. QEPCAD b: a program for computing with semi-algebraic sets using cads.
+SIGSAM Bull. 37, 4, 97{108.
+Burdick, J. W. ,DuToit, N. ,Howard, A. ,Looman, C. ,Ma, J. ,Murray, R. M. ,and Wong-
+piromsarn, T. 2007. Sensing, navigation and reasoning technologies for the DARPA Urban
+Challenge. Tech. rep., DARPA Urban Challenge Final Report.
+Chandy, K. M. ,Mitra, S. ,and Pilotto, C. 2008. Convergence verication: From shared
+memory to partially synchronous systems. In Proceedings of Formal Modeling and Analysis
+of Timed Systems (FORMATS`08) . Lecture Notes in Computer Science, vol. 5215. Springer
+Verlag, 217{231.
+DuToit, N. E. ,Wongpiromsarn, T. ,Burdick, J. W. ,and Murray, R. M. 2008. Situational
+reasoning for road driving in an urban environment. In International Workshop on Intelligent
+Vehicle Control Systems (IVCS) .
+Fainekos, G. E. ,Girard, A. ,Kress-Gazit, H. ,and Pappas, G. J. 2009. Temporal logic motion
+planning for dynamic robots. Automatica 45, 2, 343{352.
+Gulwani, S. and Tiwari, A. 2008. Constraint-based approach for analysis of hybrid systems. In
+Computer Aided Verication , A. Gupta and S. Malik, Eds. Lecture Notes in Computer Science,
+vol. 5123. Springer, 190{203.
+Henzinger, T. A. ,Kopke, P. W. ,Puri, A. ,and Varaiya, P. 1995. What's decidable about
+hybrid automata? In ACM Symposium on Theory of Computing . 373{382.
+
+--- Page 25 ---
+Kaynar, D. K. ,Lynch, N. ,Segala, R. ,and Vaandrager, F. 2005. The Theory of Timed
+I/O Automata . Synthesis Lectures on Computer Science. Morgan Claypool. Also available as
+Technical Report MIT-LCS-TR-917.
+Kloetzer, M. and Belta, C. 2006. A fully automated framework for control of linear systems
+from LTL specications. In Hybrid Systems: Computation and Control , J. P. Hespanha and
+A. Tiwari, Eds. LNCS, vol. 3927. Springer, 333{347.
+Lafferriere, G. ,Pappas, G. J. ,and Yovine, S. 1999. A new class of decidable hybrid systems.
+InHybrid Systems: Computation and Control , F. W. Vaandrager and J. H. van Schuppen, Eds.
+LNCS, vol. 1569. Springer, 137{151.
+Lynch, N. ,Segala, R. ,and Vaandrager, F. 2003. Hybrid I/O automata. Information and
+Computation 185, 1 (August), 105{157.
+Mitra, S. 2007. A verication framework for hybrid systems. Ph.D. thesis, Massachusetts Insti-
+tute of Technology, Cambridge, MA 02139.
+Mitra, S. ,Wang, Y. ,Lynch, N. ,and Feron, E. 2003. Safety verication of model helicopter
+controller using hybrid Input/Output automata. In Hybrid Systems: Computation and Control ,
+O. Maler and A. Pnueli, Eds. LNCS, vol. 2623. Springer, 343{358.
+Owre, S. ,Rajan, S. ,Rushby, J. ,Shankar, N. ,and Srivas, M. 1996. PVS: Combining speci-
+cation, proof checking, and model checking. In Computer-Aided Verication, CAV '96 , R. Alur
+and T. A. Henzinger, Eds. Number 1102 in Lecture Notes in Computer Science. Springer-Verlag,
+New Brunswick, NJ, 411{414.
+Platzer, A. and Clarke, E. M. 2008. Computing dierential invariants of hybrid systems as
+xedpoints. In Computer-Aided Verication , A. Gupta and S. Malik, Eds. Lecture Notes in
+Computer Science, vol. 5123. Springer, 176{189.
+Prabhakar, P. ,Vladimerou, V. ,Viswanathan, M. ,and Dullerud, G. E. 2008. A decidable
+class of planar linear hybrid systems. In Hybrid Systems: Computation and Control , M. Egerst-
+edt and B. Mishra, Eds. LNCS, vol. 4981. Springer, 401{414.
+Prajna, S. and Jadbabaie, A. 2004. Safety verication of hybrid systems using barrier certi-
+cates. In Hybrid Systems: Computation and Control , R. Alur and G. J. Pappas, Eds. LNCS,
+vol. 2993. Springer, 477{492.
+Prajna, S. ,Papachristodoulou, A. ,and Parrilo, P. A. 2002. Introducing SOSTOOLS: A
+general purpose sum of squares programming solver. In Proceedings of the 41st IEEE Conf. on
+Decision and Control . 741{746.
+Sankaranarayanan, S. ,Sipma, H. B. ,and Manna, Z. 2008. Constructing invariants for hybrid
+systems. Formal Methods in System Design 32, 1, 25{55.
+Topcu, U. ,Packard, A. ,and Seiler, P. 2008. Local stability analysis using simulations and
+sum-of-squares programming. Automatica 44 , 2669 { 2675.
+Vladimerou, V. ,Prabhakar, P. ,Viswanathan, M. ,and Dullerud, G. E. 2008. STORMED
+hybrid systems. In ICALP (2) . LNCS, vol. 5126. Springer, 136{147.
+Wongpiromsarn, T. ,Mitra, S. ,Murray, R. ,and Lamperski, A. 2008. Periodically controlled
+hybird systems: Verifying a controller for an autonomous vehicle. Tech. Rep. CaltechCD-
+STR:2008.003, California Institute of Technology. Full version: http://resolver.caltech.
+edu/CaltechCDSTR:2008.003 .
+Wongpiromsarn, T. ,Mitra, S. ,Murray, R. M. ,and Lamperski, A. 2009. Periodically con-
+trolled hybrid systems: Verifying a controller for an autonomous vehicle. In Hybrid Systems:
+Computation and Control , R. Majumdar and P. Tabuada, Eds. LNCS, vol. 5469. Springer,
+396{410.
+Wongpiromsarn, T. and Murray, R. M. 2008. Distributed mission and contingency man-
+agement for the DARPA urban challenge. In International Workshop on Intelligent Vehicle
+Control Systems (IVCS) .

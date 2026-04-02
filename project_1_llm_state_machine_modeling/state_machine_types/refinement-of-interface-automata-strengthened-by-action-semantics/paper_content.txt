@@ -1,0 +1,784 @@
+--- Page 1 ---
+FESCA 2009
+Reﬁnement of interface automata strengthened by
+action semantics
+Sebti Mouelhi, Samir Chouali, Hassan Mountassir1
+Laboratoire d’Informatique de l’Universit ´e de Franche-Comt ´e - LIFC
+16, route de Gray - 25030 Besanc ¸on cedex, France
+Abstract
+Interface automata are light-weight models that capture the temporal interface behavior of software components. They
+have the ability to model both the input requirements and the output behavior of a component. They support the compat-
+ibility check between interface models to ensure a correct interaction between components and they adopt an alternating
+simulation approach to design reﬁnement. In this paper, we extend our previous works on checking interface automata inter-
+operability by adapting their alternating reﬁnement relation to the action semantics. We show the relation between pre and
+post-conditions of transitions in the abstract version of an interface and their corresponding ones in its concrete version. We
+illustrate our extensions by a case study of the CyCab car component-based system.
+Keywords: Component-based systems, interface automata, alternating reﬁnement.
+1 Introduction
+Interface formalisms play a central role in the conception of component-based systems.
+They are increasingly used thanks to their ability to describe, in terms of communicating
+interfaces, how the components of a system can be connected to each others. Two princi-
+ples have to be satisﬁed to design properly component interfaces. First, an interface should
+describe enough information about the way to make two or more components ”working
+together correctly” by looking only at their interfaces. Second, more information than is
+required by the ﬁrst principle should not be exposed. Essentially, component interoperabil-
+ity have to satisfy the type compatibility of operations (the number, order, and types of the
+parameters). In addition of type check, component composition requires protocol informa-
+tion about how a component must be used in a system design and the order in which their
+interacting events are enabled. Interfaces that expose protocol information of components
+can be speciﬁed naturally in an automaton-based language like interface automata [1,2].
+Interface automata have been introduced as a formalism that captures the temporal In-
+put/Output behavior of a software component. Similarly to Input/Output automata [12],
+1Email:fsebti.mouelhi, samir.chouali, hassan.mountassir g@lifc.univ-fcomte.fr
+This paper is electronically published in
+Electronic Notes in Theoretical Computer Science
+URL: www.elsevier.nl/locate/entcs
+
+--- Page 2 ---
+they are speciﬁed by automata labeled by input, output, and internal actions. The ap-
+proach of interface automata adopts an optimistic orenvironment-constraining view where
+the composition of two compatible interfaces can be used together in at least one design
+thanks to the non-input-enabled property, which means that at every state, some input ac-
+tions may not be enabled contrarily to I/O automata and CSP [12]. There interaction is
+made by synchronizing shared input an output actions, while the internal actions of con-
+current automata are interleaved asynchronously. Automatic compatibility veriﬁcation and
+reﬁnement checking can be made. The formalism of interface automata has been applied
+in several cases as a formal model to specify the interface behaviors of software compo-
+nents [4,9]. A path often taken in the literature is to check the interface compatibility of
+components at the semantic level of operations. In our previous work [6], we improve the
+model of interface automata to ensure a more reliable veriﬁcation of components inter-
+operability by taking into account the semantics of actions. The proposed method enrich
+transitions of interface automata by pre and post-conditions of actions which are atomic
+prepositions over a set of variables. The scope of our previous work do not cover the total-
+ity of interface automata by treating reﬁnement. This paper is essentially written to expose
+the reﬁnement our extended interface automata.
+The role of reﬁnement relation is to formalize the relationship between the abstract
+and the concrete versions of the same component. For I/O automata, reﬁnement is usually
+deﬁned as trace containment or simulation [10]; this ensures that the output behaviors of
+the reﬁned automaton are behaviors that are allowed by the abstract one. Such deﬁnitions
+of reﬁnement do not hold for non-input-enabled setting, such as interface automata: if the
+set of legal inputs of the reﬁned interface is a subset of the inputs allowed by the abstract
+one, then the reﬁned interface could be used in fewer environments than the interface ab-
+straction. While a new approach is adapted to compose interface automata, an alternating
+approach is used to reﬁne them.
+Alternating reﬁnement simulation is deﬁned to study reﬁnement between alternating
+transition systems [13]. They are introduced as a general model for component-based sys-
+tems which allow the study of adversarial relationships between individual system compo-
+nents. Unlike in labeled transition systems where each transition represents a possible step
+of the system, each transition of an alternating transition system corresponds to a possible
+move in a game between different components. The proposed reﬁnement of interface au-
+tomata is based on this approach by viewing them as alternating transition systems. Explic-
+itly, a reﬁnement of an interface automata expresses that the reﬁned component can offer
+more services (input actions) and fewer service demands (output actions). In this article,
+we adapt the alternating reﬁnement simulation of interface automata by taking into account
+the relation between pre and post-conditions among the input and output transitions of an
+automaton and their correspondent reﬁnements. In other word, a reﬁned version uses more
+variables to formulate pre and post-conditions of the reﬁned and added input actions. We
+suppose that the pre and post-conditions of the remaining output actions do not change. In-
+tuitively, while the offered services are local in the component, we have to strengthen their
+semantics constraints if which is not the case for demanded services because the component
+ignore if the demanded service was reﬁned or not in the environment.
+Concretely, we strengthen the alternating simulation between states of a reﬁned inter-
+face and its correspondent abstract one by establishing equivalence and implications be-
+tween their similar input and output actions. After this introduction, in section 2 and 3,
+2
+
+--- Page 3 ---
+we will give an overview of interface automata and we will present our contribution of
+considering action semantics to verify their interoperability. In section 4, we will detail our
+adaptation of the alternating reﬁnement simulation of interface automata to the semantics of
+actions and we will illustrate our works by a case study of the CyCab car component-based
+system.
+2 Preliminary
+I/O automata have been introduced by Nancy A.Lynch and Mark.Tutle [12] as labeled
+transition systems. Commonly, they are used to model distributed and concurrent systems.
+Labels of I/O automata fall into three categories of actions: input, output, and hidden
+actions where input actions are enabled at every state of an automaton.
+Deﬁntion 2.1 An I/O automaton A = hSA;IA;I
+A;O
+A;H
+A;Aiconsists of
+a ﬁnite set S Aof states;
+a subset of initial states IASA;
+three disjoint sets I
+A;O
+AandH
+Aof inputs, output, and hidden actions. All actions, as
+a whole, are denoted by A=I
+A[O
+A[H
+A;
+a setASAASAof transitions. It gives a transition relation with the property
+that for every state s and an input action a there is a transition (s, a, s) in A.
+Interface automata have been deﬁned by L.Alfaro and T.Henzinger [1], to model the
+temporal behavior of software component interfaces. These models are non-input-enabled
+I/O automata, as previously said, where it is not necessary to enable input actions at
+every state of one automaton. Every component interface is described by one interface
+automaton where input actions are used to model methods that can be called, and the end
+of receiving messages from communication channels, as well as the return values from
+such calls. Output actions are used to model method calls, message transmissions via
+communication channels, and exceptions that occur during the method execution. Output
+actions describe the required actions of a component (represented by the symbol ”!”), input
+actions describe the provided actions of a component (represented by the symbol ”?”),
+and internal (or hidden) actions inside the component itself describe its local operations
+(represented by the symbol ”;”). Both for I/O automata (IOAs) and interface automata
+(IAs), the input and output actions of an automaton Aare called external actions uniformly
+(ext
+A=I
+A[O
+A) while output actions and internal actions are called locally-controlled
+actions ( loc
+A=O
+A[H
+A). We deﬁne by I
+A(s),O
+A(s),H
+A(s) the input, output, and
+internal actions enabled at the state s.
+Deﬁnition 2.2 An interface automaton A = hSA;IA;I
+A;O
+A;H
+A;Aiconsists of
+a ﬁnite set S Aof states;
+an subset of initial states IASA. It contains at most one state. If I A=?, then A is
+called empty;
+three disjoint sets I
+A;O
+AandH
+Aof inputs, output, and hidden actions;
+a setASAASAof transitions between states. Contrarily to I/O automata, the
+3
+
+--- Page 4 ---
+input actions are not necessarily enabled at every state.
+For an IA A, we deﬁne two type of actions a2Aandax2ext
+A, and two type of action
+sequences=a1a2:::an2(A)nand=b1b2:::bn2(ext
+A)n. Given two states s1and
+s2, we deﬁne the following relations.
+s1a !As2iff (s1;a;s 2)2A;
+s1 !As2iffs1b !As2for some b2int
+A;
+s1 !As2iffs1a1 !Aa2 !A:::an !As2;
+s1"=)As2iffs1( !A)s2(* is reﬂexive and transitive closure and juxtaposition of
+transitions);
+s1ax=)As2iffs1"=)Aax !As2(this relation is called input or output sequence of steps
+according to the type of the action axand states between the two extremities s1ands2
+are called internal states);
+The optimistic view of interface automata incorporates a notion of interface composition
+that leads to smaller compound automata than the input-enabled view. When we com-
+pose two interface automata, the resulting composite automaton may contain illegal states ,
+where one automaton issues an output that is not acceptable as input in the other one. The
+proposed approach to compute compatibility between interface automata based on the fact
+that each interface expects the environment to provide only legal inputs. The compound
+interface expects the environment to pass over transitions leading only to legal states. The
+existence of a such legal environment for the composition of two interfaces indicates that
+there is a way to use their corresponding components together by ensuring the encounter
+of their environment assumptions. The composite interface automaton combines the be-
+haviors of the two component interfaces and the environment assumptions under which the
+components can work together properly.
+3 Interface automata strengthened by action semantics
+Our approach presented in [6] extends interface automata by considering the action seman-
+tics to ensure a more reliable veriﬁcation of component interoperability. In [1], the checking
+of the component compatibility uses only action signatures, which are not sufﬁcient to de-
+cide if two interfaces are compatible or not. Our contribution uses pre and post-conditions
+over a set of variables to annotate the actions of interface automata. These constraints on
+actions show their semantic effects which can be useful to strengthen the compatibility
+checking. The proposed algorithm to verify the composition and the compatibility between
+interface automata takes into account of pre and post-conditions of actions.
+We introduce a ﬁnite set of variables x2Vwith their respective domain Dx. These
+variables are used to represent the effect of actions by updating there values. The variable
+updates are modeled by pre and post atomic formulas over V.
+Deﬁnition 3.1 Let A =hSA;IA;I
+A;O
+A;H
+A;PreA;PostA;Aibe an IA strengthened by
+action semantics where
+a ﬁnite set S Aof states;
+an initial state IASA;
+4
+
+--- Page 5 ---
+three disjoint sets I
+A;O
+AandH
+Aof inputs, output, and hidden actions;
+Pre and Post are the set of pre and post-conditions of actions, they are atomic formulae
+over the set of variables V;
+a setASAPreAAPostASAof transitions.
+Fora2A, we denote by PreAaandPostQarespectively the precondition and post-
+condition of the action a in the automaton A .
+The composition condition is the same as the preexisting approach. The composition of
+two automata may take effect only if their actions are disjoint, except shared input and
+output actions between them. When we compose them, shared actions are synchronized
+and all the others are interleaved asynchronously.
+Deﬁnition 3.2 Two interface automata A1andA2are composable if
+I
+A1\I
+A2= O
+A1\O
+A2= H
+A1\A2= H
+A2\A1=;
+Shared (A1,A2) =(I
+A1\O
+A2)[(I
+A2\O
+A1)is the set of shared input and output actions
+betweenA1andA2. We can now deﬁne the product automaton A1
+A2properly. We
+mention that some transitions in A1andA2may not occur in the product.
+Deﬁnition 3.3 LetA1andA2be two composable interface automata. The product A1
+A2
+is deﬁned by
+SA1
+A2=SA1SA2andIA1
+A2=IA1IA2;
+I
+A1
+A2= (I
+A1[I
+A2)nShared (A1;A2);
+O
+A1
+A2= (O
+A1[O
+A2)nShared (A1;A2);
+H
+A1
+A2= H
+A1[H
+A2[Shared (A1;A2);
+((q1;q2);Pre;a;Post; (q0
+1;q0
+2))2A1
+A2if
+a62Shared (A1;A2)^(q1;Pre 1;a;Post 1;q0
+1)2A1^q2=q0
+2^Pre
+Pre 1^PostPost 1
+a62Shared (A1;A2)^(q2;Pre 2;a;Post 2;q0
+2)2A2^q1=q0
+1^Pre
+Pre 2^PostPost 2
+a2Shared (A1;A2)^((q1;Pre 1;a;Post 1;q0
+1)2A1^a2I
+A1)^
+((q2;Pre 2;a;Post 2;q0
+2)2A2^a2O
+A2)^PrePre 2^PostPost 1
+such thatPre 2)Pre 1^Post 1)Post 2
+a2Shared (A1;A2)^((q1;Pre 1;a;Post 1;q0
+1)2A1^a2O
+A1)^
+((q2;Pre 2;a;Post 2;q0
+2)2A2^a2I
+A2)^PrePre 1^PostPost 2
+such thatPre 1)Pre 2^Post 2)Post 1
+Illegal states are the states at which the shared actions do not synchronize. We distinguish
+two different cases: (i) a component requires a shared action which is not provided by the
+environment, or (ii) they synchronize on a shared action between them but the required
+action and the provided one are not compatible at the semantic level.
+Deﬁnition 3.4 Given two composable interface automata A1andA2, the set of illegal
+states Illegal (A1,A2)S1S2ofA1
+A2is deﬁned byf(q1;q2)2SA1S2j9a2
+5
+
+--- Page 6 ---
+Shared (A1;A2):such that the following conditions hold g.
+0
+BBBBBBBBB@a2O
+1(q1)^a62I
+2(q2)
+_
+(a2O
+1(q1)^a2I
+2(q2)
+^
+(Pre 16)Pre 2)_(Post 26)Post 1))1
+CCCCCCCCCAor0
+BBBBBBBBB@a2O
+2(q2)^a62I
+1(q1)
+_
+(a2O
+2(q2)^a2I
+1(q1)
+^
+(Pre 26)Pre 1)_(Post 16)Post 2))1
+CCCCCCCCCA
+The set of illegal states in the product A1
+A2describes the possibility that one of the
+two automata may produce an output action that is an input action of the other, but it is not
+accepted. In our contribution, we extend the previous deﬁnition by the possibility that, for
+some states ( q1;q2) in the set of illegal states, an output action issued from q1inA1can be
+synchronized with the same action enabled as input at q2inA2but the precondition of the
+output action does not imply the the precondition of the input action or its post-condition
+is not implied by the post-condition of the input one.
+Compatible states, denoted by Comp (A1,A2), are states from which the environment
+can prevent entering illegal states. The compatibility can be deﬁned differently, A1andA2
+are compatible iff their initial state is compatible.
+Deﬁnition 3.5 Given two composable interface automata A1andA2. The compostion
+A1kA2is an interface automaton deﬁned by: (i)SA1kA2= Comp (A1,A2),(ii)the initial
+state isIA1kA2=IA1
+A2\Comp (A1,A2),(iii)A1kA2= A1
+A2, and (iv)the set of
+transitions is A1kA2=A1
+A2\(Comp (A1,A2)PreA1
+A2A1kA2PostA1
+A2
+Comp (A1,A2)).
+The veriﬁcation steps in this approach are the same as [1] except that we consider the
+action semantics. The proposed algorithm [6] verify the compatibility of two interface
+automata by checking if their composition is nonempty. We mention that our approach
+does not increase the linear complexity of the previous proposed one. Finally, we add that
+the associative criterion of the composition operator kbetween three automata is undeﬁned
+when some of them are not composable.
+4 Adapting the alternating reﬁnement relation
+The aim of the reﬁnement relation is to concretize an abstract version of a component
+interface. It permits to move a component or an interface from a high-level understanding to
+a more concrete speciﬁcation. Contrarily to traditional types of I/O automata, reﬁnement is
+deﬁned as trace containment, the reﬁnement of interface automata is based on an alternating
+reﬁnement relation in the spirit of simulation. A more concrete version of an interface have
+to be used in stronger environments than its abstraction. In other words, the reﬁnement of
+an interface must allow more legal inputs, and fewer outputs than the abstract version.
+By taking the fact that the internal actions are independent, an interface automaton Q
+6
+
+--- Page 7 ---
+reﬁnes another Pif all input transitions of the second one can be simulated by the ﬁrst one,
+and contrarily for output transitions.
+4.1 Preliminary
+We recall the preliminary notions used to deﬁne the alternating simulation relation between
+interface automata. The "-closure of a state sis the set of all reachable states from sby
+transiting only internal steps. The environment cannot distinguish between sand all states
+of"-closure( s).
+Deﬁnition 4.1 Given an interface automaton P and a state s 2SP,"-closureP(s) is the
+smallest set RSPsuch that (1) s2Rand (2) fors02R, if there exists s” such that
+s0"=)Ps00is a sequence of internal steps, then s002R.
+An interface automaton Pmust be able to accept an output action aissued from the
+environment if ais accepted at all states in "-closure( s). Contrarily, Pcan issue an output
+action bat least from one state in "-closure( s) to the environment.
+Deﬁnition 4.2 The sets of externally enabled output and input actions at a state s 2SPare
+deﬁned as follow
+ExtEnO
+P(s) =faj9r2"-closure (s):a2O
+P(r)g
+ExtEnI
+P(s) =faj8r2"-closure (s):a2I
+P(r)g.
+We redeﬁne also the set of all reachable states from a state sby transiting steps labeled by
+externally enabled actions.
+Deﬁnition 4.3 The setExtDest P(s;a)of externally reachable states from a state s in an
+interface automaton P for an externally enabled action a 2ExtEnO
+P(s)[ExtEnI
+P(s)is
+deﬁned by the setfr0j9ra !Pr0:r2"-closure (s)g
+4.2 Alternating simulation
+Let us consider now pre and post-conditions to establish properly the new deﬁnition of
+the alternating simulation between the states of an interface automaton Pand its reﬁned
+version Q. We extend the set of variables Vby adding some others, so we deﬁne V’as a
+set that includes the set V. We assume that pre and post-conditions of the reﬁned interface
+automaton Qare deﬁned over the set V’.
+Deﬁning pre and post-conditions of actions of the reﬁned interface must obey to some
+variant constraints. On the one hand, when we reﬁne a component, we add to their provided
+services (input actions) some other new services by deﬁning new signatures of actions and
+on the other hand, we strengthen their former operations by adding some other constraints
+on their pre and post-conditions. We take into account the principle that, in the reﬁned
+interface, an old input action must have a fewer precondition than the precondition of the
+same corresponding action in the abstract one and its post-condition must be stronger than
+the corresponding post-condition in the abstraction.
+Things change for required services, constraints on the required services (output
+actions) in the abstract interface still unchanged in the reﬁnement. In more details, it is
+7
+
+--- Page 8 ---
+assumed that there is less output actions in the reﬁnement and the required computing
+results of extinct actions become internal. So, reﬁning remaining ones has no sense.
+More concretely, the pre and post-conditions of a remaining output action in the abstract
+interface are equivalent to their correspondents in the reﬁned one. For the requirements of
+internal actions, we apply the same rules as input actions. We can now deﬁne our manner
+to adapt alternating simulation to the action semantics formally.
+Deﬁnition 4.4 A binary relationSPSQfrom Q to P is an alternating simulation if
+for all s2SP, r2SQsuch that rs the following conditions holds
+(i)ExtEnI
+P(s)ExtEnI
+Q(r);
+(ii)ExtEnO
+Q(r)ExtEnO
+P(s);
+(iii)8a2ExtEnI
+P(s)[ExtEnO
+Q(r)and8r’2ExtDest Q(r;a):9s’2
+ExtDest P(s;a)such that r’s’ and
+if a2ExtEnI
+P(s)thenPreP;a)PreQ;aandPostQ;a)PostP;a.
+else if a2ExtEnO
+Q(r)thenPreP;a,PreQ;aandPostP;a,PostQ;a.
+over the set of variables V’ .
+The ﬁrst condition of the second part of the deﬁnition ensures that all externally enabled
+inputs of sare also externally enabled in r, and conversely, all externally enabled outputs
+ofrare also externally enabled in s.
+v u
+u0v0
+(
+a?PreQ;a
+PostQ;a
+)a?PreP;a
+PostP;av u
+u0v0
+,
+a!PreQ;a
+PostQ;a
+,a!PreP;a
+PostP;a
+Fig. 1. The extended condition 2 of the alternating simulation deﬁnition.
+The second one ensures that each input (resp. output) sequence of steps labeled by an
+externally enabled action afrom rin the reﬁnement must be matched by an input (resp.
+output) sequence of step labeled by the same action afrom sin the abstraction except that
+the equivalences and the implications between pre and post-conditions must be checked as
+it is shown in Figure 1. We can now deﬁne the reﬁnement between two interface automata
+PandQas follow
+Deﬁnition 4.5 The interface automaton Q reﬁnes the interface automaton P , written Q P
+according to the set of variables V’ if
+I
+PI
+QandO
+PO
+Q;
+there is an alternating simulation from Q to P such that IQIP.
+As in [1], we can easily verify that reﬁnement between interface automata in our con-
+tribution is reﬂexive an transitive. But, when we want to establish the relation between the
+8
+
+--- Page 9 ---
+reﬁnement and the compatibility between automata things have to be more detailed: a more
+reﬁned version QofPcan replace Pin a system design such that QPif the environ-
+ment does not provide some input actions (calls of some offered services) for Qthat are
+not in P. Alternatively, new incompatibilities may be arise when we compose Qwith the
+environment, namely all new input actions in the reﬁned version Qmust not be required as
+output actions by the environment.
+Also, another conditions must be veriﬁed when we consider pre and post-conditions. A
+reﬁned version of an interface Premains consistent with the environment if the abstraction
+is compatible with it under the hypothesis seated previously. As shown in the Figure 2,
+the stepxa! !EnvyofEnvis compatible with ﬁnal step of the input sequences of steps
+1a?=)P2ofP, then it is compatible also with the ﬁnal step of 10a?=)Q20of the reﬁnement
+QofPsuch that 101and202becausePreEnv;a)PreQ;aandPostQ;a)
+PostEnv;a . Things do not change when we consider output steps in the reﬁnement Q.
+Based on the fact that pre and post-conditions of the remaining actions in the reﬁnement
+are equivalent to their corresponding ones in the abstraction, the implications PreEnv;a)
+PreQ;aandPostQ;a)PostEnv;a are also satisﬁed. The dashed edges in the previous and
+the following ﬁgure represent input or output sequences of steps between states 1 and 2 in
+Pand between 1’ and 2’ in Q. We can easily deduce that the substitution of an automaton
+by a more reﬁned one preserve the compatibility between them.
+x y
+1 2
+1020Env:
+P:
+Q:PreEnv;a;a!;PostEnv;a
+PreP;a;a?;PostP;a+*
+PreQ;a;a?;PostQ;a+*x y
+1 2
+1020Env:
+P:
+Q:PreEnv;a;a?;PostEnv;a
+PreP;a;a!;PostP;a*+
+PreQ;a;a!;PostQ;amm
+Fig. 2. Relation between the environment and the reﬁned version QofP
+We can now rise the following theorem properly as in [1] without having hindsight.
+Theorem 4.1 Consider three interface automata P , Q, and R such that Q and R are
+composable and Q
+I\R
+OP
+I\R
+O. If P and R are compatible and QP, then Q
+and R are compatible and Q kRPkR.
+From the hypothesis of this theorem, we can extract the following important corollary
+establishing that if two interface automata are compatible then their reﬁnements are
+compatible and the composition of their reﬁnement reﬁnes them.
+Corollary 4.1 Consider four automata P , Q, R, and S such that
+Q and R are composable ;
+Q
+I\R
+OP
+I\R
+O;
+9
+
+--- Page 10 ---
+S and Q are composable ;
+S
+I\Q
+OR
+I\Q
+O;
+If P and R are compatible, QP, andSRthen Q is compatible with R and S is
+compatible with Q and Q kSPkR.
+To check that QP, we should compute the maximal alternating simulation between the
+two initial states of PandQthanks to the algorithm proposed in [1]. Our approach does
+not increase the complexity of the algorithm.
+4.3 Case study of the CyCab car
+We illustrate our works by applying reﬁnement to the component vehicle of the CyCab
+car component-based system studied in [6]. The CyCab [7] car is a new electrical means
+of transportation conceived essentially for free-standing transport services. It is totally
+manipulated by a computer system and it can be driven automatically according to many
+modes.
+Vehicleposition!
+halt?
+far?
+emergency?
+reset!
+Stationposition?
+halt!
+far!
+Emergency
+Haltemergency!
+reset?
+Starterstart!start?
+Fig. 3. A UML -like model of the CyCap components.
+The goal of the CyCab car system design is to allow for users the displacement of the
+vehicle from one station to another. As an illustration of its concept, we consider the
+following requirements and functionalities of the CyCab car and its environment: (i) a
+CyCab has and appropriate road where stations are equipped by sensors, (ii) the driving of
+theCyCab is guided by information received from the station allowing to position of the
+CyCab from the stations, (iii) there is no obstacle in the roads, (vi) the vehicle has a starter
+and also an emergency halt button.
+TheCyCab car and its environment can be seen as an abstract system composed of
+four components: the vehicle, the emergency halt button, the starter, and the station. The
+Figure 3 represents the UML2component model of our system. The emergency halt button
+can be activated at every moment during the running of the vehicle. It is speciﬁed by
+sending a signal emergency! . The starter allows the starting of the vehicle. The station
+is materialized by a sensor that receives signals position? from the vehicle to know its
+position. The station sends as consequence a signal far! orhalt! to the vehicle to indicate
+if it is far from the station or not.
+2The component diagram showed in Figure 3 do not respect exactly the UML 2 notation. It is simply used to clarify the
+CyCab system
+10
+
+--- Page 11 ---
+In this section, as shown in Figure 3, we apply our proposed contribution of reﬁnement
+of the interface automaton of the component vehicle. Assume that Avis the interface
+automaton associated to the component vehicle and V=fcarstrd,isknpos,isacstr,isrcstn,
+isnuldistgbe the set of ﬁve boolean variables used to deﬁne pre and post-conditions of
+actions.
+1
+23
+4VPrS,start?,VPsS
+VPrP ,pos!,VPsPVPrF ,far?,VPsFVPrH,halt?,VPsH
+VPrE,emrg?,VPsEVPrE,emrg?,VPsE
+VPrR,reset!,VPsRstart
+emrg
+far
+halt
+pos
+reset1
+2
+SPrP ,pos?,SPsPSPrF ,far!,SPsF
+SPrH, halt!,SPsHpos
+far
+halt
+Fig. 4. The IAs AvandAsof the Vehicle and the Station
+The variable carstrdindicates if the vehicle is started or not, the variable isknposindicates
+if the vehicle knows its position from the station, isacstrequals to true when the starter is
+active,isrcstnequals to true when the station is reached, and ﬁnally the variable isnuldist
+indicates if the distance between the vehicle and the station is null or not. The automaton
+Avis given by the tuple hSv;Iv;I
+v;O
+v;H
+v;Prev;Postv;viwhere
+Prev=fVPrH;VPrS;VPrE;VPrF;VPrP;VPrR gwhere
+VPrHcarstrd=true^isrcstn=false^isknpos=true^isnuldist=true ;
+VPrSisknpos=false^carstrd=false^isacstr=true ;
+VPrEcarstrd=true ;
+VPrFcarstrd=true^isrcstn=false^isknpos=true^isnuldist=false ;
+VPrPcarstrd=true^isknpos=false ;
+VPrRcarstrd=false^isacstr=false ;
+Postv=fVPsH;VPsS;VPsE;VPsF;VPsP;VPsR gwhere
+VPsHcarstrd=false^isrcstn=true ;
+VPsScarstrd=true ;
+VPsEcarstrd=false^isacstr=false ;
+VPsFcarstrd=true^isrcstn=false ;
+VPsPcarstrd=true^isknpos=true ;
+VPsRisacstr=true .
+A possible reﬁnement of this abstract interface of the vehicle component is an automaton
+that guards all output actions of the abstraction and allows more services (input actions).
+We can add the requirement that the vehicle functions according to two modes: the station
+mode where the vehicle runs while communicating with stations and the other is the free-
+running mode where the vehicle displace freely without interaction with stations.
+A new input action fstart? allowing the free-starting of the vehicle. The separation
+between the starting of the vehicle and its moving off can be interesting as a new reﬁnement
+requirement. We add the two internal actions move; andstop; permitting respectively to
+move off the vehicle and to stop it. The internal action move; can be enabled by taking as
+11
+
+--- Page 12 ---
+precondition the proposition that a vehicle can be started without moving from its place.
+Vehicle’pos!
+halt?
+far?
+emrg?
+reset!fstart?
+start?1020
+3040
+5060
+start?pos!
+move;
+emrg?far?halt?
+emrg?emrg?
+reset!fstart?move;
+stop;
+emrg?fstart
+start
+emrg
+far
+halt
+pos
+reset
+Fig. 5. The reﬁnement automaton A0
+vof the Vehicle
+The set of variables Vis extended by adding two new variables carmovg andfrunmode.
+The new set of variables V’=V[fcarmovg ,frunmodegis used to deﬁne pre and post-
+conditions of the reﬁned automaton A0v. The ﬁrst variable carmovg is used to make the
+difference between the act to start the vehicle and the act to move it. The second variable
+is used to position the two different modes of the vehicle running. The reﬁned automaton
+Vehicle’3is showed in the right part of Figure 5. Assuming that atomic formulas are
+deﬁned now over V’, we deﬁne the pre and post-conditions of the automaton A0vas follow
+Pre0v =fVPrH0;VPrS0;VPrE0;VPrF0;VPrP0;VPrR0;
+PrM;PrStp;VPrFS0gwhere
+VPrH0carstrd=true^isnuldist=true ;
+VPrS0isknpos=false^carstrd=false^isacstr=true ;
+VPrE0carstrd=true ;
+VPrF0carstrd=true^isrcstn=false^isnuldist=false ;
+VPrP0carstrd=true^isknpos=false ;
+VPrR0carstrd=false^isacstr=false ;
+PrMcarstrd=true^carmovg =false ;
+PrStpcarstrd=true^carmovg =true ;
+VPrFS0frunmode =true^carstrd=false^isacstr=true ;
+Post0v =fVPsH0;VPsS0;VPsE0;VPsF0;VPsP0;VPsR0;
+PsM;PsStp;VPsFS0gwhere
+VPsH0carstrd=false^carmoving =false^isrcstn=true ;
+VPsS0carstrd=true^carmovg =false ;
+VPsE0carstrd=false^carmovg =false^isacstr=false ;
+VPsF0carstrd=true^isrcstn=false ;
+VPsP0carstrd=true^isknpos=true ;
+VPsR0isacstr=true ;
+PsMcarstrd=true^carmovg =true ;
+PsStpcarstrd=false^carmovg =false ;
+VPsFS0carstrd=true^carmovg =false .
+3The actions of the automaton A0
+vare not annotated by pre and post-conditions in order to alleviate the automaton.
+12
+
+--- Page 13 ---
+According to our new deﬁnition of the alternating simulation between states, the reader
+can remark that, for example, the precondition of the input action halt? in the abstraction
+implies the precondition its correspondent one in the reﬁnement and vice versa for
+post-conditions ( VPrH)VPrH0andVPsH0)VPsH ). We suppose that the two
+automataAvandAsare compatible. The automaton Avcan be substituted in the product
+Av
+Asby the automaton A0
+vby applying Theorem 4.1.
+101 201301
+402
+501601
+502102 602start?halt;
+pos;move;emrg?far;
+reset!fstart?move;
+stop;
+emrg? emrg?emrg? reset!fstart?move;
+stop;fstart
+start
+emrg
+reset
+Fig. 6. The composite automaton A0
+vkAs
+The veriﬁcation that A0vAvcan be easily made using the proposed algorithm in [1] by
+taking into account the extended third condition of Deﬁnition 4.4. The algorithm permits
+to compute the unique maximal alternating simulation from A0vtoAv.
+Algorithm
+Input: Interface automata PandQextended by pre and post-conditions
+Output: The maximal alternating simulation from QtoP.
+Let0=SPSQ
+repeat
+For i0, deﬁnei+1iby vi+1uifvi+1uand the conditions 1, 2, and 3 of
+Deﬁnition 4.4 hold for vanduwhere=i
+untili+1=i
+returni
+The complexity of the alternating simulation check between our extended IAs is linear like
+the original model. The unique difference is the consideration of the semantics of actions
+modeled by relations between pre and post-conditions which can be computed in linear
+time. Consequently, our approach does not increase the PTIME-complete complexity of
+the classical reﬁnement checking between IAs.
+5 Related works
+Luca de Alfaro and al. [11] propose ”sociable” interfaces as a different formalism to specify
+component interfaces from that of interface automata. Their formalism communicates via
+both actions and shared variables and the synchronization between actions is based on on
+13
+
+--- Page 14 ---
+two main principles: (i) the ﬁrst principle is that that same action can label both input and
+output transitions, and (ii) the second is that global variables can be updated by multiple
+interfaces. The authors show that the compatibility and the reﬁnement check of sociable
+interfaces can be made thanks to efﬁcient symbolic algorithms. Their tool called TICC [5]
+(Tool for Interface Compatibility) implements these algorithms.
+Ivana ˇCern ´a and al. [8] had been founded an automata-based formalism to capture
+component interactions in hierarchical component-based systems. Their ”Component-
+interaction automata” language represents a ﬂexible model to compose components by
+respecting the architectural assembly of a system design. Other works are published that
+extend component-interaction automata by checking LTL temporal properties.
+In [3], the authors propose concurrent automata to model component behaviors. The
+described model consists of a pair: a component signature which captures the static view
+of a component as depicted in UML 2.0, and a language of component vectors over this
+signature which describe the behaviour of the component. There is similarity between
+the notion of a component signature and the static structure of interface automata. The
+major difference with our model is that whereas in concurrent automata ports are associated
+to a set of operation calls/signals, thereby ports in our model correspond to individual
+operations/signals which are furthermore assumed to be sent or received sequentially. So,
+in our model concurrency is no allowed between ports of the same component.
+6 Conclusion and perspectives
+In this paper we adapt the alternating reﬁnement relation between interface automata to
+the semantics of actions. We have improved these automata by pre and post-conditions of
+component required or provided actions in order to integrate the action semantics in the
+veriﬁcation of interface compatibility and interoperability. We strengthen the alternating
+simulation between states of an abstract version of an interface automaton and its reﬁned
+version. Equivalence and implications between input and output actions of the reﬁnement
+and their correspondent ones in the abstraction are established. The compatibility between
+the reﬁned version of an abstract interface automaton and the environment is preserved in
+the case when the abstract one is compatible with same environment. These results are
+applied to the case study of the component-based system of the CyCab car.
+As future works, we are interested in implementing a veriﬁcation tool which takes into
+account pre and post conditions of actions to check compatibility and reﬁnement between
+interface automata.
+References
+[1] L. Alfaro and T. A. Henzinger. Interface automata. ACM Press, 9th Annual Aymposium of FSE (Foundations of
+Software Engineering) , pages 109–120, 2001.
+[2] L. Alfaro and T. A. Henzinger. Interface-based design. NATO Science Series : Mathematics, Physics, and Chemistry,
+Engineering Theories of Softwareintensive Systems , 195:83104, 2005.
+[3] J. K. F. Bowles and S. Moschoyiannis. Concurrent logic and automata combined: A semantics for components.
+Electron. Notes Theor. Comput. Sci. , 175(2):135–151, 2007.
+[4] S. Brookes, C. Hoare, and A. Roscoe. A theory of communicating sequetial processes. Journal of the ACM (JACM) ,
+(31):560–599, 1984.
+[5] L. D. d. S. M. F. A. L. V . R. B.T. Adler, L. de Alfaro and P. Roy. Ticc: A tool for interface compatibility and composition.
+In Computer Aided Veriﬁcation (CAV06) in Seattle, WA , pages 59–62.
+14
+
+--- Page 15 ---
+[6] S. Chouali, H. Mountassir, and S. Mouelhi. An i/o automata based approach to verify component compatibility:
+application to the cycab car. LNCS, Springer-Verlag - FESCA of the European joint conference on Theory and Practice
+of Software (ETAPS’08) , March 2008.
+[7] B. Grard, G. Philippe, M. Herv, and P.-G. Roger. The inria rh ˆone-alpes cycab. INRIA technical report , 1466, Avril
+1999.
+[8] P. V . Ivana ˇCern ´a and B. Zimmerov ´a. Component-interaction automata modelling language. Brno, Czech Republic :
+Faculty of Informatics, Masaryk University, 2006. Technical report FIMU-RS-2006-08 .
+[9] Y . Jin, R. Esser, C. Lakos, and J. Janneck. Modular analysis of dataﬂow process networks. International conference
+on Fundamental Approaches to Software Engineering (FASE’03 - ETAPS 2003) - Springer-Verlag , 2621(31):184–199,
+2003.
+[10] T. H. L. Alfaro. Interface theories of component-based design. In Proceedings of the First International Workshop of
+Embedded Software (EM-SOFT) - LNCS., Springer-Verlag , 2211:148–165, 2001.
+[11] M. F. A. L. P. R. L. de Alfaro, L. Dias Da Silva and M. Sorea. Sociable interfaces. In FROCOS 2005: 5th International
+Workshop on Frontiers of Combining Systems, Springer-Verlag , LNAI 3717, 2005.
+[12] N. Lynch and M. Tuttle. Hierarcical correctness proofs for distributed algorithms. In Proc. 6th ACM Symp. Principles
+of Distributed Computing , pages 137–151, 1987.
+[13] R. Milner. An algebraic deﬁnition of simulation between programs. In Proc. 2nd International Joint Conference on
+Artiﬁcial Intelligence, The British Computer Society , pages 481–489, 1971.
+15
