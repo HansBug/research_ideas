@@ -148,7 +148,10 @@
 │  └─ I/O Automata (1989)
 │     ├─ Timed I/O Automata (2005)
 │     ├─ Interface Automata (2001)
+│     │  ├─ Transaction-Aware Web Service Interface (2006)
+│     │  ├─ Interface Automata for Accessors / IoT Contracts (2015)
 │     │  └─ Contract Automata (2014)
+│     │     └─ Featured Modal Contract Automata (2020)
 │     └─ Reactive Modules (1999)
 ├─ 时间 / 连续主干
 │  ├─ Timed Automata (1994)
@@ -158,7 +161,9 @@
    └─ Petri Nets (1989，文库代表条目)
       ├─ WorkFlow nets (1998)
       ├─ Coloured Petri Nets (2005)
-      └─ Time Petri Nets (2008)
+      ├─ Time Petri Nets (2008)
+      ├─ MOPN / GSPN for Multi-Robot Tasks (2008)
+      └─ GSPNR / MRA for Persistent Multi-Robot Tasks (2020)
 ```
 
 挂接说明：
@@ -166,6 +171,8 @@
 1. `SCXML` 同时具有“标准 + 语言”双重属性；在主蓝本树里按“可执行状态机语言”挂到 `Statecharts` 支线，在主类计数中按 `🔣` 处理。
 2. `RoboChart`、`RoboSim`、`SEAD / MDL`、`DSD` 等是领域化 DSL，只在原文给出明确语言骨架、语义约束或机读描述时入树；否则仍留在 `📦` 或应用条目中。
 3. `Grafchart + DPWS/FMI`、`RAFCON`、`FlexBE`、`SMACHA/SMACH`、`YASMIN`、`VisualHFSM` 等当前更适合作为“执行载体 / 工具链”而不是主蓝本节点，暂不挂入主树。
+4. 最近两次提交新增的 `Transaction-Aware Web Service Interface`、`IoT Interface Theory`、`FMCA`、`MOPN / GSPN for Multi-Robot Tasks` 与 `GSPNR / MRA for Persistent Multi-Robot Tasks`，都在原有主干下补出了可稳定命名的接口/契约或 `Petri` 扩展节点，因此已同步整合进主树。
+5. 最近两次提交新增的 `CARE Runtime`、`Commercial Field Bus Timed Automata`、`Timed Multi-Robot Planning`、`Hybrid Action Coordination`、`Hybrid Field Robot Teams` 主要提供运行时、工具链或应用级挂接证据，而不是新的语言本体；因此保留在正式总表中，并作为 `Contract Automata`、`Timed Automata`、`Hybrid Automata` 主干的应用侧代表，不单独挂入主树。
 
 ## 检索关键词簇
 
@@ -438,6 +445,7 @@
 | 2026-04-02 18:53:53 | 建立状态机族主蓝本演化树并拆分 DSL 主类 | 基于已收录普通条目与 survey 条目梳理“状态机族模型 / profile / DSL / 标准语言”的主蓝本演化树；把具有明确模型本体的 `DSL` 从原 `📦` 类中独立为 `🔣`，并同步回填主类统计、正式总表重分类与 survey 覆盖主类口径 |
 | 2026-04-02 20:35:59 | 继续扩展主干形式主义应用条目 | 本轮重新联网筛查接口/组合、时间/混成与 `Petri` 并发主干候选后，正式新增 5 篇 `desc.md` 条目，覆盖 `Commercial Field Bus Timed Automata`、`FMCA`、`CARE Runtime`、`Hybrid Field Robot Teams`、`Multi-Robot Task Petri Nets`；全部补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib` 与 `desc.md`，并同步回填统计、关键词簇、普通论文总表 |
 | 2026-04-02 21:24:12 | 继续扩展主干形式主义应用条目 | 本轮重新联网筛查接口/组合、时间/混成与 `Petri` 并发主干候选后，正式新增 5 篇 `desc.md` 条目，覆盖 `Web-Service Transactions Interface`、`IoT Interface Theory`、`Timed Multi-Robot Planning`、`Hybrid Action Coordination`、`Persistent-Task GSPNR`；全部补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib` 与 `desc.md`，并同步回填统计、关键词簇、普通论文总表、待补方向与更新日志 |
+| 2026-04-02 22:48:58 | 强化 tree 同步规则并回填最近两次提交的演化关系 | 在 [GUIDE.md](./GUIDE.md) 中新增“更新正式文献时必须同步检查并更新状态机族演化树及挂接说明”的硬约束；同时回看最近两次提交新增条目，把 `Transaction-Aware Web Service Interface`、`IoT Interface Theory`、`FMCA`、`MOPN / GSPN for Multi-Robot Tasks` 与 `GSPNR / MRA for Persistent Multi-Robot Tasks` 整合进主蓝本树，并把 `CARE Runtime`、`Timed Automata`、`Hybrid Automata` 应用条目明确记为主干侧证而非独立树节点 |
 
 ## 失败与阻塞记录
 
