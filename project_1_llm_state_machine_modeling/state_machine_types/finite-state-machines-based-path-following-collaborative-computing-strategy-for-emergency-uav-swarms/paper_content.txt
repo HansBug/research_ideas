@@ -1,0 +1,863 @@
+--- Page 1 ---
+Finite State Machines-Based Path-Following
+Collaborative Computing Strategy
+for Emergency UA V Swarms
+Jialin Hu, Zhiyuan Ren, Wenchi Cheng
+State Key Laboratory of Integrated Services Networks, Xidian University, Xi’an, China
+E-mail: {22011210534@stu.xidian.edu.cn ,zyren@xidian.edu.cn ,wccheng@xidian.edu.cn .}
+Abstract —Offloading services to UA V swarms for delay-
+sensitive tasks in Emergency UA V Networks (EUN) can greatly
+enhance rescue efficiency. Most task-offloading strategies assumed
+that UA Vs were location-fixed and capable of handling all tasks.
+However, in complex disaster environments, UA V locations often
+change dynamically, and the heterogeneity of on-board resources
+presents a significant challenge in optimizing task scheduling
+in EUN to minimize latency. To address these problems, a
+Finite state machines-based Path-following Collaborative com-
+putation strategy (FPC) for emergency UA V swarms is proposed.
+First, an Extended Finite State Machine Space-time Graph
+(EFSMSG) model is constructed to accurately characterize on-
+board resources and state transitions while shielding the EUN
+dynamic characteristic. Based on the EFSMSG, a mathematical
+model is formulated for the FPC strategy to minimize task
+processing delay while facilitating computation during transmis-
+sion. Finally, the Constraint Selection Adaptive Binary Particle
+Swarm Optimization (CSABPSO) algorithm is proposed for the
+solution. Simulation results demonstrate that the proposed FPC
+strategy effectively reduces task processing delay, meeting the
+requirements of delay-sensitive tasks in emergency situations.
+Index Terms —Emergency UA V Networks, collaborative com-
+puting, finite state machines, latency
+I. I NTRODUCTION
+Unmanned Aerial Vehicles (UA Vs) are extensively used
+in emergency scenarios because of their remarkable scalabil-
+ity and flexibility. In disaster relief, delivering the valuable
+information collected by UA Vs to rescuers is crucial for
+saving more lives. Additionally, this data often requires fur-
+ther processing before being applied [1]. However, individual
+UA Vs have limited resources and cannot independently handle
+complex tasks [2]. Offloading these tasks to cloud servers [3]
+introduces considerable transmission latency, thereby affecting
+rescue efficiency. Due to advancements in wireless transmis-
+sion technology, UA Vs are now frequently organized into clus-
+ters in various fields. Offloading tasks to UA V swarms along
+their flight path enables efficient transmission and computation
+to minimize losses through collaborative efforts.
+Most existing UA V swarm task offloading studies relied on
+static networks [4]–[6]. For instance, Wang et al. [4] conducted
+a study on a UA V-assisted relay transmission method based
+on collaborative computational offloading, considering the
+hovering position of the UA Vs as one of the optimization
+This work was supported in part by the National Key R&D Program of
+China (2023YFC3011502).objectives. Guo et al. [5] investigated the problem of task
+scheduling and resource allocation under the constraints of
+energy consumption of UA Vs. Wang et al. [6] proposed
+a scheme for scheduling UA V swarm’s computational and
+communication resources to support Service Function Chains
+(SFCs). Both assumed that the UA V network topology was
+fixed. However, disaster sites are complex, fixed-wing UA Vs
+with specific flight trajectories are usually used for wide-area
+reconnaissance and multi-target search [7]. Consequently, the
+EUN topology usually changes dynamically. Zhao et al. [8]
+investigated a multi-UA V cooperative mobile edge computing
+system to jointly design UA V trajectories, task assignments,
+etc. Cheng et al. [9] constructed a multi-intelligence coopera-
+tive Markov game model to optimize the UA V tasks and power
+allocation, considering the time-varying position of UA Vs.
+However, all the above works assumed that UA Vs were
+capable of handling all tasks. In a real EUN, UA Vs possess
+heterogeneous on-board resources(e.g., different sensors and
+image processing units), which results in them only being able
+to perform specific types of tasks. Wang et al. [6] addressed the
+heterogeneity issue by dividing AI applications into SFCs and
+scheduling them to multiple UA Vs that can create instances.
+Zheng et al. [10] proposed elemental graphs to abstract Virtual
+Network Functions (VNFs) into independent nodes connected
+to servers in heterogeneous edge computing networks. The
+above works were oriented to network service functions and
+studied the problem of constructing and mapping SFCs, and
+the networks were all static. However, the tasks in EUNs are
+diverse, and categorizing task flows and constructing different
+SFCs to satisfy service requests in dynamic networks will lead
+to inefficient rescue. Moreover, the nodes can exhibit multiple
+states triggered by the physical functions, with transitions
+between these states. Therefore, on-board resources have de-
+pendency relationships. Consequently, the current collaborative
+computing strategies for UA V swarms are not directly appli-
+cable to real EUNs, which brings challenges to the scheduling
+of delay-sensitive tasks and efficient rescue.
+To solve the above problems, this paper employs a Finite
+State Machine (FSM) model, which has the characteristics
+of forced modularity from state definition and facilitates the
+adaptation to dynamic changes in the environment. Based
+on this model, a Finite state machines-based Path-following
+Collaborative computation strategy (FPC) is introduced toarXiv:2407.11531v1  [eess.SY]  16 Jul 2024
+
+--- Page 2 ---
+optimize the task processing delay. The main contributions of
+this paper are as follows:
+•To accommodate the dynamics of EUN while enabling
+task-oriented resource management, an Extended Finite
+State Machine Space-time Graph (EFSMSG) model is
+proposed to describe on-board resources and state transi-
+tions, overcoming the heterogeneity of EUN.
+•Considering the requirements of delay-sensitive tasks in
+emergency scenarios, the FPC strategy is proposed to
+minimize task processing delays and enable computation
+while transmitting.
+•Incorporating the cross-time slot mechanism and node
+function constraints, the Constraint Selection Adaptive
+Binary Particle Swarm Optimization (CSABPSO) algo-
+rithm is proposed to solve the delay optimization problem.
+The rest of this paper is organized as follows. Section
+II presents the system model. Section III demonstrates the
+algorithm in detail. The simulation results and analysis are
+given in Section IV . Finally, Section V concludes the paper.
+II. S YSTEM MODEL AND PROBLEM FORMULATION
+Fig.1 shows a typical architecture for EUN, which generates
+many delay-sensitive tasks and consists of three layers [6].
+The first is the ground user, who initiates the task request and
+receives the result from the upper UA Vs within the affected
+area. The second is a dynamic network composed of UA V
+formations with fixed flight trajectories. Heterogeneous UA Vs
+from different formations collaborate to provide services for
+the users. The central UA V in the third layer is responsible for
+controlling task scheduling and flight trajectory planning, etc.
+Communication link
+UAV trajector y
+UAV user
+Cooperat ive UAV
+Central UAV
+Fig. 1. The architecture of EUN.
+A. Network Model of EUN
+This subsection uses a Space-time Graph (SG) model to
+analyze the EUN, which has been widely used in dynamic
+networks [11]. As the SG model relies on known trajectories,
+the EUN flight trajectory model is constructed. Considering
+general emergency scenarios, it is assumed that the center UA V
+hovers at the highest position within the network. The cooper-
+ative UA Vs are divided into multiple formations, each with a
+fixed height, and they perform uniform circular motions around
+distinct centers. To facilitate the modeling, a spatial right-angle
+coordinate system is established with the center UA V as the
+coordinate origin, the xoyparallel to the ground, and the z-
+axis perpendicular to the ground. For brevity, all the UA Vsmentioned below are cooperative UA Vs. U={u1,···, up}is
+defined as the set of UA Vs, and pis the number of UA Vs.
+For any ud∈U, it can be described by the parameters
+{Rd,− →θd,− →ωd}. Where Rdis the flight radius,− →ωdis the
+angular velocity, and− →θdis the initial phase angle, which is
+defined as the angle between its line with the center of the
+circle and the positive direction of the x-axis.
+As shown in Fig. 2. Where (xoi, yoi, zoi)and(xoj, yoj, zoj)
+UAV(xoi, yoi, zoi)
+(xoj, yoj, zoj)Ri
+Rjdijz
+xy
+Fig. 2. Flight trajectory model of EUN.
+are the coordinates of the center of the circle of uianduj
+respectively, the coordinate of uican be given by:
+xi(t) =xoi+Ricos(− →θi+− →ωit) (1)
+yi(t) =yoi+Risin(− →θi+− →ωit) (2)
+zi(t) =zoi (3)
+Therefore, the euclidean distance dijbetween any two UA Vs
+at moment tcan be given by:
+dij(t) =q
+(xi(t)−xj(t))2+ (yi(t)−yj(t))2+ (zi(t)−zj(t))2(4)
+The UA V-UA V channel is mainly dominated by the line-of-
+sight (LoS) [12], and it is assumed that the Doppler effects
+attributable to the UA Vs’ movement can be compensated in
+the physical layer with synchronization techniques [13]. Then,
+the transmission loss can be given by:
+Lij(t) = (4 πdij(t)/λ)2ξLoS= (4πdij(t)f/c)2ξLoS (5)
+where fis the carrier frequency, λ=c/fis the carrier wave-
+length, cis the velocity of light, ξLoSis the attenuation factors
+of LoS. On the basis of the free space propagation theorem,
+the received signal power of the UA V is:
+Pj
+r(t) =Pi
+tgi
+tgj
+r/Lij(t) (6)
+where Pi
+tgi
+t=EIRP is the transmitting power, gj
+ris the
+receiving gain. The signal-to-noise ratio can be given by:
+SNR ij(t) =Pj
+r(t)
+σ2=Pi
+tgi
+tgj
+r
+(4πdij(t)/λ)2ξLoSσ2(7)
+where σ2is the additive white Gaussian noise. When the
+modulation method is BPSK, the Bit Error Rate (BER) of
+transmission between UA Vs can be given by [14]:
+Pij
+e(t) =1
+2erfc(q
+SNR ij(t)) (8)
+Therefore, the condition that defines the existence of a link
+between UA Vs is shown below, where Pj
+e0is the demodulation
+threshold at the receiving end, and link ij(t) = 1 indicates that
+the link is connected and vice versa interrupted.
+link ij(t) =
+1, Pij
+e(t)≤Pj
+e0
+0, otherwise(9)
+According to Shannon formula, the link capacity at moment
+tis shown below, and Bis the channel bandwidth:
+
+--- Page 3 ---
+Rij(t) =link ij(t)·Blog2(1 +SNR ij(t)) (10)
+The topological period Tis divided into ntime slots. The
+topology is fixed in ∆t=T/n. The transmission delay of unit
+bit volume is πk
+ij= 1/Rij(k). The weighted adjacency matrix
+of the EUN of the kth time slot can be given by:
+Gk=
+0πk
+12···πk
+1p
+πk
+21 0···πk
+2p
+............
+πk
+p1πk
+p2··· 0
+(11)
+Furthermore, the virtual link πk(k+1)
+i = ∆t−tk
+iexpresses
+the data cache latency in the same node between two adjacent
+slots. tk
+iis the consumed time of the ith node in the kth slot.
+The weighted matrix between two slots can be given by:
+Gk,k+1=
+πk(k+1)
+1 ··· ∞ ··· ∞
+...............
+∞ ··· πk(k+1)
+i ··· ∞
+...............
+∞ ··· ∞ ··· πk(k+1)
+p
+(12)
+Since the UA V flight trajectory is periodic and the adjacency
+matrix from time slot nto time slot 1 also satisfies Eq.(12).
+The SG model of EUN is given by:
+G=
+G1G1,2∞ ··· ∞
+∞ G2G2,3··· ∞
+...............
+∞ ∞ ∞ ··· G(n−1),n
+Gn,1∞ ∞ ··· Gn
+(13)
+B. Model of EFSMSG
+Relying on the SG, the UA V network can be stabilized.
+However, the heterogeneity of UA Vs must be fully considered
+when formulating a cooperative strategy in EUNs. Therefore,
+based on SG, FSM is used to characterize the resources and
+state transitions equipped on UA Vs, and the EFSMSG model is
+constructed in conjunction with the communication topology.
+FSM is a tool for modeling object behavior. It can effectively
+describe the sequence of states experienced by the UA V
+system. The UA V model based on the FSM can be given by:
+SUAV ={Q, E, δ, q 0, O} (14)
+where Qis the set of all finite states of the UA V . Eis
+the set of triggering conditions, δdenotes state transfer, i.e.,
+the process of transferring from one state to another under
+different triggering conditions, q0∈Qis the initial state, and
+O⊆Qis the set of termination states. For example, an FSM
+model of a UA V performing simple image processing tasks [1]
+is shown in Fig. 3. The arrows denote state transfers, and the
+text on the arrows is state transition triggering conditions.
+Complex tasks usually cannot be accomplished on a single
+UA V and require multiple UA Vs to work together. This process
+involves not only the state transition of each UA V but also the
+communication between UA Vs. Therefore, this paper considers
+modeling an EUN as an EFSMSG. e.g., the EFSM model for
+performing the task of complex image [15] is shown in Fig. 4.
+The communication transfer between UA Vs is also considered
+SearchRecognize
+Photograph
+Grayscale
+Binarization DenoisingRecognition 
+success
+Recognition 
+failureDiscover the 
+target
+No targets 
+foundFailed to 
+take photo s
+Successful 
+photo
+Processing 
+successProcessing 
+success
+Denoising 
+successfulSend 
+ImageSent 
+successfully
+0qFig. 3. Example of FSM model of UA V .
+as a state transition process. Based on the EFSM model and
+SG model, the EFSMSG model can be constructed as shown
+in Fig. 5. The model contains the UA V swarm connectivity
+relationship as well as the state.
+Search Recognize
+Photograph
+Median 
+filteringColor 
+model 
+conversionThreshold 
+segmentationRecognition 
+successRecognition 
+failure
+Discover the 
+target
+No targets 
+found
+Failed to 
+take photo s
+Successful 
+photo
+Processing 
+successBlob counter
+Morphological 
+operationsSend photoSend image
+Processing 
+successProcessing 
+success
+Processing 
+successProcessing 
+success
+communications link UAVSent 
+successfully
+0q
+Fig. 4. Example of EFSM model of EUN.
+As shown in Fig. 5, for intuition, states are represented as
+nodes connected to the UA V . The same UA V can transition
+between multiple states. Assuming there are Ntypes of states
+in the EUN, and the state of the lth type can be denoted as
+fl=
+fl
+1, fl
+2, . . . , fl
+p	
+, where fl
+j(1≤j≤p)represents uj
+in state l. Then all states in the EUN can be given by F=
+f1, f2, . . . , fN	
+. The adjacency matrix of the EUN in the
+kth time slot can be given by:
+Gpk=
+GkUF
+FU FF
+(15)
+UF=
+Uf1, Uf2,···, UfN
+,Ufldenotes the delay of
+the UA V being in state fl. The ith row in the matrix is
+node ui, the jth column is fl
+j, and the value of the diagonal
+element is ctil, which is the latency of the node being in
+fl
+jto process the unit bit. If the UA V does not have this
+state, then ctil=∞and the remaining elements are infinity.
+FU=
+f1U, f2U,···, fNUT,flUdenotes the latency for
+the UA V to invoke flto process the result, and FFis the
+latency for the transition of the UA V state. Since the function
+of triggering the state is deployed inside the UA V , both are
+zero and the rest of the elements are infinity. The EFSM
+matrix of adjacent time slots can be given as follows, with
+row
+Uk, f1,···, fN
+and column
+Uk+1, f1,···, fN
+:
+Gpk,k+1=
+Gk,k+1∞ ··· ∞
+∞ 0··· ∞
+............
+∞ ∞ ··· 0
+(16)
+Then the weighted adjacency matrix of EFSMSG is:
+
+--- Page 4 ---
+2
+45
+31
+2
+6
+27
+75
+53
+31
+2
+Communications 
+linkCache link StatesData 
+processing or 
+return
+3
+1u
+3
+2u
+3
+3u
+3
+4u
+3
+5u
+3
+6u
+1
+1u
+1
+2u
+1
+3u
+1
+4u
+1
+5u
+1
+6u
+t
+2
+1u
+2
+2u
+2
+3u
+2
+4u
+2
+5u
+2
+6u
+2t
+3tFig. 5. Model of EFSMSG.
+Gp=
+Gp1Gp1,2··· ∞ ∞
+∞ Gp2··· ∞ ∞
+...............
+∞ ∞ ··· Gpn−1Gp(n−1),n
+Gpn,1∞ ··· ∞ Gpn
+(17)
+C. Computation Offloading Based EFSMSG Model
+Based on EFSMSG, this subsection constructs the UA V
+swarm collaborative computation strategy. Without loss of
+generality, by representing the task as a Directed Acyclic
+Graph (DAG) model, the FPC can be transformed into a graph
+mapping problem from DAG to EFSMSG. Define Φ = (Ψ ,Γ)
+as the DAG model of a task. Ψ ={φ1, . . . , φ q}is the set of
+sub-tasks, and Γis the logical relationship between sub-tasks.
+Define Θ↑(φj) ={φi|(φi, φj)∈Γ}as the set of forward
+sub-tasks of φj. The task volume Djofφjcan be given by:
+Dj=X
+ϕi∈Θ↑(ϕj)Diηi(18)
+ηi∈(0,1]is the data scaling factor, which indicates the
+change in the amount of data after processing. Definition
+B: Ψ→Fis the mapping of nodes, φ1maps to the task
+initiating UA V , φqmaps to the result receiving UA V , and the
+other subtasks map to any node. Considering that the link may
+be disconnected during transmission, when the data needs to
+be cached on the UA V until the next time slot, ρiis the number
+of time slots spanned by the computational subtasks.
+B(φi) =
+
+n
+u1
+1, ..., u1+ρi
+1|1 +ρi≤no
+, φi=φ1;
+uk
+p, ..., uk+ρip|k≥1, k+ρi≤n	
+, φi=φq;n
+uk
+d, ..., uk+ρi
+d|k≥1, k+ρi≤n,1≤d≤po
+,otherwise .(19)
+Define Z: Γ→Eto denote the mapping of edges ( Eis
+the set of edges of EFSMSG). Mapping the edges of DAG to
+the shortest route between the last node end(B(φi))ofB(φi)
+to the first node start (B(φj))ofB(φj).
+Z((φi, φj)) =Path end(B(φi))start (B(φj)) (20)
+Based on the mapping rule, the latency of the task is shown
+in Eq. (21). Where Tcomp(φi)is the computational delay,
+Taccu(φi)is the cumulative delay when proceeding to sub-
+taskφi.CB(φi)is the computational power of node B(φi),
+anddend(B(φi))start (B(φq))is the latency along the shortest
+path, transmitting unit bit from ∀φj∈Φ↑(φi)toφi.αis the
+computational complexity of the sub-task, in cycles/bit .T(Φ) = T(φq) =Tcomp(φq) +Taccu(φq)
+= max
+φi∈ϕ↑(φq)[T(φi) +dend(B(φi))start (B(φq))Diηi] +Diηiαi
+CB(φq).(21)
+For the same task, there are multiple mapping results that
+satisfy the rule, which results in different latencies. Therefore,
+minimizing the task processing latency is to find the optimal
+mapping strategy. Define the decision matrix Xas:
+X=
+x
+φ1, u1
+1
+···x
+φ1, u1
+p
+···x
+φ1, un
+p
+x
+φ2, u1
+1
+···x
+φ2, u1
+p
+···x
+φ2, un
+p
+...............
+x
+φq, u1
+1
+···x
+φq, u1
+p
+···x
+φq, un
+p
+(22)
+When element x
+φi, uk
+d
+∈Xis equal to 1, it means that
+sub-task φiis mapped to node uk
+d.
+x
+φi, uk
+d
+∈ {0,1},∀φi∈Ψ,∀uk
+d∈UT. (23)
+X
+uk
+d∈UTx
+φi, uk
+d
+=ρi+1,∀φi∈Ψ.(24)
+Therefore, the processing delay of task Φcan be given by:
+T(X) = max
+φi∈ϕ↑(φq)[T(φi) +P
+uk+ρi
+d,uw
+h∈UTduk+ρi
+duw
+hDiηix
+φi, uk+ρi
+d
+x(φq, uw
+h)]
++P
+uw
+h∈UTDiηiαi
+Cuw
+hx(φq, uw
+h)
+(25)
+Where x(φq, uw
+h)denotes the last node of φqmapping. Thus,
+the delay optimization problem can be represented as:
+X= arg min ( T(X))
+s.t.(23),(24)(26)
+III. A LGORITHM
+Eq. (26) is a multidimensional NP-hard problem with high
+computational complexity using exact algorithms. Therefore,
+to solve the latency optimization problem, the CSABPSO algo-
+rithm is proposed. Its feasible domain will change adaptively
+with the increase of the time slot, and the node function con-
+straints are introduced to limit the particle position selection.
+Assuming the total particle is M, and Imaxis the maximum
+iteration, i.e. the termination condition of the algorithm. The
+position and the flying speed of the mth particle of the Ith
+iteration can be given by:
+XI
+m=size(q, n×p)
+={{xI
+m(φ1, u1
+1),···, xI
+m(φ1, un
+p)},···,{xI
+m(φq, u1
+1),···, xI
+m(φq, un
+p)}}
+(27)VI
+m=size(q, n×p)
+={{vI
+m(φ1, u1
+1),···, vI
+m(φ1, un
+p)},···,{vI
+m(φq, u1
+1),···, vI
+m(φq, un
+p)}}
+(28)
+Besides, the flying speed of the mth particle is updated by Eq.
+(30). To improve the convergence speed and solution accuracy,
+the inertia weight µIadopts a nonlinear variation strategy:
+µI=µstart−(µstart−µend)(I/Imax)2(29)
+VI+1
+m=µIVI
+m+γ1β1(pMbest−XI
+m) +γ2β2(gbest−XI
+m) (30)
+where γ1andγ2are learning factors, β1andβ2are random
+values distributed in the interval [0,1]. The sigmoid function
+is used to map the particle velocity to the interval [0,1]:
+S(VI+1
+m) =1
+1 + exp( −VI+1m)(31)
+The position of each particle XI+1
+m represents a mapping
+strategy, and from Section II, it is clear that subtasks can
+only be mapped to UA V nodes where the processing state of
+
+--- Page 5 ---
+Algorithm 1 CSABPSO algorithm
+Input: input a particle swarm with M,Imax,β1,β2,γ1,γ2,µstart ,µend;
+1:foreach particle m≤Mdo
+2: Initialize X0
+m,V0
+m;
+3: Evaluate the fitness function of particle musing (33);
+4: Set the current position as the best position of particle pMbest;
+5:end for
+6: Choose the particle position with the best fitness of all particles as the
+global best position gbest;
+7:forgeneration 1 to Imax do
+8: foreach particle m≤Mdo
+9: Update the inertia weight µIusing (29);
+10: Update the velocity and position of particle musing (30-32);
+11: Evaluate the fitness function with the new position using (33);
+12: iff(XI+1
+m)< f(pMbest)then
+13: pMbest=XI+1
+m;
+14: end if
+15: iff(pMbest)< f(gbest)then
+16: gbest=pMbest;
+17: end if
+18: end for
+19:end for
+Output: f(gbest);
+the subtask exists. Assuming that uk
+dexists φithe processing
+state fi
+dis denoted as ismember (φi, uk
+d) = 1 . Therefore, the
+particle position update formula is as follows:
+xI+1
+m(φi, uk
+d) =
+
+1,S(VI+1
+m)(φi, uk
+d)≥rand()
+&ismember (φi, uk
+d) = 1
+0, otherwise(32)
+S(VI+1
+m)is the probability that xI+1
+m is 1 and rand()is a
+random number in the interval [0,1]. Then the fitness value
+can be calculated by the following equation:
+f(XI+1
+m) =T(XI+1
+m) (33)
+IV. S IMULATION RESULTS
+To verify the effectiveness of FPC, extensive experiments
+are presented. The simulation platform is MATLAB. Four
+UA V formations are set up. Each formation has four UA Vs.
+Referring to [1], [7], [8], [16], [17], and the rest of the
+simulation parameters are shown in Table 1. The parameters
+of CSABPSO are set as: the number of particles M= 500 ,
+Imax= 1000 ,γ1=γ2= 1,µstart= 1.5, and µend= 0.5.
+Fig. 7 explores the relationship between task computational
+TABLE I
+SYSTEM PARAMETERS OF EUN
+Parameter Value Parameter Value
+(xoi, yoi) randomly in 4*4 km2area (zoi) [20, 100]m− →ωi [0.05, 0.8]rad/s Ri [40, 160]m
+ξLoS 3 dB f 2.4 GHz
+EIRP 20 dBm gr 3 dB
+B 20 MHz σ2-100 dBm
+Pe0 10−5Ci [500, 1200]MHz
+∆t 1s ηi 0.8
+complexity and processing delay. When EUN performs the
+task in Fig. 6 [1], the input data size is set to range from
+1 Mb to 5 Mb because the images have different resolutions
+and formats. The task computational complexity factor ranges
+from [100, 200] cycle/bit [8].
+From Fig. 7, it can be seen that with the same amount of
+data, the delay increases with the increase of computational
+Segmentation Denoising MergingBinarization Grayscale
+Grayscale BinarizationFig. 6. Image processing task model.
+complexity. Moreover, the impact of different input data sizes
+is different. For example, when the input data size is 1Mb, the
+total latency rises smoothly from 0.2375s to 0.4848s with the
+increase in computational complexity. However, in the case
+of 5Mb, the total latency jumps at computational complexity
+150 to 160. This is because when the data size is small,
+the task does not need to be processed across time slots,
+so the increase in computational complexity only makes the
+computational latency increase, and thus the total latency rises
+smoothly. However, when the data size is large, the increase in
+computational delay causes the task to be difficult to complete
+within the current time slot, at which point the data has to be
+cached to the next time slot for computation, which causes the
+transmission delay of the task to rise significantly, and thus the
+total latency shows a jump in growth.
+For the remote sensing image processing [15] and fire
+Fig. 7. Latency performance for different computational complexities.
+detection and tracking [18] tasks in real emergency scenarios,
+Fig. 9 compares the latency performance of cloud computing,
+local computing, and FPC. The DAG model and computational
+complexity of the two tasks are shown in Fig. 8.
+Image 
+collectionMedian 
+filteringColor model 
+conversion
+Threshold 
+segmentationMorphological 
+operationsBlob counter
+(a) Remote sensing image( α=100)
+Image 
+collectionClassification 
+and stabilizationImage fusionGeorec -
+tificationSmoke and 
+flame 
+recognition
+Gray -color 
+discretizationGeorec -
+tification
+(b) Fire detection tracking( α=200)
+Fig. 8. Actual emergency task DAG model.
+As can be seen from Fig. 9, the cloud computing curve is
+higher than the local computing and FPC as the input data size
+increases. The reason is that the cloud computing center is too
+far away, which leads to a linear increase in its transmission
+latency. In addition, the local computing latency is relatively
+lower than cloud computing but higher than FPC, which is due
+to the limited computing capability of user terminals, which
+
+--- Page 6 ---
+will cause higher computing latency. FPC offloads tasks to
+heterogeneous UA V swarms in the transmission path, which
+not only avoids the long-distance transmission of data but
+also unites the computing resources of UA V swarms, which
+reduces the computational latency. When the input data size is
+5Mb, the latency performance of FPC improves by 71.63 %and
+60.00 %compared with cloud computing and local computing.
+Therefore, FPC is suitable for delay-sensitive tasks in EUN.
+Fig. 10 compares the latency performance of the
+(a) Remote sensing image( α=100)
+ (b) Fire detection tracking( α=200)
+Fig. 9. Latency performance of three computation architectures.
+CSABPSO algorithm with typical load balancing algorithms,
+i.e., Weighted Rotation (WRR), Greedy Load Balancing
+(Greedy-LB), Pick-KX. It can be found that the difference
+between the four algorithms is not significant when the amount
+of data is small, but when the input data size increases, the
+latency of CSABPSO decreases significantly. For example,
+when EUN performs the remote sensing image processing task,
+under the condition that the input data size is 5Mb, the latency
+of CSABPSO, WRR, Greedy-LB, and Pick-KX are 0.8282s,
+1.3619s, 1.1241s, and 1.4174s. The latency of CSABPSO
+compared to the remaining three algorithms decreases by
+39.19 %, 26.32 %, and 41.57 %respectively. This is because
+the mapping strategy of WRR is based on the computational
+capability of the UA V , while Greedy-LB and Pick-KX are
+based on the load condition of the UA V , and all three ignore the
+effect of the transmission link. CSABPSO has a relatively high
+delay performance by considering the computational capability
+and the communication capability together.
+(a) Remote sensing image( α=100)
+ (b) Fire detection tracking( α=200)
+Fig. 10. Latency performance of different algorithms.
+V. C ONCLUSIONS
+In this paper, we proposed a finite state machines-based
+path-following collaborative computation strategy for emer-
+gency UA V swarms. First, the EFSMSG model was con-
+structed to achieve accurate characterization of on-board re-
+sources and state transitions while shielding the dynamicsof the EUN. Second, the mathematical model of the FPC
+strategy was constructed to transform the collaborative com-
+putation into the mapping from DAG to EFSMSG. Finally, the
+CSABPSO algorithm was proposed for solving the problem.
+Simulation results showed the effectiveness of our proposed
+FPC and algorithm in terms of latency.
+REFERENCES
+[1] B. Ma, Z. Ren, and W. Cheng, “Credibility computation offloading
+based task-driven routing strategy for emergency UA Vs network,” in
+2021 IEEE Global Communications Conference (GLOBECOM) , 2021,
+pp. 1-6.
+[2] B. Liu, W. Zhang, W. Chen, H. Huang, and S. Guo, “Online computation
+offloading and traffic routing for uav swarms in edge-cloud computing,”
+IEEE Transactions on Vehicular Technology , vol. 69, no. 8, pp. 8777-
+8791, 2020.
+[3] Z. Hong, H. Huang, S. Guo, W. Chen, and Z. Zheng, “QoS-aware
+cooperative computation offloading for robot swarms in cloud robotics,”
+IEEE Transactions on Vehicular Technology , vol. 68, no. 4, pp. 4027-
+4041, 2019.
+[4] T. Wang, Y . Li, and Y . Wu, “Energy-efficient UA V assisted secure relay
+transmission via cooperative computation offloading,” IEEE Transac-
+tions on Green Communications and Networking , vol. 5, no. 4, pp. 1669-
+1683, 2021.
+[5] H. Guo, Y . Wang, J. Liu, and C. Liu, “Multi-UA V cooperative task
+offloading and resource allocation in 5G advanced and beyond,” IEEE
+Transactions on Wireless Communications (Early Access) , pp. 1669-
+1683, 2023.
+[6] Y . Wang, H. Wang, X. Wei, K. Zhao, J. Fan, J. Chen, Y . Hu, and R. Jia,
+“Service function chain scheduling in heterogeneous multi-UA V edge
+computing,” Drones , vol. 7, no. 2, pp. 132, 2023.
+[7] R. -H. Cheng, Y . P. Hong, and J. -P. Sheu, “Power efficient temporal
+routing and trajectory adjustment for multi-UA V networks,” in ICC 2019
+- 2019 IEEE International Conference on Communications (ICC) , 2019,
+pp. 1-6.
+[8] N. Zhao, Z. Ye, Y . Pei, Y . -C. Liang, and D. Niyato, “Multi-agent deep
+reinforcement learning for task offloading in UA V-assisted mobile edge
+computing,” IEEE Transactions on Wireless Communications , vol. 21,
+no. 9, pp. 6949-6960, 2022.
+[9] Z. Cheng, M. Liwang, N. Chen, L. Huang, X. Du, and M. Guizani,
+“Deep reinforcement learning-based joint task and energy offloading in
+UA V-aided 6G intelligent edge networks,” Computer Communications ,
+vol. 192, pp. 234-244, 2022.
+[10] S. Zheng, Z. Ren, W. Cheng, and H. Zhang, “Minimizing the latency
+of embedding dependence-aware SFCs into mec network via graph the-
+ory,” in 2021 IEEE Global Communications Conference (GLOBECOM) ,
+2021, pp. 1-6.
+[11] P. Wang, X. Zhang, S. Zhang, H. Li, and T. Zhang, “Time-expanded
+graph-based resource allocation over the satellite networks,” IEEE Wire-
+less Communications Letters , vol. 8, no. 2, pp. 360-363, 2019.
+[12] Y . Zeng, R. Zhang, and T. J. Lim, “Wireless communications with
+unmanned aerial vehicles: opportunities and challenges,” IEEE Com-
+munications Magazine , vol. 54, no. 5, pp. 36-42, 2016.
+[13] Mengali, Umberto. Synchronization techniques for digital receivers.
+Springer Science &Business Media , 2013.
+[14] X. Xia. “Understanding turbo codes: A signal processing study,” Journal
+of Information and Intelligence , vol. 2, no. 1. pp. 1-13, 2024.
+[15] C. Yuan, Z. Liu, and Y . Zhang, “UA V-based forest fire detection and
+tracking using image processing techniques,” in 2015 International
+Conference on Unmanned Aircraft Systems (ICUAS) , 2015, pp. 639-643.
+[16] X. Wang, H. Liang, and P. Wang, “Detection and tracking of UA Vs
+using interferometric radar,” in 2019 International Radar Conference
+(RADAR) , 2019, pp. 1-6.
+[17] J. Wang, Z. Na, and X. Liu. “Collaborative design of multi-UA V
+trajectory and resource scheduling for 6G-enabled internet of things,”
+IEEE Internet of Things Journal , vol. 8, no. 20, pp. 15096-15106, 2020.
+[18] V . Sherstjuk, M. Zharikova, and I. Sokol, ”Forest fire monitoring system
+based on UA V team, remote sensing, and image processing,” in 2018
+IEEE Second International Conference on Data Stream Mining &
+Processing (DSMP) , 2018, pp. 590-594.

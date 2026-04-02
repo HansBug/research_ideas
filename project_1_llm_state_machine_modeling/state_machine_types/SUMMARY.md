@@ -12,13 +12,13 @@
 
 ## 当前收录统计
 
-- 已收录普通类型论文：**64** 篇
+- 已收录普通类型论文：**69** 篇
 - 已收录综述类论文：**10** 篇
 - 本轮新增论文：**5** 篇
-- 已完成 `desc.md`：**64** 篇
+- 已完成 `desc.md`：**69** 篇
 - 已完成 `survey.md`：**10** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮工作：新增 5 篇应用型状态机执行载体条目，覆盖 `MERLIN`、`rFSM Statecharts`、`Asynchronous WMR FSM Controller`、`Embodied Agent / Binary Decomposition + FIPA HFSM`、`SMACC Parcel Handling Supervisor`
+- 本轮工作：新增 5 篇应用型状态机执行载体条目，覆盖 `Eye-Hand FSM HRC`、`Hierarchical FSM Driving Decision Framework`、`FSM-CLF-CBF Lane Change Controller`、`Spacer Installation Harel Statechart`、`EFSMSG`
 
 ## 形式主义主类口径
 
@@ -31,7 +31,7 @@
 | 🌊 | 混成/随机扩展 | `Hybrid Automata`、概率/随机自动机、随机混成扩展等 | 3 |
 | 🕸️ | Petri 网与并发网模型 | `P/T Net`、`Colored Petri Net`、`Timed Petri Net`、高层网等 | 5 |
 | 🔌 | 接口/组合/契约模型 | `I/O Automata`、`Interface Automata`、`Contract Automata`、组合行为模型等 | 5 |
-| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 44 |
+| 📦 | 标准、交换格式与执行载体 | `SCXML`、`PNML`、`UML/XMI`、专用 DSL、元模型、交换标准等 | 49 |
 
 ## 描述客体口径
 
@@ -42,8 +42,8 @@
 | 📝 | 序列 / 语言对象 | 主要描述字符串、事件序列、trace、多串关系等离散序列对象 | 3 |
 | 🌳 | 树 / 文档对象 | 主要描述树结构、XML 文档、层次内容或其他树形对象 | 1 |
 | 🖼️ | 网格 / 图案对象 | 主要描述二维 tape、图片、网格或格点对象 | 2 |
-| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 40 |
-| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 11 |
+| 🎛️ | 控制 / 反应式逻辑 | 主要描述控制器、反应式行为、事件驱动控制逻辑 | 44 |
+| 🤝 | 接口 / 交互契约 | 主要描述协议、组件交互、会话、接口或契约对象 | 12 |
 | 🏭 | 并发过程 / 资源流 | 主要描述并发过程、工作流、token/资源流网络 | 4 |
 | 🌡️ | 物理 / 混成对象 | 主要描述物理装置、连续动力学对象或混成/CPS 对象 | 3 |
 
@@ -57,9 +57,9 @@
 | 💻 | 软件建模与程序行为 | 主要面向软件状态、程序行为、反应式软件或模型驱动开发 | 7 |
 | 📄 | 文档与数据交换 | 主要面向 XML、schema、文档结构与数据交换 | 0 |
 | ⏱️ | 实时与嵌入式系统 | 主要面向实时、调度、时序约束和嵌入式执行 | 8 |
-| 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 9 |
-| 🌐 | 协议 / 分布式 / 交互系统 | 主要面向通信协议、服务交互、接口组合与分布式行为 | 7 |
-| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 28 |
+| 🏭 | 工业控制与自动化 | 主要面向控制工程、自动化系统和工业逻辑 | 10 |
+| 🌐 | 协议 / 分布式 / 交互系统 | 主要面向通信协议、服务交互、接口组合与分布式行为 | 8 |
+| 🌡️ | CPS / 物理系统建模 | 主要面向连续物理过程、CPS、混成系统与物理仿真 | 31 |
 
 ## 状态口径
 
@@ -67,7 +67,7 @@
 
 | Emoji | 含义 | 数量 |
 |---|---|---:|
-| 🟢 | 直接可用 | 73 |
+| 🟢 | 直接可用 | 78 |
 | 🟡 | 可整理 | 1 |
 | ⚪ | 未收获 | 0 |
 | ⏳ | 尚未提取 | 0 |
@@ -88,7 +88,7 @@
 - 后续普通条目优先补**模型本体**与**标准/基础设施**，即定义、语义、构造方式、交换格式、元模型、工具链与标准材料。
 - 方法路线类论文或综述只作为辅助证据使用，前提是它们能说明某一形式主义“能做什么、如何落地、依赖什么基础设施”。
 - 应用/案例导向条目原则上不作为本 collection 的正式扩库方向，除非它同时补出了稳定的模型本体或基础设施证据。
-- 对 `SyncCharts / Argos / STATEMATE / SFC / Stateflow / StateGraph / Grafchart / RSML-SpecTRM / CHARON / Polychrony / RSML-e / JGrafchart + DPWS/FMI / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD / ARGO / Cortex / LLFSM / DSD / Safety4.0 / AutoPlant-SMACH / MERLIN / rFSM / SMACC / package handling / binary decomposition` 这类专用模型或执行载体，若能稳定回填“对象、语义、承载方式、工具入口”，可正式入账。
+- 对 `SyncCharts / Argos / STATEMATE / SFC / Stateflow / StateGraph / Grafchart / RSML-SpecTRM / CHARON / Polychrony / RSML-e / JGrafchart + DPWS/FMI / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD / ARGO / Cortex / LLFSM / DSD / Safety4.0 / AutoPlant-SMACH / MERLIN / rFSM / SMACC / package handling / binary decomposition / eye-hand FSM HRC / lane-change CBF FSM / electrical spacer statechart / autonomous driving hierarchical FSM / EFSMSG` 这类专用模型或执行载体，若能稳定回填“对象、语义、承载方式、工具入口”，可正式入账。
 
 ## 检索关键词簇
 
@@ -101,7 +101,7 @@
 - `hybrid automata / probabilistic automata / stochastic automata / stochastic hybrid automata`
 - `petri net / colored petri net / timed petri net / PNML / hierarchical petri net`
 - `interface automata / I-O automata / contract automata / reactive modules`
-- `communicating finite-state machine / workflow net / reactive modules / synccharts / argos / statemate / stateflow / sequential function chart / stategraph / grafchart / spectrm-rl / rsml / rsml-e / charon / polychrony / dpws / fmi / plexil / missionlab / cdl / xabsl / flexbe / visualhfsm / robosim / xrobots / smach / smacha / rafcon / robochart / yasmin / merlin / merlin2 / rfsm / smacc / scr / argo / cortex / llfsm / dynamic stack decider / safety4.0 / smach mission supervisor / autoplant / package handling / binary decomposition / companion robot / manoeuvre design language`
+- `communicating finite-state machine / workflow net / reactive modules / synccharts / argos / statemate / stateflow / sequential function chart / stategraph / grafchart / spectrm-rl / rsml / rsml-e / charon / polychrony / dpws / fmi / plexil / missionlab / cdl / xabsl / flexbe / visualhfsm / robosim / xrobots / smach / smacha / rafcon / robochart / yasmin / merlin / merlin2 / rfsm / smacc / scr / argo / cortex / llfsm / dynamic stack decider / safety4.0 / smach mission supervisor / autoplant / package handling / binary decomposition / companion robot / manoeuvre design language / human-robot collaborative assembly / eye-hand fsm / autonomous lane change cbf / electrical spacer / efsmsg / emergency uav swarms / autonomous driving hierarchical state machine`
 - `survey / review / tutorial / taxonomy / mapping study` + 上述形式主义关键词
 
 ### 已观察到的高命中特征
@@ -116,6 +116,7 @@
 - 精确语言名再叠加基础设施关键词命中率也很高，例如 `charon hybrid systems`、`polychrony mode automata`、`rsml-e nusmv`、`grafchart dpws`、`jgrafchart fmi`
 - 对执行载体 / 领域 DSL，精确名称直接定点检索效果很好，例如 `plexil nasa tm`、`missionlab cdl`、`rfsm statecharts`、`merlin rosplan smach`、`xabsl behavior engineering`、`flexbe behavior engine`、`visualhfsm jderobot`、`robosim robotics`、`rafcon task programming`、`robochart robotic applications`、`yasmin ros 2`、`argo cortex`、`llfsm whiteboard`、`dynamic stack decider`、`smacc package handling`、`autoplant smach`
 - 对车队协同行为，`platoon manoeuvre state machine` 太宽，绑定 `SEAD / MDL / leader perspective / gap close` 后命中显著提升
+- 对具体问题型应用条目，精确问题名与状态机词组合命中较好，例如 `human-robot collaborative assembly finite state machine`、`autonomous lane change control barrier function fsm`、`electrical spacer installation statechart`、`uav swarm efsmsg`
 
 ### 已观察到的低命中特征
 
@@ -126,7 +127,7 @@
 - 只搜 `reactive state machine` 容易漂到泛软件工程或教学材料，而不是具体载体论文
 - 只搜 `process control state machine` 容易漂到一般控制案例、PLC 教程或工艺说明，而不是语言/载体论文
 - 只搜 `service-oriented automation` 或 `co-simulation state machine` 容易漂到中间件综述和一般 `FMI` 框架，而不是具体状态机载体
-- 只搜 `robot / ros 2 state machine`、`space robot autonomy`、`human robot collaboration safety fsm`、`humanoid framework`、`package handling robot` 或 `robot simulation` 容易漂到课程项目、软件仓库说明或泛系统论文，难命中可入账条目
+- 只搜 `robot / ros 2 state machine`、`space robot autonomy`、`human robot collaboration safety fsm`、`humanoid framework`、`package handling robot`、`autonomous driving state machine`、`uav swarm state machine` 或 `robot simulation` 容易漂到课程项目、软件仓库说明或泛系统论文，难命中可入账条目
 
 ### 检索倾向调整
 
@@ -140,6 +141,7 @@
 - `SyncCharts / SFC / Stateflow / StateGraph / STATEMATE / Grafchart / SpecTRM-RL / CHARON / RSML-e / Polychrony / PLEXIL / MissionLab / XABSL / FlexBE / VisualHFSM / RoboSim / XRobots / SMACHA / RAFCON / RoboChart / YASMIN / SCR / SEAD / ARGO / LLFSM / DSD / Safety4.0 / AutoPlant / MERLIN / rFSM / SMACC` 这类工程载体更适合直接搜准确名称，而不适合先走宽泛的 `state machine` 关键词
 - `Reactive Modules / Argos` 这类语义与组合框架更适合用精确标题或作者名定点命中，否则容易与泛“module / reactive”关键词发生漂移
 - 对 `DPWS / FMI / NuSMV / GME / Polychrony / CLARAty / JSON MDL / manoeuvre catalogue / whiteboard / smach mission supervisor / dynamic risk assessment` 这类基础设施词，必须和精确形式主义名绑定检索，否则很容易被泛工具论文淹没
+- 对具体问题型应用模型，优先用“精确题目关键词 + pdf/proceedings/project page/preprint”检索，而不是只搜宽泛领域词
 
 ## 状态机类型论文总表
 
@@ -208,13 +210,18 @@
 | 55 | 📦 | 🎛️ | 🌡️ | `MERLIN` | 认知架构 / 规划-执行状态机桥接 | MERLIN a Cognitive Architecture for Service Robots | 2020 | 用 `ROSPlan + SMACH` 统一长期任务规划与 action 执行 | mission/planning/executive/reactive layers、`PDDL`、`actionlib`、replanning | `PDDL` + Goal Dispatcher/Executor `FSM` + action `FSMs` | `ROSPlan` + `SMACH` + `actionlib` + `SMACH Viewer` | 服务机器人、assistive robots、competition tasks | 需求需能写成 `PDDL` goals，且动作可封装为状态机执行单元 | 🟢 | [desc.md](./merlin-a-cognitive-architecture-for-service-robots/desc.md) |
 | 56 | 📦 | 🤝 | 🌡️ | `SEAD / MDL` | 领域特化框架 / 机动描述语言 | A Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions | 2021 | 把 platoon manoeuvre 统一成 leader-perspective 分层状态机与 JSON 描述 | idle states、action primitives、PME/RSM、SIM wrapper、MDL | idle states + sub-manoeuvres + `JSON MDL` | manoeuvre catalogue + MDL parser + simulation | 车队 join/split/lane-change/gap-close 协同行为 | 需求需存在 leader-follower 角色与 V2V 协同协议 | 🟢 | [desc.md](./hierarchical-state-machine-based-framework-for-platoon-manoeuvre-descriptions/desc.md) |
 | 57 | 📦 | 🎛️ | 🌡️ | `DSD` | 行为 DSL / 轻量决策框架 | DSD - Dynamic Stack Decider: A Lightweight Decision Making Framework for Robots and Software Agents | 2021 | 用栈式 `DSL` 把行为树式重评估和状态机式 statefulness 结合 | decision/action elements、reevaluation、interrupt、action sequences、traceable stack | `DSL` 描述 `DAG` + decision/action modules + runtime stack | open-source `DSD` + `ROS/rqt` visualization + reusable modules | 机器人与软件 agent 的高层行为控制 | 需求需频繁改控制流、持续检查前置条件并保留决策历史 | 🟢 | [desc.md](./dsd-dynamic-stack-decider/desc.md) |
-| 58 | 📦 | 🎛️ | ⏱️ | `Asynchronous WMR FSM Controller` | 移动机器人控制器 / 事件驱动 FSM | Design and Implementation of an Asynchronous Finite State Controller for Wheeled Mobile Robots | 2022 | 用 event-based `FSM` 协调轮式移动机器人车道跟踪与遇障换道 | obstacle guards、`PID/P` controller、orientation update、`Stateflow` deployment | `Stateflow` chart + sensor guards + `Simulink` blocks + `PWM` outputs | `Simulink/Stateflow` + `STM Nucleo` + ultrasonic/encoder sensors | 三车道避障、embedded control lab、教学原型 | 需求需可抽成有限车道状态，并接受阈值守卫与简化换道假设 | 🟢 | [desc.md](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/desc.md) |
-| 59 | 📦 | 🤝 | 🌐 | `Embodied Agent / Binary Decomposition + FIPA HFSM` | 通信优先设计方法 / agent-FSM 规格 | Communication-Focused Top-Down Design of Robotic Systems Based on Binary Decomposition | 2022 | 用 binary decomposition + `FIPA` protocol 规格化机器人系统控制器 | agent groups、ACL messages、`HFSM` content、protocol verification、`ROS` implementation | requirements tree + group decomposition + channels/protocols + agent `FSM/HFSM` | `IEEE FIPA ACL` + `OWL` + `ROS 1/RPC` + `ClassInterfaceInfo` | companion robot、多 agent task coordination | 系统需可拆为显式 agents，并把 conversation/protocol 当作一等对象建模 | 🟢 | [desc.md](./communication-focused-top-down-design-of-robotic-systems-based-on-binary-decomposition/desc.md) |
-| 60 | 📦 | 🎛️ | 🌡️ | `YASMIN` | `ROS 2` 状态机库 / 运行时载体 | YASMIN: Yet Another State MachINe library for ROS 2 | 2022 | 为 `ROS 2` 提供轻量 `FSM/HFSM` 行为层库 | blackboard、nested state machines、Python/C++、viewer | library API + shared blackboard + web viewer | GitHub repo + `ROS 2` integration + web viewer | 服务机器人行为控制与执行层编排 | 需求基于 `ROS 2` 且可用 `FSM/HFSM` 表达 | 🟢 | [desc.md](./yasmin-yet-another-state-machine/desc.md) |
-| 61 | 📦 | 🤝 | 🏭 | `Safety4.0 Dynamic FSM` | 安全模式框架 / 风险分析载体 | Towards safety4.0: A novel approach for flexible human-robot-interaction based on safety-related dynamic finite-state machine with multilayer operation modes | 2022 | 把 `HRI` 交互层级、operation clusters 与 safety functions 压成动态安全状态机 | multilayer modes、clustered states、safety guards、dynamic risk analysis | level planner + clustered modes + state graphs + safety-function formulas | dynamic risk assessment tool + `ISO 12100/10218/15066` mapping | 工业 `HRC/HRI` 工作站的安全规划与运行模式切换 | 需求需显式交互层级、协作模式和安全功能集合 | 🟢 | [desc.md](./towards-safety4-0-flexible-human-robot-interaction-based-on-safety-related-dynamic-finite-state-machine-with-multilayer-operation-modes/desc.md) |
-| 62 | 📦 | 🎛️ | 🏭 | `SMACC Parcel Handling Supervisor` | `SMACC` 应用监督器 / 工业拣放系统 | Robotic System for Post Office Package Handling | 2023 | 用 `SMACC` 监督器协调抓取位姿同步、路径规划与包裹拣放循环 | `Orthogonals/Clients/Events`、grasp pose、multi-PC sync、`MoveIt` integration | grasp pose + `SMACC` states + `ROS` parameter server + `MoveIt!` planning | `SMACC` + `MoveIt!` + `UR` driver + `Dex-Net` + `Zivid` | parcel sorting、industrial pick-place | 需求需有稳定 grasp pose 来源、重复循环流程和 `ROS` 栈执行环境 | 🟢 | [desc.md](./robotic-system-for-post-office-package-handling/desc.md) |
-| 63 | 📦 | 🎛️ | 🌡️ | `SMACH Mission Supervisor / AutoPlant` | 任务监督器 / 应用控制系统 | Design and Implementation of a Control System for an Autonomous Reforestation Machine Using Finite State Machines | 2023 | 用 `SMACH` 监督器协调造林机器的移动车体、吊机、规划器与种植单元 | hierarchical `FSM`、parallel states、ROS actions/services、digital twin、simulator | top-level `FSM` + submachines + status variables + client actions | `ROS` + `SMACH` + `MoveIt` + `RViz/URDF` + custom simulator | 自主造林机与林业作业流程控制 | 任务需可拆成顺序/并行动作并通过 outcomes 协调多个子系统 | 🟢 | [desc.md](./design-and-implementation-of-a-control-system-for-an-autonomous-reforestation-machine-using-finite-state-machines/desc.md) |
-| 64 | 📦 | 🎛️ | 🌡️ | `RoboChart / RoboTool` | 设计-验证-实现工具链 | Formal design, verification and implementation of robotic controller software via RoboChart and RoboTool | 2024 | 从 RoboChart 设计自动生成可验证、可执行的机器人控制软件架构 | metamodel、`Sense-Execute-Actuate`、channels、timers、C++ API | module/platform/controller/machine + generated classes | `RoboTool` + Eclipse + `CSP/FDR` + Gazebo/ROS bridge | exploration task、高可信机器人控制软件 | 需求可抽成显式平台接口与层次状态机 | 🟢 | [desc.md](./formal-design-verification-and-implementation-of-robotic-controller-software-via-robochart-and-robotool/desc.md) |
+| 58 | 📦 | 🎛️ | 🌡️ | `Hierarchical FSM Driving Decision Framework` | 自动驾驶行为规划 / 分层决策框架 | Decision making framework for autonomous vehicles driving behavior in complex scenarios via hierarchical state machine | 2021 | 用三层状态机把场景识别、行为评分和动作选择串成自动驾驶决策链 | scenario FSM、energy-efficiency function、state transition matrix、lane vacancy grid | 三层 `FSM` + 能效函数 + 转移矩阵 + `PreScan/Simulink` | `PreScan` + `MATLAB/Simulink` + GPS/radar sensing | 结构化道路自动驾驶行为决策 | 需求可分解为场景分类、候选行为评分和离散动作集 | 🟢 | [desc.md](./decision-making-framework-for-autonomous-vehicles-driving-behavior-in-complex-scenarios-via-hierarchical-state-machine/desc.md) |
+| 59 | 📦 | 🎛️ | 🏭 | `Eye-Hand FSM HRC` | `HRC` 交互控制器 / `VR` 装配状态机 | Human-Robot Collaborative Assembly Based on Eye-Hand and a Finite State Machine in a Virtual Environment | 2021 | 用眼-手共指与 `FSM` 组织对象选择、自动抓取和映射微调装配 | eye-hand trigger、`PRM` auto-capture、mapping mode、gesture classes | `Leap + Tobii + Unity/Simulink FSM + PRM` | `Leap Motion` + `Tobii` + `Unity` + `Simulink` + `UDP` | 虚拟协同装配、抓取搬运与精细放置 | 需求需可离散化对象/目标，并允许“自动搬运 + 人工微调”分工 | 🟢 | [desc.md](./human-robot-collaborative-assembly-based-on-eye-hand-and-a-finite-state-machine-in-a-virtual-environment/desc.md) |
+| 60 | 📦 | 🎛️ | 🌡️ | `FSM-CLF-CBF Lane Change Controller` | 安全关键控制器 / `FSM + CLF-CBF-QP` | Rule-Based Safety-Critical Control Design using Control Barrier Functions with Application to Autonomous Lane Change | 2021 | 用 `FSM` 切换 `CLF-CBF-QP` 约束组，实现可回退的安全关键变道控制 | `ACC/L/R/BL/BR`、safe-set switching、`CBF/CLF`、high-rate QP | `FSM` + kinematic bicycle model + `CLF-CBF-QP` | GitHub code + simulation videos + barrier-function toolchain | 高速/城市道路安全关键变道 | 需求需有稳定周车感知，并接受车道级机动与安全距离约束建模 | 🟢 | [desc.md](./rule-based-safety-critical-control-design-using-control-barrier-functions-with-application-to-autonomous-lane-change/desc.md) |
+| 61 | 📦 | 🎛️ | ⏱️ | `Asynchronous WMR FSM Controller` | 移动机器人控制器 / 事件驱动 FSM | Design and Implementation of an Asynchronous Finite State Controller for Wheeled Mobile Robots | 2022 | 用 event-based `FSM` 协调轮式移动机器人车道跟踪与遇障换道 | obstacle guards、`PID/P` controller、orientation update、`Stateflow` deployment | `Stateflow` chart + sensor guards + `Simulink` blocks + `PWM` outputs | `Simulink/Stateflow` + `STM Nucleo` + ultrasonic/encoder sensors | 三车道避障、embedded control lab、教学原型 | 需求需可抽成有限车道状态，并接受阈值守卫与简化换道假设 | 🟢 | [desc.md](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/desc.md) |
+| 62 | 📦 | 🤝 | 🌐 | `Embodied Agent / Binary Decomposition + FIPA HFSM` | 通信优先设计方法 / agent-FSM 规格 | Communication-Focused Top-Down Design of Robotic Systems Based on Binary Decomposition | 2022 | 用 binary decomposition + `FIPA` protocol 规格化机器人系统控制器 | agent groups、ACL messages、`HFSM` content、protocol verification、`ROS` implementation | requirements tree + group decomposition + channels/protocols + agent `FSM/HFSM` | `IEEE FIPA ACL` + `OWL` + `ROS 1/RPC` + `ClassInterfaceInfo` | companion robot、多 agent task coordination | 系统需可拆为显式 agents，并把 conversation/protocol 当作一等对象建模 | 🟢 | [desc.md](./communication-focused-top-down-design-of-robotic-systems-based-on-binary-decomposition/desc.md) |
+| 63 | 📦 | 🎛️ | 🌡️ | `YASMIN` | `ROS 2` 状态机库 / 运行时载体 | YASMIN: Yet Another State MachINe library for ROS 2 | 2022 | 为 `ROS 2` 提供轻量 `FSM/HFSM` 行为层库 | blackboard、nested state machines、Python/C++、viewer | library API + shared blackboard + web viewer | GitHub repo + `ROS 2` integration + web viewer | 服务机器人行为控制与执行层编排 | 需求基于 `ROS 2` 且可用 `FSM/HFSM` 表达 | 🟢 | [desc.md](./yasmin-yet-another-state-machine/desc.md) |
+| 64 | 📦 | 🤝 | 🏭 | `Safety4.0 Dynamic FSM` | 安全模式框架 / 风险分析载体 | Towards safety4.0: A novel approach for flexible human-robot-interaction based on safety-related dynamic finite-state machine with multilayer operation modes | 2022 | 把 `HRI` 交互层级、operation clusters 与 safety functions 压成动态安全状态机 | multilayer modes、clustered states、safety guards、dynamic risk analysis | level planner + clustered modes + state graphs + safety-function formulas | dynamic risk assessment tool + `ISO 12100/10218/15066` mapping | 工业 `HRC/HRI` 工作站的安全规划与运行模式切换 | 需求需显式交互层级、协作模式和安全功能集合 | 🟢 | [desc.md](./towards-safety4-0-flexible-human-robot-interaction-based-on-safety-related-dynamic-finite-state-machine-with-multilayer-operation-modes/desc.md) |
+| 65 | 📦 | 🎛️ | 🌡️ | `Spacer Installation Harel Statechart` | 安装任务状态图 / 专用 end-effector 控制器 | Autonomous Installation of Electrical Spacers on Power Lines Using Magnetic Localization and Special End Effector | 2023 | 用带超状态的安装状态图编排导线定位、servoing、工具旋转和夹具闭合 | superstates、pose guards、current threshold、magnetic localization | `Harel statechart` + `x_ap/x_pp/x_ip` + `ROS/MoveIt` | `ROS` + `MoveIt!` + `OMPL/RRT` + `smach_ros` + magnetometers | 电力线间隔棒自主安装 | 需求需有平行导线、专用末端执行器和可工作的磁定位前提 | 🟢 | [desc.md](./autonomous-installation-of-electrical-spacers-on-power-lines-using-magnetic-localization-and-special-end-effector/desc.md) |
+| 66 | 📦 | 🎛️ | 🏭 | `SMACC Parcel Handling Supervisor` | `SMACC` 应用监督器 / 工业拣放系统 | Robotic System for Post Office Package Handling | 2023 | 用 `SMACC` 监督器协调抓取位姿同步、路径规划与包裹拣放循环 | `Orthogonals/Clients/Events`、grasp pose、multi-PC sync、`MoveIt` integration | grasp pose + `SMACC` states + `ROS` parameter server + `MoveIt!` planning | `SMACC` + `MoveIt!` + `UR` driver + `Dex-Net` + `Zivid` | parcel sorting、industrial pick-place | 需求需有稳定 grasp pose 来源、重复循环流程和 `ROS` 栈执行环境 | 🟢 | [desc.md](./robotic-system-for-post-office-package-handling/desc.md) |
+| 67 | 📦 | 🎛️ | 🌡️ | `SMACH Mission Supervisor / AutoPlant` | 任务监督器 / 应用控制系统 | Design and Implementation of a Control System for an Autonomous Reforestation Machine Using Finite State Machines | 2023 | 用 `SMACH` 监督器协调造林机器的移动车体、吊机、规划器与种植单元 | hierarchical `FSM`、parallel states、ROS actions/services、digital twin、simulator | top-level `FSM` + submachines + status variables + client actions | `ROS` + `SMACH` + `MoveIt` + `RViz/URDF` + custom simulator | 自主造林机与林业作业流程控制 | 任务需可拆成顺序/并行动作并通过 outcomes 协调多个子系统 | 🟢 | [desc.md](./design-and-implementation-of-a-control-system-for-an-autonomous-reforestation-machine-using-finite-state-machines/desc.md) |
+| 68 | 📦 | 🤝 | 🌐 | `EFSMSG` | 协同计算模型 / 资源-状态图 | Finite State Machines-Based Path-Following Collaborative Computing Strategy for Emergency UAV Swarms | 2024 | 用扩展有限状态机空间时间图统一建模 `UAV` 资源状态、跨时隙链路和任务映射 | `EFSMSG`、task `DAG`、cross-slot caching、`CSABPSO` | `UAV FSM` + `SG/EFSMSG` + mapping matrix | `MATLAB` simulation + `CSABPSO` solver | 应急 `UAV` 群协同计算与低时延卸载 | 需求需有路径跟随编队、异构机载资源和可写成 `DAG` 的任务 | 🟢 | [desc.md](./finite-state-machines-based-path-following-collaborative-computing-strategy-for-emergency-uav-swarms/desc.md) |
+| 69 | 📦 | 🎛️ | 🌡️ | `RoboChart / RoboTool` | 设计-验证-实现工具链 | Formal design, verification and implementation of robotic controller software via RoboChart and RoboTool | 2024 | 从 RoboChart 设计自动生成可验证、可执行的机器人控制软件架构 | metamodel、`Sense-Execute-Actuate`、channels、timers、C++ API | module/platform/controller/machine + generated classes | `RoboTool` + Eclipse + `CSP/FDR` + Gazebo/ROS bridge | exploration task、高可信机器人控制软件 | 需求可抽成显式平台接口与层次状态机 | 🟢 | [desc.md](./formal-design-verification-and-implementation-of-robotic-controller-software-via-robochart-and-robotool/desc.md) |
 
 ## 综述类论文总表
 
@@ -308,6 +315,7 @@
 | 2026-04-02 01:32:17 | 扩展机器人行为工程与仿真工具链条目 | 新增 5 篇 `desc.md` 条目，覆盖 `FlexBE`、`VisualHFSM`、`RoboChart` 定时语义、`RoboSim`、`RoboChart/RoboTool` 设计到实现链路，并同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 | 2026-04-02 10:37:53 | 扩展应用型状态机执行载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `ARGO/Cortex`、`Embodied Agent / LLFSM + Whiteboard`、`DSD`、`Safety4.0 Dynamic FSM`、`AutoPlant/SMACH mission supervisor`；其中空间机器人条目的原始 PDF 链接已失效，本轮通过归档快照补齐原文后同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
 | 2026-04-02 11:42:41 | 继续扩展应用型状态机执行载体条目 | 新增 5 篇 `desc.md` 条目，覆盖 `MERLIN`、`rFSM Statecharts`、`Asynchronous WMR FSM Controller`、`Embodied Agent / Binary Decomposition + FIPA HFSM`、`SMACC Parcel Handling Supervisor`；本轮均重新联网检索并补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib` 与 `desc.md`，随后同步回填统计、关键词簇、普通论文总表与下一轮扩展方向 |
+| 2026-04-02 12:28:59 | 继续扩展应用型状态机执行载体条目 | 本轮重新联网筛查 `18+` 个候选后，正式新增 5 篇 `desc.md` 条目，覆盖 `Eye-Hand FSM HRC`、`Hierarchical FSM Driving Decision Framework`、`FSM-CLF-CBF Lane Change Controller`、`Spacer Installation Harel Statechart`、`EFSMSG`；全部补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib` 与 `desc.md`，并同步回填统计、关键词簇、普通论文总表 |
 
 ## 失败与阻塞记录
 
